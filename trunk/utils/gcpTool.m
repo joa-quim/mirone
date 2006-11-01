@@ -58,9 +58,11 @@ h_toolbar = findobj(handles.figure1,'Tag','FigureToolBar');
 uitoggletool('parent',h_toolbar,'Click',{@InsertPoint_Callback,handles}, ...
    'Tag','singlePoint','cdata',point_ico,'TooltipString','Insert point','Separator','on');
 uitoggletool('parent',h_toolbar,'Click',{@InsertPointAndPred_Callback,handles}, ...
-   'Tag','PointPred','cdata',single(pointPred_ico),'TooltipString','Insert point and prediction');
+   'Tag','PointPred','cdata',pointPred_ico,'TooltipString','Insert point and prediction');
 uipushtool('parent',h_toolbar,'Click',{@registerImage_Callback,handles},...
     'cdata',R_ico,'TooltipString','Register','Separator','on');
+uipushtool('parent',h_toolbar,'Click',{@registerSIFT_Callback,handles},...
+    'cdata',cerejas,'TooltipString','Automatic Registration','Separator','on');
 
 handles.origFig = [];       % We don't need the image copy anymore
 
@@ -72,10 +74,10 @@ else
     margAnotVer = 0;
     margAnotHor = 0;
 end
-sldT = 13;          % Slider thickness
-marg = 5;           % Horizontal margin between the axes(+slider) and the figure
-topMargin = 30;     % To accomudate the uis on top of the images
-windowsBar = 60;    % In fact I don't know
+sldT = 13;              % Slider thickness
+marg = 5;               % Horizontal margin between the axes(+slider) and the figure
+topMargin = 30;         % To accomudate the uis on top of the images
+windowsBar = 60;        % In fact I don't know
 LeastImageWidth = 360;  % Working value for a 800 pixels width screen
 screen = get(0, 'ScreenSize');
 MaxImageWidth = screen(3)/2 - (2*sldT+3*marg + 2*margAnotVer);  % Maximum image width supported in this screen
@@ -163,6 +165,21 @@ if (abs(aspectPixeis - aspectImg) > 1e-3)      % This axes was distorted
 end
 % ----------------
 
+% ------------- Here we must check if both images are indexed and with different cmaps
+if (ndims(I) == 2 && ndims(get(handles.grd_img,'cdata')) == 2)
+    pal = get(handles.figure1,'ColorMap');          % Current colormap (was set according to SlaveImage)
+    d_pal = 1;
+    if (numel(pal) == numel(handles.origCmap))
+        d_pal = pal - handles.origCmap;
+    end
+    if (any(d_pal(:)))                               % Color maps difer. The only solution it to convert the
+        Imaster = get(handles.hMasterImage,'CData'); % Master image to RGB, so that it won't be changed to the
+        Imaster = ind2rgb8(Imaster,handles.origCmap);% Slave's colormap
+        set(handles.hMasterImage,'CData',Imaster);
+    end
+end
+% ----------------
+
 % ---------------- Create the sliders
 pos1 = get(handles.axes1,'Pos');
 handles.slider1_ver = uicontrol('Units','pixels','Style','slider','Pos',[pos1(1)+pos1(3)+1 pos1(2) sldT pos1(4)+1]);
@@ -207,6 +224,9 @@ handles.isCoupled = [];
 
 hand_prev = guidata(handles.figure1);   % The geog type of the Master image is still in appdata
 handles.geog = hand_prev.geog;          % but the handles.geog contains the geog state of Slave img
+handles.Mhead = hand_prev.head;         %                   Same with the header
+handles.Shead  = handles.head;          %   Just to maintain name consistency
+handles.Mimage_type = hand_prev.image_type;
 set(handles.figure1,'Visible','on','pointer','arrow')
 guidata(handles.figure1,handles)
 
@@ -330,27 +350,27 @@ cmenuHand = uicontextmenu;      set(h, 'UIContextMenu', cmenuHand);
 ui_edit_polygon(h)    % Set edition functions
 uimenu(cmenuHand, 'Label', 'Remove GCP pair', 'Callback', {@remove_pair,handles,h});
 uimenu(cmenuHand, 'Label', 'Remove all GCPs', 'Callback', {@removeALLgcps,handles,h});
-uimenu(cmenuHand, 'Label', 'View GCPs table', 'Callback', {@show_gcp,handles,h});
+uimenu(cmenuHand, 'Label', 'View GCPs table', 'Callback', {@show_gcp,handles},'Sep','on');
 uimenu(cmenuHand, 'Label', 'Show GCP numbers', 'Callback', {@showGCPnumbers,handles},'Tag','GCPlab');
 % uimenu(cmenuHand, 'Label', 'Try fine tune GCPs', 'Callback', {@doCPcorr,handles},'Separator','on');
 uimenu(cmenuHand, 'Label', 'Save GCPs', 'Callback', {@doWriteGCPs,handles},'Separator','on');
 
 % -----------------------------------------------------------------------------------------
 function remove_pair(event,obj,handles,h)
-% Remove a pair of conjugated GCPs
-handles = guidata(handles.figure1);
-id = get(h,'UserData');
-hh = findobj(handles.figure1,'Type','line','UserData',id);
-delete(hh)
-np = size(handles.masterPoints,1);
-for (i = id:np)
-    hh = findobj(handles.figure1,'Type','line','UserData',i);
-    set(hh,'UserData',i-1)
-end
-handles.masterPoints(id,:) = [];
-handles.slavePoints(id,:) = [];
-handles.count = handles.count - 1;
-guidata(handles.figure1,handles)
+	% Remove a pair of conjugated GCPs
+	handles = guidata(handles.figure1);
+	id = get(h,'UserData');
+	hh = findobj(handles.figure1,'Type','line','UserData',id);
+	delete(hh)
+	np = size(handles.masterPoints,1);
+	for (i = id:np)
+        hh = findobj(handles.figure1,'Type','line','UserData',i);
+        set(hh,'UserData',i-1)
+	end
+	handles.masterPoints(id,:) = [];
+	handles.slavePoints(id,:) = [];
+	handles.count = handles.count - 1;
+	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
 function removeALLgcps(event,obj,handles,h)
@@ -393,11 +413,16 @@ handles.masterPoints = [xMasters yMasters];
 guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
-function show_gcp(event,obj,handles,h)
-% Display the GCPs in tableGUI
+function resMod = show_gcp(event,obj,handles, opt)
+% Display the GCPs in tableGUI, OR return the residues norm (no table show then)
+% OPT is used to NOT call getUpdatedCPs, because that function fishes the data
+% from figure. Instead, when OPT ~= [], we trust on data stored in handles
 
+if (nargin == 3),   opt = [];   end
 handles = guidata(handles.figure1);
-handles = getUpdatedCPs(handles);
+if (isempty(opt))
+    handles = getUpdatedCPs(handles);       % Points may have been edited
+end
 
 [tipo,to_order] = checkTransform(handles);
 if (isempty(tipo)),     return;    end      % Error message already issued
@@ -417,15 +442,20 @@ end
 
 [x,y] = transform_fun('tformfwd',trf,handles.slavePoints(:,1),handles.slavePoints(:,2));
 if (handles.geog)
-    residue = vdist_vectorized(handles.masterPoints(:,2),handles.masterPoints(:,1), y, x);
+    resMod = vdist_vectorized(handles.masterPoints(:,2),handles.masterPoints(:,1), y, x);
     str_res = 'Residue (m)';
 else
     residue = [handles.masterPoints(:,1) handles.masterPoints(:,2)] - [x y];
-    residue = sqrt(residue(:,1).^2 + residue(:,2).^2);
+    resMod = sqrt(residue(:,1).^2 + residue(:,2).^2);
     str_res = 'Residue (?)';
 end
-gcp = [handles.masterPoints handles.slavePoints residue];
-FigName = ['GCP Table - ' tipo{:} ' - Total Res = ' num2str(sum(residue))];
+
+if (nargout == 1)       % Just return the norm of the residues
+    return
+end
+
+gcp = [handles.masterPoints handles.slavePoints resMod];
+FigName = ['GCP Table - ' tipo{:} ' - RMS Res = ' num2str( sqrt(sum(resMod.^2))/sqrt(length(resMod)) )];
 out = tableGUI('array',gcp,'RowNumbers','y','ColNames',{'Master Points - X','Master Points - Y',...
         'Slave Points - X','Slave Points - Y',str_res},'ColWidth',100,'FigName',FigName,'modal','');
 
@@ -480,6 +510,189 @@ else                % Just return the tform structure
     %
 end
 
+% ---------------------------------------------------------------------------
+function [ties,nPts] = registerSIFTautopano_Callback(img_l,img_r,handles)
+
+    set(handles.figure1,'pointer','watch')
+    imwrite(img_l,'lixoleft.jpg','Quality',100);
+    imwrite(img_r,'lixoright.jpg','Quality',100);
+
+    tmp{1} = '@echo off';
+    tmp{2} = 'generatekeys lixoleft.jpg keyfile_left.xml.gz 1500';
+    tmp{3} = 'generatekeys lixoright.jpg keyfile_right.xml.gz 1500';
+    tmp{4} = 'autopano --maxmatches 50 --disable-areafilter outputa.pto keyfile_right.xml.gz keyfile_left.xml.gz';
+    fname = 'corre_autopano.bat';
+    fid = fopen(fname,'wt');
+    for (i = 1:4),   fprintf(fid,'%s\n',tmp{i});   end
+    fclose(fid);
+    %dos([fname ' &']);
+    dos(fname);
+    %system(fname);
+    delete('keyfile_left.xml.gz');      delete('keyfile_right.xml.gz');
+    delete('lixoright.jpg');            delete('lixoleft.jpg');
+    fid=fopen('outputa.pto','r');
+    todos = fread(fid,'*char');         fclose(fid);
+    txt=strread(todos,'%s');    
+    txt(1:61) = [];
+    txt(end-2:end) = [];
+    nPts = numel(txt) / 8;
+    idx = repmat([true(4,1); false(4,1)],nPts,1);
+    txt(idx) = [];
+    txt = char(txt);
+    txt = txt(:,2:end);                 % Uf1, we finaly have numbers only, though they are still strings
+    ties = str2num(txt);
+    ties = reshape(ties',4,nPts)';      % Uf2, ties is now a nx4 array
+    set(handles.figure1,'pointer','arrow')
+        
+% ---------------------------------------------------------------------------
+function trf = registerSIFT_Callback(hObject,event,handles)
+
+    set(handles.figure1,'pointer','watch')
+	handles = guidata(handles.figure1);
+	imgM = get(handles.hMasterImage,'CData');
+	imgS = get(handles.hSlaveImage,'CData');
+        
+	if (ndims(imgM) == 3),      imgM = cvlib_mex('color',imgM,'rgb2gray');    end
+	%if (ndims(imgM) == 3),      imgM = imgM(:,:,1);    end
+	if (ndims(imgS) == 3),      imgS = cvlib_mex('color',imgS,'rgb2gray');    end
+    [mM,nM] = size(imgM);       [mS,nS] = size(imgS);
+%     if (mM > 1750 || nM > 1750)
+%         reductionFactor = 1/6;
+%         imgM = img_fun('imresize',imgM,reductionFactor);
+%     end
+%     if (mS > 1750 || nS > 1750)
+%         reductionFactor = 1/6;
+%         imgS = img_fun('imresize',imgS,reductionFactor);
+%     end
+% 	[xy_match,nPts] = match(imgM,imgS);         % xy_match has coordinates in pixels (y pos down, arrgh!!)
+
+    [xy_match,nPts] = registerSIFTautopano_Callback(imgS,imgM,handles);
+
+    %nPts
+    if (nPts == 0)
+        warndlg('Sorry, I was not able to find any matching points between the two images. Quiting','Warning')
+        set(handles.figure1,'pointer','arrow')
+        return
+    end
+    
+%     % Test if images have coordinates. If they do convert pixel coords to image coords
+%     % Fisrst the Master image
+    %if ( any([handles.Mhead(1:4) - getappdata(handles.axes1,'ThisImageLims')]) > 2 )
+    if (  handles.Mimage_type ~= 2 && handles.Mimage_type ~= 20)
+        % Convert pixel to x,y coordinates
+        x_inc = handles.Mhead(8);    y_inc = handles.Mhead(9);
+        x_min = handles.Mhead(1);    y_min = handles.Mhead(3);
+        if (handles.Mhead(7))            % Work in grid registration
+            x_min = x_min + x_inc/2;
+            y_min = y_min + y_inc/2;
+        end
+        xy_match(:,1) = (xy_match(:,1)-1) * x_inc + x_min;
+        xy_match(:,2) = (xy_match(:,2)-1) * y_inc + y_min;
+    end
+    % And now the Slave image
+    %if ( any([handles.Shead(1:4) - getappdata(handles.axes2,'ThisImageLims')]) > 2 )
+    if ( handles.image_type ~= 2 )
+        % Convert pixel to x,y coordinates
+        x_inc = handles.Shead(8);    y_inc = handles.Shead(9);
+        x_min = handles.Shead(1);    y_min = handles.Shead(3);
+        if (handles.Shead(7))            % Work in grid registration
+            x_min = x_min + x_inc/2;
+            y_min = y_min + y_inc/2;
+        end
+        xy_match(:,3) = (xy_match(:,3)-1) * x_inc + x_min;
+        xy_match(:,4) = (xy_match(:,4)-1) * y_inc + y_min;
+    end
+    
+    % Compute the residues of the transformation and sort the keypoints
+    % based on the them. This way we will only retain starting by the best points.
+    handles.masterPoints = [xy_match(:,1) xy_match(:,2)];
+    handles.slavePoints  = [xy_match(:,3) xy_match(:,4)];
+    handles.count = size(xy_match,1);
+    handles.isCoupled = 1;
+    guidata(handles.figure1,handles)            % Need to save because it will be retrieved in show_gcp
+    if (nPts >= 3)
+        resMod = show_gcp([],[],handles,'No');
+        disp(['RMS = ' num2str(norm(resMod) / sqrt(handles.count))])
+        [resMod,id] = sort(resMod);    
+        xy_match = xy_match(id,:);
+    end
+    
+    if (nPts > 50),   xy_match(51:end,:) = [];    end
+    nPts   = size(xy_match,1);
+    
+    x1M = xy_match(:,1);        y1M = xy_match(:,2);
+    x1S = xy_match(:,3);        y1S = xy_match(:,4);
+    
+    handles.masterPoints = [x1M y1M];
+    handles.slavePoints  = [x1S y1S];
+    handles.isCoupled = 1;
+    handles.count = nPts;
+    
+    
+%     [x2S,y2S] = axes2axes(handles,x1M,y1M,1);
+%     [x2M,y2M] = axes2axes(handles,x1S,y1S,2);
+%     
+%     [xM,yM] = axes2axes(handles,x2S,y2S,2);
+%     [xS,yS] = axes2axes(handles,x2M,y2M,1);
+    
+    delete(findobj(handles.figure1,'Tag','GCPSymbol'))
+    
+    for (i = 1:nPts)
+        %h = line([x1M(i) x2M(i)],[y1M(i) y2M(i)],'Parent',handles.axes1,'Marker','o','MarkerFaceColor','y',...
+        h = line(x1M(i),y1M(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','y',...
+            'MarkerEdgeColor','k','MarkerSize',6,'Tag','GCPSymbol','UserData',i);
+        set_gcp_uicontext(handles,h)
+        
+%         line(xM(i),yM(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','r',...
+%             'MarkerEdgeColor','k','MarkerSize',6,'Tag','GCPSymbol');
+        
+        %h = line([x1S(i) x2S(i)],[y1S(i) y2S(i)],'Parent',handles.axes2,'Marker','o','MarkerFaceColor','y',...
+        h = line(x1S(i),y1S(i),'Parent',handles.axes2,'Marker','o','MarkerFaceColor','y',...
+            'MarkerEdgeColor','k','MarkerSize',6,'Tag','GCPSymbol','UserData',i);
+        set_gcp_uicontext(handles,h)
+        
+%         line(xS(i),yS(i),'Parent',handles.axes2,'Marker','o','MarkerFaceColor','b',...
+%             'MarkerEdgeColor','k','MarkerSize',6,'Tag','GCPSymbol');
+    end
+    handles.hLastPt = h;
+    set(handles.figure1,'pointer','arrow')
+    guidata(handles.figure1,handles)
+    
+% ---------------------------------------------------------------------------
+function [x,y] = axes2axes(handles,x,y,opt)
+    axMpos = get(handles.axes1,'Pos');
+    axSpos = get(handles.axes2,'Pos');
+	dimM = [size(get(handles.hMasterImage,'CData'),2) size(get(handles.hMasterImage,'CData'),1)];
+	dimS = [size(get(handles.hSlaveImage,'CData'),2) size(get(handles.hSlaveImage,'CData'),1)];
+    xx = x;yy=y;
+    if (opt == 1)       % x,y are in Master axes
+        x = axMpos(1) + x / dimM(1) * axMpos(3);            % Pixels in the figure reference
+        y = axMpos(2) + (dimM(2)-y) / dimM(2) * axMpos(4);  % Pixels in the figure reference
+        % Now compute pixels relatively to Slave image
+        
+        rSx  = dimS(1) / axSpos(3);
+        Sllf = axSpos(1);
+        x    = rSx * (x - Sllf);
+        rSy  = dimS(2) / axSpos(4);
+        Surf = axSpos(4);
+        y    = rSy * (Surf  - y);
+        %y    = rSy * Surf  - y;
+% xx
+% x
+% yy,y
+    else                % x,y are in Slave axes
+        x = axSpos(1) + x / dimS(1) * axSpos(3);    % Pixels relatively to figure
+        y = axSpos(2) + (dimS(2)-y) / dimS(2) * axSpos(4);    % Pixels relatively to figure
+        % Now compute pixels relatively to Master image
+        
+        rMx  = dimM(1) / axMpos(3);
+        Mllf = axMpos(1);
+        x    = rMx * (x - Mllf);
+        rMy  = dimM(2) / axMpos(4);
+        Murf = axMpos(4);
+        y    = rMy * (Murf  - y);
+        
+    end
 % ---------------------------------------------------------------------------
 function [tipo,transf] = checkTransform(handles)
 % Check that the number of points is enough for the selected transform
@@ -642,3 +855,132 @@ else
     end
 end
 guidata(handles.figure1,handles)
+
+% ----------------------------------------------------------------------------------
+function [image, descriptors, locs] = sift(image)
+%
+% This function reads an image and returns its SIFT keypoints.
+%   Input parameters:
+%     imageFile: the file name for the image.
+%
+%   Returned:
+%     image: the image array in double format
+%     descriptors: a K-by-128 matrix, where each row gives an invariant
+%         descriptor for one of the K keypoints.  The descriptor is a vector
+%         of 128 values normalized to unit length.
+%     locs: K-by-4 matrix, in which each row has the 4 values for a
+%         keypoint location (row, column, scale, orientation).  The 
+%         orientation is in the range [-PI, PI] radians.
+%
+% Credits: Thanks for initial version of this program to D. Alvaro and 
+%          J.J. Guerrero, Universidad de Zaragoza (modified by D. Lowe)
+
+
+% Load image
+% image = imread(imageFile);
+
+% If you have the Image Processing Toolbox, you can uncomment the following
+%   lines to allow input of color images, which will be converted to grayscale.
+% if isrgb(image)
+%    image = rgb2gray(image);
+% end
+
+[rows, cols] = size(image); 
+
+% Convert into PGM imagefile, readable by "keypoints" executable
+f = fopen('tmpora.pgm', 'w');
+if f == -1
+    error('Could not create file tmp.pgm.');
+end
+fprintf(f, 'P5\n%d\n%d\n255\n', cols, rows);
+fwrite(f, image', 'uint8');
+fclose(f);
+
+% Call keypoints executable
+if isunix
+    command = '!./sift ';
+else
+    command = '!siftWin32 ';
+end
+command = [command ' < tmpora.pgm > tmpora.kiy'];
+eval(command);
+
+% Open tmp.key and check its header
+g = fopen('tmpora.kiy', 'r');
+if g == -1
+    error('Could not open file tmpora.kiy.');
+end
+[header, count] = fscanf(g, '%d %d', [1 2]);
+if count ~= 2
+    error('Invalid keypoint file beginning.');
+end
+num = header(1);
+len = header(2);
+if len ~= 128
+    error('Keypoint descriptor length invalid (should be 128).');
+end
+
+% Creates the two output matrices (use known size for efficiency)
+locs = double(zeros(num, 4));
+descriptors = double(zeros(num, 128));
+
+% Parse tmp.key
+for i = 1:num
+    [vector, count] = fscanf(g, '%f %f %f %f', [1 4]); %row col scale ori
+    if count ~= 4
+        error('Invalid keypoint file format');
+    end
+    locs(i, :) = vector(1, :);
+    
+    [descrip, count] = fscanf(g, '%d', [1 len]);
+    if (count ~= 128)
+        error('Invalid keypoint file value.');
+    end
+    % Normalize each input vector to unit length
+    descrip = descrip / sqrt(sum(descrip.^2));
+    descriptors(i, :) = descrip(1, :);
+end
+fclose(g);  delete('tmpora.kiy');   delete('tmpora.pgm')
+
+% ----------------------------------------------------------------------------------
+function [xy_match,num] = match(image1, image2)
+%
+% This function takes two images, finds their SIFT features.
+%   A match is accepted only if its distance is less than distRatio times the
+%   distance to the second closest match.
+% It returns the number of matches displayed.
+% XY_MATCH = Mx4 -> [x1 y1 x2 y2]
+
+% Find SIFT keypoints for each image
+[im1, des1, loc1] = sift(image1);
+[im2, des2, loc2] = sift(image2);
+
+% For efficiency in Matlab, it is cheaper to compute dot products between
+%  unit vectors rather than Euclidean distances.  Note that the ratio of 
+%  angles (acos of dot products of unit vectors) is a close approximation
+%  to the ratio of Euclidean distances for small angles.
+%
+% distRatio: Only keep matches in which the ratio of vector angles from the
+%   nearest to second nearest neighbor is less than distRatio.
+% distRatio = 0.6;   
+% 
+% % For each descriptor in the first image, select its match to second image.
+% des2t = des2';                          % Precompute matrix transpose
+% match = zeros(size(des1,1),1);
+% for i = 1 : size(des1,1)
+%    dotprods = des1(i,:) * des2t;        % Computes vector of dot products
+%    [vals,indx] = sort(acos(dotprods));  % Take inverse cosine and sort results
+% 
+%    % Check if nearest neighbor has angle less than distRatio times 2nd.
+%    if (vals(1) < distRatio * vals(2))
+%       match(i) = indx(1);  
+%    end
+% end
+% 
+% id = match > 0;
+% xy_match = [loc1(id,2) loc1(id,1) loc2(match(id),2) loc2(match(id),1)];
+% num = sum(match > 0);
+
+matches=siftmatch(uint8(des1*512)',uint8(des2*512)',3);
+xy_match = [loc1(matches(1,:),2) loc1(matches(1,:),1) loc2(matches(2,:),2) loc2(matches(2,:),1)];
+num = size(xy_match,1);
