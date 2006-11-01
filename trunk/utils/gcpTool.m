@@ -553,22 +553,11 @@ function trf = registerSIFT_Callback(hObject,event,handles)
 	imgS = get(handles.hSlaveImage,'CData');
         
 	if (ndims(imgM) == 3),      imgM = cvlib_mex('color',imgM,'rgb2gray');    end
-	%if (ndims(imgM) == 3),      imgM = imgM(:,:,1);    end
 	if (ndims(imgS) == 3),      imgS = cvlib_mex('color',imgS,'rgb2gray');    end
     [mM,nM] = size(imgM);       [mS,nS] = size(imgS);
-%     if (mM > 1750 || nM > 1750)
-%         reductionFactor = 1/6;
-%         imgM = img_fun('imresize',imgM,reductionFactor);
-%     end
-%     if (mS > 1750 || nS > 1750)
-%         reductionFactor = 1/6;
-%         imgS = img_fun('imresize',imgS,reductionFactor);
-%     end
-% 	[xy_match,nPts] = match(imgM,imgS);         % xy_match has coordinates in pixels (y pos down, arrgh!!)
 
     [xy_match,nPts] = registerSIFTautopano_Callback(imgS,imgM,handles);
 
-    %nPts
     if (nPts == 0)
         warndlg('Sorry, I was not able to find any matching points between the two images. Quiting','Warning')
         set(handles.figure1,'pointer','arrow')
@@ -577,7 +566,6 @@ function trf = registerSIFT_Callback(hObject,event,handles)
     
 %     % Test if images have coordinates. If they do convert pixel coords to image coords
 %     % Fisrst the Master image
-    %if ( any([handles.Mhead(1:4) - getappdata(handles.axes1,'ThisImageLims')]) > 2 )
     if (  handles.Mimage_type ~= 2 && handles.Mimage_type ~= 20)
         % Convert pixel to x,y coordinates
         x_inc = handles.Mhead(8);    y_inc = handles.Mhead(9);
@@ -590,7 +578,6 @@ function trf = registerSIFT_Callback(hObject,event,handles)
         xy_match(:,2) = (xy_match(:,2)-1) * y_inc + y_min;
     end
     % And now the Slave image
-    %if ( any([handles.Shead(1:4) - getappdata(handles.axes2,'ThisImageLims')]) > 2 )
     if ( handles.image_type ~= 2 )
         % Convert pixel to x,y coordinates
         x_inc = handles.Shead(8);    y_inc = handles.Shead(9);
@@ -627,32 +614,17 @@ function trf = registerSIFT_Callback(hObject,event,handles)
     handles.slavePoints  = [x1S y1S];
     handles.isCoupled = 1;
     handles.count = nPts;
-    
-    
-%     [x2S,y2S] = axes2axes(handles,x1M,y1M,1);
-%     [x2M,y2M] = axes2axes(handles,x1S,y1S,2);
-%     
-%     [xM,yM] = axes2axes(handles,x2S,y2S,2);
-%     [xS,yS] = axes2axes(handles,x2M,y2M,1);
-    
+        
     delete(findobj(handles.figure1,'Tag','GCPSymbol'))
     
     for (i = 1:nPts)
-        %h = line([x1M(i) x2M(i)],[y1M(i) y2M(i)],'Parent',handles.axes1,'Marker','o','MarkerFaceColor','y',...
         h = line(x1M(i),y1M(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','y',...
             'MarkerEdgeColor','k','MarkerSize',6,'Tag','GCPSymbol','UserData',i);
         set_gcp_uicontext(handles,h)
         
-%         line(xM(i),yM(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','r',...
-%             'MarkerEdgeColor','k','MarkerSize',6,'Tag','GCPSymbol');
-        
-        %h = line([x1S(i) x2S(i)],[y1S(i) y2S(i)],'Parent',handles.axes2,'Marker','o','MarkerFaceColor','y',...
         h = line(x1S(i),y1S(i),'Parent',handles.axes2,'Marker','o','MarkerFaceColor','y',...
             'MarkerEdgeColor','k','MarkerSize',6,'Tag','GCPSymbol','UserData',i);
         set_gcp_uicontext(handles,h)
-        
-%         line(xS(i),yS(i),'Parent',handles.axes2,'Marker','o','MarkerFaceColor','b',...
-%             'MarkerEdgeColor','k','MarkerSize',6,'Tag','GCPSymbol');
     end
     handles.hLastPt = h;
     set(handles.figure1,'pointer','arrow')
@@ -676,10 +648,6 @@ function [x,y] = axes2axes(handles,x,y,opt)
         rSy  = dimS(2) / axSpos(4);
         Surf = axSpos(4);
         y    = rSy * (Surf  - y);
-        %y    = rSy * Surf  - y;
-% xx
-% x
-% yy,y
     else                % x,y are in Slave axes
         x = axSpos(1) + x / dimS(1) * axSpos(3);    % Pixels relatively to figure
         y = axSpos(2) + (dimS(2)-y) / dimS(2) * axSpos(4);    % Pixels relatively to figure
@@ -856,131 +824,3 @@ else
 end
 guidata(handles.figure1,handles)
 
-% ----------------------------------------------------------------------------------
-function [image, descriptors, locs] = sift(image)
-%
-% This function reads an image and returns its SIFT keypoints.
-%   Input parameters:
-%     imageFile: the file name for the image.
-%
-%   Returned:
-%     image: the image array in double format
-%     descriptors: a K-by-128 matrix, where each row gives an invariant
-%         descriptor for one of the K keypoints.  The descriptor is a vector
-%         of 128 values normalized to unit length.
-%     locs: K-by-4 matrix, in which each row has the 4 values for a
-%         keypoint location (row, column, scale, orientation).  The 
-%         orientation is in the range [-PI, PI] radians.
-%
-% Credits: Thanks for initial version of this program to D. Alvaro and 
-%          J.J. Guerrero, Universidad de Zaragoza (modified by D. Lowe)
-
-
-% Load image
-% image = imread(imageFile);
-
-% If you have the Image Processing Toolbox, you can uncomment the following
-%   lines to allow input of color images, which will be converted to grayscale.
-% if isrgb(image)
-%    image = rgb2gray(image);
-% end
-
-[rows, cols] = size(image); 
-
-% Convert into PGM imagefile, readable by "keypoints" executable
-f = fopen('tmpora.pgm', 'w');
-if f == -1
-    error('Could not create file tmp.pgm.');
-end
-fprintf(f, 'P5\n%d\n%d\n255\n', cols, rows);
-fwrite(f, image', 'uint8');
-fclose(f);
-
-% Call keypoints executable
-if isunix
-    command = '!./sift ';
-else
-    command = '!siftWin32 ';
-end
-command = [command ' < tmpora.pgm > tmpora.kiy'];
-eval(command);
-
-% Open tmp.key and check its header
-g = fopen('tmpora.kiy', 'r');
-if g == -1
-    error('Could not open file tmpora.kiy.');
-end
-[header, count] = fscanf(g, '%d %d', [1 2]);
-if count ~= 2
-    error('Invalid keypoint file beginning.');
-end
-num = header(1);
-len = header(2);
-if len ~= 128
-    error('Keypoint descriptor length invalid (should be 128).');
-end
-
-% Creates the two output matrices (use known size for efficiency)
-locs = double(zeros(num, 4));
-descriptors = double(zeros(num, 128));
-
-% Parse tmp.key
-for i = 1:num
-    [vector, count] = fscanf(g, '%f %f %f %f', [1 4]); %row col scale ori
-    if count ~= 4
-        error('Invalid keypoint file format');
-    end
-    locs(i, :) = vector(1, :);
-    
-    [descrip, count] = fscanf(g, '%d', [1 len]);
-    if (count ~= 128)
-        error('Invalid keypoint file value.');
-    end
-    % Normalize each input vector to unit length
-    descrip = descrip / sqrt(sum(descrip.^2));
-    descriptors(i, :) = descrip(1, :);
-end
-fclose(g);  delete('tmpora.kiy');   delete('tmpora.pgm')
-
-% ----------------------------------------------------------------------------------
-function [xy_match,num] = match(image1, image2)
-%
-% This function takes two images, finds their SIFT features.
-%   A match is accepted only if its distance is less than distRatio times the
-%   distance to the second closest match.
-% It returns the number of matches displayed.
-% XY_MATCH = Mx4 -> [x1 y1 x2 y2]
-
-% Find SIFT keypoints for each image
-[im1, des1, loc1] = sift(image1);
-[im2, des2, loc2] = sift(image2);
-
-% For efficiency in Matlab, it is cheaper to compute dot products between
-%  unit vectors rather than Euclidean distances.  Note that the ratio of 
-%  angles (acos of dot products of unit vectors) is a close approximation
-%  to the ratio of Euclidean distances for small angles.
-%
-% distRatio: Only keep matches in which the ratio of vector angles from the
-%   nearest to second nearest neighbor is less than distRatio.
-% distRatio = 0.6;   
-% 
-% % For each descriptor in the first image, select its match to second image.
-% des2t = des2';                          % Precompute matrix transpose
-% match = zeros(size(des1,1),1);
-% for i = 1 : size(des1,1)
-%    dotprods = des1(i,:) * des2t;        % Computes vector of dot products
-%    [vals,indx] = sort(acos(dotprods));  % Take inverse cosine and sort results
-% 
-%    % Check if nearest neighbor has angle less than distRatio times 2nd.
-%    if (vals(1) < distRatio * vals(2))
-%       match(i) = indx(1);  
-%    end
-% end
-% 
-% id = match > 0;
-% xy_match = [loc1(id,2) loc1(id,1) loc2(match(id),2) loc2(match(id),1)];
-% num = sum(match > 0);
-
-matches=siftmatch(uint8(des1*512)',uint8(des2*512)',3);
-xy_match = [loc1(matches(1,:),2) loc1(matches(1,:),1) loc2(matches(2,:),2) loc2(matches(2,:),1)];
-num = size(xy_match,1);
