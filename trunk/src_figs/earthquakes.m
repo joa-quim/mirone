@@ -1,0 +1,1041 @@
+function varargout = earthquakes(varargin)
+% M-File changed by desGUIDE 
+% varargin   command line arguments to earthquakes (see VARARGIN)
+
+%	Copyright (c) 2004-2006 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+ 
+hObject = figure('Tag','figure1','Visible','off');
+handles = guihandles(hObject);
+guidata(hObject, handles);
+earthquakes_LayoutFcn(hObject,handles);
+handles = guihandles(hObject);
+
+global home_dir
+handles.got_userFile = 0;
+
+movegui(hObject,'east')
+% Case when this function was called directly
+if isempty(home_dir),   home_dir = pwd;     end
+
+if (~isempty(varargin))
+    handles.mirone_fig = varargin{1};    handles.mirone_axes = varargin{2};
+    zz = get(varargin{2},'XLim');
+    handles.x_min = zz(1);    handles.x_max = zz(2);
+    zz = get(varargin{2},'YLim');
+    handles.y_min = zz(1);    handles.y_max = zz(2);
+else
+    return
+end
+handles.path_data = [home_dir filesep 'data' filesep];
+
+if (strcmp(varargin{3},'external'))     % Read an external file mode
+	% Import icons
+    load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
+	set(handles.pushbutton_externalFile,'CData',Mfopen_ico)
+	clear Mfopen_ico;
+    % Fill the listbox fields with the currently available reading filters
+    str = {'ISF formated catalog (ascii)'; 'Posit file'; 'lon,lat,mag,dep,yy,mm,dd,hh,mm,ss'; 'lon,lat,dep,mag,yy,mm,dd'};
+    set(handles.listbox_readFilter,'String',str)
+    handles.use_default_file = 0;
+else        % Use the default file shiped with Mirone
+    set(handles.listbox_readFilter,'String','Not useful here','Enable','off')
+    set(handles.pushbutton_externalFile,'Visible','off')
+    handles.use_default_file = 1;
+end
+
+handles.got_userFile = 0;
+handles.have_mag_nans = 0;
+handles.have_dep_nans = 0;
+
+if (handles.use_default_file)
+	% Read the Mirone's default earthquakes file
+	fid = fopen([handles.path_data 'quakes90-03.dat'],'r');
+	todos = fread(fid,'*char');
+	[year mo day lat lon depth mag] = strread(todos,'%d %d %d %f %f %f %f');
+	fclose(fid);    clear todos
+    year_dec = dec_year(year,mo,day);
+	
+	% Get rid of events that are outside the map limits
+	ind = find(lon < handles.x_min | lon > handles.x_max);
+	year(ind) = [];     mo(ind) = [];   day(ind) = [];  lat(ind) = [];  lon(ind) = [];
+    depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
+	ind = find(lat < handles.y_min | lat > handles.y_max);
+	year(ind) = [];     mo(ind) = [];   day(ind) = [];  lat(ind) = [];  lon(ind) = [];
+    depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
+	
+	handles.def_StartYear = min(year);
+	handles.def_EndYear = max(year);
+	handles.def_StartMonth = min(mo);
+	handles.def_EndMonth = max(mo);
+	handles.def_StartDay = min(day);
+	handles.def_EndDay = max(day);
+	handles.def_MagMin = min(mag);
+	handles.def_MagMax = max(mag);
+	handles.def_DepthMin = min(depth);
+	handles.def_DepthMax = max(depth);
+	handles.default_dat = [lon lat depth mag];
+	handles.default_date = [day mo year year_dec];
+	set_lims(handles,'def')
+end
+
+% ------------- Give a Pro look (3D) to the frame boxes --------------------
+bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
+h_f = findobj(hObject,'Style','Frame');
+for i=1:length(h_f)
+    frame_size = get(h_f(i),'Position');
+    f_bgc = get(h_f(i),'BackgroundColor');
+    usr_d = get(h_f(i),'UserData');
+    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
+        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
+    else
+        frame3D(hObject,frame_size,framecolor,'',usr_d)
+        delete(h_f(i))
+    end
+end
+
+% Choose default command line output for earthquakes_export
+handles.output = hObject;
+guidata(hObject, handles);
+
+% UIWAIT makes earthquakes_export wait for user response (see UIRESUME)
+% uiwait(handles.figure1);
+
+set(hObject,'Visible','on');
+% NOTE: If you make uiwait active you have also to uncomment the next three lines
+% handles = guidata(hObject);
+% out = earthquakes_OutputFcn(hObject, [], handles);
+% varargout{1} = out;
+
+% --- Outputs from this function are returned to the command line.
+%function varargout = earthquakes_OutputFcn(hObject, eventdata, handles)
+% varargout  cell array for returning output args (see VARARGOUT);
+% hObject    handle to figure
+% Get default command line output from handles structure
+%varargout{1} = handles.output;
+% The figure can be deleted now
+% delete(handles.figure1);
+
+% -------------------------------------------------------------------------------------------------
+function edit_StartYear_Callback(hObject, eventdata, handles)
+xx = str2double(get(hObject,'String'));
+if isnan(xx),    set(hObject,'String','1900');   end
+
+% -------------------------------------------------------------------------------------------------
+function edit_StartMonth_Callback(hObject, eventdata, handles)
+xx = str2double(get(hObject,'String'));
+if (isnan(xx) || xx < 1 || xx > 12)
+    set(hObject,'String','1')
+end
+
+% -------------------------------------------------------------------------------------------------
+function edit_StartDay_Callback(hObject, eventdata, handles)
+xx = str2double(get(hObject,'String'));
+if (isnan(xx) || xx < 1 || xx > 31)
+    set(hObject,'String','1')
+end
+
+% -------------------------------------------------------------------------------------------------
+function edit_EndYear_Callback(hObject, eventdata, handles)
+xx = str2double(get(hObject,'String'));
+if isnan(xx),   set(hObject,'String','2010');   end
+
+% -------------------------------------------------------------------------------------------------
+function edit_EndMonth_Callback(hObject, eventdata, handles)
+xx = str2double(get(hObject,'String'));
+if (isnan(xx) || xx < 1 || xx > 12)
+    set(hObject,'String','12')
+end
+
+% -------------------------------------------------------------------------------------------------
+function edit_EndDay_Callback(hObject, eventdata, handles)
+xx = str2double(get(hObject,'String'));
+if (isnan(xx) || xx < 1 || xx > 31)
+    set(hObject,'String','31')
+end
+
+% -------------------------------------------------------------------------------------------------
+function edit_MagMin_Callback(hObject, eventdata, handles)
+xx = str2double(get(hObject,'String'));
+if (isnan(xx) || xx < 1 || xx > 10)
+    set(hObject,'String','1')
+end
+
+% -------------------------------------------------------------------------------------------------
+function edit_MagMax_Callback(hObject, eventdata, handles)
+xx = str2double(get(hObject,'String'));
+if (isnan(xx) || xx < 1 || xx > 10)
+    set(hObject,'String','10')
+end
+
+% -------------------------------------------------------------------------------------------------
+function edit_DepthMin_Callback(hObject, eventdata, handles)
+xx = str2double(get(hObject,'String'));
+if (isnan(xx) || xx < 0)
+    set(hObject,'String','0')
+end
+
+% -------------------------------------------------------------------------------------------------
+function edit_DepthMax_Callback(hObject, eventdata, handles)
+xx = str2double(get(hObject,'String'));
+if (isnan(xx) || xx > 900),    set(hObject,'String','900');       end
+
+% -----------------------------------------------------------------------------
+function pushbutton_OK_Callback(hObject, eventdata, handles)
+% Find out the time interval selected
+StartYear = str2double(get(handles.edit_StartYear,'String'));
+EndYear = str2double(get(handles.edit_EndYear,'String'));
+StartMonth = str2double(get(handles.edit_StartMonth,'String'));
+EndMonth = str2double(get(handles.edit_EndMonth,'String'));
+StartDay = str2double(get(handles.edit_StartDay,'String'));
+EndDay = str2double(get(handles.edit_EndDay,'String'));
+MagMin = str2double(get(handles.edit_MagMin,'String'));
+MagMax = str2double(get(handles.edit_MagMax,'String'));
+DepthMin = str2double(get(handles.edit_DepthMin,'String'));
+DepthMax = str2double(get(handles.edit_DepthMax,'String'));
+
+if (isnan(StartYear)),      StartYear = 1900;   end
+if (isnan(EndYear)),        EndYear = 2010;     end
+if (isnan(StartMonth)),     StartMonth = 1;     end
+if (isnan(EndMonth)),       EndMonth = 12;      end
+if (isnan(StartDay)),       StartDay = 1;       end
+if (isnan(EndDay)),         EndDay = 31;        end
+if (isnan(MagMin)),         MagMin = 1;         end
+if (isnan(MagMax)),         MagMax = 10;        end
+if (isnan(DepthMin)),       DepthMin = 0;       end
+if (isnan(DepthMax)),       DepthMax = 900;     end
+
+if (handles.use_default_file)
+    lon = handles.default_dat(:,1);    lat = handles.default_dat(:,2);
+    depth = handles.default_dat(:,3);  mag = handles.default_dat(:,4);
+    year_dec = handles.default_date(:,4);
+elseif (handles.got_userFile)    % We have a user seismicity file
+    lon = handles.external_dat(:,1);    lat = handles.external_dat(:,2);
+    depth = handles.external_dat(:,3);  mag = handles.external_dat(:,4);
+    year_dec = handles.external_date(:,2);
+else
+    errordlg('Plot What? Your fears?','Chico Clever');  return;
+end
+
+lower_date = dec_year(StartYear,StartMonth,StartDay);
+upper_date = dec_year(EndYear,EndMonth,EndDay+0.999);   % 0.999 to use the entire current day
+ind = (year_dec < lower_date | year_dec > upper_date);
+year_dec(ind) = [];     lat(ind) = [];      lon(ind) = [];  depth(ind) = [];    mag(ind) = [];
+
+ind = find(mag < MagMin | mag > MagMax);
+lat(ind) = [];  lon(ind) = [];  depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
+ind = find(depth < DepthMin | depth > DepthMax);
+lat(ind) = [];  lon(ind) = [];  depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
+
+try
+    axes(handles.mirone_axes)       % Make Mirone axes active here
+catch       % If the Mirone figure doesn't exist anymore
+    delete(handles.figure1);    return
+end
+
+% See if user only wants equal symbols (simple case)
+if (~get(handles.checkbox_magSlices,'Value') && ~get(handles.checkbox_depSlices,'Value'))
+	hold on;    
+	h_quakes = plot(lon,lat,'kp','Marker','o','MarkerFaceColor','r',...
+          'MarkerEdgeColor','k','MarkerSize',4,'Tag','Earthquakes');
+	hold off;
+    setappdata(h_quakes,'SeismicityTime',year_dec);         % Save events time
+    setappdata(h_quakes,'SeismicityDepth',int16(depth*10)); % Save events depth
+    if (min(mag) > 100)         % That's the case for hydrophone SL magnitudes
+        setappdata(h_quakes,'SeismicityMag',mag*10);        % Save events magnitude
+    else
+        setappdata(h_quakes,'SeismicityMag',uint8(mag*10)); % Save events magnitude
+    end
+	draw_funs(h_quakes,'Earthquakes',[])
+    return      % We are donne. Bye Bye
+end
+
+if (get(handles.checkbox_magSlices,'Value'))    % We have a magnitude slice request
+    cont = get(handles.popup_mag04,'String');   s(1) = str2double(cont{get(handles.popup_mag04,'Value')});
+    cont = get(handles.popup_mag45,'String');   s(2) = str2double(cont{get(handles.popup_mag45,'Value')});
+    cont = get(handles.popup_mag56,'String');   s(3) = str2double(cont{get(handles.popup_mag56,'Value')});
+    cont = get(handles.popup_mag67,'String');   s(4) = str2double(cont{get(handles.popup_mag67,'Value')});
+    cont = get(handles.popup_mag78,'String');   s(5) = str2double(cont{get(handles.popup_mag78,'Value')});
+    cont = get(handles.popup_mag8,'String');    s(6) = str2double(cont{get(handles.popup_mag8,'Value')});
+    id{1} = find(mag < 4);               id{2} = find(mag >= 4 & mag < 5);
+    id{3} = find(mag >= 5 & mag < 6);    id{4} = find(mag >= 6 & mag < 7);
+    id{5} = find(mag >= 7 & mag < 8);    id{6} = find(mag >= 8);
+    j = 1;
+    for (k=1:length(id))
+        if (~isempty(id{k}))
+            data_s{j} = [lon(id{k}) lat(id{k}) depth(id{k})];
+            grand(j) = s(k);
+            depth_s{j} = depth(id{k});
+            j = j + 1;
+        end
+    end
+    if (handles.have_mag_nans && get(handles.checkbox_allMagnitudes,'Value'))
+        id = isnan(mag);
+        data_s{1} = [data_s{:}; lon(id) lat(id) depth(id)];
+    end
+    clear id;
+end
+
+if (get(handles.checkbox_depSlices,'Value'))    % We have a depth slice request
+    val(1) = get(handles.popup_dep0_33,'Value');    val(2) = get(handles.popup_dep33_70,'Value');
+    val(3) = get(handles.popup_dep70_150,'Value');  val(4) = get(handles.popup_dep150_300,'Value');
+    val(5) = get(handles.popup_dep300,'Value');
+    id{1} = find(depth < 33);                   id{2} = find(depth >= 33 & depth < 70);
+    id{3} = find(depth >= 70 & depth < 150);    id{4} = find(depth >= 150 & depth < 300);
+    id{5} = find(depth >= 300);
+    j = 1;      cor_str = get(handles.popup_dep0_33,'String');
+    for (k=1:length(id))
+        if (~isempty(id{k}))
+            data_d{j} = [lon(id{k}) lat(id{k})];
+            color(j) = cor_str{val(k)}(1);
+            depth_d{j} = depth(id{k});
+            j = j + 1;
+        end
+    end    
+end
+
+hold on;
+if (get(handles.checkbox_magSlices,'Value') && ~get(handles.checkbox_depSlices,'Value'))     % Mag slices
+    for (k = 1:length(data_s))
+		h_quakes = plot(data_s{k}(:,1),data_s{k}(:,2),'kp','Marker','o','MarkerFaceColor','r',...
+              'MarkerEdgeColor','k','MarkerSize',grand(k),'Tag','Earthquakes');
+        setappdata(h_quakes,'SeismicityDepth',int16(depth_s{k}*10));    % Save events depth
+        draw_funs(h_quakes,'Earthquakes',[])
+    end
+elseif (~get(handles.checkbox_magSlices,'Value') && get(handles.checkbox_depSlices,'Value')) % Depth slices
+    for (k = 1:length(data_d))
+		h_quakes = plot(data_d{k}(:,1),data_d{k}(:,2),'kp','Marker','o','MarkerFaceColor',color(k),...
+              'MarkerEdgeColor','k','MarkerSize',5,'Tag','Earthquakes');
+        setappdata(h_quakes,'SeismicityDepth',int16(depth_d{k}*10));    % Save events depth
+        draw_funs(h_quakes,'Earthquakes',[])
+    end
+else        % Both magnitude and depth slices
+    for (k = 1:length(data_s))    %
+        id{1} = find(data_s{k}(:,3) < 33);
+        id{2} = find(data_s{k}(:,3) >= 33 & data_s{k}(:,3) < 70);
+        id{3} = find(data_s{k}(:,3) >= 70 & data_s{k}(:,3) < 150);
+        id{4} = find(data_s{k}(:,3) >= 150 & data_s{k}(:,3) < 300);
+        id{5} = find(data_s{k}(:,3) >= 300);
+        for (m=1:5)
+            if (isempty(id{m})),     continue;      end
+		    h_quakes = plot(data_s{k}(id{m},1),data_s{k}(id{m},2),'kp','Marker','o','MarkerFaceColor',...
+                color(m),'MarkerEdgeColor','k','MarkerSize',grand(k),'Tag','Earthquakes');
+            setappdata(h_quakes,'SeismicityDepth',int16(data_s{k}(id{m},3)*10));    % Save events depth
+            draw_funs(h_quakes,'Earthquakes',[])
+        end
+    end
+end
+hold off;
+
+% -----------------------------------------------------------------------------
+function pushbutton_Cancel_Callback(hObject, eventdata, handles)
+delete(handles.figure1);
+
+% -----------------------------------------------------------------------------
+function set_lims(handles,opt)
+if (strcmp(opt,'def'))      % Set the limits corresponding to the default file
+	set(handles.edit_StartYear,'String',num2str(handles.def_StartYear))
+	set(handles.edit_EndYear,'String',num2str(handles.def_EndYear))
+	set(handles.edit_StartMonth,'String',num2str(handles.def_StartMonth))
+	set(handles.edit_EndMonth,'String',num2str(handles.def_EndMonth))
+	set(handles.edit_StartDay,'String',num2str(handles.def_StartMonth))
+	set(handles.edit_EndDay,'String',num2str(handles.def_EndDay))
+	set(handles.edit_MagMin,'String',num2str(handles.def_MagMin))
+	set(handles.edit_MagMax,'String',num2str(handles.def_MagMax))
+	set(handles.edit_DepthMin,'String',num2str(handles.def_DepthMin))
+	set(handles.edit_DepthMax,'String',num2str(handles.def_DepthMax))
+elseif (strcmp(opt,'usr'))  % Set the limits corresponding to the user's file
+	set(handles.edit_StartYear,'String',num2str(handles.usr_StartYear))
+	set(handles.edit_EndYear,'String',num2str(handles.usr_EndYear))
+	set(handles.edit_StartMonth,'String',num2str(handles.usr_StartMonth))
+	set(handles.edit_EndMonth,'String',num2str(handles.usr_EndMonth))
+	set(handles.edit_StartDay,'String',num2str(handles.usr_StartMonth))
+	set(handles.edit_EndDay,'String',num2str(handles.usr_EndDay))
+	set(handles.edit_MagMin,'String',num2str(handles.usr_MagMin))
+	set(handles.edit_MagMax,'String',num2str(handles.usr_MagMax))
+	set(handles.edit_DepthMin,'String',num2str(handles.usr_DepthMin))
+	set(handles.edit_DepthMax,'String',num2str(handles.usr_DepthMax))
+else                        % Set these fields to empty
+	set(handles.edit_StartYear,'String','');	set(handles.edit_EndYear,'String','')
+	set(handles.edit_StartMonth,'String','');	set(handles.edit_EndMonth,'String','')
+	set(handles.edit_StartDay,'String',''); 	set(handles.edit_EndDay,'String','')
+	set(handles.edit_MagMin,'String','');   	set(handles.edit_MagMax,'String','')
+	set(handles.edit_DepthMin,'String',''); 	set(handles.edit_DepthMax,'String','')
+end
+
+% -----------------------------------------------------------------------------
+function listbox_readFilter_Callback(hObject, eventdata, handles)
+% Hints: contents = get(hObject,'String') returns listbox_readFilter contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from listbox_readFilter
+
+% -----------------------------------------------------------------------------
+function pushbutton_externalFile_Callback(hObject, eventdata, handles)
+% OK. Now read the earthquakes_export file and retain only the requested interval
+item = get(handles.listbox_readFilter,'Value');     % Get the reading filter number
+switch item
+    case 1
+        str1 = {'*.isf;*.ISF', 'Data files (*.isf,*.ISF)';'*.*', 'All Files (*.*)'};
+        filter = 1;
+    case 2
+        str1 = {'*.posit;*.POSIT', 'Data files (*.posit,*.POSIT)';'*.*', 'All Files (*.*)'};
+        filter = 2;
+    case 3
+        str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
+        filter = 3;
+    case 4
+        str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
+        filter = 4;
+end
+
+% Get file name
+[FileName,PathName] = uigetfile(str1,'Select earhquakes file');
+if isequal(FileName,0)      return;    end
+pause(0.05);
+fname = [PathName,FileName];
+
+try
+    set(gcf,'Pointer','watch')
+	if (filter == 1)        % Read a ISF formated catalog
+        opt_R = ['-R' num2str(handles.x_min) '/' num2str(handles.x_max) '/' num2str(handles.y_min) '/' num2str(handles.y_max)];
+        [out_d,out_i] = read_isf(fname,opt_R);
+        if (isempty(out_d)),    return;     end     % Nothing inside region
+        lon = out_d(1,:)';      lat = out_d(2,:)';
+        depth = out_d(3,:)';    mag = out_d(4,:)';      clear out_d;
+        year = double(out_i(1,:)');     mo = out_i(2,:)';
+        day = out_i(3,:)';      hh = out_i(4,:)';       clear out_i;
+        year_dec = dec_year(year,double(mo),double(day),double(hh));
+	elseif (filter == 2 | filter == 3 || filter == 4)      % Read a lon,lat,dep,mag,yy,mm,dd file (3,4) or posit file (2)
+		fid = fopen(fname,'r');
+		if (fid < 0)
+            errordlg(['Could not open file: ' fname],'Error');  return;
+		end
+		todos = fread(fid,'*char');
+        if (filter == 2)                    % posit file
+            try
+                [year julio d_h d_m d1 lat lon d1 d1 d1 mag d1] = strread(todos,'%d %d %d %d %d %f %f %f %f %f %f %f');
+                d_h = d_h + d_m / 60;
+            catch
+                [tempo d1 d1 lat lon d1 d1 d1 mag d1] = strread(todos,'%s %d %s %f %f %f %f %f %f %f');
+                d1 = cell2mat(tempo);
+                year = str2num(d1(:,1:4));
+                julio = str2num(d1(:,5:7));
+                d_h = str2num(d1(:,8:9));
+                d_m = str2num(d1(:,10:11));
+            end
+            clear d_m d1;
+            year_dec = year + (julio - 1 + d_h / 24) ./ (365 + isleapyear(year));      % decimal year up to minuts.
+            [mo,day] = jd2monday(julio,year);
+            depth = repmat(0,length(year),1);
+        elseif (filter == 3)                % lon,lat,mag,dep,yy,mm,dd,hh,mm,ss
+		    [lon lat mag depth year mo day hh mm ss] = strread(todos,'%f %f %f %f %d %d %d %d %d %d');
+            year_dec = dec_year(year,mo,day,hh,mm,ss);  clear hh mm ss;
+        else                                % lon,lat,dep,mag,yy,mm,dd file
+		    [lon lat depth mag year mo day] = strread(todos,'%f %f %f %f %d %d %d');
+            year_dec = dec_year(year,mo,day);
+        end
+		fclose(fid);    clear todos
+        if (isempty(lon)),      return;     end     % Nothing inside region
+		
+		% Get rid of events that are outside the map limits
+		ind = find(lon < handles.x_min | lon > handles.x_max);
+		year(ind) = [];     mo(ind) = [];       day(ind) = [];  lat(ind) = [];
+		lon(ind) = [];      depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
+		ind = find(lat < handles.y_min | lat > handles.y_max);
+		year(ind) = [];     mo(ind) = [];       day(ind) = [];  lat(ind) = [];
+		lon(ind) = [];      depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
+	end
+	handles.got_userFile = 1;
+	
+    mag(mag < 0) = 0;       % Take care of mags < 0 .They are very likely false
+	handles.external_dat  = [lon lat depth mag];
+	%handles.external_date = [day mo year year_dec];
+	handles.external_date = [year year_dec];
+	
+	handles.usr_DepthMin   = min(depth);    handles.usr_DepthMax = max(depth);
+	handles.usr_MagMin     = min(mag);      handles.usr_MagMax = max(mag);
+	handles.usr_StartYear  = double(min(year));     handles.usr_EndYear = double(max(year));
+    
+    % Find start and end Month & Day
+    tmp = min(year_dec);    tmp = tmp - fix(tmp);
+    jd0 = fix(tmp * (365 + isleapyear(handles.usr_StartYear))) + 1;
+    tmp = max(year_dec);    tmp = tmp - fix(tmp);
+    jd1 = fix(tmp * (365 + isleapyear(handles.usr_EndYear))) + 1;
+    [handles.usr_StartMonth,handles.usr_StartDay] = jd2monday(jd0,handles.usr_StartYear);
+    [handles.usr_EndMonth,handles.usr_EndDay] = jd2monday(jd1,handles.usr_EndYear);
+    
+	if (filter == 3 || filter == 4)
+        handles.have_mag_nans = any(isnan(mag));
+        handles.have_dep_nans = any(isnan(depth));
+	else    % On the ISF catalogs I replaced no data values by 0
+        handles.have_mag_nans = 0;
+        handles.have_dep_nans = 0;
+	end
+    set(gcf,'Pointer','arrow')
+catch   % In case of error, set the pointer back to "normal" 
+    set(gcf,'Pointer','arrow')
+    msg{1} = 'An error occured while reading file. The error message was:';
+    msg{2} = '';
+    msg{3} = lasterr;
+    warndlg(msg,'Warning')
+    %warndlg('An error occured while reading file. Check that it has the apropriate format.','Warning')
+    return
+end
+
+set(handles.edit_StartYear,'String',int2str_m(handles.usr_StartYear))
+set(handles.edit_EndYear,'String',int2str_m(handles.usr_EndYear))
+set(handles.edit_StartMonth,'String',int2str_m(handles.usr_StartMonth))
+set(handles.edit_EndMonth,'String',int2str_m(handles.usr_EndMonth))
+set(handles.edit_StartDay,'String',int2str_m(handles.usr_StartDay))
+set(handles.edit_EndDay,'String',int2str_m(handles.usr_EndDay))
+set(handles.edit_MagMin,'String',num2str(handles.usr_MagMin))
+set(handles.edit_MagMax,'String',num2str(handles.usr_MagMax))
+set(handles.edit_DepthMin,'String',num2str(handles.usr_DepthMin))
+set(handles.edit_DepthMax,'String',num2str(handles.usr_DepthMax))
+if (handles.have_mag_nans),  set(handles.checkbox_allMagnitudes,'Enable','on');  end
+if (handles.have_dep_nans),  set(handles.checkbox_allDepths,'Enable','on');  end
+
+guidata(hObject,handles)
+
+% -----------------------------------------------------------------------------
+function checkbox_allMagnitudes_Callback(hObject, eventdata, handles)
+if (get(hObject,'Value') && ~get(handles.checkbox_magSlices,'Value'))
+    set(hObject,'Value',0)
+end
+
+% -----------------------------------------------------------------------------
+function checkbox_allDepths_Callback(hObject, eventdata, handles)
+if (get(hObject,'Value') && ~get(handles.checkbox_depSlices,'Value'))
+    set(hObject,'Value',0)
+end
+
+% -----------------------------------------------------------------------------
+function checkbox_magSlices_Callback(hObject, eventdata, handles)
+if (get(hObject,'Value'))
+    set(handles.popup_mag04,'Enable','on');    set(handles.popup_mag45,'Enable','on')
+    set(handles.popup_mag56,'Enable','on');    set(handles.popup_mag67,'Enable','on')
+    set(handles.popup_mag78,'Enable','on');    set(handles.popup_mag8,'Enable','on')
+else
+    set(handles.popup_mag04,'Enable','off');   set(handles.popup_mag45,'Enable','off')
+    set(handles.popup_mag56,'Enable','off');   set(handles.popup_mag67,'Enable','off')
+    set(handles.popup_mag78,'Enable','off');   set(handles.popup_mag8,'Enable','off')
+end
+
+% -----------------------------------------------------------------------------
+function popup_mag04_Callback(hObject, eventdata, handles)
+% Nothing to do here
+
+% -----------------------------------------------------------------------------
+function popup_mag45_Callback(hObject, eventdata, handles)
+% Nothing to do here
+
+% -----------------------------------------------------------------------------
+function popup_mag56_Callback(hObject, eventdata, handles)
+% Nothing to do here
+
+% -----------------------------------------------------------------------------
+function popup_mag67_Callback(hObject, eventdata, handles)
+% Nothing to do here
+
+% -----------------------------------------------------------------------------
+function popup_mag78_Callback(hObject, eventdata, handles)
+% Nothing to do here
+
+% -----------------------------------------------------------------------------
+function popup_mag8_Callback(hObject, eventdata, handles)
+% Nothing to do here
+
+% -----------------------------------------------------------------------------
+function checkbox_depSlices_Callback(hObject, eventdata, handles)
+if (get(hObject,'Value'))
+    set(handles.popup_dep0_33,'Enable','on');       set(handles.popup_dep33_70,'Enable','on')
+    set(handles.popup_dep70_150,'Enable','on');     set(handles.popup_dep150_300,'Enable','on')
+    set(handles.popup_dep300,'Enable','on')
+else
+    set(handles.popup_dep0_33,'Enable','off');      set(handles.popup_dep33_70,'Enable','off')
+    set(handles.popup_dep70_150,'Enable','off');    set(handles.popup_dep150_300,'Enable','off')
+    set(handles.popup_dep300,'Enable','off')
+end
+
+% -----------------------------------------------------------------------------
+function popup_dep0_33_Callback(hObject, eventdata, handles)
+% Nothing to do here
+
+% -----------------------------------------------------------------------------
+function popup_dep33_70_Callback(hObject, eventdata, handles)
+% Nothing to do here
+
+% -----------------------------------------------------------------------------
+function popup_dep70_150_Callback(hObject, eventdata, handles)
+% Nothing to do here
+
+% -----------------------------------------------------------------------------
+function popup_dep150_300_Callback(hObject, eventdata, handles)
+% Nothing to do here
+
+% -----------------------------------------------------------------------------
+function popup_dep300_Callback(hObject, eventdata, handles)
+% Nothing to do here
+
+% -----------------------------------------------------------------------------
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+delete(handles.figure1);
+
+% -----------------------------------------------------------------------------
+function figure1_KeyPressFcn(hObject, eventdata, handles)
+if isequal(get(hObject,'CurrentKey'),'escape')
+    delete(handles.figure1);
+end
+
+% -----------------------------------------------------------------------------
+function [month, day] = jd2monday(jday,year)
+%JD2MONDAY Julian day number to Julian calendar date.
+%
+%   [MONTH, DAY] = JD2MONDAY(JDAY,YEAR) returns the
+%   Julian calendar date (month, day)
+%   corresponding to the Julian day JDAY.
+
+%   Author:      Peter J. Acklam
+%   Hacked to work with the "fake" JD that start at 1 at 1fst January of each year.
+
+t = ( ~rem(year, 4) & rem(year, 100) ) | ~rem(year, 400);       % Check for leap-years
+tt = (~t & jday > 59);
+jday(tt) = jday(tt) + 1;            % Trick to make this algo work also for not leap-years
+
+c = jday + 32081;
+d = floor((4 * c + 3) / 1461);
+e = c - floor((1461 * d) / 4);
+m = floor((5 * e + 2) / 153);
+
+day   = e - floor((153 * m + 2) / 5) + 1;
+month = m + 3 - 12 * floor(m / 10);
+
+% -----------------------------------------------------------------------------
+function yd = dec_year(varargin)
+%   DEC_YEAR(YEAR, MONTH, DAY, HOUR, MINUTE, SECOND) returns the ordinal year
+%   number plus a fractional part depending on the month, day, and time of day
+%
+%   Any missing MONTH or DAY will be replaced by 1.  HOUR, MINUTE or SECOND
+%   will be replaced by zeros.
+
+%   Adapted from timeutil functions of Peter J. Acklam by Joaquim Luis
+
+argv = { 1 1 1 0 0 0 };
+argv(1:nargin) = varargin;
+[year, month, day, hour, minute, second] = deal(argv{:});
+
+days_in_prev_months = [0 31 59 90 120 151 181 212 243 273 304 334]';
+
+% Day in given month.
+try
+    yd = days_in_prev_months(month) ...               % days in prev. months
+         + ( isleapyear(year) & ( month > 2 ) ) ...   % leap day
+         + day ...                                    % day in month
+         + ( second + 60*minute + 3600*hour )/86400;  % part of day
+catch
+    yd = [];    return
+end
+yd = year + (yd - 1) ./ (365 + isleapyear(year));
+
+%--------------------------------------------------------------------------
+function t = isleapyear(year)
+t = ( ~rem(year, 4) & rem(year, 100) ) | ~rem(year, 400);
+
+%--------------------------------------------------------------------------
+function s = int2str_m(x)
+%INT2STR Convert integer to string.
+%   S = INT2STR(X) rounds the elements of the matrix X to
+%   integers and converts the result into a string matrix.
+%   Return NaN and Inf elements as strings 'NaN' and 'Inf', respectively.
+
+%   Copyright 1984-2002 The MathWorks, Inc. 
+%
+% Hacked to work with TRUE integers as well
+
+if (~isa(x,'double'))   % It's so simple. Now it works with true integers and not only
+    x = double(x);      % the "pretend-to-be-integer-but-is-double" ML integers
+end
+
+x = round(real(x));
+if length(x) == 1
+   % handle special case of single infinite or NaN element
+   s = sprintf('%.1f',x);
+   if (~strcmp(s, '-Inf') && ~strcmp(s, 'Inf') && ~strcmp(s, 'NaN'))
+     s(end-1:end) = [];
+   end
+else
+   s = '';
+   [m,n] = size(x);
+   % Determine elements of x that are finite.
+   xfinite = x(isfinite(x));
+   % determine the variable text field width quantity
+   d = max(1,max(ceil(log10(abs(xfinite(:))+(xfinite(:)==0)))));
+   clear('xfinite')
+   % delimit string array with one space between all-NaN or all-Inf columns
+   if any(isnan(x(:))) || any(isinf(x(:)))
+      d = max([d;3]);
+   end
+   % walk through numbers array and convert elements to strings
+   for i = 1:m
+      t = [];
+      for j = 1:n
+         t = [t sprintf('%*.0f',d+2,x(i,j))];
+      end
+      s = [s; t];
+   end
+   % trim leading spaces from string array within constraints of rectangularity.
+   if ~isempty(s)
+      while all(s(:,1) == ' ')
+         s(:,1) = []; 
+      end
+   end
+end
+
+% --- Creates and returns a handle to the GUI figure. 
+function earthquakes_LayoutFcn(h1,handles)
+
+set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
+'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
+'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
+'MenuBar','none',...
+'Name','Plot seismicity',...
+'NumberTitle','off',...
+'Position',[520 288 391 512],...
+'Renderer',get(0,'defaultfigureRenderer'),...
+'RendererMode','manual',...
+'Resize','off',...
+'Tag','figure1',...
+'UserData',[]);
+
+uicontrol('Parent',h1,'Position',[10 49 371 141],'String',{''},'Style','frame','Tag','frame2');
+uicontrol('Parent',h1,'Position',[10 199 371 141],'String',{''},'Style','frame','Tag','frame1');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'listbox_readFilter_Callback'},...
+'Position',[63 441 251 61],...
+'Style','listbox',...
+'Value',1,...
+'Tag','listbox_readFilter');
+
+uicontrol('Parent',h1,...
+'Callback',{@earthquakes_uicallback,h1,'pushbutton_externalFile_Callback'},...
+'FontWeight','bold',...
+'Position',[312 461 23 23],...
+'TooltipString','Browse for wanted file',...
+'Tag','pushbutton_externalFile');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'edit_StartYear_Callback'},...
+'Position',[63 405 47 21],...
+'Style','edit','Tag','edit_StartYear');
+
+uicontrol('Parent',h1,'Position',[23 395 36 33],'String',{'Start'; 'year'},'Style','text','Tag','text1');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'edit_StartMonth_Callback'},...
+'Position',[187 405 47 21],...
+'Style','edit','Tag','edit_StartMonth');
+
+uicontrol('Parent',h1,'Position',[143 399 41 30],'String',{'Start'; 'month'},'Style','text','Tag','text2');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'edit_StartDay_Callback'},...
+'Position',[313 405 47 21],...
+'Style','edit','Tag','edit_StartDay');
+
+uicontrol('Parent',h1,'Position',[277 399 36 30],'String',{'Start'; 'day'},'Style','text','Tag','text3');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'edit_EndYear_Callback'},...
+'Position',[63 370 47 21],...
+'Style','edit','Tag','edit_EndYear');
+
+uicontrol('Parent',h1,...
+'Position',[23 361 36 30],...
+'String',{  'End'; 'year' },...
+'Style','text','Tag','text4');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'edit_EndMonth_Callback'},...
+'Position',[187 370 47 21],...
+'Style','edit','Tag','edit_EndMonth');
+
+uicontrol('Parent',h1,...
+'Position',[143 361 41 30],...
+'String',{  'End'; 'month' },...
+'Style','text','Tag','text5');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'edit_EndDay_Callback'},...
+'Position',[313 370 47 21],...
+'Style','edit','Tag','edit_EndDay');
+
+uicontrol('Parent',h1,...
+'Position',[283 365 27 30],...
+'String',{  'End'; 'day' },...
+'Style','text','Tag','text6');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'edit_MagMin_Callback'},...
+'Position',[71 307 47 21],...
+'Style','edit','Tag','edit_MagMin');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'edit_MagMax_Callback'},...
+'Position',[195 307 47 21],...
+'Style','edit','Tag','edit_MagMax');
+
+uicontrol('Parent',h1,...
+'Position',[18 300 51 30],...
+'String',{  'Minimum'; 'magnitude' },...
+'Style','text','Tag','text7');
+
+uicontrol('Parent',h1,...
+'Position',[143 301 51 30],...
+'String',{  'Maximum'; 'magnitude' },...
+'Style','text','Tag','text8');
+
+uicontrol('Parent',h1,...
+'Callback',{@earthquakes_uicallback,h1,'checkbox_allMagnitudes_Callback'},...
+'Enable','off',...
+'Position',[268 310 88 15],...
+'String','All magnitudes',...
+'Style','checkbox',...
+'TooltipString','Use all mgnitudes - Including unknow magnitudes',...
+'Tag','checkbox_allMagnitudes');
+
+uicontrol('Parent',h1,...
+'Callback',{@earthquakes_uicallback,h1,'checkbox_magSlices_Callback'},...
+'Position',[18 264 223 15],...
+'String','Use different sizes for magnitude intervals',...
+'Style','checkbox',...
+'TooltipString','Destinguish the seismic magnitudes by size',...
+'Tag','checkbox_magSlices');
+
+uicontrol('Parent',h1,...
+'Position',[19 145 42 30],...
+'String',{'Minimum'; 'depth' },...
+'Style','text','Tag','text9');
+
+uicontrol('Parent',h1,...
+'Position',[135 144 51 30],...
+'String',{  'Maximum'; 'depth' },...
+'Style','text','Tag','text10');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'popup_mag04_Callback'},...
+'Enable','off',...
+'Position',[18 207 52 22],...
+'String',{'3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15' },...
+'Style','popupmenu',...
+'TooltipString','Symbol size for this interval',...
+'Value',2,...
+'Tag','popup_mag04');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'popup_mag45_Callback'},...
+'Enable','off',...
+'Position',[78 207 52 22],...
+'String',{'3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15' },...
+'Style','popupmenu',...
+'TooltipString','Symbol size for this interval',...
+'Value',4,...
+'Tag','popup_mag45');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'popup_mag56_Callback'},...
+'Enable','off',...
+'Position',[138 207 52 22],...
+'String',{'3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15' },...
+'Style','popupmenu',...
+'TooltipString','Symbol size for this interval',...
+'Value',6,...
+'Tag','popup_mag56');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'popup_mag67_Callback'},...
+'Enable','off',...
+'Position',[198 207 52 22],...
+'String',{'3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15' },...
+'Style','popupmenu',...
+'TooltipString','Symbol size for this interval',...
+'Value',8,...
+'Tag','popup_mag67');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'popup_mag78_Callback'},...
+'Enable','off',...
+'Position',[258 207 52 22],...
+'String',{'3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15' },...
+'Style','popupmenu',...
+'TooltipString','Symbol size for this interval',...
+'Value',10,...
+'Tag','popup_mag78');
+
+uicontrol('Parent',h1,'FontSize',10,'Position',[20 230 31 16],'String','0-4','Style','text','Tag','text11');
+uicontrol('Parent',h1,'FontSize',10,'Position',[81 230 31 16],'String','4-5','Style','text','Tag','text12');
+uicontrol('Parent',h1,'FontSize',10,'Position',[139 230 31 16],'String','5-6','Style','text','Tag','text13');
+uicontrol('Parent',h1,'FontSize',10,'Position',[200 230 31 16],'String','6-7','Style','text','Tag','text14');
+uicontrol('Parent',h1,'FontSize',10,'Position',[260 230 31 16],'String','7-8','Style','text','Tag','text15');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'popup_mag8_Callback'},...
+'Enable','off',...
+'Position',[318 207 52 22],...
+'String',{'3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15' },...
+'Style','popupmenu',...
+'TooltipString','Symbol size for this interval',...
+'Value',13,...
+'Tag','popup_mag8');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'edit_DepthMin_Callback'},...
+'Position',[63 150 47 21],...
+'String','0',...
+'Style','edit',...
+'Tag','edit_DepthMin');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'edit_DepthMax_Callback'},...
+'Position',[187 150 47 21],...
+'Style','edit',...
+'Tag','edit_DepthMax');
+
+uicontrol('Parent',h1,...
+'Callback',{@earthquakes_uicallback,h1,'checkbox_allDepths_Callback'},...
+'Enable','off',...
+'Position',[268 153 88 15],...
+'String','All depths',...
+'Style','checkbox',...
+'TooltipString','Use all depths - Including unknow depths',...
+'Tag','checkbox_allDepths');
+
+uicontrol('Parent',h1,'FontSize',10,'Position',[320 230 31 16],'String','> 8','Style','text','Tag','text16');
+
+uicontrol('Parent',h1,...
+'Callback',{@earthquakes_uicallback,h1,'checkbox_depSlices_Callback'},...
+'Position',[19 115 211 15],...
+'String','Use different colors for depth intervals',...
+'Style','checkbox',...
+'TooltipString','Destinguish the epicenter depths by color',...
+'Tag','checkbox_depSlices');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'popup_dep0_33_Callback'},...
+'Enable','off',...
+'Position',[18 58 62 22],...
+'String',{  'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
+'Style','popupmenu',...
+'TooltipString','Symbol color for this depth interval',...
+'Value',1,...
+'Tag','popup_dep0_33');
+
+uicontrol('Parent',h1,...
+'FontSize',10,...
+'Position',[21 81 47 16],...
+'String','0-33 km',...
+'Style','text',...
+'Tag','text17');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'popup_dep33_70_Callback'},...
+'Enable','off',...
+'Position',[91 58 62 22],...
+'String',{  'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
+'Style','popupmenu',...
+'TooltipString','Symbol color for this depth interval',...
+'Value',2,...
+'Tag','popup_dep33_70');
+
+uicontrol('Parent',h1,...
+'FontSize',10,...
+'Position',[94 81 54 16],...
+'String','33-70 km',...
+'Style','text',...
+'Tag','text18');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'popup_dep70_150_Callback'},...
+'Enable','off',...
+'Position',[165 58 62 22],...
+'String',{  'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
+'Style','popupmenu',...
+'TooltipString','Symbol color for this depth interval',...
+'Value',3,...
+'Tag','popup_dep70_150');
+
+uicontrol('Parent',h1,'FontSize',10,'Position',[166 81 61 16],'String','70-150 km','Style','text','Tag','text19');
+uicontrol('Parent',h1,'FontSize',10,'Position',[312 81 55 16],'String','> 300 km','Style','text','Tag','text20');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'popup_dep150_300_Callback'},...
+'Enable','off',...
+'Position',[238 58 62 22],...
+'String',{  'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
+'Style','popupmenu',...
+'TooltipString','Symbol color for this depth interval',...
+'Value',4,...
+'Tag','popup_dep150_300');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@earthquakes_uicallback,h1,'popup_dep300_Callback'},...
+'Enable','off',...
+'Position',[310 58 62 22],...
+'String',{  'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
+'Style','popupmenu',...
+'TooltipString','Symbol color for this depth interval',...
+'Value',5,...
+'Tag','popup_dep300');
+
+uicontrol('Parent',h1,'FontSize',10,'Position',[235 81 68 16],'String','150-300 km','Style','text','Tag','text21');
+
+uicontrol('Parent',h1,...
+'Callback',{@earthquakes_uicallback,h1,'pushbutton_Cancel_Callback'},...
+'Position',[224 10 66 23],...
+'String','Cancel',...
+'Tag','pushbutton_Cancel');
+
+uicontrol('Parent',h1,...
+'Callback',{@earthquakes_uicallback,h1,'pushbutton_OK_Callback'},...
+'Position',[315 10 66 23],...
+'String','OK',...
+'Tag','pushbutton_OK');
+
+function earthquakes_uicallback(hObject, eventdata, h1, callback_name)
+% This function is executed by the callback and than the handles is allways updated.
+feval(callback_name,hObject,[],guidata(h1));
