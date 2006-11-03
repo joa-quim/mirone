@@ -2374,7 +2374,7 @@ void morphologyexUsage() {
 
 /* -------------------------------------------------------------------------------------------- */
 void colorUsage() {
-	mexPrintf("Usage: B = cvlib_mex('cvcolor',IMG,'TRF');\n");
+	mexPrintf("Usage: B = cvlib_mex('color',IMG,'TRF');\n");
 	mexPrintf("       where IMG is a MxNx3 image of type: uint8, uint16 OR single (0..1 interval).\n");
 	mexPrintf("       TRF is a string controling the transformation. Possibilities are:\n");
 	mexPrintf("       rgb2lab,lab2rgb, rgb2luv,luv2rgb, rgb2xyz,xyz2rgb\n");
