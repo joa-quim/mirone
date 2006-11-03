@@ -175,6 +175,7 @@ end
 
 h_img = findobj(handles.h_mirone_fig,'Type','image');
 img = get(h_img,'CData');
+handles_mir = guidata(handles.h_mirone_fig);        % Retrive Mirone handles
 head = [];              % It will be changed only if we load a composition of non uint8
 
 if (get(handles.radiobutton_RGB,'Value'))       % RGB - pure image for sure (is it??)
@@ -313,12 +314,10 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
     set(handles.h_mirone_fig,'ColorMap',gray(256))
 end
 
-handles_mir = guidata(handles.h_mirone_fig);        % Retrive Mirone handles
 if (~isempty(head)),    handles_mir.head = head;    end
 handles_mir.image_type = image_type;
 handles_mir.computed_grid = computed_grid;
 handles_mir.was_int16 = was_int16;
-%handles_mir.origFig = img;
 guidata(handles.h_mirone_fig,handles_mir)           % Save those in Mirone handles
 
 % --------------------------------------------------------------------------
