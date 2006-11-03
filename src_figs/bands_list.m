@@ -163,7 +163,6 @@ function edit_dimsDesc_Callback(hObject, eventdata, handles)
 function pushbutton1_Callback(hObject, eventdata, handles)
 % TENHO QUE TESTAR SE CASO FOR PRECISO LOADAR BANDAS ELAS SEJAM GDALICAS
 
-
 if (get(handles.radiobutton_RGB,'Value') && ...
         (isempty(handles.Rband) || isempty(handles.Gband) || isempty(handles.Bband)))
     errordlg('Error: you must select three bands','ERROR')
@@ -176,6 +175,7 @@ end
 
 h_img = findobj(handles.h_mirone_fig,'Type','image');
 img = get(h_img,'CData');
+head = [];              % It will be changed only if we load a composition of non uint8
 
 if (get(handles.radiobutton_RGB,'Value'))       % RGB - pure image for sure (is it??)
     [b,b] = ismember([handles.Rband handles.Gband handles.Bband],handles.bands_inMemory);
@@ -235,15 +235,14 @@ if (get(handles.radiobutton_RGB,'Value'))       % RGB - pure image for sure (is 
         rmappdata(handles.h_mirone_fig,'dem_z');    rmappdata(handles.h_mirone_fig,'GMThead');
         rmappdata(handles.h_mirone_fig,'Zmin_max');
     end
-    head = [];
     image_type = 2;         % Reset indicator that this is an image only
     computed_grid = 0;      % Reset this also
     was_int16 = 0;
 else                        % GRAY SCALE, which can be an image or a > uint8 image band that needs scaling
     %b = intersect(handles.Rband,handles.bands_inMemory);
     [b,b] = ismember(handles.Rband,handles.bands_inMemory);
-    idx = (b == 0);     % ISMEMBER returns zeros for elements of A not in B
-    b(idx) = [];        % If they exis, clear them
+    idx = (b == 0);         % ISMEMBER returns zeros for elements of A not in B
+    b(idx) = [];            % If they exis, clear them
     if (~isempty(b))        % The band is on memory
         img = handles.image_bands(:,:,handles.Rband);
     else                    % Need to load band
@@ -254,7 +253,6 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
     end
     
     if (isa(img,'uint8'))       % If we had GOTOs everything would be simpler and cleaner
-        head = [];
         image_type = 2;         % Reset indicator that this is an image only
         computed_grid = 0;      % Reset this also
         was_int16 = 0;
@@ -296,7 +294,8 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
             end
         end
         X = 1:handles.dims(2);    Y = 1:handles.dims(1);
-        head = [1 handles.dims(2) 1 handles.dims(1) double(min(min(Z))) double(max(max(Z))) 0 1 1];
+        head = handles_mir.head;
+        head(5:6) = [double(min(min(Z))) double(max(max(Z)))];
         setappdata(handles.h_mirone_fig,'dem_z',Z);  setappdata(handles.h_mirone_fig,'dem_x',X);
         setappdata(handles.h_mirone_fig,'dem_y',Y);  setappdata(handles.h_mirone_fig,'GMThead',head);
         setappdata(handles.h_mirone_fig,'Zmin_max',[head(5) head(6)])
@@ -315,11 +314,11 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
 end
 
 handles_mir = guidata(handles.h_mirone_fig);        % Retrive Mirone handles
-handles_mir.head = head;
+if (~isempty(head)),    handles_mir.head = head;    end
 handles_mir.image_type = image_type;
 handles_mir.computed_grid = computed_grid;
 handles_mir.was_int16 = was_int16;
-handles_mir.origFig = img;
+%handles_mir.origFig = img;
 guidata(handles.h_mirone_fig,handles_mir)           % Save those in Mirone handles
 
 % --------------------------------------------------------------------------
