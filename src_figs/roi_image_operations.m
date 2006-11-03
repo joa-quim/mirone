@@ -170,38 +170,48 @@ set([ud.h.Reset ud.h.Apply], 'Enable', 'on');
 % -------------------------------------------------------------------------------------------
 function ApplyOperation(ImageOpsFig)
 
-if (nargin < 1),    ImageOpsFig = gcbf; end
+if (nargin < 1),    ImageOpsFig = gcbf;     end
 ud = get(ImageOpsFig, 'UserData');
 orig = ud.OriginalImage;
 mask = ud.Mask;
 result = orig;
-n_dims = size(orig);
+threeD = (ndims(orig) == 3);
 handlesParent = guidata(ud.ParentFig);
-was_fake_gray = 0;          % Used when the orig image is MxNx3 but it is agray image anyway
 
-% Find if we are dealing with a color (gray == 0) or gray image (gray == 1)
-if (length(n_dims) > 2)     % True color image
-    % Pick up 64 random colors and see if they are equal (it should be enough as a test)
-    n_to_test = min(64,n_dims(1));          % Play safe that we don't have an image smaller than 64
-    tmp_m = round(rand(1,n_to_test)*n_dims(1));
-    tmp_n = round(rand(1,n_to_test)*n_dims(2));
-    df = diff(double(orig(tmp_m,tmp_n,:)),1,3);
-    if (any(df(:) ~= 0))
-        is_gray = 0;               % It is realy a true color image
-    else
-        is_gray = 1;               % Although is has 3 planes, it is a gray image
-        orig(:,:,2:3) = [];     % Remove the non-needed pages
-        result = orig;
-        was_fake_gray = 1;
-    end
-else        % So we are dealing with an indexed image
-    cm = get(ud.ParentFig,'Colormap');      dif_cm = diff(cm,1,2);
-    if isempty(find(dif_cm > 10e-10))
-        is_gray = 1;
-    else
-        is_gray = 0;
-    end;
-    clear cm dif_cm;
+gray_test = getappdata(ImageOpsFig,'gray_test');
+if (isempty(gray_test))         % First time call, guess image "grayness"
+	% Find if we are dealing with a color (gray == 0) or gray image (gray == 1)
+    was_fake_gray = 0;          % Used when the orig image is MxNx3 but it is a gray image anyway
+	if (threeD)                 % True color image
+        % Pick up 64 random colors and see if they are equal (it should be enough as a test)
+        n_to_test = min(64,size(orig,1));       % Play safe that we don't have an image smaller than 64
+        tmp_m = round(rand(1,n_to_test)*size(orig,1));
+        tmp_n = round(rand(1,n_to_test)*size(orig,2));
+        df = diff(double(orig(tmp_m,tmp_n,:)),1,3);
+        if (any(df(:) ~= 0))
+            is_gray = 0;                % It is really a true color image
+        else
+            is_gray = 1;                % Although is has 3 planes, it is a gray image
+            orig(:,:,2:3) = [];         % Remove the non-needed pages
+            result = orig;
+            was_fake_gray = 1;
+        end
+	else                        % Indexed image
+        cm = get(ud.ParentFig,'Colormap');      dif_cm = diff(cm,1,2);
+        if isempty(find(dif_cm > 10e-10))
+            is_gray = 1;
+        else
+            is_gray = 0;
+        end
+        clear cm dif_cm;
+	end
+	gray_test.is_gray = is_gray;
+	gray_test.was_fake_gray = was_fake_gray;
+	setappdata(ImageOpsFig,'gray_test',gray_test)
+    
+else            % We already know the image "grayness"
+	is_gray = gray_test.is_gray;
+	was_fake_gray = gray_test.was_fake_gray;
 end
 
 % Bellow was an attempt to increase the speed, but failed due to the fact that for indexed
@@ -213,207 +223,109 @@ end
 % mask = mask(il_min:il_max,ic_min:ic_max);
 
 switch ud.Operation
-case 'Histogram Equalization'
-    if ~is_gray
-        if (length(n_dims) > 2)
-            result = rgb2YIQ(ud.OriginalImage);    %  convert to YIQ image
+	case 'Histogram Equalization'
+        if (threeD && ~is_gray)
+            result = cvlib_mex('color',ud.OriginalImage,'rgb2YCrCb');       % Y is on the 3rth plane, bug?
+            result_t = result(:,:,3);    result_t(mask) = img_fun('histeq_j',result_t(mask));
+            result(:,:,3) = result_t;
+            result = cvlib_mex('color',result,'YCrCb2rgb');      clear result_t;     %convert back to RGB
         else
-            result = ind2rgb8(ud.OriginalImage,get(ud.ParentFig,'Colormap'));
-            result = rgb2YIQ(result);              %  convert to YIQ image
+            J = img_fun('histeq_j',orig(mask));
+            result(mask) = J;           clear J;
         end
-        result_t = result(:,:,1);    result_t(mask) = img_fun('histeq_j',result_t(mask));
-        result(:,:,1) = result_t;
-        result = YIQ2rgb(result);      clear result_t;     %convert back to RGB
-    else        % processing a gray image
-        J = img_fun('histeq_j',orig(mask));
-        result(mask) = J;           clear J;
-    end
-    handlesParent.origFig = result;
-    guidata(ud.ParentFig,handlesParent);
-case 'Adaptive Histogram Equalization'
-    if ~is_gray
-        if (length(n_dims) > 2)
-            result = rgb2YIQ(ud.OriginalImage);    %  convert to YIQ image
+	case 'Adaptive Histogram Equalization'
+        if (threeD && ~is_gray)
+            result = cvlib_mex('color',ud.OriginalImage,'rgb2YCrCb');
+            result_t = result(:,:,3);           tmp = img_fun('adapthisteq',result_t);
+            result_t(mask) = tmp(mask);         result(:,:,3) = result_t;
+            result = cvlib_mex('color',result,'YCrCb2rgb');      clear result_t tmp;     %convert back to RGB
         else
-            result = ind2rgb8(ud.OriginalImage,get(ud.ParentFig,'Colormap'));
-            result = rgb2YIQ(result);              %  convert to YIQ image
+            tmp = img_fun('adapthisteq',result);
+            result(mask) = tmp(mask);       clear tmp;
         end
-        result_t = result(:,:,1);           tmp = img_fun('adapthisteq',result_t);
-        result_t(mask) = tmp(mask);         result(:,:,1) = result_t;
-        result = YIQ2rgb(result);      clear result_t tmp;     %convert back to RGB
-    else        % processing a gray image
-        tmp = img_fun('adapthisteq',result);
-        result(mask) = tmp(mask);       clear tmp;
-    end
-    handlesParent.origFig = result;
-    guidata(ud.ParentFig,handlesParent);
-case 'Image Adjust'
-    if ~is_gray
-        if (length(n_dims) > 2)
-            result = rgb2YIQ(ud.OriginalImage);    %  convert to YIQ image
+	case {'Lowpass Filter' 'Unsharp Masking'}
+        if (ud.Operation(1) == 'L')
+            order = 15;  cutoff = 0.3;
+            [f1,f2] = freqspace(order,'meshgrid');
+            d = find(f1.^2+f2.^2 < cutoff^2);
+            Hd = zeros(order);
+            Hd(d) = 1;
+            % Use hanning(15) as the window.  The window coefficients are
+            % inlined to remove dependency on the Signal Processing Toolbox.
+            h = img_fun('fwind1',Hd, ...
+                   [0.0381 0.1464 0.3087 0.5000 0.6913 0.8536 ...
+                    0.9619 1.0000 0.9619 0.8536 0.6913 0.5000 ...
+                    0.3087 0.1464 0.0381]);
         else
-            result = ind2rgb8(ud.OriginalImage,get(ud.ParentFig,'Colormap'));
-            result = rgb2YIQ(result);              %  convert to YIQ image
+            h = img_fun('fspecial','unsharp');
         end
-        result_t = result(:,:,1);    result_t(mask) = img_fun('imadjust_j',result_t(mask));
-        result(:,:,1) = result_t;
-        result = YIQ2rgb(result);      clear result_t;     %convert back to RGB
-    else        % processing a gray image
-       result(mask) = img_fun('imadjust_j',result(mask));
-    end
-    handlesParent.origFig = result;
-    guidata(ud.ParentFig,handlesParent);
-case 'Lowpass Filter'
-   order = 15;  cutoff = 0.3;
-   [f1,f2] = freqspace(order,'meshgrid');
-   d = find(f1.^2+f2.^2 < cutoff^2);
-   Hd = zeros(order);
-   Hd(d) = 1;
-   % Use hanning(15) as the window.  The window coefficients are
-   % inlined to remove dependency on the Signal Processing Toolbox.
-   h = img_fun('fwind1',Hd, ...
-           [0.0381 0.1464 0.3087 0.5000 0.6913 0.8536 ...
-            0.9619 1.0000 0.9619 0.8536 0.6913 0.5000 ...
-            0.3087 0.1464 0.0381]);
-    if ~is_gray
-        if (length(n_dims) > 2)
-            result = rgb2YIQ(ud.OriginalImage);    %  convert to YIQ image
+        if (threeD && ~is_gray)
+            result = cvlib_mex('color',ud.OriginalImage,'rgb2YCrCb');
+            result(:,:,3) = img_fun('roifilt2',h, result(:,:,3), mask);
+            result = cvlib_mex('color',result,'YCrCb2rgb');     %convert back to RGB
         else
-            result = ind2rgb8(ud.OriginalImage,get(ud.ParentFig,'Colormap'));
-            result = rgb2YIQ(result);              %  convert to YIQ image
+            result = img_fun('roifilt2',h, orig, mask);
         end
-        result(:,:,1) = img_fun('roifilt2',h, result(:,:,1), mask);
-        result = YIQ2rgb(result);      clear result_t;     %convert back to RGB
-    else        % processing a gray image
-        result = img_fun('roifilt2',h, orig, mask);
-    end
-    handlesParent.origFig = result;
-    guidata(ud.ParentFig,handlesParent);
-case 'Unsharp Masking'
-    h = img_fun('fspecial','unsharp');
-    if ~is_gray
-        if (length(n_dims) > 2)
-            result = rgb2YIQ(ud.OriginalImage);    %  convert to YIQ image
+	case 'Median Filter'
+        if (threeD && ~is_gray)
+            result = cvlib_mex('color',ud.OriginalImage,'rgb2YCrCb');
+            result_t = result(:,:,3);           tmp = img_fun('medfilt2',result_t,[5 5]);
+            result_t(mask) = tmp(mask);         result(:,:,3) = result_t;
+            result = cvlib_mex('color',result,'YCrCb2rgb');      clear result_t tmp;     %convert back to RGB
         else
-            result = ind2rgb8(ud.OriginalImage,get(ud.ParentFig,'Colormap'));
-            result = rgb2YIQ(result);              %  convert to YIQ image
+            tmp = img_fun('medfilt2',orig,[5 5]);
+            result(mask) = tmp(mask);       clear tmp;
         end
-        result(:,:,1) = img_fun('roifilt2',h, result(:,:,1), mask);
-        result = YIQ2rgb(result);                  %convert back to RGB
-    else        % processing a gray image
-        result = img_fun('roifilt2',h, orig, mask);
-    end
-    handlesParent.origFig = result;
-    guidata(ud.ParentFig,handlesParent);
-case 'Median Filter'
-    if ~is_gray
-        if (length(n_dims) > 2)
-            result = rgb2YIQ(ud.OriginalImage);    %  convert to YIQ image
+	case 'Image Adjust'
+        if (threeD && ~is_gray)
+            result = cvlib_mex('color',ud.OriginalImage,'rgb2YCrCb');
+            result_t = result(:,:,3);    result_t(mask) = img_fun('imadjust_j',result_t(mask));
+            result(:,:,3) = result_t;
+            result = cvlib_mex('color',result,'YCrCb2rgb');      clear result_t;     %convert back to RGB
         else
-            result = ind2rgb8(ud.OriginalImage,get(ud.ParentFig,'Colormap'));
-            result = rgb2YIQ(result);              %  convert to YIQ image
+            result(mask) = img_fun('imadjust_j',result(mask));
         end
-        result_t = result(:,:,1);           med_orig = img_fun('medfilt2',result_t,[5 5]);
-        result_t(mask) = med_orig(mask);    result(:,:,1) = result_t;
-        result = YIQ2rgb(result);      clear result_t med_orig;    %convert back to RGB
-    else        % processing a gray image
-        med_orig = img_fun('medfilt2',orig,[5 5]);
-        result(mask) = med_orig(mask);      clear med_orig;
-    end
-    handlesParent.origFig = result;
-    guidata(ud.ParentFig,handlesParent);
-case 'Brighten'
-    if ~is_gray
-        if (length(n_dims) > 2)
-            result = rgb2YIQ(ud.OriginalImage);    %  convert to YIQ image
+	case {'Brighten' 'Darken' 'Increase Contrast' 'Decrease Contrast'}
+        if (strcmp(ud.Operation(1:2), 'Br')),           par = {[], [.25 1]};
+        elseif (strcmp(ud.Operation(1:2), 'Da')),       par = {[], [0 .75]};
+        elseif (strcmp(ud.Operation(1:2), 'In')),       par = {[.25 .75],[]};
+        elseif (strcmp(ud.Operation(1:2), 'De')),       par = {[],[.25 .75]};
+        end
+        if (threeD && ~is_gray)
+            result = cvlib_mex('color',ud.OriginalImage,'rgb2YCrCb');
+            result_t = result(:,:,3);           result_t(mask) = img_fun('imadjust_j',result_t(mask),par{:});
+            result(:,:,3) = result_t;
+            result = cvlib_mex('color',result,'YCrCb2rgb');      clear result_t;     %convert back to RGB
         else
-            result = ind2rgb8(ud.OriginalImage,get(ud.ParentFig,'Colormap'));
-            result = rgb2YIQ(result);              %  convert to YIQ image
+            tmp = img_fun('imadjust_j',orig, par{:});
+            result(mask) = tmp(mask);       clear tmp;
         end
-        result_t = result(:,:,1);    result_t(mask) = img_fun('imadjust_j',result_t(mask),[],[.25 1]);
-        result(:,:,1) = result_t;
-        result = YIQ2rgb(result);      clear result_t;    %convert back to RGB
-    else        % processing a gray image
-        bright_orig = img_fun('imadjust_j',orig, [], [.25 1]);
-        result(mask) = bright_orig(mask);       clear bright_orig;
-    end
-    handlesParent.origFig = result;
-    guidata(ud.ParentFig,handlesParent);
-case 'Darken'
-    if ~is_gray
-        if (length(n_dims) > 2)
-            result = rgb2YIQ(ud.OriginalImage);    %  convert to YIQ image
-        else
-            result = ind2rgb8(ud.OriginalImage,get(ud.ParentFig,'Colormap'));
-            result = rgb2YIQ(result);              %  convert to YIQ image
-        end
-        result_t = result(:,:,1);    result_t(mask) = img_fun('imadjust_j',result_t(mask),[],[0 .75]);
-        result(:,:,1) = result_t;
-        result = YIQ2rgb(result);      clear result_t;    %convert back to RGB
-    else        % processing a gray image
-        dark_orig = img_fun('imadjust_j',orig, [], [0 .75]);
-        result(mask) = dark_orig(mask);
-    end
-    handlesParent.origFig = result;
-    guidata(ud.ParentFig,handlesParent);
-case 'Increase Contrast'
-    if ~is_gray
-        if (length(n_dims) > 2)
-            result = rgb2YIQ(ud.OriginalImage);    %  convert to YIQ image
-        else
-            result = ind2rgb8(ud.OriginalImage,get(ud.ParentFig,'Colormap'));
-            result = rgb2YIQ(result);              %  convert to YIQ image
-        end
-        result_t = result(:,:,1);    result_t(mask) = img_fun('imadjust_j',result_t(mask),[.25 .75],[]);
-        result(:,:,1) = result_t;
-        result = YIQ2rgb(result);      clear result_t;    %convert back to RGB
-    else        % processing a gray image
-        ic_orig = img_fun('imadjust_j',orig, [.25 .75], []);
-        result(mask) = ic_orig(mask);       clear ic_orig;
-    end
-    handlesParent.origFig = result;
-    guidata(ud.ParentFig,handlesParent);
-case 'Decrease Contrast'
-    if ~is_gray
-        if (length(n_dims) > 2)
-            result = rgb2YIQ(ud.OriginalImage);    %  convert to YIQ image
-        else
-            result = ind2rgb8(ud.OriginalImage,get(ud.ParentFig,'Colormap'));
-            result = rgb2YIQ(result);              %  convert to YIQ image
-        end
-        result_t = result(:,:,1);    result_t(mask) = img_fun('imadjust_j',result_t(mask),[],[.25 .75]);
-        result(:,:,1) = result_t;
-        result = YIQ2rgb(result);      clear result_t;    %convert back to RGB
-    else        % processing a gray image
-        dc_orig = img_fun('imadjust_j',orig, [], [.25 .75]);
-        result(mask) = dc_orig(mask);       clear dc_orig;
-    end
-    handlesParent.origFig = result;
-    guidata(ud.ParentFig,handlesParent);
-% case 'Boundary Interpolation'
-%     if ~is_gray
-%         if (length(n_dims) > 2)
-%             result = rgb2YIQ(ud.OriginalImage);    %  convert to YIQ image
-%         else
-%             result = ind2rgb8(ud.OriginalImage,get(ud.ParentFig,'Colormap'));
-%             result = rgb2YIQ(result);              %  convert to YIQ image
-%         end
-%         result(:,:,1) = roifill(result(:,:,1), mask);
-%         result(:,:,2) = roifill(result(:,:,2), mask);
-%         result(:,:,3) = roifill(result(:,:,3), mask);
-%         result = YIQ2rgb(result);                  %convert back to RGB
-%     else        % processing a gray image
-%         result = roifill(orig, mask);
-%     end
-%     handlesParent.origFig = result;
-%     guidata(ud.ParentFig,handlesParent);
-% case 'Add Gaussian Noise' 
-%    noisy_orig = imnoise(orig, 'Gaussian', 0, .01);
-%    result(mask) = noisy_orig(mask);     clear noisy_orig;
-otherwise 
-   warndlg('Invalid ROI operation','Warning');
-   return
+
+	% case 'Boundary Interpolation'
+	%     if ~is_gray
+	%         if (threeD)
+	%             result = rgb2YIQ(ud.OriginalImage);    %  convert to YIQ image
+	%         else
+	%             result = ind2rgb8(ud.OriginalImage,get(ud.ParentFig,'Colormap'));
+	%             result = rgb2YIQ(result);              %  convert to YIQ image
+	%         end
+	%         result(:,:,1) = roifill(result(:,:,1), mask);
+	%         result(:,:,2) = roifill(result(:,:,2), mask);
+	%         result(:,:,3) = roifill(result(:,:,3), mask);
+	%         result = YIQ2rgb(result);                  %convert back to RGB
+	%     else        % processing a gray image
+	%         result = roifill(orig, mask);
+	%     end
+	% case 'Add Gaussian Noise' 
+	%    noisy_orig = imnoise(orig, 'gaussian', 0, .01);
+	%    result(mask) = noisy_orig(mask);     clear noisy_orig;
+	otherwise 
+       warndlg('Invalid ROI operation','Warning');
+       return
 end
+
+%handlesParent.origFig = result;
+guidata(ud.ParentFig,handlesParent);
 
 h_img = findobj(ud.ParentAxis,'Type','image');
 if (was_fake_gray)                                  % It was a 3D image, but gray
@@ -423,11 +335,10 @@ else
     set(h_img,'CData', result);
 end
 set(ud.h.Apply, 'Enable', 'off');
-setstatus(ImageOpsFig, '');
 
 % -------------------------------------------------------------------------------------------
 function ImageReset(ImageOpsFig)
-if (nargin < 1),    ImageOpsFig = gcbf; end
+if (nargin < 1),    ImageOpsFig = gcbf;     end
 ud = get(ImageOpsFig, 'UserData');
 orig = ud.OriginalImage;
 h_img = findobj(ud.ParentAxis,'Type','image');
