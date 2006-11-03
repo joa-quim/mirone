@@ -515,7 +515,7 @@ if (~isempty(hf))
 end
 
 function wbd_MoveRectangle(obj,eventdata,handles,h,state)
-% check if x,y is inside of axis
+% check if x,y is inside of axes
 pt = get(gca, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
 x_lim = get(gca,'xlim');      y_lim = get(gca,'ylim');
 if (x<x_lim(1)) | (x>x_lim(2)) | (y<y_lim(1)) | (y>y_lim(2));   return; end
