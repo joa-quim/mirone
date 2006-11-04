@@ -26,7 +26,6 @@ movegui(hObject,'center');
 
 if (~isempty(varargin))
     handles.h_calling_fig = varargin{1};
-    handles.mirone_axes = get(varargin{1},'CurrentAxes');
 else
     errordlg('EULER_STUFF: wrong number of arguments.','Error')
 end
