@@ -34,7 +34,7 @@ handles.h_line_orig = [];
 
 if (~isempty(varargin))
     handles.h_calling_fig = varargin{1};
-    handles.mirone_axes = get(varargin{1},'CurrentAxes');
+    handles.mironeAxes = get(varargin{1},'CurrentAxes');
     if (length(varargin) == 2)          % Called with the line handle in argument
         handles.h_line_orig = varargin{2};
         set(handles.h_active_line_str,'String','GOT A LINE TO WORK WITH')
@@ -135,7 +135,7 @@ if (isempty(poles_name))
     errordlg('No stage poles provided','Error');    return
 end
 
-axes(handles.mirone_axes)       % Make the Mirone axes the CurrentAxes
+axes(handles.mironeAxes)       % Make the Mirone axes the CurrentAxes
 x = get(handles.h_line_orig,'XData');       y = get(handles.h_line_orig,'YData');
 linha = [x(:) y(:)];
 opt_E = ['-E' poles_name];
