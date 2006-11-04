@@ -64,198 +64,198 @@ delete(handles.figure1);
 % --- Executes on button press in pushbutton_90N180W.
 function pushbutton_90N180W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '90N180W.jpg']),1 );
-out.X = [-180 -135];  out.Y = [45 90];    out.Iname = [handles.f_path '90N180W.jpg'];
+out.X = [-180 -135];  out.Y = [45 90];    out.imgName = [handles.f_path '90N180W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_90N135W.
 function pushbutton_90N135W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '90N135W.jpg']),1 );
-out.X = [-135 -90];  out.Y = [45 90];    out.Iname = [handles.f_path '90N135W.jpg'];
+out.X = [-135 -90];  out.Y = [45 90];    out.imgName = [handles.f_path '90N135W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_90N090W.
 function pushbutton_90N090W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '90N090W.jpg']),1 );
-out.X = [-90 -45];  out.Y = [45 90];    out.Iname = [handles.f_path '90N090W.jpg'];
+out.X = [-90 -45];  out.Y = [45 90];    out.imgName = [handles.f_path '90N090W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_90N045W.
 function pushbutton_90N045W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '90N045W.jpg']),1 );
-out.X = [-45 0];  out.Y = [45 90];    out.Iname = [handles.f_path '90N045W.jpg'];
+out.X = [-45 0];  out.Y = [45 90];    out.imgName = [handles.f_path '90N045W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_90N000E.
 function pushbutton_90N000E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '90N000E.jpg']),1 );
-out.X = [0 45];  out.Y = [45 90];    out.Iname = [handles.f_path '90N000E.jpg'];
+out.X = [0 45];  out.Y = [45 90];    out.imgName = [handles.f_path '90N000E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_90N045E.
 function pushbutton_90N045E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '90N045E.jpg']),1 );
-out.X = [45 90];  out.Y = [45 90];    out.Iname = [handles.f_path '90N045E.jpg'];
+out.X = [45 90];  out.Y = [45 90];    out.imgName = [handles.f_path '90N045E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_90N090E.
 function pushbutton_90N090E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '90N090E.jpg']),1 );
-out.X = [90 135];  out.Y = [45 90];    out.Iname = [handles.f_path '90N090E.jpg'];
+out.X = [90 135];  out.Y = [45 90];    out.imgName = [handles.f_path '90N090E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_90N135E.
 function pushbutton_90N135E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '90N135E.jpg']),1 );
-out.X = [135 180];  out.Y = [45 90];    out.Iname = [handles.f_path '90N135E.jpg'];
+out.X = [135 180];  out.Y = [45 90];    out.imgName = [handles.f_path '90N135E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45N180W.
 function pushbutton_45N180W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45N180W.jpg']),1 );
-out.X = [-180 -135];  out.Y = [0 45];    out.Iname = [handles.f_path '45N180W.jpg'];
+out.X = [-180 -135];  out.Y = [0 45];    out.imgName = [handles.f_path '45N180W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45N135W.
 function pushbutton_45N135W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45N135W.jpg']),1 );
-out.X = [-135 -90];  out.Y = [0 45];    out.Iname = [handles.f_path '45N135W.jpg'];
+out.X = [-135 -90];  out.Y = [0 45];    out.imgName = [handles.f_path '45N135W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45N090W.
 function pushbutton_45N090W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45N090W.jpg']),1 );
-out.X = [-90 -45];  out.Y = [0 45];    out.Iname = [handles.f_path '45N090W.jpg'];
+out.X = [-90 -45];  out.Y = [0 45];    out.imgName = [handles.f_path '45N090W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45N045W.
 function pushbutton_45N045W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45N045W.jpg']),1 );
-out.X = [-45 0];  out.Y = [0 45];    out.Iname = [handles.f_path '45N045W.jpg'];
+out.X = [-45 0];  out.Y = [0 45];    out.imgName = [handles.f_path '45N045W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45N000E.
 function pushbutton_45N000E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45N000E.jpg']),1 );
-out.X = [0 45];  out.Y = [0 45];    out.Iname = [handles.f_path '45N000E.jpg'];
+out.X = [0 45];  out.Y = [0 45];    out.imgName = [handles.f_path '45N000E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45N045E.
 function pushbutton_45N045E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45N045E.jpg']),1 );
-out.X = [45 90];  out.Y = [0 45];    out.Iname = [handles.f_path '45N045E.jpg'];
+out.X = [45 90];  out.Y = [0 45];    out.imgName = [handles.f_path '45N045E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45N090E.
 function pushbutton_45N090E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45N090E.jpg']),1 );
-out.X = [90 135];  out.Y = [0 45];    out.Iname = [handles.f_path '45N090E.jpg'];
+out.X = [90 135];  out.Y = [0 45];    out.imgName = [handles.f_path '45N090E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45N135E.
 function pushbutton_45N135E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45N135E.jpg']),1 );
-out.X = [135 180];  out.Y = [0 45];    out.Iname = [handles.f_path '45N135E.jpg'];
+out.X = [135 180];  out.Y = [0 45];    out.imgName = [handles.f_path '45N135E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_00N180W.
 function pushbutton_00N180W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '00N180W.jpg']),1 );
-out.X = [-180 -135];  out.Y = [-45 0];    out.Iname = [handles.f_path '00N180W.jpg'];
+out.X = [-180 -135];  out.Y = [-45 0];    out.imgName = [handles.f_path '00N180W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_00N135W.
 function pushbutton_00N135W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '00N135W.jpg']),1 );
-out.X = [-135 -90];  out.Y = [-45 0];    out.Iname = [handles.f_path '00N135W.jpg'];
+out.X = [-135 -90];  out.Y = [-45 0];    out.imgName = [handles.f_path '00N135W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_00N090W.
 function pushbutton_00N090W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '00N090W.jpg']),1 );
-out.X = [-90 -45];  out.Y = [-45 0];    out.Iname = [handles.f_path '00N090W.jpg'];
+out.X = [-90 -45];  out.Y = [-45 0];    out.imgName = [handles.f_path '00N090W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_00N045W.
 function pushbutton_00N045W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '00N045W.jpg']),1 );
-out.X = [-45 0];  out.Y = [-45 0];    out.Iname = [handles.f_path '00N045W.jpg'];
+out.X = [-45 0];  out.Y = [-45 0];    out.imgName = [handles.f_path '00N045W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_00N000E.
 function pushbutton_00N000E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '00N000E.jpg']),1 );
-out.X = [0 45];  out.Y = [-45 0];    out.Iname = [handles.f_path '00N000E.jpg'];
+out.X = [0 45];  out.Y = [-45 0];    out.imgName = [handles.f_path '00N000E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_00N045E.
 function pushbutton_00N045E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '00N045E.jpg']),1 );
-out.X = [45 90];  out.Y = [-45 0];    out.Iname = [handles.f_path '00N045E.jpg'];
+out.X = [45 90];  out.Y = [-45 0];    out.imgName = [handles.f_path '00N045E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_00N090E.
 function pushbutton_00N090E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '00N090E.jpg']),1 );
-out.X = [90 135];  out.Y = [-45 0];    out.Iname = [handles.f_path '00N090E.jpg'];
+out.X = [90 135];  out.Y = [-45 0];    out.imgName = [handles.f_path '00N090E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_00N135E.
 function pushbutton_00N135E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '00N135E.jpg']),1 );
-out.X = [135 180];  out.Y = [-45 0];    out.Iname = [handles.f_path '00N135E.jpg'];
+out.X = [135 180];  out.Y = [-45 0];    out.imgName = [handles.f_path '00N135E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45S180W.
 function pushbutton_45S180W_Callback(hObject, eventdata, handles)
 if (get(handles.radiobutton_WorldMap,'Value'))
     out.img = flipdim( imread([handles.f_path 'etopo2.jpg']),1 );
-    out.X = [-180 179.967];  out.Y = [-90 90];    out.Iname = [handles.f_path 'etopo2.jpg'];
+    out.X = [-180 179.967];  out.Y = [-90 90];    out.imgName = [handles.f_path 'etopo2.jpg'];
 else
     out.img = flipdim( imread([handles.f_path '45S180W.jpg']),1 );
-    out.X = [-180 -135];  out.Y = [-90 -45];    out.Iname = [handles.f_path '45S180W.jpg'];
+    out.X = [-180 -135];  out.Y = [-90 -45];    out.imgName = [handles.f_path '45S180W.jpg'];
 end
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45S135W.
 function pushbutton_45S135W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45S135W.jpg']),1 );
-out.X = [-135 -90];  out.Y = [-90 -45];    out.Iname = [handles.f_path '45S135W.jpg'];
+out.X = [-135 -90];  out.Y = [-90 -45];    out.imgName = [handles.f_path '45S135W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45S090W.
 function pushbutton_45S090W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45S090W.jpg']),1 );
-out.X = [-90 -45];  out.Y = [-90 -45];    out.Iname = [handles.f_path '45S090W.jpg'];
+out.X = [-90 -45];  out.Y = [-90 -45];    out.imgName = [handles.f_path '45S090W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45S045W.
 function pushbutton_45S045W_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45S045W.jpg']),1 );
-out.X = [-45 0];  out.Y = [-90 -45];    out.Iname = [handles.f_path '45S045W.jpg'];
+out.X = [-45 0];  out.Y = [-90 -45];    out.imgName = [handles.f_path '45S045W.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45S000E.
 function pushbutton_45S000E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45S000E.jpg']),1 );
-out.X = [0 45];  out.Y = [-90 -45];    out.Iname = [handles.f_path '45S000E.jpg'];
+out.X = [0 45];  out.Y = [-90 -45];    out.imgName = [handles.f_path '45S000E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45S045E.
 function pushbutton_45S045E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45S045E.jpg']),1 );
-out.X = [45 90];  out.Y = [-90 -45];    out.Iname = [handles.f_path '45S045E.jpg'];
+out.X = [45 90];  out.Y = [-90 -45];    out.imgName = [handles.f_path '45S045E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45S090E.
 function pushbutton_45S090E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45S090E.jpg']),1 );
-out.X = [90 135];  out.Y = [-90 -45];    out.Iname = [handles.f_path '45S090E.jpg'];
+out.X = [90 135];  out.Y = [-90 -45];    out.imgName = [handles.f_path '45S090E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_45S135E.
 function pushbutton_45S135E_Callback(hObject, eventdata, handles)
 out.img = flipdim( imread([handles.f_path '45S135E.jpg']),1 );
-out.X = [135 180];  out.Y = [-90 -45];    out.Iname = [handles.f_path '45S135E.jpg'];
+out.X = [135 180];  out.Y = [-90 -45];    out.imgName = [handles.f_path '45S135E.jpg'];
 handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 
