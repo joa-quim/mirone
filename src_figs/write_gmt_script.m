@@ -241,7 +241,7 @@ if (~mirone_handles.geog)   % Non geogs don't use scale bars
 end
 
 % ---------- See if we have pscoast stuff
-ALLlineHand = findobj(get(mirone_handles.mirone_axes,'Child'),'Type','line');
+ALLlineHand = findobj(get(mirone_handles.MironeAxes,'Child'),'Type','line');
 handles.psc_res = [];   handles.psc_opt_W = [];     handles.psc_type_p = [];    handles.psc_type_r  = [];
 if (~isempty(findobj(ALLlineHand,'Tag','CoastLineNetCDF')) | ~isempty(findobj(ALLlineHand,'Tag','Rivers')) ...
         | ~isempty(findobj(ALLlineHand,'Tag','PoliticalBoundaries')) )
@@ -515,7 +515,7 @@ if (~isempty(hf))
 end
 
 function wbd_MoveRectangle(obj,eventdata,handles,h,state)
-% check if x,y is inside of axes
+% check if x,y is inside of axis
 pt = get(gca, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
 x_lim = get(gca,'xlim');      y_lim = get(gca,'ylim');
 if (x<x_lim(1)) | (x>x_lim(2)) | (y<y_lim(1)) | (y>y_lim(2));   return; end
@@ -1268,7 +1268,7 @@ end
 % ------------ If we have used a GMT grid file build the GMT palette -----------------------
 if (used_grd)
     tmp = cell(261,1);
-    pal = colormap(handles_mirone.mirone_axes);
+    pal = colormap(handles_mirone.MironeAxes);
     Z = getappdata(handles_mirone.figure1,'dem_z');
     % SE Z == [] FAZER QUALQUER COISA
     if (handles_mirone.have_nans)      cor_nan = pal(1,:);     pal = pal(2:end,:);   end     % Remove the bg color
@@ -1312,7 +1312,7 @@ if (have_psc)       % We have pscoast commands
 end
 
 % ------------- Search for contour lines ----------------------------------------------------
-ALLtextHand = findobj(get(handles_mirone.mirone_axes,'Child'),'Type','text');
+ALLtextHand = findobj(get(handles_mirone.MironeAxes,'Child'),'Type','text');
 % % % If we have focal mecanisms with labels, remove their handles right away
 % % h = findobj(ALLtextHand,'Tag','TextMeca');                                  % I'M NOT SURE ON THIS ONE
 % % if (~isempty(h))    ALLtextHand = setxor(ALLtextHand, h);   end
@@ -1442,7 +1442,7 @@ end
 % ------------------------------------------------------------------------------------------------
 
 % ------------- Search for focal mecanisms ----------------------------
-ALLpatchHand = findobj(get(handles_mirone.mirone_axes,'Child'),'Type','patch');
+ALLpatchHand = findobj(get(handles_mirone.MironeAxes,'Child'),'Type','patch');
 if (~isempty(ALLpatchHand))
     focHand = findobj(ALLpatchHand,'Tag','FocalMeca');
     if (~isempty(focHand))
