@@ -30,7 +30,7 @@ movegui(hObject,'east')
 if isempty(home_dir),   home_dir = pwd;     end
 
 if (~isempty(varargin))
-    handles.mirone_fig = varargin{1};    handles.mirone_axes = varargin{2};
+    handles.mirone_fig = varargin{1};    handles.mironeAxes = varargin{2};
     zz = get(varargin{2},'XLim');
     handles.x_min = zz(1);    handles.x_max = zz(2);
     zz = get(varargin{2},'YLim');
@@ -241,7 +241,7 @@ ind = find(depth < DepthMin | depth > DepthMax);
 lat(ind) = [];  lon(ind) = [];  depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
 
 try
-    axes(handles.mirone_axes)       % Make Mirone axes active here
+    axes(handles.mironeAxes)       % Make Mirone axes active here
 catch       % If the Mirone figure doesn't exist anymore
     delete(handles.figure1);    return
 end
