@@ -19,7 +19,7 @@ if (length(varargin) > 0)
         errordlg('ERROR: Mirone original image is not stored in memory. Increase "Grid max size".','Error')
         delete(hObject);    return
     end
-    handles.h_mirone_axes = findobj(handles.h_mirone_fig,'Type','axes');
+    handles.hMironeAxes = findobj(handles.h_mirone_fig,'Type','axes');
     handles.h_mirone_img = findobj(handles.h_mirone_fig,'Type','image');
     img = get(handles.h_mirone_img,'CData');
     if (ndims(img) > 2)
@@ -50,10 +50,10 @@ set(handles.figure1,'ColorMap',get(handles.h_mirone_fig,'ColorMap'))
 bg_aspect = m / n;
 handles.hPreviewImage = image(handles.previewImage,'Parent',handles.axes1);
 set(handles.axes1,'PlotBoxAspectRatio',[1 bg_aspect 1],'Visible','off')
-set(handles.axes1,'YDir',get(handles.h_mirone_axes,'Ydir'))
+set(handles.axes1,'YDir',get(handles.hMironeAxes,'Ydir'))
 handles.hAdjustedImage = image(handles.previewImage,'Parent',handles.axes2);
 set(handles.axes2,'PlotBoxAspectRatio',[1 bg_aspect 1],'Visible','off')
-set(handles.axes2,'YDir',get(handles.h_mirone_axes,'Ydir'))
+set(handles.axes2,'YDir',get(handles.hMironeAxes,'Ydir'))
 
 % Compute and plot the histograms
 % axes(handles.axes3);        localImhist(img,handles);
