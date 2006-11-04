@@ -29,8 +29,8 @@ movegui(hObject,'center');
 
 if ~isempty(varargin)
     handles.mirone_fig = varargin{1};
-    handles.mirone_axes = varargin{2};
-    handles.h_calling_lims = [get(handles.mirone_axes,'Xlim') get(handles.mirone_axes,'Ylim')];
+    handles.MironeAxes = varargin{2};
+    handles.h_calling_lims = [get(handles.MironeAxes,'Xlim') get(handles.MironeAxes,'Ylim')];
 else
     % Tenho de prever este caso (mas como?)
 end
@@ -329,13 +329,13 @@ if (handles.CeateBG)      % Yes
     set(handles.figure1,'HandleVisibility','off')
     mirone('FileNewBgFrame_Callback',handles.mirone_fig,[],guidata(handles.mirone_fig), region)
     % Only now the axes exists, get its handle
-    handles.mirone_axes = get(handles.mirone_fig,'CurrentAxes');
+    handles.MironeAxes = get(handles.mirone_fig,'CurrentAxes');
     set(handles.figure1,'HandleVisibility','on')    % Reset
 end
 
 setappdata(handles.mirone_fig,'AtlasResolution',handles.atlas_file);    % Save this for use in write_gmt_script
     
-axes(handles.mirone_axes)       % Make Mirone axes active here
+axes(handles.MironeAxes)       % Make Mirone axes active here
 
 for (k = 1:length(paises.ct))
     id = find(isnan(paises.ct(k).Country(1,:)));
