@@ -1477,7 +1477,6 @@ setappdata(handles.figure1,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])
 setappdata(ax,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])     % Used in pan and somewhere else
 handles.old_size = get(handles.figure1,'Pos');      % Save fig size to prevent maximizing
 handles.origFig = img;
-handles.mirone_axes = ax;
 handles.axes1 = ax;
 
 % [m,n,k] = size(img);
