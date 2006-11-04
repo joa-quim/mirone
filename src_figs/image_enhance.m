@@ -56,7 +56,7 @@ handles.new_pointer = [NaN	NaN	NaN	NaN	NaN	NaN	NaN	2	NaN	NaN	NaN	NaN	NaN	NaN	NaN
         NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN]';
 
 handles.h_mirone_fig = varargin{1};
-handles.h_mirone_axes = findobj(handles.h_mirone_fig,'Type','axes');
+handles.hMironeAxes = findobj(handles.h_mirone_fig,'Type','axes');
 handles.h_mirone_img = findobj(handles.h_mirone_fig,'Type','image');
 img = (get(handles.h_mirone_img,'CData'));
 
@@ -530,7 +530,7 @@ handles.maxWindow(handles.currAxes) = round(newClim(2));
 handles.widthWindow(handles.currAxes) = round(newClim(2)-newClim(1));
 handles.centerWindow(handles.currAxes) = round((newClim(1)+newClim(2))/2);
 
-if (~handles.isRGB),    set(handles.h_mirone_axes,'CLim',newClim);  end
+if (~handles.isRGB),    set(handles.hMironeAxes,'CLim',newClim);  end
 set(handles.patch(handles.currAxes),'XData',[newClim(1) newClim(1) newClim(2) newClim(2)]);
 set(handles.h_vert_lines{handles.currAxes}(1),'XData',[newClim(1) newClim(1)])
 set(handles.h_vert_lines{handles.currAxes}(2),'XData',[(newClim(1)+newClim(2))/2 (newClim(1)+newClim(2))/2])
@@ -626,7 +626,7 @@ switch n
 end
 
 handles.centerWindow(handles.currAxes) = round(x);
-set(handles.h_mirone_axes,'CLim',[new_patch_lims(1) new_patch_lims(4)])
+set(handles.hMironeAxes,'CLim',[new_patch_lims(1) new_patch_lims(4)])
 set(handles.patch(handles.currAxes),'XData',new_patch_lims)
 set(handles.edit_centerWindow,'String',round(x))
 idx = (handles.histo{handles.currAxes}(:,1) >= new_patch_lims(1)) & (handles.histo{handles.currAxes}(:,1) <= new_patch_lims(4));
@@ -641,7 +641,7 @@ set(handles.figure1,'Pointer','arrow', 'WindowButtonUpFcn','', 'WindowButtonDown
 'WindowButtonMotionFcn',{@wbm_vertLine,handles});
 
 xp = get(handles.patch(handles.currAxes),'XData');
-set(handles.h_mirone_axes,'CLim',[xp(1) xp(4)])
+set(handles.hMironeAxes,'CLim',[xp(1) xp(4)])
 
 % --------------------------------------------------------------------------
 function swap_radios(handles,n)
