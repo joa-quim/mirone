@@ -27,7 +27,7 @@ global home_dir
 f_data = [home_dir filesep 'data' filesep];
 
 if (~isempty(varargin))
-    handles.mirone_fig = varargin{1};    handles.mirone_axes = varargin{2};
+    handles.mirone_fig = varargin{1};    handles.MironeAxes = varargin{2};
     zz = get(varargin{2},'XLim');
     handles.x_min = zz(1);    handles.x_max = zz(2);
     zz = get(varargin{2},'YLim');
@@ -330,17 +330,17 @@ else
 end
 
 % ------------ OK, now we are ready to plot the mechanisms
-oldunit = get(handles.mirone_axes,'Units');
-set(handles.mirone_axes,'Units','centimeters')      % normalized
-pos = get(handles.mirone_axes,'Position');
-set(handles.mirone_axes,'Units',oldunit)
-y_lim = get(handles.mirone_axes,'YLim');
+oldunit = get(handles.MironeAxes,'Units');
+set(handles.MironeAxes,'Units','centimeters')      % normalized
+pos = get(handles.MironeAxes,'Position');
+set(handles.MironeAxes,'Units',oldunit)
+y_lim = get(handles.MironeAxes,'YLim');
 handles.size_fac = (y_lim(2) - y_lim(1)) / (pos(4) - pos(2)) * 0.5;  % Scale facor
 Mag5 = get(handles.edit_Mag5,'String');    % Size (cm) of a mag 5 event
 handles.Mag5 = str2num(Mag5);
 setappdata(handles.mirone_fig,'MecaMag5',Mag5)    % For eventual use in 'write_script'
 n_meca = size(handles.data(:,1),1);
-axes(handles.mirone_axes)
+axes(handles.MironeAxes)
 h_pat = zeros(n_meca,3);
 plot_text = get(handles.checkbox_plotDate,'Value');
 for (k=1:n_meca)
