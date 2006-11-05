@@ -16,18 +16,19 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
- * Revision 9.0  15/9/2006 Fixed (or at least reduced) the memory leak
+ * Revision 10  04/11/2006 The 'ProjectionRef' metadata attempts to report in PrettyWkt
+ * Revision 9.0 15/09/2006 Fixed (or at least reduced) the memory leak
  *                         Added the att = gdalread('','-M'); form. only att.Drivers is non-empty 
- * Revision 8.0  12/9/2006 Added the "Subdatasets" & "ImageStructure" to the attributes struct
- * Revision 7.0  11/9/2006 Requested bands could be larger than actual number of bands
+ * Revision 8.0 12/09/2006 Added the "Subdatasets" & "ImageStructure" to the attributes struct
+ * Revision 7.0 11/09/2006 Requested bands could be larger than actual number of bands
  *                         Ignore option -C (scale) if data is already unsigned int
- * Revision 6.0  05/9/2006 Added the GCPs and Metadata to the attributes structure
- * Revision 5.0  08/5/2006 Added Color Table to the attributes structure
- * Revision 4.0  01/2/2006 Corrected uggly bug in index computations
+ * Revision 6.0 05/09/2006 Added the GCPs and Metadata to the attributes structure
+ * Revision 5.0 08/05/2006 Added Color Table to the attributes structure
+ * Revision 4.0 01/02/2006 Corrected uggly bug in index computations
  *			   Added -B option
  *			   Acelareted the indeces computation
- * Revision 3.0  07/6/2005 Added the -R (GMT style) option.
- * Revision 2.0  28/2/2005 Improved memory usage.
+ * Revision 3.0 07/06/2005 Added the -R (GMT style) option.
+ * Revision 2.0 28/02/2005 Improved memory usage.
  *			   Passing options via -M<echanism>
  *			   Added a "insitu" option
  *			   Outputs an attribute structure with Dataset metadata
@@ -927,7 +928,23 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* ------------------------------------------------------------------------- */
 	/* Record the ProjectionRef. */
 	/* ------------------------------------------------------------------------- */
-	mxProjectionRef = mxCreateString ( GDALGetProjectionRef( hDataset ) );
+	if( GDALGetProjectionRef( hDataset ) != NULL ) {
+		OGRSpatialReferenceH  hSRS;
+		char		      *pszProjection;
+		pszProjection = (char *) GDALGetProjectionRef( hDataset );
+
+		hSRS = OSRNewSpatialReference(NULL);
+		if( OSRImportFromWkt( hSRS, &pszProjection ) == CE_None ) {
+			char	*pszPrettyWkt = NULL;
+			OSRExportToPrettyWkt( hSRS, &pszPrettyWkt, FALSE );
+			mxProjectionRef = mxCreateString ( pszPrettyWkt );
+			CPLFree( pszPrettyWkt );
+		}
+		else
+			mxProjectionRef = mxCreateString ( GDALGetProjectionRef( hDataset ) );
+
+		OSRDestroySpatialReference( hSRS );
+	}
 	mxSetField ( metadata_struct, 0, "ProjectionRef", mxProjectionRef );
 
 	/* ------------------------------------------------------------------------- */
