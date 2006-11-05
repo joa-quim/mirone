@@ -105,7 +105,9 @@ function Hdr = att2Hdr(handles,att)
     if (~isempty(att.ProjectionRef))            % Save Proj WKT for eventual later use
         setappdata(handles.axes1,'ProjWKT',att.ProjectionRef)
         out = decodeProjectionRef(att.ProjectionRef);
-        setappdata(handles.axes1,'DatumProjInfo',out)
+        if ( ~isempty(out.datum) || ~isempty(out.ellipsoid) || ~isempty(out.projection) )
+            setappdata(handles.axes1,'DatumProjInfo',out)
+        end
     end
 
 % --------------------------------------------------------------------
