@@ -28,7 +28,9 @@ global home_dir
 
 if isempty(home_dir)        % Case when this function was called directly
     f_path = [pwd filesep 'data' filesep];
-else,    f_path = [home_dir filesep 'data' filesep];  end
+else
+    f_path = [home_dir filesep 'data' filesep];
+end
 
 % Load background image
 axes(handles.axes1)
@@ -51,7 +53,7 @@ if (~isempty(varargin))
 end
 if (length(varargin) == 2) 
     str_prog = 'Mirone. The ultimate indescrete grid viewer';
-    str_analpha = 'Mirone, Version 0.8';
+    str_analpha = 'Mirone, Version 0.9';
     str_url = 'w3.ualg.pt/~jluis/mirone';
     h1 = findobj(hObject,'Style','text','Tag','text_ProgName');
     h2 = findobj(hObject,'Style','text','Tag','text_AnalphaBeta');
