@@ -168,7 +168,10 @@ croped = getappdata(figHandle,'Croped');
 if ~isempty(croped)
     LeastImageWidth = 512;    rmappdata(figHandle,'Croped');
 end
-LeastImageSide = fix(max([screenWidth screenHeight] * 0.6));
+%LeastImageSide = fix(max([screenWidth screenHeight] * 0.6));
+
+% Mind change. For a while I'll try this way.
+LeastImageSide = 512;
 
 if (imageWidth < LeastImageSide && imageHeight < LeastImageSide && ~strcmp(opt,'fixed_size'))   % Augment very small images
     if ~isempty(croped)     % Croped image
