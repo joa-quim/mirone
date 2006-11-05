@@ -28,11 +28,9 @@ if isempty(home_dir),   handles.d_path = [pwd filesep 'data' filesep];    % Case
 else                    handles.d_path = [home_dir filesep 'data' filesep];   end
 
 directory_list = [];
-gridNCformat = 1;           % Default to new netCDF format
 load([handles.d_path 'mirone_pref.mat']);
 handles.geog = geog;        % Just to not be empty.
 handles.ForceInsitu = 0;    % Just to not be empty.
-handles.gridNCformat = gridNCformat;
 
 j = logical(zeros(1,length(directory_list)));           % vector for eventual cleaning non-existing dirs
 if iscell(directory_list)                               % When exists a dir list in mirone_pref
@@ -83,7 +81,6 @@ try     % Goes here all other times
     set(handles.popup_ellipsoide,'String',DefineEllipsoide)
     set(handles.checkbox_NewGrids,'Value',out_in_NewWindow)
     set(handles.checkbox_SaveAsInt16,'Value',saveAsInt16)
-    set(handles.checkbox_newNCformat,'Value',gridNCformat)
 catch       % Comes here in first call before variables are stored in mirone_pref.mat
     DefLineThick = {'2 pt'; '1 pt'; '3 pt'; '4 pt'};
     DefLineColor = {'White'; 'Black'; 'Red'; 'Green'; 'Blue'; 'Cyan'; 'Yellow'; 'Magenta'};
@@ -204,12 +201,6 @@ function varargout = mirone_pref_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 % The figure can be deleted now
 delete(handles.figure1);
-
-% ------------------------------------------------------------------------------------
-function checkbox_newNCformat_Callback(hObject, eventdata, handles)
-if get(hObject,'Value')     handles.gridNCformat = 1;
-else                        handles.gridNCformat = 0;   end
-guidata(hObject,handles)
     
 % ------------------------------------------------------------------------------------
 function radiobutton_geog_Callback(hObject, eventdata, handles)
@@ -348,40 +339,27 @@ DefLineColor = get(handles.popupmenu_DefLineColor, 'String');
 Out.out_in_NewWindow = get(handles.checkbox_NewGrids,'Value');
 Out.saveAsInt16 = get(handles.checkbox_SaveAsInt16,'Value');
 Out.ForceInsitu = handles.ForceInsitu;
-Out.gridNCformat = handles.gridNCformat;
 % Decode the line thickness string into a number
 Out.DefLineThick = str2num(DefLineThick{1}(1));
 % Decode the line color string into the corresponding char (e.g. k,w, etc...)
 switch DefLineColor{1}
-    case 'Black'
-        Out.DefLineColor = 'k';
-    case 'White'
-        Out.DefLineColor = 'w';
-    case 'Red'
-        Out.DefLineColor = 'r';
-    case 'Green'
-        Out.DefLineColor = 'g';
-    case 'Blue'
-        Out.DefLineColor = 'b';
-    case 'Cyan'
-        Out.DefLineColor = 'c';
-    case 'Yellow'
-        Out.DefLineColor = 'y';
-    case 'Magenta'
-        Out.DefLineColor = 'm';
+    case 'Black',       Out.DefLineColor = 'k';
+    case 'White',       Out.DefLineColor = 'w';
+    case 'Red',         Out.DefLineColor = 'r';
+    case 'Green',       Out.DefLineColor = 'g';
+    case 'Blue',        Out.DefLineColor = 'b';
+    case 'Cyan',        Out.DefLineColor = 'c';
+    case 'Yellow',      Out.DefLineColor = 'y';
+    case 'Magenta',     Out.DefLineColor = 'm';
 end
 
 % Decode the Measure units into a char code (e.g n, k, m, u)
 DefineMeasureUnit = get(handles.popup_MeasureUnites, 'String');
 switch DefineMeasureUnit{1}
-    case 'nautic miles'
-        Out.DefineMeasureUnit = 'n';
-    case 'kilometers'
-        Out.DefineMeasureUnit = 'k';
-    case 'meters'
-        Out.DefineMeasureUnit = 'm';
-    case 'user'
-        Out.DefineMeasureUnit = 'u';
+    case 'nautic miles',    Out.DefineMeasureUnit = 'n';
+    case 'kilometers',      Out.DefineMeasureUnit = 'k';
+    case 'meters',          Out.DefineMeasureUnit = 'm';
+    case 'user',            Out.DefineMeasureUnit = 'u';
 end
 
 % Decode the Ellipsoide into a var containg a,b,f
@@ -408,11 +386,10 @@ DefineEllipsoide_params = Out.DefineEllipsoide;    % For saving purposes
 geog = Out.geog;      grdMaxSize = Out.grdMaxSize;    swathRatio = Out.swathRatio;
 out_in_NewWindow = Out.out_in_NewWindow;
 saveAsInt16 = Out.saveAsInt16;
-gridNCformat = handles.gridNCformat;
 %ForceInsitu = handles.ForceInsitu;     % We don't save it because the user must choose it every time
 save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
     'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'out_in_NewWindow',...
-    'saveAsInt16', 'gridNCformat', '-append')
+    'saveAsInt16', '-append')
 handles.output = Out;           guidata(hObject,handles)
 uiresume(handles.figure1);
 
@@ -605,14 +582,6 @@ h24 = uicontrol('Parent',h1,...
 h25 = uicontrol('Parent',h1,...
 'Callback',{@mirone_pref_uicallback,h1,'pushbutton_cancel_Callback'},...
 'Position',[198 10 66 23],'String','Cancel','Tag','pushbutton_cancel');
-
-h26 = uicontrol('Parent',h1,...
-'Callback',{@mirone_pref_uicallback,h1,'checkbox_newNCformat_Callback'},...
-'Position',[10 342 191 15],...
-'String','Use new GMT netCDF grid format',...
-'Style','checkbox',...
-'TooltipString','Use the new GMT 4.1 grid format as default for writting grid files',...
-'Tag','checkbox_newNCformat');
 
 function mirone_pref_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
