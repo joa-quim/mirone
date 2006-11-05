@@ -104,14 +104,42 @@ function Hdr = att2Hdr(handles,att)
     
     if (~isempty(att.ProjectionRef))            % Save Proj WKT for eventual later use
         setappdata(handles.axes1,'ProjWKT',att.ProjectionRef)
+        out = decodeProjectionRef(att.ProjectionRef);
+        setappdata(handles.axes1,'DatumProjInfo',out)
     end
 
 % --------------------------------------------------------------------
-function img2Hdr(handles,Iname,img)
+function out = decodeProjectionRef(strProj)
+    ind = findstr(strProj,char(10));
+    out.datum = [];     out.ellipsoid = [];     out.projection = [];
+    if (numel(ind) <= 1),   return;    end
+    
+    ind = [0 ind length(strProj)-1];
+    for (i=1:numel(ind)-1)
+        str = strProj(ind(i)+1:ind(i+1)-1);
+        if ~isempty(findstr(str,'GEOGCS'))      % Get datum
+            xx = findstr(str,'"');
+            if (numel(xx) < 2),     continue;   end
+            out.datum = str(xx(1)+1:xx(2)-1);
+        end
+        if ~isempty(findstr(str,'SPHEROID'))      % Get ellipsoid
+            if (numel(xx) < 2),     continue;   end
+            xx = findstr(str,'"');
+            out.ellipsoid = str(xx(1)+1:xx(2)-1);
+        end
+        if ~isempty(findstr(str,'PROJECTION'))      % Get ellipsoid
+            if (numel(xx) < 2),     continue;   end
+            xx = findstr(str,'"');
+            out.projection = str(xx(1)+1:xx(2)-1);
+        end
+    end
+
+% --------------------------------------------------------------------
+function img2Hdr(handles,imgName,img)
     w = [];
     if (nargin == 2)
         try
-            info_img = imfinfo(Iname);
+            info_img = imfinfo(imgName);
             w{1} = ['File Name:    ' info_img.Filename];
             w{2} = ['Image Size:    ' num2str(info_img.FileSize) '  Bytes'];
             w{3} = ['Width:  ' num2str(info_img.Width) '    Height:  ' num2str(info_img.Height)];
