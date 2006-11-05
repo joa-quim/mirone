@@ -18,10 +18,22 @@ switch upper(ID)
     case 'MODE',    tipo = 'ENCOM';
     case 'NLIG',    tipo = 'MAN_ASCII';
 end
+
+% See if the grid is on one of the other formats that GMT recognizes
 if (strcmp(tipo,'GMT') && ~strcmp(ID(1:3),'CDF'))
-    errordlg([fullname ' : Is not a GMT netCDF grid!'],'ERROR');
-    return
+    str = ['grdinfo ' fullname];
+    [PATH,FNAME,EXT] = fileparts(fullname);
+    [s,att] = mat_lyies(str,[handles.path_tmp FNAME '.' EXT '.info']);
+    if ~(isequal(s,0))          % File could not be read
+        errordlg([fullname ' : Is not a grid that GMT can read!'],'ERROR');
+        return
+    end
 end
+
+% if (strcmp(tipo,'GMT') && ~strcmp(ID(1:3),'CDF'))
+%     errordlg([fullname ' : Is not a GMT netCDF grid!'],'ERROR');
+%     return
+% end
 [handles,X,Y,Z,head] = read_grid(handles,fullname,tipo);
 
 % ------------------------------------------------------------------------------------------
