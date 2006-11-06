@@ -24,9 +24,7 @@ if (nargin >= 4 && ischar(varargin{1}))
     gui_Callback = str2func(varargin{1});
     feval(gui_Callback,varargin{2:end});
     %if (nargout),   varargout{1} = get(0,'CurrentFigure');     end
-    if (nargout)
-        varargout{1} = varargin{4}.figure1;
-    end
+    if (nargout),   varargout{1} = varargin{4}.figure1;    end
 else
     h = mirone_OpeningFcn(varargin{:});
     if (nargout),   varargout{1} = h;       end
@@ -77,9 +75,10 @@ set(0,'CurrentFigure',hObject)      % Due to a R2006a incredible BUG
 % addpath([home_dir filesep 'src_figs']);
 % addpath([home_dir filesep 'lib_mex']);
 % addpath([home_dir filesep 'utils']);
+% addpath([home_dir filesep 'mag']);
 
 handles.home_dir = home_dir;
-handles.version7 = version7;% If == 1 => R14 or latter
+handles.version7 = version7;% % If == 1 => R14 or latter
 handles.IamCompiled = IamCompiled; % If == 1 than we know that we are dealing with a compiled (V3) version
 handles.DefLineThick = 1;   % Default line thickness (overwriten by mirone_pref)
 handles.DefLineColor = 'k'; % Default line color (overwriten by mirone_pref)
@@ -100,7 +99,6 @@ handles.swathRatio = 3;     % Default swath width / water depth ratio for multib
 handles.grdMaxSize = 20971520;   % I use this for limiting the grid size that is stored in RAM (20 Mb)
 handles.firstMBtrack = 1;   % Used for knowing whether to display or not the MB planing info message in "start planing"
 handles.EarthRad = 6371;    % Authalic radius
-handles.mirone_fig = hObject;  % Copy handle of this mirone figure
 handles.is_grid_reg = 0;    % Due to the unknown type of DEMs loaded with GDAL, I set this as default.
 handles.calling_figure = [];% When Mirone is called with an array in argument, this contains the calling figure handle
 handles.maregraphs_count = 0; % Counter of maregraphs (tsunami modeling)
@@ -115,12 +113,12 @@ handles.was_int16 = 0;      % Keep track of short int imported grids
 handles.saveAsInt16 = 0;    % Save gmt grids in the format #8
 handles.Nodata_int16 = [];  % To store Nodata of short int grids
 handles.ForceInsitu = 0;    % Use "insitu" grid importing (transposition)
-handles.gridNCformat = 0;   % Default to old netCDF format (for time being)
 handles.DefineEllipsoide = [6378137, 0, 1/298.2572235630];    % Defaults to WGS-84
 handles.path_tmp = [home_dir filesep 'tmp' filesep];
 handles.path_data = [home_dir filesep 'data' filesep];
 handles.last_directories = {handles.path_tmp; home_dir};    % Let it have something existent
 handles.grd_img = [];       % Stupid name which will hold the image handle
+handles.imgName = [];       % To hold the full path of loaded images
 handles.firstIllum = 1;     % First illumination will use the displayed image which may have been IP
 handles.oldSize = get(hObject,'Pos');  
 if (handles.oldSize(4) == 0),      handles.oldSize(4) = 1;    end
@@ -135,7 +133,6 @@ try     % A file named mirone_pref.mat (under data) contains the preferences, re
     handles.DefLineThick = str2double(DefLineThick{1}(1));
     handles.out_in_NewWindow = out_in_NewWindow;
     handles.saveAsInt16 = saveAsInt16;
-    handles.gridNCformat = gridNCformat;
     % Decode the line color string into the corresponding char (e.g. k,w, etc...)
     if (strcmp(DefLineColor{1},'Black')),   handles.DefLineColor = 'k';
     else                                    handles.DefLineColor = lower(DefLineColor{1}(1));   end
@@ -284,47 +281,38 @@ set(findobj(hObject,'Tag','DrawEditLine'), 'Accelerator','l');
 %Find out which gmt version is beeing used. 
 info = getappdata(0,'gmt_version');     % See if the info is already there.
 if (isempty(info))
-    try
-	    info = test_gmt;                % NOTE. Due to a totaly unknown reason test_gmt randomly crashes ML.
-    catch
-        info.version = '4';     info.high = 'y';    info.full = 'y';
-        str = ['Due to a totaly unknown reason sometimes "test_gmt" is not found.',sprintf('\n\n'),...
-                'In order that the program don''t stop here, I will assume that you have GMT4 correctly installed, icluding the high and full resolution coastlines.',sprintf('\n\n'),...
-                'If that is not the case, the first time you try to acess any GMT facilitie I will crash.'];
-        warndlg(str,'Warning')
-    end
-	if (str2double(info.version(1)) == 0)     % That realy makes no sense, but non-senses are not so unusual in Matlab
-        msg = ['You don''t have any GMT version installed.', sprintf('\n'), ...
-               '(at least one that I can find)', sprintf('\n'), ...
-               'Sooner or later (probably very soon) you''ll pay for it'];
-       warndlg(msg,'Boom')
-	end
+    info = test_gmt;
     setappdata(0,'gmt_version',info);   % Save it so that the next time a new mirone window is opened
 end                                     % (but within the same session) we don't have to run test_gmt.
-handles.gmt_version = str2double(info.version(1));     % For the moment I only test for major version number
 
-% Check which gmt shoreline files are instaled.
-set(handles.DatasetsCoastLineDefault,'Visible','off');
-if (handles.gmt_version == 0)       % No GMT, no coast lines
-    set(handles.VoidDatasetsCoastLine,'Enable','off')
-    set(handles.VoidDatasetsPoliticalBoundaries,'Enable','off')
-    set(handles.VoidDatasetsRivers,'Enable','off')
-else        % Find out which coast lines database are installed.    
-    if strcmp(info.high,'n')               % 
-        set(handles.DatasetsCoastLineHigh,'Enable','off');
-        set(handles.DatasetsPoliticalBoundariesHigh,'Enable','off');
-        set(handles.DatasetsRiversHigh,'Enable','off');
+if (info.version(1) ~= '0')             % we have a full GMT installation, find out which coastlines are installed.
+    if (info.full ~= 'y')
+        set([handles.DatasetsCoastLineFull handles.DatasetsPBFull handles.DatasetsRiversFull], 'Enable','off')
     end
-    if strcmp(info.full,'n')               % 
-        set(handles.DatasetsCoastLineFull,'Enable','off');
-        set(handles.DatasetsPoliticalBoundariesFull,'Enable','off');
-        set(handles.DatasetsRiversFull,'Enable','off');
+    if (info.high ~= 'y')
+        set([handles.DatasetsCoastLineHigh handles.DatasetsPBHigh handles.DatasetsRiversHigh], 'Enable','off')
+    end    
+else                                    % we don't have a full GMT, so use our own minimalist init files
+    info = test_gmt(['GMT_USERDIR=' home_dir filesep 'gmt_userdir']);  % Set the GMT_USERDIR env and recheck for coastline files
+    if (info.full ~= 'y')
+        set([handles.DatasetsCoastLineFull handles.DatasetsPBFull handles.DatasetsRiversFull], 'Enable','off')
+    end
+    if (info.high ~= 'y')
+        set([handles.DatasetsCoastLineHigh handles.DatasetsPBHigh handles.DatasetsRiversHigh], 'Enable','off')
+    end
+    if (info.intermediate ~= 'y')
+        set([handles.DatasetsCoastLineInterm handles.DatasetsPBInterm handles.DatasetsRiversInterm], 'Enable','off')
+    end
+    if (info.low ~= 'y')
+        set([handles.DatasetsCoastLineLow handles.DatasetsPBLow handles.DatasetsRiversLow], 'Enable','off')
+    end
+    if (info.crude ~= 'y')
+        set([handles.DatasetsCoastLineCrude handles.DatasetsPBCrude handles.DatasetsRiversCrude], 'Enable','off')
     end
 end
 
-handles.mirone_axes = handles.axes1;        % I must get rid of the use of this copy
 guidata(hObject, handles);
-set(hObject,'Visible','on','HandleVisibility','callback')
+set(hObject,'Visible','on','HandleVisibility','callback');  limpa(handles);
 setappdata(hObject,'IAmAMirone',1);         % Use this appdata to identify Mirone figures
 %setappdata(handles.axes1,'ProjWKT',geogWKT) % The Geog WGS84 string in WKT format
 
@@ -662,6 +650,9 @@ try         % In some cases (e.g. histograms, countries) img may not exist
 	set(h_img,'CData', handles.origFig);
     set(handles.figure1,'ColorMap',handles.origCmap)
 	handles.hist = 0;   handles.Illumin_type = 0;   handles.firstIllum = 1;
+    handles.ValidGrid = handles.ValidGrid_orig;     handles.was_int16 = handles.was_int16_orig;
+    handles.computed_grid = handles.computed_grid_orig;
+    set(handles.ImgHist,'checked','off');
 	guidata(hObject, handles);
 end
 
@@ -670,14 +661,11 @@ function ImageHistEqualize_Callback(hObject, eventdata, handles)
 if (handles.no_file == 1),     return;      end
 
 zz = get(handles.grd_img,'CData');
-
 if strcmp(get(hObject,'checked'),'off')     % Then equalize
     if (ndims(zz) == 3);
-%         J(:,:,1) = img_fun('histeq_j',zz(:,:,1));    J(:,:,2) = img_fun('histeq_j',zz(:,:,2));
-%         J(:,:,3) = img_fun('histeq_j',zz(:,:,3));
         zz = cvlib_mex('color',zz,'rgb2hsv');
         zz(:,:,3) = img_fun('histeq_j',zz(:,:,3));
-        J = cvcolor_mex(zz,'hsv2rgb');
+        J = cvlib_mex('color',zz,'hsv2rgb');
     else
         J = img_fun('histeq_j',zz);
     end
@@ -714,17 +702,17 @@ guidata(hObject, handles);  set(handles.figure1,'pointer','arrow')
 function ImageShowPalette_Callback(hObject, eventdata, handles)
 if (handles.no_file == 1),     return;      end
 h = findobj(handles.figure1,'Type','image');
-if (length(size(get(h,'CData'))) > 2)
+if (ndims(get(h,'CData')) == 2)
     msgbox('True color images do not use color palettes.','Warning');    return
 end
 cmap = get(handles.figure1,'Colormap');
-if handles.image_type == 1
+if (handles.image_type == 1)
     dz = (handles.head(6) - handles.head(5)) / 10;
     show_palette([1 length(cmap)], [handles.head(5) handles.head(6)], dz, cmap)
 elseif (handles.image_type > 2 || handles.image_type <= 5)
-    ud = get(handles.figure1,'UserData');           % Retrieve Image info 
-    dz = (str2double(ud.Zmax) - str2double(ud.Zmin)) / 10;
-    show_palette([1 length(cmap)], [str2double(ud.Zmin) str2double(ud.Zmax)], dz, cmap)
+    mm =  getappdata(handles.figure1,'Zmin_max');
+    dz = diff(mm) / 10;
+    show_palette([1 length(cmap)], [mm(1) mm(2)], dz, cmap)
 else
     msgbox('Sorry, Palette not available for this Image type.')
 end
@@ -823,16 +811,15 @@ show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',0,imSize);
 % --------------------------------------------------------------------
 function FileNewBgMap_Callback(hObject, eventdata, handles)
 % The output of bg_regionMapTilled is a structure with the following fields:
-% out.img   -> the image                % out.X     -> image's X limits
-% out.Y     -> image's Y limits         % out.Iname -> image's full path and name
+% out.img   -> the image                % out.X         -> image's X limits
+% out.Y     -> image's Y limits         % out.imgName   -> image's full path and name
 out = bg_region_map_tilled;
 if isempty(out),    return;     end     % User gave up loading the fig tille
-ud.Iname = out.Iname;                   handles.grdname = [];
+handles.imgName = out.imgName;          handles.grdname = [];
 handles.geog = 1;                       handles.image_type = 2;
 handles.head(1:2) = out.X;              handles.head(3:4) = out.Y;      handles.head(5:7) = [0 255 0];
 handles.head(8) = diff(out.X) / (size(out.img,2)-1);    handles.head(9) = diff(out.Y) / (size(out.img,1)-1);
-set(handles.figure1,'UserData',ud);
-handles = show_image(handles,out.Iname,out.X,out.Y,out.img,0,'xy',0,1);
+handles = show_image(handles,out.imgName,out.X,out.Y,out.img,0,'xy',0,1);
 handles.BgMap = 1;      guidata(hObject,handles);
 
 % --------------------------------------------------------------------
@@ -889,7 +876,7 @@ elseif (strcmpi(EXT,'.raw'))
         if (ndims(img) == 2),   pix = ind2rgb8(img,get(handles.figure1,'Colormap'));
         else                    pix = img;      end
         fid = fopen([PathName FileName],'wb');
-        [nl,nc,np] = size(pix);                 l = 1;  pix1 = repmat(uint8(0),nl*nc*3,1);
+        [nl,nc,np] = size(pix);                 l = 1;      pix1 = repmat(uint8(0),nl*nc*3,1);
         if (strcmp(get(handles.axes1,'Ydir'),'normal'));    m = nl:-1:1;
         else                                                m = 1:nl;        end
         for i=m
@@ -938,11 +925,9 @@ if (~isempty(opt) && strcmp(opt,'Surfer'))
     txt1 = 'Surfer 6 binary grid (*.grd,*.GRD)';    txt2 = 'Select output Surfer 6 grid';
 else           % Internaly computed grid    
     if (handles.was_int16 && handles.saveAsInt16)
-        if (handles.gridNCformat),  cdf_format = '=ns';
-        else                        cdf_format = '=cs';     end
+        cdf_format = '=ns';
     else
-        if (handles.gridNCformat),  cdf_format = '=nf';
-        else                        cdf_format = '=cf';     end
+        cdf_format = '=nf';
     end
     tit = 'Grid computed inside Mirone';
     txt1 = 'netCDF grid format (*.grd,*.GRD)';      txt2 = 'Select output GMT grid';
@@ -957,9 +942,9 @@ if isempty(EXT),    f_name = [PathName FNAME '.grd' cdf_format];
 else                f_name = [PathName FNAME EXT cdf_format];       end
 
 % If it was a grid imported by gdal, uppdate the title
-if (handles.image_type == 4)
-    Hdr = get(handles.figure1,'UserData');
-    tit = ['Projection: ' Hdr.projection ' Datum: ' Hdr.datum];
+if (isappdata(handles.axes1,'DatumProjInfo'))
+    DPI = getappdata(handles.axes1,'DatumProjInfo');
+    tit = ['Projection: ' DPI.projection ' Datum: ' DPI.datum];
     if (length(tit) > 80),      tit = tit(1:80);    end     % (1:80) otherwise it BOOMs
 end
 grdwrite_m(Z,head,f_name,tit);      set(handles.figure1,'pointer','arrow')
@@ -978,9 +963,9 @@ function File_img2GMT_RGBgrids_Callback(hObject, eventdata, handles, opt1, opt2,
 %   write the image as a triplet of gmt grids with name stem = OPT3. NOTE: must have OPT1 = 'image'
 if (handles.no_file == 1),      aux_funs('msg_dlg',1,handles);     return;      end
 
-if (nargin == 3),       opt1 = 'image';     opt2 = [];  opt3 = [];
-elseif (nargin == 4),   opt2 = [];          opt3 = [];
-elseif (nargin == 5),   opt3 = [];          end
+if    (nargin == 3),   opt1 = 'image';     opt2 = [];  opt3 = [];
+elseif(nargin == 4),   opt2 = [];          opt3 = [];
+elseif(nargin == 5),   opt3 = [];          end
 
 if (isempty(opt2))
     str1 = {'*.grd;*.GRD','netCDF int2 grid format (*.grd,*.GRD)'; '*.*', 'All Files (*.*)'};
@@ -997,8 +982,7 @@ else        % It means the output file name was transmited in input
 end
 
 set(handles.figure1,'pointer','watch')
-if (handles.gridNCformat),  fmt = '=ns';
-else                        fmt = '=cs';     end
+fmt = '=ns';
 
 [PATH,FNAME,EXT] = fileparts([PathName FileName]);
 if isempty(EXT)
@@ -1009,21 +993,17 @@ else
     f_name_b = [PathName FNAME '_b' EXT fmt];       f_name_gray = [PathName FNAME '_gray' EXT fmt];
 end
 
+tit = ' ';
+if (isappdata(handles.axes1,'DatumProjInfo'))
+    DPI = getappdata(handles.axes1,'DatumProjInfo');
+    tit = ['Projection: ' DPI.projection ' Datum: ' DPI.datum];
+end
+D = handles.head(1:7);
+
 if (handles.image_type == 1)                % GMT grid
-    D = handles.head(1:7);  tit = 'GMT grid converted to 3 RGB grids';
+    tit = 'GMT grid converted to 3 RGB grids';
 elseif (handles.image_type == 2)            % Generic formats
-    ud = get(handles.figure1,'UserData');   % Retrieve Image info 
-    info_img = imfinfo(ud.Iname);
-    D = [getappdata(handles.figure1,'ThisImageLims') 0 0 1];
-    tit = [info_img.Filename];
-elseif (handles.image_type == 3)            % GeoTIFF
-    Hdr = get(handles.figure1,'UserData');
-    D = [Hdr.LL_prj_xmin Hdr.LR_prj_xmax Hdr.LL_prj_ymin Hdr.UR_prj_ymax 0 0 1];
-    tit = ['Projection: ' Hdr.projection ' Datum: ' Hdr.datum];
-elseif (handles.image_type == 4)            % 
-    Hdr = get(handles.figure1,'UserData');
-    tit = ['Projection: ' Hdr.projection ' Datum: ' Hdr.datum];
-    D = handles.head(1:7);
+    tit = handles.imgName;
 end
 if (length(tit) > 80),  tit = tit(1:80);    end     % (1:80) otherwise it BOOMs
 
@@ -1117,7 +1097,7 @@ if (aux_funs('msg_dlg',100,handles));     return;      end  % Test only for no_f
 point_int = 0;                                  % Default to "profile" interpolation
 if (nargin == 4),   point_int = 1;     end      % Interpolate at the line vertex only
 [X,Y,Z,head] = load_grd(handles,'silent');
-if (isempty(Z) && (handles.image_type == 1 || handles.image_type == 4)) % Grid not in memory error
+if (isempty(Z) && (handles.image_type == 1 || handles.image_type == 4))     % Grid not in memory error
     errordlg('Grid was not on memory. Increase "Grid max size" and start over again.','ERROR'); return
 elseif (isempty(Z) && ndims(get(handles.grd_img,'CData')) == 2)
     Z = get(handles.grd_img,'CData');
@@ -1155,12 +1135,22 @@ else                    % Interpolation at line vetex
 end
 
 % Interpolate
-if isempty(getappdata(handles.figure1,'dem_x'))     % grid was loaded here (big according to preferences), so interp linearly
+if ~isempty(getappdata(handles.figure1,'dem_x'))        % Grid is in memory
+    if (~getappdata(handles.figure1,'PixelMode'))       % Interpolation mode
+        zz = grdtrack_m(Z,head,[xx' yy'],'-Z')';        % It uses less memory (and non doubles)
+        %zz = interp2(X,Y,double(Z),xx,yy,'*cubic');
+    else                                                % NEARNEIGBOR mode
+        [rows,cols] = size(Z);
+        rp = aux_funs('axes2pix',rows, get(handles.grd_img,'YData'),yy);
+        cp = aux_funs('axes2pix',cols, get(handles.grd_img,'XData'),xx);
+        r = min(rows, max(1, round(rp)));   c = min(cols, max(1, round(cp)));
+        rc = (c - 1) * rows + r;
+        zz = double(Z(rc));
+    end
+else                                % grid was loaded here (big according to preferences), so interp linearly
     zz = bi_linear(X,Y,Z,xx,yy);
-else    
-    zz = grdtrack_m(Z,head,[xx' yy'],'-Z')';              % It uses less memory (and non doubles)
-    %zz = interp2(X,Y,double(Z),xx,yy,'*cubic');
 end
+
 zoom_state(handles,'maybe_on')
 if (~point_int)         % Disply profile in ecran
     [pato,name,ext] = fileparts(get(handles.figure1,'Name'));
@@ -1319,10 +1309,7 @@ else
     end
 end
 
-ud.Iname = [PathName FileName];
-
-set(handles.figure1,'UserData',ud);     handles.image_type = 2;
-handles.grdname = [];   handles.geog = 0;       % None of this image types is coordinated (nor geog nor anything else)
+handles.image_type = 2;     handles.grdname = [];       handles.geog = 0;    % None of this image types is coordinated
 handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];   % Fake a grid reg GMT header
 aux_funs('cleanGRDappdata',handles);            % Remove eventual grid stuff variables from appdata
 handles = show_image(handles,[PathName FileName],[],[],I,0,'off',0);
@@ -1451,8 +1438,8 @@ show_image(handles,[PathName FileName],X,Y,Z,0,ax_dir,0);
 grid_info(handles,att,'gdal')               % Construct a info message
 
 % --------------------------------------------------------------------
-function FileOpen_DEM_Callback(hObject, eventdata, handles, opt)
-% Files of the following formats are read (well directed) here
+function FileOpenDEM_Callback(hObject, eventdata, handles, opt)
+% Files of the following formats are read (well re-directed) here
 tipo = opt;
 switch opt
     case {'GMT' 'Surfer', 'ENCOM'}
@@ -1647,12 +1634,12 @@ if (isempty(imSize) && (abs(dx - dy) > 1e-4))       % Check for grid node spacin
     imSize = dx / dy;                               % resizetrue will know what to do with this
 end
 if (strcmp(get(findobj(handles.figure1,'Tag','GCPtool'),'Checked'),'on'))
-     handles = gcpTool_devel(handles,axis_t,X,Y,I);
-%    handles = gcpTool(handles,axis_t,X,Y,I);
+%     handles = gcpTool_old(handles,axis_t,X,Y,I);
+    handles = gcpTool(handles,axis_t,X,Y,I);
     return
 end
 
-handles.grd_img = image(X,Y,I,'Parent',handles.axes1);     handles.mirone_axes = handles.axes1;
+handles.grd_img = image(X,Y,I,'Parent',handles.axes1);
 zoom_state(handles,'off_yes');      set(handles.grd_img,'CDataMapping','direct')
 if (strcmp(axis_t,'xy')),           set(handles.axes1,'XDir','normal','YDir','normal')
 elseif (strcmp(axis_t,'off')),      set(handles.axes1,'Visible','off')
@@ -1670,6 +1657,9 @@ setappdata(handles.figure1,'GMThead',handles.head);
 handles.oldSize = get(handles.figure1,'Pos');       % Save fig size to prevent maximizing
 handles.origCmap = get(handles.figure1,'ColorMap'); % Save original colormap 
 set(findobj('Tag','ImgHist'),'checked','off');  set(findobj('Tag','ImgHistGrd'),'checked','off');
+% Make an extra copy of those to use in "restore" because they may be changed by 'bands_list()'
+handles.ValidGrid_orig = ValidGrid;         handles.was_int16_orig = handles.was_int16;
+handles.computed_grid_orig = handles.computed_grid;
 guidata(handles.figure1, handles);              set(handles.figure1,'pointer','arrow')
 
 if(~ValidGrid)      % Delete uicontrols that are useless to images only
@@ -1679,7 +1669,7 @@ if(~ValidGrid)      % Delete uicontrols that are useless to images only
     set(findobj(handles.figure1,'Tag','SaveGMTgrid'),'Enable','off');
 end
 
-if (ndims(I) == 3 && isempty(getappdata(handles.figure1,'BandList')) )  % Some cheating to allow the selection of individual bands of a RGB image
+if (ndims(I) == 3)          % Some cheating to allow selecting individual bands of a RGB image
     tmp1 = cell(4,2);   tmp2 = cell(4,2);    tmp1{1,1} = 'RGB';     tmp1{1,2} = 'RGB';
     for (i = 1:3)
         tmp1{i+1,1} = ['band' sprintf('%d',i)];     tmp1{i+1,2} = ['banda' sprintf('%d',i)];
@@ -1687,7 +1677,14 @@ if (ndims(I) == 3 && isempty(getappdata(handles.figure1,'BandList')) )  % Some c
     end
     tmp = {['+ ' 'RGB']; I; tmp1; tmp2; ''; 1:3; [size(I,1) size(I,2) 3]; 'Mirone'};
     setappdata(handles.figure1,'BandList',tmp)
+    set(findobj(handles.figure1,'Label','Load Bands'),'Enable','on')
+elseif (ndims(I) == 2)      % Remove it so it won't try to operate on indexed images
+    %if (~isempty(getappdata(handles.figure1,'BandList'))),      rmappdata(handles.figure1,'BandList');  end
+    if (isappdata(handles.figure1,'BandList')),     rmappdata(handles.figure1,'BandList');  end
+    set(findobj(handles.figure1,'Label','Load Bands'),'Enable','off')
 end
+if (isappdata(handles.axes1,'ProjWKT')),            rmappdata(handles.axes1,'ProjWKT');         end
+if (isappdata(handles.axes1,'DatumProjInfo')),      rmappdata(handles.axes1,'DatumProjInfo');   end
 
 % --------------------------------------------------------------------
 function ToolsMBplaningStart_Callback(hObject, eventdata, handles)
@@ -3506,7 +3503,7 @@ function DatasetsAtlas_Callback(hObject, eventdata, handles)
 if (handles.geog && ~handles.no_file)   % If a file is loaded and is not geog
     errordlg('This operation is currently possible only for geographic type data','Error');     return;
 end
-atlas(handles.figure1,handles.mirone_axes);
+atlas(handles.figure1,handles.axes1);
 
 % --------------------------------------------------------------------
 function DatasetsCities_Callback(hObject, eventdata, handles,opt)
@@ -4161,10 +4158,8 @@ else
         if isempty(EXT),    f_name = [PathName FNAME '.grd=' num2str(handles.grdformat)];
         else                f_name = [PathName FNAME EXT '=' num2str(handles.grdformat)];       end
     else
-		if (handles.gridNCformat),  fmt = '=nf';
-		else                        fmt = '=cf';     end
-        if isempty(EXT),    f_name = [PathName FNAME '.grd' fmt];
-        else                f_name = [PathName FNAME EXT fmt];       end    
+        if isempty(EXT),    f_name = [PathName FNAME '.grd=nf'];
+        else                f_name = [PathName FNAME EXT '=nf'];       end    
     end
     grdwrite_m(Z,head,f_name,tit);     pause(0.01);
 end
@@ -4812,7 +4807,6 @@ elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
     B = img_fun('bwboundaries',img,'noholes');
 elseif (strcmp(opt,'Lines'))
     %B = cvlib_mex('houghlines2',img);       % If img == 3D cvlib_mex will take care
-    
     %B = cvlib_mex('houghlines2',img,'standard',1,pi/180,100,0,0);
     %B = cvlib_mex('contours',img);
     %
@@ -5005,7 +4999,6 @@ set(handles.figure1,'pointer','watch')
 img = get(handles.grd_img,'CData');
 if (strcmp(opt,'Corners'))
     corn = cvlib_mex('goodfeatures',img,100,0.05);
-	%lineHand = line(corn(:,1), corn(:,2),'Linewidth',handles.DefLineThick,'Color','r','Tag','edge_detected','Userdata',1);
     hold on
     lineHand = plot(corn(:,1),corn(:,2),'ko','MarkerEdgeColor','w','MarkerFaceColor','k', ...
                     'MarkerSize',6,'Tag','corner_detected','Userdata',1);
@@ -5023,14 +5016,14 @@ elseif (strcmp(opt,'bw'))
     set(handles.grd_img,'CData', img, 'CDataMapping','scaled');
     set(handles.figure1,'ColorMap',gray(256))
 elseif ( strcmp(opt,'isGDAL') || (strcmp(opt,'isGMT')) )    % Test if GDAL or GMT are able to read this file
-    str = {'*.*', 'All Files (*.*)'};                       % Just strings to the eye
+    str = {'*.*', 'All Files (*.*)'};                       % Just a strings to the eye
     if (strcmp(opt,'isGMT'))
         str = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)'; '*.*', 'All Files (*.*)'};
     end
     [FileName,PathName] = put_or_get_file(handles,str,['Select ' opt(3:end) ' file'],'get');
     if isequal(FileName,0);     set(handles.figure1,'pointer','arrow');     return;     end             % User gave up
     if (strcmp(opt,'isGDAL'))                               % Again, ...
-        [z,att] = gdalread([PathName FileName]);           % See if GDAL can do it ...
+        [z,att] = gdalread([PathName FileName]);            % See if GDAL can do it ...
     else
         str = ['grdinfo ' [PathName FileName]];             % or GMT ...
         [s,att] = mat_lyies(str,[handles.path_tmp FileName '.info']);
