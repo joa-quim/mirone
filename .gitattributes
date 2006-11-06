@@ -353,6 +353,7 @@ src_figs/write_gmt_script.m -text
 src_figs/yes_or_no.m -text
 /startup.m -text
 /szlibdll.dll -text
+/uigetfolder_standalone.m -text
 /unzip.exe -text
 utils/InOut2WS.m -text
 utils/abifile.m -text
