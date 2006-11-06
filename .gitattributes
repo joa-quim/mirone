@@ -478,8 +478,6 @@ utils/transform_fun.m -text
 utils/trimpatch.m -text
 utils/ui_edit_patch_special.m -text
 utils/ui_edit_polygon.m -text
-utils/ui_edit_polygon0.m -text
-utils/ui_edit_polygon1.m -text
 utils/uicirclegeo.m -text
 utils/uiclearmode_j.m -text
 utils/uintlutc.dll -text
