@@ -702,7 +702,7 @@ guidata(hObject, handles);  set(handles.figure1,'pointer','arrow')
 function ImageShowPalette_Callback(hObject, eventdata, handles)
 if (handles.no_file == 1),     return;      end
 h = findobj(handles.figure1,'Type','image');
-if (ndims(get(h,'CData')) == 2)
+if (ndims(get(h,'CData')) == 3)
     msgbox('True color images do not use color palettes.','Warning');    return
 end
 cmap = get(handles.figure1,'Colormap');
@@ -4852,9 +4852,10 @@ elseif (strcmp(opt,'Circles'))
     x = cos(x);                     y = sin(y);
     lt = getappdata(get(0,'CurrentFigure'),'DefLineThick');    lc = getappdata(get(0,'CurrentFigure'),'DefLineColor');
     h_circ = line('XData', [], 'YData', []);
-    for k = 1:length(B)
-        x = B{k}(1) + B{k}(3) * x;           y = B{k}(2) + B{k}(3) * y;
-        set(h_circ, 'XData', x, 'YData', y,'Color',lc,'LineWidth',lt,'Userdata',[B{k}(1:3)]);
+    for k = 1:size(B,1)
+        x = B(k,1) + B(k,3) * x;           y = B(k,2) + B(k,3) * y;
+        set(h_circ, 'XData', x, 'YData', y,'Color',lc,'LineWidth',lt,'Userdata',B(k,:));
+        draw_funs(h_circ,'SessionRestoreCircleCart')    % Give uicontext
     end
 else                            % Display the bw image where the edges are the whites    
     if (strcmp(get(handles.axes1,'Ydir'),'normal')),    img = flipdim(img,1);   end
