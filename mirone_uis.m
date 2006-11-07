@@ -1126,7 +1126,7 @@ h317 = uimenu('Parent',h1,'Label','Help','Tag','Help');
 uimenu('Parent',h317, 'Callback', @showGDALdrivers,'Label','List GDAL formats')
 
 uimenu('Parent',h317,...
-'Callback','about_box([''Mirone_Last_modified_at_06_November_2006''],''Mirone'')','Label','About','Sep','on');
+'Callback','about_box([''Mirone_Last_modified_at_07_November_2006''],''Mirone'')','Label','About','Sep','on');
 
 axes('Parent',h1,'Units','pixels','Position',[60 0 50 10],'Tag','axes1','Visible','off');
 
