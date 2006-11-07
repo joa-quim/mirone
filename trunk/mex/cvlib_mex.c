@@ -18,6 +18,7 @@
  * Revision 1.0  31/08/2006 Joaquim Luis
  * Revision 2.0  19/10/2006 Joaquim Luis	Edge 'laplace' needed exlicit kernel input
  * Revision 3.0  27/10/2006 Joaquim Luis	Updated cvHoughCircles call to 1.0
+ * Revision 4.0  07/11/2006 Joaquim Luis	Erode & Diltate in cvHoughCircles  (almost the same shit)
  *
  */
 
@@ -678,8 +679,9 @@ void JhoughCircles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 	unsigned char *ptr_gray;
 
 	float	*circ;
-	double	*ptr_d, dp = 1, min_dist = 20, par1 = 200, par2 = 100;
+	double	*ptr_d, dp = 1, min_dist = 20, par1 = 50, par2 = 60;
 	IplImage *src_img = 0, *src_gray;
+	IplConvKernel *element = 0;
         CvSeq* circles = 0;
         CvMemStorage* storage;
 	mxArray *ptr_in;
@@ -724,6 +726,11 @@ void JhoughCircles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 
 	src_img = cvCreateImageHeader( cvSize(nx, ny), 8, nBands );
 	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
+
+	/* Don't really know hoe effective the next commands are, but at least it worked ONCE */
+       	element = cvCreateStructuringElementEx( 4*2+1, 4*2+1, 4, 4, CV_SHAPE_ELLIPSE, 0 );
+	cvErode(src_img,src_img,element,1);
+	cvDilate(src_img,src_img,element,1);
 
 	if (nBands == 3) {			/* Convert to GRAY */
 		src_gray = cvCreateImageHeader( cvSize(nx, ny), 8, 1 );
@@ -2276,10 +2283,10 @@ void houghCirclesUsage() {
 	mexPrintf("	  MIN_DIST -> Minimum distance between centers of the detected circles. If the parameter\n");
 	mexPrintf("	        is too small, multiple neighbor circles may be falsely detected in addition\n");
 	mexPrintf("	        to a true one. If it is too large, some circles may be missed [Default = 20]\n");
-	mexPrintf("	  PAR1 -> higher threshold of the two passed to Canny edge detector [Default = 200]\n");
+	mexPrintf("	  PAR1 -> higher threshold of the two passed to Canny edge detector [Default = 50]\n");
 	mexPrintf("	  PAR2 -> accumulator threshold at the center detection stage. The smaller it is,\n");
 	mexPrintf("	        the more false circles may be detected. Circles, corresponding to the\n");
-	mexPrintf("	        larger accumulator values, will be returned first. [Default = 100]\n\n");
+	mexPrintf("	        larger accumulator values, will be returned first. [Default = 60]\n\n");
 	mexPrintf("	  R0 -> Minimal radius of the circles to search for (pixels) [Default = 5]\n");
 	mexPrintf("	  R1 -> Maximal radius of the circles to search for. By default the maximal radius\n");
 	mexPrintf("	        is set to max(image_width, image_height). [Default = 0]\n");
