@@ -1076,7 +1076,11 @@ else
             len_i(i) = sqrt(dx(i)^2 + dy(i)^2);
             msg = [msg; {['Length' num2str(i) '  =  ' num2str(len_i(i),'%.5f') ' map units']}];
         end
-        msg = [msg; {['Total length = ' num2str(total_len,'%.5f') ' map units']}];
+        if (length(msg) < 20)
+            msg = [msg; {['Total length = ' num2str(total_len,'%.5f') ' map units']}];
+        else
+            msg = {['Total length = ' num2str(total_len,'%.5f') ' map units']};
+        end
         msgbox(msg,'Line(s) length')
     elseif (nargout == 0 && ~isempty(opt))
         msgbox(['Total length = ' num2str(total_len,'%.5f') ' map units'],'Line length')
