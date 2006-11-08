@@ -17,6 +17,7 @@
  *				 Also uses the coastline files independence of GMT
  *		29/10/06 J Luis, When called with one string input, use that string as argument
  *				 to putenv (use this because R13 doesn't have setenv). 
+ *		08/11/06 J Luis, Defaulting HOME to "C:\" was bugged
  *
  *--------------------------------------------------------------------*/
 
@@ -99,7 +100,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #ifdef WIN32
 		/* Set HOME to C:\ under Windows */
 		GMT_HOMEDIR = (char *) mxCalloc (4, (size_t)1);
-		sprintf (GMT_HOMEDIR, "C:%s", DIR_DELIM);
+		sprintf (GMT_HOMEDIR, "C:%c", DIR_DELIM);
 #else
 		mexPrintf ("Warning: Could not determine home directory!\n");
 #endif
