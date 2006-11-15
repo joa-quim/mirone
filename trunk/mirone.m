@@ -93,7 +93,6 @@ handles.grdformat = 0;      % Flag to signal the format of the imported gmt grid
 handles.image_type = 0;     % Image type. 1->grd; 2-> trivial (jpg,png,bmp,etc...); 3->GeoTIFF; 4->DEMs; 5->
 handles.computed_grid = 0;  % However, matrices with a gmt header will have this == 1, so that they can be saved
 handles.no_file = 1;        % 0 means a grid is loaded and 1 that it is not (to test when icons can be pushed)
-handles.BgMap = 0;          % 1 means a Background image map was loaded
 handles.geog = 1;           % By default grids are assumed to be in geographical coordinates
 handles.swathRatio = 3;     % Default swath width / water depth ratio for multibeam planing
 handles.grdMaxSize = 20971520;   % I use this for limiting the grid size that is stored in RAM (20 Mb)
@@ -451,9 +450,6 @@ end
 first_nans = 0;     pal = [];
 if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))   % Just pure Image croping
     if (m < 2 || n < 2),  set(handles.figure1,'pointer','arrow');    return;     end;    % Image too small. Probably a user bad mouse control
-    if (handles.BgMap == 1)     % Image needs to be re-fliped ud (it was previously flipud)
-        I = flipdim(I,1);
-    end
     if (strcmp(get(handles.axes1,'Ydir'),'normal')),    I = flipdim(I,1);    end
     if (ndims(I) == 2)
         pal = get(handles.figure1, 'Colormap');
@@ -816,11 +812,11 @@ function FileNewBgMap_Callback(hObject, eventdata, handles)
 out = bg_region_map_tilled;
 if isempty(out),    return;     end     % User gave up loading the fig tille
 handles.imgName = out.imgName;          handles.grdname = [];
-handles.geog = 1;                       handles.image_type = 2;
+handles.geog = 1;                       handles.image_type = 3;
 handles.head(1:2) = out.X;              handles.head(3:4) = out.Y;      handles.head(5:7) = [0 255 0];
 handles.head(8) = diff(out.X) / (size(out.img,2)-1);    handles.head(9) = diff(out.Y) / (size(out.img,1)-1);
 handles = show_image(handles,out.imgName,out.X,out.Y,out.img,0,'xy',0,1);
-handles.BgMap = 1;      guidata(hObject,handles);
+guidata(hObject,handles);
 
 % --------------------------------------------------------------------
 function FileNewEmpty_Callback(hObject, eventdata, handles)
@@ -1364,16 +1360,20 @@ for (i = 1:n_bands)
     tmp2{i+1,2} = i;
 end
 tmp = {['+ ' opt]; I; tmp1; tmp2; fname; bands_inMemory; [att.RasterYSize att.RasterXSize n_bands]; reader};
+if (n_bands > 3),       I(:,:,4:end) = [];      % Now I can only be MxN or MxNx3
+elseif (n_bands == 2)   I(:,:,2) = [];
+end
 
 setappdata(handles.figure1,'BandList',tmp)
 handles.image_type = 2;
 handles.was_int16 = 0;  handles.computed_grid = 0;
 handles.grdname = [];   handles.geog = 0;       % None of this image types is coordinated (nor geog nor anything else)
 aux_funs('cleanGRDappdata',handles);            % Remove eventual grid stuff variables from appdata
-if (isempty(att.Band(1).ColorMap))
-    set(handles.figure1,'Colormap',jet(256))
-else
-    set(handles.figure1,'Colormap',att.Band(1).ColorMap.CMap)
+if (n_bands == 1),                          set(handles.figure1,'Colormap',gray(256));   end
+if (~strcmp(opt,'RAW'))
+    if (isempty(att.Band(1).ColorMap)),     set(handles.figure1,'Colormap',jet(256))
+    else                                    set(handles.figure1,'Colormap',att.Band(1).ColorMap.CMap)
+    end
 end
 show_image(handles,fname,[],[],I,0,'off',0);    % It also guidata(...) & reset pointer
 if (isappdata(handles.axes1,'InfoMsg')),    rmappdata(handles.axes1,'InfoMsg');     end
@@ -1634,7 +1634,6 @@ if (isempty(imSize) && (abs(dx - dy) > 1e-4))       % Check for grid node spacin
     imSize = dx / dy;                               % resizetrue will know what to do with this
 end
 if (strcmp(get(findobj(handles.figure1,'Tag','GCPtool'),'Checked'),'on'))
-%     handles = gcpTool_old(handles,axis_t,X,Y,I);
     handles = gcpTool(handles,axis_t,X,Y,I);
     return
 end
@@ -1646,7 +1645,7 @@ elseif (strcmp(axis_t,'off')),      set(handles.axes1,'Visible','off')
 else    warndlg('Warning: Unknown axes setting in show_image','Warning')
 end
 resizetrue(handles.figure1,imSize);
-handles.origFig = I;            handles.no_file = 0;            handles.BgMap = 0;
+handles.origFig = I;            handles.no_file = 0;
 handles.Illumin_type = 0;       handles.ValidGrid = ValidGrid;  % Signal that gmt grid opps are allowed
 setappdata(handles.figure1,'ValidGrid',ValidGrid)   % Flag to signal draw_funs if "Crop grid" is possible
 set(handles.figure1,'Name',fname)
@@ -1669,22 +1668,25 @@ if(~ValidGrid)      % Delete uicontrols that are useless to images only
     set(findobj(handles.figure1,'Tag','SaveGMTgrid'),'Enable','off');
 end
 
-if (ndims(I) == 3)          % Some cheating to allow selecting individual bands of a RGB image
-    tmp1 = cell(4,2);   tmp2 = cell(4,2);    tmp1{1,1} = 'RGB';     tmp1{1,2} = 'RGB';
-    for (i = 1:3)
-        tmp1{i+1,1} = ['band' sprintf('%d',i)];     tmp1{i+1,2} = ['banda' sprintf('%d',i)];
-        tmp2{i+1,1} = [num2str(i) num2str(size(I,1)) 'x' num2str(size(I,2)) ' BSQ'];        tmp2{i+1,2} = i;
-    end
-    tmp = {['+ ' 'RGB']; I; tmp1; tmp2; ''; 1:3; [size(I,1) size(I,2) 3]; 'Mirone'};
-    setappdata(handles.figure1,'BandList',tmp)
-    set(findobj(handles.figure1,'Label','Load Bands'),'Enable','on')
-elseif (ndims(I) == 2)      % Remove it so it won't try to operate on indexed images
-    %if (~isempty(getappdata(handles.figure1,'BandList'))),      rmappdata(handles.figure1,'BandList');  end
-    if (isappdata(handles.figure1,'BandList')),     rmappdata(handles.figure1,'BandList');  end
-    set(findobj(handles.figure1,'Label','Load Bands'),'Enable','off')
+BL = getappdata(handles.figure1,'BandList');        % We must tell between fakes and true 'BandList'
+if ( isempty(BL) || ((numel(BL{end}) == 1) && strcmp(BL{end},'Mirone')) )
+	if (ndims(I) == 3)          % Some cheating to allow selecting individual bands of a RGB image
+        tmp1 = cell(4,2);   tmp2 = cell(4,2);    tmp1{1,1} = 'RGB';     tmp1{1,2} = 'RGB';
+        for (i = 1:3)
+            tmp1{i+1,1} = ['band' sprintf('%d',i)];     tmp1{i+1,2} = ['banda' sprintf('%d',i)];
+            tmp2{i+1,1} = [num2str(i) num2str(size(I,1)) 'x' num2str(size(I,2)) ' BSQ'];        tmp2{i+1,2} = i;
+        end
+        tmp = {['+ ' 'RGB']; I; tmp1; tmp2; ''; 1:3; [size(I,1) size(I,2) 3]; 'Mirone'};
+        setappdata(handles.figure1,'BandList',tmp)
+        set(findobj(handles.figure1,'Label','Load Bands'),'Enable','on')
+	elseif (ndims(I) == 2)      % Remove it so it won't try to operate on indexed images
+        if (isappdata(handles.figure1,'BandList')),     rmappdata(handles.figure1,'BandList');  end
+        set(findobj(handles.figure1,'Label','Load Bands'),'Enable','off')
+	end
 end
 if (isappdata(handles.axes1,'ProjWKT')),            rmappdata(handles.axes1,'ProjWKT');         end
 if (isappdata(handles.axes1,'DatumProjInfo')),      rmappdata(handles.axes1,'DatumProjInfo');   end
+% Note that, in cases were it applyies, the above are rebuilt with a latter call to grid_info(handles,att,'gdal')
 
 % --------------------------------------------------------------------
 function ToolsMBplaningStart_Callback(hObject, eventdata, handles)
@@ -2265,7 +2267,6 @@ if ( ~isempty(getappdata(handles.figure1, 'FromGetLine_j')) )
     return
 end
 zoom_state(handles,'maybe_off');
-
 
 if (~isempty(opt) && strcmp(opt,'freehand')),   [xp,yp] = getline_j(handles.figure1,'freehand');
 else                                            [xp,yp] = getline_j(handles.figure1);    end
@@ -5000,6 +5001,7 @@ set(handles.figure1,'pointer','watch')
 img = get(handles.grd_img,'CData');
 if (strcmp(opt,'Corners'))
     corn = cvlib_mex('goodfeatures',img,100,0.05);
+	%lineHand = line(corn(:,1), corn(:,2),'Linewidth',handles.DefLineThick,'Color','r','Tag','edge_detected','Userdata',1);
     hold on
     lineHand = plot(corn(:,1),corn(:,2),'ko','MarkerEdgeColor','w','MarkerFaceColor','k', ...
                     'MarkerSize',6,'Tag','corner_detected','Userdata',1);
@@ -5035,5 +5037,7 @@ elseif ( strcmp(opt,'isGDAL') || (strcmp(opt,'isGMT')) )    % Test if GDAL or GM
                                     'beeing able to correctly decode it).'];
     end
     msgbox(msg,'Test result')
+elseif (strcmp(opt,'Paint'))
+    mpaint(handles.figure1);
 end
 set(handles.figure1,'pointer','arrow')
