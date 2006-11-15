@@ -241,7 +241,7 @@ if (~mirone_handles.geog)   % Non geogs don't use scale bars
 end
 
 % ---------- See if we have pscoast stuff
-ALLlineHand = findobj(get(mirone_handles.MironeAxes,'Child'),'Type','line');
+ALLlineHand = findobj(get(mirone_handles.axes1,'Child'),'Type','line');
 handles.psc_res = [];   handles.psc_opt_W = [];     handles.psc_type_p = [];    handles.psc_type_r  = [];
 if (~isempty(findobj(ALLlineHand,'Tag','CoastLineNetCDF')) | ~isempty(findobj(ALLlineHand,'Tag','Rivers')) ...
         | ~isempty(findobj(ALLlineHand,'Tag','PoliticalBoundaries')) )
@@ -1268,7 +1268,7 @@ end
 % ------------ If we have used a GMT grid file build the GMT palette -----------------------
 if (used_grd)
     tmp = cell(261,1);
-    pal = colormap(handles_mirone.MironeAxes);
+    pal = colormap(handles_mirone.axes1);
     Z = getappdata(handles_mirone.figure1,'dem_z');
     % SE Z == [] FAZER QUALQUER COISA
     if (handles_mirone.have_nans)      cor_nan = pal(1,:);     pal = pal(2:end,:);   end     % Remove the bg color
@@ -1312,7 +1312,7 @@ if (have_psc)       % We have pscoast commands
 end
 
 % ------------- Search for contour lines ----------------------------------------------------
-ALLtextHand = findobj(get(handles_mirone.MironeAxes,'Child'),'Type','text');
+ALLtextHand = findobj(get(handles_mirone.axes1,'Child'),'Type','text');
 % % % If we have focal mecanisms with labels, remove their handles right away
 % % h = findobj(ALLtextHand,'Tag','TextMeca');                                  % I'M NOT SURE ON THIS ONE
 % % if (~isempty(h))    ALLtextHand = setxor(ALLtextHand, h);   end
@@ -1442,7 +1442,7 @@ end
 % ------------------------------------------------------------------------------------------------
 
 % ------------- Search for focal mecanisms ----------------------------
-ALLpatchHand = findobj(get(handles_mirone.MironeAxes,'Child'),'Type','patch');
+ALLpatchHand = findobj(get(handles_mirone.axes1,'Child'),'Type','patch');
 if (~isempty(ALLpatchHand))
     focHand = findobj(ALLpatchHand,'Tag','FocalMeca');
     if (~isempty(focHand))
@@ -1667,7 +1667,12 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
         pos = get(ALLtextHand,'Position');      font = get(ALLtextHand,'FontName');
         fsize = get(ALLtextHand,'FontSize');    fcolor = get(ALLtextHand,'Color');
         if (isnumeric(fcolor))
-            opt_G = {[' -G' num2str(round(fcolor * 255))]};
+            fcolor = round(fcolor * 255);
+            if (numel(fcolor) == 1)
+                opt_G = {[' -G' num2str(fcolor)]};
+            else
+                opt_G = {[' -G' num2str(fcolor(1)) '/' num2str(fcolor(2)) '/' num2str(fcolor(3))]};
+            end
         elseif (ischar(fcolor))     % Shit, we have to decode the color letter
             switch fcolor
                 case 'w',       opt_G = {' -G255'};
