@@ -141,7 +141,7 @@ function paintFirstButtonDown(handles,state,opt)
     else                            lineThick = handles.lineWidth;
     end
     lineType = 8;       % Default to 8 connectivity
-    %if (get(handles.checkbox_AA,'Value')),      lineType = 16;      end
+    if (get(handles.checkbox_AA,'Value')),      lineType = 16;      end
     pt = get(handles.hCallingAxes, 'CurrentPoint');
     setappdata(handles.figure1,'prev_pt',pt(1,1:2))
     set(handles.hCallingFig,'WindowButtonMotionFcn',{@wbm_line,handles,lineThick,lineType},...
