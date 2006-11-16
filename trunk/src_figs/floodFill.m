@@ -213,7 +213,7 @@ function pipeta_clickedcallback(hObject, eventdata)
         pt = get(handles.hCallingAxes, 'CurrentPoint');
         if (pt(1,2) > handles.imgSize(1)),      return;     end
         [c,r] = getpixcoords(handles,pt(1,1),pt(1,2));
-        c = round(c);       r = round(y);
+        c = round(c);       r = round(r);
         img = get(handles.hImage,'CData');
         fillColor = double(img(r,c,:));
         handles.fillColor = reshape(fillColor,1,numel(fillColor));
