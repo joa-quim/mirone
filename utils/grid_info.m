@@ -81,7 +81,7 @@ function txt = wipe_zeros(txt)
 	end
 
 % --------------------------------------------------------------------
-function Hdr = att2Hdr(handles,att)
+function att2Hdr(handles,att)
 	% Fill a header with the info from the att struct issued by gdalread
 
     w{1} = ['Driver : ' att.DriverShortName];
