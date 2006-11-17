@@ -59,19 +59,19 @@ end
 threeD = IsThreeD(gca);
 
 if nargin == 1,
-  h = plus_labels(threeD,cs);
+    h = plus_labels(threeD,cs);
 else
-  if ~isempty(varargin{1}(1)) && ishandle(varargin{1}(1)) && ...
-    (strcmp(get(varargin{1}(1),'type'),'line') || strcmp(get(varargin{1}(1),'type'),'patch')),
-    h = inline_labels(cs,varargin{:});
-  else
-    h = plus_labels(threeD,cs,varargin{:});
-  end
+    if ~isempty(varargin{1}(1)) && ishandle(varargin{1}(1)) && ...
+        (strcmp(get(varargin{1}(1),'type'),'line') || strcmp(get(varargin{1}(1),'type'),'patch')),
+        h = inline_labels(cs,varargin{:});
+    else
+        h = plus_labels(threeD,cs,varargin{:});
+    end
 end
 
 if nargout>0, hh = h; end
 if ~ishold, 
-  if threeD, view(3), else view(2), end
+    if threeD, view(3), else view(2), end
 end
 
 %--------------------------------------------------------------
@@ -96,23 +96,23 @@ axHand = gca;   figHand = get(axHand,'Parent');
 if nargin>=3 && ~ischar(varargin{1}),
   v = varargin{1};
   inargs(1)=1;
-end;
+end
 
 lab_int=72*2;  % label interval (points)
 
 for k=find(inargs==0),
- if strncmpi(varargin{k},'lab',3),
-   inargs([k k+1])=1;
-   lab_int=varargin{k+1};
- end;
-end;
+    if strncmpi(varargin{k},'lab',3),
+        inargs([k k+1])=1;
+        lab_int=varargin{k+1};
+    end
+end
 
 varargin(find(inargs))=[]; 
 
 if strcmp(get(h(1),'type'),'patch') && ~strcmp(get(h(1),'facecolor'),'none'),
-  isfilled = 1;
+    isfilled = 1;
 else
-  isfilled = 0;
+    isfilled = 0;
 end
 
 %% EF 4/97
@@ -128,15 +128,15 @@ if (strcmp(get(axHand, 'YDir'), 'reverse')), YDir = -1; else YDir = 1; end
 
 UN=get(axHand,'units');
 if (UN(1:3)=='nor'),
-  UN=get(figHand,'paperunits');
-  set(figHand,'paperunits','points');
-  PA=get(figHand,'paperposition');
-  set(figHand,'paperunits',UN);
-  PA=PA.*[get(axHand,'position')];
+    UN=get(figHand,'paperunits');
+    set(figHand,'paperunits','points');
+    PA=get(figHand,'paperposition');
+    set(figHand,'paperunits',UN);
+    PA=PA.*[get(axHand,'position')];
 else
-  set(axHand,'units','points');
-  PA=get(axHand,'pos');
-  set(axHand,'units',UN); 
+    set(axHand,'units','points');
+    PA=get(axHand,'pos');
+    set(axHand,'units',UN); 
 end
 
 % Find beginning of all lines
@@ -144,25 +144,24 @@ end
 lCS=size(CS,2);
 
 if ~isempty(get(axHand,'children')),
-  XL=get(axHand,'xlim');    YL=get(axHand,'ylim');
+    XL=get(axHand,'xlim');    YL=get(axHand,'ylim');
 else
-  iL=[];
-  k=1;
-  XL=[Inf -Inf];
-  YL=[Inf -Inf];
-  while (k<lCS),
-    x=CS(1,k+(1:CS(2,k)));
-    y=CS(2,k+(1:CS(2,k)));
-    XL=[ min([XL(1),x]) max([XL(2),x]) ];
-    YL=[ min([YL(1),y]) max([YL(2),y]) ]; 
-    iL=[iL k];
-    k=k+CS(2,k)+1;
-  end;
-  set(gca,'xlim',XL,'ylim',YL);
-end;
+    iL=[];
+    k=1;
+    XL=[Inf -Inf];
+    YL=[Inf -Inf];
+    while (k<lCS),
+        x=CS(1,k+(1:CS(2,k)));
+        y=CS(2,k+(1:CS(2,k)));
+        XL=[ min([XL(1),x]) max([XL(2),x]) ];
+        YL=[ min([YL(1),y]) max([YL(2),y]) ]; 
+        iL=[iL k];
+        k=k+CS(2,k)+1;
+    end
+    set(axHand,'xlim',XL,'ylim',YL);
+end
 
-Aspx=PA(3)/diff(XL);  % To convert data coordinates to paper (we need
-                      % to do this
+Aspx=PA(3)/diff(XL);  % To convert data coordinates to paper (we need to do this
 Aspy=PA(4)/diff(YL);  % to get the gaps for text the correct size)
 
 H=[];
