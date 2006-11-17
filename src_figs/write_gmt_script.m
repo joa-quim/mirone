@@ -1171,7 +1171,7 @@ if (~strcmp(sc,'bat'))                          % Write a csh script
         if (~need_path)
     	    script{l} = ['set grd = ' just_grd_name];   id_grd = l; l=l+1;
         else
-    	    script{l} = ['set grd = ' grd_name];    id_grd = l; l=l+1;
+    	    script{l} = ['set grd = ' grd_name];        id_grd = l; l=l+1;
         end
     end
     script{l} = ['set cpt = ' prefix '.cpt']; id_cpt = l;   l=l+1;
@@ -1182,7 +1182,7 @@ if (~strcmp(sc,'bat'))                          % Write a csh script
     	script{l} = comm;                       l=l+1;        
     end
 else                                            % Write a dos batch    
-	script{l} = ['echo OFF'];                   l=l+1;
+	script{l} = ['@echo OFF'];                  l=l+1;
 	script{l} = [comm 'Coffeewrite Mirone Tec'];l=l+1;
 	script{l} = comm;                           l=l+1;
 	script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
@@ -1198,12 +1198,12 @@ else                                            % Write a dos batch
     prefix_ddir = [dest_dir filesep prefix];    % Add destination dir to the name prefix
     if (~isempty(grd_name))
         if (~need_path)
-	        script{l} = ['set grd=' just_grd_name]; id_grd = l; l=l+1;
+	        script{l} = ['set grd=' just_grd_name];     id_grd = l; l=l+1;
         else
-	        script{l} = ['set grd=' grd_name];  id_grd = l; l=l+1;
+	        script{l} = ['set grd=' grd_name];          id_grd = l; l=l+1;
         end
     end
-    script{l} = ['set cpt=' prefix '.cpt']; id_cpt = l; l=l+1;
+    script{l} = ['set cpt=' prefix '.cpt'];     id_cpt = l; l=l+1;
 	script{l} = ['set ps=' prefix '.ps'];       l=l+1;
     if (~isempty(paper_media))
     	script{l} = [comm ' ---- We are not using A4'];  l=l+1;
@@ -1218,18 +1218,21 @@ script{l} = [comm '-------- Start by creating the basemap frame'];  l=l+1;
 script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ' ' pb 'deg_form' pf ' -K > ' pb 'ps' pf];
 l=l+1;
 if (~isempty(grd_name))
-    if (handles_mirone.Illumin_type == 1)      % We have a image illuminated with grdgradient. Rebuild de illumination
-        luz = getappdata(handles_mirone.figure1,'Luz');
-        if (handles_mirone.geog)   opt_M = ' -M';
-        else                opt_M = '';     end
+    if ( handles_mirone.Illumin_type > 0 && handles_mirone.Illumin_type <= 4 )
+        % We have a image illuminated with grdgradient. Rebuild de illumination
+        illumComm = getappdata(handles_mirone.figure1,'illumComm');
+        opt_M = '';
+        if (handles_mirone.Illumin_type == 1 && handles_mirone.geog),   opt_M = ' -M';     end
+        opt_N = '';
+        if (handles_mirone.Illumin_type == 1),      opt_N = ' -Nt';     end
         name_illum = [prefix '_intens.grd=cf'];
         script{l} = [''];                          l=l+1;
         script{l} = [comm '-------- Compute the illumination grid'];    l=l+1;
-        script{l} = ['grdgradient ' pb 'grd' pf opt_M ' -A' num2str(luz.azim) ' -Nt -G' name_illum ellips];    l=l+1;
+        script{l} = ['grdgradient ' pb 'grd' pf opt_M ' ' illumComm opt_N ' -G' name_illum ellips];    l=l+1;
         have_gmt_illum = 1;     used_grd = 1;
         illum = [' -I' name_illum];
-    elseif (handles_mirone.Illumin_type >= 2 | handles_mirone.is_draped == 1)
-        % We have a Lambertian or draping illumination. Here we have to use the R,G,B trick
+    elseif ( handles_mirone.Illumin_type > 4 || handles_mirone.is_draped )
+        % We have a Manip or draping illumination. Here we have to use the R,G,B trick
         name = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
         mirone('File_img2GMT_RGBgrids_Callback',gcbo,[],handles_mirone,'image',[],name)
         illum = [name '_r.grd ' name '_g.grd ' name '_b.grd']; % ????
@@ -1626,15 +1629,15 @@ if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, pl
     n_lin = length(xx);
 	script{l} = [' '];                      l=l+1;
     script{l} = [comm ' ---- Plot lines'];  l=l+1;
-    if (n_lin > 0)     % We have more than one line         E SENAO?
+    if (n_lin > 0)     % We have more than one line.         E SENAO?
         LineStyle = get(ALLlineHand,'LineStyle');
         [LineStyle,LineStyle_gmt] = lineStyle2num(LineStyle);
         LineWidth = get(ALLlineHand,'LineWidth');
-        if (iscell(LineWidth))      LineWidth = cat(1,LineWidth{:});    end
+        if (iscell(LineWidth)),     LineWidth = cat(1,LineWidth{:});    end
         LineColor = get(ALLlineHand,'Color');
-        if (iscell(LineColor))      LineColor = cat(1,LineColor{:});    end
+        if (iscell(LineColor)),     LineColor = cat(1,LineColor{:});    end
         [b,m] = sortrows([LineWidth LineColor LineStyle]);
-        m = m(end:-1:1);            % Revert the order because I want thicker lines ploted first
+        m = m(end:-1:1);            % Revert order because I want thicker lines ploted first
         xx = xx(m);     yy = yy(m);
         LineWidth = LineWidth(m,:);     LineColor = LineColor(m,:);
         LineStyle = LineStyle(m);       LineStyle_gmt = LineStyle_gmt(m,:);
