@@ -6,6 +6,7 @@ if (nargin == 2),    scale = 'scale';    end
 
 [rows,cols,cores] = size(img);
 if (strcmp(scale,'scale'))      % Scale R into [-1 1] interval
+    if (~isa(R,'double')),      R = double(R);  end
     Rmax = max(R(:));   Rmin = min(R(:));
     esc = 1 / (Rmax -Rmin);
     R = (-1 + 2*((R-Rmin)*esc)) * 0.95;
