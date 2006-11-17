@@ -287,15 +287,14 @@ while (ii<lCS),
       f1=full(sparse(ones(1,lp),Il,ones(1,lp),1,l));
       f2=full(sparse(ones(1,lp),Ir,ones(1,lp),1,l));
       irem=find(cumsum(f1)-cumsum(f2))+1;
-      x(irem)=[];
-      y(irem)=[];
-      d(irem)=[];
+      x(irem)=[];      y(irem)=[];      d(irem)=[];
       l=l-size(irem,2);
       
       % Put the points in the correct order...
       
       xf=[x(1:l),xl,repmat(NaN,size(xc)),xr];
-      yf=[y(1:l),yl,yc,yr];
+      %yf=[y(1:l),yl,yc,yr];
+      yf=[y(1:l),yl,repmat(NaN,size(yc)),yr];       % JL
   
       [df,If]=sort([d(1:l),dl,psn,dr]);
     
