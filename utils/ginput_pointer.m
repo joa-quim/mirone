@@ -121,8 +121,6 @@ else
    
     % Remove figure button functions
     state = uisuspend_j(fig);
-    %pointer = get(fig,'pointer');
-    %set(gcf,'pointer','fullcrosshair');
     if strcmp(new_pointer,'custom')              % Also changed here
         set(fig,'pointer',new_pointer,'PointerShapeCData',arg2)
         if (~isempty(PSHS)),    set(fig,'PointerShapeHotSpot',PSHS);    end
