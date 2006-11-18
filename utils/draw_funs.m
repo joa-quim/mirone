@@ -21,18 +21,12 @@ function   OUT = draw_funs(hand,opt,data)
 % --------------------------------------------------------------------
 
 switch opt
-    case 'line_uicontext'
-        set_line_uicontext(hand,'line')
-    case 'SHP_uicontext'
-        set_SHPline_uicontext(hand)
-    case 'ContourLines'
-        set_ContourLines_uicontext(hand,data)
-    case 'MBtrack_uicontext'
-        set_line_uicontext(hand,'MBtrack')
-    case 'MBbar_uicontext'
-        set_bar_uicontext(hand)
-    case 'Coastline_uicontext'
-        set_coastLine_uicontext(hand)
+    case 'line_uicontext',          set_line_uicontext(hand,'line')
+    case 'SHP_uicontext',           set_SHPline_uicontext(hand)
+    case 'ContourLines',            set_ContourLines_uicontext(hand,data)
+    case 'MBtrack_uicontext',       set_line_uicontext(hand,'MBtrack')
+    case 'MBbar_uicontext',         set_bar_uicontext(hand)
+    case 'Coastline_uicontext',     set_coastLine_uicontext(hand)
     case 'DrawGeographicalCircle'
         h = draw_circleGeo;
         if ~isempty(h)      % when in compiled version h may be empty (why?).
@@ -101,10 +95,6 @@ switch opt
             end
             
             if (hFig ~= hMsgFig);       figure(hFig);    axes(hAxes);   end     % gain access to the drawing figure
-%             [nr,nc] = size(xy);
-%             if (nr <= 1 & ~strcmp(data,'AsPoint'))          % Points may be only one
-%                 errordlg('Don''t joke with me. Your file has less than TWO points.','Chico Clever');   return
-%             end
             % Get rid of points that are outside the map limits
             tol = 0.5;
             if (iscell(numeric_data))
@@ -113,15 +103,6 @@ switch opt
                 n_segments = 1;
             end
             xx = get(hAxes,'Xlim');      yy = get(hAxes,'Ylim');
-%             indx = find(xy(:,1) < xx(1) | xy(:,1) > xx(2));     % Search outside
-%             xc = xy(:,1);   yc = xy(:,2);
-%             %xy(:,1)(indx) = [];      xy(:,2)(indx) = [];       % STUPID compiler doesn't accept this
-%             xc(indx) = [];      yc(indx) = [];
-%             xy = [xc yc];       % reconstruct xy
-%             indx = find(xy(:,2) < yy(1) | xy(:,2) > yy(2));     % Search outside
-%             xc = xy(:,1);   yc = xy(:,2);
-%             xc(indx) = [];      yc(indx) = [];
-%             xy = [xc yc];
             hold on
             lt = getappdata(get(0,'CurrentFigure'),'DefLineThick');
             lc = getappdata(get(0,'CurrentFigure'),'DefLineColor');
@@ -162,31 +143,21 @@ switch opt
         end
     case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation'}
         set_symbol_uicontext(hand,data)
-    case 'PlateBound_All_PB'
-        set_PB_uicontext(hand,data)
-    case 'DeleteObj'
-        delete_obj;
+    case 'PlateBound_All_PB',       set_PB_uicontext(hand,data)
+    case 'DeleteObj',               delete_obj;
     case 'DrawVector'
         h = draw_vector;
         if ~isempty(h)      % when in compiled version h may be empty.
             set_vector_uicontext(h)
         end
-    case 'ChangeAxesLabels'
-        changeAxesLabels(data)
-    case 'MagneticBarCode'
-        draw_MagBarCode
-    case 'SRTM_rectangle'
-        set_SRTM_rect_uicontext(hand)
-    case 'isochron'
-        set_isochrons_uicontext(hand,data)
-    case 'gmtfile'
-        set_gmtfile_uicontext(hand,data)
-    case 'country_patch'
-        set_country_uicontext(hand)
-    case 'telhas_patch'
-        set_telhas_uicontext(hand)
-    case 'save_xyz'
-        export_symbol([],[],[], data)
+    case 'ChangeAxesLabels',        changeAxesLabels(data)
+    case 'MagneticBarCode',         draw_MagBarCode
+    case 'SRTM_rectangle',          set_SRTM_rect_uicontext(hand)
+    case 'isochron',                set_isochrons_uicontext(hand,data)
+    case 'gmtfile',                 set_gmtfile_uicontext(hand,data)
+    case 'country_patch',           set_country_uicontext(hand)
+    case 'telhas_patch',            set_telhas_uicontext(hand)
+    case 'save_xyz',                export_symbol([],[],[], data)
 end
 
 % -----------------------------------------------------------------------------------------
@@ -2190,19 +2161,6 @@ msgbox( sprintf(['Plate pairs:           ' txt_id '\n' 'Boundary Type:    ' txt_
         'Speed Azimuth:      ' num2str(data(i).azim_vel)] ),'Segment info')
 
 % -----------------------------------------------------------------------------------------
-function xy = read_xy(file,n_col,n_head)
-% build the format string to read the data n_columns
-format = [];    fid = fopen(file,'r');
-for i=1:n_col,    format = [format '%f '];    end
-% Jump header lines
-for i=1:n_head,    tline = fgetl(fid);  end
-
-todos = fread(fid,'*char');
-xy = sscanf(todos,format,[n_col inf])';    % After hours strugling agains this FILHO DA PUTA, I might have found
-fclose(fid);
-if (n_col > 2)    xy = xy(:,1:2);   end
-
-% -----------------------------------------------------------------------------------------
 function delete_obj()
 h = findobj('Tag','Tesoura');
 
@@ -2218,7 +2176,7 @@ pointer(11,7) = 1;      pointer(11,8) = 1;      pointer(11,10) = 1;     pointer(
 pointer(12,5) = 1;      pointer(12,8) = 1;      pointer(12,10) = 1;     pointer(12,13) = 1;
 pointer(13,5) = 1;      pointer(13,8) = 1;      pointer(13,10) = 1;     pointer(13,13) = 1;
 pointer(14,5) = 1;      pointer(14,8) = 1;      pointer(14,11) = 1;     pointer(14,12) = 1;
-pointer(15,6) = 1;      pointer(15,7) = 1;
+pointer(15,6:7) = 1;
 
 [x,y,button] = ginput_pointer(1,pointer);
 while (button == 1)       % A mouse click
@@ -2230,24 +2188,9 @@ while (button == 1)       % A mouse click
     if (strcmp(obj_type,'text'))
         refresh;    % because of the text elements bug
     end
-    [x,y,button] = ginput_pointer(1,pointer);
+    [x,y,button] = ginput_pointer(1,pointer,[1 8]);
 end
 if ishandle(h),    set(h,'State','off');    end;    % Set the Toggle button state to depressed
-
-% fig = gcf;
-% set(gcf,'Pointer','custom','PointerShapeCData',pointer)
-% key = waitforbuttonpress;
-% button = get(fig, 'SelectionType');
-% while (~strcmp(button,'alt'))
-%     obj = gco;    obj_type = get(obj,'Type');
-%     if (strcmp(obj_type,'line') | strcmp(obj_type,'text') | strcmp(obj_type,'patch'))
-%         del_line([],[],obj);
-%     end
-%     key = waitforbuttonpress;
-%     button = get(fig, 'SelectionType');
-% end
-% set(fig,'Pointer','arrow')
-% set(h,'State','off')
 
 % -----------------------------------------------------------------------------------------
 function del_line(obj,eventdata,h)
