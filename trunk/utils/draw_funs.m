@@ -2178,7 +2178,7 @@ pointer(13,5) = 1;      pointer(13,8) = 1;      pointer(13,10) = 1;     pointer(
 pointer(14,5) = 1;      pointer(14,8) = 1;      pointer(14,11) = 1;     pointer(14,12) = 1;
 pointer(15,6:7) = 1;
 
-[x,y,button] = ginput_pointer(1,pointer);
+[x,y,button] = ginput_pointer(1,pointer,[1 8]);
 while (button == 1)       % A mouse click
     obj = gco;
     obj_type = get(obj,'Type');
