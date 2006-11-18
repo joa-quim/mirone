@@ -1650,14 +1650,17 @@ if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, pl
             name_sc = [prefix '_line_' num2str(i) '.dat'];
             fid = fopen(name,'wt');
             for j=m(i)+1:m(i+1)
-                fprintf(fid,'%s\n','>');
+                opt_M = '';
+                % When we have NaNs the line is multi-seg, so a good trick is to set the GMT
+                % file as multi-seg with the flag = 'N' which is the first letter of NaN
+                if (any(isnan(xx{j}(:)))),   opt_M = ' -MN';      end
                 fprintf(fid,'%.5f\t%.5f\n',[xx{j}(:) yy{j}(:)]');
             end
             fclose(fid);
             cor = round(LineColor(j,:) * 255);
             cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
             script{l} = ['psxy ' name_sc ellips ' -R -J -W' num2str(LineWidth(j)) 'p,' ...
-                    cor LineStyle_gmt{j} ' --MEASURE_UNIT=point -M -O -K >> ' pb 'ps' pf];
+                    cor LineStyle_gmt{j} opt_M ' --MEASURE_UNIT=point -O -K >> ' pb 'ps' pf];
             l=l+1;
         end
     end
