@@ -75,7 +75,6 @@ set(0,'CurrentFigure',hObject)      % Due to a R2006a incredible BUG
 % addpath([home_dir filesep 'src_figs']);
 % addpath([home_dir filesep 'lib_mex']);
 % addpath([home_dir filesep 'utils']);
-% addpath([home_dir filesep 'mag']);
 
 handles.home_dir = home_dir;
 handles.version7 = version7;% % If == 1 => R14 or latter
@@ -98,7 +97,6 @@ handles.swathRatio = 3;     % Default swath width / water depth ratio for multib
 handles.grdMaxSize = 20971520;   % I use this for limiting the grid size that is stored in RAM (20 Mb)
 handles.firstMBtrack = 1;   % Used for knowing whether to display or not the MB planing info message in "start planing"
 handles.EarthRad = 6371;    % Authalic radius
-handles.is_grid_reg = 0;    % Due to the unknown type of DEMs loaded with GDAL, I set this as default.
 handles.calling_figure = [];% When Mirone is called with an array in argument, this contains the calling figure handle
 handles.maregraphs_count = 0; % Counter of maregraphs (tsunami modeling)
 handles.Illumin_type = 0;   % 0 -> no illumination; 1 -> grdgradient; 2 -> grdgradient Lambertian; 4 -> Lambertian;
@@ -165,15 +163,14 @@ set(handles.ToolsMeasureDist,'Label',['Distance in ' handles.DefineMeasureUnit])
 set(handles.ImageDrape,'Enable','off');             % Set the Drape option to it's default value (off)
 
 % Detect in which mode Mirone was called
-grd_fname_in = 0;   grd_data_in = 0;    grd_data_interfero_in = 0;  grd_data_deformation_in = 0;
-n_argin = length(varargin);
+drv = [];       grd_data_in = 0;    grd_data_interfero_in = 0;  grd_data_deformation_in = 0;
 if ~isempty(varargin)
-    if (n_argin == 1 && ischar(varargin{1}))            % Called with a gmt grid name as argument
-        grd_fname = varargin{1};        grd_fname_in = 1;
+    if (length(varargin) == 1 && ischar(varargin{1}))            % Called with a gmt grid name as argument
+        drv = findFileType(varargin{1});
     elseif ( isa(varargin{1},'uint8') || isa(varargin{1},'logical') )
         % Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
         dims = size(varargin{1});
-        if ( n_argin == 2 && isstruct(varargin{2}) )            % An image with coordinates
+        if ( length(varargin) == 2 && isstruct(varargin{2}) )            % An image with coordinates
             tmp = varargin{2};
             handles.head = tmp.head;        X = tmp.X;      Y = tmp.Y;
             handles.image_type = 3;         axis_t = 'xy';
@@ -202,9 +199,10 @@ if ~isempty(varargin)
         grd_data_in = 1;
         Z = varargin{1};    tmp = varargin{2};
         handles.have_nans = grdutils(Z,'-N');
-        head = tmp.head;    X = tmp.X;  Y = tmp.Y;
-        try     name = tmp.name;    % All calls should transmit a name, but if they do not ...
-        catch   name = [];  end
+        handles.head = tmp.head;    X = tmp.X;  Y = tmp.Y;
+        if (isfield(tmp,'name')),   win_name = tmp.name     % All calls should transmit a name, but ...
+        else                        win_name = 'Mirone';
+        end
         if (isfield(tmp,'was_int16'))
             handles.was_int16 = tmp.was_int16;      handles.Nodata_int16 = tmp.Nodata_int16;
         end
@@ -216,44 +214,23 @@ if ~isempty(varargin)
         % as an Okada deformtion data (via its Name). This info is searched by the tsunami modeling option
         grd_data_deformation_in = 1;
         Z = varargin{1};    tmp = varargin{2};
-        head = tmp.head;    X = tmp.X;  Y = tmp.Y;  clear tmp;
+        handles.head = tmp.head;    X = tmp.X;  Y = tmp.Y;  clear tmp;
         handles.calling_figure = varargin{4};
+        win_name = 'Okada deformation';
     elseif ( length(varargin) == 4 && isnumeric(varargin{1}) && isstruct(varargin{2}) && ...
             strcmp(varargin{3},'Interfero') && isnumeric(varargin{4}) )
         % A matrix input containing an interfeogram with cdo == varargin{4}
         grd_data_interfero_in = 1;
         Z = varargin{1};    tmp = varargin{2};      cdo = varargin{4};
-        head = tmp.head;    X = tmp.X;  Y = tmp.Y;  clear tmp;
+        handles.head = tmp.head;    X = tmp.X;  Y = tmp.Y;  clear tmp;
+        win_name = 'Interferogram';
     end
-else        % Called with no arguments
-    set(hObject,'Name','Mirone')
 end
 
-% The following IF cases deals only with cases where a grid or a gmt grid name was given in argument
-if (grd_fname_in || grd_data_in || grd_data_interfero_in || grd_data_deformation_in)
-    if (grd_fname_in)
-        win_name = grd_fname;
-        handles.grdname = grd_fname;
-        [X,Y,Z,head] = grdread_m(grd_fname,'single');
-        handles.have_nans = grdutils(Z,'-N');
-    elseif (grd_data_in)    % That is, grid as a matrix (the header was already parsed above)
-        handles.grdname = '';
-        handles.computed_grid = 1;          % Signal that this is a computed gmt grid
-        if (~isempty(name)),    win_name = name;
-        else                    win_name = 'Mirone';
-        end
-    elseif (grd_data_deformation_in)        % A deformation (Okada) array
-        win_name = 'Okada deformation';
-        handles.grdname = '';
-        handles.computed_grid = 1;          % Signal that this is a computed gmt grid
-    elseif (grd_data_interfero_in)
-        win_name = 'Interferogram';
-        handles.grdname = '';
-        handles.computed_grid = 1;          % Signal that this is a computed gmt grid
-    end
-    handles.image_type = 1;
-    handles.geog = guessGeog(head(1:4));
-    handles.head = head;            % Save header info
+% The following IF cases deal only with cases where a grid was given in argument
+if (grd_data_in || grd_data_interfero_in || grd_data_deformation_in)
+    handles.image_type = 1;    handles.computed_grid = 1;      % Signal that this is a computed gmt grid
+    handles.geog = guessGeog(handles.head(1:4));
     if (grd_data_interfero_in)      % Interferogram grid
         load([handles.path_data 'gmt_other_palettes.mat'],'circular');
         pal = circular;
@@ -314,6 +291,18 @@ guidata(hObject, handles);
 set(hObject,'Visible','on','HandleVisibility','callback');  limpa(handles);
 setappdata(hObject,'IAmAMirone',1);         % Use this appdata to identify Mirone figures
 %setappdata(handles.axes1,'ProjWKT',geogWKT) % The Geog WGS84 string in WKT format
+
+if (~isempty(drv))
+    switch drv
+        case 'gmt',         read_DEMs(handles,{[],varargin{1}},'GMT_relatives')
+        case 'generic',     FileOpenNewImage_Callback([], [], handles, varargin{1})
+        case 'geotif',      FileOpenGeoTIFF_Callback([], [], handles, 'nikles', varargin{1})
+        case 'multiband',   FileOpenGDALmultiBand_Callback([], [], handles, 'AVHRR', varargin{1})
+        case 'envherd',     FileOpen_ENVI_Erdas_Callback([], [], handles, [], varargin{1})
+        otherwise
+            warndlg(['Sorry but couldn''t figure out what to do with the ' varargin{1} ' file'],'Warning')
+    end
+end
 
 % --------------------------------------------------------------------------------------------------
 function SetAxesNumericType(handles,eventdata,hand1)
@@ -559,25 +548,19 @@ if ~isempty(opt2)       % Here we have to update the image in the processed regi
     end
     if (handles.Illumin_type == 0)
         z_int = uint8(round( ((double(Z_rect) - z_min) / (z_max - z_min))*255 ));
-    elseif ( handles.Illumin_type == 1 || handles.Illumin_type == 2 || handles.Illumin_type == 4 )
-        luz = getappdata(handles.figure1,'Luz');
+    elseif ( handles.Illumin_type >= 1 && handles.Illumin_type <= 4 )
+        illumComm = getappdata(handles.figure1,'illumComm');
         z_int = uint8(round( ((double(Z_rect) - z_min) / (z_max - z_min))*255 ));
         z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));    % z_int is now 3D
+        head_tmp = [X(1) X(end) Y(1) Y(end) head(5:9)];
         if (handles.Illumin_type == 1)
-            head_tmp = [X(1) X(end) Y(1) Y(end) head(5:9)];
             opt_N = ['-Nt1/' num2str(handles.grad_sigma) '/' num2str(handles.grad_offset)];
-            if (handles.geog),  R = grdgradient_m(Z_rect,head_tmp,'-M',['-A' num2str(luz.azim)],opt_N);
-            else                R = grdgradient_m(Z_rect,head_tmp,['-A' num2str(luz.azim)],opt_N); end
-            z_int = shading_mat(z_int,R,'no_scale');% and now it is illuminated
-        elseif (handles.Illumin_type == 2)          % grdgradient lambertian
-            head_tmp = [X(1) X(end) Y(1) Y(end) head(5:9)];
-            R = grdgradient_m(Z_rect,head_tmp,['-Es' num2str(luz.azim) '/' num2str(luz.elev)]);
-            z_int = shading_mat(z_int,R,'no_scale');
-        else                                        % Lambertian lighting illum
-           R = grdgradient_m(Z,head,['-E' num2str(luz.azim) '/' num2str(luz.elev) '/' num2str(luz.ambient),...
-                   '/' num2str(luz.diffuse) '/' num2str(luz.specular) '/' num2str(luz.shine)]);
-            z_int = shading_mat(z_int,R,'no_scale');% and now it is illuminated
+            if (handles.geog),  R = grdgradient_m(Z_rect,head_tmp,'-M',illumComm,opt_N);
+            else                R = grdgradient_m(Z_rect,head_tmp,illumComm,opt_N); end
+        else
+            R = grdgradient_m(Z_rect,head_tmp,illumComm);
         end
+        z_int = shading_mat(z_int,R,'no_scale');    % and now it is illuminated
     end
     if (isempty(img))  img = get(h_img,'CData');    end     % That is, if img was not recomputed, get from screen 
     handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),:);  % For the undo op
@@ -1185,14 +1168,18 @@ show_image(handles,[PathName FileName],X,Y,Z,0,'xy',1);
 grid_info(handles,att,'gdal')           % Construct a info message
 
 % --------------------------------------------------------------------
-function FileOpen_ENVI_Erdas_Callback(hObject, eventdata, handles, opt)
+function FileOpen_ENVI_Erdas_Callback(hObject, eventdata, handles, opt, opt2)
 % This function reads both ENVI or Erdas files. Furthermore, based on the file byte
 % type it guesses if we are dealing with a typical grid file (in which case it is
 % treated like a native gmt grid) or a raster image file.
 
-str1 = {'*.img;*.IMG', [opt ' (*.img,*.IMG)']; '*.*', 'All Files (*.*)'};
-[FileName,PathName] = put_or_get_file(handles,str1,['Select ' opt ' File'],'get');
-if isequal(FileName,0);     return;     end
+if (nargin == 4)    % Otherwise, OPT2 already contains the File name
+    str1 = {'*.img;*.IMG', [opt ' (*.img,*.IMG)']; '*.*', 'All Files (*.*)'};
+    [FileName,PathName] = put_or_get_file(handles,str1,['Select ' opt ' File'],'get');
+    if isequal(FileName,0);     return;     end
+else
+    PathName = [];      FileName = opt2;
+end
 
 if (handles.ForceInsitu),   opt_I = '-I';   % Use only in desperate cases.
 else                        opt_I = ' ';    end
@@ -1250,7 +1237,7 @@ show_image(handles,[PathName FileName],X,Y,zz,ValidGrid,'xy',1);
 grid_info(handles,att,'gdal')           % Construct a info message
 
 % --------------------------------------------------------------------
-function FileOpenNewImage_Callback(hObject, eventdata, handles)
+function FileOpenNewImage_Callback(hObject, eventdata, handles, opt)
 str1 = {'*.jpg', 'JPEG image (*.jpg)'; ...
     '*.png', 'Portable Network Graphics(*.png)'; ...
     '*.bmp', 'Windows Bitmap (*.bmp)'; ...
@@ -1265,8 +1252,12 @@ str1 = {'*.jpg', 'JPEG image (*.jpg)'; ...
     '*.shade', 'IVS shade File (*.shade)'; ...
     '*.xwd', 'X Windows Dump (*.xwd)'; ...
     '*.*', 'All Files (*.*)'};
-[FileName,PathName,handles] = put_or_get_file(handles,str1,'Select image format','get');
-if isequal(FileName,0);     return;     end
+if (nargin == 3)
+    [FileName,PathName,handles] = put_or_get_file(handles,str1,'Select image format','get');
+    if isequal(FileName,0);     return;     end
+else                % Filename was transmited in input
+    PathName = [];      FileName = opt;
+end
 
 set(handles.figure1,'pointer','watch')
 [PATH,FNAME,EXT] = fileparts([PathName FileName]);
@@ -1381,7 +1372,7 @@ if (~strcmp(opt,'RAW')),    grid_info(handles,att,'gdal')           % Construct 
 end
 
 % --------------------------------------------------------------------
-function FileOpenGeoTIFF_Callback(hObject, eventdata, handles, tipo)
+function FileOpenGeoTIFF_Callback(hObject, eventdata, handles, tipo, opt)
 switch lower(tipo)
     case 'geotiff',     str1 = {'*.tif;*.TIF;*.tiff;*.TIFF', 'GeoTiff (*.tif,*.tiff,*.TIF,*.TIFF)'};
     case 'sid',         str1 = {'*.sid;*.SID', 'GeoTiff (*.sid,*.SID)'};
@@ -1389,9 +1380,13 @@ switch lower(tipo)
     case 'jp2',         str1 = {'*.jp2;*.JP2', 'GeoTiff (*.jp2,*.JP2)'};
     otherwise,          str1 = {'', 'Don''t know (*.*)'};       % Used with the "Try Luck" option
 end
-str1(2,1:2) = {'*.*', 'All Files (*.*)'};
-[FileName,PathName] = put_or_get_file(handles,str1,['Select ' tipo ' file'],'get');
-if isequal(FileName,0);     return;     end
+if (nargin == 4)
+    str1(2,1:2) = {'*.*', 'All Files (*.*)'};
+    [FileName,PathName] = put_or_get_file(handles,str1,['Select ' tipo ' file'],'get');
+    if isequal(FileName,0);     return;     end
+else                % Filename was transmited in input
+    PathName = [];      FileName = opt;
+end
 
 att = gdalread([PathName FileName],'-M','-C');
 set(handles.figure1,'pointer','watch')
@@ -1865,8 +1860,7 @@ end
 
 % --------------------------------------------------------------------
 function ImageIlluminateLambertian(hObject, luz, handles, opt)
-% OPT == 'lambertian'   Use the Lambertian illumination algorithm
-% OPT == whatever       Use the GMT grdgradient illumination algorithm
+% OPT ->  Select which of the GMT grdgradient illumination algorithms to use
 % Illuminate a DEM file and turn it into a RGB image
 % For multiple tryies I need to use the original image. Otherwise each attempt would illuminate
 % the previously illuminated image. An exception occurs when the image was IP but only for the
@@ -1886,25 +1880,28 @@ setappdata(handles.figure1,'Xmin_max',[X(1) X(end)]);   setappdata(handles.figur
 setappdata(handles.figure1,'Zmin_max',[head(5) head(6)])
 
 if (strcmp(opt,'grdgradient_class'))    % GMT grdgradient classic illumination
-    if (handles.geog),  [R,offset,sigma] = grdgradient_m(Z,head,'-M',['-A' num2str(luz.azim)],'-Nt');
-    else                [R,offset,sigma] = grdgradient_m(Z,head,['-A' num2str(luz.azim)],'-Nt'); end
-    img = shading_mat(img,R,'no_scale');
+    illumComm = ['-A' num2str(luz.azim)];
+    if (handles.geog),  [R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
+    else                [R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt'); end
     handles.Illumin_type = 1;
     handles.grad_offset = offset;   handles.grad_sigma = sigma;
 elseif (strcmp(opt,'grdgradient_lamb')) % GMT grdgradient lambertian illumination
-    R = grdgradient_m(single(Z),head,['-Es' num2str(luz.azim) '/' num2str(luz.elev)]);
-    img = shading_mat(img,R,'no_scale');
+    illumComm = ['-Es' num2str(luz.azim) '/' num2str(luz.elev)];
+    R = grdgradient_m(Z,head,illumComm);
     handles.Illumin_type = 2;
 elseif (strcmp(opt,'grdgradient_peuck'))% GMT grdgradient Peucker illumination
-    R = grdgradient_m(single(Z),head,'-Ep');
-    img = shading_mat(img,double(R),'no_scale');
-    handles.Illumin_type = 0;           % Should be 3 but its not programmed
-elseif (strcmp(opt,'lambertian'))       % Lambertian lighting illumination
-    R = grdgradient_m(Z,head,['-E' num2str(luz.azim) '/' num2str(luz.elev) '/' num2str(luz.ambient),...
-           '/' num2str(luz.diffuse) '/' num2str(luz.specular) '/' num2str(luz.shine)]);
-    img = shading_mat(img,R,'no_scale');           handles.Illumin_type = 4;
+    illumComm = '-Ep';
+    R = grdgradient_m(Z,head,illumComm);
+    handles.Illumin_type = 3;
+elseif (strcmp(opt,'lambertian'))       % GMT Lambertian lighting illumination
+    illumComm = ['-E' num2str(luz.azim) '/' num2str(luz.elev) '/' num2str(luz.ambient),...
+           '/' num2str(luz.diffuse) '/' num2str(luz.specular) '/' num2str(luz.shine)];
+    R = grdgradient_m(Z,head,illumComm);
+    handles.Illumin_type = 4;
 end
+img = shading_mat(img,R,'no_scale');
 
+setappdata(handles.figure1,'illumComm',illumComm);   % Save these for region op & write_gmt_script
 setappdata(handles.figure1,'Luz',luz);   % Save these for region operations
 set(handles.grd_img,'CData',img)
 guidata(hObject, handles);              set(handles.figure1,'pointer','arrow')
@@ -1946,10 +1943,10 @@ else
     img = uint8((254 * img) + 1);   % Need to convert the reflectance matrix into a gray indexed image
 end
 
-handles.Illumin_type = 0;       % This is temporary. It should be either 5 (color) or 6 (gray)
-handles.no_file = 0;
+if (isappdata(handles.figure1,'illumComm')),        rmappdata(handles.figure1,'illumComm');   end
+handles.no_file = 0;        handles.Illumin_type = 5;
 set(handles.grd_img,'CData',img);
-if (strcmp(color,'gray')),  set(handles.figure1,'Colormap',gray(256));    end     % Only gray images need colormap seting
+if (strcmp(color,'gray')),  set(handles.figure1,'Colormap',gray(256));    end
 set(handles.figure1,'pointer','arrow');     guidata(hObject, handles);
 
 % --------------------------------------------------------------------
@@ -1982,7 +1979,8 @@ else
     zz(:,:,3) = shade_manip_raster((luz.azim(3)-90)*D2R,luz.elev*D2R,Z);
 end
 
-handles.Illumin_type = 0;       % This is temporary. It should be 5
+if (isappdata(handles.figure1,'illumComm')),        rmappdata(handles.figure1,'illumComm');   end
+handles.Illumin_type = 7;       % This is temporary. It should be 7
 set(handles.grd_img,'CData',zz);
 set(handles.figure1,'pointer','arrow');     guidata(hObject, handles);
 
@@ -2108,49 +2106,6 @@ end
 set(h_parent_img,'CData',son_img);
 if (~isempty(son_cm) && no_alfa),    set(h_f,'Colormap',son_cm);     end  % Set "son" colormap to "parent" figure
 
-
-% if (y_son ~= y_parent || x_son ~= x_parent)              % Check if "son" and "parent" images have the same size
-%     head = [1 x_son 1 y_son 0 255 0 1 1];
-%     opt_N = ['-N' num2str(x_parent) '/' num2str(y_parent)]; % option for grdsample
-%     if (ndims(son_img) == 3)                            % RGB image
-%         %for (i=1:3),    ZI(:,:,i) = grdsample_m(single(son_img(:,:,i)),head,opt_N);    end
-%         ZI = cvlib_mex('resize',son_img,[y_parent x_parent],'bicubic');
-%         if (flip),      ZI = flipdim(ZI,1);   end
-%         set(h_parent_img,'CData',uint8(ZI))
-%     else                                                % Indexed image
-%         son_cm = get(handles.figure1,'Colormap');       % Get "son" color map
-%         %ZI = grdsample_m(single(son_img),head,opt_N);
-%         ZI = cvlib_mex('resize',son_img,[y_parent x_parent],'bicubic');
-%         if (flip),  set(h_parent_img,'CData',flipud(uint8(ZI)))
-%         else        set(h_parent_img,'CData',uint8(ZI));    end
-%         set(h_f,'Colormap',son_cm)                      % Set "son" colormap to "parent" figure
-%     end
-% else                                                    % "son" and "parent" images have the same size
-%     if (ndims(son_img) == 3)                            % RGB image
-%         % Fliping is not allways true (e.g. if image comes from a
-%         % grd illumination). In those cases, this is wrong.
-%         if (flip),  son_img = flipdim(son_img,1);   end
-%         nans_son = isnan(getappdata(handles.figure1,'dem_z'));
-% 		dlg_title = 'Draping Transparency';        num_lines= [1 38];  defAns = {'0'};
-% 		resp  = inputdlg('Use Transparency (0-1)?',dlg_title,num_lines,defAns);     pause(0.01);
-% 		if (isempty(resp) || str2double(resp{1}) < 0.01),       no_alfa = 1;
-% 		elseif (str2double(resp{1}) > 1),       no_alfa = 0;    alfa = 1;
-%         else                                    no_alfa = 0;    alfa = str2double(resp{1}); end
-%         if (ndims(parent_img) == 1),    parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));   end
-%         if (any(nans_son(:)))
-%             [m,n,k] = size(son_img);    id = repmat(reshape(nans_son,m,n),[1 1 3]);
-%             son_img(id) = parent_img(id);
-%         end
-%         if (~no_alfa)       % Apply transparency
-%             son_img = uint8(double(parent_img) * alfa + double(son_img) * (1 - alfa));
-%         end
-%         set(h_parent_img,'CData',son_img)
-%     else                                                % Indexed image
-%         if (flip),  set(h_parent_img,'CData',flipud(son_img));
-%         else        set(h_parent_img,'CData',son_img);      end
-%         set(h_f,'Colormap',get(handles.figure1,'Colormap'))     % Set "son" colormap to "parent" figure
-%     end
-% end
 % Signal in the parent image handles that it has a draped image
 handles = guidata(h_f);     handles.is_draped = 1;      handles.Illumin_type = 0;
 guidata(h_f,handles)
@@ -4886,40 +4841,6 @@ if isequal(FileName,0);     return;     end
 movie2avi_j(M,[PathName FileName],'compression','none','fps',5)
 
 % --------------------------------------------------------------------
-% function ML_Surface_Callback(hObject, eventdata, handles)
-% if (handles.no_file == 1)     return;      end
-% if (aux_funs('msg_dlg',14,handles));     return;      end
-% 
-% [X,Y,Z,head] = load_grd(handles);
-% if isempty(Z),      return;     end;
-% set(handles.figure1,'pointer','watch')
-% surface(X,Y,double(Z))
-% set(handles.figure1,'pointer','arrow')
-% view(-35,45)
-
-% % --------------------------------------------------------------------
-% function ToolsMathSurfs_Callback(hObject, eventdata, handles)
-% % http://www.winosi.onlinehome.de/Gallery_t12.htm
-% %X = -1:0.01:1;
-% X = linspace(-pi,pi);
-% Y = X;
-% [X,Y] = meshgrid(X,Y);
-% %Z = cos(sqrt(X.^2 + Y.^2) + pi/2);
-% %Z = sqrt(abs(1-abs(1-abs(1-abs(X.*Y+0.5)))));       % Carves
-% Z = cos(atan(X./Y).*sign(Y)*8)/4 .* sin(sqrt(X.^2 + Y.^2)*3);    % Rose (erro)
-% %Z = (1-cos(X)).*(1-cos(Y));     % Mamas
-% %Z = cos(log(sqrt(X.^2 + Y.^2)/30+0.001));       % Peak
-% %Z = abs(sin(4*X)+sin(4*Y))/4 .* cos(sqrt(X.^2 + Y.^2)*16);  % Ripples
-% %Z = cos(X.^2 + Y.^2) ./ exp((X.^2 + Y.^2)/4);       % Blupp
-% %s = sqrt(X.^2 + Y.^2);    Z = sin(1.25*s)+0.48*sin(3.75*s);     % Hat
-% %Z = cos(X .* Y);        % Waves around a Cross
-% %Z = cos(X) .* cos(Y);   % A ghost
-% %Z = -(1-cos(X)).*(1-cos(Y));     % A Crypt
-% h = figure;
-% surface(X,Y,Z)
-% view(-35,45)
-
-% --------------------------------------------------------------------
 function DigitalFilt_Callback(hObject, eventdata, handles, opt)
 if (handles.no_file == 1),     return;      end
 if (strcmp(opt,'image'))
@@ -5037,7 +4958,26 @@ elseif ( strcmp(opt,'isGDAL') || (strcmp(opt,'isGMT')) )    % Test if GDAL or GM
                                     'beeing able to correctly decode it).'];
     end
     msgbox(msg,'Test result')
-elseif (strcmp(opt,'Paint'))
-    mpaint(handles.figure1);
 end
 set(handles.figure1,'pointer','arrow')
+
+% ----------------------------------------------------------------------------------
+function out = findFileType(fname)
+    % From the extension guess what function should be called to open this file
+
+	out = [];	[PATH,FNAME,EXT] = fileparts(fname);
+	if ( any(strcmpi(EXT,{'.grd' '.nc'})) )
+        out = 'gmt';        return
+	end
+	if ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.xwd' '.shade' '.raw' '.bin'})) )
+        out = 'generic';    return
+	end
+	
+	if ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.ecw' '.jp2'})) )
+        out = 'geotif';    return
+	end
+	
+	if ( any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17'})) )
+        out = 'multiband';    return
+	end
+	if ( any(strcmpi(EXT,'.img')) ),    out = 'envherd';    end
