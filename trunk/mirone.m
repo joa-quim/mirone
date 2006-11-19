@@ -174,9 +174,7 @@ if ~isempty(varargin)
             tmp = varargin{2};
             handles.head = tmp.head;        X = tmp.X;      Y = tmp.Y;
             handles.image_type = 3;         axis_t = 'xy';
-            if (isfield(tmp,'geog')),       handles.geog = tmp.geog;
-            else                            handles.geog = guessGeog(handles.head(1:4));
-            end
+            if (isfield(tmp,'geog')),       handles.geog = tmp.geog;    end % Prevails over the guess in show_image
             if (isfield(tmp,'cmap')),       set(handles.figure1,'Colormap',tmp.cmap);   end
             if (isfield(tmp,'name')),       win_name = tmp.name;
             else                            win_name = 'Mirone';
@@ -185,6 +183,7 @@ if ~isempty(varargin)
             X = [];         Y = [];         win_name = 'Cropped Image';
             handles.image_type = 2;         handles.geog = 0;       axis_t = 'off';
             handles.head = [1 dims(2) 1 dims(1) 0 255 0 1 1];   % Fake a grid reg GMT header
+            if (ndims(varargin{1}) == 2),   set(handles.figure1,'Colormap',gray(256));  end
             pal = getappdata(0,'CropedColormap');               % See if we have a colormap to use here
             if (~isempty(pal)),     set(handles.figure1,'Colormap',pal);    rmappdata(0,'CropedColormap');  end
             setappdata(hObject,'Croped','yes');             % ???
@@ -197,7 +196,7 @@ if ~isempty(varargin)
     elseif (length(varargin) == 2 && isnumeric(varargin{1}) && isstruct(varargin{2}))
         % A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
         grd_data_in = 1;
-        Z = varargin{1};    tmp = varargin{2};
+        Z = varargin{1};            tmp = varargin{2};
         handles.have_nans = grdutils(Z,'-N');
         handles.head = tmp.head;    X = tmp.X;  Y = tmp.Y;
         if (isfield(tmp,'name')),   win_name = tmp.name     % All calls should transmit a name, but ...
@@ -213,7 +212,7 @@ if ~isempty(varargin)
         % Note: this is a special case of the situation above that will be used to identify this figure
         % as an Okada deformtion data (via its Name). This info is searched by the tsunami modeling option
         grd_data_deformation_in = 1;
-        Z = varargin{1};    tmp = varargin{2};
+        Z = varargin{1};            tmp = varargin{2};
         handles.head = tmp.head;    X = tmp.X;  Y = tmp.Y;  clear tmp;
         handles.calling_figure = varargin{4};
         win_name = 'Okada deformation';
@@ -221,7 +220,7 @@ if ~isempty(varargin)
             strcmp(varargin{3},'Interfero') && isnumeric(varargin{4}) )
         % A matrix input containing an interfeogram with cdo == varargin{4}
         grd_data_interfero_in = 1;
-        Z = varargin{1};    tmp = varargin{2};      cdo = varargin{4};
+        Z = varargin{1};            tmp = varargin{2};      cdo = varargin{4};
         handles.head = tmp.head;    X = tmp.X;  Y = tmp.Y;  clear tmp;
         win_name = 'Interferogram';
     end
@@ -230,7 +229,6 @@ end
 % The following IF cases deal only with cases where a grid was given in argument
 if (grd_data_in || grd_data_interfero_in || grd_data_deformation_in)
     handles.image_type = 1;    handles.computed_grid = 1;      % Signal that this is a computed gmt grid
-    handles.geog = guessGeog(handles.head(1:4));
     if (grd_data_interfero_in)      % Interferogram grid
         load([handles.path_data 'gmt_other_palettes.mat'],'circular');
         pal = circular;
@@ -238,16 +236,11 @@ if (grd_data_in || grd_data_interfero_in || grd_data_deformation_in)
     else                            % Not an interferogram grid
         zz = scaleto8(Z);       pal = jet(256);
     end
-    % If grid size is not to big I'll store it
-    if (numel(Z)*4 <= handles.grdMaxSize)
-        if (~isa(Z,'single')),  setappdata(hObject,'dem_z',single(Z));
-        else                    setappdata(hObject,'dem_z',Z);  end
-        setappdata(hObject,'dem_x',X);  setappdata(hObject,'dem_y',Y);
-        setappdata(hObject,'GMThead',head);
-    end
+    set(handles.figure1,'Colormap',pal)
+    StoreZ(handles,X,Y,Z)               % If grid size is not to big we'll store it
     set(hObject, 'Units', 'pixels');    setappdata(hObject,'Zmin_max',[head(5) head(6)])
     aux_funs('colormap_bg',handles,Z,pal);
-    handles = show_image(handles,win_name,X,Y,zz,1,'xy',head(7));
+    handles = show_image(handles,win_name,X,Y,zz,1,'xy',handles.head(7));
 end
 
 % Set some accelerators
@@ -344,12 +337,20 @@ if ~isempty(h_warning),     figure(h_warning);   end     % If a warning message 
 
 % --------------------------------------------------------------------
 function PixMode_callback(hObject, eventdata, hFig)
-% Inside each grid cell, which is a pixel in the screen, display only the grid node value
-if (strcmp(get(hObject,'Checked'),'off'))
-    set(hObject,'Checked','on');    setappdata(hFig,'PixelMode',1)
-else
-    set(hObject,'Checked','off');   setappdata(hFig,'PixelMode',0)
-end
+	% Inside each grid cell, which is a pixel in the screen, display only the grid node value
+	if (strcmp(get(hObject,'Checked'),'off'))
+        set(hObject,'Checked','on');    setappdata(hFig,'PixelMode',1)
+	else
+        set(hObject,'Checked','off');   setappdata(hFig,'PixelMode',0)
+	end
+
+% --------------------------------------------------------------------
+function StoreZ(handles,X,Y,Z)
+    % If grid size is not to big I'll store it
+    if (numel(Z)*4 > handles.grdMaxSize),       return;     end
+    if (~isa(Z,'single')),  setappdata(handles.figure1,'dem_z',single(Z));
+    else                    setappdata(handles.figure1,'dem_z',Z);  end
+    setappdata(handles.figure1,'dem_x',X);  setappdata(handles.figure1,'dem_y',Y);
 
 % --------------------------------------------------------------------
 function ImageCrop_Callback(hObject, eventdata, handles, opt, opt2, opt3)
@@ -769,7 +770,7 @@ if (nargin == 3)
     if isempty(region),     return;     end     % User gave up
 end
 
-X = region(1:2);      Y = region(3:4);      handles.geog = guessGeog(region(1:4));
+X = region(1:2);      Y = region(3:4);
 handles.head = [X Y 0 255 0];
 
 scrsz = get(0,'ScreenSize');         % Get screen size
@@ -991,7 +992,6 @@ if (strcmp(opt1,'image'))
     if (ndims(img) == 2 && isempty(opt2))
         img = ind2rgb8(img,get(handles.figure1,'Colormap'));    % Need this because image is indexed
     end
-    %if (isempty(opt2)),    img = flipdim(img,1);      end      % That, is no GeoTIFF, so image needs to be ud fliped
     if (~strcmp(get(handles.axes1,'Ydir'),'normal') || ~isempty(opt2)),    img = flipdim(img,1);      end
 elseif (strcmp(opt1,'screen'))                      % Do a screen capture
     resizetrue(handles.figure1,'screen_capture');
@@ -1005,9 +1005,6 @@ if (isempty(opt2))              % That is, no GeoTIFF
     grdwrite_m(single(img(:,:,1)),D,f_name_r,tit)
     grdwrite_m(single(img(:,:,2)),D,f_name_g,tit)
     grdwrite_m(single(img(:,:,3)),D,f_name_b,tit)
-else                            % GeoTIFF
-%     if isempty(EXT),    FileName = [FileName '.tiff'];  end
-%     write_geotiff(handles,img,D,[PathName FileName])
 end
 set(handles.figure1,'pointer','arrow')
 
@@ -1160,7 +1157,6 @@ X = handles.head(1:2);      Y = handles.head(3:4);
 if (~isempty(att.Band(1).ColorMap)),    pal = att.Band(1).ColorMap.CMap(:,1:3);
 else                                    pal = jet(256);     end
 
-handles.geog = guessGeog([X Y]);
 handles.image_type = 3;
 handles.grdname = [];   set(handles.figure1,'Colormap',pal);
 aux_funs('cleanGRDappdata',handles);        % Remove eventual grid stuff variables from appdata
@@ -1199,7 +1195,6 @@ if (strcmp(att.Band(1).DataType,'Byte') || ~isempty(att.Band(1).ColorMap))     %
     end
     head = att.GMT_hdr;             [m,n,k] = size(zz);
     X = [head(1) head(2)];          Y = [head(3) head(4)];
-    handles.geog = guessGeog([X Y]);
     if strcmp(att.ColorInterp,'gray'),          pal = gray(256);
     elseif strcmp(att.ColorInterp,'Palette')
         if (~isempty(att.Band(1).ColorMap)),    pal = att.Band(1).ColorMap.CMap(:,1:3);
@@ -1217,14 +1212,8 @@ else
     handles.have_nans = grdutils(Z,'-N');    
     zz = scaleto8(Z);       [m,n] = size(Z);
     X = linspace(head(1),head(2),n);  Y = linspace(head(3),head(4),m);  % Need this for image
-    handles.geog = guessGeog(head(1:4));
 
-    grd_size = m * n * 4;
-    if (grd_size <= handles.grdMaxSize)         % Save grid if it is not to big
-        setappdata(handles.figure1,'dem_z',Z);  setappdata(handles.figure1,'dem_x',X);
-        setappdata(handles.figure1,'dem_y',Y);  setappdata(handles.figure1,'GMThead',head);
-    end
-
+    StoreZ(handles,X,Y,Z)                       % If grid size is not to big we'll store it
     handles.DEM_name = [PathName FileName];     % Save DEM file name for eventual writing of a GMT grid
     handles.image_type = 4;
     ValidGrid = 1;                              % Signal that grid opps are allowed
@@ -1426,7 +1415,6 @@ elseif (strcmpi(att.ColorInterp,'gray'))
 else                            pal = jet(256);
 end
 
-handles.geog = guessGeog([X Y]);
 handles.grdname = [];   set(handles.figure1,'Colormap',pal);
 aux_funs('cleanGRDappdata',handles);        % Remove eventual grid stuff variables from appdata
 show_image(handles,[PathName FileName],X,Y,Z,0,ax_dir,0);
@@ -1595,19 +1583,7 @@ elseif ( strcmp(tipo,'USGS_DEM') || strcmp(tipo,'GTOPO30') || strcmp(tipo,'DTED'
     handles.image_type = 4;                 handles.grdname = [];   handles.Nodata_int16 = att.Band(1).NoDataValue;
 end
 
-% Guess if file is in geogs
-switch tipo
-    case {'GTOPO30' 'SRTM30' 'SRTM1' 'SRTM3'},    handles.geog = 1;
-    otherwise
-        handles.geog = guessGeog(head(1:4));    % A bit risky this guess
-end
-
-% If grid size is not to big I'll store it
-if (numel(zz)*4 <= handles.grdMaxSize)
-    setappdata(handles.figure1,'dem_z',Z);  setappdata(handles.figure1,'dem_x',X);
-    setappdata(handles.figure1,'dem_y',Y);  setappdata(handles.figure1,'GMThead',head);
-end
-
+StoreZ(handles,X,Y,Z)               % If grid size is not to big we'll store it
 handles.head = head;
 setappdata(handles.figure1,'Zmin_max',[head(5) head(6)])
 aux_funs('colormap_bg',handles,Z,jet(256));
@@ -1654,6 +1630,7 @@ set(findobj('Tag','ImgHist'),'checked','off');  set(findobj('Tag','ImgHistGrd'),
 % Make an extra copy of those to use in "restore" because they may be changed by 'bands_list()'
 handles.ValidGrid_orig = ValidGrid;         handles.was_int16_orig = handles.was_int16;
 handles.computed_grid_orig = handles.computed_grid;
+handles.geog = guessGeog(handles.head(1:4));
 guidata(handles.figure1, handles);              set(handles.figure1,'pointer','arrow')
 
 if(~ValidGrid)      % Delete uicontrols that are useless to images only
@@ -2704,7 +2681,6 @@ if isempty(grd_name)
 elseif ~strcmp(handles.grdname,grd_name)    % Session's grid is different than current grid, so we have to open "grd_name"
     handles.image_type = 1;
     [X,Y,Z,head] = grdread_m(grd_name,'single');
-    handles.geog = guessGeog(head(1:4));
     handles.grdname = grd_name;     handles.head = head;     % Save header info (needed ?)
     zz = scaleto8(Z);
     handles.have_nans = grdutils(Z,'-N');
@@ -3502,7 +3478,7 @@ function ImageMapLimits_Callback(hObject, eventdata, handles)
 region = bg_region('empty');     % region contains [x_min x_max y_min y_max is_geog]
 if isempty(region),     return;     end     % User gave up
 img = get(findobj(handles.axes1,'Type','image'),'CData');
-X = region(1:2);    Y = region(3:4);        handles.geog = guessGeog(region(1:4));
+X = region(1:2);                            Y = region(3:4);
 x_inc = diff(X) / size(img,2);              y_inc = diff(Y) / size(img,1);
 dx2 = x_inc / 2;                            dy2 = y_inc / 2;
 X = X + [dx2 -dx2];                         Y = Y + [dy2 -dy2];     % Make it such that the pix-reg info = region
@@ -4958,6 +4934,8 @@ elseif ( strcmp(opt,'isGDAL') || (strcmp(opt,'isGMT')) )    % Test if GDAL or GM
                                     'beeing able to correctly decode it).'];
     end
     msgbox(msg,'Test result')
+% elseif (strcmp(opt,'Paint'))
+%     mpaint(handles.figure1);
 end
 set(handles.figure1,'pointer','arrow')
 
