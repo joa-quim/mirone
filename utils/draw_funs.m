@@ -251,7 +251,6 @@ switch opt
         label_save = 'Save line';   label_length = 'Line length(s)';   label_azim = 'Line azimuth(s)';
         IS_LINE = 1;    IS_MBTRACK = 0;
     case 'MBtrack'
-        cb_deleteTrack = 'mirone(''ToolsMBplaningDelete_Callback'',gcbo,[],guidata(gcbo))';
         label_save = 'Save track';   label_length = 'Track length';   label_azim = 'Track azimuth(s)';
         IS_LINE = 0;    IS_MBTRACK = 1;
 end
@@ -267,10 +266,9 @@ if (IS_LINE)
     uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@del_line,h});
     ui_edit_polygon(h)    % Set edition functions
 elseif (IS_MBTRACK)     % Multibeam tracks, when deleted, have to delete also the bars
-    uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Callback', cb_deleteTrack);
+    uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Callback', 'save_track_mb(1);');
     % Old style edit function. New edit is provided by ui_edit_polygon which doesn't work with mbtracks 
-    cb_edit = 'mirone(''ToolsMBplaningEdit_Callback'',gcbo,[],guidata(gcbo))';
-    uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Callback', cb_edit);
+    uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Callback', 'edit_track_mb');
 end
 uimenu(cmenuHand, 'Label', label_save, 'Callback', cbSaveLine);
 if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))     % Those are not to allowed to copy
@@ -524,7 +522,6 @@ set(h, 'UIContextMenu', cmenuHand);
 ui_edit_polygon(h)            % Set edition functions
 cb_rac = {@remove_symbolClass,h};   % It will also remove the labels because they have the same tag.
 % cb3 = 'mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo))';
-% cb4 = 'mirone(''ToolsMBplaningTrackLength_Callback'',gcbo,[],guidata(gcbo))';
 cbSaveLine = 'mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo),gco)';
 cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 cb18 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb19 = 'set(gco, ''LineStyle'', ''--''); refresh';
@@ -535,7 +532,6 @@ uimenu(cmenuHand, 'Label', 'Delete contour', 'Callback',{@remove_singleContour,h
 uimenu(cmenuHand, 'Label', 'Delete all contours', 'Callback', cb_rac);
 % item1 = uimenu(cmenuHand, 'Label', 'Edit contour (left-click on it)', 'Callback', cb1);
 % item3 = uimenu(cmenuHand, 'Label', 'Save contour (left-click on it)', 'Callback', cb3);
-% item4 = uimenu(cmenuHand, 'Label', 'Contour length (left-click on it)', 'Callback', cb4);
 uimenu(cmenuHand, 'Label', 'Save contour', 'Callback', cbSaveLine);
 uimenu(cmenuHand, 'Label', 'Contour length', 'Callback', {@show_LineLength,[]});
 uimenu(cmenuHand, 'Label', 'Area under contour', 'Callback', @show_Area);
@@ -608,10 +604,9 @@ for i = 1:7     % Loop over all Plate Boundaries Types
     set(h_cur, 'UIContextMenu', cmenuHand);
     cb_LineWidth = uictx_Class_LineWidth(h_cur);    % there are 5 cb_PB_LineWidth outputs
     cb_color = uictx_Class_LineColor(h_cur);        % there are 9 cb_PB_color outputs
-    cb1 = 'mirone(''ToolsMBplaningTrackLength_Callback'',gcbo,[],guidata(gcbo))';
     uimenu(cmenuHand, 'Label', 'Segment info', 'Callback', {@PB_All_Info,h_cur,data_cur});
     uimenu(cmenuHand, 'Label', 'Delete class', 'Callback', 'delete(findobj(''Tag'',''PB_All''))', 'Separator','on');
-    uimenu(cmenuHand, 'Label', 'Segment length (left-click on it)', 'Callback', cb1);
+    uimenu(cmenuHand, 'Label', 'Segment length', 'Callback', {@show_LineLength,[]});
     item3 = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
     uimenu(item3, 'Label', '2       pt', 'Callback', cb_LineWidth{2});
     uimenu(item3, 'Label', '3       pt', 'Callback', cb_LineWidth{3});
@@ -828,7 +823,6 @@ tag = get(h,'Tag');
 cmenuHand = uicontextmenu;
 set(h, 'UIContextMenu', cmenuHand);
 % cb1 = ['mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo))'];
-% cb2 = ['mirone(''ToolsMBplaningTrackLength_Callback'',gcbo,[],guidata(gcbo))'];
 cbSaveLine = 'mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo),gco)';
 cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
@@ -840,7 +834,6 @@ cb_roi = 'mirone(''DrawClosedPolygon_Callback'',gcbo,[],guidata(gcbo),gco)';
 
 uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
 %uimenu(cmenuHand, 'Label', 'Save (left-click on it)', 'Callback', cb1);
-%uimenu(cmenuHand, 'Label', 'Length (left-click on it)', 'Callback', cb2);
 uimenu(cmenuHand, 'Label', 'Save line', 'Callback', cbSaveLine);
 uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[]});
 % item_MoveCenter = uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Callback', cb_MoveCircle);
