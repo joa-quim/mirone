@@ -1043,10 +1043,6 @@ fwrite(fid,Z,'float32');        fclose(fid);
 set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
-function FilePrintSetup_Callback(hObject, eventdata, handles)
-print -dsetup
-
-% --------------------------------------------------------------------
 function FilePrint_Callback(hObject, eventdata, handles)
 if (handles.no_file == 1),    return;      end
 h = findobj('Type','uicontrol');
@@ -1429,28 +1425,17 @@ switch opt
         str1 = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)';'*.*', 'All Files (*.*)'};    tipo = 'GMT_relatives';
     case 'MANI'
         str1 = {'*.man;*.MAN', 'Grid files (*.man,*.MAN)';'*.*', 'All Files (*.*)'};    tipo = 'GMT_relatives';
-    case 'ArcAscii'
-        str1 = {'*.grd;*.GRD', 'Arc/Info grid (*.grd,*.GRD)'; '*.*', 'All Files (*.*)'};
-    case 'ArcBinary'
-        str1 = {'*.adf;*.ADF', 'Arc/Info grid (*.adf,*.ADF)'; '*.*', 'All Files (*.*)'};
-    case 'DTED'
-        str1 = {'*.dt0;*.DT0;*.dt1;*.DT1', 'DTED (*.dt0,*.DT0,*.dt1,*.DT1)'; '*.*', 'All Files (*.*)'};
-    case 'ESRI_hdr'
-	    str1 = {'*.bil;*.BIL;', 'ESRI BIL (*.bil,*.BIL)'; '*.*', 'All Files (*.*)'};
-    case 'GTOPO30'
-        str1 = {'*.dem;*.DEM', 'GTOPO30 DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
-    case 'GeoTiff_DEM'
-        str1 = {'*.tif;*.TIF;*.tiff;*.TIFF', 'GeoTiff DEM(*.tif,*.tiff,*.TIF,*.TIFF)'; '*.*', 'All Files (*.*)'};
-    case 'GXF'
-        str1 = {'*.gxf;*.GXF', 'Geosoft GXF (*.gxf,*.GXF)'; '*.*', 'All Files (*.*)'};
-    case 'SDTS'
-        str1 = {'*catd.ddf;*CATD.DDF', 'USGS SDTS DEM (*catd.ddf,*CATD.DDF)'; '*.*', 'All Files (*.*)'};
-    case 'SRTM30'
-    	str1 = {'*.srtm;*.SRTM;*.srtm.gz', 'SRTM30 DEM (*.srtm,*.SRTM,*.srtm.gz)'; '*.*', 'All Files (*.*)'};
-    case {'SRTM1' 'SRTM3'}
-    	str1 = {'*.hgt;*.HGT;*.hgt.zip', [opt ' DEM (*.hgt,*.HGT,*.hgt.zip)']; '*.*', 'All Files (*.*)'};
-    case 'USGS_DEM'
-        str1 = {'*.dem;*.DEM', 'USGS DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
+    case 'ArcAscii',        str1 = {'*.grd;*.GRD', 'Arc/Info grid (*.grd,*.GRD)'; '*.*', 'All Files (*.*)'};
+    case 'ArcBinary',       str1 = {'*.adf;*.ADF', 'Arc/Info grid (*.adf,*.ADF)'; '*.*', 'All Files (*.*)'};
+    case 'DTED',            str1 = {'*.dt0;*.DT0;*.dt1;*.DT1', 'DTED (*.dt0,*.DT0,*.dt1,*.DT1)'; '*.*', 'All Files (*.*)'};
+    case 'ESRI_hdr',	    str1 = {'*.bil;*.BIL;', 'ESRI BIL (*.bil,*.BIL)'; '*.*', 'All Files (*.*)'};
+    case 'GTOPO30',         str1 = {'*.dem;*.DEM', 'GTOPO30 DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
+    case 'GeoTiff_DEM',     str1 = {'*.tif;*.TIF;*.tiff;*.TIFF', 'GeoTiff DEM(*.tif,*.tiff,*.TIF,*.TIFF)'; '*.*', 'All Files (*.*)'};
+    case 'GXF',             str1 = {'*.gxf;*.GXF', 'Geosoft GXF (*.gxf,*.GXF)'; '*.*', 'All Files (*.*)'};
+    case 'SDTS',            str1 = {'*catd.ddf;*CATD.DDF', 'USGS SDTS DEM (*catd.ddf,*CATD.DDF)'; '*.*', 'All Files (*.*)'};
+    case 'SRTM30',    	    str1 = {'*.srtm;*.SRTM;*.srtm.gz', 'SRTM30 DEM (*.srtm,*.SRTM,*.srtm.gz)'; '*.*', 'All Files (*.*)'};
+    case {'SRTM1' 'SRTM3'}, str1 = {'*.hgt;*.HGT;*.hgt.zip', [opt ' DEM (*.hgt,*.HGT,*.hgt.zip)']; '*.*', 'All Files (*.*)'};
+    case 'USGS_DEM',        str1 = {'*.dem;*.DEM', 'USGS DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
     otherwise
         errordlg(['OOPs, where did this ' opt ' code came in?'],'Error');   return
 end
@@ -1752,11 +1737,6 @@ hold off
 handles.h_MBplot = h_line(1);   guidata(hObject, handles);
 
 % --------------------------------------------------------------------
-function ToolsMBplaningEdit_Callback(hObject, eventdata, handles)
-if (handles.no_file == 1),      return;         end
-if ~isempty(handles.h_MBplot),  edit_track_mb;  end
-
-% --------------------------------------------------------------------
 function ToolsMBplaningSave_Callback(hObject, eventdata, handles, opt)
 % Note. This function is also used to save polylines as asked from draw_funs
 if (handles.no_file == 1),      return;     end
@@ -1795,20 +1775,6 @@ switch labelType
         double2ascii(f_name,[out_x.dd(:) out_x.mm(:) out_x.ss(:) ...
                 out_y.dd(:) out_y.mm(:) out_y.ss(:)],'%4d %02d %02.2f\t%4d %02d %02.2f');
 end
-
-% --------------------------------------------------------------------
-function ToolsMBplaningDelete_Callback(hObject, eventdata, handles)
-% The input argument must be "1" for deleting or "2" for computing the track length
-if (handles.no_file == 1),    return;      end
-save_track_mb(1);
-
-% --------------------------------------------------------------------
-function ToolsMBplaningTrackLength_Callback(hObject, eventdata, handles)
-% The input argument must be "1" for deleting or "2" for computing the track length
-if (handles.no_file == 1),    return;      end
-dist = save_track_mb(2);
-if (isempty(dist)),     warndlg('Empty line; exiting','Warning');    return;  end
-msgbox(['Track length = ' num2str(dist,4) ' NM'])
 
 % --------------------------------------------------------------------
 function ImageIlluminationModel_Callback(hObject, eventdata, handles, opt)
@@ -4054,11 +4020,6 @@ if isequal(FileName,0);     return;     end
 set(handles.figure1,'pointer','watch')
 movie2avi_j(M,[PathName FileName],'compression','none','fps',5)
 set(handles.figure1,'pointer','arrow');
-
-% --------------------------------------------------------------------
-function GeophysicsGeogCalculator_Callback(hObject, eventdata, handles)
-% Call the geographic calculator. There is no output when called like this
-geog_calculator(handles.figure1);
 
 % --------------------------------------------------------------------
 function GeophysicsEulerStuff_Callback(hObject, eventdata, handles, opt)
