@@ -22,10 +22,6 @@ function varargout = image_enhance(varargin)
 %
 %
 %
-%
-%
-%
-%
 
 hObject = figure('Tag','figure1','Visible','off');
 handles = guihandles(hObject);
@@ -60,7 +56,11 @@ handles.hMironeAxes = findobj(handles.h_mirone_fig,'Type','axes');
 handles.h_mirone_img = findobj(handles.h_mirone_fig,'Type','image');
 img = (get(handles.h_mirone_img,'CData'));
 
-if (ndims(img) == 3)
+if (isempty(img))
+    errordlg('C''mon load a file first. It''s logic, isn''t it?','Error')
+    delete(hObject);
+    return
+elseif (ndims(img) == 3)
     handles.isRGB = 1;
     set(handles.edit_percentOutliersR,'BackgroundColor','r')
     handles.percentOutliers(1:3) = [2 2 2];
