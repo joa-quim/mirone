@@ -22,7 +22,10 @@ if (length(varargin) > 0)
     handles.hMironeAxes = findobj(handles.h_mirone_fig,'Type','axes');
     handles.h_mirone_img = findobj(handles.h_mirone_fig,'Type','image');
     img = get(handles.h_mirone_img,'CData');
-    if (ndims(img) > 2)
+    if (isempty(img))
+        errordlg('C''mon load a file first. It''s logic, isn''t it?','Error')
+        delete(hObject);    return
+    elseif (ndims(img) > 2)
         errordlg('ERROR: This tool doesn''t work with RGB images.','Error')
         delete(hObject);    return
     end
