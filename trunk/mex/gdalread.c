@@ -16,6 +16,8 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
+ * Revision 11  21/11/2006 Removed globals
+ *                         Fixed a bug with pointer name confusion(dptr & dptr2)
  * Revision 10  04/11/2006 The 'ProjectionRef' metadata attempts to report in PrettyWkt
  * Revision 9.0 15/09/2006 Fixed (or at least reduced) the memory leak
  *                         Added the att = gdalread('','-M'); form. only att.Drivers is non-empty 
@@ -60,7 +62,7 @@
 #include "cpl_conv.h"
 
 int record_geotransform ( char *gdal_filename, GDALDatasetH hDataset, double *adfGeoTransform );
-mxArray * populate_metadata_struct (char * ,int , int, int);
+mxArray * populate_metadata_struct (char * ,int , int, int, int, int, double, double, double, double, double, double);
 int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double *xy_geo);
 void grd_FLIPUD_I32(int data[], int nx, int ny);
 void grd_FLIPUD_UI32(unsigned int data[], int nx, int ny);
@@ -71,19 +73,16 @@ void troca_insituF32(float *a, int n, int m);
 void to_col_majorI32(int *in, int *out, int n_col, int n_row, int flipud, int insitu, int *nVector, int *mVector, int offset);
 void to_col_majorUI32(unsigned int *in, unsigned int *out, int n_col, int n_row, int flipud, int insitu, int *nVector, int *mVector, int offset);
 void to_col_majorF32(float *in, float *out, int n_col, int n_row, int flipud, int insitu, int *nVector, int *mVector, int offset);
-void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2]);
+void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2], int nXSize, int nYSize, double, double);
 int decode_R (char *item, double *w, double *e, double *s, double *n);
 int check_region (double w, double e, double s, double n);
 int decode_columns (char *txt, int *whichBands, int n_col);
 int GMT_strtok (const char *string, const char *sep, int *start, char *token);
 double ddmmss_to_degree (char *text);
 
-int	nXSize, nYSize;
-double	dfULX, dfULY, dfLRX, dfLRY, z_min = 1e50, z_max = -1e50;
 
 /* ------------------- Matlab Gateway routine ---------------------------------- */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-	double	dfNoData, range, aux, adfMinMax[2];
 	char	**argv, *gdal_filename;
 	const char	*format;
 	int	ndims, bGotNodata, flipud = FALSE, metadata_only = FALSE, got_R = FALSE;
@@ -94,6 +93,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	anSrcWin[4], xOrigin = 0, yOrigin = 0, i_x_nXYSize;
 	int	nBufXSize, nBufYSize, jump = 0, *whichBands = NULL, *nVector, *mVector;
 	int	n_commas, n_dash, nX, nY;
+	int	nXSize = 0, nYSize = 0;
+	char	*tmp, *outByte;
+	static int runed_once = FALSE;	/* It will be set to true if reaches end of main */
+	float	*tmpF32, *outF32;
+	double	dfNoData, range, aux, adfMinMax[2];
+	double	dfULX = 0.0, dfULY = 0.0, dfLRX = 0.0, dfLRY = 0.0;
+	double	z_min = 1e50, z_max = -1e50;
 	GDALDatasetH	hDataset;
 	GDALRasterBandH	hBand;
 	GDALDriverH	hDriver;
@@ -101,12 +107,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GUInt16	*tmpUI16, *outUI16;
 	GInt32	*tmpI32, *outI32;
 	GUInt32	*tmpUI32, *outUI32;
-	float	*tmpF32, *outF32;
-	char	*tmp, *outByte;
-	static int runed_once = FALSE;	/* It will be set to true if reaches end of main */
 
 	anSrcWin[0] = anSrcWin[1] = anSrcWin[2] = anSrcWin[3] = 0;
-	dfULX = dfULY = dfLRX = dfLRY = 0.0;
 
 	argc = nrhs;
 	for (i = 0; i < nrhs; i++) {		/* Check input to find how many arguments are of type char */
@@ -206,7 +208,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		GDALAllRegister();
 
 	if (metadata_only) {
-		plhs[0] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R);
+		plhs[0] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R, 
+						nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max);
 		runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
 		return;
 	}
@@ -395,7 +398,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         	dfNoData = GDALGetRasterNoDataValue(hBand, &bGotNodata);
 
 		/* If we didn't computed it yet, its time to do it now */
-		if (got_R) ComputeRasterMinMax(tmp, hBand, adfMinMax);
+		if (got_R) ComputeRasterMinMax(tmp, hBand, adfMinMax, nXSize, nYSize, z_min, z_max);
 		if (nBands > 1 && scale_range)	/* got_R && scale_range && nBands > 1 Should never be true */
 			GDALComputeRasterMinMax(hBand, TRUE, adfMinMax);
 
@@ -587,9 +590,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GDALClose(hDataset);
 
 	if (gdal_dump)
-		plhs[1] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R);
-
-	z_min = 1e50;	z_max = -1e50; /* NEEDED BECAUSE IT'S A GLOBAL VARIABLE AND IT REMEMBERS IT'S VALUE BETWEEN CALLS */
+		plhs[1] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R, 
+						nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max);
 
 	mxFree(gdal_filename);
 	runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
@@ -805,7 +807,9 @@ void grd_FLIPUD_F32(float data[], int nx, int ny) {
  *        A cell array with the metadata associated to the dataset. In most cases it will be empty
  *
  * */
-mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int pixel_reg, int got_R) {
+mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int pixel_reg, int got_R, 
+				int nXSize, int nYSize, double dfULX, double dfULY, double dfLRX, 
+				double dfLRY, double z_min, double z_max) {
 	static int driverCount = 0;	/* Number of available drivers for the version of GDAL we are using. */
 
 	/* These are used to define the metadata structure about available GDAL drivers. */
@@ -987,10 +991,43 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		xSize = GDALGetRasterXSize( hDataset );
 		ySize = GDALGetRasterYSize( hDataset );
 	}
+	else if (got_R && nXSize == 0 && nYSize == 0) {		/* metadata_only */
+		int	anSrcWin[4];
+		anSrcWin[0] = anSrcWin[1] = anSrcWin[2] = anSrcWin[3] = 0;
+		if( adfGeoTransform[2] != 0.0 || adfGeoTransform[4] != 0.0 ) {
+			mexPrintf("The -projwin option was used, but the geotransform is\n"
+					"rotated. This configuration is not supported.\n");
+			GDALClose( hDataset );
+			GDALDestroyDriverManager();
+			mexErrMsgTxt ("Quiting with error\n");
+		}
+
+		anSrcWin[0] = (int) ((dfULX - adfGeoTransform[0]) / adfGeoTransform[1] + 0.001);
+		anSrcWin[1] = (int) ((dfULY - adfGeoTransform[3]) / adfGeoTransform[5] + 0.001);
+		anSrcWin[2] = (int) ((dfLRX - dfULX) / adfGeoTransform[1] + 0.5);
+		anSrcWin[3] = (int) ((dfLRY - dfULY) / adfGeoTransform[5] + 0.5);
+
+		if( anSrcWin[0] < 0 || anSrcWin[1] < 0
+			|| anSrcWin[0] + anSrcWin[2] > GDALGetRasterXSize(hDataset)
+			|| anSrcWin[1] + anSrcWin[3] > GDALGetRasterYSize(hDataset) ) {
+			mexPrintf("Computed -srcwin falls outside raster size of %dx%d.\n",
+			GDALGetRasterXSize(hDataset),
+			GDALGetRasterYSize(hDataset) );
+			mexErrMsgTxt ("Quiting with error\n");
+		}
+		nXSize = anSrcWin[2];	nYSize = anSrcWin[3];
+		if (correct_bounds) {	/* Patch for the bug reading GMT grids */
+			nXSize++;	nYSize++;
+		}
+
+		xSize = nXSize;
+		ySize = nYSize;
+	}
 	else {
 		xSize = nXSize;
 		ySize = nYSize;
 	}
+
 	mxGDALRasterXSize = mxCreateDoubleScalar ( (double) xSize );
 	mxSetField ( metadata_struct, 0, (const char *) "RasterXSize", mxGDALRasterXSize );
 
@@ -1155,14 +1192,18 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	 * elements in a row contain a string version of Lon,Lat, the other a numeric
 	 * version. The corner's order is the same as the 'Corners' field. That is LL, UL, UR, LR.
 	 * -------------------------------------------------------------------------------------- */
-	if( !mxIsNaN(xy_geo[0][0]) ) {
-		mxtmp = mxCreateCellMatrix(4, 4);
-		for( i = 0; i < 4; i++ ) {
-			mxSetCell( mxtmp,i,mxDuplicateArray( mxCreateString(GDALDecToDMS( xy_geo[i][0], "Long", 2 )) ) );
-			mxSetCell( mxtmp,i+4,mxDuplicateArray( mxCreateString(GDALDecToDMS( xy_geo[i][1], "Lat", 2 )) ) );
-			mxSetCell( mxtmp,i+8,mxDuplicateArray( mxCreateDoubleScalar(xy_geo[i][0])) );
-			mxSetCell( mxtmp,i+12,mxDuplicateArray( mxCreateDoubleScalar(xy_geo[i][1])) );
+	if( !got_R ) {
+		if( !mxIsNaN(xy_geo[0][0]) ) {
+			mxtmp = mxCreateCellMatrix(4, 4);
+			for( i = 0; i < 4; i++ ) {
+				mxSetCell( mxtmp,i,mxDuplicateArray( mxCreateString(GDALDecToDMS( xy_geo[i][0], "Long", 2 )) ) );
+				mxSetCell( mxtmp,i+4,mxDuplicateArray( mxCreateString(GDALDecToDMS( xy_geo[i][1], "Lat", 2 )) ) );
+				mxSetCell( mxtmp,i+8,mxDuplicateArray( mxCreateDoubleScalar(xy_geo[i][0])) );
+				mxSetCell( mxtmp,i+12,mxDuplicateArray( mxCreateDoubleScalar(xy_geo[i][1])) );
+			}
 		}
+		else
+			mxtmp = mxCreateCellMatrix(0, 1);
 	}
 	else
 		mxtmp = mxCreateCellMatrix(0, 1);
@@ -1196,13 +1237,13 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		dptr2[2] += dptr2[8] / 2;	dptr2[3] -= dptr2[8] / 2;
 	}
 	else if (got_R) {
-		dptr2[0] = dfULX;	dptr2[2] = dfLRX;
+		dptr2[0] = dfULX;	dptr2[1] = dfLRX;
 		dptr2[2] = dfLRY;	dptr2[3] = dfULY;
 	}
-	if (dptr[2] > dptr[3]) {	/* Sometimes GDAL does it: y_min > y_max. If so, we must revert it */
-		tmpdble = dptr[2];
-		dptr[2] = dptr[3];
-		dptr[3] = tmpdble;
+	if (dptr2[2] > dptr2[3]) {	/* Sometimes GDAL does it: y_min > y_max. If so, we must revert it */
+		tmpdble = dptr2[2];
+		dptr2[2] = dptr2[3];
+		dptr2[3] = tmpdble;
 	}
 	mxSetField (metadata_struct, 0, "GMT_hdr", mxGMT_header);
 
@@ -1369,7 +1410,8 @@ int record_geotransform ( char *gdal_filename, GDALDatasetH hDataset, double *ad
 }
 
 /* -------------------------------------------------------------------- */
-void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2]) {
+void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2], 
+			int nXSize, int nYSize, double z_min, double z_max) {
 	/* Compute Min/Max of a sub-region. I'm forced to do this because the
 	GDALComputeRasterMinMax works only on the entire dataset */
 	int	i, bGotNoDataValue;
