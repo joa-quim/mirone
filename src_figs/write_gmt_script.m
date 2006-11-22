@@ -80,6 +80,10 @@ handles.opt_psc = [];           % To eventualy hold several of the pscoast optio
 handles.scale_set = 0;          % To signal that user changed scale
 
 mirone_handles = varargin{1};
+if (mirone_handles.no_file)     % Stupid call with nothing loaded on the Mirone window
+    delete(hObject)
+    return
+end
 handles.script_type = varargin{2};
 if (strcmp(handles.script_type,'bat'))
     set(hObject,'Name','Write GMT batch')
