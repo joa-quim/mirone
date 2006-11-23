@@ -157,7 +157,7 @@ switch opt
     case 'gmtfile',                 set_gmtfile_uicontext(hand,data)
     case 'country_patch',           set_country_uicontext(hand)
     case 'telhas_patch',            set_telhas_uicontext(hand)
-    case 'save_xyz',                export_symbol([],[],[], data)
+    case 'save_xyz',                save_formated([],[],[], data)
 end
 
 % -----------------------------------------------------------------------------------------
@@ -196,8 +196,7 @@ function set_SHPline_uicontext(h,opt)
 
 for (i = 1:numel(h))
 	cmenuHand = uicontextmenu;      set(h(i), 'UIContextMenu', cmenuHand);
-    cbSaveLine = 'mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo),gco)';
-    uimenu(cmenuHand, 'Label', 'Save line', 'Callback', cbSaveLine);
+    uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated,h});
 	uimenu(cmenuHand, 'Label', 'Delete this line', 'Callback', {@del_line,h(i)});
 	uimenu(cmenuHand, 'Label', 'Delete class', 'Callback', 'delete(findobj(''Tag'',''SHPpolyline''))');
 	%ui_edit_polygon(h(i))    % Set edition functions   
@@ -254,7 +253,6 @@ switch opt
         label_save = 'Save track';   label_length = 'Track length';   label_azim = 'Track azimuth(s)';
         IS_LINE = 0;    IS_MBTRACK = 1;
 end
-cbSaveLine = 'mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo),gco)';
 cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
 cb_dashed = 'set(gco, ''LineStyle'', ''--''); refresh';
@@ -270,7 +268,7 @@ elseif (IS_MBTRACK)     % Multibeam tracks, when deleted, have to delete also th
     % Old style edit function. New edit is provided by ui_edit_polygon which doesn't work with mbtracks 
     uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Callback', 'edit_track_mb');
 end
-uimenu(cmenuHand, 'Label', label_save, 'Callback', cbSaveLine);
+uimenu(cmenuHand, 'Label', label_save, 'Callback', {@save_formated,h});
 if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))     % Those are not to allowed to copy
     uimenu(cmenuHand, 'Label', 'Copy', 'Callback', {@copy_line_object,handles.figure1,handles.axes1});
 end
@@ -521,8 +519,6 @@ set(h, 'UIContextMenu', cmenuHand);
 % cb1     = 'mirone(''DrawEditLine_Callback'',gcbo,[],guidata(gcbo))';
 ui_edit_polygon(h)            % Set edition functions
 cb_rac = {@remove_symbolClass,h};   % It will also remove the labels because they have the same tag.
-% cb3 = 'mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo))';
-cbSaveLine = 'mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo),gco)';
 cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 cb18 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb19 = 'set(gco, ''LineStyle'', ''--''); refresh';
 cb20 = 'set(gco, ''LineStyle'', '':''); refresh';   cb21 = 'set(gco, ''LineStyle'', ''-.''); refresh';
@@ -531,8 +527,7 @@ cb_color = uictx_color(h);      % there are 9 cb_color outputs
 uimenu(cmenuHand, 'Label', 'Delete contour', 'Callback',{@remove_singleContour,h});
 uimenu(cmenuHand, 'Label', 'Delete all contours', 'Callback', cb_rac);
 % item1 = uimenu(cmenuHand, 'Label', 'Edit contour (left-click on it)', 'Callback', cb1);
-% item3 = uimenu(cmenuHand, 'Label', 'Save contour (left-click on it)', 'Callback', cb3);
-uimenu(cmenuHand, 'Label', 'Save contour', 'Callback', cbSaveLine);
+uimenu(cmenuHand, 'Label', 'Save contour', 'Callback', {@save_formated,h});
 uimenu(cmenuHand, 'Label', 'Contour length', 'Callback', {@show_LineLength,[]});
 uimenu(cmenuHand, 'Label', 'Area under contour', 'Callback', @show_Area);
 item_lw = uimenu(cmenuHand, 'Label', 'Contour Line Width', 'Separator','on');
@@ -570,7 +565,6 @@ elseif (strcmp(tag,'Rivers'))
 end
 cmenuHand = uicontextmenu;
 set(h, 'UIContextMenu', cmenuHand);
-cb2 = 'mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo))';
 cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 cb13 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb14 = 'set(gco, ''LineStyle'', ''--''); refresh';
 cb15 = 'set(gco, ''LineStyle'', '':''); refresh';   cb16 = 'set(gco, ''LineStyle'', ''-.''); refresh';
@@ -578,7 +572,8 @@ cb_color = uictx_color(h);      % there are 9 cb_color outputs
 
 uimenu(cmenuHand, 'Label', label, 'Callback', 'delete(gco)');
 uimenu(cmenuHand, 'Label', 'Edit line (left-click on it)', 'Callback', 'edit_line');
-uimenu(cmenuHand, 'Label', 'Save line (left-click on it)', 'Callback', cb2);
+uimenu(cmenuHand, 'Label', 'Save coastline', 'Callback', {@save_formated,h});
+
 item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 setLineWidth(item_lw,cb_LineWidth)
 item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
@@ -797,14 +792,13 @@ set(h,'LineStyle',opt);        refresh;
 function set_greatCircle_uicontext(h)
 % h is a handle to a graet circle arc (in geog coords) object
 cmenuHand = uicontextmenu;      set(h, 'UIContextMenu', cmenuHand);
-cbSaveLine = 'mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo),gco)';
 cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
 cb_color = uictx_color(h);      % there are 9 cb_color outputs
 
 uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-uimenu(cmenuHand, 'Label', 'Save line', 'Callback', cbSaveLine);
+uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated,h});
 uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[],'total'});
 item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 setLineWidth(item_lw,cb_LineWidth)
@@ -822,8 +816,6 @@ function set_circleGeo_uicontext(h)
 tag = get(h,'Tag');
 cmenuHand = uicontextmenu;
 set(h, 'UIContextMenu', cmenuHand);
-% cb1 = ['mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo))'];
-cbSaveLine = 'mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo),gco)';
 cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
@@ -833,8 +825,7 @@ cb_color = uictx_color(h);      % there are 9 cb_color outputs
 cb_roi = 'mirone(''DrawClosedPolygon_Callback'',gcbo,[],guidata(gcbo),gco)';
 
 uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-%uimenu(cmenuHand, 'Label', 'Save (left-click on it)', 'Callback', cb1);
-uimenu(cmenuHand, 'Label', 'Save line', 'Callback', cbSaveLine);
+uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
 uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[]});
 % item_MoveCenter = uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Callback', cb_MoveCircle);
 % item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
@@ -857,7 +848,6 @@ function set_circleCart_uicontext(h)
 % h is a handle to a circle (in cartesian coords) object
 cmenuHand = uicontextmenu;
 set(h, 'UIContextMenu', cmenuHand);
-cbSaveLine = 'mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo),gco)';
 cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
@@ -865,7 +855,7 @@ cb_color = uictx_color(h);      % there are 9 cb_color outputs
 cb_roi = 'mirone(''DrawClosedPolygon_Callback'',gcbo,[],guidata(gcbo),gco)';
 
 uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', cbSaveLine);
+uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
 uimenu(cmenuHand, 'Label', 'Circle perimeter', 'Callback', {@show_LineLength,[]});
 uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Callback', {@move_circle,h});
 item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
@@ -1585,8 +1575,8 @@ set(h_img,'CData',zz)
 
 % -----------------------------------------------------------------------------------------
 function copy_text_object(obj,eventdata)
-copyobj(gco,gca);
-move_text([],[])
+    copyobj(gco,gca);
+    move_text([],[])
 
 % -----------------------------------------------------------------------------------------
 function move_text(obj,eventdata)
@@ -1978,7 +1968,7 @@ fclose(fid);
 
 % -----------------------------------------------------------------------------------------
 function export_symbol(obj,eventdata,h, opt)
-% If OPT is given than it must contain a Mx3 array wit x,y,z data to be saved
+% If OPT is given than it must contain a Mx3 array with the x,y,z data to be saved
 
 if (nargin == 3)
 	h = h(ishandle(h));
@@ -1989,27 +1979,41 @@ if (nargin == 3)
         msgbox('Only individual symbols may be exported and this one seams to belong to a class of symbols. Exiting','Warning')
         return
 	end
-    three_cols = 0;
-elseif (nargin == 4)
-    if (size(opt,2) ~= 3)
-        errordlg('export_symbol: variable must contain a Mx3 array.','ERROR')
-        return
-    end
-    xx = opt(:,1);    yy = opt(:,2);    zz = opt(:,3);
-    three_cols = 1;
+    doSave_formated(xx, yy)
 else
     errordlg('export_symbol called with a wrong number of arguments.','ERROR')
-    return
 end
 
+% -----------------------------------------------------------------------------------------
+function save_formated(obj,eventdata, h, opt)
+% Save x,y[,z] vars into a file but taking into account the 'LabelFormatType'
+% If OPT is given than it must contain a Mx3 array with the x,y,z data to be saved
+
+if (nargin == 3)
+	h = h(ishandle(h));
+	xx = get(h,'XData');    yy = get(h,'YData');
+    doSave_formated(xx, yy)
+elseif (nargin == 4)
+    if (size(opt,2) ~= 3)
+        errordlg('save_formated: variable must contain a Mx3 array.','ERROR')
+        return
+    end
+    doSave_formated(opt(:,1), opt(:,2), opt(:,3))
+else
+    errordlg('save_formated called with a wrong number of arguments.','ERROR')
+end
+
+% -----------------------------------------------------------------------------------------
+function doSave_formated(xx, yy, opt_z)
+% Save x,y[,z] vars into a file but taking into account the 'LabelFormatType'
+% OPT_Z is what the name says, optional
 hFig = get(0,'CurrentFigure');
 handles = guidata(hFig);
-%handles = guidata(gcbo);        % I hope I don't get into troubles because of this!
 cd(handles.work_dir)
 [FileName,PathName] = uiputfile({ ...
     '*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select Symbol File name');
 cd(handles.home_dir);       % allways come home to avoid troubles
-if isequal(FileName,0);   return;     end
+if isequal(FileName,0),   return;     end
 pause(0.01)
 
 [PATH,FNAME,EXT] = fileparts([PathName FileName]);
@@ -2041,8 +2045,8 @@ switch labelType
         fmt = '%4d %02d %02.2f\t%4d %02d %02.2f';
 end
 
-if (three_cols)
-    xy = [xy zz];    fmt = [fmt '\t%f'];
+if (nargin == 3)
+    xy = [xy opt_z(:)];    fmt = [fmt '\t%f'];
 end
 double2ascii(f_name,xy,fmt);
 
