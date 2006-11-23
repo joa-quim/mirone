@@ -36,13 +36,24 @@ handles.pLat_ini = [];
 handles.pAng_ini = [];
 handles.do_graphic = 0;
 handles.path_continent = [pwd filesep 'continents' filesep];
-
 set(handles.slider_wait,'Max',handles.Nintervals^2)
 
 if (length(varargin) == 1)
     handles.h_calling_fig = varargin{1};        % This the Mirone's fig handle
+else
+    errordlg('COMPUTE EULER: wrong number of arguments.','Error')
+    delete(hObject);    return
 end
 
+handMir = guidata(handles.h_calling_fig);
+if (handMir.no_file)
+    errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
+    delete(hObject);    return
+end
+if (~handMir.geog)
+    errordlg('This operation is currently possible only for geographic type data','ERROR')
+    delete(hObject);    return
+end
 
 %--------------- Give a Pro look (3D) to the frame boxes -------------------------
 bgcolor = get(0,'DefaultUicontrolBackgroundColor');
