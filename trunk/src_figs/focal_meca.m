@@ -27,11 +27,25 @@ global home_dir
 f_data = [home_dir filesep 'data' filesep];
 
 if (~isempty(varargin))
-    handles.mirone_fig = varargin{1};    handles.MironeAxes = varargin{2};
-    zz = get(varargin{2},'XLim');
+    handles.mirone_fig = varargin{1};
+    handles.MironeAxes = findobj(varargin{1},'Type','axes');
+    zz = get(handles.MironeAxes,'XLim');
     handles.x_min = zz(1);    handles.x_max = zz(2);
-    zz = get(varargin{2},'YLim');
+    zz = get(handles.MironeAxes,'YLim');
     handles.y_min = zz(1);    handles.y_max = zz(2);
+else
+    errordlg('FOCAL MECA: wrong number of arguments.','Error')
+    delete(hObject);    return
+end
+
+handMir = guidata(handles.mirone_fig);
+if (handMir.no_file)
+    errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
+    delete(hObject);    return
+end
+if (~handMir.geog)
+    errordlg('This operation is currently possible only for geographic type data','ERROR')
+    delete(hObject);    return
 end
 
 handles.date = [];
