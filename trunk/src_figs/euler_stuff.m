@@ -52,6 +52,7 @@ if (~isempty(varargin))
     end
 else
     errordlg('EULER_STUFF: wrong number of arguments.','Error')
+    delete(hObject);    return
 end
 
 % This is the tag that all tab push buttons share.  If you have multiple
