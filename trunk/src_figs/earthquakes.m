@@ -30,30 +30,43 @@ movegui(hObject,'east')
 if isempty(home_dir),   home_dir = pwd;     end
 
 if (~isempty(varargin))
-    handles.mirone_fig = varargin{1};    handles.mironeAxes = varargin{2};
-    zz = get(varargin{2},'XLim');
+    handles.mirone_fig = varargin{1};
+    handles.MironeAxes = findobj(varargin{1},'Type','axes');
+    zz = get(handles.MironeAxes,'XLim');
     handles.x_min = zz(1);    handles.x_max = zz(2);
-    zz = get(varargin{2},'YLim');
+    zz = get(handles.MironeAxes,'YLim');
     handles.y_min = zz(1);    handles.y_max = zz(2);
 else
-    return
+    errordlg('EARTHQUAKES: wrong number of arguments.','Error')
+    delete(hObject);    return
 end
+
+handMir = guidata(handles.mirone_fig);
+if (handMir.no_file)
+    errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
+    delete(hObject);    return
+end
+if (~handMir.geog)
+    errordlg('This operation is currently possible only for geographic type data','ERROR')
+    delete(hObject);    return
+end
+
 handles.path_data = [home_dir filesep 'data' filesep];
 
-if (strcmp(varargin{3},'external'))     % Read an external file mode
+if (nargin == 1)        % Use the default file shiped with Mirone
+    set(handles.listbox_readFilter,'String','Not useful here','Enable','off')
+    set(handles.pushbutton_externalFile,'Visible','off')
+    handles.use_default_file = 1;
+else
 	% Import icons
     load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
-	set(handles.pushbutton_externalFile,'CData',Mfopen_ico)
-	clear Mfopen_ico;
+    set(handles.pushbutton_externalFile,'CData',Mfopen_ico)
     % Fill the listbox fields with the currently available reading filters
     str = {'ISF formated catalog (ascii)'; 'Posit file'; 'lon,lat,mag,dep,yy,mm,dd,hh,mm,ss'; 'lon,lat,dep,mag,yy,mm,dd'};
     set(handles.listbox_readFilter,'String',str)
     handles.use_default_file = 0;
-else        % Use the default file shiped with Mirone
-    set(handles.listbox_readFilter,'String','Not useful here','Enable','off')
-    set(handles.pushbutton_externalFile,'Visible','off')
-    handles.use_default_file = 1;
 end
+
 
 handles.got_userFile = 0;
 handles.have_mag_nans = 0;
@@ -108,26 +121,10 @@ for i=1:length(h_f)
 end
 
 % Choose default command line output for earthquakes_export
-handles.output = hObject;
+varargout{1} = hObject;
 guidata(hObject, handles);
 
-% UIWAIT makes earthquakes_export wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
 set(hObject,'Visible','on');
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = earthquakes_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-%function varargout = earthquakes_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% Get default command line output from handles structure
-%varargout{1} = handles.output;
-% The figure can be deleted now
-% delete(handles.figure1);
 
 % -------------------------------------------------------------------------------------------------
 function edit_StartYear_Callback(hObject, eventdata, handles)
