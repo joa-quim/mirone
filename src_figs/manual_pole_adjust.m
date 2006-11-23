@@ -27,7 +27,18 @@ movegui(hObject,'center');
 if (~isempty(varargin))
     handles.h_calling_fig = varargin{1};
 else
-    errordlg('EULER_STUFF: wrong number of arguments.','Error')
+    errordlg('MANUAL POLE ADJUST: wrong number of arguments.','Error')
+    delete(hObject);    return
+end
+
+handMir = guidata(handles.h_calling_fig);
+if (handMir.no_file)
+    errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
+    delete(hObject);    return
+end
+if (~handMir.geog)
+    errordlg('This operation is currently possible only for geographic type data','ERROR')
+    delete(hObject);    return
 end
 
 handles.h_line = [];
