@@ -686,15 +686,9 @@ if (ndims(get(h,'CData')) == 3)
     msgbox('True color images do not use color palettes.','Warning');    return
 end
 cmap = get(handles.figure1,'Colormap');
-if (handles.image_type == 1)
+if (handles.image_type >= 1 || handles.image_type <= 4)
     dz = (handles.head(6) - handles.head(5)) / 10;
     show_palette([1 length(cmap)], [handles.head(5) handles.head(6)], dz, cmap)
-elseif (handles.image_type > 2 || handles.image_type <= 5)
-    mm =  getappdata(handles.figure1,'Zmin_max');
-    dz = diff(mm) / 10;
-    show_palette([1 length(cmap)], [mm(1) mm(2)], dz, cmap)
-else
-    msgbox('Sorry, Palette not available for this Image type.')
 end
 
 % --------------------------------------------------------------------
@@ -876,7 +870,7 @@ end
 set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
-function FileSaveGMTgrid_Callback(hObject, eventdata, handles,opt)
+function FileSaveGMTgrid_Callback(hObject, eventdata, handles, opt)
 % Save internaly computed grids and GDAL recognized DEM grids into GMT grd grids
 if (aux_funs('msg_dlg',14,handles));     return;      end
 if (nargin == 3),   opt = [];   end
@@ -1033,16 +1027,6 @@ set(handsStBar,'Visible','off');
 if (ispc),      print -v
 else            print;  end
 set(h,'Visible','on');  set(handsStBar,'Visible','on');
-
-% --------------------------------------------------------------------
-function ImageInfo_Callback(hObject, eventdata, handles)
-if (handles.no_file == 1),     return;      end
-if (handles.image_type == 1 || handles.image_type == 4)
-    [X,Y,Z,head] = load_grd(handles);
-    grid_info(handles,X,Y,head,Z)
-else
-    grid_info(handles,[],[],[],[])
-end
 
 % --------------------------------------------------------------------
 function ExtractProfile_Callback(hObject, eventdata, handles, opt)
@@ -1328,8 +1312,7 @@ if (~strcmp(opt,'RAW'))
 end
 show_image(handles,fname,[],[],I,0,'off',0);    % It also guidata(...) & reset pointer
 if (isappdata(handles.axes1,'InfoMsg')),    rmappdata(handles.axes1,'InfoMsg');     end
-if (~strcmp(opt,'RAW')),    grid_info(handles,att,'gdal')           % Construct a info message
-end
+if (~strcmp(opt,'RAW')),    grid_info(handles,att,'gdal');      end     % Construct a info message
 
 % --------------------------------------------------------------------
 function FileOpenGeoTIFF_Callback(hObject, eventdata, handles, tipo, opt)
@@ -1593,11 +1576,21 @@ handles.computed_grid_orig = handles.computed_grid;
 handles.geog = guessGeog(handles.head(1:4));
 guidata(handles.figure1, handles);              set(handles.figure1,'pointer','arrow')
 
-if(~ValidGrid)      % Delete uicontrols that are useless to images only
-    delete(findobj(handles.figure1,'Tag','ImgHistGrd'));    delete(findobj(handles.figure1,'Tag','Illuminate'))
-    delete(findobj(handles.figure1,'Tag','GridTools'));     delete(findobj(handles.figure1,'Tag','Contours_a'))
-    delete(findobj(handles.figure1,'Tag','Contours_i'));
-    set(findobj(handles.figure1,'Tag','SaveGMTgrid'),'Enable','off');
+if(~ValidGrid)      % Hide uicontrols that are useless to images only
+    %delete(findobj(handles.figure1,'Tag','ImgHistGrd'));    delete(findobj(handles.figure1,'Tag','Illuminate'))
+    %delete(findobj(handles.figure1,'Tag','GridTools'));     delete(findobj(handles.figure1,'Tag','Contours_a'))
+    %delete(findobj(handles.figure1,'Tag','Contours_i'));
+    %set(findobj(handles.figure1,'Tag','SaveGMTgrid'),'Enable','off');
+    
+    set(handles.ImgHistGrd,'Visible','off');    set(handles.Illuminate,'Visible','off')
+    set(handles.Contours_a,'Visible','off');    set(handles.Contours_i,'Visible','off')
+    set(handles.MBplan,'Visible','off');        set(handles.GridTools,'Visible','off');
+    set(handles.SaveGMTgrid,'Enable','off');
+else
+    set(handles.ImgHistGrd,'Visible','on');     set(handles.Illuminate,'Visible','on')
+    set(handles.Contours_a,'Visible','on');     set(handles.Contours_i,'Visible','on')
+    set(handles.MBplan,'Visible','on');         set(handles.GridTools,'Visible','on');
+    set(handles.SaveGMTgrid,'Enable','on');
 end
 
 BL = getappdata(handles.figure1,'BandList');        % We must tell between fakes and true 'BandList'
@@ -3103,20 +3096,6 @@ h.CCB = h_PB_All_CCB;    h.OCB = h_PB_All_OCB;    h.SUB = h_PB_All_SUB;
 data.OSR = OSR;    data.OTF = OTF;    data.CRB = CRB;    data.CTF = CTF;
 data.CCB = CCB;    data.OCB = OCB;    data.SUB = SUB;
 draw_funs(h,'PlateBound_All_PB',data);      set(handles.figure1,'pointer','arrow')
-
-% --------------------------------------------------------------------
-function DatasetsPlateBoundAfrica_Callback(hObject, eventdata, handles, opt)
-% This function is currently not used
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-switch opt
-    case 'Africa',  file = 'PB2002_AF.dat';
-    case 'Eurasia', file = 'PB2002_EU.dat';
-    case 'NorthAmerica',  file = 'PB2002_NA.dat';
-end
-fid = fopen([handles.path_data file],'r');
-todos = fread(fid,'*char');     [x y] = strread(todos,'%f %f');
-fclose(fid);    clear todos
-line(x,y,'Linewidth',3,'Tag','Africa','Color','k');
 
 % --------------------------------------------------------------------
 function DatasetsODP_DSDP_Callback(hObject, eventdata, handles,opt)
