@@ -5,29 +5,41 @@ function  varargout = aux_funs(opt,varargin)
 % the burden of the non-stop groing length of the Mirone code.
 
 switch opt
+    case 'StoreZ'
+        StoreZ(varargin{:})
     case 'msg_dlg'
         varargout = msg_dlg(varargin{:});
     case 'in_map_region'
         [varargout{1} varargout{2} varargout{3} varargout{4}] = in_map_region(varargin{:});
+    case 'cleanGRDappdata'
+        clean_GRDappdata(varargin{:})
     case 'guessGeog'
         varargout{1} = guessGeog(varargin{:});
     case 'colormap_bg'
         colormap_bg(varargin{:})
+    case 'findFileType'
+        varargout{1} = findFileType(varargin{:});
     case 'strip_bg_color'
-        [varargout{1}] = strip_bg_color(varargin{:});
+        varargout{1} = strip_bg_color(varargin{:});
     case 'adjust_lims'
         [varargout{1} varargout{2}] = adjust_lims(varargin{:});
     case 'axes2pix'
         varargout{1} = axes2pix(varargin{:});
-    case 'cleanGRDappdata'
-        clean_GRDappdata(varargin{:})
-    case 'min_max_single'
-        [varargout{1} varargout{2}] = min_max_single(varargin{:});
     case 'insideRect'
         varargout{1} = insideRect(varargin{:});
+    case 'min_max_single'
+        [varargout{1} varargout{2}] = min_max_single(varargin{:});
     case 'led_rg'
         led_rg(varargin{:})
 end
+
+% --------------------------------------------------------------------
+function StoreZ(handles,X,Y,Z)
+    % If grid size is not to big I'll store it
+    if (numel(Z)*4 > handles.grdMaxSize),       return;     end
+    if (~isa(Z,'single')),  setappdata(handles.figure1,'dem_z',single(Z));
+    else                    setappdata(handles.figure1,'dem_z',Z);  end
+    setappdata(handles.figure1,'dem_x',X);  setappdata(handles.figure1,'dem_y',Y);
 
 % --------------------------------------------------------------------
 function [x,y,indx,indy] = in_map_region(handles,x,y,tol,map_lims)
@@ -49,21 +61,6 @@ if (nargout == 2),      clear indx;     end         % Save memory
 indy = find((y < y_lim(1)-tol) | (y > y_lim(2)+tol));
 x(indy) = [];           y(indy) = [];
 axes(handles.axes1)     % This is for the GCP mode be able to plot on the Master Image
-
-% --------------------------------------------------------------------
-function led_rg(handles,color)
-% This little function swapps the led color between red <-> green
-pos = get(handles.figure1,'Position');
-if (pos(4) < 40),   return;     end     % Do not use this while there is no image in figure - ML bugs, what else.
-
-switch color
-    case 'red'
-        led = cat(3,handles.semaforo_ico(:,:,2),handles.semaforo_ico(:,:,1),handles.semaforo_ico(:,:,3));
-        set(handles.h_semaf,'CData',led)
-        pause(0.1)
-    case 'green'
-        set(handles.h_semaf,'CData',handles.semaforo_ico)
-end
 
 % --------------------------------------------------------------------
 function colormap_bg(handles,Z,pal)
@@ -97,6 +94,24 @@ if ( handles.have_nans & ~isequal(pal(1,:),handles.bg_color) )
 end
 set(handles.figure1,'Colormap',pal)
 
+% ----------------------------------------------------------------------------------
+function out = findFileType(fname)
+    % From the extension guess what function should be called to open this file
+	out = [];	[PATH,FNAME,EXT] = fileparts(fname);
+	if ( any(strcmpi(EXT,{'.grd' '.nc'})) )
+        out = 'gmt';        return
+	end
+	if ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.xwd' '.shade' '.raw' '.bin'})) )
+        out = 'generic';    return
+	end
+	if ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.ecw' '.jp2'})) )
+        out = 'geotif';    return
+	end
+	if ( any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17'})) )
+        out = 'multiband';    return
+	end
+	if ( any(strcmpi(EXT,'.img')) ),    out = 'envherd';    end
+
 % --------------------------------------------------------------------
 function out = msg_dlg(in,handles)
 % Cast a window with a pre-deffined message
@@ -111,7 +126,8 @@ switch  in
     case 2,     msg = 'This operation is deffined only for images derived from DEM grids';  out = {1};
     case 3
         if (~handles.geog)
-            msg = 'This operation is currently possible only for geographic type data'; out = {1};
+            msg = 'This operation is currently possible only for geographic type data';
+            out = {1};
         end
     case 14
         if ~(handles.image_type == 1 || handles.image_type == 4 || handles.computed_grid)
@@ -217,3 +233,18 @@ if (dim == 1);      pixelx = axesx - xfirst + 1;    return;     end
 xslope = (dim - 1) / (xlast - xfirst);
 if ((xslope == 1) && (xfirst == 1));     pixelx = axesx;
 else    pixelx = xslope * (axesx - xfirst) + 1;         end
+
+% --------------------------------------------------------------------
+function led_rg(handles,color)
+% This little function swapps the led color between red <-> green
+pos = get(handles.figure1,'Position');
+if (pos(4) < 40),   return;     end     % Do not use this while there is no image in figure - ML bugs, what else.
+
+switch color
+    case 'red'
+        led = cat(3,handles.semaforo_ico(:,:,2),handles.semaforo_ico(:,:,1),handles.semaforo_ico(:,:,3));
+        set(handles.h_semaf,'CData',led)
+        pause(0.1)
+    case 'green'
+        set(handles.h_semaf,'CData',handles.semaforo_ico)
+end
