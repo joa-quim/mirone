@@ -212,7 +212,13 @@ set(handles.edit_command,'String', [get(handles.edit_command,'String') ' )'])
 % ------------------------------------------------------------------------
 function pushbutton_compute_Callback(hObject, eventdata, handles)
 com = get(handles.edit_command,'String');
-if (isempty(com))   return;     end
+if (isempty(com))
+    oname = get(handles.figure1,'Name');
+    set(handles.figure1,'Name','Don''t be IDIOT')
+    pause(1)
+    set(handles.figure1,'Name',oname)
+    return;
+end
 
 % Those start at 2 because they are meant to be used only when grid names apear repeatedly
 in_g_count = 2;     out_g_count = 2;
