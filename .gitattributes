@@ -377,6 +377,7 @@ utils/checkinput_mex.dll -text
 utils/circ_geo.m -text
 utils/clabel_j.m -text
 utils/cropimg.m -text
+utils/datasets_funs.m -text
 utils/date2jd.m -text
 utils/datums.m -text
 utils/days2hms.m -text
