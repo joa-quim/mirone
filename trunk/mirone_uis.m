@@ -2,6 +2,7 @@ function [h1,version7,IamCompiled] = mirone_uis()
 % --- Creates and returns a handle to the GUI MIRONE figure. 
 %#function pan resetplotview igrf_options rally_plater plate_calculator gmtedit ecran
 %#function about_box parker_stuff plate_calculator euler_stuff grid_calculator tableGUI
+%#function datasets_funs
 
 h1 = figure('PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'CloseRequestFcn','delete(gcf)',...
@@ -85,7 +86,7 @@ uipushtool('parent',h_toolbar,'Click','mirone(''FileSaveFlederSD_Callback'',gcbo
    'Tag','FlederPlanar','cdata',olho_ico,'TooltipString','Run Fleder 3D Viewer');
 handles.h_semaf = uipushtool('parent',h_toolbar,'Click',@refresca, 'Tag','Refresh','cdata',refresh_ico,...
     'TooltipString','Refresh','Separator','on');
-uipushtool('parent',h_toolbar,'Click','mirone(''ImageInfo_Callback'',gcbo,[],guidata(gcbo))', ...
+uipushtool('parent',h_toolbar,'Click','grid_info(guidata(gcbo))', ...
     'Tag','ImageInfo','cdata',info_ico,'TooltipString','Image info');
 
 h2 = uimenu('Parent',h1,'Label','File','Tag','File');
@@ -199,8 +200,7 @@ uimenu('Parent',h19,...
 uimenu('Parent',h19,...
 'Callback','mirone(''FileOpenDEM_Callback'',gcbo,[],guidata(gcbo),''SDTS'')','Label','USGS SDTS DEM');
 
-uimenu('Parent',h2,...
-'Callback','mirone(''FileOpenOverview_Callback'',gcbo,[],guidata(gcbo))','Label','Open Overview Tool');
+uimenu('Parent',h2,'Callback','overview(guidata(gcbo))','Label','Open Overview Tool');
 
 uimenu('Parent',h2,...
 'Callback','mirone(''FileOpenSession_Callback'',gcbo,[],guidata(gcbo))','Label','Open Session');
@@ -280,14 +280,10 @@ uimenu('Parent',h37,'Callback','mirone(''File_img2GMT_RGBgrids_Callback'',gcbo,[
 uimenu('Parent',h37,...
 'Callback','mirone(''File_img2GMT_RGBgrids_Callback'',gcbo,[],guidata(gcbo),''screen'')','Label','Screen capture');
 
-
 h33 = uimenu('Parent',h2,'Label','Save GMT script','Separator','on');
 
-uimenu('Parent',h33,...
-'Callback','mirone(''FileSaveGMT_script_Callback'',gcbo,[],guidata(gcbo),''csh'')','Label','csh script');
-
-uimenu('Parent',h33,...
-'Callback','mirone(''FileSaveGMT_script_Callback'',gcbo,[],guidata(gcbo),''bat'')','Label','dos batch');
+uimenu('Parent',h33,'Callback','write_gmt_script(guidata(gcbo),''csh'')','Label','csh script');
+uimenu('Parent',h33,'Callback','write_gmt_script(guidata(gcbo),''bat'')','Label','dos batch');
 
 h45 = uimenu('Parent',h2,'Label','Save As Fledermaus Objects');
 
@@ -400,11 +396,8 @@ uimenu('Parent',hMode,...
 uimenu('Parent',h54,'Callback','mirone(''DigitalFilt_Callback'',gcbo,[],guidata(gcbo),''image'')',...
 'Label','Digital filtering','Sep','on');
 
-uimenu('Parent',h54,...
-'Callback','mirone(''ImageEnhance_Callback'',gcbo,[],guidata(gcbo),''1'')','Label','Image Enhance (1 - Indexed and RGB)');
-
-uimenu('Parent',h54,...
-'Callback','mirone(''ImageEnhance_Callback'',gcbo,[],guidata(gcbo),''2'')','Label','Image Enhance (2 - Indexed only)');
+uimenu('Parent',h54,'Callback','image_enhance(gcf)','Label','Image Enhance (1 - Indexed and RGB)');
+uimenu('Parent',h54,'Callback','image_adjust(gcf)','Label','Image Enhance (2 - Indexed only)');
 
 uimenu('Parent',h54,...
     'Callback','mirone(''ImageGCPtool_Callback'',gcbo,[],guidata(gcbo))',...
@@ -414,13 +407,10 @@ uimenu('Parent',h54,...
 'Callback','mirone(''ImageGCPpline_Callback'',gcbo,[],guidata(gcbo))','Label','Register Image (Draw GCP points)');
 
 uimenu('Parent',h54,'Callback','bands_list(gcf)','Label','Load Bands','Sep','on');
+%uimenu('Parent',h54,'Callback','grid_calculator(gcf)','Label','Bands Arithmetic');
 
 uimenu('Parent',h54,'Callback','mirone(''ImageMovieFromList_Callback'',gcbo,[],guidata(gcbo))',...
 'Label','Make movie from image list','Separator','on');
-
-% h3D = uimenu('Parent',h1,'Label','3D Views');
-% uimenu('Parent',h3D,...
-% 'Callback','mirone(''ML_Surface_Callback'',gcbo,[],guidata(gcbo))','Label','Matlab Surface');
 
 h76 = uimenu('Parent',h1,'Label','Tools','Tag','Tools');
 
@@ -438,7 +428,7 @@ uimenu('Parent',h78,...
 uimenu('Parent',h78,...
 'Callback','mirone(''ToolsMeasureArea_Callback'',gcbo,[],guidata(gcbo))','Label','Area');
 
-h82 = uimenu('Parent',h76,'Label','Multi-beam planing','Sep','on');
+h82 = uimenu('Parent',h76,'Label','Multi-beam planing','Tag','MBplan','Sep','on');
 
 uimenu('Parent',h82,...
 'Callback','mirone(''ToolsMBplaningStart_Callback'',gcbo,[],guidata(gcbo))','Label','Start track');
@@ -446,24 +436,16 @@ uimenu('Parent',h82,...
 uimenu('Parent',h82,...
 'Callback','mirone(''ToolsMBplaningImport_Callback'',gcbo,[],guidata(gcbo))','Label','Import track');
 
-uimenu('Parent',h82,...
-'Callback','mirone(''ToolsMBplaningSave_Callback'',gcbo,[],guidata(gcbo),[])','Label','Save track');
-
 uimenu('Parent',h76,...
 'Callback','mirone(''DrawClosedPolygon_Callback'',gcbo,[],guidata(gcbo),''from_ROI'')',...
 'Label','Region-Of-Interest','Separator','on');
 
 uimenu('Parent',h76,'Callback','mirone(''Transfer_Callback'',gcbo,[],guidata(gcbo),''isGMT'')','Label','Does GMT know this file?','Separator','on');
 uimenu('Parent',h76,'Callback','mirone(''Transfer_Callback'',gcbo,[],guidata(gcbo),''isGDAL'')','Label','Does GDAL know this file?');
-
 uimenu('Parent',h76,'Callback','ecran','Label','X,Y grapher','Separator','on');
-
 uimenu('Parent',h76,'Callback','gmtedit','Label','gmtedit');
-
 uimenu('Parent',h76,'Callback','rally_plater','Label','Rally Plater');
-
-% uimenu('Parent',h76,'Callback','mirone(''ToolsMathSurfs_Callback'',gcbo,[],guidata(gcbo))','Label','Fun surfaces');
-% uimenu('Parent',h76,'Callback','diluvio(gcf)','Label','NOE diluge');
+uimenu('Parent',h76,'Label','entry_vtr','Sep','on');
 
 h92 = uimenu('Parent',h1,'Label','Draw','Tag','Draw');
 
@@ -851,59 +833,25 @@ uimenu('Parent',h219,...
 'Callback','mirone(''DatasetsRivers_Callback'',gcbo,[],guidata(gcbo),''i'',''f'')',...
 'Label','Full resolution','Tag','DatasetsRiversFull');
 
-uimenu('Parent',h113,...
-'Callback','mirone(''DatasetsEarthquakes_Callback'',gcbo,[],guidata(gcbo))',...
-'Label','Global seismicity','Separator','on');
-
-uimenu('Parent',h113,...
-'Callback','mirone(''DatasetsHotspots_Callback'',gcbo,[],guidata(gcbo))',...
-'Label','Hotspot locations');
-
-uimenu('Parent',h113,...
-'Callback','mirone(''DatasetsIsochrons_Callback'',gcbo,[],guidata(gcbo))',...
-'Label','Magnetic isochrons');
-
-uimenu('Parent',h113,...
-'Callback','mirone(''DatasetsVolcanoes_Callback'',gcbo,[],guidata(gcbo))','Label','Volcanoes');
-
-uimenu('Parent',h113,'Callback','mirone(''DatasetsTides_Callback'',gcbo,[],guidata(gcbo))',...
-'Label','Tide Stations');
-
-h235 = uimenu('Parent',h113,'Label','Plate boundaries');
-
-uimenu('Parent',h235,...
-'Callback','mirone(''DatasetsPlateBound_PB_All_Callback'',gcbo,[],guidata(gcbo))','Label','P. Bird');
+uimenu('Parent',h113,'Callback','earthquakes(gcf);','Label','Global seismicity','Separator','on');
+uimenu('Parent',h113,'Callback','datasets_funs(''Hotspots'',guidata(gcbo))','Label','Hotspot locations');
+uimenu('Parent',h113,'Callback','datasets_funs(''Isochrons'',guidata(gcbo))','Label','Magnetic isochrons');
+uimenu('Parent',h113,'Callback','datasets_funs(''Volcanoes'',guidata(gcbo))','Label','Volcanoes');
+uimenu('Parent',h113,'Callback','datasets_funs(''Tides'',guidata(gcbo))','Label','Tide Stations');
+uimenu('Parent',h113,'Callback','datasets_funs(''Plate'',guidata(gcbo))','Label','Plate boundaries');
 
 h237 = uimenu('Parent',h113,'Label','Cities');
-
-uimenu('Parent',h237,...
-'Callback','mirone(''DatasetsCities_Callback'',gcbo,[],guidata(gcbo),''major'')',...
-'Label','Major cities');
-
-uimenu('Parent',h237,...
-'Callback','mirone(''DatasetsCities_Callback'',gcbo,[],guidata(gcbo),''other'')',...
-'Label','Other cities');
+uimenu('Parent',h237,'Callback','datasets_funs(''Cities'',guidata(gcbo),''major'')','Label','Major cities');
+uimenu('Parent',h237,'Callback','datasets_funs(''Cities'',guidata(gcbo),''other'')','Label','Other cities');
 
 h240 = uimenu('Parent',h113,'Label','ODP/DSDP sites');
-
-uimenu('Parent',h240,...
-'Callback','mirone(''DatasetsODP_DSDP_Callback'',gcbo,[],guidata(gcbo),''ODP'')','Label','ODP');
-
-uimenu('Parent',h240,...
-'Callback','mirone(''DatasetsODP_DSDP_Callback'',gcbo,[],guidata(gcbo),''DSDP'')','Label','DSDP');
-
-uimenu('Parent',h240,...
-'Callback','mirone(''DatasetsODP_DSDP_Callback'',gcbo,[],guidata(gcbo),''ODP_DSDP'')',...
-'Label','ODP and DSDP');
+uimenu('Parent',h240,'Callback','datasets_funs(''ODP'',guidata(gcbo),''ODP'')','Label','ODP');
+uimenu('Parent',h240,'Callback','datasets_funs(''ODP'',guidata(gcbo),''DSDP'')','Label','DSDP');
+uimenu('Parent',h240,'Callback','datasets_funs(''ODP'',guidata(gcbo),''ODP_DSDP'')','Label','ODP and DSDP');
 
 uimenu('Parent',h113,'Callback','draw_funs([],''MagneticBarCode'')','Label','Mgnetic Bar Code');
-
-uimenu('Parent',h113,...
-'Callback','mirone(''DatasetsAtlas_Callback'',gcbo,[],guidata(gcbo))','Label','Atlas','Separator','on');
-
-uimenu('Parent',h113,...
-'Callback','mirone(''DatasetsIsochrons_Callback'',gcbo,[],guidata(gcbo),''nada'')',...
-'Label','External db','Separator','on');
+uimenu('Parent',h113,'Callback','atlas(guidata(gcbo))','Label','Atlas','Separator','on');
+uimenu('Parent',h113,'Callback','datasets_funs(''Isochrons'',guidata(gcbo),[])','Label','External db','Separator','on');
 
 h247 = uimenu('Parent',h1,'Label','Geophysics','Tag','Geophysics');
 h248 = uimenu('Parent',h247,'Label','Elastic deformation');
@@ -961,24 +909,15 @@ uimenu('Parent',h247,'Callback','parker_stuff(''parker_inverse'',gcf)','Label','
 uimenu('Parent',h247,'Callback','parker_stuff(''redPole'',gcf)','Label','Reduction to the Pole');
 uimenu('Parent',h247,'Callback','plate_calculator','Label','Plate calculator','Separator','on');
 uimenu('Parent',h247,'Callback','geog_calculator(gcf)','Label','Geographic calculator');
-uimenu('Parent',h247,'Callback','euler_stuff(gcbf)','Label','Euler rotations','Separator','on');
-
-uimenu('Parent',h247,'Callback','mirone(''GeophysicsEulerStuff_Callback'',gcbo,[],guidata(gcbo),''CompEulerPole'')',...
-'Label','Compute Euler pole');
-
-uimenu('Parent',h247,'Callback','mirone(''GeophysicsEulerStuff_Callback'',gcbo,[],guidata(gcbo),''AdjustEulerPole'')',...
-'Label','Manual adjust Euler pole');
+uimenu('Parent',h247,'Callback','euler_stuff(gcf)','Label','Euler rotations','Separator','on');
+uimenu('Parent',h247,'Callback','compute_euler(gcf)','Label','Compute Euler pole');
+uimenu('Parent',h247,'Callback','manual_pole_adjust(gcf)','Label','Manual adjust Euler pole');
 
 uimenu('Parent',h247,'Label','entry_tl');
 
 h272 = uimenu('Parent',h247,'Label','Seismicity','Separator','on');
-
-uimenu('Parent',h272,...
-'Callback','mirone(''DatasetsEarthquakes_Callback'',gcbo,[],guidata(gcbo),''external'')',...
-'Label','Epicenters');
-
-uimenu('Parent',h272,...
-'Callback','mirone(''GeophysicsFocMec_Callback'',gcbo,[],guidata(gcbo))','Label','Focal mechanisms');
+uimenu('Parent',h272,'Callback','earthquakes(gcf,''external'');','Label','Epicenters');
+uimenu('Parent',h272,'Callback','focal_meca(gcf)','Label','Focal mechanisms');
 
 h275 = uimenu('Parent',h247,'Label','Import *.gmt files(s)','Separator','on');
 
@@ -993,7 +932,7 @@ uimenu('Parent',h275,...
 h278 = uimenu('Parent',h1,'Label','Grid Tools','Tag','GridTools');
 
 if (~IamCompiled)
-    uimenu('Parent',h278,'Callback','grid_calculator','Label','grid calculator');
+    uimenu('Parent',h278,'Callback','grid_calculator(gcf)','Label','grid calculator');
 end
 
 uimenu('Parent',h278,'Callback','mirone(''GridToolsGrdfilter_Callback'',gcbo,[],guidata(gcbo))',...
@@ -1018,7 +957,7 @@ uimenu('Parent',h278,...
 'Callback','mirone(''GridToolsGridClip_Callback'',gcbo,[],guidata(gcbo))','Label','Clip Grid');
 
 uimenu('Parent',h278,...
-'Callback','mirone(''GridToolsCropGrid_Callback'',gcbo,[],guidata(gcbo),[])','Label','Crop Grid');
+'Callback','mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),[],''CropaGrid'')','Label','Crop Grid');
 
 uimenu('Parent',h278,'Callback','mirone(''RotateTool_Callback'',gcbo,[],guidata(gcbo),''grid'')',...
 'Label','Rotate Grid');
@@ -1089,16 +1028,11 @@ uimenu('Parent',h305,'Callback','griding_Mir(gcf,''surface'');', 'Label','Minimu
 uimenu('Parent',h305,'Callback','griding_Mir(gcf,''nearneighbor'');', 'Label','Near neighbor');
 
 h308 = uimenu('Parent',h278,'Label','SRTM tools','Separator','on');
+
 h309 = uimenu('Parent',h308,'Label','SRTM mosaic');
-
-uimenu('Parent',h309,...
-'Callback','mirone(''GridToolsSRTM_mosaic_Callback'',gcbo,[],guidata(gcbo))','Label','SRTM 3sec');
-
-uimenu('Parent',h309,...
-'Callback','mirone(''GridToolsSRTM_mosaic_Callback'',gcbo,[],guidata(gcbo),''srtm1'')','Label','SRTM 1sec');
-
-uimenu('Parent',h309,...
-'Callback','mirone(''GridToolsSRTM_mosaic_Callback'',gcbo,[],guidata(gcbo),''srtm30'')','Label','SRTM30');
+uimenu('Parent',h309,'Callback','srtm_tool','Label','SRTM 3sec');
+uimenu('Parent',h309,'Callback','srtm_tool(''srtm1'')','Label','SRTM 1sec');
+uimenu('Parent',h309,'Callback','srtm_tool(''srtm30'')','Label','SRTM30');
 
 uimenu('Parent',h308,...
 'Callback','mirone(''GridToolsFindHoles_Callback'',gcbo,[],guidata(gcbo))','Label','Find holes');
@@ -1113,11 +1047,10 @@ uimenu('Parent',h278,'Callback','mirone(''ImageEdgeDetect_Callback'',gcbo,[],gui
 'Label','Extract ridges/valleys','Separator','on');
 
 h317 = uimenu('Parent',h1,'Label','Help','Tag','Help');
-
 uimenu('Parent',h317, 'Callback', @showGDALdrivers,'Label','List GDAL formats')
 
 uimenu('Parent',h317,...
-'Callback','about_box([''Mirone_Last_modified_at_15_November_2006''],''Mirone'')','Label','About','Sep','on');
+'Callback','about_box([''Mirone_Last_modified_at_26_November_2006''],''Mirone'')','Label','About','Sep','on');
 
 axes('Parent',h1,'Units','pixels','Position',[60 0 50 10],'Tag','axes1','Visible','off');
 
