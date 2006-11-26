@@ -21,19 +21,24 @@ handles = guihandles(hObject);
 guidata(hObject, handles);
 atlas_LayoutFcn(hObject,handles);
 handles = guihandles(hObject);
- 
-global home_dir
-if isempty(home_dir),   handles.d_path = [pwd filesep 'data' filesep];
-else                    handles.d_path = [home_dir filesep 'data' filesep];   end
 movegui(hObject,'center');
-
+ 
 if ~isempty(varargin)
-    handles.mirone_fig = varargin{1};
-    handles.MironeAxes = varargin{2};
+    if (~varargin{1}.geog && ~varargin{1}.no_file)   % If a file is loaded and is not geog
+        errordlg('This operation is currently possible only for geographic type data','Error');
+        delete(hObject)
+        return;
+    end
+
+    handles.mirone_fig = varargin{1}.figure1;
+    handles.MironeAxes = varargin{1}.axes1;
     handles.h_calling_lims = [get(handles.MironeAxes,'Xlim') get(handles.MironeAxes,'Ylim')];
 else
-    % Tenho de prever este caso (mas como?)
+    delete(hObject)
+    return
 end
+
+handles.d_path = varargin{1}.path_data;
 
 if (isequal(handles.h_calling_lims,[0 1 0 1]))
     handles.CeateBG = 1;
