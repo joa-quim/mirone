@@ -16,10 +16,10 @@
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
  * Revision 1.0  31/08/2006 Joaquim Luis
- * Revision 2.0  19/10/2006 Joaquim Luis	Edge 'laplace' needed exlicit kernel input
- * Revision 3.0  27/10/2006 Joaquim Luis	Updated cvHoughCircles call to 1.0
- * Revision 4.0  07/11/2006 Joaquim Luis	Erode & Diltate in cvHoughCircles  (almost the same shit)
- * Revision 5.0  07/11/2006 Joaquim Luis	Falta acabar a inpaint e os helps
+ * Revision 2.0  19/10/2006 JL	Edge 'laplace' needed exlicit kernel input
+ * Revision 3.0  27/10/2006 JL	Updated cvHoughCircles call to 1.0
+ * Revision 4.0  07/11/2006 JL	Erode & Diltate in cvHoughCircles  (almost the same shit)
+ * Revision 5.0  29/11/2006 JL	Added half a dozen of functions more (line, rect, circ, poly, ellip, inpaint)
  *
  */
 
@@ -49,6 +49,7 @@ void Jsmooth(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jegipt(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op);
 void Jshapes(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op);
 void Jinpaint(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 
 void Set_pt_Ctrl_in (struct CV_CTRL *Ctrl, const mxArray *pi , mxArray *pit, int interl);
 void Set_pt_Ctrl_out1 ( struct CV_CTRL *Ctrl, mxArray *pi );
@@ -72,7 +73,8 @@ void cannyUsage(), sobelUsage(), laplaceUsage(), erodeUsage(), dilateUsage();
 void morphologyexUsage(), colorUsage(), flipUsage(), filterUsage(), findContoursUsage();
 void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void arithmUsage(), addWeightedUsage(), pyrDUsage(), pyrUUsage(), houghCirclesUsage();
-void smoothUsage(), lineUsage();
+void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsage();
+void inpaintUsage();
 
 struct CV_CTRL {
 	/* active is TRUE if the option has been activated */
@@ -121,10 +123,12 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\taddweighted (cvAddWeighted)\n");
 		//mexPrintf("\taffine2 (cvWarpAffine)\n");	// No help yet
 		mexPrintf("\tcanny (cvCanny)\n");
+		mexPrintf("\tcircle (cvCircle)\n");
 		mexPrintf("\tcolor (cvCvtColor)\n");
 		mexPrintf("\tcontours (cvFindContours)\n");
 		mexPrintf("\tdilate (cvDilate)\n");
 		mexPrintf("\tdiv (cvDiv)\n");
+		mexPrintf("\teBox (cvEllipseBox)\n");
 		mexPrintf("\terode (cvErode)\n");
 		mexPrintf("\tfilter (cvFilter2D)\n");
 		mexPrintf("\tflip (cvFlip)\n");
@@ -132,10 +136,12 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tgoodfeatures (cvGoodFeaturesToTrack)\n");
 		mexPrintf("\thoughlines2 (cvHoughLines2)\n");
 		mexPrintf("\thoughcircles (cvHoughCircles)\n");
+		mexPrintf("\tinpaint (cvInpaint)\n");
 		mexPrintf("\tlaplace (cvLaplace)\n");
 		mexPrintf("\tline (cvLine)\n");
 		mexPrintf("\tmorphologyex (cvMorphologyEx)\n");
 		mexPrintf("\tmul (cvMul)\n");
+		mexPrintf("\tpolyline (cvPolyLine)\n");
 		mexPrintf("\tpyrD (cvPyrDown)\n");
 		mexPrintf("\tpyrU (cvPyrUp)\n");
 		mexPrintf("\trectangle (cvRectangle)\n");
@@ -161,8 +167,12 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	else if (!strcmp(funName,"floodfill"))
 		Jfloodfill(n_out, plhs, n_in, prhs);
 
-	else if (!strncmp(funName,"lin",3) || !strncmp(funName,"rec",3) || !strncmp(funName,"cir",3))
+	else if (!strncmp(funName,"lin",3) || !strncmp(funName,"rec",3) || !strncmp(funName,"cir",3) ||
+		!strcmp(funName,"eBox"))
 		Jshapes(n_out, plhs, n_in, prhs, funName);
+
+	else if (!strncmp(funName,"poly",4))
+		Jpolyline(n_out, plhs, n_in, prhs);
 
 	else if (!strcmp(funName,"goodfeatures"))
 		JgoodFeatures(n_out, plhs, n_in, prhs);
@@ -461,30 +471,175 @@ void Jfloodfill(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 }
 
 /* --------------------------------------------------------------------------- */
-void Jshapes(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *method) {
-	unsigned char *mask_img, *tmp_mask;
-	int nx, ny, nx2, ny2, nBands, m, n, nBytes, img_depth, inplace = FALSE;
+void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
+	int	nx, ny, nBands, m, n, nBytes, img_depth, inplace = FALSE;
+	int	r, g, b, thickness = 1, line_type = 8;
+	int	i, j, npoly = 0, *polyNpts;
+	double	*ptr_d;
+	IplImage *src_img = 0, *dst = 0;
+	CvPoint	**pt, *buf = 0;
+	CvScalar color;
+	mxArray	*ptr_in;
 
+	struct CV_CTRL *Ctrl;
+	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
+
+	/* ---- Check for input and errors in user's call to function. ----------------- */
+	if (n_in == 1) { plineUsage(); return; }
+	else if (n_out > 1 )
+		mexErrMsgTxt("POLYLINE returns either one or zero arguments!");
+
+	/* Check that input image is of type UInt8 */
+	if (!mxIsUint8(prhs[1]))
+		mexErrMsgTxt("POLYLINE ERROR: Invalid input data type. Only valid type is: UInt8.\n");
+
+	if (n_in < 3)
+		mexErrMsgTxt("POLYLINE requires at least 2 input arguments!");
+
+	color = cvScalarAll(255);	/* Default to a white line */
+
+	if (mxIsCell(prhs[2])) {
+		m = mxGetM(prhs[2]);	n = mxGetN(prhs[2]);
+		if ( m != 1 && n != 1)
+			mexErrMsgTxt("POLYLINE Cell array must be Mx1 OR 1xN");
+
+		npoly = m * n;
+		polyNpts = (int *)mxCalloc (npoly, sizeof (int));
+		pt = (CvPoint *)mxCalloc( npoly, sizeof(buf[0]));
+
+		for (i = 0; i < npoly; i++) {		/* Loop over number of polylines */
+			m = mxGetM(mxGetCell(prhs[2], i));
+			n = mxGetN(mxGetCell(prhs[2], i));
+			polyNpts[i] = MAX(m,n);
+			pt[i] = (CvPoint *)mxCalloc( polyNpts[i], sizeof(buf[0]));
+			ptr_d = (double *)mxGetData(mxGetCell(prhs[2], i));
+			if (n == 2) {		/* column vector (well, Mx2) */
+				for (j = 0; j < polyNpts[i]; j++)
+					pt[i][j] = cvPoint((int)ptr_d[j],(int)ptr_d[j+polyNpts[i]]);
+			}
+			else if (m == 2) {	/* Row vector (2xN) */
+				for (j = 0; j < polyNpts[i]; j++)
+					pt[i][j] = cvPoint((int)ptr_d[2*j],(int)ptr_d[2*j+1]);
+			}
+			else {
+				mexPrintf("POLYLINE: %d cell array element must be a Mx2 OR 2xN array\n", i);
+				mexErrMsgTxt("");
+			}
+		}
+	}
+	else {
+		npoly = 1;
+		m = mxGetM(prhs[2]);	n = mxGetN(prhs[2]);
+		polyNpts = (int *)mxCalloc (1, sizeof (int));
+		polyNpts[0] = MAX(m,n);
+		pt = (CvPoint *)mxCalloc( 1, sizeof(buf[0]));
+		pt[0] = (CvPoint *)mxCalloc( polyNpts[0], sizeof(buf[0]));
+		if (n == 2) {		/* column vector (well, Mx2) */
+			for (j = 0; j < polyNpts[0]; j++)
+				pt[0][j] = cvPoint((int)ptr_d[j],(int)ptr_d[j+polyNpts[0]]);
+		}
+		else if (m == 2) {	/* Row vector (2xN) */
+			for (j = 0; j < polyNpts[0]; j++)
+				pt[0][j] = cvPoint((int)ptr_d[2*j],(int)ptr_d[2*j+1]);
+		}
+		else
+			mexErrMsgTxt("POLYLINE: Error, second arg must be a Mx2 OR 2xN array");
+	}
+
+	if (n_in > 3 && !mxIsEmpty(prhs[3])) {			/* Line color */
+		ptr_d = (double *)mxGetData(prhs[3]);
+		if (mxGetM(prhs[3]) * mxGetN(prhs[3]) == 1) {	/* Gray line */
+			r = (int)ptr_d[0];
+			color = CV_RGB( r, r, r );
+		}
+		else if (mxGetM(prhs[3]) * mxGetN(prhs[3]) == 3) {	/* Color line */
+			r = (int)ptr_d[0];	g = (int)ptr_d[1];	b = (int)ptr_d[2];
+			color = CV_RGB( r, g, b );
+		}
+		else
+			mexErrMsgTxt("POLYLINE: Fourth argument must be a 1 or a 3 elements vector.");
+	}
+	if (n_in > 4 && !mxIsEmpty(prhs[4]))			/* Line thickness */
+		thickness = (int)(*mxGetPr(prhs[4]));
+	if (n_in > 5 && !mxIsEmpty(prhs[5]))			/* Line type */
+		line_type = (int)(*mxGetPr(prhs[5]));
+
+	if (n_out == 0)
+		inplace = TRUE;
+	/* -------------------- End of parsing input ------------------------------------- */
+
+	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);	nBands = getNK(prhs[1],2);
+	/* Allocate and initialize defaults in a new control structure */
+	Ctrl = (struct CV_CTRL *) New_Cv_Ctrl ();
+	getDataType(Ctrl, prhs, &nBytes, &img_depth);
+
+	/* ------ Create pointer for temporary array ------------------------------------- */
+	ptr_in  = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+		 mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
+	/* ------------------------------------------------------------------------------- */ 
+
+	Set_pt_Ctrl_in ( Ctrl, prhs[1], ptr_in, 1 ); 	/* Set pointer & interleave */
+
+	src_img = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
+
+	if (!inplace) {
+		plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+		  			mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
+		dst = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+		cvSetImageData( dst, (void *)mxGetData(plhs[0]), nx * nBytes * nBands );
+		localSetData( Ctrl, dst, 1, nx * nBands * nBytes );
+		cvPolyLine( dst, pt, polyNpts, npoly, 0, color, thickness, line_type, 0 );
+		interleaveBlind (Ctrl->UInt8.tmp_img_in, (unsigned char *)mxGetData(plhs[0]), nx, ny, nBands, -1);
+		cvReleaseImageHeader( &dst );
+	}
+	else {
+		cvPolyLine( src_img, pt, polyNpts, npoly, 0, color, thickness, line_type, 0 );
+		/* desinterleave */
+		interleaveBlind (Ctrl->UInt8.tmp_img_in, (unsigned char *)mxGetData(prhs[1]), nx, ny, nBands, -1);
+	}
+
+	cvReleaseImageHeader( &src_img );
+	mxDestroyArray(ptr_in);
+	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
+	mxFree(polyNpts);
+	mxFree(pt);
+}
+
+
+/* --------------------------------------------------------------------------- */
+void Jshapes(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *method) {
+	int nx, ny, nBands, nBytes, img_depth, inplace = FALSE;
 	int r, g, b, radius = 0, thickness = 1, line_type = 8;
+	int ind_opt = 4;	/* Index of first optional argument in prhs */
 	double *ptr_d;
 	IplImage *src_img = 0, *dst = 0;
 	CvPoint pt1, pt2;
 	CvScalar color;
+	CvBox2D	box;
 	mxArray *ptr_in;
 
 	struct CV_CTRL *Ctrl;
 	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
 
 	/* ---- Check for input and errors in user's call to function. ----------------- */
-	if (n_in == 1) { lineUsage(); return; }
+	if (n_in == 1) { 
+		if (!strncmp(method,"lin",3)) lineUsage();
+		else if (!strncmp(method,"rec",3)) rectUsage();
+		else if (!strncmp(method,"cir",3)) circUsage();
+		else if (!strcmp(method,"eBox")) eBoxUsage();
+		return;
+	}
 	else if (n_out > 1 )
-		mexErrMsgTxt("SHAPES returns only one or zero arguments!");
+		mexErrMsgTxt("SHAPES returns either one or zero arguments!");
 
 	/* Check that input image is of type UInt8 */
 	if (!mxIsUint8(prhs[1]))
 		mexErrMsgTxt("SHAPES ERROR: Invalid input data type. Only valid type is: UInt8.\n");
 
-	if (n_in < 4)
+	if (!strcmp(method,"eBox") && n_in < 3)
+		mexErrMsgTxt("EllipseBox requires at least 2 input arguments!");
+	else if (n_in < 4)
 		mexErrMsgTxt("SHAPES requires at least 3 input arguments!");
 
 	if (!strncmp(method,"lin",3) || !strncmp(method,"rec",3)) {
@@ -508,26 +663,59 @@ void Jshapes(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 		ptr_d = (double *)mxGetData(prhs[3]);
 		radius = (int)ptr_d[0];
 	}
+	else if (!strcmp(method,"eBox")) {
+		if (mxIsStruct(prhs[2])) {
+			ptr_d = mxGetPr(mxGetField(prhs[2], 0, "center"));
+			if (ptr_d == NULL)
+				mexErrMsgTxt("EllipseBox 'center' field not provided");
+			if (mxGetM(mxGetField(prhs[2],0,"center")) * mxGetN(mxGetField(prhs[2],0,"center")) != 2)
+				mexErrMsgTxt("EllipseBox: 'center' must contain a 2 elements vector");
+			box.center.x = (float)ptr_d[0];
+			box.center.y = (float)ptr_d[1];
+
+			ptr_d = mxGetPr(mxGetField(prhs[2], 0, "size"));
+			if (ptr_d == NULL)
+				mexErrMsgTxt("EllipseBox 'size' field not provided");
+			if (mxGetM(mxGetField(prhs[2],0,"size")) * mxGetN(mxGetField(prhs[2],0,"size")) != 2)
+				mexErrMsgTxt("EllipseBox: 'size' must contain a 2 elements vector");
+			box.size.width = (float)ptr_d[1];	/* On purpose change of width & height. The man is */
+			box.size.height = (float)ptr_d[0];	/* again confuse I think they mixed up one and the other */
+
+			ptr_d = mxGetPr(mxGetField(prhs[2], 0, "angle"));
+			if (ptr_d == NULL)
+				mexErrMsgTxt("EllipseBox 'angle' field not provided");
+			box.angle = (float)ptr_d[0];
+
+			n_in++;		/* Since cvEllipseBox has one less input arg than cvLine, etc */
+			ind_opt = 3;
+		}
+		else
+			mexErrMsgTxt("EllipseBox: Second argument must be a structure.");
+	}
 
 	color = cvScalarAll(255);	/* Default to a white line */
 
-	if (n_in > 4 && !mxIsEmpty(prhs[4])) {			/* Line color */
-		ptr_d = (double *)mxGetData(prhs[4]);
-		if (mxGetM(prhs[4]) * mxGetN(prhs[4]) == 1) {	/* Gray line */
+	if (n_in > 4 && !mxIsEmpty(prhs[ind_opt])) {			/* Line color */
+		ptr_d = (double *)mxGetData(prhs[ind_opt]);
+		if (mxGetM(prhs[ind_opt]) * mxGetN(prhs[ind_opt]) == 1) {	/* Gray line */
 			r = (int)ptr_d[0];
 			color = CV_RGB( r, r, r );
 		}
-		else if (mxGetM(prhs[4]) * mxGetN(prhs[4]) == 3) {	/* Color line */
+		else if (mxGetM(prhs[ind_opt]) * mxGetN(prhs[ind_opt]) == 3) {	/* Color line */
 			r = (int)ptr_d[0];	g = (int)ptr_d[1];	b = (int)ptr_d[2];
 			color = CV_RGB( r, g, b );
 		}
 		else
 			mexErrMsgTxt("LINE: Fourth argument must be a 1 or a 3 elements vector.");
+
+		ind_opt++;
 	}
-	if (n_in > 5 && !mxIsEmpty(prhs[5]))			/* Line thickness */
-		thickness = (int)(*mxGetPr(prhs[5]));
-	if (n_in > 6 && !mxIsEmpty(prhs[6]))			/* Line type */
+	if (n_in > 5 && !mxIsEmpty(prhs[ind_opt]))			/* Line thickness */
+		thickness = (int)(*mxGetPr(prhs[ind_opt++]));
+	if (n_in > 6 && !mxIsEmpty(prhs[ind_opt]))			/* Line type */
 		line_type = (int)(*mxGetPr(prhs[6]));
+
+	if (thickness < 0) thickness = -1;		/* Bug in OpenCV */
 
 	if (n_out == 0)
 		inplace = TRUE;
@@ -557,9 +745,11 @@ void Jshapes(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 		if (!strncmp(method,"lin",3))
 			cvLine( dst, pt1, pt2, color, thickness, line_type, 0 );
 		else if (!strncmp(method,"rec",3))
-			cvRectangle( src_img, pt1, pt2, color, thickness, line_type, 0 );
+			cvRectangle( dst, pt1, pt2, color, thickness, line_type, 0 );
 		else if (!strncmp(method,"cir",3))
-			cvCircle( src_img, pt1, radius, color, thickness, line_type, 0 );
+			cvCircle( dst, pt1, radius, color, thickness, line_type, 0 );
+		else if (!strcmp(method,"eBox")) 
+			cvEllipseBox( dst, box, color, thickness, line_type, 0 );
 		interleaveBlind (Ctrl->UInt8.tmp_img_in, (unsigned char *)mxGetData(plhs[0]), nx, ny, nBands, -1);
 		cvReleaseImageHeader( &dst );
 	}
@@ -570,6 +760,8 @@ void Jshapes(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 			cvRectangle( src_img, pt1, pt2, color, thickness, line_type, 0 );
 		else if (!strncmp(method,"cir",3))
 			cvCircle( src_img, pt1, radius, color, thickness, line_type, 0 );
+		else if (!strcmp(method,"eBox")) 
+			cvEllipseBox( src_img, box, color, thickness, line_type, 0 );
 		/* desinterleave */
 		interleaveBlind (Ctrl->UInt8.tmp_img_in, (unsigned char *)mxGetData(prhs[1]), nx, ny, nBands, -1);
 	}
@@ -1868,15 +2060,14 @@ void JaddWeighted(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 /* --------------------------------------------------------------------------- */
 void Jinpaint(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
-	int nx, ny, nx2, ny2, nz2, nBands, nBytes, img_depth, inplace = FALSE;
-	double *ptr_d;
+	int nx, ny, nx2, ny2, nBands, nBytes, img_depth, inplace = FALSE;
 	struct CV_CTRL *Ctrl;
 	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
 	mxArray *ptr_in1, *ptr_in2;
 	IplImage *src1, *src2, *dst;
 
 	/* ---- Check for errors in user's call to function. ----------------------------- */
-	if (n_in == 1) { addWeightedUsage();	return; }
+	if (n_in == 1) { inpaintUsage();	return; }
 
 	/* Check that input image is of type UInt8 */
 	if (!mxIsUint8(prhs[1]))
@@ -2443,13 +2634,88 @@ void lineUsage() {
 	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
 	mexPrintf("       draws, inplace, the line segment between PT1 and PT2 points in the image.\n");
 	mexPrintf("       IM2 = cvlib_mex('line',IMG,PT1,PT2,[COLOR,THICK,LINE_TYPE]);\n");
-	mexPrintf("       Returns the drawing in the the new arrar IM2.\n\n");
+	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
 	mexPrintf("       Terms inside brakets are optional and can be empty,\n");
 	mexPrintf("       e.g (...,[],[],LINE_TYPE) or (...,[],5) are allowed.\n");
 	mexPrintf("	  PT1 & PT2 -> Start and end points of the line segment. Note PT is a 1x2 vector e.g [x y]\n");
 	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
 	mexPrintf("       THICK -> Line thickness (default 1)\n");
-	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), or 4 - 4-connected line.\n");
+	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), 4 - 4-connected, 16 - antialiased.\n\n");
+
+	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void rectUsage() {
+	mexPrintf("Usage: cvlib_mex('rectangle',IMG,PT1,PT2,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
+	mexPrintf("       draws, inplace, a rectangle between the oposit corners PT1 and PT2 in the image.\n");
+	mexPrintf("       IM2 = cvlib_mex('rectangle',IMG,PT1,PT2,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
+	mexPrintf("       Terms inside brakets are optional and can be empty,\n");
+	mexPrintf("       e.g (...,[],[],LINE_TYPE) or (...,[],5) are allowed.\n");
+	mexPrintf("	  PT1 & PT2 -> Oposit rectangle vertices. Note PT is a 1x2 vector e.g [x y]\n");
+	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
+	mexPrintf("       THICK -> Line thickness (default 1). If negative a filled rectangle is drawn.\n");
+	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), 4 - 4-connected, 16 - antialiased.\n\n");
+
+	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
+}
+/* -------------------------------------------------------------------------------------------- */
+void circUsage() {
+	mexPrintf("Usage: cvlib_mex('circle',IMG,CENTER,RADIUS,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
+	mexPrintf("       draws, inplace, a simple or filled circle with given center and radius.\n");
+	mexPrintf("       IM2 = cvlib_mex('circle',IMG,CENTER,RADIUS,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
+	mexPrintf("       Terms inside brakets are optional and can be empty,\n");
+	mexPrintf("       e.g (...,[],[],LINE_TYPE) or (...,[],5) are allowed.\n");
+	mexPrintf("	  CENTER & RADIUS -> Note, they are both 1x2 vectors e.g [x y]\n");
+	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
+	mexPrintf("       THICK -> Line thickness (default 1). If negative a filled circle is drawn.\n");
+	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), 4 - 4-connected, 16 - antialiased.\n\n");
+
+	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void eBoxUsage() {
+	mexPrintf("Usage: cvlib_mex('eBox',IMG,BOX,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
+	mexPrintf("       draws, inplace, draws a simple or thick ellipse outline, or fills an ellipse.\n");
+	mexPrintf("	  BOX -> Structure with the following fields;\n");
+	mexPrintf("	         'center' -> a 2 element vector with the ellipse center coords (decimal pixeis);\n");
+	mexPrintf("	         'size'   -> a 2 element vector with the ellipse WIDTH and HEIGHT (decimal pixeis);\n");
+	mexPrintf("	         'angle'  -> the angle between the horizontal axis and the WIDTH (degrees);\n");
+	mexPrintf("       IM2 = cvlib_mex('eBox',IMG,BOX,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
+	mexPrintf("       Terms inside brakets are optional and can be empty,\n");
+	mexPrintf("       e.g (...,[],[],LINE_TYPE) or (...,[],5) are allowed.\n");
+	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
+	mexPrintf("       THICK -> Line thickness (default 1). If negative a filled ellipse is drawn.\n");
+	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), 4 - 4-connected, 16 - antialiased.\n\n");
+
+	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
+}
+/* -------------------------------------------------------------------------------------------- */
+void plineUsage() {
+	mexPrintf("Usage: cvlib_mex('polyline',IMG,PT,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
+	mexPrintf("       draws, inplace, the polyline whose vertex are contained in the Mx2 or 2xN PT array.\n");
+	mexPrintf("       If PT is a cell vector with N elements, draws N polylines in the image.\n");
+	mexPrintf("       Each cell element must contain a Mx2 OR 2xN array with the x,y pixel coords\n");
+	mexPrintf("       of the polyline to be ploted.\n");
+	mexPrintf("       IM2 = cvlib_mex('polyline',IMG,PT,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
+	mexPrintf("       Terms inside brakets are optional and can be empty,\n");
+	mexPrintf("       e.g (...,[],[],LINE_TYPE) or (...,[],5) are allowed.\n");
+	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
+	mexPrintf("       THICK -> Line thickness (default 1)\n");
+	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), 4 - 4-connected, 16 - antialiased.\n\n");
 
 	mexPrintf("       Class support: uint8.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
@@ -2707,4 +2973,18 @@ void addWeightedUsage() {
 
 	mexPrintf("       Class support: all but uint32.\n");
 	mexPrintf("       Memory overhead: none.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void inpaintUsage() {
+	mexPrintf("Usage: cvlib_mex('inpaint',IMG1,IMG2);\n");
+	mexPrintf("       The function inpaint reconstructs IMG1 image area from the pixel near the area boundary.\n");
+	mexPrintf("       The function may be used to remove scratches or undesirable objects from images:\n");
+	mexPrintf("       IMG1 is a uint8 MxNx3 rgb OR a MxN intensity image and IMG2 is a mask array\n");
+	mexPrintf("       of the same size (MxN) of IMG1. It can be a logical array or a uint8 array.\n");
+	mexPrintf("       IMG = cvlib_mex('polyline',IMG1,IMG2);\n");
+	mexPrintf("       Returns the drawing in the the new array IMG.\n\n");
+
+	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG and a MxN matrix of the same type as IMG.\n");
 }
