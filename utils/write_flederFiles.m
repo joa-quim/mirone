@@ -65,7 +65,7 @@ function write_dtm(fid,mode,Z,limits)
 	fwrite(fid,Z,'uint16');
 
 %----------------------------------------------------------------------------------
-function write_shade(fid,mode,hFig,hAxes)
+function write_shade(fid,mode,hFig,hAxes,burnCoasts)
     % Write a .shade block
     if (strcmp(mode,'first'))       % The TDR object starts here
 	    fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
@@ -82,7 +82,9 @@ function write_shade(fid,mode,hFig,hAxes)
         inplace = true;         % Save to do line burning inplace because img is already a copy
 	end
     
-    img = burnLines(hFig,hAxes,img,inplace);        % Burn coastlines into img (in case they exist)
+    if (burnCoasts)             % Burn coastlines into img (in case they exist)
+        img = burnLines(hFig,hAxes,img,inplace);
+    end
 	img(:,:,4) = uint8(255);                % Tranparency layer
 	img = permute(img,[4 3 2 1]);
 	fwrite(fid,img,'uint8');
@@ -104,7 +106,7 @@ function write_eof(fid)
 	fclose(fid);
 
 %----------------------------------------------------------------------------------
-function write_main(fid,type,hFig,hAxes,Z,limits)
+function write_main(fid,type,hFig,hAxes,Z,limits,burnCoasts)
 % Write a basic .sd file. That is with a DTM, a SHADE & a GEO blocks
 
 	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:     Mirone   ','%%');
@@ -115,7 +117,7 @@ function write_main(fid,type,hFig,hAxes,Z,limits)
     end
     
     write_flederFiles('dtm',fid,'add',Z,limits)
-    write_flederFiles('shade',fid,'add',hFig,hAxes)
+    write_flederFiles('shade',fid,'add',hFig,hAxes,burnCoasts)
     write_flederFiles('geo',fid,'add',limits)
 
 %----------------------------------------------------------------------------------
