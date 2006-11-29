@@ -76,10 +76,14 @@ function write_shade(fid,mode,hFig,hAxes)
 	fwrite(fid,[0 0 1 1 1 2],'integer*1');
 	fwrite(fid,[(1:9)*0 2 n m 7 32],'integer*2');      %?? nDim(?) nCols nRows ?? BitWidth
 	fwrite(fid,[(1:10)*0 65535 65535],'uint16');
+    inplace = false;            % Eventual line burning is not done inplace to not change the Mirone image as well
 	if (ndims(img) == 2)
         img = ind2rgb8(img,get(hFig,'Colormap'));
+        inplace = true;         % Save to do line burning inplace because img is already a copy
 	end
-	img(:,:,4) = uint8(255);            % Tranparency layer
+    
+    img = burnLines(hFig,hAxes,img,inplace);        % Burn coastlines into img (in case they exist)
+	img(:,:,4) = uint8(255);                % Tranparency layer
 	img = permute(img,[4 3 2 1]);
 	fwrite(fid,img,'uint8');
 
@@ -115,11 +119,12 @@ function write_main(fid,type,hFig,hAxes,Z,limits)
     write_flederFiles('geo',fid,'add',limits)
 
 %----------------------------------------------------------------------------------
-function write_lines_or_points(fid,hFig,hAxes,Z,limits)
+function write_lines_or_points(fid,hFig,hAxes,Z,limits,burnCoasts)
 % Look for line and/or points Matlab objects and write them as Fledermaus
 % objects. It does so (when it finds them) by calling the corresponding
 % function that writes either lines or points objects in Fleder format
 
+if (nargin < 6),    burnCoasts = 1;     end     % Default is to burn coast lines into image
 ALLlineHand = findobj(hAxes,'Type','line');
 if (~isempty(ALLlineHand))
     h = findobj(ALLlineHand,'Tag','Earthquakes');       % Search first for earthquakes because they have depths
@@ -127,7 +132,16 @@ if (~isempty(ALLlineHand))
         write_flederFiles('points',fid,h,'add',limits,'Earthquakes')   % earthquakes
         ALLlineHand = setxor(ALLlineHand, h);           % h is processed, so remove it from handles list
     end
-        
+
+    if (burnCoasts)     % If we had already burned the coastlines remove them from the ALLlineHand list
+        h = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
+        if (~isempty(h)),       ALLlineHand = setxor(ALLlineHand, h);     end
+        h = findobj(ALLlineHand,'Tag','PoliticalBoundaries');
+        if (~isempty(h)),       ALLlineHand = setxor(ALLlineHand, h);     end
+        h = findobj(ALLlineHand,'Tag','Rivers');
+        if (~isempty(h)),       ALLlineHand = setxor(ALLlineHand, h);     end
+    end
+    
     % See if we have COASTLINES. If yes they are treated separatly (mainly because od Z and also to create an separate object)
     h = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
     if (~isempty(h))
@@ -490,3 +504,83 @@ if (any(id_with_nan))
         end
     end
 end
+
+%----------------------------------------------------------------------------------
+function img = burnLines(hFig,hAxes,img,inplace)
+% Burn the coastlines directly into de IMG image. We do it because also the Fleder
+% doesn't work as advertized. Lines are awfully draped on surfaces
+
+    head = getappdata(hFig,'GMThead');
+    head(5:6) = [size(img,2) size(img,1)];
+    % See if we have COASTLINES, POLITICALBOUND or RIVERS.
+    h{1} = findobj(hAxes,'Type','line','Tag','CoastLineNetCDF');
+    h{2} = findobj(hAxes,'Type','line','Tag','PoliticalBoundaries');
+    h{3} = findobj(hAxes,'Type','line','Tag','Rivers');
+    for (i=1:3)
+        if (~isempty(h{i}))        
+            xy = coast2pix(h{i}, head);
+            line_thick = get(h{i},'LineWidth');       % Line thickness
+            line_color = get(h{i},'color') * 255;     % Line color
+            lt = 8;     % LINE_TYPE -> 8 connectivity (default)
+            if (line_thick <= 1)
+                lt = 16;        % antialiased line
+            end
+            if (inplace)
+                cvlib_mex('poly',img,xy,[],line_thick,lt)
+            else
+                img = cvlib_mex('poly',img,xy,line_color,line_thick,lt);
+            end
+        end
+    end
+
+%----------------------------------------------------------------------------------
+function [xy] = coast2pix(hand, lims)
+% HAND is a handle of line wich can be broken with NaNs. If yes, it will be converted
+% into a multiseg cell array. In the output we have an array of pixel coords (zero based)
+
+x = get(hand,'XData');      y = get(hand,'YData');
+x = x(:);                   y = y(:);   % Make sure they are column vectors
+
+if (any(isnan(x)))          % We have NaNs in this line. Treat it as a multiseg
+    xt = get(hand,'XData');
+    yt = get(hand,'YData');
+    id_nan = find(xt ~= xt);        % Find the NaNs
+    id = find(diff(id_nan) == 1) + 1;   % Account for contiguous NaNs
+    if (~isempty(id))               % Found contiguous NaNs
+        xt(id_nan(id)) = [];
+        yt(id_nan(id)) = [];        % Remove them
+        id_nan = find(xt ~= xt);    % Find the new position of the now non-contiguous NaNs
+    end
+    id_nan = [0 id_nan];            % Used to make it start at one
+    
+    n_segments = length(id_nan)-1;
+    xy = cell(n_segments,1);
+    for (k = 1:n_segments)
+        xx = round( localAxes2pix(lims(5),lims(1:2),x(id_nan(k)+1:id_nan(k+1)-1)) -1);  % -1 because we need
+        yy = round( localAxes2pix(lims(6),lims(3:4),y(id_nan(k)+1:id_nan(k+1)-1)) -1);  % zero based indexes
+        xy{k} = [xx yy];
+    end
+else
+    xy = [xx yy];
+end
+
+% -------------------------------------------------------------------------------------
+function pixelx = localAxes2pix(dim, x, axesx)
+%   Convert axes coordinates to pixel coordinates.
+%   PIXELX = AXES2PIX(DIM, X, AXESX) converts axes coordinates
+%   (as returned by get(gca, 'CurrentPoint'), for example) into
+%   pixel coordinates.  X should be the vector returned by
+%   X = get(image_handle, 'XData') (or 'YData').  DIM is the
+%   number of image columns for the x coordinate, or the number
+%   of image rows for the y coordinate.
+
+	xfirst = x(1);      xlast = x(max(size(x)));	
+	if (dim == 1)
+        pixelx = axesx - xfirst + 1;        return;
+	end
+	xslope = (dim - 1) / (xlast - xfirst);
+	if ((xslope == 1) & (xfirst == 1))
+        pixelx = axesx;
+	else
+        pixelx = xslope * (axesx - xfirst) + 1;
+	end
