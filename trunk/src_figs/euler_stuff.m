@@ -26,10 +26,10 @@ handles = guihandles(hObject);
 
 movegui(hObject,'center');
 global home_dir;    home_dir = pwd;
-handles.h_active_line_str = findobj(handles.figure1,'Tag','text_activeLine');      % Get this handle
 handles.path_data = [home_dir filesep 'data' filesep];
 handles.path_continent = [home_dir filesep 'continents' filesep];
 handles.h_line_orig = [];
+handles.hLineSelected = [];
 handles.p_lon = [];
 handles.p_lat = [];
 handles.p_omega = [];
@@ -42,13 +42,15 @@ handles.edit_pole2Ang = [];
 handles.ages = [];
 handles.do_interp = 0;          % Used to decide which 'compute' function to use
 handles.finite_poles = [];      % Used to store a collection of finite poles (issued by choosebox)
+handles.noKill = 0;
 
 if (~isempty(varargin))
     handles.h_calling_fig = varargin{1};
     handles.mironeAxes = get(varargin{1},'CurrentAxes');
     if (length(varargin) == 2)          % Called with the line handle in argument
         handles.h_line_orig = varargin{2};
-        set(handles.h_active_line_str,'String','GOT A LINE TO WORK WITH')
+        handles.noKill = 1;
+        set(handles.text_activeLine,'String','GOT A LINE TO WORK WITH','ForegroundColor',[0 0.8 0])
     end
 else
     errordlg('EULER_STUFF: wrong number of arguments.','Error')
@@ -243,7 +245,8 @@ function listbox_ages_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function pushbutton_Cancel_Callback(hObject, eventdata, handles)
-delete(handles.figure1)
+    if (~handles.noKill),   delete(handles.h_line_orig);    end
+    delete(handles.figure1)
 
 % -------------------------------------------------------------------------------------
 function pushbutton_compute_Callback(hObject, eventdata, handles)
@@ -257,34 +260,37 @@ if (isempty(handles.h_line_orig))
     errordlg('Will you be so kind to let me know what line/point should I rotate?','Unknown target')
     return
 end
-lt = getappdata(handles.h_calling_fig,'DefLineThick');
-lc = getappdata(handles.h_calling_fig,'DefLineColor');
 
 if (get(handles.checkbox_singleRotation,'Value'))
     % Do the rotation using the pole parameters entered in the GUI and return
-    if (~isempty(handles.p_lon) & ~isempty(handles.p_lat) & ~isempty(handles.p_omega))
-        lon = get(handles.h_line_orig,'XData');
-        lat = get(handles.h_line_orig,'YData');
+    if (isempty(handles.p_lon) || isempty(handles.p_lat) || isempty(handles.p_omega))
+        return
+    end
+    for (i=1:numel(handles.h_line_orig))
+        lon = get(handles.h_line_orig(i),'XData');
+        lat = get(handles.h_line_orig(i),'YData');
         [rlon,rlat] = rot_euler(lon,lat,handles.p_lon,handles.p_lat,handles.p_omega);
         axes(handles.mironeAxes)       % Make the Mirone axes the CurrentAxes
         if (length(rlon) == 1)          % Single point rotation
-            smb = get(handles.h_line_orig,'Marker');
-            smb_fc = get(handles.h_line_orig,'MarkerFaceColor');
-            smb_ec = get(handles.h_line_orig,'MarkerEdgeColor');
-            smb_s = get(handles.h_line_orig,'MarkerSize');
-            h_line = line('XData',rlon,'YData',rlat,'Marker',smb,'MarkerFaceColor',smb_fc,...
-                'MarkerEdgeColor',smb_ec,'MarkerSize',smb_s,'Tag','Rotated Line','Userdata',1);
+            smb = get(handles.hLineSelected(i),'Marker');
+            smb_fc = get(handles.hLineSelected(i),'MarkerFaceColor');
+            smb_ec = get(handles.hLineSelected(i),'MarkerEdgeColor');
+            smb_s = get(handles.hLineSelected(i),'MarkerSize');
+            smb_t = get(handles.hLineSelected(i),'Linewidth');
+            set(handles.h_line_orig(i),'XData',rlon,'YData',rlat,'Marker',smb,'MarkerFaceColor',smb_fc,...
+                'MarkerEdgeColor',smb_ec,'MarkerSize',smb_s,'Linewidth',smb_t,'Tag','Rotated Line','Userdata',1);
         else
-            lt = get(handles.h_line_orig,'LineWidth');
-            lc = get(handles.h_line_orig,'Color');
-            h_line = line('XData',rlon,'YData',rlat,'Linewidth',lt,'Color',lc,'Tag','Rotated Line','Userdata',1);
+            lt = get(handles.hLineSelected(i),'LineWidth');
+            lc = get(handles.hLineSelected(i),'Color');
+            set(handles.h_line_orig(i),'XData',rlon,'YData',rlat,'Linewidth',lt,'Color',lc,'Tag','Rotated Line','Userdata',1);
         end
         line_info = {['Ang = ' num2str(handles.p_omega)]};
-        draw_funs(h_line,'isochron',line_info)
-        return
-    else
-        return
+        draw_funs(handles.h_line_orig(i),'isochron',line_info)
     end
+    handles.h_line_orig = [];       handles.hLineSelected = [];
+    guidata(handles.figure1,handles)
+    set(handles.text_activeLine,'String','NO ACTIVE LINE','ForegroundColor',[1 0 0])
+    return
 end
 
 if (isempty(handles.ages))
@@ -297,31 +303,40 @@ if (isempty(poles_name))
 end
 
 axes(handles.mironeAxes)       % Make the Mirone axes the CurrentAxes
-x = get(handles.h_line_orig,'XData');       y = get(handles.h_line_orig,'YData');
-linha = [x(:) y(:)];
 opt_E = ['-E' poles_name];
+opt_I = ' ';
 if (get(handles.checkbox_revertRot,'Value'))
     opt_I = '-I';
-else
-    opt_I = ' ';
 end
-[out,n_data,n_seg,n_flow] = telha_m(linha, handles.ages, '-P', opt_E, opt_I);
-if (length(linha) == 2)     % Only one point. Flow line mode
-    aa = isnan(out(:,1));
-    out = out(~aa,1:2);
-    h_line = line('XData',out(:,1),'YData',out(:,2),'Linewidth',lt,'Color',lc,'Tag','Flow Line','Userdata',1);
-    stg = get(handles.edit_polesFile,'String');
-    [PATH,FNAME,EXT] = fileparts(stg);
-    line_info = {['Stage file: ' FNAME EXT]};
-else
-	h_line = zeros(n_flow,1);
-	for (k=1:n_flow)              % For each time increment
-        [x,y] = get_time_slice(out,n_data,n_seg,k);
-        h_line(k) = line('XData',x,'YData',y,'Linewidth',lt,'Color',lc,'Tag','Rotated Line','Userdata',k);
+
+for (i=1:numel(handles.h_line_orig))
+	x = get(handles.h_line_orig(i),'XData');       y = get(handles.h_line_orig(i),'YData');
+	linha = [x(:) y(:)];
+	[out,n_data,n_seg,n_flow] = telha_m(linha, handles.ages, '-P', opt_E, opt_I);
+    lt = get(handles.hLineSelected(i),'LineWidth');
+    lc = get(handles.hLineSelected(i),'Color');
+	if (length(linha) == 2)     % Only one point. Flow line mode
+        aa = isnan(out(:,1));
+        out = out(~aa,1:2);
+        h_line = line('XData',out(:,1),'YData',out(:,2),'Linewidth',lt,'Color',lc,'Tag','Flow Line','Userdata',1);
+        stg = get(handles.edit_polesFile,'String');
+        [PATH,FNAME,EXT] = fileparts(stg);
+        line_info = {['Stage file: ' FNAME EXT]};
+	else
+		h_line = zeros(n_flow,1);
+		for (k=1:n_flow)              % For each time increment
+            [x,y] = get_time_slice(out,n_data,n_seg,k);
+            h_line(k) = line('XData',x,'YData',y,'Linewidth',lt,'Color',lc,'Tag','Rotated Line','Userdata',k);
+		end
+        line_info = get(handles.listbox_ages,'String');
 	end
-    line_info = get(handles.listbox_ages,'String');
+	draw_funs(h_line,'isochron',line_info)
 end
-draw_funs(h_line,'isochron',line_info)
+
+set(handles.text_activeLine,'String','NO ACTIVE LINE','ForegroundColor',[1 0 0])
+if (~handles.noKill),   delete(handles.h_line_orig);    end
+handles.h_line_orig = [];       handles.hLineSelected = [];
+guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function cumpute_interp(handles)
@@ -498,37 +513,77 @@ function tab_group_Callback(hObject, eventdata, handles)
 function pushbutton_tab_bg_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------
-function togglebutton_pickLine_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
+function push_pickLine_Callback(hObject, eventdata, handles)
     % Test if we have potential target lines and their type
     h_mir_lines = findobj(handles.h_calling_fig,'Type','line');     % Fish all objects of type line in Mirone figure
     if (isempty(h_mir_lines))                                       % We don't have any lines
         str = ['If you hited this button on purpose, than you deserve the following insult.',...
                 'You #!|"*!%!?~^)--$&.',... 
                 'THERE ARE NO LINES IN THAT FIGURE.'];
-        errordlg(str,'Chico Clever');   set(hObject,'Value',0);     return;
+        errordlg(str,'Chico Clever');     return;
     end
-    % The above test is not enough. For exemple, coastlines are not eligible neither,
-    % but is very cumbersome to test all the possibilities of pure non-eligible lines.
+    
     set(handles.h_calling_fig,'pointer','crosshair')
-    h_line = get_polygon(handles.h_calling_fig);          % Get the line handle
-    handles.h_line_orig = h_line;
+    h_line = get_polygon(handles.h_calling_fig);        % Get the line handle
+    tf = ismember(h_line,handles.hLineSelected);        % Check that the line was not already selected
+    if (tf)     % Repeated line
+        set(handles.h_calling_fig,'pointer','arrow');   figure(handles.figure1);   return;
+    end
     if (~isempty(h_line))
-        % Create a empty line handle that will hold the rotated line
-        handles.h_line = line('parent',get(handles.h_calling_fig,'CurrentAxes'),'XData',[],'YData',[], ...
-            'LineStyle','-.','LineWidth',2);
-        set(handles. h_active_line_str,'String','GOT A LINE TO WORK WITH')
-    else
-        handles.h_line_orig = [];
-        set(handles. h_active_line_str,'String','NO ACTIVE LINE')
-        set(hObject,'Value',0)
+        c = get(h_line,'Color');
+        t = get(h_line,'LineWidth');
+        h = copyobj(h_line,handles.mironeAxes);
+        set(h,'LineWidth',t+1,'Color',1-c)
+        uistack_j(h,'bottom')
+        handles.h_line_orig = [handles.h_line_orig; h];
+        % Make a copy of the selected handles to be used in props recovering
+        handles.hLineSelected = [handles.hLineSelected; h_line];
     end
     set(handles.h_calling_fig,'pointer','arrow')
-    set(hObject,'Value',0)
     figure(handles.figure1)                 % Bring this figure to front again
-else        % What should I do?
-end
-guidata(hObject, handles);
+
+	nl = numel(handles.h_line_orig);
+	if (nl)
+        set(handles.text_activeLine,'String',['GOT ' num2str(nl) ' LINE(S) TO WORK WITH'],'ForegroundColor',[0 0.8 0])
+	else
+        set(handles.text_activeLine,'String','NO ACTIVE LINE','ForegroundColor',[1 0 0])
+	end
+	guidata(hObject, handles);
+
+% -----------------------------------------------------------------------------------
+function push_rectSelect_Callback(hObject, eventdata, handles)
+    % Test if we have potential target lines and their type
+    h_mir_lines = findobj(handles.h_calling_fig,'Type','line');     % Fish all objects of type line in Mirone figure
+    if (isempty(h_mir_lines))                                       % We don't have any lines
+        return
+    end
+    figure(handles.h_calling_fig)
+    [p1,p2,hl] = rubberbandbox;
+    delete(hl)
+    figure(handles.figure1)         % Bring this figure fowrward again
+    h = zeros(numel(h_mir_lines),1);
+    hc = h;
+    for (i=1:numel(h_mir_lines))    % Loop over lines to find out which cross the rectangle
+        x = get(h_mir_lines(i),'XData');
+        y = get(h_mir_lines(i),'YData');
+        if ( (any(x >= p1(1)) || any(x <= p2(1))) && (any(y >= p1(2)) || any(y <= p2(2))) )
+            tf = ismember(h_mir_lines(i),handles.hLineSelected);    % Check that the line was not already selected
+            if (tf),    continue;     end                           % Repeated line
+            c = get(h_mir_lines(i),'Color');
+            t = get(h_mir_lines(i),'LineWidth');
+            h(i) = copyobj(h_mir_lines(i),handles.mironeAxes);
+            set(h(i),'LineWidth',t+1,'Color',1-c)
+            uistack_j(h(i),'bottom')
+            hc(i) = h_mir_lines(i);         % Make a copy of the selected handles to be used in props recovering
+        end
+    end
+    h(h == 0) = [];     hc(hc == 0) = [];
+    if (~isempty(h))
+        handles.h_line_orig = [handles.h_line_orig; h];        % This is a bad name
+        handles.hLineSelected = [handles.hLineSelected; hc];
+        guidata(handles.figure1,handles)
+    end
+    set(handles.text_activeLine,'String',['GOT ' num2str(numel(h)) ' LINE(S) TO WORK WITH'],'ForegroundColor',[0 0.8 0])
 
 % -----------------------------------------------------------------------------------
 function edit_pole1Lon_Callback(hObject, eventdata, handles)
@@ -649,10 +704,15 @@ catch
     poles = [];
 end
 
+% -----------------------------------------------------------------------------
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+    if (~handles.noKill),   delete(handles.h_line_orig);    end
+    delete(handles.figure1);
+
 % -----------------------------------------------------------------------------------
-% --- Executes on key press over figure1 with no controls selected.
 function figure1_KeyPressFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'CurrentKey'),'escape')
+    if (~handles.noKill),   delete(handles.h_line_orig);    end
     delete(handles.figure1);
 end
 
@@ -661,7 +721,8 @@ function euler_stuff_LayoutFcn(h1,handles);
 
 set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
+'KeyPressFcn',{@euler_stuff_uicallback,h1,'figure1_KeyPressFcn'},...
+'CloseRequestFcn',{@euler_stuff_uicallback,h1,'figure1_CloseRequestFcn'},...
 'MenuBar','none',...
 'Name','Euler stuff',...
 'NumberTitle','off',...
@@ -859,17 +920,30 @@ h23 = uicontrol('Parent',h1,...
 'UserData','DoRotations');
 
 h24 = uicontrol('Parent',h1,...
-'Callback',{@euler_stuff_uicallback,h1,'togglebutton_pickLine_Callback'},...
+'Callback',{@euler_stuff_uicallback,h1,'push_pickLine_Callback'},...
 'Position',[20 279 161 23],...
 'String','Pick line from Figure',...
 'TooltipString','Allows you to mouse select one line from a Mirone figure',...
 'Tag','togglebutton_pickLine',...
 'UserData','DoRotations');
 
+r=zeros(19,19,3)*NaN;   % Make a crude rectangle icon
+r(4:17,3,1:3) = 0;      r(4:17,19,1:3) = 0;     % Verical lines
+r(4,3:19,1:3) = 0;      r(17,3:19,1:3) = 0;
+uicontrol('Parent',h1,...
+'Callback',{@euler_stuff_uicallback,h1,'push_rectSelect_Callback'},...
+'Position',[190 279 25 23],...
+'CData',r,...
+'TooltipString','Select objects inside a rectangular region',...
+'Tag','push_rectSelect',...
+'UserData','DoRotations');
+
 h25 = uicontrol('Parent',h1,...
 'FontSize',10,...
-'Position',[220 283 191 16],...
+'FontWeight','Bold',...
+'Position',[220 283 235 16],...
 'String','NO ACTIVE LINE',...
+'ForegroundColor',[1 0 0],...
 'Style','text',...
 'Tag','text_activeLine',...
 'UserData','DoRotations');
