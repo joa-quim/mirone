@@ -132,7 +132,7 @@ else
    
     while how_many ~= 0      % Use no-side effect WAITFORBUTTONPRESS
         waserr = 0;
-        try,        keydown = wfbp;
+        try,        keydown = wfbp(fig);
         catch       waserr = 1;
         end
         if (waserr == 1)
@@ -201,9 +201,8 @@ else
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function key = wfbp
+function key = wfbp(fig)
 %WFBP   Replacement for WAITFORBUTTONPRESS that has no side effects.
-fig = gcf;
 current_char = [];
 
 % Now wait for that buttonpress, and check for error conditions
