@@ -42,14 +42,18 @@ handles.edit_pole2Ang = [];
 handles.ages = [];
 handles.do_interp = 0;          % Used to decide which 'compute' function to use
 handles.finite_poles = [];      % Used to store a collection of finite poles (issued by choosebox)
-handles.noKill = 0;
 
 if (~isempty(varargin))
     handles.h_calling_fig = varargin{1};
     handles.mironeAxes = get(varargin{1},'CurrentAxes');
     if (length(varargin) == 2)          % Called with the line handle in argument
-        handles.h_line_orig = varargin{2};
-        handles.noKill = 1;
+        c = get(varargin{2},'Color');
+        t = get(varargin{2},'LineWidth');
+        h = copyobj(varargin{2},handles.mironeAxes);
+        set(h,'LineWidth',t+1,'Color',1-c)
+        uistack_j(h,'bottom')
+        handles.h_line_orig = h;
+        handles.hLineSelected = varargin{2};
         set(handles.text_activeLine,'String','GOT A LINE TO WORK WITH','ForegroundColor',[0 0.8 0])
     end
 else
@@ -245,7 +249,8 @@ function listbox_ages_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function pushbutton_Cancel_Callback(hObject, eventdata, handles)
-    if (~handles.noKill),   delete(handles.h_line_orig);    end
+    delete(handles.h_line_orig)
+    delete(findobj(handles.mironeAxes,'type','line','Tag','StarMarkers'))
     delete(handles.figure1)
 
 % -------------------------------------------------------------------------------------
@@ -334,7 +339,7 @@ for (i=1:numel(handles.h_line_orig))
 end
 
 set(handles.text_activeLine,'String','NO ACTIVE LINE','ForegroundColor',[1 0 0])
-if (~handles.noKill),   delete(handles.h_line_orig);    end
+delete(handles.h_line_orig)
 handles.h_line_orig = [];       handles.hLineSelected = [];
 guidata(handles.figure1,handles)
 
@@ -706,13 +711,15 @@ end
 
 % -----------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
-    if (~handles.noKill),   delete(handles.h_line_orig);    end
+    delete(handles.h_line_orig)
+    delete(findobj(handles.mironeAxes,'type','line','Tag','StarMarkers'))
     delete(handles.figure1);
 
 % -----------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'CurrentKey'),'escape')
-    if (~handles.noKill),   delete(handles.h_line_orig);    end
+    delete(handles.h_line_orig)
+    delete(findobj(handles.mironeAxes,'type','line','Tag','StarMarkers'))
     delete(handles.figure1);
 end
 
