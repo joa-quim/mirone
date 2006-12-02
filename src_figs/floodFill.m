@@ -11,7 +11,8 @@ floodFill_LayoutFcn(hObject,handles);
 handles = guihandles(hObject);
 
 % Import icons
-load (['data' filesep 'mirone_icons.mat'],'lapis_ico','trincha_ico','pipeta_ico','balde_ico');
+load (['data' filesep 'mirone_icons.mat'],'lapis_ico','trincha_ico','pipeta_ico','balde_ico',...
+    'circ_ico','rectang_ico','ellipse_ico');
 
 h_toolbar = uitoolbar('parent',hObject, 'BusyAction','queue','HandleVisibility','on',...
    'Interruptible','on','Tag','FigureToolBar','Visible','on');
@@ -21,6 +22,9 @@ uipushtool('parent',h_toolbar,'Click',{@line_clickedcallback,'paintbrush'}, ...
    'cdata',trincha_ico,'TooltipString','Paintbrush');
 uipushtool('parent',h_toolbar,'Click',@pipeta_clickedcallback,'cdata',pipeta_ico,'TooltipString','Color Picker');
 uipushtool('parent',h_toolbar,'Click',@flood_clickedcallback,'cdata',balde_ico,'TooltipString','Floodfill');
+uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'circ'},'cdata',circ_ico,'TooltipString','Circle');
+uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'rect'},'cdata',rectang_ico,'TooltipString','Rectangle');
+uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'ellipse'},'cdata',ellipse_ico,'TooltipString','Ellipse');
 
 if (~isempty(varargin))
     handles.hCallingFig = varargin{1};
@@ -81,7 +85,7 @@ handles.bg_color = 0;               % Background color (or color number in cmap)
 handles.lineWidth = 3;
 handles.elemSquare = 1;
 
-set(handles.listbox_lineWidth,'String',1:99,'Val',3)
+set(handles.listbox_lineWidth,'String',1:99,'Val',2)
 set(handles.slider_tolerance,'Value',handles.tol)
 
 %--------------- Give a Pro look (3D) to the frame boxes -------------------------
@@ -121,6 +125,7 @@ set(hObject,'Visible','on');
 % --------------------------------------------------------------------
 function line_clickedcallback(hObject, eventdata, opt)
     handles = guidata(hObject);     % get handles
+    figure(handles.hCallingFig)
     
     state = uisuspend_j(handles.hCallingFig);        % Remember initial figure state
     if (strcmp(opt,'pencil'))
@@ -129,10 +134,8 @@ function line_clickedcallback(hObject, eventdata, opt)
         set(handles.hCallingFig,'Pointer', 'custom','PointerShapeCData',getPointer('brush'),'PointerShapeHotSpot',[14 2])
     end
     w = waitforbuttonpress;
-    if (w == 0)       % A mouse click
-        paintFirstButtonDown(handles,state,opt)
-    else
-        set(handles.hCallingFig,'Pointer', 'arrow');
+    if (w == 0),    paintFirstButtonDown(handles,state,opt)       % A mouse click
+    else            set(handles.hCallingFig,'Pointer', 'arrow');
     end
 
 % -------------------
@@ -154,11 +157,11 @@ function paintFirstButtonDown(handles,state,opt)
 function wbm_line(obj,eventdata,handles,lineThick,lineType)
     % Draw the line using a square element
     pt = get(handles.hCallingAxes, 'CurrentPoint');
-    if (pt(1,2) > handles.imgSize(1)),      return;     end
     prev_pt = getappdata(handles.figure1,'prev_pt');
     setappdata(handles.figure1,'prev_pt',pt(1,1:2))
     [x,y] = getpixcoords(handles,[prev_pt(1) pt(1,1)],[prev_pt(2) pt(1,2)]);
     x = round(x);       y = round(y);
+    if (~insideRect(handles,x(2),y(2))),      return;     end
     win_dx = abs(diff(x)) + 4;         win_dy = abs(diff(y)) + 4;
     
     % Notice that the (2) index denotes the current point
@@ -181,8 +184,8 @@ function wbm_line(obj,eventdata,handles,lineThick,lineType)
 function wbm_circ(obj,eventdata,handles,lineThick,lineType)
     % Draw the line using a circular element
     pt = get(handles.hCallingAxes, 'CurrentPoint');
-    if (pt(1,2) > handles.imgSize(1)),      return;     end
     [x,y] = getpixcoords(handles,pt(1,1),pt(1,2));
+    if (~insideRect(handles,x,y)),      return;     end
     x = round(x);       y = round(y);
     win_left = max(x-lineThick-1,1);      win_right = min(x+lineThick+1,handles.imgSize(2));
     win_top  = max(y-lineThick-1,1);      win_bot   = min(y+lineThick+1,handles.imgSize(1));
@@ -207,13 +210,16 @@ function wbd_paint(obj,eventdata,hCallFig,state)
 function pipeta_clickedcallback(hObject, eventdata)
     % Pick one color from image and make it the default painting one
     handles = guidata(hObject);     % get handles
+    figure(handles.hCallingFig)
     set(handles.hCallingFig,'Pointer', 'custom','PointerShapeCData',getPointer('pipeta'),'PointerShapeHotSpot',[15 1])
     w = waitforbuttonpress;
     if (w == 0)       % A mouse click
         pt = get(handles.hCallingAxes, 'CurrentPoint');
-        if (pt(1,2) > handles.imgSize(1)),      return;     end
         [c,r] = getpixcoords(handles,pt(1,1),pt(1,2));
         c = round(c);       r = round(r);
+        if (~insideRect(handles,c,r))
+            set(handles.hCallingFig,'Pointer', 'arrow');            return;
+        end
         img = get(handles.hImage,'CData');
         fillColor = double(img(r,c,:));
         handles.fillColor = reshape(fillColor,1,numel(fillColor));
@@ -225,8 +231,12 @@ function pipeta_clickedcallback(hObject, eventdata)
 % -------------------------------------------------------------------------------------
 function flood_clickedcallback(hObject, eventdata)
     handles = guidata(hObject);     % get handles
+    figure(handles.hCallingFig)
+    set(handles.hCallingFig,'Pointer', 'custom','PointerShapeCData',getPointer('bucket'),'PointerShapeHotSpot',[16 15])
     [params,but] = prepareParams(handles,getPointer('bucket'),[16 15]);
-    if (isempty(params) || but ~= 1),   return;     end
+    if (isempty(params) || but ~= 1 || ~insideRect(handles,params.Point(1),params.Point(2)))
+        set(handles.hCallingFig,'Pointer', 'arrow');        return;
+    end
     while (but == 1)
         img = get(handles.hImage,'CData');
         if (ndims(img) == 2)            % Here we have to permanently change the image type to RGB
@@ -237,9 +247,110 @@ function flood_clickedcallback(hObject, eventdata)
         img = cvlib_mex('floodfill',img,params);
         set(handles.hImage,'CData', img); 
         [x,y,but] = ginput_pointer(1,getPointer('bucket'),[16 15]);  % Get next point
+        [x,y] = getpixcoords(handles,x,y);
         params.Point = [x y];
     end
     set(handles.hCallingFig,'Pointer', 'arrow')
+
+% --------------------------------------------------------------------
+function shape_clickedcallback(hObject, eventdata, opt)
+    handles = guidata(hObject);     % get handles
+    state = uisuspend_j(handles.hCallingFig);        % Remember initial figure state
+    set(handles.hCallingFig,'Pointer', 'crosshair')
+    figure(handles.hCallingFig)
+    
+    w = waitforbuttonpress;
+    if (w == 0),    ShapeFirstButtonDown(handles,state,opt)       % A mouse click
+    else            set(handles.hCallingFig,'Pointer', 'arrow');
+    end
+
+% -------------------
+function ShapeFirstButtonDown(handles,state,opt)
+    lineType = 8;       % Default to 8 connectivity
+    if (get(handles.checkbox_AA,'Value')),      lineType = 16;      end
+    pt = get(handles.hCallingAxes, 'CurrentPoint');
+    [x,y] = getpixcoords(handles,pt(1,1),pt(1,2));
+    x = round(x);    y = round(y);
+    if (~insideRect(handles,x,y)),  set(handles.hCallingFig,'Pointer', 'arrow');    return;     end
+    img = get(handles.hImage,'CData');
+    lineThick = handles.lineWidth;
+    if (get(handles.checkbox_filled,'Value'))
+        lineThick = -lineThick;
+    end
+    if (strcmp(opt,'circ'))
+        set(handles.hCallingFig,'WindowButtonMotionFcn',{@wbm_circle,handles,[x y],img,lineThick,lineType})
+    elseif (strcmp(opt,'rect'))
+        set(handles.hCallingFig,'WindowButtonMotionFcn',{@wbm_rectangle,handles,[x y],img,lineThick,lineType})
+    elseif (strcmp(opt,'ellipse'))
+        set(handles.hCallingFig,'WindowButtonMotionFcn',{@wbm_ellipse,handles,[x y],img,lineThick,lineType})
+    end
+    set(handles.hCallingFig,'WindowButtonDownFcn',{@wbd_paint,handles.hCallingFig,state})
+    
+% -------------------
+function wbm_circle(obj,eventdata,handles,first_pt,IMG,lineThick,lineType)
+    % Draw a circle
+    pt = get(handles.hCallingAxes, 'CurrentPoint');
+    x = round( localAxes2pix(handles.imgSize(2),handles.head(1:2),pt(1,1)) );
+    y = round( localAxes2pix(handles.imgSize(1),handles.head(3:4),pt(1,2)) );
+    if (~insideRect(handles,x,y)),      return;     end
+    dx = abs(x - first_pt(1));          dy = abs(y - first_pt(2));
+    rad = round(sqrt(dx*dx + dy*dy));   dt = round(abs(lineThick)/2) + 2;
+
+    win_left = max(first_pt(1) - rad - dt,1);     win_right = min(first_pt(1) + rad + dt,handles.imgSize(2));
+    win_top = max(first_pt(2) - rad - dt,1);      win_bot = min(first_pt(2) + rad + dt,handles.imgSize(1));
+    
+    r = win_top:win_bot;    c = win_left:win_right;
+    img_s = IMG(r,c,:);     % Extract a sub-image
+    x = first_pt(1) - c(1);           y = first_pt(2) - r(1);      % We need the PTs coords relative to the subimage
+    cvlib_mex('circle',img_s,[x y],rad,handles.fillColor,lineThick,lineType)
+    IMG(r,c,:) = img_s;     % Reimplant the painted sub-image
+    set(handles.hImage,'CData',IMG);
+    
+% -------------------
+function wbm_ellipse(obj,eventdata,handles,first_pt,IMG,lineThick,lineType)
+    % Draw an ellipse
+    pt = get(handles.hCallingAxes, 'CurrentPoint');
+    x = round( localAxes2pix(handles.imgSize(2),handles.head(1:2),pt(1,1)) );
+    y = round( localAxes2pix(handles.imgSize(1),handles.head(3:4),pt(1,2)) );
+    if (~insideRect(handles,x,y)),      return;     end
+    dx = abs(x - first_pt(1));          dy = abs(y - first_pt(2));
+    dt = round(abs(lineThick)/2) + 2;
+
+    win_left = max(first_pt(1) - dx - dt,1);     win_right = min(first_pt(1) + dx + dt,handles.imgSize(2));
+    win_top = max(first_pt(2) - dy - dt,1);      win_bot = min(first_pt(2) + dy + dt,handles.imgSize(1));
+    
+    r = win_top:win_bot;    c = win_left:win_right;
+    img_s = IMG(r,c,:);     % Extract a sub-image
+    x = first_pt(1) - c(1);           y = first_pt(2) - r(1);      % We need the PTs coords relative to the subimage
+    box.center = [x y];
+    box.size = [2*dx 2*dy];
+    cvlib_mex('eBox',img_s,box,handles.fillColor,lineThick,lineType)
+    IMG(r,c,:) = img_s;     % Reimplant the painted sub-image
+    set(handles.hImage,'CData',IMG);
+    
+% -------------------
+function wbm_rectangle(obj,eventdata,handles,first_pt,IMG,lineThick,lineType)
+    % Draw a circle
+    pt = get(handles.hCallingAxes, 'CurrentPoint');
+    x = round( localAxes2pix(handles.imgSize(2),handles.head(1:2),pt(1,1)) );
+    y = round( localAxes2pix(handles.imgSize(1),handles.head(3:4),pt(1,2)) );
+    if (~insideRect(handles,x,y)),      return;     end
+    dt = round(abs(lineThick)/2) + 2;
+    win_dx = abs(x - first_pt(1)) + dt + 2;         win_dy = abs(y - first_pt(2)) + dt + 2;
+    
+    win_left = max(x-win_dx,1);      win_right = min(x+win_dx,handles.imgSize(2));
+    win_top  = max(y-win_dy,1);      win_bot   = min(y+win_dy,handles.imgSize(1));
+    if (win_top > win_bot)
+        fds = win_top;        win_top = win_bot;        win_bot = fds;
+    end
+    
+    r = win_top:win_bot;    c = win_left:win_right;
+    img_s = IMG(r,c,:);     % Extract a sub-image
+    x = x - c(1);                       y = y - r(1);      % We need the PTs coords relative to the subimage
+    first_pt(1) = first_pt(1) - c(1);   first_pt(2) = first_pt(2) - r(1);
+    cvlib_mex('rectangle',img_s,[first_pt(1) first_pt(2)],[x y],handles.fillColor,lineThick,lineType)
+    IMG(r,c,:) = img_s;     % Reimplant the painted sub-image
+    set(handles.hImage,'CData',IMG);
 
 % -------------------------------------------------------------------------------------
 function slider_tolerance_Callback(hObject, eventdata, handles)
@@ -285,6 +396,12 @@ function [x,y] = getpixcoords(handles,x,y)
     end
     x = localAxes2pix(handles.imgSize(2),X,x);
     y = localAxes2pix(handles.imgSize(1),Y,y);
+
+% --------------------------------------------------------------------
+function res = insideRect(handles,x,y)
+    % Check if the point x,y in PIXELS is inside the rectangle RECT
+    % RECT = [1 handles.imgSize(2) 1 handles.imgSize(1)]
+    res = ( x >= 1 && x <= handles.imgSize(2) && y >= 1 && y <= handles.imgSize(1) );
 
 % -------------------------------------------------------------------------------------
 function radio_randColor_Callback(hObject, eventdata, handles)
@@ -664,10 +781,6 @@ function radio_round_Callback(hObject, eventdata, handles)
     set(handles.radio_square,'Value',0)
     guidata(handles.figure1, handles);
 
-% -------------------------------------------------------------------------------------
-function checkbox_AA_Callback(hObject, eventdata, handles)
-% Hint: get(hObject,'Value') returns toggle state of checkbox_AA
-
 % -------------------------------------------------------------------------------------------------------
 function p = getPointer(opt)
 
@@ -1044,13 +1157,15 @@ uicontrol('Parent',h1,...
 'TooltipString','Use round elements in line drawings',...
 'Tag','radio_round');
 
-uicontrol('Parent',h1,...
-'Callback',{@floodFill_uicallback,h1,'checkbox_AA_Callback'},...
-'Position',[10 215 111 15],...
-'String','Enabe Antialiasing',...
-'Style','checkbox',...
+uicontrol('Parent',h1,'Position',[10 215 80 15],...
+'String','Antialiasing','Style','checkbox',...
 'TooltipString','Use anti aliasing in line drwaings',...
 'Tag','checkbox_AA');
+
+uicontrol('Parent',h1,'Position',[90 215 100 15],...
+'String','Filled forms','Style','checkbox',...
+'TooltipString','When drawing circles, ellipses or rectangles draw them filled',...
+'Tag','checkbox_filled');
 
 uicontrol('Parent',h1,'FontSize',9,...
 'Position',[49 131 90 16],...
