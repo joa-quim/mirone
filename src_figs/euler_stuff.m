@@ -47,6 +47,8 @@ if (~isempty(varargin))
         c = get(varargin{2},'Color');
         t = get(varargin{2},'LineWidth');
         h = copyobj(varargin{2},handles.mironeAxes);
+        rmappdata(h,'polygon_data')     % Remove the parent's ui_edit_polygon appdata
+        ui_edit_polygon(h)              % And set a new one
         set(h,'LineWidth',t+1,'Color',1-c)
         uistack_j(h,'bottom')
         handles.h_line_orig = h;
@@ -548,6 +550,8 @@ function push_pickLine_Callback(hObject, eventdata, handles)
         c = get(h_line,'Color');
         t = get(h_line,'LineWidth');
         h = copyobj(h_line,handles.mironeAxes);
+        rmappdata(h,'polygon_data')     % Remove the parent's ui_edit_polygon appdata
+        ui_edit_polygon(h)              % And set a new one
         set(h,'LineWidth',t+1,'Color',1-c)
         uistack_j(h,'bottom')
         handles.h_line_orig = [handles.h_line_orig; h];
@@ -587,6 +591,8 @@ function push_rectSelect_Callback(hObject, eventdata, handles)
             c = get(h_mir_lines(i),'Color');
             t = get(h_mir_lines(i),'LineWidth');
             h(i) = copyobj(h_mir_lines(i),handles.mironeAxes);
+            rmappdata(h(i),'polygon_data')     % Remove the parent's ui_edit_polygon appdata
+            ui_edit_polygon(h(i))              % And set a new one
             set(h(i),'LineWidth',t+1,'Color',1-c)
             uistack_j(h(i),'bottom')
             hc(i) = h_mir_lines(i);         % Make a copy of the selected handles to be used in props recovering
