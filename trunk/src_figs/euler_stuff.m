@@ -21,13 +21,10 @@ handles = guihandles(hObject);
 guidata(hObject, handles);
 euler_stuff_LayoutFcn(hObject,handles);
 handles = guihandles(hObject);
+movegui(hObject,'center');
 
 %#function telha_m choosebox
 
-movegui(hObject,'center');
-global home_dir;    home_dir = pwd;
-handles.path_data = [home_dir filesep 'data' filesep];
-handles.path_continent = [home_dir filesep 'continents' filesep];
 handles.h_line_orig = [];
 handles.hLineSelected = [];
 handles.p_lon = [];
@@ -60,6 +57,19 @@ else
     errordlg('EULER_STUFF: wrong number of arguments.','Error')
     delete(hObject);    return
 end
+
+% Get the Mirone handles. We need it here
+handlesMir = guidata(handles.h_calling_fig);
+if (handlesMir.no_file)
+    errordlg('You didn''t even load a file. What are you expecting then?','Error')
+    delete(hObject);    return
+end
+handlesMir.plugedWin = [handlesMir.plugedWin hObject];  % Add this figure handle to the carraças list
+% Save back the Mirone handles
+guidata(handles.h_calling_fig,handlesMir)
+
+handles.path_data = handlesMir.path_data;
+handles.path_continent = [handlesMir.home_dir filesep 'continents' filesep];
 
 % This is the tag that all tab push buttons share.  If you have multiple
 % sets of tab push buttons, each group should have unique tag.
