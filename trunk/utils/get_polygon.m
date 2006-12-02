@@ -65,6 +65,12 @@ end
 % Delete the store object
 if (ishandle(ud.GETLINE_H1));    delete(ud.GETLINE_H1);     end
 
+% If by an (user) error we still have the markers, kill them
+ud = getappdata(ud.GETLINE_FIG, 'FromGetPolygon');
+try
+    if (ishandle(ud.markers)),        delete(ud.markers);     end
+end
+
 % Restore the figure's initial state
 if (ishandle(ud.GETLINE_FIG))
    uirestore_j(state);
@@ -100,7 +106,8 @@ else
     else
         x = get(ud.lineHandle,'XData');   y = get(ud.lineHandle,'YData');
         hold on;    
-        ud.markers = plot(x,y,'kp','MarkerEdgeColor','k','MarkerFaceColor','r','MarkerSize',10); 
+        ud.markers = plot(x,y,'kp','MarkerEdgeColor','k','MarkerFaceColor','r','MarkerSize',10,...
+            'HitTest','off','Tag','StarMarkers'); 
         hold off
         set(hfig, 'WindowButtonDownFcn', {@NextButtonDown,hfig});
         setappdata(ud.GETLINE_H1,'Xvert',x);    setappdata(ud.GETLINE_H1,'Yvert',y);
@@ -110,7 +117,7 @@ setappdata(hfig, 'FromGetPolygon', ud);
 
 %---------------------------------------------------------------------------------------
 function NextButtonDown(obj,eventdata,hfig)
-% Most of waht this does is to check if finish and if not call back FirstButtonDown
+% Most of what this does is to check if finish and if not call back FirstButtonDown
 ud = getappdata(hfig, 'FromGetPolygon');
 try,    selectionType = get(ud.GETLINE_FIG, 'SelectionType'); 
 catch   % Open an exit door, otherwise we are stucked inside whatever caused the error.
