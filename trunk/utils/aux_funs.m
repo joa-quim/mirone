@@ -196,7 +196,7 @@ Y(1) = Y(1) + dy/2;             Y(2) = Y(2) - dy/2;
 function geog = guessGeog(lims)
     % Make a good guess if LIMS are geographic
     geog = double( ( (lims(1) >= -180 && lims(2) <= 180) || (lims(1) >= 0 && lims(2) <= 360) )...
-        && (lims(3) >= -90 || lims(4) <= 90) );
+        && (lims(3) >= -90 && lims(4) <= 90) );
 
 % --------------------------------------------------------------------
 function res = insideRect(rect,pt)
