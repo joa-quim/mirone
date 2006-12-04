@@ -66,9 +66,10 @@ if (handlesMir.no_file)
     errordlg('You didn''t even load a file. What are you expecting then?','Error')
     delete(hObject);    return
 end
-handlesMir.plugedWin = [handlesMir.plugedWin hObject];  % Add this figure handle to the carraças list
-% Save back the Mirone handles
-guidata(handles.h_calling_fig,handlesMir)
+
+plugedWin = getappdata(handles.h_calling_fig,'dependentFigs');
+plugedWin = [plugedWin hObject];            % Add this figure handle to the carraças list
+setappdata(handles.h_calling_fig,'dependentFigs',plugedWin);
 
 handles.path_data = handlesMir.path_data;
 handles.path_continent = [handlesMir.home_dir filesep 'continents' filesep];
@@ -573,9 +574,7 @@ function push_pickLine_Callback(hObject, eventdata, handles)
 function push_rectSelect_Callback(hObject, eventdata, handles)
     % Test if we have potential target lines and their type
     h_mir_lines = findobj(handles.h_calling_fig,'Type','line');     % Fish all objects of type line in Mirone figure
-    if (isempty(h_mir_lines))                                       % We don't have any lines
-        return
-    end
+    if (isempty(h_mir_lines)),      return;     end                 % We don't have any lines
     figure(handles.h_calling_fig)
     [p1,p2,hl] = rubberbandbox;
     delete(hl)
@@ -585,7 +584,7 @@ function push_rectSelect_Callback(hObject, eventdata, handles)
     for (i=1:numel(h_mir_lines))    % Loop over lines to find out which cross the rectangle
         x = get(h_mir_lines(i),'XData');
         y = get(h_mir_lines(i),'YData');
-        if ( (any(x >= p1(1)) || any(x <= p2(1))) && (any(y >= p1(2)) || any(y <= p2(2))) )
+        if ( any( (x >= p1(1) & x <= p2(1)) & (y >= p1(2) & y <= p2(2)) ) )
             tf = ismember(h_mir_lines(i),handles.hLineSelected);    % Check that the line was not already selected
             if (tf),    continue;     end                           % Repeated line
             c = get(h_mir_lines(i),'Color');
