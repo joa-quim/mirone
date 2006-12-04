@@ -21,37 +21,36 @@ handles = guihandles(hObject);
 guidata(hObject, handles);
 earthquakes_LayoutFcn(hObject,handles);
 handles = guihandles(hObject);
-
-global home_dir
-handles.got_userFile = 0;
-
 movegui(hObject,'east')
-% Case when this function was called directly
-if isempty(home_dir),   home_dir = pwd;     end
+
+handles.got_userFile = 0;
 
 if (~isempty(varargin))
     handles.mirone_fig = varargin{1};
-    handles.MironeAxes = findobj(varargin{1},'Type','axes');
-    zz = get(handles.MironeAxes,'XLim');
+    handMir = guidata(handles.mirone_fig);
+	if (handMir.no_file)
+        errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
+        delete(hObject);    return
+	end
+	if (~handMir.geog)
+        errordlg('This operation is currently possible only for geographic type data','ERROR')
+        delete(hObject);    return
+	end
+    handles.mironeAxes = handMir.axes1;
+    zz = get(handles.mironeAxes,'XLim');
     handles.x_min = zz(1);    handles.x_max = zz(2);
-    zz = get(handles.MironeAxes,'YLim');
+    zz = get(handles.mironeAxes,'YLim');
     handles.y_min = zz(1);    handles.y_max = zz(2);
 else
     errordlg('EARTHQUAKES: wrong number of arguments.','Error')
     delete(hObject);    return
 end
 
-handMir = guidata(handles.mirone_fig);
-if (handMir.no_file)
-    errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
-    delete(hObject);    return
-end
-if (~handMir.geog)
-    errordlg('This operation is currently possible only for geographic type data','ERROR')
-    delete(hObject);    return
-end
+plugedWin = getappdata(handles.mirone_fig,'dependentFigs');
+plugedWin = [plugedWin hObject];            % Add this figure handle to the carraças list
+setappdata(handles.mirone_fig,'dependentFigs',plugedWin);
 
-handles.path_data = [home_dir filesep 'data' filesep];
+handles.path_data = handMir.path_data;
 
 if (nargin == 1)        % Use the default file shiped with Mirone
     set(handles.listbox_readFilter,'String','Not useful here','Enable','off')
@@ -240,6 +239,7 @@ lat(ind) = [];  lon(ind) = [];  depth(ind) = [];    mag(ind) = [];  year_dec(ind
 try
     axes(handles.mironeAxes)       % Make Mirone axes active here
 catch       % If the Mirone figure doesn't exist anymore
+    errordlg(lasterr,'Error')
     delete(handles.figure1);    return
 end
 
