@@ -27,6 +27,11 @@ switch opt
         varargout{1} = axes2pix(varargin{:});
     case 'insideRect'
         varargout{1} = insideRect(varargin{:});
+    case 'help'
+        str = [varargin{1}.home_dir filesep 'doc' filesep 'users_manual.pdf'];
+        if (ispc),      dos(str);
+        else            unix(str);
+        end
     case 'min_max_single'
         [varargout{1} varargout{2}] = min_max_single(varargin{:});
     case 'led_rg'
