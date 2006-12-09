@@ -10,8 +10,20 @@ handles = guihandles(hObject);
 if (~isempty(varargin))
     handles.hCallingFig = varargin{1};
 else
-    handles.hCallingFig = gcf;        % Useless with Mirone figures because they are hiden to gcf
+    delete(hObject)
+    return
 end
+
+% Get the Mirone handles. We need it here
+handlesMir = guidata(handles.hCallingFig);
+if (handlesMir.no_file)
+    errordlg('You didn''t even load a file. What are you expecting then?','Error')
+    delete(hObject);    return
+end
+
+plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
+plugedWin = [plugedWin hObject];            % Add this figure handle to the carraças list
+setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
 
 % Try to position this figure glued to the right of calling figure
 posThis = get(hObject,'Pos');
@@ -29,7 +41,6 @@ handles.hCallingAxes = get(handles.hCallingFig,'CurrentAxes');
 handles.hImage = findobj(handles.hCallingFig,'Type','image');
 handles.imgSize   = size(get(handles.hImage,'CData'));
 
-handlesMir = guidata(handles.hCallingFig);
 handles.head = handlesMir.head;
 handles.DefLineThick = handlesMir.DefLineThick;
 handles.DefLineColor = handlesMir.DefLineColor;
@@ -200,7 +211,7 @@ function edit_docHeight_Callback(hObject, eventdata, handles)
 
 % ----------------------------------------------------------------------------------
 function edit_docResolution_Callback(hObject, eventdata, handles)
-    % Note that even if the resoltion is set to pixels/cm we store in pixels/inch
+    % Note that even if the resolution is set to pixels/cm we store in pixels/inch
     xx = str2double(get(hObject,'String'));
     if (isnan(xx)),     set(hObject,'String',handles.resolution);    return;     end
     if (get(handles.popup_docResolution,'Value') == 1)     % pixel/inch
