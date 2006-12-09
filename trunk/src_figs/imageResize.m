@@ -193,7 +193,7 @@ function edit_docWidth_Callback(hObject, eventdata, handles)
     if (handles.constrainProp)      % Recompute height
         handles.docHeight = handles.docHeight * handles.docWidth / docWidthOld;
         set(handles.edit_docHeight,'String',handles.docHeight)
-        size2pix(handles,'h')       % Update the "Document" edit
+        size2pix(handles,'h');      % Update the "Document" edit
     end
 
 % ----------------------------------------------------------------------------------
@@ -206,7 +206,7 @@ function edit_docHeight_Callback(hObject, eventdata, handles)
     if (handles.constrainProp)      % Recompute height
         handles.docWidth = handles.docWidth * handles.docHeight / docHeightOld;
         set(handles.edit_docWidth,'String',handles.docWidth)
-        size2pix(handles,'w')       % Update the "Pixel" edit
+        size2pix(handles,'w');      % Update the "Pixel" edit
     end
 
 % ----------------------------------------------------------------------------------
@@ -220,9 +220,8 @@ function edit_docResolution_Callback(hObject, eventdata, handles)
         handles.resolution  = round(xx*2.54);
     end
     handles.resolutionFact = 1 / handles.resolution * handles.unitFact;
-    guidata(handles.figure1, handles);
     handles = size2pix(handles,'w');        % Update the "Pixel" edits
-    size2pix(handles,'h')
+    size2pix(handles,'h');                  % handles is updated here
 
 % ----------------------------------------------------------------------------------
 function popup_pixWidth_Callback(hObject, eventdata, handles)
