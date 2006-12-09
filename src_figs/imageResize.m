@@ -132,7 +132,7 @@ function hand = pix2size(handles,opt)
     if (nargout),   hand = handles;     end
 
 % ----------------------------------------------------------------------------------
-function size2pix(handles,opt)
+function handles = size2pix(handles,opt)
     % Convert from "Document Size" to pixels unities
     if ( opt == 'w' )       % Width
         handles.pixWidth = handles.docWidth / handles.resolutionFact;
@@ -189,7 +189,7 @@ function edit_docWidth_Callback(hObject, eventdata, handles)
     if (isnan(xx)),     set(hObject,'String',handles.docWidth);    return;     end
     docWidthOld = handles.docWidth;
     handles.docWidth  = xx;
-    size2pix(handles,'w')           % Update the "Document" edit
+    handles = size2pix(handles,'w');% Update the "Document" edit
     if (handles.constrainProp)      % Recompute height
         handles.docHeight = handles.docHeight * handles.docWidth / docWidthOld;
         set(handles.edit_docHeight,'String',handles.docHeight)
@@ -202,7 +202,7 @@ function edit_docHeight_Callback(hObject, eventdata, handles)
     if (isnan(xx)),     set(hObject,'String',handles.docHeight);    return;     end
     docHeightOld = handles.docHeight;
     handles.docHeight  = xx;
-    size2pix(handles,'h')           % Update the "Pixel" edit
+    handles = size2pix(handles,'h');% Update the "Pixel" edit
     if (handles.constrainProp)      % Recompute height
         handles.docWidth = handles.docWidth * handles.docHeight / docHeightOld;
         set(handles.edit_docWidth,'String',handles.docWidth)
@@ -221,7 +221,7 @@ function edit_docResolution_Callback(hObject, eventdata, handles)
     end
     handles.resolutionFact = 1 / handles.resolution * handles.unitFact;
     guidata(handles.figure1, handles);
-    size2pix(handles,'w')           % Update the "Pixel" edits
+    handles = size2pix(handles,'w');        % Update the "Pixel" edits
     size2pix(handles,'h')
 
 % ----------------------------------------------------------------------------------
