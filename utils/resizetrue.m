@@ -214,9 +214,9 @@ minFigHeight = 128;
 figPos = get(figHandle, 'Position');
 gutterLeft = max(axPos(1) - 1, 0);
 
-defAxesPos = get(0,'DefaultAxesPosition');
 nonzeroGutters = (gutterLeft > 0);
 if (nonzeroGutters)
+    defAxesPos = get(0,'DefaultAxesPosition');
     gutterWidth  = round((1 - defAxesPos(3)) * imageWidth / defAxesPos(3));
     gutterHeight = round((1 - defAxesPos(4)) * imageHeight / defAxesPos(4));
     newFigWidth  = imageWidth + gutterWidth;
@@ -262,14 +262,15 @@ else                                stsbr_height = 20;    end
 y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin')+stsbr_height;  % Devera conter a altura em pixeis do Xlabel
 x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin');  % Devera conter a largura em pixeis do Ylabel
 y_margin = max(y_margin,40);            % Another hack due to the LabelPos non-sense
+topMarg = 5;                            % To account for Ylabels exceeding image height
 if strcmp(get(axHandle,'Visible'),'off')               % No Labels, give only a 20 pixels margin to account for Status bar
     x_margin = 0;   y_margin = stsbr_height;
+    topMarg = 0;
 elseif (minFigWidth - x_margin > imageWidth + x_margin)% Image + x_margin still fits inside minFigWidth
     x_margin = 0;
 end
 set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
 
-topMarg = 5;                            % To account for Ylabels exceeding image height
 newFigWidth = max(newFigWidth, minFigWidth) + x_margin;
 newFigHeight = max(newFigHeight, minFigHeight) + y_margin + topMarg;
 
