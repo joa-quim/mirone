@@ -1079,6 +1079,8 @@ if (handles.geog)
 else
     dx = diff(x);   dy = diff(y);
     angs = atan2(dy,dx) * 180/pi;       % and convert to degrees
+    hFig = get(0,'CurrentFigure');      hAxes = get(hFig,'CurrentAxes');
+    if(strcmp(get(hAxes,'YDir'),'reverse')),    angs = -angs;   end
     az = (90 - angs);                   % convert to azim (cw from north)
     ind = find(az < 0);
     az(ind) = 360 + az(ind);
