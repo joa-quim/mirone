@@ -287,35 +287,43 @@ case 'distance'
                 scale = 1;      str_dist = 'dist(usr)';
         end
         dist = vdist(dbud.y0,dbud.x0,y1,x1,handles.DefineEllipsoide) / scale;
+        D2R = pi/180;
+        lat1 = dbud.y0*D2R;     lon1 = dbud.x0*D2R;
+        lat2 = y1*D2R;          lon2 = x1*D2R;
+        f2 = cos(lat1) * sin(lat2);
+        f3 = sin(lat1) * cos(lat2) * cos(lon2-lon1);
+        az = 90 - atan2(cos(lat2) * sin(lon2-lon1), f2-f3) / D2R;
     else
         dist = sqrt(delta_x^2 + delta_y^2);     str_dist = 'dist(usr)';
+        az = atan2(y1-dbud.y0,x1-dbud.x0) * 180/pi;
+        if(strcmp(get(handles.axes1,'YDir'),'reverse')),    az = -az;   end
     end
     
    if strcmp(imageType,'rgb') || strcmp(imageType,'indexed')
       if (isa(img, 'uint8') &&  strcmp(imageType,'rgb') && ~haveGrid)
-         pixval_str = sprintf([form_xy ' %3d,%3d,%3d  '  str_dist ' = %3.3f'], x,y,pixel(1:end),dist);
+         pixval_str = sprintf([form_xy ' %3d,%3d,%3d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
       elseif (isa(img, 'uint8') &&  strcmp(imageType,'rgb') && haveGrid)
-         pixval_str = sprintf([form_xy ' %g '  str_dist ' = %4.4f'], x,y,pixel(1:end),dist);
+         pixval_str = sprintf([form_xy ' %g '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
       elseif isa(img, 'uint16') &&  strcmp(imageType,'rgb')
-         pixval_str = sprintf([form_xy ' %5d,%5d,%5d  '  str_dist ' = %3.3f'], x,y,pixel(1:end),dist);
+         pixval_str = sprintf([form_xy ' %5d,%5d,%5d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
       elseif islogical(img) &&  strcmp(imageType,'rgb')
-         pixval_str = sprintf([form_xy ' %1d,%1d,%1d  '  str_dist ' = %3.3f'], x,y,pixel(1:end),dist);
+         pixval_str = sprintf([form_xy ' %1d,%1d,%1d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
       else  % all indexed images use double precision colormaps
           if (no_Zlim == 0)
-              pixval_str = sprintf([form_xy ' %6.3f  '  str_dist ' = %4.4f'], x,y,pixel(1:end),dist);
+              pixval_str = sprintf([form_xy ' %6.3f  '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
           else
-              pixval_str = sprintf([form_xy ' %6.4f,%6.4f,%6.4f  '  str_dist ' = %3.3f'], x,y,pixel(1:end),dist);
+              pixval_str = sprintf([form_xy ' %6.4f,%6.4f,%6.4f  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
           end
       end
    else % intensity
       if isa(img, 'uint8')
-         pixval_str = sprintf([form_xy ' %3d  dist = %3.3f'], x,y,pixel(1),dist);
+         pixval_str = sprintf([form_xy ' %3d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
       elseif isa(img, 'uint16')
-         pixval_str = sprintf([form_xy ' %5d  dist = %3.3f'], x,y,pixel(1),dist);
+         pixval_str = sprintf([form_xy ' %5d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
       elseif islogical(img)
-         pixval_str = sprintf([form_xy ' %1d  dist = %3.3f'], x,y,pixel(1),dist);  
+         pixval_str = sprintf([form_xy ' %1d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);  
       else
-         pixval_str = sprintf([form_xy ' %6.4f  dist = %3.3f'], x,y,pixel(1),dist);
+         pixval_str = sprintf([form_xy ' %6.4f  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
       end
    end
 end
