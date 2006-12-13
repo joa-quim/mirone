@@ -207,7 +207,7 @@ figBottomBorder = 30;
 figTopBorder = 50;
 figTopBorder = figTopBorder + 30;  % scribe hack
 
-minFigWidth = 600;      % don't try to display a figure smaller than this.
+minFigWidth = 581;      % don't try to display a figure smaller than this.
 minFigHeight = 128;
 
 % What are the gutter sizes?
@@ -271,7 +271,8 @@ elseif (minFigWidth - x_margin > imageWidth + x_margin)% Image + x_margin still 
 end
 set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
 
-newFigWidth = max(newFigWidth, minFigWidth) + x_margin;
+newFigWidth = max(newFigWidth + x_margin, minFigWidth);
+%newFigWidth = max(newFigWidth, minFigWidth) + x_margin;
 newFigHeight = max(newFigHeight, minFigHeight) + y_margin + topMarg;
 
 figPos(1) = max(1, figPos(1) - floor((newFigWidth - figPos(3))/2));
