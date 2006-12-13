@@ -413,6 +413,7 @@ utils/griddata_j.m -text
 utils/guess_file.m -text
 utils/histo_m.m -text
 utils/histos_seis.m -text
+utils/imcapture.m -text
 utils/imcrop.m -text
 utils/imfilter_mex.dll -text
 utils/img_fun.m -text
