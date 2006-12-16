@@ -345,7 +345,7 @@ function ImageCrop_Callback(hObject, eventdata, handles, opt, opt2, opt3)
 
 if (handles.no_file),       return;      end
 set(handles.figure1,'pointer','watch')
-crop_pol = 0;   % Defaults to croping from a rectangle
+first_nans = 0;     pal = [];       mask = [];      crop_pol = 0;     % Defaults to croping from a rectangle
 if (nargin < 5),    opt2 = [];      end
 if (nargin < 6),    opt3 = [];      end
 if ~isempty(opt)        % OPT must be a rectangle/polygon handle (the rect may serve many purposes)
@@ -388,8 +388,9 @@ if ~isempty(opt)        % OPT must be a rectangle/polygon handle (the rect may s
                 Z_rect(~mask) = single(str2double(resp));
             elseif (strcmp(opt2,'ROI_SetConst'))
                 Z_rect(mask) = single(str2double(resp));    % Set the mask values to const
+                handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));    handles.r_c = r_c;
                 Z(r_c(1):r_c(2),r_c(3):r_c(4)) = Z_rect;
-                if (isnan(str2double(resp))),  handles.have_nans = 1;  end
+                if (isnan(str2double(resp))),  handles.have_nans = 1;  first_nans = 1;  end
             elseif (strcmp(opt2,'ROI_MedianFilter'))
                 [Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask);
             elseif (strcmp(opt2,'CropaGrid_histo'))
@@ -419,7 +420,6 @@ else                    % Interactive croping (either Grid or Image)
     end
 end
 
-first_nans = 0;     pal = [];
 if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))   % Just pure Image croping
     if (m < 2 || n < 2),  set(handles.figure1,'pointer','arrow');    return;     end;    % Image too small. Probably a user bad mouse control
     if (strcmp(get(handles.axes1,'Ydir'),'normal')),    I = flipdim(I,1);    end
@@ -513,10 +513,11 @@ elseif (strcmp(opt2,'SetConst'))        % Replace grid values inside rect by a c
     resp  = inputdlg(prompt,dlg_title,[1 30]);    pause(0.01)
     if isempty(resp);    set(handles.figure1,'pointer','arrow');    return;     end
     Z_rect = repmat(single(str2double(resp)),m,n);
+    handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));        handles.r_c = r_c;
     Z(r_c(1):r_c(2),r_c(3):r_c(4)) = Z_rect;
-    if (~handles.have_nans && isnan(str2double(resp)))       % See if we have new NaNs
+    if (~handles.have_nans && isnan(str2double(resp)))      % See if we have new NaNs
         handles.have_nans = 1;      first_nans = 1;
-    elseif (handles.have_nans && ~isnan(str2double(resp)))   % Check that old NaNs had not been erased
+    elseif (handles.have_nans && ~isnan(str2double(resp)))  % Check that old NaNs had not been erased
         handles.have_nans = grdutils(Z_rect,'-N');
     end
 end
@@ -524,16 +525,17 @@ end
 if ~isempty(opt2)       % Here we have to update the image in the processed region
     X = (head(1) + (r_c(3)-1)*head(8)):head(8):(head(1) + (r_c(4)-1)*head(8));
     Y = (head(3) + (r_c(1)-1)*head(9)):head(9):(head(3) + (r_c(2)-1)*head(9));
-    h_img = findobj(handles.axes1,'Type','image');
     [zzz] = grdutils(Z,'-L');       z_min = zzz(1);     z_max = zzz(2);     clear zzz;      img = [];
     if ( (abs(z_min - head(5)) > 1e-5 || abs(z_max - head(6)) > 1e-5) && handles.Illumin_type == 0 )
         img = scaleto8(Z);              % Z_MIN or Z_MAX have changed. Need to recompute image (but only if no illumin)
     end
-    if (handles.Illumin_type == 0)
-        z_int = uint8(round( ((double(Z_rect) - z_min) / (z_max - z_min))*255 ));
+    if (first_nans)       % We have NaNs for the first time. Adjust the colormap
+        aux_funs('colormap_bg',handles,Z,get(handles.figure1,'Colormap'));
+    end
+    z_int = uint8(round( ((double(Z_rect) - z_min) / (z_max - z_min))*255 ));
+    if ( handles.Illumin_type == 0)     % Nothing to do in particular
     elseif ( handles.Illumin_type >= 1 && handles.Illumin_type <= 4 )
         illumComm = getappdata(handles.figure1,'illumComm');
-        z_int = uint8(round( ((double(Z_rect) - z_min) / (z_max - z_min))*255 ));
         z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));    % z_int is now 3D
         head_tmp = [X(1) X(end) Y(1) Y(end) head(5:9)];
         if (handles.Illumin_type == 1)
@@ -544,32 +546,33 @@ if ~isempty(opt2)       % Here we have to update the image in the processed regi
             R = grdgradient_m(Z_rect,head_tmp,illumComm);
         end
         z_int = shading_mat(z_int,R,'no_scale');    % and now it is illuminated
+    else
+        warndlg('Sorry, this operation is not allowed with this shading illumination type','Warning')
+        set(handles.figure1,'pointer','arrow');     return
     end
-    if (isempty(img))  img = get(h_img,'CData');    end     % That is, if img was not recomputed, get from screen 
-    handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),:);  % For the undo op
-    img(r_c(1):r_c(2),r_c(3):r_c(4),:) = z_int;
-    clear z_int Z_rect R;
-    if (first_nans)       % We have NaNs for the first time. Adjust the colormap
-        aux_funs('colormap_bg',handles,Z,get(handles.figure1,'Colormap'));
+    if (isempty(img))  img = get(handles.grd_img,'CData');      end     % If img was not recomputed, get from screen 
+    handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),:);      % For the undo op
+    if (~isempty(mask) && handles.Illumin_type ~= 0)
+        mask = repmat(~mask,[1 1 3]);
+        z_int(mask) = handles.img_back(mask);
     end
-    set(h_img,'CData',img)
+    img(r_c(1):r_c(2),r_c(3):r_c(4),:) = z_int;         clear z_int Z_rect R;
+    set(handles.grd_img,'CData',img)
 
     head(5) = z_min;     head(6) = z_max;
     handles.computed_grid = 1;              handles.head = head;    handles.origFig = img;
     setappdata(handles.figure1,'dem_z',Z);  setappdata(handles.figure1,'GMThead',head);
     setappdata(handles.figure1,'Zmin_max',[head(5) head(6)])
-    guidata(handles.figure1, handles);      set(handles.figure1,'pointer','arrow')
 end
+guidata(handles.figure1, handles);          set(handles.figure1,'pointer','arrow')
 
 % Experimental UNDO
-if (~isempty(opt2) && strcmp(opt2,'MedianFilter')),       set_undo(handles,opt);  end
-if (~isempty(opt2) && strcmp(opt2,'ROI_MedianFilter')),   set_undo(handles,opt);  end
+if strmatch(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst'}),      set_undo(handles,opt);  end
 
 % --------------------------------------------------------------------
 function set_undo(handles,h)
 % Experimental UNDO  that works only with the "Median Filter" option
-cmenuHand = get(h,'UIContextMenu');
-cb_undo = {@do_undo,handles,h,cmenuHand};
+cmenuHand = get(h,'UIContextMenu');     cb_undo = {@do_undo,handles,h,cmenuHand};
 uimenu(cmenuHand, 'Label', 'Undo', 'Separator','on', 'Callback', cb_undo);
 
 % -----------------------------------------------------------------------------------------
@@ -579,10 +582,9 @@ Z(handles.r_c(1):handles.r_c(2),handles.r_c(3):handles.r_c(4)) = handles.Z_back;
 [zzz] = grdutils(Z,'-L');       z_min = zzz(1);     z_max = zzz(2);     clear zzz;
 head(5) = z_min;                head(6) = z_max;
 setappdata(handles.figure1,'dem_z',Z);    setappdata(handles.figure1,'GMThead',head);
-h_img = findobj(handles.axes1,'Type','image');
-handles.origFig = get(h_img,'CData');
+handles.origFig = get(handles.grd_img,'CData');
 handles.origFig(handles.r_c(1):handles.r_c(2),handles.r_c(3):handles.r_c(4),:) = handles.img_back;
-set(h_img,'CData',handles.origFig)
+set(handles.grd_img,'CData',handles.origFig)
 guidata(handles.figure1,handles)
 ui_u = findobj(get(h,'UIContextMenu'),'Label', 'Undo');
 set(ui_u,'Visible','off')       % If I delete it we get an error
@@ -1778,8 +1780,8 @@ end
 if (strcmp(color,'color'))
 	if (handles.firstIllum),    img1 = get(handles.grd_img,'CData');     handles.firstIllum = 0;
 	else                        img1 = handles.origFig;      end
-	if (isempty(img)),          img1 = get(handles.grd_img,'CData');     end             % No copy in memory
-	if (ndims(img) == 2),       img1 = ind2rgb8(img1,get(handles.figure1,'Colormap'));    end    % Image is 2D   
+	if (isempty(img1)),         img1 = get(handles.grd_img,'CData');     end             % No copy in memory
+	if (ndims(img1) == 2),      img1 = ind2rgb8(img1,get(handles.figure1,'Colormap'));    end    % Image is 2D   
     img = shading_mat(img1,img);
 else
     img = uint8((254 * img) + 1);   % Need to convert the reflectance matrix into a gray indexed image
