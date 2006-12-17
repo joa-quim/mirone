@@ -2550,17 +2550,28 @@ if isempty(grd_name)
     else                        set(handles.figure1,'Colormap', ones( size(get(handles.figure1,'Colormap'),1), 3));
     end
     handles = show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',1);
-elseif ~strcmp(handles.grdname,grd_name)    % Session's grid is different than current grid, so we have to open "grd_name"
-    handles.image_type = 1;
+elseif ~strcmp(handles.grdname,grd_name)    % Session's grid is different than current grid, so we have to load "grd_name"
     [X,Y,Z,head] = grdread_m(grd_name,'single');
-    handles.grdname = grd_name;     handles.head = head;     % Save header info (needed ?)
+    handles.image_type = 1;    handles.grdname = grd_name;     handles.head = head;     % Save header info
     zz = scaleto8(Z);
-    handles.have_nans = grdutils(Z,'-N');
+    handles.have_nans = grdutils(Z,'-N');       handles.geog = aux_funs('guessGeog',head(1:4));
     aux_funs('StoreZ',handles,X,Y,Z)    % If grid size is not to big we'll store it
     try         aux_funs('colormap_bg',handles,Z,img_pal);
     catch       aux_funs('colormap_bg',handles,Z,jet(256));
     end
     handles = show_image(handles,grd_name,X,Y,zz,1,'xy',head(7));
+    try         % Wrap it under a try because older sessions may not have the illumComm variable
+        if (~isempty(illumComm))
+            if (handles.Illumin_type == 1)
+                if (handles.geog),  R = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
+                else                R = grdgradient_m(Z,head,illumComm,'-Nt');      end
+            else
+                R = grdgradient_m(Z,head,illumComm);
+            end
+            zz = ind2rgb8(zz,get(handles.figure1,'ColorMap'));     zz = shading_mat(zz,R,'no_scale');
+            set(handles.grd_img,'CData',zz)         % and now it is illuminated
+        end
+    end
 else
     err = 0;
     try         soma = sum(img_pal - get(handles.figure1,'Colormap'));
@@ -2695,10 +2706,13 @@ set(handles.figure1,'pointer','watch')
 if isempty(EXT),    fname = [PathName FNAME '.mat'];
 else                fname = [PathName FNAME EXT];       end
 
-grd_name = handles.grdname;     img_pal = get(handles.figure1,'Colormap');     map_limits = [];
+grd_name = handles.grdname;     img_pal = get(handles.figure1,'Colormap');     map_limits = []; illumComm = [];
 if isempty(grd_name)        % Even if map does not come from a gmt grid allow at least the elements recovery
     map_limits = getappdata(handles.figure1,'ThisImageLims');
     img_pal = [];           % We will recreate a white bg image
+end
+if (~isempty(grd_name) && handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
+    illumComm = getappdata(handles.figure1,'illumComm');
 end
 ALLlineHand = findobj(get(handles.axes1,'Child'),'Type','line');
 j = 1;  k = 1;  m = 1;  n = 1;  cg = 1; cc = 1; pp = 1;
@@ -2812,7 +2826,7 @@ end
 save(fname,'grd_name','img_pal', 'havePline','Pline', 'haveMBtrack', 'MBtrack','MBbar', ...
     'haveText','Texto', 'haveSymbol','Symbol', 'haveCircleGeo','CircleGeo', 'haveCircleCart', ...
     'havePlineAsPoints','PlineAsPoints','CircleCart', 'map_limits', 'havePatches', 'Patches', ...
-    'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', 'riversUD')
+    'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', 'riversUD', 'illumComm')
 set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
@@ -3503,11 +3517,9 @@ while (i <= k)
     img(idx) = 1;
     idx = (Z == 0);    img(idx) = 1;
     
-    img = ind2rgb8(img,cmap);
-    img = shading_mat(img,R);
+    img = ind2rgb8(img,cmap);   img = shading_mat(img,R);
     M(i) = im2frame(img);
-    waitbar(i/k)
-    i = i + 1;
+    waitbar(i/k);               i = i + 1;
 end
 close(h)
 
