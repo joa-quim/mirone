@@ -120,6 +120,7 @@ for (k=1:length(names))
         if (~isempty(tmpx))
             n_isoc = n_isoc + 1;
             h_isoc(i) = line(tmpx,tmpy,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor,'Tag',tag,'Userdata',n_isoc);
+            setappdata(h_isoc(i),'LineInfo',multi_segs_str{i})  % To work with the sessions and will likely replace old mechansim
         else
             n_clear(i) = 1;             % Store indexes for clearing vanished segments info
         end
