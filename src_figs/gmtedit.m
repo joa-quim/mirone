@@ -250,6 +250,9 @@ end
 hs = findobj(handles.figure1,'style','slider');
 handles.max_x_data = track.distance(end);
 max_s = handles.max_x_data-handles.def_width_km;
+if (max_s < 0)      % I already had one case like this. A very short track
+    max_s = handles.max_x_data;
+end
 val = track.distance(1);
 %set(hs,'Max',handles.max_x_data-handles.def_width_km,'value',track.distance(1))
 
