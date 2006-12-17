@@ -21,6 +21,10 @@ function img = imcapture( h, opt, dpi )
 %                   This a 10 times faster option to the use of imresize(IMG,[mrows ncols],method)
 %                   when method is either 'bilinear' or 'bicubic'.
 %
+%   NOTE. This function also works with the 'imgAx' option for plots and surfaces but DPI settings
+%   in more "fluid" because I cannot exactly determine what is the image.
+%   For plots, when DPI is not set it defaults to '0', which probably the best choice.
+%
 %   EXAMPLE:
 %       load clown
 %       h = imagesc(X);
@@ -69,7 +73,8 @@ function img = imcapture( h, opt, dpi )
 %   AUTHOR
 %       Joaquim Luis (jluis@ualg.pt)    12-Dez-2006
 %       University of Algarve
-
+%
+%       Let it work also with plots     13-Dez-2006
 
     if (nargin == 0 || isempty(h))
         h = get(0,'CurrentFigure');
@@ -127,7 +132,7 @@ function img = imcapture( h, opt, dpi )
         img = allInFig(h,inputargs{:});
     end
     
-    if (~isempty(msg))      % If we had an error inside one2one() or imgOnly() funs
+    if (~isempty(msg))      % If we had an error inside imgOnly()
         error(msg);        img = [];
     end
 
@@ -141,16 +146,22 @@ function [img,msg] = imgOnly(h,opt,varargin)
         msg = 'ERROR: The figure must contain one, and one ONLY axes';
     end
     im = get(findobj(h,'Type','image'),'CData');
-	if (isempty(im))
-        msg = 'ERROR: this figure does not contain an image';
+	if (~isempty(im))
+        nx = size(im,2);                ny = size(im,1);
+    else                    % We have something else. A plot, a surface, etc ...
+        axUnit = get(hAxes,'Units');    set(hAxes,'Units','pixels')
+        axPos = get(hAxes,'pos');       set(hAxes,'Units',axUnit)
+        nx = axPos(3);                  ny = axPos(4);
+        if (numel(varargin) == 3)
+            varargin{4} = '-r0';        % For the plot cases this is probably the best choice
+        end
 	end
-    if (~isempty(msg)),     img = [];   return;     end
 
     PU = get(h,'paperunits');       set(h,'paperunits','inch')
-    pp = get(h,'paperposition');
-    dpi = round(size(im,2) / pp(3));
+    pp = get(h,'paperposition');    PPM = get(h,'PaperPositionMode');
+    dpi = round(nx / pp(3));
     % Here is the kee point of all this manip.
-    set(h,'paperposition',[pp(1:3) size(im,1) / dpi])
+    set(h,'paperposition',[pp(1:3) ny / dpi])
     
     axUnit = get(hAxes,'Units');
     axPos = get(hAxes,'pos');           % Save this because we will have to restore it later
@@ -172,13 +183,13 @@ function [img,msg] = imgOnly(h,opt,varargin)
 		
 		y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin');  % To hold the Xlabel height
 		x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin');  % To hold the Ylabel width
-		y_margin = min(y_margin,30);            % Another hack due to the LabelPos non-sense
+		y_margin = min(max(y_margin,20),30);            % Another hack due to the LabelPos non-sense
         
         figUnit = get(h,'Units');        set(h,'Units','pixels')
         figPos = get(h,'pos');           set(h,'Units',figUnit)
         x0 = x_margin / figPos(3);
         y0 = y_margin / figPos(4);
-        set(hAxes,'pos',[x0 y0 1-x0 1-y0])
+        set(hAxes,'pos',[x0 y0 1-[x0 y0]-1e-2])
         set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
     else            % Dumb choice. Default to Image only
         set(hAxes,'pos',[0 0 1 1],'Visible','off')
@@ -187,17 +198,15 @@ function [img,msg] = imgOnly(h,opt,varargin)
     confirm = false;
     try
         if (numel(varargin) == 3)
-            varargin{4} = '-r96';
+            varargin{4} = '-r150';
         elseif (numel(varargin) == 4 && strcmp(varargin{4},'-r0'))  % One-to-one capture
             varargin{4} = ['-r' num2str(round(dpi))];
             confirm = true;
-            mrows = size(im,1);            ncols = size(im,2);      % To use in "confirm"
+            mrows = ny;            ncols = nx;      % To use in "confirm"
         elseif (numel(varargin) == 4 && numel(varargin{4}) == 2)    % New size in mrows ncols
             mrows = varargin{4}(1);
             ncols = varargin{4}(2);
-            % There likely a rounding bug in 'hardcopy'. Experince shows that adding 0.5 to mrows
-            % produces correct results that otherwise would, sometimes, be one row shorter than demanded
-            set(h,'paperposition',[pp(1:2) ncols/dpi (mrows+0.5)/dpi])
+            set(h,'paperposition',[pp(1:2) ncols/dpi mrows/dpi])
             varargin{4} = ['-r' num2str(round(dpi))];
             confirm = true;
         end
@@ -214,14 +223,13 @@ function [img,msg] = imgOnly(h,opt,varargin)
         end
     catch                                   % If it screws, restore original Fig properties anyway
         set(hAxes,'Units',axUnit,'pos',axPos,'Visible','on')
-        set(h,'paperposition',pp,'paperunits',PU)
+        set(h,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
         msg = lasterr;      img = [];
     end
     
     % Reset the original fig properties
     set(hAxes,'Units',axUnit,'pos',axPos,'Visible','on')
-    set(h,'paperposition',pp,'paperunits',PU)
-    set(h,'Color',fig_c)
+    set(h,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
     
 % ------------------------------------------------------------------    
 function img = allInFig(h,varargin)
