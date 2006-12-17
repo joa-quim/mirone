@@ -2626,7 +2626,13 @@ if (havePline)                  % case of polylines
     for i=1:length(Pline)
         h_line = line(Pline(i).x,Pline(i).y,'LineWidth',Pline(i).LineWidth,'color',...
             Pline(i).color,'Tag',Pline(i).tag, 'LineStyle',Pline(i).LineStyle);
-        draw_funs(h_line,'line_uicontext')       % Set lines's uicontextmenu
+        if (isfield(Pline(i),'LineInfo') && ~isempty(Pline(i).LineInfo))
+            setappdata(h_line,'LineInfo',Pline(i).LineInfo)
+            set(h_line,'UserData',1)
+            draw_funs(h_line,'isochron',{Pline(i).LineInfo})
+        else
+            draw_funs(h_line,'line_uicontext')       % Set lines's uicontextmenu
+        end
     end
 end
 if (havePlineAsPoints)          % case of polylines as points (markers) only
@@ -2790,6 +2796,9 @@ for i = 1:length(ALLlineHand)
         Pline(m).LineStyle = get(ALLlineHand(i),'LineStyle');
         Pline(m).color = get(ALLlineHand(i),'color');
         Pline(m).tag = tag;
+        if (isappdata(ALLlineHand(i),'LineInfo'))
+            Pline(m).LineInfo = getappdata(ALLlineHand(i),'LineInfo');
+        end
         m = m + 1;      havePline = 1;
     end
 end
