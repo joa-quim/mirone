@@ -210,8 +210,10 @@ function pushbutton_callibrate_Callback(hObject, eventdata, handles)
     
     x = sort(cell2mat(handles.tiePoints));            % Marker pixel values
     Y = sort(cell2mat(handles.reflectance));          % Marker reflectance values
-    x = [0.0 x];                                  % Don't let extrapolation pass to negative values
-    Y = [0.15 Y];
+%     x = [0.0 x];                                  % Don't let extrapolation pass to negative values
+%     Y = [0.15 Y];
+    x = x;
+    Y = Y;
     Y_bak = Y;
     
     yi = single(interp1(x,Y,0:255,'linear','extrap'));
