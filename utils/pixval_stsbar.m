@@ -312,7 +312,7 @@ case 'distance'
           if (no_Zlim == 0)
               pixval_str = sprintf([form_xy ' %6.3f  '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
           else
-              pixval_str = sprintf([form_xy ' %6.4f,%6.4f,%6.4f  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
+              pixval_str = sprintf([form_xy ' %3d,%3d,%3d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
           end
       end
    else % intensity
