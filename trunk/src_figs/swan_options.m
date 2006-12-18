@@ -68,7 +68,7 @@ set(handles.pushbutton_MaregraphDataFile,'CData',Mfopen_ico)
 clear Mfopen_ico;
 
 if (~isempty(varargin))
-    if (strcmp(varargin{1},'bat_and_deform_with_maregs') | strcmp(varargin{1},'bat_and_deform'))
+    if (strcmp(varargin{1},'bat_and_deform_with_maregs') || strcmp(varargin{1},'bat_and_deform'))
         set(handles.edit_BatGrid,'String','In memory array','Enable','off')
         set(handles.pushbutton_BatGrid,'Enable','off')
         set(handles.edit_SourceGrid,'String','In memory array','Enable','off')
@@ -92,7 +92,7 @@ if (~isempty(varargin))
             set(handles.pushbutton_MaregraphPosFile,'Enable','off')
             set(handles.pushbutton_MaregraphDataFile,'Enable','off')
         end
-    elseif (strcmp(varargin{1},'bat_with_maregs') | strcmp(varargin{1},'bat_only'))
+    elseif (strcmp(varargin{1},'bat_with_maregs') || strcmp(varargin{1},'bat_only'))
         handles.Z_bat = varargin{2};
         handles.head_bat = varargin{3};
         set(handles.edit_BatGrid,'String','In memory array','Enable','off')
@@ -321,7 +321,7 @@ i = 1;
 while 1
     tline = fgetl(fid);
     if ~ischar(tline), break, end
-    if (~strcmp(tline(1),'#'))      % Jump comment lines
+    if (~isempty(tline) && tline(1) ~= '#')      % Jump comment lines
         token = strtok(tline);
         handles.params(i) = str2double(token);
         i = i + 1;
