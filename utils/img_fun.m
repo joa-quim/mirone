@@ -4652,7 +4652,7 @@ function [cout,lut] = bwmorph(a,op,n)
 %BWMORPH Perform morphological operations on binary image.
 %   Copyright 1993-2003 The MathWorks, Inc.  
 %   $Revision: 5.30 $  $Date: 2003/01/27 20:15:56 $
-% Hacked to use only the THIN, BRIDGE, CLEAN, PERIM4, PERIM8, SHRINK, DILATE & ERODE methods.
+% Hacked to use only the THIN, BRIDGE, CLEAN, PERIM4, PERIM8, SHRINK, DILATE, ERODE & SKEL methods.
 % When more are needed, add them.
 error(nargchk(2,3,nargin));
 if (nargin < 3)    n = 1;   end
@@ -4835,6 +4835,30 @@ function [c,lut] = shrink(a)
 	m = applylut(c, table);
 	sub = c & ~m;
 	c(2:2:end,1:2:end) = sub(2:2:end,1:2:end);
+
+% ------------------------------------------------------------------------
+% Function SKEL
+function [c,lut] = skel(a)
+
+	lut = [];
+    skel1 = zeros(512,1);   skel1([90 92 218 220]) = 1;
+    skel2 = zeros(512,1);   skel2([153 154 217 218 409 410 473 474]) = 1;
+    skel3 = zeros(512,1);   skel3([24 32 56 64]) = 1;
+    skel4 = zeros(512,1);   skel4([27 28 31 32 91 92 95 96]) = 1;
+    skel5 = zeros(512,1);   skel5([465 473 497 505]) = 1;
+    skel6 = zeros(512,1);   skel6([51 52 55 56 307 308 311 312]) = 1;
+    skel7 = zeros(512,1);   skel7([309 311 437 439]) = 1;
+    skel8 = zeros(512,1);   skel8([177 181 241 245 433 437 497 501]) = 1;
+    
+	c = a;
+	c = c & ~applylut(c, skel1);
+	c = c & ~applylut(c, skel2);
+	c = c & ~applylut(c, skel3);
+	c = c & ~applylut(c, skel4);
+	c = c & ~applylut(c, skel5);
+	c = c & ~applylut(c, skel6);
+	c = c & ~applylut(c, skel7);
+	c = c & ~applylut(c, skel8);
 
 % ------------------------------------------------------------------------
 function B = applylut(varargin)
