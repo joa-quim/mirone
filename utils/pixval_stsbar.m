@@ -264,7 +264,7 @@ case 'normal'   % Just display Z (or intensity) information
             end
         end
     else      % intensity
-        if isa(img, 'uint8'),         pixval_str = sprintf([form_xy ' %3d'],x,y,pixel(1));
+        if isa(img, 'uint8'),         pixval_str = sprintf([form_xy ' %g'],x,y,pixel(1));
         elseif isa(img, 'uint16'),    pixval_str = sprintf([form_xy ' %5d'],x,y,pixel(1));
         elseif islogical(img),        pixval_str = sprintf([form_xy ' %g'],x,y,pixel(1));
         else                          pixval_str = sprintf([form_xy ' %6.4f'],x,y,pixel(1));
