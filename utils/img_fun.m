@@ -21,7 +21,8 @@ switch opt
     case 'houghpeaks'
         varargout{1} = houghpeaks(varargin{:});
     case 'im2bw'
-        varargout{1} = im2bw(varargin{:});
+        [bw,level] = im2bw(varargin{:});
+        varargout{1} = bw;  varargout{2} = level;
     case 'im2double'
         varargout{1} = im2double(varargin{:});
     case 'imadjust_j'
@@ -1701,7 +1702,7 @@ end
 if (isempty(threshold)),    threshold = 0.5 * max(h(:));    end
 
 %----------------------------------------------------------------------------------
-function BW = im2bw(varargin),
+function [BW,level] = im2bw(varargin),
 %IM2BW Convert image to binary image by thresholding.
 %   IM2BW produces binary images from indexed, intensity, or RGB images. To do this, it converts the 
 %   input image to grayscale format (if it is not already an intensity image), and then converts 
@@ -1717,6 +1718,8 @@ function BW = im2bw(varargin),
 %
 %   BW = IM2BW(RGB,LEVEL) converts the RGB image RGB to black and
 %   white.
+%
+%   [BW,LEVEL] = IM2BW(...) also returns the LEVEL corresponding to the input class
 %
 %   If LEVEL is not provided it will be computed from the function GRAYTHRESH 
 %
@@ -1742,9 +1745,9 @@ if (isempty(level))
 end
 
 if isa(A, 'uint8')
-    A = (A >= 255*level);
+    A = (A >= 255*level);       level = 255*level;          % In case we want it to ouput
 elseif isa(A, 'uint16')
-    A = (A >= 65535*level);
+    A = (A >= 65535*level);     level = 65535*level;
 elseif isa(A, 'logical')
     % A is already a binary image and does not require thresholding 
 else    % must be double
