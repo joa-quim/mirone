@@ -1820,7 +1820,7 @@ checkinput(I,'uint8 uint16 double','nonsparse',mfilename,'I',1);
 
 % Convert all N-D arrays into a single column.  Convert to uint8 for
 % fastest histogram computation.
-I = im2uint8(I(:));
+if (~isa(I,'uint8')),   I = im2uint8(I(:));     end
 
 num_bins = 256;
 counts = imhist_j(I,num_bins);
@@ -2357,10 +2357,8 @@ function [yout,x] = imhist_j(varargin)
 [a, n, isScaled, top, map] = parse_inputs_imhist_j(varargin{:});
 if islogical(a)
     if (n ~= 2)
-        messageId = 'Images:imhist:invalidParameterForLogical';
-        message1 = 'N must be set to two for a logical image.'; 
-        error(messageId, '%s', message1);
-        return;
+        error('Images:imhist:invalidParameterForLogical', '%s', 'N must be set to two for a logical image.');
+        return
     end
     y(2) = sum(a(:));
     y(1) = prod(size(a)) - y(2);
@@ -2369,8 +2367,7 @@ else
     y = imhistc(a, n, isScaled, top); % Call MEX file to do work.
 end
 
-classin = class(a);
-switch classin
+switch class(a)
 case 'uint8',    x = linspace(0,255,n)';
 case 'uint16',   x = linspace(0,65535,n)';
 case 'double',   x = linspace(0,1,n)';
