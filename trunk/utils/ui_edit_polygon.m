@@ -276,14 +276,14 @@ s = getappdata(h,'polygon_data');
 key = get(s.h_fig, 'CurrentCharacter');
 
 switch key
-    case {char(8), char(114), char(45)}         % "r", "-":     delete vertex
+    case {char(82), char(114), char(45)}         % "r", "R", "-"     delete vertex
         if isempty(s.h_current_marker); return; end
         x = get(s.h_pol,'XData');           x(s.vert_index) = [];
         y = get(s.h_pol,'YData');           y(s.vert_index) = [];
         delete(s.h_current_marker);         s.h_current_marker = [];
         set([s.h_pol s.h_vert],'XData',x,'YData',y);	% Update data
                        
-    case {char(105), char(43)}                  % "i", "+":        insert vertex
+    case {char(r3), char(105), char(43)}          % "i", "I", "+"        insert vertex
         pt = get(s.h_ax, 'CurrentPoint');
         x = get(s.h_pol,'XData');   x=x(:)';
         y = get(s.h_pol,'YData');   y=y(:)';
@@ -293,7 +293,7 @@ switch key
         s.vert_index = s.vert_index+1;
         set(s.h_current_marker,'XData',pt(1,1),'YData',pt(1,2));
 
-    case char(98)                   % "b":      break line
+    case {char(66), char(98)}                   % "b", "B"     break line
         if (s.is_patch) || isempty(s.h_current_marker); return; end       % Patches don't break & marker needed
         x = get(s.h_pol,'XData');    
         y = get(s.h_pol,'YData');                
@@ -314,7 +314,7 @@ switch key
         s.is_closed = 0;            % Its not closed anymore
         %uistack(tmp,'bottom')      % I'm not yet ready to accept this bloated op
 
-    case char(99)                   % "c":      close line
+    case {char(67), char(99)}                   % "C", "c"     close line
         if (s.is_patch || s.is_closed); return; end	% Don't close what is already closed
         x = get(s.h_pol,'XData');
         if (length(x) <= 2); return; end   % don't close a line with less than 2 vertex 
@@ -322,7 +322,7 @@ switch key
         set(s.h_pol,'XData',[x x(1)],'YData',[y y(1)]);
         s.is_closed = 1;
 
-    case char(112)                  % "p":      close line -> patch
+    case {char(112),char(80)}                  % "p", "P"      close line -> patch
         % Don't close what is already closed or line with less than 2 vertices
         if (s.is_patch || s.is_closed || length(get(s.h_pol,'XData')) <= 2);  return;     end	
         p = patch(get(s.h_pol,'xData'),get(s.h_pol,'yData'),1,'parent',s.h_ax);
