@@ -283,7 +283,7 @@ switch key
         delete(s.h_current_marker);         s.h_current_marker = [];
         set([s.h_pol s.h_vert],'XData',x,'YData',y);	% Update data
                        
-    case {char(r3), char(105), char(43)}          % "i", "I", "+"        insert vertex
+    case {char(73), char(105), char(43)}          % "i", "I", "+"        insert vertex
         pt = get(s.h_ax, 'CurrentPoint');
         x = get(s.h_pol,'XData');   x=x(:)';
         y = get(s.h_pol,'YData');   y=y(:)';
