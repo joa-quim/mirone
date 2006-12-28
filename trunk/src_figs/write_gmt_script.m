@@ -1654,10 +1654,11 @@ if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, pl
             name_sc = [prefix '_line_' num2str(i) '.dat'];
             fid = fopen(name,'wt');
             for j=m(i)+1:m(i+1)
-                opt_M = '';
-                % When we have NaNs the line is multi-seg, so a good trick is to set the GMT
-                % file as multi-seg with the flag = 'N' which is the first letter of NaN
-                if (any(isnan(xx{j}(:)))),   opt_M = ' -MN';      end
+                opt_M = ' -M';
+%                 % When we have NaNs the line is multi-seg, so a good trick is to set the GMT
+%                 % file as multi-seg with the flag = 'N' which is the first letter of NaN
+%                 if (any(isnan(xx{j}(:)))),   opt_M = ' -MN';      end
+                fprintf(fid,'%s\n','>');
                 fprintf(fid,'%.5f\t%.5f\n',[xx{j}(:) yy{j}(:)]');
             end
             fclose(fid);
