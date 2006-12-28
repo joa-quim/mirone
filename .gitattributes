@@ -219,6 +219,7 @@ lib_mex/swan_sem_wbar.dll -text
 lib_mex/telha_m.dll -text
 lib_mex/test_gmt.dll -text
 lib_mex/tsun2.dll -text
+lib_mex/tsun2_sem_wbar.dll -text
 lib_mex/uigetfolder_win32.dll -text
 lib_mex/uintlutc.dll -text
 lib_mex/wave_travel_time.dll -text
