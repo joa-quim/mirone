@@ -215,6 +215,7 @@ lib_mex/shoredump.dll -text
 lib_mex/surface_m.dll -text
 lib_mex/susan.dll -text
 lib_mex/swan.dll -text
+lib_mex/swan_sem_wbar.dll -text
 lib_mex/telha_m.dll -text
 lib_mex/test_gmt.dll -text
 lib_mex/tsun2.dll -text
