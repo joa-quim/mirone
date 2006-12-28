@@ -88,7 +88,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %
 %       Revisions
 %           13-Dez-2006     Let it work also with plots
-%           28-Dez-2006     Added vector graphics output
+%           28-Dez-2006     Added vector graphics output and copy to Clipboard (Windows only)
 
     hFig = [];      hAxes = [];
     if (nargin == 0 || isempty(h)),     h = get(0,'CurrentFigure');    end
