@@ -94,7 +94,7 @@ for (i = 1:length(varargin))            % Argument check
         elseif ( length(x) == 5 && (x(1) == x(4)) && (x(2) == x(3)) && (y(1) == y(2)) && (y(3) == y(4)) )
             s.is_rect = 1;      s.keep_rect = 0;
         end
-        if ( (x(1) == x(end)) && (y(1) == y(end)) && numel(x) > 1)
+        if ( numel(x) > 1 && (x(1) == x(end)) && (y(1) == y(end)))
             s.is_closed = 1;
             if (s.is_patch),    s.is_closed_patch = 1;  end
         else
