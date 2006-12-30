@@ -69,11 +69,11 @@ switch opt
         set_symbol_uicontext(hand)
     case 'ImportLine'                   % read AND plot the line
         fname = hand;
-        hFig = get(0,'CurrentFigure');         hAxes = gca;
+        hFig = get(0,'CurrentFigure');         hAxes = get(hFig,'CurrentAxes');
         [bin,n_column,multi_seg,n_headers] = guess_file(fname);
         % If msgbox exist we have to move it from behind the main window. So get it's handle
         hMsgFig = get(0,'CurrentFigure');
-        if (hFig ~= hMsgFig),       uistack(hMsgFig,'top');   end   % If msgbox exists, bring it forward
+        if (hFig ~= hMsgFig),       figure(hMsgFig);   end   % If msgbox exists, bring it forward
         % If error in reading file
         if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
             errordlg(['Error reading file ' fname],'Error');    return
@@ -395,6 +395,7 @@ if (IS_SEISPOLYGON)                         % Seismicity options
     uimenu(itemTime, 'Label', 'Time depth', 'Callback', 'histos_seis(gco,''TD'')');
     uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Callback', 'histos_seis(gco,''BV'')');
     uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Callback', 'histos_seis(gco,''OL'')');
+    %uimenu(cmenuHand, 'Label', 'Skell', 'Callback', 'esqueleto_tmp(gco)','Sep','on');
 end
 
 % -----------------------------------------------------------------------------------------
