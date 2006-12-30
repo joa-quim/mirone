@@ -25,10 +25,6 @@ write_gmt_script_LayoutFcn(hObject,handles);
 handles = guihandles(hObject);
 movegui(hObject,'center');
 
-global home_dir
-if isempty(home_dir),   handles.d_path = [pwd filesep 'data' filesep];
-else                    handles.d_path = [home_dir filesep 'data' filesep];   end
-
 sizes_cm = {'A0 (83.96 118.82 cm)'; 'A1 (59.41 83.96 cm)'; 'A2 (41.98 59.41 cm)'; 'A3 (29.70 41.98 cm)'
     'A4 (20.99 29.70 cm)'; 'A5 (14.85 20.99 cm)'; 'A6 (10.48 14.85 cm)'; 'A7 (7.41 10.48 cm)'
     'A8 (5.22 7.41 cm)'; 'A9 (3.70 5.22 cm)'; 'A10 (2.61 3.70 cm)'; 'B0 (100.05 141.39 cm)'
@@ -81,8 +77,7 @@ handles.scale_set = 0;          % To signal that user changed scale
 
 mirone_handles = varargin{1};
 if (mirone_handles.no_file)     % Stupid call with nothing loaded on the Mirone window
-    delete(hObject)
-    return
+    delete(hObject);    return
 end
 handles.script_type = varargin{2};
 if (strcmp(handles.script_type,'bat'))
@@ -92,32 +87,23 @@ else
     set(hObject,'Name','Write GMT script')
 end
 
-if (mirone_handles.image_type == 1)     % GMT grids
-    head = getappdata(mirone_handles.figure1,'GMThead');
-    handles.x_min = head(1);    handles.x_max = head(2);
-    handles.y_min = head(3);    handles.y_max = head(4);
-    nx = round((head(2) - head(1)) / head(8));
-    ny = round((head(4) - head(3)) / head(9));
-elseif (mirone_handles.image_type == 2 | mirone_handles.image_type == 20)     % "trivial" images
-    h_parent_img = findobj(get(mirone_handles.figure1,'Children'),'Type','image');
-    img = get(h_parent_img,'CData');
-    [ny,nx,nz] = size(img);  clear img h_parent_img nz;
-    h_parent_axes = findobj(get(mirone_handles.figure1,'Children'),'Type','axes');
-    zz1 = get(h_parent_axes,'XLim');    zz2 = get(h_parent_axes,'YLim');
-    handles.x_min = zz1(1);     handles.x_max = zz1(2);
-    handles.y_min = zz2(1);     handles.y_max = zz2(2);
-    clear img h_parent_img nz h_parent_axes zz1 zz2;
-elseif (mirone_handles.image_type == 3)     % GeoTIFF
-    head = get(handles.mirone_handles,'UserData');
-    handles.x_min = head.LL_prj_xmin;    handles.x_max = head.LR_prj_xmax;
-    handles.y_min = head.LL_prj_ymin;    handles.y_max = head.UR_prj_ymax;
-    nx = head.Dim_nx;                    ny = head.Dim_ny;
-elseif (mirone_handles.image_type == 4)     % DEM GRIDS
+% Add this figure handle to the carraças list
+plugedWin = getappdata(mirone_handles.figure1,'dependentFigs');
+plugedWin = [plugedWin hObject];
+setappdata(mirone_handles.figure1,'dependentFigs',plugedWin);
+
+if (mirone_handles.image_type == 1 || mirone_handles.image_type == 3 || mirone_handles.image_type == 4)
     head = mirone_handles.head;
     handles.x_min = head(1);    handles.x_max = head(2);
     handles.y_min = head(3);    handles.y_max = head(4);
-    nx = round((head(2) - head(1)) / head(8));
-    ny = round((head(4) - head(3)) / head(9));        
+    nx = round((head(2) - head(1)) / head(8));          % May not be exactly correct but is good enough here
+    ny = round((head(4) - head(3)) / head(9));
+elseif (mirone_handles.image_type == 2 | mirone_handles.image_type == 20)     % "trivial" images
+    [ny,nx,nz] = size(get(mirone_handles.hImg,'CData'));
+    zz1 = get(mirone_handles.axes1,'XLim');    zz2 = get(mirone_handles.axes1,'YLim');
+    handles.x_min = zz1(1);     handles.x_max = zz1(2);
+    handles.y_min = zz2(1);     handles.y_max = zz2(2);
+    clear nz zz1 zz2;
 end    
 width  = 15;                    % Default starting width in cm
 fac_15 = nx / width;
@@ -135,14 +121,14 @@ handles.mirone_handles = mirone_handles;
 handles.width_or = width;  handles.height_or = height;
 handles.scale = width;
 handles.which_unit = 'cm';
+handles.d_path = mirone_handles.path_data;
 
 % Compute image aspect ratio and set axes 'PlotBoxAspectRatio' to it
 handles.paper = [paper_cm(5,1) paper_cm(5,2)];         % Set to A4 (x,y)
 handles.paper_aspect = handles.paper(2)/handles.paper(1);
 % set(handles.axes1,'XLim',[0 handles.paper(1)],'YLim',[0 handles.paper(2)], ...
 %         'PlotBoxAspectRatio',[1 handles.paper_aspect 1]);
-set(handles.axes1,'XLim',[0 handles.paper(1)],'YLim',[0 handles.paper(2)], ...
-        'DataAspectRatio',[1 1 1]);
+set(handles.axes1,'XLim',[0 handles.paper(1)],'YLim',[0 handles.paper(2)], 'DataAspectRatio',[1 1 1]);
 X0 = 2.5;               Y0 = 2.5;       % This is the GMT default's plot origin in cm
 rect_x = [X0 X0 X0+width X0+width X0];
 rect_y = [Y0 Y0+height Y0+height Y0 Y0];
@@ -1611,11 +1597,21 @@ if (~isempty(ALLpatchHand))
         cor_fill = round(FillColor(i,1:3) * 255);
         if (cor_fill(1) >= 0)       % Color filled polygon
             cor_fill = [num2str(cor_fill(1)) '/' num2str(cor_fill(2)) '/' num2str(cor_fill(3))];
-            fprintf(fid,'%s\n',['>' ' -G' cor_fill ' -W' num2str(LineWidth(i)) 'p/' cor_edge]);
+            mlt_comm = ['>' ' -G' cor_fill ' -W' num2str(LineWidth(i)) 'p/' cor_edge];
         else                        % No filling color
-            fprintf(fid,'%s\n',['> -W' num2str(LineWidth(i)) 'p/' cor_edge]);
+            mlt_comm = ['> -W' num2str(LineWidth(i)) 'p/' cor_edge];
         end
-        fprintf(fid,'%.5f\t%.5f\n',[xx{i}(:)'; yy{i}(:)']);
+        
+        if (any(isnan(xx{i})))      % If we have NaNs we need to split into segments
+            [latcells,loncells] = polysplit(yy{i}(:),xx{i}(:));
+            for (j=1:numel(loncells))
+                fprintf(fid,'%s\n',mlt_comm);
+                fprintf(fid,'%.5f\t%.5f\n',[loncells{j}(:)'; latcells{j}(:)']);
+            end
+        else
+            fprintf(fid,'%s\n',mlt_comm);
+            fprintf(fid,'%.5f\t%.5f\n',[xx{i}(:)'; yy{i}(:)']);
+        end
     end
 	fclose(fid);
 	script{l} = [' '];              l=l+1;
@@ -1654,18 +1650,22 @@ if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, pl
             name_sc = [prefix '_line_' num2str(i) '.dat'];
             fid = fopen(name,'wt');
             for j=m(i)+1:m(i+1)
-                opt_M = ' -M';
-%                 % When we have NaNs the line is multi-seg, so a good trick is to set the GMT
-%                 % file as multi-seg with the flag = 'N' which is the first letter of NaN
-%                 if (any(isnan(xx{j}(:)))),   opt_M = ' -MN';      end
-                fprintf(fid,'%s\n','>');
-                fprintf(fid,'%.5f\t%.5f\n',[xx{j}(:) yy{j}(:)]');
+                if (any(isnan(xx{j})))          % If we have NaNs we need to split into segments
+                    [latcells,loncells] = polysplit(yy{j}(:),xx{j}(:));
+                    for (k=1:numel(loncells))
+                        fprintf(fid,'%s\n','>');
+                        fprintf(fid,'%.5f\t%.5f\n',[loncells{k}(:)'; latcells{k}(:)']);
+                    end
+                else
+                    fprintf(fid,'%s\n','>');
+                    fprintf(fid,'%.5f\t%.5f\n',[xx{j}(:) yy{j}(:)]');
+                end
             end
             fclose(fid);
             cor = round(LineColor(j,:) * 255);
             cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
             script{l} = ['psxy ' name_sc ellips ' -R -J -W' num2str(LineWidth(j)) 'p,' ...
-                    cor LineStyle_gmt{j} opt_M ' --MEASURE_UNIT=point -O -K >> ' pb 'ps' pf];
+                    cor LineStyle_gmt{j} ' --MEASURE_UNIT=point -M -O -K >> ' pb 'ps' pf];
             l=l+1;
         end
     end
@@ -1826,7 +1826,112 @@ for i=1:length(n)
 	fclose(fid);
 end
 
-% --- Creates and returns a handle to the GUI figure. 
+% --------------------------------------------------------------------------------
+function [latcells,loncells] = polysplit(lat,lon)
+%POLYSPLIT Extract segments of NaN-delimited polygon vectors to cell arrays
+%
+%   [LATCELLS,LONCELLS] = POLYSPLIT(LAT,LON) returns the NaN-delimited
+%   segments of the vectors LAT and LON as N-by-1 cell arrays with one
+%   polygon segment per cell.  LAT and LON must be the same size and have
+%   identically-placed NaNs.  The polygon segments are column vectors if
+%   LAT and LON are column vectors, and row vectors otherwise.
+
+% Copyright 1996-2006 The MathWorks, Inc.
+% $Revision: 1.4.4.5 $    $Date: 2006/05/24 03:35:26 $
+
+% checkinput(lat,{'numeric'},{'real','vector'},mfilename,'LAT',1);
+% checkinput(lon,{'numeric'},{'real','vector'},mfilename,'LON',2);
+[lat, lon] = removeExtraNanSeparators(lat, lon);
+
+% Find NaN locations.
+indx = find(isnan(lat(:)));
+
+% Simulate the trailing NaN if it's missing.
+if ~isempty(lat) && ~isnan(lat(end))
+    indx(end+1,1) = numel(lat) + 1;
+end
+
+%  Extract each segment into pre-allocated N-by-1 cell arrays, where N is
+%  the number of polygon segments.  (Add a leading zero to the indx array
+%  to make indexing work for the first segment.)
+N = numel(indx);
+latcells = cell(N,1);
+loncells = cell(N,1);
+indx = [0; indx];
+for k = 1:N
+    iStart = indx(k)   + 1;
+    iEnd   = indx(k+1) - 1;
+    latcells{k} = lat(iStart:iEnd);
+    loncells{k} = lon(iStart:iEnd);
+end
+
+% --------------------------------------------------------------------------------
+function [xdata, ydata, zdata] = removeExtraNanSeparators(xdata, ydata, zdata)
+%removeExtraNanSeparators  Clean up NaN separators in polygons and lines
+%
+%   [XDATA, YDATA] = removeExtraNanSeparators(XDATA, YDATA) removes NaNs
+%   from the vectors XDATA and YDATA, leaving only isolated NaN separators.
+%   If present, one or more leading NaNs are removed entirely.  If present,
+%   a single trailing NaN is preserved.  NaNs are removed, but never added,
+%   so if the input lacks a trailing NaN, so will the output.  XDATA and
+%   YDATA must match in size and have identical NaN locations.
+%
+%   [XDATA, YDATA, ZDATA] = removeExtraNanSeparators(XDATA, YDATA, ZDATA)
+%   removes NaNs from the vectors XDATA, YDATA, and ZDATA, leaving only
+%   isolated NaN separators and optionally, consistent with the input, a
+%   single trailing NaN.
+%
+%   Examples
+%   --------
+%   xin = [NaN NaN 1:3 NaN 4:5 NaN NaN NaN 6:9 NaN NaN]
+%   yin = xin;
+%   [xout, yout] = removeExtraNanSeparators(xin, yin);
+%   xout
+%
+%   xin = [NaN 1:3 NaN NaN 4:5 NaN NaN NaN 6:9]'
+%   yin = xin;
+%   zin = xin;
+%   [xout, yout, zout] = removeExtraNanSeparators(xin, yin, zin);
+%   xout
+
+% Copyright 2005-2006 The MathWorks, Inc.
+% $Revision: 1.1.6.4 $  $Date: 2006/06/15 20:11:13 $
+
+% if nargin < 3
+%     if ~isequal(isnan(xdata), isnan(ydata))
+%         eid = sprintf('%s:%s:inconsistentXY', getcomp, mfilename);
+%         error(eid,'XDATA and YDATA mismatch in size or NaN locations.')
+%     end
+% else
+%     if ~isequal(isnan(xdata), isnan(ydata), isnan(zdata))
+%         eid = sprintf('%s:%s:inconsistentXYZ', getcomp, mfilename);
+%         error(eid,'XDATA, YDATA (or ZDATA) mismatch in size or NaN locations.')
+%     end
+% end
+    
+% Determing the positions of each NaN.
+p = find(isnan(xdata(:)'));
+
+% Determine the position of each NaN that is not the final element in a sequence of contiguous NaNs.
+q = p(diff(p) == 1);
+
+% If there's a leading sequence of NaNs (a sequence starting with a NaN in
+% position 1), determine the position of each NaN in this sequence.
+if isempty(p),      r = [];
+else                r = find((p - (1:numel(p))) == 0);
+end
+
+% Determine the position of each excess NaN.
+if isempty(r),      s = q;
+else                s = [r q(q > r(end))];
+end
+
+% Remove the excess NaNs.
+xdata(s) = [];      ydata(s) = [];
+if (nargin >= 3),   zdata(s) = [];  end
+
+
+% ---------------------- Creates and returns a handle to the GUI figure. 
 function write_gmt_script_LayoutFcn(h1,handles);
 
 set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
