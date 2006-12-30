@@ -332,7 +332,7 @@ if (handles.CeateBG)      % Yes
     if (abs(region(2) - region(1)) > 360 || abs(region(4) - region(3)) > 180),   region(5) = 0;   end
     % Hide this figure handles in order that the new axes will created in Mirone's fig
     set(handles.figure1,'HandleVisibility','off')
-    mirone('FileNewBgFrame_Callback',handles.mirone_fig,[],guidata(handles.mirone_fig), region)
+    mirone('FileNewBgFrame_CB',handles.mirone_fig,[],guidata(handles.mirone_fig), region)
     % Only now the axes exists, get its handle
     handles.MironeAxes = get(handles.mirone_fig,'CurrentAxes');
     set(handles.figure1,'HandleVisibility','on')    % Reset
