@@ -47,12 +47,12 @@ switch option
             set([fig_hdl,txt_hdl],'units','normalized','Visible','on');
             set(fig_hdl,'Name','Message window');
         else
-            hidegui(fig_hdl,'on');
+            set(fig_hdl, 'HandleVisibility', 'on');
             txt_hdl = findobj(fig_hdl,'Tag',tag_txt);
             figure(fig_hdl);
         end
 		set(txt_hdl,'String',in2);
-        hidegui(fig_hdl,'off');
+        set(fig_hdl, 'HandleVisibility', 'off');
     case 'add'
         txt_hdl = findobj(fig_hdl,'Style','Text');
         h_slide = findobj(fig_hdl,'Style','slider');
