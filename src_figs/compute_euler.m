@@ -172,18 +172,18 @@ guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function edit_pLon_ini_Callback(hObject, eventdata, handles)
-handles.pLon_ini = str2double(get(hObject,'String'));
-guidata(hObject, handles);
+    handles.pLon_ini = str2double(get(hObject,'String'));
+    guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function edit_pLat_ini_Callback(hObject, eventdata, handles)
-handles.pLat_ini = str2double(get(hObject,'String'));
-guidata(hObject, handles);
+    handles.pLat_ini = str2double(get(hObject,'String'));
+    guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function edit_pAng_ini_Callback(hObject, eventdata, handles)
-handles.pAng_ini = str2double(get(hObject,'String'));
-guidata(hObject, handles);
+    handles.pAng_ini = str2double(get(hObject,'String'));
+    guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function pushbutton_polesList_Callback(hObject, eventdata, handles)
@@ -285,45 +285,26 @@ else        % What should I do?
 end
 guidata(hObject, handles);
 
-% -------------------------------------------------------------------------------------
-function edit_pLon_fim_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -------------------------------------------------------------------------------------
-function edit_pLat_fim_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -------------------------------------------------------------------------------------
-function edit_pAng_fim_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -------------------------------------------------------------------------------------
-function edit_InitialResidue_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -------------------------------------------------------------------------------------
-function edit_BFresidue_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
 % -------------------------------------------------------------------------------
 function slider_wait_Callback(hObject, eventdata, handles)
 % Nothing to do here. Moreover, the slider 'Enable' prop is 'off'
 
 % -------------------------------------------------------------------------------
 function pushbutton_stop_Callback(hObject, eventdata, handles)
-set(handles.slider_wait,'Value',0)  % We have to do this first
-set(handles.slider_wait,'Max',1)    % This will signal the fit_pEuler function to stop
+    set(handles.slider_wait,'Value',0)  % We have to do this first
+    set(handles.slider_wait,'Max',1)    % This will signal the fit_pEuler function to stop
 
 % -------------------------------------------------------------------------------------
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
-delete(handles.figure1)
+    delete(handles.figure1)
 
 % -------------------------------------------------------------------------------------
 function pushbutton_compute_Callback(hObject, eventdata, handles)
 % OK. See if we have all the information needed to compute the Euler pole
 
-set(handles.edit_BFresidue,'String','')
-set(handles.edit_InitialResidue,'String','')
+set(handles.edit_BFresidue,'String','');        set(handles.edit_InitialResidue,'String','')
+set(handles.edit_pLon_fim,'String','');         set(handles.edit_pLat_fim,'String','')
+set(handles.edit_pAng_fim,'String','')
 
 if (isempty(handles.isoca1) | isempty(handles.isoca2))
     errordlg('Compute Euler pole with what? It would help if you provide me TWO lines.','Chico Clever')
@@ -341,12 +322,12 @@ calca_pEuler(handles)
 function numeric_data = le_fiche(fname)
 [bin,n_column,multi_seg,n_headers] = guess_file(fname);
 % If error in reading file
-if isempty(bin) & isempty(n_column) & isempty(multi_seg) & isempty(n_headers)
+if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
     errordlg(['Error reading file ' fname],'Error');
     numeric_data = [];
     return
 end
-if (isempty(n_headers))     n_headers = NaN;    end
+if (isempty(n_headers)),     n_headers = NaN;    end
 if (multi_seg)
     [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers,'>');
 else
@@ -360,6 +341,7 @@ D2R = pi / 180;
 if (handles.do_graphic)     % Create a empty line handle
     h_line = line('parent',get(handles.h_calling_fig,'CurrentAxes'),'XData',[],'YData',[], ...
         'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
+    %draw_funs(h_line,'isochron',{'Fitted Line'})
 end
 
 % Compute the initial misfit with Bruno merit function
@@ -549,11 +531,12 @@ lambda = lambda;
 
 % -------------------------------------------------------------------------------
 % subroutine distmin(tme,tmn,xvert,yvert,nvert,dist0)
-function dist = distmin(lon,lat,r_lon,r_lat)
+function dist = distmin__(lon,lat,r_lon,r_lat)
 D2R = pi / 180;
-% r_lon = r_lon .* cos(r_lat);      % VERY strange. This should improve the fit
-% lon = lon .* cos(lat);            % But, on the contrary, it degrades it ??
+r_lon = r_lon .* cos(r_lat);      % VERY strange. This should improve the fit
+lon = lon .* cos(lat);            % But, on the contrary, it degrades it ??
 epsilon = 1e-3;
+%eps2 = 1e-6;
 dist = zeros(length(lon),1);
 for (k=1:length(lon))
     dist0 = 1e20;
@@ -574,7 +557,7 @@ for (k=1:length(lon))
             end
         end
         dist1 = (d1+d2) * 0.5;
-        if(dist1 < dist0) dist0 = dist1;  end
+        if(dist1 < dist0) dist0 = dist1;  end   % When true, the closest point on the other line was found
     end
     dist(k) = dist0;
 end
@@ -602,6 +585,52 @@ end
 %    dist1=(d1+d2)/2;
 %    if(dist0 > dist1) dist0=dist1;  end
 % end
+
+% -------------------------------------------------------------------------------
+function dist = distmin(lon,lat,r_lon,r_lat)
+r_lon = r_lon .* cos(r_lat);      % VERY strange. This should improve the fit
+lon = lon .* cos(lat);            % But, on the contrary, it degrades it ??
+r_lon = r_lon(:)';      r_lat = r_lat(:)';      % Make sure they are row vectors
+eps1 = 1e-3;            eps2 = eps1 * eps1;
+n_pt = numel(lon);      n_pt_rot = numel(r_lon);
+dist = zeros(n_pt,1);
+%Dsts = zeros(n_pt,n_pt_rot);    % (i,j) element will hold distance from vertex i of line (lon,lat)
+                                % to vertex j of line (r_lon,r_lat)
+outliners = false(n_pt,1);      % To remove vertex where lines do not intersect
+for (k=1:n_pt)
+    dist0 = 1e20;
+    Dsts = sqrt((lon(k)-r_lon).^2+(lat(k)-r_lat).^2);
+    [D,ind] = min(Dsts);
+    if (ind == 1 || ind == n_pt_rot && n_pt > 4)    % This point is outside the lines intersection. Flag it to die.
+        outliners(k) = true;
+        continue
+    end
+    %for (j = ind-1:min(ind+1,n_pt_rot)-1)
+    for (j = ind-1:ind)
+        x1 = r_lon(j);      x2 = r_lon(j+1);
+        y1 = r_lat(j);      y2 = r_lat(j+1);
+        dd = 1e20;
+        while (dd > eps2)
+            d1 = sqrt((lon(k)-x1).^2+(lat(k)-y1).^2);
+            d2 = sqrt((lon(k)-x2).^2+(lat(k)-y2).^2);
+            dd = (x1-x2).^2+(y1-y2).^2;
+            xm = (x1+x2) * 0.5;
+            ym = (y1+y2) * 0.5;
+            if (d1 < d2)
+                x2 = xm;    y2 = ym;
+            else
+                x1 = xm;    y1 = ym;
+            end
+        end
+        dist1 = (d1+d2) * 0.5;
+        if(dist1 < dist0) dist0 = dist1;  end   % When true, the closest point on the other line was found        
+    end
+    % 'dist' has the least distance of each vertex of line (lon,lat) to rotated line (r_lon,r_lat)
+    dist(k) = dist0;
+end
+
+dist(outliners) = [];       % Delete points not belonging to the lines intersection zone
+if (isempty(dist)),     dist = 0;   end     % Don't let it go empty
 
 % --------------------------------------------------------------------------------
 function lat = geog2auth(lat0)
@@ -839,7 +868,6 @@ h30 = uicontrol('Parent',h1,...
 
 h31 = uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_pLon_fim_Callback'},...
 'Position',[352 125 61 21],...
 'Style','edit',...
 'TooltipString','Computed Euler pole Longitude',...
@@ -847,7 +875,6 @@ h31 = uicontrol('Parent',h1,...
 
 h32 = uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_pLat_fim_Callback'},...
 'Position',[352 97 61 21],...
 'Style','edit',...
 'TooltipString','Computed Euler pole Latitude',...
@@ -855,7 +882,6 @@ h32 = uicontrol('Parent',h1,...
 
 h33 = uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_pAng_fim_Callback'},...
 'Position',[352 69 61 21],...
 'Style','edit',...
 'TooltipString','Computed Euler pole Angle',...
@@ -880,7 +906,6 @@ h36 = uicontrol('Parent',h1,'HorizontalAlignment','left',...
 
 h37 = uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_BFresidue_Callback'},...
 'Position',[431 69 61 21],...
 'Style','edit','TooltipString','Residue of the merit function',...
 'Tag','edit_BFresidue');
@@ -900,7 +925,6 @@ h40 = uicontrol('Parent',h1,...
 
 h41 = uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_InitialResidue_Callback'},...
 'Position',[430 113 61 21],...
 'Style','edit',...
 'TooltipString','Starting residue (starting pole) of the merit function',...
