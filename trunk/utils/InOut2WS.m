@@ -2,6 +2,7 @@ function InOut2WS(handles, opt)
 % OPT = 'direct' => copy X,Y,Z,I,head to the base workspace
 % OPT = 'GRID_inverse' => import X,Y,Z,head from the base workspace
 % OPT = 'IMG_inverse' => import X,Y,I from the base workspace
+% OPT = 'loadmat' => import a .mat file with a 2D array named Z or z
 % OPT = 'clear' => clear the base workspace
 
 %	Copyright (c) 2004-2006 by J. Luis
@@ -12,7 +13,7 @@ function InOut2WS(handles, opt)
 %
 %	This program is distributed in the hope that it will be useful,
 %	but WITHOUT ANY WARRANTY; without even the implied warranty of
-%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 %	GNU General Public License for more details.
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
@@ -101,7 +102,6 @@ elseif strcmp(opt,'IMG_inverse')
     else
         mirone(I);
     end
-<<<<<<< .mine
     
 elseif strcmp(opt,'loadmat')            % Load a .mat file containing a 2D array
     str1 = {'*.mat;','mat file format (*.mat)'; '*.*', 'All Files (*.*)'};
@@ -109,7 +109,7 @@ elseif strcmp(opt,'loadmat')            % Load a .mat file containing a 2D array
     [FileName,PathName] = uigetfile(str1,'Select .mat file');
     if isequal(FileName,0);     return;     end
     pause(0.01);        cd(handles.home_dir);       % allways go home
-	try                                         % We do a try-catch because evalin does not work on the compiled version
+	try                                             % We do a try-catch because evalin does not work on the compiled version
         load([PathName FileName])
         if (~isa(Z,'single')),   Z = single(Z);      end
     catch
@@ -130,36 +130,6 @@ elseif strcmp(opt,'loadmat')            % Load a .mat file containing a 2D array
     head = [1 n 1 m z_min z_max 0 1 1];     % Minimalist header
     tmp.X = 1:n;    tmp.Y = 1:m;    tmp.head = head;    tmp.name = 'ML imput grid';
     mirone(Z,tmp);
-=======
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
->>>>>>> .theirs
 else
     evalin('base','clear')
 end
