@@ -370,7 +370,7 @@ if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
         uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Separator','on', 'Callback',...
             'calcBoninEulerPole(get(gco,''XData''), get(gco,''YData''));' );
     end
-    cb_roi = 'mirone(''DrawClosedPolygon_Callback'',gcbo,[],guidata(gcbo),gco)';
+    cb_roi = 'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),gco)';
     uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
 end
 
@@ -446,7 +446,7 @@ for (i = 1:numel(h))
 	uimenu(item8, 'Label', 'Other...', 'Callback', cb_color{9});
 	uimenu(item8, 'Label', 'None', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
 	uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
-	cb_roi = 'mirone(''DrawClosedPolygon_Callback'',gcbo,[],guidata(gcbo),gco)';
+	cb_roi = 'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),gco)';
 	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
 end
 
@@ -823,7 +823,7 @@ cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(g
 cb_color = uictx_color(h);      % there are 9 cb_color outputs
 % cb_MoveCircle        = {@move_circle,h};
 % cb_ChangeCircCenter1 = {@change_CircCenter1,h};
-cb_roi = 'mirone(''DrawClosedPolygon_Callback'',gcbo,[],guidata(gcbo),gco)';
+cb_roi = 'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),gco)';
 
 uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
 uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
@@ -853,7 +853,7 @@ cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
 cb_color = uictx_color(h);      % there are 9 cb_color outputs
-cb_roi = 'mirone(''DrawClosedPolygon_Callback'',gcbo,[],guidata(gcbo),gco)';
+cb_roi = 'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),gco)';
 
 uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
 uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
@@ -1723,7 +1723,7 @@ if (seismicity_options)
     uimenu(cmenuHand, 'Label', 'Save events', 'Callback', 'save_seismicity(gcf,gco)', 'Separator','on');
     uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Callback', 'animate_seismicity(gcf,gco)');
     uimenu(cmenuHand, 'Label', 'Draw polygon', 'Callback', ...
-        'mirone(''DrawClosedPolygon_Callback'',gcbo,[],guidata(gcbo),''SeismicityPolygon'')');
+        'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),''SeismicityPolygon'')');
     itemHist = uimenu(cmenuHand, 'Label','Histograms');
     uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Callback', 'histos_seis(gco,''GR'')');
     uimenu(itemHist, 'Label', 'Cumulative number', 'Callback', 'histos_seis(gco,''CH'')');
