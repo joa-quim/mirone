@@ -289,9 +289,9 @@ if (LINE_ISCLOSED)
 end
 if ( strcmp(opt,'line') && ~LINE_ISCLOSED && (ndims(get(handles.grd_img,'CData')) == 2 ...
     || getappdata(get(0,'CurrentFigure'),'ValidGrid')) )
-    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_Callback'',gcbo,[],guidata(gcbo),''point'')';
+    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',gcbo,[],guidata(gcbo),''point'')';
     uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack);
-    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_Callback'',gcbo,[],guidata(gcbo))';
+    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',gcbo,[],guidata(gcbo))';
     uimenu(cmenuHand, 'Label', 'Extract profile', 'Callback', cbTrack);
 end
 if strcmp(opt,'MBtrack')
@@ -1715,7 +1715,7 @@ end
 if (~this_not)          % class symbols don't export
     uimenu(cmenuHand, 'Label', 'Export', 'Callback', {@export_symbol,h});
     if (strcmp(tag,'Pointpolyline'))    % Allow pure grdtrack interpolation
-        cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_Callback'',gcbo,[],guidata(gcbo),''point'')';
+        cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',gcbo,[],guidata(gcbo),''point'')';
         uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack, 'Separator','on');
     end
 end
