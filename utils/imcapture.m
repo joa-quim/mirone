@@ -238,6 +238,7 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
     end
     
     have_frames = false;
+    axVis = get(hAxes,'Visible');
     if (isempty(opt))                   % Pure Image only capture. Even if axes are visible, ignore them
         set(hAxes,'pos',[0 0 1 1],'Visible','off')
     elseif (strcmp(get(hAxes,'Visible'),'on'))  % Try to capture an image that respects the data aspect ratio
@@ -321,8 +322,7 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
     end
     
     % Reset the original fig properties
-    set(hAxes,'Units',axUnit,'pos',axPos,'Visible','on')
-    set(all_axes,'Visible','on')
+    set(hAxes,'Units',axUnit,'pos',axPos,'Visible',axVis)
     set(h,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
     
 % ------------------------------------------------------------------    
