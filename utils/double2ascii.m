@@ -64,7 +64,6 @@ else                            % We might have NaNs (that is multi-segments fil
     		if (kpercent == 1),     fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], [x_cell{k}(:)'; y_cell{k}(:)']);
 		    else                    fprintf(fid,[formatString '\n'], [x_cell{k}(:)'; y_cell{k}(:)']);
 		    end
-            %fprintf(fid,'%.5f\t%.5f\n',[x_cell{k}(:)'; y_cell{k}(:)']);
         end
     end
 end
