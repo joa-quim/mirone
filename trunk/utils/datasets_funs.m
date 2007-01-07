@@ -72,26 +72,20 @@ draw_funs(h_tides,'TideStation',[])
 % --------------------------------------------------------------------
 function DatasetsIsochrons(handles, opt)
 % Read multisegment isochrons.dat which has 3 columns (lat lon id)
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
 if (nargin == 2)            % Read a ascii multi-segment with info file
     str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-    
     cd(handles.last_dir)
     [FileName,PathName] = uigetfile(str1,'Select File');
     if (PathName ~= 0),         handles.last_dir = PathName;    end
     pause(0.01);        cd(handles.home_dir);       % allways go home
     if (FileName == 0),     return;     end
 
-    if (~isempty(strfind([PathName FileName],' ')))
-        errordlg('If you had RTFM you should know that names (path included) with white spaces are totaly FORBIDEN here.','ERROR')
-        return
-    end
-    guidata(handles.figure1,handles)    
+    guidata(handles.figure1,handles)
     tag = 'Unnamed';        fname = [PathName FileName];
 else
     tag = 'isochron';       fname = [handles.path_data 'isochrons.dat'];
 end
-xx = get(handles.axes1,'Xlim');           yy = get(handles.axes1,'Ylim');
+
 set(handles.figure1,'pointer','watch')
 [bin,n_column,multi_seg,n_headers] = guess_file(fname);
 if (n_column == 1 && multi_seg == 0)        % Take it as a file names list
@@ -103,35 +97,146 @@ else
 end
 
 if (nargin == 1),   ix = 2;     iy = 1;
-else                ix = 1;     iy = 2;     end
+else                ix = 1;     iy = 2;
+end
 tol = 0.5;
+
+if (handles.no_file)        % Start empty but below we'll find the true data region
+    XMin = 1e50;            XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
+    xx = [-1e50 1e50];      yy = xx;        % Just make it big
+    if (nargin == 2),       region = [XMin XMax YMin YMax];     geog = 0;   % We know nothing so make it big
+    else                    region = [-180 180 -90 90];         geog = 1;   % We know it's geog
+    end
+    mirone('FileNewBgFrame_CB',handles.figure1,[],handles, [region geog])   % Create a background
+else                        % Reading over an established region
+    XYlim = getappdata(handles.figure1,'ThisImageLims');
+    xx = XYlim(1:2);            yy = XYlim(3:4);
+end
 
 for (k=1:length(names))
     fname = names{k};
     j = strfind(fname,filesep);
-    if (isempty(j)),    fname = [PathName fname];   end
+    if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well 
     [numeric_data,multi_segs_str] = text_read(fname,NaN,NaN,'>');
 	n_isoc = 0;     n_segments = length(numeric_data);
-	h_isoc = ones(n_segments,1)*NaN;   % This is the maximum we can have
+	h_isoc = ones(n_segments,1)*NaN;                        % This is the maximum we can have
 	n_clear = false(n_segments,1);
 	for i=1:n_segments
-        % Get rid of points that are outside the map limits
-        [tmpx,tmpy] = aux_funs('in_map_region',handles,numeric_data{i}(:,ix),numeric_data{i}(:,iy),tol,[xx yy]);
-        if (~isempty(tmpx))
+        difes = [numeric_data{i}(1,ix)-numeric_data{i}(end,ix) numeric_data{i}(1,iy)-numeric_data{i}(end,iy)];
+        if (any(abs(difes) > 1e-4))
+            is_closed = false;
+            % Not a closed polygon, so get rid of points that are outside the map limits
+            [tmpx,tmpy] = aux_funs('in_map_region',handles,numeric_data{i}(:,ix),numeric_data{i}(:,iy),tol,[xx yy]);
+        else
+            tmpx = numeric_data{i}(:,ix);       tmpy = numeric_data{i}(:,iy);
+            is_closed = true;
+        end
+        if (isempty(tmpx)),     n_clear(i) = 1;     continue;   end     % Store indexes for clearing vanished segments info
+
+        if (handles.no_file)        % We need to compute the data extent in order to set the correct axes limits
+            XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
+            YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
+        end
+        
+        [thick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(2:end)); % First time we can try to rip the '>' char
+        if (isempty(thick)),    thick = handles.DefLineThick;   end     % IF not provided, use default
+        if (isempty(cor)),      cor = handles.DefLineColor;     end     %           "
+        
+        if (~is_closed)         % Line plottings
             n_isoc = n_isoc + 1;
-            h_isoc(i) = line(tmpx,tmpy,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor,'Tag',tag,'Userdata',n_isoc);
+            h_isoc(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',thick,...
+                'Color',cor,'Tag',tag,'Userdata',n_isoc);
             setappdata(h_isoc(i),'LineInfo',multi_segs_str{i})  % To work with the sessions and will likely replace old mechansim
         else
-            n_clear(i) = 1;             % Store indexes for clearing vanished segments info
+            [Fcor str2] = parseG(multi_segs_str{i});
+            if (isempty(Fcor)),      Fcor = 'none';   end
+            hPat = patch('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',thick,'EdgeColor',cor,'FaceColor',Fcor);
+            draw_funs(hPat,'line_uicontext')
+            n_clear(i) = 1;     % Must delete this header info because it only applyies to lines, not patches
         end
 	end
 	multi_segs_str(n_clear) = [];       % Clear the unused info
 	
 	ind = isnan(h_isoc);    h_isoc(ind) = [];      % Clear unused rows in h_isoc (due to over-dimensioning)
-	draw_funs(h_isoc,'isochron',multi_segs_str)
+	if (~isempty(h_isoc)),  draw_funs(h_isoc,'isochron',multi_segs_str);    end
 end
 set(handles.figure1,'pointer','arrow')
 
+if (handles.no_file)        % We have a kind of inf Lims. Adjust for current values
+    region = [XMin XMax YMin YMax];
+    set(handles.axes1,'XLim',[XMin XMax],'YLim',[YMin YMax])
+    setappdata(handles.figure1,'ThisImageLims',region)
+    setappdata(handles.axes1,'ThisImageLims',region)
+    handles.geog = aux_funs('guessGeog',region);
+    guidata(handles.figure1,handles)
+end
+
+% --------------------------------------------------------------------
+function [cor, str2] = parseG(str)
+    % Parse the STR string in search of color. If not found or error COR = [].
+    % STR2 is the STR string less the -Gr/g/b part
+    cor = [];   str2 = str;
+    ind = strfind(str,'-G');
+    if (isempty(ind)),      return;     end     % No -G option
+    try                             % There are so many ways to have it wrong that I won't bother testing
+        [strG, rem] = strtok(str(ind:end));
+        str2 = [str(1:ind(1)-1) rem];   % Remove the -G<str> from STR
+        
+        strG(1:2) = [];                 % Remove the '-G' part from strG
+        % OK, now 'strG' must contain the color in the r/g/b form
+        ind = strfind(strG,'/');
+        if (isempty(ind))           % E.G. -G100 form
+            cor = eval(['[' strG ']']);
+            cor = [cor cor cor] / 255;
+        else
+            % This the relevant part in num2str. I think it is enough here
+            cor = [eval(['[' strG(1:ind(1)-1) ']']) eval(['[' strG(ind(1)+1:ind(2)-1) ']']) eval(['[' strG(ind(2)+1:end) ']'])];
+            cor = cor / 255;
+        end
+        if (any(isnan(cor))),   cor = [];   end
+    end
+
+% --------------------------------------------------------------------
+function [thick, cor, str2] = parseW(str)
+    % Parse the STR string in search for a -Wpen. Valid options are -W1,38/130/255 -W3 or -W100/255/255
+    % If not found or error THICK = [] &/or COR = [].
+    % STR2 is the STR string less the -W[thick,][r/g/b] part
+    thick = [];     cor = [];   str2 = str;
+    ind = strfind(str,'-W');
+    if (isempty(ind)),      return;     end     % No -W option
+    try                                 % There are so many ways to have it wrong that I won't bother testing
+        [strW, rem] = strtok(str(ind:end));
+        str2 = [str(1:ind(1)-1) rem];   % Remove the -W<str> from STR
+        
+        strW(1:2) = [];                 % Remove the '-W' part from strW
+        % OK, now 'strW' must contain the pen in the thick,r/g/b form
+        ind = strfind(strW,',');
+        if (~isempty(ind))          % First thing before the comma must be the line thickness
+            thick = eval(['[' strW(1:ind(1)-1) ']']);
+            strW = strW(ind(1)+1:end);  % Remove the line thickness part
+        else                        % OK, no comma. So we have either a thickness XOR a color
+            ind = strfind(strW,'/');
+            if (isempty(ind))       % No color. Take it as a thickness
+                thick = eval(['[' strW ']']);
+            else                    % A color
+                cor = [eval(['[' strW(1:ind(1)-1) ']']) eval(['[' strW(ind(1)+1:ind(2)-1) ']']) eval(['[' strW(ind(2)+1:end) ']'])];
+                cor = cor / 255;
+                if (any(isnan(cor))),   cor = [];   end
+                % We are done here. RETURN
+                return
+            end
+        end
+        % Come here when -Wt,r/g/b and '-Wt,' have already been riped
+        ind = strfind(strW,'/');
+        if (~isempty(ind))
+            % This the relevant part in num2str. I think it is enough here
+            cor = [eval(['[' strW(1:ind(1)-1) ']']) eval(['[' strW(ind(1)+1:ind(2)-1) ']']) eval(['[' strW(ind(2)+1:end) ']'])];
+            cor = cor / 255;
+        end
+        % Notice that we cannot have -W100 represent a color because it would have been interpret above as a line thickness
+        if (any(isnan(cor))),   cor = [];   end
+    end
+    
 % --------------------------------------------------------------------
 function DatasetsPlateBound_PB_All(handles)
 % Read and plot the of the modified (by me) Peter Bird's Plate Boundaries
