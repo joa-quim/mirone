@@ -27,6 +27,7 @@ switch opt
     case 'MBtrack_uicontext',       set_line_uicontext(hand,'MBtrack')
     case 'MBbar_uicontext',         set_bar_uicontext(hand)
     case 'Coastline_uicontext',     setCoastLineUictx(hand)
+    case 'DeleteObj',               delete_obj;
     case 'DrawGeographicalCircle'
         h = draw_circleGeo;
         if ~isempty(h)      % when in compiled version h may be empty (why?).
@@ -143,7 +144,6 @@ switch opt
     case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation'}
         set_symbol_uicontext(hand,data)
     case 'PlateBound_All_PB',       set_PB_uicontext(hand,data)
-    case 'DeleteObj',               delete_obj;
     case 'DrawVector'
         h = draw_vector;
         if ~isempty(h)      % when in compiled version h may be empty.
@@ -399,31 +399,31 @@ end
 
 % -----------------------------------------------------------------------------------------
 function copy_line_object(obj,eventdata,hFig,hAxes)
-newH = copyobj(gco,hAxes);
-rmappdata(newH,'polygon_data')      % Remove the parent's ui_edit_polygon appdata
-state = uisuspend_j(hFig);          % Remember initial figure state
-x_lim = get(hAxes,'xlim');        y_lim = get(hAxes,'ylim');
-current_pt = get(hAxes, 'CurrentPoint');
-setappdata(newH,'old_pt',[current_pt(1,1) current_pt(1,2)])
-
-set(hFig,'WindowButtonMotionFcn',{@wbm_MovePolygon,newH,[x_lim y_lim]},...
-    'WindowButtonDownFcn',{@wbd_MovePolygon,newH,state}, 'Pointer','fleur');
+	newH = copyobj(gco,hAxes);
+	rmappdata(newH,'polygon_data')      % Remove the parent's ui_edit_polygon appdata
+	state = uisuspend_j(hFig);          % Remember initial figure state
+	x_lim = get(hAxes,'xlim');        y_lim = get(hAxes,'ylim');
+	current_pt = get(hAxes, 'CurrentPoint');
+	setappdata(newH,'old_pt',[current_pt(1,1) current_pt(1,2)])
+	
+	set(hFig,'WindowButtonMotionFcn',{@wbm_MovePolygon,newH,[x_lim y_lim],hAxes},...
+        'WindowButtonDownFcn',{@wbd_MovePolygon,newH,state}, 'Pointer','fleur');
 
 % ---------
-function wbm_MovePolygon(obj,eventdata,h,lim)
-pt = get(gca, 'CurrentPoint');
-if (pt(1,1)<lim(1)) || (pt(1,1)>lim(2)) || (pt(1,2)<lim(3)) || (pt(1,2)>lim(4));   return; end
-old_pt = getappdata(h,'old_pt');
-xx = get(h,'XData');            yy = get(h,'YData');
-dx = pt(1,1) - old_pt(1);       dy = pt(1,2) - old_pt(2);
-xx = xx + dx;                   yy = yy + dy;
-setappdata(h,'old_pt',[pt(1,1) pt(1,2)])
-set(h, 'XData',xx, 'YData',yy);
+function wbm_MovePolygon(obj,eventdata,h,lim,hAxes)
+	pt = get(hAxes, 'CurrentPoint');
+	if (pt(1,1)<lim(1)) || (pt(1,1)>lim(2)) || (pt(1,2)<lim(3)) || (pt(1,2)>lim(4));   return; end
+	old_pt = getappdata(h,'old_pt');
+	xx = get(h,'XData');            yy = get(h,'YData');
+	dx = pt(1,1) - old_pt(1);       dy = pt(1,2) - old_pt(2);
+	xx = xx + dx;                   yy = yy + dy;
+	setappdata(h,'old_pt',[pt(1,1) pt(1,2)])
+	set(h, 'XData',xx, 'YData',yy);
 
 % ---------
 function wbd_MovePolygon(obj,eventdata,h,state)
-uirestore_j(state);         % Restore the figure's initial state
-ui_edit_polygon(h)          % Reset the edition functions with the correct handle
+	uirestore_j(state);         % Restore the figure's initial state
+	ui_edit_polygon(h)          % Reset the edition functions with the correct handle
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -1232,13 +1232,14 @@ else                                                %
 end                                                 %
 %---------------
 function gcircFirstButtonDown(h,state)
-pt = get(gca, 'CurrentPoint');
-set(get(0,'CurrentFigure'),'WindowButtonMotionFcn',{@wbm_gcircle,[pt(1,1) pt(1,2)],h},'WindowButtonDownFcn',{@wbd_gcircle,h,state});
+hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
+pt = get(hAxes, 'CurrentPoint');
+set(hFig,'WindowButtonMotionFcn',{@wbm_gcircle,[pt(1,1) pt(1,2)],h,hFig,hAxes},'WindowButtonDownFcn',{@wbd_gcircle,h,state});
 %---------------
-function wbm_gcircle(obj,eventdata,first_pt,h)
-pt = get(gca, 'CurrentPoint');
+function wbm_gcircle(obj,eventdata,first_pt,h,hFig,hAxes)
+pt = get(hAxes, 'CurrentPoint');
 [x,y] = gcirc(first_pt(1),first_pt(2),pt(1,1),pt(1,2));
-lt = getappdata(get(0,'CurrentFigure'),'DefLineThick');    lc = getappdata(get(0,'CurrentFigure'),'DefLineColor');
+lt = getappdata(hFig,'DefLineThick');    lc = getappdata(hFig,'DefLineColor');
 % Find the eventual Date line discontinuity and insert a NaN on it
 % ind = find(abs(diff(x)) > 100);   % 100 is good enough
 % if (~isempty(ind))
@@ -1280,18 +1281,19 @@ end                                                 %
 function circFirstButtonDown(h,state)
     x = linspace(-pi,pi,360);
 	setappdata(h,'X',cos(x));       setappdata(h,'Y',sin(x))    % Save unit circle coords
-	pt = get(gca, 'CurrentPoint');
-	set(get(0,'CurrentFigure'),'WindowButtonMotionFcn',{@wbm_circle,[pt(1,1) pt(1,2)],h}, ...
+    hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
+	pt = get(hAxes, 'CurrentPoint');
+	set(get(0,'CurrentFigure'),'WindowButtonMotionFcn',{@wbm_circle,[pt(1,1) pt(1,2)],h,hAxes,hFig}, ...
         'WindowButtonDownFcn',{@wbd_circle,h,state});
 
 %---------------
-function wbm_circle(obj,eventdata,center,h)
-pt = get(gca, 'CurrentPoint');
+function wbm_circle(obj,eventdata,center,h,hAxes,hFig)
+pt = get(hAxes, 'CurrentPoint');
 rad = sqrt( (pt(1,1)-center(1))^2 + (pt(1,2)-center(2))^2);
 %[y,x] = circ_geo(center(2),center(1),rad);
 x = getappdata(h,'X');          y = getappdata(h,'Y');
 x = center(1) + rad * x;        y = center(2) + rad * y;
-lt = getappdata(get(0,'CurrentFigure'),'DefLineThick');    lc = getappdata(get(0,'CurrentFigure'),'DefLineColor');
+lt = getappdata(hFig,'DefLineThick');    lc = getappdata(hFig,'DefLineColor');
 set(h, 'XData', x, 'YData', y,'Color',lc,'LineWidth',lt,'Userdata',[center(1) center(2) rad]);
 
 %---------------
@@ -1307,12 +1309,13 @@ function h_circ = draw_circleEulerPole(lon,lat)
 % Draw a circle (or arc of a circle) about the Euler Pole (or any other origin)
 % See notes above for the reason why waitforbuttonpress is used.
 h_circ = line('XData', [], 'YData', []);
-set(get(0,'CurrentFigure'),'Pointer', 'crosshair');
+hFig = get(0,'CurrentFigure');         hAxes = get(hFig,'CurrentAxes');
+set(hFig,'Pointer', 'crosshair');
 w = waitforbuttonpress;
 if w == 0       % A mouse click
-    set(get(0,'CurrentFigure'),'WindowButtonMotionFcn',{@wbm_circle,[lon lat],h_circ},'WindowButtonDownFcn',{@wbd_circle,h_circ});
+    set(hFig,'WindowButtonMotionFcn',{@wbm_circle,[lon lat],h_circ,hAxes},'WindowButtonDownFcn',{@wbd_circle,h_circ});
 else
-    set(get(0,'CurrentFigure'),'Pointer', 'arrow');
+    set(hFig,'Pointer', 'arrow');
     h_circ = [];
 end
 
@@ -1320,25 +1323,26 @@ end
 function move_circle(obj,eventdata,h)
 % ONLY FOR CARTESIAN CIRCLES.
 state = uisuspend_j(get(0,'CurrentFigure'));     % Remember initial figure state
+hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
 center = getappdata(h,'LonLatRad');
-set(get(0,'CurrentFigure'),'WindowButtonMotionFcn',{@wbm_MoveCircle,h,center},'WindowButtonDownFcn',{@wbd_MoveCircle,h,state},...
-    'Pointer', 'crosshair');
+set(hFig,'WindowButtonMotionFcn',{@wbm_MoveCircle,h,center,hAxes},...
+    'WindowButtonDownFcn',{@wbd_MoveCircle,h,state,hAxes},'Pointer', 'crosshair');
 
-function wbm_MoveCircle(obj,eventdata,h,center)
-pt = get(gca, 'CurrentPoint');
-% [y,x] = circ_geo(pt(1,2),pt(1,1),center(3));
-x = getappdata(h,'X');          y = getappdata(h,'Y');
-x = pt(1,1) + center(3)*x;     y = pt(1,2) + center(3)*y;
-set(h, 'XData', x, 'YData', y,'Userdata',[pt(1,1) pt(1,2) center(3)]);
+function wbm_MoveCircle(obj,eventdata,h,center,hAxes)
+	pt = get(hAxes, 'CurrentPoint');
+	% [y,x] = circ_geo(pt(1,2),pt(1,1),center(3));
+	x = getappdata(h,'X');          y = getappdata(h,'Y');
+	x = pt(1,1) + center(3)*x;     y = pt(1,2) + center(3)*y;
+	set(h, 'XData', x, 'YData', y,'Userdata',[pt(1,1) pt(1,2) center(3)]);
 
-function wbd_MoveCircle(obj,eventdata,h,state)
-% check if x,y is inside of axis
-pt = get(gca, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
-x_lim = get(gca,'xlim');        y_lim = get(gca,'ylim');
-if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
-lon_lat_rad = get(h,'UserData');    setappdata(h,'LonLatRad',lon_lat_rad)   % save this in appdata
-set(get(0,'CurrentFigure'),'WindowButtonMotionFcn','','WindowButtonDownFcn','', 'Pointer', 'arrow');
-uirestore_j(state);           % Restore the figure's initial state
+function wbd_MoveCircle(obj,eventdata,h,state,hAxes)
+	% check if x,y is inside of axis
+	pt = get(hAxes, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
+	x_lim = get(hAxes,'xlim');        y_lim = get(hAxes,'ylim');
+	if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
+	lon_lat_rad = get(h,'UserData');    setappdata(h,'LonLatRad',lon_lat_rad)   % save this in appdata
+	set(get(0,'CurrentFigure'),'WindowButtonMotionFcn','','WindowButtonDownFcn','', 'Pointer', 'arrow');
+	uirestore_j(state);           % Restore the figure's initial state
 
 % -----------------------------------------------------------------------------------------
 function change_CircCenter1(obj,eventdata,h)
@@ -1506,17 +1510,17 @@ function Transplant_Image(obj,eventdata)
 % into indexed bg images and vice-versa.
 
 h = gco;
-out = implanting_img(findobj(get(0,'CurrentFigure'),'Type','image'),h,get(gca,'xlim'),get(gca,'ylim'));
+hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
+out = implanting_img(findobj(hFig,'Type','image'),h,get(hAxes,'xlim'),get(hAxes,'ylim'));
 if isempty(out),   return;      end
-h_img = findobj(get(get(0,'CurrentFigure'),'Children'),'Type','image');     % Get background image handle
+h_img = findobj(get(hFig,'Children'),'Type','image');     % Get background image handle
 zz = get(h_img,'CData');
 
 % Find if Implanting image needs to be ud fliped
-if(strcmp(get(gca,'XDir'),'normal') && strcmp(get(gca,'YDir'),'reverse'))
+if(strcmp(get(hAxes,'XDir'),'normal') && strcmp(get(hAxes,'YDir'),'reverse'))
         flip = 0;
 else    flip = 1;
 end
-
 
 [nl_ip,nc_ip,n_planes_ip] = size(out.ip_img);       % Get dimensions of implanting image
 [nl_bg,nc_bg,n_planes_bg] = size(zz);               % Get dimensions of bg image
@@ -1579,33 +1583,34 @@ function copy_text_object(obj,eventdata)
 
 % -----------------------------------------------------------------------------------------
 function move_text(obj,eventdata)
-h = gco;
-state = uisuspend_j(get(0,'CurrentFigure'));     % Remember initial figure state
-set(get(0,'CurrentFigure'),'WindowButtonMotionFcn',{@wbm_txt,h},'WindowButtonDownFcn',{@wbd_txt,h,state});
-refresh
-function wbm_txt(obj,eventdata,h)
-pt = get(gca, 'CurrentPoint');
-pos = get(h,'Position');    pos(1) = pt(1,1);   pos(2) = pt(1,2);   set(h,'Position',pos);
-refresh
-function wbd_txt(obj,eventdata,h,state)
-% check if x,y is inside of axis
-pt = get(gca, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
-x_lim = get(gca,'xlim');      y_lim = get(gca,'ylim');
-if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
-set(get(0,'CurrentFigure'),'WindowButtonMotionFcn','','WindowButtonDownFcn','');
-refresh
-uirestore_j(state);           % Restore the figure's initial state
+	h = gco;
+    hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
+	state = uisuspend_j(hFig);     % Remember initial figure state
+	set(hFig,'WindowButtonMotionFcn',{@wbm_txt,h,hAxes},'WindowButtonDownFcn',{@wbd_txt,h,state,hAxes});
+	refresh
+function wbm_txt(obj,eventdata,h,hAxes)
+	pt = get(hAxes, 'CurrentPoint');
+	pos = get(h,'Position');    pos(1) = pt(1,1);   pos(2) = pt(1,2);   set(h,'Position',pos);
+	refresh
+function wbd_txt(obj,eventdata,h,state,hAxes)
+	% check if x,y is inside of axis
+	pt = get(hAxes, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
+	x_lim = get(hAxes,'xlim');      y_lim = get(hAxes,'ylim');
+	if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
+	set(get(0,'CurrentFigure'),'WindowButtonMotionFcn','','WindowButtonDownFcn','');
+	refresh
+	uirestore_j(state);           % Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
 function rotate_text(obj,eventdata)
-prompt = {'Enter angle of rotation'};     dlg_title = '';
-num_lines= [1 30];
-resp  = inputdlg(prompt,dlg_title,num_lines);
-if isempty(resp);    return;     end
-h = gco;
-set(h,'Rotation',str2double(resp))
-refresh
+	prompt = {'Enter angle of rotation'};     dlg_title = '';
+	num_lines= [1 30];
+	resp  = inputdlg(prompt,dlg_title,num_lines);
+	if isempty(resp);    return;     end
+	h = gco;
+	set(h,'Rotation',str2double(resp))
+	refresh
 
 % -----------------------------------------------------------------------------------------
 function text_FontSize(obj,eventdata)
@@ -1772,30 +1777,31 @@ setLineColor(itemEColor,cb_color)
 
 % -----------------------------------------------------------------------------------------
 function move_symbol(obj,eventdata,h)
-state = uisuspend_j(get(0,'CurrentFigure'));     % Remember initial figure state
-pt = get(gca, 'CurrentPoint');
+hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
+state = uisuspend_j(hFig);     % Remember initial figure state
+pt = get(hAxes, 'CurrentPoint');
 x = get(h,'XData');
 if (length(x) > 1)              % We have a class symbol
     [c,i]=min(abs(x-pt(1,1)));  % Get the index of the current symbol
 else                            % We have a individual symbol
     i = 1;
 end
-set(get(0,'CurrentFigure'),'WindowButtonMotionFcn',{@wbm_symb,h,i},'WindowButtonDownFcn',{@wbd_symb,h,state});
+set(hFig,'WindowButtonMotionFcn',{@wbm_symb,h,i,hAxes},'WindowButtonDownFcn',{@wbd_symb,h,state,hAxes});
 
-function wbm_symb(obj,eventdata,h,i)
-pt = get(gca, 'CurrentPoint');
-pos_x = pt(1,1);        pos_y = pt(1,2);
-x = get(h,'XData');     x(i) = pos_x;
-y = get(h,'YData');     y(i) = pos_y;
-set(h,'XData',x,'YData',y);
+function wbm_symb(obj,eventdata,h,i,hAxes)
+	pt = get(hAxes, 'CurrentPoint');
+	pos_x = pt(1,1);        pos_y = pt(1,2);
+	x = get(h,'XData');     x(i) = pos_x;
+	y = get(h,'YData');     y(i) = pos_y;
+	set(h,'XData',x,'YData',y);
 
-function wbd_symb(obj,eventdata,h,state)
-% check if x,y is inside of axis
-pt = get(gca, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
-x_lim = get(gca,'xlim');      y_lim = get(gca,'ylim');
-if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
-set(get(0,'CurrentFigure'),'WindowButtonMotionFcn','','WindowButtonDownFcn','');
-uirestore_j(state);           % Restore the figure's initial state
+function wbd_symb(obj,eventdata,h,state,hAxes)
+	% check if x,y is inside of axis
+	pt = get(hAxes, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
+	x_lim = get(hAxes,'xlim');      y_lim = get(hAxes,'ylim');
+	if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
+	set(get(0,'CurrentFigure'),'WindowButtonMotionFcn','','WindowButtonDownFcn','');
+	uirestore_j(state);           % Restore the figure's initial state
 
 % -----------------------------------------------------------------------------------------
 function change_SymbPos(obj,eventdata,h)
@@ -2158,35 +2164,35 @@ msgbox( sprintf(['Plate pairs:           ' txt_id '\n' 'Boundary Type:    ' txt_
 
 % -----------------------------------------------------------------------------------------
 function delete_obj()
-h = findobj('Tag','Tesoura');
-
-% Build the scisors pointer (this was done with the help of an image file)
-pointer = ones(16)*NaN;
-pointer(2,7) = 1;       pointer(2,11) = 1;      pointer(3,7) = 1;       pointer(3,11) = 1;
-pointer(4,7) = 1;       pointer(4,11) = 1;      pointer(5,7) = 1;       pointer(5,8) = 1;
-pointer(5,10) = 1;      pointer(5,11) = 1;      pointer(6,8) = 1;       pointer(6,10) = 1;
-pointer(7,8) = 1;       pointer(7,9) = 1;       pointer(7,10) = 1;      pointer(8,9) = 1;
-pointer(9,8) = 1;       pointer(9,9) = 1;       pointer(9,10) = 1;      pointer(10,8) = 1;
-pointer(10,10) = 1;     pointer(10,11) = 1;     pointer(10,12) = 1;     pointer(11,6) = 1;
-pointer(11,7) = 1;      pointer(11,8) = 1;      pointer(11,10) = 1;     pointer(11,13) = 1;
-pointer(12,5) = 1;      pointer(12,8) = 1;      pointer(12,10) = 1;     pointer(12,13) = 1;
-pointer(13,5) = 1;      pointer(13,8) = 1;      pointer(13,10) = 1;     pointer(13,13) = 1;
-pointer(14,5) = 1;      pointer(14,8) = 1;      pointer(14,11) = 1;     pointer(14,12) = 1;
-pointer(15,6:7) = 1;
-
-[x,y,button] = ginput_pointer(1,pointer,[1 8]);
-while (button == 1)       % A mouse click
-    obj = gco;
-    obj_type = get(obj,'Type');
-    if (strcmp(obj_type,'line') || strcmp(obj_type,'text') || strcmp(obj_type,'patch'))
-        del_line([],[],obj);
-    end
-    if (strcmp(obj_type,'text'))
-        refresh;    % because of the text elements bug
-    end
-    [x,y,button] = ginput_pointer(1,pointer,[1 8]);
-end
-if ishandle(h),    set(h,'State','off');    end;    % Set the Toggle button state to depressed
+	h = findobj('Tag','Tesoura');
+	
+	% Build the scisors pointer (this was done with the help of an image file)
+	pointer = ones(16)*NaN;
+	pointer(2,7) = 1;       pointer(2,11) = 1;      pointer(3,7) = 1;       pointer(3,11) = 1;
+	pointer(4,7) = 1;       pointer(4,11) = 1;      pointer(5,7) = 1;       pointer(5,8) = 1;
+	pointer(5,10) = 1;      pointer(5,11) = 1;      pointer(6,8) = 1;       pointer(6,10) = 1;
+	pointer(7,8) = 1;       pointer(7,9) = 1;       pointer(7,10) = 1;      pointer(8,9) = 1;
+	pointer(9,8) = 1;       pointer(9,9) = 1;       pointer(9,10) = 1;      pointer(10,8) = 1;
+	pointer(10,10) = 1;     pointer(10,11) = 1;     pointer(10,12) = 1;     pointer(11,6) = 1;
+	pointer(11,7) = 1;      pointer(11,8) = 1;      pointer(11,10) = 1;     pointer(11,13) = 1;
+	pointer(12,5) = 1;      pointer(12,8) = 1;      pointer(12,10) = 1;     pointer(12,13) = 1;
+	pointer(13,5) = 1;      pointer(13,8) = 1;      pointer(13,10) = 1;     pointer(13,13) = 1;
+	pointer(14,5) = 1;      pointer(14,8) = 1;      pointer(14,11) = 1;     pointer(14,12) = 1;
+	pointer(15,6:7) = 1;
+	
+	[x,y,button] = ginput_pointer(1,pointer,[1 8]);
+	while (button == 1)       % A mouse click
+        obj = gco;
+        obj_type = get(obj,'Type');
+        if (strcmp(obj_type,'line') || strcmp(obj_type,'text') || strcmp(obj_type,'patch'))
+            del_line([],[],obj);
+        end
+        if (strcmp(obj_type,'text'))
+            refresh;    % because of the text elements bug
+        end
+        [x,y,button] = ginput_pointer(1,pointer,[1 8]);
+	end
+	if ishandle(h),    set(h,'State','off');    end;    % Set the Toggle button state to depressed
 
 % -----------------------------------------------------------------------------------------
 function del_line(obj,eventdata,h)
