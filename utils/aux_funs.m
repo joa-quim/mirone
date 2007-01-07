@@ -34,8 +34,6 @@ switch opt
         end
     case 'min_max_single'
         [varargout{1} varargout{2}] = min_max_single(varargin{:});
-    case 'led_rg'
-        led_rg(varargin{:})
 end
 
 % --------------------------------------------------------------------
@@ -238,18 +236,3 @@ if (dim == 1);      pixelx = axesx - xfirst + 1;    return;     end
 xslope = (dim - 1) / (xlast - xfirst);
 if ((xslope == 1) && (xfirst == 1));     pixelx = axesx;
 else    pixelx = xslope * (axesx - xfirst) + 1;         end
-
-% --------------------------------------------------------------------
-function led_rg(handles,color)
-% This little function swapps the led color between red <-> green
-pos = get(handles.figure1,'Position');
-if (pos(4) < 40),   return;     end     % Do not use this while there is no image in figure - ML bugs, what else.
-
-switch color
-    case 'red'
-        led = cat(3,handles.semaforo_ico(:,:,2),handles.semaforo_ico(:,:,1),handles.semaforo_ico(:,:,3));
-        set(handles.h_semaf,'CData',led)
-        pause(0.1)
-    case 'green'
-        set(handles.h_semaf,'CData',handles.semaforo_ico)
-end
