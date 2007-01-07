@@ -26,7 +26,7 @@ switch opt
     case 'ContourLines',            set_ContourLines_uicontext(hand,data)
     case 'MBtrack_uicontext',       set_line_uicontext(hand,'MBtrack')
     case 'MBbar_uicontext',         set_bar_uicontext(hand)
-    case 'Coastline_uicontext',     set_coastLine_uicontext(hand)
+    case 'Coastline_uicontext',     setCoastLineUictx(hand)
     case 'DrawGeographicalCircle'
         h = draw_circleGeo;
         if ~isempty(h)      % when in compiled version h may be empty (why?).
@@ -78,69 +78,68 @@ switch opt
         if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
             errordlg(['Error reading file ' fname],'Error');    return
         end
-        if (bin == 0)   % ASCII
-            if (n_column < 2)
-                errordlg('File error. Your file doesn''t have at least 2 columns','Error'); return
-            end
-            if (isempty(n_headers)),    n_headers = NaN;    end
-            if (multi_seg)
-                [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers,'>');
-            else
-                [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
-            end
-            
-            % If OUT is requested there is nothing left to be done here
-            if (nargout)
-                OUT = numeric_data;     return
-            end
-            
-            if (hFig ~= hMsgFig);       figure(hFig);    axes(hAxes);   end     % gain access to the drawing figure
-            % Get rid of points that are outside the map limits
-            tol = 0.5;
-            if (iscell(numeric_data))
-                n_segments = length(numeric_data);
-            else
-                n_segments = 1;
-            end
-            xx = get(hAxes,'Xlim');      yy = get(hAxes,'Ylim');
-            hold on
-            lt = getappdata(get(0,'CurrentFigure'),'DefLineThick');
-            lc = getappdata(get(0,'CurrentFigure'),'DefLineColor');
-            for i=1:n_segments
-                if (iscell(numeric_data))
-                    tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
-                else
-                    tmpx = numeric_data(:,1);       tmpy = numeric_data(:,2);
-                end
-                ind = find(tmpx < xx(1)-tol | tmpx > xx(2)+tol);
-                tmpx(ind) = [];         tmpy(ind) = [];
-                ind = find(tmpy < yy(1)-tol | tmpy > yy(2)+tol);
-                tmpx(ind) = [];         tmpy(ind) = [];
-                switch data
-                    case 'AsLine'
-                        % The following Tag is very important to destinguish from MB tracks, which have Tags = MBtrack#
-                        lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','polyline');
-                        set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
-                    case 'AsPoint'
-                        lineHand = plot(tmpx,tmpy,'ko','MarkerEdgeColor','w','MarkerFaceColor','k', ...
-                            'MarkerSize',4,'Tag','Pointpolyline');
-                        set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu (tag is very important)
-                    case 'AsMaregraph'
-                        lineHand = plot(tmpx,tmpy,'Marker','o','MarkerFaceColor','y',...
-                            'MarkerEdgeColor','k','MarkerSize',10,'Tag','Maregraph');
-                        set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu
-                    case 'FaultTrace'
-                        lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','FaultTrace');
-                        set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
-                        % Create empty patches that will contain the surface projection of the fault plane
-                        for (k=1:length(tmpx)-1)  hp(k) = patch('XData', [], 'YData',[]);    end
-                        setappdata(lineHand,'PatchHand',hp);
-                end
-            end
-            clear numeric_data;     hold off
-        else        % BINARY
+        if (bin ~= 0)   % NOT ASCII
             errordlg('Sorry, reading binary files is not yet programed','Error');   return
         end
+        if (n_column < 2)
+            errordlg('File error. Your file doesn''t have at least 2 columns','Error'); return
+        end
+        if (isempty(n_headers)),    n_headers = NaN;    end
+        if (multi_seg)
+            [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers,'>');
+        else
+            [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
+        end
+        
+        % If OUT is requested there is nothing left to be done here
+        if (nargout)
+            OUT = numeric_data;     return
+        end
+            
+        if (hFig ~= hMsgFig);       figure(hFig);    axes(hAxes);   end     % gain access to the drawing figure
+        % Get rid of points that are outside the map limits
+        tol = 0.5;
+        if (iscell(numeric_data))
+            n_segments = length(numeric_data);
+        else
+            n_segments = 1;
+        end
+        XYlim = getappdata(hFig,'ThisImageLims');
+        xx = XYlim(1:2);            yy = XYlim(3:4);
+        hold on
+        lt = getappdata(hFig,'DefLineThick');   lc = getappdata(hFig,'DefLineColor');
+        for i=1:n_segments
+            if (iscell(numeric_data))
+                tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
+            else
+                tmpx = numeric_data(:,1);       tmpy = numeric_data(:,2);
+            end
+            ind = find(tmpx < xx(1)-tol | tmpx > xx(2)+tol);
+            tmpx(ind) = [];         tmpy(ind) = [];
+            ind = find(tmpy < yy(1)-tol | tmpy > yy(2)+tol);
+            tmpx(ind) = [];         tmpy(ind) = [];
+            switch data
+                case 'AsLine'
+                    % The following Tag is very important to tell from MB tracks, which have Tags = MBtrack#
+                    lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','polyline');
+                    set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
+                case 'AsPoint'
+                    lineHand = plot(tmpx,tmpy,'ko','MarkerEdgeColor','w','MarkerFaceColor','k', ...
+                        'MarkerSize',4,'Tag','Pointpolyline');
+                    set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu (tag is very important)
+                case 'AsMaregraph'
+                    lineHand = plot(tmpx,tmpy,'Marker','o','MarkerFaceColor','y',...
+                        'MarkerEdgeColor','k','MarkerSize',10,'Tag','Maregraph');
+                    set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu
+                case 'FaultTrace'
+                    lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','FaultTrace');
+                    set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
+                    % Create empty patches that will contain the surface projection of the fault plane
+                    for (k=1:length(tmpx)-1)  hp(k) = patch('XData', [], 'YData',[]);    end
+                    setappdata(lineHand,'PatchHand',hp);
+            end
+        end
+        clear numeric_data;     hold off
     case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation'}
         set_symbol_uicontext(hand,data)
     case 'PlateBound_All_PB',       set_PB_uicontext(hand,data)
@@ -554,28 +553,25 @@ item_lc = uimenu(cmenuHand, 'Label', 'All Contours Line Color');
 setLineColor(item_lc,cb_CLineColor)
 
 % -----------------------------------------------------------------------------------------
-function set_coastLine_uicontext(h)
+function setCoastLineUictx(h)
 % h is a handle to a line object
 tag = get(h,'Tag');
-if (strcmp(tag,'CoastLineNetCDF'))
-    label = 'Delete coastlines';
-elseif (strcmp(tag,'PoliticalBoundaries'))
-    label = 'Delete boundaries';
-elseif (strcmp(tag,'Rivers'))
-    label = 'Delete rivers';
+if (strcmp(tag,'CoastLineNetCDF')),         label = 'Delete coastlines';
+elseif (strcmp(tag,'PoliticalBoundaries'))  label = 'Delete boundaries';
+elseif (strcmp(tag,'Rivers'))               label = 'Delete rivers';
 end
 cmenuHand = uicontextmenu;
 set(h, 'UIContextMenu', cmenuHand);
 cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 cb13 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb14 = 'set(gco, ''LineStyle'', ''--''); refresh';
 cb15 = 'set(gco, ''LineStyle'', '':''); refresh';   cb16 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-cb_color = uictx_color(h);      % there are 9 cb_color outputs
+cb_color = uictx_color(h);              % there are 9 cb_color outputs
 
-uimenu(cmenuHand, 'Label', label, 'Callback', 'delete(gco)');
-uimenu(cmenuHand, 'Label', 'Edit line (left-click on it)', 'Callback', 'edit_line');
-uimenu(cmenuHand, 'Label', 'Save coastline', 'Callback', {@save_formated,h});
+uimenu(cmenuHand, 'Label', label, 'Call', 'delete(gco)');
+uimenu(cmenuHand, 'Label', 'Edit line (left-click on it)', 'Call', 'edit_line');
+uimenu(cmenuHand, 'Label', 'Save coastline', 'Call', {@save_formated,h});
 
-item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 setLineWidth(item_lw,cb_LineWidth)
 item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
 setLineStyle(item_ls,{cb13 cb14 cb15 cb16})
@@ -2003,7 +1999,7 @@ elseif (nargin == 4)
     end
     doSave_formated(opt(:,1), opt(:,2), opt(:,3))
 else
-    errordlg('save_formated called with a wrong number of arguments.','ERROR')
+    errordlg('save_formated: called with a wrong number of arguments.','ERROR')
 end
 
 % -----------------------------------------------------------------------------------------
@@ -2051,7 +2047,7 @@ end
 if (nargin == 3)
     xy = [xy opt_z(:)];    fmt = [fmt '\t%f'];
 end
-double2ascii(f_name,xy,fmt);
+double2ascii(f_name,xy,fmt,'maybeMultis');
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_SymbColor(h,prop)
