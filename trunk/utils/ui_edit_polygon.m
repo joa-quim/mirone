@@ -133,8 +133,8 @@ function polygonui(varargin)
             s.KeyPressFcn_org = get(s.h_fig,'KeyPressFcn');
             x = get(s.h_pol,'XData');
             y = get(s.h_pol,'YData');
-            s.h_vert = line('xdata',x,'ydata',y,'Parent',s.h_ax, 'Marker','s','color','k', 'MarkerFaceColor','none', ...
-                            'linestyle','none','MarkerSize',6,'buttondownfcn',{@edit_polygon,s.h_pol});
+            s.h_vert = line('xdata',x,'ydata',y,'Parent',s.h_ax, 'Marker','s','color','r', 'MarkerFaceColor','none', ...
+                            'linestyle','none','MarkerSize',5,'buttondownfcn',{@edit_polygon,s.h_pol});
             set(s.h_pol,'buttondownfcn',{@move_polygon,s.h_pol});
             set(s.h_fig,'KeyPressFcn',{@KeyPress_local, s.h_pol})
             setappdata(s.h_pol,'polygon_data',s)
@@ -150,7 +150,7 @@ function edit_polygon(obj,eventdata,h)
         polygonui(s.h_pol,eventdata)        % hide it. So the only way to get out of edition mode is
         return                              % to provide an other exit. That's where this call to
     end                                     % polygonui('markermousedown') comes to hand.        
-    state = uisuspend_safe(s.h_fig);             % Remember initial figure state
+    state = uisuspend_safe(s.h_fig);        % Remember initial figure state
 
     x_lim = get(s.h_ax,'xlim');
     y_lim = get(s.h_ax,'ylim');
@@ -163,7 +163,7 @@ function edit_polygon(obj,eventdata,h)
     s.save_x = x(s.vert_index);   s.save_y = y(s.vert_index);   % needed in the "i"nsert option
     if isempty(s.h_current_marker)      % If the black marker doesn't exist, creat it
         s.h_current_marker = line('xdata',s.save_x,'ydata', s.save_y, 'parent', s.h_ax,'Marker','s','MarkerEdgeColor','none', ...
-                                  'MarkerFaceColor','k','MarkerSize',6,'Tag','current_marker');
+                                  'MarkerFaceColor','k','MarkerSize',5,'Tag','current_marker');
     else                                % The black marker exists, just move it.
         set(s.h_current_marker,'XData',s.save_x,'YData',s.save_y)
     end
