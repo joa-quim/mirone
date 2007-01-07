@@ -41,33 +41,33 @@ draw_funs(h_hotspot,'hotspot',hot)
 
 % --------------------------------------------------------------------
 function DatasetsVolcanoes(handles)
-% Read volcanoes.dat which has 6 columns (lat lon name ...)
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-fid = fopen([handles.path_data 'volcanoes.dat'],'r');
-todos = fread(fid,'*char');
-[volc.y volc.x volc.name region volc.desc volc.dating] = strread(todos,'%f %f %s %s %s %s');
-fclose(fid);    clear region todos
-
-% Get rid of Volcanoes that are outside the map limits
-[x,y,indx,indy] = aux_funs('in_map_region',handles,volc.x,volc.y,0,[]);
-volc.name(indx) = [];       volc.desc(indx) = [];       volc.dating(indx) = [];
-volc.name(indy) = [];       volc.desc(indy) = [];       volc.dating(indy) = [];
-n_volc = length(x);    h_volc = zeros(1,n_volc);
-for (i = 1:n_volc)
-    h_volc(i) = line(x(i),y(i),'Marker','^','MarkerFaceColor','y',...
-        'MarkerEdgeColor','k','MarkerSize',8,'Tag','volcano','Userdata',i);
-end
-draw_funs(h_volc,'volcano',volc)
+	% Read volcanoes.dat which has 6 columns (lat lon name ...)
+	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	fid = fopen([handles.path_data 'volcanoes.dat'],'r');
+	todos = fread(fid,'*char');
+	[volc.y volc.x volc.name region volc.desc volc.dating] = strread(todos,'%f %f %s %s %s %s');
+	fclose(fid);    clear region todos
+	
+	% Get rid of Volcanoes that are outside the map limits
+	[x,y,indx,indy] = aux_funs('in_map_region',handles,volc.x,volc.y,0,[]);
+	volc.name(indx) = [];       volc.desc(indx) = [];       volc.dating(indx) = [];
+	volc.name(indy) = [];       volc.desc(indy) = [];       volc.dating(indy) = [];
+	n_volc = length(x);    h_volc = zeros(1,n_volc);
+	for (i = 1:n_volc)
+        h_volc(i) = line(x(i),y(i),'Marker','^','MarkerFaceColor','y',...
+            'MarkerEdgeColor','k','MarkerSize',8,'Tag','volcano','Userdata',i);
+	end
+	draw_funs(h_volc,'volcano',volc)
 
 % --------------------------------------------------------------------
 function DatasetsTides(handles)
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-load([handles.path_data 't_xtide.mat']);
-% Get rid of Tide stations that are outside the map limits
-[x,y] = aux_funs('in_map_region',handles,xharm.longitude,xharm.latitude,0,[]);
-h_tides = line(x,y,'Marker','^','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',6,...
-    'LineStyle','none','Tag','TideStation');
-draw_funs(h_tides,'TideStation',[])
+	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	load([handles.path_data 't_xtide.mat']);
+	% Get rid of Tide stations that are outside the map limits
+	[x,y] = aux_funs('in_map_region',handles,xharm.longitude,xharm.latitude,0,[]);
+	h_tides = line(x,y,'Marker','^','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',6,...
+        'LineStyle','none','Tag','TideStation');
+	draw_funs(h_tides,'TideStation',[])
 
 % --------------------------------------------------------------------
 function DatasetsIsochrons(handles, opt)
@@ -477,7 +477,7 @@ if (strcmp(opt,'DSDP'))
         set(handles.figure1,'pointer','arrow');        msgbox('Warning: There are no DSDP sites inside this area.','Warning');    return;
     end
     for i = 1:n_sites
-        h_sites(i) = line(ODP.x(i),ODP.y(i),'Marker','o','MarkerFaceColor','g',...
+        h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','g',...
             'MarkerEdgeColor','k','MarkerSize',8,'Tag','DSDP','Userdata',i);
     end
     draw_funs(h_sites,'ODP',ODP)
@@ -486,21 +486,21 @@ elseif (strcmp(opt,'ODP'))
         set(handles.figure1,'pointer','arrow');        msgbox('Warning: There are no ODP sites inside this area.','Warning');    return;
     end
     for i = 1:n_sites
-        h_sites(i) = line(ODP.x(i),ODP.y(i),'Marker','o','MarkerFaceColor','r',...
+        h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','r',...
             'MarkerEdgeColor','k','MarkerSize',8,'Tag','ODP','Userdata',i);
     end
     draw_funs(h_sites,'ODP',ODP)
 else
     h_sites = zeros(length(1:ind-1),1);
     for i = 1:ind-1
-        h_sites(i) = line(ODP.x(i),ODP.y(i),'Marker','o','MarkerFaceColor','g',...
+        h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','g',...
             'MarkerEdgeColor','k','MarkerSize',8,'Tag','DSDP','Userdata',i);
     end
     draw_funs(h_sites,'ODP',ODP)
     h_sites = zeros(length(ind:n_sites),1);
     for (i = 1:length(ind:n_sites))
         j = i + ind - 1;
-        h_sites(i) = line(ODP.x(j),ODP.y(j),'Marker','o','MarkerFaceColor','r',...
+        h_sites(i) = line('XData',ODP.x(j),'YData',ODP.y(j),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','r',...
             'MarkerEdgeColor','k','MarkerSize',8,'Tag','ODP','Userdata',j);
     end
     draw_funs(h_sites,'ODP',ODP)
