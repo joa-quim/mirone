@@ -41,8 +41,13 @@ if (handlesMir.no_file)
 end
 
 handles.imgOnly = 1;            % Flag that indicates pure image capture
-if (numel(varargin) == 2)
+handles.noname = false;
+if (numel(varargin) > 1 && strcmp(varargin{2},'frame'))
     handles.imgOnly = 0;        % OK, so we will have a image + frame capture
+elseif (numel(varargin) > 1 && strcmp(varargin{2},'noname'))
+    handles.noname = true;
+elseif (numel(varargin) > 1 && strcmp(varargin{2},'img'))
+    % Already the default
 end
 
 % Add this figure handle to the carraças list
@@ -82,14 +87,16 @@ axPos = get(handlesMir.axes1,'pos');            set(handlesMir.axes1,'Units',axU
 handles.imSize = size(get(handlesMir.hImg,'CData'));
 handles.imAxSize = [axPos(4) axPos(3)];                     % Image size as reinterpolated to fit inside axes.
 
-if (~handles.imgIsClean || numel(handles.imSize) == 3)      % Output will be RGB for sure. So remove formats
-    ind = false(numel(str1),1);
-    ind(9:10) = true;
-    str1(ind) = [];       handles.exts(ind) = [];
+if (~handles.noname)
+    if (~handles.imgIsClean || numel(handles.imSize) == 3)  % Output will be RGB for sure. So remove formats
+        ind = false(numel(str1),1);
+        ind(9:10) = true;
+        str1(ind) = [];       handles.exts(ind) = [];
+    end
+    set(handles.popup_fileType,'String',str1)
+else
+    handles.imAxSize = handles.imSize(1:2);                 % Geo-referenced files. Make it multiples of original size.
 end
-
-% ---
-set(handles.popup_fileType,'String',str1)
 
 % ---------------- Get info to allow guessing imgAx image size
 PU = get(handles.hCallingFig,'paperunits');     set(handles.hCallingFig,'paperunits','inch')
@@ -119,16 +126,28 @@ handles.txtThisSize = ['(' sprintf('%d',nRows) 'x' sprintf('%d',nCols) ') ' spri
 set(handles.edit_imgSize,'String',handles.txtThisSize,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 
 % ---------------- Fill the edit file name with a default value
-fname = get(handlesMir.figure1,'Name');
-[pato,fname,ext] = fileparts(fname);
-if (islogical(get(handlesMir.hImg,'CData')) && handles.imgOnly)   % Best proposition when we have a logical (mask) image
-    fname = [handlesMir.work_dir filesep fname '.png'];
-    set(handles.popup_fileType,'Val',2)
-    set(handles.checkbox_origSize,'Val',1)
+if (~handles.noname)
+	fname = get(handlesMir.figure1,'Name');
+	[pato,fname,ext] = fileparts(fname);
+	if (islogical(get(handlesMir.hImg,'CData')) && handles.imgOnly)   % Best proposition when we have a logical (mask) image
+        fname = [handlesMir.work_dir filesep fname '.png'];
+        set(handles.popup_fileType,'Val',2)
+        set(handles.checkbox_origSize,'Val',1)
+	else
+        fname = [handlesMir.work_dir filesep fname '.jpg'];
+	end
+	set(handles.edit_fname,'String',fname);
 else
-    fname = [handlesMir.work_dir filesep fname '.jpg'];
+	set(handles.edit_fname,'String','Not used','Enable','off');
+    set(handles.popup_fileType,'String','Nikles','Enable','off')
+    set(handles.push_outFile,'Enable','off')
+%     set(handles.checkbox_origSize,'Val',1)
+    set(handles.edit_imgSize,'String',handles.txtOrigSize)
+%     set(handles.slider_mag,'Val',1,'Enable','inactive')
+    set(handles.slider_quality,'Visible','off')
+    set(handles.text_Quality,'Visible','off')
+    set(handles.text_qualityLev,'Visible','off')
 end
-set(handles.edit_fname,'String',fname);
 
 % ----------------- Set the slider with the apropriate range
 if (handles.imgOnly)
@@ -149,27 +168,16 @@ handles.work_dir = handlesMir.work_dir;
 handles.home_dir = handlesMir.home_dir;
 
 % ----------------- Choose default command line output for snapshot_export
-handles.output = hObject;
+handles.output = [];
 guidata(hObject, handles);
-
-% UIWAIT makes snapshot_export wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
-
 set(hObject,'Visible','on');
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = snapshot_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
 
-% --- Outputs from this function are returned to the command line.
-function varargout = snapshot_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% handles    structure with handles and user data (see GUIDATA)
-
-% Get default command line output from handles structure
-varargout{1} = handles.output;
+if (nargout)
+    uiwait(handles.figure1);
+    handles = guidata(handles.figure1);
+    varargout{1} = handles.output;
+    delete(handles.figure1);
+end
 
 % -----------------------------------------------------------------------------
 function sliderRange(handles,magnification,val)
@@ -185,7 +193,7 @@ function sliderRange(handles,magnification,val)
 	end
 
 % -----------------------------------------------------------------------------
-function edit_fname_Callback(hObject, eventdata, handles)
+function edit_fname_CB(hObject, eventdata, handles)
     fname = get(hObject,'String');
     [pato,fname,ext] = fileparts(fname);
     if (~strmatch(lower(ext),handles.exts))
@@ -194,7 +202,7 @@ function edit_fname_Callback(hObject, eventdata, handles)
     end
 
 % -----------------------------------------------------------------------------
-function push_outFile_Callback(hObject, eventdata, handles)
+function push_outFile_CB(hObject, eventdata, handles)
     contents = get(handles.popup_fileType,'String');
     val = get(handles.popup_fileType,'Val');    
     str = {handles.exts{val} contents{val}};
@@ -210,7 +218,7 @@ function push_outFile_Callback(hObject, eventdata, handles)
     set(handles.edit_fname,'String',[PathName FileName])
 
 % -----------------------------------------------------------------------------
-function popup_fileType_Callback(hObject, eventdata, handles)
+function popup_fileType_CB(hObject, eventdata, handles)
     ext = handles.exts{get(hObject,'Value')};
     fname = get(handles.edit_fname,'String');
     fname = stripExt(fname);
@@ -254,7 +262,7 @@ function popup_fileType_Callback(hObject, eventdata, handles)
     guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------
-function slider_mag_Callback(hObject, eventdata, handles)
+function slider_mag_CB(hObject, eventdata, handles)
     % Callback to control the image magnetization factor slider
     mag = get(hObject,'Value');
     set(handles.edit_mag,'String',mag);
@@ -279,7 +287,7 @@ function slider_mag_Callback(hObject, eventdata, handles)
     guidata(handles.figure1,handles)
     
 % -----------------------------------------------------------------------------
-function checkbox_origSize_Callback(hObject, eventdata, handles)
+function checkbox_origSize_CB(hObject, eventdata, handles)
     % When checked, image size reflects the original size, which cannot be changed.
 	if (get(hObject,'Val'))
         set(handles.edit_imgSize,'String',handles.txtOrigSize)
@@ -292,13 +300,13 @@ function checkbox_origSize_Callback(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------
-function slider_quality_Callback(hObject, eventdata, handles)
+function slider_quality_CB(hObject, eventdata, handles)
     handles.quality = round(get(hObject,'Value') * 100);
     set(handles.text_qualityLev,'String',[sprintf('%d',handles.quality) ' %']);
     guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------
-function push_save_Callback(hObject, eventdata, handles)
+function push_save_CB(hObject, eventdata, handles)
     try
         im = get(handles.hImg,'CData');
     catch
@@ -313,31 +321,53 @@ function push_save_Callback(hObject, eventdata, handles)
     end
 
     dims = handles.imAxSize * handles.currMag;
-    if (get(handles.checkbox_origSize,'Val'))
-        dims = handles.imSize(1:2);
-    end
+    if (get(handles.checkbox_origSize,'Val')),      dims = handles.imSize(1:2);    end
+	handsStBar = getappdata(handles.hCallingFig,'CoordsStBar');
+	set(handsStBar,'Visible','off')
+    set(handles.figure1,'Visible','off');       pause(0.01)     % To remove an cripled visual effect
+    % The next flipdim() cases are a result of MANY hours trying to figure out where the guys in TMW
+    % f... had the head when they invented that MESS of image fliped up/down depending on axes 'YDir'
+    % is normal or STUPIDLY Y->down and, if that was not enough, make the result vary from image capture
+    % or get(hImage,'CData'). Someone should really be punished for this.
     try
         if (handles.vecGraph)           % PS, etc ...
             ctype = 'img';
             if (~handles.imgOnly),   ctype = 'imgAx';      end
             imcapture(handles.hCallingFig,ctype,fname,get(handles.edit_mag,'String'));
             % We are done here, bye bye
+        	set(handsStBar(2:end),'Visible','on')
             return
         else                            % RASTER FORMATS
+            captura = true;
             if (handles.imgOnly)            % Image only
-                if (get(handles.checkbox_origSize,'Val') && handles.imgIsClean)
+                if ( handles.imgIsClean && ( get(handles.checkbox_origSize,'Val') || (handles.noname && handles.currMag == 1) ) )
                     % Here we don't need to do any screen capture which forces img to be RGB
                     img = im;
+                    captura = false;
                 else
                     img = imcapture(handles.hCallingFig,'img',dims);
                 end
             else                            % Image and frames
                 img = imcapture(handles.hCallingFig,'imgAx',get(handles.edit_mag,'String'));
             end
+            if (handles.noname)             % We are in the output img (modal) mode
+                if (captura && strncmp(get(handles.hCallingAx,'YDir'),'nor',3))
+                    img = flipdim(img,1);
+                end
+                handles.output = img;
+                guidata(handles.figure1,handles)
+                uiresume(handles.figure1);
+            	set(handsStBar(2:end),'Visible','on')
+                return
+            end
+            if (~captura && strncmp(get(handles.hCallingAx,'YDir'),'nor',3))    % For imwrite
+                img = flipdim(img,1);
+            end
         end
     catch
         errordlg(lasterr,'Error');    return
     end
+	set(handsStBar(2:end),'Visible','on')
 
     if ( strcmpi(EXT,'.jpg') || strcmpi(EXT,'.jpeg') )
         if (ndims(img) == 2),   img = ind2rgb8(img,get(handles.hCallingFig,'Colormap'));    end
@@ -355,13 +385,11 @@ function push_save_Callback(hObject, eventdata, handles)
         end
         fwrite(fid,pix,'uint8');        fclose(fid);
     elseif strcmpi(EXT,'.gif')              % Non existent in < R14
-        if (strcmp(get(handles.hCallingAx,'Ydir'),'normal')),   img = flipud(img);      end     % That f... tendency to invertion
         if (islogical(img)),        writegif(img,fname);
         else                        writegif(img,get(handles.hCallingFig,'Colormap'),fname);
         end
     elseif (strcmpi(EXT,'.png') || strcmpi(EXT,'.tif'))
         if (ndims(img) == 2)
-            if (strcmp(get(handles.hCallingAx,'Ydir'),'normal')),   img = flipud(img);   end    % That f... tendency to invertion
             if (islogical(img)),    imwrite(img,fname);
             else                    imwrite(img,get(handles.hCallingFig,'Colormap'),fname);
             end
@@ -371,10 +399,11 @@ function push_save_Callback(hObject, eventdata, handles)
     else
         imwrite(img,fname);
     end
+    delete(handles.figure1)
 
 % -----------------------------------------------------------------------------
-function push_cancel_Callback(hObject, eventdata, handles)
-    delete(handles.figure1)
+function push_cancel_CB(hObject, eventdata, handles)
+    figure1_CloseRequestFcn([], [], handles)
 
 % -----------------------------------------------------------------------------
 function [fname,ext] = stripExt(fname)
@@ -387,10 +416,21 @@ function [fname,ext] = stripExt(fname)
         end
 	end
 
+%-------------------------------------------------------------------------------------
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+    % The GUI is still in UIWAIT, us UIRESUME
+    guidata(handles.figure1, handles);    uiresume(handles.figure1);
+else    % The GUI is no longer waiting, just close it
+    delete(handles.figure1);
+end
+
 % --- Creates and returns a handle to the GUI figure. 
 function snapshot_LayoutFcn(h1,handles);
 
 set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
+'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'MenuBar','none',...
 'Name','Snapshot',...
@@ -405,14 +445,14 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 
 h2 = uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@snapshot_uicallback,h1,'edit_fname_Callback'},...
+'Callback',{@snapshot_uicallback,h1,'edit_fname_CB'},...
 'HorizontalAlignment','left',...
 'Position',[70 150 331 20],...
 'Style','edit',...
 'Tag','edit_fname');
 
 h3 = uicontrol('Parent',h1,...
-'Callback',{@snapshot_uicallback,h1,'push_outFile_Callback'},...
+'Callback',{@snapshot_uicallback,h1,'push_outFile_CB'},...
 'FontSize',12,...
 'FontWeight','bold',...
 'Position',[400 149 24 21],...
@@ -466,7 +506,7 @@ h9 = uicontrol('Parent',h1,...
 
 h10 = uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@snapshot_uicallback,h1,'popup_fileType_Callback'},...
+'Callback',{@snapshot_uicallback,h1,'popup_fileType_CB'},...
 'Position',[70 125 201 20],...
 'Style','popupmenu',...
 'Value',1,...
@@ -474,7 +514,7 @@ h10 = uicontrol('Parent',h1,...
 
 h11 = uicontrol('Parent',h1,...
 'BackgroundColor',[0.9 0.9 0.9],...
-'Callback',{@snapshot_uicallback,h1,'slider_mag_Callback'},...
+'Callback',{@snapshot_uicallback,h1,'slider_mag_CB'},...
 'Max',20,'Min',1,...
 'Position',[108 77 163 14],...
 'Style','slider',...
@@ -482,7 +522,7 @@ h11 = uicontrol('Parent',h1,...
 'Tag','slider_mag');
 
 h12 = uicontrol('Parent',h1,...
-'Callback',{@snapshot_uicallback,h1,'checkbox_origSize_Callback'},...
+'Callback',{@snapshot_uicallback,h1,'checkbox_origSize_CB'},...
 'Position',[10 54 160 15],...
 'String','Preserve Image original size',...
 'Style','checkbox',...
@@ -492,7 +532,7 @@ h12 = uicontrol('Parent',h1,...
 h13 = uicontrol(...
 'Parent',h1,...
 'BackgroundColor',[0.9 0.9 0.9],...
-'Callback',{@snapshot_uicallback,h1,'slider_quality_Callback'},...
+'Callback',{@snapshot_uicallback,h1,'slider_quality_CB'},...
 'Position',[51 32 261 14],...
 'Style','slider',...
 'TooltipString','Higher numbers mean higher quality, and larger file size',...
@@ -506,13 +546,13 @@ h14 = uicontrol('Parent',h1,...
 'Tag','text_qualityLev');
 
 h15 = uicontrol('Parent',h1,...
-'Callback',{@snapshot_uicallback,h1,'push_save_Callback'},...
+'Callback',{@snapshot_uicallback,h1,'push_save_CB'},...
 'Position',[230 5 91 23],...
 'String','Save',...
 'Tag','push_save');
 
 h16 = uicontrol('Parent',h1,...
-'Callback',{@snapshot_uicallback,h1,'push_cancel_Callback'},...
+'Callback',{@snapshot_uicallback,h1,'push_cancel_CB'},...
 'Position',[332 5 91 23],...
 'String','Cancel',...
 'Tag','push_cancel');
