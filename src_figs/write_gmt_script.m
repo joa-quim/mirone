@@ -1224,7 +1224,7 @@ if (~isempty(grd_name))
     elseif ( handles_mirone.Illumin_type > 4 || handles_mirone.is_draped )
         % We have a Manip or draping illumination. Here we have to use the R,G,B trick
         name = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
-        mirone('File_img2GMT_RGBgrids_Callback',gcbo,[],handles_mirone,'image',[],name)
+        mirone('File_img2GMT_RGBgrids_CB',gcbo,[],handles_mirone,'image',name)
         illum = [name '_r.grd ' name '_g.grd ' name '_b.grd']; % ????
         have_gmt_illum = 0;
     else        % We don't have any illumination
@@ -1251,7 +1251,7 @@ elseif (handles_mirone.image_type == 20)
     % Do nothing regarding the basemap image (in fact we don't have any image)
 else    % We don't have a grid, so we need to fish the image and save it as R,G,B triplet
     name = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
-    mirone('File_img2GMT_RGBgrids_Callback',gcbo,[],handles_mirone,'image',[],name) 
+    mirone('File_img2GMT_RGBgrids_CB',gcbo,[],handles_mirone,'image',name) 
     script{l} = [' '];
     script{l} = [comm '-------- Plot the 3 RGB base images using grdimage'];    l=l+1;
     script{l} = ['grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips ' -R -J -O -K >> ' pb 'ps' pf];
@@ -1908,9 +1908,8 @@ function [xdata, ydata, zdata] = removeExtraNanSeparators(xdata, ydata, zdata)
 %         error(eid,'XDATA, YDATA (or ZDATA) mismatch in size or NaN locations.')
 %     end
 % end
-    
-% Determing the positions of each NaN.
-p = find(isnan(xdata(:)'));
+
+p = find(isnan(xdata(:)'));     % Determing the positions of each NaN.
 
 % Determine the position of each NaN that is not the final element in a sequence of contiguous NaNs.
 q = p(diff(p) == 1);
@@ -1930,7 +1929,6 @@ end
 xdata(s) = [];      ydata(s) = [];
 if (nargin >= 3),   zdata(s) = [];  end
 
-
 % ---------------------- Creates and returns a handle to the GUI figure. 
 function write_gmt_script_LayoutFcn(h1,handles);
 
@@ -1944,8 +1942,7 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'RendererMode','manual',...
 'Resize','off',...
 'HandleVisibility','callback',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
 h2 = uicontrol('Parent',h1,'Position',[30 9 205 121],'Style','frame','Tag','frame1');
 
