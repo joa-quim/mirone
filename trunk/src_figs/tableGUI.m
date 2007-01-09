@@ -40,6 +40,10 @@ function out = tableGUI(varargin)
 %   'RowNumbers'    Add a first column with row numbers. Note that this         string - either '' or 'y'
 %                   column is set to 'inactive' and its not transmited
 %                   on the output (DEF = '').
+%   'RowNames'      Add a column with row names. Note that this column          1xN cell array of strings
+%                   is set to 'inactive' and its not transmited on the
+%                   output (DEF = ''). Warning: do not abuse on the 
+%                   Names length. Added by Martin Furlan
 %   'checks'        If = 'Y' it creates a vertical line of checkboxes           string - either '' or 'y'
 %                   This affects what is send as output. Only rows that
 %                   have it's checkbox checked will be returned.
@@ -90,6 +94,11 @@ function out = tableGUI(varargin)
 %
 %   Revision
 %       17-Sep-2006 - There was an error when only one check box existed.
+%
+%   Addition
+%       6-Dec-2006 - A column with row names added by Martin Furlan
+%       (martin.furlan@iskra-ae.com)
+%
 
 hand.NumRows = 12;          hand.NumCol = 6;
 hand.MAX_ROWS = 10;         hand.left_marg = 10;
@@ -99,6 +108,7 @@ hand.HorAlin = 'center';    hand.FigName = 'Table';
 hand.array = cell(hand.NumRows,hand.NumCol);
 hand.modal = 'y';           hand.position = 'east';
 hand.RowNumbers = '';       d_col = 0;
+hand.RowNames = ''; 
 
 if (nargin == 0)        % Demo
     hand.ColNames = {'A' 'B' 'C' 'D' 'E' 'F'};
@@ -156,7 +166,9 @@ fig_height = min(hand.NumRows,hand.MAX_ROWS) * (hand.RowHeight+hand.bd_size);
 if (~isempty(hand.HdrButtons)),    fig_height = fig_height + 22;   end     % Make room for header buttons
 if (~isempty(hand.modal)),          fig_height = fig_height + 30;   end     % Make room for OK,Cancel buttons
 pos = [5 75 sum(arr_pos_xw)+hand.left_marg+(hand.NumCol-1)*hand.bd_size+15 fig_height];  % The 15 is for the slider
-if (~isempty(hand.checks)),     pos(3) = pos(3) + 15;   end         % Account for checkboxes size
+if (~isempty(hand.checks)),     pos(3) = pos(3) + 15;       end         % Account for checkboxes size
+if (~isempty(hand.RowNames)),   pos(3) = pos(3) + 60;       end         % Account for row names size
+
 hand.hFig = figure('unit','pixels','NumberTitle','off','Menubar','none','resize','on','position', ...
     pos,'Name',hand.FigName,'Resize','off','Visible','off');
 movegui(hand.hFig,hand.position)
@@ -164,11 +176,22 @@ movegui(hand.hFig,hand.position)
 hand.arr_pos_y = (fig_height-hand.RowHeight-hand.bd_size - (0:hand.NumRows-1)*(hand.RowHeight+hand.bd_size))';
 if (~isempty(hand.HdrButtons)),     hand.arr_pos_y = hand.arr_pos_y - 22;   end
 
-if (~isempty(hand.checks))              % Create the checkboxes uicontrols
-    arr_pos_xi = arr_pos_xi + 15;       % Make room for them
+if (~isempty(hand.checks) && isempty(hand.RowNames))    % Create the checkboxes uicontrols
+    arr_pos_xi = arr_pos_xi + 15;                       % Make room for them
     hand.hChecks = zeros(hand.NumRows,1);
     hand.Checks_pos_orig = [ones(hand.NumRows,1)*7 (hand.arr_pos_y+3) ones(hand.NumRows,1)*15 ones(hand.NumRows,1)*15];
 end
+if (~isempty(hand.RowNames) && isempty(hand.checks))    % Create the row names
+    arr_pos_xi = arr_pos_xi + 60;                       % Make room for them
+    hand.RowNames_pos_orig = [ones(hand.NumRows,1)*7 (hand.arr_pos_y) ones(hand.NumRows,1)*60 ones(hand.NumRows,1)*20];
+end
+if (~isempty(hand.checks) && ~isempty(hand.RowNames))   % Create both the checkboxes uicontrols and the row names
+    arr_pos_xi = arr_pos_xi + 15 + 60 + 2;              % Make room for them
+    hand.hChecks = zeros(hand.NumRows,1);
+    hand.Checks_pos_orig = [ones(hand.NumRows,1)*7 (hand.arr_pos_y+3) ones(hand.NumRows,1)*15 ones(hand.NumRows,1)*15];
+    hand.RowNames_pos_orig = [ones(hand.NumRows,1)*7 + 15 + 5 (hand.arr_pos_y) ones(hand.NumRows,1)*60 ones(hand.NumRows,1)*20];
+end
+
 hand.hEdits = zeros(hand.NumRows,hand.NumCol);
 hand.Edits_pos_orig = cell(hand.NumRows,hand.NumCol);
 
@@ -195,6 +218,12 @@ if (~isempty(hand.HdrButtons))         % Create the header pushbutton uicontrols
         uicontrol('Style','pushbutton','unit','pixels','Enable','inactive','position', ...
             [arr_pos_xi(j+d_col) hand.arr_pos_y(1)+hand.RowHeight hand.ColWidth(j+d_col) 20],'String',hand.ColNames{j})
     end
+end
+if (~isempty(hand.RowNames))           % Create the header pushbutton uicontrols
+    for (i = 1:length(hand.RowNames))
+        uicontrol('Style','pushbutton','unit','pixels','Enable','inactive','position', ...
+            hand.RowNames_pos_orig(i,:),'String',hand.RowNames{i}) 
+   end
 end
 
 % ---------------- See if we need a slider ---------------------------
@@ -382,3 +411,4 @@ for i=1:n
     p_i = propnames{ind};
 	params = setfield(params,p_i,v_i);      % override the corresponding default in params
 end
+
