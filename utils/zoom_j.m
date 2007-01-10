@@ -45,7 +45,12 @@ switch nargin
         if ~ishandle(fig)
             error('First argument must be a figure handle.')
         end
-        zoomCommand=varargin{2};
+        if (isnumeric(varargin{2}))
+            scale_factor=varargin{2};
+            zoomCommand='scale';
+        else
+            zoomCommand=varargin{2};
+        end
 	otherwise   % too many args
         error(nargchk(0, 2, nargin));
 end % switch nargin
