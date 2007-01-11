@@ -65,12 +65,16 @@ function write_dtm(fid,mode,Z,limits)
 	fwrite(fid,Z,'uint16');
 
 %----------------------------------------------------------------------------------
-function write_shade(fid,mode,hFig,hAxes,burnCoasts)
+function write_shade(fid,mode,hFig,hAxes,burnCoasts,screenCap)
     % Write a .shade block
     if (strcmp(mode,'first'))       % The TDR object starts here
 	    fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
     end
-	img = get(findobj(hAxes,'Type','image'),'CData');
+    if (screenCap)
+        img = flipdim(imcapture(hAxes,'img',0),1);     % Do a screen capture ... and the UD flip horror
+    else
+    	img = get(findobj(hAxes,'Type','image'),'CData');
+    end
     [m,n,k] = size(img);
 	fwrite(fid,[1000 m*n*4+34],'integer*4');     % Tag ID, Data Length
 	fwrite(fid,[0 0 1 1 1 2],'integer*1');
@@ -106,8 +110,9 @@ function write_eof(fid)
 	fclose(fid);
 
 %----------------------------------------------------------------------------------
-function write_main(fid,type,hFig,hAxes,Z,limits,burnCoasts)
+function write_main(fid,type,hFig,hAxes,Z,limits,burnCoasts,screenCap)
 % Write a basic .sd file. That is with a DTM, a SHADE & a GEO blocks
+    if (nargin == 7),   screenCap = false;      end
 
 	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:     Mirone   ','%%');
     if (strcmp(type,'writePlanarSD') || strcmp(type,'runPlanarSD'))
@@ -117,7 +122,7 @@ function write_main(fid,type,hFig,hAxes,Z,limits,burnCoasts)
     end
     
     write_flederFiles('dtm',fid,'add',Z,limits)
-    write_flederFiles('shade',fid,'add',hFig,hAxes,burnCoasts)
+    write_flederFiles('shade',fid,'add',hFig,hAxes,burnCoasts,screenCap)
     write_flederFiles('geo',fid,'add',limits)
 
 %----------------------------------------------------------------------------------
@@ -455,7 +460,7 @@ else
     z = zeros(1,length(x));
 end
 
-id_with_nan = repmat(logical(0),1,n_lines);
+id_with_nan = false(1,n_lines);
 count = 0;                          % Counter of the total number of points
 for (i = 1:n_lines)
     if (iscell(x))                  % Multi lines case 
@@ -479,7 +484,7 @@ if (any(id_with_nan))
         x(id_with_nan) = [];        y(id_with_nan) = [];        z(id_with_nan) = [];
     end
     id_where = find(id_with_nan == 1);  % Allways == 1 for single line
-    for (i = length(id_where))
+    for (i = 1:numel(id_where))
         xt = get(hands(id_where(i)),'XData');
         yt = get(hands(id_where(i)),'YData');
         id_nan = find(xt ~= xt);    % Find the NaNs
@@ -494,10 +499,10 @@ if (any(id_with_nan))
         n_segments = length(id_nan)-1;
         xx = cell(n_segments,1);    yy = xx;    zz = xx;
         for (k = 1:n_segments)
-           xx{k} = x(id_nan(k)+1:id_nan(k+1)-1);
-           yy{k} = y(id_nan(k)+1:id_nan(k+1)-1);
-           zz{k} = repmat(z_level,1,length(xx{k}));
-           count = count + length(xx{k});
+           xx{k} = xt(id_nan(k)+1:id_nan(k+1)-1);
+           yy{k} = yt(id_nan(k)+1:id_nan(k+1)-1);
+           zz{k} = repmat(z_level,1,numel(xx{k}));
+           count = count + numel(xx{k});
         end
         if (iscell(x))              % Apend to eventual existing lines that had no NaNs
             x = [x; xx];        y = [y; yy];    z = [z; zz];
@@ -528,7 +533,7 @@ function img = burnLines(hFig,hAxes,img,inplace)
                 lt = 16;        % antialiased line
             end
             if (inplace)
-                cvlib_mex('poly',img,xy,[],line_thick,lt)
+                cvlib_mex('poly',img,xy,line_color,line_thick,lt)
             else
                 img = cvlib_mex('poly',img,xy,line_color,line_thick,lt);
             end
