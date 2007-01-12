@@ -75,10 +75,11 @@ str1 = {'JPEG image (*.jpg)'; ...
     'Hieralchical Data Format (*.hdf)'; ...
     'GIF image (*.gif)'; ...
     'Windows Paintbrush (*.pcx)'; ...
+    'Portable Anymap (*.pnm)'; ...
     'SUN rasterfile (*.ras)'; ...
     'Raw RGB format (*.raw)'};
 
-handles.exts = {'.jpg' '.png' '.tif' '.bmp' '.eps' '.ai' '.emf' '.hdf' '.gif' '.pcx' '.ras' '.raw'};
+handles.exts = {'.jpg' '.png' '.tif' '.bmp' '.eps' '.ai' '.emf' '.hdf' '.gif' '.pcx' '.pnm' '.ras' '.raw'};
 
 % ------------ Get the image dimensions. Note that the dimensions are those deffined
 %              by the axes size and not the true image size.
@@ -90,8 +91,8 @@ handles.imAxSize = [axPos(4) axPos(3)];                     % Image size as rein
 if (~handles.noname)
     if (~handles.imgIsClean || numel(handles.imSize) == 3)  % Output will be RGB for sure. So remove formats
         ind = false(numel(str1),1);
-        ind(9:10) = true;
-        str1(ind) = [];       handles.exts(ind) = [];
+        ind(9:11) = true;               % Remove gif, pcx & pnm
+        str1(ind) = [];         handles.exts(ind) = [];
     end
     set(handles.popup_fileType,'String',str1)
 else
