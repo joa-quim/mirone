@@ -210,7 +210,7 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
 
     PU = get(h,'paperunits');       set(h,'paperunits','inch')
     pp = get(h,'paperposition');    PPM = get(h,'PaperPositionMode');
-    dpi = round(nx / pp(3));
+    dpi = (nx / pp(3));             % I used to have a round() here but this pobably more correct
     % Here is the key point of all this manip.
     set(h,'paperposition',[pp(1:3) ny / dpi])
 
