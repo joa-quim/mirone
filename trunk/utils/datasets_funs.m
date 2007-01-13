@@ -103,9 +103,23 @@ tol = 0.5;
 
 if (handles.no_file)        % Start empty but below we'll find the true data region
     XMin = 1e50;            XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
-    xx = [-1e50 1e50];      yy = xx;        % Just make it big
-    if (nargin == 2),       region = [XMin XMax YMin YMax];     geog = 0;   % We know nothing so make it big
-    else                    region = [-180 180 -90 90];         geog = 1;   % We know it's geog
+    geog = 1;               % Not important. It will be confirmed later
+    if (nargin == 1)        % We know it's geog (Global Isochrons)
+        region = [-180 180 -90 90];
+    else                    % We need to compute the file extents.
+		for (k=1:length(names))
+            fname = names{k};
+            j = strfind(fname,filesep);
+            if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well 
+            [numeric_data,multi_segs_str] = text_read(fname,NaN,NaN,'>');
+			for i=1:length(numeric_data)
+                tmpx = numeric_data{i}(:,ix);   tmpy = numeric_data{i}(:,iy);
+                XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
+                YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
+            end
+		end
+        xx = [XMin XMax];           yy = [YMin YMax];
+        region = [xx yy];           % 1 stands for geog but that will be confirmed later
     end
     mirone('FileNewBgFrame_CB',handles.figure1,[],handles, [region geog])   % Create a background
 else                        % Reading over an established region
