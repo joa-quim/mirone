@@ -102,44 +102,43 @@ delete(handles.figure1);
 
 % ----------------------------------------------------------------------
 function pushbutton1_Callback(hObject, eventdata, handles)
-handles.output = get(hObject,'String');
-guidata(hObject, handles);
-% Use UIRESUME instead of delete because the OutputFcn needs to get the updated handles structure.
-uiresume(handles.figure1);
+	handles.output = get(hObject,'String');
+	guidata(hObject, handles);
+	% Use UIRESUME instead of delete because the OutputFcn needs to get the updated handles structure.
+	uiresume(handles.figure1);
 
 % ----------------------------------------------------------------------
 function pushbutton2_Callback(hObject, eventdata, handles)
-handles.output = get(hObject,'String');
-guidata(hObject, handles);
-% Use UIRESUME instead of delete because the OutputFcn needs to get the updated handles structure.
-uiresume(handles.figure1);
+	handles.output = get(hObject,'String');
+	guidata(hObject, handles);
+	% Use UIRESUME instead of delete because the OutputFcn needs to get the updated handles structure.
+	uiresume(handles.figure1);
 
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    uiresume(handles.figure1);      % The GUI is still in UIWAIT, us UIRESUME
-else
-    delete(handles.figure1);        % The GUI is no longer waiting, just close it
-end
+	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+        uiresume(handles.figure1);      % The GUI is still in UIWAIT, us UIRESUME
+	else
+        delete(handles.figure1);        % The GUI is no longer waiting, just close it
+	end
 
 % --- Executes on key press over figure1 with no controls selected.
 function figure1_KeyPressFcn(hObject, eventdata, handles)
-% Check for "enter" or "escape"
-if isequal(get(hObject,'CurrentKey'),'escape')
-    % User said Yes (the default answer) by hitting escape
-    handles.output = 'Yes';
-    guidata(hObject, handles);
-    uiresume(handles.figure1);
-end    
-if isequal(get(hObject,'CurrentKey'),'return')
-    uiresume(handles.figure1);
-end    
+	% Check for "enter" or "escape"
+	if isequal(get(hObject,'CurrentKey'),'escape')
+        % User said Yes (the default answer) by hitting escape
+        handles.output = 'Yes';
+        guidata(hObject, handles);
+        uiresume(handles.figure1);
+	end    
+	if isequal(get(hObject,'CurrentKey'),'return')
+        uiresume(handles.figure1);
+	end    
 
 
 % --- Creates and returns a handle to the GUI figure. 
 function h1 = yes_or_no_LayoutFcn()
 h1 = figure(...
-'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'CloseRequestFcn','yes_or_no(''figure1_CloseRequestFcn'',gcf,[],guidata(gcf))',...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'IntegerHandle','off',...
@@ -151,22 +150,23 @@ h1 = figure(...
 'Resize','off',...
 'Visible', 'off',...
 'HandleVisibility','callback',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
-h2 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback','yes_or_no(''pushbutton1_Callback'',gcbo,[],guidata(gcbo))',...
 'FontWeight','bold',...
 'Position',[93 8 81 25],...
 'String','Yes','Tag','pushbutton1');
 
-h3 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback','yes_or_no(''pushbutton2_Callback'',gcbo,[],guidata(gcbo))',...
 'Position',[234 8 81 25],...
 'String','No','Tag','pushbutton2');
 
-h4 = uicontrol('Parent',h1,'FontSize',10,...
+uicontrol('Parent',h1,'FontSize',10,...
 'HorizontalAlignment','left',...
 'Position',[11 45 341 112],...
-'String',{'According to your own declaration of grid_max_size '; '(Yes you did declare it, even if you don''t know it because'; ' "I don''t like Manuals"),'; 'this grid is too big for your teeths. In these cases is'; 'VERY WISE to STOP here and use the "Overview tool".'; ''; 'Shell I stop now?' },...
+'FontUnits','points',...
+'FontSize',10.0,...
+'String',{'According to your own declaration of grid_max_size '; '(Yes you did declare it, even if you don''t know it because'; ' "I don''t like Manuals"),'; 'this grid is too big for your teeth. In these cases it is'; 'VERY WISE to STOP here and use the "Overview tool".'; ''; 'Shell I stop now?' },...
 'Style','text','Tag','text1');
