@@ -140,7 +140,6 @@ function polygonui(varargin)
             setappdata(s.h_pol,'polygon_data',s)
     end
 
-
 %--------------------------------------------------
 function edit_polygon(obj,eventdata,h)
 % Edit the polygon whose handle is h
@@ -169,11 +168,12 @@ function edit_polygon(obj,eventdata,h)
     end
     setappdata(h,'polygon_data',s);
 
-    set(s.h_fig,'WindowButtonMotionFcn',{@wbm_EditPolygon,h,[x_lim y_lim]},...
-        'WindowButtonUpFcn',{@wbu_EditPolygon,h,state}, 'Pointer','fleur');
+    set(s.h_fig,'WindowButtonMotionFcn',{@wbm_EditPolygon,h,[x_lim y_lim],s.h_fig},...
+        'WindowButtonUpFcn',{@wbu_EditPolygon,h,state});
 
 %--------------------------------------------------
-function wbm_EditPolygon(obj,eventdata,h,lim)
+function wbm_EditPolygon(obj,eventdata,h,lim,hFig)
+    set(hFig, 'Pointer','fleur')        % I know, but this way fleur pointer shows only when we have a movment
     s = getappdata(h,'polygon_data');
     pt = get(s.h_ax, 'CurrentPoint');
     if (pt(1,1) < lim(1)) || (pt(1,1) > lim(2)) || (pt(1,2) < lim(3)) || (pt(1,2) > lim(4));   return; end
