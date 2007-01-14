@@ -17,44 +17,36 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-
-delete(findobj(handles.figure1,'Tag','NewFigure'));     delete(findobj(handles.figure1,'Tag','ImportGMTgrid'))
-delete(findobj(handles.figure1,'Tag','SaveGMTgrid'));   delete(findobj(handles.figure1,'Tag','Preferences'))
-delete(findobj(handles.figure1,'Tag','Print'));         delete(findobj(handles.figure1,'Tag','DrawText'))
-delete(findobj(handles.figure1,'Tag','DrawGeogCirc'));  delete(findobj(handles.figure1,'Tag','DrawLine'))
-delete(findobj(handles.figure1,'Tag','DrawRect'));      delete(findobj(handles.figure1,'Tag','DrawPolyg'))
-delete(findobj(handles.figure1,'Tag','DrawArrow'));     delete(findobj(handles.figure1,'Tag','Tesoura'))
-delete(findobj(handles.figure1,'Tag','ColorPal'));      delete(findobj(handles.figure1,'Tag','MeasureAzim'))
-delete(findobj(handles.figure1,'Tag','Shading'));       delete(findobj(handles.figure1,'Tag','Anaglyph'))
-delete(findobj(handles.figure1,'Tag','TerrainMod'));    delete(findobj(handles.figure1,'Tag','MBplaning'))
-delete(findobj(handles.figure1,'Tag','FlederPlanar'));  delete(findobj(handles.figure1,'Tag','ImageInfo'))
-delete(findobj(handles.figure1,'Tag','Refresh'));
-
-delete(findobj(handles.figure1,'Tag','Image'));         delete(findobj(handles.figure1,'Tag','Tools'))
-delete(findobj(handles.figure1,'Tag','Draw'));          delete(findobj(handles.figure1,'Tag','Geophysics'))
-delete(findobj(handles.figure1,'Tag','Help'));          delete(findobj(handles.figure1,'Tag','GridTools'))
-delete(findobj(handles.figure1,'Tag','Atlas'));         delete(findobj(handles.figure1,'Tag','MagBar'));
-delete(findobj(handles.figure1,'Tag','ExtDB'));
+delete(handles.NewFigure);      delete(handles.ImportGMTgrid)
+delete(handles.SaveGMTgrid);    delete(handles.Preferences)
+delete(handles.Print);          delete(handles.DrawText)
+delete(handles.DrawGeogCirc);   delete(handles.DrawLine)
+delete(handles.DrawRect);       delete(handles.DrawPolyg)
+delete(handles.DrawArrow);      delete(handles.Tesoura)
+delete(handles.ColorPal);       delete(handles.Shading);
+delete(handles.Anaglyph);       delete(handles.TerrainMod);
+delete(handles.MBplaning);      delete(handles.FlederPlanar);
+delete(handles.ImageInfo);      delete(handles.Refresh);
+delete(handles.Image);          delete(handles.Tools)
+delete(handles.Draw);           delete(handles.Geophysics)
+delete(handles.Help);           delete(handles.GridTools)
 
 % ------------- Cleverer deletion of unwanted uicontrols
-h_File = findobj(handles.figure1,'Tag','File');
-h1 = findobj(handles.figure1,'Tag','OpenGI');
-h2 = get(h_File,'Children');
-h3 = setxor(h2,h1);
-delete(h3)
+h1 = get(handles.File,'Children');
+h2 = setxor(h1,handles.OpenGI);
+delete(h2)
 
-h_DataSets = findobj(handles.figure1,'Tag','Datasets');
-h2 = get(h_DataSets,'Children');
-h21 = findobj(handles.figure1,'Tag','VoidDatasetsCoastLine');
-h22 = findobj(handles.figure1,'Tag','VoidDatasetsPB');
-h23 = findobj(handles.figure1,'Tag','VoidDatasetsRivers');
+h2 = get(handles.Datasets,'Children');
+h21 = handles.VoidDatasetsCoastLine;
+h22 = handles.VoidDatasetsPB;
+h23 = handles.VoidDatasetsRivers;
 h3 = setxor(h2,[h21; h22; h23]);
 delete(h3)
 % -------------
 
 % Import icons
 load ([pwd filesep 'data' filesep 'mirone_icons.mat']);
-h_toolbar = findobj(handles.figure1,'Tag','FigureToolBar');
+h_toolbar = handles.FigureToolBar;
 uitoggletool('parent',h_toolbar,'Click',{@InsertPoint_Callback,handles}, ...
    'Tag','singlePoint','cdata',point_ico,'TooltipString','Insert point','Separator','on');
 uitoggletool('parent',h_toolbar,'Click',{@InsertPointAndPred_Callback,handles}, ...
@@ -82,7 +74,7 @@ LeastImageWidth = 360;  % Working value for a 800 pixels width screen
 screen = get(0, 'ScreenSize');
 MaxImageWidth = screen(3)/2 - (2*sldT+3*marg + 2*margAnotVer);  % Maximum image width supported in this screen
 
-dims1 = size(get(handles.grd_img,'CData'));
+dims1 = size(get(handles.hImg,'CData'));
 img1H = dims1(1);       img1W = dims1(2);
 dims2 = size(I);
 img2H = dims2(1);       img2W = dims2(2);
@@ -138,7 +130,7 @@ if (abs(aspectPixeis - aspectImg) > 1e-3)      % This axes was distorted
         set(handles.axes1,'xlim',xlim(1)+[0 (xlim(2)-xlim(1))*aspectThis])
     end
 end
-handles.hMasterImage = handles.grd_img;
+handles.hMasterImage = handles.hImg;
 % ---------------
 
 % ------------- Create the second axes
@@ -166,7 +158,7 @@ end
 % ----------------
 
 % ------------- Here we must check if both images are indexed and with different cmaps
-if (ndims(I) == 2 && ndims(get(handles.grd_img,'cdata')) == 2)
+if (ndims(I) == 2 && ndims(get(handles.hImg,'cdata')) == 2)
     pal = get(handles.figure1,'ColorMap');          % Current colormap (was set according to SlaveImage)
     d_pal = 1;
     if (numel(pal) == numel(handles.origCmap))
