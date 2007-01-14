@@ -287,7 +287,7 @@ if (LINE_ISCLOSED)
     %cbFill = {@fill_Polygon,h};     % Transform the polygon into a patch and open the patch door possibilities
     %itemFill = uimenu(cmenuHand, 'Label', 'Fill polygon', 'Callback', cbFill);
 end
-if ( strcmp(opt,'line') && ~LINE_ISCLOSED && (ndims(get(handles.grd_img,'CData')) == 2 ...
+if ( strcmp(opt,'line') && ~LINE_ISCLOSED && (ndims(get(handles.hImg,'CData')) == 2 ...
     || getappdata(get(0,'CurrentFigure'),'ValidGrid')) )
     cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',gcbo,[],guidata(gcbo),''point'')';
     uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack);
@@ -1431,7 +1431,7 @@ new_xlim = U1(:,1)';        new_ylim = U1(:,2)';
 [m,n,k] = size(img);
 [new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
 delete(h_img);      delete(ax)
-handles.grd_img = image(new_xlim,new_ylim,img);
+handles.hImg = image(new_xlim,new_ylim,img);
 ax = gca;           % Get new axes handle
 set(ax,'xlim',new_xlim,'ylim',new_ylim,'XDir','normal','YDir','normal')
 resizetrue(handles.figure1);
