@@ -223,12 +223,13 @@ IS_SEISPOLYGON = 0;     % Seismicity polygons have special options
 % Check to see if we are dealing with a closed polyline
 x = get(h,'XData');   y = get(h,'YData');
 if (isempty(x) || isempty(y)),   return;     end     % Line is totally out of the figure
+%difes = [x(1)-x(end) y(1)-y(end)];
+%if (any(abs(difes) > 1e-5))
 if ( (x(1) == x(end)) && (y(1) == y(end)) )
     LINE_ISCLOSED = 1;
+    IS_RECTANGLE = 0;
     if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
         IS_RECTANGLE = 1;
-    else
-        IS_RECTANGLE = 0;
     end
     if (strcmp(get(h,'Tag'),'SeismicityPolygon')),  IS_SEISPOLYGON = 1;    end
 else
