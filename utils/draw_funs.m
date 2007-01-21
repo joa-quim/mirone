@@ -223,8 +223,6 @@ IS_SEISPOLYGON = 0;     % Seismicity polygons have special options
 % Check to see if we are dealing with a closed polyline
 x = get(h,'XData');   y = get(h,'YData');
 if (isempty(x) || isempty(y)),   return;     end     % Line is totally out of the figure
-%difes = [x(1)-x(end) y(1)-y(end)];
-%if (any(abs(difes) > 1e-5))
 if ( (x(1) == x(end)) && (y(1) == y(end)) )
     LINE_ISCLOSED = 1;
     IS_RECTANGLE = 0;
@@ -260,7 +258,11 @@ cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';
 cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
 cb_color = uictx_color(h);      % there are 9 cb_color outputs
 
-if (IS_LINE)
+if (IS_RECTANGLE)
+    uimenu(cmenuHand, 'Label', 'Delete me', 'Callback', {@del_line,h});
+    uimenu(cmenuHand, 'Label', 'Delete inside rect', 'Callback', {@del_insideRect,h});
+    ui_edit_polygon(h)
+elseif (IS_LINE)
     uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@del_line,h});
     ui_edit_polygon(h)    % Set edition functions
 elseif (IS_MBTRACK)     % Multibeam tracks, when deleted, have to delete also the bars
@@ -2206,6 +2208,45 @@ if (~isempty(getappdata(h,'polygon_data')))
     end
 end
 delete(h);
+
+% -----------------------------------------------------------------------------------------
+function del_insideRect(obj,eventdata,h)
+    % Delete all lines/patches objects that have at least one vertex inside the rectangle
+    
+    s = getappdata(h,'polygon_data');
+    if (~isempty(s))            % If the rectangle is in edit mode, force it out of edit
+        if strcmpi(s.controls,'on'),    ui_edit_polygon(h);     end
+    end
+    set(h, 'HandleVis','off')           % Make the rectangle handle invisible
+    
+    hLines = findobj(get(h,'Parent'),'Type','line');     % Fish all objects of type line in Mirone figure
+    hPatch = findobj(get(h,'Parent'),'Type','patch');
+    hLP = [hLines(:); hPatch(:)];
+    rx = get(h,'XData');        ry = get(h,'YData');
+    rx = [min(rx) max(rx)];     ry = [min(ry) max(ry)];
+    found = false;
+    for (i=1:numel(hLP))    % Loop over objects to find if any is on edit mode
+        s = getappdata(hLP(i),'polygon_data');
+        if (~isempty(s))
+            if strcmpi(s.controls,'on')     % Object is in edit mode, so this
+                ui_edit_polygon(hLP(i))     % call will force out of edit mode
+                found = true;
+            end
+        end
+    end
+    if (found)      % We have to do it again because some line handles have meanwhile desapeared
+        hLines = findobj(get(h,'Parent'),'Type','line');
+        hPatch = findobj(get(h,'Parent'),'Type','patch');
+        hLP = [hLines(:); hPatch(:)];
+    end
+    for (i=1:numel(hLP))    % Loop over objects to find out which cross the rectangle
+        x = get(hLP(i),'XData');
+        y = get(hLP(i),'YData');
+        if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
+            delete(hLP(i))
+        end
+    end
+    set(h, 'HandleVis','on')    % Make the rectangle handle findable again
 
 % -------------------------------------------------------------------------------------------------------
 function changeAxesLabels(opt)
