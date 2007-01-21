@@ -65,30 +65,31 @@ function write_dtm(fid,mode,Z,limits)
 	fwrite(fid,Z,'uint16');
 
 %----------------------------------------------------------------------------------
-function write_shade(fid,mode,hFig,hAxes,burnCoasts,screenCap)
+function write_shade(fid,mode,hFig,hAxes,flederBurn)
     % Write a .shade block
     if (strcmp(mode,'first'))       % The TDR object starts here
 	    fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
     end
-    if (screenCap)
+    
+    if (flederBurn == 2)
         img = flipdim(imcapture(hAxes,'img',0),1);     % Do a screen capture ... and the UD flip horror
     else
     	img = get(findobj(hAxes,'Type','image'),'CData');
+        inplace = false;            % Eventual line burning is not done inplace to not change the Mirone image as well
+    	if (ndims(img) == 2)
+            img = ind2rgb8(img,get(hFig,'Colormap'));
+            inplace = true;         % Save to do line burning inplace because img is already a copy
+	    end
+        if (flederBurn == 1)                    % Burn coastlines into img (in case they exist)
+            img = burnLines(hFig,hAxes,img,inplace);
+        end
     end
+    
     [m,n,k] = size(img);
 	fwrite(fid,[1000 m*n*4+34],'integer*4');     % Tag ID, Data Length
 	fwrite(fid,[0 0 1 1 1 2],'integer*1');
 	fwrite(fid,[(1:9)*0 2 n m 7 32],'integer*2');      %?? nDim(?) nCols nRows ?? BitWidth
 	fwrite(fid,[(1:10)*0 65535 65535],'uint16');
-    inplace = false;            % Eventual line burning is not done inplace to not change the Mirone image as well
-	if (ndims(img) == 2)
-        img = ind2rgb8(img,get(hFig,'Colormap'));
-        inplace = true;         % Save to do line burning inplace because img is already a copy
-	end
-    
-    if (burnCoasts)             % Burn coastlines into img (in case they exist)
-        img = burnLines(hFig,hAxes,img,inplace);
-    end
 	img(:,:,4) = uint8(255);                % Tranparency layer
 	img = permute(img,[4 3 2 1]);
 	fwrite(fid,img,'uint8');
@@ -110,9 +111,8 @@ function write_eof(fid)
 	fclose(fid);
 
 %----------------------------------------------------------------------------------
-function write_main(fid,type,hFig,hAxes,Z,limits,burnCoasts,screenCap)
+function write_main(fid,type,hFig,hAxes,Z,limits,flederBurn)
 % Write a basic .sd file. That is with a DTM, a SHADE & a GEO blocks
-    if (nargin == 7),   screenCap = false;      end
 
 	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:     Mirone   ','%%');
     if (strcmp(type,'writePlanarSD') || strcmp(type,'runPlanarSD'))
@@ -122,7 +122,7 @@ function write_main(fid,type,hFig,hAxes,Z,limits,burnCoasts,screenCap)
     end
     
     write_flederFiles('dtm',fid,'add',Z,limits)
-    write_flederFiles('shade',fid,'add',hFig,hAxes,burnCoasts,screenCap)
+    write_flederFiles('shade',fid,'add',hFig,hAxes,flederBurn)
     write_flederFiles('geo',fid,'add',limits)
 
 %----------------------------------------------------------------------------------
@@ -204,7 +204,7 @@ end
 if (~isempty(ALLlineHand))
     % This section deals with repeated line types. The point is that having many objects makes the
     % rendering slow. So I assimilate all lines of the same type (same line thickness and color) into
-    % a single mulrisegment line. This makes the rendering much faster.
+    % a single multisegment line. This makes the rendering much faster.
     LineWidth = get(ALLlineHand,'LineWidth');
     if (iscell(LineWidth)),     LineWidth = cell2mat(LineWidth);    end    
     LineColor = get(ALLlineHand,'Color');
@@ -216,6 +216,7 @@ if (~isempty(ALLlineHand))
     id_row = unique(id_row);                % Get rid of repeated values
     id_row = [1; id_row];                   % Make id_row start at one
     id_row(end+1) = size(tmp,1);            % Add the last row as well (for the algo)
+    hands = cell(1,length(id_row)-1);
     for (i = 1:length(id_row)-1)
         hands{i} = hands_sort(id_row(i):id_row(i+1)-1);
         if (length(hands{i}) > 1)           % Make sure that the following procedure applyies only to repeated line types
@@ -303,6 +304,7 @@ if (~isempty(ALLpatchHand))                 % Now see if we still have more patc
     n_lines = length(ALLpatchHand);
     for (i = 1:n_lines)                     % Do one by one. If they are many, the rendering is slow
         x = get(ALLpatchHand(i),'XData');        y = get(ALLpatchHand(i),'YData');
+        if (isempty(x)),    continue;       end
         line_thick = get(ALLpatchHand(i),'LineWidth');   % Line thickness
         line_color = get(ALLpatchHand(i),'EdgeColor');       % Line color
         
