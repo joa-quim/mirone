@@ -24,21 +24,23 @@ handles = guihandles(hObject);
  
 movegui(hObject,'east');
 set(hObject,'Name','Vertical elastic deformation');
-handles.h_calling_fig = [];     % Handles to the calling figure
+handles.hCallingFig = [];     % Handles to the calling figure
 
 if ~isempty(varargin)
     h_fig = varargin{1};
-    handles.h_fault = varargin{2};
+    handles.h_fault = varargin{2};          % Handles to the fault lines (each may have more than one segment)
     handles.FaultStrike = varargin{3};
     handles.geog = varargin{4};
 else
     delete(hObject)
     return
 end
+handles.hCallingAxes = get(h_fig,'CurrentAxes');
 
 handles.n_faults = length(handles.h_fault);
+handles.nFaults = handles.n_faults;          % Works as a copy of use with the scc option
 if (handles.n_faults > 1)
-    set(handles.popup_fault,'String',cellstr(num2str(1:handles.n_faults,'%.0f')'))
+    set(handles.popup_fault,'String',cellstr(sprintf('%d',1:handles.n_faults)'))
     set(handles.h_fault(1),'LineStyle','--');   % set the top fault one with a dashed line type
     refresh(h_fig);         % otherwise, ML BUG
 else
@@ -48,7 +50,7 @@ end
 
 fault_x = get(handles.h_fault,'XData');     fault_y = get(handles.h_fault,'YData');
 if (handles.n_faults > 1)
-    for (k=1:handles.n_faults)  nvert(k) = size(fault_x{k},2) - 1;  end
+    for (k=1:handles.n_faults),  nvert(k) = size(fault_x{k},2) - 1;  end
 else
     nvert = size(fault_x,2) - 1;
 end
@@ -57,8 +59,9 @@ handles.Mw(1:handles.n_faults) = 0;
 if (any(nvert > 1))
     set(handles.popup_segment,'Visible','on');    S = [];
     % Even if we have more than one fault, the segments popup will start with only the first fault's segments
-    for (i=1:nvert(1))     S = [S; ['Segment ' num2str(i)]];   end
-    set(handles.popup_segment,'String',cellstr(S))
+    S = cell(nvert(1),1);
+    for (i=1:nvert(1)),    S{i} = ['Segment ' sprintf('%d',i)];   end
+    set(handles.popup_segment,'String',S)
 else
     set(handles.popup_segment,'Visible','off')
     delete(findobj(hObject,'Style','text','Tag','fault_segment'))    % Otherwise it would reborn in Pro look
@@ -70,6 +73,8 @@ handles.nvert = nvert;
 handles.hide_planes(1:handles.n_faults) = 0;
 handles.dms_xinc = 0;           handles.dms_yinc = 0;
 handles.one_or_zero = 1;        % For Grid Registration grids, which are the most common cases
+handles.qValue = 0.3;
+handles.patchFatias = [];
 
 handles.FaultLength = LineLength(handles.h_fault,handles.geog);
 % Make them all cell arrays to simplify logic
@@ -79,16 +84,15 @@ if (~iscell(handles.fault_x))       handles.fault_x = {handles.fault_x};    hand
 handles.DislocStrike = handles.FaultStrike;
 
 for (k=1:handles.n_faults)
-	handles.FaultDip{k}(1:nvert(k)) = 45;       handles.FaultWidth{k}(1:nvert(k)) = NaN;
+	handles.FaultDip{k}(1:nvert(k)) = 25;       handles.FaultWidth{k}(1:nvert(k)) = NaN;
 	handles.FaultDepth{k}(1:nvert(k)) = NaN;	handles.FaultTopDepth{k}(1:nvert(k)) = 0;
 	handles.DislocSlip{k}(1:nvert(k)) = NaN;	handles.DislocRake{k}(1:nvert(k)) = NaN;
 end
 
-z1 = num2str(handles.FaultLength{1}(1));    z2 = num2str(handles.FaultStrike{1}(1),'%.1f');
-z3 = num2str(handles.FaultDip{1}(1),'%.1f');
-set(handles.edit_FaultLength,'String',z1,'Enable','off')
+z2 = sprintf('%.1f',handles.FaultStrike{1}(1));
+set(handles.edit_FaultLength,'String',handles.FaultLength{1}(1),'Enable','off')
 set(handles.edit_FaultStrike,'String',z2,'Enable','off')
-set(handles.edit_FaultDip,'String',z3)
+set(handles.edit_FaultDip,'String',sprintf('%.1f',handles.FaultDip{1}(1)))
 set(handles.edit_DislocStrike,'String',z2)
 set(handles.edit_DislocSlip,'String','')
 set(handles.edit_DislocRake,'String','')
@@ -116,8 +120,8 @@ if (~isempty(head))
 else
     delete(hObject);    return
 end
-x1 = num2str(head(1),'%.10f');      x2 = num2str(head(2),'%.10f');
-y1 = num2str(head(3),'%.10f');      y2 = num2str(head(4),'%.10f');
+x1 = sprintf('%.10f',head(1));      x2 = sprintf('%.10f',head(2));
+y1 = sprintf('%.10f',head(3));      y2 = sprintf('%.10f',head(4));
 % But remove any possible trailing zeros
 x1 = ddewhite(x1,'0');              x2 = ddewhite(x2,'0');
 y1 = ddewhite(y1,'0');              y2 = ddewhite(y2,'0');
@@ -129,18 +133,18 @@ handles.y_min = head(3);            handles.y_max = head(4);
 [m,n] = size(getappdata(h_fig,'dem_z'));
 
 % Fill in the x,y_inc and nrow,ncol boxes
-set(handles.edit_Nrows,'String',num2str(m))
-set(handles.edit_Ncols,'String',num2str(n))
+set(handles.edit_Nrows,'String',sprintf('%d',m))
+set(handles.edit_Ncols,'String',sprintf('%d',n))
 
 % Compute default xinc, yinc based on map limits
 yinc = (head(4) - head(3)) / (m-1);   xinc = (head(2) - head(1)) / (n-1);
-set(handles.edit_Yinc,'String',num2str(yinc,10))
-set(handles.edit_Xinc,'String',num2str(xinc,10))
+set(handles.edit_Yinc,'String',sprintf('%.10f',yinc))
+set(handles.edit_Xinc,'String',sprintf('%.10f',xinc,10))
 %-----------
 
 handles.nrows = m;      handles.ncols = n;
 handles.x_inc = xinc;   handles.y_inc = yinc;
-handles.h_calling_fig = h_fig;
+handles.hCallingFig = h_fig;
 
 %------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 bgcolor = get(0,'DefaultUicontrolBackgroundColor');
@@ -159,7 +163,7 @@ for i=1:length(h_f)
     end
 end
 % Recopy the text fields on top of previously created frames (uistack is to slow)
-h_t = findobj(hObject,'Style','Text');
+h_t = [handles.faultGeom handles.dislocGeom handles.gridGeom];
 for i=1:length(h_t)
     usr_d = get(h_t(i),'UserData');
     t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
@@ -175,23 +179,20 @@ delete(h_t)
 handles.h_txt_Mw = findobj(hObject,'Style','Text','Tag','text_Mw');
 handles.txt_Mw_pos = get(handles.h_txt_Mw,'Position');
 
+if (~getappdata(handles.hCallingFig,'esDourada'))
+    set([handles.checkbox_SCC handles.edit_qValue handles.edit_nSlices handles.txtqValue handles.txtNfatias],...
+        'Visible','off')
+end
+
 % Choose default command line output for deform_mansinha_export
 handles.output = hObject;
 guidata(hObject, handles);
 set(hObject,'Visible','on');
-
-% ------------------------------------------------------------------------------------
-% --- Outputs from this function are returned to the command line.
-function varargout = deform_mansinha_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% handles    structure with handles and user data (see GUIDATA)
-% Get default command line output from handles structure
 varargout{1} = handles.output;
 
 % ------------------------------------------------------------------------------------
 function edit_FaultLength_Callback(hObject, eventdata, handles)
-% Cannot be changed
+    % Cannot be changed
 
 % ------------------------------------------------------------------------------------
 function edit_FaultWidth_Callback(hObject, eventdata, handles)
@@ -200,16 +201,16 @@ xx = str2double(get(hObject,'String'));
 if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
 else                        fault = 1;      end
 if (xx < 0)         % If user tried to give a negative width
-    xx = -xx;
-    set(hObject,'String',num2str(xx))
+    xx = -xx;       set(hObject,'String',xx)
 end
 dip = str2double(get(handles.edit_FaultDip,'String'));
 top_d = str2double(get(handles.edit_FaultTopDepth,'String'));
 depth = top_d + xx * cos((90-dip)*pi/180);
-set(handles.edit_FaultDepth,'String',num2str(depth));
+set(handles.edit_FaultDepth,'String',depth);
 seg = get(handles.popup_segment,'Value');
 handles.FaultWidth{fault}(seg) = xx;
 handles.FaultDepth{fault}(seg) = depth;
+handles.FaultWidthCopy = xx;        % To use (if) in scc. It is a scalar because one-fault-only
 
 % Update the patch that represents the surface projection of the fault plane
 xx = [handles.fault_x{fault}(seg); handles.fault_x{fault}(seg+1)];
@@ -238,12 +239,12 @@ M0 = 3e10 * handles.um_milhao * handles.DislocSlip{fault}(:) .* handles.FaultWid
 if (length(M0) > 1)     M0 = sum(M0);   end
 mag = 2/3*(log10(M0) - 9.1);
 if (~isnan(mag))
-    txt = ['Moment Magnitude = ' num2str(mag,'%.1f')];
-    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
+    txt = ['Mw Magnitude = ' sprintf('%.1f',mag)];
+    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 15 0])
     handles.Mw(fault) = mag;
 end
 
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_FaultStrike_Callback(hObject, eventdata, handles)
@@ -258,7 +259,7 @@ else                        fault = 1;      end
 top_d = str2double(get(handles.edit_FaultTopDepth,'String'));
 W = str2double(get(handles.edit_FaultWidth,'String'));
 depth = top_d + W * cos((90-xx)*pi/180);
-set(handles.edit_FaultDepth,'String',num2str(depth));
+set(handles.edit_FaultDepth,'String',depth);
 seg = get(handles.popup_segment,'Value');
 handles.FaultDip{fault}(seg) = xx;
 handles.FaultDepth{fault}(seg) = depth;
@@ -283,7 +284,7 @@ end
 x = [xx(1) xx(2) lon2 lon1];    y = [yy(1) yy(2) lat2 lat1];
 hp = getappdata(handles.h_fault(fault),'PatchHand');
 try,    set(hp(seg),'XData',x,'YData',y,'FaceColor',[.8 .8 .8],'EdgeColor','k','LineWidth',1);  end
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_FaultDepth_Callback(hObject, eventdata, handles)
@@ -292,17 +293,16 @@ xx = str2double(get(hObject,'String'));
 if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
 else                        fault = 1;      end
 if (xx < 0)         % If user tried to give a negative depth
-    xx = -xx;
-    set(hObject,'String',num2str(xx))
+    xx = -xx;       set(hObject,'String',xx)
 end
 W = str2double(get(handles.edit_FaultWidth,'String'));
 dip = str2double(get(handles.edit_FaultDip,'String'));
 top_d = xx - W * cos((90-dip)*pi/180);
-set(handles.edit_FaultTopDepth,'String',num2str(top_d));
+set(handles.edit_FaultTopDepth,'String',top_d);
 seg = get(handles.popup_segment,'Value');
 handles.FaultDepth{fault}(seg) = xx;
 handles.FaultTopDepth{fault}(seg) = top_d;
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_FaultTopDepth_Callback(hObject, eventdata, handles)
@@ -311,17 +311,16 @@ xx = str2double(get(hObject,'String'));
 if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
 else                        fault = 1;      end
 if (xx < 0)         % If user tried to give a negative depth
-    xx = -xx;
-    set(hObject,'String',num2str(xx))
+    xx = -xx;       set(hObject,'String',xx)
 end
 W = str2double(get(handles.edit_FaultWidth,'String'));
 dip = str2double(get(handles.edit_FaultDip,'String'));
 depth = xx + W * cos((90-dip)*pi/180);
-set(handles.edit_FaultDepth,'String',num2str(depth));
+set(handles.edit_FaultDepth,'String',depth);
 seg = get(handles.popup_segment,'Value');
 handles.FaultTopDepth{fault}(seg) = xx;
 handles.FaultDepth{fault}(seg) = depth;
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function popup_segment_Callback(hObject, eventdata, handles)
@@ -330,14 +329,14 @@ if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
 else                        fault = 1;      end
 
 % Fault parameters
-set(handles.edit_FaultLength,'String',num2str(handles.FaultLength{fault}(seg)))
-set(handles.edit_FaultStrike,'String',num2str(handles.FaultStrike{fault}(seg),'%.1f'))
+set(handles.edit_FaultLength,'String',handles.FaultLength{fault}(seg))
+set(handles.edit_FaultStrike,'String',sprintf('%.1f',handles.FaultStrike{fault}(seg)))
 
 if (isnan(handles.FaultWidth{fault}(seg)))     str = '';
 else    str = num2str(handles.FaultWidth{fault}(seg));     end
 set(handles.edit_FaultWidth,'String',str)
 
-set(handles.edit_FaultDip,'String',num2str(handles.FaultDip{fault}(seg),'%.1f'))
+set(handles.edit_FaultDip,'String',sprintf('%.1f',handles.FaultDip{fault}(seg)))
 set(handles.edit_FaultTopDepth,'String',num2str(handles.FaultTopDepth{fault}(seg)))
 
 if (isnan(handles.FaultDepth{fault}(seg)))     str = '';
@@ -345,12 +344,12 @@ else    str = num2str(handles.FaultDepth{fault}(seg));     end
 set(handles.edit_FaultDepth,'String',str)
 
 % Dislocation parameters
-set(handles.edit_DislocStrike,'String',num2str(handles.DislocStrike{fault}(seg),'%.1f'))
+set(handles.edit_DislocStrike,'String',sprintf('%.1f',handles.DislocStrike{fault}(seg)))
 if (isnan(handles.DislocSlip{fault}(seg)))     str = '';
 else    str = num2str(handles.DislocSlip{fault}(seg));     end
 set(handles.edit_DislocSlip,'String',str)
 if (isnan(handles.DislocRake{fault}(seg)))     str = '';
-else    str = num2str(handles.DislocRake{fault}(seg),'%.1f');     end
+else    str = sprintf('%.1f',handles.DislocRake{fault}(seg));     end
 set(handles.edit_DislocRake,'String',str)
 
 % -----------------------------------------------------------------------------------------
@@ -373,35 +372,35 @@ else
 end
 
 % Fault parameters
-set(handles.edit_FaultLength,'String',num2str(handles.FaultLength{fault}(seg)))
-set(handles.edit_FaultStrike,'String',num2str(handles.FaultStrike{fault}(seg),'%.1f'))
+set(handles.edit_FaultLength,'String',handles.FaultLength{fault}(seg))
+set(handles.edit_FaultStrike,'String',sprintf('%.1f',handles.FaultStrike{fault}(seg)))
 
 if (isnan(handles.FaultWidth{fault}(seg)))     str = '';
 else    str = num2str(handles.FaultWidth{fault}(seg));     end
 set(handles.edit_FaultWidth,'String',str)
 
-set(handles.edit_FaultDip,'String',num2str(handles.FaultDip{fault}(seg),'%.1f'))
-set(handles.edit_FaultTopDepth,'String',num2str(handles.FaultTopDepth{fault}(seg)))
+set(handles.edit_FaultDip,'String',sprintf('%.1f',handles.FaultDip{fault}(seg)))
+set(handles.edit_FaultTopDepth,'String',handles.FaultTopDepth{fault}(seg))
 
 if (isnan(handles.FaultDepth{fault}(seg)))     str = '';
 else    str = num2str(handles.FaultDepth{fault}(seg));     end
 set(handles.edit_FaultDepth,'String',str)
 
 % Dislocation parameters
-set(handles.edit_DislocStrike,'String',num2str(handles.DislocStrike{fault}(seg),'%.1f'))
+set(handles.edit_DislocStrike,'String',sprintf('%.1f',handles.DislocStrike{fault}(seg)))
 if (isnan(handles.DislocSlip{fault}(seg)))     str = '';
 else    str = num2str(handles.DislocSlip{fault}(seg));     end
 set(handles.edit_DislocSlip,'String',str)
 if (isnan(handles.DislocRake{fault}(seg)))     str = '';
-else    str = num2str(handles.DislocRake{fault}(seg),'%.1f');     end
+else    str = sprintf('%.1f',handles.DislocRake{fault}(seg));     end
 set(handles.edit_DislocRake,'String',str)
 if (handles.Mw(fault) > 0)
-    txt = ['Moment Magnitude = ' num2str(handles.Mw(fault),'%.1f')];
-    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
+    txt = ['Mw Magnitude = ' sprintf('%.1f',handles.Mw(fault))];
+    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 15 0])
 else
-    set(handles.h_txt_Mw,'String','Moment Magnitude = ','Position',handles.txt_Mw_pos)
+    set(handles.h_txt_Mw,'String','Mw Magnitude = ','Position',handles.txt_Mw_pos)
 end
-refresh(handles.h_calling_fig);         % otherwise, ML BUG
+refresh(handles.hCallingFig);         % otherwise, ML BUG
 
 % ------------------------------------------------------------------------------------
 function edit_DislocStrike_Callback(hObject, eventdata, handles)
@@ -413,16 +412,21 @@ f_strike = str2double(get(handles.edit_FaultStrike,'String'));      % Fault stri
 slip = str2double(get(handles.edit_DislocSlip,'String'));           % Dislocation slip
 seg = get(handles.popup_segment,'Value');
 handles.DislocStrike{fault}(seg) = xx;
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_DislocRake_Callback(hObject, eventdata, handles)
 xx = str2double(get(hObject,'String'));
+if (isnan(xx)),     set(hObject,'String','');   return;     end
 if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
 else                        fault = 1;      end
 seg = get(handles.popup_segment,'Value');
 handles.DislocRake{fault}(seg) = xx;
-guidata(hObject, handles);
+handles.DislocRakeCopy = xx;            % To be of use in the SCC cases
+if (get(handles.checkbox_SCC,'Val'))
+    handles.DislocRake = repmat({xx},1,handles.n_faults);
+end
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_DislocSlip_Callback(hObject, eventdata, handles)
@@ -433,9 +437,11 @@ seg = get(handles.popup_segment,'Value');
 if (isnan(xx))
     set(hObject,'String','')
     handles.DislocSlip{fault}(seg) = NaN;
+    return
 else
     handles.DislocSlip{fault}(seg) = xx;
 end
+handles.DislocSlipCopy = xx;            % To be of use in the SCC cases
 
 % Compute Moment magnitude
 M0 = 3e10 * handles.um_milhao * handles.DislocSlip{fault}(:) .* handles.FaultWidth{fault}(:) .* ...
@@ -443,11 +449,11 @@ M0 = 3e10 * handles.um_milhao * handles.DislocSlip{fault}(:) .* handles.FaultWid
 if (length(M0) > 1)     M0 = sum(M0);   end
 mag = 2/3*(log10(M0) - 9.1);
 if (~isnan(mag))
-    txt = ['Moment Magnitude = ' num2str(mag,'%.1f')];
-    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
+    txt = ['Mw Magnitude = ' sprintf('%.1f',mag)];
+    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 15 0])
     handles.Mw(fault) = mag;
 end
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_Xmin_Callback(hObject, eventdata, handles)
@@ -469,17 +475,17 @@ if ~isempty(val)            % when dd:mm or dd:mm:ss was given
         % Compute Ncols, but first must recompute x_inc
         x_inc = ivan_the_terrible((handles.x_max - x_min),round(abs(str2double(nc))),1);
         xx = floor((handles.x_max - str2double(xx)) / (str2double(get(handles.edit_Xinc,'String')))+0.5) + handles.one_or_zero;
-        set(handles.edit_Xinc,'String',num2str(x_inc,10))
+        set(handles.edit_Xinc,'String',sprintf('%.10f',x_inc))
     elseif ~isempty(handles.x_max)      % x_max box is filled but ncol is not, so put to the default (100)
         x_inc = ivan_the_terrible((handles.x_max - x_min),100,1);
-        set(handles.edit_Xinc,'String',num2str(x_inc,10))
+        set(handles.edit_Xinc,'String',sprintf('%.10f',x_inc))
         set(handles.edit_Ncols,'String','100')
     end
 else                % box is empty, so clear also x_inc and ncols
     set(handles.edit_Xinc,'String','');     set(handles.edit_Ncols,'String','');
     set(hObject,'String','');
 end
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_Xmax_Callback(hObject, eventdata, handles)
@@ -501,17 +507,17 @@ if ~isempty(val)
         % Compute Ncols, but first must recompute x_inc
         x_inc = ivan_the_terrible((x_max - handles.x_min),round(abs(str2double(nc))),1);
         xx = floor((handles.x_min - str2double(xx)) / (str2double(get(handles.edit_Xinc,'String')))+0.5) + handles.one_or_zero;
-        set(handles.edit_Xinc,'String',num2str(x_inc,10))
+        set(handles.edit_Xinc,'String',sprintf('%.10f',x_inc))
     elseif ~isempty(handles.x_min)      % x_min box is filled but ncol is not, so put to the default (100)
         x_inc = ivan_the_terrible((x_max - handles.x_min),100,1);
-        set(handles.edit_Xinc,'String',num2str(x_inc,10))
+        set(handles.edit_Xinc,'String',sprintf('%.10f',x_inc))
         set(handles.edit_Ncols,'String','100')
     end
 else                % box is empty, so clear also x_inc and ncols
     set(handles.edit_Xinc,'String','');     set(handles.edit_Ncols,'String','');
     set(hObject,'String','');
 end
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_Xinc_Callback(hObject, eventdata, handles)
@@ -526,17 +532,17 @@ if ~isempty(handles.x_min) & ~isempty(handles.x_max)
     % Make whatever x_inc given compatible with GMT_grd_RI_verify
     x_inc = ivan_the_terrible((handles.x_max - handles.x_min), x_inc,2);
     if ~dms         % case of decimal unities
-        set(hObject,'String',num2str(x_inc,8))
+        set(hObject,'String',sprintf('%.10f',x_inc))
         ncol = floor((handles.x_max - handles.x_min) / x_inc + 0.5) + handles.one_or_zero;
     else            % inc was in dd:mm or dd:mm:ss format
         ncol = floor((handles.x_max - handles.x_min) / x_inc + 0.5) + handles.one_or_zero;
         ddmm = dec2deg(x_inc);
         set(hObject,'String',ddmm)
     end
-    set(handles.edit_Ncols,'String',num2str(ncol))
+    set(handles.edit_Ncols,'String',sprintf('%d',ncol))
 end
 handles.dms_xinc = dms;     handles.x_inc = str2double(xx);
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_Ncols_Callback(hObject, eventdata, handles)
@@ -551,11 +557,11 @@ if ~isempty(get(handles.edit_Xmin,'String')) & ~isempty(get(handles.edit_Xmax,'S
         ddmm = dec2deg(x_inc);
         set(handles.edit_Xinc,'String',ddmm)
     else                    % x_inc was given in decimal format
-        set(handles.edit_Xinc,'String',num2str(x_inc,10));
+        set(handles.edit_Xinc,'String',sprintf('%.10f',x_inc));
     end
     handles.ncols = str2double(xx);
 end
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_Ymin_Callback(hObject, eventdata, handles)
@@ -578,17 +584,17 @@ if ~isempty(val)
         % Compute Nrowss, but first must recompute y_inc
         y_inc = ivan_the_terrible((handles.y_max - y_min),round(abs(str2double(nr))),1);
         xx = floor((handles.y_max - str2double(xx)) / (str2double(get(handles.edit_Yinc,'String')))+0.5) + handles.one_or_zero;
-        set(handles.edit_Yinc,'String',num2str(y_inc,10))
+        set(handles.edit_Yinc,'String',sprintf('%.10f',y_inc))
     elseif ~isempty(handles.y_max)      % y_max box is filled but nrows is not, so put to the default (100)
         y_inc = ivan_the_terrible((handles.y_max - y_min),100,1);
-        set(handles.edit_Yinc,'String',num2str(y_inc,10))
+        set(handles.edit_Yinc,'String',sprintf('%.10f',y_inc))
         set(handles.edit_Nrows,'String','100')
     end
 else                % box is empty, so clear also y_inc and nrows
     set(handles.edit_Yinc,'String','');     set(handles.edit_Nrows,'String','');
     set(hObject,'String','');
 end
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_Ymax_Callback(hObject, eventdata, handles)
@@ -611,17 +617,17 @@ if ~isempty(val)
         % Compute Nrows, but first must recompute y_inc
         y_inc = ivan_the_terrible((y_max - handles.y_min),round(abs(str2double(nr))),1);
         xx = floor((handles.y_min - str2double(xx)) / (str2double(get(handles.edit_Yinc,'String')))+0.5) + handles.one_or_zero;
-        set(handles.edit_Yinc,'String',num2str(y_inc,10))
+        set(handles.edit_Yinc,'String',sprintf('%.10f',y_inc))
     elseif ~isempty(handles.y_min)      % y_min box is filled but nrows is not, so put to the default (100)
         y_inc = ivan_the_terrible((y_max - handles.y_min),100,1);
-        set(handles.edit_Yinc,'String',num2str(y_inc,10))
+        set(handles.edit_Yinc,'String',sprintf('%.10f',y_inc))
         set(handles.edit_Nrows,'String','100')
     end
 else                % This box is empty, so clear also y_inc and nrows
     set(handles.edit_Yinc,'String','');     set(handles.edit_Nrows,'String','');
     set(hObject,'String','');
 end
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_Yinc_Callback(hObject, eventdata, handles)
@@ -638,17 +644,17 @@ if ~isempty(handles.y_min) & ~isempty(handles.y_max)
     % Make whatever y_inc given compatible with GMT_grd_RI_verify
     y_inc = ivan_the_terrible((handles.y_max - handles.y_min), y_inc,2);
     if ~dms         % case of decimal unities
-        set(hObject,'String',num2str(y_inc,10))
+        set(hObject,'String',sprintf('%.10f',y_inc))
         nrow = floor((handles.y_max - handles.y_min) / y_inc + 0.5) + handles.one_or_zero;
     else            % inc was in dd:mm or dd:mm:ss format
         nrow = floor((handles.y_max - handles.y_min) / y_inc + 0.5) + handles.one_or_zero;
         ddmm = dec2deg(y_inc);
         set(hObject,'String',ddmm)
     end
-    set(handles.edit_Nrows,'String',num2str(nrow))
+    set(handles.edit_Nrows,'String',sprintf('%d',nrow))
 end
 handles.dms_yinc = dms;     handles.y_inc = str2double(xx);
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_Nrows_Callback(hObject, eventdata, handles)
@@ -663,11 +669,11 @@ if ~isempty(get(handles.edit_Ymin,'String')) & ~isempty(get(handles.edit_Ymax,'S
         ddmm = dec2deg(y_inc);
         set(handles.edit_Yinc,'String',ddmm)
     else                    % y_inc was given in decimal format
-        set(handles.edit_Yinc,'String',num2str(y_inc,10));
+        set(handles.edit_Yinc,'String',sprintf('%.10f',y_inc));
     end
     handles.nrows = str2double(xx);
 end
-guidata(hObject, handles);
+guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function pushbutton_Help_R_Callback(hObject, eventdata, handles)
@@ -708,16 +714,16 @@ if (handles.is_km)      % Than we must convert those to meters
     xinc = xinc * 1e3;    yinc = yinc * 1e3;
 end
 
-opt_R = ['-R' num2str(xmin,'%.8f') '/' num2str(xmax,'%.8f') ...
-        '/' num2str(ymin,'%.8f') '/' num2str(ymax,'%.8f')];
-opt_I = ['-I' num2str(xinc,'%.8f') '/' num2str(yinc,'%.8f')];
+opt_R = ['-R' sprintf('%.8f',xmin) '/' sprintf('%.8f',xmax) ...
+        '/' sprintf('%.8f',ymin) '/' sprintf('%.8f',ymax)];
+opt_I = ['-I' sprintf('%.8f',xinc) '/' sprintf('%.8f',yinc)];
 
-n_seg = sum(handles.nvert);
+n_seg = sum(handles.nvert);     % Total number of fault segments
 x = handles.fault_x;            y = handles.fault_y;
 if (~iscell(x))                 x = {x};    y = {y};    end
 kk = 1;
 for (i=1:handles.n_faults)
-	for (k=1:handles.nvert(i))
+	for (k=1:handles.nvert(i))      % Loop over number of segments of this fault
         if (handles.is_meters)      % Fault's length must be given in km to mansinha_m
             handles.FaultLength{i}(k) = handles.FaultLength{i}(k) / 1000;
         elseif (handles.is_km)      % This is a messy case. -E & -I must also be in meters
@@ -727,7 +733,7 @@ for (i=1:handles.n_faults)
                 num2str(handles.FaultTopDepth{i}(k))];
         opt_A{kk} = ['-A' num2str(handles.FaultDip{i}(k)) '/' num2str(handles.FaultStrike{i}(k)) '/' ...
                 num2str(handles.DislocRake{i}(k)) '/' num2str(handles.DislocSlip{i}(k))];
-        opt_E{kk} = ['-E' num2str(x{i}(k),'%.5f') '/' num2str(y{i}(k),'%.5f')];
+        opt_E{kk} = ['-E' sprintf('%.5f',x{i}(k)) '/' sprintf('%.5f',y{i}(k))];
         kk = kk + 1;
 	end
 end
@@ -760,11 +766,11 @@ head.X = linspace(xmin,xmax,ncol);
 tmp = linspace(ymin,ymax,nrow);
 head.Y = tmp';
 
-new_window = mirone(U,head,'Deformation',handles.h_calling_fig);
+new_window = mirone(U,head,'Deformation',handles.hCallingFig);
 
 % ------------------------------------------------------------------------------------
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
-delete(handles.figure1)
+    figure1_CloseRequestFcn([], [], handles)
 
 % -----------------------------------------------------------------------------------------
 function len = LineLength(h,geog)
@@ -804,110 +810,305 @@ end
 
 % -----------------------------------------------------------------------------------------
 function popup_GridCoords_Callback(hObject, eventdata, handles)
-xx = get(hObject,'Value');
-if (xx == 1)        handles.geog = 1;       handles.is_meters = 0;  handles.is_km = 0;  handles.um_milhao = 1e6;
-elseif (xx == 2)    handles.is_meters = 1;  handles.is_geog = 0;    handles.is_km = 0;  handles.um_milhao = 1e3;
-elseif (xx == 3)    handles.is_km = 1;      handles.is_geog = 0;    handles.is_meters = 0;  handles.um_milhao = 1e6;
-end
-guidata(hObject,handles)
+	xx = get(hObject,'Value');
+	if (xx == 1)        handles.geog = 1;       handles.is_meters = 0;  handles.is_km = 0;  handles.um_milhao = 1e6;
+	elseif (xx == 2)    handles.is_meters = 1;  handles.is_geog = 0;    handles.is_km = 0;  handles.um_milhao = 1e3;
+	elseif (xx == 3)    handles.is_km = 1;      handles.is_geog = 0;    handles.is_meters = 0;  handles.um_milhao = 1e6;
+	end
+    guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
-function checkbox_hideFaultPlanes_Callback(hObject, eventdata, handles)
-if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-else                        fault = 1;      end
-hp = getappdata(handles.h_fault(fault),'PatchHand');
-if (get(hObject,'Value'))
-    try,    set(hp,'Visible','off');    end
-    handles.hide_planes(fault) = 1;
-else
-    try,    set(hp,'Visible','on');     end
-    handles.hide_planes(fault) = 0;
-end
-guidata(hObject,handles)
+function checkbox_hideFaultPlanes_CB(hObject, eventdata, handles)
+	if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
+	else                        fault = 1;      end
+	hp = getappdata(handles.h_fault(fault),'PatchHand');
+	if (get(hObject,'Value'))
+        try,    set(hp,'Visible','off');    end
+        handles.hide_planes(fault) = 1;
+	else
+        try,    set(hp,'Visible','on');     end
+        handles.hide_planes(fault) = 0;
+	end
+    guidata(handles.figure1,handles)
 
-% --- Creates and returns a handle to the GUI figure. 
+% -----------------------------------------------------------------------------------------
+function checkbox_SCC_CB(hObject, eventdata, handles)
+    % Activate (or de-...) the variable slip mode.
+    if (get(hObject,'Value'))
+        msg = [];
+        if (handles.nFaults ~= 1),              msg = 'Currently only one fault is allowed';    end
+        if (numel(handles.FaultWidth{1}) ~= 1), msg = 'Currently only a fault with one segment is allowed';    end
+        if (~isempty(msg)),     errordlg(msg,'Error');      set(hObject,'Value',0);     return;     end
+        if (isnan(handles.FaultDepth{1})),      msg = 'Must set the fault''s Depth first';          end
+        if (isnan(handles.FaultWidth{1})),      msg = 'Must set the total fault''s Width first';    end
+        if (~isempty(msg))
+            errordlg(msg,'Error');
+            set(hObject,'Value',0);
+            return
+        end
+        handles.restoreOldPlane = ~handles.hide_planes;
+        do_scc(handles);
+    else                                % Remove the scc stripes and restore previous const slip state
+        deleteFatias([],[],handles)
+        if (handles.restoreOldPlane)
+        	hp = getappdata(handles.h_fault(1),'PatchHand');
+            try,    set(hp,'Visible','on');     end
+            set(handles.checkbox_hideFaultPlanes,'Val',0)
+            handles.hide_planes(1) = 0;
+        else
+            set(handles.checkbox_hideFaultPlanes,'Val',1)
+        end
+        handles.patchFatias = [];       % Reset it so a new cicle may begin
+        guidata(handles.figure1,handles)
+    end
+
+% -----------------------------------------------------------------------------------------
+function edit_SCC_CB(hObject, eventdata, handles)
+    nFatias = str2double(get(hObject,'String'));
+    if (isnan(nFatias) || nFatias < 5)
+        warndlg('Number of slices requested is either nonsense or too low. Reseting','Warning')
+        set(handles.edit_nSlices,'String','20')
+    end
+    if (get(handles.checkbox_SCC,'Val'))    % We are already on the Fatias building mode. So rebuild them
+        do_scc(handles);
+    end
+
+% -----------------------------------------------------------------------------------------
+function edit_qValue_CB(hObject, eventdata, handles)
+    qValue = str2double(get(hObject,'String'));
+    if (isnan(qValue) || qValue < 1e-2 || qValue >= 1)
+        set(hObject,'String','0.3');
+        qValue = 0.3;
+    end
+    handles.qValue = qValue;
+    %guidata(handles.figure1,handles)
+    if (get(handles.checkbox_SCC,'Val'))    % We are already on the Fatias building mode. So rebuild them
+        do_scc(handles);                    % It also saves handles
+    end
+
+% -----------------------------------------------------------------------------------------
+function stripes = do_scc(handles)
+    % Take a constant slip fault plane and divide it it into slices of variable slip
+    
+    % This is a trick to use the callabck to hide the const slip patches
+    if (~get(handles.checkbox_hideFaultPlanes,'Val'))
+        set(handles.checkbox_hideFaultPlanes,'Val',1)
+        checkbox_hideFaultPlanes_CB(handles.checkbox_hideFaultPlanes, [], handles)
+        set(handles.checkbox_hideFaultPlanes,'Val',0)
+    end
+    
+    % Backup those. We may want to revert to these values
+    if (~isappdata(handles.figure1,'handBak'))
+        handBak.n_faults = handles.n_faults;        handBak.FaultTopDepth = handles.FaultTopDepth;
+        handBak.nvert = handles.nvert;              handBak.FaultLength = handles.FaultLength;
+        handBak.FaultDip = handles.FaultDip;        handBak.FaultWidth = handles.FaultWidth;
+        handBak.DislocRake = handles.DislocRake;    handBak.DislocSlip = handles.DislocSlip;
+        handBak.fault_x = handles.fault_x;          handBak.fault_y = handles.fault_y;
+        handBak.FaultStrike = handles.FaultStrike(1);
+        setappdata(handles.figure1,'handBak',handBak)
+    end
+
+    if (~isempty(handles.patchFatias))          % The SCC slices already exist. We are recomputing. Take care
+        handBak = getappdata(handles.figure1,'handBak');
+        handles.FaultTopDepth = handBak.FaultTopDepth;   handles.FaultWidth = handBak.FaultWidth;
+        handles.FaultDip = handBak.FaultDip;             handles.FaultStrike = handBak.FaultStrike;
+        handles.fault_x = handBak.fault_x;               handles.fault_y = handBak.fault_y;
+        delete(handles.patchFatias)             % Delete existing slices patches before drawing new ones below
+    end
+    [stripes,varSlip,sliceWidth] = comp_varSlip(handles);   % <==
+    handles.varSlip = varSlip;                  % e.g. for ploting
+    handles.n_faults = numel(stripes);
+    handles.FaultTopDepth = cell(handles.n_faults,1);
+    handles.patchFatias = zeros(1,handles.n_faults);
+    stripeVis = 'on';           % Control whether stripes patches are drawn visible or ... not
+    if (get(handles.checkbox_hideFaultPlanes,'Val')),        stripeVis = 'off';    end
+    cmenuHand = zeros(1,handles.n_faults);
+
+    for (i=1:handles.n_faults)
+        handles.patchFatias(i) = patch('XData',stripes{i}(1,:),'YData',stripes{i}(2,:),...
+            'Parent',handles.hCallingAxes,'FaceColor',rand(1,3),'Visible',stripeVis,'Tag','Fatia');
+        handles.FaultTopDepth{i} = stripes{i}(3,1:2);
+        cmenuHand(i) = uicontextmenu('Parent',handles.hCallingFig);
+        set(handles.patchFatias(i), 'UIContextMenu', cmenuHand(i))
+        uimenu(cmenuHand(i), 'Label', 'Delete', 'Callback',{@deleteFatias,handles});
+        uimenu(cmenuHand(i), 'Label', 'Show slip profile', 'Callback',{@showFatias,handles});
+    end
+    
+    handles.nvert = ones(1,handles.n_faults);       % Though 'nvert' it means number of segments of each fault, which is 1 here
+    handles.FaultLength = repmat(handles.FaultLength(1),1,handles.n_faults);  % Replicate the (cell array) fault length
+    handles.FaultDip = repmat(handles.FaultDip(1),1,handles.n_faults);
+    handles.FaultStrike = repmat(handles.FaultStrike(1),1,handles.n_faults);
+    handles.FaultWidth = repmat({sliceWidth},1,handles.n_faults);
+    
+    handles.fault_x = cell(handles.n_faults,1);    handles.fault_y = handles.fault_x;
+    for (i=1:handles.n_faults)
+        handles.fault_x{i} = stripes{i}(1,1:2);
+        handles.fault_y{i} = stripes{i}(2,1:2);
+    end
+    
+    if (~isnan(handles.DislocRake{1}))              % We'll allow this to be set after
+        handles.DislocRake = repmat({handles.DislocRakeCopy},1,handles.n_faults);
+    end
+    if (~isnan(handles.DislocSlip{1}))              % Idem
+        handles.DislocSlip = num2cell(handles.DislocSlipCopy * 2 * varSlip);
+    end
+    
+    guidata(handles.figure1,handles)
+
+% -----------------------------------------------------------------------------------------
+function [stripes,varSlip,sliceWidth] = comp_varSlip(handles)
+    % Compute the descretized slip according to eq 10 of Geist & Demowska, PAGEOPH, 485-512, 1999
+    nFatias = round(str2double(get(handles.edit_nSlices,'String')));
+    q = handles.qValue;
+    D2R = pi / 180;
+    gama  = [0:nFatias-1] / nFatias;
+    D1 = 12/q^3*(q*gama - gama.^2);                 % Two branches of the variable slip equation
+    D2 = 12/(1-q)^3*(gama.^2 -gama*(1+q)+q);
+    D3 = [D1(gama < q) D2(gama >= q)];              % Join them
+    varSlip = cumsum(D3);                           % Integrate to get the slip
+    varSlip(varSlip < 0) = 0;                       % At the end we normally have 1 or 2 negative values
+    varSlip = varSlip / max(varSlip);               % Normalize
+    
+    fac = 1 / 6371 * 180 / pi;
+    sliceWidth = handles.FaultWidthCopy / nFatias;
+    rng = sliceWidth * cos(handles.FaultDip{1} * D2R) * fac;
+    stripes = cell(nFatias,1);
+    lon_i = handles.fault_x{1}(1);          lon_f = handles.fault_x{1}(2);
+    lat_i = handles.fault_y{1}(1);          lat_f = handles.fault_y{1}(2);
+    z_i   = handles.FaultTopDepth{1}(1);    z_f = z_i;
+    for (i=1:nFatias)
+        [lat_a,lon_a] = circ_geo(lat_i,lon_i,rng,handles.FaultStrike{1}+90,1);
+        [lat_b,lon_b] = circ_geo(lat_f,lon_f,rng,handles.FaultStrike{1}+90,1);
+        z_a = z_i + sliceWidth * sin(handles.FaultDip{1} * D2R);    z_b = z_a;
+        stripes{i} = [lon_i lon_f lon_b lon_a; lat_i lat_f lat_b lat_a; z_i z_f z_b z_a];    % 4 corners stripe coordinates
+        lon_i = lon_a;      lon_f = lon_b;        % a-b side of this stripe will be i-f of the next
+        lat_i = lat_a;      lat_f = lat_b;
+        z_i = z_a;          z_f = z_b;
+    end
+
+    %   i               f
+    %   |---------------|
+    %   |               |           stripe{i} has the coordinates in this order i->f->b->a
+    %   |---------------|
+    %   a               b
+
+% -----------------------------------------------------------------------------------------
+function deleteFatias(hObj,event,handles)
+    handles = guidata(handles.figure1);     % Update
+    delete(handles.patchFatias)
+    handles.patchFatias = [];
+    guidata(handles.figure1,handles);
+
+% -----------------------------------------------------------------------------------------
+function showFatias(hObj,event,handles)
+    q = handles.qValue;
+    gama = (0:100)/100;
+    D1 = 12/q^3*(q*gama - gama.^2);     D2 = 12/(1-q)^3*(gama.^2 -gama*(1+q)+q);
+    ind = find(gama < q);
+    D3 = [D1(1:ind(end)) D2(ind(end)+1:end)];
+    D3 = cumsum(D3);                    D3(D3 < 0) = 0;
+    D3 = D3 / max(D3);
+    hFig = figure('Name','Normalized slip profile','NumberTitle','off');    
+    plot(gama,D3)
+    hAxes = get(hFig,'Currentaxes');
+    
+    nFatias = numel(handles.patchFatias);
+    gama  = [0:nFatias-1]/nFatias;
+    D3 = [handles.varSlip(1:end); handles.varSlip(1:end)];
+    D3 = D3(:)';
+    x = [gama(2:end); gama(2:end)];
+    x = [0 x(:)' gama(end)+diff(gama(1:2))];
+    line('XData',x,'YData',D3,'Parent',hAxes)
+    area = cumsum(handles.varSlip) * diff(gama(1:2));
+    lost = (1 - area(end) / 0.5)*100;
+    text(.25,.1,sprintf('%s%.1f%s','Lost in descretization = ',abs(lost),'%'))
+
+% ------------------------------------------------------------------------------------
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+    if (get(handles.checkbox_SCC,'Val'))
+        deleteFatias([],[],handles)
+    else
+        for (i=1:numel(handles.h_fault))
+        	hp = getappdata(handles.h_fault(i),'PatchHand');
+            try,    set(hp,'XData', [], 'YData',[],'Visible','on');     end     % Had to use a try (f.. endless errors)
+        end
+    end
+    delete(handles.figure1)
+
+% -----------------------------------------------------------------------------------------
+% ---------------- Creates and returns a handle to the GUI figure. 
 function deform_mansinha_LayoutFcn(h1,handles);
 
 set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'CloseRequestFcn',{@deform_mansinha_uicallback,h1,'figure1_CloseRequestFcn'},...
 'MenuBar','none',...
 'Name','deform_mansinha',...
 'NumberTitle','off',...
-'PaperPosition',get(0,'defaultfigurePaperPosition'),...
-'Position',[520 529 540 271],...
-'Renderer',get(0,'defaultfigureRenderer'),...
+'Position',[520 529 540 265],...
 'RendererMode','manual',...
 'Resize','off',...
 'Tag','figure1',...
-'HandleVisibility','callback',...
-'UserData',[]);
+'HandleVisibility','callback');
 
-h2 = uicontrol('Parent',h1,'Position',[10 126 181 131],'String',{''},...
-'Style','frame','Tag','frame1');
+uicontrol('Parent',h1,'Position',[10 126 181 131],'Style','frame','Tag','frame1');
 
-h3 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_FaultLength_Callback'},...
 'Position',[20 213 71 21],...
 'Style','edit',...
 'TooltipString','Fault length (km)',...
 'Tag','edit_FaultLength');
 
-h4 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_FaultWidth_Callback'},...
 'Position',[110 213 71 21],...
 'Style','edit',...
 'TooltipString','Fault width (km)',...
 'Tag','edit_FaultWidth');
 
-h5 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_FaultStrike_Callback'},...
 'Position',[20 173 71 21],...
 'Style','edit',...
 'TooltipString','Fault strike (degrees)',...
 'Tag','edit_FaultStrike');
 
-h6 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_FaultDip_Callback'},...
 'Position',[110 173 71 21],...
 'Style','edit',...
 'TooltipString','Fault dip (degrees)',...
 'Tag','edit_FaultDip');
 
-h7 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_FaultDepth_Callback'},...
 'Position',[20 134 71 21],...
 'Style','edit',...
 'TooltipString','Depth of the base of fault''s plane',...
 'Tag','edit_FaultDepth');
 
-h8 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_FaultTopDepth_Callback'},...
 'Position',[110 133 71 21],...
 'Style','edit',...
 'TooltipString','Alternatively, give depth to the fault''s top ',...
 'Tag','edit_FaultTopDepth');
 
-h9 = uicontrol('Parent',h1,'Enable','inactive','Position',[36 235 41 13],...
-'String','Length','Style','text','Tag','text1');
+uicontrol('Parent',h1,'Enable','inactive','Position',[36 235 41 13],'String','Length','Style','text');
+uicontrol('Parent',h1,'Enable','inactive','Position',[125 236 41 13],'String','Width','Style','text');
+uicontrol('Parent',h1,'Enable','inactive','Position',[34 195 41 13],'String','Strike','Style','text');
+uicontrol('Parent',h1,'Enable','inactive','Position',[124 195 41 13],'String','Dip','Style','text');
 
-h10 = uicontrol('Parent',h1,'Enable','inactive','Position',[125 236 41 13],...
-'String','Width','Style','text','Tag','text2');
-
-h11 = uicontrol('Parent',h1,'Enable','inactive','Position',[34 195 41 13],...
-'String','Strike','Style','text','Tag','text3');
-
-h12 = uicontrol('Parent',h1,'Enable','inactive','Position',[124 195 41 13],...
-'String','Dip','Style','text','Tag','text4');
-
-h13 = uicontrol('Parent',h1,'Enable','inactive','Position',[108 154 75 16],...
+uicontrol('Parent',h1,'Enable','inactive','Position',[108 154 75 16],...
 'String','Depth to Top','Style','text',...
-'TooltipString','Depth to the top of the fault (>= 0)','Tag','text5');
+'TooltipString','Depth to the top of the fault (>= 0)');
 
-h14 = uicontrol('Parent',h1,'Enable','inactive','Position',[34 155 41 16],...
+uicontrol('Parent',h1,'Enable','inactive','Position',[34 155 41 16],...
 'String','Depth','Style','text',...
-'TooltipString','Depth to the top of the fault (>= 0)','Tag','text6');
+'TooltipString','Depth to the top of the fault (>= 0)');
 
-h15 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'popup_segment_Callback'},...
 'Position',[210 216 91 22],...
 'Style','popupmenu',...
@@ -915,51 +1116,45 @@ h15 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Value',1,...
 'Tag','popup_segment');
 
-h16 = uicontrol('Parent',h1,'Enable','inactive','Position',[229 238 48 16],...
+uicontrol('Parent',h1,'Enable','inactive','Position',[229 238 48 16],...
 'String','Segments','Style','text','Tag','fault_segment');
 
-h17 = uicontrol('Parent',h1,'Enable','inactive','Position',[53 250 85 15],...
-'String','Fault Geometry','Style','text','Tag','text8');
+uicontrol('Parent',h1,'Enable','inactive','Position',[53 250 85 15],...
+'String','Fault Geometry','Style','text','Tag','faultGeom');
 
-h18 = uicontrol('Parent',h1,'Position',[320 126 211 131],...
-'String',{''},'Style','frame','Tag','frame2');
+uicontrol('Parent',h1,'Position',[320 126 211 131],'Style','frame','Tag','frame2');
 
-h19 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_DislocStrike_Callback'},...
 'Position',[330 213 51 21],...
 'Style','edit',...
 'Tag','edit_DislocStrike');
 
-h20 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_DislocRake_Callback'},...
 'Position',[400 213 51 21],...
 'Style','edit',...
-'TooltipString','Displacement angle clock-wise from horizontal',...
+'TooltipString','Displacement angle anti-clockwise from horizontal',...
 'Tag','edit_DislocRake');
 
-h21 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_DislocSlip_Callback'},...
 'Position',[470 213 51 21],...
 'Style','edit',...
 'TooltipString','Total displacement',...
 'Tag','edit_DislocSlip');
 
-h22 = uicontrol('Parent',h1,'Enable','inactive','Position',[335 235 41 13],...
-'String','Strike','Style','text','Tag','text9');
+uicontrol('Parent',h1,'Enable','inactive','Position',[335 235 41 13],'String','Strike','Style','text');
+uicontrol('Parent',h1,'Enable','inactive','Position',[404 235 41 13],'String','Rake','Style','text');
+uicontrol('Parent',h1,'Enable','inactive','Position',[474 235 41 13],'String','Slip','Style','text');
 
-h23 = uicontrol('Parent',h1,'Enable','inactive','Position',[404 235 41 13],...
-'String','Rake','Style','text','Tag','text10');
+uicontrol('Parent',h1,'Enable','inactive','Position',[373 250 111 15],...
+'String','Dislocation Geometry','Style','text','Tag','dislocGeom');
 
-h24 = uicontrol('Parent',h1,'Enable','inactive','Position',[474 235 41 13],...
-'String','Slip','Style','text','Tag','text11');
+uicontrol('Parent',h1,'Enable','inactive','Position',[10 11 350 93],...
+'Style','frame','Tag','frame3');
 
-h25 = uicontrol('Parent',h1,'Enable','inactive','Position',[373 250 111 15],...
-'String','Dislocation Geometry','Style','text','Tag','text12');
-
-h26 = uicontrol('Parent',h1,'Enable','inactive','Position',[10 11 350 93],...
-'String',{''},'Style','frame','Tag','frame3');
-
-h27 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_Xmin_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[76 64 71 21],...
@@ -967,7 +1162,7 @@ h27 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'TooltipString','X min value',...
 'Tag','edit_Xmin');
 
-h28 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_Xmax_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[152 64 71 21],...
@@ -975,7 +1170,7 @@ h28 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'TooltipString','X max value',...
 'Tag','edit_Xmax');
 
-h29 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_Xinc_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[228 64 71 21],...
@@ -983,14 +1178,14 @@ h29 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'TooltipString','DX grid spacing',...
 'Tag','edit_Xinc');
 
-h30 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_Ncols_Callback'},...
 'Position',[304 64 45 21],...
 'Style','edit',...
 'TooltipString','Number of columns in the grid',...
 'Tag','edit_Ncols');
 
-h31 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_Ymin_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[76 38 71 21],...
@@ -998,7 +1193,7 @@ h31 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'TooltipString','Y min value',...
 'Tag','edit_Ymin');
 
-h32 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_Ymax_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[152 38 71 21],...
@@ -1006,7 +1201,7 @@ h32 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'TooltipString','Y max value',...
 'Tag','edit_Ymax');
 
-h33 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_Yinc_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[228 38 71 21],...
@@ -1014,14 +1209,14 @@ h33 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'TooltipString','DY grid spacing',...
 'Tag','edit_Yinc');
 
-h34 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_Nrows_Callback'},...
 'Position',[304 38 45 21],...
 'Style','edit',...
 'TooltipString','Number of columns in the grid',...
 'Tag','edit_Nrows');
 
-h35 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[0.831372559070587 0.815686285495758 0.7843137383461],...
 'Callback',{@deform_mansinha_uicallback,h1,'pushbutton_Help_R_Callback'},...
 'FontWeight','bold',...
@@ -1030,59 +1225,73 @@ h35 = uicontrol('Parent',h1,...
 'String','?',...
 'Tag','pushbutton_Help_R');
 
-h36 = uicontrol('Parent',h1,'Enable','inactive','Position',[18 69 55 15],...
-'String','X Direction','Style','text','Tag','text13');
+uicontrol('Parent',h1,'Enable','inactive','Position',[18 69 55 15],'String','X Direction','Style','text');
+uicontrol('Parent',h1,'Enable','inactive','Position',[17 43 55 15],'String','Y Direction','Style','text');
+uicontrol('Parent',h1,'Enable','inactive','Position',[169 86 41 13],'String','Max','Style','text');
+uicontrol('Parent',h1,'Enable','inactive','Position',[91 87 41 13],'String','Min','Style','text');
+uicontrol('Parent',h1,'Enable','inactive','Position',[246 87 41 13],'String','Spacing','Style','text');
+uicontrol('Parent',h1,'Enable','inactive','Position',[302 87 51 13],'String','# of lines','Style','text');
 
-h37 = uicontrol('Parent',h1,'Enable','inactive','Position',[17 43 55 15],...
-'String','Y Direction','Style','text','Tag','text14');
+uicontrol('Parent',h1,'Enable','inactive','Position',[30 97 121 15],...
+'String','Griding Line Geometry','Style','text','Tag','gridGeom');
 
-h38 = uicontrol('Parent',h1,'Enable','inactive','Position',[169 86 41 13],...
-'String','Max','Style','text','Tag','text15');
-
-h39 = uicontrol('Parent',h1,'Enable','inactive','Position',[91 87 41 13],...
-'String','Min','Style','text','Tag','text16');
-
-h40 = uicontrol('Parent',h1,'Enable','inactive','Position',[246 87 41 13],...
-'String','Spacing','Style','text','Tag','text17');
-
-h41 = uicontrol('Parent',h1,'Enable','inactive','Position',[302 87 51 13],...
-'String','# of lines','Style','text','Tag','text18','UserData',[]);
-
-h42 = uicontrol('Parent',h1,'Enable','inactive','Position',[30 97 121 15],...
-'String','Griding Line Geometry','Style','text','Tag','text19');
-
-h43 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@deform_mansinha_uicallback,h1,'pushbutton_compute_Callback'},...
 'FontWeight','bold',...
 'Position',[430 43 71 23],...
 'String','Compute',...
 'Tag','pushbutton_compute');
 
-h44 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@deform_mansinha_uicallback,h1,'pushbutton_cancel_Callback'},...
 'FontWeight','bold',...
 'Position',[430 12 71 23],...
 'String','Cancel',...
 'Tag','pushbutton_cancel');
 
-h45 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'popup_fault_Callback'},...
 'Position',[209 171 91 22],'Style','popupmenu',...
 'TooltipString','Toggle between the different faults',...
 'Value',1,'Tag','popup_fault');
 
-h46 = uicontrol('Parent',h1,...
-'Enable','inactive','Position',[229 194 42 15],...
+uicontrol('Parent',h1,'Enable','inactive','Position',[229 194 42 15],...
 'String','Faults','Style','text','Tag','fault_number');
 
-h47 = uicontrol('Parent',h1,...
-'Callback',{@deform_mansinha_uicallback,h1,'checkbox_hideFaultPlanes_Callback'},...
-'Position',[330 166 98 15],'String','Hide fault planes',...
+uicontrol('Parent',h1,...
+'Callback',{@deform_mansinha_uicallback,h1,'checkbox_hideFaultPlanes_CB'},...
+'Position',[330 170 98 15],'String','Hide fault planes',...
 'Style','checkbox','Tag','checkbox_hideFaultPlanes');
 
-h48 = uicontrol('Parent',h1,'Enable','inactive','FontSize',10,...
-'HorizontalAlignment','left','Position',[330 135 123 16],...
-'String','Moment Magnitude =','Style','text','Tag','text_Mw');
+uicontrol('Parent',h1,'Enable','inactive','FontSize',10,...
+'HorizontalAlignment','left','Position',[330 135 100 16],...
+'String','Mw Magnitude =','Style','text','Tag','text_Mw');
+
+uicontrol('Parent',h1,...
+'Callback',{@deform_mansinha_uicallback,h1,'checkbox_SCC_CB'},...
+'Position',[450 170 50 15],'String','SCC',...
+'TooltipString','Use variable slip',...
+'Style','checkbox','Tag','checkbox_SCC');
+
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+'Callback',{@deform_mansinha_uicallback,h1,'edit_SCC_CB'},...
+'Position',[450 135 31 21],...
+'Style','edit','String','20',...
+'TooltipString','Number of discretization slices',...
+'Tag','edit_nSlices');
+
+uicontrol('Parent',h1,'Enable','inactive','Position',[460 156 10 12],...
+'String','N','Style','text','Tag','txtNfatias');
+
+uicontrol('Parent',h1,'Enable','inactive','Position',[495 157 10 13],...
+'String','q','Style','text','Tag','txtqValue');
+
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+'Callback',{@deform_mansinha_uicallback,h1,'edit_qValue_CB'},...
+'Position',[485 135 40 21],...
+'Style','edit','String','0.3',...
+'TooltipString','Slip skewness control (0 < q < 1)',...
+'Tag','edit_qValue');
 
 uicontrol('Parent',h1,'Position',[224 150 50 15],'ForegroundColor',[1 0 0],...
 'String','CONFIRM','Style','text','Tag','text22');
