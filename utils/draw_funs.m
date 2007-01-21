@@ -27,7 +27,7 @@ switch opt
     case 'MBtrack_uicontext',       set_line_uicontext(hand,'MBtrack')
     case 'MBbar_uicontext',         set_bar_uicontext(hand)
     case 'Coastline_uicontext',     setCoastLineUictx(hand)
-    case 'DeleteObj',               delete_obj;
+    case 'DeleteObj',               delete_obj(hand);
     case 'DrawGeographicalCircle'
         h = draw_circleGeo;
         if ~isempty(h)      % when in compiled version h may be empty (why?).
@@ -694,7 +694,7 @@ setLineColor(item_lc,cb_color)
 % -----------------------------------------------------------------------------------------
 function call_gmtedit(obj,eventdata,h)
 pt = get(gca, 'CurrentPoint');
-gmtedit(getappdata(h,'FullName'),['-P' num2str(pt(1,1),6) '/' num2str(pt(1,2),6)]);
+gmtedit(getappdata(h,'FullName'),['-P' sprintf('%.6f',pt(1,1)) '/' sprintf('%.6f',pt(1,2))]);
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_setMarker(h,prop)
@@ -894,14 +894,14 @@ delta = acos(x);
 vel = omega*D2R/1e+4 * earth_rad * sin(delta);      % to give velocity in cm/Ma
 
 msg = ['Pole name:  ', s.plates, sprintf('\n'), ...
-        'Pole lon = ', num2str(s.clon,'%3.3f'), sprintf('\n'), ...
-        'Pole lat = ', num2str(s.clat,'%2.3f'), sprintf('\n'), ...
-        'Pole rate = ', num2str(omega), sprintf('\n'), ...
+        'Pole lon = ', sprintf('%3.3f',s.clon), sprintf('\n'), ...
+        'Pole lat = ', sprintf('%2.3f',s.clat), sprintf('\n'), ...
+        'Pole rate = ', sprintf('%.3f',omega), sprintf('\n'), ...
         'At point: ',sprintf('\n'), ...
-        'Lon = ', num2str(s.rlon,'%3.3f'), sprintf('\n'), ...
-        'Lat = ', num2str(s.rlat,'%2.3f'), sprintf('\n'), ...
-        'Speed (cm/yr) =   ', num2str(vel,'%2.2f'), sprintf('\n'), ...
-        'Azimuth (degrees cw from North) = ', num2str(azim,'%3.1f')];
+        'Lon = ', sprintf('%3.3f',s.rlon), sprintf('\n'), ...
+        'Lat = ', sprintf('%2.3f',s.rlat), sprintf('\n'), ...
+        'Speed (cm/yr) =   ', sprintf('%2.2f',vel), sprintf('\n'), ...
+        'Azimuth (degrees cw from North) = ', sprintf('%3.1f',azim)];
 msgbox(msg,'Euler velocity')
 
 % -----------------------------------------------------------------------------------------
@@ -926,7 +926,7 @@ patch(x,y,0,'FaceColor',[.7 .7 .7], 'EdgeColor','k');
 
 % -----------------------------------------------------------------------------------------
 function show_swhatRatio(obj,eventdata,h)
-msgbox(['Swath Ratio for this track is: ' num2str(getappdata(h,'swathRatio'))],'')
+msgbox(['Swath Ratio for this track is: ' sprintf('%g',getappdata(h,'swathRatio'))],'')
 refresh
 
 % -----------------------------------------------------------------------------------------
@@ -953,11 +953,11 @@ end
 if (handles.geog)
     area = area_geo(y,x);    % Area is reported on the unit sphere
     area = area * 4 * pi * EarthRad^2;
-    msg{2} = ['Area = ' num2str(area) ' km^2'];
+    msg{2} = ['Area = ' sprintf('%g',area) ' km^2'];
     msgbox(msg,'Area')
 else
     area = polyarea(x,y);   % Area is reported in map user unites
-    msg{2} = ['Area = ' num2str(area) ' map units ^2'];
+    msg{2} = ['Area = ' sprintf('%g',area) ' map units ^2'];
     msgbox(msg,'Area')
 end
 refresh
@@ -1008,16 +1008,16 @@ if (handles.geog)
         for i = 1:length(tmp)
             %len_i(i) = acos(tmp(i)) * earth_rad / 1.852;     % Distance in NM
             len_i(i) = tmp(i) / scale;
-            msg = [msg; {['Length' num2str(i) '  =  ' num2str(len_i(i),'%.5f') str_unit]}];
+            msg = [msg; {['Length' sprintf('%d',i) '  =  ' sprintf('%.5f',len_i(i)) str_unit]}];
         end
         if (length(msg) < 20)
-            msg = [msg; {['Total length = ' num2str(total_len,'%.5f') str_unit]}];
+            msg = [msg; {['Total length = ' sprintf('%.5f',total_len) str_unit]}];
         else
-            msg = {['Total length = ' num2str(total_len,'%.5f') str_unit]};
+            msg = {['Total length = ' sprintf('%.5f',total_len) str_unit]};
         end
         msgbox(msg,'Line(s) length')
     elseif (nargout == 0 && ~isempty(opt))
-        msgbox(['Total length = ' num2str(total_len,'%.5f') str_unit],'Line length')
+        msgbox(['Total length = ' sprintf('%.5f',total_len) str_unit],'Line length')
     else        % Should we also out output also the partial lengths?
         ll.len = total_len;   ll.type = 'geog';
     end
@@ -1028,16 +1028,16 @@ else
         len_i = zeros(1,length(dx));
         for i = 1:length(dx)
             len_i(i) = sqrt(dx(i)^2 + dy(i)^2);
-            msg = [msg; {['Length' num2str(i) '  =  ' num2str(len_i(i),'%.5f') ' map units']}];
+            msg = [msg; {['Length' sprintf('%d',i) '  =  ' sprintf('%.5f',len_i(i)) ' map units']}];
         end
         if (length(msg) < 20)
-            msg = [msg; {['Total length = ' num2str(total_len,'%.5f') ' map units']}];
+            msg = [msg; {['Total length = ' sprintf('%.5f',total_len) ' map units']}];
         else
-            msg = {['Total length = ' num2str(total_len,'%.5f') ' map units']};
+            msg = {['Total length = ' sprintf('%.5f',total_len) ' map units']};
         end
         msgbox(msg,'Line(s) length')
     elseif (nargout == 0 && ~isempty(opt))
-        msgbox(['Total length = ' num2str(total_len,'%.5f') ' map units'],'Line length')
+        msgbox(['Total length = ' sprintf('%.5f',total_len) ' map units'],'Line length')
     else        % The same question as in the geog case
         ll.len = total_len;   ll.type = 'cart';
     end
@@ -1056,7 +1056,7 @@ for i = 1:length(ALLlineHand)
     end
 end
 if (len > 0)
-    msgbox(['Total tracks length = ' num2str(len) ' NM'])
+    msgbox(['Total tracks length = ' sprintf('%g',len) ' NM'])
 end
 
 % -----------------------------------------------------------------------------------------
@@ -1088,7 +1088,7 @@ else
 end
 for i = 1:length(az)
     if (nargout == 0)
-        msg = [msg; {['Azimuth' num2str(i) '  =  ' num2str(az(i),'%3.1f') '  degrees']}];
+        msg = [msg; {['Azimuth' sprintf('%g',i) '  =  ' sprintf('%3.1f',az(i)) '  degrees']}];
     else
         azim.az = az;
     end
@@ -1097,11 +1097,11 @@ if (nargout == 0)
     if (length(az) > 1)
         msg{end+1} = '';
         az_mean = mean(az);
-        msg{end+1} = ['Mean azimuth = ' num2str(az_mean,'%.1f') '  degrees'];
+        msg{end+1} = ['Mean azimuth = ' sprintf('%.1f',az_mean) '  degrees'];
         id = (az >= 180);    az(id) = az(id) - 180;
         dir_mean = mean(az);
         if (~isequal(az_mean,dir_mean))
-            msg{end+1} = ['Mean direction = ' num2str(dir_mean,'%.1f') '  degrees'];
+            msg{end+1} = ['Mean direction = ' sprintf('%.1f',dir_mean) '  degrees'];
         end
     end
     if (length(az) > 15),   msg = msg(end-2:end);   end
@@ -1831,23 +1831,23 @@ labelType = getappdata(gcf,'LabelFormatType');
 if (~isempty(labelType))
     switch labelType
         case 'DegMin'
-            x_str = degree2dms(str2num( ddewhite(num2str(xx,'%8f')) ),'DDMM',0,'str');   % x_str is a structure with string fields
-            y_str = degree2dms(str2num( ddewhite(num2str(yy,'%8f')) ),'DDMM',0,'str');
+            x_str = degree2dms(str2num( ddewhite(sprintf('%8f',xx)) ),'DDMM',0,'str');   % x_str is a structure with string fields
+            y_str = degree2dms(str2num( ddewhite(sprintf('%8f',yy)) ),'DDMM',0,'str');
             xx = [x_str.dd ':' x_str.mm];
             yy = [y_str.dd ':' y_str.mm];
         case 'DegMinDec'
-            x_str = degree2dms(str2num( ddewhite(num2str(xx,'%8f')) ),'DDMM.x',2,'str');
-            y_str = degree2dms(str2num( ddewhite(num2str(yy,'%8f')) ),'DDMM.x',2,'str');
+            x_str = degree2dms(str2num( ddewhite(sprintf('%8f',xx)) ),'DDMM.x',2,'str');
+            y_str = degree2dms(str2num( ddewhite(sprintf('%8f',yy)) ),'DDMM.x',2,'str');
             xx = [x_str.dd ':' x_str.mm];
             yy = [y_str.dd ':' y_str.mm];
         case 'DegMinSec'
-            x_str = degree2dms(str2num( ddewhite(num2str(xx,'%8f')) ),'DDMMSS',0,'str');
-            y_str = degree2dms(str2num( ddewhite(num2str(yy,'%8f')) ),'DDMMSS',0,'str');
+            x_str = degree2dms(str2num( ddewhite(sprintf('%8f',xx)) ),'DDMMSS',0,'str');
+            y_str = degree2dms(str2num( ddewhite(sprintf('%8f',yy)) ),'DDMMSS',0,'str');
             xx = [x_str.dd ':' x_str.mm ':' x_str.ss];
             yy = [y_str.dd ':' y_str.mm ':' y_str.ss];
         case 'DegMinSecDec'
-            x_str = degree2dms(str2num( ddewhite(num2str(xx,'%8f')) ),'DDMMSS.x',1,'str');
-            y_str = degree2dms(str2num( ddewhite(num2str(yy,'%8f')) ),'DDMMSS.x',1,'str');
+            x_str = degree2dms(str2num( ddewhite(sprintf('%8f',xx)) ),'DDMMSS.x',1,'str');
+            y_str = degree2dms(str2num( ddewhite(sprintf('%8f',yy)) ),'DDMMSS.x',1,'str');
             xx = [x_str.dd ':' x_str.mm ':' x_str.ss];
             yy = [y_str.dd ':' y_str.mm ':' y_str.ss];
         otherwise
@@ -2077,7 +2077,7 @@ else,   return, end
 function hotspot_info(obj,eventdata,h,name,age,opt)
 i = get(gco,'Userdata');
 if isempty(opt)
-    msgbox( sprintf(['Hotspot name: ' name{i} '\n' 'Hotspot age:   ' num2str(age(i)) ' Ma'] ),'Fogspot info')
+    msgbox( sprintf(['Hotspot name: ' name{i} '\n' 'Hotspot age:   ' sprintf('%g',age(i)) ' Ma'] ),'Fogspot info')
 else
     name = strrep(name,'_',' ');            % Replace '_' by ' '
     textHand = text(get(h(i),'XData'),get(h(i),'YData'),0,name{i});
@@ -2160,15 +2160,13 @@ end
 if isempty(txt_id),     txt_id = char(data(i).pb_id);   end      % If id was not decoded, print id
 if isempty(txt_class),  txt_class = char(data(i).class);   end   % Shouldn't happen, but just in case
 
-%msgbox( sprintf(['Plate pairs:          ' char(data(i).pb_id) '\n' 'Boundary Type    ' char(data(i).class) '\n' ...
 msgbox( sprintf(['Plate pairs:           ' txt_id '\n' 'Boundary Type:    ' txt_class '\n' ...
-        'Speed (mm/a):       ' num2str(data(i).vel) '\n' ...
-        'Speed Azimuth:      ' num2str(data(i).azim_vel)] ),'Segment info')
+        'Speed (mm/a):       ' sprintf('%g',data(i).vel) '\n' ...
+        'Speed Azimuth:      ' sprintf('%g',data(i).azim_vel)] ),'Segment info')
 
 % -----------------------------------------------------------------------------------------
-function delete_obj()
-	h = findobj('Tag','Tesoura');
-	
+function delete_obj(h)
+	% H is the handle to the 'Tesoura' uitoggletool
 	% Build the scisors pointer (this was done with the help of an image file)
 	pointer = ones(16)*NaN;
 	pointer(2,7) = 1;       pointer(2,11) = 1;      pointer(3,7) = 1;       pointer(3,11) = 1;
@@ -2211,16 +2209,18 @@ delete(h);
 
 % -----------------------------------------------------------------------------------------
 function del_insideRect(obj,eventdata,h)
-    % Delete all lines/patches objects that have at least one vertex inside the rectangle
+    % Delete all lines/patches/text objects that have at least one vertex inside the rectangle
     
     s = getappdata(h,'polygon_data');
     if (~isempty(s))            % If the rectangle is in edit mode, force it out of edit
         if strcmpi(s.controls,'on'),    ui_edit_polygon(h);     end
     end
     set(h, 'HandleVis','off')           % Make the rectangle handle invisible
+    hAxes = get(h,'Parent');
     
-    hLines = findobj(get(h,'Parent'),'Type','line');     % Fish all objects of type line in Mirone figure
-    hPatch = findobj(get(h,'Parent'),'Type','patch');
+    hLines = findobj(hAxes,'Type','line');     % Fish all objects of type line in Mirone figure
+    hPatch = findobj(hAxes,'Type','patch');
+    hText = findobj(hAxes,'Type','text');
     hLP = [hLines(:); hPatch(:)];
     rx = get(h,'XData');        ry = get(h,'YData');
     rx = [min(rx) max(rx)];     ry = [min(ry) max(ry)];
@@ -2235,17 +2235,26 @@ function del_insideRect(obj,eventdata,h)
         end
     end
     if (found)      % We have to do it again because some line handles have meanwhile desapeared
-        hLines = findobj(get(h,'Parent'),'Type','line');
-        hPatch = findobj(get(h,'Parent'),'Type','patch');
+        hLines = findobj(hAxes,'Type','line');
+        hPatch = findobj(hAxes,'Type','patch');
         hLP = [hLines(:); hPatch(:)];
     end
-    for (i=1:numel(hLP))    % Loop over objects to find out which cross the rectangle
-        x = get(hLP(i),'XData');
-        y = get(hLP(i),'YData');
+    for (i=1:numel(hLP))        % Loop over objects to find out which cross the rectangle
+        x = get(hLP(i),'XData');        y = get(hLP(i),'YData');
         if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
             delete(hLP(i))
         end
     end
+
+    found = false;
+    for (i=1:numel(hText))      % Text objs are a bit different, so treat them separately
+        pos = get(hText(i),'Position');
+        if ( (pos(1) >= rx(1) && pos(1) <= rx(2)) && (pos(2) >= ry(1) && pos(2) <= ry(2)) )
+            delete(hText(i))
+            found = true;
+        end
+    end
+    if (found),     refresh;    end     % Bloody text bug
     set(h, 'HandleVis','on')    % Make the rectangle handle findable again
 
 % -------------------------------------------------------------------------------------------------------
@@ -2383,7 +2392,7 @@ line('XData',width*[.55 .55],'YData',barHeight_1M*([0+dy tmax+dy]),'LineWidth',2
 
 for i=0:5:tmax
     line('XData',width*[.55 .58],'YData',barHeight_1M * ([i i]+dy),'LineWidth',.5)   % Time tick marks
-    text(width*.6, barHeight_1M * (i + dy), [num2str(i) ' Ma'])
+    text(width*.6, barHeight_1M * (i + dy), sprintf('%g%s',i,' Ma'))
 end
 for i=0:tmax
     line('XData',width*[.55 .565],'YData',barHeight_1M * ([i i]+dy),'LineWidth',.5)   % 1 Ma ticks
@@ -2569,7 +2578,7 @@ if (val > 0.01)
 %         set(handles.figure1,'Renderer','painters')
 %     end
 end
-set(T,'String',['Opacity = ', num2str(val,'%.2f')])
+set(T,'String',['Opacity = ', sprintf('%.2f',val)])
 
 % -----------------------------------------------------------------------------------------
 function set_telhas_uicontext(h)
