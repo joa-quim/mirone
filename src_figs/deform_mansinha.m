@@ -139,7 +139,7 @@ set(handles.edit_Ncols,'String',sprintf('%d',n))
 % Compute default xinc, yinc based on map limits
 yinc = (head(4) - head(3)) / (m-1);   xinc = (head(2) - head(1)) / (n-1);
 set(handles.edit_Yinc,'String',sprintf('%.10f',yinc))
-set(handles.edit_Xinc,'String',sprintf('%.10f',xinc,10))
+set(handles.edit_Xinc,'String',sprintf('%.10f',xinc))
 %-----------
 
 handles.nrows = m;      handles.ncols = n;
