@@ -257,9 +257,9 @@ case 'normal'   % Just display Z (or intensity) information
                 pixval_str = sprintf([form_xy ' %6.3f'], x,y,pixel(1:end));
             else
                 if (isequal(pixel(1),pixel(2),pixel(3)))
-                    pixval_str = sprintf([form_xy ' %g'], x,y,pixel(1));
+                    pixval_str = sprintf([form_xy ' %d'], x,y,pixel(1));
                 else
-                    pixval_str = sprintf([form_xy ' %g,%g,%g'], x,y,pixel(1:end));
+                    pixval_str = sprintf([form_xy ' %.0f,%.0f,%.0f'], x,y,pixel(1:end));
                 end
             end
         end
@@ -312,7 +312,7 @@ case 'distance'
           if (no_Zlim == 0)
               pixval_str = sprintf([form_xy ' %6.3f  '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
           else
-              pixval_str = sprintf([form_xy ' %3d,%3d,%3d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
+              pixval_str = sprintf([form_xy ' %.0f,%.0f,%.0f  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
           end
       end
    else % intensity
