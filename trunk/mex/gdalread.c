@@ -16,6 +16,7 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
+ * Revision 12  22/01/2007 Left-right flip ENVISAT GCPs because they have X positive to left (can we kill the guy?)
  * Revision 11  21/11/2006 Removed globals
  *                         Fixed a bug with pointer name confusion(dptr & dptr2)
  * Revision 10  04/11/2006 The 'ProjectionRef' metadata attempts to report in PrettyWkt
@@ -814,6 +815,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 
 	/* These are used to define the metadata structure about available GDAL drivers. */
 	char *driver_fieldnames[100];
+	const char	*format;
 	int num_driver_fields;
 
 	mxArray *driver_struct;
@@ -1259,10 +1261,14 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	nCounter = GDALGetGCPCount( hDataset );
 	mxtmp = mxCreateNumericMatrix(nCounter, 5, mxDOUBLE_CLASS, mxREAL);	/* Empy matrix if no GCPs */
 	if( nCounter > 0 ) {
+		format = GDALGetDriverShortName(hDriver);
 		dptr = mxGetPr(mxtmp);
 		for( i = 0; i < nCounter; i++ ) {
 			psGCP = GDALGetGCPs( hDataset ) + i;
-			dptr[i] = psGCP->dfGCPPixel;
+			if (!strcmp(format,"ESAT"))	/* ENVISAT GCPs are left-right fliped */ 
+				dptr[i] = xSize - psGCP->dfGCPPixel;
+			else
+				dptr[i] = psGCP->dfGCPPixel;
 			dptr[i+nCounter] = psGCP->dfGCPLine;
 			dptr[i+2*nCounter] = psGCP->dfGCPX;
 			dptr[i+3*nCounter] = psGCP->dfGCPY;
