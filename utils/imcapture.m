@@ -110,7 +110,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
     if (~ishandle(h))
         error('imcapture:a','First argument is not a valid Fig/Axes/Image handle')
     end
-    if (nargin == 1),   opt = [];   end
+    if (nargin <= 1),   opt = [];   end
     
     inputargs{1} = h;
     renderer = get(h, 'Renderer');
@@ -184,7 +184,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
                 msg = 'Second argument is not a recognized option';
         end
     else
-        img = allInFig(h,inputargs{:});
+        img = allInFig(inputargs{:});
     end
     
     if (~isempty(msg))      % If we had an error inside imgOnly()
