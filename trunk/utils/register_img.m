@@ -1,10 +1,11 @@
-function register_img(handles,h)
-% HANDLES should be a guidata(hFig) but it's not (that is, if it's empty) the fig and
+function register_img(handles,h,GCPs)
+% HANDLES should be a guidata(hFig) but if it's not (that is, if it's empty) the fig and
 % axes handles are fished from H
 % H is the handle of a line or patch object
+% GCPs is a Mx4 matrix with the source and target GCP coordinates (normally given by GDAL)
 
-if (nargin ~= 2)
-    errordlg('REGISTER_IMG: wrong number of arguments (must be two)','ERROR')
+if (nargin < 2)
+    errordlg('REGISTER_IMG: wrong number of arguments (must be at least two)','ERROR')
     return
 end
 if ( ~ishandle(h) || ~(strcmp(get(h,'Type'),'line') || strcmp(get(h,'Type'),'patch')) )
@@ -22,10 +23,45 @@ if (isempty(hImg))
     return
 end
 
+% Make the warping tooltips
+trfToolTips{1} = sprintf(['Use this transformation when shapes\n'...
+        'in the input image exhibit shearing.\n'...
+        'Straight lines remain straight,\n'...
+        'and parallel lines remain parallel,\n'...
+        'but rectangles become parallelograms.']);
+trfToolTips{2} = sprintf(['Use this transformation when shapes\n'...
+        'in the input image are unchanged,\n'...
+        'but the image is distorted by some\n'...
+        'combination of translation, rotation,\n'...
+        'and scaling. Straight lines remain straight,\n'...
+        'and parallel lines are still parallel.']);
+trfToolTips{3} = sprintf(['Use this transformation when the scene\n'...
+        'appears tilted. Straight lines remain\n'...
+        'straight, but parallel lines converge\n'...
+        'toward vanishing points that might or\n'...
+        'might not fall within the image.']);
+trfToolTips{4} = sprintf(['Use this transformation when objects\n'...
+        'in the image are curved. The higher the\n'...
+        'order of the polynomial, the better the\n'...
+        'fit, but the result can contain more\n'...
+        'curves than the base image.']);
+trfToolTips{5} = trfToolTips{4};
+trfToolTips{6} = trfToolTips{4};
+trfToolTips{7} = sprintf(['Use this transformation when parts of\n'...
+        'the image appear distorted differently.']);
+trfToolTips{8} = sprintf(['Use this transformation (local weighted mean),\n'...
+        'when the distortion varies locally and\n'...
+        'piecewise linear is not sufficient.']);
+handles.trfToolTips = trfToolTips;              % Since handles is not saved this field exists only here
+
 ui_edit_polygon(h)    % Set edition functions
 cmenuHand = uicontextmenu;
 set(h, 'UIContextMenu', cmenuHand);
-uimenu(cmenuHand, 'Label', 'Set reference Points', 'Callback', {@regOptions,handles,'set'});
+
+if (nargin == 2),   label = 'Set reference Points';
+else                label = 'Show GCPs';
+end
+uimenu(cmenuHand, 'Label', label, 'Callback', {@regOptions,handles,'set'});
 uimenu(cmenuHand, 'Label', 'Show GCPs residuals', 'Callback', {@regOptions,handles,'residue'});
 uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', {@regOptions,handles,'reg'});
 uimenu(cmenuHand, 'Label', 'Change registration method', 'Callback', {@regOptions,handles,'change'});
@@ -36,6 +72,13 @@ uimenu(cmenuHand, 'Label', 'Show connecting line', 'Callback', 'set(gco,''LineSt
 
 setappdata(handles.figure1,'RegistMethod',{'affine' 'bilinear'})     % Default tranfs type & interp method
 
+if (nargin == 3)
+    setappdata(handles.figure1,'GCPregImage',GCPs)
+    if (size(GCPs,1) > 10)      % This is likely a mutch better choice
+        setappdata(handles.figure1,'RegistMethod',{'polynomial (6 pts)' 'bilinear'})
+    end
+end
+
 % ----------------------------------------------------------------------------------
 function regOptions(obj,event,handles,opt)
 
@@ -43,67 +86,83 @@ hImg = findobj(handles.figure1,'Type','image');
 h = findobj(handles.axes1,'Tag','GCPpolyline');     % Fish them because they might have been edited
 x = get(h,'XData');     y = get(h,'YData');
 
-switch opt
-    case 'set'
-        gcps = tableGUI('array',[num2cell([x(:) y(:)]) cell(numel(x),2)],'RowNumbers','y','ColNames',...
-            {'Unreg Points - X','Unreg Points - Y', 'Reg Points - X','Reg Points - Y'},...
-            'ColWidth',100,'FigName','Control Points Table');
-        if isempty(gcps),    return;  end     % User gave up
-        base = str2double(gcps(:,3:4));
-        if ( any(isnan(base)) )
-            errordlg('Incomplete table of Control Points','Error')
-            return                              % User gave up
-        end
-        input_x = axes2pix(size(get(hImg,'CData'),2),get(hImg,'XData'),x);
-        input_y = axes2pix(size(get(hImg,'CData'),1),get(hImg,'YData'),y);
-        input = [input_x(:) input_y(:)];
-        setappdata(handles.figure1,'GCPregImage',[input base])
-        
-    case 'change'           % Change registration &/| interpolation method
-        fig_RegMethod(handles.figure1);
-        
-    case 'residue'
-        input_base = getappdata(handles.figure1,'GCPregImage');
-        if (isempty(input_base))
-            errordlg('You need to set first all pairs of Image-Reference Points.','ERROR'); return
-        end
-        base = input_base(:,3:4);
-        if ( any(isnan(base)) )
-            errordlg('Incomplete table of Control Points. Use the ''Set reference Points'' option first.','ERROR')
-            return
-        end
-        
-        RegistMethod = getappdata(handles.figure1,'RegistMethod');
-        trfType      = RegistMethod{1};
-        type         = checkTransform(trfType,numel(x));    % Test that n pts and tranfs type are compatible
-        if (isempty(type)),     return;    end              % Error message already issued
-        
-        trf = transform_fun('cp2tform',input_base(:,1:2),base,type{:});
-		
-        [x,y] = transform_fun('tformfwd',trf,input_base(:,1),input_base(:,2));
-		if (handles.geog)
-            residue = vdist_vectorized(input_base(:,4),input_base(:,3), y, x);
-            str_res = 'Residue (m)';
-		else
-            residue = [input_base(:,3) input_base(:,4)] - [x y];
-            residue = sqrt(residue(:,1).^2 + residue(:,2).^2);
-            str_res = 'Residue (?)';
-		end
-		gcp = [x y input_base(:,3:4) residue];
-		out = tableGUI('array',gcp,'RowNumbers','y','ColNames',{'Slave Points - X','Slave Points - Y',...
-                'Master Points - X','Master Points - Y',str_res},'ColWidth',100,'FigName','GCP Table','modal','');
-                
-    case 'reg'          % Register image
-        input_base = getappdata(handles.figure1,'GCPregImage');
-        if (isempty(input_base))
-            errordlg('You need to set first all pairs of Image-Reference Points.','ERROR'); return
-        end
-        base = input_base(:,3:4);
-        if ( any(isnan(base)) )
-            errordlg('Incomplete table of Control Points. Use the ''Set reference Points'' option first.','ERROR')
-            return
-        end
-        do_register(handles,input_base(:,1:2),base)
+try             % I'm fed up with so many possible errors
+	switch opt
+        case 'set'
+
+            gcpInMem = getappdata(handles.figure1,'GCPregImage');
+            if (~isempty(gcpInMem))             % We have them in memory so show them
+			    gcps = tableGUI('array',gcpInMem,'RowNumbers','y','ColNames',{'Slave Points - X','Slave Points - Y',...
+                        'Master Points - X','Master Points - Y'},'ColWidth',100,'FigName','GCP Table');
+            else
+                gcps = tableGUI('array',[num2cell([x(:) y(:)]) cell(numel(x),2)],'RowNumbers','y','ColNames',...
+                    {'Unreg Points - X','Unreg Points - Y', 'Reg Points - X','Reg Points - Y'},...
+                    'ColWidth',100,'FigName','Control Points Table');
+            end
+            if isempty(gcps),    return;  end     % User gave up
+            base = str2double(gcps(:,3:4));
+            if ( any(isnan(base)) )
+                errordlg('Incomplete table of Control Points','Error')
+                return                              % User gave up
+            end
+            input_x = axes2pix(size(get(hImg,'CData'),2),get(hImg,'XData'),x);
+            input_y = axes2pix(size(get(hImg,'CData'),1),get(hImg,'YData'),y);
+            input = [input_x(:) input_y(:)];
+            setappdata(handles.figure1,'GCPregImage',[input base])
+            
+        case 'change'           % Change registration &/| interpolation method
+            fig_RegMethod(handles);
+            
+        case 'residue'
+            input_base = getappdata(handles.figure1,'GCPregImage');
+            if (isempty(input_base))
+                errordlg('You need to set first all pairs of Image-Reference Points.','ERROR'); return
+            end
+            base = input_base(:,3:4);
+            if ( any(isnan(base)) )
+                errordlg('Incomplete table of Control Points. Use the ''Set reference Points'' option first.','ERROR')
+                return
+            end
+            
+            RegistMethod = getappdata(handles.figure1,'RegistMethod');
+            trfType      = RegistMethod{1};
+            type         = checkTransform(trfType,numel(x));    % Test that n pts and tranfs type are compatible
+            if (isempty(type)),     return;    end              % Error message already issued
+            
+            set(handles.figure1,'Pointer','watch')
+            trf = transform_fun('cp2tform',input_base(:,1:2),base,type{:});			
+            [x,y] = transform_fun('tformfwd',trf,input_base(:,1),input_base(:,2));
+            
+			if (handles.geog)
+                residue = vdist_vectorized(input_base(:,4),input_base(:,3), y, x);
+                str_res = 'Residue (m)';
+			else
+                residue = input_base(:,3:4) - [x y];
+                residue = sqrt(residue(:,1).^2 + residue(:,2).^2);
+                str_res = 'Residue (?)';
+			end
+			gcp = [x y input_base(:,3:4) residue];
+			out = tableGUI('array',gcp,'RowNumbers','y','ColNames',{'Slave Points - X','Slave Points - Y',...
+                    'Master Points - X','Master Points - Y',str_res},'ColWidth',100,'FigName','GCP Table','modal','');
+            set(handles.figure1,'Pointer','arrow')
+                    
+        case 'reg'          % Register image
+            input_base = getappdata(handles.figure1,'GCPregImage');
+            if (isempty(input_base))
+                errordlg('You need to set first all pairs of Image-Reference Points.','ERROR'); return
+            end
+            base = input_base(:,3:4);
+            if ( any(isnan(base)) )
+                errordlg('Incomplete table of Control Points. Use the ''Set reference Points'' option first.','ERROR')
+                return
+            end
+            set(handles.figure1,'Pointer','watch')
+            do_register(handles,input_base(:,1:2),base)
+            set(handles.figure1,'Pointer','arrow')
+	end
+catch
+    errordlg(lasterr,'Error')
+    set(handles.figure1,'Pointer','arrow')
 end
 
 % ----------------------------------------------------------------------------------
@@ -171,7 +230,13 @@ elseif (transf == 8 && n_cps < 6)
 end
 
 if (strncmp(type,'poly',4))
-    type = {'polynomial' type-2};   % type-2 is a trick to get the right order from popup list order
+    % 'Polynomial (6 pts)', 'Polynomial (10 pts)'; 'Polynomial (16 pts)'
+    polPts = str2num(type(13:14));      % See above why
+    switch polPts
+        case 6,     type = {'polynomial' 2};
+        case 10,    type = {'polynomial' 3};
+        case 16,    type = {'polynomial' 4};
+    end
 else
     type = {type};
 end
@@ -182,14 +247,16 @@ if (~isempty(msg))
 end
 
 % -----------------------------------------------------------------------------------------
-function fig_RegMethod(hFig)
+function fig_RegMethod(handles)
 % Ctreate or bring to front a small figure with two popups containing the registration options
 
-h_old = findobj(0,'Tag','fig_RegMethod');
+hFig = handles.figure1;
+h_old = findobj(0,'Type','figure','Tag','fig_RegMethod');
 
 if (isempty(h_old))
-	h = figure('MenuBar','none', 'Name','Registration Method', 'NumberTitle','off',...
-	'Position',[0 0 270 23], 'Tag','RegistMethod', 'Visible','off');
+    ecran = get(0,'ScreenSize');
+	h = figure('MenuBar','none', 'Name','Registration Method', 'NumberTitle','off','Resize','off',...
+ 	'Position',[ecran(3)/2 ecran(4)/2 270 23], 'Tag','RegistMethod', 'Visible','off');
 		
 	% ---------------- Create the popups
     str1 = {'Affine'; 'Linear conformal'; 'Projective'; 'Polynomial (6 pts)';...
@@ -205,13 +272,15 @@ if (isempty(h_old))
     
     % Start with the last selected value
     RegistMethod = getappdata(hFig,'RegistMethod');
-	id = strmatch(RegistMethod{1},lower(str1));
-    if (isempty(id)),   id = 8;     end     % Last one is 'lwm' but its text is 'Loc weighted mean'
-    set(hTrf,'Value',id)
+	idW = strmatch(RegistMethod{1},lower(str1));
+    if (isempty(idW)),   idW = 8;     end     % Last one is 'lwm' but its text is 'Loc weighted mean'
+    set(hTrf,'Value',idW)
 	id = strmatch(RegistMethod{2},str2);
     set(hInterp,'Value',id)
     
-	movegui(h,'east')
+    set(hTrf,'TooltipString',handles.trfToolTips{idW})  % Set the tooltip for the selected method
+    setappdata(hFig,'trfToolTips',handles.trfToolTips)  % Save it in appdata so that it's accessible in the callback
+    
 	set(h,'Visible','on')
 else
     figure(h_old)
@@ -233,6 +302,8 @@ switch transf
 end
 RegistMethod = getappdata(hFig,'RegistMethod');
 setappdata(hFig,'RegistMethod',{type RegistMethod{2}})
+trfToolTips = getappdata(hFig,'trfToolTips');
+set(h,'TooltipString',trfToolTips{transf})   % Set the tooltip for the selected method
 
 %-----------------------------------------------------------------------------------
 function cb_interp(obj,event,hFig,h)
