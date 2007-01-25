@@ -28,10 +28,10 @@ elseif (nargin == 2 && isnumeric(varargin{1}) && isnumeric(varargin{2}))  % Circ
 end
 
 s.h_fig = gcf;      s.h_axes = gca;
-state = uisuspend_j(s.h_fig);   % Remember initial figure state
+state = uisuspend_fig(s.h_fig);   % Remember initial figure state
 
 %  Plot the circles
-set(gcf,'Pointer', 'crosshair');
+set(s.h_fig,'Pointer', 'crosshair');
 w = waitforbuttonpress;
 if w == 0       % A mouse click
     if ~know_center
@@ -49,7 +49,7 @@ end
 % do this, we are just kicked out of the program whithout having time to do anything.
 try
     waitfor(h_circ, 'Tag', 'Completed');
-    uirestore_j(state);         % Restore the figure's initial state
+    uirestore_fig(state);         % Restore the figure's initial state
 end
 
 lon_lat_rad = getappdata(h_circ,'LonLatRad');
@@ -129,7 +129,7 @@ set(h,'Tag','Completed')        % Signal waitfor that we are done
 function move_circle(obj,eventdata,h)
 % Translate the circle
 s = get(h,'userdata');
-state = uisuspend_j(s.h_fig);   % Remember initial figure state
+state = uisuspend_fig(s.h_fig);   % Remember initial figure state
 center = getappdata(h,'LonLatRad');
 hcenter = s.hcenter;    hend = s.hend;
 x_lim = get(s.h_axes,'xlim');      y_lim = get(s.h_axes,'ylim');
@@ -181,14 +181,13 @@ setappdata(h,'LonLatRad',[s.clon s.clat s.rad])
 if ishandle(s.hcontrol)     % That is, if user didn't kill the controls window
     set(s.hcontrol,'userdata',s)
 end
-set(s.h_fig,'WindowButtonMotionFcn','','WindowButtonUpFcn','', 'Pointer', 'arrow');
-uirestore_j(state);         % Restore the figure's initial state
+uirestore_fig(state);         % Restore the figure's initial state
 
 % -----------------------------------------------------------------------------------------
 function resize_circle(obj,eventdata,h)
 % Resize the circle
 s = get(h,'userdata');
-state = uisuspend_j(s.h_fig);   % Remember initial figure state
+state = uisuspend_fig(s.h_fig);   % Remember initial figure state
 x_lim = get(s.h_axes,'xlim');   y_lim = get(s.h_axes,'ylim');
 center = [s.clon s.clat];
 hcenter = s.hcenter;            hend = s.hend;
@@ -247,8 +246,7 @@ s = get(h,'userdata');
 s.az = azimuth_geo(s.clat,s.clon,s.rlat,s.rlon);
 set(h,'userdata',s);
 setappdata(h,'LonLatRad',[s.clon s.clat s.rad])
-set(s.h_fig,'WindowButtonMotionFcn','', 'WindowButtonUpFcn','', 'Pointer', 'arrow')
-uirestore_j(state);         % Restore the figure's initial state
+uirestore_fig(state);         % Restore the figure's initial state
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------------------------------------------------------------------------------------
