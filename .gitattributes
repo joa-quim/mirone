@@ -488,6 +488,7 @@ utils/uintlutc.dll -text
 utils/uirestore_fig.m -text
 utils/uirestore_j.m -text
 utils/uistack_j.m -text
+utils/uisuspend_fig.m -text
 utils/uisuspend_j.m -text
 utils/vdist.m -text
 utils/vdist_vectorized.m -text
