@@ -120,7 +120,7 @@ else
     end
    
     % Remove figure button functions
-    state = uisuspend_j(fig);
+    state = uisuspend_fig(fig);
     if strcmp(new_pointer,'custom')              % Also changed here
         set(fig,'pointer',new_pointer,'PointerShapeCData',arg2)
         if (~isempty(PSHS)),    set(fig,'PointerShapeHotSpot',PSHS);    end
@@ -138,7 +138,7 @@ else
         if (waserr == 1)
             if(ishandle(fig))
                 set(fig,'units',fig_units);
-                uirestore_j(state);
+                uirestore_fig(state);
                 error('Interrupted');
             else
                 error('Interrupted by figure deletion');
@@ -189,7 +189,7 @@ else
         end
     end
    
-    uirestore_j(state);
+    uirestore_fig(state);
     set(fig,'units',fig_units);
    
     if nargout > 1
