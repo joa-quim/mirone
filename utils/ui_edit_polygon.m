@@ -224,7 +224,7 @@ function wbm_EditPolygon(obj,eventdata,h,lim,hFig)
 function wbu_EditPolygon(obj,eventdata,h,state)
     s = getappdata(h,'polygon_data');
     uistack(s.h_vert,'top')      % Need to do this because the black marker has no ButtonDown and was on top
-    uirestore_j(state);          % Restore the figure's initial state
+    uirestore_fig(state);          % Restore the figure's initial state
 
 %--------------------------------------------------
 function move_polygon(obj,eventdata,h)
@@ -267,7 +267,7 @@ function wbm_MovePolygon(obj,eventdata,h,lim)
 function wbu_MovePolygon(obj,eventdata,h,state)
     s = getappdata(h,'polygon_data');
     uistack(s.h_vert,'top')     % Need to do this because the black marker has no ButtonDown and was on top
-    uirestore_j(state);         % Restore the figure's initial state
+    uirestore_fig(state);         % Restore the figure's initial state
 
 %--------------------------------------------------
 function KeyPress_local(obj,eventdata,h)
@@ -369,5 +369,5 @@ try
 catch
     set(h_fig,'KeyPressFcn',KPs(1))     % Temporarly forget the line/patch handle
 end
-state = uisuspend_j(h_fig);         % Remember initial figure state
+state = uisuspend_fig(h_fig);         % Remember initial figure state
 state.KeyPressFcn = KPs;            % Set to its true value for use in uirestore
