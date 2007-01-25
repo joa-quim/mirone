@@ -127,7 +127,7 @@ function line_clickedcallback(hObject, eventdata, opt)
     handles = guidata(hObject);     % get handles
     figure(handles.hCallingFig)
     
-    state = uisuspend_j(handles.hCallingFig);        % Remember initial figure state
+    state = uisuspend_fig(handles.hCallingFig);        % Remember initial figure state
     if (strcmp(opt,'pencil'))
         set(handles.hCallingFig,'Pointer', 'custom','PointerShapeCData',getPointer('pencil'),'PointerShapeHotSpot',[14 2])
     else
@@ -203,8 +203,7 @@ function wbm_circ(obj,eventdata,handles,lineThick,lineType)
 
 % -------------------
 function wbd_paint(obj,eventdata,hCallFig,state)
-    set(hCallFig,'WindowButtonMotionFcn','', 'WindowButtonDownFcn','', 'Pointer', 'arrow')
-    uirestore_j(state);           % Restore the figure's initial state
+    uirestore_fig(state);           % Restore the figure's initial state
 
 % --------------------------------------------------------------------
 function pipeta_clickedcallback(hObject, eventdata)
@@ -255,7 +254,7 @@ function flood_clickedcallback(hObject, eventdata)
 % --------------------------------------------------------------------
 function shape_clickedcallback(hObject, eventdata, opt)
     handles = guidata(hObject);     % get handles
-    state = uisuspend_j(handles.hCallingFig);        % Remember initial figure state
+    state = uisuspend_fig(handles.hCallingFig);        % Remember initial figure state
     set(handles.hCallingFig,'Pointer', 'crosshair')
     figure(handles.hCallingFig)
     
