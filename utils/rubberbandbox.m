@@ -18,37 +18,33 @@ switch nargin
         errordlg('Too many input arguments.','Error');
 end
 
+hFig = get(h,'Parent');
+
 % Get current user data
-state = uisuspend_j(gcf);     % Remember initial figure state
-cudata = get(gcf,'UserData'); 
-%hold on;
-set(gcf,'Pointer','Crosshair')
+state = uisuspend_fig(hFig);     % Remember initial figure state
+cudata = get(hFig,'UserData'); 
+set(hFig,'Pointer','Crosshair')
 % Wait for left mouse button to be pressed
 k = waitforbuttonpress;
 
 p1 = get(h,'CurrentPoint');       %get starting point
 p1 = p1(1,1:2);                   %extract x and y
-% lh1 = plot(p1(1),p1(2),'Color', 'k', 'LineStyle', '-');      %plot starting point
-% lh2 = plot(p1(1),p1(2),'Color', 'w', 'LineStyle', ':');
 
-lh1 = line(p1(1),p1(2),'Color', 'k', 'LineStyle', '-');      %plot starting point
-lh2 = line(p1(1),p1(2),'Color', 'w', 'LineStyle', ':');
+lh1 = line('XData',p1(1),'YData',p1(2),'Parent',h,'Color', 'k', 'LineStyle', '-');      %plot starting point
+lh2 = line('XData',p1(1),'YData',p1(2),'Parent',h,'Color', 'w', 'LineStyle', ':');
 
 % Save current point (p1) data in a structure to be passed
 udata.p1 = p1;    udata.h = h;  udata.lh = [lh1 lh2];
 % Set gcf object properties 'UserData' and call function 'wbmf' on mouse motion.
-db = get(gcf,'DoubleBuffer');       % Get current DoubleBuffer state
-%set(gcf,'UserData',udata,'WindowButtonMotionFcn','wbmf','DoubleBuffer','on');
-%set(gcf,'WindowButtonMotionFcn',{@wbmf,udata},'DoubleBuffer','on');
-set(gcf,'WindowButtonMotionFcn',{@wbmf,udata},'WindowButtonDownFcn',{@wbd,udata},'DoubleBuffer','on');
-%k = waitforbuttonpress;
+db = get(hFig,'DoubleBuffer');       % Get current DoubleBuffer state
+set(hFig,'WindowButtonMotionFcn',{@wbmf,udata},'WindowButtonDownFcn',{@wbd,udata},'DoubleBuffer','on');
 
 waitfor(lh1, 'UserData', 'Completed');
 
 % Get data for the end point
 p2 = get(h,'Currentpoint');       %get end point
 p2 = p2(1,1:2);                   %extract x and y
-set(gcf,'UserData',cudata,'WindowButtonMotionFcn','','DoubleBuffer',db); %reset UserData, etc..
+set(hFig,'UserData',cudata,'WindowButtonMotionFcn','','DoubleBuffer',db); %reset UserData, etc..
 if (nargout == 2)   % Remove the rectangle and don't return it's handle (otherwise do both)
     delete(lh1);    delete(lh2);
     % Make shure that p1 is LowLeft and p2 UpperRight
@@ -63,20 +59,17 @@ elseif (nargout == 3)
     p1(1) = x_min;  p1(2) = y_min;  p2(1) = x_max;  p2(2) = y_max;
     set(lh1,'XData',[x_min,x_min,x_max,x_max,x_min],'YData',[y_min,y_max,y_max,y_min,y_min])
 end
-set(gcf,'Pointer','Arrow');
-%hold off;
-uirestore_j(state);         % Restore the figure's initial state
+uirestore_fig(state);         % Restore the figure's initial state
 
-%function wbmf                   % window motion callback function
+% -------------------------------------------------------------------------
 function wbmf(obj,eventdata,utemp)   % window motion callback function
-%utemp = get(gcf,'UserData');
-ptemp = get(utemp.h,'CurrentPoint');
-ptemp = ptemp(1,1:2);
-% Use 5 point to draw a rectangular rubberband box
-set(utemp.lh(1),'XData',[ptemp(1),ptemp(1),utemp.p1(1),utemp.p1(1),ptemp(1)], ...
-    'YData',[ptemp(2),utemp.p1(2),utemp.p1(2),ptemp(2),ptemp(2)]);
-set(utemp.lh(2),'XData',[ptemp(1),ptemp(1),utemp.p1(1),utemp.p1(1),ptemp(1)], ...
-    'YData',[ptemp(2),utemp.p1(2),utemp.p1(2),ptemp(2),ptemp(2)]);
+	ptemp = get(utemp.h,'CurrentPoint');
+	ptemp = ptemp(1,1:2);
+	% Use 5 point to draw a rectangular rubberband box
+	set(utemp.lh(1),'XData',[ptemp(1),ptemp(1),utemp.p1(1),utemp.p1(1),ptemp(1)], ...
+        'YData',[ptemp(2),utemp.p1(2),utemp.p1(2),ptemp(2),ptemp(2)]);
+	set(utemp.lh(2),'XData',[ptemp(1),ptemp(1),utemp.p1(1),utemp.p1(1),ptemp(1)], ...
+        'YData',[ptemp(2),utemp.p1(2),utemp.p1(2),ptemp(2),ptemp(2)]);
 
 function wbd(obj,eventdata,udata)
-set(udata.lh(1),'UserData','Completed')
+    set(udata.lh(1),'UserData','Completed')
