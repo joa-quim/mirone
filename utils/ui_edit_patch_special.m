@@ -57,7 +57,7 @@ case 'poligmousedown'              % mouse down on line/patch
 						s.controls = 'on';
                         hold on;    
 						s.markers = plot(s.limits(:,1),s.limits(:,2),'sk','MarkerFaceColor','w', ...
-                            'MarkerSize',6,'userdata',s);
+                            'MarkerSize',5,'userdata',s);
                         hold off;
                         set(s.h_patch,'buttondownfcn',{@move_meca,curr_obj},'uicontextmenu','');
 						set(curr_obj,'userdata',s)
@@ -79,7 +79,7 @@ if (strcmp(stype,'open'))
     return
 end
 
-state = uisuspend_j(s.h_fig);               % Remember initial figure state
+state = uisuspend_fig(s.h_fig);               % Remember initial figure state
 x_lim = get(s.h_axes,'xlim');        y_lim = get(s.h_axes,'ylim');
 current_pt = get(s.h_axes, 'CurrentPoint');
 setappdata(s.h_patch,'old_pt',[current_pt(1,1) current_pt(1,2)])
@@ -124,4 +124,4 @@ s = get(h,'userdata');
 x = get(s.markers,'XData');     y = get(s.markers,'YData');
 s.limits = [x(:) y(:)];
 set(h,'userdata',s)
-uirestore_j(state);         % Restore the figure's initial state
+uirestore_fig(state);         % Restore the figure's initial state
