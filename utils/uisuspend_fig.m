@@ -15,6 +15,8 @@ if (nargin < 2)
     setdefaults = logical(1);
 end
 
+hIm = findobj(fig,'Type','image');  % For now we want only image obj to interrupt the pixval_stsbar ButtonDownFcn
+
 uistate = struct(...
         'figureHandle',          fig, ...
         'WindowButtonMotionFcn', Lwrap(get(fig, 'WindowButtonMotionFcn')), ...
@@ -33,6 +35,7 @@ if (setdefaults)
     set(fig, 'Pointer',               get(0, 'DefaultFigurePointer'))
     set(fig, 'PointerShapeCData',     get(0, 'DefaultFigurePointerShapeCData'))
     set(fig, 'PointerShapeHotSpot',   get(0, 'DefaultFigurePointerShapeHotSpot'))
+    set(hIm, 'ButtonDownFcn',         '')
 end
 
 % wrap cell arrays in another cell array for passing to the struct command
