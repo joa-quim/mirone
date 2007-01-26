@@ -550,17 +550,15 @@ function [xy] = coast2pix(hand, lims)
 x = get(hand,'XData');      y = get(hand,'YData');
 x = x(:);                   y = y(:);   % Make sure they are column vectors
 
-if (any(isnan(x)))          % We have NaNs in this line. Treat it as a multiseg
-    xt = get(hand,'XData');
-    yt = get(hand,'YData');
-    id_nan = find(xt ~= xt);        % Find the NaNs
+if (any(isnan(x)))              % We have NaNs in this line. Treat it as a multiseg
+    id_nan = find(x ~= x);              % Find the NaNs
     id = find(diff(id_nan) == 1) + 1;   % Account for contiguous NaNs
-    if (~isempty(id))               % Found contiguous NaNs
-        xt(id_nan(id)) = [];
-        yt(id_nan(id)) = [];        % Remove them
-        id_nan = find(xt ~= xt);    % Find the new position of the now non-contiguous NaNs
+    if (~isempty(id))                   % Found contiguous NaNs
+        x(id_nan(id)) = [];
+        y(id_nan(id)) = [];             % Remove them
+        id_nan = find(x ~= x);          % Find the new position of the now non-contiguous NaNs
     end
-    id_nan = [0 id_nan];            % Used to make it start at one
+    id_nan = [0; id_nan];               % Used to make it start at one
     
     n_segments = length(id_nan)-1;
     xy = cell(n_segments,1);
