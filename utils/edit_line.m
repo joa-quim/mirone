@@ -40,7 +40,7 @@ ud.GETLINE_AX = gca;    ud.GETLINE_FIG = get(ud.GETLINE_AX, 'Parent');
    
 % Remember initial figure state
 old_db = get(ud.GETLINE_FIG, 'DoubleBuffer');
-state= uisuspend_j(ud.GETLINE_FIG);
+state= uisuspend_fig(ud.GETLINE_FIG);
 
 % Set up initial callbacks for initial stage
 set(ud.GETLINE_FIG, 'Pointer', 'crosshair', ...
@@ -86,7 +86,7 @@ if (ishandle(ud.GETLINE_H1));    delete(ud.GETLINE_H1);     end
 
 % Restore the figure's initial state
 if (ishandle(ud.GETLINE_FIG))
-   uirestore_j(state);
+   uirestore_fig(state);
    set(ud.GETLINE_FIG, 'DoubleBuffer', old_db);
 end
 
