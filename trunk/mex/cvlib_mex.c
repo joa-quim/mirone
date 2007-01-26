@@ -21,6 +21,7 @@
  * Revision 4.0  07/11/2006 JL	Erode & Diltate in cvHoughCircles  (almost the same shit)
  * Revision 5.0  29/11/2006 JL	Added half a dozen of functions more (line, rect, circ, poly, ellip, inpaint)
  * Revision 6.0  02/12/2006 JL	Added FillPoly and FillConvexPoly
+ * Revision 7.0  26/01/2007 JL	Fixed crash when individual cell were empty with the polygon option
  *
  */
 
@@ -523,6 +524,10 @@ void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], cons
 			polyNpts[i] = MAX(m,n);
 			pt[i] = (CvPoint *)mxCalloc( polyNpts[i], sizeof(buf[0]));
 			ptr_d = (double *)mxGetData(mxGetCell(prhs[2], i));
+			if (m * n == 0) { 		/* An empty cell. Don't let it crash the program */
+				pt[i][0] = cvPoint((int)-1,(int)-1);
+				continue;
+			}
 			if (n == 2) {		/* column vector (well, Mx2) */
 				for (j = 0; j < polyNpts[i]; j++)
 					pt[i][j] = cvPoint((int)ptr_d[j],(int)ptr_d[j+polyNpts[i]]);
