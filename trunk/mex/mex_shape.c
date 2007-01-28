@@ -29,6 +29,7 @@
  * In case of an error, an exception is thrown.
  *
  *=================================================================*/
+/* $Revision: 1.4 First BoundingBox contains the ensemble extent - JL 28-01-07 */
 /* $Revision: 1.3 BoundingBox per element - JL 4-10-06 */
 /*                Insert NaNs between rings on polylines */
 /* $Revision: 1.2 Outputs the BoundingBox - JL 14-3-06 */
@@ -229,7 +230,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 		bb_ptr[2] = psShape->dfZMin;		bb_ptr[3] = psShape->dfMMin;
 		bb_ptr[4] = psShape->dfXMax;		bb_ptr[5] = psShape->dfYMax;
 		bb_ptr[6] = psShape->dfZMax;		bb_ptr[7] = psShape->dfMMax;
-		mxSetField ( out_struct, i, "BoundingBox", bbox );
+		if (i > 0)	/* First BB contains the ensemble extent */
+			mxSetField ( out_struct, i, "BoundingBox", bbox );
 
 		/*mxSetField ( out_struct, i, "nParts", mxCreateDoubleScalar ((double)psShape->nParts) );
 		if (psShape->nParts > 1) {
