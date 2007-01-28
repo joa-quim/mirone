@@ -22,15 +22,13 @@ if (nargin < 2)
     setdefaults = logical(1);
 end
 
-chi = findobj(fig);
-% % fig can be an array of handles, not necessarily figures
-% if (~isa(handle(fig),'figure'))
-%     sz = length(fig);
-%     if (length(fig) > 1)    fig = fig(1);   end
-%     fig = ancestor(fig,'figure');
-% end
+%chi = findobj(fig);
+chi = findobj(fig,'Type','axes');               % Megas saving (and speed)
+chi = [chi; findobj(fig,'Type','image')];
+chi = [chi; findobj(fig,'Type','line')];
+chi = [chi; findobj(fig,'Type','patch')];
+chi = [chi; findobj(fig,'Type','text')];
 
-%'ploteditEnable',        plotedit(fig,'getenabletools'), ...       % Removed from uistate
 uistate = struct(...
         'figureHandle',          fig, ...
         'Children',              chi, ...
