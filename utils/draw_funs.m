@@ -2175,14 +2175,14 @@ function delete_obj(hTesoura)
 	pointer(15,6:7) = 1;
     
     hFig = get(get(hTesoura,'Parent'),'Parent');
-    WBDFback = get(hFig,'WindowButtonDownFcn');
+    state = uisuspend_fig(hFig);
     set(hFig,'Pointer','custom','PointerShapeCData',pointer,'PointerShapeHotSpot',[1 8],...
-        'WindowButtonDownFcn',{@wbd_delObj,hFig,hTesoura,WBDFback})
+        'WindowButtonDownFcn',{@wbd_delObj,hFig,hTesoura,state})
     
-    function wbd_delObj(obj,event,hFig,hTesoura,WBDFback)
+    function wbd_delObj(obj,event,hFig,hTesoura,state)
         stype = get(hFig,'selectiontype');
         if (~(stype(1) == 'n'))                 % If not a left click ('normal') end killing
-            set(hFig,'WindowButtonDownFcn',WBDFback,'pointer','arrow')
+            uirestore_fig(state)
         	set(hTesoura,'State','off')         % Set the Toggle button state to depressed
             return
         end
