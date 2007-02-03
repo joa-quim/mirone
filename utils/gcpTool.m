@@ -17,7 +17,7 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-delete(handles.NewFigure);      delete(handles.ImportGMTgrid)
+delete(handles.NewFigure);      delete(handles.ImportKnownTypes)
 delete(handles.SaveGMTgrid);    delete(handles.Preferences)
 delete(handles.Print);          delete(handles.DrawText)
 delete(handles.DrawGeogCirc);   delete(handles.DrawLine)
