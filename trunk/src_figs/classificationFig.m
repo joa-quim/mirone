@@ -122,6 +122,8 @@ function push_compute_Callback(hObject, eventdata, handles)
         nClusters = length(xp);
         [c,r] = getpixcoords(handles,xp,yp);
         r = round(r);    c = round(c);
+    else
+        nClusters = handles.nClasses;
     end
 
     img = double(get(handles.hImg,'CData')) / 255;      % Get the image
@@ -131,8 +133,8 @@ function push_compute_Callback(hObject, eventdata, handles)
     if (ndims(img) == 2)
         segcolors = img(:);
         to_resize = size(img);
-        colors = zeros(nClusters,1);
         if (handles.supervised)
+            colors = zeros(nClusters,1);
             for (i=1:nClusters)
                 colors(i) = mean(mean( img( max(r(i)-W,1):min(r(i)+W,ny), max(c(i)-W,1):min(c(i)+W,nx) ) ));
                 %colors(i,:) = img(r(i),c(i));
@@ -140,9 +142,7 @@ function push_compute_Callback(hObject, eventdata, handles)
         end
     else
         %Get individual RGB colors included in segmentation
-        rc = img(:,:,1);
-        gc = img(:,:,2);
-        bc = img(:,:,3);
+        rc = img(:,:,1);        gc = img(:,:,2);        bc = img(:,:,3);
         to_resize = size(rc);
         segcolors = [rc(:) gc(:) bc(:)];
         if (handles.supervised)
@@ -166,6 +166,10 @@ function push_compute_Callback(hObject, eventdata, handles)
     end
     
     if (isempty(Idx)),  return;     end     % Aborted
+    
+    if (size(colors,2) == 1)    % Unsupervised on a BW image
+        colors = [colors(:) colors(:) colors(:)];
+    end
     
     Idx = uint8(Idx-1);
     Idx = reshape(Idx,to_resize);
