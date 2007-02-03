@@ -80,12 +80,12 @@ if (strcmpi(tag,'temphackytext') & strcmpi(type,'text')) | ...
 % turn it off and then on again to make state data saved by
 % uiclearmode current.
 elseif strcmpi(tag,'legend')
-    if isappdata(fig,'Rotate3dOnState')
-        rotate3d(fig,'off');
-        rotate3d(fig,'on');
-    elseif strcmpi('out',zoom_j(fig,'getmode'))
+    if strcmpi('out',zoom_j(fig,'getmode'))
         zoom_j(fig,'off');
         zoom_j(fig,'outmode');
+%     elseif isappdata(fig,'Rotate3dOnState')
+%         rotate3d(fig,'off');
+%         rotate3d(fig,'on');
     elseif isappdata(fig,'ZoomOnState')
         zoomstate = getappdata(fig,'ZoomOnState');
         zoom_j(fig,'off');
@@ -122,12 +122,12 @@ if (strcmpi(tag,'temphackytext') & strcmpi(type,'text')) | ...
 % turn it off and then on again to make state data saved by
 % uiclearmode current.
 elseif strcmpi(tag,'legend')
-    if isappdata(fig,'Rotate3dOnState')
-        %rotate3d(fig,'off');
-        %rotate3d(fig,'on');
-    elseif strcmpi('out',zoom_j(fig,'getmode'))
+    if strcmpi('out',zoom_j(fig,'getmode'))
         zoom_j(fig,'off');
         zoom_j(fig,'outmode');
+%     elseif isappdata(fig,'Rotate3dOnState')
+%         rotate3d(fig,'off');
+%         rotate3d(fig,'on');
     elseif isappdata(fig,'ZoomOnState')
         zoomstate = getappdata(fig,'ZoomOnState');
         zoom_j(fig,'off');
