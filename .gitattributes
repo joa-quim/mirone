@@ -395,6 +395,7 @@ utils/double2ascii.m -text
 utils/draw_funs.m -text
 utils/edit_line.m -text
 utils/edit_track_mb.m -text
+utils/filter_funs.m -text
 utils/findcell.m -text
 utils/finite2stages.m -text
 utils/frame3D.m -text
