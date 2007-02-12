@@ -163,7 +163,7 @@ reductionFactor = (pImageConstr/dImage);
 if (~isempty(handles.hOrigImage))
     handles.previewImage = img_fun('imresize',get(handles.hOrigImage,'Cdata'),reductionFactor);
 else
-    handles.previewImage = imresize(handles.OrigImage,reductionFactor);
+    handles.previewImage = img_fun('imresize',handles.OrigImage,reductionFactor);
 end
 [imHeight,imWidth,k] = size(handles.previewImage);
 
