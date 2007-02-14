@@ -1901,57 +1901,97 @@ guidata(h_f,handles)
 
 % --------------------------------------------------------------------
 function ImageColorPalettes_CB(hObject, eventdata, handles)
-if (handles.no_file == 1),   color_palettes;     return;    end
-if (ndims(get(handles.hImg,'CData')) == 3)
-    warndlg('True color images do not use color palettes. So you cannot change it.','Warning'); return
-end
-color_palettes(handles.figure1,handles.home_dir,handles.work_dir)
+	if (handles.no_file == 1),   color_palettes;     return;    end
+	if (ndims(get(handles.hImg,'CData')) == 3)
+        warndlg('True color images do not use color palettes. So you cannot change it.','Warning'); return
+	end
+	color_palettes(handles.figure1,handles.home_dir,handles.work_dir)
 
 % --------------------------------------------------------------------
 function ToolsMeasureDist_CB(hObject, eventdata, handles)
-if (handles.no_file == 1),    return;      end
-zoom_state(handles,'maybe_off');
-[xp,yp] = getline_j(handles.figure1);  n_nodes = length(xp);
-if (n_nodes < 2);     zoom_state(handles,'maybe_on');   return;     end
-if (handles.geog)
-    lat_i = yp(1:end-1);   lat_f = yp(2:end);
-    lon_i = xp(1:end-1);   lon_f = xp(2:end);
-    ellips = handles.DefineEllipsoide;      tmp = [];
-    for (i=1:length(lat_i))
-        s = vdist(lat_i(i),lon_i(i),lat_f(i),lon_f(i),ellips);
-        tmp = [tmp s];
-    end
-    switch handles.DefineMeasureUnit
-        case 'n',       scale = 1852;   str_unit = ' NM';           % Nautical miles
-        case 'k',       scale = 1000;   str_unit = ' kilometers';   % Kilometers
-        case {'m','u'}, scale = 1;      str_unit = ' meters';       % Meters or user unites
-    end
-    dist = sum(tmp) / scale;
-else
-    dx = diff(xp);      dy = diff(yp);
-    dist = sum(sqrt(dx.*dx + dy.*dy));
-    str_unit = ' map units';
-end
-zoom_state(handles,'maybe_on');
-msgbox(['Distance = ' sprintf('%.5f',dist) str_unit])
+	if (handles.no_file == 1),    return;      end
+	zoom_state(handles,'maybe_off');
+	[xp,yp] = getline_j(handles.figure1);  n_nodes = length(xp);
+	if (n_nodes < 2);     zoom_state(handles,'maybe_on');   return;     end
+	if (handles.geog)
+        lat_i = yp(1:end-1);   lat_f = yp(2:end);
+        lon_i = xp(1:end-1);   lon_f = xp(2:end);
+        ellips = handles.DefineEllipsoide;      tmp = [];
+        for (i=1:length(lat_i))
+            s = vdist(lat_i(i),lon_i(i),lat_f(i),lon_f(i),ellips);
+            tmp = [tmp s];
+        end
+        switch handles.DefineMeasureUnit
+            case 'n',       scale = 1852;   str_unit = ' NM';           % Nautical miles
+            case 'k',       scale = 1000;   str_unit = ' kilometers';   % Kilometers
+            case {'m','u'}, scale = 1;      str_unit = ' meters';       % Meters or user unites
+        end
+        dist = sum(tmp) / scale;
+	else
+        dx = diff(xp);      dy = diff(yp);
+        dist = sum(sqrt(dx.*dx + dy.*dy));
+        str_unit = ' map units';
+	end
+	zoom_state(handles,'maybe_on');
+	msgbox(['Distance = ' sprintf('%.5f',dist) str_unit])
 
 % --------------------------------------------------------------------
 function ToolsMeasureArea_CB(hObject, eventdata, handles)
-if (handles.no_file == 1),    return;      end
-zoom_state(handles,'maybe_off');
-[xp,yp] = getline_j(handles.figure1,'closed');    n_nodes = length(xp);
-if (n_nodes < 2),   zoom_state(handles,'maybe_on');     return;     end
-if (handles.geog)
-    area = area_geo(yp, xp);        % Area is reported on the unit sphere
-    area = area * 4 * pi * handles.EarthRad^2;
-    unit = ' km^2'; 
-else
-    area = polyarea(xp,yp);   % Area is reported in map user unites
-    unit = ' map units ^2'; 
-end
-zoom_state(handles,'maybe_on');
-msgbox(['Area = ' sprintf('%g',area) unit])
+	if (handles.no_file == 1),    return;      end
+	zoom_state(handles,'maybe_off');
+	[xp,yp] = getline_j(handles.figure1,'closed');    n_nodes = length(xp);
+	if (n_nodes < 2),   zoom_state(handles,'maybe_on');     return;     end
+	if (handles.geog)
+        area = area_geo(yp, xp);        % Area is reported on the unit sphere
+        area = area * 4 * pi * handles.EarthRad^2;
+        unit = ' km^2'; 
+	else
+        area = polyarea(xp,yp);   % Area is reported in map user unites
+        unit = ' map units ^2'; 
+	end
+	zoom_state(handles,'maybe_on');
+	msgbox(['Area = ' sprintf('%g',area) unit])
 
+% --------------------------------------------------------------------
+function ToolsMeasureAreaPerCor_CB(hObject, eventdata, handles)
+    if (handles.no_file == 1),    return;      end
+    img = get(handles.hImg,'CData');        pal = get(handles.figure1,'ColorMap');
+    n = size(pal,1);    ny = size(img,1);   nx = size(img,2);       D2R = pi / 180;
+    if (ndims(img) == 3)        % RGB, reject unless it as a "gray RGB"
+        ind_m = round(rand(1,5)*(ny-1)+1);
+        ind_n = round(rand(1,5)*(nx-1)+1);
+        df = diff(double(img(ind_m,ind_n,:)),1,3);
+        if (~any(df(:) ~= 0))           % Yeap, a RGB gray
+            img(:,:,2:3) = [];          % Remove the non-needed pages
+        else
+            warndlg('This does not work with true color images (they are just too many)','Warning')
+            return
+        end
+        pal = unique(img(:));
+        pal = (0:double(pal(end)))' / 255;      % Pretend this is a colormap
+        n = numel(pal);
+    end
+    if (handles.geog)
+        y3L = 1:3:ny;   y3L(end+1) = ny + 1;        % Vector with one every other third line
+        counts = zeros(n,1);
+        X = linspace(handles.head(1),handles.head(2),nx);
+        Y = linspace(handles.head(3),handles.head(4),ny);
+        Y(end+1) = Y(end);      % Some cases need one extra value in Y(y3L(i)+1) below
+        DX = (X(2) - X(1)) * 111.1949;       DY = (Y(2) - Y(1)) * 111.1949;    % Convert DX|Y to km (at the equator)
+        for (i=1:numel(y3L)-1)
+            threeL = img(y3L(i):y3L(i+1)-1,:);      % Chop 3 lines from image
+            counts = counts + imhistc(threeL, n, 0, n) * DY * DX * cos(Y(y3L(i)+1)*D2R);
+        end
+        ColNames = {'Intensity' 'Area km^2'};
+    else
+        counts = imhistc(img, n, 0, n);         % Call MEX file to compute the histogram
+        ColNames = {'Intensity' 'N pixels'};
+    end
+    ind = (counts == 0);
+    counts(ind) = [];       pal(ind,:) = [];    % Remove zero counts
+    tableGUI('array',[round(pal(:,1)*255) counts],'ColWidth',[60 90],'ColNames',ColNames,...
+        'FigName','Area measures','RowNumbers','y','MAX_ROWS',20,'modal','');
+    
 % --------------------------------------------------------------------
 function ToolsMeasureAzimuth_CB(hObject, eventdata, handles)
 if (handles.no_file == 1),    return;      end
@@ -4270,7 +4310,7 @@ function ImageGCPtool_CB(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function Transfer_CB(dumb1, dumb2, handles, opt)
-if (any(strcmp({'Corners' 'gray' 'bw'},opt)) && handles.no_file),      return;      end
+if (any(strcmp({'Corners' 'gray' 'bw' 'KML'},opt)) && handles.no_file),      return;      end
 
 if (strcmp(opt,'Shape')),       floodFill(handles.figure1);     return;     end
 set(handles.figure1,'pointer','watch')
@@ -4316,6 +4356,15 @@ elseif ( strcmp(opt,'isGDAL') || (strcmp(opt,'isGMT')) )    % Test if GDAL or GM
                                     'beeing able to correctly decode it).'];
     end
     msgbox(msg,'Test result')
+elseif (strcmp(opt,'KML'))
+    [FileName,PathName] = put_or_get_file(handles,{'*.kml', 'KML files (*.kml)'},'Select file','put');
+    if isequal(FileName,0);     set(handles.figure1,'pointer','arrow');     return;     end             % User gave up
+    Z = [];
+    if (~isempty(handles.have_nans))
+        [X,Y,Z,head] = load_grd(handles);
+        if isempty(Z),      set(handles.figure1,'pointer','arrow');     return;     end;
+    end
+    writekml(handles,[PathName FileName],Z)     % Z will be used to setup a alpha chanel
 % elseif (strcmp(opt,'Paint'))
 %     mpaint(handles.figure1);
 end
