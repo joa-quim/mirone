@@ -22,6 +22,7 @@
  * Revision 5.0  29/11/2006 JL	Added half a dozen of functions more (line, rect, circ, poly, ellip, inpaint)
  * Revision 6.0  02/12/2006 JL	Added FillPoly and FillConvexPoly
  * Revision 7.0  26/01/2007 JL	Fixed crash when individual cell were empty with the polygon option
+ * Revision 8.0  14/02/2007 JL	In Floodfill convert fill color to [0 255] if it was [0 1]
  *
  */
 
@@ -390,6 +391,11 @@ void Jfloodfill(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mx_ptr = mxGetField(prhs[2], 0, "FillColor");
 		if (mx_ptr != NULL) {
 			ptr_d = mxGetPr(mx_ptr);
+			if (ptr_d[0] <= 1 && ptr_d[1] <= 1 && ptr_d[2] <= 1) {
+				ptr_d[0] *= 255;
+				ptr_d[1] *= 255;
+				ptr_d[2] *= 255;
+			}
 			r = (int)ptr_d[0];
 			g = (int)ptr_d[1];
 			b = (int)ptr_d[2];
