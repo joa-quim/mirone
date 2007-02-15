@@ -13,10 +13,20 @@ handles = guihandles(hObject);
 
 if (~isempty(varargin))
     handles.hCallingFig = varargin{1};
+    handMir = guidata(handles.hCallingFig);
+	if (handMir.no_file)
+        errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
+        delete(hObject);    return
+	end
 else
     delete(hObject)
     return
 end
+
+% Add this figure handle to the carraças list
+plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
+plugedWin = [plugedWin hObject];
+setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
 
 % Try to position this figure glued to the right of calling figure
 posThis = get(hObject,'Pos');
@@ -55,7 +65,7 @@ set(handles.edit_nNeighbors,'TooltipString',str)
 % Choose default command line output for classificationFig_export
 handles.output = hObject;
 guidata(hObject, handles);
-varargout{1} = handles.output;
+if (nargout),   varargout{1} = handles.output;  end
 
 set(hObject,'Visible','on');
 
