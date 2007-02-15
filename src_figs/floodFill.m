@@ -28,9 +28,20 @@ uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'ellipse'},'cdata'
 
 if (~isempty(varargin))
     handles.hCallingFig = varargin{1};
+    handMir = guidata(handles.hCallingFig);
+	if (handMir.no_file)
+        errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
+        delete(hObject);    return
+	end
 else
-    handles.hCallingFig = gcf;        % Useless with Mirone figures because they are hiden to gcf
+    errordlg('FLOODFILL: wrong number of arguments.','Error')
+    delete(hObject);    return
 end
+
+% Add this figure handle to the carraças list
+plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
+plugedWin = [plugedWin hObject];
+setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
 
 % Try to position this figure glued to the right of calling figure
 posThis = get(hObject,'Pos');
@@ -210,6 +221,7 @@ function pipeta_clickedcallback(hObject, eventdata)
     % Pick one color from image and make it the default painting one
     handles = guidata(hObject);     % get handles
     figure(handles.hCallingFig)
+    pal = get(handles.hCallingFig,'Colormap');
     set(handles.hCallingFig,'Pointer', 'custom','PointerShapeCData',getPointer('pipeta'),'PointerShapeHotSpot',[15 1])
     w = waitforbuttonpress;
     if (w == 0)       % A mouse click
@@ -220,9 +232,14 @@ function pipeta_clickedcallback(hObject, eventdata)
             set(handles.hCallingFig,'Pointer', 'arrow');            return;
         end
         img = get(handles.hImage,'CData');
+        if (ndims(img) == 2)            % Here we have to permanently change the image type to RGB
+            img = ind2rgb8(img,get(handles.hCallingFig,'ColorMap'));
+            handles.origFig = img;      % Update the copy of the original image
+            set(handles.hImage,'CData', img); 
+        end
         fillColor = double(img(r,c,:));
         handles.fillColor = reshape(fillColor,1,numel(fillColor));
-        set(handles.toggle_currColor,'BackgroundColor',handles.fillColor/255)
+        set(handles.toggle_currColor,'BackgroundColor',handles.fillColor / 255)
         set(handles.hCallingFig,'Pointer', 'arrow');
         guidata(handles.figure1,handles)
     end
@@ -265,6 +282,7 @@ function shape_clickedcallback(hObject, eventdata, opt)
 
 % -------------------
 function ShapeFirstButtonDown(handles,state,opt)
+    handles = guidata(handles.figure1);     % Update handles
     lineType = 8;       % Default to 8 connectivity
     if (get(handles.checkbox_AA,'Value')),      lineType = 16;      end
     pt = get(handles.hCallingAxes, 'CurrentPoint');
@@ -447,6 +465,12 @@ function toggleColors(hCurr,handles)
     set(hCurr,'Value',1);               % Reset it to pressed state
     set(handles.toggle_currColor,'BackgroundColor',get(hCurr,'BackgroundColor'))
     handles.fillColor = round(get(hCurr,'BackgroundColor')*255);
+    img = get(handles.hImage,'CData');
+    if (ndims(img) == 2)            % Here we have to permanently change the image type to RGB
+        img = ind2rgb8(img,get(handles.hCallingFig,'ColorMap'));
+        handles.origFig = img;      % Update the copy of the original image
+        set(handles.hImage,'CData', img); 
+    end
     guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
@@ -455,6 +479,12 @@ function pushbutton_moreColors_Callback(hObject, eventdata, handles)
     if (length(c) > 1)          % That is, if a color was selected
         handles.fillColor = round(c*255);
         set(handles.toggle_currColor,'BackgroundColor',c)
+        img = get(handles.hImage,'CData');
+        if (ndims(img) == 2)            % Here we have to permanently change the image type to RGB
+            img = ind2rgb8(img,get(handles.hCallingFig,'ColorMap'));
+            handles.origFig = img;      % Update the copy of the original image
+            set(handles.hImage,'CData', img); 
+        end
         guidata(handles.figure1,handles)
     end
 
