@@ -118,7 +118,7 @@ else
     hand.array = [];        def_NumRows = hand.NumRows;
     hand = parse_pv_pairs(hand,varargin);
     if (~isempty(hand.array))
-        if (numel(hand.array) == 1 && numel(hand.array{1}) ~= 1)
+        if (numel(hand.array) == 1 && numel(hand.array{1}) > 1)
             error('The "array" argument must be a MxN cell array and not a {MxN} cell')
         end
         [NumRows,hand.NumCol] = size(hand.array);
