@@ -168,6 +168,7 @@ lib_mex/bwlabel1.dll -text
 lib_mex/bwlabel2.dll -text
 lib_mex/country_select.dll -text
 lib_mex/cpt2cmap.dll -text
+lib_mex/cq.dll -text
 lib_mex/cubicmx.dll -text
 lib_mex/cvlib_mex.dll -text
 lib_mex/gdalread.dll -text
