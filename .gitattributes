@@ -171,6 +171,7 @@ lib_mex/cpt2cmap.dll -text
 lib_mex/cq.dll -text
 lib_mex/cubicmx.dll -text
 lib_mex/cvlib_mex.dll -text
+lib_mex/ditherc.dll -text
 lib_mex/gdalread.dll -text
 lib_mex/gdalwrite.dll -text
 lib_mex/gmtlist_m.dll -text
