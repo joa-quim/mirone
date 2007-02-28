@@ -1,23 +1,28 @@
-function [handles,X,Y,Z,head] = read_gmt_type_grids(handles,fullname)
+function [handles,X,Y,Z,head] = read_gmt_type_grids(handles,fullname,opt)
+    % OPT indicates that only the grid info is outputed.
+    % If it is OPT = 'hdr' outputs info in the struct format, else outous in the head format
+    
+    infoOnly = 0;
+    if (nargin == 3),   infoOnly = 1;    end
+    
+	% Because GMT and Surfer share the .grd extension, find out which grid kind we are dealing with
+	X = [];     Y = [];     Z = [];     head = [];      % In case there is an error in this function
+	[fid, msg] = fopen(fullname, 'r');
+	if (fid < 0),   errordlg([fullname ': ' msg],'ERROR');
+        return;
+	end
+	ID = fread(fid,4,'*char');      ID = ID';      fclose(fid);
 
-% Because GMT and Surfer share the .grd extension, find out which grid kind we are dealing with
-X = [];     Y = [];     Z = [];     head = [];      % In case there is an error in this function
-[fid, msg] = fopen(fullname, 'r');
-if (fid < 0),   errordlg([fullname ': ' msg],'ERROR');
-    return;
-end
-ID = fread(fid,4,'*char');      ID = ID';      fclose(fid);
-
-tipo = 'GMT';                           % This is the default type
-switch upper(ID)
-    case {'DSBB' 'DSRB'}
-        fullname = [fullname '=6'];
-        handles.grdformat = 6;
-        ID = 'CDF';                     % F... big lie, but no harm since the .grd=prefix was used
-    case 'DSAA',    tipo = 'SRF_ASCII';
-    case 'MODE',    tipo = 'ENCOM';
-    case 'NLIG',    tipo = 'MAN_ASCII';
-end
+	tipo = 'GMT';                           % This is the default type
+	switch upper(ID)
+        case {'DSBB' 'DSRB'}
+            fullname = [fullname '=6'];
+            handles.grdformat = 6;
+            ID = 'CDF';                     % F... big lie, but no harm since the .grd=suffix was used
+        case 'DSAA',    tipo = 'SRF_ASCII';
+        case 'MODE',    tipo = 'ENCOM';
+        case 'NLIG',    tipo = 'MAN_ASCII';
+	end
 
 % See if the grid is on one of the other formats that GMT recognizes
 if (strcmp(tipo,'GMT') && ~strcmp(ID(1:3),'CDF'))
@@ -30,11 +35,18 @@ if (strcmp(tipo,'GMT') && ~strcmp(ID(1:3),'CDF'))
     end
 end
 
-% if (strcmp(tipo,'GMT') && ~strcmp(ID(1:3),'CDF'))
-%     errordlg([fullname ' : Is not a GMT netCDF grid!'],'ERROR');
-%     return
-% end
-[handles,X,Y,Z,head] = read_grid(handles,fullname,tipo);
+if (~infoOnly)
+    [handles,X,Y,Z,head] = read_grid(handles,fullname,tipo);
+elseif (strmatch(tipo,{'GMT' 'DSBB' 'DSRB'}))
+    if (opt(1) == 's')          % Get the info on the struct form
+        X = grdinfo_m(fullname,'hdr_struct');       % Output goes in the second arg
+    else                        % Get the info on the vector form
+        X = grdinfo_m(fullname,'silent');
+    end
+else
+    errordlg([fullname ' : Is not a GMT or binary Surfer grid!'],'ERROR');
+    return
+end
 
 % ------------------------------------------------------------------------------------------
 function [handles,X,Y,Z,head] = read_grid(handles,fullname,tipo)
