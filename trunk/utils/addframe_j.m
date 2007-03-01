@@ -18,7 +18,7 @@ for i = 1:numframes
             MovieLength = length(varargin{i});
             if (~isempty(varargin{i}(1).colormap) && isempty(aviobj.Bitmapheader.Colormap) && ...
                     aviobj.MainHeader.TotalFrames == 0 )
-                aviobj = set(aviobj,'Colormap',varargin{i}(1).colormap);
+                aviobj.Colormap = varargin{i}(1).colormap;
             end
         case 'data'
             frame = varargin{i};
