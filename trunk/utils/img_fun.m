@@ -47,6 +47,9 @@ switch opt
         varargout{1} = roipoly_j(varargin{:});
     case 'rgb2gray'
         varargout{1} = rgb2gray(varargin{:});
+    case 'rgb2ind'
+        [X,map] = rgb2ind(varargin{:});
+        varargout{1} = X;  varargout{2} = map;
     case 'find_holes'
         varargout{1} = find_holes(varargin{:});
 end
@@ -129,8 +132,8 @@ switch distribution
   mapping = min(selectedRange(1)+temp*valSpread,selectedRange(2));
   
  otherwise,
-  eid = sprintf('Images:%s:internalError', mfilename);
-  error(eid, 'Unknown distribution type.');     % should never get here  
+    eid = sprintf(':%s:internalError', mfilename);
+    error(eid, 'Unknown distribution type.');     % should never get here  
 end
 
 %rescale the result to be between 0 and 1 for later use by the GRAYXFORM 
@@ -138,9 +141,9 @@ end
 mapping = mapping/fullRange(2);
 
 %-----------------------------------------------------------------------------
+function imgHist = clipHistogram(imgHist, clipLimit, numBins)
 % This function clips the histogram according to the clipLimit and
 % redistributes clipped pixels accross bins below the clipLimit
-function imgHist = clipHistogram(imgHist, clipLimit, numBins)
 
 % total number of pixels overflowing clip limit in each bin
 totalExcess = sum(max(imgHist - clipLimit,0));  
@@ -189,12 +192,102 @@ while (totalExcess ~= 0)
 end
 
 %-----------------------------------------------------------------------------
+function [c,map] = cmunique(varargin)
+%CMUNIQUE Find unique colormap colors and corresponding image.
+
+%   Copyright 1993-2003 The MathWorks, Inc.  
+%   $Revision: 5.19 $  $Date: 2003/01/17 16:27:24 $
+
+%   I/O Spec
+%   ========
+%   IN
+%      X      - image of class uint8, uint16, or double
+%      MAP    - M-by-3 array of doubles (colormap)
+%   OUT
+%      Y      - uint8 if NEWMAP has <= 256 entries, double 
+%               if NEWMAP has > 256 entries.
+%      NEWMAP - M-by-3 array of doubles (colormap)
+
+checknargin(1,3,nargin,mfilename);
+checkinput(varargin{1},{'double' 'uint8' 'uint16'},{'real' 'nonsparse'}, mfilename,'X',1);
+
+% Convert all possible input arguments to an indexed image.
+if nargin==1, % cmunique(I) or cmunique(RGB)
+    arg1 = varargin{1};
+    if ndims(arg1)==3, % cmunique(RGB)
+        [c,map] = rgbToInd(arg1);
+    else % cmunique(I)
+        [c,map] = grayToInd(arg1);
+    end
+elseif nargin==2, % cmunique(a,cm)
+    c = varargin{1}; map = varargin{2};
+end
+
+if ~isa(c, 'double')    % The promotion is necessary for the indexing into
+    c = im2double(c, 'indexed');  % pos below --  ...loc(pos(c))...
+end
+
+tol = 1/1024;
+
+map = round(map/tol)*tol;       % Quantize colormap entries to help matching below.
+
+% Remove matching entries from colormap
+ 
+% Sort colormap entries
+[dum,ndx1] = sort(map(:,1));
+[dum,ndx2] = sort(map(ndx1,2));
+[dum,ndx3] = sort(map(ndx1(ndx2),3));
+                % ndx maps from sorted cm to original cm
+ndx = ndx1(ndx2(ndx3));
+                % pos maps from original cm to sorted cm
+pos = zeros(size(ndx)); pos(ndx) = 1:length(ndx);
+
+% Find matching entries.   d indicates the location of matching entries
+d = all(abs(diff(map(ndx,:)))'<tol)';
+
+% Mapping from full cm to compressed cm. loc maps from sorted cm to compressed cm
+loc = [1:length(ndx)]' - [0;cumsum(d)]; 
+c(:) = loc(pos(c));
+
+% Remove matching entries (compress cm)
+ndx(find(d)) = [];
+map = map(ndx,:);
+
+% Remove colormap entries that are not used in c
+[n,x] = imhist_j(c,map);
+d = (n==0);             % Find unused colormap entries
+loc = [1:length(map)]' - cumsum(d);
+
+c(:) = loc(c);          % Update image values
+
+% Remove unused entries (compress cm)
+map(find(d),:) = [];
+
+if max(c(:))<=256    % Output a uint8 array if we can
+    c = uint8(c-1);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [x,map] = rgbToInd(rgb)
+% Convert rgb image to indexed by stuffing all pixel colors into a big colormap.
+m = size(rgb,1);
+n = size(rgb,2);
+map = im2double(reshape(rgb,m*n,3));
+x = reshape(1:m*n, m, n);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [x,map] = grayToInd(I)
+% Convert intensity image to indexed by stuffing all pixel colors into a big colormap.
+[m,n] = size(I);
+map = im2double(repmat(I(:),1,3));
+x = reshape(1:m*n, m, n);
+
+%-----------------------------------------------------------------------------
+function claheI = makeClaheImage(I, tileMappings, numTiles, selectedRange, numBins, dimTile)
 % This function interpolates between neighboring tile mappings to produce a 
 % new mapping in order to remove artificially induced tile borders.  
 % Otherwise, these borders would become quite visible.  The resulting
 % mapping is applied to the input image thus producing a CLAHE processed image.
-
-function claheI = makeClaheImage(I, tileMappings, numTiles, selectedRange, numBins, dimTile)
 
 %initialize the output image to zeros (preserve the class of the input image)
 claheI = I;     claheI(:) = 0;
@@ -2347,9 +2440,77 @@ end
 
 %--------------------------------------------------------------
 function displayInternalError(string)
-eid = sprintf('Images:%s:internalError',mfilename);
-msg = sprintf('Internal error: %s is not valid.',upper(string));
-error(eid,'%s',msg);
+eid = sprintf(':%s:internalError',mfilename);
+error(eid,'%s',sprintf('Internal error: %s is not valid.',upper(string)));
+
+%----------------------------------------------------------------------------------
+function im = dither(varargin)
+%DITHER Convert image using dithering.
+
+%   Copyright 1993-2003 The MathWorks, Inc.  
+%   $Revision: 5.25 $  $Date: 2003/01/17 16:27:28 $
+
+%   References: 
+%      R. W. Floyd and L. Steinberg, "An Adaptive Algorithm for
+%         Spatial Gray Scale," International Symposium Digest of Technical
+%         Papers, Society for Information Displays, 36.  1975.
+%      Spencer W. Thomas, "Efficient Inverse Color Map Computation",
+%         Graphics Gems II, (ed. James Arvo), Academic Press: Boston.
+%         1991. (includes source code)
+
+[X,m,qm,qe] = dither_parse_inputs(varargin{:});
+
+if (ndims(X) == 2)% Convert intensity image to binary by dithering
+    im = logical(ditherc(X,m,qm,qe));
+else % Create an indexed image from RGB 
+    im = ditherc(X,m,qm,qe);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [X,m,qm,qe] = dither_parse_inputs(varargin)
+% Outputs:  X  the input RGB (3D) or intensity image (2D)
+%           m  colormap (:,3)
+%           qm number of quantization bits for colormap
+%           qe number of quantization bits for errors, qe>qm
+
+checknargin(1,6,nargin,mfilename);
+
+% Default values:
+qm = 5;     qe = 8;
+
+switch nargin
+	case 1,                        % dither(I)
+        X = varargin{1};
+        m = gray(2); 
+	case 2,                        % dither(RGB,m)
+        X = varargin{1};
+        m = varargin{2};
+	case 4,
+        X = varargin{1};
+        m = varargin{2};
+        qm = varargin{3};
+        qe = varargin{4};
+	otherwise,
+        eid = sprintf(':%s:invalidInput',mfilename);
+        error(eid,'Invalid input arguments in function %s.',mfilename);
+end
+
+% Check validity of the input parameters 
+if (ndims(X)==3) && (nargin==1),
+    eid = sprintf(':%s:imageMustBe2D',mfilename);  
+    error(eid,'DITHER(I): the intensity image I has to be a two-dimensional array.');
+elseif (ndims(X)==2) && (nargin==2),
+    eid = sprintf(':%s:imageMustBe3D',mfilename);  
+    error(eid,'DITHER(RGB,map): the RGB image has to be a three-dimensional array.');
+end
+
+X = im2uint8(X);
+ 
+if ((size(m,2) ~= 3) || (size(m,1) == 1) | ndims(m) > 2)
+  eid = sprintf(':%s:colormapMustBe2D',mfilename);  
+  error(eid,['In function %s, input colormap has to be a ',...
+             '2D array with at least 2 rows and exactly 3 columns.'], mfilename);
+end
 
 %----------------------------------------------------------------------------------
 function [yout,x] = imhist_j(varargin)
@@ -2360,7 +2521,7 @@ function [yout,x] = imhist_j(varargin)
 [a, n, isScaled, top, map] = parse_inputs_imhist_j(varargin{:});
 if islogical(a)
     if (n ~= 2)
-        error('Images:imhist:invalidParameterForLogical', '%s', 'N must be set to two for a logical image.');
+        error(':imhist:invalidParameterForLogical', '%s', 'N must be set to two for a logical image.');
         return
     end
     y(2) = sum(a(:));
@@ -2377,7 +2538,7 @@ case 'double',   x = linspace(0,1,n)';
 case 'logical',  x = [0,1]';
 otherwise
     message2 = ['The input image must be uint8, uint16, double, or' ' logical.'];
-    error('Images:imhist:invalidImageClass','%s', message2);             
+    error(':imhist:invalidImageClass','%s', message2);             
 end
 yout = y;
 
@@ -3143,6 +3304,129 @@ if isa(x, 'uint8'), x=double(x); end
 if isa(y, 'uint8'), y=double(y); end
 if isa(nrows, 'uint8'), nrows=double(nrows); end
 if isa(ncols, 'uint8'), ncols=double(ncols); end
+
+%----------------------------------------------------------------------------------
+function [X,map] = rgb2ind(varargin)
+%RGB2IND Convert RGB image to indexed image.
+
+%   Copyright 1993-2003 The MathWorks, Inc.  
+%   $Revision: 5.24 $  $Date: 2003/01/29 19:57:29 $
+
+[RGB,m,dith] = rgb2ind_parse_inputs(varargin{:});
+
+[so(1) so(2) thirdD] = size(RGB);
+
+% Converts depending on what is m:
+if (isempty(m))      % Convert RGB image to an indexed image.
+    X = reshape([1:so(1)*so(2)],so(1),so(2));
+    if so(1)*so(2) <= 256
+        X = uint8(X-1);
+    elseif so(1)*so(2) <= 65536
+        X = uint16(X-1);
+    end
+    map = im2double(reshape(RGB,so(1)*so(2),3));
+
+elseif (length(m) == 1)    % TOL or N is given
+    RGB = im2uint8(RGB);
+
+    if (m < 1)     % tol is given. Use uniform quantization
+        max_colors = 65536;
+        max_N = floor(max_colors^(1/3)) - 1;
+        N = round(1/m);
+        if (N > max_N)
+            N = max_N;
+            warning(sprintf('Too many colors; increasing tolerance to %g', 1/N));
+        end
+        
+        [x,y,z] = meshgrid([0:N]/N);
+        map = [x(:),y(:),z(:)];
+
+        if dith(1) == 'n'; 
+            RGB = round(im2double(RGB)*N);
+            X = RGB(:,:,3)*((N+1)^2)+RGB(:,:,1)*(N+1)+RGB(:,:,2)+1;
+        else
+            X = dither(RGB,map);
+        end
+        [X,map] = cmunique(X,map);
+
+    else    % N is given. Use variance minimization quantization
+        [map,X] = cq(RGB,m);
+        map = double(map) / 255;
+        if (dith(1) == 'd') && (size(map,1) > 1)
+            % Use standalone dither if map is an approximation.
+            X = dither(RGB,map);
+        end
+    end
+
+else        % MAP is given
+    RGB = im2uint8(RGB);
+    map = m;
+    if (dith(1) == 'n')          % 'nodither'
+        X = dither(RGB,map,5,4); % Use dither to do inverse colormap mapping.
+    else
+        X = dither(RGB,map);
+    end
+end
+
+if isa(map, 'uint8'),    % Make sure that the colormap is doubles
+    map = double(map)/255;
+elseif isa(map, 'uint16')
+    map = double(map)/65535;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [RGB,m,dith] = rgb2ind_parse_inputs(varargin)
+% Outputs:  RGB     image
+%           m       colormap
+%           dith    dithering option
+% Defaults:
+dith = 'dither';    m = [];
+
+error(nargchk(1,5,nargin));
+switch nargin
+	case 1,               % rgb2ind(RGB)
+        RGB = varargin{1};
+        warning(sprintf('%s\n%s', 'RGB2IND(RGB) is an obsolete syntax.', ...
+                      'Specify number of colors, tolerance, or colormap.'));
+	case 2,               % rgb2ind(RGB,x) where x = MAP | N | TOL
+        RGB = varargin{1};
+        m = varargin{2};
+    case 3,               % rgb2ind(R,G,B) OBSOLETE
+        RGB = varargin{1};  %              where x = MAP | N | TOL
+        m = varargin{2};
+        dith = varargin{3};
+	otherwise
+        error('Invalid input arguments.');
+end
+
+% Check validity of the input parameters
+if (ndims(RGB)==3) && (size(RGB,3) ~= 3) || (ndims(RGB) > 3),
+    error('RGB image has to be M-by-N-by-3 array.');
+end
+
+if any(m(:) < 0)
+    error('Colormap, Number of colors, or Tolerance have to be non-negative.');
+elseif ((length(m)==1) && (m~=round(m)) && (m>1))
+    error('Number of colors in the colormap has to be a non-negative integer.');
+elseif ((length(m) > 1) && (ndims(m) == 2) && (size(m,1) == 1) && (size(m,2) ~= 3))    % MAP
+    error('Input colormap has to be a 2D array with at least 2 rows and exactly 3 columns.');
+elseif (length(m)>1) && (max(m(:))>1)
+    error('All colormap intensities must be between 0 and 1.');
+end
+
+if ischar(dith),% dither option
+	strings = {'dither','nodither'};
+	idx = strmatch(lower(dith),strings);
+	if isempty(idx),
+	    error(sprintf('Unknown dither option: %s',dith));
+	elseif (length(idx) > 1)
+	    error(sprintf('Ambiguous dither option: %s',dith));
+	else
+	    dith = strings{idx};
+	end  
+else
+    error(sprintf('Dither option has to be a string.'));  
+end
 
 %----------------------------------------------------------------------------------
 function lowhigh = stretchlim_j(varargin)
