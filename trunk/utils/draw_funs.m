@@ -1391,12 +1391,11 @@ if isempty(region),    return;  end     % User gave up
 x_min = region(1);      x_max = region(2);
 y_min = region(3);      y_max = region(4);
 handles.geog = region(5);       % Set if coordinates are geog or cartographic
-ax = gca;
+ax = handles.axes1;
 
 x(1) = rect_x(1);     x(2) = rect_x(2);     x(3) = rect_x(3);
 y(1) = rect_y(1);     y(2) = rect_y(2);
-h_img = findobj(handles.figure1,'Type','image');
-img = get(h_img,'CData');
+img = get(handles.hImg,'CData');
 % Transform the ractangle limits into row-col limits
 limits = getappdata(handles.figure1,'ThisImageLims');
 r_c = cropimg(limits(1:2), limits(3:4), img, [x(1) y(1) (x(3)-x(2)) (y(2)-y(1))], 'out_precise');
@@ -1427,16 +1426,14 @@ new_xlim = U1(:,1)';        new_ylim = U1(:,2)';
 % and redraw it again. That's f... stupid.
 [m,n,k] = size(img);
 [new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
-delete(h_img);      delete(ax)
+delete(handles.hImg);
 handles.hImg = image(new_xlim,new_ylim,img);
-ax = gca;           % Get new axes handle
-set(ax,'xlim',new_xlim,'ylim',new_ylim,'XDir','normal','YDir','normal')
+set(ax,'xlim',new_xlim,'ylim',new_ylim,'YDir','normal')
 resizetrue(handles.figure1);
 setappdata(handles.figure1,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])
 setappdata(ax,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])     % Used in pan and somewhere else
 handles.old_size = get(handles.figure1,'Pos');      % Save fig size to prevent maximizing
 handles.origFig = img;
-handles.axes1 = ax;
 
 % [m,n,k] = size(img);
 % [new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
