@@ -146,7 +146,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
         inputargs{4} = '-r300';     % Default value for the case we got none in input
         [pato,fname,ext] = fileparts(dpi);
         switch lower(ext)
-            case {'.ps','.eps'},    inputargs{3} = '-deps2';
+            case {'.ps','.eps'},    inputargs{3} = '-depsc2';
             case '.ai',             inputargs{3} = '-dill';
             case '.emf',            inputargs{3} = '-dmeta';
             otherwise
