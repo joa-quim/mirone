@@ -25,21 +25,8 @@ geog_calculator_LayoutFcn(hObject,handles);
 handles = guihandles(hObject);
 movegui(hObject,'center');
 
-global home_dir
-if isempty(home_dir),   handles.d_path = [pwd filesep 'data' filesep];
-else                    handles.d_path = [home_dir filesep 'data' filesep];   end
-
-% Import icons
-load([handles.d_path 'mirone_icons.mat'],'Mfopen_ico');
-set(handles.pushbutton_gridLeft,'CData',Mfopen_ico)
-set(handles.pushbutton_gridRight,'CData',Mfopen_ico)
-set(handles.pushbutton_fileLeft,'CData',Mfopen_ico)
-set(handles.pushbutton_fileRight,'CData',Mfopen_ico)
-clear Mfopen_ico;
-
 handles.x_left = [];        handles.y_left = [];    handles.z_left = [];
 handles.x_right = [];       handles.y_right = [];   handles.z_right = [];
-handles.h_calling_fig = []; % Update this bellow when integration in Mirone
 handles.fileDataLeft = [];  % Will eventually host data read from a file
 handles.fileDataRight = []; % Will eventually host data read from a file
 handles.which_conv = 1;     % Default to "Interactive Conversions"
@@ -71,23 +58,40 @@ if ~isempty(varargin)
     elseif (length(varargin) == 1 && ishandle(varargin{1}))
         handles.h_calling_fig = varargin{1};
     end
+else
+    errordlg('GEOG_CALCULATOR: wrong number of arguments.','Error')
+    delete(hObject);    return
 end
+
+% -------------- Get Mirone handles -----------------------------
+handMir = guidata(handles.h_calling_fig);
+% ---------------------------------------------------------------
+
+% Add this Fig to the carraças list
+plugedWin = getappdata(handles.h_calling_fig,'dependentFigs');
+plugedWin = [plugedWin hObject];
+setappdata(handles.h_calling_fig,'dependentFigs',plugedWin);
+
+handles.last_dir = handMir.last_dir;
+handles.home_dir = handMir.home_dir;
+handles.version7 = handMir.version7;
+handles.path_data = handMir.path_data;
+
+% Import icons
+load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
+set(handles.pushbutton_gridLeft,'CData',Mfopen_ico)
+set(handles.pushbutton_gridRight,'CData',Mfopen_ico)
+set(handles.pushbutton_fileLeft,'CData',Mfopen_ico)
+set(handles.pushbutton_fileRight,'CData',Mfopen_ico)
+clear Mfopen_ico;
 
 coord_system_left = [];
 coord_system_right = [];
-load([handles.d_path 'mirone_pref.mat']);
+load([handles.path_data 'mirone_pref.mat']);
 
-if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-    handles.last_dir = cfig_handles.last_dir;
-    handles.home_dir = cfig_handles.home_dir;
-else
-    handles.last_dir = pwd;
-    handles.home_dir = pwd;
-end
 try
-    if (iscell(directory_list)),   handles.work_dir = directory_list{1};
-    else                             handles.work_dir = directory_list;  end
+    if (iscell(directory_list)),    handles.work_dir = directory_list{1};
+    else                            handles.work_dir = directory_list;  end
 catch
     handles.work_dir = pwd;
 end
@@ -329,8 +333,8 @@ function edit_zRight_Callback(hObject, eventdata, handles)
 
 %-------------------------------------------------------------------------------------
 function popup_UnitesLeft_Callback(hObject, eventdata, handles)
-fname = [handles.d_path 'mirone_pref.mat'];
-load([handles.d_path 'mirone_pref.mat']);
+fname = [handles.path_data 'mirone_pref.mat'];
+load([handles.path_data 'mirone_pref.mat']);
 val = get(hObject,'Value');
 if (handles.is_geog_left)                       % That is, we are in geogs
     if (handles.which_conv == 1)
@@ -344,13 +348,17 @@ else
     handles.MeasureUnit_val_left = val;
     coord_system_left.MeasureUnit_val = val;
 end
-save(fname,'coord_system_left','-append');     % Update mirone_pref
+if (~handles.version7)                  % Update mirone_pref.  R<=13
+    save(fname,'coord_system_left','-append');
+else
+    save(fname,'coord_system_left','-append','-v6');
+end
 guidata(hObject,handles)
 
 %-------------------------------------------------------------------------------------
 function popup_UnitesRight_Callback(hObject, eventdata, handles)
-fname = [handles.d_path 'mirone_pref.mat'];
-load([handles.d_path 'mirone_pref.mat']);
+fname = [handles.path_data 'mirone_pref.mat'];
+load([handles.path_data 'mirone_pref.mat']);
 val = get(hObject,'Value');
 if (handles.is_geog_right)                       % That is, we are in geogs
     if (handles.which_conv == 1)
@@ -364,12 +372,16 @@ else
     handles.MeasureUnit_val_right = val;
     coord_system_right.MeasureUnit_val = val;
 end
-save(fname,'coord_system_right','-append');     % Update mirone_pref
+if (~handles.version7)                  % Update mirone_pref.  R<=13
+    save(fname,'coord_system_right','-append');
+else
+    save(fname,'coord_system_right','-append','-v6');
+end
 guidata(hObject,handles)
 
 %-------------------------------------------------------------------------------------
 function pushbutton_DefCoordLeft_Callback(hObject, eventdata, handles)
-fname = [handles.d_path 'mirone_pref.mat'];
+fname = [handles.path_data 'mirone_pref.mat'];
 coord_system_left = coordinate_system(handles.coord_system_left,handles.all_datums);
 if (isempty(coord_system_left)),   return;     end
 handles.coord_system_left = coord_system_left;
@@ -404,12 +416,16 @@ else
     set(handles.popup_UnitesLeft,'String',handles.MeasureUnit,'Value',handles.MeasureUnit_val_left)
     handles.is_geog_left = 0;    coord_system_left.is_geog = 0;
 end
-save(fname,'coord_system_left','-append');      % Update mirone_pref
+if (~handles.version7)                  % Update mirone_pref.  R<=13
+    save(fname,'coord_system_left','-append');
+else
+    save(fname,'coord_system_left','-append','-v6');
+end
 guidata(hObject,handles)
 
 %-------------------------------------------------------------------------------------
 function pushbutton_DefCoordRight_Callback(hObject, eventdata, handles)
-fname = [handles.d_path 'mirone_pref.mat'];
+fname = [handles.path_data 'mirone_pref.mat'];
 coord_system_right = coordinate_system(handles.coord_system_right,handles.all_datums);
 if (isempty(coord_system_right)),   return;     end
 handles.coord_system_right = coord_system_right;
@@ -444,7 +460,11 @@ else
     set(handles.popup_UnitesRight,'String',handles.MeasureUnit,'Value',handles.MeasureUnit_val_right)
     handles.is_geog_right = 0;    coord_system_right.is_geog = 0;
 end
-save(fname,'coord_system_right','-append');     % Update mirone_pref
+if (~handles.version7)                  % Update mirone_pref.  R<=13
+    save(fname,'coord_system_right','-append');
+else
+    save(fname,'coord_system_right','-append','-v6');
+end
 guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------
