@@ -32,6 +32,8 @@ function varargout = rotatetool(varargin)
 %   above, but with a header info vector like in the GRD case. Use this for example if the
 %   IMG comes from a georeferenced image.
 %
+%   [...] = ROTATETOOL(GRD|IMG,HANDLES), GRD & IMG as above and HANDLES is a Mirone handles
+%
 %   The "Apply n return" button performs the rotation on the input data and returns
 %   the output if it was requested.
 %
@@ -68,7 +70,6 @@ function varargout = rotatetool(varargin)
 %       w3.ualg.pt/~jluis/mirone
 %
 %       M-File changed by desGUIDE and manualy edited after
-
  
 hObject = figure('Tag','figure1','Visible','off');
 handles = guihandles(hObject);
@@ -84,6 +85,7 @@ handles.angle = 0;
 handles.do_flipLR = false;
 handles.do_flipUD = false;
 handles.hOrigFigure = [];
+handles.hOrigAxes = [];
 handles.hOrigImage = [];
 handles.OrigGrd = [];
 handles.in_hdr = [];            % To hold an eventual input GMT style row vector header
@@ -108,7 +110,8 @@ if (n_argin >= 1)
         if (~isempty(msg))
             errordlg(msg,'ERROR');      delete(hObject);    return
         end
-        handles.hOrigFigure = get(get(handles.hOrigImage,'Parent'),'Parent');
+        handles.hOrigAxes = get(handles.hOrigImage,'Parent');
+        handles.hOrigFigure = get(handles.hOrigAxes,'Parent');
     else
         if (isa(varargin{1},'uint8'))           % First argument is an image array
             handles.OrigImage = varargin{1};
@@ -121,14 +124,26 @@ if (n_argin >= 1)
         end
     end
     
-    if (n_argin == 2 && size(varargin{2},1) == 1)       % Second argument is a GMT style vector header
-        handles.in_hdr = varargin{2};
-    elseif (n_argin == 2 && size(varargin{2},2) == 3)   % Second argument is a colormap
-        cmap = varargin{2};
-    end
-    if (n_argin == 3)                           % There is no choice in args order here
-        handles.in_hdr = varargin{2};
-        cmap = varargin{3};
+    if (n_argin == 2 && isstruct(varargin{2}))
+        % This is a new form (as on 6-3-07) ROTATETOOL(GRD|IMG,HANDLES)
+        handles.hOrigAxes = varargin{2}.axes1;
+        handles.in_hdr = varargin{2}.head;
+        cmap = get(varargin{2}.figure1,'Colormap');
+        
+        % Add this Fig to the carraças list
+        plugedWin = getappdata(varargin{2}.figure1,'dependentFigs');
+        plugedWin = [plugedWin hObject];
+        setappdata(varargin{2}.figure1,'dependentFigs',plugedWin);
+    else
+        if (n_argin == 2 && size(varargin{2},1) == 1)       % Second argument is a GMT style vector header
+            handles.in_hdr = varargin{2};
+        elseif (n_argin == 2 && size(varargin{2},2) == 3)   % Second argument is a colormap
+            cmap = varargin{2};
+        end
+        if (n_argin == 3)                           % There is no choice in args order here
+            handles.in_hdr = varargin{2};
+            cmap = varargin{3};
+        end
     end
     % One last test on CMAP & HEADER likelihood
     msg = [];
@@ -144,6 +159,7 @@ if (n_argin >= 1)
 else        % Demo mode
     h = figure;
     handles.hOrigImage = imshow('peppers.png');
+    handles.hOrigAxes = get(handles.hOrigImage,'Parent');
     handles.hOrigFigure = h;
 end
 
@@ -151,7 +167,7 @@ end
 % ReductionFactor determines how to scale original image so
 % that it fits in the defined preview area.
 pImageConstr = min(handles.frame_axesPos(3),handles.frame_axesPos(4));    %Constraining dimension in image panel
-if (~isempty(handles.hOrigImage))
+if (~isempty(handles.hOrigImage))       % A image handle was transmited in argument
     [oriImageHeight,oriImageWidth,k] = size(get(handles.hOrigImage,'Cdata'));
 else
     [oriImageHeight,oriImageWidth,k] = size(handles.OrigImage);
@@ -160,7 +176,7 @@ end
 dImage = ceil(sqrt(oriImageHeight^2 + oriImageWidth^2)) + 5;
 reductionFactor = (pImageConstr/dImage);
 
-if (~isempty(handles.hOrigImage))
+if (~isempty(handles.hOrigImage))       % A image handle was transmited in argument
     handles.previewImage = img_fun('imresize',get(handles.hOrigImage,'Cdata'),reductionFactor);
 else
     handles.previewImage = img_fun('imresize',handles.OrigImage,reductionFactor);
@@ -177,6 +193,13 @@ set(handles.axes1,'Pos',[leftPosition bottomPosition imWidth imHeight],...
 
 %display image in axes
 handles.himage = displayPreviewImage(handles,handles.previewImage,cmap);
+
+% Store the f. ydir mess for be taken account later
+if (strcmp(get(handles.axes1,'YDir'),'normal'))
+    handles.y_dir = 1;
+else
+    handles.y_dir = -1;
+end
 
 %------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 bgcolor = get(0,'DefaultUicontrolBackgroundColor');
@@ -195,7 +218,6 @@ for i=1:length(h_f)
     end
 end
 %------------- END Pro look (3D) -------------------------------------------------------
-
 
 % Choose default command line output for rotatetool
 handles.output = hObject;
@@ -232,12 +254,12 @@ function push_cw90_Callback(hObject, eventdata, handles)
     % When the rotation button is pushed repeatedly, the rotation
     % applied to the image is cumulative.  Pushing the cw button n
     % times will rotate preview image 90*n degrees.
-    updateAngleInfo(handles,90);
+    updateAngleInfo(handles,-90);
     updateImage(handles);
 
 % ----------------------------------------------------------------------------
 function push_ccw90_Callback(hObject, eventdata, handles)
-    updateAngleInfo(handles,-90);
+    updateAngleInfo(handles,90);
     updateImage(handles);
 
 % ----------------------------------------------------------------------------
@@ -321,19 +343,19 @@ function push_apply_Callback(hObject, eventdata, handles)
         A = get(handles.hOrigImage,'CData');
         if (handles.do_flipLR),     A = flipdim(A,2);   end
         if (handles.do_flipUD),     A = flipdim(A,1);   end
-        rotCdata = transform_fun('imrotate',A,-handles.angle,interpmethod,handles.bbox);
+        rotCdata = transform_fun('imrotate',A,-handles.angle*handles.y_dir,interpmethod,handles.bbox);
         set(handles.hOrigImage,'CData',rotCdata);
     else
         if (~isempty(handles.OrigGrd))
             A = handles.OrigGrd;
             if (handles.do_flipLR),     A = flipdim(A,2);   end
             if (handles.do_flipUD),     A = flipdim(A,1);   end
-            rotCdata = transform_fun('imrotate',A,-handles.angle,interpmethod,'loose');
+            rotCdata = transform_fun('imrotate',A,-handles.angle*handles.y_dir,interpmethod,'loose');
         else
             A = handles.OrigImage;
             if (handles.do_flipLR),     A = flipdim(A,2);   end
             if (handles.do_flipUD),     A = flipdim(A,1);   end
-            rotCdata = transform_fun('imrotate',A,-handles.angle,interpmethod,handles.bbox);
+            rotCdata = transform_fun('imrotate',A,-handles.angle*handles.y_dir,interpmethod,handles.bbox);
         end
         handles.output_grd = rotCdata;
         if (handles.out_header)
@@ -399,7 +421,12 @@ function [hout] = displayPreviewImage(handles,newCdata,cmap)
     else
         hout = image(xdata,ydata,newCdata, 'BusyAction', 'cancel', ...
             'Parent', handles.axes1, 'Interruptible', 'off');
-        clim = [];      y_dir = 'normal';
+        clim = [];
+        if (~isempty(handles.hOrigAxes))
+            y_dir = get(handles.hOrigAxes,'YDir');
+        else
+            y_dir = 'reverse';      % Comes here when called with only grd|img and no info on gca
+        end
     end
 
     % Set axes and figure properties if necessary to display the image object correctly.
@@ -427,7 +454,7 @@ function updateImage(handles)
     end
     %assuming cw rotation is positive (need to use -angle because
     %IMROTATE assumes cw rotation is negative)
-    rotCdata = transform_fun('imrotate',handles.previewImage,-handles.angle,interpmethod,outsize);
+    rotCdata = transform_fun('imrotate',handles.previewImage,-handles.angle*handles.y_dir,interpmethod,outsize);
     [h,w,k] = size(rotCdata);
     [left,bottom] = calcPosition(handles,w,h);
     left = left + handles.frame_axesPos(1);
