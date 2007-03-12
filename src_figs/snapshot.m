@@ -129,6 +129,7 @@ set(handles.edit_imgSize,'String',handles.txtThisSize,'BackgroundColor',get(0,'d
 % ---------------- Fill the edit file name with a default value
 if (~handles.noname)
 	fname = get(handlesMir.figure1,'Name');
+    fname = strrep(fname,' ','_');
 	[pato,fname,ext] = fileparts(fname);
 	if (islogical(get(handlesMir.hImg,'CData')) && handles.imgOnly)   % Best proposition when we have a logical (mask) image
         fname = [handlesMir.work_dir filesep fname '.png'];
