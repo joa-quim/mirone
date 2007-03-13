@@ -44,6 +44,8 @@ function out = tableGUI(varargin)
 %                   is set to 'inactive' and its not transmited on the
 %                   output (DEF = ''). Warning: do not abuse on the 
 %                   Names length. Added by Martin Furlan
+%   'RowNamesWidth' Width of buttons containing the RowNames
+%                   in pixels (DEF = 60)                                        scalar
 %   'checks'        If = 'Y' it creates a vertical line of checkboxes           string - either '' or 'y'
 %                   This affects what is send as output. Only rows that
 %                   have it's checkbox checked will be returned.
@@ -99,6 +101,8 @@ function out = tableGUI(varargin)
 %       6-Dec-2006 - A column with row names added by Martin Furlan
 %       (martin.furlan@iskra-ae.com)
 %
+%       13-Mar-2007 - Added option to control the RowNames width.
+%
 
 hand.NumRows = 12;          hand.NumCol = 6;
 hand.MAX_ROWS = 10;         hand.left_marg = 10;
@@ -116,6 +120,7 @@ if (nargin == 0)        % Demo
 else
     hand.ColNames = '';	    hand.ColWidth = [];
     hand.array = [];        def_NumRows = hand.NumRows;
+    hand.RowNamesWidth = 60;
     hand = parse_pv_pairs(hand,varargin);
     if (~isempty(hand.array))
         if (numel(hand.array) == 1 && numel(hand.array{1}) > 1)
@@ -166,8 +171,9 @@ fig_height = min(hand.NumRows,hand.MAX_ROWS) * (hand.RowHeight+hand.bd_size);
 if (~isempty(hand.HdrButtons)),    fig_height = fig_height + 22;   end     % Make room for header buttons
 if (~isempty(hand.modal)),          fig_height = fig_height + 30;   end     % Make room for OK,Cancel buttons
 pos = [5 75 sum(arr_pos_xw)+hand.left_marg+(hand.NumCol-1)*hand.bd_size+15 fig_height];  % The 15 is for the slider
+nW = hand.RowNamesWidth;        % Short name for the row names width buttons
 if (~isempty(hand.checks)),     pos(3) = pos(3) + 15;       end         % Account for checkboxes size
-if (~isempty(hand.RowNames)),   pos(3) = pos(3) + 60;       end         % Account for row names size
+if (~isempty(hand.RowNames)),   pos(3) = pos(3) + nW;       end         % Account for row names size
 
 hand.hFig = figure('unit','pixels','NumberTitle','off','Menubar','none','resize','on','position', ...
     pos,'Name',hand.FigName,'Resize','off','Visible','off');
@@ -182,14 +188,14 @@ if (~isempty(hand.checks) && isempty(hand.RowNames))    % Create the checkboxes 
     hand.Checks_pos_orig = [ones(hand.NumRows,1)*7 (hand.arr_pos_y+3) ones(hand.NumRows,1)*15 ones(hand.NumRows,1)*15];
 end
 if (~isempty(hand.RowNames) && isempty(hand.checks))    % Create the row names
-    arr_pos_xi = arr_pos_xi + 60;                       % Make room for them
-    hand.RowNames_pos_orig = [ones(hand.NumRows,1)*7 (hand.arr_pos_y) ones(hand.NumRows,1)*60 ones(hand.NumRows,1)*20];
+    arr_pos_xi = arr_pos_xi + nW;                       % Make room for them
+    hand.RowNames_pos_orig = [ones(hand.NumRows,1)*7 (hand.arr_pos_y) ones(hand.NumRows,1)*nW ones(hand.NumRows,1)*20];
 end
 if (~isempty(hand.checks) && ~isempty(hand.RowNames))   % Create both the checkboxes uicontrols and the row names
-    arr_pos_xi = arr_pos_xi + 15 + 60 + 2;              % Make room for them
+    arr_pos_xi = arr_pos_xi + 15 + nW + 2;              % Make room for them
     hand.hChecks = zeros(hand.NumRows,1);
     hand.Checks_pos_orig = [ones(hand.NumRows,1)*7 (hand.arr_pos_y+3) ones(hand.NumRows,1)*15 ones(hand.NumRows,1)*15];
-    hand.RowNames_pos_orig = [ones(hand.NumRows,1)*7 + 15 + 5 (hand.arr_pos_y) ones(hand.NumRows,1)*60 ones(hand.NumRows,1)*20];
+    hand.RowNames_pos_orig = [ones(hand.NumRows,1)*7 + 15 + 5 (hand.arr_pos_y) ones(hand.NumRows,1)*nW ones(hand.NumRows,1)*20];
 end
 
 hand.hEdits = zeros(hand.NumRows,hand.NumCol);
