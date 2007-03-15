@@ -440,6 +440,7 @@ utils/ivan_the_terrible.m -text
 utils/jd2date.m -text
 utils/limpa.p -text
 utils/load_defFilters.m -text
+utils/load_grd.m -text
 utils/luts.m -text
 utils/mat_lyies.m -text
 utils/mboard.m -text
