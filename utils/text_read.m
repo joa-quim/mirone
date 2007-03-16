@@ -210,7 +210,40 @@ function delim = guessdelim(str)
 %   Copyright 1984-2002 The MathWorks, Inc. 
 
 if isempty(str),    delim = '';    return;  end     % return if str is empty
-numLines = length(find(str == sprintf('\n')));      % count num lines
+%numLines = length(find(str == sprintf('\n')));      % count num lines
+
+% NOTE: THIS PROCEDURE IS NOT COMPLETELY ISENT OF RISK
+% A problem raises when we have nearly as many header lines as data lines.
+% In such cases the guessed delimeter will likely be ' ' which is may be deadly wrong
+% So I'll remove from STR all chunks between eventual '>' or '#' and the next '\n'
+% so that these header lines are not taken into account in delimiter guessing
+ind = strfind(str,'>');
+if (~isempty(ind) && ind(1) == 1)   % Small defense against a '# bla bla > ...' case on first line of file
+    % Note that this will be nearly useless if header lines have more than one '>'
+    nHead = numel(ind);     % number of probable header lines that contain a '>' char
+    indN = strfind(str,sprintf('\n'));      % get position of new lines chars
+    inds = sort([indN ind]);
+    newind = zeros(1,nHead);
+    for (k=1:nHead),        newind(k) = find(inds == ind(k));    end
+    res = [];
+    for (k=1:nHead),        res = [res inds(newind(k)):inds(newind(k)+1)];    end
+    str(res)=[];        % Removes chunks between a '>' and a newline
+end
+
+% Now do the same with the '#'
+ind = strfind(str,'#');
+if (~isempty(ind))
+    nHead = numel(ind);
+    indN = strfind(str,sprintf('\n'));
+    inds = sort([indN ind]);
+    newind = zeros(1,nHead);
+    for (k=1:nHead),        newind(k) = find(inds == ind(k));    end
+    res = [];
+    for (k=1:nHead),        res = [res inds(newind(k)):inds(newind(k)+1)];    end
+    str(res)=[];
+end
+
+numLines = length(strfind(str,sprintf('\n')));      % count remaining num of lines
 
 % set of column delimiters to try - ordered by quality as delim
 delims = {sprintf('\t'), ',', ';', ':', '|', ' '};
@@ -219,7 +252,8 @@ delims = {sprintf('\t'), ',', ';', ':', '|', ' '};
 % need to rethink based on headers and footers which are plain text
 goodDelims = {};
 for i = 1:length(delims)
-    numDelims(i) = length(find(str == sprintf(delims{i})));
+    %numDelims(i) = length(find(str == sprintf(delims{i})));
+    numDelims(i) = numel(strfind(str,delims{i}));
     if (numDelims(i) ~= 0)        % this could be a delim
         goodDelims{end+1} = delims{i};
     end
