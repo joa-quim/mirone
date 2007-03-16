@@ -215,22 +215,8 @@ if isempty(str),    delim = '';    return;  end     % return if str is empty
 % NOTE: THIS PROCEDURE IS NOT COMPLETELY ISENT OF RISK
 % A problem raises when we have nearly as many header lines as data lines.
 % In such cases the guessed delimeter will likely be ' ' which is may be deadly wrong
-% So I'll remove from STR all chunks between eventual '>' or '#' and the next '\n'
+% So I'll remove from STR all chunks between eventual '#' or '>' and the next '\n'
 % so that these header lines are not taken into account in delimiter guessing
-ind = strfind(str,'>');
-if (~isempty(ind) && ind(1) == 1)   % Small defense against a '# bla bla > ...' case on first line of file
-    % Note that this will be nearly useless if header lines have more than one '>'
-    nHead = numel(ind);     % number of probable header lines that contain a '>' char
-    indN = strfind(str,sprintf('\n'));      % get position of new lines chars
-    inds = sort([indN ind]);
-    newind = zeros(1,nHead);
-    for (k=1:nHead),        newind(k) = find(inds == ind(k));    end
-    res = [];
-    for (k=1:nHead),        res = [res inds(newind(k)):inds(newind(k)+1)];    end
-    str(res)=[];        % Removes chunks between a '>' and a newline
-end
-
-% Now do the same with the '#'
 ind = strfind(str,'#');
 if (~isempty(ind))
     nHead = numel(ind);
@@ -241,6 +227,20 @@ if (~isempty(ind))
     res = [];
     for (k=1:nHead),        res = [res inds(newind(k)):inds(newind(k)+1)];    end
     str(res)=[];
+end
+
+% Now do the same with the '>'
+ind = strfind(str,'>');
+if (~isempty(ind))
+    % Note that this will be nearly useless if header lines have more than one '>'
+    nHead = numel(ind);     % number of probable header lines that contain a '>' char
+    indN = strfind(str,sprintf('\n'));      % get position of new lines chars
+    inds = sort([indN ind]);
+    newind = zeros(1,nHead);
+    for (k=1:nHead),        newind(k) = find(inds == ind(k));    end
+    res = [];
+    for (k=1:nHead),        res = [res inds(newind(k)):inds(newind(k)+1)];    end
+    str(res)=[];        % Removes chunks between a '>' and a newline
 end
 
 numLines = length(strfind(str,sprintf('\n')));      % count remaining num of lines
