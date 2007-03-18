@@ -16,6 +16,8 @@ switch opt(1:3)
         DatasetsCities(varargin{:})
     case 'ODP'
         DatasetsODP_DSDP(varargin{:})
+    case 'sca'
+        scaledSymbols(varargin{:})
 end
 
 % --------------------------------------------------------------------
@@ -520,3 +522,189 @@ else
     draw_funs(h_sites,'ODP',ODP)
 end
 set(handles.figure1,'pointer','arrow')
+
+% --------------------------------------------------------------------
+function scaledSymbols(handles, fname)
+% Read a file wich should be multi-seg with "> -S.. -W.. -G.." controling
+% symbol parametrs. If file is not multi-seg, returns before doing anything
+
+[bin,n_column,multi_seg,n_headers] = guess_file(fname);
+if (n_column == 1 && multi_seg == 0)        % Take it as a file names list
+    fid = fopen(fname);
+    c = char(fread(fid))';      fclose(fid);
+    names = strread(c,'%s','delimiter','\n');   clear c fid;
+else
+    names = {fname};
+end
+
+% Signal Mirone Fig if it is to call the scatter_plot window (in wich it returns here) or not
+setappdata(handles.figure1,'callScatterWin',false)
+if (n_column > 1 && multi_seg == 0)     % Since no multi-segs control will be given (in Mirone) to scatter_plot figure
+    setappdata(handles.figure1,'callScatterWin',n_column)   % Return when no multi-segs and cols > 1
+    return
+end
+
+tol = 0.5;
+
+if (handles.no_file)        % Start empty but below we'll find the true data region
+    XMin = 1e50;            XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
+    geog = 1;               % Not important. It will be confirmed later
+	for (k=1:length(names))
+        fname = names{k};
+        %j = strfind(fname,filesep);
+        %if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well
+        % No caso acima tenho que testar se o fiche existe
+        [numeric_data,multi_segs_str] = text_read(fname,NaN,n_headers,'>');
+		for i=1:length(numeric_data)
+            tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
+            XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
+            YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
+        end
+	end
+    xx = [XMin XMax];           yy = [YMin YMax];
+    region = [xx yy];           % 1 stands for geog but that will be confirmed later
+    mirone('FileNewBgFrame_CB',handles.figure1,[],handles, [region geog])   % Create a background
+else                        % Reading over an established region
+    XYlim = getappdata(handles.figure1,'ThisImageLims');
+    xx = XYlim(1:2);            yy = XYlim(3:4);
+end
+
+for (k=1:length(names))
+    fname = names{k};
+%     j = strfind(fname,filesep);
+%     if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well 
+    % No caso acima tenho que testar se o fiche existe
+    [numeric_data,multi_segs_str] = text_read(fname,NaN,n_headers,'>');
+	n_segments = length(numeric_data);
+	n_clear = false(n_segments,1);
+	for i=1:n_segments
+        % Get rid of points that are outside the map limits
+        [tmpx,tmpy,indx,indy] = aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
+        if (isempty(tmpx)),     n_clear(i) = 1;     continue;   end     % Store indexes for clearing vanished segments info
+
+        if (handles.no_file)        % We need to compute the data extent in order to set the correct axes limits
+            XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
+            YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
+        end
+        
+        if (i == 1)
+            [thick, corW, multi_segs_str{i}] = parseW(multi_segs_str{i});   % Search EdgeColor and thickness
+            if (isempty(thick)),    thick = 0.5;    end     % IF not provided, use default
+            if (isempty(corW)),     corW = 'k';     end     %           "
+            [corFill, multi_segs_str{i}] = parseG(multi_segs_str{i});       % Search Fill color
+            [symbol, dim, multi_segs_str{i}] = parseS(multi_segs_str{i});   % Search Symbols
+            tag = parseT(multi_segs_str{i});                % See if we have a tag
+        else
+            found = parseIqual(multi_segs_str{i});      % First see if symbol is the same
+            if (~found)                                 % No, it isn't. So get the new one
+                [thick, corW, multi_segs_str{i}] = parseW(multi_segs_str{i});
+                if (isempty(thick)),    thick = 0.5;    end
+                if (isempty(corW)),     corW = 'k';     end
+                [corFill, multi_segs_str{i}] = parseG(multi_segs_str{i});
+                [symbol, dim, multi_segs_str{i}] = parseS(multi_segs_str{i});
+                tag = parseT(multi_segs_str{i});        % See if we have a tag
+            end
+        end
+        
+        h = zeros(1,numel(tmpx));
+        if (size(numeric_data{i},2) > 2)        % We have a 3rd column with Z
+            z = numeric_data{i}(:,3);
+            z(indx) = [];       z(indy) = [];
+            for k=1:numel(tmpx)
+                h(k) = line('XData',tmpx,'YData',tmpy,'ZData',z,'Parent',handles.axes1,'LineWidth',thick,'Tag',tag,...
+                    'Marker',symbol,'Color',corW,'MarkerFaceColor',corFill,'MarkerSize',dim,'LineStyle','none');
+            end
+        else
+            for k=1:numel(tmpx)
+                h(k) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'LineWidth',thick,'Tag',tag,...
+                    'Marker',symbol,'Color',corW,'MarkerFaceColor',corFill,'MarkerSize',dim,'LineStyle','none');
+            end
+        end
+        setUIs(h)
+	end
+end
+
+if (handles.no_file)        % We have a kind of inf Lims. Adjust for current values
+    region = [XMin XMax YMin YMax];
+    set(handles.figure1,'XLim',[XMin XMax],'YLim',[YMin YMax])
+    setappdata(handles.figure1,'ThisImageLims',region)
+    setappdata(handles.axes1,'ThisImageLims',region)
+    handles.geog = aux_funs('guessGeog',region);
+    guidata(handles.figure1,handles)
+end
+
+% ------------------------------------------------------------------------------------
+function setUIs(handles,h)
+    cmenuHand = uicontextmenu;
+    for k=1:numel(h)
+        set(h(k), 'UIContextMenu', cmenuHand);
+        uimenu(cmenuHand, 'Label', 'Delete this', 'Callback', {@del_line,h});
+        uimenu(cmenuHand, 'Label', 'Delete all', 'Callback', {@del_all,handles,h});
+        ui_edit_polygon(h(k))
+    end
+
+% -----------------------------------------------------------------------------------------
+function del_all(obj,eventdata,handles,h)
+    % Delete all objects that share the same tag of h
+    tag = get(h,'Tag');
+    hAll = findobj(handles.axes1,'Tag',tag);
+    del_line(obj,eventdata,hAll)
+    
+% -----------------------------------------------------------------------------------------
+function del_line(obj,eventdata,h)
+	% Delete symbols but before check if they are in edit mode
+    for (k=1:numel(h))
+		if (~isempty(getappdata(h(k),'polygon_data')))
+            s = getappdata(h(k),'polygon_data');
+            if strcmpi(s.controls,'on')         % Object is in edit mode, so this
+                ui_edit_polygon(h(k))           % call will force out of edit mode
+            end
+		end
+		delete(h(k));
+    end
+
+% --------------------------------------------------------------------
+function [symbol, dim, str2] = parseS(str)
+    % Parse the STR string in search for -S[symb][size]. Valid options are -Sc10, -Sa or -S (defaults to o 10 pt)
+    % If not found or error DIM = [].
+    % STR2 is the STR string less the -S[symb][size] part
+    symbol = 'o';   dim = 10;   str2 = str;
+    ind = strfind(str,'-S');
+    if (isempty(ind)),      return;     end     % No -S option
+    try                                 % There are so many ways to have it wrong that I won't bother testing
+        [strS, rem] = strtok(str(ind:end));
+        str2 = [str(1:ind(1)-1) rem];   % Remove the -S<str> from STR
+        
+        if (numel(strS) > 2)            % Get the symbol
+            symbs = '+o*xsd^v><ph';
+            ind = strfind(symbs,strS(3));
+            if (~isempty(ind)),     symbol = symbs(ind);    end
+        end
+        if (numel(strS) > 3)            % Get size
+            dim = str2double(strS(4:end));
+            if (isnan(dim)),    dim = 10;   end
+        end
+    end
+
+% --------------------------------------------------------------------
+function found = parseIqual(str)
+    % Parse the STR string in search for a '-=' option. If found it means the symbol
+    % will be of exactly the same type as previously determined. So this cannot
+    % be used on a first '>' comment line.
+    found = false;
+    ind = strfind(str,'-=');
+    if (~isempty(ind)),      found = true;     end
+
+% --------------------------------------------------------------------
+function [tag,str2] = parseT(str)
+    % Parse the STR string in search for '-T<tag>'. If not found uses default 'scatter_symbs' tag
+    % STR2 is the STR string less the -T<tag> part
+    tag = 'scatter_symbs';   str2 = str;
+    ind = strfind(str,'-T');
+    if (isempty(ind)),      return;     end     % No -T option
+    try                                 % There are so many ways to have it wrong that I won't bother testing
+        [strT, rem] = strtok(str(ind:end));
+        str2 = [str(1:ind(1)-1) rem];   % Remove the -T<tag> from STR
+        tag = strT(3:end);
+    end
+    
