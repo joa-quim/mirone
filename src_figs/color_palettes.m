@@ -1,8 +1,8 @@
 function varargout = color_palettes(varargin)
 % M-File changed by desGUIDE 
-% varargin   command line arguments to color_palettes (see VARARGIN)
+% varargin   command line arguments to color_palettes
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2007 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -21,43 +21,42 @@ handles = guihandles(hObject);
 guidata(hObject, handles);
 color_palettes_LayoutFcn(hObject,handles);
 handles = guihandles(hObject);
-
-global home_dir
-if isempty(home_dir),   handles.d_path = ['data' filesep];    % Case when this function was called directly
-else                    handles.d_path = [home_dir filesep 'data' filesep];   end
-
-set(hObject,'doublebuffer','on')
+movegui(hObject,'center')
 
 handles.z_min = [];     handles.z_max = [];     handles.z_min_orig = [];    handles.z_max_orig = [];
-if (length(varargin) > 1 && ishandle(varargin{1}))
-    handles.Hfig_parent = varargin{1};
-    handles.home_dir = varargin{2};
-    handles.work_dir = varargin{3};
-    Z = getappdata(varargin{1},'dem_z');
+if (length(varargin) >= 1 && isstruct(varargin{1}))      % varargin{1} must be the Mirone handles
+    handles.hCallingFig = varargin{1}.figure1;
+    handles.home_dir = varargin{1}.home_dir;
+    handles.work_dir = varargin{1}.work_dir;
+    Z = getappdata(handles.hCallingFig,'dem_z');
     if (~isempty(Z))
-        if any(isnan(Z(:))),    handles.have_nans = 1;
-        else                    handles.have_nans = 0;  end
-        [zzz] = grdutils(Z,'-L');  handles.z_min = double(zzz(1));     handles.z_max = double(zzz(2));
-        handles.z_min_orig = handles.z_min;
-        handles.z_max_orig = handles.z_max;
+        handles.have_nans = varargin{1}.have_nans;
+        handles.z_min_orig = varargin{1}.head(5);
+        handles.z_max_orig = varargin{1}.head(6);
         set(handles.edit_Zmin,'String',handles.z_min)
         set(handles.edit_Zmax,'String',handles.z_max)
     else                        % File was too big to stay on memory
         handles.have_nans = 0;
     end
+    % Add this figure handle to the carraças list
+    plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
+    plugedWin = [plugedWin hObject];
+    setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
 else
-    set(handles.OptionsAutoApply,'checked','off')   % Prevent trying to update an unexisting figure cmap
+    set(handles.OptionsAutoApply,'checked','off','Enable','off')   % Prevent trying to update an unexisting figure cmap
+    set(handles.OptionsApply,'Enable','off')
     set(findobj(hObject,'Tag','FileSavePaletteGrid'),'Visible','off')   % It makes no sense here
-    handles.Hfig_parent = [];
+    set(handles.edit_Zmax,'Enable','off');    set(handles.edit_Zmin,'Enable','off')
+    set(handles.text_MinZ,'Enable','off');    set(handles.text_MaxZ,'Enable','off')
+    handles.hCallingFig = [];
     handles.have_nans = 0;
     handles.z_min = [];
     handles.z_max = [];
     handles.home_dir = pwd;     handles.work_dir = handles.home_dir;
 end
+handles.d_path = [handles.home_dir filesep 'data' filesep];
 
-movegui(hObject,'center')
-
-handles.pal_top = [];       % will contain new colormaps as changed by the sliders
+handles.pal_top = [];       % will contain new colormaps as changed by the the sliders
 handles.pal_bot = [];
 handles.bg_color = [1 1 1];
 handles.z_intervals = [];
@@ -66,13 +65,13 @@ handles.z_intervals = [];
 % This stupid doesn't allow a frame in the background of an axes. I tried
 % everything but the axes is allways behind the frame. So the trick will be to
 % change it's size here (it was to small in guide) and let frame3D do the job.
-hf_b = findobj(hObject,'Tag','frame_bot');   posf_b = get(hf_b,'Position');
-hf_t = findobj(hObject,'Tag','frame_top');   posf_t = get(hf_t,'Position');
-set(hf_t,'Position',[posf_t(1) posf_t(2) posf_b(3) posf_t(4)]);
+posf_b = get(handles.frame_bot,'Position');
+posf_t = get(handles.frame_top,'Position');
+set(handles.frame_top,'Position',[posf_t(1) posf_t(2) posf_b(3) posf_t(4)]);
 bgcolor = get(0,'DefaultUicontrolBackgroundColor');
 framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
+h_f = [handles.frame_top handles.frame_bot];
+for i=1:numel(h_f)
     frame_size = get(h_f(i),'Position');
     frame3D(hObject,frame_size,framecolor,'',[])
     delete(h_f(i))
@@ -84,7 +83,7 @@ handles.txt_cZ_pos = get(handles.h_txt_cZ,'Position');
 
 % Show the current colormap in axes
 if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
-    cmap = get(handles.Hfig_parent,'Colormap');
+    cmap = get(handles.hCallingFig,'Colormap');
 else
     cmap = colormap(jet(256));
 end
@@ -133,24 +132,21 @@ set(handles.listbox1,'String',pals);
 % Choose default command line output for color_palettes_export
 handles.output = hObject;
 guidata(hObject, handles);
+set(hObject,'Visible','on');
 
 % UIWAIT makes color_palettes_export wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
-set(hObject,'Visible','on');
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = color_palettes_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = color_palettes_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-
-% Get default command line output from handles structure
-%varargout{1} = handles.output;
-varargout{1} = [];
+if (nargout)
+    set(handles.push_retColorMap,'Visible','on')
+    set(handles.edit_Zmax,'Visible','off')      % The other on the row are already hiden by the pushbutton
+    uiwait(handles.figure1);
+    handles = guidata(handles.figure1);     % Get updated version
+    if (handles.killed)          % Don't try to output eventual non-existing variables
+        varargout{1} = [];
+    else
+        varargout{1} = get(handles.figure1,'Colormap');
+    end
+    delete(handles.figure1);        % The figure can be deleted now
+end
 
 % -----------------------------------------------------------------------------------
 function listbox1_Callback(hObject, eventdata, handles)
@@ -500,7 +496,7 @@ function change_cmap(handles,pal)
 % Change the Image's colormap to 'pal'
 if strcmp(get(handles.OptionsAutoApply,'checked'),'on') % otherwise we are just playing with color_palettes alone
     del = 0;
-    h = findobj(handles.Hfig_parent,'Type','image');
+    h = findobj(handles.hCallingFig,'Type','image');
     if (length(size(get(h,'CData'))) > 2)
         h = handles.figure1;
         waitfor(msgbox('True color images do not use color palettes. So you cannot change it.','Warning','warn'))
@@ -524,7 +520,7 @@ end
 
 if (handles.z_min ~= handles.z_min_orig | handles.z_max ~= handles.z_max_orig)
 % %     %index = fix((C-cmin)/(cmax-cmin)*m)+1
-% %     index = fix((double(getappdata(handles.Hfig_parent,'dem_z'))- ...
+% %     index = fix((double(getappdata(handles.hCallingFig,'dem_z'))- ...
 % %         double(handles.z_min))/(double(handles.z_max)-double(handles.z_min))*length(pal))+1;
 % %     index(index < 1) = 1;
 %     bg_slot = 1;    end_slot = length(pal);
@@ -561,7 +557,7 @@ set(handles.figure1,'Colormap',pal);
 if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
     if (handles.have_nans)      pal_bg = [handles.bg_color; pal];
     else                        pal_bg = pal;   end
-    set(handles.Hfig_parent,'Colormap',pal_bg)         % Change the image colormap
+    set(handles.hCallingFig,'Colormap',pal_bg)         % Change the image colormap
 end
 
 if (handles.no_slider == 1)         % A new colormap was loaded
@@ -573,10 +569,6 @@ end
 guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
-function VoidFile_Callback(hObject, eventdata, handles)
-% --------------------------------------------------------------------
-
-% --------------------------------------------------------------------
 function FileSavePalette_Callback(hObject, eventdata, handles, opt)
 % OPT == [] writes the current cmap as a descrete GMT palette, but with 256 colors (in fact, a continuous cpt)
 % OPT == 'master_disc' writes the current cmap as a descrete GMT palette with 16 colors
@@ -584,8 +576,8 @@ function FileSavePalette_Callback(hObject, eventdata, handles, opt)
 if (nargin == 3),   opt = [];   end
 
 % Get directory history
-if (~isempty(handles.Hfig_parent))
-    hand_parent = guidata(handles.Hfig_parent);
+if (~isempty(handles.hCallingFig))
+    hand_parent = guidata(handles.hCallingFig);
     handles.last_dir = hand_parent.last_dir;
     handles.home_dir = hand_parent.home_dir;
 else
@@ -677,15 +669,11 @@ set(handles.listbox1,'Value',1)     % Now we have a new "Current cmap"
 
 % --------------------------------------------------------------------
 function FileExit_Callback(hObject, eventdata, handles)
-delete(handles.figure1)
-
-% --------------------------------------------------------------------
-function VoidOptions_Callback(hObject, eventdata, handles)
-% --------------------------------------------------------------------
+    delete(handles.figure1)
 
 % --------------------------------------------------------------------
 function OptionsApply_Callback(hObject, eventdata, handles)
-if ~isempty(handles.Hfig_parent)
+if ~isempty(handles.hCallingFig)
     cmap = get(handles.figure1,'Colormap');
     if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
         change_cmap(handles,cmap)
@@ -703,7 +691,7 @@ function OptionsAutoApply_Callback(hObject, eventdata, handles)
 if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
     set(handles.OptionsAutoApply,'checked','off')
 else
-    if ~isempty(handles.Hfig_parent)
+    if ~isempty(handles.hCallingFig)
         set(handles.OptionsAutoApply,'checked','on')
         change_cmap(handles,get(handles.figure1,'Colormap'))
     else
@@ -741,13 +729,14 @@ change_cmap(handles,handles.cmap);
 
 % --------------------------------------------------------------------
 function [z_min,z_max] = min_max_single(Z)
-% Compute the min/max of single precision Z arrays. I need this due to (another) Matlab
-% bug that gives wrong results when the Z (single) array has NaNs. Ouput are doubles.
-z_min = double(min(Z(~isnan(Z(:)))));   z_max = double(max(Z(~isnan(Z(:)))));
+	% Compute the min/max of single precision Z arrays. I need this due to (another) Matlab
+	% bug that gives wrong results when the Z (single) array has NaNs. Ouput are doubles.
+	z_min = double(min(Z(~isnan(Z(:)))));   z_max = double(max(Z(~isnan(Z(:)))));
 
 % --------------------------------------------------------------------
-function Void_Callback(hObject, eventdata, handles)
-% --------------------------------------------------------------------
+function push_retColorMap_Callback(hObject, eventdata, handles)
+    handles.killed = false;
+    guidata(hObject, handles);    uiresume(handles.figure1);
 
 % --------------------------------------------------------------------
 function radiobutton_ML_Callback(hObject, eventdata, handles)
@@ -898,81 +887,82 @@ msg = sprintf(['All visible features are so obvious that they don''t need any he
         'The Min Z and Max Z fields may be used to impose a fixed colormap between\n' ...
         'those values. Alernatively, import a GMT palette with the "Use Z values."\n' ...
         'In that case, the grid values will be maped into the palette defined Z levels.\n\n' ...
+        'The "Finish and return the Color Map" button returns the selected color map\n' ...
+        'in output. This button is visible when the form cmap = color_palettes(); is used,\n\n' ...
         'NOTE: If you have previously drawn contours into your image, you can\n' ...
         'easily fit the colors with the contours.']);
 msgbox(msg,'Help')
 
 % --------------------------------------------------------------------
 function edit_Zmin_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx)),     set(hObject,'String',num2str(handles.z_min));   return; end
-handles.z_min = xx;
-guidata(hObject,handles)
-change_cmap(handles,get(handles.figure1,'Colormap'))
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx)),     set(hObject,'String',num2str(handles.z_min));   return; end
+	handles.z_min = xx;
+	guidata(hObject,handles)
+	change_cmap(handles,get(handles.figure1,'Colormap'))
 
 % --------------------------------------------------------------------
 function edit_Zmax_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx)),     set(hObject,'String',num2str(handles.z_max));   return; end
-handles.z_max = xx;
-guidata(hObject,handles)
-change_cmap(handles,get(handles.figure1,'Colormap'))
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx)),     set(hObject,'String',num2str(handles.z_max));   return; end
+	handles.z_max = xx;
+	guidata(hObject,handles)
+	change_cmap(handles,get(handles.figure1,'Colormap'))
 
 % The following is because the stupid dumb compiler refuses to find these functions
 % --------------------------------------------------------------------
 function c = autumn(m)
-r = (0:m-1)'/max(m-1,1);    c = [ones(m,1) r zeros(m,1)];
+    r = (0:m-1)'/max(m-1,1);    c = [ones(m,1) r zeros(m,1)];
 
 % --------------------------------------------------------------------
 function b = bone(m)
-b = (7*gray(m) + fliplr(hot(m)))/8;
+    b = (7*gray(m) + fliplr(hot(m)))/8;
 
 % --------------------------------------------------------------------
 function c = cool(m)
-r = (0:m-1)'/max(m-1,1);    c = [r 1-r ones(m,1)];
+    r = (0:m-1)'/max(m-1,1);    c = [r 1-r ones(m,1)];
 
 % --------------------------------------------------------------------
 function c = copper(m)
-c = min(1,gray(m)*diag([1.2500 0.7812 0.4975]));
+    c = min(1,gray(m)*diag([1.2500 0.7812 0.4975]));
 
 % --------------------------------------------------------------------
 function map = flag(m)
-f = [1 0 0; 1 1 1; 0 0 1; 0 0 0];
-% Generate m/4 vertically stacked copies of f with Kronecker product.
-e = ones(ceil(m/4),1);
-map = kron(e,f);
-map = map(1:m,:);
+	f = [1 0 0; 1 1 1; 0 0 1; 0 0 0];
+	% Generate m/4 vertically stacked copies of f with Kronecker product.
+	e = ones(ceil(m/4),1);
+	map = kron(e,f);	map = map(1:m,:);
 
 % --------------------------------------------------------------------
 function map = lines(n)
-c = get(0,'defaultaxescolororder');
-map = c(rem(0:n-1,size(c,1))+1,:);
+    c = get(0,'defaultaxescolororder');
+    map = c(rem(0:n-1,size(c,1))+1,:);
 
 % --------------------------------------------------------------------
 function p = pink(m)
-p = sqrt((2*gray(m) + hot(m))/3);
+    p = sqrt((2*gray(m) + hot(m))/3);
 
 % --------------------------------------------------------------------
 function map = prism(m)
-% R = [red; orange; yellow; green; blue; violet]
-R = [1 0 0; 1 1/2 0; 1 1 0; 0 1 0; 0 0 1; 2/3 0 1];
-% Generate m/6 vertically stacked copies of r with Kronecker product.
-e = ones(ceil(m/6),1);
-R = kron(e,R);
-R = R(1:m,:);
-map = R;
+	% R = [red; orange; yellow; green; blue; violet]
+	R = [1 0 0; 1 1/2 0; 1 1 0; 0 1 0; 0 0 1; 2/3 0 1];
+	% Generate m/6 vertically stacked copies of r with Kronecker product.
+	e = ones(ceil(m/6),1);
+	R = kron(e,R);
+	R = R(1:m,:);
+	map = R;
 
 % --------------------------------------------------------------------
 function c = summer(m)
-r = (0:m-1)'/max(m-1,1);    c = [r .5+r/2 .4*ones(m,1)];
+    r = (0:m-1)'/max(m-1,1);    c = [r .5+r/2 .4*ones(m,1)];
 
 % --------------------------------------------------------------------
 function c = winter(m)
-r = (0:m-1)'/max(m-1,1);    c = [zeros(m,1) r .5+(1-r)/2];
+    r = (0:m-1)'/max(m-1,1);    c = [zeros(m,1) r .5+(1-r)/2];
 
 % --------------------------------------------------------------------
 function g = gray(m)
-g = (0:m-1)'/max(m-1,1);    g = [g g g];
+    g = (0:m-1)'/max(m-1,1);    g = [g g g];
 
 % --------------------------------------------------------------------
 function map = colorcube(m)
@@ -1036,23 +1026,34 @@ map = [map                  % cube minus r, g, b and gray ramps
     rgbzero rgbzero rgbramp % blue ramp
     0       0       0       % black
     kramp   kramp   kramp]; % gray ramp
+
+% ------------------------------------------------------------------------
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+    handles = guidata(handles.figure1);
+	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+        % The GUI is still in UIWAIT, us UIRESUME
+        handles.killed = true;      % User gave up, return nothing
+        guidata(hObject, handles);    uiresume(handles.figure1);
+	else
+        % The GUI is no longer waiting, just close it
+        delete(handles.figure1)
+	end
     
 % --------------------------------------------------------------------
 % --- Creates and returns a handle to the GUI figure. 
 function color_palettes_LayoutFcn(h1,handles)
 
-set(h1,'Units','centimeters',...
+set(h1,...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
 'MenuBar','none',...
 'Name','Color Palettes',...
 'NumberTitle','off',...
-'Position',[13.7214409375 40.8661121875 7.93146875 10.2580329166667],...
-'Renderer',get(0,'defaultfigureRenderer'),...
-'RendererMode','manual',...
+'Position',[520 500 300 388],...
 'Resize','off',...
-'Tag','figure1',...
-'UserData',[]);
+'DoubleBuffer','on',...
+'Tag','figure1');
 
 uicontrol('Parent',h1, 'Position',[5 201 21 128], 'Style','frame', 'Tag','frame_top');
 uicontrol('Parent',h1, 'Position',[5 8 285 187], 'Style','frame', 'Tag','frame_bot');
@@ -1112,15 +1113,8 @@ uicontrol('Parent',h1,...
 'Style','text',...
 'Tag','text3');
 
-h14 = uimenu('Parent',h1,...
-'Callback',{@color_palettes_uicallback,h1,'VoidFile_Callback'},...
-'Label','File',...
-'Tag','VoidFile');
-
-h15 = uimenu('Parent',h14,...
-'Callback',{@color_palettes_uicallback,h1,'Void_Callback'},...
-'Label','Read GMT palette',...
-'Tag','VoidFileReadPalette');
+h14 = uimenu('Parent',h1,'Label','File','Tag','VoidFile');
+h15 = uimenu('Parent',h14,'Label','Read GMT palette','Tag','VoidFileReadPalette');
 
 uimenu('Parent',h15,...
 'Callback',{@color_palettes_uicallback4,h1,[],'FileReadPalette_Callback'},...
@@ -1132,10 +1126,7 @@ uimenu('Parent',h15,...
 'Label','Use Z levels',...
 'Tag','FileReadPalette_Zlevels');
 
-h18 = uimenu('Parent',h14,...
-'Callback',{@color_palettes_uicallback,h1,'Void_Callback'},...
-'Label','Save as GMT palette',...
-'Tag','VoidFileSavePalette');
+h18 = uimenu('Parent',h14,'Label','Save as GMT palette','Tag','VoidFileSavePalette');
 
 uimenu('Parent',h18,...
 'Callback',{@color_palettes_uicallback4,h1,[],'FileSavePalette_Callback'},...
@@ -1156,9 +1147,7 @@ uimenu('Parent',h14,...
 'Callback',{@color_palettes_uicallback,h1,'FileExit_Callback'},...
 'Label','Exit','Separator','on','Tag','FileExit');
 
-h23 = uimenu('Parent',h1,...
-'Callback',{@color_palettes_uicallback,h1,'VoidOptions_Callback'},...
-'Label','Options','Tag','VoidOptions');
+h23 = uimenu('Parent',h1,'Label','Options','Tag','VoidOptions');
 
 uimenu('Parent',h23,...
 'Callback',{@color_palettes_uicallback,h1,'OptionsApply_Callback'},...
@@ -1168,10 +1157,7 @@ uimenu('Parent',h23,...
 'Callback',{@color_palettes_uicallback,h1,'OptionsAutoApply_Callback'},...
 'Checked','on','Label','Auto Apply','Tag','OptionsAutoApply');
 
-h26 = uimenu('Parent',h23,...
-'Callback',{@color_palettes_uicallback,h1,'Void_Callback'},...
-'Label','Discretize Palette','Separator','on',...
-'Tag','VoidDiscretizePalette');
+h26 = uimenu('Parent',h23,'Label','Discretize Palette','Separator','on','Tag','VoidDiscretizePalette');
 
 uimenu('Parent',h26,...
 'Callback',{@color_palettes_uicallback4,h1,'8','OptionsDiscretizePalette_Callback'},...
@@ -1249,6 +1235,14 @@ uicontrol('Parent',h1,...
 'FontSize',10, 'HorizontalAlignment','left',...
 'Position',[100 333 85 16],...
 'Style','text', 'Tag','text_currentZ');
+
+uicontrol('Parent',h1,...
+'Callback',{@color_palettes_uicallback,h1,'push_retColorMap_Callback'},...
+'FontName','Helvetica','FontSize',9,...
+'Position',[10 356 201 23],...
+'String','Finish and return the Color Map',...
+'Visible','off',...
+'Tag','push_retColorMap');
 
 function color_palettes_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
