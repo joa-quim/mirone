@@ -24,15 +24,16 @@ handles = guihandles(hObject);
 movegui(hObject,'center')
 
 handles.z_min = [];     handles.z_max = [];     handles.z_min_orig = [];    handles.z_max_orig = [];
-if (length(varargin) >= 1 && isstruct(varargin{1}))      % varargin{1} must be the Mirone handles
-    handles.hCallingFig = varargin{1}.figure1;
-    handles.home_dir = varargin{1}.home_dir;
-    handles.work_dir = varargin{1}.work_dir;
+if (length(varargin) >= 1)      % varargin{1} must be the Mirone handles
+    handles.hCallingFig = varargin{1};
+    handMir = guidata(varargin{1});
+    handles.home_dir = handMir.home_dir;
+    handles.work_dir = handMir.work_dir;
     Z = getappdata(handles.hCallingFig,'dem_z');
     if (~isempty(Z))
-        handles.have_nans = varargin{1}.have_nans;
-        handles.z_min_orig = varargin{1}.head(5);
-        handles.z_max_orig = varargin{1}.head(6);
+        handles.have_nans = handMir.have_nans;
+        handles.z_min_orig = handMir.head(5);
+        handles.z_max_orig = handMir.head(6);
         set(handles.edit_Zmin,'String',handles.z_min)
         set(handles.edit_Zmax,'String',handles.z_max)
     else                        % File was too big to stay on memory
