@@ -482,6 +482,7 @@ utils/t_xtide.m -text
 utils/tabpanelfcn.m -text
 utils/test_dms.m -text
 utils/text_read.m -text
+utils/tfw_funs.m -text
 utils/tile.m -text
 utils/tooltipwrap.m -text
 utils/transform_fun.m -text
