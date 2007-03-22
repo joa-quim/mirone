@@ -269,6 +269,7 @@ mex/ogrproj.cpp -text
 mex/range_change.c -text
 mex/read_isf.c -text
 mex/scaleto8.c -text
+mex/set_gmt.c -text
 mex/shoredump.c -text
 mex/spa.c -text
 mex/spa.h -text
