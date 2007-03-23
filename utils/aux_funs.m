@@ -27,8 +27,6 @@ switch opt
         varargout{1} = axes2pix(varargin{:});
     case 'insideRect'
         varargout{1} = insideRect(varargin{:});
-    case 'fnameBlanks'
-        varargout{1} = fnameBlanks(varargin{:});
     case 'strip_bg_color'
         varargout{1} = strip_bg_color(varargin{:});
     case 'help'
@@ -118,17 +116,6 @@ function out = findFileType(fname)
         out = 'multiband';    return
 	end
 	if ( any(strcmpi(EXT,'.img')) ),    out = 'envherd';    end
-
-% ----------------------------------------------------------------------------------
-function fname = fnameBlanks(fname)
-    % Encapsulate file names that may contain blanks so that they can be read with no errors (hopefully)
-    if (~isempty(strfind(fname,' ')))
-        if (strncmp(computer,'PC',2))
-            fname = ['"' fname '"'];
-        else
-            fname = ['''' fname ''''];
-        end
-    end
 
 % --------------------------------------------------------------------
 function out = msg_dlg(in,handles)
