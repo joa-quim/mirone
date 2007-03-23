@@ -230,7 +230,6 @@ lib_mex/wgifc.dll -text
 /libguide40.dll -text
 /libsift.dll -text
 /lti_dsdk_dll.dll -text
-/m_grep.exe -text
 mex/alloc_mex.c -text
 mex/countries.h -text
 mex/country_extract.c -text
