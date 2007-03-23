@@ -20,7 +20,11 @@ function write_tfw(handles,fname)
 	if (nargin == 1)    % Propose a name based on the image's name
         name = get(handles.figure1,'Name');
         [pato, fname, EXT] = fileparts(name);
-        fname = [fname '.tfw'];
+        if (strcmp(lower(EXT),'jpg')),      fname = [fname '.jgw'];
+        elseif (strcmp(lower(EXT),'png'))   fname = [fname '.pgw'];
+        elseif (strcmp(lower(EXT),'gif'))   fname = [fname '.gfw'];
+        else                                fname = [fname '.tfw'];
+        end
         if (~isempty(pato)),	cd(pato);   end
         [FileName,PathName] = uiputfile(fname,'Select TFW File name');
 		pause(0.01)
@@ -53,20 +57,20 @@ function [head,msg] = read_tfw(fname)
     
     str = fread(fid,'*char');
     fclose(fid);
-    str = strread(str','%s','delimiter','\n');
-    if (numel(str) ~= 6)
+    fw = strread(str','%f','delimiter','\n');
+    if (numel(fw) ~= 6)
         msg = 'Wrong number of lines in file (must be 6).';
         return
     end
 
-    head(8) = str{1};
-    head(9) = -str{4};
-    head(1) = str{5};
-    head(4) = str{6};
+    head(8) = fw(1);
+    head(9) = -fw(4);
+    head(1) = fw(5);
+    head(4) = fw(6);
 
 % ---------------------------------------------------------------------    
-function [head,msg] = inquire_tfw(head,pato,name,ext)
-    % Give at least two inputs. HEAD is the non referenced image header
+function [head,msg] = inquire_tfw(imgSize,pato,name,ext)
+    % Give at least two inputs. imgSize is a [1x2] two element vector with image's [size(I,1) size(I,2)]
     % There are no error tests
 
     head = [];      msg = [];
@@ -76,7 +80,7 @@ function [head,msg] = inquire_tfw(head,pato,name,ext)
     end
 
     fw_ext = [];
-    switch lower(ext(1:2))
+    switch lower(ext(2:3))      % ext(1) = '.'
         case 'ti',      fw_ext = '.tfw';       % .tif or .tiff
         case 'jp',      fw_ext = '.jgw';       % .jpg or .jpeg
         case 'pn',      fw_ext = '.pgw';       % .png
@@ -92,10 +96,10 @@ function [head,msg] = inquire_tfw(head,pato,name,ext)
     if (~isempty(msg)),     return;     end         % STOP here, an error occured while reading file
     
     % OK, if we reach here we have to compute the remaining HEAD(0) elements
-    n = round(diff(head(1:2)) / head(8) + 1);       % columns
-    m = round(diff(head(3:4)) / head(9) + 1);       % rows
-    head0(2) = head0(1) + (n-1)*head(8);            % x_max
-    head0(3) = head0(4) - (m-1)*head(9);            % y_min
-    head0(5) = 255;                                 % Since this applies to images even if false shouldn't be dramatic
+    n = imgSize(2);                         % columns
+    m = imgSize(1);                         % rows
+    head0(2) = head0(1) + (n-1)*head0(8);   % x_max
+    head0(3) = head0(4) - (m-1)*head0(9);   % y_min
+    head0(5) = 255;                         % Since this applies to images even if false shouldn't be dramatic
     
     head = head0;
