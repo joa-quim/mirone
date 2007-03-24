@@ -16,6 +16,7 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
+ * Revision 13  09/03/2007 Added MinMax field to the Band struct field
  * Revision 12  22/01/2007 Left-right flip ENVISAT GCPs because they have X positive to left (can we kill the guy?)
  * Revision 11  21/11/2006 Removed globals
  *                         Fixed a bug with pointer name confusion(dptr & dptr2)
@@ -773,10 +774,12 @@ void grd_FLIPUD_F32(float data[], int nx, int ny) {
  *            XSize, YSize:
  *                Dimensions of the current raster band.
  *            Overview:
- *                A structure array, one element for each overview present.  If
+ *                A structure array, one element for each overview present. If
  *                empty, then there are no overviews.
  *            NoDataValue:
  *                When passed back to MATLAB, one can set pixels with this value to NaN.
+ *            MinMax:
+ *                [min max] vector (one per band) with the band's MinMax. If not known [NaN NaN]
  *            ColorMap:
  *                A Mx3 double array with the colormap, or empty if it does not exists
  *
@@ -829,7 +832,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	mxArray *mxGDALRasterYSize;
 	mxArray *mxCorners;
 	mxArray *mxGMT_header;
-	mxArray *mxCMap;
+	mxArray *mxCMap, *toMinMax;
 
 	/* These will be matlab structures that hold the metadata.
 	 * "metadata_struct" actually encompasses "band_struct",
@@ -842,7 +845,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 
 	int	i,j, overview, band_number;	/* Loop indices */
 	int	n_colors;		/* Number of colors in the eventual Color Table */ 
-	double	*dptr, *dptr2;		/* short cut to the mxArray data */
+	double	*dptr, *dptr2, *dptrMM;	/* short cut to the mxArray data */
 
 	GDALDriverH hDriver;		/* This is the driver chosen by the GDAL library to query the dataset. */
 	GDALDatasetH hDataset;		/* pointer structure used to query the gdal file. */
@@ -868,7 +871,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	char	**papszMetadata;
 	int	xSize, ySize, raster_count; /* Dimensions of the dataset */
 	int	gdal_type;		/* Datatype of the bands. */
-	double	tmpdble;		/* temporary value */
+	double	nan, tmpdble;		/* NaN & temporary value */
 	double	xy_c[2], xy_geo[4][2];	/* Corner coordinates in the local coords system and geogs (if it exists) */
 	int	dims[2];
 	int	bGotMin, bGotMax;	/* To know if driver transmited Min/Max */
@@ -1051,43 +1054,59 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* ------------------------------------------------------------------------- */
 	/* Get the metadata for each band. */
 	/* ------------------------------------------------------------------------- */
-	num_band_fields = 6;
+	num_band_fields = 7;
 	band_fieldnames[0] = strdup ( "XSize" );
 	band_fieldnames[1] = strdup ( "YSize" );
 	band_fieldnames[2] = strdup ( "Overview" );
 	band_fieldnames[3] = strdup ( "NoDataValue" );
-	band_fieldnames[4] = strdup ( "DataType" );
-	band_fieldnames[5] = strdup ( "ColorMap" );
+	band_fieldnames[4] = strdup ( "MinMax" );
+	band_fieldnames[5] = strdup ( "DataType" );
+	band_fieldnames[6] = strdup ( "ColorMap" );
 	band_struct = mxCreateStructMatrix ( raster_count, 1, num_band_fields, (const char **)band_fieldnames );
 
 	num_overview_fields = 2;
 	overview_fieldnames[0] = strdup ( "XSize" );
 	overview_fieldnames[1] = strdup ( "YSize" );
 	colormap_fieldnames[0] = strdup ( "CMap" );
-	for ( band_number = 1; band_number <= raster_count; ++band_number ) {	/* Loop over bands */
+	nan = mxGetNaN();
+	for ( band_number = 0; band_number < raster_count; ++band_number ) {	/* Loop over bands */
 
-		hBand = GDALGetRasterBand( hDataset, band_number );
+		hBand = GDALGetRasterBand( hDataset, band_number+1 );
 
 		if (!got_R) 		/* Not sure about what will realy happen in this case */
 			mxtmp = mxCreateDoubleScalar ( (double) GDALGetRasterBandXSize( hBand ) );
 		else
 			mxtmp = mxCreateDoubleScalar ( (double)nXSize );
-		mxSetField ( band_struct, 0, "XSize", mxtmp );
+		mxSetField ( band_struct, band_number, "XSize", mxtmp );
 
 		if (!got_R)
 			mxtmp = mxCreateDoubleScalar ( (double) GDALGetRasterBandYSize( hBand ) );
 		else
 			mxtmp = mxCreateDoubleScalar ( (double)nYSize );
-		mxSetField ( band_struct, 0, "YSize", mxtmp );
+		mxSetField ( band_struct, band_number, "YSize", mxtmp );
 	
 		gdal_type = GDALGetRasterDataType ( hBand );
 		mxtmp = mxCreateString ( GDALGetDataTypeName ( gdal_type ) );
-		mxSetField ( band_struct, 0, (const char *) "DataType", mxtmp );
+		mxSetField ( band_struct, band_number, (const char *) "DataType", mxtmp );
 
-		tmpdble = GDALGetRasterNoDataValue ( hBand, &status );
 		mxtmp = mxCreateDoubleScalar ( (double) (GDALGetRasterNoDataValue ( hBand, &status ) ) );
-		mxSetField ( band_struct, 0, "NoDataValue", mxtmp );
+		mxSetField ( band_struct, band_number, "NoDataValue", mxtmp );
 	
+		/* Get band's Min/Max. If the band has no record of it we won't compute it */
+		toMinMax = mxCreateNumericMatrix(1, 2, mxDOUBLE_CLASS, mxREAL);	/* To hold band's min/max */
+		dptrMM = mxGetPr(toMinMax);
+		adfMinMax[0] = GDALGetRasterMinimum( hBand, &bGotMin );
+		adfMinMax[1] = GDALGetRasterMaximum( hBand, &bGotMax );
+		if((bGotMin && bGotMax)) {
+			dptrMM[0] = adfMinMax[0];
+			dptrMM[1] = adfMinMax[1];
+		}
+		else {		/* No Min/Max, we won't computer it either */
+			dptrMM[0] = dptrMM[1] = nan;
+		}
+		mxSetField ( band_struct, band_number, "MinMax", toMinMax );
+
+
 		num_overviews = GDALGetOverviewCount( hBand );	/* Can have multiple overviews per band. */
 		if ( num_overviews > 0 ) {
 
@@ -1105,7 +1124,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 				mxtmp = mxCreateDoubleScalar ( ySize );
 				mxSetField ( overview_struct, overview, "YSize", mxtmp );
 			}
-			mxSetField ( band_struct, 0, "Overview", overview_struct );
+			mxSetField ( band_struct, band_number, "Overview", overview_struct );
 		}
 
 		/* See if we have Color Tables(s) */
@@ -1125,8 +1144,8 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 				dptr[i+2*n_colors] = (double)sEntry.c3 / 255;
 				dptr[i+3*n_colors] = (double)sEntry.c4 / 255;
 			}
-			mxSetField ( colormap_struct, band_number - 1, "CMap", mxCMap );
-			mxSetField ( band_struct, 0, "ColorMap", colormap_struct );
+			mxSetField ( colormap_struct, band_number, "CMap", mxCMap );
+			mxSetField ( band_struct, band_number, "ColorMap", colormap_struct );
 		}
 	}
 	mxSetField ( metadata_struct, 0, "Band", band_struct );
