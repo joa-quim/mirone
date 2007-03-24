@@ -124,6 +124,7 @@ doc/manual.htm -text
 doc/mirone.png -text
 doc/users_manual.pdf -text svneol=unset#unset
 /gdal13.dll -text
+/gdal14.dll -text
 /gdal_translate.exe -text
 /gdalinfo.exe -text
 /generatekeys.exe -text
