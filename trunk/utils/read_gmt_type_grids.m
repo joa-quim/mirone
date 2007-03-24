@@ -24,8 +24,6 @@ function [handles,X,Y,Z,head] = read_gmt_type_grids(handles,fullname,opt)
         case 'NLIG',    tipo = 'MAN_ASCII';
 	end
 
-%fullname = aux_funs('fnameBlanks',fullname);    % Take care of eventual blanks in name problem
-
 % See if the grid is on one of the other formats that GMT recognizes
 if (strcmp(tipo,'GMT') && ~strcmp(ID(1:3),'CDF'))
     str = ['grdinfo ' fullname];
