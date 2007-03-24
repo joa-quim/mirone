@@ -118,7 +118,7 @@ handles.all_datums = load_datums;
 bgcolor = get(0,'DefaultUicontrolBackgroundColor');
 framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
 set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
+h_f = [handles.frame_InputCS handles.frame_OutputCS handles.frame1 handles.frame2 handles.frame3 handles.frame4];
 for i=1:length(h_f)
     frame_size = get(h_f(i),'Position');
     f_bgc = get(h_f(i),'BackgroundColor');
@@ -131,7 +131,7 @@ for i=1:length(h_f)
     end
 end
 % Recopy the text fields on top of previously created frames (uistack is to slow)
-h_t = findobj(hObject,'Style','Text');
+h_t = [handles.text_CSleft handles.text_In handles.text_Out handles.text_CSright];
 for i=1:length(h_t)
     usr_d = get(h_t(i),'UserData');
     t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
@@ -527,14 +527,16 @@ if (handles.datum_val_left == 221 && handles.datum_val_right == 221)
 else    is_wgs84 = 0;   end
 
 % Check if we have a MAP_SCALE_FACTOR
+opt_SF = ' ';
 if (~isempty(handles.map_scale_factor_right))
     opt_SF = ['--MAP_SCALE_FACTOR=' num2str(handles.map_scale_factor_right,'%.6f')];
-else    opt_SF = ' ';   end
+end
 
 % Check if we have false eastings/northings
+opt_C = '-C';
 if (~isempty(handles.system_FE_FN_right))
     opt_C = ['-C' num2str(handles.system_FE_FN_right(1),'%.3f') '/' num2str(handles.system_FE_FN_right(2),'%.3f')];
-else    opt_C = '-C';   end
+end
 
 if (~isempty(handles.projection_right))
 	% Check if output is in other unites than meters
@@ -558,6 +560,7 @@ if (isempty(handles.projection_left) && isempty(handles.projection_right & ~strc
         return
     end
     out = mapproject_m(in, opt_T);
+    set(hObject,'TooltipString',sprintf('%s\n%s','Last command:', opt_T))
 elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
     % More complicated. To go from one projection to other we have to pass by geogs.
     % First do the inverse conversion (get result in geogs)
@@ -592,6 +595,8 @@ elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
         opt_C = '-C';
     end
     out = mapproject_m(out, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
+    comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF]);
+    set(hObject,'TooltipString',comm)
 elseif (isempty(handles.projection_right) && ~isempty(handles.projection_left))
     %       GEOG at right                            NON-GEOG at left.  Do a inverse transformation
     opt_J = handles.projection_left;
@@ -601,10 +606,14 @@ elseif (isempty(handles.projection_right) && ~isempty(handles.projection_left))
     opt_R = ['-R' num2str(tmp(1)-small) '/' num2str(tmp(1)+small) '/' ...
             num2str(tmp(2)-small) '/' num2str(tmp(2)+small)];
     out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
+    comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' -I ' opt_T ' ' opt_SF]);
+    set(hObject,'TooltipString',comm)
 elseif (~isempty(handles.projection_right) && isempty(handles.projection_left))
     %       NON-GEOG at right                           GEOG at left.  Do a direct transformation
     opt_J = handles.projection_right;
     out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
+    comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF]);
+    set(hObject,'TooltipString',comm)
 else
     return
 end                 % Otherwise -> BOOM
@@ -678,7 +687,7 @@ if (handles.datum_val_left ~= handles.datum_val_right)
     if (handles.is_ellipsoidHeight),    opt_T = '-Th';
     elseif ((handles.which_conv == 1) && ~isempty(zr)),  opt_T = '-Th';
     else    opt_T = '-T';      end
-    opt_T = [opt_T num2str(handles.datum_val_right-1) '/' num2str(handles.datum_val_left-1)];
+    opt_T = [opt_T sprintf('%d',handles.datum_val_right-1) '/' sprintf('%d',handles.datum_val_left-1)];
 else    opt_T = ' ';
 end
 
@@ -689,15 +698,15 @@ else    is_wgs84 = 0;
 end
 
 % Check if we have a MAP_SCALE_FACTOR
+opt_SF = ' ';
 if (~isempty(handles.map_scale_factor_left))
-    opt_SF = ['--MAP_SCALE_FACTOR=' num2str(handles.map_scale_factor_right,'%.6f')];
-else    opt_SF = ' ';
+    opt_SF = ['--MAP_SCALE_FACTOR=' sprintf('%.6f',handles.map_scale_factor_right)];
 end
 
 % Check if we have false eastings/northings
-if (~isempty(handles.system_FE_FN_left))
-    opt_C = ['-C' num2str(handles.system_FE_FN_left(1),'%.3f') '/' num2str(handles.system_FE_FN_left(2),'%.3f')];
-else    opt_C = '-C';
+opt_C = '-C';
+if (~isempty(handles.system_FE_FN_right))
+    opt_C = ['-C' sprintf('%.3f',handles.system_FE_FN_right(1)) '/' sprintf('%.3f',handles.system_FE_FN_right(2))];
 end
 
 if (~isempty(handles.projection_left))
@@ -722,13 +731,14 @@ if (isempty(handles.projection_left) && isempty(handles.projection_right & ~strc
         return
     end
     out = mapproject_m(in, opt_T);
+    set(hObject,'TooltipString',sprintf('%s\n%s','Last command:', opt_T))
 elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
     % More complicated. To go from one projection to other we have to pass by geogs.
     % First do the inverse conversion (that is, get geogs).
     opt_J = handles.projection_right;
     % First apply the trick to get a good estimation of -R
     if (~is_wgs84)      % Otherwise, no need to waste time with datum conversions
-        opt_T = ['-T' num2str(handles.datum_val_right-1) '/220'];
+        opt_T = ['-T' sprintf('%d',handles.datum_val_right-1) '/220'];
     else    opt_T = ' ';
     end
     if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
@@ -745,9 +755,9 @@ elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
     opt_J = handles.projection_left;
     if (~is_wgs84)
         if (handles.is_ellipsoidHeight)
-            opt_T = ['-Th220/' num2str(handles.datum_val_left-1)];
+            opt_T = ['-Th220/' sprintf('%d',handles.datum_val_left-1)];
         else
-            opt_T = ['-T220/' num2str(handles.datum_val_left-1)];
+            opt_T = ['-T220/' sprintf('%d',handles.datum_val_left-1)];
         end
     else    opt_T = ' ';
     end
@@ -757,6 +767,8 @@ elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
     catch   opt_C = '-C';
     end
     out = mapproject_m(out, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
+    comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF]);
+    set(hObject,'TooltipString',comm)
 elseif (~isempty(handles.projection_right) && isempty(handles.projection_left))
     %       GEOG at left                            NON-GEOG at right.  Do direc transformation
     opt_J = handles.projection_right;
@@ -766,13 +778,17 @@ elseif (~isempty(handles.projection_right) && isempty(handles.projection_left))
     opt_R = ['-R' num2str(tmp(1)-small) '/' num2str(tmp(1)+small) '/' ...
             num2str(tmp(2)-small) '/' num2str(tmp(2)+small)];
     out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
+    comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' -I ' opt_T ' ' opt_SF]);
+    set(hObject,'TooltipString',comm)
 elseif (isempty(handles.projection_right) && ~isempty(handles.projection_left))
     %       NON-GEOG at left                           GEOG at right.  Do inverse transformation
     opt_J = handles.projection_left;
     out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
-else    return;
-end;                % Otherwise -> BOOM
-%clear mapproject_m;
+    comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF]);
+    set(hObject,'TooltipString',comm)
+else
+    return
+end                 % Otherwise -> BOOM
 
 if (handles.which_conv == 1)        % Interactive Conversions
     output_format(handles,out(1),out(2),'left');
@@ -1682,24 +1698,9 @@ uicontrol('Parent',h1,...
 'Position',[10 177 631 131],...
 'Tag','pushbutton_tab_bg');
 
-uicontrol('Parent',h1,...
-'Position',[340 40 301 121],...
-'String',{  '' },...
-'Style','frame',...
-'Tag','frame_OutputCoordSystem');
-
-uicontrol('Parent',h1,...
-'CData',[],...
-'Position',[339 188 295 101],...
-'String',{  '' },...
-'Style','frame',...
-'Tag','frame5');
-
-uicontrol('Parent',h1,...
-'Position',[15 189 295 101],...
-'String',{  '' },...
-'Style','frame',...
-'Tag','frame1');
+uicontrol('Parent',h1,'Position',[340 40 301 121],'Style','frame','Tag','frame_OutputCS');
+uicontrol('Parent',h1,'Position',[15 189 295 101],'Style','frame','Tag','frame1');
+uicontrol('Parent',h1,'Position',[339 188 295 101],'Style','frame','Tag','frame2');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -1711,7 +1712,6 @@ uicontrol('Parent',h1,...
 'UserData','interactive');
 
 uicontrol('Parent',h1,...
-'CData',[],...
 'HorizontalAlignment','right',...
 'Position',[29 259 58 15],...
 'String','Longitude',...
@@ -1753,11 +1753,7 @@ uicontrol('Parent',h1,...
 'Tag','text_heightLeft',...
 'UserData','interactive');
 
-uicontrol('Parent',h1,...
-'Position',[10 40 301 121],...
-'String',{  '' },...
-'Style','frame',...
-'Tag','frame_InputCoordSystem');
+uicontrol('Parent',h1,'Position',[10 40 301 121],'Style','frame','Tag','frame_InputCS');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -1787,22 +1783,20 @@ uicontrol('Parent',h1,...
 'UserData','interactive');
 
 uicontrol('Parent',h1,...
-'FontAngle','oblique',...
-'FontWeight','bold',...
+'FontAngle','oblique','FontWeight','bold',...
 'ForegroundColor',[0 0 0.627450980392157],...
 'Position',[20 154 120 14],...
 'String','Coordinate System',...
 'Style','text',...
-'Tag','text8');
+'Tag','text_CSleft');
 
 uicontrol('Parent',h1,...
-'FontAngle','oblique',...
-'FontWeight','bold',...
+'FontAngle','oblique','FontWeight','bold',...
 'ForegroundColor',[0 0 0.627450980392157],...
 'Position',[36 281 51 15],...
 'String','Input',...
 'Style','text',...
-'Tag','text9');
+'Tag','text_In');
 
 uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
@@ -1842,7 +1836,7 @@ uicontrol('Parent',h1,...
 'Position',[359 154 120 14],...
 'String','Coordinate System',...
 'Style','text',...
-'Tag','text17');
+'Tag','text_CSright');
 
 uicontrol('Parent',h1,...
 'FontAngle','oblique',...
@@ -1851,7 +1845,7 @@ uicontrol('Parent',h1,...
 'Position',[360 281 51 15],...
 'String','Output',...
 'Style','text',...
-'Tag','text18');
+'Tag','text_Out');
 
 uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
@@ -1860,17 +1854,8 @@ uicontrol('Parent',h1,...
 'Style','text',...
 'Tag','text_OutputDescription');
 
-uicontrol('Parent',h1,...
-'Position',[324 189 3 101],...
-'String',{  '' },...
-'Style','frame',...
-'Tag','frame8');
-
-uicontrol('Parent',h1,...
-'Position',[324 11 3 151],...
-'String',{  '' },...
-'Style','frame',...
-'Tag','frame9');
+uicontrol('Parent',h1,'Position',[324 189 3 101],'Style','frame','Tag','frame3');
+uicontrol('Parent',h1,'Position',[324 11 3 151],'Style','frame','Tag','frame4');
 
 uicontrol('Parent',h1,...
 'Callback',{@geog_calculator_uicallback4,h1,[],'pushbutton_fileLeft_Callback'},...
