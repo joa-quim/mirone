@@ -9,30 +9,39 @@ function make_mexs(opt)
 if (nargin == 0)	opt = 'usage';	end
 
 % Adjust for your own path
-INCLUDE_GMT = 'd:\progs_interix\GMTdev\GMT\src\';               % Core gmt programs
-INCLUDE_GMT_MGG = 'd:\progs_interix\GMTdev\GMT\src\mgg';        % MGG supplements
-INCLUDE_NETCDF = 'd:\progs_interix\GMTdev\netcdf_win\include\';
-%INCLUDE_GDAL = 'D:\programas\GDALBuild\include';
-INCLUDE_GDAL = 'D:\programas\GDALB132\include';
-%LIB_GMT = 'c:\programs\gmt4\lib\gmt.lib';
+patoINC_GMT = 'd:\progs_interix\GMTdev\GMT\';           % Include path for GMT
+patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\libMEX\';% Lib path for GMT - Libs compiled with 'MEX condition'
+%patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\lib\';   % Lib path for GMT
+%patoLIB_GMT = 'c:\programs\gmt4\lib\';                 %
+pato_NETCDF = 'd:\progs_interix\GMTdev\netcdf_win\';    % path for NETCDF
+pato_GDAL = 'D:\programas\GDALB140\';                   % path for GDAL
+pato_OCV = 'C:\programas\OpenCV\';                      % path for OpenCV
+pato_SHAPELIB = 'D:\lixo\shapelib\';                    % path for shapelib
+pato_VC98LIB = 'C:\programas\VisualStudio\VC98\Lib\';   % path for MSVC library dir
 
-LIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\lib\gmt.lib';
-%LIB_GMT_MGG = 'c:\programs\gmt4\lib\gmt_mgg.lib';
-LIB_GMT_MGG = 'd:\progs_interix\GMTdev\GMT_win\lib\gmt_mgg.lib';
-LIB_NETCDF = 'd:\progs_interix\GMTdev\netcdf_win\lib\netcdf.lib';
-%LIB_GDAL = 'D:\programas\GDALBuild\lib\gdal_i.lib';
-LIB_GDAL = 'D:\programas\GDALB132\lib\gdal_i.lib';
+% -------------------------- Stop editing (at least on Windows) ---------------------------
 
-INCLUDE_SHAPE = 'D:\lixo\shapelib';
-LIB_SHAPE = 'D:\lixo\shapelib\shapelib.lib';
+INCLUDE_GMT = [patoINC_GMT 'src\'];               % Core gmt programs
+INCLUDE_GMT_MGG = [patoINC_GMT 'src\mgg'];        % MGG supplements
 
-% OpenCV
-INCLUDE_CV = 'C:\programas\OpenCV\cv\include';
-INCLUDE_HG = 'C:\programas\OpenCV\otherlibs\highgui';
-INCLUDE_CXCORE = 'C:\programas\OpenCV\cxcore\include';
-LIB_CV = 'C:\programas\OpenCV\lib\cv.lib';
-LIB_CXCORE = 'C:\programas\OpenCV\lib\cxcore.lib';
-LIB_HG = 'C:\programas\OpenCV\lib\highgui.lib';
+LIB_GMT = [patoLIB_GMT 'gmt.lib'];
+LIB_GMT_MGG = [patoLIB_GMT 'gmt_mgg.lib'];
+
+LIB_NETCDF = [pato_NETCDF 'lib\netcdf.lib'];
+INCLUDE_NETCDF = [pato_NETCDF 'include\'];
+
+LIB_GDAL = [pato_GDAL 'lib\gdal_i.lib'];
+INCLUDE_GDAL = [pato_GDAL 'include'];
+
+INCLUDE_SHAPE = pato_SHAPELIB;
+LIB_SHAPE = [pato_SHAPELIB 'shapelib.lib'];
+
+INCLUDE_CV = [pato_OCV 'cv\include'];
+INCLUDE_HG = [pato_OCV 'otherlibs\highgui'];
+INCLUDE_CXCORE = [pato_OCV 'cxcore\include'];
+LIB_CV = [pato_OCV 'lib\cv.lib'];
+LIB_CXCORE = [pato_OCV 'lib\cxcore.lib'];
+LIB_HG = [pato_OCV 'lib\highgui.lib'];
 
 % GMT mexs
 str_gmt = {'grdgradient_m' 'grdinfo_m' 'grdproject_m' 'grdread_m' 'grdsample_m' ...
@@ -46,7 +55,7 @@ str_gmt_mgg = {'gmtlist_m'};
 str_gdal = {'gdalread' 'gdalwrite'}';
 
 % Gdal c++ mexs
-str_gdal_cpp = {'gdalvirtual' 'ogrproj' 'leca' 'importwkt'}';
+str_gdal_cpp = {'gdalvirtual' 'ogrproj'}';
 
 % Shape mexs (currently only one)
 str_shape = {'mex_shape'}';
@@ -57,14 +66,14 @@ str_cv = {'cvcolor_mex' 'cvfill_mex' 'cvgetcorners_mex' 'cvresize_mex' 'cvlib_me
 % Non LIB dependent mexs (besides matlab libs, of course)
 str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'swan' 'tsun2' 'wave_travel_time' 'mansinha_m' ...
         'telha_m' 'range_change' 'country_select' 'mex_illuminate' 'grdutils' ...
-        'read_isf' 'ind2rgb8' 'alloc_mex' 'susan'}';
+        'read_isf' 'ind2rgb8' 'alloc_mex' 'susan' 'set_gmt'}';
 
 % Non LIB dependent c++ mexs
 str_simple_cpp = {'houghmex' 'cimgmatlab_cannyderiche'}';
-LIB_USER32 = 'C:\programas\VisualStudio\VC98\Lib\USER32.LIB';
-LIB_GDI32 = 'C:\programas\VisualStudio\VC98\Lib\GDI32.LIB';
+LIB_USER32 = [pato_VC98LIB 'USER32.LIB'];
+LIB_GDI32 = [pato_VC98LIB 'GDI32.LIB'];
 
-% -------------------------- Stop editing ---------------------------
+% -----------------------------------------------------------------------------------------
 include_gmt = ['-I' INCLUDE_GMT ' ' '-I' INCLUDE_NETCDF];
 include_gmt_mgg = ['-I' INCLUDE_GMT_MGG];
 library_gmt = [LIB_GMT ' ' LIB_NETCDF];
