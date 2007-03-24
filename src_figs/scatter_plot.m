@@ -72,6 +72,8 @@ function varargout = scatter_plot(varargin)
     handles.Zmin = min(handles.symbXYZ(:,3));
     handles.Zmax = max(handles.symbXYZ(:,3));
 
+    set(hObject,'Visible','on')
+    
     guidata(hObject, handles);
 
 % ------------------------------------------------------------------------------------
@@ -167,7 +169,8 @@ function push_plot_Callback(hObject, eventdata, handles)
         if (dZ == 0)        % Cte color
             zC = repmat(cmap(round(size(cmap,1)/2),:),nPts,1);      % Midle color
         else            
-            zC = (handles.symbXYZ(:,3) - handles.Zmin) / dZ;
+            zC = round(((handles.symbXYZ(:,3) - handles.Zmin) / dZ) * (size(cmap,1)-1) + 1);
+            zC = cmap(zC,:);
         end
     end
     
