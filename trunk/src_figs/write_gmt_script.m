@@ -1306,9 +1306,9 @@ end
 
 % ------------- Search for contour lines ----------------------------------------------------
 ALLtextHand = findobj(get(handles_mirone.axes1,'Child'),'Type','text');
-% % % If we have focal mecanisms with labels, remove their handles right away
-% % h = findobj(ALLtextHand,'Tag','TextMeca');                                  % I'M NOT SURE ON THIS ONE
-% % if (~isempty(h))    ALLtextHand = setxor(ALLtextHand, h);   end
+% % If we have focal mecanisms with labels, remove their handles right away
+% h = findobj(ALLtextHand,'Tag','TextMeca');                                  % I'M NOT SURE ON THIS ONE
+% if (~isempty(h))    ALLtextHand = setxor(ALLtextHand, h);   end
 
 tag = get(ALLlineHand,'Tag');
 if (~isempty(tag) & ~isempty(handles_mirone.grdname))
@@ -1364,6 +1364,8 @@ if (~isempty(tag))
 	h_shit = get(ALLlineHand,'LineStyle');
 	h_num_shit = strmatch('none',h_shit);
 	if (h_num_shit)
+        id = ismember(h, ALLlineHand(h_num_shit));      % Many, if not all, can be repeated
+        h(id) = [];                                     % This will remove repeted elements
         h = [h; ALLlineHand(h_num_shit)];
 	end
     clear h_shit h_num_shit;
