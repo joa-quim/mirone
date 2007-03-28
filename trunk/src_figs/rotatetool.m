@@ -113,7 +113,7 @@ if (n_argin >= 1)
         handles.hOrigAxes = get(handles.hOrigImage,'Parent');
         handles.hOrigFigure = get(handles.hOrigAxes,'Parent');
     else
-        if (isa(varargin{1},'uint8'))           % First argument is an image array
+        if (isa(varargin{1},'uint8') || isa(varargin{1},'logical'))           % First argument is an image array
             handles.OrigImage = varargin{1};
         else                                    % First arg is a "grid"
             handles.OrigGrd = varargin{1};
