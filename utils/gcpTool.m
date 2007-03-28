@@ -24,12 +24,13 @@ delete(handles.DrawGeogCirc);   delete(handles.DrawLine)
 delete(handles.DrawRect);       delete(handles.DrawPolyg)
 delete(handles.DrawArrow);      delete(handles.Tesoura)
 delete(handles.ColorPal);       delete(handles.Shading);
-delete(handles.Anaglyph);       delete(handles.TerrainMod);
+delete(handles.Anaglyph);
 delete(handles.MBplaning);      delete(handles.FlederPlanar);
 delete(handles.ImageInfo);      delete(handles.Refresh);
 delete(handles.Image);          delete(handles.Tools)
 delete(handles.Draw);           delete(handles.Geophysics)
 delete(handles.Help);           delete(handles.GridTools)
+%delete(handles.TerrainMod);
 
 % ------------- Cleverer deletion of unwanted uicontrols
 h1 = get(handles.File,'Children');
