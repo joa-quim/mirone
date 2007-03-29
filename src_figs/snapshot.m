@@ -107,7 +107,7 @@ handles.pp = [pp(3) handles.imSize(1) / dpi];       % PaperPosition in inches as
 
 % ---------------- Fill the edit image size with the default values
 if (handles.imgOnly)
-    nRows = handles.imAxSize(1);        nCols = handles.imAxSize(2);
+    nRows = round(handles.imAxSize(1));     nCols = round(handles.imAxSize(2));
     origMegs = handles.imSize(1)*handles.imSize(2) / 1048576;   % Original image size in Mb
     sizeOrigUnits = ' Megs';
     if (origMegs < 1)
