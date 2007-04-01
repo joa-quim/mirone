@@ -71,6 +71,7 @@ data/90N135W.jpg -text
 data/90N180W.jpg -text
 data/AKIM2000_poles.dat -text
 data/AKIM2000_polyg.mat -text
+data/AsteriskIcon.gif -text
 data/BarCode_Cox_direct.dat -text
 data/Cande_Kent_95.dat -text
 data/DEOS2K_poles.dat -text
