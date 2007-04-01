@@ -422,6 +422,7 @@ utils/grayxform.dll -text
 utils/grid_info.m -text
 utils/griddata_j.m -text
 utils/guess_file.m -text
+utils/guess_file_old.m -text
 utils/histo_m.m -text
 utils/histos_seis.m -text
 utils/imcapture.m -text
@@ -442,6 +443,7 @@ utils/iptcheckinput.dll -text
 utils/iptchecknargin.m -text
 utils/ivan_the_terrible.m -text
 utils/jd2date.m -text
+utils/limpa.m -text
 utils/limpa.p -text
 utils/load_defFilters.m -text
 utils/load_grd.m -text
