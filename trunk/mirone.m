@@ -61,6 +61,7 @@ global home_dir;    home_dir = pwd;
 
 if (version7),  pos = get(hObject,'Pos');   set(hObject,'Pos',[pos(1:3) 1]);    end
 movegui(hObject,'north');           % Reposition the window on screen
+%'defaultfigureposition'
 set(0,'CurrentFigure',hObject)      % Due to a R2006a incredible BUG
 set(hObject,'Visible','on','HandleVisibility','callback');
 
@@ -239,38 +240,33 @@ if (grd_data_in || grd_data_interfero_in || grd_data_deform_in)
     handles = show_image(handles,win_name,X,Y,zz,1,'xy',handles.head(7));
 end
 
-%Find out which gmt version is beeing used. 
-info = getappdata(0,'gmt_version');     % See if the info is already there.
-if (isempty(info))
-    info = test_gmt;
-    setappdata(0,'gmt_version',info);   % Save it so that the next time a new mirone window is opened
-end                                     % (but within the same session) we don't have to run test_gmt.
-
-if (info.version(1) ~= '0')             % we have a full GMT installation, find out which coastlines are installed.
+	%Find out which gmt version is beeing used. 
+	info = getappdata(0,'gmt_version');     % See if the info is already there.
+	if (isempty(info))
+        info = set_gmt(['GMT_USERDIR=' home_dir filesep 'gmt_userdir']);
+        setappdata(0,'gmt_version',info);   % Save it so that the next time a new mirone window is opened
+	end
     if (info.full ~= 'y')
-        set([handles.DatasetsCoastLineFull handles.DatasetsPBFull handles.DatasetsRiversFull], 'Enable','off')
+        set([handles.CoastLineFull handles.PBFull handles.RiversFull], 'Enable','off')
     end
     if (info.high ~= 'y')
-        set([handles.DatasetsCoastLineHigh handles.DatasetsPBHigh handles.DatasetsRiversHigh], 'Enable','off')
+        set([handles.CoastLineHigh handles.PBHigh handles.RiversHigh], 'Enable','off')
     end    
-else                                    % we don't have a full GMT, so use our own minimalist init files
-    info = test_gmt(['GMT_USERDIR=' home_dir filesep 'gmt_userdir']);  % Set the GMT_USERDIR env and recheck for coastline files
     if (info.full ~= 'y')
-        set([handles.DatasetsCoastLineFull handles.DatasetsPBFull handles.DatasetsRiversFull], 'Enable','off')
+        set([handles.CoastLineFull handles.PBFull handles.RiversFull], 'Enable','off')
     end
     if (info.high ~= 'y')
-        set([handles.DatasetsCoastLineHigh handles.DatasetsPBHigh handles.DatasetsRiversHigh], 'Enable','off')
+        set([handles.CoastLineHigh handles.PBHigh handles.RiversHigh], 'Enable','off')
     end
     if (info.intermediate ~= 'y')
-        set([handles.DatasetsCoastLineInterm handles.DatasetsPBInterm handles.DatasetsRiversInterm], 'Enable','off')
+        set([handles.CoastLineInterm handles.PBInterm handles.RiversInterm], 'Enable','off')
     end
     if (info.low ~= 'y')
-        set([handles.DatasetsCoastLineLow handles.DatasetsPBLow handles.DatasetsRiversLow], 'Enable','off')
+        set([handles.CoastLineLow handles.PBLow handles.RiversLow], 'Enable','off')
     end
     if (info.crude ~= 'y')
-        set([handles.DatasetsCoastLineCrude handles.DatasetsPBCrude handles.DatasetsRiversCrude], 'Enable','off')
+        set([handles.CoastLineCrude handles.PBCrude handles.RiversCrude], 'Enable','off')
     end
-end
 
 guidata(hObject, handles);  limpa(handles);
 %setappdata(handles.axes1,'ProjWKT',geogWKT) % The Geog WGS84 string in WKT format
@@ -667,7 +663,7 @@ function ImageShowPalette_CB(hObject, eventdata, handles)
         msgbox('True color images do not use color palettes.','Warning');    return
 	end
 	cmap = get(handles.figure1,'Colormap');     dz = inf;
-	if (handles.ValidGrid),     dz = diff(handles.head(6:7)) / 10;      end
+	if (handles.ValidGrid),     dz = diff(handles.head(5:6)) / 10;      end
     show_palette([1 length(cmap)], [handles.head(5) handles.head(6)], dz, cmap)
 
 % --------------------------------------------------------------------
@@ -741,28 +737,28 @@ function FilePreferences_CB(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function FileNewBgFrame_CB(hObject, eventdata, handles, region, imSize)
-% Create a empty window with a frame selected in bg_region
-% However, if REGION was transmited, it is assumed to have  [x_min x_max y_min y_max is_geog]
-if (nargin == 3)
-    region = bg_region;     % region contains [x_min x_max y_min y_max is_geog]
-    if isempty(region),     return;     end     % User gave up
-end
-
-X = region(1:2);      Y = region(3:4);
-handles.head = [X Y 0 255 0];
-
-scrsz = get(0,'ScreenSize');         % Get screen size
-aspect = diff(Y) / diff(X);
-nx = round(scrsz(3)*.75);   ny = round(nx * aspect);
-if (ny > scrsz(4) - 30)
-    ny = scrsz(4) - 30;     nx = round(ny / aspect);
-end
-handles.head(8) = diff(X) / (nx - 1);    handles.head(9) = diff(Y) / (ny - 1);
-Z = repmat(uint8(255),ny,nx);
-pal = repmat(handles.bg_color,256,1);    set(handles.figure1,'Colormap',pal);
-handles.image_type = 20;
-if (nargin <= 4),   imSize = [];    end
-show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',0,imSize);
+	% Create a empty window with a frame selected in bg_region
+	% However, if REGION was transmited, it is assumed to have  [x_min x_max y_min y_max is_geog]
+	if (nargin == 3)
+        region = bg_region;     % region contains [x_min x_max y_min y_max is_geog]
+        if isempty(region),     return;     end     % User gave up
+	end
+	
+	X = region(1:2);      Y = region(3:4);
+	handles.head = [X Y 0 255 0];
+	
+	scrsz = get(0,'ScreenSize');         % Get screen size
+	aspect = diff(Y) / diff(X);
+	nx = round(scrsz(3)*.75);   ny = round(nx * aspect);
+	if (ny > scrsz(4) - 30)
+        ny = scrsz(4) - 30;     nx = round(ny / aspect);
+	end
+	handles.head(8) = diff(X) / (nx - 1);    handles.head(9) = diff(Y) / (ny - 1);
+	Z = repmat(uint8(255),ny,nx);
+	pal = repmat(handles.bg_color,256,1);    set(handles.figure1,'Colormap',pal);
+	handles.image_type = 20;
+	if (nargin <= 4),   imSize = [];    end
+	show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',0,imSize);
 
 % --------------------------------------------------------------------
 function FileNewBgMap_CB(hObject, eventdata, handles)
@@ -785,38 +781,38 @@ function FileNewEmpty_CB(hObject, eventdata, handles)
     
 % --------------------------------------------------------------------
 function FileSaveGMTgrid_CB(hObject, eventdata, handles, opt)
-% Save internaly computed grids and GDAL recognized DEM grids into GMT grd grids
-if (aux_funs('msg_dlg',14,handles));     return;      end
-if (nargin == 3),   opt = [];   end
-
-[X,Y,Z,head] = load_grd(handles);
-if isempty(Z),   return;     end;    % An error message was already issued
-if (~isempty(opt) && strcmp(opt,'Surfer'))
-    cdf_format = '=6';
-    tit = ' ';      % Have to change this to reflect the old title
-    txt1 = 'Surfer 6 binary grid (*.grd,*.GRD)';    txt2 = 'Select output Surfer 6 grid';
-else           % Internaly computed grid  
-    cdf_format = '=nf';
-    if (handles.was_int16 && handles.saveAsInt16),  cdf_format = '=ns';    end
-    tit = 'Grid computed inside Mirone';
-    txt1 = 'netCDF grid format (*.grd,*.GRD)';      txt2 = 'Select output GMT grid';
-end
-
-[FileName,PathName] = put_or_get_file(handles,{'*.grd;*.GRD',txt1; '*.*', 'All Files (*.*)'},txt2,'put');
-if isequal(FileName,0);     return;     end
-
-set(handles.figure1,'pointer','watch')
-[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-if isempty(EXT),    f_name = [PathName FNAME '.grd' cdf_format];
-else                f_name = [PathName FNAME EXT cdf_format];       end
-
-% If it was a grid imported by gdal, uppdate the title
-if (isappdata(handles.axes1,'DatumProjInfo'))
-    DPI = getappdata(handles.axes1,'DatumProjInfo');
-    tit = ['Projection: ' DPI.projection ' Datum: ' DPI.datum];
-    if (length(tit) > 80),      tit = tit(1:80);    end     % (1:80) otherwise it BOOMs
-end
-grdwrite_m(Z,head,f_name,tit);      set(handles.figure1,'pointer','arrow')
+	% Save internaly computed grids and GDAL recognized DEM grids into GMT grd grids
+	if (aux_funs('msg_dlg',14,handles));     return;      end
+	if (nargin == 3),   opt = [];   end
+	
+	[X,Y,Z,head] = load_grd(handles);
+	if isempty(Z),   return;     end;    % An error message was already issued
+	if (~isempty(opt) && strcmp(opt,'Surfer'))
+        cdf_format = '=6';
+        tit = ' ';      % Have to change this to reflect the old title
+        txt1 = 'Surfer 6 binary grid (*.grd,*.GRD)';    txt2 = 'Select output Surfer 6 grid';
+	else           % Internaly computed grid  
+        cdf_format = '=nf';
+        if (handles.was_int16 && handles.saveAsInt16),  cdf_format = '=ns';    end
+        tit = 'Grid computed inside Mirone';
+        txt1 = 'netCDF grid format (*.grd,*.GRD)';      txt2 = 'Select output GMT grid';
+	end
+	
+	[FileName,PathName] = put_or_get_file(handles,{'*.grd;*.GRD',txt1; '*.*', 'All Files (*.*)'},txt2,'put');
+	if isequal(FileName,0);     return;     end
+	
+	set(handles.figure1,'pointer','watch')
+	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
+	if isempty(EXT),    f_name = [PathName FNAME '.grd' cdf_format];
+	else                f_name = [PathName FNAME EXT cdf_format];       end
+	
+	% If it was a grid imported by gdal, uppdate the title
+	if (isappdata(handles.axes1,'DatumProjInfo'))
+        DPI = getappdata(handles.axes1,'DatumProjInfo');
+        tit = ['Projection: ' DPI.projection ' Datum: ' DPI.datum];
+        if (length(tit) > 80),      tit = tit(1:80);    end     % (1:80) otherwise it BOOMs
+	end
+	grdwrite_m(Z,head,f_name,tit);      set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function File_img2GMT_RGBgrids_CB(hObject, eventdata, handles, opt1, opt2)
@@ -998,25 +994,25 @@ end
 
 % --------------------------------------------------------------------
 function FileOpenBSB_CB(hObject, eventdata, handles)
-str1 = {'*.kap;*.KAP;*.nos;*NOS', 'BSB Nautical Chart (*.kap,*.KAP,*.nos,*.NOS)'; '*.*', 'All Files (*.*)'};
-[FileName,PathName] = put_or_get_file(handles,str1,'Select BSB Nautical Chart File','get');
-if isequal(FileName,0);     return;     end
-
-set(handles.figure1,'pointer','watch');     handles.fileName = [PathName FileName];
-att = gdalread(handles.fileName,'-M','-C');
-if (~isempty(att.ProjectionRef)),   Z = gdalread(handles.fileName,'-U','-C');
-else                                Z = gdalread(handles.fileName,'-C');
-end
-handles.head = att.GMT_hdr;
-X = handles.head(1:2);      Y = handles.head(3:4);
-if (~isempty(att.Band(1).ColorMap)),    pal = att.Band(1).ColorMap.CMap(:,1:3);
-else                                    pal = jet(256);     end
-
-handles.image_type = 3;
-set(handles.figure1,'Colormap',pal);
-aux_funs('cleanGRDappdata',handles);        % Remove eventual grid stuff variables from appdata
-show_image(handles,handles.fileName,X,Y,Z,0,'xy',1);
-grid_info(handles,att,'gdal')           % Construct a info message
+	str1 = {'*.kap;*.KAP;*.nos;*NOS', 'BSB Nautical Chart (*.kap,*.KAP,*.nos,*.NOS)'; '*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select BSB Nautical Chart File','get');
+	if isequal(FileName,0);     return;     end
+	
+	set(handles.figure1,'pointer','watch');     handles.fileName = [PathName FileName];
+	att = gdalread(handles.fileName,'-M','-C');
+	if (~isempty(att.ProjectionRef)),   Z = gdalread(handles.fileName,'-U','-C');
+	else                                Z = gdalread(handles.fileName,'-C');
+	end
+	handles.head = att.GMT_hdr;
+	X = handles.head(1:2);      Y = handles.head(3:4);
+	if (~isempty(att.Band(1).ColorMap)),    pal = att.Band(1).ColorMap.CMap(:,1:3);
+	else                                    pal = jet(256);     end
+	
+	handles.image_type = 3;
+	set(handles.figure1,'Colormap',pal);
+	aux_funs('cleanGRDappdata',handles);        % Remove eventual grid stuff variables from appdata
+	show_image(handles,handles.fileName,X,Y,Z,0,'xy',1);
+	grid_info(handles,att,'gdal')           % Construct a info message
 
 % --------------------------------------------------------------------
 function FileOpen_ENVI_Erdas_CB(hObject, eventdata, handles, opt, opt2)
@@ -1105,6 +1101,7 @@ end
 handles.fileName = [PathName FileName];
 
 set(handles.figure1,'pointer','watch')
+err_msg = [];       head_fw = [];           % Used when check for a .*fw registering world file
 [PATH,FNAME,EXT] = fileparts(handles.fileName);
 if (strcmpi(EXT,'.shade'))
     [fid, msg] = fopen(handles.fileName, 'r');
@@ -1137,6 +1134,11 @@ else
         catch       errordlg(lasterr,'Error');      return % It realy may happen
         end
     end
+    [head_fw,err_msg] = tfw_funs('inquire',[size(I,1) size(I,2)],PATH,FNAME,EXT);  % See if we have .*fw file
+    if (~isempty(err_msg))
+        warndlg(['A registering world file was found but the following error occured: ' err_msg],'Warning')
+    end
+    
     if (strcmp(info_img.ColorType,'grayscale'))
         set(handles.figure1,'Colormap',gray(256))
     elseif (isfield(info_img,'ColorTable'))         % Gif images call it 'ColorTable'
@@ -1146,10 +1148,17 @@ else
     end
 end
 
-handles.image_type = 2;     handles.geog = 0;   % None of this image types is coordinated
-handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];   % Fake a grid reg GMT header
+if (isempty(head_fw))           % Image is not georeferenced
+    handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];   % Fake a grid reg GMT header
+    handles.image_type = 2;     X = [];     Y = [];         ax_dir = 'off';
+else                            % Got and decoded a .*fw file
+    handles.image_type = 3;     handles.head = head_fw;
+    aux_funs('cleanGRDappdata',handles);        % Remove eventual grid stuff variables from appdata
+    X = handles.head(1:2);      Y = handles.head(3:4);      ax_dir = 'xy';
+    I = flipdim(I,1);
+end
 aux_funs('cleanGRDappdata',handles);            % Remove eventual grid stuff variables from appdata
-handles = show_image(handles,handles.fileName,[],[],I,0,'off',0);
+handles = show_image(handles,handles.fileName,X,Y,I,0,ax_dir,0);
 grid_info(handles,handles.fileName,'iminfo');    % Construct a info string
 guidata(handles.figure1,handles)
 
@@ -1287,91 +1296,91 @@ grid_info(handles,att,'gdal')               % Construct a info message
 
 % --------------------------------------------------------------------
 function FileOpenDEM_CB(hObject, eventdata, handles, opt)
-% Files of the following formats are read (well re-directed) here
-tipo = opt;
-switch opt
-    case {'GMT' 'Surfer', 'ENCOM'}
-        str1 = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)';'*.*', 'All Files (*.*)'};    tipo = 'GMT_relatives';
-    case 'MANI'
-        str1 = {'*.man;*.MAN', 'Grid files (*.man,*.MAN)';'*.*', 'All Files (*.*)'};    tipo = 'GMT_relatives';
-    case 'ArcAscii',        str1 = {'*.grd;*.GRD', 'Arc/Info grid (*.grd,*.GRD)'; '*.*', 'All Files (*.*)'};
-    case 'ArcBinary',       str1 = {'*.adf;*.ADF', 'Arc/Info grid (*.adf,*.ADF)'; '*.*', 'All Files (*.*)'};
-    case 'DTED',            str1 = {'*.dt0;*.DT0;*.dt1;*.DT1', 'DTED (*.dt0,*.DT0,*.dt1,*.DT1)'; '*.*', 'All Files (*.*)'};
-    case 'ESRI_hdr',	    str1 = {'*.bil;*.BIL;', 'ESRI BIL (*.bil,*.BIL)'; '*.*', 'All Files (*.*)'};
-    case 'GTOPO30',         str1 = {'*.dem;*.DEM', 'GTOPO30 DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
-    case 'GeoTiff_DEM',     str1 = {'*.tif;*.TIF;*.tiff;*.TIFF', 'GeoTiff DEM(*.tif,*.tiff,*.TIF,*.TIFF)'; '*.*', 'All Files (*.*)'};
-    case 'GXF',             str1 = {'*.gxf;*.GXF', 'Geosoft GXF (*.gxf,*.GXF)'; '*.*', 'All Files (*.*)'};
-    case 'SDTS',            str1 = {'*catd.ddf;*CATD.DDF', 'USGS SDTS DEM (*catd.ddf,*CATD.DDF)'; '*.*', 'All Files (*.*)'};
-    case 'SRTM30',    	    str1 = {'*.srtm;*.SRTM;*.srtm.gz', 'SRTM30 DEM (*.srtm,*.SRTM,*.srtm.gz)'; '*.*', 'All Files (*.*)'};
-    case {'SRTM1' 'SRTM3'}, str1 = {'*.hgt;*.HGT;*.hgt.zip', [opt ' DEM (*.hgt,*.HGT,*.hgt.zip)']; '*.*', 'All Files (*.*)'};
-    case 'USGS_DEM',        str1 = {'*.dem;*.DEM', 'USGS DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
-    otherwise
-        errordlg(['OOPs, where did this ' opt ' code came in?'],'Error');   return
-end
-[FileName,PathName] = put_or_get_file(handles,str1,['Select ' opt ' File'],'get');
-if isequal(FileName,0);     return;     end
-fullname{1} = PathName;     fullname{2} = FileName;
-read_DEMs(handles,fullname,tipo)
+	% Files of the following formats are read (well re-directed) here
+	tipo = opt;
+	switch opt
+        case {'GMT' 'Surfer', 'ENCOM'}
+            str1 = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)';'*.*', 'All Files (*.*)'};    tipo = 'GMT_relatives';
+        case 'MANI'
+            str1 = {'*.man;*.MAN', 'Grid files (*.man,*.MAN)';'*.*', 'All Files (*.*)'};    tipo = 'GMT_relatives';
+        case 'ArcAscii',        str1 = {'*.grd;*.GRD', 'Arc/Info grid (*.grd,*.GRD)'; '*.*', 'All Files (*.*)'};
+        case 'ArcBinary',       str1 = {'*.adf;*.ADF', 'Arc/Info grid (*.adf,*.ADF)'; '*.*', 'All Files (*.*)'};
+        case 'DTED',            str1 = {'*.dt0;*.DT0;*.dt1;*.DT1', 'DTED (*.dt0,*.DT0,*.dt1,*.DT1)'; '*.*', 'All Files (*.*)'};
+        case 'ESRI_hdr',	    str1 = {'*.bil;*.BIL;', 'ESRI BIL (*.bil,*.BIL)'; '*.*', 'All Files (*.*)'};
+        case 'GTOPO30',         str1 = {'*.dem;*.DEM', 'GTOPO30 DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
+        case 'GeoTiff_DEM',     str1 = {'*.tif;*.TIF;*.tiff;*.TIFF', 'GeoTiff DEM(*.tif,*.tiff,*.TIF,*.TIFF)'; '*.*', 'All Files (*.*)'};
+        case 'GXF',             str1 = {'*.gxf;*.GXF', 'Geosoft GXF (*.gxf,*.GXF)'; '*.*', 'All Files (*.*)'};
+        case 'SDTS',            str1 = {'*catd.ddf;*CATD.DDF', 'USGS SDTS DEM (*catd.ddf,*CATD.DDF)'; '*.*', 'All Files (*.*)'};
+        case 'SRTM30',    	    str1 = {'*.srtm;*.SRTM;*.srtm.gz', 'SRTM30 DEM (*.srtm,*.SRTM,*.srtm.gz)'; '*.*', 'All Files (*.*)'};
+        case {'SRTM1' 'SRTM3'}, str1 = {'*.hgt;*.HGT;*.hgt.zip', [opt ' DEM (*.hgt,*.HGT,*.hgt.zip)']; '*.*', 'All Files (*.*)'};
+        case 'USGS_DEM',        str1 = {'*.dem;*.DEM', 'USGS DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
+        otherwise
+            errordlg(['OOPs, where did this ' opt ' code came in?'],'Error');   return
+	end
+	[FileName,PathName] = put_or_get_file(handles,str1,['Select ' opt ' File'],'get');
+	if isequal(FileName,0);     return;     end
+	fullname{1} = PathName;     fullname{2} = FileName;
+	read_DEMs(handles,fullname,tipo)
 
 % --------------------------------------------------------------------
 function FileOpenMOLA_CB(hObject, eventdata, handles)
-str1 = {'*.img;*.IMG', 'MOLA DEM (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
-[FileName,PathName] = put_or_get_file(handles,str1,'Select MOLA DEM File','get');
-if isequal(FileName,0),     return;     end
+	str1 = {'*.img;*.IMG', 'MOLA DEM (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select MOLA DEM File','get');
+	if isequal(FileName,0),     return;     end
+	
+	type = 'MOLA';      error = 0;
+	[PATH,FNAME] = fileparts([PathName FileName]);
+	fname = [PATH filesep FNAME '.lbl'];
+	fp = fopen(fname,'rt');
+	if (fp < 0)
+        errordlg(['ERROR: Could not find format descriptive file: ' fname],'Error');  return
+	end
+	s = strread(fread(fp,'*char').','%s','delimiter','\n');
+	
+	LINES = findcell('LINES', s);                   if (isempty(LINES)),  error = 1;  end
+	[t,r] = strtok(s{LINES.cn},'=');                n_lines = str2double(r(3:end));
+	
+	LINE_SAMPLES = findcell('LINE_SAMPLES', s);     if (isempty(LINE_SAMPLES)),  error = 1;  end
+	[t,r] = strtok(s{LINE_SAMPLES.cn},'=');         n_samples = str2double(r(3:end));
+	
+	SAMPLE_BITS = findcell('SAMPLE_BITS', s);       if (isempty(SAMPLE_BITS)),  error = 1;  end
+	[t,r] = strtok(s{SAMPLE_BITS.cn},'=');          n_bits = str2double(r(3:end));
 
-type = 'MOLA';      error = 0;
-[PATH,FNAME] = fileparts([PathName FileName]);
-fname = [PATH filesep FNAME '.lbl'];
-fp = fopen(fname,'rt');
-if (fp < 0)
-    errordlg(['ERROR: Could not find format descriptive file: ' fname],'Error');  return
-end
-s = strread(fread(fp,'*char').','%s','delimiter','\n');
+	CENTER_LATITUDE = findcell('CENTER_LATITUDE', s);       if (isempty(CENTER_LATITUDE)),  error = 1;  end
+	[t,r] = strtok(s{CENTER_LATITUDE.cn},'=');      lat0 = str2double(strtok(strtok(r,'=')));
+	
+	CENTER_LONGITUDE = findcell('CENTER_LONGITUDE', s);     if (isempty(CENTER_LONGITUDE)),  error = 1;  end
+	[t,r] = strtok(s{CENTER_LONGITUDE.cn},'=');     lon0 = str2double(strtok(strtok(r,'=')));
+	
+	LINE_FIRST_PIXEL = findcell('LINE_FIRST_PIXEL', s);     if (isempty(LINE_FIRST_PIXEL)),  error = 1;  end
+	[t,r] = strtok(s{LINE_FIRST_PIXEL.cn},'=');     line_first_pix = str2double(r(3:end));
+	
+	LINE_LAST_PIXEL = findcell('LINE_LAST_PIXEL', s);       if (isempty(LINE_LAST_PIXEL)),  error = 1;  end
+	[t,r] = strtok(s{LINE_LAST_PIXEL.cn},'=');      line_last_pix = str2double(r(3:end));
+	
+	SAMPLE_FIRST_PIXEL = findcell('SAMPLE_FIRST_PIXEL', s); if (isempty(SAMPLE_FIRST_PIXEL)),  error = 1;  end
+	[t,r] = strtok(s{SAMPLE_FIRST_PIXEL.cn},'=');   sample_first_pix = str2double(r(3:end));
+	
+	SAMPLE_LAST_PIXEL = findcell('SAMPLE_LAST_PIXEL', s);   if (isempty(SAMPLE_LAST_PIXEL)),  error = 1;  end
+	[t,r] = strtok(s{SAMPLE_LAST_PIXEL.cn},'=');    sample_last_pix = str2double(r(3:end));
+	
+	MAP_RESOLUTION = findcell('MAP_RESOLUTION', s);         if (isempty(MAP_RESOLUTION)),  error = 1;  end
+	[t,r] = strtok(s{MAP_RESOLUTION.cn},'=');       res = str2double(strtok(strtok(r,'=')));
+	
+	LINE_PROJECTION_OFFSET = findcell('LINE_PROJECTION_OFFSET', s);
+	if (isempty(LINE_PROJECTION_OFFSET)),  error = 1;  end
+	[t,r] = strtok(s{LINE_PROJECTION_OFFSET.cn},'=');line_off = str2double(r(3:end));
 
-LINES = findcell('LINES', s);                   if (isempty(LINES)),  error = 1;  end
-[t,r] = strtok(s{LINES.cn},'=');                n_lines = str2double(r(3:end));
-
-LINE_SAMPLES = findcell('LINE_SAMPLES', s);     if (isempty(LINE_SAMPLES)),  error = 1;  end
-[t,r] = strtok(s{LINE_SAMPLES.cn},'=');         n_samples = str2double(r(3:end));
-
-SAMPLE_BITS = findcell('SAMPLE_BITS', s);       if (isempty(SAMPLE_BITS)),  error = 1;  end
-[t,r] = strtok(s{SAMPLE_BITS.cn},'=');          n_bits = str2double(r(3:end));
-
-CENTER_LATITUDE = findcell('CENTER_LATITUDE', s);       if (isempty(CENTER_LATITUDE)),  error = 1;  end
-[t,r] = strtok(s{CENTER_LATITUDE.cn},'=');      lat0 = str2double(strtok(strtok(r,'=')));
-
-CENTER_LONGITUDE = findcell('CENTER_LONGITUDE', s);     if (isempty(CENTER_LONGITUDE)),  error = 1;  end
-[t,r] = strtok(s{CENTER_LONGITUDE.cn},'=');     lon0 = str2double(strtok(strtok(r,'=')));
-
-LINE_FIRST_PIXEL = findcell('LINE_FIRST_PIXEL', s);     if (isempty(LINE_FIRST_PIXEL)),  error = 1;  end
-[t,r] = strtok(s{LINE_FIRST_PIXEL.cn},'=');     line_first_pix = str2double(r(3:end));
-
-LINE_LAST_PIXEL = findcell('LINE_LAST_PIXEL', s);       if (isempty(LINE_LAST_PIXEL)),  error = 1;  end
-[t,r] = strtok(s{LINE_LAST_PIXEL.cn},'=');      line_last_pix = str2double(r(3:end));
-
-SAMPLE_FIRST_PIXEL = findcell('SAMPLE_FIRST_PIXEL', s); if (isempty(SAMPLE_FIRST_PIXEL)),  error = 1;  end
-[t,r] = strtok(s{SAMPLE_FIRST_PIXEL.cn},'=');   sample_first_pix = str2double(r(3:end));
-
-SAMPLE_LAST_PIXEL = findcell('SAMPLE_LAST_PIXEL', s);   if (isempty(SAMPLE_LAST_PIXEL)),  error = 1;  end
-[t,r] = strtok(s{SAMPLE_LAST_PIXEL.cn},'=');    sample_last_pix = str2double(r(3:end));
-
-MAP_RESOLUTION = findcell('MAP_RESOLUTION', s);         if (isempty(MAP_RESOLUTION)),  error = 1;  end
-[t,r] = strtok(s{MAP_RESOLUTION.cn},'=');       res = str2double(strtok(strtok(r,'=')));
-
-LINE_PROJECTION_OFFSET = findcell('LINE_PROJECTION_OFFSET', s);
-if (isempty(LINE_PROJECTION_OFFSET)),  error = 1;  end
-[t,r] = strtok(s{LINE_PROJECTION_OFFSET.cn},'=');line_off = str2double(r(3:end));
-
-SAMPLE_PROJECTION_OFFSET = findcell('SAMPLE_PROJECTION_OFFSET', s);
-if (isempty(SAMPLE_PROJECTION_OFFSET)),  error = 1;  end
-[t,r] = strtok(s{SAMPLE_PROJECTION_OFFSET.cn},'=');sample_off = str2double(r(3:end));
-
-if (error),     errordlg('An error has occured in header file parsing','Error');    return;     end
-limits = [(sample_first_pix - sample_off)/res+lon0 (sample_last_pix - sample_off)/res+lon0 ...
-    (line_first_pix - line_off)/res+lat0 (line_last_pix - line_off)/res+lat0];
-
-fullname{1} = PathName;     fullname{2} = FileName;
-read_DEMs(handles,fullname,type,[limits n_samples n_lines 1/res])
+	SAMPLE_PROJECTION_OFFSET = findcell('SAMPLE_PROJECTION_OFFSET', s);
+	if (isempty(SAMPLE_PROJECTION_OFFSET)),  error = 1;  end
+	[t,r] = strtok(s{SAMPLE_PROJECTION_OFFSET.cn},'=');sample_off = str2double(r(3:end));
+	
+	if (error),     errordlg('An error has occured in header file parsing','Error');    return;     end
+	limits = [(sample_first_pix - sample_off)/res+lon0 (sample_last_pix - sample_off)/res+lon0 ...
+        (line_first_pix - line_off)/res+lat0 (line_last_pix - line_off)/res+lat0];
+	
+	fullname{1} = PathName;     fullname{2} = FileName;
+	read_DEMs(handles,fullname,type,[limits n_samples n_lines 1/res])
 
 % --------------------------------------------------------------------
 function read_DEMs(handles,fullname,tipo,opt)
@@ -1384,9 +1393,6 @@ handles.fileName = [fullname{1} fullname{2}];       % To store any input grid/im
 if (handles.ForceInsitu),   opt_I = '-I';           % Use only in desperate cases.
 else                        opt_I = ' ';    end
 handles.was_int16 = 0;      % To make sure that it wasnt left = 1 from a previous use.
-if (~isempty(getappdata(handles.figure1,'dem_z')))   % Free memory that may be necessary bellow
-    rmappdata(handles.figure1,'dem_z')
-end
 
 if (strcmp(tipo,'GMT_relatives'))   % The reading is done by the read_gmt_type_grids function
     [handles,X,Y,Z,head] = read_gmt_type_grids(handles,handles.fileName);
@@ -1482,7 +1488,7 @@ set(findobj('Tag','ImgHist'),'checked','off');  set(findobj('Tag','ImgHistGrd'),
 % Make an extra copy of those to use in "restore" because they may be changed by 'bands_list()'
 handles.ValidGrid_orig = ValidGrid;         handles.was_int16_orig = handles.was_int16;
 handles.computed_grid_orig = handles.computed_grid;
-handles.geog = aux_funs('guessGeog',handles.head(1:4));
+handles.geog = aux_funs('guessGeog',handles.head(1:4));     % HUM... THERE ARE CASES WHERE I KNOW FOR SURE
 if (handles.image_type ~= 1),   handles.grdname = [];   end
 guidata(handles.figure1, handles);              set(handles.figure1,'pointer','arrow')
 
@@ -1499,6 +1505,9 @@ else
 end
 if (strcmp(axis_t,'off')),      set(handles.noAxes,'Visible','off');
 else                            set(handles.noAxes,'Visible','on');
+end
+if (~handles.geog),             set(handles.toGE,'Enable','off')
+else                            set(handles.toGE,'Enable','on')
 end
 
 GCPmemoryVis = 'off';
@@ -1534,244 +1543,244 @@ if (isappdata(handles.axes1,'DatumProjInfo')),      rmappdata(handles.axes1,'Dat
 
 % --------------------------------------------------------------------
 function ToolsMBplaningStart_CB(hObject, eventdata, handles)
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-if isempty(getappdata(handles.figure1,'dem_z'))     % Test if the grid is loaded in memory
-    warndlg('Grid file is bigger than the declared "Grid Max Size". See "File -> Preferences"','Warning');
-    return
-end
+	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	if isempty(getappdata(handles.figure1,'dem_z'))     % Test if the grid is loaded in memory
+        warndlg('Grid file is bigger than the declared "Grid Max Size". See "File -> Preferences"','Warning');
+        return
+	end
+	
+	prompt = {['The current value for the swath-width / water depth ratio is:   --> ' sprintf('%g',handles.swathRatio) '  <--']
+            'If you want to change it, hit "Cancel", and do it in "File -> Preferences"'
+            ' '
+            'NOTE: this message, once accepted, is shown only once. So, if in the midle'
+            'of a session, you decide to change the Swath Ratio don''t forget to do it'
+            'there. The current value will be applyied to all new tracks without further questions.'};
+	if (handles.firstMBtrack == 1)
+        button = questdlg(prompt,'Multibeam planing info','Accept','Cancel','Accept');
+        if strcmp(button,'Accept'),     handles.firstMBtrack = 0;
+        else                            return;    end
+	end
 
-prompt = {['The current value for the swath-width / water depth ratio is:   --> ' sprintf('%g',handles.swathRatio) '  <--']
-        'If you want to change it, hit "Cancel", and do it in "File -> Preferences"'
-        ' '
-        'NOTE: this message, once accepted, is shown only once. So, if in the midle'
-        'of a session, you decide to change the Swath Ratio don''t forget to do it'
-        'there. The current value will be applyied to all new tracks without further questions.'};
-if (handles.firstMBtrack == 1)
-    button = questdlg(prompt,'Multibeam planing info','Accept','Cancel','Accept');
-    if strcmp(button,'Accept'),     handles.firstMBtrack = 0;
-    else                            return;    end
-end
-
-zoom_state(handles,'maybe_off');
-[xp,yp,trackHand,barHand] = getline_mb;
-if (isempty(xp)),   zoom_state(handles,'maybe_on');    return;  end
-
-% Now we have to join all trackHand's in a single handle
-handles.nTrack = handles.nTrack + 1;    % count to the number of tracks
-delete(trackHand(2:end));       trackHand(2:end) = [];
-% make and set tags strings to tracks and track's Bars
-tagL = ['MBtrack' sprintf('%d',handles.nTrack)];    tagB = ['swath_w' sprintf('%d',handles.nTrack)];
-set(trackHand,'XData',xp, 'YData',yp, 'Tag',tagL);  set(barHand, 'Tag',tagB)
-setappdata(trackHand,'swathRatio',handles.swathRatio)  % save the swathRatio in line's appdata
-% now set the barHand userdata that contains the vertex order
-for i = 1:length(xp),     set(barHand(i),'Userdata',i);     end
-
-draw_funs(trackHand,'MBtrack_uicontext')        % Set track's uicontextmenu
-draw_funs(barHand,'MBbar_uicontext')            % Set track bar's uicontextmenu
-
-zoom_state(handles,'maybe_on');
-handles.h_MBplot = trackHand;       guidata(handles.figure1, handles);
-str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-[FileName,PathName] = put_or_get_file(handles,str1,'Select output xy file name','put');
-if isequal(FileName,0);     return;     end
-double2ascii([PathName FileName],[xp yp],'%f\t%f');
+	zoom_state(handles,'maybe_off');
+	[xp,yp,trackHand,barHand] = getline_mb;
+	if (isempty(xp)),   zoom_state(handles,'maybe_on');    return;  end
+	
+	% Now we have to join all trackHand's in a single handle
+	handles.nTrack = handles.nTrack + 1;    % count to the number of tracks
+	delete(trackHand(2:end));       trackHand(2:end) = [];
+	% make and set tags strings to tracks and track's Bars
+	tagL = ['MBtrack' sprintf('%d',handles.nTrack)];    tagB = ['swath_w' sprintf('%d',handles.nTrack)];
+	set(trackHand,'XData',xp, 'YData',yp, 'Tag',tagL);  set(barHand, 'Tag',tagB)
+	setappdata(trackHand,'swathRatio',handles.swathRatio)  % save the swathRatio in line's appdata
+	% now set the barHand userdata that contains the vertex order
+	for i = 1:length(xp),     set(barHand(i),'Userdata',i);     end
+	
+	draw_funs(trackHand,'MBtrack_uicontext')        % Set track's uicontextmenu
+	draw_funs(barHand,'MBbar_uicontext')            % Set track bar's uicontextmenu
+	
+	zoom_state(handles,'maybe_on');
+	handles.h_MBplot = trackHand;       guidata(handles.figure1, handles);
+	str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select output xy file name','put');
+	if isequal(FileName,0);     return;     end
+	double2ascii([PathName FileName],[xp yp],'%f\t%f');
 
 % --------------------------------------------------------------------
 function ToolsMBplaningImport_CB(hObject, eventdata, handles)
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-if (~handles.ValidGrid)
-    errordlg('This operation is deffined only for images derived from DEM grids','Error');  return
-end
-if isempty(getappdata(handles.figure1,'dem_x'))     % Test if the grid is loaded in memory
-    warndlg('Grid file is bigger than the declared "Grid Max Size". See "File -> Preferences"','Warning');  return
-end
-str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)'};
-[FileName,PathName] = put_or_get_file(handles,str1,'Select input xy file name','get');
-if isequal(FileName,0);     return;     end
-
-out = draw_funs([PathName FileName],'ImportLine');
-prompt = {'Enter swath-width / water depth ratio'};
-resp  = inputdlg(prompt,'Multi-beam planing input',[1 38],{'3'});     pause(0.01);
-if isempty(resp);   return;     end
-if (iscell(out)),   n_segments = length(out);
-else                n_segments = 1;     end
-hold on
-for (i = 1:n_segments)
-    if (iscell(out)),   xy = out{i}(:,1:2);
-    else                xy = out(:,1:2);    end
-    z = abs(bi_linear(getappdata(handles.figure1,'dem_x'),getappdata(handles.figure1,'dem_y'),...
-        getappdata(handles.figure1,'dem_z'),xy(:,1),xy(:,2)));
-    rad = abs(z) * (str2double(resp{1})/2) / 111194.9; % meters -> degrees
-    handles.nTrack = handles.nTrack + 1;    % count the number of imported tracks
-    % make tags strings to tracks and track's Bars
-    tagL = ['MBtrack' sprintf('%d',handles.nTrack)];     tagB = ['swath_w' sprintf('%d',handles.nTrack)];
-    nr = size(xy,1);
-    az = zeros(nr,1);    h_circ = zeros(1,nr);
-    az(2:nr) = azimuth_geo(xy(1:(nr-1),2),xy(1:(nr-1),1),xy(2:nr,2),xy(2:nr,1));
-    az(1) = az(2);              % First and second points have the same azim
-    for (k=1:nr)                % NOTE: the Tag is very important for line edition
-        [lat1,lon1] = circ_geo(xy(k,2),xy(k,1),rad(k),[az(k)-90-1 az(k)-90+1],3);
-        [lat2,lon2] = circ_geo(xy(k,2),xy(k,1),rad(k),[az(k)+90-1 az(k)+90+1],3);
-        h_circ(k) = line('XData', [lon1(2) lon2(2)], 'YData', [lat1(2) lat2(2)], ...
-            'Color', [.8 .8 .8],'LineWidth',4,'Tag',tagB,'Userdata',k);
-    end        
-    h_line(i) = line('XData', xy(:,1), 'YData', xy(:,2),'Color','k','LineWidth',1,'Tag',tagL);
-    setappdata(h_line(i),'swathRatio',str2double(resp{1}))  % save the swathRatio in line's appdata
-    draw_funs(h_line(i),'MBtrack_uicontext')    % Set track's uicontextmenu
-    draw_funs(h_circ,'MBbar_uicontext')         % Set track bar's uicontextmenu
-end
-hold off    
-handles.h_MBplot = h_line(1);   guidata(hObject, handles);
+	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	if (~handles.ValidGrid)
+        errordlg('This operation is deffined only for images derived from DEM grids','Error');  return
+	end
+	if isempty(getappdata(handles.figure1,'dem_x'))     % Test if the grid is loaded in memory
+        warndlg('Grid file is bigger than the declared "Grid Max Size". See "File -> Preferences"','Warning');  return
+	end
+	str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select input xy file name','get');
+	if isequal(FileName,0);     return;     end
+	
+	out = draw_funs([PathName FileName],'ImportLine');
+	prompt = {'Enter swath-width / water depth ratio'};
+	resp  = inputdlg(prompt,'Multi-beam planing input',[1 38],{'3'});     pause(0.01);
+	if isempty(resp);   return;     end
+	if (iscell(out)),   n_segments = length(out);
+	else                n_segments = 1;     end
+	hold on
+	for (i = 1:n_segments)
+        if (iscell(out)),   xy = out{i}(:,1:2);
+        else                xy = out(:,1:2);    end
+        z = abs(bi_linear(getappdata(handles.figure1,'dem_x'),getappdata(handles.figure1,'dem_y'),...
+            getappdata(handles.figure1,'dem_z'),xy(:,1),xy(:,2)));
+        rad = abs(z) * (str2double(resp{1})/2) / 111194.9; % meters -> degrees
+        handles.nTrack = handles.nTrack + 1;    % count the number of imported tracks
+        % make tags strings to tracks and track's Bars
+        tagL = ['MBtrack' sprintf('%d',handles.nTrack)];     tagB = ['swath_w' sprintf('%d',handles.nTrack)];
+        nr = size(xy,1);
+        az = zeros(nr,1);    h_circ = zeros(1,nr);
+        az(2:nr) = azimuth_geo(xy(1:(nr-1),2),xy(1:(nr-1),1),xy(2:nr,2),xy(2:nr,1));
+        az(1) = az(2);              % First and second points have the same azim
+        for (k=1:nr)                % NOTE: the Tag is very important for line edition
+            [lat1,lon1] = circ_geo(xy(k,2),xy(k,1),rad(k),[az(k)-90-1 az(k)-90+1],3);
+            [lat2,lon2] = circ_geo(xy(k,2),xy(k,1),rad(k),[az(k)+90-1 az(k)+90+1],3);
+            h_circ(k) = line('XData', [lon1(2) lon2(2)], 'YData', [lat1(2) lat2(2)], ...
+                'Color', [.8 .8 .8],'LineWidth',4,'Tag',tagB,'Userdata',k);
+        end        
+        h_line(i) = line('XData', xy(:,1), 'YData', xy(:,2),'Color','k','LineWidth',1,'Tag',tagL);
+        setappdata(h_line(i),'swathRatio',str2double(resp{1}))  % save the swathRatio in line's appdata
+        draw_funs(h_line(i),'MBtrack_uicontext')    % Set track's uicontextmenu
+        draw_funs(h_circ,'MBbar_uicontext')         % Set track bar's uicontextmenu
+	end
+	hold off    
+	handles.h_MBplot = h_line(1);   guidata(hObject, handles);
 
 % --------------------------------------------------------------------
 function ImageIlluminationModel_CB(hObject, eventdata, handles, opt)
-if (aux_funs('msg_dlg',14,handles));     return;      end
-if (nargin == 3),   opt = 'grdgradient_A';   end
-
-luz = shading_params(opt);
-pause(0.01)         % Give time to the shading_params window be deleted
-if (isempty(luz)),  return;     end
-
-if (luz.illum_model == 1)       % GMT grdgradient classic
-    ImageIlluminateLambertian(hObject, luz, handles, 'grdgradient_class')
-elseif (luz.illum_model == 2)   % GMT grdgradient Lambertian
-    ImageIlluminateLambertian(hObject, luz, handles, 'grdgradient_lamb')
-elseif (luz.illum_model == 3)   % GMT grdgradient Peucker
-    ImageIlluminateLambertian(hObject, luz, handles, 'grdgradient_peuck')
-elseif (luz.illum_model == 4)   % GMT Lambertian illumination
-    ImageIlluminateLambertian(hObject, luz, handles, 'lambertian')
-elseif (luz.illum_model == 5)   % ManipRaster color illumination algo
-    ImageIlluminateGray(hObject, luz, handles, 'color')
-elseif (luz.illum_model == 6)   % ManipRaster gray illumination algo
-    ImageIlluminateGray(hObject, luz, handles, 'gray')
-else                            % False color illumination
-    ImageIlluminateFalseColor(hObject, luz, handles)
-end
+	if (aux_funs('msg_dlg',14,handles));     return;      end
+	if (nargin == 3),   opt = 'grdgradient_A';   end
+	
+	luz = shading_params(opt);
+	pause(0.01)         % Give time to the shading_params window be deleted
+	if (isempty(luz)),  return;     end
+	
+	if (luz.illum_model == 1)       % GMT grdgradient classic
+        ImageIlluminateLambertian(hObject, luz, handles, 'grdgradient_class')
+	elseif (luz.illum_model == 2)   % GMT grdgradient Lambertian
+        ImageIlluminateLambertian(hObject, luz, handles, 'grdgradient_lamb')
+	elseif (luz.illum_model == 3)   % GMT grdgradient Peucker
+        ImageIlluminateLambertian(hObject, luz, handles, 'grdgradient_peuck')
+	elseif (luz.illum_model == 4)   % GMT Lambertian illumination
+        ImageIlluminateLambertian(hObject, luz, handles, 'lambertian')
+	elseif (luz.illum_model == 5)   % ManipRaster color illumination algo
+        ImageIlluminateGray(hObject, luz, handles, 'color')
+	elseif (luz.illum_model == 6)   % ManipRaster gray illumination algo
+        ImageIlluminateGray(hObject, luz, handles, 'gray')
+	else                            % False color illumination
+        ImageIlluminateFalseColor(hObject, luz, handles)
+	end
 
 % --------------------------------------------------------------------
 function ImageIlluminateLambertian(hObject, luz, handles, opt)
-% OPT ->  Select which of the GMT grdgradient illumination algorithms to use
-% Illuminate a DEM file and turn it into a RGB image
-% For multiple tryies I need to use the original image. Otherwise each attempt would illuminate
-% the previously illuminated image. An exception occurs when the image was IP but only for the
-% first time, repeated illums will use the original img. Otherwise we would need to make another img copy
+	% OPT ->  Select which of the GMT grdgradient illumination algorithms to use
+	% Illuminate a DEM file and turn it into a RGB image
+	% For multiple tryies I need to use the original image. Otherwise each attempt would illuminate
+	% the previously illuminated image. An exception occurs when the image was IP but only for the
+	% first time, repeated illums will use the original img. Otherwise we would need to make another img copy
+	
+	[X,Y,Z,head] = load_grd(handles);   % If needed, load gmt grid again
+	if isempty(Z),   return;     end;   % An error message was already issued
+	
+	set(handles.figure1,'pointer','watch')
+	
+	if (handles.firstIllum),    img = get(handles.hImg,'CData');     handles.firstIllum = 0;
+	else                        img = handles.origFig;      end
+	if (isempty(img)),          img = get(handles.hImg,'CData');     end             % No copy in memory
+	if (ndims(img) == 2),       img = ind2rgb8(img,get(handles.figure1,'Colormap'));    end    % Image is 2D   
+	
+	setappdata(handles.figure1,'Xmin_max',[X(1) X(end)]);   setappdata(handles.figure1,'Ymin_max',[Y(1) Y(end)]);
+	setappdata(handles.figure1,'Zmin_max',[head(5) head(6)])
 
-[X,Y,Z,head] = load_grd(handles);   % If needed, load gmt grid again
-if isempty(Z),   return;     end;   % An error message was already issued
-
-set(handles.figure1,'pointer','watch')
-
-if (handles.firstIllum),    img = get(handles.hImg,'CData');     handles.firstIllum = 0;
-else                        img = handles.origFig;      end
-if (isempty(img)),          img = get(handles.hImg,'CData');     end             % No copy in memory
-if (ndims(img) == 2),       img = ind2rgb8(img,get(handles.figure1,'Colormap'));    end    % Image is 2D   
-
-setappdata(handles.figure1,'Xmin_max',[X(1) X(end)]);   setappdata(handles.figure1,'Ymin_max',[Y(1) Y(end)]);
-setappdata(handles.figure1,'Zmin_max',[head(5) head(6)])
-
-if (strcmp(opt,'grdgradient_class'))    % GMT grdgradient classic illumination
-    illumComm = ['-A' sprintf('%.2f',luz.azim)];
-    if (handles.geog),  [R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
-    else                [R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt'); end
-    handles.Illumin_type = 1;
-    handles.grad_offset = offset;   handles.grad_sigma = sigma;
-elseif (strcmp(opt,'grdgradient_lamb')) % GMT grdgradient lambertian illumination
-    illumComm = ['-Es' sprintf('%.2f',luz.azim) '/' sprintf('%.2f',luz.elev)];
-    R = grdgradient_m(Z,head,illumComm);
-    handles.Illumin_type = 2;
-elseif (strcmp(opt,'grdgradient_peuck'))% GMT grdgradient Peucker illumination
-    illumComm = '-Ep';
-    R = grdgradient_m(Z,head,illumComm);
-    handles.Illumin_type = 3;
-elseif (strcmp(opt,'lambertian'))       % GMT Lambertian lighting illumination
-    illumComm = ['-E' sprintf('%g',luz.azim) '/' sprintf('%g',luz.elev) '/' sprintf('%g',luz.ambient),...
-           '/' sprintf('%g',luz.diffuse) '/' sprintf('%g',luz.specular) '/' sprintf('%g',luz.shine)];
-    R = grdgradient_m(Z,head,illumComm);
-    handles.Illumin_type = 4;
-end
-img = shading_mat(img,R,'no_scale');
-
-setappdata(handles.figure1,'illumComm',illumComm);   % Save these for region op & write_gmt_script
-setappdata(handles.figure1,'Luz',luz);   % Save these for region operations
-set(handles.hImg,'CData',img)
-guidata(handles.figure1, handles);              set(handles.figure1,'pointer','arrow')
+	if (strcmp(opt,'grdgradient_class'))    % GMT grdgradient classic illumination
+        illumComm = ['-A' sprintf('%.2f',luz.azim)];
+        if (handles.geog),  [R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
+        else                [R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt'); end
+        handles.Illumin_type = 1;
+        handles.grad_offset = offset;   handles.grad_sigma = sigma;
+	elseif (strcmp(opt,'grdgradient_lamb')) % GMT grdgradient lambertian illumination
+        illumComm = ['-Es' sprintf('%.2f',luz.azim) '/' sprintf('%.2f',luz.elev)];
+        R = grdgradient_m(Z,head,illumComm);
+        handles.Illumin_type = 2;
+	elseif (strcmp(opt,'grdgradient_peuck'))% GMT grdgradient Peucker illumination
+        illumComm = '-Ep';
+        R = grdgradient_m(Z,head,illumComm);
+        handles.Illumin_type = 3;
+	elseif (strcmp(opt,'lambertian'))       % GMT Lambertian lighting illumination
+        illumComm = ['-E' sprintf('%g',luz.azim) '/' sprintf('%g',luz.elev) '/' sprintf('%g',luz.ambient),...
+               '/' sprintf('%g',luz.diffuse) '/' sprintf('%g',luz.specular) '/' sprintf('%g',luz.shine)];
+        R = grdgradient_m(Z,head,illumComm);
+        handles.Illumin_type = 4;
+	end
+	img = shading_mat(img,R,'no_scale');
+	
+	setappdata(handles.figure1,'illumComm',illumComm);   % Save these for region op & write_gmt_script
+	setappdata(handles.figure1,'Luz',luz);   % Save these for region operations
+	set(handles.hImg,'CData',img)
+	guidata(handles.figure1, handles);              set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function ImageIlluminateGray(hObject, luz, handles, color)
-% Illuminate a previously open GMT or DEM file and turn it into a RGB image
-% For multiple tryies I need to use the original image. Otherwise each attempt would illuminate
-% the previously illuminated image. An exception occurs when the image was IP but only for the
-% first time, repeated illums will use the original img. Otherwise we would need to make another img copy
+	% Illuminate a previously open GMT or DEM file and turn it into a RGB image
+	% For multiple tryies I need to use the original image. Otherwise each attempt would illuminate
+	% the previously illuminated image. An exception occurs when the image was IP but only for the
+	% first time, repeated illums will use the original img. Otherwise we would need to make another img copy
+	
+	[X,Y,Z,head,m] = load_grd(handles);
+	if isempty(Z),        return;     end;    % An error message was already issued
+	D2R = pi/180;
+	set(handles.figure1,'pointer','watch')
+	
+	% Tiling
+	[ind_s,ind] = tile(m,400,4);      % shade_manip_raster "only consumes" 3 times Z grid size
+	if size(ind_s,1) > 1
+        img = [];
+        for i = 1:size(ind_s,1)
+            tmp1 = (ind_s(i,1):ind_s(i,2));     % Indexes with overlapping zone
+            tmp2 = ind(i,1):ind(i,2);           % Indexes of chunks without the overlaping zone
+            tmp = shade_manip_raster((luz.azim-90)*D2R,luz.elev*D2R,Z(tmp1,:));
+            img = [img; tmp(tmp2,:)];
+        end
+	else
+        img = shade_manip_raster((luz.azim-90)*D2R,luz.elev*D2R,Z);     % [0-1] matrix (reflectance)
+	end
 
-[X,Y,Z,head,m] = load_grd(handles);
-if isempty(Z),        return;     end;    % An error message was already issued
-D2R = pi/180;
-set(handles.figure1,'pointer','watch')
-
-% Tiling
-[ind_s,ind] = tile(m,400,4);      % shade_manip_raster "only consumes" 3 times Z grid size
-if size(ind_s,1) > 1
-    img = [];
-    for i = 1:size(ind_s,1)
-        tmp1 = (ind_s(i,1):ind_s(i,2));     % Indexes with overlapping zone
-        tmp2 = ind(i,1):ind(i,2);           % Indexes of chunks without the overlaping zone
-        tmp = shade_manip_raster((luz.azim-90)*D2R,luz.elev*D2R,Z(tmp1,:));
-        img = [img; tmp(tmp2,:)];
-    end
-else
-    img = shade_manip_raster((luz.azim-90)*D2R,luz.elev*D2R,Z);     % [0-1] matrix (reflectance)
-end
-
-if (strcmp(color,'color'))
-	if (handles.firstIllum),    img1 = get(handles.hImg,'CData');     handles.firstIllum = 0;
-	else                        img1 = handles.origFig;      end
-	if (isempty(img1)),         img1 = get(handles.hImg,'CData');     end             % No copy in memory
-	if (ndims(img1) == 2),      img1 = ind2rgb8(img1,get(handles.figure1,'Colormap'));    end    % Image is 2D   
-    img = shading_mat(img1,img);
-else
-    img = uint8((254 * img) + 1);   % Need to convert the reflectance matrix into a gray indexed image
-end
-
-if (isappdata(handles.figure1,'illumComm')),        rmappdata(handles.figure1,'illumComm');   end
-handles.no_file = 0;        handles.Illumin_type = 5;
-set(handles.hImg,'CData',img);
-if (strcmp(color,'gray')),  set(handles.figure1,'Colormap',gray(256));    end
-set(handles.figure1,'pointer','arrow');     guidata(handles.figure1, handles);
+	if (strcmp(color,'color'))
+		if (handles.firstIllum),    img1 = get(handles.hImg,'CData');     handles.firstIllum = 0;
+		else                        img1 = handles.origFig;      end
+		if (isempty(img1)),         img1 = get(handles.hImg,'CData');     end             % No copy in memory
+		if (ndims(img1) == 2),      img1 = ind2rgb8(img1,get(handles.figure1,'Colormap'));    end    % Image is 2D   
+        img = shading_mat(img1,img);
+	else
+        img = uint8((254 * img) + 1);   % Need to convert the reflectance matrix into a gray indexed image
+	end
+	
+	if (isappdata(handles.figure1,'illumComm')),        rmappdata(handles.figure1,'illumComm');   end
+	handles.no_file = 0;        handles.Illumin_type = 5;
+	set(handles.hImg,'CData',img);
+	if (strcmp(color,'gray')),  set(handles.figure1,'Colormap',gray(256));    end
+	set(handles.figure1,'pointer','arrow');     guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
 function ImageIlluminateFalseColor(hObject, luz, handles)
-% Illuminate a GMT grid from 3 different directions and turn it into a RGB image
+	% Illuminate a GMT grid from 3 different directions and turn it into a RGB image
+	
+	[X,Y,Z,head,m] = load_grd(handles);
+	if isempty(Z),        return;     end;    % An error message was already issued
+	set(handles.figure1,'pointer','watch')
+	D2R = pi/180;
+	
+	% Tiling
+	[ind_s,ind] = tile(m,400,4);      % shade_manip_raster "only consumes" 3 times Z grid size
+	if size(ind_s,1) > 1
+        zz1 = uint8([]);    zz2 = uint8([]);    zz3 = uint8([]);
+        for i = 1:size(ind_s,1)
+            tmp1 = (ind_s(i,1):ind_s(i,2));     % Indexes with overlapping zone
+            tmp2 = ind(i,1):ind(i,2);           % Indexes of chunks without the overlaping zone
+            tmp_1 = shade_manip_raster((luz.azim(1)-90)*D2R,luz.elev*D2R,Z(tmp1,:));
+            tmp_2 = shade_manip_raster((luz.azim(2)-90)*D2R,luz.elev*D2R,Z(tmp1,:));
+            tmp_3 = shade_manip_raster((luz.azim(3)-90)*D2R,luz.elev*D2R,Z(tmp1,:));
+            zz1 = [zz1; tmp_1(tmp2,:)];
+            zz2 = [zz2; tmp_2(tmp2,:)];
+            zz3 = [zz3; tmp_3(tmp2,:)];
+        end
+        zz(:,:,1) = zz1;    zz(:,:,2) = zz2;    zz(:,:,3) = zz3;
+	else
+        zz(:,:,1) = shade_manip_raster((luz.azim(1)-90)*D2R,luz.elev*D2R,Z);
+        zz(:,:,2) = shade_manip_raster((luz.azim(2)-90)*D2R,luz.elev*D2R,Z);
+        zz(:,:,3) = shade_manip_raster((luz.azim(3)-90)*D2R,luz.elev*D2R,Z);
+	end
 
-[X,Y,Z,head,m] = load_grd(handles);
-if isempty(Z),        return;     end;    % An error message was already issued
-set(handles.figure1,'pointer','watch')
-D2R = pi/180;
-
-% Tiling
-[ind_s,ind] = tile(m,400,4);      % shade_manip_raster "only consumes" 3 times Z grid size
-if size(ind_s,1) > 1
-    zz1 = uint8([]);    zz2 = uint8([]);    zz3 = uint8([]);
-    for i = 1:size(ind_s,1)
-        tmp1 = (ind_s(i,1):ind_s(i,2));     % Indexes with overlapping zone
-        tmp2 = ind(i,1):ind(i,2);           % Indexes of chunks without the overlaping zone
-        tmp_1 = shade_manip_raster((luz.azim(1)-90)*D2R,luz.elev*D2R,Z(tmp1,:));
-        tmp_2 = shade_manip_raster((luz.azim(2)-90)*D2R,luz.elev*D2R,Z(tmp1,:));
-        tmp_3 = shade_manip_raster((luz.azim(3)-90)*D2R,luz.elev*D2R,Z(tmp1,:));
-        zz1 = [zz1; tmp_1(tmp2,:)];
-        zz2 = [zz2; tmp_2(tmp2,:)];
-        zz3 = [zz3; tmp_3(tmp2,:)];
-    end
-    zz(:,:,1) = zz1;    zz(:,:,2) = zz2;    zz(:,:,3) = zz3;
-else
-    zz(:,:,1) = shade_manip_raster((luz.azim(1)-90)*D2R,luz.elev*D2R,Z);
-    zz(:,:,2) = shade_manip_raster((luz.azim(2)-90)*D2R,luz.elev*D2R,Z);
-    zz(:,:,3) = shade_manip_raster((luz.azim(3)-90)*D2R,luz.elev*D2R,Z);
-end
-
-if (isappdata(handles.figure1,'illumComm')),        rmappdata(handles.figure1,'illumComm');   end
-handles.Illumin_type = 7;       % This is temporary. It should be 7
-set(handles.hImg,'CData',zz);
-set(handles.figure1,'pointer','arrow');     guidata(handles.figure1, handles);
+	if (isappdata(handles.figure1,'illumComm')),        rmappdata(handles.figure1,'illumComm');   end
+	handles.Illumin_type = 7;       % This is temporary. It should be 7
+	set(handles.hImg,'CData',zz);
+	set(handles.figure1,'pointer','arrow');     guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
 function ImageAnaglyph_CB(hObject, eventdata, handles)
@@ -1835,69 +1844,94 @@ show_image(handles,'Anaglyph',X,Y,zz,1,'xy',0);
 
 % --------------------------------------------------------------------
 function img = shade_manip_raster(azimuth,elevation,Z)
-size_amp = 125;
-u1 = sin(azimuth) * cos(elevation);     u2 = -cos(azimuth) * cos(elevation);
-u3 = -sin(elevation);
-if (~isa(Z,'double')),  Z = double(Z);  end     % Make sure Z is of double type
-
-% Derivatives of function with respect to rows and columns
-dZdc = zeros(size(Z));      dZdr = zeros(size(Z));
-
-% Take forward differences on left and right edges
-dZdr(1,:) = Z(2,:) - Z(1,:);      dZdr(end,:) = Z(end,:) - Z(end-1,:);
-dZdc(:,1) = Z(:,2) - Z(:,1);      dZdc(:,end) = Z(:,end) - Z(:,end-1);
-
-% Take centered differences on interior points
-dZdr(2:end-1,:) = (Z(3:end,:)-Z(1:end-2,:)) / size_amp;
-dZdc(:,2:end-1) = (Z(:,3:end)-Z(:,1:end-2)) / size_amp;
-img  = (dZdr*u1 + dZdc*u2 - 2*u3) ./ (sqrt(dZdr .^ 2 + dZdc .^ 2 + 4));
-img(img < 0) = 0;   img(img > 1) = 1;
+	size_amp = 125;
+	u1 = sin(azimuth) * cos(elevation);     u2 = -cos(azimuth) * cos(elevation);
+	u3 = -sin(elevation);
+	if (~isa(Z,'double')),  Z = double(Z);  end     % Make sure Z is of double type
+	
+	% Derivatives of function with respect to rows and columns
+	dZdc = zeros(size(Z));      dZdr = zeros(size(Z));
+	
+	% Take forward differences on left and right edges
+	dZdr(1,:) = Z(2,:) - Z(1,:);      dZdr(end,:) = Z(end,:) - Z(end-1,:);
+	dZdc(:,1) = Z(:,2) - Z(:,1);      dZdc(:,end) = Z(:,end) - Z(:,end-1);
+	
+	% Take centered differences on interior points
+	dZdr(2:end-1,:) = (Z(3:end,:)-Z(1:end-2,:)) / size_amp;
+	dZdc(:,2:end-1) = (Z(:,3:end)-Z(:,1:end-2)) / size_amp;
+	img  = (dZdr*u1 + dZdc*u2 - 2*u3) ./ (sqrt(dZdr .^ 2 + dZdc .^ 2 + 4));
+	img(img < 0) = 0;   img(img > 1) = 1;
 
 % --------------------------------------------------------------------
 function ImageDrape_CB(hObject, eventdata, handles)
-if (handles.no_file == 1),    return;      end
-son_img = get(findobj(handles.axes1,'Type','image'),'CData');     % Get "son" image
-h_f = getappdata(0,'parent_gcf');                       % Get the parent figure handle
-try
-    h_a = findobj(h_f,'Type','axes');                   % Get the parent figure axes handle
-catch
-    msgbox('Parent window no longer exists (you kiled it). Exiting.','Warning');
-    set(handles.ImageDrape,'Enable','off');             % Set the Drape option to it's default value (off)
-    return
-end
-h_parent_img = findobj(get(h_a,'Children'),'Type','image');     % Get parent image handle
-parent_img = get(findobj(h_f,'Type','image'),'CData');
-[y_son x_son z] = size(son_img);                        % Get "son" image dimensions 
-[y_parent x_parent z] = size(parent_img);               % Get "parent" image dimensions
+	if (handles.no_file == 1),    return;      end
+	son_img = get(handles.hImg,'CData');            % Get "son" image
+	h_f = getappdata(0,'parent_gcf');               % Get the parent figure handle
+    if (~ishandle(h_f))
+        msgbox('Parent window no longer exists (you kiled it). Exiting.','Warning');
+        set(handles.ImageDrape,'Enable','off');             % Set the Drape option to it's default value (off)
+        return
+	end
+    handParent = guidata(h_f);      % We need the parent handles
+	parent_img = get(handParent.hImg,'CData');
+	[y_son x_son z] = size(son_img);                        % Get "son" image dimensions 
+	[y_parent x_parent z] = size(parent_img);               % Get "parent" image dimensions
+	
+	% Find if image needs to be ud fliped
+	flip = 0;
+	if(strcmp(get(handles.axes1,'YDir'),'reverse')),    flip = 1;   end
+	% See about transparency
+	dlg_title = 'Draping Transparency';        num_lines= [1 38];  defAns = {'0'};
+	resp  = inputdlg('Use Transparency (0-1)?',dlg_title,num_lines,defAns);     pause(0.01);
+    alfa = str2double(resp{1});
+    if (alfa > 1),                      alfa = 1;   end
+    if (alfa < 0.01 || isnan(alfa)),    alfa = 0;   end
 
-% Find if image needs to be ud fliped
-flip = 0;
-if(strcmp(get(handles.axes1,'YDir'),'reverse')),    flip = 1;   end
-% See about transparency
-dlg_title = 'Draping Transparency';        num_lines= [1 38];  defAns = {'0'};
-resp  = inputdlg('Use Transparency (0-1)?',dlg_title,num_lines,defAns);     pause(0.01);
-if (isempty(resp) || str2double(resp{1}) < 0.01),       no_alfa = 1;
-elseif (str2double(resp{1}) > 1),       no_alfa = 0;    alfa = 1;
-else                                    no_alfa = 0;    alfa = str2double(resp{1}); end
-
-son_cm = [];
-if (ndims(son_img) == 2),       son_cm = get(handles.figure1,'Colormap');   end       % Get "son" color map
-if(strcmp(get(handles.axes1,'YDir'),'reverse')),    son_img = flipdim(son_img,1);   end
-if (y_son ~= y_parent || x_son ~= x_parent)              % Check if "son" and "parent" images have the same size
-    son_img = cvlib_mex('resize',son_img,[y_parent x_parent],'bicubic');
-end
-if (~no_alfa)
-    if (ndims(son_img) == 2),       son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));    end
-    if (ndims(parent_img) == 2),    parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));      end
-    %son_img = uint8(double(parent_img) * alfa + double(son_img) * (1 - alfa));
-    cvlib_mex('addweighted',son_img,(1 - alfa),parent_img,alfa)     % In-place
-end
-set(h_parent_img,'CData',son_img);
-if (~isempty(son_cm) && no_alfa),    set(h_f,'Colormap',son_cm);     end  % Set "son" colormap to "parent" figure
-
-% Signal in the parent image handles that it has a draped image
-handles = guidata(h_f);     handles.is_draped = 1;      handles.Illumin_type = 0;
-guidata(h_f,handles)
+	son_cm = [];
+	if (ndims(son_img) == 2),       son_cm = get(handles.figure1,'Colormap');   end       % Get "son" color map
+	if (flip),      son_img = flipdim(son_img,1);   end
+    
+    blind_drape = true;
+    if (handles.geog && handParent.geog),   blind_drape = false;    end
+    if (blind_drape)        % Drape based solely in images sizes
+	    if (y_son ~= y_parent || x_son ~= x_parent)              % Check if "son" and "parent" images have the same size
+           son_img = cvlib_mex('resize',son_img,[y_parent x_parent],'bicubic');
+	    end
+    else                    % Drape based in images coords
+        rect_crop = [handles.head(1) handles.head(3) diff(handles.head(1:2)) diff(handles.head(3:4))];
+        [I,r_c] = cropimg(handParent.head(1:2),handParent.head(3:4),parent_img,rect_crop,'out_grid');
+        if (diff(r_c(1:2)) <= 0 || diff(r_c(3:4)) <= 0)
+            return
+        end
+        son_img = cvlib_mex('resize',son_img,[diff(r_c(1:2)) diff(r_c(3:4))]+1,'bicubic');
+        % Make sure parent & son are both indexed or true color
+        if (ndims(son_img) == 2 && ndims(parent_img) == 3)
+            son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));
+        end
+        if (ndims(son_img) == 3 && ndims(parent_img) == 2)
+            parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));
+        end
+        if (alfa)       % We must process this case here
+            tmp = parent_img(r_c(1):r_c(2),r_c(3):r_c(4),:);
+            cvlib_mex('addweighted',son_img,(1 - alfa),tmp,alfa)     % In-place
+            alfa = 0;       % We don't want to repeat the alpha blending below
+        end
+        parent_img(r_c(1):r_c(2),r_c(3):r_c(4),:) = son_img;
+        son_img = parent_img;       % Do this to be compatible with the blind_drape mode
+    end
+    
+	if (alfa)
+        if (ndims(son_img) == 2),       son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));    end
+        if (ndims(parent_img) == 2),    parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));      end
+        %son_img = uint8(double(parent_img) * alfa + double(son_img) * (1 - alfa));
+        cvlib_mex('addweighted',son_img,(1 - alfa),parent_img,alfa)     % In-place
+	end
+	set(handParent.hImg,'CData',son_img);
+	if (~isempty(son_cm) && (alfa > 0)),    set(h_f,'Colormap',son_cm);     end  % Set "son" colormap to "parent" figure
+	
+	% Signal in the parent image handles that it has a draped image
+	handParent.is_draped = 1;      handParent.Illumin_type = 0;
+	guidata(h_f,handParent)
 
 % --------------------------------------------------------------------
 function ImageColorPalettes_CB(hObject, eventdata, handles)
@@ -1905,7 +1939,7 @@ function ImageColorPalettes_CB(hObject, eventdata, handles)
 	if (ndims(get(handles.hImg,'CData')) == 3)
         warndlg('True color images do not use color palettes. So you cannot change it.','Warning'); return
 	end
-	color_palettes(handles.figure1,handles.home_dir,handles.work_dir)
+	color_palettes(handles.figure1)
 
 % --------------------------------------------------------------------
 function ToolsMeasureDist_CB(hObject, eventdata, handles)
@@ -1994,51 +2028,26 @@ function ToolsMeasureAreaPerCor_CB(hObject, eventdata, handles)
     
 % --------------------------------------------------------------------
 function ToolsMeasureAzimuth_CB(hObject, eventdata, handles)
-if (handles.no_file == 1),    return;      end
-zoom_state(handles,'maybe_off');
-msg = [];
-[xp,yp] = getline_j(handles.figure1);      n_nodes = length(xp);
-if (n_nodes < 2),   zoom_state(handles,'maybe_on');     return;     end
-if (handles.geog)
-    az = azimuth_geo(yp(1:end-1), xp(1:end-1), yp(2:end), xp(2:end));
-else
-    dx = diff(xp);   dy = diff(yp);
-    angs = atan2(dy,dx) * 180/pi;       % and convert to degrees
-    az = (90 - angs);                   % convert to azim (cw from north)
-    ind = find(az < 0);
-    az(ind) = 360 + az(ind);
-end
-
-for (i = 1:length(az))
-    msg = [msg; {['Azimuth' sprintf('%d',i) '  =  ' sprintf('%3.1f',az(i)) '  degrees']}];
-end
-zoom_state(handles,'maybe_on');
-msgbox(msg,'Azimuth(s)')
-
-% --------------------------------------------------------------------
-function [X,Y,Z,head,m,n] = load_grd(handles, opt)
-% Load a GMT grid either from memory, or re-read it again if it is to
-% big to fit in it (biger than handles.grdMaxSize)
-if (handles.image_type == 20),  X=[];Y=[];Z=[];head=[];   return;     end     % Fake image with bg_color. Nothing loadable
-if (nargin == 1),   opt = ' ';  end
-X = getappdata(handles.figure1,'dem_x');    Y = getappdata(handles.figure1,'dem_y');
-Z = getappdata(handles.figure1,'dem_z');    head = getappdata(handles.figure1,'GMThead');
-if (handles.ForceInsitu),   opt_I = '-I';   % Use only in desperate cases.
-else                        opt_I = ' ';    end
-if (nargout > 4),           [m,n] = size(Z);end
-err_msg = 0;
-
-if (isempty(X) && handles.image_type == 1 && ~handles.computed_grid)
-    [X,Y,Z,head] = grdread_m(handles.grdname,'single',opt_I);
-    if (nargout == 6),          [m,n] = size(Z);end
-elseif (isempty(X) && handles.image_type == 4 && ~handles.computed_grid)
-    Z = [];     % Check for this to detect a (re)-loading error
-    err_msg = 'Grid was not on memory. Increase "Grid max size" and start over again.';
-elseif (isempty(X) && isempty(handles.grdname))
-    Z = [];     % Check for this to detect a (re)-loading error
-    err_msg = 'Grid could not be reloaded. You probably need to increase "Grid max size"';
-end
-if (err_msg & ~strcmp(opt,'silent')),    errordlg(err_msg,'ERROR');    end
+	if (handles.no_file == 1),    return;      end
+	zoom_state(handles,'maybe_off');
+	msg = [];
+	[xp,yp] = getline_j(handles.figure1);      n_nodes = length(xp);
+	if (n_nodes < 2),   zoom_state(handles,'maybe_on');     return;     end
+	if (handles.geog)
+        az = azimuth_geo(yp(1:end-1), xp(1:end-1), yp(2:end), xp(2:end));
+	else
+        dx = diff(xp);   dy = diff(yp);
+        angs = atan2(dy,dx) * 180/pi;       % and convert to degrees
+        az = (90 - angs);                   % convert to azim (cw from north)
+        ind = find(az < 0);
+        az(ind) = 360 + az(ind);
+	end
+	
+	for (i = 1:length(az))
+        msg = [msg; {['Azimuth' sprintf('%d',i) '  =  ' sprintf('%3.1f',az(i)) '  degrees']}];
+	end
+	zoom_state(handles,'maybe_on');
+	msgbox(msg,'Azimuth(s)')
 
 % --------------------------------------------------------------------
 function DrawLine_CB(hObject, eventdata, handles, opt)
@@ -2145,48 +2154,48 @@ end
 
 % --------------------------------------------------------------------
 function DrawEulerPoleCircle_CB(hObject, eventdata, handles)
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-zoom_state(handles,'maybe_off');
-
-out = euler_poles_selector;         % The output is a struct with fields: lon lat omega plates model
-if isempty(out),    return;     end % User gave up
-lon = out.lon;      lat = out.lat;
-h_circ = uicirclegeo(lon,lat);
-set(h_circ,'Tag','CircleEuler')     % This is used by draw_funs to allow velocity computations
-if ~isempty(out)
-    s = get(h_circ,'Userdata');
-    s.omega = out.omega;
-    if ~isempty(out.plates)     % Just in case
-        if isempty(strmatch('absolute',out.plates))     % A relative plate model
-            s.plates = [out.plates '  -- Model = ' out.model];
-        else                                            % An absolute plate model
-            s.plates = [out.plates(end-1:end) ' -- Model = ' out.model ' (Absolute)'];
+	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	zoom_state(handles,'maybe_off');
+	
+	out = euler_poles_selector;         % The output is a struct with fields: lon lat omega plates model
+	if isempty(out),    return;     end % User gave up
+	lon = out.lon;      lat = out.lat;
+	h_circ = uicirclegeo(lon,lat);
+	set(h_circ,'Tag','CircleEuler')     % This is used by draw_funs to allow velocity computations
+	if ~isempty(out)
+        s = get(h_circ,'Userdata');
+        s.omega = out.omega;
+        if ~isempty(out.plates)     % Just in case
+            if isempty(strmatch('absolute',out.plates))     % A relative plate model
+                s.plates = [out.plates '  -- Model = ' out.model];
+            else                                            % An absolute plate model
+                s.plates = [out.plates(end-1:end) ' -- Model = ' out.model ' (Absolute)'];
+            end
+        else
+            s.plates = 'I''m lost';
         end
-    else
-        s.plates = 'I''m lost';
-    end
-    set(h_circ,'Userdata',s)
-end
-draw_funs(h_circ,'SessionRestoreCircle')
-zoom_state(handles,'maybe_on');
+        set(h_circ,'Userdata',s)
+	end
+	draw_funs(h_circ,'SessionRestoreCircle')
+	zoom_state(handles,'maybe_on');
 
 % --------------------------------------------------------------------
 function DrawGeographicalCircle_CB(hObject, eventdata, handles, opt)
-% If OPT exist (no matter what it contains) draw a great circle arc instead of a circle
-if (handles.no_file == 1),      return;      end
-if (nargin == 3),   opt = [];   end
-zoom_state(handles,'maybe_off');
-if (handles.geog && strcmp(opt,'gcirc'))
-    draw_funs([],'DrawGreatCircle')             % All work is done there
-elseif (handles.geog ~= 1 && strcmp(opt,'gcirc'))
-    warndlg('Great Circles are only programed to work with geog coordinates.','Warning')
-elseif (handles.geog ~= 1 && isempty(opt) || strcmp(opt,'cartCirc'))
-    draw_funs([],'DrawCartesianCircle')         % All work is done there
-else
-    h_circ = uicirclegeo;                       % Draw the circle and associate Button... functions
-    draw_funs(h_circ,'SessionRestoreCircle')    % Give uicontext
-end
-zoom_state(handles,'maybe_on');
+	% If OPT exist (no matter what it contains) draw a great circle arc instead of a circle
+	if (handles.no_file == 1),      return;      end
+	if (nargin == 3),   opt = [];   end
+	zoom_state(handles,'maybe_off');
+	if (handles.geog && strcmp(opt,'gcirc'))
+        draw_funs([],'DrawGreatCircle')             % All work is done there
+	elseif (handles.geog ~= 1 && strcmp(opt,'gcirc'))
+        warndlg('Great Circles are only programed to work with geog coordinates.','Warning')
+	elseif (handles.geog ~= 1 && isempty(opt) || strcmp(opt,'cartCirc'))
+        draw_funs([],'DrawCartesianCircle')         % All work is done there
+	else
+        h_circ = uicirclegeo;                       % Draw the circle and associate Button... functions
+        draw_funs(h_circ,'SessionRestoreCircle')    % Give uicontext
+	end
+	zoom_state(handles,'maybe_on');
 
 % --------------------------------------------------------------------
 function DrawImportLine_CB(hObject, eventdata, handles, opt)
@@ -2342,29 +2351,29 @@ deform_okada(handles.figure1,handles.geog,lineHand1,strike,depth,slip,dip,rake);
 
 % --------------------------------------------------------------------
 function GeophysicsImportGmtFile_CB(hObject, eventdata, handles)
-% Open a .gmt file
-if (handles.no_file == 0 && handles.geog ~= 1),  aux_funs('msg_dlg',3,handles);     return;      end
-
-[FileName,PathName] = put_or_get_file(handles,{'*.gmt;*.GMT', 'gmt files (*.gmt,*.GMT)'},'Select gmt File','get');
-if isequal(FileName,0);     return;     end
-[PATH,FNAME] = fileparts([PathName FileName]);
-f_name = [PATH filesep FNAME];          % Rip the .gmt extension
-set(handles.figure1,'Pointer','watch')
-track = gmtlist_m(f_name,'-Fxy','-G');
-if (handles.no_file)        % We don't have a BG map, so we have to create one
-    y_min = min(track.latitude);    y_max = max(track.latitude);
-    x_min = min(track.longitude);   x_max = max(track.longitude);
-    FileNewBgFrame_CB(handles.figure1,[],handles, [x_min x_max y_min y_max 1])
-else                        % Get rid of points that are outside the map limits
-    [track.longitude,track.latitude] = aux_funs('in_map_region',handles,track.longitude,track.latitude,0.1,[]);
-    if (isempty(track.longitude))       % There was nothing left
-        set(handles.figure1,'Pointer','arrow');     return
-    end
-end
-h = line(track.longitude,track.latitude,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor,'Tag',FileName,'Userdata',1);
-setappdata(h,'FullName',[PathName FileName])    % Store file name in case the uicontext wants to open it with gmtedit
-draw_funs(h,'gmtfile',track.info)
-set(handles.figure1,'Pointer','arrow')
+	% Open a .gmt file
+	if (handles.no_file == 0 && handles.geog ~= 1),  aux_funs('msg_dlg',3,handles);     return;      end
+	
+	[FileName,PathName] = put_or_get_file(handles,{'*.gmt;*.GMT', 'gmt files (*.gmt,*.GMT)'},'Select gmt File','get');
+	if isequal(FileName,0);     return;     end
+	[PATH,FNAME] = fileparts([PathName FileName]);
+	f_name = [PATH filesep FNAME];          % Rip the .gmt extension
+	set(handles.figure1,'Pointer','watch')
+	track = gmtlist_m(f_name,'-Fxy','-G');
+	if (handles.no_file)        % We don't have a BG map, so we have to create one
+        y_min = min(track.latitude);    y_max = max(track.latitude);
+        x_min = min(track.longitude);   x_max = max(track.longitude);
+        FileNewBgFrame_CB(handles.figure1,[],handles, [x_min x_max y_min y_max 1])
+	else                        % Get rid of points that are outside the map limits
+        [track.longitude,track.latitude] = aux_funs('in_map_region',handles,track.longitude,track.latitude,0.1,[]);
+        if (isempty(track.longitude))       % There was nothing left
+            set(handles.figure1,'Pointer','arrow');     return
+        end
+	end
+	h = line(track.longitude,track.latitude,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor,'Tag',FileName,'Userdata',1);
+	setappdata(h,'FullName',[PathName FileName])    % Store file name in case the uicontext wants to open it with gmtedit
+	draw_funs(h,'gmtfile',track.info)
+	set(handles.figure1,'Pointer','arrow')
 
 % --------------------------------------------------------------------
 function GeophysicsImportGmtFileList_CB(hObject, eventdata, handles)
@@ -2671,14 +2680,14 @@ if (havePatches)                % case of patchs - NOTE, the Tags are currently 
         end
     end
 end
-if (haveCoasts),    DatasetsCoastLineNetCDF_CB([], [], handles,coastUD);  end
+if (haveCoasts),        datasets_funs('CoastLines', handles,coastUD);  end
 if (havePolitic)
     if (iscell(politicUD)),     politicUD = politicUD{1};     end
-    DatasetsPoliticalBoundaries_CB([], [], handles,politicUD(2),politicUD(1));
+    datasets_funs('Political',handles,politicUD(2),politicUD(1));
 end
 if (haveRivers)
     if (iscell(riversUD)),      riversUD = riversUD{1};     end
-    DatasetsRivers_CB([], [], handles,riversUD(2),riversUD(1));
+    datasets_funs('Rivers', handles,riversUD(2),riversUD(1));
 end
 guidata(hObject, handles);
 set(handles.figure1,'pointer','arrow','Name',[PathName FileName])
@@ -2823,144 +2832,20 @@ save(fname,'grd_name','img_pal', 'havePline','Pline', 'haveMBtrack', 'MBtrack','
 set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
-function DatasetsCoastLineNetCDF_CB(hObject, eventdata, handles, res)
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-if (nargin == 3),   res = 'l';  end
-set(handles.figure1,'pointer','watch')
-
-lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-opt_R = ['-R' sprintf('%.4f',lon(1)) '/' sprintf('%.4f',lon(2)) '/' sprintf('%.4f',lat(1)) '/' sprintf('%.4f',lat(2))];
-
-switch res
-    case 'c',        opt_res = '-Dc';        pad = 2.0;
-    case 'l',        opt_res = '-Dl';        pad = 0.5;
-    case 'i',        opt_res = '-Di';        pad = 0.1;
-    case 'h',        opt_res = '-Dh';        pad = 0.02;
-    case 'f',        opt_res = '-Df';        pad = 0.005;
-end
-coast = shoredump(opt_R,opt_res,'-A1/1/1');
-
-% Get rid of data that are outside the map limits
-lon = lon - [pad -pad];     lat = lat - [pad -pad];
-indx = (coast(1,:) < lon(1) | coast(1,:) > lon(2));
-coast(:,indx) = [];
-indx = (coast(2,:) < lat(1) | coast(2,:) > lat(2));
-coast(:,indx) = [];
-coast = single(coast);
-
-if (~all(isnan(coast(:))))
-	h = line('XData',coast(1,:),'YData',coast(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
-        'Color',handles.DefLineColor,'Tag','CoastLineNetCDF','UserData',opt_res(3));
-	draw_funs(h,'Coastline_uicontext')    % Set line's uicontextmenu
-end
-set(handles.figure1,'pointer','arrow')
-
-% --------------------------------------------------------------------
-function DatasetsPoliticalBoundaries_CB(hObject, eventdata, handles, type, res)
-% TYPE is: '1' -> National Boundaries
-%          '2' -> State Boundaries
-%          '3' -> Marine Boundaries
-%          'a' -> All Boundaries
-% RES is:  'c' or 'l' or 'i' or 'h' or 'f' (gmt database resolution)
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-
-set(handles.figure1,'pointer','watch')
-lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-opt_R = ['-R' sprintf('%.4f',lon(1)) '/' sprintf('%.4f',lon(2)) '/' sprintf('%.4f',lat(1)) '/' sprintf('%.4f',lat(2))];
-
-switch type
-    case '1',        opt_N = '-N1';
-    case '2',        opt_N = '-N2';
-    case '3',        opt_N = '-N3';
-    case 'a',        opt_N = '-Na';
-end
-
-switch res
-    case 'c',        opt_res = '-Dc';        pad = 2;
-    case 'l',        opt_res = '-Dl';        pad = 0.5;
-    case 'i',        opt_res = '-Di';        pad = 0.1;
-    case 'h',        opt_res = '-Dh';        pad = 0.05;
-    case 'f',        opt_res = '-Df';        pad = 0.01;
-end
-boundaries = shoredump(opt_R,opt_N,opt_res);
-
-% Get rid of data that are outside the map limits
-lon = lon - [pad -pad];     lat = lat - [pad -pad];
-indx = (boundaries(1,:) < lon(1) | boundaries(1,:) > lon(2));
-boundaries(:,indx) = [];
-indx = (boundaries(2,:) < lat(1) | boundaries(2,:) > lat(2));
-boundaries(:,indx) = [];
-
-if (~all(isnan(boundaries(:))))
-	h = line('XData',boundaries(1,:),'YData',boundaries(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
-        'Color',handles.DefLineColor,'Tag','PoliticalBoundaries', 'UserData',[opt_res(3) opt_N(3)]);
-	draw_funs(h,'Coastline_uicontext')    % Set line's uicontextmenu
-end
-set(handles.figure1,'pointer','arrow')
-
-% --------------------------------------------------------------------
-function DatasetsRivers_CB(hObject, eventdata, handles, type, res)
-% TYPE is: '1' -> Permanent major rivers;           '2' -> Additional major rivers
-%          '3' -> Additional rivers                 '4' -> Minor rivers
-%          '5' -> Intermittent rivers - major       '6' -> Intermittent rivers - additional
-%          '7' -> Intermittent rivers - minor       '8' -> Major canals
-%          '9' -> Minor canals
-%          'a' -> All rivers and canals (1-10)      'r' -> All permanent rivers (1-4)
-%          'i' -> All intermittent rivers (5-7)
-% RES is:  'c' or 'l' or 'i' or 'h' or 'f' (gmt database resolution)
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-
-set(handles.figure1,'pointer','watch')
-lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-opt_R = ['-R' sprintf('%.4f',lon(1)) '/' sprintf('%.4f',lon(2)) '/' sprintf('%.4f',lat(1)) '/' sprintf('%.4f',lat(2))];
-
-switch type
-    case '1',        opt_I = '-I1';         case '2',        opt_I = '-I2';
-    case '3',        opt_I = '-I3';
-    case '5',        opt_I = '-I5';         case '6',        opt_I = '-I6';
-    case '7',        opt_I = '-I7';
-    case 'a',        opt_I = '-Ia';
-    case 'r',        opt_I = '-Ir';         case 'i',        opt_I = '-Ii';
-end
-
-switch res
-    case 'c',        opt_res = '-Dc';        pad = 2;
-    case 'l',        opt_res = '-Dl';        pad = 0.5;
-    case 'i',        opt_res = '-Di';        pad = 0.1;
-    case 'h',        opt_res = '-Dh';        pad = 0.05;
-    case 'f',        opt_res = '-Df';        pad = 0.01;
-end
-rivers = shoredump(opt_R,opt_I,opt_res);
-
-% Get rid of data that are outside the map limits
-lon = lon - [pad -pad];     lat = lat - [pad -pad];
-indx = (rivers(1,:) < lon(1) | rivers(1,:) > lon(2));
-rivers(:,indx) = [];
-indx = (rivers(2,:) < lat(1) | rivers(2,:) > lat(2));
-rivers(:,indx) = [];
-
-if (~all(isnan(rivers(:))))
-	h = line('XData',rivers(1,:),'YData',rivers(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
-        'Color',handles.DefLineColor,'Tag','Rivers', 'UserData',[opt_res(3) opt_I(3:end)]);
-	draw_funs(h,'Coastline_uicontext')    % Set line's uicontextmenu
-end
-set(handles.figure1,'pointer','arrow')
-
-% --------------------------------------------------------------------
 function ImageMapLimits_CB(hObject, eventdata, handles)
-% Change the Image limits by asking it's corner coordinates
-region = bg_region('empty');     % region contains [x_min x_max y_min y_max is_geog]
-if isempty(region),     return;     end     % User gave up
-img = get(findobj(handles.axes1,'Type','image'),'CData');
-X = region(1:2);                            Y = region(3:4);
-x_inc = diff(X) / size(img,2);              y_inc = diff(Y) / size(img,1);
-dx2 = x_inc / 2;                            dy2 = y_inc / 2;
-X = X + [dx2 -dx2];                         Y = Y + [dy2 -dy2];     % Make it such that the pix-reg info = region
-handles.head = [X Y 0 255 0 x_inc y_inc];   handles.image_type = 3; handles.fileName = [];  % Not loadable in session
-
-% Flipud the image if necessary
-if (strcmp(get(handles.axes1,'YDir'),'reverse')),    img = flipdim(img,1);      end
-show_image(handles,'New Limits',X,Y,img,0,'xy',0,1);
+	% Change the Image limits by asking it's corner coordinates
+	region = bg_region('empty');     % region contains [x_min x_max y_min y_max is_geog]
+	if isempty(region),     return;     end     % User gave up
+	img = get(findobj(handles.axes1,'Type','image'),'CData');
+	X = region(1:2);                            Y = region(3:4);
+	x_inc = diff(X) / size(img,2);              y_inc = diff(Y) / size(img,1);
+	dx2 = x_inc / 2;                            dy2 = y_inc / 2;
+	X = X + [dx2 -dx2];                         Y = Y + [dy2 -dy2];     % Make it such that the pix-reg info = region
+	handles.head = [X Y 0 255 0 x_inc y_inc];   handles.image_type = 3; handles.fileName = [];  % Not loadable in session
+	
+	% Flipud the image if necessary
+	if (strcmp(get(handles.axes1,'YDir'),'reverse')),    img = flipdim(img,1);      end
+	show_image(handles,'New Limits',X,Y,img,0,'xy',0,1);
 
 % --------------------------------------------------------------------
 function GeophysicsTTT_CB(hObject, eventdata, handles,opt)
@@ -3529,31 +3414,31 @@ set(handles.figure1,'pointer','arrow');
 
 % --------------------------------------------------------------------
 function GRD_save_or_display(handles,X,Y,Z,head,tit,name)
-% Choose what to do with Z. Show it in a new window or save it as a gmt grid.
-% TIT is used only when saving a grid
-if (nargin < 7),    name = [];  end
-if (handles.out_in_NewWindow)
-    if (isa(Z,'double')),   Z = single(Z);  end
-    zzz = grdutils(Z,'-L');        head(5) = zzz(1);       head(6) = zzz(2);
-    tmp.head = [head(1) head(2) head(3) head(4) head(5) head(6) head(7) head(8) head(9)];
-    tmp.X = X;    tmp.Y = Y;    tmp.name = name;
-    mirone(Z,tmp);
-else
-    str1 = {'*.grd;*.GRD','netCDF grid format (*.grd,*.GRD)'; '*.*', 'All Files (*.*)'};
-    [FileName,PathName] = put_or_get_file(handles,str1,'Select output GMT grid','put');
-    if isequal(FileName,0);     return;     end
-
-    [PATH,FNAME,EXT] = fileparts([PathName FileName]);
-    if (handles.grdformat == 6)       % Preserve the original format
-        if isempty(EXT),    f_name = [PathName FNAME '.grd=' sprintf('%d',handles.grdformat)];
-        else                f_name = [PathName FNAME EXT '=' sprintf('%d',handles.grdformat)];       end
-    else
-        if isempty(EXT),    f_name = [PathName FNAME '.grd=nf'];
-        else                f_name = [PathName FNAME EXT '=nf'];       end    
-    end
-    grdwrite_m(Z,head,f_name,tit);     pause(0.01);
-end
-set(handles.figure1,'pointer','arrow');
+	% Choose what to do with Z. Show it in a new window or save it as a gmt grid.
+	% TIT is used only when saving a grid
+	if (nargin < 7),    name = [];  end
+	if (handles.out_in_NewWindow)
+        if (isa(Z,'double')),   Z = single(Z);  end
+        zzz = grdutils(Z,'-L');        head(5) = zzz(1);       head(6) = zzz(2);
+        tmp.head = [head(1) head(2) head(3) head(4) head(5) head(6) head(7) head(8) head(9)];
+        tmp.X = X;    tmp.Y = Y;    tmp.name = name;
+        mirone(Z,tmp);
+	else
+        str1 = {'*.grd;*.GRD','netCDF grid format (*.grd,*.GRD)'; '*.*', 'All Files (*.*)'};
+        [FileName,PathName] = put_or_get_file(handles,str1,'Select output GMT grid','put');
+        if isequal(FileName,0);     return;     end
+	
+        [PATH,FNAME,EXT] = fileparts([PathName FileName]);
+        if (handles.grdformat == 6)       % Preserve the original format
+            if isempty(EXT),    f_name = [PathName FNAME '.grd=' sprintf('%d',handles.grdformat)];
+            else                f_name = [PathName FNAME EXT '=' sprintf('%d',handles.grdformat)];       end
+        else
+            if isempty(EXT),    f_name = [PathName FNAME '.grd=nf'];
+            else                f_name = [PathName FNAME EXT '=nf'];       end    
+        end
+        grdwrite_m(Z,head,f_name,tit);     pause(0.01);
+	end
+	set(handles.figure1,'pointer','arrow');
 
 % --------------------------------------------------------------------
 function FileSaveImgGrdGdal_CB(hObject, eventdata, handles, opt1, opt2)
@@ -3636,10 +3521,6 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type)
 	end
     if (PathName ~= 0),         handles.last_dir = PathName;    end
 	pause(0.01);        cd(handles.home_dir);       % allways go home
-	if (~isempty(strfind([PathName FileName],' ')))
-        errordlg('If you had RTFM you should know that names (path included) with white spaces are totaly FORBIDEN here.','ERROR')
-        FileName = 0;   % Make calling routine quit
-	end
 	guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
@@ -3651,33 +3532,33 @@ function GridToolsGrdfilter_CB(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function GridToolsGrdsample_CB(hObject, eventdata, handles)
-if (aux_funs('msg_dlg',14,handles));     return;      end
-out = grdsample_Mir(handles.figure1);
-if (isempty(out)),      return;     end
-[X,Y,Z,head] = load_grd(handles);
-if isempty(Z),  return;     end;    % An error message was already issued
-
-set(handles.figure1,'pointer','watch')
-arg1 = ' ';     arg2 = ' ';     arg3 = ' ';     arg4 = ' ';
-if (isfield(out,'opt_R')),   arg1 = out.opt_R;   end
-if (isfield(out,'opt_N')),   arg2 = out.opt_N;   end
-if (isfield(out,'opt_Q')),   arg3 = out.opt_Q;   end
-if (isfield(out,'opt_L')),   arg4 = out.opt_L;   end
-newZ = grdsample_m(Z,head,arg1,arg2,arg3,arg4);
-[zzz] = grdutils(newZ,'-L');    z_min = zzz(1);     z_max = zzz(2);
-[ny,nx] = size(newZ);
-if (strcmp(arg1,' '))       % Grid limits did not change
-    x_inc = (head(2) - head(1)) / (nx - ~head(7));
-    y_inc = (head(4) - head(3)) / (ny - ~head(7));
-    new_head = [head(1) head(2) head(3) head(4) z_min z_max head(7) x_inc y_inc];
-    X = linspace(head(1),head(2),nx);       Y = linspace(head(3),head(4),ny);
-else
-    x_inc = (out.x_min - out.x_max) / (nx - ~head(7));
-    y_inc = (out.y_min - out.y_max) / (ny - ~head(7));
-    new_head = [out.x_min out.x_max out.y_min out.y_max z_min z_max head(7) x_inc y_inc];    
-    X = linspace(out.x_min,out.x_max,nx);   Y = linspace(out.y_min,out.y_max,ny);
-end
-GRD_save_or_display(handles,X,Y,newZ,new_head,'Resampled grid','Resampled grid')
+	if (aux_funs('msg_dlg',14,handles));     return;      end
+	out = grdsample_Mir(handles.figure1);
+	if (isempty(out)),      return;     end
+	[X,Y,Z,head] = load_grd(handles);
+	if isempty(Z),  return;     end;    % An error message was already issued
+	
+	set(handles.figure1,'pointer','watch')
+	arg1 = ' ';     arg2 = ' ';     arg3 = ' ';     arg4 = ' ';
+	if (isfield(out,'opt_R')),   arg1 = out.opt_R;   end
+	if (isfield(out,'opt_N')),   arg2 = out.opt_N;   end
+	if (isfield(out,'opt_Q')),   arg3 = out.opt_Q;   end
+	if (isfield(out,'opt_L')),   arg4 = out.opt_L;   end
+	newZ = grdsample_m(Z,head,arg1,arg2,arg3,arg4);
+	[zzz] = grdutils(newZ,'-L');    z_min = zzz(1);     z_max = zzz(2);
+	[ny,nx] = size(newZ);
+	if (strcmp(arg1,' '))       % Grid limits did not change
+        x_inc = (head(2) - head(1)) / (nx - ~head(7));
+        y_inc = (head(4) - head(3)) / (ny - ~head(7));
+        new_head = [head(1) head(2) head(3) head(4) z_min z_max head(7) x_inc y_inc];
+        X = linspace(head(1),head(2),nx);       Y = linspace(head(3),head(4),ny);
+	else
+        x_inc = (out.x_min - out.x_max) / (nx - ~head(7));
+        y_inc = (out.y_min - out.y_max) / (ny - ~head(7));
+        new_head = [out.x_min out.x_max out.y_min out.y_max z_min z_max head(7) x_inc y_inc];    
+        X = linspace(out.x_min,out.x_max,nx);   Y = linspace(out.y_min,out.y_max,ny);
+	end
+	GRD_save_or_display(handles,X,Y,newZ,new_head,'Resampled grid','Resampled grid')
 
 % --------------------------------------------------------------------
 function GridToolsGrdGrad_CB(hObject, eventdata, handles)
@@ -3735,25 +3616,25 @@ function GridToolsGridClip_CB(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function GridToolsHistogram_CB(hObject, eventdata, handles, opt)
-% OPT2 if present is a structure with two fields: opt2.Z (the matrix); opt2.head (its 9 elements header)
-if (aux_funs('msg_dlg',14,handles));     return;      end
-if (nargin == 3)                        % Use entire grid
-    [X,Y,Z,head] = load_grd(handles);
-    if isempty(Z),  return;     end;    % An error message was already issued
-    z_min = head(5);        z_max = head(6);
-else                                    % Use a subset grid extracted from a rectangular area
-    Z = opt.Z;              z_min = opt.head(5);      z_max = opt.head(6);
-end
-binwidth = (z_max - z_min) / 20;    % Default to 20 bins
-resp = inputdlg({'Enter Bin Width (default is 20 bins)'},'Histogram',[1 38],{sprintf('%g',binwidth)});     pause(0.01);
-if isempty(resp);    set(handles.figure1,'pointer','arrow');     return;     end
-n = round( (z_max - z_min) / str2double(resp{1}) );
-[n,xout] = histo_m('hist',Z(:),n,[z_min z_max]);
-h = mirone;                         % Create a new Mirone figure
-mirone('FileNewBgFrame_CB',h,[],guidata(h), [xout(1) xout(end) 0 max(n) 0], [600 600]);
-set(h,'Name','Grid Histogram');       axes(get(h,'CurrentAxes'));
-histo_m('bar',xout,n,'hist');
-set(handles.figure1,'pointer','arrow')
+	% OPT2 if present is a structure with two fields: opt2.Z (the matrix); opt2.head (its 9 elements header)
+	if (aux_funs('msg_dlg',14,handles));     return;      end
+	if (nargin == 3)                        % Use entire grid
+        [X,Y,Z,head] = load_grd(handles);
+        if isempty(Z),  return;     end;    % An error message was already issued
+        z_min = head(5);        z_max = head(6);
+	else                                    % Use a subset grid extracted from a rectangular area
+        Z = opt.Z;              z_min = opt.head(5);      z_max = opt.head(6);
+	end
+	binwidth = (z_max - z_min) / 20;    % Default to 20 bins
+	resp = inputdlg({'Enter Bin Width (default is 20 bins)'},'Histogram',[1 38],{sprintf('%g',binwidth)});     pause(0.01);
+	if isempty(resp);    set(handles.figure1,'pointer','arrow');     return;     end
+	n = round( (z_max - z_min) / str2double(resp{1}) );
+	[n,xout] = histo_m('hist',Z(:),n,[z_min z_max]);
+	h = mirone;                         % Create a new Mirone figure
+	mirone('FileNewBgFrame_CB',h,[],guidata(h), [xout(1) xout(end) 0 max(n) 0], [600 600]);
+	set(h,'Name','Grid Histogram');       axes(get(h,'CurrentAxes'));
+	histo_m('bar',xout,n,'hist');
+	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function GridToolsGridMask_CB(hObject, eventdata, handles)
@@ -3768,66 +3649,66 @@ function GridToolsGridMask_CB(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function GridToolsSectrum_CB(hObject, eventdata, handles, opt1, opt2)
-% OPT1 == 'Amplitude'   -> compute amplitude spectrum
-% OPT1 == 'Power'       -> compute power spectrum
-% OPT1 == 'Autocorr'    -> compute autocorrelation
-% OPT1 == 'Allopts'     -> call the fft_stuff window
-% OPT2 if present is a structure with two fields: opt2.Z (the matrix); opt2.head (its 9 elements header)
-if (aux_funs('msg_dlg',14,handles));     return;      end
-if (handles.have_nans)
-    warndlg('This grid has NaNs. That is not allowed in FFTs','Warning');    return;
-end
-if (nargin == 4)                        % Use entire grid
-    [X,Y,Z,head] = load_grd(handles);   quick = 0;
-    if isempty(Z),  return;     end;    % An error message was already issued
-else                                    % Use a subset grid extracted from a rectangular area
-    Z = opt2.Z;             head = opt2.head;       quick = 1;
-end
-
-if (quick),     set(handles.figure1,'pointer','watch'); end
-fft_stuff(handles.figure1, Z, head, handles.geog, opt1);
-if (quick),     set(handles.figure1,'pointer','arrow'); end
+	% OPT1 == 'Amplitude'   -> compute amplitude spectrum
+	% OPT1 == 'Power'       -> compute power spectrum
+	% OPT1 == 'Autocorr'    -> compute autocorrelation
+	% OPT1 == 'Allopts'     -> call the fft_stuff window
+	% OPT2 if present is a structure with two fields: opt2.Z (the matrix); opt2.head (its 9 elements header)
+	if (aux_funs('msg_dlg',14,handles));     return;      end
+	if (handles.have_nans)
+        warndlg('This grid has NaNs. That is not allowed in FFTs','Warning');    return;
+	end
+	if (nargin == 4)                        % Use entire grid
+        [X,Y,Z,head] = load_grd(handles);   quick = 0;
+        if isempty(Z),  return;     end;    % An error message was already issued
+	else                                    % Use a subset grid extracted from a rectangular area
+        Z = opt2.Z;             head = opt2.head;       quick = 1;
+	end
+	
+	if (quick),     set(handles.figure1,'pointer','watch'); end
+	fft_stuff(handles.figure1, Z, head, handles.geog, opt1);
+	if (quick),     set(handles.figure1,'pointer','arrow'); end
 
 % --------------------------------------------------------------------
 function GridToolsSmooth_CB(hObject, eventdata, handles)
-if (aux_funs('msg_dlg',14,handles));     return;      end
-[X,Y,Z,head,m,n] = load_grd(handles);       %  If gmt grid is not in memory, so read it again
-if isempty(Z),      return;     end;        % An error message was already issued
-if (~isa(Z,'double')),  Z = double(Z);  end;            % Make sure Z is of double type
+	if (aux_funs('msg_dlg',14,handles));     return;      end
+	[X,Y,Z,head,m,n] = load_grd(handles);       %  If gmt grid is not in memory, so read it again
+	if isempty(Z),      return;     end;        % An error message was already issued
+	if (~isa(Z,'double')),  Z = double(Z);  end;            % Make sure Z is of double type
+	
+	[pp p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));   % Get a good estimate of p
+	prompt = {'Enter smoothing p paramer'};     dlg_title = 'Smoothing parameter input';
+	defAns = {sprintf('%.12f',p_guess{1})};     resp  = inputdlg(prompt,dlg_title,[1 38],defAns);
+	pause(0.01)
+	if isempty(resp);    return;     end
+	
+	set(handles.figure1,'pointer','watch')
+	Lim = handles.grdMaxSize*.6;
+	nl0 = round(Lim/(n*16*8));
+	if (rem(nl0,2) ~= 0), nl0 = nl0 + 1;  end   % Don't know why, but I rather have it as a even number
+	nl = round(nl0*.8);
+	if (rem(nl,2) ~= 0),    nl = nl + 1;  end
+	skirt = ceil(nl0 - nl) - 2;
 
-[pp p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));   % Get a good estimate of p
-prompt = {'Enter smoothing p paramer'};     dlg_title = 'Smoothing parameter input';
-defAns = {sprintf('%.12f',p_guess{1})};     resp  = inputdlg(prompt,dlg_title,[1 38],defAns);
-pause(0.01)
-if isempty(resp);    return;     end
-
-set(handles.figure1,'pointer','watch')
-Lim = handles.grdMaxSize*.6;
-nl0 = round(Lim/(n*16*8));
-if (rem(nl0,2) ~= 0), nl0 = nl0 + 1;  end   % Don't know why, but I rather have it as a even number
-nl = round(nl0*.8);
-if (rem(nl,2) ~= 0),    nl = nl + 1;  end
-skirt = ceil(nl0 - nl) - 2;
-
-[ind_s,ind] = tile(m,nl,skirt);             % Get indexes for tiling.
-if size(ind_s,1) > 1                        % There is still a very strange thing that I don't understand.
-    Zs = [];
-    for k = 1:size(ind_s,1)
-        tmp1 = (ind_s(k,1):ind_s(k,2));     % Indexes with overlapping zone
-        tmp2 = ind(k,1):ind(k,2);           % Indexes of chunks without the overlaping zone
-        pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1,:),str2double(resp{1}));
-        tmp = spl_fun('fnval',pp,{Y(tmp1),X});
-        Zs = [Zs; tmp(tmp2,:)];
-    end
-    clear pp tmp;
-    Z = Zs;     clear Zs;
-else
-    pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));
-    Z = spl_fun('fnval',pp,{Y,X});    clear pp;
-end
-
-tit = ['Spline smoothed grid. p parameter used = ' str2double(resp{1})];
-GRD_save_or_display(handles,X,Y,Z,head,tit,'Spline smoothed grid');
+	[ind_s,ind] = tile(m,nl,skirt);             % Get indexes for tiling.
+	if size(ind_s,1) > 1                        % There is still a very strange thing that I don't understand.
+        Zs = [];
+        for k = 1:size(ind_s,1)
+            tmp1 = (ind_s(k,1):ind_s(k,2));     % Indexes with overlapping zone
+            tmp2 = ind(k,1):ind(k,2);           % Indexes of chunks without the overlaping zone
+            pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1,:),str2double(resp{1}));
+            tmp = spl_fun('fnval',pp,{Y(tmp1),X});
+            Zs = [Zs; tmp(tmp2,:)];
+        end
+        clear pp tmp;
+        Z = Zs;     clear Zs;
+	else
+        pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));
+        Z = spl_fun('fnval',pp,{Y,X});    clear pp;
+	end
+	
+	tit = ['Spline smoothed grid. p parameter used = ' str2double(resp{1})];
+	GRD_save_or_display(handles,X,Y,Z,head,tit,'Spline smoothed grid');
 
 % --------------------------------------------------------------------
 function GridToolsSDG_CB(hObject, eventdata, handles, opt)
@@ -3958,115 +3839,115 @@ GRD_save_or_display(handles,X,Y,slope,head,tit,tit);
 
 % --------------------------------------------------------------------
 function GridToolsDirDerive_CB(hObject, eventdata, handles, opt)
-if (aux_funs('msg_dlg',14,handles));     return;      end
-if (nargin == 3),   opt = 'first';     end
-luz = shading_params('dirDerivative');
-pause(0.01)         % Give time to the azimuth window be deleted
-if isempty(luz),   return;     end
-azim = (90 - luz.azim) * pi/180;
-
-[X,Y,Z,head] = load_grd(handles);
-if isempty(Z),   return;     end;    % An error message was already issued
-if (~isa(Z,'double')),  Z = double(Z);  end;            % Make sure Z is of double type
-
-set(handles.figure1,'pointer','watch')
-if (handles.geog == 1)
-    [gradN gradE] = gradient_geo(Y,X,Z,'grad');             % df/dy & df/dx
-    if strcmp(opt,'first')
-        Z = gradE * cos(azim) + gradN * sin(azim);
-        str = 'First derivative';
-    else        % second derivative
-        Z = gradient_geo(Y,X,gradN,'gradN')*(sin(azim)^2);   clear gradN;       % d2f/dy2
-        Z = Z + gradient_geo(Y,X,gradE,'gradE')*(cos(azim)^2);                  % + d2f/dx2
-        Z = Z + 2*gradient_geo(Y,X,gradE,'gradN')*(cos(azim) * sin(azim));      % + d2f/dxdy
-        str = 'Second derivative';
-    end
-else
-    set(handles.figure1,'pointer','arrow');     warndlg('Not yet programed for cartesian grids','Warning');   return
-end
-GRD_save_or_display(handles,X,Y,Z,head,str,str);
+	if (aux_funs('msg_dlg',14,handles));     return;      end
+	if (nargin == 3),   opt = 'first';     end
+	luz = shading_params('dirDerivative');
+	pause(0.01)         % Give time to the azimuth window be deleted
+	if isempty(luz),   return;     end
+	azim = (90 - luz.azim) * pi/180;
+	
+	[X,Y,Z,head] = load_grd(handles);
+	if isempty(Z),   return;     end;    % An error message was already issued
+	if (~isa(Z,'double')),  Z = double(Z);  end;            % Make sure Z is of double type
+	
+	set(handles.figure1,'pointer','watch')
+	if (handles.geog == 1)
+        [gradN gradE] = gradient_geo(Y,X,Z,'grad');             % df/dy & df/dx
+        if strcmp(opt,'first')
+            Z = gradE * cos(azim) + gradN * sin(azim);
+            str = 'First derivative';
+        else        % second derivative
+            Z = gradient_geo(Y,X,gradN,'gradN')*(sin(azim)^2);   clear gradN;       % d2f/dy2
+            Z = Z + gradient_geo(Y,X,gradE,'gradE')*(cos(azim)^2);                  % + d2f/dx2
+            Z = Z + 2*gradient_geo(Y,X,gradE,'gradN')*(cos(azim) * sin(azim));      % + d2f/dxdy
+            str = 'Second derivative';
+        end
+	else
+        set(handles.figure1,'pointer','arrow');     warndlg('Not yet programed for cartesian grids','Warning');   return
+	end
+	GRD_save_or_display(handles,X,Y,Z,head,str,str);
 
 % --------------------------------------------------------------------
 function GridToolsFindHoles_CB(hObject, eventdata, handles)
-% Find holes in double arrays and draw rectangles arround them
-if (aux_funs('msg_dlg',14,handles));     return;      end
-[X,Y,Z,head,m,n] = load_grd(handles);
-if isempty(Z),      return;     end;    % An error message was already issued
-a = isnan(Z);
-if (~any(a(:))),    warndlg('This grid has no holes','Warning');    return;  end
-
-set(handles.figure1,'pointer','watch')
-B = img_fun('find_holes',a);
-% Draw rectangles arround each hole
-hold on
-lt = getappdata(handles.figure1,'DefLineThick');    lc = getappdata(handles.figure1,'DefLineColor');
-for i=1:length(B)
-    x_min = min(B{i}(:,2));    x_max = max(B{i}(:,2));
-    y_min = min(B{i}(:,1));    y_max = max(B{i}(:,1));
-    if (x_min > 5),    x_min = x_min - 5;
-    else               x_min = 1;      end
-    if (x_max < n-5),  x_max = x_max + 5;
-    else               x_max = n;      end
-    if (y_min > 5),    y_min = y_min - 5;
-    else               y_min = 1;      end
-    if (y_max < m-5),  y_max = y_max + 5;
-    else               y_max = m;      end
-    x_min = head(1) + (x_min-1)*head(8);    x_max = head(1) + (x_max-1)*head(8);
-    y_min = head(3) + (y_min-1)*head(9);    y_max = head(3) + (y_max-1)*head(9);
-    h = plot([x_min x_min x_max x_max x_min],[y_min y_max y_max y_min y_min],'Color',lc,'LineWidth',lt);
-    draw_funs(h,'SRTM_rectangle')       % Set uicontexts
-end
-hold off;   set(handles.figure1,'pointer','arrow');
+	% Find holes in double arrays and draw rectangles arround them
+	if (aux_funs('msg_dlg',14,handles));     return;      end
+	[X,Y,Z,head,m,n] = load_grd(handles);
+	if isempty(Z),      return;     end;    % An error message was already issued
+	a = isnan(Z);
+	if (~any(a(:))),    warndlg('This grid has no holes','Warning');    return;  end
+	
+	set(handles.figure1,'pointer','watch')
+	B = img_fun('find_holes',a);
+	% Draw rectangles arround each hole
+	hold on
+	lt = getappdata(handles.figure1,'DefLineThick');    lc = getappdata(handles.figure1,'DefLineColor');
+	for i=1:length(B)
+        x_min = min(B{i}(:,2));    x_max = max(B{i}(:,2));
+        y_min = min(B{i}(:,1));    y_max = max(B{i}(:,1));
+        if (x_min > 5),    x_min = x_min - 5;
+        else               x_min = 1;      end
+        if (x_max < n-5),  x_max = x_max + 5;
+        else               x_max = n;      end
+        if (y_min > 5),    y_min = y_min - 5;
+        else               y_min = 1;      end
+        if (y_max < m-5),  y_max = y_max + 5;
+        else               y_max = m;      end
+        x_min = head(1) + (x_min-1)*head(8);    x_max = head(1) + (x_max-1)*head(8);
+        y_min = head(3) + (y_min-1)*head(9);    y_max = head(3) + (y_max-1)*head(9);
+        h = plot([x_min x_min x_max x_max x_min],[y_min y_max y_max y_min y_min],'Color',lc,'LineWidth',lt);
+        draw_funs(h,'SRTM_rectangle')       % Set uicontexts
+	end
+	hold off;   set(handles.figure1,'pointer','arrow');
 
 % --------------------------------------------------------------------
 function GridToolsSaveAsSRTM_CB(hObject, eventdata, handles)
-% Only grids with the same characteristics as SRTM 3c files are allowed to be saved
-if (handles.no_file == 1),     return;      end
-[X,Y,Z,head] = load_grd(handles);       % No need to test for in-memory Z
-if ( ((head(2)-head(1)) - 1) > 1e-6 || ((head(4)-head(3)) - 1) > 1e-6 )
-    errordlg('Grid does not cover a 1 degree square','Error');  return
-end
-if ( ((abs(head(8)-3/3600) > 1e-6) || (abs(head(9)-3/3600) > 1e-6)) && ...
-        ((abs(head(8)-1/3600) > 1e-6) || (abs(head(9)-1/3600) > 1e-6)) )
-    errordlg('Grid spacing differs from SRTM 1 or 3 arcsec files','Error');    return
-end
-
-% Build the file name (appended with the '_p' suffix)
-if (sign(head(1)) > 0 ),    w = 'E';
-else                        w = 'W';    end
-if (sign(head(3)) > 0 ),    n = 'N';
-else                        n = 'S';    end
-name = [n sprintf('%.2d',abs(round(head(3)))) w sprintf('%.3d',abs(round(head(1)))) '_p.hgt'];
-cd(handles.work_dir)
-[FileName,PathName] = uiputfile(name,'Select SRTM File name');
-if (PathName ~= 0),         handles.last_dir = PathName;    end
-pause(0.01)
-if isequal(FileName,0);     return;     end
-cd(handles.home_dir);       % allways go home to avoid troubles
-[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-if (isempty(EXT) && ~isempty(FileName))    FileName = [FileName '.hgt'];     end
-
-Z(isnan(Z)) = -32768;  Z = int16(rot90(Z,-1));      % Reset eventual NaNs to the SRTM nodata value
-fid = fopen([PathName FileName],'w','b');
-fwrite(fid,Z,'int16');  fclose(fid);
-guidata(handles.figure1,handles)
+	% Only grids with the same characteristics as SRTM 3c files are allowed to be saved
+	if (handles.no_file == 1),     return;      end
+	[X,Y,Z,head] = load_grd(handles);       % No need to test for in-memory Z
+	if ( ((head(2)-head(1)) - 1) > 1e-6 || ((head(4)-head(3)) - 1) > 1e-6 )
+        errordlg('Grid does not cover a 1 degree square','Error');  return
+	end
+	if ( ((abs(head(8)-3/3600) > 1e-6) || (abs(head(9)-3/3600) > 1e-6)) && ...
+            ((abs(head(8)-1/3600) > 1e-6) || (abs(head(9)-1/3600) > 1e-6)) )
+        errordlg('Grid spacing differs from SRTM 1 or 3 arcsec files','Error');    return
+	end
+	
+	% Build the file name (appended with the '_p' suffix)
+	if (sign(head(1)) > 0 ),    w = 'E';
+	else                        w = 'W';    end
+	if (sign(head(3)) > 0 ),    n = 'N';
+	else                        n = 'S';    end
+	name = [n sprintf('%.2d',abs(round(head(3)))) w sprintf('%.3d',abs(round(head(1)))) '_p.hgt'];
+	cd(handles.work_dir)
+	[FileName,PathName] = uiputfile(name,'Select SRTM File name');
+	if (PathName ~= 0),         handles.last_dir = PathName;    end
+	pause(0.01)
+	if isequal(FileName,0);     return;     end
+	cd(handles.home_dir);       % allways go home to avoid troubles
+	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
+	if (isempty(EXT) && ~isempty(FileName))    FileName = [FileName '.hgt'];     end
+	
+	Z(isnan(Z)) = -32768;  Z = int16(rot90(Z,-1));      % Reset eventual NaNs to the SRTM nodata value
+	fid = fopen([PathName FileName],'w','b');
+	fwrite(fid,Z,'int16');  fclose(fid);
+	guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
 function GridToolsPadd2Const_CB(hObject, eventdata, handles)
-% Pad the array to a const value (currently ct = zero) using a Hanning window
-if (aux_funs('msg_dlg',14,handles));     return;      end
-[X,Y,Z,head,m,n] = load_grd(handles);
-if isempty(Z),   return;     end;    % An error message was already issued
-resp  = inputdlg({'Enter number of border lines'},'Skirt width',[1 38],{'10'});
-pause(0.01)
-if isempty(resp);   return;     end
-n_pad = str2double(resp{1}) * 2;
-Z = mboard(Z,n,m,n+n_pad,m+n_pad);
-zzz = grdutils(Z,'-L');  head(5) = zzz(1);  head(6) = zzz(2);     clear zzz;
-head(1) = head(1) - n_pad/2 * head(8);      head(2) = head(2) + n_pad/2 * head(8);
-head(3) = head(3) - n_pad/2 * head(9);      head(4) = head(4) + n_pad/2 * head(9);
-X = linspace(head(1),head(2),n+n_pad);      Y = linspace(head(3),head(4),m+n_pad);
-GRD_save_or_display(handles,X,Y,Z,head,'Padded Grid','Padded Grid')
+	% Pad the array to a const value (currently ct = zero) using a Hanning window
+	if (aux_funs('msg_dlg',14,handles));     return;      end
+	[X,Y,Z,head,m,n] = load_grd(handles);
+	if isempty(Z),   return;     end;    % An error message was already issued
+	resp  = inputdlg({'Enter number of border lines'},'Skirt width',[1 38],{'10'});
+	pause(0.01)
+	if isempty(resp);   return;     end
+	n_pad = str2double(resp{1}) * 2;
+	Z = mboard(Z,n,m,n+n_pad,m+n_pad);
+	zzz = grdutils(Z,'-L');  head(5) = zzz(1);  head(6) = zzz(2);     clear zzz;
+	head(1) = head(1) - n_pad/2 * head(8);      head(2) = head(2) + n_pad/2 * head(8);
+	head(3) = head(3) - n_pad/2 * head(9);      head(4) = head(4) + n_pad/2 * head(9);
+	X = linspace(head(1),head(2),n+n_pad);      Y = linspace(head(3),head(4),m+n_pad);
+	GRD_save_or_display(handles,X,Y,Z,head,'Padded Grid','Padded Grid')
 
 % --------------------------------------------------------------------
 function FileSaveFlederSD_CB(hObject, eventdata, handles, opt)
@@ -4127,16 +4008,16 @@ end
 
 % --------------------------------------------------------------------
 function figure1_ResizeFcn(hObject, eventdata, handles)
-screen = get(0,'ScreenSize');
-if (~isempty(handles))
-	pos = get(handles.figure1,'Pos');
-    if (screen(3) == pos(3))        % Do not allow figure miximizing
-        set(handles.figure1,'Pos',handles.oldSize)
-    else
-        handles.oldSize = pos;
-        guidata(handles.figure1,handles)
-    end
-end
+	screen = get(0,'ScreenSize');
+	if (~isempty(handles))
+		pos = get(handles.figure1,'Pos');
+        if (screen(3) == pos(3))        % Do not allow figure miximizing
+            set(handles.figure1,'Pos',handles.oldSize)
+        else
+            handles.oldSize = pos;
+            guidata(handles.figure1,handles)
+        end
+	end
 
 % -----------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
@@ -4244,60 +4125,60 @@ set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function ImageMovieFromList_CB(hObject, eventdata, handles)
-str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
-[FileName,PathName] = put_or_get_file(handles,str1,'Select file with image list','get');
-if isequal(FileName,0);     return;     end
-fid = fopen([PathName FileName]);
-c = char(fread(fid))';      fclose(fid);
-names = strread(c,'%s','delimiter','\n');   clear c fid;
-m = length(names);
-for (k=1:m)
-    j = strfind(names{k},filesep);
-    if (isempty(j)), names{k} = [PathName names{k}]; end
-    img = imread(names{k});    M(k) = im2frame(img);
-end
-
-str1 = {'*.avi;*.AVI', 'avi files (*.avi,*.AVI)';'*.*', 'All Files (*.*)'};
-[FileName,PathName] = put_or_get_file(handles,str1,'Select movie name','put');
-if isequal(FileName,0);     return;     end
-movie2avi_j(M,[PathName FileName],'compression','none','fps',5)
+	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select file with image list','get');
+	if isequal(FileName,0);     return;     end
+	fid = fopen([PathName FileName]);
+	c = char(fread(fid))';      fclose(fid);
+	names = strread(c,'%s','delimiter','\n');   clear c fid;
+	m = length(names);
+	for (k=1:m)
+        j = strfind(names{k},filesep);
+        if (isempty(j)), names{k} = [PathName names{k}]; end
+        img = imread(names{k});    M(k) = im2frame(img);
+	end
+	
+	str1 = {'*.avi;*.AVI', 'avi files (*.avi,*.AVI)';'*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select movie name','put');
+	if isequal(FileName,0);     return;     end
+	movie2avi_j(M,[PathName FileName],'compression','none','fps',5)
 
 % --------------------------------------------------------------------
 function DigitalFilt_CB(hObject, eventdata, handles, opt)
-if (handles.no_file == 1),     return;      end
-if (strcmp(opt,'image'))
-    digitalFiltering(handles.hImg);
-else        % grid
-    if (aux_funs('msg_dlg',14,handles));     return;      end
-	[X,Y,Z,head] = load_grd(handles);   % load the grid array here
-	if isempty(Z),      return;     end;    % An error message was already issued
-	[Z, img] = digitalFiltering(handles.hImg,Z,get(handles.figure1,'ColorMap'));
-	if (isempty(Z)),    return;     end
-	
-    [zzz] = grdutils(Z,'-L');    head(5) = zzz(1);     head(6) = zzz(2);
-	setappdata(handles.figure1,'dem_z',Z);    setappdata(handles.figure1,'GMThead',head);
-	setappdata(handles.figure1,'Zmin_max',[head(5) head(6)])
-	handles.head = head;        handles.origFig = img;
-	guidata(handles.figure1,handles)
-end
+	if (handles.no_file == 1),     return;      end
+	if (strcmp(opt,'image'))
+        digitalFiltering(handles.hImg);
+	else        % grid
+        if (aux_funs('msg_dlg',14,handles));     return;      end
+		[X,Y,Z,head] = load_grd(handles);   % load the grid array here
+		if isempty(Z),      return;     end;    % An error message was already issued
+		[Z, img] = digitalFiltering(handles.hImg,Z,get(handles.figure1,'ColorMap'));
+		if (isempty(Z)),    return;     end
+		
+        [zzz] = grdutils(Z,'-L');    head(5) = zzz(1);     head(6) = zzz(2);
+		setappdata(handles.figure1,'dem_z',Z);    setappdata(handles.figure1,'GMThead',head);
+		setappdata(handles.figure1,'Zmin_max',[head(5) head(6)])
+		handles.head = head;        handles.origFig = img;
+		guidata(handles.figure1,handles)
+	end
 
 % --------------------------------------------------------------------
 function RotateTool_CB(hObject, eventdata, handles, opt)
-if (handles.no_file == 1),     return;      end
-if (strcmp(opt,'image'))
-    img = rotatetool(get(handles.hImg,'CData'),get(handles.figure1,'ColorMap'));
-    if (ndims(img) == 2),   setappdata(0,'CropedColormap',get(handles.figure1,'ColorMap'));     end
-    mirone(img);
-else        % grid
-    if (aux_funs('msg_dlg',14,handles));     return;      end
-	[X,Y,Z,head] = load_grd(handles);       % load the grid array here
-	if isempty(Z),      return;     end     % An error message was already issued
-	[newZ, hdr] = rotatetool(Z,head,get(handles.figure1,'ColorMap'));
-	if (isempty(newZ)),    return;     end
-    [ny,nx] = size(newZ);
-    X = linspace(hdr(1),hdr(2),nx);       Y = linspace(hdr(3),hdr(4),ny);
-    GRD_save_or_display(handles,X,Y,newZ,hdr,'Rotated grid','Rotated grid')
-end
+	if (handles.no_file == 1),     return;      end
+	if (strcmp(opt,'image'))
+        img = rotatetool(get(handles.hImg,'CData'),handles);
+        if (ndims(img) == 2),   setappdata(0,'CropedColormap',get(handles.figure1,'ColorMap'));     end
+        if (~isempty(img)),     mirone(img);    end
+	else        % grid
+        if (aux_funs('msg_dlg',14,handles));     return;      end
+		[X,Y,Z,head] = load_grd(handles);       % load the grid array here
+		if isempty(Z),      return;     end     % An error message was already issued
+		[newZ, hdr] = rotatetool(Z,handles);
+		if (isempty(newZ)),    return;     end
+        [ny,nx] = size(newZ);
+        X = linspace(hdr(1),hdr(2),nx);       Y = linspace(hdr(3),hdr(4),ny);
+        GRD_save_or_display(handles,X,Y,newZ,hdr,'Rotated grid','Rotated grid')
+	end
 
 % --------------------------------------------------------------------
 function ImageGCPtool_CB(hObject, eventdata, handles)
@@ -4332,7 +4213,7 @@ elseif (strcmp(opt,'bw'))
     set(handles.hImg,'CData', img, 'CDataMapping','scaled');
     set(handles.figure1,'ColorMap',gray(256))
 elseif (strcmp(opt,'guessType'))
-    str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png', 'Files (*.grd,*.nc,*.tif,*.tiff,*.pjg,*.jp2,*.png)'; '*.*', 'All Files (*.*)'};
+    str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif', 'Files (*.grd,*.nc,*.tif,*.tiff,*.pjg,*.jp2,*.png,*.gif)'; '*.*', 'All Files (*.*)'};
     [FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
     if isequal(FileName,0);     set(handles.figure1,'pointer','arrow');     return;     end             % User gave up
     drv = aux_funs('findFileType',[PathName FileName]);
@@ -4364,8 +4245,17 @@ elseif (strcmp(opt,'KML'))
         [X,Y,Z,head] = load_grd(handles);
         if isempty(Z),      set(handles.figure1,'pointer','arrow');     return;     end;
     end
-    writekml(handles,[PathName FileName],Z)     % Z will be used to setup a alpha chanel
-% elseif (strcmp(opt,'Paint'))
-%     mpaint(handles.figure1);
+    writekml(handles,Z,[PathName FileName])     % Z will be used to setup a alpha channel
+elseif (strcmp(opt,'scatter'))
+    str = {'*.dat;*.DAT;*.txt;*.TXT', 'Data file (*.dat,*.DAT,*.txt,*.TXT)'; '*.*', 'All Files (*.*)'};
+    [FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
+    if isequal(FileName,0);     set(handles.figure1,'pointer','arrow');     return;     end             % User gave up
+    datasets_funs('scatter',handles, [PathName FileName])       % Do the work when file is multi-seg, or 
+    n_cols = getappdata(handles.figure1,'callScatterWin');      % return here to pass control to scatter_plot()
+    if (n_cols >= 3)       % Came back from datasets_funs() without doing anything
+        scatter_plot(handles,[PathName,FileName]);
+    else
+        errordlg('File must contain at least three columns OR ''>...'' multi-seg info.','Error')
+    end
 end
 set(handles.figure1,'pointer','arrow')
