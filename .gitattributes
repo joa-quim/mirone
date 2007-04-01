@@ -116,6 +116,7 @@ data/mirone.ico -text
 data/mirone_icons.mat -text
 data/mirone_pref.mat -text
 data/nuvel_polyg.mat -text
+data/plateBoundaries_PB.kmz -text
 data/point.png -text
 data/point_predicted.png -text
 data/quakes90-03.dat -text
