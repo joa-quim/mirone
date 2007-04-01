@@ -1,5 +1,5 @@
 function  datasets_funs(opt,varargin)
-% This contains the Mirone's 'Datasets' funtions (except, for the time being, the 'pscoast')
+% This contains the Mirone's 'Datasets' funtions
 
 switch opt(1:3)
     case 'Hot'
@@ -16,30 +16,36 @@ switch opt(1:3)
         DatasetsCities(varargin{:})
     case 'ODP'
         DatasetsODP_DSDP(varargin{:})
+    case 'Coa'
+        CoastLines(varargin{:})
+    case 'Pol'
+        PoliticalBound(varargin{:})
+    case 'Riv'
+        Rivers(varargin{:})
     case 'sca'
         scaledSymbols(varargin{:})
 end
 
 % --------------------------------------------------------------------
 function DatasetsHotspots(handles)
-% Read hotspot.dat which has 4 columns (lon lat name age)
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-fid = fopen([handles.path_data 'hotspots.dat'],'r');
-tline = fgetl(fid);             % Jump the header line
-todos = fread(fid,'*char');     fclose(fid);
-[hot.x hot.y hot.name hot.age] = strread(todos,'%f %f %s %f');     % Note: hot.name is a cell array of chars
-clear todos;
-
-% Get rid of Fogspots that are outside the map limits
-[x,y,indx,indy] = aux_funs('in_map_region',handles,hot.x,hot.y,0,[]);
-hot.name(indx) = [];   hot.age(indx) = [];
-hot.name(indy) = [];   hot.age(indy) = [];
-n_hot = length(x);    h_hotspot = zeros(1,n_hot);
-for (i = 1:n_hot)
-    h_hotspot(i) = line(x(i),y(i),'Marker','p','MarkerFaceColor','r',...
-        'MarkerEdgeColor','k','MarkerSize',10,'Tag','hotspot','Userdata',i);
-end
-draw_funs(h_hotspot,'hotspot',hot)
+	% Read hotspot.dat which has 4 columns (lon lat name age)
+	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	fid = fopen([handles.path_data 'hotspots.dat'],'r');
+	tline = fgetl(fid);             % Jump the header line
+	todos = fread(fid,'*char');     fclose(fid);
+	[hot.x hot.y hot.name hot.age] = strread(todos,'%f %f %s %f');     % Note: hot.name is a cell array of chars
+	clear todos;
+	
+	% Get rid of Fogspots that are outside the map limits
+	[x,y,indx,indy] = aux_funs('in_map_region',handles,hot.x,hot.y,0,[]);
+	hot.name(indx) = [];   hot.age(indx) = [];
+	hot.name(indy) = [];   hot.age(indy) = [];
+	n_hot = length(x);    h_hotspot = zeros(1,n_hot);
+	for (i = 1:n_hot)
+        h_hotspot(i) = line(x(i),y(i),'Marker','p','MarkerFaceColor','r',...
+            'MarkerEdgeColor','k','MarkerSize',10,'Tag','hotspot','Userdata',i);
+	end
+	draw_funs(h_hotspot,'hotspot',hot)
 
 % --------------------------------------------------------------------
 function DatasetsVolcanoes(handles)
@@ -255,206 +261,332 @@ function [thick, cor, str2] = parseW(str)
     
 % --------------------------------------------------------------------
 function DatasetsPlateBound_PB_All(handles)
-% Read and plot the of the modified (by me) Peter Bird's Plate Boundaries
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-set(handles.figure1,'pointer','watch')
-load([handles.path_data 'PB_boundaries.mat'])
-
-% ------------------
-% Get rid of boundary segments that are outside the map limits
-xx = get(handles.axes1,'Xlim');      yy = get(handles.axes1,'Ylim');
-tol = 0.5;
-% ------------------ OTF class
-n = length(OTF);    k = [];
-for i = 1:n
-    ind = find(OTF(i).x_otf < xx(1)-tol | OTF(i).x_otf > xx(2)+tol);
-    OTF(i).x_otf(ind) = [];     OTF(i).y_otf(ind) = [];
-    if isempty(OTF(i).x_otf),   k = [k i];  end         % k is a counter to erase out-of-map segments
-end
-OTF(k) = [];
-n = length(OTF);    k = [];
-for i = 1:n
-    ind = find(OTF(i).y_otf < yy(1)-tol | OTF(i).y_otf > yy(2)+tol);
-    OTF(i).x_otf(ind) = [];     OTF(i).y_otf(ind) = [];
-    if isempty(OTF(i).x_otf),   k = [k i];  end
-end
-OTF(k) = [];
-% ------------------ OSR class
-n = length(OSR);    k = [];
-for i = 1:n
-    ind = find(OSR(i).x_osr < xx(1)-tol | OSR(i).x_osr > xx(2)+tol);
-    OSR(i).x_osr(ind) = [];     OSR(i).y_osr(ind) = [];
-    if isempty(OSR(i).x_osr),   k = [k i];  end
-end;    OSR(k) = [];
-n = length(OSR);    k = [];
-for i = 1:n
-    ind = find(OSR(i).y_osr < yy(1)-tol | OSR(i).y_osr > yy(2)+tol);
-    OSR(i).x_osr(ind) = [];     OSR(i).y_osr(ind) = [];
-    if isempty(OSR(i).x_osr),   k = [k i];  end
-end
-OSR(k) = [];
-% ------------------ CRB class
-n = length(CRB);    k = [];
-for i = 1:n
-    ind = find(CRB(i).x_crb < xx(1)-tol | CRB(i).x_crb > xx(2)+tol);
-    CRB(i).x_crb(ind) = [];     CRB(i).y_crb(ind) = [];
-    if isempty(CRB(i).x_crb),   k = [k i];  end
-end
-CRB(k) = [];
-n = length(CRB);    k = [];
-for i = 1:n
-    ind = find(CRB(i).y_crb < yy(1)-tol | CRB(i).y_crb > yy(2)+tol);
-    CRB(i).x_crb(ind) = [];     CRB(i).y_crb(ind) = [];
-    if isempty(CRB(i).x_crb),   k = [k i];  end
-end
-CRB(k) = [];
-% ------------------ CTF class
-n = length(CTF);    k = [];
-for i = 1:n
-    ind = find(CTF(i).x_ctf < xx(1)-tol | CTF(i).x_ctf > xx(2)+tol);
-    CTF(i).x_ctf(ind) = [];     CTF(i).y_ctf(ind) = [];
-    if isempty(CTF(i).x_ctf),   k = [k i];  end
-end
-CTF(k) = [];
-n = length(CTF);    k = [];
-for i = 1:n
-    ind = find(CTF(i).y_ctf < yy(1)-tol | CTF(i).y_ctf > yy(2)+tol);
-    CTF(i).x_ctf(ind) = [];     CTF(i).y_ctf(ind) = [];
-    if isempty(CTF(i).x_ctf),   k = [k i];  end
-end
-CTF(k) = [];
-% ------------------ CCB class
-n = length(CCB);    k = [];
-for i = 1:n
-    ind = find(CCB(i).x_ccb < xx(1)-tol | CCB(i).x_ccb > xx(2)+tol);
-    CCB(i).x_ccb(ind) = [];     CCB(i).y_ccb(ind) = [];
-    if isempty(CCB(i).x_ccb),   k = [k i];  end
-end
-CCB(k) = [];
-n = length(CCB);    k = [];
-for i = 1:n
-    ind = find(CCB(i).y_ccb < yy(1)-tol | CCB(i).y_ccb > yy(2)+tol);
-    CCB(i).x_ccb(ind) = [];     CCB(i).y_ccb(ind) = [];
-    if isempty(CCB(i).x_ccb),   k = [k i];  end
-end
-CCB(k) = [];
-% ------------------ OCB class
-n = length(OCB);    k = [];
-for i = 1:n
-    ind = find(OCB(i).x_ocb < xx(1)-tol | OCB(i).x_ocb > xx(2)+tol);
-    OCB(i).x_ocb(ind) = [];     OCB(i).y_ocb(ind) = [];
-    if isempty(OCB(i).x_ocb),   k = [k i];  end
-end
-OCB(k) = [];
-n = length(OCB);    k = [];
-for i = 1:n
-    ind = find(OCB(i).y_ocb < yy(1)-tol | OCB(i).y_ocb > yy(2)+tol);
-    OCB(i).x_ocb(ind) = [];     OCB(i).y_ocb(ind) = [];
-    if isempty(OCB(i).x_ocb),   k = [k i];  end
-end
-OCB(k) = [];
-% ------------------ SUB class
-n = length(SUB);    k = [];
-for i = 1:n
-    ind = find(SUB(i).x_sub < xx(1)-tol | SUB(i).x_sub > xx(2)+tol);
-    SUB(i).x_sub(ind) = [];     SUB(i).y_sub(ind) = [];
-    if isempty(SUB(i).x_sub),   k = [k i];  end
-end
-SUB(k) = [];
-n = length(SUB);    k = [];
-for i = 1:n
-    ind = find(SUB(i).y_sub < yy(1)-tol | SUB(i).y_sub > yy(2)+tol);
-    SUB(i).x_sub(ind) = [];     SUB(i).y_sub(ind) = [];
-    if isempty(SUB(i).x_sub),   k = [k i];  end
-end
-SUB(k) = [];
+	% Read and plot the modified (by me) Peter Bird's Plate Boundaries
+	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	set(handles.figure1,'pointer','watch')
+	load([handles.path_data 'PB_boundaries.mat'])
+	
+	% ------------------
+	% Get rid of boundary segments that are outside the map limits
+	xx = get(handles.axes1,'Xlim');      yy = get(handles.axes1,'Ylim');
+	tol = 0.5;
+	% ------------------ OTF class
+	n = length(OTF);    k = [];
+	for i = 1:n
+        ind = find(OTF(i).x_otf < xx(1)-tol | OTF(i).x_otf > xx(2)+tol);
+        OTF(i).x_otf(ind) = [];     OTF(i).y_otf(ind) = [];
+        if isempty(OTF(i).x_otf),   k = [k i];  end         % k is a counter to erase out-of-map segments
+	end
+	OTF(k) = [];
+	n = length(OTF);    k = [];
+	for i = 1:n
+        ind = find(OTF(i).y_otf < yy(1)-tol | OTF(i).y_otf > yy(2)+tol);
+        OTF(i).x_otf(ind) = [];     OTF(i).y_otf(ind) = [];
+        if isempty(OTF(i).x_otf),   k = [k i];  end
+	end
+	OTF(k) = [];
+	% ------------------ OSR class
+	n = length(OSR);    k = [];
+	for i = 1:n
+        ind = find(OSR(i).x_osr < xx(1)-tol | OSR(i).x_osr > xx(2)+tol);
+        OSR(i).x_osr(ind) = [];     OSR(i).y_osr(ind) = [];
+        if isempty(OSR(i).x_osr),   k = [k i];  end
+	end
+	OSR(k) = [];
+	n = length(OSR);    k = [];
+	for i = 1:n
+        ind = find(OSR(i).y_osr < yy(1)-tol | OSR(i).y_osr > yy(2)+tol);
+        OSR(i).x_osr(ind) = [];     OSR(i).y_osr(ind) = [];
+        if isempty(OSR(i).x_osr),   k = [k i];  end
+	end
+	OSR(k) = [];
+	% ------------------ CRB class
+	n = length(CRB);    k = [];
+	for i = 1:n
+        ind = find(CRB(i).x_crb < xx(1)-tol | CRB(i).x_crb > xx(2)+tol);
+        CRB(i).x_crb(ind) = [];     CRB(i).y_crb(ind) = [];
+        if isempty(CRB(i).x_crb),   k = [k i];  end
+	end
+	CRB(k) = [];
+	n = length(CRB);    k = [];
+	for i = 1:n
+        ind = find(CRB(i).y_crb < yy(1)-tol | CRB(i).y_crb > yy(2)+tol);
+        CRB(i).x_crb(ind) = [];     CRB(i).y_crb(ind) = [];
+        if isempty(CRB(i).x_crb),   k = [k i];  end
+	end
+	CRB(k) = [];
+	% ------------------ CTF class
+	n = length(CTF);    k = [];
+	for i = 1:n
+        ind = find(CTF(i).x_ctf < xx(1)-tol | CTF(i).x_ctf > xx(2)+tol);
+        CTF(i).x_ctf(ind) = [];     CTF(i).y_ctf(ind) = [];
+        if isempty(CTF(i).x_ctf),   k = [k i];  end
+	end
+	CTF(k) = [];
+	n = length(CTF);    k = [];
+	for i = 1:n
+        ind = find(CTF(i).y_ctf < yy(1)-tol | CTF(i).y_ctf > yy(2)+tol);
+        CTF(i).x_ctf(ind) = [];     CTF(i).y_ctf(ind) = [];
+        if isempty(CTF(i).x_ctf),   k = [k i];  end
+	end
+	CTF(k) = [];
+	% ------------------ CCB class
+	n = length(CCB);    k = [];
+	for i = 1:n
+        ind = find(CCB(i).x_ccb < xx(1)-tol | CCB(i).x_ccb > xx(2)+tol);
+        CCB(i).x_ccb(ind) = [];     CCB(i).y_ccb(ind) = [];
+        if isempty(CCB(i).x_ccb),   k = [k i];  end
+	end
+	CCB(k) = [];
+	n = length(CCB);    k = [];
+	for i = 1:n
+        ind = find(CCB(i).y_ccb < yy(1)-tol | CCB(i).y_ccb > yy(2)+tol);
+        CCB(i).x_ccb(ind) = [];     CCB(i).y_ccb(ind) = [];
+        if isempty(CCB(i).x_ccb),   k = [k i];  end
+	end
+	CCB(k) = [];
+	% ------------------ OCB class
+	n = length(OCB);    k = [];
+	for i = 1:n
+        ind = find(OCB(i).x_ocb < xx(1)-tol | OCB(i).x_ocb > xx(2)+tol);
+        OCB(i).x_ocb(ind) = [];     OCB(i).y_ocb(ind) = [];
+        if isempty(OCB(i).x_ocb),   k = [k i];  end
+	end
+	OCB(k) = [];
+	n = length(OCB);    k = [];
+	for i = 1:n
+        ind = find(OCB(i).y_ocb < yy(1)-tol | OCB(i).y_ocb > yy(2)+tol);
+        OCB(i).x_ocb(ind) = [];     OCB(i).y_ocb(ind) = [];
+        if isempty(OCB(i).x_ocb),   k = [k i];  end
+	end
+	OCB(k) = [];
+	% ------------------ SUB class
+	n = length(SUB);    k = [];
+	for i = 1:n
+        ind = find(SUB(i).x_sub < xx(1)-tol | SUB(i).x_sub > xx(2)+tol);
+        SUB(i).x_sub(ind) = [];     SUB(i).y_sub(ind) = [];
+        if isempty(SUB(i).x_sub),   k = [k i];  end
+	end
+	SUB(k) = [];
+	n = length(SUB);    k = [];
+	for i = 1:n
+        ind = find(SUB(i).y_sub < yy(1)-tol | SUB(i).y_sub > yy(2)+tol);
+        SUB(i).x_sub(ind) = [];     SUB(i).y_sub(ind) = [];
+        if isempty(SUB(i).x_sub),   k = [k i];  end
+	end
+	SUB(k) = [];
 
 % ------------------ Finally do the ploting ------------------------------------
-% Plot the OSR class
-n = length(OSR);    h_PB_All_OSR = zeros(n,1);
-for i = 1:n
-    line(OSR(i).x_osr,OSR(i).y_osr,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
-    h_PB_All_OSR(i) = line(OSR(i).x_osr,OSR(i).y_osr,'Linewidth',2,'Color','r','Tag','PB_All','Userdata',i);
-end
-% Plot the OTF class
-n = length(OTF);    h_PB_All_OTF = zeros(n,1);
-for i = 1:n
-    line(OTF(i).x_otf,OTF(i).y_otf,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
-    h_PB_All_OTF(i) = line(OTF(i).x_otf,OTF(i).y_otf,'Linewidth',2,'Color','g','Tag','PB_All','Userdata',i);
-end
-% Plot the CRB class
-n = length(CRB);    h_PB_All_CRB = zeros(n,1);
-for i = 1:n
-    line(CRB(i).x_crb,CRB(i).y_crb,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
-    h_PB_All_CRB(i) = line(CRB(i).x_crb,CRB(i).y_crb,'Linewidth',2,'Color','b','Tag','PB_All','Userdata',i);
-end
-% Plot the CTF class
-n = length(CTF);    h_PB_All_CTF = zeros(n,1);
-for i = 1:n
-    line(CTF(i).x_ctf,CTF(i).y_ctf,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
-    h_PB_All_CTF(i) = line(CTF(i).x_ctf,CTF(i).y_ctf,'Linewidth',2,'Color','y','Tag','PB_All','Userdata',i);
-end
-% Plot the CCB class
-n = length(CCB);    h_PB_All_CCB = zeros(n,1);
-for i = 1:n
-    line(CCB(i).x_ccb,CCB(i).y_ccb,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
-    h_PB_All_CCB(i) = line(CCB(i).x_ccb,CCB(i).y_ccb,'Linewidth',2,'Color','m','Tag','PB_All','Userdata',i);
-end
-% Plot the OCB class
-n = length(OCB);    h_PB_All_OCB = zeros(n,1);
-for i = 1:n
-    line(OCB(i).x_ocb,OCB(i).y_ocb,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
-    h_PB_All_OCB(i) = line(OCB(i).x_ocb,OCB(i).y_ocb,'Linewidth',2,'Color','c','Tag','PB_All','Userdata',i);
-end
-% Plot the SUB class
-n = length(SUB);    h_PB_All_SUB = zeros(n,1);
-for i = 1:n
-    line(SUB(i).x_sub,SUB(i).y_sub,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
-    h_PB_All_SUB(i) = line(SUB(i).x_sub,SUB(i).y_sub,'Linewidth',2,'Color','c','Tag','PB_All','Userdata',i);
-end
+	% Plot the OSR class
+	n = length(OSR);    h_PB_All_OSR = zeros(n,1);
+	for i = 1:n
+        line(OSR(i).x_osr,OSR(i).y_osr,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
+        h_PB_All_OSR(i) = line(OSR(i).x_osr,OSR(i).y_osr,'Linewidth',2,'Color','r','Tag','PB_All','Userdata',i);
+	end
+	% Plot the OTF class
+	n = length(OTF);    h_PB_All_OTF = zeros(n,1);
+	for i = 1:n
+        line(OTF(i).x_otf,OTF(i).y_otf,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
+        h_PB_All_OTF(i) = line(OTF(i).x_otf,OTF(i).y_otf,'Linewidth',2,'Color','g','Tag','PB_All','Userdata',i);
+	end
+	% Plot the CRB class
+	n = length(CRB);    h_PB_All_CRB = zeros(n,1);
+	for i = 1:n
+        line(CRB(i).x_crb,CRB(i).y_crb,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
+        h_PB_All_CRB(i) = line(CRB(i).x_crb,CRB(i).y_crb,'Linewidth',2,'Color','b','Tag','PB_All','Userdata',i);
+	end
+	% Plot the CTF class
+	n = length(CTF);    h_PB_All_CTF = zeros(n,1);
+	for i = 1:n
+        line(CTF(i).x_ctf,CTF(i).y_ctf,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
+        h_PB_All_CTF(i) = line(CTF(i).x_ctf,CTF(i).y_ctf,'Linewidth',2,'Color','y','Tag','PB_All','Userdata',i);
+	end
+	% Plot the CCB class
+	n = length(CCB);    h_PB_All_CCB = zeros(n,1);
+	for i = 1:n
+        line(CCB(i).x_ccb,CCB(i).y_ccb,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
+        h_PB_All_CCB(i) = line(CCB(i).x_ccb,CCB(i).y_ccb,'Linewidth',2,'Color','m','Tag','PB_All','Userdata',i);
+	end
+	% Plot the OCB class
+	n = length(OCB);    h_PB_All_OCB = zeros(n,1);
+	for i = 1:n
+        line(OCB(i).x_ocb,OCB(i).y_ocb,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
+        h_PB_All_OCB(i) = line(OCB(i).x_ocb,OCB(i).y_ocb,'Linewidth',2,'Color','c','Tag','PB_All','Userdata',i);
+	end
+	% Plot the SUB class
+	n = length(SUB);    h_PB_All_SUB = zeros(n,1);
+	for i = 1:n
+        line(SUB(i).x_sub,SUB(i).y_sub,'Linewidth',3,'Color','k','Tag','PB_All','Userdata',i);
+        h_PB_All_SUB(i) = line(SUB(i).x_sub,SUB(i).y_sub,'Linewidth',2,'Color','c','Tag','PB_All','Userdata',i);
+	end
 
-% Join all line handles into a single variable
-h.OSR = h_PB_All_OSR;    h.OTF = h_PB_All_OTF;    h.CRB = h_PB_All_CRB;    h.CTF = h_PB_All_CTF;
-h.CCB = h_PB_All_CCB;    h.OCB = h_PB_All_OCB;    h.SUB = h_PB_All_SUB;
-% Join all data into a single variable
-data.OSR = OSR;    data.OTF = OTF;    data.CRB = CRB;    data.CTF = CTF;
-data.CCB = CCB;    data.OCB = OCB;    data.SUB = SUB;
-draw_funs(h,'PlateBound_All_PB',data);      set(handles.figure1,'pointer','arrow')
+	% Join all line handles into a single variable
+	h.OSR = h_PB_All_OSR;    h.OTF = h_PB_All_OTF;    h.CRB = h_PB_All_CRB;    h.CTF = h_PB_All_CTF;
+	h.CCB = h_PB_All_CCB;    h.OCB = h_PB_All_OCB;    h.SUB = h_PB_All_SUB;
+	% Join all data into a single variable
+	data.OSR = OSR;    data.OTF = OTF;    data.CRB = CRB;    data.CTF = CTF;
+	data.CCB = CCB;    data.OCB = OCB;    data.SUB = SUB;
+	draw_funs(h,'PlateBound_All_PB',data);
+    set(handles.figure1,'pointer','arrow')
+
+% --------------------------------------------------------------------
+function CoastLines(handles, res)
+	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	if (nargin == 3),   res = 'l';  end
+	set(handles.figure1,'pointer','watch')
+	
+	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
+	opt_R = ['-R' sprintf('%.4f',lon(1)) '/' sprintf('%.4f',lon(2)) '/' sprintf('%.4f',lat(1)) '/' sprintf('%.4f',lat(2))];
+	
+	switch res
+        case 'c',        opt_res = '-Dc';        pad = 2.0;
+        case 'l',        opt_res = '-Dl';        pad = 0.5;
+        case 'i',        opt_res = '-Di';        pad = 0.1;
+        case 'h',        opt_res = '-Dh';        pad = 0.02;
+        case 'f',        opt_res = '-Df';        pad = 0.005;
+	end
+	coast = shoredump(opt_R,opt_res,'-A1/1/1');
+	
+	% Get rid of data that are outside the map limits
+	lon = lon - [pad -pad];     lat = lat - [pad -pad];
+	indx = (coast(1,:) < lon(1) | coast(1,:) > lon(2));
+	coast(:,indx) = [];
+	indx = (coast(2,:) < lat(1) | coast(2,:) > lat(2));
+	coast(:,indx) = [];
+	coast = single(coast);
+	
+	if (~all(isnan(coast(:))))
+		h = line('XData',coast(1,:),'YData',coast(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
+            'Color',handles.DefLineColor,'Tag','CoastLineNetCDF','UserData',opt_res(3));
+		draw_funs(h,'Coastline_uicontext')    % Set line's uicontextmenu
+	end
+	set(handles.figure1,'pointer','arrow')
+
+% --------------------------------------------------------------------
+function PoliticalBound(handles, type, res)
+	% TYPE is: '1' -> National Boundaries
+	%          '2' -> State Boundaries
+	%          '3' -> Marine Boundaries
+	%          'a' -> All Boundaries
+	% RES is:  'c' or 'l' or 'i' or 'h' or 'f' (gmt database resolution)
+	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	
+	set(handles.figure1,'pointer','watch')
+	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
+	opt_R = ['-R' sprintf('%.4f',lon(1)) '/' sprintf('%.4f',lon(2)) '/' sprintf('%.4f',lat(1)) '/' sprintf('%.4f',lat(2))];
+	
+	switch type
+        case '1',        opt_N = '-N1';
+        case '2',        opt_N = '-N2';
+        case '3',        opt_N = '-N3';
+        case 'a',        opt_N = '-Na';
+	end
+	
+	switch res
+        case 'c',        opt_res = '-Dc';        pad = 2;
+        case 'l',        opt_res = '-Dl';        pad = 0.5;
+        case 'i',        opt_res = '-Di';        pad = 0.1;
+        case 'h',        opt_res = '-Dh';        pad = 0.05;
+        case 'f',        opt_res = '-Df';        pad = 0.01;
+	end
+	boundaries = shoredump(opt_R,opt_N,opt_res);
+	
+	% Get rid of data that are outside the map limits
+	lon = lon - [pad -pad];     lat = lat - [pad -pad];
+	indx = (boundaries(1,:) < lon(1) | boundaries(1,:) > lon(2));
+	boundaries(:,indx) = [];
+	indx = (boundaries(2,:) < lat(1) | boundaries(2,:) > lat(2));
+	boundaries(:,indx) = [];
+	
+	if (~all(isnan(boundaries(:))))
+		h = line('XData',boundaries(1,:),'YData',boundaries(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
+            'Color',handles.DefLineColor,'Tag','PoliticalBoundaries', 'UserData',[opt_res(3) opt_N(3)]);
+		draw_funs(h,'Coastline_uicontext')    % Set line's uicontextmenu
+	end
+	set(handles.figure1,'pointer','arrow')
+
+% --------------------------------------------------------------------
+function Rivers(handles, type, res)
+	% TYPE is: '1' -> Permanent major rivers;           '2' -> Additional major rivers
+	%          '3' -> Additional rivers                 '4' -> Minor rivers
+	%          '5' -> Intermittent rivers - major       '6' -> Intermittent rivers - additional
+	%          '7' -> Intermittent rivers - minor       '8' -> Major canals
+	%          '9' -> Minor canals
+	%          'a' -> All rivers and canals (1-10)      'r' -> All permanent rivers (1-4)
+	%          'i' -> All intermittent rivers (5-7)
+	% RES is:  'c' or 'l' or 'i' or 'h' or 'f' (gmt database resolution)
+	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	
+	set(handles.figure1,'pointer','watch')
+	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
+	opt_R = ['-R' sprintf('%.4f',lon(1)) '/' sprintf('%.4f',lon(2)) '/' sprintf('%.4f',lat(1)) '/' sprintf('%.4f',lat(2))];
+	
+	switch type
+        case '1',        opt_I = '-I1';         case '2',        opt_I = '-I2';
+        case '3',        opt_I = '-I3';
+        case '5',        opt_I = '-I5';         case '6',        opt_I = '-I6';
+        case '7',        opt_I = '-I7';
+        case 'a',        opt_I = '-Ia';
+        case 'r',        opt_I = '-Ir';         case 'i',        opt_I = '-Ii';
+	end
+	
+	switch res
+        case 'c',        opt_res = '-Dc';        pad = 2;
+        case 'l',        opt_res = '-Dl';        pad = 0.5;
+        case 'i',        opt_res = '-Di';        pad = 0.1;
+        case 'h',        opt_res = '-Dh';        pad = 0.05;
+        case 'f',        opt_res = '-Df';        pad = 0.01;
+	end
+	rivers = shoredump(opt_R,opt_I,opt_res);
+	
+	% Get rid of data that are outside the map limits
+	lon = lon - [pad -pad];     lat = lat - [pad -pad];
+	indx = (rivers(1,:) < lon(1) | rivers(1,:) > lon(2));
+	rivers(:,indx) = [];
+	indx = (rivers(2,:) < lat(1) | rivers(2,:) > lat(2));
+	rivers(:,indx) = [];
+	
+	if (~all(isnan(rivers(:))))
+		h = line('XData',rivers(1,:),'YData',rivers(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
+            'Color',handles.DefLineColor,'Tag','Rivers', 'UserData',[opt_res(3) opt_I(3:end)]);
+		draw_funs(h,'Coastline_uicontext')    % Set line's uicontextmenu
+	end
+	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function DatasetsCities(handles,opt)
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-if strcmp(opt,'major')
-    fid = fopen([handles.path_data 'wcity_major.dat'],'r');
-    tag = 'City_major';
-elseif strcmp(opt,'other')
-    fid = fopen([handles.path_data 'wcity.dat'],'r');
-    tag = 'City_other';
-end
-todos = fread(fid,'*char');     fclose(fid);
-[city.x city.y city.name] = strread(todos,'%f %f %s');     % Note: city.name is a cell array of chars
-% Get rid of Cities that are outside the map limits
-[x,y,indx,indy] = aux_funs('in_map_region',handles,city.x,city.y,0,[]);
-city.name(indx) = [];       city.name(indy) = [];
-n_city = length(x);
-
-if (n_city == 0),   return;     end     % No cities inside area. Return.
-h_city = line(x,y,'LineStyle','none','Marker','o','MarkerFaceColor','k',...
-    'MarkerEdgeColor','w','MarkerSize',6,'Tag',tag);
-draw_funs(h_city,'DrawSymbol')                  % Set symbol's uicontextmenu
-
-% Estimate the text position shift in order that it doesn't fall over the city symbol 
-pos = get(handles.figure1,'Position');
-x_lim = get(handles.axes1,'xlim');
-z1 = 7 / pos(3);
-dx = z1 * (x_lim(2) - x_lim(1));
-
-city.name = strrep(city.name,'_',' ');          % Replace '_' by ' '
-textHand = zeros(1,n_city);
-for i = 1:n_city                                % Plot the City names
-    textHand(i) = text(x(i)+dx,y(i),0,city.name{i},'Tag',tag);
-    draw_funs(textHand(i),'DrawText')           % Set text's uicontextmenu
-end
+	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	if strcmp(opt,'major')
+        fid = fopen([handles.path_data 'wcity_major.dat'],'r');
+        tag = 'City_major';
+	elseif strcmp(opt,'other')
+        fid = fopen([handles.path_data 'wcity.dat'],'r');
+        tag = 'City_other';
+	end
+	todos = fread(fid,'*char');     fclose(fid);
+	[city.x city.y city.name] = strread(todos,'%f %f %s');     % Note: city.name is a cell array of chars
+	% Get rid of Cities that are outside the map limits
+	[x,y,indx,indy] = aux_funs('in_map_region',handles,city.x,city.y,0,[]);
+	city.name(indx) = [];       city.name(indy) = [];
+	n_city = length(x);
+	
+	if (n_city == 0),   return;     end     % No cities inside area. Return.
+	h_city = line(x,y,'LineStyle','none','Marker','o','MarkerFaceColor','k',...
+        'MarkerEdgeColor','w','MarkerSize',6,'Tag',tag);
+	draw_funs(h_city,'DrawSymbol')                  % Set symbol's uicontextmenu
+	
+	% Estimate the text position shift in order that it doesn't fall over the city symbol 
+	pos = get(handles.figure1,'Position');
+	x_lim = get(handles.axes1,'xlim');
+	z1 = 7 / pos(3);
+	dx = z1 * (x_lim(2) - x_lim(1));
+	
+	city.name = strrep(city.name,'_',' ');          % Replace '_' by ' '
+	textHand = zeros(1,n_city);
+	for i = 1:n_city                                % Plot the City names
+        textHand(i) = text(x(i)+dx,y(i),0,city.name{i},'Tag',tag);
+        draw_funs(textHand(i),'DrawText')           % Set text's uicontextmenu
+	end
 
 % --------------------------------------------------------------------
 function DatasetsODP_DSDP(handles,opt)
@@ -525,8 +657,9 @@ set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function scaledSymbols(handles, fname)
-% Read a file wich should be multi-seg with "> -S.. -W.. -G.." controling
+% Read and parse a file wich should be multi-seg with "> -S.. -W.. -G.." controling
 % symbol parametrs. If file is not multi-seg, returns before doing anything
+% In that case control will be passed to the scatter_plot() function
 
 [bin,n_column,multi_seg,n_headers] = guess_file(fname);
 if (n_column == 1 && multi_seg == 0)        % Take it as a file names list
@@ -537,7 +670,7 @@ else
     names = {fname};
 end
 
-% Signal Mirone Fig if it is to call the scatter_plot window (in wich it returns here) or not
+% Signal Mirone Fig if it is to call the scatter_plot window (in wich case it returns here) or not
 setappdata(handles.figure1,'callScatterWin',false)
 if (n_column > 1 && multi_seg == 0)     % Since no multi-segs control will be given (in Mirone) to scatter_plot figure
     setappdata(handles.figure1,'callScatterWin',n_column)   % Return when no multi-segs and cols > 1
