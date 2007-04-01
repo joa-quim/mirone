@@ -69,8 +69,6 @@ function varargout = scatter_plot(varargin)
     end
 
     handles.symbXYZ = numeric_data(:,1:3);
-    handles.Zmin = min(handles.symbXYZ(:,3));
-    handles.Zmax = max(handles.symbXYZ(:,3));
 
     set(hObject,'Visible','on')
     
@@ -136,7 +134,10 @@ function push_plot_Callback(hObject, eventdata, handles)
 
     % Get rid of points that are outside the map limits
     [x,y,indx,indy] = aux_funs('in_map_region',handles.handMir,handles.symbXYZ(:,1),handles.symbXYZ(:,2),0.5,[xx yy]);
-    if (isempty(x)),    return;     end     % Insult???
+    if (isempty(x))
+        warndlg('There are no points inside the current Window limits.','Warning');
+        return
+    end
     z = handles.symbXYZ(:,3);
     z(indx) = [];       z(indy) = [];
     if (~isempty(handles.symbCOR))          % Don't forget the color
@@ -165,11 +166,12 @@ function push_plot_Callback(hObject, eventdata, handles)
 
     if (isempty(handles.symbCOR))
         cmap = get(handles.figure1,'ColorMap');
-        dZ = handles.Zmax - handles.Zmin;
+        Zmin = min(z);        Zmax = max(z);
+        dZ = Zmax - Zmin;
         if (dZ == 0)        % Cte color
             zC = repmat(cmap(round(size(cmap,1)/2),:),nPts,1);      % Midle color
         else            
-            zC = round(((handles.symbXYZ(:,3) - handles.Zmin) / dZ) * (size(cmap,1)-1) + 1);
+            zC = round(((z - Zmin) / dZ) * (size(cmap,1)-1) + 1);
             zC = cmap(zC,:);
         end
     end
