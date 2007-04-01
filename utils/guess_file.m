@@ -68,7 +68,7 @@ end
     % Now decide how many columns have the data lines. The easeast is to assume that the info is in the last line
     % However this may fail if last line contains, for example, the multisegment symbol (">").
     % So, do another test.
-    m = min(nl_max,numel(str));
+    m = min(nl_max,numel(n_col));
     if (m > 1)
         n_c1 = n_col(m);    n_c2 = n_col(m-1);
         if (n_c1 ~= n_c2 && isempty(find(str{n_col(m-1)} > 57 & str{n_col(m-1)} < 127)))
