@@ -1,14 +1,19 @@
 function tooltipwrap(hObject,texto,nCols)
 %TOOLTIPWRAP Uses the information in TEXTO as the 'TooltipString' for the HOBJECT UI Control.
 %
+% HOBJECT, handle of the object to which the tooltip string will be applyied.
 % TEXTO can be a linestring, a cell array of strings or the name of a file containing
 % the desired text info.
 % NCOLS, is the width in chars of the wrapped TEXTO matrix. If absent it defaults to 20.
 % When TEXTO is a filename and NCOLS = Inf, the file contents will be used with no change
 % (that is, no text wrapping)
 %
-%   Example: Run this function with a bad usage and leave the pointer over the OK button.
-%           tooltipwrap(1,1)
+%   Example:
+%           h=figure;
+%           hui=uicontrol('Parent',h,'Units','normalized','Position',[.05 .08 .9 .9],'Style','edit');
+%           txt= ['Xi, so much room here to write my thoughts. And this ',...
+%               'little boring tooltip window that doesn''t leave me alone']
+%           tooltipwrap(hui,txt,15)
 
 %   AUTHOR
 %       Joaquim Luis    02-July-2006
