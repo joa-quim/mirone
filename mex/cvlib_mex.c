@@ -23,6 +23,7 @@
  * Revision 6.0  02/12/2006 JL	Added FillPoly and FillConvexPoly
  * Revision 7.0  26/01/2007 JL	Fixed crash when individual cell were empty with the polygon option
  * Revision 8.0  14/02/2007 JL	In Floodfill convert fill color to [0 255] if it was [0 1]
+ * Revision 9.0  04/03/2007 JL	Fixed cvContours
  *
  */
 
@@ -53,11 +54,13 @@ void Jegipt(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const c
 void Jshapes(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op);
 void Jinpaint(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op);
+void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+void Jtext(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 
 void Set_pt_Ctrl_in (struct CV_CTRL *Ctrl, const mxArray *pi , mxArray *pit, int interl);
 void Set_pt_Ctrl_out1 ( struct CV_CTRL *Ctrl, mxArray *pi );
 void Set_pt_Ctrl_out2 (struct CV_CTRL *Ctrl, mxArray *po, int interl);
-int getNK(const mxArray *p, int which);
+int  getNK(const mxArray *p, int which);
 
 void interleave(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir);
 void interleaveUI8(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir);
@@ -74,10 +77,9 @@ void getDataType(struct CV_CTRL *Ctrl, const mxArray *prhs[], int *nBytes, int *
 void cvResizeUsage(), floodFillUsage(), goodFeaturesUsage(), houghLines2Usage();
 void cannyUsage(), sobelUsage(), laplaceUsage(), erodeUsage(), dilateUsage();
 void morphologyexUsage(), colorUsage(), flipUsage(), filterUsage(), findContoursUsage();
-void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void arithmUsage(), addWeightedUsage(), pyrDUsage(), pyrUUsage(), houghCirclesUsage();
 void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsage();
-void inpaintUsage(), fillConvUsage(), fillPlineUsage();
+void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage();
 
 struct CV_CTRL {
 	/* active is TRUE if the option has been activated */
@@ -154,6 +156,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tsobel (cvSobel)\n");
 		mexPrintf("\tsub (cvSub)\n");
 		mexPrintf("\tsubS (cvSubS)\n");
+		mexPrintf("\ttext (cvPutText)\n");
 		return;
 	}
 
@@ -226,6 +229,9 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	else if (!strcmp(funName,"pyrU") || !strcmp(funName,"pyrD") )
 		Jegipt(n_out, plhs, n_in, prhs, funName);
+
+	else if (!strcmp(funName,"text"))
+		Jtext(n_out, plhs, n_in, prhs);
 
 	else
 		mexErrMsgTxt("CVLIB_MEX: unrecognized function name!");
@@ -515,7 +521,7 @@ void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], cons
 
 	if (mxIsCell(prhs[2])) {
 		if (!strncmp(method,"fillc",5))
-			mexErrMsgTxt("FILLCONVEX: Error, input cannor be a cell array");
+			mexErrMsgTxt("FILLCONVEX: Error, input cannot be a cell array");
 		m = mxGetM(prhs[2]);	n = mxGetN(prhs[2]);
 		if ( m != 1 && n != 1)
 			mexErrMsgTxt("POLYLINE Cell array must be Mx1 OR 1xN");
@@ -620,9 +626,9 @@ void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], cons
 		if (!strncmp(method,"poly",4))
 			cvPolyLine( dst, pt, polyNpts, npoly, 0, color, thickness, line_type, 0 );
 		else if (!strncmp(method,"fillp",5))
-			cvFillPoly( dst, pt, polyNpts, npoly, color, thickness, line_type, 0 );
+			cvFillPoly( dst, pt, polyNpts, npoly, color, line_type, 0 );
 		else	/* Must be fillconvex */
-			cvFillConvexPoly( dst, buf, polyNpts[0], color, thickness, line_type, 0 );
+			cvFillConvexPoly( dst, buf, polyNpts[0], color, line_type, 0 );
 		interleaveBlind (Ctrl->UInt8.tmp_img_in, (unsigned char *)mxGetData(plhs[0]), nx, ny, nBands, -1);
 		cvReleaseImageHeader( &dst );
 	}
@@ -630,9 +636,9 @@ void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], cons
 		if (!strncmp(method,"poly",4))
 			cvPolyLine( src_img, pt, polyNpts, npoly, 0, color, thickness, line_type, 0 );
 		else if (!strncmp(method,"fillp",5))
-			cvFillPoly( src_img, pt, polyNpts, npoly, color, thickness, line_type, 0 );
+			cvFillPoly( src_img, pt, polyNpts, npoly, color, line_type, 0 );
 		else	/* Must be fillconvex */
-			cvFillConvexPoly( src_img, buf, polyNpts[0], color, thickness, line_type, 0 );
+			cvFillConvexPoly( src_img, buf, polyNpts[0], color, line_type, 0 );
 		/* desinterleave */
 		interleaveBlind (Ctrl->UInt8.tmp_img_in, (unsigned char *)mxGetData(prhs[1]), nx, ny, nBands, -1);
 	}
@@ -645,6 +651,122 @@ void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], cons
 	if (!strncmp(method,"fillc",5)) mxFree(buf);
 }
 
+/* --------------------------------------------------------------------------- */
+void Jtext(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
+	int	nx, ny, nBands, m, n, nBytes, img_depth, inplace = FALSE;
+	int	r, g, b, thickness = 1, line_type = 8;
+	int	i, j, nstrings = 0, *polyNpts;
+	const char	*theTEXTstr;
+	double	*ptr_d;
+	IplImage *src_img = 0, *dst = 0;
+	CvPoint	pt, *buf = 0;
+	CvFont	font;
+	CvScalar color;
+	mxArray	*ptr_in;
+
+	struct CV_CTRL *Ctrl;
+	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
+
+	/* ---- Check for input and errors in user's call to function. ----------------- */
+	if (n_in == 1) {
+		textUsage();	return;
+	}
+	else if (n_out > 1 )
+		mexErrMsgTxt("CVLIB_MEX:TEXT returns either one or zero arguments!");
+
+	/* Check that input image is of type UInt8 */
+	if (!mxIsUint8(prhs[1]))
+		mexErrMsgTxt("CVLIB_MEX:TEXT ERROR: Invalid input data type. Only valid type is: UInt8.\n");
+
+	if (n_in < 3)
+		mexErrMsgTxt("CVLIB_MEX:TEXT requires at least 3 input arguments!");
+
+	color = cvScalarAll(0);		/* Default to a black text */
+
+	if (mxIsCell(prhs[2])) {
+		m = mxGetM(prhs[2]);	n = mxGetN(prhs[2]);
+		if ( m != 1 && n != 1)
+			mexErrMsgTxt("CVLIB_MEX:TEXT Cell array must be Mx1 OR 1xN");
+
+		nstrings = m * n;
+
+		for (i = 0; i < nstrings; i++) {		/* Loop over number of polylines */
+		}
+	}
+	else {
+		if(!mxIsChar(prhs[2]))
+			mexErrMsgTxt("CVLIB_MEX:TEXT: Third argument must contain the TEXT string!");
+		else
+			theTEXTstr = (char *)mxArrayToString(prhs[2]);
+
+		/* Inside the if test because we will need to have only one point */
+		if (mxGetM(prhs[3]) * mxGetN(prhs[3]) != 2)
+			mexErrMsgTxt("CVLIB_MEX:TEXT: text origin point error. Must be a 2 elements vector.");
+
+		ptr_d = (double *)mxGetData(prhs[3]);
+		pt.x = (int)ptr_d[0];		pt.y = (int)ptr_d[1];
+	}
+
+	if (n_in > 4 && !mxIsEmpty(prhs[3])) {			/* Font */
+		cvInitFont( &font, CV_FONT_HERSHEY_TRIPLEX, 1.0, 1.0, 0, 1, CV_AA);
+	}
+	else {
+		cvInitFont( &font, CV_FONT_HERSHEY_TRIPLEX, 1.0, 1.0, 0, 1, CV_AA);
+	}
+
+	if (n_in > 5 && !mxIsEmpty(prhs[4])) {			/* Text color */
+		ptr_d = (double *)mxGetData(prhs[4]);
+		if (mxGetM(prhs[4]) * mxGetN(prhs[4]) == 1) {	/* Gray */
+			r = (int)ptr_d[0];
+			color = CV_RGB( r, r, r );
+		}
+		else if (mxGetM(prhs[4]) * mxGetN(prhs[4]) == 3) {	/* Color */
+			r = (int)ptr_d[0];	g = (int)ptr_d[1];	b = (int)ptr_d[2];
+			color = CV_RGB( r, g, b );
+		}
+		else
+			mexErrMsgTxt("CVLIB_MEX:TEXT: Fifth argument must be a 1 or a 3 elements vector.");
+	}
+
+	if (n_out == 0)
+		inplace = TRUE;
+	/* -------------------- End of parsing input ------------------------------------- */
+
+	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);	nBands = getNK(prhs[1],2);
+	/* Allocate and initialize defaults in a new control structure */
+	Ctrl = (struct CV_CTRL *) New_Cv_Ctrl ();
+	getDataType(Ctrl, prhs, &nBytes, &img_depth);
+
+	/* ------ Create pointer for temporary array ------------------------------------- */
+	ptr_in  = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+		 mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
+	/* ------------------------------------------------------------------------------- */ 
+
+	Set_pt_Ctrl_in ( Ctrl, prhs[1], ptr_in, 1 ); 	/* Set pointer & interleave */
+
+	src_img = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
+
+	if (!inplace) {
+		plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+		  		mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
+		dst = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+		cvSetImageData( dst, (void *)mxGetData(plhs[0]), nx * nBytes * nBands );
+		localSetData( Ctrl, dst, 1, nx * nBands * nBytes );
+		cvPutText( dst, theTEXTstr, pt, &font, color );
+		interleaveBlind (Ctrl->UInt8.tmp_img_in, (unsigned char *)mxGetData(plhs[0]), nx, ny, nBands, -1);
+		cvReleaseImageHeader( &dst );
+	}
+	else {
+		cvPutText( src_img, theTEXTstr, pt, &font, color );
+		/* desinterleave */
+		interleaveBlind (Ctrl->UInt8.tmp_img_in, (unsigned char *)mxGetData(prhs[1]), nx, ny, nBands, -1);
+	}
+
+	cvReleaseImageHeader( &src_img );
+	mxDestroyArray(ptr_in);
+	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
+}
 
 /* --------------------------------------------------------------------------- */
 void Jshapes(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *method) {
@@ -2769,19 +2891,18 @@ void plineUsage() {
 
 /* -------------------------------------------------------------------------------------------- */
 void fillPlineUsage() {
-	mexPrintf("Usage: cvlib_mex('fillpoly',IMG,PT,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("Usage: cvlib_mex('fillpoly',IMG,PT,[COLOR,LINE_TYPE]);\n");
 	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
 	mexPrintf("       fills an area bounded by several polygonal contours inplace.\n");
 	mexPrintf("       The polyligonal contour vertex are contained in the Mx2 or 2xN PT array.\n");
 	mexPrintf("       If PT is a cell vector with N elements, fills N polygons in the image.\n");
 	mexPrintf("       Each cell element must contain a Mx2 OR 2xN array with the x,y pixel coords\n");
 	mexPrintf("       of the polygon to be filled.\n");
-	mexPrintf("       IM2 = cvlib_mex('polyline',IMG,PT,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       IM2 = cvlib_mex('polyline',IMG,PT,[COLOR,LINE_TYPE]);\n");
 	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
 	mexPrintf("       Terms inside brakets are optional and can be empty,\n");
-	mexPrintf("       e.g (...,[],[],LINE_TYPE) or (...,[],5) are allowed.\n");
+	mexPrintf("       e.g (...,[],LINE_TYPE) or (...,[],5) are allowed.\n");
 	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
-	mexPrintf("       THICK -> Line thickness (default 1)\n");
 	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), 4 - 4-connected, 16 - antialiased.\n\n");
 
 	mexPrintf("       Class support: uint8.\n");
@@ -2790,16 +2911,15 @@ void fillPlineUsage() {
 
 /* -------------------------------------------------------------------------------------------- */
 void fillConvUsage() {
-	mexPrintf("Usage: cvlib_mex('fillconvex',IMG,PT,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("Usage: cvlib_mex('fillconvex',IMG,PT,[COLOR,LINE_TYPE]);\n");
 	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
 	mexPrintf("       fills an area bounded by a convex polygonal interior inplace.\n");
 	mexPrintf("       The polyligonal contour vertex are contained in the Mx2 or 2xN PT array.\n");
-	mexPrintf("       IM2 = cvlib_mex('polyline',IMG,PT,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       IM2 = cvlib_mex('polyline',IMG,PT,[COLOR,LINE_TYPE]);\n");
 	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
 	mexPrintf("       Terms inside brakets are optional and can be empty,\n");
-	mexPrintf("       e.g (...,[],[],LINE_TYPE) or (...,[],5) are allowed.\n");
+	mexPrintf("       e.g (...,[],LINE_TYPE) or (...,[],5) are allowed.\n");
 	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
-	mexPrintf("       THICK -> Line thickness (default 1)\n");
 	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), 4 - 4-connected, 16 - antialiased.\n\n");
 
 	mexPrintf("       Class support: uint8.\n");
@@ -3026,6 +3146,21 @@ void pyrDUsage() {
 
 	mexPrintf("       Class support: logical, uint8, uint16, int16, single or double.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG and 1 copy of B.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void textUsage() {
+	mexPrintf("Usage: cvlib_mex('text',IMG,TXT,PT,[FONT],COLOR);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
+	mexPrintf("       overprints, inplace, the text string TEXT whose lower left coordinates\n");
+	mexPrintf("       are contained in the 1x2 or 2x1 PT vector.\n");
+	mexPrintf("       IM2 = cvlib_mex('polyline',...);\n");
+	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
+	mexPrintf("       Terms inside brakets are optional and MUST (at this release) be empty,\n");
+	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
+
+	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
