@@ -46,8 +46,9 @@ else
     delete(hObject);    return
 end
 
+% Add this figure handle to the carraças list
 plugedWin = getappdata(handles.mirone_fig,'dependentFigs');
-plugedWin = [plugedWin hObject];            % Add this figure handle to the carraças list
+plugedWin = [plugedWin hObject];
 setappdata(handles.mirone_fig,'dependentFigs',plugedWin);
 
 handles.path_data = handMir.path_data;
@@ -191,71 +192,66 @@ if (isnan(xx) || xx > 900),    set(hObject,'String','900');       end
 
 % -----------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
-% Find out the time interval selected
-StartYear = str2double(get(handles.edit_StartYear,'String'));
-EndYear = str2double(get(handles.edit_EndYear,'String'));
-StartMonth = str2double(get(handles.edit_StartMonth,'String'));
-EndMonth = str2double(get(handles.edit_EndMonth,'String'));
-StartDay = str2double(get(handles.edit_StartDay,'String'));
-EndDay = str2double(get(handles.edit_EndDay,'String'));
-MagMin = str2double(get(handles.edit_MagMin,'String'));
-MagMax = str2double(get(handles.edit_MagMax,'String'));
-DepthMin = str2double(get(handles.edit_DepthMin,'String'));
-DepthMax = str2double(get(handles.edit_DepthMax,'String'));
+	% Find out the time interval selected
+	StartYear = str2double(get(handles.edit_StartYear,'String'));
+	EndYear = str2double(get(handles.edit_EndYear,'String'));
+	StartMonth = str2double(get(handles.edit_StartMonth,'String'));
+	EndMonth = str2double(get(handles.edit_EndMonth,'String'));
+	StartDay = str2double(get(handles.edit_StartDay,'String'));
+	EndDay = str2double(get(handles.edit_EndDay,'String'));
+	MagMin = str2double(get(handles.edit_MagMin,'String'));
+	MagMax = str2double(get(handles.edit_MagMax,'String'));
+	DepthMin = str2double(get(handles.edit_DepthMin,'String'));
+	DepthMax = str2double(get(handles.edit_DepthMax,'String'));
 
-if (isnan(StartYear)),      StartYear = 1900;   end
-if (isnan(EndYear)),        EndYear = 2010;     end
-if (isnan(StartMonth)),     StartMonth = 1;     end
-if (isnan(EndMonth)),       EndMonth = 12;      end
-if (isnan(StartDay)),       StartDay = 1;       end
-if (isnan(EndDay)),         EndDay = 31;        end
-if (isnan(MagMin)),         MagMin = 1;         end
-if (isnan(MagMax)),         MagMax = 10;        end
-if (isnan(DepthMin)),       DepthMin = 0;       end
-if (isnan(DepthMax)),       DepthMax = 900;     end
+	if (isnan(StartYear)),      StartYear = 1900;   end
+	if (isnan(EndYear)),        EndYear = 2010;     end
+	if (isnan(StartMonth)),     StartMonth = 1;     end
+	if (isnan(EndMonth)),       EndMonth = 12;      end
+	if (isnan(StartDay)),       StartDay = 1;       end
+	if (isnan(EndDay)),         EndDay = 31;        end
+	if (isnan(MagMin)),         MagMin = 1;         end
+	if (isnan(MagMax)),         MagMax = 10;        end
+	if (isnan(DepthMin)),       DepthMin = 0;       end
+	if (isnan(DepthMax)),       DepthMax = 900;     end
 
-if (handles.use_default_file)
-    lon = handles.default_dat(:,1);    lat = handles.default_dat(:,2);
-    depth = handles.default_dat(:,3);  mag = handles.default_dat(:,4);
-    year_dec = handles.default_date(:,4);
-elseif (handles.got_userFile)    % We have a user seismicity file
-    lon = handles.external_dat(:,1);    lat = handles.external_dat(:,2);
-    depth = handles.external_dat(:,3);  mag = handles.external_dat(:,4);
-    year_dec = handles.external_date(:,2);
-else
-    errordlg('Plot What? Your fears?','Chico Clever');  return;
-end
+	if (handles.use_default_file)
+        lon = handles.default_dat(:,1);    lat = handles.default_dat(:,2);
+        depth = handles.default_dat(:,3);  mag = handles.default_dat(:,4);
+        year_dec = handles.default_date(:,4);
+	elseif (handles.got_userFile)    % We have a user seismicity file
+        lon = handles.external_dat(:,1);    lat = handles.external_dat(:,2);
+        depth = handles.external_dat(:,3);  mag = handles.external_dat(:,4);
+        year_dec = handles.external_date(:,2);
+	else
+        errordlg('Plot What? Your fears?','Chico Clever');  return;
+	end
+	
+	lower_date = dec_year(StartYear,StartMonth,StartDay);
+	upper_date = dec_year(EndYear,EndMonth,EndDay+0.999);   % 0.999 to use the entire current day
+	ind = (year_dec < lower_date | year_dec > upper_date);
+	year_dec(ind) = [];     lat(ind) = [];      lon(ind) = [];  depth(ind) = [];    mag(ind) = [];
+	
+	ind = find(mag < MagMin | mag > MagMax);
+	lat(ind) = [];  lon(ind) = [];  depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
+	ind = find(depth < DepthMin | depth > DepthMax);
+	lat(ind) = [];  lon(ind) = [];  depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
 
-lower_date = dec_year(StartYear,StartMonth,StartDay);
-upper_date = dec_year(EndYear,EndMonth,EndDay+0.999);   % 0.999 to use the entire current day
-ind = (year_dec < lower_date | year_dec > upper_date);
-year_dec(ind) = [];     lat(ind) = [];      lon(ind) = [];  depth(ind) = [];    mag(ind) = [];
-
-ind = find(mag < MagMin | mag > MagMax);
-lat(ind) = [];  lon(ind) = [];  depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
-ind = find(depth < DepthMin | depth > DepthMax);
-lat(ind) = [];  lon(ind) = [];  depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
-
-try
     axes(handles.mironeAxes)       % Make Mirone axes active here
-catch       % If the Mirone figure doesn't exist anymore
-    errordlg(lasterr,'Error')
-    delete(handles.figure1);    return
-end
+
+	if (min(mag) > 100)         % That's the case for hydrophone SL magnitudes
+        mag_save = mag;         % Not converted to uint8 as well ???
+	else
+        mag_save = uint8(mag*10);
+	end
 
 % See if user only wants equal symbols (simple case)
 if (~get(handles.checkbox_magSlices,'Value') && ~get(handles.checkbox_depSlices,'Value'))
-	hold on;    
-	h_quakes = plot(lon,lat,'kp','Marker','o','MarkerFaceColor','r',...
-          'MarkerEdgeColor','k','MarkerSize',4,'Tag','Earthquakes');
-	hold off;
+	h_quakes = line('XData',lon,'YData',lat,'Parent',handles.mironeAxes,'Marker','o','LineStyle','none',...
+          'MarkerFaceColor','r','MarkerEdgeColor','k','MarkerSize',4,'Tag','Earthquakes');
     setappdata(h_quakes,'SeismicityTime',year_dec);         % Save events time
     setappdata(h_quakes,'SeismicityDepth',int16(depth*10)); % Save events depth
-    if (min(mag) > 100)         % That's the case for hydrophone SL magnitudes
-        setappdata(h_quakes,'SeismicityMag',mag*10);        % Save events magnitude
-    else
-        setappdata(h_quakes,'SeismicityMag',uint8(mag*10)); % Save events magnitude
-    end
+    setappdata(h_quakes,'SeismicityMag',mag_save);          % Save events magnitude
 	draw_funs(h_quakes,'Earthquakes',[])
     return      % We are donne. Bye Bye
 end
@@ -275,7 +271,9 @@ if (get(handles.checkbox_magSlices,'Value'))    % We have a magnitude slice requ
         if (~isempty(id{k}))
             data_s{j} = [lon(id{k}) lat(id{k}) depth(id{k})];
             grand(j) = s(k);
-            depth_s{j} = depth(id{k});
+            depth_s{j} = int16( depth(id{k})*10 );
+            mag_s{j} = mag_save(id{k});
+            year_s{j} = year_dec(id{k});
             j = j + 1;
         end
     end
@@ -298,25 +296,32 @@ if (get(handles.checkbox_depSlices,'Value'))    % We have a depth slice request
         if (~isempty(id{k}))
             data_d{j} = [lon(id{k}) lat(id{k})];
             color(j) = cor_str{val(k)}(1);
-            depth_d{j} = depth(id{k});
+            depth_d{j} = int16( depth(id{k})*10 );
+            mag_d{j} = mag_save(id{k});
+            year_d{j} = year_dec(id{k});
             j = j + 1;
         end
     end    
 end
 
-hold on;
 if (get(handles.checkbox_magSlices,'Value') && ~get(handles.checkbox_depSlices,'Value'))     % Mag slices
     for (k = 1:length(data_s))
-		h_quakes = plot(data_s{k}(:,1),data_s{k}(:,2),'kp','Marker','o','MarkerFaceColor','r',...
-              'MarkerEdgeColor','k','MarkerSize',grand(k),'Tag','Earthquakes');
-        setappdata(h_quakes,'SeismicityDepth',int16(depth_s{k}*10));    % Save events depth
+		h_quakes = line('XData',data_s{k}(:,1),'YData',data_s{k}(:,2),'LineStyle','none','Marker','o',...
+            'MarkerFaceColor','r','Parent',handles.mironeAxes,'MarkerEdgeColor','k',...
+            'MarkerSize',grand(k),'Tag','Earthquakes');
+        setappdata(h_quakes,'SeismicityDepth',depth_s{k});      % Save events depth
+        setappdata(h_quakes,'SeismicityMag',mag_s{k});          % Save events magnitude
+        setappdata(h_quakes,'SeismicityTime',year_s{k});        % Save events time
         draw_funs(h_quakes,'Earthquakes',[])
     end
 elseif (~get(handles.checkbox_magSlices,'Value') && get(handles.checkbox_depSlices,'Value')) % Depth slices
     for (k = 1:length(data_d))
-		h_quakes = plot(data_d{k}(:,1),data_d{k}(:,2),'kp','Marker','o','MarkerFaceColor',color(k),...
-              'MarkerEdgeColor','k','MarkerSize',5,'Tag','Earthquakes');
-        setappdata(h_quakes,'SeismicityDepth',int16(depth_d{k}*10));    % Save events depth
+		h_quakes = line('XData',data_d{k}(:,1),'YData',data_d{k}(:,2),'LineStyle','none','Marker','o',...
+            'MarkerFaceColor',color(k),'Parent',handles.mironeAxes,'MarkerEdgeColor','k',...
+            'MarkerSize',5,'Tag','Earthquakes');
+        setappdata(h_quakes,'SeismicityDepth',depth_d{k});      % Save events depth
+        setappdata(h_quakes,'SeismicityMag',mag_d{k});          % Save events magnitude
+        setappdata(h_quakes,'SeismicityTime',year_d{k});        % Save events time
         draw_funs(h_quakes,'Earthquakes',[])
     end
 else        % Both magnitude and depth slices
@@ -328,14 +333,17 @@ else        % Both magnitude and depth slices
         id{5} = find(data_s{k}(:,3) >= 300);
         for (m=1:5)
             if (isempty(id{m})),     continue;      end
-		    h_quakes = plot(data_s{k}(id{m},1),data_s{k}(id{m},2),'kp','Marker','o','MarkerFaceColor',...
-                color(m),'MarkerEdgeColor','k','MarkerSize',grand(k),'Tag','Earthquakes');
-            setappdata(h_quakes,'SeismicityDepth',int16(data_s{k}(id{m},3)*10));    % Save events depth
+		    h_quakes = line('XData',data_s{k}(id{m},1),'YData',data_s{k}(id{m},2),'LineStyle','none',...
+                'Marker','o','MarkerFaceColor',color(m),'Parent',handles.mironeAxes,...
+                'MarkerEdgeColor','k','MarkerSize',grand(k),'Tag','Earthquakes');
+            %setappdata(h_quakes,'SeismicityDepth',data_s{k}(id{m},3));    % Save events depth
+            setappdata(h_quakes,'SeismicityDepth',depth_s{k}(id{m}));    % Save events depth
+            setappdata( h_quakes,'SeismicityMag',mag_s{k}(id{m}) );       % Save events magnitude
+            setappdata( h_quakes,'SeismicityTime',year_s{k}(id{m}) );     % Save events time
             draw_funs(h_quakes,'Earthquakes',[])
         end
     end
 end
-hold off;
 
 % -----------------------------------------------------------------------------
 function pushbutton_Cancel_Callback(hObject, eventdata, handles)
@@ -385,16 +393,16 @@ item = get(handles.listbox_readFilter,'Value');     % Get the reading filter num
 switch item
     case 1
         str1 = {'*.isf;*.ISF', 'Data files (*.isf,*.ISF)';'*.*', 'All Files (*.*)'};
-        filter = 1;
+        filtro = 1;
     case 2
         str1 = {'*.posit;*.POSIT', 'Data files (*.posit,*.POSIT)';'*.*', 'All Files (*.*)'};
-        filter = 2;
+        filtro = 2;
     case 3
         str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-        filter = 3;
+        filtro = 3;
     case 4
         str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-        filter = 4;
+        filtro = 4;
 end
 
 % Get file name
@@ -405,7 +413,7 @@ fname = [PathName,FileName];
 
 try
     set(gcf,'Pointer','watch')
-	if (filter == 1)        % Read a ISF formated catalog
+	if (filtro == 1)        % Read a ISF formated catalog
         opt_R = ['-R' num2str(handles.x_min) '/' num2str(handles.x_max) '/' num2str(handles.y_min) '/' num2str(handles.y_max)];
         [out_d,out_i] = read_isf(fname,opt_R);
         if (isempty(out_d)),    return;     end     % Nothing inside region
@@ -414,13 +422,13 @@ try
         year = double(out_i(1,:)');     mo = out_i(2,:)';
         day = out_i(3,:)';      hh = out_i(4,:)';       clear out_i;
         year_dec = dec_year(year,double(mo),double(day),double(hh));
-	elseif (filter == 2 | filter == 3 || filter == 4)      % Read a lon,lat,dep,mag,yy,mm,dd file (3,4) or posit file (2)
+	elseif (filtro == 2 || filtro == 3 || filtro == 4)      % Read a lon,lat,dep,mag,yy,mm,dd file (3,4) or posit file (2)
 		fid = fopen(fname,'r');
 		if (fid < 0)
             errordlg(['Could not open file: ' fname],'Error');  return;
 		end
 		todos = fread(fid,'*char');
-        if (filter == 2)                    % posit file
+        if (filtro == 2)                    % posit file
             try
                 [year julio d_h d_m d1 lat lon d1 d1 d1 mag d1] = strread(todos,'%d %d %d %d %d %f %f %f %f %f %f %f');
                 d_h = d_h + d_m / 60;
@@ -436,7 +444,7 @@ try
             year_dec = year + (julio - 1 + d_h / 24) ./ (365 + isleapyear(year));      % decimal year up to minuts.
             [mo,day] = jd2monday(julio,year);
             depth = repmat(0,length(year),1);
-        elseif (filter == 3)                % lon,lat,mag,dep,yy,mm,dd,hh,mm,ss
+        elseif (filtro == 3)                % lon,lat,mag,dep,yy,mm,dd,hh,mm,ss
 		    [lon lat mag depth year mo day hh mm ss] = strread(todos,'%f %f %f %f %d %d %d %d %d %d');
             year_dec = dec_year(year,mo,day,hh,mm,ss);  clear hh mm ss;
         else                                % lon,lat,dep,mag,yy,mm,dd file
@@ -473,7 +481,7 @@ try
     [handles.usr_StartMonth,handles.usr_StartDay] = jd2monday(jd0,handles.usr_StartYear);
     [handles.usr_EndMonth,handles.usr_EndDay] = jd2monday(jd1,handles.usr_EndYear);
     
-	if (filter == 3 || filter == 4)
+	if (filtro == 3 || filtro == 4)
         handles.have_mag_nans = any(isnan(mag));
         handles.have_dep_nans = any(isnan(depth));
 	else    % On the ISF catalogs I replaced no data values by 0
