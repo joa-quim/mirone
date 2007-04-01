@@ -101,6 +101,7 @@ data/caris256.mat -text
 data/countries.bin -text
 data/countries_dp5.bin -text
 data/etopo2.jpg -text
+data/ghost.gif -text
 data/gimp256.mat -text
 data/gmt_other_palettes.mat -text
 data/hotspots.dat -text
