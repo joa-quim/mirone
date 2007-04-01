@@ -53,7 +53,7 @@ if (~isempty(varargin))
 end
 if (length(varargin) == 2) 
     str_prog = 'Mirone. The ultimate indescrete grid viewer';
-    str_analpha = 'Mirone, Version 0.97';
+    str_analpha = 'Mirone, Version 1.0';
     str_url = 'w3.ualg.pt/~jluis/mirone';
     h1 = findobj(hObject,'Style','text','Tag','text_ProgName');
     h2 = findobj(hObject,'Style','text','Tag','text_AnalphaBeta');
