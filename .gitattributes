@@ -506,7 +506,6 @@ utils/waitfig.m -text
 utils/wfindobj.m -text
 utils/write_ESRI_hdr.m -text
 utils/write_flederFiles.m -text
-utils/write_tfw.m -text
 utils/writegif.m -text
 utils/writekml.m -text
 utils/zoom_j.m -text
