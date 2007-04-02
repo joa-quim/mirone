@@ -391,6 +391,7 @@ if (IS_SEISPOLYGON)                         % Seismicity options
     uimenu(itemHist, 'Label', 'Cumulative moment', 'Callback', 'histos_seis(gco,''CM'')');
     uimenu(itemHist, 'Label', 'Magnitude', 'Callback', 'histos_seis(gco,''MH'')');
     uimenu(itemHist, 'Label', 'Time', 'Callback', 'histos_seis(gco,''TH'')');
+    uimenu(itemHist, 'Label', 'Display in Table', 'Callback', 'histos_seis(gcf,''HT'')','Sep','on');
     %uimenu(itemHist, 'Label', 'Hour of day', 'Callback', 'histos_seis(gco,''HH'')');
     itemTime = uimenu(cmenuHand, 'Label','Time series');
     uimenu(itemTime, 'Label', 'Time magnitude', 'Callback', 'histos_seis(gco,''TM'')');
@@ -1725,6 +1726,7 @@ if (seismicity_options)
     uimenu(itemHist, 'Label', 'Cumulative moment', 'Callback', 'histos_seis(gco,''CM'')');
     uimenu(itemHist, 'Label', 'Magnitude', 'Callback', 'histos_seis(gco,''MH'')');
     uimenu(itemHist, 'Label', 'Time', 'Callback', 'histos_seis(gco,''TH'')');
+    uimenu(itemHist, 'Label', 'Display in Table', 'Callback', 'histos_seis(gcf,''HT'')','Sep','on');
     %uimenu(itemHist, 'Label', 'Hour of day', 'Callback', 'histos_seis(gco,''HM'')');
     itemTime = uimenu(cmenuHand, 'Label','Time series');
     uimenu(itemTime, 'Label', 'Time magnitude', 'Callback', 'histos_seis(gco,''TM'')');
