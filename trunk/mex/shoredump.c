@@ -49,8 +49,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char **argv, res = 'l';
 	char *shore_resolution[5] = {"full", "high", "intermediate", "low", "crude"};
 
-	GMT_lock = FALSE;       /* Override since Matlab would own the lock */
-
 	if (nrhs < 1 || nrhs > 6) {
 		mexPrintf ("shoredump - Extract shorelines, rivers, or borders\n\n");
 		mexPrintf ("usage: shoredump -R<west>/<east>/<south>/<north> [-A<min_area>[/<max_level>]]\n");
