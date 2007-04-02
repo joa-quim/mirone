@@ -11,6 +11,7 @@
  *
  *	Joaquim Luis	14-Juin-2005
  *	 
+ *		03/04/07 J Luis, Now sets GMTHOME as GMT_SHAREDIR when need use pre 4.2.0 coastlines
  *		22/03/07 J Luis, Change of strategy to deal with changes introduced in 4.2.0
  *				 - Renamed to set_gmt
  *				 - It is now based on transmission of the GMT_USERDIR path as input
@@ -65,11 +66,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char *GMT_HOMEDIR = CNULL;
 	char *GMT_USERDIR = CNULL;
 	char path[BUFSIZ]; 
+	int	status;
 	mxArray *mxStr, *info_struct;
 
 	if (nrhs == 1 && mxIsChar(prhs[0])) {
 		char	*envString; 
-		int	status;
 		envString = (char *)mxArrayToString(prhs[0]);
 		if (status = putenv(envString))
 			mexPrintf("TEST_GMT: Failure to set the environmental variable\n %s\n", envString);
@@ -96,8 +97,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mxStr = mxCreateString("4");
 	}
 	else if ((this = getenv ("GMTHOME")) != CNULL) {	/* We have a pre 4.2 version */
-		GMT_SHAREDIR = (char *) mxCalloc ((size_t)(strlen (this) + 1), (size_t)1);
-		strcpy (GMT_SHAREDIR, this);
+		char *sdir;
+		GMT_SHAREDIR = (char *) mxCalloc ((size_t)(strlen (this) + 7), (size_t)1);
+		sdir = (char *) mxCalloc ((size_t)(strlen (this) + 20), (size_t)1);
+		/* GMT_SHAREDIR is used in this MEX to report what coastlines we have */
+		sprintf (GMT_SHAREDIR, "%s%c%s", this, DIR_DELIM, "share");
+		/* sdir will be used by our gmt dlls (& shoredump) */
+		sprintf (sdir, "GMT_SHAREDIR=%s%c%s", this, DIR_DELIM, "share");
+		if (status = putenv(sdir))
+			mexPrintf("TEST_GMT: Failure to set the sharedir environmental variable\n %s\n", sdir);
 		mxStr = mxCreateString("4");
 	}
 	else						/* No GMT in sight */
