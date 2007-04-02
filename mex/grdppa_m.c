@@ -78,8 +78,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char-1]);
 	}
 
-	GMT_lock = FALSE;       /* Override since Matlab would own the lock */
-
 	if (!GMTisLoaded) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
