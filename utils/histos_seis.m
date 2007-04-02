@@ -12,10 +12,11 @@ function histos_seis(h_polyg,opt)
 % OPT = 'TD' Plot a Time Depth relation
 % OPT = 'BV' Mc and b estimate
 % OPT = 'OL' Fit Omori Law
+% OPT = 'HT' Display a Table histogram
 
 h_mir_fig = gcf;
 h_events = findobj(h_mir_fig,'Tag','Earthquakes');
-if (any(strcmp( opt,{'GR' 'CM' 'MH' 'TM'}) ))
+if (any(strcmp( opt,{'GR' 'CM' 'MH' 'TM' 'HT'}) ))
     events_mag = double(getFromAppdata(h_events,'SeismicityMag')) / 10;
     if (isempty(events_mag)),       return;     end
 else
@@ -63,6 +64,20 @@ elseif (strcmp(opt,'MH'))        % Magnitude histogram
     [N,xout] = histo_m('hist',events_mag,X);
     histo_m('bar',xout,N,'hist');
     tit = 'Magnitude histogram';    lab_x = 'Magnitude';    lab_y = 'Number';
+elseif (strcmp(opt,'HT'))        % Histogram table
+    if (~isempty(IN)),      events_time(~IN) = [];  end         % INpolygon option was used
+    X = (.25:.5:9.25);
+    [N,xout] = histo_m('hist',events_mag,X);
+    txt_mags = {'[0 - 0.5]' ']0.5 - 1.0]' ']1.0 - 1.5]' ']1.5 - 2.0]' ']2.0 - 2.5]' ']2.5 - 3.0]' ']3.0 - 3.5]' ...
+            ']3.5 - 4.0]' ']4.0 - 4.5]' ']4.5 - 5.0]' ']5.0 - 5.5]' ']5.5 - 6.0]' ']6.0 - 6.5]' ...
+            ']6.5 - 7.0]' ']7.0 - 7.5]' ']7.5 - 8.0]' ']8.0 - 8.5]' ']8.5 - 9.0]' ']9.0 - 9.5]'};
+    tabHist = cell(19,2);
+    tabHist(:,1) = txt_mags';
+    for (m=1:19),       tabHist{m,2} = N(m);    end
+    tableGUI('array',tabHist,'ColWidth',[90 90],'ColNames',{'Magnitudes' 'Number of events'},...
+        'FigName','Kind of histogram','RowNumbers','y','MAX_ROWS',19,'modal','');
+    set(h_mir_fig,'pointer','arrow')
+    return
 elseif (strcmp(opt,'CH'))        % Cumulative histogram
     if (~isempty(IN)),      events_time(~IN) = [];  end         % INpolygon option was used
     %X = events_time(1):2/365:events_time(end);
