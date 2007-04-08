@@ -434,6 +434,7 @@ utils/imcapture.m -text
 utils/imcrop.m -text
 utils/imfilter_mex.dll -text
 utils/img_fun.m -text
+utils/img_fun.p -text
 utils/imhistc.dll -text
 utils/imlincombc.dll -text
 utils/imreconstructmex.dll -text
