@@ -61,7 +61,6 @@ global home_dir;    home_dir = pwd;
 
 if (version7),  pos = get(hObject,'Pos');   set(hObject,'Pos',[pos(1:3) 1]);    end
 movegui(hObject,'north');           % Reposition the window on screen
-%'defaultfigureposition'
 set(0,'CurrentFigure',hObject)      % Due to a R2006a incredible BUG
 set(hObject,'Visible','on','HandleVisibility','callback');
 
