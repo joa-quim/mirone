@@ -745,7 +745,7 @@ h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
 uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v7)');
 uimenu('Parent',h9, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 uimenu('Parent',h9,...
-'Call','about_box([''Mirone_Last_modified_at_1_Apr_2007''],''Mirone'')','Label','About','Sep','on');
+'Call','about_box([''Mirone_Last_modified_at_3_Apr_2007''],''Mirone'')','Label','About','Sep','on');
 
 % --------------------------------------------------------------------------------------------------
 % We need this function also when the pixval_stsbar got stucked
