@@ -104,22 +104,24 @@ elseif (strcmp(opt,'SRTM1') || strcmp(opt,'SRTM3'))
 end
 
 % Write the ESRI header
+tmp = cell(15,1);
 tmp{1} = BYTEORDER;
 tmp{2} = 'LAYOUT        BIL';
 tmp{3} = ['NROWS       ' num2str(n_rows)];
 tmp{4} = ['NCOLS       ' num2str(n_cols)];
 tmp{5} = 'NBANDS        1';
 tmp{6} = ['NBITS         ' num2str(to_bytes*8)];
-tmp{7} = ['BANDROWBYTES  ' num2str(n_cols*to_bytes)];
-tmp{8} = ['TOTALROWBYTES ' num2str(n_cols*to_bytes)];
-tmp{9} = 'BANDGAPBYTES  0';
-tmp{10} = ['NODATA        ' num2str(nodata)];
-tmp{11} = ['ULXMAP        ' num2str(lon_min,15)];
-tmp{12} = ['ULYMAP        ' num2str(lat_max,15)];
-tmp{13} = ['XDIM         ' num2str(x_inc,'%.15f')];
-tmp{14} = ['YDIM         ' num2str(y_inc,'%.15f')];
+tmp{7} = 'PIXELTYPE  SIGNEDINT';
+tmp{8} = ['BANDROWBYTES  ' num2str(n_cols*to_bytes)];
+tmp{9} = ['TOTALROWBYTES ' num2str(n_cols*to_bytes)];
+tmp{10} = 'BANDGAPBYTES  0';
+tmp{11} = ['NODATA        ' num2str(nodata)];
+tmp{12} = ['ULXMAP        ' num2str(lon_min,15)];
+tmp{13} = ['ULYMAP        ' num2str(lat_max,15)];
+tmp{14} = ['XDIM         ' num2str(x_inc,'%.15f')];
+tmp{15} = ['YDIM         ' num2str(y_inc,'%.15f')];
 
 name_hdr = [PATH filesep name_copy '.hdr'];      % The extension has already been removed above
 fid = fopen(name_hdr,'wt');
-for (i = 1:14),   fprintf(fid,'%s\n',tmp{i});   end
+for (i = 1:15),   fprintf(fid,'%s\n',tmp{i});   end
 fclose(fid);
