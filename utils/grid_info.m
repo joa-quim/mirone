@@ -1,7 +1,7 @@
 function grid_info(handles,X,Y,hdr)
 %#function grdinfo_m
 
-if (nargin == 3 && strcmp(Y,'gdal'))            % Just extact the relevant info from the attribute struct
+if (nargin == 3 && strcmp(Y,'gdal'))            % Just extract the relevant info from the attribute struct
     att2Hdr(handles,X);    return
 elseif (nargin == 3 && strcmp(Y,'iminfo'))
     img2Hdr(handles,X);    return
@@ -17,7 +17,8 @@ if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived 
     X = getappdata(handles.figure1,'dem_x');    Y = getappdata(handles.figure1,'dem_y');
     Z = getappdata(handles.figure1,'dem_z');    % We want the Z for statistics (might not be in argin)
     if (~isempty(Z))
-        info2 = grdutils(Z,'-H');                       % info2 is a vector with [z_min z_max i_zmin i_zmax n_nans mean std]
+        info2 = grdutils(Z,'-H');               % info2 is a vector with [z_min z_max i_zmin i_zmax n_nans mean std]
+        info2(3:4) = info2(3:4) + 1;            % Info from grdutils is zero based
     else
         info2 = zeros(7,1);     X = [0 1];      Y = [0 1];  % Just to no error hang bellow
     end
@@ -26,41 +27,41 @@ if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived 
     w{3} = ['Remark: ' info1.Remark];
     w{4} = info1.Registration;
     w{5} = ['grdfile format: #' num2str(info1.Scale(3))];
-    txt1 = num2str(handles.head(1),'%.7f');      txt1 = wipe_zeros(txt1);    % x_min
-    txt2 = num2str(handles.head(2),'%.7f');      txt2 = wipe_zeros(txt2);    % x_max
-    txt3 = num2str(handles.head(8),'%.7f');      txt3 = wipe_zeros(txt3);    % x_inc
+    txt1 = sprintf('%.6f',handles.head(1));      txt1 = wipe_zeros(txt1);    % x_min
+    txt2 = sprintf('%.6f',handles.head(2));      txt2 = wipe_zeros(txt2);    % x_max
+    txt3 = sprintf('%.7f',handles.head(8));      txt3 = wipe_zeros(txt3);    % x_inc
     w{6} = ['x_min: ' txt1 '  x_max: ' txt2 '  x_inc: ' txt3 '  nx: ' num2str(info1.X_info(4))];
-    txt1 = num2str(handles.head(3),'%.7f');      txt1 = wipe_zeros(txt1);    % y_min
-    txt2 = num2str(handles.head(4),'%.7f');      txt2 = wipe_zeros(txt2);    % y_max
-    txt3 = num2str(handles.head(8),'%.7f');      txt3 = wipe_zeros(txt3);    % y_inc
+    txt1 = sprintf('%.6f',handles.head(3));      txt1 = wipe_zeros(txt1);    % y_min
+    txt2 = sprintf('%.6f',handles.head(4));      txt2 = wipe_zeros(txt2);    % y_max
+    txt3 = sprintf('%.7f',handles.head(9));      txt3 = wipe_zeros(txt3);    % y_inc
     w{7} = ['y_min: ' txt1 '  y_max: ' txt2 '  y_inc: ' txt3 '  ny: ' num2str(info1.Y_info(4))];
-    txt1 = num2str(handles.head(5),'%.3f');      txt1 = wipe_zeros(txt1);    % z_min
-    txt2 = num2str(handles.head(6),'%.3f');      txt2 = wipe_zeros(txt2);    % z_max
+    txt1 = sprintf('%.4f',info2(1));            txt1 = wipe_zeros(txt1);    % z_min
+    txt2 = sprintf('%.4f',info2(2));            txt2 = wipe_zeros(txt2);    % z_max
     
-    if (handles.head(6)),   half = 0.5;
+    if (handles.head(7)),   half = 0.5;
     else                    half = 0;       end
-    x_min = handles.head(1) + (rem(info2(3), length(X)) + half) * handles.head(8);    % x of z_min
-    x_max = handles.head(1) + (rem(info2(4), length(X)) + half) * handles.head(8);    % x of z_max
-    y_min = handles.head(4) - (rem(info2(3), length(Y)) + half) * handles.head(9);    % y of z_min
-    y_max = handles.head(4) - (rem(info2(4), length(Y)) + half) * handles.head(9);    % y of z_max
-    txt_x1 = num2str(x_min,'%.7f');     txt_x1 = wipe_zeros(txt_x1);
-    txt_x2 = num2str(x_max,'%.7f');     txt_x2 = wipe_zeros(txt_x2);
-    txt_y1 = num2str(y_min,'%.7f');     txt_y1 = wipe_zeros(txt_y1);
-    txt_y2 = num2str(y_max,'%.7f');     txt_y2 = wipe_zeros(txt_y2);
+    x_min = handles.head(1) + (fix(info2(3) / length(Y)) + half) * handles.head(8);    % x of z_min
+    x_max = handles.head(1) + (fix(info2(4) / length(Y)) + half) * handles.head(8);    % x of z_max
+    y_min = handles.head(3) + (rem(info2(3)-1, length(Y)) + half) * handles.head(9);   % y of z_min
+    y_max = handles.head(3) + (rem(info2(4)-1, length(Y)) + half) * handles.head(9);   % y of z_max
+    txt_x1 = sprintf('%.6f',x_min);     txt_x1 = wipe_zeros(txt_x1);
+    txt_x2 = sprintf('%.6f',x_max);     txt_x2 = wipe_zeros(txt_x2);
+    txt_y1 = sprintf('%.6f',y_min);     txt_y1 = wipe_zeros(txt_y1);
+    txt_y2 = sprintf('%.6f',y_max);     txt_y2 = wipe_zeros(txt_y2);
     
-    w{8} = ['z_min: ' txt1 ' at x = ' txt_x1 ' y = ' txt_y1 '  z_max: ' txt2 ' at x = ' ...
-            txt_x2 ' y = ' txt_y2];
+    w{8} = ['z_min: ' txt1 ' at x = ' txt_x1 ' y = ' txt_y1]; 
+    w{9} = ['z_max: ' txt2 ' at x = ' txt_x2 ' y = ' txt_y2];
 
-    w{9} = ['scale factor: ' num2str(info1.Scale(1)) ' add_offset: ' num2str(info1.Scale(2))];
+    w{10} = ['scale factor: ' num2str(info1.Scale(1)) ' add_offset: ' num2str(info1.Scale(2))];
     if (~isequal(info2,0))
         txt1 = num2str(info2(6),'%.3f');    txt1 = wipe_zeros(txt1);    % mean
         txt2 = num2str(info2(7),'%.3f');    txt2 = wipe_zeros(txt2);    % stdev
-        w{10} = ['mean: ' txt1 '  stdev: ' txt2];
+        w{11} = ['mean: ' txt1 '  stdev: ' txt2];
     else
-        w{10} = 'WARNING: GRID WAS NOT IN MEMORY SO SOME INFO MIGHT NO BE ENTIRELY CORRECT.';
+        w{11} = 'WARNING: GRID WAS NOT IN MEMORY SO SOME INFO MIGHT NO BE ENTIRELY CORRECT.';
     end
     if (info2(5))       % We have NaNs, report them also
-        w{11} = ['nodes set to NaN: ' num2str(info2(5))];
+        w{12} = ['nodes set to NaN: ' num2str(info2(5))];
     end
     msgbox(w,'Grid Info');
 elseif (handles.computed_grid)  % Computed array
