@@ -270,6 +270,24 @@ if (head(7))                            % Convert to grid registration
         head(7) = 0;
 end
 att =  gdalread(fname,'-M','-C');
+is_coards = false;
+if (att.RasterCount == 0)       % A GMT new format or a generic netcdf grid. Try luck.
+    try
+        ds = att.Subdatasets{1};
+        ind = strfind(ds, '=');
+        if (isempty(ind))
+            errordlg('Whoops. Could not find a subdataset description. Quiting.','ERROR');  return
+        end
+        fname = ds(ind+1:end);
+        att =  gdalread(fname,'-M','-C');
+        is_coards = true;
+    catch
+        set(handles.figure1,'pointer','arrow')
+        w{1} = 'Sorry. Something screw up with this NETCDF (new GMT version grid?) file';
+        w{2} = lasterr;
+        errordlg(w,'ERROR');        return
+    end
+end
 m = att.RasterXSize;            n = att.RasterYSize;
 % handles.head = att.GMT_hdr;
 % handles.head(8) = head(8);              % Correct the wrong x_inc/y_inc info given by gdal
@@ -279,7 +297,13 @@ handles.head = head;
 handles.head_orig = handles.head;
 jump = min(round(m / 200), round(n / 200));
 opt_P = ['-P' num2str(jump)];
-Z =  gdalread(fname,'-U','-S',opt_P);      [m,n] = size(Z);
+if (~is_coards)
+    Z =  gdalread(fname,'-U','-S',opt_P);
+else    % In this case GDAL seams incapable of determine band's min/max and therefore no scaling
+    Z =  gdalread(fname,'-U',opt_P);
+    Z = scaleto8(Z);
+end
+[m,n] = size(Z);
 X = linspace(handles.head(1),handles.head(2),n);
 Y = linspace(handles.head(3),handles.head(4),m);
 colormap(handles.axes1,jet(256));       handles.icon_img = image(X,Y,Z);
