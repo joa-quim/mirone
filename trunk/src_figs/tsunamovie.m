@@ -35,6 +35,7 @@ function varargout = tsunamovie(varargin)
     set(handles.push_batGrid,'CData',Mfopen_ico)
     set(handles.push_singleWater,'CData',Mfopen_ico)
     set(handles.push_namesList,'CData',Mfopen_ico)
+    set(handles.push_movieName,'CData',Mfopen_ico)
     
     % Import background image
     astrolabio = imread([f_path 'astrolabio.jpg']);
@@ -476,6 +477,9 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
         errordlg('Noooo! Where is the bathymetry file? Do you think I''m bruxo?','ERROR')
         return
     end
+    if (isempty(handles.movieName) && isempty(handles.Z_water))
+        errordlg('Hei! what shoult it be the movie name?','ERROR');        return
+    end
     
     is_gif = 1;     % Veracity of this is checked bellow
     alfa = get(handles.slider_transparency,'Value');
@@ -505,7 +509,7 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
     	imgWater = shading_mat(imgWater,R,'no_scale');
     	clear R;
         imgWater = mixe_images(handles, imgBat, imgWater, ind, alfa);
-        imgWater = cvlib_mex('text',imgWater,'1:32:45',[10 30]);
+        %imgWater = cvlib_mex('text',imgWater,'1:32:45',[10 30]);
         mirone(imgWater,tmp);
     elseif (~isempty(handles.nameList))     % If we have a list of names
         nGrids = numel(handles.nameList);
@@ -545,23 +549,25 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
             ind = (Z == 0);
 %             imgWater = mixe_images(handles, imgBat, imgWater, ind, alfa);
 %             imgWater = flipdim(imgWater,1);     % The stupid UL origin
-            imgWater = cvlib_mex('text',imgWater,'1:32:45',[10 30]);
+%             imgWater = cvlib_mex('text',imgWater,'1:32:45',[10 30]);
             if (is_gif)
                 [imgWater,map] = img_fun('rgb2ind',imgWater,256,handles.dither);
             end
             imgWater = flipdim(imgWater,1);     % The stupid UL origin
             if (is_gif)
+                mname = [handles.moviePato handles.movieName '.gif'];
                 if (i == 1)
-                    writegif(imgWater,map,'tsumovie.gif','loopcount',Inf)
+                    writegif(imgWater,map,mname,'loopcount',Inf)
                 else
-                    writegif(imgWater,map,'tsumovie.gif','WriteMode','append','DelayTime',handles.dt)
+                    writegif(imgWater,map,mname,'WriteMode','append','DelayTime',handles.dt)
                 end
             else        % AVI
                 M(i) = im2frame(imgWater);
             end
         end
         if (~is_gif)    % AVI
-      	    movie2avi_j(M,'tsumovie1.avi','compression','none','fps',handles.fps)
+            mname = [handles.moviePato handles.movieName '.avi'];
+      	    movie2avi_j(M,mname,'compression','none','fps',handles.fps)
         end
         set(handles.figure1,'Name','Tsunamovie')
         set(handles.push_stop,'Visible','off')
@@ -575,21 +581,25 @@ function imgWater = mixe_images(handles, imgBat, imgWater, ind, alfa)
     % Mixes land and water images simulating transparency.
     % It also resizes the image if the scale factor is ~= 1
     
-    if (alfa > 0.01)    % Only if transparency is greater than 1%
-        cvlib_mex('addweighted',imgWater,(1 - alfa),imgBat,alfa);     % In-place
-    end
-    
-    tmpW = imgWater(:,:,1);     tmpB = imgBat(:,:,1);           % R
-    tmpW(ind) = tmpB(ind);      imgWater(:,:,1) = tmpW;
-    
-    tmpW = imgWater(:,:,2);     tmpB = imgBat(:,:,2);           % G
-    tmpW(ind) = tmpB(ind);      imgWater(:,:,2) = tmpW;
-    
-    tmpW = imgWater(:,:,3);     tmpB = imgBat(:,:,3);           % B
-    tmpW(ind) = tmpB(ind);      imgWater(:,:,3) = tmpW;
-    
-    if (handles.scaleFactor ~= 1)
-        imgWater = cvlib_mex('resize',imgWater,handles.scaleFactor);
+    try
+        if (alfa > 0.01)    % Only if transparency is greater than 1%
+            cvlib_mex('addweighted',imgWater,(1 - alfa),imgBat,alfa);     % In-place
+        end
+        
+        tmpW = imgWater(:,:,1);     tmpB = imgBat(:,:,1);           % R
+        tmpW(ind) = tmpB(ind);      imgWater(:,:,1) = tmpW;
+        
+        tmpW = imgWater(:,:,2);     tmpB = imgBat(:,:,2);           % G
+        tmpW(ind) = tmpB(ind);      imgWater(:,:,2) = tmpW;
+        
+        tmpW = imgWater(:,:,3);     tmpB = imgBat(:,:,3);           % B
+        tmpW(ind) = tmpB(ind);      imgWater(:,:,3) = tmpW;
+        
+        if (handles.scaleFactor ~= 1)
+            imgWater = cvlib_mex('resize',imgWater,handles.scaleFactor);
+        end
+    catch
+        errordlg(lasterr,'Error')
     end
     
     %imgWater = cvlib_mex('text',imgWater,'1:32:45',[10 30]);    
@@ -631,7 +641,7 @@ uicontrol('Parent',h1,...
 'Tag','edit_batGrid');
 
 uicontrol('Parent',h1,...
-'Callback',{@tsunamovie_uicallback4,h1,[],'push_batGrid_Callback'},...
+'Callback',{@tsunamovie_uicallback,h1,'push_batGrid_Callback'},...
 'Position',[210 369 21 21],...
 'TooltipString','Browse for a bathymetry grid',...
 'Tag','push_batGrid');
@@ -646,7 +656,7 @@ uicontrol('Parent',h1,...
 'Tag','edit_singleWater');
 
 uicontrol('Parent',h1,...
-'Callback',{@tsunamovie_uicallback4,h1,[],'push_singleWater_Callback'},...
+'Callback',{@tsunamovie_uicallback,h1,'push_singleWater_Callback'},...
 'Position',[200 13 21 21],...
 'Tag','push_singleWater');
 
@@ -660,7 +670,7 @@ uicontrol('Parent',h1,...
 'Tag','edit_namesList');
 
 uicontrol('Parent',h1,...
-'Callback',{@tsunamovie_uicallback4,h1,[],'push_namesList_Callback'},...
+'Callback',{@tsunamovie_uicallback,h1,'push_namesList_Callback'},...
 'Position',[210 319 21 21],...
 'TooltipString','Browse for a water level grids list file',...
 'Tag','push_namesList');
@@ -936,7 +946,7 @@ uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@tsunamovie_uicallback,h1,'popup_resize_Callback'},...
 'Position',[380 147 50 22],...
-'String',{  '0.25'; '0.33'; '0.5'; '1.0'; '2.0' },...
+'String',{'0.25'; '0.33'; '0.5'; '1.0'; '2.0' },...
 'Style','popupmenu',...
 'TooltipString','Resize output images by this value',...
 'Value',4,...
@@ -952,7 +962,7 @@ uicontrol('Parent',h1,...
 'Tag','edit_movieName');
 
 uicontrol('Parent',h1,...
-'Callback',{@tsunamovie_uicallback4,h1,[],'push_movieName_Callback'},...
+'Callback',{@tsunamovie_uicallback,h1,'push_movieName_Callback'},...
 'Position',[210 80 21 21],...
 'TooltipString','Browse for a movie file name (extention is ignored)',...
 'Tag','push_movieName');
@@ -981,8 +991,3 @@ uicontrol('Parent',h1,...
 function tsunamovie_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
 feval(callback_name,hObject,[],guidata(h1));
-
-% ---------------------------------------------------------------------------------
-function tsunamovie_uicallback4(hObject, eventdata, h1, opt, callback_name)
-% This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1),opt);
