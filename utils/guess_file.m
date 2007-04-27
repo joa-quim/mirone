@@ -48,7 +48,7 @@ end
     idM = false(1,nl_max);
     for (i =1:nl_max)
         if isempty(str{i});  continue;   end;    % Jump blank lines
-        if strfind(str{i}(1:2),'>')   % multisegmet line, so the rest of it is of no interest (but count them)
+        if strfind(str{i}(1:min(2,length(str{i}))),'>')   % multisegmet line, so the rest of it is of no interest (but count them)
             n_multi = n_multi + 1;
             idM(i) = true;      % Tag it to deletion
             continue
