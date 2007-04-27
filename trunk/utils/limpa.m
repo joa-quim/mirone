@@ -19,7 +19,9 @@ else
     set(hTelhometro,'Callback','telhometro(gcf)','Label','Telhometro')
     set(hFloodFil,'Callback','mirone(''Transfer_CB'',gcbo,[],guidata(gcbo),''Shape'')','Label','Shape detector')
     set(hVitrinite,'Callback','vitrinite','Label','Vitrinite')
-    set(hTsunamovie,'Callback','tsunamovie','Label','Make tsunami movies')
+    set(hTsunamovie,'Label','Make tsunami movies')
+    uimenu('Parent',hTsunamovie,'Callback','umDmovie(guidata(gcbo))','Label','1d movie')
+    uimenu('Parent',hTsunamovie,'Callback','tsunamovie','Label','2d movie')
 end
 
 setappdata(handles.figure1,'esDourada',~mata)   % Save goldness info
