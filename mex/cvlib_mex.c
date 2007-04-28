@@ -128,7 +128,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tadd (cvAdd)\n");
 		mexPrintf("\taddS (cvAddS)\n");
 		mexPrintf("\taddweighted (cvAddWeighted)\n");
-		//mexPrintf("\taffine2 (cvWarpAffine)\n");	// No help yet
+		/*mexPrintf("\taffine2 (cvWarpAffine)\n");	No help yet*/
 		mexPrintf("\tcanny (cvCanny)\n");
 		mexPrintf("\tcircle (cvCircle)\n");
 		mexPrintf("\tcolor (cvCvtColor)\n");
@@ -1195,7 +1195,6 @@ void JhoughLines2(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 			lineS = (double *)cvGetSeqElem(lines,i);
 			a = cos(lineS[1]), b = sin(lineS[1]); 
 			x0 = a*lineS[0], y0 = b*lineS[0]; 
-			//mexPrintf("Merda i=%d\t%f \t%f \tx0=%f \ty0=%f\n",i,lineS[0],lineS[1],x0,y0);
 			ptr_d[0] = cvRound(y0 + 1000*(a));
 			ptr_d[1] = cvRound(y0 - 1000*(a)); 
 			ptr_d[2] = cvRound(x0 + 1000*(-b)); 
@@ -1442,7 +1441,7 @@ return;
 
 	plhs[0] = mxCreateNumericMatrix(np, nx, mxGetClassID(prhs[1]), mxREAL);
 	ptr_d = mxGetPr(plhs[0]);
-	//cvGetData( cont, (void *)ptr_d, cont->cols*8 );
+	/*cvGetData( cont, (void *)ptr_d, cont->cols*8 );*/
 	ptr_d = cont->data.db;
 
 	cvReleaseMatHeader( &map_matrix );
@@ -1547,7 +1546,7 @@ void Jedge(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const ch
 			cvLaplace(src_img,dst_16, kernel);
 		else
 			cvSobel(src_img,dst_16, xord, yord, kernel);
-		// Now we have to convert the dst_16 back to UInt8 
+		/* Now we have to convert the dst_16 back to UInt8 */
 		cvConvertScaleAbs(dst_16, dst_img, 1, 0); 
 		cvReleaseImageHeader( &dst_16 );
 		mxDestroyArray(ptr_16);
@@ -1708,15 +1707,12 @@ void JerodeDilate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], c
 	/* ------ Create pointers for output and temporary arrays ------------------------ */
 	ptr_in  = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
 		  mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
-	//ptr_out = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
-		  //mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
 	/* ------------------------------------------------------------------------------- */ 
 
 	Set_pt_Ctrl_in ( Ctrl, prhs[1], ptr_in, 1 ); 	/* Set pointer & interleave */
 	src_img = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
 	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
 
-	//Set_pt_Ctrl_out1 ( Ctrl, ptr_out ); 
 	Set_pt_Ctrl_out1 ( Ctrl, ptr_in ); 		/* Reuse memory */
 	dst_img = cvCreateImage(cvSize(nx, ny), img_depth , nBands );
 	localSetData( Ctrl, dst_img, 2, nx * nBands * nBytes );
@@ -1726,9 +1722,6 @@ void JerodeDilate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], c
 	else
 		cvDilate(src_img,dst_img,NULL,iterations);
 
-	//cvReleaseImageHeader( &src_img );
-	//mxDestroyArray(ptr_in);
-
 	plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
 		  mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
 	Set_pt_Ctrl_out2 ( Ctrl, plhs[0], 1 ); 		/* Set pointer & desinterleave */
@@ -1736,7 +1729,6 @@ void JerodeDilate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], c
 	cvReleaseImageHeader( &src_img );
 	cvReleaseImageHeader( &dst_img );
 	mxDestroyArray(ptr_in);
-	//mxDestroyArray(ptr_out);
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 }
 
@@ -1762,7 +1754,7 @@ void Jcolor(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexErrMsgTxt("COLOR Second argument must be a valid string!");
 	else {
 		argv = (char *)mxArrayToString(prhs[2]);
-		//<X>/<Y> = RGB, BGR, GRAY, HSV, YCrCb, XYZ, Lab, Luv, HLS
+		/*<X>/<Y> = RGB, BGR, GRAY, HSV, YCrCb, XYZ, Lab, Luv, HLS */
 		if (!strcmp(argv,"rgb2lab"))
 			cv_code = CV_BGR2Lab;
 		else if (!strcmp(argv,"lab2rgb"))
@@ -1891,14 +1883,14 @@ void JGetQuadrangleSubPix(int n_out, mxArray *plhs[], int n_in, const mxArray *p
 	localSetData( Ctrl, src, 1, nx * nBands * nBytes );
 
 	map_matrix = cvCreateMatHeader( 2, 3, CV_64FC1 );
-	//map_matrix = cvMat( 2, 3, CV_64FC1, (void *)ptr_d );
+	/*map_matrix = cvMat( 2, 3, CV_64FC1, (void *)ptr_d );*/
 	cvSetData( map_matrix, (void *)ptr_d, 3*8 );
 
 	Set_pt_Ctrl_out1 ( Ctrl, ptr_out ); 
 	dst = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
 	localSetData( Ctrl, dst, 2, nx * nBands * nBytes );
 
-	//cvGetQuadrangleSubPix( src,  dst, map_matrix );
+	/*cvGetQuadrangleSubPix( src,  dst, map_matrix );*/
 	cvWarpAffine( src,  dst, map_matrix,CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS,cvScalarAll(0) );
 
 	cvReleaseImageHeader( &src );
@@ -1911,7 +1903,7 @@ void JGetQuadrangleSubPix(int n_out, mxArray *plhs[], int n_in, const mxArray *p
 	cvReleaseImageHeader( &dst );
 	mxDestroyArray(ptr_out);
 	cvReleaseMatHeader( &map_matrix );
-	//cvReleaseMat( &map_matrix );
+	/*cvReleaseMat( &map_matrix );*/
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 }
 
@@ -2790,7 +2782,6 @@ void getDataType(struct CV_CTRL *Ctrl, const mxArray *prhs[], int *nBytes, int *
 		mexPrintf("CVLIB_MEX ERROR: Invalid input data type.\n");
 		mexErrMsgTxt("Valid types are: double, single, Int32, UInt16, Int16, and Uint8.\n");
 	}
-	//mexPrintf("Merda %d %d %d %d\n",(int)IPL_DEPTH_8S, IPL_DEPTH_16S, IPL_DEPTH_32S, IPL_DEPTH_SIGN);
 
 	/* For a very obscure reason the types Int8,Int16,Int32,Double are reported illegal
 	   in cxarray (line 3346), but the most strange is that they are foreseen there */
