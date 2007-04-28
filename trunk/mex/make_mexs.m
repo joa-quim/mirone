@@ -14,11 +14,16 @@ patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\libMEX\';% Lib path for GMT - Lib
 %patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\lib\';   % Lib path for GMT
 %patoLIB_GMT = 'c:\programs\gmt4\lib\';                 %
 pato_NETCDF = 'd:\progs_interix\GMTdev\netcdf_win\';    % path for NETCDF
-pato_GDAL = 'D:\programas\GDALB140\';                   % path for GDAL
+pato_GDAL = 'D:\programas\GDALB141\';                   % path for GDAL
 pato_OCV = 'C:\programas\OpenCV\';                      % path for OpenCV
 pato_SHAPELIB = 'D:\lixo\shapelib\';                    % path for shapelib
 pato_VC98LIB = 'C:\programas\VisualStudio\VC98\Lib\';   % path for MSVC library dir
 
+if (ispc)
+	COPT = '-DWIN32 -O';
+else
+	COPT = '-O';
+end
 % -------------------------- Stop editing (at least on Windows) ---------------------------
 
 INCLUDE_GMT = [patoINC_GMT 'src\'];               % Core gmt programs
@@ -86,16 +91,11 @@ include_cv = ['-I' INCLUDE_CV ' -I' INCLUDE_CXCORE ' -I' INCLUDE_HG];
 library_cv = [LIB_CV ' ' LIB_CXCORE ' ' LIB_HG];
 library_vc6 = [LIB_USER32 ' ' LIB_GDI32];
 
+opt_gmt = COPT;
+opt_gmt_mgg = COPT;
 if (ispc)
-    %opt_gmt = '-O -DWIN32 -DDLL_GMT -DLL_NETCDF -DDLL_PSL';
-    opt_gmt = '-O -DWIN32 -DDLL_GMT -DDLL_NETCDF';
-    opt_gmt_mgg = '-O -DWIN32 -DDLL_GMT -DGMT_MGG';
-    opt_cv = '-O -DWIN32 -DDLL_CV097 -DDLL_CXCORE097';
-    opt_simple = '-O -DWIN32';
-else
-    opt_gmt = '-O';
-    opt_simple = '-O';
-    opt_cv = '-O';
+    opt_gmt = [COPT ' -DDLL_GMT -DDLL_NETCDF'];		% Are the -D... really needed?
+    opt_gmt_mgg = [COPT ' -DDLL_GMT -DGMT_MGG'];
 end
 
 if (strcmp(opt,'all'))              % Compile the whole family
@@ -108,19 +108,19 @@ if (strcmp(opt,'all'))              % Compile the whole family
         eval(cmd)
     end
     for (i=1:length(str_gdal))      % Compile Gdal mexs
-        cmd = ['mex ' [str_gdal{i} '.c'] ' ' include_gdal ' ' library_gdal ' ' opt_simple];
+        cmd = ['mex ' [str_gdal{i} '.c'] ' ' include_gdal ' ' library_gdal ' ' COPT];
         eval(cmd)
     end
     for (i=1:length(str_cv))      % Compile OpenCV mexs
-        cmd = ['mex ' [str_cv{i} '.c'] ' ' include_cv ' ' library_cv ' ' opt_cv];
+        cmd = ['mex ' [str_cv{i} '.c'] ' ' include_cv ' ' library_cv ' ' COPT];
         eval(cmd)
     end
     for (i=1:length(str_simple))    % Compile Other (simple) mexs
-        cmd = ['mex ' [str_simple{i} '.c'] ' ' opt_simple];
+        cmd = ['mex ' [str_simple{i} '.c'] ' ' COPT];
         eval(cmd)
     end
     for (i=1:length(str_simple_cpp))    % Compile Other (simple) c++ mexs
-        cmd = ['mex ' [str_simple_cpp{i} '.cpp'] ' ' opt_simple];
+        cmd = ['mex ' [str_simple_cpp{i} '.cpp'] ' ' COPT];
         eval(cmd)
     end
 elseif (strcmp(lower(opt),'gmt'))   % Compile only the GMT mexs (and supplements)
@@ -151,17 +151,17 @@ else                                % Compile only one mex
     elseif (~isempty(idx4))     % Compile GMT MGG mexs
         cmd = ['mex ' [str_gmt_mgg{idx4} '.c'] ' ' include_gmt ' ' include_gmt_mgg ' ' library_gmt_mgg ' ' opt_gmt_mgg];
     elseif (~isempty(idx2))     % Compile Gdal mexs
-        cmd = ['mex ' [str_gdal{idx2} '.c'] ' ' include_gdal ' ' library_gdal ' ' opt_simple];
+        cmd = ['mex ' [str_gdal{idx2} '.c'] ' ' include_gdal ' ' library_gdal ' ' COPT];
     elseif (~isempty(idx2pp))     % Compile Gdal c++ mexs
-        cmd = ['mex ' [str_gdal_cpp{idx2pp} '.cpp'] ' ' include_gdal ' ' library_gdal ' ' opt_simple];
+        cmd = ['mex ' [str_gdal_cpp{idx2pp} '.cpp'] ' ' include_gdal ' ' library_gdal ' ' COPT];
     elseif (~isempty(idx22))    % Compile Shape mexs
-        cmd = ['mex ' [str_shape{idx22} '.c'] ' ' include_shape ' ' library_shape ' ' opt_simple];
+        cmd = ['mex ' [str_shape{idx22} '.c'] ' ' include_shape ' ' library_shape ' ' COPT];
     elseif (~isempty(idx5))     % Compile OpenCV mexs
-        cmd = ['mex ' [str_cv{idx5} '.c'] ' ' include_cv ' ' library_cv ' ' opt_cv];
+        cmd = ['mex ' [str_cv{idx5} '.c'] ' ' include_cv ' ' library_cv ' ' COPT];
     elseif (~isempty(idx6))     % Compile Simple c++ mexs
-        cmd = ['mex ' [str_simple_cpp{idx6} '.cpp'] ' ' library_vc6 ' ' opt_simple];
+        cmd = ['mex ' [str_simple_cpp{idx6} '.cpp'] ' ' library_vc6 ' ' COPT];
     else                        % Compile Other (simple) mexs
-        cmd = ['mex ' [str_simple{idx3} '.c'] ' ' opt_simple];
+        cmd = ['mex ' [str_simple{idx3} '.c'] ' ' COPT];
     end
     eval(cmd)
 end
