@@ -1,5 +1,5 @@
 /*
- *      Coffeeright (c) 2002-2003 by J. Luis
+ *      Coffeeright (c) 2002-2007 by J. Luis
  *
  *      This program is free software; you can redistribute it and/or modify
  *      it under the terms of the GNU General Public License as published by
@@ -15,15 +15,16 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
- * Revision 1.0  31/08/2006 Joaquim Luis
- * Revision 2.0  19/10/2006 JL	Edge 'laplace' needed exlicit kernel input
- * Revision 3.0  27/10/2006 JL	Updated cvHoughCircles call to 1.0
- * Revision 4.0  07/11/2006 JL	Erode & Diltate in cvHoughCircles  (almost the same shit)
- * Revision 5.0  29/11/2006 JL	Added half a dozen of functions more (line, rect, circ, poly, ellip, inpaint)
- * Revision 6.0  02/12/2006 JL	Added FillPoly and FillConvexPoly
- * Revision 7.0  26/01/2007 JL	Fixed crash when individual cell were empty with the polygon option
- * Revision 8.0  14/02/2007 JL	In Floodfill convert fill color to [0 255] if it was [0 1]
- * Revision 9.0  04/03/2007 JL	Fixed cvContours
+ * Revision 10.0  27/04/2007 JL	Added AbsDiff, finished PutText and fixed fix of JfindContours
+ * Revision  9.0  04/03/2007 JL	Fixed JfindContours (well I thought I did - 28-4-07) 
+ * Revision  8.0  14/02/2007 JL	In Floodfill convert fill color to [0 255] if it was [0 1]
+ * Revision  7.0  26/01/2007 JL	Fixed crash when individual cell were empty with the polygon option
+ * Revision  6.0  02/12/2006 JL	Added FillPoly and FillConvexPoly
+ * Revision  5.0  29/11/2006 JL	Added half a dozen of functions more (line, rect, circ, poly, ellip, inpaint)
+ * Revision  4.0  07/11/2006 JL	Erode & Diltate in cvHoughCircles  (almost the same shit)
+ * Revision  3.0  27/10/2006 JL	Updated cvHoughCircles call to 1.0
+ * Revision  2.0  19/10/2006 JL	Edge 'laplace' needed exlicit kernel input
+ * Revision  1.0  31/08/2006 Joaquim Luis
  *
  */
 
@@ -123,6 +124,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("List of currently coded OPENCV functions (original name in parentesis):\n");
 		mexPrintf("To get a short online help type cvlib_mex(funname)\n");
 		mexPrintf("E.G. cvlib_mex('resize')\n\n");
+		mexPrintf("\tabsDiff (cvAbsDiff)\n");
 		mexPrintf("\tadd (cvAdd)\n");
 		mexPrintf("\taddS (cvAddS)\n");
 		mexPrintf("\taddweighted (cvAddWeighted)\n");
@@ -212,7 +214,8 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		JGetQuadrangleSubPix(n_out, plhs, n_in, prhs);
 
 	else if ( !strcmp(funName,"add") || !strcmp(funName,"sub") || !strcmp(funName,"mul") ||
-		 !strcmp(funName,"div") || !strcmp(funName,"addS") || !strcmp(funName,"subS") )
+		 !strcmp(funName,"div") || !strcmp(funName,"addS") || !strcmp(funName,"subS") ||
+		 !strcmp(funName,"absDiff"))
 		Jarithm(n_out, plhs, n_in, prhs, funName);
 
 	else if (!strcmp(funName,"addweighted"))
@@ -654,15 +657,15 @@ void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], cons
 /* --------------------------------------------------------------------------- */
 void Jtext(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	int	nx, ny, nBands, m, n, nBytes, img_depth, inplace = FALSE;
-	int	r, g, b, thickness = 1, line_type = 8;
+	int	r, g, b, thickness = 1, font_type = 4, line_type = 16;
 	int	i, j, nstrings = 0, *polyNpts;
 	const char	*theTEXTstr;
-	double	*ptr_d;
+	double	*ptr_d, hscale = 1., vscale = 1., shear = 0;
 	IplImage *src_img = 0, *dst = 0;
 	CvPoint	pt, *buf = 0;
 	CvFont	font;
 	CvScalar color;
-	mxArray	*ptr_in;
+	mxArray *ptr_in, *mx_ptr;
 
 	struct CV_CTRL *Ctrl;
 	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
@@ -683,7 +686,7 @@ void Jtext(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	color = cvScalarAll(0);		/* Default to a black text */
 
-	if (mxIsCell(prhs[2])) {
+	if (mxIsCell(prhs[2])) {	/* NOT FINISHED */
 		m = mxGetM(prhs[2]);	n = mxGetN(prhs[2]);
 		if ( m != 1 && n != 1)
 			mexErrMsgTxt("CVLIB_MEX:TEXT Cell array must be Mx1 OR 1xN");
@@ -707,20 +710,60 @@ void Jtext(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		pt.x = (int)ptr_d[0];		pt.y = (int)ptr_d[1];
 	}
 
-	if (n_in > 4 && !mxIsEmpty(prhs[3])) {			/* Font */
-		cvInitFont( &font, CV_FONT_HERSHEY_TRIPLEX, 1.0, 1.0, 0, 1, CV_AA);
-	}
-	else {
-		cvInitFont( &font, CV_FONT_HERSHEY_TRIPLEX, 1.0, 1.0, 0, 1, CV_AA);
+	if (n_in > 4 && !mxIsEmpty(prhs[4])) {			/* Font */
+		if (!mxIsStruct(prhs[4]))
+			mexErrMsgTxt("CVLIB_MEX:TEXT: Fourth argument must contain a font structure!");
+
+		mx_ptr = mxGetField(prhs[4], 0, "id");
+		if (mx_ptr == NULL)
+			font_type = 4;
+		else {
+			ptr_d = mxGetPr(mx_ptr);	font_type = (int)ptr_d[0];
+		}
+		mx_ptr = mxGetField(prhs[4], 0, "hscale");
+		if (mx_ptr == NULL)
+			hscale = 1.0;
+		else {
+			ptr_d = mxGetPr(mx_ptr);	hscale = ptr_d[0];
+		}
+		mx_ptr = mxGetField(prhs[4], 0, "vscale");
+		if (mx_ptr == NULL)
+			vscale = 1.0;
+		else {
+			ptr_d = mxGetPr(mx_ptr);	vscale = ptr_d[0];
+		}
+		mx_ptr = mxGetField(prhs[4], 0, "shear");
+		if (mx_ptr == NULL)
+			shear = 0.0;
+		else {
+			ptr_d = mxGetPr(mx_ptr);	shear = ptr_d[0];
+		}
+		mx_ptr = mxGetField(prhs[4], 0, "thick");
+		if (mx_ptr == NULL)
+			thickness = 1;
+		else {
+			ptr_d = mxGetPr(mx_ptr);	thickness = (int)ptr_d[0];
+		}
+		mx_ptr = mxGetField(prhs[4], 0, "ltype");
+		if (mx_ptr == NULL)
+			line_type = CV_AA;
+		else {
+			ptr_d = mxGetPr(mx_ptr);	line_type = (int)ptr_d[0];
+		}
+
 	}
 
-	if (n_in > 5 && !mxIsEmpty(prhs[4])) {			/* Text color */
-		ptr_d = (double *)mxGetData(prhs[4]);
-		if (mxGetM(prhs[4]) * mxGetN(prhs[4]) == 1) {	/* Gray */
+	if (font_type < 0 || font_type > 7) font_type = 4;
+
+	cvInitFont( &font, font_type, hscale, vscale, shear, thickness, line_type);
+
+	if (n_in > 5 && !mxIsEmpty(prhs[5])) {			/* Text color */
+		ptr_d = (double *)mxGetData(prhs[5]);
+		if (mxGetM(prhs[5]) * mxGetN(prhs[5]) == 1) {	/* Gray */
 			r = (int)ptr_d[0];
 			color = CV_RGB( r, r, r );
 		}
-		else if (mxGetM(prhs[4]) * mxGetN(prhs[4]) == 3) {	/* Color */
+		else if (mxGetM(prhs[5]) * mxGetN(prhs[5]) == 3) {	/* Color */
 			r = (int)ptr_d[0];	g = (int)ptr_d[1];	b = (int)ptr_d[2];
 			color = CV_RGB( r, g, b );
 		}
@@ -753,12 +796,16 @@ void Jtext(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		dst = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
 		cvSetImageData( dst, (void *)mxGetData(plhs[0]), nx * nBytes * nBands );
 		localSetData( Ctrl, dst, 1, nx * nBands * nBytes );
+		cvFlip( dst, NULL, 0);		/* Don't understand why but I have to do this */
 		cvPutText( dst, theTEXTstr, pt, &font, color );
+		cvFlip( dst, NULL, 0);		/* Revert temp flip */
 		interleaveBlind (Ctrl->UInt8.tmp_img_in, (unsigned char *)mxGetData(plhs[0]), nx, ny, nBands, -1);
 		cvReleaseImageHeader( &dst );
 	}
 	else {
+		cvFlip( src_img, NULL, 0);	/* Don't understand why but I have to do this */
 		cvPutText( src_img, theTEXTstr, pt, &font, color );
+		cvFlip( src_img, NULL, 0);	/* Revert temp flip */
 		/* desinterleave */
 		interleaveBlind (Ctrl->UInt8.tmp_img_in, (unsigned char *)mxGetData(prhs[1]), nx, ny, nBands, -1);
 	}
@@ -1328,27 +1375,22 @@ void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 
         	cvCanny( src_img, dst_img, 50, 200, 3 );
 
-		cvFindContours( dst_img, storage, &contours, sizeof(CvContour),
+		ncont = cvFindContours( dst_img, storage, &contours, sizeof(CvContour),
 				CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );
 		cvReleaseImageHeader( &dst_img );
 		mxDestroyArray(ptr_out);
 	}
 	else 		/* Input was already a mask array */
-		cvFindContours( src_img, storage, &contours, sizeof(CvContour),
+		ncont = cvFindContours( src_img, storage, &contours, sizeof(CvContour),
 				CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );
 
 	cvReleaseImageHeader( &src_img );
 	mxDestroyArray(ptr_in);
 
 	/* ------ GET OUTPUT DATA --------------------------- */ 
-	//for(ncont = 0; contours = contours->h_next; ncont++);	/* count number of contours */
-//mexPrintf("Merda2 ncont = %d\n", ncont);
-	//for(i = 0; i < 2; contours = contours->h_prev);	/* rewind the contours sequence - STUPID, but with this CV manual ... */
-	ncont = 523;
-
 	plhs[0] = mxCreateCellMatrix(ncont, 1);
 	for( i = 0; i < ncont; i++ ) {
-		np = contours->total;		/* This is the number points in contour */
+		np = contours->total;		/* This is the number of points in contour */
 		PointArray = (CvPoint*)malloc( np*sizeof(CvPoint) );	/* Alloc memory for contour point set */
 		cvCvtSeqToArray(contours, PointArray, CV_WHOLE_SEQ);	/* Get contour point set. */
 		mx_ptr = mxCreateNumericMatrix(np, 2, mxDOUBLE_CLASS, mxREAL);
@@ -2146,6 +2188,8 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 			cvSub( src1, src2, dst, NULL ); 
 		else if (!strcmp(op,"subS"))
 			cvSubS( src1, value, dst, NULL ); 
+		else if (!strcmp(op,"absDiff"))
+			cvAbsDiff( src1, src2, dst ); 
 		else if (!strcmp(op,"mul"))
 			cvMul( src1, src2, dst, 1 ); 
 		else if (!strcmp(op,"div"))
@@ -2162,6 +2206,8 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 			cvSub( src1, src2, src1, NULL ); 
 		else if (!strcmp(op,"subS"))
 			cvSubS( src1, value, src1, NULL ); 
+		else if (!strcmp(op,"absDiff"))
+			cvAbsDiff( src1, src2, src1 ); 
 		else if (!strcmp(op,"mul"))
 			cvMul( src1, src2, src1, 1 ); 
 		else if (!strcmp(op,"div"))
@@ -2805,7 +2851,7 @@ void lineUsage() {
 	mexPrintf("       e.g (...,[],[],LINE_TYPE) or (...,[],5) are allowed.\n");
 	mexPrintf("	  PT1 & PT2 -> Start and end points of the line segment. Note PT is a 1x2 vector e.g [x y]\n");
 	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
-	mexPrintf("       THICK -> Line thickness (default 1)\n");
+	mexPrintf("       THICK -> Line thickness [default 1]\n");
 	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), 4 - 4-connected, 16 - antialiased.\n\n");
 
 	mexPrintf("       Class support: uint8.\n");
@@ -3150,14 +3196,33 @@ void pyrDUsage() {
 
 /* -------------------------------------------------------------------------------------------- */
 void textUsage() {
-	mexPrintf("Usage: cvlib_mex('text',IMG,TXT,PT,[FONT],COLOR);\n");
+	mexPrintf("Usage: cvlib_mex('text',IMG,TXT,PT,[FONT,COLOR]);\n");
 	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
 	mexPrintf("       overprints, inplace, the text string TEXT whose lower left coordinates\n");
-	mexPrintf("       are contained in the 1x2 or 2x1 PT vector.\n");
+	mexPrintf("       are contained in the 1x2 or 2x1 PT vector (coords origin at UL corner).\n");
 	mexPrintf("       IM2 = cvlib_mex('polyline',...);\n");
 	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
-	mexPrintf("       Terms inside brakets are optional and MUST (at this release) be empty,\n");
-	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
+	mexPrintf("       Terms inside brakets are optional and can be empty,\n");
+	mexPrintf("       e.g (...,[],COLOR) is allowed.\n");
+	mexPrintf("       FONT -> is a structure with the following fields:\n");
+	mexPrintf("          'id' Number id to the font used [default 4]:\n");
+	mexPrintf("               0 -> normal size sans-serif font\n");
+	mexPrintf("               1 -> small size sans-serif font\n");
+	mexPrintf("               2 -> normal size sans-serif font (more complex than 0)\n");
+	mexPrintf("               3 -> normal size serif font\n");
+	mexPrintf("               4 -> normal size serif font (more complex than 3) [default]\n");
+	mexPrintf("               5 -> smaller version of 3\n");
+	mexPrintf("               6 -> hand-writing style font\n");
+	mexPrintf("               7 -> more complex variant of 6\n");
+	mexPrintf("          'hscale' Horizontal scale. If equal to 1.0, the characters have the\n");
+	mexPrintf("                   original width depending on the font type. If equal to 0.5, the\n");
+	mexPrintf("                   characters are of half the original width:\n");
+	mexPrintf("          'vscale' Vertical scale.\n");
+	mexPrintf("          'shear' Approximate tangent of the character slope relative to the vertical line.\n");
+	mexPrintf("                  Zero value means a non-italic font, 1.0f means ~45° slope, etc.\n");
+	mexPrintf("          'thick' Thickness of lines composing letters outlines [default 1].\n");
+	mexPrintf("          'ltype' Type of line. 8 - 8-connected line, 4 - 4-connected, 16 - antialiased (default).\n");
+	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n\n");
 
 	mexPrintf("       Class support: uint8.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
@@ -3169,6 +3234,7 @@ void arithmUsage() {
 	mexPrintf("       Apply per element arithmetics betweem IMG1 & IMG2. OP can be one of:\n");
 	mexPrintf("       add -> B = IMG1 + IMG2\n");
 	mexPrintf("       sub -> B = IMG1 - IMG2\n");
+	mexPrintf("       absDiff -> B = abs(IMG1 - IMG2)\n");
 	mexPrintf("       mul -> B = IMG1 * IMG2\n");
 	mexPrintf("       div -> B = IMG1 / IMG2\n\n");
 	mexPrintf("       If IMG2 is a scalar than OP can also take these values:\n");
