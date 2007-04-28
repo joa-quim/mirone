@@ -363,6 +363,7 @@ src_figs/tableGUI.m -text
 src_figs/telhometro.m -text
 src_figs/time_stamp.m -text
 src_figs/tsunamovie.m -text
+src_figs/umDmovie.m -text
 src_figs/vitrinite.m -text
 src_figs/w_option.m -text
 src_figs/write_gmt_script.m -text
