@@ -16,6 +16,8 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
+ * Revision 14  24/04/2007 Was crashing when called with a coards NETCDF file and -M
+ * 			   Patch to deal with NETCDF driver adfGeoTransform bug
  * Revision 13  09/03/2007 Added MinMax field to the Band struct field
  * Revision 12  22/01/2007 Left-right flip ENVISAT GCPs because they have X positive to left (can we kill the guy?)
  * Revision 11  21/11/2006 Removed globals
@@ -259,6 +261,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			GDALDestroyDriverManager();
 			return;
 		}
+		if (!strcmp(format,"netCDF") && GDAL_VERSION_NUM <= 1410) {
+			adfGeoTransform[3] *= -1;
+			adfGeoTransform[5] *= -1;
+		}
 
 		anSrcWin[0] = (int) ((dfULX - adfGeoTransform[0]) / adfGeoTransform[1] + 0.001);
 		anSrcWin[1] = (int) ((dfULY - adfGeoTransform[3]) / adfGeoTransform[5] + 0.001);
@@ -398,7 +404,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			tmp, nBufXSize, nBufYSize, GDALGetRasterDataType(hBand), 0, 0 );
 
         	dfNoData = GDALGetRasterNoDataValue(hBand, &bGotNodata);
-
 		/* If we didn't computed it yet, its time to do it now */
 		if (got_R) ComputeRasterMinMax(tmp, hBand, adfMinMax, nXSize, nYSize, z_min, z_max);
 		if (nBands > 1 && scale_range)	/* got_R && scale_range && nBands > 1 Should never be true */
@@ -908,8 +913,8 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	metadata_struct = mxCreateStructMatrix ( 1, 1, num_struct_fields, (const char **)fieldnames );
 
 	num_driver_fields = 2;
-	driver_fieldnames[0] = strdup ( "DriverLongName" );
-	driver_fieldnames[1] = strdup ( "DriverShortName" );
+	driver_fieldnames[0] = strdup( "DriverLongName" );
+	driver_fieldnames[1] = strdup( "DriverShortName" );
 	driver_struct = mxCreateStructMatrix ( driverCount, 1, num_driver_fields, (const char **)driver_fieldnames );
 	for ( j = 0; j < driverCount; ++j ) {
 		hDriver = GDALGetDriver( j );
@@ -920,10 +925,10 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		mxSetField ( driver_struct, j, (const char *) "DriverShortName", mxtmp );
 
 	}
-	mxSetField ( metadata_struct, 0, "Driver", driver_struct );
+	mxSetField( metadata_struct, 0, "Driver", driver_struct );
 
 	if (strlen(gdal_filename) == 0)
-		return ( metadata_struct );
+		return(metadata_struct);
 
 	/* ------------------------------------------------------------------------- */
 	/* Open the file (if we can). */
@@ -963,6 +968,11 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	dptr = mxGetPr ( mxGeoTransform );
 
 	status = record_geotransform ( gdal_filename, hDataset, adfGeoTransform );
+	if (!strcmp(GDALGetDriverShortName(GDALGetDatasetDriver(hDataset)),"netCDF") && 
+		    GDAL_VERSION_NUM <= 1410) {
+		adfGeoTransform[3] *= -1;
+		adfGeoTransform[5] *= -1;
+	}
 	if ( status == 0 ) {
 		dptr[0] = adfGeoTransform[0];
 		dptr[1] = adfGeoTransform[1];
@@ -1047,9 +1057,13 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* Get the Color Interpretation Name */
 	/* ------------------------------------------------------------------------- */
 	hBand = GDALGetRasterBand( hDataset, 1 );
-	mxtmp = mxCreateString ( GDALGetColorInterpretationName(
-		GDALGetRasterColorInterpretation(hBand)) );
-	mxSetField ( metadata_struct, 0, (const char *) "ColorInterp", mxtmp );
+	if (raster_count > 0) {
+		mxtmp = mxCreateString ( GDALGetColorInterpretationName(
+			GDALGetRasterColorInterpretation(hBand)) );
+		mxSetField ( metadata_struct, 0, (const char *) "ColorInterp", mxtmp );
+	}
+	else
+		mxSetField ( metadata_struct, 0, (const char *) "ColorInterp", mxCreateString("nikles") );
 
 	/* ------------------------------------------------------------------------- */
 	/* Get the metadata for each band. */
@@ -1232,39 +1246,41 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	mxSetField (metadata_struct, 0, "GEOGCorners", mxtmp);
 
 	/* ------------------------------------------------------------------------- */
-	/* Fill in the rest of the GMT header values */
-	if (z_min == 1e50) {		/* We don't know yet the dataset Min/Max */
-		adfMinMax[0] = GDALGetRasterMinimum( hBand, &bGotMin );
-		adfMinMax[1] = GDALGetRasterMaximum( hBand, &bGotMax );
-		if(!(bGotMin && bGotMax))
-			GDALComputeRasterMinMax( hBand, TRUE, adfMinMax );
-		dptr2[4] = adfMinMax[0];
-		dptr2[5] = adfMinMax[1];
-	}
-	else {
-		dptr2[4] = z_min;
-		dptr2[5] = z_max;
-	}	
+	/* Fill in the rest of the GMT header values (If ...) */
+	if (raster_count > 0) {
+		if (z_min == 1e50) {		/* We don't know yet the dataset Min/Max */
+			adfMinMax[0] = GDALGetRasterMinimum( hBand, &bGotMin );
+			adfMinMax[1] = GDALGetRasterMaximum( hBand, &bGotMax );
+			if(!(bGotMin && bGotMax))
+				GDALComputeRasterMinMax( hBand, TRUE, adfMinMax );
+			dptr2[4] = adfMinMax[0];
+			dptr2[5] = adfMinMax[1];
+		}
+		else {
+			dptr2[4] = z_min;
+			dptr2[5] = z_max;
+		}	
 
-	if (!pixel_reg)			/* See if we want grid or pixel registration */
-		dptr2[6] = 0;
-	else
-		dptr2[6] = 1;
-	dptr2[7] = adfGeoTransform[1];
-	dptr2[8] = fabs(adfGeoTransform[5]);
+		if (!pixel_reg)			/* See if we want grid or pixel registration */
+			dptr2[6] = 0;
+		else
+			dptr2[6] = 1;
+		dptr2[7] = adfGeoTransform[1];
+		dptr2[8] = fabs(adfGeoTransform[5]);
 
-	if (correct_bounds && !got_R) {
-		dptr2[0] += dptr2[7] / 2;	dptr2[1] -= dptr2[7] / 2;
-		dptr2[2] += dptr2[8] / 2;	dptr2[3] -= dptr2[8] / 2;
-	}
-	else if (got_R) {
-		dptr2[0] = dfULX;	dptr2[1] = dfLRX;
-		dptr2[2] = dfLRY;	dptr2[3] = dfULY;
-	}
-	if (dptr2[2] > dptr2[3]) {	/* Sometimes GDAL does it: y_min > y_max. If so, we must revert it */
-		tmpdble = dptr2[2];
-		dptr2[2] = dptr2[3];
-		dptr2[3] = tmpdble;
+		if (correct_bounds && !got_R) {
+			dptr2[0] += dptr2[7] / 2;	dptr2[1] -= dptr2[7] / 2;
+			dptr2[2] += dptr2[8] / 2;	dptr2[3] -= dptr2[8] / 2;
+		}
+		else if (got_R) {
+			dptr2[0] = dfULX;	dptr2[1] = dfLRX;
+			dptr2[2] = dfLRY;	dptr2[3] = dfULY;
+		}
+		if (dptr2[2] > dptr2[3]) {	/* Sometimes GDAL does it: y_min > y_max. If so, revert it */
+			tmpdble = dptr2[2];
+			dptr2[2] = dptr2[3];
+			dptr2[3] = tmpdble;
+		}
 	}
 	mxSetField (metadata_struct, 0, "GMT_hdr", mxGMT_header);
 
@@ -1353,16 +1369,20 @@ int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double
 /* -------------------------------------------------------------------- */
 /*      Transform the point into georeferenced coordinates.             */
 /* -------------------------------------------------------------------- */
-    if( GDALGetGeoTransform( hDataset, adfGeoTransform ) == CE_None ) {
-        pszProjection = GDALGetProjectionRef(hDataset);
-        dfGeoX = adfGeoTransform[0] + adfGeoTransform[1] * x + adfGeoTransform[2] * y;
-        dfGeoY = adfGeoTransform[3] + adfGeoTransform[4] * x + adfGeoTransform[5] * y;
-    }
-
-    else {
-	xy_c[0] = x;	xy_c[1] = y;
-        return FALSE;
-    }
+	if( GDALGetGeoTransform( hDataset, adfGeoTransform ) == CE_None ) {
+        	pszProjection = GDALGetProjectionRef(hDataset);
+		if (!strcmp(GDALGetDriverShortName(GDALGetDatasetDriver(hDataset)),"netCDF") && 
+			    GDAL_VERSION_NUM <= 1410) {
+			adfGeoTransform[3] *= -1;
+			adfGeoTransform[5] *= -1;
+		}
+        	dfGeoX = adfGeoTransform[0] + adfGeoTransform[1] * x + adfGeoTransform[2] * y;
+        	dfGeoY = adfGeoTransform[3] + adfGeoTransform[4] * x + adfGeoTransform[5] * y;
+	}
+	else {
+		xy_c[0] = x;	xy_c[1] = y;
+        	return FALSE;
+	}
 
 /* -------------------------------------------------------------------- */
 /*      Report the georeferenced coordinates.                           */
