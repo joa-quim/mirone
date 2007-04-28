@@ -34,8 +34,8 @@ if (length(varargin) >= 1)      % varargin{1} must be the Mirone handles
         handles.have_nans = handMir.have_nans;
         handles.z_min_orig = handMir.head(5);
         handles.z_max_orig = handMir.head(6);
-        set(handles.edit_Zmin,'String',handles.z_min)
-        set(handles.edit_Zmax,'String',handles.z_max)
+        set(handles.edit_Zmin,'String',handles.z_min_orig)
+        set(handles.edit_Zmax,'String',handles.z_max_orig)
     else                        % File was too big to stay on memory
         handles.have_nans = 0;
     end
