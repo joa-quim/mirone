@@ -1,0 +1,5 @@
+#Menu SubMenu 	GMT -J ProjectionString plus eventual -C<fe/fn> -T<datum>
+None   	    0  	0
+UTMs    UTM26   -Ju26
+UTMs    UTM29   -Ju29
+Mercator    0   -Jm
