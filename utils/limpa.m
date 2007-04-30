@@ -21,7 +21,7 @@ else
     set(hVitrinite,'Callback','vitrinite','Label','Vitrinite')
     set(hTsunamovie,'Label','Make tsunami movies')
     uimenu('Parent',hTsunamovie,'Callback','umDmovie(guidata(gcbo))','Label','1d movie')
-    uimenu('Parent',hTsunamovie,'Callback','tsunamovie','Label','2d movie')
+    uimenu('Parent',hTsunamovie,'Callback','tsunamovie(guidata(gcbo))','Label','2d movie')
 end
 
 setappdata(handles.figure1,'esDourada',~mata)   % Save goldness info
