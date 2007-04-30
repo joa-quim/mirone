@@ -15,6 +15,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 11.0  30/04/2007 JL	corrected memory leaks as kindly pointed by James Hays
  * Revision 10.0  27/04/2007 JL	Added AbsDiff, finished PutText and fixed fix of JfindContours
  * Revision  9.0  04/03/2007 JL	Fixed JfindContours (well I thought I did - 28-4-07) 
  * Revision  8.0  14/02/2007 JL	In Floodfill convert fill color to [0 255] if it was [0 1]
@@ -322,7 +323,7 @@ void Jresize(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
 
 	Set_pt_Ctrl_out1 ( Ctrl, ptr_out ); 
-	dst_img = cvCreateImage(cvSize(nx_out, ny_out), img_depth , nBands );
+	dst_img = cvCreateImageHeader(cvSize(nx_out, ny_out), img_depth , nBands );
 	localSetData( Ctrl, dst_img, 2, nx_out * nBands * nBytes );
 
 	cvResize(src_img,dst_img,cv_code);
@@ -1172,6 +1173,7 @@ void JhoughLines2(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		lines = cvHoughLines2( src_img, storage, method, rho, theta, thresh, par1, par2 );
 
 	cvReleaseImageHeader( &src_img );
+	cvReleaseMemStorage( &storage );
 	mxDestroyArray(ptr_in);
 
 	/* ------ GET OUTPUT DATA --------------------------- */ 
@@ -1290,6 +1292,7 @@ void JhoughCircles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 				 par1, par2, min_radius, max_radius );
 
 	cvReleaseImageHeader( &src_img );
+	cvReleaseMemStorage( &storage );
 	mxDestroyArray(ptr_in);
 
 	/* ------------------- GET OUTPUT DATA --------------------------- */ 
@@ -1384,6 +1387,7 @@ void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 				CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );
 
 	cvReleaseImageHeader( &src_img );
+	cvReleaseMemStorage( &storage );
 	mxDestroyArray(ptr_in);
 
 	/* ------ GET OUTPUT DATA --------------------------- */ 
@@ -1402,9 +1406,8 @@ void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 		mxSetCell(plhs[0],i,mxDuplicateArray(mx_ptr));
 		free(PointArray);
 		contours = contours->h_next;
+		mxDestroyArray(mx_ptr);
 	}
-
-	mxDestroyArray(mx_ptr);
 
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 }
@@ -1434,6 +1437,7 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	cvSetData( map_matrix, (void *)ptr_d, nx*8 );
 
 	cont = cvApproxPoly( map_matrix, sizeof(CvMat), storage, CV_POLY_APPROX_DP, par1, 0 );
+	cvReleaseMemStorage( &storage );
 return;
 
 	/* ------------------- GET OUTPUT DATA --------------------------- */ 
@@ -1643,7 +1647,7 @@ void JmorphologyEx(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
 
 	Set_pt_Ctrl_out1 ( Ctrl, ptr_out ); 
-	dst_img = cvCreateImage(cvSize(nx, ny), img_depth , nBands );
+	dst_img = cvCreateImageHeader(cvSize(nx, ny), img_depth , nBands );
 	localSetData( Ctrl, dst_img, 2, nx * nBands * nBytes );
 
 	if (cv_code == CV_MOP_GRADIENT || (iterations > 1 && (cv_code == CV_MOP_TOPHAT || cv_code == CV_MOP_BLACKHAT) )) {
@@ -1714,7 +1718,7 @@ void JerodeDilate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], c
 	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
 
 	Set_pt_Ctrl_out1 ( Ctrl, ptr_in ); 		/* Reuse memory */
-	dst_img = cvCreateImage(cvSize(nx, ny), img_depth , nBands );
+	dst_img = cvCreateImageHeader(cvSize(nx, ny), img_depth , nBands );
 	localSetData( Ctrl, dst_img, 2, nx * nBands * nBytes );
 
 	if (!strcmp(method,"erode"))
@@ -2313,12 +2317,13 @@ void Jinpaint(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	if (!inplace) {
 		Set_pt_Ctrl_out1 ( Ctrl, ptr_in1 ); 		/* Reuse memory */
-		dst = cvCreateImage(cvSize(nx, ny), img_depth , nBands );
+		dst = cvCreateImageHeader(cvSize(nx, ny), img_depth , nBands );
 		localSetData( Ctrl, dst, 2, nx * nBands * nBytes );
 		cvInpaint( src1, src2, dst, 3, CV_INPAINT_TELEA); 
 		plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
 		  			mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
 		Set_pt_Ctrl_out2 ( Ctrl, plhs[0], 1 ); 		/* Set pointer & desinterleave */
+		cvReleaseImageHeader( &dst );
 	}
 	else {
 		cvInpaint( src1, src2, src1, 3, CV_INPAINT_TELEA); 
