@@ -218,7 +218,6 @@ function push_movieName_Callback(hObject, eventdata, handles, opt)
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
-        FileName = [FNAME EXT];
     end
     if (~strmatch(lower(EXT),{'.gif' '.avi' '.mpg' '.mpeg'}))
         errordlg('Ghrrrrrrrr! Don''t be smart. Only ''.gif'', ''.avi'', ''.mpg'' or ''mpeg'' extensions are acepted.', ...
@@ -227,7 +226,7 @@ function push_movieName_Callback(hObject, eventdata, handles, opt)
     end
     
     handles.moviePato = PathName;
-    handles.movieName = FileName;
+    handles.movieName = FNAME;
     if (strcmpi(EXT,'.gif'))
         set(handles.radio_gif,'Value',1)
         radio_gif_Callback(handles.radio_gif, [], handles)
