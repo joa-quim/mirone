@@ -268,7 +268,7 @@ end
     end
 
 guidata(hObject, handles);  limpa(handles);
-%setappdata(handles.axes1,'ProjWKT',geogWKT) % The Geog WGS84 string in WKT format
+%setappdata(handles.axes1,'ProjWKT',geogWKT)    % The Geog WGS84 string in WKT format
 if (~isempty(drv)),     gateLoadFile(handles,drv,varargin{1});  end
 set(handles.ctrLine, 'Accelerator','l');
 
@@ -732,6 +732,7 @@ function FilePreferences_CB(hObject, eventdata, handles)
 	setappdata(handles.figure1,'swathRatio',handles.swathRatio);    % I need this in getline_mb
 	setappdata(handles.figure1,'DefLineThick',handles.DefLineThick)     % Save this for accessability in draw_funs
 	setappdata(handles.figure1,'DefLineColor',handles.DefLineColor)     % Save this for accessability in draw_funs
+    set(handles.ToolsMeasureDist,'Label',['Distance in ' handles.DefineMeasureUnit])
 	guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
@@ -1407,6 +1408,8 @@ elseif ( strcmp(tipo,'SRTM30') || strcmp(tipo,'SRTM3') || strcmp(tipo,'SRTM1') |
         fname = decompress(handles.fileName,'warn');    % Named with compression ext removed
         name_uncomp = fname;        % Here we need a copy of the decompressed file name for removing
         if (isempty(fname)),  return;     end;          % Error message already issued.
+    else
+        fname = handles.fileName;
     end
 
     [Z,att] =  gdalread(fname,'-U','-C',opt_I);   Z = single(Z);
@@ -1941,7 +1944,7 @@ function ImageColorPalettes_CB(hObject, eventdata, handles)
 	color_palettes(handles.figure1)
 
 % --------------------------------------------------------------------
-function ToolsMeasureDist_CB(hObject, eventdata, handles)
+function ToolsMeasureDist_CB(nikles, eventdata, handles)
 	if (handles.no_file == 1),    return;      end
 	zoom_state(handles,'maybe_off');
 	[xp,yp] = getline_j(handles.figure1);  n_nodes = length(xp);
@@ -2049,7 +2052,7 @@ function ToolsMeasureAzimuth_CB(hObject, eventdata, handles)
 	msgbox(msg,'Azimuth(s)')
 
 % --------------------------------------------------------------------
-function DrawLine_CB(hObject, eventdata, handles, opt)
+function DrawLine_CB(nikles, eventdata, handles, opt)
 if (handles.no_file == 1),  return;     end
 if (nargin == 3),           opt = [];   end
 % The following is a necessary patch against two big stupidities.
@@ -2096,7 +2099,7 @@ draw_funs(lineHand,'line_uicontext')        % Set lines's uicontextmenu
 zoom_state(handles,'maybe_on');
 
 % --------------------------------------------------------------------
-function DrawVector_CB(hObject, eventdata, handles)
+function DrawVector_CB(nikles, eventdata, handles)
 	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
 	zoom_state(handles,'maybe_off');
 	draw_funs([],'DrawVector')      % Vectors are drawn there
@@ -2152,7 +2155,7 @@ elseif (strcmp(opt,'rectangle'))
 end
 
 % --------------------------------------------------------------------
-function DrawEulerPoleCircle_CB(hObject, eventdata, handles)
+function DrawEulerPoleCircle_CB(nikles, eventdata, handles)
 	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
 	zoom_state(handles,'maybe_off');
 	
@@ -2197,7 +2200,7 @@ function DrawGeographicalCircle_CB(hObject, eventdata, handles, opt)
 	zoom_state(handles,'maybe_on');
 
 % --------------------------------------------------------------------
-function DrawImportLine_CB(hObject, eventdata, handles, opt)
+function DrawImportLine_CB(nikles, eventdata, handles, opt)
 	% OPT is a string with either "AsLine", or "AsPoint", or "AsMaregraph", or "FaultTrace"
 	if (handles.no_file == 1),  return;      end
 	str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
@@ -2206,7 +2209,7 @@ function DrawImportLine_CB(hObject, eventdata, handles, opt)
 	draw_funs([PathName FileName],'ImportLine',opt)
 
 % --------------------------------------------------------------------
-function DrawImportText_CB(hObject, eventdata, handles)
+function DrawImportText_CB(nikles, eventdata, handles)
 	if (handles.no_file == 1),  return;      end
 	str1 = {'*.txt;*.TXT;*.dat;*.DAT', 'Text file (*.txt,*.TXT,*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select input text file name','get');
@@ -2232,7 +2235,7 @@ function DrawImportText_CB(hObject, eventdata, handles)
 	draw_funs(h,'DrawText')
 
 % --------------------------------------------------------------------
-function DrawImportShape_CB(hObject, eventdata, handles)
+function DrawImportShape_CB(nikles, eventdata, handles)
 str1 = {'*.shp;*.SHP', 'Data files (*.shp,*.SHP)';'*.*', 'All Files (*.*)'};
 [FileName,PathName] = put_or_get_file(handles,str1,'Select shape file name','get');
 if isequal(FileName,0);     return;     end
@@ -2444,7 +2447,7 @@ function DrawText_CB(hObject, eventdata, handles)
 	zoom_state(handles,'maybe_on');
 
 % --------------------------------------------------------------------
-function DrawSymbol_CB(hObject, eventdata, handles, opt)
+function DrawSymbol_CB(nikles, eventdata, handles, opt)
 	if (handles.no_file == 1),    return;      end
 	switch opt
         case 'circle',   smb = 'o';
@@ -2461,7 +2464,7 @@ function DrawSymbol_CB(hObject, eventdata, handles, opt)
 	zoom_state(handles,'maybe_on');
 
 % --------------------------------------------------------------------
-function DrawContours_Callback(hObject, eventdata, handles, opt)
+function DrawContours_CB(nikles, eventdata, handles, opt)
 if (aux_funs('msg_dlg',14,handles));     return;      end
 if (nargin == 3),   opt = [];   end
 set(handles.figure1,'pointer','watch')
@@ -4106,14 +4109,15 @@ if (strcmp(opt,'Vec') || strcmp(opt,'Lines'))          % Convert the edges found
 	multi_segs_str = cell(length(h_edge),1);    % Just create a set of empty info strings
 	draw_funs(h_edge,'isochron',multi_segs_str);
 elseif (strcmp(opt,'Circles'))
-    x = linspace(-pi,pi,360);       y = x;
-    x = cos(x);                     y = sin(y);
-    lt = getappdata(get(0,'CurrentFigure'),'DefLineThick');    lc = getappdata(get(0,'CurrentFigure'),'DefLineColor');
+    x = linspace(-pi,pi,180);       y = x;
+    xx = cos(x);                    yy = sin(y);
     h_circ = line('XData', [], 'YData', []);
     for k = 1:size(B,1)
-        x = B(k,1) + B(k,3) * x;           y = B(k,2) + B(k,3) * y;
-        set(h_circ, 'XData', x, 'YData', y,'Color',lc,'LineWidth',lt,'Userdata',B(k,:));
+        x = B(k,1) + B(k,3) * xx;           y = B(k,2) + B(k,3) * yy;
+		h_circ = line(x, y,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor,'Userdata',B(k,:));
         draw_funs(h_circ,'SessionRestoreCircleCart')    % Give uicontext
+        setappdata(h_circ,'LonLatRad',B(k,:))
+        setappdata(h_circ,'X',xx);        setappdata(h_circ,'Y',yy);
     end
 else                            % Display the bw image where the edges are the whites    
     if (strcmp(get(handles.axes1,'Ydir'),'normal')),    img = flipdim(img,1);   end
@@ -4162,7 +4166,7 @@ function DigitalFilt_CB(hObject, eventdata, handles, opt)
 	end
 
 % --------------------------------------------------------------------
-function RotateTool_CB(hObject, eventdata, handles, opt)
+function RotateTool_CB(nikles, eventdata, handles, opt)
 	if (handles.no_file == 1),     return;      end
 	if (strcmp(opt,'image'))
         img = rotatetool(get(handles.hImg,'CData'),handles);
@@ -4212,7 +4216,7 @@ elseif (strcmp(opt,'bw'))
     set(handles.hImg,'CData', img, 'CDataMapping','scaled');
     set(handles.figure1,'ColorMap',gray(256))
 elseif (strcmp(opt,'guessType'))
-    str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif', 'Files (*.grd,*.nc,*.tif,*.tiff,*.pjg,*.jp2,*.png,*.gif)'; '*.*', 'All Files (*.*)'};
+    str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif', 'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif)'; '*.*', 'All Files (*.*)'};
     [FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
     if isequal(FileName,0);     set(handles.figure1,'pointer','arrow');     return;     end             % User gave up
     drv = aux_funs('findFileType',[PathName FileName]);
