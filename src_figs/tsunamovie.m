@@ -8,10 +8,19 @@ function varargout = tsunamovie(varargin)
     tsunamovie_LayoutFcn(hObject,handles);
     handles = guihandles(hObject);
     movegui(hObject,'northeast')
+    
+    if (numel(varargin) > 0 && isstruct(varargin{1}))
+        handMir = varargin{1};
+        handles.work_dir = handMir.work_dir;
+        handles.last_dir = handMir.last_dir;
+    	handles.home_dir = handMir.home_dir;
+    else
+    	handles.home_dir = cd;
+        handles.last_dir = handles.home_dir;
+        handles.work_dir = handles.home_dir;
+    end
 
-	home_dir = cd;
-	f_path = [home_dir filesep 'data' filesep];
-	handles.path_tmp = [home_dir filesep 'tmp' filesep];
+	f_path = [handles.home_dir filesep 'data' filesep];
     handles.stop = 0;           % When the running engine detects it has canged to 1 it stops
     handles.dither = 'nodither';% Default
     handles.checkedMM = 0;      % To signal if need or not to get the ensemble water Min/Max
@@ -27,7 +36,14 @@ function varargout = tsunamovie(varargin)
 	handles.Z_bat   = [];
 	handles.Z_water = [];
 	handles.nameList = [];
+    handles.testTime = [];
     
+    S = load([f_path 'gmt_other_palettes.mat'],'Terre');
+    handles.palLand = S.Terre;
+    %terra=S.Terre;
+    S = load([f_path 'gmt_other_palettes.mat'],'Terre_Mer');
+    handles.terraMar = S.Terre_Mer;
+
     % Load some icons and put them in the toggles
     load([f_path 'mirone_icons.mat'],'um_ico','dois_ico','Mfopen_ico');
     set(handles.toggle_1,'CData',um_ico)
@@ -86,10 +102,12 @@ function edit_batGrid_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_batGrid_Callback(hObject, eventdata, handles, opt)
     if (nargin == 3)        % Direct call
+        cd(handles.last_dir)
     	[FileName,PathName] = uigetfile({'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*',...
                 'All Files (*.*)'},'Select GMT grid');
-	    pause(0.01);
+	    pause(0.01);        cd(handles.home_dir);
 	    if isequal(FileName,0);     return;     end
+        if (PathName ~= 0),         handles.last_dir = PathName;    end
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
@@ -100,6 +118,21 @@ function push_batGrid_Callback(hObject, eventdata, handles, opt)
 	[handles,handles.X_bat,handles.Y_bat,handles.Z_bat,handles.head_bat] = read_gmt_type_grids(handles,fname);
 	if (isempty(handles.X_bat)),    return;     end
 	
+    % Isto assume que a bat tem partes neg e pos (testar)
+    cmap = handles.terraMar;    nc = length(cmap);
+    ind_old = 147;
+%     ind_c = round(px - x(1) / (x(2)-x(1)) * nc) + 1;
+    z_inc = (handles.head_bat(6) - handles.head_bat(5)) / (nc - 1);
+    %z_cur = handles.head_bat(5) + (ind_c - 1) * z_inc;
+    %(ind_c - 1) * z_inc = 0 - handles.head_bat(5);
+    ind_c = round(-handles.head_bat(5)/z_inc + 1);
+
+    nl = ind_old;    nu = ind_c;
+    new_cmap_l = interp1(linspace(0,1,nl),cmap(1:nl,:),linspace(0,1,nu));
+    new_cmap_u = interp1(linspace(0,1,nc-ind_old),cmap(ind_old+1:nc,:),linspace(0,1,nc-ind_c));
+    handles.cmapBat = [new_cmap_l; new_cmap_u];
+    
+    
 	set(handles.edit_batGrid,'String',fname)
     [dump,FNAME,EXT] = fileparts(FileName);
     EXT = '.gif';
@@ -117,10 +150,12 @@ function edit_singleWater_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_singleWater_Callback(hObject, eventdata, handles, opt)
     if (nargin == 3)        % Direct call
+        cd(handles.last_dir)
         [FileName,PathName] = uigetfile({'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', ...
                 'All Files (*.*)'},'Select GMT grid');
-        pause(0.01);
+	    pause(0.01);        cd(handles.home_dir);
         if isequal(FileName,0);     return;     end
+        if (PathName ~= 0),         handles.last_dir = PathName;    end
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
@@ -143,20 +178,53 @@ function edit_namesList_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_namesList_Callback(hObject, eventdata, handles, opt)
     if (nargin == 3)        % Direct call
+        cd(handles.last_dir)
     	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
         [FileName,PathName] = uigetfile(str1,'File with grids list');
+        cd(handles.home_dir);
 	    if isequal(FileName,0);     return;     end
+        if (PathName ~= 0),         handles.last_dir = PathName;    end
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
         FileName = [FNAME EXT];
     end
-	fid = fopen([PathName FileName]);
+	fname = [PathName FileName];
+
+    [bin,n_column,multi_seg,n_headers] = guess_file(fname);
+    % If error in reading file
+    if isempty(bin)
+        errordlg(['Error reading file ' fname],'Error');    return
+    end
+
+    fid = fopen(fname);
 	c = char(fread(fid))';      fclose(fid);
 	names = strread(c,'%s','delimiter','\n');   clear c fid;
 	m = length(names);
+    
+    handles.strTimes = [];          % To hold time steps as strings
+    if (n_column > 1)
+        handles.strTimes = cell(m,1);
+        c = false(m,1);
+	    for (k=1:m)
+            [t,r] = strtok(names{k});
+            if (t(1) == '#'),  c(k) = true;  continue;   end
+            names{k} = t;
+            handles.strTimes{k} = r;
+        end
+        % Remove eventual commented lines
+        if (any(c))
+            names(c) = [];          handles.strTimes(c) = [];
+            m = length(names);      % Count remaining ones
+        end
+    end
+    
     handles.shortNameList = cell(m,1);      % To hold grid names with path striped
+    c = false(m,1);
 	for (k=1:m)
+        if (n_column == 1 && names{k}(1) == '#')    % If n_column > 1, this test was already done above
+            c(k) = true;    continue;
+        end
         [PATH,FNAME,EXT] = fileparts(names{k});
         if (isempty(PATH))
             handles.shortNameList{k} = names{k};
@@ -164,7 +232,17 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
         else
             handles.shortNameList{k} = [FNAME EXT];
         end
+        if (any(c))
+            names(c) = [];          handles.shortNameList(c) = [];
+        end
 	end
+    
+    % Check that at least the files in provided list do exist
+    c = false(m,1);
+    for (k=1:m)
+        c(k) = (exist(names{k},'file') ~= 2);
+    end
+    names(c) = [];      handles.shortNameList(c) = [];
 
     handles.nameList = names;
     set(handles.listbox1,'String',handles.shortNameList)
@@ -180,28 +258,34 @@ function edit_movieName_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_movieName_Callback(hObject, eventdata, handles, opt)
     if (nargin == 3)        % Direct call
+        cd(handles.work_dir)
         [FileName,PathName] = uiputfile({'*.gif;*.avi', 'Grid files (*.gif,*.avi)'},'Select Movie name');
-        pause(0.01);
+        pause(0.01);        cd(handles.home_dir);
         if isequal(FileName,0);     return;     end
+        if (PathName ~= 0),         handles.last_dir = PathName;    end
         [dumb,FNAME,EXT]= fileparts(FileName);
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
         FileName = [FNAME EXT];
     end
-    if (~strmatch(lower(EXT),{'.gif' '.avi'}))
-        errordlg('Ghrrrrrrrr! Don''t be smart. Only ''.gif'' or ''.avi'' extensions are acepted.','Chico Clever');
+    if (~strmatch(lower(EXT),{'.gif' '.avi' '.mpg' '.mpeg'}))
+        errordlg('Ghrrrrrrrr! Don''t be smart. Only ''.gif'', ''.avi'', ''.mpg'' or ''mpeg'' extensions are acepted.', ...
+            'Chico Clever');
         return
     end
     
     handles.moviePato = PathName;
-    handles.movieName = FileName;
+    handles.movieName = FNAME;
     if (strcmpi(EXT,'.gif'))
         set(handles.radio_gif,'Value',1)
         radio_gif_Callback(handles.radio_gif, [], handles)
-    else
+    elseif (strcmpi(EXT,'.avi'))
         set(handles.radio_avi,'Value',1)
         radio_avi_Callback(handles.radio_avi, [], handles)
+    else
+        set(handles.radio_avi,'Value',1)
+        radio_mpg_Callback(handles.radio_mpg, [], handles)
     end
     guidata(handles.figure1,handles)
     
@@ -210,6 +294,9 @@ function listbox1_Callback(hObject, eventdata, handles)
     % if this is a doubleclick,
     if ( strcmp(get(gcbf,'SelectionType'),'open') && ~isempty(handles.nameList) )
         val = get(hObject,'Value');
+        if (~isempty(handles.strTimes))
+            handles.testTime = handles.strTimes{val};
+        end
         push_singleWater_Callback([], [], handles, handles.nameList{val})
     end
 
@@ -367,7 +454,7 @@ function edit_azim_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function radio_gif_Callback(hObject, eventdata, handles)
-    if (get(hObject,'Value')),      set(handles.radio_avi,'Value',0)
+    if (get(hObject,'Value')),      set([handles.radio_avi handles.radio_mpg],'Value',0)
     else                            set(hObject,'Value',1)
     end
     mname = get(handles.edit_movieName,'String');
@@ -378,12 +465,23 @@ function radio_gif_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function radio_avi_Callback(hObject, eventdata, handles)
-    if (get(hObject,'Value')),      set(handles.radio_gif,'Value',0)
+    if (get(hObject,'Value')),      set([handles.radio_gif handles.radio_mpg],'Value',0)
     else                            set(hObject,'Value',1)
     end
     mname = get(handles.edit_movieName,'String');
     if (~isempty(mname))
         mname = [handles.moviePato handles.movieName '.avi'];
+        set(handles.edit_movieName,'String',mname)
+    end
+    
+% -----------------------------------------------------------------------------------------
+function radio_mpg_Callback(hObject, eventdata, handles)
+    if (get(hObject,'Value')),      set([handles.radio_avi handles.radio_gif],'Value',0)
+    else                            set(hObject,'Value',1)
+    end
+    mname = get(handles.edit_movieName,'String');
+    if (~isempty(mname))
+        mname = [handles.moviePato handles.movieName '.mpg'];
         set(handles.edit_movieName,'String',mname)
     end
 
@@ -474,29 +572,34 @@ function [minWater, maxWater, heads] = get_globalMinMax(handles)
 function pushbutton_OK_Callback(hObject, eventdata, handles)
 
     if (isempty(handles.Z_bat))
-        errordlg('Noooo! Where is the bathymetry file? Do you think I''m bruxo?','ERROR')
-        return
-    end
-    if (isempty(handles.movieName) && isempty(handles.Z_water))
-        errordlg('Hei! what shoult it be the movie name?','ERROR');        return
+        errordlg('Noooo! Where is the bathymetry file? Do you think I''m bruxo?','ERROR');  return
     end
     
-    is_gif = 1;     % Veracity of this is checked bellow
+    % 'surface elevation' and 'water depth' grids are treated diferently
+    is_surfElev = (get(handles.popup_surfType,'Val') == 1);
+    
+    % Guess if grids are geogs
+    geog = guessGeog(handles.head_bat(1:4));
+    
+    % Make a blue only colormap
+    bcmap = jet(32);
+    bcmap = bcmap(2:8,:);
+    
     alfa = get(handles.slider_transparency,'Value');
-    ind = (handles.Z_water == 0);
     tmp.head = [handles.head_bat(1:4) 0 255 handles.head_bat(7:9)];
     tmp.X = handles.X_bat;      tmp.Y = handles.Y_bat;
-    tmp.geog = 1;               tmp.name = 'Tsu transparente';
+    tmp.geog = geog;            tmp.name = 'Tsu transparente';
 	
 	% Do ground illum
 	imgBat = scaleto8(handles.Z_bat);
-    imgBat = ind2rgb8(imgBat,jet(256));
-	R = grdgradient_m(handles.Z_bat,handles.head_bat,'-M',handles.landIllumComm,'-Nt');
+    imgBat = ind2rgb8(imgBat,handles.cmapBat);
+    opt_M = ' ';
+    if (geog),      opt_M = '-M';   end
+	R = grdgradient_m(handles.Z_bat,handles.head_bat,opt_M,handles.landIllumComm,'-Nt');
 	imgBat = shading_mat(imgBat,R,'no_scale');
 
     % Initialize the circular waitbar
-    x0 = handles.ciclePar(1);
-    y0 = handles.ciclePar(2);
+    x0 = handles.ciclePar(1);       y0 = handles.ciclePar(2);
     radius = handles.ciclePar(3);
     x = [x0 x0 x0];     y = [y0 0 y0];
     hWC = patch('parent',handles.axes1,'XData',x,'YData',y,'FaceColor','b', 'EdgeColor','b');
@@ -504,14 +607,24 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
     % Do the water illum
     if (~isempty(handles.Z_water))
     	imgWater = scaleto8(handles.Z_water);
-        imgWater = ind2rgb8(imgWater,jet(256));
+        imgWater = ind2rgb8(imgWater,bcmap);
     	R = grdgradient_m(handles.Z_water,handles.head_water,handles.waterIllumComm);
-    	imgWater = shading_mat(imgWater,R,'no_scale');
-    	clear R;
-        imgWater = mixe_images(handles, imgBat, imgWater, ind, alfa);
-        %imgWater = cvlib_mex('text',imgWater,'1:32:45',[10 30]);
+    	imgWater = shading_mat(imgWater,R,'no_scale');    	clear R;
+        
+        % Compute indeces of Land
+        if (is_surfElev),   indLand = get_landInd(handles.Z_bat, handles.Z_water);
+        else                indLand = (handles.Z_water == 0);
+        end
+        imgWater = mixe_images(handles, imgBat, imgWater, indLand, alfa);
+        if (~isempty(handles.strTimes))
+            imgWater = cvlib_mex('text',imgWater,handles.testTime,[10 30]);
+        end
         mirone(imgWater,tmp);
     elseif (~isempty(handles.nameList))     % If we have a list of names
+        if (isempty(handles.movieName))
+            errordlg('Hei! what shoult it be the movie name?','ERROR');     delete(hWC);    return
+        end
+        
         nGrids = numel(handles.nameList);
         if (~handles.checkedMM)         % We don't know yet the water ensemble Min/Max
             [minWater, maxWater,heads] = push_checkGlobalMM_Callback([], [], handles);
@@ -521,8 +634,11 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
             heads = handles.gridHeaders;
         end
         set(handles.push_stop,'Visible','on')       % To allow interruptions
-        if (~get(handles.radio_gif,'Value')),    is_gif = 0;     end
+        is_gif = get(handles.radio_gif,'Value');
+        is_avi = get(handles.radio_avi,'Value');
+        is_mpg = get(handles.radio_mpg,'Value');
         str_nGrids = sprintf('%d',nGrids);
+        
         for (i=1:nGrids)
             % Check if meanwhile the stop button has been pressed 
             pause(0.01)     % Little pause so that it can listen a eventual STOP request
@@ -546,14 +662,21 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
             imgWater = ind2rgb8(imgWater,jet(256));
         	R = grdgradient_m(Z,heads{i},handles.waterIllumComm);
         	imgWater = shading_mat(imgWater,R,'no_scale');
-            ind = (Z == 0);
-%             imgWater = mixe_images(handles, imgBat, imgWater, ind, alfa);
-%             imgWater = flipdim(imgWater,1);     % The stupid UL origin
-%             imgWater = cvlib_mex('text',imgWater,'1:32:45',[10 30]);
-            if (is_gif)
+            
+            % Compute indeces of Land
+            if (is_surfElev),       indLand = get_landInd(handles.Z_bat, Z);
+            else                    indLand = (Z == 0);
+            end
+            imgWater = mixe_images(handles, imgBat, imgWater, indLand, alfa);
+            if (~isempty(handles.strTimes))
+                cvlib_mex('text',imgWater,handles.strTimes{i},[10 30]);
+            end
+            
+            if (is_gif || is_mpg)
                 [imgWater,map] = img_fun('rgb2ind',imgWater,256,handles.dither);
             end
             imgWater = flipdim(imgWater,1);     % The stupid UL origin
+            
             if (is_gif)
                 mname = [handles.moviePato handles.movieName '.gif'];
                 if (i == 1)
@@ -561,13 +684,19 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
                 else
                     writegif(imgWater,map,mname,'WriteMode','append','DelayTime',handles.dt)
                 end
-            else        % AVI
+            elseif (is_avi)        % AVI
                 M(i) = im2frame(imgWater);
+            else                    % MPEG
+                M(i) = im2frame(imgWater,map);
             end
         end
-        if (~is_gif)    % AVI
+        if (is_avi)
             mname = [handles.moviePato handles.movieName '.avi'];
       	    movie2avi_j(M,mname,'compression','none','fps',handles.fps)
+        elseif (is_mpg)
+            mname = [handles.moviePato handles.movieName '.mpg'];
+            opt = [1, 0, 1, 0, 10, 5, 5, 5];
+  	        mpgwrite(M,map,mname,opt)
         end
         set(handles.figure1,'Name','Tsunamovie')
         set(handles.push_stop,'Visible','off')
@@ -602,7 +731,20 @@ function imgWater = mixe_images(handles, imgBat, imgWater, ind, alfa)
         errordlg(lasterr,'Error')
     end
     
-    %imgWater = cvlib_mex('text',imgWater,'1:32:45',[10 30]);    
+% -----------------------------------------------------------------------------------------
+function ind = get_landInd(zBat, zWater)
+    % Compute indeces such that 1 -> Dry; 0 -> Wet
+    dife = cvlib_mex('absDiff',zBat,zWater);
+    ind = (dife < 1e-3);
+
+    % --------------------------------------------------------------------
+function geog = guessGeog(lims)
+    % Make a good guess if LIMS are geographic
+    geog = double( ( (lims(1) >= -180 && lims(2) <= 180) || (lims(1) >= 0 && lims(2) <= 360) )...
+        && (lims(3) >= -90 && lims(4) <= 90) );
+
+% -----------------------------------------------------------------------------------------
+function popup_surfType_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function popup_resize_Callback(hObject, eventdata, handles)
@@ -626,10 +768,10 @@ set(h1,...
 'HandleVisibility','callback',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,'Position',[370 131 71 61],'Style','frame','Tag','frame5');
+uicontrol('Parent',h1,'Position',[370 118 71 61],'Style','frame','Tag','frame5');
 uicontrol('Parent',h1,'Position',[10 8 221 41],'Style','frame','Tag','frame3');
-uicontrol('Parent',h1,'Position',[260 131 101 61],'Style','frame','Tag','frame2');
-uicontrol('Parent',h1,'Position',[260 57 181 61],'Style','frame','Tag','frame1');
+uicontrol('Parent',h1,'Position',[260 118 101 61],'Style','frame','Tag','frame2');
+uicontrol('Parent',h1,'Position',[260 44 181 61],'Style','frame','Tag','frame1');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -757,7 +899,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Callback',{@tsunamovie_uicallback,h1,'radio_avi_Callback'},...
 'FontName','Helvetica',...
-'Position',[271 65 41 15],...
+'Position',[271 52 41 15],...
 'String','AVI',...
 'Style','radiobutton',...
 'TooltipString','Write movie file in RGB AVI format',...
@@ -786,8 +928,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Callback',{@tsunamovie_uicallback,h1,'radio_gif_Callback'},...
-'FontName','Helvetica',...
-'Position',[271 86 41 15],...
+'FontName','Helvetica','Position',[271 73 41 15],...
 'String','GIF',...
 'Style','radiobutton',...
 'TooltipString','Write movie file in animated GIF format',...
@@ -795,9 +936,16 @@ uicontrol('Parent',h1,...
 'Tag','radio_gif');
 
 uicontrol('Parent',h1,...
+'Callback',{@tsunamovie_uicallback,h1,'radio_mpg_Callback'},...
+'FontName','Helvetica','Position',[322 73 48 15],...
+'String','MPEG','Style','radiobutton',...
+'TooltipString','Write movie file in MPEG format',...
+'Tag','radio_mpg');
+
+uicontrol('Parent',h1,...
 'Callback',{@tsunamovie_uicallback,h1,'checkbox_dither_Callback'},...
 'FontName','Helvetica',...
-'Position',[390 89 48 15],...
+'Position',[390 76 48 15],...
 'String','Dither',...
 'Style','checkbox',...
 'TooltipString','If you don''t know what this is, ask google',...
@@ -806,7 +954,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'FontName','Helvetica',...
 'FontSize',9,...
-'Position',[272 110 70 15],...
+'Position',[272 97 70 15],...
 'String','Movie type',...
 'Style','text',...
 'Tag','text_MovType');
@@ -824,7 +972,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@tsunamovie_uicallback,h1,'edit_fps_Callback'},...
-'Position',[390 66 30 18],...
+'Position',[390 53 30 18],...
 'String','5',...
 'Style','edit',...
 'TooltipString','Frames per second',...
@@ -833,7 +981,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'FontName','Helvetica',...
 'HorizontalAlignment','left',...
-'Position',[333 68 55 15],...
+'Position',[333 55 55 15],...
 'String','Frames p/s',...
 'Style','text',...
 'Tag','text9');
@@ -894,7 +1042,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@tsunamovie_uicallback,h1,'edit_globalWaterMax_Callback'},...
-'Position',[300 159 50 19],...
+'Position',[300 146 50 19],...
 'Style','edit',...
 'TooltipString','Global maximum water level',...
 'Tag','edit_globalWaterMax');
@@ -903,7 +1051,7 @@ uicontrol('Parent',h1,...
 'FontName','Helvetica',...
 'FontSize',9,...
 'HorizontalAlignment','left',...
-'Position',[272 160 25 16],...
+'Position',[272 147 25 16],...
 'String','Max',...
 'Style','text',...
 'Tag','text14');
@@ -911,32 +1059,43 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@tsunamovie_uicallback,h1,'edit_globalWaterMin_Callback'},...
-'Position',[300 138 50 19],...
+'Position',[300 125 50 19],...
 'Style','edit',...
 'TooltipString','Global minimum water level',...
 'Tag','edit_globalWaterMin');
 
 uicontrol('Parent',h1,...
-'FontName','Helvetica',...
-'FontSize',9,...
+'FontName','Helvetica','FontSize',9,...
 'HorizontalAlignment','left',...
-'Position',[272 140 25 16],...
+'Position',[272 127 25 16],...
 'String','Min',...
 'Style','text',...
 'Tag','text15');
 
 uicontrol('Parent',h1,...
-'FontName','Helvetica',...
-'FontSize',9,...
-'Position',[265 184 90 17],...
+'FontName','Helvetica','FontSize',9,...
+'Position',[265 171 90 17],...
 'String','Global min/max',...
 'Style','text',...
 'Tag','text_globalMM');
 
+str_tip = sprintf('Select what is represented in the Water grids\n');
+str_tip = sprintf([str_tip '"Surface elevation": values  are referenced to mean sea level\n']);
+str_tip = sprintf([str_tip '"Water depth": Thickness of the water layer (zero on Land).\n']);
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@tsunamovie_uicallback,h1,'popup_surfType_Callback'},...
+'Position',[111 341 120 21],...
+'String',{'Surface elevation'; 'Water depth'},...
+'Style','popupmenu',...
+'TooltipString',str_tip,...
+'Value',1,...
+'Tag','popup_surfType');
+
 uicontrol('Parent',h1,...
 'Callback',{@tsunamovie_uicallback,h1,'push_checkGlobalMM_Callback'},...
 'FontName','Helvetica',...
-'Position',[111 341 120 18],...
+'Position',[260 190 120 18],...
 'String','Check global Min/Max',...
 'TooltipString','Run trough all grids to find ensemble Min/Max',...
 'Tag','push_checkGlobalMM',...
@@ -945,7 +1104,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@tsunamovie_uicallback,h1,'popup_resize_Callback'},...
-'Position',[380 147 50 22],...
+'Position',[380 134 50 22],...
 'String',{'0.25'; '0.33'; '0.5'; '1.0'; '2.0' },...
 'Style','popupmenu',...
 'TooltipString','Resize output images by this value',...
@@ -982,7 +1141,7 @@ uicontrol('Parent',h1,'ForegroundColor',[0 0.5 0],'Position',[240 8 2 401],'Styl
 uicontrol('Parent',h1,...
 'FontName','Helvetica',...
 'FontSize',9,...
-'Position',[377 183 50 17],...
+'Position',[377 170 50 17],...
 'String','Scale it?',...
 'Style','text',...
 'Tag','text18');
