@@ -8,7 +8,7 @@ function varargout = umDmovie(varargin)
     handles = guihandles(hObject);
     movegui(hObject,'northeast')
  
-    if (numel(varargin) > 0)
+    if (numel(varargin) > 0 && isstruct(varargin{1}))
         handMir = varargin{1};
         handles.work_dir = handMir.work_dir;
         handles.last_dir = handMir.last_dir;
@@ -16,7 +16,7 @@ function varargout = umDmovie(varargin)
     else
     	handles.home_dir = cd;
         handles.last_dir = handles.home_dir;
-        handles.work_dir = handMir.home_dir;
+        handles.work_dir = handles.home_dir;
     end
     
 	f_path = [handles.home_dir filesep 'data' filesep];
@@ -83,10 +83,12 @@ function edit_singleWater_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_singleWater_Callback(hObject, eventdata, handles, opt)
     if (nargin == 3)        % Direct call
+        cd(handles.last_dir)
         [FileName,PathName] = uigetfile({'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', ...
                 'All Files (*.*)'},'Select GMT grid');
-        pause(0.01);
+	    pause(0.01);        cd(handles.home_dir);
         if isequal(FileName,0);     return;     end
+        if (PathName ~= 0),         handles.last_dir = PathName;    end
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
@@ -124,7 +126,7 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
 
     [bin,n_column,multi_seg,n_headers] = guess_file(fname);
     % If error in reading file
-    if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
+    if isempty(bin)
         errordlg(['Error reading file ' fname],'Error');    return
     end
     
@@ -167,6 +169,13 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
             names(c) = [];          handles.shortNameList(c) = [];
         end
 	end
+    
+    % Check that at least the files in provided list do exist
+    c = false(m,1);
+    for (k=1:m)
+        c(k) = (exist(names{k},'file') ~= 2);
+    end
+    names(c) = [];      handles.shortNameList(c) = [];
 
     handles.nameList = names;
     set(handles.listbox1,'String',handles.shortNameList)
@@ -200,7 +209,8 @@ function edit_movieName_Callback(hObject, eventdata, handles)
 function push_movieName_Callback(hObject, eventdata, handles, opt)
     if (nargin == 3)        % Direct call
         cd(handles.work_dir)
-        [FileName,PathName] = uiputfile({'*.gif;*.avi', 'Grid files (*.gif,*.avi)'},'Select Movie name');
+        [FileName,PathName] = uiputfile({'*.gif;*.avi,*.mpg,*.mpeg', ...
+                'Grid files (*.gif,*.avi,*.mpg,*.mpeg)'},'Select Movie name');
         pause(0.01);        cd(handles.home_dir);
         if isequal(FileName,0);     return;     end
         if (PathName ~= 0),         handles.last_dir = PathName;    end
@@ -210,8 +220,9 @@ function push_movieName_Callback(hObject, eventdata, handles, opt)
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
         FileName = [FNAME EXT];
     end
-    if (~strmatch(lower(EXT),{'.gif' '.avi'}))
-        errordlg('Ghrrrrrrrr! Don''t be smart. Only ''.gif'' or ''.avi'' extensions are acepted.','Chico Clever');
+    if (~strmatch(lower(EXT),{'.gif' '.avi' '.mpg' '.mpeg'}))
+        errordlg('Ghrrrrrrrr! Don''t be smart. Only ''.gif'', ''.avi'', ''.mpg'' or ''mpeg'' extensions are acepted.', ...
+            'Chico Clever');
         return
     end
     
@@ -220,9 +231,12 @@ function push_movieName_Callback(hObject, eventdata, handles, opt)
     if (strcmpi(EXT,'.gif'))
         set(handles.radio_gif,'Value',1)
         radio_gif_Callback(handles.radio_gif, [], handles)
-    else
+    elseif (strcmpi(EXT,'.avi'))
         set(handles.radio_avi,'Value',1)
         radio_avi_Callback(handles.radio_avi, [], handles)
+    else
+        set(handles.radio_avi,'Value',1)
+        radio_mpg_Callback(handles.radio_mpg, [], handles)
     end
     guidata(handles.figure1,handles)
 
@@ -283,7 +297,7 @@ function push_profile_Callback(hObject, eventdata, handles, opt)
     if (nargin == 3)        % Direct call
         cd(handles.last_dir)        
         [FileName,PathName] = uigetfile({'*.dat;*.xy', 'Profile file (*.dat,*.xy)';'*.*',...
-                'All Files (*.*)'},'Select GMT grid');
+                'All Files (*.*)'},'Select Profile');
 	    pause(0.01);        cd(handles.home_dir);
 	    if isequal(FileName,0);     return;     end
         if (PathName ~= 0),         handles.last_dir = PathName;    end
@@ -331,16 +345,12 @@ function edit_imgWidth_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
     % 
-    
     yMax = 15;                      % Maximum height displayed
     depth_clip = -15;               % Nealy the maximum depth shown in the plot
     depth_min = depth_clip - 1;     % Now this is the max depth ploted
     if (isempty(handles.profile))
         errordlg('Noooo! Where is the profile file? Do you think I''m bruxo?','ERROR')
         return
-    end
-    if (isempty(handles.movieName) && isempty(handles.Z_water))
-        errordlg('Hei! what shoult it be the movie name?','ERROR');     return
     end
 
     xd = diff(handles.profile(:,1));    yd = diff(handles.profile(:,2));
@@ -376,9 +386,11 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
         return
     end
     % --------------------------------------------------------------------------
+
+    if (isempty(handles.movieName) && isempty(handles.Z_water))
+        errordlg('Hei! what shoult it be the movie name?','ERROR');     return
+    end
     
-%     is_gif = 1;
-%     if (~get(handles.radio_gif,'Value')),    is_gif = 0;     end
     is_gif = get(handles.radio_gif,'Value');
     is_avi = get(handles.radio_avi,'Value');
     is_mpg = get(handles.radio_mpg,'Value');
@@ -669,26 +681,20 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Callback',{@umDmovie_uicallback,h1,'radio_gif_Callback'},...
-'FontName','Helvetica',...
-'Position',[271 97 41 15],...
-'String','GIF',...
-'Style','radiobutton',...
+'FontName','Helvetica','Position',[271 97 41 15],...
+'String','GIF','Style','radiobutton',...
 'TooltipString','Write movie file in animated GIF format',...
-'Value',1,...
-'Tag','radio_gif');
+'Value',1,'Tag','radio_gif');
 
 uicontrol('Parent',h1,...
 'Callback',{@umDmovie_uicallback,h1,'radio_avi_Callback'},...
-'FontName','Helvetica',...
-'Position',[271 76 41 15],...
-'String','AVI',...
-'Style','radiobutton',...
+'FontName','Helvetica','Position',[271 76 41 15],...
+'String','AVI','Style','radiobutton',...
 'TooltipString','Write movie file in RGB AVI format',...
 'Tag','radio_avi');
 
 uicontrol('Parent',h1,...
-'FontName','Helvetica',...
-'FontSize',9,...
+'FontName','Helvetica','FontSize',9,...
 'Position',[272 121 70 15],...
 'String','Movie type',...
 'Style','text',...
