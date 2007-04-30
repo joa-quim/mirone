@@ -1,7 +1,6 @@
 * text=auto !eol
 /ICSharpCode.SharpZipLib.dll -text
 /autopano.exe -text
-continents/.gmtcommands4 -text
 continents/africa.dat -text
 continents/africa2nam.stg -text
 continents/africa2nam_double.stg -text
