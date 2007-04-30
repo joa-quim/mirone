@@ -659,7 +659,7 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 
             [handles,X,Y,Z] = read_gmt_type_grids(handles,handles.nameList{i});
         	imgWater = scaleto8(Z,8,[minWater maxWater]);
-            imgWater = ind2rgb8(imgWater,jet(256));
+            imgWater = ind2rgb8(imgWater,bcmap);
         	R = grdgradient_m(Z,heads{i},handles.waterIllumComm);
         	imgWater = shading_mat(imgWater,R,'no_scale');
             
