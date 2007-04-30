@@ -432,12 +432,22 @@ function DatasetsPlateBound_PB_All(handles)
 
 % --------------------------------------------------------------------
 function CoastLines(handles, res)
-	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-	if (nargin == 3),   res = 'l';  end
+	if (handles.no_file == 1),    return;      end
 	set(handles.figure1,'pointer','watch')
 	
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-	opt_R = ['-R' sprintf('%.4f',lon(1)) '/' sprintf('%.4f',lon(2)) '/' sprintf('%.4f',lat(1)) '/' sprintf('%.4f',lat(2))];
+    projGMT = getappdata(handles.figure1,'ProjGMT');
+    if (~isempty(projGMT))
+        out = mapproject_m([lon(:) lat(:)],'-R-180/180/0/80','-I','-F',projGMT{:});
+        lon(1) = min(out(:,1));        lon(2) = max(out(:,1));
+        lat(1) = min(out(:,2));        lat(2) = max(out(:,2));
+    else
+        if (~handles.geog)
+        	set(handles.figure1,'pointer','arrow')
+            errordlg('This operation is currently possible only for geographic type data','ERROR');     return
+        end
+    end
+  	opt_R = ['-R' sprintf('%f',lon(1)) '/' sprintf('%f',lon(2)) '/' sprintf('%f',lat(1)) '/' sprintf('%f',lat(2))];
 	
 	switch res
         case 'c',        opt_res = '-Dc';        pad = 2.0;
@@ -448,6 +458,13 @@ function CoastLines(handles, res)
 	end
 	coast = shoredump(opt_R,opt_res,'-A1/1/1');
 	
+    if (~isempty(projGMT))
+        coast = mapproject_m(coast', opt_R, '-F', projGMT{:});
+        coast = coast';
+    	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
+        pad = 5e3;
+    end
+    
 	% Get rid of data that are outside the map limits
 	lon = lon - [pad -pad];     lat = lat - [pad -pad];
 	indx = (coast(1,:) < lon(1) | coast(1,:) > lon(2));
