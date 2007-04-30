@@ -175,7 +175,7 @@ if (strncmp(computer,'PC',2))
         'imcapture(gca,''imgAx'');set(h(2:end),''Visible'',''on'')'],'Label','Image and frame','Tag','noAxes')
 end
 
-uimenu('Parent',h2,'Call','mirone(''Transfer_CB'',gcbo,[],guidata(gcbo),''KML'')', 'Label','Export to GoogleEarth','Sep','on');
+uimenu('Parent',h2,'Call','mirone(''Transfer_CB'',[],[],guidata(gcbo),''KML'')', 'Label','Export to GoogleEarth','Sep','on');
 
 % ----------------------- Save Grids section
 h9 = uimenu('Parent',h2,'Label','Save Grid As...','Sep','on');
@@ -265,17 +265,17 @@ uimenu('Parent',h9,'Call','mirone(''ImageEdgeDetect_CB'',gcbo,[],guidata(gcbo),'
 h9 = uimenu('Parent',h54,'Label','Features detection');
 uimenu('Parent',h9,'Call','mirone(''ImageEdgeDetect_CB'',gcbo,[],guidata(gcbo),''Lines'')','Label','Lines');
 uimenu('Parent',h9,'Call','mirone(''ImageEdgeDetect_CB'',gcbo,[],guidata(gcbo),''Circles'')','Label','Circles');
-uimenu('Parent',h9,'Call','mirone(''Transfer_CB'',gcbo,[],guidata(gcbo),''Corners'')','Label','Good features to track');
+uimenu('Parent',h9,'Call','mirone(''Transfer_CB'',[],[],guidata(gcbo),''Corners'')','Label','Good features to track');
 
 uimenu('Parent',h54,'Label','entry_sh');
 uimenu('Parent',h54,'Call','mpaint(gcf)','Label','Paint Brush');
 uimenu('Parent',h54,'Call','classificationFig(gcf);','Label','K-means classification');
 uimenu('Parent',h54,'Call','imageResize(gcf)','Label','Image resize','Sep','on');
-uimenu('Parent',h54,'Call','mirone(''RotateTool_CB'',gcbo,[],guidata(gcbo),''image'')','Label','Image rotation');
+uimenu('Parent',h54,'Call','mirone(''RotateTool_CB'',[],[],guidata(gcbo),''image'')','Label','Image rotation');
 
 h9 = uimenu('Parent',h54,'Label','Image mode');
-uimenu('Parent',h9,'Call','mirone(''Transfer_CB'',gcbo,[],guidata(gcbo),''gray'')','Label','Gray scale');
-uimenu('Parent',h9,'Call','mirone(''Transfer_CB'',gcbo,[],guidata(gcbo),''bw'')','Label','Black and White');
+uimenu('Parent',h9,'Call','mirone(''Transfer_CB'',[],[],guidata(gcbo),''gray'')','Label','Gray scale');
+uimenu('Parent',h9,'Call','mirone(''Transfer_CB'',[],[],guidata(gcbo),''bw'')','Label','Black and White');
 uimenu('Parent',h9,'Call','mirone(''ImageResetOrigImg_CB'',gcbo,[],guidata(gcbo))','Label','Original Image');
 
 % % ------------ Image filters _______ TO BE CONTINUED
@@ -305,7 +305,7 @@ h76 = uimenu('Parent',h1,'Label','Tools','Tag','Tools');
 uimenu('Parent',h76,'Call','mirone(''ExtractProfile_CB'',gcbo,[],guidata(gcbo))','Label','Extract Profile');
 
 h78 = uimenu('Parent',h76,'Label','Measure','Sep','on');
-uimenu('Parent',h78,'Call','mirone(''ToolsMeasureDist_CB'',gcbo,[],guidata(gcbo))','Label','Distance','Tag','ToolsMeasureDist');
+uimenu('Parent',h78,'Call','mirone(''ToolsMeasureDist_CB'',[],[],guidata(gcbo))','Label','Distance','Tag','ToolsMeasureDist');
 uimenu('Parent',h78,'Call','mirone(''ToolsMeasureAzimuth_CB'',gcbo,[],guidata(gcbo))','Label','Azimuth');
 uimenu('Parent',h78,'Call','mirone(''ToolsMeasureArea_CB'',gcbo,[],guidata(gcbo))','Label','Area');
 uimenu('Parent',h78,'Call','mirone(''ToolsMeasureAreaPerCor_CB'',gcbo,[],guidata(gcbo))','Label','Area per color');
@@ -317,8 +317,8 @@ uimenu('Parent',h82,'Call','mirone(''ToolsMBplaningImport_CB'',gcbo,[],guidata(g
 uimenu('Parent',h76,'Call','mirone(''DrawClosedPolygon_CB'',[],[],guidata(gcbo),''from_ROI'')',...
 'Label','Region-Of-Interest','Sep','on');
 
-uimenu('Parent',h76,'Call','mirone(''Transfer_CB'',gcbo,[],guidata(gcbo),''isGMT'')','Label','Does GMT know this file?','Sep','on');
-uimenu('Parent',h76,'Call','mirone(''Transfer_CB'',gcbo,[],guidata(gcbo),''isGDAL'')','Label','Does GDAL know this file?');
+uimenu('Parent',h76,'Call','mirone(''Transfer_CB'',[],[],guidata(gcbo),''isGMT'')','Label','Does GMT know this file?','Sep','on');
+uimenu('Parent',h76,'Call','mirone(''Transfer_CB'',[],[],guidata(gcbo),''isGDAL'')','Label','Does GDAL know this file?');
 uimenu('Parent',h76,'Call','ecran','Label','X,Y grapher','Sep','on');
 uimenu('Parent',h76,'Call','gmtedit','Label','gmtedit');
 uimenu('Parent',h76,'Call','rally_plater','Label','Rally Plater');
@@ -331,35 +331,35 @@ uimenu('Parent',h92,'Call','mirone(''DrawLine_CB'',[],[],guidata(gcbo))','Label'
 uimenu('Parent',h92,'Call','mirone(''DrawLine_CB'',[],[],guidata(gcbo),''freehand'')','Label','Freehand draw');
 uimenu('Parent',h92,'Call','mirone(''DrawClosedPolygon_CB'',[],[],guidata(gcbo),[])','Label','Draw closed polygon');
 uimenu('Parent',h92,'Call','mirone(''DrawClosedPolygon_CB'',[],[],guidata(gcbo),''EulerTrapezium'')','Label','Draw Euler trapezium');
-uimenu('Parent',h92,'Call','mirone(''DrawImportLine_CB'',gcbo,[],guidata(gcbo),''AsLine'')','Label','Import line','Sep','on');
-uimenu('Parent',h92,'Call','mirone(''DrawImportLine_CB'',gcbo,[],guidata(gcbo),''AsPoint'')','Label','Import points');
-uimenu('Parent',h92,'Call','mirone(''Transfer_CB'',gcbo,[],guidata(gcbo),''scatter'')','Label','Import scaled symbols');
-uimenu('Parent',h92,'Call','mirone(''DrawImportText_CB'',gcbo,[],guidata(gcbo))','Label','Import text');
-uimenu('Parent',h92,'Call','mirone(''DrawImportShape_CB'',gcbo,[],guidata(gcbo))','Label','Import shape file');
+uimenu('Parent',h92,'Call','mirone(''DrawImportLine_CB'',[],[],guidata(gcbo),''AsLine'')','Label','Import line','Sep','on');
+uimenu('Parent',h92,'Call','mirone(''DrawImportLine_CB'',[],[],guidata(gcbo),''AsPoint'')','Label','Import points');
+uimenu('Parent',h92,'Call','mirone(''Transfer_CB'',[],[],guidata(gcbo),''scatter'')','Label','Import scaled symbols');
+uimenu('Parent',h92,'Call','mirone(''DrawImportText_CB'',[],[],guidata(gcbo))','Label','Import text');
+uimenu('Parent',h92,'Call','mirone(''DrawImportShape_CB'',[],[],guidata(gcbo))','Label','Import shape file');
 
 h9 = uimenu('Parent',h92,'Label','Draw circle','Sep','on');
 uimenu('Parent',h9,'Call','mirone(''DrawGeographicalCircle_CB'',[],[],guidata(gcbo))','Label','Geographical circle');
 uimenu('Parent',h9,'Call','mirone(''DrawGeographicalCircle_CB'',[],[],guidata(gcbo),''gcirc'')','Label','Great circle arc');
-uimenu('Parent',h9,'Call','mirone(''DrawEulerPoleCircle_CB'',gcbo,[],guidata(gcbo))','Label','Circle about an Euler pole');
+uimenu('Parent',h9,'Call','mirone(''DrawEulerPoleCircle_CB'',[],[],guidata(gcbo))','Label','Circle about an Euler pole');
 uimenu('Parent',h9,'Call','mirone(''DrawGeographicalCircle_CB'',[],[],guidata(gcbo),''cartCirc'')','Label','Cartesian circle');
 
 uimenu('Parent',h92,'Call','mirone(''DrawClosedPolygon_CB'',[],[],guidata(gcbo),''rectangle'')','Label','Draw rectangle');
 uimenu('Parent',h92,'Call','mirone(''DrawVector_CB'',[],[],guidata(gcbo))','Label','Draw vector');
 
 h105 = uimenu('Parent',h92,'Label','Draw symbol');
-uimenu('Parent',h105,'Call','mirone(''DrawSymbol_CB'',gcbo,[],guidata(gcbo),''circle'')','Label','Circle');
-uimenu('Parent',h105,'Call','mirone(''DrawSymbol_CB'',gcbo,[],guidata(gcbo),''square'')','Label','Square');
-uimenu('Parent',h105,'Call','mirone(''DrawSymbol_CB'',gcbo,[],guidata(gcbo),''triangle'')','Label','Triangle');
-uimenu('Parent',h105,'Call','mirone(''DrawSymbol_CB'',gcbo,[],guidata(gcbo),''star'')','Label','Star');
-uimenu('Parent',h105,'Call','mirone(''DrawSymbol_CB'',gcbo,[],guidata(gcbo),''cross'')','Label','Cross');
+uimenu('Parent',h105,'Call','mirone(''DrawSymbol_CB'',[],[],guidata(gcbo),''circle'')','Label','Circle');
+uimenu('Parent',h105,'Call','mirone(''DrawSymbol_CB'',[],[],guidata(gcbo),''square'')','Label','Square');
+uimenu('Parent',h105,'Call','mirone(''DrawSymbol_CB'',[],[],guidata(gcbo),''triangle'')','Label','Triangle');
+uimenu('Parent',h105,'Call','mirone(''DrawSymbol_CB'',[],[],guidata(gcbo),''star'')','Label','Star');
+uimenu('Parent',h105,'Call','mirone(''DrawSymbol_CB'',[],[],guidata(gcbo),''cross'')','Label','Cross');
 
 uimenu('Parent',h92,'Call','mirone(''DrawText_CB'',[],[],guidata(gcbo))','Label','Insert text');
 
-uimenu('Parent',h92,'Callback','mirone(''DrawContours_Callback'',gcbo,[],guidata(gcbo))',...
+uimenu('Parent',h92,'Callback','mirone(''DrawContours_CB'',[],[],guidata(gcbo))',...
 'Label','Contours (automatic)','Sep','on','Tag','Contours_a');
 
 uimenu('Parent',h92,...
-'Callback','mirone(''DrawContours_Callback'',gcbo,[],guidata(gcbo),''gui'')','Label','Contours','Tag','Contours_i');
+'Callback','mirone(''DrawContours_CB'',[],[],guidata(gcbo),''gui'')','Label','Contours','Tag','Contours_i');
 
 % --------------------------- DATASETS MENU ------------------------------------
 h113 = uimenu('Parent',h1,'Label','Datasets','Tag','Datasets');
@@ -389,7 +389,7 @@ uimenu('Parent',h122,'Call','datasets_funs(''Political'',guidata(gcbo),''1'',''c
 uimenu('Parent',h122,'Call','datasets_funs(''Political'',guidata(gcbo),''1'',''l'')',...
 'Label','Low resolution','Tag','PBLow');
 
-uimenu('Parent',h122,'Callback','datasets_funs(''Political'',guidata(gcbo),''1'',''i'')',...
+uimenu('Parent',h122,'Call','datasets_funs(''Political'',guidata(gcbo),''1'',''i'')',...
 'Label','Intermediate resolution','Tag','PBInterm');
 
 uimenu('Parent',h122,'Call','datasets_funs(''Political'',guidata(gcbo),''1'',''h'')',...
@@ -693,7 +693,7 @@ uimenu('Parent',h278,'Call','mirone(''GridToolsGridClip_CB'',gcbo,[],guidata(gcb
 uimenu('Parent',h278,...
 'Callback','mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),[],''CropaGrid'')','Label','Crop Grid');
 
-uimenu('Parent',h278,'Call','mirone(''RotateTool_CB'',gcbo,[],guidata(gcbo),''grid'')','Label','Rotate Grid');
+uimenu('Parent',h278,'Call','mirone(''RotateTool_CB'',[],[],guidata(gcbo),''grid'')','Label','Rotate Grid');
 uimenu('Parent',h278,'Call','mirone(''GridToolsHistogram_CB'',gcbo,[],guidata(gcbo))','Label','Histogram');
 uimenu('Parent',h278,'Call','mirone(''GridToolsGridMask_CB'',gcbo,[],guidata(gcbo))','Label','Write Mask');
 uimenu('Parent',h278,'Call','mirone(''GridToolsSectrum_CB'',gcbo,[],guidata(gcbo), ''Allopts'')','Label','FFT tool','Sep','on');
@@ -740,12 +740,14 @@ uimenu('Parent',h278,'Call','mirone(''GridToolsPadd2Const_CB'',gcbo,[],guidata(g
 uimenu('Parent',h278,'Call','mirone(''ImageEdgeDetect_CB'',gcbo,[],guidata(gcbo),''ppa'')',...
 'Label','Extract ridges/valleys','Sep','on');
 
+projectionMenu(h1)
+
 % --------------------------- HELP MENU ------------------------------------
 h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
 uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v7)');
 uimenu('Parent',h9, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 uimenu('Parent',h9,...
-'Call','about_box([''Mirone_Last_modified_at_3_Apr_2007''],''Mirone'')','Label','About','Sep','on');
+'Call','about_box([''Mirone_Last_modified_at_29_Apr_2007''],''Mirone'')','Label','About','Sep','on');
 
 % --------------------------------------------------------------------------------------------------
 % We need this function also when the pixval_stsbar got stucked
