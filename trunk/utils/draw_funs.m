@@ -501,19 +501,19 @@ end
 
 % -----------------------------------------------------------------------------------------
 function set_SRTM_rect_uicontext(h,opt)
-% h is a handle to a line object (that can be closed)
-cmenuHand = uicontextmenu;
-set(h, 'UIContextMenu', cmenuHand);
-ui_edit_polygon(h)    % Set edition functions
-uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-cb_Fill_surface = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''surface'');delete(gco)';
-cb_Fill_cubic = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''cubic'');delete(gco)';
-cb_Fill_linear = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''linear'');delete(gco)';
-cb_Fill_sea   = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''sea'');delete(gco)';
-uimenu(cmenuHand, 'Label', 'Fill gaps (surface)', 'Callback', cb_Fill_surface);
-uimenu(cmenuHand, 'Label', 'Fill gaps (cubic)', 'Callback', cb_Fill_cubic);
-uimenu(cmenuHand, 'Label', 'Fill gaps (linear)', 'Callback', cb_Fill_linear);
-uimenu(cmenuHand, 'Label', 'Fill gaps (sea)', 'Callback', cb_Fill_sea);
+	% h is a handle to a line object (that can be closed)
+	cmenuHand = uicontextmenu;
+	set(h, 'UIContextMenu', cmenuHand);
+	ui_edit_polygon(h)    % Set edition functions
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	cb_Fill_surface = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''surface'');delete(gco)';
+	cb_Fill_cubic = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''cubic'');delete(gco)';
+	cb_Fill_linear = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''linear'');delete(gco)';
+	cb_Fill_sea   = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''sea'');delete(gco)';
+	uimenu(cmenuHand, 'Label', 'Fill gaps (surface)', 'Callback', cb_Fill_surface);
+	uimenu(cmenuHand, 'Label', 'Fill gaps (cubic)', 'Callback', cb_Fill_cubic);
+	uimenu(cmenuHand, 'Label', 'Fill gaps (linear)', 'Callback', cb_Fill_linear);
+	uimenu(cmenuHand, 'Label', 'Fill gaps (sea)', 'Callback', cb_Fill_sea);
 
 % -----------------------------------------------------------------------------------------
 function set_ContourLines_uicontext(h,h_label)
@@ -558,29 +558,29 @@ setLineColor(item_lc,cb_CLineColor)
 
 % -----------------------------------------------------------------------------------------
 function setCoastLineUictx(h)
-% h is a handle to a line object
-tag = get(h,'Tag');
-if (strcmp(tag,'CoastLineNetCDF')),         label = 'Delete coastlines';
-elseif (strcmp(tag,'PoliticalBoundaries'))  label = 'Delete boundaries';
-elseif (strcmp(tag,'Rivers'))               label = 'Delete rivers';
-end
-cmenuHand = uicontextmenu;
-set(h, 'UIContextMenu', cmenuHand);
-cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
-cb13 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb14 = 'set(gco, ''LineStyle'', ''--''); refresh';
-cb15 = 'set(gco, ''LineStyle'', '':''); refresh';   cb16 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-cb_color = uictx_color(h);              % there are 9 cb_color outputs
-
-uimenu(cmenuHand, 'Label', label, 'Call', 'delete(gco)');
-uimenu(cmenuHand, 'Label', 'Edit line (left-click on it)', 'Call', 'edit_line');
-uimenu(cmenuHand, 'Label', 'Save coastline', 'Call', {@save_formated,h});
-
-item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
-setLineWidth(item_lw,cb_LineWidth)
-item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-setLineStyle(item_ls,{cb13 cb14 cb15 cb16})
-item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
-setLineColor(item_lc,cb_color)
+	% h is a handle to a line object
+	tag = get(h,'Tag');
+	if (strcmp(tag,'CoastLineNetCDF')),         label = 'Delete coastlines';
+	elseif (strcmp(tag,'PoliticalBoundaries'))  label = 'Delete boundaries';
+	elseif (strcmp(tag,'Rivers'))               label = 'Delete rivers';
+	end
+	cmenuHand = uicontextmenu;
+	set(h, 'UIContextMenu', cmenuHand);
+	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	cb13 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb14 = 'set(gco, ''LineStyle'', ''--''); refresh';
+	cb15 = 'set(gco, ''LineStyle'', '':''); refresh';   cb16 = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	cb_color = uictx_color(h);              % there are 9 cb_color outputs
+	
+	uimenu(cmenuHand, 'Label', label, 'Call', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Edit line (left-click on it)', 'Call', 'edit_line');
+	uimenu(cmenuHand, 'Label', 'Save coastline', 'Call', {@save_formated,h});
+	
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
+	setLineWidth(item_lw,cb_LineWidth)
+	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
+	setLineStyle(item_ls,{cb13 cb14 cb15 cb16})
+	item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
+	setLineColor(item_lc,cb_color)
 
 % -----------------------------------------------------------------------------------------
 function set_PB_uicontext(h,data)
@@ -694,30 +694,30 @@ setLineColor(item_lc,cb_color)
 
 % -----------------------------------------------------------------------------------------
 function call_gmtedit(obj,eventdata,h)
-pt = get(gca, 'CurrentPoint');
-gmtedit(getappdata(h,'FullName'),['-P' sprintf('%.6f',pt(1,1)) '/' sprintf('%.6f',pt(1,2))]);
+	pt = get(gca, 'CurrentPoint');
+	gmtedit(getappdata(h,'FullName'),['-P' sprintf('%.6f',pt(1,1)) '/' sprintf('%.6f',pt(1,2))]);
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_setMarker(h,prop)
-% Set uicontext colors in a PB object class hose handles are contained in h
-% PROP is either "Marker" or "MarkerSize". OPT is either the symbol or it's size
-if (strcmp(prop,'Marker'))
-    cb{1} = {@other_Marker,h,prop,'+'};       cb{2} = {@other_Marker,h,prop,'o'};
-    cb{3} = {@other_Marker,h,prop,'*'};       cb{4} = {@other_Marker,h,prop,'.'};
-    cb{5} = {@other_Marker,h,prop,'x'};       cb{6} = {@other_Marker,h,prop,'s'};
-    cb{7} = {@other_Marker,h,prop,'d'};       cb{8} = {@other_Marker,h,prop,'^'};
-    cb{9} = {@other_Marker,h,prop,'v'};       cb{10} = {@other_Marker,h,prop,'>'};
-    cb{11} = {@other_Marker,h,prop,'<'};       cb{12} = {@other_Marker,h,prop,'p'};
-    cb{13} = {@other_Marker,h,prop,'h'};
-elseif (strcmp(prop,'MarkerSize'))
-    cb{1} = {@other_Marker,h,prop,7};       cb{2} = {@other_Marker,h,prop,8};
-    cb{3} = {@other_Marker,h,prop,9};       cb{4} = {@other_Marker,h,prop,10};
-    cb{5} = {@other_Marker,h,prop,12};      cb{6} = {@other_Marker,h,prop,14};
-    cb{7} = {@other_Marker,h,prop,16};      cb{8} = {@other_SymbSize,h};
-end
-
-function other_Marker(obj,eventdata,h,prop,opt)
-set(h,prop,opt);    refresh
+	% Set uicontext colors in a PB object class hose handles are contained in h
+	% PROP is either "Marker" or "MarkerSize". OPT is either the symbol or it's size
+	if (strcmp(prop,'Marker'))
+        cb{1} = {@other_Marker,h,prop,'+'};       cb{2} = {@other_Marker,h,prop,'o'};
+        cb{3} = {@other_Marker,h,prop,'*'};       cb{4} = {@other_Marker,h,prop,'.'};
+        cb{5} = {@other_Marker,h,prop,'x'};       cb{6} = {@other_Marker,h,prop,'s'};
+        cb{7} = {@other_Marker,h,prop,'d'};       cb{8} = {@other_Marker,h,prop,'^'};
+        cb{9} = {@other_Marker,h,prop,'v'};       cb{10} = {@other_Marker,h,prop,'>'};
+        cb{11} = {@other_Marker,h,prop,'<'};       cb{12} = {@other_Marker,h,prop,'p'};
+        cb{13} = {@other_Marker,h,prop,'h'};
+	elseif (strcmp(prop,'MarkerSize'))
+        cb{1} = {@other_Marker,h,prop,7};       cb{2} = {@other_Marker,h,prop,8};
+        cb{3} = {@other_Marker,h,prop,9};       cb{4} = {@other_Marker,h,prop,10};
+        cb{5} = {@other_Marker,h,prop,12};      cb{6} = {@other_Marker,h,prop,14};
+        cb{7} = {@other_Marker,h,prop,16};      cb{8} = {@other_SymbSize,h};
+	end
+	
+	function other_Marker(obj,eventdata,h,prop,opt)
+	set(h,prop,opt);    refresh
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -778,35 +778,35 @@ end
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_Class_LineStyle(h)
-% Set uicontext LineStyles in a class object hose handles are contained in h
-cb{1} = {@other_Class_LineStyle,h,'-'};      cb{2} = {@other_Class_LineStyle,h,'--'};
-cb{3} = {@other_Class_LineStyle,h,':'};      cb{4} = {@other_Class_LineStyle,h,'-.'};
-
-function other_Class_LineStyle(obj,eventdata,h,opt)
-% If individual Lines were previously removed (by "Remove Line") h has invalid
-% handles, so make sure all handles are valid
-h=h(ishandle(h));
-set(h,'LineStyle',opt);        refresh;
+	% Set uicontext LineStyles in a class object hose handles are contained in h
+	cb{1} = {@other_Class_LineStyle,h,'-'};      cb{2} = {@other_Class_LineStyle,h,'--'};
+	cb{3} = {@other_Class_LineStyle,h,':'};      cb{4} = {@other_Class_LineStyle,h,'-.'};
+	
+	function other_Class_LineStyle(obj,eventdata,h,opt)
+	% If individual Lines were previously removed (by "Remove Line") h has invalid
+	% handles, so make sure all handles are valid
+	h=h(ishandle(h));
+	set(h,'LineStyle',opt);        refresh;
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
 function set_greatCircle_uicontext(h)
-% h is a handle to a graet circle arc (in geog coords) object
-cmenuHand = uicontextmenu;      set(h, 'UIContextMenu', cmenuHand);
-cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
-cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
-cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
-cb_color = uictx_color(h);      % there are 9 cb_color outputs
-
-uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated,h});
-uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[],'total'});
-item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-setLineWidth(item_lw,cb_LineWidth)
-item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dash_dotted})
-item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
-setLineColor(item_lc,cb_color)
+	% h is a handle to a graet circle arc (in geog coords) object
+	cmenuHand = uicontextmenu;      set(h, 'UIContextMenu', cmenuHand);
+	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
+	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	cb_color = uictx_color(h);      % there are 9 cb_color outputs
+	
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[],'total'});
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	setLineWidth(item_lw,cb_LineWidth)
+	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
+	setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dash_dotted})
+	item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
+	setLineColor(item_lc,cb_color)
 
 % -----------------------------------------------------------------------------------------
 function set_circleGeo_uicontext(h)
@@ -846,29 +846,29 @@ setLineColor(item_lc,cb_color)
 
 % -----------------------------------------------------------------------------------------
 function set_circleCart_uicontext(h)
-% h is a handle to a circle (in cartesian coords) object
-cmenuHand = uicontextmenu;
-set(h, 'UIContextMenu', cmenuHand);
-cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
-cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
-cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
-cb_color = uictx_color(h);      % there are 9 cb_color outputs
-cb_roi = 'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),gco)';
-
-uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
-uimenu(cmenuHand, 'Label', 'Circle perimeter', 'Callback', {@show_LineLength,[]});
-uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Callback', {@move_circle,h});
-item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
-uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Callback', {@change_CircCenter1,h});
-uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
-item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
-setLineWidth(item_lw,cb_LineWidth)
-item2 = uimenu(cmenuHand, 'Label', 'Line Style');
-setLineStyle(item2,{cb_solid cb_dashed cb_dotted cb_dash_dotted})
-item3 = uimenu(cmenuHand, 'Label', 'Line Color');
-setLineColor(item3,cb_color)
+	% h is a handle to a circle (in cartesian coords) object
+	cmenuHand = uicontextmenu;
+	set(h, 'UIContextMenu', cmenuHand);
+	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
+	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	cb_color = uictx_color(h);      % there are 9 cb_color outputs
+	cb_roi = 'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),gco)';
+	
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Circle perimeter', 'Callback', {@show_LineLength,[]});
+	uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Callback', {@move_circle,h});
+	item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
+	uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Callback', {@change_CircCenter1,h});
+	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	setLineWidth(item_lw,cb_LineWidth)
+	item2 = uimenu(cmenuHand, 'Label', 'Line Style');
+	setLineStyle(item2,{cb_solid cb_dashed cb_dotted cb_dash_dotted})
+	item3 = uimenu(cmenuHand, 'Label', 'Line Color');
+	setLineColor(item3,cb_color)
 
 % -----------------------------------------------------------------------------------------
 function compute_EulerVel(obj,eventdata,h)
@@ -907,28 +907,28 @@ msgbox(msg,'Euler velocity')
 
 % -----------------------------------------------------------------------------------------
 function set_vector_uicontext(h)
-% h is a handle to a vector object
-cmenuHand = uicontextmenu;
-set(h, 'UIContextMenu', cmenuHand);
-uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@delete_vector,h});
-%set(h,'ButtonDownFcn','selectmoveresize')
+	% h is a handle to a vector object
+	cmenuHand = uicontextmenu;
+	set(h, 'UIContextMenu', cmenuHand);
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@delete_vector,h});
+	%set(h,'ButtonDownFcn','selectmoveresize')
 
 % -----------------------------------------------------------------------------------------
 function delete_vector(obj,eventdata,h)
-% Brute force delete a vector whose handle is h. delete(gco) just doesn't kill the head
-delete(h)
+    % Brute force delete a vector whose handle is h. delete(gco) just doesn't kill the head
+    delete(h)
 
 % -----------------------------------------------------------------------------------------
 function fill_Polygon(obj,eventdata,h)
-% Turn a closed polygon into a patch and fill it in light gray by default
-% EXPERIMENTAL CODE. NOT IN USE.
-x = get(h,'XData');      y = get(h,'YData');
-patch(x,y,0,'FaceColor',[.7 .7 .7], 'EdgeColor','k');
+	% Turn a closed polygon into a patch and fill it in light gray by default
+	% EXPERIMENTAL CODE. NOT IN USE.
+	x = get(h,'XData');      y = get(h,'YData');
+	patch(x,y,0,'FaceColor',[.7 .7 .7], 'EdgeColor','k');
 
 % -----------------------------------------------------------------------------------------
 function show_swhatRatio(obj,eventdata,h)
-msgbox(['Swath Ratio for this track is: ' sprintf('%g',getappdata(h,'swathRatio'))],'')
-refresh
+    msgbox(['Swath Ratio for this track is: ' sprintf('%g',getappdata(h,'swathRatio'))],'')
+    refresh
 
 % -----------------------------------------------------------------------------------------
 function show_Area(obj,eventdata,h)
@@ -1046,19 +1046,19 @@ end
 
 % -----------------------------------------------------------------------------------------
 function show_AllTrackLength(obj,eventdata)
-% Compute the length of all MB tracks present in the figure
-ALLlineHand = findobj(get(gca,'Child'),'Type','line');
-len = 0;
-for i = 1:length(ALLlineHand)
-    tag = get(ALLlineHand(i),'Tag');
-    if ~isempty(strfind(tag,'MBtrack'))       % case of a MBtrack line
-        tmp = show_LineLength(obj,eventdata,ALLlineHand(i));        
-        len = len + tmp.len;
-    end
-end
-if (len > 0)
-    msgbox(['Total tracks length = ' sprintf('%g',len) ' NM'])
-end
+	% Compute the length of all MB tracks present in the figure
+	ALLlineHand = findobj(get(gca,'Child'),'Type','line');
+	len = 0;
+	for i = 1:length(ALLlineHand)
+        tag = get(ALLlineHand(i),'Tag');
+        if ~isempty(strfind(tag,'MBtrack'))       % case of a MBtrack line
+            tmp = show_LineLength(obj,eventdata,ALLlineHand(i));        
+            len = len + tmp.len;
+        end
+	end
+	if (len > 0)
+        msgbox(['Total tracks length = ' sprintf('%g',len) ' NM'])
+	end
 
 % -----------------------------------------------------------------------------------------
 function azim = show_lineAzims(obj,eventdata,h)
@@ -1112,25 +1112,25 @@ refresh
 
 % -----------------------------------------------------------------------------------------
 function set_bar_uicontext(h)
-% Set uicontexts for the bars in a multibeam track. h is the handle to the bar objects
-cmenuHand = uicontextmenu;
-set(h, 'UIContextMenu', cmenuHand);
-cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs, but I only use 5 here
-cb7 = 'set(gco, ''LineWidth'', 10); refresh';
-cb10 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb11 = 'set(gco, ''LineStyle'', ''--''); refresh';
-cb12 = 'set(gco, ''LineStyle'', '':''); refresh';   cb13 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-cb_color = uictx_color(h);      % there are 9 cb_color outputs
-item1 = uimenu(cmenuHand, 'Label', 'Line Width');
-uimenu(item1, 'Label', '1       pt', 'Callback', cb_LineWidth{1});
-uimenu(item1, 'Label', '2       pt', 'Callback', cb_LineWidth{2});
-uimenu(item1, 'Label', '3       pt', 'Callback', cb_LineWidth{3});
-uimenu(item1, 'Label', '4       pt', 'Callback', cb_LineWidth{4});
-uimenu(item1, 'Label', '5       pt', 'Callback', cb7);
-uimenu(item1, 'Label', 'Other...', 'Callback', cb_LineWidth{5});
-item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-setLineStyle(item_ls,{cb10 cb11 cb12 cb13})
-item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
-setLineColor(item_lc,cb_color)
+	% Set uicontexts for the bars in a multibeam track. h is the handle to the bar objects
+	cmenuHand = uicontextmenu;
+	set(h, 'UIContextMenu', cmenuHand);
+	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs, but I only use 5 here
+	cb7 = 'set(gco, ''LineWidth'', 10); refresh';
+	cb10 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb11 = 'set(gco, ''LineStyle'', ''--''); refresh';
+	cb12 = 'set(gco, ''LineStyle'', '':''); refresh';   cb13 = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	cb_color = uictx_color(h);      % there are 9 cb_color outputs
+	item1 = uimenu(cmenuHand, 'Label', 'Line Width');
+	uimenu(item1, 'Label', '1       pt', 'Callback', cb_LineWidth{1});
+	uimenu(item1, 'Label', '2       pt', 'Callback', cb_LineWidth{2});
+	uimenu(item1, 'Label', '3       pt', 'Callback', cb_LineWidth{3});
+	uimenu(item1, 'Label', '4       pt', 'Callback', cb_LineWidth{4});
+	uimenu(item1, 'Label', '5       pt', 'Callback', cb7);
+	uimenu(item1, 'Label', 'Other...', 'Callback', cb_LineWidth{5});
+	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
+	setLineStyle(item_ls,{cb10 cb11 cb12 cb13})
+	item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
+	setLineColor(item_lc,cb_color)
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_color(h,opt)
@@ -1164,60 +1164,59 @@ end
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_LineWidth(h)
-% Set uicontext colors in object hose handle is gco (or h for "other color")
-cb{1} = 'set(gco, ''LineWidth'', 1);refresh';   cb{2} = 'set(gco, ''LineWidth'', 2);refresh';
-cb{3} = 'set(gco, ''LineWidth'', 3);refresh';   cb{4} = 'set(gco, ''LineWidth'', 4);refresh';
-cb{5} = {@other_LineWidth,h};
+	% Set uicontext colors in object hose handle is gco (or h for "other color")
+	cb{1} = 'set(gco, ''LineWidth'', 1);refresh';   cb{2} = 'set(gco, ''LineWidth'', 2);refresh';
+	cb{3} = 'set(gco, ''LineWidth'', 3);refresh';   cb{4} = 'set(gco, ''LineWidth'', 4);refresh';
+	cb{5} = {@other_LineWidth,h};
 
 function other_LineWidth(obj,eventdata,h)
-prompt = {'Enter new line width (pt)'};     dlg_title = 'Line width';
-num_lines= [1 30];
-resp  = inputdlg(prompt,dlg_title,num_lines);
-if isempty(resp);    return;     end
-set(h,'LineWidth',str2double(resp));        refresh
+	prompt = {'Enter new line width (pt)'};     dlg_title = 'Line width';
+	num_lines= [1 30];
+	resp  = inputdlg(prompt,dlg_title,num_lines);
+	if isempty(resp);    return;     end
+	set(h,'LineWidth',str2double(resp));        refresh
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
 function h_vector = draw_vector
-h_vector(1) = line('XData', [], 'YData', [],'Tag','Arrow');       % handle to the vector line
-h_vector(2) = patch('XData', [], 'YData', [],'Tag','Arrow');      % handle to the vector head
-state = uisuspend_fig(get(0,'CurrentFigure'));        % Remember initial figure state
-set(get(0,'CurrentFigure'),'Pointer', 'crosshair');
-w = waitforbuttonpress;
-if w == 0       % A mouse click
-    vectorFirstButtonDown(h_vector,state)
-else
-    set(get(0,'CurrentFigure'),'Pointer', 'arrow');    h_vector = [];
-end
+	h_vector(1) = line('XData', [], 'YData', [],'Tag','Arrow');       % handle to the vector line
+	h_vector(2) = patch('XData', [], 'YData', [],'Tag','Arrow');      % handle to the vector head
+	state = uisuspend_fig(get(0,'CurrentFigure'));        % Remember initial figure state
+	set(get(0,'CurrentFigure'),'Pointer', 'crosshair');
+	w = waitforbuttonpress;
+	if w == 0       % A mouse click
+        vectorFirstButtonDown(h_vector,state)
+	else
+        set(get(0,'CurrentFigure'),'Pointer', 'arrow');    h_vector = [];
+	end
 
 function vectorFirstButtonDown(h,state)
     pt = get(gca, 'CurrentPoint');
     set(gcf,'WindowButtonMotionFcn',{@wbm_vector,[pt(1,1) pt(1,2)],h},'WindowButtonDownFcn',{@wbd_vector,h,state});
 
 function wbm_vector(obj,eventdata,origin,h)
-pt = get(gca, 'CurrentPoint');
-x  = [origin(1) pt(1,1)];   y = [origin(2) pt(1,2)];
-% [xx,yy,zz] = arrow([origin(1) origin(2)],[pt(1,1) pt(1,2)],20,50,16,2);
-% lt = getappdata(gcf,'DefLineThick');    lc = getappdata(gcf,'DefLineColor');
-% set(h(2),'XData',xx, 'YData',yy,'FaceColor',lc,'EdgeColor',lc);
-
-dx = diff(x);               dy = diff(y);
-lt = getappdata(get(0,'CurrentFigure'),'DefLineThick');    lc = getappdata(get(0,'CurrentFigure'),'DefLineColor');
-set(h(1),'XData',x, 'YData',y,'Color',lc,'LineWidth',lt)
-ax = getappdata(get(0,'CurrentFigure'),'ThisImageLims');
-lx = diff(ax(1:2))*25e-3;   ly = diff(ax(3:4))*10e-3;
-phi = atan2(dy,dx);
-head = rotate2([-lx 0 -lx; ly 0 -ly], [0; 0], phi);
-set(h(2),'XData',head(1,:)+pt(1,1), 'YData',head(2,:)+pt(1,2),'FaceColor',lc,'EdgeColor',lc);
+	pt = get(gca, 'CurrentPoint');
+	x  = [origin(1) pt(1,1)];   y = [origin(2) pt(1,2)];
+	% [xx,yy,zz] = arrow([origin(1) origin(2)],[pt(1,1) pt(1,2)],20,50,16,2);
+	% set(h(2),'XData',xx, 'YData',yy,'FaceColor',lc,'EdgeColor',lc);
+	
+	dx = diff(x);               dy = diff(y);
+	lt = getappdata(get(0,'CurrentFigure'),'DefLineThick');    lc = getappdata(get(0,'CurrentFigure'),'DefLineColor');
+	set(h(1),'XData',x, 'YData',y,'Color',lc,'LineWidth',lt)
+	ax = getappdata(get(0,'CurrentFigure'),'ThisImageLims');
+	lx = diff(ax(1:2))*25e-3;   ly = diff(ax(3:4))*10e-3;
+	phi = atan2(dy,dx);
+	head = rotate2([-lx 0 -lx; ly 0 -ly], [0; 0], phi);
+	set(h(2),'XData',head(1,:)+pt(1,1), 'YData',head(2,:)+pt(1,2),'FaceColor',lc,'EdgeColor',lc);
 
 function wbd_vector(obj,eventdata,h,state)
     uirestore_fig(state);           % Restore the figure's initial state
     ui_edit_polygon(h(2))
 
 function newpoints = rotate2(points,orig,phi)
-%ROTATE2  rotate points PHI radians around the ORIG point
-A=[cos(phi) -sin(phi); sin(phi) cos(phi)];
-newpoints=A*points+orig*ones(1,size(points,2));
+	%ROTATE2  rotate points PHI radians around the ORIG point
+	A=[cos(phi) -sin(phi); sin(phi) cos(phi)];
+	newpoints=A*points+orig*ones(1,size(points,2));
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -1301,38 +1300,40 @@ function wbm_circle(obj,eventdata,center,h,hAxes,hFig)
 function wbd_circle(obj,eventdata,h,state)
 	lon_lat_rad = get(h,'UserData');    setappdata(h,'LonLatRad',lon_lat_rad)   % save this in appdata
 	set(h,'Tag','circleCart')
+    rmappdata(h,'X');           rmappdata(h,'Y');
 	uirestore_fig(state);           % Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
 function h_circ = draw_circleEulerPole(lon,lat)
-% Draw a circle (or arc of a circle) about the Euler Pole (or any other origin)
-% See notes above for the reason why waitforbuttonpress is used.
-h_circ = line('XData', [], 'YData', []);
-hFig = get(0,'CurrentFigure');         hAxes = get(hFig,'CurrentAxes');
-set(hFig,'Pointer', 'crosshair');
-w = waitforbuttonpress;
-if w == 0       % A mouse click
-    set(hFig,'WindowButtonMotionFcn',{@wbm_circle,[lon lat],h_circ,hAxes},'WindowButtonDownFcn',{@wbd_circle,h_circ});
-else
-    set(hFig,'Pointer', 'arrow');
-    h_circ = [];
-end
+	% Draw a circle (or arc of a circle) about the Euler Pole (or any other origin)
+	% See notes above for the reason why waitforbuttonpress is used.
+	h_circ = line('XData', [], 'YData', []);
+	hFig = get(0,'CurrentFigure');         hAxes = get(hFig,'CurrentAxes');
+	set(hFig,'Pointer', 'crosshair');
+	w = waitforbuttonpress;
+	if w == 0       % A mouse click
+        set(hFig,'WindowButtonMotionFcn',{@wbm_circle,[lon lat],h_circ,hAxes},'WindowButtonDownFcn',{@wbd_circle,h_circ});
+	else
+        set(hFig,'Pointer', 'arrow');
+        h_circ = [];
+	end
 
 % -----------------------------------------------------------------------------------------
 function move_circle(obj,eventdata,h)
 % ONLY FOR CARTESIAN CIRCLES.
 hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
 state = uisuspend_fig(hFig);      % Remember initial figure state
+np = numel(get(h,'XData'));     x = linspace(-pi,pi,np);
+setappdata(h,'X',cos(x));       setappdata(h,'Y',sin(x))    % Save unit circle coords
 center = getappdata(h,'LonLatRad');
 set(hFig,'WindowButtonMotionFcn',{@wbm_MoveCircle,h,center,hAxes},...
     'WindowButtonDownFcn',{@wbd_MoveCircle,h,state,hAxes},'Pointer', 'crosshair');
 
 function wbm_MoveCircle(obj,eventdata,h,center,hAxes)
 	pt = get(hAxes, 'CurrentPoint');
-	% [y,x] = circ_geo(pt(1,2),pt(1,1),center(3));
 	x = getappdata(h,'X');          y = getappdata(h,'Y');
-	x = pt(1,1) + center(3)*x;     y = pt(1,2) + center(3)*y;
+	x = pt(1,1) + center(3)*x;      y = pt(1,2) + center(3)*y;
 	set(h, 'XData', x, 'YData', y,'Userdata',[pt(1,1) pt(1,2) center(3)]);
 
 function wbd_MoveCircle(obj,eventdata,h,state,hAxes)
@@ -1341,24 +1342,25 @@ function wbd_MoveCircle(obj,eventdata,h,state,hAxes)
 	x_lim = get(hAxes,'xlim');        y_lim = get(hAxes,'ylim');
 	if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
 	lon_lat_rad = get(h,'UserData');    setappdata(h,'LonLatRad',lon_lat_rad)   % save this in appdata
+    rmappdata(h,'X');           rmappdata(h,'Y');
 	uirestore_fig(state);           % Restore the figure's initial state
 
 % -----------------------------------------------------------------------------------------
 function change_CircCenter1(obj,eventdata,h)
-% Change the Circle's center by asking it's coordinates
-% ONLY FOR CARTESIAN CIRCLES.
-lon_lat_rad = getappdata(h,'LonLatRad');
-prompt = {'Enter new lon (or x)' ,'Enter new lat (or y)', 'Enter new radius'};     dlg_title = 'Change circle';
-num_lines= [1 30; 1 30; 1 30];
-def = {num2str(lon_lat_rad(1)) num2str(lon_lat_rad(2)) num2str(lon_lat_rad(3))};
-resp  = inputdlg(prompt,dlg_title,num_lines,def);
-if isempty(resp);    return;     end
-% [y,x] = circ_geo( str2double(ans{2}),str2double(ans{1}),str2double(ans{3}) );
-x = getappdata(h,'X');          y = getappdata(h,'Y');
-x = str2double(resp{1}) + str2double(resp{3}) * x;
-y = str2double(resp{2}) + str2double(resp{3}) * y;
-set(h, 'XData', x, 'YData', y);
-setappdata(h,'LonLatRad',[str2double(resp{1}) str2double(resp{2}) str2double(resp{3})])
+	% Change the Circle's center by asking it's coordinates
+	% ONLY FOR CARTESIAN CIRCLES.
+	lon_lat_rad = getappdata(h,'LonLatRad');
+	prompt = {'Enter new lon (or x)' ,'Enter new lat (or y)', 'Enter new radius'};     dlg_title = 'Change circle';
+	num_lines= [1 30; 1 30; 1 30];
+	def = {num2str(lon_lat_rad(1)) num2str(lon_lat_rad(2)) num2str(lon_lat_rad(3))};
+	resp  = inputdlg(prompt,dlg_title,num_lines,def);
+	if isempty(resp);    return;     end
+    np = numel(get(h,'XData'));     x = linspace(-pi,pi,np);
+	y = sin(x);                     x = cos(x);    % unit circle coords
+	x = str2double(resp{1}) + str2double(resp{3}) * x;
+	y = str2double(resp{2}) + str2double(resp{3}) * y;
+	set(h, 'XData', x, 'YData', y);
+	setappdata(h,'LonLatRad',[str2double(resp{1}) str2double(resp{2}) str2double(resp{3})])
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -2052,54 +2054,54 @@ double2ascii(f_name,xy,fmt,'maybeMultis');
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_SymbColor(h,prop)
-% Set uicontext colors in object hose handle is gco (or h for "other color")
-cb{1} = ['set(gco, ''' prop ''', ''k'');refresh'];  cb{2} = ['set(gco, ''' prop ''', ''w'');refresh'];
-cb{3} = ['set(gco, ''' prop ''', ''r'');refresh'];  cb{4} = ['set(gco, ''' prop ''', ''g'');refresh'];
-cb{5} = ['set(gco, ''' prop ''', ''b'');refresh'];  cb{6} = ['set(gco, ''' prop ''', ''y'');refresh'];
-cb{7} = ['set(gco, ''' prop ''', ''c'');refresh'];  cb{8} = ['set(gco, ''' prop ''', ''m'');refresh'];
-cb{9} = {@other_SymbColor,h,prop};
+	% Set uicontext colors in object hose handle is gco (or h for "other color")
+	cb{1} = ['set(gco, ''' prop ''', ''k'');refresh'];  cb{2} = ['set(gco, ''' prop ''', ''w'');refresh'];
+	cb{3} = ['set(gco, ''' prop ''', ''r'');refresh'];  cb{4} = ['set(gco, ''' prop ''', ''g'');refresh'];
+	cb{5} = ['set(gco, ''' prop ''', ''b'');refresh'];  cb{6} = ['set(gco, ''' prop ''', ''y'');refresh'];
+	cb{7} = ['set(gco, ''' prop ''', ''c'');refresh'];  cb{8} = ['set(gco, ''' prop ''', ''m'');refresh'];
+	cb{9} = {@other_SymbColor,h,prop};
 % -----------------------------------------------------------------------------------------
 function other_SymbColor(obj,eventdata,h,prop)
-c = uisetcolor;
-if length(c) > 1            % That is, if a color was selected
-    set(h,prop,c)
-else,   return, end
+	c = uisetcolor;
+	if length(c) > 1            % That is, if a color was selected
+        set(h,prop,c)
+	else,   return, end
 
 % -----------------------------------------------------------------------------------------
 function hotspot_info(obj,eventdata,h,name,age,opt)
-i = get(gco,'Userdata');
-if isempty(opt)
-    msgbox( sprintf(['Hotspot name: ' name{i} '\n' 'Hotspot age:   ' sprintf('%g',age(i)) ' Ma'] ),'Fogspot info')
-else
-    name = strrep(name,'_',' ');            % Replace '_' by ' '
-    textHand = text(get(h(i),'XData'),get(h(i),'YData'),0,name{i});
-    draw_funs(textHand,'DrawText')          % Set text's uicontextmenu
-end
+	i = get(gco,'Userdata');
+	if isempty(opt)
+        msgbox( sprintf(['Hotspot name: ' name{i} '\n' 'Hotspot age:   ' sprintf('%g',age(i)) ' Ma'] ),'Fogspot info')
+	else
+        name = strrep(name,'_',' ');            % Replace '_' by ' '
+        textHand = text(get(h(i),'XData'),get(h(i),'YData'),0,name{i});
+        draw_funs(textHand,'DrawText')          % Set text's uicontextmenu
+	end
 
 % -----------------------------------------------------------------------------------------
 function tidesStuff(obj,eventdata,h,opt)
-pt = get(gca,'CurrentPoint');
-if (strcmp(opt,'plot'))
-    t_xtide(pt(1,1),pt(1,2));
-elseif (strcmp(opt,'info'))
-    info = t_xtide(pt(1,1),pt(1,2),'format','info');
-    str{1} = info.station;
-    str{2} = ['Position: Lon = ' num2str(info.longitude) '  Lat = ' num2str(info.latitude)];
-    str{3} = ['Timezone: UTC ' num2str(info.timezone)];
-    str{4} = ['Datum: ' num2str(info.datum)];
-    str{5} = ['Number of constit = ' num2str(length(info.freq))];
-    msgbox(str,'Satation info')
-% elseif (strcmp(opt,'calendar'))
-%     date = clock;
-%     tim = datenum(date(1),date(2),1):1/24:datenum(date(1),date(2),31);
-%     out = t_xtide(pt(1,1),pt(1,2),tim,'format','times');
-end
+	pt = get(gca,'CurrentPoint');
+	if (strcmp(opt,'plot'))
+        t_xtide(pt(1,1),pt(1,2));
+	elseif (strcmp(opt,'info'))
+        info = t_xtide(pt(1,1),pt(1,2),'format','info');
+        str{1} = info.station;
+        str{2} = ['Position: Lon = ' num2str(info.longitude) '  Lat = ' num2str(info.latitude)];
+        str{3} = ['Timezone: UTC ' num2str(info.timezone)];
+        str{4} = ['Datum: ' num2str(info.datum)];
+        str{5} = ['Number of constit = ' num2str(length(info.freq))];
+        msgbox(str,'Satation info')
+	% elseif (strcmp(opt,'calendar'))
+	%     date = clock;
+	%     tim = datenum(date(1),date(2),1):1/24:datenum(date(1),date(2),31);
+	%     out = t_xtide(pt(1,1),pt(1,2),tim,'format','times');
+	end
 
 % -----------------------------------------------------------------------------------------
 function volcano_info(obj,eventdata,h,name,desc,dating)
-i = get(gco,'Userdata');
-msgbox( sprintf(['Volcano name: ' name{i} '\n' 'Volcano type:   ' desc{i} '\n' ...
-        'Activity:      ' dating{i}] ),'Volcano info')
+	i = get(gco,'Userdata');
+	msgbox( sprintf(['Volcano name: ' name{i} '\n' 'Volcano type:   ' desc{i} '\n' ...
+            'Activity:      ' dating{i}] ),'Volcano info')
 
 % -----------------------------------------------------------------------------------------
 function ODP_info(obj,eventdata,h,leg,site,z,penetration)
@@ -2178,21 +2180,21 @@ function delete_obj(hTesoura)
     set(hFig,'Pointer','custom','PointerShapeCData',pointer,'PointerShapeHotSpot',[1 8],...
         'WindowButtonDownFcn',{@wbd_delObj,hFig,hTesoura,state})
     
-    function wbd_delObj(obj,event,hFig,hTesoura,state)
-        stype = get(hFig,'selectiontype');
-        if (~(stype(1) == 'n'))                 % If not a left click ('normal') end killing
-            uirestore_fig(state)
-        	set(hTesoura,'State','off')         % Set the Toggle button state to depressed
-            return
-        end
-        h = gco;
-        obj_type = get(h,'Type');
-        if (strcmp(obj_type,'line') || strcmp(obj_type,'text') || strcmp(obj_type,'patch'))
-            del_line([],[],h);
-        end
-        if (strcmp(obj_type,'text'))
-            refresh;    % because of the text elements bug
-        end
+function wbd_delObj(obj,event,hFig,hTesoura,state)
+    stype = get(hFig,'selectiontype');
+    if (stype(1) == 'a')                    % A right click ('alt'), end killing
+        uirestore_fig(state)
+    	set(hTesoura,'State','off')         % Set the Toggle button state to depressed
+        return
+    end
+    h = gco;
+    obj_type = get(h,'Type');
+    if (strcmp(obj_type,'line') || strcmp(obj_type,'text') || strcmp(obj_type,'patch'))
+        del_line([],[],h);
+    end
+    if (strcmp(obj_type,'text'))
+        refresh;    % because of the text elements bug
+    end
 
 % -----------------------------------------------------------------------------------------
 function del_line(obj,eventdata,h)
@@ -2301,22 +2303,22 @@ end
 
 % -----------------------------------------------------------------------------------------
 function sout = ddewhite(s)
-%DDEWHITE Double dewhite. Strip both leading and trailing whitespace.
-%
-%   DDEWHITE(S) removes leading and trailing white space and any null characters
-%   from the string S.  A null character is one that has an absolute value of 0.
-
-%   Author:      Peter J. Acklam
-%   Time-stamp:  2002-03-03 13:45:06 +0100
-
-error(nargchk(1, 1, nargin));
-if ~ischar(s),   error('DDWHITE ERROR: Input must be a string (char array).');     end
-if isempty(s),   sout = s;      return;     end
-
-[r, c] = find(~isspace(s));
-if (size(s, 1) == 1),   sout = s(min(c):max(c));
-else                    sout = s(:,min(c):max(c));
-end
+	%DDEWHITE Double dewhite. Strip both leading and trailing whitespace.
+	%
+	%   DDEWHITE(S) removes leading and trailing white space and any null characters
+	%   from the string S.  A null character is one that has an absolute value of 0.
+	
+	%   Author:      Peter J. Acklam
+	%   Time-stamp:  2002-03-03 13:45:06 +0100
+	
+	error(nargchk(1, 1, nargin));
+	if ~ischar(s),   error('DDWHITE ERROR: Input must be a string (char array).');     end
+	if isempty(s),   sout = s;      return;     end
+	
+	[r, c] = find(~isspace(s));
+	if (size(s, 1) == 1),   sout = s(min(c):max(c));
+	else                    sout = s(:,min(c):max(c));
+	end
 
 % --------------------------------------------------------------------
 function draw_MagBarCode
@@ -2611,10 +2613,9 @@ uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
 
 % -----------------------------------------------------------------------------------------
 function set_stack_order(cmenuHand)
-% Change order in the stackpot. cmenuHand is what it says. 
-
-item_order = uimenu(cmenuHand, 'Label', 'Order');
-uimenu(item_order, 'Label', 'Bring to Top', 'Callback','uistack_j(gco,''top'')');
-uimenu(item_order, 'Label', 'Send to Bottom', 'Callback','uistack_j(gco,''bottom'')');
-uimenu(item_order, 'Label', 'Move up', 'Callback','uistack_j(gco,''up'')');
-uimenu(item_order, 'Label', 'Move down', 'Callback','uistack_j(gco,''down'')');
+	% Change order in the stackpot. cmenuHand is what it says. 
+	item_order = uimenu(cmenuHand, 'Label', 'Order');
+	uimenu(item_order, 'Label', 'Bring to Top', 'Callback','uistack_j(gco,''top'')');
+	uimenu(item_order, 'Label', 'Send to Bottom', 'Callback','uistack_j(gco,''bottom'')');
+	uimenu(item_order, 'Label', 'Move up', 'Callback','uistack_j(gco,''up'')');
+	uimenu(item_order, 'Label', 'Move down', 'Callback','uistack_j(gco,''down'')');
