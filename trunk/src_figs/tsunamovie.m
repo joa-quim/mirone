@@ -38,9 +38,8 @@ function varargout = tsunamovie(varargin)
 	handles.nameList = [];
     handles.testTime = [];
     
-    S = load([f_path 'gmt_other_palettes.mat'],'Terre');
-    handles.palLand = S.Terre;
-    %terra=S.Terre;
+    S = load([f_path 'gmt_other_palettes.mat'],'DEM_screen');
+    handles.palLand = S.DEM_screen;
     S = load([f_path 'gmt_other_palettes.mat'],'Terre_Mer');
     handles.terraMar = S.Terre_Mer;
 
@@ -119,20 +118,25 @@ function push_batGrid_Callback(hObject, eventdata, handles, opt)
 	if (isempty(handles.X_bat)),    return;     end
 	
     % Isto assume que a bat tem partes neg e pos (testar)
-    cmap = handles.terraMar;    nc = length(cmap);
-    ind_old = 147;
-%     ind_c = round(px - x(1) / (x(2)-x(1)) * nc) + 1;
+    % cmap = handles.terraMar;
+    % ind_old = 147;          % Discontinuity in the handles.terraMar cmap
+    cmap = handles.palLand;
+    cmap(end-3:end,:) = []; % Remove last four colors (narly white)
+    cmap = [repmat([196 156 104]/255,4,1); cmap];   % Add a yelowish color
+    ind_old = 5;            % New discontinuity in cmap
+    
+    nc = length(cmap);
     z_inc = (handles.head_bat(6) - handles.head_bat(5)) / (nc - 1);
-    %z_cur = handles.head_bat(5) + (ind_c - 1) * z_inc;
-    %(ind_c - 1) * z_inc = 0 - handles.head_bat(5);
+    %%% ind_c = round(px - x(1) / (x(2)-x(1)) * nc) + 1;      % from color_palettes
+    %%% z_cur = handles.head_bat(5) + (ind_c - 1) * z_inc;
+    %%% (ind_c - 1) * z_inc = 0 - handles.head_bat(5);
     ind_c = round(-handles.head_bat(5)/z_inc + 1);
 
     nl = ind_old;    nu = ind_c;
     new_cmap_l = interp1(linspace(0,1,nl),cmap(1:nl,:),linspace(0,1,nu));
     new_cmap_u = interp1(linspace(0,1,nc-ind_old),cmap(ind_old+1:nc,:),linspace(0,1,nc-ind_c));
     handles.cmapBat = [new_cmap_l; new_cmap_u];
-    
-    
+        
 	set(handles.edit_batGrid,'String',fname)
     [dump,FNAME,EXT] = fileparts(FileName);
     EXT = '.gif';
@@ -582,8 +586,8 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
     geog = guessGeog(handles.head_bat(1:4));
     
     % Make a blue only colormap
-    bcmap = jet(32);
-    bcmap = bcmap(2:8,:);
+    %% bcmap = jet(32);    bcmap = bcmap(3:7,:);
+    bcmap = [0 0 1; 0 0 1];
     
     alfa = get(handles.slider_transparency,'Value');
     tmp.head = [handles.head_bat(1:4) 0 255 handles.head_bat(7:9)];
