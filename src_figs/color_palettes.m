@@ -104,7 +104,8 @@ palsML = {'ML -- autumn' 'ML -- bone' 'ML -- colorcube' 'ML -- cool' 'ML -- copp
     'ML -- prism' 'ML -- summer' 'ML -- winter'};
 palsGMT = {'GMT -- drywet' 'GMT -- gebco' 'GMT -- globe' 'GMT -- rainbow' ...
     'GMT -- haxby' 'GMT -- no_green' 'GMT -- ocean' 'GMT -- polar' 'GMT -- red2green' ...
-    'GMT -- sealand' 'GMT -- seis' 'GMT -- split' 'GMT -- topo' 'GMT -- wysiwyg'};
+    'GMT -- sealand' 'GMT -- seis' 'GMT -- split' 'GMT -- topo' 'GMT -- wysiwyg' ...
+    'DEM_screen' 'DEM_print' 'DEM_poster'};
 palsA = {'mag' 'ArcEnCiel' 'circular' 'ChromaDepth' 'Mer' 'MetalChaud' 'Paysage' 'RougeVert' ...
     'Sbm' 'Sismique' 'Terre' 'Terre_Mer' 'Tubulare' 'Tubulare_inv' 'atlas' 'bvr_180' 'bvr_90' ...
     'bvr_clair' 'bvr_sombre' 'pente_90' 'rainbow_hist'};
@@ -222,6 +223,12 @@ switch pal
         load([handles.d_path 'gmt_other_palettes.mat'],'topo');          pal = topo;
     case 'GMT -- wysiwyg'
         load([handles.d_path 'gmt_other_palettes.mat'],'wysiwyg');       pal = wysiwyg;
+    case 'DEM_screen'
+        load([handles.d_path 'gmt_other_palettes.mat'],'DEM_screen');    pal = DEM_screen;
+    case 'DEM_print'
+        load([handles.d_path 'gmt_other_palettes.mat'],'DEM_print');     pal = DEM_print;
+    case 'DEM_poster'
+        load([handles.d_path 'gmt_other_palettes.mat'],'DEM_poster');    pal = DEM_poster;
     case 'mag'
         load([handles.d_path 'gmt_other_palettes.mat'],'mag');           pal = mag;
     case 'ArcEnCiel'
