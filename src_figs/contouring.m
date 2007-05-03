@@ -206,7 +206,7 @@ function pushbutton_Apply_Callback(hObject, eventdata, handles)
 list = get(handles.listbox_ElevValues,'String');
 if (isempty(list)),  return;     end
 list = str2num(char(list{:}));
-mirone('DrawContours_Callback',gcbo,[],guidata(handles.h_calling_fig),list);
+mirone('DrawContours_CB',gcbo,[],guidata(handles.h_calling_fig),list);
 guidata(hObject, handles);  % Otherwise the handles was the one from Mirone
 
 %-------------------------------------------------------------------------------
