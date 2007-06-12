@@ -15,6 +15,7 @@
 /* Program:	gdawrite.c
  * Purpose:	matlab callable routine to write files supported by gdal
  *
+ * Revision 2.0  12/6/2007 Was not aware of receiving a WKT proj string
  * Revision 1.0  24/6/2006 Joaquim Luis
  *
  */
@@ -43,7 +44,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	ns, flipud = FALSE, i_x_nXYSize;
 	GDALDatasetH hDstDS;
 	char **papszOptions = NULL;
-	char *pszFormat = "GTiff"; 
+	char *pszFormat = "GTiff", *projWKT = NULL; 
 	GDALDriverH	hDriver;
 	//double adfGeoTransform[6] = { 444720, 30, 0, 3751320, 0, -30 }; 
 	double adfGeoTransform[6] = {0,1,0,0,0,1}; 
@@ -127,6 +128,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			ptr_d = mxGetPr(mx_ptr);
 			is_geog = (int)ptr_d[0];
 		}
+
+		mx_ptr = mxGetField(prhs[1], 0, "projWKT");
+		if (mx_ptr != NULL)
+			projWKT = (char *)mxArrayToString(mx_ptr);
 
 		mx_ptr = mxGetField(prhs[1], 0, "Cmap");
 		if (mx_ptr != NULL) {
@@ -225,9 +230,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GDALSetGeoTransform( hDstDS, adfGeoTransform ); 
 
 	/* This was the only trick I found to set a "projection". The docs still have a long way to go */
-	if (is_geog) {
+	if (is_geog || projWKT) {
 		hSRS = OSRNewSpatialReference( NULL );
-		OSRSetFromUserInput( hSRS, "+proj=latlong +datum=WGS84" );
+		if (is_geog && !projWKT)	/* Only thing we know is that it is Geog */
+			OSRSetFromUserInput( hSRS, "+proj=latlong +datum=WGS84" );
+		else				/* Even if is_geog == TRUE, use the WKT string */ 
+			OSRSetFromUserInput( hSRS, projWKT );
 		OSRExportToWkt( hSRS, &pszSRS_WKT );
 		OSRDestroySpatialReference( hSRS );
 		GDALSetProjection( hDstDS, pszSRS_WKT );
