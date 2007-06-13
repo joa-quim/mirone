@@ -113,12 +113,14 @@ function att2Hdr(handles,att)
     
     setappdata(handles.axes1,'InfoMsg',w)
     
-    if (~isempty(att.ProjectionRef))            % Save Proj WKT for eventual later use
+    if (~isempty(att.ProjectionRef))    % If we have a 'GDAL' projection, store it
         setappdata(handles.axes1,'ProjWKT',att.ProjectionRef)
         out = decodeProjectionRef(att.ProjectionRef);
         if ( ~isempty(out.datum) || ~isempty(out.ellipsoid) || ~isempty(out.projection) )
             setappdata(handles.axes1,'DatumProjInfo',out)
         end
+    else                                % Otherwise remove eventual previous one
+        if (isappdata(handles.axes1,'ProjWKT')),    rmappdata(handles.axes1,'ProjWKT'); end
     end
 
 % --------------------------------------------------------------------
