@@ -247,22 +247,37 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
 		h_Xlabel = get(hAxes,'Xlabel');         h_Ylabel = get(hAxes,'Ylabel');
 		units_save = get(h_Xlabel,'units');
 		set(h_Xlabel,'units','pixels');         set(h_Ylabel,'units','pixels');
-		Xlabel_pos = get(h_Xlabel,'pos');
-		Ylabel_pos = get(h_Ylabel,'Extent');
+		Xlabel_pos = get(h_Xlabel,'pos');		Ylabel_pos = get(h_Ylabel,'Extent');
 		
-		if (abs(Ylabel_pos(1)) < 30 || abs(Ylabel_pos(1)) > 100)    % Stupid hack, but there is a bug somewhere
-            Ylabel_pos(1) = 30;
-		end
-		
-		y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin');  % To hold the Xlabel height
-		x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin');  % To hold the Ylabel width
-		y_margin = min(max(y_margin,20),30);            % Another hack due to the LabelPos non-sense
+        XTickLabel = get(hAxes,'XTickLabel');       XTick = get(hAxes,'XTick');
+        YTickLabel = get(hAxes,'YTickLabel');       YTick = get(hAxes,'YTick');
+        if ( str2double(XTickLabel(end,:)) / XTick(end) < 0.1 )
+            % We have a 10 power. That's the only way I found to detect
+            % the presence of this otherwise completely ghost text.
+            tenSizeX = 20;       % Take into account the 10 power text size
+        end
+        if ( str2double(YTickLabel(end,:)) / YTick(end) < 0.1 )
+            tenSizeY = 20;       % Take into account the 10 power text size
+        end
+            
+        old_FU = get(hAxes,'FontUnits');        set(hAxes,'FontUnits','points')
+        FontSize = get(hAxes,'FontSize');       set(hAxes,'FontUnits',old_FU)
+        nYchars = size(YTickLabel,2);
+        % This is kitchen sizing, but what else can it be done with such can of bugs?
+        Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
+	
+        y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin') + tenSizeX + tenSizeY;    % To hold the Xlabel height
+		x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin');               % To hold the Ylabel width
+        if (y_margin > 70)          % Play safe. LabelPos non-sense is always ready to strike 
+            y_margin = 30 + tenSizeX + tenSizeY;
+        end
         
         figUnit = get(h,'Units');        set(h,'Units','pixels')
         figPos = get(h,'pos');           set(h,'Units',figUnit)
         x0 = x_margin / figPos(3);
         y0 = y_margin / figPos(4);
-        set(hAxes,'pos',[x0 y0 1-[x0 y0]-1e-2])
+        tenSizeY = tenSizeY / figPos(4);    % Normalize it as well
+        set(hAxes,'pos',[x0 y0-tenSizeY 1-[x0 y0]-1e-2])
         set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
     else            % Dumb choice. 'imgAx' selected but axes are invisible. Default to Image only
         set(hAxes,'pos',[0 0 1 1],'Visible','off')
