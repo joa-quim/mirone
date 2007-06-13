@@ -7,7 +7,7 @@ function resizetrue(hFig, opt)
 %   This function is based on Matlab's TRUESIZE, but hacked to take into account
 %   the left and bottom margins containing (if they exist) Xlabel & Ylabel
 
-%   Coffeeright 2002-2003 J. Luis & mathworks
+%   Coffeeright 2002-2007 J. Luis 
 
 [axHandle, imHandle, colorbarHandle, imSize, resizeType, msg] = ParseInputs(hFig);
 if (~isempty(msg));    errordlg(msg,'Error');  return;      end
@@ -40,7 +40,7 @@ elseif strcmp(opt,'after_screen_capture')
 end
 
 Resize1(axHandle, imHandle, imSize, opt);
-%set(gca,'DataAspectRatio',[1 1 1])
+%set(axHandle,'DataAspectRatio',[1 1 1])
 
 %--------------------------------------------
 % Subfunction ParseInputs
@@ -129,11 +129,7 @@ function Resize1(axHandle, imHandle, imSize, opt)
 % Resize figure containing a single axes object with a single image.
 
 figHandle = get(axHandle, 'Parent');
-
-% h_Xlabel = get(axHandle,'Xlabel');      h_Ylabel = get(axHandle,'Ylabel');
-% Xlabel_pos = get(h_Xlabel,'pos');       Ylabel_pos = get(h_Ylabel,'pos');
 set(axHandle,'Units','normalized','Position',[0 0 1 1]) % Don't realy understand why, but I need this
-% set(h_Xlabel,'pos',Xlabel_pos);         set(h_Ylabel,'pos',Ylabel_pos);
 
 if (isempty(imSize))    % How big is the image?
     imageWidth  = size(get(imHandle, 'CData'), 2);
@@ -192,20 +188,39 @@ if (imageWidth < LeastImageSide && imageHeight < LeastImageSide && ~strcmp(opt,'
     end
 end
 
-axUnits = get(axHandle, 'Units');
-set(axHandle, 'Units', 'pixels');
+axUnits = get(axHandle, 'Units');           set(axHandle, 'Units', 'pixels');
 axPos = get(axHandle, 'Position');
 
-figUnits = get(figHandle, 'Units');
-rootUnits = get(0, 'Units');
-set(figHandle, 'Units', 'pixels');
-set(0, 'Units', 'pixels');
+figUnits = get(figHandle, 'Units');         rootUnits = get(0, 'Units');
+set(figHandle, 'Units', 'pixels');          set(0, 'Units', 'pixels');
 
-figLeftBorder = 10;  % assume left figure decorations are 10 pixels
-figRightBorder = 10;
-figBottomBorder = 30;
-figTopBorder = 50;
-figTopBorder = figTopBorder + 30;  % scribe hack
+% ---------------------------------------------
+    h_Xlabel = get(axHandle,'Xlabel');      h_Ylabel = get(axHandle,'Ylabel');
+    units_save = get(h_Xlabel,'units');
+    set(h_Xlabel,'units','pixels');         set(h_Ylabel,'units','pixels');
+    Xlabel_pos = get(h_Xlabel,'pos');       Ylabel_pos = get(h_Ylabel,'Extent');
+
+    % One more atempt to make any sense out of this non-sense
+    tenSizeX = 0;       tenSizeY = 0;   % When axes labels have 10^n this will hold its ~ text height
+    XTickLabel = get(axHandle,'XTickLabel');    XTick = get(axHandle,'XTick');
+    if ( str2double(XTickLabel(end,:)) / XTick(end) < 0.1 )
+        % We have a 10 power. That's the only way I found to detect
+        % the presence of this otherwise completely ghost text.
+        tenSizeX = 1;       % Take into account the 10 power text size when creating the pixval stsbar
+    end
+
+    % OK, here the problem is that YTickLabel still does not exist (imageHeight +- 2 ou 3)
+    set(axHandle, 'Position', axPos+[0 -500 0 500]);        % So, use this trick to set it up
+    YTickLabel = get(axHandle,'YTickLabel');    YTick = get(axHandle,'YTick');
+    set(axHandle, 'Position', axPos);
+    if ( str2double(YTickLabel(end,:)) / YTick(end) < 0.1 )
+        tenSizeY = 20;
+    end
+
+% assume left figure decorations are 10 pixels (!!)
+figLeftBorder = 10;         figRightBorder = 10;
+figBottomBorder = 30;       figTopBorder = 80;
+figTopBorder = figTopBorder + tenSizeY;
 
 minFigWidth = 581;      % don't try to display a figure smaller than this.
 minFigHeight = 128;
@@ -232,21 +247,21 @@ while (((newFigWidth + figLeftBorder + figRightBorder) > screenWidth) || ...
     newFigHeight = round(newFigHeight * 0.95);
 end
 
-% ---------------------------------------------
-h_Xlabel = get(axHandle,'Xlabel');      h_Ylabel = get(axHandle,'Ylabel');
-units_save = get(h_Xlabel,'units');
-set(h_Xlabel,'units','pixels');         set(h_Ylabel,'units','pixels');
-Xlabel_pos = get(h_Xlabel,'pos');
+    old_FU = get(axHandle,'FontUnits');     set(axHandle,'FontUnits','points')
+    FontSize = get(axHandle,'FontSize');    set(axHandle,'FontUnits',old_FU)
+    nYchars = size(YTickLabel,2);
+    % This is kitchen sizing, but what else can it be done with such can of bugs?
+    Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
 
-% One more atempt to make any sense out of this non-sense
-%YTickLabel = get(axHandle,'YTickLabel');
-%set(get(axHandle,'YLabel'),'String',YTickLabel)
-Ylabel_pos = get(h_Ylabel,'Extent');
-Ylabel_pos(1) = Ylabel_pos(4) - 5;
+    if strcmp(opt,'screen_capture'),    stsbr_height = 0;
+    else                                stsbr_height = 20;    end
+    	
+	y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin') + tenSizeY + stsbr_height;    % To hold the Xlabel height
+	x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin');               % To hold the Ylabel width
+    if (y_margin > 70)          % Play safe. LabelPos non-sense is always ready to strike 
+        y_margin = 30 + tenSizeY + stsbr_height;
+    end
 
-if (abs(Ylabel_pos(1)) < 20)    % Stupid hack, but there is a bug somewhere
-    Ylabel_pos(1) = 30;
-end
 
 if (isempty(opt) || strcmp(opt(1:5),'fixed') || strcmp(opt(1:6),'adjust')) 
     setappdata(figHandle,'Backup_LabelPos',[Xlabel_pos Ylabel_pos])
@@ -256,12 +271,6 @@ elseif strcmp(opt,'after_screen_capture')
     Ylabel_pos = [lab_tmp(4) lab_tmp(5) lab_tmp(6)];
 end
 
-if strcmp(opt,'screen_capture'),    stsbr_height = 0;
-else                                stsbr_height = 20;    end
-
-y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin')+stsbr_height;  % Devera conter a altura em pixeis do Xlabel
-x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin');  % Devera conter a largura em pixeis do Ylabel
-y_margin = max(y_margin,40);            % Another hack due to the LabelPos non-sense
 topMarg = 5;                            % To account for Ylabels exceeding image height
 if strcmp(get(axHandle,'Visible'),'off')               % No Labels, give only a 20 pixels margin to account for Status bar
     x_margin = 0;   y_margin = stsbr_height;
@@ -272,7 +281,6 @@ end
 set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
 
 newFigWidth = max(newFigWidth + x_margin, minFigWidth);
-%newFigWidth = max(newFigWidth, minFigWidth) + x_margin;
 newFigHeight = max(newFigHeight, minFigHeight) + y_margin + topMarg;
 
 figPos(1) = max(1, figPos(1) - floor((newFigWidth - figPos(3))/2));
@@ -286,11 +294,11 @@ gutterHeight = figPos(4) - imageHeight;
 gutterLeft = floor(gutterWidth/2) + x_margin/2 - 1;
 gutterBottom = floor(gutterHeight/2) + y_margin/2 - 1;
 
-axPos(1) = gutterLeft + 1;  axPos(2) = gutterBottom + 1;
+axPos(1) = gutterLeft + 1;  axPos(2) = gutterBottom + 1 - tenSizeY;
 axPos(3) = imageWidth;      axPos(4) = imageHeight;
 
-% Force the window to be in the "north" position. 75 is the height of the blue Bar + ...
-figPos(2) = screenHeight - figPos(4) - 75;
+% Force the window to be in the "north" position. 73 is the height of the blue Bar + ...
+figPos(2) = screenHeight - figPos(4) - 73;
 set(figHandle, 'Position', figPos);     set(axHandle, 'Position', axPos);
 
 if ~strcmp(opt,'screen_capture')
@@ -300,7 +308,9 @@ if ~strcmp(opt,'screen_capture')
     sbPos(3) = figPos(3)-2;     sbPos(4) = H-1;
     h = axes('Parent',figHandle,'Box','off','Visible','off','Tag','sbAxes','Units','Pixels',...
         'Position',sbPos,'XLim',[0 sbPos(3)],'YLim',[0 H-1]);
-    hFieldFrame = createframe(h,[1 (figPos(3) - 1)],H);
+    tenXMargin = 1;
+    if (tenSizeX),     tenXMargin = 30;     end
+    hFieldFrame = createframe(h,[1 (figPos(3) - tenXMargin)],H);
     setappdata(figHandle,'CoordsStBar',[h hFieldFrame]);  % Save it for use in ...
     set(hFieldFrame,'Visible','on')
     set(h,'HandleVisibility','off')
@@ -315,20 +325,8 @@ set(0, 'Units', rootUnits);
 
 if ~strcmp(opt,'screen_capture'),   pixval_stsbar(figHandle);  end
 
-% Set the nextplot property of the figure so that the
-% axes object gets deleted and replaced for the next plot.
-% That way, the new plot gets drawn in the default position.
-
-% ISTO DA MERDA
-%set(figHandle, 'NextPlot', 'replacechildren');
-%set(axHandle, 'NextPlot', 'replacechildren');
-
 % Warn if the display is not truesize (suspended)
 % if (scale < 100)
-%     try,    led = getappdata(gcf,'Semaforo');   % Don't know why but the message below prevented led -> green
-%             set(led,'CData',cat(3,zeros(12),ones(12),zeros(12)));   pause(.01)
-%             setappdata(gcf,'Semaforo',led);
-%     end
 %     %if isempty(croped)  % It's false giving this message with croped images (they were previously expanded)
 %         %message = ['Image is too big to fit on screen;', sprintf('displaying at %d%% scale.', floor(scale))];
 %         %msgbox(message,'Warning')
