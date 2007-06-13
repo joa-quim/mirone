@@ -122,13 +122,13 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
             renderer = 'zbuffer';
         end
         inputargs{3} = ['-d' renderer];
-        if (nargin == 3)
+        if (nargin == 3)                % Use round(dpi) because decimals dpi make it blow 
             if (isnumeric(dpi) && numel(dpi) == 1)
-                inputargs{4} = ['-r' sprintf('%d',dpi)];
+                inputargs{4} = ['-r' sprintf('%d',round(dpi))];
             elseif (isnumeric(dpi) && numel(dpi) == 2)      % New image size in [mrows ncols]
-                inputargs{4} = dpi;
+                inputargs{4} = round(dpi);
             elseif (ischar(dpi))
-                inputargs{4} = ['-r' dpi];
+                inputargs{4} = ['-r' sprintf('%d',round(str2double(dpi)))];
             else
                 error('imcapture:a','third argument must be a ONE or TWO elements vector, OR a char string')
             end
@@ -250,7 +250,7 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
 		Xlabel_pos = get(h_Xlabel,'pos');
 		Ylabel_pos = get(h_Ylabel,'Extent');
 		
-		if (abs(Ylabel_pos(1)) < 30)    % Stupid hack, but there is a bug somewhere
+		if (abs(Ylabel_pos(1)) < 30 || abs(Ylabel_pos(1)) > 100)    % Stupid hack, but there is a bug somewhere
             Ylabel_pos(1) = 30;
 		end
 		
