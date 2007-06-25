@@ -215,9 +215,11 @@ function push_movieName_Callback(hObject, eventdata, handles, opt)
         if isequal(FileName,0);     return;     end
         if (PathName ~= 0),         handles.last_dir = PathName;    end
         [dumb,FNAME,EXT]= fileparts(FileName);
+    	fname = [PathName FileName];
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
+    	fname = opt;
     end
     if (~strmatch(lower(EXT),{'.gif' '.avi' '.mpg' '.mpeg'}))
         errordlg('Ghrrrrrrrr! Don''t be smart. Only ''.gif'', ''.avi'', ''.mpg'' or ''mpeg'' extensions are acepted.', ...
@@ -237,6 +239,7 @@ function push_movieName_Callback(hObject, eventdata, handles, opt)
         set(handles.radio_avi,'Value',1)
         radio_mpg_Callback(handles.radio_mpg, [], handles)
     end
+	set(handles.edit_movieName,'String',fname)
     guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
@@ -344,9 +347,10 @@ function edit_imgWidth_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
     % 
-    yMax = 15;                      % Maximum height displayed
-    depth_clip = -15;               % Nealy the maximum depth shown in the plot
+    yMax = 0.05;                      % Maximum height displayed
+    depth_clip = -.07;               % Nealy the maximum depth shown in the plot
     depth_min = depth_clip - 1;     % Now this is the max depth ploted
+    depth_min = -0.15;
     if (isempty(handles.profile))
         errordlg('Noooo! Where is the profile file? Do you think I''m bruxo?','ERROR')
         return
@@ -421,10 +425,14 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
                 xPB = [rd(1); rd; flipud(rd)];
             end
             h = patch('xdata',xPB,'ydata',yy,'Parent',hAxes,'FaceColor',[0.3098 0.3098 0.8510],'EdgeColor','y','LineWidth',1);
-            hTxt = text(txtPos(1),txtPos(2),tempos{i},'Parent',hAxes);
+            if (~isempty(tempos{1}))
+                hTxt = text(txtPos(1),txtPos(2),tempos{i},'Parent',hAxes);
+            end
         else
             set(h,'xdata',xPB,'ydata',yy,'Parent',hAxes)
-            set(hTxt,'String',tempos{i});
+            if (~isempty(tempos{i}))
+                set(hTxt,'String',tempos{i});
+            end
         end
         
         if (~isempty(handles.Z_bat))
