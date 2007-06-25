@@ -11,6 +11,7 @@
  *
  *	Joaquim Luis	14-Juin-2005
  *	 
+ *		25/06/07 J Luis, If called with 2 argsin adds first one to the PATH (second is ignored)
  *		03/04/07 J Luis, Now sets GMTHOME as GMT_SHAREDIR when need use pre 4.2.0 coastlines
  *		22/03/07 J Luis, Change of strategy to deal with changes introduced in 4.2.0
  *				 - Renamed to set_gmt
@@ -65,13 +66,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char *GMT_SHAREDIR = CNULL;
 	char *GMT_HOMEDIR = CNULL;
 	char *GMT_USERDIR = CNULL;
-	char path[BUFSIZ]; 
+	char path[BUFSIZ], *pato; 
 	int	status;
 	mxArray *mxStr, *info_struct;
 
-	if (nrhs == 1 && mxIsChar(prhs[0])) {
+	if (nrhs >= 1 && mxIsChar(prhs[0])) {
 		char	*envString; 
 		envString = (char *)mxArrayToString(prhs[0]);
+		if (nrhs == 2) {		/* The set PATH case */
+			this = getenv ("PATH");
+			pato = (char *) mxCalloc ((size_t)(strlen(this) + strlen(envString) + 2), (size_t)1);
+			strcpy (pato, envString);
+			strcat (pato, this);
+		}
 		if (status = putenv(envString))
 			mexPrintf("TEST_GMT: Failure to set the environmental variable\n %s\n", envString);
 
