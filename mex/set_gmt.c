@@ -78,6 +78,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			pato = (char *) mxCalloc ((size_t)(strlen(this) + strlen(envString) + 2), (size_t)1);
 			strcpy (pato, envString);
 			strcat (pato, this);
+			if (status = putenv(pato))
+				mexPrintf("TEST_GMT: Failure to set the environmental variable\n %s\n", pato);
+			mxFree(pato);
 		}
 		if (status = putenv(envString))
 			mexPrintf("TEST_GMT: Failure to set the environmental variable\n %s\n", envString);
