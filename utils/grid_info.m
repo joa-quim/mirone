@@ -119,10 +119,11 @@ function att2Hdr(handles,att)
         if ( ~isempty(out.datum) || ~isempty(out.ellipsoid) || ~isempty(out.projection) )
             setappdata(handles.axes1,'DatumProjInfo',out)
         end
-    else                                % Otherwise remove eventual previous one
+    else                                % Otherwise remove eventual previous one Load in projected coords Load files in geogs
         if (isappdata(handles.axes1,'ProjWKT')),    rmappdata(handles.axes1,'ProjWKT'); end
     end
-
+    setAxesDefCoordIn(handles)          % Sets the value of the axes uicontextmenu that selects whether project or not
+    
 % --------------------------------------------------------------------
 function out = decodeProjectionRef(strProj)
     ind = findstr(strProj,char(10));
