@@ -126,73 +126,73 @@ end
 % Subfunction Resize1
 %--------------------------------------------
 function Resize1(axHandle, imHandle, imSize, opt)
-% Resize figure containing a single axes object with a single image.
-
-figHandle = get(axHandle, 'Parent');
-set(axHandle,'Units','normalized','Position',[0 0 1 1]) % Don't realy understand why, but I need this
-
-if (isempty(imSize))    % How big is the image?
-    imageWidth  = size(get(imHandle, 'CData'), 2);
-    imageHeight = size(get(imHandle, 'CData'), 1);
-else
-    imageWidth  = imSize(2);
-    imageHeight = imSize(1);
-end
-
-if (length(opt) > 12 && strcmp(opt(1:11),'adjust_size'))   % We have an anisotropic dx/dy. OPT is of the form adjust_size_[aniso]
-    aniso = str2double(opt(13:end));
-    if (aniso > 1)
-        imageWidth  = imageWidth * aniso;
-    else
-        imageHeight = imageHeight / aniso;
-    end
-end
-
-% Don't try to handle the degenerate case.
-if (imageWidth * imageHeight == 0),    return;  end
-
-% What are the screen dimensions
-screenSize = get(0, 'ScreenSize');      screenWidth = screenSize(3);    screenHeight = screenSize(4);
-if ((screenWidth <= 1) || (screenHeight <= 1))
-    screenWidth = Inf;    screenHeight = Inf;
-end
-
-% For small images, compute the minimum side as 60% of largest of the screen dimensions
-% Except in the case of croped images, where 512 is enough for the pushbuttons (if the croped
-% image aspect ratio permits so)
-croped = getappdata(figHandle,'Croped');
-if ~isempty(croped)
-    LeastImageWidth = 512;    rmappdata(figHandle,'Croped');
-end
-%LeastImageSide = fix(max([screenWidth screenHeight] * 0.6));
-
-% Mind change. For a while I'll try this way.
-LeastImageSide = 512;
-
-if (imageWidth < LeastImageSide && imageHeight < LeastImageSide && ~strcmp(opt,'fixed_size'))   % Augment very small images
-    if ~isempty(croped)     % Croped image
-        while (imageWidth < LeastImageWidth)  % Here is enough to have 1 side
-            imageWidth = imageWidth*1.05;  imageHeight = imageHeight*1.05;
+	% Resize figure containing a single axes object with a single image.
+	
+	figHandle = get(axHandle, 'Parent');
+	set(axHandle,'Units','normalized','Position',[0 0 1 1]) % Don't realy understand why, but I need this
+	
+	if (isempty(imSize))    % How big is the image?
+        imageWidth  = size(get(imHandle, 'CData'), 2);
+        imageHeight = size(get(imHandle, 'CData'), 1);
+	else
+        imageWidth  = imSize(2);
+        imageHeight = imSize(1);
+	end
+	
+	if (length(opt) > 12 && strcmp(opt(1:11),'adjust_size'))   % We have an anisotropic dx/dy. OPT is of the form adjust_size_[aniso]
+        aniso = str2double(opt(13:end));
+        if (aniso > 1)
+            imageWidth  = imageWidth * aniso;
+        else
+            imageHeight = imageHeight / aniso;
         end
-    else                    % Full image
-        while (imageWidth < LeastImageSide && imageHeight < LeastImageSide)
-            imageWidth = imageWidth*1.05;  imageHeight = imageHeight*1.05;
-        end
-    end
-    imageWidth = fix(imageWidth);   imageHeight = fix(imageHeight);
-    % Large aspect ratio figures may still need to have their size adjusted
-    if (imageWidth < 512)
-        while (imageWidth < LeastImageSide && imageHeight < screenHeight-50)
-            imageWidth = imageWidth*1.05;  imageHeight = imageHeight*1.05;
-        end
-    end
-end
+	end
 
-axUnits = get(axHandle, 'Units');           set(axHandle, 'Units', 'pixels');
-axPos = get(axHandle, 'Position');
+	% Don't try to handle the degenerate case.
+	if (imageWidth * imageHeight == 0),    return;  end
+	
+	% What are the screen dimensions
+	screenSize = get(0, 'ScreenSize');      screenWidth = screenSize(3);    screenHeight = screenSize(4);
+	if ((screenWidth <= 1) || (screenHeight <= 1))
+        screenWidth = Inf;    screenHeight = Inf;
+	end
+	
+	% For small images, compute the minimum side as 60% of largest of the screen dimensions
+	% Except in the case of croped images, where 512 is enough for the pushbuttons (if the croped
+	% image aspect ratio permits so)
+	croped = getappdata(figHandle,'Croped');
+	if ~isempty(croped)
+        LeastImageWidth = 512;    rmappdata(figHandle,'Croped');
+	end
+	%LeastImageSide = fix(max([screenWidth screenHeight] * 0.6));
+	
+	% Mind change. For a while I'll try this way.
+	LeastImageSide = 512;
 
-figUnits = get(figHandle, 'Units');         rootUnits = get(0, 'Units');
-set(figHandle, 'Units', 'pixels');          set(0, 'Units', 'pixels');
+	if (imageWidth < LeastImageSide && imageHeight < LeastImageSide && ~strcmp(opt,'fixed_size'))   % Augment very small images
+        if ~isempty(croped)     % Croped image
+            while (imageWidth < LeastImageWidth)  % Here is enough to have 1 side
+                imageWidth = imageWidth*1.05;  imageHeight = imageHeight*1.05;
+            end
+        else                    % Full image
+            while (imageWidth < LeastImageSide && imageHeight < LeastImageSide)
+                imageWidth = imageWidth*1.05;  imageHeight = imageHeight*1.05;
+            end
+        end
+        imageWidth = fix(imageWidth);   imageHeight = fix(imageHeight);
+        % Large aspect ratio figures may still need to have their size adjusted
+        if (imageWidth < 512)
+            while (imageWidth < LeastImageSide && imageHeight < screenHeight-50)
+                imageWidth = imageWidth*1.05;  imageHeight = imageHeight*1.05;
+            end
+        end
+	end
+	
+	axUnits = get(axHandle, 'Units');           set(axHandle, 'Units', 'pixels');
+	axPos = get(axHandle, 'Position');
+	
+	figUnits = get(figHandle, 'Units');         rootUnits = get(0, 'Units');
+	set(figHandle, 'Units', 'pixels');          set(0, 'Units', 'pixels');
 
 % ---------------------------------------------
     h_Xlabel = get(axHandle,'Xlabel');      h_Ylabel = get(axHandle,'Ylabel');
@@ -203,7 +203,12 @@ set(figHandle, 'Units', 'pixels');          set(0, 'Units', 'pixels');
     % One more atempt to make any sense out of this non-sense
     tenSizeX = 0;       tenSizeY = 0;   % When axes labels have 10^n this will hold its ~ text height
     XTickLabel = get(axHandle,'XTickLabel');    XTick = get(axHandle,'XTick');
-    if ( str2double(XTickLabel(end,:)) / XTick(end) < 0.1 )
+    if (XTick(end) ~= 0)                % See that we do not devide by zero
+        test_tick = XTick(end);         test_tick_str = str2double(XTickLabel(end,:));
+    else                                % They cannot be both zero
+        test_tick = XTick(end-1);       test_tick_str = str2double(XTickLabel(end-1,:));
+    end
+    if ( test_tick_str / test_tick < 0.1 )
         % We have a 10 power. That's the only way I found to detect
         % the presence of this otherwise completely ghost text.
         tenSizeX = 1;       % Take into account the 10 power text size when creating the pixval stsbar
@@ -213,39 +218,43 @@ set(figHandle, 'Units', 'pixels');          set(0, 'Units', 'pixels');
     set(axHandle, 'Position', axPos+[0 -500 0 500]);        % So, use this trick to set it up
     YTickLabel = get(axHandle,'YTickLabel');    YTick = get(axHandle,'YTick');
     set(axHandle, 'Position', axPos);
-    if ( str2double(YTickLabel(end,:)) / YTick(end) < 0.1 )
+    if (YTick(end) ~= 0)                % See that we do not devide by zero
+        test_tick = YTick(end);         test_tick_str = str2double(YTickLabel(end,:));
+    else                                % They cannot be both zero
+        test_tick = YTick(end-1);       test_tick_str = str2double(YTickLabel(end-1,:));
+    end
+    if ( test_tick_str / test_tick < 0.1 )
         tenSizeY = 20;
     end
 
-% assume left figure decorations are 10 pixels (!!)
-figLeftBorder = 10;         figRightBorder = 10;
-figBottomBorder = 30;       figTopBorder = 80;
-figTopBorder = figTopBorder + tenSizeY;
+	% assume left figure decorations are 10 pixels (!!)
+	figLeftBorder = 10;         figRightBorder = 10;
+	figBottomBorder = 30;       figTopBorder = 80;
+	figTopBorder = figTopBorder + tenSizeY;
+	
+	minFigWidth = 581;      minFigHeight = 128;      % don't try to display a figure smaller than this.
 
-minFigWidth = 581;      % don't try to display a figure smaller than this.
-minFigHeight = 128;
-
-% What are the gutter sizes?
-figPos = get(figHandle, 'Position');
-gutterLeft = max(axPos(1) - 1, 0);
-
-nonzeroGutters = (gutterLeft > 0);
-if (nonzeroGutters)
-    defAxesPos = get(0,'DefaultAxesPosition');
-    gutterWidth  = round((1 - defAxesPos(3)) * imageWidth / defAxesPos(3));
-    gutterHeight = round((1 - defAxesPos(4)) * imageHeight / defAxesPos(4));
-    newFigWidth  = imageWidth + gutterWidth;
-    newFigHeight = imageHeight + gutterHeight;
-else
-    newFigWidth = imageWidth;        newFigHeight = imageHeight;
-end
-while (((newFigWidth + figLeftBorder + figRightBorder) > screenWidth) || ...
-            ((newFigHeight + figBottomBorder + figTopBorder) > (screenHeight - 40)))
-    imageWidth  = round(imageWidth * 0.95);
-    imageHeight = round(imageHeight * 0.95);
-    newFigWidth  = round(newFigWidth * 0.95);
-    newFigHeight = round(newFigHeight * 0.95);
-end
+	% What are the gutter sizes?
+	figPos = get(figHandle, 'Position');
+	gutterLeft = max(axPos(1) - 1, 0);
+	
+	nonzeroGutters = (gutterLeft > 0);
+	if (nonzeroGutters)
+        defAxesPos = get(0,'DefaultAxesPosition');
+        gutterWidth  = round((1 - defAxesPos(3)) * imageWidth / defAxesPos(3));
+        gutterHeight = round((1 - defAxesPos(4)) * imageHeight / defAxesPos(4));
+        newFigWidth  = imageWidth + gutterWidth;
+        newFigHeight = imageHeight + gutterHeight;
+	else
+        newFigWidth = imageWidth;        newFigHeight = imageHeight;
+	end
+	while (((newFigWidth + figLeftBorder + figRightBorder) > screenWidth) || ...
+                ((newFigHeight + figBottomBorder + figTopBorder) > (screenHeight - 40)))
+        imageWidth  = round(imageWidth * 0.95);
+        imageHeight = round(imageHeight * 0.95);
+        newFigWidth  = round(newFigWidth * 0.95);
+        newFigHeight = round(newFigHeight * 0.95);
+	end
 
     old_FU = get(axHandle,'FontUnits');     set(axHandle,'FontUnits','points')
     FontSize = get(axHandle,'FontSize');    set(axHandle,'FontUnits',old_FU)
@@ -262,92 +271,84 @@ end
         y_margin = 30 + tenSizeY + stsbr_height;
     end
 
+	if (isempty(opt) || strcmp(opt(1:5),'fixed') || strcmp(opt(1:6),'adjust')) 
+        setappdata(figHandle,'Backup_LabelPos',[Xlabel_pos Ylabel_pos])
+	elseif strcmp(opt,'after_screen_capture')
+        lab_tmp = getappdata(figHandle,'Backup_LabelPos');
+        Xlabel_pos = [lab_tmp(1) lab_tmp(2) lab_tmp(3)];
+        Ylabel_pos = [lab_tmp(4) lab_tmp(5) lab_tmp(6)];
+	end
+	
+	topMarg = 0;
+	if (~tenSizeY),     topMarg = 5;    end                % To account for Ylabels exceeding image height
+	if strcmp(get(axHandle,'Visible'),'off')               % No Labels, give only a 20 pixels margin to account for Status bar
+        x_margin = 0;   y_margin = stsbr_height;
+        topMarg = 0;
+	elseif (minFigWidth - x_margin > imageWidth + x_margin)% Image + x_margin still fits inside minFigWidth
+        x_margin = 0;
+	end
+	set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
 
-if (isempty(opt) || strcmp(opt(1:5),'fixed') || strcmp(opt(1:6),'adjust')) 
-    setappdata(figHandle,'Backup_LabelPos',[Xlabel_pos Ylabel_pos])
-elseif strcmp(opt,'after_screen_capture')
-    lab_tmp = getappdata(figHandle,'Backup_LabelPos');
-    Xlabel_pos = [lab_tmp(1) lab_tmp(2) lab_tmp(3)];
-    Ylabel_pos = [lab_tmp(4) lab_tmp(5) lab_tmp(6)];
-end
+	newFigWidth = max(newFigWidth + x_margin, minFigWidth);
+	newFigHeight = max(newFigHeight, minFigHeight) + y_margin + topMarg;
+	
+	figPos(1) = max(1, figPos(1) - floor((newFigWidth - figPos(3))/2));
+	figPos(2) = max(1, figPos(2) - floor((newFigHeight - figPos(4))/2));
+	figPos(3) = newFigWidth;
+	figPos(4) = newFigHeight;
+	
+	% Figure out where to place the axes object in the resized figure
+	gutterWidth = figPos(3) - imageWidth;
+	gutterHeight = figPos(4) - imageHeight;
+	gutterLeft = floor(gutterWidth/2) + x_margin/2 - 1;
+	gutterBottom = floor(gutterHeight/2) + y_margin/2 - 1;
+	
+	axPos(1) = gutterLeft + 1;  axPos(2) = gutterBottom + 1 - tenSizeY;
+	axPos(3) = imageWidth;      axPos(4) = imageHeight;
+	
+	% Force the window to be in the "north" position. 73 is the height of the blue Bar + ...
+	figPos(2) = screenHeight - figPos(4) - 73;
+	set(figHandle, 'Position', figPos);     set(axHandle, 'Position', axPos);
 
-topMarg = 5;                            % To account for Ylabels exceeding image height
-if strcmp(get(axHandle,'Visible'),'off')               % No Labels, give only a 20 pixels margin to account for Status bar
-    x_margin = 0;   y_margin = stsbr_height;
-    topMarg = 0;
-elseif (minFigWidth - x_margin > imageWidth + x_margin)% Image + x_margin still fits inside minFigWidth
-    x_margin = 0;
-end
-set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
-
-newFigWidth = max(newFigWidth + x_margin, minFigWidth);
-newFigHeight = max(newFigHeight, minFigHeight) + y_margin + topMarg;
-
-figPos(1) = max(1, figPos(1) - floor((newFigWidth - figPos(3))/2));
-figPos(2) = max(1, figPos(2) - floor((newFigHeight - figPos(4))/2));
-figPos(3) = newFigWidth;
-figPos(4) = newFigHeight;
-
-% Figure out where to place the axes object in the resized figure
-gutterWidth = figPos(3) - imageWidth;
-gutterHeight = figPos(4) - imageHeight;
-gutterLeft = floor(gutterWidth/2) + x_margin/2 - 1;
-gutterBottom = floor(gutterHeight/2) + y_margin/2 - 1;
-
-axPos(1) = gutterLeft + 1;  axPos(2) = gutterBottom + 1 - tenSizeY;
-axPos(3) = imageWidth;      axPos(4) = imageHeight;
-
-% Force the window to be in the "north" position. 73 is the height of the blue Bar + ...
-figPos(2) = screenHeight - figPos(4) - 73;
-set(figHandle, 'Position', figPos);     set(axHandle, 'Position', axPos);
-
-if ~strcmp(opt,'screen_capture')
-    %-------------- This section simulates a box at the bottom of the figure
-    H = 22;
-    sbPos(1) = 1;               sbPos(2) = 2;
-    sbPos(3) = figPos(3)-2;     sbPos(4) = H-1;
-    h = axes('Parent',figHandle,'Box','off','Visible','off','Tag','sbAxes','Units','Pixels',...
-        'Position',sbPos,'XLim',[0 sbPos(3)],'YLim',[0 H-1]);
-    tenXMargin = 1;
-    if (tenSizeX),     tenXMargin = 30;     end
-    hFieldFrame = createframe(h,[1 (figPos(3) - tenXMargin)],H);
-    setappdata(figHandle,'CoordsStBar',[h hFieldFrame]);  % Save it for use in ...
-    set(hFieldFrame,'Visible','on')
-    set(h,'HandleVisibility','off')
-end
-%------------------------------------
-
-% Restore the units
-drawnow;  % necessary to work around HG bug   -SLE
-set(figHandle, 'Units', figUnits);
-set(axHandle, 'Units', axUnits);
-set(0, 'Units', rootUnits);
-
-if ~strcmp(opt,'screen_capture'),   pixval_stsbar(figHandle);  end
-
-% Warn if the display is not truesize (suspended)
-% if (scale < 100)
-%     %if isempty(croped)  % It's false giving this message with croped images (they were previously expanded)
-%         %message = ['Image is too big to fit on screen;', sprintf('displaying at %d%% scale.', floor(scale))];
-%         %msgbox(message,'Warning')
-%     %end
-% end
+	if ~strcmp(opt,'screen_capture')
+        %-------------- This section simulates a box at the bottom of the figure
+        H = 22;
+        sbPos(1) = 1;               sbPos(2) = 2;
+        sbPos(3) = figPos(3)-2;     sbPos(4) = H-1;
+        h = axes('Parent',figHandle,'Box','off','Visible','off','Tag','sbAxes','Units','Pixels',...
+            'Position',sbPos,'XLim',[0 sbPos(3)],'YLim',[0 H-1]);
+        tenXMargin = 1;
+        if (tenSizeX),     tenXMargin = 30;     end
+        hFieldFrame = createframe(h,[1 (figPos(3) - tenXMargin)],H);
+        setappdata(figHandle,'CoordsStBar',[h hFieldFrame]);  % Save it for use in ...
+        set(hFieldFrame,'Visible','on')
+        set(h,'HandleVisibility','off')
+	end
+	%------------------------------------
+	
+	% Restore the units
+	%drawnow;  % necessary to work around HG bug   -SLE
+	set(figHandle, 'Units', figUnits);
+	set(axHandle, 'Units', axUnits);
+	set(0, 'Units', rootUnits);
+	
+	if ~strcmp(opt,'screen_capture'),   pixval_stsbar(figHandle);  end
 
 %--------------------------------------------------------------------------
 function hFrame = createframe(ah,fieldPos,H)
-% Creates a virtual panel surrounding the field starting at fieldPos(1) and
-% ending end fieldPos(2) pixels. ah is the sb's handle (axes).
-% It returns a handle array designating the frame.
-
-from = fieldPos(1);     to = fieldPos(2);
-% col = rgb2hsv(get(fh,'Color'));       % fh was the figure's handle
-% lightColor = col;   lightColor(2) = 0.5*lightColor(2);  lightColor(3) = 0.9; lightColor = hsv2rgb(lightColor);
-% darkColor = col;    darkColor(3) = 0.4;  darkColor = hsv2rgb(darkColor);
-% This is the result of the above. I just don't want the extra burden of compiling those routines
-lightColor = [0.9 0.89150943396226 0.87452830188679];
-darkColor  = [0.4 0.39245283018868 0.37735849056604];
-
-hFrame(1) = line([from to],[H-2 H-2],'Color',darkColor,'Visible','off','Tag','Sts_T','parent',ah);    % Top line
-hFrame(2) = line([from from],[1 H-2],'Color',darkColor,'Visible','off','Tag','Sts_L','parent',ah);    % Left line
-hFrame(3) = line([from+1 to-1],[1 1],'Color',lightColor,'Visible','off','Tag','Sts_B','parent',ah);   % Bottom line
-hFrame(4) = line([to-1 to-1],[1 H-2],'Color',lightColor,'Visible','off','Tag','Sts_R','parent',ah);   % Right line
+	% Creates a virtual panel surrounding the field starting at fieldPos(1) and
+	% ending end fieldPos(2) pixels. ah is the sb's handle (axes).
+	% It returns a handle array designating the frame.
+	
+	from = fieldPos(1);     to = fieldPos(2);
+	% col = rgb2hsv(get(fh,'Color'));       % fh was the figure's handle
+	% lightColor = col;   lightColor(2) = 0.5*lightColor(2);  lightColor(3) = 0.9; lightColor = hsv2rgb(lightColor);
+	% darkColor = col;    darkColor(3) = 0.4;  darkColor = hsv2rgb(darkColor);
+	% This is the result of the above. I just don't want the extra burden of compiling those routines
+	lightColor = [0.9 0.89150943396226 0.87452830188679];
+	darkColor  = [0.4 0.39245283018868 0.37735849056604];
+	
+	hFrame(1) = line([from to],[H-2 H-2],'Color',darkColor,'Visible','off','Tag','Sts_T','parent',ah);    % Top line
+	hFrame(2) = line([from from],[1 H-2],'Color',darkColor,'Visible','off','Tag','Sts_L','parent',ah);    % Left line
+	hFrame(3) = line([from+1 to-1],[1 1],'Color',lightColor,'Visible','off','Tag','Sts_B','parent',ah);   % Bottom line
+	hFrame(4) = line([to-1 to-1],[1 H-2],'Color',lightColor,'Visible','off','Tag','Sts_R','parent',ah);   % Right line
