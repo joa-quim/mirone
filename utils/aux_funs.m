@@ -126,7 +126,7 @@ if (handles.no_file == 1)
     msg = 'You didn''t even load a file. What are you expecting then?';    out = {1};
     h = msgbox(msg,'Error');      movegui(h,'center');      return;
 end
-switch  in
+switch in
     case 1,     msg = 'C''mon load a file first. It''s logic, isn''t it?';    out = {1};
     case 2,     msg = 'This operation is deffined only for images derived from DEM grids';  out = {1};
     case 3
@@ -138,6 +138,14 @@ switch  in
         if ~(handles.image_type == 1 || handles.image_type == 4 || handles.computed_grid)
             msg = 'This operation is deffined only for images derived from DEM grids';
             out = {1};
+        end
+    case 5
+        % Fish eventual proj strings
+        projGMT = getappdata(handles.figure1,'ProjGMT');
+        projWKT = getappdata(handles.axes1,'ProjWKT');
+        if (isempty(projGMT) && isempty(projWKT) && ~handles.geog)
+            msg = 'This operation is only possible for geographic data OR when the Map Projection is known';
+            out = {1};            
         end
 end
 if (~isempty(msg))
