@@ -115,12 +115,18 @@ function att2Hdr(handles,att)
     
     if (~isempty(att.ProjectionRef))    % If we have a 'GDAL' projection, store it
         setappdata(handles.axes1,'ProjWKT',att.ProjectionRef)
+        try     % Desable the Projections menu. Use a try since it seams faster than the brain-dead 'isfield'
+            if (handles.Proj),      set(handles.Proj,'Enable','off');   end
+        end
         out = decodeProjectionRef(att.ProjectionRef);
         if ( ~isempty(out.datum) || ~isempty(out.ellipsoid) || ~isempty(out.projection) )
             setappdata(handles.axes1,'DatumProjInfo',out)
         end
     else                                % Otherwise remove eventual previous one Load in projected coords Load files in geogs
         if (isappdata(handles.axes1,'ProjWKT')),    rmappdata(handles.axes1,'ProjWKT'); end
+        try     % If we had a Projections menu, reenable it.
+            if (handles.Proj),      set(handles.Proj,'Enable','on');   end
+        end
     end
     setAxesDefCoordIn(handles)          % Sets the value of the axes uicontextmenu that selects whether project or not
     
