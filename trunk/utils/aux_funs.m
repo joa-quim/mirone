@@ -19,8 +19,10 @@ switch opt
         colormap_bg(varargin{:})
     case 'findFileType'
         varargout{1} = findFileType(varargin{:});
+    case 'isProj'
+        varargout{1} = isProj(varargin{:});
     case 'polysplit'
-        [varargout{1} varargout{2}] = localPolysplit(varargin{:})
+        [varargout{1} varargout{2}] = localPolysplit(varargin{:});
     case 'adjust_lims'
         [varargout{1} varargout{2}] = adjust_lims(varargin{:});
     case 'axes2pix'
@@ -156,6 +158,36 @@ if (~isempty(h))        % Bring the figure forward because it was hiden by the p
     figure(h)
 end
 
+% ----------------------------------------------------------------------------------
+function handles = isProj(handles, opt)
+    % Se if we have projected grid/images and act acordingly
+
+    % Fish eventual proj strings
+    projGMT = getappdata(handles.figure1,'ProjGMT');
+    projWKT = getappdata(handles.axes1,'ProjWKT');
+    
+    if (~handles.geog)
+        if (~isempty(projWKT))              % We have a GDAL projected file
+            handles.is_projected = 1;
+            % Desable the Projections menu.
+            if (ishandle(handles.Projections)),     set(handles.Projections,'Enable','off');   end
+        elseif (~isempty(projGMT))          % We have a GMT projection selection
+            handles.is_projected = 1;
+            if (ishandle(handles.Projections)),     set(handles.Projections,'Enable','on');   end
+        else                                % We know nothing about these coords (e.g. an image)
+            handles.is_projected = 0;
+            if (ishandle(handles.Projections)),     set(handles.Projections,'Enable','on');   end
+        end
+    else
+        handles.is_projected = 0;
+        if (ishandle(handles.Projections)),     set(handles.Projections,'Enable','off');   end
+    end
+    if (handles.is_projected),      set(handles.hAxMenuLF, 'Vis', 'on', 'Separator','on')
+    else                            set(handles.hAxMenuLF, 'Vis', 'off', 'Separator','off')
+    end
+    
+    if (nargin == 2),       guidata(handles.figure1, handles);      end
+
 % --------------------------------------------------------------------
 function [z_min,z_max] = min_max_single(Z)
 % Compute the min/max of single precision Z arrays. I need this due to (another) Matlab
@@ -171,8 +203,6 @@ center_row = round(size(img,1) / 2);
 center_col = round(size(img,2) / 2);
 h_Xlabel = get(handles.axes1,'Xlabel');
 h_Ylabel = get(handles.axes1,'Ylabel');
-Xlabel_pos = get(h_Xlabel,'pos');
-Ylabel_pos = get(h_Ylabel,'pos');
 % Strip north
 i = 1;
 while (img(i,center_col,1) == c1 && img(i,center_col,2) == c2 && img(i,center_col,3) == c3)
