@@ -23,85 +23,104 @@ earthquakes_LayoutFcn(hObject,handles);
 handles = guihandles(hObject);
 movegui(hObject,'east')
 
-handles.got_userFile = 0;
+    handles.got_userFile = 0;
 
-if (~isempty(varargin))
+    if (isempty(varargin))
+        errordlg('EARTHQUAKES: wrong number of arguments.','Error')
+        delete(hObject);    return
+    end
+    
     handles.mirone_fig = varargin{1};
     handMir = guidata(handles.mirone_fig);
 	if (handMir.no_file)
         errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
         delete(hObject);    return
 	end
-	if (~handMir.geog)
-        errordlg('This operation is currently possible only for geographic type data','ERROR')
+    
+    projGMT = getappdata(handMir.figure1,'ProjGMT');
+    projWKT = getappdata(handMir.axes1,'ProjWKT');
+    if (isempty(projGMT) && isempty(projWKT) && ~handMir.geog)
+        errordlg('This operation is only possible for geographic data OR when the Map Projection is known','ERROR')
         delete(hObject);    return
-	end
+    end
+    handles.is_projected = handMir.is_projected;
+    handles.defCoordsIn = handMir.defCoordsIn;
     handles.mironeAxes = handMir.axes1;
     zz = get(handles.mironeAxes,'XLim');
     handles.x_min = zz(1);    handles.x_max = zz(2);
     zz = get(handles.mironeAxes,'YLim');
     handles.y_min = zz(1);    handles.y_max = zz(2);
-else
-    errordlg('EARTHQUAKES: wrong number of arguments.','Error')
-    delete(hObject);    return
-end
 
-% Add this figure handle to the carraças list
-plugedWin = getappdata(handles.mirone_fig,'dependentFigs');
-plugedWin = [plugedWin hObject];
-setappdata(handles.mirone_fig,'dependentFigs',plugedWin);
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handles.mirone_fig,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handles.mirone_fig,'dependentFigs',plugedWin);
 
-handles.path_data = handMir.path_data;
+    handles.path_data = handMir.path_data;
 
-if (nargin == 1)        % Use the default file shiped with Mirone
-    set(handles.listbox_readFilter,'String','Not useful here','Enable','off')
-    set(handles.pushbutton_externalFile,'Visible','off')
-    handles.use_default_file = 1;
-else
-	% Import icons
-    load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
-    set(handles.pushbutton_externalFile,'CData',Mfopen_ico)
-    % Fill the listbox fields with the currently available reading filters
-    str = {'ISF formated catalog (ascii)'; 'Posit file'; 'lon,lat,mag,dep,yy,mm,dd,hh,mm,ss'; 'lon,lat,dep,mag,yy,mm,dd'};
-    set(handles.listbox_readFilter,'String',str)
-    handles.use_default_file = 0;
-end
+	if (nargin == 1)        % Use the default file shiped with Mirone
+        set(handles.listbox_readFilter,'String','Not useful here','Enable','off')
+        set(handles.pushbutton_externalFile,'Visible','off')
+        handles.use_default_file = 1;
+	else
+		% Import icons
+        load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
+        set(handles.pushbutton_externalFile,'CData',Mfopen_ico)
+        % Fill the listbox fields with the currently available reading filters
+        str = {'ISF formated catalog (ascii)'; 'Posit file'; 'lon,lat,mag,dep,yy,mm,dd,hh,mm,ss'; 'lon,lat,dep,mag,yy,mm,dd'};
+        set(handles.listbox_readFilter,'String',str)
+        handles.use_default_file = 0;
+	end
 
+	handles.got_userFile = 0;
+	handles.have_mag_nans = 0;
+	handles.have_dep_nans = 0;
 
-handles.got_userFile = 0;
-handles.have_mag_nans = 0;
-handles.have_dep_nans = 0;
+    if (handles.is_projected && handles.defCoordsIn > 0)        % We need a proj job here
+        handles_fake.figure1 = handles.mirone_fig;              % Create a fake handles only for
+        handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
+        handles.handles_fake = handles_fake;
+        tmp = [handles.x_min handles.y_min; handles.x_max handles.y_max];
+        lims = [handles.x_min handles.x_max handles.y_min handles.y_max 0 ];
+        [tmp, msg] = geog2projected_pts(handles.handles_fake,tmp, lims);
+        x_min = tmp(1,1);           x_max = tmp(2,1);
+        y_min = tmp(1,2);           y_max = tmp(2,2);
+        handles.lims_geogs = [x_min x_max y_min y_max];     % We'll need this if reading an external file
+    else
+        x_min = handles.x_min;      x_max = handles.x_max;
+        y_min = handles.y_min;      y_max = handles.y_max;
+    end
 
-if (handles.use_default_file)
-	% Read the Mirone's default earthquakes file
-	fid = fopen([handles.path_data 'quakes90-03.dat'],'r');
-	todos = fread(fid,'*char');
-	[year mo day lat lon depth mag] = strread(todos,'%d %d %d %f %f %f %f');
-	fclose(fid);    clear todos
-    year_dec = dec_year(year,mo,day);
-	
-	% Get rid of events that are outside the map limits
-	ind = find(lon < handles.x_min | lon > handles.x_max);
-	year(ind) = [];     mo(ind) = [];   day(ind) = [];  lat(ind) = [];  lon(ind) = [];
-    depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
-	ind = find(lat < handles.y_min | lat > handles.y_max);
-	year(ind) = [];     mo(ind) = [];   day(ind) = [];  lat(ind) = [];  lon(ind) = [];
-    depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
-	
-	handles.def_StartYear = min(year);
-	handles.def_EndYear = max(year);
-	handles.def_StartMonth = min(mo);
-	handles.def_EndMonth = max(mo);
-	handles.def_StartDay = min(day);
-	handles.def_EndDay = max(day);
-	handles.def_MagMin = min(mag);
-	handles.def_MagMax = max(mag);
-	handles.def_DepthMin = min(depth);
-	handles.def_DepthMax = max(depth);
-	handles.default_dat = [lon lat depth mag];
-	handles.default_date = [day mo year year_dec];
-	set_lims(handles,'def')
-end
+	if (handles.use_default_file)
+		% Read the Mirone's default earthquakes file
+		fid = fopen([handles.path_data 'quakes90-03.dat'],'r');
+		todos = fread(fid,'*char');
+		[year mo day lat lon depth mag] = strread(todos,'%d %d %d %f %f %f %f');
+		fclose(fid);    clear todos
+        year_dec = dec_year(year,mo,day);
+        
+		% Get rid of events that are outside the map limits
+		ind = (lon < x_min | lon > x_max);
+		year(ind) = [];     mo(ind) = [];   day(ind) = [];  lat(ind) = [];  lon(ind) = [];
+        depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
+		ind = (lat < y_min | lat > y_max);
+		year(ind) = [];     mo(ind) = [];   day(ind) = [];  lat(ind) = [];  lon(ind) = [];
+        depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
+		
+		handles.def_StartYear = min(year);
+		handles.def_EndYear = max(year);
+		handles.def_StartMonth = min(mo);
+		handles.def_EndMonth = max(mo);
+		handles.def_StartDay = min(day);
+		handles.def_EndDay = max(day);
+		handles.def_MagMin = min(mag);
+		handles.def_MagMax = max(mag);
+		handles.def_DepthMin = min(depth);
+		handles.def_DepthMax = max(depth);
+		handles.default_dat = [lon lat depth mag];
+		handles.default_date = [day mo year year_dec];
+		set_lims(handles,'def')
+	end
 
 % ------------- Give a Pro look (3D) to the frame boxes --------------------
 bgcolor = get(0,'DefaultUicontrolBackgroundColor');
@@ -232,12 +251,18 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 	ind = (year_dec < lower_date | year_dec > upper_date);
 	year_dec(ind) = [];     lat(ind) = [];      lon(ind) = [];  depth(ind) = [];    mag(ind) = [];
 	
-	ind = find(mag < MagMin | mag > MagMax);
+	ind = (mag < MagMin | mag > MagMax);
 	lat(ind) = [];  lon(ind) = [];  depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
-	ind = find(depth < DepthMin | depth > DepthMax);
+	ind = (depth < DepthMin | depth > DepthMax);
 	lat(ind) = [];  lon(ind) = [];  depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
 
     axes(handles.mironeAxes)       % Make Mirone axes active here
+    
+    if (handles.is_projected && handles.defCoordsIn > 0)        % We need a proj job here
+        lims = [handles.x_min handles.x_max handles.y_min handles.y_max];
+        [tmp, msg] = geog2projected_pts(handles.handles_fake,[lon lat], lims);
+        lon = tmp(:,1);           lat = tmp(:,2);
+    end
 
 	if (min(mag) > 100)         % That's the case for hydrophone SL magnitudes
         mag_save = mag;         % Not converted to uint8 as well ???
@@ -414,7 +439,12 @@ fname = [PathName,FileName];
 try
     set(gcf,'Pointer','watch')
 	if (filtro == 1)        % Read a ISF formated catalog
-        opt_R = ['-R' num2str(handles.x_min) '/' num2str(handles.x_max) '/' num2str(handles.y_min) '/' num2str(handles.y_max)];
+        if (handles.is_projected)               % Image is projected, we need this
+            opt_R = ['-R' sprintf('%f/%f/%f/%f',handles.lims_geogs(1),handles.lims_geogs(2), ...
+                    handles.lims_geogs(3),handles.lims_geogs(4))];
+        else
+            opt_R = ['-R' sprintf('%f/%f/%f/%f',handles.x_min,handles.x_max,handles.y_min,handles.y_max)];
+        end
         [out_d,out_i] = read_isf(fname,opt_R);
         if (isempty(out_d)),    return;     end     % Nothing inside region
         lon = out_d(1,:)';      lat = out_d(2,:)';
@@ -453,12 +483,20 @@ try
         end
 		fclose(fid);    clear todos
         if (isempty(lon)),      return;     end     % Nothing inside region
+
+        if (handles.is_projected && handles.defCoordsIn > 0)        % Image is projected, we need to use this
+            x_min = handles.lims_geogs(1);      x_max = handles.lims_geogs(2);
+            y_min = handles.lims_geogs(3);      y_max = handles.lims_geogs(4);
+        else
+            x_min = handles.x_min;      x_max = handles.x_max;
+            y_min = handles.y_min;      y_max = handles.y_max;
+        end
 		
 		% Get rid of events that are outside the map limits
-		ind = find(lon < handles.x_min | lon > handles.x_max);
+		ind = (lon < handles.x_min | lon > handles.x_max);
 		year(ind) = [];     mo(ind) = [];       day(ind) = [];  lat(ind) = [];
 		lon(ind) = [];      depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
-		ind = find(lat < handles.y_min | lat > handles.y_max);
+		ind = (lat < handles.y_min | lat > handles.y_max);
 		year(ind) = [];     mo(ind) = [];       day(ind) = [];  lat(ind) = [];
 		lon(ind) = [];      depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
 	end
@@ -539,70 +577,26 @@ else
 end
 
 % -----------------------------------------------------------------------------
-function popup_mag04_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -----------------------------------------------------------------------------
-function popup_mag45_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -----------------------------------------------------------------------------
-function popup_mag56_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -----------------------------------------------------------------------------
-function popup_mag67_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -----------------------------------------------------------------------------
-function popup_mag78_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -----------------------------------------------------------------------------
-function popup_mag8_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -----------------------------------------------------------------------------
 function checkbox_depSlices_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.popup_dep0_33,'Enable','on');       set(handles.popup_dep33_70,'Enable','on')
-    set(handles.popup_dep70_150,'Enable','on');     set(handles.popup_dep150_300,'Enable','on')
-    set(handles.popup_dep300,'Enable','on')
-else
-    set(handles.popup_dep0_33,'Enable','off');      set(handles.popup_dep33_70,'Enable','off')
-    set(handles.popup_dep70_150,'Enable','off');    set(handles.popup_dep150_300,'Enable','off')
-    set(handles.popup_dep300,'Enable','off')
-end
-
-% -----------------------------------------------------------------------------
-function popup_dep0_33_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -----------------------------------------------------------------------------
-function popup_dep33_70_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -----------------------------------------------------------------------------
-function popup_dep70_150_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -----------------------------------------------------------------------------
-function popup_dep150_300_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% -----------------------------------------------------------------------------
-function popup_dep300_Callback(hObject, eventdata, handles)
-% Nothing to do here
+	if (get(hObject,'Value'))
+        set(handles.popup_dep0_33,'Enable','on');       set(handles.popup_dep33_70,'Enable','on')
+        set(handles.popup_dep70_150,'Enable','on');     set(handles.popup_dep150_300,'Enable','on')
+        set(handles.popup_dep300,'Enable','on')
+	else
+        set(handles.popup_dep0_33,'Enable','off');      set(handles.popup_dep33_70,'Enable','off')
+        set(handles.popup_dep70_150,'Enable','off');    set(handles.popup_dep150_300,'Enable','off')
+        set(handles.popup_dep300,'Enable','off')
+	end
 
 % -----------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
-delete(handles.figure1);
+    delete(handles.figure1);
 
 % -----------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata, handles)
-if isequal(get(hObject,'CurrentKey'),'escape')
-    delete(handles.figure1);
-end
+	if isequal(get(hObject,'CurrentKey'),'escape')
+        delete(handles.figure1);
+	end
 
 % -----------------------------------------------------------------------------
 function [month, day] = jd2monday(jday,year)
@@ -851,7 +845,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@earthquakes_uicallback,h1,'popup_mag04_Callback'},...
 'Enable','off',...
 'Position',[18 207 52 22],...
 'String',{'3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15' },...
@@ -862,7 +855,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@earthquakes_uicallback,h1,'popup_mag45_Callback'},...
 'Enable','off',...
 'Position',[78 207 52 22],...
 'String',{'3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15' },...
@@ -873,7 +865,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@earthquakes_uicallback,h1,'popup_mag56_Callback'},...
 'Enable','off',...
 'Position',[138 207 52 22],...
 'String',{'3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15' },...
@@ -884,7 +875,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@earthquakes_uicallback,h1,'popup_mag67_Callback'},...
 'Enable','off',...
 'Position',[198 207 52 22],...
 'String',{'3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15' },...
@@ -893,9 +883,7 @@ uicontrol('Parent',h1,...
 'Value',8,...
 'Tag','popup_mag67');
 
-uicontrol('Parent',h1,...
-'BackgroundColor',[1 1 1],...
-'Callback',{@earthquakes_uicallback,h1,'popup_mag78_Callback'},...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Enable','off',...
 'Position',[258 207 52 22],...
 'String',{'3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15' },...
@@ -910,9 +898,7 @@ uicontrol('Parent',h1,'FontSize',10,'Position',[139 230 31 16],'String','5-6','S
 uicontrol('Parent',h1,'FontSize',10,'Position',[200 230 31 16],'String','6-7','Style','text','Tag','text14');
 uicontrol('Parent',h1,'FontSize',10,'Position',[260 230 31 16],'String','7-8','Style','text','Tag','text15');
 
-uicontrol('Parent',h1,...
-'BackgroundColor',[1 1 1],...
-'Callback',{@earthquakes_uicallback,h1,'popup_mag8_Callback'},...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Enable','off',...
 'Position',[318 207 52 22],...
 'String',{'3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15' },...
@@ -921,8 +907,7 @@ uicontrol('Parent',h1,...
 'Value',13,...
 'Tag','popup_mag8');
 
-uicontrol('Parent',h1,...
-'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@earthquakes_uicallback,h1,'edit_DepthMin_Callback'},...
 'Position',[63 150 47 21],...
 'String','0',...
@@ -957,7 +942,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@earthquakes_uicallback,h1,'popup_dep0_33_Callback'},...
 'Enable','off',...
 'Position',[18 58 62 22],...
 'String',{  'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
@@ -975,7 +959,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@earthquakes_uicallback,h1,'popup_dep33_70_Callback'},...
 'Enable','off',...
 'Position',[91 58 62 22],...
 'String',{  'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
@@ -993,7 +976,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@earthquakes_uicallback,h1,'popup_dep70_150_Callback'},...
 'Enable','off',...
 'Position',[165 58 62 22],...
 'String',{  'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
@@ -1007,7 +989,6 @@ uicontrol('Parent',h1,'FontSize',10,'Position',[312 81 55 16],'String','> 300 km
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@earthquakes_uicallback,h1,'popup_dep150_300_Callback'},...
 'Enable','off',...
 'Position',[238 58 62 22],...
 'String',{  'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
@@ -1018,7 +999,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@earthquakes_uicallback,h1,'popup_dep300_Callback'},...
 'Enable','off',...
 'Position',[310 58 62 22],...
 'String',{  'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
