@@ -640,7 +640,7 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
     
     % See if we need (and can) to reinterpolate the bat to go along with the water grids
     if (~handles.reinterpolated_bat && (any(handles.head_water(1:4) - handles.head_bat(1:4)) || ...
-            ~isequal( size(handles.Z_water), size(handles.Z_bat))) )
+            ( ~isequal( size(handles.Z_bat), size(handles.Z_water)) && ~isequal( size(handles.Z_bat), size(Z_water))) ) )
         h = warndlg('Ai, Ai, Bathymetry and Water grids are not compatible. Trying to fix that ...','Warning');
         opt_R = ['-R' sprintf('%.12f',handles.head_water(1)) '/' sprintf('%.12f',handles.head_water(2)) '/' ...
             sprintf('%.12f',handles.head_water(3)) '/' sprintf('%.12f',handles.head_water(4))];
