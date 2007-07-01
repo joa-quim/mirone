@@ -11,7 +11,7 @@
  *
  *	Joaquim Luis	14-Juin-2005
  *	 
- *		25/06/07 J Luis, If called with 2 argsin adds first one to the PATH (second is ignored)
+ *		25/06/07 J Luis, If called with 2 argsin prepend first one to the PATH (second is ignored)
  *		03/04/07 J Luis, Now sets GMTHOME as GMT_SHAREDIR when need use pre 4.2.0 coastlines
  *		22/03/07 J Luis, Change of strategy to deal with changes introduced in 4.2.0
  *				 - Renamed to set_gmt
@@ -66,7 +66,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char *GMT_SHAREDIR = CNULL;
 	char *GMT_HOMEDIR = CNULL;
 	char *GMT_USERDIR = CNULL;
-	char path[BUFSIZ], *pato; 
+	char path[BUFSIZ], *pato, *papato; 
 	int	status;
 	mxArray *mxStr, *info_struct;
 
@@ -81,8 +81,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			if (status = putenv(pato))
 				mexPrintf("TEST_GMT: Failure to set the environmental variable\n %s\n", pato);
 			mxFree(pato);
+
+			/*this = getenv ("PATH");
+			papato = (char *) mxCalloc ((size_t)(strlen (this) + 1), (size_t)1);
+			strcpy (papato, this);
+			mexPrintf("Olho Pato -> %s\n", papato);
+			mxFree(papato);*/
+
 		}
-		if (status = putenv(envString))
+		else if ( nrhs == 1 && (status = putenv(envString)) )
 			mexPrintf("TEST_GMT: Failure to set the environmental variable\n %s\n", envString);
 
 		if (nlhs == 0)
@@ -90,9 +97,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	if (nlhs == 0 && nrhs == 0) {
-		mexPrintf("Usage: info = test_gmt;\nReturns the info structure with information on GMT version and costlines\n");
-		mexPrintf("info = test_gmt('envstring');\nDo the same as above and set 'envstring' in the environment list\n");
-		mexPrintf("       test_gmt('envstring');\nJust set 'envstring' in the environment list and return.\n");
+		mexPrintf("Usage: info = set_gmt;\nReturns the info structure with information on GMT version and costlines\n");
+		mexPrintf("info = set_gmt('envstring');\nDo the same as above and set 'envstring' in the environment list\n");
+		mexPrintf("       set_gmt('envstring');\nJust set 'envstring' in the environment list and return.\n");
+		mexPrintf("       set_gmt('envstring',whatever);\nPrepends 'envstring' to the PATH.\n");
 		return;
 	}
 
