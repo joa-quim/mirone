@@ -48,9 +48,9 @@ switch opt
         if ~isempty(h)              % when in compiled version h may be empty (why?).
             set_circleCart_uicontext(h)
         end
-    case 'SessionRestoreCircle'     % Called by "FileOpenSession" in Mirone
+    case 'SessionRestoreCircle'     % Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
         set_circleGeo_uicontext(hand)
-    case 'SessionRestoreCircleCart'     % Called by "FileOpenSession" in Mirone
+    case 'SessionRestoreCircleCart'     % Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
         set_circleCart_uicontext(hand)
     case 'DrawText'
         cmenuHand = uicontextmenu;
@@ -90,6 +90,22 @@ switch opt
             [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers,'>');
         else
             [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
+        end
+        
+        % Project if we need
+        handles = guidata(hFig);
+        if (handles.is_projected && handles.defCoordsIn > 0)
+            try
+                if (iscell(numeric_data))
+                    for i=1:numel(numeric_data)
+                        numeric_data{i}  = geog2projected_pts(handles,numeric_data{i});
+                    end
+                else
+                    numeric_data = geog2projected_pts(handles,numeric_data);
+                end
+            catch
+                errordlg(lasterr,'ERROR');    return
+            end
         end
         
         % If OUT is requested there is nothing left to be done here
@@ -136,7 +152,7 @@ switch opt
                     lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','FaultTrace');
                     set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
                     % Create empty patches that will contain the surface projection of the fault plane
-                    for (k=1:length(tmpx)-1)  hp(k) = patch('XData', [], 'YData',[]);    end
+                    for (k=1:length(tmpx)-1),   hp(k) = patch('XData', [], 'YData',[]);    end
                     setappdata(lineHand,'PatchHand',hp);
             end
         end
@@ -149,14 +165,14 @@ switch opt
         if ~isempty(h)      % when in compiled version h may be empty.
             set_vector_uicontext(h)
         end
-    case 'ChangeAxesLabels',        changeAxesLabels(data)
-    case 'MagneticBarCode',         draw_MagBarCode
-    case 'SRTM_rectangle',          set_SRTM_rect_uicontext(hand)
-    case 'isochron',                set_isochrons_uicontext(hand,data)
-    case 'gmtfile',                 set_gmtfile_uicontext(hand,data)
-    case 'country_patch',           set_country_uicontext(hand)
-    case 'telhas_patch',            set_telhas_uicontext(hand)
-    case 'save_xyz',                save_formated([],[],[], data)
+    case 'ChngAxLabels',        changeAxesLabels(data)
+    case 'MagBarCode',          draw_MagBarCode
+    case 'SRTM_rectangle',      set_SRTM_rect_uicontext(hand)
+    case 'isochron',            set_isochrons_uicontext(hand,data)
+    case 'gmtfile',             set_gmtfile_uicontext(hand,data)
+    case 'country_patch',       set_country_uicontext(hand)
+    case 'telhas_patch',        set_telhas_uicontext(hand)
+    case 'save_xyz',            save_formated([],[],[], data)
 end
 
 % -----------------------------------------------------------------------------------------
@@ -561,8 +577,8 @@ function setCoastLineUictx(h)
 	% h is a handle to a line object
 	tag = get(h,'Tag');
 	if (strcmp(tag,'CoastLineNetCDF')),         label = 'Delete coastlines';
-	elseif (strcmp(tag,'PoliticalBoundaries'))  label = 'Delete boundaries';
-	elseif (strcmp(tag,'Rivers'))               label = 'Delete rivers';
+	elseif (strcmp(tag,'PoliticalBoundaries')), label = 'Delete boundaries';
+	elseif (strcmp(tag,'Rivers')),              label = 'Delete rivers';
 	end
 	cmenuHand = uicontextmenu;
 	set(h, 'UIContextMenu', cmenuHand);
@@ -772,7 +788,9 @@ else
         else
             set(h,prop,c);   refresh;
         end
-    else    return, end
+    else
+        return
+    end
 end
 % -----------------------------------------------------------------------------------------
 
@@ -810,39 +828,39 @@ function set_greatCircle_uicontext(h)
 
 % -----------------------------------------------------------------------------------------
 function set_circleGeo_uicontext(h)
-% h is a handle to a circle (in geog coords) object
-% NOTE: on 1-1-04 I finished a function called uicirclegeo that draws circles and provides
-% controls to change various circle parameters. Because it makes extensive use of the lines
-% userdata, the move_circle function of this file cannot be used, for it also changes userdata.
-tag = get(h,'Tag');
-cmenuHand = uicontextmenu;
-set(h, 'UIContextMenu', cmenuHand);
-cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
-cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
-cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
-cb_color = uictx_color(h);      % there are 9 cb_color outputs
-% cb_MoveCircle        = {@move_circle,h};
-% cb_ChangeCircCenter1 = {@change_CircCenter1,h};
-cb_roi = 'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),gco)';
-
-uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
-uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[]});
-% item_MoveCenter = uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Callback', cb_MoveCircle);
-% item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
-% item_SetCenter1 = uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Callback', cb_ChangeCircCenter1);
-if ~strcmp(tag,'CircleEuler')       % "Just" a regular geographical circle
-    uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
-else
-    uimenu(cmenuHand, 'Label', 'Compute velocity', 'Separator','on', 'Callback', {@compute_EulerVel,h});
-end
-item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
-setLineWidth(item_lw,cb_LineWidth)
-item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dash_dotted})
-item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
-setLineColor(item_lc,cb_color)
+	% h is a handle to a circle (in geog coords) object
+	% NOTE: on 1-1-04 I finished a function called uicirclegeo that draws circles and provides
+	% controls to change various circle parameters. Because it makes extensive use of the lines
+	% userdata, the move_circle function of this file cannot be used, for it also changes userdata.
+	tag = get(h,'Tag');
+	cmenuHand = uicontextmenu;
+	set(h, 'UIContextMenu', cmenuHand);
+	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
+	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	cb_color = uictx_color(h);      % there are 9 cb_color outputs
+	% cb_MoveCircle        = {@move_circle,h};
+	% cb_ChangeCircCenter1 = {@change_CircCenter1,h};
+	cb_roi = 'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),gco)';
+	
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[]});
+	% item_MoveCenter = uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Callback', cb_MoveCircle);
+	% item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
+	% item_SetCenter1 = uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Callback', cb_ChangeCircCenter1);
+	if ~strcmp(tag,'CircleEuler')       % "Just" a regular geographical circle
+        uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
+	else
+        uimenu(cmenuHand, 'Label', 'Compute velocity', 'Separator','on', 'Callback', {@compute_EulerVel,h});
+	end
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	setLineWidth(item_lw,cb_LineWidth)
+	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
+	setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dash_dotted})
+	item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
+	setLineColor(item_lc,cb_color)
 
 % -----------------------------------------------------------------------------------------
 function set_circleCart_uicontext(h)
@@ -1825,23 +1843,23 @@ labelType = getappdata(gcf,'LabelFormatType');
 if (~isempty(labelType))
     switch labelType
         case 'DegMin'
-            x_str = degree2dms(str2num( ddewhite(sprintf('%8f',xx)) ),'DDMM',0,'str');   % x_str is a structure with string fields
-            y_str = degree2dms(str2num( ddewhite(sprintf('%8f',yy)) ),'DDMM',0,'str');
+            x_str = degree2dms(str2double( ddewhite(sprintf('%8f',xx)) ),'DDMM',0,'str');   % x_str is a structure with string fields
+            y_str = degree2dms(str2double( ddewhite(sprintf('%8f',yy)) ),'DDMM',0,'str');
             xx = [x_str.dd ':' x_str.mm];
             yy = [y_str.dd ':' y_str.mm];
         case 'DegMinDec'
-            x_str = degree2dms(str2num( ddewhite(sprintf('%8f',xx)) ),'DDMM.x',2,'str');
-            y_str = degree2dms(str2num( ddewhite(sprintf('%8f',yy)) ),'DDMM.x',2,'str');
+            x_str = degree2dms(str2double( ddewhite(sprintf('%8f',xx)) ),'DDMM.x',2,'str');
+            y_str = degree2dms(str2double( ddewhite(sprintf('%8f',yy)) ),'DDMM.x',2,'str');
             xx = [x_str.dd ':' x_str.mm];
             yy = [y_str.dd ':' y_str.mm];
         case 'DegMinSec'
-            x_str = degree2dms(str2num( ddewhite(sprintf('%8f',xx)) ),'DDMMSS',0,'str');
-            y_str = degree2dms(str2num( ddewhite(sprintf('%8f',yy)) ),'DDMMSS',0,'str');
+            x_str = degree2dms(str2double( ddewhite(sprintf('%8f',xx)) ),'DDMMSS',0,'str');
+            y_str = degree2dms(str2double( ddewhite(sprintf('%8f',yy)) ),'DDMMSS',0,'str');
             xx = [x_str.dd ':' x_str.mm ':' x_str.ss];
             yy = [y_str.dd ':' y_str.mm ':' y_str.ss];
         case 'DegMinSecDec'
-            x_str = degree2dms(str2num( ddewhite(sprintf('%8f',xx)) ),'DDMMSS.x',1,'str');
-            y_str = degree2dms(str2num( ddewhite(sprintf('%8f',yy)) ),'DDMMSS.x',1,'str');
+            x_str = degree2dms(str2double( ddewhite(sprintf('%8f',xx)) ),'DDMMSS.x',1,'str');
+            y_str = degree2dms(str2double( ddewhite(sprintf('%8f',yy)) ),'DDMMSS.x',1,'str');
             xx = [x_str.dd ':' x_str.mm ':' x_str.ss];
             yy = [y_str.dd ':' y_str.mm ':' y_str.ss];
         otherwise
@@ -1931,7 +1949,7 @@ function remove_singleContour(obj,eventdata,h)
 % Delete an individual contour and its eventual label(s)
 labHand = getappdata(h,'LabelHands');
 if (~isempty(labHand))
-    try, delete(labHand);   end
+    try     delete(labHand);   end
 end
 delete(h)
 
@@ -2065,7 +2083,9 @@ function other_SymbColor(obj,eventdata,h,prop)
 	c = uisetcolor;
 	if length(c) > 1            % That is, if a color was selected
         set(h,prop,c)
-	else,   return, end
+    else
+        return
+	end
 
 % -----------------------------------------------------------------------------------------
 function hotspot_info(obj,eventdata,h,name,age,opt)
@@ -2345,7 +2365,7 @@ F = figure('Units','centimeters',...
     'Color','k');               % despite what TMW says, in R13 it is awfully bugy.
 
 % Create axis for bar code display
-A = axes('Units','normalized',...
+axes('Units','normalized',...
     'Position',[0 0 1 1],...
     'XLim',[0 width],...
     'YLim',[0 height],...
@@ -2358,7 +2378,7 @@ A = axes('Units','normalized',...
 
 pos=[0.96 0 .04 1];
 S=['set(gca,''ylim'',[' num2str(tscal-height) ' ' num2str(tscal) ']-get(gcbo,''value''))'];
-h=uicontrol('style','slider','units','normalized','position',pos,...
+uicontrol('style','slider','units','normalized','position',pos,...
     'callback',S,'min',0,'max',tscal-height,'Value',tscal-height);
 
 %fid = fopen([handles.path_data 'BarCode_Cox_direct.dat'],'r');
