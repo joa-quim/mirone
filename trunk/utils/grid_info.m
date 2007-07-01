@@ -10,7 +10,7 @@ elseif (nargin == 4 && strcmp(Y,'iminfo'))      % Used with internaly generated 
 end
 
 if (handles.no_file),     return;      end
-ud = get(handles.figure1,'UserData');           % Retrieve Image info 
+%ud = get(handles.figure1,'UserData');           % Retrieve Image info 
 if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived from a GMT grdfile
     if (handles.grdformat > 1), handles.grdname = [handles.grdname '=' num2str(handles.grdformat)];     end
     info1 = grdinfo_m(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
@@ -40,8 +40,8 @@ if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived 
     
     if (handles.head(7)),   half = 0.5;
     else                    half = 0;       end
-    x_min = handles.head(1) + (fix(info2(3) / length(Y)) + half) * handles.head(8);    % x of z_min
-    x_max = handles.head(1) + (fix(info2(4) / length(Y)) + half) * handles.head(8);    % x of z_max
+    x_min = handles.head(1) + (fix(info2(3) / length(X)) + half) * handles.head(8);    % x of z_min
+    x_max = handles.head(1) + (fix(info2(4) / length(X)) + half) * handles.head(8);    % x of z_max
     y_min = handles.head(3) + (rem(info2(3)-1, length(Y)) + half) * handles.head(9);   % y of z_min
     y_max = handles.head(3) + (rem(info2(4)-1, length(Y)) + half) * handles.head(9);   % y of z_max
     txt_x1 = sprintf('%.6f',x_min);     txt_x1 = wipe_zeros(txt_x1);
@@ -115,20 +115,13 @@ function att2Hdr(handles,att)
     
     if (~isempty(att.ProjectionRef))    % If we have a 'GDAL' projection, store it
         setappdata(handles.axes1,'ProjWKT',att.ProjectionRef)
-        try     % Desable the Projections menu. Use a try since it seams faster than the brain-dead 'isfield'
-            if (handles.Proj),      set(handles.Proj,'Enable','off');   end
-        end
         out = decodeProjectionRef(att.ProjectionRef);
         if ( ~isempty(out.datum) || ~isempty(out.ellipsoid) || ~isempty(out.projection) )
             setappdata(handles.axes1,'DatumProjInfo',out)
         end
     else                                % Otherwise remove eventual previous one Load in projected coords Load files in geogs
         if (isappdata(handles.axes1,'ProjWKT')),    rmappdata(handles.axes1,'ProjWKT'); end
-        try     % If we had a Projections menu, reenable it.
-            if (handles.Proj),      set(handles.Proj,'Enable','on');   end
-        end
     end
-    setAxesDefCoordIn(handles)          % Sets the value of the axes uicontextmenu that selects whether project or not
     
 % --------------------------------------------------------------------
 function out = decodeProjectionRef(strProj)
@@ -182,3 +175,8 @@ function img2Hdr(handles,imgName,img)
         end
     end
     setappdata(handles.axes1,'InfoMsg',w)
+
+    % Maybe not the most apropriate place to do this but ...
+    if (isappdata(handles.axes1,'ProjWKT')),    rmappdata(handles.axes1,'ProjWKT'); end
+    if (isappdata(handles.axes1,'ProjGMT')),    rmappdata(handles.axes1,'ProjGMT'); end
+    
