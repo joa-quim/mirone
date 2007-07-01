@@ -29,12 +29,16 @@ end
 % --------------------------------------------------------------------
 function DatasetsHotspots(handles)
 	% Read hotspot.dat which has 4 columns (lon lat name age)
-	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	fid = fopen([handles.path_data 'hotspots.dat'],'r');
 	tline = fgetl(fid);             % Jump the header line
 	todos = fread(fid,'*char');     fclose(fid);
 	[hot.x hot.y hot.name hot.age] = strread(todos,'%f %f %s %f');     % Note: hot.name is a cell array of chars
 	clear todos;
+    [tmp, msg] = geog2projected_pts(handles,[hot.x hot.y]);     % If map in geogs, tmp is just a copy of input
+    if (~strncmp(msg,'0',1))        % Coords were projected
+        hot.x = tmp(:,1);        hot.y = tmp(:,2);
+    end
 	
 	% Get rid of Fogspots that are outside the map limits
 	[x,y,indx,indy] = aux_funs('in_map_region',handles,hot.x,hot.y,0,[]);
@@ -50,11 +54,15 @@ function DatasetsHotspots(handles)
 % --------------------------------------------------------------------
 function DatasetsVolcanoes(handles)
 	% Read volcanoes.dat which has 6 columns (lat lon name ...)
-	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	fid = fopen([handles.path_data 'volcanoes.dat'],'r');
 	todos = fread(fid,'*char');
 	[volc.y volc.x volc.name region volc.desc volc.dating] = strread(todos,'%f %f %s %s %s %s');
 	fclose(fid);    clear region todos
+    [tmp, msg] = geog2projected_pts(handles,[volc.x volc.y]);     % If map in geogs, tmp is just a copy of input
+    if (~strncmp(msg,'0',1))        % Coords were projected
+        volc.x = tmp(:,1);        volc.y = tmp(:,2);
+    end
 	
 	% Get rid of Volcanoes that are outside the map limits
 	[x,y,indx,indy] = aux_funs('in_map_region',handles,volc.x,volc.y,0,[]);
@@ -69,8 +77,12 @@ function DatasetsVolcanoes(handles)
 
 % --------------------------------------------------------------------
 function DatasetsTides(handles)
-	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	load([handles.path_data 't_xtide.mat']);
+    [tmp, msg] = geog2projected_pts(handles,[xharm.longitude xharm.latitude]);     % If map in geogs, tmp is just a copy of input
+    if (~strncmp(msg,'0',1))        % Coords were projected
+        xharm.longitude = tmp(:,1);        xharm.latitude = tmp(:,2);
+    end
 	% Get rid of Tide stations that are outside the map limits
 	[x,y] = aux_funs('in_map_region',handles,xharm.longitude,xharm.latitude,0,[]);
 	h_tides = line(x,y,'Marker','^','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',6,...
@@ -104,24 +116,23 @@ else
     names = {fname};
 end
 
-if (nargin == 1),   ix = 2;     iy = 1;
-else                ix = 1;     iy = 2;
-end
 tol = 0.5;
+do_project = false;         % We'll estimate below if this holds true
 
 if (handles.no_file)        % Start empty but below we'll find the true data region
     XMin = 1e50;            XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
     geog = 1;               % Not important. It will be confirmed later
     if (nargin == 1)        % We know it's geog (Global Isochrons)
-        region = [-180 180 -90 90];
+        xx = [-180 180];    yy = [-90 90];
+        region = [xx yy];
     else                    % We need to compute the file extents.
 		for (k=1:length(names))
             fname = names{k};
             j = strfind(fname,filesep);
             if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well 
             [numeric_data,multi_segs_str] = text_read(fname,NaN,NaN,'>');
-			for i=1:length(numeric_data)
-                tmpx = numeric_data{i}(:,ix);   tmpy = numeric_data{i}(:,iy);
+            for i=1:length(numeric_data)
+                tmpx = numeric_data{i}(:,1);   tmpy = numeric_data{i}(:,2);
                 XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
                 YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
             end
@@ -133,6 +144,9 @@ if (handles.no_file)        % Start empty but below we'll find the true data reg
 else                        % Reading over an established region
     XYlim = getappdata(handles.figure1,'ThisImageLims');
     xx = XYlim(1:2);            yy = XYlim(3:4);
+    if (handles.is_projected && (nargin == 1 || handles.defCoordsIn > 0) )
+        do_project = true;
+    end
 end
 
 for (k=1:length(names))
@@ -144,13 +158,16 @@ for (k=1:length(names))
 	h_isoc = ones(n_segments,1)*NaN;                        % This is the maximum we can have
 	n_clear = false(n_segments,1);
 	for i=1:n_segments
-        difes = [numeric_data{i}(1,ix)-numeric_data{i}(end,ix) numeric_data{i}(1,iy)-numeric_data{i}(end,iy)];
+        if (do_project)         % We need to project
+            numeric_data{i} = geog2projected_pts(handles,numeric_data{i});
+        end
+        difes = [numeric_data{i}(1,1)-numeric_data{i}(end,1) numeric_data{i}(1,2)-numeric_data{i}(end,2)];
         if (any(abs(difes) > 1e-4))
             is_closed = false;
             % Not a closed polygon, so get rid of points that are outside the map limits
-            [tmpx,tmpy] = aux_funs('in_map_region',handles,numeric_data{i}(:,ix),numeric_data{i}(:,iy),tol,[xx yy]);
+            [tmpx,tmpy] = aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
         else
-            tmpx = numeric_data{i}(:,ix);       tmpy = numeric_data{i}(:,iy);
+            tmpx = numeric_data{i}(:,1);       tmpy = numeric_data{i}(:,2);
             is_closed = true;
         end
         if (isempty(tmpx)),     n_clear(i) = 1;     continue;   end     % Store indexes for clearing vanished segments info
@@ -262,117 +279,147 @@ function [thick, cor, str2] = parseW(str)
 % --------------------------------------------------------------------
 function DatasetsPlateBound_PB_All(handles)
 	% Read and plot the modified (by me) Peter Bird's Plate Boundaries
-	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	set(handles.figure1,'pointer','watch')
 	load([handles.path_data 'PB_boundaries.mat'])
-	
+
 	% ------------------
 	% Get rid of boundary segments that are outside the map limits
 	xx = get(handles.axes1,'Xlim');      yy = get(handles.axes1,'Ylim');
 	tol = 0.5;
+    if (handles.is_projected),      tol = 1e4;      end     % Maybe still too small
+    lims = [xx yy];
 	% ------------------ OTF class
-	n = length(OTF);    k = [];
+	n = length(OTF);    k = false(n,1);
 	for i = 1:n
-        ind = find(OTF(i).x_otf < xx(1)-tol | OTF(i).x_otf > xx(2)+tol);
+        if (handles.is_projected)      
+            tmp = geog2projected_pts(handles,[OTF(i).x_otf; OTF(i).y_otf]', lims);
+            OTF(i).x_otf = tmp(:,1)';        OTF(i).y_otf = tmp(:,2)';            
+        end
+        ind = (OTF(i).x_otf < xx(1)-tol | OTF(i).x_otf > xx(2)+tol);
         OTF(i).x_otf(ind) = [];     OTF(i).y_otf(ind) = [];
-        if isempty(OTF(i).x_otf),   k = [k i];  end         % k is a counter to erase out-of-map segments
+        if isempty(OTF(i).x_otf),   k(i) = true;    end         % k is a counter to erase out-of-map segments
 	end
 	OTF(k) = [];
-	n = length(OTF);    k = [];
+	n = length(OTF);    k = false(n,1);
 	for i = 1:n
-        ind = find(OTF(i).y_otf < yy(1)-tol | OTF(i).y_otf > yy(2)+tol);
+        ind = (OTF(i).y_otf < yy(1)-tol | OTF(i).y_otf > yy(2)+tol);
         OTF(i).x_otf(ind) = [];     OTF(i).y_otf(ind) = [];
-        if isempty(OTF(i).x_otf),   k = [k i];  end
+        if isempty(OTF(i).x_otf),   k(i) = true;    end
 	end
 	OTF(k) = [];
 	% ------------------ OSR class
-	n = length(OSR);    k = [];
+	n = length(OSR);    k = false(n,1);
 	for i = 1:n
-        ind = find(OSR(i).x_osr < xx(1)-tol | OSR(i).x_osr > xx(2)+tol);
+        if (handles.is_projected)      
+            tmp = geog2projected_pts(handles,[OSR(i).x_osr; OSR(i).y_osr]', lims);
+            OSR(i).x_osr = tmp(:,1)';        OSR(i).y_osr = tmp(:,2)';            
+        end
+        ind = (OSR(i).x_osr < xx(1)-tol | OSR(i).x_osr > xx(2)+tol);
         OSR(i).x_osr(ind) = [];     OSR(i).y_osr(ind) = [];
-        if isempty(OSR(i).x_osr),   k = [k i];  end
+        if isempty(OSR(i).x_osr),   k(i) = true;    end
 	end
 	OSR(k) = [];
-	n = length(OSR);    k = [];
+	n = length(OSR);    k = false(n,1);
 	for i = 1:n
-        ind = find(OSR(i).y_osr < yy(1)-tol | OSR(i).y_osr > yy(2)+tol);
+        ind = (OSR(i).y_osr < yy(1)-tol | OSR(i).y_osr > yy(2)+tol);
         OSR(i).x_osr(ind) = [];     OSR(i).y_osr(ind) = [];
-        if isempty(OSR(i).x_osr),   k = [k i];  end
+        if isempty(OSR(i).x_osr),   k(i) = true;    end
 	end
 	OSR(k) = [];
 	% ------------------ CRB class
-	n = length(CRB);    k = [];
+	n = length(CRB);    k = false(n,1);
 	for i = 1:n
-        ind = find(CRB(i).x_crb < xx(1)-tol | CRB(i).x_crb > xx(2)+tol);
+        if (handles.is_projected)      
+            [tmp, msg] = geog2projected_pts(handles,[CRB(i).x_crb; CRB(i).y_crb]', lims);
+            CRB(i).x_crb = tmp(:,1)';        CRB(i).y_crb = tmp(:,2)';            
+        end
+        ind = (CRB(i).x_crb < xx(1)-tol | CRB(i).x_crb > xx(2)+tol);
         CRB(i).x_crb(ind) = [];     CRB(i).y_crb(ind) = [];
-        if isempty(CRB(i).x_crb),   k = [k i];  end
+        if isempty(CRB(i).x_crb),   k(i) = true;    end
 	end
 	CRB(k) = [];
-	n = length(CRB);    k = [];
+	n = length(CRB);    k = false(n,1);
 	for i = 1:n
-        ind = find(CRB(i).y_crb < yy(1)-tol | CRB(i).y_crb > yy(2)+tol);
+        ind = (CRB(i).y_crb < yy(1)-tol | CRB(i).y_crb > yy(2)+tol);
         CRB(i).x_crb(ind) = [];     CRB(i).y_crb(ind) = [];
-        if isempty(CRB(i).x_crb),   k = [k i];  end
+        if isempty(CRB(i).x_crb),   k(i) = true;    end
 	end
 	CRB(k) = [];
 	% ------------------ CTF class
-	n = length(CTF);    k = [];
+	n = length(CTF);    k = false(n,1);
 	for i = 1:n
-        ind = find(CTF(i).x_ctf < xx(1)-tol | CTF(i).x_ctf > xx(2)+tol);
+        if (handles.is_projected)      
+            tmp = geog2projected_pts(handles,[CTF(i).x_ctf; CTF(i).y_ctf]', lims);
+            CTF(i).x_ctf = tmp(:,1)';        CTF(i).y_ctf = tmp(:,2)';            
+        end
+        ind = (CTF(i).x_ctf < xx(1)-tol | CTF(i).x_ctf > xx(2)+tol);
         CTF(i).x_ctf(ind) = [];     CTF(i).y_ctf(ind) = [];
-        if isempty(CTF(i).x_ctf),   k = [k i];  end
+        if isempty(CTF(i).x_ctf),   k(i) = true;    end
 	end
 	CTF(k) = [];
-	n = length(CTF);    k = [];
+	n = length(CTF);    k = false(n,1);
 	for i = 1:n
-        ind = find(CTF(i).y_ctf < yy(1)-tol | CTF(i).y_ctf > yy(2)+tol);
+        ind = (CTF(i).y_ctf < yy(1)-tol | CTF(i).y_ctf > yy(2)+tol);
         CTF(i).x_ctf(ind) = [];     CTF(i).y_ctf(ind) = [];
-        if isempty(CTF(i).x_ctf),   k = [k i];  end
+        if isempty(CTF(i).x_ctf),   k(i) = true;    end
 	end
 	CTF(k) = [];
 	% ------------------ CCB class
-	n = length(CCB);    k = [];
+	n = length(CCB);    k = false(n,1);
 	for i = 1:n
-        ind = find(CCB(i).x_ccb < xx(1)-tol | CCB(i).x_ccb > xx(2)+tol);
+        if (handles.is_projected)      
+            tmp = geog2projected_pts(handles,[CCB(i).x_ccb; CCB(i).y_ccb]', lims);
+            CCB(i).x_ccb = tmp(:,1)';        CCB(i).y_ccb = tmp(:,2)';            
+        end
+        ind = (CCB(i).x_ccb < xx(1)-tol | CCB(i).x_ccb > xx(2)+tol);
         CCB(i).x_ccb(ind) = [];     CCB(i).y_ccb(ind) = [];
-        if isempty(CCB(i).x_ccb),   k = [k i];  end
+        if isempty(CCB(i).x_ccb),   k(i) = true;    end
 	end
 	CCB(k) = [];
-	n = length(CCB);    k = [];
+	n = length(CCB);    k = false(n,1);
 	for i = 1:n
-        ind = find(CCB(i).y_ccb < yy(1)-tol | CCB(i).y_ccb > yy(2)+tol);
+        ind = (CCB(i).y_ccb < yy(1)-tol | CCB(i).y_ccb > yy(2)+tol);
         CCB(i).x_ccb(ind) = [];     CCB(i).y_ccb(ind) = [];
-        if isempty(CCB(i).x_ccb),   k = [k i];  end
+        if isempty(CCB(i).x_ccb),   k(i) = true;    end
 	end
 	CCB(k) = [];
 	% ------------------ OCB class
-	n = length(OCB);    k = [];
+	n = length(OCB);    k = false(n,1);
 	for i = 1:n
-        ind = find(OCB(i).x_ocb < xx(1)-tol | OCB(i).x_ocb > xx(2)+tol);
+        if (handles.is_projected)      
+            tmp = geog2projected_pts(handles,[OCB(i).x_ocb; OCB(i).y_ocb]', lims);
+            OCB(i).x_ocb = tmp(:,1)';        OCB(i).y_ocb = tmp(:,2)';            
+        end
+        ind = (OCB(i).x_ocb < xx(1)-tol | OCB(i).x_ocb > xx(2)+tol);
         OCB(i).x_ocb(ind) = [];     OCB(i).y_ocb(ind) = [];
-        if isempty(OCB(i).x_ocb),   k = [k i];  end
+        if isempty(OCB(i).x_ocb),   k(i) = true;    end
 	end
 	OCB(k) = [];
-	n = length(OCB);    k = [];
+	n = length(OCB);    k = false(n,1);
 	for i = 1:n
-        ind = find(OCB(i).y_ocb < yy(1)-tol | OCB(i).y_ocb > yy(2)+tol);
+        ind = (OCB(i).y_ocb < yy(1)-tol | OCB(i).y_ocb > yy(2)+tol);
         OCB(i).x_ocb(ind) = [];     OCB(i).y_ocb(ind) = [];
-        if isempty(OCB(i).x_ocb),   k = [k i];  end
+        if isempty(OCB(i).x_ocb),   k(i) = true;    end
 	end
 	OCB(k) = [];
 	% ------------------ SUB class
-	n = length(SUB);    k = [];
+	n = length(SUB);    k = false(n,1);
 	for i = 1:n
-        ind = find(SUB(i).x_sub < xx(1)-tol | SUB(i).x_sub > xx(2)+tol);
+        if (handles.is_projected)      
+            tmp = geog2projected_pts(handles,[SUB(i).x_sub; SUB(i).y_sub]', lims);
+            SUB(i).x_sub = tmp(:,1)';        SUB(i).y_sub = tmp(:,2)';            
+        end
+        ind = (SUB(i).x_sub < xx(1)-tol | SUB(i).x_sub > xx(2)+tol);
         SUB(i).x_sub(ind) = [];     SUB(i).y_sub(ind) = [];
-        if isempty(SUB(i).x_sub),   k = [k i];  end
+        if isempty(SUB(i).x_sub),   k(i) = true;    end
 	end
 	SUB(k) = [];
-	n = length(SUB);    k = [];
+	n = length(SUB);    k = false(n,1);
 	for i = 1:n
-        ind = find(SUB(i).y_sub < yy(1)-tol | SUB(i).y_sub > yy(2)+tol);
+        ind = (SUB(i).y_sub < yy(1)-tol | SUB(i).y_sub > yy(2)+tol);
         SUB(i).x_sub(ind) = [];     SUB(i).y_sub(ind) = [];
-        if isempty(SUB(i).x_sub),   k = [k i];  end
+        if isempty(SUB(i).x_sub),   k(i) = true;    end
 	end
 	SUB(k) = [];
 
@@ -427,27 +474,17 @@ function DatasetsPlateBound_PB_All(handles)
 	data.OSR = OSR;    data.OTF = OTF;    data.CRB = CRB;    data.CTF = CTF;
 	data.CCB = CCB;    data.OCB = OCB;    data.SUB = SUB;
 	draw_funs(h,'PlateBound_All_PB',data);
-    %setappdata(handles.axes1,'',true)
     set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function CoastLines(handles, res)
-	if (handles.no_file == 1),    return;      end
+	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	set(handles.figure1,'pointer','watch')
 	
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-    projGMT = getappdata(handles.figure1,'ProjGMT');
-    if (~isempty(projGMT))
-        out = mapproject_m([lon(:) lat(:)],'-R-180/180/0/80','-I','-F',projGMT{:});
-        lon(1) = min(out(:,1));        lon(2) = max(out(:,1));
-        lat(1) = min(out(:,2));        lat(2) = max(out(:,2));
-    else
-        if (~handles.geog)
-        	set(handles.figure1,'pointer','arrow')
-            errordlg('This operation is currently possible only for geographic type data','ERROR');     return
-        end
-    end
-  	opt_R = ['-R' sprintf('%f',lon(1)) '/' sprintf('%f',lon(2)) '/' sprintf('%f',lat(1)) '/' sprintf('%f',lat(2))];
+%   	opt_R = ['-R' sprintf('%f',lon(1)) '/' sprintf('%f',lon(2)) '/' sprintf('%f',lat(1)) '/' sprintf('%f',lat(2))];
+    [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
+    if (isempty(opt_R)),    return;    end      % It should never happen, but ...
 	
 	switch res
         case 'c',        opt_res = '-Dc';        pad = 2.0;
@@ -457,21 +494,23 @@ function CoastLines(handles, res)
         case 'f',        opt_res = '-Df';        pad = 0.005;
 	end
 	coast = shoredump(opt_R,opt_res,'-A1/1/1');
-	
-    if (~isempty(projGMT))
-        coast = mapproject_m(coast', opt_R, '-F', projGMT{:});
-        coast = coast';
-    	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-        pad = 5e3;
+
+    [coast, msg] = geog2projected_pts(handles,coast',[lon lat],0);
+    if (numel(msg) > 2)
+    	set(handles.figure1,'pointer','arrow')
+        errordlg(msg,'ERROR');
+        return
     end
+	coast = single(coast');
     
-	% Get rid of data that are outside the map limits
-	lon = lon - [pad -pad];     lat = lat - [pad -pad];
-	indx = (coast(1,:) < lon(1) | coast(1,:) > lon(2));
-	coast(:,indx) = [];
-	indx = (coast(2,:) < lat(1) | coast(2,:) > lat(2));
-	coast(:,indx) = [];
-	coast = single(coast);
+    if (strncmp(msg,'0',1))     % They are in geogs so we know to to ...
+		% Get rid of data that are outside the map limits
+		lon = lon - [pad -pad];     lat = lat - [pad -pad];
+		indx = (coast(1,:) < lon(1) | coast(1,:) > lon(2));
+		coast(:,indx) = [];
+		indx = (coast(2,:) < lat(1) | coast(2,:) > lat(2));
+		coast(:,indx) = [];
+    end
 	
 	if (~all(isnan(coast(:))))
 		h = line('XData',coast(1,:),'YData',coast(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
@@ -487,11 +526,11 @@ function PoliticalBound(handles, type, res)
 	%          '3' -> Marine Boundaries
 	%          'a' -> All Boundaries
 	% RES is:  'c' or 'l' or 'i' or 'h' or 'f' (gmt database resolution)
-	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	
 	set(handles.figure1,'pointer','watch')
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-	opt_R = ['-R' sprintf('%.4f',lon(1)) '/' sprintf('%.4f',lon(2)) '/' sprintf('%.4f',lat(1)) '/' sprintf('%.4f',lat(2))];
+    [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
 	
 	switch type
         case '1',        opt_N = '-N1';
@@ -508,13 +547,23 @@ function PoliticalBound(handles, type, res)
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
 	boundaries = shoredump(opt_R,opt_N,opt_res);
+
+    [boundaries, msg] = geog2projected_pts(handles,boundaries',[lon lat],0);
+    if (numel(msg) > 2)
+    	set(handles.figure1,'pointer','arrow')
+        errordlg(msg,'ERROR');
+        return
+    end
+    boundaries = single(boundaries');
 	
-	% Get rid of data that are outside the map limits
-	lon = lon - [pad -pad];     lat = lat - [pad -pad];
-	indx = (boundaries(1,:) < lon(1) | boundaries(1,:) > lon(2));
-	boundaries(:,indx) = [];
-	indx = (boundaries(2,:) < lat(1) | boundaries(2,:) > lat(2));
-	boundaries(:,indx) = [];
+    if (strncmp(msg,'0',1))     % They are in geogs so we know to to ...
+		% Get rid of data that are outside the map limits
+		lon = lon - [pad -pad];     lat = lat - [pad -pad];
+		indx = (boundaries(1,:) < lon(1) | boundaries(1,:) > lon(2));
+		boundaries(:,indx) = [];
+		indx = (boundaries(2,:) < lat(1) | boundaries(2,:) > lat(2));
+		boundaries(:,indx) = [];
+    end
 	
 	if (~all(isnan(boundaries(:))))
 		h = line('XData',boundaries(1,:),'YData',boundaries(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
@@ -533,11 +582,11 @@ function Rivers(handles, type, res)
 	%          'a' -> All rivers and canals (1-10)      'r' -> All permanent rivers (1-4)
 	%          'i' -> All intermittent rivers (5-7)
 	% RES is:  'c' or 'l' or 'i' or 'h' or 'f' (gmt database resolution)
-	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	
 	set(handles.figure1,'pointer','watch')
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-	opt_R = ['-R' sprintf('%.4f',lon(1)) '/' sprintf('%.4f',lon(2)) '/' sprintf('%.4f',lat(1)) '/' sprintf('%.4f',lat(2))];
+    [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
 	
 	switch type
         case '1',        opt_I = '-I1';         case '2',        opt_I = '-I2';
@@ -556,13 +605,23 @@ function Rivers(handles, type, res)
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
 	rivers = shoredump(opt_R,opt_I,opt_res);
-	
-	% Get rid of data that are outside the map limits
-	lon = lon - [pad -pad];     lat = lat - [pad -pad];
-	indx = (rivers(1,:) < lon(1) | rivers(1,:) > lon(2));
-	rivers(:,indx) = [];
-	indx = (rivers(2,:) < lat(1) | rivers(2,:) > lat(2));
-	rivers(:,indx) = [];
+
+    [rivers, msg] = geog2projected_pts(handles,rivers',[lon lat],0);
+    if (numel(msg) > 2)
+    	set(handles.figure1,'pointer','arrow')
+        errordlg(msg,'ERROR');        return
+    end
+    rivers = single(rivers');
+    
+    
+    if (strncmp(msg,'0',1))     % They are in geogs so we know to to ...
+		% Get rid of data that are outside the map limits
+		lon = lon - [pad -pad];     lat = lat - [pad -pad];
+		indx = (rivers(1,:) < lon(1) | rivers(1,:) > lon(2));
+		rivers(:,indx) = [];
+		indx = (rivers(2,:) < lat(1) | rivers(2,:) > lat(2));
+		rivers(:,indx) = [];
+    end
 	
 	if (~all(isnan(rivers(:))))
 		h = line('XData',rivers(1,:),'YData',rivers(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
@@ -573,7 +632,7 @@ function Rivers(handles, type, res)
 
 % --------------------------------------------------------------------
 function DatasetsCities(handles,opt)
-	if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
+	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	if strcmp(opt,'major')
         fid = fopen([handles.path_data 'wcity_major.dat'],'r');
         tag = 'City_major';
@@ -582,8 +641,13 @@ function DatasetsCities(handles,opt)
         tag = 'City_other';
 	end
 	todos = fread(fid,'*char');     fclose(fid);
-	[city.x city.y city.name] = strread(todos,'%f %f %s');     % Note: city.name is a cell array of chars
-	% Get rid of Cities that are outside the map limits
+	[city.x city.y city.name] = strread(todos,'%f %f %s');      % Note: city.name is a cell array of chars
+    [tmp, msg] = geog2projected_pts(handles,[city.x city.y]);   % If map in geogs, tmp is just a copy of input
+    if (~strncmp(msg,'0',1))        % Coords were projected
+        city.x = tmp(:,1);      city.y = tmp(:,2);
+    end
+
+    % Get rid of Cities that are outside the map limits
 	[x,y,indx,indy] = aux_funs('in_map_region',handles,city.x,city.y,0,[]);
 	city.name(indx) = [];       city.name(indy) = [];
 	n_city = length(x);
@@ -608,70 +672,76 @@ function DatasetsCities(handles,opt)
 
 % --------------------------------------------------------------------
 function DatasetsODP_DSDP(handles,opt)
-if (aux_funs('msg_dlg',3,handles));     return;      end    % Test geog & no_file
-set(handles.figure1,'pointer','watch')
-fid = fopen([handles.path_data 'DSDP_ODP.dat'],'r');
-todos = fread(fid,'*char');
-[ODP.x ODP.y zz ODP.leg ODP.site ODP.z ODP.penetration] = strread(todos,'%f %f %s %s %s %s %s');
-fclose(fid);    clear todos zz
+	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
+	set(handles.figure1,'pointer','watch')
+	fid = fopen([handles.path_data 'DSDP_ODP.dat'],'r');
+	todos = fread(fid,'*char');
+	[ODP.x ODP.y zz ODP.leg ODP.site ODP.z ODP.penetration] = strread(todos,'%f %f %s %s %s %s %s');
+	fclose(fid);    clear todos zz
+    [tmp, msg] = geog2projected_pts(handles,[ODP.x ODP.y]);   % If map in geogs, tmp is just a copy of input
+    if (~strncmp(msg,'0',1))        % Coords were projected
+        ODP.x = tmp(:,1);      ODP.y = tmp(:,2);
+    end
 
-% Get rid of Sites that are outside the map limits
-[ODP.x,ODP.y,indx,indy] = aux_funs('in_map_region',handles,ODP.x,ODP.y,0,[]);
+	% Get rid of Sites that are outside the map limits
+	[ODP.x,ODP.y,indx,indy] = aux_funs('in_map_region',handles,ODP.x,ODP.y,0,[]);
+	ODP.leg(indx) = [];     ODP.site(indx) = [];    ODP.z(indx) = [];   ODP.penetration(indx) = [];
+	ODP.leg(indy) = [];     ODP.site(indy) = [];    ODP.z(indy) = [];   ODP.penetration(indy) = [];
+	
+	% If there no sites left, return
+	if isempty(ODP.x)
+        set(handles.figure1,'pointer','arrow');
+        msgbox('Warning: There are no sites inside this area.','Warning');    return;
+	end
+	
+	% Find where in file is the separation of DSDP from ODP legs
+	ind = find(str2double(ODP.leg) >= 100);
+	if ~isempty(ind),   ind = ind(1);   end
+	if (strcmp(opt,'ODP'))      % If only ODP sites were asked remove DSDP from data structure
+        ODP.x(1:ind-1) = [];    ODP.y(1:ind-1) = [];    ODP.z(1:ind-1) = [];
+        ODP.leg(1:ind-1) = [];  ODP.site(1:ind-1) = []; ODP.penetration(1:ind-1) = [];
+	elseif (strcmp(opt,'DSDP'))
+        ODP.x(ind:end) = [];    ODP.y(ind:end) = [];    ODP.z(ind:end) = [];
+        ODP.leg(ind:end) = [];  ODP.site(ind:end) = []; ODP.penetration(ind:end) = [];
+	end
 
-ODP.leg(indx) = [];     ODP.site(indx) = [];    ODP.z(indx) = [];   ODP.penetration(indx) = [];
-ODP.leg(indy) = [];     ODP.site(indy) = [];    ODP.z(indy) = [];   ODP.penetration(indy) = [];
-
-% If there no sites left, return
-if isempty(ODP.x)
-    set(handles.figure1,'pointer','arrow');    msgbox('Warning: There are no sites inside this area.','Warning');    return;
-end
-
-% Find where in file is the separation of DSDP from ODP legs
-ind = find(str2double(ODP.leg) >= 100);
-if ~isempty(ind),   ind = ind(1);   end
-if (strcmp(opt,'ODP'))      % If only ODP sites were asked remove DSDP from data structure
-    ODP.x(1:ind-1) = [];    ODP.y(1:ind-1) = [];    ODP.z(1:ind-1) = [];
-    ODP.leg(1:ind-1) = [];  ODP.site(1:ind-1) = []; ODP.penetration(1:ind-1) = [];
-elseif (strcmp(opt,'DSDP'))
-    ODP.x(ind:end) = [];    ODP.y(ind:end) = [];    ODP.z(ind:end) = [];
-    ODP.leg(ind:end) = [];  ODP.site(ind:end) = []; ODP.penetration(ind:end) = [];
-end
-
-n_sites = length(ODP.x);    h_sites = zeros(n_sites,1);
-if (strcmp(opt,'DSDP'))
-    if (n_sites == 0)           % If there are no sites, give a warning and exit
-        set(handles.figure1,'pointer','arrow');        msgbox('Warning: There are no DSDP sites inside this area.','Warning');    return;
-    end
-    for i = 1:n_sites
-        h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','g',...
-            'MarkerEdgeColor','k','MarkerSize',8,'Tag','DSDP','Userdata',i);
-    end
-    draw_funs(h_sites,'ODP',ODP)
-elseif (strcmp(opt,'ODP'))
-    if (n_sites == 0)           % If there are no sites, give a warning and exit
-        set(handles.figure1,'pointer','arrow');        msgbox('Warning: There are no ODP sites inside this area.','Warning');    return;
-    end
-    for i = 1:n_sites
-        h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','r',...
-            'MarkerEdgeColor','k','MarkerSize',8,'Tag','ODP','Userdata',i);
-    end
-    draw_funs(h_sites,'ODP',ODP)
-else
-    h_sites = zeros(length(1:ind-1),1);
-    for i = 1:ind-1
-        h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','g',...
-            'MarkerEdgeColor','k','MarkerSize',8,'Tag','DSDP','Userdata',i);
-    end
-    draw_funs(h_sites,'ODP',ODP)
-    h_sites = zeros(length(ind:n_sites),1);
-    for (i = 1:length(ind:n_sites))
-        j = i + ind - 1;
-        h_sites(i) = line('XData',ODP.x(j),'YData',ODP.y(j),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','r',...
-            'MarkerEdgeColor','k','MarkerSize',8,'Tag','ODP','Userdata',j);
-    end
-    draw_funs(h_sites,'ODP',ODP)
-end
-set(handles.figure1,'pointer','arrow')
+	n_sites = length(ODP.x);    h_sites = zeros(n_sites,1);
+	if (strcmp(opt,'DSDP'))
+        if (n_sites == 0)           % If there are no sites, give a warning and exit
+            set(handles.figure1,'pointer','arrow');
+            msgbox('Warning: There are no DSDP sites inside this area.','Warning');    return;
+        end
+        for i = 1:n_sites
+            h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','g',...
+                'MarkerEdgeColor','k','MarkerSize',8,'Tag','DSDP','Userdata',i);
+        end
+        draw_funs(h_sites,'ODP',ODP)
+	elseif (strcmp(opt,'ODP'))
+        if (n_sites == 0)           % If there are no sites, give a warning and exit
+            set(handles.figure1,'pointer','arrow');
+            msgbox('Warning: There are no ODP sites inside this area.','Warning');    return;
+        end
+        for i = 1:n_sites
+            h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','r',...
+                'MarkerEdgeColor','k','MarkerSize',8,'Tag','ODP','Userdata',i);
+        end
+        draw_funs(h_sites,'ODP',ODP)
+	else
+        h_sites = zeros(length(1:ind-1),1);
+        for i = 1:ind-1
+            h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','g',...
+                'MarkerEdgeColor','k','MarkerSize',8,'Tag','DSDP','Userdata',i);
+        end
+        draw_funs(h_sites,'ODP',ODP)
+        h_sites = zeros(length(ind:n_sites),1);
+        for (i = 1:length(ind:n_sites))
+            j = i + ind - 1;
+            h_sites(i) = line('XData',ODP.x(j),'YData',ODP.y(j),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','r',...
+                'MarkerEdgeColor','k','MarkerSize',8,'Tag','ODP','Userdata',j);
+        end
+        draw_funs(h_sites,'ODP',ODP)
+	end
+	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function scaledSymbols(handles, fname)
@@ -682,7 +752,7 @@ function scaledSymbols(handles, fname)
 [bin,n_column,multi_seg,n_headers] = guess_file(fname);
 if (n_column == 1 && multi_seg == 0)        % Take it as a file names list
     fid = fopen(fname);
-    c = char(fread(fid))';      fclose(fid);
+    c = fread(fid,'*char')';      fclose(fid);
     names = strread(c,'%s','delimiter','\n');   clear c fid;
 else
     names = {fname};
@@ -696,6 +766,7 @@ if (n_column > 1 && multi_seg == 0)     % Since no multi-segs control will be gi
 end
 
 tol = 0.5;
+do_project = false;     % We'll estimate below if this holds true
 
 if (handles.no_file)        % Start empty but below we'll find the true data region
     XMin = 1e50;            XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
@@ -706,7 +777,7 @@ if (handles.no_file)        % Start empty but below we'll find the true data reg
         %if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well
         % No caso acima tenho que testar se o fiche existe
         [numeric_data,multi_segs_str] = text_read(fname,NaN,n_headers,'>');
-		for i=1:length(numeric_data)
+        for i=1:length(numeric_data)
             tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
             XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
             YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
@@ -718,6 +789,9 @@ if (handles.no_file)        % Start empty but below we'll find the true data reg
 else                        % Reading over an established region
     XYlim = getappdata(handles.figure1,'ThisImageLims');
     xx = XYlim(1:2);            yy = XYlim(3:4);
+    if (handles.is_projected && handles.defCoordsIn > 0)
+        do_project = true;
+    end
 end
 
 for (k=1:length(names))
@@ -729,6 +803,9 @@ for (k=1:length(names))
 	n_segments = length(numeric_data);
 	n_clear = false(n_segments,1);
 	for i=1:n_segments
+        if (do_project)         % We need to project
+            numeric_data{i} = geog2projected_pts(handles,numeric_data{i});
+        end
         % Get rid of points that are outside the map limits
         [tmpx,tmpy,indx,indy] = aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
         if (isempty(tmpx)),     n_clear(i) = 1;     continue;   end     % Store indexes for clearing vanished segments info
@@ -761,13 +838,13 @@ for (k=1:length(names))
         if (size(numeric_data{i},2) > 2)        % We have a 3rd column with Z
             z = numeric_data{i}(:,3);
             z(indx) = [];       z(indy) = [];
-            for k=1:numel(tmpx)
-                h(k) = line('XData',tmpx,'YData',tmpy,'ZData',z,'Parent',handles.axes1,'LineWidth',thick,'Tag',tag,...
+            for kk=1:numel(tmpx)
+                h(kk) = line('XData',tmpx,'YData',tmpy,'ZData',z,'Parent',handles.axes1,'LineWidth',thick,'Tag',tag,...
                     'Marker',symbol,'Color',corW,'MarkerFaceColor',corFill,'MarkerSize',dim,'LineStyle','none');
             end
         else
-            for k=1:numel(tmpx)
-                h(k) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'LineWidth',thick,'Tag',tag,...
+            for kk=1:numel(tmpx)
+                h(kk) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'LineWidth',thick,'Tag',tag,...
                     'Marker',symbol,'Color',corW,'MarkerFaceColor',corFill,'MarkerSize',dim,'LineStyle','none');
             end
         end
