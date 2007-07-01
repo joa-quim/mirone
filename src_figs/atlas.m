@@ -23,237 +23,222 @@ atlas_LayoutFcn(hObject,handles);
 handles = guihandles(hObject);
 movegui(hObject,'center');
  
-if ~isempty(varargin)
-    if (~varargin{1}.geog && ~varargin{1}.no_file)   % If a file is loaded and is not geog
-        errordlg('This operation is currently possible only for geographic type data','Error');
-        delete(hObject)
-        return;
+	if (isempty(varargin))
+        delete(hObject);        return
+	end
+
+    handMir = varargin{1};
+    projGMT = getappdata(handMir.figure1,'ProjGMT');
+    projWKT = getappdata(handMir.axes1,'ProjWKT');
+    if (isempty(projGMT) && isempty(projWKT) && ~handMir.geog)
+        errordlg('This operation is only possible for geographic data OR when the Map Projection is known','ERROR')
+        delete(hObject);    return
     end
 
-    handles.mirone_fig = varargin{1}.figure1;
-    handles.MironeAxes = varargin{1}.axes1;
-    handles.h_calling_lims = [get(handles.MironeAxes,'Xlim') get(handles.MironeAxes,'Ylim')];
-else
-    delete(hObject)
-    return
-end
+    handles.mirone_fig = handMir.figure1;
+    handles.mironeAxes = handMir.axes1;
+    handles.is_projected = handMir.is_projected;
+    handles.d_path = handMir.path_data;
+    handles_fake.figure1 = handles.mirone_fig;              % Create a fake handles only for
+    handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
+    handles.handles_fake = handles_fake;
+    handles.h_calling_lims = getappdata(handles.mironeAxes,'ThisImageLims');
+    if (isempty(handles.h_calling_lims))
+        handles.h_calling_lims = [get(handles.mironeAxes,'Xlim') get(handles.mironeAxes,'Ylim')];
+        handles.CeateBG = 1;
+    end
 
-handles.d_path = varargin{1}.path_data;
+	if (isequal(handles.h_calling_lims,[0 1 0 1]))
+        handles.CeateBG = 1;
+	else
+        handles.CeateBG = 0;
+	end
 
-if (isequal(handles.h_calling_lims,[0 1 0 1]))
-    handles.CeateBG = 1;
-else
-    handles.CeateBG = 0;
-end
+	handles.minArea = 0;
+	handles.fontSize = 10;
+	handles.colors = 1;
+	handles.transparency = 0;
+	handles.atlas_file = [handles.d_path 'countries_dp5.bin'];
+	handles.continents = {'All'};
+	handles.atlas = {'All'};
+	handles.got_uisetfont = 0;
+	
+	tmp = dir([handles.d_path filesep 'countries*.bin']);
+	if (length(tmp) == 2)
+        set(handles.popup_resolution,'String',{'lower' 'higher'})
+	else
+        set(handles.popup_resolution,'String','lower')
+	end
 
-handles.minArea = 0;
-handles.fontSize = 10;
-handles.colors = 1;
-handles.transparency = 0;
-handles.atlas_file = [handles.d_path 'countries_dp5.bin'];
-handles.continents = {'All'};
-handles.atlas = {'All'};
-handles.got_uisetfont = 0;
-
-tmp = dir([handles.d_path filesep 'countries*.bin']);
-if (length(tmp) == 2)
-    set(handles.popup_resolution,'String',{'lower' 'higher'})
-else
-    set(handles.popup_resolution,'String','lower')
-end
-
-% if (exist([handles.d_path 'countries.bin']) == 2)       % See if user has the high deffinition file
-%     set(handles.popup_resolution,'String',{'lower' 'higher'})
-% else
-%     set(handles.popup_resolution,'String','lower')
-% end
-
-% It should be a better solution, but for know I have to read from atlas_export.h
-%file = textread([pwd filesep 'mex' filesep 'countries.h'],'%s','delimiter','\n','whitespace','');
-file = dataread('file',[pwd filesep 'mex' filesep 'countries.h'],'%s','delimiter','\n','whitespace','');
-res=findcell('*continent_list',file);
-tmp = cell(9,1);
-tmp {1} = '';
-tmp {2} = 'All';
-m = 2;
-for (k=res.cn+1:res.cn+7)
-    tmp{m+1} = file{k}(3:end-2);
-    m = m + 1;
-end
-set(handles.listbox_continents,'String',tmp,'Value',2)
-
-% Now fill the atlas_export list box
-res=findcell('*country_list',file);
-n_to_read = length(file) - res.cn;
-tmp = cell(n_to_read,1);
-tmp {1} = '';
-tmp {2} = 'All';
-m = 2;
-for (k=res.cn+1:res.cn+n_to_read-1)
-    tmp{m+1} = file{k}(3:end-2);
-    m = m + 1;
-end
-set(handles.listbox_allCountries,'String',tmp,'Value',2)
-
-
-% Choose default command line output for atlas_export
-handles.output = hObject;
-guidata(hObject, handles);
-
-% UIWAIT makes atlas_export wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
-set(hObject,'Visible','on');
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = atlas_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = atlas_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-% delete(handles.figure1)
+	% It should be a better solution, but for know I have to read from atlas_export.h
+	%file = textread([pwd filesep 'mex' filesep 'countries.h'],'%s','delimiter','\n','whitespace','');
+	file = dataread('file',[pwd filesep 'mex' filesep 'countries.h'],'%s','delimiter','\n','whitespace','');
+	res=findcell('*continent_list',file);
+	tmp = cell(9,1);
+	tmp {1} = '';
+	tmp {2} = 'All';
+	m = 2;
+	for (k=res.cn+1:res.cn+7)
+        tmp{m+1} = file{k}(3:end-2);
+        m = m + 1;
+	end
+	set(handles.listbox_continents,'String',tmp,'Value',2)
+	
+	% Now fill the atlas_export list box
+	res=findcell('*country_list',file);
+	n_to_read = length(file) - res.cn;
+	tmp = cell(n_to_read,1);
+	tmp {1} = '';
+	tmp {2} = 'All';
+	m = 2;
+	for (k=res.cn+1:res.cn+n_to_read-1)
+        tmp{m+1} = file{k}(3:end-2);
+        m = m + 1;
+	end
+	set(handles.listbox_allCountries,'String',tmp,'Value',2)
+    
+	set(hObject,'Visible','on');
+	
+	% Choose default command line output for atlas_export
+	if (nargout),       varargout{1} = hObject;    end
+	guidata(hObject, handles);
 
 % ------------------------------------------------------------------------------
 function listbox_allCountries_Callback(hObject, eventdata, handles)
-% Hints: contents = get(hObject,'String') returns listbox_allCountries contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_allCountries
-contents = get(hObject,'String');
-country = contents{get(hObject,'Value')};
-if (~strcmp(country,'All'))     % Set the continents listbox into a "NULL" selection
-    set(handles.listbox_continents,'Value',1);
-else                            % Set the continents listbox to "All" as well
-    set(handles.listbox_continents,'Value',2);
-end
+	% Hints: contents = get(hObject,'String') returns listbox_allCountries contents as cell array
+	%        contents{get(hObject,'Value')} returns selected item from listbox_allCountries
+	contents = get(hObject,'String');
+	country = contents{get(hObject,'Value')};
+	if (~strcmp(country,'All'))     % Set the continents listbox into a "NULL" selection
+        set(handles.listbox_continents,'Value',1);
+	else                            % Set the continents listbox to "All" as well
+        set(handles.listbox_continents,'Value',2);
+	end
 
 % ------------------------------------------------------------------------------
 function listbox_continents_Callback(hObject, eventdata, handles)
-contents = get(hObject,'String');
-continent = contents{get(hObject,'Value')};
-if (~strcmp(continent,'All'))   % Set the atlas listbox into a "NULL" selection
-    set(handles.listbox_allCountries,'Value',1);
-else                            % Set the atlas listbox to "All" as well
-    set(handles.listbox_allCountries,'Value',2);
-end
+	contents = get(hObject,'String');
+	continent = contents{get(hObject,'Value')};
+	if (~strcmp(continent,'All'))   % Set the atlas listbox into a "NULL" selection
+        set(handles.listbox_allCountries,'Value',1);
+	else                            % Set the atlas listbox to "All" as well
+        set(handles.listbox_allCountries,'Value',2);
+	end
 
 % ------------------------------------------------------------------------------
 function popup_resolution_Callback(hObject, eventdata, handles)
-contents = get(hObject,'String');
-if (strcmp(contents{get(hObject,'Value')},'lower'))
-    handles.atlas_file = [handles.d_path 'countries_dp5.bin'];
-elseif (strcmp(contents{get(hObject,'Value')},'higher'))
-    handles.atlas_file = [handles.d_path 'countries.bin'];
-end
-%handles.atlas_export_file = [handles.d_path contents{get(hObject,'Value')}];
-guidata(hObject,handles)
+	contents = get(hObject,'String');
+	if (strcmp(contents{get(hObject,'Value')},'lower'))
+        handles.atlas_file = [handles.d_path 'countries_dp5.bin'];
+	elseif (strcmp(contents{get(hObject,'Value')},'higher'))
+        handles.atlas_file = [handles.d_path 'countries.bin'];
+	end
+	%handles.atlas_export_file = [handles.d_path contents{get(hObject,'Value')}];
+	guidata(hObject,handles)
 
 % ------------------------------------------------------------------------------
 function edit_minArea_Callback(hObject, eventdata, handles)
-handles.minArea = str2double(get(hObject,'String'));
-if (isnan(handles.minArea) | handles.minArea < 0)
-    set(hObject, 'String','0')
-    handles.minArea = 0;
-end
-guidata(hObject,handles)
+	handles.minArea = str2double(get(hObject,'String'));
+	if (isnan(handles.minArea) | handles.minArea < 0)
+        set(hObject, 'String','0')
+        handles.minArea = 0;
+	end
+	guidata(hObject,handles)
 
 % ------------------------------------------------------------------------------
 function edit_fontSize_Callback(hObject, eventdata, handles)
-handles.fontSize = str2double(get(hObject,'String'));
-if (isnan(handles.fontSize) | handles.fontSize <= 2)
-    set(hObject, 'String','10')
-    handles.fontSize = 10;
-end
-guidata(hObject,handles)
+	handles.fontSize = str2double(get(hObject,'String'));
+	if (isnan(handles.fontSize) | handles.fontSize <= 2)
+        set(hObject, 'String','10')
+        handles.fontSize = 10;
+	end
+	guidata(hObject,handles)
 
 % ------------------------------------------------------------------------------
 function pushbutton_selectFont_Callback(hObject, eventdata, handles)
-handles.Font = uisetfont('Select Font');
-if (~isstruct(handles.Font) & handles.Font == 0)    return;   end
-set(handles.edit_fontSize,'String',num2str(handles.Font.FontSize))
-handles.fontSize = handles.Font.FontSize;
-handles.got_uisetfont = 1;
-guidata(hObject,handles)
+	handles.Font = uisetfont('Select Font');
+	if (~isstruct(handles.Font) & handles.Font == 0)    return;   end
+	set(handles.edit_fontSize,'String',num2str(handles.Font.FontSize))
+	handles.fontSize = handles.Font.FontSize;
+	handles.got_uisetfont = 1;
+	guidata(hObject,handles)
 
 % ------------------------------------------------------------------------------
 function slider_transparency_Callback(hObject, eventdata, handles)
-handles.transparency = get(hObject,'Value');
-set(handles.text_Transparency,'String',['Transparency = ' num2str(handles.transparency) ' %'])
-guidata(hObject,handles)
+	handles.transparency = get(hObject,'Value');
+	set(handles.text_Transparency,'String',['Transparency = ' num2str(handles.transparency) ' %'])
+	guidata(hObject,handles)
 
 % ------------------------------------------------------------------------------
 function checkbox_plotNames_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.edit_fontSize,'Enable','on')
-    set(handles.pushbutton_selectFont,'Enable','on')
-else
-    set(handles.edit_fontSize,'Enable','off')
-    set(handles.pushbutton_selectFont,'Enable','off')
-end
+	if (get(hObject,'Value'))
+        set(handles.edit_fontSize,'Enable','on')
+        set(handles.pushbutton_selectFont,'Enable','on')
+	else
+        set(handles.edit_fontSize,'Enable','off')
+        set(handles.pushbutton_selectFont,'Enable','off')
+	end
 
 % ------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
-list_v = get(handles.listbox_continents,'Value');
-list_s = get(handles.listbox_continents,'String');
-continents = list_s(list_v);
+	list_v = get(handles.listbox_continents,'Value');
+	list_s = get(handles.listbox_continents,'String');
+	continents = list_s(list_v);
+	
+	list_v = get(handles.listbox_allCountries,'Value');
+	list_s = get(handles.listbox_allCountries,'String');
+	atlas = list_s(list_v);
+	% [h_p, h_t] = my_worldmap([lon(1) lon(2)],[lat(1) lat(2)],'patch');
+	
+	if (handles.CeateBG)   % We DO NOT have a background to plot. It must be created later
+        opt_R = ' ';
+	else                         % We have a background map where to plot
+        opt_R = ['-R' sprintf('%f/%f/%f/%f',handles.h_calling_lims(1:4))];
+	end
+	
+	if (strcmp(atlas{1},'All') | strcmp(continents{1},'All'))     % Required to plot all atlas (well, the ones who fit in)
+            opt_P = ' ';
+            opt_T = ' ';
+	else
+        if (~strcmp(continents{1},'All') & ~strcmp(continents{1},'')) % If a continent was selected
+            opt_T = ['-T' continents{1}];
+            opt_P = ' ';
+        else                                % A country was selected
+            opt_P = ['-P' atlas{1}];
+            opt_T = ' ';
+        end
+	end
+	paises.ct = country_select(handles.atlas_file,opt_R,opt_P,opt_T,['-A' num2str(handles.minArea)]);
 
-list_v = get(handles.listbox_allCountries,'Value');
-list_s = get(handles.listbox_allCountries,'String');
-atlas = list_s(list_v);
-% [h_p, h_t] = my_worldmap([lon(1) lon(2)],[lat(1) lat(2)],'patch');
+	% Clean up the empty fields in the ct struct (given I could not do it at mex level)
+	id = false(length(paises.ct),1);
+	for (k = 1:length(paises.ct))
+        if (isempty(paises.ct(k).Country)),     id(k) = true;    end
+	end
+	paises.ct(id) = [];
+	
+	if (isempty(paises.ct))
+        warndlg('There is nothing to plot inside this region','Warning')
+        return
+	end
+	
+	handles.transparency = handles.transparency / 100;
+	
+	% See if user wants country names
+	if (get(handles.checkbox_plotNames,'Value'))
+        handles.plot_fontSize = handles.fontSize;
+	else
+        handles.plot_fontSize = [];
+	end
+	
+	% See if user wants uicontexts
+	if (get(handles.checkbox_setUicontrols,'Value'))
+        handles.uicontrols = 1;
+	else
+        handles.uicontrols = 0;
+	end
 
-if (handles.CeateBG)   % We DO NOT have a background to plot. It must be created later
-    opt_R = ' ';
-else                         % We have a background map where to plot
-    opt_R = ['-R' num2str(handles.h_calling_lims(1),'%.5f') '/' num2str(handles.h_calling_lims(2),'%.5f') '/' ...
-            num2str(handles.h_calling_lims(3),'%.5f') '/' num2str(handles.h_calling_lims(4),'%.5f')];
-end
-
-if (strcmp(atlas{1},'All') | strcmp(continents{1},'All'))     % Required to plot all atlas (well, the ones who fit in)
-        opt_P = ' ';
-        opt_T = ' ';
-else
-    if (~strcmp(continents{1},'All') & ~strcmp(continents{1},'')) % If a continent was selected
-        opt_T = ['-T' continents{1}];
-        opt_P = ' ';
-    else                                % A country was selected
-        opt_P = ['-P' atlas{1}];
-        opt_T = ' ';
-    end
-end
-paises.ct = country_select(handles.atlas_file,opt_R,opt_P,opt_T,['-A' num2str(handles.minArea)]);
-
-% Clean up the empty fields in the ct struct (given I could not do it at mex level)
-id = logical(zeros(length(paises.ct),1));
-for (k = 1:length(paises.ct))
-    if (isempty(paises.ct(k).Country))        id(k) = 1;    end
-end
-paises.ct(id) = [];
-
-if (isempty(paises.ct))
-    warndlg('There is nothing to plot inside this region','Warning')
-    return
-end
-
-handles.transparency = handles.transparency / 100;
-
-% See if user wants country names
-if (get(handles.checkbox_plotNames,'Value'))
-    handles.plot_fontSize = handles.fontSize;
-else
-    handles.plot_fontSize = [];
-end
-
-% See if user wants uicontexts
-if (get(handles.checkbox_setUicontrols,'Value'))
-    handles.uicontrols = 1;
-else
-    handles.uicontrols = 0;
-end
-
-handles.projection = 0;
+    handles.projection = 0;
 
 if (handles.CeateBG)    % Find out the limits off all polygons
     min_x = 1e20;    max_x = -1e20;    min_y = min_x;   max_y = max_x;
@@ -330,31 +315,34 @@ else                                no_alfa = 0;    alfa = handles.transparency;
 if (handles.CeateBG)      % Yes
     region = [handles.region 1];
     if (abs(region(2) - region(1)) > 360 || abs(region(4) - region(3)) > 180),   region(5) = 0;   end
-    % Hide this figure handles in order that the new axes will created in Mirone's fig
-    set(handles.figure1,'HandleVisibility','off')
     mirone('FileNewBgFrame_CB',handles.mirone_fig,[],guidata(handles.mirone_fig), region)
-    % Only now the axes exists, get its handle
-    handles.MironeAxes = get(handles.mirone_fig,'CurrentAxes');
-    set(handles.figure1,'HandleVisibility','on')    % Reset
 end
 
 setappdata(handles.mirone_fig,'AtlasResolution',handles.atlas_file);    % Save this for use in write_gmt_script
     
-axes(handles.MironeAxes)       % Make Mirone axes active here
+axes(handles.mironeAxes)       % Make Mirone axes active here
 
 for (k = 1:length(paises.ct))
     id = find(isnan(paises.ct(k).Country(1,:)));
-    h = zeros(length(id),1);
-    for (m=1:length(id))
+    h = zeros(numel(id),1);
+    for (m=1:numel(id))
         if (m == 1)     ini = 1;
         else            ini = id(m-1)+1;    end
         fim = id(m)-1;
         xx = paises.ct(k).Country(1,ini:fim);
         yy = paises.ct(k).Country(2,ini:fim);
+        
+        if (handles.is_projected)        % We need a proj job here
+            [tmp, msg] = geog2projected_pts(handles.handles_fake,[xx; yy]', handles.h_calling_lims);
+            xx = tmp(:,1);           yy = tmp(:,2);
+        end
+        
         if (no_alfa)
-            h(m) = patch('XData',xx,'YData', yy,'FaceColor',pcm(k,:),'Tag','Atlas','UserData',paises.ct(k).Tag);
+            h(m) = patch('Parent',handles.mironeAxes,'XData',xx,'YData', yy,'FaceColor',pcm(k,:), ...
+                'Tag','Atlas','UserData',paises.ct(k).Tag);
         else
-            h(m) = patch('XData',xx,'YData', yy,'FaceColor',pcm(k,:),'FaceAlpha',alfa,'Tag','Atlas','UserData',paises.ct(k).Tag);
+            h(m) = patch('Parent',handles.mironeAxes,'XData',xx,'YData', yy,'FaceColor',pcm(k,:), ...
+                'FaceAlpha',alfa,'Tag','Atlas','UserData',paises.ct(k).Tag);
         end
     end
     if (handles.uicontrols)           % Set patch's uicontextmenu
@@ -366,11 +354,17 @@ if (~isempty(handles.plot_fontSize))
 	for (k = 1:length(paises.ct))
         str = strrep(paises.ct(k).Tag,'_',' ');
         str(1) = upper(str(1));
+        xx = paises.ct(k).Centroide(1);
+        yy = paises.ct(k).Centroide(2);
+        if (handles.is_projected)        % We need a proj job here
+            [tmp, msg] = geog2projected_pts(handles.handles_fake,[xx yy], handles.h_calling_lims);
+            xx = tmp(:,1);           yy = tmp(:,2);
+        end
         if (~handles.got_uisetfont)
-            h = text(paises.ct(k).Centroide(1),paises.ct(k).Centroide(2),str,'HorizontalAlignment','center', ...
-                'FontSize',handles.plot_fontSize,'FontWeight','bold');
+            h = text('Parent',handles.mironeAxes, 'Position',[xx, yy], 'String',str, ...
+                'HorizontalAlignment','center', 'FontSize',handles.plot_fontSize,'FontWeight','bold');
         else
-            h = text(paises.ct(k).Centroide(1),paises.ct(k).Centroide(2),str,'HorizontalAlignment','center', ...
+            h = text('Parent',handles.mironeAxes, 'Position',[xx, yy], 'String',str, 'HorizontalAlignment','center', ...
                 'FontSize',handles.Font.FontSize,'FontWeight',handles.Font.FontWeight,'FontAngle',handles.Font.FontAngle,...
                 'FontName',handles.Font.FontName,'FontUnits',handles.Font.FontUnits);
         end
