@@ -44,6 +44,7 @@
  *	 
  *		04/06/06 J Luis, Updated to compile with version 4.1.3
  *		14/10/06 J Luis, Now includes the memory leak solving solution
+ *		02/07/07 J Luis, Fixed Bug on the "head[3]" return value
  */
 
 #include "gmt.h"
@@ -573,7 +574,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (inverse) {
 		head_o[0] = g_head.x_min;		head_o[1] = g_head.x_max;
-		head_o[2] = g_head.y_min;		head[3] = g_head.y_max;
+		head_o[2] = g_head.y_min;		head_o[3] = g_head.y_max;
 		head_o[4] = 0;				head_o[5] = 0;
 		head_o[6] = offset;
 		head_o[7] = g_head.x_inc;		head_o[8] = g_head.y_inc;
