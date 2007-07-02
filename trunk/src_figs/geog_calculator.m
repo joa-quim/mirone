@@ -842,7 +842,7 @@ end
 % If we got an error, return here
 if (~isempty(msg_err)),   return;   end
 
-opt_R = ['-R' num2str(x_min) '/' num2str(x_max) '/' num2str(y_min) '/' num2str(y_max)];
+opt_R = ['-R' sprintf('%.12f/%.12f/%.12f/%.12f',x_min,x_max,y_min,y_max)];
 
 % Check if we have a MAP_SCALE_FACTOR
 if (~isempty(handles.map_scale_factor_right))
@@ -873,6 +873,7 @@ end
 if (length(opt_A) > 2),      opt_mpF = ['-F' opt_A(3)];  % mapproject option -F
 else                        opt_mpF = '-F';   end
 
+set(handles.figure1,'pointer','watch')
 opt_Rg = '-R-180/180/0/80';       opt_I = '';
 if (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
     % More complicated. To go from one projection to other we have to pass by geogs.
@@ -881,10 +882,16 @@ if (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
     % First apply the trick to get a good estimation of -R
     if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
     tmp = mapproject_m([x_c y_c], opt_J, opt_Rg, opt_SF, opt_C, opt_mpF, '-I');
-    opt_R = ['-R' num2str(tmp(1)-1) '/' num2str(tmp(1)+1) '/' ...
-            num2str(tmp(2)-1) '/' num2str(tmp(2)+1)];
+    opt_R = ['-R' num2str(tmp(1)-1) '/' num2str(tmp(1)+1) '/' num2str(tmp(2)-1) '/' num2str(tmp(2)+1)];
+    
+    % Now find the exact lims in geogs
+    tmp = mapproject_m([x_min y_min; x_max y_max], opt_J, opt_R, opt_SF, opt_C, opt_mpF, '-I');
+    opt_R = ['-R' sprintf('%.12f/%.12f/%.12f/%.12f',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2))];
+    
+    % Convert to Geogs
     [Z,head] = grdproject_m(handles.gridLeft, handles.gridLeftHead, opt_J, opt_R,...
         opt_SF, opt_C, opt_F, opt_A, opt_N, '-I');
+    
     % And now do a direct conversion to the final destination
     opt_J = handles.projection_right;
     try     % If right value exists, we need it. Otherwise, don't use shifts
@@ -901,6 +908,11 @@ elseif (isempty(handles.projection_right) && ~isempty(handles.projection_left))
     tmp = mapproject_m([x_c y_c], opt_J, opt_Rg, opt_SF, opt_C, opt_mpF, '-I');
     opt_R = ['-R' num2str(tmp(1)-1) '/' num2str(tmp(1)+1) '/' ...
             num2str(tmp(2)-1) '/' num2str(tmp(2)+1)];
+
+    % Now find the exact lims in geogs
+    tmp = mapproject_m([x_min y_min; x_max y_max], opt_J, opt_R, opt_SF, opt_C, opt_mpF, '-I');
+    opt_R = ['-R' sprintf('%.12f/%.12f/%.12f/%.12f',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2))];
+    
     [Z,head] = grdproject_m(handles.gridLeft, handles.gridLeftHead, opt_A, opt_J, opt_R,...
         opt_SF, opt_C, opt_F, opt_N, '-I');
     opt_I = '-I';       % Used to inform Mirone that we came from an inverse transform
@@ -909,9 +921,11 @@ elseif (~isempty(handles.projection_right) && isempty(handles.projection_left))
     opt_J = handles.projection_right;
     [Z,head] = grdproject_m(handles.gridLeft, handles.gridLeftHead, opt_J, opt_R, opt_SF,...
         opt_C, opt_F, opt_A, opt_N);
-else    return;     end;                % Otherwise -> BOOM
-%clear grdproject_m mapproject_m;
+else    
+    return
+end                % Otherwise -> BOOM
 
+set(handles.figure1,'pointer','arrow')
 if (~handles.by_mirone2grid)
 	tit = 'Grid converted by grdproject';
 	fname = get(handles.edit_gridRight,'String');
