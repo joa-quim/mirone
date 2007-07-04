@@ -22,15 +22,16 @@ delete(handles.SaveGMTgrid);    delete(handles.Preferences)
 delete(handles.Print);          delete(handles.DrawText)
 delete(handles.DrawGeogCirc);   delete(handles.DrawLine)
 delete(handles.DrawRect);       delete(handles.DrawPolyg)
-delete(handles.DrawArrow);      delete(handles.Tesoura)
+delete(handles.DrawArrow);      set(handles.Tesoura,'Enable','off') % cannot kill coze test in PanZoom
 delete(handles.ColorPal);       delete(handles.Shading);
-delete(handles.Anaglyph);
+delete(handles.Anaglyph);       delete(handles.toGE)
 delete(handles.MBplaning);      delete(handles.FlederPlanar);
 delete(handles.ImageInfo);      delete(handles.Refresh);
 delete(handles.Image);          delete(handles.Tools)
 delete(handles.Draw);           delete(handles.Geophysics)
 delete(handles.Help);           delete(handles.GridTools)
 %delete(handles.TerrainMod);
+if (ishandle(handles.Projections)),     delete(handles.Projections);   end
 
 % ------------- Cleverer deletion of unwanted uicontrols
 h1 = get(handles.File,'Children');
@@ -118,8 +119,8 @@ movegui(handles.figure1,'north')                        % And reposition it
 set(handles.axes1,'Units','pixels','Tag','axes1')
 %set(handles.axes1,'Pos',[(posFig(3)-axesW-sldT-marg) (posStatusBar(4)+margAnotHor+sldT+5) axesW axesH])
 set(handles.axes1,'Pos',[(posFig(3)-img1W-sldT-marg) (posStatusBar(4)+margAnotHor+sldT+5) img1W axesH])
-xlim = get(handles.axes1,'xlim');        ylim = get(handles.axes1,'ylim');
-setappdata(handles.axes1,'ThisImageLims',[xlim ylim])
+tmp = getappdata(handles.axes1,'ThisImageLims');
+xlim = tmp(1:2);    ylim = tmp(3:4);
 aspectPixeis = img1H / img1W;
 aspectData = dims1(1) / dims1(2);
 if (abs(aspectPixeis - aspectImg) > 1e-3)      % This axes was distorted
@@ -482,7 +483,7 @@ if (nargout == 0)   % Register the image
 % 	[reg,X,Y] = transform_fun('imtransform',get(handles.hSlaveImage,'CData'),trf,...
 %         interpola,'size',size(get(handles.hSlaveImage,'CData')));
 
-    if (handles.image_type == 2)        % Image witout coords
+    if (handles.Mimage_type == 2)        % Master Image without coords
         if (ndims(reg) == 2)
             setappdata(0,'CropedColormap',get(handles.figure1,'Colormap'))
         end
