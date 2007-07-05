@@ -501,9 +501,9 @@ function CoastLines(handles, res)
         errordlg(msg,'ERROR');
         return
     end
-	coast = single(coast');
+	coast = coast';
     
-    if (strncmp(msg,'0',1))     % They are in geogs so we know to to ...
+    if (strncmp(msg,'0',1))     % They are in geogs so we know how to ...
 		% Get rid of data that are outside the map limits
 		lon = lon - [pad -pad];     lat = lat - [pad -pad];
 		indx = (coast(1,:) < lon(1) | coast(1,:) > lon(2));
@@ -511,6 +511,7 @@ function CoastLines(handles, res)
 		indx = (coast(2,:) < lat(1) | coast(2,:) > lat(2));
 		coast(:,indx) = [];
     end
+    coast = single(coast);      % If we do this before the test, single(NaN) screw up. Goog job TMW 
 	
 	if (~all(isnan(coast(:))))
 		h = line('XData',coast(1,:),'YData',coast(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
@@ -554,9 +555,9 @@ function PoliticalBound(handles, type, res)
         errordlg(msg,'ERROR');
         return
     end
-    boundaries = single(boundaries');
+    boundaries = boundaries';
 	
-    if (strncmp(msg,'0',1))     % They are in geogs so we know to to ...
+    if (strncmp(msg,'0',1))     % They are in geogs so we know how to ...
 		% Get rid of data that are outside the map limits
 		lon = lon - [pad -pad];     lat = lat - [pad -pad];
 		indx = (boundaries(1,:) < lon(1) | boundaries(1,:) > lon(2));
@@ -564,6 +565,7 @@ function PoliticalBound(handles, type, res)
 		indx = (boundaries(2,:) < lat(1) | boundaries(2,:) > lat(2));
 		boundaries(:,indx) = [];
     end
+    boundaries = single(boundaries);      % If we do this before the test, single(NaN) screw up. Goog job TMW 
 	
 	if (~all(isnan(boundaries(:))))
 		h = line('XData',boundaries(1,:),'YData',boundaries(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
@@ -611,8 +613,7 @@ function Rivers(handles, type, res)
     	set(handles.figure1,'pointer','arrow')
         errordlg(msg,'ERROR');        return
     end
-    rivers = single(rivers');
-    
+    rivers = rivers';
     
     if (strncmp(msg,'0',1))     % They are in geogs so we know to to ...
 		% Get rid of data that are outside the map limits
@@ -622,6 +623,7 @@ function Rivers(handles, type, res)
 		indx = (rivers(2,:) < lat(1) | rivers(2,:) > lat(2));
 		rivers(:,indx) = [];
     end
+    rivers = single(rivers);      % If we do this before the test, single(NaN) screw up. Goog job TMW 
 	
 	if (~all(isnan(rivers(:))))
 		h = line('XData',rivers(1,:),'YData',rivers(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
