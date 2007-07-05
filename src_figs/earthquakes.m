@@ -75,11 +75,12 @@ movegui(hObject,'east')
 	handles.got_userFile = 0;
 	handles.have_mag_nans = 0;
 	handles.have_dep_nans = 0;
+    handles_fake.figure1 = handles.mirone_fig;              % Create a fake handles only for
+    handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
+    handles_fake.geog = handMir.geog;
+    handles.handles_fake = handles_fake;
 
     if (handles.is_projected && handles.defCoordsIn > 0)        % We need a proj job here
-        handles_fake.figure1 = handles.mirone_fig;              % Create a fake handles only for
-        handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
-        handles.handles_fake = handles_fake;
         tmp = [handles.x_min handles.y_min; handles.x_max handles.y_max];
         lims = [handles.x_min handles.x_max handles.y_min handles.y_max 0 ];
         [tmp, msg] = geog2projected_pts(handles.handles_fake,tmp, lims);
