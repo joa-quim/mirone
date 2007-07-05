@@ -125,6 +125,7 @@ data/t_xtide.mat -text
 data/volcanoes.dat -text
 data/wcity.dat -text
 data/wcity_major.dat -text
+doc/MironeMan.chm -text
 doc/manual.htm -text
 doc/mirone.png -text
 doc/users_manual.pdf -text svneol=unset#unset
