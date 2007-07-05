@@ -65,12 +65,14 @@ movegui(hObject,'center');
             'ISF formated catalog (ascii)';};
 	set(handles.listbox_readFilter,'String',str);
 	set(handles.checkbox_plotDate,'Enable','off')
+
+    handles_fake.figure1 = handles.mirone_fig;              % Create a fake handles only for
+    handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
+    handles_fake.geog = handMir.geog;
+    handles.handles_fake = handles_fake;
     
     % See what about projection 
     if (handles.is_projected && handles.defCoordsIn > 0)        % We need a proj job here
-        handles_fake.figure1 = handles.mirone_fig;              % Create a fake handles only for
-        handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
-        handles.handles_fake = handles_fake;
         tmp = [handles.x_min handles.y_min; handles.x_max handles.y_max];
         lims = [handles.x_min handles.x_max handles.y_min handles.y_max 0];
         [tmp, msg] = geog2projected_pts(handles.handles_fake,tmp, lims);
