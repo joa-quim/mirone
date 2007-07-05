@@ -41,6 +41,7 @@ movegui(hObject,'center');
     handles.d_path = handMir.path_data;
     handles_fake.figure1 = handles.mirone_fig;              % Create a fake handles only for
     handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
+    handles_fake.geog = handMir.geog;
     handles.handles_fake = handles_fake;
     handles.h_calling_lims = getappdata(handles.mironeAxes,'ThisImageLims');
     if (isempty(handles.h_calling_lims))
