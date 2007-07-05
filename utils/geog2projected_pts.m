@@ -46,17 +46,26 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles,xy,lims,pad)
     projGMT = getappdata(handles.figure1,'ProjGMT');
     projWKT = getappdata(handles.axes1,'ProjWKT');
 
+    jump_call = false;
     if (~isempty(projWKT))
         if (isempty(lims) || numel(lims) == 4)      % Projection is from geogs to projWKT
             projStruc.DstProjWKT = projWKT;
+            if (handles.geog)                       % It would be a geog-to-geog proj. Useless 
+                jump_call = true;
+            end
         else                                        % Inverse projection
             projStruc.SrcProjWKT = projWKT;
         end
-        if (size(xy,2) > 3)     % If we have more than 3 columns send only the first 3
-            xy_prj = ogrproj(xy(:,1:3)+0, projStruc);
-            xy_prj = [xy_prj xy(:,4:end)];      % And rebuild
+        if (~jump_call)
+            if (size(xy,2) > 3)     % If we have more than 3 columns send only the first 3
+                xy_prj = ogrproj(xy(:,1:3)+0, projStruc);
+                xy_prj = [xy_prj xy(:,4:end)];      % And rebuild
+            else
+                xy_prj = ogrproj(xy+0, projStruc);
+            end
         else
-            xy_prj = ogrproj(xy+0, projStruc);
+            xy_prj = xy;
+            msg = '0';          % Signal that nothing has been done and output = input
         end
         if (~isempty(lims) && pad ~= 0)
         	% Get rid of data that are outside the map limits
