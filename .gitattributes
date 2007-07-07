@@ -92,6 +92,7 @@ data/PB_polyg.mat -text
 data/PlateBound_PB.m -text
 data/REVEL_poles.dat -text
 data/REVEL_polyg.mat -text
+data/SRSproj_def.txt -text
 data/WorldMapTilled.mat -text
 data/astrolabio.jpg -text
 data/cafe_ico.png -text
