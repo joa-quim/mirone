@@ -35,9 +35,7 @@ movegui(hObject,'center');
         delete(hObject);    return
 	end
         
-    projGMT = getappdata(handMir.figure1,'ProjGMT');
-    projWKT = getappdata(handMir.axes1,'ProjWKT');
-    if (isempty(projGMT) && isempty(projWKT) && ~handMir.geog)
+    if (~handMir.is_projected && ~handMir.geog)
         errordlg('This operation is only possible for geographic data OR when the Map Projection is known','ERROR')
         delete(hObject);    return
     end
