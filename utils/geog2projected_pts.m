@@ -45,16 +45,21 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles,xy,lims,pad)
     % Fish eventual proj strings
     projGMT = getappdata(handles.figure1,'ProjGMT');
     projWKT = getappdata(handles.axes1,'ProjWKT');
+    proj4 = getappdata(handles.axes1,'Proj4');
 
     jump_call = false;
-    if (~isempty(projWKT))
+    if (~isempty(projWKT) || ~isempty(proj4))
+        % In case we have both 'projWKT' takes precedence because it came from file metadata
+        if (~isempty(projWKT)),     theProj = projWKT;
+        else                        theProj = ogrproj(proj4);
+        end
         if (isempty(lims) || numel(lims) == 4)      % Projection is from geogs to projWKT
-            projStruc.DstProjWKT = projWKT;
+            projStruc.DstProjWKT = theProj;
             if (handles.geog)                       % It would be a geog-to-geog proj. Useless 
                 jump_call = true;
             end
         else                                        % Inverse projection
-            projStruc.SrcProjWKT = projWKT;
+            projStruc.SrcProjWKT = theProj;
         end
         if (~jump_call)
             if (size(xy,2) > 3)     % If we have more than 3 columns send only the first 3
