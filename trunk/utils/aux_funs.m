@@ -142,10 +142,7 @@ switch in
             out = {1};
         end
     case 5
-        % Fish eventual proj strings
-        projGMT = getappdata(handles.figure1,'ProjGMT');
-        projWKT = getappdata(handles.axes1,'ProjWKT');
-        if (isempty(projGMT) && isempty(projWKT) && ~handles.geog)
+        if (~handles.is_projected && ~handles.geog)
             msg = 'This operation is only possible for geographic data OR when the Map Projection is known';
             out = {1};            
         end
@@ -165,13 +162,14 @@ function handles = isProj(handles, opt)
     % Fish eventual proj strings
     projGMT = getappdata(handles.figure1,'ProjGMT');
     projWKT = getappdata(handles.axes1,'ProjWKT');
+    proj4 = getappdata(handles.axes1,'Proj4');
     
     if (~handles.geog)
         if (~isempty(projWKT))              % We have a GDAL projected file
             handles.is_projected = 1;
             % Desable the Projections menu.
             if (ishandle(handles.Projections)),     set(handles.Projections,'Enable','off');   end
-        elseif (~isempty(projGMT))          % We have a GMT projection selection
+        elseif (~isempty(projGMT) || ~isempty(proj4))  % We have a GMT or Proj4 projection selection
             handles.is_projected = 1;
             if (ishandle(handles.Projections)),     set(handles.Projections,'Enable','on');   end
         else                                % We know nothing about these coords (e.g. an image)
