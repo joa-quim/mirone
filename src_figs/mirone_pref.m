@@ -22,13 +22,15 @@ mirone_pref_LayoutFcn(hObject,handles);
 handles = guihandles(hObject);
 movegui(hObject,'northwest');
 
-home_dir = pwd;
-handles.d_path = [home_dir filesep 'data' filesep];
+    handMir = varargin{1};
+    home_dir = handMir.home_dir;
+    handles.d_path = handMir.path_data;
+    handles.handMir = handMir;
 
-directory_list = [];
-load([handles.d_path 'mirone_pref.mat']);
-handles.geog = geog;        % Just to not be empty.
-handles.ForceInsitu = 0;    % Just to not be empty.
+	directory_list = [];
+	load([handMir.path_data 'mirone_pref.mat']);
+	handles.geog = geog;        % Just to not be empty.
+	handles.ForceInsitu = 0;    % Just to not be empty.
 
 % The next are new (20-1-07) and therefore we need to wrap it in try because old prefs do not have it yet
 try
@@ -66,12 +68,11 @@ else                                                    % mirone_pref had no dir
     set(handles.popup_directory_list,'String',handles.last_directories)
 end
 
-if (nargin >= 3)                    % That's the case when called from mirone
-    if varargin{1} == 1             % Signals a geographic grid/image
+    if (handMir.geog)             % Signals a geographic grid/image
         set(handles.radiobutton_geog,'Value',1)
         set(handles.radiobutton_cart,'Value',0)
         handles.geog = 1;
-    elseif varargin{1} == 0
+    elseif (handMir.geog == 0)
         set(handles.radiobutton_geog,'Value',0)
         set(handles.radiobutton_cart,'Value',1)
         handles.geog = 0;
@@ -79,10 +80,9 @@ if (nargin >= 3)                    % That's the case when called from mirone
         handles.geog = 1;
     end
     set(handles.edit_GridMaxSize,'String',sprintf('%d',varargin{2}))
-    set(handles.edit_swathRatio,'String',sprintf('%g',varargin{3}))
-    set(handles.checkbox_ForceInsitu,'Value',varargin{4})
-    handles.ForceInsitu = varargin{4};
-end    
+    set(handles.edit_swathRatio,'String',sprintf('%g',handMir.swathRatio))
+    set(handles.checkbox_ForceInsitu,'Value',handMir.ForceInsitu)
+    handles.ForceInsitu = handMir.ForceInsitu;
 
 % Well this is split from the above because it was written later and I don't want to mess
 % with what is working. Wrap in a try-catch because the first time the variables are not
@@ -219,10 +219,13 @@ handles = tabpanelfcn('make_groups',group_name, panel_names, handles, 1);
 handles.output = hObject;
 guidata(hObject, handles);
 set(hObject,'Visible','on');
+
 % UIWAIT makes mirone_pref_export wait for user response (see UIRESUME)
 uiwait(handles.figure1);
-
 handles = guidata(hObject);
+
+% Save the Mirone handles, on the Mirone fig obviously
+guidata(handles.handMir.figure1, handles.handMir)
 out = mirone_pref_OutputFcn(hObject, [], handles);
 varargout{1} = out;
 
@@ -363,39 +366,40 @@ function popup_ellipsoide_Callback(hObject, eventdata, handles)
 
 % ------------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
-Out.geog = handles.geog;
-Out.grdMaxSize = str2double(get(handles.edit_GridMaxSize,'String'));
-Out.swathRatio = str2double(get(handles.edit_swathRatio,'String'));
+handles.handMir.geog = handles.geog;
+handles.handMir.grdMaxSize = str2double(get(handles.edit_GridMaxSize,'String'));
+handles.handMir.swathRatio = str2double(get(handles.edit_swathRatio,'String'));
 directory_list = get(handles.popup_directory_list, 'String');
-Out.last_dir   = directory_list{1};
+handles.handMir.last_dir   = directory_list{1};
+handles.handMir.work_dir   = handles.handMir.last_dir;
 DefLineThick = get(handles.popupmenu_DefLineThickness, 'String');
 DefLineColor = get(handles.popupmenu_DefLineColor, 'String');
-Out.out_in_NewWindow = get(handles.checkbox_NewGrids,'Value');
-Out.saveAsInt16 = get(handles.checkbox_SaveAsInt16,'Value');
-Out.ForceInsitu = handles.ForceInsitu;
-Out.flederPlanar = handles.flederPlanar;        flederPlanar = handles.flederPlanar;
-Out.flederBurn = handles.flederBurn;            flederBurn = handles.flederBurn;
+handles.handMir.out_in_NewWindow = get(handles.checkbox_NewGrids,'Value');
+handles.handMir.saveAsInt16 = get(handles.checkbox_SaveAsInt16,'Value');
+handles.handMir.ForceInsitu = handles.ForceInsitu;
+handles.handMir.flederPlanar = handles.flederPlanar;        flederPlanar = handles.flederPlanar;
+handles.handMir.flederBurn = handles.flederBurn;            flederBurn = handles.flederBurn;
 % Decode the line thickness string into a number
-Out.DefLineThick = str2num(DefLineThick{1}(1));
+handles.handMir.DefLineThick = str2num(DefLineThick{1}(1));
 % Decode the line color string into the corresponding char (e.g. k,w, etc...)
 switch DefLineColor{1}
-    case 'Black',       Out.DefLineColor = 'k';
-    case 'White',       Out.DefLineColor = 'w';
-    case 'Red',         Out.DefLineColor = 'r';
-    case 'Green',       Out.DefLineColor = 'g';
-    case 'Blue',        Out.DefLineColor = 'b';
-    case 'Cyan',        Out.DefLineColor = 'c';
-    case 'Yellow',      Out.DefLineColor = 'y';
-    case 'Magenta',     Out.DefLineColor = 'm';
+    case 'Black',       handles.handMir.DefLineColor = 'k';
+    case 'White',       handles.handMir.DefLineColor = 'w';
+    case 'Red',         handles.handMir.DefLineColor = 'r';
+    case 'Green',       handles.handMir.DefLineColor = 'g';
+    case 'Blue',        handles.handMir.DefLineColor = 'b';
+    case 'Cyan',        handles.handMir.DefLineColor = 'c';
+    case 'Yellow',      handles.handMir.DefLineColor = 'y';
+    case 'Magenta',     handles.handMir.DefLineColor = 'm';
 end
 
 % Decode the Measure units into a char code (e.g n, k, m, u)
 DefineMeasureUnit = get(handles.popup_MeasureUnites, 'String');
 switch DefineMeasureUnit{1}
-    case 'nautic miles',    Out.DefineMeasureUnit = 'n';
-    case 'kilometers',      Out.DefineMeasureUnit = 'k';
-    case 'meters',          Out.DefineMeasureUnit = 'm';
-    case 'user',            Out.DefineMeasureUnit = 'u';
+    case 'nautic miles',    handles.handMir.DefineMeasureUnit = 'n';
+    case 'kilometers',      handles.handMir.DefineMeasureUnit = 'k';
+    case 'meters',          handles.handMir.DefineMeasureUnit = 'm';
+    case 'user',            handles.handMir.DefineMeasureUnit = 'u';
 end
 
 % Decode the Ellipsoide into a var containg a,b,f
@@ -404,24 +408,25 @@ if (handles.geog == 1)
     for i=1:length(handles.ellipsoide)
         switch DefineEllipsoide{1}
             case handles.ellipsoide(i)
-                Out.DefineEllipsoide(1) = handles.ellipsoide{i,2};
-                Out.DefineEllipsoide(2) = handles.ellipsoide{i,3};
-                Out.DefineEllipsoide(3) = handles.ellipsoide{i,4};
+                handles.handMir.DefineEllipsoide(1) = handles.ellipsoide{i,2};
+                handles.handMir.DefineEllipsoide(2) = handles.ellipsoide{i,3};
+                handles.handMir.DefineEllipsoide(3) = handles.ellipsoide{i,4};
         end
     end
 else        % For the time beeing default to WGS-84
-    Out.DefineEllipsoide(1) = handles.ellipsoide{1,2};
-    Out.DefineEllipsoide(2) = handles.ellipsoide{1,3};
-    Out.DefineEllipsoide(3) = handles.ellipsoide{1,4};
+    handles.handMir.DefineEllipsoide(1) = handles.ellipsoide{1,2};
+    handles.handMir.DefineEllipsoide(2) = handles.ellipsoide{1,3};
+    handles.handMir.DefineEllipsoide(3) = handles.ellipsoide{1,4};
 end
 
 fname = [handles.d_path 'mirone_pref.mat'];
 % Save the preferences to a mat file under the data directory
 % Note: for the ellipsoide we save it's parameters (a,b,f) instead of the name
-DefineEllipsoide_params = Out.DefineEllipsoide;    % For saving purposes
-geog = Out.geog;      grdMaxSize = Out.grdMaxSize;    swathRatio = Out.swathRatio;
-out_in_NewWindow = Out.out_in_NewWindow;
-saveAsInt16 = Out.saveAsInt16;
+DefineEllipsoide_params = handles.handMir.DefineEllipsoide;    % For saving purposes
+geog = handles.handMir.geog;      grdMaxSize = handles.handMir.grdMaxSize;
+swathRatio = handles.handMir.swathRatio;
+out_in_NewWindow = handles.handMir.out_in_NewWindow;
+saveAsInt16 = handles.handMir.saveAsInt16;
 %ForceInsitu = handles.ForceInsitu;     % We don't save it because the user must choose it every time
 
 % Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
@@ -439,7 +444,8 @@ else
         'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'out_in_NewWindow',...
         'saveAsInt16', 'flederPlanar', 'flederBurn', '-append', '-v6')
 end
-handles.output = Out;           guidata(hObject,handles)
+handles.output = handles.handMir;
+guidata(hObject,handles)
 uiresume(handles.figure1);
 
 % ------------------------------------------------------------------------------------
