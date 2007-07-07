@@ -2,11 +2,9 @@ function handles = setAxesDefCoordIn(handles)
     % Sets the value of the axes uicontextmenu that selects what will be donne
     % when Loading a file in terms of needing, or not, to project it.
 
-    % Fish eventual proj strings
-    projGMT = getappdata(handles.figure1,'ProjGMT');
-    projWKT = getappdata(handles.axes1,'ProjWKT');
+    handles = guidata(handles.figure1);
 
-    if (~isempty(projWKT) || ~isempty(projGMT))
+    if (handles.is_projected)
         if (~handles.geog)          % Is projected
             set(handles.hAxMenuLF, 'Label', 'Load files in geogs', ...
                 'Call', {@CoordMode_CB,handles.figure1}, 'Vis', 'on', 'Separator','on');
