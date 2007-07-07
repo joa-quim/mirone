@@ -1,9 +1,9 @@
 % --------------------------- PROJECTIONS MENU ------------------------------------
 function projectionMenu(hFig, home_dir)
-    % Creates the Projection Menu from data read from the 'GMTproj_def.txt' file 
+    % Creates the Projection Menu from data read from the 'SRSproj_def.txt' file 
 
     fs = filesep;
-    fid = fopen([home_dir fs 'data' fs 'GMTproj_def.txt']);
+    fid = fopen([home_dir fs 'data' fs 'SRSproj_def.txt']);
     if (fid < 0),   return;     end
 
 	c = (fread(fid,'*char'))';      fclose(fid);
