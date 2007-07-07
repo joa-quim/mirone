@@ -30,46 +30,45 @@ else
 end
 
 function hObject = mirone_OpeningFcn(varargin)
-[hObject,version7,IamCompiled] = mirone_uis;
-handles = guihandles(hObject);
+	% PRAGMA SECTION (It's far far from clear when files must be declared here)
+	%#function uigetfolder_standalone mapproject_m grdproject_m coordinate_system surface_m
+	%#function nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m grdtrack_m grdtrend_m 
+	%#function grdutils scaleto8 waitbar bpass3d inv3d nskew rtp3d syn3d igrf_m
+	%----- These are for okada tsunamis
+	%#function range_change swan tsun2 mansinha_m
+	%----- These are for image
+	%#function grayto8 grayto16 grayxform imfilter_mex imhistc imlincombc parityscan uintlutc ordf
+	%#function imreconstructmex applylutc bwboundariesmex bwlabel1 bwlabel2
+	%----- These are in utils
+	%#function tabpanelfcn degree2dms dms2degree dec2deg dec_year ivan_the_terrible ddewhite string_token
+	%#function test_dms text_read double2ascii save_seismicity jd2date trimpatch
+	%#function run_and_report_error guess_file shading_mat getline_j frame3D histos_seis
+	%----- These is for ecran
+	%#function smoothing_param
+	%----- These is for write_gmt_script
+	%#function draw_scale time_stamp pscoast_options_Mir paint_option w_option
+	%----- Those are ..., the hell with explanations for what I don't realy understand. They are needed, that's all.
+	%#function gmtlist_m country_select read_isf choosebox MagBarCode listbox_message add_poles animate_seismicity
+	%#function get_polygon rot_euler datums telha_m find_clusters fft_stuff select_cols uistack_j 
+	%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j transform_fun iptchecknargin
+	%#function load_defFilters mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line
+	%#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
 
-% PRAGMA SECTION (It's far far from clear when files must be declared here)
-%#function uigetfolder_standalone mapproject_m grdproject_m coordinate_system surface_m
-%#function nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m grdtrack_m grdtrend_m 
-%#function grdutils scaleto8 waitbar bpass3d inv3d nskew rtp3d syn3d igrf_m
-%----- These are for okada tsunamis
-%#function range_change swan tsun2 mansinha_m
-%----- These are for image
-%#function grayto8 grayto16 grayxform imfilter_mex imhistc imlincombc parityscan uintlutc ordf
-%#function imreconstructmex applylutc bwboundariesmex bwlabel1 bwlabel2
-%----- These are in utils
-%#function tabpanelfcn degree2dms dms2degree dec2deg dec_year ivan_the_terrible ddewhite string_token
-%#function test_dms text_read double2ascii save_seismicity jd2date trimpatch
-%#function run_and_report_error guess_file shading_mat getline_j frame3D histos_seis
-%----- These is for ecran
-%#function smoothing_param
-%----- These is for write_gmt_script
-%#function draw_scale time_stamp pscoast_options_Mir paint_option w_option
-%----- Those are ..., the hell with explanations for what I don't realy understand. They are needed, that's all.
-%#function gmtlist_m country_select read_isf choosebox MagBarCode listbox_message add_poles animate_seismicity
-%#function get_polygon rot_euler datums telha_m find_clusters fft_stuff select_cols uistack_j 
-%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j transform_fun iptchecknargin
-%#function load_defFilters mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line
-%#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig
-
-global home_dir;    home_dir = pwd;
-
-if (version7),  pos = get(hObject,'Pos');   set(hObject,'Pos',[pos(1:3) 1]);    end
-movegui(hObject,'north');           % Reposition the window on screen
-set(0,'CurrentFigure',hObject)      % Due to a R2006a incredible BUG
-set(hObject,'Visible','on','HandleVisibility','callback');
+	global home_dir;    home_dir = cd;      fsep = filesep;
+	[hObject,version7,IamCompiled,home_dir] = mirone_uis(home_dir);
+	handles = guihandles(hObject);
+	
+	if (version7),  pos = get(hObject,'Pos');   set(hObject,'Pos',[pos(1:3) 1]);    end
+	movegui(hObject,'north');           % Reposition the window on screen
+	set(0,'CurrentFigure',hObject)      % Due to a R2006a incredible BUG
+	set(hObject,'Visible','on','HandleVisibility','callback');
 
 % The addpath command cannot be compiled, so the paths bellow have be added manually
 % to the matlab path. However, in the distribution version the next line(s) must be
 % uncommented in order that the user doesn't have to know that those need to be added.
-% addpath([home_dir filesep 'src_figs']);
-% addpath([home_dir filesep 'lib_mex']);
-% addpath([home_dir filesep 'utils']);
+% addpath([home_dir fsep 'src_figs']);
+% addpath([home_dir fsep 'lib_mex']);
+% addpath([home_dir fsep 'utils']);
 
 handles.home_dir = home_dir;
 handles.version7 = version7;% If == 1 => R14 or latter
@@ -106,8 +105,8 @@ handles.saveAsInt16 = 0;    % Save gmt grids in the format #8
 handles.Nodata_int16 = [];  % To store Nodata of short int grids
 handles.ForceInsitu = 0;    % Use "insitu" grid importing (transposition)
 handles.DefineEllipsoide = [6378137, 0, 1/298.2572235630];    % Defaults to WGS-84
-handles.path_tmp = [home_dir filesep 'tmp' filesep];
-handles.path_data = [home_dir filesep 'data' filesep];
+handles.path_tmp = [home_dir fsep 'tmp' fsep];
+handles.path_data = [home_dir fsep 'data' fsep];
 handles.last_directories = {handles.path_tmp; home_dir};    % Let it have something existent
 handles.grd_img = [];       % Stupid name which will hold the image handle
 handles.hImg = [];          % New name of the image handle that wiil eventually replace the above one
@@ -117,55 +116,63 @@ handles.flederPlanar = 1;   % Default to planar flder objs (but mirone_pref know
 handles.oldSize = get(hObject,'Pos');  
 if (handles.oldSize(4) == 0),      handles.oldSize(4) = 1;    end
 setappdata(hObject,'VirginSize',handles.oldSize)   % To use inside resizetrue
-
-try     % A file named mirone_pref.mat (under data) contains the preferences, read them from it
-    load([handles.path_data 'mirone_pref.mat']);
-    handles.geog = geog;
-    handles.grdMaxSize = grdMaxSize * 2^20;                     % 2^20 = 1 Mb
-    handles.swathRatio = swathRatio;
-    handles.last_directories = directory_list;
-    handles.DefLineThick = str2double(DefLineThick{1}(1));
-    handles.out_in_NewWindow = out_in_NewWindow;
-    handles.saveAsInt16 = saveAsInt16;
-    % Decode the line color string into the corresponding char (e.g. k,w, etc...)
-    if (strcmp(DefLineColor{1},'Black')),   handles.DefLineColor = 'k';
-    else                                    handles.DefLineColor = lower(DefLineColor{1}(1));   end
-    % Decode the Measure unites into a char code (e.g. n, k, m, u from {'nautical miles' 'kilometers' 'meters' 'user'})
-    handles.DefineMeasureUnit = DefineMeasureUnit{1}(1);
-    handles.DefineEllipsoide = DefineEllipsoide_params;     % Set the default ellipsoide parameters (a,b,f)
-    handles.flederBurn = flederBurn;
-    handles.flederPlanar = flederPlanar;
+handles.is_projected = 0;   % To keep track if coords are projected or not
+handles.defCoordsIn = 0;    % To use when Load files and have to decide if we need to project
+                            % 0 -> don't know; -1 -> Coords are already projected; 1 -> geog coords needing project
+try,    zz = handles.Projections;       % Use a try/catch since isfield is brain-dead long
+catch   handles.Projections = nan;      % Set it to something to prevent "unknown field" error in setAxesDefCoordIn()
 end
+handles.fnameFOpenList{1} = [];
 
-j = false(1,length(handles.last_directories));          % vector for eventual cleaning non-existing dirs
-for (i = 1:length(handles.last_directories))            % Check that all dirs in last_directories exist
-    try         cd(handles.last_directories{i});        % NOTE. I don't use 'exist' anymore because
-    catch       j(i) = 1;       cd(home_dir);           % the stupid compiler allways return something > 0
-    end
-end
-handles.last_directories(j) = [];                       % clean non-existing directories
-cd(home_dir);               % Come back home because it was probably somewhere out there
+	try     % A file named mirone_pref.mat contains the preferences, read them from it
+        load([handles.path_data 'mirone_pref.mat']);
+        handles.geog = geog;
+        handles.grdMaxSize = grdMaxSize * 2^20;                     % 2^20 = 1 Mb
+        handles.swathRatio = swathRatio;
+        handles.last_directories = directory_list;
+        handles.DefLineThick = str2double(DefLineThick{1}(1));
+        handles.out_in_NewWindow = out_in_NewWindow;
+        handles.saveAsInt16 = saveAsInt16;
+        % Decode the line color string into the corresponding char (e.g. k,w, etc...)
+        if (strcmp(DefLineColor{1},'Black')),   handles.DefLineColor = 'k';
+        else                                    handles.DefLineColor = lower(DefLineColor{1}(1));   end
+        % Decode the Measure unites into a char code (e.g. n, k, m, u from {'nautical miles' 'kilometers' 'meters' 'user'})
+        handles.DefineMeasureUnit = DefineMeasureUnit{1}(1);
+        handles.DefineEllipsoide = DefineEllipsoide_params;     % Set the default ellipsoide parameters (a,b,f)
+        handles.flederBurn = flederBurn;
+        handles.flederPlanar = flederPlanar;
+        %handles.fnameFOpenList = fnameFOpenList;
+	end
+	
+	j = false(1,length(handles.last_directories));          % vector for eventual cleaning non-existing dirs
+	for (i = 1:length(handles.last_directories))            % Check that all dirs in last_directories exist
+        try         cd(handles.last_directories{i});        % NOTE. I don't use 'exist' anymore because
+        catch       j(i) = 1;       cd(home_dir);           % the stupid compiler allways return something > 0
+        end
+	end
+	handles.last_directories(j) = [];                       % clean non-existing directories
+	cd(home_dir);               % Come back home because it was probably somewhere out there
 
-if (isempty(handles.last_directories))              % Don't never let it be empty
-    handles.last_directories = {handles.path_tmp; home_dir};    % Let it have something existent
-end
-handles.work_dir = handles.last_directories{1};     %
-handles.last_dir = handles.last_directories{1};     % Initialize last_dir to work_dir
+	if (isempty(handles.last_directories))              % Don't ever let it be empty
+        handles.last_directories = {handles.path_tmp; home_dir};    % Let it have something existent
+	end
+	handles.work_dir = handles.last_directories{1};     %
+	handles.last_dir = handles.last_directories{1};     % Initialize last_dir to work_dir
+	
+	setappdata(hObject,'DefLineThick',handles.DefLineThick)     % Save this for accessability in draw_funs
+	setappdata(hObject,'DefLineColor',handles.DefLineColor)     % Save this for accessability in draw_funs
+	setappdata(hObject,'swathRatio',handles.swathRatio);        % I need this for getline_mb
+	setappdata(hObject,'ValidGrid',0)        % Flag to signal draw_funs that "Crop grid" isn't possible
 
-setappdata(hObject,'DefLineThick',handles.DefLineThick)     % Save this for accessability in draw_funs
-setappdata(hObject,'DefLineColor',handles.DefLineColor)     % Save this for accessability in draw_funs
-setappdata(hObject,'swathRatio',handles.swathRatio);        % I need this for getline_mb
-setappdata(hObject,'ValidGrid',0)        % Flag to signal draw_funs that "Crop grid" isn't possible
-
-% Change the MeasureDistance label to the selected (in prefs) unites
-set(handles.ToolsMeasureDist,'Label',['Distance in ' handles.DefineMeasureUnit])
+	% Change the MeasureDistance label to the selected (in prefs) unites
+	set(handles.ToolsMeasureDist,'Label',['Distance in ' handles.DefineMeasureUnit])
 
 % Detect in which mode Mirone was called
 drv = [];   grd_data_in = 0;    grd_data_interfero_in = 0;  grd_data_deform_in = 0;     win_name = 'Mirone';
 if ~isempty(varargin)
     if (length(varargin) == 1 && ischar(varargin{1}))               % Called with a file name as argument
         [pato, fname, EXT] = fileparts(varargin{1});                % Test to check online command input
-        if (isempty(pato)),     varargin{1} = [handles.home_dir filesep fname EXT];     end
+        if (isempty(pato)),     varargin{1} = [handles.home_dir fsep fname EXT];     end
         drv = aux_funs('findFileType',varargin{1});
     elseif ( isa(varargin{1},'uint8') || isa(varargin{1},'logical') )
         % Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
@@ -188,6 +195,7 @@ if ~isempty(varargin)
         end
         handles = show_image(handles,win_name,X,Y,varargin{1},0,axis_t,handles.head(7),1);
         grid_info(handles,[],'iminfo',varargin{1});         % Contruct a info string
+        handles = aux_funs('isProj',handles);               % Check/set about coordinates type
         if (isa(varargin{1},'logical'))
             set(handles.hImg,'CDataMapping','scaled');   set(handles.figure1,'ColorMap',gray(256));
         end        
@@ -222,27 +230,27 @@ if ~isempty(varargin)
     end
 end
 
-% The following IF cases deal only with cases where a grid was given in argument
-if (grd_data_in || grd_data_interfero_in || grd_data_deform_in)
-    handles.image_type = 1;    handles.computed_grid = 1;      % Signal that this is a computed grid
-    if (grd_data_interfero_in)      % Interferogram grid
-        load([handles.path_data 'gmt_other_palettes.mat'],'circular');
-        pal = circular;
-        zz = uint8(abs(rem(double(Z),cdo)/cdo)*255);
-    else                            % Not an interferogram grid
-        zz = scaleto8(Z);       pal = jet(256);
-    end
-    set(handles.figure1,'Colormap',pal)
-    aux_funs('StoreZ',handles,X,Y,Z)     % If grid size is not to big we'll store it
-    set(hObject, 'Units', 'pixels');    setappdata(hObject,'Zmin_max',handles.head(5:6))
-    aux_funs('colormap_bg',handles,Z,pal);
-    handles = show_image(handles,win_name,X,Y,zz,1,'xy',handles.head(7));
-end
+	% The following IF cases deal only with cases where a grid was given in argument
+	if (grd_data_in || grd_data_interfero_in || grd_data_deform_in)
+        handles.image_type = 1;    handles.computed_grid = 1;      % Signal that this is a computed grid
+        if (grd_data_interfero_in)      % Interferogram grid
+            load([handles.path_data 'gmt_other_palettes.mat'],'circular');
+            pal = circular;
+            zz = uint8(abs(rem(double(Z),cdo)/cdo)*255);
+        else                            % Not an interferogram grid
+            zz = scaleto8(Z);       pal = jet(256);
+        end
+        set(handles.figure1,'Colormap',pal)
+        aux_funs('StoreZ',handles,X,Y,Z)     % If grid size is not to big we'll store it
+        set(hObject, 'Units', 'pixels');    setappdata(hObject,'Zmin_max',handles.head(5:6))
+        aux_funs('colormap_bg',handles,Z,pal);
+        handles = show_image(handles,win_name,X,Y,zz,1,'xy',handles.head(7));
+	end
 
 	%Find out which gmt version is beeing used. 
 	info = getappdata(0,'gmt_version');     % See if the info is already there.
 	if (isempty(info))
-        info = set_gmt(['GMT_USERDIR=' home_dir filesep 'gmt_userdir']);
+        info = set_gmt(['GMT_USERDIR=' home_dir fsep 'gmt_userdir']);
         setappdata(0,'gmt_version',info);   % Save it so that the next time a new mirone window is opened
 	end
     if (info.full ~= 'y')
@@ -267,10 +275,19 @@ end
         set([handles.CoastLineCrude handles.PBCrude handles.RiversCrude], 'Enable','off')
     end
 
-guidata(hObject, handles);  limpa(handles);
-%setappdata(handles.axes1,'ProjWKT',geogWKT)    % The Geog WGS84 string in WKT format
-if (~isempty(drv)),     gateLoadFile(handles,drv,varargin{1});  end
-set(handles.ctrLine, 'Accelerator','l');
+	guidata(hObject, handles);  limpa(handles);
+	if (~isempty(drv))
+        erro = gateLoadFile(handles,drv,varargin{1});
+        if (~erro),     recentFiles(handles,varargin{1});   end
+    end
+	set(handles.ctrLine, 'Accelerator','l');
+
+    set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);        % For projections with GDAL
+    set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
+    set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
+    if (IamCompiled && ispc)
+        set_gmt(['PATH=' home_dir ';' home_dir '\BIN\WIN32;'],' ');
+    end
 
 % --------------------------------------------------------------------------------------------------
 function erro = gateLoadFile(handles,drv,fname)
@@ -288,42 +305,48 @@ function erro = gateLoadFile(handles,drv,fname)
     end
 
 % --------------------------------------------------------------------------------------------------
-function SetAxesNumericType(handles,eventdata,hand1)
-if (nargin == 3)        % This happens when this function was called trough mirone by an
-    handles = hand1;    % an external program. Then hand1 must contain the gcf handles.
-end
-% Save original X & Y labels in appdata for easear access when we want to change them
-h_axes = findobj(handles.figure1,'Type','Axes');
-setappdata(handles.figure1,'XTickOrig',get(h_axes,'XTickLabel'))
-setappdata(handles.figure1,'YTickOrig',get(h_axes,'YTickLabel'))
-set(h_axes, 'FontSize', 9)     % Make this the default
-if (handles.geog),      setappdata(handles.figure1,'LabelFormatType','DegDec')
-else                    setappdata(handles.figure1,'LabelFormatType','NotGeog')
-end
-Parent = get(h_axes,'Parent');
+function recentFiles(handles,fname,opt)
+    return      % Is making blue screens
+    if (nargin == 2)
+        nRecent = numel(handles.fnameFOpenList);
+        for (i=min(nRecent,10):-1:2)
+            handles.fnameFOpenList{i} = handles.fnameFOpenList{i-1};
+        end
+        handles.fnameFOpenList{1} = fname;
+        h = findobj(handles.figure1,'Tag','RecentF');
+        delete(h)
+        for (i=1:nRecent)
+            uimenu('Parent',handles.RecentFiles,'Label',handles.fnameFOpenList{i},'Call',{@openRF,handles,i},'Tag','RecentF')
+        end
+    else
+        handles.fnameFOpenList{1} = [];
+    end
+    guidata(handles.figure1,handles)
 
-figure(handles.figure1)                 % Allways bring main figure to stack's top because of uicontextmenu
-cmenu_axes = uicontextmenu('Parent',Parent);    % Need to set Parent for when Mirone is called from M_GMT
-set(h_axes, 'UIContextMenu', cmenu_axes);
-if (handles.geog)
-    uimenu(cmenu_axes, 'Label', 'Label Format -> DD.xx', 'Callback', 'draw_funs([],''ChangeAxesLabels'',''ToDegDec'')');
-    uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM', 'Callback', 'draw_funs([],''ChangeAxesLabels'',''ToDegMin'')');
-    uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM.xx', 'Callback', 'draw_funs([],''ChangeAxesLabels'',''ToDegMinDec'')');
-    uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM SS', 'Callback', 'draw_funs([],''ChangeAxesLabels'',''ToDegMinSec'')');
-    uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM SS.x', 'Callback', 'draw_funs([],''ChangeAxesLabels'',''ToDegMinSecDec'')');
-end
-itemFS = uimenu(cmenu_axes, 'Label', 'Label Font Size', 'Separator','on');
-uimenu(itemFS, 'Label', '7   pt', 'Callback', 'set(gca, ''FontSize'', 7)');
-uimenu(itemFS, 'Label', '8   pt', 'Callback', 'set(gca, ''FontSize'', 8)');
-uimenu(itemFS, 'Label', '9   pt', 'Callback', 'set(gca, ''FontSize'', 9)');
-uimenu(itemFS, 'Label', '10 pt', 'Callback', 'set(gca, ''FontSize'', 10)');
-uimenu(cmenu_axes, 'Label', 'Grid on/off', 'Callback', 'grid', 'Separator','on');
-if (handles.ValidGrid)
-    uimenu(cmenu_axes, 'Label', 'Pixel mode on/off', 'Callback', {@PixMode_CB,handles.figure1},'Separator','on');
-end
+% --------------------------------------------------------------------------------------------------
+function openRF(obj,event,handles,n)
+    drv = aux_funs('findFileType',handles.fnameFOpenList{n});
+    gateLoadFile(handles,drv,handles.fnameFOpenList{n});
 
-h_warning = findobj('Type','figure','Name','Warning');
-if ~isempty(h_warning),     figure(h_warning);   end     % If a warning message exists, bring it forward
+% --------------------------------------------------------------------------------------------------
+function handles = SetAxesNumericType(handles,eventdata,hand1)
+	if (nargin == 3)        % This happens when this function was called trough mirone by an
+        handles = hand1;    % an external module. Then hand1 must contain the gcf handles.
+	end
+	% Save original X & Y labels in appdata for easear access when we want to change them
+	setappdata(handles.figure1,'XTickOrig',get(handles.axes1,'XTickLabel'))
+	setappdata(handles.figure1,'YTickOrig',get(handles.axes1,'YTickLabel'))
+	set(handles.axes1, 'FontSize', 9)     % Make this the default
+	if (handles.geog),      setappdata(handles.figure1,'LabelFormatType','DegDec')
+	else                    setappdata(handles.figure1,'LabelFormatType','NotGeog')
+	end
+	
+	if (handles.geog),      set(handles.LabFormat, 'Vis', 'on')
+	else                    set(handles.LabFormat, 'Vis', 'off')
+	end
+	if (handles.ValidGrid), set(handles.PixMode, 'Call', {@PixMode_CB,handles.figure1}, 'Vis', 'on')
+	else                    set(handles.PixMode, 'Vis', 'off')
+	end
 
 % --------------------------------------------------------------------
 function PixMode_CB(hObject, eventdata, hFig)
@@ -713,27 +736,13 @@ function zoom_state(handles, state)
 
 % --------------------------------------------------------------------
 function FilePreferences_CB(hObject, eventdata, handles)
-	% mirone_pref deals with sizes in MB, but here we need it in bytes
-	max = fix(handles.grdMaxSize / (2^20));
-	out = mirone_pref(handles.geog, max, handles.swathRatio, handles.ForceInsitu);
-	if isempty(out),    return;     end
-	handles.geog = out.geog;        handles.swathRatio = out.swathRatio;
-	handles.grdMaxSize = out.grdMaxSize * 2^20;
-	handles.work_dir = out.last_dir;        handles.last_dir = out.last_dir;
-	handles.DefLineThick = out.DefLineThick;            % Default line thickness
-	handles.DefLineColor = out.DefLineColor;            % Default line color
-	handles.DefineMeasureUnit = out.DefineMeasureUnit;  % Default measure unit (.'n', .'k', .'m', .'u')
-	handles.DefineEllipsoide = out.DefineEllipsoide;    % Default ellipsoide
-	handles.out_in_NewWindow = out.out_in_NewWindow;    % Choose what to do with new computed grids
-	handles.saveAsInt16 = out.saveAsInt16;
-	handles.ForceInsitu = out.ForceInsitu;
-    handles.flederBurn = out.flederBurn;
-    handles.flederPlanar = out.flederPlanar;
+	max = fix(handles.grdMaxSize / (2^20));     % mirone_pref deals with sizes in MB, but here we need it in bytes
+	handles = mirone_pref(handles, max);
+	if isempty(handles),    return;     end     % User gave up
 	setappdata(handles.figure1,'swathRatio',handles.swathRatio);    % I need this in getline_mb
 	setappdata(handles.figure1,'DefLineThick',handles.DefLineThick)     % Save this for accessability in draw_funs
 	setappdata(handles.figure1,'DefLineColor',handles.DefLineColor)     % Save this for accessability in draw_funs
     set(handles.ToolsMeasureDist,'Label',['Distance in ' handles.DefineMeasureUnit])
-	guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
 function FileNewBgFrame_CB(hObject, eventdata, handles, region, imSize)
@@ -993,7 +1002,7 @@ else                    % Save result on file
 end
 
 % --------------------------------------------------------------------
-function FileOpenBSB_CB(hObject, eventdata, handles)
+function FileOpenBSB_CB(nikles, eventdata, handles)
 	str1 = {'*.kap;*.KAP;*.nos;*NOS', 'BSB Nautical Chart (*.kap,*.KAP,*.nos,*.NOS)'; '*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select BSB Nautical Chart File','get');
 	if isequal(FileName,0);     return;     end
@@ -1011,11 +1020,13 @@ function FileOpenBSB_CB(hObject, eventdata, handles)
 	handles.image_type = 3;
 	set(handles.figure1,'Colormap',pal);
 	aux_funs('cleanGRDappdata',handles);        % Remove eventual grid stuff variables from appdata
-	show_image(handles,handles.fileName,X,Y,Z,0,'xy',1);
-	grid_info(handles,att,'gdal')           % Construct a info message
+	handles = show_image(handles,handles.fileName,X,Y,Z,0,'xy',1);
+	grid_info(handles,att,'gdal')               % Construct a info message
+    aux_funs('isProj',handles,1);               % Check/set about coordinates type
+    setAxesDefCoordIn(handles);                 % Sets the value of the axes uicontextmenu that selects whether project or not
 
 % --------------------------------------------------------------------
-function FileOpen_ENVI_Erdas_CB(hObject, eventdata, handles, opt, opt2)
+function FileOpen_ENVI_Erdas_CB(nikles, eventdata, handles, opt, opt2)
 % This function reads both ENVI or Erdas files. Furthermore, based on the file byte
 % type it guesses if we are dealing with a typical grid file (in which case it is
 % treated like a native gmt grid) or a raster image file.
@@ -1050,7 +1061,8 @@ if (strcmp(att.Band(1).DataType,'Byte') || ~isempty(att.Band(1).ColorMap))     %
     if strcmp(att.ColorInterp,'gray'),          pal = gray(256);
     elseif strcmp(att.ColorInterp,'Palette')
         if (~isempty(att.Band(1).ColorMap)),    pal = att.Band(1).ColorMap.CMap(:,1:3);
-        else                                    pal = jet(256);     end
+        else                                    pal = jet(256);
+        end
     else                                        pal = jet(256);
     end
     aux_funs('cleanGRDappdata',handles);        % Remove eventual grid stuff variables from appdata
@@ -1072,12 +1084,15 @@ else
     aux_funs('colormap_bg',handles,Z,jet(256));
 end
 
-handles.head = head;
-show_image(handles,handles.fileName,X,Y,zz,ValidGrid,'xy',1);
-grid_info(handles,att,'gdal')           % Construct a info message
+    handles.head = head;
+    recentFiles(handles,handles.fileName)                   % Copy candidate to "Recent Files"
+    handles = show_image(handles,handles.fileName,X,Y,zz,ValidGrid,'xy',1);
+    grid_info(handles,att,'gdal')           % Construct a info message
+    aux_funs('isProj',handles,1);               % Check/set about coordinates type
+    setAxesDefCoordIn(handles);                 % Sets the value of the axes uicontextmenu that selects whether project or not
 
 % --------------------------------------------------------------------
-function FileOpenNewImage_CB(hObject, eventdata, handles, opt)
+function FileOpenNewImage_CB(nikles, eventdata, handles, opt)
 str1 = {'*.jpg', 'JPEG image (*.jpg)'; ...
     '*.png', 'Portable Network Graphics(*.png)'; ...
     '*.bmp', 'Windows Bitmap (*.bmp)'; ...
@@ -1099,6 +1114,7 @@ else                % Filename was transmited in input
     PathName = [];      FileName = opt;
 end
 handles.fileName = [PathName FileName];
+fnameFOcandidate = handles.fileName;        % Copy candidate to "File ... previous"
 
 set(handles.figure1,'pointer','watch')
 err_msg = [];       head_fw = [];           % Used when check for a .*fw registering world file
@@ -1119,7 +1135,8 @@ if (strcmpi(EXT,'.shade'))
     I(:,:,3) = flipud(I(:,:,3));        I(:,:,4) = flipud(I(:,:,4));
     I = I(:,:,2:4);                         % strip alpha off of I
 elseif (strcmpi(EXT,'.raw') || strcmpi(EXT,'.bin'))
-    FileOpenGDALmultiBand_CB(hObject, [], handles, 'RAW', handles.fileName)
+    FileOpenGDALmultiBand_CB([], [], handles, 'RAW', handles.fileName)
+    fnameFOcandidate = [];
     return      % We are done here. Bye Bye.
 else
     info_img = imfinfo(handles.fileName);
@@ -1131,7 +1148,7 @@ else
         info_img.ColorType = att.Band(1).ColorMap;
     else
         try,        [I,map] = imread(handles.fileName);
-        catch       errordlg(lasterr,'Error');      return % It realy may happen
+        catch       errordlg(lasterr,'Error');      fnameFOcandidate = [];  return % It realy may happen
         end
     end
     [head_fw,err_msg] = tfw_funs('inquire',[size(I,1) size(I,2)],PATH,FNAME,EXT);  % See if we have .*fw file
@@ -1153,17 +1170,24 @@ if (isempty(head_fw))           % Image is not georeferenced
     handles.image_type = 2;     X = [];     Y = [];         ax_dir = 'off';
 else                            % Got and decoded a .*fw file
     handles.image_type = 3;     handles.head = head_fw;
-    aux_funs('cleanGRDappdata',handles);        % Remove eventual grid stuff variables from appdata
     X = handles.head(1:2);      Y = handles.head(3:4);      ax_dir = 'xy';
     I = flipdim(I,1);
 end
 aux_funs('cleanGRDappdata',handles);            % Remove eventual grid stuff variables from appdata
 handles = show_image(handles,handles.fileName,X,Y,I,0,ax_dir,0);
-grid_info(handles,handles.fileName,'iminfo');    % Construct a info string
+grid_info(handles,handles.fileName,'iminfo');   % Construct a info string
+handles = aux_funs('isProj',handles);           % Check/set about coordinates type
+if (~isempty(head_fw) && ishandle(handles.Projections))     % Case still unknown to aux_funs('isProj',... 
+    set(handles.Projections,'Enable','on')      % We don't know which but at least it is georeferenced
+    setappdata(handles.figure1,'ProjGMT','')
+end
+if (~isempty(fnameFOcandidate))     % If we got here, fname should be re-loadable
+    recentFiles(handles,fnameFOcandidate)       % Copy candidate to "Recent Files"
+end
 guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
-function FileOpenGDALmultiBand_CB(hObject, eventdata, handles, opt, opt2)
+function FileOpenGDALmultiBand_CB(nikles, eventdata, handles, opt, opt2)
 % Read GDAL files that may be multiband
 % OPT2, if present, MUST contain the full file name. Currently used to load RAW images
 
@@ -1205,36 +1229,38 @@ elseif (strcmp(opt,'ENVISAT') || strcmp(opt,'AVHRR'))    %
     end                                                 % from appdata. That is donne in show_image()
 end
 
-tmp1 = cell(n_bands+1,2);    tmp2 = cell(n_bands+1,2);
-tmp1{1,1} = opt;    tmp1{1,2} = opt;
-for (i = 1:n_bands)
-    tmp1{i+1,1} = ['band' sprintf('%d',i)];
-    tmp1{i+1,2} = ['banda' sprintf('%d',i)];    % TEMP
-    tmp2{i+1,1} = [sprintf('%d',i) 'x1 bip'];        % TEMP
-    tmp2{i+1,2} = i;
-end
-tmp = {['+ ' opt]; I; tmp1; tmp2; fname; bands_inMemory; [att.RasterYSize att.RasterXSize n_bands]; reader};
-if (n_bands > 3),       I(:,:,4:end) = [];      % Now I can only be MxN or MxNx3
-elseif (n_bands == 2)   I(:,:,2) = [];
-end
+	tmp1 = cell(n_bands+1,2);    tmp2 = cell(n_bands+1,2);
+	tmp1{1,1} = opt;    tmp1{1,2} = opt;
+	for (i = 1:n_bands)
+        tmp1{i+1,1} = ['band' sprintf('%d',i)];
+        tmp1{i+1,2} = ['banda' sprintf('%d',i)];    % TEMP
+        tmp2{i+1,1} = [sprintf('%d',i) 'x1 bip'];        % TEMP
+        tmp2{i+1,2} = i;
+	end
+	tmp = {['+ ' opt]; I; tmp1; tmp2; fname; bands_inMemory; [att.RasterYSize att.RasterXSize n_bands]; reader};
+	if (n_bands > 3),       I(:,:,4:end) = [];      % Now I can only be MxN or MxNx3
+	elseif (n_bands == 2)   I(:,:,2) = [];
+	end
 
-setappdata(handles.figure1,'BandList',tmp)
-handles.image_type = 2;     handles.fileName = [];  % No eligible for automatic re-loading
-handles.was_int16 = 0;      handles.computed_grid = 0;
-handles.geog = 0;           % None of this image types is coordinated (nor geog nor anything else)
-aux_funs('cleanGRDappdata',handles);        % Remove eventual grid stuff variables from appdata
-if (~strcmp(opt,'RAW'))
-    if (isempty(att.Band(1).ColorMap)),     set(handles.figure1,'Colormap',jet(256))
-    else                                    set(handles.figure1,'Colormap',att.Band(1).ColorMap.CMap)
-    end
-end
-if (n_bands == 1),      set(handles.figure1,'Colormap',gray(256));   end    % Takes precedence over the above
-show_image(handles,fname,[],[],I,0,'off',0);    % It also guidata(...) & reset pointer
-if (isappdata(handles.axes1,'InfoMsg')),    rmappdata(handles.axes1,'InfoMsg');     end
-if (~strcmp(opt,'RAW')),    grid_info(handles,att,'gdal');      end     % Construct a info message
+	setappdata(handles.figure1,'BandList',tmp)
+	handles.image_type = 2;     handles.fileName = [];  % No eligible for automatic re-loading
+	handles.was_int16 = 0;      handles.computed_grid = 0;
+	handles.geog = 0;           % None of this image types is coordinated (nor geog nor anything else)
+	aux_funs('cleanGRDappdata',handles);        % Remove eventual grid stuff variables from appdata
+	if (~strcmp(opt,'RAW'))
+        if (isempty(att.Band(1).ColorMap)),     set(handles.figure1,'Colormap',jet(256))
+        else                                    set(handles.figure1,'Colormap',att.Band(1).ColorMap.CMap)
+        end
+	end
+	if (n_bands == 1),      set(handles.figure1,'Colormap',gray(256));   end    % Takes precedence over the above
+	handles = show_image(handles,fname,[],[],I,0,'off',0);    % It also guidata(...) & reset pointer
+	if (isappdata(handles.axes1,'InfoMsg')),    rmappdata(handles.axes1,'InfoMsg');     end
+	if (~strcmp(opt,'RAW')),    grid_info(handles,att,'gdal');      end     % Construct a info message
+    aux_funs('isProj',handles,1);               % Check/set about coordinates type
+    setAxesDefCoordIn(handles);                 % Sets the value of the axes uicontextmenu that selects whether project or not
 
 % --------------------------------------------------------------------
-function FileOpenGeoTIFF_CB(hObject, eventdata, handles, tipo, opt)
+function FileOpenGeoTIFF_CB(nikles, eventdata, handles, tipo, opt)
 switch lower(tipo)
     case 'geotiff',     str1 = {'*.tif;*.TIF;*.tiff;*.TIFF', 'GeoTiff (*.tif,*.tiff,*.TIF,*.TIFF)'};
     case 'sid',         str1 = {'*.sid;*.SID', 'GeoTiff (*.sid,*.SID)'};
@@ -1285,14 +1311,17 @@ if (strcmpi(att.ColorInterp,'palette'))
         end
     end
 elseif (strcmpi(att.ColorInterp,'gray'))
-    pal = repmat( (att.GMT_hdr(5):att.GMT_hdr(6))' / 255, 1, 3);
-else                            pal = jet(256);
+            pal = repmat( (att.GMT_hdr(5):att.GMT_hdr(6))' / 255, 1, 3);
+else        pal = jet(256);
 end
 
-set(handles.figure1,'Colormap',pal);
-aux_funs('cleanGRDappdata',handles);        % Remove eventual grid stuff variables from appdata
-show_image(handles,handles.fileName,X,Y,Z,0,ax_dir,0);
-grid_info(handles,att,'gdal')               % Construct a info message
+	recentFiles(handles,handles.fileName)                   % Copy candidate to "Recent Files"
+	set(handles.figure1,'Colormap',pal);
+	aux_funs('cleanGRDappdata',handles);        % Remove eventual grid stuff variables from appdata
+	handles = show_image(handles,handles.fileName,X,Y,Z,0,ax_dir,0);
+	grid_info(handles,att,'gdal')               % Construct a info message
+    aux_funs('isProj',handles,1);               % Check/set about coordinates type
+    setAxesDefCoordIn(handles);                 % Sets the value of the axes uicontextmenu that selects whether project or not
 
 % --------------------------------------------------------------------
 function FileOpenDEM_CB(hObject, eventdata, handles, opt)
@@ -1323,7 +1352,7 @@ function FileOpenDEM_CB(hObject, eventdata, handles, opt)
 	read_DEMs(handles,fullname,tipo)
 
 % --------------------------------------------------------------------
-function FileOpenMOLA_CB(hObject, eventdata, handles)
+function FileOpenMOLA_CB(nikles, eventdata, handles)
 	str1 = {'*.img;*.IMG', 'MOLA DEM (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select MOLA DEM File','get');
 	if isequal(FileName,0),     return;     end
@@ -1384,72 +1413,80 @@ function FileOpenMOLA_CB(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function read_DEMs(handles,fullname,tipo,opt)
-% This function loads grid files that may contain DEMs or other grid (not images) types
-% OPT is used when reading MOLA files, OPT = [x_min x_max y_min y_max n_cols n_rows grid_inc]
+	% This function loads grid files that may contain DEMs or other grid (not images) types
+	% OPT is used when reading MOLA files, OPT = [x_min x_max y_min y_max n_cols n_rows grid_inc]
+	
+	att = [];     % If a file is read by gdal, this won't be empty at the end of this function
+	set(handles.figure1,'pointer','watch')
+	handles.fileName = [fullname{1} fullname{2}];       % To store any input grid/image file name
+	if (handles.ForceInsitu),   opt_I = '-I';           % Use only in desperate cases.
+	else                        opt_I = ' ';    end
+	handles.was_int16 = 0;      % To make sure that it wasnt left = 1 from a previous use.
+	
+	if (strcmp(tipo,'GMT_relatives'))   % The reading is done by the read_gmt_type_grids function
+        [handles,X,Y,Z,head] = read_gmt_type_grids(handles,handles.fileName);
+        if (isempty(X)),    set(handles.figure1,'pointer','arrow');     return;     end
+        zz = scaleto8(Z);
+	elseif ( strcmp(tipo,'SRTM30') || strcmp(tipo,'SRTM3') || strcmp(tipo,'SRTM1') || strcmp(tipo,'MOLA') )
+        name_uncomp = [];    tipo1 = tipo;
+        if (strcmp(tipo,'MOLA'))    % Must inform write_ESRI_hdr what to write
+            tipo1 = [opt(1) opt(4) opt(5) opt(6) opt(7) opt(7) -99999];
+        end
+        [name_hdr,comp_type] = write_ESRI_hdr(handles.fileName,tipo1);
+        if (~isempty(comp_type))
+            fname = decompress(handles.fileName,'warn');    % Named with compression ext removed
+            name_uncomp = fname;        % Here we need a copy of the decompressed file name for removing
+            if (isempty(fname)),  return;     end;          % Error message already issued.
+        else
+            fname = handles.fileName;
+        end
+	
+        [Z,att] =  gdalread(fname,'-U','-C',opt_I);   Z = single(Z);
+        head = att.GMT_hdr;
+        Z(Z <= single(att.Band(1).NoDataValue)) = NaN;     handles.have_nans = grdutils(Z,'-N');
+        zz = scaleto8(Z);           [m,n] = size(Z);
+        X = linspace(head(1),head(2),n);  Y = linspace(head(3),head(4),m);  % Need this for image
+        handles.image_type = 1;     handles.computed_grid = 1;  handles.geog = 1;
+        handles.was_int16 = 1;      handles.grdname = [];       handles.Nodata_int16 = att.Band(1).NoDataValue;
+        delete(name_hdr);
+        if (~isempty(name_uncomp)),     delete(name_uncomp);    end
+	elseif ( strcmp(tipo,'USGS_DEM') || strcmp(tipo,'GTOPO30') || strcmp(tipo,'DTED') || strcmp(tipo,'SDTS') || ...
+            strcmp(tipo,'GeoTiff_DEM') || strcmp(tipo,'ArcAscii')  || strcmp(tipo,'ArcBinary') || ...
+            strcmp(tipo,'GXF') || strcmp(tipo,'ESRI_hdr') || strcmp(tipo,'JP2_DEM'))
+        att = gdalread(handles.fileName,'-M','-C');
+        if ((att.RasterXSize * att.RasterYSize * 4) > handles.grdMaxSize)
+            if ( strcmp(yes_or_no('title','Warning'),'Yes')),  return;     end      % Advise accepted
+        end
+        
+        Z =  gdalread(handles.fileName,'-U',opt_I,'-C');     Z = single(Z);
+        head = att.GMT_hdr;
+        if (~isempty(att.Band(1).NoDataValue)),  Z(Z <= single(att.Band(1).NoDataValue)) = NaN;    end
+        handles.have_nans = grdutils(Z,'-N');
+        if (isequal(head(5:6),[0 0]) || any(isnan(head(5:6))))   % It happens with GeoTiff_DEM
+            zzz = grdutils(Z,'-L');             head(5) = zzz(1);       head(6) = zzz(2);
+        end
+        zz = scaleto8(Z);    [m,n] = size(Z);
+        X = linspace(head(1),head(2),n);  Y = linspace(head(3),head(4),m);  % Need this for image
+        
+        if (strcmp(att.Band(1).DataType,'Int16')), handles.was_int16 = 1;  end
+        handles.image_type = 4;     handles.Nodata_int16 = att.Band(1).NoDataValue;
+	end
 
-att = [];     % If a file is read by gdal, this won't be empty at the end of this function
-set(handles.figure1,'pointer','watch')
-handles.fileName = [fullname{1} fullname{2}];       % To store any input grid/image file name
-if (handles.ForceInsitu),   opt_I = '-I';           % Use only in desperate cases.
-else                        opt_I = ' ';    end
-handles.was_int16 = 0;      % To make sure that it wasnt left = 1 from a previous use.
-
-if (strcmp(tipo,'GMT_relatives'))   % The reading is done by the read_gmt_type_grids function
-    [handles,X,Y,Z,head] = read_gmt_type_grids(handles,handles.fileName);
-    if (isempty(X)),    set(handles.figure1,'pointer','arrow');     return;     end
-    zz = scaleto8(Z);
-elseif ( strcmp(tipo,'SRTM30') || strcmp(tipo,'SRTM3') || strcmp(tipo,'SRTM1') || strcmp(tipo,'MOLA') )
-    name_uncomp = [];    tipo1 = tipo;
-    if (strcmp(tipo,'MOLA'))    % Must inform write_ESRI_hdr what to write
-        tipo1 = [opt(1) opt(4) opt(5) opt(6) opt(7) opt(7) -99999];
-    end
-    [name_hdr,comp_type] = write_ESRI_hdr(handles.fileName,tipo1);
-    if (~isempty(comp_type))
-        fname = decompress(handles.fileName,'warn');    % Named with compression ext removed
-        name_uncomp = fname;        % Here we need a copy of the decompressed file name for removing
-        if (isempty(fname)),  return;     end;          % Error message already issued.
+    recentFiles(handles,handles.fileName)                   % Copy candidate to "Recent Files"
+	aux_funs('StoreZ',handles,X,Y,Z)    % If grid size is not to big we'll store it
+	handles.head = head;
+	setappdata(handles.figure1,'Zmin_max',[head(5) head(6)])
+	aux_funs('colormap_bg',handles,Z,jet(256));
+	handles = show_image(handles,handles.fileName,X,Y,zz,1,'xy',head(7));
+	if (isappdata(handles.axes1,'InfoMsg')),    rmappdata(handles.axes1,'InfoMsg');     end
+	if (~isempty(att)),     grid_info(handles,att,'gdal');   % Construct a info message and save proj (if ...)
+        aux_funs('isProj',handles,1);           % Check/set about coordinates type
+        setAxesDefCoordIn(handles);             % Sets a value on the axes uicontextmenu
     else
-        fname = handles.fileName;
+        if (isappdata(handles.axes1,'ProjWKT')),    rmappdata(handles.axes1,'ProjWKT'); end
+        if (isappdata(handles.axes1,'ProjGMT')),    rmappdata(handles.axes1,'ProjGMT'); end
+        if (isappdata(handles.axes1,'Proj4')),      rmappdata(handles.axes1,'Proj4'); end
     end
-
-    [Z,att] =  gdalread(fname,'-U','-C',opt_I);   Z = single(Z);
-    head = att.GMT_hdr;
-    Z(Z <= single(att.Band(1).NoDataValue)) = NaN;     handles.have_nans = grdutils(Z,'-N');
-    zz = scaleto8(Z);           [m,n] = size(Z);
-    X = linspace(head(1),head(2),n);  Y = linspace(head(3),head(4),m);  % Need this for image
-    handles.image_type = 1;     handles.computed_grid = 1;  handles.geog = 1;
-    handles.was_int16 = 1;      handles.grdname = [];       handles.Nodata_int16 = att.Band(1).NoDataValue;
-    delete(name_hdr);
-    if (~isempty(name_uncomp)),     delete(name_uncomp);    end
-elseif ( strcmp(tipo,'USGS_DEM') || strcmp(tipo,'GTOPO30') || strcmp(tipo,'DTED') || strcmp(tipo,'SDTS') || ...
-        strcmp(tipo,'GeoTiff_DEM') || strcmp(tipo,'ArcAscii')  || strcmp(tipo,'ArcBinary') || ...
-        strcmp(tipo,'GXF') || strcmp(tipo,'ESRI_hdr') || strcmp(tipo,'JP2_DEM'))
-    att = gdalread(handles.fileName,'-M','-C');
-    if ((att.RasterXSize * att.RasterYSize * 4) > handles.grdMaxSize)
-        if ( strcmp(yes_or_no('title','Warning'),'Yes')),  return;     end      % Advise accepted
-    end
-    
-    Z =  gdalread(handles.fileName,'-U',opt_I,'-C');     Z = single(Z);
-    head = att.GMT_hdr;
-    if (~isempty(att.Band(1).NoDataValue)),  Z(Z <= single(att.Band(1).NoDataValue)) = NaN;    end
-    handles.have_nans = grdutils(Z,'-N');
-    if (isequal(head(5:6),[0 0]))   % It happens with GeoTiff_DEM
-        zzz = grdutils(Z,'-L');             head(5) = zzz(1);       head(6) = zzz(2);
-    end
-    zz = scaleto8(Z);    [m,n] = size(Z);
-    X = linspace(head(1),head(2),n);  Y = linspace(head(3),head(4),m);  % Need this for image
-    
-    if (strcmp(att.Band(1).DataType,'Int16')), handles.was_int16 = 1;  end
-    handles.image_type = 4;     handles.Nodata_int16 = att.Band(1).NoDataValue;
-end
-
-aux_funs('StoreZ',handles,X,Y,Z)    % If grid size is not to big we'll store it
-handles.head = head;
-setappdata(handles.figure1,'Zmin_max',[head(5) head(6)])
-aux_funs('colormap_bg',handles,Z,jet(256));
-show_image(handles,handles.fileName,X,Y,zz,1,'xy',head(7));
-if (isappdata(handles.axes1,'InfoMsg')),    rmappdata(handles.axes1,'InfoMsg');     end
-if (~isempty(att)),    grid_info(handles,att,'gdal');   end            % Construct a info message
 
 % --------------------------------------------------------------------
 function handles = show_image(handles,fname,X,Y,I,ValidGrid,axis_t,adjust,imSize)
@@ -1480,7 +1517,6 @@ handles.origFig = I;            handles.no_file = 0;
 handles.Illumin_type = 0;       handles.ValidGrid = ValidGrid;  % Signal that gmt grid opps are allowed
 setappdata(handles.figure1,'ValidGrid',ValidGrid)   % Flag to signal draw_funs if "Crop grid" is possible
 set(handles.figure1,'Name',fname)
-SetAxesNumericType(handles);                        % Set axes uicontextmenus
 setappdata(handles.figure1,'ThisImageLims',[get(handles.axes1,'XLim') get(handles.axes1,'YLim')])
 setappdata(handles.axes1,'ThisImageLims',[get(handles.axes1,'XLim') get(handles.axes1,'YLim')])     % Used in pan and somewhere else
 setappdata(handles.figure1,'GMThead',handles.head);
@@ -1491,8 +1527,9 @@ set(findobj('Tag','ImgHist'),'checked','off');  set(findobj('Tag','ImgHistGrd'),
 handles.ValidGrid_orig = ValidGrid;         handles.was_int16_orig = handles.was_int16;
 handles.computed_grid_orig = handles.computed_grid;
 handles.geog = aux_funs('guessGeog',handles.head(1:4));     % HUM... THERE ARE CASES WHERE I KNOW FOR SURE
+handles = SetAxesNumericType(handles);              % Set axes uicontextmenus
 if (handles.image_type ~= 1),   handles.grdname = [];   end
-guidata(handles.figure1, handles);              set(handles.figure1,'pointer','arrow')
+guidata(handles.figure1, handles);
 
 if (~ValidGrid)      % Hide uicontrols that are useless to images only
     set(handles.ImgHistGrd,'Visible','off');    set(handles.Illuminate,'Visible','off')
@@ -1539,7 +1576,6 @@ if ( isempty(BL) || ((numel(BL{end}) == 1) && strcmp(BL{end},'Mirone')) )
         set(findobj(handles.figure1,'Label','Load Bands'),'Enable','off')
 	end
 end
-if (isappdata(handles.axes1,'ProjWKT')),            rmappdata(handles.axes1,'ProjWKT');         end
 if (isappdata(handles.axes1,'DatumProjInfo')),      rmappdata(handles.axes1,'DatumProjInfo');   end
 % Note that, when it applyies the above are rebuilt with a latter call to grid_info(handles,att,'gdal')
 
@@ -2053,7 +2089,7 @@ function ToolsMeasureAzimuth_CB(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function DrawLine_CB(nikles, eventdata, handles, opt)
-if (handles.no_file == 1),  return;     end
+if (handles.no_file),       return;     end
 if (nargin == 3),           opt = [];   end
 % The following is a necessary patch against two big stupidities.
 % First is from the user that double-clicked on the line icon
@@ -2183,7 +2219,6 @@ function DrawEulerPoleCircle_CB(nikles, eventdata, handles)
 
 % --------------------------------------------------------------------
 function DrawGeographicalCircle_CB(hObject, eventdata, handles, opt)
-	% If OPT exist (no matter what it contains) draw a great circle arc instead of a circle
 	if (handles.no_file == 1),      return;      end
 	if (nargin == 3),   opt = [];   end
 	zoom_state(handles,'maybe_off');
@@ -2219,10 +2254,14 @@ function DrawImportText_CB(nikles, eventdata, handles)
 	todos = fread(fid,'*char');     fclose(fid);
 	[str.x str.y str.name] = strread(todos,'%f %f %s');     % Note: text.name is a cell array of chars
 	limits = getappdata(handles.figure1,'ThisImageLims');   xx = limits(1:2);   yy = limits(3:4);
+    if (handles.is_projected && handles.defCoordsIn > 0)
+        [tmp, msg] = geog2projected_pts(handles,[str.x str.y],limits);
+        str.x = tmp(:,1);      str.y = tmp(:,2);
+    end
 	% Get rid of Texts that are outside the map limits
-	indx = find(str.x < xx(1) | str.x > xx(2));
+	indx = (str.x < xx(1) | str.x > xx(2));
 	str.x(indx) = [];      str.y(indx) = [];      str.name(indx) = [];
-	indx = find(str.y < yy(1) | str.y > yy(2));
+	indx = (str.y < yy(1) | str.y > yy(2));
 	str.x(indx) = [];      str.y(indx) = [];      str.name(indx) = [];
 	
 	n_str = length(str.x);
@@ -2249,7 +2288,7 @@ is_geog = aux_funs('guessGeog',region(1:4));
 
 if (~handles.no_file && handles.geog && ~is_geog)
     errordlg('Error. Your background image is in geographics but the shape file is not','ERROR');   return
-elseif (~handles.no_file && handles.geog == 0 && is_geog == 1 && ~isempty(handles.hImg))
+elseif (~handles.no_file && handles.geog == 0 && is_geog && ~isempty(handles.hImg))
     warndlg('WARNING: Your background image is not in geographics but the shape file seams to be. Probable mistake','Warning')
 else
     handles.geog = is_geog;     guidata(handles.figure1, handles);
@@ -2528,7 +2567,7 @@ set(handles.figure1,'pointer','arrow')
 guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
-function FileOpenSession_CB(hObject, eventdata, handles)
+function FileOpenSession_CB(nikles, eventdata, handles)
 str1 = {'*.mat;*.MAT', 'Data files (*.mat,*.MAT)'};
 [FileName,PathName] = put_or_get_file(handles,str1,'Select session file name','get');
 if isequal(FileName,0);     return;     end
@@ -2691,7 +2730,7 @@ if (haveRivers)
     if (iscell(riversUD)),      riversUD = riversUD{1};     end
     datasets_funs('Rivers', handles,riversUD(2),riversUD(1));
 end
-guidata(hObject, handles);
+guidata(handles.figure1, handles);
 set(handles.figure1,'pointer','arrow','Name',[PathName FileName])
 if (tala == 0 && ~isempty(grd_name))    % Only now to not mess with the "current figure"
     warndlg(['The file ' grd_name ' doesn''t exists on the directory it was when the session was saved. Put it back there.'],'Warning')
@@ -3487,6 +3526,9 @@ else                                    % 'image'
 end
 
 hdr.name = fname;       hdr.driver = driver;    hdr.Geog = handles.geog;
+projWKT = getappdata(handles.axes1,'ProjWKT');
+if (~isempty(projWKT)),     hdr.projWKT = projWKT;      end
+
 try
 	hdr.Xinc = head(8);     hdr.Yinc = head(9);
 	hdr.ULx = imgLims(1);   hdr.ULy = imgLims(4);
@@ -4109,15 +4151,16 @@ if (strcmp(opt,'Vec') || strcmp(opt,'Lines'))          % Convert the edges found
 	multi_segs_str = cell(length(h_edge),1);    % Just create a set of empty info strings
 	draw_funs(h_edge,'isochron',multi_segs_str);
 elseif (strcmp(opt,'Circles'))
-    x = linspace(-pi,pi,180);       y = x;
+    x = linspace(-pi,pi,360);       y = x;
     xx = cos(x);                    yy = sin(y);
-    h_circ = line('XData', [], 'YData', []);
+    %h_circ = line('XData', [], 'YData', []);
     for k = 1:size(B,1)
         x = B(k,1) + B(k,3) * xx;           y = B(k,2) + B(k,3) * yy;
-		h_circ = line(x, y,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor,'Userdata',B(k,:));
+		h_circ = line('XData',x, 'YData',y, 'Parent',handles.axes1, 'Linewidth',handles.DefLineThick, ...
+            'Color',handles.DefLineColor,'Userdata',B(k,:));
         draw_funs(h_circ,'SessionRestoreCircleCart')    % Give uicontext
         setappdata(h_circ,'LonLatRad',B(k,:))
-        setappdata(h_circ,'X',xx);        setappdata(h_circ,'Y',yy);
+        %setappdata(h_circ,'X',xx);        setappdata(h_circ,'Y',yy);
     end
 else                            % Display the bw image where the edges are the whites    
     if (strcmp(get(handles.axes1,'Ydir'),'normal')),    img = flipdim(img,1);   end
@@ -4221,6 +4264,9 @@ elseif (strcmp(opt,'guessType'))
     if isequal(FileName,0);     set(handles.figure1,'pointer','arrow');     return;     end             % User gave up
     drv = aux_funs('findFileType',[PathName FileName]);
     if (~isempty(drv)),         gateLoadFile(handles,drv,[PathName FileName]);  end
+elseif (strcmp(opt,'copyclip'))     % Img and frame capture to ClipBoard
+    h = getappdata(handles.figure1,'CoordsStBar');      set(h,'Visible','off');
+    imcapture(handles.axes1,'imgAx');                   set(h(2:end),'Visible','on')
 elseif ( strcmp(opt,'isGDAL') || (strcmp(opt,'isGMT')) )    % Test if GDAL or GMT are able to read this file
     str = {'*.*', 'All Files (*.*)'};                       % Just a strings to the eye
     if (strcmp(opt,'isGMT'))
