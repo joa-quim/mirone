@@ -1,4 +1,4 @@
-function [h1,version7,IamCompiled] = mirone_uis()
+function [h1,version7,IamCompiled,home_dir] = mirone_uis(home_dir)
 % --- Creates and returns a handle to the GUI MIRONE figure. 
 %#function pan resetplotview igrf_options rally_plater plate_calculator gmtedit ecran snapshot
 %#function about_box parker_stuff plate_calculator euler_stuff grid_calculator tableGUI imageResize
@@ -41,9 +41,19 @@ catch
     IamCompiled = 1;
 end
 
-% Import icons
-load (['data' filesep 'mirone_icons.mat']);
-ht = zeros(16,1);
+% Import icons and fetch home_dir if compiled and called by extension association
+% Here is what will happen. When called by windows extension association the 'home_dir'
+% will contain the path of the file and not of the Mirone installation, and it will fail.
+% In the 'catch' branch we check if the MIRONE_HOME environment variable exists. If yes
+% its value, the correct home_dir, is returned back to mirone.m
+try
+    load ([home_dir filesep 'data' filesep 'mirone_icons.mat']);
+catch
+    if (IamCompiled && ispc)
+        home_dir = winqueryreg('HKEY_CURRENT_USER', 'Environment', 'MIRONE_HOME');
+        load ([home_dir filesep 'data' filesep 'mirone_icons.mat']);
+    end
+end
 
 h_toolbar = uitoolbar('parent',h1, 'BusyAction','queue','HandleVisibility','on','Interruptible','on',...
    'Tag','FigureToolBar','Visible','on');
@@ -51,49 +61,62 @@ uipushtool('parent',h_toolbar,'Click','mirone(''FileNewEmpty_CB'',[],[],guidata(
    'Tag','NewFigure','cdata',Mfnew_ico,'TooltipString','Open New figure');
 uipushtool('parent',h_toolbar,'Click','mirone(''Transfer_CB'',[],[],guidata(gcbo),''guessType'')', ...
    'Tag','ImportKnownTypes','cdata',Mfopen_ico,'TooltipString','Load recognized file types');
-ht(1) = uipushtool('parent',h_toolbar,'Click','mirone(''FileSaveGMTgrid_CB'',[],[],guidata(gcbo))', ...
+uipushtool('parent',h_toolbar,'Click','mirone(''FileSaveGMTgrid_CB'',[],[],guidata(gcbo))', ...
    'Tag','SaveGMTgrid','cdata',Mfsave_ico,'TooltipString','Save GMT grid');
 uipushtool('parent',h_toolbar,'Click','mirone(''FilePreferences_CB'',[],[],guidata(gcbo))', ...
    'Tag','Preferences','cdata',tools_ico,'TooltipString','Preferences');
-ht(2) = uipushtool('parent',h_toolbar,'Click','mirone(''FilePrint_CB'',[],[],guidata(gcbo))', ...
+uipushtool('parent',h_toolbar,'Click','mirone(''FilePrint_CB'',[],[],guidata(gcbo))', ...
    'Tag','Print','cdata',Mprint_ico,'TooltipString','Print image');
-ht(3) = uipushtool('parent',h_toolbar,'Click','mirone(''DrawText_CB'',[],[],guidata(gcbo))', ...
+uipushtool('parent',h_toolbar,'Click','mirone(''DrawText_CB'',[],[],guidata(gcbo))', ...
    'Tag','DrawText','cdata',text_ico,'TooltipString','Insert Text','Sep','on');
-ht(4) = uipushtool('parent',h_toolbar,'Click','mirone(''DrawGeographicalCircle_CB'',[],[],guidata(gcbo))', ...
+uipushtool('parent',h_toolbar,'Click','mirone(''DrawGeographicalCircle_CB'',[],[],guidata(gcbo))', ...
    'Tag','DrawGeogCirc','cdata',circ_ico,'TooltipString','Draw geographical circle');
-ht(5) = uipushtool('parent',h_toolbar,'Click','mirone(''DrawLine_CB'',[],[],guidata(gcbo))', ...
+uipushtool('parent',h_toolbar,'Click','mirone(''DrawLine_CB'',[],[],guidata(gcbo))', ...
    'Tag','DrawLine','cdata',Mline_ico,'TooltipString','Draw Line');
-ht(6) = uipushtool('parent',h_toolbar,'Click','mirone(''DrawClosedPolygon_CB'',[],[],guidata(gcbo),''rectangle'')', ...
+uipushtool('parent',h_toolbar,'Click','mirone(''DrawClosedPolygon_CB'',[],[],guidata(gcbo),''rectangle'')', ...
    'Tag','DrawRect','cdata',rectang_ico,'TooltipString','Draw Rectangle');
-ht(7) = uipushtool('parent',h_toolbar,'Click','mirone(''DrawClosedPolygon_CB'',[],[],guidata(gcbo),[])', ...
+uipushtool('parent',h_toolbar,'Click','mirone(''DrawClosedPolygon_CB'',[],[],guidata(gcbo),[])', ...
    'Tag','DrawPolyg','cdata',polygon_ico,'TooltipString','Draw Closed Polygon');
-ht(8) = uipushtool('parent',h_toolbar,'Click','mirone(''DrawVector_CB'',[],[],guidata(gcbo))', ...
+uipushtool('parent',h_toolbar,'Click','mirone(''DrawVector_CB'',[],[],guidata(gcbo))', ...
    'Tag','DrawArrow','cdata',Marrow_ico,'TooltipString','Draw Arrow');
-ht(9) = uitoggletool('parent',h_toolbar,'Click','mirone(''PanZoom_CB'',gcbo,[],guidata(gcbo),''zoom'')', ...
+uitoggletool('parent',h_toolbar,'Click','mirone(''PanZoom_CB'',gcbo,[],guidata(gcbo),''zoom'')', ...
    'Tag','Zoom','cdata',zoom_ico,'TooltipString','Zooming on/off','Sep','on');
-ht(10) = uitoggletool('parent',h_toolbar,'Click','mirone(''PanZoom_CB'',gcbo,[],guidata(gcbo),''pan'')', ...
+uitoggletool('parent',h_toolbar,'Click','mirone(''PanZoom_CB'',gcbo,[],guidata(gcbo),''pan'')', ...
    'Tag','Mao','cdata',mao,'TooltipString','Pan');
-ht(11) = uitoggletool('parent',h_toolbar,'Click','draw_funs(gcbo,''DeleteObj'')', ...
+uitoggletool('parent',h_toolbar,'Click','draw_funs(gcbo,''DeleteObj'')', ...
    'Tag','Tesoura','cdata',cut_ico,'TooltipString','Delete objects');
 uipushtool('parent',h_toolbar,'Click','mirone(''ImageColorPalettes_CB'',[],[],guidata(gcbo))', ...
    'Tag','ColorPal','cdata',color_ico,'TooltipString','Color Palettes');
-ht(12) = uipushtool('parent',h_toolbar,'Click','mirone(''ImageIlluminationModel_CB'',[],[],guidata(gcbo),''grdgradient_A'')', ...
+uipushtool('parent',h_toolbar,'Click','mirone(''ImageIlluminationModel_CB'',[],[],guidata(gcbo),''grdgradient_A'')', ...
    'Tag','Shading','cdata',shade2_ico,'TooltipString','Shaded illumination','Sep','on');
-ht(13) = uipushtool('parent',h_toolbar,'Click','mirone(''ImageAnaglyph_CB'',[],[],guidata(gcbo))', ...
+uipushtool('parent',h_toolbar,'Click','mirone(''ImageAnaglyph_CB'',[],[],guidata(gcbo))', ...
    'Tag','Anaglyph','cdata',anaglyph_ico,'TooltipString','Anaglyph');
-% ht(14) = uipushtool('parent',h_toolbar,'Click','mirone(''GridToolsSlope_CB'',[],[],guidata(gcbo),''degrees'')', ...
-%    'Tag','TerrainMod','cdata',terrain_ico,'TooltipString','Compute Slope');
-ht(15) = uipushtool('parent',h_toolbar,'Click','mirone(''ToolsMBplaningStart_CB'',[],[],guidata(gcbo))', ...
+uipushtool('parent',h_toolbar,'Click','mirone(''ToolsMBplaningStart_CB'',[],[],guidata(gcbo))', ...
    'Tag','MBplaning','cdata',MB_ico,'TooltipString','Multi-beam planing');
-ht(16) = uipushtool('parent',h_toolbar,'Click','mirone(''FileSaveFlederSD_CB'',[],[],guidata(gcbo),''runPlanarSD'')', ...
+uipushtool('parent',h_toolbar,'Click','mirone(''FileSaveFlederSD_CB'',[],[],guidata(gcbo),''runPlanarSD'')', ...
    'Tag','FlederPlanar','cdata',olho_ico,'TooltipString','Run Fleder 3D Viewer');
 uipushtool('parent',h_toolbar,'Click','writekml(guidata(gcbo))', ...
    'Tag','toGE','cdata',GE_ico,'TooltipString','See it in Google Earth');
 uipushtool('parent',h_toolbar,'Click',@refresca, 'Tag','Refresh','cdata',refresh_ico,'TooltipString','Refresh','Sep','on');
 uipushtool('parent',h_toolbar,'Click','grid_info(guidata(gcbo))','Tag','ImageInfo','cdata',info_ico,'TooltipString','Image info');
-%set(ht,'Enable','off')
 
-axes('Parent',h1,'Units','pixels','Position',[60 0 50 10],'Tag','axes1','Visible','off');
+h_axes = axes('Parent',h1,'Units','pixels','Position',[60 0 50 10],'Tag','axes1','Visible','off');
+cmenu_axes = uicontextmenu('Parent',h1,'Tag','AxesNT');
+set(h_axes, 'UIContextMenu', cmenu_axes);
+uimenu(cmenu_axes, 'Label', 'Label Format -> DD.xx', 'Call', 'draw_funs([],''ChngAxLabels'',''ToDegDec'')','Tag','LabFormat');
+uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM', 'Call', 'draw_funs([],''ChngAxLabels'',''ToDegMin'')','Tag','LabFormat');
+uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM.xx', 'Call', 'draw_funs([],''ChngAxLabels'',''ToDegMinDec'')','Tag','LabFormat');
+uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM SS', 'Call', 'draw_funs([],''ChngAxLabels'',''ToDegMinSec'')','Tag','LabFormat');
+uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM SS.x', 'Call', 'draw_funs([],''ChngAxLabels'',''ToDegMinSecDec'')','Tag','LabFormat');
+itemFS = uimenu(cmenu_axes, 'Label', 'Label Font Size', 'Separator','on');
+uimenu(itemFS, 'Label', '7   pt', 'Call', 'set(gca, ''FontSize'', 7)');
+uimenu(itemFS, 'Label', '8   pt', 'Call', 'set(gca, ''FontSize'', 8)');
+uimenu(itemFS, 'Label', '9   pt', 'Call', 'set(gca, ''FontSize'', 9)');
+uimenu(itemFS, 'Label', '10 pt', 'Call', 'set(gca, ''FontSize'', 10)');
+uimenu(cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid', 'Separator','on');
+uimenu(cmenu_axes, 'Label', 'Pixel mode on/off', 'Tag','PixMode', 'Separator','on');
+% This one is manipulated in setAxesDefCoordIn()
+uimenu(cmenu_axes, 'Label', 'Load in projected coords', 'Checked','on', 'Vis','off','Tag','hAxMenuLF');
 
 h2 = uimenu('Parent',h1,'Label','File','Tag','File');
 uimenu('Parent',h2,'Call','mirone(''FilePreferences_CB'',[],[],guidata(gcbo))','Label','Preferences');
@@ -109,31 +132,31 @@ if (~IamCompiled)
 end
 
 h8 = uimenu('Parent',h2,'Label','Open Grid/Image','Sep','on','Tag','OpenGI');
-uimenu('Parent',h8,'Call','mirone(''FileOpenNewImage_CB'',gcbo,[],guidata(gcbo));','Label','Images -> Generic Formats');
+uimenu('Parent',h8,'Call','mirone(''FileOpenNewImage_CB'',[],[],guidata(gcbo));','Label','Images -> Generic Formats');
 uimenu('Parent',h8,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''GMT'')','Label','GMT Grid','Sep','on');
 uimenu('Parent',h8,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''Surfer'')','Label','Surfer 6/7 grid');
 uimenu('Parent',h8,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''ENCOM'')','Label','Encom grid');
 uimenu('Parent',h8,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''MANI'')','Label','Mani grid');
 uimenu('Parent',h8,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''ArcAscii'')','Label','Arc/Info ASCII Grid','Sep','on');
 uimenu('Parent',h8,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''ArcBinary'')','Label','Arc/Info Binary Grid');
-uimenu('Parent',h8,'Call','mirone(''FileOpenBSB_CB'',gcbo,[],guidata(gcbo))','Label','BSB Nautical Chart Format');
-uimenu('Parent',h8,'Call','mirone(''FileOpen_ENVI_Erdas_CB'',gcbo,[],guidata(gcbo),''ENVI'')','Label','ENVI Raster');
-uimenu('Parent',h8,'Call','mirone(''FileOpen_ENVI_Erdas_CB'',gcbo,[],guidata(gcbo),''ERDAS'')','Label','Erdas (.img)');
+uimenu('Parent',h8,'Call','mirone(''FileOpenBSB_CB'',[],[],guidata(gcbo))','Label','BSB Nautical Chart Format');
+uimenu('Parent',h8,'Call','mirone(''FileOpen_ENVI_Erdas_CB'',[],[],guidata(gcbo),''ENVI'')','Label','ENVI Raster');
+uimenu('Parent',h8,'Call','mirone(''FileOpen_ENVI_Erdas_CB'',[],[],guidata(gcbo),''ERDAS'')','Label','Erdas (.img)');
 uimenu('Parent',h8,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''GXF'')','Label','Geosoft GXF');
-uimenu('Parent',h8,'Call','mirone(''FileOpenGeoTIFF_CB'',gcbo,[],guidata(gcbo),''geotiff'')','Label','GeoTIFF');
-uimenu('Parent',h8,'Call','mirone(''FileOpenGeoTIFF_CB'',gcbo,[],guidata(gcbo),''ecw'')','Label','ECW');
-uimenu('Parent',h8,'Call','mirone(''FileOpenGeoTIFF_CB'',gcbo,[],guidata(gcbo),''sid'')','Label','MrSID');
-uimenu('Parent',h8,'Call','mirone(''FileOpenGeoTIFF_CB'',gcbo,[],guidata(gcbo),''jp2'')','Label','JPEG2000');
-uimenu('Parent',h8,'Call','mirone(''FileOpenGDALmultiBand_CB'',gcbo,[],guidata(gcbo),''ENVISAT'')','Label','ENVISAT','Sep','on');
-uimenu('Parent',h8,'Call','mirone(''FileOpenGDALmultiBand_CB'',gcbo,[],guidata(gcbo),''AVHRR'')','Label','AVHRR');
-uimenu('Parent',h8,'Call','mirone(''FileOpenGeoTIFF_CB'',gcbo,[],guidata(gcbo),''UNKNOWN'')','Label','Try Luck with GDAL');
+uimenu('Parent',h8,'Call','mirone(''FileOpenGeoTIFF_CB'',[],[],guidata(gcbo),''geotiff'')','Label','GeoTIFF');
+uimenu('Parent',h8,'Call','mirone(''FileOpenGeoTIFF_CB'',[],[],guidata(gcbo),''ecw'')','Label','ECW');
+uimenu('Parent',h8,'Call','mirone(''FileOpenGeoTIFF_CB'',[],[],guidata(gcbo),''sid'')','Label','MrSID');
+uimenu('Parent',h8,'Call','mirone(''FileOpenGeoTIFF_CB'',[],[],guidata(gcbo),''jp2'')','Label','JPEG2000');
+uimenu('Parent',h8,'Call','mirone(''FileOpenGDALmultiBand_CB'',[],[],guidata(gcbo),''ENVISAT'')','Label','ENVISAT','Sep','on');
+uimenu('Parent',h8,'Call','mirone(''FileOpenGDALmultiBand_CB'',[],[],guidata(gcbo),''AVHRR'')','Label','AVHRR');
+uimenu('Parent',h8,'Call','mirone(''FileOpenGeoTIFF_CB'',[],[],guidata(gcbo),''UNKNOWN'')','Label','Try Luck with GDAL');
 
 h19 = uimenu('Parent',h8,'Label','Digital Elevation','Sep','on');
 uimenu('Parent',h19,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''DTED'')','Label','DTED');
 uimenu('Parent',h19,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''ESRI_hdr'')','Label','ESRI BIL');
 uimenu('Parent',h19,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''GTOPO30'')','Label','GTOPO30');
 uimenu('Parent',h19,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''GeoTiff_DEM'')','Label','GeoTIFF DEM');
-uimenu('Parent',h19,'Call','mirone(''FileOpenMOLA_CB'',gcbo,[],guidata(gcbo))','Label','MOLA DEM');
+uimenu('Parent',h19,'Call','mirone(''FileOpenMOLA_CB'',[],[],guidata(gcbo))','Label','MOLA DEM');
 uimenu('Parent',h19,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''SRTM1'')','Label','SRTM 1 arcsec');
 uimenu('Parent',h19,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''SRTM3'')','Label','SRTM 3 arcsec');
 uimenu('Parent',h19,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''SRTM30'')','Label','SRTM30');
@@ -141,7 +164,12 @@ uimenu('Parent',h19,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''USGS
 uimenu('Parent',h19,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''SDTS'')','Label','USGS SDTS DEM');
 
 uimenu('Parent',h2,'Callback','overview(guidata(gcbo))','Label','Open Overview Tool');
-uimenu('Parent',h2,'Call','mirone(''FileOpenSession_CB'',gcbo,[],guidata(gcbo))','Label','Open Session');
+uimenu('Parent',h2,'Call','mirone(''FileOpenSession_CB'',[],[],guidata(gcbo))','Label','Open Session');
+%h19 = uimenu('Parent',h2,'Call','mirone(''recentFiles'',guidata(gcbo))','Label','Recent Files','Tag','RecentFiles');
+% for (i=1:5)
+%     hr(i) = uimenu('Parent',h19,'Vis','off');
+% end
+% setappdata(h1,'RecentFiles',hr)
 
 %uimenu('Parent',h2,'Call','shape_tool(gcf)','Label','Limiares');
 % ----------------------- Save Images section
@@ -156,10 +184,10 @@ uimenu('Parent',h9,...
 'Call','mirone(''FileSaveImgGrdGdal_CB'',gcbo,[],guidata(gcbo),''Erdas'',''img'')', 'Label','Erdas Imagine');
 
 uimenu('Parent',h9,...
-'Call','mirone(''FileSaveImgGrdGdal_CB'',gcbo,[],guidata(gcbo),''Envi'',''img'')', 'Label','Envi .hdr Labelled');
+'Call','mirone(''FileSaveImgGrdGdal_CB'',gcbo,[],guidata(gcbo),''Envi'',''img'')', 'Label','Envi .hdr Labeled');
 
 uimenu('Parent',h9,...
-'Call','mirone(''FileSaveImgGrdGdal_CB'',gcbo,[],guidata(gcbo),''ESRI'',''img'')', 'Label','ESRI .hdr Labelled');
+'Call','mirone(''FileSaveImgGrdGdal_CB'',gcbo,[],guidata(gcbo),''ESRI'',''img'')', 'Label','ESRI .hdr Labeled');
 
 uimenu('Parent',h9,...
 'Call','mirone(''FileSaveImgGrdGdal_CB'',gcbo,[],guidata(gcbo),''JP2K'',''img'')', 'Label','JPEG2000');
@@ -171,8 +199,8 @@ uimenu('Parent',h2,'Call','snapshot(gcf,''frame'')', 'Label','Export ...','Tag',
 if (strncmp(computer,'PC',2))
     h = uimenu('Parent',h2,'Label','Copy to Clipboard','Tag','CopyClip');
     uimenu('Parent',h,'Call','imcapture(gca,''img'');','Label','Image only')
-    uimenu('Parent',h,'Call',['h = getappdata(gcf,''CoordsStBar'');set(h,''Visible'',''off'');' ...
-        'imcapture(gca,''imgAx'');set(h(2:end),''Visible'',''on'')'],'Label','Image and frame','Tag','noAxes')
+    uimenu('Parent',h,'Call','mirone(''Transfer_CB'',[],[],guidata(gcbo),''copyclip'')', ...
+        'Label','Image and frame','Tag','noAxes')
 end
 
 uimenu('Parent',h2,'Call','mirone(''Transfer_CB'',[],[],guidata(gcbo),''KML'')', 'Label','Export to GoogleEarth','Sep','on');
@@ -284,7 +312,7 @@ uimenu('Parent',h,'Callback','filter_funs(guidata(gcbo),''SUSAN'');','Label','Sm
 uimenu('Parent',h,'Callback','filter_funs(guidata(gcbo),''Median'');','Label','Median (3x3)');
 
 uimenu('Parent',h54,'Call','mirone(''DigitalFilt_CB'',gcbo,[],guidata(gcbo),''image'')',...
-'Label','Digital filtering Tool','Sep','on');
+'Label','Digital Filtering Tool','Sep','on');
 
 uimenu('Parent',h54,'Call','image_enhance(gcf)','Label','Image Enhance (1 - Indexed and RGB)');
 uimenu('Parent',h54,'Call','image_adjust(gcf)','Label','Image Enhance (2 - Indexed only)');
@@ -619,7 +647,7 @@ uimenu('Parent',h240,'Call','datasets_funs(''ODP'',guidata(gcbo),''ODP'')','Labe
 uimenu('Parent',h240,'Call','datasets_funs(''ODP'',guidata(gcbo),''DSDP'')','Label','DSDP');
 uimenu('Parent',h240,'Call','datasets_funs(''ODP'',guidata(gcbo),''ODP_DSDP'')','Label','ODP and DSDP');
 
-uimenu('Parent',h113,'Call','draw_funs([],''MagneticBarCode'')','Label','Mgnetic Bar Code');
+uimenu('Parent',h113,'Call','draw_funs([],''MagBarCode'')','Label','Mgnetic Bar Code');
 uimenu('Parent',h113,'Call','atlas(guidata(gcbo))','Label','Atlas','Tag','Atlas','Sep','on');
 uimenu('Parent',h113,'Call','datasets_funs(''Isochrons'',guidata(gcbo),[])','Label','External db','Sep','on');
 
@@ -740,14 +768,14 @@ uimenu('Parent',h278,'Call','mirone(''GridToolsPadd2Const_CB'',gcbo,[],guidata(g
 uimenu('Parent',h278,'Call','mirone(''ImageEdgeDetect_CB'',gcbo,[],guidata(gcbo),''ppa'')',...
 'Label','Extract ridges/valleys','Sep','on');
 
-projectionMenu(h1)
+projectionMenu(h1, home_dir)
 
 % --------------------------- HELP MENU ------------------------------------
 h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
-uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v7)');
+uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.1.0)');
 uimenu('Parent',h9, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 uimenu('Parent',h9,...
-'Call','about_box([''Mirone_Last_modified_at_29_Apr_2007''],''Mirone'')','Label','About','Sep','on');
+'Call','about_box(guidata(gcbo),[''Mirone Last modified at 07 July 2007''],''1.1.0'')','Label','About','Sep','on');
 
 % --------------------------------------------------------------------------------------------------
 % We need this function also when the pixval_stsbar got stucked
