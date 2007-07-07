@@ -25,10 +25,10 @@ end
 
 if (nargin == 1)
     opt = [];
-elseif (~ischar(opt) && length(opt) == 2)            % imSize was transmited in input (e.g. histograms)
+elseif (~ischar(opt) && numel(opt) == 2)            % imSize was transmited in input (e.g. histograms)
     imSize = opt;
     opt = 'fixed_size';
-elseif (~ischar(opt) && length(opt) == 1)            % Case of anysotropic dx/dy
+elseif (~ischar(opt) && numel(opt) == 1)            % Case of anysotropic dx/dy
     opt = ['adjust_size_' num2str(opt,'%.8f')];
 end
 if strcmp(opt,'screen_capture')
@@ -40,7 +40,9 @@ elseif strcmp(opt,'after_screen_capture')
 end
 
 Resize1(axHandle, imHandle, imSize, opt);
-%set(axHandle,'DataAspectRatio',[1 1 1])
+if (isempty(opt) || opt(1) ~= 'a')          % Do it always but when anysotropic
+    set(axHandle,'DataAspectRatio',[1 1 1])
+end
 
 %--------------------------------------------
 % Subfunction ParseInputs
