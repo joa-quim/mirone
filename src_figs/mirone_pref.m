@@ -450,6 +450,7 @@ uiresume(handles.figure1);
 
 % ------------------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
+    handles = guidata(handles.figure1);
 	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
         % The GUI is still in UIWAIT, us UIRESUME
         handles.output = [];        % User gave up, return nothing
@@ -461,6 +462,7 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 
 % ------------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata, handles)
+    handles = guidata(handles.figure1);
 	if isequal(get(hObject,'CurrentKey'),'escape')
         handles.output = [];        % User said no by hitting escape
         guidata(handles.figure1, handles);    uiresume(handles.figure1);
