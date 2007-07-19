@@ -1,4 +1,4 @@
-function resizetrue(hFig, opt)
+function resizetrue(handles, opt)
 %RESIZETRUE Adjust display size of image.
 %   RESIZETRUE(FIG) uses the image height and width for [MROWS MCOLS].
 %   This results in the display having one screen pixel for each image pixel.
@@ -9,6 +9,7 @@ function resizetrue(hFig, opt)
 
 %   Coffeeright 2002-2007 J. Luis 
 
+hFig = handles.figure1;
 [axHandle, imHandle, colorbarHandle, imSize, resizeType, msg] = ParseInputs(hFig);
 if (~isempty(msg));    errordlg(msg,'Error');  return;      end
 
@@ -17,20 +18,31 @@ if (~isempty(msg));    errordlg(msg,'Error');  return;      end
 % remove the old status bar and rebuild it (later down) again.
 handsStBar = getappdata(hFig,'CoordsStBar');
 if (~isempty(handsStBar))
-    delete(handsStBar)
-    rmappdata(hFig,'CoordsStBar');
+    delete(handsStBar);         rmappdata(hFig,'CoordsStBar');
     set(0,'CurrentFigure',hFig)     % This may be need if another figure (e.g. a warning figure) is the gcf
     pixval_stsbar('exit')
 end
 
+xfac = 1;
+if (handles.geog && handles.scale2meanLat)
+    xfac = cos(sum(handles.head(3:4)) / 2 * pi/180);
+end
+
+DAR = [1 1 1];
 if (nargin == 1)
     opt = [];
 elseif (~ischar(opt) && numel(opt) == 2)            % imSize was transmited in input (e.g. histograms)
     imSize = opt;
     opt = 'fixed_size';
 elseif (~ischar(opt) && numel(opt) == 1)            % Case of anysotropic dx/dy
-    opt = ['adjust_size_' num2str(opt,'%.8f')];
+    DAR(2) = xfac;
+    opt = ['adjust_size_' sprintf('%.12f', opt * xfac)];
 end
+if (isempty(opt) && xfac ~= 1)                      % Case of isotropic geog grid rescaled to mean lat
+    DAR(2) = xfac;
+    opt = ['adjust_size_' sprintf('%.12f', xfac)]; 
+end
+
 if strcmp(opt,'screen_capture')
     set(axHandle,'Visible','off');
     set(get(axHandle,'Title'),'Visible','on');
@@ -40,9 +52,7 @@ elseif strcmp(opt,'after_screen_capture')
 end
 
 Resize1(axHandle, imHandle, imSize, opt);
-if (isempty(opt) || opt(1) ~= 'a')          % Do it always but when anysotropic
-    set(axHandle,'DataAspectRatio',[1 1 1])
-end
+set(axHandle, 'DataAspectRatio', DAR);
 
 %--------------------------------------------
 % Subfunction ParseInputs
