@@ -1450,7 +1450,7 @@ new_xlim = U1(:,1)';        new_ylim = U1(:,2)';
 delete(handles.hImg);
 handles.hImg = image(new_xlim,new_ylim,img);
 set(ax,'xlim',new_xlim,'ylim',new_ylim,'YDir','normal')
-resizetrue(handles.figure1);
+resizetrue(handles, []);
 setappdata(handles.figure1,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])
 setappdata(ax,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])     % Used in pan and somewhere else
 handles.old_size = get(handles.figure1,'Pos');      % Save fig size to prevent maximizing
@@ -1460,7 +1460,7 @@ handles.origFig = img;
 % [new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
 % set(gca,'XLim',new_xlim,'YLim',new_ylim,'YDir','normal')
 % set(h_img,'XData',new_xlim,'YData',new_ylim)
-% resizetrue(get(0,'CurrentFigure'))
+% resizetrue(handles, [])
 % x = [x_min x_min x_max x_max x_min];        y = [y_min y_max y_max y_min y_min];
 % set(h,'XData',x,'YData',y)
 
