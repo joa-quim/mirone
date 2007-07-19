@@ -162,7 +162,7 @@ function handles = isProj(handles, opt)
     % Fish eventual proj strings
     projGMT = getappdata(handles.figure1,'ProjGMT');
     projWKT = getappdata(handles.axes1,'ProjWKT');
-    proj4 = getappdata(handles.axes1,'Proj4');
+    proj4 = getappdata(handles.figure1,'Proj4');
     
     if (~handles.geog)
         if (~isempty(projWKT))              % We have a GDAL projected file
