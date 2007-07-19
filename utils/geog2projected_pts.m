@@ -45,7 +45,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles,xy,lims,pad)
     % Fish eventual proj strings
     projGMT = getappdata(handles.figure1,'ProjGMT');
     projWKT = getappdata(handles.axes1,'ProjWKT');
-    proj4 = getappdata(handles.axes1,'Proj4');
+    proj4 = getappdata(handles.figure1,'Proj4');
 
     jump_call = false;
     if (~isempty(projWKT) || ~isempty(proj4))
