@@ -36,6 +36,8 @@ switch opt
         write_cmap(varargin{:});    % Write a FM_CMAP block
     case 'eof'
         write_eof(varargin{1})      % Write EOF block and close file
+    case 'all3'
+        write_all3(varargin{:})     % Write three files: .geo, .dtm, .shade as DMagic would do
 end
 
 %----------------------------------------------------------------------------------
@@ -95,6 +97,47 @@ function write_shade(fid,mode,hFig,hAxes,flederBurn)
 	fwrite(fid,img,'uint8');
 
 %----------------------------------------------------------------------------------
+function write_main(fid,type,hFig,hAxes,Z,limits,flederBurn)
+% Write a basic .sd file. That is with a DTM, a SHADE & a GEO blocks
+
+	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:     Mirone   ','%%');
+    if (strcmp(type,'writePlanarSD') || strcmp(type,'runPlanarSD'))
+	    fwrite(fid,[21 39 0 0 2 0 0 0 0 0 1 1 1 1 (1:20)*0],'integer*1');
+    else
+	    fwrite(fid,[31 39 0 0 0 0 0 0 0 0 1 1 1 1 (1:18)*0],'integer*1');
+    end
+    
+    write_flederFiles('dtm',fid,'add',Z,limits)
+    write_flederFiles('shade',fid,'add',hFig,hAxes,flederBurn)
+    write_flederFiles('geo',fid,'add',limits)
+
+%----------------------------------------------------------------------------------
+function write_all3(name_stem,handles,Z,limits)
+% Write three files: .geo, .dtm, .shade
+
+    exts = {'geo' 'dtm' 'shade'};
+    for (k=1:3)
+        fid = fopen([name_stem '.' exts{k}],'wb');
+		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:     Mirone   ','%%');
+        
+        if (k == 1)         % .geo
+            if (handles.flederPlanar)
+			    fwrite(fid,[21 39 0 0 2 0 0 0 0 0 1 1 1 1 (1:20)*0],'integer*1');
+            else
+			    fwrite(fid,[31 39 0 0 0 0 0 0 0 0 1 1 1 1 (1:18)*0],'integer*1');
+            end
+            write_flederFiles(exts{k},fid,'add',limits)
+            write_flederFiles('eof',fid)        % Write EOF block and close the file
+        elseif (k == 2)     % .dtm
+            write_flederFiles(exts{k},fid,'add',Z,limits)
+            write_flederFiles('eof',fid)        % Write EOF block and close the file
+        else                %.shade
+            write_flederFiles(exts{k},fid,'add',handles.figure1,handles.axes1,handles.flederBurn)
+            write_flederFiles('eof',fid)        % Write EOF block and close the file
+        end
+    end
+
+%----------------------------------------------------------------------------------
 function write_cmap(fid)
 % Write the FM_CMAP block
     fwrite(fid,20010,'integer*4');              % ID of FM_CMAP block
@@ -109,21 +152,6 @@ function write_eof(fid)
  	fwrite(fid,999999999,'integer*4');
  	fwrite(fid,[(1:6)*0 1 1 1 1 (1:18)*0],'uchar');
 	fclose(fid);
-
-%----------------------------------------------------------------------------------
-function write_main(fid,type,hFig,hAxes,Z,limits,flederBurn)
-% Write a basic .sd file. That is with a DTM, a SHADE & a GEO blocks
-
-	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:     Mirone   ','%%');
-    if (strcmp(type,'writePlanarSD') || strcmp(type,'runPlanarSD'))
-	    fwrite(fid,[21 39 0 0 2 0 0 0 0 0 1 1 1 1 (1:20)*0],'integer*1');
-    else
-	    fwrite(fid,[31 39 0 0 0 0 0 0 0 0 1 1 1 1 (1:18)*0],'integer*1');
-    end
-    
-    write_flederFiles('dtm',fid,'add',Z,limits)
-    write_flederFiles('shade',fid,'add',hFig,hAxes,flederBurn)
-    write_flederFiles('geo',fid,'add',limits)
 
 %----------------------------------------------------------------------------------
 function write_lines_or_points(fid,hFig,hAxes,Z,limits,burnCoasts)
@@ -149,7 +177,7 @@ if (~isempty(ALLlineHand))
         if (~isempty(h)),       ALLlineHand = setxor(ALLlineHand, h);     end
     end
     
-    % See if we have COASTLINES. If yes they are treated separatly (mainly because od Z and also to create an separate object)
+    % See if we have COASTLINES. If yes they are treated separatly (mainly because of Z and also to create an separate object)
     h = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
     if (~isempty(h))
         z_level = 0;        % It will be a nonsense if the underlying grid is not topographic
