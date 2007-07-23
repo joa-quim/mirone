@@ -16,6 +16,7 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
+ * Revision 15  21/07/2007 Added the -r option. Like -R but uses pixel units
  * Revision 14  24/04/2007 Was crashing when called with a coards NETCDF file and -M
  * 			   Patch to deal with NETCDF driver adfGeoTransform bug
  * Revision 13  09/03/2007 Added MinMax field to the Band struct field
@@ -90,7 +91,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char	**argv, *gdal_filename;
 	const char	*format;
 	int	ndims, bGotNodata, flipud = FALSE, metadata_only = FALSE, got_R = FALSE;
-	int	nPixelSize, nBands, nXYSize, i, m, n, nn, nReqBands = 0;
+	int	nPixelSize, nBands, nXYSize, i, m, n, nn, nReqBands = 0, got_r = FALSE;
 	int	dims[]={0,0,0,0,0,0,0}, argc = 0, n_arg_no_char = 0;
 	int	error = FALSE, gdal_dump = FALSE, insitu = FALSE, scale_range = FALSE;
 	int	pixel_reg = FALSE, correct_bounds = FALSE, fliplr = FALSE;
@@ -160,6 +161,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'R':
 					error += decode_R (argv[i], &dfULX, &dfLRX, &dfLRY, &dfULY);
 					got_R = TRUE;
+					break;
+				case 'r':	/* Region is given in pixels */
+					error += decode_R (argv[i], &dfULX, &dfLRX, &dfLRY, &dfULY);
+					got_r = TRUE;
 					break;
 				case 'P':
 					jump = atoi(&argv[i][2]);
@@ -242,7 +247,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (!strcmp(format,"ESAT"))	/* ENVISAT data are flipped left-right */
 		fliplr = TRUE;
 
-	if (got_R) {
+	if (got_R || got_r) {
 		/* -------------------------------------------------------------------- */
 		/*      Compute the source window from the projected source window      */
 		/*      if the projected coordinates were provided.  Note that the      */
@@ -266,10 +271,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			adfGeoTransform[5] *= -1;
 		}
 
-		anSrcWin[0] = (int) ((dfULX - adfGeoTransform[0]) / adfGeoTransform[1] + 0.001);
-		anSrcWin[1] = (int) ((dfULY - adfGeoTransform[3]) / adfGeoTransform[5] + 0.001);
-		anSrcWin[2] = (int) ((dfLRX - dfULX) / adfGeoTransform[1] + 0.5);
-		anSrcWin[3] = (int) ((dfLRY - dfULY) / adfGeoTransform[5] + 0.5);
+		if (got_R) {	/* Region in map coordinates */
+			anSrcWin[0] = (int) ((dfULX - adfGeoTransform[0]) / adfGeoTransform[1] + 0.001);
+			anSrcWin[1] = (int) ((dfULY - adfGeoTransform[3]) / adfGeoTransform[5] + 0.001);
+			anSrcWin[2] = (int) ((dfLRX - dfULX) / adfGeoTransform[1] + 0.5);
+			anSrcWin[3] = (int) ((dfLRY - dfULY) / adfGeoTransform[5] + 0.5);
+		}
+		else {		/* Region in pixel/line */
+			anSrcWin[0] = (int) (dfULX);
+			anSrcWin[1] = (int) (dfLRY);
+			anSrcWin[2] = (int) (dfLRX - dfULX + 1);
+			anSrcWin[3] = (int) (dfULY - dfLRY + 1);
+		}
 
 		if( anSrcWin[0] < 0 || anSrcWin[1] < 0
 			|| anSrcWin[0] + anSrcWin[2] > GDALGetRasterXSize(hDataset)
