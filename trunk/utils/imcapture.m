@@ -238,6 +238,7 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
         end
     end
     
+    tenSizeX = 0;       tenSizeY = 0;
     have_frames = false;
     axVis = get(hAxes,'Visible');
     if (isempty(opt))                   % Pure Image only capture. Even if axes are visible, ignore them
