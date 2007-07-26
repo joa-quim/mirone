@@ -128,7 +128,7 @@ function push_plot_Callback(hObject, eventdata, handles)
         region = [xx yy];           % 1 stands for geog but that will be confirmed later
         mirone('FileNewBgFrame_CB',handles.hCallingFig,[],handles, [region geog])   % Create a background
 	else                        % Reading over an established region
-        XYlim = getappdata(handles.hCallingFig,'ThisImageLims');
+        XYlim = getappdata(handles.hCallingAxes,'ThisImageLims');
         xx = XYlim(1:2);            yy = XYlim(3:4);
 	end
 
@@ -151,7 +151,6 @@ function push_plot_Callback(hObject, eventdata, handles)
         YMin = min(YMin,min(y));     YMax = max(YMax,max(y));
         region = [XMin XMax YMin YMax];
         set(handles.hCallingAxes,'XLim',[XMin XMax],'YLim',[YMin YMax])
-        setappdata(handles.hCallingFig,'ThisImageLims',region)
         setappdata(handles.hCallingAxes,'ThisImageLims',region)
         handles.geog = aux_funs('guessGeog',region);
         guidata(handles.hCallingFig,handles)
