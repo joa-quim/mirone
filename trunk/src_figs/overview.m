@@ -775,7 +775,7 @@ if (abs(Ylabel_pos(1)) < 20)    % Stupid hack, but there is a bug somewhere
     Ylabel_pos(1) = 25;
 end
 
-setappdata(figHandle,'Backup_LabelPos',[Xlabel_pos Ylabel_pos])
+setappdata(axHandle,'Backup_LabelPos',[Xlabel_pos Ylabel_pos])
 
 y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin') + 10;  % Devera conter a altura em pixeis do Xlabel
 x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin') + 10;  % Devera conter a largura em pixeis do Ylabel
