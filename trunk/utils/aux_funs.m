@@ -161,7 +161,7 @@ function handles = isProj(handles, opt)
 
     % Fish eventual proj strings
     projGMT = getappdata(handles.figure1,'ProjGMT');
-    projWKT = getappdata(handles.axes1,'ProjWKT');
+    projWKT = getappdata(handles.figure1,'ProjWKT');
     proj4 = getappdata(handles.figure1,'Proj4');
     
     if (~handles.geog)
@@ -251,7 +251,7 @@ function res = insideRect(rect,pt)
 function clean_GRDappdata(handles)
 try
     rmappdata(handles.figure1,'dem_x');     rmappdata(handles.figure1,'dem_y');     rmappdata(handles.figure1,'dem_z');
-    rmappdata(handles.figure1,'GMThead');   rmappdata(handles.figure1,'Zmin_max');
+    rmappdata(handles.figure1,'GMThead');
 end
 
 %-----------------------------------------------------------------------------------------
