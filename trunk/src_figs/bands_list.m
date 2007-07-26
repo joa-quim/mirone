@@ -234,7 +234,6 @@ if (get(handles.radiobutton_RGB,'Value'))       % RGB - pure image for sure (is 
     set(h_img,'CData',img)
     try rmappdata(handles.h_mirone_fig,'dem_x');    rmappdata(handles.h_mirone_fig,'dem_y');
         rmappdata(handles.h_mirone_fig,'dem_z');    rmappdata(handles.h_mirone_fig,'GMThead');
-        rmappdata(handles.h_mirone_fig,'Zmin_max');
     end
     image_type = 2;         % Reset indicator that this is an image only
     computed_grid = 0;      % Reset this also
@@ -299,7 +298,6 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
         head(5:6) = [double(min(min(Z))) double(max(max(Z)))];
         setappdata(handles.h_mirone_fig,'dem_z',Z);  setappdata(handles.h_mirone_fig,'dem_x',X);
         setappdata(handles.h_mirone_fig,'dem_y',Y);  setappdata(handles.h_mirone_fig,'GMThead',head);
-        setappdata(handles.h_mirone_fig,'Zmin_max',[head(5) head(6)])
         image_type = 1;         % Pretend this a GMT grid
         computed_grid = 1;      % But set to computed_grid to avoid attempts to reload it with grdread_m
         if (isa(Z,'uint16') || isa(Z,'int16'))
