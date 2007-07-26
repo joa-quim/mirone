@@ -88,100 +88,100 @@ end
 %---------------------------------------------------------------------------------------------------
 function h = circFirstButtonDown(lon,lat)
 % Draw the circle
-lt = getappdata(gcf,'DefLineThick');    lc = getappdata(gcf,'DefLineColor');
-h = line('XData', [], 'YData', [],'Tag','','Color',lc,'LineWidth',lt);
-if (nargin == 2)
-    pt(1,1) = lon;      pt(1,2) = lat;
-else
-    pt = get(gca, 'CurrentPoint');
-end
-x_lim = get(gca,'xlim');    y_lim = get(gca,'ylim');
-set(gcf,'WindowButtonMotionFcn',{@wbm_circle,[pt(1,1) pt(1,2)],h,[x_lim y_lim]},...
-    'WindowButtonDownFcn',{@wbd_circle,h});
+    hFig = get(0,'CurrentFigure');      handles = guidata(hFig);
+    lc = handles.DefLineColor;          lt = handles.DefLineThick;
+    
+	h = line('XData', [], 'YData', [],'Tag','','Color',lc,'LineWidth',lt);
+	if (nargin == 2),       pt(1,1) = lon;      pt(1,2) = lat;
+	else                    pt = get(handles.axes1, 'CurrentPoint');
+	end
+	x_lim = get(handles.axes1,'xlim');    y_lim = get(handles.axes1,'ylim');
+	set(hFig,'WindowButtonMotionFcn',{@wbm_circle,handles.axes1,[pt(1,1) pt(1,2)],h,[x_lim y_lim]},...
+        'WindowButtonDownFcn',{@wbd_circle,hFig,handles.axes1,h});
 
 % ----------------------------------------------
-function wbm_circle(obj,eventdata,center,h,lim)
-pt = get(gca, 'CurrentPoint');
-if (pt(1,1)<lim(1)) || (pt(1,1)>lim(2)) || (pt(1,2)<lim(3)) || (pt(1,2)>lim(4));   return; end
-rad = geo2dist([pt(1,1) center(1)],[pt(1,2) center(2)],'deg');
-[latc,lonc] = circ_geo(center(2),center(1),rad,[],180);
-% Find the eventual Date line discontinuity and insert a NaN on it
-ind = find(abs(diff(lonc)) > 100);   % 100 is good enough
-if (~isempty(ind))
-    if (length(ind) == 2)
-        lonc = [lonc(1:ind(1)) NaN lonc(ind(1)+1:ind(2)) NaN lonc(ind(2)+1:end)];
-        latc = [latc(1:ind(1)) NaN latc(ind(1)+1:ind(2)) NaN latc(ind(2)+1:end)];
-    elseif (length(ind) == 1)
-        lonc = [lonc(1:ind) NaN lonc(ind+1:end)];   latc = [latc(1:ind) NaN latc(ind+1:end)];
-    end
-end
-set(h, 'XData', lonc, 'YData', latc);
-setappdata(h,'LonLatRad',[center(1) center(2) rad])
+function wbm_circle(obj,eventdata,hAxes,center,h,lim)
+	pt = get(hAxes, 'CurrentPoint');
+	if (pt(1,1)<lim(1)) || (pt(1,1)>lim(2)) || (pt(1,2)<lim(3)) || (pt(1,2)>lim(4));   return; end
+	rad = geo2dist([pt(1,1) center(1)],[pt(1,2) center(2)],'deg');
+	[latc,lonc] = circ_geo(center(2),center(1),rad,[],180);
+	% Find the eventual Date line discontinuity and insert a NaN on it
+	ind = find(abs(diff(lonc)) > 100);   % 100 is good enough
+	if (~isempty(ind))
+        if (length(ind) == 2)
+            lonc = [lonc(1:ind(1)) NaN lonc(ind(1)+1:ind(2)) NaN lonc(ind(2)+1:end)];
+            latc = [latc(1:ind(1)) NaN latc(ind(1)+1:ind(2)) NaN latc(ind(2)+1:end)];
+        elseif (length(ind) == 1)
+            lonc = [lonc(1:ind) NaN lonc(ind+1:end)];   latc = [latc(1:ind) NaN latc(ind+1:end)];
+        end
+	end
+	set(h, 'XData', lonc, 'YData', latc);
+	setappdata(h,'LonLatRad',[center(1) center(2) rad])
 
 % ----------------------------------------------
-function wbd_circle(obj,eventdata,h)
-pt = get(gca, 'CurrentPoint');
-setappdata(h,'FirstEndPoint',[pt(1,1) pt(1,2)])     % Save the circle's first end point
-set(gcf,'WindowButtonMotionFcn','', 'WindowButtonDownFcn','', 'Pointer', 'arrow')
-set(h,'Tag','Completed')        % Signal waitfor that we are done
+function wbd_circle(obj,eventdata,hFig,hAxes,h)
+	pt = get(hAxes, 'CurrentPoint');
+	setappdata(h,'FirstEndPoint',[pt(1,1) pt(1,2)])     % Save the circle's first end point
+	set(hFig,'WindowButtonMotionFcn','', 'WindowButtonDownFcn','', 'Pointer', 'arrow')
+	set(h,'Tag','Completed')        % Signal waitfor that we are done
 
 % -----------------------------------------------------------------------------------------
 function move_circle(obj,eventdata,h)
-% Translate the circle
-s = get(h,'userdata');
-state = uisuspend_fig(s.h_fig);   % Remember initial figure state
-center = getappdata(h,'LonLatRad');
-hcenter = s.hcenter;    hend = s.hend;
-x_lim = get(s.h_axes,'xlim');      y_lim = get(s.h_axes,'ylim');
-set(s.h_fig,'WindowButtonMotionFcn',{@wbm_MoveCircle,h,center,hcenter,hend,s,[x_lim y_lim]},'WindowButtonUpFcn',...
-    {@wbu_MoveCircle,h,hcenter,hend,state}, 'Pointer', 'crosshair');
+	% Translate the circle
+	s = get(h,'userdata');
+	state = uisuspend_fig(s.h_fig);   % Remember initial figure state
+	center = getappdata(h,'LonLatRad');
+	hcenter = s.hcenter;    hend = s.hend;
+	x_lim = get(s.h_axes,'xlim');      y_lim = get(s.h_axes,'ylim');
+	set(s.h_fig,'WindowButtonMotionFcn',{@wbm_MoveCircle,h,center,hcenter,hend,s,[x_lim y_lim]},'WindowButtonUpFcn',...
+        {@wbu_MoveCircle,h,hcenter,hend,state}, 'Pointer', 'crosshair');
 
 % ---------
 function wbm_MoveCircle(obj,eventdata,h,center,hcenter,hend,s,lim)
-pt = get(s.h_axes, 'CurrentPoint');
-if (pt(1,1)<lim(1)) || (pt(1,1)>lim(2)) || (pt(1,2)<lim(3)) || (pt(1,2)>lim(4));   return; end
-[latc,lonc] = circ_geo(pt(1,2),pt(1,1),center(3),[],s.npts);
-% Find the eventual date line discontinuity and insert a NaN on it
-ind = find(abs(diff(lonc)) > 100);   % 100 is good enough
-if (~isempty(ind))
-    if (length(ind) == 2)
-        lonc = [lonc(1:ind(1)) NaN lonc(ind(1)+1:ind(2)) NaN lonc(ind(2)+1:end)];
-        latc = [latc(1:ind(1)) NaN latc(ind(1)+1:ind(2)) NaN latc(ind(2)+1:end)];
-    elseif (length(ind) == 1)
-        lonc = [lonc(1:ind) NaN lonc(ind+1:end)];   latc = [latc(1:ind) NaN latc(ind+1:end)];
-    end
-end
-set(h, 'XData', lonc, 'YData', latc);
-set(hcenter,'XData',pt(1,1), 'YData', pt(1,2))              % Move the circle's center marker
-[s.rlat,s.rlon] = circ_geo(pt(1,2),pt(1,1),s.rad,s.az,1);   % Compute new end point
-set(hend,'XData',s.rlon, 'YData', s.rlat)                   % Move the circle's end marker
-
-% update data in controls window if it exists
-if ishandle(s.hcontrol)
-    set(findobj(s.hcontrol,'tag','lat'),'string',num2str(pt(1,2)));
-    set(findobj(s.hcontrol,'tag','lon'),'string',num2str(pt(1,1)));
-end
-set(h,'userdata',s);
+	pt = get(s.h_axes, 'CurrentPoint');
+	if (pt(1,1)<lim(1)) || (pt(1,1)>lim(2)) || (pt(1,2)<lim(3)) || (pt(1,2)>lim(4));   return; end
+	[latc,lonc] = circ_geo(pt(1,2),pt(1,1),center(3),[],s.npts);
+	% Find the eventual date line discontinuity and insert a NaN on it
+	ind = find(abs(diff(lonc)) > 100);   % 100 is good enough
+	if (~isempty(ind))
+        if (length(ind) == 2)
+            lonc = [lonc(1:ind(1)) NaN lonc(ind(1)+1:ind(2)) NaN lonc(ind(2)+1:end)];
+            latc = [latc(1:ind(1)) NaN latc(ind(1)+1:ind(2)) NaN latc(ind(2)+1:end)];
+        elseif (length(ind) == 1)
+            lonc = [lonc(1:ind) NaN lonc(ind+1:end)];   latc = [latc(1:ind) NaN latc(ind+1:end)];
+        end
+	end
+	set(h, 'XData', lonc, 'YData', latc);
+	set(hcenter,'XData',pt(1,1), 'YData', pt(1,2))              % Move the circle's center marker
+	[s.rlat,s.rlon] = circ_geo(pt(1,2),pt(1,1),s.rad,s.az,1);   % Compute new end point
+	set(hend,'XData',s.rlon, 'YData', s.rlat)                   % Move the circle's end marker
+	
+	% update data in controls window if it exists
+	if ishandle(s.hcontrol)
+        set(findobj(s.hcontrol,'tag','lat'),'string',num2str(pt(1,2)));
+        set(findobj(s.hcontrol,'tag','lon'),'string',num2str(pt(1,1)));
+	end
+	set(h,'userdata',s);
 
 % ---------
 function wbu_MoveCircle(obj,eventdata,h,hcenter,hend,state)
-% check if x,y is inside of axis
-s = get(h,'userdata');
-pt = get(s.h_axes, 'CurrentPoint');
-x = pt(1,1);    y = pt(1,2);
-x_lim = get(s.h_axes,'xlim');      y_lim = get(s.h_axes,'ylim');
-if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return;     end
-
-% Update the new circles center and end in userdata
-s = get(h,'userdata');
-s.clon = x;     s.clat = y;
-s.rlon = get(hend,'XData');     s.rlat = get(hend,'YData');
-set(h,'userdata',s);
-setappdata(h,'LonLatRad',[s.clon s.clat s.rad])
-if ishandle(s.hcontrol)     % That is, if user didn't kill the controls window
-    set(s.hcontrol,'userdata',s)
-end
-uirestore_fig(state);         % Restore the figure's initial state
+	% check if x,y is inside of axis
+	s = get(h,'userdata');
+	pt = get(s.h_axes, 'CurrentPoint');
+	x = pt(1,1);    y = pt(1,2);
+	x_lim = get(s.h_axes,'xlim');      y_lim = get(s.h_axes,'ylim');
+	if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return;     end
+	
+	% Update the new circles center and end in userdata
+	s = get(h,'userdata');
+	s.clon = x;     s.clat = y;
+	s.rlon = get(hend,'XData');     s.rlat = get(hend,'YData');
+	set(h,'userdata',s);
+	setappdata(h,'LonLatRad',[s.clon s.clat s.rad])
+	if ishandle(s.hcontrol)     % That is, if user didn't kill the controls window
+        set(s.hcontrol,'userdata',s)
+	end
+	uirestore_fig(state);         % Restore the figure's initial state
 
 % -----------------------------------------------------------------------------------------
 function resize_circle(obj,eventdata,h)
