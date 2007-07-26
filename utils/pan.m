@@ -402,7 +402,7 @@ set(ax,'units',orig_units);
 
     % Set new limits
     fig = gcf;
-    labelType = getappdata(fig,'LabelFormatType');
+    labelType = getappdata(ax,'LabelFormatType');
     if strcmp(style,'x')
         set(ax,[abscissa,'lim'],new_lim1);
         set(ax,[ordinate,'lim'],orig_lim2);
@@ -642,20 +642,20 @@ switch type
         e_str = degree2dms(str2num( ddewhite(tick) ),'DDMM',0,'str');   % e_str is a structure with string fields
         str_e = [e_str.dd repmat(' ',n_tick,1) e_str.mm];
         set(hAx,[eixo,'TickLabel'],str_e);
-        setappdata(hFig,'LabelFormatType','DegMin')                     % Save it so zoom can know the label type
+        setappdata(hAx,'LabelFormatType','DegMin')                     % Save it so zoom can know the label type
     case 'DegMinDec'
         e_str = degree2dms(str2num( ddewhite(tick) ),'DDMM.x',2,'str'); % e_str is a structure with string fields
         str_e = [e_str.dd repmat(' ',n_tick,1) e_str.mm];
         set(hAx,[eixo,'TickLabel'],str_e);
-        setappdata(hFig,'LabelFormatType','DegMinDec')                  % Save it so zoom can know the label type
+        setappdata(hAx,'LabelFormatType','DegMinDec')                  % Save it so zoom can know the label type
     case 'DegMinSec'
         e_str = degree2dms(str2num( ddewhite(tick) ),'DDMMSS',0,'str'); % e_str is a structure with string fields
         str_e = [e_str.dd repmat(' ',n_tick,1) e_str.mm repmat(' ',n_tick,1) e_str.ss];
         set(hAx,[eixo,'TickLabel'],str_e);
-        setappdata(hFig,'LabelFormatType','DegMinSec')                  % Save it so zoom can know the label type
+        setappdata(hAx,'LabelFormatType','DegMinSec')                  % Save it so zoom can know the label type
     case 'DegMinSecDec'
         e_str = degree2dms(str2num( ddewhite(tick) ),'DDMMSS.x',1,'str');   % e_str is a structure with string fields
         str_e = [e_str.dd repmat(' ',n_tick,1) e_str.mm repmat(' ',n_tick,1) e_str.ss];
         set(hAx,[eixo,'TickLabel'],str_e);
-        setappdata(hFig,'LabelFormatType','DegMinSecDec')               % Save it so zoom can know the label type
+        setappdata(hAx,'LabelFormatType','DegMinSecDec')               % Save it so zoom can know the label type
 end
