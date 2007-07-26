@@ -151,7 +151,9 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
 %   Either we are in automatic display mode and the mouse pointer is
 %   moving around or we are in normal mode and there has been a button-down
 %   but not yet a button up. I get the current point and update the string.
-Zlim = getappdata(figHandle,'Zmin_max');
+axHandle = get(imageHandle,'Parent');
+GMThead = getappdata(figHandle,'GMThead');
+Zlim = GMThead(5:6);
 if isempty(Zlim),                       no_Zlim = 1;
 else                                    no_Zlim = 0;    end
 if isempty(getappdata(figHandle,'dem_x')),    haveGrid = 0;
@@ -211,7 +213,7 @@ end
 % delete testimpwkt.*; importwkt
 
 % Find the coordinate output format
-labelType = getappdata(figHandle,'LabelFormatType');
+labelType = getappdata(axHandle,'LabelFormatType');
 if (isempty(labelType))     % This is in fact an error test because labelType should never be empty.
     labelType = 'NotGeog';
 end
