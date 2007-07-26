@@ -121,10 +121,10 @@ switch opt
         else
             n_segments = 1;
         end
-        XYlim = getappdata(hFig,'ThisImageLims');
+        XYlim = getappdata(handles.axes1,'ThisImageLims');
         xx = XYlim(1:2);            yy = XYlim(3:4);
         hold on
-        lt = getappdata(hFig,'DefLineThick');   lc = getappdata(hFig,'DefLineColor');
+        lt = handles.DefLineThick;   lc = handles.DefLineColor;
         for i=1:n_segments
             if (iscell(numeric_data))
                 tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
@@ -305,8 +305,7 @@ if (LINE_ISCLOSED)
     %cbFill = {@fill_Polygon,h};     % Transform the polygon into a patch and open the patch door possibilities
     %itemFill = uimenu(cmenuHand, 'Label', 'Fill polygon', 'Callback', cbFill);
 end
-if ( strcmp(opt,'line') && ~LINE_ISCLOSED && (ndims(get(handles.hImg,'CData')) == 2 ...
-    || getappdata(get(0,'CurrentFigure'),'ValidGrid')) )
+if ( strcmp(opt,'line') && ~LINE_ISCLOSED && (ndims(get(handles.hImg,'CData')) == 2 || handles.ValidGrid) )
     cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',gcbo,[],guidata(gcbo),''point'')';
     uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack);
     cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',gcbo,[],guidata(gcbo))';
@@ -325,7 +324,7 @@ if (IS_RECTANGLE)
     end
     uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', @rectangle_register_img);
     uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Callback', @Transplant_Image);
-    if (getappdata(get(0,'CurrentFigure'),'ValidGrid'))    % Option only available to recognized grids
+    if (handles.ValidGrid)    % Option only available to recognized grids
         cb_SplineSmooth  = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''SplineSmooth'')';
         cb_MedianFilter  = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''MedianFilter'')';
         cb_Fill_surface  = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''surface'')';
@@ -373,7 +372,7 @@ if (IS_PATCH && ~IS_SEISPOLYGON)
     uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
 end
 if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
-    if (getappdata(get(0,'CurrentFigure'),'ValidGrid') && ~IS_RECTANGLE)    % Option only available to recognized grids
+    if (handles.ValidGrid && ~IS_RECTANGLE)    % Option only available to recognized grids
         item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Separator','on');
         uimenu(item_tools2, 'Label', 'Crop Grid', 'Callback', ...
             'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''CropaGrid_pure'')');
@@ -476,9 +475,10 @@ hh = findobj('Tag','FaultTrace');       % Check if we have more than one (multi-
 if (isempty(hh)),   errordlg('This is just a line, NOT a fault trace. Can''t you see the difference?','Error'); return; end
 h_fig = get(0,'CurrentFigure');     handles = guidata(h_fig);
 % Guess minimum length segment that could be due to a bad line drawing
-if (handles.geog),  min_len = 0.05;
+if (handles.geog)
+    min_len = 0.05;
 else
-    imgLims = getappdata(h_fig,'ThisImageLims');
+    imgLims = getappdata(handles.axes1,'ThisImageLims');
     if (abs(imgLims(2) - imgLims(1)) < 5000),   min_len = 5;    % Assume that the grid is in km
     else                                        min_len = 5000; % Assume meters
     end
@@ -946,7 +946,6 @@ function fill_Polygon(obj,eventdata,h)
 % -----------------------------------------------------------------------------------------
 function show_swhatRatio(obj,eventdata,h)
     msgbox(['Swath Ratio for this track is: ' sprintf('%g',getappdata(h,'swathRatio'))],'')
-    refresh
 
 % -----------------------------------------------------------------------------------------
 function show_Area(obj,eventdata,h)
@@ -1196,36 +1195,33 @@ function other_LineWidth(obj,eventdata,h)
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
-function h_vector = draw_vector
-	h_vector(1) = line('XData', [], 'YData', [],'Tag','Arrow');       % handle to the vector line
-	h_vector(2) = patch('XData', [], 'YData', [],'Tag','Arrow');      % handle to the vector head
-	state = uisuspend_fig(get(0,'CurrentFigure'));        % Remember initial figure state
-	set(get(0,'CurrentFigure'),'Pointer', 'crosshair');
+function hVec = draw_vector
+    hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
+	hVec(1) = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
+	hVec(2) = patch('XData', [], 'YData', [],'FaceColor',handles.DefLineColor,'EdgeColor',handles.DefLineColor,'Tag','Arrow');
+	state = uisuspend_fig(hFig);        % Remember initial figure state
+	set(hFig,'Pointer', 'crosshair');
 	w = waitforbuttonpress;
 	if w == 0       % A mouse click
-        vectorFirstButtonDown(h_vector,state)
+        vectorFirstButtonDown(hFig,handles.axes1,hVec,state)
 	else
-        set(get(0,'CurrentFigure'),'Pointer', 'arrow');    h_vector = [];
+        set(hFig,'Pointer', 'arrow');    hVec = [];
 	end
 
-function vectorFirstButtonDown(h,state)
-    pt = get(gca, 'CurrentPoint');
-    set(gcf,'WindowButtonMotionFcn',{@wbm_vector,[pt(1,1) pt(1,2)],h},'WindowButtonDownFcn',{@wbd_vector,h,state});
+function vectorFirstButtonDown(hFig,hAxes,h,state)
+    pt = get(hAxes, 'CurrentPoint');
+    set(hFig,'WindowButtonMotionFcn',{@wbm_vector,[pt(1,1) pt(1,2)],h,hAxes},'WindowButtonDownFcn',{@wbd_vector,h,state});
 
-function wbm_vector(obj,eventdata,origin,h)
-	pt = get(gca, 'CurrentPoint');
+function wbm_vector(obj,eventdata,origin,h,hAxes)
+	pt = get(hAxes, 'CurrentPoint');
 	x  = [origin(1) pt(1,1)];   y = [origin(2) pt(1,2)];
-	% [xx,yy,zz] = arrow([origin(1) origin(2)],[pt(1,1) pt(1,2)],20,50,16,2);
-	% set(h(2),'XData',xx, 'YData',yy,'FaceColor',lc,'EdgeColor',lc);
-	
 	dx = diff(x);               dy = diff(y);
-	lt = getappdata(get(0,'CurrentFigure'),'DefLineThick');    lc = getappdata(get(0,'CurrentFigure'),'DefLineColor');
-	set(h(1),'XData',x, 'YData',y,'Color',lc,'LineWidth',lt)
-	ax = getappdata(get(0,'CurrentFigure'),'ThisImageLims');
+	set(h(1),'XData',x, 'YData',y)
+	ax = getappdata(hAxes,'ThisImageLims');
 	lx = diff(ax(1:2))*25e-3;   ly = diff(ax(3:4))*10e-3;
 	phi = atan2(dy,dx);
 	head = rotate2([-lx 0 -lx; ly 0 -ly], [0; 0], phi);
-	set(h(2),'XData',head(1,:)+pt(1,1), 'YData',head(2,:)+pt(1,2),'FaceColor',lc,'EdgeColor',lc);
+	set(h(2),'XData',head(1,:)+pt(1,1), 'YData',head(2,:)+pt(1,2));
 
 function wbd_vector(obj,eventdata,h,state)
     uirestore_fig(state);           % Restore the figure's initial state
@@ -1239,60 +1235,60 @@ function newpoints = rotate2(points,orig,phi)
 
 % -----------------------------------------------------------------------------------------
 function h_gcirc = draw_greateCircle
-h_gcirc = line('XData', [], 'YData', []);
-state = uisuspend_fig(get(0,'CurrentFigure'));     % Remember initial figure state
-set(get(0,'CurrentFigure'),'Pointer', 'crosshair'); % to avoid the compiler BUG
-w = waitforbuttonpress;                             %
-if w == 0       % A mouse click                     %
-    gcircFirstButtonDown(h_gcirc,state)             %
-else                                                %
-    set(get(0,'CurrentFigure'),'Pointer', 'arrow'); %
-    h_gcirc = [];                                   %
-end                                                 %
+    hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
+    h_gcirc = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick);
+	state = uisuspend_fig(hFig);     % Remember initial figure state
+	set(hFig,'Pointer', 'crosshair'); % to avoid the compiler BUG
+	w = waitforbuttonpress;                             %
+	if w == 0       % A mouse click                     %
+        gcircFirstButtonDown(hFig,h_gcirc,state)             %
+	else                                                %
+        set(hFig,'Pointer', 'arrow'); %
+        h_gcirc = [];                                   %
+	end                                                 %
 %---------------
-function gcircFirstButtonDown(h,state)
-hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
-pt = get(hAxes, 'CurrentPoint');
-set(hFig,'WindowButtonMotionFcn',{@wbm_gcircle,[pt(1,1) pt(1,2)],h,hFig,hAxes},'WindowButtonDownFcn',{@wbd_gcircle,h,state});
+function gcircFirstButtonDown(hFig,h,state)
+	hAxes = get(hFig,'CurrentAxes');	pt = get(hAxes, 'CurrentPoint');
+	set(hFig,'WindowButtonMotionFcn',{@wbm_gcircle,[pt(1,1) pt(1,2)],h,hFig,hAxes},'WindowButtonDownFcn',{@wbd_gcircle,h,state});
 %---------------
 function wbm_gcircle(obj,eventdata,first_pt,h,hFig,hAxes)
-pt = get(hAxes, 'CurrentPoint');
-[x,y] = gcirc(first_pt(1),first_pt(2),pt(1,1),pt(1,2));
-lt = getappdata(hFig,'DefLineThick');    lc = getappdata(hFig,'DefLineColor');
-% Find the eventual Date line discontinuity and insert a NaN on it
-% ind = find(abs(diff(x)) > 100);   % 100 is good enough
-% if (~isempty(ind))
-%     if (length(ind) == 2)
-%         x = [x(1:ind(1)) NaN x(ind(1)+1:ind(2)) NaN x(ind(2)+1:end)];
-%         y = [y(1:ind(1)) NaN y(ind(1)+1:ind(2)) NaN y(ind(2)+1:end)];
-%     elseif (length(ind) == 1)
-%         x = [x(1:ind) NaN x(ind+1:end)];   y = [y(1:ind) NaN y(ind+1:end)];
-%     end
-% end
-set(h, 'XData', x, 'YData', y,'Color',lc,'LineWidth',lt,'Userdata',[first_pt [x y]]);
+	pt = get(hAxes, 'CurrentPoint');
+	[x,y] = gcirc(first_pt(1),first_pt(2),pt(1,1),pt(1,2));
+	% Find the eventual Date line discontinuity and insert a NaN on it
+	% ind = find(abs(diff(x)) > 100);   % 100 is good enough
+	% if (~isempty(ind))
+	%     if (length(ind) == 2)
+	%         x = [x(1:ind(1)) NaN x(ind(1)+1:ind(2)) NaN x(ind(2)+1:end)];
+	%         y = [y(1:ind(1)) NaN y(ind(1)+1:ind(2)) NaN y(ind(2)+1:end)];
+	%     elseif (length(ind) == 1)
+	%         x = [x(1:ind) NaN x(ind+1:end)];   y = [y(1:ind) NaN y(ind+1:end)];
+	%     end
+	% end
+	set(h, 'XData', x, 'YData', y,'Userdata',[first_pt [x y]]);
 %---------------
 function wbd_gcircle(obj,eventdata,h,state)
-lons_lats = get(h,'UserData');    setappdata(h,'LonLatRad',lons_lats)   % save this in appdata
-set(h,'Tag','GreatCircle')
-uirestore_fig(state);           % Restore the figure's initial state
+	lons_lats = get(h,'UserData');    setappdata(h,'LonLatRad',lons_lats)   % save this in appdata
+	set(h,'Tag','GreatCircle')
+	uirestore_fig(state);           % Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
 function h_circ = draw_circleGeo
-% Given one more compiler BUG, (WindowButtonDownFcn cannot be redefined)
-% I found the following workaround.
-% I THINK THIS IS ONLY USED NOW WITH CARTESIAN CIRCLES
-h_circ = line('XData', [], 'YData', []);
-%set(get(0,'CurrentFigure'),'WindowButtonDownFcn',{@circFirstButtonDown,h_circ}, 'Pointer', 'crosshair');
-state = uisuspend_fig(get(0,'CurrentFigure'));     % Remember initial figure state
-set(get(0,'CurrentFigure'),'Pointer', 'crosshair'); % to avoid the compiler BUG
-w = waitforbuttonpress;                             %
-if w == 0       % A mouse click                     %
-    circFirstButtonDown(h_circ,state)               %
-else                                                %
-    set(get(0,'CurrentFigure'),'Pointer', 'arrow'); %
-    h_circ = [];                                    %
-end                                                 %
+	% Given one more compiler BUG, (WindowButtonDownFcn cannot be redefined)
+	% I found the following workaround.
+	% I THINK THIS IS ONLY USED NOW WITH CARTESIAN CIRCLES
+	hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
+	h_circ = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick);
+	%set(hFig,'WindowButtonDownFcn',{@circFirstButtonDown,h_circ}, 'Pointer', 'crosshair');
+	state = uisuspend_fig(hFig);     % Remember initial figure state
+	set(hFig,'Pointer', 'crosshair'); % to avoid the compiler BUG
+	w = waitforbuttonpress;                             %
+	if w == 0       % A mouse click                     %
+        circFirstButtonDown(h_circ,state)               %
+	else                                                %
+        set(get(0,'CurrentFigure'),'Pointer', 'arrow'); %
+        h_circ = [];                                    %
+	end                                                 %
 
 %---------------
 %function circFirstButtonDown(obj,eventdata,h)      % For non compiled version
@@ -1311,8 +1307,7 @@ function wbm_circle(obj,eventdata,center,h,hAxes,hFig)
 	%[y,x] = circ_geo(center(2),center(1),rad);
 	x = getappdata(h,'X');          y = getappdata(h,'Y');
 	x = center(1) + rad * x;        y = center(2) + rad * y;
-	lt = getappdata(hFig,'DefLineThick');    lc = getappdata(hFig,'DefLineColor');
-	set(h, 'XData', x, 'YData', y,'Color',lc,'LineWidth',lt,'Userdata',[center(1) center(2) rad]);
+	set(h, 'XData', x, 'YData', y,'Userdata',[center(1) center(2) rad]);
 
 %---------------
 function wbd_circle(obj,eventdata,h,state)
@@ -1418,7 +1413,7 @@ x(1) = rect_x(1);     x(2) = rect_x(2);     x(3) = rect_x(3);
 y(1) = rect_y(1);     y(2) = rect_y(2);
 img = get(handles.hImg,'CData');
 % Transform the ractangle limits into row-col limits
-limits = getappdata(handles.figure1,'ThisImageLims');
+limits = getappdata(handles.axes1,'ThisImageLims');
 r_c = cropimg(limits(1:2), limits(3:4), img, [x(1) y(1) (x(3)-x(2)) (y(2)-y(1))], 'out_precise');
 % Find if we are dealing with a image with origin at upper left (i.e. with y positive down)
 if(strcmp(get(ax,'XDir'),'normal') && strcmp(get(ax,'YDir'),'reverse'))
@@ -1451,8 +1446,7 @@ delete(handles.hImg);
 handles.hImg = image(new_xlim,new_ylim,img);
 set(ax,'xlim',new_xlim,'ylim',new_ylim,'YDir','normal')
 resizetrue(handles, []);
-setappdata(handles.figure1,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])
-setappdata(ax,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])     % Used in pan and somewhere else
+setappdata(ax,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])
 handles.old_size = get(handles.figure1,'Pos');      % Save fig size to prevent maximizing
 handles.origFig = img;
 
@@ -1839,7 +1833,7 @@ else                % Individual symbol
 end
 
 % Show the coordinates with same format as the axes label
-labelType = getappdata(gcf,'LabelFormatType');
+labelType = getappdata(gca,'LabelFormatType');
 if (~isempty(labelType))
     switch labelType
         case 'DegMin'
@@ -2041,7 +2035,7 @@ if isempty(EXT),    f_name = [PathName FNAME '.dat'];
 else                f_name = [PathName FNAME EXT];       end
 
 % Save data with a format determined by axes format
-labelType = getappdata(hFig,'LabelFormatType');             % find the axes label format
+labelType = getappdata(handles.axes1,'LabelFormatType');             % find the axes label format
 if isempty(labelType),      labelType = ' ';        end     % untempered matlab axes labels
 switch labelType
     case {' ','DegDec','NotGeog'}
@@ -2281,7 +2275,7 @@ function del_insideRect(obj,eventdata,h)
 % -------------------------------------------------------------------------------------------------------
 function changeAxesLabels(opt)
 % This function formats the axes labels strings using a geographical notation
-hFig = get(0,'CurrentFigure');      hAxes = gca;
+hFig = get(0,'CurrentFigure');      hAxes = get(hFig,'CurrentAxes');
 x_tick = getappdata(hFig,'XTickOrig');
 y_tick = getappdata(hFig,'YTickOrig');
 n_xtick = size(x_tick,1);                   n_ytick = size(y_tick,1);
@@ -2290,35 +2284,35 @@ switch opt
         % This is easy because original Labels where saved in appdata
         set(hAxes,'XTickLabel',getappdata(hFig,'XTickOrig'));
         set(hAxes,'YTickLabel',getappdata(hFig,'YTickOrig'))
-        setappdata(hFig,'LabelFormatType','DegDec')       % Save it so zoom can know the label type
+        setappdata(hAxes,'LabelFormatType','DegDec')       % Save it so zoom can know the label type
     case 'ToDegMin'
         x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM',0,'str');     % x_str is a structure with string fields
         y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM',0,'str');
         str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm];
         str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm];
         set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
-        setappdata(hFig,'LabelFormatType','DegMin')        % Save it so zoom can know the label type
+        setappdata(hAxes,'LabelFormatType','DegMin')        % Save it so zoom can know the label type
     case 'ToDegMinDec'
         x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM.x',2,'str');    % x_str is a structure with string fields
         y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM.x',2,'str');
         str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm];
         str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm];
         set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
-        setappdata(hFig,'LabelFormatType','DegMinDec')     % Save it so zoom can know the label type
+        setappdata(hAxes,'LabelFormatType','DegMinDec')     % Save it so zoom can know the label type
     case 'ToDegMinSec'
         x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS',0,'str');    % x_str is a structure with string fields
         y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS',0,'str');
         str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm repmat(' ',n_xtick,1) x_str.ss];
         str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm repmat(' ',n_ytick,1) y_str.ss];
         set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
-        setappdata(hFig,'LabelFormatType','DegMinSec')      % Save it so zoom can know the label type
+        setappdata(hAxes,'LabelFormatType','DegMinSec')      % Save it so zoom can know the label type
     case 'ToDegMinSecDec'
         x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS.x',1,'str');   % x_str is a structure with string fields
         y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS.x',1,'str');
         str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm repmat(' ',n_xtick,1) x_str.ss];
         str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm repmat(' ',n_ytick,1) y_str.ss];
         set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
-        setappdata(hFig,'LabelFormatType','DegMinSecDec')   % Save it so zoom can know the label type
+        setappdata(hAxes,'LabelFormatType','DegMinSecDec')   % Save it so zoom can know the label type
 end
 
 % -----------------------------------------------------------------------------------------
