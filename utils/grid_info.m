@@ -114,13 +114,13 @@ function att2Hdr(handles,att)
     setappdata(handles.axes1,'InfoMsg',w)
     
     if (~isempty(att.ProjectionRef))    % If we have a 'GDAL' projection, store it
-        setappdata(handles.axes1,'ProjWKT',att.ProjectionRef)
+        setappdata(handles.figure1,'ProjWKT',att.ProjectionRef)
         out = decodeProjectionRef(att.ProjectionRef);
         if ( ~isempty(out.datum) || ~isempty(out.ellipsoid) || ~isempty(out.projection) )
             setappdata(handles.axes1,'DatumProjInfo',out)
         end
     else                                % Otherwise remove eventual previous one Load in projected coords Load files in geogs
-        if (isappdata(handles.axes1,'ProjWKT')),    rmappdata(handles.axes1,'ProjWKT'); end
+        if (isappdata(handles.figure1,'ProjWKT')),    rmappdata(handles.figure1,'ProjWKT'); end
     end
     
 % --------------------------------------------------------------------
@@ -177,6 +177,7 @@ function img2Hdr(handles,imgName,img)
     setappdata(handles.axes1,'InfoMsg',w)
 
     % Maybe not the most apropriate place to do this but ...
-    if (isappdata(handles.axes1,'ProjWKT')),    rmappdata(handles.axes1,'ProjWKT'); end
-    if (isappdata(handles.axes1,'ProjGMT')),    rmappdata(handles.axes1,'ProjGMT'); end
+    if (isappdata(handles.figure1,'ProjWKT')),    rmappdata(handles.figure1,'ProjWKT'); end
+    if (isappdata(handles.figure1,'ProjGMT')),    rmappdata(handles.figure1,'ProjGMT'); end
+    if (isappdata(handles.figure1,'Proj4')),      rmappdata(handles.figure1,'Proj4'); end
     
