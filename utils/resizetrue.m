@@ -284,9 +284,9 @@ function Resize1(axHandle, imHandle, imSize, opt)
     end
 
 	if (isempty(opt) || strcmp(opt(1:5),'fixed') || strcmp(opt(1:6),'adjust')) 
-        setappdata(figHandle,'Backup_LabelPos',[Xlabel_pos Ylabel_pos])
+        setappdata(axHandle,'Backup_LabelPos',[Xlabel_pos Ylabel_pos])
 	elseif strcmp(opt,'after_screen_capture')
-        lab_tmp = getappdata(figHandle,'Backup_LabelPos');
+        lab_tmp = getappdata(axHandle,'Backup_LabelPos');
         Xlabel_pos = [lab_tmp(1) lab_tmp(2) lab_tmp(3)];
         Ylabel_pos = [lab_tmp(4) lab_tmp(5) lab_tmp(6)];
 	end
