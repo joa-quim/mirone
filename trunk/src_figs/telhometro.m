@@ -127,8 +127,9 @@ if (isempty(handles.h_line_orig))
     errordlg('Will you be so kind to let me know what line should I rotate?','Unknown target')
     return
 end
-lt = getappdata(handles.h_calling_fig,'DefLineThick');
-lc = getappdata(handles.h_calling_fig,'DefLineColor');
+handMir = guidata(handles.h_calling_fig);
+lt = handMir.DefLineThick;
+lc = handMir.DefLineColor;
 
 poles_name = get(handles.edit_polesFile,'String');
 if (isempty(poles_name))
@@ -161,7 +162,6 @@ if (t1 < t0)
 end
 
 [out_x,out_y,first_mag,n_flow] = telha_m(linha, opt_E, opt_I, '-B', opt_T, opt_N);
-%clear mex;
 
 % if (get(handles.checkbox_ridgeStartTime,'Value'))
 % 	dx = out_x(1,1) - linha(1,1);
