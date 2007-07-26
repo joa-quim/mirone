@@ -142,7 +142,7 @@ if (handles.no_file)        % Start empty but below we'll find the true data reg
     end
     mirone('FileNewBgFrame_CB',handles.figure1,[],handles, [region geog])   % Create a background
 else                        % Reading over an established region
-    XYlim = getappdata(handles.figure1,'ThisImageLims');
+    XYlim = getappdata(handles.axes1,'ThisImageLims');
     xx = XYlim(1:2);            yy = XYlim(3:4);
     if (handles.is_projected && (nargin == 1 || handles.defCoordsIn > 0) )
         do_project = true;
@@ -204,7 +204,6 @@ set(handles.figure1,'pointer','arrow')
 if (handles.no_file)        % We have a kind of inf Lims. Adjust for current values
     region = [XMin XMax YMin YMax];
     set(handles.axes1,'XLim',[XMin XMax],'YLim',[YMin YMax])
-    setappdata(handles.figure1,'ThisImageLims',region)
     setappdata(handles.axes1,'ThisImageLims',region)
     handles.geog = aux_funs('guessGeog',region);
     guidata(handles.figure1,handles)
@@ -789,7 +788,7 @@ if (handles.no_file)        % Start empty but below we'll find the true data reg
     region = [xx yy];           % 1 stands for geog but that will be confirmed later
     mirone('FileNewBgFrame_CB',handles.figure1,[],handles, [region geog])   % Create a background
 else                        % Reading over an established region
-    XYlim = getappdata(handles.figure1,'ThisImageLims');
+    XYlim = getappdata(handles.axes1,'ThisImageLims');
     xx = XYlim(1:2);            yy = XYlim(3:4);
     if (handles.is_projected && handles.defCoordsIn > 0)
         do_project = true;
@@ -857,7 +856,6 @@ end
 if (handles.no_file)        % We have a kind of inf Lims. Adjust for current values
     region = [XMin XMax YMin YMax];
     set(handles.figure1,'XLim',[XMin XMax],'YLim',[YMin YMax])
-    setappdata(handles.figure1,'ThisImageLims',region)
     setappdata(handles.axes1,'ThisImageLims',region)
     handles.geog = aux_funs('guessGeog',region);
     guidata(handles.figure1,handles)
