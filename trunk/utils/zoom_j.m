@@ -515,7 +515,7 @@ if zoomx,
     if a(1)==a(2), return, end % Short circuit if zoom is moot.
     set(ax,'xlim',a(1:2))
     % Save current X labels in appdata for easear access when we want to change them in ChangeAxesLabels
-    labelType = getappdata(fig,'LabelFormatType');
+    labelType = getappdata(ax,'LabelFormatType');
     if isempty(labelType)       % Prevent an error in the next switch when labelType = []
         labelType = ' ';
     else                        % Set it to 'auto' (that is numeric) so ChangeAxesLabels knows how to reformat to a geog string
@@ -540,7 +540,7 @@ if zoomy,
     set(ax,'ylim',a(3:4))
 
     % Save current Y labels in appdata for easear access when we want to change them in ChangeAxesLabels
-    labelType = getappdata(fig,'LabelFormatType');
+    labelType = getappdata(ax,'LabelFormatType');
     if isempty(labelType)       % Prevent an error in the next switch when labelType = []
         labelType = ' ';
     else                        % Set it to 'auto' (that is numeric) so ChangeAxesLabels knows how to refrmat to a geog string
@@ -665,25 +665,25 @@ switch type
     case 'DegDec'
         % This is easy because original Labels where saved in appdata
         set(hAx,[eixo,'TickLabel'],getappdata(hFig,[eixo,'TickOrig']));
-        setappdata(hFig,'LabelFormatType','DegDec')                     % Save it so zoom can know the label type
+        setappdata(hAx,'LabelFormatType','DegDec')                      % Save it so zoom can know the label type
     case 'DegMin'
         e_str = degree2dms(str2num( ddewhite(tick) ),'DDMM',0,'str');   % e_str is a structure with string fields
         str_e = [e_str.dd repmat(' ',n_tick,1) e_str.mm];
         set(hAx,[eixo,'TickLabel'],str_e);
-        setappdata(hFig,'LabelFormatType','DegMin')                     % Save it so zoom can know the label type
+        setappdata(hAx,'LabelFormatType','DegMin')                     % Save it so zoom can know the label type
     case 'DegMinDec'
         e_str = degree2dms(str2num( ddewhite(tick) ),'DDMM.x',2,'str'); % e_str is a structure with string fields
         str_e = [e_str.dd repmat(' ',n_tick,1) e_str.mm];
         set(hAx,[eixo,'TickLabel'],str_e);
-        setappdata(hFig,'LabelFormatType','DegMinDec')                  % Save it so zoom can know the label type
+        setappdata(hAx,'LabelFormatType','DegMinDec')                  % Save it so zoom can know the label type
     case 'DegMinSec'
         e_str = degree2dms(str2num( ddewhite(tick) ),'DDMMSS',0,'str'); % e_str is a structure with string fields
         str_e = [e_str.dd repmat(' ',n_tick,1) e_str.mm repmat(' ',n_tick,1) e_str.ss];
         set(hAx,[eixo,'TickLabel'],str_e);
-        setappdata(hFig,'LabelFormatType','DegMinSec')                  % Save it so zoom can know the label type
+        setappdata(hAx,'LabelFormatType','DegMinSec')                  % Save it so zoom can know the label type
     case 'DegMinSecDec'
         e_str = degree2dms(str2num( ddewhite(tick) ),'DDMMSS.x',1,'str');   % e_str is a structure with string fields
         str_e = [e_str.dd repmat(' ',n_tick,1) e_str.mm repmat(' ',n_tick,1) e_str.ss];
         set(hAx,[eixo,'TickLabel'],str_e);
-        setappdata(hFig,'LabelFormatType','DegMinSecDec')               % Save it so zoom can know the label type
+        setappdata(hAx,'LabelFormatType','DegMinSecDec')               % Save it so zoom can know the label type
 end
