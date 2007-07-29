@@ -21,6 +21,8 @@ switch opt
         varargout{1} = findFileType(varargin{:});
     case 'isProj'
         varargout{1} = isProj(varargin{:});
+    case 'toProjPT'
+        toProjPT(varargin{:});
     case 'polysplit'
         [varargout{1} varargout{2}] = localPolysplit(varargin{:});
     case 'adjust_lims'
@@ -50,24 +52,24 @@ function StoreZ(handles,X,Y,Z)
 
 % --------------------------------------------------------------------
 function [x,y,indx,indy] = in_map_region(handles,x,y,tol,map_lims)
-%   Given X & Y vectors retain only the elements that are inside the current map region
-%   OPTIONS:
-%   TOL is used normally when ploting lines and serves to extend the map
-%       limits so that lines are allowed to be drawn until the image borders
-%   MAP_LIMS a 1x4 vector with [x_min x_max y_min y_max]. If not given it will be geted here
-%   NOTE THAT ALL ARGUMENTS MUST BE PROVIDED, EVEN IF THEY ARE EMPTY
-if (isempty(tol)),   tol = 0;    end
-if (isempty(map_lims))
-    x_lim = get(handles.axes1,'Xlim');      y_lim = get(handles.axes1,'Ylim');
-else
-    x_lim(1:2) = map_lims(1:2);    y_lim(1:2) = map_lims(3:4);
-end
-indx = find((x < x_lim(1)-tol) | (x > x_lim(2)+tol));
-x(indx) = [];           y(indx) = [];
-if (nargout == 2),      clear indx;     end         % Save memory
-indy = find((y < y_lim(1)-tol) | (y > y_lim(2)+tol));
-x(indy) = [];           y(indy) = [];
-axes(handles.axes1)     % This is for the GCP mode be able to plot on the Master Image
+	%   Given X & Y vectors retain only the elements that are inside the current map region
+	%   OPTIONS:
+	%   TOL is used normally when ploting lines and serves to extend the map
+	%       limits so that lines are allowed to be drawn until the image borders
+	%   MAP_LIMS a 1x4 vector with [x_min x_max y_min y_max]. If not given it will be geted here
+	%   NOTE THAT ALL ARGUMENTS MUST BE PROVIDED, EVEN IF THEY ARE EMPTY
+	if (isempty(tol)),   tol = 0;    end
+	if (isempty(map_lims))
+        x_lim = get(handles.axes1,'Xlim');      y_lim = get(handles.axes1,'Ylim');
+	else
+        x_lim(1:2) = map_lims(1:2);    y_lim(1:2) = map_lims(3:4);
+	end
+	indx = find((x < x_lim(1)-tol) | (x > x_lim(2)+tol));
+	x(indx) = [];           y(indx) = [];
+	if (nargout == 2),      clear indx;     end         % Save memory
+	indy = find((y < y_lim(1)-tol) | (y > y_lim(2)+tol));
+	x(indy) = [];           y(indy) = [];
+	axes(handles.axes1)     % This is for the GCP mode be able to plot on the Master Image
 
 % --------------------------------------------------------------------
 function colormap_bg(handles,Z,pal)
@@ -184,7 +186,42 @@ function handles = isProj(handles, opt)
     else                            set(handles.hAxMenuLF, 'Vis', 'off', 'Separator','off')
     end
     
+    if (handles.is_projected)       % When read a gdal referenced file we need to set this right away
+        toProjPT(handles)
+        setappdata(handles.figure1,'DispInGeogs',0)     % We need to set it now (this is the default)
+    end
+    
     if (nargin == 2),       guidata(handles.figure1, handles);      end
+
+% ----------------------------------------------------------------------------------
+function toProjPT(handles)
+    % The following is to deal with eventual coords display in geogs and is used in PIXVAL_STSBAR 
+
+    displayBar = findobj(handles.figure1, 'Tag', 'pixValStsBar');
+	dbud = get(displayBar, 'UserData');
+    dbud.toProjPT = 0;
+    if (handles.is_projected)
+        % Fish eventual proj strings
+        projGMT = getappdata(handles.figure1,'ProjGMT');
+        projWKT = getappdata(handles.figure1,'ProjWKT');
+        proj4 = getappdata(handles.figure1,'Proj4');
+        if (~isempty(projWKT) || ~isempty(proj4))
+            % In case we have both 'projWKT' takes precedence because it came from file metadata
+            if (~isempty(projWKT)),     dbud.projStruc.SrcProjWKT = projWKT;
+            else                        dbud.projStruc.SrcProjWKT = ogrproj(proj4);
+            end
+            dbud.toProjPT = 1;
+        elseif (~isempty(projGMT))
+            lims = [getappdata(handles.axes1,'ThisImageLims')];
+            out = mapproject_m([lims(1) lims(3); lims(2) lims(4)],'-R-180/180/0/80','-I','-F',projGMT{:});    % Convert lims back to geogs
+            x_min = min(out(:,1));        x_max = max(out(:,1));
+            y_min = min(out(:,2));        y_max = max(out(:,2));
+      	    dbud.opt_R = ['-R' sprintf('%f',x_min) '/' sprintf('%f',x_max) '/' sprintf('%f',y_min) '/' sprintf('%f',y_max)];
+            dbud.projGMT = projGMT;
+            dbud.toProjPT = 2;
+        end
+    	set(displayBar, 'UserData', dbud);
+    end
 
 % --------------------------------------------------------------------
 function [z_min,z_max] = min_max_single(Z)
