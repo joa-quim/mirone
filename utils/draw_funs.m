@@ -2276,14 +2276,14 @@ function del_insideRect(obj,eventdata,h)
 function changeAxesLabels(opt)
 % This function formats the axes labels strings using a geographical notation
 hFig = get(0,'CurrentFigure');      hAxes = get(hFig,'CurrentAxes');
-x_tick = getappdata(hFig,'XTickOrig');
-y_tick = getappdata(hFig,'YTickOrig');
+x_tick = getappdata(hAxes,'XTickOrig');
+y_tick = getappdata(hAxes,'YTickOrig');
 n_xtick = size(x_tick,1);                   n_ytick = size(y_tick,1);
 switch opt
     case 'ToDegDec'
         % This is easy because original Labels where saved in appdata
-        set(hAxes,'XTickLabel',getappdata(hFig,'XTickOrig'));
-        set(hAxes,'YTickLabel',getappdata(hFig,'YTickOrig'))
+        set(hAxes,'XTickLabel',getappdata(hAxes,'XTickOrig'));
+        set(hAxes,'YTickLabel',getappdata(hAxes,'YTickOrig'))
         setappdata(hAxes,'LabelFormatType','DegDec')       % Save it so zoom can know the label type
     case 'ToDegMin'
         x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM',0,'str');     % x_str is a structure with string fields
