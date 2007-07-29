@@ -521,7 +521,7 @@ if zoomx,
     else                        % Set it to 'auto' (that is numeric) so ChangeAxesLabels knows how to reformat to a geog string
         set(ax, 'XTickLabelMode', 'auto')      % It was implicitly set to 'manual' by ChangeAxesLabels
     end
-    setappdata(fig,'XTickOrig',get(ax,'XTickLabel'));
+    setappdata(ax,'XTickOrig',get(ax,'XTickLabel'));
     switch labelType
         case {'DegDec' 'DegMin' 'DegMinDec' 'DegMinSec' 'DegMinSecDec'}
             ChangeAxesLabels(fig,ax,labelType,'X')
@@ -546,7 +546,7 @@ if zoomy,
     else                        % Set it to 'auto' (that is numeric) so ChangeAxesLabels knows how to refrmat to a geog string
         set(ax, 'YTickLabelMode', 'auto')      % It was implicitly set to 'manual' by ChangeAxesLabels
     end
-    setappdata(fig,'YTickOrig',get(ax,'YTickLabel'));
+    setappdata(ax,'YTickOrig',get(ax,'YTickLabel'));
     switch labelType
         case {'DegDec' 'DegMin' 'DegMinDec' 'DegMinSec' 'DegMinSecDec'}
             ChangeAxesLabels(fig,ax,labelType,'Y')
