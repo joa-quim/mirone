@@ -108,8 +108,10 @@ function setPRJ(obj,nikles, hFig, k, projCOMM)
     % Set the projection string in Figure's appdata and a checkmark on the selected projection
     projList = getappdata(hFig,'ProjList');
     handles = guidata(hFig);
-    unchk = setxor(obj,projList);
-    set(obj,'checked','on');    set(unchk,'checked','off')
+%     unchk = setxor(obj,projList);
+%     set(obj,'checked','on');    set(unchk,'checked','off')
+    set(projList,'checked','off');
+    set(obj,'checked','on')
     if (strcmp(get(obj,'Label'),'None'))
         setappdata(hFig,'ProjGMT','')
         setappdata(hFig,'Proj4','')
@@ -133,5 +135,8 @@ function setPRJ(obj,nikles, hFig, k, projCOMM)
         errordlg(['Bad projection string: ' projCOMM{k,:}],'Error')
     end
     guidata(hFig, handles)
-    setAxesDefCoordIn(handles);    % Sets the value of the axes uicontextmenu that selects whether project or not
-    
+    setAxesDefCoordIn(handles);     % Sets the value of the axes uicontextmenu that selects whether project or not
+    aux_funs('toProjPT',handles)    % Set vars to be used when PT->geog conversion, used in PIXVAL_STSBAR
+    if (isempty(getappdata(hFig,'DispInGeogs')))
+        setappdata(hFig,'DispInGeogs',0)     % We need to set it now (this is the default)
+    end
