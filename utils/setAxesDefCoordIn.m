@@ -18,6 +18,14 @@ function handles = setAxesDefCoordIn(handles)
         handles.defCoordsIn = 0;        % We have no idea about the coordinates type
     end
     
+    if (handles.defCoordsIn == 1)
+        set(handles.hAxMenuLF, 'Vis', 'on', 'Separator','on');
+        set(handles.hAxMenuDM, 'Call', {@DisplayMode_CB,handles.figure1}, 'Vis', 'on', 'Separator','on');
+    else
+        set(handles.hAxMenuLF, 'Vis', 'off', 'Separator','off');    % No projection known, no choices offered
+        set(handles.hAxMenuDM, 'Vis', 'off', 'Separator','off');
+    end
+    
     if (nargout == 0),    guidata(handles.figure1, handles);    end
 
 % --------------------------------------------------------------------
@@ -31,3 +39,13 @@ function CoordMode_CB(hObject, event, hFig)
         set(hObject,'Label','Load in projected coords');    handles.defCoordsIn = -1;
 	end
     guidata(handles.figure1, handles)
+
+% --------------------------------------------------------------------
+function DisplayMode_CB(hObject, event, hFig)
+	if (strncmp(get(hObject,'Label'),'Display projected',17))   % Was projected, now geogs
+        set(hObject,'Label','Display coords in geogs');
+        setappdata(hFig,'DispInGeogs',1)
+	else
+        set(hObject,'Label','Display projected coords');
+        setappdata(hFig,'DispInGeogs',0)
+	end
