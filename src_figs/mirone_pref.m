@@ -92,8 +92,8 @@ try     % Goes here all other times
     set(handles.popupmenu_DefLineColor,'String',DefLineColor)
     set(handles.popup_MeasureUnites,'String',DefineMeasureUnit)
     set(handles.popup_ellipsoide,'String',DefineEllipsoide)
-    set(handles.checkbox_NewGrids,'Value',out_in_NewWindow)
     set(handles.checkbox_SaveAsInt16,'Value',saveAsInt16)
+    set(handles.checkbox_meanLat,'Value',scale2meanLat)
 catch       % Comes here in first call before variables are stored in mirone_pref.mat
     DefLineThick = {'2 pt'; '1 pt'; '3 pt'; '4 pt'};
     DefLineColor = {'White'; 'Black'; 'Red'; 'Green'; 'Blue'; 'Cyan'; 'Yellow'; 'Magenta'};
@@ -101,7 +101,7 @@ catch       % Comes here in first call before variables are stored in mirone_pre
     set(handles.popupmenu_DefLineThickness,'String',DefLineThick)
     set(handles.popupmenu_DefLineColor,'String',DefLineColor)
     set(handles.popup_MeasureUnites,'String',DefineMeasureUnit)
-    set(handles.checkbox_NewGrids,'Value',1)
+    set(handles.checkbox_meanLat,'Value',1)
 end
 
 % This is the default ellipsoide order. It will be changed (and saved as so in mirone_pref) by the user
@@ -182,7 +182,6 @@ catch   % In case of error, set the default list.
 end
 
 % Create the "ForceInsitu" TooltipString
-h = findobj(hObject,'Tag','checkbox_ForceInsitu','Style','checkbox');
 str = sprintf(['Importing grids implies a conversion that uses\n'...
     'matrix transposition. This operations is fast if\n'...
     'we make a copy of the importing grid. However,\n'...
@@ -192,7 +191,13 @@ str = sprintf(['Importing grids implies a conversion that uses\n'...
     '"insitu". That is, it uses only one time the grid\n'...
     'size in memory. The price you will pay, however,\n'...
     'is in speed because it runs about 10 times slower.']);
-set(h,'TooltipString',str)
+set(handles.checkbox_ForceInsitu,'TooltipString',str)
+
+str = sprintf(['Since 1 degree of longitude and latitude do not cover the same\n'...
+        'arc length at Earth surface, isometric plotting of geographical\n'...
+        'grids squeezes the image vertically. Scaling the image to the\n'...
+        'cosinus of the mean lat minimizes this effect.']);
+set(handles.checkbox_meanLat,'TooltipString',str)
 
 % ------------------ TABPANEL SECTION ----------------------------------------
 % This is the tag that all tab push buttons share.  If you have multiple
@@ -308,9 +313,9 @@ set(handles.popup_directory_list,'String',handles.last_directories)
 guidata(hObject, handles);
 
 % ------------------------------------------------------------------------------------
-function checkbox_NewGrids_Callback(hObject, eventdata, handles)
-	if (get(hObject,'Value')),      handles.out_in_NewWindow = 1;
-	else                            handles.out_in_NewWindow = 0;
+function checkbox_meanLat_Callback(hObject, eventdata, handles)
+	if (get(hObject,'Value')),      handles.scale2meanLat = 1;
+	else                            handles.scale2meanLat = 0;
 	end
 	guidata(hObject, handles);
 
@@ -374,7 +379,7 @@ handles.handMir.last_dir   = directory_list{1};
 handles.handMir.work_dir   = handles.handMir.last_dir;
 DefLineThick = get(handles.popupmenu_DefLineThickness, 'String');
 DefLineColor = get(handles.popupmenu_DefLineColor, 'String');
-handles.handMir.out_in_NewWindow = get(handles.checkbox_NewGrids,'Value');
+handles.handMir.scale2meanLat = get(handles.checkbox_meanLat,'Value');
 handles.handMir.saveAsInt16 = get(handles.checkbox_SaveAsInt16,'Value');
 handles.handMir.ForceInsitu = handles.ForceInsitu;
 handles.handMir.flederPlanar = handles.flederPlanar;        flederPlanar = handles.flederPlanar;
@@ -425,7 +430,7 @@ fname = [handles.d_path 'mirone_pref.mat'];
 DefineEllipsoide_params = handles.handMir.DefineEllipsoide;    % For saving purposes
 geog = handles.handMir.geog;      grdMaxSize = handles.handMir.grdMaxSize;
 swathRatio = handles.handMir.swathRatio;
-out_in_NewWindow = handles.handMir.out_in_NewWindow;
+scale2meanLat = handles.handMir.scale2meanLat;
 saveAsInt16 = handles.handMir.saveAsInt16;
 %ForceInsitu = handles.ForceInsitu;     % We don't save it because the user must choose it every time
 
@@ -437,11 +442,11 @@ end
 
 if (~version7)                  % R<=13
 	save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
-        'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'out_in_NewWindow',...
+        'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
         'saveAsInt16', 'flederPlanar', 'flederBurn', '-append')
 else
 	save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
-        'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'out_in_NewWindow',...
+        'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
         'saveAsInt16', 'flederPlanar', 'flederBurn', '-append', '-v6')
 end
 handles.output = handles.handMir;
@@ -649,13 +654,12 @@ uicontrol('Parent',h1,'Position',[246 167 18 21],...
 'Tag','pushbutton_change_dir',...
 'UserData','general');
 
-uicontrol('Parent',h1,'Position',[10 140 147 15],...
-'Callback',{@mirone_pref_uicallback,h1,'checkbox_NewGrids_Callback'},...
-'String','New grids in new window',...
+uicontrol('Parent',h1,'Position',[10 140 170 15],...
+'Callback',{@mirone_pref_uicallback,h1,'checkbox_meanLat_Callback'},...
+'String','Scale geog images at mean lat',...
 'Style','checkbox',...
-'TooltipString','If not checked new grids are written on disk',...
 'Value',1,...
-'Tag','checkbox_NewGrids',...
+'Tag','checkbox_meanLat',...
 'UserData','general');
 
 uicontrol('Parent',h1,...
