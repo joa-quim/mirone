@@ -78,9 +78,6 @@ function projectionMenu(hFig, home_dir)
         end
     end
     
-    setappdata(hFig,'ProjGMT','')       % Start by none
-    setappdata(hFig,'Proj4','')
-    
     ind = (hMain == 0);     hMain(ind) = [];
     ind = (hSec == 0);      hSec(ind) = [];
     
