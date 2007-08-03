@@ -312,6 +312,7 @@ src_figs/coordinate_system.m -text
 src_figs/deform_mansinha.m -text
 src_figs/deform_okada.m -text
 src_figs/digitalFiltering.m -text
+src_figs/diluvio.m -text
 src_figs/display_patterns.m -text
 src_figs/draw_scale.m -text
 src_figs/earthquakes.m -text
