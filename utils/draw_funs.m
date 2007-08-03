@@ -254,7 +254,7 @@ if (strcmp(get(h,'Type'),'patch')), IS_PATCH = 1;
 else                                IS_PATCH = 0;
 end
 
-handles = guidata(get(0,'CurrentFigure'));      % Get Mirone handles
+handles = guidata(get(h,'Parent'));             % Get Mirone handles
 
 % Check to see if we are dealing with a multibeam track
 cmenuHand = uicontextmenu;
@@ -1399,7 +1399,7 @@ set(h, 'XData', [x_min,x_min,x_max,x_max,x_min], 'YData', [y_min,y_max,y_max,y_m
 function rectangle_register_img(obj,event)
 % Prompt user for rectangle corner coordinates and use them to register the image
 h = gco;
-handles = guidata(get(0,'CurrentFigure'));
+handles = guidata(get(h,'Parent'));
 rect_x = get(h,'XData');   rect_y = get(h,'YData');       % Get rectangle limits
 
 region = bg_region('empty');
@@ -1443,7 +1443,7 @@ new_xlim = U1(:,1)';        new_ylim = U1(:,2)';
 [m,n,k] = size(img);
 [new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
 delete(handles.hImg);
-handles.hImg = image(new_xlim,new_ylim,img);
+handles.hImg = image(new_xlim,new_ylim,img,'Parent',handles.axes1);
 set(ax,'xlim',new_xlim,'ylim',new_ylim,'YDir','normal')
 resizetrue(handles, []);
 setappdata(ax,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])
@@ -1461,7 +1461,7 @@ handles.origFig = img;
 % Redraw the rectangle that meanwhile has gone to the ether togheter with gca.
 lt = handles.DefLineThick;  lc = handles.DefLineColor;
 x = [x_min x_min x_max x_max x_min];        y = [y_min y_max y_max y_min y_min];
-h = line('XData',x,'YData',y,'Color',lc,'LineWidth',lt);
+h = line('XData',x,'YData',y,'Color',lc,'LineWidth',lt,'Parent',handles.axes1);
 if (handles.image_type == 2)                    % Lets pretend that we have a GeoTIFF image
     handles.image_type = 3;
     Hdr.LL_prj_xmin = new_xlim(1);      Hdr.LR_prj_xmax = new_xlim(2);
