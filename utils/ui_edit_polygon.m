@@ -119,18 +119,16 @@ function polygonui(varargin)
             try delete(s.h_current_marker); s.h_current_marker = []; end
             s.controls = 'off';
             set(s.h_pol,'buttondownfcn',@polygonui);
-            set(s.h_fig,'KeyPressFcn',s.KeyPressFcn_org)
             setappdata(s.h_pol,'polygon_data',s)
-            setappdata(s.h_fig,'ui_edit_polygon_active_handle',0)
+            setappdata(s.h_fig,'epActivHand',0)
 
         case 'off'
             % Make sure that only one polygon is edited at a time
-            h_active = getappdata(s.h_fig,'ui_edit_polygon_active_handle');
+            h_active = getappdata(s.h_fig,'epActivHand');
             if h_active; polygonui(h_active); end
-            setappdata(s.h_fig,'ui_edit_polygon_active_handle',s.h_pol)
+            setappdata(s.h_fig,'epActivHand',s.h_pol)
             
             s.controls = 'on';
-            s.KeyPressFcn_org = get(s.h_fig,'KeyPressFcn');
             x = get(s.h_pol,'XData');
             y = get(s.h_pol,'YData');
             s.h_vert = line('xdata',x,'ydata',y,'Parent',s.h_ax, 'Marker','s','color','r', 'MarkerFaceColor','none', ...
@@ -364,10 +362,13 @@ function state = uisuspend_safe(h_fig)
 % complaining on "too many inputs"
 
 KPs = get(h_fig,'KeyPressFcn');
-try
-    set(h_fig,'KeyPressFcn',KPs{1})     % Temporarly forget the line/patch handle
-catch
-    set(h_fig,'KeyPressFcn',KPs(1))     % Temporarly forget the line/patch handle
+if (iscell(KPs))
+    set(h_fig,'KeyPressFcn',KPs{1})         % Temporarly forget the line/patch handle
+else
+    try
+        set(h_fig,'KeyPressFcn',KPs(1))     % Temporarly forget the line/patch handle
+    end
 end
+
 state = uisuspend_fig(h_fig);         % Remember initial figure state
 state.KeyPressFcn = KPs;            % Set to its true value for use in uirestore
