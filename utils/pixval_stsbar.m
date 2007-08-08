@@ -253,7 +253,7 @@ case 'normal'   % Just display Z (or intensity) information
             if (dbud.haveGrid)           % Hacked here
                 pixval_str = sprintf([form_xy ' %6.3f'], x,y,pixel(1:end));
             else
-                if (isequal(pixel(1),pixel(2),pixel(3)))
+                if (numel(pixel) == 3 && isequal(pixel(1),pixel(2),pixel(3)))
                     pixval_str = sprintf([form_xy ' %d'], x,y,pixel(1));
                 else
                     pixval_str = sprintf([form_xy ' %.0f,%.0f,%.0f'], x,y,pixel(1:end));
