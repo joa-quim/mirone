@@ -237,6 +237,7 @@ lib_mex/wgifc.dll -text
 /libsift.dll -text
 /lti_dsdk_dll.dll -text
 mex/alloc_mex.c -text
+mex/callMir.c -text
 mex/countries.h -text
 mex/country_extract.c -text
 mex/country_select.c -text
