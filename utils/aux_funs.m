@@ -116,6 +116,13 @@ function out = findFileType(fname)
 	if ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.ecw' '.jp2'})) )
         out = 'geotif';    return
 	end
+	if ( any(strcmpi(EXT,'.mat')) )
+        load(fname,'grd_name')
+        if (exist(grd_name))    % The mat file is a Session file
+            out = 'mat';
+        end
+        return
+    end
 	if ( any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17'})) )
         out = 'multiband';    return
 	end
