@@ -51,8 +51,12 @@ switch nargin
         else
             zoomCommand=varargin{2};
         end
+	case 3      % three arg in. Third doesn't matter, it's only to select this case
+        fig=varargin{1};
+        scale_factor=varargin{2};
+        zoomCommand='ptscale';
 	otherwise   % too many args
-        error(nargchk(0, 2, nargin));
+        error(nargchk(0, 3, nargin));
 end % switch nargin
 
 %------------------------------------------------------------------------------%
@@ -439,7 +443,7 @@ case 'getlimits', % Get axis limits
         end
     end
     limits = [xmin xmax ymin ymax];
-    if getlimits~=-1,   % Don't munge existing data.
+    if (getlimits ~= -1)   % Don't munge existing data.
         % Store limits ZOOMAxesData store it with the ZLabel, so that it's cleared if
         % the user plots again into this axis.  If that happens, this state is cleared
         axz = get(ax,'ZLabel');
@@ -463,6 +467,26 @@ case 'fill',
     set(ax,'CameraViewAngle',get(ax,'CameraViewAngle'));
     view(old_view);
     return
+
+case 'ptscale'
+    xlim = get(ax,'xlim');
+    ylim = get(ax,'ylim');
+    ZOOM_Pt1 = get_currentpoint(ax);
+    ZOOM_Pt2 = ZOOM_Pt1;
+    center = ZOOM_Pt1;
+
+    if (xlim(1) <= ZOOM_Pt1(1,1) && ZOOM_Pt1(1,1) <= xlim(2) && ...
+            ylim(1) <= ZOOM_Pt1(1,2) && ZOOM_Pt1(1,2) <= ylim(2))
+    else
+        ZOOM_Pt1 = [sum(xlim)/2 sum(ylim)/2];
+        ZOOM_Pt2 = ZOOM_Pt1;
+        center = ZOOM_Pt1;
+    end
+
+    if (scale_factor >= 1),     m = 1;
+    else                        m = -1;
+    end
+    limits = zoom_j(fig,'getlimits');
 otherwise
     error(['Unknown option: ',zoomCommand,'.']);
 end
@@ -472,7 +496,7 @@ end
 if ~rbbox_mode,
     xmin = limits(1); xmax = limits(2);
     ymin = limits(3); ymax = limits(4);
-    if m==(-inf),
+    if (m == (-inf))
         dx = xmax-xmin;
         dy = ymax-ymin;
     else
@@ -500,7 +524,7 @@ if strcmp(get(ax,'plotboxaspectratiomode'),'manual') && strcmp(get(ax,'dataaspec
     dx = a(2)-a(1);
     dy = a(4)-a(3);
     [kmax,k] = max([dx dy]./ratio(1:2));
-    if k==1
+    if (k == 1)
         dy = kmax*ratio(2);
         a(3:4) = mean(a(3:4))+[-dy dy]/2;
     else
@@ -511,8 +535,8 @@ end
 
 % Update circular list of connected axes
 list = zoom_j(fig,'getconnect'); % Circular list of connected axes.
-if zoomx,
-    if a(1)==a(2), return, end % Short circuit if zoom is moot.
+if (zoomx)
+    if (a(1) == a(2)),      return,     end % Short circuit if zoom is moot.
     set(ax,'xlim',a(1:2))
     % Save current X labels in appdata for easear access when we want to change them in ChangeAxesLabels
     labelType = getappdata(ax,'LabelFormatType');
@@ -535,7 +559,7 @@ if zoomx,
         if all(size(next)==[2 4]), h = next(2,1); else h = ax; end
     end
 end
-if zoomy,
+if (zoomy)
     if (a(3) == a(4)),  return,     end % Short circuit if zoom is moot.
     set(ax,'ylim',a(3:4))
 
@@ -561,75 +585,88 @@ if zoomy,
     end
 end
 
-% -------- My private add-ons to the zoom function ------------- JL
-% Keep track of the current (accumulated) zooming factor. To be eventualy used by
-% other functions that may be interested in this info.
-% NOTE: The rbbox_mode is not foreseen here
-hz = get(ax,'ZLabel');
-oldZoomFactor = getappdata(hz,'AxesScaleFactor');
-if (~isempty(oldZoomFactor))
-    if (m == 1),        oldZoomFactor = oldZoomFactor * scale_factor;
-    elseif (m == -1)    oldZoomFactor = oldZoomFactor / scale_factor;
-    elseif (m == -inf)  oldZoomFactor = 1;
+	% -------- My private add-ons to the zoom function ------------- JL
+	% Keep track of the current (accumulated) zooming factor. To be eventualy used by
+	% other functions that may be interested in this info.
+	% NOTE: The rbbox_mode is not foreseen here
+	hz = get(ax,'ZLabel');
+	oldZoomFactor = getappdata(hz,'AxesScaleFactor');
+	if (~isempty(oldZoomFactor))
+        if (m ~= -inf),     oldZoomFactor = oldZoomFactor * scale_factor;
+        else                oldZoomFactor = 1;
+        end
+        setappdata(hz,'AxesScaleFactor',oldZoomFactor);
+	else
+        % No need to test for m because it should only pass here on the first call to zoom
+        setappdata(hz,'AxesScaleFactor',scale_factor);
+	end
+    % Update amplification info displayed in figure name
+    fname = get(fig,'Name');    ind = strfind(fname,'@ ');
+    if (~isempty(ind))
+		hImg = findobj(ax,'Type','Image');
+		imageWidth  = size(get(hImg, 'CData'), 2);
+		imageHeight = size(get(hImg, 'CData'), 1);
+		axUnits = get(ax, 'Units');     set(ax, 'Units', 'pixels');
+		axPos = get(ax,'Pos');          set(ax, 'Units', axUnits);
+		imgMagRatio =  ((axPos(3) / imageWidth + axPos(4) / imageHeight) * 0.5 * 1);
+        lims = getappdata(ax,'ThisImageLims');
+        magRatio =  round( ( diff(lims(1:2)) / diff(a(1:2)) + diff(lims(3:4)) / diff(a(3:4)) ) * 0.5 * imgMagRatio * 100);
+        fname = [fname(1:ind) sprintf('  %d%%',magRatio)];
+        set(fig,'Name',fname)
     end
-    setappdata(hz,'AxesScaleFactor',oldZoomFactor);
-else
-    % No need to test for m because it should only pass here on the first call to zoom
-    setappdata(hz,'AxesScaleFactor',scale_factor);
-end
 
-% Update slider value (if the figure has one (or two))
-if (zoomx || zoomy),    imscroll_j(ax,'ZoomSetSliders');     end
+	% Update slider value (if the figure has one (or two))
+	if (zoomx || zoomy),    imscroll_j(ax,'ZoomSetSliders');     end
 
 %----------------------------------------------------------------------------------%
 % Helper Functions
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function p = get_currentpoint(ax)
-%GET_CURRENTPOINT Return equivalent linear scale current point
-p = get(ax,'currentpoint'); p = p(1,1:2);
-if strcmp(get(ax,'XScale'),'log'),
-    p(1) = log10(p(1));
-end
-if strcmp(get(ax,'YScale'),'log'),
-    p(2) = log10(p(2));
-end
+	%GET_CURRENTPOINT Return equivalent linear scale current point
+	p = get(ax,'currentpoint'); p = p(1,1:2);
+	if strcmp(get(ax,'XScale'),'log'),
+        p(1) = log10(p(1));
+	end
+	if strcmp(get(ax,'YScale'),'log'),
+        p(2) = log10(p(2));
+	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function xlim = get_xlim(ax)
-%GET_XLIM Return equivalent linear scale xlim
-xlim = get(ax,'xlim');
-if strcmp(get(ax,'XScale'),'log'),
-    xlim = log10(xlim);
-end
+	%GET_XLIM Return equivalent linear scale xlim
+	xlim = get(ax,'xlim');
+	if strcmp(get(ax,'XScale'),'log'),
+        xlim = log10(xlim);
+	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function ylim = get_ylim(ax)
-%GET_YLIM Return equivalent linear scale ylim
-ylim = get(ax,'ylim');
-if strcmp(get(ax,'YScale'),'log'),
-    ylim = log10(ylim);
-end
+	%GET_YLIM Return equivalent linear scale ylim
+	ylim = get(ax,'ylim');
+	if strcmp(get(ax,'YScale'),'log'),
+        ylim = log10(ylim);
+	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function doZoomIn(fig)
-set(findall(fig,'Tag','figToolZoomIn'),'State','on');
-set(findall(fig,'Tag','figToolZoomOut'),'State','off');
-setappdata(fig,'ZOOMFigureMode','in');
+	set(findall(fig,'Tag','figToolZoomIn'),'State','on');
+	set(findall(fig,'Tag','figToolZoomOut'),'State','off');
+	setappdata(fig,'ZOOMFigureMode','in');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function doZoomOut(fig)
-set(findall(fig,'Tag','figToolZoomIn'),'State','off');
-set(findall(fig,'Tag','figToolZoomOut'),'State','on');
-setappdata(fig,'ZOOMFigureMode','out');
+	set(findall(fig,'Tag','figToolZoomIn'),'State','off');
+	set(findall(fig,'Tag','figToolZoomOut'),'State','on');
+	setappdata(fig,'ZOOMFigureMode','out');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function doZoomOff(fig)
-set(findall(fig,'Tag','figToolZoomIn'),'State','off');
-set(findall(fig,'Tag','figToolZoomOut'),'State','off');
-if ~isempty(getappdata(fig,'ZoomFigureMode'))
-    rmappdata(fig,'ZOOMFigureMode');
-end
+	set(findall(fig,'Tag','figToolZoomIn'),'State','off');
+	set(findall(fig,'Tag','figToolZoomOut'),'State','off');
+	if ~isempty(getappdata(fig,'ZoomFigureMode'))
+        rmappdata(fig,'ZOOMFigureMode');
+	end
 
 % -------------------------------------------------------------------------------------------------------
 function lupa = getPointer()
