@@ -1,4 +1,4 @@
-function resizetrue(handles, opt)
+function varargout = resizetrue(handles, opt)
 %RESIZETRUE Adjust display size of image.
 %   RESIZETRUE(FIG) uses the image height and width for [MROWS MCOLS].
 %   This results in the display having one screen pixel for each image pixel.
@@ -53,6 +53,14 @@ end
 
 Resize1(axHandle, imHandle, imSize, opt);
 set(axHandle, 'DataAspectRatio', DAR);
+
+if (nargout)        % Compute magnification ratio
+    imageWidth  = size(get(imHandle, 'CData'), 2);
+    imageHeight = size(get(imHandle, 'CData'), 1);
+	axUnits = get(axHandle, 'Units');       set(axHandle, 'Units', 'pixels');
+    axPos = get(axHandle,'Pos');            set(axHandle, 'Units', axUnits);
+    varargout{1} =  round((axPos(3) / imageWidth + axPos(4) / imageHeight) * 0.5 * 100);
+end
 
 %--------------------------------------------
 % Subfunction ParseInputs
@@ -337,7 +345,7 @@ function Resize1(axHandle, imHandle, imSize, opt)
         set(h,'HandleVisibility','off')
 	end
 	%------------------------------------
-	
+    
 	% Restore the units
 	%drawnow;  % necessary to work around HG bug   -SLE
 	set(figHandle, 'Units', figUnits);
