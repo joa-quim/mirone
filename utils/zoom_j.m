@@ -290,7 +290,6 @@ case 'scale',
         xlim = get(ax,'xlim');
         ylim = get(ax,'ylim');
         ZOOM_Pt1 = [sum(xlim)/2 sum(ylim)/2];
-        ZOOM_Pt2 = ZOOM_Pt1;
         center = ZOOM_Pt1;
 
         if (xlim(1) <= ZOOM_Pt1(1,1) && ZOOM_Pt1(1,1) <= xlim(2) && ...
@@ -472,14 +471,12 @@ case 'ptscale'
     xlim = get(ax,'xlim');
     ylim = get(ax,'ylim');
     ZOOM_Pt1 = get_currentpoint(ax);
-    ZOOM_Pt2 = ZOOM_Pt1;
     center = ZOOM_Pt1;
 
     if (xlim(1) <= ZOOM_Pt1(1,1) && ZOOM_Pt1(1,1) <= xlim(2) && ...
             ylim(1) <= ZOOM_Pt1(1,2) && ZOOM_Pt1(1,2) <= ylim(2))
     else
         ZOOM_Pt1 = [sum(xlim)/2 sum(ylim)/2];
-        ZOOM_Pt2 = ZOOM_Pt1;
         center = ZOOM_Pt1;
     end
 
