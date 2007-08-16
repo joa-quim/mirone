@@ -63,7 +63,7 @@ image([-180 180],[-90 90],handles.w_map);   axis xy;
 
 load([d_path 'm_coasts.mat']);
 h_boundaries = line(ncst(:,1),ncst(:,2),'Linewidth',1,'Color','w','Tag','PoliticalBoundaries');
-%draw_funs(h_boundaries,'Coastline_uicontext')    % Set line's uicontextmenu
+%draw_funs(h_boundaries,'CoastLineUictx')    % Set line's uicontextmenu
 
 % Read the directory list from mirone_pref
 directory_list = [];
