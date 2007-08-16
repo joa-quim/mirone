@@ -1,4 +1,4 @@
-function varargout = mirone_pref(handMir)
+function varargout = mirone_pref(varargin)
 % M-File changed by desGUIDE 
 
 %	Copyright (c) 2004-2006 by J. Luis
@@ -22,6 +22,7 @@ function varargout = mirone_pref(handMir)
 	handles = guihandles(hObject);
 	movegui(hObject,'northwest');
 
+    handMir = varargin{1};
     home_dir = handMir.home_dir;
     handles.d_path = handMir.path_data;
     handles.handMir = handMir;
