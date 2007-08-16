@@ -5,7 +5,7 @@ function writekml(handles,Z,fname)
     if (nargin <= 2)
         if (nargin == 1)            % Only HANDLES was transmited (called via clicked callback)
             Z = [];                 % Z will be of use to know if need transparency
-            if (~isempty(handles.have_nans))
+            if (handles.have_nans)
                 [X,Y,Z,head] = load_grd(handles,'silent');
             end
         end
@@ -26,7 +26,7 @@ function writekml(handles,Z,fname)
     end
 
     % Control transparency
-    if (~isempty(handles.have_nans))        % We need transparency here. Note that nans imply that image derives from grid
+    if (handles.have_nans)                  % We need transparency here. Note that nans imply that image derives from grid
         fname_img = [fname_img '.png'];     % And we'll use png
         cmap = get(handles.figure1,'Colormap');
         if (ndims(img) == 2)                % Indexed image
