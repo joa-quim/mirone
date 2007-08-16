@@ -515,7 +515,7 @@ function CoastLines(handles, res)
 	if (~all(isnan(coast(:))))
 		h = line('XData',coast(1,:),'YData',coast(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
             'Color',handles.DefLineColor,'Tag','CoastLineNetCDF','UserData',opt_res(3));
-		draw_funs(h,'Coastline_uicontext')    % Set line's uicontextmenu
+		draw_funs(h,'CoastLineUictx')    % Set line's uicontextmenu
 	end
 	set(handles.figure1,'pointer','arrow')
 
@@ -569,7 +569,7 @@ function PoliticalBound(handles, type, res)
 	if (~all(isnan(boundaries(:))))
 		h = line('XData',boundaries(1,:),'YData',boundaries(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
             'Color',handles.DefLineColor,'Tag','PoliticalBoundaries', 'UserData',[opt_res(3) opt_N(3)]);
-		draw_funs(h,'Coastline_uicontext')    % Set line's uicontextmenu
+		draw_funs(h,'CoastLineUictx')    % Set line's uicontextmenu
 	end
 	set(handles.figure1,'pointer','arrow')
 
@@ -627,7 +627,7 @@ function Rivers(handles, type, res)
 	if (~all(isnan(rivers(:))))
 		h = line('XData',rivers(1,:),'YData',rivers(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
             'Color',handles.DefLineColor,'Tag','Rivers', 'UserData',[opt_res(3) opt_I(3:end)]);
-		draw_funs(h,'Coastline_uicontext')    % Set line's uicontextmenu
+		draw_funs(h,'CoastLineUictx')    % Set line's uicontextmenu
 	end
 	set(handles.figure1,'pointer','arrow')
 
