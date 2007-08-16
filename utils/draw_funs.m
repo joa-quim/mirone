@@ -22,17 +22,12 @@ function   OUT = draw_funs(hand,opt,data)
 
 switch opt
     case 'line_uicontext',          set_line_uicontext(hand,'line')
-    case 'SHP_uicontext',           set_SHPline_uicontext(hand)
+    case 'SHPuictx',                set_SHPline_uicontext(hand)
     case 'ContourLines',            set_ContourLines_uicontext(hand,data)
-    case 'MBtrack_uicontext',       set_line_uicontext(hand,'MBtrack')
-    case 'MBbar_uicontext',         set_bar_uicontext(hand)
-    case 'Coastline_uicontext',     setCoastLineUictx(hand)
+    case 'MBtrackUictx',            set_line_uicontext(hand,'MBtrack')
+    case 'MBbarUictx',              set_bar_uicontext(hand)
+    case 'CoastLineUictx',          setCoastLineUictx(hand)
     case 'DeleteObj',               delete_obj(hand);
-    case 'DrawGeographicalCircle'
-        h = draw_circleGeo;
-        if ~isempty(h)      % when in compiled version h may be empty (why?).
-            set_circleGeo_uicontext(h)
-        end
     case 'DrawGreatCircle'
         h = draw_greateCircle;
         if ~isempty(h)      % when in compiled version h may be empty (why?).
@@ -159,7 +154,7 @@ switch opt
         clear numeric_data;     hold off
     case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation'}
         set_symbol_uicontext(hand,data)
-    case 'PlateBound_All_PB',       set_PB_uicontext(hand,data)
+    case 'PlateBoundPB',        set_PB_uicontext(hand,data)
     case 'DrawVector'
         h = draw_vector;
         if ~isempty(h)      % when in compiled version h may be empty.
@@ -167,12 +162,14 @@ switch opt
         end
     case 'ChngAxLabels',        changeAxesLabels(data)
     case 'MagBarCode',          draw_MagBarCode
-    case 'SRTM_rectangle',      set_SRTM_rect_uicontext(hand)
+    case 'SRTMrect',            set_SRTM_rect_uicontext(hand)
     case 'isochron',            set_isochrons_uicontext(hand,data)
     case 'gmtfile',             set_gmtfile_uicontext(hand,data)
     case 'country_patch',       set_country_uicontext(hand)
     case 'telhas_patch',        set_telhas_uicontext(hand)
     case 'save_xyz',            save_formated([],[],[], data)
+    case 'tellAzim',            show_lineAzims([],[], hand);
+    case 'tellLLength',         show_LineLength([],[], hand);
 end
 
 % -----------------------------------------------------------------------------------------
@@ -418,9 +415,16 @@ end
 
 % -----------------------------------------------------------------------------------------
 function copy_line_object(obj,eventdata,hFig,hAxes)
-	newH = copyobj(gco,hAxes);
-	rmappdata(newH,'polygon_data')      % Remove the parent's ui_edit_polygon appdata
-	state = uisuspend_fig(hFig);          % Remember initial figure state
+    oldH = gco;
+	newH = copyobj(oldH,hAxes);
+    h = findobj(get(newH,'uicontextmenu'),'label','Save line');
+    if (~isempty(h))        % Replace the old line handle in the 'Save line' Callback by the just created one
+        hFun = get(h,'Call');
+        hFun{2} = newH;
+        set(h,'Call',hFun)
+    end
+	rmappdata(newH,'polygon_data')          % Remove the parent's ui_edit_polygon appdata
+	state = uisuspend_fig(hFig);            % Remember initial figure state
 	x_lim = get(hAxes,'xlim');        y_lim = get(hAxes,'ylim');
 	current_pt = get(hAxes, 'CurrentPoint');
 	setappdata(newH,'old_pt',[current_pt(1,1) current_pt(1,2)])
@@ -441,8 +445,8 @@ function wbm_MovePolygon(obj,eventdata,h,lim,hAxes)
 
 % ---------
 function wbd_MovePolygon(obj,eventdata,h,state)
-	uirestore_fig(state);         % Restore the figure's initial state
-	ui_edit_polygon(h)          % Reset the edition functions with the correct handle
+	uirestore_fig(state);           % Restore the figure's initial state
+	ui_edit_polygon(h)              % Reset the edition functions with the correct handle
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -809,7 +813,7 @@ function cb = uictx_Class_LineStyle(h)
 
 % -----------------------------------------------------------------------------------------
 function set_greatCircle_uicontext(h)
-	% h is a handle to a graet circle arc (in geog coords) object
+	% h is a handle to a great circle arc (in geog coords) object
 	cmenuHand = uicontextmenu;      set(h, 'UIContextMenu', cmenuHand);
 	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
@@ -949,36 +953,36 @@ function show_swhatRatio(obj,eventdata,h)
 
 % -----------------------------------------------------------------------------------------
 function show_Area(obj,eventdata,h)
-% Compute area under line and insult the user if the line is not closed
-% NOTE that H is optional. Use only when want to make sure that this fun
-% uses that handle (does notwork with copyied objects)
+	% Compute area under line and insult the user if the line is not closed
+	% NOTE that H is optional. Use only when want to make sure that this fun
+	% uses that handle (does notwork with copyied objects)
 
-if (nargin == 2 || length(h) > 1),   h = gco;   end      % We need to get the current line handle
-x = get(h,'XData');    y = get(h,'YData');
+	if (nargin == 2 || length(h) > 1),   h = gco;   end      % We need to get the current line handle
+	x = get(h,'XData');    y = get(h,'YData');
 
-EarthRad = 6371;
-% Contour lines for example have NaNs and not at the same x,y positions (???)
-ix = isnan(x);
-x(ix) = [];             y(ix) = [];
-iy = isnan(y);
-x(iy) = [];             y(iy) = [];
-handles = guidata(get(0,'CurrentFigure'));
-if ~( (x(1) == x(end)) && (y(1) == y(end)) )
-    msg{1} = 'This is not a closed line. Result is therefore probably VERY idiot';
-else
-    msg{1} = '';
-end
-if (handles.geog)
-    area = area_geo(y,x);    % Area is reported on the unit sphere
-    area = area * 4 * pi * EarthRad^2;
-    msg{2} = ['Area = ' sprintf('%g',area) ' km^2'];
-    msgbox(msg,'Area')
-else
-    area = polyarea(x,y);   % Area is reported in map user unites
-    msg{2} = ['Area = ' sprintf('%g',area) ' map units ^2'];
-    msgbox(msg,'Area')
-end
-refresh
+	EarthRad = 6371;
+	% Contour lines for example have NaNs and not at the same x,y positions (???)
+	ix = isnan(x);
+	x(ix) = [];             y(ix) = [];
+	iy = isnan(y);
+	x(iy) = [];             y(iy) = [];
+	handles = guidata(get(0,'CurrentFigure'));
+	if ~( (x(1) == x(end)) && (y(1) == y(end)) )
+        msg{1} = 'This is not a closed line. Result is therefore probably VERY idiot';
+	else
+        msg{1} = '';
+	end
+	if (handles.geog)
+        area = area_geo(y,x);    % Area is reported on the unit sphere
+        area = area * 4 * pi * EarthRad^2;
+        msg{2} = ['Area = ' sprintf('%g',area) ' km^2'];
+        msgbox(msg,'Area')
+	else
+        area = polyarea(x,y);   % Area is reported in map user unites
+        msg{2} = ['Area = ' sprintf('%g',area) ' map units ^2'];
+        msgbox(msg,'Area')
+	end
+	refresh
 
 % -----------------------------------------------------------------------------------------
 function ll = show_LineLength(obj,eventdata,h, opt)
@@ -988,13 +992,18 @@ function ll = show_LineLength(obj,eventdata,h, opt)
 % 22-09-04  Added OPT option. If it exists, report only total length (for nargout == 0)
 % 22-10-05  H is now only to be used if we whant to specificaly use that handle. Otherwise use []
 % to fish it with gco (MUST use this form to work with copied objects)
+% 16-08-07  H can contain a Mx2 column vector with the line vertices.
 
-n_args = nargin;
-if (n_args == 2 || n_args == 3),   opt = [];   end
-if (n_args == 2 || isempty(h) || length(h) > 1),   h = gco;   end
+	n_args = nargin;
+	if (n_args <= 3),   opt = [];   end
+	if (n_args == 3 && (size(h,1) >= 2 && size(h,2) == 2))
+        x = h(:,1);     y = h(:,2);
+	elseif (n_args == 2 || isempty(h) || length(h) > 1)
+        h = gco;
+        x = get(h,'XData');    y = get(h,'YData');
+	end
 
 msg = [];               handles = guidata(get(0,'CurrentFigure'));
-x = get(h,'XData');     y = get(h,'YData');
 
 % Contour lines for example have NaNs and not at the same x,y positions (???)
 ix = isnan(x);      x(ix) = [];     y(ix) = [];
@@ -1079,53 +1088,57 @@ function show_AllTrackLength(obj,eventdata)
 
 % -----------------------------------------------------------------------------------------
 function azim = show_lineAzims(obj,eventdata,h)
-% Works either in geog or cart coordinates. Otherwise the result is a non-sense
-% If output argument, return a structure % azim.az and azim.type, where "len" is line
-% azimuth and "type" is either 'geog' or 'cart'.
-% 22-10-05  H is now only to be used if we whant to specificaly use that handle. Otherwise use
-% either [] or don't pass the H argument to fish it with gco (MUST use this form to work with copied objects)
+	% Works either in geog or cart coordinates. Otherwise the result is a non-sense
+	% If output argument, return a structure % azim.az and azim.type, where "len" is line
+	% azimuth and "type" is either 'geog' or 'cart'.
+	% 22-10-05  H is now only to be used if we whant to specificaly use that handle. Otherwise use
+	% either [] or don't pass the H argument to fish it with gco (MUST use this form to work with copied objects)
+	% 16-08-07  H can contain a Mx2 column vector with the line vertices.
 
-if (nargin == 2 || isempty(h) || length(h) > 1),   h = gco;   end
-
-msg = [];
-x = get(h,'XData');    y = get(h,'YData');
-
-handles = guidata(get(0,'CurrentFigure'));
-if (handles.geog)
-    az = azimuth_geo(y(1:end-1), x(1:end-1), y(2:end), x(2:end));
-    azim.type = 'geog';                 % Even if it is never used
-else
-    dx = diff(x);   dy = diff(y);
-    angs = atan2(dy,dx) * 180/pi;       % and convert to degrees
-    hFig = get(0,'CurrentFigure');      hAxes = get(hFig,'CurrentAxes');
-    if(strcmp(get(hAxes,'YDir'),'reverse')),    angs = -angs;   end
-    az = (90 - angs);                   % convert to azim (cw from north)
-    ind = find(az < 0);
-    az(ind) = 360 + az(ind);
-    azim.type = 'cart';                 % Even if it is never used
-end
-for i = 1:length(az)
-    if (nargout == 0)
-        msg = [msg; {['Azimuth' sprintf('%g',i) '  =  ' sprintf('%3.1f',az(i)) '  degrees']}];
-    else
-        azim.az = az;
-    end
-end
-if (nargout == 0)
-    if (length(az) > 1)
-        msg{end+1} = '';
-        az_mean = mean(az);
-        msg{end+1} = ['Mean azimuth = ' sprintf('%.1f',az_mean) '  degrees'];
-        id = (az >= 180);    az(id) = az(id) - 180;
-        dir_mean = mean(az);
-        if (~isequal(az_mean,dir_mean))
-            msg{end+1} = ['Mean direction = ' sprintf('%.1f',dir_mean) '  degrees'];
+	if (nargin == 3 && (size(h,1) >= 2 && size(h,2) == 2))
+        x = h(:,1);     y = h(:,2);
+	elseif (nargin == 2 || isempty(h) || length(h) > 1)
+        h = gco;
+        x = get(h,'XData');    y = get(h,'YData');
+	end
+	
+	handles = guidata(get(0,'CurrentFigure'));
+	if (handles.geog)
+        az = azimuth_geo(y(1:end-1), x(1:end-1), y(2:end), x(2:end));
+        azim.type = 'geog';                 % Even if it is never used
+	else
+        dx = diff(x);   dy = diff(y);
+        angs = atan2(dy,dx) * 180/pi;       % and convert to degrees
+        hFig = get(0,'CurrentFigure');      hAxes = get(hFig,'CurrentAxes');
+        if(strcmp(get(hAxes,'YDir'),'reverse')),    angs = -angs;   end
+        az = (90 - angs);                   % convert to azim (cw from north)
+        ind = find(az < 0);
+        az(ind) = 360 + az(ind);
+        azim.type = 'cart';                 % Even if it is never used
+	end
+	msg = cell(numel(az),1);
+	for (i = 1:numel(az))
+        if (nargout == 0)
+            msg{i} = ['Azimuth' sprintf('%d',i) '  =  ' sprintf('%3.1f',az(i)) '  degrees'];
+        else
+            azim.az = az;
         end
-    end
-    if (length(az) > 15),   msg = msg(end-2:end);   end
-    msgbox(msg,'Line(s) Azimuth')
-end
-refresh
+	end
+	if (nargout == 0)
+        if (numel(az) > 1)
+            msg{end+1} = '';
+            az_mean = mean(az);
+            msg{end+1} = ['Mean azimuth = ' sprintf('%.1f',az_mean) '  degrees'];
+            id = (az >= 180);    az(id) = az(id) - 180;
+            dir_mean = mean(az);
+            if (~isequal(az_mean,dir_mean))
+                msg{end+1} = ['Mean direction = ' sprintf('%.1f',dir_mean) '  degrees'];
+            end
+        end
+        if (numel(az) > 15),   msg = msg(end-2:end);   end
+        msgbox(msg,'Line(s) Azimuth')
+	end
+	refresh
 
 % -----------------------------------------------------------------------------------------
 function set_bar_uicontext(h)
@@ -1274,9 +1287,9 @@ function wbd_gcircle(obj,eventdata,h,state)
 
 % -----------------------------------------------------------------------------------------
 function h_circ = draw_circleGeo
+	% THIS IS NOW ONLY USED NOW WITH CARTESIAN CIRCLES
 	% Given one more compiler BUG, (WindowButtonDownFcn cannot be redefined)
 	% I found the following workaround.
-	% I THINK THIS IS ONLY USED NOW WITH CARTESIAN CIRCLES
 	hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
 	h_circ = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick);
 	%set(hFig,'WindowButtonDownFcn',{@circFirstButtonDown,h_circ}, 'Pointer', 'crosshair');
@@ -2000,69 +2013,69 @@ end
 
 % -----------------------------------------------------------------------------------------
 function save_formated(obj,eventdata, h, opt)
-% Save x,y[,z] vars into a file but taking into account the 'LabelFormatType'
-% If OPT is given than it must contain a Mx3 array with the x,y,z data to be saved
+	% Save x,y[,z] vars into a file but taking into account the 'LabelFormatType'
+	% If OPT is given than it must contain a Mx3 array with the x,y,z data to be saved
 
-if (nargin == 3)
-	h = h(ishandle(h));
-	xx = get(h,'XData');    yy = get(h,'YData');
-    doSave_formated(xx, yy)
-elseif (nargin == 4)
-    if (size(opt,2) ~= 3)
-        errordlg('save_formated: variable must contain a Mx3 array.','ERROR')
-        return
-    end
-    doSave_formated(opt(:,1), opt(:,2), opt(:,3))
-else
-    errordlg('save_formated: called with a wrong number of arguments.','ERROR')
-end
+	if (nargin == 3)
+		h = h(ishandle(h));
+		xx = get(h,'XData');    yy = get(h,'YData');
+        doSave_formated(xx, yy)
+	elseif (nargin == 4)
+        if (size(opt,2) ~= 3)
+            errordlg('save_formated: variable must contain a Mx3 array.','ERROR')
+            return
+        end
+        doSave_formated(opt(:,1), opt(:,2), opt(:,3))
+	else
+        errordlg('save_formated: called with a wrong number of arguments.','ERROR')
+	end
 
 % -----------------------------------------------------------------------------------------
 function doSave_formated(xx, yy, opt_z)
-% Save x,y[,z] vars into a file but taking into account the 'LabelFormatType'
-% OPT_Z is what the name says, optional
-hFig = get(0,'CurrentFigure');
-handles = guidata(hFig);
-cd(handles.work_dir)
-[FileName,PathName] = uiputfile({ ...
-    '*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select Symbol File name');
-cd(handles.home_dir);       % allways come home to avoid troubles
-if isequal(FileName,0),   return;     end
-pause(0.01)
+	% Save x,y[,z] vars into a file but taking into account the 'LabelFormatType'
+	% OPT_Z is what the name says, optional
+	hFig = get(0,'CurrentFigure');
+	handles = guidata(hFig);
+	cd(handles.work_dir)
+	[FileName,PathName] = uiputfile({ ...
+        '*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select Symbol File name');
+	cd(handles.home_dir);       % allways come home to avoid troubles
+	if isequal(FileName,0),   return;     end
+	pause(0.01)
 
-[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-if isempty(EXT),    f_name = [PathName FNAME '.dat'];
-else                f_name = [PathName FNAME EXT];       end
+	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
+	if isempty(EXT),    f_name = [PathName FNAME '.dat'];
+	else                f_name = [PathName FNAME EXT];       end
 
-% Save data with a format determined by axes format
-labelType = getappdata(handles.axes1,'LabelFormatType');             % find the axes label format
-if isempty(labelType),      labelType = ' ';        end     % untempered matlab axes labels
-switch labelType
-    case {' ','DegDec','NotGeog'}
-        xy = [xx(:) yy(:)];
-        fmt = '%f\t%f';
-    case 'DegMin'
-        out_x = degree2dms(xx,'DDMM',0,'numeric');        out_y = degree2dms(yy,'DDMM',0,'numeric');
-        xy = [out_x.dd(:) out_x.mm(:) out_y.dd(:) out_y.mm(:)];
-        fmt = '%4d %02d\t%4d %02d';
-    case 'DegMinDec'        % I'm writing the minutes with a precision of 2 decimals
-        out_x = degree2dms(xx,'DDMM.x',2,'numeric');      out_y = degree2dms(yy,'DDMM.x',2,'numeric');
-        xy = [out_x.dd(:) out_x.mm(:) out_y.dd(:) out_y.mm(:)];
-        fmt = '%4d %02.2f\t%4d %02.2f';
-    case 'DegMinSec'
-        out_x = degree2dms(xx,'DDMMSS',0,'numeric');      out_y = degree2dms(yy,'DDMMSS',0,'numeric');
-        xy = [out_x.dd(:) out_x.mm(:) out_x.ss(:) out_y.dd(:) out_y.mm(:) out_y.ss(:)];
-        fmt = '%4d %02d %02d\t%4d %02d %02d';
-    case 'DegMinSecDec'     % I'm writing the seconds with a precision of 2 decimals
-        out_x = degree2dms(xx,'DDMMSS',2,'numeric');      out_y = degree2dms(yy,'DDMMSS',2,'numeric');
-        xy = [out_x.dd(:) out_x.mm(:) out_x.ss(:) out_y.dd(:) out_y.mm(:) out_y.ss(:)];
-        fmt = '%4d %02d %02.2f\t%4d %02d %02.2f';
-end
+	% Save data with a format determined by axes format
+	labelType = getappdata(handles.axes1,'LabelFormatType');             % find the axes label format
+	if isempty(labelType),      labelType = ' ';        end     % untempered matlab axes labels
+	switch labelType
+        case {' ','DegDec','NotGeog'}
+            xy = [xx(:) yy(:)];
+            fmt = '%f\t%f';
+        case 'DegMin'
+            out_x = degree2dms(xx,'DDMM',0,'numeric');        out_y = degree2dms(yy,'DDMM',0,'numeric');
+            xy = [out_x.dd(:) out_x.mm(:) out_y.dd(:) out_y.mm(:)];
+            fmt = '%4d %02d\t%4d %02d';
+        case 'DegMinDec'        % I'm writing the minutes with a precision of 2 decimals
+            out_x = degree2dms(xx,'DDMM.x',2,'numeric');      out_y = degree2dms(yy,'DDMM.x',2,'numeric');
+            xy = [out_x.dd(:) out_x.mm(:) out_y.dd(:) out_y.mm(:)];
+            fmt = '%4d %02.2f\t%4d %02.2f';
+        case 'DegMinSec'
+            out_x = degree2dms(xx,'DDMMSS',0,'numeric');      out_y = degree2dms(yy,'DDMMSS',0,'numeric');
+            xy = [out_x.dd(:) out_x.mm(:) out_x.ss(:) out_y.dd(:) out_y.mm(:) out_y.ss(:)];
+            fmt = '%4d %02d %02d\t%4d %02d %02d';
+        case 'DegMinSecDec'     % I'm writing the seconds with a precision of 2 decimals
+            out_x = degree2dms(xx,'DDMMSS',2,'numeric');      out_y = degree2dms(yy,'DDMMSS',2,'numeric');
+            xy = [out_x.dd(:) out_x.mm(:) out_x.ss(:) out_y.dd(:) out_y.mm(:) out_y.ss(:)];
+            fmt = '%4d %02d %02.2f\t%4d %02d %02.2f';
+	end
 
-if (nargin == 3)
-    xy = [xy opt_z(:)];    fmt = [fmt '\t%f'];
-end
-double2ascii(f_name,xy,fmt,'maybeMultis');
+	if (nargin == 3)
+        xy = [xy opt_z(:)];    fmt = [fmt '\t%f'];
+	end
+	double2ascii(f_name,xy,fmt,'maybeMultis');
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_SymbColor(h,prop)
