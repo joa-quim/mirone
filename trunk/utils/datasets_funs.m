@@ -472,7 +472,7 @@ function DatasetsPlateBound_PB_All(handles)
 	% Join all data into a single variable
 	data.OSR = OSR;    data.OTF = OTF;    data.CRB = CRB;    data.CTF = CTF;
 	data.CCB = CCB;    data.OCB = OCB;    data.SUB = SUB;
-	draw_funs(h,'PlateBound_All_PB',data);
+	draw_funs(h,'PlateBoundPB',data);
     set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
