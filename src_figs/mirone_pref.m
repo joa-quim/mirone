@@ -1,4 +1,4 @@
-function varargout = mirone_pref(varargin)
+function varargout = mirone_pref(handMir)
 % M-File changed by desGUIDE 
 
 %	Copyright (c) 2004-2006 by J. Luis
@@ -15,14 +15,13 @@ function varargout = mirone_pref(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-mirone_pref_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
-movegui(hObject,'northwest');
+	hObject = figure('Tag','figure1','Visible','off');
+	handles = guihandles(hObject);
+	guidata(hObject, handles);
+	mirone_pref_LayoutFcn(hObject,handles);
+	handles = guihandles(hObject);
+	movegui(hObject,'northwest');
 
-    handMir = varargin{1};
     home_dir = handMir.home_dir;
     handles.d_path = handMir.path_data;
     handles.handMir = handMir;
@@ -32,41 +31,41 @@ movegui(hObject,'northwest');
 	handles.geog = geog;        % Just to not be empty.
 	handles.ForceInsitu = 0;    % Just to not be empty.
 
-% The next are new (20-1-07) and therefore we need to wrap it in try because old prefs do not have it yet
-try
-    handles.flederPlanar = flederPlanar;
-    set(handles.radio_planar,'Val',handles.flederPlanar)
-    set(handles.radio_spherical,'Val',~handles.flederPlanar)
-    handles.flederBurn = flederBurn;
-    if (handles.flederBurn == 0),       set(handles.radio_noBurnAtAll,'Val',1); set(handles.radio_coastsOnly,'Val',0)
-    elseif (handles.flederBurn == 1),   set(handles.radio_coastsOnly,'Val',1);
-    else                                set(handles.radio_burnAll,'Val',1);     set(handles.radio_coastsOnly,'Val',0)
-    end
-catch
-    handles.flederPlanar = 1;
-    handles.flederBurn = 1;
-end
-
-j = logical(zeros(1,length(directory_list)));           % vector for eventual cleaning non-existing dirs
-if iscell(directory_list)                               % When exists a dir list in mirone_pref
-    for (i = 1:length(directory_list))
-        try,        cd(directory_list{i});              % NOTE. I don't use 'exist' anymore because
-        catch,      j(i) = 1;       cd(home_dir);       % the stupid compiler allways return something > 0
+	% The next are new (20-1-07) and therefore we need to wrap it in try because old prefs do not have it yet
+	try
+        handles.flederPlanar = flederPlanar;
+        set(handles.radio_planar,'Val',handles.flederPlanar)
+        set(handles.radio_spherical,'Val',~handles.flederPlanar)
+        handles.flederBurn = flederBurn;
+        if (handles.flederBurn == 0),       set(handles.radio_noBurnAtAll,'Val',1); set(handles.radio_coastsOnly,'Val',0)
+        elseif (handles.flederBurn == 1),   set(handles.radio_coastsOnly,'Val',1);
+        else                                set(handles.radio_burnAll,'Val',1);     set(handles.radio_coastsOnly,'Val',0)
         end
-    end
-    cd(home_dir);                           % Need to come back home because it was probably somewere out there
-    directory_list(j) = [];                             % clean eventual non-existing directories
-    if (~isempty(directory_list))                       % If there is one left
-        set(handles.popup_directory_list,'String',directory_list)
-        handles.last_directories = directory_list;
-    else
+	catch
+        handles.flederPlanar = 1;
+        handles.flederBurn = 1;
+	end
+
+	j = logical(zeros(1,length(directory_list)));           % vector for eventual cleaning non-existing dirs
+	if iscell(directory_list)                               % When exists a dir list in mirone_pref
+        for (i = 1:length(directory_list))
+            try,        cd(directory_list{i});              % NOTE. I don't use 'exist' anymore because
+            catch,      j(i) = 1;       cd(home_dir);       % the stupid compiler allways return something > 0
+            end
+        end
+        cd(home_dir);                           % Need to come back home because it was probably somewere out there
+        directory_list(j) = [];                             % clean eventual non-existing directories
+        if (~isempty(directory_list))                       % If there is one left
+            set(handles.popup_directory_list,'String',directory_list)
+            handles.last_directories = directory_list;
+        else
+            handles.last_directories = {[home_dir filesep 'tmp']; home_dir};    % Let it have something existent
+            set(handles.popup_directory_list,'String',handles.last_directories)
+        end
+	else                                                    % mirone_pref had no dir list
         handles.last_directories = {[home_dir filesep 'tmp']; home_dir};    % Let it have something existent
         set(handles.popup_directory_list,'String',handles.last_directories)
-    end
-else                                                    % mirone_pref had no dir list
-    handles.last_directories = {[home_dir filesep 'tmp']; home_dir};    % Let it have something existent
-    set(handles.popup_directory_list,'String',handles.last_directories)
-end
+	end
 
     if (handMir.geog)             % Signals a geographic grid/image
         set(handles.radiobutton_geog,'Value',1)
@@ -79,30 +78,30 @@ end
     else
         handles.geog = 1;
     end
-    set(handles.edit_GridMaxSize,'String',sprintf('%d',varargin{2}))
+    set(handles.edit_GridMaxSize,'String',sprintf('%d',fix(handMir.grdMaxSize / (2^20))))
     set(handles.edit_swathRatio,'String',sprintf('%g',handMir.swathRatio))
     set(handles.checkbox_ForceInsitu,'Value',handMir.ForceInsitu)
     handles.ForceInsitu = handMir.ForceInsitu;
 
-% Well this is split from the above because it was written later and I don't want to mess
-% with what is working. Wrap in a try-catch because the first time the variables are not
-% yet in mirone_pref.mat
-try     % Goes here all other times
-    set(handles.popupmenu_DefLineThickness,'String',DefLineThick)
-    set(handles.popupmenu_DefLineColor,'String',DefLineColor)
-    set(handles.popup_MeasureUnites,'String',DefineMeasureUnit)
-    set(handles.popup_ellipsoide,'String',DefineEllipsoide)
-    set(handles.checkbox_SaveAsInt16,'Value',saveAsInt16)
-    set(handles.checkbox_meanLat,'Value',scale2meanLat)
-catch       % Comes here in first call before variables are stored in mirone_pref.mat
-    DefLineThick = {'2 pt'; '1 pt'; '3 pt'; '4 pt'};
-    DefLineColor = {'White'; 'Black'; 'Red'; 'Green'; 'Blue'; 'Cyan'; 'Yellow'; 'Magenta'};
-    DefineMeasureUnit = {'nautic miles'; 'kilometers'; 'meters'; 'user'};
-    set(handles.popupmenu_DefLineThickness,'String',DefLineThick)
-    set(handles.popupmenu_DefLineColor,'String',DefLineColor)
-    set(handles.popup_MeasureUnites,'String',DefineMeasureUnit)
-    set(handles.checkbox_meanLat,'Value',1)
-end
+	% Well this is split from the above because it was written later and I don't want to mess
+	% with what is working. Wrap in a try-catch because the first time the variables are not
+	% yet in mirone_pref.mat
+	try     % Goes here all other times
+        set(handles.popupmenu_DefLineThickness,'String',DefLineThick)
+        set(handles.popupmenu_DefLineColor,'String',DefLineColor)
+        set(handles.popup_MeasureUnites,'String',DefineMeasureUnit)
+        set(handles.popup_ellipsoide,'String',DefineEllipsoide)
+        set(handles.checkbox_SaveAsInt16,'Value',saveAsInt16)
+        set(handles.checkbox_meanLat,'Value',scale2meanLat)
+	catch       % Comes here in first call before variables are stored in mirone_pref.mat
+        DefLineThick = {'2 pt'; '1 pt'; '3 pt'; '4 pt'};
+        DefLineColor = {'White'; 'Black'; 'Red'; 'Green'; 'Blue'; 'Cyan'; 'Yellow'; 'Magenta'};
+        DefineMeasureUnit = {'nautic miles'; 'kilometers'; 'meters'; 'user'};
+        set(handles.popupmenu_DefLineThickness,'String',DefLineThick)
+        set(handles.popupmenu_DefLineColor,'String',DefLineColor)
+        set(handles.popup_MeasureUnites,'String',DefineMeasureUnit)
+        set(handles.checkbox_meanLat,'Value',1)
+	end
 
 % This is the default ellipsoide order. It will be changed (and saved as so in mirone_pref) by the user
 % Note, however, that only the ellipsoide names are stored in mirone_pref. The parameters of the selected
@@ -220,24 +219,13 @@ panel_names = {'general','fleder'};
 handles = tabpanelfcn('make_groups',group_name, panel_names, handles, 1);
 % ------------------------------------------------------------------------------
 
-% Choose default command line output for mirone_pref_export
-handles.output = hObject;
+% Choose default command line output for mirone_pref
 guidata(hObject, handles);
 set(hObject,'Visible','on');
 
-% UIWAIT makes mirone_pref_export wait for user response (see UIRESUME)
-uiwait(handles.figure1);
-handles = guidata(hObject);
-
-% Save the Mirone handles, on the Mirone fig obviously
-guidata(handles.handMir.figure1, handles.handMir)
-out = mirone_pref_OutputFcn(hObject, [], handles);
-varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = mirone_pref_OutputFcn(hObject, eventdata, handles)
-	varargout{1} = handles.output;
-	delete(handles.figure1);
+if (nargout)
+    varargout{1} = hObject;
+end
 
 % -------------------------------------------------------------------------------------
 function tab_group_ButtonDownFcn(hObject, eventdata, handles)
@@ -266,7 +254,7 @@ function radiobutton_cart_Callback(hObject, eventdata, handles)
 function edit_GridMaxSize_Callback(hObject, eventdata, handles)
 	xx = get(hObject,'String');
 	if isnan(str2double(xx)) || isempty(xx)    % Just a stupid user error
-        set(hObject, 'String', '20');    return
+        set(hObject, 'String', '50')
 	else
         if (str2double(xx) >= 10)   % Numbers bigger than 10 Mb don't need decimal places
             set(hObject,'String',sprintf('%d',fix(str2double(xx))))
@@ -277,13 +265,12 @@ function edit_GridMaxSize_Callback(hObject, eventdata, handles)
 function edit_swathRatio_Callback(hObject, eventdata, handles)
 	xx = get(hObject,'String');
 	if isnan(str2double(xx)) || isempty(xx)    % Just a stupid user error
-        set(hObject, 'String', '3');    return
+        set(hObject, 'String', '3')
 	end
 
 % ------------------------------------------------------------------------------------
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);  uiresume(handles.figure1);
+    delete(handles.figure1)
 
 % ------------------------------------------------------------------------------------
 function popup_directory_list_Callback(hObject, eventdata, handles)
@@ -429,9 +416,9 @@ fname = [handles.d_path 'mirone_pref.mat'];
 % Note: for the ellipsoide we save it's parameters (a,b,f) instead of the name
 DefineEllipsoide_params = handles.handMir.DefineEllipsoide;    % For saving purposes
 geog = handles.handMir.geog;      grdMaxSize = handles.handMir.grdMaxSize;
-swathRatio = handles.handMir.swathRatio;
+swathRatio    = handles.handMir.swathRatio;
 scale2meanLat = handles.handMir.scale2meanLat;
-saveAsInt16 = handles.handMir.saveAsInt16;
+saveAsInt16   = handles.handMir.saveAsInt16;
 %ForceInsitu = handles.ForceInsitu;     % We don't save it because the user must choose it every time
 
 % Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
@@ -449,28 +436,22 @@ else
         'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
         'saveAsInt16', 'flederPlanar', 'flederBurn', '-append', '-v6')
 end
-handles.output = handles.handMir;
-guidata(hObject,handles)
-uiresume(handles.figure1);
+
+% Save the Mirone handles, on the Mirone fig obviously
+guidata(handles.handMir.figure1, handles.handMir)
+setappdata(handles.handMir.figure1,'swathRatio',swathRatio);    % We need this in getline_mb
+set(handles.handMir.ToolsMeasureDist,'Label',['Distance in ' handles.handMir.DefineMeasureUnit])
+
+delete(handles.figure1)
 
 % ------------------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
-    handles = guidata(handles.figure1);
-	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-        % The GUI is still in UIWAIT, us UIRESUME
-        handles.output = [];        % User gave up, return nothing
-        guidata(hObject, handles);    uiresume(handles.figure1);
-	else    % The GUI is no longer waiting, just close it
-        handles.output = [];        % User gave up, return nothing
-        guidata(hObject, handles);    delete(handles.figure1);
-	end
+    delete(handles.figure1);
 
 % ------------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata, handles)
-    handles = guidata(handles.figure1);
 	if isequal(get(hObject,'CurrentKey'),'escape')
-        handles.output = [];        % User said no by hitting escape
-        guidata(handles.figure1, handles);    uiresume(handles.figure1);
+        delete(handles.figure1);
 	end
 
 % ------------------------------------------------------------------------------------
