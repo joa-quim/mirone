@@ -12,7 +12,6 @@ end
 if (handles.no_file),     return;      end
 %ud = get(handles.figure1,'UserData');           % Retrieve Image info 
 if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived from a GMT grdfile
-    if (handles.grdformat > 1), handles.grdname = [handles.grdname '=' num2str(handles.grdformat)];     end
     info1 = grdinfo_m(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
     X = getappdata(handles.figure1,'dem_x');    Y = getappdata(handles.figure1,'dem_y');
     Z = getappdata(handles.figure1,'dem_z');    % We want the Z for statistics (might not be in argin)
@@ -88,7 +87,7 @@ end
 function txt = wipe_zeros(txt)
 	% Wipe zeros at the end of the TXT string
 	while (txt(end) == '0')
-        txt(end) =[];
+        txt(end) = [];
 	end
 
 % --------------------------------------------------------------------
