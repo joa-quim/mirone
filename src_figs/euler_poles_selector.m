@@ -20,74 +20,69 @@ function varargout = euler_poles_selector(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-euler_poles_selector_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
- 
-global home_dir
+	hObject = figure('Tag','figure1','Visible','off');
+	handles = guihandles(hObject);
+	guidata(hObject, handles);
+	euler_poles_selector_LayoutFcn(hObject,handles);
+	handles = guihandles(hObject);
+	movegui(hObject,'east')
 
-movegui(hObject,'east')
-% Case when this function was called directly
-if isempty(home_dir),   home_dir = pwd;     end
+	if (isempty(varargin)),
+        home_dir = pwd;
+    else
+        home_dir = varargin{1};
+    end
 
-handles.path_data = [home_dir filesep 'data' filesep];
-handles.first_NNR = 1;
-handles.first_PB = 1;
-handles.first_AKIM2000 = 1;
-handles.first_DEOS2K = 1;
-handles.first_REVEL = 1;
-handles.absolute_motion = 0;        % when == 1, it signals an absolute motion model
-handles.abs2rel = 0;                % when == 1, flags that an absolute model was turned relative
-handles.abb_mov = [];
-handles.abb_fix = [];
+	handles.path_data = [home_dir filesep 'data' filesep];
+	handles.first_NNR = 1;
+	handles.first_PB = 1;
+	handles.first_AKIM2000 = 1;
+	handles.first_DEOS2K = 1;
+	handles.first_REVEL = 1;
+	handles.absolute_motion = 0;        % when == 1, it signals an absolute motion model
+	handles.abs2rel = 0;                % when == 1, flags that an absolute model was turned relative
+	handles.abb_mov = [];
+	handles.abb_fix = [];
 
-set(handles.checkbox_Abs2Rel,'Visible','off')
+    set(handles.checkbox_Abs2Rel,'Visible','off')
 
-% Read the Nuvel-1A poles file as they are the default
-fid = fopen([handles.path_data 'Nuvel1A_poles.dat'],'r');
-[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-fclose(fid);
+	% Read the Nuvel-1A poles file as they are the default
+	fid = fopen([handles.path_data 'Nuvel1A_poles.dat'],'r');
+	[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+	fclose(fid);
 
-% Save the poles parameters in the handles structure
-handles.Nuvel1A_abbrev = abbrev;
-handles.Nuvel1A_name = name;
-handles.Nuvel1A_lat = lat;
-handles.Nuvel1A_lon = lon;
-handles.Nuvel1A_omega = omega;
+	% Save the poles parameters in the handles structure
+	handles.Nuvel1A_abbrev = abbrev;
+	handles.Nuvel1A_name = name;
+	handles.Nuvel1A_lat = lat;
+	handles.Nuvel1A_lon = lon;
+	handles.Nuvel1A_omega = omega;
 
-% Fill the popupmenus with the Plate's names
-set(handles.popup_FixedPlate,'String',name)
-set(handles.popup_MovingPlate,'String',name)
+	% Fill the popupmenus with the Plate's names
+	set(handles.popup_FixedPlate,'String',name)
+	set(handles.popup_MovingPlate,'String',name)
 
-set(hObject,'RendererMode','auto')
-%set(hObject,'Renderer','painters')
-set(hObject,'Name','Euler Poles');
+	setappdata(hObject,'current_model','Nuvel1A')
 
-setappdata(hObject,'current_model','Nuvel1A')
+	% Choose default command line output for euler_poles_selector_export
+	handles.output = hObject;
+	guidata(hObject, handles);
 
-% Choose default command line output for euler_poles_selector_export
-handles.output = hObject;
-guidata(hObject, handles);
-
-set(hObject,'Visible','on');
-% UIWAIT makes euler_poles_selector_export wait for user response (see UIRESUME)
-uiwait(handles.figure1);
+	set(hObject,'Visible','on');
+	% UIWAIT makes euler_poles_selector_export wait for user response (see UIRESUME)
+	uiwait(handles.figure1);
 
 %--------------------------------------------------------------------------------------------------
-handles = guidata(hObject);
-out = euler_poles_selector_OutputFcn(hObject, [], handles);
-varargout{1} = out;
+	handles = guidata(hObject);
+	out = euler_poles_selector_OutputFcn(hObject, [], handles);
+	varargout{1} = out;
 
 % --- Outputs from this function are returned to the command line.
 function varargout = euler_poles_selector_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-% The figure can be deleted now
-delete(handles.figure1);
+	% varargout  cell array for returning output args (see VARARGOUT);
+	% hObject    handle to figure
+	varargout{1} = handles.output;
+	delete(handles.figure1);
 
 %--------------------------------------------------------------------------------------------------
 function popup_FixedPlate_Callback(hObject, eventdata, handles)
@@ -226,410 +221,401 @@ guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radiobutton_Nuvel1A_Callback(hObject, eventdata, handles)
-if ~get(hObject,'Value')
-    set(hObject,'Value',1);    return
-end
+	if ~get(hObject,'Value')
+        set(hObject,'Value',1);    return
+	end
 
-set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
-set(handles.radiobutton_PBird,'Value',0)
-set(handles.radiobutton_DEOS2K,'Value',0)
-set(handles.radiobutton_REVEL,'Value',0)
-set(handles.checkbox_Abs2Rel,'Visible','off')
+	set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
+	set(handles.radiobutton_PBird,'Value',0)
+	set(handles.radiobutton_DEOS2K,'Value',0)
+	set(handles.radiobutton_REVEL,'Value',0)
+	set(handles.checkbox_Abs2Rel,'Visible','off')
 
-set(handles.popup_FixedPlate,'Enable','on')
-handles.absolute_motion = 0;            % The Nuvel1A is a relative motion model
+	set(handles.popup_FixedPlate,'Enable','on')
+	handles.absolute_motion = 0;            % The Nuvel1A is a relative motion model
 
-% Fill the popupmenus with the Plate's names
-set(handles.popup_FixedPlate,'Value',1)
-set(handles.popup_MovingPlate,'Value',1)
-set(handles.popup_FixedPlate,'String',handles.Nuvel1A_name)
-set(handles.popup_MovingPlate,'String',handles.Nuvel1A_name)
+	% Fill the popupmenus with the Plate's names
+	set(handles.popup_FixedPlate,'Value',1)
+	set(handles.popup_MovingPlate,'Value',1)
+	set(handles.popup_FixedPlate,'String',handles.Nuvel1A_name)
+	set(handles.popup_MovingPlate,'String',handles.Nuvel1A_name)
 
-% Clear the pole edit boxes fields
-set(handles.edit_PoleLon,'String','')
-set(handles.edit_PoleLat,'String','')
-set(handles.edit_PoleRate,'String','')
+	% Clear the pole edit boxes fields
+	set(handles.edit_PoleLon,'String','')
+	set(handles.edit_PoleLat,'String','')
+	set(handles.edit_PoleRate,'String','')
 
-% Flag in appdata which model is currently loaded
-setappdata(gcf,'current_model','Nuvel1A')
-guidata(hObject, handles);
+	% Flag in appdata which model is currently loaded
+	setappdata(gcf,'current_model','Nuvel1A')
+	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radiobutton_Nuvel1A_NNR_Callback(hObject, eventdata, handles)
-if ~get(hObject,'Value')
-    set(hObject,'Value',1);    return
-end
+	if ~get(hObject,'Value')
+        set(hObject,'Value',1);    return
+	end
 
-D2R = pi/180;
-set(handles.radiobutton_Nuvel1A,'Value',0)
-set(handles.radiobutton_PBird,'Value',0)
-set(handles.radiobutton_DEOS2K,'Value',0)
-set(handles.radiobutton_REVEL,'Value',0)
-set(handles.checkbox_Abs2Rel,'Visible','on')
+	D2R = pi/180;
+	set(handles.radiobutton_Nuvel1A,'Value',0)
+	set(handles.radiobutton_PBird,'Value',0)
+	set(handles.radiobutton_DEOS2K,'Value',0)
+	set(handles.radiobutton_REVEL,'Value',0)
+	set(handles.checkbox_Abs2Rel,'Visible','on')
 
-if (handles.first_NNR)      % Load and read poles deffinition
-    fid = fopen([handles.path_data 'Nuvel1A_NNR_poles.dat'],'r');
-    [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-    fclose(fid);
-    % Save the poles parameters in the handles structure
-    handles.Nuvel1A_NNR_abbrev = abbrev;
-    handles.Nuvel1A_NNR_name = name;
-    handles.Nuvel1A_NNR_lat = lat;
-    handles.Nuvel1A_NNR_lon = lon;
-    handles.Nuvel1A_NNR_omega = omega;
-    handles.first_NNR = 0;
-end
+	if (handles.first_NNR)      % Load and read poles deffinition
+        fid = fopen([handles.path_data 'Nuvel1A_NNR_poles.dat'],'r');
+        [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+        fclose(fid);
+        % Save the poles parameters in the handles structure
+        handles.Nuvel1A_NNR_abbrev = abbrev;
+        handles.Nuvel1A_NNR_name = name;
+        handles.Nuvel1A_NNR_lat = lat;
+        handles.Nuvel1A_NNR_lon = lon;
+        handles.Nuvel1A_NNR_omega = omega;
+        handles.first_NNR = 0;
+	end
 
-% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
-set(handles.popup_MovingPlate,'Value',1)
-set(handles.popup_MovingPlate,'String',handles.Nuvel1A_NNR_name)
+	% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
+	set(handles.popup_MovingPlate,'Value',1)
+	set(handles.popup_MovingPlate,'String',handles.Nuvel1A_NNR_name)
 
-if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
-    set(handles.popup_FixedPlate,'Value',1)
-    set(handles.popup_FixedPlate,'String',handles.Nuvel1A_NNR_name)
-    set(handles.popup_FixedPlate,'Enable','on')
-    lon1 = handles.Nuvel1A_NNR_lon(1);      lat1 = handles.Nuvel1A_NNR_lat(1);
-    omega1 = handles.Nuvel1A_NNR_omega(1);
-    ind = get(handles.popup_MovingPlate,'Value');
-    lon2 = handles.Nuvel1A_NNR_lon(ind);    lat2 = handles.Nuvel1A_NNR_lat(ind);
-    omega2 = handles.Nuvel1A_NNR_omega(ind);
-    [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
-    lon = lon/D2R;     lat = lat/D2R;
-    handles.abb_mov = handles.Nuvel1A_NNR_abbrev{ind};
-    handles.abb_fix = 'relativezed';
-else                                        % On the original absolute motion mode
-    handles.absolute_motion = 1;
-    set(handles.popup_FixedPlate,'Enable','off')
-    lon = handles.Nuvel1A_NNR_lon(1);       lat = handles.Nuvel1A_NNR_lat(1);
-    omega = handles.Nuvel1A_NNR_omega(1);
-    handles.abb_mov = handles.Nuvel1A_NNR_abbrev{1};
-    handles.abb_fix = 'absolute';
-end
+	if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
+        set(handles.popup_FixedPlate,'Value',1)
+        set(handles.popup_FixedPlate,'String',handles.Nuvel1A_NNR_name)
+        set(handles.popup_FixedPlate,'Enable','on')
+        lon1 = handles.Nuvel1A_NNR_lon(1);      lat1 = handles.Nuvel1A_NNR_lat(1);
+        omega1 = handles.Nuvel1A_NNR_omega(1);
+        ind = get(handles.popup_MovingPlate,'Value');
+        lon2 = handles.Nuvel1A_NNR_lon(ind);    lat2 = handles.Nuvel1A_NNR_lat(ind);
+        omega2 = handles.Nuvel1A_NNR_omega(ind);
+        [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
+        lon = lon/D2R;     lat = lat/D2R;
+        handles.abb_mov = handles.Nuvel1A_NNR_abbrev{ind};
+        handles.abb_fix = 'relativezed';
+	else                                        % On the original absolute motion mode
+        handles.absolute_motion = 1;
+        set(handles.popup_FixedPlate,'Enable','off')
+        lon = handles.Nuvel1A_NNR_lon(1);       lat = handles.Nuvel1A_NNR_lat(1);
+        omega = handles.Nuvel1A_NNR_omega(1);
+        handles.abb_mov = handles.Nuvel1A_NNR_abbrev{1};
+        handles.abb_fix = 'absolute';
+	end
 
-% Actualize the pole edit boxes fields and plot the pole
-if (omega ~= 0)         % That is, if the pole exists
-    set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-    set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-    set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-else
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
-end
+	% Actualize the pole edit boxes fields and plot the pole
+	if (omega ~= 0)         % That is, if the pole exists
+        set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
+        set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
+        set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
+	else
+        set(handles.edit_PoleLon,'String','')
+        set(handles.edit_PoleLat,'String','')
+        set(handles.edit_PoleRate,'String','')
+	end
 
-% Flag in appdata which model is currently loaded
-setappdata(gcf,'current_model','NNR')
-guidata(hObject, handles);
+	% Flag in appdata which model is currently loaded
+	setappdata(gcf,'current_model','NNR')
+	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radiobutton_PBird_Callback(hObject, eventdata, handles)
-if ~get(hObject,'Value')
-    set(hObject,'Value',1);    return
-end
+	if ~get(hObject,'Value')
+        set(hObject,'Value',1);    return
+	end
 
-set(handles.radiobutton_Nuvel1A,'Value',0)
-set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
-set(handles.radiobutton_DEOS2K,'Value',0)
-set(handles.radiobutton_REVEL,'Value',0)
-set(handles.checkbox_Abs2Rel,'Visible','off')
+	set(handles.radiobutton_Nuvel1A,'Value',0)
+	set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
+	set(handles.radiobutton_DEOS2K,'Value',0)
+	set(handles.radiobutton_REVEL,'Value',0)
+	set(handles.checkbox_Abs2Rel,'Visible','off')
 
-set(handles.popup_FixedPlate,'Enable','on')
-handles.absolute_motion = 0;            % The PB is a relative motion model
+	set(handles.popup_FixedPlate,'Enable','on')
+	handles.absolute_motion = 0;            % The PB is a relative motion model
 
-if (handles.first_PB)      % Load and read poles deffinition
-    fid = fopen([handles.path_data 'PB_poles.dat'],'r');
-    [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-    fclose(fid);
-    % Save the poles parameters in the handles structure
-    handles.PB_abbrev = abbrev;
-    handles.PB_name = name;
-    handles.PB_lat = lat;
-    handles.PB_lon = lon;
-    handles.PB_omega = omega;
-    handles.first_PB = 0;
-    guidata(hObject, handles);
-end
+	if (handles.first_PB)      % Load and read poles deffinition
+        fid = fopen([handles.path_data 'PB_poles.dat'],'r');
+        [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+        fclose(fid);
+        % Save the poles parameters in the handles structure
+        handles.PB_abbrev = abbrev;
+        handles.PB_name = name;
+        handles.PB_lat = lat;
+        handles.PB_lon = lon;
+        handles.PB_omega = omega;
+        handles.first_PB = 0;
+        guidata(hObject, handles);
+	end
 
-% Fill the popupmenus with the Plate's names
-set(handles.popup_FixedPlate,'Value',1)
-set(handles.popup_MovingPlate,'Value',1)
-set(handles.popup_FixedPlate,'String',handles.PB_name)
-set(handles.popup_MovingPlate,'String',handles.PB_name)
+	% Fill the popupmenus with the Plate's names
+	set(handles.popup_FixedPlate,'Value',1)
+	set(handles.popup_MovingPlate,'Value',1)
+	set(handles.popup_FixedPlate,'String',handles.PB_name)
+	set(handles.popup_MovingPlate,'String',handles.PB_name)
 
-% Clear the pole edit boxes fields
-set(handles.edit_PoleLon,'String','')
-set(handles.edit_PoleLat,'String','')
-set(handles.edit_PoleRate,'String','')
+	% Clear the pole edit boxes fields
+	set(handles.edit_PoleLon,'String','')
+	set(handles.edit_PoleLat,'String','')
+	set(handles.edit_PoleRate,'String','')
 
-% Flag in appdata which model is currently loaded
-setappdata(gcf,'current_model','PB')
+	% Flag in appdata which model is currently loaded
+	setappdata(gcf,'current_model','PB')
 
 %--------------------------------------------------------------------------------------------------
 function radiobutton_AKIM2000_Callback(hObject, eventdata, handles)
-if ~get(hObject,'Value')
-    set(hObject,'Value',1);    return
-end
+	if ~get(hObject,'Value')
+        set(hObject,'Value',1);    return
+	end
 
-D2R = pi/180;
-set(handles.radiobutton_Nuvel1A,'Value',0)
-set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
-set(handles.radiobutton_PBird,'Value',0)
-set(handles.radiobutton_REVEL,'Value',0)
-set(handles.checkbox_Abs2Rel,'Visible','on')
+	D2R = pi/180;
+	set(handles.radiobutton_Nuvel1A,'Value',0)
+	set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
+	set(handles.radiobutton_PBird,'Value',0)
+	set(handles.radiobutton_REVEL,'Value',0)
+	set(handles.checkbox_Abs2Rel,'Visible','on')
 
-if (handles.first_AKIM2000)      % Load and read poles deffinition
-    fid = fopen([handles.path_data 'AKIM2000_poles.dat'],'r');
-    [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-    fclose(fid);
-    % Save the poles parameters in the handles structure
-    handles.AKIM2000_abbrev = abbrev;
-    handles.AKIM2000_name = name;
-    handles.AKIM2000_lat = lat;
-    handles.AKIM2000_lon = lon;
-    handles.AKIM2000_omega = omega;
-    handles.first_AKIM2000 = 0;
-end
+	if (handles.first_AKIM2000)      % Load and read poles deffinition
+        fid = fopen([handles.path_data 'AKIM2000_poles.dat'],'r');
+        [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+        fclose(fid);
+        % Save the poles parameters in the handles structure
+        handles.AKIM2000_abbrev = abbrev;
+        handles.AKIM2000_name = name;
+        handles.AKIM2000_lat = lat;
+        handles.AKIM2000_lon = lon;
+        handles.AKIM2000_omega = omega;
+        handles.first_AKIM2000 = 0;
+	end
 
-% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
-set(handles.popup_MovingPlate,'Value',1)
-set(handles.popup_MovingPlate,'String',handles.AKIM2000_name)
+	% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
+	set(handles.popup_MovingPlate,'Value',1)
+	set(handles.popup_MovingPlate,'String',handles.AKIM2000_name)
 
-if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
-    set(handles.popup_FixedPlate,'Value',1)
-    set(handles.popup_FixedPlate,'String',handles.AKIM2000_name)
-    set(handles.popup_FixedPlate,'Enable','on')
-    lon1 = handles.AKIM2000_lon(1);      lat1 = handles.AKIM2000_lat(1);
-    omega1 = handles.AKIM2000_omega(1);
-    ind = get(handles.popup_MovingPlate,'Value');
-    lon2 = handles.AKIM2000_lon(ind);    lat2 = handles.AKIM2000_lat(ind);
-    omega2 = handles.AKIM2000_omega(ind);
-    [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
-    lon = lon/D2R;     lat = lat/D2R;
-    handles.abb_mov = handles.AKIM2000_abbrev{ind};
-    handles.abb_fix = 'relativezed';
-else                                        % On the original absolute motion mode
-    handles.absolute_motion = 1;
-    set(handles.popup_FixedPlate,'Enable','off')
-    lon = handles.AKIM2000_lon(1);       lat = handles.AKIM2000_lat(1);
-    omega = handles.AKIM2000_omega(1);
-    handles.abb_mov = handles.AKIM2000_abbrev{1};
-    handles.abb_fix = 'absolute';
-end
+	if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
+        set(handles.popup_FixedPlate,'Value',1)
+        set(handles.popup_FixedPlate,'String',handles.AKIM2000_name)
+        set(handles.popup_FixedPlate,'Enable','on')
+        lon1 = handles.AKIM2000_lon(1);      lat1 = handles.AKIM2000_lat(1);
+        omega1 = handles.AKIM2000_omega(1);
+        ind = get(handles.popup_MovingPlate,'Value');
+        lon2 = handles.AKIM2000_lon(ind);    lat2 = handles.AKIM2000_lat(ind);
+        omega2 = handles.AKIM2000_omega(ind);
+        [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
+        lon = lon/D2R;     lat = lat/D2R;
+        handles.abb_mov = handles.AKIM2000_abbrev{ind};
+        handles.abb_fix = 'relativezed';
+	else                                        % On the original absolute motion mode
+        handles.absolute_motion = 1;
+        set(handles.popup_FixedPlate,'Enable','off')
+        lon = handles.AKIM2000_lon(1);       lat = handles.AKIM2000_lat(1);
+        omega = handles.AKIM2000_omega(1);
+        handles.abb_mov = handles.AKIM2000_abbrev{1};
+        handles.abb_fix = 'absolute';
+	end
 
-% Actualize the pole edit boxes fields and plot the pole
-if (omega ~= 0)         % That is, if the pole exists
-    set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-    set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-    set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-else
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
-end
+	% Actualize the pole edit boxes fields and plot the pole
+	if (omega ~= 0)         % That is, if the pole exists
+        set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
+        set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
+        set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
+	else
+        set(handles.edit_PoleLon,'String','')
+        set(handles.edit_PoleLat,'String','')
+        set(handles.edit_PoleRate,'String','')
+	end
 
-% Flag in appdata which model is currently loaded
-setappdata(gcf,'current_model','AKIM2000')
-guidata(hObject, handles);
+	% Flag in appdata which model is currently loaded
+	setappdata(gcf,'current_model','AKIM2000')
+	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radiobutton_REVEL_Callback(hObject, eventdata, handles)
-if ~get(hObject,'Value')
-    set(hObject,'Value',1);    return
-end
+	if ~get(hObject,'Value')
+        set(hObject,'Value',1);    return
+	end
 
-D2R = pi/180;
-set(handles.radiobutton_Nuvel1A,'Value',0)
-set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
-set(handles.radiobutton_PBird,'Value',0)
-set(handles.radiobutton_DEOS2K,'Value',0)
-set(handles.checkbox_Abs2Rel,'Visible','on')
+	D2R = pi/180;
+	set(handles.radiobutton_Nuvel1A,'Value',0)
+	set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
+	set(handles.radiobutton_PBird,'Value',0)
+	set(handles.radiobutton_DEOS2K,'Value',0)
+	set(handles.checkbox_Abs2Rel,'Visible','on')
 
-if (handles.first_REVEL)      % Load and read poles deffinition
-    fid = fopen([handles.path_data 'REVEL_poles.dat'],'r');
-    [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-    fclose(fid);
-    % Save the poles parameters in the handles structure
-    handles.REVEL_abbrev = abbrev;
-    handles.REVEL_name = name;
-    handles.REVEL_lat = lat;
-    handles.REVEL_lon = lon;
-    handles.REVEL_omega = omega;
-    handles.first_REVEL = 0;
-end
+	if (handles.first_REVEL)      % Load and read poles deffinition
+        fid = fopen([handles.path_data 'REVEL_poles.dat'],'r');
+        [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+        fclose(fid);
+        % Save the poles parameters in the handles structure
+        handles.REVEL_abbrev = abbrev;
+        handles.REVEL_name = name;
+        handles.REVEL_lat = lat;
+        handles.REVEL_lon = lon;
+        handles.REVEL_omega = omega;
+        handles.first_REVEL = 0;
+	end
 
-% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
-set(handles.popup_MovingPlate,'Value',1)
-set(handles.popup_MovingPlate,'String',handles.REVEL_name)
+	% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
+	set(handles.popup_MovingPlate,'Value',1)
+	set(handles.popup_MovingPlate,'String',handles.REVEL_name)
 
-if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
-    set(handles.popup_FixedPlate,'Value',1)
-    set(handles.popup_FixedPlate,'String',handles.REVEL_name)
-    set(handles.popup_FixedPlate,'Enable','on')
-    lon1 = handles.REVEL_lon(1);      lat1 = handles.REVEL_lat(1);
-    omega1 = handles.REVEL_omega(1);
-    ind = get(handles.popup_MovingPlate,'Value');
-    lon2 = handles.REVEL_lon(ind);    lat2 = handles.REVEL_lat(ind);
-    omega2 = handles.REVEL_omega(ind);
-    [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
-    lon = lon/D2R;     lat = lat/D2R;
-    handles.abb_mov = handles.REVEL_abbrev{ind};
-    handles.abb_fix = 'relativezed';
-else                                        % On the original absolute motion mode
-    handles.absolute_motion = 1;
-    set(handles.popup_FixedPlate,'Enable','off')
-    lon = handles.REVEL_lon(1);       lat = handles.REVEL_lat(1);
-    omega = handles.REVEL_omega(1);
-    handles.abb_mov = handles.REVEL_abbrev{1};
-    handles.abb_fix = 'absolute';
-end
+	if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
+        set(handles.popup_FixedPlate,'Value',1)
+        set(handles.popup_FixedPlate,'String',handles.REVEL_name)
+        set(handles.popup_FixedPlate,'Enable','on')
+        lon1 = handles.REVEL_lon(1);      lat1 = handles.REVEL_lat(1);
+        omega1 = handles.REVEL_omega(1);
+        ind = get(handles.popup_MovingPlate,'Value');
+        lon2 = handles.REVEL_lon(ind);    lat2 = handles.REVEL_lat(ind);
+        omega2 = handles.REVEL_omega(ind);
+        [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
+        lon = lon/D2R;     lat = lat/D2R;
+        handles.abb_mov = handles.REVEL_abbrev{ind};
+        handles.abb_fix = 'relativezed';
+	else                                        % On the original absolute motion mode
+        handles.absolute_motion = 1;
+        set(handles.popup_FixedPlate,'Enable','off')
+        lon = handles.REVEL_lon(1);       lat = handles.REVEL_lat(1);
+        omega = handles.REVEL_omega(1);
+        handles.abb_mov = handles.REVEL_abbrev{1};
+        handles.abb_fix = 'absolute';
+	end
 
-% Actualize the pole edit boxes fields and plot the pole
-if (omega ~= 0)         % That is, if the pole exists
-    set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-    set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-    set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-else
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
-end
+	% Actualize the pole edit boxes fields and plot the pole
+	if (omega ~= 0)         % That is, if the pole exists
+        set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
+        set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
+        set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
+	else
+        set(handles.edit_PoleLon,'String','')
+        set(handles.edit_PoleLat,'String','')
+        set(handles.edit_PoleRate,'String','')
+	end
 
-% Flag in appdata which model is currently loaded
-setappdata(gcf,'current_model','REVEL')
-guidata(hObject, handles);
+	% Flag in appdata which model is currently loaded
+	setappdata(gcf,'current_model','REVEL')
+	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radiobutton_DEOS2K_Callback(hObject, eventdata, handles)
-if ~get(hObject,'Value')
-    set(hObject,'Value',1);    return
-end
+	if ~get(hObject,'Value')
+        set(hObject,'Value',1);    return
+	end
 
-D2R = pi/180;
-set(handles.radiobutton_Nuvel1A,'Value',0)
-set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
-set(handles.radiobutton_PBird,'Value',0)
-set(handles.radiobutton_REVEL,'Value',0)
-set(handles.checkbox_Abs2Rel,'Visible','on')
+	D2R = pi/180;
+	set(handles.radiobutton_Nuvel1A,'Value',0)
+	set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
+	set(handles.radiobutton_PBird,'Value',0)
+	set(handles.radiobutton_REVEL,'Value',0)
+	set(handles.checkbox_Abs2Rel,'Visible','on')
 
-if (handles.first_DEOS2K)      % Load and read poles deffinition
-    fid = fopen([handles.path_data 'DEOS2K_poles.dat'],'r');
-    [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-    fclose(fid);
-    % Save the poles parameters in the handles structure
-    handles.DEOS2K_abbrev = abbrev;
-    handles.DEOS2K_name = name;
-    handles.DEOS2K_lat = lat;
-    handles.DEOS2K_lon = lon;
-    handles.DEOS2K_omega = omega;
-    handles.first_DEOS2K = 0;
-end
+	if (handles.first_DEOS2K)      % Load and read poles deffinition
+        fid = fopen([handles.path_data 'DEOS2K_poles.dat'],'r');
+        [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+        fclose(fid);
+        % Save the poles parameters in the handles structure
+        handles.DEOS2K_abbrev = abbrev;
+        handles.DEOS2K_name = name;
+        handles.DEOS2K_lat = lat;
+        handles.DEOS2K_lon = lon;
+        handles.DEOS2K_omega = omega;
+        handles.first_DEOS2K = 0;
+	end
 
-% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
-set(handles.popup_MovingPlate,'Value',1)
-set(handles.popup_MovingPlate,'String',handles.DEOS2K_name)
+	% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
+	set(handles.popup_MovingPlate,'Value',1)
+	set(handles.popup_MovingPlate,'String',handles.DEOS2K_name)
 
-if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
-    set(handles.popup_FixedPlate,'Value',1)
-    set(handles.popup_FixedPlate,'String',handles.DEOS2K_name)
-    set(handles.popup_FixedPlate,'Enable','on')
-    lon1 = handles.DEOS2K_lon(1);      lat1 = handles.DEOS2K_lat(1);
-    omega1 = handles.DEOS2K_omega(1);
-    ind = get(handles.popup_MovingPlate,'Value');
-    lon2 = handles.DEOS2K_lon(ind);    lat2 = handles.DEOS2K_lat(ind);
-    omega2 = handles.DEOS2K_omega(ind);
-    [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
-    lon = lon/D2R;     lat = lat/D2R;
-    handles.abb_mov = handles.DEOS2K_abbrev{ind};
-    handles.abb_fix = 'relativezed';
-else                                        % On the original absolute motion mode
-    handles.absolute_motion = 1;
-    set(handles.popup_FixedPlate,'Enable','off')
-    lon = handles.DEOS2K_lon(1);       lat = handles.DEOS2K_lat(1);
-    omega = handles.DEOS2K_omega(1);
-    handles.abb_mov = handles.DEOS2K_abbrev{1};
-    handles.abb_fix = 'absolute';
-end
+	if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
+        set(handles.popup_FixedPlate,'Value',1)
+        set(handles.popup_FixedPlate,'String',handles.DEOS2K_name)
+        set(handles.popup_FixedPlate,'Enable','on')
+        lon1 = handles.DEOS2K_lon(1);      lat1 = handles.DEOS2K_lat(1);
+        omega1 = handles.DEOS2K_omega(1);
+        ind = get(handles.popup_MovingPlate,'Value');
+        lon2 = handles.DEOS2K_lon(ind);    lat2 = handles.DEOS2K_lat(ind);
+        omega2 = handles.DEOS2K_omega(ind);
+        [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
+        lon = lon/D2R;     lat = lat/D2R;
+        handles.abb_mov = handles.DEOS2K_abbrev{ind};
+        handles.abb_fix = 'relativezed';
+	else                                        % On the original absolute motion mode
+        handles.absolute_motion = 1;
+        set(handles.popup_FixedPlate,'Enable','off')
+        lon = handles.DEOS2K_lon(1);       lat = handles.DEOS2K_lat(1);
+        omega = handles.DEOS2K_omega(1);
+        handles.abb_mov = handles.DEOS2K_abbrev{1};
+        handles.abb_fix = 'absolute';
+	end
 
-% Actualize the pole edit boxes fields and plot the pole
-if (omega ~= 0)         % That is, if the pole exists
-    set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-    set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-    set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-else
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
-end
+	% Actualize the pole edit boxes fields and plot the pole
+	if (omega ~= 0)         % That is, if the pole exists
+        set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
+        set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
+        set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
+	else
+        set(handles.edit_PoleLon,'String','')
+        set(handles.edit_PoleLat,'String','')
+        set(handles.edit_PoleRate,'String','')
+	end
 
-% Flag in appdata which model is currently loaded
-setappdata(gcf,'current_model','DEOS2K')
-guidata(hObject, handles);
-
-%--------------------------------------------------------------------------------------------------
-function edit_PoleLon_Callback(hObject, eventdata, handles)
-
-% --- Executes during object creation, after setting all properties.
-function edit_PoleLat_Callback(hObject, eventdata, handles)
-
-% --- Executes during object creation, after setting all properties.
-function edit_PoleRate_Callback(hObject, eventdata, handles)
+	% Flag in appdata which model is currently loaded
+	setappdata(gcf,'current_model','DEOS2K')
+	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles, opt)
 
-lon = str2double(get(handles.edit_PoleLon,'String'));
-lat = str2double(get(handles.edit_PoleLat,'String'));
-omega = str2double(get(handles.edit_PoleRate,'String'));
-
-if (isempty(lon) || isempty(lat) || isempty(omega))  % I any of these is empty insult
-    errordlg('OK what? And if you select something meaningful first?','Error')
-    return
-else            % Valid choice, so fill also the plate(s) abbreviation string
-    plates = [handles.abb_fix '-' handles.abb_mov];
-end
-
-model = getappdata(gcf,'current_model');
-out.lon = lon;      out.lat = lat;      out.omega = omega;      out.plates = plates;    out.model = model;
-handles.output = out;
-guidata(hObject,handles);
-uiresume(handles.figure1);
+	lon = str2double(get(handles.edit_PoleLon,'String'));
+	lat = str2double(get(handles.edit_PoleLat,'String'));
+	omega = str2double(get(handles.edit_PoleRate,'String'));
+	
+	if (isempty(lon) || isempty(lat) || isempty(omega))  % I any of these is empty insult
+        errordlg('OK what? And if you select something meaningful first?','Error')
+        return
+	else            % Valid choice, so fill also the plate(s) abbreviation string
+        plates = [handles.abb_fix '-' handles.abb_mov];
+	end
+	
+	model = getappdata(gcf,'current_model');
+	out.lon = lon;      out.lat = lat;      out.omega = omega;      out.plates = plates;    out.model = model;
+	handles.output = out;
+	guidata(hObject,handles);
+	uiresume(handles.figure1);
 
 %--------------------------------------------------------------------------------------------------
 function [plon,plat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2)
-% To calculate the relative motion, we have first to calculate relative Euler
-% pole. This is because the pole list is relative to the Pacific plate. So, anyother
-% plate combination that does not include the Pacific plate, has to be computed.
-%
-% In the following let aWb denote the rotation of the (moving) plate b relative to the (fixed) plate a 
-% Given that all poles are relative to the Pacific plate (p), the closing circuit implies:
-% pWa + aWb + bWp = 0
-% and the desired pole (aWb) is then equal to
-% aWb = -pWa - bWp = aWp + pWb
-% Note that from the poles list we know pWa (= -aWp) and pWb. So:
-% aWb = -pWa + pWb
-%
-D2R = pi/180;
-if (lon1 == lon2 && lat1 == lat2)     % The two poles are equal
-    plon = 0;   plat = 0;   omega = 0;
-    return
-end
+	% To calculate the relative motion, we have first to calculate relative Euler
+	% pole. This is because the pole list is relative to the Pacific plate. So, anyother
+	% plate combination that does not include the Pacific plate, has to be computed.
+	%
+	% In the following let aWb denote the rotation of the (moving) plate b relative to the (fixed) plate a 
+	% Given that all poles are relative to the Pacific plate (p), the closing circuit implies:
+	% pWa + aWb + bWp = 0
+	% and the desired pole (aWb) is then equal to
+	% aWb = -pWa - bWp = aWp + pWb
+	% Note that from the poles list we know pWa (= -aWp) and pWb. So:
+	% aWb = -pWa + pWb
 
-pWa_x = omega1 * cos(lat1*D2R) * cos(lon1*D2R);
-pWa_y = omega1 * cos(lat1*D2R) * sin(lon1*D2R);
-pWa_z = omega1 * sin(lat1*D2R);
+	D2R = pi/180;
+	if (lon1 == lon2 && lat1 == lat2)     % The two poles are equal
+        plon = 0;   plat = 0;   omega = 0;
+        return
+	end
 
-pWb_x = omega2 * cos(lat2*D2R) * cos(lon2*D2R);
-pWb_y = omega2 * cos(lat2*D2R) * sin(lon2*D2R);
-pWb_z = omega2 * sin(lat2*D2R);
+	pWa_x = omega1 * cos(lat1*D2R) * cos(lon1*D2R);
+	pWa_y = omega1 * cos(lat1*D2R) * sin(lon1*D2R);
+	pWa_z = omega1 * sin(lat1*D2R);
 
-aWb_x = -pWa_x + pWb_x;
-aWb_y = -pWa_y + pWb_y;
-aWb_z = -pWa_z + pWb_z;
+	pWb_x = omega2 * cos(lat2*D2R) * cos(lon2*D2R);
+	pWb_y = omega2 * cos(lat2*D2R) * sin(lon2*D2R);
+	pWb_z = omega2 * sin(lat2*D2R);
 
-% Convert cartesian pole coordinates back to spherical coordinates
-plat = atan(aWb_z/sqrt(aWb_x*aWb_x + aWb_y*aWb_y));
-plon = atan2(aWb_y,aWb_x);
-omega = sqrt(aWb_x*aWb_x + aWb_y*aWb_y + aWb_z*aWb_z);
+	aWb_x = -pWa_x + pWb_x;
+	aWb_y = -pWa_y + pWb_y;
+	aWb_z = -pWa_z + pWb_z;
+
+	% Convert cartesian pole coordinates back to spherical coordinates
+	plat = atan(aWb_z/sqrt(aWb_x*aWb_x + aWb_y*aWb_y));
+	plon = atan2(aWb_y,aWb_x);
+	omega = sqrt(aWb_x*aWb_x + aWb_y*aWb_y + aWb_z*aWb_z);
 
 %--------------------------------------------------------------------------------------------------
 function pushbutton_Help_Callback(hObject, eventdata, handles)
@@ -650,28 +636,27 @@ helpdlg(message,'Help on Euler Poles');
 
 %--------------------------------------------------------------------------------------------------
 function pushbutton_Cancel_Callback(hObject, eventdata, handles)
-handles.output = [];        % User gave up, return nothing
-guidata(hObject, handles);  uiresume(handles.figure1);
-
+	handles.output = [];        % User gave up, return nothing
+	guidata(hObject, handles);  uiresume(handles.figure1);
 
 %--------------------------------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);    uiresume(handles.figure1);
-else
-    % The GUI is no longer waiting, just close it
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);    delete(handles.figure1);
-end
+	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+        % The GUI is still in UIWAIT, us UIRESUME
+        handles.output = [];        % User gave up, return nothing
+        guidata(hObject, handles);    uiresume(handles.figure1);
+	else
+        % The GUI is no longer waiting, just close it
+        handles.output = [];        % User gave up, return nothing
+        guidata(hObject, handles);    delete(handles.figure1);
+	end
 
 %--------------------------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata, handles)
-if isequal(get(hObject,'CurrentKey'),'escape')
-    handles.output = [];    % User said no by hitting escape
-    guidata(hObject, handles);    uiresume(handles.figure1);
-end
+	if isequal(get(hObject,'CurrentKey'),'escape')
+        handles.output = [];    % User said no by hitting escape
+        guidata(hObject, handles);    uiresume(handles.figure1);
+	end
 
 %--------------------------------------------------------------------------------------------------
 function checkbox_Abs2Rel_Callback(hObject, eventdata, handles)
@@ -761,22 +746,19 @@ set(h1,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
 'MenuBar','none',...
-'Name','plate_calculator',...
+'Name','Euler Poles',...
 'NumberTitle','off',...
 'Position',[520 559 282 241],...
 'Resize','off',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
 uicontrol('Parent',h1,...
 'Position',[100 153 101 81],...
-'String',{  '' },...
 'Style','frame',...
 'Tag','frame3');
 
 uicontrol('Parent',h1,...
 'Position',[10 153 81 81],...
-'String',{ '' },...
 'Style','frame',...
 'Tag','frame2');
 
@@ -833,7 +815,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@euler_poles_selector_uicallback,h1,'edit_PoleLon_Callback'},...
 'Position',[10 53 71 21],...
 'Style','edit',...
 'Tag','edit_PoleLon');
@@ -846,7 +827,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@euler_poles_selector_uicallback,h1,'edit_PoleLat_Callback'},...
 'Position',[100 53 71 21],...
 'Style','edit',...
 'Tag','edit_PoleLat');
@@ -859,7 +839,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@euler_poles_selector_uicallback,h1,'edit_PoleRate_Callback'},...
 'Position',[200 53 71 21],...
 'Style','edit',...
 'Tag','edit_PoleRate');
