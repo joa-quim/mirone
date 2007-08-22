@@ -1,11 +1,9 @@
 function varargout = resizetrue(handles, opt)
-%RESIZETRUE Adjust display size of image.
-%   RESIZETRUE(FIG) uses the image height and width for [MROWS MCOLS].
+%   RESIZETRUE Adjust display size of image.
 %   This results in the display having one screen pixel for each image pixel.
-%   If you omit the figure argument, RESIZETRUE works on the current figure.
 %
-%   This function is based on Matlab's TRUESIZE, but hacked to take into account
-%   the left and bottom margins containing (if they exist) Xlabel & Ylabel
+%   This function is based on Matlab's TRUESIZE, but havily hacked to take into account
+%   the left and bottom margins containing (if they exist) Xlabel & Ylabel, etc...
 
 %   Coffeeright 2002-2007 J. Luis 
 
@@ -43,15 +41,15 @@ if (isempty(opt) && xfac ~= 1)                      % Case of isotropic geog gri
     opt = ['adjust_size_' sprintf('%.12f', xfac)]; 
 end
 
-if strcmp(opt,'screen_capture')
+if strcmp(opt,'sCapture')
     set(axHandle,'Visible','off');
     set(get(axHandle,'Title'),'Visible','on');
     delete(findobj(hFig,'Tag','sbAxes'))
-elseif strcmp(opt,'after_screen_capture')
+elseif strcmp(opt,'after_sCapture')
     set(axHandle,'Visible','on');
 end
 
-Resize1(axHandle, imHandle, imSize, opt);
+Resize1(axHandle, imHandle, imSize, opt, handles.withSliders);
 set(axHandle, 'DataAspectRatio', DAR);
 
 if (nargout)        % Compute magnification ratio
@@ -145,7 +143,7 @@ end
 %--------------------------------------------
 % Subfunction Resize1
 %--------------------------------------------
-function Resize1(axHandle, imHandle, imSize, opt)
+function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	% Resize figure containing a single axes object with a single image.
 	
 	figHandle = get(axHandle, 'Parent');
@@ -171,7 +169,7 @@ function Resize1(axHandle, imHandle, imSize, opt)
 	% Don't try to handle the degenerate case.
 	if (imageWidth * imageHeight == 0),    return;  end
 	
-	% What are the screen dimensions
+	% What are the screen dimensions?
 	screenSize = get(0, 'ScreenSize');      screenWidth = screenSize(3);    screenHeight = screenSize(4);
 	if ((screenWidth <= 1) || (screenHeight <= 1))
         screenWidth = Inf;    screenHeight = Inf;
@@ -247,18 +245,20 @@ function Resize1(axHandle, imHandle, imSize, opt)
         tenSizeY = 20;
     end
 
-	% assume left figure decorations are 10 pixels (!!)
-	figLeftBorder = 10;         figRightBorder = 10;
+	% assume figure decorations are ?? pixels (!!)
 	figBottomBorder = 30;       figTopBorder = 80;
 	figTopBorder = figTopBorder + tenSizeY;
 	
 	minFigWidth = 581;      minFigHeight = 128;      % don't try to display a figure smaller than this.
+    
+    sldT = 0;
+    if (withSliders),       sldT = 7;      end      % Slider thickness
 
 	% What are the gutter sizes?
 	figPos = get(figHandle, 'Position');
 	gutterLeft = max(axPos(1) - 1, 0);
-	
 	nonzeroGutters = (gutterLeft > 0);
+
 	if (nonzeroGutters)
         defAxesPos = get(0,'DefaultAxesPosition');
         gutterWidth  = round((1 - defAxesPos(3)) * imageWidth / defAxesPos(3));
@@ -268,12 +268,9 @@ function Resize1(axHandle, imHandle, imSize, opt)
 	else
         newFigWidth = imageWidth;        newFigHeight = imageHeight;
 	end
-	while (((newFigWidth + figLeftBorder + figRightBorder) > screenWidth) || ...
-                ((newFigHeight + figBottomBorder + figTopBorder) > (screenHeight - 40)))
-        imageWidth  = round(imageWidth * 0.95);
-        imageHeight = round(imageHeight * 0.95);
-        newFigWidth  = round(newFigWidth * 0.95);
-        newFigHeight = round(newFigHeight * 0.95);
+	while ((newFigWidth > screenWidth) || ((newFigHeight + figBottomBorder + figTopBorder) > (screenHeight - 40)))
+        imageWidth  = round(imageWidth * 0.95);         imageHeight  = round(imageHeight * 0.95);
+        newFigWidth = round(newFigWidth * 0.95);        newFigHeight = round(newFigHeight * 0.95);
 	end
 
     old_FU = get(axHandle,'FontUnits');     set(axHandle,'FontUnits','points')
@@ -282,9 +279,9 @@ function Resize1(axHandle, imHandle, imSize, opt)
     % This is kitchen sizing, but what else can it be done with such can of bugs?
     Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
 
-    if strcmp(opt,'screen_capture'),    stsbr_height = 0;
-    else                                stsbr_height = 20;    end
-    	
+    if strcmp(opt,'sCapture'),    stsbr_height = 0;
+    else                          stsbr_height = 20;    end
+
 	y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin') + tenSizeY + stsbr_height;    % To hold the Xlabel height
 	x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin');               % To hold the Ylabel width
     if (y_margin > 70)          % Play safe. LabelPos non-sense is always ready to strike 
@@ -303,34 +300,38 @@ function Resize1(axHandle, imHandle, imSize, opt)
 	if (~tenSizeY),     topMarg = 5;    end                % To account for Ylabels exceeding image height
 	if strcmp(get(axHandle,'Visible'),'off')               % No Labels, give only a 20 pixels margin to account for Status bar
         x_margin = 0;   y_margin = stsbr_height;
-        topMarg = 0;
+        topMarg  = 0;
 	elseif (minFigWidth - x_margin > imageWidth + x_margin)% Image + x_margin still fits inside minFigWidth
         x_margin = 0;
 	end
 	set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
 
-	newFigWidth = max(newFigWidth + x_margin, minFigWidth);
+	newFigWidth  = max(newFigWidth + x_margin, minFigWidth);
+    if (newFigWidth >= screenWidth)     % Larger than screen. The == isn't allowed either due to the 'elastic' thing
+        x_margin = x_margin - (newFigWidth-screenWidth) - 2;    % 'Discount' the difference on x_margin
+        newFigWidth = screenWidth - 2;
+    end
 	newFigHeight = max(newFigHeight, minFigHeight) + y_margin + topMarg;
 	
-	figPos(1) = max(1, figPos(1) - floor((newFigWidth - figPos(3))/2));
+	figPos(1) = max(1, figPos(1) - floor((newFigWidth  - figPos(3))/2));
 	figPos(2) = max(1, figPos(2) - floor((newFigHeight - figPos(4))/2));
 	figPos(3) = newFigWidth;
 	figPos(4) = newFigHeight;
 	
 	% Figure out where to place the axes object in the resized figure
-	gutterWidth = figPos(3) - imageWidth;
-	gutterHeight = figPos(4) - imageHeight;
-	gutterLeft = floor(gutterWidth/2) + x_margin/2 - 1;
-	gutterBottom = floor(gutterHeight/2) + y_margin/2 - 1;
-	
-	axPos(1) = gutterLeft + 1;  axPos(2) = gutterBottom + 1 - tenSizeY;
+	gutterWidth  = newFigWidth  - imageWidth;
+	gutterHeight = newFigHeight - imageHeight;
+	gutterLeft   = floor(gutterWidth/2)  + x_margin/2;
+	gutterBottom = floor(gutterHeight/2) + y_margin/2;
+    
+	axPos(1) = gutterLeft;      axPos(2) = gutterBottom - tenSizeY;
 	axPos(3) = imageWidth;      axPos(4) = imageHeight;
 	
 	% Force the window to be in the "north" position. 73 is the height of the blue Bar + ...
 	figPos(2) = screenHeight - figPos(4) - 73;
 	set(figHandle, 'Position', figPos);     set(axHandle, 'Position', axPos);
 
-	if ~strcmp(opt,'screen_capture')
+	if ~strcmp(opt,'sCapture')
         %-------------- This section simulates a box at the bottom of the figure
         H = 22;
         sbPos(1) = 1;               sbPos(2) = 2;
@@ -343,16 +344,17 @@ function Resize1(axHandle, imHandle, imSize, opt)
         setappdata(figHandle,'CoordsStBar',[h hFieldFrame]);  % Save it for use in ...
         set(hFieldFrame,'Visible','on')
         set(h,'HandleVisibility','off')
-	end
+        if (withSliders),        setSliders(figHandle, axHandle, figPos, axPos, sldT, H);    end   
+    end
 	%------------------------------------
-    
+	  
 	% Restore the units
 	%drawnow;  % necessary to work around HG bug   -SLE
 	set(figHandle, 'Units', figUnits);
 	set(axHandle, 'Units', axUnits);
 	set(0, 'Units', rootUnits);
 	
-	if ~strcmp(opt,'screen_capture'),   pixval_stsbar(figHandle);  end
+	if ~strcmp(opt,'sCapture'),   pixval_stsbar(figHandle);  end
 
 %--------------------------------------------------------------------------
 function hFrame = createframe(ah,fieldPos,H)
@@ -372,3 +374,33 @@ function hFrame = createframe(ah,fieldPos,H)
 	hFrame(2) = line([from from],[1 H-2],'Color',darkColor,'Visible','off','Tag','Sts_L','parent',ah);    % Left line
 	hFrame(3) = line([from+1 to-1],[1 1],'Color',lightColor,'Visible','off','Tag','Sts_B','parent',ah);   % Bottom line
 	hFrame(4) = line([to-1 to-1],[1 H-2],'Color',lightColor,'Visible','off','Tag','Sts_R','parent',ah);   % Right line
+
+%--------------------------------------------------------------------------
+function figPos = setSliders(figHandle, axHandle, figPos, axPos, sldT, H)
+    % Create a pair of sliders and register them to use in 'imscroll_j'
+    gutterRight = figPos(3) - (axPos(1) + axPos(3));
+    if (gutterRight < sldT+1)       % Grow Figure's width to acomudate the slider
+        figPos(3) = figPos(3) + (sldT-gutterRight) + 1;
+        set(figHandle, 'Position', figPos);
+    end
+
+    hSliders = getappdata(axHandle,'SliderAxes');
+	if (isempty(hSliders))
+		sliderVer = uicontrol('Units','pixels','Style','slider','Parent',figHandle,...
+            'Pos',[axPos(1)+axPos(3)+1 axPos(2) sldT axPos(4)+1],'Background',[.9 .9 .9]);
+		sliderHor = uicontrol('Units','pixels','Style','slider','Parent',figHandle,...
+            'Pos',[axPos(1) H-1 axPos(3)+1 sldT],'Background',[.95 .95 .95]);
+		set(sliderHor,'Min',0,'Max',1,'Value',0,'Tag','HOR','Callback',{@slider_Cb,axHandle,'SetSliderHor'})
+		%set(sliderVer,'Min',0,'Max',1,'Value',0,'Tag','VER','Callback',{@slider_Cb,axHandle,'SetSliderVer'})
+		set(sliderVer,'Min',0,'Max',1,'Value',0,'Tag','VER','Callback','imscroll_j(gca,''SetSliderVer'')')
+		% Register the sliders in the axe's appdata
+		setappdata(axHandle,'SliderAxes',[sliderHor sliderVer])
+		imscroll_j(axHandle,'ZoomSetSliders')              % ...
+    else        % We have them already. They just need to be updated
+        set(hSliders(1), 'Pos',[axPos(1)+axPos(3)+1 axPos(2) sldT axPos(4)+1],'Vis','off')
+        set(hSliders(2), 'Pos',[axPos(1) H-1 axPos(3)+1 sldT],'Vis','off')
+	end
+
+% -----------------------------------------------------------------------------------------
+function slider_Cb(obj,evt,ax,opt)
+    imscroll_j(ax,opt)
