@@ -17,7 +17,7 @@ if (mata)
     delete([hTelhometro hFloodFil hVitrinite hTsunamovie])
 else
     set(hTelhometro,'Callback','telhometro(gcf)','Label','Telhometro')
-    set(hFloodFil,'Callback','mirone(''Transfer_CB'',gcbo,[],guidata(gcbo),''Shape'')','Label','Shape detector')
+    set(hFloodFil,'Callback','mirone(''Transfer_CB'',[],guidata(gcbo),''Shape'')','Label','Shape detector')
     set(hVitrinite,'Callback','vitrinite','Label','Vitrinite')
     set(hTsunamovie,'Label','Make tsunami movies')
     uimenu('Parent',hTsunamovie,'Callback','umDmovie(guidata(gcbo))','Label','1d movie')
