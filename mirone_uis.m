@@ -1,13 +1,39 @@
-function [h1,version7,IamCompiled,home_dir] = mirone_uis(home_dir)
+function [h1,handles,home_dir] = mirone_uis(home_dir)
 % --- Creates and returns a handle to the GUI MIRONE figure. 
 %#function pan resetplotview igrf_options rally_plater plate_calculator gmtedit ecran snapshot
 %#function about_box parker_stuff plate_calculator euler_stuff grid_calculator tableGUI imageResize
 %#function datasets_funs earthquakes manual_pole_adjust compute_euler focal_meca srtm_tool atlas
 %#function image_enhance image_adjust datasets_funs write_gmt_script vitrinite telhometro mpaint
-%#function imcapture filter_funs overview imageResize classificationFig tfw_funs tsunamovie
+%#function imcapture filter_funs overview imageResize classificationFig tfw_funs tsunamovie mirone_pref
 
-h1 = figure('PaperUnits',get(0,'defaultfigurePaperUnits'),...
+	% The following test will tell us if we are using the compiled or the ML version
+	try
+        %dumb=evalin('base','who');
+        dumb = which('mirone');
+        IamCompiled = 0;
+	catch
+        IamCompiled = 1;
+	end
+	
+	% Import icons and fetch home_dir if compiled and called by extension association
+	% Here is what will happen. When called by windows extension association the 'home_dir'
+	% will contain the path of the file and not of the Mirone installation, and it will fail.
+	% In the 'catch' branch we check if the MIRONE_HOME environment variable exists. If yes
+	% its value, the correct home_dir, is returned back to mirone.m
+	try
+        load ([home_dir filesep 'data' filesep 'mirone_icons.mat']);
+	catch
+        if (IamCompiled && ispc)
+            home_dir = winqueryreg('HKEY_CURRENT_USER', 'Environment', 'MIRONE_HOME');
+            load ([home_dir filesep 'data' filesep 'mirone_icons.mat']);
+        end
+	end
+%'KeyPressFcn','mirone(''figure1_KeyPressFcn'',[],[],guidata(gcbo))',...
+
+pos = [520 758 581 21];     % R13 honest figure dimension
+h1 = figure('PaperUnits','centimeters',...
 'CloseRequestFcn','mirone(''figure1_CloseRequestFcn'',gcbo,[],guidata(gcbo))',...
+'ResizeFcn','mirone(''figure1_ResizeFcn'',gcbo,[],guidata(gcbo))',...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'DoubleBuffer','on',...
 'IntegerHandle','off',...
@@ -18,8 +44,8 @@ h1 = figure('PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'PaperPositionMode','auto',...
 'PaperSize',[20.98404194812 29.67743169791],...
 'PaperType',get(0,'defaultfigurePaperType'),...
-'Position',[520 758 581 21],...
-'ResizeFcn','mirone(''figure1_ResizeFcn'',gcbo,[],guidata(gcbo))',...
+'Position',pos,...
+'HandleVisibility','callback',...
 'Tag','figure1',...
 'Visible','off');
 
@@ -28,31 +54,8 @@ setappdata(h1,'PixelMode',0)            % Default
 
 % Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
 version7 = version;
-if (str2double(version7(1)) > 6),   version7 = 1;
+if (double(version7(1)) > 54),      version7 = 1;
 else                                version7 = 0;
-end
-
-% The following test will tell us if we are using the compiled or the ML version
-try
-    %dumb=evalin('base','who');
-    dumb=which('mirone');
-    IamCompiled = 0;
-catch
-    IamCompiled = 1;
-end
-
-% Import icons and fetch home_dir if compiled and called by extension association
-% Here is what will happen. When called by windows extension association the 'home_dir'
-% will contain the path of the file and not of the Mirone installation, and it will fail.
-% In the 'catch' branch we check if the MIRONE_HOME environment variable exists. If yes
-% its value, the correct home_dir, is returned back to mirone.m
-try
-    load ([home_dir filesep 'data' filesep 'mirone_icons.mat']);
-catch
-    if (IamCompiled && ispc)
-        home_dir = winqueryreg('HKEY_CURRENT_USER', 'Environment', 'MIRONE_HOME');
-        load ([home_dir filesep 'data' filesep 'mirone_icons.mat']);
-    end
 end
 
 h_toolbar = uitoolbar('parent',h1, 'BusyAction','queue','HandleVisibility','on','Interruptible','on',...
@@ -63,7 +66,7 @@ uipushtool('parent',h_toolbar,'Click','mirone(''Transfer_CB'',[],[],guidata(gcbo
    'Tag','ImportKnownTypes','cdata',Mfopen_ico,'TooltipString','Load recognized file types');
 uipushtool('parent',h_toolbar,'Click','mirone(''FileSaveGMTgrid_CB'',[],[],guidata(gcbo))', ...
    'Tag','SaveGMTgrid','cdata',Mfsave_ico,'TooltipString','Save GMT grid');
-uipushtool('parent',h_toolbar,'Click','mirone(''FilePreferences_CB'',[],[],guidata(gcbo))', ...
+uipushtool('parent',h_toolbar,'Click','mirone_pref(guidata(gcbo))', ...
    'Tag','Preferences','cdata',tools_ico,'TooltipString','Preferences');
 uipushtool('parent',h_toolbar,'Click','mirone(''FilePrint_CB'',[],[],guidata(gcbo))', ...
    'Tag','Print','cdata',Mprint_ico,'TooltipString','Print image');
@@ -101,7 +104,7 @@ uipushtool('parent',h_toolbar,'Click',@refresca, 'Tag','Refresh','cdata',refresh
 uipushtool('parent',h_toolbar,'Click','grid_info(guidata(gcbo))','Tag','ImageInfo','cdata',info_ico,'TooltipString','Image info');
 
 h_axes = axes('Parent',h1,'Units','pixels','Position',[60 0 50 10],'Tag','axes1','Visible','off');
-cmenu_axes = uicontextmenu('Parent',h1,'Tag','AxesNT');
+cmenu_axes = uicontextmenu('Parent',h1);
 set(h_axes, 'UIContextMenu', cmenu_axes);
 uimenu(cmenu_axes, 'Label', 'Label Format -> DD.xx', 'Call', 'draw_funs([],''ChngAxLabels'',''ToDegDec'')','Tag','LabFormat');
 uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM', 'Call', 'draw_funs([],''ChngAxLabels'',''ToDegMin'')','Tag','LabFormat');
@@ -115,20 +118,20 @@ uimenu(itemFS, 'Label', '9   pt', 'Call', 'set(gca, ''FontSize'', 9)');
 uimenu(itemFS, 'Label', '10 pt', 'Call', 'set(gca, ''FontSize'', 10)');
 uimenu(cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid', 'Separator','on');
 uimenu(cmenu_axes, 'Label', 'Pixel mode on/off', 'Tag','PixMode', 'Separator','on');
-% This one is manipulated in setAxesDefCoordIn()
+% Those ones are manipulated in setAxesDefCoordIn()
 uimenu(cmenu_axes, 'Label', 'Load in projected coords', 'Checked','on', 'Vis','off','Tag','hAxMenuLF');
+uimenu(cmenu_axes, 'Label', 'Display projected coords', 'Vis','off','Tag','hAxMenuDM');
 
 h2 = uimenu('Parent',h1,'Label','File','Tag','File');
-uimenu('Parent',h2,'Call','mirone(''FilePreferences_CB'',[],[],guidata(gcbo))','Label','Preferences');
-uimenu('Parent',h2,'Callback','mirone(''FileNewEmpty_CB'',[],[],guidata(gcbo))',...
-'Label','New empty window','Sep','on');
+uimenu('Parent',h2,'Call','mirone_pref(guidata(gcbo))','Label','Preferences');
+uimenu('Parent',h2,'Callback','mirone(''FileNewEmpty_CB'',[],[],guidata(gcbo))','Label','New empty window','Sep','on');
 
 h5 = uimenu('Parent',h2,'Label','Background window');
 uimenu('Parent',h5,'Callback','mirone(''FileNewBgMap_CB'',gcbo,[],guidata(gcbo))','Label','Map');
 uimenu('Parent',h5,'Callback','mirone(''FileNewBgFrame_CB'',gcbo,[],guidata(gcbo))','Label','Frame');
 
 if (~IamCompiled)
-    uimenu('Parent',h2,'Label','Open a 2D array .mat file','Call','InOut2WS(guidata(gcbo),''loadmat'')','Tag','LoadMAT');
+    uimenu('Parent',h2,'Label','Open a 2D array .mat file','Call','InOut2WS(guidata(gcbo),''loadmat'')');
 end
 
 h8 = uimenu('Parent',h2,'Label','Open Grid/Image','Sep','on','Tag','OpenGI');
@@ -165,11 +168,6 @@ uimenu('Parent',h19,'Call','mirone(''FileOpenDEM_CB'',[],[],guidata(gcbo),''SDTS
 
 uimenu('Parent',h2,'Callback','overview(guidata(gcbo))','Label','Open Overview Tool');
 uimenu('Parent',h2,'Call','mirone(''FileOpenSession_CB'',[],[],guidata(gcbo))','Label','Open Session');
-%h19 = uimenu('Parent',h2,'Call','mirone(''recentFiles'',guidata(gcbo))','Label','Recent Files','Tag','RecentFiles');
-% for (i=1:5)
-%     hr(i) = uimenu('Parent',h19,'Vis','off');
-% end
-% setappdata(h1,'RecentFiles',hr)
 
 %uimenu('Parent',h2,'Call','shape_tool(gcf)','Label','Limiares');
 % ----------------------- Save Images section
@@ -236,9 +234,10 @@ uimenu('Parent',h33,'Call','write_gmt_script(guidata(gcbo),''bat'')','Label','do
 h45 = uimenu('Parent',h2,'Label','Save As Fledermaus Objects');
 uimenu('Parent',h45,'Call','mirone(''FileSaveFlederSD_CB'',[],[],guidata(gcbo),''writeSphericalSD'')',...
 'Label','Spherical Fledermaus Obj');
-
 uimenu('Parent',h45,'Call','mirone(''FileSaveFlederSD_CB'',[],[],guidata(gcbo),''writePlanarSD'')',...
 'Label','Planar Fledermaus Obj');
+uimenu('Parent',h45,'Call','mirone(''FileSaveFlederSD_CB'',[],[],guidata(gcbo),''writeAll3'')',...
+'Label','Dmagic .dtm, .geo, .shade files', 'Sep','on');
 
 uimenu('Parent',h2,'Call','mirone(''FileSaveSession_CB'',gcbo,[],guidata(gcbo))','Label','Save Session');
 
@@ -249,13 +248,21 @@ if (~IamCompiled)
     uimenu('Parent',h2,'Label','Clear Workspace','Callback','InOut2WS(guidata(gcbo),''clear'')');
 end
 
+h45 = uimenu('Parent',h2,'Label','Recent Files','Tag','RecentFiles','Sep','on');
+for (i=1:6),    uimenu('Parent',h45,'Vis','off','Tag','RecentF');   end
+
 uimenu('Parent',h2,'Call','print -dsetup','Label','Print Setup','Sep','on');
 uimenu('Parent',h2,'Call','mirone(''FilePrint_CB'',[],[],guidata(gcbo))','Label','Print...');
 
 % --------------------------- IMAGE MENU ------------------------------------
 h54 = uimenu('Parent',h1,'Label','Image','Tag','Image');
-uimenu('Parent',h54,'Call','mirone(''ImageColorPalettes_CB'',[],[],guidata(gcbo))','Label','Color Palettes');
-uimenu('Parent',h54,'Call','mirone(''ImageShowPalette_CB'',gcbo,[],guidata(gcbo))','Label','Show Palette');
+h59 = uimenu('Parent',h54,'Label','Zoom');
+uimenu('Parent',h59,'Call','mirone(''PanZoom_CB'',gcbo,[],guidata(gcbo),''zoom'')','Label','Zoom In','Tag','fakeZoomP');
+uimenu('Parent',h59,'Call','mirone(''PanZoom_CB'',gcbo,[],guidata(gcbo),''zoom'')','Label','Zoom Out','Tag','fakeZoomM');
+
+h59 = uimenu('Parent',h54,'Label','Color Palettes');
+uimenu('Parent',h59,'Call','mirone(''ImageColorPalettes_CB'',[],[],guidata(gcbo))','Label','Change Palette');
+uimenu('Parent',h59,'Call','mirone(''ImageShowPalette_CB'',gcbo,[],guidata(gcbo))','Label','Show Palette');
 uimenu('Parent',h54,'Call','mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),[])','Label','Crop','Sep','on');
 
 h59 = uimenu('Parent',h54,'Label','Flip');
@@ -352,6 +359,7 @@ uimenu('Parent',h76,'Call','gmtedit','Label','gmtedit');
 uimenu('Parent',h76,'Call','rally_plater','Label','Rally Plater');
 uimenu('Parent',h76,'Label','entry_vtr','Sep','on');
 uimenu('Parent',h76,'Label','entry_tsm','Sep','on');
+uimenu('Parent',h76,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');
 
 % --------------------------- DRAW MENU ------------------------------------
 h92 = uimenu('Parent',h1,'Label','Draw','Tag','Draw');
@@ -681,7 +689,7 @@ uimenu('Parent',h260,'Call','mirone(''GeophysicsTsun2_CB'',gcbo,[],guidata(gcbo)
 uimenu('Parent',h260,'Call','mirone(''GeophysicsTsun2_CB'',gcbo,[],guidata(gcbo),''write_params'')',...
 'Label','Write params file');
 
-uimenu('Parent',h247,'Callback','igrf_options(gcf)','Label','IGRF calculator','Sep','on');
+uimenu('Parent',h247,'Callback','igrf_options(guidata(gcbo))','Label','IGRF calculator','Sep','on');
 uimenu('Parent',h247,'Callback','parker_stuff(''parker_direct'',gcf)','Label','Parker Direct');
 uimenu('Parent',h247,'Callback','parker_stuff(''parker_inverse'',gcf)','Label','Parker Inversion');
 uimenu('Parent',h247,'Callback','parker_stuff(''redPole'',gcf)','Label','Reduction to the Pole');
@@ -768,14 +776,24 @@ uimenu('Parent',h278,'Call','mirone(''GridToolsPadd2Const_CB'',gcbo,[],guidata(g
 uimenu('Parent',h278,'Call','mirone(''ImageEdgeDetect_CB'',gcbo,[],guidata(gcbo),''ppa'')',...
 'Label','Extract ridges/valleys','Sep','on');
 
+% --------------------------- PROJECTIONS MENU -----------------------------
 projectionMenu(h1, home_dir)
 
 % --------------------------- HELP MENU ------------------------------------
 h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
-uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.1.0)');
+uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.2.0)');
 uimenu('Parent',h9, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 uimenu('Parent',h9,...
-'Call','about_box(guidata(gcbo),[''Mirone Last modified at 07 July 2007''],''1.1.0'')','Label','About','Sep','on');
+'Call','about_box(guidata(gcbo),''Mirone Last modified at 21 August 2007'',''1.2.0'')','Label','About','Sep','on');
+
+% --------------------------- Build HANDLES and finish things here
+handles = guihandles(h1);
+handles.version7 = version7;% If == 1 => R14 or latter
+handles.IamCompiled = IamCompiled;  % If == 1 than we know that we are dealing with a compiled (V3) version
+if (version7),  set(h1,'Pos',[pos(1:3) 1]);    end     % Adjust for > R13 bugginess
+movegui(h1,'north');           % Reposition the window on screen
+set(0,'CurrentFigure',h1)           % Due to a R2006a incredible BUG
+set(h1,'Visible','on','KeyPressFcn',{@figure1_KeyPressFcn,handles});
 
 % --------------------------------------------------------------------------------------------------
 % We need this function also when the pixval_stsbar got stucked
@@ -790,3 +808,9 @@ function showGDALdrivers(hObj,event)
 	list  = cat(2,short,long);
     tableGUI('array',list,'ColWidth',[60 220],'ColNames',{'Short' 'Long Format Name'},...
         'FigName','Potentialy Available GDAL formats','RowNumbers','y','MAX_ROWS',20,'modal','');
+
+% -----------------------------------------------------------------------------
+function figure1_KeyPressFcn(nickles, eventdata, handles)
+	if isequal(get(handles.figure1,'CurrentKey'),'+')
+        zoom_j(handles.figure1,2,[]);
+	end
