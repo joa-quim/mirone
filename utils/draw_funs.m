@@ -303,44 +303,44 @@ if (LINE_ISCLOSED)
     %itemFill = uimenu(cmenuHand, 'Label', 'Fill polygon', 'Callback', cbFill);
 end
 if ( strcmp(opt,'line') && ~LINE_ISCLOSED && (ndims(get(handles.hImg,'CData')) == 2 || handles.ValidGrid) )
-    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',gcbo,[],guidata(gcbo),''point'')';
+    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',[],guidata(gcbo),''point'')';
     uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack);
-    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',gcbo,[],guidata(gcbo))';
+    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',[],guidata(gcbo))';
     uimenu(cmenuHand, 'Label', 'Extract profile', 'Callback', cbTrack);
 end
 if strcmp(opt,'MBtrack')
     uimenu(cmenuHand, 'Label', 'Show track''s Swath Ratio', 'Callback', {@show_swhatRatio,h});
 end
 if (IS_RECTANGLE)
-    cb_cropImage = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco)';
+    cb_cropImage = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco)';
     uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Separator','on', 'Callback', @rectangle_limits);
     uimenu(cmenuHand, 'Label', 'Crop Image', 'Callback', cb_cropImage);
     if (handles.image_type == 3 || handles.ValidGrid)
         uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Callback', ...
-            'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''CropaWithCoords'')');
+            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaWithCoords'')');
     end
     uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', @rectangle_register_img);
     uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Callback', @Transplant_Image);
     if (handles.ValidGrid)    % Option only available to recognized grids
-        cb_SplineSmooth  = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''SplineSmooth'')';
-        cb_MedianFilter  = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''MedianFilter'')';
-        cb_Fill_surface  = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''surface'')';
-        cb_Fill_cubic    = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''cubic'');';
-        cb_Fill_linear   = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''linear'');';
-        cb_set_value     = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''SetConst'')';
+        cb_SplineSmooth  = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''SplineSmooth'')';
+        cb_MedianFilter  = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''MedianFilter'')';
+        cb_Fill_surface  = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''surface'')';
+        cb_Fill_cubic    = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''cubic'');';
+        cb_Fill_linear   = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''linear'');';
+        cb_set_value     = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''SetConst'')';
         item_tools = uimenu(cmenuHand, 'Label', 'Crop Tools','Separator','on');
         uimenu(item_tools, 'Label', 'Spline smooth', 'Callback', cb_SplineSmooth);
         uimenu(item_tools, 'Label', 'Median filter', 'Callback', cb_MedianFilter);
         uimenu(item_tools, 'Label', 'Crop Grid', 'Callback', ...
-            'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''CropaGrid_pure'')');
+            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_pure'')');
         uimenu(item_tools, 'Label', 'Histogram', 'Callback', ...
-            'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''CropaGrid_histo'')');
+            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_histo'')');
         uimenu(item_tools, 'Label', 'Power', 'Callback', ...
-            'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''CropaGrid_power'')');
+            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_power'')');
         uimenu(item_tools, 'Label', 'Autocorrelation', 'Callback', ...
-            'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''CropaGrid_autocorr'')');
+            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_autocorr'')');
         uimenu(item_tools, 'Label', 'FFT tool', 'Callback', ...
-            'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''CropaGrid_fftTools'')');
+            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_fftTools'')');
         item_fill = uimenu(item_tools, 'Label', 'Fill gaps');
         uimenu(item_fill, 'Label', 'Fill gaps (surface)', 'Callback', cb_Fill_surface);
         uimenu(item_fill, 'Label', 'Fill gaps (cubic)', 'Callback', cb_Fill_cubic);
@@ -372,19 +372,19 @@ if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
     if (handles.ValidGrid && ~IS_RECTANGLE)    % Option only available to recognized grids
         item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Separator','on');
         uimenu(item_tools2, 'Label', 'Crop Grid', 'Callback', ...
-            'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''CropaGrid_pure'')');
+            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_pure'')');
         uimenu(item_tools2, 'Label', 'Set to const', 'Callback', ...
-            'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''ROI_SetConst'')');
+            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''ROI_SetConst'')');
         uimenu(item_tools2, 'Label', 'Histogram', 'Callback', ...
-            'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''CropaGrid_histo'')');
+            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_histo'')');
         uimenu(item_tools2, 'Label', 'Median filter', 'Callback', ...
-            'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''ROI_MedianFilter'')');
+            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''ROI_MedianFilter'')');
     end
     if (strcmp(get(h,'Tag'),'EulerTrapezium'))
         uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Separator','on', 'Callback',...
             'calcBoninEulerPole(get(gco,''XData''), get(gco,''YData''));' );
     end
-    cb_roi = 'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),gco)';
+    cb_roi = 'mirone(''DrawClosedPolygon_CB'',[],guidata(gcbo),gco)';
     uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
 end
 
@@ -468,7 +468,7 @@ for (i = 1:numel(h))
 	uimenu(item8, 'Label', 'Other...', 'Callback', cb_color{9});
 	uimenu(item8, 'Label', 'None', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
 	uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
-	cb_roi = 'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),gco)';
+	cb_roi = 'mirone(''DrawClosedPolygon_CB'',[],guidata(gcbo),gco)';
 	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
 end
 
@@ -526,10 +526,10 @@ function set_SRTM_rect_uicontext(h,opt)
 	set(h, 'UIContextMenu', cmenuHand);
 	ui_edit_polygon(h)    % Set edition functions
 	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-	cb_Fill_surface = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''surface'');delete(gco)';
-	cb_Fill_cubic = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''cubic'');delete(gco)';
-	cb_Fill_linear = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''linear'');delete(gco)';
-	cb_Fill_sea   = 'mirone(''ImageCrop_Callback'',gcbo,[],guidata(gcbo),gco,''FillGaps'',''sea'');delete(gco)';
+	cb_Fill_surface = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''surface'');delete(gco)';
+	cb_Fill_cubic = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''cubic'');delete(gco)';
+	cb_Fill_linear = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''linear'');delete(gco)';
+	cb_Fill_sea   = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''sea'');delete(gco)';
 	uimenu(cmenuHand, 'Label', 'Fill gaps (surface)', 'Callback', cb_Fill_surface);
 	uimenu(cmenuHand, 'Label', 'Fill gaps (cubic)', 'Callback', cb_Fill_cubic);
 	uimenu(cmenuHand, 'Label', 'Fill gaps (linear)', 'Callback', cb_Fill_linear);
@@ -845,7 +845,7 @@ function set_circleGeo_uicontext(h)
 	cb_color = uictx_color(h);      % there are 9 cb_color outputs
 	% cb_MoveCircle        = {@move_circle,h};
 	% cb_ChangeCircCenter1 = {@change_CircCenter1,h};
-	cb_roi = 'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),gco)';
+	cb_roi = 'mirone(''DrawClosedPolygon_CB'',[],guidata(gcbo),gco)';
 	
 	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
@@ -875,7 +875,7 @@ function set_circleCart_uicontext(h)
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	cb_color = uictx_color(h);      % there are 9 cb_color outputs
-	cb_roi = 'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),gco)';
+	cb_roi = 'mirone(''DrawClosedPolygon_CB'',[],guidata(gcbo),gco)';
 	
 	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
@@ -1738,7 +1738,7 @@ end
 if (~this_not)          % class symbols don't export
     uimenu(cmenuHand, 'Label', 'Export', 'Callback', {@export_symbol,h});
     if (strcmp(tag,'Pointpolyline'))    % Allow pure grdtrack interpolation
-        cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',gcbo,[],guidata(gcbo),''point'')';
+        cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',[],guidata(gcbo),''point'')';
         uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack, 'Separator','on');
     end
 end
@@ -1746,7 +1746,7 @@ if (seismicity_options)
     uimenu(cmenuHand, 'Label', 'Save events', 'Callback', 'save_seismicity(gcf,gco)', 'Separator','on');
     uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Callback', 'animate_seismicity(gcf,gco)');
     uimenu(cmenuHand, 'Label', 'Draw polygon', 'Callback', ...
-        'mirone(''DrawClosedPolygon_CB'',gcbo,[],guidata(gcbo),''SeismicityPolygon'')');
+        'mirone(''DrawClosedPolygon_CB'',[],guidata(gcbo),''SeismicityPolygon'')');
     itemHist = uimenu(cmenuHand, 'Label','Histograms');
     uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Callback', 'histos_seis(gco,''GR'')');
     uimenu(itemHist, 'Label', 'Cumulative number', 'Callback', 'histos_seis(gco,''CH'')');
