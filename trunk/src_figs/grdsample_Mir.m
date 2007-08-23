@@ -48,10 +48,10 @@ function varargout = grdsample_Mir(varargin)
 
 	%-----------
 	% Fill in the grid limits boxes with calling fig values and save some limiting value
-	str = ddewhite(num2str(head(1),'%.10f'),'0');    set(handles.edit_x_min,'String',str)
-	str = ddewhite(num2str(head(2),'%.10f'),'0');    set(handles.edit_x_max,'String',str)
-	str = ddewhite(num2str(head(3),'%.10f'),'0');    set(handles.edit_y_min,'String',str)
-	str = ddewhite(num2str(head(4),'%.10f'),'0');    set(handles.edit_y_max,'String',str)
+	set(handles.edit_x_min,'String',sprintf('%.8g',head(1)))
+	set(handles.edit_x_max,'String',sprintf('%.8g',head(2)))
+	set(handles.edit_y_min,'String',sprintf('%.8g',head(3)))
+	set(handles.edit_y_max,'String',sprintf('%.8g',head(4)))
 	handles.x_min = head(1);            handles.x_max = head(2);
 	handles.y_min = head(3);            handles.y_max = head(4);
 	handles.x_min_or = head(1);         handles.x_max_or = head(2);
