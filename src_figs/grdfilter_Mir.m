@@ -31,7 +31,7 @@ function varargout = grdfilter_Mir(varargin)
         delete(hObject);    return
 	end
 
-	if (~handles.ValidGrid)
+	if (~handMir.validGrid)
         errordlg('GRDSAMPLE: This operation is deffined only for images derived from DEM grids.','ERROR')
         delete(hObject);    return
 	end
