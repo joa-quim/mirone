@@ -55,12 +55,14 @@
  *		04/06/06 J Luis, Updated to compile with version 4.1.3
  *		14/10/06 J Luis, Now includes the memory leak solving solution
  */
+#define debuga	0
  
 #include "gmt.h"
 #include "mex.h"
 
 double	get_wt();
 void	set_weight_matrix(int nx_f, int ny_f, double y_0, double north, double south, double dx, double dy, double f_wid, int f_flag, int d_flag, double x_off, double y_off, BOOLEAN fast);
+void DEBUGA(int n);
 
 int	*i_origin;
 float	*input, *output;
@@ -314,7 +316,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	h.x_inc = head[7];	h.y_inc = head[8];
 	h.nx = nx;		h.ny = ny;
 	h.node_offset = irint(head[6]);
-	nx = h.nx;		ny = h.ny;
 
 	if (project_info.region_supplied) new_range = TRUE;
 
@@ -607,6 +608,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/* Transpose from gmt grd orientation to Matlab orientation */
 	/* Because we need to do the transposition and also a type conversion, we need a extra array */
 
+	nx = h.nx;		ny = h.ny;
 	if (is_double) {
 		o_d = mxCalloc (nx*ny, sizeof (double));
 		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_d[j*ny+ny-i-1] = (double)output[i*nx+j];
@@ -723,4 +725,10 @@ void	set_weight_matrix (int nx_f, int ny_f, double y_0, double north, double sou
 			}
 		}
 	}
+}
+
+void DEBUGA(int n) {
+#if debuga
+	mexPrintf("Merda %d\n",n);
+#endif
 }
