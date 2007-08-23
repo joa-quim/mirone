@@ -21,7 +21,7 @@ function InOut2WS(handles, opt)
 
 if ~strcmp(opt,'loadmat')
 	if (handles.no_file == 1),      aux_funs('msg_dlg',1);     return;      end
-    is_grid = handles.ValidGrid;
+    is_grid = handles.validGrid;
 	vars = evalin('base','who');
 end
 
