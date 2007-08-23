@@ -16,111 +16,96 @@ function varargout = grdfilter_Mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-grdfilter_Mir_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
+	hObject = figure('Tag','figure1','Visible','off');
+	handles = guihandles(hObject);
+	guidata(hObject, handles);
+	grdfilter_Mir_LayoutFcn(hObject,handles);
+	handles = guihandles(hObject);
+	movegui(hObject,'center')
 
-movegui(hObject,'center')
-set(hObject,'Name','Grdfilter')
+	if ~isempty(varargin)
+		handMir  = varargin{1};
+		handles.Z = getappdata(handMir.figure1,'dem_z');
+	else
+        errordlg('GRDSAMPLE: wrong number of arguments.','Error')
+        delete(hObject);    return
+	end
 
-if ~isempty(varargin)
-    handles.h_calling_fig = varargin{1};
-    geog = varargin{2};
-    handles.Z = varargin{3};
-else
-    % Tenho de prever este caso (mas como?)
-end
+	if (~handles.ValidGrid)
+        errordlg('GRDSAMPLE: This operation is deffined only for images derived from DEM grids.','ERROR')
+        delete(hObject);    return
+	end
+	if (isempty(handles.Z))
+        errordlg('GRDSAMPLE: Grid was not saved in memory. Increase "Grid max size" and start over.','ERROR')
+        delete(hObject);    return
+	end
 
-handles.command = cell(5,1);
-handles.command{1} = '-Fb';
-if (geog)
-    handles.command{4} = '-D1';
-    set(handles.popup_Option_D,'Value',2)
-else
-    handles.command{4} = '-D0';
-end
+	handles.command = cell(5,1);
+	handles.command{1} = '-Fb';
+	if (handMir.geog)
+		handles.command{4} = '-D1';
+		set(handles.popup_Option_D,'Value',2)
+	else
+		handles.command{4} = '-D0';
+	end
 
-handles.x_min = [];             handles.x_max = [];
-handles.y_min = [];             handles.y_max = [];
-handles.x_inc = [];             handles.y_inc = [];
-handles.dms_xinc = 0;           handles.dms_yinc = 0;
+	handles.x_min = [];             handles.x_max = [];
+	handles.y_min = [];             handles.y_max = [];
+	handles.x_inc = [];             handles.y_inc = [];
+	handles.dms_xinc = 0;           handles.dms_yinc = 0;
 
-%-----------
-% Fill in the grid limits boxes with calling fig values and save some limiting value
-head = getappdata(handles.h_calling_fig,'GMThead');
-if isempty(head)
-    % Fazer qualquer coisa (mas o que? aqui e dificil)
-end
-str = ddewhite(num2str(head(1),'%.10f'),'0');    set(handles.edit_x_min,'String',str)
-str = ddewhite(num2str(head(2),'%.10f'),'0');    set(handles.edit_x_max,'String',str)
-str = ddewhite(num2str(head(3),'%.10f'),'0');    set(handles.edit_y_min,'String',str)
-str = ddewhite(num2str(head(4),'%.10f'),'0');    set(handles.edit_y_max,'String',str)
-handles.x_min = head(1);            handles.x_max = head(2);
-handles.y_min = head(3);            handles.y_max = head(4);
-handles.x_min_or = head(1);         handles.x_max_or = head(2);
-handles.y_min_or = head(3);         handles.y_max_or = head(4);
-handles.one_or_zero = head(7);
-handles.head = head;
-[m,n] = size(getappdata(handles.h_calling_fig,'dem_z'));
-handles.nr_or = m;                  handles.nc_or = n;;
+	%-----------
+	% Fill in the grid limits boxes with calling fig values and save some limiting value
+	head = handMir.head;
+	set(handles.edit_x_min,'String',sprintf('%.8g',head(1)))
+	set(handles.edit_x_max,'String',sprintf('%.8g',head(2)))
+	set(handles.edit_y_min,'String',sprintf('%.8g',head(3)))
+	set(handles.edit_y_max,'String',sprintf('%.8g',head(4)))
+	handles.x_min = head(1);            handles.x_max = head(2);
+	handles.y_min = head(3);            handles.y_max = head(4);
+	handles.x_min_or = head(1);         handles.x_max_or = head(2);
+	handles.y_min_or = head(3);         handles.y_max_or = head(4);
+	handles.one_or_zero = head(7);
+	handles.head = head;
+	[m,n] = size(handles.Z);
+	handles.nr_or = m;                  handles.nc_or = n;;
 
-% Fill in the x,y_inc and nrow,ncol boxes
-set(handles.edit_Nrows,'String',num2str(m))
-set(handles.edit_Ncols,'String',num2str(n))
-% Compute default xinc, yinc based on map limits
-yinc = (head(4) - head(3)) / (m-1);   xinc = (head(2) - head(1)) / (n-1);
-set(handles.edit_y_inc,'String',num2str(yinc,10))
-set(handles.edit_x_inc,'String',num2str(xinc,10))
-handles.x_inc_or = xinc;    handles.y_inc_or = yinc;
-%----------------
+	% Fill in the x,y_inc and nrow,ncol boxes
+	set(handles.edit_Nrows,'String',sprintf('%d',handles.nr_or))
+	set(handles.edit_Ncols,'String',sprintf('%d',handles.nc_or))
+	set(handles.edit_y_inc,'String',sprintf('%.10g',head(9)))
+	set(handles.edit_x_inc,'String',sprintf('%.10g',head(8)))
+	handles.x_inc = head(8);        handles.y_inc = head(9);
+	handles.x_inc_or = head(8);     handles.y_inc_or = head(9);
+	%----------------
 
-% Give a Pro look (3D) to the frame boxes 
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
+	% Give a Pro look (3D) to the frame boxes 
+	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+	h_f = findobj(hObject,'Style','Frame');
+	frame_size = get(h_f,'Position');
+	f_bgc = get(h_f,'BackgroundColor');
+	usr_d = get(h_f,'UserData');
+	if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
+		frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
+	else
+		frame3D(hObject,frame_size,framecolor,'',usr_d)
+		delete(h_f)
+	end
 
-% Recopy the text fields on top of previously created frames (uistack is to slow)
-h_t = findobj(hObject,'Style','Text');
-for i=1:length(h_t)
-    usr_d = get(h_t(i),'UserData');
-    t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-    bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
-    uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str, ...
-        'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,'UserData',usr_d);
-end
-delete(h_t)
-
-% Choose default command line output for grdfilter_Mir_export
-handles.output = hObject;
-guidata(hObject, handles);
-
-set(hObject,'Visible','on');
-% UIWAIT makes grdfilter_Mir_export wait for user response (see UIRESUME)
-uiwait(handles.figure1);
-
-handles = guidata(hObject);
-out = grdfilter_Mir_OutputFcn(hObject, [], handles);
-varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = grdfilter_Mir_OutputFcn(hObject, eventdata, handles)
-varargout{1} = handles.output;
-% The figure can be deleted now
-delete(handles.figure1);
+	% Recopy the text fields on top of previously created frames (uistack is to slow)
+	h_t = handles.text8;
+	usr_d = get(h_t,'UserData');
+	t_size = get(h_t,'Position');   t_str = get(h_t,'String');    fw = get(h_t,'FontWeight');
+	bgc = get (h_t,'BackgroundColor');   fgc = get (h_t,'ForegroundColor');
+	uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str, ...
+		'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,'UserData',usr_d);
+	delete(h_t)
+	
+	guidata(hObject, handles);
+	
+	set(hObject,'Visible','on');
+	if (nargout),   varargout{1} = hObject;     end
 
 % -------------------------------------------------------------------------------------
 function edit_x_min_Callback(hObject, eventdata, handles)
@@ -373,50 +358,40 @@ helpdlg(message,'Help on Grid Line Geometry');
 
 % -------------------------------------------------------------------------------------
 function popup_FilterType_Callback(hObject, eventdata, handles)
-val = get(hObject,'Value');     str = get(hObject, 'String');
-switch str{val};
-    case 'boxcar'
-        handles.command{1} = ['-Fb'];
-    case 'cosine arc'
-        handles.command{1} = ['-Fc'];
-    case 'gaussian'
-        handles.command{1} = ['-Fg'];
-    case 'median'
-        handles.command{1} = ['-Fm'];
-    case 'maximum likelihood'
-        handles.command{1} = ['-Fp'];
-end
-guidata(hObject, handles);
+	val = get(hObject,'Value');     str = get(hObject, 'String');
+	switch str{val};
+        case 'boxcar',              handles.command{1} = ['-Fb'];
+        case 'cosine arc',          handles.command{1} = ['-Fc'];
+        case 'gaussian',            handles.command{1} = ['-Fg'];
+        case 'median',              handles.command{1} = ['-Fm'];
+        case 'maximum likelihood',  handles.command{1} = ['-Fp'];
+	end
+	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function edit_FilterWidth_Callback(hObject, eventdata, handles)
-xx = get(hObject,'String');
-if ~isempty(xx)    handles.command{2} = xx;
-else    handles.command{2} = []; end
-guidata(hObject,handles)
+	xx = get(hObject,'String');
+	if ~isempty(xx)    handles.command{2} = xx;
+	else    handles.command{2} = []; end
+	guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------
 function pushbutton_Help_FilterType_Callback(hObject, eventdata, handles)
-message = ['Choose one only of for boxcar, cosine arch, gaussian, median, or maximum likelihood ' ...
-           'probability (a mode estimator) filter and specify full width.'];
-helpdlg(message,'Help -F option');
+	message = ['Choose one only of for boxcar, cosine arch, gaussian, median, or maximum likelihood ' ...
+               'probability (a mode estimator) filter and specify full width.'];
+	helpdlg(message,'Help -F option');
 
 % -------------------------------------------------------------------------------------
 function popup_Option_D_Callback(hObject, eventdata, handles)
-val = get(hObject,'Value');     str = get(hObject, 'String');
-switch str{val};
-    case '0'
-        handles.command{4} = ['-D0'];
-    case '1'
-        handles.command{4} = ['-D1'];
-    case '2'
-        handles.command{4} = ['-D2'];
-    case '3'
-        handles.command{4} = ['-D3'];
-    case '4'
-        handles.command{4} = ['-D4']; 
-end
-guidata(hObject, handles);
+	val = get(hObject,'Value');     str = get(hObject, 'String');
+	switch str{val};
+        case '0',        handles.command{4} = ['-D0'];
+        case '1',        handles.command{4} = ['-D1'];
+        case '2',        handles.command{4} = ['-D2'];
+        case '3',        handles.command{4} = ['-D3'];
+        case '4',        handles.command{4} = ['-D4']; 
+	end
+	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function pushbutton_Help_Option_D_Callback(hObject, eventdata, handles)
@@ -437,71 +412,70 @@ helpdlg(message,'Help Distance flag');
 
 % --------------------------------------------------------------------------------
 function pushbutton_Compute_Callback(hObject, eventdata, handles)
-opt_R = ' ';    opt_I = ' ';
-x_min = get(handles.edit_x_min,'String');   x_max = get(handles.edit_x_max,'String');
-y_min = get(handles.edit_y_min,'String');   y_max = get(handles.edit_y_max,'String');
-if isempty(x_min) | isempty(x_max) | isempty(y_min) | isempty(y_max)
-    errordlg('One or more grid limits are empty. Open your yes.','Error');    return
-end
+	opt_R = ' ';    opt_I = ' ';
+	x_min = get(handles.edit_x_min,'String');   x_max = get(handles.edit_x_max,'String');
+	y_min = get(handles.edit_y_min,'String');   y_max = get(handles.edit_y_max,'String');
+	if isempty(x_min) || isempty(x_max) || isempty(y_min) || isempty(y_max)
+        errordlg('One or more grid limits are empty. Open your yes.','Error');    return
+	end
 
-x_inc = get(handles.edit_x_inc,'String');   y_inc = get(handles.edit_y_inc,'String');
-if (isempty(x_inc) | isempty(y_inc))
-    errordlg('One or two grid increments are empty. Open your yes.','Error');    return
-end
+	x_inc = get(handles.edit_x_inc,'String');   y_inc = get(handles.edit_y_inc,'String');
+	if (isempty(x_inc) || isempty(y_inc))
+        errordlg('One or two grid increments are empty. Open your yes.','Error');    return
+	end
 
-nx = str2double(get(handles.edit_Ncols,'String'));
-ny = str2double(get(handles.edit_Nrows,'String'));
-if (isnan(nx) | isnan(ny))      % I think this was already tested, but ...
-    errordlg('One (or two) of the grid dimensions are not valid. Do your best.','Error');   return
-end
+	nx = str2double(get(handles.edit_Ncols,'String'));
+	ny = str2double(get(handles.edit_Nrows,'String'));
+	if (isnan(nx) || isnan(ny))      % I think this was already tested, but ...
+		errordlg('One (or two) of the grid dimensions are not valid. Do your best.','Error');   return
+	end
 
-if isempty(handles.command{2})
-    errordlg('Must specify a Filter width','Error');    return
-end
+	if isempty(handles.command{2})
+		errordlg('Must specify a Filter width','Error');    return
+	end
 
-% See if grid limits were changed
-if ( (abs(handles.x_min-handles.x_min_or) > 1e-4) | (abs(handles.x_max-handles.x_max_or) > 1e-4) | ...
-        (abs(handles.y_min-handles.y_min_or) > 1e-4) | (abs(handles.y_max-handles.y_max_or) > 1e-4))
-    out.opt_R = ['-R' str2num(handles.x_min,8) '/' str2num(handles.x_max,8) '/' ...
-        str2num(handles.y_min,8) '/' str2num(handles.y_max,8)];
-    out.x_min = handles.x_min;    out.x_max = handles.x_max;
-    out.y_min = handles.y_min;    out.y_max = handles.y_max;
-end
+	% See if grid limits were changed
+	if ( (abs(handles.x_min-handles.x_min_or) > 1e-5) || (abs(handles.x_max-handles.x_max_or) > 1e-5) || ...
+            (abs(handles.y_min-handles.y_min_or) > 1e-5) || (abs(handles.y_max-handles.y_max_or) > 1e-5))
+		opt_R = ['-R' sprintf('%.8g',handles.x_min) '/' sprintf('%.8g',handles.x_max) '/' ...
+            sprintf('%.8g',handles.y_min) '/' sprintf('%.8g',handles.y_max)];
+		out.x_min = handles.x_min;    out.x_max = handles.x_max;
+		out.y_min = handles.y_min;    out.y_max = handles.y_max;
+	end
 
-% See if grid increments were changed
-if ( (abs(handles.x_inc-handles.x_inc_or) > 1e-5) | (abs(handles.y_inc-handles.y_inc_or) > 1e-5) )
-    out.opt_I = ['-I' str2num(handles.x_inc,8) '/' str2num(handles.y_inc,8)];
-end
+	% See if grid increments were changed
+	if ( (abs(handles.x_inc-handles.x_inc_or) > 1e-6) || (abs(handles.y_inc-handles.y_inc_or) > 1e-6) )
+		opt_I = ['-I' sprintf('%.12g',handles.x_inc) '/' sprintf('%.12g',handles.y_inc)];
+	end
 
-opt_F = [handles.command{1} handles.command{2}];
-opt_D = handles.command{4};
+	opt_F = [handles.command{1} handles.command{2}];
+	opt_D = handles.command{4};
 
-set(handles.figure1,'Name','COMPUTING')
-head = handles.head;
-if ( strcmp(opt_R,' ') & strcmp(opt_I,' '))
-    Z = grdfilter_m(handles.Z,head,opt_F,opt_D);
-elseif ( strcmp(opt_R,' ') & ~strcmp(opt_I,' '))
-    [Z,head] = grdfilter_m(handles.Z,head,opt_I,opt_F,opt_D);
-elseif ( ~strcmp(opt_R,' ') & strcmp(opt_I,' '))
-    [Z,head] = grdfilter_m(handles.Z,head,opt_R,opt_F,opt_D);
-else
-    errordlg('Bad number of options (My fault also that didn''t forsee all possible nonsenses).','Error');
-    set(handles.figure1,'Name','Grdfilter')
-    return
-end
-set(handles.figure1,'Name','Grdfilter')
+	set(handles.figure1,'Name','COMPUTING')
+	head = handles.head;
+	if ( strcmp(opt_R,' ') && strcmp(opt_I,' '))
+		Z = grdfilter_m(handles.Z,head,opt_F,opt_D);
+	elseif ( strcmp(opt_R,' ') && ~strcmp(opt_I,' '))
+		[Z,head] = grdfilter_m(handles.Z,head,opt_I,opt_F,opt_D);
+	elseif ( ~strcmp(opt_R,' ') && strcmp(opt_I,' '))
+		[Z,head] = grdfilter_m(handles.Z,head,opt_R,opt_F,opt_D);
+	else
+		errordlg('Bad number of options (My fault also that didn''t guess all possible nonsenses).','Error');
+		set(handles.figure1,'Name','Grdfilter')
+		return
+	end
+	set(handles.figure1,'Name','Grdfilter')
 
-[ny,nx] = size(Z);
-X = linspace(head(1),head(2),nx);       Y = linspace(head(3),head(4),ny);
-tmp.head = [head(1) head(2) head(3) head(4) head(5) head(6) 0 head(8) head(9)];
-tmp.X = X;    tmp.Y = Y;    tmp.name = 'grdfiltered grid';
-new_window = mirone(Z,tmp);
+	[ny,nx] = size(Z);
+	X = linspace(head(1),head(2),nx);       Y = linspace(head(3),head(4),ny);
+    zMinMax = grdutils(Z,'-L');
+	tmp.head = [head(1:4) zMinMax(1:2)' head(7:9)];
+	tmp.X = X;    tmp.Y = Y;    tmp.name = 'grdfiltered grid';
+	new_window = mirone(Z,tmp);
 
 % --------------------------------------------------------------------------------
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
-handles.output = '';        % User gave up, return nothing
-guidata(hObject, handles);
-uiresume(handles.figure1);
+	delete(handles.figure1);
 
 % --------------------------------------------------------------------
 function Menu_Help_Callback(hObject, eventdata, handles)
@@ -523,25 +497,14 @@ About_box(['grdfilter_Last_modified_at_02_Nov_2004']);
 
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
-% Hint: delete(hObject) closes the figure
-handles.output = '';        % User gave up, return nothing
-guidata(hObject, handles);
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    uiresume(handles.figure1);
-else
-    % The GUI is no longer waiting, just close it
-    delete(handles.figure1);
-end
+	delete(handles.figure1);
 
 % --- Executes on key press over figure1 with no controls selected.
 function figure1_KeyPressFcn(hObject, eventdata, handles)
-% Check for "escape"
-if isequal(get(hObject,'CurrentKey'),'escape')
-    handles.output = '';    % User said no by hitting escape
-    guidata(hObject, handles);
-    uiresume(handles.figure1);
-end
+	% Check for "escape"
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		delete(handles.figure1);
+	end
 
 % --- Creates and returns a handle to the GUI figure. 
 function grdfilter_Mir_LayoutFcn(h1,handles);
@@ -556,24 +519,21 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Position',[265.768111202607 370.94409531652 411 186],...
 'RendererMode','manual',...
 'Resize','off',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
-h2 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'Position',[10 78 390 97],...
-'String',{  '' },...
-'Style','frame',...
-'Tag','frame2');
+'Style','frame');
 
-h3 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'Position',[30 168 121 15],...
 'String','Griding Line Geometry',...
 'Style','text',...
 'Tag','text8');
 
-h4 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@grdfilter_Mir_uicallback,h1,'edit_x_min_Callback'},...
 'HorizontalAlignment','left',...
@@ -581,7 +541,7 @@ h4 = uicontrol('Parent',h1,...
 'Style','edit',...
 'Tag','edit_x_min');
 
-h5 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@grdfilter_Mir_uicallback,h1,'edit_x_max_Callback'},...
 'HorizontalAlignment','left',...
@@ -589,7 +549,7 @@ h5 = uicontrol('Parent',h1,...
 'Style','edit',...
 'Tag','edit_x_max');
 
-h6 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@grdfilter_Mir_uicallback,h1,'edit_y_min_Callback'},...
 'HorizontalAlignment','left',...
@@ -597,7 +557,7 @@ h6 = uicontrol('Parent',h1,...
 'Style','edit',...
 'Tag','edit_y_min');
 
-h7 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@grdfilter_Mir_uicallback,h1,'edit_y_max_Callback'},...
 'HorizontalAlignment','left',...
@@ -605,7 +565,7 @@ h7 = uicontrol('Parent',h1,...
 'Style','edit',...
 'Tag','edit_y_max');
 
-h8 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'HorizontalAlignment','left',...
 'Position',[22 140 55 15],...
@@ -613,7 +573,7 @@ h8 = uicontrol('Parent',h1,...
 'Style','text',...
 'Tag','text2');
 
-h9 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'HorizontalAlignment','left',...
 'Position',[21 114 55 15],...
@@ -621,21 +581,21 @@ h9 = uicontrol('Parent',h1,...
 'Style','text',...
 'Tag','text3');
 
-h10 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'Position',[183 157 41 13],...
 'String','Max',...
 'Style','text',...
 'Tag','text4');
 
-h11 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'Position',[99 157 41 13],...
 'String','Min',...
 'Style','text',...
 'Tag','text5');
 
-h12 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@grdfilter_Mir_uicallback,h1,'edit_x_inc_Callback'},...
 'HorizontalAlignment','left',...
@@ -644,7 +604,7 @@ h12 = uicontrol('Parent',h1,...
 'TooltipString','DX grid spacing',...
 'Tag','edit_x_inc');
 
-h13 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@grdfilter_Mir_uicallback,h1,'edit_y_inc_Callback'},...
 'HorizontalAlignment','left',...
@@ -653,7 +613,7 @@ h13 = uicontrol('Parent',h1,...
 'TooltipString','DY grid spacing',...
 'Tag','edit_y_inc');
 
-h14 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@grdfilter_Mir_uicallback,h1,'edit_Ncols_Callback'},...
 'HorizontalAlignment','left',...
@@ -662,7 +622,7 @@ h14 = uicontrol('Parent',h1,...
 'TooltipString','Number of columns in the grid',...
 'Tag','edit_Ncols');
 
-h15 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@grdfilter_Mir_uicallback,h1,'edit_Nrows_Callback'},...
 'HorizontalAlignment','left',...
@@ -671,23 +631,21 @@ h15 = uicontrol('Parent',h1,...
 'TooltipString','Number of rows in the grid',...
 'Tag','edit_Nrows');
 
-h16 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'Position',[265 159 41 13],...
 'String','Spacing',...
 'Style','text',...
 'Tag','text6');
 
-h17 = uicontrol('Parent',h1,...
-'CData',[],...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'Position',[332 159 51 13],...
 'String','# of lines',...
 'Style','text',...
-'Tag','text7',...
-'UserData',[]);
+'Tag','text7');
 
-h18 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[0.831372559070587 0.815686285495758 0.7843137383461],...
 'Callback',{@grdfilter_Mir_uicallback,h1,'pushbutton_Help_R_F_T_Callback'},...
 'FontWeight','bold',...
@@ -696,7 +654,7 @@ h18 = uicontrol('Parent',h1,...
 'String','?',...
 'Tag','pushbutton_Help_R_F_T');
 
-h19 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@grdfilter_Mir_uicallback,h1,'popup_FilterType_Callback'},...
 'HorizontalAlignment','right',...
@@ -706,7 +664,7 @@ h19 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','popup_FilterType');
 
-h20 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 0.49 0.49],...
 'Callback',{@grdfilter_Mir_uicallback,h1,'edit_FilterWidth_Callback'},...
 'HorizontalAlignment','left',...
@@ -715,7 +673,7 @@ h20 = uicontrol('Parent',h1,...
 'TooltipString','specify filter full width',...
 'Tag','edit_FilterWidth');
 
-h21 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@grdfilter_Mir_uicallback,h1,'pushbutton_Help_FilterType_Callback'},...
 'FontWeight','bold',...
 'ForegroundColor',[0 0 1],...
@@ -723,7 +681,7 @@ h21 = uicontrol('Parent',h1,...
 'String','?',...
 'Tag','pushbutton_Help_FilterType');
 
-h22 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@grdfilter_Mir_uicallback,h1,'popup_Option_D_Callback'},...
 'Position',[280 38 72 22],...
@@ -733,7 +691,7 @@ h22 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','popup_Option_D');
 
-h23 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@grdfilter_Mir_uicallback,h1,'pushbutton_Help_Option_D_Callback'},...
 'FontWeight','bold',...
 'ForegroundColor',[0 0 1],...
@@ -741,23 +699,23 @@ h23 = uicontrol('Parent',h1,...
 'String','?',...
 'Tag','pushbutton_Help_Option_D');
 
-h24 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@grdfilter_Mir_uicallback,h1,'pushbutton_cancel_Callback'},...
 'Position',[220 6 66 23],...
 'String','Cancel',...
 'Tag','pushbutton_cancel');
 
-h25 = uimenu('Parent',h1,...
+uimenu('Parent',h1,...
 'Callback',{@grdfilter_Mir_uicallback,h1,'Menu_Help_Callback'},...
 'Label','Help',...
 'Tag','Menu_Help');
 
-h26 = uimenu('Parent',h1,...
+uimenu('Parent',h1,...
 'Callback',{@grdfilter_Mir_uicallback,h1,'about_window_Callback'},...
 'Label','About',...
 'Tag','about_window');
 
-h27 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@grdfilter_Mir_uicallback,h1,'pushbutton_Compute_Callback'},...
 'FontWeight','bold',...
 'Position',[290 6 111 23],...
@@ -765,7 +723,7 @@ h27 = uicontrol('Parent',h1,...
 'TooltipString','Write the command line into the script file',...
 'Tag','pushbutton_Compute');
 
-h28 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'HorizontalAlignment','left',...
 'Position',[53 60 47 15],...
@@ -773,7 +731,7 @@ h28 = uicontrol('Parent',h1,...
 'Style','text',...
 'Tag','text10');
 
-h29 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'HorizontalAlignment','left',...
 'Position',[144 59 53 15],...
@@ -781,7 +739,7 @@ h29 = uicontrol('Parent',h1,...
 'Style','text',...
 'Tag','text11');
 
-h30 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'HorizontalAlignment','left',...
 'Position',[283 61 63 15],...
