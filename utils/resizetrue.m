@@ -147,6 +147,7 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	% Resize figure containing a single axes object with a single image.
 	
 	figHandle = get(axHandle, 'Parent');
+	axUnits = get(axHandle, 'Units');
 	set(axHandle,'Units','normalized','Position',[0 0 1 1]) % Don't realy understand why, but I need this
 	
 	if (isempty(imSize))    % How big is the image?
@@ -205,10 +206,8 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
             end
         end
 	end
-	
-	axUnits = get(axHandle, 'Units');           set(axHandle, 'Units', 'pixels');
-	axPos = get(axHandle, 'Position');
-	
+
+	set(axHandle, 'Units', 'pixels');	        axPos = get(axHandle, 'Position');
 	figUnits = get(figHandle, 'Units');         rootUnits = get(0, 'Units');
 	set(figHandle, 'Units', 'pixels');          set(0, 'Units', 'pixels');
 
