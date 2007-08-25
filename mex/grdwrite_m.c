@@ -29,6 +29,7 @@
  *		04/06/06 J Luis, Replaced call to GMT_grdio_init to GMT_grd_init
  *				 as required by version 4.1.?
  *		14/10/06 J Luis, Now includes the memory leak solving solution
+ *		25/08/07 J Luis, Input Z array may be of any type (except int64)
 */
  
 #include "gmt.h"
@@ -51,18 +52,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	int i, j, i2, pad[4], error = 0, argc = 0;
 	int ns, ssz, nx, ny, k, pix = 0;	/* If no info we assume gridline reg */
-	int is_double = 1;	/* Defaults to output in double */ 
+	int	is_double = 0, is_single = 0, is_int32 = 0, is_uint32 = 0;
+	int	is_int16 = 0, is_uint16 = 0, is_int8 = 0, is_uint8 = 0;
 	float *z_4;           /* real array for output */
-	float *z_4i;          /* real array if input is single */
-	struct GRD_HEADER grd; 
 
-	double *z_8, *info = (double *)NULL, *x, *y;
+	double		*z_8, *info = (double *)NULL, *x, *y;
+	float		*z_4i;
+	int		*i_4;
+	unsigned int	*ui_4;
+	short int 	*i_2;
+	unsigned short int *ui_2;
+	char 		*i_1;
+	unsigned char	*ui_1;
 	char *fileout, title[80], *argv = "grdwrite-mex";
+	struct GRD_HEADER grd; 
 
 	pad[0] = pad[1] = pad[2] = pad[3] = 0;
 
 	if (nrhs < 3 || nrhs > 6) {
-		mexPrintf ("usage: grdwrite(Z, D, 'filename'[, 'title']);\n");
+		mexPrintf ("usage: grdwrite(Z, D, 'filename' [,'title']);\n");
 		mexPrintf ("       grdwrite(X, Y, Z, 'filename', 'title', [1]);\n");
 		return;
 	}
@@ -111,30 +119,82 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		x   = mxGetPr (prhs[0]);
 		y   = mxGetPr (prhs[1]);
 		/* Find out in which data type was given the input array */
-		if (mxIsDouble(prhs[0]))
+		if (mxIsDouble(prhs[0])) {
 			z_8 = mxGetPr (prhs[2]);
+			is_double = 1;
+		}
 		else if (mxIsSingle(prhs[0])) {
 			z_4i = mxGetData(prhs[2]);
-			is_double = 0;
+			is_single = 1;
+		}
+		else if (mxIsInt32(prhs[0])) {
+			i_4 = (int *)mxGetData(prhs[0]);
+			is_int32 = 1;
+		}
+		else if (mxIsUint32(prhs[0])) {
+			ui_4 = (unsigned int *)mxGetData(prhs[0]);
+			is_uint32 = 1;
+		}
+		else if (mxIsInt16(prhs[0])) {
+			i_2 = (short int *)mxGetData(prhs[0]);
+			is_int16 = 1;
+		}
+		else if (mxIsUint16(prhs[0])) {
+			ui_2 = (unsigned short int *)mxGetData(prhs[0]);
+			is_uint16 = 1;
+		}
+		else if (mxIsInt8(prhs[0])) {
+			i_1 = (char *)mxGetData(prhs[0]);
+			is_int8 = 1;
+		}
+		else if (mxIsUint8(prhs[0])) {
+			ui_1 = (unsigned char *)mxGetData(prhs[0]);
+			is_uint8 = 1;
 		}
 		else {
 			mexPrintf("grdwrite error: Unknown input data type.\n");
-			mexErrMsgTxt ("grdwrite: Valid types are double or single\n");
+			mexErrMsgTxt("Valid types are:double, single, Int32, Int16, UInt16, Int8, UInt8.\n");
 		}
 		nx  = mxGetN (prhs[2]);
 		ny  = mxGetM (prhs[2]);
 	}
 	else {
 		/* Find out in which data type was given the input array */
-		if (mxIsDouble(prhs[0]))
+		if (mxIsDouble(prhs[0])) {
 			z_8 = mxGetPr (prhs[0]);
+			is_double = 1;
+		}
 		else if (mxIsSingle(prhs[0])) {
 			z_4i = mxGetData(prhs[0]);
-			is_double = 0;
+			is_single = 1;
+		}
+		else if (mxIsInt32(prhs[0])) {
+			i_4 = (int *)mxGetData(prhs[0]);
+			is_int32 = 1;
+		}
+		else if (mxIsUint32(prhs[0])) {
+			ui_4 = (unsigned int *)mxGetData(prhs[0]);
+			is_uint32 = 1;
+		}
+		else if (mxIsInt16(prhs[0])) {
+			i_2 = (short int *)mxGetData(prhs[0]);
+			is_int16 = 1;
+		}
+		else if (mxIsUint16(prhs[0])) {
+			ui_2 = (unsigned short int *)mxGetData(prhs[0]);
+			is_uint16 = 1;
+		}
+		else if (mxIsInt8(prhs[0])) {
+			i_1 = (char *)mxGetData(prhs[0]);
+			is_int8 = 1;
+		}
+		else if (mxIsUint8(prhs[0])) {
+			ui_1 = (unsigned char *)mxGetData(prhs[0]);
+			is_uint8 = 1;
 		}
 		else {
 			mexPrintf("grdwrite error: Unknown input data type.\n");
-			mexErrMsgTxt ("grdwrite: Valid types are double or single\n");
+			mexErrMsgTxt("Valid types are:double, single, Int32, Int16, UInt16, Int8, UInt8.\n");
 		}
 		nx = mxGetN (prhs[0]);
 		ny = mxGetM (prhs[0]);
@@ -185,8 +245,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (is_double)
 		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) for (j = 0; j < nx; j++) z_4[i2*nx+j] = (float)z_8[j*ny+i];
-	else
+	else if (is_single)
 		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) for (j = 0; j < nx; j++) z_4[i2*nx+j] = z_4i[j*ny+i];
+	else if (is_int32)
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) for (j = 0; j < nx; j++) z_4[i2*nx+j] = (float)i_4[j*ny+i];
+	else if (is_uint32)
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) for (j = 0; j < nx; j++) z_4[i2*nx+j] = (float)ui_4[j*ny+i];
+	else if (is_int16)
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) for (j = 0; j < nx; j++) z_4[i2*nx+j] = (float)i_2[j*ny+i];
+	else if (is_uint16)
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) for (j = 0; j < nx; j++) z_4[i2*nx+j] = (float)ui_2[j*ny+i];
+	else if (is_int8)
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) for (j = 0; j < nx; j++) z_4[i2*nx+j] = (float)i_1[j*ny+i];
+	else		/* mut be (is_uint8) */
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) for (j = 0; j < nx; j++) z_4[i2*nx+j] = (float)ui_1[j*ny+i];
      
 	/* Update the header using values passed */
 
