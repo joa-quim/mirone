@@ -16,141 +16,123 @@ function varargout = ml_clip(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-ml_clip_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
+	hObject = figure('Tag','figure1','Visible','off');
+	ml_clip_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	movegui(hObject,'north')
  
-handles.above_val = [];
-handles.below_val = [];
+	if ~isempty(varargin)
+		handMir  = varargin{1};
+		handles.Z = getappdata(handMir.figure1,'dem_z');
+	else
+        errordlg('GRDCLIP: wrong number of arguments.','Error')
+        delete(hObject);    return
+	end
+    
+	if (handMir.no_file)
+		errordlg('GRDCLIP: You didn''t even load a file. What are you expecting then?','ERROR')
+        delete(hObject);    return
+	end
+	if (~handMir.validGrid)
+        errordlg('GRDCLIP: This operation is deffined only for images derived from DEM grids.','ERROR')
+        delete(hObject);    return
+	end
+	if (isempty(handles.Z))
+        errordlg('GRDCLIP: Grid was not saved in memory. Increase "Grid max size" and start over.','ERROR')
+        delete(hObject);    return
+	end
 
-if ~isempty(varargin)       % 
-    handles.z_min = varargin{1};
-    handles.z_max = varargin{2};
+    handles.hMirFig = handMir.figure1;
+	handles.head = handMir.head;
+	handles.above_val = [];
+	handles.below_val = [];
+    handles.z_min = handles.head(5);
+    handles.z_max = handles.head(6);
     handles.above = handles.z_max;
     handles.below = handles.z_min;
-    set(handles.edit_above,'String',num2str(handles.z_max))
-    set(handles.edit_below,'String',num2str(handles.z_min))
-end
+    
+    set(handles.edit_above,'String',sprintf('%.4g',handles.z_max))
+    set(handles.edit_below,'String',sprintf('%.4g',handles.z_min))
 
-movegui(hObject,'north')
+	guidata(hObject, handles);
 
-% Choose default command line output for ml_clip_export
-handles.output = hObject;
-guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),   varargout{1} = hObject;     end
 
-set(hObject,'Visible','on');
-% UIWAIT makes ml_clip_export wait for user response (see UIRESUME)
-uiwait(handles.figure1);
-
-handles = guidata(hObject);
-out = ml_clip_OutputFcn(hObject, [], handles);
-varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = ml_clip_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-% The figure can be deleted now
-delete(handles.figure1);
-
-% --- Executes during object creation, after setting all properties.
+% -------------------------------------------------------------------------------------
 function edit_above_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if ~isnan(xx) & xx < handles.z_max,     handles.above = xx;
-else                                    set(hObject,'String',num2str(handles.z_max));   end
-guidata(hObject,handles)
+	xx = str2double(get(hObject,'String'));
+	if ~isnan(xx) && xx < handles.z_max,     handles.above = xx;
+	else                                    set(hObject,'String',num2str(handles.z_max));
+	end
+	guidata(hObject,handles)
 
-% --- Executes during object creation, after setting all properties.
+% -------------------------------------------------------------------------------------
 function edit_Ab_val_Callback(hObject, eventdata, handles)
-handles.above_val = str2double(get(hObject,'String'));
-guidata(hObject,handles)
+	handles.above_val = str2double(get(hObject,'String'));
+	guidata(handles.figure1,handles)
 
-% --- Executes during object creation, after setting all properties.
+% -------------------------------------------------------------------------------------
 function edit_below_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if ~isnan(xx) & xx > handles.z_min,     handles.below = xx;
-else                                    set(hObject,'String',num2str(handles.z_min));   end
-guidata(hObject,handles)
+	xx = str2double(get(hObject,'String'));
+	if ~isnan(xx) & xx > handles.z_min,     handles.below = xx;
+	else                                    set(hObject,'String',num2str(handles.z_min));
+	end
+	guidata(hObject,handles)
 
-
-% --- Executes during object creation, after setting all properties.
+% -------------------------------------------------------------------------------------
 function edit_Bl_val_Callback(hObject, eventdata, handles)
-handles.below_val = str2double(get(hObject,'String'));
-guidata(hObject,handles)
+	handles.below_val = str2double(get(hObject,'String'));
+	guidata(handles.figure1,handles)
 
-% --- Executes on button press in pushbutton_OK.
+% -------------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
-Out{1} = handles.above;             Out{3} = handles.below;
-Out{2} = handles.above_val;         Out{4} = handles.below_val;
-handles.output = Out;               guidata(hObject,handles)
-uiresume(handles.figure1);
+	Out{1} = handles.above;             Out{3} = handles.below;
+	Out{2} = handles.above_val;         Out{4} = handles.below_val;
+    
+	if ~isempty(handles.above_val)     % Clip above
+        handles.Z(handles.Z > handles.above) = handles.above_val;
+    end
+	if ~isempty(handles.below_val)     % Clip below
+        handles.Z(handles.Z < handles.below) = handles.below_val;
+    end
 
-% --- Executes on button press in pushbutton_Cancel.
+	zz = grdutils(handles.Z,'-L');       handles.head(5:6) = zz(1:2);
+    tmp.X = linspace(handles.head(1),handles.head(2),size(handles.Z,2));
+    tmp.Y = linspace(handles.head(3),handles.head(4),size(handles.Z,1));
+    tmp.head = handles.head;
+    tmp.name = 'Cliped grid';
+    mirone(handles.Z,tmp);
+    delete(handles.figure1)
+    
+% -------------------------------------------------------------------------------------
 function pushbutton_Cancel_Callback(hObject, eventdata, handles)
-handles.output = [];        % User gave up, return nothing
-guidata(hObject, handles);  uiresume(handles.figure1);
+	delete(handles.figure1);
 
-% --- Executes on button press in pushbutton_help.
+% -------------------------------------------------------------------------------------
 function pushbutton_help_Callback(hObject, eventdata, handles)
 
-% --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);    uiresume(handles.figure1);
-else
-    % The GUI is no longer waiting, just close it
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);    delete(handles.figure1);
-end
+% -------------------------------------------------------------------------------------
+function figure1_KeyPressFcn(hObject, eventdata)
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		delete(hObject);
+	end
 
-% --- Executes on key press over figure1 with no controls selected.
-function figure1_KeyPressFcn(hObject, eventdata, handles)
-if isequal(get(hObject,'CurrentKey'),'escape')
-    handles.output = [];    % User said no by hitting escape
-    guidata(hObject, handles);    uiresume(handles.figure1);
-end
-
+% -------------------------------------------------------------------------------------
 % --- Creates and returns a handle to the GUI figure. 
-function ml_clip_LayoutFcn(h1,handles);
+function ml_clip_LayoutFcn(h1);
 set(h1,...
 'PaperUnits','centimeters',...
-'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','ml_clip',...
 'NumberTitle','off',...
 'Position',[520 722 261 80],...
 'Resize','off',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
-setappdata(h1, 'GUIDEOptions',struct(...
-'active_h', [], ...
-'taginfo', struct(...
-'figure', 2, ...
-'pushbutton', 5, ...
-'edit', 5, ...
-'text', 5), ...
-'override', 0, ...
-'release', 13, ...
-'resize', 'none', ...
-'accessibility', 'callback', ...
-'mfile', 1, ...
-'callbacks', 1, ...
-'singleton', 1, ...
-'syscolorfig', 1, ...
-'lastSavedFile', 'D:\m_gmt\ml_clip.m', ...
-'blocking', 0));
-
-h2 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@ml_clip_uicallback,h1,'edit_above_Callback'},...
 'HorizontalAlignment','left',...
@@ -159,7 +141,7 @@ h2 = uicontrol('Parent',h1,...
 'TooltipString','Grid nodes higher than this will be replaced "Value"',...
 'Tag','edit_above');
 
-h3 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@ml_clip_uicallback,h1,'edit_Ab_val_Callback'},...
 'HorizontalAlignment','left',...
@@ -168,7 +150,7 @@ h3 = uicontrol('Parent',h1,...
 'TooltipString','Grid nodes > "Above" will be replaced by this value (''NaN'' is a valid string)',...
 'Tag','edit_Ab_val');
 
-h4 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@ml_clip_uicallback,h1,'edit_below_Callback'},...
 'HorizontalAlignment','left',...
@@ -177,7 +159,7 @@ h4 = uicontrol('Parent',h1,...
 'TooltipString','Grid nodes lower than this will be replaced "Value"',...
 'Tag','edit_below');
 
-h5 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@ml_clip_uicallback,h1,'edit_Bl_val_Callback'},...
 'HorizontalAlignment','left',...
@@ -186,43 +168,43 @@ h5 = uicontrol('Parent',h1,...
 'TooltipString','Grid nodes < "Below" will be replaced by this value (''NaN'' is a valid string)',...
 'Tag','edit_Bl_val');
 
-h6 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Position',[20 60 41 15],...
 'String','Above',...
 'Style','text',...
 'Tag','text1');
 
-h7 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Position',[77 60 41 15],...
 'String','Value',...
 'Style','text',...
 'Tag','text2');
 
-h8 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Position',[148 60 41 15],...
 'String','Below',...
 'Style','text',...
 'Tag','text3');
 
-h9 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Position',[204 60 41 15],...
 'String','Value',...
 'Style','text',...
 'Tag','text4');
 
-h10 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@ml_clip_uicallback,h1,'pushbutton_OK_Callback'},...
 'Position',[105 6 66 23],...
 'String','OK',...
 'Tag','pushbutton_OK');
 
-h11 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@ml_clip_uicallback,h1,'pushbutton_Cancel_Callback'},...
 'Position',[185 6 66 23],...
 'String','Cancel',...
 'Tag','pushbutton_Cancel');
 
-h12 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@ml_clip_uicallback,h1,'pushbutton_help_Callback'},...
 'FontWeight','bold',...
 'ForegroundColor',[0 0 1],...
