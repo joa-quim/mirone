@@ -7,88 +7,86 @@ function varargout = resizetrue(handles, opt)
 
 %   Coffeeright 2002-2007 J. Luis 
 
-hFig = handles.figure1;
-[axHandle, imHandle, colorbarHandle, imSize, resizeType, msg] = ParseInputs(hFig);
-if (~isempty(msg));    errordlg(msg,'Error');  return;      end
+	% If we already have a colorbar, remove it
+	if (strcmp(get(handles.PalIn,'Check'),'on'))
+		delete(getappdata(handles.PalIn,'Userdata'))
+		set(handles.PalIn,'Checked','off')
+	end
+	if (strcmp(get(handles.PalAt,'Check'),'on'))
+		delete(getappdata(handles.PalAt,'Userdata'))
+		set(handles.PalAt,'Checked','off')
+	end
 
-% When we open a new image to replace a previous existing one, the new image size may
-% very well be different and the status bar must be relocated. It is easier to just
-% remove the old status bar and rebuild it (later down) again.
-handsStBar = getappdata(hFig,'CoordsStBar');
-if (~isempty(handsStBar))
-    delete(handsStBar);         rmappdata(hFig,'CoordsStBar');
-    set(0,'CurrentFigure',hFig)     % This may be need if another figure (e.g. a warning figure) is the gcf
-    pixval_stsbar('exit')
-end
+	hFig = handles.figure1;
+	[axHandle, imHandle, msg] = ParseInputs(hFig);
+	if (~isempty(msg));    errordlg(msg,'Error');  return;      end
 
-xfac = 1;
-if (handles.geog && handles.scale2meanLat)
-    xfac = cos(sum(handles.head(3:4)) / 2 * pi/180);
-end
+	% When we open a new image to replace a previous existing one, the new image size may
+	% very well be different and the status bar must be relocated. It is easier to just
+	% remove the old status bar and rebuild it (later down) again.
+	handsStBar = getappdata(hFig,'CoordsStBar');
+	if (~isempty(handsStBar))
+		delete(handsStBar);         rmappdata(hFig,'CoordsStBar');
+		set(0,'CurrentFigure',hFig)     % This may be need if another figure (e.g. a warning figure) is the gcf
+		pixval_stsbar('exit')
+	end
 
-DAR = [1 1 1];
-if (nargin == 1)
-    opt = [];
-elseif (~ischar(opt) && numel(opt) == 2)            % imSize was transmited in input (e.g. histograms)
-    imSize = opt;
-    opt = 'fixed_size';
-elseif (~ischar(opt) && numel(opt) == 1)            % Case of anysotropic dx/dy
-    DAR(2) = xfac;
-    opt = ['adjust_size_' sprintf('%.12f', opt * xfac)];
-end
-if (isempty(opt) && xfac ~= 1)                      % Case of isotropic geog grid rescaled to mean lat
-    DAR(2) = xfac;
-    opt = ['adjust_size_' sprintf('%.12f', xfac)]; 
-end
+	xfac = 1;
+	if (handles.geog && handles.scale2meanLat)
+		xfac = cos(sum(handles.head(3:4)) / 2 * pi/180);
+	end
 
-if strcmp(opt,'sCapture')
-    set(axHandle,'Visible','off');
-    set(get(axHandle,'Title'),'Visible','on');
-    delete(findobj(hFig,'Tag','sbAxes'))
-elseif strcmp(opt,'after_sCapture')
-    set(axHandle,'Visible','on');
-end
+	DAR = [1 1 1];      imSize = [];
+	if (nargin == 1)
+		opt = [];
+	elseif (~ischar(opt) && numel(opt) == 2)            % imSize was transmited in input (e.g. histograms)
+		imSize = opt;
+		opt = 'fixed_size';
+	elseif (~ischar(opt) && numel(opt) == 1)            % Case of anysotropic dx/dy
+		DAR(2) = xfac;
+		opt = ['adjust_size_' sprintf('%.12f', opt * xfac)];
+	end
+	if (isempty(opt) && xfac ~= 1)                      % Case of isotropic geog grid rescaled to mean lat
+		DAR(2) = xfac;
+		opt = ['adjust_size_' sprintf('%.12f', xfac)]; 
+	end
 
-Resize1(axHandle, imHandle, imSize, opt, handles.withSliders);
-set(axHandle, 'DataAspectRatio', DAR);
+	if strcmp(opt,'sCapture')
+		set(axHandle,'Visible','off');
+		set(get(axHandle,'Title'),'Visible','on');
+		delete(findobj(hFig,'Tag','sbAxes'))
+	elseif strcmp(opt,'after_sCapture')
+		set(axHandle,'Visible','on');
+	end
 
-if (nargout)        % Compute magnification ratio
-    imageWidth  = size(get(imHandle, 'CData'), 2);
-    imageHeight = size(get(imHandle, 'CData'), 1);
-	axUnits = get(axHandle, 'Units');       set(axHandle, 'Units', 'pixels');
-    axPos = get(axHandle,'Pos');            set(axHandle, 'Units', axUnits);
-    varargout{1} =  round((axPos(3) / imageWidth + axPos(4) / imageHeight) * 0.5 * 100);
-end
+	Resize1(axHandle, imHandle, imSize, opt, handles.withSliders);
+	set(axHandle, 'DataAspectRatio', DAR);
+
+	if (nargout)        % Compute magnification ratio
+		imageWidth  = size(get(imHandle, 'CData'), 2);
+		imageHeight = size(get(imHandle, 'CData'), 1);
+		axUnits = get(axHandle, 'Units');       set(axHandle, 'Units', 'pixels');
+		axPos = get(axHandle,'Pos');            set(axHandle, 'Units', axUnits);
+		varargout{1} =  round((axPos(3) / imageWidth + axPos(4) / imageHeight) * 0.5 * 100);
+	end
 
 %--------------------------------------------
 % Subfunction ParseInputs
 %--------------------------------------------
-function [axHandle,imHandle,colorbarHandle,imSize,resizeType,msg] = ParseInputs(varargin)
+function [axHandle,imHandle,msg] = ParseInputs(varargin)
 
-imSize = [];        colorbarHandle = [];    msg = '';
-axHandle = [];      imHandle = [];          figHandle = [];     resizeType = [];
+msg = '';   axHandle = [];      imHandle = [];          figHandle = [];
 
 if (nargin == 0);    axHandle = gca;    end
     
 if (nargin >= 1)
-    if ((nargin == 1) && isequal(size(varargin{1}), [1 2]))        % truesize([M N])
-        figHandle = gcf;        imSize = varargin{1};
-    else        % truesize(FIG, ...)
-        if (~ishandle(varargin{1}) || ~strcmp(get(varargin{1},'type'),'figure'))
-            msg = 'FIG must be a valid figure handle';      return;
-        else
-            figHandle = varargin{1};
-        end
+    if (~ishandle(varargin{1}) || ~strcmp(get(varargin{1},'type'),'figure'))
+        msg = 'FIG must be a valid figure handle';      return;
+    else
+        figHandle = varargin{1};
     end
     axHandle = get(figHandle, 'CurrentAxes');
     if (isempty(axHandle));     msg = 'Current figure has no axes';     return;    end
-end
-
-if (nargin >= 2)
-    imSize = varargin{2};
-    if (~isequal(size(imSize), [1 2]));     msg = 'REQSIZE must be a 1-by-2 vector';
-        return;
-    end
 end
 
 if (isempty(figHandle))
@@ -99,12 +97,6 @@ end
 h = [findobj(figHandle, 'Type', 'image') ;
     findobj(figHandle, 'Type', 'surface', 'FaceColor', 'texturemap')];
 
-% If there's a colorbar, ignore it.
-colorbarHandle = findobj(figHandle, 'type', 'image', 'Tag', 'TMW_COLORBAR');
-if (~isempty(colorbarHandle))
-    for k = 1:length(colorbarHandle),       h(h == colorbarHandle(k)) = [];    end
-end
-
 if (isempty(h)),    msg = 'No images or texturemapped surfaces in the figure';    return;   end
 
 % Start with the first object on the list as the initial candidate.
@@ -113,30 +105,6 @@ imHandle = h(1);
 if (get(imHandle,'Parent') ~= axHandle)
     for k = 2:length(h)
         if (get(h(k),'Parent') == axHandle),    imHandle = h(k);    break;        end
-    end
-end
-
-figKids = allchild(figHandle);
-if ((length(findobj(figKids, 'flat', 'Type', 'axes')) == 1) && ...
-            isempty(findobj(figKids, 'flat', 'Type', 'uicontrol', ...
-            'Visible', 'on')) && (length(imHandle) == 1))
-    % Resize type 1. Figure contains only one axes object, which contains only one image.
-    resizeType = 1;
-elseif (isempty(colorbarHandle))    % Figure contains other objects and not a colorbar.
-    resizeType = 2;
-else            % Figure contains a colorbar.  Do we have a one image one colorbar situation?
-    if (length(colorbarHandle) > 1)  % No
-        resizeType = 2;
-    else
-        colorbarAxes = get(colorbarHandle, 'Parent');
-        uimenuKids = findobj(figKids, 'flat', 'Type', 'uimenu');
-        invisUicontrolKids = findobj(figKids, 'flat', 'Type', 'uicontrol', 'Visible', 'off');
-        otherKids = setdiff(figKids, [uimenuKids ; colorbarAxes ; axHandle ; invisUicontrolKids]);
-        if (length(otherKids) > 1)  % No
-            resizeType = 2;
-        else                        % Yes, one image and one colorbar
-            resizeType = 3;
-        end
     end
 end
 
@@ -350,7 +318,8 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	% Restore the units
 	%drawnow;  % necessary to work around HG bug   -SLE
 	set(figHandle, 'Units', figUnits);
-	set(axHandle, 'Units', axUnits);
+	%set(axHandle, 'Units', axUnits);       % Original (pixels) Units
+	set(axHandle, 'Units', 'normalized');   % So that resizing the Fig also resizes the image
 	set(0, 'Units', rootUnits);
 	
 	if ~strcmp(opt,'sCapture'),   pixval_stsbar(figHandle);  end
