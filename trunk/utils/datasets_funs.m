@@ -140,7 +140,7 @@ if (handles.no_file)        % Start empty but below we'll find the true data reg
         xx = [XMin XMax];           yy = [YMin YMax];
         region = [xx yy];           % 1 stands for geog but that will be confirmed later
     end
-    mirone('FileNewBgFrame_CB',handles.figure1,[],handles, [region geog])   % Create a background
+    mirone('FileNewBgFrame_CB',[],handles, [region geog])   % Create a background
 else                        % Reading over an established region
     XYlim = getappdata(handles.axes1,'ThisImageLims');
     xx = XYlim(1:2);            yy = XYlim(3:4);
@@ -786,7 +786,7 @@ if (handles.no_file)        % Start empty but below we'll find the true data reg
 	end
     xx = [XMin XMax];           yy = [YMin YMax];
     region = [xx yy];           % 1 stands for geog but that will be confirmed later
-    mirone('FileNewBgFrame_CB',handles.figure1,[],handles, [region geog])   % Create a background
+    mirone('FileNewBgFrame_CB',[],handles, [region geog])   % Create a background
 else                        % Reading over an established region
     XYlim = getappdata(handles.axes1,'ThisImageLims');
     xx = XYlim(1:2);            yy = XYlim(3:4);
