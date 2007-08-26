@@ -9,11 +9,11 @@ function varargout = resizetrue(handles, opt)
 
 	% If we already have a colorbar, remove it
 	if (strcmp(get(handles.PalIn,'Check'),'on'))
-		delete(getappdata(handles.PalIn,'Userdata'))
+		delete(get(handles.PalIn,'Userdata'))
 		set(handles.PalIn,'Checked','off')
 	end
 	if (strcmp(get(handles.PalAt,'Check'),'on'))
-		delete(getappdata(handles.PalAt,'Userdata'))
+		delete(get(handles.PalAt,'Userdata'))
 		set(handles.PalAt,'Checked','off')
 	end
 
