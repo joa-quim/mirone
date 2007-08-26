@@ -19,6 +19,10 @@ switch opt
         colormap_bg(varargin{:})
     case 'findFileType'
         varargout{1} = findFileType(varargin{:});
+        if (nargout == 2)       % Check if file exists
+            ind = exist(varargin{1},'file');
+            varargout{2} = (ind == 2);
+        end
     case 'isProj'
         varargout{1} = isProj(varargin{:});
     case 'toProjPT'
