@@ -2,9 +2,7 @@ function varargout = scatter_plot(varargin)
 % M-File changed by desGUIDE 
  
 	hObject = figure('Tag','figure1','Visible','off');
-	handles = guihandles(hObject);
-	guidata(hObject, handles);
-	scatter_plot_LayoutFcn(hObject,handles);
+	scatter_plot_LayoutFcn(hObject);
 	handles = guihandles(hObject);
  
     if (numel(varargin) > 1)
@@ -71,7 +69,6 @@ function varargout = scatter_plot(varargin)
     handles.symbXYZ = numeric_data(:,1:3);
 
     set(hObject,'Visible','on')
-    
     guidata(hObject, handles);
 
 % ------------------------------------------------------------------------------------
@@ -85,8 +82,6 @@ function popup_symbol_Callback(hObject, eventdata, handles)
     
 % ------------------------------------------------------------------------------------
 function popup_symbSize_Callback(hObject, eventdata, handles)
-% Hints: contents = get(hObject,'String') returns popup_symbSize contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popup_symbSize
     contents = get(hObject,'String');
     s = contents{get(hObject,'Value')};
     ss = str2double(s);         % 2 cases may occur here
@@ -126,7 +121,7 @@ function push_plot_Callback(hObject, eventdata, handles)
         YMin = min(handles.symbXYZ(:,2));       YMax = max(handles.symbXYZ(:,2));
         xx = [XMin XMax];           yy = [YMin YMax];
         region = [xx yy];           % 1 stands for geog but that will be confirmed later
-        mirone('FileNewBgFrame_CB',handles.hCallingFig,[],handles, [region geog])   % Create a background
+        mirone('FileNewBgFrame_CB',[],handles, [region geog])   % Create a background
 	else                        % Reading over an established region
         XYlim = getappdata(handles.hCallingAxes,'ThisImageLims');
         xx = XYlim(1:2);            yy = XYlim(3:4);
@@ -233,11 +228,18 @@ function del_line(obj,eventdata,h)
 		delete(h(k));
     end
 
+% --- Executes on key press over figure1 with no controls selected.%
+function figure1_KeyPressFcn(hObject, eventdata)
+	if isequal(get(hObject,'CurrentKey'),'escape')
+        delete(hObject);
+	end
+
 % --- Creates and returns a handle to the GUI figure. 
-function scatter_plot_LayoutFcn(h1,handles);
+function scatter_plot_LayoutFcn(h1);
 
 set(h1,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','Scatter plot',...
 'NumberTitle','off',...
