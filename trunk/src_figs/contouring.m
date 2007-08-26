@@ -16,22 +16,17 @@ function varargout = contouring(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-hObject = figure('Tag','figure1','Visible','off','HandleVisibility', 'off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-contouring_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
+	hObject = figure('Tag','figure1','Visible','off','HandleVisibility', 'off');
+	contouring_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	movegui(hObject,'east')
 
-% Choose default command line output for contouring_export
-handles.output = hObject;
-movegui(hObject,'east')
-
-handles.Zmin = [];
-handles.Zmax = [];
-handles.Zinc = [];
-handles.Zstart = [];
-handles.Zsingle = [];
-handles.selected_val = [];
+	handles.Zmin = [];
+	handles.Zmax = [];
+	handles.Zinc = [];
+	handles.Zstart = [];
+	handles.Zsingle = [];
+	handles.selected_val = [];
 
 if ~isempty(varargin)
     handles.h_calling_fig = varargin{1};
@@ -43,7 +38,7 @@ if ~isempty(varargin)
     set(handles.edit_Zmin,'String',num2str(handles.Zmin))
     set(handles.edit_Zmax,'String',num2str(handles.Zmax))
 else
-    % Tenho de prever este caso (mas como?)
+    delete(hObject);    return
 end
 
 if (~isempty(old_cont))
@@ -54,7 +49,6 @@ end
 %------------------ Give a Pro look (3D) to the frame boxes --------------------------------
 bgcolor = get(0,'DefaultUicontrolBackgroundColor');
 framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
 h_f = findobj(hObject,'Style','Frame');
 for i=1:length(h_f)
     frame_size = get(h_f(i),'Position');
@@ -83,21 +77,8 @@ delete(h_t)
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes contouring_export wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
 set(hObject,'Visible','on');
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = contouring_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = contouring_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% Get default command line output from handles structure
-varargout{1} = handles.output;
+if (nargout),   varargout{1} = hObject;     end
 
 %-------------------------------------------------------------------------------
 function edit_Zmin_Callback(hObject, eventdata, handles)
@@ -206,12 +187,12 @@ function pushbutton_Apply_Callback(hObject, eventdata, handles)
 list = get(handles.listbox_ElevValues,'String');
 if (isempty(list)),  return;     end
 list = str2num(char(list{:}));
-mirone('DrawContours_CB',gcbo,[],guidata(handles.h_calling_fig),list);
+mirone('DrawContours_CB',[],guidata(handles.h_calling_fig),list);
 guidata(hObject, handles);  % Otherwise the handles was the one from Mirone
 
 %-------------------------------------------------------------------------------
 function pushbutton_Close_Callback(hObject, eventdata, handles)
-delete(handles.figure1)
+    delete(handles.figure1)
 
 %-------------------------------------------------------------------------------
 function pushbutton8_Callback(hObject, eventdata, handles)
@@ -221,12 +202,19 @@ function pushbutton8_Callback(hObject, eventdata, handles)
 function pushbutton9_Callback(hObject, eventdata, handles)
 % Used only to make the GUI fancier
 
+%-------------------------------------------------------------------------------------
+function figure1_KeyPressFcn(hObject, eventdata)
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		delete(hObject);
+	end
+
 
 % --- Creates and returns a handle to the GUI figure. 
-function contouring_LayoutFcn(h1,handles)
+function contouring_LayoutFcn(h1)
 
 set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','contouring',...
 'NumberTitle','off',...
@@ -234,8 +222,7 @@ set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Renderer',get(0,'defaultfigureRenderer'),...
 'RendererMode','manual',...
 'Resize','off',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
 uicontrol('Parent',h1,...
 'Callback',{@contouring_uicallback,h1,'pushbutton9_Callback'},...
