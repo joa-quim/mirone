@@ -18,47 +18,50 @@ function varargout = geog_calculator(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-hObject = figure('Tag','figure1','Visible','off');
-geog_calculator_LayoutFcn(hObject);
-handles = guihandles(hObject);
-movegui(hObject,'east');
+	hObject = figure('Tag','figure1','Visible','off');
+	geog_calculator_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	movegui(hObject,'east');
 
-handles.x_left = [];        handles.y_left = [];    handles.z_left = [];
-handles.x_right = [];       handles.y_right = [];   handles.z_right = [];
-handles.fileDataLeft = [];  % Will eventually host data read from a file
-handles.fileDataRight = []; % Will eventually host data read from a file
-handles.which_conv = 1;     % Default to "Interactive Conversions"
-handles.is_ellipsoidHeight = 0; % Used to compute ellipsoidal height conv as well
-handles.dms_xinc = 0;
-handles.dms_yinc = 0;
-handles.MeasureUnit = {'meters' 'kilometers' 'nautic miles' 'miles'};
-handles.DegreeFormat1 = {'DD.xxxxxx' 'DD:MM' 'DD:MM.xxxx' 'DD:MM:SS' 'DD:MM:SS.xx'};
-handles.DegreeFormat2 = {'DD.xxxxxx' 'DD MM' 'DD MM.xxxx' 'DD MM SS' 'DD MM SS.xx'};
+	handles.x_left = [];        handles.y_left = [];    handles.z_left = [];
+	handles.x_right = [];       handles.y_right = [];   handles.z_right = [];
+	handles.fileDataLeft = [];  % Will eventually host data read from a file
+	handles.fileDataRight = []; % Will eventually host data read from a file
+	handles.which_conv = 1;     % Default to "Interactive Conversions"
+	handles.is_ellipsoidHeight = 0; % Used to compute ellipsoidal height conv as well
+	handles.dms_xinc = 0;
+	handles.dms_yinc = 0;
+	handles.MeasureUnit = {'meters' 'kilometers' 'nautic miles' 'miles'};
+	handles.DegreeFormat1 = {'DD.xxxxxx' 'DD:MM' 'DD:MM.xxxx' 'DD:MM:SS' 'DD:MM:SS.xx'};
+	handles.DegreeFormat2 = {'DD.xxxxxx' 'DD MM' 'DD MM.xxxx' 'DD MM SS' 'DD MM SS.xx'};
 
-% When called by Mirone varargin must contain: Z, head, mirone fig handle, "type"
-handles.by_mirone2grid = 0;     handles.by_mirone2all = 0;
-if ~isempty(varargin)
-    if (numel(varargin) == 2 && isstruct(varargin{1}) && ischar(varargin{2}))
-        handMir = varargin{1};
-        if (strcmp(varargin{2},'onlyGrid'))
-            handles.gridLeft = getappdata(handMir.figure1,'dem_z');
-            handles.gridLeftHead = handMir.head;
-            handles.x_min = handles.gridLeftHead(1);
-            handles.x_max = handles.gridLeftHead(2);
-            handles.y_min = handles.gridLeftHead(3);
-            handles.y_max = handles.gridLeftHead(4);
-            handles.one_or_zero = ~handles.gridLeftHead(7); 
-            handles.by_mirone2grid = 1;
-        elseif (strcmp(varargin{2},'allTypes'))
-            handles.by_mirone2all = 1;
-        end
-    elseif (numel(varargin) == 1 && isstruct(varargin{1}))
-        handMir = varargin{1};
-    end
-else
-    errordlg('GEOG CALCULATOR: wrong number of arguments.','Error')
-    delete(hObject);    return
-end
+	handles.by_mirone2grid = 0;     handles.by_mirone2all = 0;
+	if ~isempty(varargin)
+		if (numel(varargin) == 2 && isstruct(varargin{1}) && ischar(varargin{2}))
+			handMir = varargin{1};
+			if (strcmp(varargin{2},'onlyGrid'))
+				if (handMir.no_file)
+					errordlg('GEOG CALCULATOR: You didn''t even load a file. What are you expecting then?','ERROR')
+                    delete(hObject);    return
+				end
+				handles.gridLeft = getappdata(handMir.figure1,'dem_z');
+				handles.gridLeftHead = handMir.head;
+				handles.x_min = handles.gridLeftHead(1);
+				handles.x_max = handles.gridLeftHead(2);
+				handles.y_min = handles.gridLeftHead(3);
+				handles.y_max = handles.gridLeftHead(4);
+				handles.one_or_zero = ~handles.gridLeftHead(7); 
+				handles.by_mirone2grid = 1;
+			elseif (strcmp(varargin{2},'allTypes'))
+				handles.by_mirone2all = 1;
+			end
+		elseif (numel(varargin) == 1 && isstruct(varargin{1}))
+			handMir = varargin{1};
+		end
+	else
+		errordlg('GEOG CALCULATOR: wrong number of arguments.','Error')
+		delete(hObject);    return
+	end
 
 	% Add this Fig to the carraças list
 	plugedWin = getappdata(handMir.figure1,'dependentFigs');
