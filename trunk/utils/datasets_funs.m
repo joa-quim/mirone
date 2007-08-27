@@ -489,7 +489,7 @@ function CoastLines(handles, res)
         case 'c',        opt_res = '-Dc';        pad = 2.0;
         case 'l',        opt_res = '-Dl';        pad = 0.5;
         case 'i',        opt_res = '-Di';        pad = 0.1;
-        case 'h',        opt_res = '-Dh';        pad = 0.02;
+        case 'h',        opt_res = '-Dh';        pad = 0.03;
         case 'f',        opt_res = '-Df';        pad = 0.005;
 	end
 	coast = shoredump(opt_R,opt_res,'-A1/1/1');
