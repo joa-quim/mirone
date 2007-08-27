@@ -302,7 +302,7 @@ if (LINE_ISCLOSED)
     %cbFill = {@fill_Polygon,h};     % Transform the polygon into a patch and open the patch door possibilities
     %itemFill = uimenu(cmenuHand, 'Label', 'Fill polygon', 'Callback', cbFill);
 end
-if ( strcmp(opt,'line') && ~LINE_ISCLOSED && (ndims(get(handles.hImg,'CData')) == 2 || handles.ValidGrid) )
+if ( strcmp(opt,'line') && ~LINE_ISCLOSED && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid) )
     cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',[],guidata(gcbo),''point'')';
     uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack);
     cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',[],guidata(gcbo))';
@@ -315,13 +315,13 @@ if (IS_RECTANGLE)
     cb_cropImage = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco)';
     uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Separator','on', 'Callback', @rectangle_limits);
     uimenu(cmenuHand, 'Label', 'Crop Image', 'Callback', cb_cropImage);
-    if (handles.image_type == 3 || handles.ValidGrid)
+    if (handles.image_type == 3 || handles.validGrid)
         uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Callback', ...
             'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaWithCoords'')');
     end
     uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', @rectangle_register_img);
     uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Callback', @Transplant_Image);
-    if (handles.ValidGrid)    % Option only available to recognized grids
+    if (handles.validGrid)    % Option only available to recognized grids
         cb_SplineSmooth  = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''SplineSmooth'')';
         cb_MedianFilter  = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''MedianFilter'')';
         cb_Fill_surface  = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''surface'')';
@@ -369,7 +369,7 @@ if (IS_PATCH && ~IS_SEISPOLYGON)
     uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
 end
 if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
-    if (handles.ValidGrid && ~IS_RECTANGLE)    % Option only available to recognized grids
+    if (handles.validGrid && ~IS_RECTANGLE)    % Option only available to recognized grids
         item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Separator','on');
         uimenu(item_tools2, 'Label', 'Crop Grid', 'Callback', ...
             'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_pure'')');
@@ -1487,7 +1487,7 @@ y_inc = (new_ylim(2)-new_ylim(1)) / (size(img,1) - 1);
 handles.head = [new_xlim(1) new_xlim(2) new_ylim(1) new_ylim(2) 0 255 0 x_inc y_inc];     % TEMP and ...
 
 if (handles.geog)
-    mirone('SetAxesNumericType',gcbo,[],handles)          % Set axes uicontextmenus
+    mirone('SetAxesNumericType',handles,[])          % Set axes uicontextmenus
 end
 guidata(handles.figure1, handles);
 draw_funs(h,'line_uicontext')       % Set lines's uicontextmenu
