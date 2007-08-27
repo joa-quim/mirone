@@ -1272,7 +1272,7 @@ if (used_grd)
 	fid = fopen(sc_cpt,'wt');
 	for (i=1:pal_len+5),   fprintf(fid,'%s\n',tmp{i});     end
 	fclose(fid);
-    clear tmp z_min z_max pal_len pal cor cor_str fid Z dz z1 z2
+    clear tmp z_min z_max pal_len pal cor cor_str fid dz z1 z2
 else        % Remove the cpt declaration. After all we won't go to use it
     script(id_cpt) = [];    l=l-1;
 end
