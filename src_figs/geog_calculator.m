@@ -19,11 +19,9 @@ function varargout = geog_calculator(varargin)
 % --------------------------------------------------------------------
 
 hObject = figure('Tag','figure1','Visible','off');
+geog_calculator_LayoutFcn(hObject);
 handles = guihandles(hObject);
-guidata(hObject, handles);
-geog_calculator_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
-movegui(hObject,'center');
+movegui(hObject,'east');
 
 handles.x_left = [];        handles.y_left = [];    handles.z_left = [];
 handles.x_right = [];       handles.y_right = [];   handles.z_right = [];
@@ -40,54 +38,49 @@ handles.DegreeFormat2 = {'DD.xxxxxx' 'DD MM' 'DD MM.xxxx' 'DD MM SS' 'DD MM SS.x
 % When called by Mirone varargin must contain: Z, head, mirone fig handle, "type"
 handles.by_mirone2grid = 0;     handles.by_mirone2all = 0;
 if ~isempty(varargin)
-    if (length(varargin) == 4 && isnumeric(varargin{1}) && isnumeric(varargin{2}) && ...
-            ishandle(varargin{3}) && ischar(varargin{4}))
-        handles.h_calling_fig = varargin{3};
-        if (strcmp(varargin{4},'onlyGrid'))
-            handles.gridLeft = varargin{1};
-            handles.gridLeftHead = varargin{2};
+    if (numel(varargin) == 2 && isstruct(varargin{1}) && ischar(varargin{2}))
+        handMir = varargin{1};
+        if (strcmp(varargin{2},'onlyGrid'))
+            handles.gridLeft = getappdata(handMir.figure1,'dem_z');
+            handles.gridLeftHead = handMir.head;
             handles.x_min = handles.gridLeftHead(1);
             handles.x_max = handles.gridLeftHead(2);
             handles.y_min = handles.gridLeftHead(3);
             handles.y_max = handles.gridLeftHead(4);
-            handles.one_or_zero = handles.gridLeftHead(7); 
+            handles.one_or_zero = ~handles.gridLeftHead(7); 
             handles.by_mirone2grid = 1;
-        elseif (strcmp(varargin{4},'allTypes'))
+        elseif (strcmp(varargin{2},'allTypes'))
             handles.by_mirone2all = 1;
         end
-    elseif (length(varargin) == 1 && ishandle(varargin{1}))
-        handles.h_calling_fig = varargin{1};
+    elseif (numel(varargin) == 1 && isstruct(varargin{1}))
+        handMir = varargin{1};
     end
 else
-    errordlg('GEOG_CALCULATOR: wrong number of arguments.','Error')
+    errordlg('GEOG CALCULATOR: wrong number of arguments.','Error')
     delete(hObject);    return
 end
 
-% -------------- Get Mirone handles -----------------------------
-handMir = guidata(handles.h_calling_fig);
-% ---------------------------------------------------------------
+	% Add this Fig to the carraças list
+	plugedWin = getappdata(handMir.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handMir.figure1,'dependentFigs',plugedWin);
 
-% Add this Fig to the carraças list
-plugedWin = getappdata(handles.h_calling_fig,'dependentFigs');
-plugedWin = [plugedWin hObject];
-setappdata(handles.h_calling_fig,'dependentFigs',plugedWin);
+	handles.last_dir = handMir.last_dir;
+	handles.home_dir = handMir.home_dir;
+	handles.version7 = handMir.version7;
+	handles.path_data = handMir.path_data;
 
-handles.last_dir = handMir.last_dir;
-handles.home_dir = handMir.home_dir;
-handles.version7 = handMir.version7;
-handles.path_data = handMir.path_data;
+	% Import icons
+	load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
+	set(handles.pushbutton_gridLeft,'CData',Mfopen_ico)
+	set(handles.pushbutton_gridRight,'CData',Mfopen_ico)
+	set(handles.pushbutton_fileLeft,'CData',Mfopen_ico)
+	set(handles.pushbutton_fileRight,'CData',Mfopen_ico)
+	clear Mfopen_ico;
 
-% Import icons
-load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
-set(handles.pushbutton_gridLeft,'CData',Mfopen_ico)
-set(handles.pushbutton_gridRight,'CData',Mfopen_ico)
-set(handles.pushbutton_fileLeft,'CData',Mfopen_ico)
-set(handles.pushbutton_fileRight,'CData',Mfopen_ico)
-clear Mfopen_ico;
-
-coord_system_left = [];
-coord_system_right = [];
-load([handles.path_data 'mirone_pref.mat']);
+	coord_system_left = [];
+	coord_system_right = [];
+	load([handles.path_data 'mirone_pref.mat']);
 
 try
     if (iscell(directory_list)),    handles.work_dir = directory_list{1};
@@ -200,58 +193,38 @@ if (handles.by_mirone2grid)
 	set(h,'Visible','off')
 	h = findobj(hObject,'Style','pushbutton','String','Interactive Conversions');
 	set(h,'Visible','off')
-    set(handles.edit_gridLeft,'Enable','off','String','In memory array')
-    set(handles.pushbutton_gridLeft,'Enable','off')
-    set(handles.edit_xIncLeft,'String',num2str(handles.gridLeftHead(8)))
-    set(handles.edit_yIncLeft,'String',num2str(handles.gridLeftHead(9)))
-    [m,n] = size(handles.gridLeft);
-    set(handles.edit_nColsLeft,'String',num2str(n))
-    set(handles.edit_nRowsLeft,'String',num2str(m))
-    % Now the right side
-    set(handles.edit_nColsRight,'String',num2str(n))
-    set(handles.edit_nRowsRight,'String',num2str(m))
-    set(handles.edit_xIncRight,'String',num2str(handles.gridLeftHead(8)))
-    set(handles.edit_yIncRight,'String',num2str(handles.gridLeftHead(9)))
-    set(handles.pushbutton_right2left,'Visible','off')
-    bgcolor = [0.831372549019608 0.815686274509804 0.784313725490196];
-    set(handles.edit_gridRight,'Enable','off','BackgroundColor',bgcolor)
-    set(handles.pushbutton_gridRight,'Enable','off')
-    %bgcolor = get(0,'DefaultBackgroundColor');
-    handles.which_conv = 3;
+	set(handles.edit_gridLeft,'Enable','off','String','In memory array')
+	set(handles.pushbutton_gridLeft,'Enable','off')
+	set(handles.edit_xIncLeft,'String',sprintf('%.12g',handles.gridLeftHead(8)))
+	set(handles.edit_yIncLeft,'String',sprintf('%.12g',handles.gridLeftHead(9)))
+	[m,n] = size(handles.gridLeft);
+	set(handles.edit_nColsLeft,'String',sprintf('%d',n))
+	set(handles.edit_nRowsLeft,'String',sprintf('%d',m))
+	% Now the right side
+	set(handles.edit_nColsRight,'String',sprintf('%d',n))
+	set(handles.edit_nRowsRight,'String',sprintf('%d',m))
+	set(handles.edit_xIncRight,'String',sprintf('%.12g',handles.gridLeftHead(8)))
+	set(handles.edit_yIncRight,'String',sprintf('%.12g',handles.gridLeftHead(9)))
+	set(handles.pushbutton_right2left,'Visible','off')
+	bgcolor = [0.8314 0.81569 0.7843];
+	set(handles.edit_gridRight,'Enable','off','BackgroundColor',bgcolor)
+	set(handles.pushbutton_gridRight,'Enable','off')
+	%bgcolor = get(0,'DefaultBackgroundColor');
+	handles.which_conv = 3;
 else
-    panel_names = {'interactive','FileConv','GridConv'};
+	panel_names = {'interactive','FileConv','GridConv'};
 	set(handles.h_text_input,'Visible','off')
 	set(handles.h_text_output,'Visible','off')
 end
 
-% tabpanelfcn('makegroups',...) adds new fields to the handles structure,
-% one for each panel name and another called 'group_name_all'.  These fields
-% are used by the tabpanefcn when tab_group_handler is called.
-handles = tabpanelfcn('make_groups',group_name, panel_names, handles, 1);
+	% tabpanelfcn('makegroups',...) adds new fields to the handles structure,
+	% one for each panel name and another called 'group_name_all'.  These fields
+	% are used by the tabpanefcn when tab_group_handler is called.
+	handles = tabpanelfcn('make_groups',group_name, panel_names, handles, 1);
 
-% Choose default command line output for geog_calculator_export
-handles.output = hObject;
-guidata(hObject, handles);
-
-set(hObject,'Visible','on');
-
-if (nargout)
-	% UIWAIT makes geog_calculator wait for user response (see UIRESUME)
-	uiwait(handles.figure1);
-	
-	handles = guidata(hObject);
-	out = geog_calculator_OutputFcn(hObject, [], handles);
-	varargout{1} = out;
-end
-
-% --- Outputs from this function are returned to the command line.
-function varargout = geog_calculator_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-% The figure can be deleted now
-delete(handles.figure1);
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),   varargout{1} = hObject;     end
 
 %-------------------------------------------------------------------------------------
 % --- If Enable == 'on', executes on mouse press in 5 pixel border.
@@ -299,12 +272,6 @@ end
 guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
-function edit_xLeft_Callback(hObject, eventdata, handles)
-
-%-------------------------------------------------------------------------------------
-function edit_yLeft_Callback(hObject, eventdata, handles)
-
-%-------------------------------------------------------------------------------------
 function x = get_editValue(hObject)
 xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
 if isempty(xx),      x = [];     return;     end     % in case of z it may be on porpuse
@@ -320,16 +287,6 @@ function edit_zLeft_Callback(hObject, eventdata, handles)
 % xx = str2double(get(hObject,'String'));
 % if isnan(xx) | isempty(xx)  set(hObject, 'String', '');  return;    end    % Just a stupid user error
 % handles.z_left = xx;    guidata(hObject, handles);
-
-%-------------------------------------------------------------------------------------
-function edit_xRight_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-%-------------------------------------------------------------------------------------
-function edit_yRight_Callback(hObject, eventdata, handles)
-
-%-------------------------------------------------------------------------------------
-function edit_zRight_Callback(hObject, eventdata, handles)
 
 %-------------------------------------------------------------------------------------
 function popup_UnitesLeft_Callback(hObject, eventdata, handles)
@@ -436,10 +393,10 @@ handles.system_FE_FN_right = coord_system_right.system_FE_FN;
 pos = handles.txt_info_r_pos;
 %string = {['Projection -> ' coord_system_right.ProjName];...
 string = {['System -> ' coord_system_right.SysName];...
-        ['Projection -> ' coord_system_right.ProjName];...
-        ['Datum ->  ' handles.all_datums{coord_system_right.datum_val,1}];...
-        ['Ellipsoide ->  ' handles.all_datums{coord_system_right.datum_val,2}];...
-        ['J<options> ->  ' coord_system_right.projection]};
+		['Projection -> ' coord_system_right.ProjName];...
+		['Datum ->  ' handles.all_datums{coord_system_right.datum_val,1}];...
+		['Ellipsoide ->  ' handles.all_datums{coord_system_right.datum_val,2}];...
+		['J<options> ->  ' coord_system_right.projection]};
 [outstring,newpos] = textwrap(handles.h_txt_info_r,string);
 pos(4) = newpos(4);
 set(handles.h_txt_info_r,'String',outstring,'Position',[pos(1),pos(2),pos(3),pos(4)])
@@ -461,9 +418,9 @@ else
     handles.is_geog_right = 0;    coord_system_right.is_geog = 0;
 end
 if (~handles.version7)                  % Update mirone_pref.  R<=13
-    save(fname,'coord_system_right','-append');
+	save(fname,'coord_system_right','-append');
 else
-    save(fname,'coord_system_right','-append','-v6');
+	save(fname,'coord_system_right','-append','-v6');
 end
 guidata(hObject,handles)
 
@@ -471,26 +428,26 @@ guidata(hObject,handles)
 function pushbutton_left2right_Callback(hObject, eventdata, handles)
 msg_err = [];   zl = [];
 if (handles.which_conv == 1)        % Interactive Conversions
-    xl = get_editValue(handles.edit_xLeft);
-    yl = get_editValue(handles.edit_yLeft);
-    zl = get_editValue(handles.edit_zLeft);
-    x_c = xl;   y_c = yl;
-    if (~isempty(zl)),  in = [xl yl zl];
-    else                in = [xl yl];   end
-    if (isempty(xl))
-        msg_err = 'You have to agree that I cannot convert a NOTHING (see the left input X box).';
-    end
-    if (isempty(yl))
-        msg_err = 'You have to agree that a NOTHING cannot be converted (see the left input Y box).';
-    end
+	xl = get_editValue(handles.edit_xLeft);
+	yl = get_editValue(handles.edit_yLeft);
+	zl = get_editValue(handles.edit_zLeft);
+	x_c = xl;   y_c = yl;
+	if (~isempty(zl)),  in = [xl yl zl];
+	else                in = [xl yl];   end
+	if (isempty(xl))
+		msg_err = 'You have to agree that I cannot convert a NOTHING (see the left input X box).';
+	end
+	if (isempty(yl))
+		msg_err = 'You have to agree that a NOTHING cannot be converted (see the left input Y box).';
+	end
 elseif (handles.which_conv == 2)    % File Conversions
     if (isempty(handles.fileDataLeft))
-        msg_err = 'For converting a data file I need to know ... the data!';
+		msg_err = 'For converting a data file I need to know ... the data!';
     else
         if (get(handles.checkbox_ToggleXYLeft,'Value'))
-            in = [handles.fileDataLeft(:,2) handles.fileDataLeft(:,1) handles.fileDataLeft(:,3:end)];
+			in = [handles.fileDataLeft(:,2) handles.fileDataLeft(:,1) handles.fileDataLeft(:,3:end)];
         else
-            in = handles.fileDataLeft;
+			in = handles.fileDataLeft;
         end
         x_max = max(in(:,1));        x_min = min(in(:,1));
         y_max = max(in(:,2));        y_min = min(in(:,2));
@@ -504,38 +461,41 @@ elseif (handles.which_conv == 3)
     return
 end
 
-if (strcmp(get(handles.h_txt_info_l,'String'),'Nikles') | strcmp(get(handles.h_txt_info_r,'String'),'Nikles'))
+if (strcmp(get(handles.h_txt_info_l,'String'),'Nikles') || strcmp(get(handles.h_txt_info_r,'String'),'Nikles'))
     msg_err = 'You need to select BOTH Input and Output coordinate systems.';
 end
 
 if (~isempty(msg_err)),   errordlg(msg_err,'Error');  return;   end
 
 small = 1;
-opt_R = ['-R' num2str(x_c-0.5) '/' num2str(x_c+0.5) '/' num2str(y_c-0.5) '/' num2str(y_c+0.5)];
+opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g',x_c-0.5,x_c+0.5,y_c-0.5,y_c+0.5)];
 
 % Check if we need a datum conversion as well
 if (handles.datum_val_left ~= handles.datum_val_right)
     if (handles.is_ellipsoidHeight),     opt_T = '-Th';
     elseif ((handles.which_conv == 1) && ~isempty(zl)),  opt_T = '-Th';
-    else    opt_T = '-T';      end
-    opt_T = [opt_T num2str(handles.datum_val_left-1) '/' num2str(handles.datum_val_right-1)];
-else    opt_T = ' ';    end
+    else    opt_T = '-T';
+    end
+    opt_T = [opt_T sprintf('%d',handles.datum_val_left-1) '/' sprintf('%d',handles.datum_val_right-1)];
+else    opt_T = ' ';
+end
 
 % This is need only in the projection-to-projection case
 if (handles.datum_val_left == 221 && handles.datum_val_right == 221)
         is_wgs84 = 1;
-else    is_wgs84 = 0;   end
+else    is_wgs84 = 0;
+end
 
 % Check if we have a MAP_SCALE_FACTOR
 opt_SF = ' ';
 if (~isempty(handles.map_scale_factor_right))
-    opt_SF = ['--MAP_SCALE_FACTOR=' num2str(handles.map_scale_factor_right,'%.6f')];
+    opt_SF = ['--MAP_SCALE_FACTOR=' sprintf('%.6f',handles.map_scale_factor_right)];
 end
 
 % Check if we have false eastings/northings
 opt_C = '-C';
 if (~isempty(handles.system_FE_FN_right))
-    opt_C = ['-C' num2str(handles.system_FE_FN_right(1),'%.3f') '/' num2str(handles.system_FE_FN_right(2),'%.3f')];
+    opt_C = ['-C' sprintf('%.6g',handles.system_FE_FN_right(1)) '/' sprintf('%.6g',handles.system_FE_FN_right(2))];
 end
 
 if (~isempty(handles.projection_right))
@@ -567,12 +527,12 @@ elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
     opt_J = handles.projection_left;
     % First apply the trick to get a good estimation of -R
     if (~is_wgs84)      % Otherwise, no need to waste time with datum conversions
-        opt_T = ['-T' num2str(handles.datum_val_left-1) '/220'];
-    else    opt_T = ' ';    end
+        opt_T = ['-T' sprintf('%d',handles.datum_val_left-1) '/220'];
+    else    opt_T = ' ';
+    end
     if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
     tmp = mapproject_m([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
-    opt_R = ['-R' num2str(tmp(1)-small) '/' num2str(tmp(1)+small) '/' ...
-            num2str(tmp(2)-small) '/' num2str(tmp(2)+small)];
+    opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-small, tmp(1)+small, tmp(2)-small, tmp(2)+small)];
     % Here we have to re-check the need for ellipsoidal height transformations
     if (~strcmp(opt_T,' '))
         if (handles.is_ellipsoidHeight),    opt_T = ['-Th' opt_T(3:end)];
@@ -583,14 +543,15 @@ elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
     opt_J = handles.projection_right;
     if (~is_wgs84)
         if (handles.is_ellipsoidHeight)
-            opt_T = ['-Th220/' num2str(handles.datum_val_right-1)];
+            opt_T = ['-Th220/' sprintf('%d',handles.datum_val_right-1)];
         else
-            opt_T = ['-T220/' num2str(handles.datum_val_right-1)];
+            opt_T = ['-T220/' sprintf('%d',handles.datum_val_right-1)];
         end
-    else    opt_T = ' ';    end
+    else    opt_T = ' ';
+    end
     try     % If right value exists, we need it. Otherwise, don't use shifts
-        opt_C = ['-C' num2str(handles.system_FE_FN_right(1),'%.3f') '/' ...
-                num2str(handles.system_FE_FN_rightt(2),'%.3f')];
+        opt_C = ['-C' sprintf('%.6g',handles.system_FE_FN_right(1)) '/' ...
+                sprintf('%.6g',handles.system_FE_FN_rightt(2))];
     catch
         opt_C = '-C';
     end
@@ -603,8 +564,7 @@ elseif (isempty(handles.projection_right) && ~isempty(handles.projection_left))
     % First apply the trick to get a good estimation of -R
     if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
     tmp = mapproject_m([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
-    opt_R = ['-R' num2str(tmp(1)-small) '/' num2str(tmp(1)+small) '/' ...
-            num2str(tmp(2)-small) '/' num2str(tmp(2)+small)];
+    opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-small, tmp(1)+small, tmp(2)-small, tmp(2)+small)];
     out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
     comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' -I ' opt_T ' ' opt_SF]);
     set(hObject,'TooltipString',comm)
@@ -620,7 +580,7 @@ end                 % Otherwise -> BOOM
 
 if (handles.which_conv == 1)        % Interactive Conversions
     output_format(handles,out(1),out(2),'right');
-    if (~isnan(zl));    set(handles.edit_zRight,'String',num2str(out(3)));  end
+    if (~isnan(zl));    set(handles.edit_zRight,'String',sprintf('%.6g',out(3)));  end
 elseif (handles.which_conv == 2)    % File Conversions
     fname = get(handles.edit_fileRight,'String');
     if (isempty(fname))
@@ -644,7 +604,7 @@ function pushbutton_right2left_Callback(hObject, eventdata, handles)
 % Given the current mapproject limitation in invertion transformations I use a trick that
 % seams to work. The trick consists in making a first transformation with a global -R
 % and than use the output from it to find a new -R that allows a correct (?) transformation
-msg_err = [];   zl = [];
+msg_err = [];
 if (handles.which_conv == 1)        % Interactive Conversions
 	xr = get_editValue(handles.edit_xRight);
 	yr = get_editValue(handles.edit_yRight);
@@ -680,13 +640,14 @@ elseif (handles.which_conv == 3)
 end
 
 small = 1;
-opt_R = ['-R' num2str(x_c-small) '/' num2str(x_c+small) '/' num2str(y_c-small) '/' num2str(y_c+small)];
+opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', x_c-small, x_c+small, y_c-small, y_c+small)];
 
 % Check if we need a datum conversion as well
 if (handles.datum_val_left ~= handles.datum_val_right)
     if (handles.is_ellipsoidHeight),    opt_T = '-Th';
     elseif ((handles.which_conv == 1) && ~isempty(zr)),  opt_T = '-Th';
-    else    opt_T = '-T';      end
+    else    opt_T = '-T';
+    end
     opt_T = [opt_T sprintf('%d',handles.datum_val_right-1) '/' sprintf('%d',handles.datum_val_left-1)];
 else    opt_T = ' ';
 end
@@ -743,8 +704,7 @@ elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
     end
     if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
     tmp = mapproject_m([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
-    opt_R = ['-R' num2str(tmp(1)-small) '/' num2str(tmp(1)+small) '/' ...
-            num2str(tmp(2)-small) '/' num2str(tmp(2)+small)];
+    opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-small, tmp(1)+small, tmp(2)-small, tmp(2)+small)];
     % Here we have to re-check the need for ellipsoidal height transformations
     if (~strcmp(opt_T,' '))
         if (handles.is_ellipsoidHeight),    opt_T = ['-Th' opt_T(3:end)];
@@ -762,8 +722,8 @@ elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
     else    opt_T = ' ';
     end
     try     % If left value exists, we need it. Otherwise, don't use shifts
-        opt_C = ['-C' num2str(handles.system_FE_FN_left(1),'%.3f') '/' ...
-                num2str(handles.system_FE_FN_left(2),'%.3f')];
+        opt_C = ['-C' sprintf('%.6g',handles.system_FE_FN_left(1)) '/' ...
+                sprintf('%.6g',handles.system_FE_FN_left(2))];
     catch   opt_C = '-C';
     end
     out = mapproject_m(out, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
@@ -775,8 +735,7 @@ elseif (~isempty(handles.projection_right) && isempty(handles.projection_left))
     % First apply the trick to get a good estimation of -R
     if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
     tmp = mapproject_m([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
-    opt_R = ['-R' num2str(tmp(1)-small) '/' num2str(tmp(1)+small) '/' ...
-            num2str(tmp(2)-small) '/' num2str(tmp(2)+small)];
+    opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-small, tmp(1)+small, tmp(2)-small, tmp(2)+small)];
     out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
     comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' -I ' opt_T ' ' opt_SF]);
     set(hObject,'TooltipString',comm)
@@ -792,7 +751,7 @@ end                 % Otherwise -> BOOM
 
 if (handles.which_conv == 1)        % Interactive Conversions
     output_format(handles,out(1),out(2),'left');
-    if (~isnan(zr));    set(handles.edit_zLeft,'String',num2str(out(3)));  end
+    if (~isnan(zr));    set(handles.edit_zLeft,'String',sprintf('%.6g',out(3)));  end
 elseif (handles.which_conv == 2)    % File Conversions
     fname = get(handles.edit_fileLeft,'String');
     if (isempty(fname))
@@ -813,13 +772,12 @@ end
 
 %-------------------------------------------------------------------------------------
 function msg_err = transform_grid(handles)
-msg_err = [];
+msg_err = [];   opt_F = ' ';
 if (isempty(handles.gridLeft))
     msg_err = 'For converting a grid I need to know the ... guess what?';
 else
     if (get(handles.checkbox_toggleRegist,'Value'))
         opt_F = '-F';
-    else    opt_F = ' ';
     end
     x_max = handles.gridLeftHead(2);        x_min = handles.gridLeftHead(1);
     y_max = handles.gridLeftHead(4);        y_min = handles.gridLeftHead(3);
@@ -842,17 +800,17 @@ end
 % If we got an error, return here
 if (~isempty(msg_err)),   return;   end
 
-opt_R = ['-R' sprintf('%.12f/%.12f/%.12f/%.12f',x_min,x_max,y_min,y_max)];
+opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g',x_min,x_max,y_min,y_max)];
 
 % Check if we have a MAP_SCALE_FACTOR
 if (~isempty(handles.map_scale_factor_right))
-    opt_SF = ['--MAP_SCALE_FACTOR=' num2str(handles.map_scale_factor_right,'%.6f')];
+    opt_SF = ['--MAP_SCALE_FACTOR=' sprintf('%.6f',handles.map_scale_factor_right)];
 else    opt_SF = ' ';
 end
 
 % Check if we have false eastings/northings
 if (~isempty(handles.system_FE_FN_right))
-    opt_C = ['-C' num2str(handles.system_FE_FN_right(1),'%.3f') '/' num2str(handles.system_FE_FN_right(2),'%.3f')];
+    opt_C = ['-C' sprintf('%.6g',handles.system_FE_FN_right(1)) '/' sprintf('%.6g',handles.system_FE_FN_right(2))];
 else    opt_C = '-C';
 end
 
@@ -870,7 +828,7 @@ else
     opt_A = '-A';
 end
 
-if (length(opt_A) > 2),      opt_mpF = ['-F' opt_A(3)];  % mapproject option -F
+if (length(opt_A) > 2),     opt_mpF = ['-F' opt_A(3)];  % mapproject option -F
 else                        opt_mpF = '-F';   end
 
 set(handles.figure1,'pointer','watch')
@@ -882,11 +840,11 @@ if (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
     % First apply the trick to get a good estimation of -R
     if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
     tmp = mapproject_m([x_c y_c], opt_J, opt_Rg, opt_SF, opt_C, opt_mpF, '-I');
-    opt_R = ['-R' num2str(tmp(1)-1) '/' num2str(tmp(1)+1) '/' num2str(tmp(2)-1) '/' num2str(tmp(2)+1)];
+    opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-1, tmp(1)+1, tmp(2)-1, tmp(2)+1)];
     
     % Now find the exact lims in geogs
     tmp = mapproject_m([x_min y_min; x_max y_max], opt_J, opt_R, opt_SF, opt_C, opt_mpF, '-I');
-    opt_R = ['-R' sprintf('%.12f/%.12f/%.12f/%.12f',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2))];
+    opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2))];
     
     % Convert to Geogs
     [Z,head] = grdproject_m(handles.gridLeft, handles.gridLeftHead, opt_J, opt_R,...
@@ -895,8 +853,7 @@ if (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
     % And now do a direct conversion to the final destination
     opt_J = handles.projection_right;
     try     % If right value exists, we need it. Otherwise, don't use shifts
-        opt_C = ['-C' num2str(handles.system_FE_FN_right(1),'%.3f') '/' ...
-                num2str(handles.system_FE_FN_rightt(2),'%.3f')];
+        opt_C = ['-C' sprintf('%.6g',handles.system_FE_FN_right(1)) '/' sprintf('%.6g',handles.system_FE_FN_right(2))];
     catch   opt_C = '-C';
     end
     [Z,head] = grdproject_m(Z, handles.gridLeftHead, opt_J, opt_R, opt_SF, opt_C, opt_F, opt_A, opt_N);
@@ -906,12 +863,11 @@ elseif (isempty(handles.projection_right) && ~isempty(handles.projection_left))
     % First apply the trick to get a good estimation of -R
     if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
     tmp = mapproject_m([x_c y_c], opt_J, opt_Rg, opt_SF, opt_C, opt_mpF, '-I');
-    opt_R = ['-R' num2str(tmp(1)-1) '/' num2str(tmp(1)+1) '/' ...
-            num2str(tmp(2)-1) '/' num2str(tmp(2)+1)];
+    opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-1, tmp(1)+1, tmp(2)-1, tmp(2)+1)];
 
     % Now find the exact lims in geogs
     tmp = mapproject_m([x_min y_min; x_max y_max], opt_J, opt_R, opt_SF, opt_C, opt_mpF, '-I');
-    opt_R = ['-R' sprintf('%.12f/%.12f/%.12f/%.12f',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2))];
+    opt_R = ['-R' sprintf('%.10f/%.10f/%.10f/%.10f',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2))];
     
     [Z,head] = grdproject_m(handles.gridLeft, handles.gridLeftHead, opt_A, opt_J, opt_R,...
         opt_SF, opt_C, opt_F, opt_N, '-I');
@@ -930,16 +886,17 @@ if (~handles.by_mirone2grid)
 	tit = 'Grid converted by grdproject';
 	fname = get(handles.edit_gridRight,'String');
 	if (isempty(fname))
-        msg = 'Need output grid name.';
+		msg = 'Need output grid name.';
 	end
-	%z_min = double(min(Z(~isnan(Z(:)))));   z_max = double(max(Z(~isnan(Z(:)))));
 	grdwrite_m(Z,head,fname,tit)
 else    % Output the converted grid to Mirone
-    handles.output.Z = Z;
-    handles.output.head = head;
-    handles.output.cmd = {opt_J; opt_R; opt_SF; opt_C; opt_A; opt_I};
-    guidata(handles.figure1,handles)
-    uiresume(handles.figure1);
+    %output.cmd = {opt_J; opt_R; opt_SF; opt_C; opt_A; opt_I};
+	[ny,nx] = size(Z);
+	zMinMax = grdutils(Z,'-L');
+	tmp.head = [head(1:4) zMinMax(1:2)' head(7:9)];
+	tmp.X = linspace(head(1),head(2),nx);       tmp.Y = linspace(head(3),head(4),ny);
+	tmp.name = 'Projected grid';
+	mirone(Z,tmp);
 end
 
 %-------------------------------------------------------------------------------------
@@ -991,7 +948,7 @@ end
 set(hFig,'Name','Geographic Computator')
 if (headerlines > 0)        % If file had headers, update respective fields
     set(handles.checkbox_nHeadersLeft,'Value',1)
-    set(handles.edit_nHeadersLeft,'String',num2str(headerlines))
+    set(handles.edit_nHeadersLeft,'String',sprintf('%d',headerlines))
 end
 
 % If msgbox exist we have to move it from behind the main window. So get it's handle
@@ -1047,9 +1004,9 @@ else
     min_expected_col = 2;
 end
 
-if (n > min_expected_col)      set(handles.checkbox_ellipsoidHeightsLeft,'Enable','on');   end
+if (n > min_expected_col),     set(handles.checkbox_ellipsoidHeightsLeft,'Enable','on');   end
 
-[pathstr,name,ext] = fileparts(fname);
+[pathstr,name] = fileparts(fname);
 fname = [pathstr filesep name '_conv.dat'];     % Proposed output filename
 set(handles.edit_fileRight,'String',fname)
 guidata(hObject, handles);
@@ -1122,12 +1079,12 @@ if (is_geog)                       % That is, we are in geogs
             ang = degree2dms(y,'DDMMSS.x',2,'str');
             str_y = [ang.dd ':' ang.mm ':' ang.ss];
         otherwise       % Just the DD.xxxxxxx
-            str_x = num2str(x,'%.7f');
-            str_y = num2str(y,'%.7f');
+            str_x = sprintf('%.7f',x);
+            str_y = sprintf('%.7f',y);
     end
 else        % Cartesian unities
-    str_x = num2str(x,'%.6f');
-    str_y = num2str(y,'%.6f');
+    str_x = sprintf('%.6f',x);
+    str_y = sprintf('%.6f',y);
 end
 
 if (nargout == 0)
@@ -1278,21 +1235,21 @@ end
 [X,Y,handles.gridLeft,head] = grdread_m(fname,'single');
 handles.x_min = head(1);        handles.x_max = head(2);
 handles.y_min = head(3);        handles.y_max = head(4);
-handles.one_or_zero = head(7); 
+handles.one_or_zero = ~head(7); 
 [m,n] = size(handles.gridLeft);
 handles.nRow_in = m;    handles.nCol_in = n;
 set(handles.edit_gridLeft, 'String',fname)
-set(handles.edit_xIncLeft,'String',num2str(head(8),'%.8f'))
-set(handles.edit_yIncLeft,'String',num2str(head(9),'%.8f'))
-set(handles.edit_nColsLeft,'String',num2str(n))
-set(handles.edit_nRowsLeft,'String',num2str(m))
-set(handles.edit_xIncRight,'String',num2str(head(8),'%.8f'))
-set(handles.edit_yIncRight,'String',num2str(head(9),'%.8f'))
-set(handles.edit_nColsRight,'String',num2str(n))
-set(handles.edit_nRowsRight,'String',num2str(m))
+set(handles.edit_xIncLeft,'String',sprintf('%.12g',head(8)))
+set(handles.edit_yIncLeft,'String',sprintf('%.12g',head(9)))
+set(handles.edit_nColsLeft,'String',sprintf('%d',n))
+set(handles.edit_nRowsLeft,'String',sprintf('%d',m))
+set(handles.edit_xIncRight,'String',sprintf('%.12g',head(8)))
+set(handles.edit_yIncRight,'String',sprintf('%.12g',head(9)))
+set(handles.edit_nColsRight,'String',sprintf('%d',n))
+set(handles.edit_nRowsRight,'String',sprintf('%d',m))
 handles.gridLeftHead = head;
 if (~handles.by_mirone2grid)
-    [pathstr,name,ext] = fileparts(fname);
+    [pathstr,name] = fileparts(fname);
     fname = [pathstr filesep name '_conv.grd'];     % Proposed output grid name
     set(handles.edit_gridRight,'String',fname)
 end
@@ -1312,14 +1269,14 @@ for i = 1:length(val),   x_inc = x_inc + str2double(val{i}) / (60^(i-1));    end
 % Make whatever x_inc given compatible with GMT_grd_RI_verify
 x_inc = ivan_the_terrible((handles.x_max - handles.x_min), x_inc,2);
 if ~dms         % case of decimal unities
-    set(hObject,'String',num2str(x_inc,8))
+    set(hObject,'String',sprintf('%.12g',x_inc))
     ncol = floor((handles.x_max - handles.x_min) / x_inc + 0.5) + handles.one_or_zero;
 else            % inc was in dd:mm or dd:mm:ss format
     ncol = floor((handles.x_max - handles.x_min) / x_inc + 0.5) + handles.one_or_zero;
     ddmm = dec2deg(x_inc);
     set(hObject,'String',ddmm)
 end
-set(handles.edit_nColsRight,'String',num2str(ncol))
+set(handles.edit_nColsRight,'String',sprintf('%d',ncol))
 handles.dms_xinc = dms;
 guidata(hObject, handles);
 %if isempty(get(handles.edit_yIncRight,'String'))     set(handles.edit_yIncRight,'String',xx);    end
@@ -1338,14 +1295,14 @@ for i = 1:length(val),   y_inc = y_inc + str2double(val{i}) / (60^(i-1));    end
 % Make whatever y_inc given compatible with GMT_grd_RI_verify
 y_inc = ivan_the_terrible((handles.y_max - handles.y_min), y_inc,2);
 if ~dms         % case of decimal unities
-    set(hObject,'String',num2str(y_inc,8))
+    set(hObject,'String',sprintf('%.12g',y_inc))
     ncol = floor((handles.y_max - handles.y_min) / y_inc + 0.5) + handles.one_or_zero;
 else            % inc was in dd:mm or dd:mm:ss format
     ncol = floor((handles.y_max - handles.y_min) / y_inc + 0.5) + handles.one_or_zero;
     ddmm = dec2deg(y_inc);
     set(hObject,'String',ddmm)
 end
-set(handles.edit_nRowsRight,'String',num2str(ncol))
+set(handles.edit_nRowsRight,'String',sprintf('%d',ncol))
 handles.dms_yinc = dms;
 guidata(hObject, handles);
 
@@ -1353,21 +1310,21 @@ guidata(hObject, handles);
 function edit_nColsRight_Callback(hObject, eventdata, handles)
 xx = get(hObject,'String');
 if (isempty(xx) || isnan(str2double(xx)))
-    set(hObject,'String',num2str(handles.nCol_in));    return
+    set(hObject,'String',sprintf('%d',handles.nCol_in));    return
 end
 x_inc = ivan_the_terrible((handles.x_max - handles.x_min),round(abs(str2double(xx))),1);
 if handles.dms_xinc         % x_inc was given in dd:mm:ss format
     ddmm = dec2deg(x_inc);
     set(handles.edit_xIncRight,'String',ddmm)
 else                        % x_inc was given in decimal format
-    set(handles.edit_xIncRight,'String',num2str(x_inc,8));
+    set(handles.edit_xIncRight,'String',sprintf('%.12g',x_inc));
 end
 
 %-------------------------------------------------------------------------------------
 function edit_nRowsRight_Callback(hObject, eventdata, handles)
 xx = get(hObject,'String');
 if (isempty(xx) || isnan(str2double(xx)))
-    set(hObject,'String',num2str(handles.nRow_in))
+    set(hObject,'String',sprintf('%d',handles.nRow_in))
     return
 end
 y_inc = ivan_the_terrible((handles.y_max - handles.y_min),round(abs(str2double(xx))),1);
@@ -1375,7 +1332,7 @@ if handles.dms_yinc        % y_inc was given in dd:mm:ss format
     ddmm = dec2deg(y_inc);
     set(handles.edit_yIncRight,'String',ddmm)
 else                    % y_inc was given in decimal format
-    set(handles.edit_yIncRight,'String',num2str(y_inc,8));
+    set(handles.edit_yIncRight,'String',sprintf('%.12g',y_inc));
 end
 guidata(hObject, handles);
 
@@ -1402,11 +1359,11 @@ if (isempty(xx) || isnan(dpi))
     set(hObject,'String','');    return
 end
 n = round(dpi/2.54);
-set(handles.edit_nColsRight,'String',num2str(n))
-set(handles.edit_nRowsRight,'String',num2str(n))
+set(handles.edit_nColsRight,'String',sprintf('%d',n))
+set(handles.edit_nRowsRight,'String',sprintf('%d',n))
 x_inc = ivan_the_terrible((handles.x_max - handles.x_min),n,1);
-set(handles.edit_xIncRight,'String',num2str(x_inc,8));  % With the DPI x_inc = y_inc
-set(handles.edit_yIncRight,'String',num2str(x_inc,8));
+set(handles.edit_xIncRight,'String',sprintf('%.12g',x_inc));  % With the DPI x_inc = y_inc
+set(handles.edit_yIncRight,'String',sprintf('%.12g',x_inc));
 
 %-------------------------------------------------------------------------------------
 function checkbox_toggleRegist_Callback(hObject, eventdata, handles)
@@ -1639,48 +1596,27 @@ all_datums = {'Adindan - Burkina Faso', 'Clarke-1880','',-118, -14, 218;
         'Yacare - Uruguay', 'International-1924', '', -155, 171, 37;
         'Zanderij - Suriname', 'International-1924', '', -265, 120, -358};
 
-%-------------------------------------------------------------------------------------
-% --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);    uiresume(handles.figure1);
-else    % The GUI is no longer waiting, just close it
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);    delete(handles.figure1);
-end
 
 %-------------------------------------------------------------------------------------
-% --- Executes on key press over figure1 with no controls selected.
-function figure1_KeyPressFcn(hObject, eventdata, handles)
-if isequal(get(hObject,'CurrentKey'),'escape')
-	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-        % The GUI is still in UIWAIT, us UIRESUME
-        handles.output = [];        % User gave up, return nothing
-        guidata(hObject, handles);    uiresume(handles.figure1);
-	else    % The GUI is no longer waiting, just close it
-        handles.output = [];        % User gave up, return nothing
-        guidata(hObject, handles);    delete(handles.figure1);
+function figure1_KeyPressFcn(hObject, eventdata)
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		delete(hObject);
 	end
-end
 
 
 % --- Creates and returns a handle to the GUI figure. 
-function geog_calculator_LayoutFcn(h1,handles)
+function geog_calculator_LayoutFcn(h1)
 
 set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
-'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','Geographic Computator',...
 'NumberTitle','off',...
 'Position',[520 470 650 330],...
 'RendererMode','manual',...
 'Resize','off',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
 uicontrol('Parent',h1,...
 'Enable','inactive',...
@@ -1718,7 +1654,6 @@ uicontrol('Parent',h1,'Position',[339 188 295 101],'Style','frame','Tag','frame2
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@geog_calculator_uicallback,h1,'edit_xLeft_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[90 256 151 21],...
 'Style','edit',...
@@ -1735,7 +1670,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@geog_calculator_uicallback,h1,'edit_yLeft_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[90 231 151 21],...
 'Style','edit',...
@@ -1771,7 +1705,6 @@ uicontrol('Parent',h1,'Position',[10 40 301 121],'Style','frame','Tag','frame_In
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@geog_calculator_uicallback,h1,'edit_xRight_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[419 257 151 21],...
 'Style','edit',...
@@ -1780,7 +1713,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@geog_calculator_uicallback,h1,'edit_yRight_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[419 232 151 21],...
 'Style','edit',...
@@ -1789,7 +1721,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@geog_calculator_uicallback,h1,'edit_zRight_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[419 207 151 21],...
 'Style','edit',...
@@ -1958,12 +1889,10 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@geog_calculator_uicallback,h1,'popup_UnitesLeft_Callback'},...
-'CData',[],...
 'Position',[177 47 91 22],...
 'Style','popupmenu',...
 'Value',1,...
-'Tag','popup_UnitesLeft',...
-'UserData',[]);
+'Tag','popup_UnitesLeft');
 
 uicontrol('Parent',h1,...
 'Callback',{@geog_calculator_uicallback,h1,'pushbutton_DefCoordRight_Callback'},...
@@ -2049,7 +1978,6 @@ uicontrol('Parent',h1,...
 'UserData','GridConv');
 
 uicontrol('Parent',h1,...
-'CData',[],...
 'Enable','inactive',...
 'Position',[182 272 51 13],...
 'String','# of lines',...
@@ -2137,7 +2065,6 @@ uicontrol('Parent',h1,...
 'UserData','GridConv');
 
 uicontrol('Parent',h1,...
-'CData',[],...
 'Enable','inactive',...
 'Position',[498 272 51 13],...
 'String','# of lines',...
