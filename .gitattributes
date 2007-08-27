@@ -127,7 +127,6 @@ data/volcanoes.dat -text
 data/wcity.dat -text
 data/wcity_major.dat -text
 doc/MironeMan.chm -text
-/gdal13.dll -text
 /gdal14.dll -text
 /gdal_translate.exe -text
 /gdalinfo.exe -text
