@@ -19,9 +19,7 @@ function varargout = write_gmt_script(varargin)
 %# mex
 
 hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-write_gmt_script_LayoutFcn(hObject,handles);
+write_gmt_script_LayoutFcn(hObject);
 handles = guihandles(hObject);
 movegui(hObject,'center');
 
@@ -98,7 +96,7 @@ if (mirone_handles.image_type == 1 || mirone_handles.image_type == 3 || mirone_h
     handles.y_min = head(3);    handles.y_max = head(4);
     nx = round((head(2) - head(1)) / head(8));          % May not be exactly correct but is good enough here
     ny = round((head(4) - head(3)) / head(9));
-elseif (mirone_handles.image_type == 2 | mirone_handles.image_type == 20)     % "trivial" images
+elseif (mirone_handles.image_type == 2 || mirone_handles.image_type == 20)     % "trivial" images
     [ny,nx,nz] = size(get(mirone_handles.hImg,'CData'));
     zz1 = get(mirone_handles.axes1,'XLim');    zz2 = get(mirone_handles.axes1,'YLim');
     handles.x_min = zz1(1);     handles.x_max = zz1(2);
@@ -164,10 +162,10 @@ handles.all_ellipsoides = DefineEllipsoide;     % This is already in mirone_pref
 %----------- Recall previous settings stored in mirone_pref -------------------
 handles.h_txt_info = findobj(hObject,'Tag','text_ProjDescription');
 handles.txt_info_pos = get(handles.h_txt_info,'Position');
-if (~mirone_handles.geog & iscell(handles.proj_info_txt_script))     % Need to do this because grid is not geog
-    if (length(handles.proj_info_txt_script) == 5)      handles.proj_info_txt_script(3) = [];   end
+if (~mirone_handles.geog && iscell(handles.proj_info_txt_script))     % Need to do this because grid is not geog
+    if (length(handles.proj_info_txt_script) == 5),     handles.proj_info_txt_script(3) = [];   end
     k = strfind(handles.proj_info_txt_script{1},'->');
-    handles.proj_info_txt_script{1} = [handles.proj_info_txt_script{1}(1:k+1)];
+    handles.proj_info_txt_script{1} = handles.proj_info_txt_script{1}(1:k+1);
     k = strfind(handles.proj_info_txt_script{2},'->');
     handles.proj_info_txt_script{2} = [handles.proj_info_txt_script{2}(1:k+2) '   Linear'];
     % Also remove the Ellipsoid info
@@ -184,9 +182,9 @@ handles.all_datums = datums;    % datums is a function in utils
 % ---------- Split the scale from the projection string
 tmp = handles.coord_system_script.projection;
 if (~isempty(tmp))
-	if (length(tmp) == 4 & strcmp(tmp(3),'m'))      % Simple Mercator has the form "-Jm1"
+	if (length(tmp) == 4 && strcmp(tmp(3),'m'))      % Simple Mercator has the form "-Jm1"
         tmp = tmp(1:end-1);
-	elseif (length(tmp) == 3 & strcmp(upper(tmp(3)),'X'))  % Linear proj has the form "-JX"
+	elseif (length(tmp) == 3 && strcmp(upper(tmp(3)),'X'))  % Linear proj has the form "-JX"
         handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))]; % Save this
 	else                                            % All other should terminate as "-J.../1"
         tmp = tmp(1:end-2);
@@ -201,7 +199,7 @@ handles.curr_datum = handles.all_datums{handles.coord_system_script.datum_val,2}
 
 
 % ----------- Use the directory list from mirone_pref
-j = logical(zeros(1,length(directory_list)));           % vector for eventual cleaning non-existing dirs
+j = false(1,numel(directory_list));                     % vector for eventual cleaning non-existing dirs
 
 if iscell(directory_list)                               % When exists a dir list in mirone_pref
     for i = 1:length(directory_list)
@@ -222,7 +220,7 @@ end
 
 % --------- Set prefix name based on month and day numbers
 prefix = clock;
-prefix = ['mir' num2str(prefix(3)) '-' num2str(prefix(2))];
+prefix = ['mir' sprintf('%d',prefix(3)) '-' sprintf('%d',prefix(2))];
 set(handles.edit_prefix,'String',prefix)
 
 if (~mirone_handles.geog)   % Non geogs don't use scale bars
@@ -233,8 +231,8 @@ end
 % ---------- See if we have pscoast stuff
 ALLlineHand = findobj(get(mirone_handles.axes1,'Child'),'Type','line');
 handles.psc_res = [];   handles.psc_opt_W = [];     handles.psc_type_p = [];    handles.psc_type_r  = [];
-if (~isempty(findobj(ALLlineHand,'Tag','CoastLineNetCDF')) | ~isempty(findobj(ALLlineHand,'Tag','Rivers')) ...
-        | ~isempty(findobj(ALLlineHand,'Tag','PoliticalBoundaries')) )
+if (~isempty(findobj(ALLlineHand,'Tag','CoastLineNetCDF')) || ~isempty(findobj(ALLlineHand,'Tag','Rivers')) ...
+        || ~isempty(findobj(ALLlineHand,'Tag','PoliticalBoundaries')) )
 	[handles.ALLlineHand, handles.psc_res, handles.psc_opt_W, handles.psc_type_p, handles.psc_type_r] = ...
         find_psc_stuff(ALLlineHand);
 else
@@ -261,29 +259,13 @@ end
 % ------------ END Pro look (3D) -------------------------------------------------------
 
 % ------------ Apply inherited projection
-guidata(hObject, handles);
-pushbutton_uppdate_Callback(handles.pushbutton_uppdate, [], handles)
-handles = guidata(hObject);     % Recover in "this handles" the changes donne in pushbutton_uppdate
+	guidata(hObject, handles);
+	pushbutton_uppdate_Callback(handles.pushbutton_uppdate, [], handles)
+	handles = guidata(hObject);     % Recover in "this handles" the changes donne in pushbutton_uppdate
 
-% Choose default command line output for write_gmt_script_export
-handles.output = hObject;
-guidata(hObject, handles);
-
-% UIWAIT makes write_gmt_script_export wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
-set(hObject,'Visible','on');
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = write_gmt_script_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = write_gmt_script_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% Get default command line output from handles structure
-varargout{1} = handles.output;
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),   varargout{1} = hObject;     end
 
 % -----------------------------------------------------------------------------------
 function popup_PaperSize_Callback(hObject, eventdata, handles)
@@ -320,7 +302,6 @@ function radiobutton_L_Callback(hObject, eventdata, handles)
 if (get(hObject,'Value'))
     img_size_x = get(handles.axes1,'YLim');     % Just swap x & y
     img_size_y = get(handles.axes1,'XLim');
-    pbar = [1 1/handles.paper_aspect 1];
     set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y);
     %set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y,'PlotBoxAspectRatio',[1 1/handles.paper_aspect 1]);
     set(handles.radiobutton_P,'Value',0)
@@ -386,48 +367,48 @@ end
 function conv_units(handles,dest)
 xx = get(handles.hand_rect,'XData');        yy = get(handles.hand_rect,'YData');
 xf = get(handles.hand_frame_proj,'XData');  yf = get(handles.hand_frame_proj,'YData');
-if (strcmp(handles.which_unit,'cm') & strcmp(dest,'in'))
+if (strcmp(handles.which_unit,'cm') && strcmp(dest,'in'))
     xx = xx / 2.54;     yy = yy / 2.54;
     xf = xf / 2.54;     yf = yf / 2.54;
-    set(handles.edit_mapWidth,'String',num2str( str2num(get(handles.edit_mapWidth,'String'))/2.54,'%.2f' ))
-    set(handles.edit_mapHeight,'String',num2str( str2num(get(handles.edit_mapHeight,'String'))/2.54,'%.2f' ))
-    set(handles.edit_X0,'String',num2str( str2num(get(handles.edit_X0,'String'))/2.54,'%.2f' ))
-    set(handles.edit_Y0,'String',num2str( str2num(get(handles.edit_Y0,'String'))/2.54,'%.2f' ))
-elseif (strcmp(handles.which_unit,'cm') & strcmp(dest,'pt'))
+    set(handles.edit_mapWidth,'String',sprintf( '%.2f',str2double(get(handles.edit_mapWidth,'String'))/2.54 ))
+    set(handles.edit_mapHeight,'String',sprintf( '%.2f',str2double(get(handles.edit_mapHeight,'String'))/2.54 ))
+    set(handles.edit_X0,'String',sprintf( '%.2f',str2double(get(handles.edit_X0,'String'))/2.54 ))
+    set(handles.edit_Y0,'String',sprintf( '%.2f',str2double(get(handles.edit_Y0,'String'))/2.54 ))
+elseif (strcmp(handles.which_unit,'cm') && strcmp(dest,'pt'))
     xx = xx * 72/2.54;  yy = yy * 72/2.54;
     xf = xf * 72/2.54;  yf = yf * 72/2.54;
-    set(handles.edit_mapWidth,'String',num2str( str2num(get(handles.edit_mapWidth,'String'))* 72/2.54,'%.2f' ))
-    set(handles.edit_mapHeight,'String',num2str( str2num(get(handles.edit_mapHeight,'String'))* 72/2.54,'%.2f' ))
-    set(handles.edit_X0,'String',num2str( str2num(get(handles.edit_X0,'String'))* 72/2.54,'%.2f' ))
-    set(handles.edit_Y0,'String',num2str( str2num(get(handles.edit_Y0,'String'))* 72/2.54,'%.2f' ))
-elseif (strcmp(handles.which_unit,'in') & strcmp(dest,'cm'))
+    set(handles.edit_mapWidth,'String',sprintf( '%.2f',str2double(get(handles.edit_mapWidth,'String'))* 72/2.54 ))
+    set(handles.edit_mapHeight,'String',sprintf( '%.2f',str2double(get(handles.edit_mapHeight,'String'))* 72/2.54 ))
+    set(handles.edit_X0,'String',sprintf( '%.2f',str2double(get(handles.edit_X0,'String'))* 72/2.54 ))
+    set(handles.edit_Y0,'String',sprintf( '%.2f',str2double(get(handles.edit_Y0,'String'))* 72/2.54 ))
+elseif (strcmp(handles.which_unit,'in') && strcmp(dest,'cm'))
     xx = xx * 2.54;     yy = yy * 2.54;
     xf = xf * 2.54;     yf = yf * 2.54;
-    set(handles.edit_mapWidth,'String',num2str( str2num(get(handles.edit_mapWidth,'String'))*2.54,'%.2f' ))
-    set(handles.edit_mapHeight,'String',num2str( str2num(get(handles.edit_mapHeight,'String'))*2.54,'%.2f' ))
-    set(handles.edit_X0,'String',num2str( str2num(get(handles.edit_X0,'String'))*2.54,'%.2f' ))
-    set(handles.edit_Y0,'String',num2str( str2num(get(handles.edit_Y0,'String'))*2.54,'%.2f' ))
-elseif (strcmp(handles.which_unit,'in') & strcmp(dest,'pt'))
+    set(handles.edit_mapWidth,'String',sprintf( '%.2f',str2double(get(handles.edit_mapWidth,'String'))*2.54 ))
+    set(handles.edit_mapHeight,'String',sprintf( '%.2f',str2double(get(handles.edit_mapHeight,'String'))*2.54 ))
+    set(handles.edit_X0,'String',sprintf( '%.2f',str2double(get(handles.edit_X0,'String'))*2.54 ))
+    set(handles.edit_Y0,'String',sprintf( '%.2f',str2double(get(handles.edit_Y0,'String'))*2.54 ))
+elseif (strcmp(handles.which_unit,'in') && strcmp(dest,'pt'))
     xx = xx * 72;       yy = yy * 72;
     xf = xf * 72;       yf = yf * 72;
-    set(handles.edit_mapWidth,'String',num2str( str2num(get(handles.edit_mapWidth,'String'))*72,'%.2f' ))
-    set(handles.edit_mapHeight,'String',num2str( str2num(get(handles.edit_mapHeight,'String'))*72,'%.2f' ))
-    set(handles.edit_X0,'String',num2str( str2num(get(handles.edit_X0,'String'))*72,'%.2f' ))
-    set(handles.edit_Y0,'String',num2str( str2num(get(handles.edit_Y0,'String'))*72,'%.2f' ))
-elseif (strcmp(handles.which_unit,'pt') & strcmp(dest,'cm'))
+    set(handles.edit_mapWidth,'String',sprintf( '%.2f',str2double(get(handles.edit_mapWidth,'String'))*72 ))
+    set(handles.edit_mapHeight,'String',sprintf( '%.2f',str2double(get(handles.edit_mapHeight,'String'))*72 ))
+    set(handles.edit_X0,'String',sprintf( '%.2f',str2double(get(handles.edit_X0,'String'))*72 ))
+    set(handles.edit_Y0,'String',sprintf( '%.2f',str2double(get(handles.edit_Y0,'String'))*72 ))
+elseif (strcmp(handles.which_unit,'pt') && strcmp(dest,'cm'))
     xx = xx * 2.54/72;  yy = yy * 2.54/72;
     xf = xf * 2.54/72;  yf = yf * 2.54/72;
-    set(handles.edit_mapWidth,'String',num2str( str2num(get(handles.edit_mapWidth,'String'))*2.54/72,'%.2f' ))
-    set(handles.edit_mapHeight,'String',num2str( str2num(get(handles.edit_mapHeight,'String'))*2.54/72,'%.2f' ))
-    set(handles.edit_X0,'String',num2str( str2num(get(handles.edit_X0,'String'))*2.54/72,'%.2f' ))
-    set(handles.edit_Y0,'String',num2str( str2num(get(handles.edit_Y0,'String'))*2.54/72,'%.2f' ))
-elseif (strcmp(handles.which_unit,'pt') & strcmp(dest,'in'))
+    set(handles.edit_mapWidth,'String',sprintf( '%.2f',str2double(get(handles.edit_mapWidth,'String'))*2.54/72 ))
+    set(handles.edit_mapHeight,'String',sprintf( '%.2f',str2double(get(handles.edit_mapHeight,'String'))*2.54/72 ))
+    set(handles.edit_X0,'String',sprintf( '%.2f',str2double(get(handles.edit_X0,'String'))*2.54/72 ))
+    set(handles.edit_Y0,'String',sprintf( '%.2f',str2double(get(handles.edit_Y0,'String'))*2.54/72 ))
+elseif (strcmp(handles.which_unit,'pt') && strcmp(dest,'in'))
     xx = xx / 72;       yy = yy / 72;
     xf = xf / 72;       yf = yf / 72;
-    set(handles.edit_mapWidth,'String',num2str( str2num(get(handles.edit_mapWidth,'String'))/72,'%.2f' ))
-    set(handles.edit_mapHeight,'String',num2str( str2num(get(handles.edit_mapHeight,'String'))/72,'%.2f' ))
-    set(handles.edit_X0,'String',num2str( str2num(get(handles.edit_X0,'String'))/72,'%.2f' ))
-    set(handles.edit_Y0,'String',num2str( str2num(get(handles.edit_Y0,'String'))/72,'%.2f' ))
+    set(handles.edit_mapWidth,'String',sprintf( '%.2f',str2double(get(handles.edit_mapWidth,'String'))/72 ))
+    set(handles.edit_mapHeight,'String',sprintf( '%.2f',str2double(get(handles.edit_mapHeight,'String'))/72 ))
+    set(handles.edit_X0,'String',sprintf( '%.2f',str2double(get(handles.edit_X0,'String'))/72 ))
+    set(handles.edit_Y0,'String',sprintf( '%.2f',str2double(get(handles.edit_Y0,'String'))/72 ))
 end
 set(handles.hand_rect,'XData',xx);      set(handles.hand_rect,'YData',yy);
 if (~isempty(handles.hand_frame_proj))
@@ -498,20 +479,20 @@ pt = get(gca, 'CurrentPoint');
 x = [pt(1,1) pt(1,1) pt(1,1)+WidthHeight(1) pt(1,1)+WidthHeight(1) pt(1,1)];
 y = [pt(1,2) pt(1,2)+WidthHeight(2) pt(1,2)+WidthHeight(2) pt(1,2) pt(1,2)];
 set(h, 'XData', x, 'YData', y);
-set(handles.edit_X0,'String',num2str(pt(1,1),'%.2f'))
-set(handles.edit_Y0,'String',num2str(pt(1,2),'%.2f'))
+set(handles.edit_X0,'String',sprintf('%.2f',pt(1,1)))
+set(handles.edit_Y0,'String',sprintf('%.2f',pt(1,2)))
 if (~isempty(hf))
     set(hf,'XData', frame(:,1)+pt(1,1)-old_orig(1), 'YData', frame(:,2)+pt(1,2)-old_orig(2));
 end
 
 function wbd_MoveRectangle(obj,eventdata,handles,h,state)
-% check if x,y is inside of axis
-pt = get(gca, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
-x_lim = get(gca,'xlim');      y_lim = get(gca,'ylim');
-if (x<x_lim(1)) | (x>x_lim(2)) | (y<y_lim(1)) | (y>y_lim(2));   return; end
-set(gcf,'WindowButtonMotionFcn','','WindowButtonDownFcn','', 'Pointer', 'arrow');
-uirestore_j(state);           % Restore the figure's initial state
-%set(handles.pushbutton_uppdate,'Visible','on')
+	% check if x,y is inside of axis
+	pt = get(gca, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
+	x_lim = get(gca,'xlim');      y_lim = get(gca,'ylim');
+	if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
+	set(gcf,'WindowButtonMotionFcn','','WindowButtonDownFcn','', 'Pointer', 'arrow');
+	uirestore_j(state);           % Restore the figure's initial state
+	%set(handles.pushbutton_uppdate,'Visible','on')
 
 % -----------------------------------------------------------------------------------
 function pushbutton_uppdate_Callback(hObject, eventdata, handles)
@@ -591,7 +572,7 @@ new_x = xx(1) + out_f(:,1);
 new_y = yy(1) + out_f(:,2);
 
 % Draw it if it's not a rectangle
-if ~(out_f(1,1) == out_f(n,1) & out_f(n,2) == out_f(2*n-1,2))
+if ~(out_f(1,1) == out_f(n,1) && out_f(n,2) == out_f(2*n-1,2))
     if (isempty(handles.hand_frame_proj))      % First time. Creat it.
         handles.hand_frame_proj = line('XData',new_x,'YData',new_y, 'Color','r','LineWidth',.5,'Tag','PlotFrameProj');
         uistack(handles.hand_frame_proj, 'down')
@@ -615,11 +596,11 @@ if (~handles.scale_set)     % If user changed scale, don't compute it here
 	dy_prj = out(2,2) - out(1,2);   % It's in projected meters
 	dx_rect = xx(4) - xx(1);        % Is in "cm", "in" or "pt". So convert to "cm"
 	dy_rect = yy(2) - yy(1);        % Is in "cm", "in" or "pt". So convert to "cm"
-	if (strcmp(handles.which_unit,'in'))      dx_rect = dx_rect * 2.54;     dy_rect = dy_rect * 2.54;     end
-	if (strcmp(handles.which_unit,'pt'))      dx_rect = dx_rect * 2.54/72;  dy_rect = dy_rect * 2.54/72;  end
+	if (strcmp(handles.which_unit,'in')),     dx_rect = dx_rect * 2.54;     dy_rect = dy_rect * 2.54;     end
+	if (strcmp(handles.which_unit,'pt')),     dx_rect = dx_rect * 2.54/72;  dy_rect = dy_rect * 2.54/72;  end
 	scale = max(dx_rect/dx_prj/100, dy_rect/dy_prj/100);
 	[n,d] = rat(scale,1e-9);
-	if (n > 1)     d = d / n;      end
+	if (n > 1),    d = d / n;      end
 	set(handles.edit_scale,'String',['1:' num2str(d)])
 	handles.scale_set = 0;
 end
@@ -646,7 +627,7 @@ function edit_X0_Callback(hObject, eventdata, handles)
 % Set new x origin
 str = get(hObject,'String');        x0 = str2double(str);
 xx = get(handles.hand_rect,'XData');
-if (isnan(x0))      set(hObject,'String',str);      return;     end
+if (isnan(x0)),     set(hObject,'String',str);      return;     end
 set(handles.hand_rect,'XData',xx - xx(1) + x0)
 if (~isempty(handles.hand_frame_proj))
     set(handles.hand_frame_proj,'XData',get(handles.hand_frame_proj,'XData') - xx(1) + x0)
@@ -657,7 +638,7 @@ function edit_Y0_Callback(hObject, eventdata, handles)
 % Set new y origin
 str = get(hObject,'String');        y0 = str2double(str);
 yy = get(handles.hand_rect,'YData');
-if (isnan(y0))      set(hObject,'String',str);      return;     end
+if (isnan(y0)),     set(hObject,'String',str);      return;     end
 set(handles.hand_rect,'YData',yy - yy(1) + y0)
 if (~isempty(handles.hand_frame_proj))
     set(handles.hand_frame_proj,'YData',get(handles.hand_frame_proj,'YData') - yy(1) + y0)
@@ -668,7 +649,7 @@ function edit_mapWidth_Callback(hObject, eventdata, handles)
 % Set new map width
 str = get(hObject,'String');        w = str2double(str);
 xx = get(handles.hand_rect,'XData');
-if (isnan(w))      set(hObject,'String',str);      return;     end
+if (isnan(w)),     set(hObject,'String',str);      return;     end
 xx(3) = xx(2) + w;      xx(4) = xx(1) + w;
 set(handles.hand_rect,'XData',xx)
 pushbutton_uppdate_Callback(handles.pushbutton_uppdate, eventdata, handles)
@@ -678,14 +659,13 @@ function edit_mapHeight_Callback(hObject, eventdata, handles)
 % Set new map height
 str = get(hObject,'String');        h = str2double(str);
 yy = get(handles.hand_rect,'YData');
-if (isnan(h))      set(hObject,'String',str);      return;     end
+if (isnan(h)),     set(hObject,'String',str);      return;     end
 yy(2) = yy(1) + h;      yy(3) = yy(4) + h;
 set(handles.hand_rect,'YData',yy)
 pushbutton_uppdate_Callback(handles.pushbutton_uppdate, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function popup_directory_list_Callback(hObject, eventdata, handles)
-if (nargin == 3)    opt = [];   end
 val = get(hObject,'Value');     str = get(hObject, 'String');
 % Put the selected field on top of the String list.
 tmp = str(val);         str(val) = [];
@@ -710,23 +690,19 @@ if ~isempty(work_dir)
     guidata(hObject, handles);
 end
 
-% -----------------------------------------------------------------------------------------
-function edit_prefix_Callback(hObject, eventdata, handles)
-% Nothing to do
-
 % -----------------------------------------------------------------------------------
 function edit_scale_Callback(hObject, eventdata, handles)
 str = get(hObject,'String');
-k = strfind(str,':');
 xx = get(handles.hand_rect,'XData');    yy = get(handles.hand_rect,'YData');
-new_w = num2str((xx(3) - xx(2)),'%.2f');
 opt_J = [handles.opt_J_no_scale '/' str];   opt_J(3) = lower(opt_J(3));
 in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
 try
     opt_R = ['-R' num2str(handles.x_min,'%.6f') '/' num2str(handles.x_max,'%.6f') '/' ...
             num2str(handles.y_min,'%.6f') '/' num2str(handles.y_max,'%.6f')];
     out = mapproject_m(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
-catch    return;    end
+catch
+    return;
+end
 xmax = max(out(:,1));   ymax = max(out(:,2));
 xx(3) = xmax+xx(1);     xx(4) = xmax+xx(1);
 yy(2) = ymax+yy(1);     yy(3) = ymax+yy(1);
@@ -750,14 +726,14 @@ handles.coord_system_script = coord_system_script;
 
 % Split the scale from the projection string
 tmp = coord_system_script.projection;
-if (length(tmp) == 4 & strcmp(tmp(3),'m'))     % Simple Mercator cames in the form "-Jm1"
+if (length(tmp) == 4 && strcmp(tmp(3),'m'))     % Simple Mercator cames in the form "-Jm1"
     tmp = tmp(1:end-1);
-elseif (length(tmp) == 3 & strcmp(tmp(3),'x')) % Linear proj cames in the form "-Jx"
+elseif (length(tmp) == 3 && strcmp(tmp(3),'x')) % Linear proj cames in the form "-Jx"
     tmp = tmp;
 else                                            % All other should terminate as "-J.../1"
     tmp = tmp(1:end-2);
 end
-xx = get(handles.hand_rect,'XData');        yy = get(handles.hand_rect,'YData');
+xx = get(handles.hand_rect,'XData');
 handles.scale = num2str( (xx(3) - xx(2)),'%.2g');
 if (length(tmp) > 3)
     opt_J = [tmp(1:2) upper(tmp(3)) tmp(4:end) '/' handles.scale handles.which_unit(1)];
@@ -854,7 +830,7 @@ list = get(handles.popup_PaperSize,'String');
 str = list{val};        k = strfind(str,' ');
 paper = str(1:k(1)-1);
 d_dir = get(handles.popup_directory_list,'String');
-if (iscell(d_dir))      d_dir = d_dir{1};    end
+if (iscell(d_dir)),     d_dir = d_dir{1};    end
 prefix = get(handles.edit_prefix,'String');
 
 X0 = get(handles.edit_X0,'String');     Y0 = get(handles.edit_Y0,'String');
@@ -873,12 +849,10 @@ end
             handles.opt_psc = [handles.psc_res ' ' handles.psc_opt_W ' ' handles.psc_type_p ' ' handles.psc_type_r];
         end
     end
-    if (get(handles.radiobutton_P,'Value'))     opt_P = ' -P';
+    if (get(handles.radiobutton_P,'Value')),    opt_P = ' -P';
     else                                        opt_P = '';
     end
-    out_msg = build_write_script(handles.mirone_handles,handles.ALLlineHand,handles.opt_R, opt_J, d_dir, prefix, ...
-        paper, X0, Y0, handles.script_type, handles.curr_datum, handles.opt_L, handles.opt_U, opt_P, ...
-        handles.opt_psc, opt_deg);
+    out_msg = build_write_script(handles, opt_J, d_dir, prefix, paper, X0, Y0, opt_P, opt_deg);
     msg{1} = ['File ' prefix '_mir.' handles.script_type ' successufuly created in:  ' d_dir];
     if (out_msg)
         msg{2} = [];
@@ -891,7 +865,7 @@ end
 
 % --------------------------------------------------------------------
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
-delete(handles.figure1)
+	delete(handles.figure1)
 
 %-------------------------------------------------------------------------------------
 function [handles,out] = check_coord_system(handles,coord_system,side)
@@ -920,39 +894,39 @@ if (isempty(coord_system))   % If it doesn't exist, create an empty one
 end
 
 % If any of those is missing, assign it a default value
-if (~isfield(coord_system,'group_val'))     out.group_val = 1;
+if (~isfield(coord_system,'group_val')),    out.group_val = 1;
 else        out.group_val = coord_system.group_val;    end
-if (~isfield(coord_system,'system_val'))    out.system_val = 1;
+if (~isfield(coord_system,'system_val')),   out.system_val = 1;
 else        out.system_val = coord_system.system_val;    end
-if (~isfield(coord_system,'datum_val'))     out.datum_val = 221;   % Default to wgs84
+if (~isfield(coord_system,'datum_val')),    out.datum_val = 221;   % Default to wgs84
 else        out.datum_val = coord_system.datum_val;    end
-if (~isfield(coord_system,'cilindrical_val'))   out.cilindrical_val = 1;
+if (~isfield(coord_system,'cilindrical_val')),  out.cilindrical_val = 1;
 else        out.cilindrical_val = coord_system.cilindrical_val;    end
-if (~isfield(coord_system,'azimuthal_val'))     out.azimuthal_val = 1;
+if (~isfield(coord_system,'azimuthal_val')),    out.azimuthal_val = 1;
 else        out.azimuthal_val = coord_system.azimuthal_val;    end
-if (~isfield(coord_system,'conic_val'))         out.conic_val = 1;
+if (~isfield(coord_system,'conic_val')),        out.conic_val = 1;
 else        out.conic_val = coord_system.conic_val;    end
-if (~isfield(coord_system,'miscelaneous_val'))  out.miscelaneous_val = 1;
+if (~isfield(coord_system,'miscelaneous_val')), out.miscelaneous_val = 1;
 else        out.miscelaneous_val = coord_system.miscelaneous_val;    end
-if (~isfield(coord_system,'ProjName'))          out.ProjName = 'Unknown';
+if (~isfield(coord_system,'ProjName')),         out.ProjName = 'Unknown';
 else        out.ProjName = coord_system.ProjName;    end
-if (~isfield(coord_system,'map_scale_factor'))  out.map_scale_factor = [];
+if (~isfield(coord_system,'map_scale_factor')), out.map_scale_factor = [];
 else        out.map_scale_factor = coord_system.map_scale_factor;    end
-if (~isfield(coord_system,'system_FE_FN'))      out.system_FE_FN = [];
+if (~isfield(coord_system,'system_FE_FN')),     out.system_FE_FN = [];
 else        out.system_FE_FN = coord_system.system_FE_FN;    end
-if (~isfield(coord_system,'projection'))        out.projection = [];
+if (~isfield(coord_system,'projection')),       out.projection = [];
 else        out.projection = coord_system.projection;    end
-if (~isfield(coord_system,'ProjParameterValue')) out.ProjParameterValue = [];
+if (~isfield(coord_system,'ProjParameterValue')),out.ProjParameterValue = [];
 else        out.ProjParameterValue = coord_system.ProjParameterValue;    end
-if (~isfield(coord_system,'proj_info_txt'))     out.proj_info_txt = 'Nikles';
+if (~isfield(coord_system,'proj_info_txt')),    out.proj_info_txt = 'Nikles';
 else        out.proj_info_txt = coord_system.proj_info_txt;    end
-if (~isfield(coord_system,'MeasureUnit_val'))   out.MeasureUnit_val = 1;
+if (~isfield(coord_system,'MeasureUnit_val')),  out.MeasureUnit_val = 1;
 else        out.MeasureUnit_val = coord_system.MeasureUnit_val;    end
-if (~isfield(coord_system,'DegreeFormat1_val'))   out.DegreeFormat1_val = 1;
+if (~isfield(coord_system,'DegreeFormat1_val')),  out.DegreeFormat1_val = 1;
 else        out.DegreeFormat1_val = coord_system.DegreeFormat1_val;    end
-if (~isfield(coord_system,'DegreeFormat2_val'))   out.DegreeFormat2_val = 1;
+if (~isfield(coord_system,'DegreeFormat2_val')),  out.DegreeFormat2_val = 1;
 else        out.DegreeFormat2_val = coord_system.DegreeFormat2_val;    end
-if (~isfield(coord_system,'is_geog'))   out.is_geog = 1;
+if (~isfield(coord_system,'is_geog')),  out.is_geog = 1;
 else        out.is_geog = coord_system.is_geog;    end
 
 % This is my solution to cat 2 structures. There must be a clever way.
@@ -970,42 +944,42 @@ handles = cell2struct(both_cell,both_names,1);  % Finaly, rebuild the handles st
 % ----------------------------------------------------------------------------------
 function [ALLlineHand, res, opt_W, type_p, type_r] = find_psc_stuff(ALLlineHand)
 % See if we have any pscoast stuff
-haveSymbol = 0;     haveCoasts = 0;     havePolitical = 0;  haveRivers = 0;
+haveCoasts = 0;     havePolitical = 0;  haveRivers = 0;
 res = [];           opt_W = [];         type_p = [];        type_r = [];
 h_c = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
 if (~isempty(h_c))
-    if (length(h_c) > 1)    h_c = h_c(1);     end
-    CoastRes = get(h_c,'UserData');
-    LineWidth_c = get(h_c,'LineWidth');
-    LineColor_c = get(h_c,'Color');
-    LineStyle_c = get(h_c,'LineStyle');
-    haveCoasts = 1;
+	if (length(h_c) > 1),   h_c = h_c(1);     end
+	CoastRes = get(h_c,'UserData');
+	LineWidth_c = get(h_c,'LineWidth');
+	LineColor_c = get(h_c,'Color');
+	LineStyle_c = get(h_c,'LineStyle');
+	haveCoasts = 1;
 end
 h_p = findobj(ALLlineHand,'Tag','PoliticalBoundaries');
 if (~isempty(h_p))
-    if (length(h_p) > 1)    h_p = h_p(1);     end
-    zz = get(h_p,'UserData');
-    if (iscell(zz))     zz = zz{1};     end
-    PoliticalRes = zz(1);        PoliticalType = zz(2);
-    LineWidth_p = get(h_p,'LineWidth');
-    LineColor_p = get(h_p,'Color');
-    LineStyle_p = get(h_p,'LineStyle');
-    havePolitical = 1;
+	if (length(h_p) > 1),   h_p = h_p(1);     end
+	zz = get(h_p,'UserData');
+	if (iscell(zz)),    zz = zz{1};     end
+	PoliticalRes = zz(1);        PoliticalType = zz(2);
+	LineWidth_p = get(h_p,'LineWidth');
+	LineColor_p = get(h_p,'Color');
+	LineStyle_p = get(h_p,'LineStyle');
+	havePolitical = 1;
 end
 h_r = findobj(ALLlineHand,'Tag','Rivers');
 if (~isempty(h_r))
-    if (length(h_r) > 1)    h_r = h_r(1);     end
-    zz = get(h_r,'UserData');
-    if (iscell(zz))         zz = zz{1};     end
-    RiversRes = zz(1);          RiversType = zz(2);
-    LineWidth_r = get(h_r,'LineWidth');
-    LineColor_r = get(h_r,'Color');
-    LineStyle_r = get(h_r,'LineStyle');
-    haveRivers = 1;
+	if (length(h_r) > 1),   h_r = h_r(1);     end
+	zz = get(h_r,'UserData');
+	if (iscell(zz)),        zz = zz{1};     end
+	RiversRes = zz(1);          RiversType = zz(2);
+	LineWidth_r = get(h_r,'LineWidth');
+	LineColor_r = get(h_r,'Color');
+	LineStyle_r = get(h_r,'LineStyle');
+	haveRivers = 1;
 end
 ALLlineHand = setxor(ALLlineHand, [h_c; h_p; h_r]);
 
-if (haveCoasts | havePolitical | haveRivers)
+if (haveCoasts || havePolitical || haveRivers)
     res_c = '';     res_p = '';     res_r = '';
     if (haveCoasts)
         cor = round(LineColor_c * 255);
@@ -1027,11 +1001,11 @@ if (haveCoasts | havePolitical | haveRivers)
     end
     if (havePolitical)
         switch PoliticalRes
-            case 'f',   res_p = ['-Df'];
-            case 'h',   res_p = ['-Dh'];
-            case 'i',   res_p = ['-Di'];
-            case 'l',   res_p = ['-Dl'];
-            case 'c',   res_p = ['-Dc'];
+			case 'f',   res_p = '-Df';
+			case 'h',   res_p = '-Dh';
+			case 'i',   res_p = '-Di';
+			case 'l',   res_p = '-Dl';
+			case 'c',   res_p = '-Dc';
         end
         cor = round(LineColor_p * 255);
         cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
@@ -1051,56 +1025,64 @@ if (haveCoasts | havePolitical | haveRivers)
     end
     if (haveRivers)
         switch RiversRes
-            case 'f',   res_r = ['-Df'];
-            case 'h',   res_r = ['-Dh'];
-            case 'i',   res_r = ['-Di'];
-            case 'l',   res_r = ['-Dl'];
-            case 'c',   res_r = ['-Dc'];
+            case 'f',   res_r = '-Df';
+            case 'h',   res_r = '-Dh';
+            case 'i',   res_r = '-Di';
+            case 'l',   res_r = '-Dl';
+            case 'c',   res_r = '-Dc';
         end
         cor = round(LineColor_r * 255);
         cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
         switch RiversType
-            case '1',   type_r = ['-I1/' num2str(LineWidth_r) 'p/' cor];
-            case '2',   type_r = ['-I2/' num2str(LineWidth_r) 'p/' cor];
-            case '3',   type_r = ['-I3/' num2str(LineWidth_r) 'p/' cor];
-            case '4',   type_r = ['-I4/' num2str(LineWidth_r) 'p/' cor];
-            case '5',   type_r = ['-I5/' num2str(LineWidth_r) 'p/' cor];
-            case '6',   type_r = ['-I6/' num2str(LineWidth_r) 'p/' cor];
-            case '7',   type_r = ['-I7/' num2str(LineWidth_r) 'p/' cor];
-            case '8',   type_r = ['-I8/' num2str(LineWidth_r) 'p/' cor];
-            case '9',   type_r = ['-I9/' num2str(LineWidth_r) 'p/' cor];
-            case '10',  type_r = ['-I10/' num2str(LineWidth_r) 'p/' cor];
-            case 'a',   type_r = ['-Ia/' num2str(LineWidth_r) 'p/' cor];
-            case 'r',   type_r = ['-Ir/' num2str(LineWidth_r) 'p/' cor];
-            case 'i',   type_r = ['-Ii/' num2str(LineWidth_r) 'p/' cor];
-            case 'c',   type_r = ['-Ic/' num2str(LineWidth_r) 'p/' cor];
+			case '1',   type_r = ['-I1/' num2str(LineWidth_r) 'p/' cor];
+			case '2',   type_r = ['-I2/' num2str(LineWidth_r) 'p/' cor];
+			case '3',   type_r = ['-I3/' num2str(LineWidth_r) 'p/' cor];
+			case '4',   type_r = ['-I4/' num2str(LineWidth_r) 'p/' cor];
+			case '5',   type_r = ['-I5/' num2str(LineWidth_r) 'p/' cor];
+			case '6',   type_r = ['-I6/' num2str(LineWidth_r) 'p/' cor];
+			case '7',   type_r = ['-I7/' num2str(LineWidth_r) 'p/' cor];
+			case '8',   type_r = ['-I8/' num2str(LineWidth_r) 'p/' cor];
+			case '9',   type_r = ['-I9/' num2str(LineWidth_r) 'p/' cor];
+			case '10',  type_r = ['-I10/' num2str(LineWidth_r) 'p/' cor];
+			case 'a',   type_r = ['-Ia/' num2str(LineWidth_r) 'p/' cor];
+			case 'r',   type_r = ['-Ir/' num2str(LineWidth_r) 'p/' cor];
+			case 'i',   type_r = ['-Ii/' num2str(LineWidth_r) 'p/' cor];
+			case 'c',   type_r = ['-Ic/' num2str(LineWidth_r) 'p/' cor];
         end
-            if (~strcmp(LineStyle_r,'-'))   % If we have a line style other than solid
+        if (~strcmp(LineStyle_r,'-'))   % If we have a line style other than solid
             switch LineStyle_r
                 case '--',  type_r = [type_r 'ta'];
                 case ':',   type_r = [type_r 'to'];
                 case '-.',  type_r = [type_r 't10_2_2_5:5'];
             end
         end
-end
-    res = unique([res_c(1:3); res_p; res_r],'rows');  % We don't want repeated resolution strings
-    if (size(res,1) > 1)        % Shit, we have mixed resolutions
-        res = '-Di';            % TEMPORARY SOLUTION UNTIL I FIND HOW TO FIND THE HIGHEST COMMON RES
     end
-    if (~isempty(res_c))    opt_W = res_c(5:end);
-    else                    opt_W = [];     end
+        res = unique([res_c(1:3); res_p; res_r],'rows');  % We don't want repeated resolution strings
+        if (size(res,1) > 1)        % Shit, we have mixed resolutions
+            res = '-Di';            % TEMPORARY SOLUTION UNTIL I FIND HOW TO FIND THE HIGHEST COMMON RES
+        end
+        if (~isempty(res_c)),   opt_W = res_c(5:end);
+        else                    opt_W = [];     end
 end
 
 % --------------------------------------------------------------------------------------------------------
-function out_msg = build_write_script(handles_mirone, ALLlineHand, opt_R, opt_J, dest_dir, ...
-    prefix, paper, X0, Y0, sc, ellips, opt_L, opt_U, opt_P, opt_psc, opt_deg)
+function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X0, Y0, opt_P, opt_deg)
 % This function do most of the hard work in finding the script components. The pscoast stuff is
 % worked out by the "find_psc_stuff" function.
 
-if (isempty(opt_psc))   have_psc = 0;       % We do not have any pscoast commands
+handMir = handles.mirone_handles;
+ALLlineHand = handles.ALLlineHand;
+opt_R = handles.opt_R;
+sc = handles.script_type;
+ellips = handles.curr_datum;
+opt_L = handles.opt_L;
+opt_U = handles.opt_U;
+opt_psc = handles.opt_psc;
+
+if (isempty(opt_psc)),  have_psc = 0;       % We do not have any pscoast commands
 else                    have_psc = 1;       end
 
-if (~strcmp(paper,'A4'))    paper_media = paper;
+if (~strcmp(paper,'A4')),   paper_media = paper;
 else                        paper_media = [];   end
 if (strcmp(sc,'bat'))
     comm = 'REM ';      pb = '%';   pf = '%';
@@ -1114,23 +1096,21 @@ else
 end
 
 % ------------ Some (maybe) needed vars ------------------------------------------------------------------
-haveSymbol = 0;     i_c = [];   used_grd = 0;   sc_cpt = [dest_dir filesep prefix '.cpt'];  out_msg = 0;
+haveSymbol = 0;     used_grd = 0;  out_msg = 0;
 need_path = 0;      used_countries = 0;
 script = cell(16,1);
-if (~isempty(handles_mirone.grdname))
-    [PATH,FNAME,EXT] = fileparts(handles_mirone.grdname);
+if (~isempty(handMir.grdname))
+    [PATH,FNAME,EXT] = fileparts(handMir.grdname);
     just_grd_name = [FNAME EXT];
-    if (strcmp(PATH,dest_dir))      need_path = 0;
+    if (strcmp(PATH,dest_dir)),     need_path = 0;
     else                            need_path = 1;  end
     clear PATH FNAME EXT;
-else
-    need_path = 0;
 end
-grd_name = handles_mirone.grdname;
+grd_name = handMir.grdname;
 
 % -------------------- Build -B string -------------------------------------------------
 try
-	h_axes = findobj(handles_mirone.figure1,'Type','Axes');
+	h_axes = findobj(handMir.figure1,'Type','Axes');
 	Bx = get(h_axes,'XTick');      d_Bx = diff(Bx);
 	By = get(h_axes,'YTick');      d_By = diff(By);
 	opt_B = ['-B' num2str(d_Bx(1)) '/' num2str(d_By(1))];
@@ -1142,14 +1122,14 @@ end
 
 l = 1;
 if (~strcmp(sc,'bat'))                          % Write a csh script
-    script{l} = ['#!/bin/csh -f'];              l=l+1;
+    script{l} = '#!/bin/csh -f';                l=l+1;
 	script{l} = comm;                           l=l+1;
 	script{l} = [comm 'Coffeeright Mirone Tec'];l=l+1;
 	script{l} = comm;                           l=l+1;
 	script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
 	script{l} = ['set proj = ' opt_J];          l=l+1;      % Map scale
 	script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
-	script{l} = ['set frm = ' opt_B];           l=l+1;
+	script{l} = ['set frm = ' opt_B];           l=l+1;      saveBind = l-1;
 	script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
 	script{l} = ['set lim = ' opt_R];           l=l+1;
 	script{l} = comm;                           l=l+1;
@@ -1172,13 +1152,13 @@ if (~strcmp(sc,'bat'))                          % Write a csh script
     	script{l} = comm;                       l=l+1;        
     end
 else                                            % Write a dos batch    
-	script{l} = ['@echo OFF'];                  l=l+1;
+	script{l} = '@echo OFF';                    l=l+1;
 	script{l} = [comm 'Coffeewrite Mirone Tec'];l=l+1;
 	script{l} = comm;                           l=l+1;
 	script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
 	script{l} = ['set proj=' opt_J];            l=l+1;      % Map scale
 	script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
-	script{l} = ['set frm=' opt_B];             l=l+1;
+	script{l} = ['set frm=' opt_B];             l=l+1;      saveBind = l-1;
 	script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
 	script{l} = ['set lim=' opt_R];             l=l+1;
 	script{l} = comm;                           l=l+1;
@@ -1203,41 +1183,41 @@ else                                            % Write a dos batch
 end
 
 % ------------ Start writing GMT commands --------------------------------
-script{l} = [' '];                              l=l+1;
+script{l} = ' ';            l=l+1;
 script{l} = [comm '-------- Start by creating the basemap frame'];  l=l+1;
 script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ' ' pb 'deg_form' pf ' -K > ' pb 'ps' pf];
 l=l+1;
 if (~isempty(grd_name))
-    if ( handles_mirone.Illumin_type > 0 && handles_mirone.Illumin_type <= 4 )
+    if ( handMir.Illumin_type > 0 && handMir.Illumin_type <= 4 )
         % We have a image illuminated with grdgradient. Rebuild de illumination
-        illumComm = getappdata(handles_mirone.figure1,'illumComm');
+        illumComm = getappdata(handMir.figure1,'illumComm');
         opt_M = '';
-        if (handles_mirone.Illumin_type == 1 && handles_mirone.geog),   opt_M = ' -M';     end
+        if (handMir.Illumin_type == 1 && handMir.geog),   opt_M = ' -M';     end
         opt_N = '';
-        if (handles_mirone.Illumin_type == 1),      opt_N = ' -Nt';     end
+        if (handMir.Illumin_type == 1),      opt_N = ' -Nt';     end
         name_illum = [prefix '_intens.grd=cf'];
-        script{l} = [''];                          l=l+1;
+        script{l} = '';                      l=l+1;
         script{l} = [comm '-------- Compute the illumination grid'];    l=l+1;
         script{l} = ['grdgradient ' pb 'grd' pf opt_M ' ' illumComm opt_N ' -G' name_illum ellips];    l=l+1;
         have_gmt_illum = 1;     used_grd = 1;
         illum = [' -I' name_illum];
-    elseif ( handles_mirone.Illumin_type > 4 || handles_mirone.is_draped )
+    elseif ( handMir.Illumin_type > 4 || handMir.is_draped )
         % We have a Manip or draping illumination. Here we have to use the R,G,B trick
         name = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
-        mirone('File_img2GMT_RGBgrids_CB',gcbo,[],handles_mirone,'image',name)
+        mirone('File_img2GMT_RGBgrids_CB',[],handMir,'image',name)
         illum = [name '_r.grd ' name '_g.grd ' name '_b.grd']; % ????
         have_gmt_illum = 0;
     else        % We don't have any illumination
         have_gmt_illum = 0;
         used_grd = 1;
     end
-    script{l} = [' '];                          l=l+1;
+    script{l} = ' ';                          l=l+1;
     if (have_gmt_illum)                     % grdimage with illumination
         script{l} = [comm '-------- Plot the the base image using grdimage & illumination'];    l=l+1;
         script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf illum ellips opt_L ' -O -K >> ' pb 'ps' pf];
         l=l+1;
         used_grd = 1;
-    elseif (used_grd & ~have_gmt_illum)     % Simple grdimage call
+    elseif (used_grd && ~have_gmt_illum)     % Simple grdimage call
         script{l} = [comm '-------- Plot the the base image using grdimage'];    l=l+1;
         script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf ellips opt_L ' -O -K >> ' pb 'ps' pf];   l=l+1;
         used_grd = 1;
@@ -1247,12 +1227,12 @@ if (~isempty(grd_name))
         l=l+1;    
     end
     clear grd_name have_gmt_illum illum;
-elseif (handles_mirone.image_type == 20)
+elseif (handMir.image_type == 20)
     % Do nothing regarding the basemap image (in fact we don't have any image)
 else    % We don't have a grid, so we need to fish the image and save it as R,G,B triplet
     name = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
-    mirone('File_img2GMT_RGBgrids_CB',gcbo,[],handles_mirone,'image',name) 
-    script{l} = [' '];
+    mirone('File_img2GMT_RGBgrids_CB',[],handMir,'image',name) 
+    script{l} = ' ';
     script{l} = [comm '-------- Plot the 3 RGB base images using grdimage'];    l=l+1;
     script{l} = ['grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips ' -R -J -O -K >> ' pb 'ps' pf];
     l=l+1;    
@@ -1261,17 +1241,17 @@ end
 % ------------ If we have used a GMT grid file build the GMT palette -----------------------
 if (used_grd)
     tmp = cell(261,1);
-    pal = colormap(handles_mirone.axes1);
-    Z = getappdata(handles_mirone.figure1,'dem_z');
+    pal = get(handMir.figure1,'colormap');
+    %Z = getappdata(handMir.figure1,'dem_z');
     % SE Z == [] FAZER QUALQUER COISA
-    if (handles_mirone.have_nans)      cor_nan = pal(1,:);     pal = pal(2:end,:);   end     % Remove the bg color
+    if (handMir.have_nans),     cor_nan = pal(1,:);     pal = pal(2:end,:);   end     % Remove the bg color
     
     pal_len = size(pal,1);
-    z_min = handles_mirone.head(5);    z_max = handles_mirone.head(6);
+    z_min = handMir.head(5);    z_max = handMir.head(6);
     
     dz = (z_max - z_min) / pal_len;
-    tmp{1} = ['# Color palette exported by Mirone'];
-    tmp{2} = ['# COLOR_MODEL = RGB'];
+    tmp{1} = '# Color palette exported by Mirone';
+    tmp{2} = '# COLOR_MODEL = RGB';
     cor = round(pal*255);
 	for i=1:pal_len
         cor_str = sprintf([num2str(cor(i,1),'%.12g') '\t' num2str(cor(i,2),'%.12g') '\t' num2str(cor(i,3),'%.12g')]);
@@ -1281,7 +1261,7 @@ if (used_grd)
 	end
     tmp{pal_len+3} = sprintf('F\t255\t255\t255');
     tmp{pal_len+4} = sprintf('B\t0\t0\t0');
-	if (handles_mirone.have_nans)
+	if (handMir.have_nans)
         cor = round(cor_nan*255);
         cor_str = sprintf(['N\t' num2str(cor(1),'%.12g') '\t' num2str(cor(2),'%.12g') '\t' num2str(cor(3),'%.12g')]);
         tmp{pal_len+5} = sprintf(cor_str);
@@ -1290,7 +1270,7 @@ if (used_grd)
 	end
     sc_cpt = [dest_dir filesep prefix '.cpt'];
 	fid = fopen(sc_cpt,'wt');
-	for (i=1:pal_len+5)    fprintf(fid,'%s\n',tmp{i});     end
+	for (i=1:pal_len+5),   fprintf(fid,'%s\n',tmp{i});     end
 	fclose(fid);
     clear tmp z_min z_max pal_len pal cor cor_str fid Z dz z1 z2
 else        % Remove the cpt declaration. After all we won't go to use it
@@ -1299,25 +1279,25 @@ end
 
 % ------------- Coastlines section -----------------------------------
 if (have_psc)       % We have pscoast commands
-    script{l} = [' '];                      l=l+1;
+    script{l} = ' ';                        l=l+1;
     script{l} = [comm 'Plot coastlines'];   l=l+1;
     script{l} = ['pscoast ' opt_psc ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
 end
 
 % ------------- Search for contour lines ----------------------------------------------------
-ALLtextHand = findobj(get(handles_mirone.axes1,'Child'),'Type','text');
+ALLtextHand = findobj(get(handMir.axes1,'Child'),'Type','text');
 % % If we have focal mecanisms with labels, remove their handles right away
 % h = findobj(ALLtextHand,'Tag','TextMeca');                                  % I'M NOT SURE ON THIS ONE
 % if (~isempty(h))    ALLtextHand = setxor(ALLtextHand, h);   end
 
 tag = get(ALLlineHand,'Tag');
-if (~isempty(tag) & ~isempty(handles_mirone.grdname))
+if (~isempty(tag) && ~isempty(handMir.grdname))
     h = findobj(ALLlineHand,'Tag','contour');
     if (~isempty(h))
         h_label = findobj(ALLtextHand,'Tag','contour');   % Search for contour labels
         if (~isempty(h_label))
             lab = get(h_label,'UserData');
-            if (iscell(lab))    lab = unique(cat(1,lab{:}));    end
+            if (iscell(lab)),   lab = unique(cat(1,lab{:}));    end
         else
             lab = [];
         end
@@ -1337,8 +1317,8 @@ if (~isempty(tag) & ~isempty(handles_mirone.grdname))
             fprintf(fid,'%.5f\t%c\n',conts');
         end
         fclose(fid);
-        script{l} = [' '];                                  l=l+1;
-        script{l} = [comm ' ---- Plot contours'];           l=l+1;
+        script{l} = ' ';                            l=l+1;
+        script{l} = [comm ' ---- Plot contours'];	l=l+1;
         script{l} = ['grdcontour ' pb 'grd' pf ' -R -J -C' [prefix '_cont.dat'] ellips ' -O -K >> ' pb 'ps' pf];
         l=l+1;
         used_grd = 1;
@@ -1381,25 +1361,25 @@ end
 if (haveSymbol)
     ns = length(symbols.x);
     name = [prefix_ddir '_symb.dat'];    name_sc = [prefix '_symb.dat'];
-    if (ns > 1 & length(symbols.Size) == 1)      % We have the same symbol repeated ns times
+    if (ns > 1 && length(symbols.Size) == 1)      % We have the same symbol repeated ns times
     	fid = fopen(name,'wt');
         cor_fill = round(symbols.FillColor{1} * 255);
         cor_fill = [num2str(cor_fill(1)) '/' num2str(cor_fill(2)) '/' num2str(cor_fill(3))];
         cor_edge = round(symbols.EdgeColor{1} * 255);
         cor_edge = [num2str(cor_edge(1)) '/' num2str(cor_edge(2)) '/' num2str(cor_edge(3))];
         fprintf(fid,'%.5f\t%.5f\n',[symbols.x{:}; symbols.y{:}]);
-		script{l} = [' '];                                  l=l+1;
-		script{l} = [comm ' ---- Plot symbols'];            l=l+1;
+		script{l} = ' ';                        	l=l+1;
+		script{l} = [comm ' ---- Plot symbols'];    l=l+1;
 		script{l} = ['psxy ' name_sc ' -S' symbols.Marker num2str(symbols.Size{1}) 'p' ' -G' cor_fill ...
                 ' -W1/' cor_edge ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
     	fclose(fid);
-    elseif (ns == 1 & length(symbols.Size) == 1)      % We have only one symbol
+    elseif (ns == 1 && length(symbols.Size) == 1)      % We have only one symbol
         cor_fill = round(symbols.FillColor{1} * 255);
         cor_fill = [num2str(cor_fill(1)) '/' num2str(cor_fill(2)) '/' num2str(cor_fill(3))];
         cor_edge = round(symbols.EdgeColor{1} * 255);
         cor_edge = [num2str(cor_edge(1)) '/' num2str(cor_edge(2)) '/' num2str(cor_edge(3))];
-		script{l} = [' '];                                  l=l+1;
-		script{l} = [comm ' ---- Plot symbol'];             l=l+1;
+		script{l} = ' ';                             l=l+1;
+		script{l} = [comm ' ---- Plot symbol'];      l=l+1;
 		script{l} = ['echo ' num2str(symbols.x{1},'%.5f') ' ' num2str(symbols.y{1},'%.5f') ' | ' ...
                     'psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' ' -G' cor_fill ...
                     ' -W1/' cor_edge ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;        
@@ -1427,8 +1407,8 @@ if (haveSymbol)
             fprintf(fid,'%s\n',['>' ' -G' cor_fill ' -W1/' cor_edge]);
             fprintf(fid,'%.5f\t%.5f\t%.0f\t%s\n',symbols.x{i},symbols.y{i},symbols.Size{i},symbols.Marker(i,:));
         end
-		script{l} = [' '];                                  l=l+1;
-		script{l} = [comm ' ---- Plot symbols'];            l=l+1;
+		script{l} = ' ';                        	l=l+1;
+		script{l} = [comm ' ---- Plot symbols'];    l=l+1;
 		script{l} = ['psxy ' name_sc ellips ' -S -R -J --MEASURE_UNIT=point -M -O -K >> ' pb 'ps' pf];    l=l+1;
     	fclose(fid);
     end
@@ -1437,14 +1417,14 @@ end
 % ------------------------------------------------------------------------------------------------
 
 % ------------- Search for focal mecanisms ----------------------------
-ALLpatchHand = findobj(get(handles_mirone.axes1,'Child'),'Type','patch');
+ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
 if (~isempty(ALLpatchHand))
     focHand = findobj(ALLpatchHand,'Tag','FocalMeca');
     if (~isempty(focHand))
         % First deal with the 'line anchors'
         focHandAnchor = findobj(ALLlineHand,'Tag','FocalMecaAnchor');   % Handles of the line anchors
         x = get(focHandAnchor,'XData');         y = get(focHandAnchor,'YData');
-        if (iscell(x))      x = cell2mat(x);    y = cell2mat(y);    end
+        if (iscell(x)),      x = cell2mat(x);    y = cell2mat(y);    end
         id_anch = find(diff(x,1,2));
         
         psmeca_line = cell(length(focHand),1);
@@ -1454,38 +1434,38 @@ if (~isempty(ALLpatchHand))
         psmeca_line = cat(1,psmeca_line{:});    % This also get us rid of empty cell fields.
                 
         n_cols = size(psmeca_line,2);
-        if (n_cols == 10 | n_cols == 14)
+        if (n_cols == 10 || n_cols == 14)
             with_label = 1;
         else
             with_label = 0;
         end
         name = [prefix_ddir '_meca.dat'];   name_sc = [prefix '_meca.dat'];     opt_C = '';
         fid = fopen(name,'wt');
-        if (n_cols == 9 | n_cols == 10)         % Aki & Richard convention
+        if (n_cols == 9 || n_cols == 10)         % Aki & Richard convention
             % If beach-bals are not ploted at their origin update the ploting coords columns
             if (~isempty(id_anch))
                 psmeca_line(:,8) = x(:,2);  psmeca_line(:,9) = y(:,2);     opt_C = '-C';
             end
-            opt_S = ['-Sa' getappdata(handles_mirone.figure1,'MecaMag5') 'c'];
-            format = ['%.4f\t%.4f\t%.1f\t%.0f\t%.0f\t%.0f\t%.1f\t%.4f\t%.4f'];
+            opt_S = ['-Sa' getappdata(handMir.figure1,'MecaMag5') 'c'];
+            format = '%.4f\t%.4f\t%.1f\t%.0f\t%.0f\t%.0f\t%.1f\t%.4f\t%.4f';
             for (k=1:size(psmeca_line,1))
-                fprintf(fid,format,[psmeca_line(k,1:9)]);
+                fprintf(fid,format,psmeca_line(k,1:9));
                 if (with_label)
                     fprintf(fid,'\t%s\n',num2str(psmeca_line(k,10)));
                 else
                     fprintf(fid,'\n');
                 end
             end
-        elseif (n_cols == 13 | n_cols == 14)    % CMT convention
+        elseif (n_cols == 13 || n_cols == 14)    % CMT convention
             % If beach-bals are not ploted at their origin update the ploting coords columns
             if (~isempty(id_anch))
                 psmeca_line(:,12) = x(:,2); psmeca_line(:,13) = y(:,2);     opt_C = '-C';
             end
             psmeca_line(:,11) = psmeca_line(:,11) + 7;      % psmeca uses Moment in Dyn-cm
-            opt_S = ['-Sc' getappdata(handles_mirone.figure1,'MecaMag5') 'c'];
-            format = ['%.4f\t%.4f\t%.1f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.2f\t%d\t%.4f\t%.4f'];
+            opt_S = ['-Sc' getappdata(handMir.figure1,'MecaMag5') 'c'];
+            format = '%.4f\t%.4f\t%.1f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.2f\t%d\t%.4f\t%.4f';
             for (k=1:size(psmeca_line,1))
-                fprintf(fid,format,[psmeca_line(k,1:13)]);
+                fprintf(fid,format,psmeca_line(k,1:13));
                 if (with_label)
                     fprintf(fid,'\t%s\n',num2str(psmeca_line(k,14)));
                 else
@@ -1494,7 +1474,7 @@ if (~isempty(ALLpatchHand))
             end
         end
         fclose(fid);
-    	script{l} = [' '];              l=l+1;
+    	script{l} = ' ';              l=l+1;
         script{l} = [comm ' ---- Plot Focal Mechanisms'];   l=l+1;
         script{l} = ['psmeca ' opt_S ' ' opt_C ' ' name_sc ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
         ALLpatchHand = setxor(ALLpatchHand, focHand);       % focHand is processed, so remove it from handles list
@@ -1522,9 +1502,9 @@ if (~isempty(ALLpatchHand))
         name = [prefix_ddir '_country_names.txt'];   name_sc = [prefix '_country_names.txt'];
         fid = fopen(name,'wt');
         fprintf(fid,'%s\n',ct_names{:});        fclose(fid);
-		script{l} = [' '];              l=l+1;
+		script{l} = ' ';              l=l+1;
         script{l} = [comm ' ---- Plot countries. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
-        ct_with_pato = getappdata(handles_mirone.figure1,'AtlasResolution');
+        ct_with_pato = getappdata(handMir.figure1,'AtlasResolution');
 		script{l} = [pwd filesep 'country_extract -P' name ' ' ct_with_pato ' -C | ',...
                 'psxy ' ellips ' -R -J -W0.5p -M -O -K >> ' pb 'ps' pf];    l=l+1;
         ALLpatchHand = setxor(ALLpatchHand, AtlasHand);       % AtlasHand is processed, so remove it from handles list
@@ -1548,7 +1528,7 @@ if (~isempty(ALLpatchHand))
                 fid = fopen(name,'wt');
                 fprintf(fid,'%.5f\t%.5f\n',saved.line');
                 fclose(fid);
-			    script{l} = [' '];              l=l+1;
+			    script{l} = ' ';              l=l+1;
                 script{l} = [comm ' ---- Plot telhas. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
 			    script{l} = ['telha ' name_sc ' ' saved.opt_E ' ' saved.opt_I ' ',...
                     saved.opt_N ' ' saved.opt_T ' -Blixo.dat'];     l=l+1;
@@ -1570,9 +1550,9 @@ if (~isempty(ALLpatchHand))
     n_patch = length(ALLpatchHand);
     LineStyle = get(ALLpatchHand,'LineStyle');
     LineWidth = get(ALLpatchHand,'LineWidth');
-    if (iscell(LineWidth))      LineWidth = cat(1,LineWidth{:});     end
+    if (iscell(LineWidth)),     LineWidth = cat(1,LineWidth{:});     end
     EdgeColor = get(ALLpatchHand,'EdgeColor');
-    if (iscell(EdgeColor))      EdgeColor = cat(1,EdgeColor{:});     end
+    if (iscell(EdgeColor)),     EdgeColor = cat(1,EdgeColor{:});     end
     FillColor = get(ALLpatchHand,'FaceColor');
     if (iscell(FillColor))
         resp = strmatch('none',char(FillColor{:}));
@@ -1616,7 +1596,7 @@ if (~isempty(ALLpatchHand))
         end
     end
 	fclose(fid);
-	script{l} = [' '];              l=l+1;
+	script{l} = ' ';              l=l+1;
     script{l} = [comm ' ---- Plot closed AND colored polygons'];   l=l+1;
 	script{l} = ['psxy ' name_sc ellips ' -R -J --MEASURE_UNIT=point -M -O -K >> ' pb 'ps' pf];    l=l+1;
     clear ALLpatchHand name name_sc n_patch xx yy LineStyle LineWidth EdgeColor FillColor cor_edge resp
@@ -1629,7 +1609,7 @@ if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, pl
         xx = num2cell(xx(:),1);   yy = num2cell(yy(:),1);
     end
     n_lin = length(xx);
-	script{l} = [' '];                      l=l+1;
+	script{l} = ' ';                        l=l+1;
     script{l} = [comm ' ---- Plot lines'];  l=l+1;
     if (n_lin > 0)     % We have more than one line.         E SENAO?
         LineStyle = get(ALLlineHand,'LineStyle');
@@ -1688,14 +1668,14 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
             end
         elseif (ischar(fcolor))     % Shit, we have to decode the color letter
             switch fcolor
-                case 'w',       opt_G = {' -G255'};
-                case 'k',       opt_G = {' -G0'};
-                case 'y',       opt_G = {' -G255/255/0'};
-                case 'c',       opt_G = {' -G0/255/255'};
-                case 'r',       opt_G = {' -G255/0/0'};
-                case 'g',       opt_G = {' -G0/255/0'};
-                case 'b',       opt_G = {' -G0/0/255'};
-                otherwise,      opt_G = {''};
+				case 'w',       opt_G = {' -G255'};
+				case 'k',       opt_G = {' -G0'};
+				case 'y',       opt_G = {' -G255/255/0'};
+				case 'c',       opt_G = {' -G0/255/255'};
+				case 'r',       opt_G = {' -G255/0/0'};
+				case 'g',       opt_G = {' -G0/255/0'};
+				case 'b',       opt_G = {' -G0/0/255'};
+				otherwise,      opt_G = {''};
             end
         elseif (iscell(fcolor))     % Double shit, we have to convert a Mx3 cell matrix into texts
             tmp = cell2mat(fcolor) * 255;
@@ -1712,7 +1692,7 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
             str = {str};                font = {font};
         end
         n_text = length(str);
-		script{l} = [' '];                     l=l+1;
+		script{l} = ' ';        l=l+1;
         script{l} = [comm ' ---- Plot text strings'];   l=l+1;    
         for (i=1:n_text)
             script{l} = ['echo ' num2str(pos{i}(1),'%.5f') ' ' num2str(pos{i}(2),'%.5f') ' ' num2str(fsize{i}) ' ' ...
@@ -1722,36 +1702,64 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
 	end
 end
 
-%if (~isempty(ALLlineHand))     % Perdemos linhas
+% ------------- Search for colorbar -------------------------------------------
+	if (strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on'))
+        if (strcmp(get(handMir.PalAt,'Check'),'on')),	axHandle = get(handMir.PalAt,'UserData');
+        else											axHandle = get(handMir.PalIn,'UserData');
+        end
+        
+		axUnits = get(axHandle, 'Units');       set(axHandle, 'Units', 'pixels');
+        posCB = get(axHandle,'pos');            set(axHandle, 'Units', axUnits);
+		axUnits = get(handMir.axes1, 'Units');  set(handMir.axes1, 'Units', 'pixels');
+        posAx = get(handMir.axes1,'pos');       set(handMir.axes1, 'Units', axUnits);
+        
+        mapW = str2double(get(handles.edit_mapWidth,'String'));
+        mapH = str2double(get(handles.edit_mapHeight,'String'));
+        cbH = posCB(4) / posAx(4) * mapH;       % Estimate the colorbar height like this
+        marg = 0.3;     cbW = 0.5;    % Margin between Image and colorbar (in cm) and colorbar width
+        unitC = handles.which_unit(1);
+
+        if (handles.which_unit(1) == 'i')
+            marg = marg / 2.54;         cbW = cbW / 2.54;
+        end
+        if (handles.which_unit(1) == 'p')
+            marg = marg / 2.54 * 72;    cbW = cbW / 2.54 * 72;
+        end
+        opt_D = [' -D' sprintf('%.2f%c/%.2f%c/%.2f%c/%.2f%c',mapW+marg,unitC, cbH/2,unitC, cbH,unitC, cbW,unitC)];
+		script{l} = ' ';        l=l+1;
+        script{l} = [comm ' ---- Plot colorbar ---'];   l=l+1;
+        script{l} = ['psscale' opt_D ' -S -C' pb 'cpt' pf ' -B20 -O -K >> ' pb 'ps' pf];   l=l+1;
+        script{saveBind} = [script{saveBind} 'WSNe'];       % Don't write West anotations
+	end
 
 % -------------- Write the script ---------------------------------------------
 % First do some eventual cleaning
-if (~isempty(handles_mirone.grdname) & ~used_grd)          script(id_grd) = [];        end;
-if (ispc & (used_grd | used_countries) & need_path & ~strcmp(sc,'bat'))
-    tmp = cell(7,1);
-    tmp{1} = [comm 'If you see this message is because you choosed to generate a c-shell'];
-    tmp{2} = [comm 'script in a windows running machine. Notice that I have no means to'];
-    tmp{3} = [comm 'guess on what imullation schema (e.g. SFU, cygwin, etc..) you intend'];
-    tmp{4} = [comm 'to run this script. The point is that they use different file names'];
-    tmp{5} = [comm 'mapping. While cygwin accepts the c:\somewhere\somefile, SFU wants'];
-    tmp{6} = [comm '/dev/fs/C/somewhere/somefile. So it''s your responsability to set'];
-    if (used_grd & ~used_countries)
+if (~isempty(handMir.grdname) && ~used_grd),         script(id_grd) = [];        end;
+if (ispc && (used_grd || used_countries) && need_path && ~strcmp(sc,'bat'))
+	tmp = cell(7,1);
+	tmp{1} = [comm 'If you see this message is because you choosed to generate a c-shell'];
+	tmp{2} = [comm 'script in a windows running machine. Notice that I have no means to'];
+	tmp{3} = [comm 'guess on what imullation schema (e.g. SFU, cygwin, etc..) you intend'];
+	tmp{4} = [comm 'to run this script. The point is that they use different file names'];
+	tmp{5} = [comm 'mapping. While cygwin accepts the c:\somewhere\somefile, SFU wants'];
+	tmp{6} = [comm '/dev/fs/C/somewhere/somefile. So it''s your responsability to set'];
+	if (used_grd && ~used_countries)
         tmp{7} = [comm 'the $grd variable with the correct path.'];
-    elseif (~used_grd & used_countries)
+	elseif (~used_grd && used_countries)
         tmp{7} = [comm 'the paths correctly in the "country_select" command line.'];
-    else            % Both cases
+	else            % Both cases
         tmp{7} = [comm 'the $grd variable with the correct path. And the same'];
         tmp{9} = [comm 'for the paths in the "country_select" command line.'];
-    end
-    tmp{end+1} = '';
-    script = [script(1:4); tmp; script(5:end)];
-    out_msg = 1;
+	end
+	tmp{end+1} = '';
+	script = [script(1:4); tmp; script(5:end)];
+	out_msg = 1;
 end
 fid = fopen([prefix_ddir '_mir.' sc],'wt');
 for i = 1:length(script)-1
     fprintf(fid,'%s\n',script{i});
 end
-if (strcmp(sc,'bat'))   cut = 11;
+if (strcmp(sc,'bat')),  cut = 11;
 else                    cut = 10;    end
 last = [script{i+1}(1:end-cut) ' >> ' pb 'ps' pf];    % Remove the last '-K'
 fprintf(fid,'%s\n',last);
@@ -1759,74 +1767,74 @@ fclose(fid);
 
 % ----------------------------------------------------------------------------------
 function symbol = get_symbols(hand)
-xx = get(hand,'XData');     yy = get(hand,'YData');
-if (~iscell(xx))
-    xx = num2cell(xx,1);   yy = num2cell(yy,1);   % Make it a cell for reducing the head-hakes
-end
-symbol.x = xx(:);       symbol.y = yy(:);
-symbol.Marker = get(hand,'Marker');
-zz = get(hand,'MarkerSize');
-if (~iscell(zz))    symbol.Size = num2cell(zz,1);
-else                symbol.Size = zz;       end
-zz = get(hand,'MarkerFaceColor');
-if (~iscell(zz))    symbol.FillColor = num2cell(zz(:),1);
-else                symbol.FillColor = zz;  end
-zz = get(hand,'MarkerEdgeColor');
-if (~iscell(zz))    symbol.EdgeColor = num2cell(zz(:),1);
-else                symbol.EdgeColor = zz;  end
+	xx = get(hand,'XData');     yy = get(hand,'YData');
+	if (~iscell(xx))
+		xx = num2cell(xx,1);   yy = num2cell(yy,1);   % Make it a cell for reducing the head-hakes
+	end
+	symbol.x = xx(:);       symbol.y = yy(:);
+	symbol.Marker = get(hand,'Marker');
+	zz = get(hand,'MarkerSize');
+	if (~iscell(zz)),   symbol.Size = num2cell(zz,1);
+	else                symbol.Size = zz;       end
+	zz = get(hand,'MarkerFaceColor');
+	if (~iscell(zz)),   symbol.FillColor = num2cell(zz(:),1);
+	else                symbol.FillColor = zz;  end
+	zz = get(hand,'MarkerEdgeColor');
+	if (~iscell(zz)),   symbol.EdgeColor = num2cell(zz(:),1);
+	else                symbol.EdgeColor = zz;  end
 
-symbol.Marker = char(symbol.Marker);
-symbol.Marker = symbol.Marker(:,1);
+	symbol.Marker = char(symbol.Marker);
+	symbol.Marker = symbol.Marker(:,1);
 
-symbol.Marker(symbol.Marker == '^') = 't';
-symbol.Marker(symbol.Marker == '>') = 't';      % not in GMT
-symbol.Marker(symbol.Marker == '<') = 't';      % not in GMT
-symbol.Marker(symbol.Marker == 'v') = 'i';
-symbol.Marker(symbol.Marker == '.') = 'p';
-symbol.Marker(symbol.Marker == 'd') = 'd';
-symbol.Marker(symbol.Marker == 'o') = 'c';
-symbol.Marker(symbol.Marker == '+') = 'x';      % not in GMT
-symbol.Marker(symbol.Marker == 'x') = 'x';
-symbol.Marker(symbol.Marker == 's') = 's';
-symbol.Marker(symbol.Marker == '*') = 'a';
-symbol.Marker(symbol.Marker == 'p') = 'a';      % not in GMT
-symbol.Marker(symbol.Marker == 'h') = 'a';      % not in GMT
+	symbol.Marker(symbol.Marker == '^') = 't';
+	symbol.Marker(symbol.Marker == '>') = 't';      % not in GMT
+	symbol.Marker(symbol.Marker == '<') = 't';      % not in GMT
+	symbol.Marker(symbol.Marker == 'v') = 'i';
+	symbol.Marker(symbol.Marker == '.') = 'p';
+	symbol.Marker(symbol.Marker == 'd') = 'd';
+	symbol.Marker(symbol.Marker == 'o') = 'c';
+	symbol.Marker(symbol.Marker == '+') = 'x';      % not in GMT
+	symbol.Marker(symbol.Marker == 'x') = 'x';
+	symbol.Marker(symbol.Marker == 's') = 's';
+	symbol.Marker(symbol.Marker == '*') = 'a';
+	symbol.Marker(symbol.Marker == 'p') = 'a';      % not in GMT
+	symbol.Marker(symbol.Marker == 'h') = 'a';      % not in GMT
 
 % ----------------------------------------------------------------------------------
 function [LineStyle_num,LineStyle_gmt] = lineStyle2num(LineStyle)
-if (~iscell(LineStyle))     LineStyle = {LineStyle};    end
-lt = {'-'; '--'; ':'; '-.'};
-LineStyle_num = strrep(LineStyle,lt{4},'4');
-LineStyle_num = strrep(LineStyle_num,lt{3},'3');
-LineStyle_num = strrep(LineStyle_num,lt{2},'2');
-LineStyle_num = strrep(LineStyle_num,lt{1},'1');
-tmp = LineStyle_num;
-LineStyle_num = str2num(cat(1,LineStyle_num{:}));
-% Convert to GMT linestyles
-tmp = strrep(tmp,'4',',.-');
-tmp = strrep(tmp,'3',',.');
-tmp = strrep(tmp,'2',',-');
-LineStyle_gmt = strrep(tmp,'1','');
+	if (~iscell(LineStyle)),    LineStyle = {LineStyle};    end
+	lt = {'-'; '--'; ':'; '-.'};
+	LineStyle_num = strrep(LineStyle,lt{4},'4');
+	LineStyle_num = strrep(LineStyle_num,lt{3},'3');
+	LineStyle_num = strrep(LineStyle_num,lt{2},'2');
+	LineStyle_num = strrep(LineStyle_num,lt{1},'1');
+	tmp = LineStyle_num;
+	LineStyle_num = str2num(cat(1,LineStyle_num{:}));
+	% Convert to GMT linestyles
+	tmp = strrep(tmp,'4',',.-');
+	tmp = strrep(tmp,'3',',.');
+	tmp = strrep(tmp,'2',',-');
+	LineStyle_gmt = strrep(tmp,'1','');
 
 % --------------------------------------------------------------------
 function script = write_group_symb(prefix,prefix_ddir,comm,pb,pf,ellips,symbols,n,script)
-% Write a group symbol to file, and uppdate the "script"
-l = length(script) + 1;
-for i=1:length(n)
-    name = [prefix_ddir '_symb_' num2str(i) '.dat'];
-    name_sc = [prefix '_symb_' num2str(i) '.dat'];
-	fid = fopen(name,'wt');
-	cor_fill = round(symbols.FillColor{n(i)} * 255);
-	cor_fill = [num2str(cor_fill(1)) '/' num2str(cor_fill(2)) '/' num2str(cor_fill(3))];
-	cor_edge = round(symbols.EdgeColor{n(i)} * 255);
-	cor_edge = [num2str(cor_edge(1)) '/' num2str(cor_edge(2)) '/' num2str(cor_edge(3))];
-	fprintf(fid,'%.5f\t%.5f\n',[symbols.x{n(i)}; symbols.y{n(i)}]);
-	script{l} = [' '];                                  l=l+1;
-	script{l} = [comm 'Plot symbols'];                  l=l+1;
-	script{l} = ['psxy ' name_sc ' -S' symbols.Marker(n(i)) num2str(symbols.Size{n(i)}) 'p' ' -G' cor_fill ...
-            ' -W1/' cor_edge ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
-	fclose(fid);
-end
+	% Write a group symbol to file, and uppdate the "script"
+	l = length(script) + 1;
+	for i=1:length(n)
+		name = [prefix_ddir '_symb_' num2str(i) '.dat'];
+		name_sc = [prefix '_symb_' num2str(i) '.dat'];
+		fid = fopen(name,'wt');
+		cor_fill = round(symbols.FillColor{n(i)} * 255);
+		cor_fill = [num2str(cor_fill(1)) '/' num2str(cor_fill(2)) '/' num2str(cor_fill(3))];
+		cor_edge = round(symbols.EdgeColor{n(i)} * 255);
+		cor_edge = [num2str(cor_edge(1)) '/' num2str(cor_edge(2)) '/' num2str(cor_edge(3))];
+		fprintf(fid,'%.5f\t%.5f\n',[symbols.x{n(i)}; symbols.y{n(i)}]);
+		script{l} = ' ';                    l=l+1;
+		script{l} = [comm 'Plot symbols'];  l=l+1;
+		script{l} = ['psxy ' name_sc ' -S' symbols.Marker(n(i)) num2str(symbols.Size{n(i)}) 'p' ' -G' cor_fill ...
+                ' -W1/' cor_edge ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+		fclose(fid);
+	end
 
 % --------------------------------------------------------------------------------
 function [latcells,loncells] = polysplit(lat,lon)
@@ -1861,10 +1869,10 @@ latcells = cell(N,1);
 loncells = cell(N,1);
 indx = [0; indx];
 for k = 1:N
-    iStart = indx(k)   + 1;
-    iEnd   = indx(k+1) - 1;
-    latcells{k} = lat(iStart:iEnd);
-    loncells{k} = lon(iStart:iEnd);
+	iStart = indx(k)   + 1;
+	iEnd   = indx(k+1) - 1;
+	latcells{k} = lat(iStart:iEnd);
+	loncells{k} = lon(iStart:iEnd);
 end
 
 % --------------------------------------------------------------------------------
@@ -1931,11 +1939,18 @@ end
 xdata(s) = [];      ydata(s) = [];
 if (nargin >= 3),   zdata(s) = [];  end
 
+%-------------------------------------------------------------------------------------
+function figure1_KeyPressFcn(hObject, eventdata)
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		delete(hObject);
+	end
+
 % ---------------------- Creates and returns a handle to the GUI figure. 
-function write_gmt_script_LayoutFcn(h1,handles);
+function write_gmt_script_LayoutFcn(h1)
 
 set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','write_gmt_script',...
 'NumberTitle','off',...
@@ -1946,9 +1961,9 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'HandleVisibility','callback',...
 'Tag','figure1');
 
-h2 = uicontrol('Parent',h1,'Position',[30 9 205 121],'Style','frame','Tag','frame1');
+uicontrol('Parent',h1,'Position',[30 9 205 121],'Style','frame','Tag','frame1');
 
-h3 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@write_gmt_script_uicallback,h1,'popup_PaperSize_Callback'},...
 'Position',[40 98 181 22],...
@@ -1957,7 +1972,7 @@ h3 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','popup_PaperSize');
 
-h4 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_P_Callback'},...
 'Position',[40 42 71 15],...
 'String','Portrait',...
@@ -1965,7 +1980,7 @@ h4 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','radiobutton_P');
 
-h5 = axes('Parent',h1,...
+axes('Parent',h1,...
 'Units','pixels',...
 'CameraPosition',[0.5 0.5 9.16025403784439],...
 'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
@@ -1977,14 +1992,14 @@ h5 = axes('Parent',h1,...
 'ZColor',get(0,'defaultaxesZColor'),...
 'Tag','axes1');
 
-h10 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_L_Callback'},...
 'Position',[40 18 72 15],...
 'String','Landscape',...
 'Style','radiobutton',...
 'Tag','radiobutton_L');
 
-h11 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_setWidth_Callback'},...
 'Position',[135 42 95 15],...
 'String','Set map width',...
@@ -1993,7 +2008,7 @@ h11 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','radiobutton_setWidth');
 
-h12 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_setHeight_Callback'},...
 'Position',[135 18 95 15],...
 'String','Set map height',...
@@ -2016,14 +2031,14 @@ uicontrol('Parent',h1, ...
 'TooltipString','Plot longitudes in the [0;360] range',...
 'Tag','radiobutton_0_360');
 
-h13 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'pushbutton_uppdate_Callback'},...
 'Position',[340 60 68 33],...
 'String','Update', 'FontWeight','bold',...
 'TooltipString','Update the rectangle size to allowed dimensions according to projection and side constraints',...
 'Tag','pushbutton_uppdate');
 
-h14 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@write_gmt_script_uicallback,h1,'edit_X0_Callback'},...
 'Position',[480 89 61 21],...
@@ -2032,7 +2047,7 @@ h14 = uicontrol('Parent',h1,...
 'TooltipString','Plot X origin',...
 'Tag','edit_X0');
 
-h15 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@write_gmt_script_uicallback,h1,'edit_Y0_Callback'},...
 'Position',[480 59 61 21],...
@@ -2041,7 +2056,7 @@ h15 = uicontrol('Parent',h1,...
 'TooltipString','Plot Y origin',...
 'Tag','edit_Y0');
 
-h16 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@write_gmt_script_uicallback,h1,'edit_mapWidth_Callback'},...
 'Position',[480 149 60 21],...
@@ -2049,14 +2064,14 @@ h16 = uicontrol('Parent',h1,...
 'TooltipString','Map width',...
 'Tag','edit_mapWidth');
 
-h17 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'pushbutton_mapProjections_Callback'},...
 'Position',[400 367 95 23],...
 'String','Map projection',...
 'TooltipString','Select/Change the map projection',...
 'Tag','pushbutton_mapProjections');
 
-h18 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_cm_Callback'},...
 'Position',[40 75 40 15],...
 'String','cm',...
@@ -2065,7 +2080,7 @@ h18 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','radiobutton_cm');
 
-h19 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_in_Callback'},...
 'Position',[116 75 40 15],...
 'String','in',...
@@ -2073,7 +2088,7 @@ h19 = uicontrol('Parent',h1,...
 'TooltipString','Show paper size in inches',...
 'Tag','radiobutton_in');
 
-h20 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_pt_Callback'},...
 'Position',[179 75 40 15],...
 'String','pt',...
@@ -2081,7 +2096,7 @@ h20 = uicontrol('Parent',h1,...
 'TooltipString','Show paper size in points',...
 'Tag','radiobutton_pt');
 
-h21 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'pushbutton_OK_Callback'},...
 'FontSize',9,...
 'FontWeight','bold',...
@@ -2089,7 +2104,7 @@ h21 = uicontrol('Parent',h1,...
 'String','Write script',...
 'Tag','pushbutton_OK');
 
-h22 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@write_gmt_script_uicallback,h1,'edit_mapHeight_Callback'},...
 'Position',[480 119 60 21],...
@@ -2097,7 +2112,7 @@ h22 = uicontrol('Parent',h1,...
 'TooltipString','Map height',...
 'Tag','edit_mapHeight');
 
-h23 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@write_gmt_script_uicallback,h1,'edit_scale_Callback'},...
 'Position',[410 179 131 21],...
@@ -2105,7 +2120,7 @@ h23 = uicontrol('Parent',h1,...
 'TooltipString','Aproximate map scale',...
 'Tag','edit_scale');
 
-h24 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@write_gmt_script_uicallback,h1,'popup_directory_list_Callback'},...
 'Position',[330 240 191 22],...
@@ -2114,41 +2129,40 @@ h24 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','popup_directory_list');
 
-h25 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@write_gmt_script_uicallback,h1,'edit_prefix_Callback'},...
 'Position',[430 209 111 21],...
 'Style','edit',...
 'TooltipString','Script and files name prefix',...
 'Tag','edit_prefix');
 
-h26 = uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[426 152 51 15],...
+uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[426 152 51 15],...
 'String','Map width','Style','text','Tag','text2');
 
-h27 = uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[426 122 53 15],...
+uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[426 122 53 15],...
 'String','Map height','Style','text','Tag','text3');
 
-h28 = uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[426 92 41 15],...
+uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[426 92 41 15],...
 'String','X origin','Style','text','Tag','text4');
 
-h29 = uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[426 62 41 15],...
+uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[426 62 41 15],...
 'String','Y origin','Style','text','Tag','text5');
 
-h30 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'pushbutton_change_dir_Callback'},...
 'FontWeight','bold','Position',[520 241 21 21],...
 'String','...',...
 'Tag','pushbutton_change_dir');
 
-h31 = uicontrol('Parent',h1,'Position',[120 9 3 51],'Style','frame','Tag','frame2');
+uicontrol('Parent',h1,'Position',[120 9 3 51],'Style','frame','Tag','frame2');
 
-h32 = uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[369 212 58 15],...
+uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[369 212 58 15],...
 'String','Name prefix','Style','text','Tag','text6');
 
-h33 = uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[331 182 76 15],...
+uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[331 182 76 15],...
 'String','Map scale (apr)','Style','text','Tag','text8');
 
-h34 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'togglebutton_Option_L_Callback'},...
 'Position',[260 95 66 34],...
 'Style','togglebutton',...
@@ -2156,13 +2170,13 @@ h34 = uicontrol('Parent',h1,...
 'SelectionHighlight','off',...
 'Tag','togglebutton_Option_L');
 
-h35 = uicontrol('Parent',h1,'Enable','inactive','HorizontalAlignment','left',...
+uicontrol('Parent',h1,'Enable','inactive','HorizontalAlignment','left',...
 'Position',[269 100 48 27],...
 'String',{'    Map'; 'scale bar'},...
 'Style','text',...
 'Tag','text_MapScale');
 
-h36 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'togglebutton_Option_U_Callback'},...
 'Position',[260 26 66 34],...
 'Style','togglebutton',...
@@ -2170,11 +2184,11 @@ h36 = uicontrol('Parent',h1,...
 'SelectionHighlight','off',...
 'Tag','togglebutton_Option_U');
 
-h37 = uicontrol('Parent',h1,'Enable','inactive','HorizontalAlignment','left',...
+uicontrol('Parent',h1,'Enable','inactive','HorizontalAlignment','left',...
 'Position',[265 30 57 28],'String',{'Time Stamp'; '& signature' },...
 'Style','text','Tag','text11');
 
-h38 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'checkbox_removeOptionL_Callback'},...
 'Position',[265 30 66 15],...
 'String','Remove',...
@@ -2183,7 +2197,7 @@ h38 = uicontrol('Parent',h1,...
 'Tag','checkbox_removeOptionL',...
 'Visible','off');
 
-h39 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'checkbox_removeOptionU_Callback'},...
 'Position',[260 10 66 15],...
 'String','Remove',...
@@ -2192,20 +2206,20 @@ h39 = uicontrol('Parent',h1,...
 'Tag','checkbox_removeOptionU',...
 'Visible','off');
 
-h40 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'pushbutton_coastLines_Callback'},...
 'Position',[360 408 181 23],...
 'String','Apply finer control to coast lines',...
 'Tag','pushbutton_coastLines');
 
-h41 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@write_gmt_script_uicallback,h1,'pushbutton_cancel_Callback'},...
 'FontSize',9,...
 'Position',[370 8 82 24],...
 'String','Cancel',...
 'Tag','pushbutton_cancel');
 
-h42 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
 'Position',[340 281 201 71],...
 'String','Nikles',...
