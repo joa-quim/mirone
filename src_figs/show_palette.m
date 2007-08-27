@@ -77,7 +77,7 @@ function varargout = show_palette(varargin)
         axPos = [posAxParent(1)+posAxParent(3)+marg posAxParent(2) barW min(420,posAxParent(4))];
 		hAx = axes('Units','Pixels','pos',axPos,'Parent',handMir.figure1,'vis','off');
 		image([1 10],handMir.head(5:6),[1:size(cmap,1)]');
-		set(hAx,'XTick',[],'YAxisLocation','right','YDir','normal','HandleVisibility','off')
+		set(hAx,'XTick',[],'YAxisLocation','right','YDir','normal','HandleVisibility','off','Tag','MIR_CBat')
 
 		h_Ylabel = get(hAx,'Ylabel');	set(h_Ylabel,'units','pixels')
 		Ylabel_pos = get(h_Ylabel,'Extent');
@@ -108,7 +108,7 @@ function varargout = show_palette(varargin)
         axPos = [posAxParent(1)+posAxParent(3)-barW posAxParent(2) barW posAxParent(4)];
 		hAx = axes('Units','Pixels','pos',axPos,'Parent',handMir.figure1,'Vis','off');
 		image([1 10],handMir.head(5:6),[1:size(cmap,1)]');
-		set(hAx,'XTick',[],'YDir','normal','HandleVisibility','off','Units','normalized','Vis','on')
+		set(hAx,'XTick',[],'YDir','normal','HandleVisibility','off','Units','normalized','Vis','on','Tag','MIR_CBin')
 		set(hUict,'Userdata',hAx)            % Save it so that we can restore upon colorbar deletion
 		set(hUict,'Checked','on')
 
