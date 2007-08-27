@@ -1,15 +1,6 @@
 function varargout = grdsample_Mir(varargin)
 % M-File changed by desGUIDE 
-% varargin   command line arguments to grdsample_Mir
 %
-%   The input must contain (GMTheader, [M N]) where M N are the matrix row and column dim
-%
-%   The output is a structure with one or more of the following fields (or empty):
-%   out.opt_R   -> only if grid limits are changed
-%   out.opt_N   -> allways (even if user only changes x_inc/y_inc)
-%   out.opt_Q   -> if bilinear was choosen
-%   out.opt_L   -> if boundary conditions were selected
-
 %	Copyright (c) 2004-2006 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
@@ -25,18 +16,28 @@ function varargout = grdsample_Mir(varargin)
 % --------------------------------------------------------------------
  
 	hObject = figure('Tag','figure1','Visible','off');
-	handles = guihandles(hObject);
-	guidata(hObject, handles);
-	grdsample_Mir_LayoutFcn(hObject,handles);
+	grdsample_Mir_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	movegui(hObject,'center')
 
 	if ~isempty(varargin)
-        head = varargin{1};
-        handles.nr_or = varargin{2}(1);
-        handles.nc_or = varargin{2}(2);
+		handMir  = varargin{1};
+		handles.Z = getappdata(handMir.figure1,'dem_z');
 	else
         errordlg('GRDSAMPLE: wrong number of arguments.','Error')
+        delete(hObject);    return
+	end
+    
+	if (handMir.no_file)
+		errordlg('GRDSAMPLE: You didn''t even load a file. What are you expecting then?','ERROR')
+        delete(hObject);    return
+	end
+	if (~handMir.validGrid)
+        errordlg('GRDSAMPLE: This operation is deffined only for images derived from DEM grids.','ERROR')
+        delete(hObject);    return
+	end
+	if (isempty(handles.Z))
+        errordlg('GRDSAMPLE: Grid was not saved in memory. Increase "Grid max size" and start over.','ERROR')
         delete(hObject);    return
 	end
 
@@ -45,9 +46,13 @@ function varargout = grdsample_Mir(varargin)
 	handles.x_inc = [];             handles.y_inc = [];
 	handles.dms_xinc = 0;           handles.dms_yinc = 0;
 	handles.bd_cond = [];
+    handles.nr_or = size(handles.Z,1);
+    handles.nc_or = size(handles.Z,2);
+    handles.hMirFig = handMir.figure1;
 
 	%-----------
 	% Fill in the grid limits boxes with calling fig values and save some limiting value
+    head = handMir.head;
 	set(handles.edit_x_min,'String',sprintf('%.8g',head(1)))
 	set(handles.edit_x_max,'String',sprintf('%.8g',head(2)))
 	set(handles.edit_y_min,'String',sprintf('%.8g',head(3)))
@@ -56,7 +61,7 @@ function varargout = grdsample_Mir(varargin)
 	handles.y_min = head(3);            handles.y_max = head(4);
 	handles.x_min_or = head(1);         handles.x_max_or = head(2);
 	handles.y_min_or = head(3);         handles.y_max_or = head(4);
-	handles.one_or_zero = head(7);
+	handles.one_or_zero = ~head(7);
 
 	% Fill in the x,y_inc and nrow,ncol boxes
 	set(handles.edit_Nrows,'String',sprintf('%d',handles.nr_or))
@@ -64,6 +69,7 @@ function varargout = grdsample_Mir(varargin)
 	set(handles.edit_y_inc,'String',sprintf('%.10g',head(9)))
 	set(handles.edit_x_inc,'String',sprintf('%.10g',head(8)))
 	handles.x_inc = head(8);    handles.y_inc = head(9);
+	handles.head = head;
 	%----------------
 
 	% Give a Pro look (3D) to the frame boxes 
@@ -93,243 +99,42 @@ function varargout = grdsample_Mir(varargin)
 	end
 	delete(h_t)
 
-	% Choose default command line output for grdsample_Mir_export
-	handles.output = hObject;
 	guidata(hObject, handles);
 
 	set(hObject,'Visible','on');
-	% UIWAIT makes grdsample_Mir_export wait for user response (see UIRESUME)
-	uiwait(handles.figure1);
-
-	handles = guidata(hObject);
-	varargout{1} = handles.output;
-	delete(handles.figure1);
+	if (nargout),   varargout{1} = hObject;     end
 
 % --------------------------------------------------------------------
 function edit_x_min_Callback(hObject, eventdata, handles)
-	x_min_or = handles.x_min_or;
-	xx = get(hObject,'String');     val = test_dms(xx);
-	if ~isempty(val)            % when dd:mm or dd:mm:ss was given
-        x_min = 0;
-        if str2double(val{1}) > 0
-            for i = 1:length(val)   x_min = x_min + str2double(val{i}) / (60^(i-1));    end
-        else
-            for i = 1:length(val)   x_min = x_min - abs(str2double(val{i})) / (60^(i-1));   end
-        end
-        if (x_min < x_min_or);  set(hObject,'String',num2str(x_min_or,6));    return;     end; 
-        handles.x_min = x_min;
-        if ~isempty(handles.x_max) & x_min >= handles.x_max
-            errordlg('West Longitude >= East Longitude ','Error in Longitude limits')
-            set(hObject,'String','');   guidata(hObject, handles);  return
-        end
-        nc = get(handles.edit_Ncols,'String');
-        if ~isempty(handles.x_max) & ~isempty(nc)       % x_max and ncols boxes are filled
-            % Compute Ncols, but first must recompute x_inc
-            x_inc = ivan_the_terrible((handles.x_max - x_min),round(abs(str2double(nc))),1);
-            xx = floor((handles.x_max - str2double(xx)) / (str2double(get(handles.edit_x_inc,'String')))+0.5) + handles.one_or_zero;
-            set(handles.edit_x_inc,'String',num2str(x_inc,8))
-            guidata(hObject, handles);
-        elseif ~isempty(handles.x_max)      % x_max box is filled but ncol is not, so put to the default (100)
-            x_inc = ivan_the_terrible((handles.x_max - x_min),100,1);
-            set(handles.edit_x_inc,'String',num2str(x_inc,8))
-            set(handles.edit_Ncols,'String','100')
-            guidata(hObject, handles);
-        end
-	else                % box is empty, so clear also x_inc and ncols
-        set(handles.edit_x_inc,'String','');     set(handles.edit_Ncols,'String','');
-        set(hObject,'String','');   guidata(hObject, handles);
-	end
+	dim_funs('xMin', hObject, handles)
 
 % --------------------------------------------------------------------
 function edit_x_max_Callback(hObject, eventdata, handles)
-	x_max_or = handles.x_max_or;
-	xx = get(hObject,'String');     val = test_dms(xx);
-	if ~isempty(val)
-        x_max = 0;
-        if str2double(val{1}) > 0
-            for i = 1:length(val)   x_max = x_max + str2double(val{i}) / (60^(i-1));    end
-        else
-            for i = 1:length(val)   x_max = x_max - abs(str2double(val{i})) / (60^(i-1));   end
-        end
-        if (x_max > x_max_or);  set(hObject,'String',num2str(x_max_or,6));    return;     end; 
-        handles.x_max = x_max;
-        if ~isempty(handles.x_min) & x_max <= handles.x_min 
-            errordlg('East Longitude <= West Longitude','Error in Longitude limits')
-            set(hObject,'String','');   guidata(hObject, handles);  return
-        end
-        nc = get(handles.edit_Ncols,'String');
-        if ~isempty(handles.x_min) & ~isempty(nc)       % x_max and ncols boxes are filled
-            % Compute Ncols, but first must recompute x_inc
-            x_inc = ivan_the_terrible((x_max - handles.x_min),round(abs(str2double(nc))),1);
-            xx = floor((handles.x_min - str2double(xx)) / (str2double(get(handles.edit_x_inc,'String')))+0.5) + handles.one_or_zero;
-            set(handles.edit_x_inc,'String',num2str(x_inc,8))
-            guidata(hObject, handles);    
-        elseif ~isempty(handles.x_min)      % x_min box is filled but ncol is not, so put to the default (100)
-            x_inc = ivan_the_terrible((x_max - handles.x_min),100,1);
-            set(handles.edit_x_inc,'String',num2str(x_inc,8))
-            set(handles.edit_Ncols,'String','100')
-            guidata(hObject, handles);
-        end
-	else                % box is empty, so clear also x_inc and ncols
-        set(handles.edit_x_inc,'String','');     set(handles.edit_Ncols,'String','');
-        set(hObject,'String','');   guidata(hObject, handles);
-	end
+	dim_funs('xMax', hObject, handles)
 
 % --------------------------------------------------------------------
 function edit_y_min_Callback(hObject, eventdata, handles)
-	% Read value either in decimal or in the dd:mm or dd_mm:ss formats and do some tests
-	y_min_or = handles.y_min_or;
-	xx = get(hObject,'String');     val = test_dms(xx);
-	if ~isempty(val)
-        y_min = 0;
-        if str2double(val{1}) > 0
-            for i = 1:length(val)   y_min = y_min + str2double(val{i}) / (60^(i-1));    end
-        else
-            for i = 1:length(val)   y_min = y_min - abs(str2double(val{i})) / (60^(i-1));   end
-        end
-        if (y_min < y_min_or);  set(hObject,'String',num2str(y_min_or,6));    return;     end; 
-        handles.y_min = y_min;
-        if ~isempty(handles.y_max) & y_min >= handles.y_max
-            errordlg('South Latitude >= North Latitude','Error in Latitude limits')
-            set(hObject,'String','');   guidata(hObject, handles);  return
-        end
-        nr = get(handles.edit_Nrows,'String');
-        if ~isempty(handles.y_max) & ~isempty(nr)       % y_max and nrows boxes are filled
-            % Compute Nrowss, but first must recompute y_inc
-            y_inc = ivan_the_terrible((handles.y_max - y_min),round(abs(str2double(nr))),1);
-            xx = floor((handles.y_max - str2double(xx)) / (str2double(get(handles.edit_y_inc,'String')))+0.5) + handles.one_or_zero;
-            set(handles.edit_y_inc,'String',num2str(y_inc,8))
-            guidata(hObject, handles);
-        elseif ~isempty(handles.y_max)      % y_max box is filled but nrows is not, so put to the default (100)
-            y_inc = ivan_the_terrible((handles.y_max - y_min),100,1);
-            set(handles.edit_y_inc,'String',num2str(y_inc,8))
-            set(handles.edit_Nrows,'String','100')
-            guidata(hObject, handles);
-        end
-	else                % box is empty, so clear also y_inc and nrows
-        set(handles.edit_y_inc,'String','');     set(handles.edit_Nrows,'String','');
-        set(hObject,'String','');   guidata(hObject, handles);
-	end
+	dim_funs('yMin', hObject, handles)
 
 % --------------------------------------------------------------------
 function edit_y_max_Callback(hObject, eventdata, handles)
-	y_max_or = handles.y_max_or;
-	xx = get(hObject,'String');     val = test_dms(xx);
-	if ~isempty(val)
-        y_max = 0;
-        if str2double(val{1}) > 0
-            for i = 1:length(val)   y_max = y_max + str2double(val{i}) / (60^(i-1));    end
-        else
-            for i = 1:length(val)   y_max = y_max - abs(str2double(val{i})) / (60^(i-1));   end
-        end
-        if (y_max > y_max_or);  set(hObject,'String',num2str(y_max_or,6));    return;     end; 
-        handles.y_max = y_max;
-        if ~isempty(handles.y_min) & y_max <= handles.y_min 
-            errordlg('North Latitude <= South Latitude','Error in Latitude limits')
-            set(hObject,'String','');   guidata(hObject, handles);  return
-        end
-        nr = get(handles.edit_Nrows,'String');
-        if ~isempty(handles.y_min) & ~isempty(nr)       % y_min and nrows boxes are filled
-            % Compute Nrows, but first must recompute y_inc
-            y_inc = ivan_the_terrible((y_max - handles.y_min),round(abs(str2double(nr))),1);
-            xx = floor((handles.y_min - str2double(xx)) / (str2double(get(handles.edit_y_inc,'String')))+0.5) + handles.one_or_zero;
-            set(handles.edit_y_inc,'String',num2str(y_inc,8))
-            guidata(hObject, handles);
-        elseif ~isempty(handles.y_min)      % y_min box is filled but nrows is not, so put to the default (100)
-            y_inc = ivan_the_terrible((y_max - handles.y_min),100,1);
-            set(handles.edit_y_inc,'String',num2str(y_inc,8))
-            set(handles.edit_Nrows,'String','100')
-            guidata(hObject, handles);
-        end
-	else                % This box is empty, so clear also y_inc and nrows
-        set(handles.edit_y_inc,'String','');     set(handles.edit_Nrows,'String','');
-        set(hObject,'String','');   guidata(hObject, handles);
-	end
+	dim_funs('yMax', hObject, handles)
 
 % --------------------------------------------------------------------
 function edit_x_inc_Callback(hObject, eventdata, handles)
-	dms = 0;
-	xx = get(hObject,'String');     val = test_dms(xx);
-	if isempty(val)
-        set(hObject, 'String', '');    return
-	end
-	% If it survived then ...
-	if length(val) > 1    dms = 1;      end         % inc given in dd:mm or dd:mm:ss format
-	x_inc = 0;
-	for i = 1:length(val)   x_inc = x_inc + str2double(val{i}) / (60^(i-1));    end
-	if ~isempty(handles.x_min) & ~isempty(handles.x_max)
-        % Make whatever x_inc given compatible with GMT_grd_RI_verify
-        x_inc = ivan_the_terrible((handles.x_max - handles.x_min), x_inc,2);
-        if ~dms         % case of decimal unities
-            set(hObject,'String',num2str(x_inc,8))
-            ncol = floor((handles.x_max - handles.x_min) / x_inc + 0.5) + handles.one_or_zero;
-        else            % inc was in dd:mm or dd:mm:ss format
-            ncol = floor((handles.x_max - handles.x_min) / x_inc + 0.5) + handles.one_or_zero;
-            ddmm = dec2deg(x_inc);
-            set(hObject,'String',ddmm)
-        end
-        set(handles.edit_Ncols,'String',sprintf('%d',ncol))
-	end
-	handles.dms_xinc = dms;
-	guidata(hObject, handles);
-	if isempty(get(handles.edit_y_inc,'String'))     set(handles.edit_y_inc,'String',xx);    end
+	dim_funs('xInc', hObject, handles)
 
 % --------------------------------------------------------------------
 function edit_Ncols_Callback(hObject, eventdata, handles)
-	xx = get(hObject,'String');
-	if ~isempty(get(handles.edit_x_min,'String')) & ~isempty(get(handles.edit_x_max,'String')) & ...
-            ~isempty(get(handles.edit_x_inc,'String')) & ~isempty(xx)
-        x_inc = ivan_the_terrible((handles.x_max - handles.x_min),round(abs(str2double(xx))),1);
-        if handles.dms_xinc        % x_inc was given in dd:mm:ss format
-            ddmm = dec2deg(x_inc);
-            set(handles.edit_x_inc,'String',ddmm)
-        else                    % x_inc was given in decimal format
-            set(handles.edit_x_inc,'String',sprintf('%12g',x_inc));
-        end
-        guidata(hObject, handles);
-	end
+	dim_funs('nCols', hObject, handles)
 
 % --------------------------------------------------------------------
 function edit_y_inc_Callback(hObject, eventdata, handles)
-	dms = 0;
-	xx = get(hObject,'String');     val = test_dms(xx);
-	if isempty(val)
-        set(hObject, 'String', '');    return
-	end
-	% If it survived then ...
-	if length(val) > 1    dms = 1;      end         % inc given in dd:mm or dd:mm:ss format
-	y_inc = 0;
-	for i = 1:length(val)   y_inc = y_inc + str2double(val{i}) / (60^(i-1));    end
-	if ~isempty(handles.y_min) & ~isempty(handles.y_max)
-        % Make whatever y_inc given compatible with GMT_grd_RI_verify
-        y_inc = ivan_the_terrible((handles.y_max - handles.y_min), y_inc,2);
-        if ~dms         % case of decimal unities
-            set(hObject,'String',num2str(y_inc,8))
-            nrow = floor((handles.y_max - handles.y_min) / y_inc + 0.5) + handles.one_or_zero;
-        else            % inc was in dd:mm or dd:mm:ss format
-            nrow = floor((handles.y_max - handles.y_min) / y_inc + 0.5) + handles.one_or_zero;
-            ddmm = dec2deg(y_inc);
-            set(hObject,'String',ddmm)
-        end
-        set(handles.edit_Nrows,'String',sprintf('%d',nrow))
-	end
-	handles.dms_yinc = dms;
-	guidata(hObject, handles);
+	dim_funs('yInc', hObject, handles)
 
 % --------------------------------------------------------------------
 function edit_Nrows_Callback(hObject, eventdata, handles)
-	xx = get(hObject,'String');
-	if ~isempty(get(handles.edit_y_min,'String')) && ~isempty(get(handles.edit_y_max,'String')) && ...
-            ~isempty(get(handles.edit_y_inc,'String')) && ~isempty(xx)
-        y_inc = ivan_the_terrible((handles.y_max - handles.y_min),round(abs(str2double(xx))),1);
-        if handles.dms_yinc        % y_inc was given in dd:mm:ss format
-            ddmm = dec2deg(y_inc);
-            set(handles.edit_y_inc,'String',ddmm)
-        else                    % y_inc was given in decimal format
-            set(handles.edit_y_inc,'String',sprintf('%12g',y_inc));
-        end
-        guidata(hObject, handles);
-	end
+	dim_funs('nRows', hObject, handles)
 
 % --------------------------------------------------------------------
 function pushbutton_Help_R_F_T_Callback(hObject, eventdata, handles)
@@ -365,12 +170,12 @@ function pushbutton_Help_L_Callback(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
-	handles.output = '';        % User gave up, return nothing
-	guidata(hObject, handles);  uiresume(handles.figure1);
+	delete(handles.figure1);
 
 % --------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
-	out = [];   n_set = 0;
+	opt_R = ' ';     opt_N = ' ';     opt_Q = ' ';     opt_L = ' ';
+    n_set = 0;
 	x_min = get(handles.edit_x_min,'String');   x_max = get(handles.edit_x_max,'String');
 	y_min = get(handles.edit_y_min,'String');   y_max = get(handles.edit_y_max,'String');
 	if isempty(x_min) || isempty(x_max) || isempty(y_min) || isempty(y_max)
@@ -384,20 +189,20 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 	end
 
 	if (nx ~= handles.nc_or || ny ~= handles.nr_or)
-        out.opt_N = ['-N' get(handles.edit_Ncols,'String') '/' get(handles.edit_Nrows,'String')];
+        opt_N = ['-N' get(handles.edit_Ncols,'String') '/' get(handles.edit_Nrows,'String')];
         n_set = 1;
 	end
 
-	if (get(handles.checkbox_Option_Q,'Value')),    out.opt_Q = '-Q';   end
-	if (~isempty(handles.bd_cond)),     out.opt_L = handles.bd_cond;    end
+	if (get(handles.checkbox_Option_Q,'Value')),    opt_Q = '-Q';   end
+	if (~isempty(handles.bd_cond)),     opt_L = handles.bd_cond;    end
 
 	% See if grid limits were changed
 	if ( (abs(handles.x_min-handles.x_min_or) > 1e-5) || (abs(handles.x_max-handles.x_max_or) > 1e-5) || ...
             (abs(handles.y_min-handles.y_min_or) > 1e-5) || (abs(handles.y_max-handles.y_max_or) > 1e-5))
-        out.opt_R = ['-R' sprintf('%.8g',handles.x_min) '/' sprintf('%.8g',handles.x_max) '/' ...
+        opt_R = ['-R' sprintf('%.8g',handles.x_min) '/' sprintf('%.8g',handles.x_max) '/' ...
             sprintf('%.8g',handles.y_min) '/' sprintf('%.8g',handles.y_max)];
-        out.x_min = handles.x_min;    out.x_max = handles.x_max;
-        out.y_min = handles.y_min;    out.y_max = handles.y_max;
+        x_min = handles.x_min;    x_max = handles.x_max;
+        y_min = handles.y_min;    y_max = handles.y_max;
         if (~n_set)     % Only limits had changed, but we need also to return the -N option
             out.opt_N = ['-N' get(handles.edit_Ncols,'String') '/' get(handles.edit_Nrows,'String')];
             n_set = 1;
@@ -408,55 +213,50 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
         errordlg('You haven''t select anything usefull to do.','Chico Clever');   return
 	end
 
-	handles.output = out;
-	guidata(hObject, handles);    uiresume(handles.figure1);
-
-% --------------------------------------------------------------------
-% --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-        % The GUI is still in UIWAIT, us UIRESUME
-        handles.output = [];        % User gave up, return nothing
-        guidata(hObject, handles);    uiresume(handles.figure1);
-	else
-        % The GUI is no longer waiting, just close it
-        handles.output = [];        % User gave up, return nothing
-        guidata(hObject, handles);    delete(handles.figure1);
+	set(handles.figure1,'pointer','watch');	    set(handles.hMirFig,'pointer','watch')
+	newZ = grdsample_m(handles.Z, handles.head, opt_R, opt_N, opt_Q, opt_L);
+	zMinMax = grdutils(newZ,'-L');	    [ny,nx] = size(newZ);
+	set(handles.figure1,'pointer','arrow');	    set(handles.hMirFig,'pointer','arrow')
+    new_head = [handles.head(1:4) zMinMax(1:2)' handles.head(7)];
+	if (~strcmp(opt_R,' '))       % Grid limits did change
+        new_head(1:4) = [x_min x_max y_min y_max];    
 	end
+    x_inc = (new_head(2) - new_head(1)) / (nx - ~handles.head(7));
+    y_inc = (new_head(4) - new_head(3)) / (ny - ~handles.head(7));
+    new_head(8:9) = [x_inc y_inc];
+    tmp.X = linspace(new_head(1),new_head(2),nx);       tmp.Y = linspace(new_head(3),new_head(4),ny);
+    tmp.head = new_head;
+    tmp.name = 'Resampled grid';
+    mirone(newZ,tmp);
+    figure(handles.figure1)         % Don't let this figure forgotten behind the newly created one
 
 % --------------------------------------------------------------------
 % --- Executes on key press over figure1 with no controls selected.
 function figure1_KeyPressFcn(hObject, eventdata, handles)
 	if isequal(get(hObject,'CurrentKey'),'escape')      % Check for "escape"
-        handles.output = '';    % User said no by hitting escape
-        guidata(hObject, handles);    uiresume(handles.figure1);
+		delete(handles.figure1);
 	end
 
 % --- Creates and returns a handle to the GUI figure. 
-function grdsample_Mir_LayoutFcn(h1,handles);
+function grdsample_Mir_LayoutFcn(h1);
 
 set(h1,...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
-'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
-'Name','grdsample',...
+'Name','Grdsample',...
 'NumberTitle','off',...
-'Position',[265.768111202607 398.94409531652 441 158],...
+'Position',[265.8 398.9 441 158],...
 'RendererMode','manual',...
 'Resize','off',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
+
+uicontrol('Parent',h1,'Enable','inactive','Position',[10 75 421 75],'Style','frame');
 
 uicontrol('Parent',h1,...
 'Enable','inactive',...
-'Position',[10 75 421 75],...
-'Style','frame');
-
-uicontrol('Parent',h1,...
-'Enable','inactive',...
-'Position',[30 141 121 15],...
+'Position',[30 142 121 15],...
 'String','Griding Line Geometry',...
 'Style','text',...
 'Tag','text8');
