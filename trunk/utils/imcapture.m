@@ -90,6 +90,8 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %           13-Dez-2006     Let it work also with plots
 %           28-Dez-2006     Added vector graphics output and copy to Clipboard (Windows only)
 %           12-Jan-2007     Improved "fixed size" option. Axes are set visible when their visibility was 'off'
+%           27-Aug-2007     Was failing if H = fighandle; OPT = imgAx and there were more that one visible axes
+%                           Recognizes and captures a Mirone "At side" Colorbar (but not perfect)
 
     hFig = [];      hAxes = [];
     if (nargin == 0 || isempty(h)),     h = get(0,'CurrentFigure');    end
@@ -200,7 +202,7 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
         msg = 'With the selected options the figure must contain one, and one ONLY axes';
         return
     end
-    im = get(findobj(h,'Type','image'),'CData');
+    im = get(findobj(hAxes,'Type','image'),'CData');
 	if (~isempty(im))
         nx = size(im,2);                ny = size(im,1);
     else                    % We have something else. A plot, a surface, etc ...
@@ -220,7 +222,7 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
     set(hAxes,'Units','Normalized')     % This is the default, but be sure
     fig_c = get(h,'Color');       set(h,'Color','w')
     
-    all_axes = findobj(h,'Type','axes');
+    [all_axes, cbWidth] = getAllAxes(h);% Find all visible axes plus eventual Mirone Colorbar
     % If there are more than one axis, put them out of sight so that they wont interfere
     % (Just make them invisible is not enough)
     if (numel(all_axes) > 1)
@@ -278,7 +280,8 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
         x0 = x_margin / figPos(3);
         y0 = y_margin / figPos(4);
         tenSizeY = tenSizeY / figPos(4);    % Normalize it as well
-        set(hAxes,'pos',[x0 y0-tenSizeY 1-[x0 y0]-1e-2])
+        cbWidth = cbWidth / figPos(3);      % Either 0 or the Mirone Colorbar width
+        set(hAxes,'pos',[x0 y0-tenSizeY 1-[x0+cbWidth y0]-1e-2])
         set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
     else            % Dumb choice. 'imgAx' selected but axes are invisible. Default to Image only
         set(hAxes,'pos',[0 0 1 1],'Visible','off')
@@ -352,3 +355,20 @@ function img = allInFig(varargin)
     end
     img = hardcopy( varargin{:} );    
     set(h,'Color',fig_c)
+    
+% ------------------------------------------------------------------    
+function [all_axes, cbFullWidth, cbAx] = getAllAxes(hFig)
+    % Finds all visible axes plus the Mirone Colorbar (if present) which
+    % has its Handlevisibility set to 'off'
+    cbAx = [];      cbFullWidth = 0;
+    all_axes = findobj(hFig,'Type','axes');
+    set(0,'ShowHiddenHandles','on')
+    cbAx = findobj(hFig,'Type','axes','Tag','MIR_CBat');
+    set(0,'ShowHiddenHandles','off')
+
+    if (~isempty(cbAx))
+		h_Ylabel = get(cbAx,'Ylabel');		units_save = get(h_Ylabel,'units');
+		set(h_Ylabel,'units','pixels');		Ylabel_pos = get(h_Ylabel,'Extent');
+        set(h_Ylabel,'units',units_save)
+        cbFullWidth = Ylabel_pos(1);
+    end
