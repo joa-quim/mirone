@@ -1,8 +1,8 @@
-function handles = setAxesDefCoordIn(handles)
+function handles = setAxesDefCoordIn(handles, opt)
     % Sets the value of the axes uicontextmenu that selects what will be donne
     % when Loading a file in terms of needing, or not, to project it.
 
-    handles = guidata(handles.figure1);
+    if (nargin == 1),   handles = guidata(handles.figure1);     end     % Otherwise uses input handles
 
     if (handles.is_projected)
         if (~handles.geog)          % Is projected
