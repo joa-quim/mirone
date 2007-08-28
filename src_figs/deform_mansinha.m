@@ -17,13 +17,10 @@ function varargout = deform_mansinha(varargin)
 % --------------------------------------------------------------------
 
 hObject = figure('Tag','figure1','Visible','off');
+deform_mansinha_LayoutFcn(hObject);
 handles = guihandles(hObject);
-guidata(hObject, handles);
-deform_mansinha_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
- 
 movegui(hObject,'east');
-set(hObject,'Name','Vertical elastic deformation');
+
 handles.hCallingFig = [];     % Handles to the calling figure
 
 if ~isempty(varargin)
@@ -75,6 +72,7 @@ handles.dms_xinc = 0;           handles.dms_yinc = 0;
 handles.one_or_zero = 1;        % For Grid Registration grids, which are the most common cases
 handles.qValue = 0.3;
 handles.patchFatias = [];
+handles.one_or_zero = 1;        % Grid registration
 
 handles.FaultLength = LineLength(handles.h_fault,handles.geog);
 % Make them all cell arrays to simplify logic
@@ -109,7 +107,7 @@ if (~isempty(head))
     if (~handles.geog)      % Try to guess if user units are km or meters
         dx = head(2) - head(1);   dy = head(4) - head(3);
         len = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
-        if (len > 1e5)      % If grid's diagonal > 1e5 consider we have meters
+        if (len > 1e5 || head(8) >= 10)      % If grid's diagonal > 1e5 || Dx >= 10 consider we have meters
             handles.is_meters = 1;     handles.is_km = 0;   handles.um_milhao = 1e3;
             set(handles.popup_GridCoords,'Value',2)
         else
@@ -120,13 +118,10 @@ if (~isempty(head))
 else
     delete(hObject);    return
 end
-x1 = sprintf('%.10f',head(1));      x2 = sprintf('%.10f',head(2));
-y1 = sprintf('%.10f',head(3));      y2 = sprintf('%.10f',head(4));
-% But remove any possible trailing zeros
-x1 = ddewhite(x1,'0');              x2 = ddewhite(x2,'0');
-y1 = ddewhite(y1,'0');              y2 = ddewhite(y2,'0');
-set(handles.edit_Xmin,'String',x1); set(handles.edit_Xmax,'String',x2)
-set(handles.edit_Ymin,'String',y1); set(handles.edit_Ymax,'String',y2)
+x1 = sprintf('%.12g',head(1));      x2 = sprintf('%.12g',head(2));
+y1 = sprintf('%.12g',head(3));      y2 = sprintf('%.12g',head(4));
+set(handles.edit_x_min,'String',x1); set(handles.edit_x_max,'String',x2)
+set(handles.edit_y_min,'String',y1); set(handles.edit_y_max,'String',y2)
 handles.x_min = head(1);            handles.x_max = head(2);
 handles.y_min = head(3);            handles.y_max = head(4);
 
@@ -138,8 +133,8 @@ set(handles.edit_Ncols,'String',sprintf('%d',n))
 
 % Compute default xinc, yinc based on map limits
 yinc = (head(4) - head(3)) / (m-1);   xinc = (head(2) - head(1)) / (n-1);
-set(handles.edit_Yinc,'String',sprintf('%.10f',yinc))
-set(handles.edit_Xinc,'String',sprintf('%.10f',xinc))
+set(handles.edit_y_inc,'String',sprintf('%.12g',yinc))
+set(handles.edit_x_inc,'String',sprintf('%.12g',xinc))
 %-----------
 
 handles.nrows = m;      handles.ncols = n;
@@ -176,7 +171,6 @@ end
 delete(h_t)
 %------------- END Pro look (3D) -------------------------------------------------------
 
-handles.h_txt_Mw = findobj(hObject,'Style','Text','Tag','text_Mw');
 handles.txt_Mw_pos = get(handles.h_txt_Mw,'Position');
 
 if (~getappdata(handles.hCallingFig,'esDourada'))
@@ -184,11 +178,9 @@ if (~getappdata(handles.hCallingFig,'esDourada'))
         'Visible','off')
 end
 
-% Choose default command line output for deform_mansinha_export
-handles.output = hObject;
-guidata(hObject, handles);
-set(hObject,'Visible','on');
-varargout{1} = handles.output;
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),   varargout{1} = hObject;     end
 
 % ------------------------------------------------------------------------------------
 function edit_FaultLength_Callback(hObject, eventdata, handles)
@@ -240,7 +232,7 @@ if (length(M0) > 1)     M0 = sum(M0);   end
 mag = 2/3*(log10(M0) - 9.1);
 if (~isnan(mag))
     txt = ['Mw Magnitude = ' sprintf('%.1f',mag)];
-    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 15 0])
+    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
     handles.Mw(fault) = mag;
 end
 
@@ -288,39 +280,39 @@ guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_FaultDepth_Callback(hObject, eventdata, handles)
-% Actualize the "FaultTopDepth" field
-xx = str2double(get(hObject,'String'));
-if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-else                        fault = 1;      end
-if (xx < 0)         % If user tried to give a negative depth
-    xx = -xx;       set(hObject,'String',xx)
-end
-W = str2double(get(handles.edit_FaultWidth,'String'));
-dip = str2double(get(handles.edit_FaultDip,'String'));
-top_d = xx - W * cos((90-dip)*pi/180);
-set(handles.edit_FaultTopDepth,'String',top_d);
-seg = get(handles.popup_segment,'Value');
-handles.FaultDepth{fault}(seg) = xx;
-handles.FaultTopDepth{fault}(seg) = top_d;
-guidata(handles.figure1,handles)
+	% Actualize the "FaultTopDepth" field
+	xx = str2double(get(hObject,'String'));
+	if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
+	else                        fault = 1;      end
+	if (xx < 0)         % If user tried to give a negative depth
+        xx = -xx;       set(hObject,'String',xx)
+	end
+	W = str2double(get(handles.edit_FaultWidth,'String'));
+	dip = str2double(get(handles.edit_FaultDip,'String'));
+	top_d = xx - W * cos((90-dip)*pi/180);
+	set(handles.edit_FaultTopDepth,'String',top_d);
+	seg = get(handles.popup_segment,'Value');
+	handles.FaultDepth{fault}(seg) = xx;
+	handles.FaultTopDepth{fault}(seg) = top_d;
+	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_FaultTopDepth_Callback(hObject, eventdata, handles)
-% Actualize the "FaultDepth" field
-xx = str2double(get(hObject,'String'));
-if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-else                        fault = 1;      end
-if (xx < 0)         % If user tried to give a negative depth
-    xx = -xx;       set(hObject,'String',xx)
-end
-W = str2double(get(handles.edit_FaultWidth,'String'));
-dip = str2double(get(handles.edit_FaultDip,'String'));
-depth = xx + W * cos((90-dip)*pi/180);
-set(handles.edit_FaultDepth,'String',depth);
-seg = get(handles.popup_segment,'Value');
-handles.FaultTopDepth{fault}(seg) = xx;
-handles.FaultDepth{fault}(seg) = depth;
-guidata(handles.figure1,handles)
+	% Actualize the "FaultDepth" field
+	xx = str2double(get(hObject,'String'));
+	if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
+	else                        fault = 1;      end
+	if (xx < 0)         % If user tried to give a negative depth
+        xx = -xx;       set(hObject,'String',xx)
+	end
+	W = str2double(get(handles.edit_FaultWidth,'String'));
+	dip = str2double(get(handles.edit_FaultDip,'String'));
+	depth = xx + W * cos((90-dip)*pi/180);
+	set(handles.edit_FaultDepth,'String',depth);
+	seg = get(handles.popup_segment,'Value');
+	handles.FaultTopDepth{fault}(seg) = xx;
+	handles.FaultDepth{fault}(seg) = depth;
+	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function popup_segment_Callback(hObject, eventdata, handles)
@@ -396,7 +388,7 @@ else    str = sprintf('%.1f',handles.DislocRake{fault}(seg));     end
 set(handles.edit_DislocRake,'String',str)
 if (handles.Mw(fault) > 0)
     txt = ['Mw Magnitude = ' sprintf('%.1f',handles.Mw(fault))];
-    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 15 0])
+    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
 else
     set(handles.h_txt_Mw,'String','Mw Magnitude = ','Position',handles.txt_Mw_pos)
 end
@@ -404,15 +396,15 @@ refresh(handles.hCallingFig);         % otherwise, ML BUG
 
 % ------------------------------------------------------------------------------------
 function edit_DislocStrike_Callback(hObject, eventdata, handles)
-D2R = pi / 180;
-if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-else                        fault = 1;      end
-xx = str2double(get(hObject,'String'));
-f_strike = str2double(get(handles.edit_FaultStrike,'String'));      % Fault strike
-slip = str2double(get(handles.edit_DislocSlip,'String'));           % Dislocation slip
-seg = get(handles.popup_segment,'Value');
-handles.DislocStrike{fault}(seg) = xx;
-guidata(handles.figure1,handles)
+	D2R = pi / 180;
+	if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
+	else                        fault = 1;      end
+	xx = str2double(get(hObject,'String'));
+	f_strike = str2double(get(handles.edit_FaultStrike,'String'));      % Fault strike
+	slip = str2double(get(handles.edit_DislocSlip,'String'));           % Dislocation slip
+	seg = get(handles.popup_segment,'Value');
+	handles.DislocStrike{fault}(seg) = xx;
+	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_DislocRake_Callback(hObject, eventdata, handles)
@@ -450,230 +442,42 @@ if (length(M0) > 1)     M0 = sum(M0);   end
 mag = 2/3*(log10(M0) - 9.1);
 if (~isnan(mag))
     txt = ['Mw Magnitude = ' sprintf('%.1f',mag)];
-    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 15 0])
+    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
     handles.Mw(fault) = mag;
 end
 guidata(handles.figure1,handles)
 
-% ------------------------------------------------------------------------------------
-function edit_Xmin_Callback(hObject, eventdata, handles)
-xx = get(hObject,'String');     val = test_dms(xx);
-if ~isempty(val)            % when dd:mm or dd:mm:ss was given
-    x_min = 0;
-    if str2double(val{1}) > 0
-        for i = 1:length(val)   x_min = x_min + str2double(val{i}) / (60^(i-1));    end
-    else
-        for i = 1:length(val)   x_min = x_min - abs(str2double(val{i})) / (60^(i-1));   end
-    end
-    handles.x_min = x_min;
-    if ~isempty(handles.x_max) & x_min >= handles.x_max
-        errordlg('West Longitude >= East Longitude ','Error in Longitude limits')
-        set(hObject,'String','');   guidata(hObject, handles);  return
-    end
-    nc = get(handles.edit_Ncols,'String');
-    if ~isempty(handles.x_max) & ~isempty(nc)       % x_max and ncols boxes are filled
-        % Compute Ncols, but first must recompute x_inc
-        x_inc = ivan_the_terrible((handles.x_max - x_min),round(abs(str2double(nc))),1);
-        xx = floor((handles.x_max - str2double(xx)) / (str2double(get(handles.edit_Xinc,'String')))+0.5) + handles.one_or_zero;
-        set(handles.edit_Xinc,'String',sprintf('%.10f',x_inc))
-    elseif ~isempty(handles.x_max)      % x_max box is filled but ncol is not, so put to the default (100)
-        x_inc = ivan_the_terrible((handles.x_max - x_min),100,1);
-        set(handles.edit_Xinc,'String',sprintf('%.10f',x_inc))
-        set(handles.edit_Ncols,'String','100')
-    end
-else                % box is empty, so clear also x_inc and ncols
-    set(handles.edit_Xinc,'String','');     set(handles.edit_Ncols,'String','');
-    set(hObject,'String','');
-end
-guidata(handles.figure1,handles)
+% -------------------------------------------------------------------------------------
+function edit_x_min_Callback(hObject, eventdata, handles)
+	dim_funs('xMin', hObject, handles)
 
-% ------------------------------------------------------------------------------------
-function edit_Xmax_Callback(hObject, eventdata, handles)
-xx = get(hObject,'String');     val = test_dms(xx);
-if ~isempty(val)
-    x_max = 0;
-    if str2double(val{1}) > 0
-        for i = 1:length(val)   x_max = x_max + str2double(val{i}) / (60^(i-1));    end
-    else
-        for i = 1:length(val)   x_max = x_max - abs(str2double(val{i})) / (60^(i-1));   end
-    end
-    handles.x_max = x_max;
-    if ~isempty(handles.x_min) & x_max <= handles.x_min 
-        errordlg('East Longitude <= West Longitude','Error in Longitude limits')
-        set(hObject,'String','');   guidata(hObject, handles);  return
-    end
-    nc = get(handles.edit_Ncols,'String');
-    if ~isempty(handles.x_min) & ~isempty(nc)       % x_max and ncols boxes are filled
-        % Compute Ncols, but first must recompute x_inc
-        x_inc = ivan_the_terrible((x_max - handles.x_min),round(abs(str2double(nc))),1);
-        xx = floor((handles.x_min - str2double(xx)) / (str2double(get(handles.edit_Xinc,'String')))+0.5) + handles.one_or_zero;
-        set(handles.edit_Xinc,'String',sprintf('%.10f',x_inc))
-    elseif ~isempty(handles.x_min)      % x_min box is filled but ncol is not, so put to the default (100)
-        x_inc = ivan_the_terrible((x_max - handles.x_min),100,1);
-        set(handles.edit_Xinc,'String',sprintf('%.10f',x_inc))
-        set(handles.edit_Ncols,'String','100')
-    end
-else                % box is empty, so clear also x_inc and ncols
-    set(handles.edit_Xinc,'String','');     set(handles.edit_Ncols,'String','');
-    set(hObject,'String','');
-end
-guidata(handles.figure1,handles)
+% -------------------------------------------------------------------------------------
+function edit_x_max_Callback(hObject, eventdata, handles)
+	dim_funs('xMax', hObject, handles)
 
-% ------------------------------------------------------------------------------------
-function edit_Xinc_Callback(hObject, eventdata, handles)
-dms = 0;
-xx = get(hObject,'String');     val = test_dms(xx);
-if isempty(val),    return;     end
-% If it survived then ...
-if length(val) > 1    dms = 1;      end         % inc given in dd:mm or dd:mm:ss format
-x_inc = 0;
-for i = 1:length(val)   x_inc = x_inc + str2double(val{i}) / (60^(i-1));    end
-if ~isempty(handles.x_min) & ~isempty(handles.x_max)
-    % Make whatever x_inc given compatible with GMT_grd_RI_verify
-    x_inc = ivan_the_terrible((handles.x_max - handles.x_min), x_inc,2);
-    if ~dms         % case of decimal unities
-        set(hObject,'String',sprintf('%.10f',x_inc))
-        ncol = floor((handles.x_max - handles.x_min) / x_inc + 0.5) + handles.one_or_zero;
-    else            % inc was in dd:mm or dd:mm:ss format
-        ncol = floor((handles.x_max - handles.x_min) / x_inc + 0.5) + handles.one_or_zero;
-        ddmm = dec2deg(x_inc);
-        set(hObject,'String',ddmm)
-    end
-    set(handles.edit_Ncols,'String',sprintf('%d',ncol))
-end
-handles.dms_xinc = dms;     handles.x_inc = str2double(xx);
-guidata(handles.figure1,handles)
+% --------------------------------------------------------------------
+function edit_y_min_Callback(hObject, eventdata, handles)
+	dim_funs('yMin', hObject, handles)
 
-% ------------------------------------------------------------------------------------
+% --------------------------------------------------------------------
+function edit_y_max_Callback(hObject, eventdata, handles)
+	dim_funs('yMax', hObject, handles)
+
+% --------------------------------------------------------------------
+function edit_x_inc_Callback(hObject, eventdata, handles)
+	dim_funs('xInc', hObject, handles)
+
+% --------------------------------------------------------------------
 function edit_Ncols_Callback(hObject, eventdata, handles)
-xx = get(hObject,'String');
-if isempty(xx)          % Idiot user attempt. Reset ncols.
-    set(hObject,'String',handles.ncols);    return;
-end
-if ~isempty(get(handles.edit_Xmin,'String')) & ~isempty(get(handles.edit_Xmax,'String')) & ...
-        ~isempty(get(handles.edit_Xinc,'String')) & ~isempty(xx)
-    x_inc = ivan_the_terrible((handles.x_max - handles.x_min),round(abs(str2double(xx))),1);
-    if handles.dms_xinc        % x_inc was given in dd:mm:ss format
-        ddmm = dec2deg(x_inc);
-        set(handles.edit_Xinc,'String',ddmm)
-    else                    % x_inc was given in decimal format
-        set(handles.edit_Xinc,'String',sprintf('%.10f',x_inc));
-    end
-    handles.ncols = str2double(xx);
-end
-guidata(handles.figure1,handles)
+	dim_funs('nCols', hObject, handles)
 
-% ------------------------------------------------------------------------------------
-function edit_Ymin_Callback(hObject, eventdata, handles)
-% Read value either in decimal or in the dd:mm or dd_mm:ss formats and do some tests
-xx = get(hObject,'String');     val = test_dms(xx);
-if ~isempty(val)
-    y_min = 0;
-    if str2double(val{1}) > 0
-        for i = 1:length(val)   y_min = y_min + str2double(val{i}) / (60^(i-1));    end
-    else
-        for i = 1:length(val)   y_min = y_min - abs(str2double(val{i})) / (60^(i-1));   end
-    end
-    handles.y_min = y_min;
-    if ~isempty(handles.y_max) & y_min >= handles.y_max
-        errordlg('South Latitude >= North Latitude','Error in Latitude limits')
-        set(hObject,'String','');   guidata(hObject, handles);  return
-    end
-    nr = get(handles.edit_Nrows,'String');
-    if ~isempty(handles.y_max) & ~isempty(nr)       % y_max and nrows boxes are filled
-        % Compute Nrowss, but first must recompute y_inc
-        y_inc = ivan_the_terrible((handles.y_max - y_min),round(abs(str2double(nr))),1);
-        xx = floor((handles.y_max - str2double(xx)) / (str2double(get(handles.edit_Yinc,'String')))+0.5) + handles.one_or_zero;
-        set(handles.edit_Yinc,'String',sprintf('%.10f',y_inc))
-    elseif ~isempty(handles.y_max)      % y_max box is filled but nrows is not, so put to the default (100)
-        y_inc = ivan_the_terrible((handles.y_max - y_min),100,1);
-        set(handles.edit_Yinc,'String',sprintf('%.10f',y_inc))
-        set(handles.edit_Nrows,'String','100')
-    end
-else                % box is empty, so clear also y_inc and nrows
-    set(handles.edit_Yinc,'String','');     set(handles.edit_Nrows,'String','');
-    set(hObject,'String','');
-end
-guidata(handles.figure1,handles)
+% --------------------------------------------------------------------
+function edit_y_inc_Callback(hObject, eventdata, handles)
+	dim_funs('yInc', hObject, handles)
 
-% ------------------------------------------------------------------------------------
-function edit_Ymax_Callback(hObject, eventdata, handles)
-% Read value either in decimal or in the dd:mm or dd_mm:ss formats and do some tests
-xx = get(hObject,'String');     val = test_dms(xx);
-if ~isempty(val)
-    y_max = 0;
-    if str2double(val{1}) > 0
-        for i = 1:length(val)   y_max = y_max + str2double(val{i}) / (60^(i-1));    end
-    else
-        for i = 1:length(val)   y_max = y_max - abs(str2double(val{i})) / (60^(i-1));   end
-    end
-    handles.y_max = y_max;
-    if ~isempty(handles.y_min) & y_max <= handles.y_min 
-        errordlg('North Latitude <= South Latitude','Error in Latitude limits')
-        set(hObject,'String','');   guidata(hObject, handles);  return
-    end
-    nr = get(handles.edit_Nrows,'String');
-    if ~isempty(handles.y_min) & ~isempty(nr)       % y_min and nrows boxes are filled
-        % Compute Nrows, but first must recompute y_inc
-        y_inc = ivan_the_terrible((y_max - handles.y_min),round(abs(str2double(nr))),1);
-        xx = floor((handles.y_min - str2double(xx)) / (str2double(get(handles.edit_Yinc,'String')))+0.5) + handles.one_or_zero;
-        set(handles.edit_Yinc,'String',sprintf('%.10f',y_inc))
-    elseif ~isempty(handles.y_min)      % y_min box is filled but nrows is not, so put to the default (100)
-        y_inc = ivan_the_terrible((y_max - handles.y_min),100,1);
-        set(handles.edit_Yinc,'String',sprintf('%.10f',y_inc))
-        set(handles.edit_Nrows,'String','100')
-    end
-else                % This box is empty, so clear also y_inc and nrows
-    set(handles.edit_Yinc,'String','');     set(handles.edit_Nrows,'String','');
-    set(hObject,'String','');
-end
-guidata(handles.figure1,handles)
-
-% ------------------------------------------------------------------------------------
-function edit_Yinc_Callback(hObject, eventdata, handles)
-dms = 0;
-xx = get(hObject,'String');     val = test_dms(xx);
-if isempty(val)
-    set(hObject, 'String', '');    return
-end
-% If it survived then ...
-if length(val) > 1    dms = 1;      end         % inc given in dd:mm or dd:mm:ss format
-y_inc = 0;
-for i = 1:length(val)   y_inc = y_inc + str2double(val{i}) / (60^(i-1));    end
-if ~isempty(handles.y_min) & ~isempty(handles.y_max)
-    % Make whatever y_inc given compatible with GMT_grd_RI_verify
-    y_inc = ivan_the_terrible((handles.y_max - handles.y_min), y_inc,2);
-    if ~dms         % case of decimal unities
-        set(hObject,'String',sprintf('%.10f',y_inc))
-        nrow = floor((handles.y_max - handles.y_min) / y_inc + 0.5) + handles.one_or_zero;
-    else            % inc was in dd:mm or dd:mm:ss format
-        nrow = floor((handles.y_max - handles.y_min) / y_inc + 0.5) + handles.one_or_zero;
-        ddmm = dec2deg(y_inc);
-        set(hObject,'String',ddmm)
-    end
-    set(handles.edit_Nrows,'String',sprintf('%d',nrow))
-end
-handles.dms_yinc = dms;     handles.y_inc = str2double(xx);
-guidata(handles.figure1,handles)
-
-% ------------------------------------------------------------------------------------
+% --------------------------------------------------------------------
 function edit_Nrows_Callback(hObject, eventdata, handles)
-xx = get(hObject,'String');
-if isempty(xx)          % Idiot user attempt. Reset nrows.
-    set(hObject,'String',handles.nrows);    return;
-end
-if ~isempty(get(handles.edit_Ymin,'String')) & ~isempty(get(handles.edit_Ymax,'String')) & ...
-        ~isempty(get(handles.edit_Yinc,'String'))
-    y_inc = ivan_the_terrible((handles.y_max - handles.y_min),round(abs(str2double(xx))),1);
-    if handles.dms_yinc        % y_inc was given in dd:mm:ss format
-        ddmm = dec2deg(y_inc);
-        set(handles.edit_Yinc,'String',ddmm)
-    else                    % y_inc was given in decimal format
-        set(handles.edit_Yinc,'String',sprintf('%.10f',y_inc));
-    end
-    handles.nrows = str2double(xx);
-end
-guidata(handles.figure1,handles)
+	dim_funs('nRows', hObject, handles)
 
 % ------------------------------------------------------------------------------------
 function pushbutton_Help_R_Callback(hObject, eventdata, handles)
@@ -684,29 +488,29 @@ helpdlg(message,'Help on deformation grid');
 
 % ------------------------------------------------------------------------------------
 function pushbutton_compute_Callback(hObject, eventdata, handles)
-% If cartesian coordinates, they must be in meters
-if (any(isnan(cat(2,handles.FaultWidth{:}))))
-    errordlg('One or more segments where not set with the fault''s Width','Error');    return
-end
-if (any(isnan(cat(2,handles.FaultDepth{:}))))
-    errordlg('One or more segments where not set with the fault''s Depth','Error');    return
-end
-if (any(isnan(cat(2,handles.DislocRake{:}))))
-    errordlg('One or more segments where not set with the movement''s rake','Error');    return
-end
-if (any(isnan(cat(2,handles.DislocSlip{:}))))
-    errordlg('One or more segments where not set with the movement''s slip','Error');    return
-end
+	% If cartesian coordinates, they must be in meters
+	if (any(isnan(cat(2,handles.FaultWidth{:}))))
+		errordlg('One or more segments where not set with the fault''s Width','Error');    return
+	end
+	if (any(isnan(cat(2,handles.FaultDepth{:}))))
+		errordlg('One or more segments where not set with the fault''s Depth','Error');    return
+	end
+	if (any(isnan(cat(2,handles.DislocRake{:}))))
+		errordlg('One or more segments where not set with the movement''s rake','Error');    return
+	end
+	if (any(isnan(cat(2,handles.DislocSlip{:}))))
+		errordlg('One or more segments where not set with the movement''s slip','Error');    return
+	end
 
-% Get grid params
-xmin = str2double(get(handles.edit_Xmin,'String'));
-xmax = str2double(get(handles.edit_Xmax,'String'));
-ymin = str2double(get(handles.edit_Ymin,'String'));
-ymax = str2double(get(handles.edit_Ymax,'String'));
-xinc = str2double(get(handles.edit_Xinc,'String'));
-yinc = str2double(get(handles.edit_Yinc,'String'));
-nrow = str2double(get(handles.edit_Nrows,'String'));
-ncol = str2double(get(handles.edit_Ncols,'String'));
+	% Get grid params
+	xmin = str2double(get(handles.edit_x_min,'String'));
+	xmax = str2double(get(handles.edit_x_max,'String'));
+	ymin = str2double(get(handles.edit_y_min,'String'));
+	ymax = str2double(get(handles.edit_y_max,'String'));
+	xinc = str2double(get(handles.edit_x_inc,'String'));
+	yinc = str2double(get(handles.edit_y_inc,'String'));
+	nrow = str2double(get(handles.edit_Nrows,'String'));
+	ncol = str2double(get(handles.edit_Ncols,'String'));
 
 if (handles.is_km)      % Than we must convert those to meters
     xmin = xmin * 1e3;    xmax = xmax * 1e3;
@@ -714,9 +518,8 @@ if (handles.is_km)      % Than we must convert those to meters
     xinc = xinc * 1e3;    yinc = yinc * 1e3;
 end
 
-opt_R = ['-R' sprintf('%.8f',xmin) '/' sprintf('%.8f',xmax) ...
-        '/' sprintf('%.8f',ymin) '/' sprintf('%.8f',ymax)];
-opt_I = ['-I' sprintf('%.8f',xinc) '/' sprintf('%.8f',yinc)];
+opt_R = ['-R' sprintf('%.12g/%.12g/%.12g/%.12g',xmin, xmax, ymin, ymax)];
+opt_I = ['-I' sprintf('%.12g',xinc) '/' sprintf('%.12g',yinc)];
 
 n_seg = sum(handles.nvert);     % Total number of fault segments
 x = handles.fault_x;            y = handles.fault_y;
@@ -741,32 +544,43 @@ end
 if (handles.geog)   opt_M = '-M';
 else                opt_M = '';     end
 
-% Compute deformation
-if (n_seg > 1)
-    U = zeros(nrow,ncol);
-    h = waitbar(0,'Computing deformation');
-	for k=1:n_seg
-        waitbar(k/n_seg)
-        U0 = double(mansinha_m(opt_R, opt_I, opt_A{k}, opt_F{k}, opt_E{k}, opt_M));
-        U = U0 + U;
+	% Compute deformation
+	set(handles.figure1,'pointer','watch')
+	if (n_seg > 1)
+		U = zeros(nrow,ncol);
+		h = waitbar(0,'Computing deformation');
+		for k=1:n_seg
+			waitbar(k/n_seg)
+			U0 = double(mansinha_m(opt_R, opt_I, opt_A{k}, opt_F{k}, opt_E{k}, opt_M));
+			U = U0 + U;
+		end
+	    U = single(U);
+		close(h);    clear U0;
+	else
+		U = mansinha_m(opt_R, opt_I, opt_A{1}, opt_F{1}, opt_E{1}, opt_M);
 	end
-    close(h);    clear U0;
-else
-    U = double(mansinha_m(opt_R, opt_I, opt_A{1}, opt_F{1}, opt_E{1}, opt_M));
-end
+	set(handles.figure1,'pointer','arrow')
 
-z_max = max(U(:));     z_min = min(U(:));
-U = single(U);
-dx = str2double(get(handles.edit_Xinc,'String'));
-dy = str2double(get(handles.edit_Yinc,'String'));
+	z_max = max(U(:));     z_min = min(U(:));
+	dx = str2double(get(handles.edit_x_inc,'String'));
+	dy = str2double(get(handles.edit_y_inc,'String'));
+    
+    [m,n] = size(U);        hWarn = [];
+    if ( (m ~= nrow) || (n ~= ncol) )
+        msg{1} = 'Someting went wrong. Output file has not the required size. Maybe a meters<->kilometers bad guess?'
+        if (abs(dx - dy) > 1e-5)
+            msg{2} = ' ';
+            msg{3} = 'No. Almost likely this was due to the fact that or X and Y spacings are diferent.';
+        end
+        hWarn = warndlg(msg,'Warning');
+    end
 
-tmp = [xmin xmax ymin ymax z_min z_max 0];
-head.head = [tmp dx dy];
-head.X = linspace(xmin,xmax,ncol);
-tmp = linspace(ymin,ymax,nrow);
-head.Y = tmp';
+	head.head = [xmin xmax ymin ymax z_min z_max 0 dx dy];
+	head.X = linspace(xmin,xmax,ncol);
+	head.Y = linspace(ymin,ymax,nrow);
 
-new_window = mirone(U,head,'Deformation',handles.hCallingFig);
+	mirone(U,head,'Deformation',handles.hCallingFig);
+    if (~isempty(hWarn)),   figure(hWarn);      end
 
 % ------------------------------------------------------------------------------------
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
@@ -1037,13 +851,13 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 % ---------------- Creates and returns a handle to the GUI figure. 
-function deform_mansinha_LayoutFcn(h1,handles);
+function deform_mansinha_LayoutFcn(h1);
 
 set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'CloseRequestFcn',{@deform_mansinha_uicallback,h1,'figure1_CloseRequestFcn'},...
 'MenuBar','none',...
-'Name','deform_mansinha',...
+'Name','Vertical elastic deformation',...
 'NumberTitle','off',...
 'Position',[520 529 540 265],...
 'RendererMode','manual',...
@@ -1155,28 +969,27 @@ uicontrol('Parent',h1,'Enable','inactive','Position',[10 11 350 93],...
 'Style','frame','Tag','frame3');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@deform_mansinha_uicallback,h1,'edit_Xmin_Callback'},...
+'Callback',{@deform_mansinha_uicallback,h1,'edit_x_min_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[76 64 71 21],...
 'Style','edit',...
 'TooltipString','X min value',...
-'Tag','edit_Xmin');
+'Tag','edit_x_min');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@deform_mansinha_uicallback,h1,'edit_Xmax_Callback'},...
+'Callback',{@deform_mansinha_uicallback,h1,'edit_x_max_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[152 64 71 21],...
 'Style','edit',...
 'TooltipString','X max value',...
-'Tag','edit_Xmax');
+'Tag','edit_x_max');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@deform_mansinha_uicallback,h1,'edit_Xinc_Callback'},...
-'HorizontalAlignment','left',...
+'Callback',{@deform_mansinha_uicallback,h1,'edit_x_inc_Callback'},...
 'Position',[228 64 71 21],...
 'Style','edit',...
 'TooltipString','DX grid spacing',...
-'Tag','edit_Xinc');
+'Tag','edit_x_inc');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_Ncols_Callback'},...
@@ -1186,28 +999,27 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Tag','edit_Ncols');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@deform_mansinha_uicallback,h1,'edit_Ymin_Callback'},...
+'Callback',{@deform_mansinha_uicallback,h1,'edit_y_min_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[76 38 71 21],...
 'Style','edit',...
 'TooltipString','Y min value',...
-'Tag','edit_Ymin');
+'Tag','edit_y_min');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@deform_mansinha_uicallback,h1,'edit_Ymax_Callback'},...
+'Callback',{@deform_mansinha_uicallback,h1,'edit_y_max_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[152 38 71 21],...
 'Style','edit',...
 'TooltipString','Y max value',...
-'Tag','edit_Ymax');
+'Tag','edit_y_max');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@deform_mansinha_uicallback,h1,'edit_Yinc_Callback'},...
-'HorizontalAlignment','left',...
+'Callback',{@deform_mansinha_uicallback,h1,'edit_y_inc_Callback'},...
 'Position',[228 38 71 21],...
 'Style','edit',...
 'TooltipString','DY grid spacing',...
-'Tag','edit_Yinc');
+'Tag','edit_y_inc');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_mansinha_uicallback,h1,'edit_Nrows_Callback'},...
@@ -1265,7 +1077,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,'Enable','inactive','FontSize',10,...
 'HorizontalAlignment','left','Position',[330 135 100 16],...
-'String','Mw Magnitude =','Style','text','Tag','text_Mw');
+'String','Mw Magnitude =','Style','text','Tag','h_txt_Mw');
 
 uicontrol('Parent',h1,...
 'Callback',{@deform_mansinha_uicallback,h1,'checkbox_SCC_CB'},...
