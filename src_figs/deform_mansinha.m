@@ -15,168 +15,163 @@ function varargout = deform_mansinha(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+	if isempty(varargin)
+		errordlg('DEFORM MANSINHA: Wrong number of input args','Error');    return
+	end
 
-hObject = figure('Tag','figure1','Visible','off');
-deform_mansinha_LayoutFcn(hObject);
-handles = guihandles(hObject);
-movegui(hObject,'east');
+	hObject = figure('Tag','figure1','Visible','off');
+	deform_mansinha_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	movegui(hObject,'east');
 
-handles.hCallingFig = [];     % Handles to the calling figure
+	handMir = varargin{1};
+	handles.h_fault = varargin{2};          % Handles to the fault lines (each may have more than one segment)
+	handles.FaultStrike = varargin{3};
 
-if ~isempty(varargin)
-    h_fig = varargin{1};
-    handles.h_fault = varargin{2};          % Handles to the fault lines (each may have more than one segment)
-    handles.FaultStrike = varargin{3};
-    handles.geog = varargin{4};
-else
-    delete(hObject)
-    return
-end
-handles.hCallingAxes = get(h_fig,'CurrentAxes');
+	handles.geog = handMir.geog;
+	head = handMir.head;
+	handles.hCallingFig = handMir.figure1;     % Handles to the calling figure
+	handles.hCallingAxes = handMir.axes1;
 
-handles.n_faults = length(handles.h_fault);
-handles.nFaults = handles.n_faults;          % Works as a copy of use with the scc option
-if (handles.n_faults > 1)
-    set(handles.popup_fault,'String',cellstr(sprintf('%d',1:handles.n_faults)'))
-    set(handles.h_fault(1),'LineStyle','--');   % set the top fault one with a dashed line type
-    refresh(h_fig);         % otherwise, ML BUG
-else
-    set(handles.popup_fault,'Visible','off')
-    delete(findobj(hObject,'Style','text','Tag','fault_number'))    % Otherwise it would reborn in Pro look
-end
+	handles.n_faults = length(handles.h_fault);
+	handles.nFaults = handles.n_faults;          % Works as a copy of use with the scc option
+	if (handles.n_faults > 1)
+		set(handles.popup_fault,'String',cellstr(sprintf('%d',1:handles.n_faults)'))
+		set(handles.h_fault(1),'LineStyle','--');   % set the top fault one with a dashed line type
+		refresh(handMir.figure1);         % otherwise, ML BUG
+	else
+		set(handles.popup_fault,'Visible','off')
+		delete(handles.txtFaultNum)    % Otherwise it would reborn in Pro look
+	end
 
-fault_x = get(handles.h_fault,'XData');     fault_y = get(handles.h_fault,'YData');
-if (handles.n_faults > 1)
-    for (k=1:handles.n_faults),  nvert(k) = size(fault_x{k},2) - 1;  end
-else
-    nvert = size(fault_x,2) - 1;
-end
-handles.Mw(1:handles.n_faults) = 0;
+	fault_x = get(handles.h_fault,'XData');     fault_y = get(handles.h_fault,'YData');
+	if (handles.n_faults > 1)
+		for (k=1:handles.n_faults),  nvert(k) = size(fault_x{k},2) - 1;  end
+	else
+		nvert = size(fault_x,2) - 1;
+	end
+	handles.Mw(1:handles.n_faults) = 0;
 
-if (any(nvert > 1))
-    set(handles.popup_segment,'Visible','on');    S = [];
-    % Even if we have more than one fault, the segments popup will start with only the first fault's segments
-    S = cell(nvert(1),1);
-    for (i=1:nvert(1)),    S{i} = ['Segment ' sprintf('%d',i)];   end
-    set(handles.popup_segment,'String',S)
-else
-    set(handles.popup_segment,'Visible','off')
-    delete(findobj(hObject,'Style','text','Tag','fault_segment'))    % Otherwise it would reborn in Pro look
-end
+	if (any(nvert > 1))
+		set(handles.popup_segment,'Visible','on');
+		% Even if we have more than one fault, the segments popup will start with only the first fault's segments
+		S = cell(nvert(1),1);
+		for (i=1:nvert(1)),    S{i} = ['Segment ' sprintf('%d',i)];   end
+		set(handles.popup_segment,'String',S)
+	else
+		set(handles.popup_segment,'Visible','off')
+		delete(handles.txtFaultSeg)    % Otherwise it would reborn in Pro look
+	end
 
-handles.fault_x = fault_x;
-handles.fault_y = fault_y;
-handles.nvert = nvert;
-handles.hide_planes(1:handles.n_faults) = 0;
-handles.dms_xinc = 0;           handles.dms_yinc = 0;
-handles.one_or_zero = 1;        % For Grid Registration grids, which are the most common cases
-handles.qValue = 0.3;
-handles.patchFatias = [];
-handles.one_or_zero = 1;        % Grid registration
+	% Try to guess if we are dealing with other (m or km) than geogs
+	handles.is_meters = 0;     handles.is_km = 0;   handles.um_milhao = 1e6;
+	if (~handles.geog)      % Try to guess if user units are km or meters
+		dx = head(2) - head(1);   dy = head(4) - head(3);
+		len = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
+		if (len > 1e5 || head(8) >= 10)      % If grid's diagonal > 1e5 || Dx >= 10 consider we have meters
+			handles.is_meters = 1;     handles.is_km = 0;   handles.um_milhao = 1e3;
+			set(handles.popup_GridCoords,'Value',2)
+		else
+			handles.is_meters = 0;     handles.is_km = 1;
+			set(handles.popup_GridCoords,'Value',3)
+		end
+	end
 
-handles.FaultLength = LineLength(handles.h_fault,handles.geog);
-% Make them all cell arrays to simplify logic
-if (~iscell(handles.FaultLength))   handles.FaultLength = {handles.FaultLength};   end
-if (~iscell(handles.FaultStrike))   handles.FaultStrike = {handles.FaultStrike};   end
-if (~iscell(handles.fault_x))       handles.fault_x = {handles.fault_x};    handles.fault_y = {handles.fault_y};   end
-handles.DislocStrike = handles.FaultStrike;
+	handles.fault_x = fault_x;
+	handles.fault_y = fault_y;
+	handles.nvert = nvert;
+	handles.hide_planes(1:handles.n_faults) = 0;
+	handles.dms_xinc = 0;           handles.dms_yinc = 0;
+	handles.one_or_zero = 1;        % For Grid Registration grids, which are the most common cases
+	handles.qValue = 0.3;
+	handles.patchFatias = [];
+	handles.one_or_zero = ~head(7); % Grid registration
+	handles.txt_Mw_pos = get(handles.h_txt_Mw,'Position');
 
-for (k=1:handles.n_faults)
-	handles.FaultDip{k}(1:nvert(k)) = 25;       handles.FaultWidth{k}(1:nvert(k)) = NaN;
-	handles.FaultDepth{k}(1:nvert(k)) = NaN;	handles.FaultTopDepth{k}(1:nvert(k)) = 0;
-	handles.DislocSlip{k}(1:nvert(k)) = NaN;	handles.DislocRake{k}(1:nvert(k)) = NaN;
-end
+	handles.FaultLength = LineLength(handles.h_fault,handles.geog);
+	% Make them all cell arrays to simplify logic
+	if (~iscell(handles.FaultLength)),  handles.FaultLength = {handles.FaultLength};   end
+	if (~iscell(handles.FaultStrike)),  handles.FaultStrike = {handles.FaultStrike};   end
+	if (~iscell(handles.fault_x)),      handles.fault_x = {handles.fault_x};    handles.fault_y = {handles.fault_y};   end
+	handles.DislocStrike = handles.FaultStrike;
 
-z2 = sprintf('%.1f',handles.FaultStrike{1}(1));
-set(handles.edit_FaultLength,'String',handles.FaultLength{1}(1),'Enable','off')
-set(handles.edit_FaultStrike,'String',z2,'Enable','off')
-set(handles.edit_FaultDip,'String',sprintf('%.1f',handles.FaultDip{1}(1)))
-set(handles.edit_DislocStrike,'String',z2)
-set(handles.edit_DislocSlip,'String','')
-set(handles.edit_DislocRake,'String','')
+	for (k=1:handles.n_faults)
+		handles.FaultDip{k}(1:nvert(k)) = 25;       handles.FaultWidth{k}(1:nvert(k)) = NaN;
+		handles.FaultDepth{k}(1:nvert(k)) = NaN;	handles.FaultTopDepth{k}(1:nvert(k)) = 0;
+		handles.DislocSlip{k}(1:nvert(k)) = 1;	    handles.DislocRake{k}(1:nvert(k)) = 90;
+	end
+	
+	z2 = sprintf('%.1f',handles.FaultStrike{1}(1));
+	set(handles.edit_FaultLength,'String',handles.FaultLength{1}(1),'Enable','off')
+	set(handles.edit_FaultStrike,'String',z2,'Enable','off')
+	set(handles.edit_FaultDip,'String',sprintf('%.1f',handles.FaultDip{1}(1)))
+	set(handles.edit_DislocStrike,'String',z2)
+	set(handles.edit_DislocSlip,'String','1')
+	set(handles.edit_DislocRake,'String','90')
 
-% Default the top depth fault to zero
-set(handles.edit_FaultTopDepth,'String','0')
+	% Default the top depth fault to zero
+	set(handles.edit_FaultTopDepth,'String','0')
+	if (handles.n_faults == 1)
+		faultWidth = handles.FaultLength{1}(1) / 4;
+		if (handles.is_meters),		faultWidth = round(faultWidth * 1e-3);     end
+		handles = edit_FaultWidth_Callback([], faultWidth, handles);    % Compute the rest
+        set(handles.edit_FaultWidth,'String',num2str(faultWidth));
+	end
 
-%-----------
-% Fill in the grid limits boxes (in case user wants to compute a grid)
-% But also try to guess if we are dealing with other (m or km) than geogs
-head = getappdata(h_fig,'GMThead');
-handles.is_meters = 0;     handles.is_km = 0;   handles.um_milhao = 1e6;
-if (~isempty(head))
-    if (~handles.geog)      % Try to guess if user units are km or meters
-        dx = head(2) - head(1);   dy = head(4) - head(3);
-        len = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
-        if (len > 1e5 || head(8) >= 10)      % If grid's diagonal > 1e5 || Dx >= 10 consider we have meters
-            handles.is_meters = 1;     handles.is_km = 0;   handles.um_milhao = 1e3;
-            set(handles.popup_GridCoords,'Value',2)
-        else
-            handles.is_meters = 0;     handles.is_km = 1;
-            set(handles.popup_GridCoords,'Value',3)
-        end
-    end
-else
-    delete(hObject);    return
-end
-x1 = sprintf('%.12g',head(1));      x2 = sprintf('%.12g',head(2));
-y1 = sprintf('%.12g',head(3));      y2 = sprintf('%.12g',head(4));
-set(handles.edit_x_min,'String',x1); set(handles.edit_x_max,'String',x2)
-set(handles.edit_y_min,'String',y1); set(handles.edit_y_max,'String',y2)
-handles.x_min = head(1);            handles.x_max = head(2);
-handles.y_min = head(3);            handles.y_max = head(4);
+	%-----------
+	% Fill in the grid limits boxes (in case user wants to compute a grid)
+	x1 = sprintf('%.12g',head(1));      x2 = sprintf('%.12g',head(2));
+	y1 = sprintf('%.12g',head(3));      y2 = sprintf('%.12g',head(4));
+	set(handles.edit_x_min,'String',x1); set(handles.edit_x_max,'String',x2)
+	set(handles.edit_y_min,'String',y1); set(handles.edit_y_max,'String',y2)
+	handles.x_min = head(1);            handles.x_max = head(2);
+	handles.y_min = head(3);            handles.y_max = head(4);
 
-[m,n] = size(getappdata(h_fig,'dem_z'));
+	[m,n] = size(getappdata(handMir.figure1,'dem_z'));
 
-% Fill in the x,y_inc and nrow,ncol boxes
-set(handles.edit_Nrows,'String',sprintf('%d',m))
-set(handles.edit_Ncols,'String',sprintf('%d',n))
+	% Fill in the x,y_inc and nrow,ncol boxes
+	set(handles.edit_Nrows,'String',sprintf('%d',m))
+	set(handles.edit_Ncols,'String',sprintf('%d',n))
+	set(handles.edit_y_inc,'String',sprintf('%.12g',head(9)))
+	set(handles.edit_x_inc,'String',sprintf('%.12g',head(8)))
 
-% Compute default xinc, yinc based on map limits
-yinc = (head(4) - head(3)) / (m-1);   xinc = (head(2) - head(1)) / (n-1);
-set(handles.edit_y_inc,'String',sprintf('%.12g',yinc))
-set(handles.edit_x_inc,'String',sprintf('%.12g',xinc))
-%-----------
+	handles.nrows = m;      handles.ncols = n;
+	handles.x_inc = head(8);   handles.y_inc = head(9);
+	%-----------
 
-handles.nrows = m;      handles.ncols = n;
-handles.x_inc = xinc;   handles.y_inc = yinc;
-handles.hCallingFig = h_fig;
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+	h_f = findobj(hObject,'Style','Frame');
+	for i=1:length(h_f)
+		frame_size = get(h_f(i),'Position');
+		f_bgc = get(h_f(i),'BackgroundColor');
+		usr_d = get(h_f(i),'UserData');
+		if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
+			frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
+		else
+			frame3D(hObject,frame_size,framecolor,'',usr_d)
+			delete(h_f(i))
+		end
+	end
+	% Recopy the text fields on top of previously created frames (uistack is to slow)
+	h_t = [handles.faultGeom handles.dislocGeom handles.gridGeom];
+	for i=1:length(h_t)
+		usr_d = get(h_t(i),'UserData');
+		t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
+		bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
+		t_just = get(h_t(i),'HorizontalAlignment');     t_tag = get (h_t(i),'Tag');
+		uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str,'Tag',t_tag,...
+			'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,...
+			'UserData',usr_d,'HorizontalAlignment',t_just);
+	end
+	delete(h_t)
+	%------------- END Pro look (3D) -------------------------------------------------------
 
-%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-% Recopy the text fields on top of previously created frames (uistack is to slow)
-h_t = [handles.faultGeom handles.dislocGeom handles.gridGeom];
-for i=1:length(h_t)
-    usr_d = get(h_t(i),'UserData');
-    t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-    bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
-    t_just = get(h_t(i),'HorizontalAlignment');     t_tag = get (h_t(i),'Tag');
-    uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str,'Tag',t_tag,...
-        'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,...
-        'UserData',usr_d,'HorizontalAlignment',t_just);
-end
-delete(h_t)
-%------------- END Pro look (3D) -------------------------------------------------------
-
-handles.txt_Mw_pos = get(handles.h_txt_Mw,'Position');
-
-if (~getappdata(handles.hCallingFig,'esDourada'))
-    set([handles.checkbox_SCC handles.edit_qValue handles.edit_nSlices handles.txtqValue handles.txtNfatias],...
-        'Visible','off')
-end
+	if (~getappdata(handles.hCallingFig,'esDourada'))
+		set([handles.checkbox_SCC handles.edit_qValue handles.edit_nSlices handles.txtqValue handles.txtNfatias],...
+			'Visible','off')
+	end
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
@@ -187,56 +182,48 @@ function edit_FaultLength_Callback(hObject, eventdata, handles)
     % Cannot be changed
 
 % ------------------------------------------------------------------------------------
-function edit_FaultWidth_Callback(hObject, eventdata, handles)
-% Actualize the "FaultWidth" field
-xx = str2double(get(hObject,'String'));
-if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-else                        fault = 1;      end
-if (xx < 0)         % If user tried to give a negative width
-    xx = -xx;       set(hObject,'String',xx)
-end
-dip = str2double(get(handles.edit_FaultDip,'String'));
-top_d = str2double(get(handles.edit_FaultTopDepth,'String'));
-depth = top_d + xx * cos((90-dip)*pi/180);
-set(handles.edit_FaultDepth,'String',depth);
-seg = get(handles.popup_segment,'Value');
-handles.FaultWidth{fault}(seg) = xx;
-handles.FaultDepth{fault}(seg) = depth;
-handles.FaultWidthCopy = xx;        % To use (if) in scc. It is a scalar because one-fault-only
+function handles = edit_FaultWidth_Callback(hObject, eventdata, handles)
+	% Actualize the "FaultWidth" field. EVENTDATA may not be empty
+	if (nargout)
+		xx = eventdata;
+    else
+		xx = str2double(get(hObject,'String'));
+	end
+	if (xx < 0)         % If user tried to give a negative width
+        xx = -xx;       set(hObject,'String',xx)
+	end
+	dip = str2double(get(handles.edit_FaultDip,'String'));
+	top_d = str2double(get(handles.edit_FaultTopDepth,'String'));
+	depth = top_d + xx * cos((90-dip)*pi/180);
+	set(handles.edit_FaultDepth,'String',depth);
+	[fault,seg] = getFaultSeg(handles);
+	handles.FaultWidth{fault}(seg) = xx;
+	handles.FaultDepth{fault}(seg) = depth;
+	handles.FaultWidthCopy = xx;        % To use (if) in scc. It is a scalar because one-fault-only
+	
+	% Update the patch that represents the surface projection of the fault plane
+	xx = [handles.fault_x{fault}(seg); handles.fault_x{fault}(seg+1)];
+	yy = [handles.fault_y{fault}(seg); handles.fault_y{fault}(seg+1)];
+	
+	D2R = pi / 180;
+	off = handles.FaultWidth{fault}(seg) * cos(handles.FaultDip{fault}(seg)*D2R);
+	strk = handles.FaultStrike{fault}(seg);
 
-% Update the patch that represents the surface projection of the fault plane
-xx = [handles.fault_x{fault}(seg); handles.fault_x{fault}(seg+1)];
-yy = [handles.fault_y{fault}(seg); handles.fault_y{fault}(seg+1)];
+	if (handles.geog)
+		rng = off / 6371 / D2R;
+		[lat1,lon1] = circ_geo(yy(1),xx(1),rng,strk+90,1);
+		[lat2,lon2] = circ_geo(yy(2),xx(2),rng,strk+90,1);
+	else
+		if (handles.is_meters), off = off * 1e3;    end
+		lon1 = xx(1) + off * cos(strk*D2R);     lon2 = xx(2) + off * cos(strk*D2R);
+		lat1 = yy(1) - off * sin(strk*D2R);     lat2 = yy(2) - off * sin(strk*D2R);
+	end
+	x = [xx(1) xx(2) lon2 lon1];    y = [yy(1) yy(2) lat2 lat1];
+	hp = getappdata(handles.h_fault(fault),'PatchHand');
+	try     set(hp(seg),'XData',x,'YData',y,'FaceColor',[.8 .8 .8],'EdgeColor','k','LineWidth',1);  end
 
-D2R = pi / 180;
-off = handles.FaultWidth{fault}(seg) * cos(handles.FaultDip{fault}(seg)*D2R);
-strk = handles.FaultStrike{fault}(seg);
-
-if (handles.geog)
-    rng = off / 6371 / D2R;
-    [lat1,lon1] = circ_geo(yy(1),xx(1),rng,strk+90,1);
-    [lat2,lon2] = circ_geo(yy(2),xx(2),rng,strk+90,1);
-else
-    if (handles.is_meters)  off = off * 1e3;    end
-    lon1 = xx(1) + off * cos(strk*D2R);     lon2 = xx(2) + off * cos(strk*D2R);
-    lat1 = yy(1) - off * sin(strk*D2R);     lat2 = yy(2) - off * sin(strk*D2R);
-end
-x = [xx(1) xx(2) lon2 lon1];    y = [yy(1) yy(2) lat2 lat1];
-hp = getappdata(handles.h_fault(fault),'PatchHand');
-try,    set(hp(seg),'XData',x,'YData',y,'FaceColor',[.8 .8 .8],'EdgeColor','k','LineWidth',1);  end
-
-% Compute Moment magnitude
-M0 = 3e10 * handles.um_milhao * handles.DislocSlip{fault}(:) .* handles.FaultWidth{fault}(:) .* ...
-    str2double(get(handles.edit_FaultLength,'String'));
-if (length(M0) > 1)     M0 = sum(M0);   end
-mag = 2/3*(log10(M0) - 9.1);
-if (~isnan(mag))
-    txt = ['Mw Magnitude = ' sprintf('%.1f',mag)];
-    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
-    handles.Mw(fault) = mag;
-end
-
-guidata(handles.figure1,handles)
+	handles = compMag(handles, fault);      % Compute and update Fault's Mw magnitude
+	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_FaultStrike_Callback(hObject, eventdata, handles)
@@ -244,46 +231,42 @@ function edit_FaultStrike_Callback(hObject, eventdata, handles)
 
 % ------------------------------------------------------------------------------------
 function edit_FaultDip_Callback(hObject, eventdata, handles)
-% Actualize the "FaultDip" field
-xx = str2double(get(hObject,'String'));
-if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-else                        fault = 1;      end
-top_d = str2double(get(handles.edit_FaultTopDepth,'String'));
-W = str2double(get(handles.edit_FaultWidth,'String'));
-depth = top_d + W * cos((90-xx)*pi/180);
-set(handles.edit_FaultDepth,'String',depth);
-seg = get(handles.popup_segment,'Value');
-handles.FaultDip{fault}(seg) = xx;
-handles.FaultDepth{fault}(seg) = depth;
+	% Actualize the "FaultDip" field
+	xx = str2double(get(hObject,'String'));
+	top_d = str2double(get(handles.edit_FaultTopDepth,'String'));
+	W = str2double(get(handles.edit_FaultWidth,'String'));
+	depth = top_d + W * cos((90-xx)*pi/180);
+	set(handles.edit_FaultDepth,'String',depth);
+	[fault,seg] = getFaultSeg(handles);
+	handles.FaultDip{fault}(seg) = xx;
+	handles.FaultDepth{fault}(seg) = depth;
 
-% Update the patch that represents the surface projection of the fault plane
-xx = [handles.fault_x{fault}(seg); handles.fault_x{fault}(seg+1)];
-yy = [handles.fault_y{fault}(seg); handles.fault_y{fault}(seg+1)];
+	% Update the patch that represents the surface projection of the fault plane
+	xx = [handles.fault_x{fault}(seg); handles.fault_x{fault}(seg+1)];
+	yy = [handles.fault_y{fault}(seg); handles.fault_y{fault}(seg+1)];
 
-D2R = pi / 180;
-off = handles.FaultWidth{fault}(seg) * cos(handles.FaultDip{fault}(seg)*D2R);
-strk = handles.FaultStrike{fault}(seg);
+	D2R = pi / 180;
+	off = handles.FaultWidth{fault}(seg) * cos(handles.FaultDip{fault}(seg)*D2R);
+	strk = handles.FaultStrike{fault}(seg);
 
-if (handles.geog)
-    rng = off / 6371 / D2R;
-    [lat1,lon1] = circ_geo(yy(1),xx(1),rng,strk+90,1);
-    [lat2,lon2] = circ_geo(yy(2),xx(2),rng,strk+90,1);
-else
-    if (handles.is_meters)  off = off * 1e3;    end
-    lon1 = xx(1) + off * cos(strk*D2R);     lon2 = xx(2) + off * cos(strk*D2R);
-    lat1 = yy(1) - off * sin(strk*D2R);     lat2 = yy(2) - off * sin(strk*D2R);
-end
-x = [xx(1) xx(2) lon2 lon1];    y = [yy(1) yy(2) lat2 lat1];
-hp = getappdata(handles.h_fault(fault),'PatchHand');
-try,    set(hp(seg),'XData',x,'YData',y,'FaceColor',[.8 .8 .8],'EdgeColor','k','LineWidth',1);  end
-guidata(handles.figure1,handles)
+	if (handles.geog)
+		rng = off / 6371 / D2R;
+		[lat1,lon1] = circ_geo(yy(1),xx(1),rng,strk+90,1);
+		[lat2,lon2] = circ_geo(yy(2),xx(2),rng,strk+90,1);
+	else
+		if (handles.is_meters), off = off * 1e3;    end
+		lon1 = xx(1) + off * cos(strk*D2R);     lon2 = xx(2) + off * cos(strk*D2R);
+		lat1 = yy(1) - off * sin(strk*D2R);     lat2 = yy(2) - off * sin(strk*D2R);
+	end
+	x = [xx(1) xx(2) lon2 lon1];    y = [yy(1) yy(2) lat2 lat1];
+	hp = getappdata(handles.h_fault(fault),'PatchHand');
+	try     set(hp(seg),'XData',x,'YData',y,'FaceColor',[.8 .8 .8],'EdgeColor','k','LineWidth',1);  end
+	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_FaultDepth_Callback(hObject, eventdata, handles)
 	% Actualize the "FaultTopDepth" field
 	xx = str2double(get(hObject,'String'));
-	if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-	else                        fault = 1;      end
 	if (xx < 0)         % If user tried to give a negative depth
         xx = -xx;       set(hObject,'String',xx)
 	end
@@ -291,7 +274,7 @@ function edit_FaultDepth_Callback(hObject, eventdata, handles)
 	dip = str2double(get(handles.edit_FaultDip,'String'));
 	top_d = xx - W * cos((90-dip)*pi/180);
 	set(handles.edit_FaultTopDepth,'String',top_d);
-	seg = get(handles.popup_segment,'Value');
+	[fault,seg] = getFaultSeg(handles);
 	handles.FaultDepth{fault}(seg) = xx;
 	handles.FaultTopDepth{fault}(seg) = top_d;
 	guidata(handles.figure1,handles)
@@ -300,8 +283,6 @@ function edit_FaultDepth_Callback(hObject, eventdata, handles)
 function edit_FaultTopDepth_Callback(hObject, eventdata, handles)
 	% Actualize the "FaultDepth" field
 	xx = str2double(get(hObject,'String'));
-	if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-	else                        fault = 1;      end
 	if (xx < 0)         % If user tried to give a negative depth
         xx = -xx;       set(hObject,'String',xx)
 	end
@@ -309,143 +290,130 @@ function edit_FaultTopDepth_Callback(hObject, eventdata, handles)
 	dip = str2double(get(handles.edit_FaultDip,'String'));
 	depth = xx + W * cos((90-dip)*pi/180);
 	set(handles.edit_FaultDepth,'String',depth);
-	seg = get(handles.popup_segment,'Value');
+	[fault,seg] = getFaultSeg(handles);
 	handles.FaultTopDepth{fault}(seg) = xx;
 	handles.FaultDepth{fault}(seg) = depth;
 	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function popup_segment_Callback(hObject, eventdata, handles)
-seg = get(hObject,'Value');
-if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-else                        fault = 1;      end
+	seg = get(hObject,'Value');
+	fault = getFaultSeg(handles);
 
-% Fault parameters
-set(handles.edit_FaultLength,'String',handles.FaultLength{fault}(seg))
-set(handles.edit_FaultStrike,'String',sprintf('%.1f',handles.FaultStrike{fault}(seg)))
+	% Fault parameters
+	set(handles.edit_FaultLength,'String',handles.FaultLength{fault}(seg))
+	set(handles.edit_FaultStrike,'String',sprintf('%.1f',handles.FaultStrike{fault}(seg)))
 
-if (isnan(handles.FaultWidth{fault}(seg)))     str = '';
-else    str = num2str(handles.FaultWidth{fault}(seg));     end
-set(handles.edit_FaultWidth,'String',str)
+	if (isnan(handles.FaultWidth{fault}(seg))),    str = '';
+	else    str = num2str(handles.FaultWidth{fault}(seg));     end
+	set(handles.edit_FaultWidth,'String',str)
 
-set(handles.edit_FaultDip,'String',sprintf('%.1f',handles.FaultDip{fault}(seg)))
-set(handles.edit_FaultTopDepth,'String',num2str(handles.FaultTopDepth{fault}(seg)))
+	set(handles.edit_FaultDip,'String',sprintf('%.1f',handles.FaultDip{fault}(seg)))
+	set(handles.edit_FaultTopDepth,'String',num2str(handles.FaultTopDepth{fault}(seg)))
 
-if (isnan(handles.FaultDepth{fault}(seg)))     str = '';
-else    str = num2str(handles.FaultDepth{fault}(seg));     end
-set(handles.edit_FaultDepth,'String',str)
+	if (isnan(handles.FaultDepth{fault}(seg))),    str = '';
+	else    str = num2str(handles.FaultDepth{fault}(seg));     end
+	set(handles.edit_FaultDepth,'String',str)
 
-% Dislocation parameters
-set(handles.edit_DislocStrike,'String',sprintf('%.1f',handles.DislocStrike{fault}(seg)))
-if (isnan(handles.DislocSlip{fault}(seg)))     str = '';
-else    str = num2str(handles.DislocSlip{fault}(seg));     end
-set(handles.edit_DislocSlip,'String',str)
-if (isnan(handles.DislocRake{fault}(seg)))     str = '';
-else    str = sprintf('%.1f',handles.DislocRake{fault}(seg));     end
-set(handles.edit_DislocRake,'String',str)
+	% Dislocation parameters
+	set(handles.edit_DislocStrike,'String',sprintf('%.1f',handles.DislocStrike{fault}(seg)))
+	if (isnan(handles.DislocSlip{fault}(seg))),    str = '';
+	else    str = num2str(handles.DislocSlip{fault}(seg));     end
+	set(handles.edit_DislocSlip,'String',str)
+	if (isnan(handles.DislocRake{fault}(seg))),    str = '';
+	else    str = sprintf('%.1f',handles.DislocRake{fault}(seg));     end
+	set(handles.edit_DislocRake,'String',str)
 
 % -----------------------------------------------------------------------------------------
 function popup_fault_Callback(hObject, eventdata, handles)
-fault = get(hObject,'Value');
-S = [];
-for (i=1:handles.nvert(fault))     S = [S; ['Segment ' num2str(i)]];   end
-set(handles.popup_segment,'String',cellstr(S),'Value',1)    
-seg = 1;    % Make current the first segment
+	fault = get(hObject,'Value');
+	S = [];
+	for (i=1:handles.nvert(fault)),    S = [S; ['Segment ' num2str(i)]];   end
+	set(handles.popup_segment,'String',cellstr(S),'Value',1)    
+	seg = 1;    % Make current the first segment
 
-% Identify the currently active fault by setting its linestyle to dash
-set(handles.h_fault,'LineStyle','-')
-set(handles.h_fault(fault),'LineStyle','--')
+	% Identify the currently active fault by setting its linestyle to dash
+	set(handles.h_fault,'LineStyle','-')
+	set(handles.h_fault(fault),'LineStyle','--')
 
-% Set the hide planes checkbox with the correct value for this fault
-if (handles.hide_planes(fault))
-    set(handles.checkbox_hideFaultPlanes,'Value',1)
-else
-    set(handles.checkbox_hideFaultPlanes,'Value',0)
-end
+	% Set the hide planes checkbox with the correct value for this fault
+	if (handles.hide_planes(fault))
+		set(handles.checkbox_hideFaultPlanes,'Value',1)
+	else
+		set(handles.checkbox_hideFaultPlanes,'Value',0)
+	end
 
-% Fault parameters
-set(handles.edit_FaultLength,'String',handles.FaultLength{fault}(seg))
-set(handles.edit_FaultStrike,'String',sprintf('%.1f',handles.FaultStrike{fault}(seg)))
+	% Fault parameters
+	set(handles.edit_FaultLength,'String',handles.FaultLength{fault}(seg))
+	set(handles.edit_FaultStrike,'String',sprintf('%.1f',handles.FaultStrike{fault}(seg)))
 
-if (isnan(handles.FaultWidth{fault}(seg)))     str = '';
-else    str = num2str(handles.FaultWidth{fault}(seg));     end
-set(handles.edit_FaultWidth,'String',str)
+	if (isnan(handles.FaultWidth{fault}(seg))),    str = '';
+	else    str = num2str(handles.FaultWidth{fault}(seg));
+	end
+	set(handles.edit_FaultWidth,'String',str)
 
-set(handles.edit_FaultDip,'String',sprintf('%.1f',handles.FaultDip{fault}(seg)))
-set(handles.edit_FaultTopDepth,'String',handles.FaultTopDepth{fault}(seg))
+	set(handles.edit_FaultDip,'String',sprintf('%.1f',handles.FaultDip{fault}(seg)))
+	set(handles.edit_FaultTopDepth,'String',handles.FaultTopDepth{fault}(seg))
 
-if (isnan(handles.FaultDepth{fault}(seg)))     str = '';
-else    str = num2str(handles.FaultDepth{fault}(seg));     end
-set(handles.edit_FaultDepth,'String',str)
+	if (isnan(handles.FaultDepth{fault}(seg))),    str = '';
+	else	str = num2str(handles.FaultDepth{fault}(seg));
+	end
+	set(handles.edit_FaultDepth,'String',str)
 
-% Dislocation parameters
-set(handles.edit_DislocStrike,'String',sprintf('%.1f',handles.DislocStrike{fault}(seg)))
-if (isnan(handles.DislocSlip{fault}(seg)))     str = '';
-else    str = num2str(handles.DislocSlip{fault}(seg));     end
-set(handles.edit_DislocSlip,'String',str)
-if (isnan(handles.DislocRake{fault}(seg)))     str = '';
-else    str = sprintf('%.1f',handles.DislocRake{fault}(seg));     end
-set(handles.edit_DislocRake,'String',str)
-if (handles.Mw(fault) > 0)
-    txt = ['Mw Magnitude = ' sprintf('%.1f',handles.Mw(fault))];
-    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
-else
-    set(handles.h_txt_Mw,'String','Mw Magnitude = ','Position',handles.txt_Mw_pos)
-end
-refresh(handles.hCallingFig);         % otherwise, ML BUG
+	% Dislocation parameters
+	set(handles.edit_DislocStrike,'String',sprintf('%.1f',handles.DislocStrike{fault}(seg)))
+	if (isnan(handles.DislocSlip{fault}(seg))),    str = '';
+	else    str = num2str(handles.DislocSlip{fault}(seg));
+	end
+	set(handles.edit_DislocSlip,'String',str)
+
+	if (isnan(handles.DislocRake{fault}(seg))),    str = '';
+	else    str = sprintf('%.1f',handles.DislocRake{fault}(seg));
+	end
+	set(handles.edit_DislocRake,'String',str)
+	if (handles.Mw(fault) > 0)
+        txt = ['Mw Magnitude = ' sprintf('%.1f',handles.Mw(fault))];
+        set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
+	else
+        set(handles.h_txt_Mw,'String','Mw Magnitude = ','Position',handles.txt_Mw_pos)
+	end
+	refresh(handles.hCallingFig);         % otherwise, ML BUG
 
 % ------------------------------------------------------------------------------------
 function edit_DislocStrike_Callback(hObject, eventdata, handles)
-	D2R = pi / 180;
-	if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-	else                        fault = 1;      end
 	xx = str2double(get(hObject,'String'));
-	f_strike = str2double(get(handles.edit_FaultStrike,'String'));      % Fault strike
-	slip = str2double(get(handles.edit_DislocSlip,'String'));           % Dislocation slip
-	seg = get(handles.popup_segment,'Value');
+	[fault,seg] = getFaultSeg(handles);
+	if (isnan(xx)),     set(hObject,'String',handles.DislocStrike{fault}(seg));   return;     end
 	handles.DislocStrike{fault}(seg) = xx;
 	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_DislocRake_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx)),     set(hObject,'String','');   return;     end
-if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-else                        fault = 1;      end
-seg = get(handles.popup_segment,'Value');
-handles.DislocRake{fault}(seg) = xx;
-handles.DislocRakeCopy = xx;            % To be of use in the SCC cases
-if (get(handles.checkbox_SCC,'Val'))
-    handles.DislocRake = repmat({xx},1,handles.n_faults);
-end
-guidata(handles.figure1,handles)
+	xx = str2double(get(hObject,'String'));
+	[fault,seg] = getFaultSeg(handles);
+	if (isnan(xx)),     set(hObject,'String',handles.DislocRake{fault}(seg));   return;     end
+	handles.DislocRake{fault}(seg) = xx;
+	handles.DislocRakeCopy = xx;            % To be of use in the SCC cases
+	if (get(handles.checkbox_SCC,'Val'))
+        handles.DislocRake = repmat({xx},1,handles.n_faults);
+	end
+	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_DislocSlip_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-else                        fault = 1;      end
-seg = get(handles.popup_segment,'Value');
-if (isnan(xx))
-    set(hObject,'String','')
-    handles.DislocSlip{fault}(seg) = NaN;
-    return
-else
-    handles.DislocSlip{fault}(seg) = xx;
-end
-handles.DislocSlipCopy = xx;            % To be of use in the SCC cases
+	xx = str2double(get(hObject,'String'));
+	[fault,seg] = getFaultSeg(handles);
+	if (isnan(xx))
+		set(hObject,'String','')
+		handles.DislocSlip{fault}(seg) = NaN;
+		return
+	else
+		handles.DislocSlip{fault}(seg) = xx;
+	end
+	handles.DislocSlipCopy = xx;            % To be of use in the SCC cases
 
-% Compute Moment magnitude
-M0 = 3e10 * handles.um_milhao * handles.DislocSlip{fault}(:) .* handles.FaultWidth{fault}(:) .* ...
-    str2double(get(handles.edit_FaultLength,'String'));
-if (length(M0) > 1)     M0 = sum(M0);   end
-mag = 2/3*(log10(M0) - 9.1);
-if (~isnan(mag))
-    txt = ['Mw Magnitude = ' sprintf('%.1f',mag)];
-    set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
-    handles.Mw(fault) = mag;
-end
-guidata(handles.figure1,handles)
+	handles = compMag(handles, fault);      % Compute and update Fault's Mw magnitude
+	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function edit_x_min_Callback(hObject, eventdata, handles)
@@ -512,37 +480,38 @@ function pushbutton_compute_Callback(hObject, eventdata, handles)
 	nrow = str2double(get(handles.edit_Nrows,'String'));
 	ncol = str2double(get(handles.edit_Ncols,'String'));
 
-if (handles.is_km)      % Than we must convert those to meters
-    xmin = xmin * 1e3;    xmax = xmax * 1e3;
-    ymin = ymin * 1e3;    ymax = ymax * 1e3;
-    xinc = xinc * 1e3;    yinc = yinc * 1e3;
-end
-
-opt_R = ['-R' sprintf('%.12g/%.12g/%.12g/%.12g',xmin, xmax, ymin, ymax)];
-opt_I = ['-I' sprintf('%.12g',xinc) '/' sprintf('%.12g',yinc)];
-
-n_seg = sum(handles.nvert);     % Total number of fault segments
-x = handles.fault_x;            y = handles.fault_y;
-if (~iscell(x))                 x = {x};    y = {y};    end
-kk = 1;
-for (i=1:handles.n_faults)
-	for (k=1:handles.nvert(i))      % Loop over number of segments of this fault
-        if (handles.is_meters)      % Fault's length must be given in km to mansinha_m
-            handles.FaultLength{i}(k) = handles.FaultLength{i}(k) / 1000;
-        elseif (handles.is_km)      % This is a messy case. -E & -I must also be in meters
-            x{i}(k) = x{i}(k) * 1e3;    y{i}(k) = y{i}(k) * 1e3;
-        end
-        opt_F{kk} = ['-F' num2str(handles.FaultLength{i}(k)) '/' num2str(handles.FaultWidth{i}(k)) '/' ...
-                num2str(handles.FaultTopDepth{i}(k))];
-        opt_A{kk} = ['-A' num2str(handles.FaultDip{i}(k)) '/' num2str(handles.FaultStrike{i}(k)) '/' ...
-                num2str(handles.DislocRake{i}(k)) '/' num2str(handles.DislocSlip{i}(k))];
-        opt_E{kk} = ['-E' sprintf('%.5f',x{i}(k)) '/' sprintf('%.5f',y{i}(k))];
-        kk = kk + 1;
+	if (handles.is_km)      % Than we must convert those to meters
+		xmin = xmin * 1e3;    xmax = xmax * 1e3;
+		ymin = ymin * 1e3;    ymax = ymax * 1e3;
+		xinc = xinc * 1e3;    yinc = yinc * 1e3;
 	end
-end
 
-if (handles.geog)   opt_M = '-M';
-else                opt_M = '';     end
+	opt_R = ['-R' sprintf('%.12g/%.12g/%.12g/%.12g',xmin, xmax, ymin, ymax)];
+	opt_I = ['-I' sprintf('%.12g',xinc) '/' sprintf('%.12g',yinc)];
+
+	n_seg = sum(handles.nvert);     % Total number of fault segments
+	x = handles.fault_x;            y = handles.fault_y;
+	if (~iscell(x)),                x = {x};    y = {y};    end
+	kk = 1;
+	for (i=1:handles.n_faults)
+		for (k=1:handles.nvert(i))      % Loop over number of segments of this fault
+			if (handles.is_meters)      % Fault's length must be given in km to mansinha_m
+				handles.FaultLength{i}(k) = handles.FaultLength{i}(k) / 1000;
+			elseif (handles.is_km)      % This is a messy case. -E & -I must also be in meters
+				x{i}(k) = x{i}(k) * 1e3;    y{i}(k) = y{i}(k) * 1e3;
+			end
+			opt_F{kk} = ['-F' num2str(handles.FaultLength{i}(k)) '/' num2str(handles.FaultWidth{i}(k)) '/' ...
+					num2str(handles.FaultTopDepth{i}(k))];
+			opt_A{kk} = ['-A' num2str(handles.FaultDip{i}(k)) '/' num2str(handles.FaultStrike{i}(k)) '/' ...
+					num2str(handles.DislocRake{i}(k)) '/' num2str(handles.DislocSlip{i}(k))];
+			opt_E{kk} = ['-E' sprintf('%.5f',x{i}(k)) '/' sprintf('%.5f',y{i}(k))];
+			kk = kk + 1;
+		end
+	end
+
+	if (handles.geog),  opt_M = '-M';
+	else                opt_M = '';
+	end
 
 	% Compute deformation
 	set(handles.figure1,'pointer','watch')
@@ -567,7 +536,7 @@ else                opt_M = '';     end
     
     [m,n] = size(U);        hWarn = [];
     if ( (m ~= nrow) || (n ~= ncol) )
-        msg{1} = 'Someting went wrong. Output file has not the required size. Maybe a meters<->kilometers bad guess?'
+        msg{1} = 'Someting went wrong. Output file has not the required size. Maybe a meters<->kilometers bad guess?';
         if (abs(dx - dy) > 1e-5)
             msg{2} = ' ';
             msg{3} = 'No. Almost likely this was due to the fact that or X and Y spacings are diferent.';
@@ -588,59 +557,58 @@ function pushbutton_cancel_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function len = LineLength(h,geog)
-x = get(h,'XData');     y = get(h,'YData');
-len = [];
-if (~iscell(x))
-	if (geog)
-        D2R = pi/180;    earth_rad = 6371;
-        x = x * D2R;    y = y * D2R;
-        lat_i = y(1:length(y)-1);   lat_f = y(2:length(y));     clear y;
-        lon_i = x(1:length(x)-1);   lon_f = x(2:length(x));     clear x;
-        tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
-        clear lat_i lat_f lon_i lon_f;
-        len = [len; acos(tmp) * earth_rad];         % Distance in km
+	x = get(h,'XData');     y = get(h,'YData');
+	len = [];
+	if (~iscell(x))
+		if (geog)
+			D2R = pi/180;    earth_rad = 6371;
+			x = x * D2R;    y = y * D2R;
+			lat_i = y(1:length(y)-1);   lat_f = y(2:length(y));     clear y;
+			lon_i = x(1:length(x)-1);   lon_f = x(2:length(x));     clear x;
+			tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
+			clear lat_i lat_f lon_i lon_f;
+			len = [len; acos(tmp) * earth_rad];         % Distance in km
+		else
+			dx = diff(x);   dy = diff(y);
+			len = [len; sqrt(dx.*dx + dy.*dy)];         % Distance in user unites
+		end
 	else
-        dx = diff(x);   dy = diff(y);
-        len = [len; sqrt(dx.*dx + dy.*dy)];         % Distance in user unites
+		if (geog)
+			D2R = pi/180;    earth_rad = 6371;
+			for (k=1:length(x))
+				xx = x{k} * D2R;    yy = y{k} * D2R;
+				lat_i = yy(1:length(yy)-1);   lat_f = yy(2:length(yy));
+				lon_i = xx(1:length(xx)-1);   lon_f = xx(2:length(xx));
+				tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
+				len{k} = acos(tmp) * earth_rad;         % Distance in km
+			end
+		else
+			for (k=1:length(x))
+				xx = x{k};      yy = y{k};
+				dx = diff(xx);  dy = diff(yy);
+				len{k} = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
+			end
+		end
 	end
-else
-	if (geog)
-        D2R = pi/180;    earth_rad = 6371;
-        for (k=1:length(x))
-            xx = x{k} * D2R;    yy = y{k} * D2R;
-            lat_i = yy(1:length(yy)-1);   lat_f = yy(2:length(yy));
-            lon_i = xx(1:length(xx)-1);   lon_f = xx(2:length(xx));
-            tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
-            len{k} = acos(tmp) * earth_rad;         % Distance in km
-        end
-	else
-        for (k=1:length(x))
-            xx = x{k};      yy = y{k};
-            dx = diff(xx);  dy = diff(yy);
-            len{k} = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
-        end
-	end
-end
 
 % -----------------------------------------------------------------------------------------
 function popup_GridCoords_Callback(hObject, eventdata, handles)
 	xx = get(hObject,'Value');
-	if (xx == 1)        handles.geog = 1;       handles.is_meters = 0;  handles.is_km = 0;  handles.um_milhao = 1e6;
-	elseif (xx == 2)    handles.is_meters = 1;  handles.is_geog = 0;    handles.is_km = 0;  handles.um_milhao = 1e3;
-	elseif (xx == 3)    handles.is_km = 1;      handles.is_geog = 0;    handles.is_meters = 0;  handles.um_milhao = 1e6;
+	if (xx == 1),       handles.geog = 1;       handles.is_meters = 0;  handles.is_km = 0;  handles.um_milhao = 1e6;
+	elseif (xx == 2),   handles.is_meters = 1;  handles.is_geog = 0;    handles.is_km = 0;  handles.um_milhao = 1e3;
+	elseif (xx == 3),   handles.is_km = 1;      handles.is_geog = 0;    handles.is_meters = 0;  handles.um_milhao = 1e6;
 	end
     guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
 function checkbox_hideFaultPlanes_CB(hObject, eventdata, handles)
-	if (handles.n_faults > 1)   fault = get(handles.popup_fault,'Value');
-	else                        fault = 1;      end
+	fault = getFaultSeg(handles);
 	hp = getappdata(handles.h_fault(fault),'PatchHand');
 	if (get(hObject,'Value'))
-        try,    set(hp,'Visible','off');    end
+        try    set(hp,'Visible','off');    end
         handles.hide_planes(fault) = 1;
 	else
-        try,    set(hp,'Visible','on');     end
+        try    set(hp,'Visible','on');     end
         handles.hide_planes(fault) = 0;
 	end
     guidata(handles.figure1,handles)
@@ -666,7 +634,7 @@ function checkbox_SCC_CB(hObject, eventdata, handles)
         deleteFatias([],[],handles)
         if (handles.restoreOldPlane)
         	hp = getappdata(handles.h_fault(1),'PatchHand');
-            try,    set(hp,'Visible','on');     end
+            try     set(hp,'Visible','on');     end
             set(handles.checkbox_hideFaultPlanes,'Val',0)
             handles.hide_planes(1) = 0;
         else
@@ -775,7 +743,7 @@ function [stripes,varSlip,sliceWidth] = comp_varSlip(handles)
     nFatias = round(str2double(get(handles.edit_nSlices,'String')));
     q = handles.qValue;
     D2R = pi / 180;
-    gama  = [0:nFatias-1] / nFatias;
+    gama  = (0:nFatias-1) / nFatias;
     D1 = 12/q^3*(q*gama - gama.^2);                 % Two branches of the variable slip equation
     D2 = 12/(1-q)^3*(gama.^2 -gama*(1+q)+q);
     D3 = [D1(gama < q) D2(gama >= q)];              % Join them
@@ -827,7 +795,7 @@ function showFatias(hObj,event,handles)
     hAxes = get(hFig,'Currentaxes');
     
     nFatias = numel(handles.patchFatias);
-    gama  = [0:nFatias-1]/nFatias;
+    gama  = (0:nFatias-1)/nFatias;
     D3 = [handles.varSlip(1:end); handles.varSlip(1:end)];
     D3 = D3(:)';
     x = [gama(2:end); gama(2:end)];
@@ -838,20 +806,39 @@ function showFatias(hObj,event,handles)
     text(.25,.1,sprintf('%s%.1f%s','Lost in descretization = ',abs(lost),'%'))
 
 % ------------------------------------------------------------------------------------
+function [fault,seg] = getFaultSeg(handles)
+	fault = 1;
+	if (handles.n_faults > 1),	fault = get(handles.popup_fault,'Value');	end
+	seg = get(handles.popup_segment,'Value');
+
+% ------------------------------------------------------------------------------------
+function [handles, mag] = compMag(handles, fault)
+	% Compute Moment magnitude
+	M0 = 3e10 * handles.um_milhao * handles.DislocSlip{fault}(:) .* handles.FaultWidth{fault}(:) .* ...
+		str2double(get(handles.edit_FaultLength,'String'));
+	if (length(M0) > 1),    M0 = sum(M0);   end
+	mag = 2/3*(log10(M0) - 9.1);
+	if (~isnan(mag))
+		txt = ['Mw Magnitude = ' sprintf('%.1f',mag)];
+		set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
+		handles.Mw(fault) = mag;
+	end
+
+% ------------------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
     if (get(handles.checkbox_SCC,'Val'))
         deleteFatias([],[],handles)
     else
         for (i=1:numel(handles.h_fault))
         	hp = getappdata(handles.h_fault(i),'PatchHand');
-            try,    set(hp,'XData', [], 'YData',[],'Visible','on');     end     % Had to use a try (f.. endless errors)
+            try     set(hp,'XData', [], 'YData',[],'Visible','on');     end     % Had to use a try (f.. endless errors)
         end
     end
     delete(handles.figure1)
 
 % -----------------------------------------------------------------------------------------
 % ---------------- Creates and returns a handle to the GUI figure. 
-function deform_mansinha_LayoutFcn(h1);
+function deform_mansinha_LayoutFcn(h1)
 
 set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
@@ -931,7 +918,7 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Tag','popup_segment');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[229 238 48 16],...
-'String','Segments','Style','text','Tag','fault_segment');
+'String','Segments','Style','text','Tag','txtFaultSeg');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[53 250 85 15],...
 'String','Fault Geometry','Style','text','Tag','faultGeom');
@@ -1068,7 +1055,7 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Value',1,'Tag','popup_fault');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[229 194 42 15],...
-'String','Faults','Style','text','Tag','fault_number');
+'String','Faults','Style','text','Tag','txtFaultNum');
 
 uicontrol('Parent',h1,...
 'Callback',{@deform_mansinha_uicallback,h1,'checkbox_hideFaultPlanes_CB'},...
