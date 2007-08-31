@@ -20,47 +20,47 @@ function InOut2WS(handles, opt)
 % --------------------------------------------------------------------
 
 if ~strcmp(opt,'loadmat')
-	if (handles.no_file == 1),      aux_funs('msg_dlg',1);     return;      end
+	if (handles.no_file == 1),      aux_funs('msg_dlg',1,handles);     return;      end
     is_grid = handles.validGrid;
 	vars = evalin('base','who');
 end
 
 try     % So many thing may go wrong
 	if (strcmp(opt,'direct') && is_grid)
-        [X,Y,Z,head] = load_grd(handles);
-        if isempty(Z),    return;     end;    % An error message was already issued
-        assignin('base','X',X);         assignin('base','Y',Y);
-        assignin('base','Z',double(Z)); assignin('base','head',head);
-        assignin('base','img',get(handles.hImg,'CData'));
-        assignin('base','FigHand',handles.figure1);
-        assignin('base','is_grid',is_grid);         % Tell base WS if we have a grid or a image
+		[X,Y,Z,head] = load_grd(handles);
+		if isempty(Z),    return;     end;    % An error message was already issued
+		assignin('base','X',X);         assignin('base','Y',Y);
+		assignin('base','Z',double(Z)); assignin('base','head',head);
+		assignin('base','img',get(handles.hImg,'CData'));
+		assignin('base','FigHand',handles.figure1);
+		assignin('base','is_grid',is_grid);         % Tell base WS if we have a grid or a image
 	elseif (strcmp(opt,'direct') && ~is_grid)
-        assignin('base','img',flipdim(get(handles.hImg,'CData'),1));
-        [m,n,k] = size(get(handles.hImg,'CData'));
-        X = 1:m;    Y = 1:n;
-        assignin('base','X',X);         assignin('base','Y',Y);
-        assignin('base','is_grid',is_grid);         % Tell base WS if we have a grid or a image
-        assignin('base','head',handles.head);
+		assignin('base','img',flipdim(get(handles.hImg,'CData'),1));
+		[m,n,k] = size(get(handles.hImg,'CData'));
+		X = 1:m;    Y = 1:n;
+		assignin('base','X',X);         assignin('base','Y',Y);
+		assignin('base','is_grid',is_grid);         % Tell base WS if we have a grid or a image
+		assignin('base','head',handles.head);
 	elseif strcmp(opt,'GRID_inverse')
         if (isempty(strmatch('is_grid',vars)))
-            errordlg('You screwed up my memory if we are dealing with a grid or a image.','Error');     return
+			errordlg('You screwed up my memory if we are dealing with a grid or a image.','Error');     return
         end
         is_grid = evalin('base','is_grid');
         if (is_grid == 0)
-            errordlg('You are confused. There is no grid available here.','Error');     return
+			errordlg('You are confused. There is no grid available here.','Error');     return
         end
         if (isempty(strmatch('X',vars)) || isempty(strmatch('Y',vars)))
-            errordlg('You screw up one off X or Y coordinate vectors. Restart or give up.','Error');  return
+			errordlg('You screw up one off X or Y coordinate vectors. Restart or give up.','Error');  return
         end
         Xb = evalin('base','X');            Yb = evalin('base','Y');
         if (isempty(strmatch('Z',vars)) || isempty(strmatch('head',vars)))
-            errordlg('You screw up either the Z or head arrays. Restart or give up.','Error');  return
+			errordlg('You screw up either the Z or head arrays. Restart or give up.','Error');  return
         end
         Zb = single(evalin('base','Z'));    head_b = evalin('base','head');
         if (size(Zb,1) ~= length(Yb) || size(Zb,2) ~= length(Xb))
-            errordlg('Z array size is not compatible with the X & Y vectors. Restart or give up.','Error');  return
+			errordlg('Z array size is not compatible with the X & Y vectors. Restart or give up.','Error');  return
         elseif (length(head_b) < 9)
-            errordlg('You screw up the header variable. Rebuild it or give up.','Error');  return
+			errordlg('You screw up the header variable. Rebuild it or give up.','Error');  return
         end
         [X,Y,Z,head] = load_grd(handles);
         if (isequal(Z,Zb)),     return;     end     % Z did not change. Return
@@ -71,11 +71,11 @@ try     % So many thing may go wrong
         mirone(Zb,tmp);
 	elseif strcmp(opt,'IMG_inverse')
         if (isempty(strmatch('img',vars)))
-            errordlg('You screw up the IMG array var. Restart or give up.','Error');  return
+			errordlg('You screw up the IMG array var. Restart or give up.','Error');  return
         end
         I = evalin('base','img');
         if ( handles.image_type ~= 2 && ( isempty(strmatch('X',vars)) || isempty(strmatch('Y',vars)) ) )      % Referenced image
-            errordlg('You screw up the necessary X or Y coord vectors. Restart or give up.','Error');  return
+			errordlg('You screw up the necessary X or Y coord vectors. Restart or give up.','Error');  return
         end
         Xb = evalin('base','X');        Yb = evalin('base','Y');
         if (Xb(end) ~= size(I,2) || Yb(end) ~= size(I,1))
@@ -92,38 +92,38 @@ try     % So many thing may go wrong
             tmp.name = 'ML imported img';
             mirone(I,tmp);
         else
-            mirone(I);
+			mirone(I);
         end
-        
+	
 	elseif strcmp(opt,'loadmat')            % Load a .mat file containing a 2D array
-        str1 = {'*.mat;','mat file format (*.mat)'; '*.*', 'All Files (*.*)'};
-        cd(handles.last_dir)
-        [FileName,PathName] = uigetfile(str1,'Select .mat file');
-        if isequal(FileName,0);     return;     end
-        pause(0.01);        cd(handles.home_dir);       % allways go home
+		str1 = {'*.mat;','mat file format (*.mat)'; '*.*', 'All Files (*.*)'};
+		cd(handles.last_dir)
+		[FileName,PathName] = uigetfile(str1,'Select .mat file');
+		if isequal(FileName,0);     return;     end
+		pause(0.01);        cd(handles.home_dir);       % allways go home
 		try                                             % We do a try-catch because evalin does not work on the compiled version
             load([PathName FileName])
             if (~isa(Z,'single')),   Z = single(Z);      end
-        catch
+		catch
             try
                 if (~isa(z,'single')),   Z = single(z);  clear z;    end
             catch
                 errordlg('The "Open .mat 2D array" requires that the array variable is named "Z" or "z"','ERROR')
                 return
             end
-        end
+		end
 		[m,n,k] = size(Z);
 		if (m < 2 || n < 2)
             errordlg('You must be joking. This is a vector, not a true 2D array.','ERROR')
             return
-        end
-        if (ndims(Z) > 2),  Z = Z(:,:,1);    end
-        [zz] = grdutils(Z,'-L');  z_min = zz(1);     z_max = zz(2);     clear zz;
-        head = [1 n 1 m z_min z_max 0 1 1];     % Minimalist header
-        tmp.X = 1:n;    tmp.Y = 1:m;    tmp.head = head;    tmp.name = 'ML imput grid';
-        mirone(Z,tmp);
+		end
+		if (ndims(Z) > 2),  Z = Z(:,:,1);    end
+		[zz] = grdutils(Z,'-L');  z_min = zz(1);     z_max = zz(2);     clear zz;
+		head = [1 n 1 m z_min z_max 0 1 1];     % Minimalist header
+		tmp.X = 1:n;    tmp.Y = 1:m;    tmp.head = head;    tmp.name = 'ML imput grid';
+		mirone(Z,tmp);
 	else
-        evalin('base','clear')
+		evalin('base','clear')
 	end
 catch
     errordlg(lasterr,'Error')
@@ -139,11 +139,11 @@ if (handles.ForceInsitu),     opt_I = '-I';   % Use only in desperate cases.
 else                          opt_I = ' ';    end
 
 if (isempty(X) && handles.image_type == 1 && ~handles.computed_grid)
-    [X,Y,Z,head] = grdread_m(handles.grdname,'single',opt_I);
+	[X,Y,Z,head] = grdread_m(handles.grdname,'single',opt_I);
 elseif (isempty(X) && handles.image_type == 4 && ~handles.computed_grid)
-    Z = [];     % Check for this to detect a (re)-loading error
-    errordlg('Grid was not on memory. Increase "Grid max size" and start over again.','Error')
+	Z = [];     % Check for this to detect a (re)-loading error
+	errordlg('Grid was not on memory. Increase "Grid max size" and start over again.','Error')
 elseif (isempty(X) && isempty(handles.grdname))
-    Z = [];     % Check for this to detect a (re)-loading error
-    errordlg('Grid could not be reloaded. You probably need to increase "Grid max size"','Error')
+	Z = [];     % Check for this to detect a (re)-loading error
+	errordlg('Grid could not be reloaded. You probably need to increase "Grid max size"','Error')
 end
