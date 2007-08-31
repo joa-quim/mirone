@@ -54,20 +54,21 @@ handles.all_datums = varargin{2};
 
 % Build the UTM zones list
 % First Northern hemisphere
-for i=1:30, u{i}=sprintf(['Zone ' num2str(i,'%.2d') 'N (' num2str(180 -(i-1)*6) 'W to ',...
-            num2str(180 -i*6) 'W)']);
+u = cell(120,1);
+for i=1:30, u{i}=sprintf(['Zone ' sprintf('%.2d',i) 'N (' sprintf('%d',180 -(i-1)*6) 'W to ',...
+            sprintf('%d',180 -i*6) 'W)']);
 end
-for i=1:30, u{i+30}=sprintf(['Zone ' num2str(i+30,'%.2d') 'N (' num2str((i-1)*6) 'E to ',...
-            num2str(i*6) 'E)']);
+for i=1:30, u{i+30}=sprintf(['Zone ' sprintf('%.2d',i+30) 'N (' sprintf('%d',(i-1)*6) 'E to ',...
+            sprintf('%d',i*6) 'E)']);
 end
 % And now the Southern hemisphere
-for i=1:30, u{i+60}=sprintf(['Zone ' num2str(i,'%.2d') 'S (' num2str(180 -(i-1)*6) 'W to ',...
+for i=1:30, u{i+60}=sprintf(['Zone ' sprintf('%.2d',i) 'S (' sprintf('%d',180 -(i-1)*6) 'W to ',...
             num2str(180 -i*6) 'W)']);
 end
-for i=1:30, u{i+90}=sprintf(['Zone ' num2str(i+30,'%.2d') 'S (' num2str((i-1)*6) 'E to ',...
-            num2str(i*6) 'E)']);
+for i=1:30, u{i+90}=sprintf(['Zone ' sprintf('%.2d',i+30) 'S (' sprintf('%d',(i-1)*6) 'E to ',...
+            sprintf('%d',i*6) 'E)']);
 end
-handles.UTMzones = u';
+handles.UTMzones = u;
 
 set(handles.popup_Group,'String',handles.proj_groups)       % Set group
 set(handles.popup_Group,'Value',varargin{1}.group_val)      % Set group old value
@@ -133,8 +134,9 @@ end
 % If old projection parameters exist, apply them
 try
             error = varargin{1}.ProjParameterValue;     error = 0;
-catch       error = 1;      end
-if (~error & ~isempty(varargin{1}.ProjParameterValue))
+catch       error = 1;
+end
+if (~error && ~isempty(varargin{1}.ProjParameterValue))
     n_params = length(fieldnames(varargin{1}.ProjParameterValue));
     set_enable(handles, n_params);
     for (i=1:n_params)
@@ -172,7 +174,6 @@ if (strcmp(handles.proj_groups{varargin{1}.group_val},'Portuguese Mess'))
 end
 
 % If an old projection string was transmited
-%if (exist('varargin{1}.projection','var') & ~isempty(varargin{1}.projection))
 if (isempty(varargin{1}.projection))
     for (i=1:5),    handles.projection{i} = [];     end
 end
@@ -182,10 +183,9 @@ if (isempty(handles.proj_name))
     handles.proj_name = 'FDS Sei la';
 end
 
-%--------------- Give a Pro look (3D) to the frame boxes -------------------------
+%--------------- Give a Pro look (3D) to the frame boxes (no Texts) -------------------------
 bgcolor = get(0,'DefaultUicontrolBackgroundColor');
 framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
 h_f = findobj(hObject,'Style','Frame');
 for i=1:length(h_f)
     frame_size = get(h_f(i),'Position');
@@ -198,19 +198,6 @@ for i=1:length(h_f)
         delete(h_f(i))
     end
 end
-
-% Recopy the text fields on top of previously created frames (uistack is to damn slow)
-h_t = findobj(hObject,'Style','Text');
-for i=1:length(h_t)
-    usr_d = get(h_t(i),'UserData');
-    t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-    bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
-    t_just = get(h_t(i),'HorizontalAlignment');     t_tag = get (h_t(i),'Tag');
-    uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str,'Tag',t_tag, ...
-        'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,...
-        'UserData',usr_d,'HorizontalAlignment',t_just);
-end
-delete(h_t)
 %------------------- END Pro look (3D) ----------------------------------------------------------
 
 %------------ Write info text about datum parameters -------------------
@@ -256,7 +243,7 @@ switch group
     case 'Universal Transversal Mercator'
         set_enable(handles,0);      set_enable(handles, 50);      handles.nParameters = 0;
         set(handles.popup_System,'String',handles.UTMzones)
-        handles.projection{1} = ['-Ju1/1'];     % For never being empty, but I must do better
+        handles.projection{1} = '-Ju1/1';     % For never being empty, but I must do better
         handles.proj_name = 'UTM';
         handles.sys_name = 'Zone 01N (180W to 174W)';
         handles.map_scale_factor = 0.9996;
@@ -324,11 +311,11 @@ guidata(hObject,handles)
 
 %-------------------------------------------------------------------------------------
 function popup_Datum_Callback(hObject, eventdata, handles)
-% Only updates the info text about datum parameters
-val = get(hObject,'Value');
-info.DX = handles.all_datums{val,4};       info.DY = handles.all_datums{val,5};
-info.DZ = handles.all_datums{val,6};       info.ellipsoide = handles.all_datums{val,2};
-datum_info(handles, info)
+	% Only updates the info text about datum parameters
+	val = get(hObject,'Value');
+	info.DX = handles.all_datums{val,4};       info.DY = handles.all_datums{val,5};
+	info.DZ = handles.all_datums{val,6};       info.ellipsoide = handles.all_datums{val,2};
+	datum_info(handles, info)
 
 %-------------------------------------------------------------------------------------
 function popup_CilindricalProjections_Callback(hObject, eventdata, handles)
@@ -427,20 +414,20 @@ guidata(hObject, handles);
 function popup_ConicalProjections_Callback(hObject, eventdata, handles)
 val = get(hObject,'Value');     str = get(hObject, 'String');
 switch str{val};
-    case 'CONIC'                  % Reset parameter names to void 
-        set_enable(handles,0);      handles.nParameters = [];
-    case 'Albers Conic Equal-Area'
-        set_enable(handles,4);      handles.nParameters = 4;
-        set_params_str(handles, {handles.lon0_txt; handles.lat0_txt;'Lat_of_Southern_Parallel';'Lat-of_Northern_Parallel'}, 4, [1 2 4])
-        handles.projection{1} = '-Jb';
-    case 'Equidistant Conic'
-        set_enable(handles,4);      handles.nParameters = 4;
-        set_params_str(handles, {handles.lon0_txt; handles.lat0_txt;'Lat_of_Southern_Parallel';'Lat_of_Northern_Parallel'}, 4, [1 2 4])
-        handles.projection{1} = '-Jd';
-    case 'Lambert Conic Conformal'
-        set_enable(handles,4);      handles.nParameters = 4;
-        set_params_str(handles, {handles.lon0_txt; handles.lat0_txt;'Lat_of_Southern_Parallel';'Lat_of_Northern_Parallel'}, 4, [1 2 4])
-        handles.projection{1} = '-Jl';
+	case 'CONIC'                  % Reset parameter names to void 
+	    set_enable(handles,0);      handles.nParameters = [];
+	case 'Albers Conic Equal-Area'
+    	set_enable(handles,4);      handles.nParameters = 4;
+    	set_params_str(handles, {handles.lon0_txt; handles.lat0_txt;'Lat_of_Southern_Parallel';'Lat-of_Northern_Parallel'}, 4, [1 2 4])
+	    handles.projection{1} = '-Jb';
+	case 'Equidistant Conic'
+    	set_enable(handles,4);      handles.nParameters = 4;
+	    set_params_str(handles, {handles.lon0_txt; handles.lat0_txt;'Lat_of_Southern_Parallel';'Lat_of_Northern_Parallel'}, 4, [1 2 4])
+	    handles.projection{1} = '-Jd';
+	case 'Lambert Conic Conformal'
+	    set_enable(handles,4);      handles.nParameters = 4;
+	    set_params_str(handles, {handles.lon0_txt; handles.lat0_txt;'Lat_of_Southern_Parallel';'Lat_of_Northern_Parallel'}, 4, [1 2 4])
+	    handles.projection{1} = '-Jl';
 end
 handles.proj_name = str{val};
 guidata(hObject, handles);
@@ -489,58 +476,58 @@ guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
 function edit_ProjParameterValue_1_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if isnan(xx) | isempty(xx)  set(hObject, 'String', '');  return;    end    % Just a stupid user error
-xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
-if (str2double(val{1}) > 0)
-    for i=1:length(val)   x = x + str2double(val{i}) / (60^(i-1));    end
-else
-    for i=1:length(val)   x = x - abs(str2double(val{i})) / (60^(i-1));   end
-end
-x = num2str(x);
-if (handles.nParameters == 1)   handles.projection{2} = [x '/1'];
-else                            handles.projection{2} = [x '/'];    end
-guidata(hObject, handles);
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || isempty(xx)),  set(hObject, 'String', '');  return;    end    % Just a stupid user error
+	xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
+	if (str2double(val{1}) > 0)
+        for i=1:length(val),  x = x + str2double(val{i}) / (60^(i-1));    end
+	else
+        for i=1:length(val),  x = x - abs(str2double(val{i})) / (60^(i-1));   end
+	end
+	x = num2str(x);
+	if (handles.nParameters == 1),  handles.projection{2} = [x '/1'];
+	else                            handles.projection{2} = [x '/'];    end
+	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
 function edit_ProjParameterValue_2_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if isnan(xx) | isempty(xx)  set(hObject, 'String', '');  return;    end    % Just a stupid user error
-xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
-if (str2double(val{1}) > 0)
-    for i=1:length(val)   x = x + str2double(val{i}) / (60^(i-1));    end
-else
-    for i=1:length(val)   x = x - abs(str2double(val{i})) / (60^(i-1));   end
-end
-x = num2str(x);
-if (handles.nParameters == 2)   handles.projection{3} = [x '/1'];
-else                            handles.projection{3} = [x '/'];    end
-guidata(hObject, handles);
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || isempty(xx)),  set(hObject, 'String', '');  return;    end    % Just a stupid user error
+	xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
+	if (str2double(val{1}) > 0)
+        for i=1:length(val),  x = x + str2double(val{i}) / (60^(i-1));    end
+	else
+        for i=1:length(val),  x = x - abs(str2double(val{i})) / (60^(i-1));   end
+	end
+	x = num2str(x);
+	if (handles.nParameters == 2),  handles.projection{3} = [x '/1'];
+	else                            handles.projection{3} = [x '/'];    end
+	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
 function edit_ProjParameterValue_3_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if isnan(xx) | isempty(xx)  set(hObject, 'String', '');  return;    end    % Just a stupid user error
-xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
-if (str2double(val{1}) > 0)
-    for i=1:length(val)   x = x + str2double(val{i}) / (60^(i-1));    end
-else
-    for i=1:length(val)   x = x - abs(str2double(val{i})) / (60^(i-1));   end
-end
-x = num2str(x);
-if (handles.nParameters == 3)   handles.projection{4} = [x '/1'];
-else                            handles.projection{4} = [x '/'];    end
-guidata(hObject, handles);
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || isempty(xx)),  set(hObject, 'String', '');  return;    end    % Just a stupid user error
+	xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
+	if (str2double(val{1}) > 0)
+        for i=1:length(val),  x = x + str2double(val{i}) / (60^(i-1));    end
+	else
+        for i=1:length(val),  x = x - abs(str2double(val{i})) / (60^(i-1));   end
+	end
+	x = num2str(x);
+	if (handles.nParameters == 3),  handles.projection{4} = [x '/1'];
+	else                            handles.projection{4} = [x '/'];    end
+	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
 function edit_ProjParameterValue_4_Callback(hObject, eventdata, handles)
 xx = str2double(get(hObject,'String'));
-if isnan(xx) | isempty(xx)  set(hObject, 'String', '');  return;    end    % Just a stupid user error
+if (isnan(xx) || isempty(xx)),  set(hObject, 'String', '');  return;    end    % Just a stupid user error
 xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
 if (str2double(val{1}) > 0)
-    for i=1:length(val)   x = x + str2double(val{i}) / (60^(i-1));    end
+    for i=1:length(val),  x = x + str2double(val{i}) / (60^(i-1));    end
 else
-    for i=1:length(val)   x = x - abs(str2double(val{i})) / (60^(i-1));   end
+    for i=1:length(val),  x = x - abs(str2double(val{i})) / (60^(i-1));   end
 end
 x = num2str(x);
 handles.projection{5} = [x '/1'];
@@ -570,10 +557,10 @@ Out.SysName = handles.sys_name;
 Out.map_scale_factor = handles.map_scale_factor;
 Out.system_FE_FN = handles.system_FE_FN;
 
-if (handles.nParameters == 0 & ~strcmp(handles.projection{1},'-Ju'))
+if (handles.nParameters == 0 && ~strcmp(handles.projection{1},'-Ju'))
     Out.projection = handles.projection{1};
     Out.ProjParameterValue = [];
-elseif (handles.nParameters == 0 & strcmp(handles.projection{1},'-Ju'))
+elseif (handles.nParameters == 0 && strcmp(handles.projection{1},'-Ju'))
     n_value = get(handles.popup_System,'Value');
     UTMzone_txt = get(handles.popup_System,'String');
     system = UTMzone_txt{n_value};
@@ -583,21 +570,17 @@ elseif (handles.nParameters == 0 & strcmp(handles.projection{1},'-Ju'))
         Out.projection = ['-Ju-' system(6:7) '/1'];
     end    
     Out.ProjParameterValue = [];
-elseif (handles.nParameters == 0 & strcmp(handles.projection{1},'-Jx'))
+elseif (handles.nParameters == 0 && strcmp(handles.projection{1},'-Jx'))
     Out.projection = handles.projection{1};
     Out.ProjParameterValue = [];
 else
     Out.projection = cat(2,handles.projection{:});
 	for (i=1:handles.nParameters)
         switch i
-            case 1
-                Out.ProjParameterValue.p1 = handles.projection{i+1};
-            case 2
-                Out.ProjParameterValue.p2 = handles.projection{i+1};
-            case 3
-                Out.ProjParameterValue.p3 = handles.projection{i+1};
-            case 4
-                Out.ProjParameterValue.p4 = handles.projection{i+1};
+            case 1,     Out.ProjParameterValue.p1 = handles.projection{i+1};
+            case 2,     Out.ProjParameterValue.p2 = handles.projection{i+1};
+            case 3,     Out.ProjParameterValue.p3 = handles.projection{i+1};
+            case 4,     Out.ProjParameterValue.p4 = handles.projection{i+1};
         end
 	end
 end
@@ -634,41 +617,41 @@ end
 function set_enable(handles, opt)
 cor = handles.bg_color;     str = 'NOTHING HERE';
 switch opt
-    case 0
+	case 0
 		set(handles.edit_ProjParameterValue_1,'String',str,'Enable','off','Backgroundcolor',cor)
 		set(handles.edit_ProjParameterValue_2,'String',str,'Enable','off','Backgroundcolor',cor)
 		set(handles.edit_ProjParameterValue_3,'String',str,'Enable','off','Backgroundcolor',cor)
 		set(handles.edit_ProjParameterValue_4,'String',str,'Enable','off','Backgroundcolor',cor)
-    case 1
+	case 1
 		set(handles.edit_ProjParameterValue_1,'String','','Enable','on','Backgroundcolor',[1 1 1])
 		set(handles.edit_ProjParameterValue_2,'String',str,'Enable','off','Backgroundcolor',cor)
 		set(handles.edit_ProjParameterValue_3,'String',str,'Enable','off','Backgroundcolor',cor)
 		set(handles.edit_ProjParameterValue_4,'String',str,'Enable','off','Backgroundcolor',cor)
-    case 2
+	case 2
 		set(handles.edit_ProjParameterValue_1,'String','','Enable','on','Backgroundcolor',[1 1 1])
 		set(handles.edit_ProjParameterValue_2,'String','','Enable','on','Backgroundcolor',[1 1 1])
 		set(handles.edit_ProjParameterValue_3,'String',str,'Enable','off','Backgroundcolor',cor)
 		set(handles.edit_ProjParameterValue_4,'String',str,'Enable','off','Backgroundcolor',cor)
-    case 3
+	case 3
 		set(handles.edit_ProjParameterValue_1,'String','','Enable','on','Backgroundcolor',[1 1 1])
 		set(handles.edit_ProjParameterValue_2,'String','','Enable','on','Backgroundcolor',[1 1 1])
 		set(handles.edit_ProjParameterValue_3,'String','','Enable','on','Backgroundcolor',[1 1 1])
 		set(handles.edit_ProjParameterValue_4,'String',str,'Enable','off','Backgroundcolor',cor)
-    case 4
+	case 4
 		set(handles.edit_ProjParameterValue_1,'String','','Enable','on','Backgroundcolor',[1 1 1])
 		set(handles.edit_ProjParameterValue_2,'String','','Enable','on','Backgroundcolor',[1 1 1])
 		set(handles.edit_ProjParameterValue_3,'String','','Enable','on','Backgroundcolor',[1 1 1])
 		set(handles.edit_ProjParameterValue_4,'String','','Enable','on','Backgroundcolor',[1 1 1])
-    case 50     % Desable the "All GMT projections popups"
-        set(handles.popup_CilindricalProjections,'Value',1,'Enable','off')
-        set(handles.popup_AzimuthalProjections,'Value',1,'Enable','off')
-        set(handles.popup_ConicalProjections,'Value',1,'Enable','off')
-        set(handles.popup_MiscelaneousProjections,'Value',1,'Enable','off')
-    case 51     % Enable the "All GMT projections popups"
-        set(handles.popup_CilindricalProjections,'Value',1,'Enable','on')
-        set(handles.popup_AzimuthalProjections,'Value',1,'Enable','on')
-        set(handles.popup_ConicalProjections,'Value',1,'Enable','on')
-        set(handles.popup_MiscelaneousProjections,'Value',1,'Enable','on')
+	case 50     % Desable the "All GMT projections popups"
+		set(handles.popup_CilindricalProjections,'Value',1,'Enable','off')
+		set(handles.popup_AzimuthalProjections,'Value',1,'Enable','off')
+		set(handles.popup_ConicalProjections,'Value',1,'Enable','off')
+		set(handles.popup_MiscelaneousProjections,'Value',1,'Enable','off')
+	case 51     % Enable the "All GMT projections popups"
+		set(handles.popup_CilindricalProjections,'Value',1,'Enable','on')
+		set(handles.popup_AzimuthalProjections,'Value',1,'Enable','on')
+		set(handles.popup_ConicalProjections,'Value',1,'Enable','on')
+		set(handles.popup_MiscelaneousProjections,'Value',1,'Enable','on')
 end
 
 % Clean eventual remaining projection parameters from a previous use
@@ -714,7 +697,7 @@ end
 function handles = set_PtMess(handles, caso)
 % Handle the Pt case
 val = caso.val;     set_enable(handles, 50);
-if (strcmp(caso.type,'popup') | strcmp(caso.type,'input'))
+if (strcmp(caso.type,'popup') || strcmp(caso.type,'input'))
     set(handles.popup_System,'Value',val,'String',{'UTM (ED50)';'Gauss (D73)';'Gauss-Militar (DLx)';...
             'Gauss (WGS84)';'Base SW';'S. Bras';'Observatorio';'Porto Santo'})
 end
@@ -727,9 +710,9 @@ switch val
         handles.map_scale_factor = 0.9996;
     case {2, 'Gauss (D73)'}
         id = 49;        handles.nParameters = 2;
-        handles.projection{1} = ['-Jt'];
-        handles.projection{2} = ['-8:07:54.862/'];
-        handles.projection{3} = ['39:40:00/1'];
+        handles.projection{1} = '-Jt';
+        handles.projection{2} = '-8:07:54.862/';
+        handles.projection{3} = '39:40:00/1';
         set_params_str(handles, {'-8:07:54.862'; '39:40:00'}, 2, [1 2 3 4])
         handles.proj_name = 'TM - Transverse Mercator, set origin';
         handles.sys_name = 'Gauss (D73)';
@@ -737,9 +720,9 @@ switch val
         handles.system_FE_FN = [180.598 -86.990];
     case {3, 'Gauss-Militar (DLx)'}
         id = 50;        handles.nParameters = 2;
-        handles.projection{1} = ['-Jt'];
-        handles.projection{2} = ['-8:07:54.862/'];
-        handles.projection{3} = ['39:40:00/1'];
+        handles.projection{1} = '-Jt';
+        handles.projection{2} = '-8:07:54.862/';
+        handles.projection{3} = '39:40:00/1';
         set_params_str(handles, {'-8:07:54.862'; '39:40:00'}, 2, [1 2 3 4])
         handles.proj_name = 'TM - Transverse Mercator, set origin';
         handles.sys_name = 'Gauss-Militar (DLx)';
@@ -747,9 +730,9 @@ switch val
         handles.system_FE_FN = [200000 300000];
     case {4, 'Gauss (WGS84)'}
         id = 221;        handles.nParameters = 2;
-        handles.projection{1} = ['-Jt'];
-        handles.projection{2} = ['-8:07:59.191/'];
-        handles.projection{3} = ['39:40:5.73/1'];
+        handles.projection{1} = '-Jt';
+        handles.projection{2} = '-8:07:59.191/';
+        handles.projection{3} = '39:40:5.73/1';
         set_params_str(handles, {'-8:07:59.191'; '39:40:5.73'}, 2, [1 2 3 4])
         handles.proj_name = 'TM - Transverse Mercator, set origin';
         handles.sys_name = 'Gauss (WGS84)';
@@ -824,17 +807,17 @@ datum_info(handles, info)
 
 %------------ Write info text about datum parameters -------------------
 function datum_info(handles, info)
-h_txt = findobj(handles.fig_hand,'Tag','datum_desc');
-pos = get(h_txt,'Position');
-sft = ['DX = ' num2str(info.DX) '    DY = ' num2str(info.DY) '    DZ = ' num2str(info.DZ)];
-string = {['Ellipsoise -> ' info.ellipsoide]; ['Shift ->   ' sft]};
-[outstring,newpos] = textwrap(h_txt,string);
-pos(4) = newpos(4);
-set(h_txt,'String',outstring,'Position',[pos(1),pos(2),pos(3),pos(4)])
+	h_txt = findobj(handles.fig_hand,'Tag','datum_desc');
+	pos = get(h_txt,'Position');
+	sft = ['DX = ' num2str(info.DX) '    DY = ' num2str(info.DY) '    DZ = ' num2str(info.DZ)];
+	string = {['Ellipsoise -> ' info.ellipsoide]; ['Shift ->   ' sft]};
+	[outstring,newpos] = textwrap(h_txt,string);
+	pos(4) = newpos(4);
+	set(h_txt,'String',outstring,'Position',[pos(1),pos(2),pos(3),pos(4)])
 
 
 % --- Creates and returns a handle to the GUI figure. 
-function coordinate_system_LayoutFcn(h1,handles);
+function coordinate_system_LayoutFcn(h1,handles)
 
 set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
@@ -846,41 +829,28 @@ set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Position',[520 580 530 220],...
 'RendererMode','manual',...
 'Resize','off',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
-h2 = uicontrol('Parent',h1,...
-'Position',[10 78 251 139],...
-'String',{  '' },...
-'Style','frame',...
-'Tag','frame3');
+uicontrol('Parent',h1,'Position',[10 78 251 139],'Style','frame','Tag','frame3');
+uicontrol('Parent',h1,'Enable','inactive','Position',[270 78 251 139],'Style','frame','Tag','frame2');
 
-h3 = uicontrol('Parent',h1,...
-'Enable','inactive',...
-'Position',[270 78 251 139],...
-'String',{  '' },...
-'Style','frame',...
-'Tag','frame2');
-
-h4 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@coordinate_system_uicallback,h1,'popup_Group_Callback'},...
 'Position',[51 186 201 22],...
-'String',{  'Longitude / Latitude'; 'Universal Transversal Mercator'; 'World Projections'; 'All GMT Projections'; 'Portuguese Mess' },...
+'String',{'Longitude / Latitude'; 'Universal Transversal Mercator'; 'World Projections'; 'All GMT Projections'; 'Portuguese Mess' },...
 'Style','popupmenu',...
 'Value',1,...
 'Tag','popup_Group');
 
-h5 = uicontrol('Parent',h1,...
-'CData',[],...
+uicontrol('Parent',h1,...
 'HorizontalAlignment','right',...
 'Position',[14 190 35 15],...
 'String','Group',...
 'Style','text',...
-'Tag','text1',...
-'UserData',[]);
+'Tag','text1');
 
-h6 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@coordinate_system_uicallback,h1,'popup_System_Callback'},...
 'Position',[51 155 201 22],...
@@ -888,16 +858,14 @@ h6 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','popup_System');
 
-h7 = uicontrol('Parent',h1,...
-'CData',[],...
+uicontrol('Parent',h1,...
 'HorizontalAlignment','right',...
 'Position',[12 159 38 15],...
 'String','System',...
 'Style','text',...
-'Tag','text2',...
-'UserData',[]);
+'Tag','text2');
 
-h8 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@coordinate_system_uicallback,h1,'popup_Datum_Callback'},...
 'Position',[51 47 321 22],...
@@ -905,16 +873,14 @@ h8 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','popup_Datum');
 
-h9 = uicontrol('Parent',h1,...
-'CData',[],...
+uicontrol('Parent',h1,...
 'HorizontalAlignment','right',...
 'Position',[13 51 35 15],...
 'String','Datum',...
 'Style','text',...
-'Tag','text3',...
-'UserData',[]);
+'Tag','text3');
 
-h10 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@coordinate_system_uicallback,h1,'popup_CilindricalProjections_Callback'},...
 'Position',[280 186 231 22],...
@@ -923,7 +889,7 @@ h10 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','popup_CilindricalProjections');
 
-h11 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@coordinate_system_uicallback,h1,'popup_AzimuthalProjections_Callback'},...
 'Position',[280 155 231 22],...
@@ -932,7 +898,7 @@ h11 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','popup_AzimuthalProjections');
 
-h12 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@coordinate_system_uicallback,h1,'popup_ConicalProjections_Callback'},...
 'Position',[280 126 231 22],...
@@ -941,7 +907,7 @@ h12 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','popup_ConicalProjections');
 
-h13 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@coordinate_system_uicallback,h1,'popup_MiscelaneousProjections_Callback'},...
 'Position',[280 95 231 22],...
@@ -950,7 +916,7 @@ h13 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','popup_MiscelaneousProjections');
 
-h14 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@coordinate_system_uicallback,h1,'edit_ProjParameterValue_1_Callback'},...
 'HorizontalAlignment','left',...
@@ -959,26 +925,26 @@ h14 = uicontrol('Parent',h1,...
 'TooltipString','Enter value of projection parameter 1',...
 'Tag','edit_ProjParameterValue_1');
 
-h15 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'Position',[75 137 135 14],...
 'String','Map Projection Parameters',...
 'Style','text',...
 'Tag','text4');
 
-h16 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@coordinate_system_uicallback,h1,'pushbutton_Cancel_Callback'},...
 'Position',[450 46 66 23],...
 'String','Cancel',...
 'Tag','pushbutton_Cancel');
 
-h17 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@coordinate_system_uicallback,h1,'pushbutton_OK_Callback'},...
 'Position',[450 6 66 23],...
 'String','OK',...
 'Tag','pushbutton_OK');
 
-h18 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@coordinate_system_uicallback,h1,'edit_ProjParameterValue_2_Callback'},...
 'HorizontalAlignment','left',...
@@ -987,7 +953,7 @@ h18 = uicontrol('Parent',h1,...
 'TooltipString','Enter value of projection parameter 2',...
 'Tag','edit_ProjParameterValue_2');
 
-h19 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@coordinate_system_uicallback,h1,'edit_ProjParameterValue_3_Callback'},...
 'HorizontalAlignment','left',...
@@ -996,7 +962,7 @@ h19 = uicontrol('Parent',h1,...
 'TooltipString','Enter value of projection parameter 3',...
 'Tag','edit_ProjParameterValue_3');
 
-h20 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@coordinate_system_uicallback,h1,'edit_ProjParameterValue_4_Callback'},...
 'HorizontalAlignment','left',...
@@ -1005,7 +971,7 @@ h20 = uicontrol('Parent',h1,...
 'TooltipString','Enter value of projection parameter 4',...
 'Tag','edit_ProjParameterValue_4');
 
-h21 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'FontWeight','bold',...
 'HorizontalAlignment','left',...
