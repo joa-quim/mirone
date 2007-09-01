@@ -243,6 +243,7 @@ mex/country_select.c -text
 mex/cpt2cmap.c -text
 mex/cvcolor_mex.c -text
 mex/cvlib_mex.c -text
+mex/existmex.c -text
 mex/gdalread.c -text
 mex/gdalwarp_mex.c -text
 mex/gdalwrite.c -text
