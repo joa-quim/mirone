@@ -473,6 +473,7 @@ utils/parityscan.dll -text
 utils/patch_meca.m -text
 utils/pixval_stsbar.m -text
 utils/projectionMenu.m -text
+utils/put_or_get_file.m -text
 utils/qhullmx.dll -text
 utils/read_gdal_info.m -text
 utils/read_gmt_grid.m -text
