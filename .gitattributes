@@ -319,6 +319,7 @@ src_figs/earthquakes.m -text
 src_figs/ecran.m -text
 src_figs/euler_poles_selector.m -text
 src_figs/euler_stuff.m -text
+src_figs/fault_models.m -text
 src_figs/fft_stuff.m -text
 src_figs/find_clusters.m -text
 src_figs/floodFill.m -text
