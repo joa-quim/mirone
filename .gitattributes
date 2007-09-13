@@ -465,6 +465,7 @@ utils/mboard.m -text
 utils/mc_e_b_estimate.m -text
 utils/message_win.m -text
 utils/mltable_j.m -text
+utils/move2side.m -text
 utils/movie2avi_j.m -text
 utils/multibandread_j.m -text
 utils/nskew.m -text
