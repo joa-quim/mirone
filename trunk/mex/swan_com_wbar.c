@@ -572,7 +572,7 @@ L53:;
 	/*     WRITE THE OUTPUT ON FILE CUMHT */
 	if (cumpt) {
 		for (j = 0; j < lcum; j++) {
-			fprintf (fp, "%lg", time_p[j]);
+			fprintf (fp, "%.3f", time_p[j]);
 			for (i = 0; i < n_mareg; i++)
 				fprintf (fp, "\t%.4f", cum_p[ijc(j,i)]);
 			fprintf (fp, "\n");
