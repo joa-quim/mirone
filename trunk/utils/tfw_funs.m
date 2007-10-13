@@ -57,7 +57,7 @@ function [head,msg] = read_tfw(fname)
     
     str = fread(fid,'*char');
     fclose(fid);
-    fw = strread(str','%f','delimiter','\n');
+    fw = strread(str','%f');
     if (numel(fw) ~= 6)
         msg = 'Wrong number of lines in file (must be 6).';
         return
