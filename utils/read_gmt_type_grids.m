@@ -1,8 +1,6 @@
 function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,opt)
     % OPT indicates that only the grid info is outputed.
     % If it is OPT = 'hdr' outputs info in the struct format, else outputs in the head format
-
-% Uses the new nc_io to read netCDF files. If it fails, try again with grdread_m()	
     
     infoOnly = 0;
     if (nargin == 3),   infoOnly = 1;    end
