@@ -20,8 +20,8 @@ function InOut2WS(handles, opt)
 % --------------------------------------------------------------------
 
 if ~strcmp(opt,'loadmat')
-	if (handles.no_file == 1),      aux_funs('msg_dlg',1,handles);     return;      end
-    is_grid = handles.validGrid;
+	if (handles.no_file),      return;      end
+	is_grid = handles.validGrid;
 	vars = evalin('base','who');
 end
 
@@ -129,21 +129,3 @@ catch
     errordlg(lasterr,'Error')
 end
 
-% --------------------------------------------------------------------
-function [X,Y,Z,head] = load_grd(handles)
-% Load a GMT grid either from memory, or re-read it again if it is to
-% big to fit in it (biger than handles.grdMaxSize)
-X = getappdata(handles.figure1,'dem_x');    Y = getappdata(handles.figure1,'dem_y');
-Z = getappdata(handles.figure1,'dem_z');    head = getappdata(handles.figure1,'GMThead');
-if (handles.ForceInsitu),     opt_I = '-I';   % Use only in desperate cases.
-else                          opt_I = ' ';    end
-
-if (isempty(X) && handles.image_type == 1 && ~handles.computed_grid)
-	[X,Y,Z,head] = grdread_m(handles.grdname,'single',opt_I);
-elseif (isempty(X) && handles.image_type == 4 && ~handles.computed_grid)
-	Z = [];     % Check for this to detect a (re)-loading error
-	errordlg('Grid was not on memory. Increase "Grid max size" and start over again.','Error')
-elseif (isempty(X) && isempty(handles.grdname))
-	Z = [];     % Check for this to detect a (re)-loading error
-	errordlg('Grid could not be reloaded. You probably need to increase "Grid max size"','Error')
-end
