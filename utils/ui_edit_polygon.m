@@ -56,7 +56,7 @@ function ui_edit_polygon(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-for (i = 1:length(varargin))            % Argument check
+for (i = 1:numel(varargin))            % Argument check
     if (~ishandle(varargin{1}))
         disp(['Warning: Input argument ' num2str(i) 'is not a valid handle.'])
         
@@ -67,60 +67,63 @@ for (i = 1:length(varargin))            % Argument check
     elseif ~isempty(getappdata(varargin{i},'polygon_data'))
         s = getappdata(varargin{i},'polygon_data');
         if strcmpi(s.controls,'on')
-            set(s.h_fig,'selectiontype','open');
-            polygonui(s.h_pol)
+			set(s.h_fig,'selectiontype','open');
+			polygonui(s.h_pol)
         end
         
     else
-        % Creating data-structure for polygon
-        s.h_pol = varargin{i};
-        s.h_vert = [];
-        s.h_current_marker = [];
-        s.h_ax = get(s.h_pol,'parent');
-        s.h_fig = get(s.h_ax,'parent');
+		% Creating data-structure for polygon
+		s.h_pol = varargin{i};
+		s.h_vert = [];
+		s.h_current_marker = [];
+		s.h_ax = get(s.h_pol,'parent');
+		s.h_fig = get(s.h_ax,'parent');
+		s.KeyPress_orig = get(s.h_fig,'KeyPressFcn');
 
-        s.controls = 'off';
-        s.vert_index = [];
-        s.save_x = [];
-        s.save_y = [];
+		s.controls = 'off';
+		s.vert_index = [];
+		s.save_x = [];
+		s.save_y = [];
 
-        x = get(s.h_pol,'XData');
-        y = get(s.h_pol,'YData');
-        s.is_closed_patch = 0;
-        s.is_patch  = strcmpi(get(s.h_pol,'Type'),'patch');
-        s.is_rect = 0;      s.keep_rect = 0;
-        if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
-            s.is_rect = 1;      s.keep_rect = 1;
-        elseif ( length(x) == 5 && (x(1) == x(4)) && (x(2) == x(3)) && (y(1) == y(2)) && (y(3) == y(4)) )
-            s.is_rect = 1;      s.keep_rect = 0;
-        end
-        if ( numel(x) > 1 && (x(1) == x(end)) && (y(1) == y(end)))
-            s.is_closed = 1;
-            if (s.is_patch),    s.is_closed_patch = 1;  end
-        else
-            s.is_closed = 0;
-        end
+		x = get(s.h_pol,'XData');
+		y = get(s.h_pol,'YData');
+		s.is_closed_patch = 0;
+		s.is_patch  = strcmpi(get(s.h_pol,'Type'),'patch');
+		s.is_rect = 0;      s.keep_rect = 0;
+		if ( numel(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
+			s.is_rect = 1;      s.keep_rect = 1;
+		elseif ( numel(x) == 5 && (x(1) == x(4)) && (x(2) == x(3)) && (y(1) == y(2)) && (y(3) == y(4)) )
+			s.is_rect = 1;      s.keep_rect = 0;
+		end
+		if ( numel(x) > 1 && (x(1) == x(end)) && (y(1) == y(end)))
+			s.is_closed = 1;
+			if (s.is_patch),    s.is_closed_patch = 1;  end
+		else
+			s.is_closed = 0;
+		end
 
-        set(s.h_pol,'buttondownfcn',@polygonui);
-        setappdata(s.h_pol,'polygon_data',s)
+		set(s.h_pol,'buttondownfcn',@polygonui);
+		setappdata(s.h_pol,'polygon_data',s)
     end
 end
 
 %--------------------------------------------------
 function polygonui(varargin)
 
-    s = getappdata(varargin{1},'polygon_data');
-    stype = get(s.h_fig,'selectiontype');
-    if ~strcmpi(stype,'open'); return; end
+	if (~ishandle(varargin{1})),		return,		end
+	s = getappdata(varargin{1},'polygon_data');
+	stype = get(s.h_fig,'selectiontype');
+	if ~strcmpi(stype,'open'); return; end
 
     switch s.controls
         case 'on'
-            delete(s.h_vert);        s.h_vert = [];       % delete vrtice markers
-            try delete(s.h_current_marker); s.h_current_marker = []; end
-            s.controls = 'off';
-            set(s.h_pol,'buttondownfcn',@polygonui);
-            setappdata(s.h_pol,'polygon_data',s)
-            setappdata(s.h_fig,'epActivHand',0)
+			delete(s.h_vert);        s.h_vert = [];       % delete vertice markers
+			try delete(s.h_current_marker); s.h_current_marker = []; end
+			s.controls = 'off';
+			set(s.h_pol,'buttondownfcn',@polygonui);
+            set(s.h_fig,'KeyPressFcn',s.KeyPress_orig)
+			setappdata(s.h_pol,'polygon_data',s)
+			setappdata(s.h_fig,'epActivHand',0)
 
         case 'off'
             % Make sure that only one polygon is edited at a time
@@ -171,7 +174,7 @@ function edit_polygon(obj,eventdata,h)
 
 %--------------------------------------------------
 function wbm_EditPolygon(obj,eventdata,h,lim,hFig)
-    set(hFig, 'Pointer','fleur')        % I know, but this way fleur pointer shows only when we have a movment
+    set(hFig, 'Pointer','fleur')        % I know, but this way fleur pointer shows only when we have a movement
     s = getappdata(h,'polygon_data');
     pt = get(s.h_ax, 'CurrentPoint');
     if (pt(1,1) < lim(1)) || (pt(1,1) > lim(2)) || (pt(1,2) < lim(3)) || (pt(1,2) > lim(4));   return; end
@@ -269,7 +272,8 @@ function wbu_MovePolygon(obj,eventdata,h,state)
 
 %--------------------------------------------------
 function KeyPress_local(obj,eventdata,h)
-    
+
+if (~ishandle(h)),		return,		end
 s = getappdata(h,'polygon_data');
 key = get(s.h_fig, 'CurrentCharacter');
 
