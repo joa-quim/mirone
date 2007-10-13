@@ -17,21 +17,21 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-delete(handles.NewFigure);      delete(handles.ImportKnownTypes)
-delete(handles.SaveGMTgrid);    delete(handles.Preferences)
-delete(handles.Print);          delete(handles.DrawText)
-delete(handles.DrawGeogCirc);   delete(handles.DrawLine)
-delete(handles.DrawRect);       delete(handles.DrawPolyg)
-delete(handles.DrawArrow);      set(handles.Tesoura,'Enable','off') % cannot kill coze test in PanZoom
-delete(handles.ColorPal);       delete(handles.Shading);
-delete(handles.Anaglyph);       delete(handles.toGE)
-delete(handles.MBplaning);      delete(handles.FlederPlanar);
-delete(handles.ImageInfo);      delete(handles.Refresh);
-delete(handles.Image);          delete(handles.Tools)
-delete(handles.Draw);           delete(handles.Geophysics)
-delete(handles.Help);           delete(handles.GridTools)
-%delete(handles.TerrainMod);
-if (ishandle(handles.Projections)),     delete(handles.Projections);   end
+	delete(handles.NewFigure);      delete(handles.ImportKnownTypes)
+	delete(handles.SaveGMTgrid);    delete(handles.Preferences)
+	delete(handles.Print);          delete(handles.DrawText)
+	delete(handles.DrawGeogCirc);   delete(handles.DrawLine)
+	delete(handles.DrawRect);       delete(handles.DrawPolyg)
+	delete(handles.DrawArrow);      set(handles.Tesoura,'Enable','off') % cannot kill coze test in PanZoom
+	delete(handles.ColorPal);       delete(handles.Shading);
+	delete(handles.Anaglyph);       delete(handles.toGE)
+	delete(handles.MBplaning);      delete(handles.FlederPlanar);
+	delete(handles.ImageInfo);      delete(handles.Refresh);
+	delete(handles.Image);          delete(handles.Tools)
+	delete(handles.Draw);           delete(handles.Geophysics)
+	delete(handles.Help);           delete(handles.GridTools)
+	%delete(handles.TerrainMod);
+	if (ishandle(handles.Projections)),     delete(handles.Projections);   end
 
 % ------------- Cleverer deletion of unwanted uicontrols
 h1 = get(handles.File,'Children');
@@ -436,16 +436,16 @@ end
 
 [x,y] = transform_fun('tformfwd',trf,handles.slavePoints(:,1),handles.slavePoints(:,2));
 if (handles.geog)
-    resMod = vdist_vectorized(handles.masterPoints(:,2),handles.masterPoints(:,1), y, x);
-    str_res = 'Residue (m)';
+	resMod = vdist(handles.masterPoints(:,2),handles.masterPoints(:,1), y, x);
+	str_res = 'Residue (m)';
 else
-    residue = [handles.masterPoints(:,1) handles.masterPoints(:,2)] - [x y];
-    resMod = sqrt(residue(:,1).^2 + residue(:,2).^2);
-    str_res = 'Residue (?)';
+	residue = [handles.masterPoints(:,1) handles.masterPoints(:,2)] - [x y];
+	resMod = sqrt(residue(:,1).^2 + residue(:,2).^2);
+	str_res = 'Residue (?)';
 end
 
 if (nargout == 1)       % Just return the norm of the residues
-    return
+	return
 end
 
 gcp = [handles.masterPoints handles.slavePoints resMod];
