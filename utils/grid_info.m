@@ -112,32 +112,6 @@ function att2Hdr(handles,att)
     
     setappdata(handles.axes1,'InfoMsg',w)
 	aux_funs('appP', handles, att.ProjectionRef)		% If we have a WKT proj store it, otherwise clean eventual predecessors
-    
-% --------------------------------------------------------------------
-function out = decodeProjectionRef(strProj)
-    ind = findstr(strProj,char(10));
-    out.datum = [];     out.ellipsoid = [];     out.projection = [];
-    if (numel(ind) <= 1),   return,		end
-    
-    ind = [0 ind length(strProj)-1];
-    for (i=1:numel(ind)-1)
-        str = strProj(ind(i)+1:ind(i+1)-1);
-        if ~isempty(findstr(str,'GEOGCS'))      % Get datum
-            xx = findstr(str,'"');
-            if (numel(xx) < 2),     continue;   end
-            out.datum = str(xx(1)+1:xx(2)-1);
-        end
-        if ~isempty(findstr(str,'SPHEROID'))      % Get ellipsoid
-            if (numel(xx) < 2),     continue;   end
-            xx = findstr(str,'"');
-            out.ellipsoid = str(xx(1)+1:xx(2)-1);
-        end
-        if ~isempty(findstr(str,'PROJECTION'))      % Get ellipsoid
-            if (numel(xx) < 2),     continue;   end
-            xx = findstr(str,'"');
-            out.projection = str(xx(1)+1:xx(2)-1);
-        end
-    end
 
 % --------------------------------------------------------------------
 function img2Hdr(handles,imgName,img)
