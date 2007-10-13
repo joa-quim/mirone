@@ -1,81 +1,97 @@
-function [handles,X,Y,Z,head] = read_gmt_type_grids(handles,fullname,opt)
+function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,opt)
     % OPT indicates that only the grid info is outputed.
-    % If it is OPT = 'hdr' outputs info in the struct format, else outous in the head format
+    % If it is OPT = 'hdr' outputs info in the struct format, else outputs in the head format
+
+% Uses the new nc_io to read netCDF files. If it fails, try again with grdread_m()	
     
     infoOnly = 0;
     if (nargin == 3),   infoOnly = 1;    end
     
-	% Because GMT and Surfer share the .grd extension, find out which grid kind we are dealing with
-	X = [];     Y = [];     Z = [];     head = [];      % In case there is an error in this function
+	X = [];		Y = [];		Z = [];		head = [];		misc = [];
 	[fid, msg] = fopen(fullname, 'r');
 	if (fid < 0),   errordlg([fullname ': ' msg],'ERROR');
-        return;
+		return
 	end
+
+	% Because GMT and Surfer share the .grd extension, find out which grid kind we are dealing with
 	ID = fread(fid,4,'*char');      ID = ID';      fclose(fid);
 
-	tipo = 'GMT';                           % This is the default type
 	switch upper(ID)
-        case {'DSBB' 'DSRB'}
-            fullname = [fullname '=6'];
-            handles.grdformat = 6;
-            ID = 'CDF';                     % F... big lie, but no harm since the .grd=suffix was used
-        case 'DSAA',    tipo = 'SRF_ASCII';
-        case 'MODE',    tipo = 'ENCOM';
-        case 'NLIG',    tipo = 'MAN_ASCII';
+		case 'CDF',		tipo = 'CDF';
+		case {'DSBB' 'DSRB'},	tipo = 'SRF_BIN';
+			ID = 'CDF';			% Just a dirty trick
+		case 'DSAA',    tipo = 'SRF_ASCII';
+		case 'MODE',    tipo = 'ENCOM';
+		case 'NLIG',    tipo = 'MAN_ASCII';
 	end
 
-% See if the grid is on one of the other formats that GMT recognizes
-if (strcmp(tipo,'GMT') && ~strcmp(ID(1:3),'CDF'))
-    str = ['grdinfo ' fullname];
-    [PATH,FNAME,EXT] = fileparts(fullname);
-    [s,att] = mat_lyies(str,[handles.path_tmp FNAME '.' EXT '.info']);
-    if ~(isequal(s,0))          % File could not be read
-        errordlg([fullname ' : Is not a grid that GMT can read!'],'ERROR');
-        return
-    end
-end
+	% See if the grid is on one of the OTHER (non netCDF & non Surfer) formats that GMT recognizes
+	if (~strcmp(ID(1:3),'CDF') && ~(tipo(1) == 'S' || tipo(1) == 'E' || tipo(1) == 'M') )
+		str = ['grdinfo ' fullname];
+		[PATH,FNAME,EXT] = fileparts(fullname);
+		[s,att] = mat_lyies(str,[handles.path_tmp FNAME '.' EXT '.info']);
+		if ~(isequal(s,0))          % File could not be read
+			errordlg([fullname ' : Is not a grid that GMT can read!'],'ERROR');
+			return
+		end
+	end
 
-if (~infoOnly)
-    [handles,X,Y,Z,head] = read_grid(handles,fullname,tipo);
-elseif (strmatch(tipo,{'GMT' 'DSBB' 'DSRB'}))
-    if (opt(1) == 's')          % Get the info on the struct form
-        X = grdinfo_m(fullname,'hdr_struct');       % Output goes in the second arg
-    else                        % Get the info on the vector form
-        X = grdinfo_m(fullname,'silent');
-    end
-else
-    errordlg([fullname ' : Is not a GMT or binary Surfer grid!'],'ERROR');
-    return
-end
+	if (~infoOnly)
+		[handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo);
+	elseif ( strmatch(tipo,{'GMT' 'SRF_BIN'}) )
+		if (opt(1) == 's')          % Get the info on the struct form
+			X = grdinfo_m(fullname,'hdr_struct');       % Output goes in the second arg
+		else                        % Get the info on the vector form
+			X = grdinfo_m(fullname,'silent');
+		end
+	else
+		errordlg([fullname ' : Is not a GMT or binary Surfer grid!'],'ERROR');
+		return
+	end
 
-% ------------------------------------------------------------------------------------------
-function [handles,X,Y,Z,head] = read_grid(handles,fullname,tipo)
+% -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
+function [handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo)
 
 if (isfield(handles,'ForceInsitu'))        % Other GUI windows may not know about 'ForceInsitu'
-    if (handles.ForceInsitu),   opt_I = 'insitu';    % Use only in desperate cases.
-    else                        opt_I = ' ';         end
+	if (handles.ForceInsitu),   opt_I = 'insitu';    % Use only in desperate cases.
+	else                        opt_I = ' ';
+	end
 else
     opt_I = ' ';
 end
-X = [];     Y = [];     Z = [];     head = [];
+	X = [];     Y = [];     Z = [];     head = [];		misc = [];		% MISC is used only by nc_io
 
-if (~strcmp(tipo,'GMT'))        % GMT files are open by the GMT machinerie
-    [fid, msg] = fopen(fullname, 'r');
-    if (fid < 0),   errordlg([fullname ': ' msg],'ERROR');  return;     end
-end
+	if (~strcmp(tipo,'GMT'))        % GMT files are open by the GMT machinerie
+		[fid, msg] = fopen(fullname, 'r');
+		if (fid < 0),   errordlg([fullname ': ' msg],'ERROR');  return,		end
+	end
 
-if (strcmp(tipo,'GMT'))
-    [X,Y,Z,head] = grdread_m(fullname,'single',opt_I);
-    handles.image_type = 1;     handles.computed_grid = 0;
-    handles.have_nans = grdutils(Z,'-N');
-    if (head(10) == 2 || head(10) == 8 || head(10) == 16),   handles.was_int16 = 1;  end     % New output from grdread_m
-    handles.grdname = fullname;     head(10) = [];
+if (strcmp(tipo,'CDF'))
+	try				% Use the new nc_io()
+		[X, Y, Z, head, misc] = nc_io(fullname, 'r');
+		if (isa(Z,'int16')),		handles.was_int16 = 1;
+		elseif (isa(Z,'single')),	handles.have_nans = grdutils(Z,'-N');
+		elseif (isa(Z,'double')),	Z = single(Z);		% The HORRRRRRRRROOOOOOORRRRR
+		end
+	catch			% If it have failed try GMT
+		str = sprintf('First attempt to load netCDF file failed because ... \n\n %s\n\n Trying now with GMT mex', lasterr);
+		warndlg(str,'Info')
+    	[X, Y, Z, head] = grdread_m(fullname,'single',opt_I);
+    	handles.have_nans = grdutils(Z,'-N');
+    	if (head(10) == 2 || head(10) == 8 || head(10) == 16),   handles.was_int16 = 1;  end     % New output from grdread_m
+		head(10) = [];
+	end
     if (head(7))            % Convert to grid registration
         head(1) = head(1) + head(8) / 2;        head(2) = head(2) - head(8) / 2;
         head(3) = head(3) + head(9) / 2;        head(4) = head(4) - head(9) / 2;
         head(7) = 0;
     end
-elseif (strcmp(tipo,'SRF_ASCII'))   % Pretend that its a internaly computed grid (no reload)
+    handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
+elseif (strcmp(tipo,'SRF_BIN'))
+	[X, Y, Z, head] = grdread_m(fullname,'single',opt_I);
+	handles.have_nans = grdutils(Z,'-N');
+    handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
+elseif (strcmp(tipo,'SRF_ASCII'))	% Pretend that its a internaly computed grid (no reload)
     s = fgetl(fid);
     n_col_row = fscanf(fid,'%f',2);     x_min_max = fscanf(fid,'%f',2);
     y_min_max = fscanf(fid,'%f',2);     z_min_max = fscanf(fid,'%f',2);
