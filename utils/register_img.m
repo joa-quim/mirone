@@ -17,7 +17,7 @@ if (isempty(handles))
     handles.figure1 = get(handles.axes1,'Parent');
 end
 
-hImg = findobj(handles.figure1,'Type','image');
+hImg = findobj(handles.axes1,'Type','image');
 if (isempty(hImg))
     errordlg('REGISTER_IMG: No image in this axes. So what do you want to register?','ERROR')
     return
@@ -73,16 +73,16 @@ uimenu(cmenuHand, 'Label', 'Show connecting line', 'Callback', 'set(gco,''LineSt
 setappdata(handles.figure1,'RegistMethod',{'affine' 'bilinear'})     % Default tranfs type & interp method
 
 if (nargin == 3)
-    setappdata(handles.figure1,'GCPregImage',GCPs)
-    if (size(GCPs,1) > 10)      % This is likely a mutch better choice
-        setappdata(handles.figure1,'RegistMethod',{'polynomial (6 pts)' 'bilinear'})
-    end
+	setappdata(handles.figure1,'GCPregImage',GCPs)
+	if (size(GCPs,1) > 10)      % This is likely a mutch better choice
+		setappdata(handles.figure1,'RegistMethod',{'polynomial (6 pts)' 'bilinear'})
+	end
 end
 
 % ----------------------------------------------------------------------------------
 function regOptions(obj,event,handles,opt)
 
-hImg = findobj(handles.figure1,'Type','image');
+hImg = findobj(handles.axes1,'Type','image');
 h = findobj(handles.axes1,'Tag','GCPpolyline');     % Fish them because they might have been edited
 x = get(h,'XData');     y = get(h,'YData');
 
@@ -118,8 +118,7 @@ try             % I'm fed up with so many possible errors
             if (isempty(input_base))
                 errordlg('You need to set first all pairs of Image-Reference Points.','ERROR'); return
             end
-            base = input_base(:,3:4);
-            if ( any(isnan(base)) )
+            if ( any(isnan(input_base(:,3:4))) )
                 errordlg('Incomplete table of Control Points. Use the ''Set reference Points'' option first.','ERROR')
                 return
             end
@@ -129,20 +128,26 @@ try             % I'm fed up with so many possible errors
             type         = checkTransform(trfType,numel(x));    % Test that n pts and tranfs type are compatible
             if (isempty(type)),     return;    end              % Error message already issued
             
-            set(handles.figure1,'Pointer','watch')
-            trf = transform_fun('cp2tform',input_base(:,1:2),base,type{:});			
-            [x,y] = transform_fun('tformfwd',trf,input_base(:,1),input_base(:,2));
+			if (strncmp(type{1},'Poly',4))	% From referenced coords to pixels
+				% Polynomial transformations are not ivertible, so here we do it the other way around
+				trf = transform_fun('cp2tform',input_base(:,3:4),input_base(:,1:2),type{:});			
+				[x,y] = transform_fun('tforminv',trf,input_base(:,3),input_base(:,4));
+			else			% From pixels to referenced coords
+				trf = transform_fun('cp2tform',input_base(:,1:2),input_base(:,3:4),type{:});			
+				[x,y] = transform_fun('tformfwd',trf,input_base(:,1),input_base(:,2));
+			end
+			set(handles.figure1,'Pointer','watch')
             
 			if (handles.geog)
-                residue = vdist_vectorized(input_base(:,4),input_base(:,3), y, x);
+                residue = vdist(input_base(:,4),input_base(:,3), y, x);
                 str_res = 'Residue (m)';
 			else
-                residue = input_base(:,3:4) - [x y];
-                residue = sqrt(residue(:,1).^2 + residue(:,2).^2);
-                str_res = 'Residue (?)';
+				residue = input_base(:,3:4) - [x y];
+				residue = sqrt(residue(:,1).^2 + residue(:,2).^2);
+				str_res = 'Residue (?)';
 			end
 			gcp = [x y input_base(:,3:4) residue];
-			out = tableGUI('array',gcp,'RowNumbers','y','ColNames',{'Slave Points - X','Slave Points - Y',...
+			tableGUI('array',gcp,'RowNumbers','y','ColNames',{'Slave Points - X','Slave Points - Y',...
                     'Master Points - X','Master Points - Y',str_res},'ColWidth',100,'FigName','GCP Table','modal','');
             set(handles.figure1,'Pointer','arrow')
                     
@@ -168,7 +173,6 @@ end
 % ----------------------------------------------------------------------------------
 function do_register(handles,input,base)
 
-ax = handles.axes1;
 h_img = findobj(handles.axes1,'Type','image');
 x = input(:,1);     y = input(:,2);
 
@@ -231,7 +235,7 @@ end
 
 if (strncmp(type,'poly',4))
     % 'Polynomial (6 pts)', 'Polynomial (10 pts)'; 'Polynomial (16 pts)'
-    polPts = str2num(type(13:14));      % See above why
+    polPts = str2double(type(13:14));      % See above why
     switch polPts
         case 6,     type = {'polynomial' 2};
         case 10,    type = {'polynomial' 3};
@@ -288,30 +292,30 @@ end
 
 %-----------------------------------------------------------------------------------
 function cb_trf(obj,event,hFig,h)
-% Transform type popup callback
-transf = get(h,'Value');
-switch transf
-    case 1,     type = 'affine';
-    case 2,     type = 'linear conformal';
-    case 3,     type = 'projective';
-    case 4,     type = 'polynomial (6 pts)';
-    case 5,     type = 'polynomial (10 pts)';
-    case 6,     type = 'polynomial (16 pts)';
-    case 7,     type = 'piecewise linear';
-    case 8,     type = 'lwm';
-end
-RegistMethod = getappdata(hFig,'RegistMethod');
-setappdata(hFig,'RegistMethod',{type RegistMethod{2}})
-trfToolTips = getappdata(hFig,'trfToolTips');
-set(h,'TooltipString',trfToolTips{transf})   % Set the tooltip for the selected method
+	% Transform type popup callback
+	transf = get(h,'Value');
+	switch transf
+		case 1,     type = 'affine';
+		case 2,     type = 'linear conformal';
+		case 3,     type = 'projective';
+		case 4,     type = 'polynomial (6 pts)';
+		case 5,     type = 'polynomial (10 pts)';
+		case 6,     type = 'polynomial (16 pts)';
+		case 7,     type = 'piecewise linear';
+		case 8,     type = 'lwm';
+	end
+	RegistMethod = getappdata(hFig,'RegistMethod');
+	setappdata(hFig,'RegistMethod',{type RegistMethod{2}})
+	trfToolTips = getappdata(hFig,'trfToolTips');
+	set(h,'TooltipString',trfToolTips{transf})   % Set the tooltip for the selected method
 
 %-----------------------------------------------------------------------------------
 function cb_interp(obj,event,hFig,h)
-% Interpolation method popup callback
-interpola = get(h,'String');
-interpola = interpola{get(h,'Value')};
-RegistMethod = getappdata(hFig,'RegistMethod');
-setappdata(hFig,'RegistMethod',{RegistMethod{1} interpola})
+	% Interpolation method popup callback
+	interpola = get(h,'String');
+	interpola = interpola{get(h,'Value')};
+	RegistMethod = getappdata(hFig,'RegistMethod');
+	setappdata(hFig,'RegistMethod',{RegistMethod{1} interpola})
 
 %-----------------------------------------------------------------------------------
 function showGCPnumbers(obj,event,handles)
@@ -327,12 +331,9 @@ if (strcmp(get(obj,'Label'),'Show GCP numbers'))
     symb_size = 7 / 72 * 2.54;              % Symbol size in cm (circles size is 7 points)
 	n_texts = numel(xSlaves);
     
+	axUnit = get(handles.axes1,'Units');	set(handles.axes1,'Units','pixels')
 	pos = get(handles.axes1,'Position');    ylim = get(handles.axes1,'Ylim');
-    escala = diff(ylim)/(pos(4)*2.54/dpis); % Image units / cm
-    dy = symb_size * escala;
-       
-    set(handles.axes1,'Units','pixels')     % Bloody thing persists in having other units
-	pos = get(handles.axes1,'Position');    ylim = get(handles.axes1,'Ylim');
+	set(handles.axes1,'Units',axUnit)
     escala = diff(ylim)/(pos(4)*2.54/dpis); % Image units / cm
     dy = symb_size * escala;
     
