@@ -7,65 +7,67 @@ function pixval_stsbar(arg1)
 if (nargin==0),  arg1 = [];    end
 
 if ischar(arg1) % execute a callback
-    switch lower(arg1)
-        case 'pixvalmotionfcn'
-            PixvalMotionFcn;
-        case 'buttondownonimage'
-            ButtonDownOnImage;
-        case 'backtonormalpixvaldisplay'
-            BackToNormalPixvalDisplay;
-        case 'exit'
-            displayBar = findobj(gcf, 'Tag', 'pixValStsBar');
-            dbud = get(displayBar, 'UserData');
-            uirestore_j(dbud.oldFigureUIState);
-            if ishandle(displayBar),    delete(displayBar);     end
-            return
-    end 
+	switch lower(arg1)
+		case 'pixvalmotionfcn'
+			PixvalMotionFcn;
+		case 'buttondownonimage'
+			ButtonDownOnImage;
+		case 'backtonormalpixvaldisplay'
+			BackToNormalPixvalDisplay;
+		case 'exit'
+			displayBar = findobj(gcf, 'Tag', 'pixValStsBar');
+			dbud = get(displayBar, 'UserData');
+			uirestore_j(dbud.oldFigureUIState);
+			if ishandle(displayBar),    delete(displayBar);     end
+			return
+	end 
 else
-    if (nargin == 1 && ishandle(arg1))
-        figHandle = arg1;
-    else
-        figHandle = gcf;
-    end
-    dbud.figHandle = figHandle;
-    dbud.displayMode = 'normal';
-    % Save the interactive state of the figure. UICLEARMODE now does everything that UISUSPEND
-    % used to do. It calls SCRIBECLEARMODE to take care of SCRIBE.  We WILL be restoring
-    % the state - this is a change.  UICLEARMODE also registers a way to disable pixval_stsbar
-    dbud.oldFigureUIState = uiclearmode_j(figHandle,'pixval_stsbar');
-    % Create position vectors for Text
-    handsBar = getappdata(figHandle,'CoordsStBar');
-    tmp1 = get(handsBar(3),'YData');
-    tmp2 = get(handsBar(2),'XData');
-    pos = [5 tmp1(1)+2 tmp2(2)-5 abs(tmp1(2)-tmp1(1))-4];
-                       
-    % Create the display bar
-    dbud.buttonDownImage = 0;  % Image 0 never exists      
-    DisplayBar = uicontrol('Parent', figHandle, ...
-                       'Style','text', ...
-                       'Units','pixels', ...
-                       'Position',pos, ...
-                       'Foreground', [0 0 0], ...
-                       'Horiz','left', ...
-                       'Tag', 'pixValStsBar', ...
-                       'fontname', 'FixedWidth', ...
-                       'BusyAction', 'queue', ...
-                       'enable', 'inactive', ...
-                       'Interruptible', 'off');
-            
-    % Register the motion function and button up function
-    set(figHandle, 'WindowButtonMotionFcn', 'pixval_stsbar(''PixvalMotionFcn'')')
-    handles = guidata(figHandle);
-    dbud.is_projected = handles.is_projected;
-    dbud.head = handles.head;
-    dbud.axes1 = handles.axes1;
-    if isempty(getappdata(figHandle,'dem_x')),   dbud.haveGrid = 0;
-    else                                         dbud.haveGrid = 1;
-    end
-    dbud.toProjPT = 0;
+	if (nargin == 1 && ishandle(arg1))
+		figHandle = arg1;
+	else
+		figHandle = gcf;
+	end
+	dbud.figHandle = figHandle;
+	dbud.displayMode = 'normal';
+	% Save the interactive state of the figure. UICLEARMODE now does everything that UISUSPEND
+	% used to do. It calls SCRIBECLEARMODE to take care of SCRIBE.  We WILL be restoring
+	% the state - this is a change.  UICLEARMODE also registers a way to disable pixval_stsbar
+	dbud.oldFigureUIState = uiclearmode_j(figHandle,'pixval_stsbar');
+	% Create position vectors for Text
+	handsBar = getappdata(figHandle,'CoordsStBar');
+	tmp1 = get(handsBar(3),'YData');
+	tmp2 = get(handsBar(2),'XData');
+	pos = [5 tmp1(1)+2 tmp2(2)-5 abs(tmp1(2)-tmp1(1))-4];
 
-    set(DisplayBar, 'UserData', dbud);
-    PixvalMotionFcn(DisplayBar);
+	% Create the display bar
+	dbud.buttonDownImage = 0;  % Image 0 never exists      
+	DisplayBar = uicontrol('Parent', figHandle, ...
+						'Style','text', ...
+						'Units','pixels', ...
+						'Position',pos, ...
+						'Foreground', [0 0 0], ...
+						'Horiz','left', ...
+						'Tag', 'pixValStsBar', ...
+						'fontname', 'FixedWidth', ...
+						'BusyAction', 'queue', ...
+						'enable', 'inactive', ...
+						'Interruptible', 'off');
+            
+	% Register the motion function and button up function
+	set(figHandle, 'WindowButtonMotionFcn', 'pixval_stsbar(''PixvalMotionFcn'')')
+	% Reset the original 'KeyPressFcn' since we dont need a private one here
+	set(figHandle, 'KeyPressFcn', dbud.oldFigureUIState.KeyPressFcn)
+	handles = guidata(figHandle);
+	dbud.is_projected = handles.is_projected;
+	dbud.head = handles.head;
+	dbud.axes1 = handles.axes1;
+	if isempty(getappdata(figHandle,'dem_x')),   dbud.haveGrid = 0;
+	else                                         dbud.haveGrid = 1;
+	end
+	dbud.toProjPT = 0;
+
+	set(DisplayBar, 'UserData', dbud);
+	PixvalMotionFcn(DisplayBar);
 end
 
 %-----------------------------------------------------------------------------------------
@@ -73,32 +75,32 @@ function PixvalMotionFcn(displayBar)
 if (nargin < 1),  displayBar = findobj(gcbf, 'Tag', 'pixValStsBar');   end
 
 if isempty(displayBar)
-   % Pixval is in a half-broken state.  Another function (like zoom) has
-   % restored pixval callbacks and PIXVAL has already been uninstalled.
-   % Call uisuspend to gracefully get rid of the callbacks.
+	% Pixval is in a half-broken state.  Another function (like zoom) has
+	% restored pixval callbacks and PIXVAL has already been uninstalled.
+	% Call uisuspend to gracefully get rid of the callbacks.
 
-   % Note 7/21/98 - Since we are now using UICLEARMODE instead of
-   % UISUSPEND, I think that we should never get into this
-   % state.  It will only happen if a user writes a function
-   % which calls UIRESTORE without ever calling UICLEARMDOE or
-   % SCRIBECLEARMODE.  We'll leave this code here just to be safe.
-   uisuspend_j(gcbf);
-   return
+	% Note 7/21/98 - Since we are now using UICLEARMODE instead of
+	% UISUSPEND, I think that we should never get into this
+	% state.  It will only happen if a user writes a function
+	% which calls UIRESTORE without ever calling UICLEARMDOE or
+	% SCRIBECLEARMODE.  We'll leave this code here just to be safe.
+	uisuspend_j(gcbf);
+	return
 end
 
 dbud = get(displayBar, 'UserData');
 
 if strcmp(dbud.displayMode, 'normal')           % See if we're above the displayBar
       [imageHandle,imageType,img,x,y] = OverImage(dbud.figHandle);
-      if imageHandle ~= 0       
-         % Update the Pixel Value display
-         UpdatePixelValues(dbud.figHandle,imageHandle, imageType, displayBar,img,x,y);
+      if imageHandle ~= 0
+		  % Update the Pixel Value display
+		  UpdatePixelValues(dbud.figHandle,imageHandle, imageType, displayBar,img,x,y);
       end
 elseif strcmp(dbud.displayMode, 'distance')     % If we're in distance mode and in another image, clean up a bit.
-   [imageHandle,imageType,img,x,y]= OverImage(dbud.figHandle);
-   if imageHandle ~= 0 
+   [imageHandle,imageType,img,x,y] = OverImage(dbud.figHandle);
+   if imageHandle ~= 0
       if imageHandle == dbud.buttonDownImage
-         UpdatePixelValues(dbud.figHandle,imageHandle, imageType, displayBar,img,x,y);
+		  UpdatePixelValues(dbud.figHandle,imageHandle, imageType, displayBar,img,x,y);
       end
    end
 end
@@ -109,131 +111,129 @@ function [imageHandle,imageType,img,x,y] = OverImage(figHandle)
 % Return the index of which image we are over, and return a 0 if we aren't above an image.
 images = findobj(figHandle, 'type', 'image');
 if isempty(images)
-   imageHandle=0;   imageType='';   img=[];     x=0;    y=0;   return
+	imageHandle=0;   imageType='';   img=[];     x=0;    y=0;   return
 end
 % Make sure that the Image's Button Down & Up functions will queue
 set(images, 'ButtonDownFcn', 'pixval_stsbar(''ButtonDownOnImage'')', ...
-   'Interruptible', 'off', 'BusyAction', 'Queue');
+	'Interruptible', 'off', 'BusyAction', 'Queue');
 axHandles = get(images, {'Parent'});
-%axPositions = get([axHandles{:}], {'Position'});
 axCurPt = get([axHandles{:}], {'CurrentPoint'});
 
 % Loop over the axes, see if we are above any of them
 imageHandle = 0;  
 for k=1:length(axHandles)
-   XLim = get(axHandles{k}, 'XLim');   YLim = get(axHandles{k}, 'YLim');
-   pt = axCurPt{k};
-   x = pt(1,1); y = pt(1,2);
-   if x>=XLim(1) && x<=XLim(2) && y>=YLim(1) && y<=YLim(2)
-      imageHandle = images(k);
-      break;
-   end
+	XLim = get(axHandles{k}, 'XLim');   YLim = get(axHandles{k}, 'YLim');
+	pt = axCurPt{k};
+	x = pt(1,1);	y = pt(1,2);
+	if x>=XLim(1) && x<=XLim(2) && y>=YLim(1) && y<=YLim(2)
+		imageHandle = images(k);
+		break
+	end
 end
 
 % Figure out image type
 if imageHandle ~= 0
-   [img,flag] = get_image_info(imageHandle);
-   switch flag
-   case 1
-      imageType = 'indexed';
-   case 2     %Grayscale in standard range
-      imageType = 'intensity'; 
-   case 3     %Logical or Grayscale in nonstandard range
-      if islogical(img)
-        imageType = 'logical';
-      else
-        imageType = 'intensity';
-      end
-   case 4
-      imageType = 'rgb';
-   otherwise
-      msg = ['Invalid image, GETIMAGE returned flag = ' flag '.'];
-      error('Images:pixval_stsbar:invalidImage', '%s', msg);
-   end
+	[img,flag] = get_image_info(imageHandle);
+	switch flag
+	case 1
+		imageType = 'indexed';
+	case 2     %Grayscale in standard range
+		imageType = 'intensity'; 
+	case 3     %Logical or Grayscale in nonstandard range
+		if islogical(img)
+			imageType = 'logical';
+		else
+			imageType = 'intensity';
+		end
+	case 4
+		imageType = 'rgb';
+	otherwise
+		error('Images:pixval_stsbar:invalidImage', '%s', ['Invalid image, GETIMAGE returned flag = ' flag '.']);
+	end
 else
-   imageHandle=0; imageType=''; img=[]; x=0; y=0;
+	imageHandle=0;	imageType='';	img=[];		x=0;	y=0;
 end
 
 %-----------------------------------------------------------------------------------------
 function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
-%   This is the motion callback for when we are displaying pixels.
-%   Either we are in automatic display mode and the mouse pointer is
-%   moving around or we are in normal mode and there has been a button-down
-%   but not yet a button up. I get the current point and update the string.
+	%   This is the motion callback for when we are displaying pixels.
+	%   Either we are in automatic display mode and the mouse pointer is
+	%   moving around or we are in normal mode and there has been a button-down
+	%   but not yet a button up. I get the current point and update the string.
 
-dbud = get(displayBar, 'UserData');
-axHandle = dbud.axes1;
-Zlim = dbud.head(5:6);
+	dbud = get(displayBar, 'UserData');
+	axHandle = dbud.axes1;
+	Zlim = dbud.head(5:6);
 
-if (dbud.haveGrid)
-    if (getappdata(figHandle,'PixelMode'))
-        % Inside each grid cell, which is a pixel in the screen, display only the grid node value
-        [rows,cols,colors] = size(img);
-        rp = axes2pix(rows, get(imageHandle,'YData'),y);
-        cp = axes2pix(cols, get(imageHandle,'XData'),x);
-        r = min(rows, max(1, round(rp)));   c = min(cols, max(1, round(cp)));
-        Z = getappdata(figHandle,'dem_z');
-        pixel(1) = double(Z(r,c));
-    else
-        pixel(1) = bi_linear(getappdata(figHandle,'dem_x'),getappdata(figHandle,'dem_y'),getappdata(figHandle,'dem_z'),x,y);
-    end
-else                    % work on a image type
-    [rows,cols,colors] = size(img);
-    rp = axes2pix(rows, get(imageHandle,'YData'),y);
-    cp = axes2pix(cols, get(imageHandle,'XData'),x);
-    r = min(rows, max(1, round(rp)));   c = min(cols, max(1, round(cp)));
-    if strcmp(imageType,'indexed')
-        map=get(dbud.figHandle, 'Colormap');
-        idx = img(r,c);
-        if (~isa(idx,'double')), idx = double(idx)+1;   end
-        idx = round(idx);
-        if (idx <= size(map,1)), pixel = map(idx,:)*255;
-        else                     pixel = map(end,:)*255;   end
-        % This trick is limited to 255 intervals
-        dz = Zlim(2) - Zlim(1);
-        pixel(1) = Zlim(1) + idx/size(map,1) * dz;
-        pixel(2:3) = [];
-    else
-        pixel = double(img(r,c,:));
-    end
-end
+	if (dbud.haveGrid)
+		if (getappdata(figHandle,'PixelMode'))
+			% Inside each grid cell, which is a pixel in the screen, display only the grid node value
+			[rows,cols,colors] = size(img);
+			rp = axes2pix(rows, get(imageHandle,'YData'),y);
+			cp = axes2pix(cols, get(imageHandle,'XData'),x);
+			r = min(rows, max(1, round(rp)));   c = min(cols, max(1, round(cp)));
+			Z = getappdata(figHandle,'dem_z');
+			pixel(1) = double(Z(r,c));
+		else
+			pixel(1) = bi_linear(getappdata(figHandle,'dem_x'),getappdata(figHandle,'dem_y'),getappdata(figHandle,'dem_z'),x,y);
+		end
+	else                    % work on a image type
+		[rows,cols,colors] = size(img);
+		rp = axes2pix(rows, get(imageHandle,'YData'),y);
+		cp = axes2pix(cols, get(imageHandle,'XData'),x);
+		r = min(rows, max(1, round(rp)));   c = min(cols, max(1, round(cp)));
+		if strcmp(imageType,'indexed')
+			map=get(dbud.figHandle, 'Colormap');
+			idx = img(r,c);
+			if (~isa(idx,'double')), idx = double(idx)+1;   end
+			idx = round(idx);
+			if (idx <= size(map,1)), pixel = map(idx,:)*255;
+			else                     pixel = map(end,:)*255;   end
+			% This trick is limited to 255 intervals
+			dz = Zlim(2) - Zlim(1);
+			pixel(1) = Zlim(1) + idx/size(map,1) * dz;
+			pixel(2:3) = [];
+		else
+			pixel = double(img(r,c,:));
+		end
+	end
 
-if (dbud.toProjPT > 0 && getappdata(figHandle,'DispInGeogs'))
-    if (dbud.toProjPT == 1)
-        xy_p = ogrproj([x y],dbud.projStruc);
-    else
-        xy_p = mapproject_m([x y], dbud.opt_R, '-F', '-I', dbud.projGMT{:});
-    end
-    x = xy_p(1);    y = xy_p(2);
-end
+	if (dbud.toProjPT > 0 && getappdata(figHandle,'DispInGeogs'))
+        if (dbud.toProjPT == 1)
+			xy_p = ogrproj([x y],dbud.projStruc);
+        else
+			xy_p = mapproject_m([x y], dbud.opt_R, '-F', '-I', dbud.projGMT{:});
+        end
+		x = xy_p(1);    y = xy_p(2);
+	end
 
-% Find the coordinate output format
-labelType = getappdata(axHandle,'LabelFormatType');
-if (isempty(labelType))     % This is in fact an error test because labelType should never be empty.
-    labelType = 'NotGeog';
-end
-% Make a copy of x & y to use in the distance case. Needed when input was transformed to a string below
-x1 = x;     y1 = y;
-switch labelType
-    case {'DegDec', 'NotGeog'}       % This's the default. Just build the format string
-        form_xy = ' %8.3f,%7.3f =';                
-    case 'DegMin'
-        out_x = degree2dms(x,'DDMM',0,'str');   x = [out_x.dd ':' out_x.mm];
-        out_y = degree2dms(y,'DDMM',0,'str');   y = [out_y.dd ':' out_y.mm];
-        form_xy = ' %s, %s =';
-    case 'DegMinDec'
-        out_x = degree2dms(x,'DDMM.x',2,'str');   x = [out_x.dd ':' out_x.mm];
-        out_y = degree2dms(y,'DDMM.x',2,'str');   y = [out_y.dd ':' out_y.mm];
-        form_xy = ' %s, %s =';
-    case 'DegMinSec'
-        out_x = degree2dms(x,'DDMMSS',0,'str');   x = [out_x.dd ':' out_x.mm ':' out_x.ss];
-        out_y = degree2dms(y,'DDMMSS',0,'str');   y = [out_y.dd ':' out_y.mm ':' out_y.ss];
-        form_xy = ' %s, %s =';
-    case 'DegMinSecDec'
-        out_x = degree2dms(x,'DDMMSS.x',2,'str');   x = [out_x.dd ':' out_x.mm ':' out_x.ss];
-        out_y = degree2dms(y,'DDMMSS.x',2,'str');   y = [out_y.dd ':' out_y.mm ':' out_y.ss];
-        form_xy = ' %s, %s =';
-end
+	% Find the coordinate output format
+	labelType = getappdata(axHandle,'LabelFormatType');
+	if (isempty(labelType))     % This is in fact an error test because labelType should never be empty.
+		labelType = 'NotGeog';
+	end
+	% Make a copy of x & y to use in the distance case. Needed when input was transformed to a string below
+	x1 = x;     y1 = y;
+	switch labelType
+        case {'DegDec', 'NotGeog'}       % This's the default. Just build the format string
+			form_xy = ' %8.3f,%7.3f =';                
+        case 'DegMin'
+			out_x = degree2dms(x,'DDMM',0,'str');   x = [out_x.dd ':' out_x.mm];
+			out_y = degree2dms(y,'DDMM',0,'str');   y = [out_y.dd ':' out_y.mm];
+			form_xy = ' %s, %s =';
+        case 'DegMinDec'
+			out_x = degree2dms(x,'DDMM.x',2,'str');   x = [out_x.dd ':' out_x.mm];
+			out_y = degree2dms(y,'DDMM.x',2,'str');   y = [out_y.dd ':' out_y.mm];
+			form_xy = ' %s, %s =';
+        case 'DegMinSec'
+			out_x = degree2dms(x,'DDMMSS',0,'str');   x = [out_x.dd ':' out_x.mm ':' out_x.ss];
+			out_y = degree2dms(y,'DDMMSS',0,'str');   y = [out_y.dd ':' out_y.mm ':' out_y.ss];
+			form_xy = ' %s, %s =';
+        case 'DegMinSecDec'
+			out_x = degree2dms(x,'DDMMSS.x',2,'str');   x = [out_x.dd ':' out_x.mm ':' out_x.ss];
+			out_y = degree2dms(y,'DDMMSS.x',2,'str');   y = [out_y.dd ':' out_y.mm ':' out_y.ss];
+			form_xy = ' %s, %s =';
+	end
  
 % figure out the new string
 switch dbud.displayMode
@@ -269,56 +269,60 @@ case 'normal'   % Just display Z (or intensity) information
     end
    
 case 'distance'
-    handles = guidata(figHandle);
-    delta_x = (x1 - dbud.x0);   delta_y = (y1 - dbud.y0);
-    set(dbud.line, 'XData', [dbud.x0 x1], 'YData', [dbud.y0 y1]);
-    if (handles.geog)
-        switch handles.DefineMeasureUnit     % I have to do it here to allow midtime changes in preferences
-            case 'n'        % Nautical miles
-                scale = 1852;   str_dist = 'dist(NM)';
-            case 'k'        % Kilometers
-                scale = 1000;   str_dist = 'dist(km)';
-            case 'm'        % Meters or user unites
-                scale = 1;      str_dist = 'dist(m)';
-            case 'u'        % Meters or user unites
+	handles = guidata(figHandle);
+	delta_x = (x1 - dbud.x0);   delta_y = (y1 - dbud.y0);
+	set(dbud.line, 'XData', [dbud.x0 x1], 'YData', [dbud.y0 y1]);
+	if (handles.geog)
+		switch handles.DefineMeasureUnit     % I have to do it here to allow midtime changes in preferences
+			case 'n'        % Nautical miles
+				scale = 1852;   str_dist = 'dist(NM)';
+			case 'k'        % Kilometers
+				scale = 1000;   str_dist = 'dist(km)';
+			case 'm'        % Meters or user unites
+				scale = 1;      str_dist = 'dist(m)';
+			case 'u'        % Meters or user unites
                 scale = 1;      str_dist = 'dist(usr)';
-        end
-        dist = vdist(dbud.y0,dbud.x0,y1,x1,handles.DefineEllipsoide) / scale;
-        D2R = pi/180;
-        lat1 = dbud.y0*D2R;     lon1 = dbud.x0*D2R;
-        lat2 = y1*D2R;          lon2 = x1*D2R;
-        f2 = cos(lat1) * sin(lat2);
-        f3 = sin(lat1) * cos(lat2) * cos(lon2-lon1);
-        az = 90 - atan2(cos(lat2) * sin(lon2-lon1), f2-f3) / D2R;
+		end
+		if (delta_x ~= 0 && delta_y ~= 0)		% Its true on every first click 
+			dist = vdist(dbud.y0,dbud.x0,y1,x1,handles.DefineEllipsoide([1 3])) / scale;
+			D2R = pi/180;
+			lat1 = dbud.y0*D2R;     lon1 = dbud.x0*D2R;
+			lat2 = y1*D2R;          lon2 = x1*D2R;
+			f2 = cos(lat1) * sin(lat2);
+			f3 = sin(lat1) * cos(lat2) * cos(lon2-lon1);
+			az = 90 - atan2(cos(lat2) * sin(lon2-lon1), f2-f3) / D2R;
+		else
+			dist = 0;	az = 0;
+		end
     else
-        dist = sqrt(delta_x^2 + delta_y^2);     str_dist = 'dist(usr)';
-        az = atan2(y1-dbud.y0,x1-dbud.x0) * 180/pi;
-        if(strcmp(get(handles.axes1,'YDir'),'reverse')),    az = -az;   end
+		dist = sqrt(delta_x^2 + delta_y^2);     str_dist = 'dist(usr)';
+		az = atan2(delta_y, delta_x) * 180/pi;
+		if(strcmp(get(handles.axes1,'YDir'),'reverse')),    az = -az;   end
     end
     
-   if strcmp(imageType,'rgb') || strcmp(imageType,'indexed')
-      if (isa(img, 'uint8') &&  strcmp(imageType,'rgb') && ~dbud.haveGrid)
-         pixval_str = sprintf([form_xy ' %3d,%3d,%3d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
-      elseif (isa(img, 'uint8') &&  strcmp(imageType,'rgb') && dbud.haveGrid)
-         pixval_str = sprintf([form_xy ' %g '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
-      elseif isa(img, 'uint16') &&  strcmp(imageType,'rgb')
-         pixval_str = sprintf([form_xy ' %5d,%5d,%5d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
-      elseif islogical(img) &&  strcmp(imageType,'rgb')
-         pixval_str = sprintf([form_xy ' %1d,%1d,%1d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
-      else  % all indexed images use double precision colormaps
-         pixval_str = sprintf([form_xy ' %6.3f  '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
-      end
-   else % intensity
-      if isa(img, 'uint8')
-         pixval_str = sprintf([form_xy ' %3d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
-      elseif isa(img, 'uint16')
-         pixval_str = sprintf([form_xy ' %5d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
-      elseif islogical(img)
-         pixval_str = sprintf([form_xy ' %1d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);  
-      else
-         pixval_str = sprintf([form_xy ' %6.4f  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
-      end
-   end
+	if strcmp(imageType,'rgb') || strcmp(imageType,'indexed')
+		if (isa(img, 'uint8') &&  strcmp(imageType,'rgb') && ~dbud.haveGrid)
+			pixval_str = sprintf([form_xy ' %3d,%3d,%3d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
+		elseif (isa(img, 'uint8') &&  strcmp(imageType,'rgb') && dbud.haveGrid)
+			pixval_str = sprintf([form_xy ' %g '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
+		elseif isa(img, 'uint16') &&  strcmp(imageType,'rgb')
+			pixval_str = sprintf([form_xy ' %5d,%5d,%5d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
+		elseif islogical(img) &&  strcmp(imageType,'rgb')
+			pixval_str = sprintf([form_xy ' %1d,%1d,%1d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
+		else  % all indexed images use double precision colormaps
+			pixval_str = sprintf([form_xy ' %6.3f  '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
+		end
+	else % intensity
+		if isa(img, 'uint8')
+			pixval_str = sprintf([form_xy ' %3d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
+		elseif isa(img, 'uint16')
+			pixval_str = sprintf([form_xy ' %5d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
+		elseif islogical(img)
+			pixval_str = sprintf([form_xy ' %1d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);  
+		else
+			pixval_str = sprintf([form_xy ' %6.4f  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
+		end
+	end
 end
 set(displayBar, 'String', pixval_str, 'UserData', dbud);
 
@@ -334,7 +338,7 @@ function ButtonDownOnImage
 	dbud.x0 = pt(1,1);
 	dbud.y0 = pt(1,2);
 	dbud.line = line('Parent', axesHandle, 'erasemode', 'xor', 'color', [1 0 0], ...
-       'Xdata', [dbud.x0 dbud.x0],'Ydata', [dbud.y0 dbud.y0]);
+		'Xdata', [dbud.x0 dbud.x0],'Ydata', [dbud.y0 dbud.y0]);
 	dbud.displayMode = 'distance';
 	dbud.buttonDownImage = imageHandle;
 	set(displayBar, 'UserData', dbud);
@@ -399,17 +403,17 @@ else                                            % We did find an image.  Find ou
             else                                % We have an indexed image.
                 state = 1;
             end
-        else                                    % CDataMapping is 'scaled'
-            hax = get(him, 'Parent');
-            clim = get(hax, 'CLim');
-            if ((isa(A,'double') && isequal(clim,[0 1])) || ...
-                  (isa(A,'uint8') && isequal(clim,[0 255])) || ...
-                  (isa(A,'uint16') && isequal(clim,[0 65535])))
-                % We have an intensity image.
-                state = 2;
-            else                                % We have a scaled image.
+		else                                    % CDataMapping is 'scaled'
+			hax = get(him, 'Parent');
+			clim = get(hax, 'CLim');
+			if ((isa(A,'double') && isequal(clim,[0 1])) || ...
+				(isa(A,'uint8') && isequal(clim,[0 255])) || ...
+				(isa(A,'uint16') && isequal(clim,[0 65535])))
+				% We have an intensity image.
+				state = 2;
+			else                                % We have a scaled image.
                 state = 3;
-            end
-        end
-    end
+			end
+		end
+	end
 end
