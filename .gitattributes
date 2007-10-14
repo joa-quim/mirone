@@ -469,6 +469,7 @@ utils/mltable_j.m -text
 utils/move2side.m -text
 utils/movie2avi_j.m -text
 utils/multibandread_j.m -text
+utils/nc_funs.m -text
 utils/nskew.m -text
 utils/ordf.dll -text
 utils/pan.m -text
