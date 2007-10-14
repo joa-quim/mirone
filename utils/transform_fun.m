@@ -16,7 +16,7 @@ switch opt
     case 'tformarray'
         varargout{1} = tformarray(varargin{:});
     case 'tforminv'
-        varargout{1} = tforminv(varargin{:});
+        varargout = tform('inv', nargout, varargin{:});
     case 'tformfwd'
         varargout = tform('fwd', nargout, varargin{:});
 end
@@ -2003,8 +2003,8 @@ in_size = size(args.A);
 in_size = in_size(1:2);
 
 reg_a = maketform('box', fliplr(in_size), ...
-                  [args.udata(1) args.vdata(1)], ...
-                  [args.udata(2) args.vdata(2)]);
+					[args.udata(1) args.vdata(1)], ...
+					[args.udata(2) args.vdata(2)]);
 
 new_tform = maketform('composite', fliptform(reg_b), args.tform, reg_a);
 
@@ -2184,8 +2184,7 @@ end
 idx = find(size_F ~= osize);
 if ~isempty(idx)
     if ~all(size_F(idx) == 1)
-        eid = sprintf('Images:%s:invalidFillValues',mfilename);
-        error(eid,'%s','Invalid size for ''FillValues''.');
+        error(sprintf('Images:%s:invalidFillValues',mfilename),'%s','Invalid size for ''FillValues''.');
     end
 end
 
@@ -2582,7 +2581,7 @@ bsize_B(tdims_B) = hi - lo + 1;
 fdims_B = length(fsize_B);
 S = repmat({':'},[1,fdims_B]);
 for i = 1:length(tdims_B)
-    S{tdims_B(i)} = lo(i) : hi(i);
+	S{tdims_B(i)} = lo(i) : hi(i);
 end
 
 %--------------------------------------------------------------------------
@@ -2593,7 +2592,7 @@ function G = ConstructGrid( lo, hi )
 % lo(k):hi(k) and N is the length of LO and HI.
 N = length(hi);     E = cell(1,N);
 for i = 1:N;
-    E{i} = lo(i):hi(i);  % The subscript range for each dimension
+	E{i} = lo(i):hi(i);  % The subscript range for each dimension
 end
 G = CombinedGrid(E{:});
 
