@@ -1,29 +1,37 @@
-function [bin,n_column,multi_seg,n_headers] = guess_file(fiche)
-% [bin,n_column,multi_seg,n_headers] = guess_file(fiche) trys to guess if file "fiche"
+function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
+% [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2) trys to guess if file "fiche"
 % is ascii or binary. 
 % If it detects that "fiche" is ascii this function tries to find out wether the multisegment
 % symbol (">") is present, the number of columns in the file and if it has header lines.
-% NOTE that this last tests may not always give relyable results.
+% NOTE that this last tests may not always give reliable results.
+% OPT1, if given, will be MAXCHARS
+% OPT2, if given, will be nl_max
 
 % Error testing
 bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
-if (nargin ~= 1)
-    errordlg('function guess_file: must give an input file name','File Error')
-    return
-end
+	n_args = nargin;
+	if (~n_args)
+		errordlg('function guess_file: must give an input file name','File Error')
+		return
+	elseif (n_args == 1)
+		MAXCHARS = 1024;        % Maximum characters to load from file
+		nl_max = 30;            % Maximum number of file lines to use in tests
+	elseif (n_args == 2)
+		MAXCHARS = opt1;
+	elseif (n_args == 3)
+		MAXCHARS = opt1;
+		nl_max = opt2;
+	end
 
-% Now remove any leading white space in file name "fiche"
-fiche = ddewhite(fiche);
+	% Now remove any leading white space in file name "fiche"
+	fiche = ddewhite(fiche);
 
-type = exist(fiche,'file');
-if type == 0
-    errordlg(['function guess_file: file "' fiche '" does not exist'],'File Error')
-    return
-end
+	if (exist(fiche,'file') ~= 2)
+		errordlg(['function guess_file: file "' fiche '" does not exist'],'File Error')
+		return
+	end
 
 % ----------------------------------------------------------------------------------------
-	MAXCHARS = 1024;        % Maximum characters to load from file
-	nl_max = 30;            % Maximum number of file lines to use in tests
 	fid = fopen(fiche);
 	[str,count] = fread(fid,MAXCHARS,'*char');
 	fclose(fid);
@@ -47,7 +55,8 @@ end
     n_col(1:nl_max) = 0;    n_multi = 0;
     idM = false(1,nl_max);
     for (i =1:nl_max)
-        if isempty(str{i});  continue;   end;    % Jump blank lines
+        if isempty(str{i});  continue,   end		% Jump blank lines
+        if (str{i}(1) == '#' || str{i}(1) == '%'),		continue,   end		% Jump known comment lines
         if strfind(str{i}(1:min(2,length(str{i}))),'>')   % multisegmet line, so the rest of it is of no interest (but count them)
             n_multi = n_multi + 1;
             idM(i) = true;      % Tag it to deletion
@@ -70,8 +79,8 @@ end
     % So, do another test.
     m = min(nl_max,numel(n_col));
     if (m > 1)
-        n_c1 = n_col(m);    n_c2 = n_col(m-1);
-        if (n_c1 ~= n_c2 && isempty(find(str{n_col(m-1)} > 57 & str{n_col(m-1)} < 127)))
+        n_c1 = n_col(m);	n_c2 = n_col(m-1);		% With bad luck n_c2 can be zero
+        if (n_c2 && n_c1 ~= n_c2 && isempty(find(str{n_col(m-1)} > 57 & str{n_col(m-1)} < 127)))
             n_column = max(n_c1,n_c2);
         else
             n_column = n_c1;
