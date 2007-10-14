@@ -50,13 +50,14 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function [handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo)
 
-if (isfield(handles,'ForceInsitu'))        % Other GUI windows may not know about 'ForceInsitu'
-	if (handles.ForceInsitu),   opt_I = 'insitu';    % Use only in desperate cases.
-	else                        opt_I = ' ';
+	if (isfield(handles,'ForceInsitu'))        % Other GUI windows may not know about 'ForceInsitu'
+		if (handles.ForceInsitu),   opt_I = 'insitu';    % Use only in desperate cases.
+		else                        opt_I = ' ';
+		end
+	else
+		opt_I = ' ';
 	end
-else
-    opt_I = ' ';
-end
+
 	X = [];     Y = [];     Z = [];     head = [];		misc = [];		% MISC is used only by nc_io
 
 	if (~strcmp(tipo,'GMT'))        % GMT files are open by the GMT machinerie
@@ -69,7 +70,7 @@ if (strcmp(tipo,'CDF'))
 		[X, Y, Z, head, misc] = nc_io(fullname, 'r');
 		if (isa(Z,'int16')),		handles.was_int16 = 1;
 		elseif (isa(Z,'single')),	handles.have_nans = grdutils(Z,'-N');
-		elseif (isa(Z,'double')),	Z = single(Z);		% The HORRRRRRRRROOOOOOORRRRR
+		elseif (isa(Z,'double')),	Z = single(Z);		% The HORRRRRRRRROOOOOOOOOORRRRR
 		end
 	catch			% If it have failed try GMT
 		str = sprintf('First attempt to load netCDF file failed because ... \n\n %s\n\n Trying now with GMT mex', lasterr);
