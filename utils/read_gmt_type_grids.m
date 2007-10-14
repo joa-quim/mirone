@@ -1,7 +1,7 @@
 function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,opt)
     % OPT indicates that only the grid info is outputed.
     % If it is OPT = 'hdr' outputs info in the struct format, else outputs in the head format
-    
+
     infoOnly = 0;
     if (nargin == 3),   infoOnly = 1;    end
     
@@ -12,22 +12,22 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 	end
 
 	% Because GMT and Surfer share the .grd extension, find out which grid kind we are dealing with
-	ID = fread(fid,4,'*char');      ID = ID';      fclose(fid);
+	ID = fread(fid,3,'*char');      ID = ID';      fclose(fid);
 
 	switch upper(ID)
 		case 'CDF',		tipo = 'CDF';
-		case {'DSBB' 'DSRB'},	tipo = 'SRF_BIN';
+		case {'DSB' 'DSR'},		tipo = 'SRF_BIN';	% DSBB | DSRB
 			ID = 'CDF';			% Just a dirty trick
-		case 'DSAA',    tipo = 'SRF_ASCII';
-		case 'MODE',    tipo = 'ENCOM';
-		case 'NLIG',    tipo = 'MAN_ASCII';
+		case 'DSA',    tipo = 'SRF_ASCII';		% DSAA
+		case 'MOD',    tipo = 'ENCOM';			% MODE
+		case 'NLI',    tipo = 'MAN_ASCII';		% NLIG
 	end
 
 	% See if the grid is on one of the OTHER (non netCDF & non Surfer) formats that GMT recognizes
 	if (~strcmp(ID(1:3),'CDF') && ~(tipo(1) == 'S' || tipo(1) == 'E' || tipo(1) == 'M') )
 		str = ['grdinfo ' fullname];
 		[PATH,FNAME,EXT] = fileparts(fullname);
-		[s,att] = mat_lyies(str,[handles.path_tmp FNAME '.' EXT '.info']);
+		s = mat_lyies(str,[handles.path_tmp FNAME '.' EXT '.info']);
 		if ~(isequal(s,0))          % File could not be read
 			errordlg([fullname ' : Is not a grid that GMT can read!'],'ERROR');
 			return
