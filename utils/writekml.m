@@ -2,27 +2,27 @@ function writekml(handles,Z,fname)
     % Write a GoogleEarth kml file that will allow displaing the current image in GE
 
     if (handles.no_file),   return;     end
-    if (nargin <= 2)
-        if (nargin == 1)            % Only HANDLES was transmited (called via clicked callback)
-            Z = [];                 % Z will be of use to know if need transparency
-            if (handles.have_nans)
-                [X,Y,Z,head] = load_grd(handles,'silent');
-            end
-        end
-        fname_kml = [handles.path_tmp 'MironeTec.kml'];
-        fname_img = [handles.path_tmp 'MironeTec'];
+		if (nargin <= 2)
+		if (nargin == 1)			% Only HANDLES was transmited (called via clicked callback)
+			Z = [];                 % Z will be of use to know if need transparency
+			if (handles.have_nans)
+				[X,Y,Z,head] = load_grd(handles,'silent');
+			end
+		end
+		fname_kml = [handles.path_tmp 'MironeTec.kml'];
+		fname_img = [handles.path_tmp 'MironeTec'];
     else
-        [PATH,FNAME,EXT] = fileparts( fname);
-        fname_kml = [PATH filesep FNAME '.kml'];% Make sure it has the .kml extension
-        fname_img = [PATH filesep FNAME];       % Extension will be added later
+		[PATH,FNAME,EXT] = fileparts( fname);
+		fname_kml = [PATH filesep FNAME '.kml'];% Make sure it has the .kml extension
+		fname_img = [PATH filesep FNAME];       % Extension will be added later
     end
 
     % Get the image at its own resolution
     img = get(handles.hImg,'CData');
     flipa = false;
     if (strcmp(get(handles.axes1,'YDir'),'normal'))
-        img = flipdim(img,1);               % Ghrrrrrrr
-        flipa = true;
+		img = flipdim(img,1);				% Ghrrrrrrr
+		flipa = true;
     end
 
     % Control transparency
@@ -80,27 +80,27 @@ function writekml(handles,Z,fname)
     if (~isempty(ALLpatchHand))
         nPatch = numel(ALLpatchHand);
         for (i = 1:nPatch)                     % Do one by one.
-            x = get(ALLpatchHand(i),'XData');
-            if (isempty(x)),    continue;       end
-            y = get(ALLpatchHand(i),'YData');       z = get(ALLpatchHand(i),'ZData');
-            
-            corA = get(ALLpatchHand(i),'FaceAlpha');
-            if (ischar(corA)),  corA = 0;
-            else                corA = round(corA*255);
-            end
-            
-            corF = get(ALLpatchHand(i),'FaceColor');
-            if (ischar(corF)),  corF = [255 255 255];   corA = 0;   % To account for 'none' or 'flat'
-            else                corF = round(corF(end:-1:1)*255);
-            end
-            
-            corE = get(ALLpatchHand(i),'EdgeColor');
-            if (ischar(corE)),  corE = [255 255 255 255];   % To account for 'none' or 'flat'
-            else                corE = [255 round(corE(end:-1:1)*255)];   % first is transparency (none here)
-            end
-            cores{1} = corA;    cores{2} = corF;    cores{3} = corE;
-                        
-            writePolygon(fid,x,y,z,cores)
+			x = get(ALLpatchHand(i),'XData');
+			if (isempty(x)),    continue;       end
+			y = get(ALLpatchHand(i),'YData');       z = get(ALLpatchHand(i),'ZData');
+
+			corA = get(ALLpatchHand(i),'FaceAlpha');
+			if (ischar(corA)),  corA = 0;
+			else                corA = round(corA*255);
+			end
+
+			corF = get(ALLpatchHand(i),'FaceColor');
+			if (ischar(corF)),  corF = [255 255 255];   corA = 0;   % To account for 'none' or 'flat'
+			else                corF = round(corF(end:-1:1)*255);
+			end
+
+			corE = get(ALLpatchHand(i),'EdgeColor');
+			if (ischar(corE)),  corE = [255 255 255 255];   % To account for 'none' or 'flat'
+			else                corE = [255 round(corE(end:-1:1)*255)];   % first is transparency (none here)
+			end
+			cores{1} = corA;    cores{2} = corF;    cores{3} = corE;
+                     
+			writePolygon(fid,x,y,z,cores)
         end
     end
     
@@ -109,72 +109,70 @@ function writekml(handles,Z,fname)
     if (~isempty(ALLlineHand))
         % Make sure we don't pass any pscoast stuff (very big and does not realy belongs here)
         h = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
-        if (~isempty(h)),       ALLlineHand = setxor(ALLlineHand, h);     end
+        if (~isempty(h)),		ALLlineHand = setxor(ALLlineHand, h);     end
         h = findobj(ALLlineHand,'Tag','PoliticalBoundaries');
-        if (~isempty(h)),       ALLlineHand = setxor(ALLlineHand, h);     end
+        if (~isempty(h)),		ALLlineHand = setxor(ALLlineHand, h);     end
         h = findobj(ALLlineHand,'Tag','Rivers');
-        if (~isempty(h)),       ALLlineHand = setxor(ALLlineHand, h);     end
+        if (~isempty(h)),		ALLlineHand = setxor(ALLlineHand, h);     end
 
         % EARTHQUAKES
         h = findobj(ALLlineHand,'Tag','Earthquakes');       % Search first for earthquakes because ...
         if (~isempty(h))
-            if (~ploted_PBs)        % We (well, I) want plate boundaries here
-                fprintf(fid,'\t%s\n','<NetworkLink>');
-                fprintf(fid,'\t\t%s%s%s\n','<Url><href>',[handles.path_data 'plateBoundaries_PB.kmz'],'</href></Url>');
-                fprintf(fid,'\t%s\n','</NetworkLink>');
-                ploted_PBs = true;
-            end
-            marcas = char(get(h,'Marker'));
-            marcas = marcas(:,1);               % OK, now we only have the first character
-            load (['data' filesep 'mirone_icons.mat'],'circle_logic');
-            img = uint8(circle_logic);
-            n_groups = length(h);                           % N of different point ensembles
-            for (i = 1:n_groups)
-                xx = get(h(i),'XData');      yy = get(h(i),'YData');
-                np = length(xx);                % Number of points in this segment
-                PointRad = get(h(i),'MarkerSize') / 72 * 2.54 * 1.5;   % Symbol size. The 1.5 factor is arbitrary
-                zz = double(getappdata(h(i),'SeismicityDepth')) / 10;    % zz is now in km
-                cor = get(h(i),'MarkerFaceColor');
-                cmap = [1 1 1; cor];
-                fname_img = [handles.path_tmp 'symb_' sprintf('%d',i) '.png'];
-                imwrite(img,cmap,fname_img,'Transparency',0);
-                writeStyle(fid,1,fname_img,'Mirone Tec')    % Write style and symbol
-                mag = double(getappdata(h(i),'SeismicityMag')) / 10;
-                name = sprintf('Mags %.1f - %.1f',min(mag),max(mag));
-                writeQuakes(fid,1,xx,yy,zz,mag,PointRad,name)
-            end
-            ALLlineHand = setxor(ALLlineHand, h);           % h is processed, remove it from the handles list
+			if (~ploted_PBs)        % We (well, I) want plate boundaries here
+				fprintf(fid,'\t%s\n','<NetworkLink>');
+				fprintf(fid,'\t\t%s%s%s\n','<Url><href>',[handles.path_data 'plateBoundaries_PB.kmz'],'</href></Url>');
+				fprintf(fid,'\t%s\n','</NetworkLink>');
+				ploted_PBs = true;
+			end
+			marcas = char(get(h,'Marker'));
+			marcas = marcas(:,1);               % OK, now we only have the first character
+			load (['data' filesep 'mirone_icons.mat'],'circle_logic');
+			img = uint8(circle_logic);
+			n_groups = length(h);                           % N of different point ensembles
+			for (i = 1:n_groups)
+				xx = get(h(i),'XData');      yy = get(h(i),'YData');
+				np = length(xx);                % Number of points in this segment
+				PointRad = get(h(i),'MarkerSize') / 72 * 2.54 * 1.5;   % Symbol size. The 1.5 factor is arbitrary
+				zz = double(getappdata(h(i),'SeismicityDepth')) / 10;    % zz is now in km
+				cor = get(h(i),'MarkerFaceColor');
+				cmap = [1 1 1; cor];
+				fname_img = [handles.path_tmp 'symb_' sprintf('%d',i) '.png'];
+				imwrite(img,cmap,fname_img,'Transparency',0);
+				writeStyle(fid,1,fname_img,'Mirone Tec')    % Write style and symbol
+				mag = double(getappdata(h(i),'SeismicityMag')) / 10;
+				name = sprintf('Mags %.1f - %.1f',min(mag),max(mag));
+				writeQuakes(fid,1,xx,yy,zz,mag,PointRad,name)
+			end
+			ALLlineHand = setxor(ALLlineHand, h);           % h is processed, remove it from the handles list
         end
 
-        % SCATTERS
-        h = findobj(ALLlineHand,'Tag','scatter_symbs');
-        if (~isempty(h))
-            
+		% SCATTERS
+		h = findobj(ALLlineHand,'Tag','scatter_symbs');
+		if (~isempty(h))
             dpis = get(0,'ScreenPixelsPerInch') ;   % screen DPI
         	pos = get(handles.axes1,'Position');    ylim = get(handles.axes1,'Ylim');
             escala = diff(ylim)/(pos(4)*2.54/dpis); % Image units / cm
-            
-            fprintf(fid,'\t%s\n','<Folder>');
+
+			fprintf(fid,'\t%s\n','<Folder>');
             for (i = 1:numel(h))
-                ss = get(h(i),'MarkerSize');
-                x = get(h(i),'XData');       y = get(h(i),'YData');     z = get(h(i),'ZData');
-                symb_size = ss / 72 * 2.54;          % Symbol size in cm
-                dy = symb_size * escala;
-                %rad = geo2dist([pt(1,1) center(1)],[pt(1,2) center(2)],'deg');
-                rad = 0.002;
-                %rad = 0.25;
-                [latc,lonc] = circ_geo(y,x,rad,[],18);
-                z = repmat(z*200,1,numel(latc));
-                c = get(h(i),'MarkerFaceColor');
-                cores{1} = 255;    cores{2} = round(c(end:-1:1)*255);
-                cores{2} = [0 0 255];
-                cores{3} = [255 round(c(end:-1:1)*255)];
-                writePolygon(fid,lonc,latc,z,cores,1,'SSs')
+				ss = get(h(i),'MarkerSize');
+				x = get(h(i),'XData');       y = get(h(i),'YData');     z = get(h(i),'ZData');
+				symb_size = ss / 72 * 2.54;          % Symbol size in cm
+				dy = symb_size * escala;
+				%rad = geo2dist([pt(1,1) center(1)],[pt(1,2) center(2)],'deg');
+				rad = 0.002;
+				[latc,lonc] = circ_geo(y,x,rad,[],18);
+				z = repmat(z*200,1,numel(latc));
+				c = get(h(i),'MarkerFaceColor');
+				cores{1} = 255;    cores{2} = round(c(end:-1:1)*255);
+				cores{2} = [0 0 255];
+				cores{3} = [255 round(c(end:-1:1)*255)];
+				writePolygon(fid,lonc,latc,z,cores,1,'SSs')
             end
             fprintf(fid,'\t%s\n','</Folder>');
             ALLlineHand = setxor(ALLlineHand, h);           % h is processed, remove it from handles list
         end
-        
+
         % Search for points as Markers but first look for 'DATABASE' symbols
         hDB = findobj(ALLlineHand,'Tag','City_major');
         hDB = [hDB; findobj(ALLlineHand,'Tag','City_other')];
@@ -206,7 +204,7 @@ function writekml(handles,Z,fname)
 	        clear todos;
             fogNames = cell(numel(fogName),1);
             for (m=1:numel(fogName))
-                fogNames{m} = [fogName{m} ', Age = ' fogAge{m} ' Ma'];
+				fogNames{m} = [fogName{m} ', Age = ' fogAge{m} ' Ma'];
             end
             fogNames{1} = [fogNames{1} ' (Yes, you are allowed to lough ... and Very Loud)'];
             
@@ -220,22 +218,24 @@ function writekml(handles,Z,fname)
         % Search for plain points as Markers (that is, line with no line - just symbols on vertices)
         h = findobj(ALLlineHand,'Tag','Symbol');
         if (~isempty(h))
-            symbol.Marker = get(h,'Marker');
-            zz = get(h,'MarkerSize');
-            if (~iscell(zz))    symbol.Size = num2cell(zz,1);
-            else                symbol.Size = zz;       end
-            zz = get(h,'MarkerFaceColor');
-            if (~iscell(zz))    symbol.FillColor = num2cell(zz(:),1);
-            else                symbol.FillColor = zz;  end
-            symbol.Marker = char(symbol.Marker);
-            symbol.Marker = symbol.Marker(:,1);
-            load (['data' filesep 'mirone_icons.mat'],'star_logic','triangle_logic','losangle_logic',...
-                'pentagon_logic','hexagon_logic','circle_logic');
-            fprintf(fid,'\t%s\n','<Folder>');
-            for (k=1:numel(symbol.Marker))
-                cmap = [0 0 0; (symbol.FillColor{k})'];
+			symbol.Marker = get(h,'Marker');
+			zz = get(h,'MarkerSize');
+			if (~iscell(zz)),	symbol.Size = num2cell(zz,1);
+			else				symbol.Size = zz;
+			end
+			zz = get(h,'MarkerFaceColor');
+			if (~iscell(zz)),	symbol.FillColor = {zz};
+			else				symbol.FillColor = zz;
+			end
+			symbol.Marker = char(symbol.Marker);
+			symbol.Marker = symbol.Marker(:,1);
+			load (['data' filesep 'mirone_icons.mat'],'star_logic','triangle_logic','losangle_logic',...
+				'pentagon_logic','hexagon_logic','circle_logic');
+			fprintf(fid,'\t%s\n','<Folder>');
+			for (k=1:numel(symbol.Marker))
+                cmap = [0 0 0; symbol.FillColor{k}];
                 fname_img = [handles.path_tmp sprintf('ico_%d.png',k)];
-                switch symbol.Marker
+                switch symbol.Marker(k)
                     case '*',   [img,cmap] = imread([handles.path_data 'AsteriskIcon.gif']);
                     case 'o',   img = uint8(circle_logic);
                     case 'p',   img = uint8(star_logic);
@@ -244,6 +244,7 @@ function writekml(handles,Z,fname)
                     case '>',   img = fliplr(uint8(triangle_logic)');
                     case 'v',   img = flipud(uint8(triangle_logic));
                     case 'h',   img = uint8(hexagon_logic);
+                    case 's',   img = uint8(true(35));
                 end
                 imwrite(img,cmap,fname_img,'Transparency',0);
                 writeStyle(fid,1,fname_img,sprintf('symb_%d',k))    % Write style and symbol
@@ -257,11 +258,11 @@ function writekml(handles,Z,fname)
 
         h = findobj(ALLlineHand,'Tag','PB_All');
         if (~isempty(h) && ~ploted_PBs)         % The guy wants the PB and they are not yet ploted
-            fprintf(fid,'\t%s\n','<NetworkLink>');
-            fprintf(fid,'\t\t%s%s%s\n','<Url><href>',[handles.path_data 'plateBoundaries_PB.kmz'],'</href></Url>');
-            fprintf(fid,'\t%s\n','</NetworkLink>');
-            ploted_PBs = true;
-            ALLlineHand = setxor(ALLlineHand, h);           % h is processed, remove it from handles list
+			fprintf(fid,'\t%s\n','<NetworkLink>');
+			fprintf(fid,'\t\t%s%s%s\n','<Url><href>',[handles.path_data 'plateBoundaries_PB.kmz'],'</href></Url>');
+			fprintf(fid,'\t%s\n','</NetworkLink>');
+			ploted_PBs = true;
+			ALLlineHand = setxor(ALLlineHand, h);           % h is processed, remove it from handles list
         end
         
         % If we still have 'line' elements, ... proceed
@@ -271,24 +272,38 @@ function writekml(handles,Z,fname)
             line_thick = get(ALLlineHand(i),'LineWidth');   % Line thickness
             line_color = get(ALLlineHand(i),'color');       % Line color
             line_color = [255 round(line_color(end:-1:1)*255)];   % first is transparency (none here)
-            writePolyLine(fid,x,y,z,line_color,line_thick)
+			haveNaNs = isnan(x);
+			if (any(haveNaNs))			% Contours do, so here we go again with this NaNs story (...getting tired)
+				if (~isnan(x(1))),		x(1) = nan;		end
+				if (~isnan(x(end))),	x(end) = nan;	end
+				ind = find(isnan(x));
+				for (k = 1:numel(ind)-1)
+					xx = x( ind(k)+1:ind(k+1)-1 );
+					yy = y( ind(k)+1:ind(k+1)-1 );
+					if (~isempty(z)),	zz = z( ind(k)+1:ind(k+1)-1 );
+					else				zz = z;
+					end
+					writePolyLine(fid,xx,yy,zz,line_color,line_thick)
+				end
+			else
+				writePolyLine(fid,x,y,z,line_color,line_thick)
+			end
         end
     end
     
-    fprintf(fid,'%s\n','</Document>');
-    fprintf(fid,'%s','</kml>');
+	fprintf(fid,'%s\n','</Document>');
+	fprintf(fid,'%s','</kml>');
+	fclose(fid);
     
-    fclose(fid);
-    
-    if (nargin == 1)
-        try
-            if (ispc),      dos([fname_kml ' &']);
-            else            unix(fname_kml);
-            end
-        catch
-            errordlg(lasterr,'Error')
-        end
-    end
+	if (nargin == 1)
+		try
+			if (ispc),		dos([fname_kml ' &']);
+			else			unix(fname_kml);
+			end
+		catch
+			errordlg(lasterr,'Error')
+		end
+	end
 
 % ------------------------------------------------------------------------------------
 function writeStyle(fid,nTab,fname_img,name)
