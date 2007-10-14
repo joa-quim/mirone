@@ -607,9 +607,11 @@ end
 		axPos = get(ax,'Pos');          set(ax, 'Units', axUnits);
 		imgMagRatio =  ((axPos(3) / imageWidth + axPos(4) / imageHeight) * 0.5 * 1);
         lims = getappdata(ax,'ThisImageLims');
-        magRatio =  round( ( diff(lims(1:2)) / diff(a(1:2)) + diff(lims(3:4)) / diff(a(3:4)) ) * 0.5 * imgMagRatio * 100);
-        fname = [fname(1:ind) sprintf('  %d%%',magRatio)];
-        set(fig,'Name',fname)
+		if (~isempty(lims))
+			magRatio =  round( ( diff(lims(1:2)) / diff(a(1:2)) + diff(lims(3:4)) / diff(a(3:4)) ) * 0.5 * imgMagRatio * 100);
+			fname = [fname(1:ind) sprintf('  %d%%',magRatio)];
+			set(fig,'Name',fname)
+		end
     end
 
 	% Update slider value (if the figure has one (or two))
