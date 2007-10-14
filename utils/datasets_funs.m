@@ -2,28 +2,28 @@ function  datasets_funs(opt,varargin)
 % This contains the Mirone's 'Datasets' funtions
 
 switch opt(1:3)
-    case 'Hot'
-        DatasetsHotspots(varargin{:})
-    case 'Vol'
-        DatasetsVolcanoes(varargin{:})
-    case 'Tid'
-        DatasetsTides(varargin{:})
-    case 'Iso'
-        DatasetsIsochrons(varargin{:})
-    case 'Pla'
-        DatasetsPlateBound_PB_All(varargin{:})
-    case 'Cit'
-        DatasetsCities(varargin{:})
-    case 'ODP'
-        DatasetsODP_DSDP(varargin{:})
-    case 'Coa'
-        CoastLines(varargin{:})
-    case 'Pol'
-        PoliticalBound(varargin{:})
-    case 'Riv'
-        Rivers(varargin{:})
-    case 'sca'
-        scaledSymbols(varargin{:})
+	case 'Hot'
+		DatasetsHotspots(varargin{:})
+	case 'Vol'
+		DatasetsVolcanoes(varargin{:})
+	case 'Tid'
+		DatasetsTides(varargin{:})
+	case 'Iso'
+		DatasetsIsochrons(varargin{:})
+	case 'Pla'
+		DatasetsPlateBound_PB_All(varargin{:})
+	case 'Cit'
+		DatasetsCities(varargin{:})
+	case 'ODP'
+		DatasetsODP_DSDP(varargin{:})
+	case 'Coa'
+		CoastLines(varargin{:})
+	case 'Pol'
+		PoliticalBound(varargin{:})
+	case 'Riv'
+		Rivers(varargin{:})
+	case 'sca'
+		scaledSymbols(varargin{:})
 end
 
 % --------------------------------------------------------------------
@@ -93,17 +93,17 @@ function DatasetsTides(handles)
 function DatasetsIsochrons(handles, opt)
 % Read multisegment isochrons.dat which has 3 columns (lat lon id)
 if (nargin == 2)            % Read a ascii multi-segment with info file
-    str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-    cd(handles.last_dir)
-    [FileName,PathName] = uigetfile(str1,'Select File');
-    if (PathName ~= 0),         handles.last_dir = PathName;    end
-    pause(0.01);        cd(handles.home_dir);       % allways go home
-    if (FileName == 0),     return;     end
+	str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
+	cd(handles.last_dir)
+	[FileName,PathName] = uigetfile(str1,'Select File');
+	if (PathName ~= 0),         handles.last_dir = PathName;    end
+	pause(0.01);        cd(handles.home_dir);       % allways go home
+	if (FileName == 0),     return;     end
 
-    guidata(handles.figure1,handles)
-    tag = 'Unnamed';        fname = [PathName FileName];
+	guidata(handles.figure1,handles)
+	tag = 'Unnamed';        fname = [PathName FileName];
 else
-    tag = 'isochron';       fname = [handles.path_data 'isochrons.dat'];
+	tag = 'isochron';       fname = [handles.path_data 'isochrons.dat'];
 end
 
 set(handles.figure1,'pointer','watch')
@@ -123,8 +123,8 @@ if (handles.no_file)        % Start empty but below we'll find the true data reg
     XMin = 1e50;            XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
     geog = 1;               % Not important. It will be confirmed later
     if (nargin == 1)        % We know it's geog (Global Isochrons)
-        xx = [-180 180];    yy = [-90 90];
-        region = [xx yy];
+		xx = [-180 180];    yy = [-90 90];
+		region = [xx yy];
     else                    % We need to compute the file extents.
 		for (k=1:length(names))
             fname = names{k};
@@ -132,32 +132,48 @@ if (handles.no_file)        % Start empty but below we'll find the true data reg
             if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well 
             [numeric_data,multi_segs_str] = text_read(fname,NaN,NaN,'>');
             for i=1:length(numeric_data)
-                tmpx = numeric_data{i}(:,1);   tmpy = numeric_data{i}(:,2);
-                XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
-                YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
+				tmpx = numeric_data{i}(:,1);	tmpy = numeric_data{i}(:,2);
+				XMin = min(XMin,min(tmpx));		XMax = max(XMax,max(tmpx));
+				YMin = min(YMin,min(tmpy));		YMax = max(YMax,max(tmpy));
             end
 		end
         xx = [XMin XMax];           yy = [YMin YMax];
         region = [xx yy];           % 1 stands for geog but that will be confirmed later
     end
-    mirone('FileNewBgFrame_CB',[],handles, [region geog])   % Create a background
-else                        % Reading over an established region
-    XYlim = getappdata(handles.axes1,'ThisImageLims');
-    xx = XYlim(1:2);            yy = XYlim(3:4);
-    if (handles.is_projected && (nargin == 1 || handles.defCoordsIn > 0) )
-        do_project = true;
-    end
+	mirone('FileNewBgFrame_CB', handles, [region geog])   % Create a background
+else							% Reading over an established region
+	XYlim = getappdata(handles.axes1,'ThisImageLims');
+	xx = XYlim(1:2);			yy = XYlim(3:4);
+	if (handles.is_projected && (nargin == 1 || handles.defCoordsIn > 0) )
+		do_project = true;
+	end
 end
 
-for (k=1:length(names))
+for (k=1:numel(names))
     fname = names{k};
     j = strfind(fname,filesep);
-    if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well 
+    if (isempty(j)),    fname = [PathName fname];   end			% It was just the filename. Need to add path as well 
     [numeric_data,multi_segs_str] = text_read(fname,NaN,NaN,'>');
 	n_isoc = 0;     n_segments = length(numeric_data);
-	h_isoc = ones(n_segments,1)*NaN;                        % This is the maximum we can have
+	h_isoc = ones(n_segments,1)*NaN;							% This is the maximum we can have
 	n_clear = false(n_segments,1);
-	for i=1:n_segments
+	
+	% Test if conversion into a single, NaN separeted, line its wanted 
+	if (strncmp(multi_segs_str{1}, '>U_N_I_K', 8))
+		for (i = 1:n_segments-1)
+			numeric_data{i} = [numeric_data{i}; nan nan];
+		end
+		numeric_data{1} = cat(1,numeric_data{:});
+		% Rip the U_N_I_K identifier
+		if (numel(multi_segs_str{1}) > 8)			% We may have line type specifications
+			multi_segs_str{1} = ['> ' multi_segs_str{1}(9:end)];
+		else
+			multi_segs_str{1} = '> ';
+		end
+		n_segments = 1;				% Pretend we have only one segment
+	end
+	
+	for (i = 1:n_segments)
         if (do_project)         % We need to project
             numeric_data{i} = geog2projected_pts(handles,numeric_data{i});
         end
@@ -170,14 +186,14 @@ for (k=1:length(names))
             tmpx = numeric_data{i}(:,1);       tmpy = numeric_data{i}(:,2);
             is_closed = true;
         end
-        if (isempty(tmpx)),     n_clear(i) = 1;     continue;   end     % Store indexes for clearing vanished segments info
+        if (isempty(tmpx)),     n_clear(i) = 1;     continue,	end     % Store indexes for clearing vanished segments info
 
         if (handles.no_file)        % We need to compute the data extent in order to set the correct axes limits
             XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
             YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
         end
         
-        [thick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(2:end)); % First time we can try to rip the '>' char
+        [thick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(min(2,numel(multi_segs_str{i})):end)); % First time, we can chop the '>' char
         if (isempty(thick)),    thick = handles.DefLineThick;   end     % IF not provided, use default
         if (isempty(cor)),      cor = handles.DefLineColor;     end     %           "
         
@@ -187,11 +203,11 @@ for (k=1:length(names))
                 'Color',cor,'Tag',tag,'Userdata',n_isoc);
             setappdata(h_isoc(i),'LineInfo',multi_segs_str{i})  % To work with the sessions and will likely replace old mechansim
         else
-            [Fcor str2] = parseG(multi_segs_str{i});
-            if (isempty(Fcor)),      Fcor = 'none';   end
-            hPat = patch('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',thick,'EdgeColor',cor,'FaceColor',Fcor);
-            draw_funs(hPat,'line_uicontext')
-            n_clear(i) = 1;     % Must delete this header info because it only applyies to lines, not patches
+			[Fcor str2] = parseG(multi_segs_str{i});
+			if (isempty(Fcor)),      Fcor = 'none';   end
+			hPat = patch('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',thick,'EdgeColor',cor,'FaceColor',Fcor);
+			draw_funs(hPat,'line_uicontext')
+			n_clear(i) = 1;     % Must delete this header info because it only applyies to lines, not patches
         end
 	end
 	multi_segs_str(n_clear) = [];       % Clear the unused info
@@ -202,11 +218,12 @@ end
 set(handles.figure1,'pointer','arrow')
 
 if (handles.no_file)        % We have a kind of inf Lims. Adjust for current values
-    region = [XMin XMax YMin YMax];
-    set(handles.axes1,'XLim',[XMin XMax],'YLim',[YMin YMax])
-    setappdata(handles.axes1,'ThisImageLims',region)
-    handles.geog = aux_funs('guessGeog',region);
-    guidata(handles.figure1,handles)
+	region = [XMin XMax YMin YMax];
+	set(handles.axes1,'XLim',[XMin XMax],'YLim',[YMin YMax])
+	setappdata(handles.axes1,'ThisImageLims',region)
+	handles = guidata(handles.figure1);			% Tricky, but we need the new version, which was changed in show_image
+	handles.geog = aux_funs('guessGeog',region);
+	guidata(handles.figure1,handles)
 end
 
 % --------------------------------------------------------------------
@@ -786,7 +803,7 @@ if (handles.no_file)        % Start empty but below we'll find the true data reg
 	end
     xx = [XMin XMax];           yy = [YMin YMax];
     region = [xx yy];           % 1 stands for geog but that will be confirmed later
-    mirone('FileNewBgFrame_CB',[],handles, [region geog])   % Create a background
+    mirone('FileNewBgFrame_CB', handles, [region geog])   % Create a background
 else                        % Reading over an established region
     XYlim = getappdata(handles.axes1,'ThisImageLims');
     xx = XYlim(1:2);            yy = XYlim(3:4);
@@ -857,6 +874,7 @@ if (handles.no_file)        % We have a kind of inf Lims. Adjust for current val
     region = [XMin XMax YMin YMax];
     set(handles.figure1,'XLim',[XMin XMax],'YLim',[YMin YMax])
     setappdata(handles.axes1,'ThisImageLims',region)
+	handles = guidata(handles.figure1);			% Tricky, but we need the new version, which was changed in show_image
     handles.geog = aux_funs('guessGeog',region);
     guidata(handles.figure1,handles)
 end
