@@ -31,178 +31,143 @@ if (nargin > 3),    requestedMultiSeg = varargin{4};
 else                requestedMultiSeg = NaN;     end
 
 if ~ischar(filename)                 % get filename
-    errordlg('Filename must be a string.','Error');
-    numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
-    return
+	errordlg('Filename must be a string.','Error');
+	numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
+	return
 end
 
 if isempty(filename)                % do some validation
-    errordlg('Filename must not be empty.','Error');
-    numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
-    return
+	errordlg('Filename must not be empty.','Error');
+	numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
+	return
 end
 
-if ~isequal(exist(filename), 2)     % make sure file exists
-    errordlg('File not found.','Error');
-    numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
-    return
+if ~isequal(exist(filename,'file'), 2)     % make sure file exists
+	errordlg('File not found.','Error');
+	numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
+	return
 end
 
 % ----------------------------- open the file
 fid = fopen(filename);
 if fid == (-1)
-    errordlg(['Could not open file ', filename ,'.'],'Error');
-    numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
-    return
+	errordlg(['Could not open file ', filename ,'.'],'Error');
+	numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
+	return
 end
 string = char(fread(fid)');
 %string=fread(fid,'*char').';
 fclose(fid);
 
 if isempty(string)                  % Check that file is not empty
-    errordlg('Empty file.','Error');
-    numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
-    return
+	errordlg('Empty file.','Error');
+	numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
+	return
 end
 
 % get the delimiter for the file
 if isnan(requestedDelimiter)
-    str = string(1:min(length(string),4096));       % Limit the variable size used to guess the delimiter
-    delimiter = guessdelim(str);    clear str;
+	str = string(1:min(length(string),4096));       % Limit the variable size used to guess the delimiter
+	delimiter = guessdelim(str);    clear str;
 else
-    delimiter = sprintf(requestedDelimiter);
+	delimiter = sprintf(requestedDelimiter);
 end
 
 % tenta o caso dos multi-segments
 if ~isnan(requestedMultiSeg)
-    p = find(string == requestedMultiSeg);
-    p(end+1) = length(string)+1;    vv = [];
+	p = find(string == requestedMultiSeg);
+	p(end+1) = length(string)+1;    vv = [];
 	for k = 1:length(p)-1;
 		T = string(p(k):p(k+1)-1);
-		h = min(find(T==10)); % 10 = end of line
+		h = min(find(T==10));		% 10 = end of line
         vv = [vv p(k):p(k)+h];
 	end
-    string(vv) = [];
-    clear p vv T h;
+	string(vv) = [];
+	clear p vv T h;
 end
 
 try
-    [out.data, out.textdata, headerlines] = stringparse(string, delimiter, hlines);
-    out = LocalRowColShuffle(out);      clear string;
+	[out.data, out.textdata, headerlines] = stringparse(string, delimiter, hlines);
+	out = LocalRowColShuffle(out);      clear string;
 catch
-    errordlg('Unknown error while parsing the file.','Error');
-    numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
-    return
+	errordlg('Unknown error while parsing the file.','Error');
+	numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
+	return
 end
 
 if (~isnan(requestedHeaderLines))   % Force to beleave in the requested number of HeaderLines
-    out.headers = out.textdata(1:headerlines);          % Return also the headers
-    out.textdata = out.textdata(requestedHeaderLines+1:end,:);
-    headerlines = 0;        % Jump the guessed number of headers
+	out.headers = out.textdata(1:headerlines);          % Return also the headers
+	out.textdata = out.textdata(requestedHeaderLines+1:end,:);
+	headerlines = 0;        % Jump the guessed number of headers
 end
 
 % If a column in file is of string type assume that it's a date string and convert it to dec years
 % But first rip out the eventual headerlines from the array.
 if (isempty(out.data) && ~isempty(out.textdata))      % We have only text
-    % How shell we find the number of eventual headerlines? This is a tough case.
-    % Basicly we'll count the number of delimeters and assume that headers and line data
-    % have a different number of delimeters. This creteria may faill in many cases e.g.
-    % more headers than line data; headers with the same number of delims as data, etc ...
-    rows = size(out.textdata,1);
-    n_test = min(rows,50);          % Do not test more than 50 lines
-    numDelims = zeros(1,n_test);
-    for (i=1:n_test)
-        numDelims(i) = length(find(out.textdata{i} == delimiter));
-    end    
-    med = median(numDelims);
-    tmp = find(numDelims ~= med);
-    headerlines = length(tmp);
+	% How shell we find the number of eventual headerlines? This is a tough case.
+	% Basicly we'll count the number of delimeters and assume that headers and line data
+	% have a different number of delimeters. This creteria may faill in many cases e.g.
+	% more headers than line data; headers with the same number of delims as data, etc ...
+	rows = size(out.textdata,1);
+	n_test = min(rows,50);          % Do not test more than 50 lines
+	numDelims = zeros(1,n_test);
+	for (i=1:n_test)
+		numDelims(i) = length(find(out.textdata{i} == delimiter));
+	end    
+	med = median(numDelims);
+	tmp = find(numDelims ~= med);
+	headerlines = length(tmp);
 end
 
 if (~isnan(requestedHeaderLines) && headerlines > 0)     % Very likely the # of requestedHeaderLines was wrong
-    warndlg('I have strong reasons to beleave that the number of header lines provided was false. Expect errors.','Wrning')
+	warndlg('I have strong reasons to beleave that the number of header lines provided was false. Expect errors.','Wrning')
 end
 
 if (headerlines)
-    out.headers = out.textdata(1:headerlines);          % Return also the headers
-    out.textdata = out.textdata(headerlines+1:end,:);
+	out.headers = out.textdata(1:headerlines);          % Return also the headers
+	out.textdata = out.textdata(headerlines+1:end,:);
 else
-    out.headers = [];
+	out.headers = [];
 end
 
 [numeric_data,date,str_col] = col_str2dec(out,delimiter);
 
 if (nargout == 4 && isempty(str_col))
-    str_col = out.headers;
+	str_col = out.headers;
 end
 
 if ~isnan(requestedMultiSeg)
-    fid = fopen(filename);
-    c = char(fread(fid)');
-    s = strread(c,'%s','delimiter','\n');     clear c;
-    fclose(fid);
-    ix = strmatch(requestedMultiSeg,s);
-    % ... descriptors
-    date = s(ix);
-    ix = [ix;size(s,1)+1];    ib = ix(1:end-1)+1;    ie = ix(2:end)-1;
-    n_col = size(numeric_data,2);   % Count number of columns in data
-    if (n_col > 10)
-        errordlg('text_read is not programmed to read multi-segment files with more than 10 columns.','Sorry')
-        return;
-    end
-    numeric_data = [];              % Reuse this var
-    format = repmat('%f ',1,n_col); % Create format string
-    format(end) = [];               % Remove the trailing blank
-    % Because strread neads as many nargout as n_col, I do the following
-	for i=1:length(ib)
-        sv = [char(s(ib(i):ie(i))) repmat('x',ie(i)-ib(i)+1,1)];
-        if (n_col == 1)
-            x1 = strread(sv.',format,'delimiter',' x');
-            numeric_data{i,1} = x1;
-        elseif (n_col == 2)
-            [x1,x2] = strread(sv.',format,'delimiter','x');
-            numeric_data{i,1} = [x1,x2];
-        elseif (n_col == 3)
-            [x1,x2,x3] = strread(sv.',format,'delimiter','x');
-            numeric_data{i,1} = [x1,x2,x3];
-        elseif (n_col == 4)
-            [x1,x2,x3,x4] = strread(sv.',format,'delimiter','x');
-            numeric_data{i,1} = [x1,x2,x3,x4];
-        elseif (n_col == 5)
-            [x1,x2,x3,x4,x5] = strread(sv.',format,'delimiter','x');
-            numeric_data{i,1} = [x1,x2,x3,x4,x5];
-        elseif (n_col == 6)
-            [x1,x2,x3,x4,x5,x6] = strread(sv.',format,'delimiter','x');
-            numeric_data{i,1} = [x1,x2,x3,x4,x5,x6];
-        elseif (n_col == 7)
-            [x1,x2,x3,x4,x5,x6,x7] = strread(sv.',format,'delimiter','x');
-            numeric_data{i,1} = [x1,x2,x3,x4,x5,x6,x7];
-        elseif (n_col == 8)
-            [x1,x2,x3,x4,x5,x6,x7,x8] = strread(sv.',format,'delimiter','x');
-            numeric_data{i,1} = [x1,x2,x3,x4,x5,x6,x7,x8];
-        elseif (n_col == 9)
-            [x1,x2,x3,x4,x5,x6,x7,x8,x9] = strread(sv.',format,'delimiter','x');
-            numeric_data{i,1} = [x1,x2,x3,x4,x5,x6,x7,x8,x9];
-        elseif (n_col == 10)
-            [x1,x2,x3,x4,x5,x6,x7,x8,x9,x10] = strread(sv.',format,'delimiter','x');
-            numeric_data{i,1} = [x1,x2,x3,x4,x5,x6,x7,x8,x9,x10];
-        end
+	fid = fopen(filename);
+	c = fread(fid,inf,'*char');
+	s = strread(c,'%s','delimiter','\n');     clear c;
+	fclose(fid);
+	ix = strmatch(requestedMultiSeg,s);
+	% ... descriptors
+	date = s(ix);
+	ix = [ix;size(s,1)+1];    ib = ix(1:end-1)+1;    ie = ix(2:end)-1;
+	ind = ((ib - ie) > 0);					% Find consecutive lines that start by the multi-seg character
+	ib(ind) = [];		ie(ind) = [];		% And remove the n-1 first (if they exist, certainly) 
+	% Because strread neads as many nargout as n_col, I do the following
+	numeric_data = cell(numel(ib),1);		% Reuse this var
+	for i=1:numel(ib)
+        sv = [char(s(ib(i):ie(i))) repmat(char(10),ie(i)-ib(i)+1,1)];
+        numeric_data{i} = strread(sv.');
 	end
 end
 
 %-------------------------------------------------------------------------------------------------------
 function out = LocalRowColShuffle(in)
-out = in;
-if isempty(in) || ~isfield(in, 'data') || ~isfield(in,'textdata') || isempty(in.data) || isempty(in.textdata)
-    return;
-end
-[dm, dn] = size(in.data);
-[tm, tn] = size(in.textdata);
-if (tn == 1 && tm == dm)     % use as row headers
-    out.rowheaders = in.textdata(:,end);
-elseif (tn == dn)           % use last row as col headers
-    out.colheaders = in.textdata(end,:);
-end
+	out = in;
+	if isempty(in) || ~isfield(in, 'data') || ~isfield(in,'textdata') || isempty(in.data) || isempty(in.textdata)
+		return
+	end
+	[dm, dn] = size(in.data);
+	[tm, tn] = size(in.textdata);
+	if (tn == 1 && tm == dm)     % use as row headers
+		out.rowheaders = in.textdata(:,end);
+	elseif (tn == dn)           % use last row as col headers
+		out.colheaders = in.textdata(end,:);
+	end
 
 %-------------------------------------------------------------------------------------------------------
 function delim = guessdelim(str)
@@ -219,31 +184,31 @@ if isempty(str),    delim = '';    return;  end     % return if str is empty
 % so that these header lines are not taken into account in delimiter guessing
 ind = strfind(str,'#');
 if (~isempty(ind))
-    nHead = numel(ind);
-    indN = strfind(str,sprintf('\n'));
-    inds = sort([indN ind]);
-    newind = zeros(1,nHead);
-    for (k=1:nHead),        newind(k) = find(inds == ind(k));    end
-    res = [];
-    for (k=1:nHead),        res = [res inds(newind(k)):inds(newind(k)+1)];    end
-    str(res)=[];
+	nHead = numel(ind);
+	indN = strfind(str,sprintf('\n'));
+	inds = sort([indN ind]);
+	newind = zeros(1,nHead);
+	for (k=1:nHead),        newind(k) = find(inds == ind(k));    end
+	res = [];
+	for (k=1:nHead),        res = [res inds(newind(k)):inds(newind(k)+1)];    end
+	str(res)=[];
 end
 
 % Now do the same with the '>'
 ind = strfind(str,'>');
 if (~isempty(ind))
-    % Note that this will be nearly useless if header lines have more than one '>'
-    nHead = numel(ind);     % number of probable header lines that contain a '>' char
-    indN = strfind(str,sprintf('\n'));      % get position of new lines chars
-    inds = sort([indN ind]);
-    newind = zeros(1,nHead);
-    for (k=1:nHead),        newind(k) = find(inds == ind(k));    end
-    res = [];
-    for (k=1:nHead),        res = [res inds(newind(k)):inds(newind(k)+1)];    end
-    str(res)=[];        % Removes chunks between a '>' and a newline
+	% Note that this will be nearly useless if header lines have more than one '>'
+	nHead = numel(ind);     % number of probable header lines that contain a '>' char
+	indN = strfind(str,sprintf('\n'));      % get position of new lines chars
+	inds = sort([indN ind]);
+	newind = zeros(1,nHead);
+	for (k=1:nHead),        newind(k) = find(inds == ind(k));    end
+	res = [];
+	for (k=1:nHead),        res = [res inds(newind(k)):inds(newind(k)+1)];    end
+	str(res)=[];        % Removes chunks between a '>' and a newline
 end
 
-numLines = length(strfind(str,sprintf('\n')));      % count remaining num of lines
+numLines = numel(strfind(str,sprintf('\n')));      % count remaining num of lines
 
 % set of column delimiters to try - ordered by quality as delim
 delims = {sprintf('\t'), ',', ';', ':', '|', ' '};
@@ -251,7 +216,7 @@ delims = {sprintf('\t'), ',', ';', ':', '|', ' '};
 % remove any delims which don't appear at all
 % need to rethink based on headers and footers which are plain text
 goodDelims = {};
-for i = 1:length(delims)
+for i = 1:numel(delims)
     %numDelims(i) = length(find(str == sprintf(delims{i})));
     numDelims(i) = numel(strfind(str,delims{i}));
     if (numDelims(i) ~= 0)        % this could be a delim
@@ -263,7 +228,7 @@ end
 if isempty(goodDelims),    delim = '';    return;   end
 
 % if the num delims is greater or equal to num lines, this will be the default (so return)
-for i = 1:length(delims)
+for i = 1:numel(delims)
     delim = delims{i};
     if (numDelims(i) > numLines)
         return;
@@ -543,7 +508,7 @@ end
 if (isvalid)    % determine num columns
     delimiterIndexes = strfind(thisLine, delimiter);
     if (all(delimiter == ' ') && length(delimiterIndexes) > 1)
-        delimiterIndexes = delimiterIndexes([logical(1) diff(delimiterIndexes) ~= 1]);
+        delimiterIndexes = delimiterIndexes([true diff(delimiterIndexes) ~= 1]);
     end
     
     % format string should have 1 more specifier than there are delimiters
