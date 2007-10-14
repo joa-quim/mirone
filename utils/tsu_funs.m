@@ -398,7 +398,7 @@ function Tsun2Compute(handles, opt)
 
 		str1 = {'*.par', 'params file (*.par)';'*.*', 'All Files (*.*)'};
 		[FileName,PathName] = put_or_get_file(handles,str1,'Select tsun2 params file','put');
-		if isequal(FileName,0);     return;     end
+		if isequal(FileName,0),		return,		end
 		fid = fopen([PathName FileName],'wt');
 		fprintf(fid,'%s\n%s\n','# Mirone generated tsun2 parameter file','#');
 
@@ -433,16 +433,28 @@ function Tsun2Compute(handles, opt)
 	if isempty(out),	return,		end
 	pause(0.05);        % Give time to swan_options window to die
 
-	extra_args1 = ' ';   extra_args2 = ' ';   extra_args3 = ' ';
-	extra_args4 = ' ';   extra_args5 = ' ';   extra_args6 = ' ';   extra_args7 = ' ';
+	opt_P = ' ';		extra_args2 = ' ';		opt_N = ' ';	opt_G = ' ';
+	opt_I = ' ';		opt_J = ' ';			opt_F = ' ';
 	if (isfield(out,'maregraph_xy') && isfield(out,'params_file_name'))
-        extra_args1 = ['-P' out.params_file_name];
+        opt_P = ['-P' out.params_file_name];
 	end
-	if (isfield(out,'opt_M')),  extra_args2 = out.opt_M;   end
-	if (isfield(out,'opt_N')),  extra_args3 = out.opt_N;   end
-	if (isfield(out,'opt_m')),  extra_args4 = out.opt_m;   end
-	if (isfield(out,'opt_G')),  extra_args5 = out.opt_G;   end
-	if (isfield(out,'opt_I')),  extra_args6 = out.opt_I;   end
+	if (isfield(out,'opt_M')),		extra_args2 = '-M';
+	elseif (isfield(out,'opt_D')),	extra_args2 = '-D';
+	end
+	if (isfield(out,'opt_N')),  opt_N = out.opt_N;   end
+	if (isfield(out,'opt_G')),  opt_G = out.opt_G;   end
+	if (isfield(out,'opt_I')),  opt_I = out.opt_I;   end
+	if (isfield(out,'opt_F')),  opt_F = out.opt_F;   end
+	if (isfield(out,'opt_O'))			% New (10/2007) output maregraphs option
+		opt_O_xy = out.opt_O.xy;		% The maregraphs locations
+		fname = out.opt_O.name;			% The maregraphs file name which will be used to compose a new name
+		[pato,name] = fileparts(fname);
+		fname = [pato filesep name '_maregHeights.dat'];	% The new name
+		opt_O_name = ['-O' fname];
+	else
+		opt_O_xy = ' ';
+		opt_O_name = ' ';
+	end
 
 	[X,Y,Z_bat,head_bat] = load_grd(handles);   Z_bat = double(Z_bat);
 	if (isempty(Z_bat) || isempty(head_bat))
@@ -460,7 +472,7 @@ function Tsun2Compute(handles, opt)
 		dt1 = diff(out.maregraph_xy(:,1));    dt2 = diff(dt1);      t0 = out.maregraph_xy(1,1);
 		if any(abs(dt2) > 100*eps)      % First column doesn't have the time (eps due to very small dts rounding errors)
 			warndlg('The maregraph file does not have a time increment. I will assume it is 1 second.','SEVERE WARNING')
-			extra_args6 = sprintf('-I%f/1',head_bat(8));
+			opt_I = sprintf('-I%f/1',head_bat(8));
 		else                    % First column of maregs file has the time. We don't want it
 			dt = dt1(1);        % This is the time increment to be used as option to tsun2
 			out.maregraph_xy(:,1) = [];
@@ -471,20 +483,21 @@ function Tsun2Compute(handles, opt)
 				msg{3} = ['To solve this your time increment in the maregraph file must be at least < ' num2str(cfl*.9)];
 				warndlg(msg,'SEVERE WARNING')
 			end
-			extra_args6 = sprintf('-I%f/%f',head_bat(8),dt);
-			if (t0 > 1),    extra_args7 = ['-J' num2str(t0)];   end     % If we start computing at a latter time
+			opt_I = sprintf('-I%f/%f',head_bat(8),dt);
+			if (t0 > 1),    opt_J = ['-J' num2str(t0)];   end     % If we start computing at a latter time
 		end
 		if (isfield(out,'opt_m'))       % Movie option
-			tmovie = feval(tsun2_hand,Z_bat, head_bat, out.maregraph_xy, extra_args1, ...
-				extra_args2,extra_args3,extra_args5,extra_args6,extra_args7,'-f');
+			tmovie = feval(tsun2_hand,Z_bat, head_bat, out.maregraph_xy, opt_O_xy, opt_P, ...
+				extra_args2, opt_N, opt_G, opt_I, opt_J, opt_F, opt_O_name, '-f');
 		else
-			feval(tsun2_hand,Z_bat, head_bat, out.maregraph_xy, extra_args1,extra_args2,extra_args3,extra_args5,extra_args6,extra_args7);
+			feval(tsun2_hand,Z_bat, head_bat, out.maregraph_xy, opt_O_xy, opt_P, ...
+				extra_args2, opt_N, opt_G, opt_I, opt_J, opt_F, opt_O_name);
 		end    
-	else                                % Compute grids or movie
+	else                                % Compute grids or movie. Even if asked ignores opt_O 
         if (isfield(out,'opt_m'))       % Movie option
-			tmovie = feval(tsun2_hand,Z_bat, head_bat, extra_args2,extra_args3,extra_args5,extra_args6,'-f');
+			tmovie = feval(tsun2_hand,Z_bat, head_bat, extra_args2,opt_N,opt_G,opt_I,opt_F,'-f');
         else
-			feval(tsun2_hand,Z_bat, head_bat, extra_args2,extra_args3,extra_args5,extra_args6);
+			feval(tsun2_hand,Z_bat, head_bat, extra_args2,opt_N,opt_G,opt_I,opt_F);
         end
 	end
 	pause(0.01);        % Give time to waitbar window to die
