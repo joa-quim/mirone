@@ -292,6 +292,7 @@ mex/tsun2_com_wbar.c -text
 mex/tsun2_sem_wbar.c -text
 mex/typeconv.h -text
 mex/wave_travel_time.c -text
+/mexnc.dll -text
 /mirone.m -text
 /mirone_uis.m -text
 /projectionMenu.m -text
