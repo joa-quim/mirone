@@ -28,6 +28,14 @@
 /* array of dimesions dim(sx) by dim(sy), starting with r(1,1) at x=sx(1), */
 /* y=sy(1). */
 
+/*
+ *	Translated to C & mexified (+ improvments) By
+ *	Joaquim Luis - 2005
+ *
+ * Revision 17/10/2007 JL	Condensed terms on chin() routine
+ *
+ */
+
 #include "mex.h"
 
 #define	FALSE	0
@@ -235,24 +243,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			mexErrMsgTxt("RNGCHN: Partials available for only 1 fault at a time!\n");
 	}
 
-	patchx = mxCalloc (nseg+1, sizeof (double));
-	patchy = mxCalloc (nseg+1, sizeof (double));
-	faultstrike = mxCalloc (nseg+1, sizeof (double));
 	faultlambda = mxCalloc (nseg+1, sizeof (double));
-	faultd = mxCalloc (nseg+1, sizeof (double));
-	faultdelta = mxCalloc (nseg+1, sizeof (double));
-	faultu1 = mxCalloc (nseg+1, sizeof (double));
-	faultu2 = mxCalloc (nseg+1, sizeof (double));
-	faultu3 = mxCalloc (nseg+1, sizeof (double));
-	faultl = mxCalloc (nseg+1, sizeof (double));
-	faultw = mxCalloc (nseg+1, sizeof (double));
 	faultmu = mxCalloc (nseg+1, sizeof (double));
 	sx = mxCalloc (npts, sizeof (double));
 	sy = mxCalloc (npts, sizeof (double));
 	tx = mxCalloc (npts, sizeof (double));
 	ty = mxCalloc (npts, sizeof (double));
 	ranges = mxCalloc (npts, sizeof (double));
-	plook = mxCalloc (3, sizeof (double));
 
 	/* ASSIGN POINTERS TO THE VARIOUS PARAMETERS */
 	/* order is x,y,strike,depth,dip,u1,u2,u3,l,w,sx,sy */
@@ -310,10 +307,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		memcpy(ptrprt, partials, n*8);
 	}
 	if (nlhs == 2) mxFree(partials);
-	/*mxFree(patchx);		mxFree(patchy);		mxFree(faultstrike);	mxFree(faultlambda);
-	mxFree(faultd);		mxFree(faultdelta);	mxFree(faultu1);	mxFree(faultu2);
-	mxFree(faultu3);	mxFree(faultl);		mxFree(faultw);		mxFree(faultmu);
-	mxFree(sx);		mxFree(sy);		mxFree(tx);		mxFree(ty);	mxFree(ranges);*/
+	mxFree(faultlambda);	mxFree(faultmu);	mxFree(ranges);
+	mxFree(sx);		mxFree(sy);		mxFree(tx);		mxFree(ty);
 }
 /* cccc -------------- END OF MEX GATEWAY ---------------------- */
 
@@ -352,7 +347,8 @@ void rngchn_comp(double *ranges, double *sx, double *sy, double *patchx, double 
 			yp = sy[j] - patchy[i];
 			faultx =  xp * ca1[i] + yp * sa1[i];
 			faulty = -xp * sa1[i] + yp * ca1[i];
-			okada_patch(&faultu1[i], &faultu2[i], &faultu3[i], &faultx, &faulty, &faultl[i], &faultw[i], &faultd[i], &faultdelta[i], &faultlambda[i], &faultmu[i], uf);
+			okada_patch(&faultu1[i], &faultu2[i], &faultu3[i], &faultx, &faulty, &faultl[i], 
+				    &faultw[i], &faultd[i], &faultdelta[i], &faultlambda[i], &faultmu[i], uf);
 			/*  rotate from fault to map */
 			um[0] =  uf[0] * ca2[i] + uf[1] * sa2[i];
 			um[1] = -uf[0] * sa2[i] + uf[1] * ca2[i];
@@ -378,15 +374,15 @@ void rngchn_comp(double *ranges, double *sx, double *sy, double *patchx, double 
 }
 
 int okada_patch(double *fltu1, double *fltu2, double *fltu3, double *fltx, double *flty, double * fltl, double *fltw, double *fltd, double *fltdelta, double *fltlambda, double *fltmu, double *uf) {
-	/*     calculate slip on a finite rectangular patch using Okada's expressions. */
-	/*     input parameters in flt geometry */
-	/*     see Figure 1 of paper for definition of these variables */
-	/*     strike-slip, dip-slip, and tensile slip components on flt */
-	/*     these are input. */
-	/*     strike-slip, dip-slip, and tensile slip on surface, in flt geometry */
-	/*     these are output */
-	/*     local variables */
-	/*     dip sine and cosine, useful term */
+	/*     calculate slip on a finite rectangular patch using Okada's expressions. 
+	/*     input parameters in flt geometry
+	/*     see Figure 1 of paper for definition of these variables
+	/*     strike-slip, dip-slip, and tensile slip components on flt
+	/*     these are input.
+	/*     strike-slip, dip-slip, and tensile slip on surface, in flt geometry
+	/*     these are output
+	/*     local variables
+	/*     dip sine and cosine, useful term
 	/*     Okada variables */
 
 	int i;
@@ -397,7 +393,7 @@ int okada_patch(double *fltu1, double *fltu2, double *fltu3, double *fltx, doubl
 		cd = cos(*fltdelta * D2R);
 	else
 		cd = 0.;
-	/*     if (abs(cd) .lt. small) cd = 0.0d0 */
+
 	sd = sin(*fltdelta * D2R);
 	fmat = *fltmu / (*fltlambda + *fltmu);
 	p = *flty * cd + *fltd * sd;
@@ -418,17 +414,18 @@ int okada_patch(double *fltu1, double *fltu2, double *fltu3, double *fltx, doubl
 	eta = p - *fltw;
 	chin(fltx, flty, &sd, &cd, &fmat, &xi, &eta, fltd, fltu1, fltu2, fltu3, up);
 	for (i = 0; i < 9; i++) uf[i] += up[i];
-	for (i = 0; i < 9; i++) {
+	for (i = 0; i < 9; i++)
 		if (fabs(uf[i]) < small) uf[i] = 0.;
-	}
+
 	return 0;
 }
 
 int chin(double *fltx, double *flty, double *sd, double *cd, double *fmat, double *xi, double *eta, 
 	double *fltd, double *fltu1, double *fltu2, double *fltu3, double *up) {
 
-	double p, q, i1, i2, i3, i4, i5, t1, t2, t3, lg, at, dt;
-	double rr, yt, xx, xi2, xi3, rr3, jnk, rpe, rdt, tmp, jnk2, rdt2, frpe, fmat2, small;
+	double	p, q, i1, i2, i3, i4, i5, t1, t2, t3, lg, at, dt, rrxi, tmp2, sd2, sd_cd;
+	double	rr, yt, xx, xi2, xi3, rr3, jnk, rpe, rdt, tmp, jnk2, rdt2, frpe, fmat2, small;
+	double	q_rpe, q_rrxi;
 
 	/*     perform Chinnery double bar substition */
 	/* Parameter adjustments */
@@ -456,9 +453,12 @@ int chin(double *fltx, double *flty, double *sd, double *cd, double *fmat, doubl
 	rdt = rr + dt;
 	rdt2 = rdt * rdt;
 	xi2 = *xi * *xi;
-	xi3 = *xi * *xi * *xi;
+	xi3 = xi2 * *xi;
 	rr3 = rr * rr * rr;
 	rpe = rr * (rr + *eta);
+	rrxi = rr * (rr + *xi);
+	sd2 = *sd * *sd;
+	sd_cd = *sd * *cd;
 	if (fabs(rr + *eta) < small)
 		frpe = 0.;
 	else
@@ -494,26 +494,29 @@ int chin(double *fltx, double *flty, double *sd, double *cd, double *fmat, doubl
 		i2 = *fmat * (-lg) - i3;
 		i1 = *fmat * (-1. / *cd * (*xi / rdt)) - *sd * i5 / *cd;
 	}
+	q_rrxi = q / rrxi;
 	if (fabs(frpe) < small) {
 		up[1] = t1 * (at + i1 * *sd);
 		up[2] = t1 * (i2 * *sd);
 		up[3] = t1 * (i4 * *sd);
-		up[4] = t2 * (q / rr - i3 * *sd * *cd);
-		up[5] = t2 * (yt * q / (rr * (rr + *xi)) + *cd * at - i1 * *sd * *cd);
-		up[6] = t2 * (dt * q / (rr * (rr + *xi)) + *sd * at - i5 * *sd * *cd);
-		up[7] = t3 * (-i3 * *sd * *sd);
-		up[8] = t3 * (-dt * q / (rr * (rr + *xi)) - *sd * (-at) - i1 * *sd * *sd);
-		up[9] = t3 * (yt * q / (rr * (rr + *xi)) + *cd * (-at) - i5 * *sd * *sd);
+		up[4] = t2 * (q / rr - i3 * sd_cd);
+		up[5] = t2 * (yt * q_rrxi + *cd * at - i1 * sd_cd);
+		up[6] = t2 * (dt * q_rrxi + *sd * at - i5 * sd_cd);
+		up[7] = t3 * (-i3 * sd2);
+		up[8] = t3 * (-dt * q_rrxi - *sd * (-at) - i1 * sd2);
+		up[9] = t3 * ( yt * q_rrxi + *cd * (-at) - i5 * sd2);
 	} else {
-		up[1] = t1 * (*xi * q / (rr * (rr + *eta)) + at + i1 * *sd);
-		up[2] = t1 * (yt * q / (rr * (rr + *eta)) + q * *cd / (rr + *eta) + i2 * *sd);
-		up[3] = t1 * (dt * q / (rr * (rr + *eta)) + q * *sd / (rr + *eta) + i4 * *sd);
-		up[4] = t2 * (q / rr - i3 * *sd * *cd);
-		up[5] = t2 * (yt * q / (rr * (rr + *xi)) + *cd * at - i1 * *sd * *cd);
-		up[6] = t2 * (dt * q / (rr * (rr + *xi)) + *sd * at - i5 * *sd * *cd);
-		up[7] = t3 * (q * q / (rr * (rr + *eta)) - i3 * *sd * *sd);
-		up[8] = t3 * (-dt * q / (rr * (rr + *xi)) - *sd * (*xi * q / (rr * ( rr + *eta)) - at) - i1 * *sd * *sd);
-		up[9] = t3 * (yt * q / (rr * (rr + *xi)) + *cd * (*xi * q / (rr * (rr + *eta)) - at) - i5 * *sd * *sd);
+		tmp2 = (*xi * q / rpe - at);
+		q_rpe = q / rpe;
+		up[1] = t1 * (*xi * q_rpe + at + i1 * *sd);
+		up[2] = t1 * (yt * q_rpe + q * *cd / (rr + *eta) + i2 * *sd);
+		up[3] = t1 * (dt * q_rpe + q * *sd / (rr + *eta) + i4 * *sd);
+		up[4] = t2 * (q / rr - i3 * sd_cd);
+		up[5] = t2 * (yt * q_rrxi + *cd * at - i1 * sd_cd);
+		up[6] = t2 * (dt * q_rrxi + *sd * at - i5 * sd_cd);
+		up[7] = t3 * ( q * q_rpe - i3 * sd2);
+		up[8] = t3 * (-dt * q_rrxi - *sd * tmp2 - i1 * sd2);
+		up[9] = t3 * ( yt * q_rrxi + *cd * tmp2 - i5 * sd2);
 	}
 	return 0;
 }
