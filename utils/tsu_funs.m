@@ -1,4 +1,5 @@
 function tsu_funs(opt,varargin)
+
 	switch opt
 		case 'SwanCompute'
 			SwanCompute(varargin{:})
@@ -155,6 +156,27 @@ function SwanCompute(handles)
 		end
 	end
 
+	% Check if there is rectangle on the bat image. If yes, output grids will be inside that region only
+	hLine = findobj('Type','line');
+	if (~isempty(hLine) && ~isempty(h_mareg))
+		hLine = setxor(hLine, h_mareg);
+	end
+	got_it = 0;
+	if (~isempty(hLine))
+		for (k = 1:numel(hLine))
+			if ( check_IsRectangle(hLine(k)) )
+				got_it = k;			% Found one. That's do one we gonna use
+				break
+			end
+		end
+	end
+	opt_R = ' ';
+	if (got_it)
+		x = get(hLine(got_it),'XData');   y = get(hLine(got_it),'YData');
+		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g',min(x), max(x), min(y), max(y));
+	end
+	% -----------------------------------------------------------------------------
+	
 	if (bat_and_deform_with_maregs)
         out = swan_options(handles,'bat_and_deform_with_maregs',mareg_pos);
 	elseif (bat_with_maregs)
@@ -179,15 +201,16 @@ function SwanCompute(handles)
         Z_src = out.grid_Z_src;     head_src = out.grid_head_src;
 	end
 
-	extra_args1 = ' ';   extra_args2 = ' ';   extra_args3 = ' ';
-	extra_args4 = ' ';   extra_args5 = ' ';
+	opt_O = ' ';   opt_M = ' ';   opt_N = ' ';   opt_m = [];	opt_G = ' ';   opt_S = ' ';		opt_s = ' ';
 	if (isfield(out,'maregraph_xy') && isfield(out,'maregraph_data_name'))
-        extra_args1 = ['-O' out.maregraph_data_name];
+        opt_O = ['-O' out.maregraph_data_name];
 	end
-	if (isfield(out,'opt_M')),    extra_args2 = out.opt_M;   end
-	if (isfield(out,'opt_N')),    extra_args3 = out.opt_N;   end
-	if (isfield(out,'opt_m')),    extra_args4 = out.opt_m;   end
-	if (isfield(out,'opt_G')),    extra_args5 = out.opt_G;   end
+	if (isfield(out,'opt_M')),    opt_M = out.opt_M;   end
+	if (isfield(out,'opt_N')),    opt_N = out.opt_N;   end
+	if (isfield(out,'opt_m')),    opt_m = out.opt_m;   end
+	if (isfield(out,'opt_G')),    opt_G = out.opt_G;   end
+	if (isfield(out,'opt_S')),    opt_S = out.opt_S;   end
+	if (isfield(out,'opt_s')),    opt_s = out.opt_s;   end
 
 	if (isempty(Z_bat) || isempty(head_bat) || isempty(Z_src) || isempty(head_src))
         errordlg('ERROR: one or more of the bat/source variables are empty where they souldn''t be.','Error');
@@ -199,19 +222,19 @@ function SwanCompute(handles)
 	else                        swan_hand = @swan_sem_wbar;
 	end
 
-	if (isfield(out,'maregraph_xy'))    % Ask for computation of maregraphs
-        if (isfield(out,'opt_m'))       % Movie option
-            tmovie = feval(swan_hand,Z_bat, head_bat, Z_src, head_src, out.params, out.maregraph_xy, extra_args1, ...
-                    extra_args2,extra_args3,extra_args5,'-f');
+	if (isfield(out,'maregraph_xy'))	% Ask for computation of maregraphs
+        if (~isempty(opt_m))			% Movie option
+            tmovie = feval(swan_hand,Z_bat, head_bat, Z_src, head_src, out.params, out.maregraph_xy, opt_O, ...
+                    opt_M, opt_N, opt_G, '-f', opt_R);
         else
-            feval(swan_hand,Z_bat, head_bat, Z_src, head_src, out.params, out.maregraph_xy, extra_args1, ...
-                    extra_args2,extra_args3,extra_args5);
+            feval(swan_hand,Z_bat, head_bat, Z_src, head_src, out.params, out.maregraph_xy, opt_O, ...
+                    opt_M, opt_N, opt_G, opt_S, opt_s, opt_R);
         end    
 	else								% Compute grids or movie
-        if (isfield(out,'opt_m'))		% Movie option
-            tmovie = feval(swan_hand,Z_bat, head_bat, Z_src, head_src, out.params, extra_args2,extra_args3,extra_args5,'-f');
+        if (~isempty(opt_m))			% Movie option
+            tmovie = feval(swan_hand, Z_bat, head_bat, Z_src, head_src, out.params, opt_M, opt_N, opt_G, '-f', opt_S, opt_s, opt_R);
         else
-            feval(swan_hand,Z_bat, head_bat, Z_src, head_src, out.params, extra_args2,extra_args3,extra_args5);
+            feval(swan_hand, Z_bat, head_bat, Z_src, head_src, out.params, opt_M, opt_N, opt_G, opt_S, opt_s, opt_R);
         end
 	end
 	pause(0.01);        % Give time to waitbar window to die
@@ -562,4 +585,15 @@ function do_movie(handles,tmovie,opt)
 	set(handles.figure1,'pointer','watch')
 	movie2avi_j(M,[PathName FileName],'compression','none','fps',5)
 	set(handles.figure1,'pointer','arrow');
+	
+% -----------------------------------------------------------------------------------------
+function res = check_IsRectangle(h)
+% Check if h is a handle to a rectangle.
+x = get(h,'XData');   y = get(h,'YData');
+if ~( (x(1) == x(end)) && (y(1) == y(end)) && length(x) == 5 && ...
+        (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
+    res = false;
+else
+    res = true;
+end
 	
