@@ -41,7 +41,7 @@ function fileinfo = nc_info( ncfile )
 
 fileinfo.Filename = ncfile;
 
-[ncid, status]=mexnc('open', ncfile, nc_nowrite_mode );
+[ncid, status] = mexnc('open', ncfile, nc_nowrite_mode );
 if status ~= 0
     snc_error ( 'NC_INFO:MEXNC:OPEN', mexnc('strerror', status) );
 end
@@ -366,7 +366,7 @@ end
 
 % Check that the start, count, stride parameters have appropriate lengths.
 % Otherwise we get confusing error messages later on.
-check_index_vectors(start,count,stride,nvdims);
+check_index_vectors(start,count,stride,nvdims,ncid,varname);
 
 % What mexnc operation will we use?
 [funcstr_family, funcstr] = determine_funcstr( var_type, nvdims, start, count, stride );
@@ -403,7 +403,7 @@ end
 if (length(the_var_size) == 1)
     values = values(:);
 else
-    pv = fliplr( 1:length(the_var_size) );
+    pv = numel(the_var_size):-1:1;
     values = permute(values,pv);
 end                                                                                   
 
@@ -719,8 +719,8 @@ if (n_argin == 1),		fprintf ( 1, str );
 else					dump = [dump str];
 end
 
-if isempty(var_metadata.Dimension) 
-	str = sprintf ('([]), \n');
+if isempty(var_metadata.Dimension)
+	str = sprintf ('([]),');
 else
 	str = sprintf('(%s', var_metadata.Dimension{1} );
 	for (k = 2:length(var_metadata.Size))
@@ -1296,7 +1296,9 @@ if ( status == 0 )
 	    snc_error( ['NC_FUNS:NC_VARPUT:MEXNC:' funcstr], mexnc('STRERROR', status) );
     end
 
-    data(isnan(data)) = fill_value;
+	if (~isnan(fill_value))
+    	data(isnan(data)) = fill_value;
+	end
 
 end
 
@@ -1564,7 +1566,7 @@ case { 'NC_DOUBLE', 'double', ...
 	'NC_CHAR', 'char'  }
 	% Do nothing
 otherwise
-	snc_error ( 'NC_FUNS:NC_ADDVAR:unknownDatatype', 'unknown type ''%s''\n', mfilename, varstruct.Nctype );
+	snc_error( 'NC_FUNS:NC_ADDVAR:unknownDatatype', sprintf('unknown type ''%s''\n', mfilename, varstruct.Nctype) );
 end
 
 % Check that required fields are there. Default Dimension is none.  Singleton scalar.
@@ -1668,7 +1670,7 @@ function nc_addhist ( ncfile, attval )
 snc_nargchk(2,2,nargin);
 
 if ~exist(ncfile,'file')
-	snc_error('NC_FUNS:NC_ADDHIST:badFilename', '%s does not exist', ncfile );
+	snc_error('NC_FUNS:NC_ADDHIST:badFilename', sprintf('%s does not exist', ncfile) );
 end
 if ~ischar(attval)
 	snc_error('NC_FUNS:NC_ADDHIST:badDatatype', 'history attribute addition must be character.' );
@@ -1777,37 +1779,20 @@ end
 
 % --------------------------------------------------------------------
 function snc_error ( error_id, error_msg )
-	v = version('-release');
-	if (strcmp(v, '12'))
-		error ( error_msg );
-	else
-		error ( error_id, error_msg );
-	end
+	error ( error_id, error_msg );
 
 % --------------------------------------------------------------------
 function snc_nargchk(low,high,N)
 % SNC_NARGCHK:  wrapper for NARGCHK, which changed functionality at R???
-
-	v = version('-release');
-	if (strcmp(v, '12') || strcmp(v, '13'))
-		error ( nargchk(low,high,N ) );
-	else
-		error ( nargchk(low,high,N,'struct') );
-	end
+	error ( nargchk(low,high,N ) );
 
 % --------------------------------------------------------------------
 function snc_nargoutchk(low,high,N)
 % SNC_NARGOUTCHK:  wrapper for NARGOUTCHK, which changed functionality at R???
-
-	v = version('-release');
-	if (strcmp(v, '12') || strcmp(v, '13'))
-		error ( nargoutchk(low,high,N ) );
-	else
-		error ( nargoutchk(low,high,N,'struct') );
-	end
+	error ( nargoutchk(low,high,N ) );
 
 % --------------------------------------------------------------------
-function check_index_vectors(start,count,stride,nvdims)
+function check_index_vectors(start,count,stride,nvdims,ncid,varname)
 % CHECK_INDEX_VECTORS
 %    We need to check the lengths of the index vectors before calling the
 %    netCDF library.  A bad length can confuse the mex-file, and it's really 
