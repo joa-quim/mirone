@@ -3,69 +3,69 @@ function varargout = tsunamovie(varargin)
 % M-File changed by desGUIDE 
 
     hObject = figure('Tag','figure1','Visible','off');
-    handles = guihandles(hObject);
-    guidata(hObject, handles);
-    tsunamovie_LayoutFcn(hObject,handles);
+    tsunamovie_LayoutFcn(hObject);
     handles = guihandles(hObject);
     movegui(hObject,'northeast')
+
+	handles.flederize = 0;		% Temporary way of controling if flederize
     
-    if (numel(varargin) > 0 && isstruct(varargin{1}))
-        handMir = varargin{1};
-        handles.work_dir = handMir.work_dir;
-        handles.last_dir = handMir.last_dir;
-    	handles.home_dir = handMir.home_dir;
-    else
-    	handles.home_dir = cd;
-        handles.last_dir = handles.home_dir;
-        handles.work_dir = handles.home_dir;
-    end
+	if (numel(varargin) > 0 && isstruct(varargin{1}))
+		handMir = varargin{1};
+		handles.work_dir = handMir.work_dir;
+		handles.last_dir = handMir.last_dir;
+		handles.home_dir = handMir.home_dir;
+	else
+		handles.home_dir = cd;
+		handles.last_dir = handles.home_dir;
+		handles.work_dir = handles.home_dir;
+	end
 
 	f_path = [handles.home_dir filesep 'data' filesep];
-    handles.stop = 0;           % When the running engine detects it has canged to 1 it stops
-    handles.dither = 'nodither';% Default
-    handles.checkedMM = 0;      % To signal if need or not to get the ensemble water Min/Max
-    handles.usrMM = 0;          % To signal if user has changed the ensemble Min|Max
-    handles.lambCteComm = '/0.55/0.6/0.4/10';   % These Lamertian params are here const
-    handles.waterIllumComm = '-E0/30/0.55/0.6/0.4/10';      % Starting values
-    handles.landIllumComm = '-A0';
-    handles.landCurrIllumType  = 'grdgradient_A';
-    handles.waterCurrIllumType = 'lambertian';
-    handles.fps = 5;            % Frames per second
-    handles.dt = 0.2;           % 1/fps
-    handles.scaleFactor = 1;    % To shrink or increase the movie dimensions
+	handles.stop = 0;           % When the running engine detects it has canged to 1 it stops
+	handles.dither = 'nodither';% Default
+	handles.checkedMM = 0;      % To signal if need or not to get the ensemble water Min/Max
+	handles.usrMM = 0;          % To signal if user has changed the ensemble Min|Max
+	handles.lambCteComm = '/0.55/0.6/0.4/10';   % These Lamertian params are here const
+	handles.waterIllumComm = '-E0/30/0.55/0.6/0.4/10';      % Starting values
+	handles.landIllumComm = '-A0';
+	handles.landCurrIllumType  = 'grdgradient_A';
+	handles.waterCurrIllumType = 'lambertian';
+	handles.fps = 5;            % Frames per second
+	handles.dt = 0.2;           % 1/fps
+	handles.scaleFactor = 1;    % To shrink or increase the movie dimensions
 	handles.Z_bat   = [];
 	handles.Z_water = [];
 	handles.nameList = [];
-    handles.testTime = [];
-    handles.reinterpolated_bat = false; % To when we need to reinterpolate bat to fit with water
-    
-    S = load([f_path 'gmt_other_palettes.mat'],'DEM_screen');
-    handles.cmapLand = S.DEM_screen;
-    S = load([f_path 'gmt_other_palettes.mat'],'Terre_Mer');
-    handles.terraMar = S.Terre_Mer;
+	handles.testTime = [];
+	handles.reinterpolated_bat = false; % To when we need to reinterpolate bat to fit with water
 
-    % By default use a blue only colormap for water
-    %% bcmap = jet(32);    bcmap = bcmap(3:7,:);
-    handles.cmapWater = [0 0 1; 0 0 1];
-    handles.cmapWater_bak = handles.cmapWater;      % Make a copy for cmaps reseting
-    handles.cmapLand_bak = handles.cmapLand;
-    
-    % Load some icons and put them in the toggles
-    load([f_path 'mirone_icons.mat'],'um_ico','dois_ico','Mfopen_ico','color_ico');
-    set(handles.toggle_1,'CData',um_ico)
-    set(handles.toggle_2,'CData',dois_ico)
-    set(handles.push_batGrid,'CData',Mfopen_ico)
-    set(handles.push_singleWater,'CData',Mfopen_ico)
-    set(handles.push_namesList,'CData',Mfopen_ico)
-    set(handles.push_movieName,'CData',Mfopen_ico)
-    set(handles.push_palette,'CData',color_ico)
-    
-    % Import background image
-    astrolabio = imread([f_path 'astrolabio.jpg']);
-    image(astrolabio,'parent',handles.axes1);
+	S = load([f_path 'gmt_other_palettes.mat'],'DEM_screen');
+	handles.cmapLand = S.DEM_screen;
+	S = load([f_path 'gmt_other_palettes.mat'],'Terre_Mer');
+	handles.terraMar = S.Terre_Mer;
 
-    pos = get(handles.axes1,'Position');
-    set(handles.axes1,'Visible','off')
+	% By default use a blue only colormap for water
+	%% bcmap = jet(32);    bcmap = bcmap(3:7,:);
+	handles.cmapWater = [0 0 1; 0 0 1];
+	handles.cmapWater_bak = handles.cmapWater;      % Make a copy for cmaps reseting
+	handles.cmapLand_bak = handles.cmapLand;
+    
+	% Load some icons and put them in the toggles
+	load([f_path 'mirone_icons.mat'],'um_ico','dois_ico','Mfopen_ico','color_ico');
+	set(handles.toggle_1,'CData',um_ico)
+	set(handles.toggle_2,'CData',dois_ico)
+	set(handles.push_batGrid,'CData',Mfopen_ico)
+	set(handles.push_singleWater,'CData',Mfopen_ico)
+	set(handles.push_namesList,'CData',Mfopen_ico)
+	set(handles.push_movieName,'CData',Mfopen_ico)
+	set(handles.push_palette,'CData',color_ico)
+
+	% Import background image
+	astrolabio = imread([f_path 'astrolabio.jpg']);
+	image(astrolabio,'parent',handles.axes1);
+
+	pos = get(handles.axes1,'Position');
+	set(handles.axes1,'Visible','off')
 
 	% Draw everything that may be needed for all options. Later, depending on the
 	% option selected, only the allowed features will be let visible
@@ -74,32 +74,32 @@ function varargout = tsunamovie(varargin)
 	% Now draw, on axes2, a quarter of circle and a line
 	t = 0:0.02:pi/2;    x = [0 cos(t) 0];     y = [0 sin(t) 0];
 	line('parent',handles.axes2,'XData',x,'YData',y,'HitTest','off','Color','k','LineWidth',1);
-    xdataElev = [0 cos(30*pi/180)];     ydataElev = [0 sin(30*pi/180)];
+	xdataElev = [0 cos(30*pi/180)];     ydataElev = [0 sin(30*pi/180)];
 	h_line(2) = line('parent',handles.axes2,'XData',xdataElev,'YData',ydataElev,'Color','k','LineWidth',3,'Visible','off');
 	set(h_line(2),'Tag','Elev','Userdata',1)        % save radius of circumscribed circle
 
-    % Backup the graphical info
-    handles.landLineAzBack = [x0 x0 y0 0];
-    handles.waterLineAzBack = [x0 x0 y0 0];
-    handles.landLineElevBack = [xdataElev ydataElev];
-    handles.waterLineElevBack = [xdataElev ydataElev];
-    handles.landAzStrBack  = '0';
-    handles.waterAzStrBack = '0';
-    handles.landElevStrBack  = '30';
-    handles.waterElevStrBack = '30';
-    
-    handles.ciclePar = [x0 y0 radius];
-    handles.h_line = h_line;
-    guidata(hObject, handles);
-    show_needed(handles,'grdgradient_A')
-    set(handles.toggle_1,'Value',1)         % Start it in a pressed state
-    set(hObject,'WindowButtonDownFcn',{@ButtonDown,h_line,handles});
+	% Backup the graphical info
+	handles.landLineAzBack = [x0 x0 y0 0];
+	handles.waterLineAzBack = [x0 x0 y0 0];
+	handles.landLineElevBack = [xdataElev ydataElev];
+	handles.waterLineElevBack = [xdataElev ydataElev];
+	handles.landAzStrBack  = '0';
+	handles.waterAzStrBack = '0';
+	handles.landElevStrBack  = '30';
+	handles.waterElevStrBack = '30';
 
-% Choose default command line output for tsunamovie
-handles.output = hObject;
-guidata(hObject, handles);
-set(hObject,'Visible','on');
-if (nargout),   varargout{1} = hObject;     end
+	handles.ciclePar = [x0 y0 radius];
+	handles.h_line = h_line;
+	guidata(hObject, handles);
+	show_needed(handles,'grdgradient_A')
+	set(handles.toggle_1,'Value',1)         % Start it in a pressed state
+	set(hObject,'WindowButtonDownFcn',{@ButtonDown,h_line,handles});
+
+	% Choose default command line output for tsunamovie
+	handles.output = hObject;
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),   varargout{1} = hObject;     end
 
 % -----------------------------------------------------------------------------------------
 function edit_batGrid_Callback(hObject, eventdata, handles)
@@ -306,7 +306,7 @@ function push_movieName_Callback(hObject, eventdata, handles, opt)
         set(handles.radio_avi,'Value',1)
         radio_avi_Callback(handles.radio_avi, [], handles)
     else
-        set(handles.radio_avi,'Value',1)
+        set(handles.radio_mpg,'Value',1)
         radio_mpg_Callback(handles.radio_mpg, [], handles)
     end
     guidata(handles.figure1,handles)
@@ -341,7 +341,8 @@ function toggle_2_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_palette_Callback(hObject, eventdata, handles)
     % Get the new color map and assign it to either Land or Water cmaps
-    cmap = color_palettes;
+	handles.no_file = 1;		% We don't want color_palettes trying to update a ghost image
+    cmap = color_palettes(handles);
     if (~isempty(cmap))
         if (get(handles.radio_land,'Val'))
             handles.cmapLand = cmap;        % This copy will be used if user loads another bat grid
@@ -484,14 +485,6 @@ function ButtonUp(obj,eventdata,h,handles)
     guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
-function edit_elev_Callback(hObject, eventdata, handles)
-    % No need
-    
-% -----------------------------------------------------------------------------------------
-function edit_azim_Callback(hObject, eventdata, handles)
-    % No need
-
-% -----------------------------------------------------------------------------------------
 function radio_gif_Callback(hObject, eventdata, handles)
     if (get(hObject,'Value')),      set([handles.radio_avi handles.radio_mpg],'Value',0)
     else                            set(hObject,'Value',1)
@@ -620,8 +613,8 @@ function [minWater, maxWater, heads] = get_globalMinMax(handles)
 % -----------------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
 
-    if (isempty(handles.Z_bat))
-        errordlg('Noooo! Where is the bathymetry file? Do you think I''m bruxo?','ERROR');  return
+	if (isempty(handles.Z_bat))
+		errordlg('Noooo! Where is the bathymetry file? Do you think I''m bruxo?','ERROR');  return
     end
     
     % 'surface elevation' and 'water depth' grids are treated diferently
@@ -630,7 +623,7 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
     % Guess if grids are geogs
     geog = guessGeog(handles.head_bat(1:4));
     
-    if (isempty(handles.Z_water))
+    if (isempty(handles.Z_water))		% We don't have a testing grid
         if (isempty(handles.nameList))  % Neither water list nor single water grid
             errordlg('Where is the water to make the WaterWorld movie?','ERROR')
             return
@@ -678,24 +671,25 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
     radius = handles.ciclePar(3);
     x = [x0 x0 x0];     y = [y0 0 y0];
     hWC = patch('parent',handles.axes1,'XData',x,'YData',y,'FaceColor','b', 'EdgeColor','b');
-
+	
     % Do the water illum
-    if (~isempty(handles.Z_water))
+	if (~isempty(handles.Z_water))			% We have a testing grid
     	imgWater = scaleto8(handles.Z_water);
         imgWater = ind2rgb8(imgWater,handles.cmapWater);
     	R = grdgradient_m(handles.Z_water,handles.head_water,handles.waterIllumComm);
     	imgWater = shading_mat(imgWater,R,'no_scale');    	clear R;
         
-        % Compute indeces of Land
+        % Compute indexes of Land
         if (is_surfElev),   indLand = get_landInd(handles.Z_bat, handles.Z_water);
-        else                indLand = (handles.Z_water == 0);
+        else				indLand = (handles.Z_water == 0);
         end
         imgWater = mixe_images(handles, imgBat, imgWater, indLand, alfa);
         if (~isempty(handles.strTimes))
             imgWater = cvlib_mex('text',imgWater,handles.testTime,[10 30]);
         end
         mirone(imgWater,tmp);
-    elseif (~isempty(handles.nameList))     % If we have a list of names
+
+	elseif (~isempty(handles.nameList))     % If we have a list of names
         if (isempty(handles.movieName))
             errordlg('Hei! what shoult it be the movie name?','ERROR');     delete(hWC);    return
         end
@@ -713,8 +707,10 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
         is_avi = get(handles.radio_avi,'Value');
         is_mpg = get(handles.radio_mpg,'Value');
         str_nGrids = sprintf('%d',nGrids);
-        
-        for (i=1:nGrids)
+
+% 		logo = flipdim( imread('c:\tmp\cafe_cima.jpg'), 1);
+
+		for (i=1:nGrids)
             % Check if meanwhile the stop button has been pressed 
             pause(0.01)     % Little pause so that it can listen a eventual STOP request
             handles = guidata(handles.figure1); % We need an updated version
@@ -737,16 +733,21 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
             imgWater = ind2rgb8(imgWater,handles.cmapWater);
         	R = grdgradient_m(Z,heads{i},handles.waterIllumComm);
         	imgWater = shading_mat(imgWater,R,'no_scale');
-            
-            % Compute indeces of Land
-            if (is_surfElev),       indLand = get_landInd(handles.Z_bat, Z);
-            else                    indLand = (Z == 0);
+
+			% Compute indexes of Land
+            if (is_surfElev),		indLand = get_landInd(handles.Z_bat, Z);
+            else					indLand = (Z == 0);
             end
             imgWater = mixe_images(handles, imgBat, imgWater, indLand, alfa);
             if (~isempty(handles.strTimes))
                 cvlib_mex('text',imgWater,handles.strTimes{i},[10 30]);
             end
-            
+
+			if (handles.flederize)
+				%imgWater(20:19+size(logo,1),30:29+size(logo,2),:) = logo;
+				flederize(handles.nameList{i}, i, Z, imgWater, indLand, [handles.head_water(1:4) minWater maxWater])
+			end
+			
             if (is_gif || is_mpg)
                 [imgWater,map] = img_fun('rgb2ind',imgWater,256,handles.dither);
             end
@@ -764,8 +765,8 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
             else                    % MPEG
                 M(i) = im2frame(imgWater,map);
             end
-        end
-        if (is_avi)
+		end
+		if (is_avi)
             mname = [handles.moviePato handles.movieName '.avi'];
       	    movie2avi_j(M,mname,'compression','none','fps',handles.fps)
         elseif (is_mpg)
@@ -775,8 +776,6 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
         end
         set(handles.figure1,'Name','Tsunamovie')
         set(handles.push_stop,'Visible','off')
-    else
-        errordlg('Where are the actors? There is no water to make the WaterWorld movie!','ERROR')
     end
     try,    delete(hWC);    end
 
@@ -811,15 +810,28 @@ function ind = get_landInd(zBat, zWater)
     % Compute indeces such that 1 -> Dry; 0 -> Wet
     dife = cvlib_mex('absDiff',zBat,zWater);
     ind = (dife < 1e-3);
+	
+% -----------------------------------------------------------------------------------------
+function flederize(fname,n, Z, imgWater, indLand, limits)
+	% Write a .sd fleder file with z_max smashed to (?) times min water height
+	[pato, name] = fileparts(fname);
+	%fname = [pato filesep name '.sd'];
+	fname = [pato filesep sprintf('z_%.2d.sd',n)];
+	
+	s = 4;				% Smash land to ? times max water height
+	maxWater = 10;
+	minWater = -17;		% We could use limits(5), but it's not sure min is not on land
+	
+	fact = abs( (s * maxWater) / limits(6) );		% smashing factor
+	Z_smashed = Z;
+	Z_smashed(indLand) = single(double(Z(indLand)) * fact);
+	write_flederFiles('main_SD', fname, 'Planar', Z_smashed, imgWater, [limits(1:4) minWater maxWater*s])
 
-    % --------------------------------------------------------------------
+% --------------------------------------------------------------------
 function geog = guessGeog(lims)
     % Make a good guess if LIMS are geographic
     geog = double( ( (lims(1) >= -180 && lims(2) <= 180) || (lims(1) >= 0 && lims(2) <= 360) )...
         && (lims(3) >= -90 && lims(4) <= 90) );
-
-% -----------------------------------------------------------------------------------------
-function popup_surfType_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function popup_resize_Callback(hObject, eventdata, handles)
@@ -829,7 +841,7 @@ function popup_resize_Callback(hObject, eventdata, handles)
 
 
 % --- Creates and returns a handle to the GUI figure. 
-function tsunamovie_LayoutFcn(h1,handles);
+function tsunamovie_LayoutFcn(h1);
 
 set(h1,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
@@ -937,7 +949,6 @@ uicontrol('Parent',h1,...
 'Tag','checkbox_resetCmaps');
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
-'Callback',{@tsunamovie_uicallback,h1,'edit_elev_Callback'},...
 'Position',[380 264 30 18],...
 'String','30',...
 'Style','edit',...
@@ -961,7 +972,6 @@ uicontrol('Parent',h1,...
 'Tag','text_elev');
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
-'Callback',{@tsunamovie_uicallback,h1,'edit_azim_Callback'},...
 'Position',[305 264 34 18],...
 'String','0',...
 'Style','edit',...
@@ -1063,8 +1073,7 @@ uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
 'Position',[333 55 55 15],...
 'String','Frames p/s',...
-'Style','text',...
-'Tag','text9');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'FontName','Helvetica',...
@@ -1072,8 +1081,7 @@ uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
 'Position',[10 392 82 17],...
 'String','Bathymetry file',...
-'Style','text',...
-'Tag','text10');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'FontName','Helvetica',...
@@ -1081,8 +1089,7 @@ uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
 'Position',[11 341 82 17],...
 'String','Water files list',...
-'Style','text',...
-'Tag','text11');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'FontName','Helvetica',...
@@ -1133,8 +1140,7 @@ uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
 'Position',[272 147 25 16],...
 'String','Max',...
-'Style','text',...
-'Tag','text14');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -1149,8 +1155,7 @@ uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
 'Position',[272 127 25 16],...
 'String','Min',...
-'Style','text',...
-'Tag','text15');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'FontName','Helvetica','FontSize',9,...
@@ -1162,9 +1167,9 @@ uicontrol('Parent',h1,...
 str_tip = sprintf('Select what is represented in the Water grids\n');
 str_tip = sprintf([str_tip '"Surface elevation": values  are referenced to mean sea level\n']);
 str_tip = sprintf([str_tip '"Water depth": Thickness of the water layer (zero on Land).\n']);
+
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@tsunamovie_uicallback,h1,'popup_surfType_Callback'},...
 'Position',[111 341 120 21],...
 'String',{'Surface elevation'; 'Water depth'},...
 'Style','popupmenu',...
@@ -1212,8 +1217,7 @@ uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
 'Position',[10 103 115 17],...
 'String','Output movie name',...
-'Style','text',...
-'Tag','text17');
+'Style','text');
 
 uicontrol('Parent',h1,'ForegroundColor',[0 0.5 0],'Position',[240 8 2 401],'Style','frame','Tag','frame4');
 
@@ -1221,8 +1225,7 @@ uicontrol('Parent',h1,...
 'FontName','Helvetica','FontSize',9,...
 'Position',[377 170 50 17],...
 'String','Scale it?',...
-'Style','text',...
-'Tag','text18');
+'Style','text');
 
 % ---------------------------------------------------------------------------------
 function tsunamovie_uicallback(hObject, eventdata, h1, callback_name)
