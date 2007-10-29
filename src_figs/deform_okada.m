@@ -14,6 +14,7 @@ function varargout = deform_okada(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
 	if isempty(varargin)
 		errordlg('DEFORM OKADA: Wrong number of input args','Error');    return
 	end
@@ -26,27 +27,27 @@ function varargout = deform_okada(varargin)
 	handles.input_locations = [];   % May contain ground points positions
 	D2R = pi / 180;
 
-	if (length(varargin) >= 7)      % Fault patch collection
+	if (length(varargin) >= 8)      % Fault patch collection
 		handles = set_all_faults(handles,varargin{:});
-		fault_in = 1;
+		handles.fault_in = 1;
 	else                            % "Normal" case
 		handles.h_fault = varargin{2};      % Handles to the fault lines (each may have more than one segment)
 		handles.FaultStrike = varargin{3};
-		fault_in = 0;
+		handles.fault_in = 0;
 	end
 
 	handMir = varargin{1};
 	handles.geog = handMir.geog;
 	head = handMir.head;
+	handles.head = head;
 	handles.h_calling_fig = handMir.figure1;     % Handles to the calling figure
 	handles.n_faults = length(handles.h_fault);
 
 	if (handles.n_faults > 1)
-		S = [];
 		s_format = ['%.' num2str(fix(log10(handles.n_faults))+1) 'd'];
-		for (i=1:handles.n_faults),     S = [S; ['Fault ' num2str(i,s_format)]];   end
-		set(handles.popup_fault,'String',cellstr(S))
-		%set(handles.popup_fault,'String',cellstr(num2str(1:handles.n_faults,'%.2d')'))
+		S = cell(handles.n_faults,1);
+		for (i=1:handles.n_faults),     S{i} = ['Fault ' sprintf(s_format,i)];   end
+		set(handles.popup_fault,'String',S)
 		set(handles.h_fault(1),'LineStyle','--');   % set the top fault one with a dashed line type
 		refresh(handMir.figure1);             % otherwise, ML BUG
 	else
@@ -63,11 +64,12 @@ function varargout = deform_okada(varargin)
 	end
 
 	if (any(nvert > 1))
-		set(handles.popup_segment,'Visible','on');    S = [];
+		set(handles.popup_segment,'Visible','on');
 		% Even if we have more than one fault, the segments popup will start with only the first fault's segments
-		s_format = ['%.' num2str(fix(log10(nvert(1)))+1) 'd'];
-		for (i=1:nvert(1)),    S = [S; ['Segment ' num2str(i,s_format)]];   end
-		set(handles.popup_segment,'String',cellstr(S))
+		s_format = ['%.' num2str(fix(log10(max(nvert)))+1) 'd'];
+		S = cell(nvert(1),1);
+		for (i=1:nvert(1)),     S{i} = ['Segment ' sprintf(s_format,i)];   end
+		set(handles.popup_segment,'String',S)
 	else
 		set(handles.popup_segment,'Visible','off')
 		delete(handles.txtFaultSeg)    % Otherwise it would reborn in Pro look
@@ -93,11 +95,13 @@ function varargout = deform_okada(varargin)
 	handles.hide_planes(1:handles.n_faults) = 0;
 	handles.dms_xinc = 0;           handles.dms_yinc = 0;
 	handles.txt_Mw_pos = get(handles.h_txt_Mw,'Position');
-	handles.one_or_zero = ~head(7);
 	handles.Mw(1:handles.n_faults) = 0;
 	handles.FaultLength = LineLength(handles.h_fault,handles.geog);
+	handles.one_or_zero = ~head(7);
+	handles.x_min_or = head(1);			handles.x_max_or = head(2);
+	handles.y_min_or = head(3);			handles.y_max_or = head(4);
 
-	if (~fault_in)					% "NORMAL" case (not a fault-patch collection)
+	if (~handles.fault_in)					% "NORMAL" case (not a fault-patch collection)
 		% Make them all cell arrays to simplify logic
 		if (~iscell(handles.FaultLength)),  handles.FaultLength = {handles.FaultLength};   end
 		if (~iscell(handles.FaultStrike)),  handles.FaultStrike = {handles.FaultStrike};   end
@@ -137,9 +141,22 @@ function varargout = deform_okada(varargin)
 	        set(handles.edit_FaultWidth,'String',num2str(faultWidth));
 		end
 	else
+		set(handles.edit_FaultLength,'Enable','off')
+		set(handles.edit_FaultStrike,'Enable','off')
         set(handles.edit_FaultLength,'String',num2str(handles.FaultLength{1}(1)));
-	end
+		% Compute Mag for each fault
+		totalM0 = 0;
+		for (k = handles.n_faults:-1:1)
+			[handles,mag,MO] = compMag(handles, k);
+			totalM0 = totalM0 + MO;
+		end
+		mag = 2/3*(log10(totalM0) - 9.1);
+		uicontrol('Parent',hObject,'Enable','inactive','FontSize',10,...
+		'HorizontalAlignment','left','Position',[400 190 100 16],...
+		'String',['Tot Mw = ' sprintf('%.1f',mag)],'Style','text');
 
+	end
+	
 	% Set a default view vector (for interferograms s must be different)
 	sx = cos((90-handles.FaultStrike{1})*D2R);   handles.sx = sx;
 	sy = sin((90-handles.FaultStrike{1})*D2R);   handles.sy = sy;       handles.sz(1:nvert) = 0;
@@ -149,24 +166,36 @@ function varargout = deform_okada(varargin)
 
 	%-----------
 	% Fill in the grid limits boxes (in case user wants to compute a grid)
-	x1 = sprintf('%.12g',head(1));      x2 = sprintf('%.12g',head(2));
-	y1 = sprintf('%.12g',head(3));      y2 = sprintf('%.12g',head(4));
-	set(handles.edit_x_min,'String',x1); set(handles.edit_x_max,'String',x2)
-	set(handles.edit_y_min,'String',y1); set(handles.edit_y_max,'String',y2)
-	handles.x_min = head(1);            handles.x_max = head(2);
-	handles.y_min = head(3);            handles.y_max = head(4);
+	nDigit = round( log10(abs(max(head(1:4)))) );		% Number of digits of the integer part
+	frmt = sprintf('%%.%dg',nDigit+8);			% it will be of the type '%.Ng'
+	set(handles.edit_x_min,'String',sprintf(frmt,head(1)))
+	set(handles.edit_x_max,'String',sprintf(frmt,head(2)))
+	set(handles.edit_y_min,'String',sprintf(frmt,head(3)))
+	set(handles.edit_y_max,'String',sprintf(frmt,head(4)))
+	handles.x_min = head(1);			handles.x_max = head(2);
+	handles.y_min = head(3);			handles.y_max = head(4);
+	handles.x_inc = head(8);			handles.y_inc = head(9);
 
 	[m,n] = size(getappdata(handMir.figure1,'dem_z'));
 
 	% Fill in the x,y_inc and nrow,ncol boxes
-	set(handles.edit_Nrows,'String',sprintf('%d',m))
-	set(handles.edit_Ncols,'String',sprintf('%d',n))
-	set(handles.edit_y_inc,'String',sprintf('%.12g',head(9)))
-	set(handles.edit_x_inc,'String',sprintf('%.12g',head(8)))
+	nDigit = round( log10(abs(max(head(8:9)))) );		% Number of digits of the integer part
+	frmt = sprintf('%%.%dg',nDigit+10);		% it will be of the type '%.Ng'
+	set(handles.edit_Nrows,'String',m);		set(handles.edit_Ncols,'String',n)
+	set(handles.edit_y_inc,'String',sprintf(frmt,head(9)))
+	set(handles.edit_x_inc,'String',sprintf(frmt,head(8)))
 	%-----------
 
-	handles.nrows = m;      handles.ncols = n;
-	handles.x_inc = head(8);   handles.y_inc = head(9);
+	% If non-grid use image dims to estimate nRows, nCols
+	if (m == 0)
+		dim_funs('xInc', handles.edit_x_inc, handles)
+		dim_funs('yInc', handles.edit_y_inc, handles)
+		handles.nrows = round(str2double(get(handles.edit_Nrows,'String')));
+		handles.ncols = round(str2double(get(handles.edit_Ncols,'String')));
+		handles = guidata(hObject);		% It was changed inside dim_funs
+	else
+		handles.nrows = m;      handles.ncols = n;
+	end
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
@@ -200,10 +229,6 @@ function varargout = deform_okada(varargin)
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 	if (nargout),   varargout{1} = hObject;     end
-
-% ------------------------------------------------------------------------------------
-function edit_FaultLength_Callback(hObject, eventdata, handles)
-	% Cannot be changed
 
 % ------------------------------------------------------------------------------------
 function handles = edit_FaultWidth_Callback(hObject, eventdata, handles)
@@ -242,9 +267,15 @@ function handles = edit_FaultWidth_Callback(hObject, eventdata, handles)
 		lon1 = xx(1) + off * cos(strk*D2R);     lon2 = xx(2) + off * cos(strk*D2R);
 		lat1 = yy(1) - off * sin(strk*D2R);     lat2 = yy(2) - off * sin(strk*D2R);
 	end
-	x = [xx(1) xx(2) lon2 lon1];    y = [yy(1) yy(2) lat2 lat1];
+	x = [xx(1) xx(2) lon2 lon1 xx(1)];    y = [yy(1) yy(2) lat2 lat1 yy(1)];
 	hp = getappdata(handles.h_fault(fault),'PatchHand');
 	try     set(hp(seg),'XData',x,'YData',y,'FaceColor',[.8 .8 .8],'EdgeColor','k','LineWidth',1);  end
+	
+	z = -[top_d top_d depth depth top_d];
+	if ( diff(handles.head(5:6)) > 10 ),	z = z * 1000;		end		% Assume grid's depth is in meters
+	z = z + handles.head(5);				% CRUDE. It should be mean depth along the fault's length
+	set(hp, 'UserData', z)					% So that we can Flederize it in 3D 
+
 	handles = compMag(handles, fault);      % Compute and update Fault's Mw magnitude
 	guidata(handles.figure1, handles);
 
@@ -281,9 +312,15 @@ function edit_FaultDip_Callback(hObject, eventdata, handles)
 		lon1 = xx(1) + off * cos(strk*D2R);     lon2 = xx(2) + off * cos(strk*D2R);
 		lat1 = yy(1) - off * sin(strk*D2R);     lat2 = yy(2) - off * sin(strk*D2R);
 	end
-	x = [xx(1) xx(2) lon2 lon1];    y = [yy(1) yy(2) lat2 lat1];
+	x = [xx(1) xx(2) lon2 lon1 xx(1)];    y = [yy(1) yy(2) lat2 lat1 yy(1)];
 	hp = getappdata(handles.h_fault(fault),'PatchHand');
 	try     set(hp(seg),'XData',x,'YData',y,'FaceColor',[.8 .8 .8],'EdgeColor','k','LineWidth',1);  end
+
+	z = -[top_d top_d depth depth top_d];
+	if ( diff(handles.head(5:6)) > 10 ),	z = z * 1000;		end		% Assume grid's depth is in meters
+	z = z + handles.head(5);				% CRUDE. It should be mean depth along the fault's length
+	set(hp, 'UserData', z)					% So that we can Flederize it in 3D 
+
 	guidata(hObject, handles);
 
 % ------------------------------------------------------------------------------------
@@ -362,10 +399,10 @@ function popup_segment_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function popup_fault_Callback(hObject, eventdata, handles)
 	fault = get(hObject,'Value');
-	S = [];
+	S = cell(handles.nvert(fault),1);
 	s_format = ['%.' num2str(fix(log10(handles.nvert(fault)))+1) 'd'];
-	for (i=1:handles.nvert(fault)),    S = [S; ['Segment ' num2str(i,s_format)]];   end
-	set(handles.popup_segment,'String',cellstr(S),'Value',1)    
+	for (i=1:handles.nvert(fault)),     S{i} = ['Segment ' sprintf(s_format,i)];   end
+	set(handles.popup_segment,'String',S,'Value',1)    
 	seg = 1;    % Make current the first segment
 
 	% Identify the currently active fault by setting its linestyle to dash
@@ -440,7 +477,7 @@ function popup_GridCoords_Callback(hObject, eventdata, handles)
 function edit_DislocStrike_Callback(hObject, eventdata, handles)
 	xx = str2double(get(hObject,'String'));
 	[fault,seg] = getFaultSeg(handles);
-	if (isnan(xx)),     set(hObject,'String',handles.DislocStrike{fault}(seg));   return;     end
+	if (isnan(xx)),     set(hObject,'String',handles.DislocStrike{fault}(seg));   return,	end
 	handles = convGeometry(handles, fault, seg, 'Aki');
 	handles.DislocStrike{fault}(seg) = xx;
 	guidata(hObject, handles);
@@ -670,17 +707,17 @@ function edit_sz_Callback(hObject, eventdata, handles)
 % ------------------------------------------------------------------------------------
 function pushbutton_compute_Callback(hObject, eventdata, handles)
 	% If cartesian coordinates, they must be in meters
-	if (any(isnan(cat(2,handles.FaultWidth{:}))))
+	if (any(isnan(cat(1,handles.FaultWidth{:}))))
 		errordlg('One or more segments where not set with the fault''s Width','Error');    return
 	end
-	if (any(isnan(cat(2,handles.FaultDepth{:}))))
+	if (any(isnan(cat(1,handles.FaultDepth{:}))))
 		errordlg('One or more segments where not set with the fault''s Depth','Error');    return
 	end
-	if (any(isnan(cat(2,handles.DislocSlip{:}))))
+	if (any(isnan(cat(1,handles.DislocSlip{:}))))
 		errordlg('One or more segments where not set with the movement''s slip','Error');    return
 	end
 	
-	if( all(cat(2,handles.ux{:}) == 0) && all(cat(2,handles.uy{:}) == 0) && all(cat(2,handles.uz{:}) == 0) )
+	if( all(cat(1,handles.ux{:}) == 0) && all(cat(1,handles.uy{:}) == 0) && all(cat(1,handles.uz{:}) == 0) )
 		errordlg('No movement along faults(s), nothing to compute there.','Error')
 		return
 	end
@@ -719,8 +756,8 @@ else
 end
 
 for (i=1:handles.n_faults)
-    % I have to do fish the patch coords because range_change seams to use not
-    % the fault trace coords but the coordinates of the fault at its depth 
+    % I have to do fish the patch coords because range_change does not seams to
+    % use the fault trace coords but the coordinates of the fault at its depth 
     hp = getappdata(handles.h_fault(i),'PatchHand');
     xp = get(hp,'XData');    yp = get(hp,'YData');
     if (iscell(xp))
@@ -783,10 +820,17 @@ if (isempty(handles.input_locations))   % If ground positions were not given, co
         hWarn = warndlg(msg,'Warning');
     end
 
-    if get(handles.radiobutton_deformation,'Value')
+	% SHOW WHAT WE HAVE GOT
+    if get(handles.radiobutton_deformation,'Value')		% Show deformation 
         mirone(U,head,'Deformation',handles.h_calling_fig);
-    else
-        mirone(U,head,'Interfero',28.4);
+    else												% Show Interferogram
+		val = get(handles.list_Interfero,'Val');
+		switch val
+			case 1,		cdo = 28.4;				% mm
+			case 2,		cdo = 28.4 / 10;		% cm
+			case 3,		cdo = 28.4 / 1000;		% meters
+		end
+        mirone(U,head,'Interfero',cdo);
     end
     if (~isempty(hWarn)),   figure(hWarn);      end
     
@@ -831,7 +875,7 @@ function [lonlim,zone] = utmorigin(lon)
 	lons = (-180:6:180)';	
 	ind = find(lons <= lon);  lonsidx = ind(max(ind));
 		
-	if (lonsidx < 1 | lonsidx > 61),    lonsidx = [];
+	if (lonsidx < 1 || lonsidx > 61),    lonsidx = [];
 	elseif (lonsidx == 61),             lonsidx = 60;    end
 
 	zone = num2str(lonsidx);
@@ -839,7 +883,7 @@ function [lonlim,zone] = utmorigin(lon)
 	if (length(zone) == 1)
 		lonsidx = str2double(zone);
 	elseif (length(zone) == 2)
-		num = str2num(zone);
+		num = str2double(zone);
 		if isempty(num)
 			lonsidx = str2double(zone(1));
 		else
@@ -856,6 +900,7 @@ function radiobutton_deformation_Callback(hObject, eventdata, handles)
 		set(handles.edit_sx,'String',num2str(handles.sx))
 		set(handles.edit_sy,'String',num2str(handles.sy))
 		set(handles.edit_sz,'String',num2str(handles.sz))
+		set(handles.list_Interfero,'Vis','off')
 	else
 		set(hObject,'Value',1)
 	end
@@ -868,6 +913,7 @@ function radiobutton_interfero_Callback(hObject, eventdata, handles)
 		set(handles.edit_sx,'String','0.333')
 		set(handles.edit_sy,'String','-0.07')
 		set(handles.edit_sz,'String','0.94')
+		set(handles.list_Interfero,'Vis','on')
 	else
 		set(hObject,'Value',1)
 	end
@@ -879,11 +925,11 @@ function pushbutton_cancel_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function len = LineLength(h,geog)
 x = get(h,'XData');     y = get(h,'YData');
+D2R = pi/180;	earth_rad = 6371;
 len = [];
 if (~iscell(x))
 	if (geog)
-        D2R = pi/180;    earth_rad = 6371;
-        x = x * D2R;    y = y * D2R;
+        x = x * D2R;	y = y * D2R;
         lat_i = y(1:length(y)-1);   lat_f = y(2:length(y));     clear y;
         lon_i = x(1:length(x)-1);   lon_f = x(2:length(x));     clear x;
         tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
@@ -895,7 +941,6 @@ if (~iscell(x))
 	end
 else
 	if (geog)
-        D2R = pi/180;    earth_rad = 6371;
         for (k=1:length(x))
             xx = x{k} * D2R;    yy = y{k} * D2R;
             lat_i = yy(1:length(yy)-1);   lat_f = yy(2:length(yy));
@@ -939,33 +984,61 @@ function checkbox_hideFaultPlanes_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function handles = set_all_faults(handles,varargin)
+	% varargin contains a set of parameters of a Slip model transmited by fault_models.m  
 	handles.h_calling_fig = varargin{1}.figure1;
 	handles.h_fault = varargin{2};
-	handles.FaultStrike = varargin{3};
-	handles.DislocStrike = varargin{3};
-	handles.FaultTopDepth = varargin{4};
-	FaultSlip = varargin{5};
-	handles.FaultDip  = varargin{6};
-	handles.DislocRake = varargin{7};
+	handles.FaultTopDepth = varargin{3};
+	handles.FaultWidth = varargin{4};
+	handles.FaultStrike = varargin{5};
+	handles.DislocStrike = varargin{5};
+	handles.DislocSlip = varargin{6};
+	handles.FaultDip  = varargin{7};
+	handles.DislocRake = varargin{8};
 
-	n_fault = length(handles.h_fault);      n_seg = length(handles.FaultStrike{1});
-
-	for (k=1:n_fault)
-		handles.FaultWidth{k} = repmat(12,n_seg,1);
-		handles.DislocSlip{k}(1:n_seg) = FaultSlip{k}(1:n_seg);
-		handles.uz{k}(1:n_seg) = 0;
-	end
-
-	for (k=1:n_fault)   % Keep it scalar to avoid dimensional multiplication problems
-		for (i=1:n_seg)
-			handles.FaultDepth{k}(i) = handles.FaultTopDepth{k}(i) + handles.FaultWidth{k}(i) * ...
-				sin(handles.FaultDip{k}(i) * pi/180);
-			handles.ux{k}(i) = handles.DislocSlip{k}(i) * cos(handles.DislocRake{k}(i) * pi/180);
-			handles.uy{k}(i) = handles.DislocSlip{k}(i) * sin(handles.DislocRake{k}(i) * pi/180);
+	nSeg = size(handles.h_fault,1);
+	if (nSeg == 1)
+		nx = numel(handles.FaultStrike{1});		n_fault = numel(handles.h_fault);
+		
+		% Pre-allocations
+		handles.ux = repmat({zeros(1, nx)}, n_fault, 1);
+		handles.uy = repmat({zeros(1, nx)}, n_fault, 1);
+		handles.uz = repmat({zeros(1, nx)}, n_fault, 1);
+		handles.FaultDepth = repmat({zeros(1, nx)}, n_fault, 1);
+		
+	else				% Multi-seg Slip model file. Old logic obliges to have {1,nFaultTotal}
+		% Remember that multi-segs had declaration in fault_models.m like:
+		% hLine = zeros(nSeg,nz); and 	strike = cell(nSeg,nz);
+		% where each cell element contains "nPatch" values
+		nz = size(handles.h_fault,2);
+		handles.ux = [];
+		for (k = 1:nSeg)
+			nx = numel(handles.FaultStrike{k});
+			handles.ux = [handles.ux; repmat({zeros(1, nx)}, nz, 1)];
 		end
+		handles.uy = handles.ux;
+		handles.uz = handles.ux;
+		handles.FaultDepth = handles.ux;
+		
+		% Now reshape them for the old logic
+		handles.h_fault = reshape((varargin{2})',1,[]);
+		handles.FaultTopDepth = reshape((varargin{3})',1,[]);
+		handles.FaultWidth = reshape((varargin{4})',1,[]);
+		handles.FaultStrike = reshape((varargin{5})',1,[]);
+		handles.DislocStrike = reshape((varargin{5})',1,[]);
+		handles.DislocSlip = reshape((varargin{6})',1,[]);
+		handles.FaultDip  = reshape((varargin{7})',1,[]);
+		handles.DislocRake = reshape((varargin{8})',1,[]);
+		n_fault = numel(handles.DislocRake);
+	end
+	
+	for (k=1:n_fault)
+		handles.FaultDepth{k} = handles.FaultTopDepth{k} + handles.FaultWidth{k} .* ...
+			sin(handles.FaultDip{k} * pi/180);
+		handles.ux{k} = handles.DislocSlip{k} .* cos(handles.DislocRake{k} * pi/180);
+		handles.uy{k} = handles.DislocSlip{k} .* sin(handles.DislocRake{k} * pi/180);
 	end
 
-	set(handles.edit_FaultWidth,'String','8');      % FAULT WIDTH - SHOULD NOT BE FIX
+	set(handles.edit_FaultWidth,'String',handles.FaultWidth{1}(1));
 	set(handles.edit_FaultStrike,'String',num2str(handles.FaultStrike{1}(1)));
 	set(handles.edit_FaultDip,'String',num2str(handles.FaultDip{1}(1)));
 	set(handles.edit_FaultTopDepth,'String',num2str(handles.FaultTopDepth{1}(1)));
@@ -973,15 +1046,15 @@ function handles = set_all_faults(handles,varargin)
 	set(handles.edit_DislocSlip,'String',num2str(handles.DislocSlip{1}(1)));
 	set(handles.edit_DislocStrike,'String',num2str(handles.FaultStrike{1}(1)));
 	set(handles.edit_DislocRake,'String',num2str(handles.DislocRake{1}(1)));
-	set(handles.edit_ux,'String',num2str(handles.ux{1}(1)));
-	set(handles.edit_uy,'String',num2str(handles.uy{1}(1)));
+	set(handles.edit_ux,'String',handles.ux{1}(1));
+	set(handles.edit_uy,'String',handles.uy{1}(1));
 	set(handles.edit_uz,'String','0');
 
 % ------------------------------------------------------------------------------------
-function [handles, mag] = compMag(handles, fault)
+function [handles, mag, M0] = compMag(handles, fault)
 	% Compute Moment magnitude
-	M0 = 3e10 * handles.um_milhao * handles.DislocSlip{fault}(:) .* handles.FaultWidth{fault}(:) .* ...
-		str2double(get(handles.edit_FaultLength,'String'));
+	M0 = 3.0e10 * handles.um_milhao * handles.DislocSlip{fault}(:) .* handles.FaultWidth{fault}(:) .* ...
+		handles.FaultLength{fault}(:);
 	if (length(M0) > 1),    M0 = sum(M0);   end
 	mag = 2/3*(log10(M0) - 9.1);
 	if (~isnan(mag))
@@ -992,10 +1065,12 @@ function [handles, mag] = compMag(handles, fault)
 
 % ------------------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
-	for (i=1:numel(handles.h_fault))
-		hp = getappdata(handles.h_fault(i),'PatchHand');
-		try     set(hp,'XData', [], 'YData',[],'Visible','on');     end     % Had to use a try (f.. endless errors)
-	end
+	if (~handles.fault_in)
+		for (i=1:numel(handles.h_fault))
+			hp = getappdata(handles.h_fault(i),'PatchHand');
+			try     set(hp,'XData', [], 'YData',[],'Visible','on');     end     % Had to use a try (f.. endless errors)
+		end
+    end
 	delete(handles.figure1)
 
 % ------------------------------------------------------------------------------------
@@ -1021,7 +1096,6 @@ uicontrol('Parent',h1,'Position',[10 224 181 131],'Style','frame','Tag','frame3'
 uicontrol('Parent',h1,'Enable','inactive','Position',[11 15 350 67],'Style','frame','Tag','frame2');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@deform_okada_uicallback,h1,'edit_FaultLength_Callback'},...
 'Position',[20 311 71 21],...
 'Style','edit',...
 'TooltipString','Fault length (km)',...
@@ -1221,22 +1295,22 @@ uicontrol('Parent',h1,...
 'Tag','checkbox_ToggleXY');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[18 167 55 15],...
-'String','X Direction','Style','text','Tag','text1');
+'String','X Direction','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[17 141 55 15],...
-'String','Y Direction','Style','text','Tag','text2');
+'String','Y Direction','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[169 184 41 13],...
-'String','Max','Style','text','Tag','text3');
+'String','Max','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[91 185 41 13],...
-'String','Min','Style','text','Tag','text4');
+'String','Min','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[246 185 41 13],...
-'String','Spacing','Style','text','Tag','text5');
+'String','Spacing','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[302 185 51 13],...
-'String','# of lines','Style','text','Tag','text6','UserData',[]);
+'String','# of lines','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[30 195 121 15],...
 'String','Griding Line Geometry','Style','text','Tag','txtGGeom');
@@ -1268,19 +1342,19 @@ uicontrol('Parent',h1,'Enable','inactive','Position',[32 74 145 15],...
 'String','Input Ground Positions File','Style','text','Tag','txtIGPos');
 
 uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[102 53 67 15],...
-'String','Nº of headers','Style','text','TooltipString','How many?','Tag','text9');
+'String','Nº of headers','Style','text','TooltipString','How many?');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[36 333 41 13],...
-'String','Length','Style','text','Tag','text10');
+'String','Length','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[125 334 41 13],...
-'String','Width','Style','text','Tag','text11');
+'String','Width','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[34 293 41 13],...
-'String','Strike','Style','text','Tag','text12');
+'String','Strike','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[124 293 41 13],...
-'String','Dip','Style','text','Tag','text13');
+'String','Dip','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[108 252 75 16],...
 'String','Depth to Top','Style','text',...
@@ -1288,63 +1362,69 @@ uicontrol('Parent',h1,'Enable','inactive','Position',[108 252 75 16],...
 'Tag','text14');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[335 333 41 13],...
-'String','Strike','Style','text','Tag','text15');
+'String','Strike','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[404 333 41 13],...
-'String','Rake','Style','text','Tag','text16');
+'String','Rake','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[474 333 41 13],...
-'String','Slip','Style','text','Tag','text17');
+'String','Slip','Style','text');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[400 105 79 15],...
 'Callback',{@deform_okada_uicallback,h1,'radiobutton_deformation_Callback'},...
-'Position',[420 115 79 15],...
 'String','Deformation',...
 'Style','radiobutton',...
 'Value',1,...
 'Tag','radiobutton_deformation');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[400 85 83 15],...
 'Callback',{@deform_okada_uicallback,h1,'radiobutton_interfero_Callback'},...
-'Position',[420 89 83 15],...
 'String','Interferogram',...
 'TooltipString','Will compute an interferogram using the looking vector of the ERS satellite',...
 'Style','radiobutton',...
 'Tag','radiobutton_interfero');
 
+uicontrol('Parent',h1, 'Position',[485 80 50 51],...
+'Background',[1 1 1], ...
+'String',{'mm' 'cm' 'm'},...
+'Style','listbox',...
+'Visible','off',...
+'TooltipString','Choose the unites of Slip. A wrong selection leads to a completely erroneous result.',...
+'Tag','list_Interfero');
+
 uicontrol('Parent',h1,...
 'Callback',{@deform_okada_uicallback,h1,'pushbutton_compute_Callback'},...
 'FontWeight','bold',...
-'Position',[420 53 71 23],...
+'Position',[420 45 71 23],...
 'String','Compute',...
 'Tag','pushbutton_compute');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[34 253 41 16],...
 'String','Depth','Style','text',...
-'TooltipString','Depth to the top of the fault (>= 0)','Tag','text18');
+'TooltipString','Depth to the top of the fault (>= 0)');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[346 293 21 13],...
-'String','u1','Style','text','Tag','text19');
+'String','u1','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[415 293 21 13],...
-'String','u2','Style','text','Tag','text20');
+'String','u2','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[485 293 21 13],...
-'String','u3','Style','text','Tag','text21');
+'String','u3','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[345 253 21 13],...
-'String','Sn','Style','text','Tag','text22');
+'String','Sn','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[414 253 21 13],...
-'String','Se','Style','text','Tag','text23');
+'String','Se','Style','text');
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[484 253 21 13],...
-'String','Sz','Style','text','Tag','text24');
+'String','Sz','Style','text');
 
 uicontrol('Parent',h1,...
 'Callback',{@deform_okada_uicallback,h1,'pushbutton_cancel_Callback'},...
 'FontWeight','bold',...
-'Position',[420 22 71 23],...
+'Position',[420 15 71 23],...
 'String','Cancel',...
 'Tag','pushbutton_cancel');
 
@@ -1375,17 +1455,17 @@ uicontrol('Parent',h1,'Enable','inactive','Position',[236 295 32 15],...
 'String','Faults','Style','text','Tag','fault_number');
 
 uicontrol('Parent',h1,'Enable','inactive','FontSize',10,...
-'HorizontalAlignment','left','Position',[406 180 100 16],...
+'HorizontalAlignment','left','Position',[400 170 100 16],...
 'String','Mw Magnitude =','Style','text','Tag','h_txt_Mw');
 
 uicontrol('Parent',h1,...
 'Callback',{@deform_okada_uicallback,h1,'checkbox_hideFaultPlanes_Callback'},...
-'Position',[406 150 104 17],...
+'Position',[400 140 104 17],...
 'String','Hide fault plane',...
 'Style','checkbox','Tag','checkbox_hideFaultPlanes');
 
 uicontrol('Parent',h1,'Position',[225 248 55 15],'ForegroundColor',[1 0 0],...
-'String','CONFIRM','Style','text','Tag','text22');
+'String','CONFIRM','Style','text');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@deform_okada_uicallback,h1,'popup_GridCoords_Callback'},...
