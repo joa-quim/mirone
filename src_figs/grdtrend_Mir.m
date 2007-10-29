@@ -91,10 +91,10 @@ function radiobutton_trend_Callback(hObject, handles)
 % -------------------------------------------------------------------------------------
 function radiobutton_residuals_Callback(hObject, handles)
 	if (get(hObject,'Value'))
-        set(handles.radiobutton_trend,'Value',0)
-        set(handles.radiobutton_weights,'Value',0)
+		set(handles.radiobutton_trend,'Value',0)
+		set(handles.radiobutton_weights,'Value',0)
 	else
-        set(hObject,'Value',1)
+		set(hObject,'Value',1)
 	end
 
 % -------------------------------------------------------------------------------------
@@ -157,16 +157,15 @@ function pushbutton_OK_Callback(hObject, handles)
 	newZ = grdtrend_m(handles.Z,handles.head,opt_what,opt_N);
 	zz = grdutils(newZ,'-L');       handles.head(5:6) = zz(1:2);
 	set(handles.figure1,'pointer','arrow');     set(handles.hMirFig,'pointer','arrow')
-    tmp.X = linspace(handles.head(1),handles.head(2),size(handles.Z,2));
-    tmp.Y = linspace(handles.head(3),handles.head(4),size(handles.Z,1));
-    tmp.head = handles.head;
-    tmp.name = 'Resampled grid';
-    mirone(newZ,tmp);
-    figure(handles.figure1)         % Don't let this figure forgotten behind the newly created one
+	tmp.X = linspace(handles.head(1),handles.head(2),size(handles.Z,2));
+	tmp.Y = linspace(handles.head(3),handles.head(4),size(handles.Z,1));
+	tmp.head = handles.head;
+	tmp.name = 'Resampled grid';
+	mirone(newZ,tmp);
+	figure(handles.figure1)         % Don't let this figure forgotten behind the newly created one
 
 % -------------------------------------------------------------------------------------
-% --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
+function pushbutton_cancel_Callback(hObject, handles)
 	delete(handles.figure1);
 
 % -------------------------------------------------------------------------------------
