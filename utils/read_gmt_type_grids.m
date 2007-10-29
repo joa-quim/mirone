@@ -1,6 +1,8 @@
 function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,opt)
-    % OPT indicates that only the grid info is outputed.
-    % If it is OPT = 'hdr' outputs info in the struct format, else outputs in the head format
+	% OPT indicates that only the grid info is outputed.
+	% MISC - which exists only when nc_io was used - is a struct with:
+	%		'desc', 'title', 'history', 'srsWKT', 'strPROJ4' fields
+	% If it is OPT = 'hdr' outputs info in the struct format, else outputs in the head format
 
     infoOnly = 0;
     if (nargin == 3),   infoOnly = 1;    end
@@ -36,7 +38,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 
 	if (~infoOnly)
 		[handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo);
-	elseif ( strmatch(tipo,{'GMT' 'SRF_BIN'}) )
+	elseif ( strmatch(tipo,{'CDF' 'SRF_BIN'}) )
 		if (opt(1) == 's')          % Get the info on the struct form
 			X = grdinfo_m(fullname,'hdr_struct');       % Output goes in the second arg
 		else                        % Get the info on the vector form
@@ -47,6 +49,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 		return
 	end
 
+% _________________________________________________________________________________________________	
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function [handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo)
 
@@ -60,7 +63,7 @@ function [handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo)
 
 	X = [];     Y = [];     Z = [];     head = [];		misc = [];		% MISC is used only by nc_io
 
-	if (~strcmp(tipo,'GMT'))        % GMT files are open by the GMT machinerie
+	if (~strcmp(tipo,'CDF'))        % GMT files are open by the GMT machinerie
 		[fid, msg] = fopen(fullname, 'r');
 		if (fid < 0),   errordlg([fullname ': ' msg],'ERROR');  return,		end
 	end
@@ -73,8 +76,12 @@ if (strcmp(tipo,'CDF'))
 		elseif (isa(Z,'double')),	Z = single(Z);		% The HORRRRRRRRROOOOOOOOOORRRRR
 		end
 	catch			% If it have failed try GMT
-		str = sprintf('First attempt to load netCDF file failed because ... \n\n %s\n\n Trying now with GMT mex', lasterr);
+		str = sprintf(['First attempt to load netCDF file failed because ... \n\n\n %s\n\n\n       Trying now with GMT mex ...' ...
+		'\n\nBTW. Please inform me about this error so that I can try to correct it.\nThanks.'], lasterr);
 		warndlg(str,'Info')
+		if ( ~isempty(findstr(lasterr, 'Out of memory')) ) % If its a memory problem, no use to insist
+			error(lasterr)
+		end
     	[X, Y, Z, head] = grdread_m(fullname,'single',opt_I);
     	handles.have_nans = grdutils(Z,'-N');
     	if (head(10) == 2 || head(10) == 8 || head(10) == 16),   handles.was_int16 = 1;  end     % New output from grdread_m
