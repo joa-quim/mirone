@@ -17,43 +17,47 @@ function varargout = color_palettes(varargin)
 % --------------------------------------------------------------------
 
 hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-color_palettes_LayoutFcn(hObject,handles);
+color_palettes_LayoutFcn(hObject);
 handles = guihandles(hObject);
 movegui(hObject,'center')
 
-handles.z_min = [];     handles.z_max = [];     handles.z_min_orig = [];    handles.z_max_orig = [];
-if (length(varargin) >= 1)      % varargin{1} must be the Mirone handles
-    handles.hCallingFig = varargin{1};
-    handMir = guidata(varargin{1});
-    handles.home_dir = handMir.home_dir;
-    handles.work_dir = handMir.work_dir;
-    Z = getappdata(handles.hCallingFig,'dem_z');
-    if (~isempty(Z))
-        handles.have_nans = handMir.have_nans;
-        handles.z_min_orig = handMir.head(5);
-        handles.z_max_orig = handMir.head(6);
-        set(handles.edit_Zmin,'String',handles.z_min_orig)
-        set(handles.edit_Zmax,'String',handles.z_max_orig)
-    else                        % File was too big to stay on memory
-        handles.have_nans = 0;
-    end
-    % Add this figure handle to the carraças list
-    plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
-    plugedWin = [plugedWin hObject];
-    setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
-else
-    set(handles.OptionsAutoApply,'checked','off','Enable','off')   % Prevent trying to update an unexisting figure cmap
-    set(handles.OptionsApply,'Enable','off')
-    set(findobj(hObject,'Tag','FileSavePaletteGrid'),'Visible','off')   % It makes no sense here
-    set(handles.edit_Zmax,'Enable','off');    set(handles.edit_Zmin,'Enable','off')
-    set(handles.text_MinZ,'Enable','off');    set(handles.text_MaxZ,'Enable','off')
-    handles.hCallingFig = [];
-    handles.have_nans = 0;
-    handles.z_min = [];
-    handles.z_max = [];
-    handles.home_dir = pwd;     handles.work_dir = handles.home_dir;
+handles.z_min = [];     handles.z_max = [];     handles.z_min_orig = [];    handles.z_max_orig = [];	cmap = [];
+if (nargin == 1 && isstruct(varargin{1}))
+	handMir = varargin{1};
+	if (~handMir.no_file)			% We have something on the Mirone window
+		if (ndims(get(handMir.hImg,'CData')) == 3)
+			warndlg('True color images do not use color palettes. So you cannot change it.','Warning');
+			delete(hObject);		return
+		end
+		handles.hCallingFig = handMir.figure1;
+		handles.home_dir = handMir.home_dir;
+		handles.work_dir = handMir.work_dir;
+		Z = getappdata(handMir.figure1,'dem_z');
+		if (~isempty(Z))
+			handles.have_nans = handMir.have_nans;
+			handles.z_min_orig = handMir.head(5);
+			handles.z_max_orig = handMir.head(6);
+			set(handles.edit_Zmin,'String',handles.z_min_orig)
+			set(handles.edit_Zmax,'String',handles.z_max_orig)
+		else                        % File was too big to stay on memory
+			handles.have_nans = 0;
+		end
+	else
+		set(handles.OptionsAutoApply,'checked','off','Enable','off')	% Prevent trying to update an unexisting figure cmap
+		set(handles.OptionsApply,'Enable','off')
+		set(handles.FileSavePaletteGrid','Vis','off')	% It makes no sense here
+		set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
+		handles.hCallingFig = [];
+		handles.have_nans = 0;
+		handles.home_dir = cd;     handles.work_dir = handles.home_dir;
+	end
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handMir.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handMir.figure1,'dependentFigs',plugedWin);
+elseif (nargin == 1 && ischar(varargin{1}))
+	cmap = FileReadPalette_Callback([], [], handles, [], varargin{1});
+	% to be continued
 end
 handles.d_path = [handles.home_dir filesep 'data' filesep];
 
@@ -79,15 +83,17 @@ for i=1:numel(h_f)
 end
 %------------- END Pro look (3D) -------------------------------------------------------
 
-handles.h_txt_cZ = findobj(hObject,'Style','Text','Tag','text_currentZ');
 handles.txt_cZ_pos = get(handles.h_txt_cZ,'Position');
 
 % Show the current colormap in axes
-if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
-    cmap = get(handles.hCallingFig,'Colormap');
-else
-    cmap = colormap(jet(256));
+if (isempty(cmap))
+	if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
+		cmap = get(handles.hCallingFig,'Colormap');
+	else
+		cmap = colormap(jet(256));
+	end
 end
+
 handles.cmap = cmap;
 handles.cmap_original = cmap;
 colormap(cmap);      I = 1:length(cmap);
@@ -153,7 +159,7 @@ end
 % -----------------------------------------------------------------------------------
 function listbox1_Callback(hObject, eventdata, handles)
 contents = get(hObject,'String');       pal = contents{get(hObject,'Value')};
-if (length(pal) > 8 & strcmp(pal(1:8),'Imported'))
+if (length(pal) > 8 && strcmp(pal(1:8),'Imported'))
     pal = pal(1:8);
 end
 switch pal
@@ -430,11 +436,6 @@ guidata(hObject, handles);
 change_cmap(handles,pal);
 
 % -----------------------------------------------------------------------------------
-function slider_Bottom_CreateFcn(hObject, eventdata, handles)
-% handles    empty - handles not created until after all CreateFcns called
-set(hObject,'BackgroundColor',[.9 .9 .9]);
-
-% -----------------------------------------------------------------------------------
 % --- Executes on slider movement.
 function slider_Bottom_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'Value') returns position of slider
@@ -465,11 +466,6 @@ end
 
 handles.pal_bot = cmap;     handles.no_slider = 0;      guidata(hObject, handles);
 change_cmap(handles,cmap)
-
-% -----------------------------------------------------------------------------------
-function slider_Top_CreateFcn(hObject, eventdata, handles)
-% handles    empty - handles not created until after all CreateFcns called
-set(hObject,'BackgroundColor',[.9 .9 .9]);
 
 % -----------------------------------------------------------------------------------
 % --- Executes on slider movement.
@@ -526,7 +522,7 @@ if (~isempty(handles.z_intervals))  % GMT palette with Z levels
     handles.z_intervals = [];       % Reset for the case of a new GMT palette import
 end
 
-if (handles.z_min ~= handles.z_min_orig | handles.z_max ~= handles.z_max_orig)
+if (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig)
 % %     %index = fix((C-cmin)/(cmax-cmin)*m)+1
 % %     index = fix((double(getappdata(handles.hCallingFig,'dem_z'))- ...
 % %         double(handles.z_min))/(double(handles.z_max)-double(handles.z_min))*length(pal))+1;
@@ -563,7 +559,7 @@ pal(pal < 0) = 0;
 set(handles.figure1,'Colormap',pal);
 
 if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
-    if (handles.have_nans)      pal_bg = [handles.bg_color; pal];
+    if (handles.have_nans),     pal_bg = [handles.bg_color; pal];
     else                        pal_bg = pal;   end
     set(handles.hCallingFig,'Colormap',pal_bg)         % Change the image colormap
 end
@@ -677,7 +673,7 @@ set(handles.listbox1,'Value',1)     % Now we have a new "Current cmap"
 
 % --------------------------------------------------------------------
 function FileExit_Callback(hObject, eventdata, handles)
-    delete(handles.figure1)
+    figure1_CloseRequestFcn(handles.figure1, [])
 
 % --------------------------------------------------------------------
 function OptionsApply_Callback(hObject, eventdata, handles)
@@ -709,31 +705,36 @@ else
 end
 
 % --------------------------------------------------------------------
-function FileReadPalette_Callback(hObject, eventdata, handles, opt)
-if (nargin == 3),   opt = [];   end
-str1 = {'*.cpt;*.CPT', 'CPT files (*.cpt,*.CPT)';'*.*', 'All Files (*.*)'};
-cd(handles.work_dir);
-[FileName,PathName] = uigetfile(str1,'Select CPT file');
-cd(handles.home_dir);
-if isequal(FileName,0);     return;     end
-fname = [PathName FileName];
-try
-    if (~isempty(opt))  % Use the cpt Z levels as well
-        [cmap,handles.z_intervals] = cpt2cmap(['-C' fname]);
-    else                % Use only the cpt colors
-        cmap = cpt2cmap(['-C' fname]);
-    end
-catch
-    errordlg('There was an error reading the CPT file.','Error')
-    return
-end
-handles.cmap = cmap;        handles.imported_cmap = cmap;
-handles.no_slider = 1;
-list = get(handles.listbox1,'String');
-list{1} = ['Imported (' FileName ')'];
-set(handles.listbox1,'String',list,'Value',1);
-guidata(gcbo,handles)
-change_cmap(handles,handles.cmap);
+function cmap = FileReadPalette_Callback(hObject, eventdata, handles, opt, opt2)
+	if (nargin == 3),   opt = [];   end
+	if (nargin < 5),	opt2 = [];	end
+	if (isempty(opt2))
+		str1 = {'*.cpt;*.CPT', 'CPT files (*.cpt,*.CPT)';'*.*', 'All Files (*.*)'};
+		cd(handles.work_dir);
+		[FileName,PathName] = uigetfile(str1,'Select CPT file');
+		cd(handles.home_dir);
+		if isequal(FileName,0);     return;     end
+		fname = [PathName FileName];
+	else
+		fname = opt2;
+	end
+	try
+		if (~isempty(opt))  % Use the cpt Z levels as well
+			[cmap,handles.z_intervals] = cpt2cmap(['-C' fname]);
+		else                % Use only the cpt colors
+			cmap = cpt2cmap(['-C' fname]);
+		end
+	catch
+		errordlg('There was an error reading the CPT file.','Error')
+		return
+	end
+	handles.cmap = cmap;        handles.imported_cmap = cmap;
+	handles.no_slider = 1;
+	list = get(handles.listbox1,'String');
+	list{1} = ['Imported (' FileName ')'];
+	set(handles.listbox1,'String',list,'Value',1);
+	guidata(handles.figure1,handles)
+	change_cmap(handles,handles.cmap);
 
 % --------------------------------------------------------------------
 function [z_min,z_max] = min_max_single(Z)
@@ -1036,25 +1037,25 @@ map = [map                  % cube minus r, g, b and gray ramps
     kramp   kramp   kramp]; % gray ramp
 
 % ------------------------------------------------------------------------
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-    handles = guidata(handles.figure1);
-	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-        % The GUI is still in UIWAIT, us UIRESUME
-        handles.killed = true;      % User gave up, return nothing
-        guidata(hObject, handles);    uiresume(handles.figure1);
+function figure1_CloseRequestFcn(hObject, eventdata)
+    handles = guidata(hObject);
+	if isequal(get(hObject, 'waitstatus'), 'waiting')
+		% The GUI is still in UIWAIT, us UIRESUME
+		handles.killed = true;      % User gave up, return nothing
+		guidata(hObject, handles);    uiresume(hObject);
 	else
-        % The GUI is no longer waiting, just close it
-        delete(handles.figure1)
+		% The GUI is no longer waiting, just close it
+		delete(hObject)
 	end
-    
+	
 % --------------------------------------------------------------------
 % --- Creates and returns a handle to the GUI figure. 
-function color_palettes_LayoutFcn(h1,handles)
+function color_palettes_LayoutFcn(h1)
 
 set(h1,...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
+'CloseRequestFcn',{@figure1_CloseRequestFcn},...
 'MenuBar','none',...
 'Name','Color Palettes',...
 'NumberTitle','off',...
@@ -1079,12 +1080,9 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.9 0.9 0.9],...
 'Callback',{@color_palettes_uicallback,h1,'slider_Bottom_Callback'},...
-'CData',[],...
 'Position',[12 254 271 16],...
-'String',{  '' },...
 'Style','slider',...
-'Tag','slider_Bottom',...
-'UserData',[]);
+'Tag','slider_Bottom');
 
 axes('Parent',h1, 'Units','pixels',...
 'Color',get(0,'defaultaxesColor'),...
@@ -1105,7 +1103,6 @@ uicontrol('Parent',h1,...
 'BackgroundColor',[0.9 0.9 0.9],...
 'Callback',{@color_palettes_uicallback,h1,'slider_Top_Callback'},...
 'Position',[12 221 271 16],...
-'String',{  '' },...
 'Style','slider',...
 'Tag','slider_Top');
 
@@ -1242,7 +1239,7 @@ uicontrol('Parent',h1,'Position',[10 359 40 15],...
 uicontrol('Parent',h1,...
 'FontSize',10, 'HorizontalAlignment','left',...
 'Position',[100 333 85 16],...
-'Style','text', 'Tag','text_currentZ');
+'Style','text', 'Tag','h_txt_cZ');
 
 uicontrol('Parent',h1,...
 'Callback',{@color_palettes_uicallback,h1,'push_retColorMap_Callback'},...
@@ -1253,9 +1250,9 @@ uicontrol('Parent',h1,...
 'Tag','push_retColorMap');
 
 function color_palettes_uicallback(hObject, eventdata, h1, callback_name)
-% This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	% This function is executed by the callback and than the handles is allways updated.
+	feval(callback_name,hObject,[],guidata(h1));
 
 function color_palettes_uicallback4(hObject, eventdata, h1, opt, callback_name)
-% This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1),opt);
+	% This function is executed by the callback and than the handles is allways updated.
+	feval(callback_name,hObject,[],guidata(h1),opt);
