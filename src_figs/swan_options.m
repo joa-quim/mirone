@@ -1,272 +1,204 @@
 function varargout = swan_options(varargin)
-% M-File changed by desGUIDE 
-% varargin   command line arguments to swan_options (see VARARGIN) 
-%
-% varargout will have a structure with the following fields:
-%   --- If the grids were not already in memory
-%   output.grid_Z_bat
-%   output.grid_head_bat
-%   output.grid_Z_src
-%   output.grid_head_src
-%   --- Allways
-%   output.params
-%   --- Optional
-%   output.maregraph_xy
-%   output.maregraph_data_name
-%   output.opt_D
-%   output.opt_G = '-G<namestem> (write grids)
-%   output.opt_M = '-M';
-%   output.opt_N
-%   output.opt_m = '-m' (movie)
-%   --- Or empty if user gave up
+	% M-File changed by desGUIDE 
+	% varargin   command line arguments to swan_options (see VARARGIN) 
+	%
+	% varargout will have a structure with the following fields:
+	%   --- If the grids were not already in memory
+	%   output.grid_Z_bat
+	%   output.grid_head_bat
+	%   output.grid_Z_src
+	%   output.grid_head_src
+	%   --- Allways
+	%   output.params
+	%   --- Optional (not so much)
+	%   output.maregraph_xy
+	%   output.maregraph_data_name
+	%   output.opt_D
+	%   output.opt_F	(tsun2 only - friction)
+	%   output.opt_O	(tsun2 only - out maregs locations)
+	%   output.opt_G = '-G<namestem> (write grids)
+	%   output.opt_M = '-M';
+	%   output.opt_N
+	%   output.opt_m = '-m' (movie)
+	%   output.opt_S = '-S' (swan only - write momentums)
+	%   output.opt_s = '-s' (swan only - write velocities)
+	%   --- Or empty if user gave up
+	
+	%	Copyright (c) 2004-2006 by J. Luis
+	%
+	%	This program is free software; you can redistribute it and/or modify
+	%	it under the terms of the GNU General Public License as published by
+	%	the Free Software Foundation; version 2 of the License.
+	%
+	%	This program is distributed in the hope that it will be useful,
+	%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	%	GNU General Public License for more details.
+	%
+	%	Contact info: w3.ualg.pt/~jluis/mirone
+	% --------------------------------------------------------------------
 
-%	Copyright (c) 2004-2006 by J. Luis
-%
-%	This program is free software; you can redistribute it and/or modify
-%	it under the terms of the GNU General Public License as published by
-%	the Free Software Foundation; version 2 of the License.
-%
-%	This program is distributed in the hope that it will be useful,
-%	but WITHOUT ANY WARRANTY; without even the implied warranty of
-%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%	GNU General Public License for more details.
-%
-%	Contact info: w3.ualg.pt/~jluis/mirone
-% --------------------------------------------------------------------
+	if (isempty(varargin))
+		errordlg('Bad call to swan_option. Please warn me (the author)','Error')
+		return
+	end
+	
+	hObject = figure('Tag','figure1','Visible','off');
+	swan_options_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	movegui(hObject,'east')
 
-hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-swan_options_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
+	handles.head_bat = [];
+	handles.head_src = [];
+	handles.maregraph_xy = [];
+	handles.BothGridsInMemory = 0;  % Flag to signal that bat & deform arrays are already in memory
+	handles.BatGridInMemory = 0;    % Flag to signal that bat array is already in memory
+	handles.MaregraphInMemory = 1;  % Flag to signal that the maregraphs locations are already in memory
+	handles.got_params = 0;         % Flag that signals a (possibly correct) params file
+	handles.is_tsun2 = 0;           % Flag to signal that options are for use in tsun2 code
+	handles.n_jump = 0;             % TSUN2 only. If > 0, the maregraphs array will start at n_jump + 1
+	last_dir = [];
+	
+	handMir = varargin{1};
+	handles.hCallingFig = handMir.figure1;
+	handles.home_dir = handMir.home_dir;
+	handles.work_dir = handMir.work_dir;
+	handles.last_dir = handMir.last_dir;
 
-global home_dir
-if isempty(home_dir)    f_data = [pwd filesep 'data' filesep];
-else                    f_data = [home_dir filesep 'data' filesep];   end
+	% Import icons
+	f_data = [handles.home_dir filesep 'data' filesep];
+	load([f_data 'mirone_icons.mat'],'Mfopen_ico');
+	set(handles.pushbutton_BatGrid,'CData',Mfopen_ico)
+	set(handles.pushbutton_SourceGrid,'CData',Mfopen_ico)
+	set(handles.pushbutton_ParamsFile,'CData',Mfopen_ico)
+	set(handles.pushbutton_MaregraphPosFile,'CData',Mfopen_ico)
+	set(handles.pushbutton_MaregraphDataFile,'CData',Mfopen_ico)
+	clear Mfopen_ico;
 
-movegui(hObject,'east')
+	if (numel(varargin) > 1)
+		if (strcmp(varargin{2},'bat_and_deform_with_maregs') || strcmp(varargin{2},'bat_and_deform'))
+			set(handles.edit_BatGrid,'String','In memory array','Enable','off')
+			set(handles.pushbutton_BatGrid,'Enable','off')
+			set(handles.edit_SourceGrid,'String','In memory array','Enable','off')
+			set(handles.pushbutton_SourceGrid,'Enable','off')
+			set(handles.edit_Jump_initialTime,'Enable','off')
+			handles.BothGridsInMemory = 1;
+			if (strcmp(varargin{2},'bat_and_deform_with_maregs'))
+				set(handles.checkbox_WantMaregraphs,'Value',1)
+				set(handles.edit_MaregraphPosFile,'String','In memory array','Enable','off')
+				set(handles.pushbutton_MaregraphPosFile,'Enable','off')
+				handles.MaregraphInMemory = 1;
+				handles.maregraph_xy = varargin{3};     % need this for the error test logic
+				set(handles.edit_MaregraphDataFile,'String',[handMir.last_dir 'maregs.dat'],'Enable','on')
+			else
+				set(handles.edit_MaregraphPosFile,'String','','Enable','off')
+				set(handles.edit_MaregraphDataFile,'String','','Enable','off')
+				set(handles.pushbutton_MaregraphPosFile,'Enable','off')
+				set(handles.pushbutton_MaregraphDataFile,'Enable','off')
+			end
+		elseif (strcmp(varargin{2},'bat_with_maregs') || strcmp(varargin{2},'bat_only'))
+			handles.Z_bat = varargin{3};
+			handles.head_bat = varargin{4};
+			set(handles.edit_BatGrid,'String','In memory array','Enable','off')
+			set(handles.pushbutton_BatGrid,'Enable','off')
+			set(handles.edit_Jump_initialTime,'Enable','off')
+			handles.BatGridInMemory = 1;
+			if (strcmp(varargin{2},'bat_with_maregs'))
+				set(handles.checkbox_WantMaregraphs,'Value',1)
+				set(handles.edit_MaregraphPosFile,'String','In memory array','Enable','off')
+				set(handles.pushbutton_MaregraphPosFile,'Enable','off')
+				handles.MaregraphInMemory = 1;
+				handles.maregraph_xy = varargin{5};     % need this for the error test logic
+				set(handles.edit_MaregraphDataFile,'String',[handMir.last_dir 'maregs.dat'],'Enable','on')
+			else
+				set(handles.edit_MaregraphPosFile,'String','','Enable','off')
+				set(handles.edit_MaregraphDataFile,'String','','Enable','off')
+				set(handles.pushbutton_MaregraphPosFile,'Enable','off')
+				set(handles.pushbutton_MaregraphDataFile,'Enable','off')
+			end
+		elseif (strcmp(varargin{2},'Tsun2'))
+			handles.is_tsun2 = 1;
+			handles.outTsu_maregs = [];		% Optional output maregraphs file
+			set(handles.edit_BatGrid,'String','In memory array','Enable','off')
+			set(handles.pushbutton_BatGrid,'Enable','off')
+			set(handles.edit_SourceGrid,'String','Not used in tsun2','Enable','off')
+			set(handles.pushbutton_SourceGrid,'Enable','off')
+			set(handles.checkbox_momentum,'Vis','off')
+			set(handles.checkbox_velocity,'Vis','off')
+			handles.BatGridInMemory = 1;
+			set(handles.checkbox_WantMaregraphs,'Value',1)
+			set(handles.edit_MaregraphPosFile,'Enable','on')
+			set(handles.pushbutton_MaregraphPosFile,'Enable','on')
+			set(handles.txtOutMaregs,'String','Option')
+			str = sprintf(['Optional file with output maregraphs location.\n'...
+        					'The results will be saved in a file whose name is\n' ...
+							'obtained by appending _maregHeights.dat to this one']);
+			set(handles.edit_MaregraphDataFile,'Tooltip',str)
+			set(handles.edit_friction,'Vis','on')
+			set(handles.textFriction,'Vis','on')
+			set(handles.figure1,'Name','Tsun2 options')
+		end
+	end
 
-handles.head_bat = [];
-handles.head_src = [];
-handles.maregraph_xy = [];
-handles.BothGridsInMemory = 0;  % Flag to signal that bat & deform arrays are already in memory
-handles.BatGridInMemory = 0;    % Flag to signal that bat array is already in memory
-handles.MaregraphInMemory = 1;  % Flag to signal that the maregraphs locations are already in memory
-handles.got_params = 0;         % Flag that signals a (possibly correct) params file
-handles.h_calling_fig = [];     % Handles to the calling figure
-handles.is_tsun2 = 0;           % Flag to signal that options are for use in tsun2 code
-handles.n_jump = 0;             % TSUN2 only. If > 0, the maregraphs array will start at n_jump + 1
-last_dir = [];
+	if (handMir.last_dir(end) == filesep)
+		set(handles.edit_gridNameStem,'String',[handMir.last_dir 'tsu_time_'],'Enable','off')
+	else
+		set(handles.edit_gridNameStem,'String',[handMir.last_dir filesep 'tsu_time_'],'Enable','off')
+	end
 
-% Import icons
-load([f_data 'mirone_icons.mat'],'Mfopen_ico');
-set(handles.pushbutton_BatGrid,'CData',Mfopen_ico)
-set(handles.pushbutton_SourceGrid,'CData',Mfopen_ico)
-set(handles.pushbutton_ParamsFile,'CData',Mfopen_ico)
-set(handles.pushbutton_MaregraphPosFile,'CData',Mfopen_ico)
-set(handles.pushbutton_MaregraphDataFile,'CData',Mfopen_ico)
-clear Mfopen_ico;
+	% Choose default command line output for swan_options
+	handles.output = hObject;
+	guidata(hObject, handles);
 
-if (~isempty(varargin))
-    if (strcmp(varargin{1},'bat_and_deform_with_maregs') || strcmp(varargin{1},'bat_and_deform'))
-        set(handles.edit_BatGrid,'String','In memory array','Enable','off')
-        set(handles.pushbutton_BatGrid,'Enable','off')
-        set(handles.edit_SourceGrid,'String','In memory array','Enable','off')
-        set(handles.pushbutton_SourceGrid,'Enable','off')
-        set(handles.edit_Jump_initialTime,'Enable','off')
-        handles.BothGridsInMemory = 1;
-        if (strcmp(varargin{1},'bat_and_deform_with_maregs'))
-            set(handles.checkbox_WantMaregraphs,'Value',1)
-            set(handles.edit_MaregraphPosFile,'String','In memory array','Enable','off')
-            set(handles.pushbutton_MaregraphPosFile,'Enable','off')
-            handles.MaregraphInMemory = 1;
-            handles.maregraph_xy = varargin{2};     % need this for the error test logic
-            handles.h_calling_fig = varargin{3};
-            cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-            last_dir = cfig_handles.last_dir;
-            set(handles.edit_MaregraphDataFile,'String',[last_dir 'maregs.dat'],'Enable','on')
-        else
-            handles.h_calling_fig = varargin{2};
-            set(handles.edit_MaregraphPosFile,'String','','Enable','off')
-            set(handles.edit_MaregraphDataFile,'String','','Enable','off')
-            set(handles.pushbutton_MaregraphPosFile,'Enable','off')
-            set(handles.pushbutton_MaregraphDataFile,'Enable','off')
-        end
-    elseif (strcmp(varargin{1},'bat_with_maregs') || strcmp(varargin{1},'bat_only'))
-        handles.Z_bat = varargin{2};
-        handles.head_bat = varargin{3};
-        set(handles.edit_BatGrid,'String','In memory array','Enable','off')
-        set(handles.pushbutton_BatGrid,'Enable','off')
-        set(handles.edit_Jump_initialTime,'Enable','off')
-        handles.BatGridInMemory = 1;
-        if (strcmp(varargin{1},'bat_with_maregs'))
-            set(handles.checkbox_WantMaregraphs,'Value',1)
-            set(handles.edit_MaregraphPosFile,'String','In memory array','Enable','off')
-            set(handles.pushbutton_MaregraphPosFile,'Enable','off')
-            handles.MaregraphInMemory = 1;
-            handles.maregraph_xy = varargin{4};     % need this for the error test logic
-            handles.h_calling_fig = varargin{5};
-            cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-            last_dir = cfig_handles.last_dir;
-            set(handles.edit_MaregraphDataFile,'String',[last_dir 'maregs.dat'],'Enable','on')
-        else
-            handles.h_calling_fig = varargin{4};
-            set(handles.edit_MaregraphPosFile,'String','','Enable','off')
-            set(handles.edit_MaregraphDataFile,'String','','Enable','off')
-            set(handles.pushbutton_MaregraphPosFile,'Enable','off')
-            set(handles.pushbutton_MaregraphDataFile,'Enable','off')
-        end
-    elseif (strcmp(varargin{1},'Tsun2'))
-        handles.is_tsun2 = 1;
-        set(handles.edit_BatGrid,'String','In memory array','Enable','off')
-        set(handles.pushbutton_BatGrid,'Enable','off')
-        set(handles.edit_SourceGrid,'String','Not used in tsun2','Enable','off')
-        set(handles.pushbutton_SourceGrid,'Enable','off')
-        handles.BatGridInMemory = 1;
-        set(handles.checkbox_WantMaregraphs,'Value',1)
-        set(handles.edit_MaregraphPosFile,'Enable','on')
-        set(handles.pushbutton_MaregraphPosFile,'Enable','on')
-        set(handles.edit_MaregraphDataFile,'String','Not used in tsun2','Enable','off')
-        set(handles.pushbutton_MaregraphDataFile,'Enable','off')
-        set(gcf,'Name','Tsun2 options')
-        handles.h_calling_fig = varargin{2};
-    else
-        handles.h_calling_fig = varargin{1};
-    end
-end
+	set(hObject,'Visible','on');
+	% UIWAIT makes swan_options wait for user response (see UIRESUME)
+	uiwait(handles.figure1);
 
-if (~isempty(handles.h_calling_fig))
-    if (isempty(last_dir))      % This happens mostly when called in the Tsun2 mode
-        cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-        last_dir = cfig_handles.last_dir;
-    end
-    set(handles.edit_gridNameStem,'String',[last_dir filesep 'tsu_time_'],'Enable','off')
-end
-
-% Choose default command line output for swan_options_export
-handles.output = hObject;
-guidata(hObject, handles);
-
-set(hObject,'Visible','on');
-% UIWAIT makes swan_options_export wait for user response (see UIRESUME)
-uiwait(handles.figure1);
-
-handles = guidata(hObject);
-out = swan_options_OutputFcn(hObject, [], handles);
-varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = swan_options_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% handles    structure with handles and user data (see GUIDATA)
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-% The figure can be deleted now
-delete(handles.figure1);
+	handles = guidata(hObject);
+	varargout{1} = handles.output;
+	delete(handles.figure1);
 
 % -----------------------------------------------------------------------------------------
 function edit_BatGrid_Callback(hObject, eventdata, handles)
-fname = get(hObject,'String');
-if ~isempty(fname)
-    % Because GMT and Surfer share the .grd extension, find out which kind grid we are dealing with
-    [fid, msg] = fopen(fname, 'r');
-    if (fid < 0)    errordlg([fname ': ' msg],'ERROR');     return;    end
-    ID = fread(fid,4,'*char');
-    ID = strread(ID,'%s');
-    if strcmp(ID,'DSBB') | strcmp(ID,'DSRB') 
-        fname = [fname '=6'];
-    elseif strcmp(ID,'DSAA')
-        warndlg('I don''t know and do not intend to learn how to read ASCII Surfer grids.','Warning')
-        return
-    end
-    [X,Y,handles.Z_bat,handles.head_bat] = grdread_m(fname);
-    guidata(hObject,handles)
-else
-    set(hObject,'String','')
-end
+	fname = get(hObject,'String');
+	if ~isempty(fname)
+		[handles,X,Y,handles.Z_bat,handles.head_bat] = read_gmt_type_grids(handles,fname);
+		if (isempty(X)),    set(hObject,'String',''),	return,		end
+		guidata(hObject,handles)
+	end
 
 % -----------------------------------------------------------------------------------------
 function pushbutton_BatGrid_Callback(hObject, eventdata, handles)
-[FileName,PathName] = uigetfile({'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid');
-pause(0.01);
-if isequal(FileName,0);     return;     end
-fname = [PathName FileName];
+	str1 = {'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select grid','get');
+	if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
 
-% Because GMT and Surfer share the .grd extension, find out which kind grid we are dealing with
-[fid, msg] = fopen(fname, 'r');
-if fid < 0
-    errordlg([PathName FileName ': ' msg],'ERROR'); return
-end
-ID = fread(fid,4,'*char');
-ID = strread(ID,'%s');
-if strcmp(ID,'DSBB') | strcmp(ID,'DSRB') 
-    fname = [fname '=6'];
-elseif strcmp(ID,'DSAA')
-    warndlg('I don''t know and do not intend to learn how to read ASCII Surfer grids.','Warning')
-    return
-end
-[X,Y,handles.Z_bat,handles.head_bat] = grdread_m(fname);
-set(handles.edit_BatGrid,'String',fname)
-guidata(hObject,handles)
+	[handles,X,Y,handles.Z_bat,handles.head_bat] = read_gmt_type_grids(handles,fname);
+	if (isempty(X)),    return,		end
+	set(handles.edit_BatGrid,'String',fname)
+	guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------------
 function edit_SourceGrid_Callback(hObject, eventdata, handles)
-fname = get(hObject,'String');
-if ~isempty(fname)
-    % Because GMT and Surfer share the .grd extension, find out which kind grid we are dealing with
-    [fid, msg] = fopen(fname, 'r');
-    if fid < 0
-        errordlg([fname ': ' msg],'ERROR'); return
-    end
-    ID = fread(fid,4,'*char');
-    ID = strread(ID,'%s');
-    if strcmp(ID,'DSBB') | strcmp(ID,'DSRB') 
-        fname = [fname '=6'];
-    elseif strcmp(ID,'DSAA')
-        warndlg('I don''t know and do not intend to learn how to read ASCII Surfer grids.','Warning')
-        return
-    end
-    [X,Y,handles.Z_src,handles.head_src] = grdread_m(fname);
-    guidata(hObject,handles)
-else
-    set(hObject,'String','')
-end
+	fname = get(hObject,'String');
+	if ~isempty(fname)
+		[handles,X,Y,handles.Z_src,handles.head_src] = read_gmt_type_grids(handles,fname);
+		if (isempty(X)),    set(hObject,'String',''),	return,		end
+		guidata(hObject,handles)
+	end
 
 % -----------------------------------------------------------------------------------------
 function pushbutton_SourceGrid_Callback(hObject, eventdata, handles)
+	str1 = {'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select grid','get');
+	if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
 
-if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-    last_dir = cfig_handles.last_dir;
-    home = cfig_handles.home_dir;
-else
-    last_dir = [];
-end
-
-if (~isempty(last_dir)),    cd(last_dir);   end
-[FileName,PathName] = uigetfile({'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid');
-pause(0.01);
-if (~isempty(last_dir)),    cd(home);   end
-if isequal(FileName,0);     return;     end
-fname = [PathName FileName];
-
-% Because GMT and Surfer share the .grd extension, find out which kind grid we are dealing with
-[fid, msg] = fopen(fname, 'r');
-if fid < 0
-    errordlg([PathName FileName ': ' msg],'ERROR'); return
-end
-ID = fread(fid,4,'*char');
-ID = strread(ID,'%s');
-if strcmp(ID,'DSBB') | strcmp(ID,'DSRB') 
-    fname = [fname '=6'];
-elseif strcmp(ID,'DSAA')
-    warndlg('I don''t know and do not intend to learn how to read ASCII Surfer grids.','Warning')
-    return
-end
-[X,Y,handles.Z_src,handles.head_src] = grdread_m(fname);
-set(handles.edit_SourceGrid,'String',fname)
-guidata(hObject,handles)
+	[handles,X,Y,handles.Z_src,handles.head_src] = read_gmt_type_grids(handles,fname);
+	if (isempty(X)),    return,		end
+	set(handles.edit_SourceGrid,'String',fname)
+	guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------------
 function edit_SwanParams_Callback(hObject, eventdata, handles)
@@ -296,252 +228,257 @@ guidata(hObject,handles)
 % -----------------------------------------------------------------------------------------
 function pushbutton_ParamsFile_Callback(hObject, eventdata, handles)
 
-if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-    last_dir = cfig_handles.last_dir;
-    home = cfig_handles.home_dir;
-else
-    last_dir = [];
-end
+	cfig_handles = guidata(handles.hCallingFig);      % get handles of the calling fig
+	last_dir = cfig_handles.last_dir;
+	home = cfig_handles.home_dir;
 
-if (~isempty(last_dir)),    cd(last_dir);   end
-[FileName,PathName] = uigetfile({'*.par', 'Params file (*.par)';'*.*', 'All Files (*.*)'},'Select Swan parameter file');
-pause(0.01);
-if (~isempty(last_dir)),    cd(home);   end
-if isequal(FileName,0);     return;     end
-fname = [PathName FileName];
-fid = fopen(fname,'r');
-if (fid < 0)
-    errordlg('Error opening params file (it probably doesn''t exist)','Error');
-    set(hObject,'String','')
-    handles.got_params = 0;
-    return
-end
-i = 1;
-while 1
-    tline = fgetl(fid);
-    if ~ischar(tline), break, end
-    if (~isempty(tline) && tline(1) ~= '#')      % Jump comment lines
-        token = strtok(tline);
-        handles.params(i) = str2double(token);
-        i = i + 1;
-    end
-end
-handles.got_params = 1;     % Lets just hope that the info in it is correct
-fclose(fid);
-set(handles.edit_SwanParams,'String',fname)
-guidata(hObject,handles)
+	if (~isempty(last_dir)),    cd(last_dir);   end
+	[FileName,PathName] = uigetfile({'*.par', 'Params file (*.par)';'*.*', 'All Files (*.*)'},'Select Swan parameter file');
+	pause(0.01);
+	if (~isempty(last_dir)),    cd(home);   end
+	if isequal(FileName,0);     return;     end
+	fname = [PathName FileName];
+	fid = fopen(fname,'r');
+	if (fid < 0)
+		errordlg('Error opening params file (it probably doesn''t exist)','Error');
+		set(hObject,'String','')
+		handles.got_params = 0;
+		return
+	end
+	i = 1;
+	while 1
+		tline = fgetl(fid);
+		if ~ischar(tline), break, end
+		if (~isempty(tline) && tline(1) ~= '#')      % Jump comment lines
+			token = strtok(tline);
+			handles.params(i) = str2double(token);
+			i = i + 1;
+		end
+	end
+	handles.got_params = 1;     % Lets just hope that the info in it is correct
+	fclose(fid);
+	set(handles.edit_SwanParams,'String',fname)
+	guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------------
 function radiobutton_SurfaceLevel_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_MaxWater,'Value',0)
-    set(handles.radiobutton_TotalWater,'Value',0)
-else
-    set(hObject,'Value',1)
-    set(handles.radiobutton_MaxWater,'Value',0)
-    set(handles.radiobutton_TotalWater,'Value',0)
-end
+	if (get(hObject,'Value'))
+		set(handles.radiobutton_MaxWater,'Value',0)
+		set(handles.radiobutton_TotalWater,'Value',0)
+	else
+		set(hObject,'Value',1)
+		set(handles.radiobutton_MaxWater,'Value',0)
+		set(handles.radiobutton_TotalWater,'Value',0)
+	end
 
 % -----------------------------------------------------------------------------------------
 function radiobutton_MaxWater_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_SurfaceLevel,'Value',0)
-    set(handles.radiobutton_TotalWater,'Value',0)
-else
-    set(hObject,'Value',1)
-    set(handles.radiobutton_SurfaceLevel,'Value',0)
-    set(handles.radiobutton_TotalWater,'Value',0)
-end
+	if (get(hObject,'Value'))
+		set(handles.radiobutton_SurfaceLevel,'Value',0)
+		set(handles.radiobutton_TotalWater,'Value',0)
+	else
+		set(hObject,'Value',1)
+		set(handles.radiobutton_SurfaceLevel,'Value',0)
+		set(handles.radiobutton_TotalWater,'Value',0)
+	end
 
 % -----------------------------------------------------------------------------------------
 function radiobutton_TotalWater_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_SurfaceLevel,'Value',0)
-    set(handles.radiobutton_MaxWater,'Value',0)
-else
-    set(hObject,'Value',1)
-    set(handles.radiobutton_SurfaceLevel,'Value',0)
-    set(handles.radiobutton_MaxWater,'Value',0)
-end
+	if (get(hObject,'Value'))
+		set(handles.radiobutton_SurfaceLevel,'Value',0)
+		set(handles.radiobutton_MaxWater,'Value',0)
+	else
+		set(hObject,'Value',1)
+		set(handles.radiobutton_SurfaceLevel,'Value',0)
+		set(handles.radiobutton_MaxWater,'Value',0)
+	end
 
 % -----------------------------------------------------------------------------------------
 function edit_Number_of_cycles_Callback(hObject, eventdata, handles)
-% The OK button will get the number of cycles from here. So make sure it gives a possible number
-xx = get(hObject,'String');
-if isnan(str2double(xx))
-    set(hObject,'String','1010')
-elseif (str2double(xx) <= 0)
-    set(hObject,'String','1010')
-else
-    set(hObject,'String',num2str(fix(str2double(xx))) ) % Insure that it is an integer
-end
+	% The OK button will get the number of cycles from here. So make sure it gives a possible number
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 2)
+		set(hObject,'String','1010')
+	else
+		set(hObject,'String',fix(xx) ) % Insure that it is an integer
+	end
 
 % -----------------------------------------------------------------------------------------
 function edit_Jump_initialTime_Callback(hObject, eventdata, handles)
 % Remove this number of seconds from the beguining of the maregraphs (if they were loaded)
 jmp = str2double(get(hObject,'String'));
-if (isnan(jmp) | jmp < 0 | isempty(handles.maregraph_xy))
-    set(hObject,'String','0');
-    handles.n_jump = 0;
+if (isnan(jmp) || jmp < 0 || isempty(handles.maregraph_xy))
+	set(hObject,'String','0');
+	handles.n_jump = 0;
 else
     [m,n] = size(handles.maregraph_xy);
     dt1 = diff(handles.maregraph_xy(:,1));    dt2 = diff(dt1);
-    if any(dt2 ~= 0)            % First column doesn't have the time
-    else                        % First column has the time.
-        dt = dt1(1);            % This is the time increment
-        n_jmp = fix(jmp / dt);  % Number of records to jump
-        if ((m - n_jmp) < 10)  % Stupid jump time choice
+    if any(dt2 ~= 0)				% First column doesn't have the time
+    else							% First column has the time.
+        dt = dt1(1);				% This is the time increment
+        n_jmp = fix(jmp / dt);		% Number of records to jump
+        if ((m - n_jmp) < 10)		% Stupid choice for jump time
             set(hObject,'String','0')
-            handles.n_jump = 0;
-            return
+			n_jmp = 0;
         end
-        handles.n_jump = n_jmp;
-        set(handles.edit_Number_of_cycles,'String',num2str(m-n_jmp))    % Uppdate max pssible
-        guidata(hObject,handles)
+		handles.n_jump = n_jmp;
+		set(handles.edit_Number_of_cycles,'String',num2str(m-n_jmp))    % Uppdate max pssible
+		guidata(hObject,handles)
     end
 end
 
 % -----------------------------------------------------------------------------------------
 function checkbox_WantMaregraphs_Callback(hObject, eventdata, handles)
-% In tsun2 maregraphs are mandatory (for reading), so never let the user uncheck
-if (handles.is_tsun2 == 1),     set(hObject,'Value',1);     return;     end
+	% In tsun2 maregraphs are mandatory (for reading), so never let the user uncheck
+	if (handles.is_tsun2 == 1),     set(hObject,'Value',1);     return;     end
 
-if (get(hObject,'Value'))
-    set(handles.edit_MaregraphPosFile,'Enable','on')
-    set(handles.edit_MaregraphDataFile,'Enable','on')
-    set(handles.pushbutton_MaregraphPosFile,'Enable','on')
-    set(handles.pushbutton_MaregraphDataFile,'Enable','on')
-else
-    set(handles.edit_MaregraphPosFile,'String','','Enable','off')
-    set(handles.edit_MaregraphDataFile,'String','','Enable','off')
-    set(handles.pushbutton_MaregraphPosFile,'Enable','off')
-    set(handles.pushbutton_MaregraphDataFile,'Enable','off')
-end
+	if (get(hObject,'Value'))
+		set(handles.edit_MaregraphPosFile,'Enable','on')
+		set(handles.edit_MaregraphDataFile,'Enable','on')
+		set(handles.pushbutton_MaregraphPosFile,'Enable','on')
+		set(handles.pushbutton_MaregraphDataFile,'Enable','on')
+	else
+		set(handles.edit_MaregraphPosFile,'String','','Enable','off')
+		set(handles.edit_MaregraphDataFile,'String','','Enable','off')
+		set(handles.pushbutton_MaregraphPosFile,'Enable','off')
+		set(handles.pushbutton_MaregraphDataFile,'Enable','off')
+	end
 
 % -----------------------------------------------------------------------------------------
 function edit_MaregraphPosFile_Callback(hObject, eventdata, handles)
-fname = get(hObject,'String');
-if isempty(fname),  return;     end
-hFig = gcf;
-[bin,n_column,multi_seg,n_headers] = guess_file(fname);
-% If msgbox exist we have to move it from behind the main window. So get it's handle
-hMsgFig = gcf;
-if (hFig ~= hMsgFig)        uistack(hMsgFig,'top');   end   % If msgbox exists, bring it forward
-% If error in reading file
-if isempty(bin) & isempty(n_column) & isempty(multi_seg) & isempty(n_headers)
-    errordlg(['Error reading file ' fname],'Error');    return
-end
-if multi_seg ~= 0   % multisegments are not spported
-    errordlg('Multisegment files are yet not supported.','Error');   return
-end
-if (bin == 0)   % ASCII
-    if n_column < 2
-        errordlg('File error. Your file doesn''t have at least 2 columns','Error'); return
-    end
-    handles.maregraph_xy = read_xy(fname,n_column,n_headers);
-    if (hFig ~= hMsgFig);       figure(hFig);   end     % gain access to the drawing figure
-    [nr,nc] = size(handles.maregraph_xy);
-    if (nr == 0)
-        errordlg('Your file is empty.','Chico Clever');   return
-    end
-else        % BINARY
-    errordlg('Sorry, reading binary files is not yet programed','Error');   return
-end
-guidata(hObject,handles)
+	fname = get(hObject,'String');
+	if isempty(fname),  return,		end
+	pushbutton_MaregraphPosFile_Callback(handles.pushbutton_MaregraphPosFile, [], handles, fname)
+	
+% -----------------------------------------------------------------------------------------
+function pushbutton_MaregraphPosFile_Callback(hObject, eventdata, handles, opt)
+
+	if (nargin == 3)
+		cfig_handles = guidata(handles.hCallingFig);      % get handles of the calling fig
+		last_dir = cfig_handles.last_dir;
+		home = cfig_handles.home_dir;
+	
+		if (~isempty(last_dir)),    cd(last_dir);   end
+		[FileName,PathName] = uigetfile({'*.dat;*.DAT;*.xy', 'Maregraph location (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraphs position');
+		pause(0.01);
+		if (~isempty(last_dir)),    cd(home);   end
+		if isequal(FileName,0),		return,		end
+		fname = [PathName FileName];
+	else
+		fname = opt;
+	end
+
+    set(handles.figure1,'pointer','watch');
+	[handles, msg] = getMaregsPos(handles, fname);
+	if (~isempty(msg))
+		errordlg(msg,'Error')
+	    set(handles.figure1,'pointer','arrow');
+		return
+	end
+    set(handles.figure1,'pointer','arrow');
+	
+	set(handles.edit_Number_of_cycles,'String',size(handles.maregraph_xy,1))
+	set(handles.edit_MaregraphPosFile,'String',fname)
+	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
-function pushbutton_MaregraphPosFile_Callback(hObject, eventdata, handles)
-
-if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-    last_dir = cfig_handles.last_dir;
-    home = cfig_handles.home_dir;
-else
-    last_dir = [];
-end
-
-if (~isempty(last_dir)),    cd(last_dir);   end
-[FileName,PathName] = uigetfile({'*.dat;*.DAT;*.xy', 'Maregraph location (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraphs position');
-pause(0.01);
-if (~isempty(last_dir)),    cd(home);   end
-if isequal(FileName,0);     return;     end
-fname = [PathName FileName];
-hFig = gcf;
-set(handles.figure1,'pointer','watch')
-[bin,n_column,multi_seg,n_headers] = guess_file(fname);
-% If msgbox exist we have to move it from behind the main window. So get it's handle
-hMsgFig = gcf;
-if (hFig ~= hMsgFig)        uistack(hMsgFig,'top');   end   % If msgbox exists, bring it forward
-% If error in reading file
-if isempty(bin) & isempty(n_column) & isempty(multi_seg) & isempty(n_headers)
-    set(handles.figure1,'pointer','arrow');
-    errordlg(['Error reading file ' fname],'Error');    return
-end
-if multi_seg ~= 0   % multisegments are not spported
-    set(handles.figure1,'pointer','arrow');
-    errordlg('Multisegment files are yet not supported.','Error');   return
-end
-if (bin == 0)   % ASCII
+function [handles, msg] = getMaregsPos(handles, fname)
+	msg = [];
+	hFig = gcf;
+	[bin,n_column,multi_seg,n_headers] = guess_file(fname);
+	% If msgbox exist we have to move it from behind the main window. So get it's handle
+	hMsgFig = gcf;
+	if (hFig ~= hMsgFig),		figure(hMsgFig),	end   % If msgbox exists, bring it forward
+	% If error in reading file
+	if (isempty(bin) && isempty(n_column) && isempty(multi_seg))
+		msg = ['Error reading file ' fname];		return
+	end
+	if multi_seg ~= 0   % multisegments are not spported
+		msg = 'Multisegment files are yet not supported.';   return
+	end
+	if (bin ~= 0)
+		msg = 'Sorry, reading binary files is not programed';   return
+	end
     if (n_column < 2)
-        set(handles.figure1,'pointer','arrow');
-        errordlg('File error. Your file doesn''t have at least 2 columns','Error'); return
+		msg = 'File error. Your file doesn''t have at least 2 columns';		return
     end
-    set(handles.figure1,'pointer','watch')
     handles.maregraph_xy = read_xy(fname,n_column,n_headers);
-    set(handles.figure1,'pointer','arrow');
     set(handles.edit_Jump_initialTime,'String','0')     % Reset this anyway
-    if (hFig ~= hMsgFig);       figure(hFig);   end     % gain access to the drawing figure
+    if (hFig ~= hMsgFig),		figure(hFig);   end     % gain access to the drawing figure
     [nr,nc] = size(handles.maregraph_xy);
     if (nr == 0)
-        errordlg('Your file is empty.','Chico Clever');   return
+		msg = 'Your file is empty.';   return
     end
-else        % BINARY
-    errordlg('Sorry, reading binary files is not yet programed','Error');   return
-end
-set(handles.edit_Number_of_cycles,'String',num2str(nr))
-set(handles.edit_MaregraphPosFile,'String',fname)
-guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------------
 function edit_MaregraphDataFile_Callback(hObject, eventdata, handles)
-% Nothing to test or program here. The OK button will read the contents of this box
+	if (handles.is_tsun2)
+		fname = get(hObject,'String');
+		if isempty(fname),  return,		end
+		pushbutton_MaregraphDataFile_Callback(handles.pushbutton_MaregraphDataFile, [], handles, fname)
+	end
 
 % -----------------------------------------------------------------------------------------
-function pushbutton_MaregraphDataFile_Callback(hObject, eventdata, handles)
+function pushbutton_MaregraphDataFile_Callback(hObject, eventdata, handles, opt)
 
-if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-    last_dir = cfig_handles.last_dir;
-    home = cfig_handles.home_dir;
-else
-    last_dir = [];
-end
+	if (nargin == 3)
+		cfig_handles = guidata(handles.hCallingFig);	% get handles of the calling fig
+		last_dir = cfig_handles.last_dir;
+		home = cfig_handles.home_dir;
+	
+		if (~isempty(last_dir)),    cd(last_dir);   end
+		[FileName,PathName] = uigetfile({'*.dat;*.DAT;*.xy', 'Maregraph data file (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraph');
+		pause(0.01);
+		if (~isempty(last_dir)),    cd(home);   end
+		if isequal(FileName,0),		return,		end
+		fname = [PathName FileName];
+		
+		if (~handles.is_tsun2)		% We are done with this case
+			set(handles.edit_MaregraphDataFile,'String',fname)
+			return
+		end
+	else
+		fname = opt;
+	end
 
-if (~isempty(last_dir)),    cd(last_dir);   end
-[FileName,PathName] = uigetfile({'*.dat;*.DAT;*.xy', 'Maregraph data file (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraph');
-pause(0.01);
-if (~isempty(last_dir)),    cd(home);   end
-if isequal(FileName,0);     return;     end
-fname = [PathName FileName];
-set(handles.edit_MaregraphDataFile,'String',fname)
+	% If we get here we are in the tsun2 oputput maregraphs option. We must read that file
+	bak = handles.maregraph_xy;		% To reuse the code from getMaregsPos() we must backup this
+	[handles, msg] = getMaregsPos(handles, fname);
+	if (~isempty(msg))
+		errordlg(msg,'Error')
+		handles.outTsu_maregs = [];		handles.maregraph_xy = bak;			% Get back the original data
+		guidata(handles.figure1,handles)
+		return
+	end
+	% OK, we are still playing
+	handles.outTsu_maregs = handles.maregraph_xy(:,1:2);	% We only want the locations
+	handles.maregraph_xy = bak;			% Get back the original data
+	set(handles.edit_MaregraphDataFile,'String',fname)
+	guidata(handles.figure1,handles)
 
+% -----------------------------------------------------------------------------------------
+function edit_friction_Callback(hObject, eventdata, handles)
+	xx = str2double(get(handles.edit_friction,'String'));
+	if (isnan(xx) || xx < 0)
+		set(handles.edit_friction,'String','0.025')
+	end
+
+% -----------------------------------------------------------------------------------------
+function checkbox_speeds_Callback(hObject, eventdata, handles)
+	% If velocities or momentums, activate the output grids option
+	if (get(hObject,'Value'))
+		set(handles.checkbox_OutputGrids,'Value',1)
+		set(handles.edit_gridNameStem,'Enable','on')
+	end
+	
 % -----------------------------------------------------------------------------------------
 function checkbox_OutputGrids_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.edit_gridNameStem,'Enable','on')
-else
-    set(handles.edit_gridNameStem,'String','tsu_time_')
-    set(handles.edit_gridNameStem,'Enable','off')
-end
-
-% -----------------------------------------------------------------------------------------
-function edit_gridNameStem_Callback(hObject, eventdata, handles)
-% Nothing to test or program here. The OK button will read the contents of this box
-
-% -----------------------------------------------------------------------------------------
-function checkbox_MakeMovie_Callback(hObject, eventdata, handles)
-% Nothing to test or program here. The OK button will read the status of this box
+	if (get(hObject,'Value'))
+		set(handles.edit_gridNameStem,'Enable','on')
+	else
+		set(handles.edit_gridNameStem,'String','tsu_time_')
+		set(handles.edit_gridNameStem,'Enable','off')
+	end
 
 % -----------------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
@@ -551,7 +488,7 @@ if (handles.is_tsun2 == 1)    % Tests for the case of tsun2 (and return)
     error = check_errors_tsun2(handles);
     if (error)
         handles.output = [];
-        guidata(hObject,handles);
+        guidata(handles.figure1,handles);
         return
     end
     handles.output.params_file_name = get(handles.edit_SwanParams,'String');  % desenrasque
@@ -578,7 +515,15 @@ if (handles.is_tsun2 == 1)    % Tests for the case of tsun2 (and return)
     end
     % Get number of cycles
     handles.output.opt_N = ['-N' get(handles.edit_Number_of_cycles,'String')];
-    guidata(hObject,handles);
+    % Get the friction coefficient
+	handles.output.opt_F = ['-F' get(handles.edit_friction,'String')];
+	
+	if (~isempty(handles.outTsu_maregs))
+		handles.output.opt_O.xy = handles.outTsu_maregs;
+		handles.output.opt_O.name = get(handles.edit_MaregraphDataFile,'String');
+	end
+	
+    guidata(handles.figure1,handles);
     uiresume(handles.figure1);
     return
 end
@@ -623,6 +568,14 @@ end
 % Do we want a collection of intermediary tsunami grid steps?
 if (get(handles.checkbox_OutputGrids,'Value'))
     handles.output.opt_G = ['-G' get(handles.edit_gridNameStem,'String')];
+	
+	% Want velocity/momentum?
+	if (get(handles.checkbox_velocity, 'Value'))
+		handles.output.opt_s = '-s';
+	end
+	if (get(handles.checkbox_momentum, 'Value'))
+		handles.output.opt_S = '-S';
+	end
 end
 
 % Want a movie? 
@@ -637,8 +590,8 @@ uiresume(handles.figure1);
 
 % -----------------------------------------------------------------------------------------
 function pushbutton_Cancel_Callback(hObject, eventdata, handles)
-handles.output = [];        % User gave up, return nothing
-guidata(hObject, handles);  uiresume(handles.figure1);
+	handles.output = [];        % User gave up, return nothing
+	guidata(hObject, handles);  uiresume(handles.figure1);
 
 %---------------------------------------------------------------------------------------------------
 function error = check_errors_swan(handles)
@@ -668,7 +621,7 @@ end
     
 if (get(handles.checkbox_WantMaregraphs,'Value'))       % That is, requested maregraphs computation
     if (isempty(handles.maregraph_xy) & handles.MaregraphInMemory == 0)
-        errordlg('Where are your maregraphs? On Moon? (In case you forgot, it has no oceans)','Error')
+        errordlg('Where are your maregraphs? On the Moon? (In case you forgot, it has no oceans)','Error')
         error = 1;
     end
     if (isempty(get(handles.edit_MaregraphDataFile,'String')))
@@ -678,24 +631,26 @@ if (get(handles.checkbox_WantMaregraphs,'Value'))       % That is, requested mar
 end
 
 % Cheeck that at lest one operation was selected
-if (~get(handles.checkbox_WantMaregraphs,'Value') & ~get(handles.checkbox_MakeMovie,'Value') & ...
+if (~get(handles.checkbox_WantMaregraphs,'Value') && ~get(handles.checkbox_MakeMovie,'Value') && ...
         ~get(handles.checkbox_OutputGrids,'Value'))
     errordlg('You need to select at least one operation','Error')
     error = 1;
 end
 
-if (error),     return;     end
+if (error),		return,		end
 
 % If we reach here, we can now check if grids are compatible. However, if grids where already in
 % Mirone's memory, it is there that this test should have been made
-if (handles.BothGridsInMemory == 0 | handles.BatGridInMemory == 1)
-    if ( abs(handles.head_src(1) - handles.head_bat(1)) > small | ...
-           abs(handles.head_src(2) - handles.head_bat(2)) > small | ...
-           abs(handles.head_src(3) - handles.head_bat(3)) > small | ...
-           abs(handles.head_src(4) - handles.head_bat(4)) > small )
-        errordlg('Bathymetry & Source grids do not cover the same region','Error');
-        error = 1;
-    elseif ( abs(handles.head_src(8) - handles.head_bat(8)) > small | ...
+if (handles.BothGridsInMemory == 0 || handles.BatGridInMemory == 1)
+	difes = handles.head_src(1:4) - handles.head_bat(1:4);
+	if (any(abs(difes) > small))
+		msg{1} = 'Bathymetry & Source grids do not cover the same region';
+		msg{2} = ['x_min diff = ' num2str(difes(1))];		msg{3} = ['x_max diff = ' num2str(difes(2))];
+		msg{4} = ['y_min diff = ' num2str(difes(3))];		msg{5} = ['y_max diff = ' num2str(difes(4))];
+		errordlg(msg','Error')
+		error = 1;
+	end
+	if ( abs(handles.head_src(8) - handles.head_bat(8)) > small || ...
            abs(handles.head_src(9) - handles.head_bat(9)) > small )
         errordlg('Bathymetry & Source grids have different nx and/or ny','Error');
         error = 1;
@@ -704,122 +659,131 @@ end
 
 %---------------------------------------------------------------------------------------------------
 function error = check_errors_tsun2(handles)
-% Check errors when used for tsun2 options
-error = 0;
+	% Check errors when used for tsun2 options
+	error = 0;
 
-if (handles.got_params == 0)        % Error in params file
-    errordlg('Tsunami propagation parameter file is not valid or inexistent','Error')
-    error = 1;
-end
+	if (handles.got_params == 0)        % Error in params file
+		errordlg('Tsunami propagation parameter file is not valid or inexistent','Error')
+		error = 1;
+	end
 
-if (isempty(handles.maregraph_xy))
-    errordlg('You need to read a maregraph file','Error')
-    error = 1;
-end
+	if (isempty(handles.maregraph_xy))
+		errordlg('You need to read a maregraph file','Error')
+		error = 1;
+	end
 
-% Cheeck that at lest one operation was selected
-if (~get(handles.checkbox_MakeMovie,'Value') & ~get(handles.checkbox_OutputGrids,'Value'))
-    errordlg('You need to select at least one the two operation: grids or movie','Error')
-    error = 1;
-end
+	% Cheeck that at lest one operation was selected
+	if (~get(handles.checkbox_MakeMovie,'Value') && ~get(handles.checkbox_OutputGrids,'Value') ...
+			&& isempty(handles.outTsu_maregs))
+		errordlg('You need to select at least one the three operation: grids, maregs out or movie','Error')
+		error = 1;
+	end
 
 % -----------------------------------------------------------------------------------------
 function xy = read_xy(file,n_col,n_head)
-% build the format string to read the data n_columns
-xy = [];    format = [];    fid = fopen(file,'r');
-for (i=1:n_col),    format = [format '%f '];    end
-% Jump header lines
-for (i = 1:n_head),    tline = fgetl(fid);  end
+	% build the format string to read the data n_columns
+	xy = [];    format = [];    fid = fopen(file,'r');
+	for (i=1:n_col),    format = [format '%f '];    end
+	% Jump header lines
+	for (i = 1:n_head),    tline = fgetl(fid);  end
 
-todos = fread(fid,'*char');
-xy = sscanf(todos,format,[n_col inf])';    % After hours strugling agains this FILHO DA PUTA, I may have found
-fclose(fid);
-
-% -----------------------------------------------------------------------------------------
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);    uiresume(handles.figure1);
-else
-    % The GUI is no longer waiting, just close it
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);    delete(handles.figure1);
-end
+	todos = fread(fid,'*char');
+	xy = sscanf(todos,format,[n_col inf])';    % After hours strugling agains this FILHO DA PUTA, I may have found
+	fclose(fid);
 
 % -----------------------------------------------------------------------------------------
-function figure1_KeyPressFcn(hObject, eventdata, handles)
-if isequal(get(hObject,'CurrentKey'),'escape')
-    handles.output = [];    % User said no by hitting escape
-    guidata(hObject, handles);    uiresume(handles.figure1);
-end
+function figure1_CloseRequestFcn(hObject, eventdata)
+    handles = guidata(hObject);
+	if isequal(get(hObject, 'waitstatus'), 'waiting')
+		% The GUI is still in UIWAIT, us UIRESUME
+		handles.output = [];        % User gave up, return nothing
+		guidata(hObject, handles);    uiresume(hObject);
+	else
+		% The GUI is no longer waiting, just close it
+		handles.output = [];        % User gave up, return nothing
+		guidata(hObject, handles);	delete(hObject)
+	end
+
+% -----------------------------------------------------------------------------------------
+function figure1_KeyPressFcn(hObject, eventdata)
+	if isequal(get(hObject,'CurrentKey'),'escape')
+        handles = guidata(hObject);
+		handles.output = [];    % User said no by hitting escape
+		guidata(hObject, handles);    uiresume(hObject);
+	end
 
 % -----------------------------------------------------------------------------------
 % --- Creates and returns a handle to the GUI figure. 
-function swan_options_LayoutFcn(h1,handles);
+function swan_options_LayoutFcn(h1);
 
 set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
-'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
+'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
-'Name','swan_options',...
+'Name','Swan options',...
 'NumberTitle','off',...
 'Position',[520 401 351 370],...
-'RendererMode','manual',...
 'Resize','off',...
 'Tag','figure1');
 
-h2 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@swan_options_uicallback,h1,'edit_BatGrid_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[50 341 271 21],...
 'Style','edit','Tag','edit_BatGrid');
 
-h3 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[321 339 23 23],...
 'Callback',{@swan_options_uicallback,h1,'pushbutton_BatGrid_Callback'},...
-'Position',[321 339 23 23],...
 'Tag','pushbutton_BatGrid');
 
-h4 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@swan_options_uicallback,h1,'edit_SourceGrid_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[50 311 271 21],...
 'Style','edit','Tag','edit_SourceGrid');
 
-h5 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@swan_options_uicallback,h1,'checkbox_OutputGrids_Callback'},...
 'Position',[10 112 77 15],...
 'String','Output grids','Style','checkbox',...
 'Tag','checkbox_OutputGrids');
 
-h6 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@swan_options_uicallback,h1,'edit_gridNameStem_Callback'},...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'HorizontalAlignment','left',...
 'Position',[95 108 225 21],...
 'Style','edit',...
 'TooltipString','Grids are numbered after this name stem',...
 'Tag','edit_gridNameStem');
 
-h7 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[10 235 82 15],...
 'Callback',{@swan_options_uicallback,h1,'radiobutton_SurfaceLevel_Callback'},...
-'Position',[10 235 82 15],...
 'String','Surface level','Style','radiobutton',...
 'Value',1,'Tag','radiobutton_SurfaceLevel');
 
-h8 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[131 235 82 15],...
 'Callback',{@swan_options_uicallback,h1,'radiobutton_MaxWater_Callback'},...
-'Position',[131 235 82 15],...
 'String','Max water','Style','radiobutton',...
 'Tag','radiobutton_MaxWater');
 
-h9 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[249 235 82 15],...
 'Callback',{@swan_options_uicallback,h1,'radiobutton_TotalWater_Callback'},...
-'Position',[249 235 82 15],...
 'String','Total water','Style','radiobutton',...
 'Tag','radiobutton_TotalWater');
 
-h10 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[131 215 82 15],...
+'Callback',{@swan_options_uicallback,h1,'checkbox_speeds_Callback'},...
+'String','Velocity','Style','checkbox',...
+'TooltipString','Write velocity grids (u and v with sufixes _U, _V) ',...
+'Tag','checkbox_velocity');
+
+uicontrol('Parent',h1, 'Position',[249 215 82 15],...
+'Callback',{@swan_options_uicallback,h1,'checkbox_speeds_Callback'},...
+'String','Momentum','Style','checkbox',...
+'TooltipString','Write momentum grids (with sufixes _Uh, _Vh) ',...
+'Tag','checkbox_momentum');
+
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@swan_options_uicallback,h1,'edit_Number_of_cycles_Callback'},...
 'Position',[270 78 51 21],...
@@ -827,7 +791,7 @@ h10 = uicontrol('Parent',h1,...
 'TooltipString','Use this number of cycles from the Maregraph file',...
 'Tag','edit_Number_of_cycles');
 
-h11 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@swan_options_uicallback,h1,'edit_MaregraphPosFile_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[50 179 271 21],...
@@ -835,12 +799,12 @@ h11 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'TooltipString','Name of the file with maregraph locations',...
 'Tag','edit_MaregraphPosFile');
 
-h12 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@swan_options_uicallback,h1,'pushbutton_MaregraphPosFile_Callback'},...
 'Position',[321 178 23 23],...
 'Tag','pushbutton_MaregraphPosFile');
 
-h13 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@swan_options_uicallback,h1,'edit_MaregraphDataFile_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[50 149 271 21],...
@@ -848,24 +812,23 @@ h13 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'TooltipString','Name of the file that will contain the maregraphs water height',...
 'Tag','edit_MaregraphDataFile');
 
-h14 = uicontrol('Parent',h1,...
-'Position',[209 82 60 15],...
-'String','Nº of cycles','Style','text','Tag','text1');
+uicontrol('Parent',h1, 'Position',[209 82 60 15],...
+'String','Nº of cycles','Style','text');
 
-h15 = uicontrol('Parent',h1,'HorizontalAlignment','left',...
+uicontrol('Parent',h1,'HorizontalAlignment','left',...
 'Position',[10 345 40 15],...
 'String','Bat','Style','text','Tag','text2');
 
-h16 = uicontrol('Parent',h1,'HorizontalAlignment','left',...
+uicontrol('Parent',h1,'HorizontalAlignment','left',...
 'Position',[10 314 40 15],...
-'String','Source','Style','text','Tag','text3');
+'String','Source','Style','text');
 
-h17 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@swan_options_uicallback,h1,'pushbutton_MaregraphDataFile_Callback'},...
 'Position',[321 148 23 23],...
 'Tag','pushbutton_MaregraphDataFile');
 
-h18 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Callback',{@swan_options_uicallback,h1,'edit_SwanParams_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[50 270 271 21],...
@@ -873,47 +836,44 @@ h18 = uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'TooltipString','Either Swan or Tsun2 need a parameter file.',...
 'Tag','edit_SwanParams');
 
-h19 = uicontrol('Parent',h1,'HorizontalAlignment','left',...
+uicontrol('Parent',h1,'HorizontalAlignment','left',...
 'Position',[10 273 40 15],...
-'String','Params','Style','text','Tag','text4');
+'String','Params','Style','text');
 
-h20 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@swan_options_uicallback,h1,'pushbutton_OK_Callback'},...
 'FontWeight','bold',...
 'Position',[195 8 66 23],...
 'String','OK','Tag','pushbutton_OK');
 
-h21 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@swan_options_uicallback,h1,'pushbutton_Cancel_Callback'},...
 'FontWeight','bold',...
 'Position',[275 8 66 23],...
 'String','Cancel',...
 'Tag','pushbutton_Cancel');
 
-h22 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@swan_options_uicallback,h1,'checkbox_WantMaregraphs_Callback'},...
 'Position',[10 202 76 15],...
 'String','Maregraphs','Style','checkbox',...
 'TooltipString','Check this if you want to compute water height at maregraphs',...
 'Tag','checkbox_WantMaregraphs');
 
-h23 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@swan_options_uicallback,h1,'pushbutton_SourceGrid_Callback'},...
 'Position',[321 310 23 23],...
 'Tag','pushbutton_SourceGrid');
 
-h24 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[321 269 23 23],...
 'Callback',{@swan_options_uicallback,h1,'pushbutton_ParamsFile_Callback'},...
-'Position',[321 269 23 23],...
 'Tag','pushbutton_ParamsFile');
 
-h25 = uicontrol('Parent',h1,...
-'Callback',{@swan_options_uicallback,h1,'checkbox_MakeMovie_Callback'},...
-'Position',[10 81 85 15],...
+uicontrol('Parent',h1, 'Position',[10 81 85 15],...
 'String','Make a movie','Style','checkbox',...
 'Tag','checkbox_MakeMovie');
 
-h26 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@swan_options_uicallback,h1,'edit_Jump_initialTime_Callback'},...
 'Position',[270 48 51 21],...
@@ -921,17 +881,30 @@ h26 = uicontrol('Parent',h1,...
 'TooltipString','Jump these number of seconds from the beguining of Maregraphs file',...
 'Tag','edit_Jump_initialTime');
 
-h27 = uicontrol('Parent',h1,'HorizontalAlignment','right',...
+uicontrol('Parent',h1,'HorizontalAlignment','right',...
 'Position',[212 52 55 15],...
-'String','Jump initial','Style','text','Tag','text5');
+'String','Jump initial','Style','text');
 
-h28 = uicontrol('Parent',h1,'HorizontalAlignment','left',...
+uicontrol('Parent',h1,'HorizontalAlignment','left',...
 'Position',[13 181 30 16],...
-'String','In file','Style','text','Tag','text6');
+'String','In file','Style','text');
 
-h29 = uicontrol('Parent',h1,'HorizontalAlignment','left',...
+uicontrol('Parent',h1,'HorizontalAlignment','left',...
 'Position',[12 152 35 16],...
-'String','Out file','Style','text','Tag','text7');
+'String','Out file','Style','text','Tag','txtOutMaregs');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@swan_options_uicallback,h1,'edit_friction_Callback'},...
+'Position',[10 48 51 21],...
+'String','0.025','Style','edit',...
+'TooltipString','Manning''s Friction coefficient',...
+'Visible','off',...
+'Tag','edit_friction');
+
+uicontrol('Parent',h1,'HorizontalAlignment','left',...
+'Position',[65 50 80 16],'Visible','off',...
+'String','Friction','Style','text','Tag','textFriction');
 
 function swan_options_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
