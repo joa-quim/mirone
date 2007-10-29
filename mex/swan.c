@@ -22,6 +22,12 @@
  *
  *	Translated to C & mexified (+ some bug corrections) By
  *	Joaquim Luis - 2005
+
+		20-10-2007 	(Killed gotos)
+				removed write_grd_ascii() 		Blheght!!
+				replaced several ij(i,j) occurences by its precomputed value
+		22-10-2007	Added option -R
+				Moved time_h += dt; to the end of the loop so that output naming start a time = 0
  *
  *	version WITH waitbar
  */
@@ -36,6 +42,9 @@
 #define D2R		M_PI / 180.
 #define LF		0x0A
 #define CR		0x0D
+
+#define CNULL	((char *)NULL)
+#define Loc_copysign(x,y) ((y) < 0.0 ? -fabs(x) : fabs(x))
 
 #ifndef MIN
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))	/* min and max value macros */
@@ -58,7 +67,7 @@
 #define d_asin(x) (fabs (x) >= 1.0 ? copysign (M_PI_2, (x)) : asin (x))
 
 #define ij(i,j) ((i) + (j)*ip2)
-#define ijs(i,j) ((i) + (j)*i_end)
+#define ijs(i,j,n) ((i) + (j)*n)
 #define ijc(i,j) ((i) + (j)*n_ptmar)
 
 struct srf_header {		/* Surfer file header structure */
@@ -77,8 +86,7 @@ void no_sys_mem (char *where, int n);
 int count_col (char *line);
 int read_grd_info_ascii (char *file, struct srf_header *hdr);
 int read_header_bin (FILE *fp, struct srf_header *hdr);
-int write_grd_ascii(int kk, double x_min, double y_min, double dtx, double dty, int i_end, int j_end, float *work);
-int write_grd_bin (int kk, double x_min, double y_min, double dtx, double dty, int i_end, int j_end, float *work);
+int write_grd_bin(char *name, double x_min, double y_min, double x_inc, double y_inc, int i_start, int j_start, int i_end, int j_end, int nX, float *work);
 int read_grd_ascii (char *file, struct srf_header *hdr, double *work);
 int read_grd_bin (char *file, struct srf_header *hdr, double *work);
 int read_params(char *file);
@@ -88,6 +96,9 @@ int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, d
 int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, double *vn, double *h, double *hn, double *dxp);
 void max_z (double *zm, double *h_bak);
 void change (double *h, double *h_bak);
+int decode_R (char *item, double *w, double *e, double *s, double *n);
+int check_region (double w, double e, double s, double n);
+double ddmmss_to_degree (char *text);
 
 typedef int BOOLEAN;              /* BOOLEAN used for logical variables */
 int	ip, jp, polar, dumb, indl, indb, indr, indt, iopt;
@@ -96,7 +107,7 @@ float	grav = (float)9.8, m_per_deg = (float)111317.1;
 double	dx, dy, dt, cf, cc, sfx, sfy, time_h, rough;
 double	pistal, pistbl, pistab, pistbb, pistar, pistbr, pistat, pistbt;
 double	dangx, dangy, *anglt;
-char	stem[80], *fonte;			/* Name pointer for tsunami source file */
+char	*fonte;			/* Name pointer for tsunami source file */
 BOOLEAN first_in_uvh = TRUE;
 struct	srf_header hdr_b;
 struct	srf_header hdr_f;
@@ -114,8 +125,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double	*dep, *dep1, *cum_p, cang, angltt;
 	double	x_inc, y_inc, x_tmp, y_tmp;		/* Used in the maregs positiojn test */
 	double	*ptr, *ptr1, *h_bar, tmp_ptr[1];	/* Pointers to be used in the waitbar */
+	double	dfXmin = 0.0, dfYmin = 0.0, dfXmax = 0.0, dfYmax = 0.0, xMinOut, yMinOut;
 	int	i, i2, j, k, ix, jy, ncl, lcum, n_mareg, n_ptmar, cycle;
-	int	w_ascii = FALSE, w_bin = TRUE, cumpt = FALSE, error = FALSE;
+	int	i_start, j_start, i_end, j_end;
+	int	w_bin = TRUE, cumpt = FALSE, error = FALSE;
 	int	r_bin_b, r_bin_f, surf_level = TRUE, max_level = FALSE, water_depth = FALSE;
 	int	argc, n_arg_no_char = 0, nx, ny, dims[3], n_frames = 0;
 	int	n_of_cycles = 1010;	/* Numero de ciclos a calcular */
@@ -123,11 +136,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char 	*params = NULL;		/* Name pointer for parameters file */
 	char 	*hcum = NULL;		/* Name pointer for cumulative hight file */
 	char 	*maregs = NULL;		/* Name pointer for maregraph positions file */
+	char	stem[80], prenome[128];
 	char	**argv, w_bar_title[] = "Aguenta ai";
 	unsigned char	*ptr_mov_8, *mov_8, *mov_8_tmp;
 	BOOLEAN	params_in_input = FALSE, bat_in_input = FALSE, source_in_input = FALSE;
 	BOOLEAN	write_grids = FALSE, movie = FALSE, movie_char = FALSE, movie_float = FALSE;
-	BOOLEAN	maregs_in_input = FALSE;
+	BOOLEAN	maregs_in_input = FALSE, out_velocity =	FALSE, out_momentum = FALSE, got_R = FALSE;
 	mxArray *rhs[2], *rhs1[2], *lhs[1];
 	FILE	*fp;
 
@@ -214,17 +228,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* get the length of the input string */
 	argv=(char **)mxCalloc(argc, sizeof(char *));
-	for (i = 0; i < argc; i++) {
+	for (i = 0; i < argc; i++)
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char]);
-	}
+
 
 	for (i = 0; i < argc; i++) {
 		if (argv[i][0] == '-') {
 			switch (argv[i][1]) {
-				case 'a':	/* Write ascii grids */
-					w_ascii = TRUE;
-					w_bin = FALSE;
-					break;
 				case 'f':	/* Movie */
 					movie = TRUE;
 					movie_char = FALSE;
@@ -257,6 +267,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'O':	/* File name for maregraph data */
 					hcum  = &argv[i][2];
 					break;
+				case 'R':
+					error += decode_R (argv[i], &dfXmin, &dfXmax, &dfYmin, &dfYmax);
+					got_R = TRUE;
+					break;
+				case 's':	/* Output velocity grids */ 
+					out_velocity = TRUE;
+					break;
+				case 'S':	/* Output momentum grids */ 
+					out_momentum = TRUE;
+					break;
 				case 'T':	/* File with maregraph positions */
 					maregs  = &argv[i][2];
 					cumpt = TRUE;
@@ -271,15 +291,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (argc == 0 || error) {
 		mexPrintf ("SWAN - Um gerador de tsunamis\n\n");
-		mexPrintf( "usage: swan [-B<bathy>] [-F<fonte>] [-M] [-N<n_cycles>] [-T<mareg>] [-D] [-a]\n");
-		mexPrintf ("\t-a write ascii Surfer grids [Default is binary]\n");
+		mexPrintf( "usage: swan [-B<bathy>] [-F<fonte>] [-M] [-N<n_cycles>] [-Rw/e/s/n] [-S] [-s] [-T<mareg>] [-D]\n");
 		mexPrintf ("\t-m outputs a 3D grid used to do a movie\n");
 		mexPrintf ("\t-B name of bathymetry file (default lap.grd)\n");
-		mexPrintf ("\t-D INACABADO write grids with the total water depth\n");
+		mexPrintf ("\t-D write grids with the total water depth\n");
 		mexPrintf ("\t-F name of source file (default fonte.grd)\n");
 		mexPrintf ("\t-G<stem> write grids at the grn intervals. Append file prefix. Files will be called <stem>#.grd\n");
 		mexPrintf ("\t-M write grids of max water level [Default wave surface level]\n");
 		mexPrintf ("\t-N number of cycles [Default 1010].\n");
+		mexPrintf ("\t-R output grids only in the sub-region enclosed by <west/east/south/north>\n");
+		mexPrintf ("\t-s write grids with the velocity. Grid names are appended with _U and _V sufixes.\n");
+		mexPrintf ("\t-S write grids with the momentum. i.e velocity times water depth.\n");
 		mexPrintf ("\t-T name of maregraph file (default mareg.xy)\n");
 	}
 
@@ -342,31 +364,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if ((inicial = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
 			{no_sys_mem("swan --> (inicial)", ncl);	return;}
 	}
-	if ((dep = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((dep = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (dep)", ncl);	return;}
-	if ((work = (float *) calloc ((size_t)(ncl), sizeof(float)) ) == NULL) 
+	if ((work = (float *) calloc ((size_t)(ncl),	sizeof(float)) ) == NULL) 
 		{no_sys_mem("swan --> (work)", ncl);	return;}
-	if ((r = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((r = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (r)", ncl);	return;}
-	if ((rn = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((rn = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (rn)", ncl);	return;}
-	if ((u = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((u = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (u)", ncl);	return;}
-	if ((un = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((un = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (un)", ncl);	return;}
-	if ((v = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((v = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (v)", ncl);	return;}
-	if ((vn = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((vn = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (vn)", ncl);	return;}
-	if ((h = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((h = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (h)", ncl);	return;}
-	if ((hn = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((hn = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (hn)", ncl);	return;}
-	if ((dxp = (double *) calloc ((size_t)(ncl+1), sizeof(double)) ) == NULL) 
+	if ((dxp = (double *) calloc ((size_t)(ncl+1),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (dxp)", ncl);	return;}
-	if ((cca = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((cca = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (cca)", ncl);	return;}
-	if ((anglt = (double *) calloc ((size_t)(jp2), sizeof(double)) ) == NULL) 
+	if ((anglt = (double *) calloc ((size_t)(jp2),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (anglt)", jp2);	return;}
 	/*if (polar != 0) {
 		if ((xpp = (double *) calloc ((size_t)(ncl+1), sizeof(double)) ) == NULL) 
@@ -480,10 +502,10 @@ L53:;
 	ptr1 = mxGetPr(rhs1[0]);
 	tmp_ptr[0] = 0;					/* Start the waitbar with zero length */
 	memcpy(ptr, tmp_ptr, 8);
-	rhs[0] = mxCreateString(w_bar_title);	/* multiwaitbar message */
-	rhs1[1] = mxCreateString(w_bar_title);	/* Waitbar message */
+	rhs[0] = mxCreateString(w_bar_title);		/* multiwaitbar message */
+	rhs1[1] = mxCreateString(w_bar_title);		/* Waitbar message */
 	mexCallMATLAB(1,lhs,2,rhs1,"waitbar");
-	h_bar = mxGetPr(lhs[0]);				/* Save the waitbar handle */
+	h_bar = mxGetPr(lhs[0]);			/* Save the waitbar handle */
 
 	/* Declarations for the (if) movie option */
 	if (movie && movie_char) {
@@ -500,16 +522,32 @@ L53:;
 		ptr_mov_32 = (float *)mxGetData(plhs[0]);
 	}
 
+	/* ----------------- Compute vars to use if write grids --------------------- */
+	if (!got_R && (write_grids || out_velocity || out_momentum) ) {	/* Write grids over the whole region */
+		i_start = 0;		i_end = ip2;
+		j_start = 0;		j_end = jp2;
+		xMinOut = x_min;	yMinOut = y_min;
+	}
+	else if (got_R && (write_grids || out_velocity || out_momentum) ) {	/* Write grids in sub-region */
+		i_start = irint((dfXmin - hdr_b.x_min) / dtx);
+		j_start = irint((dfYmin - hdr_b.y_min) / dty); 
+		i_end   = irint((dfXmax - hdr_b.x_min) / dtx) + 1;
+		j_end   = irint((dfYmax - hdr_b.y_min) / dty) + 1;
+		xMinOut = hdr_b.x_min + dtx * i_start;	/* Adjustes xMin|yMin to lay on the closest grid node */
+		yMinOut = hdr_b.y_min + dty * j_start;
+	}
+	/* ---------------------------------------------------------------------- */
+
 	for (k = 0; k < n_of_cycles; k++) {
 		if (cycle % 10 == 0) {
 			tmp_ptr[0] = (double)cycle/(double)n_of_cycles;
 			memcpy(ptr1, tmp_ptr, 8);
 			mexCallMATLAB(0,NULL,1,rhs1,"waitbar");
 			h_bar = mxGetPr(lhs[0]);			/* Save the waitbar handle */
-			/*mexPrintf("Ciclo %d \tde %d\t %lg\r", cycle, n_of_cycles, *h_bar); */
 		}
-		time_h += dt;
+
 		uvh_(dep, r, rn, u, un, v, vn, h, hn, dxp, cca);
+
 		if (max_level) {
 			change(h, h_bak);	max_z(zm, h_bak);
 		}
@@ -517,7 +555,7 @@ L53:;
 			if (cycle % cumint == 0) {	/* Save heights at cumint intervals */
 				for (i = 0; i < n_mareg; i++) {
 					cum_p[ijc(lcum,i)] = h[lcum_p[i]-1];
-					time_p[lcum] = time_h;
+					time_p[lcum] = (float)time_h;
 				}
 				lcum++;
 			}
@@ -564,15 +602,52 @@ L53:;
 				ptr_mov_32 += ncl;
 				n_frames++;
 			}
-			if (write_grids && w_ascii) {
-				write_grd_ascii ((int)time_h, x_min, y_min, dtx, dty, ip2, jp2, work);
+			if (write_grids) {
+				if (stem[0] == 0)
+					sprintf (prenome,"%.5d.grd\0", irint(time_h) );
+				else
+					sprintf (prenome, "%s%.5d.grd", stem, irint(time_h) );
+				write_grd_bin( prenome, xMinOut, yMinOut, dtx, dty, i_start, j_start, i_end, j_end, ip2, work);
 				mexPrintf ("\t\t\t\tWrote grelha %d\n", (int)time_h);
 			}
-			else if (write_grids && !w_ascii) {
-				write_grd_bin ((int)time_h, x_min, y_min, dtx, dty, ip2, jp2, work);
-				mexPrintf ("\t\t\t\tWrote grelha %d\n", (int)time_h);
+			if (out_velocity) {
+				if (stem[0] == 0)
+					sprintf (prenome,"%.5d\0", irint(time_h) );
+				else
+					sprintf (prenome, "%s%.5d", stem, irint(time_h) );
+				for (i = 0; i < ncl; i++) work[i] = (float) u[i];
+				write_grd_bin(strcat(prenome,"_U.grd"), xMinOut, yMinOut, dtx, dty, 
+						i_start, j_start, i_end, j_end, ip2, work);
+				for (i = 0; i < ncl; i++) work[i] = (float) v[i];
+				prenome[strlen(prenome) - 6] = '\0';	/* Remove the _U.grd' so that we can add '_V.grd' */
+				write_grd_bin( strcat(prenome,"_V.grd"), xMinOut, yMinOut, dtx, dty, 
+						i_start, j_start, i_end, j_end, ip2, work);
+			}
+			if (out_momentum) {
+				if (stem[0] == 0)
+					sprintf (prenome,"%.5d\0", irint(time_h) );
+				else
+					sprintf (prenome, "%s%.5d", stem, irint(time_h) );
+
+				if (water_depth)	/* "work" is already the water depth */ 
+					for (i = 0; i < ncl; i++) work[i] = (float) (u[i] * work[i]);
+				else
+					for (i = 0; i < ncl; i++)
+						if (( work[i] = (float) ((h[i] + dep[i]) * u[i]) ) < 0.) work[i] = 0.;
+				write_grd_bin( strcat(prenome,"_Uh.grd"), xMinOut, yMinOut, dtx, dty, 
+						i_start, j_start, i_end, j_end, ip2, work);
+
+				if (water_depth)
+					for (i = 0; i < ncl; i++) work[i] = (float) (v[i] * work[i]);
+				else
+					for (i = 0; i < ncl; i++)
+						if (( work[i] = (float) ((h[i] + dep[i]) * v[i]) ) < 0.) work[i] = 0.;
+				prenome[strlen(prenome) - 7] = '\0';	/* Remove the _Uh.grd' so that we can add '_Vh.grd' */
+				write_grd_bin( strcat(prenome,"_Vh.grd"), xMinOut, yMinOut, dtx, dty, 
+						i_start, j_start, i_end, j_end, ip2, work);
 			}
 		}
+		time_h += dt;
 		cycle++;
 	}
 
@@ -582,34 +657,30 @@ L53:;
 	/*     WRITE THE OUTPUT ON FILE CUMHT */
 	if (cumpt) {
 		for (j = 0; j < lcum; j++) {
-			fprintf (fp, "%lg", time_p[j]);
+			fprintf (fp, "%.3f", time_p[j]);
 			for (i = 0; i < n_mareg; i++)
 				fprintf (fp, "\t%.4f", cum_p[ijc(j,i)]);
 			fprintf (fp, "\n");
 		}
 	}
 	/* Clean up allocated memory. */
-	mxDestroyArray(rhs[0]);
-	mxDestroyArray(rhs[1]);
-	mxDestroyArray(rhs1[0]);
-	mxDestroyArray(rhs1[1]);
+	mxDestroyArray(rhs[0]);		mxDestroyArray(rhs[1]);
+	mxDestroyArray(rhs1[0]);	mxDestroyArray(rhs1[1]);
 	mxDestroyArray(lhs[0]);
 	if (movie && movie_char) {
 		mxFree(mov_8);	mxFree(mov_8_tmp);
 	}
-	if (movie && movie_float) {
-		mxFree(mov_32);
-	}
+
+	if (movie && movie_float) mxFree(mov_32);
 
 	if (cumpt) fclose (fp);
-	if (!source_in_input) {
+	if (!source_in_input)
 		free ((void *) inicial);
-	}
-	free ((void *) work);	free ((void *) dep);
-	free ((void *) r);	free ((void *) h);
-	free ((void *) rn);	free ((void *) u);	free ((void *) un);
-	free ((void *) vn);	free ((void *) hn);	free ((void *) dxp);
-	free ((void *) cca);	free ((void *) anglt);
+
+	free ((void *) work);	free ((void *) dep);	free ((void *) r);
+	free ((void *) h);	free ((void *) rn);	free ((void *) u);
+	free ((void *) un);	free ((void *) vn);	free ((void *) hn);
+	free ((void *) dxp);	free ((void *) cca);	free ((void *) anglt);
 	if (max_level) {
 		free ((void *) zm);	free ((void *) h_bak); 
 	}
@@ -620,7 +691,9 @@ L53:;
 
 /* --------------------------------------------------------------------------- */
 
-int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, double *vn, double *h, double *hn, double *dxp) {
+int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, double *vn,
+	  double *h, double *hn, double *dxp) {
+
 	double tmp, mul;
 	int i, j, ij_0j, ij_1j, ij_2j, ij_i0, ij_i1, ij_i2;
 	int ij_ip21_j, ij_ip11_j, ij_i_jp21, ij_i_jp11;
@@ -632,9 +705,9 @@ int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, 
 		if (indl == 1) goto L111;
 		if (indl == 2) goto L112;
 		/*     reflective */
-		u[ij_0j] = 0.;
-		v[ij_0j] = v[ij_1j];
-		h[ij_0j] = h[ij_1j];
+		u[ij(0,j)] = 0.;
+		v[ij(0,j)] = v[ij_1j];
+		h[ij(0,j)] = h[ij_1j];
 		goto L110;
 		/*     continuative */
 L112:
@@ -653,10 +726,10 @@ L112:
 		if (h[ij_1j] == h[ij_2j])		/* More useless comparison between floats */
 			h[ij_0j] = h[ij_1j];
 		if (iopt == 0) goto L210;
-L313:
-		v[ij_0j] = v[ij_1j];	/* Those 3 would blow te program (v[ij(1,jp2)] doesn't exist) */
-		u[ij_0j] = u[ij_1j];
-		h[ij_0j] = h[ij_1j];
+/*L313:*/
+		v[ij(0,j)] = v[ij(1,j+0)];	/* Those 3 would blow te program (v[ij(1,jp2)] doesn't exist) */
+		u[ij(0,j)] = u[ij(1,j+0)];
+		h[ij(0,j)] = h[ij(1,j+0)];
 L210:
 		goto L110;
 		/*      piston */
@@ -669,99 +742,99 @@ L110:;
 	}
 	/*     bottom boundary */
 	for (i = 0; i < ip2; i++) {
-		ij_i0 = ij(i,0);	ij_i1 = ij(i,1);	ij_i2 = ij(i,2);
-		tmp = d_sqrt (grav * dep[ij_i0]);
+		/*ij_i0 = ij(i,0);	ij_i1 = ij(i,1);	ij_i2 = ij(i,2);*/
+		tmp = d_sqrt (grav * dep[ij(i,0)]);
 		if (indb == 1) goto L121;
 		if (indb == 2) goto L122;
 		/*     reflective */
-		v[ij_i0] = 0.;
-		u[ij_i0] = u[ij_i1];
-		h[ij_i0] = h[ij_i1] * 2. - h[ij_i2];
+		v[ij(i,0)] = 0.;
+		u[ij(i,0)] = u[ij(i,1)];
+		h[ij(i,0)] = h[ij(i,1)] * 2. - h[ij(i,2)];
 		goto L120;
 		/*     continuative */
 L122:
-		if (polar != 0) dx = dxp[ij_i0];	/* THIS WAS NOT ON THE ORIGINAL CODE. FORGOTTEN? */
-		if (polar == 2) dy = dxp[ij_i0];	/* MERCATOR */
+		if (polar != 0) dx = dxp[ij(i,0)];	/* THIS WAS NOT ON THE ORIGINAL CODE. FORGOTTEN? */
+		if (polar == 2) dy = dxp[ij(i,0)];	/* MERCATOR */
 		/*if (dep[ij(i,0)] < 0.) goto L323;	/* This is bad */
-		if (fabs(dep[ij_i0]) > 0.005) dep[ij_i0] = 0.;	/* THIS SEAMS TO PREVENT BORDER INSTABILITIES */
+		if (fabs(dep[ij(i,0)]) > 0.005) dep[ij(i,0)] = 0.;	/* THIS SEAMS TO PREVENT BORDER INSTABILITIES */
 		mul = tmp * dt / dy;
-		v[ij_i0] += (v[ij_i1] - v[ij_i0]) * mul;
-		if (v[ij_i1] == v[ij_i2]) 
-			v[ij_i0] = v[ij_i1];
-		u[ij_i0] += (u[ij_i1] - u[ij_i0]) * mul;
-		if (u[ij_i1] == u[ij_i2]) 
-			u[ij_i0] = u[ij_i1];
-		h[ij_i0] += (h[ij_i1] - h[ij_i0]) * mul;
-		if (h[ij_i1] == h[ij_i2]) 
-			h[ij_i0] = h[ij_i1];
+		v[ij(i,0)] += (v[ij(i,1)] - v[ij(i,0)]) * mul;
+		if (v[ij(i,1)] == v[ij(i,2)]) 
+			v[ij(i,0)] = v[ij(i,1)];
+		u[ij(i,0)] += (u[ij(i,1)] - u[ij(i,0)]) * mul;
+		if (u[ij(i,1)] == u[ij(i,2)]) 
+			u[ij(i,0)] = u[ij(i,1)];
+		h[ij(i,0)] += (h[ij(i,1)] - h[ij(i,0)]) * mul;
+		if (h[ij(i,1)] == h[ij(i,2)]) 
+			h[ij(i,0)] = h[ij(i,1)];
 		if (iopt == 0) goto L211;
-L323:
-		v[ij_i0] = v[ij_i1];
-		u[ij_i0] = u[ij_i1];
-		h[ij_i0] = h[ij_i1];
+/*L323:*/
+		v[ij(i,0)] = v[ij(i,1)];
+		u[ij(i,0)] = u[ij(i,1)];
+		h[ij(i,0)] = h[ij(i,1)];
 L211:
 		goto L120;
 		/*     piston */
 L121:
-		v[ij_i0] = pistab * sin(pistbb * time_h);
-		u[ij_i0] = u[ij_i1];
-		if (dep[ij_i0] > 0.)
-			h[ij_i0] = v[ij_i0] * tmp / grav;
+		v[ij(i,0)] = pistab * sin(pistbb * time_h);
+		u[ij(i,0)] = u[ij(i,1)];
+		if (dep[ij(i,0)] > 0.)
+			h[ij(i,0)] = v[ij(i,0)] * tmp / grav;
 L120:;
 
 	}
 	/*     right boundary */
 	for (j = 1; j < jp2; j++) {
-		ij_ip21_j = ij(ip2-1,j);	ij_ip11_j = ij(ip1-1,j);
-		tmp = d_sqrt (grav * dep[ij_ip21_j]);
+		/*ij_ip21_j = ij(ip2-1,j);	ij_ip11_j = ij(ip1-1,j);*/
+		tmp = d_sqrt (grav * dep[ij(ip2-1,j)]);
 		if (indr == 1) goto L131;
 		if (indr == 2) goto L132;
 		/*     reflective */
-		u[ij_ip21_j] = 0.;
-		v[ij_ip21_j] = v[ij_ip11_j];
-		h[ij_ip21_j] = h[ij_ip11_j];
+		u[ij(ip2-1,j)] = 0.;
+		v[ij(ip2-1,j)] = v[ij(ip1-1,j)];
+		h[ij(ip2-1,j)] = h[ij(ip1-1,j)];
 		goto L130;
 		/*     continuative */
 L132:
-		if (polar != 0) dx = dxp[ij_ip11_j];
-		if (polar == 2) dy = dxp[ij_ip11_j];	/* MERCATOR */
+		if (polar != 0) dx = dxp[ij(ip1-1,j)];
+		if (polar == 2) dy = dxp[ij(ip1-1,j)];	/* MERCATOR */
 		/*if (dep[ij(ip2-1,j)] < 0.) goto L333;	/* This is bad */
-		if (fabs(dep[ij_ip21_j]) > 0.005) dep[ij_ip21_j] = 0.;	/* THIS SEAMS TO PREVENT BORDER INSTABILITIES */
+		if (fabs(dep[ij(ip2-1,j)]) > 0.005) dep[ij(ip2-1,j)] = 0.;	/* THIS SEAMS TO PREVENT BORDER INSTABILITIES */
 		mul = tmp * dt / dx;
-		v[ij_ip21_j] += (v[ij_ip11_j] - v[ij_ip21_j]) * mul;
-		if (v[ij_ip11_j] == v[ij(ip-1,j)])
-			v[ij_ip21_j] = v[ij_ip11_j];
-		u[ij_ip21_j] += (u[ij_ip11_j] - u[ij_ip21_j]) * mul;
-		if (u[ij_ip11_j] == u[ij(ip-1,j)])
-			u[ij_ip21_j] = u[ij_ip11_j];
-		h[ij_ip21_j] += (h[ij_ip11_j] - h[ij_ip21_j]) * mul;
-		if (h[ij_ip11_j] == h[ij(ip-1,j)])
-			h[ij_ip21_j] = h[ij_ip11_j];
+		v[ij(ip2-1,j)] += (v[ij(ip1-1,j)] - v[ij(ip2-1,j)]) * mul;
+		if (v[ij(ip1-1,j)] == v[ij(ip-1,j)])
+			v[ij(ip2-1,j)] = v[ij(ip1-1,j)];
+		u[ij(ip2-1,j)] += (u[ij(ip1-1,j)] - u[ij(ip2-1,j)]) * mul;
+		if (u[ij(ip1-1,j)] == u[ij(ip-1,j)])
+			u[ij(ip2-1,j)] = u[ij(ip1-1,j)];
+		h[ij(ip2-1,j)] += (h[ij(ip1-1,j)] - h[ij(ip2-1,j)]) * mul;
+		if (h[ij(ip1-1,j)] == h[ij(ip-1,j)])
+			h[ij(ip2-1,j)] = h[ij(ip1-1,j)];
 		if (iopt == 0) goto L212;
-L333:
-		v[ij_ip21_j] = v[ij_ip11_j];
-		u[ij_ip21_j] = u[ij_ip11_j];
-		h[ij_ip21_j] = h[ij_ip11_j];
+/*L333:*/
+		v[ij(ip2-1,j)] = v[ij(ip1-1,j)];
+		u[ij(ip2-1,j)] = u[ij(ip1-1,j)];
+		h[ij(ip2-1,j)] = h[ij(ip1-1,j)];
 L212:
 		goto L130;
 		/*     piston */
 L131:
-		u[ij_ip21_j] = -(pistar * sin(pistbr * time_h));
-		v[ij_ip21_j] = v[ij_ip11_j];
+		u[ij(ip2-1,j)] = -(pistar * sin(pistbr * time_h));
+		v[ij(ip2-1,j)] = v[ij(ip1-1,j)];
 		/*     Changes of 5/91 */
-		u[ij_ip11_j] = u[ij_ip21_j];
-		if (dep[ij_ip21_j] > 0.) {
-			h[ij_ip21_j] = -(u[ij_ip21_j] * tmp) / grav;
-			h[ij_ip21_j] = h[ij_ip21_j];
+		u[ij(ip1-1,j)] = u[ij(ip2-1,j)];
+		if (dep[ij(ip2-1,j)] > 0.) {
+			h[ij(ip2-1,j)] = -(u[ij(ip2-1,j)] * tmp) / grav;
+			h[ij(ip1-1,j)] = h[ij(ip2-1,j)];
 		}
 L130:;
 	}
 	/*     top boundary */
-	/*     do top only to ip instead of ip2    ** */
-	/*     Changed from 2 to 1 on 6/90 */
+	/*      do top only to ip instead of ip2    ** */
+	/*       Changed from 2 to 1 on 6/90 */
 	for (i = 0; i < ip1; i++) {
 		ij_i_jp21 = ij(i,jp2-1);	ij_i_jp11 = ij(i,jp1-1);
-		tmp = d_sqrt (grav * dep[ij_i_jp21]);
+		tmp = d_sqrt (grav * dep[ij(i,jp2-1)]);
 		if (indt == 1) goto L141;
 		if (indt == 2) goto L142;
 		/*     reflective */
@@ -779,17 +852,17 @@ L142:
 		v[ij_i_jp21] += (v[ij_i_jp11] - v[ij_i_jp21]) * mul;
 		if (v[ij_i_jp11] == v[ij(i,jp-1)]) 
 			v[ij_i_jp21] = v[ij_i_jp11];
-		u[ij_i_jp21] += (u[ij_i_jp11] - u[ij_i_jp21]) * mul;
-		if (u[ij_i_jp11] == u[ij(i,jp-1)]) 
+		u[ij_i_jp11] += (u[ij_i_jp11] - u[ij_i_jp21]) * mul;
+		if (u[ij_i_jp11] == u[ij_i_jp11]) 
 			u[ij_i_jp21] = u[ij_i_jp11];
-		h[ij_i_jp21] += (h[ij_i_jp11] - h[ij_i_jp21]) * mul;
-		if (h[ij_i_jp11] == h[ij(i,jp-1)]) 
+		h[ij_i_jp11] += (h[ij_i_jp11] - h[ij_i_jp21]) * mul;
+		if (h[ij_i_jp11] == h[ij_i_jp11]) 
 			h[ij_i_jp21] = h[ij_i_jp11];
 		if (iopt == 0) goto L213;
-L343:
-		v[ij_i_jp21] = v[ij(i,jp-1)];		/* jp doesn't make sense. Perhaps jp1? */
-		u[ij_i_jp21] = u[ij(i,jp-1)];
-		h[ij_i_jp21] = h[ij(i,jp-1)];
+/*L343:*/
+		v[ij_i_jp21] = v[ij_i_jp11];		/* jp doesn't make sense. Perhaps jp1? */
+		u[ij_i_jp21] = u[ij_i_jp11];
+		h[ij_i_jp21] = h[ij_i_jp11];
 L213:
 		goto L140;
 		/*     piston */
@@ -799,7 +872,7 @@ L141:
 		/*      Changed 5/91 */
 		v[ij_i_jp11] = v[ij_i_jp21];
 		/*       THE HEIGHT sign  used to be +     4/23/91 */
-		if (dep[ij_i_jp21] > 0.)
+		if (dep[ij_i_jp11] > 0.)
 			h[ij_i_jp21] = -(v[ij_i_jp21] * tmp) / grav;
 L140:;
 	}
@@ -808,16 +881,17 @@ L140:;
 
 /* --------------------------------------------------------------------------- */
 
-int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, double *vn, double *h, double *hn, double *dxp, double *cca) {
+int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, double *vn,
+	 double *h, double *hn, double *dxp, double *cca) {
 
 	double cang, ck, sa, sb, sang, cang1, tmp, thu, thv;
 	double td, tu, tv, angltt, td1, tu1, tv1, tu2, tv2, dph;
-	int	i, j, ij_ij;
+	int	i, j, ij_ij, i1_j, i_j1;
 
 	sb = 0.;	sa = 0.;
 	for (j = 1; j < jp1; j++) {
 		for (i = 1; i < ip1; i++) {
-			ij_ij = ij(i,j);
+			ij_ij = ij(i,j);	i1_j = ij(i+1,j);	i_j1 = ij(i,j+1);
 			/* *****5/91*POLAR Each cell has its own dx and cos angle (cang) */
 			if (polar != 0) dx = dxp[ij_ij];
 			if (polar == 2) dy = dxp[ij_ij];	/* MERCATOR */
@@ -826,9 +900,9 @@ int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, d
 			if (polar != 0) cang1 = dxp[ij(i,j+1)] / (dangx * m_per_deg);
 			/*     donor cell difference */
 			/*     will get diffusion if time step is too small */
-			td1 = dep[ij(i+1,j)] + h[ij(i+1,j)] - r[ij(i+1,j)];
+			td1 = dep[i1_j] + h[i1_j] - r[i1_j];
 			td = dep[ij_ij] + h[ij_ij] - r[ij_ij];
-			tv1 = dep[ij(i,j+1)] + h[ij(i,j+1)] - r[ij(i,j+1)];
+			tv1 = dep[i_j1] + h[i_j1] - r[i_j1];
 			tv = td;
 			if (u[ij(i+1,j)] > 0.)
 				td1 = dep[ij_ij] + h[ij_ij] - r[ij_ij];
@@ -841,8 +915,8 @@ int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, d
 			/*      Special for Flooding */
 			if (td1 < 0.) td1 = 0.;	if (td < 0.) td = 0.;
 			if (tv1 < 0.) tv1 = 0.;	if (tv < 0.) tv = 0.;
-			hn[ij_ij] = h[ij_ij] - dt * ((u[ij(i+1,j)] * td1 - u[ij_ij] * td) / 
-				dx + (v[ij(i,j+1)] * cang1 * tv1 - v[ij_ij] * cang * tv) /
+			hn[ij_ij] = h[ij_ij] - dt * ((u[i1_j] * td1 - u[ij_ij] * td) / 
+				dx + (v[i_j1] * cang1 * tv1 - v[ij_ij] * cang * tv) /
 				(cang * dy)) + (rn[ij_ij] - r[ij_ij]);
 			/*    ROUGH is factor for surface roughness = actual height/ideal height */
 			if (dep[ij_ij] < 0.) 
@@ -850,7 +924,7 @@ int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, d
 		}
 	}
 	/*      SPECIAL */
-	/* This is useless. Comparing dep to 0. ??? I'll comment this section. JL 12-11-04 */ 
+	/* This is nonsense. Comparing dep to 0. ??? I'll comment this section. JL 12-11-04 */ 
 	/*for (j = 1; j < jp1; j++) {
 		for (i = 1; i < ip1; i++) { */
 			/*     zero depth boundary treated as reflective  10/1/89 method */
@@ -867,18 +941,18 @@ int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, d
 				hn[ij(i,j)] = 0.;
 		}
 	} */
-	for (j = 1; j < jp1; j++) {
-		for (i = 1; i < ip1; i++) {
+	for (j = 1; j < jp1; j++)
+		for (i = 1; i < ip1; i++)
 		    	h[ij(i,j)] = hn[ij(i,j)];
-		}
-	}
+
 	bndy_(dep, r, rn, u, un, v, vn, h, hn, dxp);
+
 	for (j = 1; j < jp1; j++) {
 		angltt = anglt[j] * D2R;
 		sang = sin(angltt);
 		if (polar != 0) cf = sang * 1.454e-4;
 		for (i = 1; i < ip1; i++) {
-			ij_ij = ij(i,j);
+			ij_ij = ij(i,j);	i1_j = ij(i+1,j);	i_j1 = ij(i,j+1);
 			/* **********POLAR Each cell has its own dx  5/91 */
 			if (polar != 0) dx = dxp[ij_ij];
 			if (polar == 2) dy = dxp[ij_ij];	/* MERCATOR */
@@ -893,15 +967,15 @@ int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, d
 			/*      CORRECTED ll/20/87 */
 			sa = grav * v[ij_ij] * tmp;
 L10:
-			tu1 = u[ij(i+1,j)] - u[ij_ij];
-			tu2 = u[ij(i,j+1)] - u[ij_ij];
-			tv = (v[ij_ij] + v[ij(i,j+1)] + v[ij(i-1,j+1)] + v[ij(i-1,j)]) / 4.;
+			tu1 = u[i1_j] - u[ij_ij];
+			tu2 = u[i_j1] - u[ij_ij];
+			tv = (v[ij_ij] + v[i_j1] + v[ij(i-1,j+1)] + v[ij(i-1,j)]) / 4.;
 			if (u[ij_ij] > 0.) tu1 = u[ij_ij] - u[ij(i-1,j)];
 			if (tv > 0.) tu2 = u[ij_ij] - u[ij(i,j-1)];
 			thu = h[ij_ij] - h[ij(i-1,j)];
-			tv1 = v[ij(i+1,j)] - v[ij_ij];
-			tv2 = v[ij(i,j+1)] - v[ij_ij];
-			tu = (u[ij_ij] + u[ij(i+1,j)] + u[ij(i,j-1)] + u[ij(i+1,j-1)]) / 4.;
+			tv1 = v[i1_j] - v[ij_ij];
+			tv2 = v[i_j1] - v[ij_ij];
+			tu = (u[ij_ij] + u[i1_j] + u[ij(i,j-1)] + u[ij(i+1,j-1)]) / 4.;
 			if (tu > 0.) tv1 = v[ij_ij] - v[ij(i-1,j)];
 			if (v[ij_ij] > 0.) tv2 = v[ij_ij] - v[ij(i,j-1)];
 			/*      CORRECTED ll/20/87 */
@@ -914,7 +988,7 @@ L10:
 		}
 	}
 	/*     update */
-	/* This is useless. Comparing dep to 0. ??? I'll comment this section. JL 12-11-04 */ 
+	/* This is nonsense. Comparing dep to 0. ??? I'll comment this section. JL 12-11-04 */ 
 	/*for (j = 1; j < jp1; j++) {
 		for (i = 0; i < ip1; i++) { */
 		/*     zero depth boundary treated as reflective  10/1/89 method */
@@ -943,7 +1017,7 @@ L10:
 			u[ij_ij] = un[ij_ij];
 			v[ij_ij] = vn[ij_ij];
 			/*     artificial limits */
-			/* Another useless comparison. Original code compared if ... < 1e-8, while using float*/
+			/* Another nonsense. Original code compared if ... < 1e-8, while using float*/
 			if (fabs(u[ij_ij]) < 1e-6) u[ij_ij] = 0.;
 			if (fabs(v[ij_ij]) < 1e-6) v[ij_ij] = 0.;
 			if (fabs(h[ij_ij]) < 1e-6) h[ij_ij] = 0.;
@@ -952,107 +1026,57 @@ L10:
 	return 0;
 }
 
+
 /* --------------------------------------------------------------------------- */
-
-int write_grd_ascii (int kk, double x_min, double y_min, double dtx, double dty, int i_end, int j_end, float *work) {
-
-	/* Writes a grid in the Surfer ascii format */
-	int i, j;
-	double x_max, y_max;
-	float work_min = FLT_MAX, work_max = -FLT_MAX;
-	char name[80];
-	FILE *fp;
-
-	if (stem[0] == 0)
-		sprintf (name,"%d%s\0", kk,".grd");
-	else
-		sprintf (name, "%s%d%s", stem, kk,".grd");
-
-	/*sprintf (name, "%d\0", kk); */
-	/*strcat (name, ".grd"); */
-
-	if ((fp = fopen (name, "w")) == NULL) {
-		fprintf (stderr, "%s: Unable to create file %s - exiting\n", "swan", name);
-		return (-1);
-	}
-
-	x_max = x_min + (i_end - 1) * dtx;
-	y_max = y_min + (j_end - 1) * dty;
-
-	/* Find zmin/zmax */
-	for(i = 0; i < i_end; i++) {
-		for(j = 0; j < j_end; j++) {
-			work_max = MAX(work[ijs(i,j)], work_max);
-			work_min = MIN(work[ijs(i,j)], work_min);
-		}
-	}
-
-	fprintf (fp, "DSAA\n");
-	fprintf (fp, "%d %d\n", i_end, j_end);
-	fprintf (fp, "%lg %lg\n", x_min, x_max);
-	fprintf (fp, "%lg %lg\n", y_min, y_max);
-	fprintf (fp, "%lg %lg\n", work_min, work_max);
-	for(j = 0; j < j_end; j++) {
-		for(i = 0; i < i_end; i++) {
-			fprintf (fp, "%lg\n", work[ijs(i,j)]);
-		}
-	}
-	fclose(fp);
-	return (0);
-} 
-
-int write_grd_bin (int kk, double x_min, double y_min, double dtx, double dty, int i_end, int j_end, float *work) {
+int write_grd_bin(char *name, double x_min, double y_min, double x_inc, double y_inc,
+		   int i_start, int j_start, int i_end, int j_end, int nX, float *work) {
 
 	/* Writes a grid in the Surfer binary format */
 	int i, j;
 	double x_max, y_max;
-	float work_min = FLT_MAX, work_max = -FLT_MAX;
-	char name[80];
+	float work_min = FLT_MAX, work_max = -FLT_MAX, tmp;
 	struct srf_header h;
 	FILE *fp;
-
-	if (stem[0] == 0)
-		sprintf (name,"%d%s\0", kk,".grd");
-	else
-		sprintf (name, "%s%d%s", stem, kk,".grd");
-
-	/*sprintf (name, "%d\0", kk); */
-	/*strcat (name, ".grd"); */
 
 	if ((fp = fopen (name, "wb")) == NULL) {
 		mexPrintf("Fatal Error: Could not create file %s!\n", name);
 		return (-1);
 	}
 
-	x_max = x_min + (i_end - 1) * dtx;
-	y_max = y_min + (j_end - 1) * dty;
+	x_max = x_min + (i_end - i_start - 1) * x_inc;
+	y_max = y_min + (j_end - j_start - 1) * y_inc;
 
 	/* Find zmin/zmax */
-	for (i = 0; i < i_end*j_end; i++) {
-		work_max = MAX(work[i], work_max);
-		work_min = MIN(work[i], work_min);
+	for (j = j_start; j < j_end; j++) {
+		for (i = i_start; i < i_end; i++) {
+			tmp = work[ijs(i,j,nX)];
+			work_max = MAX(tmp, work_max);
+			work_min = MIN(tmp, work_min);
+		}
 	}
 
 	/* store header information and array */
 	strcpy (h.id,"DSBB");
-	h.nx = i_end;	 	h.ny = j_end;
-	h.x_min = x_min;	h.x_max = x_max;
-	h.y_min = y_min;	h.y_max = y_max;
+	h.nx = (i_end - i_start);	h.ny = (j_end - j_start);
+	h.x_min = x_min;		h.x_max = x_max;
+	h.y_min = y_min;		h.y_max = y_max;
 	h.z_min = (double)work_min;	h.z_max = (double)work_max;
 
 	if (fwrite ((void *)&h, sizeof (struct srf_header), (size_t)1, fp) != 1) {
 		fprintf (stderr, "Fatal Error: Error writing file %s!\n", name);
 		return (-1);
 	}
-	for(j = 0; j < j_end; j++) {
-		for(i = 0; i < i_end; i++) {
-			fwrite ((void *)&work[ijs(i,j)], sizeof(float), (size_t)1, fp);
+
+	for (j = j_start; j < j_end; j++) {
+		for (i = i_start; i < i_end; i++) {
+			fwrite ((void *)&work[ijs(i,j,nX)], sizeof(float), (size_t)1, fp);
 		}
 	}
 	fclose(fp);
 	return (0);
 }
 
+/* ------------------------------------------------------------------------------ */
 int read_grd_info_ascii (char *file, struct srf_header *hdr) {
 
 	char line[512], id[5];
@@ -1295,3 +1319,59 @@ void change (double *h, double *h_bak) {
 	for (i = 0; i < ij; i++)
 		h_bak[i] = h[i];
 }
+
+/* -------------------------------------------------------------------- */
+int decode_R (char *item, double *w, double *e, double *s, double *n) {
+	char *text, string[BUFSIZ];
+	
+	/* Minimalist code to decode option -R extracted from GMT_get_common_args */
+	
+	int i, error = 0;
+	double *p[4];
+	
+	p[0] = w;	p[1] = e;	p[2] = s;	p[3] = n;
+			
+	i = 0;
+	strcpy (string, &item[2]);
+	text = strtok (string, "/");
+	while (text) {
+		*p[i] = ddmmss_to_degree (text);
+		i++;
+		text = strtok (CNULL, "/");
+	}
+	if (item[strlen(item)-1] == 'r')	/* Rectangular box given, but valid here */
+		error++;
+	if (i != 4 || check_region (*p[0], *p[1], *p[2], *p[3]))
+		error++;
+	w = p[0];	e = p[1];
+	s = p[2];	n = p[3];
+	return (error);
+}
+
+/* -------------------------------------------------------------------- */
+int check_region (double w, double e, double s, double n) {
+	/* If region is given then we must have w < e and s < n */
+	return ((w >= e || s >= n));
+}
+
+/* -------------------------------------------------------------------- */
+double ddmmss_to_degree (char *text) {
+	int i, colons = 0, suffix;
+	double degree, minute, degfrac, second;
+
+	for (i = 0; text[i]; i++) if (text[i] == ':') colons++;
+	suffix = (int)text[i-1];	/* Last character in string */
+	if (colons == 2) {	/* dd:mm:ss format */
+		sscanf (text, "%lf:%lf:%lf", &degree, &minute, &second);
+		degfrac = degree + Loc_copysign (minute / 60.0 + second / 3600.0, degree);
+	}
+	else if (colons == 1) {	/* dd:mm format */
+		sscanf (text, "%lf:%lf", &degree, &minute);
+		degfrac = degree + Loc_copysign (minute / 60.0, degree);
+	}
+	else
+		degfrac = atof (text);
+	if (suffix == 'W' || suffix == 'w' || suffix == 'S' || suffix == 's') degfrac = -degfrac;	/* Sign was given implicitly */
+	return (degfrac);
+}
+
