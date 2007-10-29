@@ -1,4 +1,4 @@
-function varargout = resizetrue(handles, opt)
+function varargout = resizetrue(handles, opt, axis_t)
 %   RESIZETRUE Adjust display size of image.
 %   This results in the display having one screen pixel for each image pixel.
 %
@@ -15,6 +15,11 @@ function varargout = resizetrue(handles, opt)
 	if (strcmp(get(handles.PalAt,'Check'),'on'))
 		delete(get(handles.PalAt,'Userdata'))
 		set(handles.PalAt,'Checked','off')
+	end
+
+	if (strcmp(axis_t,'xy')),			set(handles.axes1,'YDir','normal')
+	elseif (strcmp(axis_t,'off')),		set(handles.axes1,'Visible','off')
+	else    warndlg('Warning: Unknown axes setting in show_image','Warning')
 	end
 
 	hFig = handles.figure1;
@@ -189,20 +194,19 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
     tenSizeX = 0;       tenSizeY = 0;   % When axes labels have 10^n this will hold its ~ text height
     XTickLabel = get(axHandle,'XTickLabel');    XTick = get(axHandle,'XTick');
     if (XTick(end) ~= 0)                % See that we do not devide by zero
-        test_tick = XTick(end);         test_tick_str = str2double(XTickLabel(end,:));
+		test_tick = XTick(end);         test_tick_str = str2double(XTickLabel(end,:));
     else                                % They cannot be both zero
-        test_tick = XTick(end-1);       test_tick_str = str2double(XTickLabel(end-1,:));
+		test_tick = XTick(end-1);       test_tick_str = str2double(XTickLabel(end-1,:));
     end
     if ( test_tick_str / test_tick < 0.1 )
-        % We have a 10 power. That's the only way I found to detect
-        % the presence of this otherwise completely ghost text.
-        tenSizeX = 1;       % Take into account the 10 power text size when creating the pixval stsbar
+		% We have a 10 power. That's the only way I found to detect
+		% the presence of this otherwise completely ghost text.
+		tenSizeX = 1;       % Take into account the 10 power text size when creating the pixval stsbar
     end
 
-    % OK, here the problem is that YTickLabel still does not exist (imageHeight +- 2 ou 3)
+    % OK, here the problem is that YTickLabel still does not exist (imageHeight +- 2 or 3)
     set(axHandle, 'Position', axPos+[0 -500 0 500]);        % So, use this trick to set it up
     YTickLabel = get(axHandle,'YTickLabel');    YTick = get(axHandle,'YTick');
-    set(axHandle, 'Position', axPos);
     if (YTick(end) ~= 0)                % See that we do not devide by zero
         test_tick = YTick(end);         test_tick_str = str2double(YTickLabel(end,:));
     else                                % They cannot be both zero
@@ -233,21 +237,26 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
         newFigWidth  = imageWidth + gutterWidth;
         newFigHeight = imageHeight + gutterHeight;
 	else
-        newFigWidth = imageWidth;        newFigHeight = imageHeight;
+        newFigWidth = imageWidth;				newFigHeight = imageHeight;
 	end
 	while ((newFigWidth > screenWidth) || ((newFigHeight + figBottomBorder + figTopBorder) > (screenHeight - 40)))
-        imageWidth  = round(imageWidth * 0.95);         imageHeight  = round(imageHeight * 0.95);
-        newFigWidth = round(newFigWidth * 0.95);        newFigHeight = round(newFigHeight * 0.95);
+        imageWidth  = imageWidth * 0.98;		imageHeight  = imageHeight * 0.98;
+        newFigWidth = newFigWidth * 0.98;		newFigHeight = newFigHeight * 0.98;
 	end
+	imageWidth  = round(imageWidth);			imageHeight  = round(imageHeight);
+	newFigWidth = round(newFigWidth);			newFigHeight = round(newFigHeight);
 
-    old_FU = get(axHandle,'FontUnits');     set(axHandle,'FontUnits','points')
-    FontSize = get(axHandle,'FontSize');    set(axHandle,'FontUnits',old_FU)
+    old_FU = get(axHandle,'FontUnits');			set(axHandle,'FontUnits','points')
+    FontSize = get(axHandle,'FontSize');		set(axHandle,'FontUnits',old_FU)
     nYchars = size(YTickLabel,2);
+	t = max(abs(YTick));
+	if (t - fix(t) == 0),	nYchars = nYchars + 2;		end
     % This is kitchen sizing, but what else can it be done with such can of bugs?
     Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
 
     if strcmp(opt,'sCapture'),    stsbr_height = 0;
-    else                          stsbr_height = 20;    end
+    else                          stsbr_height = 20;
+	end
 
 	y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin') + tenSizeY + stsbr_height;    % To hold the Xlabel height
 	x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin');               % To hold the Ylabel width
@@ -274,10 +283,10 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
 
 	newFigWidth  = max(newFigWidth + x_margin, minFigWidth);
-    if (newFigWidth >= screenWidth)     % Larger than screen. The == isn't allowed either due to the 'elastic' thing
-        x_margin = x_margin - (newFigWidth-screenWidth) - 2;    % 'Discount' the difference on x_margin
-        newFigWidth = screenWidth - 2;
-    end
+	if (newFigWidth >= screenWidth)     % Larger than screen. The == isn't allowed either due to the 'elastic' thing
+		x_margin = x_margin - (newFigWidth-screenWidth) - 2;    % 'Discount' the difference on x_margin
+		newFigWidth = screenWidth - 2;
+	end
 	newFigHeight = max(newFigHeight, minFigHeight) + y_margin + topMarg;
 	
 	figPos(1) = max(1, figPos(1) - floor((newFigWidth  - figPos(3))/2));
@@ -298,7 +307,7 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	figPos(2) = screenHeight - figPos(4) - 73;
 	set(figHandle, 'Position', figPos);     set(axHandle, 'Position', axPos);
 
-	if ~strcmp(opt,'sCapture')
+	if ~strncmp(opt,'sCap',4)		% sCapture. I think it's not used anymore
         %-------------- This section simulates a box at the bottom of the figure
         H = 22;
         sbPos(1) = 1;               sbPos(2) = 2;
@@ -316,11 +325,11 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	%------------------------------------
 	  
 	% Restore the units
-	%drawnow;  % necessary to work around HG bug   -SLE
 	set(figHandle, 'Units', figUnits);
 	%set(axHandle, 'Units', axUnits);       % Original (pixels) Units
 	set(axHandle, 'Units', 'normalized');   % So that resizing the Fig also resizes the image
 	set(0, 'Units', rootUnits);
+	pause(0.01)				% Needed for example when creating bg on which slow things will be rendered
 	
 	if ~strcmp(opt,'sCapture'),   pixval_stsbar(figHandle);  end
 
@@ -347,7 +356,7 @@ function hFrame = createframe(ah,fieldPos,H)
 function figPos = setSliders(figHandle, axHandle, figPos, axPos, sldT, H)
     % Create a pair of sliders and register them to use in 'imscroll_j'
     gutterRight = figPos(3) - (axPos(1) + axPos(3));
-    if (gutterRight < sldT+1)       % Grow Figure's width to acomudate the slider
+    if (gutterRight < sldT+1)       % Grow Figure's width to acomodate the slider
         figPos(3) = figPos(3) + (sldT-gutterRight) + 1;
         set(figHandle, 'Position', figPos);
     end
