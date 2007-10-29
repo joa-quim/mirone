@@ -32,13 +32,7 @@ void mexFunction( int nargout, mxArray *pargout[], int nargin, const mxArray *pa
 
 	rhs[0] = mxCreateString(var);
 	status = mexCallMATLAB(1,&x,2, rhs, "exist");
-	if (nargout == 0) {
-		double *resp;
-		resp = mxGetPr(x);
-		mexPrintf("Exist = %g\n", *resp);
-	}
-	else
-		pargout[0] = x;
+	pargout[0] = x;
     
 	mxFree(var);
 }
