@@ -16,21 +16,17 @@ function varargout = find_clusters(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-	hObject = figure('Tag','figure1','Visible','off');
-	handles = guihandles(hObject);
-	guidata(hObject, handles);
-	find_clusters_LayoutFcn(hObject,handles);
-	handles = guihandles(hObject);
-
-	if (~isempty(varargin))
-        handles.mirone_fig = varargin{1};
-        handles.h_polyg = varargin{2};
-	else
-        delete(hObject)
+	if (isempty(varargin))
         return
 	end
 
+	hObject = figure('Tag','figure1','Visible','off');
+	find_clusters_LayoutFcn(hObject);
+	handles = guihandles(hObject);
 	movegui(hObject,'west');
+
+	handles.mirone_fig = varargin{1};
+	handles.h_polyg = varargin{2};
 
 	handles_mir = guidata(handles.mirone_fig);       % Get the Mirone handles structure
 	handles.work_dir = handles_mir.work_dir;
@@ -357,7 +353,7 @@ function h_mir = new_mir(h_mirone_fig, h_polyg, handles)
 	% It makes use of the Mirone ImageCrop_CB function, and also of the "register image"
 	% solution of draw_funs.
 
-	mirone('ImageCrop_CB',gcbo,guidata(h_mirone_fig),h_polyg,'CropaWithCoords');
+	mirone('ImageCrop_CB',guidata(h_mirone_fig),h_polyg,'CropaWithCoords');
 	set(0,'ShowHiddenHandles','on')
 	h_mir = findobj(0,'Type','figure','Name','Croped Image');
 	set(0,'ShowHiddenHandles','off')
@@ -525,7 +521,7 @@ function out = getFromAppdata(hand,tag)
 	end
 
 % --- Creates and returns a handle to the GUI figure. 
-function find_clusters_LayoutFcn(h1,handles);
+function find_clusters_LayoutFcn(h1);
 
 set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
@@ -538,8 +534,7 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'RendererMode','manual',...
 'Resize','off',...
 'HandleVisibility','callback',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
