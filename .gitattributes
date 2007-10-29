@@ -209,6 +209,7 @@ lib_mex/mapproject_m.dll -text
 lib_mex/mex_illuminate.dll -text
 lib_mex/mex_shape.dll -text
 lib_mex/mpgwrite.dll -text
+lib_mex/mxgridtrimesh.dll -text
 lib_mex/nearneighbor_m.dll -text
 lib_mex/ogrproj.dll -text
 lib_mex/ordf.dll -text
