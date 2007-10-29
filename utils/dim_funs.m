@@ -6,7 +6,7 @@ function  dim_funs(opt, varargin)
 	% handles.x_min  handles.x_max handles.y_min  handles.y_max
 	% handles.x_min_or handles.x_max_or handles.y_min_or  handles.y_max_or
 	% handles.dms_xinc handles.dms_yinc	handles.one_or_zero
-
+	
 switch opt
     case 'xMin'
         edit_x_min(varargin{:})
@@ -50,7 +50,7 @@ function edit_x_min(hObject, handles)
         if ~isempty(handles.x_max) && ~isempty(nc)       % x_max and ncols boxes are filled
             % Compute Ncols, but first must recompute x_inc
             x_inc = ivan_the_terrible((handles.x_max - x_min),round(abs(str2double(nc))),1, handles.one_or_zero);
-            xx = floor((handles.x_max - str2double(xx)) / (str2double(get(handles.edit_x_inc,'String')))+0.5) + handles.one_or_zero;
+            %xx = floor((handles.x_max - str2double(xx)) / (str2double(get(handles.edit_x_inc,'String')))+0.5) + handles.one_or_zero;
             set(handles.edit_x_inc,'String',sprintf(frmt,x_inc))
             guidata(hObject, handles);
         elseif ~isempty(handles.x_max)      % x_max box is filled but ncol is not, so put to the default (100)
@@ -88,7 +88,7 @@ function edit_x_max(hObject, handles)
         if ~isempty(handles.x_min) && ~isempty(nc)       % x_max and ncols boxes are filled
             % Compute Ncols, but first must recompute x_inc
             x_inc = ivan_the_terrible((x_max - handles.x_min),round(abs(str2double(nc))),1, handles.one_or_zero);
-            xx = floor((handles.x_min - str2double(xx)) / (str2double(get(handles.edit_x_inc,'String')))+0.5) + handles.one_or_zero;
+            %xx = floor((handles.x_min - str2double(xx)) / (str2double(get(handles.edit_x_inc,'String')))+0.5) + handles.one_or_zero;
             set(handles.edit_x_inc,'String',sprintf(frmt,x_inc))
             guidata(hObject, handles);    
         elseif ~isempty(handles.x_min)      % x_min box is filled but ncol is not, so put to the default (100)
@@ -127,7 +127,7 @@ function edit_y_min(hObject, handles)
         if ~isempty(handles.y_max) && ~isempty(nr)       % y_max and nrows boxes are filled
             % Compute Nrows, but first must recompute y_inc
             y_inc = ivan_the_terrible((handles.y_max - y_min),round(abs(str2double(nr))),1, handles.one_or_zero);
-            xx = floor((handles.y_max - str2double(xx)) / (str2double(get(handles.edit_y_inc,'String')))+0.5) + handles.one_or_zero;
+            %xx = floor((handles.y_max - str2double(xx)) / (str2double(get(handles.edit_y_inc,'String')))+0.5) + handles.one_or_zero;
             set(handles.edit_y_inc,'String',sprintf(frmt,y_inc))
             guidata(hObject, handles);
         elseif ~isempty(handles.y_max)      % y_max box is filled but nrows is not, so put to the default (100)
@@ -165,7 +165,7 @@ function edit_y_max(hObject, handles)
         if ~isempty(handles.y_min) && ~isempty(nr)       % y_min and nrows boxes are filled
             % Compute Nrows, but first must recompute y_inc
             y_inc = ivan_the_terrible((y_max - handles.y_min),round(abs(str2double(nr))),1, handles.one_or_zero);
-            xx = floor((handles.y_min - str2double(xx)) / (str2double(get(handles.edit_y_inc,'String')))+0.5) + handles.one_or_zero;
+            %xx = floor((handles.y_min - str2double(xx)) / (str2double(get(handles.edit_y_inc,'String')))+0.5) + handles.one_or_zero;
             set(handles.edit_y_inc,'String',sprintf(frmt,y_inc))
             guidata(hObject, handles);
         elseif ~isempty(handles.y_min)      % y_min box is filled but nrows is not, so put to the default (100)
@@ -201,7 +201,7 @@ function edit_x_inc(hObject, handles)
             ddmm = dec2deg(x_inc);
             set(hObject,'String',ddmm)
         end
-        ncol = floor((handles.x_max - handles.x_min) / x_inc + 0.5) + handles.one_or_zero;
+        ncol = round((handles.x_max - handles.x_min) / x_inc) + ~handles.one_or_zero;
         set(handles.edit_Ncols,'String',sprintf('%d',ncol))
 	end
 	handles.dms_xinc = dms;
@@ -248,7 +248,7 @@ function edit_y_inc(hObject, handles)
             ddmm = dec2deg(y_inc);
             set(hObject,'String',ddmm)
         end
-        nrow = floor((handles.y_max - handles.y_min) / y_inc + 0.5) + handles.one_or_zero;
+        nrow = round((handles.y_max - handles.y_min) / y_inc) + ~handles.one_or_zero;
         set(handles.edit_Nrows,'String',sprintf('%d',nrow))
 	end
 	handles.dms_yinc = dms;
