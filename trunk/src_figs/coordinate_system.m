@@ -111,7 +111,7 @@ switch handles.proj_groups{varargin{1}.group_val}           % Set apropriate sys
             tmp = '-Ju29';
             if (strcmp(tmp(4),'-'))
                 str_proj = varargin{1}.projection(1:3);
-            elseif (strcmp(tmp(3:4),'m1'))             % Case of -Jm1
+            elseif (strcmp(tmp(3:4),'m0'))             % Case of -Jm0/0/1
                 str_proj = varargin{1}.projection(1:4);
             elseif (strmatch(tmp(4),{'0';'1';'2';'3';'4';'5';'6';'7';'8';'9'}))
                 str_proj = varargin{1}.projection(1:3);
@@ -254,7 +254,7 @@ switch group
         set(handles.popup_System,'Value',1,'String',{'Mercator';'Miller Cylindrical';...
                 'Mollweide';'Robinson';'Sinusoidal'})
         set_enable(handles, 0);     set_enable(handles, 50);      handles.nParameters = 0;
-        handles.projection{1} = '-Jm1';
+        handles.projection{1} = '-Jm0/0/1';
         set(handles.popup_Datum,'Value',221);       info.DX = handles.all_datums{221,4};
         info.DY = handles.all_datums{221,5};        info.DZ = handles.all_datums{221,6};
         info.ellipsoide = handles.all_datums{221,2};        datum_info(handles, info)
@@ -480,9 +480,9 @@ function edit_ProjParameterValue_1_Callback(hObject, eventdata, handles)
 	if (isnan(xx) || isempty(xx)),  set(hObject, 'String', '');  return;    end    % Just a stupid user error
 	xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
 	if (str2double(val{1}) > 0)
-        for i=1:length(val),  x = x + str2double(val{i}) / (60^(i-1));    end
+		for i=1:length(val),  x = x + str2double(val{i}) / (60^(i-1));    end
 	else
-        for i=1:length(val),  x = x - abs(str2double(val{i})) / (60^(i-1));   end
+		for i=1:length(val),  x = x - abs(str2double(val{i})) / (60^(i-1));   end
 	end
 	x = num2str(x);
 	if (handles.nParameters == 1),  handles.projection{2} = [x '/1'];
@@ -521,28 +521,28 @@ function edit_ProjParameterValue_3_Callback(hObject, eventdata, handles)
 
 %-------------------------------------------------------------------------------------
 function edit_ProjParameterValue_4_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || isempty(xx)),  set(hObject, 'String', '');  return;    end    % Just a stupid user error
-xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
-if (str2double(val{1}) > 0)
-    for i=1:length(val),  x = x + str2double(val{i}) / (60^(i-1));    end
-else
-    for i=1:length(val),  x = x - abs(str2double(val{i})) / (60^(i-1));   end
-end
-x = num2str(x);
-handles.projection{5} = [x '/1'];
-guidata(hObject, handles);
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || isempty(xx)),  set(hObject, 'String', '');  return;    end    % Just a stupid user error
+	xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
+	if (str2double(val{1}) > 0)
+		for i=1:length(val),  x = x + str2double(val{i}) / (60^(i-1));    end
+	else
+		for i=1:length(val),  x = x - abs(str2double(val{i})) / (60^(i-1));   end
+	end
+	x = num2str(x);
+	handles.projection{5} = [x '/1'];
+	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
 if (isempty(handles.nParameters))
-    errordlg('You did not select anything. So what are you expecting?','Chico Clever');    return
+	errordlg('You did not select anything. So what are you expecting?','Chico Clever');    return
 end
 error = 0;
 for (i=1:handles.nParameters)
-    if (isempty(handles.projection{i+1}))
-        errordlg(['Missing projection parameter number ' num2str(i)],'Error');    error = 1;
-    end
+	if (isempty(handles.projection{i+1}))
+		errordlg(['Missing projection parameter number ' num2str(i)],'Error');    error = 1;
+	end
 end
 if (error),     return;     end
 Out.group_val = get(handles.popup_Group,'Value');
@@ -779,7 +779,7 @@ val = caso.val;             id = 221;   % World Projs use wgs by default
 switch val
     case {1, 'Mercator'}
         set_enable(handles,0);     handles.nParameters = 0;
-        handles.projection{1} = '-Jm1'; handles.proj_name = 'Mecator (Origin in equator)';
+        handles.projection{1} = '-Jm0/0/1'; handles.proj_name = 'Mecator (Origin in equator)';
     case {2, 'Miller Cylindrical'}
         set_enable(handles,1);     handles.nParameters = 1;
         handles.projection{1} = '-Jj';  handles.proj_name = 'Miller Cylindrical';
@@ -884,7 +884,10 @@ uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@coordinate_system_uicallback,h1,'popup_CilindricalProjections_Callback'},...
 'Position',[280 186 231 22],...
-'String',{'CYLINDRICAL'; 'Cassini Cylindrical'; 'Miller Cylindrical'; 'Mercator - Greenwich and Equator as origin'; 'Mercator - Give meridian and standard parallel'; 'Oblique Mercator - point & azimuth'; 'Oblique Mercator - two points'; 'Oblique Mercator - point & pole'; 'Cylindrical Equidistant'; 'TM - Transverse Mercator, with Equator as y=0'; 'TM - Transverse Mercator, set origin'; 'UTM - Universal Transverse Mercator'; 'General Cylindrical' },...
+'String',{'CYLINDRICAL'; 'Cassini Cylindrical'; 'Miller Cylindrical'; 'Mercator - Greenwich and Equator as origin'; ...
+	'Mercator - Give meridian and standard parallel'; 'Oblique Mercator - point & azimuth'; 'Oblique Mercator - two points';...
+	'Oblique Mercator - point & pole'; 'Cylindrical Equidistant'; 'TM - Transverse Mercator, with Equator as y=0'; ...
+	'TM - Transverse Mercator, set origin'; 'UTM - Universal Transverse Mercator'; 'General Cylindrical'},...
 'Style','popupmenu',...
 'Value',1,...
 'Tag','popup_CilindricalProjections');
