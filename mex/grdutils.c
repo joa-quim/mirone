@@ -10,7 +10,8 @@
  * Author:	Joaquim Luis
  * Date:	31-OCT-2004
  * Revised:	31-MAR-2005
- * 		08-OCT-2005  -> Added the -H option
+ * 		08-OCT-2005  -> Added -H option
+ * 		11-OCT-2007  -> Added -C option  - casts uint8 to int8 and [0 255] to [-128 127]
  * 
  */
 
@@ -27,8 +28,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	int i, j, nxy, nx, ny, nfound = 0, ngood, argc = 0, n_arg_no_char = 0;
 	int error = FALSE, ADD = FALSE, MUL = FALSE, do_min_max = FALSE, do_std = FALSE;
-	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
-	int is_uint16 = FALSE, report_nans = FALSE, only_report_nans = FALSE;
+	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE, is_uint8 = FALSE;
+	int is_uint16 = FALSE, report_nans = FALSE, only_report_nans = FALSE, do_cast = FALSE;
 	int i_min = 0, i_max = 0, do_min_max_loc = FALSE, report_min_max_loc_nan_mean_std = FALSE;
 	char	**argv;
 	float	*zdata, fact;
@@ -60,6 +61,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						error++;
 					}
 					ADD = TRUE;
+					break;
+				case 'C':
+					do_cast = TRUE;
 					break;
 				case 'H':
 					do_min_max_loc = TRUE;
@@ -93,7 +97,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	if (n_arg_no_char == 0 || error) {
 		mexPrintf ("grdutils - Do some usefull things on arrays that are in single precision\n\n");
-		mexPrintf ("usage: [out] = grdutils(infile, ['-A<const>'], ['-L[+]'], [-H], [-M<fact>], [-S]\n");
+		mexPrintf ("usage: [out] = grdutils(infile, ['-A<const>'], ['-L[+]'], [-H], [-M<fact>], [-S], [-C]\n");
 		
 		mexPrintf ("\t<out> is a two line vector with [min,max] or [mean,std] if -L OR -S\n");
 		mexPrintf ("\t Do not use <out> with -A or -M because infile is a pointer and no copy of it is made here\n");
@@ -101,6 +105,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\n\tOPTIONS (but must choose only one):\n");
 		mexPrintf ("\t   ---------------------------------\n");
 		mexPrintf ("\t-A constant adds constant to array.\n");
+		mexPrintf ("\t-C casts array uint8 to int8 and subtracts 128. That is [0 255] to [-128 127].\n");
 		mexPrintf ("\t-L Compute min and max. Apend + (-L+) to count also how many NaNs\n");
 		mexPrintf ("\t-H outputs [z_min z_max i_zmin i_zmax n_nans mean std]\n");
 		mexPrintf ("\t-M factor multiplies array by factor.\n");
@@ -131,12 +136,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	else if (mxIsUint16(prhs[0])) {
 		is_uint16 = TRUE;
 	}
+	else if (mxIsUint8(prhs[0])) {
+		is_uint8 = TRUE;
+	}
 	else {
 		mexPrintf("GRDUTILS ERROR: Unknown input data type.\n");
-		mexErrMsgTxt("Valid type is: single, int, short or unsigned short\n");
+		mexErrMsgTxt("Valid type is: single, int, short or unsigned short and uint8\n");
 	}
-
-	zdata = mxGetData(prhs[0]);
 
 	nx = mxGetN (prhs[0]);
 	ny = mxGetM (prhs[0]);
@@ -144,6 +150,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexErrMsgTxt("GRDUTILS ERROR: First argument must contain a decent array\n");
 
 	nxy = nx * ny;
+
+	if (do_cast && is_uint8) {	/* Case where we only want to cast a uint8 to int8 */
+		unsigned char *Udata8;
+		char	*data8;
+		Udata8 = (unsigned char *)(mxGetData(prhs[0]));
+		plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[0]),
+			mxGetDimensions(prhs[0]), mxINT8_CLASS, mxREAL);
+		data8 = (char *)(mxGetData(plhs[0]));
+		for (i = 0; i < nxy; i++)
+			data8[i] = (char)(Udata8[i] - 128);
+		return;
+	}
+	else
+		zdata = mxGetData(prhs[0]);
 
 	/* Loop over the file and find NaNs. */
 	for (i = 0; i < nxy; i++) {
