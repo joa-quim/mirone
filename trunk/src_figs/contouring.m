@@ -15,7 +15,7 @@ function varargout = contouring(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
 	hObject = figure('Tag','figure1','Visible','off','HandleVisibility', 'off');
 	contouring_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -163,8 +163,8 @@ end
 
 %-------------------------------------------------------------------------------
 function listbox_ElevValues_Callback(hObject, eventdata, handles)
-handles.selected_val = get(hObject,'Value');
-guidata(hObject, handles);
+	handles.selected_val = get(hObject,'Value');
+	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------
 function pushbutton_DeleteSelected_Callback(hObject, eventdata, handles)
@@ -179,28 +179,20 @@ end
 
 %-------------------------------------------------------------------------------
 function pushbutton_DeleteAll_Callback(hObject, eventdata, handles)
-set(handles.listbox_ElevValues,'String','')
-handles.selected_val = [];
+	set(handles.listbox_ElevValues,'String','')
+	handles.selected_val = [];
 
 %-------------------------------------------------------------------------------
 function pushbutton_Apply_Callback(hObject, eventdata, handles)
-list = get(handles.listbox_ElevValues,'String');
-if (isempty(list)),  return;     end
-list = str2num(char(list{:}));
-mirone('DrawContours_CB',[],guidata(handles.h_calling_fig),list);
-guidata(hObject, handles);  % Otherwise the handles was the one from Mirone
+	list = get(handles.listbox_ElevValues,'String');
+	if (isempty(list)),  return;     end
+	list = str2num(char(list{:}));
+	mirone('DrawContours_CB',guidata(handles.h_calling_fig),list);
+	guidata(hObject, handles);  % Otherwise the handles was the one from Mirone
 
 %-------------------------------------------------------------------------------
 function pushbutton_Close_Callback(hObject, eventdata, handles)
     delete(handles.figure1)
-
-%-------------------------------------------------------------------------------
-function pushbutton8_Callback(hObject, eventdata, handles)
-% Used only to make the GUI fancier
-
-%-------------------------------------------------------------------------------
-function pushbutton9_Callback(hObject, eventdata, handles)
-% Used only to make the GUI fancier
 
 %-------------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
@@ -225,13 +217,11 @@ set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Tag','figure1');
 
 uicontrol('Parent',h1,...
-'Callback',{@contouring_uicallback,h1,'pushbutton9_Callback'},...
 'Enable','off',...
 'Position',[282 38 161 281],...
 'Tag','pushbutton9');
 
 uicontrol('Parent',h1,...
-'Callback',{@contouring_uicallback,h1,'pushbutton8_Callback'},...
 'Enable','off',...
 'Position',[10 38 261 281],...
 'Tag','pushbutton8');
