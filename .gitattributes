@@ -397,6 +397,7 @@ utils/cdf2pal.m -text
 utils/checkinput_mex.dll -text
 utils/circ_geo.m -text
 utils/clabel_j.m -text
+utils/conv2anugapts.m -text
 utils/cropimg.m -text
 utils/datasets_funs.m -text
 utils/date2jd.m -text
