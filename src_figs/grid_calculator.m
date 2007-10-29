@@ -15,11 +15,9 @@ function varargout = grid_calculator(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
 	hObject = figure('Tag','figure1','Visible','off');
-	handles = guihandles(hObject);
-	guidata(hObject, handles);
-	grid_calculator_LayoutFcn(hObject,handles);
+	grid_calculator_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	movegui(hObject,'east')
 
@@ -266,7 +264,7 @@ function pushbutton_compute_Callback(hObject, eventdata, handles)
                         grid_t = double(getappdata(hand_fig.figure1,'dem_z'));
                         tmp.X = getappdata(hand_fig.figure1,'dem_x');
                         tmp.Y = getappdata(hand_fig.figure1,'dem_y');
-                        tmp.head = getappdata(hand_fig.figure1,'GMThead');
+                        tmp.head = hand_fig.head;
                     end
                     grid.(char(i+96)) = grid_t;
                 else
@@ -328,28 +326,28 @@ function bandArithm(handles, com)
 	n = 0;      k = 0;      k = strfind(com,'&');
 
 	try                             % Wrap it here to report any possible error
-        if (~isempty(k))            % We have grids
+		if (~isempty(k))            % We have grids
             for (i=1:length(k))     % Loop over bands
                 tok = strtok(com(k(i)+1:end));
                 n = strmatch(tok,handles.name_str);     % n ~= [] when it is in memory                
                 grid.(char(n+96)) = double(handles.BL(:,:,n));
                 N(i) = n;
             end
-
+		
             for (i = 1:length(k))
                 tok = strtok(com(k(i)+1:end));      % Here we get the band's name
                 kf = k(i) + length(tok);            % Find the position of last char of band's name
                 com = [com(1:k(i)) 'grid.' char(N(i)+96) ' ' com(kf+1:end)];
             end
-        end
-
-        com = strrep(com,'&','');                   % Remove the '&' characters
-
-        try,        resp = eval(com);                       % See if the Matlab mode worked
-        catch,      errordlg(lasterr,'Error');  return      % Shit, it didn't
-        end
-
-        if (numel(resp) > 1)   % 'resp' is a array. Construct a fake grid
+		end
+		
+		com = strrep(com,'&','');                   % Remove the '&' characters
+		
+		try,        resp = eval(com);                       % See if the Matlab mode worked
+		catch,      errordlg(lasterr,'Error');  return      % Shit, it didn't
+		end
+		
+		if (numel(resp) > 1)   % 'resp' is a array. Construct a fake grid
             if (max(resp(:)) <= 1),      resp = single(resp * 255);      end
             [m,n] = size(resp);
             tmp.X = 1:n;        tmp.Y = 1:m;
@@ -358,13 +356,13 @@ function bandArithm(handles, com)
             tmp.name = 'Computed Band';
             resp = uint8(resp);
             new_window = mirone(resp,tmp);
-        else                % Computations that do not involve grids
+		else                % Computations that do not involve grids
             txt = sprintf('%.10f',resp);
             while (txt(end) == '0')     % Remove trailing zeros
                 txt(end) = [];
             end
             set(handles.edit_command,'String',txt)
-        end
+		end
 	catch
         errordlg(lasterr,'Error')
 	end
@@ -373,21 +371,21 @@ function bandArithm(handles, com)
 function str = move_operator(str)
 	% Make sure that operatores are not "glued" to operands.
 	k = strfind(str,')');
-	if (k)  str = strrep(str,')',' ) ');    end
+	if (k),		str = strrep(str,')',' ) ');    end
 	k = strfind(str,'(');
-	if (k)  str = strrep(str,'(',' ( ');    end
+	if (k),		str = strrep(str,'(',' ( ');    end
 	k = strfind(str,'+');
-	if (k)  str = strrep(str,'+',' + ');    end
+	if (k),		str = strrep(str,'+',' + ');    end
 	k = strfind(str,'-');
-	if (k)  str = strrep(str,'-',' - ');    end
+	if (k),		str = strrep(str,'-',' - ');    end
 	k = strfind(str,'*');
-	if (k)  str = strrep(str,'*',' * ');    end
+	if (k),		str = strrep(str,'*',' * ');    end
 	k = strfind(str,'/');
-	if (k)  str = strrep(str,'/',' / ');    end
+	if (k),		str = strrep(str,'/',' / ');    end
 	k = strfind(str,'\');
-	if (k)  str = strrep(str,'\',' \ ');    end
+	if (k),		str = strrep(str,'\',' \ ');    end
 	k = strfind(str,'. ');
-	if (k)                  % Here we want to have things like '.*' and not '. *'
+	if (k)					% Here we want to have things like '.*' and not '. *'
         while (length(k))
             str = [str(1:k(1)) str(min(k(1)+2,length(str)):end)];
             k = strfind(str,'. ');
@@ -422,7 +420,7 @@ function pushbutton_help_Callback(hObject, eventdata, handles)
 	helpdlg(str,'Help')
 
 % --- Creates and returns a handle to the GUI figure. 
-function grid_calculator_LayoutFcn(h1,handles);
+function grid_calculator_LayoutFcn(h1);
 
 set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
@@ -432,8 +430,7 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Position',[520 602 669 198],...
 'RendererMode','manual',...
 'Resize','off',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
