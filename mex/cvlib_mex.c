@@ -15,6 +15,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 12.0  12/10/2007 JL	Added cvCvtScale (need to include in help)
  * Revision 11.0  30/04/2007 JL	corrected memory leaks as kindly pointed by James Hays
  * Revision 10.0  27/04/2007 JL	Added AbsDiff, finished PutText and fixed fix of JfindContours
  * Revision  9.0  04/03/2007 JL	Fixed JfindContours (well I thought I did - 28-4-07) 
@@ -134,6 +135,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tcircle (cvCircle)\n");
 		mexPrintf("\tcolor (cvCvtColor)\n");
 		mexPrintf("\tcontours (cvFindContours)\n");
+		mexPrintf("\tCvtScale (cvCvtScale)\n");
 		mexPrintf("\tdilate (cvDilate)\n");
 		mexPrintf("\tdiv (cvDiv)\n");
 		mexPrintf("\teBox (cvEllipseBox)\n");
@@ -184,7 +186,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	else if (!strncmp(funName,"poly",4) || !strcmp(funName,"fillpoly") )
 		Jpolyline(n_out, plhs, n_in, prhs, funName);
 
-	else if (!strcmp(funName,"goodfeatures"))
+	else if (!strncmp(funName,"good", 4))		/* goodfeatures */
 		JgoodFeatures(n_out, plhs, n_in, prhs);
 
 	else if (!strcmp(funName,"houghlines2"))
@@ -205,7 +207,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	else if (!strcmp(funName,"erode") || !strcmp(funName,"dilate"))
 		JerodeDilate(n_out, plhs, n_in, prhs, funName);
 
-	else if (!strcmp(funName,"morphologyex"))
+	else if (!strncmp(funName,"morpho", 6))		/* morphologyex */
 		JmorphologyEx(n_out, plhs, n_in, prhs);
 
 	else if (!strcmp(funName,"color"))
@@ -216,8 +218,9 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	else if ( !strcmp(funName,"add") || !strcmp(funName,"sub") || !strcmp(funName,"mul") ||
 		 !strcmp(funName,"div") || !strcmp(funName,"addS") || !strcmp(funName,"subS") ||
-		 !strcmp(funName,"absDiff"))
+		 !strcmp(funName,"absDiff") || !strncmp(funName,"Cvt", 3) ) {
 		Jarithm(n_out, plhs, n_in, prhs, funName);
+	}
 
 	else if (!strcmp(funName,"addweighted"))
 		JaddWeighted(n_out, plhs, n_in, prhs);
@@ -2151,8 +2154,8 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 	if (error)
 		mexErrMsgTxt("CVLIB_MEX: Matrix dimensions must agree!");
 
-	if (nx2*ny2 == 1 && (strcmp(op,"addS") && strcmp(op,"subS")) )
-		mexErrMsgTxt("CVLIB_MEX: only 'addS' or 'subS' are allowed when second arg is a scalar!");
+	if (nx2*ny2 == 1 && (strcmp(op,"addS") && strcmp(op,"subS") && strncmp(op,"Cvt",3)) )
+		mexErrMsgTxt("CVLIB_MEX: only 'addS', or CvtScale 'subS' are allowed when second arg is a scalar!");
 
 	if (n_out == 0)
 		inplace = TRUE;
@@ -2190,6 +2193,15 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 			cvMul( src1, src2, dst, 1 ); 
 		else if (!strcmp(op,"div"))
 			cvDiv( src1, src2, dst, 1 ); 
+		else if (!strcmp(op,"CvtScale")) {
+			double scale, shift;
+			scale = *(double *)mxGetData(prhs[2]);
+			if (n_in == 4)
+				shift = *(double *)mxGetData(prhs[3]);
+			else
+				shift = 0.;
+			cvConvertScale( src1, dst, scale, shift );
+		}
 
 		cvReleaseImageHeader( &dst );
 	}
@@ -2207,7 +2219,16 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 		else if (!strcmp(op,"mul"))
 			cvMul( src1, src2, src1, 1 ); 
 		else if (!strcmp(op,"div"))
-			cvDiv( src1, src2, src1, 1 ); 
+			cvDiv( src1, src2, src1, 1 );
+		else if (!strcmp(op,"CvtScale")) {
+			double scale, shift;
+			scale = *(double *)mxGetData(prhs[2]);
+			if (n_in == 4)
+				shift = *(double *)mxGetData(prhs[3]);
+			else
+				shift = 0.;
+			cvConvertScale( src1, src1, scale, shift );
+		}
 	}
 
 	cvReleaseImageHeader( &src1 );
