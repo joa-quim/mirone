@@ -154,22 +154,23 @@ switch opt
         clear numeric_data;     hold off
     case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation'}
         set_symbol_uicontext(hand,data)
-    case 'PlateBoundPB',        set_PB_uicontext(hand,data)
+    case 'PlateBoundPB',		set_PB_uicontext(hand,data)
     case 'DrawVector'
         h = draw_vector;
         if ~isempty(h)      % when in compiled version h may be empty.
             set_vector_uicontext(h)
         end
-    case 'ChngAxLabels',        changeAxesLabels(data)
-    case 'MagBarCode',          draw_MagBarCode
-    case 'SRTMrect',            set_SRTM_rect_uicontext(hand)
-    case 'isochron',            set_isochrons_uicontext(hand,data)
-    case 'gmtfile',             set_gmtfile_uicontext(hand,data)
-    case 'country_patch',       set_country_uicontext(hand)
-    case 'telhas_patch',        set_telhas_uicontext(hand)
-    case 'save_xyz',            save_formated([],[],[], data)
-    case 'tellAzim',            show_lineAzims([],[], hand);
-    case 'tellLLength',         show_LineLength([],[], hand);
+    case 'ChngAxLabels',		changeAxesLabels(data)
+    case 'MagBarCode',			draw_MagBarCode
+    case 'SRTMrect',			set_SRTM_rect_uicontext(hand)
+    case 'isochron',			set_isochrons_uicontext(hand,data)
+    case 'gmtfile',				set_gmtfile_uicontext(hand,data)
+    case 'country_patch',		set_country_uicontext(hand)
+    case 'telhas_patch',		set_telhas_uicontext(hand)
+    case 'save_xyz',			save_formated([],[],[], data)
+    case 'tellAzim',			show_lineAzims([],[], hand);
+    case 'tellLLength',			show_LineLength([],[], hand);
+    case 'tellArea',			show_Area([],[], hand);
 end
 
 % -----------------------------------------------------------------------------------------
@@ -254,7 +255,7 @@ end
 handles = guidata(get(h,'Parent'));             % Get Mirone handles
 
 % Check to see if we are dealing with a multibeam track
-cmenuHand = uicontextmenu;
+cmenuHand = uicontextmenu('Parent',handles.figure1);
 set(h, 'UIContextMenu', cmenuHand);
 switch opt
     case 'line'
@@ -303,44 +304,39 @@ if (LINE_ISCLOSED)
     %itemFill = uimenu(cmenuHand, 'Label', 'Fill polygon', 'Callback', cbFill);
 end
 if ( strcmp(opt,'line') && ~LINE_ISCLOSED && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid) )
-    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',[],guidata(gcbo),''point'')';
+    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
     uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack);
-    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',[],guidata(gcbo))';
+    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))';
     uimenu(cmenuHand, 'Label', 'Extract profile', 'Callback', cbTrack);
 end
 if strcmp(opt,'MBtrack')
     uimenu(cmenuHand, 'Label', 'Show track''s Swath Ratio', 'Callback', {@show_swhatRatio,h});
 end
 if (IS_RECTANGLE)
-    cb_cropImage = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco)';
+    cb_cropImage = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)';
     uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Separator','on', 'Callback', @rectangle_limits);
     uimenu(cmenuHand, 'Label', 'Crop Image', 'Callback', cb_cropImage);
     if (handles.image_type == 3 || handles.validGrid)
         uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Callback', ...
-            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaWithCoords'')');
+            'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
     end
     uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', @rectangle_register_img);
     uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Callback', @Transplant_Image);
     if (handles.validGrid)    % Option only available to recognized grids
-        cb_SplineSmooth  = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''SplineSmooth'')';
-        cb_MedianFilter  = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''MedianFilter'')';
-        cb_Fill_surface  = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''surface'')';
-        cb_Fill_cubic    = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''cubic'');';
-        cb_Fill_linear   = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''linear'');';
-        cb_set_value     = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''SetConst'')';
+        cb_SplineSmooth  = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')';
+        cb_MedianFilter  = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')';
+        cb_Fill_surface  = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')';
+        cb_Fill_cubic    = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');';
+        cb_Fill_linear   = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');';
+        cb_set_value     = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')';
         item_tools = uimenu(cmenuHand, 'Label', 'Crop Tools','Separator','on');
         uimenu(item_tools, 'Label', 'Spline smooth', 'Callback', cb_SplineSmooth);
         uimenu(item_tools, 'Label', 'Median filter', 'Callback', cb_MedianFilter);
-        uimenu(item_tools, 'Label', 'Crop Grid', 'Callback', ...
-            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_pure'')');
-        uimenu(item_tools, 'Label', 'Histogram', 'Callback', ...
-            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_histo'')');
-        uimenu(item_tools, 'Label', 'Power', 'Callback', ...
-            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_power'')');
-        uimenu(item_tools, 'Label', 'Autocorrelation', 'Callback', ...
-            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_autocorr'')');
-        uimenu(item_tools, 'Label', 'FFT tool', 'Callback', ...
-            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_fftTools'')');
+        uimenu(item_tools, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+        uimenu(item_tools, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+        uimenu(item_tools, 'Label', 'Power', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
+        uimenu(item_tools, 'Label', 'Autocorrelation', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
+        uimenu(item_tools, 'Label', 'FFT tool', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
         item_fill = uimenu(item_tools, 'Label', 'Fill gaps');
         uimenu(item_fill, 'Label', 'Fill gaps (surface)', 'Callback', cb_Fill_surface);
         uimenu(item_fill, 'Label', 'Fill gaps (cubic)', 'Callback', cb_Fill_cubic);
@@ -371,46 +367,42 @@ end
 if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
     if (handles.validGrid && ~IS_RECTANGLE)    % Option only available to recognized grids
         item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Separator','on');
-        uimenu(item_tools2, 'Label', 'Crop Grid', 'Callback', ...
-            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_pure'')');
-        uimenu(item_tools2, 'Label', 'Set to const', 'Callback', ...
-            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''ROI_SetConst'')');
-        uimenu(item_tools2, 'Label', 'Histogram', 'Callback', ...
-            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''CropaGrid_histo'')');
-        uimenu(item_tools2, 'Label', 'Median filter', 'Callback', ...
-            'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''ROI_MedianFilter'')');
+        uimenu(item_tools2, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+        uimenu(item_tools2, 'Label', 'Set to const', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
+        uimenu(item_tools2, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+        uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
     end
     if (strcmp(get(h,'Tag'),'EulerTrapezium'))
         uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Separator','on', 'Callback',...
             'calcBoninEulerPole(get(gco,''XData''), get(gco,''YData''));' );
     end
-    cb_roi = 'mirone(''DrawClosedPolygon_CB'',[],guidata(gcbo),gco)';
+    cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
     uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
 end
 
 if (strcmp(get(h,'Tag'),'FaultTrace'))      % For Okada modeling
-    uimenu(cmenuHand, 'Label', 'Okada', 'Separator','on', 'Callback', {@okada_model,h,'okada'});    
-    uimenu(cmenuHand, 'Label', 'Mansinha', 'Callback', {@okada_model,h,'mansinha'});    
+	uimenu(cmenuHand, 'Label', 'Okada', 'Separator','on', 'Callback', {@okada_model,h,'okada'});    
+	uimenu(cmenuHand, 'Label', 'Mansinha', 'Callback', {@okada_model,h,'mansinha'});    
 end
 
 if (IS_SEISPOLYGON)                         % Seismicity options
-    % gco gives the same handle as h 
-    uimenu(cmenuHand, 'Label', 'Save events', 'Callback', 'save_seismicity(gcf,[],gco)', 'Separator','on');
-    uimenu(cmenuHand, 'Label', 'Find clusters', 'Callback', 'find_clusters(gcf,gco)');
-    itemHist = uimenu(cmenuHand, 'Label','Histograms');
-    uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Callback', 'histos_seis(gco,''GR'')');
-    uimenu(itemHist, 'Label', 'Cumulative number', 'Callback', 'histos_seis(gco,''CH'')');
-    uimenu(itemHist, 'Label', 'Cumulative moment', 'Callback', 'histos_seis(gco,''CM'')');
-    uimenu(itemHist, 'Label', 'Magnitude', 'Callback', 'histos_seis(gco,''MH'')');
-    uimenu(itemHist, 'Label', 'Time', 'Callback', 'histos_seis(gco,''TH'')');
-    uimenu(itemHist, 'Label', 'Display in Table', 'Callback', 'histos_seis(gcf,''HT'')','Sep','on');
-    %uimenu(itemHist, 'Label', 'Hour of day', 'Callback', 'histos_seis(gco,''HH'')');
-    itemTime = uimenu(cmenuHand, 'Label','Time series');
-    uimenu(itemTime, 'Label', 'Time magnitude', 'Callback', 'histos_seis(gco,''TM'')');
-    uimenu(itemTime, 'Label', 'Time depth', 'Callback', 'histos_seis(gco,''TD'')');
-    uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Callback', 'histos_seis(gco,''BV'')');
-    uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Callback', 'histos_seis(gco,''OL'')');
-    %uimenu(cmenuHand, 'Label', 'Skell', 'Callback', 'esqueleto_tmp(gco)','Sep','on');
+	% gco gives the same handle as h 
+	uimenu(cmenuHand, 'Label', 'Save events', 'Callback', 'save_seismicity(gcf,[],gco)', 'Separator','on');
+	uimenu(cmenuHand, 'Label', 'Find clusters', 'Callback', 'find_clusters(gcf,gco)');
+	itemHist = uimenu(cmenuHand, 'Label','Histograms');
+	uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Callback', 'histos_seis(gco,''GR'')');
+	uimenu(itemHist, 'Label', 'Cumulative number', 'Callback', 'histos_seis(gco,''CH'')');
+	uimenu(itemHist, 'Label', 'Cumulative moment', 'Callback', 'histos_seis(gco,''CM'')');
+	uimenu(itemHist, 'Label', 'Magnitude', 'Callback', 'histos_seis(gco,''MH'')');
+	uimenu(itemHist, 'Label', 'Time', 'Callback', 'histos_seis(gco,''TH'')');
+	uimenu(itemHist, 'Label', 'Display in Table', 'Callback', 'histos_seis(gcf,''HT'')','Sep','on');
+	%uimenu(itemHist, 'Label', 'Hour of day', 'Callback', 'histos_seis(gco,''HH'')');
+	itemTime = uimenu(cmenuHand, 'Label','Time series');
+	uimenu(itemTime, 'Label', 'Time magnitude', 'Callback', 'histos_seis(gco,''TM'')');
+	uimenu(itemTime, 'Label', 'Time depth', 'Callback', 'histos_seis(gco,''TD'')');
+	uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Callback', 'histos_seis(gco,''BV'')');
+	uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Callback', 'histos_seis(gco,''OL'')');
+	%uimenu(cmenuHand, 'Label', 'Skell', 'Callback', 'esqueleto_tmp(gco)','Sep','on');
 end
 
 % -----------------------------------------------------------------------------------------
@@ -468,7 +460,7 @@ for (i = 1:numel(h))
 	uimenu(item8, 'Label', 'Other...', 'Callback', cb_color{9});
 	uimenu(item8, 'Label', 'None', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
 	uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
-	cb_roi = 'mirone(''DrawClosedPolygon_CB'',[],guidata(gcbo),gco)';
+	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
 	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
 end
 
@@ -512,8 +504,8 @@ else
     az = azim.az;
 end
 
-if (strcmp(opt,'okada')),           deform_okada(h_fig,h,az,handles.geog);
-elseif (strcmp(opt,'mansinha')),    deform_mansinha(h_fig,h,az,handles.geog);
+if (strcmp(opt,'okada')),           deform_okada(handles,h,az);
+elseif (strcmp(opt,'mansinha')),    deform_mansinha(handles,h,az);
 end
 % Feigl's example
 % u1 = -22;    u2 = 514;     u3 = 0;
@@ -526,10 +518,10 @@ function set_SRTM_rect_uicontext(h,opt)
 	set(h, 'UIContextMenu', cmenuHand);
 	ui_edit_polygon(h)    % Set edition functions
 	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-	cb_Fill_surface = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''surface'');delete(gco)';
-	cb_Fill_cubic = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''cubic'');delete(gco)';
-	cb_Fill_linear = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''linear'');delete(gco)';
-	cb_Fill_sea   = 'mirone(''ImageCrop_CB'',gcbo,guidata(gcbo),gco,''FillGaps'',''sea'');delete(gco)';
+	cb_Fill_surface = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'');delete(gco)';
+	cb_Fill_cubic = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');delete(gco)';
+	cb_Fill_linear = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');delete(gco)';
+	cb_Fill_sea   = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''sea'');delete(gco)';
 	uimenu(cmenuHand, 'Label', 'Fill gaps (surface)', 'Callback', cb_Fill_surface);
 	uimenu(cmenuHand, 'Label', 'Fill gaps (cubic)', 'Callback', cb_Fill_cubic);
 	uimenu(cmenuHand, 'Label', 'Fill gaps (linear)', 'Callback', cb_Fill_linear);
@@ -839,13 +831,12 @@ function set_circleGeo_uicontext(h)
 	tag = get(h,'Tag');
 	cmenuHand = uicontextmenu;
 	set(h, 'UIContextMenu', cmenuHand);
-	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	cb_color = uictx_color(h);      % there are 9 cb_color outputs
 	% cb_MoveCircle        = {@move_circle,h};
 	% cb_ChangeCircCenter1 = {@change_CircCenter1,h};
-	cb_roi = 'mirone(''DrawClosedPolygon_CB'',[],guidata(gcbo),gco)';
+	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
 	
 	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
@@ -871,11 +862,10 @@ function set_circleCart_uicontext(h)
 	% h is a handle to a circle (in cartesian coords) object
 	cmenuHand = uicontextmenu;
 	set(h, 'UIContextMenu', cmenuHand);
-	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	cb_color = uictx_color(h);      % there are 9 cb_color outputs
-	cb_roi = 'mirone(''DrawClosedPolygon_CB'',[],guidata(gcbo),gco)';
+	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
 	
 	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
@@ -957,10 +947,17 @@ function show_Area(obj,eventdata,h)
 	% NOTE that H is optional. Use only when want to make sure that this fun
 	% uses that handle (does notwork with copyied objects)
 
-	if (nargin == 2 || length(h) > 1),   h = gco;   end      % We need to get the current line handle
-	x = get(h,'XData');    y = get(h,'YData');
+	if (nargin == 3)
+		if (size(h,1) >= 2 && size(h,2) == 2)
+			x = h(:,1);     y = h(:,2);
+		elseif (ishandle(h))
+			x = get(h,'XData');    y = get(h,'YData');
+		end
+	elseif (nargin == 2 || isempty(h) || length(h) > 1)
+		h = gco;
+		x = get(h,'XData');    y = get(h,'YData');
+	end
 
-	EarthRad = 6371;
 	% Contour lines for example have NaNs and not at the same x,y positions (???)
 	ix = isnan(x);
 	x(ix) = [];             y(ix) = [];
@@ -974,7 +971,7 @@ function show_Area(obj,eventdata,h)
 	end
 	if (handles.geog)
         area = area_geo(y,x);    % Area is reported on the unit sphere
-        area = area * 4 * pi * EarthRad^2;
+        area = area * 4 * pi * (handles.EarthRad^2);
         msg{2} = ['Area = ' sprintf('%g',area) ' km^2'];
         msgbox(msg,'Area')
 	else
@@ -996,8 +993,12 @@ function ll = show_LineLength(obj,eventdata,h, opt)
 
 	n_args = nargin;
 	if (n_args <= 3),   opt = [];   end
-	if (n_args == 3 && (size(h,1) >= 2 && size(h,2) == 2))
-        x = h(:,1);     y = h(:,2);
+	if (n_args == 3)
+        if (size(h,1) >= 2 && size(h,2) == 2)
+            x = h(:,1);     y = h(:,2);
+        elseif (ishandle(h))
+            x = get(h,'XData');    y = get(h,'YData');
+        end
 	elseif (n_args == 2 || isempty(h) || length(h) > 1)
         h = gco;
         x = get(h,'XData');    y = get(h,'YData');
@@ -1009,18 +1010,10 @@ msg = [];               handles = guidata(get(0,'CurrentFigure'));
 ix = isnan(x);      x(ix) = [];     y(ix) = [];
 iy = isnan(y);      x(iy) = [];     y(iy) = [];
 if (handles.geog)
-    %D2R = pi/180;    earth_rad = 6371;
-    %x = x * D2R;    y = y * D2R;
     lat_i = y(1:length(y)-1);   lat_f = y(2:length(y));     clear y;
     lon_i = x(1:length(x)-1);   lon_f = x(2:length(x));     clear x;
-    %tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);    clear lat_i lat_f lon_i lon_f;
-    ellips = handles.DefineEllipsoide;      tmp = [];
-    for (i=1:length(lat_i))
-        s = vdist(lat_i(i),lon_i(i),lat_f(i),lon_f(i),ellips);
-        tmp = [tmp s];
-    end
+	tmp = vdist(lat_i,lon_i,lat_f,lon_f,handles.DefineEllipsoide([1 3]));
     
-    %total_len = sum(acos(tmp) * earth_rad / 1.852);     % Distance in NM
     switch handles.DefineMeasureUnit
         case 'n'        % Nautical miles
             scale = 1852;   str_unit = ' NM';
@@ -1033,7 +1026,6 @@ if (handles.geog)
     if (nargout == 0 && isempty(opt))
         len_i = zeros(1,length(tmp));
         for i = 1:length(tmp)
-            %len_i(i) = acos(tmp(i)) * earth_rad / 1.852;     % Distance in NM
             len_i(i) = tmp(i) / scale;
             msg = [msg; {['Length' sprintf('%d',i) '  =  ' sprintf('%.5f',len_i(i)) str_unit]}];
         end
@@ -1076,11 +1068,11 @@ function show_AllTrackLength(obj,eventdata)
 	ALLlineHand = findobj(get(gca,'Child'),'Type','line');
 	len = 0;
 	for i = 1:length(ALLlineHand)
-        tag = get(ALLlineHand(i),'Tag');
-        if ~isempty(strfind(tag,'MBtrack'))       % case of a MBtrack line
-            tmp = show_LineLength(obj,eventdata,ALLlineHand(i));        
-            len = len + tmp.len;
-        end
+		tag = get(ALLlineHand(i),'Tag');
+		if ~isempty(strfind(tag,'MBtrack'))       % case of a MBtrack line
+			tmp = show_LineLength(obj,eventdata,ALLlineHand(i));        
+			len = len + tmp.len;
+		end
 	end
 	if (len > 0)
         msgbox(['Total tracks length = ' sprintf('%g',len) ' NM'])
@@ -1095,8 +1087,12 @@ function azim = show_lineAzims(obj,eventdata,h)
 	% either [] or don't pass the H argument to fish it with gco (MUST use this form to work with copied objects)
 	% 16-08-07  H can contain a Mx2 column vector with the line vertices.
 
-	if (nargin == 3 && (size(h,1) >= 2 && size(h,2) == 2))
-        x = h(:,1);     y = h(:,2);
+	if (nargin == 3)
+        if (size(h,1) >= 2 && size(h,2) == 2)
+            x = h(:,1);     y = h(:,2);
+        elseif (ishandle(h))
+            x = get(h,'XData');    y = get(h,'YData');
+        end
 	elseif (nargin == 2 || isempty(h) || length(h) > 1)
         h = gco;
         x = get(h,'XData');    y = get(h,'YData');
@@ -1168,9 +1164,9 @@ function cb = uictx_color(h,opt)
 % If opt is not given opt = 'Color' is assumed
 if (nargin == 1),   opt = [];   end
 if (~isempty(opt) && ischar(opt))
-    c_type = opt;
+	c_type = opt;
 else
-    c_type = 'Color';
+	c_type = 'Color';
 end
 cb{1} = ['set(gco,''' c_type ''',''k'');refresh'];       cb{2} = ['set(gco,''' c_type ''',''w'');refresh'];
 cb{3} = ['set(gco,''' c_type ''',''r'');refresh'];       cb{4} = ['set(gco,''' c_type ''',''g'');refresh'];
@@ -1310,11 +1306,11 @@ function circFirstButtonDown(h,state)
 	setappdata(h,'X',cos(x));       setappdata(h,'Y',sin(x))    % Save unit circle coords
     hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
 	pt = get(hAxes, 'CurrentPoint');
-	set(hFig,'WindowButtonMotionFcn',{@wbm_circle,[pt(1,1) pt(1,2)],h,hAxes,hFig}, ...
+	set(hFig,'WindowButtonMotionFcn',{@wbm_circle,[pt(1,1) pt(1,2)],h,hAxes}, ...
         'WindowButtonDownFcn',{@wbd_circle,h,state});
 
 %---------------
-function wbm_circle(obj,eventdata,center,h,hAxes,hFig)
+function wbm_circle(obj,eventdata,center,h,hAxes)
 	pt = get(hAxes, 'CurrentPoint');
 	rad = sqrt( (pt(1,1)-center(1))^2 + (pt(1,2)-center(2))^2);
 	%[y,x] = circ_geo(center(2),center(1),rad);
@@ -1410,120 +1406,120 @@ set(h, 'XData', [x_min,x_min,x_max,x_max,x_min], 'YData', [y_min,y_max,y_max,y_m
 
 % -----------------------------------------------------------------------------------------
 function rectangle_register_img(obj,event)
-% Prompt user for rectangle corner coordinates and use them to register the image
-h = gco;
-handles = guidata(get(h,'Parent'));
-rect_x = get(h,'XData');   rect_y = get(h,'YData');       % Get rectangle limits
+	% Prompt user for rectangle corner coordinates and use them to register the image
+	h = gco;
+	handles = guidata(get(h,'Parent'));
+	rect_x = get(h,'XData');   rect_y = get(h,'YData');       % Get rectangle limits
 
-region = bg_region('empty');
-if isempty(region),    return;  end     % User gave up
-x_min = region(1);      x_max = region(2);
-y_min = region(3);      y_max = region(4);
-handles.geog = region(5);       % Set if coordinates are geog or cartographic
-ax = handles.axes1;
+	region = bg_region('empty');
+	if isempty(region),    return;  end     % User gave up
+	x_min = region(1);      x_max = region(2);
+	y_min = region(3);      y_max = region(4);
+	handles.geog = region(5);       % Set if coordinates are geog or cartographic
+	ax = handles.axes1;
 
-x(1) = rect_x(1);     x(2) = rect_x(2);     x(3) = rect_x(3);
-y(1) = rect_y(1);     y(2) = rect_y(2);
-img = get(handles.hImg,'CData');
-% Transform the ractangle limits into row-col limits
-limits = getappdata(handles.axes1,'ThisImageLims');
-r_c = cropimg(limits(1:2), limits(3:4), img, [x(1) y(1) (x(3)-x(2)) (y(2)-y(1))], 'out_precise');
-% Find if we are dealing with a image with origin at upper left (i.e. with y positive down)
-if(strcmp(get(ax,'XDir'),'normal') && strcmp(get(ax,'YDir'),'reverse'))
-    img = flipdim(img,1);
-    % We have to invert the row count to account for the new origin in lower left corner
-    tmp = r_c(1);
-    r_c(1) = size(img,1) - r_c(2) + 1;
-    r_c(2) = size(img,1) - tmp + 1;
-end
-% Compute and apply the affine transformation
-base  = [x_min y_min; x_min y_max; x_max y_max; x_max y_min];
-input = [r_c(3) r_c(1); r_c(3) r_c(2); r_c(4) r_c(2); r_c(4) r_c(1)];
-% tform = cp2tform(input,base,'affine');
-% [new_xlim,new_ylim] = tformfwd(tform,[1 size(img,2)],[1 size(img,1)]);
+	x(1) = rect_x(1);     x(2) = rect_x(2);     x(3) = rect_x(3);
+	y(1) = rect_y(1);     y(2) = rect_y(2);
+	img = get(handles.hImg,'CData');
+	% Transform the ractangle limits into row-col limits
+	limits = getappdata(handles.axes1,'ThisImageLims');
+	r_c = cropimg(limits(1:2), limits(3:4), img, [x(1) y(1) (x(3)-x(2)) (y(2)-y(1))], 'out_precise');
+	% Find if we are dealing with a image with origin at upper left (i.e. with y positive down)
+	if(strcmp(get(ax,'XDir'),'normal') && strcmp(get(ax,'YDir'),'reverse'))
+		img = flipdim(img,1);
+		% We have to invert the row count to account for the new origin in lower left corner
+		tmp = r_c(1);
+		r_c(1) = size(img,1) - r_c(2) + 1;
+		r_c(2) = size(img,1) - tmp + 1;
+	end
+	% Compute and apply the affine transformation
+	base  = [x_min y_min; x_min y_max; x_max y_max; x_max y_min];
+	input = [r_c(3) r_c(1); r_c(3) r_c(2); r_c(4) r_c(2); r_c(4) r_c(1)];
+	% tform = cp2tform(input,base,'affine');
+	% [new_xlim,new_ylim] = tformfwd(tform,[1 size(img,2)],[1 size(img,1)]);
 
-trans = AffineTransform(input,base);
-x_pt = [1; size(img,2)];    y_pt = [1; size(img,1)];    % For more X points, change accordingly
-X1 = [x_pt y_pt ones(size(x_pt,1),1)];
-U1 = X1 * trans;
-new_xlim = U1(:,1)';        new_ylim = U1(:,2)';
+	trans = AffineTransform(input,base);
+	x_pt = [1; size(img,2)];    y_pt = [1; size(img,1)];    % For more X points, change accordingly
+	X1 = [x_pt y_pt ones(size(x_pt,1),1)];
+	U1 = X1 * trans;
+	new_xlim = U1(:,1)';        new_ylim = U1(:,2)';
 
-% Rebuild the image with the new limits.
-% Here, I found no way to just update the image with the new limits.
-% The command: image(new_xlim,new_ylim,img); just added a new image (CData) to the
-% existing one (that's not what the manual says). So I have to kill the old image
-% and redraw it again. That's f... stupid.
-[m,n,k] = size(img);
-[new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
-delete(handles.hImg);
-handles.hImg = image(new_xlim,new_ylim,img,'Parent',handles.axes1);
-set(ax,'xlim',new_xlim,'ylim',new_ylim,'YDir','normal')
-resizetrue(handles, []);
-setappdata(ax,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])
-handles.old_size = get(handles.figure1,'Pos');      % Save fig size to prevent maximizing
-handles.origFig = img;
+	% Rebuild the image with the new limits.
+	% Here, I found no way to just update the image with the new limits.
+	% The command: image(new_xlim,new_ylim,img); just added a new image (CData) to the
+	% existing one (that's not what the manual says). So I have to kill the old image
+	% and redraw it again. That's f... stupid.
+	[m,n,k] = size(img);
+	[new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
+	delete(handles.hImg);
+	handles.hImg = image(new_xlim,new_ylim,img,'Parent',handles.axes1);
+	set(ax,'xlim',new_xlim,'ylim',new_ylim,'YDir','normal')
+	resizetrue(handles, []);
+	setappdata(ax,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])
+	handles.old_size = get(handles.figure1,'Pos');      % Save fig size to prevent maximizing
+	handles.origFig = img;
 
-% [m,n,k] = size(img);
-% [new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
-% set(gca,'XLim',new_xlim,'YLim',new_ylim,'YDir','normal')
-% set(h_img,'XData',new_xlim,'YData',new_ylim)
-% resizetrue(handles, [])
-% x = [x_min x_min x_max x_max x_min];        y = [y_min y_max y_max y_min y_min];
-% set(h,'XData',x,'YData',y)
+	% [m,n,k] = size(img);
+	% [new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
+	% set(gca,'XLim',new_xlim,'YLim',new_ylim,'YDir','normal')
+	% set(h_img,'XData',new_xlim,'YData',new_ylim)
+	% resizetrue(handles, [])
+	% x = [x_min x_min x_max x_max x_min];        y = [y_min y_max y_max y_min y_min];
+	% set(h,'XData',x,'YData',y)
 
-% Redraw the rectangle that meanwhile has gone to the ether togheter with gca.
-lt = handles.DefLineThick;  lc = handles.DefLineColor;
-x = [x_min x_min x_max x_max x_min];        y = [y_min y_max y_max y_min y_min];
-h = line('XData',x,'YData',y,'Color',lc,'LineWidth',lt,'Parent',handles.axes1);
-if (handles.image_type == 2)                    % Lets pretend that we have a GeoTIFF image
-    handles.image_type = 3;
-    Hdr.LL_prj_xmin = new_xlim(1);      Hdr.LR_prj_xmax = new_xlim(2);
-    Hdr.LL_prj_ymin = new_ylim(1);      Hdr.UR_prj_ymax = new_ylim(2);
-    Hdr.projection = 'linear';          Hdr.datum = 'unknown';
-    set(handles.figure1,'UserData',Hdr);        % Minimalist Hdr to allow saving as a GeoTIFF image
-end
-x_inc = (new_xlim(2)-new_xlim(1)) / (size(img,2) - 1);
-y_inc = (new_ylim(2)-new_ylim(1)) / (size(img,1) - 1);
-handles.head = [new_xlim(1) new_xlim(2) new_ylim(1) new_ylim(2) 0 255 0 x_inc y_inc];     % TEMP and ...
+	% Redraw the rectangle that meanwhile has gone to the ether togheter with gca.
+	lt = handles.DefLineThick;  lc = handles.DefLineColor;
+	x = [x_min x_min x_max x_max x_min];        y = [y_min y_max y_max y_min y_min];
+	h = line('XData',x,'YData',y,'Color',lc,'LineWidth',lt,'Parent',handles.axes1);
+	if (handles.image_type == 2)                    % Lets pretend that we have a GeoTIFF image
+		handles.image_type = 3;
+		Hdr.LL_prj_xmin = new_xlim(1);      Hdr.LR_prj_xmax = new_xlim(2);
+		Hdr.LL_prj_ymin = new_ylim(1);      Hdr.UR_prj_ymax = new_ylim(2);
+		Hdr.projection = 'linear';          Hdr.datum = 'unknown';
+		set(handles.figure1,'UserData',Hdr);        % Minimalist Hdr to allow saving as a GeoTIFF image
+	end
+	x_inc = (new_xlim(2)-new_xlim(1)) / (size(img,2) - 1);
+	y_inc = (new_ylim(2)-new_ylim(1)) / (size(img,1) - 1);
+	handles.head = [new_xlim(1) new_xlim(2) new_ylim(1) new_ylim(2) 0 255 0 x_inc y_inc];     % TEMP and ...
 
-if (handles.geog)
-    mirone('SetAxesNumericType',handles,[])          % Set axes uicontextmenus
-end
-guidata(handles.figure1, handles);
-draw_funs(h,'line_uicontext')       % Set lines's uicontextmenu
+	if (handles.geog)
+		mirone('SetAxesNumericType',handles,[])          % Set axes uicontextmenus
+	end
+	guidata(handles.figure1, handles);
+	draw_funs(h,'line_uicontext')       % Set lines's uicontextmenu
 
 % -----------------------------------------------------------------------------------------
 function trans = AffineTransform(uv,xy)
-% For an affine transformation:
-%                     [ A D 0 ]
-% [u v 1] = [x y 1] * [ B E 0 ]
-%                     [ C F 1 ]
-% There are 6 unknowns: A,B,C,D,E,F
-% Another way to write this is:
-%                   [ A D ]
-% [u v] = [x y 1] * [ B E ]
-%                   [ C F ]
-% Rewriting the above matrix equation:
-% U = X * T, where T = reshape([A B C D E F],3,2)
-%
-% With 3 or more correspondence points we can solve for T,
-% T = X\U which gives us the first 2 columns of T, and
-% we know the third column must be [0 0 1]'.
+	% For an affine transformation:
+	%                     [ A D 0 ]
+	% [u v 1] = [x y 1] * [ B E 0 ]
+	%                     [ C F 1 ]
+	% There are 6 unknowns: A,B,C,D,E,F
+	% Another way to write this is:
+	%                   [ A D ]
+	% [u v] = [x y 1] * [ B E ]
+	%                   [ C F ]
+	% Rewriting the above matrix equation:
+	% U = X * T, where T = reshape([A B C D E F],3,2)
+	%
+	% With 3 or more correspondence points we can solve for T,
+	% T = X\U which gives us the first 2 columns of T, and
+	% we know the third column must be [0 0 1]'.
 
-K = 3;      M = size(xy,1);     X = [xy ones(M,1)];
-U = uv;         % just solve for the first two columns of T
+	K = 3;      M = size(xy,1);     X = [xy ones(M,1)];
+	U = uv;         % just solve for the first two columns of T
 
-% We know that X * T = U
-if rank(X) >= K
-    Tinv = X \ U;
-else
-    msg = 'At least %d non-collinear points needed to infer %s transform.';
-    errordlg(sprintf(msg,K,'affine'),'Error');
-end
+	% We know that X * T = U
+	if rank(X) >= K
+		Tinv = X \ U;
+	else
+		msg = 'At least %d non-collinear points needed to infer %s transform.';
+		errordlg(sprintf(msg,K,'affine'),'Error');
+	end
 
-Tinv(:,3) = [0 0 1]';       % add third column
-trans = inv(Tinv);
-trans(:,3) = [0 0 1]';
+	Tinv(:,3) = [0 0 1]';       % add third column
+	trans = inv(Tinv);
+	trans(:,3) = [0 0 1]';
 
 % -----------------------------------------------------------------------------------------
 function Transplant_Image(obj,eventdata)
@@ -1738,15 +1734,15 @@ end
 if (~this_not)          % class symbols don't export
     uimenu(cmenuHand, 'Label', 'Export', 'Callback', {@export_symbol,h});
     if (strcmp(tag,'Pointpolyline'))    % Allow pure grdtrack interpolation
-        cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',[],guidata(gcbo),''point'')';
+        cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
         uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack, 'Separator','on');
     end
 end
 if (seismicity_options)
     uimenu(cmenuHand, 'Label', 'Save events', 'Callback', 'save_seismicity(gcf,gco)', 'Separator','on');
     uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Callback', 'animate_seismicity(gcf,gco)');
-    uimenu(cmenuHand, 'Label', 'Draw polygon', 'Callback', ...
-        'mirone(''DrawClosedPolygon_CB'',[],guidata(gcbo),''SeismicityPolygon'')');
+    uimenu(cmenuHand, 'Label', 'Draw polygon', 'Call', ...
+        'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''SeismicityPolygon'')');
     itemHist = uimenu(cmenuHand, 'Label','Histograms');
     uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Callback', 'histos_seis(gco,''GR'')');
     uimenu(itemHist, 'Label', 'Cumulative number', 'Callback', 'histos_seis(gco,''CH'')');
@@ -2606,7 +2602,7 @@ if (val > 0.01)
 %         set(handles.figure1,'Renderer','painters')
 %     end
 end
-set(T,'String',['Opacity = ', sprintf('%.2f',val)])
+set(T,'String', sprintf('Opacity = %.2f',val))
 
 % -----------------------------------------------------------------------------------------
 function set_telhas_uicontext(h)
