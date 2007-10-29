@@ -16,6 +16,7 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
+ * Revision 16  29/10/2007 The netCDF driver is still highly broken. Apply patch to make it a bit less bad
  * Revision 15  21/07/2007 Added the -r option. Like -R but uses pixel units
  * Revision 14  24/04/2007 Was crashing when called with a coards NETCDF file and -M
  * 			   Patch to deal with NETCDF driver adfGeoTransform bug
@@ -266,9 +267,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			GDALDestroyDriverManager();
 			return;
 		}
-		if (!strcmp(format,"netCDF") && GDAL_VERSION_NUM <= 1410) {
+		if (!strcmp(format,"netCDF") && GDAL_VERSION_NUM <= 1430) {
 			adfGeoTransform[3] *= -1;
 			adfGeoTransform[5] *= -1;
+			flipud = FALSE;
 		}
 
 		if (got_R) {	/* Region in map coordinates */
@@ -982,7 +984,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 
 	status = record_geotransform ( gdal_filename, hDataset, adfGeoTransform );
 	if (!strcmp(GDALGetDriverShortName(GDALGetDatasetDriver(hDataset)),"netCDF") && 
-		    GDAL_VERSION_NUM <= 1410) {
+		    GDAL_VERSION_NUM <= 1430) {
 		adfGeoTransform[3] *= -1;
 		adfGeoTransform[5] *= -1;
 	}
