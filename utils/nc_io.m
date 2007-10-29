@@ -9,6 +9,10 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 	%			MODE == 'w' and DATA the 2D array to be saved
 	%			MISC is optional and if provided it must contain the fields as declared below.
 
+	%	AUTHOR
+	%		Joaquim Luis  - 15-October-2007
+	%		jluis@ualg.pt - Universidade do Algarve
+	
 	if ( nargin == 4 && ~isempty(data) )
 		misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
 			'title',[],'history',[],'srsWKT',[], 'strPROJ4',[]);
@@ -20,6 +24,7 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 		[varargout{1} varargout{2} varargout{3} varargout{4} varargout{5}] = read_nc(fname);
 	end
 
+% _________________________________________________________________________________________________	
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function write_nc(fname, handles, data, misc)
 
@@ -51,12 +56,9 @@ function write_nc(fname, handles, data, misc)
 	end
 	% ----------------------------------------------------------------
 	
-	if (isempty(misc.srsWKT))
-		misc.srsWKT = getappdata(handles.figure1,'ProjWKT');
-		if (isempty(misc.srsWKT) && isempty(misc.strPROJ4) )
-			misc.strPROJ4 = getappdata(handles.figure1,'Proj4');
-		end
-	end
+	% See if we have them in appdata
+	if ( isempty(misc.srsWKT) ),		misc.srsWKT = getappdata(handles.figure1,'ProjWKT');	end
+	if ( isempty(misc.strPROJ4) ),		misc.strPROJ4 = getappdata(handles.figure1,'Proj4');	end
 	
 	% Create the coordinates vectors
 	nx = round(diff(handles.head(1:2)) / handles.head(8) + ~handles.head(7));
@@ -64,6 +66,7 @@ function write_nc(fname, handles, data, misc)
 	X = linspace(handles.head(1), handles.head(2), nx);
 	Y = linspace(handles.head(3), handles.head(4), ny);
 
+	% ---------------------------- Write the dimensions --------------------------------
 	nc_funs('add_dimension', fname, 'x', nx )
 	nc_funs('add_dimension', fname, 'y', ny )
 
@@ -94,13 +97,21 @@ function write_nc(fname, handles, data, misc)
 	end
 	nc_funs('addvar', fname, varstruct )
 
-	% Put the coords vectors
+	% -------------------------- Globals --------------------------
+	nc_global = -1;
+	nc_funs('attput', fname, nc_global, 'Conventions', 'COARDS' );
+	nc_funs('attput', fname, nc_global, 'title', tit );
+	if (~isempty(misc.history)),	nc_funs('attput', fname, nc_global, 'history', misc.history);	end
+	nc_funs('attput', fname, nc_global, 'description', desc );
+	nc_funs('attput', fname, nc_global, 'node_offset', handles.head(7) );
+	nc_funs('attput', fname, nc_global, 'Source_Software', 'Mirone' );
+
+	% ------------------------------ Write the variables ------------------------------------
+	% ------- Put the coords vectors ---
 	nc_funs('varput', fname, 'x', X );
 	nc_funs('varput', fname, 'y', Y );
 
-	start = [0 0];
-	count = [ny nx];
-	nc_funs('varput', fname, 'z', data, start, count );
+	nc_funs('varput', fname, 'z', data, [0 0], [ny nx] );
 
 	nc_funs('attput', fname, 'x', 'long_name', x_var );
 	nc_funs('attput', fname, 'x', 'units', x_units);
@@ -113,20 +124,23 @@ function write_nc(fname, handles, data, misc)
 	nc_funs('attput', fname, 'z', 'long_name', z_name );
 	if (~isempty(no_val)),		nc_funs('attput', fname, 'z', '_FillValue', no_val );	end
 	if (~isempty(add_off)),		nc_funs('attput', fname, 'z', 'add_offset', add_off);	end
-	if (~isempty(misc.srsWKT)),	nc_funs('attput', fname, 'z', 'spatial_ref', misc.srsWKT);	end
 	nc_funs('attput', fname, 'z', 'actual_range', handles.head(5:6) );
 	nc_funs('attput', fname, 'z', 'units', z_units);
-
-	% -------------------------- Globals --------------------------
-	nc_funs('attput', fname, nc_global, 'Conventions', 'COARDS' );
-	nc_funs('attput', fname, nc_global, 'title', tit );
-	if (~isempty(misc.history)),	nc_funs('attput', fname, nc_global, 'history', misc.history);	end
-	nc_funs('attput', fname, nc_global, 'description', desc );
-	nc_funs('attput', fname, nc_global, 'node_offset', handles.head(7) );
-	if (~isempty(misc.srsWKT)),			nc_funs('attput', fname, nc_global, 'spatial_ref', misc.srsWKT);
-	elseif (~isempty(misc.strPROJ4))	nc_funs('attput', fname, nc_global, 'strPROJ4', misc.strPROJ4);
+	
+	if ( ~isempty(misc.srsWKT) || ~isempty(misc.strPROJ4) )
+		% Create a container variable named "grid_mapping" to hold the projection info
+		nc_funs('attput', fname, 'z', 'grid_mapping', 'grid_mapping');
+		nc_funs('addvar', fname, struct('Name','grid_mapping', 'Nctype',2))		% 2 -> char
+		
+		if (~isempty(misc.srsWKT))
+			nc_funs('attput', fname, 'grid_mapping', 'spatial_ref', misc.srsWKT);
+		end
+		if (~isempty(misc.strPROJ4))
+			nc_funs('attput', fname, 'grid_mapping', 'spatial_ref', misc.strPROJ4);
+		end
 	end
 
+% _________________________________________________________________________________________________	
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function [X,Y,Z,head,misc] = read_nc(fname)
 	% Read ...
@@ -151,44 +165,62 @@ function [X,Y,Z,head,misc] = read_nc(fname)
 	ndims = numel(s.Dataset(z_id).Size);	% z number of dimensions
 	dims = s.Dataset(z_id).Dimension;		% Variable names of dimensions z variable - ORDER IS CRUTIAL
 	
-	% Get the ids of the x and y (and depth and time) variables
-	dataNames = {s.Dataset.Name};			% example: {'x' 'y' 'z'}; Order may change
-	ind = strcmp(dataNames, dims{end});
-	x_id = find(ind);
-	ind = strcmp(dataNames, dims{end-1});
-	y_id = find(ind);
-	
-	if ( isempty(x_id) || isempty(y_id) )
-		error('NC_IO:read_nc', 'Cranky netCDF file. One ore more Dataset variables are not explicitly defined')
-	end
-	
-	nx = s.Dataset(x_id).Size;
-	ny = s.Dataset(y_id).Size;
-	
-% 	% ------------------ Get the X units to know if we have geogs ---------------
-% 	attribNames = {s.Dataset(x_id).Attribute.Name};
-% 	ind = strcmp(attribNames,'units');		units = [];
-% 	if (any(ind))
-% 		units = s.Dataset(z_id).Attribute(ind).Value;
-% 		data.geog = 0;
-% 		if (strncmp(units,'degree',6)),		data.geog = 1;	end
-% 	end
-% 	% ----------------------------------------------------------------------------
-	
 	% --------------------- Fish in the attribs of the Z var --------------------
-	attribNames = {s.Dataset(z_id).Attribute.Name};
-	ind = strcmp(attribNames,'actual_range');		actual_range = [];
-	if (any(ind)),	actual_range = s.Dataset(z_id).Attribute(ind).Value;	end
+	if (~isempty(s.Dataset(z_id).Attribute))
+		attribNames = {s.Dataset(z_id).Attribute.Name};
+	else
+		attribNames = [];
+	end
+	dataNames = {s.Dataset.Name};			% example: {'x' 'y' 'z'}; Order may change
+	ind = strcmp(attribNames,'actual_range');		z_actual_range = [];
+	if (any(ind)),	z_actual_range = s.Dataset(z_id).Attribute(ind).Value;	end
 % 	ind = strcmp(attribNames,'scale_factor');		scale_factor = 1;
 % 	if (any(ind)),	scale_factor = s.Dataset(z_id).Attribute(ind).Value;	end
 % 	ind = strcmp(attribNames,'add_offset');			add_offset = 0;
 % 	if (any(ind)),	add_offset = s.Dataset(z_id).Attribute(ind).Value;		end
 	% GDAL and ESRI put the eventual georeferencing on the layer
-	ind = strcmp(attribNames,'spatial_ref');		srsWKT = [];
-	if (any(ind)),	srsWKT = s.Dataset(z_id).Attribute(ind).Value;		end
+	grid_mapping = [];		srsWKT = [];		strPROJ4 = [];
+	ind = strcmp(attribNames,'grid_mapping');
+	if (any(ind))
+		grid_mapping = s.Dataset(z_id).Attribute(ind).Value;
+		ind = strcmp(dataNames, grid_mapping);
+		containor_id = find(ind);
+		containerNames = {s.Dataset(containor_id).Attribute.Name};
+		ind = strcmp(containerNames,'spatial_ref');
+		if (any(ind)),	srsWKT = s.Dataset(containor_id).Attribute(ind).Value;		end
+		
+		ind = strcmp(containerNames,'strPROJ4');
+		if (any(ind)),	strPROJ4 = s.Dataset(containor_id).Attribute(ind).Value;		end
+	end
 	if (isempty(srsWKT))
 		ind = strcmp(attribNames,'esri_pe_string');			% ESRI uses this
 		if (any(ind)),	srsWKT = s.Dataset(z_id).Attribute(ind).Value;		end
+	end
+	% ----------------------------------------------------------------------------
+
+	% ----------- Get the ids of the x and y (and depth and time) variables ------
+	ind = strcmp(dataNames, dims{end});
+	x_id = find(ind);
+	ind = strcmp(dataNames, dims{end-1});
+	y_id = find(ind);
+	
+	x_actual_range = [];		y_actual_range = [];
+	if ( ~isempty(x_id) )
+		% ------------------ Get the X & Y ranges ------------------------------------
+		attribNames = {s.Dataset(x_id).Attribute.Name};
+		ind = strcmp(attribNames,'actual_range');
+		if (any(ind)),	x_actual_range = s.Dataset(x_id).Attribute(ind).Value;	end
+		%ind = strcmp(attribNames,'units');		units = [];
+		%if (any(ind))
+			%units = s.Dataset(x_id).Attribute(ind).Value;
+			%data.geog = 0;
+			%if (strncmp(units,'degree',6)),		data.geog = 1;	end
+		%end
+	end
+	if ( ~isempty(y_id) )
+		attribNames = {s.Dataset(y_id).Attribute.Name};
+		ind = strcmp(attribNames,'actual_range');
+		if (any(ind)),	y_actual_range = s.Dataset(y_id).Attribute(ind).Value;	end
 	end
 	% ----------------------------------------------------------------------------
 	
@@ -204,34 +236,46 @@ function [X,Y,Z,head,misc] = read_nc(fname)
 	if (any(ind)),	history = s.Attribute(ind).Value;	end
 	ind = strcmp(attribNames,'description');			description = [];
 	if (any(ind)),	description = s.Attribute(ind).Value;	end
-	if (isempty(srsWKT))			% It might have been fished on the dataset attributes
-		ind = strcmp(attribNames,'spatial_ref');
-		if (any(ind)),	srsWKT = s.Attribute(ind).Value;	end
-	end
-	strPROJ4 = [];
-	if (isempty(srsWKT))
-		ind = strcmp(attribNames,'strPROJ4');
-		if (any(ind)),	strPROJ4 = s.Attribute(ind).Value;		end
-	end
 	
 	misc = struct('desc',description, 'title',titulo, 'history',history, 'srsWKT',srsWKT, 'strPROJ4',[]);
 	if (~isempty(strPROJ4)),	misc.strPROJ4 = strPROJ4;	end
 	% ----------------------------------------------------------------------------
 	
 	% --------------------- Finally, get the Data --------------------------------
-	X = double(nc_funs('varget', fname, s.Dataset(x_id).Name));
-	Y = double(nc_funs('varget', fname, s.Dataset(y_id).Name));
 	% Now z may be > 2D. If it is, get the first layer
 	if (numel(s.Dataset(z_id).Size) == 2 )
 		Z = nc_funs('varget', fname, s.Dataset(z_id).Name);
 	else
 		error('Dataset dimensin > 2D. That is not yet programed','Error')
 	end
+
+	[ny, nx] = size(Z);
+	if (~isempty(x_id)),	X = double(nc_funs('varget', fname, s.Dataset(x_id).Name));
+	else					X = 1:nx;
+	end
+	if (~isempty(y_id)),	Y = double(nc_funs('varget', fname, s.Dataset(y_id).Name));
+	else					Y = 1:ny;
+	end
 	
-	head = double([X(1) X(end) Y(1) Y(end) actual_range node_offset]);
+	if (~isempty(x_actual_range)),		head(1:2) = x_actual_range;
+	else								head(1:2) = [X(1) X(end)];
+	end
+	if (~isempty(y_actual_range)),		head(3:4) = y_actual_range;
+	else								head(3:4) = [Y(1) Y(end)];
+	end
+	
+	if (isempty(z_actual_range))
+		if ( isa(Z, 'double') )
+			z_actual_range = double([min(Z(:)) max(Z(:))]);
+		else		% min/max are bugged when NaNs in singles
+			zz = grdutils(Z,'-L');  z_actual_range = [zz(1) zz(2)];
+		end
+	end
+	head(5:7) = double([z_actual_range node_offset]);
 	head(8) = diff(head(1:2)) / (nx - ~node_offset);
 	head(9) = diff(head(3:4)) / (ny - ~node_offset);
 
+% _________________________________________________________________________________________________	
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function [X,Y,Z,head,misc] = read_old_cdf(fname, s)
 	% Read old GMT netCDF format
@@ -266,7 +310,18 @@ function [X,Y,Z,head,misc] = read_old_cdf(fname, s)
 	dimension = double(nc_funs('varget', fname, s.Dataset(dimension_id).Name));
 	Z = nc_funs('varget', fname, s.Dataset(z_id).Name);
 	
-	X = linspace(x_range(1), x_range(2), dimension(1));
-	Y = linspace(y_range(1), y_range(2), dimension(2));
-	head = double([x_range y_range z_range node_offset spacing]);
+	nx = round(diff(x_range) / spacing(1) + ~node_offset);
+	ny = round(diff(y_range) / spacing(2) + ~node_offset);
+	Z = reshape(Z,nx,ny);
+	Z = Z.';
+	Z = flipud(Z);
+
+	if (node_offset)		% Pixel registration
+		X = linspace(x_range(1)+spacing(1)/2, x_range(2)-spacing(1)/2, dimension(1));
+		Y = linspace(y_range(1)+spacing(2)/2, y_range(2)-spacing(2)/2, dimension(2));
+	else
+		X = linspace(x_range(1), x_range(2), dimension(1));
+		Y = linspace(y_range(1), y_range(2), dimension(2));
+	end
+	head = double([x_range(:)' y_range(:)' z_range(:)' node_offset spacing(:)']);
 	misc = struct('desc',[], 'title',titulo, 'history',source, 'srsWKT',[], 'strPROJ4',[]);
