@@ -270,6 +270,7 @@ mex/mansinha_m.c -text
 mex/mapproject_m.c -text
 mex/mex_illuminate.c -text
 mex/mex_shape.c -text
+mex/mxgridtrimesh.c -text
 mex/nearneighbor_m.c -text
 mex/ogrproj.cpp -text
 mex/range_change.c -text
