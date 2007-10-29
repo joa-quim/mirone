@@ -15,11 +15,9 @@ function varargout = bg_region_map_tilled(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
 	hObject = figure('Tag','figure1','Visible','off');
-	handles = guihandles(hObject);
-	guidata(hObject, handles);
-	bg_region_map_tilled_LayoutFcn(hObject,handles);
+	bg_region_map_tilled_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	movegui(hObject,'center');      % Reposition the window on screen
  
@@ -31,7 +29,7 @@ function varargout = bg_region_map_tilled(varargin)
     
 	handles.f_path = f_path;
 	handles.first_WT = 1;       % Flag to signal the first time World Map is used
-	handels.h_ll     = [];      % Will contail the handles to the Lower Left pushbutton
+	handles.h_ll     = [];      % Will contail the handles to the Lower Left pushbutton
 
 	load([f_path 'WorldMapTilled.mat'])
 	set_tiles(handles)              % Put the logo tiles in the pusbuttons
@@ -45,6 +43,9 @@ function varargout = bg_region_map_tilled(varargin)
 	uiwait(handles.figure1);
 
 	handles = guidata(hObject);
+	x_inc = diff(handles.output.X) / (size(handles.output.img,2)-1);
+	y_inc = diff(handles.output.Y) / (size(handles.output.img,1)-1);
+	handles.output.head = [handles.output.X handles.output.Y 0 255 0 x_inc y_inc];
 	varargout{1} = handles.output;
     delete(handles.figure1);
 
@@ -56,9 +57,9 @@ function pushbutton_90N180W_Callback(hObject, eventdata, handles)
 
 % --- Executes on button press in pushbutton_90N135W.
 function pushbutton_90N135W_Callback(hObject, eventdata, handles)
-out.img = flipdim( imread([handles.f_path '90N135W.jpg']),1 );
-out.X = [-135 -90];  out.Y = [45 90];    out.imgName = [handles.f_path '90N135W.jpg'];
-handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
+	out.img = flipdim( imread([handles.f_path '90N135W.jpg']),1 );
+	out.X = [-135 -90];  out.Y = [45 90];    out.imgName = [handles.f_path '90N135W.jpg'];
+	handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --- Executes on button press in pushbutton_90N090W.
 function pushbutton_90N090W_Callback(hObject, eventdata, handles)
@@ -247,92 +248,94 @@ handles.output = out;   guidata(hObject, handles);  uiresume(handles.figure1);
 
 
 % --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);    uiresume(handles.figure1);
-else
-    % The GUI is no longer waiting, just close it
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);    delete(handles.figure1);
-end
+function figure1_CloseRequestFcn(hObject, eventdata)
+	handles = guidata(hObject);
+	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+		% The GUI is still in UIWAIT, us UIRESUME
+		handles.output = [];        % User gave up, return nothing
+		guidata(hObject, handles);    uiresume(hObject);
+	else
+		% The GUI is no longer waiting, just close it
+		handles.output = [];        % User gave up, return nothing
+		guidata(hObject, handles);    delete(hObject);
+	end
 
 % --- Executes on key press over figure1 with no controls selected.
-function figure1_KeyPressFcn(hObject, eventdata, handles)
-if isequal(get(hObject,'CurrentKey'),'escape')
-    handles.output = [];    % User said no by hitting escape
-    guidata(hObject, handles);    uiresume(handles.figure1);
-end
+function figure1_KeyPressFcn(hObject, eventdata)
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		handles = guidata(hObject);
+		handles.output = [];    % User said no by hitting escape
+		guidata(hObject, handles);    uiresume(hObject);
+	end
 
 % --- Executes on button press in radiobutton_MapTiles.
 function radiobutton_MapTiles_Callback(hObject, eventdata, handles)
-if ~(get(hObject,'Value'))
-    set(handles.radiobutton_MapTiles, 'Value', 1);
-    set(handles.radiobutton_WorldMap, 'Value', 0);
-    return
-end
-set(handles.radiobutton_WorldMap, 'Value', 0);
-set(gcf,'Name','World Topo Tiles')
-set(handles.h_ll,'Position',[1 1 64 64],'TooltipString','45S180W')
-set_tiles(handles)
-set(handles.h_all,'Visible','on')
-%guidata(hObject, handles);
+	if ~(get(hObject,'Value'))
+		set(handles.radiobutton_MapTiles, 'Value', 1);
+		set(handles.radiobutton_WorldMap, 'Value', 0);
+		return
+	end
+	set(handles.radiobutton_WorldMap, 'Value', 0);
+	set(gcf,'Name','World Topo Tiles')
+	set(handles.h_ll,'Position',[1 1 64 64],'TooltipString','45S180W')
+	set_tiles(handles)
+	set(handles.h_all,'Visible','on')
+	%guidata(hObject, handles);
 
 % --- Executes on button press in radiobutton_WorldMap.
 function radiobutton_WorldMap_Callback(hObject, eventdata, handles)
-set(handles.radiobutton_WorldMap, 'Value', 1);
-set(handles.radiobutton_MapTiles, 'Value', 0);
-set(gcf,'Name','World Topo')
-if (handles.first_WT)           % Don't need to do this all times (if the user plays)
-    h_all = findall(gcf,'Style','pushbutton');
-    zz=get(h_all,'Position');   xx = [];
-    for i=1:32
-        xx = [xx; zz{i}];
-    end
-    x_min = min(xx(:,1));   x_max = max(xx(:,1));
-    y_min = min(xx(:,2));   y_max = max(xx(:,2));
-    x_max = x_max + 65;     y_max = y_max + 65;
-    handles.h_ll = findobj(h_all,'Tag','pushbutton_45S180W');
-    handles.first_WT = 0;   handles.h_all = h_all;
-    handles.pushbutonWT_pos = [x_min y_min x_max y_max];
-    handles.logo = imread([handles.f_path 'logo_etopo2.jpg']);
-    guidata(hObject, handles);
-end
-set(handles.h_all,'Visible','off')
-set(handles.h_ll,'Position',handles.pushbutonWT_pos,'CData',handles.logo,'Visible','on','TooltipString','')
+	set(handles.radiobutton_WorldMap, 'Value', 1);
+	set(handles.radiobutton_MapTiles, 'Value', 0);
+	set(gcf,'Name','World Topo')
+	if (handles.first_WT)           % Don't need to do this all times (if the user plays)
+		h_all = findall(gcf,'Style','pushbutton');
+		zz=get(h_all,'Position');   xx = [];
+		for i=1:32
+			xx = [xx; zz{i}];
+		end
+		x_min = min(xx(:,1));   x_max = max(xx(:,1));
+		y_min = min(xx(:,2));   y_max = max(xx(:,2));
+		x_max = x_max + 65;     y_max = y_max + 65;
+		handles.h_ll = findobj(h_all,'Tag','pushbutton_45S180W');
+		handles.first_WT = 0;   handles.h_all = h_all;
+		handles.pushbutonWT_pos = [x_min y_min x_max y_max];
+		handles.logo = imread([handles.f_path 'logo_etopo2.jpg']);
+		guidata(hObject, handles);
+	end
+	set(handles.h_all,'Visible','off')
+	set(handles.h_ll,'Position',handles.pushbutonWT_pos,'CData',handles.logo,'Visible','on','TooltipString','')
 
 % --------------------------------------------------------------------
 function set_tiles(handles)
-load([handles.f_path 'WorldMapTilled.mat'])
-set(handles.pushbutton_90N180W,'CData',i90N180W);   set(handles.pushbutton_90N135W,'CData',i90N135W)
-set(handles.pushbutton_90N090W,'CData',i90N090W);   set(handles.pushbutton_90N045W,'CData',i90N045W)
-set(handles.pushbutton_90N000E,'CData',i90N000E);   set(handles.pushbutton_90N045E,'CData',i90N045E)
-set(handles.pushbutton_90N090E,'CData',i90N090E);   set(handles.pushbutton_90N135E,'CData',i90N135E)
-
-set(handles.pushbutton_45N180W,'CData',i45N180W);   set(handles.pushbutton_45N135W,'CData',i45N135W)
-set(handles.pushbutton_45N090W,'CData',i45N090W);   set(handles.pushbutton_45N045W,'CData',i45N045W)
-set(handles.pushbutton_45N000E,'CData',i45N000E);   set(handles.pushbutton_45N045E,'CData',i45N045E)
-set(handles.pushbutton_45N090E,'CData',i45N090E);   set(handles.pushbutton_45N135E,'CData',i45N135E)
-
-set(handles.pushbutton_00N180W,'CData',i00N180W);   set(handles.pushbutton_00N135W,'CData',i00N135W)
-set(handles.pushbutton_00N090W,'CData',i00N090W);   set(handles.pushbutton_00N045W,'CData',i00N045W)
-set(handles.pushbutton_00N000E,'CData',i00N000E);   set(handles.pushbutton_00N045E,'CData',i00N045E)
-set(handles.pushbutton_00N090E,'CData',i00N090E);   set(handles.pushbutton_00N135E,'CData',i00N135E)
-
-set(handles.pushbutton_45S180W,'CData',i45S180W);   set(handles.pushbutton_45S135W,'CData',i45S135W)
-set(handles.pushbutton_45S090W,'CData',i45S090W);   set(handles.pushbutton_45S045W,'CData',i45S045W)
-set(handles.pushbutton_45S000E,'CData',i45S000E);   set(handles.pushbutton_45S045E,'CData',i45S045E)
-set(handles.pushbutton_45S090E,'CData',i45S090E);   set(handles.pushbutton_45S135E,'CData',i45S135E)
+	load([handles.f_path 'WorldMapTilled.mat'])
+	set(handles.pushbutton_90N180W,'CData',i90N180W);   set(handles.pushbutton_90N135W,'CData',i90N135W)
+	set(handles.pushbutton_90N090W,'CData',i90N090W);   set(handles.pushbutton_90N045W,'CData',i90N045W)
+	set(handles.pushbutton_90N000E,'CData',i90N000E);   set(handles.pushbutton_90N045E,'CData',i90N045E)
+	set(handles.pushbutton_90N090E,'CData',i90N090E);   set(handles.pushbutton_90N135E,'CData',i90N135E)
+	
+	set(handles.pushbutton_45N180W,'CData',i45N180W);   set(handles.pushbutton_45N135W,'CData',i45N135W)
+	set(handles.pushbutton_45N090W,'CData',i45N090W);   set(handles.pushbutton_45N045W,'CData',i45N045W)
+	set(handles.pushbutton_45N000E,'CData',i45N000E);   set(handles.pushbutton_45N045E,'CData',i45N045E)
+	set(handles.pushbutton_45N090E,'CData',i45N090E);   set(handles.pushbutton_45N135E,'CData',i45N135E)
+	
+	set(handles.pushbutton_00N180W,'CData',i00N180W);   set(handles.pushbutton_00N135W,'CData',i00N135W)
+	set(handles.pushbutton_00N090W,'CData',i00N090W);   set(handles.pushbutton_00N045W,'CData',i00N045W)
+	set(handles.pushbutton_00N000E,'CData',i00N000E);   set(handles.pushbutton_00N045E,'CData',i00N045E)
+	set(handles.pushbutton_00N090E,'CData',i00N090E);   set(handles.pushbutton_00N135E,'CData',i00N135E)
+	
+	set(handles.pushbutton_45S180W,'CData',i45S180W);   set(handles.pushbutton_45S135W,'CData',i45S135W)
+	set(handles.pushbutton_45S090W,'CData',i45S090W);   set(handles.pushbutton_45S045W,'CData',i45S045W)
+	set(handles.pushbutton_45S000E,'CData',i45S000E);   set(handles.pushbutton_45S045E,'CData',i45S045E)
+	set(handles.pushbutton_45S090E,'CData',i45S090E);   set(handles.pushbutton_45S135E,'CData',i45S135E)
 
 
 % --- Creates and returns a handle to the GUI figure. 
 function bg_region_map_tilled_LayoutFcn(h1,handles);
 
 set(h1,'PaperUnits','centimeters',...
-'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
+'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','World Topo Tiles',...
 'NumberTitle','off',...
