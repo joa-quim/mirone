@@ -436,6 +436,7 @@ utils/gradient_geo.m -text
 utils/grayto16.dll -text
 utils/grayto8.dll -text
 utils/grayxform.dll -text
+utils/grd2anugadem.m -text
 utils/grid_info.m -text
 utils/griddata_j.m -text
 utils/guess_file.m -text
