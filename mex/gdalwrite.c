@@ -15,6 +15,7 @@
 /* Program:	gdawrite.c
  * Purpose:	matlab callable routine to write files supported by gdal
  *
+ * Revision 3.0  06/9/2007 Start to add a nodata option (not finished)
  * Revision 2.0  12/6/2007 Was not aware of receiving a WKT proj string
  * Revision 1.0  24/6/2006 Joaquim Luis
  *
@@ -46,8 +47,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char **papszOptions = NULL;
 	char *pszFormat = "GTiff", *projWKT = NULL; 
 	GDALDriverH	hDriver;
-	//double adfGeoTransform[6] = { 444720, 30, 0, 3751320, 0, -30 }; 
 	double adfGeoTransform[6] = {0,1,0,0,0,1}; 
+	double dfNoData;
 	OGRSpatialReferenceH hSRS;
 	char *pszSRS_WKT = NULL;
 	GDALRasterBandH hBand;
@@ -110,6 +111,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (ptr_d == NULL)
 			mexErrMsgTxt("GDALWRITE 'Yinc' field not provided");
 		adfGeoTransform[5] = -*ptr_d;
+
+		/*ptr_d = mxGetPr(mxGetField(prhs[1], 0, "nodata"));
+		if (ptr_d != NULL)
+			dfNoData = *ptr_d;*/
 
 		mx_ptr = mxGetField(prhs[1], 0, "Reg");
 		if (mx_ptr != NULL) {
@@ -257,6 +262,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				mexPrintf("\tERROR creating Color Table");
 			GDALDestroyColorTable( hColorTable );
 		}
+		/*GDALSetRasterNoDataValue(hBand,dfNoData);	test, which worked in a geotiff image */
 		i_x_nXYSize = (i-1)*nx*ny;		/* We don't need to recompute this everytime */
 		switch( typeCLASS ) {
 			case GDT_Byte:
