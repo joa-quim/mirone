@@ -2,12 +2,10 @@ function varargout = bands_list(varargin)
 % M-File changed by desGUIDE 
 % hObject    handle to figure
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to bands_list (see VARARGIN) 
+% varargin   command line arguments to bands_list (see VARARGIN)
  
 hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-bands_list_LayoutFcn(hObject,handles);
+bands_list_LayoutFcn(hObject);
 handles = guihandles(hObject);
 
 movegui(hObject,'west')
@@ -47,7 +45,6 @@ end
 %------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 bgcolor = get(0,'DefaultUicontrolBackgroundColor');
 framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
 h_f = [handles.frame2 handles.frame3];      % The third frame (handles.frame_movel) cannot be killed
 for i=1:length(h_f)
     frame_size = get(h_f(i),'Position');
@@ -62,80 +59,61 @@ for i=1:length(h_f)
 end
 %------------- END Pro look (3D) -------------------------------------------------------
 
-% Choose default command line output for bands_list_export
-handles.output = hObject;
 guidata(hObject, handles);
-
-% UIWAIT makes bands_list_export wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
-
 set(hObject,'Visible','on');
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = bands_list_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = bands_list_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% handles    structure with handles and user data (see GUIDATA)
-
-% Get default command line output from handles structure
-varargout{1} = handles.output;
+if (nargout),	varargout{1} = hObject;		end
 
 % ------------------------------------------------------------------------
 function radiobutton_gray_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_RGB,'Value',0)
-    pos = handles.frame_movel_pos;
-    pos = [pos(1) pos(2)+pos(4)/2 pos(3) pos(4)/2];
-    set(handles.frame_movel,'Pos',pos)
-    set(handles.edit_Rband,'Pos',pos+[10 5 -20 -28])
-    set(handles.radiobutton_R,'Visible','off')
-    set(handles.radiobutton_G,'Visible','off')
-    set(handles.radiobutton_B,'Visible','off')
-    set(handles.edit_Gband,'Visible','off')
-    set(handles.edit_Bband,'Visible','off')
-    set(handles.text_toGray,'Visible','on')
-else
-    set(hObject,'Value',1)
-end
+	if (get(hObject,'Value'))
+		set(handles.radiobutton_RGB,'Value',0)
+		pos = handles.frame_movel_pos;
+		pos = [pos(1) pos(2)+pos(4)/2 pos(3) pos(4)/2];
+		set(handles.frame_movel,'Pos',pos)
+		set(handles.edit_Rband,'Pos',pos+[10 5 -20 -28])
+		set(handles.radiobutton_R,'Visible','off')
+		set(handles.radiobutton_G,'Visible','off')
+		set(handles.radiobutton_B,'Visible','off')
+		set(handles.edit_Gband,'Visible','off')
+		set(handles.edit_Bband,'Visible','off')
+		set(handles.text_toGray,'Visible','on')
+	else
+		set(hObject,'Value',1)
+	end
 
 % ------------------------------------------------------------------------
 function radiobutton_RGB_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_gray,'Value',0)
-    set(handles.frame_movel,'Pos',handles.frame_movel_pos)
-    set(handles.edit_Rband,'Pos',handles.edit_Rband_pos)
-    set(handles.radiobutton_R,'Visible','on')
-    set(handles.radiobutton_G,'Visible','on')
-    set(handles.radiobutton_B,'Visible','on')
-    set(handles.edit_Gband,'Visible','on')
-    set(handles.edit_Bband,'Visible','on')
-    set(handles.text_toGray,'Visible','off')
-else
-    set(hObject,'Value',1)
-end
+	if (get(hObject,'Value'))
+		set(handles.radiobutton_gray,'Value',0)
+		set(handles.frame_movel,'Pos',handles.frame_movel_pos)
+		set(handles.edit_Rband,'Pos',handles.edit_Rband_pos)
+		set(handles.radiobutton_R,'Visible','on')
+		set(handles.radiobutton_G,'Visible','on')
+		set(handles.radiobutton_B,'Visible','on')
+		set(handles.edit_Gband,'Visible','on')
+		set(handles.edit_Bband,'Visible','on')
+		set(handles.text_toGray,'Visible','off')
+	else
+		set(hObject,'Value',1)
+	end
 
 % ------------------------------------------------------------------------
 function radiobutton_R_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_G,'Value',0)
-    set(handles.radiobutton_B,'Value',0)
-else
-    set(hObject,'Value',1)
-end
+	if (get(hObject,'Value'))
+		set(handles.radiobutton_G,'Value',0)
+		set(handles.radiobutton_B,'Value',0)
+	else
+		set(hObject,'Value',1)
+	end
 
 % ------------------------------------------------------------------------
 function radiobutton_G_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_R,'Value',0)
-    set(handles.radiobutton_B,'Value',0)
-else
-    set(hObject,'Value',1)
-end
+	if (get(hObject,'Value'))
+		set(handles.radiobutton_R,'Value',0)
+		set(handles.radiobutton_B,'Value',0)
+	else
+		set(hObject,'Value',1)
+	end
 
 % ------------------------------------------------------------------------
 function radiobutton_B_Callback(hObject, eventdata, handles)
@@ -145,19 +123,6 @@ if (get(hObject,'Value'))
 else
     set(hObject,'Value',1)
 end
-
-% ------------------------------------------------------------------------
-function edit_Rband_Callback(hObject, eventdata, handles)
-
-% ------------------------------------------------------------------------
-function edit_Gband_Callback(hObject, eventdata, handles)
-
-% ------------------------------------------------------------------------
-function edit_Bband_Callback(hObject, eventdata, handles)
-
-% ------------------------------------------------------------------------
-function edit_dimsDesc_Callback(hObject, eventdata, handles)
-
 
 % --------------------------------------------------------------------------
 function pushbutton1_Callback(hObject, eventdata, handles)
@@ -233,7 +198,7 @@ if (get(handles.radiobutton_RGB,'Value'))       % RGB - pure image for sure (is 
 
     set(h_img,'CData',img)
     try rmappdata(handles.h_mirone_fig,'dem_x');    rmappdata(handles.h_mirone_fig,'dem_y');
-        rmappdata(handles.h_mirone_fig,'dem_z');    rmappdata(handles.h_mirone_fig,'GMThead');
+        rmappdata(handles.h_mirone_fig,'dem_z');
     end
     image_type = 2;         % Reset indicator that this is an image only
     computed_grid = 0;      % Reset this also
@@ -263,7 +228,7 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
         if (~iscell(handles.reader))    % reader is GDAL
             Z = gdalread(handles.fname, ['-B' num2str(handles.Rband)]);
         else                            % reader is MULTIBANDREAD - SHIT, WHAT A MESS OF TESTS WE NEED TO DO
-            if (length(handles.reader(2)) >= 2)     % Two (or three) subsets have been choosed. Ignore third one
+			if (length(handles.reader(2)) >= 2)     % Two (or three) subsets have been choosed. Ignore third one
                 if (strcmp(handles.reader{2}(1), 'Row') && strcmp(handles.reader{2}(2), 'Column'))      % Row & Column
                     Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
                         handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
@@ -277,7 +242,7 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
                         handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
                         handles.reader{2}(2),{'Band','Direct',handles.Rband});
                 end
-            else                                    % One subsect selectet. Ignore it if it was the 'Band'
+			else                                    % One subsect selectet. Ignore it if it was the 'Band'
                 if (strcmp(handles.reader{2}(1), 'Row'))            % Row only
                     Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
                         handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
@@ -291,13 +256,13 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
                         handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
                         {'Band','Direct',handles.Rband});
                 end
-            end
+			end
         end
         X = 1:handles.dims(2);    Y = 1:handles.dims(1);
         head = handles_mir.head;
         head(5:6) = [double(min(min(Z))) double(max(max(Z)))];
         setappdata(handles.h_mirone_fig,'dem_z',Z);  setappdata(handles.h_mirone_fig,'dem_x',X);
-        setappdata(handles.h_mirone_fig,'dem_y',Y);  setappdata(handles.h_mirone_fig,'GMThead',head);
+        setappdata(handles.h_mirone_fig,'dem_y',Y);
         image_type = 1;         % Pretend this a GMT grid
         computed_grid = 1;      % But set to computed_grid to avoid attempts to reload it with grdread_m
         if (isa(Z,'uint16') || isa(Z,'int16'))
@@ -386,10 +351,9 @@ guidata(hObject, handles);
 
 % ------------------------------------------------------------------------
 function cell_array =  indent_cell(cell_array, level)
-
-indent = '       ';             indent_app = [];
-for (k = 1:level+1),            indent_app = [indent_app indent];   end
-for (i=1:length(cell_array)),   cell_array{i} = [indent_app cell_array{i}];     end
+	indent = '       ';             indent_app = [];
+	for (k = 1:level+1),            indent_app = [indent_app indent];   end
+	for (i=1:length(cell_array)),   cell_array{i} = [indent_app cell_array{i}];     end
 
 % ------------------------------------------------------------------------
 function [struct_names, struct_values] = expand_struct(struct_names, struct_values, idx, fields, level, idxP)
@@ -471,37 +435,37 @@ function str1 = remove_indent(str0)
     
 % ------------------------------------------------------------------------
 function handles = order_bands(handles,idx)
-% Put selected band (pointed by idx) on the box corresponding to active radiobutton
+	% Put selected band (pointed by idx) on the box corresponding to active radiobutton
 
-n_band = handles.band_desc{idx,2};
-if (get(handles.radiobutton_RGB,'Value'))
-    % put the clicked band on the box that has the active radiobutton
-	r = get(handles.radiobutton_R,'Value');
-	g = get(handles.radiobutton_G,'Value');
-	
-	if (r)
-        set(handles.edit_Rband,'String',handles.all_names{idx,2})
-        set(handles.radiobutton_R,'Value',0)
-        set(handles.radiobutton_G,'Value',1)
-        handles.Rband = n_band;
-	elseif (g)
-        set(handles.edit_Gband,'String',handles.all_names{idx,2})
-        set(handles.radiobutton_G,'Value',0)
-        set(handles.radiobutton_B,'Value',1)
-        handles.Gband = n_band;
-	else
-        set(handles.edit_Bband,'String',handles.all_names{idx,2})
-        set(handles.radiobutton_B,'Value',0)
-        set(handles.radiobutton_R,'Value',1)
-        handles.Bband = n_band;
+	n_band = handles.band_desc{idx,2};
+	if (get(handles.radiobutton_RGB,'Value'))
+		% put the clicked band on the box that has the active radiobutton
+		r = get(handles.radiobutton_R,'Value');
+		g = get(handles.radiobutton_G,'Value');
+		
+		if (r)
+			set(handles.edit_Rband,'String',handles.all_names{idx,2})
+			set(handles.radiobutton_R,'Value',0)
+			set(handles.radiobutton_G,'Value',1)
+			handles.Rband = n_band;
+		elseif (g)
+			set(handles.edit_Gband,'String',handles.all_names{idx,2})
+			set(handles.radiobutton_G,'Value',0)
+			set(handles.radiobutton_B,'Value',1)
+			handles.Gband = n_band;
+		else
+			set(handles.edit_Bband,'String',handles.all_names{idx,2})
+			set(handles.radiobutton_B,'Value',0)
+			set(handles.radiobutton_R,'Value',1)
+			handles.Bband = n_band;
+		end
+	else        % Single Band
+		set(handles.edit_Rband,'String',handles.all_names{idx,2})
+		handles.Rband = n_band;
 	end
-else        % Single Band
-    set(handles.edit_Rband,'String',handles.all_names{idx,2})
-    handles.Rband = n_band;
-end
 
 % --- Creates and returns a handle to the GUI figure. 
-function bands_list_LayoutFcn(h1,handles);
+function bands_list_LayoutFcn(h1);
 
 set(h1,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
@@ -512,29 +476,29 @@ set(h1,...
 'Resize','off',...
 'Tag','figure1');
 
-h2 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Position',[5 68 260 102],...
 'Style','frame',...
 'Tag','frame_movel');
 
-h3 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Position',[5 32 260 32],...
 'Style','frame',...
 'Tag','frame3');
 
-h4 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Position',[5 177 260 33],...
 'Style','frame',...
 'Tag','frame2');
 
-h5 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@bands_list_uicallback,h1,'radiobutton_gray_Callback'},...
 'Position',[15 185 79 15],...
 'String','Gray Scale',...
 'Style','radiobutton',...
 'Tag','radiobutton_gray');
 
-h6 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@bands_list_uicallback,h1,'radiobutton_RGB_Callback'},...
 'Position',[122 185 79 15],...
 'String','RGB Color',...
@@ -542,7 +506,7 @@ h6 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','radiobutton_RGB');
 
-h7 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@bands_list_uicallback,h1,'radiobutton_R_Callback'},...
 'Position',[12 142 25 15],...
 'String','R',...
@@ -550,66 +514,62 @@ h7 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','radiobutton_R');
 
-h8 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@bands_list_uicallback,h1,'radiobutton_G_Callback'},...
 'Position',[12 111 25 15],...
 'String','G',...
 'Style','radiobutton',...
 'Tag','radiobutton_G');
 
-h9 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@bands_list_uicallback,h1,'radiobutton_B_Callback'},...
 'Position',[12 82 25 15],...
 'String','B',...
 'Style','radiobutton',...
 'Tag','radiobutton_B');
 
-h10 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@bands_list_uicallback,h1,'edit_Rband_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[40 139 219 21],...
 'Style','edit',...
 'Tag','edit_Rband');
 
-h11 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@bands_list_uicallback,h1,'edit_Gband_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[40 109 219 21],...
 'Style','edit',...
 'Tag','edit_Gband');
 
-h12 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@bands_list_uicallback,h1,'edit_Bband_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[40 79 221 21],...
 'Style','edit',...
 'Tag','edit_Bband');
 
-h13 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@bands_list_uicallback,h1,'edit_dimsDesc_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[44 38 217 21],...
 'Style','edit',...
 'Tag','edit_dimsDesc');
 
-h14 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
 'Position',[14 40 25 15],...
 'String','Dims',...
 'Style','text',...
 'Tag','text1');
 
-h15 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@bands_list_uicallback,h1,'pushbutton1_Callback'},...
 'Position',[90 5 66 23],...
 'String','Load',...
 'Tag','pushbutton1');
 
-h16 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@bands_list_uicallback,h1,'listbox1_Callback'},...
 'Position',[5 219 260 221],...
@@ -617,7 +577,7 @@ h16 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','listbox1');
 
-h17 = uicontrol('Parent',h1,'Position',[99 149 80 15],...
+uicontrol('Parent',h1,'Position',[99 149 80 15],...
 'String','Selected Band','Style','text',...
 'Tag','text_toGray','Visible','off');
 
