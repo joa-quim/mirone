@@ -16,15 +16,6 @@ function varargout = deform_mansinha(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% z_min|max wre being computed as singles
-% popup_fault was incorrectly filled when nfaults > 9
-% Magnitude was wrong when Fault multiseg
-% Recognizes slip model on argin
-% Do not delete patches on exit if they are from a slip model
-% Accepts faults over referenced images 
-% Compute format for printing limits/inc such as number of decimals >= 8
-% Put patche's z in UserData so that they can be Flederized
-
 	if isempty(varargin)
 		errordlg('DEFORM MANSINHA: Wrong number of input args','Error');    return
 	end
