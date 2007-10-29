@@ -8,9 +8,10 @@ function varargout = fault_models(varargin)
 	end
 
 	[hObject, handles] = fault_models_LayoutFcn;
-	movegui(hObject,'north')
 	handles.handMir = handMir;
- 
+	
+	move2side(handMir.figure1, hObject)
+
 	load([handMir.path_data 'mirone_icons.mat'],'Mfopen_ico');
 	set(handles.pushbutton_externalFile,'CData',Mfopen_ico)
 	str = {'SUBFAULT FORMAT'; 'SRCMOD (.fsp)'};
@@ -21,7 +22,7 @@ function varargout = fault_models(varargin)
 	plugedWin = [plugedWin hObject];
 	setappdata(handMir.figure1,'dependentFigs',plugedWin);
 
-	handles.what_next = 'mansinha';
+	handles.what_next = 'none';
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
@@ -42,11 +43,20 @@ function push_externalFile_CB(hObject, handles)
 	if isequal(FileName,0);     return,     end
 	pause(0.05);
 
+	[pato, fname, EXT] = fileparts(FileName);
 	cmap = hot(86);		cmap = cmap(84:-1:23,:);
 	switch item
 		case 1
+			if (strcmpi(EXT,'.fsp'))
+				errordlg('This file is in the .fsp format and not in the subfault''s one.','ERROR')
+				return
+			end
 			subfault(handles.handMir, handles, [PathName FileName], cmap)
 		case 2
+			if (strcmpi(EXT,'.slp'))
+				errordlg('This file is in the .slp format and not in the .fsp','ERROR')
+				return
+			end
 			evtag(handles.handMir, handles, [PathName FileName], cmap)
 	end
 
@@ -55,44 +65,53 @@ function radio_Okada_CB(hObject, handles)
 	if (get(hObject,'Val'))
 		set([handles.radio_Mansinha handles.radio_nada],'Val',0)
 		handles.what_next = 'okada';
+		guidata(handles.figure1, handles)
 	else
 		set(hObject,'Val',1)
 	end
-	guidata(handles.figure1)
 
 % -----------------------------------------------------------------------------
 function radio_Mansinha_CB(hObject, handles)
 	if (get(hObject,'Val'))
 		set([handles.radio_Okada handles.radio_nada],'Val',0)
 		handles.what_next = 'mansinha';
+		guidata(handles.figure1, handles)
 	else
 		set(hObject,'Val',1)
 	end
-	guidata(handles.figure1)
 
 % -----------------------------------------------------------------------------
 function radio_nada_CB(hObject, handles)
 	if (get(hObject,'Val'))
 		set([handles.radio_Okada handles.radio_Mansinha],'Val',0)
 		handles.what_next = 'nada';
+		guidata(handles.figure1, handles)
 	else
 		set(hObject,'Val',1)
 	end
-	guidata(handles.figure1)
 
 % ------------------------------------------------------------------------------------------------
 function subfault(handles, localHandles, fname, cmap)
 	% Read in a file in the subfault format
-	% WARNING, this handles is the Mirone handles
+	% WARNING, the handles is the Mirone handles
 
 	D2R = pi / 180;
 	nCores = size(cmap,1) - 1;
 	[numeric_data,multi_segs_str] = text_read(fname,NaN,5,'#');
 
-	if (handles.no_file)		% I no_file, create a background
-		w = min(numeric_data{1}(:,1));		e = max(numeric_data{1}(:,1));
-		s = min(numeric_data{1}(:,2));		n = max(numeric_data{1}(:,2));
-		mirone('FileNewBgFrame_CB',[],handles, [w e s n 1])   % Create a background
+	w = min(numeric_data{1}(:,1));		e = max(numeric_data{1}(:,1));
+	s = min(numeric_data{1}(:,2));		n = max(numeric_data{1}(:,2));
+	if (handles.no_file)		% If no_file, create a background
+		hFig = mirone('FileNewBgFrame_CB', handles, [w e s n 1]);   % Create a background
+		figName = get(hFig,'Name');
+		ind = strfind(figName,' @');
+		if (~isempty(ind)),		figName = [fname figName(ind(1):end)];
+		else					figName = fname;
+		end
+		set(hFig,'Name',figName)
+	elseif (all(~insideRect(handles.head(1:4), [[w; e] [s; n]])))
+		errordlg('Time to go to the oculist? The fault model is entirely out of the map region.','ERROR')
+		return
 	end
 
 	ind = strfind(multi_segs_str{1},'=');
@@ -118,50 +137,88 @@ function subfault(handles, localHandles, fname, cmap)
 	else					Dy = str2double(t);
 	end
 	
+	% Guess if the grid is in km or meters. If the guess fails so will the 3D flederization
+	fact = 1;
+	if (~handles.no_file && handles.validGrid)
+		rng = diff(handles.head(5:6));
+		if (rng > 12),		fact = 1e3;		end		% Grid is meters (but depth is in km)
+	end
+
 	rng = repmat((Dx / 2) / 6371 / D2R, nx, 1);
 	numeric_data = numeric_data{2};			% First cell element contains the all patches rectangle
 	numeric_data(:,4) = numeric_data(:,4) * 1e-2;	% they were in cm
 	maxSlip = max(numeric_data(:,4));		minSlip = min(numeric_data(:,4));
+	% Pre-allocations
+	depth = cell(1,ny);		slip = cell(1,ny);		rake = cell(1,ny);
+	strike = cell(1,ny);	dip = cell(1,ny);		hp = zeros(1,nx);		hLine = zeros(1,ny);
+	
 	for (k = 1:ny)			% Loop over downdip patches (that is, rows)
         tmpx = numeric_data((k-1)*nx+1:k*nx, 2);		tmpy = numeric_data((k-1)*nx+1:k*nx, 1);
         [lat1,lon1] = circ_geo(tmpy, tmpx, rng, numeric_data((k-1)*nx+1:k*nx, 6)+180, 1);
         [lat2,lon2] = circ_geo(tmpy(end), tmpx(end), rng(end), numeric_data((k-1)*nx+1, 6), 1);
         lat = [lat1;lat2];      lon = [lon1;lon2];
-        hLine(k) = line('XData',lon,'YData',lat,'Parent',handles.axes1,'Color','r','Tag','FaultTrace');
+        hLine(k) = line('XData',lon,'YData',lat,'Parent',handles.axes1,'Color','k','Tag','FaultTrace', 'HitTest','off', ...
+			'Vis','off','HandleVisibility','off');		% So that they are not fished in the flederization process
 		
         %Lon. Lat. depth slip rake strike dip
         depth{k} = numeric_data((k-1)*nx+1:k*nx,3);		slip{k} = numeric_data((k-1)*nx+1:k*nx,4);
         rake{k}  = numeric_data((k-1)*nx+1:k*nx,5);		strike{k} = numeric_data((k-1)*nx+1:k*nx,6);
         dip{k}   = numeric_data((k-1)*nx+1:k*nx,7);
+		z = -(depth{k}(1) * [1 1 1 1 1] + [0 0 [Dy Dy]*sin(dip{k}(1)*D2R) 0]) * fact;
         for (i = 1:nx)		% Draw patches
             rng_p = Dy * cos(dip{k}(i)*D2R) / 6371 / D2R;
             [lat1,lon1] = circ_geo(lat(i),lon(i),rng_p,strike{k}(i)+90,1);
             [lat2,lon2] = circ_geo(lat(i+1),lon(i+1),rng_p,strike{k}(i)+90,1);
-            x = [lon(i) lon(i+1) lon2 lon1];    y = [lat(i) lat(i+1) lat2 lat1];
-			%z = -(depth{k}(i) * [1 1 1 1] + [0 0 [Dy Dy]*sin(dip{k}(1)*D2R)]);
+            x = [lon(i) lon(i+1) lon2 lon1 lon(i)];    y = [lat(i) lat(i+1) lat2 lat1 lat(i)];
 			cor = cmap( round( (slip{k}(i) - minSlip) / (maxSlip - minSlip) * nCores + 1 ), :);
-            hp(i) = patch('XData',x,'YData',y,'Parent',handles.axes1,'FaceColor',cor);
+            hp(i) = patch('XData',x,'YData',y,'Parent',handles.axes1,'FaceColor',cor,'Tag','SlipPatch');
+			set(hp(i),'UserData',z)		% So that we can Flederize it in 3D
+			cmenuHand = uicontextmenu('Parent',handles.figure1);
+			set(hp(i), 'UIContextMenu', cmenuHand);
+			uimenu(cmenuHand, 'Label', 'Okada', 'Callback', {@calldeform,handles,'okada'});
+			uimenu(cmenuHand, 'Label', 'Mansinha', 'Callback', {@calldeform,handles,'mansinha'});
+			uimenu(cmenuHand, 'Label', 'Delete', 'Sep', 'on', 'Callback', {@delAll,handles});    
         end
         setappdata(hLine(k),'PatchHand',hp);
 	end
 
+	% Save those to accessible by calldeform()
+	width = repmat({repmat(Dy, nx, 1)}, 1, ny);		% Width is constant when single segment
+	setappdata(handles.axes1,'SlipVars',{hLine, depth, width, strike,slip,dip,rake})
+
 	if (~handles.no_file)
 		localHandles = guidata(localHandles.figure1);
 		if (strcmp(localHandles.what_next,'okada'))
-			deform_okada(handles,hLine,strike,depth,slip,dip,rake);
+			deform_okada(handles,hLine,depth,width,strike,slip,dip,rake);
 		elseif (strcmp(localHandles.what_next,'mansinha'))
-			deform_mansinha(handles,hLine,strike,depth,slip,dip,rake);
+			deform_mansinha(handles,hLine,depth,width,strike,slip,dip,rake);
 		end
 	end
 
 % ------------------------------------------------------------------------------------------------
 function evtag(handles, localHandles, fname, cmap)
 	% Read in a file in the subfault format
-	% WARNING, this handles is the Mirone handles
+	% WARNING, the handles is the Mirone handles
+	% This function differs from 'subfault()' mainly in what respects the decoding of the
+	% squizophrenic header of .fsp files. The other difference is that multi-segment faults
+	% are alowed (it's than that things get real squizo)
+	%
+	% A basic assumption that all segments have the same 'nz'
+	%
+	% With the complicated multi-segment format each model parameter (e.g. slip)
+	% is a cell array {nSeg, nz} where nSeg is the number of segments as deffined
+	% by the format specification (.fsp here) and nz is the number of descretization
+	% stripes along strike and downdip (that is, rows in the fault plane).
+	% Then each cell element is a NX column vector with the parameter's value, where
+	% NX is the segment number of patches along strike.
 
 	D2R = pi / 180;
 	nCores = size(cmap,1) - 1;
 	[bin,n_column,multi_seg,n_headers] = guess_file(fname,5000,80);
+	if (n_headers < 20)
+		errordlg('This file is not in the SRCMOD .fsp format.','ERROR')
+		return
+	end
 	[numeric_data,multi_segs_str] = text_read(fname,NaN,n_headers,'%');
 
 	% Search for a line like -> % Mech : STRK =  320         DIP =  11          RAKE =  92      Htop = 5.92 km
@@ -197,17 +254,28 @@ function evtag(handles, localHandles, fname, cmap)
 	t = strtok(multi_segs_str{k}(ind(2)+1:end));		% t = 1;	We jump Ntw for now
 	nSeg = str2double(t);
 
+	% Get min/max for eventual background creation or inside-region check
+	w = 360;	e = -180;	s = 90;		n = -90;
+	for (k = 1:nSeg)
+		w = min(min(numeric_data{k}(:,2)), w);		e = max(max(numeric_data{k}(:,2)), e);
+		s = min(min(numeric_data{k}(:,1)), s);		n = max(max(numeric_data{k}(:,1)), n);
+	end
+	
 	% I no_file, create a background
 	if (handles.no_file)
-		w = 360;	e = -180;	s = 90;		n = -90;
-		for (k = 1:nSeg)
-			w = min(min(numeric_data{k}(:,2)), w);		e = max(max(numeric_data{k}(:,2)), e);
-			s = min(min(numeric_data{k}(:,1)), s);		n = max(max(numeric_data{k}(:,1)), n);
-		end
 		offx = Dx / 6371 / D2R;		offy = Dy / 6371 / D2R;
 		w = w - offx;		e = e + offx;
 		s = s - offy;		n = n + offy;
-		mirone('FileNewBgFrame_CB',[],handles, [w e s n 1])   % Create a background
+		hFig = mirone('FileNewBgFrame_CB', handles, [w e s n 1]);   % Create a background
+		figName = get(hFig,'Name');
+		ind = strfind(figName,' @');
+		if (~isempty(ind)),		figName = [fname figName(ind(1):end)];
+		else					figName = fname;
+		end
+		set(hFig,'Name',figName)
+	elseif (all(~insideRect(handles.head(1:4), [[w; e] [s; n]])))
+		errordlg('Time to go to the oculist? The fault model is entirely out of the map region.','ERROR')
+		return
 	end
 
 	% If we have a multi segment file, there is a lot more to fish in this squizophrenic format
@@ -243,45 +311,96 @@ function evtag(handles, localHandles, fname, cmap)
 		warndlg('I don''t know where those guys have put the RAKE. Using the average (bad) one.','Warning')
 	end
 	
+	% Guess if the grid is in km or meters. If the guess fails so will the 3D flederization
+	fact = 1;
+	if (~handles.no_file && handles.validGrid)
+		rng = diff(handles.head(5:6));
+		if (rng > 12),		fact = 1e3;		end		% Grid is meters (but depth is in km)
+	end
+
+	% Pre-allocations
+	depth  = cell(nSeg,nz);		slip = cell(nSeg,nz);		rake = cell(nSeg,nz);
+	strike = cell(nSeg,nz);		dip = cell(nSeg,nz);		hLine = zeros(nSeg,nz);
+	width  = cell(nSeg,nz);
+
 	for (s = 1:nSeg)
 		data = numeric_data{s};
 		strk = repmat(avgSTRK(s),nx(s),1);
-		strike = repmat({strk},nz,1);
-		dip  = repmat({repmat(avgDIP(s),nx(s),1)},nz,1);
+		strike(s,:) = repmat({strk},nz,1);
+		dip(s,:)  = repmat({repmat(avgDIP(s),nx(s),1)},nz,1);
 		rng = repmat((Dx / 2) / 6371 / D2R, nx(s), 1);
-		if (~rake_in_7),		rake  = repmat({repmat(avgRAKE,nx(s),1)},nz,1);		end
+		if (~rake_in_7),		rake(s,:)  = repmat({repmat(avgRAKE,nx(s),1)},nz,1);		end
 		maxSlip = max(data(:,6));	minSlip = min(data(:,6));
+		
 		for (k = 1:nz)			% Loop over downdip patches (that is, rows)
             tmpx = data((k-1)*nx(s)+1:k*nx(s), 2);		tmpy = data((k-1)*nx(s)+1:k*nx(s), 1);
-            [lat1,lon1] = circ_geo(tmpy, tmpx, rng, strk+180, 1);
-            [lat2,lon2] = circ_geo(tmpy(end), tmpx(end), rng(end), strk, 1);
+            [lat1,lon1] = circ_geo(tmpy, tmpx, rng, strike{s,k}(1)+180, 1);
+            [lat2,lon2] = circ_geo(tmpy(end), tmpx(end), rng(end), strike{s,k}(1), 1);
             lat = [lat1;lat2];      lon = [lon1;lon2];
-            hLine(k) = line('XData',lon,'YData',lat,'Parent',handles.axes1,'Color','r','Tag','FaultTrace');
+	        hLine(s,k) = line('XData',lon,'YData',lat,'Parent',handles.axes1,'Color','k','Tag','FaultTrace', 'HitTest','off', ...
+				'Vis','off','HandleVisibility','off');		% So that they are not fished in the flederization processe
 			
-            depth{k} = data((k-1)*nx(s)+1:k*nx(s),5);		slip{k} = data((k-1)*nx(s)+1:k*nx(s),6);
-			if (rake_in_7),		rake{k}  = data((k-1)*nx(s)+1:k*nx(s),7);		end
+            depth{s,k} = data((k-1)*nx(s)+1:k*nx(s),5);		slip{s,k} = data((k-1)*nx(s)+1:k*nx(s),6);
+			width{s,k} = repmat(Dy, nx(s), 1);
+			if (rake_in_7),		rake{s,k}  = data((k-1)*nx(s)+1:k*nx(s),7);		end
+			hp = zeros(1,nx(s));		% Pre-allocation and resetting from a previous (now old) size
 			
             for (i = 1:nx(s))		% Draw patches
-                rng_p = Dy * cos(dip{k}(i)*D2R) / 6371 / D2R;
-                [lat1,lon1] = circ_geo(lat(i),lon(i),rng_p,strike{k}(i)+90,1);
-                [lat2,lon2] = circ_geo(lat(i+1),lon(i+1),rng_p,strike{k}(i)+90,1);
-                x = [lon(i) lon(i+1) lon2 lon1];    y = [lat(i) lat(i+1) lat2 lat1];
-				%z = (depth{k}(i) * [1 1 1 1] + [0 0 [Dy Dy]*sin(dip{k}(1)*D2R)]);
-				cor = cmap( round( (slip{k}(i) - minSlip) / (maxSlip - minSlip) * nCores + 1 ), :);
-                hp(i) = patch('XData',x,'YData',y,'Parent',handles.axes1,'FaceColor',cor);
+                rng_p = Dy * cos(dip{s,k}(i)*D2R) / 6371 / D2R;
+                [lat1,lon1] = circ_geo(lat(i),lon(i),rng_p,strike{s,k}(i)+90,1);
+                [lat2,lon2] = circ_geo(lat(i+1),lon(i+1),rng_p,strike{s,k}(i)+90,1);
+	            x = [lon(i) lon(i+1) lon2 lon1 lon(i)];    y = [lat(i) lat(i+1) lat2 lat1 lat(i)];
+				z = -(depth{s,k}(i) * [1 1 1 1 1] + [0 0 [Dy Dy]*sin(dip{s,k}(1)*D2R) 0]) * fact;
+				cor = cmap( round( (slip{s,k}(i) - minSlip) / (maxSlip - minSlip) * nCores + 1 ), :);
+                hp(i) = patch('XData',x,'YData',y,'Parent',handles.axes1,'FaceColor',cor,'Tag','SlipPatch');
+				set(hp(i),'UserData',z)		% So that we can Flederize it in 3D
+				cmenuHand = uicontextmenu('Parent',handles.figure1);
+				set(hp(i), 'UIContextMenu', cmenuHand);
+				uimenu(cmenuHand, 'Label', 'Okada', 'Callback', {@calldeform,handles,'okada'});
+				uimenu(cmenuHand, 'Label', 'Mansinha', 'Callback', {@calldeform,handles,'mansinha'});
+				uimenu(cmenuHand, 'Label', 'Delete', 'Sep', 'on', 'Callback', {@delAll,handles});    
             end
-            setappdata(hLine(k),'PatchHand',hp);
+            setappdata(hLine(s,k),'PatchHand',hp);
 		end
 	end
+
+	% Save those to accessible by calldeform()
+	setappdata(handles.axes1,'SlipVars',{hLine, depth, width, strike,slip,dip,rake})
 
 	if (~handles.no_file)
 		localHandles = guidata(localHandles.figure1);
 		if (strcmp(localHandles.what_next,'okada'))
-			deform_okada(handles,hLine,strike,depth,slip,dip,rake);
+			deform_okada(handles,hLine,depth,width,strike,slip,dip,rake);
 		elseif (strcmp(localHandles.what_next,'mansinha'))
-			deform_mansinha(handles,hLine,strike,depth,slip,dip,rake);
+			deform_mansinha(handles,hLine,depth,width,strike,slip,dip,rake);
 		end
 	end
+
+% -----------------------------------------------------------------------------------------
+function delAll(obj,event,handles)
+	delete(findobj(handles.axes1,'Tag','SlipPatch'))
+	vars = getappdata(handles.axes1,'SlipVars');
+	delete(vars{1});		% Delete the hiden lines
+	rmappdata(handles.axes1,'SlipVars')
+
+% -----------------------------------------------------------------------------------------
+function calldeform(obj,event, handles, opt)
+	% Remember, this handles is the one from Mirone
+	vars = getappdata(handles.axes1,'SlipVars');
+	handles = guidata(handles.figure1);
+	if (strcmp(opt,'okada'))
+		deform_okada(handles,vars{:});
+	else
+		deform_mansinha(handles,vars{:});
+	end
+
+% --------------------------------------------------------------------
+function res = insideRect(rect,pt)
+    % Check which elements of the  [x y] (Mx2) PT array are inside the rectangle RECT
+    % RECT = [x_min x_max y_min y_max]
+    % RES is a logical column vector with length = size(PT,1)
+    % NO ERROR TESTING
+    res = ( pt(:,1) >= rect(1) & pt(:,1) <= rect(2) & pt(:,2) >= rect(3) & pt(:,2) <= rect(4) );
 
 % -----------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
@@ -329,7 +448,6 @@ uicontrol('Parent',h1, 'Position',[10 49 160 15],...
 uicontrol('Parent',h1, 'Position',[10 29 160 15],...
 'Callback',{@fault_models_uicallback,h1,'radio_Mansinha_CB'},...
 'Style','radiobutton',...
-'Value',1,...
 'String', 'At the end run ''Mansinha'' tool', ...
 'TooltipString','When finished reading call the Mansinha window',...
 'Tag','radio_Mansinha');
@@ -337,6 +455,7 @@ uicontrol('Parent',h1, 'Position',[10 29 160 15],...
 uicontrol('Parent',h1, 'Position',[10 9 160 15],...
 'Callback',{@fault_models_uicallback,h1,'radio_nada_CB'},...
 'Style','radiobutton',...
+'Value',1,...
 'String', 'Do nothing at the end', ...
 'TooltipString','When finished reading ... do nothing else',...
 'Tag','radio_nada');
