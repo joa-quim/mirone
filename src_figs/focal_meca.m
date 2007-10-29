@@ -16,26 +16,21 @@ function varargout = focal_meca(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-focal_meca_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
-movegui(hObject,'center');
-
 	if (isempty(varargin))
-        errordlg('FOCAL MECA: wrong number of arguments.','Error')
-        delete(hObject);    return
+		errordlg('FOCAL MECA: wrong number of arguments.','Error')
+		return
     end
-    
+
+	hObject = figure('Tag','figure1','Visible','off');
+	focal_meca_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	movegui(hObject,'center');
+   
     handles.mirone_fig = varargin{1};
     handMir = guidata(handles.mirone_fig);
-	if (handMir.no_file)
-        errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
-        delete(hObject);    return
-	end
+	handles.no_file = handMir.no_file;
         
-    if (~handMir.is_projected && ~handMir.geog)
+    if (~handMir.no_file && ~handMir.is_projected && ~handMir.geog)
         errordlg('This operation is only possible for geographic data OR when the Map Projection is known','ERROR')
         delete(hObject);    return
     end
@@ -58,9 +53,10 @@ movegui(hObject,'center');
 	
 	% Fill the listbox fields with the currently available reading filters
 	%str = {'lon,lat,dep,strike,dip,rake,mag,[lon0,lat0,title]'; 'ISF formated catalog (ascii)';};
-	str = {'Aki & Richard''s convention file '; ...
-            'Harvards''s CMT convention file '; ...
-            'ISF formated catalog (ascii)';};
+	str = {'ISF formated catalog (ascii)';
+			'Aki & Richard''s convention file';
+			'Harvards''s CMT convention file';
+			'Harvards''s CMT .ndk file'};
 	set(handles.listbox_readFilter,'String',str);
 	set(handles.checkbox_plotDate,'Enable','off')
 
@@ -79,46 +75,51 @@ movegui(hObject,'center');
         handles.lims_geogs = [x_min x_max y_min y_max];     % We'll need this if reading an external file
     end
 
-% ------------- Give a Pro look (3D) to the frame boxes --------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
+	% ------------- Give a Pro look (3D) to the frame boxes --------------------
+	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+	h_f = [handles.frame1 handles.frame2];
+	for i=1:length(h_f)
+		frame_size = get(h_f(i),'Position');
+		f_bgc = get(h_f(i),'BackgroundColor');
+		usr_d = get(h_f(i),'UserData');
+		if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
+			frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
+		else
+			frame3D(hObject,frame_size,framecolor,'',usr_d)
+			delete(h_f(i))
+		end
+	end
+	
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handMir.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handMir.figure1,'dependentFigs',plugedWin);
 
-% Choose default command line output for focal_meca_export
-varagout{1} = hObject;
-guidata(hObject, handles);
-
-set(hObject,'Visible','on');
+	% Choose default command line output for focal_meca
+	set(hObject,'Visible','on');
+	if (nargout),	varagout{1} = hObject;		end
+	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function listbox_readFilter_Callback(hObject, eventdata, handles)
-	% Hints: contents = get(hObject,'String') returns listbox_readFilter contents as cell array
-	%        contents{get(hObject,'Value')} returns selected item from listbox_readFilter
 	switch get(hObject,'Value')
         case 1
+			str = sprintf(['Read an ISF formated catalog file (like the ones\n'...
+                'you can get from www.isc.ac.uk) and extract\n'...
+                'the included (if any) focal mechanisms.']);
+        case 2		% Aki & Richards
 			str = sprintf(['ASCII file with lon,lat,depth,strike,dip,rake,mag.\n'...
                 '8th and 9th columns are optional. If present, they\n'...
                 'will determine where the beach ball will be ploted.']);
-        case 2
+        case 3		% Simple Harvard's CMT
 			str = sprintf(['ASCII file with lon,lat,depth,strike1,dip1,rake1,\n'...
                 'strike2,dip2,rake2,mantissa and exponent of moment in N-m.\n'...
                 '12th and 13th columns are optional. If present, they\n'...
                 'will determine where the beach ball will be ploted.']);
-        case 3
-			str = sprintf(['Read an ISF formated catalog file (like the ones\n'...
-                'you can get from www.isc.ac.uk) and extract\n'...
+        case 4		% Harvards's CMT .ndk format
+			str = sprintf(['Read an CMT .ndk formated catalog file (like the ones\n'...
+                'you can get from http://www.globalcmt.org/CMTfiles.html) and extract\n'...
                 'the included (if any) focal mechanisms.']);
 	end
 	set(hObject,'TooltipString',str)
@@ -128,127 +129,152 @@ function pushbutton_readFile_Callback(hObject, eventdata, handles)
 	% OK. Now read the earthquakes_export file and retain only the requested interval
 	item = get(handles.listbox_readFilter,'Value');     % Get the reading filter number
 	switch item
-        case 1      % Read a file formated with the Aki & Richard convention
-            str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-            filter = item;
-        case 2      % Read a file formated with the CMT convention
-            str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-            filter = item;
-        case 3
+        case 1      % Read a formated ISF catalog
             str1 = {'*.isf;*.ISF', 'Data files (*.isf,*.ISF)';'*.*', 'All Files (*.*)'};
-            filter = item;
+			filtro = 'isf';
+        case 2		% Aki & R
+            str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
+			filtro = 'aki';
+        case 3		% simple CMT
+            str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
+			filtro = 'cmt';
+        case 4      % Read a file formated with the CMT convention
+            str1 = {'*.ndk;*.NDK', 'Data files (*.ndk,*.NDK)';'*.*', 'All Files (*.*)'};
+			filtro = 'ndk';
 	end
-	
-	% Get file name
-	[FileName,PathName] = uigetfile(str1,'Select focal file');
-	pause(0.05)
-	if isequal(FileName,0)      return;    end
-	fname = [PathName,FileName];
-	
-	handles.date = [];      % Allways reset
 
-try
-    set(gcf,'Pointer','watch')
-	if (filter == 1 || filter == 2)      % Aki & Richard or CMT file
-        [numeric_data,n_column,error] = read_file(fname);
-        if (error)  return;     end
-		
-        if (handles.is_projected && handles.defCoordsIn > 0)        % Image is projected, we need to use this
-            x_min = handles.lims_geogs(1);      x_max = handles.lims_geogs(2);
-            y_min = handles.lims_geogs(3);      y_max = handles.lims_geogs(4);
-        else
-            x_min = handles.x_min;      x_max = handles.x_max;
-            y_min = handles.y_min;      y_max = handles.y_max;
-        end
-        
-        % Get rid of events that are outside the map limits
-		ind = find(numeric_data(:,1) < x_min | numeric_data(:,1) > x_max);
-        numeric_data(ind,:) = [];
-		ind = find(numeric_data(:,2) < y_min | numeric_data(:,2) > y_max);
-        numeric_data(ind,:) = [];
-        if (all(isempty(numeric_data)))     % Nothing inside region
-            return
-        end
-        if (filter == 1)                % Aki & Richard
-            if (~(n_column == 7 | n_column == 9 | n_column == 10))
-                errordlg('Wrong number of columns for an A&R file','Error');    return
+	% Get file name
+	[FileName,PathName] = uigetfile(str1,'Select focal file');	pause(0.05)
+	if isequal(FileName,0),		return,		end
+	fname = [PathName,FileName];
+	handles.date = [];			% Allways reset
+
+	try
+        set(handles.figure1,'Pointer','watch')
+		if (strcmp(filtro,'aki') || strcmp(filtro,'cmt'))      % Aki & Richard or CMT file
+            [numeric_data,n_column,error] = read_file(fname);
+            if (error),		return,		end
+			
+			if (~handles.no_file)					% If we know where we are
+                if (handles.is_projected && handles.defCoordsIn > 0)        % Image is projected, we need to use this
+					x_min = handles.lims_geogs(1);      x_max = handles.lims_geogs(2);
+					y_min = handles.lims_geogs(3);      y_max = handles.lims_geogs(4);
+                else
+					x_min = handles.x_min;      x_max = handles.x_max;
+					y_min = handles.y_min;      y_max = handles.y_max;
+                end
+                
+                % Get rid of events that are outside the map limits
+				ind = (numeric_data(:,1) < x_min | numeric_data(:,1) > x_max);
+                numeric_data(ind,:) = [];
+				ind = (numeric_data(:,2) < y_min | numeric_data(:,2) > y_max);
+                numeric_data(ind,:) = [];
+                if (all(isempty(numeric_data))),	return,		end     % Nothing inside region
+				
+			else				% If we have a nothing window
+				region = [min(numeric_data(:,1)) max(numeric_data(:,1)) min(numeric_data(:,2)) max(numeric_data(:,2)) 1];
+				handMir = guidata(handles.mirone_fig);
+				mirone('FileNewBgFrame_CB', handMir, region + [-1 1 -1 1 0]*.1);		% Create a background
+			end
+
+			if (strcmp(filtro,'aki'))			% Aki & Richard
+                if (~(n_column == 7 || n_column == 9 || n_column == 10))
+					errordlg('Wrong number of columns for an A&R file','Error');    return
+                end
+                % [lon lat depth str1 dip1 rake1 mag]
+                handles.data = numeric_data(:,1:7);
+                mag = numeric_data(:,7);
+                switch n_column
+                    case 7,			handles.plot_pos = numeric_data(:,1:2);
+                    case 9,			handles.plot_pos = numeric_data(:,8:9);
+                    case 10,		handles.plot_pos = numeric_data(:,8:9);
+                end
+            else                % CMT convention
+                if (~(n_column == 11 || n_column == 13 || n_column == 14))
+                    errordlg('Wrong number of columns for an CMT file','Error');    return
+                end
+                handles.mantiss_exp = numeric_data(:,10:11);
+                mag = (log10(numeric_data(:,10)) + numeric_data(:,11) - 9.1) * 2 / 3;    % In fact Mw
+                % [lon lat depth str1 dip1 rake1 str2 dip2 rake2 mag]
+                handles.data = [numeric_data(:,1:9) mag];
+                switch n_column
+					case 11,		handles.plot_pos = numeric_data(:,1:2);
+					case 13,		handles.plot_pos = numeric_data(:,12:13);
+					case 14,		handles.plot_pos = numeric_data(:,12:13);
+                end
             end
-            % [lon lat depth str1 dip1 rake1 mag]
-            handles.data = numeric_data(:,1:7);
-            mag = numeric_data(:,7);
-            switch n_column
-                case 7
-                    handles.plot_pos = numeric_data(:,1:2);
-                case 9
-                    handles.plot_pos = numeric_data(:,8:9);
-                case 10
-                    handles.plot_pos = numeric_data(:,8:9);
-                    %n = size(numeric_data,2);
-                    %handles.date = cell(n,1);
-                    %for (k=1:n)
-                        %handles.date{k} = ??;
-                    %end
+	
+        elseif (strcmp(filtro,'isf'))				% Read a ISF formated catalog
+			opt_R = '-';							% When no image at all
+			if (~handles.no_file)					% If we know where we are
+                if (handles.is_projected)			% Image is projected, we need this
+                    opt_R = sprintf('-R%f/%f/%f/%f',handles.lims_geogs(1:4));
+                else
+                    opt_R = sprintf('-R%f/%f/%f/%f', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
+                end
+			end
+            [out_d,out_i] = read_isf(fname,opt_R,'-M');
+            if (isempty(out_d))		% Nothing inside region
+				warndlg('Nope. No mechanisms in this file/region','Warning')
+				set(handles.figure1,'Pointer','arrow')
+				return
+			end
+
+			if (handles.no_file)			% If we have a nothing window
+				region = [min(out_d(1,:)) max(out_d(1,:)) min(out_d(2,:)) max(out_d(2,:)) 1];
+				handMir = guidata(handles.mirone_fig);
+				mirone('FileNewBgFrame_CB', handMir, region + [-1 1 -1 1 0]*.1);		% Create a background
+			end
+
+			handles.mantiss_exp = [out_d(10,:)' out_d(11,:)'];
+            mag = (log10(out_d(10,:)) + out_d(11,:) - 9.1) * 2 / 3;    % In fact Mw
+            handles.data = [out_d(1,:)' out_d(2,:)' out_d(3,:)' out_d(4,:)' out_d(5,:)' out_d(6,:)' out_d(7,:)' ...
+							out_d(8,:)' out_d(9,:)' mag'];
+            handles.plot_pos = [out_d(1,:)' out_d(2,:)'];		clear out_d;
+            n = size(out_i,2);
+            handles.date = cell(n,1);
+            for (k=1:n)
+				handles.date{k} = sprintf('%d/%d/%d',double(out_i(3,k)), double(out_i(2,k)), double(out_i(1,k)));
             end
-        else                % CMT convention
-            if (~(n_column == 11 | n_column == 13 | n_column == 14))
-                errordlg('Wrong number of columns for an CMT file','Error');    return
-            end
-            handles.mantiss_exp = numeric_data(:,10:11);
-            mag = (log10(numeric_data(:,10)) + numeric_data(:,11) - 9.1) * 2 / 3;    % In fact Mw
-            % [lon lat depth str1 dip1 rake1 str2 dip2 rake2 mag]
-            handles.data = [numeric_data(:,1:9) mag];
-            switch n_column
-                case 11
-                    handles.plot_pos = numeric_data(:,1:2);
-                case 13
-                    handles.plot_pos = numeric_data(:,12:13);
-                case 14
-                    handles.plot_pos = numeric_data(:,12:13);
-            end
-        end        		
-    elseif (filter == 3)        % Read a ISF formated catalog
-        if (handles.is_projected)               % Image is projected, we need this
-            opt_R = ['-R' sprintf('%f/%f/%f/%f',handles.lims_geogs(1),handles.lims_geogs(2), ...
-                    handles.lims_geogs(3),handles.lims_geogs(4))];
-        else
-            opt_R = ['-R' sprintf('%f/%f/%f/%f',handles.x_min,handles.x_max,handles.y_min,handles.y_max)];
-        end
-        [out_d,out_i] = read_isf(fname,opt_R,'-M');
-        if (isempty(out_d))     % Nothing inside region
-            return
-        end
-        handles.mantiss_exp = [out_d(10,:)' out_d(11,:)'];
-        mag = (log10(out_d(10,:)) + out_d(11,:) - 9.1) * 2 / 3;    % In fact Mw
-        handles.data = [out_d(1,:)' out_d(2,:)' out_d(3,:)' out_d(4,:)' out_d(5,:)' out_d(6,:)' out_d(7,:)' ...
-                out_d(8,:)' out_d(9,:)' mag'];
-        handles.plot_pos = [out_d(1,:)' out_d(2,:)'];
-        clear out_d;
-        n = size(out_i,2);
-        handles.date = cell(n,1);
-        for (k=1:n)
-            handles.date{k} = [int2str_m(out_i(3,k)) '/' int2str_m(out_i(2,k)) '/' int2str_m(out_i(1,k))];
-        end
-        clear out_i;
-        set(handles.checkbox_plotDate,'Enable','on')
+            clear out_i;
+            set(handles.checkbox_plotDate,'Enable','on')
+			
+        elseif (strcmp(filtro,'ndk'))				% CMT .ndk formated catalog
+			[handles.data, handles.mantiss_exp, handles.date, error] = readHarvardCMT(fname);
+			if (error),		return,		end
+			if (handles.no_file)			% If we have a nothing window
+				region = [min(handles.data(:,1)) max(handles.data(:,1)) min(handles.data(:,2)) max(handles.data(:,2)) 1];
+				handMir = guidata(handles.mirone_fig);
+				mirone('FileNewBgFrame_CB', handMir, region + [-1 1 -1 1 0]*.1);		% Create a background
+			end
+			handles.plot_pos = handles.data(:,1:2);
+			set(handles.checkbox_plotDate,'Enable','on')
+
+		end
+
+		handles.got_userFile = 1;
+		handles.usr_DepthMin   = min(handles.data(:,3));    handles.usr_DepthMax = max(handles.data(:,3));
+		if (strcmp(filtro,'aki'))		% This is stupid
+			handles.usr_MagMin = min(mag);	handles.usr_MagMax = max(mag);
+		else
+			handles.usr_MagMin = min(handles.data(:,10));	handles.usr_MagMax = max(handles.data(:,10));
+		end
+		set(handles.edit_MagMin,'String',num2str(floor(handles.usr_MagMin)))
+		set(handles.edit_MagMax,'String',num2str(ceil(handles.usr_MagMax)))
+		set(handles.edit_DepthMin,'String',num2str(floor(handles.usr_DepthMin)))
+		set(handles.edit_DepthMax,'String',num2str(ceil(handles.usr_DepthMax)))
+		guidata(hObject,handles)
+		set(handles.figure1,'Pointer','arrow')
+	catch   % In case of error, set the pointer back to "normal" 
+		set(handles.figure1,'Pointer','arrow')
+		w{1} = 'An error occured while reading file. Check that it has the apropriate format.';
+		w{2} = '';
+		w{3} = ['The error message was: ' lasterr];
+		w{4} = '';
+		w{5} = ['Alternatively, if you are sure that the format is correct check that there ' ...
+				'are no empty spaces at the end of your data lines. This may cause an error in decoding the ascii file.'];
+		warndlg(w,'Warning')
 	end
-	handles.got_userFile = 1;
-	handles.usr_DepthMin   = min(handles.data(:,3));    handles.usr_DepthMax = max(handles.data(:,3));
-	handles.usr_MagMin     = min(mag);                  handles.usr_MagMax = max(mag);
-	set(handles.edit_MagMin,'String',num2str(floor(handles.usr_MagMin)))
-	set(handles.edit_MagMax,'String',num2str(ceil(handles.usr_MagMax)))
-	set(handles.edit_DepthMin,'String',num2str(floor(handles.usr_DepthMin)))
-	set(handles.edit_DepthMax,'String',num2str(ceil(handles.usr_DepthMax)))
-	guidata(hObject,handles)
-    set(gcf,'Pointer','arrow')
-catch   % In case of error, set the pointer back to "normal" 
-    set(gcf,'Pointer','arrow')
-    w{1} = 'An error occured while reading file. Check that it has the apropriate format.';
-    w{2} = '';
-    w{3} = 'Alternatively, if you are sure that the format is correct check that there';
-    w{4} = 'are no empty spaces at the end of your data lines. This may cause an';
-    w{5} = 'error in decoding the ascii file.';
-    warndlg(w,'Warning')
-end
 
 % -------------------------------------------------------------------------------------
 function edit_MagMin_Callback(hObject, eventdata, handles)
@@ -278,18 +304,14 @@ function edit_DepthMax_Callback(hObject, eventdata, handles)
 % -------------------------------------------------------------------------------------
 function checkbox_depSlices_Callback(hObject, eventdata, handles)
 	if (get(hObject,'Value'))
-        set(handles.popup_dep0_33,'Enable','on');       set(handles.popup_dep33_70,'Enable','on')
-        set(handles.popup_dep70_150,'Enable','on');     set(handles.popup_dep150_300,'Enable','on')
-        set(handles.popup_dep300,'Enable','on')
+		set(handles.popup_dep0_33,'Enable','on');       set(handles.popup_dep33_70,'Enable','on')
+		set(handles.popup_dep70_150,'Enable','on');     set(handles.popup_dep150_300,'Enable','on')
+		set(handles.popup_dep300,'Enable','on')
 	else
-        set(handles.popup_dep0_33,'Enable','off');      set(handles.popup_dep33_70,'Enable','off')
-        set(handles.popup_dep70_150,'Enable','off');    set(handles.popup_dep150_300,'Enable','off')
-        set(handles.popup_dep300,'Enable','off')
+		set(handles.popup_dep0_33,'Enable','off');      set(handles.popup_dep33_70,'Enable','off')
+		set(handles.popup_dep70_150,'Enable','off');    set(handles.popup_dep150_300,'Enable','off')
+		set(handles.popup_dep300,'Enable','off')
 	end
-
-% -------------------------------------------------------------------------------------
-function checkbox_plotDate_Callback(hObject, eventdata, handles)
-    % Hint: get(hObject,'Value') returns toggle state of checkbox_plotDate
 
 % -------------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
@@ -298,11 +320,17 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 	DepthMin = str2double(get(handles.edit_DepthMin,'String'));
 	DepthMax = str2double(get(handles.edit_DepthMax,'String'));
 	item = get(handles.listbox_readFilter,'Value');             % Get the reading filter number
+	switch item
+        case 1,		filtro = 'isf';
+        case 2,		filtro = 'aki';
+        case 3,		filtro = 'cmt';
+        case 4,		filtro = 'ndk';
+	end
 	
-	if (isnan(MagMin))          MagMin = 1;         end
-	if (isnan(MagMax))          MagMax = 10;        end
-	if (isnan(DepthMin))        DepthMin = 0;       end
-	if (isnan(DepthMax))        DepthMax = 900;     end
+	if (isnan(MagMin)),			MagMin = 1;         end
+	if (isnan(MagMax)),			MagMax = 10;        end
+	if (isnan(DepthMin)),		DepthMin = 0;       end
+	if (isnan(DepthMax)),		DepthMax = 900;     end
 
 	if (~handles.got_userFile)
         errordlg('Plot What? Your christmas ballons?','Chico Clever');  return;
@@ -312,11 +340,11 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 	ind1 = find(handles.data(:,3) < DepthMin | handles.data(:,3) > DepthMax);
     handles.data(ind1,:) = [];      handles.plot_pos(ind1,:) = [];
     if (~isempty(handles.date))     handles.date(ind1,:) = [];  end
-    if (item == 1)                      % A&R.
-		ind2 = find(handles.data(:,7) < MagMin | handles.data(:,7) > MagMax);
-	elseif (item == 2 | item == 3)      % CMT file or ISF catalog
+	if (strcmp(filtro,'aki'))
+		ind2 = (handles.data(:,7) < MagMin | handles.data(:,7) > MagMax);
+	else							% ISF catalog, CMT, CMT .ndk 
         handles.mantiss_exp(ind1,:) = [];   % This risked to heve been left behind
-		ind2 = find(handles.data(:,10) < MagMin | handles.data(:,10) > MagMax);
+		ind2 = (handles.data(:,10) < MagMin | handles.data(:,10) > MagMax);
         handles.mantiss_exp(ind2,:) = [];
     end
     handles.data(ind2,:) = [];      handles.plot_pos(ind2,:) = [];
@@ -326,44 +354,42 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
         warndlg('There were no events left.','Warning');  return;
 	end
 
-if (get(handles.checkbox_depSlices,'Value'))    % We have a depth slice request
-    do_depSlices = 1;
-    contents = get(handles.popup_dep0_33,'String');     cor_str{1} = contents{get(handles.popup_dep0_33,'Value')};
-    contents = get(handles.popup_dep33_70,'String');    cor_str{2} = contents{get(handles.popup_dep33_70,'Value')};
-    contents = get(handles.popup_dep70_150,'String');   cor_str{3} = contents{get(handles.popup_dep70_150,'Value')};
-    contents = get(handles.popup_dep150_300,'String');  cor_str{4} = contents{get(handles.popup_dep150_300,'Value')};
-    contents = get(handles.popup_dep300,'String');      cor_str{5} = contents{get(handles.popup_dep300,'Value')};
-else
-    do_depSlices = 0;
-end
+	if (get(handles.checkbox_depSlices,'Value'))    % We have a depth slice request
+		do_depSlices = 1;
+		contents = get(handles.popup_dep0_33,'String');     cor_str{1} = contents{get(handles.popup_dep0_33,'Value')};
+		contents = get(handles.popup_dep33_70,'String');    cor_str{2} = contents{get(handles.popup_dep33_70,'Value')};
+		contents = get(handles.popup_dep70_150,'String');   cor_str{3} = contents{get(handles.popup_dep70_150,'Value')};
+		contents = get(handles.popup_dep150_300,'String');  cor_str{4} = contents{get(handles.popup_dep150_300,'Value')};
+		contents = get(handles.popup_dep300,'String');      cor_str{5} = contents{get(handles.popup_dep300,'Value')};
+	else
+		do_depSlices = 0;
+	end
     
     % See if we need to project
     if (handles.is_projected && handles.defCoordsIn > 0)        % We need a proj job here
-        lims = [handles.x_min handles.x_max handles.y_min handles.y_max];
-        [tmp, msg] = geog2projected_pts(handles.handles_fake,handles.data(:,1:2), lims);
-        handles.data(:,1:2) = tmp;
-        [handles.plot_pos, msg] = geog2projected_pts(handles.handles_fake,handles.plot_pos, lims);
+		lims = [handles.x_min handles.x_max handles.y_min handles.y_max];
+		[tmp, msg] = geog2projected_pts(handles.handles_fake,handles.data(:,1:2), lims);
+		handles.data(:,1:2) = tmp;
+		[handles.plot_pos, msg] = geog2projected_pts(handles.handles_fake,handles.plot_pos, lims);
     end
 
 % ------------ OK, now we are ready to plot the mechanisms
-oldunit = get(handles.mironeAxes,'Units');
-set(handles.mironeAxes,'Units','centimeters')      % normalized
-pos = get(handles.mironeAxes,'Position');
-set(handles.mironeAxes,'Units',oldunit)
+oldunit = get(handles.mironeAxes,'Units');		set(handles.mironeAxes,'Units','centimeters')
+pos = get(handles.mironeAxes,'Position');		set(handles.mironeAxes,'Units',oldunit)
 y_lim = get(handles.mironeAxes,'YLim');
 handles.size_fac = (y_lim(2) - y_lim(1)) / (pos(4) - pos(2)) * 0.4;  % Scale facor
-Mag5 = get(handles.edit_Mag5,'String');    % Size (cm) of a mag 5 event
-handles.Mag5 = str2num(Mag5);
-setappdata(handles.mirone_fig,'MecaMag5',Mag5)    % For eventual use in 'write_script'
+Mag5 = get(handles.edit_Mag5,'String');			% Size (cm) of a mag 5 event
+handles.Mag5 = str2double(Mag5);
+setappdata(handles.mirone_fig,'MecaMag5',Mag5)	% For eventual use in 'write_script'
 n_meca = size(handles.data(:,1),1);
 axes(handles.mironeAxes)
 h_pat = zeros(n_meca,3);
 plot_text = get(handles.checkbox_plotDate,'Value');
 for (k=1:n_meca)
-	if (item == 1)                      % Aki & Richard file
+	if (strcmp(filtro,'aki'))
         [c,d] = patch_meca(handles.data(k,4), handles.data(k,5), handles.data(k,6));
         mag = handles.data(k,7);
-	elseif (item == 2 || item == 3)      % CMT file or ISF catalog
+	else							% ISF catalog, CMT, CMT .ndk 
         [c,d] = patch_meca(handles.data(k,4), handles.data(k,5), handles.data(k,6), ...
             handles.data(k,7), handles.data(k,8), handles.data(k,9));
         mag = handles.data(k,10);
@@ -384,32 +410,27 @@ for (k=1:n_meca)
         h_pat(k,1) = patch(cx,cy, cor,'Tag','FocalMeca');
     end
     h_pat(k,2) = patch(dx,dy, [1 1 1],'Tag','FocalMeca');
+	ht = [];
     if (plot_text)          % Plot event text identifier (normaly its date)
         offset = handles.size_fac * mag / 5 * (handles.Mag5 + 0.2);  % text offset regarding the beach ball (2 mm) 
         ht = text(handles.plot_pos(k,1),handles.plot_pos(k,2)+offset,handles.date{k},'HorizontalAlignment', ...
-            'Center','VerticalAlignment','Bottom','FontSize',8,'Tag','TextMeca');
+				'Center','VerticalAlignment','Bottom','FontSize',8,'Tag','TextMeca');
         draw_funs(ht,'DrawText');
-        if (item == 1)                      % A&R. For eventual use in 'write_script'
-            setappdata(h_pat(k,1),'psmeca_com',[handles.data(k,1:7) handles.plot_pos(k,1:2) ht]);
-        elseif (item == 2 | item == 3)      % CMT or ISF catalog
-            setappdata(h_pat(k,1),'psmeca_com',[handles.data(k,1:9) handles.mantiss_exp(k,:) handles.plot_pos(k,1:2) ht]);
-        end
-        setappdata(h_pat(k,1),'other_hand',[h_pat(k,2) h_pat(k,3) ht]); % For using in the uiedit
-        setappdata(h_pat(k,2),'other_hand',[h_pat(k,1) h_pat(k,3) ht]); % For using in the uiedit
-    else        % NO text info
-        if (item == 1)                      % A&R. For eventual use in 'write_script'
-            setappdata(h_pat(k,1),'psmeca_com',[handles.data(k,1:7) handles.plot_pos(k,1:2)]);
-        elseif (item == 2 | item == 3)      % CMT or ISF catalog
-            setappdata(h_pat(k,1),'psmeca_com',[handles.data(k,1:9) handles.mantiss_exp(k,:) handles.plot_pos(k,1:2)]);
-        end
-        setappdata(h_pat(k,1),'other_hand',[h_pat(k,2) h_pat(k,3)]);    % For using in the uiedit
-        setappdata(h_pat(k,2),'other_hand',[h_pat(k,1) h_pat(k,3)]);    % For using in the uiedit
     end
-    lim_x = [handles.plot_pos(k,1) handles.plot_pos(k,1) handles.plot_pos(k,1) handles.plot_pos(k,1)] + [-1 -1 1 1]*dim;
-    lim_y = [handles.plot_pos(k,2) handles.plot_pos(k,2) handles.plot_pos(k,2) handles.plot_pos(k,2)] + [-1 1 1 -1]*dim;
-    setappdata(h_pat(k,1),'Limits',[lim_x(:) lim_y(:)]);            % For using in the uiedit
-    setappdata(h_pat(k,2),'Limits',[lim_x(:) lim_y(:)]);            % For using in the uiedit
-    set_uicontext(h_pat(k,1));    set_uicontext(h_pat(k,2));
+	
+	if (strcmp(filtro,'aki'))
+		setappdata(h_pat(k,1),'psmeca_com',[handles.data(k,1:7) handles.plot_pos(k,1:2) ht]);
+	else							% ISF catalog, CMT, CMT .ndk 
+		setappdata(h_pat(k,1),'psmeca_com',[handles.data(k,1:9) handles.mantiss_exp(k,:) handles.plot_pos(k,1:2) ht]);
+    end
+    setappdata(h_pat(k,1),'other_hand',[h_pat(k,2) h_pat(k,3) ht]);		% For using in the uiedit
+    setappdata(h_pat(k,2),'other_hand',[h_pat(k,1) h_pat(k,3) ht]);		% For using in the uiedit
+	
+	lim_x = [handles.plot_pos(k,1) handles.plot_pos(k,1) handles.plot_pos(k,1) handles.plot_pos(k,1)] + [-1 -1 1 1]*dim;
+	lim_y = [handles.plot_pos(k,2) handles.plot_pos(k,2) handles.plot_pos(k,2) handles.plot_pos(k,2)] + [-1 1 1 -1]*dim;
+	setappdata(h_pat(k,1),'Limits',[lim_x(:) lim_y(:)]);            % For using in the uiedit
+	setappdata(h_pat(k,2),'Limits',[lim_x(:) lim_y(:)]);            % For using in the uiedit
+	set_uicontext(h_pat(k,1));    set_uicontext(h_pat(k,2));
 end
 hand = guidata(handles.mirone_fig);     % Get the Mirone's handles structure
 hand.have_focal = handles.Mag5;         % Signal that we have focal mechanisms and store the Mag5 size symbol
@@ -421,148 +442,130 @@ function pushbutton_Cancel_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function cor = find_color(z, id)
-if (z < 33)                 cor = id{1};
-elseif (z >= 33 & z < 70)   cor = id{2};
-elseif (z >= 70 & z < 150)  cor = id{3};
-elseif (z >= 150 & z < 300) cor = id{4};
-else                        cor = id{5};
-end
+	if (z < 33),				cor = id{1};
+	elseif (z >= 33 & z < 70)   cor = id{2};
+	elseif (z >= 70 & z < 150)  cor = id{3};
+	elseif (z >= 150 & z < 300) cor = id{4};
+	else						cor = id{5};
+	end
 
 % -------------------------------------------------------------------------------------
 function [numeric_data,n_column,error] = read_file(fname)
-error = 0;
-hFig = gcf;
-[bin,n_column,multi_seg,n_headers] = guess_file(fname);
-% If msgbox exist we have to move it from behind the main window. So get it's handle
-hMsgFig = gcf;
-if (hFig ~= hMsgFig)        uistack(hMsgFig,'top');   end   % If msgbox exists, bring it forward
-% If error in reading file
-if isempty(bin) & isempty(n_column) & isempty(multi_seg) & isempty(n_headers)
-    errordlg(['Error reading file ' fname],'Error');
-    error = 1;  return
-end
-
-if (bin == 0)   % ASCII
-    if (isempty(n_headers))     n_headers = NaN;    end
-    if (multi_seg)
-        [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers,'>');
-    else
-        [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
-    end
-    if (hFig ~= hMsgFig);       figure(hFig);   end     % gain access to the drawing figure
-    if (iscell(numeric_data))
-        n_segments = length(numeric_data);
-    else
-        n_segments = 1;
-    end
-else        % BINARY
-    errordlg('Sorry, reading binary files is not yet programed','Error');
-    error = 1;  return
-end
+	error = 0;
+	hFig = gcf;
+	[bin,n_column,multi_seg,n_headers] = guess_file(fname);
+	% If msgbox exist we have to move it from behind the main window. So get it's handle
+	hMsgFig = gcf;
+	if (hFig ~= hMsgFig)        figure(hMsgFig);   end   % If msgbox exists, bring it forward
+	% If error in reading file
+	if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
+		errordlg(['Error reading file ' fname],'Error');
+		error = 1;  return
+	elseif (bin)			% BINARY
+		errordlg('Sorry, reading binary files is not programed','Error');
+		error = 1;  return
+	end
+	
+	if (isempty(n_headers))     n_headers = NaN;    end
+	if (multi_seg)
+		[numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers,'>');
+	else
+		[numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
+	end
+	if (hFig ~= hMsgFig);       figure(hFig);   end     % gain access to the drawing figure
+	if (iscell(numeric_data))
+		n_segments = length(numeric_data);
+	else
+		n_segments = 1;
+	end
 
 % -------------------------------------------------------------------------------------
 function set_uicontext(h)
-% Set uicontexts to the Meca patches
-
-cmenuHand = uicontextmenu;
-set(h, 'UIContextMenu', cmenuHand);
-uimenu(cmenuHand, 'Label', 'Delete this', 'Callback', {@del_Meca,h,'this'});
-uimenu(cmenuHand, 'Label', 'Delete all', 'Callback', {@del_Meca,h,'all'});
-%uimenu(cmenuHand, 'Label', 'Resize', 'Callback', {@resize_Meca,h});
-ui_edit_patch_special(h)
+	% Set uicontexts to the Meca patches
+	cmenuHand = uicontextmenu;
+	set(h, 'UIContextMenu', cmenuHand);
+	uimenu(cmenuHand, 'Label', 'Delete this', 'Callback', {@del_Meca,h,'this'});
+	uimenu(cmenuHand, 'Label', 'Delete all', 'Callback', {@del_Meca,h,'all'});
+	%uimenu(cmenuHand, 'Label', 'Resize', 'Callback', {@resize_Meca,h});
+	ui_edit_patch_special(h)
 
 % -------------------------------------------------------------------------------------
 function del_Meca(obj,eventdata,h,opt)
-% Delete one or all focal mechanisms
-if (strcmp(opt,'this'))
-    delete(getappdata(h,'other_hand'))
-    delete(h)
-else
-    delete(findobj('Type','patch','Tag','FocalMeca'));
-    delete(findobj('Type','line','Tag','FocalMecaAnchor'));
-    delete(findobj('Type','text','Tag','TextMeca'));
-end
+	% Delete one or all focal mechanisms
+	if (strcmp(opt,'this'))
+		delete(getappdata(h,'other_hand'))
+		delete(h)
+	else
+		delete(findobj('Type','patch','Tag','FocalMeca'));
+		delete(findobj('Type','line','Tag','FocalMecaAnchor'));
+		delete(findobj('Type','text','Tag','TextMeca'));
+	end
 
 % -------------------------------------------------------------------------------------
 function resize_Meca(obj,eventdata,h)
-% % Resize the focal mechanisms
-% handles = guidata(gcf);
-% h_all = findobj('Type','patch','Tag','FocalMeca');
-% n_meca = length(h_all) / 2;     % Each ball has two patches
-% mag = (log10(numeric_data(:,10)) + numeric_data(:,11) - 9.1) * 2 / 3;    % In fact Mw
-% for (k=1:n_meca)
-%     meca_com = getappdata(h_all(k),'psmeca_com');
-%     dim = handles.size_fac * mag / 5 * handles.Mag5;    % Scale the balls against the selected Mag 5 size
-%     c = c * dim;    d = d * dim;
-%     cx = c(:,1) + handles.plot_pos(k,1);
-%     cy = c(:,2) + handles.plot_pos(k,2);
-%     dx = d(:,1) + handles.plot_pos(k,1);
-%     dy = d(:,2) + handles.plot_pos(k,2);
-% end
+% 	% Resize the focal mechanisms
+% 	handles = guidata(gcf);
+% 	h_all = findobj('Type','patch','Tag','FocalMeca');
+% 	n_meca = length(h_all) / 2;     % Each ball has two patches
+% 	mag = (log10(numeric_data(:,10)) + numeric_data(:,11) - 9.1) * 2 / 3;    % In fact Mw
+% 	for (k=1:n_meca)
+% 		meca_com = getappdata(h_all(k),'psmeca_com');
+% 		dim = handles.size_fac * mag / 5 * handles.Mag5;    % Scale the balls against the selected Mag 5 size
+% 		c = c * dim;    d = d * dim;
+% 		cx = c(:,1) + handles.plot_pos(k,1);
+% 		cy = c(:,2) + handles.plot_pos(k,2);
+% 		dx = d(:,1) + handles.plot_pos(k,1);
+% 		dy = d(:,2) + handles.plot_pos(k,2);
+% 	end
 
-%--------------------------------------------------------------------------
-function s = int2str_m(x)
-%INT2STR Convert integer to string.
-%   S = INT2STR(X) rounds the elements of the matrix X to
-%   integers and converts the result into a string matrix.
-%   Return NaN and Inf elements as strings 'NaN' and 'Inf', respectively.
+% ----------------------------------------------------------------------------------
+function [data, mantiss_exp, eventDate, error] = readHarvardCMT(fname)
 
-%   Copyright 1984-2002 The MathWorks, Inc. 
-%
-% Hacked to work with TRUE integers as well
+	data = [];		mantiss_exp = [];		eventDate = [];		error = 0;
+	fid = fopen(fname, 'r');
+	if (fid < 0)
+		error = 1;		error(['Error opening file ' fname],'Error')
+		return
+	end
 
-if (~isa(x,'double'))   % It's so simple. Now it works with true integers and not only
-    x = double(x);      % the "pretend-to-be-integer-but-is-double" ML integers
-end
+	c = fread(fid,'*char');     fclose(fid);
+    todos = strread(c,'%s','delimiter','\n');   clear c fid;
+	nEvents = numel(todos)/5;
+	
+	% Since we are not using info from line 2 & 3 o each event (whicha has a 5 lines descriptor)
+	% the best is simple get rid of those unused lines. That even simplifies the parsing
+	ind = [(-3 + cumsum(repmat(5,1,nEvents)))' (-2 + cumsum(repmat(5,1,nEvents)))']';
+	ind = ind(:);			% [2     3     7     8    12    13    17    18 ...]
+	todos(ind) = [];
+	
+	data = zeros(nEvents, 10);
+	mantiss_exp = zeros(nEvents, 2);
+	eventDate = cell(nEvents,1);
+	
+	for (k = 1:nEvents)
+		n = (k - 1) * 3 + 1;		% To read the data line numbers correctly
+		[data(k,2) data(k,1) data(k,3)] = strread(todos{n}(28:47),'%f %f %f');		% lat lon dep
+		eventDate{k} = [todos{n}(15:15) todos{n}(10:13) todos{n}(6:9)];		% day/month/year is the civilized way of displaying dates
+		mantiss_exp(k,2) = str2double(todos{n+1}(1:2)) - 7;					% -7 because I want SI units
+		[data(k,4) data(k,5) data(k,6) data(k,7) data(k,8) data(k,9)] = strread(todos{n+2}(58:80),'%f %f %f %f %f %f');		% str1 dip1 rake1 str2 dip2 rake2
+		mantiss_exp(k,1) = str2double(todos{n+2}(52:56));					% M0 mantissa
+		M0  = mantiss_exp(k,1) * 10.0^mantiss_exp(k,2);
+		data(k,10) = 2/3 * (log10(M0) - 9.1);			% Mw
+	end
 
-x = round(real(x));
-if (length(x) == 1)     % handle special case of single infinite or NaN element
-   s = sprintf('%.1f',x);
-   if (~strcmp(s, '-Inf') & ~strcmp(s, 'Inf') & ~strcmp(s, 'NaN'))
-     s(end-1:end) = [];
-   end
-else
-   s = '';
-   [m,n] = size(x);
-   % Determine elements of x that are finite.
-   xfinite = x(isfinite(x));
-   % determine the variable text field width quantity
-   d = max(1,max(ceil(log10(abs(xfinite(:))+(xfinite(:)==0)))));
-   clear('xfinite')
-   % delimit string array with one space between all-NaN or all-Inf columns
-   if any(isnan(x(:)))|any(isinf(x(:)))
-      d = max([d;3]);
-   end
-   % walk through numbers array and convert elements to strings
-   for i = 1:m
-      t = [];
-      for j = 1:n
-         t = [t sprintf('%*.0f',d+2,x(i,j))];
-      end
-      s = [s; t];
-   end
-   % trim leading spaces from string array within constraints of rectangularity.
-   if ~isempty(s)
-      while all(s(:,1) == ' ')
-         s(:,1) = []; 
-      end
-   end
-end
-
-% --- Executes on key press over figure1 with no controls selected.
-function figure1_KeyPressFcn(hObject, eventdata, handles)
-if isequal(get(hObject,'CurrentKey'),'escape')
-    delete(handles.figure1);
-end
-
+% ----------------------------------------------------------------------------------
+function figure1_KeyPressFcn(hObject, eventdata)
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		delete(hObject);
+	end
 
 % --- Creates and returns a handle to the GUI figure. 
-function focal_meca_LayoutFcn(h1,handles);
+function focal_meca_LayoutFcn(h1);
 
 set(h1,...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','Focal mechanisms',...
 'NumberTitle','off',...
@@ -573,7 +576,7 @@ set(h1,...
 'Tag','figure1',...
 'UserData',[]);
 
-h2 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@focal_meca_uicallback,h1,'listbox_readFilter_Callback'},...
 'Position',[50 290 251 61],...
@@ -582,20 +585,16 @@ h2 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','listbox_readFilter');
 
-h3 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@focal_meca_uicallback,h1,'pushbutton_readFile_Callback'},...
 'FontWeight','bold',...
 'Position',[300 310 23 23],...
 'TooltipString','Browse for wanted file',...
 'Tag','pushbutton_readFile');
 
-h4 = uicontrol('Parent',h1,...
-'Position',[10 196 371 80],...
-'String',{  '' },...
-'Style','frame',...
-'Tag','frame1');
+uicontrol('Parent',h1, 'Position',[10 196 371 80], 'Style','frame', 'Tag','frame1');
 
-h5 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@focal_meca_uicallback,h1,'edit_MagMin_Callback'},...
 'Position',[71 243 47 21],...
@@ -603,7 +602,7 @@ h5 = uicontrol('Parent',h1,...
 'TooltipString','Do not plot events weeker than this',...
 'Tag','edit_MagMin');
 
-h6 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@focal_meca_uicallback,h1,'edit_MagMax_Callback'},...
 'Position',[195 243 47 21],...
@@ -611,37 +610,21 @@ h6 = uicontrol('Parent',h1,...
 'TooltipString','Do not plot events stronger than this',...
 'Tag','edit_MagMax');
 
-h7 = uicontrol('Parent',h1,...
-'Position',[18 236 51 30],...
-'String',{  'Minimum'; 'magnitude' },...
-'Style','text',...
-'Tag','text1');
+uicontrol('Parent',h1, 'Position',[18 236 51 30],...
+'String',{'Minimum'; 'magnitude' }, 'Style','text');
 
-h8 = uicontrol('Parent',h1,...
-'Position',[143 237 51 30],...
-'String',{  'Maximum'; 'magnitude' },...
-'Style','text',...
-'Tag','text2');
+uicontrol('Parent',h1, 'Position',[143 237 51 30],...
+'String',{  'Maximum'; 'magnitude' }, 'Style','text');
 
-h9 = uicontrol('Parent',h1,...
-'Position',[10 44 371 141],...
-'String',{  '' },...
-'Style','frame',...
-'Tag','frame2');
+uicontrol('Parent',h1,'Position',[10 44 371 141],'Style','frame','Tag','frame2');
 
-h10 = uicontrol('Parent',h1,...
-'Position',[19 140 42 30],...
-'String',{  'Minimum'; 'depth' },...
-'Style','text',...
-'Tag','text3');
+uicontrol('Parent',h1, 'Position',[19 140 42 30],...
+'String',{'Minimum'; 'depth'}, 'Style','text');
 
-h11 = uicontrol('Parent',h1,...
-'Position',[135 139 51 30],...
-'String',{  'Maximum'; 'depth' },...
-'Style','text',...
-'Tag','text4');
+uicontrol('Parent',h1, 'Position',[135 139 51 30],...
+'String',{'Maximum'; 'depth' }, 'Style','text');
 
-h12 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@focal_meca_uicallback,h1,'edit_Mag5_Callback'},...
 'Position',[323 244 47 21],...
@@ -650,15 +633,14 @@ h12 = uicontrol('Parent',h1,...
 'TooltipString','The beach balls will be scaled to this value',...
 'Tag','edit_Mag5');
 
-h13 = uicontrol('Parent',h1,...
-'Callback',{@focal_meca_uicallback,h1,'checkbox_plotDate_Callback'},...
+uicontrol('Parent',h1,...
 'Position',[69 208 101 15],...
 'String','Plot event date',...
 'Style','checkbox',...
 'TooltipString','Plot time information',...
 'Tag','checkbox_plotDate');
 
-h14 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@focal_meca_uicallback,h1,'edit_DepthMin_Callback'},...
 'Position',[63 145 47 21],...
@@ -667,7 +649,7 @@ h14 = uicontrol('Parent',h1,...
 'TooltipString','Do not plot events shalower than this',...
 'Tag','edit_DepthMin');
 
-h15 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@focal_meca_uicallback,h1,'edit_DepthMax_Callback'},...
 'Position',[187 145 47 21],...
@@ -675,7 +657,7 @@ h15 = uicontrol('Parent',h1,...
 'TooltipString','Do not plot events deeper than this',...
 'Tag','edit_DepthMax');
 
-h16 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@focal_meca_uicallback,h1,'checkbox_depSlices_Callback'},...
 'Position',[19 110 211 15],...
 'String','Use different colors for depth intervals',...
@@ -683,24 +665,23 @@ h16 = uicontrol('Parent',h1,...
 'TooltipString','Destinguish the epicenter depths by color',...
 'Tag','checkbox_depSlices');
 
-h17 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Enable','off',...
 'Position',[18 53 62 22],...
-'String',{  'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
+'String',{'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
 'Style','popupmenu',...
 'TooltipString','Symbol color for this depth interval',...
 'Value',1,...
 'Tag','popup_dep0_33');
 
-h18 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'FontSize',10,...
 'Position',[21 76 47 16],...
 'String','0-33 km',...
-'Style','text',...
-'Tag','text5');
+'Style','text');
 
-h19 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Enable','off',...
 'Position',[91 53 62 22],...
@@ -710,14 +691,12 @@ h19 = uicontrol('Parent',h1,...
 'Value',2,...
 'Tag','popup_dep33_70');
 
-h20 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[94 76 54 16],...
 'FontSize',10,...
-'Position',[94 76 54 16],...
 'String','33-70 km',...
-'Style','text',...
-'Tag','text6');
+'Style','text');
 
-h21 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Enable','off',...
 'Position',[165 53 62 22],...
@@ -727,21 +706,19 @@ h21 = uicontrol('Parent',h1,...
 'Value',3,...
 'Tag','popup_dep70_150');
 
-h22 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'FontSize',10,...
 'Position',[166 76 61 16],...
 'String','70-150 km',...
-'Style','text',...
-'Tag','text7');
+'Style','text');
 
-h23 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'FontSize',10,...
 'Position',[312 76 55 16],...
 'String','> 300 km',...
-'Style','text',...
-'Tag','text8');
+'Style','text');
 
-h24 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Enable','off',...
 'Position',[238 53 62 22],...
@@ -751,40 +728,38 @@ h24 = uicontrol('Parent',h1,...
 'Value',4,...
 'Tag','popup_dep150_300');
 
-h25 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Enable','off',...
 'Position',[310 53 62 22],...
-'String',{  'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
+'String',{'red'; 'green'; 'blue'; 'cyan'; 'yellow'; 'magenta'; 'kblak' },...
 'Style','popupmenu',...
 'TooltipString','Symbol color for this depth interval',...
 'Value',5,...
 'Tag','popup_dep300');
 
-h26 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'FontSize',10,...
 'Position',[235 76 68 16],...
 'String','150-300 km',...
-'Style','text',...
-'Tag','text9');
+'Style','text');
 
-h27 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@focal_meca_uicallback,h1,'pushbutton_Cancel_Callback'},...
 'Position',[224 10 66 23],...
 'String','Cancel',...
 'Tag','pushbutton_Cancel');
 
-h28 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@focal_meca_uicallback,h1,'pushbutton_OK_Callback'},...
 'Position',[315 10 66 23],...
 'String','OK',...
 'Tag','pushbutton_OK');
 
-h29 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Position',[255 238 68 30],...
 'String',{  'Magnitude 5'; 'size (cm)' },...
-'Style','text',...
-'Tag','text10');
+'Style','text');
 
 function focal_meca_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
