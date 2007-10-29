@@ -26,8 +26,11 @@
  *		23/08/2004	Retuched the indexes in bnc_n function.
  *				Finally programed the North border option
  *
- *		12/01/2006	Updated nlmmt function with (hopefully) corrected end indexes
+ *		12/01/2006	Updated nlmass function with (hopefully) corrected end indexes
  *				Needs to finish the option to output maregraphs as well.
+ *		08/10/2007	grids are numbered from time in sconds and not cycle number as before
+ *				Friction coefficient may be passed as argument (-F option)
+ *				Accepts output maregraphs via numeric argin and -O option.
  *
  *	version WITHOUT waitbar
  */
@@ -126,15 +129,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	n_mareg_out, *lcum_p;
 	float	*work, *ptr_mov_32, *mov_32, time_jump = 0.;
 	double	dt = 1.;	/* Time step increment */
-	double	r, *head, *b_tmp, dx, time_h = 0.0, amp_fact = 1.;
+	double	r, *head, *b_tmp, *outLoc, dx, time_h = 0.0, amp_fact = 1.;
 	double	*z, *m, *n, *hz, *hz1, *dz, *dm, *dn, *hm, *hn, *zm;
+	double	*ptr, *h_bar, tmp_ptr[1];	/* Pointers to be used in the waitbar */
+	double	manning_coeff = 0.025;
 
 	char	*bathy = NULL;  /* Name pointer for bathymetry file */
 	char 	*wave_height = NULL;	/* Name pointer for wave heights file */
 	char 	*mareg_index = NULL;	/* Name pointer for maregraph index file */
-	char 	*maregs_out_loc = NULL;	/* Name pointer for output maregraph positions file */
 	char 	*maregs_out_hgt = NULL;	/* Name pointer for output maregraph wave height file */
-	char	**argv, w_bar_title[] = "Aguenta ai";
+	char	**argv;
 	BOOLEAN	params_in_input = FALSE, bat_in_input = FALSE;
 	BOOLEAN	write_grids = FALSE, movie = FALSE, movie_char = FALSE, movie_float = FALSE;
 	BOOLEAN	maregs_in_input = FALSE;
@@ -143,12 +147,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int jp[7] = {0,0,0,0,0,0,0};
 	double bt[10] = {5.26, 6.7, 8., 5.5, 6., 10., 10., 10., 10., 10.};
 	double pz[7];
-	FILE	*fp;
+	FILE	*fp, *fpOutMaregs;
 
 	wave_height = "alt_onda";
 	mareg_index = "tsun2.par";
-	maregs_out_loc = "maregs_out_locations.dat";
-	maregs_out_hgt = "maregs_out_heights.dat";
 
 	argc = nrhs;
 	for (i = 0; i < nrhs; i++) {		/* Check input to find how many arguments are of type char */
@@ -158,45 +160,76 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 	}
 
-	if (n_arg_no_char > 0 && n_arg_no_char <= 3) {		/* Not all combinations are tested */
-		if (n_arg_no_char == 2 || n_arg_no_char == 3) {	/* It has to be the bathymetry and header arrays */
-			hz1 = mxGetPr(prhs[0]);
-			ny = mxGetM (prhs[0]);
-			nx = mxGetN (prhs[0]);
-			if (ny < 50 || nx < 50) {	/* This still might fail for maregraphs as 1 arg */
-				mexPrintf("First non char argument must contain a decent bathymetry array\n");
-				return;
-			}
-			head  = mxGetPr(prhs[1]);	/* Get bathymetry header info */
-			ny_tmp = mxGetM (prhs[1]);
-			if (ny_tmp > 1) {
-				mexPrintf("Second non char argument must contain the header of the bathymetry array\n");
-				return;
-			}
-			hdr.x_min = head[0];		hdr.x_max = head[1];
-			hdr.y_min = head[2];		hdr.y_max = head[3];
-			hdr.z_min = head[4];		hdr.z_max = head[5];
-			hdr.nx = nx;			hdr.ny = ny;
-			dx = head[8];		/* Square grid cells are assumed */
-			bat_in_input = TRUE;
+	if (!(n_arg_no_char > 0 && n_arg_no_char <= 4)) {		/* Not all combinations are tested */
+		mexErrMsgTxt("Wrong number of numeric inputs.");
+	}
+
+	/* 1st is the bat array */ 
+	hz1 = mxGetPr(prhs[0]);
+	ny = mxGetM (prhs[0]);
+	nx = mxGetN (prhs[0]);
+	if (ny < 50 || nx < 50) 	/* This still might fail for maregraphs as 1 arg */
+		mexErrMsgTxt("First non char argument must contain a decent bathymetry array\n");
+
+
+	/* 2ndt is the bathymetry header info array */ 
+	head  = mxGetPr(prhs[1]);
+	ny_tmp = mxGetM (prhs[1]);
+	if (ny_tmp > 1)
+		mexErrMsgTxt("Second non char argument must contain the header of the bathymetry array\n");
+
+	hdr.x_min = head[0];		hdr.x_max = head[1];
+	hdr.y_min = head[2];		hdr.y_max = head[3];
+	hdr.z_min = head[4];		hdr.z_max = head[5];
+	hdr.nx = nx;			hdr.ny = ny;
+	dx = head[8];		/* Square grid cells are assumed */
+	bat_in_input = TRUE;
+
+	/*  */ 
+	if (n_arg_no_char >= 3) {	/* The 3th argument must be the maregraph array */
+		b_tmp = mxGetPr(prhs[2]);
+		n_tstep_in = mxGetM (prhs[2]);
+		n_mareg = mxGetN (prhs[2]);
+		if (n_tstep_in < 10)
+			mexErrMsgTxt("Maregraph series too short. It can't be true.\n");
+
+		/* Transpose from Matlab orientation to scanline orientation */
+		b = (double *)mxCalloc(n_mareg*n_tstep_in, sizeof(double));
+		for (j = 0; j < n_tstep_in; j++)
+			for (i = 0; i < n_mareg; i++) b[j*n_mareg + i] = b_tmp[i*n_tstep_in + j];
+
+		maregs_in_input = TRUE;
+
+	}
+
+	if (n_arg_no_char >= 4) {	/* The 4th arg must be the optional output maregragh array */
+		double	x, y, x_tmp, y_tmp, x_inc, y_inc;
+		int	ix, jy, k;
+		n_mareg_out = mxGetM (prhs[3]);
+		lcum_p = (int *) mxCalloc ((size_t)(n_mareg_out), sizeof(int));
+		outLoc = mxGetPr(prhs[3]);
+
+		x_inc = (hdr.x_max - hdr.x_min) / (hdr.nx - 1);
+		y_inc = (hdr.y_max - hdr.y_min) / (hdr.ny - 1);
+
+		mexPrintf("Adjusted maregraph positions\n");
+		mexPrintf("old x\t\told y\t\tnew x\t\tnew y\t\tdepth\n");
+		for (i = 0; i < n_mareg_out; i++) {
+			x = outLoc[i];		y = outLoc[i + n_mareg_out];
+			ix = irint((x - hdr.x_min) / x_inc);
+			jy = irint((y - hdr.y_min) / y_inc); 
+			lcum_p[i] = jy * hdr.nx + ix; 
+			x_tmp = hdr.x_min + x_inc * ix;	/* Adjusted x maregraph pos */
+			y_tmp = hdr.y_min + y_inc * jy;	/* Adjusted y maregraph pos */
+			k = ix*hdr.ny + jy;		/* The column-major row-major story */
+			mexPrintf("%.1f\t%.1f\t%.1f\t%.1f\t%.1f\n",x,y,x_tmp,y_tmp,hz1[k]);
+
 		}
-		if (n_arg_no_char == 3) {	/* The 3th argument must be the maregraph array */
-			b_tmp = mxGetPr(prhs[2]);
-			n_tstep_in = mxGetM (prhs[2]);
-			n_mareg = mxGetN (prhs[2]);
-			if (n_tstep_in < 10) {
-				mexPrintf("Maregraph series too short. It can't be true.\n");
-				return;
-			}
-			/* Transpose from Matlab orientation to scanline orientation */
-			b = (double *)mxCalloc(n_mareg*n_tstep_in, sizeof(double));
-			for (j = 0; j < n_tstep_in; j++)
-				for (i = 0; i < n_mareg; i++) b[j*n_mareg + i] = b_tmp[i*n_tstep_in + j];
-			maregs_in_input = TRUE;
-		}
-		if (n_arg_no_char == 4) {	/* The 4th argument must be the parameter array */
-			/* Very complicated to decode. Not used yet. */
-		}
+		maregs_out = TRUE;
+	}
+
+	if (n_arg_no_char == 5) {	/* The 4th argument must be the parameter array */
+		/* Very complicated to decode. Not used yet. */
 	}
 
 	/* get the length of the input string */
@@ -217,17 +250,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'm':	/* Movie */
 					movie = TRUE;
 					break;
-				case 'B':	/* File with batymetry */
-					bathy  = &argv[i][2];
-					break;
 				case 'D':
 					water_depth = TRUE;
 					surf_level = FALSE;
 					max_level = FALSE;
 					break;
+				case 'F':	/* friction coefficient */
+					manning_coeff = atof(&argv[i][2]);
+					break;
 				case 'I':
 					sscanf (&argv[i][2], "%lf/%lf", &dx, &dt);
-					//sscanf (&argv[i][2], "%lf", &dt);
 					break;
 				case 'J':
 					sscanf (&argv[i][2], "%f", &time_jump);
@@ -245,7 +277,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					n_of_cycles = atoi(&argv[i][2]);
 					break;
 				case 'O':	/* File name for output maregraph data */
-					maregs_out_hgt  = &argv[i][2];
+					maregs_out_hgt = &argv[i][2];
 					break;
 				case 'P':	/* Name of params file */
 					mareg_index = &argv[i][2];
@@ -265,33 +297,41 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (argc == 0 || error) {
 		mexPrintf ("tsun2 %s - Computes the ...\n\n", argv[0]);
-		mexPrintf ("usage: tsun2 [-B<bathy>] [-T<grid_step>] [-I<dt>] [-M] [-D] [-a]\n");
+		mexPrintf ("usage: tsun2(bat. head, maregs, [out_maregs], [-G<stem>], [-T<grid_step>], [-F<friction>], [-I<dx/dt>], [-J<jmp>], [-M], [-D], [-O<optmareg>], [m])\n");
 		mexPrintf ("\t-m outputs a 3D grid used to do a movie\n");
-		mexPrintf ("\t-B name of bathymetry file (x,y,z for the moment)\n");
 		mexPrintf ("\t-D write grids with the total water depth\n");
 		mexPrintf ("\t-G<stem> write grids at the step_t intervals. Append file prefix. Files will be called <stem>#.grd\n");
+		mexPrintf ("\t-F<friction> Manning coefficient [Default = 0.025]\n");
 		mexPrintf ("\t-I space (read from grid) and time increments [Default -I<dx/1>] \n");
 		mexPrintf ("\t-J Times in virtual maregraphs < to <jump_time> will not be loaded.\n");
 		mexPrintf ("\t   Use this option to start the simulation at a time close to the time\n");
 		mexPrintf ("\t   that the main waves arrive to grid borders. [Default load them all]\n");
-		mexPrintf ("\t-M write grids of max water level [Default wave surface level]\n");
+		mexPrintf ("\t-M write the last grid of max water level [Default wave surface level]\n");
 		mexPrintf ("\t-N number of cycles [Default 1010].\n");
 		mexPrintf ("\t-O name of optional output cumulative hight file (default maregs_out_heights.dat).\n");
 		mexPrintf ("\t-P<file> name of params file\n");
 		mexPrintf ("\t-T time step for writing grids [Default 60 s].\n");
-		mexPrintf ("\t-W<file> name of maregraphs file\n");
 	}
 
 	if (error) return;
 
-	if (!movie && !write_grids) {
-		mexPrintf ("Nothing selected for output (grids or movie), exiting\n");
-		return;
+	if (!movie && !write_grids && !maregs_out)
+		mexErrMsgTxt("Nothing selected for output (grids, movie or out maregs), exiting\n");
+
+	if (!bat_in_input)
+		mexErrMsgTxt("Bathymetry was not transmited, exiting\n");
+ 
+	if (maregs_out && maregs_out_hgt == NULL) {
+		if ((fpOutMaregs = fopen ("maregs_out_heights.dat", "w")) == NULL)
+			mexErrMsgTxt(stderr, "TSUN2: Unable to open default file name - exiting\n");
 	}
-	if (!bat_in_input) {
-		mexPrintf ("Bathymetry was not transmited, exiting\n");
-		return;
+	else if (maregs_out) {
+		if ((fpOutMaregs = fopen (maregs_out_hgt, "w")) == NULL)
+			mexErrMsgTxt(stderr, "TSUN2: Unable to open file %s - exiting\n", maregs_out_hgt);
 	}
+
+	/* Take into account the dt value so that step_t is in seconds */
+	step_t = irint(step_t / dt);
 
 	if (water_depth) {
 		surf_level = FALSE;
@@ -304,30 +344,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	ncl = nx * ny;
 
 	/* Allocate memory	*/
-	if ((z = (double *) calloc ((size_t)(ncl * 2), sizeof(double)) ) == NULL) 
+	if ((z = (double *) mxCalloc ((size_t)(ncl * 2), sizeof(double)) ) == NULL) 
 		{no_sys_mem("tsun2 --> (z)", ncl * 2);	return;} 
-	if ((m = (double *) calloc ((size_t)(ncl * 2), sizeof(double)) ) == NULL) 
+	if ((m = (double *) mxCalloc ((size_t)(ncl * 2), sizeof(double)) ) == NULL) 
 		{no_sys_mem("tsun2 --> (m)", ncl * 2);	return;} 
-	if ((n = (double *) calloc ((size_t)(ncl * 2), sizeof(double)) ) == NULL) 
+	if ((n = (double *) mxCalloc ((size_t)(ncl * 2), sizeof(double)) ) == NULL) 
 		{no_sys_mem("tsun2 --> (n)", ncl * 2);	return;} 
-	if ((dz = (double *) calloc ((size_t)(ncl * 2), sizeof(double)) ) == NULL) 
+	if ((dz = (double *) mxCalloc ((size_t)(ncl * 2), sizeof(double)) ) == NULL) 
 		{no_sys_mem("tsun2 --> (dz)", ncl * 2);	return;} 
-	if ((dm = (double *) calloc ((size_t)(ncl * 2), sizeof(double)) ) == NULL) 
+	if ((dm = (double *) mxCalloc ((size_t)(ncl * 2), sizeof(double)) ) == NULL) 
 		{no_sys_mem("tsun2 --> (dm)", ncl * 2);	return;}
-	if ((dn = (double *) calloc ((size_t)(ncl * 2), sizeof(double)) ) == NULL) 
+	if ((dn = (double *) mxCalloc ((size_t)(ncl * 2), sizeof(double)) ) == NULL) 
 		{no_sys_mem("tsun2 --> (dn)", ncl * 2);	return;}
-	if ((hz = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((hz = (double *) mxCalloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
 		{no_sys_mem("tsun2 --> (hz)", ncl);	return;}
-	if ((hm = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((hm = (double *) mxCalloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
 		{no_sys_mem("tsun2 --> (hm)", ncl);	return;}
-	if ((hn = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((hn = (double *) mxCalloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
 		{no_sys_mem("tsun2 --> (hn)", ncl);	return;}
-	if ((zm = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+	if ((zm = (double *) mxCalloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
 		{no_sys_mem("tsun2 --> (zm)", ncl);	return;}
-	if ((work = (float *) calloc ((size_t)(ncl), sizeof(float)) ) == NULL) 
+	if ((work = (float *) mxCalloc ((size_t)(ncl), sizeof(float)) ) == NULL) 
 		{no_sys_mem("tsun2 --> (work)", ncl);	return;}
-	if (maregs_out)
-		lcum_p = (int *) calloc ((size_t)(n_mareg_out), sizeof(int));
 
 	/*  ********* INITIAL CONDITION ************* */
 
@@ -337,7 +375,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	hmn (nx, ny, hz, hm, hn);
 	intl (nx, ny, z, m, n, dz, hz);			/* Set inicial condition */ 
-	if (read_index(mareg_index, &nl_w, &nl_e, &nc_s, &nc_n) < 0)	/* Decode the file with maregraph indexes */ 
+	if (read_index(mareg_index, &nl_w, &nl_e, &nc_s, &nc_n) < 0)	/* Decode the file with maregraph indexes */
 		return;
 
 	if (amp_fact != 1.) {
@@ -361,13 +399,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	i2 = MAX(nx,ny);	/* This is for excess, but it's much easier */
-	if ((x_w = (double *) calloc ((size_t)(i2), sizeof(double))) == NULL) {
+	if ((x_w = (double *) mxCalloc ((size_t)(i2), sizeof(double))) == NULL) {
 		no_sys_mem("tsun2 --> (x_w)", i2);	return;}
-	if ((y_w = (double *) calloc ((size_t)(i2), sizeof(double))) == NULL) {
+	if ((y_w = (double *) mxCalloc ((size_t)(i2), sizeof(double))) == NULL) {
 		no_sys_mem("tsun2 --> (y_w)", i2);	return;}
-	if ((u_w = (double *) calloc ((size_t)(i2), sizeof(double))) == NULL) {
+	if ((u_w = (double *) mxCalloc ((size_t)(i2), sizeof(double))) == NULL) {
 		no_sys_mem("tsun2 --> (u_w)", i2);	return;}
-	if ((v_w = (double *) calloc ((size_t)(i2), sizeof(double))) == NULL) {
+	if ((v_w = (double *) mxCalloc ((size_t)(i2), sizeof(double))) == NULL) {
 		no_sys_mem("tsun2 --> (v_w)", i2);	return;}
 
 	/* Declarations for the (if) movie option */
@@ -385,30 +423,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/*  ********* MAIN CALCULATION ************* */
 
 	r  = dt / dx;
-	for (k = 0; k < n_of_cycles; k++) {
-		if (k % 5 == 0) {
-			mexPrintf("TSUN2: Computed %.2d %%\r",(int)((double)k/(double)n_of_cycles * 100));
-		}
+	n_of_cycles--;		/* decrease 1 to not having to -1 at each loop step testing */
+	for (k = 0; k <= n_of_cycles; k++) {
+		if (k % 5 == 0)
+			mexPrintf("TSUN2: Computed %.2d %%\r",(int)((double)k/(double)(n_of_cycles+1) * 100));
+
 		kk = k;
 		nlmass (nx, ny, z, m, n, dz, hz, r, kk);	/* Change z e dz */
 		bnc_n (nx, ny, z, kk, nl_w, nl_e, nc_s, nc_n);
-		nlmmt (nx, ny, z, m, n, dz, dm, dn, hz,hm,hn,r,dt,0.025);
+		nlmmt (nx, ny, z, m, n, dz, dm, dn, hz,hm,hn,r,dt,manning_coeff);
 		max_z  (nx, ny, z, zm);
 		if (maregs_out) {			/* Want time series at maregraph positions */
 			time_h += dt;
-			fprintf (fp, "%d", (int)time_h);
+			fprintf (fpOutMaregs, "%.3f", time_h);
 			for (i = 0; i < n_mareg_out; i++) {
 				if (surf_level)
-					fprintf (fp, "\t%.3f", z[lcum_p[i]-1 + ncl]);
+					fprintf (fpOutMaregs, "\t%.3f", z[lcum_p[i]-1 + ncl]);
 				else if (max_level)
-					fprintf (fp, "\t%.3f", zm[lcum_p[i]-1]);
+					fprintf (fpOutMaregs, "\t%.3f", zm[lcum_p[i]-1]);
 				else
-					fprintf (fp, "\t%.3f", dz[lcum_p[i]-1 + ncl]);
+					fprintf (fpOutMaregs, "\t%.3f", dz[lcum_p[i]-1 + ncl]);
 			}
-			fprintf (fp,"\n");
-			fflush(fp);
+			fprintf (fpOutMaregs,"\n");
+			fflush(fpOutMaregs);
 		}
-		if ((k % step_t) == 0 || k == n_of_cycles - 1) {
+		if ((k % step_t) == 0 || k == n_of_cycles) {
 			if (surf_level) {
 				for (j = 0; j < ny; j++) {
 					for (i = 0; i < nx; i++)
@@ -430,8 +469,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			else
 				mexPrintf ("Shit! I should't pass here\n");
 
-			if (write_grids)
-				write_grd_bin (k+(int)time_jump, hdr.x_min, hdr.y_min, dx, nx, ny, work);
+			if (write_grids && (surf_level || water_depth) )
+				write_grd_bin ((int)(k*dt+time_jump), hdr.x_min, hdr.y_min, dx, nx, ny, work);
+			else if (write_grids && max_level && (k == n_of_cycles) )	/* Write only the last grid */
+				write_grd_bin (n_of_cycles, hdr.x_min, hdr.y_min, dx, nx, ny, work);
 
 			if (movie) {		/* Output the "movie" in a 3D float matrix */
 				/* Transpose to matlab ordering */
@@ -452,25 +493,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (movie && movie_float) mxFree(mov_32);
 
-	if (maregs_in_input) mxFree(b);
+	if (maregs_out) fclose(fpOutMaregs);
 
-	free ((void *) z);
-	free ((void *) m);
-	free ((void *) n);
-	free ((void *) dz);
-	free ((void *) dm);
-	free ((void *) dn);
-	free ((void *) hz);
-	free ((void *) hm);
-	free ((void *) hn);
-	free ((void *) zm);
-	free ((void *) work);
-	free ((void *) b);
-	free ((void *) x_w);
-	free ((void *) y_w);
-	free ((void *) u_w);
-	free ((void *) v_w);
-	if (maregs_out) free ((void *) lcum_p);	 
+	mxFree ((void *) b);
+	mxFree ((void *) z);
+	mxFree ((void *) m);
+	mxFree ((void *) n);
+	mxFree ((void *) dz);
+	mxFree ((void *) dm);
+	mxFree ((void *) dn);
+	mxFree ((void *) hz);
+	mxFree ((void *) hm);
+	mxFree ((void *) hn);
+	mxFree ((void *) zm);
+	mxFree ((void *) work);
+	mxFree ((void *) x_w);
+	mxFree ((void *) y_w);
+	mxFree ((void *) u_w);
+	mxFree ((void *) v_w);
+	mxFree ((void *) jp_w);		mxFree ((void *) jp_e);
+	mxFree ((void *) ip_s);		mxFree ((void *) ip_n);
+	if (maregs_out) mxFree ((void *) lcum_p);	 
 }
 
 /* ------------------------------------------------------------------ */
@@ -784,7 +827,7 @@ int data(char *alt_ond, int *n_tstep_in, double *dt, float time_jump) {
 		return (-1);
 	}
 
-	if ((b = (double *) calloc ((size_t)(n_alloc), sizeof(double)) ) == NULL) {no_sys_mem("tsun2 --> (b)", n_alloc);} 
+	if ((b = (double *) mxCalloc ((size_t)(n_alloc), sizeof(double)) ) == NULL) {no_sys_mem("tsun2 --> (b)", n_alloc);} 
 
 	while (fgets (line, 1024, fp)) {
 		if (n_col == 0) {	/* First time, allocate # of columns */
@@ -809,7 +852,7 @@ int data(char *alt_ond, int *n_tstep_in, double *dt, float time_jump) {
 		k++;
 		if (ndata + j >= n_alloc) {
 			n_alloc += CHUNK;
-			if ((b = (double *) realloc ((void *)b, (size_t)(n_alloc * sizeof(double)))) == NULL) {no_sys_mem("tsun2 --> (b)", n_alloc);}
+			if ((b = (double *) mxRealloc ((void *)b, (size_t)(n_alloc * sizeof(double)))) == NULL) {no_sys_mem("tsun2 --> (b)", n_alloc);}
 		}
 	}
 	*n_tstep_in = k;
@@ -892,7 +935,7 @@ int read_index(char *file, int *nl_w, int *nl_e, int *nc_s, int *nc_n) {
 	n_node[0] = n_node[1] = n_node[2] = 0;
 	side[0] = side[1] = side[2] = side[3] = 0;
 
-	if ((i_tmp = (int *) calloc ((size_t)(n_alloc1), sizeof(int)) ) == NULL) 
+	if ((i_tmp = (int *) mxCalloc ((size_t)(n_alloc1), sizeof(int)) ) == NULL) 
 		{no_sys_mem("tsun2 --> (i_tmp)", n_alloc1);} 
 
 	if ((fp = fopen (file, "r")) == NULL) {
@@ -916,22 +959,22 @@ int read_index(char *file, int *nl_w, int *nl_e, int *nc_s, int *nc_n) {
 			case 'w':
 			case 'W':
 				side[0] = 1;
-				jp_w = (int *) calloc ((size_t)(n_alloc2), sizeof(int));
+				jp_w = (int *) mxCalloc ((size_t)(n_alloc2), sizeof(int));
 				break;
 			case 's':
 			case 'S':
 				side[1] = 1;
-				ip_s = (int *) calloc ((size_t)(n_alloc2), sizeof(int));
+				ip_s = (int *) mxCalloc ((size_t)(n_alloc2), sizeof(int));
 				break;
 			case 'e':
 			case 'E':
 				side[2] = 1;
-				jp_e = (int *) calloc ((size_t)(n_alloc2), sizeof(int));
+				jp_e = (int *) mxCalloc ((size_t)(n_alloc2), sizeof(int));
 				break;
 			case 'n':
 			case 'N':
 				side[3] = 1;
-				ip_n = (int *) calloc ((size_t)(n_alloc2), sizeof(int));
+				ip_n = (int *) mxCalloc ((size_t)(n_alloc2), sizeof(int));
 				break;
 			case '\n':
 			case '\r':
