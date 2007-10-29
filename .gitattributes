@@ -510,6 +510,7 @@ utils/shading_mat.m -text
 utils/spl_fun.m -text
 utils/spl_fun.p -text
 utils/string_token.m -text
+utils/swan2sww.m -text
 utils/syn3d.m -text
 utils/t_xtide.m -text
 utils/tabpanelfcn.m -text
