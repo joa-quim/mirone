@@ -121,7 +121,7 @@ function push_plot_Callback(hObject, eventdata, handles)
         YMin = min(handles.symbXYZ(:,2));       YMax = max(handles.symbXYZ(:,2));
         xx = [XMin XMax];           yy = [YMin YMax];
         region = [xx yy];           % 1 stands for geog but that will be confirmed later
-        mirone('FileNewBgFrame_CB',[],handles, [region geog])   % Create a background
+        mirone('FileNewBgFrame_CB', handles, [region geog])   % Create a background
 	else                        % Reading over an established region
         XYlim = getappdata(handles.hCallingAxes,'ThisImageLims');
         xx = XYlim(1:2);            yy = XYlim(3:4);
