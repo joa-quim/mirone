@@ -15,7 +15,7 @@ function varargout = atlas(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
 	hObject = figure('Tag','figure1','Visible','off');
 	atlas_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -312,7 +312,7 @@ else                                no_alfa = 0;    alfa = handles.transparency;
 if (handles.CeateBG)      % Yes
     region = [handles.region 1];
     if (abs(region(2) - region(1)) > 360 || abs(region(4) - region(3)) > 180),   region(5) = 0;   end
-    mirone('FileNewBgFrame_CB',[],guidata(handles.mirone_fig), region)
+    mirone('FileNewBgFrame_CB',guidata(handles.mirone_fig), region)
 end
 
 setappdata(handles.mirone_fig,'AtlasResolution',handles.atlas_file);    % Save this for use in write_gmt_script
