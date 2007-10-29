@@ -18,7 +18,7 @@ function varargout = show_palette(varargin)
     
     % Some tests
 	if (handMir.no_file),     return;      end
-	if (ndims(get(handMir.hImg,'CData')) == 3)
+	if (~handMir.validGrid && ndims(get(handMir.hImg,'CData')) == 3)
         msgbox('True color images do not use color palettes. Bye','Warning');    return
 	end
     
