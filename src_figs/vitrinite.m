@@ -5,11 +5,8 @@ function varargout = vitrinite(varargin)
 % varargin   command line arguments to vitrinite_export (see VARARGIN)
 
 hObject = figure('Tag','figure1','Visible','off');
+vitrinite_LayoutFcn(hObject);
 handles = guihandles(hObject);
-guidata(hObject, handles);
-vitrinite_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
-
 movegui(handles.figure1,'north')
 
 % Import icons
@@ -34,27 +31,9 @@ handles.haveStatusBar = 0;
 handles.IamCallibrated = 0;
 handles.geog = 0;
 
-% Choose default command line output for vitrinite_export
-handles.output = hObject;
 guidata(hObject, handles);
-
-% UIWAIT makes vitrinite_export wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
 set(hObject,'Visible','on');
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = vitrinite_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = vitrinite_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% handles    structure with handles and user data (see GUIDATA)
-
-% Get default command line output from handles structure
-varargout{1} = handles.output;
+if (nargout),	varargout{1} = hObject;		end
 
 % --------------------------------------------------------------------
 function clicked_loadMarkersImg_Callback(hObject, eventdata)
@@ -188,9 +167,9 @@ function clicked_loadSampleImg_Callback(hObject, eventdata)
 
 % --------------------------------------------------------------------
 function popup_markersImgs_Callback(hObject, eventdata, handles)
-    if (handles.countMark < 2),    return;     end      % Too soon
-    set(handles.edit_reflectance,'String',handles.reflectance{get(hObject,'Value')})
-    resetImg(handles,get(hObject,'Value'))
+	if (handles.countMark < 2),    return;     end      % Too soon
+	set(handles.edit_reflectance,'String',handles.reflectance{get(hObject,'Value')})
+	resetImg(handles,get(hObject,'Value'))
 
 % --------------------------------------------------------------------
 function resetImg(handles, number)
@@ -222,7 +201,7 @@ function pushbutton_callibrate_Callback(hObject, eventdata, handles)
     Y = 1:size(handles.ImgSample,1);
     head = [1 X(end) 1 Y(end) 0 255 0 1 1];
     setappdata(handles.figure1,'dem_z',Z);  setappdata(handles.figure1,'dem_x',X);
-    setappdata(handles.figure1,'dem_y',Y);  setappdata(handles.figure1,'GMThead',head);
+    setappdata(handles.figure1,'dem_y',Y);
     set(handles.pushbutton_getAvgReflec,'Enable','on')
     handles.IamCallibrated = 1;
     handles.callibCurv = yi;                % Save the callibration curve
@@ -246,42 +225,42 @@ function pushbutton_callibrate_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function pushbutton_getTiePoint_Callback(hObject, eventdata, handles)
-    % Get a tie point from the current Marker image
-    [x,y,but]  = ginput_pointer(1,'crosshair');
-    if (but ~= 1),   return;     end
-    params.Point = [x y];    params.Tolerance = 10;    params.Connect = 4;
-    
-    img = get(handles.hImgMarker,'CData');                   % Get the image
-    [dumb,mask] = cvlib_mex('floodfill',img,params);
-    
-    % TESTAR SE TENHO REFLECTANCE PARA ESTE PONTO
-    tiePoint = round(mean2(img(mask)));
-    whichMarker = get(handles.popup_markersImgs,'Value');   % We need to know which tie point is this
-    handles.tiePoints{whichMarker} = tiePoint;
-    handles.sigma{whichMarker} = std2(img(mask));
-    handles.countTiePoints = handles.countTiePoints + 1;
+	% Get a tie point from the current Marker image
+	[x,y,but]  = ginput_pointer(1,'crosshair');
+	if (but ~= 1),   return;     end
+	params.Point = [x y];    params.Tolerance = 10;    params.Connect = 4;
+
+	img = get(handles.hImgMarker,'CData');                   % Get the image
+	[dumb,mask] = cvlib_mex('floodfill',img,params);
+
+	% TESTAR SE TENHO REFLECTANCE PARA ESTE PONTO
+	tiePoint = round(mean2(img(mask)));
+	whichMarker = get(handles.popup_markersImgs,'Value');   % We need to know which tie point is this
+	handles.tiePoints{whichMarker} = tiePoint;
+	handles.sigma{whichMarker} = std2(img(mask));
+	handles.countTiePoints = handles.countTiePoints + 1;
 	guidata(handles.figure1,handles)
 
 %--------------------------------------------------------------------------
 function pushbutton_getAvgReflec_Callback(hObject, eventdata, handles)
-    % Get the average reflectance of the clicked shape
-    if (~handles.IamCallibrated)
-        errordlg('You need to callibrate the sample image first.','ERROR'); return
-    end
-    [x,y,but]  = ginput_pointer(1,'crosshair');
-    if (but ~= 1),   return;     end
-    params.Point = [x y];    params.Tolerance = 5;    params.Connect = 8;
-    hAx = get(handles.figure1,'CurrentAxes');
-    img = get(findobj(hAx,'Type','Image'),'CData');                   % Get the image
-    
-    [dumb,mask] = cvlib_mex('floodfill',img,params);
-    avgPix = round(mean2(img(mask)));
-    avgReflect = double(handles.callibCurv(avgPix));
-    hText = text(x,y,sprintf('%.2f',avgReflect),'Fontsize',8,'Parent',hAx,'HorizontalAlignment','center');
+	% Get the average reflectance of the clicked shape
+	if (~handles.IamCallibrated)
+		errordlg('You need to callibrate the sample image first.','ERROR'); return
+	end
+	[x,y,but]  = ginput_pointer(1,'crosshair');
+	if (but ~= 1),   return;     end
+	params.Point = [x y];    params.Tolerance = 5;    params.Connect = 8;
+	hAx = get(handles.figure1,'CurrentAxes');
+	img = get(findobj(hAx,'Type','Image'),'CData');                   % Get the image
 
-    % Set a uicontext with the "Deleting" option
-    cmenuHand = uicontextmenu;      set(hText, 'UIContextMenu', cmenuHand);
-    uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	[dumb,mask] = cvlib_mex('floodfill',img,params);
+	avgPix = round(mean2(img(mask)));
+	avgReflect = double(handles.callibCurv(avgPix));
+	hText = text(x,y,sprintf('%.2f',avgReflect),'Fontsize',8,'Parent',hAx,'HorizontalAlignment','center');
+
+	% Set a uicontext with the "Deleting" option
+	cmenuHand = uicontextmenu;      set(hText, 'UIContextMenu', cmenuHand);
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
 
 %--------------------------------------------------------------------------
 function edit_reflectance_Callback(hObject, eventdata, handles)
@@ -290,18 +269,18 @@ function edit_reflectance_Callback(hObject, eventdata, handles)
 
 %--------------------------------------------------------------------------
 function createStatusBar(handles)
-    % simulates a box at the bottom of the figure
-    figPos = get(handles.figure1,'Pos');
-    H = 22;
-    sbPos(1) = 1;               sbPos(2) = 2;
-    sbPos(3) = figPos(3)-2;     sbPos(4) = H-1;
-    h = axes('Parent',handles.figure1,'Box','off','Visible','off','Tag','sbAxes','Units','Pixels',...
+	% simulates a box at the bottom of the figure
+	figPos = get(handles.figure1,'Pos');
+	H = 22;
+	sbPos(1) = 1;               sbPos(2) = 2;
+	sbPos(3) = figPos(3)-2;     sbPos(4) = H-1;
+	h = axes('Parent',handles.figure1,'Box','off','Visible','off','Tag','sbAxes','Units','Pixels',...
         'Position',sbPos,'XLim',[0 sbPos(3)],'YLim',[0 H-1]);
-    hFieldFrame = createframe(h,[1 (figPos(3) - 1)],H);
-    setappdata(handles.figure1,'CoordsStBar',[h hFieldFrame]);  % Save it for use in ...
-    set(hFieldFrame,'Visible','on')
-    set(h,'HandleVisibility','off')
-    pixval_stsbar(handles.figure1);
+	hFieldFrame = createframe(h,[1 (figPos(3) - 1)],H);
+	setappdata(handles.figure1,'CoordsStBar',[h hFieldFrame]);  % Save it for use in ...
+	set(hFieldFrame,'Visible','on')
+	set(h,'HandleVisibility','off')
+	pixval_stsbar(handles.figure1);
 
 %--------------------------------------------------------------------------
 function hFrame = createframe(ah,fieldPos,H)
@@ -334,7 +313,7 @@ function y = median2(x)
 
 
 % --- Creates and returns a handle to the GUI figure. 
-function vitrinite_LayoutFcn(h1,handles);
+function vitrinite_LayoutFcn(h1)
 
 set(h1,...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
@@ -374,7 +353,6 @@ h7 = axes('Parent',h1,...
 'XTick', [], 'YTick', [],...
 'Tag','axes2');
 
-
 h8 = get(h7,'title');
 
 set(h8,'Parent',h7,...
@@ -384,7 +362,7 @@ set(h8,'Parent',h7,...
 'VerticalAlignment','bottom',...
 'HandleVisibility','off');
 
-h12 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@vitrinite_uicallback,h1,'popup_markersImgs_Callback'},...
 'Position',[10 134 241 22],...
@@ -394,21 +372,21 @@ h12 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','popup_markersImgs');
 
-h13 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@vitrinite_uicallback,h1,'pushbutton_callibrate_Callback'},...
 'FontSize',9,...
 'Position',[520 132 91 23],...
 'String','Calibrate',...
 'Tag','pushbutton_callibrate');
 
-h14 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@vitrinite_uicallback,h1,'pushbutton_getTiePoint_Callback'},...
 'FontSize',9,...
 'Position',[410 132 91 23],...
 'String','Get Tie Point',...
 'Tag','pushbutton_getTiePoint');
 
-h15 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@vitrinite_uicallback,h1,'pushbutton_getAvgReflec_Callback'},...
 'Enable','inactive',...
 'FontSize',9,...
@@ -416,7 +394,7 @@ h15 = uicontrol('Parent',h1,...
 'String','Get average reflectance',...
 'Tag','pushbutton_getAvgReflec');
 
-h16 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@vitrinite_uicallback,h1,'edit_reflectance_Callback'},...
 'Position',[308 134 71 21],...
@@ -424,7 +402,7 @@ h16 = uicontrol('Parent',h1,...
 'TooltipString','Reflectance of current marker.',...
 'Tag','edit_reflectance');
 
-h17 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'FontSize',9,...
 'Position',[305 157 78 16],...
 'String','Reflectance',...
@@ -457,14 +435,14 @@ set(h19,'Parent',h18,...
 'VerticalAlignment','bottom',...
 'HandleVisibility','off');
 
-h23 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'FontSize',9,...
 'Position',[10 158 131 16],...
 'String','Current Marker Image',...
 'Style','text',...
 'Tag','text4');
 
-h24 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'FontSize',9,...
 'HorizontalAlignment','left',...
@@ -473,14 +451,14 @@ h24 = uicontrol('Parent',h1,...
 'Style','text',...
 'Tag','text5');
 
-h25 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'FontSize',9,...
 'Position',[138 515 131 16],...
 'String','Marker Image',...
 'Style','text',...
 'Tag','text6');
 
-h26 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'FontSize',9,...
 'Position',[510 515 131 16],...
 'String','Sample Image',...
