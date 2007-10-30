@@ -37,7 +37,7 @@ function grd2anugadem(grd_in, grd_out)
 	if (geog)
 		warndlg('grd2anugadem: At time of this writting (25-10-2007) ANUGA couldn''t deal with geogs grids.','WARNING')
 	end
-	if ( abs(diff(head(8:) > 1e-5 )
+	if ( abs( diff(head(8:9)) ) > 1e-5 )
 		warndlg('grd2anugadem: grid cells are not squared. They should and I don''t know the effect of it.','WARNING')
 	end
 	
