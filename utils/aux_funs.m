@@ -137,6 +137,9 @@ function out = findFileType(fname)
 		% One normaly shouldn't need it if the GDAL netCDF driver
 		% (which is where the 'dono's end up) was not so broken.
 		[fid, msg] = fopen(fname, 'r');
+		if (fid < 0)
+			error(['aux_funs:findFileType -> error opening file ', fname])
+		end
 		ID = fread(fid,3,'*char');      ID = ID';      fclose(fid);
 		if (strcmp(ID, 'CDF')),			out = 'gmt';
 		else							out = 'dono';
