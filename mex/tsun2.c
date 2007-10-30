@@ -324,11 +324,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
  
 	if (maregs_out && maregs_out_hgt == NULL) {
 		if ((fpOutMaregs = fopen ("maregs_out_heights.dat", "w")) == NULL)
-			mexErrMsgTxt(stderr, "TSUN2: Unable to open default file name - exiting\n");
+			mexErrMsgTxt("TSUN2: Unable to open default file name - exiting");
 	}
 	else if (maregs_out) {
-		if ((fpOutMaregs = fopen (maregs_out_hgt, "w")) == NULL)
-			mexErrMsgTxt(stderr, "TSUN2: Unable to open file %s - exiting\n", maregs_out_hgt);
+		if ((fpOutMaregs = fopen (maregs_out_hgt, "w")) == NULL) {
+			mexPrintf("TSUN2: Unable to open file %s - exiting\n", maregs_out_hgt);
+			mexErrMsgTxt("");
+		}
 	}
 
 	/* Take into account the dt value so that step_t is in seconds */
@@ -426,7 +428,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	lhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
 	rhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
 	ptr = mxGetPr(rhs[0]);
-	tmp_ptr[0] = 0;					/* Start the waitbar with zero length */
+	tmp_ptr[0] = 0.;				/* Start the waitbar with zero length */
 	memcpy(ptr, tmp_ptr, 8);
 	rhs[1] = mxCreateString(w_bar_title);		/* Waitbar message */
 	mexCallMATLAB(1,lhs,2,rhs,"waitbar");
@@ -436,6 +438,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	r  = dt / dx;
 	n_of_cycles--;		/* decrease 1 to not having to -1 at each loop step testing */
+
 	for (k = 0; k <= n_of_cycles; k++) {
 		if (k % 5 == 0) {
 			tmp_ptr[0] = (double)k/(double)(n_of_cycles + 1);
@@ -505,8 +508,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	mxSetPr(rhs[0],h_bar);	mxSetPr(rhs[1],NULL);	mxSetPr(lhs[0],NULL);
 	mexCallMATLAB(0,lhs,1,rhs,"close");
-	mxDestroyArray(rhs[0]);
-	mxDestroyArray(rhs[1]);
+	mxDestroyArray(rhs[0]); mxDestroyArray(rhs[1]);
 	mxDestroyArray(lhs[0]);
 
 	if (movie && movie_float) mxFree(mov_32);
