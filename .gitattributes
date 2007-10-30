@@ -482,7 +482,6 @@ utils/pan.m -text
 utils/parityscan.dll -text
 utils/patch_meca.m -text
 utils/pixval_stsbar.m -text
-utils/projectionMenu.m -text
 utils/projection_menu.m -text
 utils/put_or_get_file.m -text
 utils/qhullmx.dll -text
@@ -532,7 +531,6 @@ utils/uistack_j.m -text
 utils/uisuspend_fig.m -text
 utils/uisuspend_j.m -text
 utils/vdist.m -text
-utils/vdist_vectorized.m -text
 utils/waitfig.m -text
 utils/wfindobj.m -text
 utils/write_ESRI_hdr.m -text
