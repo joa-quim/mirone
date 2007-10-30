@@ -323,11 +323,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
  
 	if (maregs_out && maregs_out_hgt == NULL) {
 		if ((fpOutMaregs = fopen ("maregs_out_heights.dat", "w")) == NULL)
-			mexErrMsgTxt(stderr, "TSUN2: Unable to open default file name - exiting\n");
+			mexErrMsgTxt("TSUN2: Unable to open default file name - exiting\n");
 	}
 	else if (maregs_out) {
-		if ((fpOutMaregs = fopen (maregs_out_hgt, "w")) == NULL)
-			mexErrMsgTxt(stderr, "TSUN2: Unable to open file %s - exiting\n", maregs_out_hgt);
+		if ((fpOutMaregs = fopen (maregs_out_hgt, "w")) == NULL) {
+			mexPrintf("TSUN2: Unable to open file %s - exiting\n", maregs_out_hgt);
+			mexErrMsgTxt("");
+		}
 	}
 
 	/* Take into account the dt value so that step_t is in seconds */
