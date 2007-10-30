@@ -284,13 +284,11 @@ mex/spa.h -text
 mex/surface_m.c -text
 mex/susan.c -text
 mex/swan.c -text
-mex/swan_com_wbar.c -text
 mex/swan_sem_wbar.c -text
 mex/telha.h -text
 mex/telha_m.c -text
 mex/test_gmt.c -text
 mex/tsun2.c -text
-mex/tsun2_com_wbar.c -text
 mex/tsun2_sem_wbar.c -text
 mex/typeconv.h -text
 mex/wave_travel_time.c -text
