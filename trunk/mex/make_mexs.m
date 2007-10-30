@@ -9,15 +9,16 @@ function make_mexs(opt)
 if (nargin == 0)	opt = 'usage';	end
 
 % Adjust for your own path
-patoINC_GMT = 'd:\progs_interix\GMTdev\GMT\';           % Include path for GMT
-patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\libMEX\';% Lib path for GMT - Libs compiled with 'MEX condition'
-%patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\lib\';   % Lib path for GMT
-%patoLIB_GMT = 'c:\programs\gmt4\lib\';                 %
-pato_NETCDF = 'd:\progs_interix\GMTdev\netcdf_win\';    % path for NETCDF
-pato_GDAL = 'D:\programas\GDALB141\';                   % path for GDAL
-pato_OCV = 'C:\programas\OpenCV\';                      % path for OpenCV
-pato_SHAPELIB = 'D:\lixo\shapelib\';                    % path for shapelib
-pato_VC98LIB = 'C:\programas\VisualStudio\VC98\Lib\';   % path for MSVC library dir
+patoINC_GMT = 'd:\progs_interix\GMTdev\GMT\';				% Include path for GMT
+patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\libMEX\';	% Lib path for GMT - Libs compiled with 'MEX condition'
+%patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\lib\';	% Lib path for GMT
+%patoLIB_GMT = 'c:\programs\gmt4\lib\';					%
+pato_NETCDF = 'd:\progs_interix\GMTdev\netcdf_win\';	% path for NETCDF
+pato_GDAL = 'D:\programas\GDALB143\';					% path for GDAL
+%pato_GDAL = 'D:\programas\GDALtrunk\';					% path for GDAL
+pato_OCV = 'C:\programas\OpenCV\';						% path for OpenCV
+pato_SHAPELIB = 'D:\lixo\shapelib\';					% path for shapelib
+pato_VC98LIB = 'C:\programas\VisualStudio\VC98\Lib\';	% path for MSVC library dir
 
 if (ispc)
 	COPT = '-DWIN32 -O';
@@ -71,7 +72,7 @@ str_cv = {'cvcolor_mex' 'cvfill_mex' 'cvgetcorners_mex' 'cvresize_mex' 'cvlib_me
 % Non LIB dependent mexs (besides matlab libs, of course)
 str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'swan' 'tsun2' 'wave_travel_time' 'mansinha_m' ...
         'telha_m' 'range_change' 'country_select' 'mex_illuminate' 'grdutils' ...
-        'read_isf' 'ind2rgb8' 'alloc_mex' 'susan' 'set_gmt' 'existmex'}';
+        'read_isf' 'ind2rgb8' 'alloc_mex' 'susan' 'set_gmt' 'existmex' 'mxgridtrimesh'}';
 
 % Non LIB dependent c++ mexs
 str_simple_cpp = {'houghmex' 'cimgmatlab_cannyderiche'}';
