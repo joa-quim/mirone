@@ -1,17 +1,17 @@
 function conv2anugapts(fname_in, fname_out, opt)
-	% Convert input data into another flavor of netCDF file that pleases ANUGA: the PTS format
-	% PTS format files are just x, y, z points stored in a certain way
-	% 
-	% FNAME_IN, input grid in a format recognized by the read_gmt_type_grids() function
-	% FNAME_OUT, name stem for the to be created .pts netCDF file.
-	% OPT -> not used yet
-	%
-	% Note: You must edit this file right below if the hardwired defaults info
-	%		is not at your own taste.
+% Convert input data into another flavor of netCDF file that pleases ANUGA: the PTS format
+% PTS format files are just x, y, z points stored in a certain way
+% 
+% FNAME_IN, input grid in a format recognized by the read_gmt_type_grids() function
+% FNAME_OUT, name stem for the to be created .pts netCDF file.
+% OPT -> not used yet
+%
+% Note: You must edit this file right below if the hardwired defaults info
+%		is not at your own taste.
 
-	%	AUTHOR
-	%		Joaquim Luis  - 25-October-2007
-	%		jluis@ualg.pt - Universidade do Algarve
+%	AUTHOR
+%		Joaquim Luis  - 25-October-2007
+%		jluis@ualg.pt - Universidade do Algarve
 	
 	
 	% ------- Decide now what to put in some of the Global Attribs ----------
