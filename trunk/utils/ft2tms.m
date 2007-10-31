@@ -1,14 +1,14 @@
 function ft2tms(fname, fname_tms)
-	% Convert a MxN maregraphs file with [time wave_height] into the netCDF .tms format for ANUGA
-	% 
-	% FNAME, file name of the maregraphs file (normally one produced by Mirone-swan)
-	% FNAME_TMS, name stem for the to be created .tms netCDF files.
-	% Each column of wave heights will be written as an individual .tms file with the
-	% column number appended to the file name. Example "..../mareg_03.tms"
+% Convert a MxN maregraphs file with [time wave_height] into the netCDF .tms format for ANUGA
+% 
+% FNAME, file name of the maregraphs file (normally one produced by Mirone-swan)
+% FNAME_TMS, name stem for the to be created .tms netCDF files.
+% Each column of wave heights will be written as an individual .tms file with the
+% column number appended to the file name. Example "..../mareg_03.tms"
 
-	%	AUTHOR
-	%		Joaquim Luis  - 25-October-2007
-	%		jluis@ualg.pt - Universidade do Algarve
+%	AUTHOR
+%		Joaquim Luis  - 25-October-2007
+%		jluis@ualg.pt - Universidade do Algarve
 
 	if (~( nargin == 2 && (ischar(fname) && ischar(fname_tms)) ))
 		error('ft2tms: wants two file names as input arguments')
