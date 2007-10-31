@@ -1,14 +1,14 @@
 function grd2anugadem(grd_in, grd_out)
-	% Convert a grid (typically a COARDS or CF compliant, or any of the GMT formats) into the flavor that ANUGA apreciates
-	% 
-	% GRD_IN, input grid in a format recognized by the read_gmt_type_grids() function
-	% GRD_OUT, name stem for the to be created .dem netCDF file.
-	% Note: You must edit this file right below if the hardwired defaults info
-	%		is not at your own taste.
+% Convert a grid (typically a COARDS or CF compliant, or any of the GMT formats) into the flavor that ANUGA apreciates
+% 
+% GRD_IN, input grid in a format recognized by the read_gmt_type_grids() function
+% GRD_OUT, name stem for the to be created .dem netCDF file.
+% Note: You must edit this file right below if the hardwired defaults info
+%		is not at your own taste.
 
-	%	AUTHOR
-	%		Joaquim Luis  - 25-October-2007
-	%		jluis@ualg.pt - Universidade do Algarve
+%	AUTHOR
+%		Joaquim Luis  - 25-October-2007
+%		jluis@ualg.pt - Universidade do Algarve
 	
 	% ------- Decide now what to put in some of the Global Attribs ----------
 	% -- This doesn't have to be strickly true but the guy (anuga) must be 
@@ -49,8 +49,8 @@ function grd2anugadem(grd_in, grd_out)
 	nc_funs('create_empty', grd_out)
 	
 	% ----------------------- Write dimensions -------------------------------
-	nx = round(diff(handles.head(1:2)) / handles.head(8) + ~handles.head(7));
-	ny = round(diff(handles.head(3:4)) / handles.head(9) + ~handles.head(7));
+	nx = round(diff(head(1:2)) / head(8) + ~head(7));
+	ny = round(diff(head(3:4)) / head(9) + ~head(7));
 	nc_funs('add_dimension', grd_out, 'number_of_rows', ny )
 	nc_funs('add_dimension', grd_out, 'number_of_columns', nx )
 
