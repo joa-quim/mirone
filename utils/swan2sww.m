@@ -1,39 +1,39 @@
 function swans2sww(fname, fname_sww)
-	% Create a .sww netCDF file from the files listed on the listfile FNAME
-	%
-	% FNAME_SWW, output name of the .sww netCDF file.
-	%
-	% FNAME, listfile with a list, one per record, of the grids created by Mirone-Swan
-	% which will be merged into the .sww file.
-	% An example listfile is like this
-	%
-	%sub_region_bat.grd
-	%tsu_time_00000.grd
-	%tsu_time_00003.grd
-	%tsu_time_00006.grd
-	%...
-	% Here the tsu_time_... grids were created by Mirone-Swan when the "momentum" option was selected
-	% Further from these grids this function expects also the the existence of tsu_time_?????_Uh and _Vh
-	% which were created by the same process.
-	% The file "sub_region_bat.grd" must be created by the use and its size must fit exactly
-	% that of the tsu_time_... grids.
-	%
-	% In the above listing filenames have path information. This works as long as the "listfile" file
-	% resides on the same directory as the grids that will be accessed. Otherwise, gridnames must
-	% be preceded by their full path.
-	%
-	% WARNING: the swan program creates grids in the Surfer format. Those grids are read here by an
-	% (indirect) call to a GMT dll. By an unknown reason, that dll doesn't manage to close the file.
-	% The end result of it is that you may get this error message:
-	%		grdread: failure to read header
-	%
-	% This happens if you are runing this function twice, or if the maximum number of open files was
-	% reached. The first case, though cumbersome, can be overcome by quiting and restarting Matlab.
-	% As for the second situation, I have not yet a solution.
+% Create a .sww netCDF file from the files listed on the listfile FNAME
+%
+% FNAME_SWW, output name of the .sww netCDF file.
+%
+% FNAME, listfile with a list, one per record, of the grids created by Mirone-Swan
+% which will be merged into the .sww file.
+% An example listfile is like this
+%
+%sub_region_bat.grd
+%tsu_time_00000.grd
+%tsu_time_00003.grd
+%tsu_time_00006.grd
+%...
+% Here the tsu_time_... grids were created by Mirone-Swan when the "momentum" option was selected
+% Further from these grids this function expects also the the existence of tsu_time_?????_Uh and _Vh
+% which were created by the same process.
+% The file "sub_region_bat.grd" must be created by the use and its size must fit exactly
+% that of the tsu_time_... grids.
+%
+% In the above listing filenames have path information. This works as long as the "listfile" file
+% resides on the same directory as the grids that will be accessed. Otherwise, gridnames must
+% be preceded by their full path.
+%
+% WARNING: the swan program creates grids in the Surfer format. Those grids are read here by an
+% (indirect) call to a GMT dll. By an unknown reason, that dll doesn't manage to close the file.
+% The end result of it is that you may get this error message:
+%		grdread: failure to read header
+%
+% This happens if you are runing this function twice, or if the maximum number of open files was
+% reached. The first case, though cumbersome, can be overcome by quiting and restarting Matlab.
+% As for the second situation, I have not yet a solution.
 
-	%	AUTHOR
-	%		Joaquim Luis  - 25-October-2007
-	%		jluis@ualg.pt - Universidade do Algarve
+%	AUTHOR
+%		Joaquim Luis  - 25-October-2007
+%		jluis@ualg.pt - Universidade do Algarve
 
 	Nctype = 6;
 	f_sep = filesep;
