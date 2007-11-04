@@ -222,6 +222,9 @@ function SwanCompute(handles)
 	else                        swan_hand = @swan_sem_wbar;
 	end
 
+	% Make sure we start with zero water on land 
+	Z_src(Z_bat > 0) = 0;
+	
 	if (isfield(out,'maregraph_xy'))	% Ask for computation of maregraphs
         if (~isempty(opt_m))			% Movie option
             tmovie = feval(swan_hand,Z_bat, head_bat, Z_src, head_src, out.params, out.maregraph_xy, opt_O, ...
