@@ -274,6 +274,9 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
         if (y_margin > 70)          % Play safe. LabelPos non-sense is always ready to strike 
             y_margin = 30 + tenSizeX + tenSizeY;
         end
+        if (x_margin > 60)          % Play safe. LabelPos non-sense is always ready to strike 
+            x_margin = 60;
+        end
         
         figUnit = get(h,'Units');        set(h,'Units','pixels')
         figPos = get(h,'pos');           set(h,'Units',figUnit)
