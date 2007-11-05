@@ -1,11 +1,11 @@
 function  dim_funs(opt, varargin)
-    % Functions to deal with -R -I (Ivan the Terrible) stuff of Windows that need it
-    % There are outputs. All changes are saved by guidata.
-	
-	% handles must have these fields
-	% handles.x_min  handles.x_max handles.y_min  handles.y_max
-	% handles.x_min_or handles.x_max_or handles.y_min_or  handles.y_max_or
-	% handles.dms_xinc handles.dms_yinc	handles.one_or_zero
+% Functions to deal with -R -I (Ivan the Terrible) stuff of Windows that need it
+% There are no outputs. All changes are saved by guidata.
+
+% handles must have these fields
+% handles.x_min  handles.x_max handles.y_min  handles.y_max
+% handles.x_min_or handles.x_max_or handles.y_min_or  handles.y_max_or
+% handles.dms_xinc handles.dms_yinc	handles.one_or_zero
 	
 switch opt
     case 'xMin'
@@ -201,7 +201,7 @@ function edit_x_inc(hObject, handles)
             ddmm = dec2deg(x_inc);
             set(hObject,'String',ddmm)
         end
-        ncol = round((handles.x_max - handles.x_min) / x_inc) + ~handles.one_or_zero;
+        ncol = round((handles.x_max - handles.x_min) / x_inc) + handles.one_or_zero;
         set(handles.edit_Ncols,'String',sprintf('%d',ncol))
 	end
 	handles.dms_xinc = dms;
@@ -248,7 +248,7 @@ function edit_y_inc(hObject, handles)
             ddmm = dec2deg(y_inc);
             set(hObject,'String',ddmm)
         end
-        nrow = round((handles.y_max - handles.y_min) / y_inc) + ~handles.one_or_zero;
+        nrow = round((handles.y_max - handles.y_min) / y_inc) + handles.one_or_zero;
         set(handles.edit_Nrows,'String',sprintf('%d',nrow))
 	end
 	handles.dms_yinc = dms;
