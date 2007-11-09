@@ -33,7 +33,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int i_min = 0, i_max = 0, do_min_max_loc = FALSE, report_min_max_loc_nan_mean_std = FALSE;
 	char	**argv;
 	float	*zdata, fact;
-	double	*z, min_limit = FLT_MAX, max_limit = -FLT_MAX, mean = 0., sd = 0., rms = 0.;
+	double	*z, min_limit = FLT_MAX, max_limit = -FLT_MAX, mean = 0., sd = 0., rms = 0., tmp;
 
 	argc = nrhs;
 	for (i = 0; i < nrhs; i++) {		/* Check input to find how many arguments are of type char */
@@ -162,12 +162,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			data8[i] = (char)(Udata8[i] - 128);
 		return;
 	}
-	else
-		zdata = mxGetData(prhs[0]);
+	else {
+		if (!mxIsSingle(prhs[0]))
+			mexErrMsgTxt("GRDUTILS ERROR: Invalid input data type. Only valid type is: Single.\n");
+		zdata = (float *)mxGetData(prhs[0]);
+	}
 
 	/* Loop over the file and find NaNs. */
 	for (i = 0; i < nxy; i++) {
-		if (mxIsNaN((double)zdata[i]))
+		if (mxIsNaN(zdata[i]))
 			nfound++;
 	}
 
@@ -179,18 +182,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	for (i = 0; i < nxy; i++) {
-		if (!mxIsNaN((double)zdata[i])) {
+		tmp = (double)zdata[i];
+		if (!mxIsNaN(tmp)) {
 			if (do_min_max) {
-				if (zdata[i] < min_limit) min_limit = zdata[i];
-				if (zdata[i] > max_limit) max_limit = zdata[i];
+				if (tmp < min_limit) min_limit = tmp;
+				if (tmp > max_limit) max_limit = tmp;
 			}
 			else if (do_min_max_loc) {
-				if (zdata[i] < min_limit) {
-					min_limit = zdata[i];
+				if (tmp < min_limit) {
+					min_limit = tmp;
 					i_min = i;
 				}
-				if (zdata[i] > max_limit) {
-					max_limit = zdata[i];
+				if (tmp > max_limit) {
+					max_limit = tmp;
 					i_max = i;
 				}
 			}
@@ -199,8 +203,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			else if (ADD)
 				zdata[i] += fact;
 			if (do_std) {
-				mean += zdata[i];
-				sd += zdata[i] * zdata[i];
+				mean += tmp;
+				sd += tmp * tmp;
 			}
 		}
 	}
