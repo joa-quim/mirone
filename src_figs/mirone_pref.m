@@ -91,7 +91,6 @@ function varargout = mirone_pref(varargin)
         set(handles.popupmenu_DefLineColor,'String',DefLineColor)
         set(handles.popup_MeasureUnites,'String',DefineMeasureUnit)
         set(handles.popup_ellipsoide,'String',DefineEllipsoide)
-        set(handles.checkbox_SaveAsInt16,'Value',saveAsInt16)
         set(handles.checkbox_meanLat,'Value',scale2meanLat)
 	catch       % Comes here in first call before variables are stored in mirone_pref.mat
         DefLineThick = {'2 pt'; '1 pt'; '3 pt'; '4 pt'};
@@ -314,13 +313,6 @@ function checkbox_ForceInsitu_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 % ------------------------------------------------------------------------------------
-function checkbox_SaveAsInt16_Callback(hObject, eventdata, handles)
-	if (get(hObject,'Value')),      handles.saveAsInt16 = 1;
-	else                            handles.saveAsInt16 = 0;
-	end
-	guidata(hObject, handles);
-
-% ------------------------------------------------------------------------------------
 function popupmenu_DefLineThickness_Callback(hObject, eventdata, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	% Put the selected field on top of the String list. This is necessary because the "OK" button will
@@ -358,92 +350,90 @@ function popup_ellipsoide_Callback(hObject, eventdata, handles)
 
 % ------------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
-handles.handMir.geog = handles.geog;
-handles.handMir.grdMaxSize = str2double(get(handles.edit_GridMaxSize,'String')) * 2^20;
-handles.handMir.swathRatio = str2double(get(handles.edit_swathRatio,'String'));
-directory_list = get(handles.popup_directory_list, 'String');
-handles.handMir.last_dir   = directory_list{1};
-handles.handMir.work_dir   = handles.handMir.last_dir;
-DefLineThick = get(handles.popupmenu_DefLineThickness, 'String');
-DefLineColor = get(handles.popupmenu_DefLineColor, 'String');
-handles.handMir.scale2meanLat = get(handles.checkbox_meanLat,'Value');
-handles.handMir.saveAsInt16 = get(handles.checkbox_SaveAsInt16,'Value');
-handles.handMir.ForceInsitu = handles.ForceInsitu;
-handles.handMir.flederPlanar = handles.flederPlanar;		flederPlanar = handles.flederPlanar;
-handles.handMir.flederBurn = handles.flederBurn;			flederBurn = handles.flederBurn;
-handles.handMir.whichFleder = handles.whichFleder;			whichFleder = handles.whichFleder;
-% Decode the line thickness string into a number
-handles.handMir.DefLineThick = str2num(DefLineThick{1}(1));
-% Decode the line color string into the corresponding char (e.g. k,w, etc...)
-switch DefLineColor{1}
-    case 'Black',       handles.handMir.DefLineColor = 'k';
-    case 'White',       handles.handMir.DefLineColor = 'w';
-    case 'Red',         handles.handMir.DefLineColor = 'r';
-    case 'Green',       handles.handMir.DefLineColor = 'g';
-    case 'Blue',        handles.handMir.DefLineColor = 'b';
-    case 'Cyan',        handles.handMir.DefLineColor = 'c';
-    case 'Yellow',      handles.handMir.DefLineColor = 'y';
-    case 'Magenta',     handles.handMir.DefLineColor = 'm';
-end
+	handles.handMir.geog = handles.geog;
+	handles.handMir.grdMaxSize = str2double(get(handles.edit_GridMaxSize,'String')) * 2^20;
+	handles.handMir.swathRatio = str2double(get(handles.edit_swathRatio,'String'));
+	directory_list = get(handles.popup_directory_list, 'String');
+	handles.handMir.last_dir   = directory_list{1};
+	handles.handMir.work_dir   = handles.handMir.last_dir;
+	DefLineThick = get(handles.popupmenu_DefLineThickness, 'String');
+	DefLineColor = get(handles.popupmenu_DefLineColor, 'String');
+	handles.handMir.scale2meanLat = get(handles.checkbox_meanLat,'Value');
+	handles.handMir.ForceInsitu = handles.ForceInsitu;
+	handles.handMir.flederPlanar = handles.flederPlanar;		flederPlanar = handles.flederPlanar;
+	handles.handMir.flederBurn = handles.flederBurn;			flederBurn = handles.flederBurn;
+	handles.handMir.whichFleder = handles.whichFleder;			whichFleder = handles.whichFleder;
+	% Decode the line thickness string into a number
+	handles.handMir.DefLineThick = str2num(DefLineThick{1}(1));
+	% Decode the line color string into the corresponding char (e.g. k,w, etc...)
+	switch DefLineColor{1}
+		case 'Black',       handles.handMir.DefLineColor = 'k';
+		case 'White',       handles.handMir.DefLineColor = 'w';
+		case 'Red',         handles.handMir.DefLineColor = 'r';
+		case 'Green',       handles.handMir.DefLineColor = 'g';
+		case 'Blue',        handles.handMir.DefLineColor = 'b';
+		case 'Cyan',        handles.handMir.DefLineColor = 'c';
+		case 'Yellow',      handles.handMir.DefLineColor = 'y';
+		case 'Magenta',     handles.handMir.DefLineColor = 'm';
+	end
 
-% Decode the Measure units into a char code (e.g n, k, m, u)
-DefineMeasureUnit = get(handles.popup_MeasureUnites, 'String');
-switch DefineMeasureUnit{1}
-    case 'nautic miles',    handles.handMir.DefineMeasureUnit = 'n';
-    case 'kilometers',      handles.handMir.DefineMeasureUnit = 'k';
-    case 'meters',          handles.handMir.DefineMeasureUnit = 'm';
-    case 'user',            handles.handMir.DefineMeasureUnit = 'u';
-end
+	% Decode the Measure units into a char code (e.g n, k, m, u)
+	DefineMeasureUnit = get(handles.popup_MeasureUnites, 'String');
+	switch DefineMeasureUnit{1}
+		case 'nautic miles',    handles.handMir.DefineMeasureUnit = 'n';
+		case 'kilometers',      handles.handMir.DefineMeasureUnit = 'k';
+		case 'meters',          handles.handMir.DefineMeasureUnit = 'm';
+		case 'user',            handles.handMir.DefineMeasureUnit = 'u';
+	end
 
-% Decode the Ellipsoide into a var containg a,b,f
-DefineEllipsoide = get(handles.popup_ellipsoide, 'String');
-if (handles.geog == 1)
-    for i=1:length(handles.ellipsoide)
-        switch DefineEllipsoide{1}
-            case handles.ellipsoide(i)
-                handles.handMir.DefineEllipsoide(1) = handles.ellipsoide{i,2};
-                handles.handMir.DefineEllipsoide(2) = handles.ellipsoide{i,3};
-                handles.handMir.DefineEllipsoide(3) = handles.ellipsoide{i,4};
-        end
-    end
-else        % For the time beeing default to WGS-84
-    handles.handMir.DefineEllipsoide(1) = handles.ellipsoide{1,2};
-    handles.handMir.DefineEllipsoide(2) = handles.ellipsoide{1,3};
-    handles.handMir.DefineEllipsoide(3) = handles.ellipsoide{1,4};
-end
+	% Decode the Ellipsoide into a var containg a,b,f
+	DefineEllipsoide = get(handles.popup_ellipsoide, 'String');
+	if (handles.geog == 1)
+		for i=1:length(handles.ellipsoide)
+			switch DefineEllipsoide{1}
+				case handles.ellipsoide(i)
+					handles.handMir.DefineEllipsoide(1) = handles.ellipsoide{i,2};
+					handles.handMir.DefineEllipsoide(2) = handles.ellipsoide{i,3};
+					handles.handMir.DefineEllipsoide(3) = handles.ellipsoide{i,4};
+			end
+		end
+	else        % For the time beeing default to WGS-84
+		handles.handMir.DefineEllipsoide(1) = handles.ellipsoide{1,2};
+		handles.handMir.DefineEllipsoide(2) = handles.ellipsoide{1,3};
+		handles.handMir.DefineEllipsoide(3) = handles.ellipsoide{1,4};
+	end
 
-fname = [handles.d_path 'mirone_pref.mat'];
-% Save the preferences to a mat file under the data directory
-% Note: for the ellipsoide we save it's parameters (a,b,f) instead of the name
-DefineEllipsoide_params = handles.handMir.DefineEllipsoide;    % For saving purposes
-geog = handles.handMir.geog;      grdMaxSize = handles.handMir.grdMaxSize;
-swathRatio    = handles.handMir.swathRatio;
-scale2meanLat = handles.handMir.scale2meanLat;
-saveAsInt16   = handles.handMir.saveAsInt16;
-%ForceInsitu = handles.ForceInsitu;     % We don't save it because the user must choose it every time
+	fname = [handles.d_path 'mirone_pref.mat'];
+	% Save the preferences to a mat file under the data directory
+	% Note: for the ellipsoide we save it's parameters (a,b,f) instead of the name
+	DefineEllipsoide_params = handles.handMir.DefineEllipsoide;    % For saving purposes
+	geog = handles.handMir.geog;      grdMaxSize = handles.handMir.grdMaxSize;
+	swathRatio    = handles.handMir.swathRatio;
+	scale2meanLat = handles.handMir.scale2meanLat;
+	%ForceInsitu = handles.ForceInsitu;     % We don't save it because the user must choose it every time
 
-% Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
-version7 = version;
-if (str2double(version7(1)) > 6),   version7 = 1;
-else                                version7 = 0;
-end
+	% Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
+	version7 = version;
+	if (str2double(version7(1)) > 6),   version7 = 1;
+	else                                version7 = 0;
+	end
 
-if (~version7)                  % R<=13
-	save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
-        'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
-        'saveAsInt16', 'flederPlanar', 'flederBurn', 'whichFleder', '-append')
-else
-	save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
-        'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
-        'saveAsInt16', 'flederPlanar', 'flederBurn', 'whichFleder', '-append', '-v6')
-end
+	if (~version7)                  % R<=13
+		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
+			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
+			'flederPlanar', 'flederBurn', 'whichFleder', '-append')
+	else
+		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
+			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
+			'flederPlanar', 'flederBurn', 'whichFleder', '-append', '-v6')
+	end
 
-% Save the Mirone handles, on the Mirone fig obviously
-guidata(handles.handMir.figure1, handles.handMir)
-setappdata(handles.handMir.figure1,'swathRatio',swathRatio);    % We need this in getline_mb
-set(handles.handMir.ToolsMeasureDist,'Label',['Distance in ' handles.handMir.DefineMeasureUnit])
+	% Save the Mirone handles, on the Mirone fig obviously
+	guidata(handles.handMir.figure1, handles.handMir)
+	setappdata(handles.handMir.figure1,'swathRatio',swathRatio);    % We need this in getline_mb
+	set(handles.handMir.ToolsMeasureDist,'Label',['Distance in ' handles.handMir.DefineMeasureUnit])
 
-delete(handles.figure1)
+	delete(handles.figure1)
 
 % ------------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
@@ -665,15 +655,6 @@ uicontrol('Parent',h1,...
 'String','Force "Insitu" transposition',...
 'Style','checkbox',...
 'Tag','checkbox_ForceInsitu',...
-'UserData','general');
-
-uicontrol('Parent',h1,...
-'Callback',{@mirone_pref_uicallback,h1,'checkbox_SaveAsInt16_Callback'},...
-'Position',[10 90 230 15],...
-'String','When possible, save as Int16',...
-'Style','checkbox',...
-'TooltipString','Grids that were originaly on short int format (2 bytes) will be saved as so',...
-'Tag','checkbox_SaveAsInt16',...
 'UserData','general');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
