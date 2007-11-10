@@ -1,8 +1,8 @@
 function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,opt)
-	% OPT indicates that only the grid info is outputed.
-	% MISC - which exists only when nc_io was used - is a struct with:
-	%		'desc', 'title', 'history', 'srsWKT', 'strPROJ4' fields
-	% If it is OPT = 'hdr' outputs info in the struct format, else outputs in the head format
+% OPT indicates that only the grid info is outputed.
+% MISC - which exists only when nc_io was used - is a struct with:
+%		'desc', 'title', 'history', 'srsWKT', 'strPROJ4' fields
+% If it is OPT = 'hdr' outputs info in the struct format, else outputs in the head format
 
     infoOnly = 0;
     if (nargin == 3),   infoOnly = 1;    end
@@ -89,7 +89,6 @@ if (strcmp(tipo,'CDF'))
         head(3) = head(3) + head(9) / 2;        head(4) = head(4) - head(9) / 2;
         head(7) = 0;
     end
-    handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
 elseif (strcmp(tipo,'SRF6'))
 	ID = fread(fid,4,'*char');
 	n_cols = fread(fid,1,'int16');			n_rows = fread(fid,1,'int16');
@@ -102,11 +101,9 @@ elseif (strcmp(tipo,'SRF6'))
 	end
 	head(7:9) = [0 diff(head(1:2))/(n_cols - 1) diff(head(3:4))/(n_rows - 1)];
     X = linspace(head(1),head(2),n_cols);    Y = linspace(head(3),head(4),n_rows);
-    handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
-elseif (strcmp(tipo,'SRF7'))
+elseif ( strcmp(tipo,'SRF7') || (tipo(1) == 'U') )
 	[X, Y, Z, head] = grdread_m(fullname,'single',opt_I);
 	handles.have_nans = grdutils(Z,'-N');
-    handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
 elseif (strcmp(tipo,'SRF_ASCII'))	% Pretend that its a internaly computed grid (no reload)
     s = fgetl(fid);
     n_col_row = fscanf(fid,'%f',2);     x_min_max = fscanf(fid,'%f',2);
@@ -120,7 +117,6 @@ elseif (strcmp(tipo,'SRF_ASCII'))	% Pretend that its a internaly computed grid (
     dx = diff(x_min_max) / (n_col_row(1) - 1);
     dy = diff(y_min_max) / (n_col_row(2) - 1);
     head = [x_min_max' y_min_max' z_min_max' 0 dx dy];
-    handles.image_type = 1;     handles.computed_grid = 1;    handles.grdname = [];
 elseif (strcmp(tipo,'ENCOM'))       % Pretend that its a GMT grid
     ID = fread(fid,180,'*char');        % We don't use this header info, so strip it
     no_val = fread(fid,1,'float32');
@@ -138,7 +134,6 @@ elseif (strcmp(tipo,'ENCOM'))       % Pretend that its a GMT grid
     x_max = x_min + (n_cols-1) * dx;        y_max = y_min + (n_rows-1) * dy;
     X = linspace(x_min,x_max,n_cols);       Y = linspace(y_min,y_max,n_rows);
     head = [x_min x_max y_min y_max z_min z_max 0 dx dy];
-    handles.image_type = 1;     handles.computed_grid = 1;    handles.grdname = [];
 elseif (strcmp(tipo,'MAN_ASCII'))
     h1 = fgetl(fid);    h2 = fgetl(fid);    h3 = fgetl(fid);    h4 = fgetl(fid);    h5 = fgetl(fid);
     n_rows = str2double(h1(6:10));          n_cols = str2double(h1(16:20));
@@ -168,9 +163,6 @@ elseif (strcmp(tipo,'MAN_ASCII'))
     [zzz] = grdutils(Z,'-L+');  z_min = zzz(1);     z_max = zzz(2);     handles.have_nans = zzz(3); clear zzz;
     X = linspace(x_min,x_max,n_cols);       Y = linspace(y_min,y_max,n_rows);
     head = [x_min x_max y_min y_max z_min z_max 0 x_inc y_inc];
-    handles.image_type = 1;     handles.computed_grid = 1;    handles.grdname = [];
-else
-	[X, Y, Z, head] = grdread_m(fullname,'single',opt_I);
-	handles.have_nans = grdutils(Z,'-N');
-    handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
 end
+
+handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
