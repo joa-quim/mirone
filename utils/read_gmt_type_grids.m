@@ -15,10 +15,12 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 
 	% Because GMT and Surfer share the .grd extension, find out which grid kind we are dealing with
 	ID = fread(fid,3,'*char');      ID = ID';      fclose(fid);
+	tipo = 'U';
 
 	switch upper(ID)
 		case 'CDF',		tipo = 'CDF';
-		case {'DSB' 'DSR'},		tipo = 'SRF_BIN';	% DSBB | DSRB
+		case 'DSB',		tipo = 'SRF6';		% DSBB
+		case 'DSR',		tipo = 'SRF7';		% DSRB
 			ID = 'CDF';			% Just a dirty trick
 		case 'DSA',    tipo = 'SRF_ASCII';		% DSAA
 		case 'MOD',    tipo = 'ENCOM';			% MODE
@@ -38,7 +40,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 
 	if (~infoOnly)
 		[handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo);
-	elseif ( strmatch(tipo,{'CDF' 'SRF_BIN'}) )
+	elseif ( strmatch(tipo,{'CDF' 'SRF6' 'SRF7'}) )
 		if (opt(1) == 's')          % Get the info on the struct form
 			X = grdinfo_m(fullname,'hdr_struct');       % Output goes in the second arg
 		else                        % Get the info on the vector form
@@ -53,15 +55,10 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function [handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo)
 
+	X = [];     Y = [];     Z = [];     head = [];		opt_I = ' ';	misc = [];		% MISC is used only by nc_io
 	if (isfield(handles,'ForceInsitu'))        % Other GUI windows may not know about 'ForceInsitu'
-		if (handles.ForceInsitu),   opt_I = 'insitu';    % Use only in desperate cases.
-		else                        opt_I = ' ';
-		end
-	else
-		opt_I = ' ';
+		if (handles.ForceInsitu),   opt_I = 'insitu';		end    % Use only in desperate cases.
 	end
-
-	X = [];     Y = [];     Z = [];     head = [];		misc = [];		% MISC is used only by nc_io
 
 	if (~strcmp(tipo,'CDF'))        % GMT files are open by the GMT machinerie
 		[fid, msg] = fopen(fullname, 'r');
@@ -93,7 +90,20 @@ if (strcmp(tipo,'CDF'))
         head(7) = 0;
     end
     handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
-elseif (strcmp(tipo,'SRF_BIN'))
+elseif (strcmp(tipo,'SRF6'))
+	ID = fread(fid,4,'*char');
+	n_cols = fread(fid,1,'int16');			n_rows = fread(fid,1,'int16');
+	head = (fread(fid,6,'double'))';
+	Z = fread(fid,n_rows*n_cols,'float32');	fclose(fid);
+    Z = reshape(Z, n_cols, n_rows)';
+	ind = (Z >= 1e38);
+	if (any(ind))
+    	Z(ind) = NaN;    handles.have_nans = 1;
+	end
+	head(7:9) = [0 diff(head(1:2))/(n_cols - 1) diff(head(3:4))/(n_rows - 1)];
+    X = linspace(head(1),head(2),n_cols);    Y = linspace(head(3),head(4),n_rows);
+    handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
+elseif (strcmp(tipo,'SRF7'))
 	[X, Y, Z, head] = grdread_m(fullname,'single',opt_I);
 	handles.have_nans = grdutils(Z,'-N');
     handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
@@ -159,4 +169,8 @@ elseif (strcmp(tipo,'MAN_ASCII'))
     X = linspace(x_min,x_max,n_cols);       Y = linspace(y_min,y_max,n_rows);
     head = [x_min x_max y_min y_max z_min z_max 0 x_inc y_inc];
     handles.image_type = 1;     handles.computed_grid = 1;    handles.grdname = [];
+else
+	[X, Y, Z, head] = grdread_m(fullname,'single',opt_I);
+	handles.have_nans = grdutils(Z,'-N');
+    handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
 end
