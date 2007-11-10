@@ -35,8 +35,8 @@ if (nargin == 1 && isstruct(varargin{1}))
 		Z = getappdata(handMir.figure1,'dem_z');
 		if (~isempty(Z))
 			handles.have_nans = handMir.have_nans;
-			handles.z_min_orig = handMir.head(5);
-			handles.z_max_orig = handMir.head(6);
+			handles.z_min = handMir.head(5);			handles.z_max = handMir.head(6);
+			handles.z_min_orig = handMir.head(5);		handles.z_max_orig = handMir.head(6);
 			set(handles.edit_Zmin,'String',handles.z_min_orig)
 			set(handles.edit_Zmax,'String',handles.z_max_orig)
 		else                        % File was too big to stay on memory
