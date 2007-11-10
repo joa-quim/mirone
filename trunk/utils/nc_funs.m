@@ -1296,7 +1296,7 @@ if ( status == 0 )
 	    snc_error( ['NC_FUNS:NC_VARPUT:MEXNC:' funcstr], mexnc('STRERROR', status) );
     end
 
-	if (~isnan(fill_value))
+	if ( ~isnan(fill_value) && (isa(data,'single') || isa(data,'double')) )
     	data(isnan(data)) = fill_value;
 	end
 
