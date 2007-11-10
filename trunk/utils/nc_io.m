@@ -1,17 +1,17 @@
 function varargout = nc_io(fname, mode, handles, data, misc)
-	% HANDLES, DATA & MISC only matters on writing
-	% On reading -> MODE == 'r' & varargout = [X,Y,Z,head,misc] = nc_io(fname, mode);
-	%	where:	X, Y, Z are the coords row vectors and the data 2D array
-	%			HEAD = [x_min x_max y_min y_max z_min z_max node_offset x_inc y_inc]
-	%			MISC is a struct with 'desc', 'title', 'history', 'srsWKT', 'strPROJ4' fields
-	%
-	% On writing -> nc_io(fname, mode, handles, data, misc)
-	%			MODE == 'w' and DATA the 2D array to be saved
-	%			MISC is optional and if provided it must contain the fields as declared below.
+% HANDLES, DATA & MISC only matters on writing
+% On reading -> MODE == 'r' & varargout = [X,Y,Z,head,misc] = nc_io(fname, mode);
+%	where:	X, Y, Z are the coords row vectors and the data 2D array
+%			HEAD = [x_min x_max y_min y_max z_min z_max node_offset x_inc y_inc]
+%			MISC is a struct with 'desc', 'title', 'history', 'srsWKT', 'strPROJ4' fields
+%
+% On writing -> nc_io(fname, mode, handles, data, misc)
+%			MODE == 'w' and DATA the 2D array to be saved
+%			MISC is optional and if provided it must contain the fields as declared below.
 
-	%	AUTHOR
-	%		Joaquim Luis  - 15-October-2007
-	%		jluis@ualg.pt - Universidade do Algarve
+%	AUTHOR
+%		Joaquim Luis  - 15-October-2007
+%		jluis@ualg.pt - Universidade do Algarve
 	
 	if ( nargin == 4 && ~isempty(data) )
 		misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
@@ -80,7 +80,13 @@ function write_nc(fname, handles, data, misc)
 	add_off = [];
 	switch ( class(data) )
 		case 'single'			% NC_FLOAT
-			varstruct.Nctype = 5;		no_val = single(nan);
+			if (handles.was_int16 && ~handles.computed_grid)
+				if (handles.have_nans),		data(isnan(data)) = -32768;		end
+				data = int16(data);
+				varstruct.Nctype = 3;		no_val = -32768;
+			else
+				varstruct.Nctype = 5;		no_val = single(nan);
+			end
 		case 'int16'			% NC_SHORT
 			varstruct.Nctype = 3;		no_val = -32768;
 		case 'int32'			% NC_INT
