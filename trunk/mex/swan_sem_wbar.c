@@ -28,6 +28,9 @@
 				replaced several ij(i,j) occurences by its precomputed value
 		22-10-2007	Added option -R
 				Moved time_h += dt; to the end of the loop so that output naming start a time = 0
+		04-11-2007	Fixed momentum ouput bug (negatives were being set to zero)
+				Water heights < 5e-3 = 0
+				Killed many gotos in bndy_()
  *
  *	version WITHOUT waitbar
  */
@@ -430,7 +433,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (bat_in_input) {		/* If bathymetry & source where given as arguments */
 		/* Transpose from Matlab orientation to scanline orientation */
 		for (i = 0; i < ny; i++)
-		for (j = 0; j < nx; j++) dep[i*nx+j] = -dep1[j*ny+i];
+			for (j = 0; j < nx; j++) dep[i*nx+j] = -dep1[j*ny+i];
 	}
 	/* Transpose the inicial array from Matlab orientation to scanline orientation */
 	for (i = 0; i < ny; i++) {
@@ -615,16 +618,22 @@ L53:;
 				if (water_depth)	/* "work" is already the water depth */ 
 					for (i = 0; i < ncl; i++) work[i] = (float) (u[i] * work[i]);
 				else
-					for (i = 0; i < ncl; i++)
-						if (( work[i] = (float) ((h[i] + dep[i]) * u[i]) ) < 0.) work[i] = 0.;
+					for (i = 0; i < ncl; i++) {
+						if (( work[i] = (float)(h[i] + dep[i]) ) < 0.) work[i] = 0.;
+						work[i] *= (float)u[i];
+					}
+
 				write_grd_bin( strcat(prenome,"_Uh.grd"), xMinOut, yMinOut, dtx, dty, 
 						i_start, j_start, i_end, j_end, ip2, work);
 
 				if (water_depth)
 					for (i = 0; i < ncl; i++) work[i] = (float) (v[i] * work[i]);
 				else
-					for (i = 0; i < ncl; i++)
-						if (( work[i] = (float) ((h[i] + dep[i]) * v[i]) ) < 0.) work[i] = 0.;
+					for (i = 0; i < ncl; i++) {
+						if (( work[i] = (float)(h[i] + dep[i]) ) < 0.) work[i] = 0.;
+						work[i] *= (float)v[i];
+					}
+
 				prenome[strlen(prenome) - 7] = '\0';	/* Remove the _Uh.grd' so that we can add '_Vh.grd' */
 				write_grd_bin( strcat(prenome,"_Vh.grd"), xMinOut, yMinOut, dtx, dty, 
 						i_start, j_start, i_end, j_end, ip2, work);
@@ -679,15 +688,21 @@ int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, 
 	for (j = 1; j < jp2; j++) {
 		ij_0j = ij(0,j);	ij_1j = ij(1,j);	ij_2j = ij(2,j);
 		tmp = d_sqrt (grav * dep[ij_0j]);
-		if (indl == 1) goto L111;
-		if (indl == 2) goto L112;
-		/*     reflective */
-		u[ij(0,j)] = 0.;
-		v[ij(0,j)] = v[ij_1j];
-		h[ij(0,j)] = h[ij_1j];
-		goto L110;
+		if (indl == 1) { 	/*      piston */
+			u[ij_0j] = pistal * sin(pistbl * time_h);
+			v[ij_0j] = v[ij_1j];
+			if (dep[ij_0j] > 0.)
+				h[ij_0j] = u[ij_0j] * tmp / grav;
+			continue;
+		}
+		else if (indl == 3) { 	/*     reflective */
+			u[ij_0j] = 0.;
+			v[ij_0j] = v[ij_1j];
+			h[ij_0j] = h[ij_1j];
+			continue;
+		}
+
 		/*     continuative */
-L112:
 		if (polar != 0) dx = dxp[ij_0j];
 		if (polar == 2) dy = dxp[ij_0j];	/* MERCATOR */
 		/*if (dep[ij(0,j)] < 0.) goto L313;	/* This is bad */
@@ -702,125 +717,118 @@ L112:
 		h[ij_0j] += (h[ij_1j] - h[ij_0j]) * mul;
 		if (h[ij_1j] == h[ij_2j])		/* More useless comparison between floats */
 			h[ij_0j] = h[ij_1j];
-		if (iopt == 0) goto L210;
+		if (iopt == 0) continue;
 /*L313:*/
-		v[ij(0,j)] = v[ij(1,j+0)];	/* Those 3 would blow te program (v[ij(1,jp2)] doesn't exist) */
-		u[ij(0,j)] = u[ij(1,j+0)];
-		h[ij(0,j)] = h[ij(1,j+0)];
-L210:
-		goto L110;
-		/*      piston */
-L111:
-		u[ij_0j] = pistal * sin(pistbl * time_h);
-		v[ij_0j] = v[ij_1j];
-		if (dep[ij_0j] > 0.)
-			h[ij_0j] = u[ij_0j] * tmp / grav;
-L110:;
+		v[ij_0j] = v[ij(1,j+0)];	/* Those 3 would blow te program (v[ij(1,jp2)] doesn't exist) */
+		u[ij_0j] = u[ij(1,j+0)];
+		h[ij_0j] = h[ij(1,j+0)];
 	}
 	/*     bottom boundary */
 	for (i = 0; i < ip2; i++) {
-		/*ij_i0 = ij(i,0);	ij_i1 = ij(i,1);	ij_i2 = ij(i,2);*/
-		tmp = d_sqrt (grav * dep[ij(i,0)]);
-		if (indb == 1) goto L121;
-		if (indb == 2) goto L122;
-		/*     reflective */
-		v[ij(i,0)] = 0.;
-		u[ij(i,0)] = u[ij(i,1)];
-		h[ij(i,0)] = h[ij(i,1)] * 2. - h[ij(i,2)];
-		goto L120;
-		/*     continuative */
-L122:
-		if (polar != 0) dx = dxp[ij(i,0)];	/* THIS WAS NOT ON THE ORIGINAL CODE. FORGOTTEN? */
-		if (polar == 2) dy = dxp[ij(i,0)];	/* MERCATOR */
-		/*if (dep[ij(i,0)] < 0.) goto L323;	/* This is bad */
-		if (fabs(dep[ij(i,0)]) > 0.005) dep[ij(i,0)] = 0.;	/* THIS SEAMS TO PREVENT BORDER INSTABILITIES */
-		mul = tmp * dt / dy;
-		v[ij(i,0)] += (v[ij(i,1)] - v[ij(i,0)]) * mul;
-		if (v[ij(i,1)] == v[ij(i,2)]) 
-			v[ij(i,0)] = v[ij(i,1)];
-		u[ij(i,0)] += (u[ij(i,1)] - u[ij(i,0)]) * mul;
-		if (u[ij(i,1)] == u[ij(i,2)]) 
-			u[ij(i,0)] = u[ij(i,1)];
-		h[ij(i,0)] += (h[ij(i,1)] - h[ij(i,0)]) * mul;
-		if (h[ij(i,1)] == h[ij(i,2)]) 
-			h[ij(i,0)] = h[ij(i,1)];
-		if (iopt == 0) goto L211;
-/*L323:*/
-		v[ij(i,0)] = v[ij(i,1)];
-		u[ij(i,0)] = u[ij(i,1)];
-		h[ij(i,0)] = h[ij(i,1)];
-L211:
-		goto L120;
-		/*     piston */
-L121:
-		v[ij(i,0)] = pistab * sin(pistbb * time_h);
-		u[ij(i,0)] = u[ij(i,1)];
-		if (dep[ij(i,0)] > 0.)
-			h[ij(i,0)] = v[ij(i,0)] * tmp / grav;
-L120:;
+		ij_i0 = ij(i,0);	ij_i1 = ij(i,1);	ij_i2 = ij(i,2);
+		tmp = d_sqrt (grav * dep[ij_i0]);
+		if (indb == 1) { 	/*     piston */
+			v[ij_i0] = pistab * sin(pistbb * time_h);
+			u[ij_i0] = u[ij_i1];
+			if (dep[ij_i0] > 0.)
+				h[ij_i0] = v[ij_i0] * tmp / grav;
+			continue;
+		}
+		else if (indb == 3) { 	/*     reflective */
+			v[ij_i0] = 0.;
+			u[ij_i0] = u[ij_i1];
+			h[ij_i0] = h[ij_i1] * 2. - h[ij_i2];
+			continue;
+		}
 
+		/*     continuative */
+		if (polar != 0) dx = dxp[ij_i0];	/* THIS WAS NOT ON THE ORIGINAL CODE. FORGOTTEN? */
+		if (polar == 2) dy = dxp[ij_i0];	/* MERCATOR */
+		/*if (dep[ij(i,0)] < 0.) goto L323;	/* This is bad */
+		if (fabs(dep[ij_i0]) > 0.005) dep[ij_i0] = 0.;	/* THIS SEAMS TO PREVENT BORDER INSTABILITIES */
+		mul = tmp * dt / dy;
+		v[ij_i0] += (v[ij_i1] - v[ij_i0]) * mul;
+		if (v[ij_i1] == v[ij_i2]) 
+			v[ij_i0] = v[ij_i1];
+		u[ij_i0] += (u[ij_i1] - u[ij_i0]) * mul;
+		if (u[ij_i1] == u[ij_i2]) 
+			u[ij_i0] = u[ij_i1];
+		h[ij_i0] += (h[ij_i1] - h[ij_i0]) * mul;
+		if (h[ij_i1] == h[ij_i2]) 
+			h[ij_i0] = h[ij_i1];
+		if (iopt == 0) continue;
+/*L323:*/
+		v[ij_i0] = v[ij_i1];
+		u[ij_i0] = u[ij_i1];
+		h[ij_i0] = h[ij_i1];
 	}
 	/*     right boundary */
 	for (j = 1; j < jp2; j++) {
-		/*ij_ip21_j = ij(ip2-1,j);	ij_ip11_j = ij(ip1-1,j);*/
-		tmp = d_sqrt (grav * dep[ij(ip2-1,j)]);
-		if (indr == 1) goto L131;
-		if (indr == 2) goto L132;
-		/*     reflective */
-		u[ij(ip2-1,j)] = 0.;
-		v[ij(ip2-1,j)] = v[ij(ip1-1,j)];
-		h[ij(ip2-1,j)] = h[ij(ip1-1,j)];
-		goto L130;
-		/*     continuative */
-L132:
-		if (polar != 0) dx = dxp[ij(ip1-1,j)];
-		if (polar == 2) dy = dxp[ij(ip1-1,j)];	/* MERCATOR */
-		/*if (dep[ij(ip2-1,j)] < 0.) goto L333;	/* This is bad */
-		if (fabs(dep[ij(ip2-1,j)]) > 0.005) dep[ij(ip2-1,j)] = 0.;	/* THIS SEAMS TO PREVENT BORDER INSTABILITIES */
-		mul = tmp * dt / dx;
-		v[ij(ip2-1,j)] += (v[ij(ip1-1,j)] - v[ij(ip2-1,j)]) * mul;
-		if (v[ij(ip1-1,j)] == v[ij(ip-1,j)])
-			v[ij(ip2-1,j)] = v[ij(ip1-1,j)];
-		u[ij(ip2-1,j)] += (u[ij(ip1-1,j)] - u[ij(ip2-1,j)]) * mul;
-		if (u[ij(ip1-1,j)] == u[ij(ip-1,j)])
-			u[ij(ip2-1,j)] = u[ij(ip1-1,j)];
-		h[ij(ip2-1,j)] += (h[ij(ip1-1,j)] - h[ij(ip2-1,j)]) * mul;
-		if (h[ij(ip1-1,j)] == h[ij(ip-1,j)])
-			h[ij(ip2-1,j)] = h[ij(ip1-1,j)];
-		if (iopt == 0) goto L212;
-/*L333:*/
-		v[ij(ip2-1,j)] = v[ij(ip1-1,j)];
-		u[ij(ip2-1,j)] = u[ij(ip1-1,j)];
-		h[ij(ip2-1,j)] = h[ij(ip1-1,j)];
-L212:
-		goto L130;
-		/*     piston */
-L131:
-		u[ij(ip2-1,j)] = -(pistar * sin(pistbr * time_h));
-		v[ij(ip2-1,j)] = v[ij(ip1-1,j)];
-		/*     Changes of 5/91 */
-		u[ij(ip1-1,j)] = u[ij(ip2-1,j)];
-		if (dep[ij(ip2-1,j)] > 0.) {
-			h[ij(ip2-1,j)] = -(u[ij(ip2-1,j)] * tmp) / grav;
-			h[ij(ip1-1,j)] = h[ij(ip2-1,j)];
+		ij_ip21_j = ij(ip2-1,j);	ij_ip11_j = ij(ip1-1,j);
+		tmp = d_sqrt (grav * dep[ij_ip21_j]);
+		if (indr == 1) { 	/*     piston */
+			u[ij_ip21_j] = -(pistar * sin(pistbr * time_h));
+			v[ij_ip21_j] = v[ij_ip11_j];
+			/*     Changes of 5/91 */
+			u[ij_ip11_j] = u[ij_ip21_j];
+			if (dep[ij_ip21_j] > 0.) {
+				h[ij_ip21_j] = -(u[ij_ip21_j] * tmp) / grav;
+				h[ij_ip21_j] = h[ij_ip21_j];
+			}
+			continue;
 		}
-L130:;
+		else if (indr == 3) { 	/*     reflective */
+			u[ij_ip21_j] = 0.;
+			v[ij_ip21_j] = v[ij_ip11_j];
+			h[ij_ip21_j] = h[ij_ip11_j];
+			continue;
+		}
+
+		/*     continuative */
+		if (polar != 0) dx = dxp[ij_ip11_j];
+		if (polar == 2) dy = dxp[ij_ip11_j];	/* MERCATOR */
+		/*if (dep[ij(ip2-1,j)] < 0.) goto L333;	/* This is bad */
+		if (fabs(dep[ij_ip21_j]) > 0.005) dep[ij_ip21_j] = 0.;	/* THIS SEAMS TO PREVENT BORDER INSTABILITIES */
+		mul = tmp * dt / dx;
+		v[ij_ip21_j] += (v[ij_ip11_j] - v[ij_ip21_j]) * mul;
+		if (v[ij_ip11_j] == v[ij(ip-1,j)])
+			v[ij_ip21_j] = v[ij_ip11_j];
+		u[ij_ip21_j] += (u[ij_ip11_j] - u[ij_ip21_j]) * mul;
+		if (u[ij_ip11_j] == u[ij(ip-1,j)])
+			u[ij_ip21_j] = u[ij_ip11_j];
+		h[ij_ip21_j] += (h[ij_ip11_j] - h[ij_ip21_j]) * mul;
+		if (h[ij_ip11_j] == h[ij(ip-1,j)])
+			h[ij_ip21_j] = h[ij_ip11_j];
+		if (iopt == 0) continue;
+/*L333:*/
+		v[ij_ip21_j] = v[ij_ip11_j];
+		u[ij_ip21_j] = u[ij_ip11_j];
+		h[ij_ip21_j] = h[ij_ip11_j];
 	}
 	/*     top boundary */
 	/*      do top only to ip instead of ip2    ** */
 	/*       Changed from 2 to 1 on 6/90 */
 	for (i = 0; i < ip1; i++) {
 		ij_i_jp21 = ij(i,jp2-1);	ij_i_jp11 = ij(i,jp1-1);
-		tmp = d_sqrt (grav * dep[ij(i,jp2-1)]);
-		if (indt == 1) goto L141;
-		if (indt == 2) goto L142;
-		/*     reflective */
-		v[ij_i_jp21] = 0.;
-		u[ij_i_jp21] = u[ij_i_jp11];
-		h[ij_i_jp21] = h[ij_i_jp11];
-		goto L140;
+		tmp = d_sqrt (grav * dep[ij_i_jp21]);
+		if (indt == 1) { 	/*     piston */
+			v[ij_i_jp21] = -(pistat * sin(pistbt * time_h));
+			u[ij_i_jp21] = u[ij_i_jp11];
+			/*      Changed 5/91 */
+			v[ij_i_jp11] = v[ij_i_jp21];
+			/*       THE HEIGHT sign  used to be +     4/23/91 */
+			if (dep[ij_i_jp11] > 0.)
+				h[ij_i_jp21] = -(v[ij_i_jp21] * tmp) / grav;
+			continue;
+		}
+		else if (indt == 3) { 	/*     reflective */
+			v[ij_i_jp21] = 0.;
+			u[ij_i_jp21] = u[ij_i_jp11];
+			h[ij_i_jp21] = h[ij_i_jp11];
+			continue;
+		}
+
 		/*     continuative */
-L142:
 		if (polar != 0) dx = dxp[ij_i_jp21];	/* THIS WAS NOT ON THE ORIGINAL CODE. FORGOTTEN? */
 		if (polar == 2) dy = dxp[ij_i_jp21];	/* MERCATOR */
 		/*if (dep[ij(i,jp2-1)] < 0.) goto L343;	/* This is bad */
@@ -835,23 +843,11 @@ L142:
 		h[ij_i_jp11] += (h[ij_i_jp11] - h[ij_i_jp21]) * mul;
 		if (h[ij_i_jp11] == h[ij_i_jp11]) 
 			h[ij_i_jp21] = h[ij_i_jp11];
-		if (iopt == 0) goto L213;
+		if (iopt == 0) continue;
 /*L343:*/
 		v[ij_i_jp21] = v[ij_i_jp11];		/* jp doesn't make sense. Perhaps jp1? */
 		u[ij_i_jp21] = u[ij_i_jp11];
 		h[ij_i_jp21] = h[ij_i_jp11];
-L213:
-		goto L140;
-		/*     piston */
-L141:
-		v[ij_i_jp21] = -(pistat * sin(pistbt * time_h));
-		u[ij_i_jp21] = u[ij_i_jp11];
-		/*      Changed 5/91 */
-		v[ij_i_jp11] = v[ij_i_jp21];
-		/*       THE HEIGHT sign  used to be +     4/23/91 */
-		if (dep[ij_i_jp11] > 0.)
-			h[ij_i_jp21] = -(v[ij_i_jp21] * tmp) / grav;
-L140:;
 	}
 	return 0;
 }
@@ -881,11 +877,11 @@ int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, d
 			td = dep[ij_ij] + h[ij_ij] - r[ij_ij];
 			tv1 = dep[i_j1] + h[i_j1] - r[i_j1];
 			tv = td;
-			if (u[ij(i+1,j)] > 0.)
+			if (u[i1_j] > 0.)
 				td1 = dep[ij_ij] + h[ij_ij] - r[ij_ij];
 			if (u[ij_ij] > 0.)
 				td = dep[ij(i-1,j)] + h[ij(i-1,j)] - r[ij(i-1,j)];
-			if (v[ij(i,j+1)] > 0.)
+			if (v[i_j1] > 0.)
 				tv1 = dep[ij_ij] + h[ij_ij] - r[ij_ij];
 			if (v[ij_ij] > 0.)
 				tv = dep[ij(i,j-1)] + h[ij(i,j-1)] - r[ij(i,j-1)];
@@ -919,8 +915,10 @@ int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, d
 		}
 	} */
 	for (j = 1; j < jp1; j++)
-		for (i = 1; i < ip1; i++)
-		    	h[ij(i,j)] = hn[ij(i,j)];
+		for (i = 1; i < ip1; i++) {
+			ij_ij = ij(i,j); 
+			h[ij_ij] = hn[ij_ij];
+		}
 
 	bndy_(dep, r, rn, u, un, v, vn, h, hn, dxp);
 
@@ -997,7 +995,7 @@ L10:
 			/* Another nonsense. Original code compared if ... < 1e-8, while using float*/
 			if (fabs(u[ij_ij]) < 1e-6) u[ij_ij] = 0.;
 			if (fabs(v[ij_ij]) < 1e-6) v[ij_ij] = 0.;
-			if (fabs(h[ij_ij]) < 1e-6) h[ij_ij] = 0.;
+			if (fabs(h[ij_ij]) < 5e-3) h[ij_ij] = 0.;
 		}
 	}
 	return 0;
