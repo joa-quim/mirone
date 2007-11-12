@@ -21,15 +21,6 @@ function swans2sww(fname, fname_sww)
 % In the above listing filenames have path information. This works as long as the "listfile" file
 % resides on the same directory as the grids that will be accessed. Otherwise, gridnames must
 % be preceded by their full path.
-%
-% WARNING: the swan program creates grids in the Surfer format. Those grids are read here by an
-% (indirect) call to a GMT dll. By an unknown reason, that dll doesn't manage to close the file.
-% The end result of it is that you may get this error message:
-%		grdread: failure to read header
-%
-% This happens if you are runing this function twice, or if the maximum number of open files was
-% reached. The first case, though cumbersome, can be overcome by quiting and restarting Matlab.
-% As for the second situation, I have not yet a solution.
 
 %	AUTHOR
 %		Joaquim Luis  - 25-October-2007
