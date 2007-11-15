@@ -6,7 +6,8 @@ function [h1,handles,home_dir] = mirone_uis(home_dir)
 %#function image_enhance image_adjust datasets_funs write_gmt_script vitrinite telhometro mpaint
 %#function imcapture filter_funs overview imageResize classificationFig tfw_funs tsunamovie mirone_pref
 %#function griding_mir grdfilter_mir grdsample_mir grdtrend_mir grdgradient_mir ml_clip show_palette 
-%#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list view_anuga
+%#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
+%#function view_anuga mxgridtrimesh
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -772,7 +773,7 @@ h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
 uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.2.0)');
 uimenu('Parent',h9, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 uimenu('Parent',h9,...
-'Call','about_box(guidata(gcbo),''Mirone Last modified at 30 October 2007'',''1.2.0'')','Label','About','Sep','on');
+'Call','about_box(guidata(gcbo),''Mirone Last modified at 10 November 2007'',''1.2.1'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(h1);
