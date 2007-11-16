@@ -1,6 +1,6 @@
 function varargout = view_anuga(varargin)
 % M-File changed by desGUIDE 
- 
+
 	hObject = figure('Tag','figure1','Visible','off');
 	view_anuga_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -19,12 +19,12 @@ function varargout = view_anuga(varargin)
 		handles.handMir = [];
         d_path = [pwd filesep 'data' filesep];
 	end
-	
+
 	% Import icon
 	load([d_path 'mirone_icons.mat'],'Mfopen_ico');
 	set(handles.push_swwName,'CData',Mfopen_ico)
 	clear Mfopen_ico;
-	
+
 	handles.fname = [];
 	handles.sliceNumber = 0;
 	handles.first = true;
@@ -41,7 +41,8 @@ function varargout = view_anuga(varargin)
 		'Water Depth'; ...
 		'Elevation'; ...
 		'Froude Number'; ...
-		'Velocity Head (V^2 / (2g))' })
+		'Velocity Head (V^2 / (2g))'; ...
+		'Hazard-RVD (D(1+V^2))' })
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
@@ -54,7 +55,7 @@ function varargout = view_anuga(varargin)
         frame3D(hObject,frame_size,framecolor,'',[])
         delete(handles.frame1)
     end
-	
+
 	% Recopy the text fields on top of previously created frames (uistack is to damn slow)
 	h_t = handles.text_GLG;
     t_size = get(h_t,'Position');				t_str = get(h_t,'String');    fw = get(h_t,'FontWeight');
@@ -167,11 +168,13 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 	
 	% ---- Maybe the dimensions should be fished out of the "s" structurem as well -----
 	% But for now I'll just test that 'number_of_volumes' exists, otherwise ... street
+	set(handles.figure1,'pointer','watch')
 	s = nc_funs('info',handles.fname);
 	attribNames = {s.Attribute.Name};
 	ind = strcmp({s.Dimension.Name},'number_of_volumes');
 	if (~any(ind))
 		errordlg('ERROR: This .sww file is not of recognizable type. For example: "number_of_volumes" was not found.','Error')
+		set(handles.figure1,'pointer','arrow')
 		return
 	end
 	
@@ -195,8 +198,10 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 	handles.time = nc_funs('varget', handles.fname, 'time');
 	handles.volumes = nc_funs('varget', handles.fname, 'volumes');
 	if (~isa(handles.volumes, 'int32')),	handles.volumes = int32(handles.volumes);	end
+	set(handles.figure1,'pointer','arrow')
 
-	head = [min(handles.x) max(handles.x) min(handles.y) max(handles.y) 0 1 0];
+	epa = eps * 10;
+	head = [min(handles.x)-epa max(handles.x)+epa min(handles.y)-epa max(handles.y)+epa 0 1 0];
 	set( handles.edit_x_min,'String',sprintf('%.8g',head(1)) )
 	set( handles.edit_x_max,'String',sprintf('%.8g',head(2)) )
 	set( handles.edit_y_min,'String',sprintf('%.8g',head(3)) )
@@ -317,7 +322,7 @@ function theVar = get_derivedVar(handles)
 			stage = nc_funs('varget', handles.fname, 'stage', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			elevation = nc_funs('varget', handles.fname, 'elevation')';
 			theVar = (stage - elevation);
-		case 'Velocity He'			% Velocity Head (V^2 / (2g))'
+		case {'Velocity He' 'Hazard-RVD '}			% Velocity Head (V^2 / (2g)) || D * (1 + V^2)
 			x = nc_funs('varget', handles.fname, 'xmomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			y = nc_funs('varget', handles.fname, 'ymomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			theVar = (x.^2 + y.^2);		% = D^2 * V^2
@@ -325,8 +330,12 @@ function theVar = get_derivedVar(handles)
 			y = nc_funs('varget', handles.fname, 'elevation')';
 			D = (x - y + 1e-6);
 			clear x y;
-			D = D .* D;
-			theVar = theVar ./ (2 * 9.8 * D);
+			if (qual(1) == 'V')
+				D = D .* D;
+				theVar = theVar ./ (2 * 9.8 * D);
+			else
+				theVar = D + theVar ./ D;		% = D * (1 + V^2)
+			end
 	end
 
 % --------------------------------------------------------------------
