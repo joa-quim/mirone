@@ -118,7 +118,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						w2 = (-(v3y*X[j]) + v1y*(-v3x + X[j]) + v1x*(v3y - Y[k]) + v3x*Y[k]) * tmp4;
 						w3 = (tmp1 - v1y*X[j] + v2y*X[j] + v1x*Y[k] - v2x*Y[k]) * tmp3;
 
-						if (w1 > 0 && w2 > 0 && w3 > 0) {
+						if (w1 >= 0 && w2 >= 0 && w3 >= 0) {
 							/* use barycentric coordinates to calculate z-value */
 							z = (float)(w1*v1z + w2*v2z + w3*v3z);
 							if (mxIsNaN(Z[j_ny+k]) || z > Z[j_ny+k]) Z[j_ny+k] = z;
