@@ -109,6 +109,9 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
     else
         h = [];
     end
+	while ( ~isempty(h) && ~strcmp('figure', get(h,'type')) )
+		h = get(h,'parent');
+	end
     if (~ishandle(h))
         error('imcapture:a','First argument is not a valid Fig/Axes/Image handle')
     end
