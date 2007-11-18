@@ -498,7 +498,6 @@ function CoastLines(handles, res)
 	set(handles.figure1,'pointer','watch')
 	
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-%   	opt_R = ['-R' sprintf('%f',lon(1)) '/' sprintf('%f',lon(2)) '/' sprintf('%f',lat(1)) '/' sprintf('%f',lat(2))];
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
     if (isempty(opt_R)),    return;    end      % It should never happen, but ...
 	
@@ -510,8 +509,9 @@ function CoastLines(handles, res)
         case 'f',        opt_res = '-Df';        pad = 0.005;
 	end
 	coast = shoredump(opt_R,opt_res,'-A1/1/1');
+	if (isempty(coast)),	return,		end
 
-    [coast, msg] = geog2projected_pts(handles,coast',[lon lat],0);
+	[coast, msg] = geog2projected_pts(handles,coast',[lon lat],0);
     if (numel(msg) > 2)
     	set(handles.figure1,'pointer','arrow')
         errordlg(msg,'ERROR');
@@ -543,7 +543,7 @@ function PoliticalBound(handles, type, res)
 	%          '3' -> Marine Boundaries
 	%          'a' -> All Boundaries
 	% RES is:  'c' or 'l' or 'i' or 'h' or 'f' (gmt database resolution)
-	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
+	if (aux_funs('msg_dlg',5,handles)),		return,		end    % Test no_file || unknown proj
 	
 	set(handles.figure1,'pointer','watch')
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
@@ -564,6 +564,7 @@ function PoliticalBound(handles, type, res)
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
 	boundaries = shoredump(opt_R,opt_N,opt_res);
+	if (isempty(boundaries)),	return,		end
 
     [boundaries, msg] = geog2projected_pts(handles,boundaries',[lon lat],0);
     if (numel(msg) > 2)
@@ -623,6 +624,7 @@ function Rivers(handles, type, res)
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
 	rivers = shoredump(opt_R,opt_I,opt_res);
+	if (isempty(rivers)),	return,		end
 
     [rivers, msg] = geog2projected_pts(handles,rivers',[lon lat],0);
     if (numel(msg) > 2)
