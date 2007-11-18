@@ -26,6 +26,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles,xy,lims,pad)
     % handles.axes1 which are the handles of the Figure and its Axes
 
     msg = '';       xy_prj = [];    opt_R = [];
+	if (isempty(xy)),	return,		end
 
     n_arg = nargin;
     if (n_arg < 2)
@@ -83,7 +84,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles,xy,lims,pad)
         if (nargout == 3)
             x_min = min(xy_prj(:,1));        x_max = max(xy_prj(:,1));
             y_min = min(xy_prj(:,2));        y_max = max(xy_prj(:,2));
-            opt_R = ['-R' sprintf('%f',x_min) '/' sprintf('%f',x_max) '/' sprintf('%f',y_min) '/' sprintf('%f',y_max)];
+            opt_R = sprintf('-R%f/%f/%f/%f',x_min, x_max, y_min, y_max);
         end
     elseif (~isempty(projGMT))
         if (isempty(lims))          % We need LIMS here
@@ -92,7 +93,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles,xy,lims,pad)
         out = mapproject_m([lims(1) lims(3); lims(2) lims(4)],'-R-180/180/0/80','-I','-F',projGMT{:});    % Convert lims back to geogs
         x_min = min(out(:,1));        x_max = max(out(:,1));
         y_min = min(out(:,2));        y_max = max(out(:,2));
-      	opt_R = ['-R' sprintf('%f',x_min) '/' sprintf('%f',x_max) '/' sprintf('%f',y_min) '/' sprintf('%f',y_max)];
+		opt_R = sprintf('-R%f/%f/%f/%f',x_min, x_max, y_min, y_max);
         if (nargout == 3)
             return              % We are only interested on opt_R
         end
@@ -111,7 +112,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles,xy,lims,pad)
         xy_prj = xy;
         msg = '0';          % Signal that nothing has been done and output = input
         if (nargout == 3)   % Input in geogs, we need opt_R for shoredump_m (presumably)
-            opt_R = ['-R' sprintf('%f/%f/%f/%f',lims(1),lims(2),lims(3),lims(4))];
+            opt_R = sprintf('-R%f/%f/%f/%f',lims(1),lims(2),lims(3),lims(4));
         end
         return
     end
