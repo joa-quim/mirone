@@ -133,6 +133,7 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	
 	if (length(opt) > 12 && strcmp(opt(1:11),'adjust_size'))   % We have an anisotropic dx/dy. OPT is of the form adjust_size_[aniso]
         aniso = str2double(opt(13:end));
+		if (aniso == 0),	aniso = 1;		end				% Troublematic SeaWiFS files had made this happen
         if (aniso > 1)
             imageWidth  = imageWidth * aniso;
         else
