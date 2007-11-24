@@ -5,9 +5,9 @@ if (ischar(mask)),   is_rect = 1;    end
 if (nargin == 6),   border = 'no';  end
 
 prompt = {'Enter number of filter rows' ,'Enter number of filter cols', 'Maximum allowed change (z units)'};
-def = {num2str(3) num2str(3) num2str(10)};
+def = {num2str(5) num2str(5) num2str(10)};
 resp  = inputdlg(prompt,'Median Filtering',[1 30; 1 30; 1 30],def);    pause(0.01)
-if isempty(resp);    set(handles.figure1,'pointer','arrow');    return;     end
+if isempty(resp);    set(handles.figure1,'pointer','arrow');    return,		end
 Z_rect = double(Z_rect);      % It has to be
 
 have_local_nans = 0;
