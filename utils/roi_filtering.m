@@ -48,8 +48,8 @@ if (is_rect)
     end
 end
 
-% handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));    % For the undo op
-% handles.r_c = r_c;
+handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));    % For the undo op
+handles.r_c = r_c;
 
 if (done),  return;     end     % Ractangle without border re-interpolation
 
