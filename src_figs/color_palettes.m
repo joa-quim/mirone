@@ -498,79 +498,80 @@ change_cmap(handles,cmap)
 % -----------------------------------------------------------------------------------
 function change_cmap(handles,pal)
 % Change the Image's colormap to 'pal'
-if strcmp(get(handles.OptionsAutoApply,'checked'),'on') % otherwise we are just playing with color_palettes alone
-    del = 0;
-    h = findobj(handles.hCallingFig,'Type','image');
-    if (length(size(get(h,'CData'))) > 2)
-        h = handles.figure1;
-        waitfor(msgbox('True color images do not use color palettes. So you cannot change it.','Warning','warn'))
-        del = 1;
-    end
-    if (del),   delete(h);     return;     end
-end
+	if strcmp(get(handles.OptionsAutoApply,'checked'),'on') % otherwise we are just playing with color_palettes alone
+		del = 0;
+		h = findobj(handles.hCallingFig,'Type','image');
+		if ( ndims(get(h,'CData')) == 3 )
+			h = handles.figure1;
+			waitfor(msgbox('True color images do not use color palettes. So you cannot change it.','Warning','warn'))
+			del = 1;
+		end
+		if (del),   delete(h);     return,		end
+	end
 
-if (~isempty(handles.z_intervals))  % GMT palette with Z levels
-    len_Pal = length(pal);    
-    z_grd = linspace(handles.z_min_orig,handles.z_max_orig,len_Pal)';
-    z_pal = [handles.z_intervals(:,1); handles.z_intervals(end,2)];
-    len_zPal = length(z_pal);
-    % Interpolate the grid levels into the palette Z levels
-    ind_pal = interp1(z_pal,linspace(0,1,len_zPal),z_grd,'linear','extrap');
-    ind_pal = round(ind_pal * len_Pal);
-    % Map the old pal indices into the new ones
-    pal = interp1(linspace(0,len_zPal-1,length(pal)),pal,ind_pal,'linear','extrap');
-    handles.z_intervals = [];       % Reset for the case of a new GMT palette import
-end
+	if (~isempty(handles.z_intervals))			% GMT palette with Z levels
+		len_Pal = size(pal, 1);    
+		z_grd = linspace(handles.z_min_orig, handles.z_max_orig, len_Pal)';			% Z[min max] descretized in len_Pal intervals
+		z_pal = [handles.z_intervals(:,1); handles.z_intervals(end,2)];				% Palette z intervals
+		len_zPal = numel(z_pal);
+		% Interpolate the grid levels into the palette Z levels
+		ind_pal = interp1(z_pal,linspace(0,1,len_zPal),z_grd,'linear','extrap');
+		ind_pal = round(ind_pal * len_Pal);
+		% Map the old pal indices into the new ones
+		pal = interp1( linspace(0, len_Pal, length(pal)), pal, ind_pal, 'linear', 'extrap');
+		handles.z_intervals = [];       % Reset for the case of a new GMT palette import
+	end
 
-if (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig)
-% %     %index = fix((C-cmin)/(cmax-cmin)*m)+1
-% %     index = fix((double(getappdata(handles.hCallingFig,'dem_z'))- ...
-% %         double(handles.z_min))/(double(handles.z_max)-double(handles.z_min))*length(pal))+1;
-% %     index(index < 1) = 1;
-%     bg_slot = 1;    end_slot = length(pal);
-%     if (handles.z_min < handles.z_min_orig)
-%         pct = (handles.z_min_orig - handles.z_min) / (handles.z_max_orig - handles.z_min_orig);
-%         bg_slot = round(pct * length(pal));
-%     elseif (handles.z_min > handles.z_min_orig)
-%         pct = (handles.z_min - handles.z_min_orig) / (handles.z_max_orig - handles.z_min_orig);
-%         bg_slot = round(pct * length(pal));        
-%     end
-%     if (handles.z_max > handles.z_max_orig)
-%         pct = (handles.z_max - handles.z_max_orig) / (handles.z_max_orig - handles.z_min_orig);
-%         end_slot = length(pal) - round(pct * length(pal));
-%     elseif (handles.z_max < handles.z_max_orig)
-%         pct = (handles.z_max_orig - handles.z_max) / (handles.z_max_orig - handles.z_min_orig);
-%         end_slot = length(pal) - round(pct * length(pal));        
-%     end
-%     pal = pal(bg_slot:end_slot,:);
-    len_Pal = length(pal);    
-    z_grd = linspace(handles.z_min_orig,handles.z_max_orig,len_Pal)';
-    z_pal = linspace(handles.z_min,handles.z_max,len_Pal)';
-    len_zPal = length(z_pal);
-    % Interpolate the grid levels into the User selected extrema
-    ind_pal = interp1(z_pal,linspace(0,1,len_zPal),z_grd,'linear','extrap');
-    ind_pal = round(ind_pal * len_Pal);
-    % Map the old pal indices into the new ones
-    pal = interp1(linspace(0,len_zPal-1,length(pal)),pal,ind_pal,'linear','extrap');
-end
+	if (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig)
+	% %     %index = fix((C-cmin)/(cmax-cmin)*m)+1
+	% %     index = fix((double(getappdata(handles.hCallingFig,'dem_z'))- ...
+	% %         double(handles.z_min))/(double(handles.z_max)-double(handles.z_min))*length(pal))+1;
+	% %     index(index < 1) = 1;
+	%     bg_slot = 1;    end_slot = length(pal);
+	%     if (handles.z_min < handles.z_min_orig)
+	%         pct = (handles.z_min_orig - handles.z_min) / (handles.z_max_orig - handles.z_min_orig);
+	%         bg_slot = round(pct * length(pal));
+	%     elseif (handles.z_min > handles.z_min_orig)
+	%         pct = (handles.z_min - handles.z_min_orig) / (handles.z_max_orig - handles.z_min_orig);
+	%         bg_slot = round(pct * length(pal));        
+	%     end
+	%     if (handles.z_max > handles.z_max_orig)
+	%         pct = (handles.z_max - handles.z_max_orig) / (handles.z_max_orig - handles.z_min_orig);
+	%         end_slot = length(pal) - round(pct * length(pal));
+	%     elseif (handles.z_max < handles.z_max_orig)
+	%         pct = (handles.z_max_orig - handles.z_max) / (handles.z_max_orig - handles.z_min_orig);
+	%         end_slot = length(pal) - round(pct * length(pal));        
+	%     end
+	%     pal = pal(bg_slot:end_slot,:);
+		len_Pal = length(pal);    
+		z_grd = linspace(handles.z_min_orig,handles.z_max_orig,len_Pal)';
+		z_pal = linspace(handles.z_min,handles.z_max,len_Pal)';
+		len_zPal = length(z_pal);
+		% Interpolate the grid levels into the User selected extrema
+		ind_pal = interp1(z_pal,linspace(0,1,len_zPal),z_grd,'linear','extrap');
+		ind_pal = round(ind_pal * len_Pal);
+		% Map the old pal indices into the new ones
+		pal = interp1(linspace(0,len_zPal-1,length(pal)),pal,ind_pal,'linear','extrap');
+	end
 
-pal(pal > 1) = 1; % Sometimes interpolation gives values that are out of [0,1] range...
-pal(pal < 0) = 0;
-set(handles.figure1,'Colormap',pal);
+	pal(pal > 1) = 1; % Sometimes interpolation gives values that are out of [0,1] range...
+	pal(pal < 0) = 0;
+	set(handles.figure1,'Colormap',pal);
 
-if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
-    if (handles.have_nans),     pal_bg = [handles.bg_color; pal];
-    else                        pal_bg = pal;   end
-    set(handles.hCallingFig,'Colormap',pal_bg)         % Change the image colormap
-end
+	if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
+		if (handles.have_nans),     pal_bg = [handles.bg_color; pal(2:end,:)];
+		else                        pal_bg = pal;
+		end
+		set(handles.hCallingFig,'Colormap',pal_bg)         % Change the image colormap
+	end
 
-if (handles.no_slider == 1)         % A new colormap was loaded
-    set(handles.slider_Bottom,'max',length(pal),'min',1,'value',1)
-    set(handles.slider_Top,'max',length(pal),'min',1,'value',length(pal))
-    handles.pal_top = [];    handles.pal_bot = [];
-    handles.cmap = pal;
-end
-guidata(handles.figure1,handles)
+	if (handles.no_slider == 1)         % A new colormap was loaded
+		set(handles.slider_Bottom,'max',length(pal),'min',1,'value',1)
+		set(handles.slider_Top,'max',length(pal),'min',1,'value',length(pal))
+		handles.pal_top = [];    handles.pal_bot = [];
+		handles.cmap = pal;
+	end
+	guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
 function FileSavePalette_Callback(hObject, eventdata, handles, opt)
@@ -706,14 +707,14 @@ end
 
 % --------------------------------------------------------------------
 function cmap = FileReadPalette_Callback(hObject, eventdata, handles, opt, opt2)
-	if (nargin == 3),   opt = [];   end
-	if (nargin < 5),	opt2 = [];	end
+	if (nargin == 3),   opt = [],	end
+	if (nargin < 5),	opt2 = [],	end
 	if (isempty(opt2))
 		str1 = {'*.cpt;*.CPT', 'CPT files (*.cpt,*.CPT)';'*.*', 'All Files (*.*)'};
 		cd(handles.work_dir);
 		[FileName,PathName] = uigetfile(str1,'Select CPT file');
 		cd(handles.home_dir);
-		if isequal(FileName,0);     return;     end
+		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
 	else
 		fname = opt2;
@@ -734,13 +735,14 @@ function cmap = FileReadPalette_Callback(hObject, eventdata, handles, opt, opt2)
 	list{1} = ['Imported (' FileName ')'];
 	set(handles.listbox1,'String',list,'Value',1);
 	guidata(handles.figure1,handles)
+	handles.z_intervals = [];					% Trick to avoid cmap recalculation inside change_cmap()
 	change_cmap(handles,handles.cmap);
 
 % --------------------------------------------------------------------
 function [z_min,z_max] = min_max_single(Z)
 	% Compute the min/max of single precision Z arrays. I need this due to (another) Matlab
-	% bug that gives wrong results when the Z (single) array has NaNs. Ouput are doubles.
-	z_min = double(min(Z(~isnan(Z(:)))));   z_max = double(max(Z(~isnan(Z(:)))));
+	% bug that gives wrong results when the Z (single) array has NaNs.
+	zz = grdutils(Z,'-L');		z_min = zz(1);		z_max = zz(2);
 
 % --------------------------------------------------------------------
 function push_retColorMap_Callback(hObject, eventdata, handles)
