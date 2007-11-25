@@ -97,7 +97,7 @@ handles.text_pixDim = h;        % We only need this one
 %------------- END Pro look (3D) -------------------------------------------------------
 
 set(hObject,'Visible','on');
-if (nargout()),		varargout{1} = hObject;		end
+if (nargout),		varargout{1} = hObject;		end
 guidata(hObject, handles);
 
 % ----------------------------------------------------------------------------------
