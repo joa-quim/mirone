@@ -337,6 +337,7 @@ src_figs/igrf_options.m -text
 src_figs/imageResize.m -text
 src_figs/image_adjust.m -text
 src_figs/image_enhance.m -text
+src_figs/imageresize.m -text
 src_figs/implanting_img.m -text
 src_figs/listbox_message.m -text
 src_figs/manual_pole_adjust.m -text
