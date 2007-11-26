@@ -209,7 +209,7 @@ points = shiftedPoints + repmat(shift,[size(shiftedPoints,1) 1]);
 
 %-------------------------------
 function x = fwd(u,t)
-x = undoShift(tformfwd(applyShift(u,t.tdata.uvShift),t.tdata.tshifted),t.tdata.xyShift);
+x = undoShift(tform('fwd',applyShift(u,t.tdata.uvShift),t.tdata.tshifted),t.tdata.xyShift);
 
 %-------------------------------
 function u = inverse(x,t)
@@ -3612,6 +3612,14 @@ function varargout = tforminv(varargin)
 
 varargout = tform('inv', nargout, varargin{:});
 
+% ---------------------------------------------------------------------------
+function varargout = tformfwd(varargin)
+%TFORMFWD Apply forward spatial transformation.
+%   TFORMFWD applies a forward spatial transformation based on a TFORM
+%   structure created with MAKETFORM, FLIPTFORM, or CP2TFORM.
+
+varargout = tform('fwd', nargout, varargin{:});
+
 % --------------------------------------------------------------------------
 function outputs = tform(direction, numout, varargin)
 % Perform either a forward or inverse spatial transformation,
@@ -3910,7 +3918,7 @@ else        % use tformarray
     hiA = (twod_size-1)/2;
     loA = -hiA;
     if bbox(1) == 'l'  % Determine limits for rotated image
-        hiB = ceil(max(abs(tformfwd([loA(1) hiA(2); hiA(1) hiA(2)],rotate)))/2)*2;
+        hiB = ceil(max(abs(tform('fwd',[loA(1) hiA(2); hiA(1) hiA(2)],rotate)))/2)*2;
         loB = -hiB;
         sn = hiB - loB + 1;
     else % Cropped image
