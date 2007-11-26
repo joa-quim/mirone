@@ -817,4 +817,4 @@ else
     end
 end
 guidata(handles.figure1,handles)
-
+refresh		% The R13 redraw bug
