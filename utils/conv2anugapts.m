@@ -42,8 +42,6 @@ function conv2anugapts(fname_in, fname_out, opt)
 	if (nargin == 2 || opt(1) == 'g')
 		try
 			[handles, X, Y, Z, head] = read_gmt_type_grids([],fname_in);
-% 			X = X - head(8)/2;		% DON'T EVEN ASK (BUGGGGGGGGGGGSSSSSSSSS & BUGSSSSSSSS Lta)
-% 			Y = Y - head(9)/2;
 		catch
 			errordlg(['conv2anugapts: something screw up while reading grid -> ' lasterr],'ERROR');
 			return
@@ -59,7 +57,7 @@ function conv2anugapts(fname_in, fname_out, opt)
 		[nrows, ncols] = size(Z);					% I think those are irrelevant but ...
 
 		% Shift origin to min(X), min(Y)
-		X = X - min(X);		Y = Y - min(Y);
+% 		X = X - min(X);		Y = Y - min(Y);
 		
 		if (row_major)
 	 		Y = Y(end:-1:1);
@@ -88,12 +86,16 @@ function conv2anugapts(fname_in, fname_out, opt)
 		% Should I correct them to be grid reg?
 
 		% Without pix/grid correction untill further knowledge
-		if (head(7))		% Pixel reg grid
-			xllcorner = head(1);		yllcorner = head(3);
-		else				% Normal node reg grid
-			xllcorner = head(1) - head(8) / 2;
-			yllcorner = head(3) - head(9) / 2;
-		end
+% 		if (head(7))		% Pixel reg grid
+% 			xllcorner = head(1);		yllcorner = head(3);
+% 		else				% Normal node reg grid
+% 			xllcorner = head(1) - head(8) / 2;
+% 			yllcorner = head(3) - head(9) / 2;
+% 		end
+
+		% Use absolute referencing (uff, this probably saves from the pixel reg bug)
+		xllcorner = 0;
+		yllcorner = 0;
 		
 	else
 		error('conv2anugapts: other than input grid is not yet programed')
