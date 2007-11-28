@@ -145,10 +145,8 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	if (imageWidth * imageHeight == 0),    return;  end
 	
 	% What are the screen dimensions?
-	screenSize = get(0, 'ScreenSize');      screenWidth = screenSize(3);    screenHeight = screenSize(4);
-	if ((screenWidth <= 1) || (screenHeight <= 1))
-        screenWidth = Inf;    screenHeight = Inf;
-	end
+	rootUnits = get(0, 'Units');			set(0, 'Units', 'pixels');
+	screenSize = get(0, 'ScreenSize');      screenWidth = screenSize(3)-4;    screenHeight = screenSize(4);
 	
 	% For small images, compute the minimum side as 60% of largest of the screen dimensions
 	% Except in the case of croped images, where 512 is enough for the pushbuttons (if the croped
@@ -182,8 +180,7 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	end
 
 	set(axHandle, 'Units', 'pixels');	        axPos = get(axHandle, 'Position');
-	figUnits = get(figHandle, 'Units');         rootUnits = get(0, 'Units');
-	set(figHandle, 'Units', 'pixels');          set(0, 'Units', 'pixels');
+	figUnits = get(figHandle, 'Units');			set(figHandle, 'Units', 'pixels');
 
 % ---------------------------------------------
     h_Xlabel = get(axHandle,'Xlabel');      h_Ylabel = get(axHandle,'Ylabel');
@@ -260,7 +257,7 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	end
 
 	y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin') + tenSizeY + stsbr_height;    % To hold the Xlabel height
-	x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin');               % To hold the Ylabel width
+	x_margin = abs(Ylabel_pos(1));%+get(h_Ylabel,'Margin');               % To hold the Ylabel width
     if (y_margin > 70)          % Play safe. LabelPos non-sense is always ready to strike 
         y_margin = 30 + tenSizeY + stsbr_height;
     end
@@ -285,8 +282,9 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 
 	newFigWidth  = max(newFigWidth + x_margin, minFigWidth);
 	if (newFigWidth >= screenWidth)     % Larger than screen. The == isn't allowed either due to the 'elastic' thing
-		x_margin = x_margin - (newFigWidth-screenWidth) - 2;    % 'Discount' the difference on x_margin
-		newFigWidth = screenWidth - 2;
+		%x_margin = x_margin - (newFigWidth-screenWidth) - 2;    % 'Discount' the difference on x_margin
+		newFigWidth = screenWidth - 0;
+		imageWidth = screenWidth - x_margin;
 	end
 	newFigHeight = max(newFigHeight, minFigHeight) + y_margin + topMarg;
 	
