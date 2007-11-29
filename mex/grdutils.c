@@ -12,6 +12,7 @@
  * Revised:	31-MAR-2005
  * 		08-OCT-2005  -> Added -H option
  * 		11-OCT-2007  -> Added -C option  - casts uint8 to int8 and [0 255] to [-128 127]
+ * 		29-Nov-2007  -> Search for NaNs stops at first occurrence and returns its index +1
  * 
  */
 
@@ -106,10 +107,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\t   ---------------------------------\n");
 		mexPrintf ("\t-A constant adds constant to array.\n");
 		mexPrintf ("\t-C casts array uint8 to int8 and subtracts 128. That is [0 255] to [-128 127].\n");
-		mexPrintf ("\t-L Compute min and max. Apend + (-L+) to count also how many NaNs\n");
-		mexPrintf ("\t-H outputs [z_min z_max i_zmin i_zmax n_nans mean std]\n");
+		mexPrintf ("\t-L Compute min and max. Apend + (-L+) to check also for NaNs\n");
+		mexPrintf ("\t-H outputs [z_min z_max i_zmin i_zmax firstNaNind mean std]\n");
 		mexPrintf ("\t-M factor multiplies array by factor.\n");
-		mexPrintf ("\t-N count the number of NaNs in infile and exit.\n");
+		mexPrintf ("\t-N See if grid has NaNs and if yes returns its index + 1 and exit.\n");
 		mexPrintf ("\t-S Compute mean and standard deviation.\n");
 		mexErrMsgTxt("\n");
 	}
@@ -168,10 +169,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		zdata = (float *)mxGetData(prhs[0]);
 	}
 
-	/* Loop over the file and find NaNs. */
+	/* Loop over the file and find if we have NaNs. Stop at first NaN occurence. */
 	for (i = 0; i < nxy; i++) {
-		if (mxIsNaN(zdata[i]))
-			nfound++;
+		if (mxIsNaN(zdata[i])) {
+			nfound = i + 1;		/* + 1 becuse ML is 1 based */
+			break;
+		}
 	}
 
 	if (only_report_nans) {
