@@ -1,6 +1,5 @@
 function varargout = grdfilter_Mir(varargin)
 % M-File changed by desGUIDE 
-% varargin   command line arguments to grdfilter_Mir (see VARARGIN) 
 
 %	Copyright (c) 2004-2006 by J. Luis
 %
@@ -13,7 +12,7 @@ function varargout = grdfilter_Mir(varargin)
 %	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 %	GNU General Public License for more details.
 %
-	%	Contact info: w3.ualg.pt/~jluis/mirone
+%	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
 	hObject = figure('Tag','figure1','Visible','off');
@@ -42,6 +41,10 @@ function varargout = grdfilter_Mir(varargin)
         delete(hObject);    return
 	end
 
+	if (handMir.have_nans)
+		set(handles.checkbox_NaNs,'Vis','on','Val',1)
+	end
+	
 	handles.command = cell(5,1);
 	handles.command{1} = '-Fb';
 	if (handMir.geog)
@@ -77,8 +80,8 @@ function varargout = grdfilter_Mir(varargin)
 	% Fill in the x,y_inc and nrow,ncol boxes
 	set(handles.edit_Nrows,'String',sprintf('%d',handles.nr_or))
 	set(handles.edit_Ncols,'String',sprintf('%d',handles.nc_or))
-	set(handles.edit_y_inc,'String',sprintf('%.10g',head(9)))
-	set(handles.edit_x_inc,'String',sprintf('%.10g',head(8)))
+	set(handles.edit_y_inc,'String',sprintf('%.12g',head(9)))
+	set(handles.edit_x_inc,'String',sprintf('%.12g',head(8)))
 	handles.x_inc = head(8);        handles.y_inc = head(9);
 	handles.x_inc_or = head(8);     handles.y_inc_or = head(9);
 
@@ -109,6 +112,11 @@ function varargout = grdfilter_Mir(varargin)
 	
 	set(hObject,'Visible','on');
 	if (nargout),   varargout{1} = hObject;     end
+
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handMir.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handMir.figure1,'dependentFigs',plugedWin);
 
 % -------------------------------------------------------------------------------------
 function edit_x_min_Callback(hObject, eventdata, handles)
@@ -236,13 +244,12 @@ function pushbutton_Compute_Callback(hObject, eventdata, handles)
 	% See if grid limits were changed
 	if ( (abs(handles.x_min-handles.x_min_or) > 1e-5) || (abs(handles.x_max-handles.x_max_or) > 1e-5) || ...
             (abs(handles.y_min-handles.y_min_or) > 1e-5) || (abs(handles.y_max-handles.y_max_or) > 1e-5))
-		opt_R = ['-R' sprintf('%.8g',handles.x_min) '/' sprintf('%.8g',handles.x_max) '/' ...
-            sprintf('%.8g',handles.y_min) '/' sprintf('%.8g',handles.y_max)];
+		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 	end
 
 	% See if grid increments were changed
 	if ( (abs(handles.x_inc-handles.x_inc_or) > 1e-6) || (abs(handles.y_inc-handles.y_inc_or) > 1e-6) )
-		opt_I = ['-I' sprintf('%.12g',handles.x_inc) '/' sprintf('%.12g',handles.y_inc)];
+		opt_I = sprintf('-I%.12g/%.12g',handles.x_inc, handles.y_inc);
 	end
 
 	opt_F = [handles.command{1} handles.command{2}];
@@ -263,6 +270,12 @@ function pushbutton_Compute_Callback(hObject, eventdata, handles)
 	end
 	set(handles.figure1,'pointer','arrow')
 	set(handles.hMirFig,'pointer','arrow')
+	
+	% Repaint NaNs. Temporary until this option is coded in the MEX file
+	if ( get(handles.checkbox_NaNs,'Val') )
+		ind = isnan(handles.Z);
+		Z(ind) = NaN;
+	end
 
 	[ny,nx] = size(Z);
     zMinMax = grdutils(Z,'-L');
@@ -488,6 +501,14 @@ uicontrol('Parent',h1,...
 'Position',[359 38 21 23],...
 'String','?',...
 'Tag','pushbutton_Help_Option_D');
+
+uicontrol('Parent',h1,...
+'Position',[20 11 90 15],...
+'String','Protect NaNs',...
+'Style','checkbox',...
+'Vis', 'off', ...
+'TooltipString','If checked do not let the soothing eat the NaNs inside the filter radius',...
+'Tag','checkbox_NaNs');
 
 uicontrol('Parent',h1,...
 'Callback',{@grdfilter_Mir_uicallback,h1,'pushbutton_cancel_Callback'},...
