@@ -707,8 +707,8 @@ end
 
 % --------------------------------------------------------------------
 function cmap = FileReadPalette_Callback(hObject, eventdata, handles, opt, opt2)
-	if (nargin == 3),   opt = [],	end
-	if (nargin < 5),	opt2 = [],	end
+	if (nargin == 3),   opt = [];	end
+	if (nargin < 5),	opt2 = [];	end
 	if (isempty(opt2))
 		str1 = {'*.cpt;*.CPT', 'CPT files (*.cpt,*.CPT)';'*.*', 'All Files (*.*)'};
 		cd(handles.work_dir);
