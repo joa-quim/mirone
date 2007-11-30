@@ -928,7 +928,7 @@ function set_vector_uicontext(h)
 % -----------------------------------------------------------------------------------------
 function delete_vector(obj,eventdata,h)
     % Brute force delete a vector whose handle is h. delete(gco) just doesn't kill the head
-    delete(h)
+    try,	delete(h),	end		% Use a try because a something else may have deleted one part only
 
 % -----------------------------------------------------------------------------------------
 function fill_Polygon(obj,eventdata,h)
@@ -1409,13 +1409,13 @@ function rectangle_register_img(obj,event)
 	% Prompt user for rectangle corner coordinates and use them to register the image
 	h = gco;
 	handles = guidata(get(h,'Parent'));
-	rect_x = get(h,'XData');   rect_y = get(h,'YData');       % Get rectangle limits
+	rect_x = get(h,'XData');   rect_y = get(h,'YData');		% Get rectangle limits
 
 	region = bg_region('empty');
 	if isempty(region),    return;  end     % User gave up
 	x_min = region(1);      x_max = region(2);
 	y_min = region(3);      y_max = region(4);
-	handles.geog = region(5);       % Set if coordinates are geog or cartographic
+	handles.geog = aux_funs('guessGeog',region(1:4));		% Trast more in the test here
 	ax = handles.axes1;
 
 	x(1) = rect_x(1);     x(2) = rect_x(2);     x(3) = rect_x(3);
@@ -1425,7 +1425,7 @@ function rectangle_register_img(obj,event)
 	limits = getappdata(handles.axes1,'ThisImageLims');
 	r_c = cropimg(limits(1:2), limits(3:4), img, [x(1) y(1) (x(3)-x(2)) (y(2)-y(1))], 'out_precise');
 	% Find if we are dealing with a image with origin at upper left (i.e. with y positive down)
-	if(strcmp(get(ax,'XDir'),'normal') && strcmp(get(ax,'YDir'),'reverse'))
+	if(strcmp(get(ax,'YDir'),'reverse'))
 		img = flipdim(img,1);
 		% We have to invert the row count to account for the new origin in lower left corner
 		tmp = r_c(1);
@@ -1454,7 +1454,8 @@ function rectangle_register_img(obj,event)
 	delete(handles.hImg);
 	handles.hImg = image(new_xlim,new_ylim,img,'Parent',handles.axes1);
 	set(ax,'xlim',new_xlim,'ylim',new_ylim,'YDir','normal')
-	resizetrue(handles, []);
+	handles.head(1:4) = [new_xlim new_ylim];
+	resizetrue(handles, [], 'xy');
 	setappdata(ax,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])
 	handles.old_size = get(handles.figure1,'Pos');      % Save fig size to prevent maximizing
 	handles.origFig = img;
@@ -1480,7 +1481,14 @@ function rectangle_register_img(obj,event)
 	end
 	x_inc = (new_xlim(2)-new_xlim(1)) / (size(img,2) - 1);
 	y_inc = (new_ylim(2)-new_ylim(1)) / (size(img,1) - 1);
-	handles.head = [new_xlim(1) new_xlim(2) new_ylim(1) new_ylim(2) 0 255 0 x_inc y_inc];     % TEMP and ...
+	%handles.head = [new_xlim(1) new_xlim(2) new_ylim(1) new_ylim(2) 0 255 0 x_inc y_inc];     % TEMP and ...
+	handles.head(8:9) = [x_inc y_inc];   
+
+	handles.fileName = [];			% Not loadable in session
+	if (handles.validGrid)
+		new_xlim = linspace(new_xlim(1),new_xlim(2),size(img,2));		new_ylim = linspace(new_ylim(1),new_ylim(2),size(img,1));
+		setappdata(handles.figure1,'dem_x',new_xlim);  	setappdata(handles.figure1,'dem_y',new_ylim);
+	end
 
 	if (handles.geog)
 		mirone('SetAxesNumericType',handles,[])          % Set axes uicontextmenus
