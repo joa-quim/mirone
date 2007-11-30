@@ -272,7 +272,7 @@ function pushbutton_Compute_Callback(hObject, eventdata, handles)
 	set(handles.hMirFig,'pointer','arrow')
 	
 	% Repaint NaNs. Temporary until this option is coded in the MEX file
-	if ( get(handles.checkbox_NaNs,'Val') )
+	if ( get(handles.checkbox_NaNs,'Val') && isequal(size(handles.Z), size(Z)) )
 		ind = isnan(handles.Z);
 		Z(ind) = NaN;
 	end
