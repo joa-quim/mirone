@@ -38,7 +38,7 @@ function varargout = resizetrue(handles, opt, axis_t)
 
 	xfac = 1;
 	if (handles.geog && handles.scale2meanLat)
-		xfac = cos(sum(handles.head(3:4)) / 2 * pi/180);
+		xfac = abs(cos(sum(handles.head(3:4)) / 2 * pi/180));
 	end
 
 	DAR = [1 1 1];      imSize = [];
