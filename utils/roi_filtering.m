@@ -8,7 +8,7 @@ prompt = {'Enter number of filter rows' ,'Enter number of filter cols', 'Maximum
 def = {num2str(5) num2str(5) num2str(10)};
 resp  = inputdlg(prompt,'Median Filtering',[1 30; 1 30; 1 30],def);    pause(0.01)
 if isempty(resp);    set(handles.figure1,'pointer','arrow');    return,		end
-Z_rect = double(Z_rect);      % It has to be
+Z_rect = double(Z_rect);      % It has to be with medfilt2 of R13, but I'll hve to change it to R2006b
 
 have_local_nans = 0;
 if (handles.have_nans)              % If the grid has NaNs
@@ -22,11 +22,12 @@ end
 
 Z_filt = img_fun('medfilt2',Z_rect,[str2double(resp{1}) str2double(resp{2})]);
 max_z_cut = str2double(resp{3});
-idx_dif_p = find((Z_rect - Z_filt) > max_z_cut);
-idx_dif_n = find((Z_rect - Z_filt) < -max_z_cut);
+dife = (Z_rect - Z_filt);
+idx_dif_p = find(dife > max_z_cut);
+idx_dif_n = find(dife < -max_z_cut);
 Z_filt(idx_dif_p) = Z_rect(idx_dif_p) - max_z_cut;
 Z_filt(idx_dif_n) = Z_rect(idx_dif_n) + max_z_cut;
-clear idx_dif_p idx_dif_n;
+clear idx_dif_p idx_dif_n dife;
 
 if (is_rect)
     if (strcmp(border,'no'))     % We don't need to do border re-interpolation
