@@ -193,8 +193,8 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 	handles.number_of_timesteps = st.Length;
 
 	% ------------------ OK, Get numerics now -----------------------------------
-	handles.x = nc_funs('varget', handles.fname, 'x') + xllcorner;
-	handles.y = nc_funs('varget', handles.fname, 'y') + yllcorner;
+	handles.x = double(nc_funs('varget', handles.fname, 'x')) + xllcorner;
+	handles.y = double(nc_funs('varget', handles.fname, 'y')) + yllcorner;
 	handles.time = nc_funs('varget', handles.fname, 'time');
 	handles.volumes = nc_funs('varget', handles.fname, 'volumes');
 	if (~isa(handles.volumes, 'int32')),	handles.volumes = int32(handles.volumes);	end
@@ -255,6 +255,7 @@ function push_showSlice_Callback(hObject, eventdata, handles)
 	else
 		theVar = get_derivedVar(handles);
 	end
+	if (~isa(theVar, 'double')),	theVar = double(theVar);	end		% While we don't f... these doubles as well
 	handles.head(5:6) = [min(theVar) max(theVar)];
 	
 	% create a grid in x and y
