@@ -1,84 +1,139 @@
-function fig_hdl = message_win(option,in2)
+function hFig = message_win(option, texto, varargin)
 %MESSAGE_WIN  Message function.
 %
 %   Usage:  message_win('create','Some text')   for the first call
 %           message_win('add','More text')      for subsequent calls. When the window message
 %                                               is full of text a slider will be added.
-%   NOTE:   This apparently doesn't work well when the "More text" is long enough to fill the
-%           edit box in one call.
 
-%   Based on the dmsgfun Matlab function, but with a slider and some other modifs
 %   Joaquim Luis
 
 %------------------------
-tag_fig = 'Wdmsgfig';
-tag_txt = 'Axe_info';
+tagFig = 'Wdmsgfig';
+tagTxt = 'textTag';
 
-fig_hdl = wfindobj('figure','tag',tag_fig);
-switch option
-    case 'create'
-        if isempty(fig_hdl)
-            win_units  = 'pixels';
-            win_height = 500;
-            Screen_Size = get(0,'ScreenSize');
-			defFigPos = get(0,'DefaultfigurePosition');
-            win_width = defFigPos(3);
-            pos_win = [Screen_Size(3)-5-win_width 40 win_width win_height];
-			if Screen_Size(4)<800 , pos_win(2) = 20; end
-			axe_col = 'w'; 
-            fig_hdl = colordef('new','none');
-            set(fig_hdl, 'MenuBar','none', 'Name','Information window',...
-                    'Visible','off', 'Unit',win_units, 'Position',pos_win,...
-                    'Color',axe_col, 'NumberTitle','off', 'Tag',tag_fig);
-			bord  = 10;
-            p_text = [bord bord/5 win_width-2*bord win_height-2*bord/5];
-            txt_hdl = uicontrol('Parent',fig_hdl,...
-                    'Style','text',      ...
-                    'Visible','off',     ...
-                    'Units',win_units,   ...
-                    'Position',p_text,   ...
-					'FontWeight','bold', ...
-					'FontSize',8,       ...
-					'Max',40,            ...
-					'HorizontalAlignment','left',...
-                    'BackgroundColor',[1 1 1],   ...
-					'ForegroundColor',[0 0 0],   ...
-                    'Tag',tag_txt);
-            set([fig_hdl,txt_hdl],'units','normalized','Visible','on');
-            set(fig_hdl,'Name','Message window');
-        else
-            set(fig_hdl, 'HandleVisibility', 'on');
-            txt_hdl = findobj(fig_hdl,'Tag',tag_txt);
-            figure(fig_hdl);
-        end
-		set(txt_hdl,'String',in2);
-        set(fig_hdl, 'HandleVisibility', 'off');
-    case 'add'
-        txt_hdl = findobj(fig_hdl,'Style','Text');
-        h_slide = findobj(fig_hdl,'Style','slider');
-        old_text = get(txt_hdl,'String');
-        post = get(txt_hdl,'Position');
-        extent = get(txt_hdl,'Extent');
-        scal = 5;
-        if (extent(4) > 0.999 && isempty(h_slide))   % Text to big to fit. Add a slider to the figure
-            pos=[0.97 0 .03 1];
-            cb_slide_step = {@slide_step,txt_hdl,post,scal};
-            uicontrol(fig_hdl,'style','slider','units','normalized','position',pos,...
-                'callback',cb_slide_step,'min',0,'max',scal,'Value',scal);
-        elseif (extent(4) > 1)          % Text is biger than figure. Scroll it up and move slider down
-            slid_val = scal - (extent(4) - 1);
-            set(h_slide,'Value',slid_val)
-            new_text = char(old_text,in2);
-            new_pos = [post(1) post(2) post(3) scal - slid_val + 1];
-            set(txt_hdl,'String',new_text,'Position',new_pos)
-        else
-            new_text = char(old_text,in2);
-            set(txt_hdl,'String',new_text);
-        end
-    case 'close'
-        delete(fig_hdl);
+hFig = findmsgwin(tagFig);
+if ( isempty(hFig) && strcmp(option, 'add') )
+	option = 'create';
 end
 
-function slide_step(obj,eventdata,h,pos,scal)
-new_pos = [pos(1) pos(2) pos(3) scal-get(gcbo,'value')+1];
-set(h,'Position',new_pos)
+if (~isa(texto,'cell')),		texto = cellstr(texto);	end
+
+switch option
+	case 'create'
+		if isempty(hFig)
+			[figpos, posTxt, movepos, bgcolor, fwcolor, fWeight, fSize] = parse_inputs(texto, varargin{:});
+			hFig = figure('MenuBar','none', 'Name','Message window', 'HandleVisibility', 'off', ...
+					'Visible','off', 'Unit','pixels', 'Position',figpos,...
+					'Color',bgcolor, 'NumberTitle','off', 'Tag',tagFig);
+			hTxt = uicontrol('Parent',hFig, 'Style','text', ...
+					'Units','pixels', 'Position', posTxt, ...
+					'HorizontalAlignment','left',...
+					'FontWeight',fWeight, 'FontSize',fSize, ...
+					'BackgroundColor',bgcolor, 'ForegroundColor',fwcolor, ...
+					'Tag',tagTxt);
+			if (~isempty(movepos)),		movegui(hFig, movepos),		end		% Reposition figure on screen
+			set([hFig,hTxt],'units','normalized','Visible','on');
+		else		% User said 'create' but figure already exists
+			hTxt = findobj(hFig,'Tag',tagTxt);
+			figure(hFig);
+        end
+		set(hTxt, 'String',texto)
+		extent = get(hTxt,'Extent');
+		if (isempty(extent)),	extent = zeros(1,4);	end		% Protection against empty texts
+		if ( extent(4) > 1 )				% Text to big to fit. Add a slider to the figure
+			posTxt = get(hTxt,'Position');
+			set_slider(hFig, hTxt, posTxt, ceil(extent(4)))
+		end
+
+    case 'add'
+		hTxt = findobj(hFig,'Style','Text');
+		hSlider = findobj(hFig,'Style','slider');
+		Txt = get(hTxt,'String');
+		set(hTxt, 'String',[Txt; texto])
+		posTxt = get(hTxt,'Position');
+		extent = get(hTxt,'Extent');
+		
+		if (extent(4) > 1 && isempty(hSlider))		% Text to big to fit. Add a slider to the figure
+			set_slider(hFig, hTxt, posTxt, ceil(extent(4)))
+		elseif (extent(4) > 1)						% Slider already exists; scroll it down
+			scal = get(hSlider, 'Max');
+			if (scal < extent(4))
+				scal = ceil(extent(4));			% Round up to next multiple of text display size
+				set(hSlider, 'Max', scal);
+			end
+			slid_val = scal - (extent(4) - 1);
+			set(hSlider,'Value',slid_val)
+		end
+
+    case 'close'
+		delete(hFig);
+end
+
+% ------------------------------------------------------------------------------------	
+function [figpos, posTxt, movepos, bgcolor, fwcolor, fWeight, fSize] = parse_inputs(texto, varargin)
+% Parse inputs and compute also fig and text sizes
+
+	if ( rem(numel(varargin), 2) )
+		error('msgwin','Property value/number must come in pairs')
+	end
+	% Assign defaults
+	win_width = 0;		win_height = 0;		movepos = [];	bgcolor = 'w';	fwcolor = 'k';
+	fWeight = 'bold';	fSize = 8;
+	
+	for (k = 1:numel(varargin))
+		if ( ischar(varargin{k}) )
+			switch lower(varargin{k})
+				case 'width',		win_width = varargin{k+1};
+				case 'height',		win_height = varargin{k+1};
+				case 'position',	movepos = varargin{k+1};
+				case 'bgcolor',		bgcolor = varargin{k+1};
+				case 'fwcolor',		bgcolor = varargin{k+1};
+				case 'fontweight',	fWeight = varargin{k+1};
+				case 'fontsize',	fSize = varargin{k+1};
+			end
+		end
+	end
+
+	if (~win_width)
+		defFigPos = get(0,'DefaultfigurePosition');
+		win_width = defFigPos(3);
+	end
+	if (~win_height)
+		numLines = size(texto, 1);
+		win_height = numLines * 15;
+		win_height = min(win_height, 500);
+		%win_height = 500;
+	end
+	if (~isempty(movepos) && ~ischar(movepos))
+		error('msgwin','POSITIOIN Property must be a char string')
+	end
+	
+	% Calculate figure size
+	screensize = get(0,'ScreenSize');
+	figpos = [screensize(3)-5-win_width 40 win_width win_height];
+	if (screensize(4) < 800),	figpos(2) = 20;		end
+
+	% Calculate test position in figure
+	bord  = 10;
+ 	posTxt = [bord bord/5 win_width-2*bord win_height-2*bord/5];
+	
+% ------------------------------------------------------------------------------------	
+function set_slider(hFig, hTxt, posTxt, scal)
+	pos = [0.97 0 .03 1];
+	cb_slide_step = {@slide_step, hTxt, posTxt};
+	uicontrol(hFig,'style','slider','units','normalized','position',pos,...
+        'callback',cb_slide_step,'min',0,'max',scal,'Value',scal);
+
+% ------------------------------------------------------------------------------------	
+function slide_step(obj,event, h, pos)
+	maxVal = get(obj, 'Max');
+	new_pos = [pos(1) pos(2) pos(3) maxVal-get(obj,'value')+1.05];
+	set(h,'Position',new_pos)
+
+% ------------------------------------------------------------------------------------	
+function hFig = findmsgwin(tagFig)
+% H = findmsgwin('tagFig') returns the fig handle of the figure whose tag is 'tagFig'
+	showBak = get(0,'ShowHiddenHandles');
+	set(0,'ShowHiddenHandles','on');
+	hFig = findobj(get(0,'Children'),'flat', 'tag',tagFig);
+	set(0,'ShowHiddenHandles',showBak);
