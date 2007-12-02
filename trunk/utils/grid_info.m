@@ -78,6 +78,8 @@ else
     InfoMsg = getappdata(handles.axes1,'InfoMsg');
     if (~isempty(InfoMsg))
         msgbox(InfoMsg,'Image Info');
+		meta = getappdata(handles.hImg,'meta');
+		if (~isempty(meta)),	message_win('create',meta,'position','east');		end
     else
         msgbox('Info missing or nothing to info about?','???')
     end
@@ -111,6 +113,7 @@ function att2Hdr(handles,att)
     w{end+1} = ['Color Type:  ' att.ColorInterp];
     
     setappdata(handles.axes1,'InfoMsg',w)
+	if (~isempty(att.Metadata)),	setappdata(handles.hImg,'meta', att.Metadata),	end
 	aux_funs('appP', handles, att.ProjectionRef)		% If we have a WKT proj store it, otherwise clean eventual predecessors
 
 % --------------------------------------------------------------------
