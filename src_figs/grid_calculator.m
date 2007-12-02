@@ -288,6 +288,8 @@ function pushbutton_compute_Callback(hObject, eventdata, handles)
         end
 	
         com = strrep(com,'&','');                   % Remove the '&' characters
+		com = strrep(com,'e - ','e-');				% base 10 numbers cannot have those spaces
+		com = strrep(com,'e + ','e+');
     
         try             % Try first assuming that we are working from within matlab
             try,        resp = eval(com);                       % See if the Matlab mode worked
