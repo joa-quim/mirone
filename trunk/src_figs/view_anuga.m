@@ -306,9 +306,11 @@ function theVar = get_derivedVar(handles)
 		case {'Absolute Ve' 'Froude Numb'}			% Absolute Velocity (V) || Froude Number
 			x = nc_funs('varget', handles.fname, 'xmomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			y = nc_funs('varget', handles.fname, 'ymomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
+			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
 			theVar = sqrt(x.^2 + y.^2);
 			x = nc_funs('varget', handles.fname, 'stage', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			y = nc_funs('varget', handles.fname, 'elevation')';
+			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
 			theVar = theVar ./ (x - y + 1e-6);
 			if ( strcmp(qual(1:6), 'Froude') )
 				theVar = theVar ./ sqrt( 9.8 * (x - y + 1e-6) );
@@ -316,19 +318,23 @@ function theVar = get_derivedVar(handles)
 		case 'Absolute Mo'			% Absolute Momentum (VxD)
 			x = nc_funs('varget', handles.fname, 'xmomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			y = nc_funs('varget', handles.fname, 'ymomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
+			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
 			theVar = sqrt(x.^2 + y.^2);
 		case 'Elevation'			% Elevation
 			theVar = nc_funs('varget', handles.fname, 'elevation')';
 		case 'Water Depth'			% Water Depth
 			stage = nc_funs('varget', handles.fname, 'stage', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			elevation = nc_funs('varget', handles.fname, 'elevation')';
+			if (~isa(stage, 'double')),		stage = double(stage);		elevation = double(elevation);		end
 			theVar = (stage - elevation);
 		case {'Velocity He' 'Hazard-RVD '}			% Velocity Head (V^2 / (2g)) || D * (1 + V^2)
 			x = nc_funs('varget', handles.fname, 'xmomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			y = nc_funs('varget', handles.fname, 'ymomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
+			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
 			theVar = (x.^2 + y.^2);		% = D^2 * V^2
 			x = nc_funs('varget', handles.fname, 'stage', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			y = nc_funs('varget', handles.fname, 'elevation')';
+			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
 			D = (x - y + 1e-6);
 			clear x y;
 			if (qual(1) == 'V')
