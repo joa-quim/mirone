@@ -165,12 +165,12 @@ function [X,Y,Z,head,misc] = read_nc(fname)
 			break
 		end
 	end
-	
+
 	if (~z_id),		error('NC_IO:read_nc', 'Didn''t find any (at least) 2D variable.'),		end
 
 	ndims = numel(s.Dataset(z_id).Size);	% z number of dimensions
 	dims = s.Dataset(z_id).Dimension;		% Variable names of dimensions z variable - ORDER IS CRUTIAL
-	
+
 	% --------------------- Fish in the attribs of the Z var --------------------
 	if (~isempty(s.Dataset(z_id).Attribute))
 		attribNames = {s.Dataset(z_id).Attribute.Name};
@@ -249,10 +249,12 @@ function [X,Y,Z,head,misc] = read_nc(fname)
 	
 	% --------------------- Finally, get the Data --------------------------------
 	% Now z may be > 2D. If it is, get the first layer
-	if (numel(s.Dataset(z_id).Size) == 2 )
+	nD = numel(s.Dataset(z_id).Size);
+	if (nD == 2 )
 		Z = nc_funs('varget', fname, s.Dataset(z_id).Name);
 	else
-		error('Dataset dimensin > 2D. That is not yet programed','Error')
+		Z = nc_funs('varget', fname, s.Dataset(z_id).Name, zeros(1,nD), [ones(1,nD-2) s.Dataset(z_id).Size(end-1:end)]);
+		%Z = nc_funs('varget', fname, s.Dataset(z_id).Name, [0 0 0], [1 s.Dataset(z_id).Size(end-1:end)]);
 	end
 
 	[ny, nx] = size(Z);
