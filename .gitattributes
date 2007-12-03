@@ -295,6 +295,7 @@ mex/wave_travel_time.c -text
 /mexnc.dll -text
 /mirone.m -text
 /mirone_uis.m -text
+/proj.dll -text
 /projectionMenu.m -text
 /psl.dll -text
 /shapelib.dll -text
