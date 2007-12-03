@@ -77,9 +77,13 @@ elseif (handles.computed_grid)  % Computed array
 else
     InfoMsg = getappdata(handles.axes1,'InfoMsg');
     if (~isempty(InfoMsg))
-        msgbox(InfoMsg,'Image Info');
 		meta = getappdata(handles.hImg,'meta');
-		if (~isempty(meta)),	message_win('create',meta,'position','east');		end
+		if (~isempty(meta))						% If we have metadata use the window message to display everything
+			InfoMsg = [InfoMsg'; {' '; ' '}; meta];
+			message_win('create',InfoMsg,'position','east');
+		else
+	        msgbox(InfoMsg,'Image Info');
+		end
     else
         msgbox('Info missing or nothing to info about?','???')
     end
