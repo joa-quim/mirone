@@ -295,6 +295,10 @@ function push_showSlice_Callback(hObject, eventdata, handles)
 	end
 	
     guidata(handles.figure1,handles)
+	
+	% Save also the updated header in Mirone handles
+	handles.handMir.head = handles.head;
+    guidata(handles.handMir.figure1,handles.handMir)
 
 % --------------------------------------------------------------------
 function theVar = get_derivedVar(handles)
