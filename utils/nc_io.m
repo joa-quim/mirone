@@ -253,8 +253,10 @@ function [X,Y,Z,head,misc] = read_nc(fname)
 	if (nD == 2 )
 		Z = nc_funs('varget', fname, s.Dataset(z_id).Name);
 	else
+		if ( ~all([s.Dimension.Length]) )
+			warndlg('One ore more dimensions has ZERO length. Expect #&%%&&$.','Warning')
+		end
 		Z = nc_funs('varget', fname, s.Dataset(z_id).Name, zeros(1,nD), [ones(1,nD-2) s.Dataset(z_id).Size(end-1:end)]);
-		%Z = nc_funs('varget', fname, s.Dataset(z_id).Name, [0 0 0], [1 s.Dataset(z_id).Size(end-1:end)]);
 	end
 
 	[ny, nx] = size(Z);
@@ -264,7 +266,7 @@ function [X,Y,Z,head,misc] = read_nc(fname)
 	if (~isempty(y_id)),	Y = double(nc_funs('varget', fname, s.Dataset(y_id).Name));
 	else					Y = 1:ny;
 	end
-	
+
 	if (~isempty(x_actual_range)),		head(1:2) = x_actual_range;
 	else								head(1:2) = [X(1) X(end)];
 	end
