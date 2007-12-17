@@ -14,6 +14,7 @@
  *		28-Feb-2007 - Removed the mxIsNaN tests since they were superfluous
  *			      Added scaling to a [min max] vector either as a 3 or 4th arg
  *		06-Mar-2007 - Shit, the mxIsNaN tests were necessary. Also add test on nodata
+ *		17-Dec-2007 - No change in the code but WARNING: [min max] option changes input grid
  *
  */
 
