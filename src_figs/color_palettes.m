@@ -522,7 +522,7 @@ function change_cmap(handles,pal)
 		handles.z_intervals = [];       % Reset for the case of a new GMT palette import
 	end
 
-	if (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig)
+	if ( ~isempty(handles.z_min) && (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig) )
 	% %     %index = fix((C-cmin)/(cmax-cmin)*m)+1
 	% %     index = fix((double(getappdata(handles.hCallingFig,'dem_z'))- ...
 	% %         double(handles.z_min))/(double(handles.z_max)-double(handles.z_min))*length(pal))+1;
