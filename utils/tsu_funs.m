@@ -201,7 +201,7 @@ function SwanCompute(handles)
         Z_src = out.grid_Z_src;     head_src = out.grid_head_src;
 	end
 
-	opt_O = ' ';   opt_M = ' ';   opt_N = ' ';   opt_m = [];	opt_G = ' ';   opt_S = ' ';		opt_s = ' ';
+	opt_O = ' ';   opt_M = ' ';   opt_N = ' ';   opt_m = [];	opt_G = ' ';   opt_S = ' ';		opt_s = ' ';	opt_J = ' ';
 	if (isfield(out,'maregraph_xy') && isfield(out,'maregraph_data_name'))
         opt_O = ['-O' out.maregraph_data_name];
 	end
@@ -211,6 +211,7 @@ function SwanCompute(handles)
 	if (isfield(out,'opt_G')),    opt_G = out.opt_G;   end
 	if (isfield(out,'opt_S')),    opt_S = out.opt_S;   end
 	if (isfield(out,'opt_s')),    opt_s = out.opt_s;   end
+	if (isfield(out,'opt_J')),    opt_J = out.opt_J;   end
 
 	if (isempty(Z_bat) || isempty(head_bat) || isempty(Z_src) || isempty(head_src))
         errordlg('ERROR: one or more of the bat/source variables are empty where they souldn''t be.','Error');
@@ -228,16 +229,16 @@ function SwanCompute(handles)
 	if (isfield(out,'maregraph_xy'))	% Ask for computation of maregraphs
         if (~isempty(opt_m))			% Movie option
             tmovie = feval(swan_hand,Z_bat, head_bat, Z_src, head_src, out.params, out.maregraph_xy, opt_O, ...
-                    opt_M, opt_N, opt_G, '-f', opt_R);
+                    opt_M, opt_N, opt_G, '-f', opt_R, opt_J);
         else
             feval(swan_hand,Z_bat, head_bat, Z_src, head_src, out.params, out.maregraph_xy, opt_O, ...
-                    opt_M, opt_N, opt_G, opt_S, opt_s, opt_R);
+                    opt_M, opt_N, opt_G, opt_S, opt_s, opt_R, opt_J);
         end    
 	else								% Compute grids or movie
         if (~isempty(opt_m))			% Movie option
-            tmovie = feval(swan_hand, Z_bat, head_bat, Z_src, head_src, out.params, opt_M, opt_N, opt_G, '-f', opt_S, opt_s, opt_R);
+            tmovie = feval(swan_hand, Z_bat, head_bat, Z_src, head_src, out.params, opt_M, opt_N, opt_G, '-f', opt_S, opt_s, opt_R, opt_J);
         else
-            feval(swan_hand, Z_bat, head_bat, Z_src, head_src, out.params, opt_M, opt_N, opt_G, opt_S, opt_s, opt_R);
+            feval(swan_hand, Z_bat, head_bat, Z_src, head_src, out.params, opt_M, opt_N, opt_G, opt_S, opt_s, opt_R, opt_J);
         end
 	end
 	pause(0.01);        % Give time to waitbar window to die
