@@ -15,6 +15,8 @@
  *			      Added scaling to a [min max] vector either as a 3 or 4th arg
  *		06-Mar-2007 - Shit, the mxIsNaN tests were necessary. Also add test on nodata
  *		17-Dec-2007 - No change in the code but WARNING: [min max] option changes input grid
+ *		05-Jan-2008 - Fix bug (z_4 instead of z_8) when Z was double and [new_min new_max] option
+ *			      Do explicitly castings when using mxGetData()
  *
  */
 
@@ -119,19 +121,19 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		is_double = 1;
 	}
 	else if (mxIsSingle(prhs[0])) {
-		z_4 = mxGetData(prhs[0]);
+		z_4 = (float *)mxGetData(prhs[0]);
 		is_single = 1;
 	}
 	else if (mxIsInt32(prhs[0])) {
-		i_4 = mxGetData(prhs[0]);
+		i_4 = (int *)mxGetData(prhs[0]);
 		is_int32 = 1;
 	}
 	else if (mxIsInt16(prhs[0])) {
-		i_2 = mxGetData(prhs[0]);
+		i_2 = (short int *)mxGetData(prhs[0]);
 		is_int16 = 1;
 	}
 	else if (mxIsUint16(prhs[0])) {
-		ui_2 = mxGetData(prhs[0]);
+		ui_2 = (unsigned short int *)mxGetData(prhs[0]);
 		is_uint16 = 1;
 	}
 	else {
@@ -144,11 +146,11 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		/*  create a C pointer to a copy of the output matrix */
 		if (scale8) {
 			plhs[0] = mxCreateNumericMatrix (ny,nx,mxUINT8_CLASS ,mxREAL);
-			out8 = mxGetData(plhs[0]);
+			out8 = (unsigned char *)mxGetData(plhs[0]);
 		}
 		else {
 			plhs[0] = mxCreateNumericMatrix (ny,nx,mxUINT16_CLASS ,mxREAL);
-			out16 = mxGetData(plhs[0]);
+			out16 = (unsigned short int *)mxGetData(plhs[0]);
 		}
 	}
 	else {
@@ -170,8 +172,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		else {			/* Replace outside limits values by min | max */
 			for (i = 0; i < nx*ny; i++) {
 				if (mxIsNaN(z_8[i])) continue;
-				if (z_4[i] < min) z_4[i] = min;
-				else if (z_4[i] > max) z_4[i] = max;
+				if (z_8[i] < min) z_8[i] = min;
+				else if (z_8[i] > max) z_8[i] = max;
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
