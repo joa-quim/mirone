@@ -93,7 +93,7 @@ elseif (strcmp(tipo,'SRF6'))
 	ID = fread(fid,4,'*char');
 	n_cols = fread(fid,1,'int16');			n_rows = fread(fid,1,'int16');
 	head = (fread(fid,6,'double'))';
-	Z = fread(fid,n_rows*n_cols,'float32');	fclose(fid);
+	Z = fread(fid,n_rows*n_cols,'*float32');	fclose(fid);
     Z = reshape(Z, n_cols, n_rows)';
 	ind = (Z >= 1e38);
 	if (any(ind))
@@ -127,7 +127,7 @@ elseif (strcmp(tipo,'ENCOM'))       % Pretend that its a GMT grid
     ID = fread(fid,4,'*char');      dx = fread(fid,1,'float32');        % DX FLAG
     ID = fread(fid,4,'*char');      dy = fread(fid,1,'float32');        % DY FLAG
     ID = fread(fid,4,'*char');      rot = fread(fid,1,'float32');       % DEGR FLAG (I'll use it one day)
-    Z = single(fread(fid,n_rows*n_cols,'float32'));    fclose(fid);
+    Z = fread(fid,n_rows*n_cols,'*float32');    fclose(fid);
     Z = reshape(Z, n_cols, n_rows)';
     Z(Z == no_val) = NaN;
     [zzz] = grdutils(Z,'-L+');  z_min = zzz(1);     z_max = zzz(2);     handles.have_nans = zzz(3); clear zzz;
