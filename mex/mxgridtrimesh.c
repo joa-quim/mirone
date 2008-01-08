@@ -8,6 +8,11 @@
 	(long dead to the double ints and other double shits)
 	It now runs more than twice fast and consumes < 1/6 of the memory
 	Also removed useless NaN manipulations with ints
+
+	Do the offset test outside the main loop
+
+	08-Jan-2008	Moved interpolation code into do_interp() function
+			This allows to call the program in the "profile" mode
 */
 
 #include "mex.h"
@@ -19,10 +24,12 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
 
+void do_interp(int *F, double *V, double *X, double *Y, int nx, int ny, int m, int n, float *Z);
+
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     
-	int	nx, ny, n, m, i, j, k, offset = 0;
-	int	east, west, north, south, *F;
+	int	nx, ny, n, m, i, j, k, offset = 0, profile = 0;
+	int	east, west, north, south, *F, nxy, mi, mi2, n2;
 	float	*Z, nan;
 	double	*X, *Y, *V;
 	double	v1x, v1y, v1z, v2x, v2y, v2z, v3x, v3y, v3z;
@@ -31,17 +38,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double	tmp1, tmp2, tmp3, tmp4;
 	
 	if (nrhs == 0) {
-		mexPrintf("Z = mxgridtrimesh(F,V,X,Y);\n");
+		mexPrintf("Z = mxgridtrimesh(F,V,X,Y,'p');\n");
 		mexPrintf("where:\n");
 		mexPrintf("\tF is a Mx3 integer array with the triangles indices\n");
 		mexPrintf("\tV is a Nx3 double array with the triangle vertex\n");
-		mexPrintf("\tX and Y are vectors with the grid's coordinates\n\n");
+		mexPrintf("\tX and Y are vectors with the grid's coordinates\n");
+		mexPrintf("\t'p' means that we are working in profile mode.\n");
+		mexPrintf("\t  In this case X, Y as well as Z are vectors.\n\n");
 		mexPrintf("Z is a [numel(Y) x numel(X)] SINGLE array\n");
 		return;
 	}
 
-	if (nrhs == 5)
-		offset = 1;		/* Make it 1 if base 1 (Matlab mesh) */ 
+	if (nrhs == 5 && mxIsChar(prhs[4]))	/* Work in profile mode */
+		profile = 1;
+	else if (nrhs == 5) 			/* Make it 1 if base 1 (Matlab mesh) */ 
+		offset = 1;
 
 	n = mxGetN(prhs[2]);	m = mxGetM(prhs[2]);
 	if (n > 1 && m > 1)
@@ -54,9 +65,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexErrMsgTxt("Y must be a vector.");
 	else
 		ny = MAX(n,m);
+
+	if (profile && nx != ny)
+		mexErrMsgTxt("X and Y must have the same number of elements.");
+
 	/* dimensions of input data */
-	m = mxGetM(prhs[0]);
-	n = mxGetM(prhs[1]);
+	m = mxGetM(prhs[0]);			/* number of triangles */
+	n = mxGetM(prhs[1]);			/* number of vertices */
 	
 	/* pointers to input data */
 	F = (int *)mxGetData(prhs[0]);
@@ -65,20 +80,50 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	Y = mxGetPr(prhs[3]);
 	
 	/* create mxArray and point for the output data */
-	plhs[0] = mxCreateNumericMatrix(ny,nx,mxSINGLE_CLASS,mxREAL);
+	if (!profile) {
+		plhs[0] = mxCreateNumericMatrix(ny,nx,mxSINGLE_CLASS,mxREAL);
+		nxy = nx * ny;
+	}
+	else {
+		plhs[0] = mxCreateNumericMatrix(ny,1,mxSINGLE_CLASS,mxREAL);
+		nxy = ny;
+	}
 	
 	/* pointer to the output data */
 	Z = (float *)mxGetData(plhs[0]);
 	
 	/* initialise output */
-	nan = mxGetNaN();
-	for (i = 0; i < nx*ny; i++) Z[i] = nan;
+	nan = (float)mxGetNaN();
+	for (i = 0; i < nxy; i++) Z[i] = nan;
+
+	if (offset)
+		for (i = 0; i < m; i++) F[i] -= 1;
+
+
+	if (!profile)
+		do_interp(F, V, X, Y, nx, ny, m, n, Z);
+	else {
+		int c;
+
+		for (c = 0; c < ny; c++)
+			do_interp(F, V, &X[c], &Y[c], 1, 1, m, n, &Z[c]);
+	}
+}
+
+
+void do_interp(int *F, double *V, double *X, double *Y, int nx, int ny, int m, int n, float *Z) {
+	int	i, j, k, jk, east, west, north, south, mi, mi2, n2;
+	double	v1x, v1y, v1z, v2x, v2y, v2z, v3x, v3y, v3z;
+	double	w1, w2, w3, z;
+	double	minx, maxx, miny, maxy;
+	double	tmp1, tmp2, tmp3, tmp4;
 
 	/* consider every triangle, projected to the x-y plane and determine whether gridpoints lie inside */
 	for (i = 0; i < m; i++) {
-		v1x = V[F[i]-offset];		v1y = V[F[i]-offset+n];		v1z = V[F[i]-offset+2*n];
-		v2x = V[F[m+i]-offset];		v2y = V[F[m+i]-offset+n];	v2z = V[F[m+i]-offset+2*n];
-		v3x = V[F[2*m+i]-offset];	v3y = V[F[2*m+i]-offset+n];	v3z = V[F[2*m+i]-offset+2*n];
+		mi = m+i;		mi2 = 2*m+i;		n2 = n*2;
+		v1x = V[F[i]];		v1y = V[F[i]+n];	v1z = V[F[i]+n2];
+		v2x = V[F[mi]];		v2y = V[F[mi]+n];	v2z = V[F[mi]+n2];
+		v3x = V[F[mi2]];	v3y = V[F[mi2]+n];	v3z = V[F[mi2]+n2];
 		/* we'll use the projected triangle's bounding box: of the form (minx,maxx) x (miny,maxy) */
 		minx = v1x;	minx = MIN(MIN(v2x, minx), v3x);
 		maxx = v1x;	maxx = MAX(MAX(v2x, maxx), v3x);
@@ -113,15 +158,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				for (j = west; j <= east; j++) {
 					int j_ny = j * ny;
 					for (k = north; k <= south; k++) {
-						/* calculate barycentric coordinates of gridpoint w.r.t. current (projected) triangle */
+						/* calculate barycentric coordinates of gridpoint w.r.t. 
+						   current (projected) triangle */
 						w1 = (tmp2 - v2y*X[j] + v3y*X[j] + v2x*Y[k] - v3x*Y[k]) * tmp3;
 						w2 = (-(v3y*X[j]) + v1y*(-v3x + X[j]) + v1x*(v3y - Y[k]) + v3x*Y[k]) * tmp4;
 						w3 = (tmp1 - v1y*X[j] + v2y*X[j] + v1x*Y[k] - v2x*Y[k]) * tmp3;
 
 						if (w1 >= 0 && w2 >= 0 && w3 >= 0) {
 							/* use barycentric coordinates to calculate z-value */
-							z = (float)(w1*v1z + w2*v2z + w3*v3z);
-							if (mxIsNaN(Z[j_ny+k]) || z > Z[j_ny+k]) Z[j_ny+k] = z;
+							jk = j_ny + k;
+							z = (w1*v1z + w2*v2z + w3*v3z);
+							if (mxIsNaN(Z[jk]) || z > Z[jk]) Z[jk] = (float)z;
 						}
 					}
 				}
