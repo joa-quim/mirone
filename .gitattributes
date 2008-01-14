@@ -123,6 +123,7 @@ data/point_predicted.png -text
 data/quakes90-03.dat -text
 data/swan.par -text
 data/t_xtide.mat -text
+data/tilesServers.txt -text
 data/volcanoes.dat -text
 data/wcity.dat -text
 data/wcity_major.dat -text
