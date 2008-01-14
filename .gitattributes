@@ -533,6 +533,7 @@ utils/uirestore_j.m -text
 utils/uistack_j.m -text
 utils/uisuspend_fig.m -text
 utils/uisuspend_j.m -text
+utils/url2image.m -text
 utils/vdist.m -text
 utils/waitfig.m -text
 utils/wfindobj.m -text
