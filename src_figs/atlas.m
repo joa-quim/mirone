@@ -26,24 +26,24 @@ function varargout = atlas(varargin)
 	end
 
     handMir = varargin{1};
-    if (~handMir.is_projected && ~handMir.geog)
-        errordlg('This operation is only possible for geographic data OR when the Map Projection is known','ERROR')
-        delete(hObject);    return
+    if ( ~handMir.no_file && (~handMir.is_projected && ~handMir.geog) )
+		errordlg('This operation is only possible for geographic data OR when the Map Projection is known','ERROR')
+		delete(hObject);    return
     end
 
-    handles.mirone_fig = handMir.figure1;
-    handles.mironeAxes = handMir.axes1;
-    handles.is_projected = handMir.is_projected;
-    handles.d_path = handMir.path_data;
-    handles_fake.figure1 = handles.mirone_fig;              % Create a fake handles only for
-    handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
-    handles_fake.geog = handMir.geog;
-    handles.handles_fake = handles_fake;
-    handles.h_calling_lims = getappdata(handles.mironeAxes,'ThisImageLims');
-    if (isempty(handles.h_calling_lims))
-        handles.h_calling_lims = [get(handles.mironeAxes,'Xlim') get(handles.mironeAxes,'Ylim')];
-        handles.CeateBG = 1;
-    end
+	handles.mirone_fig = handMir.figure1;
+	handles.mironeAxes = handMir.axes1;
+	handles.is_projected = handMir.is_projected;
+	handles.d_path = handMir.path_data;
+	handles_fake.figure1 = handles.mirone_fig;              % Create a fake handles only for
+	handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
+	handles_fake.geog = handMir.geog;
+	handles.handles_fake = handles_fake;
+	handles.h_calling_lims = getappdata(handles.mironeAxes,'ThisImageLims');
+	if (isempty(handles.h_calling_lims))
+		handles.h_calling_lims = [get(handles.mironeAxes,'Xlim') get(handles.mironeAxes,'Ylim')];
+		handles.CeateBG = 1;
+	end
 
 	if (isequal(handles.h_calling_lims,[0 1 0 1]))
         handles.CeateBG = 1;
