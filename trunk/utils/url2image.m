@@ -86,16 +86,6 @@ function  varargout = url2image(opt, varargin)
 %		url2image('callmir',-8,37.014,14,'mosaic',3);
 %		url2image('callmir',[-180 180],[-80 80], 4);
 
-% Map resolution (meters/pixel ) = 156543.04 * cos(latitude) / (2 ^ zoomlevel)
-% Map scale = 1 : (ScreenRes pixels/inch * 39.37 inch/meter * 156543.04 meters/pixel * cos(latitude * pi/180) / (2 ^ zoomlevel))
-
-% http://blog.grimpoteuthis.org/2005/02/mapping-google.html
-% http://viavirtualearth.com/vve/Articles/RollYourOwnTileServer.ashx
-% http://a2.ortho.tiles.virtualearth.net/tiles/a120202001322.png?g=22
-% http://kh.google.com/kh?n=404&v=99&t=
-% http://mt.google.com/mt?n=404&v=w2.70&x=
-% set http_proxy=proxy1.si.ualg.pt:8080
-
 	quadkey = {'0' '1'; '2' '3'};				% Default to Virtual Earth
 	prefix = 'http://a0.ortho.tiles.virtualearth.net/tiles/a';
 	
@@ -131,9 +121,6 @@ function  varargout = url2image(opt, varargin)
 			if ( strncmp(varargs{k}, 'cache', 2) )
 				cache = varargs{k+1};
 				if (~isempty(cache) && cache(end) == filesep),		cache(end) = [];	end		% No '/' at the end
-			elseif ( strncmp(varargs{k}, 'toG', 2) )
-				quadkey = {'q' 'r'; 't' 's'};
-				prefix = 'http://kh.google.com/kh?n=404&v=99&t=t';
 			elseif ( strncmp(varargs{k}, 'source', 3) )
 				dumb = varargs{k+1};		msg = [];
 				if (~isa(dumb, 'cell'))
@@ -294,9 +281,7 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 	decimal_adress = getQuadLims([prefix(end) quad], quadkey, 1);		% prefix(end) == 't' || 'a'
 	
 	if ( quadkey{1} ~= '0' && ~isempty(strfind('rh',whatKind)) )		% hiden cat with outside tail
-		prefix = strrep(prefix,'kh','mt');
-		ind = strfind(prefix,'v=');
-		pref_bak = [prefix(1:ind+1) 'w2.70&x='];		% BAK because it may be reused when is 'mosaic'
+		pref_bak = prefix;
 		prefix = [pref_bak sprintf('%d&y=%d&zoom=%d',decimal_adress,18-zoomL)];
 	end
 
@@ -508,16 +493,6 @@ function new_quad = getNext(quad, quadkey, v, h)
 	end
 
 	N = numel(quad);			quad_num = zeros(1, N);		isGI = false;
-% 	if ( double(quad(1)) > 100 )		% A GIm quadtree string
-% 		ind = (quad == 'r');	quad_num(ind) = 1;			% Convert to numeric
-% 		ind = (quad == 's');	quad_num(ind) = 3;
-% 		ind = (quad == 't');	quad_num(ind) = 2;
-% 		isGI = ~isGI;
-% 	else								% Virtual Earth
-% 		ind = (quad == '1');	quad_num(ind) = 1;			% Convert to numeric
-% 		ind = (quad == '3');	quad_num(ind) = 3;
-% 		ind = (quad == '2');	quad_num(ind) = 2;
-% 	end
 	ind = (quad == quadkey{1,2});	quad_num(ind) = 1;		% 1|r 		Convert to numeric
 	ind = (quad == quadkey{2,2});	quad_num(ind) = 3;		% 3|s
 	ind = (quad == quadkey{2,1});	quad_num(ind) = 2;		% 2|t
@@ -537,13 +512,6 @@ function new_quad = getNext(quad, quadkey, v, h)
 	quad_num = bin2dec(new_tile_bin);
 
 	% Now reencode the new numeric quadtree
-% 	if (isGI)
-% 		ind = (quad_num == 0);	new_quad(ind) = 'q';		ind = (quad_num == 1);	new_quad(ind) = 'r';
-% 		ind = (quad_num == 2);	new_quad(ind) = 't';		ind = (quad_num == 3);	new_quad(ind) = 's';
-% 	else
-% 		ind = (quad_num == 0);	new_quad(ind) = '0';		ind = (quad_num == 1);	new_quad(ind) = '1';
-% 		ind = (quad_num == 2);	new_quad(ind) = '2';		ind = (quad_num == 3);	new_quad(ind) = '3';
-% 	end
 	ind = (quad_num == 0);	new_quad(ind) = quadkey{1,1};		ind = (quad_num == 1);	new_quad(ind) = quadkey{1,2};
 	ind = (quad_num == 2);	new_quad(ind) = quadkey{2,1};		ind = (quad_num == 3);	new_quad(ind) = quadkey{2,2};
 
@@ -562,31 +530,9 @@ function [lims, zoomL] = getQuadLims(quad, quadkey, opt)
 	end
 
 	zoomL = numel(quad);		quad_x = zeros(1, zoomL-1);		quad_y = quad_x;
-% 	if (quad(1) == 't')			% GImg quadtree string
-% 		quad = (quad(2:end));
-% 		% MAPPING: For X -> q=0 r=1 s=1 t=0;		For Y -> q=0 r=0 s=1 t=1
-% 		ind = (quad == 'r');		quad_x(ind) = 1;			% Convert to numeric
-% 		ind = (quad == 't');		quad_x(ind) = 0;
-% 		ind = (quad == 's');		quad_x(ind) = 1;
-% 		% Now the y component
-% 		ind = (quad == 'r');		quad_y(ind) = 0;			% Convert to numeric
-% 		ind = (quad == 't');		quad_y(ind) = 1;
-% 		ind = (quad == 's');		quad_y(ind) = 1;
-% 	else						% Virtual Earth quadtree string
-% 		% MAPPING: For X -> 0=0 1=1 3=1 2=0;		For Y -> 0=0 1=0 3=1 2=1
-% 		quad = (quad(2:end));
-% 		ind = (quad == '1');		quad_x(ind) = 1;
-% 		ind = (quad == '2');		quad_x(ind) = 0;
-% 		ind = (quad == '3');		quad_x(ind) = 1;
-% 		% Now the y component
-% 		ind = (quad == '1');		quad_y(ind) = 0;
-% 		ind = (quad == '2');		quad_y(ind) = 1;
-% 		ind = (quad == '3');		quad_y(ind) = 1;
-% 	end
 
 	quad = (quad(2:end));
 	% MAPPING: X -> 0=0 1=1 3=1 2=0;		Y -> 0=0 1=0 3=1 2=1
-	% MAPPING: X -> q=0 r=1 s=1 t=0;		Y -> q=0 r=0 s=1 t=1
 	% x component
 	ind = (quad == quadkey{1,2});	quad_x(ind) = 1;		% Convert to numeric
 	ind = (quad == quadkey{2,1});	quad_x(ind) = 0;
@@ -795,35 +741,4 @@ function meridionalRadius = meridionalRad(a,f)
 	xx3 = xx2 * 5 * 7 / 64;
 	x = xx0 * e2 + ( xx1 * e4 + ( xx2 * e6 + xx3 * e8));
 	meridionalRadius = a * (1 - x);	
-	
 
-function url = GetQuadtreeAddress(long, lat, zoom)
-	% http://intepid.com/2005-07-17/21.50/
-
-	digits = zoom - 1;
-	% now convert to normalized square coordinates
-	% use standard equations to map into mercator projection
-	x = (180.0 + long) / 360.0;
-	y = -lat * pi / 180;		% convert to radians
-	y = 0.5 * log((1+sin(y)) / (1 - sin(y)));
-	y = y / (2 * pi);			% scale factor from radians to normalized 
-	y = y + 0.5;				% and make y range from 0 - 1
-	quad = 't';					% google addresses start with t
-	lookup = 'qrts';			% UL UR BL BR
-	while (digits)			% (post-decrement)
-		% make sure we only look at fractional part
-		x = x - floor(x);
-		y = y - floor(y);
-		indx = 0;
-		if (x >= 0.5),		indx = 1;	end
-		indy = 0;
-		if (y >= 0.5),		indy = 2;	end
-		
-		quad = [quad lookup(indx+indy+1)];
-		% now descend into that square
-		x = x * 2;
-		y = y * 2;
-		digits = digits - 1;
-	end
-	
-	url = ['http://kh.google.com/kh?v=99&n=404&t=' quad];
