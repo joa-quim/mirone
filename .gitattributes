@@ -220,6 +220,7 @@ lib_mex/range_change.dll -text
 lib_mex/read_isf.dll -text
 lib_mex/resampsep.dll -text
 lib_mex/scaleto8.dll -text
+lib_mex/set_gmt.dll -text
 lib_mex/shoredump.dll -text
 lib_mex/surface_m.dll -text
 lib_mex/susan.dll -text
