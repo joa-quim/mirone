@@ -15,10 +15,10 @@ function swans2sww(fname, fname_sww)
 % Here the tsu_time_... grids were created by Mirone-Swan when the "momentum" option was selected
 % Further from these grids this function expects also the the existence of tsu_time_?????_Uh and _Vh
 % which were created by the same process.
-% The file "sub_region_bat.grd" must be created by the use and its size must fit exactly
+% The file "sub_region_bat.grd" must be created by the user and its size must fit exactly
 % that of the tsu_time_... grids.
 %
-% In the above listing filenames have path information. This works as long as the "listfile" file
+% In the above listing filenames do not have path information. This works as long as the "listfile" file
 % resides on the same directory as the grids that will be accessed. Otherwise, gridnames must
 % be preceded by their full path.
 
@@ -49,7 +49,7 @@ function swans2sww(fname, fname_sww)
 		end
 	end
 	
-	handles.grdname = names{1};			% just to have something in this "handles"
+	handles.grdname = names{1};				% just to have something in this "handles"
 	[handles, X,Y,Z,head] = read_gmt_type_grids(handles, names{1});
 	if (isempty(X)),	return,		end		% An error message has already been issued
 	[ny, nx] = size(Z); 
@@ -59,6 +59,7 @@ function swans2sww(fname, fname_sww)
 	nPoints = numel(Z);
 	nc_funs('add_dimension', fname_sww, 'number_of_volumes', nVolumes )
 	nc_funs('add_dimension', fname_sww, 'number_of_vertices', 3 )
+	nc_funs('add_dimension', fname_sww, 'numbers_in_range', 2 )
 	nc_funs('add_dimension', fname_sww, 'number_of_points', nPoints )
 	nc_funs('add_dimension', fname_sww, 'number_of_timesteps', length(names)-1 )
 	
@@ -73,6 +74,9 @@ function swans2sww(fname, fname_sww)
 	nc_funs('addvar', fname_sww, varstruct )
 	varstruct.Name = 'elevation';		varstruct.Nctype = 6;
 	nc_funs('addvar', fname_sww, varstruct )
+	varstruct.Dimension = {'numbers_in_range'};
+	varstruct.Name = 'elevation_range';
+	nc_funs('addvar', fname_sww, varstruct )
 
 	varstruct.Name = 'volumes';		varstruct.Nctype = 4;
 	varstruct.Dimension = {'number_of_volumes' 'number_of_vertices'};
@@ -82,10 +86,13 @@ function swans2sww(fname, fname_sww)
 	nc_funs('addvar', fname_sww, varstruct )
 	varstruct.Name = 'stage';		varstruct.Dimension = {'number_of_timesteps' 'number_of_points'};
 	nc_funs('addvar', fname_sww, varstruct )
-	varstruct.Name = 'xmomentum';
-	nc_funs('addvar', fname_sww, varstruct )
-	varstruct.Name = 'ymomentum';
-	nc_funs('addvar', fname_sww, varstruct )
+	varstruct_range.Dimension = {'numbers_in_range'};
+	varstruct_range.Nctype = 6;
+	varstruct_range.Name = 'stage_range';			nc_funs('addvar', fname_sww, varstruct_range )
+	varstruct.Name = 'xmomentum';					nc_funs('addvar', fname_sww, varstruct )
+	varstruct_range.Name = 'xmomentum_range';		nc_funs('addvar', fname_sww, varstruct_range )
+	varstruct.Name = 'ymomentum';					nc_funs('addvar', fname_sww, varstruct )
+	varstruct_range.Name = 'ymomentum_range';		nc_funs('addvar', fname_sww, varstruct_range )
 	% --------------------------------------------------------------------------------
 
 	% -------------------------- Globals ---------------------------------------------
@@ -107,15 +114,14 @@ function swans2sww(fname, fname_sww)
 	X = X(:) - X(1);
 	Y = flipud(Y(:) - Y(1));
 	[X, Y] = meshgrid(X,Y);
-	Z = double(Z(:)');
+	Z = flipud(Z);
+	Z = Z(:)';
 	nc_funs('varput', fname_sww, 'x', X(:) );
 	nc_funs('varput', fname_sww, 'y', Y(:) );
 	nc_funs('varput', fname_sww, 'z', Z );
 	nc_funs('varput', fname_sww, 'elevation', Z );
-	clear X;
-	clear Y;
-	clear Z;
-	%clear X, Y, Z;
+	nc_funs('varput', fname_sww, 'elevation_range', head(5:6) );
+	clear X Y Z;
 
 	vertices = (reshape(0:(nx*ny-1),ny,nx));
 	volumes = int32( zeros(nVolumes, 3) );
@@ -150,6 +156,7 @@ function swans2sww(fname, fname_sww)
 
 	% --------- Now do the hardcore writing
 	% ----------------------------- STAGE -----------------------------------------
+	minmax = [inf -inf];
 	for (k = 1:nTimes)
 		[pato, nome, ext] = fileparts(names{k});
 		if (isempty(ext)),		thisName = [names{k} '.grd'];
@@ -163,10 +170,15 @@ function swans2sww(fname, fname_sww)
 		if ( any(isnan(Z)) )
 			disp(['swan2sww: Warning, file ' thisName ' has NaNs, which is deadly mortal to ANUGA'])
 		end
+		Z = flipud(Z);
 		nc_funs('varput', fname_sww, 'stage', Z(:)', [k-1 0], [1 nPoints] );
+		minmax(1) = min(minmax(1), head(5));		% Compute global min/max
+		minmax(2) = max(minmax(2), head(6));
 	end
+	nc_funs('varput', fname_sww, 'stage_range', minmax(1:2) );
 
 	% ----------------------------- XMOMENTUM --------------------------------------
+	minmax = [inf -inf];
 	for (k = 1:nTimes)
 		[pato, nome, ext] = fileparts(names{k});
 		if (isempty(ext)),		thisName = [names{k} '_Uh.grd'];
@@ -180,10 +192,15 @@ function swans2sww(fname, fname_sww)
 		if ( any(isnan(Z)) )
 			disp(['swan2sww: Warning, file ' thisName ' has NaNs, which is deadly mortal to ANUGA'])
 		end
+		Z = flipud(Z);
 		nc_funs('varput', fname_sww, 'xmomentum', Z(:)', [k-1 0], [1 nPoints] );
+		minmax(1) = min(minmax(1), head(5));		% Compute global min/max
+		minmax(2) = max(minmax(2), head(6));
 	end
+	nc_funs('varput', fname_sww, 'xmomentum_range', minmax(1:2) );
 
 	% ----------------------------- YMOMENTUM --------------------------------------
+	minmax = [inf -inf];
 	for (k = 1:nTimes)
 		[pato, nome, ext] = fileparts(names{k});
 		if (isempty(ext)),		thisName = [names{k} '_Vh.grd'];
@@ -197,6 +214,9 @@ function swans2sww(fname, fname_sww)
 		if ( any(isnan(Z)) )
 			disp(['swan2sww: Warning, file ' thisName ' has NaNs, which is deadly mortal to ANUGA'])
 		end
+		Z = flipud(Z);
 		nc_funs('varput', fname_sww, 'ymomentum', Z(:)', [k-1 0], [1 nPoints] );
+		minmax(1) = min(minmax(1), head(5));		% Compute global min/max
+		minmax(2) = max(minmax(2), head(6));
 	end
-
+	nc_funs('varput', fname_sww, 'ymomentum_range', minmax(1:2) );
