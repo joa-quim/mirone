@@ -387,6 +387,7 @@ utils/InOut2WS.m -text
 utils/abifile.m -text
 utils/add_poles.m -text
 utils/addframe_j.m -text
+utils/aguentabar.m -text
 utils/ancestor.m -text
 utils/applylutc.dll -text
 utils/area_geo.m -text
