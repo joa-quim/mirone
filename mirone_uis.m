@@ -1,13 +1,13 @@
 function [h1,handles,home_dir] = mirone_uis(home_dir)
 % --- Creates and returns a handle to the GUI MIRONE figure. 
 %#function pan resetplotview igrf_options rally_plater plate_calculator gmtedit ecran snapshot
-%#function about_box parker_stuff plate_calculator euler_stuff grid_calculator tableGUI imageResize
+%#function about_box parker_stuff plate_calculator euler_stuff grid_calculator tableGUI
 %#function datasets_funs earthquakes manual_pole_adjust compute_euler focal_meca srtm_tool atlas
 %#function image_enhance image_adjust datasets_funs write_gmt_script vitrinite telhometro mpaint
-%#function imcapture filter_funs overview imageResize classificationFig tfw_funs tsunamovie mirone_pref
+%#function imcapture filter_funs overview imageresize classificationfig tfw_funs tsunamovie mirone_pref
 %#function griding_mir grdfilter_mir grdsample_mir grdtrend_mir grdgradient_mir ml_clip show_palette 
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
-%#function view_anuga mxgridtrimesh
+%#function mxgridtrimesh aquamoto tiles_tool
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -302,8 +302,8 @@ uimenu('Parent',h9,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Corners'')','L
 
 uimenu('Parent',h54,'Label','entry_sh');
 uimenu('Parent',h54,'Call','mpaint(gcf)','Label','Paint Brush');
-uimenu('Parent',h54,'Call','classificationFig(gcf);','Label','K-means classification');
-uimenu('Parent',h54,'Call','imageResize(gcf)','Label','Image resize','Sep','on');
+uimenu('Parent',h54,'Call','classificationfig(gcf);','Label','K-means classification');
+uimenu('Parent',h54,'Call','imageresize(gcf)','Label','Image resize','Sep','on');
 uimenu('Parent',h54,'Call','mirone(''RotateTool_CB'',guidata(gcbo),''image'')','Label','Image rotation');
 
 h9 = uimenu('Parent',h54,'Label','Image mode');
@@ -358,7 +358,8 @@ hVG(kv) = uimenu('Parent',h76,'Call','gmtedit','Label','gmtedit');	kv = kv + 1;
 uimenu('Parent',h76,'Call','rally_plater','Label','Rally Plater');
 uimenu('Parent',h76,'Label','entry_vtr','Sep','on');
 uimenu('Parent',h76,'Label','entry_tsm','Sep','on');
-uimenu('Parent',h76,'Call','view_anuga(guidata(gcbo))','Label','View ANUGA .sww','Sep','on');
+uimenu('Parent',h76,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
+uimenu('Parent',h76,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',h76,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
 
 % --------------------------- DRAW MENU ------------------------------------
@@ -658,6 +659,7 @@ uimenu('Parent',h240,'Call','datasets_funs(''ODP'',guidata(gcbo),''ODP_DSDP'')',
 uimenu('Parent',h113,'Call','draw_funs([],''MagBarCode'')','Label','Mgnetic Bar Code');
 uimenu('Parent',h113,'Call','atlas(guidata(gcbo))','Label','Atlas','Tag','Atlas','Sep','on');
 uimenu('Parent',h113,'Call','datasets_funs(''Isochrons'',guidata(gcbo),[])','Label','External db','Sep','on');
+% uimenu('Parent',h113,'Call','datasets_funs(''GTiles'', guidata(gcbo))','Label','GTiles Map','Sep','on');
 
 % --------------------------- GEOPHYSICS MENU ------------------------------------
 h247 = uimenu('Parent',h1,'Label','Geophysics','Tag','Geophysics');
@@ -770,10 +772,10 @@ projection_menu(h1, home_dir)
 
 % --------------------------- HELP MENU ------------------------------------
 h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
-uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.2.0)');
+uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.2.3)');
 uimenu('Parent',h9, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 uimenu('Parent',h9,...
-'Call','about_box(guidata(gcbo),''Mirone Last modified at 10 November 2007'',''1.2.1'')','Label','About','Sep','on');
+'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 January 2008'',''1.3.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(h1);
@@ -789,7 +791,8 @@ uimenu('Parent',h9,...
 % --------------------------------------------------------------------------------------------------
 % We need this function also when the pixval_stsbar got stucked
 function refresca(obj,eventdata)
-    set(get(0,'CurrentFigure'),'Pointer','arrow');     refresh
+	hFig = get(0,'CurrentFigure');
+    set(hFig,'Pointer','arrow');     refresh(hFig)
 
 % --------------------------------------------------------------------------------------------------
 function showGDALdrivers(hObj,event)
@@ -805,11 +808,11 @@ function figure1_KeyPressFcn(hObj, event)
 	handles = guidata(hObj);
 	if (handles.no_file),	return,		end
 	if isequal(get(hObj,'CurrentCharacter'),'+')
-        zoom_j(hObj,2,[]);
+		zoom_j(hObj,2,[]);
 	elseif isequal(get(hObj,'CurrentCharacter'),'-')
-        zoom_j(hObj,0.5,[]);
+		zoom_j(hObj,0.5,[]);
 	end
-    hSliders = getappdata(handles.axes1,'SliderAxes');
+	hSliders = getappdata(handles.axes1,'SliderAxes');
 	if (~isempty(hSliders) && strcmp( get(hSliders(1),'Vis'),'on' ) )	% If (1) is visible so is the other
 		CK = get(hObj,'CurrentKey');
 		if (strcmp(CK,'rightarrow') || strcmp(CK,'leftarrow'))
