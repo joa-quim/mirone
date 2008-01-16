@@ -31,11 +31,13 @@
 		04-11-2007	Fixed momentum ouput bug (negatives were being set to zero)
 				Water heights < 5e-3 = 0
 				Killed many gotos in bndy_()
+		03-01-2008	Added output to ANUGA and MOST formats (netCDF)
  *
  *	version WITHOUT waitbar
  */
 
 #include "mex.h"
+#include <netcdf.h>
 #include <float.h>
 #include <math.h>
 
@@ -89,28 +91,41 @@ void no_sys_mem (char *where, int n);
 int count_col (char *line);
 int read_grd_info_ascii (char *file, struct srf_header *hdr);
 int read_header_bin (FILE *fp, struct srf_header *hdr);
-int write_grd_bin(char *name, double x_min, double y_min, double x_inc, double y_inc, int i_start, int j_start, int i_end, int j_end, int nX, float *work);
+int write_grd_bin(char *name, double x_min, double y_min, double x_inc, double y_inc, int i_start, 
+		int j_start, int i_end, int j_end, int nX, float *work);
 int read_grd_ascii (char *file, struct srf_header *hdr, double *work);
 int read_grd_bin (char *file, struct srf_header *hdr, double *work);
 int read_params(char *file);
 int read_maregs(char *file);
 int count_n_maregs(char *file);
-int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, double *vn, double *h, double *hn, double *dxp, double *cca);
-int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, double *vn, double *h, double *hn, double *dxp);
+int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, double *vn, double *h, 
+		double *hn, double *dxp, double *cca, double m_per_deg);
+int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, double *vn, double *h, 
+		double *hn, double *dxp);
 void max_z (double *zm, double *h_bak);
 void change (double *h, double *h_bak);
 int decode_R (char *item, double *w, double *e, double *s, double *n);
 int check_region (double w, double e, double s, double n);
 double ddmmss_to_degree (char *text);
+void err_trap(int status);
+void write_most_slice(int *ncid_most, int *ids_most, int i_start, int j_start, int i_end, int j_end,
+		int nX, float *work, double *h, double *dep, double *u, double *v, float *tmp,
+		size_t *start, size_t *count);
+int open_most_nc (char *basename, char *name_var, int *ids, int nx, int ny, 
+		double dtx, double dty, double xMinOut, double yMinOut);
+int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_end, int j_end, 
+		int nX, double dtx, double dty, double *dep, double xMinOut, double yMinOut, 
+		float z_min, float z_max);
+void write_anuga_slice(int ncid, int z_id, int i_start, int j_start, int i_end, int j_end, int nX, 
+		float *work, double *h, double *dep, double *u, double *v, float *tmp,
+		size_t *start, size_t *count, float *slice_range, int idx);
 
 typedef int BOOLEAN;              /* BOOLEAN used for logical variables */
-int	ip, jp, polar, dumb, indl, indb, indr, indt, iopt;
+int	ip, jp, polar, indl, indb, indr, indt, iopt;
 int	ip1, jp1, ip2, jp2, grn, cumint, *lcum_p;
-float	grav = (float)9.8, m_per_deg = (float)111317.1;
 double	dx, dy, dt, cf, cc, sfx, sfy, time_h, rough;
 double	pistal, pistbl, pistab, pistbb, pistar, pistbr, pistat, pistbt;
 double	dangx, dangy, *anglt;
-char	*fonte;			/* Name pointer for tsunami source file */
 BOOLEAN first_in_uvh = TRUE;
 struct	srf_header hdr_b;
 struct	srf_header hdr_f;
@@ -123,27 +138,36 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	float	*work, dz, *ptr_mov_32, *mov_32, *time_p;
 	float	work_min = FLT_MAX, work_max = -FLT_MAX;
 	double	*inicial, *r, *rn, *u, *un, *v, *vn, *h, *h_bak, *hn, *zm;
-	double	*dxp, *xpp, *cca, x, y, small = 1e-6;
+	double	*dxp, *xpp, *cca, x, y, small = 1e-6, m_per_deg = 111317.1;
 	double	x_min, y_min, dminx, dminy, dtx, dty, *head, *tmp;
-	double	*dep, *dep1, *cum_p, cang, angltt;
+	double	*dep, *dep1, *cum_p, cang, angltt, dumb;
 	double	x_inc, y_inc, x_tmp, y_tmp;		/* Used in the maregs positiojn test */
+	double	*ptr, *ptr1, *h_bar, tmp_ptr[1];	/* Pointers to be used in the waitbar */
 	double	dfXmin = 0.0, dfYmin = 0.0, dfXmax = 0.0, dfYmax = 0.0, xMinOut, yMinOut;
-	int	i, i2, j, k, ix, jy, ncl, lcum, n_mareg, n_ptmar, cycle;
+	double	time_jump = 0, time0, time_for_anuga;
+	int	i, j, i2, ij, k, ix, jy, ncl, lcum, n_mareg, n_ptmar, cycle;
 	int	i_start, j_start, i_end, j_end;
 	int	w_bin = TRUE, cumpt = FALSE, error = FALSE;
+	int	first_anuga_time = TRUE, out_sww = FALSE, out_most = FALSE;
 	int	r_bin_b, r_bin_f, surf_level = TRUE, max_level = FALSE, water_depth = FALSE;
 	int	argc, n_arg_no_char = 0, nx, ny, dims[3], n_frames = 0;
+	int	ncid, ncid_most[3], z_id = -1, ids[13], ids_ha[6], ids_ua[6], ids_va[6], ids_most[3];
 	int	n_of_cycles = 1010;	/* Numero de ciclos a calcular */
 	char	*bathy = NULL;		/* Name pointer for bathymetry file */
 	char 	*params = NULL;		/* Name pointer for parameters file */
 	char 	*hcum = NULL;		/* Name pointer for cumulative hight file */
 	char 	*maregs = NULL;		/* Name pointer for maregraph positions file */
+	char 	*fname_sww = NULL;	/* Name pointer for Anuga's .sww file */
+	char 	*basename_most = NULL;	/* Name pointer for basename of MOST .nc files */
+	char	*fonte = NULL;		/* Name pointer for tsunami source file */
 	char	stem[80], prenome[128];
 	char	**argv;
 	unsigned char	*ptr_mov_8, *mov_8, *mov_8_tmp;
 	BOOLEAN	params_in_input = FALSE, bat_in_input = FALSE, source_in_input = FALSE;
 	BOOLEAN	write_grids = FALSE, movie = FALSE, movie_char = FALSE, movie_float = FALSE;
 	BOOLEAN	maregs_in_input = FALSE, out_velocity =	FALSE, out_momentum = FALSE, got_R = FALSE;
+	size_t	start0 = 0, count0 = 1, start1_A[2] = {0,0}, count1_A[2], start1_M[3] = {0,0,0}, count1_M[3];
+	float	stage_range[2], xmom_range[2], ymom_range[2], *tmp_slice;
 	FILE	*fp;
 
 	movie_char = TRUE;	/* temporary */
@@ -153,7 +177,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	hcum = "maregs.dat";
 	fonte = "fonte.grd";
 	maregs = "mareg.xy";
-	
+
 	argc = nrhs;
 	for (i = 0; i < nrhs; i++) {		/* Check input to find how many arguments are of type char */
 		if(!mxIsChar(prhs[i])) {
@@ -218,7 +242,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		tmp = mxGetPr(prhs[5]);
 		n_mareg = mxGetM(prhs[5]);
 		dx = head[7];		dy = head[8];
-		lcum_p = (int *) calloc ((size_t)(n_mareg), sizeof(int));
+		lcum_p = (int *) mxCalloc ((size_t)(n_mareg), sizeof(int));
 		for (i = 0; i < n_mareg; i++) {
 			x = tmp[i];		y = tmp[i+n_mareg];	/* Matlab vectors are stored by columns */
 			lcum_p[i] = (irint((y - hdr_b.y_min) / dy) ) * hdr_b.nx + irint((x - hdr_b.x_min) / dx);
@@ -228,7 +252,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	/* get the length of the input string */
-	argv=(char **)mxCalloc(argc, sizeof(char *));
+	argv = (char **)mxCalloc(argc, sizeof(char *));
 	for (i = 0; i < argc; i++)
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char]);
 
@@ -244,6 +268,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'm':	/* Movie */
 					movie = TRUE;
 					break;
+				case 'n':	/* Write MOST files (*.nc) */
+					basename_most  = &argv[i][2];
+					out_most = TRUE;
+					break;
+				case 'A':	/* Name for the Anuga .sww netCDF file */
+					fname_sww  = &argv[i][2];
+					out_sww = TRUE;
+					break;
 				case 'B':	/* File with batymetry */
 					bathy  = &argv[i][2];
 					break;
@@ -258,11 +290,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					write_grids = TRUE;
 					strcpy (stem, &argv[i][2]);
 					break;
+				case 'J':
+					sscanf (&argv[i][2], "%f", &time_jump);
+					break;
 				case 'M':
 					max_level = TRUE;
 					surf_level = FALSE;
 					break;
-				case 'N':	/* Numero de ciclos a calcular */
+				case 'N':	/* Number of cycles to compute */
 					n_of_cycles = atoi(&argv[i][2]);
 					break;
 				case 'O':	/* File name for maregraph data */
@@ -292,9 +327,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (argc == 0 || error) {
 		mexPrintf ("SWAN - Um gerador de tsunamis\n\n");
-		mexPrintf( "usage: swan [-B<bathy>] [-F<fonte>] [-M] [-N<n_cycles>] [-Rw/e/s/n] [-S] [-s] [-T<mareg>] [-D]\n");
+		mexPrintf( "usage: swan(bat,hdr_bat,deform,hdr_deform,params, [maregs], [-G|A|n<name>], [-B<bathy>] [-F<fonte>] [-M] [-N<n_cycles>] [-Rw/e/s/n] [-S] [-s] [-T<mareg>] [-D]\n");
 		mexPrintf ("\t-m outputs a 3D grid used to do a movie\n");
-		mexPrintf ("\t-B name of bathymetry file (default lap.grd)\n");
+		mexPrintf ("\t-A name of ANUGA file\n");
+		mexPrintf ("\t-n basename for MOST triplet files (no extension)\n");
+		mexPrintf ("\t-B name of bathymetry file. In case it was not transmited in input.\n");
 		mexPrintf ("\t-D write grids with the total water depth\n");
 		mexPrintf ("\t-F name of source file (default fonte.grd)\n");
 		mexPrintf ("\t-G<stem> write grids at the grn intervals. Append file prefix. Files will be called <stem>#.grd\n");
@@ -308,9 +345,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (error) return;
 
-	if (!params_in_input) {			/* If params where not given, read them from file */
+	if (!params_in_input) 		/* If params where not given, read them from file */
 		read_params(params);
-	}
+
 	if (!bat_in_input) {			/* If bathymetry & source where not given as arguments, load them */
 		r_bin_b = read_grd_info_ascii (bathy, &hdr_b);	/* Para saber como alocar a memoria */
 		r_bin_f = read_grd_info_ascii (fonte, &hdr_f);	/* e verificar se as grelhas sao compativeis */
@@ -333,10 +370,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 		if (error) return;
 	}
-	if (!write_grids && !movie && !cumpt) {
+
+	if ( !(write_grids || out_sww || out_most || movie || cumpt) ) {
 		mexPrintf("Nothing selected for output (grids, movie or mregraphs), exiting\n");
 		return;
 	}
+	if ( water_depth && (out_sww || out_most) ) {
+		water_depth = FALSE;
+		mexPrintf("SWAN WARNING: Total water option is not compatible with ANUGA|MOST outputs. Ignoring\n");
+	}
+	if (out_momentum && (out_sww || out_most)) out_momentum = FALSE;
+	if (out_velocity && (out_sww || out_most)) out_velocity = FALSE;
 
 	/* dminx and dminy must be in minutes, but dx and dy in meters */
 	if (polar == 0) m_per_deg = 1.;
@@ -349,9 +393,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	ip = ip2 - 2;	jp = jp2 - 2;	/* in original fortran version ip2 = ip + 2 */
 	ip1 = ip + 1;	jp1 = jp + 1;
 	ncl = ip2 * jp2;
-	if (cumpt && !maregs_in_input) {
+	if (cumpt && !maregs_in_input)
 		n_mareg = count_n_maregs(maregs);	/* Count maragraphs number */
-	}
+
 	if (cumpt) {
 		n_ptmar = n_of_cycles / cumint + 1;
 		if ((fp = fopen (hcum, "w")) == NULL) {
@@ -362,58 +406,55 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* Allocate memory	*/
 	if (!bat_in_input) {	/* Bathymetry & Source will be read from files. So need to alloc */
-		if ((inicial = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+		if ((inicial = (double *) mxMalloc ((size_t)(ncl) * sizeof(double)) ) == NULL) 
 			{no_sys_mem("swan --> (inicial)", ncl);	return;}
 	}
-	if ((dep = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
+	if ((dep = (double *) mxCalloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (dep)", ncl);	return;}
-	if ((work = (float *) calloc ((size_t)(ncl),	sizeof(float)) ) == NULL) 
+	if ((work = (float *) mxCalloc ((size_t)(ncl),	sizeof(float)) ) == NULL) 
 		{no_sys_mem("swan --> (work)", ncl);	return;}
-	if ((r = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
+	if ((r = (double *) mxCalloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (r)", ncl);	return;}
-	if ((rn = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
+	if ((rn = (double *) mxCalloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (rn)", ncl);	return;}
-	if ((u = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
+	if ((u = (double *) mxCalloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (u)", ncl);	return;}
-	if ((un = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
+	if ((un = (double *) mxCalloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (un)", ncl);	return;}
-	if ((v = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
+	if ((v = (double *) mxCalloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (v)", ncl);	return;}
-	if ((vn = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
+	if ((vn = (double *) mxCalloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (vn)", ncl);	return;}
-	if ((h = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
+	if ((h = (double *) mxCalloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (h)", ncl);	return;}
-	if ((hn = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
+	if ((hn = (double *) mxCalloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (hn)", ncl);	return;}
-	if ((dxp = (double *) calloc ((size_t)(ncl+1),	sizeof(double)) ) == NULL) 
+	if ((dxp = (double *) mxCalloc ((size_t)(ncl+1),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (dxp)", ncl);	return;}
-	if ((cca = (double *) calloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
-		{no_sys_mem("swan --> (cca)", ncl);	return;}
-	if ((anglt = (double *) calloc ((size_t)(jp2),	sizeof(double)) ) == NULL) 
+	if ((anglt = (double *) mxCalloc ((size_t)(jp2),	sizeof(double)) ) == NULL) 
 		{no_sys_mem("swan --> (anglt)", jp2);	return;}
 	/*if (polar != 0) {
-		if ((xpp = (double *) calloc ((size_t)(ncl+1), sizeof(double)) ) == NULL) 
+		if ((xpp = (double *) mxCalloc ((size_t)(ncl+1), sizeof(double)) ) == NULL) 
 			{no_sys_mem("swan --> (xpp)", ncl);	return;}
 	} */
 	if (max_level) {
-		/* Not shure that h_bak is necessary */
-		if ((h_bak = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+		if ((h_bak = (double *) mxCalloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
 			{no_sys_mem("swan --> (h_bak)", ncl);	return;}
-		if ((zm = (double *) calloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
+		if ((zm = (double *) mxCalloc ((size_t)(ncl), sizeof(double)) ) == NULL) 
 			{no_sys_mem("swan --> (zm)", ncl);	return;}
 	}
 	if (cumpt && !maregs_in_input) {
-		if ((lcum_p = (int *) calloc ((size_t)(n_mareg), sizeof(int)) ) == NULL) 
+		if ((lcum_p = (int *) mxCalloc ((size_t)(n_mareg), sizeof(int)) ) == NULL) 
 			{no_sys_mem("swan --> (lcum_p)", n_mareg);	return;}
-		if ((cum_p = (double *) calloc ((size_t)(n_mareg*n_ptmar), sizeof(double)) ) == NULL) 
+		if ((cum_p = (double *) mxCalloc ((size_t)(n_mareg*n_ptmar), sizeof(double)) ) == NULL) 
 			{no_sys_mem("swan --> (cum_p)", n_mareg*n_ptmar);	return;}
-		if ((time_p = (float *) calloc ((size_t)(n_ptmar), sizeof(float)) ) == NULL) 
+		if ((time_p = (float *) mxCalloc ((size_t)(n_ptmar), sizeof(float)) ) == NULL) 
 			{no_sys_mem("swan --> (time_p)", n_ptmar);	return;}
 	}
 	if (cumpt && maregs_in_input) {		/* lcum_p is already allocated and filled */
-		if ((cum_p = (double *) calloc ((size_t)(n_mareg*n_ptmar), sizeof(double)) ) == NULL) 
+		if ((cum_p = (double *) mxCalloc ((size_t)(n_mareg*n_ptmar), sizeof(double)) ) == NULL) 
 			{no_sys_mem("swan --> (cum_p)", n_mareg*n_ptmar);	return;}
-		if ((time_p = (float *) calloc ((size_t)(n_ptmar), sizeof(float)) ) == NULL) 
+		if ((time_p = (float *) mxCalloc ((size_t)(n_ptmar), sizeof(float)) ) == NULL) 
 			{no_sys_mem("swan --> (time_p)", n_ptmar);	return;}
 	}
 
@@ -438,8 +479,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/* Transpose the inicial array from Matlab orientation to scanline orientation */
 	for (i = 0; i < ny; i++) {
 		for (j = 0; j < nx; j++) {
-			h[i*nx+j] = inicial[j*ny+i];
-			hn[i*nx+j] = inicial[j*ny+i];
+			dumb = inicial[j*ny+i];		ij = i*nx+j;
+			h[ij] = dumb;
+			hn[ij] = dumb;
 		}
 	}
 
@@ -464,15 +506,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		for (i = 0; i < jp1; i++) {
 			if (polar > 0) anglt[i+1] = anglt[i] + dangy;
 			if (polar < 0) anglt[i+1] = anglt[i] - dangy;
-			if (polar < 0 && anglt[i+1] < 0.) goto L54;
-			angltt = anglt[i] * D2R;
-			cang = cos(angltt);
-			if (polar == 2) anglt[i+1] = anglt[i] + dangy * cang;
-			goto L53;
-L54:
-			polar = 1;
-			anglt[i+1] = anglt[i] + dangy;
-L53:;
+			if (polar < 0 && anglt[i+1] < 0.) {
+				polar = 1;
+				anglt[i+1] = anglt[i] + dangy;
+			}
+			else {
+				angltt = anglt[i] * D2R;
+				cang = cos(angltt);
+				if (polar == 2) anglt[i+1] = anglt[i] + dangy * cang;
+			}
 		}
 		/*    make dxp array */
 		for (j = i = 0; j < jp2; j++) {
@@ -485,18 +527,25 @@ L53:;
 			/*xpp[i] = 0.;*/
 		}
 		dxp[0] = dxp[1];	 /* dxp(0) needs to be set to non-zero */
-		/*free ((void *) xpp);*/
+		/*mxFree ((void *) xpp);*/
 	}
-	for (i = 0; i < ncl; i++) {
-		cca[i] = cc;
-		if (polar == 0) dxp[i] = dx;	/* Do not set if polar */
+	else {
+		for (i = 0; i < ncl; i++)
+			dxp[i] = dx;		/* Do not set if polar */
+	}
+
+	if ( cc != 0.) {
+		if ((cca = (double *) mxCalloc ((size_t)(ncl),	sizeof(double)) ) == NULL) 
+			{no_sys_mem("swan --> (cca)", ncl);	return;}
+		for (i = 0; i < ncl; i++)
+			cca[i] = cc;
 	}
 
 	dtx = (polar == 0) ? dx : dangx;	/* If polar == 0 dx and dy are already in meters */
 	dty = (polar == 0) ? dy : dangy;	/* like they must be. Otherwise, they are in degrees */
 	lcum = 0;	cycle = 1;	time_h = 0.;
 
-	/* Declarations for the (if) movie option */
+	/* ---------------- Declarations for the (if) movie option ------------------ */
 	if (movie && movie_char) {
 		mov_8 = mxCalloc(ncl, sizeof(char));
 		mov_8_tmp = mxCalloc(ncl, sizeof(char));
@@ -512,12 +561,14 @@ L53:;
 	}
 
 	/* ----------------- Compute vars to use if write grids --------------------- */
-	if (!got_R && (write_grids || out_velocity || out_momentum) ) {	/* Write grids over the whole region */
+	if (!got_R && (write_grids || out_velocity || out_momentum || out_sww || out_most) ) {	
+		/* Write grids over the whole region */
 		i_start = 0;		i_end = ip2;
 		j_start = 0;		j_end = jp2;
 		xMinOut = x_min;	yMinOut = y_min;
 	}
-	else if (got_R && (write_grids || out_velocity || out_momentum) ) {	/* Write grids in sub-region */
+	else if (got_R && (write_grids || out_velocity || out_momentum || out_sww || out_most) ) {	
+		/* Write grids in sub-region */
 		i_start = irint((dfXmin - hdr_b.x_min) / dtx);
 		j_start = irint((dfYmin - hdr_b.y_min) / dty); 
 		i_end   = irint((dfXmax - hdr_b.x_min) / dtx) + 1;
@@ -527,12 +578,52 @@ L53:;
 	}
 	/* ---------------------------------------------------------------------- */
 
-	for (k = 0; k < n_of_cycles; k++) {
-		if (cycle % 10 == 0) {
-			mexPrintf("SWAN: Computed %.2d %%\r",(int)((double)k/(double)n_of_cycles * 100));
-		}
+	if (out_sww) {
+		/* ----------------- Open a ANUGA netCDF file for writing --------------- */
+		ncid = open_anuga_sww (fname_sww, ids, i_start, j_start, i_end, j_end, ip2,
+		dtx, dty, dep, xMinOut, yMinOut, (float)hdr_b.z_min, (float)hdr_b.z_max);
+		if (ncid == -1)
+			mexErrMsgTxt ("SWAN: failure to create ANUGA SWW file.\n");
 
-		uvh_(dep, r, rn, u, un, v, vn, h, hn, dxp, cca);
+		/* To be used when writing the data slices */
+		count1_A[0] = 1;	count1_A[1] = (i_end - i_start) * (j_end - j_start);
+
+		stage_range[0] = xmom_range[0] = ymom_range[0] = FLT_MAX;
+		stage_range[1] = xmom_range[1] = ymom_range[1] = -FLT_MIN;
+
+		tmp_slice = (float *) mxMalloc (sizeof(float) * (nx * ny));	/* To use inside slice writing */
+	}
+
+	if (out_most) {
+		/* ----------------- Open a 3 MOST netCDF files for writing ------------- */
+		int nx, ny;
+		nx = i_end - i_start;		ny = j_end - j_start;
+		ncid_most[0] = open_most_nc (basename_most, "HA", ids_ha, nx, ny, dtx, dty, xMinOut, yMinOut);
+		ncid_most[1] = open_most_nc (basename_most, "UA", ids_ua, nx, ny, dtx, dty, xMinOut, yMinOut);
+		ncid_most[2] = open_most_nc (basename_most, "VA", ids_va, nx, ny, dtx, dty, xMinOut, yMinOut);
+
+		if (ncid_most[0] == -1 || ncid_most[1] == -1 || ncid_most[2] == -1)
+			mexErrMsgTxt ("SWAN: failure to create one or more of the MOST files\n");
+
+		ids_most[0] = ids_ha[5];	/* IDs of the Amp, Xmom & Ymom vriables */
+		ids_most[1] = ids_ua[5];
+		ids_most[2] = ids_va[5];
+
+		/* To be used when writing the data slices */
+		count1_M[0] = 1;	count1_M[1] = ny;	count1_M[2] = nx;
+
+		if (!out_sww)
+			tmp_slice = (float *)mxMalloc (sizeof(float) * (nx * ny));	/* To use inside slice writing */ 
+	}
+
+	/* ---------------------------------------------------------------------- */
+	if (time_jump == 0) time_jump = -1;	/* Trick to allow writing zero time grids when jump was not demanded */
+
+	for (k = 0; k < n_of_cycles; k++) {
+		if (cycle % 10 == 0)
+			mexPrintf("SWAN: Computed %.2d %%\r",(int)((double)k/(double)n_of_cycles * 100));
+
+		uvh_(dep, r, rn, u, un, v, vn, h, hn, dxp, cca, m_per_deg);
 
 		if (max_level) {
 			change(h, h_bak);	max_z(zm, h_bak);
@@ -546,7 +637,7 @@ L53:;
 				lcum++;
 			}
 		}
-		if ((k % grn) == 0 || k == n_of_cycles - 1) {
+		if ( time_h > time_jump && ( (k % grn) == 0 || k == n_of_cycles - 1) ) {
 			if (surf_level) {
 				for (i = 0; i < ncl; i++)
 					work[i] = (float) h[i];
@@ -566,14 +657,13 @@ L53:;
 					work_min = MIN(work[i], work_min);
 				}
 				dz = work_max - work_min;
-				for (i = 0; i < ncl; i++) {
+				for (i = 0; i < ncl; i++)
 					mov_8_tmp[i] = (unsigned char)( ((work[i] - work_max) / dz) * 254 + 1);
-				}
+
 				/* Transpose to matlab ordering */
 				for (i = 0, i2 = ny - 1; i < ny; i++, i2--)
 				for (j = 0; j < nx; j++) mov_8[j*ny+i2] = mov_8_tmp[i*nx+j];
 
-				/*mexPrintf("n_frames = %d\tplanos = %d\n",n_frames,dims[2]); */
 				memcpy(ptr_mov_8, mov_8, ncl);
 				ptr_mov_8 += ncl;
 				n_frames++;
@@ -594,7 +684,6 @@ L53:;
 				else
 					sprintf (prenome, "%s%.5d.grd", stem, irint(time_h) );
 				write_grd_bin( prenome, xMinOut, yMinOut, dtx, dty, i_start, j_start, i_end, j_end, ip2, work);
-				mexPrintf ("\t\t\t\tWrote grelha %d\n", (int)time_h);
 			}
 			if (out_velocity) {
 				if (stem[0] == 0)
@@ -638,10 +727,55 @@ L53:;
 				write_grd_bin( strcat(prenome,"_Vh.grd"), xMinOut, yMinOut, dtx, dty, 
 						i_start, j_start, i_end, j_end, ip2, work);
 			}
+
+			if (out_sww) {
+				if (first_anuga_time) {
+					time0 = time_h;
+					first_anuga_time = FALSE;
+				}
+				time_for_anuga = time_h - time0;	/* I think ANUGA wants time starting at zero */
+				err_trap (nc_put_vara_double (ncid, ids[6], &start0, &count0, &time_for_anuga));
+
+				write_anuga_slice(ncid, ids[7], i_start, j_start, i_end, j_end, ip2, work,
+						h, dep, u, v, tmp_slice, start1_A, count1_A, stage_range, 1);
+				write_anuga_slice(ncid, ids[9], i_start, j_start, i_end, j_end, ip2, work,
+						h, dep, u, v, tmp_slice, start1_A, count1_A, xmom_range, 2);
+				write_anuga_slice(ncid, ids[11],i_start, j_start, i_end, j_end, ip2, work,
+						h, dep, u, v, tmp_slice, start1_A, count1_A, ymom_range, 3);
+
+				start1_A[0]++;		/* Increment for the next slice */
+			}
+
+			if (out_most) {
+				/* Here we'll use the start0 computed above */
+				err_trap (nc_put_vara_double (ncid_most[0], ids_ha[4], &start0, &count0, &time_h));
+				err_trap (nc_put_vara_double (ncid_most[1], ids_ua[4], &start0, &count0, &time_h));
+				err_trap (nc_put_vara_double (ncid_most[2], ids_va[4], &start0, &count0, &time_h));
+
+				write_most_slice(ncid_most, ids_most, i_start, j_start, i_end, j_end, ip2, 
+					work, h, dep, u, v, tmp_slice, start1_M, count1_M);
+				start1_M[0]++;		/* Increment for the next slice */
+			}
+
+			start0++;			/* Only used with netCDF formats */
 		}
 		time_h += dt;
 		cycle++;
 	}
+
+	if (out_sww) {		/* Uppdate range values and close SWW file */
+		err_trap (nc_put_var_float (ncid, ids[8], stage_range));
+		err_trap (nc_put_var_float (ncid, ids[10], xmom_range));
+		err_trap (nc_put_var_float (ncid, ids[12], ymom_range));
+		err_trap(nc_close (ncid)); 
+	}
+
+	if (out_most) {		/* Close MOST files */
+		err_trap(nc_close (ncid_most[0])); 
+		err_trap(nc_close (ncid_most[1])); 
+		err_trap(nc_close (ncid_most[2])); 
+	}
+	if (out_sww || out_most) mxFree ((void *)tmp_slice);
 
 	/*     WRITE THE OUTPUT ON FILE CUMHT */
 	if (cumpt) {
@@ -654,29 +788,35 @@ L53:;
 	}
 	/* Clean up allocated memory. */
 	if (movie && movie_char) {
-		mxFree(mov_8);	mxFree(mov_8_tmp);
+		mxFree((void *)mov_8);	mxFree((void *)mov_8_tmp);
 	}
 
-	if (movie && movie_float) mxFree(mov_32);
+	if (movie && movie_float) mxFree((void *)mov_32);
 
 	if (cumpt) fclose (fp);
 	if (!source_in_input)
-		free ((void *) inicial);
+		mxFree ((void *) inicial);
 
-	free ((void *) work);	free ((void *) dep);	free ((void *) r);
-	free ((void *) h);	free ((void *) rn);	free ((void *) u);
-	free ((void *) un);	free ((void *) vn);	free ((void *) hn);
-	free ((void *) dxp);	free ((void *) cca);	free ((void *) anglt);
+	mxFree ((void *) work);	mxFree ((void *) dep);	mxFree ((void *) r);
+	mxFree ((void *) h);	mxFree ((void *) rn);	mxFree ((void *) u);
+	mxFree ((void *) un);	mxFree ((void *) vn);	mxFree ((void *) hn);
+	mxFree ((void *) dxp);	mxFree ((void *) anglt);
 	if (max_level) {
-		free ((void *) zm);	free ((void *) h_bak); 
+		mxFree ((void *) zm);	mxFree ((void *) h_bak); 
 	}
 	if (cumpt) {
-		free ((void *) lcum_p);	free((void *) cum_p);	free ((void *) time_p);	 
+		mxFree ((void *) lcum_p);	mxFree((void *) cum_p);	mxFree ((void *) time_p);	 
 	}
+	if (cc != 0.) mxFree ((void *) cca);
 }
 
 /* --------------------------------------------------------------------------- */
+void err_trap(int status) {
+	if (status != NC_NOERR)	
+		mexPrintf ("swan: error and errorcode = %d\n", status);
+}
 
+/* --------------------------------------------------------------------------- */
 int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, double *vn,
 	  double *h, double *hn, double *dxp) {
 
@@ -687,12 +827,12 @@ int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, 
 	/*     left boundary */
 	for (j = 1; j < jp2; j++) {
 		ij_0j = ij(0,j);	ij_1j = ij(1,j);	ij_2j = ij(2,j);
-		tmp = d_sqrt (grav * dep[ij_0j]);
+		tmp = d_sqrt (9.8 * dep[ij_0j]);
 		if (indl == 1) { 	/*      piston */
 			u[ij_0j] = pistal * sin(pistbl * time_h);
 			v[ij_0j] = v[ij_1j];
 			if (dep[ij_0j] > 0.)
-				h[ij_0j] = u[ij_0j] * tmp / grav;
+				h[ij_0j] = u[ij_0j] * tmp / 9.8;
 			continue;
 		}
 		else if (indl == 3) { 	/*     reflective */
@@ -726,12 +866,12 @@ int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, 
 	/*     bottom boundary */
 	for (i = 0; i < ip2; i++) {
 		ij_i0 = ij(i,0);	ij_i1 = ij(i,1);	ij_i2 = ij(i,2);
-		tmp = d_sqrt (grav * dep[ij_i0]);
+		tmp = d_sqrt (9.8 * dep[ij_i0]);
 		if (indb == 1) { 	/*     piston */
 			v[ij_i0] = pistab * sin(pistbb * time_h);
 			u[ij_i0] = u[ij_i1];
 			if (dep[ij_i0] > 0.)
-				h[ij_i0] = v[ij_i0] * tmp / grav;
+				h[ij_i0] = v[ij_i0] * tmp / 9.8;
 			continue;
 		}
 		else if (indb == 3) { 	/*     reflective */
@@ -765,14 +905,14 @@ int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, 
 	/*     right boundary */
 	for (j = 1; j < jp2; j++) {
 		ij_ip21_j = ij(ip2-1,j);	ij_ip11_j = ij(ip1-1,j);
-		tmp = d_sqrt (grav * dep[ij_ip21_j]);
+		tmp = d_sqrt (9.8 * dep[ij_ip21_j]);
 		if (indr == 1) { 	/*     piston */
 			u[ij_ip21_j] = -(pistar * sin(pistbr * time_h));
 			v[ij_ip21_j] = v[ij_ip11_j];
 			/*     Changes of 5/91 */
 			u[ij_ip11_j] = u[ij_ip21_j];
 			if (dep[ij_ip21_j] > 0.) {
-				h[ij_ip21_j] = -(u[ij_ip21_j] * tmp) / grav;
+				h[ij_ip21_j] = -(u[ij_ip21_j] * tmp) / 9.8;
 				h[ij_ip21_j] = h[ij_ip21_j];
 			}
 			continue;
@@ -810,7 +950,7 @@ int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, 
 	/*       Changed from 2 to 1 on 6/90 */
 	for (i = 0; i < ip1; i++) {
 		ij_i_jp21 = ij(i,jp2-1);	ij_i_jp11 = ij(i,jp1-1);
-		tmp = d_sqrt (grav * dep[ij_i_jp21]);
+		tmp = d_sqrt (9.8 * dep[ij_i_jp21]);
 		if (indt == 1) { 	/*     piston */
 			v[ij_i_jp21] = -(pistat * sin(pistbt * time_h));
 			u[ij_i_jp21] = u[ij_i_jp11];
@@ -818,7 +958,7 @@ int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, 
 			v[ij_i_jp11] = v[ij_i_jp21];
 			/*       THE HEIGHT sign  used to be +     4/23/91 */
 			if (dep[ij_i_jp11] > 0.)
-				h[ij_i_jp21] = -(v[ij_i_jp21] * tmp) / grav;
+				h[ij_i_jp21] = -(v[ij_i_jp21] * tmp) / 9.8;
 			continue;
 		}
 		else if (indt == 3) { 	/*     reflective */
@@ -855,22 +995,23 @@ int bndy_(double *dep, double *r, double *rn, double *u, double *un, double *v, 
 /* --------------------------------------------------------------------------- */
 
 int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, double *vn,
-	 double *h, double *hn, double *dxp, double *cca) {
+	 double *h, double *hn, double *dxp, double *cca, double m_per_deg) {
 
 	double cang, ck, sa, sb, sang, cang1, tmp, thu, thv;
 	double td, tu, tv, angltt, td1, tu1, tv1, tu2, tv2, dph;
-	int	i, j, ij_ij, i1_j, i_j1;
+	int	i, j, ij_ij, i1_j, i_j1, im1_j, i_jm1;
 
 	sb = 0.;	sa = 0.;
 	for (j = 1; j < jp1; j++) {
 		for (i = 1; i < ip1; i++) {
 			ij_ij = ij(i,j);	i1_j = ij(i+1,j);	i_j1 = ij(i,j+1);
+			im1_j = ij(i-1,j);	i_jm1 = ij(i,j-1);
 			/* *****5/91*POLAR Each cell has its own dx and cos angle (cang) */
 			if (polar != 0) dx = dxp[ij_ij];
 			if (polar == 2) dy = dxp[ij_ij];	/* MERCATOR */
 			cang1 = 1.;		cang = 1.;
 			if (polar != 0) cang = dxp[ij_ij] / (dangx * m_per_deg);
-			if (polar != 0) cang1 = dxp[ij(i,j+1)] / (dangx * m_per_deg);
+			if (polar != 0) cang1 = dxp[i_j1] / (dangx * m_per_deg);
 			/*     donor cell difference */
 			/*     will get diffusion if time step is too small */
 			td1 = dep[i1_j] + h[i1_j] - r[i1_j];
@@ -880,11 +1021,11 @@ int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, d
 			if (u[i1_j] > 0.)
 				td1 = dep[ij_ij] + h[ij_ij] - r[ij_ij];
 			if (u[ij_ij] > 0.)
-				td = dep[ij(i-1,j)] + h[ij(i-1,j)] - r[ij(i-1,j)];
+				td  = dep[im1_j] + h[im1_j] - r[im1_j];
 			if (v[i_j1] > 0.)
 				tv1 = dep[ij_ij] + h[ij_ij] - r[ij_ij];
 			if (v[ij_ij] > 0.)
-				tv = dep[ij(i,j-1)] + h[ij(i,j-1)] - r[ij(i,j-1)];
+				tv  = dep[i_jm1] + h[i_jm1] - r[i_jm1];
 			/*      Special for Flooding */
 			if (td1 < 0.) td1 = 0.;	if (td < 0.) td = 0.;
 			if (tv1 < 0.) tv1 = 0.;	if (tv < 0.) tv = 0.;
@@ -892,28 +1033,11 @@ int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, d
 				dx + (v[i_j1] * cang1 * tv1 - v[ij_ij] * cang * tv) /
 				(cang * dy)) + (rn[ij_ij] - r[ij_ij]);
 			/*    ROUGH is factor for surface roughness = actual height/ideal height */
-			if (dep[ij_ij] < 0.) 
+			if (rough != 1. && dep[ij_ij] < 0.) 
 				hn[ij_ij] *= rough;
 		}
 	}
-	/*      SPECIAL */
-	/* This is nonsense. Comparing dep to 0. ??? I'll comment this section. JL 12-11-04 */ 
-	/*for (j = 1; j < jp1; j++) {
-		for (i = 1; i < ip1; i++) { */
-			/*     zero depth boundary treated as reflective  10/1/89 method */
-			/*if (dep[ij(i-1,j)] == 0. && dep[ij(i,j)] != 0.)
-				hn[ij(i-1,j)] = hn[ij(i,j)];
-			if (dep[ij(i+1,j)] == 0. && dep[ij(i,j)] != 0.)
-				hn[ij(i+1,j)] = hn[ij(i,j)];
-			if (dep[ij(i,j-1)] == 0. && dep[ij(i,j)] != 0.)
-				hn[ij(i,j-1)] = hn[ij(i,j)];
-			if (dep[ij(i,j+1)] == 0. && dep[ij(i,j)] != 0.)
-				hn[ij(i,j+1)] = hn[ij(i,j)];
-			if (dep[ij(i-1,j)] == 0. && dep[ij(i,j)] == 0. && dep[ij(i+1,j)] == 0.
-		    	&& dep[ij(i,j-1)] == 0. && dep[ij(i,j+1)] == 0.)
-				hn[ij(i,j)] = 0.;
-		}
-	} */
+
 	for (j = 1; j < jp1; j++)
 		for (i = 1; i < ip1; i++) {
 			ij_ij = ij(i,j); 
@@ -928,6 +1052,7 @@ int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, d
 		if (polar != 0) cf = sang * 1.454e-4;
 		for (i = 1; i < ip1; i++) {
 			ij_ij = ij(i,j);	i1_j = ij(i+1,j);	i_j1 = ij(i,j+1);
+			im1_j = ij(i-1,j);	i_jm1 = ij(i,j-1);
 			/* **********POLAR Each cell has its own dx  5/91 */
 			if (polar != 0) dx = dxp[ij_ij];
 			if (polar == 2) dy = dxp[ij_ij];	/* MERCATOR */
@@ -938,53 +1063,31 @@ int uvh_(double *dep, double *r, double *rn, double *u, double *un, double *v, d
 			ck = cca[ij_ij];
 			tmp = d_sqrt(u[ij_ij]*u[ij_ij] + v[ij_ij]*v[ij_ij]) / 
 			      (ck * ck * (dep[ij_ij] + h[ij_ij]));
-			sb = grav * u[ij_ij] * tmp;
+			sb = 9.8 * u[ij_ij] * tmp;
 			/*      CORRECTED ll/20/87 */
-			sa = grav * v[ij_ij] * tmp;
+			sa = 9.8 * v[ij_ij] * tmp;
 L10:
 			tu1 = u[i1_j] - u[ij_ij];
 			tu2 = u[i_j1] - u[ij_ij];
-			tv = (v[ij_ij] + v[i_j1] + v[ij(i-1,j+1)] + v[ij(i-1,j)]) / 4.;
-			if (u[ij_ij] > 0.) tu1 = u[ij_ij] - u[ij(i-1,j)];
-			if (tv > 0.) tu2 = u[ij_ij] - u[ij(i,j-1)];
-			thu = h[ij_ij] - h[ij(i-1,j)];
+			tv = (v[ij_ij] + v[i_j1] + v[ij(i-1,j+1)] + v[im1_j]) * .25;
+			if (u[ij_ij] > 0.) tu1 = u[ij_ij] - u[im1_j];
+			if (tv > 0.) tu2 = u[ij_ij] - u[i_jm1];
+			thu = h[ij_ij] - h[im1_j];
 			tv1 = v[i1_j] - v[ij_ij];
 			tv2 = v[i_j1] - v[ij_ij];
-			tu = (u[ij_ij] + u[i1_j] + u[ij(i,j-1)] + u[ij(i+1,j-1)]) / 4.;
-			if (tu > 0.) tv1 = v[ij_ij] - v[ij(i-1,j)];
-			if (v[ij_ij] > 0.) tv2 = v[ij_ij] - v[ij(i,j-1)];
+			tu = (u[ij_ij] + u[i1_j] + u[i_jm1] + u[ij(i+1,j-1)]) * .25;
+			if (tu > 0.) tv1 = v[ij_ij] - v[im1_j];
+			if (v[ij_ij] > 0.) tv2 = v[ij_ij] - v[i_jm1];
 			/*      CORRECTED ll/20/87 */
 			thv = h[ij_ij] - h[ij(i,j-1)];
-			un[ij_ij] = u[ij_ij] - dt * (u[ij_ij] * tu1 / dx + tv * tu2 / dy) - grav * 
+			un[ij_ij] = u[ij_ij] - dt * (u[ij_ij] * tu1 / dx + tv * tu2 / dy) - 9.8 * 
 				dt * thu / dx - dt * (sb - cf * v[ij_ij] - sfx);
-			vn[ij_ij] = v[ij_ij] - dt * (tu * tv1 / dx + v[ij_ij] * tv2 / dy) - grav * 
+			vn[ij_ij] = v[ij_ij] - dt * (tu * tv1 / dx + v[ij_ij] * tv2 / dy) - 9.8 * 
 				dt * thv / dy - dt * (sa + cf * u[ij_ij] - sfy);
 			/*     FLOODING--Assumes above sea level is a negative depth-- */
 		}
 	}
-	/*     update */
-	/* This is nonsense. Comparing dep to 0. ??? I'll comment this section. JL 12-11-04 */ 
-	/*for (j = 1; j < jp1; j++) {
-		for (i = 0; i < ip1; i++) { */
-		/*     zero depth boundary treated as reflective  10/1/89 method */
-		/*if (dep[ij(i-1,j)] == 0. && dep[ij(i,j)] != 0.)
-			un[ij(i-1,j)] = 0.;
-		if (dep[ij(i+1,j)] == 0. && dep[ij(i,j)] != 0.)
-			un[ij(i+1,j)] = 0.;
-		if (dep[ij(i,j-1)] == 0. && dep[ij(i,j)] != 0.)
-			vn[ij(i,j-1)] = 0.;
-		if (dep[ij(i,j+1)] == 0. && dep[ij(i,j)] != 0.)
-			vn[ij(i,j+1)] = 0.;
-		if (dep[ij(i-1,j)] == 0. && dep[ij(i,j)] != 0.)
-			vn[ij(i-1,j)] = v[ij(i,j)];
-		if (dep[ij(i+1,j)] == 0. && dep[ij(i,j)] != 0.)
-			vn[ij(i+1,j)] = v[ij(i,j)];
-		if (dep[ij(i,j-1)] == 0. && dep[ij(i,j)] != 0.)
-			un[ij(i,j-1)] = un[ij(i,j)];
-		if (dep[ij(i,j+1)] == 0. && dep[ij(i,j)] != 0.)
-			un[ij(i,j+1)] = un[ij(i,j)];
-		}
-	} */
+
 	for (j = 1; j < jp1; j++) {
 		for (i = 1; i < ip1; i++) {
 			ij_ij = ij(i,j);
@@ -1042,11 +1145,10 @@ int write_grd_bin(char *name, double x_min, double y_min, double x_inc, double y
 		return (-1);
 	}
 
-	for (j = j_start; j < j_end; j++) {
-		for (i = i_start; i < i_end; i++) {
+	for (j = j_start; j < j_end; j++)
+		for (i = i_start; i < i_end; i++)
 			fwrite ((void *)&work[ijs(i,j,nX)], sizeof(float), (size_t)1, fp);
-		}
-	}
+
 	fclose(fp);
 	return (0);
 }
@@ -1086,6 +1188,7 @@ int read_grd_info_ascii (char *file, struct srf_header *hdr) {
 		return (-1);
 }
 
+/* ------------------------------------------------------------------------------ */
 int read_grd_ascii (char *file, struct srf_header *hdr, double *work) {
 
 	/* Reads a grid in the Surfer ascii format */
@@ -1125,6 +1228,7 @@ int read_grd_ascii (char *file, struct srf_header *hdr, double *work) {
 	return (0);
 } 
 
+/* -------------------------------------------------------------------- */
 int count_col (char *line) {
 	/* Count # of fields contained in line */
 	int n_col = 0;
@@ -1138,12 +1242,14 @@ int count_col (char *line) {
 	return (n_col);
 }
 
+/* -------------------------------------------------------------------- */
 int read_header_bin (FILE *fp, struct srf_header *hdr) {
 	/* Reads the header of a binary Surfer gridfile */
 	fread ((void *)hdr, sizeof (struct srf_header), (size_t)1, fp); 
 	return (0);
 }
 
+/* -------------------------------------------------------------------- */
 int read_grd_bin (char *file, struct srf_header *hdr, double *work) {
 	int	i, j, ij, kk;
 	float	*tmp;			/* Array pointer for reading in rows of data */
@@ -1156,7 +1262,7 @@ int read_grd_bin (char *file, struct srf_header *hdr, double *work) {
 	fread ((void *)hdr, sizeof (struct srf_header), (size_t)1, fp); 
 
 	/* Allocate memory for one row of data (for reading purposes) */
-	tmp = (float *) calloc ((size_t)hdr->nx, sizeof (float));
+	tmp = (float *) mxMalloc ((size_t)hdr->nx * sizeof (float));
 	for (j = 0; j < (hdr->ny - 1); j++) {
 		fread (tmp, sizeof (float), (size_t)hdr->nx, fp);	/* Get one row */
 		ij = j * hdr->nx;
@@ -1166,10 +1272,11 @@ int read_grd_bin (char *file, struct srf_header *hdr, double *work) {
 		}
 	}
 	fclose(fp);
-	free ((void *)tmp);
+	mxFree ((void *)tmp);
 	return (0);
 }
 
+/* -------------------------------------------------------------------- */
 int read_params(char *file) {
 	/* Read parameters that controls SWAN running */
 	char line[128];
@@ -1230,6 +1337,7 @@ int read_params(char *file) {
 	return (0);
 }
 
+/* -------------------------------------------------------------------- */
 int count_n_maregs(char *file) {
 	int	i = 0;
 	char	line[512];
@@ -1248,6 +1356,7 @@ int count_n_maregs(char *file) {
 	return (0);
 }
 
+/* -------------------------------------------------------------------- */
 int read_maregs(char *file) {
 	/* Read maregraph positions and convert them to vector indices */
 	int	i = 0, ix, jy;
@@ -1274,6 +1383,7 @@ int read_maregs(char *file) {
 	return (0);
 }
 
+/* -------------------------------------------------------------------- */
 void	no_sys_mem (char *where, int n) {	
 		mexPrintf ("Fatal Error: %s could not allocate memory, n = %d\n", where, n);
 }
@@ -1287,6 +1397,7 @@ void max_z (double *zm, double *h_bak) {
 		if(zm[i] < h_bak[i]) zm[i] = h_bak[i];
 }
 
+/* -------------------------------------------------------------------- */
 void change (double *h, double *h_bak) {
 	int i, ij;
 
@@ -1350,3 +1461,278 @@ double ddmmss_to_degree (char *text) {
 	return (degfrac);
 }
 
+/* -------------------------------------------------------------------- */
+int open_most_nc (char *base, char *name_var, int *ids, int nx, int ny, 
+		double dtx, double dty, double xMinOut, double yMinOut) {
+	/* Open and initialize a MOST netCDF file for writing ---------------- */
+	int ncid, m, n, status, dim0[3], dim3[3];
+	float dummy = -1e34f;
+	double *x, *y;
+	char	*long_name = NULL, *units = NULL, *basename = NULL;
+
+	basename = (char *) mxMalloc (strlen(base) * sizeof (char));
+	strcpy(basename, base);
+	if (!strcmp(name_var,"HA")) {
+		strcat(basename,"_ha.nc");
+		long_name = "Wave Amplitude";
+		units = "CENTIMETERS";
+	}
+	else if (!strcmp(name_var,"VA")) {
+		strcat(basename,"_va.nc");
+		long_name = "Velocity Component along Latitude";
+		units = "CENTIMETERS/SECOND";
+	}
+	else if (!strcmp(name_var,"UA")) {
+		strcat(basename,"_ua.nc");
+		long_name = "Velocity Component along Longitude";
+		units = "CENTIMETERS/SECOND";
+	}
+
+	if ( (status = nc_create (basename, NC_CLOBBER, &ncid)) != NC_NOERR) {
+		mexPrintf ("swan: Unable to create file %s - exiting\n", basename);
+		return(-1);
+	}
+	/* ---- Define dimensions ------------ */
+	err_trap (nc_def_dim (ncid, "LON", (size_t) nx, &dim0[0]));
+	err_trap (nc_def_dim (ncid, "LAT", (size_t) ny, &dim0[1]));
+	err_trap (nc_def_dim (ncid, "TIME", NC_UNLIMITED, &dim0[2]));
+
+	/* ---- Define variables ------------- */
+	dim3[0] = dim0[2];	dim3[1] = dim0[1];	dim3[2] = dim0[0];
+	err_trap (nc_def_var (ncid, "LON",	NC_DOUBLE,1, &dim0[0], &ids[0]));
+	err_trap (nc_def_var (ncid, "LAT",	NC_DOUBLE,1, &dim0[1], &ids[1]));
+	err_trap (nc_def_var (ncid, "SLON",	NC_FLOAT,0,  &dim0[0], &ids[2]));
+	err_trap (nc_def_var (ncid, "SLAT",	NC_FLOAT,0,  &dim0[1], &ids[3]));
+	err_trap (nc_def_var (ncid, "TIME",	NC_DOUBLE,1, &dim0[2], &ids[4]));
+	err_trap (nc_def_var (ncid, name_var,	NC_FLOAT,3,  dim3,     &ids[5]));
+
+	/* ---- Variables Attributes --------- */
+	err_trap (nc_put_att_text (ncid, ids[0], "units", 12, "degrees_east"));
+	err_trap (nc_put_att_text (ncid, ids[0], "point_spacing", 4, "even"));
+	err_trap (nc_put_att_text (ncid, ids[1], "units", 13, "degrees_north"));
+	err_trap (nc_put_att_text (ncid, ids[1], "point_spacing", 4, "even"));
+	err_trap (nc_put_att_text (ncid, ids[2], "units", 12, "degrees_east"));
+	err_trap (nc_put_att_text (ncid, ids[2], "long_name", 16, "Source Longitude"));
+	err_trap (nc_put_att_text (ncid, ids[3], "units", 13, "degrees_north"));
+	err_trap (nc_put_att_text (ncid, ids[3], "long_name", 16, "Source Latitude"));
+	err_trap (nc_put_att_text (ncid, ids[4], "units", 7, "SECONDS"));
+	err_trap (nc_put_att_text (ncid, ids[5], "long_name", strlen(long_name), long_name));
+	err_trap (nc_put_att_text (ncid, ids[5], "units", strlen(units), units));
+	err_trap (nc_put_att_float (ncid,ids[5], "missing_value", NC_FLOAT, 1, &dummy));
+	err_trap (nc_put_att_float (ncid,ids[5], "_FillValue", NC_FLOAT, 1, &dummy));
+	err_trap (nc_put_att_text (ncid, ids[5], "history", 6, "Nikles"));
+
+	/* ---- Global Attributes ------------ */
+	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "history", 10, "Mirone Tec"));
+	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "title", 22, "Created by Mirone-Swan"));
+
+	err_trap (nc_enddef (ncid));
+
+	/* ---- Write the vector coords ------ */
+	x = (double *) mxMalloc (sizeof (double) * nx);
+	y = (double *) mxMalloc (sizeof (double) * ny);
+
+	for (n = 0; n < nx; n++) x[n] = xMinOut + n * dtx;
+	for (m = 0; m < ny; m++) y[m] = yMinOut + m * dty;
+	err_trap (nc_put_var_double (ncid, ids[0], x));
+	err_trap (nc_put_var_double (ncid, ids[1], y));
+	mxFree ((void *)x); 
+	mxFree ((void *)y); 
+	mxFree ((void *)basename); 
+
+	return (ncid);
+}
+
+/* --------------------------------------------------------------------------- */
+void write_most_slice(int *ncid_most, int *ids_most, int i_start, int j_start, int i_end, int j_end,
+		int nX, float *work, double *h, double *dep, double *u, double *v, float *tmp,
+		size_t *start, size_t *count) {
+	/* Write a slice of _ha.nc, _va.nc & _ua.nc MOST netCDF files */
+	int i, j, n, ij, k;
+
+	for (n = 0; n < 3; n++) {	/* Loop over, Amplitude, Xmomentum & Ymomentum */
+		if (n == 0) {		/* Amplitude */
+			for (j = j_start, k = 0; j < j_end; j++)
+				for (i = i_start; i < i_end; i++)
+					tmp[k++] = work[ijs(i,j,nX)] * 100;
+			err_trap (nc_put_vara_float (ncid_most[0], ids_most[0], start, count, tmp));
+		}
+		else if (n == 1) {		/* X velocity */ 
+			for (j = j_start, k = 0; j < j_end; j++)
+				for (i = i_start; i < i_end; i++) {
+					ij = ijs(i,j,nX);
+					if (( tmp[k] = (float)(h[ij] + dep[ij]) ) < 0.) tmp[k] = 0.;
+					tmp[k++] *= (float)u[ij] * 100;
+				}
+			err_trap (nc_put_vara_float (ncid_most[1], ids_most[1], start, count, tmp));
+		}
+		else {				/* Y velocity */ 
+			for (j = j_start, k = 0; j < j_end; j++)
+				for (i = i_start; i < i_end; i++) {
+					ij = ijs(i,j,nX);
+					if (( tmp[k] = (float)(h[ij] + dep[ij]) ) < 0.) tmp[k] = 0.;
+					tmp[k++] *= (float)v[ij] * 100;
+				}
+			err_trap (nc_put_vara_float (ncid_most[2], ids_most[2], start, count, tmp));
+		}
+	}
+}
+
+/* --------------------------------------------------------------------------- */
+void write_anuga_slice(int ncid, int z_id, int i_start, int j_start, int i_end, int j_end, int nX, 
+		float *work, double *h, double *dep, double *u, double *v, float *tmp,
+		size_t *start, size_t *count, float *slice_range, int idx) {
+	/* Write a slice of either STAGE, XMOMENTUM or YMOMENTUM of a Anuga's .sww netCDF file */
+	int i, j, ij, k, ncl;
+
+	ncl = (i_end - i_start)*(j_end - j_start);
+	k = 0;
+	for (j = j_start; j < j_end; j++) {
+		if (idx == 1) 			/* Anuga calls this -> stage */
+			for (i = i_start; i < i_end; i++) {
+				/*ij = ijs(i,j,nX);
+				if (work[ij] == 0 && dep[ij] < 0) tmp[k++] = (float)-dep[ij];
+				else 	tmp[k++] = work[ij]; */
+				tmp[k++] = work[ijs(i,j,nX)];
+			}
+
+		else if (idx == 2) {		/* X momentum */
+			for (i = i_start; i < i_end; i++) {
+				ij = ijs(i,j,nX);
+				if (( tmp[k] = (float)(h[ij] + dep[ij]) ) < 0.) tmp[k] = 0.;
+				tmp[k++] *= (float)u[ij];
+			}
+		}
+		else {				/* Y momentum */
+			for (i = i_start; i < i_end; i++) {
+				ij = ijs(i,j,nX);
+				if (( tmp[k] = (float)(h[ij] + dep[ij]) ) < 0.) tmp[k] = 0.;
+				tmp[k++] *= (float)v[ij];
+			}
+		}
+	}
+
+	/* ----------- Find the min/max of this slice --------- */
+	for (k = 0; k < ncl; k++) {
+		slice_range[1] = MAX(tmp[k], slice_range[1]);
+		slice_range[0] = MIN(tmp[k], slice_range[0]);
+	}
+
+	err_trap (nc_put_vara_float (ncid, z_id, start, count, tmp));
+}
+
+/* -------------------------------------------------------------------- */
+int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_end, int j_end, 
+		int nX, double dtx, double dty, double *dep, double xMinOut, double yMinOut, 
+		float z_min, float z_max) {
+
+	/* Open and initialize a ANUGA netCDF file for writing ---------------- */
+	int ncid, m, n, nx, ny, status, nVolumes, nPoints, dim0[5], dim2[2], dim3[2];
+	int i, j, k, m_nx, m1_nx, *volumes, *vertices, v1, v2, v3, v4;
+	float dummy2[2], *x, *y, yr, *tmp;
+	double dummy;
+
+	if ( (status = nc_create (fname_sww, NC_CLOBBER, &ncid)) != NC_NOERR) {
+		mexPrintf ("swan: Unable to create file %s - exiting\n", fname_sww);
+		return(-1);
+	}
+	/* ---- Define dimensions ------------ */
+	nx = i_end - i_start;		ny = j_end - j_start;
+	nVolumes = (nx - 1) * (ny - 1) * 2;
+	nPoints = nx * ny;
+	err_trap (nc_def_dim (ncid, "number_of_volumes", (size_t) nVolumes, &dim0[0]));
+	err_trap (nc_def_dim (ncid, "number_of_vertices", (size_t) 3, &dim0[1]));
+	err_trap (nc_def_dim (ncid, "numbers_in_range", (size_t) 2, &dim0[2]));
+	err_trap (nc_def_dim (ncid, "number_of_points", (size_t) nPoints, &dim0[3]));
+	err_trap (nc_def_dim (ncid, "number_of_timesteps", NC_UNLIMITED, &dim0[4]));
+
+	//mexPrintf("Write Dimensions\n");
+	/* ---- Define variables ------------- */
+	dim2[0] = dim0[4];		dim2[1] = dim0[3];
+	dim3[0] = dim0[0];		dim3[1] = dim0[1];
+	err_trap (nc_def_var (ncid, "x",		NC_FLOAT,1, &dim0[3], &ids[0]));
+	err_trap (nc_def_var (ncid, "y",		NC_FLOAT,1, &dim0[3], &ids[1]));
+	err_trap (nc_def_var (ncid, "z",		NC_FLOAT,1, &dim0[3], &ids[2]));
+	err_trap (nc_def_var (ncid, "elevation",	NC_FLOAT,1, &dim0[3], &ids[3]));
+	err_trap (nc_def_var (ncid, "elevation_range", 	NC_FLOAT,1, &dim0[2], &ids[4]));
+	err_trap (nc_def_var (ncid, "volumes",		NC_INT,  2, dim3, &ids[5]));
+	err_trap (nc_def_var (ncid, "time",		NC_DOUBLE,1,&dim0[4], &ids[6]));
+	err_trap (nc_def_var (ncid, "stage",		NC_FLOAT,2, dim2, &ids[7]));
+	err_trap (nc_def_var (ncid, "stage_range",	NC_FLOAT,1, &dim0[2], &ids[8]));
+	err_trap (nc_def_var (ncid, "xmomentum",	NC_FLOAT,2, dim2, &ids[9]));
+	err_trap (nc_def_var (ncid, "xmomentum_range", 	NC_FLOAT,1, &dim0[2], &ids[10]));
+	err_trap (nc_def_var (ncid, "ymomentum",	NC_FLOAT,2, dim2, &ids[11]));
+	err_trap (nc_def_var (ncid, "ymomentum_range", 	NC_FLOAT,1, &dim0[2], &ids[12]));
+
+	//mexPrintf("Write Attributes\n");
+	/* ---- Global Attributes ------------ */
+	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "institution", 10, "Mirone Tec"));
+	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "description", 22, "Created by Mirone-Swan"));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "xllcorner", NC_DOUBLE, 1, &xMinOut));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "yllcorner", NC_DOUBLE, 1, &yMinOut));
+	dummy = 29;	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "zone", NC_DOUBLE, 1, &dummy));
+	dummy = 0;	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "starttime", NC_DOUBLE, 1, &dummy));
+	dummy = 500000;	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "false_easting", NC_DOUBLE, 1, &dummy));
+	dummy = 0;	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "false_northing", NC_DOUBLE, 1, &dummy));
+	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "datum", 5, "wgs84"));
+	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "projection", 3, "UTM"));
+	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "units", 1, "m"));
+
+	/* ---- Write the vector coords ------ */
+	//mexPrintf("Write vector coords\n");
+	x = (float *) mxMalloc (sizeof (float) * (nx * ny));
+	y = (float *) mxMalloc (sizeof (float) * (nx * ny));
+	vertices = (int *) mxMalloc (sizeof (int) * (nx * ny));
+	volumes = (int *) mxMalloc (sizeof (int) * (nVolumes * 3));
+
+	/* Construct 2 triangles per 'rectangular' element */
+	i = 0;
+	for (m = 0; m < ny; m++) {		/* By rows    - Y */
+		yr = (float)(m * dty);
+		for (n = 0; n < nx; n++) {	/* By columns - X */
+			x[i] = (float)(n * dtx);
+			y[i] = yr;
+			vertices[i] = i;
+			i++;
+		}
+	}
+
+	for (n = i = 0; n < nx - 1; n++) {			/* X */
+		for (m = 0; m < ny - 1; m++) {			/* Y */
+			m_nx = m * nx;		m1_nx = (m + 1) * nx;
+			v1 = vertices[n + m_nx];	v2 = vertices[n + 1 + m_nx];
+			v3 = vertices[n + 1 + m1_nx];	v4 = vertices[n + m1_nx];
+			volumes[i] = v1;	volumes[i+1] = v2;	volumes[i+2] = v3;
+			i += 3;
+			volumes[i] = v1;	volumes[i+1] = v3;	volumes[i+2] = v4;
+			i += 3;
+		}
+	}
+
+	mxFree ((void *)vertices);
+
+	err_trap (nc_enddef (ncid));
+	err_trap (nc_put_var_float (ncid, ids[0], x));
+	err_trap (nc_put_var_float (ncid, ids[1], y));
+	mxFree ((void *)x); 
+	mxFree ((void *)y); 
+
+	tmp = (float *) mxMalloc (sizeof (float) * (nx * ny));
+	for (j = j_start, k = 0; j < j_end; j++) {
+		for (i = i_start; i < i_end; i++)
+			tmp[k++] = (float)-dep[ijs(i,j,nX)];
+	}
+
+	err_trap (nc_put_var_float (ncid, ids[2], tmp));	/* z */
+	//mexPrintf("Write Z and Elevation coords\n");
+
+	err_trap (nc_put_var_float (ncid, ids[3], tmp));	/* elevation */
+	dummy2[0] = z_min;		dummy2[1] = z_max;
+	err_trap (nc_put_var_float (ncid, ids[4], dummy2));	/* elevation_range */
+	err_trap (nc_put_var_int (ncid, ids[5], volumes));
+
+	mxFree ((void *)tmp);
+	mxFree ((void *)volumes);
+
+	return (ncid);
+}
