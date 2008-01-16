@@ -25,6 +25,7 @@ function out = zoom_j(varargin)
 % PARSE ARGS - set fig and zoomCommand
 %
 
+funHand = [];		% It may evantually come to contain a function handle
 switch nargin
 	case 0      % no arg in
         zoomCommand = 'toggle';
@@ -33,28 +34,36 @@ switch nargin
 	case 1      % one arg in
         % If argument is string, it is a zoom command (i.e. (on, off, down, xdown, etc.).
         if ischar(varargin{1})
-            zoomCommand=varargin{1};
+			zoomCommand=varargin{1};
         else    % Otherwise, the argument is assumed to be a zoom factor.
-            scale_factor=varargin{1};
-            zoomCommand='scale';
+			scale_factor=varargin{1};
+			zoomCommand='scale';
         end
         fig = get(0,'currentfigure');
         if isempty(fig),    return;    end
 	case 2      % two arg in
         fig=varargin{1};
-        if ~ishandle(fig)
-            error('First argument must be a figure handle.')
-        end
+        if ( ~ishandle(fig) ),		error('First argument must be a figure handle.'),	end
         if (isnumeric(varargin{2}))
-            scale_factor=varargin{2};
-            zoomCommand='scale';
+			scale_factor=varargin{2};
+			zoomCommand='scale';
         else
-            zoomCommand=varargin{2};
+			zoomCommand=varargin{2};
         end
-	case 3      % three arg in. Third doesn't matter, it's only to select this case
-        fig=varargin{1};
-        scale_factor=varargin{2};
-        zoomCommand='ptscale';
+	case 3      % three arg in. Third, if empty, center zoom on current point, otherwise -- function handle world
+		fig = varargin{1};
+		if ( isempty(varargin{3}) )				% Do a zoom centered on the current point or the image center
+			scale_factor = varargin{2};
+			zoomCommand = 'ptscale';
+		else
+			zoomCommand = varargin{2};
+			funHand = varargin{3}{1};			% Tchan tchan -- a function handle
+			if ( numel(varargin{3}) > 1 )
+				funHvarargins = varargin{3}(2:end);
+			else
+				funHvarargins = [];
+			end
+		end
 	otherwise   % too many args
         error(nargchk(0, 3, nargin));
 end % switch nargin
@@ -83,6 +92,11 @@ if strcmp(zoomCommand,'off')
         % of this appdata indicates that zoom is off.
         if isappdata(fig,'ZoomOnState'),    rmappdata(fig,'ZoomOnState');   end
     end
+	if ( ~isempty(funHand) )					% If we had a function handle saved, kill it now
+		hz = get(get(fig,'currentaxes'),'ZLabel');
+		rmappdata(hz,'ExtFunHand')
+		rmappdata(hz,'ExtFunHvararg')
+	end
     return      % done, go home.
 end
 
@@ -347,6 +361,11 @@ case 'on',
     setappdata(fig,'ZoomOnState','on');
     scribefiglisten_j(fig,'on');
     doZoomIn(fig)
+	if ( ~isempty(funHand) )					% If we have a function handle to execute later, save it now
+		hz = get(ax,'ZLabel');
+		setappdata(hz,'ExtFunHand', funHand)
+		setappdata(hz,'ExtFunHvararg', funHvarargins)
+	end
     return
 case 'inmode'
     zoom_j(fig,'on');    doZoomIn(fig)
@@ -480,8 +499,8 @@ case 'ptscale'
         center = ZOOM_Pt1;
     end
 
-    if (scale_factor >= 1),     m = 1;
-    else                        m = -1;
+    if (scale_factor >= 1),		m = 1;
+    else						m = -1;
     end
     limits = zoom_j(fig,'getlimits');
 otherwise
@@ -517,7 +536,7 @@ end
 
 % Check for axis equal and update a as necessary
 if strcmp(get(ax,'plotboxaspectratiomode'),'manual') && strcmp(get(ax,'dataaspectratiomode'),'manual')
-    ratio = get(ax,'plotboxaspectratio')./get(ax,'dataaspectratio');
+    ratio = get(ax,'plotboxaspectratio') ./ get(ax,'dataaspectratio');
     dx = a(2)-a(1);
     dy = a(4)-a(3);
     [kmax,k] = max([dx dy]./ratio(1:2));
@@ -531,7 +550,7 @@ if strcmp(get(ax,'plotboxaspectratiomode'),'manual') && strcmp(get(ax,'dataaspec
 end
 
 % Update circular list of connected axes
-list = zoom_j(fig,'getconnect'); % Circular list of connected axes.
+list = zoom_j(fig,'getconnect');		% Circular list of connected axes.
 if (zoomx)
     if (a(1) == a(2)),      return,     end % Short circuit if zoom is moot.
     set(ax,'xlim',a(1:2))
@@ -597,6 +616,7 @@ end
         % No need to test for m because it should only pass here on the first call to zoom
         setappdata(hz,'AxesScaleFactor',scale_factor);
 	end
+
     % Update amplification info displayed in figure name
     fname = get(fig,'Name');    ind = strfind(fname,'@ ');
     if (~isempty(ind))
@@ -615,7 +635,18 @@ end
     end
 
 	% Update slider value (if the figure has one (or two))
-	if (zoomx || zoomy),    imscroll_j(ax,'ZoomSetSliders');     end
+	if ( zoomx || zoomy ),		imscroll_j(ax,'ZoomSetSliders');	end
+
+	% If we have a function handle, execute it
+	funHand = getappdata(hz,'ExtFunHand');
+	if ( isa(funHand, 'function_handle') && (zoomx || zoomy) )
+		funHvarargins = getappdata(hz,'ExtFunHvararg');
+		if ( ~isempty(funHvarargins) )				% If the function wants inputs
+			feval(funHand, funHvarargins{:});
+		else										% Function doesn't want inputs
+			feval(funHand);
+		end
+	end
 
 %----------------------------------------------------------------------------------%
 % Helper Functions
