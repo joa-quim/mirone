@@ -65,7 +65,9 @@ function varargout = resizetrue(handles, opt, axis_t)
 	end
 
 	Resize1(axHandle, imHandle, imSize, opt, handles.withSliders);
-	set(axHandle, 'DataAspectRatio', DAR);
+	% Change DAR only if the 'DAR' variable itself has changed
+	%set(axHandle, 'DataAspectRatio', DAR);
+	if (~isequal(DAR, [1 1 1])),	set(axHandle, 'DataAspectRatio', DAR);		end
 
 	if (nargout)        % Compute magnification ratio
 		imageWidth  = size(get(imHandle, 'CData'), 2);
@@ -248,7 +250,7 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
     FontSize = get(axHandle,'FontSize');		set(axHandle,'FontUnits',old_FU)
     nYchars = size(YTickLabel,2);
 	t = max(abs(YTick));
-	if (t - fix(t) == 0),	nYchars = nYchars + 2;		end
+	if (t - fix(t) == 0 && ~tenSizeY),			nYchars = nYchars + 2;		end
     % This is kitchen sizing, but what else can it be done with such can of bugs?
     Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
 
