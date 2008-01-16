@@ -2,6 +2,16 @@ function  datasets_funs(opt,varargin)
 % This contains the Mirone's 'Datasets' funtions
 
 switch opt(1:3)
+	case 'Coa'
+		CoastLines(varargin{:})
+	case 'Pol'
+		PoliticalBound(varargin{:})
+	case 'Riv'
+		Rivers(varargin{:})
+	case 'Pla'
+		DatasetsPlateBound_PB_All(varargin{:})
+	case 'ODP'
+		DatasetsODP_DSDP(varargin{:})
 	case 'Hot'
 		DatasetsHotspots(varargin{:})
 	case 'Vol'
@@ -10,20 +20,12 @@ switch opt(1:3)
 		DatasetsTides(varargin{:})
 	case 'Iso'
 		DatasetsIsochrons(varargin{:})
-	case 'Pla'
-		DatasetsPlateBound_PB_All(varargin{:})
 	case 'Cit'
 		DatasetsCities(varargin{:})
-	case 'ODP'
-		DatasetsODP_DSDP(varargin{:})
-	case 'Coa'
-		CoastLines(varargin{:})
-	case 'Pol'
-		PoliticalBound(varargin{:})
-	case 'Riv'
-		Rivers(varargin{:})
 	case 'sca'
 		scaledSymbols(varargin{:})
+	case 'GTi'
+		GTilesMap(varargin{:})
 end
 
 % --------------------------------------------------------------------
@@ -873,13 +875,58 @@ for (k=1:length(names))
 end
 
 if (handles.no_file)        % We have a kind of inf Lims. Adjust for current values
-    region = [XMin XMax YMin YMax];
-    set(handles.figure1,'XLim',[XMin XMax],'YLim',[YMin YMax])
-    setappdata(handles.axes1,'ThisImageLims',region)
+	region = [XMin XMax YMin YMax];
+	set(handles.figure1,'XLim',[XMin XMax],'YLim',[YMin YMax])
+	setappdata(handles.axes1,'ThisImageLims',region)
 	handles = guidata(handles.figure1);			% Tricky, but we need the new version, which was changed in show_image
-    handles.geog = aux_funs('guessGeog',region);
-    guidata(handles.figure1,handles)
+	handles.geog = aux_funs('guessGeog',region);
+	guidata(handles.figure1,handles)
 end
+
+% --------------------------------------------------------------------
+function GTilesMap(handles)
+% Read a 'tilesMapping.mat' file with mid point positions of google images tiles - UNDER CONSTRUCTION
+
+	if (~handles.no_file && ~handles.geog)
+		errordlg('Your background image is not in geographics.','Error'),	return
+	end
+	str1 = {'*.mat;*.MAT', 'Data files (*.mat,*.MAT)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select tilesMapping file','get');
+	if isequal(FileName,0),		return,		end
+
+	data = load([PathName FileName]);
+	% Test that this is a good tilesMapping file
+	if ( ~isfield(data, 'region') && ~isfield(data, 'tiles_midpt') )
+		errordlg('Invalid "tilesMapping" type file','ERROR'),	return
+	end
+
+	% If we have no background region, create one
+	if (handles.no_file),   mirone('FileNewBgFrame_CB',handles, [data.region 1]);   end
+	
+	h = line('XData',data.tiles_midpt(:,1),'YData',data.tiles_midpt(:,2), 'linestyle','none', ...
+		'marker','.', 'markersize', get(handles.figure1,'defaultlinemarkersize'), ...
+		'Color',handles.DefLineColor, 'Parent',handles.axes1, 'Tag','GTiles');
+	draw_funs(h,'line_uicontext')       % Set lines's uicontextmenu
+	setappdata(h,'cacheDir',PathName)	% Save files tiles location (they are at same place as the mat file)
+
+% 	% Recicle useless uicontexts into some interesting new ones
+% 	cmenuHand = get(h, 'UIContextMenu');
+% 	delete(findobj(cmenuHand,'Label','Copy'));
+% 	h1 = findobj(cmenuHand,'Label','Line length(s)');
+% 	h2 = findobj(cmenuHand,'Label','Line azimuth(s)');
+% 	h3 = findobj(cmenuHand,'Label','Point interpolation');
+% 	delete(findobj(cmenuHand,'Label','Extract profile'));
+% 	set(h1, 'Label','Load this tiles', 'Callback',{@loadTiles,h, data.zoomL},'Sep', 'on')
+% 	set(h2, 'Label','Load all region tiles', 'Callback',{@loadTiles,[[get(handles.axes1,'XLim') get(handles.axes1,'YLim')]], data.zoomL})
+% 	set(h3, 'Label','Load in rectangle tiles',  'Callback',{@loadTiles,h, data.zoomL})
+
+% % -----------------------------------------------------------------------------------------
+% function loadTiles(obj,event,h, zoomL)
+% 	if (ishandle(h))
+% 		cacheDir = getappdata(h,'cacheDir');
+% 	elseif (numel(h) == 4)
+% 		[img, hdr] = imagoogle('tile2img',h(1:2), h(3:4), zoomL);
+% 	end
 
 % ------------------------------------------------------------------------------------
 function setUIs(handles,h)
