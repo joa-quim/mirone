@@ -15,6 +15,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 13.0  01/01/2008 Chuong Nguyen added MatchTemplate
  * Revision 12.0  12/10/2007 JL	Added cvCvtScale (need to include in help)
  * Revision 11.0  30/04/2007 JL	corrected memory leaks as kindly pointed by James Hays
  * Revision 10.0  27/04/2007 JL	Added AbsDiff, finished PutText and fixed fix of JfindContours
@@ -32,6 +33,7 @@
 
 #include <math.h>
 #include "mex.h"
+//#include <opencv/cv.h> // #include <cv.h>
 #include <cv.h>
 
 #define	TRUE	1
@@ -45,6 +47,7 @@ void JhoughLines2(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JhoughCircles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jedge(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *method);
 void JerodeDilate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *method);
+void JmatchTemplate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JmorphologyEx(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jcolor(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op);
@@ -83,6 +86,7 @@ void morphologyexUsage(), colorUsage(), flipUsage(), filterUsage(), findContours
 void arithmUsage(), addWeightedUsage(), pyrDUsage(), pyrUUsage(), houghCirclesUsage();
 void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsage();
 void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage();
+void matchTemplateUsage();
 
 struct CV_CTRL {
 	/* active is TRUE if the option has been activated */
@@ -150,6 +154,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tinpaint (cvInpaint)\n");
 		mexPrintf("\tlaplace (cvLaplace)\n");
 		mexPrintf("\tline (cvLine)\n");
+		mexPrintf("\tmatchtemplate (cvMatchTemplate)\n");
 		mexPrintf("\tmorphologyex (cvMorphologyEx)\n");
 		mexPrintf("\tmul (cvMul)\n");
 		mexPrintf("\tpolyline (cvPolyLine)\n");
@@ -206,6 +211,9 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	else if (!strcmp(funName,"erode") || !strcmp(funName,"dilate"))
 		JerodeDilate(n_out, plhs, n_in, prhs, funName);
+
+	else if (!strncmp(funName,"matchtemplate",5))
+		JmatchTemplate(n_out, plhs, n_in, prhs);
 
 	else if (!strncmp(funName,"morpho", 6))		/* morphologyex */
 		JmorphologyEx(n_out, plhs, n_in, prhs);
@@ -485,7 +493,7 @@ void Jfloodfill(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 				tmp_mask[c++] = (unsigned char)(mask->imageData[m*nx_var + n] & 1); 
 
 		plhs[1] = mxCreateNumericMatrix(ny, nx, mxLOGICAL_CLASS, mxREAL);
-		mask_img = mxGetData(plhs[1]);
+		mask_img = (unsigned char*) mxGetData(plhs[1]); //mask_img = mxGetData(plhs[1]);
 
 		interleaveBlind (tmp_mask, mask_img, nx, ny, 1, -1); /* Change from C to ML order */
 		mxFree((void *)tmp_mask);
@@ -535,7 +543,7 @@ void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], cons
 
 		npoly = m * n;
 		polyNpts = (int *)mxCalloc (npoly, sizeof (int));
-		pt = (CvPoint *)mxCalloc( npoly, sizeof(buf[0]));
+		pt = (CvPoint **)mxCalloc( npoly, sizeof(buf[0]));//pt = (CvPoint *)mxCalloc( npoly, sizeof(buf[0]));
 
 		for (i = 0; i < npoly; i++) {		/* Loop over number of polylines */
 			m = mxGetM(mxGetCell(prhs[2], i));
@@ -566,7 +574,7 @@ void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], cons
 		m = mxGetM(prhs[2]);	n = mxGetN(prhs[2]);
 		polyNpts = (int *)mxCalloc (1, sizeof (int));
 		polyNpts[0] = MAX(m,n);
-		pt = (CvPoint *)mxCalloc( 1, sizeof(buf[0]));
+		pt = (CvPoint **)mxCalloc( 1, sizeof(buf[0])); //pt = (CvPoint *)mxCalloc( 1, sizeof(buf[0]));
 		pt[0] = (CvPoint *)mxCalloc( polyNpts[0], sizeof(buf[0]));
 		if (n == 2) {		/* column vector (well, Mx2) */
 			for (j = 0; j < polyNpts[0]; j++)
@@ -661,8 +669,7 @@ void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], cons
 /* --------------------------------------------------------------------------- */
 void Jtext(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	int	nx, ny, nBands, m, n, nBytes, img_depth, inplace = FALSE;
-	int	r, g, b, thickness = 1, font_type = 4, line_type = 16;
-	int	i, j, nstrings = 0, *polyNpts;
+	int	i, r, g, b, thickness = 1, font_type = 4, line_type = 16, nstrings = 0;
 	const char	*theTEXTstr;
 	double	*ptr_d, hscale = 1., vscale = 1., shear = 0;
 	IplImage *src_img = 0, *dst = 0;
@@ -1417,12 +1424,11 @@ void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 
 /* --------------------------------------------------------------------------- */
 void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
-	int nx, ny, i, j, nBytes, nz, np, ncont = 0;
+	int nx, ny, nz, np, ncont = 0;
 
 	double *ptr_d, par1 = 3;
-        CvMat *map_matrix = 0, *cont = 0;
+        CvMat *map_matrix = 0; CvSeq *cont = 0; //CvMat *map_matrix = 0, *cont = 0;
 	CvMemStorage* storage = cvCreateMemStorage(0);
-	mxArray *ptr_in, *ptr_out, *mx_ptr;
 
 	struct CV_CTRL *Ctrl;
 	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
@@ -1441,15 +1447,15 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	cont = cvApproxPoly( map_matrix, sizeof(CvMat), storage, CV_POLY_APPROX_DP, par1, 0 );
 	cvReleaseMemStorage( &storage );
-return;
+//return;
 
 	/* ------------------- GET OUTPUT DATA --------------------------- */ 
-	np = cont->rows;		/* total number of surviving points */
+	np = cont->total; //np = cont->rows;		/* total number of surviving points */
 
 	plhs[0] = mxCreateNumericMatrix(np, nx, mxGetClassID(prhs[1]), mxREAL);
 	ptr_d = mxGetPr(plhs[0]);
 	/*cvGetData( cont, (void *)ptr_d, cont->cols*8 );*/
-	ptr_d = cont->data.db;
+	cvCvtSeqToArray( cont, ptr_d, CV_WHOLE_SEQ ); //ptr_d = cont->data.db;
 
 	cvReleaseMatHeader( &map_matrix );
 }
@@ -2155,7 +2161,7 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 		mexErrMsgTxt("CVLIB_MEX: Matrix dimensions must agree!");
 
 	if (nx2*ny2 == 1 && (strcmp(op,"addS") && strcmp(op,"subS") && strncmp(op,"Cvt",3)) )
-		mexErrMsgTxt("CVLIB_MEX: only 'addS', or CvtScale 'subS' are allowed when second arg is a scalar!");
+		mexErrMsgTxt("CVLIB_MEX: only 'addS', CvtScale or 'subS' are allowed when second arg is a scalar!");
 
 	if (n_out == 0)
 		inplace = TRUE;
@@ -3261,6 +3267,11 @@ void arithmUsage() {
 	mexPrintf("The form (that is, with no output)\n: cvlib_mex(OP,IMG1,IMG2);\n");
 	mexPrintf("       does the above operation in-place and stores the result in IMG1\n\n");
 
+	mexPrintf("The forms:\n");
+	mexPrintf("       cvlib_mex(CvtScale,IMG1,IMG2,scale,shift);\n");
+	mexPrintf("       cvlib_mex(CvtScale,IMG1,scale,shift);\n");
+	mexPrintf("copies array IMG1 to IMG2 (first case) with optional scaling or into itself (second)\n\n");
+
 	mexPrintf("       Class support: all but uint32.\n");
 	mexPrintf("       Memory overhead: none.\n");
 }
@@ -3291,3 +3302,120 @@ void inpaintUsage() {
 	mexPrintf("       Class support: uint8.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG and a MxN matrix of the same type as IMG.\n");
 }
+
+/* -------------------------------------------------------------------------- */
+void JmatchTemplate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
+	void	*in_tmp, *in_img, *out_result;
+	char	*argv;
+	int	cv_method;
+	IplImage* tmp;
+	IplImage* img;
+	IplImage* result;
+	int	tmpH, tmpW, imgH, imgW;
+	int	*out_min_loc, *out_max_loc;
+
+	if (n_in == 1) {
+		matchTemplateUsage();
+		return;
+	}
+    
+	/* ----------- Check for errors in user's call to function.  ---------------- */
+	if (n_in != 4)
+		mexErrMsgTxt("requires 3 input arguments!\n");
+		
+	if ((!mxIsUint8(prhs[1]) && !mxIsSingle(prhs[1])) ||
+		(!mxIsUint8(prhs[2]) && !mxIsSingle(prhs[2])))
+		mexErrMsgTxt("input image and template must be uint8 or single precision matrices\n");
+		
+	if(!mxIsChar(prhs[3]))
+		mexErrMsgTxt("METHOD input must be a string!\n");
+		
+	if (!(n_out == 1 || n_out == 3))
+		mexErrMsgTxt("requires 1 or 3 output arguments!\n");
+		
+	in_img  = mxGetData(prhs[1]);	/* get void* pointer */
+	imgH    = mxGetM(prhs[1]);	/* 1st dimension */
+	imgW    = mxGetN(prhs[1]);	/* 2nd dimension */
+	in_tmp  = mxGetData(prhs[2]);	/* get void* pointer */
+	tmpH    = mxGetM(prhs[2]);	/* 1st dimension */
+	tmpW    = mxGetN(prhs[2]);	/* 2nd dimension */
+	if ((tmpH > imgH) || (tmpW > imgW))
+		mexErrMsgTxt("TEMPLATE must be smaller than IMAGE'\n");
+
+	argv = (char *)mxArrayToString(prhs[3]);
+	if (!strcmp(argv,"SQDIFF"))
+		cv_method=CV_TM_SQDIFF;
+	else if (!strcmp(argv,"SQDIFF_NORMED"))
+		cv_method=CV_TM_SQDIFF_NORMED;
+	else if (!strcmp(argv,"CCORR"))
+		cv_method=CV_TM_CCORR;
+	else if (!strcmp(argv,"CCORR_NORMED"))
+		cv_method=CV_TM_CCORR_NORMED;
+	else if (!strcmp(argv,"CCOEFF"))
+		cv_method=CV_TM_CCOEFF;
+	else if (!strcmp(argv,"CCOEFF_NORMED"))
+		cv_method=CV_TM_CCOEFF_NORMED;
+	else
+		mexErrMsgTxt( "unknown METHOD\n");
+	/* ------------------------ End of parsing input ---------------------------- */
+    
+	plhs[0] = mxCreateNumericMatrix(imgH-tmpH+1, imgW-tmpW+1, mxSINGLE_CLASS, mxREAL);
+	out_result = mxGetData(plhs[0]);
+
+	if (mxIsUint8(prhs[1]) && mxIsUint8(prhs[2])) {
+		img = cvCreateImage( cvSize(imgH, imgW), IPL_DEPTH_8U, 1 );
+		tmp = cvCreateImage( cvSize(tmpH, tmpW), IPL_DEPTH_8U, 1 );
+		cvSetImageData( img, in_img, imgH );
+		cvSetImageData( tmp, in_tmp, tmpH );
+	}
+	else if (mxIsSingle(prhs[1]) && mxIsSingle(prhs[2])) {
+		img = cvCreateImageHeader( cvSize(imgH, imgW), IPL_DEPTH_32F, 1 );
+		tmp = cvCreateImageHeader( cvSize(tmpH, tmpW), IPL_DEPTH_32F, 1 );
+		cvSetData( img, in_img, imgH*4 );
+		cvSetData( tmp, in_tmp, tmpH*4 );
+	}
+	else
+		mexErrMsgTxt(" Data type of input matrices must be the same.'\n");
+    
+	/* ------------------------- Creat output matrix ---------------------------- */
+	result = cvCreateImageHeader( cvSize(imgH-tmpH+1, imgW-tmpW+1), IPL_DEPTH_32F, 1 );
+	cvSetData( result, out_result, (imgH-tmpH+1)*4 );
+    
+	/* ---------------------------- Match the template -------------------------- */
+	cvMatchTemplate( img, tmp, result, cv_method );     
+
+	if (n_out == 3){
+		double min_val, max_val;
+		CvPoint min_loc, max_loc;
+	/* ------------------ Find minimum and maximum locations -------------------- */
+		cvMinMaxLoc( result, &min_val, &max_val, &min_loc, &max_loc, NULL );
+		plhs[1] = mxCreateNumericMatrix(2, 1, mxINT32_CLASS, mxREAL);
+		plhs[2] = mxCreateNumericMatrix(2, 1, mxINT32_CLASS, mxREAL);
+		out_min_loc = (int *) mxGetData(plhs[1]);
+		out_max_loc = (int *) mxGetData(plhs[2]);
+		/* add one to location as the first element in Matlab's matrix is at (1,1) */
+		*(out_min_loc)   = min_loc.x + 1;
+		*(out_min_loc+1) = min_loc.y + 1;
+		*(out_max_loc)   = max_loc.x + 1;
+		*(out_max_loc+1) = max_loc.y + 1;
+	}
+
+	/* -------------------- Release the temporal memory ------------------------ */
+	cvReleaseImageHeader( &result );
+	cvReleaseImageHeader( &tmp );
+	cvReleaseImageHeader( &img );
+}
+
+void matchTemplateUsage() {
+	mexPrintf("Usage: RESULT = cvlib_mex('matchtemplate', IMAGE, TEMPLATE, METHOD);\n");
+	mexPrintf("    or [RESULT, MIN_LOC, MAX_LOC] = cvlib_mex('matchtemplate', ...);\n");
+	mexPrintf("       IMAGE    - type uint8 or single precision\n");
+	mexPrintf("       TEMPLATE - the same type as IMAGE, size <= size of image\n");
+	mexPrintf("       METHOD   - one of: 'SQDIFF', 'SQDIFF_NORMED',\n");
+	mexPrintf("                          'CCORR',  'CCORR_NORMED',\n");
+	mexPrintf("                          'CCOEFF', 'CCOEFF_NORMED'.\n");
+	mexPrintf("       RESULT   - type single precision\n");
+	mexPrintf("       MIN_LOC  - type int32, location (x,y) of the minimum\n");
+	mexPrintf("       MAX_LOC  - type int32, location (x,y) of the minimum\n");
+}
+
