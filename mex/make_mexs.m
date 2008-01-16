@@ -14,8 +14,8 @@ patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\libMEX\';	% Lib path for GMT - Li
 %patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\lib\';	% Lib path for GMT
 %patoLIB_GMT = 'c:\programs\gmt4\lib\';					%
 pato_NETCDF = 'd:\progs_interix\GMTdev\netcdf_win\';	% path for NETCDF
-pato_GDAL = 'D:\programas\GDALB143\';					% path for GDAL
-%pato_GDAL = 'D:\programas\GDALtrunk\';					% path for GDAL
+%pato_GDAL = 'D:\programas\GDALB143\';					% path for GDAL
+pato_GDAL = 'D:\programas\GDALtrunk\';					% path for GDAL
 pato_OCV = 'C:\programas\OpenCV\';						% path for OpenCV
 pato_SHAPELIB = 'D:\lixo\shapelib\';					% path for shapelib
 pato_VC98LIB = 'C:\programas\VisualStudio\VC98\Lib\';	% path for MSVC library dir
@@ -69,8 +69,11 @@ str_shape = {'mex_shape'}';
 % OpenCV mexs (currently only one)
 str_cv = {'cvcolor_mex' 'cvfill_mex' 'cvgetcorners_mex' 'cvresize_mex' 'cvlib_mex'}';
 
+% netCDF mexes (other than GMT ones)
+str_withCDF = {'swan'};
+
 % Non LIB dependent mexs (besides matlab libs, of course)
-str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'swan' 'tsun2' 'wave_travel_time' 'mansinha_m' ...
+str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'swan__' 'tsun2' 'wave_travel_time' 'mansinha_m' ...
         'telha_m' 'range_change' 'country_select' 'mex_illuminate' 'grdutils' ...
         'read_isf' 'ind2rgb8' 'alloc_mex' 'susan' 'set_gmt' 'existmex' 'mxgridtrimesh'}';
 
@@ -134,19 +137,20 @@ elseif (strcmp(lower(opt),'gmt'))   % Compile only the GMT mexs (and supplements
         eval(cmd)
     end
 else                                % Compile only one mex
-    idx = strmatch(opt,[str_gmt; str_gmt_mgg; str_gdal; str_gdal_cpp; str_simple; str_shape; str_cv; str_simple_cpp]);
+    idx = strmatch(opt,[str_gmt; str_gmt_mgg; str_gdal; str_gdal_cpp; str_simple; str_shape; str_cv; str_simple_cpp; str_withCDF]);
     if (isempty(idx))
         disp('Example usage: make_mexs(''mapproject_m'')');
         error('Bad use, or my fault');
-    end;
-    idx1 = strmatch(opt,str_gmt,'exact');
-    idx2 = strmatch(opt,str_gdal,'exact');
-    idx2pp = strmatch(opt,str_gdal_cpp,'exact');
-    idx22 = strmatch(opt,str_shape,'exact');
-    idx3 = strmatch(opt,str_simple,'exact');
-    idx4 = strmatch(opt,str_gmt_mgg,'exact');
-    idx5 = strmatch(opt,str_cv,'exact');
-    idx6 = strmatch(opt,str_simple_cpp,'exact');
+    end
+    idx1   = strmatch(opt, str_gmt, 'exact');
+    idx2   = strmatch(opt, str_gdal, 'exact');
+    idx2pp = strmatch(opt, str_gdal_cpp, 'exact');
+    idx22  = strmatch(opt, str_shape, 'exact');
+    idx3   = strmatch(opt, str_simple, 'exact');
+    idx4   = strmatch(opt, str_gmt_mgg, 'exact');
+    idx5   = strmatch(opt, str_cv, 'exact');
+    idx6   = strmatch(opt, str_simple_cpp, 'exact');
+    idx7   = strmatch(opt, str_withCDF, 'exact');
     if (~isempty(idx1))         % Compile GMT mexs
         cmd = ['mex ' [str_gmt{idx1} '.c'] ' ' include_gmt ' ' library_gmt ' ' opt_gmt];
     elseif (~isempty(idx4))     % Compile GMT MGG mexs
@@ -161,6 +165,8 @@ else                                % Compile only one mex
         cmd = ['mex ' [str_cv{idx5} '.c'] ' ' include_cv ' ' library_cv ' ' COPT];
     elseif (~isempty(idx6))     % Compile Simple c++ mexs
         cmd = ['mex ' [str_simple_cpp{idx6} '.cpp'] ' ' library_vc6 ' ' COPT];
+    elseif (~isempty(idx7))     % Compile netCDF dependent mexs
+        cmd = ['mex ' str_withCDF{idx7} '.c' ' -I' INCLUDE_NETCDF ' ' LIB_NETCDF ' ' COPT];
     else                        % Compile Other (simple) mexs
         cmd = ['mex ' [str_simple{idx3} '.c'] ' ' COPT];
     end
