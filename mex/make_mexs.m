@@ -70,10 +70,10 @@ str_shape = {'mex_shape'}';
 str_cv = {'cvcolor_mex' 'cvfill_mex' 'cvgetcorners_mex' 'cvresize_mex' 'cvlib_mex'}';
 
 % netCDF mexes (other than GMT ones)
-str_withCDF = {'swan'};
+str_withCDF = {'swan'; 'swan_sem_wbar'};
 
 % Non LIB dependent mexs (besides matlab libs, of course)
-str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'swan__' 'tsun2' 'wave_travel_time' 'mansinha_m' ...
+str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'tsun2' 'wave_travel_time' 'mansinha_m' ...
         'telha_m' 'range_change' 'country_select' 'mex_illuminate' 'grdutils' ...
         'read_isf' 'ind2rgb8' 'alloc_mex' 'susan' 'set_gmt' 'existmex' 'mxgridtrimesh'}';
 
