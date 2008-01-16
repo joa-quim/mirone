@@ -44,11 +44,11 @@ else
    %end
    
     folder = uigetfolder_win32(title, initial_path);
-	[t,r] = strtok(folder);
-	if (~isempty(r))
-        warndlg(['If you had RTFM you should know that names with blanks '...
-                '(wite spaces) are totaly FORBIDEN here.'],'ERROR')
-        folder = [];
-	end
+% 	[t,r] = strtok(folder);
+% 	if (~isempty(r))
+%         warndlg(['If you had RTFM you should know that names with blanks '...
+%                 '(wite spaces) are totaly FORBIDEN here.'],'ERROR')
+%         folder = [];
+% 	end
 end
 %-----------------------------------------------------------------------------------------------
