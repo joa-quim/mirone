@@ -54,7 +54,10 @@ function varargout = tiles_tool(varargin)
 			end
 		end
 		cacheDirs(ind) = [];			% Remove eventual non existent dirs
-		set(handles.popup_directory_list,'String',cacheDirs)
+		if ( isempty(cacheDirs) ),		cacheDirs = {''};		val = 1;		% It can't be an empty var
+		else							cacheDirs = [{''}; cacheDirs];		val = 2;
+		end
+		set(handles.popup_directory_list,'String',cacheDirs, 'Val', val)
 	end
 	% ------------------------------------------------------------------------------------------
 
@@ -160,20 +163,19 @@ function click_source_CB(hObject, evt)
 
 % -----------------------------------------------------------------------------------------
 function popup_directory_list_Callback(hObject, eventdata, handles, opt)
-% OPT is used by pushbutton_change_dir (just to save code)
+% OPT, used by pushbutton_change_dir, is char array
 
 	if (nargin == 3)    opt = [];   end
-	val = get(hObject,'Value');     str = get(hObject, 'String');
-	if isempty(opt)
-		% Put the selected field on top of the String list.
-		tmp = str(val);         str(val) = [];
-		cacheTilesDir = [tmp; str];
-	else
-		cacheTilesDir = [opt; str];
-		if (~iscell(cacheTilesDir)),	cacheTilesDir = {cacheTilesDir};	end
+	if ( ~isempty(opt) )				% Add a new entry to the cache dir list. Otherwise, just normal popup functioning.
+		val = get(hObject,'Value');     contents = get(hObject, 'String');
+		if ( numel(contents) == 1 ),	rest = [];
+		else							rest = contents(2:end);
+		end
+
+		cacheTilesDir = [{opt}; rest];			% Also the var that will be saved in 'mirone_pref'
+		set(hObject, 'String', [{''}; cacheTilesDir], 'Val', 2)			% Empty, <=> no cache, always on top
 		save([handles.path_data 'mirone_pref.mat'],'cacheTilesDir', '-append')		% Update the prefs file
 	end
-	set(handles.popup_directory_list, 'String',cacheTilesDir ,'Value',1); 
 
 % -----------------------------------------------------------------------------------------
 function pushbutton_change_dir_Callback(hObject, eventdata, handles)
@@ -195,8 +197,9 @@ function click_MOSAIC_e_GO_CB(hObject, eventdata)
 	
 	% ---------------- Have cache info? -----------------
 	val = get(handles.popup_directory_list,'Value');
-	str = get(handles.popup_directory_list, 'String');
-	if ( ~isempty(str) ),		cacheDir = str{val};
+	contents = get(handles.popup_directory_list, 'String');
+	str = contents{val};
+	if ( ~isempty(str) ),		cacheDir = str;
 	else						cacheDir = [];
 	end
 
@@ -288,13 +291,13 @@ function slider_zoomFactor_Callback(hObject, eventdata, handles)
 %
 	zoomLevel = round(get(hObject,'Value')) + 1;
 
-	lon = get(handles.axes1,'XLim');	lat = get(handles.axes1,'YLim');
+	lon = get(handles.axes1,'XLim')+[1e-6 -1e-6];	lat = get(handles.axes1,'YLim');
 	lat(1) = max(lat(1), -85);			lat(2) = min(lat(2), 85);
 
 	nXpatch = getPixel(lon, zoomLevel);
 	while (nXpatch > 20 || nXpatch > 20)
 		zoom_j(handles.figure1, 2)
-		lon = get(handles.axes1,'XLim');	lat = get(handles.axes1,'YLim');
+		lon = get(handles.axes1,'XLim')+[1e-6 -1e-6];	lat = get(handles.axes1,'YLim');
 		lat(1) = max(lat(1), -85);			lat(2) = min(lat(2), 85);
 		nXpatch = getPixel(lon, zoomLevel);
 	end
@@ -389,7 +392,7 @@ msg{5} = sprintf(['1) NASA World Wind type cache. There is a plugin for WW that 
 		'IF ''what'' == ''hybrid'' cache = [cache ''tt'']\n' ...
 	'Furthermore, a subsequent directory is still appended based on the ZOOM level required.\n' ...
 	'Example of an absolute dir of a 12 zoom level aerial request:\n' ...
-		' C:/whatever/you/want/to/call/this/path/cache/kh/12\n\n' ...
+		' C:/lixo/cache/kh/12\n\n' ...
 'Summary. CACHE is a base name directory of which subdirectories are assumed to exist (or ' ...
 'created if they do not) to hold proguessive refinement zoom level images.\n' ...
 'Please follow EXACTLY one of the two possible forms as explained above. ... Otherwise cache is ignored.']); 
@@ -458,6 +461,7 @@ uicontrol('Parent',h1, 'Position',[90 4 281 22],...
 'BackgroundColor',[1 1 1],...
 'Callback',{@tiles_tool_uicallback,h1,'popup_directory_list_Callback'},...
 'Style','popupmenu',...
+'String',{''},...
 'TooltipString','Select a cache directory where to search/save tiles files',...
 'Value',1,...
 'Tag','popup_directory_list');
@@ -574,10 +578,10 @@ function varargout = tiles_servers(varargin)
 	set(handles.popup_aerial, 'String', handles.servers_image, 'Val', order(1))
 	set(handles.popup_road,   'String', handles.servers_road,  'Val', order(2))
 	set(handles.popup_hybrid, 'String', handles.servers_hybrid,'Val', order(3))
-	handles.aerial = handles.servers_image{1}(order(1));					% Initializations
-	handles.road   = handles.servers_road{1}(order(2));
-	handles.hybrid = handles.servers_hybrid{1}(order(3));
-	handles.aerial_ind = 1;		handles.road_ind = 1;	handles.hybrid_ind = 1;
+	handles.aerial = handles.servers_image{order(1)};					% Initializations
+	handles.road   = handles.servers_road{order(2)};
+	handles.hybrid = handles.servers_hybrid{order(3)};
+	handles.aerial_ind = order(1);		handles.road_ind = order(2);	handles.hybrid_ind = order(3);
 	% ---------------------------------------------------------------------
 
 	guidata(hObject, handles);
