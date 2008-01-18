@@ -46,7 +46,7 @@ function  varargout = url2image(opt, varargin)
 %						IF 'what' == 'hybrid' cache = [cache 'tt'];
 %					Furthermore, a subsequent directory is still appended based on the ZOOM level required.
 %					Example of an absolute dir of a 12 zoom level aerial request: 
-%						C:/whatever/you/want/to/call/this/path/cache/kh/12
+%						C:\lixo\Cache\kh\12
 %
 %				CACHE summary. CACHE is a base name directory of which subdirectories are assumed to exist (or
 %				created if they do not) to hold proguessive refinement zoom level images.
@@ -355,15 +355,15 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 		if ( (whatKind == 'r') || (whatKind == 'h') ),	ext = 'png';	end		% Maps use png files
 
 		if (~iscell(url))
-			[cache, ext] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);
-			[img, cmap] = getImgTile(quadkey, quad_, url, cache, ext, decimal_adress, verbose);
+			[cache, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);
+			[img, cmap] = getImgTile(quadkey, quad_, url, cache, ext, decimal_adress, isWW, verbose);
 		else
 			img = repmat( repmat(uint8(200), [256 256 3]), mMo, nMo );		% Pre-allocate the final image size
 			for (i=1:mMo)
-				[cache, ext] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);		% WW changes cache dir per rows
+				[cache, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);		% WW changes cache dir per rows
 				for (j=1:nMo)
 					[img((i-1)*256+1:i*256, (j-1)*256+1:j*256, :), cmap] = ...
-						getImgTile(quadkey, quad_{mMo-i+1,j}, url{mMo-i+1,j}, cache, ext, decimal_adress, verbose);
+						getImgTile(quadkey, quad_{mMo-i+1,j}, url{mMo-i+1,j}, cache, ext, decimal_adress, isWW, verbose);
 				end
 			end
 		end
@@ -377,9 +377,11 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 	end
 
 % --------------------------------------------------------------------------------------	
-function [cache, ext] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind)
+function [cache, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind)
 % See if we have a "World Wind" with "Virtual Earth" cache. If yes complete the dir name for
 % the tile in question, which is expressed in DECIMAL_ADRESS.
+% For the type 2) cache refered at the main help, if cache dir doesn't end wit 'cache', append it as well
+	isWW = false;				% Will be true if CACHE is a WW cache
 	if ( ~isempty(cache) )
 		[pato, nome] = fileparts(cache);
 		fsep = filesep;
@@ -388,13 +390,18 @@ function [cache, ext] = completeCacheName(cache, ext, zoomL, decimal_adress, wha
 			if (whatKind(1) == 'a'),	ext = 'jpeg';		% IDIOTS, could not have used .jpg ?
 			else						ext = 'png';
 			end
-		elseif ( strcmpi(nome, 'cache') )
+			isWW = true;
+		else
+			if ( ~strcmpi(nome, 'cache') )				% If the cache dir doesn't by 'cache', add it
+				nome = [nome fsep 'cache'];
+			end
+			plusZLnumber = sprintf('%s%.2d',fsep, zoomL);		% Append the zoomlevel to the cache dir tree
 			if (whatKind(1) == 'a')
-				cache = [pato fsep nome fsep 'kh'];		ext = 'jpg';
+				cache = [pato fsep nome fsep 'kh' plusZLnumber];		ext = 'jpg';
 			elseif (whatKind(1) == 'r')
-				cache = [pato fsep nome fsep 'mt'];		ext = 'png';
+				cache = [pato fsep nome fsep 'mt' plusZLnumber];		ext = 'png';
 			else
-				cache = [pato fsep nome fsep 'tt'];		ext = 'png';
+				cache = [pato fsep nome fsep 'tt' plusZLnumber];		ext = 'png';
 			end
 		end
 	end
@@ -583,7 +590,7 @@ function [lon, lat] = getLonLat(pixelX, pixelY, zoomL)
 	lat = 180 - pixelY / pixPerDeg;
 
 % ----------------------------------------------------------------------------	
-function [img, cmap] = getImgTile(quadkey, quad, url, cache, ext, decAdr, verbose)
+function [img, cmap] = getImgTile(quadkey, quad, url, cache, ext, decAdr, isWW, verbose)
 % Get the image either from a local cache or by url 
 	try
 		if (quadkey{1} == '0'),		quad = [url(8) quad];			% (Virtual Earth -> url(8) = 'a'|'r'|'h')
@@ -592,26 +599,25 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, ext, decAdr, verbos
 
 		cmap = [];		att = [];
 		if (~isempty(cache))		% We have a cache dir to look for
-			tt = double(cache(end-1:end));				% a tmp var
-			if ( all(tt >= 48) && all(tt <= 57) )		% two last chars are numbers. Assume it is a WW cache
+
+			if ( isWW )		% We guessed it before as beeing a a WW cache
 				fname = [cache filesep sprintf('%.4d_%.4d', decAdr(2), decAdr(1)) '.' ext];
 			else
-				fname = [cache filesep sprintf('%.2d',numel(quad)) filesep quad '.' ext];
+				fname = [cache filesep quad '.' ext];
 			end
 			if (exist(fname, 'file'))
 				if (verbose),	disp(['Retrieving file from cache: ' fname]),	end
 				[img, cmap] = imread(fname);
-				img = flipdim(img, 1);
 			else										% File is not in cache. Need to download
 				if (verbose),	disp(['Downloading file ' url]),	end
 				[img, att] = gdalread(url);				% Don't read flipped ('-U') because of saving
 				saveInCache(cache, fname, att, img, ext)	% Save tile in the cache directory (if CACHE exists)
-				img = flipdim(img, 1);
 			end
 		else						% No cache, download it
 			if (verbose),	disp(['Downloading file ' url]),	end
 			[img, att] = gdalread(url, 'U');
 		end
+		img = flipdim(img, 1);
 		
 		if ( isempty(img) )								% VE returns a 256x256 when the tile has no image 
 			img = repmat(uint8(200), [256 256 3]);
@@ -643,20 +649,8 @@ function saveInCache(cache, fname, att, img, ext)
 
 	if ( isempty(cache) ),		return,		end			% No CACHE, no money
 	
-	if ( ~exist(cache,'dir') )					% Ghrr, make a new dir
-		% At least on R13 MKDIR is a brain-dead fun. WHY CAN'T the F. WE CREAT AN ABSOLUTE PATH 'DIR' ???????
-		try
-			if (strncmp(computer,'PC',2))
-				if (strfind(cache, ' ')),	cache = ['"' cache '"'];	end
-				disp(['Creating DIR: ' cache])
-				Status = dos(['mkdir ' cache]);
-			else								
-				Status = unix(['mkdir -p ' cache]);
-			end
-			if (Status),	error('url2image:saveInCache', 'Error while creating new cache (sub)directory'),	end
-		catch
-			error('url2image:saveInCache', 'Error while creating new cache directory')
-		end
+	if ( exist(cache,'dir') ~= 7 )					% Ghrr, make a new dir
+		make_dir(cache)
 	end
 
 	if ( ndims(img) == 3 && (strcmp(ext,'jpg') || strcmp(ext,'jpeg')) )
@@ -668,6 +662,23 @@ function saveInCache(cache, fname, att, img, ext)
 		imwrite(img, cmap, fname);
 	else
 		error('url2image:saveInCache', 'Shit. Unknown error while trying to save image in cache')
+	end
+
+% --------------------------------------------------------------------------------------	
+function make_dir(cache)
+% Create the directory CACHE
+% At least on R13 MKDIR is a brain-dead fun. WHY CAN'T the F. WE CREAT AN ABSOLUTE PATH 'DIR' ???????
+	try
+		if (strncmp(computer,'PC',2))
+			if (strfind(cache, ' ')),	cache = ['"' cache '"'];	end
+			disp(['Creating DIR: ' cache])
+			Status = dos(['mkdir ' cache]);
+		else								
+			Status = unix(['mkdir -p ' cache]);
+		end
+		if (Status),	error('url2image:make_dir', 'Error while creating new cache (sub)directory'),	end
+	catch
+		error('url2image:make_dir', 'Error while creating new cache directory')
 	end
 
 % ----------------------------------------------------------------------------	
