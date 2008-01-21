@@ -1,21 +1,21 @@
 function move2side(hFigStatic, hFigMov, opt)
-	% Put a smaller figure right to the side of a reference (standing) figure
-	%
-	% Try to position figure "hFigMov" glued to the right or left of "hFigStatic" figure
-	% OPT is an optional char string with 'left' or 'right' (if not provided, defaults to 'right')
-	% that selects at which side to position the moving figure.
-	%
-	%	EXAMPLE:
-	%		load clown
-	%		imagesc(X);		hS = gcf;	set(hS,'colormap',map)
-	%		hL = warndlg('I am a clown');
-	%		hR = warndlg('I am a clown');
-	%		move2side(hS, hL, 'left')
-	%		move2side(hS, hR)
-	%
-	%   AUTHOR
-	%		Joaquim Luis (jluis@ualg.pt)    13-Sep-2007
-	%		University of Algarve
+% Put a smaller figure right to the side of a reference (standing) figure
+%
+% Try to position figure "hFigMov" glued to the right or left of "hFigStatic" figure
+% OPT is an optional char string with 'left' or 'right' (if not provided, defaults to 'right')
+% that selects at which side to position the moving figure.
+%
+%	EXAMPLE:
+%		load clown
+%		imagesc(X);		hS = gcf;	set(hS,'colormap',map)
+%		hL = warndlg('I am a clown');
+%		hR = warndlg('I am a clown');
+%		move2side(hS, hL, 'left')
+%		move2side(hS, hR)
+%
+%   AUTHOR
+%		Joaquim Luis (jluis@ualg.pt)    13-Sep-2007
+%		University of Algarve
 	
 	n_args = nargin;
 	if (n_args < 2)
