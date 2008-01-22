@@ -16,8 +16,8 @@ if nargin < 3 || nargin > 4; error('Incorrect number of input arguments.'); end
 only_slope = 0;     only_aspect = 0;    only_gradN = 0;     only_gradE = 0;     only_grad = 0;  all = 0;
 
 % Test  to see if varargin{1} & varargin{2} are vectors or meshgrids
-if ( size(varargin{1},1) == 1 && size(varargin{2},1) == 1 && ...    % lat,lon vectors as input
-        isequal(size(varargin{2},2), size(varargin{3},2)) && isequal(size(varargin{1},2), size(varargin{3},1)) )
+if ( min(size(varargin{1})) == 1 && min(size(varargin{2})) == 1 && ...    % lat,lon vectors as input
+        isequal(numel(varargin{2}), size(varargin{3},2)) && isequal(numel(varargin{1}), size(varargin{3},1)) )
     do_mesh = 1;                % Do it later inside the Tiling
     map = varargin{3};
 elseif isequal( size(varargin{1}), size(varargin{2}), size(varargin{3}) )
