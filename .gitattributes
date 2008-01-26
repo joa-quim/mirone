@@ -379,6 +379,7 @@ src_figs/vitrinite.m -text
 src_figs/w_option.m -text
 src_figs/write_gmt_script.m -text
 src_figs/yes_or_no.m -text
+src_figs/zonal_integrator.m -text
 /startup.m -text
 /szlibdll.dll -text
 /uigetfolder_standalone.m -text
