@@ -1,0 +1,483 @@
+function varargout = zonal_integrator(varargin)
+% M-File changed by desGUIDE 
+ 
+	hObject = figure('Tag','figure1','Visible','off');
+	zonal_integrator_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	movegui(hObject,'east')
+ 
+	if (numel(varargin) > 0)
+		handMir = varargin{1};
+		handles.home_dir = handMir.home_dir;
+		handles.last_dir = handMir.last_dir;
+		handles.work_dir = handMir.work_dir;
+        d_path = handMir.path_data;
+	else
+		handles.home_dir = cd;
+		handles.last_dir = handles.home_dir;
+		handles.work_dir = handles.home_dir;
+        d_path = [pwd filesep 'data' filesep];
+	end
+	handles.nameList = [];
+
+	% -------------- Import/set icons --------------------------------------------
+	load([d_path 'mirone_icons.mat'],'Mfopen_ico');
+	set(handles.push_namesList, 'CData',Mfopen_ico)
+
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+	frame_size = get(handles.frame1,'Position');
+	frame3D(hObject,frame_size,framecolor,'',get(handles.frame1,'UserData'))
+	delete(handles.frame1)
+	%------------- END Pro look (3D) -------------------------------------------------------
+
+	set(hObject,'Visible','on');
+	guidata(hObject, handles);
+	if (nargout),   varargout{1} = hObject;     end
+
+% -----------------------------------------------------------------------------------------
+function edit_namesList_Callback(hObject, eventdata, handles)
+    fname = get(hObject,'String');
+    push_namesList_Callback([], [], handles, fname)
+
+% -----------------------------------------------------------------------------------------
+function push_namesList_Callback(hObject, eventdata, handles, opt)
+    if (nargin == 3)        % Direct call
+        cd(handles.last_dir)
+    	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
+        [FileName,PathName] = uigetfile(str1,'File with grids list');
+        cd(handles.home_dir);
+	    if isequal(FileName,0);     return;     end
+        if (PathName ~= 0),         handles.last_dir = PathName;    end
+    else        % File name on input
+        [PathName,FNAME,EXT] = fileparts(opt);
+        PathName = [PathName filesep];      % To be coherent with the 'if' branch
+        FileName = [FNAME EXT];
+    end
+	fname = [PathName FileName];
+
+    [bin,n_column] = guess_file(fname);
+    % If error in reading file
+    if isempty(bin)
+		errordlg(['Error reading file ' fname],'Error');    return
+    end
+
+	fid = fopen(fname);
+	c = fread(fid,'*char')';      fclose(fid);
+	names = strread(c,'%s','delimiter','\n');   clear c fid;
+	m = length(names);
+
+	handles.shortNameList = cell(m,1);      % To hold grid names with path striped
+	c = false(m,1);
+	for (k=1:m)
+		if ( isempty(names{k}) ),	continue,		end		% Jump empty lines
+		if (n_column == 1 && names{k}(1) == '#')    % If n_column > 1, this test was already done above
+			c(k) = true;    continue;
+		end
+		[PATH,FNAME,EXT] = fileparts(names{k});
+		if (isempty(PATH))
+			handles.shortNameList{k} = names{k};
+			names{k} = [PathName names{k}];
+		else
+			handles.shortNameList{k} = [FNAME EXT];
+		end
+		if (any(c))
+			names(c) = [];		handles.shortNameList(c) = [];
+		end
+	end
+
+	% Check that at least the files in provided list do exist
+	c = false(m,1);
+	for (k=1:m)
+		c(k) = (exist(names{k},'file') ~= 2);
+	end
+	names(c) = [];      handles.shortNameList(c) = [];
+
+	handles.nameList = names;
+	set(handles.edit_namesList, 'String', fname)
+	set(handles.listbox_list,'String',handles.shortNameList)
+	guidata(handles.figure1,handles)
+
+% -----------------------------------------------------------------------------------------
+function check_region_Callback(hObject, eventdata, handles)
+	if (get(hObject,'Val'))
+		set([handles.edit_north handles.edit_south handles.edit_west handles.edit_east],'Enable','on')
+	else
+		set([handles.edit_north handles.edit_south handles.edit_west handles.edit_east],'Enable','off')
+	end
+
+% -----------------------------------------------------------------------------------------
+function edit_north_Callback(hObject, eventdata, handles)
+	x1 = str2double(get(hObject,'String'));
+	if (isnan(x1)),		set(hObject,'String',''),	return,		end
+	x2 = get(handles.edit_south,'String');
+	if (~isempty(x2))
+		x2 = str2double(x2);
+		if (x2 >= x1) 
+			errordlg('North Latitude <= South Latitude','Error in Latitude limits')
+			set(hObject,'String','')
+		end
+	end
+
+% -----------------------------------------------------------------------------------------
+function edit_south_Callback(hObject, eventdata, handles)
+	x1 = str2double(get(hObject,'String'));
+	if (isnan(x1)),		set(hObject,'String',''),	return,		end
+	x2 = get(handles.edit_north,'String');
+	if (~isempty(x2))
+		x2 = str2double(x2);
+		if (x2 <= x1) 
+			errordlg('South Latitude >= North Latitude','Error in Latitude limits')
+			set(hObject,'String','')
+		end
+	end
+
+% -----------------------------------------------------------------------------------------
+function edit_west_Callback(hObject, eventdata, handles)
+	x1 = str2double(get(hObject,'String'));
+	if (isnan(x1)),		set(hObject,'String',''),	return,		end
+	x2 = get(handles.edit_east,'String');
+	if (~isempty(x2))
+		x2 = str2double(x2);
+		if (x2 <= x1) 
+			errordlg('East Longitude <= West Longitude','Error in Longitude limits')
+			set(hObject,'String','')
+		end
+	end
+
+% -----------------------------------------------------------------------------------------
+function edit_east_Callback(hObject, eventdata, handles)
+	x1 = str2double(get(hObject,'String'));
+	if (isnan(x1)),		set(hObject,'String',''),	return,		end
+	x2 = get(handles.edit_west,'String');
+	if (~isempty(x2))
+		x2 = str2double(x2);
+		if (x2 >= x1) 
+			errordlg('East Longitude <= West Longitude','Error in Longitude limits')
+			set(hObject,'String','')
+		end
+	end
+
+% -----------------------------------------------------------------------------------------
+function listbox_list_Callback(hObject, eventdata, handles)
+
+% -----------------------------------------------------------------------------------------
+function edit_stripeWidth_Callback(hObject, eventdata, handles)
+	x1 = str2double(get(hObject,'String'));
+	if (isnan(x1)),		set(hObject,'String','0.5'),	end
+
+% -----------------------------------------------------------------------------------------
+function radio_lat_Callback(hObject, eventdata, handles)
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radio_lon,'Val',0)
+
+% -----------------------------------------------------------------------------------------
+function radio_lon_Callback(hObject, eventdata, handles)
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radio_lat,'Val',0)
+
+% -----------------------------------------------------------------------------------------
+function push_compute_Callback(hObject, eventdata, handles)
+% ...
+	if (isempty(handles.nameList))
+	end
+
+	got_R = false;		is_modis = false;		is_linear = false;		is_log = false;
+	if (get(handles.check_region,'Val'))
+		north = str2double(get(handles.edit_north,'String')); 
+		west = str2double(get(handles.edit_west,'String')); 
+		east = str2double(get(handles.edit_east,'String')); 
+		south = str2double(get(handles.edit_south,'String')); 
+		if ( any(isempty([west east south north])) )
+			errordlg('One of the region limits was not provided','Error'),	return
+		end
+		got_R = true;
+	end
+
+	if (got_R)
+		opt_R = sprintf('-R%.8f/%.8f/%.8f/%.8f',west,east,south,north);
+	else
+		opt_R = ' ';
+	end
+
+	aguentabar(0,'title','Computing zonal means','CreateCancelBtn')
+
+	dlat = str2double(get(handles.edit_stripeWidth,'String'));
+	att = gdalread(handles.nameList{1},'-M','-C');
+	% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
+	if ( isequal([att.Corners.LR - att.Corners.UL],[att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
+		att.GMT_hdr(1:4) = [1 att.RasterXSize 1 att.RasterYSize];
+	end
+	head = att.GMT_hdr;
+
+	if (get(handles.radio_lon, 'Val'))
+		N_spatialSize = att.RasterYSize;		% Number of points in the spatial dim
+		integDim = 2;							% Dimension along which we are going to integrate
+	else
+		N_spatialSize = att.RasterXSize;
+		integDim = 1;
+	end
+
+	if ( strcmp(att.DriverShortName, 'HDF4') && ~isempty(att.Metadata) && strfind(att.Metadata{2}, 'MODIS') )
+		y_max = str2double(att.Metadata{39}(23:end));		% att.Metadata{39} -> Northernmost Latitude=90
+		y_min = str2double(att.Metadata{40}(23:end));		% att.Metadata{40} -> Southernmost Latitude=90
+		x_min = str2double(att.Metadata{41}(23:end));		% att.Metadata{41} -> Westernmost Longitude=-180
+		x_max = str2double(att.Metadata{42}(23:end));		% att.Metadata{41} -> Easternmost Longitude=-180
+		columns = str2double(att.Metadata{49}(19:end));		% att.Metadata{49} -> Number of Columns=4320
+		dx = 360 / columns;
+		head(1:4) = [x_min x_max y_min y_max] + [dx -dx dx -dx];	% Orig data was pixel registered
+		if (got_R)			% We must give the region in pixels since the image is trully nt georeferenced
+			rows = str2double(att.Metadata{48}(17:end));	% att.Metadata{48} -> Number of Lines=2160
+			rp = aux_funs('axes2pix',rows, [y_min y_max],[south north]);
+			cp = aux_funs('axes2pix',columns, [x_min x_max],[west east]);
+			rp = rows - rp;		rp = [rp(2) rp(1)];
+			opt_R = sprintf('-r%d/%d/%d/%d',round(cp(1:2)),round(rp(1:2)));
+			head(1:4) = [west east south north];		% Orig data was pixel registered
+			if (get(handles.radio_lon, 'Val')),		N_spatialSize = round(diff(rp) + 1);
+			else									N_spatialSize = round(diff(cp) + 1);
+			end
+		end
+
+		% Get the the scaling equation and its parameters
+		if ( strcmp(att.Metadata{53}(9:end), 'linear') )
+			slope = str2double(att.Metadata{55}(7:end));		% att.Metadata{41} -> Slope=0.000717185
+			intercept = str2double(att.Metadata{56}(11:end));	% att.Metadata{41} -> Intercept=-2
+			is_linear = true;
+		elseif ( strcmp(att.Metadata{53}(9:end), 'logarithmic') )
+			base = str2double(att.Metadata{55}(6:end));		 	% att.Metadata{41} -> Base=10
+			slope = str2double(att.Metadata{56}(7:end));		% att.Metadata{41} -> Slope=0.000717185
+			intercept = str2double(att.Metadata{57}(11:end));	% att.Metadata{41} -> Intercept=-2
+			is_log = true;
+		end
+		is_modis = true;			% We'll use this knowledge to 'avoid' Land pixels = 65535
+	end
+
+	if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
+		ind = strfind(att.Subdatasets{1}, '=');
+		FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
+		att = gdalread(FileName,'-M','-C');				% Try again
+		handles.nameList{1} = FileName;					% This way the first time in loop for below will access the subdataset
+	end
+
+	% Build the vectors to deal with the zonal integration
+	if (get(handles.radio_lon, 'Val'))
+		vecD = floor(head(3)):dlat:ceil(head(4));
+		Y = linspace(head(3),head(4), N_spatialSize);
+	else
+		vecD = floor(head(1)):dlat:ceil(head(2));
+		Y = linspace(head(1),head(2), N_spatialSize);
+	end
+	nStripes = numel(vecD) - 1;
+	indStripe = ones(numel(vecD),1);
+	for (k = 2:nStripes)
+		ind = find(Y >= vecD(k));
+		indStripe(k) = ind(1);
+	end
+	indStripe(end) = N_spatialSize;
+
+	nSeries = numel(handles.nameList);
+	allSeries = zeros(nStripes, nSeries);
+	for (k = 1:nSeries)
+		att = gdalread(handles.nameList{k},'-M','-C');				% First, get only the attribs
+		if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
+			ind = strfind(att.Subdatasets{1}, '=');
+			FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
+			[Z,att] =  gdalread(FileName, '-U', '-C', opt_R);
+		else
+			Z =  gdalread(handles.nameList{k}, '-U', '-C', opt_R);
+		end
+		this_has_nans = false;
+		if (is_modis)
+			ind = (Z == 65535);
+			if (any(ind(:))),		Z(ind) = 0;		this_has_nans = true;		end
+		elseif ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) )
+			ind = (Z == single(att.Band(1).NoDataValue));
+			if (any(ind(:))),		Z(ind) = 0;		this_has_nans = true;		end
+		elseif (isnan(att.Band(1).NoDataValue))		% The nodata is NaN, replace NaNs in Z by zero
+			ind = isnan(Z);
+			if (any(ind(:))),		Z(ind) = 0;		this_has_nans = true;		end
+		end
+
+		tmp = sum(Z,integDim);			% Add along integration dim
+		if (get(handles.radio_lon, 'Val')),		N = size(Z,2);
+		else									N = size(Z,1);
+		end
+		if (this_has_nans)
+			tmp2 = sum(ind,integDim);
+			tmp = tmp ./ (N - tmp2);
+		else
+			tmp = tmp / N;
+		end
+		% Now add all inside each stripe
+		for (m = 1:nStripes)
+			tmp2 = tmp( indStripe(m):indStripe(m+1) );
+			allSeries(m,k) = sum(tmp2) / numel(tmp2);
+		end
+
+		h = aguentabar(k/nSeries);
+		if (isnan(h)),	break,	end
+	end
+	if (isnan(h)),	return,		end
+
+	% See if we must apply a scaling equation
+	if (is_modis && is_linear)
+		allSeries = allSeries * slope + intercept;
+	elseif (is_modis && is_log)
+		allSeries = base .^ (allSeries * slope + intercept);
+	end
+
+	allSeries = single(allSeries);
+	zz = grdutils(allSeries,'-L');
+	head = [1 nSeries vecD(1) vecD(end) zz(1) zz(2) 0 1 dlat];
+	tmp.X = 1:nSeries;		tmp.Y = linspace( (vecD(1)+dlat/2), (vecD(end)-dlat/2), nStripes );
+	tmp.head = [head(1:2) tmp.Y(1) tmp.Y(end) head(5:end)];
+	tmp.geo = 0;			tmp.name = 'Zonal integration';
+	mirone(allSeries, tmp)
+
+
+
+% --- Creates and returns a handle to the GUI figure. 
+function zonal_integrator_LayoutFcn(h1);
+
+set(h1,...
+'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'MenuBar','none',...
+'Name','Zonal_Integrator',...
+'NumberTitle','off',...
+'Position',[520 532 440 265],...
+'Resize','off',...
+'HandleVisibility','callback',...
+'Tag','figure1');
+
+uicontrol('Parent',h1,...
+'Position',[241 202 30 15],...
+'String','Delta',...
+'Style','text');
+
+uicontrol('Parent',h1,...
+'Position',[240 64 191 117],...
+'Style','frame',...
+'Tag','frame1');
+
+uicontrol('Parent',h1,...
+'Position',[358 66 20 15],...
+'String','S',...
+'Style','text');
+
+uicontrol('Parent',h1,...
+'Position',[250 123 20 15],...
+'String','W',...
+'Style','text');
+
+uicontrol('Parent',h1,...
+'Position',[402 124 20 15],...
+'String','E',...
+'Style','text');
+
+uicontrol('Parent',h1,...
+'Position',[356 147 20 15],...
+'String','N',...
+'Style','text');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@zonal_integrator_uicallback,h1,'edit_namesList_Callback'},...
+'HorizontalAlignment','left',...
+'Position',[6 239 401 21],...
+'Style','edit',...
+'TooltipString','Name of an ascii file with the grids list. One grid name per row',...
+'Tag','edit_namesList');
+
+uicontrol('Parent',h1,...
+'Callback',{@zonal_integrator_uicallback,h1,'push_namesList_Callback'},...
+'Position',[407 237 23 23],...
+'TooltipString','Browse for a grids list file',...
+'Tag','push_namesList');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@zonal_integrator_uicallback,h1,'edit_stripeWidth_Callback'},...
+'Position',[271 199 51 21],...
+'String','0.5',...
+'Style','edit',...
+'TooltipString','Width of the stripe over which integration is carried on',...
+'Tag','edit_stripeWidth');
+
+uicontrol('Parent',h1,...
+'Callback',{@zonal_integrator_uicallback,h1,'radio_lat_Callback'},...
+'Position',[390 202 35 15],...
+'String','Lat',...
+'Style','radiobutton',...
+'TooltipString','Integrate in Latitude',...
+'Tag','radio_lat');
+
+uicontrol('Parent',h1,...
+'Callback',{@zonal_integrator_uicallback,h1,'radio_lon_Callback'},...
+'Position',[335 202 45 15],...
+'String','Long',...
+'Style','radiobutton',...
+'TooltipString','Integrate in Longitude',...
+'Value',1,...
+'Tag','radio_lon');
+
+uicontrol('Parent',h1,...
+'Callback',{@zonal_integrator_uicallback,h1,'check_region_Callback'},...
+'Position',[250 158 100 15],...
+'String','Use sub-region?',...
+'Style','checkbox',...
+'TooltipString','Perform computations inside a data sub-region',...
+'Tag','check_region');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@zonal_integrator_uicallback,h1,'edit_north_Callback'},...
+'Enable','off',...
+'Position',[300 129 71 21],...
+'Style','edit',...
+'Tag','edit_north');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@zonal_integrator_uicallback,h1,'edit_west_Callback'},...
+'Enable','off',...
+'Position',[250 104 71 21],...
+'Style','edit',...
+'Tag','edit_west');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@zonal_integrator_uicallback,h1,'edit_east_Callback'},...
+'Enable','off',...
+'Position',[350 104 71 21],...
+'Style','edit',...
+'Tag','edit_east');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@zonal_integrator_uicallback,h1,'edit_south_Callback'},...
+'Enable','off',...
+'Position',[300 79 71 21],...
+'Style','edit',...
+'Tag','edit_south');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@zonal_integrator_uicallback,h1,'listbox_list_Callback'},...
+'Position',[6 9 221 221],...
+'Style','listbox',...
+'Value',1,...
+'Tag','listbox_list');
+
+uicontrol('Parent',h1,...
+'Callback',{@zonal_integrator_uicallback,h1,'push_compute_Callback'},...
+'FontName','Helvetica',...
+'FontSize',9,...
+'FontWeight','bold',...
+'Position',[336 7 91 23],...
+'String','Compute',...
+'Tag','push_compute');
+
+function zonal_integrator_uicallback(hObject, eventdata, h1, callback_name)
+% This function is executed by the callback and than the handles is allways updated.
+feval(callback_name,hObject,[],guidata(h1));
