@@ -630,7 +630,9 @@ function set_isochrons_uicontext(h,data)
 tag = get(h,'Tag');
 if (iscell(tag)),   tag = tag{1};   end
 
-cmenuHand = uicontextmenu;
+handles = guidata(get(h(1),'Parent'));             % Get Mirone handles
+
+cmenuHand = uicontextmenu('Parent',handles.figure1);
 set(h, 'UIContextMenu', cmenuHand);
 cb_LineWidth = uictx_LineWidth(h);       % there are 5 cb_LineWidth outputs
 cb_color = uictx_color(h);               % there are 9 cb_color outputs
