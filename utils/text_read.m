@@ -69,6 +69,10 @@ end
 if isnan(requestedDelimiter)
 	str = string(1:min(length(string),4096));       % Limit the variable size used to guess the delimiter
 	delimiter = guessdelim(str);    clear str;
+	if (numel(delimiter) > 1)		% Found more than one likely delimiter, where second is ' ' or '\t'
+		string = strrep(string, delimiter(2), delimiter(1));	% Replace occurences of second delimiter by first
+		delimiter = delimiter(1);
+	end
 else
 	delimiter = sprintf(requestedDelimiter);
 end
@@ -216,8 +220,8 @@ delims = {sprintf('\t'), ',', ';', ':', '|', ' '};
 % remove any delims which don't appear at all
 % need to rethink based on headers and footers which are plain text
 goodDelims = {};
+numDelims = zeros(1, numel(delims));
 for i = 1:numel(delims)
-    %numDelims(i) = length(find(str == sprintf(delims{i})));
     numDelims(i) = numel(strfind(str,delims{i}));
     if (numDelims(i) ~= 0)        % this could be a delim
         goodDelims{end+1} = delims{i};
@@ -228,11 +232,21 @@ end
 if isempty(goodDelims),    delim = '';    return;   end
 
 % if the num delims is greater or equal to num lines, this will be the default (so return)
-for i = 1:numel(delims)
-    delim = delims{i};
-    if (numDelims(i) > numLines)
-        return;
-    end
+nDelimsFound = sum(numDelims > 0);
+if (nDelimsFound == 1 || nDelimsFound > 2)		% Found one or (???) multiple delimiters
+	[maxNdelims,ind] = max(numDelims);			% Get the greater number of delimiters
+	if (maxNdelims > numLines)
+		delim = delims{ind};
+		return
+	end
+elseif (nDelimsFound == 2)			% Two delimiters found. 
+	% If second delimiter is ' ' or '\t' replace their occurences by first delimiter
+	[so,ii] = sort(numDelims);
+	second_delim = delims{ii(end-1)};
+	if ( strcmp(second_delim, ' ') || strcmp(second_delim, sprintf('\t')) )
+		delim = [delims{ii(end)} delims{ii(end-1)}];
+		return
+	end
 end
 
 % no delimiter was a clear win from above, choose the first in the delimiter list
@@ -255,7 +269,7 @@ if nargin == 1
     delimiter = guessdelim(string);
 else    % handle \t
     delimiter = sprintf(delimiter);
-    if length(delimiter) > 1
+    if (numel(delimiter) > 1)
         error('Multi character delimiters not supported.')
     end
 end
