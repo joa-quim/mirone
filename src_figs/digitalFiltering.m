@@ -470,26 +470,26 @@ info = get(handles.tblParams, 'userdata');
 nc = get(handles.listbox_nCols,'Value') * 2 + 1;        % Remember that row & cols start at 3 and
 nr = get(handles.listbox_nRows,'Value') * 2 + 1;        % increase by two. That is they are odd from 3 on
 if (mf ~= nr)       % Need to update the Rows listbox value
-    set(handles.listbox_nRows,'Value',(mf-1)/2);
+	set(handles.listbox_nRows,'Value',fix((mf-1)/2));
 end
 if (nf ~= nc)       % Need to update the Cols listbox value
-    set(handles.listbox_nCols,'Value',(nf-1)/2)
+	set(handles.listbox_nCols,'Value',fix((nf-1)/2))
 end
 if (mt > mf)                     % Must decrease number of rows
-    mltable_j(handles.figure1, handles.tblParams, 'DelRow',mt-mf)     % Remove mt-mf rows
+	mltable_j(handles.figure1, handles.tblParams, 'DelRow',mt-mf)     % Remove mt-mf rows
 elseif (mt < mf)                 % Must increase number of rows
-    mltable_j(handles.figure1, handles.tblParams, 'AddRow',mf-mt)     % Add mf-mt rows
+	mltable_j(handles.figure1, handles.tblParams, 'AddRow',mf-mt)     % Add mf-mt rows
 end
 
 if (nt > nf)                     % Must decrease number of cols
-    mltable_j(handles.figure1, handles.tblParams, 'DelCol',nt-nf)     % Remove nt-nf columns
+	mltable_j(handles.figure1, handles.tblParams, 'DelCol',nt-nf)     % Remove nt-nf columns
 elseif (nt < nf)                 % Must increase number of cols
-    mltable_j(handles.figure1, handles.tblParams, 'AddCol',nf-nt)     % Add nf-nt columns
+	mltable_j(handles.figure1, handles.tblParams, 'AddCol',nf-nt)     % Add nf-nt columns
 end
 
 info = get(handles.tblParams, 'userdata');      % Get the updated version
 info.data = num2cell(struct_val);
-for (i=1:prod(size(info.txtCells)))
+for ( i = 1:numel(info.txtCells) )
     set(info.txtCells(i),'String',num2str(struct_val(i),handles.format))
 end
 set(handles.tblParams, 'userdata',info);
@@ -569,37 +569,37 @@ guidata(handles.figure1,handles)
 function [grd,img] = pushbutton_apply_Callback(hObject, eventdata, handles)
 grd = [];
 info = get(handles.tblParams, 'userdata');
-f = cell2mat(info.data);                        % Fish out the filter coefs
+f = cell2mat(info.data);				% Fish out the filter coefs
 norma = sum(f(:));
-if (norma == 0),    norma = 1;      end
-f = f / norma;                                  % Normalize them
+if (abs(norma) < 1e-8),    norma = 1;      end
+f = f / norma;							% Normalize them
 
-if (isempty(handles.grd_orig))      % We are wowrking on a image
+if (isempty(handles.grd_orig))			% We are wowrking on a image
     img = handles.img_orig;
-else                                % We are working on a grid (2D array)
+else									% We are working on a grid (2D array)
     img = handles.grd_orig;
 end
 
 set(handles.figure1,'pointer','watch')
-flags = 6;          % This corresponds to the 'conv' option to imfilter_mex
-if (~isempty(handles.grd_orig))     % We are working on a grid.
+flags = 6;			% This corresponds to the 'conv' option to imfilter_mex
+if (~isempty(handles.grd_orig))			% We are working on a grid.
     grd = LocalImfilter(handles.grd_orig,f,'symmetric',flags);   % Filter it
     img = scaleto8(grd);
-else                                % We are working only with an image
+else									% We are working only with an image
 	if (ndims(handles.img_orig) == 2)
         img = LocalImfilter(handles.img_orig,f,'symmetric',flags);
-	else        % Due to a imfilter effeciency bug, this is much faster.
+	else		% Due to a imfilter effeciency bug, this is much faster.
 		img(:,:,1) = LocalImfilter(handles.img_orig(:,:,1),f,'symmetric',flags);
 		img(:,:,2) = LocalImfilter(handles.img_orig(:,:,2),f,'symmetric',flags);
 		img(:,:,3) = LocalImfilter(handles.img_orig(:,:,3),f,'symmetric',flags);
 	end
 end
 
-set(handles.h_img2,'CData',img);                % Put the filtered image in the lower axes
+set(handles.h_img2,'CData',img);					% Put the filtered image in the lower axes
 
 if (~isempty(handles.h_calling_img))
     try
-        set(handles.h_calling_img,'CData',img);     % Put the filtered image in the original figure
+        set(handles.h_calling_img,'CData',img);		% Put the filtered image in the original figure
     catch
         warndlg('Why did you kill the calling figure when you requested to process its image?','Stupid atittude')
     end
@@ -748,47 +748,34 @@ function pushbutton_loadFilter_Callback(hObject, eventdata, handles)
 
 str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 [FileName,PathName] = uigetfile(str1,'Select filter file');
-if isequal(FileName,0);     return;     end
-
-[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-if (isempty(EXT) || strcmpi(EXT,'dat'))
-    msgbox('Sorry, but the file name MUST have a .dat extension','Error'); return
-end
+if isequal(FileName,0),		return,		end
 
 try
-    load([PathName FileName])
-    filt = FNAME;
+	filt = text_read([PathName FileName]);
 catch
-    errordlg(lasterr,'ERROR');
-    return
+    errordlg(lasterr,'ERROR');    return
 end
 
-handles.custom_filt = eval(filt);       % Store the custom filter here.
+handles.custom_filt = filt;					% Store the custom filter here.
+update_table(handles,handles.custom_filt)		% Update the table
 guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------
 % --- Creates and returns a handle to the GUI figure. 
 function digitalFiltering_LayoutFcn(h1,handles)
 set(h1,...
-'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
 'MenuBar','none',...
 'Name','Digital Filtering',...
 'NumberTitle','off',...
-'PaperPosition',get(0,'defaultfigurePaperPosition'),...
-'PaperSize',[20.98404194812 29.67743169791],...
-'PaperType',get(0,'defaultfigurePaperType'),...
 'Position',[520 370 811 430],...
-'Renderer',get(0,'defaultfigureRenderer'),...
-'RendererMode','manual',...
 'DoubleBuffer','on',...
 'Resize','off',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,'Position',[14 11 227 46],...
-'Style','frame','Tag','frame2');
+uicontrol('Parent',h1,'Position',[14 11 227 46],'Style','frame','Tag','frame2');
 
 h3 = uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -856,7 +843,6 @@ uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@digitalFiltering_uicallback,h1,'listbox_nRows_Callback'},...
 'Position',[310 219 75 51],...
-'String',{  'Listbox' },...
 'Style','listbox',...
 'Value',1,...
 'Tag','listbox_nRows');
@@ -865,7 +851,6 @@ uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@digitalFiltering_uicallback,h1,'listbox_nCols_Callback'},...
 'Position',[466 219 75 51],...
-'String',{'Listbox'},...
 'Style','listbox',...
 'Value',1,...
 'Tag','listbox_nCols');
