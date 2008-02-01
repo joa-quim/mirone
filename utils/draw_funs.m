@@ -1127,7 +1127,7 @@ function azim = show_lineAzims(obj,eventdata,h)
             msg{end+1} = '';
             az_mean = mean(az);
             msg{end+1} = ['Mean azimuth = ' sprintf('%.1f',az_mean) '  degrees'];
-            id = (az >= 180);    az(id) = az(id) - 180;
+            id = (az >= 180);    az(id) = az(id) - 360;
             dir_mean = mean(az);
             if (~isequal(az_mean,dir_mean))
                 msg{end+1} = ['Mean direction = ' sprintf('%.1f',dir_mean) '  degrees'];
