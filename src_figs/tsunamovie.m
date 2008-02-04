@@ -141,28 +141,26 @@ function push_batGrid_Callback(hObject, eventdata, handles, opt)
 function new_cmap = makeCmapBat(handles, cmap, orig)
     % Make this code as a function because we may need to call it again 
     % when eventually reseting the colormaps
-    if (orig)
-        % Isto assume que a bat tem partes neg e pos (testar)
-        % cmap = handles.terraMar;
-        % ind_old = 147;          % Discontinuity in the handles.terraMar cmap
-        cmap(end-3:end,:) = []; % Remove last four colors (narly white)
-        cmap = [repmat([196 156 104]/255,4,1); cmap];   % Add a yelowish color
-        ind_old = 5;            % New discontinuity in cmap
-        
-        nc = length(cmap);
-        z_inc = (handles.head_bat(6) - handles.head_bat(5)) / (nc - 1);
-        %%% ind_c = round(px - x(1) / (x(2)-x(1)) * nc) + 1;      % from color_palettes
-        %%% z_cur = handles.head_bat(5) + (ind_c - 1) * z_inc;
-        %%% (ind_c - 1) * z_inc = 0 - handles.head_bat(5);
-        ind_c = round(-handles.head_bat(5)/z_inc + 1);
-	
-        nl = ind_old;    nu = ind_c;
-        new_cmap_l = interp1(linspace(0,1,nl),cmap(1:nl,:),linspace(0,1,nu));
-        new_cmap_u = interp1(linspace(0,1,nc-ind_old),cmap(ind_old+1:nc,:),linspace(0,1,nc-ind_c));
-        new_cmap = [new_cmap_l; new_cmap_u];
-    else
-        new_cmap = cmap;        % Untill a know better what to do
-    end
+	if (~orig),		new_cmap = cmap;	return,		end		% Untill I know better what to do
+
+    % Isto assume que a bat tem partes neg e pos (testar)
+    % cmap = handles.terraMar;
+    % ind_old = 147;			% Discontinuity in the handles.terraMar cmap
+    cmap(end-4:end,:) = [];		% Remove last five colors (narly white)
+    cmap = [repmat([196 156 104]/255,5,1); cmap];   % Add a yelowish color
+	ind_old = 5;				% New discontinuity in cmap
+    
+    nc = length(cmap);
+    z_inc = (handles.head_bat(6) - handles.head_bat(5)) / (nc - 1);
+    %%% ind_c = round(px - x(1) / (x(2)-x(1)) * nc) + 1;      % from color_palettes
+    %%% z_cur = handles.head_bat(5) + (ind_c - 1) * z_inc;
+    %%% (ind_c - 1) * z_inc = 0 - handles.head_bat(5);
+	ind_c = round(abs(0 - head(5)) / z_inc + 1);
+
+    nl = ind_old;    nu = ind_c;
+    new_cmap_l = interp1(linspace(0,1,nl),cmap(1:nl,:),linspace(0,1,nu));
+    new_cmap_u = interp1(linspace(0,1,nc-ind_old),cmap(ind_old+1:nc,:),linspace(0,1,nc-ind_c));
+    new_cmap = [new_cmap_l; new_cmap_u];
 
 % -----------------------------------------------------------------------------------------
 function edit_singleWater_Callback(hObject, eventdata, handles)
