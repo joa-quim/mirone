@@ -54,10 +54,10 @@ function move2side(hFigStatic, hFigMov, opt)
 			xLL = 4;				% 4 is nicier than 0
 		end
 	end
-	
-	yLL = (posFigStatic(2) + posFigStatic(4)/2+12) - posFigMov(4) / 2;
+
+	yLL = (posFigStatic(2) + posFigStatic(4)/2+12) - (posFigMov(4) / 2 - 22);
 	if ( (yLL + posFigMov(4)) > ecran(4) )		% Figure is partially out from top
-		yLL = ecran(4) - posFigMov(4) - 22;		% 22 Is my system's (XP) blue bar height 
+		yLL = ecran(4) - posFigMov(4) - 73;		% 73 Is fck... who knows why (blue bar + uimenus + uitoolbar)
 	end
 	set(hFigMov,'Pos',[xLL yLL posFigMov(3:4)])
 	
