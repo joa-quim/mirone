@@ -20,6 +20,8 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 
 	if (mode(1) == 'w')
 		write_nc(fname, handles, data, misc)
+	elseif (mode(1) == 'R')		% Get all but Z
+		[varargout{1} varargout{2} varargout{3} varargout{4} varargout{5}] = read_nc(fname, 1);
 	else
 		[varargout{1} varargout{2} varargout{3} varargout{4} varargout{5}] = read_nc(fname);
 	end
@@ -148,8 +150,13 @@ function write_nc(fname, handles, data, misc)
 
 % _________________________________________________________________________________________________	
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
-function [X,Y,Z,head,misc] = read_nc(fname)
+function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	% Read ...
+	% If OPT, do not load Z (return Z = []) -- Used by Aquamoto to read multi-levels grids
+
+	if (nargin == 1),		get_Z = true;
+	else					get_Z = false;		Z = [];
+	end
 
 	s = nc_funs('info',fname);
 	dimNames = {s.Dimension.Name};
@@ -249,17 +256,24 @@ function [X,Y,Z,head,misc] = read_nc(fname)
 	
 	% --------------------- Finally, get the Data --------------------------------
 	% Now z may be > 2D. If it is, get the first layer
-	nD = numel(s.Dataset(z_id).Size);
-	if (nD == 2 )
-		Z = nc_funs('varget', fname, s.Dataset(z_id).Name);
-	else
-		if ( ~all([s.Dimension.Length]) )
-			warndlg('One ore more dimensions has ZERO length. Expect #&%%&&$.','Warning')
+	z_dim = s.Dataset(z_id).Size;
+	if (get_Z)
+		nD = numel(z_dim);
+		if (nD == 2 )
+			Z = nc_funs('varget', fname, s.Dataset(z_id).Name);
+		else
+			if ( ~all([s.Dimension.Length]) )
+				warndlg('One ore more dimensions has ZERO length. Expect #&%%&&$.','Warning')
+			end
+			Z = nc_funs('varget', fname, s.Dataset(z_id).Name, zeros(1,nD), [ones(1,nD-2) s.Dataset(z_id).Size(end-1:end)]);
 		end
-		Z = nc_funs('varget', fname, s.Dataset(z_id).Name, zeros(1,nD), [ones(1,nD-2) s.Dataset(z_id).Size(end-1:end)]);
+		%[ny, nx] = size(Z);
+	else
+		misc.z_id = z_id;		% Return the z_id so that we don't have to repeat the fishing process
+		misc.z_dim = z_dim;
 	end
+	nx = z_dim(end);		ny = z_dim(end-1);
 
-	[ny, nx] = size(Z);
 	if (~isempty(x_id)),	X = double(nc_funs('varget', fname, s.Dataset(x_id).Name));
 	else					X = 1:nx;
 	end
@@ -274,12 +288,14 @@ function [X,Y,Z,head,misc] = read_nc(fname)
 	else								head(3:4) = [Y(1) Y(end)];
 	end
 	
-	if (isempty(z_actual_range))
+	if (get_Z && isempty(z_actual_range))
 		if ( isa(Z, 'double') )
-			z_actual_range = double([min(Z(:)) max(Z(:))]);
+			z_actual_range = [min(Z(:)) max(Z(:))];
 		else		% min/max are bugged when NaNs in singles
 			zz = grdutils(Z,'-L');  z_actual_range = [zz(1) zz(2)];
 		end
+	elseif (~get_Z)
+		z_actual_range = [0 1];		% Dumb, but it is not meant to be used anywhere
 	end
 	head(5:7) = double([z_actual_range node_offset]);
 	head(8) = diff(head(1:2)) / (nx - ~node_offset);
