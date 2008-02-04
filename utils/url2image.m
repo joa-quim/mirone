@@ -23,7 +23,8 @@ function  varargout = url2image(opt, varargin)
 %
 %		url2image(...,'lonlat', 'yes')
 %			If OPT == 'callmir' || OPT == 'url2image' returns coordinates in geogs instead of Mercator.
-%			Ignored otherwise. NOTICE that image is still mercator so these lat coords are ... wrong
+%			Ignored otherwise. NOTICE that image is still mercator so the lat coords are correct but they
+%			don't grow linearly from lat_min to lat_max
 %
 %		url2image(...,'verbose', 'yes')
 %			print out info while loading or downloading the image files
@@ -52,9 +53,9 @@ function  varargout = url2image(opt, varargin)
 %				created if they do not) to hold proguessive refinement zoom level images.
 %				Please follow EXACTLY one of the two possible forms as explained above. ... Otherwise cache is ignored. 
 %
-%	[url, lon_mm, lat_mm, x, y] = url2image('tile2url',...)
-%			URL is the url of a individual tile, whem MOSAIC == [], or a cell array of urls for other MOSAIC values
-%			LON_MM, LAT_MM, LATISO_MM, min/max of the region long, lat and isometric latitude. 
+%	[img, lon_mm, lat_mm, x, y] = url2image('tile2img',...)
+%			IMG is the mosaiced image
+%			LON_MM, LAT_MM, -> min/max of the region long, lat. 
 %			X, Y are the spherical mercator tile/ensemble of tiles coordinates
 %
 %	[url, lon_mm, lat_mm, x, y] = url2image('tile2url', lon, lat, zoom, PN/PV)
@@ -69,15 +70,15 @@ function  varargout = url2image(opt, varargin)
 %			that will compute the limits of a set of quadtrees names.
 %
 %	[lims, tiles_bb] = url2image('quadcoord', quad)
-% 			Compute the coordinates of a QUAD quadtree string, url, or cell array of one the previous
-% 			LIMS contains the BoundingBox coords in geogs
-% 			TILES_BB contains a Mx4 matrix with rectangle BB coords of each tile [lonMin lonMax latMin latMax]
+%			Compute the coordinates of a QUAD quadtree string, url, or cell array of one the previous
+%			LIMS contains the BoundingBox coords in geogs
+%			TILES_BB contains a Mx4 matrix with rectangle BB coords of each tile [lonMin lonMax latMin latMax]
 %			This matrix is written by columns. That is like coords(quad{:})
 %
 %	url2image('mappcache', quad, cache, ext)
-% 		Writes a mapping file of the files listed by QUAD in the cache directory. If QUAD == [] it scans
-% 		the CACHE dir for *.EXT files. If EXT is not provided, it defaults to .jpg. The mapping file has
-%		a fix name of tilesMapping.mat and contains three variables
+% 		Writes a mapping file of the files listed by QUAD in the CACHE directory.
+%		If QUAD == [] the CACHE dir is scanned for *.EXT files. If EXT is not provided, it defaults to .jpg
+%		The mapping file has a fix name of tilesMapping.mat and contains three variables
 % 			region -> all points bounding box
 %			zoomL ->  zoom level
 % 			tiles_midpt -> a Mx2 matrix with tiles mid point coordinates
@@ -180,7 +181,7 @@ function  varargout = url2image(opt, varargin)
 				otherwise
 					error('url2image:quadcoord', 'Wrong number (min 1, max 2) of output args')
 			end
-		case 'mappcache'					% Call quadcoord() and save a mappimg of the existing tiles in the 'cache' dir
+		case 'mappcache'				% Call quadcoord() and save a mappimg of the existing tiles in the 'cache' dir
 			mappcache(geoid(2), quadkey, varargin{:})
 		otherwise
 			disp('Valid keewords are: ''tile2url'' ''callmir'' ''quadcoord'' ''mappcache'' ')
@@ -282,7 +283,7 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 	
 	if ( quadkey{1} ~= '0' && ~isempty(strfind('rh',whatKind)) )		% hiden cat with outside tail
 		pref_bak = prefix;
-		prefix = [pref_bak sprintf('%d&y=%d&zoom=%d',decimal_adress,18-zoomL)];
+		prefix = [prefix sprintf('%d&y=%d&zoom=%d',decimal_adress,18-zoomL)];
 	end
 
 	if (quadonly)		% NOT TO BE USED WITH IMGs. The character used is irrelevant
@@ -315,8 +316,7 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 					end
 				else									% ~VE and road|hybrid
 					decAdr = getQuadLims([quadkey{2} quad_{i+mc,j+nc}], quadkey, 1);		% Get decimal adress
-					prefix = [pref_bak sprintf('%d&y=%d&zoom=%d',decAdr, 18-zoomL)];
-					url{i+mc,j+nc} = prefix;
+					url{i+mc,j+nc} = [pref_bak sprintf('%d&y=%d&zoom=%d',decAdr, 18-zoomL)];
 				end
 			end
 		end
@@ -355,15 +355,18 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 		if ( (whatKind == 'r') || (whatKind == 'h') ),	ext = 'png';	end		% Maps use png files
 
 		if (~iscell(url))
-			[cache, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);
-			[img, cmap] = getImgTile(quadkey, quad_, url, cache, ext, decimal_adress, isWW, verbose);
+			[cache, cache_supp, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);
+			[img, cmap] = getImgTile(quadkey, quad_, url, cache, cache_supp, ext, decimal_adress, isWW, verbose);
 		else
 			img = repmat( repmat(uint8(200), [256 256 3]), mMo, nMo );		% Pre-allocate the final image size
 			for (i=1:mMo)
-				[cache, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);		% WW changes cache dir per rows
+				[cache, cache_supp, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);	% WW changes cache dir per rows
 				for (j=1:nMo)
+					if ( isWW && quadkey{1} == '0' )		% VE and WW cache - We need to recompute the dec adress for each quad
+						decimal_adress = getQuadLims(['a' quad_{mMo-i+1,j}], quadkey, 1);	% Get decimal adress
+					end
 					[img((i-1)*256+1:i*256, (j-1)*256+1:j*256, :), cmap] = ...
-						getImgTile(quadkey, quad_{mMo-i+1,j}, url{mMo-i+1,j}, cache, ext, decimal_adress, isWW, verbose);
+						getImgTile(quadkey, quad_{mMo-i+1,j}, url{mMo-i+1,j}, cache, cache_supp, ext, decimal_adress, isWW, verbose);
 				end
 			end
 		end
@@ -377,31 +380,33 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 	end
 
 % --------------------------------------------------------------------------------------	
-function [cache, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind)
+function [cache, cache_supp, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind)
 % See if we have a "World Wind" with "Virtual Earth" cache. If yes complete the dir name for
 % the tile in question, which is expressed in DECIMAL_ADRESS.
 % For the type 2) cache refered at the main help, if cache dir doesn't end wit 'cache', append it as well
 	isWW = false;				% Will be true if CACHE is a WW cache
+	cache_supp = [];
 	if ( ~isempty(cache) )
 		[pato, nome] = fileparts(cache);
 		fsep = filesep;
 		if ( strcmp(nome, 'Virtual Earth') )
-			cache = [cache fsep sprintf('%d%c%c%c%.4d',zoomL-1,fsep,whatKind(1), fsep, decimal_adress(2) )];
+			%cache = [cache fsep sprintf('%d%c%c%c%.4d',zoomL-1,fsep,whatKind(1), fsep, decimal_adress(2) )];
 			if (whatKind(1) == 'a'),	ext = 'jpeg';		% IDIOTS, could not have used .jpg ?
 			else						ext = 'png';
 			end
 			isWW = true;
+			cache_supp = [fsep sprintf('%d%c%c%c%.4d',zoomL-1,fsep,whatKind(1), fsep, decimal_adress(2) )];
 		else
-			if ( ~strcmpi(nome, 'cache') )				% If the cache dir doesn't by 'cache', add it
-				nome = [nome fsep 'cache'];
+			if ( ~strcmpi(nome, 'cache') )				% If the cache dir doesn't end by 'cache', add it
+				cache = [cache fsep 'cache'];
 			end
 			plusZLnumber = sprintf('%s%.2d',fsep, zoomL);		% Append the zoomlevel to the cache dir tree
 			if (whatKind(1) == 'a')
-				cache = [pato fsep nome fsep 'kh' plusZLnumber];		ext = 'jpg';
+				cache_supp = [fsep 'kh' plusZLnumber];			ext = 'jpg';
 			elseif (whatKind(1) == 'r')
-				cache = [pato fsep nome fsep 'mt' plusZLnumber];		ext = 'png';
+				cache_supp = [fsep 'mt' plusZLnumber];			ext = 'png';
 			else
-				cache = [pato fsep nome fsep 'tt' plusZLnumber];		ext = 'png';
+				cache_supp = [fsep 'tt' plusZLnumber];			ext = 'png';
 			end
 		end
 	end
@@ -590,8 +595,9 @@ function [lon, lat] = getLonLat(pixelX, pixelY, zoomL)
 	lat = 180 - pixelY / pixPerDeg;
 
 % ----------------------------------------------------------------------------	
-function [img, cmap] = getImgTile(quadkey, quad, url, cache, ext, decAdr, isWW, verbose)
+function [img, cmap] = getImgTile(quadkey, quad, url, cache, cache_supp, ext, decAdr, isWW, verbose)
 % Get the image either from a local cache or by url 
+% cache_supp contains (for example) the /../13 subdirs
 	try
 		if (quadkey{1} == '0'),		quad = [url(8) quad];			% (Virtual Earth -> url(8) = 'a'|'r'|'h')
 		else						quad = [quadkey{2} quad];
@@ -601,9 +607,9 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, ext, decAdr, isWW, 
 		if (~isempty(cache))		% We have a cache dir to look for
 
 			if ( isWW )		% We guessed it before as beeing a a WW cache
-				fname = [cache filesep sprintf('%.4d_%.4d', decAdr(2), decAdr(1)) '.' ext];
+				fname = [cache cache_supp filesep sprintf('%.4d_%.4d', decAdr(2), decAdr(1)) '.' ext];
 			else
-				fname = [cache filesep quad '.' ext];
+				fname = [cache cache_supp filesep quad '.' ext];
 			end
 			if (exist(fname, 'file'))
 				if (verbose),	disp(['Retrieving file from cache: ' fname]),	end
@@ -611,7 +617,7 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, ext, decAdr, isWW, 
 			else										% File is not in cache. Need to download
 				if (verbose),	disp(['Downloading file ' url]),	end
 				[img, att] = gdalread(url);				% Don't read flipped ('-U') because of saving
-				saveInCache(cache, fname, att, img, ext)	% Save tile in the cache directory (if CACHE exists)
+				saveInCache([cache cache_supp], fname, att, img, ext)	% Save tile in the cache directory (if CACHE exists)
 			end
 		else						% No cache, download it
 			if (verbose),	disp(['Downloading file ' url]),	end
@@ -619,7 +625,7 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, ext, decAdr, isWW, 
 		end
 		img = flipdim(img, 1);
 		
-		if ( isempty(img) )								% VE returns a 256x256 when the tile has no image 
+		if ( isempty(img) )
 			img = repmat(uint8(200), [256 256 3]);
 		elseif ( ndims(img) == 2 && ext(1) == 'p')
 			if ( ~isempty(cmap) )
@@ -631,6 +637,8 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, ext, decAdr, isWW, 
 				disp('url2image:getImgTile', 'Unknown error in retrieving image')
 				img = repmat(uint8(200), [256 256 3]);
 			end
+		elseif ( ndims(img) == 2 && ext(1) == 'j')		% VE returns a 256x256 when the tile has no image
+			img = repmat(uint8(200), [256 256 3]);
 		end
 	catch
 		disp(lasterr)
@@ -660,6 +668,7 @@ function saveInCache(cache, fname, att, img, ext)
 	elseif ( ndims(img) == 2 && strcmp(ext,'png') )
 		cmap = att.Band.ColorMap.CMap(:,1:3);
 		imwrite(img, cmap, fname);
+	elseif ( ndims(img) == 2 && strcmp(ext,'jpg') )		% Do nothing. VE returns a 256x256 when the tile has no image
 	else
 		error('url2image:saveInCache', 'Shit. Unknown error while trying to save image in cache')
 	end
