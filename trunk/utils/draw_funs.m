@@ -627,84 +627,84 @@ end
 % -----------------------------------------------------------------------------------------
 function set_isochrons_uicontext(h,data)
 % h are handles to the lines of isochrons (or other lines with a info)
-tag = get(h,'Tag');
-if (iscell(tag)),   tag = tag{1};   end
+	tag = get(h,'Tag');
+	if (iscell(tag)),   tag = tag{1};   end
 
-handles = guidata(get(h(1),'Parent'));             % Get Mirone handles
+	handles = guidata(get(h(1),'Parent'));             % Get Mirone handles
 
-cmenuHand = uicontextmenu('Parent',handles.figure1);
-set(h, 'UIContextMenu', cmenuHand);
-cb_LineWidth = uictx_LineWidth(h);       % there are 5 cb_LineWidth outputs
-cb_color = uictx_color(h);               % there are 9 cb_color outputs
-cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
-cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-if (~all(isempty(cat(2,data{:}))))
-    uimenu(cmenuHand, 'Label', [tag ' info'], 'Callback', {@Isochrons_Info,h,data});
-    uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', {@del_line,h}, 'Separator','on');
-else
-    uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', {@del_line,h});
-end
-uimenu(cmenuHand, 'Label', ['Delete all ' tag ' lines'], 'Callback', {@remove_symbolClass,h});
-uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Callback', @save_line);
-uimenu(cmenuHand, 'Label', ['Save all ' tag ' lines'], 'Callback', {@save_line,h});
-uimenu(cmenuHand, 'Label', 'Line azimuths', 'Callback', @show_lineAzims);
-uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[],'nikles'});
-LINE_ISCLOSED = 0;
-for i=1:length(h)
-    x = get(h(i),'XData');      y = get(h(i),'YData');
-    if ( (x(1) == x(end)) && (y(1) == y(end)) && length(x) > 1)      % See if we have at least one closed line
-        LINE_ISCLOSED = 1;
-    end
-end
-if (LINE_ISCLOSED)      % If at least one is closed, activate the Area option
-    uimenu(cmenuHand, 'Label', 'Area under polygon', 'Callback', @show_Area);
-end
-item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-setLineWidth(item_lw,cb_LineWidth)
-item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-setLineStyle(item_ls,{cbls1 cbls2 cbls3 cbls4})
-item_lc = uimenu(cmenuHand, 'Label', 'Color');
-setLineColor(item_lc,cb_color)
-% --------- Now set the class properties
-cb_ClassColor = uictx_Class_LineColor(h);        % there are 9 cb_color outputs
-item_Class_lc = uimenu(cmenuHand, 'Label', ['All ' tag ' Color'], 'Separator','on');
-setLineColor(item_Class_lc,cb_ClassColor)
-cb_ClassLineWidth = uictx_Class_LineWidth(h);    % there are 5 cb_ClassLineWidth outputs
-item_Class_lw = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Width']);
-uimenu(item_Class_lw, 'Label', '1       pt', 'Callback', cb_ClassLineWidth{1});
-uimenu(item_Class_lw, 'Label', '2       pt', 'Callback', cb_ClassLineWidth{2});
-uimenu(item_Class_lw, 'Label', '3       pt', 'Callback', cb_ClassLineWidth{3});
-uimenu(item_Class_lw, 'Label', '4       pt', 'Callback', cb_ClassLineWidth{4});
-uimenu(item_Class_lw, 'Label', 'Other...', 'Callback', cb_ClassLineWidth{5});
-cb_ClassLineStyle = uictx_Class_LineStyle(h);    % there are 4 cb_ClassLineStyle outputs
-item_Class_lt = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Style']);
-setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
-uimenu(cmenuHand, 'Label', 'Euler rotation', 'Separator','on', 'Callback', 'euler_stuff(gcf,gco)');
-for i=1:length(h),   ui_edit_polygon(h(i));     end;    % Set edition functions
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	set(h, 'UIContextMenu', cmenuHand);
+	cb_LineWidth = uictx_LineWidth(h);       % there are 5 cb_LineWidth outputs
+	cb_color = uictx_color(h);               % there are 9 cb_color outputs
+	cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
+	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	if (~all(isempty(cat(2,data{:}))))
+		uimenu(cmenuHand, 'Label', [tag ' info'], 'Callback', {@Isochrons_Info,h,data});
+		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', {@del_line,h}, 'Separator','on');
+	else
+		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', {@del_line,h});
+	end
+	uimenu(cmenuHand, 'Label', ['Delete all ' tag ' lines'], 'Callback', {@remove_symbolClass,h});
+	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Callback', @save_line);
+	uimenu(cmenuHand, 'Label', ['Save all ' tag ' lines'], 'Callback', {@save_line,h});
+	uimenu(cmenuHand, 'Label', 'Line azimuths', 'Callback', @show_lineAzims);
+	uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[],'nikles'});
+	LINE_ISCLOSED = 0;
+	for i=1:length(h)
+		x = get(h(i),'XData');      y = get(h(i),'YData');
+		if ( (x(1) == x(end)) && (y(1) == y(end)) && length(x) > 1)      % See if we have at least one closed line
+			LINE_ISCLOSED = 1;
+		end
+	end
+	if (LINE_ISCLOSED)      % If at least one is closed, activate the Area option
+		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Callback', @show_Area);
+	end
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	setLineWidth(item_lw,cb_LineWidth)
+	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
+	setLineStyle(item_ls,{cbls1 cbls2 cbls3 cbls4})
+	item_lc = uimenu(cmenuHand, 'Label', 'Color');
+	setLineColor(item_lc,cb_color)
+	% --------- Now set the class properties
+	cb_ClassColor = uictx_Class_LineColor(h);        % there are 9 cb_color outputs
+	item_Class_lc = uimenu(cmenuHand, 'Label', ['All ' tag ' Color'], 'Separator','on');
+	setLineColor(item_Class_lc,cb_ClassColor)
+	cb_ClassLineWidth = uictx_Class_LineWidth(h);    % there are 5 cb_ClassLineWidth outputs
+	item_Class_lw = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Width']);
+	uimenu(item_Class_lw, 'Label', '1       pt', 'Callback', cb_ClassLineWidth{1});
+	uimenu(item_Class_lw, 'Label', '2       pt', 'Callback', cb_ClassLineWidth{2});
+	uimenu(item_Class_lw, 'Label', '3       pt', 'Callback', cb_ClassLineWidth{3});
+	uimenu(item_Class_lw, 'Label', '4       pt', 'Callback', cb_ClassLineWidth{4});
+	uimenu(item_Class_lw, 'Label', 'Other...', 'Callback', cb_ClassLineWidth{5});
+	cb_ClassLineStyle = uictx_Class_LineStyle(h);    % there are 4 cb_ClassLineStyle outputs
+	item_Class_lt = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Style']);
+	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
+	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Separator','on', 'Callback', 'euler_stuff(gcf,gco)');
+	for i=1:length(h),   ui_edit_polygon(h(i));     end		% Set edition functions
 
 % -----------------------------------------------------------------------------------------
 function set_gmtfile_uicontext(h,data)
 % h is a handle to the line of a gmtfile
-tag = get(h,'Tag');
-if (iscell(tag)),   tag = tag{1};   end
+	tag = get(h,'Tag');
+	if (iscell(tag)),   tag = tag{1};   end
 
-cmenuHand = uicontextmenu;
-set(h, 'UIContextMenu', cmenuHand);
-cb_LineWidth = uictx_LineWidth(h);       % there are 5 cb_LineWidth outputs
-cb_color = uictx_color(h);               % there are 9 cb_color outputs
-cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
-cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-uimenu(cmenuHand, 'Label', [tag ' info'], 'Callback', {@gmtfile_Info,h,data});
-uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', 'delete(gco)', 'Separator','on');
-uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Callback', @save_line);
-%uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Callback', ['gmtedit(getappdata(gco,''FullName''))']);
-uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Callback', {@call_gmtedit,h});
-item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-setLineWidth(item_lw,cb_LineWidth)
-item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-setLineStyle(item_ls,{cbls1 cbls2 cbls3 cbls4})
-item_lc = uimenu(cmenuHand, 'Label', 'Color');
-setLineColor(item_lc,cb_color)
+	cmenuHand = uicontextmenu;
+	set(h, 'UIContextMenu', cmenuHand);
+	cb_LineWidth = uictx_LineWidth(h);       % there are 5 cb_LineWidth outputs
+	cb_color = uictx_color(h);               % there are 9 cb_color outputs
+	cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
+	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	uimenu(cmenuHand, 'Label', [tag ' info'], 'Callback', {@gmtfile_Info,h,data});
+	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', 'delete(gco)', 'Separator','on');
+	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Callback', @save_line);
+	%uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Callback', ['gmtedit(getappdata(gco,''FullName''))']);
+	uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Callback', {@call_gmtedit,h});
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	setLineWidth(item_lw,cb_LineWidth)
+	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
+	setLineStyle(item_ls,{cbls1 cbls2 cbls3 cbls4})
+	item_lc = uimenu(cmenuHand, 'Label', 'Color');
+	setLineColor(item_lc,cb_color)
 
 % -----------------------------------------------------------------------------------------
 function call_gmtedit(obj,eventdata,h)
@@ -1125,13 +1125,9 @@ function azim = show_lineAzims(obj,eventdata,h)
 	if (nargout == 0)
         if (numel(az) > 1)
             msg{end+1} = '';
+            id = (az > 270);    az(id) = az(id) - 360;
             az_mean = mean(az);
             msg{end+1} = ['Mean azimuth = ' sprintf('%.1f',az_mean) '  degrees'];
-            id = (az >= 180);    az(id) = az(id) - 360;
-            dir_mean = mean(az);
-            if (~isequal(az_mean,dir_mean))
-                msg{end+1} = ['Mean direction = ' sprintf('%.1f',dir_mean) '  degrees'];
-            end
         end
         if (numel(az) > 15),   msg = msg(end-2:end);   end
         msgbox(msg,'Line(s) Azimuth')
