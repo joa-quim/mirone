@@ -469,7 +469,7 @@ function pushbutton_left2right_Callback(hObject, eventdata, handles)
 	if (~isempty(msg_err)),   errordlg(msg_err,'Error');  return;   end
 
 	small = 1;
-	opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g',x_c-0.5,x_c+0.5,y_c-0.5,y_c+0.5)];
+	opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g', x_c-small, x_c+small, y_c-small, y_c+small);
 
 	% Check if we need a datum conversion as well
 	if (handles.datum_val_left ~= handles.datum_val_right)
@@ -477,8 +477,9 @@ function pushbutton_left2right_Callback(hObject, eventdata, handles)
 		elseif ((handles.which_conv == 1) && ~isempty(zl)),  opt_T = '-Th';
 		else    opt_T = '-T';
 		end
-		opt_T = [opt_T sprintf('%d',handles.datum_val_left-1) '/' sprintf('%d',handles.datum_val_right-1)];
-	else    opt_T = ' ';
+		opt_T = sprintf('%s%d/%d',opt_T,handles.datum_val_left-1,handles.datum_val_right-1);
+	else
+		opt_T = ' ';
 	end
 
 	% This is need only in the projection-to-projection case
@@ -490,16 +491,16 @@ function pushbutton_left2right_Callback(hObject, eventdata, handles)
 
 	% Check if we have a MAP_SCALE_FACTOR
 	opt_SF = ' ';
-	if (~isempty(handles.map_scale_factor_right))
-		opt_SF = ['--MAP_SCALE_FACTOR=' sprintf('%.6f',handles.map_scale_factor_right)];
+	if (~isempty(handles.map_scale_factor_right) && handles.map_scale_factor_right ~= 1)
+		opt_SF = sprintf('--MAP_SCALE_FACTOR=%.4f',handles.map_scale_factor_right);
 	end
 
 	% Check if we have false eastings/northings
 	opt_C = '-C';
 	if (~isempty(handles.system_FE_FN_right))
-		opt_C = sprintf( '-C%.6g/%.6g',handles.system_FE_FN_right(1), handles.system_FE_FN_right(2) );
+		opt_C = sprintf( '-C%.3f/%.3f',handles.system_FE_FN_right(1), handles.system_FE_FN_right(2) );
 	elseif (~isempty(handles.system_FE_FN_left))		% Look at here as well
-		opt_C = sprintf( '-C%.6g/%.6g',handles.system_FE_FN_left(1),  handles.system_FE_FN_left(2) );
+		opt_C = sprintf( '-C%.3f/%.3f',handles.system_FE_FN_left(1),  handles.system_FE_FN_left(2) );
 	end
 
 	if (~isempty(handles.projection_right))
@@ -531,12 +532,16 @@ function pushbutton_left2right_Callback(hObject, eventdata, handles)
 		opt_J = handles.projection_left;
 		% First apply the trick to get a good estimation of -R
 		if (~is_wgs84)      % Otherwise, no need to waste time with datum conversions
-			opt_T = ['-T' sprintf('%d',handles.datum_val_left-1) '/220'];
+			opt_T = sprintf('-T%d/220',handles.datum_val_left-1);
 		else    opt_T = ' ';
 		end
 		if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
+		opt_SF = ' ';
+		if (~isempty(handles.map_scale_factor_left) && handles.map_scale_factor_left ~= 1)
+			opt_SF = sprintf('--MAP_SCALE_FACTOR=%.4f',handles.map_scale_factor_left);
+		end
 		tmp = mapproject_m([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
-		opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-small, tmp(1)+small, tmp(2)-small, tmp(2)+small)];
+		opt_R = sprintf('-R%.3f/%.3f/%.3f/%.3f', tmp(1)-small, tmp(1)+small, tmp(2)-small, tmp(2)+small);
 		% Here we have to re-check the need for ellipsoidal height transformations
 		if (~strcmp(opt_T,' '))
 			if (handles.is_ellipsoidHeight),    opt_T = ['-Th' opt_T(3:end)];
@@ -544,24 +549,27 @@ function pushbutton_left2right_Callback(hObject, eventdata, handles)
 			end
 		end
 		out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
+		comm1 = [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF ' -I'];
 		% And now do a direct conversion to the final destination
-		opt_J = handles.projection_right;
+		opt_J = handles.projection_right;		opt_T = ' ';
 		if (~is_wgs84)
 			if (handles.is_ellipsoidHeight)
-				opt_T = ['-Th220/' sprintf('%d',handles.datum_val_right-1)];
+				opt_T = sprintf('-Th220/%d',handles.datum_val_right-1);
 			else
-				opt_T = ['-T220/' sprintf('%d',handles.datum_val_right-1)];
+				opt_T = sprintf('-T220/%d',handles.datum_val_right-1);
 			end
-		else	opt_T = ' ';
 		end
 		try     % If right value exists, we need it. Otherwise, don't use shifts
-			opt_C = ['-C' sprintf('%.6g',handles.system_FE_FN_right(1)) '/' ...
-					sprintf('%.6g',handles.system_FE_FN_rightt(2))];
+			opt_C = sprintf( '-C%.3f/%.3f',handles.system_FE_FN_right(1),  handles.system_FE_FN_right(2) );
 		catch
 			opt_C = '-C';
 		end
+		opt_SF = ' ';
+		if (~isempty(handles.map_scale_factor_right) && handles.map_scale_factor_right ~= 1)
+			opt_SF = sprintf('--MAP_SCALE_FACTOR=%.4f',handles.map_scale_factor_right);
+		end
 		out = mapproject_m(out, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
-		comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF]);
+		comm = sprintf('%s\n%s\n%s','Last command:', comm1, [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF]);
 		set(hObject,'TooltipString',comm)
 	elseif (isempty(handles.projection_right) && ~isempty(handles.projection_left))
 		%       GEOG at right                            NON-GEOG at left.  Do a inverse transformation
@@ -615,9 +623,10 @@ function pushbutton_right2left_Callback(hObject, eventdata, handles)
 		xr = get_editValue(handles.edit_xRight);
 		yr = get_editValue(handles.edit_yRight);
 		zr = get_editValue(handles.edit_zRight);
-		x_c = xr;   y_c = yr;
-        if (~isempty(zr)) ,  in = [xr yr zr];
-        else                in = [xr yr];   end
+		x_c = xr;		y_c = yr;
+        if (~isempty(zr)),	in = [xr yr zr];
+        else				in = [xr yr];
+		end
         if (isempty(xr))
 			msg_err = 'You have to agree that I cannot convert a NOTHING (see the right input X box).';
         end
@@ -646,7 +655,7 @@ function pushbutton_right2left_Callback(hObject, eventdata, handles)
 	end
 
 	small = 1;
-	opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', x_c-small, x_c+small, y_c-small, y_c+small)];
+	opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g', x_c-small, x_c+small, y_c-small, y_c+small);
 
 	% Check if we need a datum conversion as well
 	if (handles.datum_val_left ~= handles.datum_val_right)
@@ -654,7 +663,7 @@ function pushbutton_right2left_Callback(hObject, eventdata, handles)
 		elseif ((handles.which_conv == 1) && ~isempty(zr)),  opt_T = '-Th';
 		else    opt_T = '-T';
 		end
-		opt_T = [opt_T sprintf('%d',handles.datum_val_right-1) '/' sprintf('%d',handles.datum_val_left-1)];
+		opt_T = sprintf('%s%d/%d',opt_T,handles.datum_val_right-1,handles.datum_val_left-1);
 	else
 		opt_T = ' ';
 	end
@@ -668,16 +677,16 @@ function pushbutton_right2left_Callback(hObject, eventdata, handles)
 
 	% Check if we have a MAP_SCALE_FACTOR
 	opt_SF = ' ';
-	if (~isempty(handles.map_scale_factor_left))
-		opt_SF = ['--MAP_SCALE_FACTOR=' sprintf('%.6f',handles.map_scale_factor_right)];
+	if (~isempty(handles.map_scale_factor_left) && handles.map_scale_factor_left ~= 1)
+		opt_SF = sprintf('--MAP_SCALE_FACTOR=%.4f',handles.map_scale_factor_left);
 	end
 
 	% Check if we have false eastings/northings
 	opt_C = '-C';
 	if (~isempty(handles.system_FE_FN_right))
-		opt_C = sprintf( '-C%.6g/%.6g',handles.system_FE_FN_right(1), handles.system_FE_FN_right(2) );
+		opt_C = sprintf( '-C%.4f/%.3f',handles.system_FE_FN_right(1), handles.system_FE_FN_right(2) );
 	elseif (~isempty(handles.system_FE_FN_left))		% Look at here as well
-		opt_C = sprintf( '-C%.6g/%.6g',handles.system_FE_FN_left(1),  handles.system_FE_FN_left(2) );
+		opt_C = sprintf( '-C%.4f/%.3f',handles.system_FE_FN_left(1),  handles.system_FE_FN_left(2) );
 	end
 
 	if (~isempty(handles.projection_left))
@@ -704,41 +713,50 @@ if (isempty(handles.projection_left) && isempty(handles.projection_right & ~strc
     out = mapproject_m(in, opt_T);
     set(hObject,'TooltipString',sprintf('%s\n%s','Last command:', opt_T))
 elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
-    % More complicated. To go from one projection to other we have to pass by geogs.
-    % First do the inverse conversion (that is, get geogs).
-    opt_J = handles.projection_right;
-    % First apply the trick to get a good estimation of -R
-    if (~is_wgs84)      % Otherwise, no need to waste time with datum conversions
-        opt_T = ['-T' sprintf('%d',handles.datum_val_right-1) '/220'];
-    else    opt_T = ' ';
-    end
-    if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
-    tmp = mapproject_m([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
-    opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-small, tmp(1)+small, tmp(2)-small, tmp(2)+small)];
-    % Here we have to re-check the need for ellipsoidal height transformations
-    if (~strcmp(opt_T,' '))
-        if (handles.is_ellipsoidHeight),    opt_T = ['-Th' opt_T(3:end)];
-        else                                opt_T = ['-T' opt_T(3:end)];   end
-    end
-    out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
-    % And now do a direct conversion to the final destination
-    opt_J = handles.projection_left;
-    if (~is_wgs84)
-        if (handles.is_ellipsoidHeight)
-            opt_T = ['-Th220/' sprintf('%d',handles.datum_val_left-1)];
-        else
-            opt_T = ['-T220/' sprintf('%d',handles.datum_val_left-1)];
-        end
-    else    opt_T = ' ';
-    end
-    try     % If left value exists, we need it. Otherwise, don't use shifts
-        opt_C = ['-C' sprintf('%.6g',handles.system_FE_FN_left(1)) '/' ...
-                sprintf('%.6g',handles.system_FE_FN_left(2))];
-    catch   opt_C = '-C';
-    end
-    out = mapproject_m(out, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
-    comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF]);
-    set(hObject,'TooltipString',comm)
+	% More complicated. To go from one projection to other we have to pass by geogs.
+	% First do the inverse conversion (that is, get geogs).
+	opt_J = handles.projection_right;
+	% First apply the trick to get a good estimation of -R
+	if (~is_wgs84)		% Otherwise, no need to waste time with datum conversions
+		opt_T = sprintf('-T%d/220',handles.datum_val_right-1);
+	else    opt_T = ' ';
+	end
+	if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
+	opt_SF = ' ';
+	if (~isempty(handles.map_scale_factor_right) && handles.map_scale_factor_right ~= 1)
+		opt_SF = sprintf('--MAP_SCALE_FACTOR=%.4f',handles.map_scale_factor_right);
+	end
+	tmp = mapproject_m([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
+	opt_R = sprintf('-R%.3f/%.3f/%.3f/%.3f', tmp(1)-small, tmp(1)+small, tmp(2)-small, tmp(2)+small);
+	% Here we have to re-check the need for ellipsoidal height transformations
+	if (~strcmp(opt_T,' '))
+		if (handles.is_ellipsoidHeight),    opt_T = ['-Th' opt_T(3:end)];
+		else                                opt_T = ['-T' opt_T(3:end)];
+		end
+	end
+	out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
+	comm1 = [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF ' -I'];
+	% And now do a direct conversion to the final destination
+	opt_J = handles.projection_left;		opt_T = ' ';
+	if ( ~is_wgs84 && (handles.datum_val_left ~= 221) )
+		if (handles.is_ellipsoidHeight)
+			opt_T = sprintf('-Th220/%d',handles.datum_val_left-1);
+		else
+			opt_T = sprintf('-T220/%d',handles.datum_val_left-1);
+		end
+	end
+	try     % If left value exists, we need it. Otherwise, don't use shifts
+		opt_C = sprintf( '-C%.3f/%.3f',handles.system_FE_FN_left(1),  handles.system_FE_FN_left(2) );
+	catch
+		opt_C = '-C';
+	end
+	opt_SF = ' ';
+	if (~isempty(handles.map_scale_factor_left) && handles.map_scale_factor_left ~= 1)
+		opt_SF = sprintf('--MAP_SCALE_FACTOR=%.4f',handles.map_scale_factor_left);
+	end
+	out = mapproject_m(out, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
+	comm = sprintf('%s\n%s\n%s','Last command:', comm1, [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF]);
+	set(hObject,'TooltipString',comm)
 elseif (~isempty(handles.projection_right) && isempty(handles.projection_left))
     %       GEOG at left                            NON-GEOG at right.  Do direc transformation
     opt_J = handles.projection_right;
