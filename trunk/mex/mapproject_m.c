@@ -51,18 +51,13 @@
  *	 
  *		04/06/06 J Luis, Updated to compile with version 4.1.3
  *		14/10/06 J Luis, Now includes the memory leak solving solution
+ *		18/02/08 J Luis, T_from & T_to not global (otherwise they remember previous values)
  */ 
 
 #include "gmt.h"
 #include "mex.h"
 
-PFD azimuth_func;
 void lon_range_adjust (int range, double *lon);
-void GMT_free_plot_array (void);
-
-struct GMT_DATUM datum;	/* Contains a, f, xyz[3] */
-struct GMT_DATUM T_from;
-struct GMT_DATUM T_to;
 
 BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
@@ -88,7 +83,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char line_file[BUFSIZ], unit_name[80], scale_unit_name[80];
 	char txt_a[32], txt_b[32], c;
 	char from[GMT_LONG_TEXT], to[GMT_LONG_TEXT];
-	
+
+	struct GMT_DATUM datum;	/* Contains a, f, xyz[3] */
+	struct GMT_DATUM T_from;
+	struct GMT_DATUM T_to;
 
 	int	argc = 0, n_arg_no_char = 0, n_pts, range = -1;
 	char	**argv;
@@ -99,6 +97,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	PFD distance_func;
 	PFI near_a_line;
+	PFD azimuth_func;
 	
 	out = (double *)NULL;
 	in = (double *)NULL;
