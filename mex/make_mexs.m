@@ -9,8 +9,8 @@ function make_mexs(opt)
 if (nargin == 0)	opt = 'usage';	end
 
 % Adjust for your own path
-patoINC_GMT = 'd:\progs_interix\GMTdev\GMT\';				% Include path for GMT
-patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\libMEX\';	% Lib path for GMT - Libs compiled with 'MEX condition'
+patoINC_GMT = 'd:\progs_cygw\GMTdev\GMT\';				% Include path for GMT
+patoLIB_GMT = 'd:\progs_cygw\GMTdev\GMT_win\libMEX\';	% Lib path for GMT - Libs compiled with 'MEX condition'
 %patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\lib\';	% Lib path for GMT
 %patoLIB_GMT = 'c:\programs\gmt4\lib\';					%
 pato_NETCDF = 'd:\progs_interix\GMTdev\netcdf_win\';	% path for NETCDF
@@ -51,7 +51,7 @@ LIB_HG = [pato_OCV 'lib\highgui.lib'];
 
 % GMT mexs
 str_gmt = {'grdgradient_m' 'grdinfo_m' 'grdproject_m' 'grdread_m' 'grdsample_m' ...
-        'grdtrack_m' 'grdtrend_m' 'grdwrite_m' 'mapproject_m' 'shoredump' 'surface_m' ...
+        'grdtrack_m' 'grdtrend_m' 'grdwrite_m' 'mapproject_m' 'mapproject_m421' 'shoredump' 'surface_m' ...
         'nearneighbor_m' 'grdfilter_m' 'cpt2cmap' 'grdppa_m'}';
 
 % GMT MGG supplements mexs (currently only one)
