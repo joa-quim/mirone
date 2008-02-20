@@ -18,14 +18,20 @@ function h_line = get_polygon(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-if (nargin ~= 1 || ~ishandle(varargin{1}) || ~strcmp(get(varargin{1},'Type'),'figure'))
-    errordlg('get_polygon error: Input argument must be a figure handle','Error');    return;
+if (~ishandle(varargin{1}) || ~strcmp(get(varargin{1},'Type'),'figure'))
+    errordlg('get_polygon error: First input argument must be a figure handle','Error');    return;
 end
 ud.GETLINE_FIG = varargin{1};       ud.GETLINE_AX = get(ud.GETLINE_FIG,'CurrentAxes');
-    
+
+if (nargin == 2 && strcmp(varargin{2}, 'multi'))
+	multi_selec = true;
+else
+	multi_selec = false;
+end
+
 % Remember initial figure state
 old_db = get(ud.GETLINE_FIG, 'DoubleBuffer');
-state= uisuspend_fig(ud.GETLINE_FIG);
+state = uisuspend_fig(ud.GETLINE_FIG);
 
 % Set up initial callbacks for initial stage
 set(ud.GETLINE_FIG, 'Pointer', 'crosshair', 'WindowButtonDownFcn', {@FirstButtonDown,ud.GETLINE_FIG}, ...
@@ -39,8 +45,9 @@ figure(ud.GETLINE_FIG);
 % a very strange bug on a second call of get_polygon (e.g. after clicking the right or
 % midle button, it didn't work anymore because ud structure was unknown (???))
 ud.GETLINE_H1 = line('Parent', ud.GETLINE_AX, 'XData', [], 'YData', [], 'Tag', 'xxxxxxx', ...
-                  'Visible', 'off');
+					'Visible', 'off');
 
+ud.multi_selec = multi_selec;
 setappdata(ud.GETLINE_FIG, 'FromGetPolygon', ud);
 
 % We're ready; wait for the user to do the drag. Wrap the call to waitfor
@@ -74,6 +81,9 @@ ud = getappdata(ud.GETLINE_FIG, 'FromGetPolygon');
 try
     if (ishandle(ud.markers)),        delete(ud.markers);     end
 end
+if (multi_selec)
+	delete(findobj(ud.GETLINE_AX,'type','line','Tag','StarMarkers'))
+end
 
 % Restore the figure's initial state
 if (ishandle(ud.GETLINE_FIG))
@@ -92,29 +102,35 @@ end
 
 %---------------------------------------------------------------------------------------
 function FirstButtonDown(obj,eventdata,hfig)
+% If MULTI_SELECT select multiple lines. Otherwise, keep only the last selected one
 	ud = getappdata(hfig, 'FromGetPolygon');
 	selectionType = get(hfig, 'SelectionType');
 	% I have to do this test here because there is another mouse click inside get_trackHandle
 	if (strcmp(selectionType,'alt')) || (strcmp(selectionType,'extend')) || (strcmp(selectionType,'open'))
         % User changed his mind (right click) or ended selection
         set(ud.GETLINE_H1, 'UserData', 'Completed');
-        try     % If we have an (unknown) error in ud, another one would occur here
+        try				% If we have an (unknown) error in ud, another one would occur here
             if (ishandle(ud.markers)),        delete(ud.markers);     end
         end
 	else
         current_pt = get(ud.GETLINE_AX, 'CurrentPoint');
         [ud.lineHandle ud.h_circ] = get_trackHandle(current_pt);
-        setappdata(ud.GETLINE_H1,'TrackHandle',ud.lineHandle)
+		if (~ud.multi_selec)		% Single line selection
+        	setappdata(ud.GETLINE_H1,'TrackHandle',ud.lineHandle)
+		else						% Multiple line selection (Ignores the h_circ)
+			tmp = getappdata(ud.GETLINE_H1,'TrackHandle');
+			setappdata(ud.GETLINE_H1,'TrackHandle',[tmp; ud.lineHandle])
+		end
         setappdata(ud.GETLINE_H1,'BarHandle',ud.h_circ)
         if isempty(ud.lineHandle)       % User gave up (right or midle click) inside get_trackHandle
             set(ud.GETLINE_H1, 'UserData', 'Completed');
         else
             x = get(ud.lineHandle,'XData');   y = get(ud.lineHandle,'YData');
-            hold on;    
-            ud.markers = plot(x,y,'kp','MarkerEdgeColor','k','MarkerFaceColor','r','MarkerSize',10,...
-                'HitTest','off','Tag','StarMarkers'); 
-            hold off
-            set(hfig, 'WindowButtonDownFcn', {@NextButtonDown,hfig});
+            ud.markers = line('XData',x ,'YData',y, 'Parent',ud.GETLINE_AX, 'LineStyle','none','Marker','p', ...
+				'MarkerEdgeColor','k','MarkerFaceColor','r','MarkerSize',10, 'HitTest','off','Tag','StarMarkers'); 
+			if (~ud.multi_selec)		% I wonder if we realy ever need the next line case
+				set(hfig, 'WindowButtonDownFcn', {@NextButtonDown,hfig});
+			end
             setappdata(ud.GETLINE_H1,'Xvert',x);    setappdata(ud.GETLINE_H1,'Yvert',y);
             % Backup and remove 'buttondownfcn' set by ui_edit_polygon. It will be reset by main function
             bdfcn = get(ud.lineHandle,'buttondownfcn');
