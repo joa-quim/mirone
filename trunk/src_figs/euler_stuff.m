@@ -262,7 +262,7 @@ function listbox_ages_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function pushbutton_Cancel_Callback(hObject, eventdata, handles)
-    delete(handles.h_line_orig)
+    try,	delete(handles.h_line_orig),	end
     delete(findobj(handles.mironeAxes,'type','line','Tag','StarMarkers'))
     delete(handles.figure1)
 
@@ -542,22 +542,25 @@ function push_pickLine_Callback(hObject, eventdata, handles)
     end
     
     set(handles.h_calling_fig,'pointer','crosshair')
-    h_line = get_polygon(handles.h_calling_fig);        % Get the line handle
+    h_line = get_polygon(handles.h_calling_fig,'multi');        % Get the line handle
+	if (numel(h_line) > 1)
+		h_line = unique(h_line);
+	end
     tf = ismember(h_line,handles.hLineSelected);        % Check that the line was not already selected
     if (tf)     % Repeated line
         set(handles.h_calling_fig,'pointer','arrow');   figure(handles.figure1);   return;
     end
-    if (~isempty(h_line))
-        c = get(h_line,'Color');
-        t = get(h_line,'LineWidth');
-        h = copyobj(h_line,handles.mironeAxes);
+    for (k = 1:numel(h_line))
+        c = get(h_line(k),'Color');
+        t = get(h_line(k),'LineWidth');
+        h = copyobj(h_line(k),handles.mironeAxes);
         rmappdata(h,'polygon_data')     % Remove the parent's ui_edit_polygon appdata
         ui_edit_polygon(h)              % And set a new one
-        set(h,'LineWidth',t+1,'Color',1-c)
+        set(h,'LineWidth',t+2,'Color',1-c)
         uistack_j(h,'bottom')
         handles.h_line_orig = [handles.h_line_orig; h];
         % Make a copy of the selected handles to be used in props recovering
-        handles.hLineSelected = [handles.hLineSelected; h_line];
+        handles.hLineSelected = [handles.hLineSelected; h_line(k)];
     end
     set(handles.h_calling_fig,'pointer','arrow')
     figure(handles.figure1)                 % Bring this figure to front again
@@ -592,7 +595,7 @@ function push_rectSelect_Callback(hObject, eventdata, handles)
             h(i) = copyobj(h_mir_lines(i),handles.mironeAxes);
             rmappdata(h(i),'polygon_data')     % Remove the parent's ui_edit_polygon appdata
             ui_edit_polygon(h(i))              % And set a new one
-            set(h(i),'LineWidth',t+1,'Color',1-c)
+            set(h(i),'LineWidth',t+2,'Color',1-c)
             uistack_j(h(i),'bottom')
             hc(i) = h_mir_lines(i);         % Make a copy of the selected handles to be used in props recovering
         end
