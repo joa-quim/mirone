@@ -45,6 +45,7 @@
  *		04/06/06 J Luis, Updated to compile with version 4.1.3
  *		14/10/06 J Luis, Now includes the memory leak solving solution
  *		02/07/07 J Luis, Fixed Bug on the "head[3]" return value
+ *		21/02/08 J Luis, Patched version to compile with 4.1.2
  */
 
 #include "gmt.h"
@@ -59,7 +60,7 @@ float *grd_out;
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int i, j, i_pad, dpi, nx, ny, nm, unit = 0;
 	
-	BOOLEAN error = FALSE, inverse = FALSE, n_set = FALSE, set_n = FALSE, one_to_one = FALSE, careful = FALSE;
+	BOOLEAN error = FALSE, inverse = FALSE, n_set = FALSE, set_n = FALSE, one_to_one = FALSE;
 	BOOLEAN d_set = FALSE, e_set = FALSE, m_set = FALSE, map_center = FALSE, offset, toggle_offset = FALSE;
 	BOOLEAN bilinear = FALSE, shift_xy = FALSE;
 	BOOLEAN is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
@@ -106,7 +107,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argc = GMT_short_begin (argc, argv);
 	
 	w = e = s = n = 0.0;
-	nx = ny = dpi = 0;
+	nx = ny = 0;
 
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] == '-') {
@@ -151,23 +152,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					inverse = TRUE;
 					break;
 				case 'M':	/* Directly specify units */
-					GMT_set_measure_unit ('M',argv[i][2]);
+					GMT_set_measure_unit (argv[i][2], "-M");
 					m_set = TRUE;
 					break;
 				case 'N':
 					sscanf (&argv[i][2], "%d/%d", &nx, &ny);
 					if (ny == 0) ny = nx;
 					n_set = TRUE;
-					break;
-				case 'S':
-					if (argv[i][2] == '+')
-						careful = TRUE;
-					else if (argv[i][2] == '-') {
-						careful = TRUE;
-						bilinear = TRUE;
-					}
-					else
-						max_radius = atof (&argv[i][2]);
 					break;
 				default:
 					error = TRUE;
@@ -200,17 +191,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("\t-N sets the number of nodes for the new grid\n");
 		mexPrintf("\t   Only one of -D, -E, and -N can be specified!\n");
 		mexPrintf("\t   If none are specified, nx,ny of the input file is used\n");
-		mexPrintf("\t-S sets the search radius in projected units [Default avoids aliasing]\n");
 		
 		return;
 	}
 	
 	if (!project_info.region_supplied) {
 		mexPrintf("%s: GMT SYNTAX ERROR:  Must specify -R option\n", GMT_program);
-		error++;
-	}
-	if (max_radius < 0.0) {
-		mexPrintf("%s: GMT SYNTAX ERROR -S:  Max search radius, if specified, must be positive\n", GMT_program);
 		error++;
 	}
 	if ((m_set + one_to_one) == 2) {
@@ -335,15 +321,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		g_head.node_offset = irint(head[6]);
 	}
 
-	if (careful) {
-		mx = nx_in + 4;		i_pad = 2;
-		GMT_pad[0] = GMT_pad[1] = GMT_pad[2] = GMT_pad[3] = 2;
-		nm = (nx_in + 4) * (ny_in + 4);
-	}
-	else {
-		mx = nx_in;			i_pad = 0;
-		nm = nx_in * ny_in;
-	}
+	mx = nx_in + 4;		i_pad = 2;
+	GMT_pad[0] = GMT_pad[1] = GMT_pad[2] = GMT_pad[3] = 2;
+	nm = (nx_in + 4) * (ny_in + 4);
 
 	grd_in = mxCalloc (nm, sizeof (float));
 	/* Transpose from Matlab orientation to gmt grd orientation */
@@ -376,8 +356,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 		g_head.x_min = w;	g_head.x_max = e;	g_head.y_min = s;	g_head.y_max = n;
 	
-		if (careful)
-			GMT_boundcond_init (&edgeinfo);
+		GMT_boundcond_init (&edgeinfo);
 
 		offset = r_head.node_offset;		/* Same as input */
 		if (toggle_offset) offset = !offset;	/* Toggle */
@@ -427,19 +406,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		r_head.x_inc = (r_head.x_max - r_head.x_min) / (r_head.nx - one_or_zero);
 		r_head.y_inc = (r_head.y_max - r_head.y_min) / (r_head.ny - one_or_zero);
 		
-		/* rect xy values and max_radius are here in GMT projected inches */
-		
-		GMT_init_search_radius (&max_radius, &r_head, &g_head, TRUE);
-		if (careful)
-			GMT_grd_project (grd_in, &r_head, grd_out, &g_head, &edgeinfo, bilinear, TRUE);
-		else
-			GMT_grd_inverse (grd_out, &g_head, grd_in, &r_head, max_radius);
-			
+		GMT_grd_project (grd_in, &r_head, grd_out, &g_head, &edgeinfo, TRUE, BCR_BICUBIC, 0.5, TRUE);
 	}
 	else {	/* Forward projection from geographical to rectangular grid */
 	
-		if (careful)
-			GMT_boundcond_init (&edgeinfo);
+		GMT_boundcond_init (&edgeinfo);
 
 		r_head.x_min = project_info.xmin;	r_head.x_max = project_info.xmax;
 		r_head.y_min = project_info.ymin;	r_head.y_max = project_info.ymax;
@@ -469,11 +440,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 		GMT_grdproject_init (&r_head, x_inc, y_inc, nx, ny, dpi, offset);
 		grd_out = (float *) GMT_memory (VNULL, (size_t)(r_head.nx * r_head.ny), sizeof (float), GMT_program);
-		GMT_init_search_radius (&max_radius, &r_head, &g_head, FALSE);
-		if (careful)
-			GMT_grd_project (grd_in, &g_head, grd_out, &r_head, &edgeinfo, bilinear, FALSE);
-		else
-			GMT_grd_forward (grd_in, &g_head, grd_out, &r_head, max_radius);
+		GMT_grd_project (grd_in, &g_head, grd_out, &r_head, &edgeinfo, TRUE, BCR_BICUBIC, 0.5, FALSE);
 		
 		/* Modify output rect header if -A, -C, -M have been set */
 
