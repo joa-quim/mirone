@@ -172,7 +172,6 @@ uimenu('Parent',h19,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SDTS'')','
 
 uimenu('Parent',h2,'Callback','overview(guidata(gcbo))','Label','Open Overview Tool');
 uimenu('Parent',h2,'Call','mirone(''FileOpenSession_CB'',guidata(gcbo))','Label','Open Session');
-%uimenu('Parent',h2,'Call','shape_tool(gcf)','Label','Limiares');
 
 % ----------------------- Save Images section
 h9 = uimenu('Parent',h2,'Label','Save Image As...','Sep','on');
@@ -357,10 +356,11 @@ uimenu('Parent',h76,'Call','ecran','Label','X,Y grapher','Sep','on');
 hVG(kv) = uimenu('Parent',h76,'Call','gmtedit','Label','gmtedit');	kv = kv + 1;
 uimenu('Parent',h76,'Call','rally_plater','Label','Rally Plater');
 uimenu('Parent',h76,'Label','entry_vtr','Sep','on');
-uimenu('Parent',h76,'Label','entry_tsm','Sep','on');
 uimenu('Parent',h76,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
 uimenu('Parent',h76,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',h76,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
+% uimenu('Parent',h76,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
+uimenu('Parent',h76,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
 
 % --------------------------- DRAW MENU ------------------------------------
 h92 = uimenu('Parent',h1,'Label','Draw','Tag','Draw');
@@ -775,7 +775,7 @@ h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
 uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.2.3)');
 uimenu('Parent',h9, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 uimenu('Parent',h9,...
-'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 January 2008'',''1.3.0b'')','Label','About','Sep','on');
+'Call','about_box(guidata(gcbo),''Mirone Last modified at 21 February 2008'',''1.3.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(h1);
@@ -853,9 +853,11 @@ function figure1_ResizeFcn(hObj, event)
 % -----------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObj, event)
 	handles = guidata(hObj);
-    h = getappdata(handles.figure1,'dependentFigs');
-    delete(handles.figure1);            delete(h(ishandle(h)))      % Delete also any eventual 'carraças'
-    FOpenList = handles.FOpenList;      fname = [handles.path_data 'mirone_pref.mat'];
-    if (~handles.version7),    	save(fname,'FOpenList','-append')   % Update the list for "Recent files"
-    else    	                save(fname,'FOpenList','-append', '-v6')
-    end
+	try		h = getappdata(handles.figure1,'dependentFigs');
+	catch	delete(gcf)
+	end
+	delete(handles.figure1);            delete(h(ishandle(h)))      % Delete also any eventual 'carraças'
+	FOpenList = handles.FOpenList;      fname = [handles.path_data 'mirone_pref.mat'];
+	if (~handles.version7),    	save(fname,'FOpenList','-append')   % Update the list for "Recent files"
+	else    	                save(fname,'FOpenList','-append', '-v6')
+	end
