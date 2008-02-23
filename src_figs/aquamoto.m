@@ -1,9 +1,9 @@
 function varargout = aquamoto(varargin)
 % M-File changed by desGUIDE
 
-hObject = figure('Tag','figure1','Visible','off');
-aquamoto_LayoutFcn(hObject);
-handles = guihandles(hObject);
+	hObject = figure('Tag','figure1','Visible','off');
+	aquamoto_LayoutFcn(hObject);
+	handles = guihandles(hObject);
  
 	if (numel(varargin) > 0)
 		handMir = varargin{1};
@@ -21,7 +21,9 @@ handles = guihandles(hObject);
 	% -------------- Import/set icons --------------------------------------------
 	load([d_path 'mirone_icons.mat'],'Mfopen_ico','Marrow_ico','um_ico','dois_ico','color_ico');
 	set(handles.push_swwName,'CData',Mfopen_ico)
-	set(handles.toggle_vel,'CData',Marrow_ico)
+	ind = isnan(Marrow_ico(:,:,:));
+	Marrow_ico(~ind) = 0.6;
+	set(handles.push_vel,'CData',Marrow_ico)
 	set(handles.toggle_1,'CData',um_ico)
 	set(handles.toggle_2,'CData',dois_ico)
 	set(handles.push_landPhoto,'CData',Mfopen_ico)
@@ -49,7 +51,12 @@ handles = guihandles(hObject);
 	handles.imgBat = [];		% Bathymetry only (that is, dry) image
 	handles.cmapBat = [];		% To hold the color map with a discontinuity at the shoreline
 	handles.geog = 0;			% For the time being ANUGA no geoga
-	
+	handles.is_sww = false;		% It will be true if a SWW file is loaded
+	handles.is_coards = false;
+	handles.plotVector = false;	% Use to know if plot arrows
+	handles.vecScale = 1;		% To scale eventual vector plots
+	handles.vecSpacing = 10;	% If vector plot, plot every this interval
+	handles.spacingChanged = false;		% To signal quiver when old arrows should be deleted
 	handles.useLandPhoto = false;
 	handles.firstLandPhoto = true;
 
@@ -123,10 +130,14 @@ handles = guihandles(hObject);
 	handles = tabpanelfcn('make_groups',group_name, panel_names, handles, 1);
 	% ------------------------------------------------------------------------------
 	
-	set(hObject,'Visible','on');
+	set(hObject,'Visible','on');	drawnow
 
-	%------ Ok, we still have a couple of things to do, but we can do them on the visible figure
+	%------ Ok, we still have a couple of things to do, but we can do them with the figure already visible
 	% -- Move the uicontrols that are still 'somewhere' to their correct positions
+	hhs = findobj(hObject, 'UserData', 't_grids');
+	hTab = findobj(handles.tab_group,'UserData','anuga'); 		% Find the handle of the "ANUGA" tab push button
+	handles.hTabAnuga = hTab;				% save this in case we will need it later
+	
 	hhs = findobj(hObject, 'UserData', 't_grids');
 	hTab = findobj(handles.tab_group,'UserData','t_grids'); 	% remove the "Time Grids" tab push button from the hhs list
     hhs = setdiff(hhs, hTab);
@@ -137,6 +148,7 @@ handles = guihandles(hObject);
 
 	hhs = findobj(hObject, 'UserData', 'misc');
 	hTab = findobj(handles.tab_group,'UserData','misc'); 	% remove the "Misc" tab push button from the hhs list
+	handles.hTabMisc = hTab;				% save this for we will need it later on
     hhs = setdiff(hhs, hTab);
 	for (k = 1:numel(hhs))
 		hhsPos = get(hhs(k), 'Pos');		hhsPos = hhsPos - [660 -160 0 0];
@@ -145,7 +157,7 @@ handles = guihandles(hObject);
 
 	hhs = findobj(hObject, 'UserData', 'shade');
 	hTab = findobj(handles.tab_group,'UserData','shade'); 	% remove the "Shading OR Image" tab push button from the hhs list
-	handles.hTabShade = hTab;			% save this for we will need it later on
+	handles.hTabShade = hTab;				% save this for we will need it later on
     hhs = setdiff(hhs, hTab);
 	for (k = 1:numel(hhs))
 		hhsPos = get(hhs(k), 'Pos');		hhsPos = hhsPos - [350 210 0 0];
@@ -241,6 +253,9 @@ function tab_group_ButtonDownFcn(hObject, eventdata, handles)
 	if ( hObject == handles.hTabShade )
 		set(handles.push_bg, 'Vis', 'off')		% It has axes, which would be otherwise hidden
 		set(handles.axes2,'Visible','off')		% tabpanelfcn had made them visible
+	elseif ( hObject == handles.hTabMisc )
+		set([handles.edit_globalWaterMin handles.edit_globalWaterMax handles.textMin handles.textMax ...
+				handles.text_globalMM handles.push_bg], 'Vis', 'on');
 	else
 		set(handles.push_bg, 'Vis', 'on')
 	end
@@ -262,7 +277,11 @@ function slider_layer_Callback(hObject, eventdata, handles)
 	handles.sliceNumber = round(get(handles.slider_layer,'Value')) - 1;
 	set(handles.edit_sliceNumber,'String', handles.sliceNumber+1)		% Update slice nº box
 	set(handles.figure1,'pointer','watch')
-	push_showSlice_Callback([], [], handles)		% and update image (also saves handles)
+	if (handles.is_sww)
+		push_showSlice_Callback([], [], handles)		% and update image (also saves handles)
+	elseif (handles.is_coards)
+		aqua_suppfuns('coards_slice', handles)
+	end
 	set(handles.figure1,'pointer','arrow')
 
 % -----------------------------------------------------------------------------------------
@@ -276,7 +295,7 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 
     if (nargin == 3)        % Direct call
         cd(handles.last_dir)
-    	str1 = {'*.sww;*.SWW;', 'Data files (*.sww,*.SWW)';'*.*', 'All Files (*.*)'};
+    	str1 = {'*.sww;*.SWW;*.nc;*.NC', 'Data files (*.sww,*.SWW,*.nc,*.NC)';'*.*', 'All Files (*.*)'};
         [FileName,PathName] = uigetfile(str1,'sww file');
         cd(handles.home_dir);
 	    if isequal(FileName,0),		return,		end
@@ -302,11 +321,17 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 	
 	% ---- Maybe the dimensions should be fished out of the "s" structurem as well -----
 	% But for now I'll just test that 'number_of_volumes' exists, otherwise ... street
-	set(handles.figure1,'pointer','watch')
+	%set(handles.figure1,'pointer','watch')
 	s = nc_funs('info',handles.fname);
 	attribNames = {s.Attribute.Name};
 	ind = strcmp({s.Dimension.Name},'number_of_volumes');
 	if (~any(ind))
+		[X,Y,Z,head,misc] = nc_io(handles.fname,'R');
+		if (numel(head) == 9 && isfield(misc,'z_id'))			% INTERCEPT POINT FOR PLAIN COARDS NETCDF FILES
+			handles.nc_info = s;		% Save the nc file info
+			aqua_suppfuns('coards_hdr',handles,X,Y,head,misc)
+			return
+		end
 		errordlg('ERROR: This .sww file is not of recognizable type. For example: "number_of_volumes" was not found.','Error')
 		set(handles.figure1,'pointer','arrow')
 		return
@@ -348,6 +373,10 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 	ind = strcmp(varNames,'stage_range');
 	if (any(ind))
 		handles.ranges{1} = double(nc_funs('varget', handles.fname, 'stage_range'));
+		handles.minWater = handles.ranges{1}(1);
+		handles.maxWater = handles.ranges{1}(2);
+		set(handles.edit_globalWaterMin, 'String', handles.ranges{1}(1))
+		set(handles.edit_globalWaterMax, 'String', handles.ranges{1}(2))
 	end
 	ind = strcmp(varNames,'xmomentum_range');
 	if (any(ind))
@@ -372,7 +401,7 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 		handles.ranges{14} = D .* (1 + handles.ranges{4} + handles.ranges{4} .^ 2);		% D(1+V+V^2) - taylorVRange
 	end
 
-	% --------------- Estimate a "reasonable" proposition for grid size ---------------------
+	% --------------- Estimate a "reasonable" proposition for grid dimensions------------------
 	n = round( sqrt(double(handles.number_of_volumes)) );
 	inc = ( diff(head(1:2)) + diff(head(3:4)) ) / (2*(n-1));	% A mean dx dy
 	set( handles.edit_x_inc,'String',sprintf('%.8g',inc) )
@@ -404,6 +433,7 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 
 	handles.illumComm = [];					% New file. Reset illum state.
 	handles.imgBat = [];
+	handles.is_sww = true;
 	set(handles.radio_multiLayer, 'Val', 1)
 	set(handles.edit_multiLayerInc, 'Enable', 'on')
 	set(handles.radio_timeGridsList,'Val',0)
@@ -412,11 +442,11 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
-function checkbox_splitDryWet_Callback(hObject, eventdata, handles)
+function check_splitDryWet_Callback(hObject, eventdata, handles)
 % Do Nothing
 
 % -----------------------------------------------------------------------------------------
-function checkbox_globalMinMax_Callback(hObject, eventdata, handles)
+function check_globalMinMax_Callback(hObject, eventdata, handles)
 	if ( ~isempty(handles.nameList) )
 		set(hObject,'Val', 1)
 		warndlg('The "Time Grids" option always use Dry/Wet spliting.','Warning')
@@ -435,7 +465,12 @@ function push_showSlice_Callback(hObject, eventdata, handles)
 	nx = str2double(get(handles.edit_Ncols,'String'));
 	ny = str2double(get(handles.edit_Nrows,'String'));
 
-	[theVar, U, V, indVar, indWater] = get_swwVar(handles);
+	if (handles.is_coards)			% We are dealing with a coards netCDF file
+		aqua_suppfuns('coards_slice', handles)
+		return
+	elseif (handles.is_sww)
+		[theVar, U, V, indVar, indWater] = get_swwVar(handles);
+	end
 	if (~isa(theVar, 'double')),	theVar = double(theVar);	end		% While we don't f... these doubles as well
 	
 	% create a grid in x and y
@@ -447,15 +482,12 @@ function push_showSlice_Callback(hObject, eventdata, handles)
 	handles.head(8) = str2double(get(handles.edit_x_inc,'String'));
 	handles.head(9) = str2double(get(handles.edit_y_inc,'String'));
 
-	splitDryWet = get(handles.checkbox_splitDryWet,'Val');		% See if we need to build a wet and dry images, or only one
+	splitDryWet = get(handles.check_splitDryWet,'Val');		% See if we need to build a wet and dry images, or only one
 
 	if ( splitDryWet )
 		indLand = get_landInd(handles, x, y, indWater);	% Compute Dry/Wet indexes - have to recompute, ... since water ... moves
 		if ( indVar == 8 )										% Max Water option. Calculate once the Water delimiting polygon
-			%set(handles.push_runIn, 'Enable', 'on')
 			handles.indMaxWater = ~indLand;
-		else
-			%set(handles.push_runIn, 'Enable', 'off')
 		end
 
 		if ( isempty(handles.imgBat) )							% First time, compute it (not shaded)
@@ -482,8 +514,9 @@ function push_showSlice_Callback(hObject, eventdata, handles)
 	% ------------------ Open or update a Mirone window with the slice display -----------------------------
 	if (isempty(handles.hMirFig) || ~ishandle(handles.hMirFig))			% First run or killed Mirone window
 		tmp.X = x;		tmp.Y = y;		tmp.head = handles.head;	tmp.cmap = handles.cmapLand;
-		tmp.name = sprintf('SWW time = %g',handles.time(handles.sliceNumber+1));
+		tmp.name = sprintf('SWW time = %g', handles.time(handles.sliceNumber+1));
 		handles.hMirFig = mirone(Z,tmp);
+		move2side(handles.figure1,handles.hMirFig,'left')
 		handles.handMir = guidata(handles.hMirFig);			% Get the handles of the now existing Mirone fig
 		handles.firstLandPhoto = true;
 		if ( splitDryWet && handles.useLandPhoto )
@@ -512,8 +545,10 @@ function push_showSlice_Callback(hObject, eventdata, handles)
 			handles.illumComm = handles.landIllumComm;		% save illum command for future comparison
 
 		elseif ( ~splitDryWet )								% No Land/Water spliting
-			minmax = handles.ranges{indVar};		minmax = minmax(:)';
-			if ( ~get(handles.checkbox_globalMinMax, 'Val') ),		minmax = [];	end		% Use Slice's min/max
+			if ( ~get(handles.check_globalMinMax, 'Val') ),		minmax = [];		% Use Slice's min/max
+			else				minmax = [handles.minWater handles.maxWater];
+			end
+			
 			if ( ~isempty(minmax) ),		img = scaleto8(Z, 8, minmax);
 			else							img = scaleto8(Z);
 			end
@@ -543,12 +578,13 @@ function push_showSlice_Callback(hObject, eventdata, handles)
 	end
 
 	if ( ~isempty(U) )		% Plot vectors
-		if ( ~isempty(handles.hQuiver) ),	try     delete(handles.hQuiver),	end,	end
-		x = linspace(handles.head(1),handles.head(2), min(fix(nx/10), 15) );
-		y = linspace(handles.head(3),handles.head(4), min(fix(ny/10), 15) );
+		x = linspace(handles.head(1),handles.head(2), numel(1:handles.vecSpacing:nx) );
+		y = linspace(handles.head(3),handles.head(4), numel(1:handles.vecSpacing:ny) );
 		U = double( mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) U(:)],x,y) );
 		V = double( mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) V(:)],x,y) );
-		handles.hQuiver = loc_quiver(handles.handMir.axes1, x, y, U, V);
+		s.hAx = handles.handMir.axes1;		s.hQuiver = handles.hQuiver;	s.spacingChanged = handles.spacingChanged;
+		handles.hQuiver = loc_quiver(s, x, y, U, V, handles.vecScale);
+		if (handles.spacingChanged),	handles.spacingChanged = false;		end		% Worked once, reset it
 	end
 
     guidata(handles.figure1,handles)
@@ -561,7 +597,7 @@ function push_showSlice_Callback(hObject, eventdata, handles)
 function push_runIn_Callback(hObject, eventdata, handles)
 % Find and plot the polygon which delimits the inundation zone
 
-	if (isempty(handles.hMirFig) || ~ishandle(handles.hMirFig))		% Do a lot of tricks 
+	if ( isempty(handles.hMirFig) || ~ishandle(handles.hMirFig) || isempty(handles.indMaxWater) )		% Do a lot of tricks 
 		% We dont have a valid Mirone figure with data displayed. Try to create one from here.
 		% But since we need "Max Water" set the popup to that before calling "push_showSlice"
 		if ( isempty(handles.indMaxWater) )				% If it has not yet been computed
@@ -643,7 +679,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 			x = nc_funs('varget', handles.fname, 'xmomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			y = nc_funs('varget', handles.fname, 'ymomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
-			if ( qual(1) == 'A' && get(handles.toggle_vel, 'Value') )
+			if ( qual(1) == 'A' && handles.plotVector )
 				U = x;		V = y;					% momentums copy
 			end
 			theVar = sqrt(x.^2 + y.^2);				% |M|
@@ -668,7 +704,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 			y = nc_funs('varget', handles.fname, 'ymomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
 			theVar = sqrt(x.^2 + y.^2);
-			if ( qual(1) == 'A' && get(handles.toggle_vel, 'Value') )
+			if ( qual(1) == 'A' && handles.plotVector )
 				U = x;		V = y;
 			end
 			indVar = 5;
@@ -749,8 +785,9 @@ function img = do_imgWater(handles, indVar, Z, imgBat, indLand)
 %
 %	Output IMG is always RGB
 
-	minmax = handles.ranges{indVar};		minmax = minmax(:)';
-	if ( ~get(handles.checkbox_globalMinMax, 'Val') ),		minmax = [];	end		% Use Slice's min/max
+% 	minmax = handles.ranges{indVar};		minmax = minmax(:)';
+	minmax = [handles.minWater handles.maxWater];		% Despite the name it respects the "indVar"
+	if ( ~get(handles.check_globalMinMax, 'Val') ),		minmax = [];	end		% Use Slice's min/max
 	if ( ~isempty(minmax) ),		imgWater = scaleto8(Z, 8, minmax);
 	else							imgWater = scaleto8(Z);
 	end
@@ -759,7 +796,7 @@ function img = do_imgWater(handles, indVar, Z, imgBat, indLand)
 	if ( handles.handMir.Illumin_type >= 1 && handles.handMir.Illumin_type <= 4 )
 		illumComm = handles.waterIllumComm;
 		pal = get(handles.handMir.figure1,'Colormap');
-		if ( get(handles.checkbox_splitDryWet, 'Val') ),	pal = handles.cmapWater;	end
+		if ( get(handles.check_splitDryWet, 'Val') ),	pal = handles.cmapWater;	end
 		imgWater = ind2rgb8(imgWater, pal);						% image is now RGB
 		R = illumByType(handles, Z, handles.head, illumComm);
 		imgWater = shading_mat(imgWater,R,'no_scale');			% and now it is illuminated
@@ -857,7 +894,7 @@ function imgWater = mixe_images(handles, imgBat, imgWater, ind, alfa)
 			imgWater = cvlib_mex('resize',imgWater,handles.scaleFactor);
 		end
     catch
-        errordlg(['View Anuga:mixe_images ' lasterr],'Error')
+        errordlg(['Aquamoto:mixe_images ' lasterr],'Error')
     end
 
 % -----------------------------------------------------------------------------------------
@@ -937,6 +974,10 @@ function edit_sliceNumber_Callback(hObject, eventdata, handles)
 function radio_stage_Callback(hObject, eventdata, handles)
 	if (get(hObject,'Value'))
 		set([handles.radio_xmoment handles.radio_ymoment], 'Value', 0)
+		handles.minWater = handles.ranges{1}(1);		handles.maxWater = handles.ranges{1}(2);
+		set(handles.edit_globalWaterMin, 'String', handles.minWater)
+		set(handles.edit_globalWaterMax, 'String', handles.maxWater)
+		guidata(handles.figure1, handles)
 	else
 		set(hObject,'Value', 1)
 	end
@@ -945,6 +986,10 @@ function radio_stage_Callback(hObject, eventdata, handles)
 function radio_xmoment_Callback(hObject, eventdata, handles)
 	if (get(hObject,'Value'))
 		set([handles.radio_stage handles.radio_ymoment], 'Value', 0)
+		handles.minWater = handles.ranges{2}(1);		handles.maxWater = handles.ranges{2}(2);
+		set(handles.edit_globalWaterMin, 'String', handles.minWater)
+		set(handles.edit_globalWaterMax, 'String', handles.maxWater)
+		guidata(handles.figure1, handles)
 	else
 		set(hObject,'Value', 1)
 	end
@@ -953,6 +998,10 @@ function radio_xmoment_Callback(hObject, eventdata, handles)
 function radio_ymoment_Callback(hObject, eventdata, handles)
 	if (get(hObject,'Value'))
 		set([handles.radio_stage handles.radio_xmoment], 'Value', 0)
+		handles.minWater = handles.ranges{3}(1);		handles.maxWater = handles.ranges{3}(2);
+		set(handles.edit_globalWaterMin, 'String', handles.minWater)
+		set(handles.edit_globalWaterMax, 'String', handles.maxWater)
+		guidata(handles.figure1, handles)
 	else
 		set(hObject,'Value', 1)
 	end
@@ -960,13 +1009,26 @@ function radio_ymoment_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function popup_derivedVar_Callback(hObject, eventdata, handles)
 	contents = get(handles.popup_derivedVar, 'String');
-	qual = contents{get(handles.popup_derivedVar,'Value')};
+	val = get(handles.popup_derivedVar,'Value');
+	qual = contents{val};
+	ico = get(handles.push_vel,'CData');
+	ind = ~isnan(ico(:,:,:));
 	switch qual(1:min(numel(qual),11))
 		case {'Absolute Ve' 'Absolute Mo'}			% Absolute Velocity || Momentum
-			set(handles.toggle_vel,'Enable', 'on')
+			set(handles.push_vel,'Enable', 'on'),	ico(ind) = 0.0;
 		otherwise
-			set(handles.toggle_vel,'Enable', 'off', 'Value', 0)
+			set(handles.push_vel,'Enable', 'off'),	ico(ind) = 0.6;
 	end
+	set(handles.push_vel,'CData',ico)
+	if ( ~isempty(handles.ranges{val}) )
+		handles.minWater = handles.ranges{val}(1);		handles.maxWater = handles.ranges{val}(2);
+		set(handles.edit_globalWaterMin, 'String', handles.minWater)
+		set(handles.edit_globalWaterMax, 'String', handles.maxWater)
+	else
+		set([handles.edit_globalWaterMin handles.edit_globalWaterMax], 'String', '')
+		handles.minWater = [];		handles.maxWater = [];
+	end
+	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
 function check_derivedVar_Callback(hObject, eventdata, handles)
@@ -979,12 +1041,8 @@ function check_derivedVar_Callback(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function toggle_vel_Callback(hObject, eventdata, handles)
-	if ( ~get(hObject, 'Val') && ~isempty(handles.hQuiver) )
-		try     delete(handles.hQuiver),	end
-		handles.hQuiver = [];
-		guidata(handles.figure1, handles);
-	end
+function push_vel_Callback(hObject, eventdata, handles)
+	vector_plot(handles.figure1,handles.vecScale, handles.vecSpacing);
 
 % -----------------------------------------------------------------------------------------
 function toggle_1_Callback(hObject, eventdata, handles)
@@ -1035,17 +1093,20 @@ function radio_water_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_palette_Callback(hObject, eventdata, handles)
 % Get the new color map and assign it to either Land or Water cmaps
-	handles.no_file = 1;		% We don't want color_palettes trying to update a ghost image
+	if ( ~get(handles.check_splitDryWet, 'Val') && get(handles.radio_water,'Val') )
+		warndlg('Without the "Split Dry/Wet" option selected, what you asked has no effect.','Warning'),	return
+	end
+	handles.no_file = 1;		% We don't want color_palettes trying to update a ghost image (DON'T KILL THIS LINE)
+
 	cmap = color_palettes(handles);
 	if (~isempty(cmap))
-        if (get(handles.radio_land,'Val'))
+		if (get(handles.radio_land,'Val'))
 			handles.cmapLand = cmap;        % This copy will be used if user loads another bat grid
-			if ( ~isempty(handles.head_bat) )
-				head = handles.head_bat;	% ---> DESENRASQUE DA TRETA
-			else
-				head = handles.head;
+			if ( ~isempty(handles.head_bat) )		head = handles.head_bat;	% ---> DESENRASQUE DA TRETA
+			else									head = handles.head;
 			end
-			handles.cmapBat = makeCmapBat(handles, head, cmap, 0);
+			handles.cmapBat = makeCmapBat(handles, head, cmap, 1);
+			handles.imgBat = [];			% Force recomputing on next call
 		else
 			handles.cmapWater = cmap;
 		end
@@ -1057,10 +1118,13 @@ function push_palette_Callback(hObject, eventdata, handles)
 function check_resetCmaps_Callback(hObject, eventdata, handles)
     % Reset to the default cmaps and make this ui invisible
     if (get(hObject,'Value'))
-		head = handles.head_bat;		% ---> DESENRASQUE DA TRETA
+		if ( ~isempty(handles.head_bat) )		head = handles.head_bat;	% ---> DESENRASQUE DA TRETA
+		else									head = handles.head;
+		end
 		handles.cmapBat = makeCmapBat(handles, head, handles.cmapLand_bak, 1);    % Put the discontinuity at the zero of bat
 		handles.cmapWater = handles.cmapWater_bak;
-		set(hObject,'Vis','off')
+		handles.imgBat = [];			% Force recomputing on next call
+		set(hObject, 'Val',0, 'Enable','off')
 		guidata(handles.figure1,handles)
     end
 
@@ -1079,7 +1143,7 @@ function radio_noShade_Callback(hObject, eventdata, handles)
 		return
 	end
 	set(handles.radio_shade, 'Val', 0)
-	set([handles.edit_elev handles.edit_azim], 'Enable', 'off')
+	set([handles.edit_elev handles.edit_azim handles.toggle_1 handles.toggle_2], 'Enable', 'off')
 	set(handles.h_line, 'HitTest', 'off')
 
 % -----------------------------------------------------------------------------------------
@@ -1089,7 +1153,7 @@ function radio_shade_Callback(hObject, eventdata, handles)
 		return
 	end
 	set(handles.radio_noShade, 'Val', 0)
-	set(handles.edit_azim, 'Enable', 'on')
+	set([handles.edit_azim handles.toggle_1 handles.toggle_2], 'Enable', 'on')
 	set(handles.h_line, 'HitTest', 'on')
 	if ( ~get(handles.toggle_1, 'Val') )
 		set(handles.edit_elev, 'Enable', 'on')
@@ -1217,9 +1281,11 @@ function edit_multiLayerInc_Callback(hObject, eventdata, handles)
 			start = round( str2double( str(1:(ind(1)-1)) ) );
 			inc   = round( str2double( str((ind(1)+1):(ind(2)-1)) ) );
 			fim   = round( str2double( str((ind(2)+1):end) ) );
+			if ( isnan(fim) && strcmp( str((ind(2)+1):end), 'end') ),	fim = handles.number_of_timesteps;	end
 		elseif (numel(ind) == 1)		% Only start:stop
 			start = round( str2double( str(1:(ind(1)-1)) ) );
 			fim   = round( str2double( str((ind(1)+1):end) ) );
+			if ( isnan(fim) && strcmp( str((ind(1)+1):end), 'end') ),	fim = handles.number_of_timesteps;	end
 			inc = 1;
 		end
 		try
@@ -1274,7 +1340,14 @@ function push_OK_Callback(hObject, eventdata, handles)
 		M.cdata = [];		M.colormap = [];
 		for (i = 1:n_slices )
 			handles.sliceNumber = slice_vec(i) - 1;
-			push_showSlice_Callback([], [], handles)	% and update image (also saves handles)
+			if (handles.is_sww)
+				push_showSlice_Callback([], [], handles)	% and update image (also saves handles)
+			elseif (handles.is_coards)
+				aqua_suppfuns('coards_slice', handles)
+			else
+				errordlg('What kind of file is this?','ERROR')
+				return
+			end
 			handles = guidata(handles.figure1);			% We need to update for what changed in push_showSlice_CB()
 			hAguenta = aguentabar(i / n_slices);		% Show visualy the processing advance
 			if (isnan(hAguenta)),	break,		end		% User hit cancel
@@ -1286,7 +1359,10 @@ function push_OK_Callback(hObject, eventdata, handles)
 				F = getframe(handles.handMir.axes1);		img = F.cdata;
 				if ( strcmp(get(handles.handMir.axes1,'Ydir'),'normal') ),	img = flipdim(img,1);	end
 			end
-			[M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M);
+			if (ndims(img) == 3),	map = [];
+			else					map = get(handles.handMir.figure1,'Colormap');
+			end
+			[M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M, map);
 		end
 		if (is_avi)
 			mname = [handles.moviePato handles.movieName '.avi'];
@@ -1308,13 +1384,11 @@ function push_OK_Callback(hObject, eventdata, handles)
     % 'surface elevation' and 'water depth' grids are treated diferently
     is_surfElev = (get(handles.popup_surfType,'Val') == 1);
     
-    % Guess if grids are geogs
-    geog = guessGeog(handles.head_bat(1:4));
+    geog = guessGeog(handles.head_bat(1:4));    % Guess if grids are geogs
     
     if (isempty(handles.Z_water))			% We don't have a testing grid
         if (isempty(handles.nameList))		% Neither water list nor single water grid
-            errordlg('Where is the water to make the WaterWorld movie?','ERROR')
-            return
+            errordlg('Where is the water to make the WaterWorld movie?','ERROR'),	return
         end
         [handles,X,Y,Z_water,handles.head_water] = read_gmt_type_grids(handles,handles.nameList{1});
     end
@@ -1324,9 +1398,8 @@ function push_OK_Callback(hObject, eventdata, handles)
 			( ~isequal( size(handles.Z_bat), size(handles.Z_water)) && ~isequal( size(handles.Z_bat), size(Z_water))) ) )
 
 		h = warndlg('Ai, Ai, Bathymetry and Water grids are not compatible. Trying to fix that ...','Warning');
-		opt_R = sprintf('-R%.12f/%.12f/%.12f/%.12f', handles.head_water(1), handles.head_water(2), ...
-					handles.head_water(3), handles.head_water(4) );
-		opt_I = sprintf( '-I%.12f/%.12f',handles.head_water(8),handles.head_water(9) );
+		opt_R = sprintf( '-R%.12f/%.12f/%.12f/%.12f', handles.head_water(1:4) );
+		opt_I = sprintf( '-I%.12f/%.12f',handles.head_water(8:9) );
 		handles.Z_bat = grdsample_m(handles.Z_bat,handles.head_bat,opt_R,opt_I);
 		handles.head_bat = handles.head_water;
 		handles.head_bat(5) = double(min(handles.Z_bat(:)));
@@ -1461,10 +1534,10 @@ function push_OK_Callback(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function [M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M)
+function [M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M, map)
 % Auxiliary function to write movie frames
-	map = [];
-    if (is_gif || is_mpg)
+	if (nargin == 7),	map = [];	end
+    if ( (ndims(img) == 3) && (is_gif || is_mpg) )
         [img,map] = img_fun('rgb2ind',img,256,handles.dither);
     end
     img = flipdim(img,1);			% The stupid UL origin
@@ -1755,10 +1828,6 @@ function push_most_Callback(hObject, eventdata, handles)
 % Do Nothing
 
 % -----------------------------------------------------------------------------------------
-function push_bg_Callback(hObject, eventdata, handles)
-% Do Nothing
-
-% -----------------------------------------------------------------------------------------
 function edit_batGrid_Callback(hObject, eventdata, handles)
     fname = get(hObject,'String');
     push_batGrid_Callback([], [], handles, fname)
@@ -1971,16 +2040,14 @@ function push_maregs_Callback(hObject, eventdata, handles, opt)
 	% If error in reading file
 	if ( isempty(bin) ),	errordlg(['Error reading file ' fname],'Error'),	return,		end
 	if (bin ~= 0)
-        errordlg('Sorry, reading binary files is not yet programed','Error'),	return
+        errordlg('Sorry, reading binary files is not programed','Error'),	return
 	end
 	if (n_column < 2)
         errordlg('This file doesn''t have at least 2 columns','Error'),	return
 	end
 	if (isempty(n_headers)),    n_headers = NaN;    end
-	if (multi_seg)
-		numeric_data = text_read(fname,NaN,n_headers,'>');
-	else
-		numeric_data = text_read(fname,NaN,n_headers);
+	if (multi_seg),		numeric_data = text_read(fname,NaN,n_headers,'>');
+	else				numeric_data = text_read(fname,NaN,n_headers);
 	end
 
 	% NEED TO FORESEE THE CASE OF MULTISEGS
@@ -1991,20 +2058,30 @@ function push_maregs_Callback(hObject, eventdata, handles, opt)
 % -----------------------------------------------------------------------------------------
 function push_interpolate_Callback(hObject, eventdata, handles)
 	if (isempty(handles.fname))
-		errordlg('You need to load a .sww file first','Error'),		return
+		errordlg('Yea I do. But what? Things work better if you load a file first','Error'),	return
 	end
 
 	layerInc = edit_miscLayerInc_Callback(handles.edit_miscLayerInc, eventdata, handles);
 	n_layers = numel(layerInc);
-	ncols = size(handles.xyData,1);
+	ncols = size(handles.xyData,1);		% Each point will a column in output file, so number of cols is = npoints
 
 	Z = single( zeros(n_layers, ncols) );
+	if (handles.is_coards)
+		z_id = handles.netcdf_z_id;
+		s = handles.nc_info;			% Retrieve the .nc info struct
+		head = handles.head;
+	end
 	aguentabar(0,'title','Interpolating multi-layer file','CreateCancelBtn')
 	for (k = layerInc)
 		handles.sliceNumber = k - 1;
-		[theVar, U, V, indVar, indWater, theVarName] = get_swwVar(handles);		% Does not save handles
-		if (~isa(theVar, 'double')),	theVar = double(theVar);	end
-		z = mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) theVar(:)],handles.xyData(:,1),handles.xyData(:,2), 'p');
+		if (handles.is_sww)
+			[theVar, U, V, indVar, indWater, theVarName] = get_swwVar(handles);		% Does not save handles
+			if (~isa(theVar, 'double')),	theVar = double(theVar);	end
+			z = mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) theVar(:)],handles.xyData(:,1),handles.xyData(:,2), 'p');
+		elseif (handles.is_coards)
+			z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [handles.sliceNumber 0 0], [1 s.Dataset(z_id).Size(end-1:end)]);
+			z = grdtrack_m(z,head,handles.xyData(:,1:2),'-Z')';
+		end
 		Z(k,:) = z';
 		h = aguentabar(k/n_layers);
 		if (isnan(h)),	break,	end
@@ -2087,7 +2164,7 @@ function flederize(fname,n, Z, imgWater, indLand, limits)
 	write_flederFiles('main_SD', fname, 'Planar', Z_smashed, imgWater, [limits(1:4) minWater maxWater*s])
 
 % --------------------------------------------------------------------
-function hh = loc_quiver(hAx,varargin)
+function hh = loc_quiver(struc_in,varargin)
 %QUIVER Quiver plot.
 %   QUIVER(X,Y,U,V) plots velocity vectors as arrows with components (u,v)
 %   at the points (x,y).  The matrices X,Y,U,V must all be the same size
@@ -2095,12 +2172,8 @@ function hh = loc_quiver(hAx,varargin)
 %   can also be vectors to specify a uniform grid).  QUIVER automatically
 %   scales the arrows to fit within the grid.
 %
-%   QUIVER(U,V) plots velocity vectors at equally spaced points in
-%   the x-y plane.
-%
-%   QUIVER(U,V,S) or QUIVER(X,Y,U,V,S) automatically scales the 
-%   arrows to fit within the grid and then stretches them by S.  Use
-%   S=0 to plot the arrows without the automatic scaling.
+%   QUIVER(X,Y,U,V,S) automatically scales the arrows to fit within the grid and
+%   then stretches them by S. Use  S=0 to plot the arrows without the automatic scaling.
 %
 %   H = QUIVER(...) returns a vector of line handles.
 
@@ -2108,6 +2181,7 @@ function hh = loc_quiver(hAx,varargin)
 	alpha = 0.33;		% Size of arrow head relative to the length of the vector
 	beta = 0.33;		% Width of the base of the arrow head relative to the length
 	autoscale = 1;		% Autoscale if ~= 0 then scale by this.
+	subsample = 1;		% Plot one every other grid node vector
 
 	nin = nargin - 1;
 
@@ -2119,26 +2193,33 @@ function hh = loc_quiver(hAx,varargin)
 	end
 	if ~isempty(msg), error(msg); end
 
-	if (nin == 3 || nin == 5)		% quiver(u,v,s) or quiver(x,y,u,v,s)
+	if (nin == 5)		% quiver(x,y,u,v,s)
 		autoscale = varargin{nin};
+	elseif  (nin == 6)
+		autoscale = varargin{nin-1};
+		subsample = abs(round(varargin{nin}));
 	end
 
 	% Scalar expand u,v
 	if (numel(u) == 1),     u = u(ones(size(x))); end
 	if (numel(v) == 1),     v = v(ones(size(u))); end
 
-	if autoscale,
-		% Base autoscale value on average spacing in the x and y
-		% directions.  Estimate number of points in each direction as
-		% either the size of the input arrays or the effective square
-		% spacing if x and y are vectors.
+	if (subsample > 1)
+		x = x(1:subsample:end,1:subsample:end);		y = y(1:subsample:end,1:subsample:end);
+		u = u(1:subsample:end,1:subsample:end);		v = v(1:subsample:end,1:subsample:end);
+	end
+
+	if (autoscale)
+		% Base autoscale value on average spacing in the x and y directions.
+		% Estimate number of points in each direction as either the size of the
+		% input arrays or the effective square spacing if x and y are vectors.
 		if min(size(x))==1, n=sqrt(numel(x)); m=n; else [m,n]=size(x); end
 		delx = diff([min(x(:)) max(x(:))])/n;
 		dely = diff([min(y(:)) max(y(:))])/m;
 		del = delx.^2 + dely.^2;
 		if (del > 0)
-			len = sqrt((u.^2 + v.^2)/del);
-			maxlen = max(len(:));
+			len = (u.^2 + v.^2)/del;
+			maxlen = sqrt(max(len(:)));
 		else
 			maxlen = 0;
 		end
@@ -2154,19 +2235,26 @@ function hh = loc_quiver(hAx,varargin)
 	% Make velocity vectors
 	x = x(:).';		y = y(:).';
 	u = u(:).';		v = v(:).';
-	uu = [x;x+u;repmat(NaN,size(u))];
-	vv = [y;y+v;repmat(NaN,size(u))];
+	uu = [x; x+u; repmat(NaN,size(u))];
+	vv = [y; y+v; repmat(NaN,size(u))];
+	% Make arrow heads
+	hu = [x+u-alpha*(u+beta*(v+eps)); x+u; x+u-alpha*(u-beta*(v+eps)); repmat(NaN,size(u))];
+	hv = [y+v-alpha*(v-beta*(u+eps)); y+v; y+v-alpha*(v+beta*(u+eps)); repmat(NaN,size(v))];
 
-	h1 = line('XData',uu(:), 'YData',vv(:), 'Parent',hAx, 'Color','k');
+	if (struc_in.spacingChanged)
+		try,	delete(struc_in.hQuiver),	struc_in.hQuiver = [];	end		% Remove previous arrow field
+	end
 
-	% Make arrow heads and plot them
-	hu = [x+u-alpha*(u+beta*(v+eps));x+u; ...
-		x+u-alpha*(u-beta*(v+eps));repmat(NaN,size(u))];
-	hv = [y+v-alpha*(v-beta*(u+eps));y+v; ...
-		y+v-alpha*(v+beta*(u+eps));repmat(NaN,size(v))];
-	h2 = line('XData',hu(:), 'YData',hv(:), 'Parent',hAx, 'Color','k');
-
-	if (nargout > 0),	hh = [h1;h2];	end
+	if ( isempty(struc_in.hQuiver) || ~ishandle(struc_in.hQuiver(1)) )		% No arrows yet.
+		h1 = line('XData',uu(:), 'YData',vv(:), 'Parent',struc_in.hAx, 'Color','k');
+		h2 = line('XData',hu(:), 'YData',hv(:), 'Parent',struc_in.hAx, 'Color','k');
+		if (nargout > 0),	hh = [h1;h2];	end
+	else
+		% We have the arrows and only want to change them
+		set(struc_in.hQuiver(1),'XData',uu(:), 'YData',vv(:))
+		set(struc_in.hQuiver(2),'XData',hu(:), 'YData',hv(:))
+		if (nargout > 0),	hh = [struc_in.hQuiver(1); struc_in.hQuiver(2)];	end
+	end
 
 % ------------------------------------------------------------------------------
 function stopBar =  aguentabar(varargin)
@@ -2449,15 +2537,10 @@ h6 = uicontrol(...
 'Tag','tab_group',...
 'UserData','t_grids');
 
-
-h7 = uicontrol(...
-'Parent',h1,...
-'Callback',{@aquamoto_uicallback,h1,'push_bg_Callback'},...
+uicontrol('Parent',h1,...
 'Enable','inactive',...
 'Position',[10 10 371 391],...
-'Tag','push_bg',...
-'UserData',[]);
-
+'Tag','push_bg');
 
 h8 = uicontrol(...
 'Parent',h1,...
@@ -2555,21 +2638,19 @@ h17 = uicontrol(...
 'Tag','listbox1',...
 'UserData','t_grids');
 
-
-h18 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@aquamoto_uicallback,h1,'toggle_1_Callback'},...
 'Position',[470 537 20 20],...
+'Enable', 'off',...
 'Style','togglebutton',...
 'TooltipString','GMT grdgradient classic Illumination',...
 'Tag','toggle_1',...
 'UserData','shade');
 
-
-h19 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@aquamoto_uicallback,h1,'toggle_2_Callback'},...
 'Position',[491 537 20 20],...
+'Enable', 'off',...
 'Style','togglebutton',...
 'TooltipString','Lambertian with lighting Illumination',...
 'Tag','toggle_2',...
@@ -2757,7 +2838,6 @@ h34 = uicontrol(...
 'Tag','text17',...
 'UserData','t_grids');
 
-
 h35 = axes('Parent',h1,...
 'Units','pixels',...
 'Position',[470 440 91 91],...
@@ -2774,8 +2854,7 @@ h40 = axes('Parent',h1,...
 'UserData','shade',...
 'Visible','off');
 
-h45 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'FontName','Helvetica',...
 'FontSize',9,...
 'Position',[699 221 100 17],...
@@ -2784,9 +2863,7 @@ h45 = uicontrol(...
 'Tag','text_testFile',...
 'UserData','t_grids');
 
-
-h46 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@aquamoto_uicallback,h1,'push_clearTestBat_Callback'},...
 'FontName','Helvetica',...
 'FontSize',7,...
@@ -2797,9 +2874,7 @@ h46 = uicontrol(...
 'UserData','t_grids',...
 'Visible','off');
 
-
-h47 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@aquamoto_uicallback,h1,'popup_resize_Callback'},...
 'Enable','off',...
@@ -2811,9 +2886,7 @@ h47 = uicontrol(...
 'Tag','popup_resize',...
 'UserData','cinema');
 
-
-h48 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@aquamoto_uicallback,h1,'edit_movieName_Callback'},...
 'HorizontalAlignment','left',...
@@ -2823,18 +2896,14 @@ h48 = uicontrol(...
 'Tag','edit_movieName',...
 'UserData','cinema');
 
-
-h49 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@aquamoto_uicallback,h1,'push_movieName_Callback'},...
 'Position',[661 44 21 21],...
 'TooltipString','Browse for a movie file name (extention is ignored)',...
 'Tag','push_movieName',...
 'UserData','cinema');
 
-
-h50 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'FontName','Helvetica',...
 'FontSize',9,...
 'FontWeight','bold',...
@@ -2845,9 +2914,7 @@ h50 = uicontrol(...
 'Tag','text23',...
 'UserData','cinema');
 
-
-h51 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','off',...
 'FontName','Helvetica',...
 'FontSize',9,...
@@ -2857,9 +2924,7 @@ h51 = uicontrol(...
 'Tag','textResize',...
 'UserData','cinema');
 
-
-h52 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@aquamoto_uicallback,h1,'popup_surfType_Callback'},...
 'Position',[920 370 101 21],...
@@ -2869,9 +2934,7 @@ h52 = uicontrol(...
 'Tag','popup_surfType',...
 'UserData','t_grids');
 
-
-h53 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@aquamoto_uicallback,h1,'radio_mpg_Callback'},...
 'FontName','Helvetica',...
 'Position',[492 266 48 16],...
@@ -2881,18 +2944,14 @@ h53 = uicontrol(...
 'Tag','radio_mpg',...
 'UserData','cinema');
 
-
-h54 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@aquamoto_uicallback,h1,'push_palette_Callback'},...
 'Position',[599 514 18 18],...
 'TooltipString','Choose another Land palette',...
 'Tag','push_palette',...
 'UserData','shade');
 
-
-h55 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@aquamoto_uicallback,h1,'check_resetCmaps_Callback'},...
 'FontName','Helvetica',...
 'Position',[620 516 48 15],...
@@ -2903,9 +2962,7 @@ h55 = uicontrol(...
 'Tag','check_resetCmaps',...
 'UserData','shade');
 
-
-h56 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@aquamoto_uicallback,h1,'edit_landPhoto_Callback'},...
 'HorizontalAlignment','left',...
@@ -2915,18 +2972,14 @@ h56 = uicontrol(...
 'Tag','edit_landPhoto',...
 'UserData','shade');
 
-
-h57 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@aquamoto_uicallback,h1,'push_landPhoto_Callback'},...
 'Position',[680 329 21 21],...
 'TooltipString','Browse for a Terrain image name (of a georeferenced image)',...
 'Tag','push_landPhoto',...
 'UserData','shade');
 
-
-h58 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'FontName','Helvetica',...
 'FontSize',9,...
 'FontWeight','bold',...
@@ -2936,9 +2989,7 @@ h58 = uicontrol(...
 'Tag','text28',...
 'UserData','shade');
 
-
-h59 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@aquamoto_uicallback,h1,'edit_imgHeight_Callback'},...
 'Enable','off',...
@@ -2949,9 +3000,7 @@ h59 = uicontrol(...
 'Tag','edit_imgHeight',...
 'UserData','cinema');
 
-
-h60 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@aquamoto_uicallback,h1,'edit_imgWidth_Callback'},...
 'Enable','off',...
@@ -2962,9 +3011,7 @@ h60 = uicontrol(...
 'Tag','edit_imgWidth',...
 'UserData','cinema');
 
-
-h61 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','off',...
 'FontName','Helvetica',...
 'FontSize',9,...
@@ -2974,9 +3021,7 @@ h61 = uicontrol(...
 'Tag','text_MovSize',...
 'UserData','cinema');
 
-
-h62 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'Enable','off',...
 'FontName','Helvetica',...
 'HorizontalAlignment','left',...
@@ -3349,49 +3394,38 @@ h95 = uicontrol(...
 'Tag','popup_derivedVar',...
 'UserData','anuga');
 
-
-h96 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1, 'Position',[38 283 80 15],...
 'Callback',{@aquamoto_uicallback,h1,'check_derivedVar_Callback'},...
-'Position',[38 283 80 15],...
 'String','Derived var',...
 'Style','checkbox',...
 'TooltipString','Select a derived quantity from the side popup menu',...
 'Tag','check_derivedVar',...
 'UserData','anuga');
 
-
-h97 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1, 'Position',[60 336 100 15],...
 'Enable','inactive',...
-'Position',[60 338 100 15],...
 'String','Primary quantities',...
 'Style','text',...
 'Tag','text_Pq',...
 'UserData','anuga');
 
 uicontrol('Parent',h1, 'Position',[328 279 25 23],...
-'Callback',{@aquamoto_uicallback,h1,'toggle_vel_Callback'},...
+'Callback',{@aquamoto_uicallback,h1,'pus_vel_Callback'},...
 'Enable','off',...
-'Style','togglebutton',...
-'TooltipString','Plot arrow field when this button is depressed',...
-'Tag','toggle_vel',...
+'Style','pushbutton',...
+'TooltipString','Open a new window with plot arrow field controls',...
+'Tag','push_vel',...
 'UserData','anuga');
 
-
-h99 = uicontrol(...
-'Parent',h1,...
-'Callback',{@aquamoto_uicallback,h1,'checkbox_splitDryWet_Callback'},...
-'Position',[212 50 90 15],...
+uicontrol('Parent',h1,'Position',[212 50 90 15],...
+'Callback',{@aquamoto_uicallback,h1,'check_splitDryWet_Callback'},...
 'String','Split Dry/wet',...
 'Style','checkbox',...
 'TooltipString','If checked, water and land parts of the image are built separately - Nice with shadings.',...
 'Value',1,...
-'Tag','checkbox_splitDryWet');
+'Tag','check_splitDryWet');
 
-
-h100 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[0.9 0.9 0.9],...
 'Callback',{@aquamoto_uicallback,h1,'slider_transparency_Callback'},...
 'Position',[20 28 180 16],...
@@ -3425,12 +3459,12 @@ h102 = uicontrol(...
 
 h103 = uicontrol(...
 'Parent',h1,...
-'Callback',{@aquamoto_uicallback,h1,'checkbox_globalMinMax_Callback'},...
+'Callback',{@aquamoto_uicallback,h1,'check_globalMinMax_Callback'},...
 'Position',[212 29 160 15],...
 'String','Scale color to global min/max',...
 'Style','checkbox',...
 'TooltipString','If checked, water color (if other than plain blue) is calculated using global min/max',...
-'Tag','checkbox_globalMinMax');
+'Tag','check_globalMinMax');
 
 
 h104 = uicontrol(...
@@ -3463,16 +3497,24 @@ h106 = uicontrol(...
 'Tag','edit_globalWaterMax',...
 'UserData','t_grids');
 
-
-h107 = uicontrol(...
-'Parent',h1,...
+uicontrol('Parent',h1,...
 'FontName','Helvetica',...
 'FontSize',9,...
 'HorizontalAlignment','left',...
 'Position',[932 219 25 16],...
 'String','Max',...
 'Style','text',...
-'Tag','text41',...
+'Tag','textMax',...
+'UserData','t_grids');
+
+uicontrol('Parent',h1,...
+'FontName','Helvetica',...
+'FontSize',9,...
+'HorizontalAlignment','left',...
+'Position',[932 199 25 16],...
+'String','Min',...
+'Style','text',...
+'Tag','textMin',...
 'UserData','t_grids');
 
 
@@ -3485,19 +3527,6 @@ h108 = uicontrol(...
 'TooltipString','Global minimum water level',...
 'Tag','edit_globalWaterMin',...
 'UserData','t_grids');
-
-
-h109 = uicontrol(...
-'Parent',h1,...
-'FontName','Helvetica',...
-'FontSize',9,...
-'HorizontalAlignment','left',...
-'Position',[932 199 25 16],...
-'String','Min',...
-'Style','text',...
-'Tag','text42',...
-'UserData','t_grids');
-
 
 h110 = uicontrol(...
 'Parent',h1,...
@@ -3641,7 +3670,7 @@ h122 = uicontrol(...
 'BackgroundColor',[1 1 1],...
 'Callback',{@aquamoto_uicallback,h1,'edit_multiLayerInc_Callback'},...
 'Enable','off',...
-'Position',[385 91 50 20],...
+'Position',[385 91 70 20],...
 'String','1',...
 'Style','edit',...
 'TooltipString','Slice increment. ''1'' means all layers, ''2'', every other layer. The ML start:inc:end form is acepted as well',...
@@ -3728,5 +3757,156 @@ uicontrol('Parent',h1,...
 'UserData','misc');
 
 function aquamoto_uicallback(hObject, eventdata, h1, callback_name)
+% This function is executed by the callback and than the handles is allways updated.
+feval(callback_name,hObject,[],guidata(h1));
+
+% ----------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------
+function varargout = vector_plot(varargin)
+% 
+	hObject = figure('Tag','figure1','Visible','off');
+	vector_plot_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	movegui(handles.figure1,'center')
+
+	handles.hAquaFig = varargin{1};			% Aquamoto fig handle
+	handles.vecScale = varargin{2};
+	handles.vecSpacing = varargin{3};
+	plotVector = varargin{4};
+
+	if (~plotVector)
+		set(handles.radio_plotVec,'Val',0),		set(handles.radio_noPlot,'Val',1)
+	else
+		set(handles.radio_plotVec,'Val',1),		set(handles.radio_noPlot,'Val',0)
+	end
+	set(handles.edit_vecScale, 'String', handles.vecScale) 
+	set(handles.edit_gridSpacing, 'String', sprintf('1:%d',handles.vecSpacing) )
+	set(handles.slider_scale, 'Val', handles.vecScale) 
+	set(handles.slider_spacing, 'Val', handles.vecSpacing)
+
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),		varargout{1} = hObject;		end
+
+% ---------------------------------------------------------------------
+function radio_plotVec_Callback(hObject, eventdata, handles)
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radio_noPlot, 'Val', 0)
+
+% ---------------------------------------------------------------------
+function radio_noPlot_Callback(hObject, eventdata, handles)
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radio_plotVec, 'Val', 0)
+
+% ---------------------------------------------------------------------
+function slider_scale_Callback(hObject, eventdata, handles)
+	val = round(get(hObject,'Val'));
+	set(handles.edit_vecScale, 'String', val)
+
+% ---------------------------------------------------------------------
+function slider_spacing_Callback(hObject, eventdata, handles)
+	val = round(get(hObject,'Val'));
+	set(handles.edit_gridSpacing, 'String', sprintf('1:%d',val))
+	handAqua = guidata(handles.hAquaFig);
+	handAqua.spacingChanged = true;			% Signal quiver that old arrows are to delete
+	guidata(handles.hAquaFig,handAqua)			% Save result in the Aquamoto handles
+
+% ---------------------------------------------------------------------
+function push_vp_OK_Callback(hObject, eventdata, handles)
+	if ( get(handles.radio_plotVec, 'Val') )
+		vscale = round(get(handles.slider_scale,'Val'));
+		vspacing = round(get(handles.slider_spacing,'Val'));
+		handAqua = guidata(handles.hAquaFig);
+		handAqua.vecScale = vscale;
+		handAqua.vecSpacing = vspacing;
+		handAqua.plotVector = logical(get(handles.radio_plotVec,'Val'));
+		guidata(handles.hAquaFig,handAqua)			% Save result in the Aquamoto handles
+	end
+	delete(handles.figure1)
+
+% ---------------------------------------------------------------------
+function push_vp_cancel_Callback(hObject, eventdata, handles)
+	delete(handles.figure1)
+
+
+% ------------ Creates and returns a handle to the GUI figure. --------
+function vector_plot_LayoutFcn(h1);
+
+set(h1,'Position',[520 620 161 180],...
+'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'MenuBar','none', 'NumberTitle','off',...
+'Resize','off', 'Name','Vector Plot',...
+'HandleVisibility','callback',...
+'Tag','figure1');
+
+uicontrol('Parent',h1, 'Position',[90 99 61 20],...
+'BackgroundColor',[1 1 1],...
+'Enable','inactive',...
+'String','1',...
+'Style','edit',...
+'TooltipString','Scale arrow sizes by this amount',...
+'Tag','edit_vecScale');
+
+uicontrol('Parent',h1,'Position',[90 45 61 20],...
+'BackgroundColor',[1 1 1],...
+'Enable','inactive',...
+'String','1:10',...
+'Style','edit',...
+'TooltipString','Plot 1 vector for every n grid nodes',...
+'Tag','edit_gridSpacing');
+
+uicontrol('Parent',h1,'Position',[11 101 65 15],...
+'HorizontalAlignment','left',...
+'String','Arrow Scale', 'Style','text');
+
+uicontrol('Parent',h1,'Position',[10 46 70 15],...
+'HorizontalAlignment','left',...
+'String','Grid Spacing', 'Style','text');
+
+uicontrol('Parent',h1,'Position',[10 9 60 23],...
+'Callback',{@vector_plot_uicallback,h1,'push_vp_OK_Callback'},...
+'FontName','Helvetica',...
+'FontSize',9,...
+'String','OK',...
+'Tag','push_vp_OK');
+
+uicontrol('Parent',h1,'Position',[91 9 60 23],...
+'Callback',{@vector_plot_uicallback,h1,'push_vp_cancel_Callback'},...
+'FontName','Helvetica',...
+'FontSize',9,...
+'String','Cancel',...
+'Tag','push_vp_cancel');
+
+uicontrol('Parent',h1,'Position',[10 156 79 15],...
+'Callback',{@vector_plot_uicallback,h1,'radio_plotVec_Callback'},...
+'String','Plot vectors',...
+'Style','radiobutton',...
+'Tag','radio_plotVec');
+
+uicontrol('Parent',h1,'Position',[100 156 55 15],...
+'Callback',{@vector_plot_uicallback,h1,'radio_noPlot_Callback'},...
+'String','No plot',...
+'Style','radiobutton',...
+'Value',1,...
+'Tag','radio_noPlot');
+
+uicontrol('Parent',h1,'Position',[10 120 141 15],...
+'BackgroundColor',[0.96 0.96 0.96],...
+'Callback',{@vector_plot_uicallback,h1,'slider_scale_Callback'},...
+'Style','slider',...
+'Max',20, 'Min',1,...
+'SliderStep',[0.05 0.1], 'Value',1,...
+'Tag','slider_scale');
+
+uicontrol('Parent',h1,'Position',[10 66 141 15],...
+'BackgroundColor',[0.96 0.96 0.96],...
+'Callback',{@vector_plot_uicallback,h1,'slider_spacing_Callback'},...
+'Style','slider',...
+'Max',100, 'Min',1,...
+'SliderStep',[0.01 0.1], 'Value',10,...
+'Tag','slider_spacing');
+
+function vector_plot_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
 feval(callback_name,hObject,[],guidata(h1));
