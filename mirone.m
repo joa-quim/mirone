@@ -53,7 +53,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function move2side aguentabar
 
 	global home_dir;    home_dir = cd;      fsep = filesep;
-	% addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
+	addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
 
 	handles.home_dir = home_dir;
@@ -144,8 +144,8 @@ function hObject = mirone_OpeningFcn(varargin)
 	% Change the MeasureDistance label to the selected (in prefs) unites
 	set(handles.ToolsMeasureDist,'Label',['Distance in ' handles.DefineMeasureUnit])
 
-	% Detect in which mode Mirone was called
-	drv = [];   grd_data_in = 0;    grd_data_interfero = 0;		pal = [];	win_name = 'Mirone';
+	% ---------- Detect in which mode Mirone was called
+	drv = [];	grd_data_in = 0;	grd_data_interfero = 0;		pal = [];	win_name = 'Mirone';
 	if ~isempty(varargin)
         if (length(varargin) == 1 && ischar(varargin{1}))				% Called with a file name as argument
 			[pato, fname, EXT] = fileparts(varargin{1});				% Test to check online command input
@@ -154,7 +154,7 @@ function hObject = mirone_OpeningFcn(varargin)
         elseif ( isa(varargin{1},'uint8') || isa(varargin{1},'logical') )
 			% Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
 			dims = size(varargin{1});
-			if ( numel(varargin) == 2 && isstruct(varargin{2}) )       % An image with coordinates
+			if ( numel(varargin) == 2 && isa(varargin{2},'struct') )       % An image with coordinates
 				tmp = varargin{2};
 				handles.head = tmp.head;		X = tmp.X;		Y = tmp.Y;
 				handles.image_type = 3;			axis_t = 'xy';
@@ -176,19 +176,27 @@ function hObject = mirone_OpeningFcn(varargin)
 			if (isa(varargin{1},'logical'))
 				set(handles.hImg,'CDataMapping','scaled');   set(handles.figure1,'ColorMap',gray(256));
 			end        
-        elseif (numel(varargin) == 2 && isnumeric(varargin{1}) && isstruct(varargin{2}))
+		elseif ( isa(varargin{1},'uint16') || isa(varargin{1},'int16') || isa(varargin{1},'int32') || ...
+				 isa(varargin{1},'single') || isa(varargin{1},'double') )
 			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
-			grd_data_in = 1;
-			Z = varargin{1};			tmp = varargin{2};
+			Z = varargin{1};			grd_data_in = 1;
+			if (~isa(Z,'single')),		Z = single(Z);		end
 			handles.have_nans = grdutils(Z,'-N');
-			handles.head = tmp.head;	X = tmp.X;  Y = tmp.Y;
-			if (isfield(tmp,'name')),	win_name = tmp.name;	end		% All calls should transmit a name, but ...
-			if (isfield(tmp,'cmap')),	pal = tmp.cmap;			end
-			if (isfield(tmp,'was_int16'))
-				handles.was_int16 = tmp.was_int16;		handles.Nodata_int16 = tmp.Nodata_int16;
+			if ( numel(varargin) == 2 && isa(varargin{2},'struct') )       % An grid with header
+				tmp = varargin{2};
+				handles.head = tmp.head;	X = tmp.X;  Y = tmp.Y;
+				if (isfield(tmp,'name')),	win_name = tmp.name;	end		% All calls should transmit a name, but ...
+				if (isfield(tmp,'cmap')),	pal = tmp.cmap;			end
+				if (isfield(tmp,'was_int16'))
+					handles.was_int16 = tmp.was_int16;		handles.Nodata_int16 = tmp.Nodata_int16;
+				end
+				clear tmp;
+			else
+				zz = grdutils(Z,'-L');
+				handles.head = [1 size(Z,2) 1 size(Z,1) zz(1) zz(2) 0 1 1];
+				X = 1:size(Z,2);			Y = 1:size(Z,1);
 			end
-			clear tmp;
-        elseif ( numel(varargin) == 4 && isnumeric(varargin{1}) && isstruct(varargin{2}) && ...
+		elseif ( numel(varargin) == 4 && isnumeric(varargin{1}) && isa(varargin{2},'struct') && ...
 				strcmp(varargin{3},'Deformation') && ishandle(varargin{4}) )
 			% A matrix. Treat it as if it'is a gmt grid. No error testing on the grid head descriptor
 			% Note: this is a special case of the situation above that will be used to identify this figure
@@ -198,14 +206,14 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles.head = tmp.head;    X = tmp.X;  Y = tmp.Y;  clear tmp;
 			setappdata(hObject,'hFigParent',varargin{4});
 			win_name = 'Okada deformation';
-        elseif ( numel(varargin) == 4 && isnumeric(varargin{1}) && isstruct(varargin{2}) && ...
+		elseif ( numel(varargin) == 4 && isnumeric(varargin{1}) && isa(varargin{2},'struct') && ...
                 strcmp(varargin{3},'Interfero') && isnumeric(varargin{4}) )
             % A matrix input containing an interfeogram with cdo == varargin{4}
             grd_data_interfero = 1;
             Z = varargin{1};            tmp = varargin{2};      cdo = varargin{4};
             handles.head = tmp.head;    X = tmp.X;  Y = tmp.Y;  clear tmp;
             win_name = 'Interferogram';
-        end
+		end
 	end
 
 	% The following IF cases deal only with cases where a grid was given in argument
@@ -908,7 +916,7 @@ function ExtractProfile_CB(handles, opt)
 		% interpolate at the half grid spacing for each dimension.
 		% Construct the vectors with the points where to interpolate the profile
 		xx = [];     yy = [];
-		for i=1:n_nodes-1
+		for (i = 1:n_nodes-1)
 			n_int = round( max( abs(xp(i+1)-xp(i))/(dx/2), abs(yp(i+1)-yp(i))/(dy/2) ) );         % find ...
 			xx = [xx linspace(xp(i),xp(i+1),n_int)];     yy = [yy linspace(yp(i),yp(i+1),n_int)];  % at nodes, values are repeated
 		end
@@ -1062,12 +1070,12 @@ else
 		warndlg(['A registering world file was found but the following error occured: ' err_msg],'Warning')
 	end
 	
-	if (strcmp(info_img.ColorType,'grayscale'))
+	if (strcmp(info_img(1).ColorType,'grayscale'))
 		set(handles.figure1,'Colormap',gray(256))
-	elseif (isfield(info_img,'ColorTable'))         % Gif images call it 'ColorTable'
-		set(handles.figure1,'Colormap',info_img.ColorTable)
-	elseif (isfield(info_img,'Colormap') && ~isempty(info_img.Colormap))
-		set(handles.figure1,'Colormap',info_img.Colormap)
+	elseif (isfield(info_img(1),'ColorTable'))         % Gif images call it 'ColorTable'
+		set(handles.figure1,'Colormap',info_img(1).ColorTable)
+	elseif (isfield(info_img(1),'Colormap') && ~isempty(info_img(1).Colormap))
+		set(handles.figure1,'Colormap',info_img(1).Colormap)
 	end
 end
 
@@ -1201,7 +1209,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		handles.fileName = FileName;
 		att = gdalread(handles.fileName,'-M','-C');		% Try again
 	end
-	
+
 	if (att.RasterCount == 0)			% Should never happen given the piece of code above, but ...
 		errordlg('Probably a multi-container file. Could not read it since its says that it has no raster bands.','ERROR'),	return
 	elseif (att.RasterCount > 3)            % Since it is a multiband file, try luck there
@@ -1390,7 +1398,7 @@ function read_DEMs(handles,fullname,tipo,opt)
 	if (~strncmp(tipo,'GMT_',4))
 		if ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
 			ind = (Z == single(att.Band(1).NoDataValue));
-			if (any(ind))
+			if (any(ind(:)))
 				Z(ind) = NaN;		handles.have_nans = 1;		clear ind;
 			end
 		end
@@ -1576,7 +1584,7 @@ function ToolsMBplaningImport_CB(handles)
 		tagL = ['MBtrack' sprintf('%d',handles.nTrack)];     tagB = ['swath_w' sprintf('%d',handles.nTrack)];
 		nr = size(xy,1);
 		az = zeros(nr,1);    h_circ = zeros(1,nr);
-		az(2:nr) = azimuth_geo(xy(1:(nr-1),2),xy(1:(nr-1),1),xy(2:nr,2),xy(2:nr,1));
+		az(2:nr) = azimuth_geo(xy(1:(nr-1),2), xy(1:(nr-1),1), xy(2:nr,2), xy(2:nr,1));
 		az(1) = az(2);				% First and second points have the same azim
 		for (k=1:nr)				% NOTE: the Tag is very important for line edition
 			[lat1,lon1] = circ_geo(xy(k,2),xy(k,1),rad(k),[az(k)-90-1 az(k)-90+1],3);
@@ -1679,10 +1687,11 @@ function ImageIlluminateGray(luz, handles, color)
 
 	if (strcmp(color,'color'))
 		if (handles.firstIllum),    img1 = get(handles.hImg,'CData');     handles.firstIllum = 0;
-		else                        img1 = handles.origFig;      end
+		else                        img1 = handles.origFig;
+		end
 		if (isempty(img1)),         img1 = get(handles.hImg,'CData');     end             % No copy in memory
 		if (ndims(img1) == 2),      img1 = ind2rgb8(img1,get(handles.figure1,'Colormap'));    end    % Image is 2D   
-        img = shading_mat(img1,img);
+		img = shading_mat(img1,img);
 		aux_funs('togCheck',handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
 	else
 		img = uint8((254 * img) + 1);   % Need to convert the reflectance matrix into a gray indexed image
@@ -1711,17 +1720,19 @@ function ImageIlluminateFalseColor(luz, handles)
 			tmp1 = (ind_s(i,1):ind_s(i,2));     % Indexes with overlapping zone
 			tmp2 = ind(i,1):ind(i,2);           % Indexes of chunks without the overlaping zone
 			tmp_1 = shade_manip_raster((luz.azim(1)-90)*D2R,luz.elev*D2R,Z(tmp1,:));
+			tmp_1 = uint8((254 * tmp_1) + 1);
 			tmp_2 = shade_manip_raster((luz.azim(2)-90)*D2R,luz.elev*D2R,Z(tmp1,:));
+			tmp_2 = uint8((254 * tmp_2) + 1);
 			tmp_3 = shade_manip_raster((luz.azim(3)-90)*D2R,luz.elev*D2R,Z(tmp1,:));
-			zz1 = [zz1; tmp_1(tmp2,:)];
-			zz2 = [zz2; tmp_2(tmp2,:)];
-			zz3 = [zz3; tmp_3(tmp2,:)];
+			tmp_3 = uint8((254 * tmp_3) + 1);
+			zz1 = [zz1; tmp_1(tmp2,:)];		zz2 = [zz2; tmp_2(tmp2,:)];		zz3 = [zz3; tmp_3(tmp2,:)];
 		end
 		zz(:,:,1) = zz1;    zz(:,:,2) = zz2;    zz(:,:,3) = zz3;
 	else
 		zz(:,:,1) = shade_manip_raster((luz.azim(1)-90)*D2R,luz.elev*D2R,Z);
 		zz(:,:,2) = shade_manip_raster((luz.azim(2)-90)*D2R,luz.elev*D2R,Z);
 		zz(:,:,3) = shade_manip_raster((luz.azim(3)-90)*D2R,luz.elev*D2R,Z);
+		zz = uint8((254 * zz) + 1);
 	end
 
 	if (isappdata(handles.figure1,'illumComm')),	rmappdata(handles.figure1,'illumComm');   end
@@ -2676,10 +2687,10 @@ function GeophysicsSwanPlotStations_CB(handles)
 function GRDdisplay(handles,X,Y,Z,head,tit,name)
 	% Show matrix Z in a new window.
 	if (nargin < 7),    name = [];  end
-    if (isa(Z,'double')),   Z = single(Z);  end
-	zz = grdutils(Z,'-L');      head(5:6) = zz(1:2);
-    tmp.head = head;    tmp.X = X;    tmp.Y = Y;    tmp.name = name;
-    mirone(Z,tmp);	    set(handles.figure1,'pointer','arrow');
+    if (isa(Z,'double')),		Z = single(Z);		end
+	zz = grdutils(Z,'-L');		head(5:6) = double(zz(1:2));
+    tmp.head = head;	tmp.X = X;		tmp.Y = Y;		tmp.name = name;
+    mirone(Z,tmp);		set(handles.figure1,'pointer','arrow');
 
 % --------------------------------------------------------------------
 function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
@@ -2758,7 +2769,7 @@ function GridToolsHistogram_CB(handles, opt)
 	end
 	binwidth = (z_max - z_min) / 20;    % Default to 20 bins
 	resp = inputdlg({'Enter Bin Width (default is 20 bins)'},'Histogram',[1 38],{sprintf('%g',binwidth)});     pause(0.01);
-	if isempty(resp);    set(handles.figure1,'pointer','arrow');     return;     end
+	if isempty(resp);    set(handles.figure1,'pointer','arrow'),	return,		end
 	n = round( (z_max - z_min) / str2double(resp{1}) );
 	[n,xout] = histo_m('hist',Z(:),n,[z_min z_max]);
 	h = mirone;                         % Create a new Mirone figure
@@ -2926,31 +2937,31 @@ function GridToolsSlope_CB(handles, opt)
 	% OPT == 'degrees'  Compute a DEM slope in degrees
 	% OPT == 'percent'  Compute a DEM slope in percentage
 	% OPT == 'aspect'   Compute a DEM aspect in degrees
-	if (aux_funs('msg_dlg',14,handles));     return;      end
+	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	[X,Y,Z,head] = load_grd(handles);
-	if isempty(Z),      return;     end;            % An error message was already issued
+	if isempty(Z),		return,		end				% An error message was already issued
 	set(handles.figure1,'pointer','watch')
-	if (~isa(Z,'double')),  Z = double(Z);  end;    % Make sure Z is of double type
+	if (~isa(Z,'double')),  Z = double(Z);  end		% Make sure Z is of double type
 	
-	[m,n] = size(Z);       D2R = pi/180;   R2D = 180/pi;    tit   = ['Slope in ' opt];
+	[m,n] = size(Z);		D2R = pi/180;	R2D = 180/pi;	tit = ['Slope in ' opt];
 	if (handles.geog)
-        if (strcmp(opt,'aspect'))
-            slope = gradient_geo(Y,X,Z,'aspect');   % As you can see "slope" is in fact "aspect"
-            tit = 'Terrain aspect in degrees clockwise from North';
-        else
-            slope = gradient_geo(Y,X,Z,'slope');
-        end
+		if (strcmp(opt,'aspect'))
+			slope = gradient_geo(Y,X,Z,'aspect');   % As you can see "slope" is in fact "aspect"
+			tit = 'Terrain aspect in degrees clockwise from North';
+		else
+			slope = gradient_geo(Y,X,Z,'slope');
+		end
 	else
-        if (strcmp(opt,'aspect'))
-            set(handles.figure1,'pointer','arrow');    warndlg('Not yet programed for cartesian grids','Warning');  return
-        end
-        [nx,ny] = meshgrid(X,Y);        [nx,ny,nz] = getnormals(nx,ny,Z);
-        vert = [0 0 1];     slope = zeros(m,n);
-        for i=1:m
-            for j=1:n
-                slope(i,j) = acos(sum(vert .* [nx(i,j) ny(i,j) nz(i,j)]));
-            end
-        end
+		if (strcmp(opt,'aspect'))
+			set(handles.figure1,'pointer','arrow');    warndlg('Not yet programed for cartesian grids','Warning');  return
+		end
+		[nx,ny] = meshgrid(X,Y);        [nx,ny,nz] = getnormals(nx,ny,Z);
+		vert = [0 0 1];     slope = zeros(m,n);
+		for i=1:m
+			for j=1:n
+				slope(i,j) = acos(sum(vert .* [nx(i,j) ny(i,j) nz(i,j)]));
+			end
+		end
 	end
 
 	if ((strcmp(opt,'percent') && handles.geog)),			slope = 100 * tan(slope*D2R);
@@ -3063,7 +3074,7 @@ function GridToolsPadd2Const_CB(handles)
 
 % --------------------------------------------------------------------
 function FileSaveFleder_CB(handles, opt)
-	% Depending of the OPT value, this function builds either:
+	% Depending on the OPT value, this function builds either:
 	% OPT = 'writeAll3' a set of three files: .geo, .dtm, .shade as DMagic would do
 	% OPT = 'writePlanar' directly build a planar Sonar SD file to be used by Fledermaus
 	% OPT = 'writeSpherical' directly build a spherical Sonar SD file to be used by Fledermaus
@@ -3100,11 +3111,11 @@ function FileSaveFleder_CB(handles, opt)
 function ImageEdgeDetect_CB(handles, opt)
 if (handles.no_file),		return,		end
 
-if (~strcmp(opt,'ppa')),        img = get(handles.hImg,'CData'); end
-set(handles.figure1,'pointer','watch');
+if (~strcmp(opt,'ppa')),	img = get(handles.hImg,'CData');	end
+set(handles.figure1,'pointer','watch')
 if (strcmp(opt,'ppa'))
     [X,Y,Z,handles.head] = load_grd(handles);
-	if isempty(Z),   return;     end;
+	if isempty(Z),		return,		end
 	out = grdppa_m(Z,handles.head);
 	h_ridge = line(out(1,:),out(2,:),'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor,'Tag','creast_line','Userdata',1);
 	multi_segs_str = cell(length(h_ridge),1);    % Just create a set of empty info strings
@@ -3151,7 +3162,7 @@ elseif (strcmp(opt,'Lines'))
 elseif (strcmp(opt,'Circles'))
     B = cvlib_mex('houghcircles',img);
     if (isempty(B))
-        set(handles.figure1,'pointer','arrow');     return
+        set(handles.figure1,'pointer','arrow'),		return
     end
 end
 
@@ -3164,16 +3175,16 @@ if (strcmp(opt,'Vec') || strcmp(opt,'Lines'))          % Convert the edges found
 	h_edge = zeros(length(B),1);    i = 1;
 	for k = 1:length(B)
 		boundary = B{k};
-		if (length(boundary) < 40 && strcmp(opt,'Vec')),   continue;   end
+		if (length(boundary) < 20 && strcmp(opt,'Vec')),	continue,	end
 		y = (boundary(:,1)-1)*y_inc + y_min;
 		x = (boundary(:,2)-1)*x_inc + x_min;
 		%x = x(1:fix(end/2));  y = y(1:fix(end/2));    % This because the stupid has many duplicated points
-		h_edge(i) = line(x, y,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor,'Tag','edge_detected','Userdata',i);
+		h_edge(i) = line('XData',x, 'YData',y, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor,'Tag','edge_detected','Userdata',i);
 		i = i + 1;
 		%ellipse_t = fit_ellipse( x,y,handles.axes1 );
 	end
 	
-	h_edge(h_edge == 0) = []					% Remove empty handles remaining from pre-declaration
+	h_edge(h_edge == 0) = [];					% Remove empty handles remaining from pre-declaration
 	multi_segs_str = cell(length(h_edge),1);	% Just create a set of empty info strings
 	draw_funs(h_edge,'isochron',multi_segs_str);
 elseif (strcmp(opt,'Circles'))
@@ -3189,9 +3200,14 @@ elseif (strcmp(opt,'Circles'))
         %setappdata(h_circ,'X',xx);        setappdata(h_circ,'Y',yy);
     end
 else                            % Display the bw image where the edges are the whites    
-    if (strcmp(get(handles.axes1,'Ydir'),'normal')),    img = flipdim(img,1);   end
-    setappdata(0,'CropedColormap',gray);
-    mirone(img);
+	setappdata(0,'CropedColormap',gray);
+	if (handles.image_type == 2)
+		mirone(img);
+	else
+		tmp.X = handles.head(1:2);	tmp.Y = handles.head(3:4);		tmp.name = 'Edge detected';
+		tmp.geog = handles.geog;	tmp.head = [handles.head(1:4) 0 1 handles.head(7:9)];
+		mirone(img, tmp);
+	end
 end
 set(handles.figure1,'pointer','arrow')
 
@@ -3274,36 +3290,42 @@ function TransferB_CB(handles, opt)
 function Transfer_CB(handles, opt)
 if (handles.no_file),      return;      end
 
-if (strcmp(opt,'Shape')),       floodFill(handles.figure1);     return;     end
+if (strcmp(opt,'Shape')),		floodFill(handles.figure1);		return,		end
 set(handles.figure1,'pointer','watch')
 img = get(handles.hImg,'CData');
 if (strcmp(opt,'Corners'))
 	corn = cvlib_mex('goodfeatures',img,100,0.05);
-	hLine = line('XData',corn(:,1),'YData',corn(:,2),'Parent',handles.axes1,'ko','MarkerEdgeColor','w', ...
-				'MarkerFaceColor','k','MarkerSize',6,'Tag','corner_detected','Userdata',1);
+	if (handles.image_type ~= 2)
+		y = (corn(:,1)-1)*handles.head(9) + handles.head(3);
+		x = (corn(:,2)-1)*handles.head(8) + handles.head(1);
+	else
+		x = corn(:,1);		y = corn(:,2); 
+	end
+	hLine = line('XData',x,'YData',y,'Parent',handles.axes1,'LineStyle','none','Marker','o', ...
+				'MarkerEdgeColor','w','MarkerFaceColor','k','MarkerSize',6,'Tag','corner_detected','Userdata',1);
 	multi_segs_str = cell(length(hLine),1);    % Just create a set of empty info strings
 	draw_funs(hLine,'isochron',multi_segs_str);
 
 elseif (strcmp(opt,'toRGB'))
-    if (ndims(img) == 3 || isa(img,'logical')),	set(handles.figure1,'pointer','arrow');		return,		end		% Nothing to do
+	if (ndims(img) == 3 || isa(img,'logical')),	set(handles.figure1,'pointer','arrow');		return,		end		% Nothing to do
 	img = ind2rgb8(img,get(handles.figure1,'Colormap'));
 	set(handles.hImg,'CData', img);
 	aux_funs('togCheck', handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
 
 elseif (strcmp(opt,'8-bit'))
-    if (ndims(img) ~= 3),	set(handles.figure1,'pointer','arrow');		return,		end		% Nothing to do
-    resp  = inputdlg({'Number of colors (2-256)'},'Color quantization',[1 30],{'256'});	pause(0.01)
+	if (ndims(img) ~= 3),	set(handles.figure1,'pointer','arrow');		return,		end		% Nothing to do
+	resp  = inputdlg({'Number of colors (2-256)'},'Color quantization',[1 30],{'256'});	pause(0.01)
 	nColors = round(abs(str2double(resp)));
 	if (isnan(nColors)),	set(handles.figure1,'pointer','arrow');		return,		end
-    [img, map] = img_fun( 'rgb2ind', img, max(2, min(nColors, 256)) );	% Ensure we are in the [2-256] int
-    set(handles.hImg,'CData', img);             set(handles.figure1,'ColorMap',map)
+	[img, map] = img_fun( 'rgb2ind', img, max(2, min(nColors, 256)) );	% Ensure we are in the [2-256] int
+	set(handles.hImg,'CData', img);             set(handles.figure1,'ColorMap',map)
 	aux_funs('togCheck', handles.ImMod8cor, [handles.ImMod8gray handles.ImModBW handles.ImModRGB])
 
 elseif (strcmp(opt,'gray'))
-    if (ndims(img) == 3)
+	if (ndims(img) == 3)
 		img = cvlib_mex('color',img,'rgb2gray');		set(handles.hImg,'CData', img);
-    end
-    set(handles.figure1,'ColorMap',gray(256))
+	end
+	set(handles.figure1,'ColorMap',gray(256))
 	aux_funs('togCheck',handles.ImMod8gray , [handles.ImMod8cor handles.ImModBW handles.ImModRGB])
 
 elseif (strcmp(opt,'bw'))
@@ -3313,8 +3335,8 @@ elseif (strcmp(opt,'bw'))
 	aux_funs('togCheck',handles.ImModBW , [handles.ImMod8cor handles.ImMod8gray handles.ImModRGB])
 
 elseif (strcmp(opt,'copyclip'))		% Img and frame capture to ClipBoard
-    h = getappdata(handles.figure1,'CoordsStBar');      set(h,'Visible','off');
-    imcapture(handles.axes1,'imgAx');                   set(h(2:end),'Visible','on')
+	h = getappdata(handles.figure1,'CoordsStBar');      set(h,'Visible','off');
+	imcapture(handles.axes1,'imgAx');                   set(h(2:end),'Visible','on')
 
 elseif (strncmp(opt,'flip',4))		% LR or UP image flipage. OPT = flipLR or flipUD
 	% OPT == 'LR' -> Flips the image left-right. OPT == 'UD' -> Flips the image up-down
