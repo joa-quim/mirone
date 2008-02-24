@@ -315,24 +315,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("\t   <from> = - means WGS-84.  If /<to> is not given we assume WGS-84.\n");
 		return;
 	}
-	/*if (g_report & 1) {	/* List ellipsoid parameters */
-		/*cell_array_ptr = mxCreateCellMatrix(N_ELLIPSOIDS,1);
-		for(i = 0; i < N_ELLIPSOIDS; i++){
-			mxSetCell(cell_array_ptr,i,(mxArray *)gmtdefs.ref_ellipsoid[i].name);
-		}
-		plhs[0] = cell_array_ptr;
-		mxFree(argv);
-		return;
-
-		plhs[0] = mxCreateDoubleMatrix (n_pts,k, mxREAL);
-		pdata = mxGetPr(plhs[0]);
-		memcpy(pdata, out_m, n_pts*k*8);
-		mxFree(out_m);
-		mxFree(argv);
-		for (i = 0; i < N_ELLIPSOIDS; i++) {
-				fprintf (stderr, "%-23s %4d %.3lf %.9lf\n", gmtdefs.ref_ellipsoid[i].name, gmtdefs.ref_ellipsoid[i].date, gmtdefs.ref_ellipsoid[i].eq_radius, 1.0/gmtdefs.ref_ellipsoid[i].flattening);
-		}
-	}*/
 	
 	geodetic_calc = (distance || do_az || do_line_dist);
 	
