@@ -920,9 +920,12 @@ function msg_err = transform_grid(handles)
 		tit = 'Grid converted by grdproject';
 		fname = get(handles.edit_gridRight,'String');
 		if (isempty(fname))
-			msg = 'Need output grid name.';
+			errordlg('Need output grid name.','ERROR'),		return
 		end
-		grdwrite_m(Z,head,fname,tit)
+		% Defaults and srsWKT fishing are set in nc_io
+		misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
+			'title',tit,'history',[],'srsWKT',[], 'strPROJ4',[]);
+		nc_io(fname, 'w', handles, Z, misc)
 	else    % Output the converted grid to Mirone
 		[ny,nx] = size(Z);
 		zMinMax = grdutils(Z,'-L');
