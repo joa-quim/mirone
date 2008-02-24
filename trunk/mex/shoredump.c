@@ -115,7 +115,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argv[i] = (char *)mxArrayToString(prhs[i-1]);
 	}
 
-	if (!GMTisLoaded) {		/* ML remembers its previous value */ 
+	if (!GMTisLoaded) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
@@ -321,7 +321,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	west_border = floor (project_info.w / c.bsize) * c.bsize;
 	east_border = ceil (project_info.e / c.bsize) * c.bsize;
-//mexPrintf("Merda edge = %g\tshift %d\twest = %g\teast = %g\n", edge, shift, west_border, east_border);
 	
 	if (get_shore) {	/* Read shoreline file and extract lines */
 		n = 0;
