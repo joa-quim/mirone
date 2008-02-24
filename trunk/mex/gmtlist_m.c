@@ -283,7 +283,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		return;
 	}
 
-	gmtmggpath_init();
+	gmtmggpath_init(GMT_SHAREDIR);
 
 	if ((west < 0.0 && east > 0.0) || (west < 360.0 && east > 360.0)) greenwich = TRUE;
 	if (!geodetic) greenwich = TRUE;
