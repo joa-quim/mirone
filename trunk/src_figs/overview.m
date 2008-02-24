@@ -266,7 +266,7 @@ set(handles.figure1,'pointer','watch')
 head = grdinfo_m(fname,'silent');       % Use grdinfo because gdal gives wrong info on GMT grids
 if (head(7))                            % Convert to grid registration
         head(1) = head(1) + head(8) / 2;        head(2) = head(2) - head(8) / 2;
-        head(3) = head(1) + head(9) / 2;        head(4) = head(4) - head(9) / 2;
+        head(3) = head(3) + head(9) / 2;        head(4) = head(4) - head(9) / 2;
         head(7) = 0;
 end
 att =  gdalread(fname,'-M','-C');
