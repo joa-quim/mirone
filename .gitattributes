@@ -237,6 +237,7 @@ lib_mex/wgifc.dll -text
 /libcurl.dll -text
 /libecwj2.dll -text
 /libguide40.dll -text
+/libnetcdf.dll -text
 /libsift.dll -text
 /lti_dsdk_dll.dll -text
 mex/alloc_mex.c -text
