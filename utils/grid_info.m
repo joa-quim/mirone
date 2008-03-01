@@ -59,9 +59,9 @@ if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived 
 	else
 		w{11} = 'WARNING: GRID WAS NOT IN MEMORY SO SOME INFO MIGHT NO BE ENTIRELY CORRECT.';
 	end
-	if (info2(5))       % We have NaNs, report them also
-		w{12} = ['nodes set to NaN: ' num2str(info2(5))];
-	end
+% 	if (info2(5))       % We have NaNs, report them also (they aren't count anymory by grdutils)
+% 		w{12} = ['nodes set to NaN: ' num2str(info2(5))];
+% 	end
 	msgbox(w,'Grid Info');
 elseif (handles.computed_grid)  % Computed array
 	w{1} = '    INTERNALY COMPUTED GRID';   w{2} = ' ';
