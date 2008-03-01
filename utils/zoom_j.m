@@ -75,7 +75,7 @@ zoomCommand=lower(zoomCommand);
 if strcmp(zoomCommand,'off')
     % turn zoom off
     doZoomOff(fig);
-    scribefiglisten(fig,'off');
+    scribefiglisten_j(fig,'off');
     state = getappdata(fig,'ZOOMFigureState');
     if ~isempty(state)
         % since we didn't set the pointer, make sure it does not get reset
@@ -359,7 +359,7 @@ case 'on',
     % whether or not zoom is on and in what type of 'on' state
     % it is. This appdata will not exist when zoom is off
     setappdata(fig,'ZoomOnState','on');
-    scribefiglisten(fig,'on');
+    scribefiglisten_j(fig,'on');
     doZoomIn(fig)
 	if ( ~isempty(funHand) )					% If we have a function handle to execute later, save it now
 		hz = get(ax,'ZLabel');
