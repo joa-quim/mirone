@@ -1,11 +1,11 @@
 function  varargout = nc_funs(opt,varargin)
-	% This contains some of the MEXNC (John Evans) functions packed in a single file
-	% It is not the whole package. Just the functions we use in Mirone
-	% Data is returned on its native type. That is, it is not complient with the doubles tirany
-	% Except in the case of - ints and scale_factor ~= 1 OR have _FillValue and array data have _FillValue
-	% In that case we return the array variable as a single
-	% Its is also striped of the Java shit
-	% Joaquim Luis
+% This contains some of the MEXNC (John Evans) functions packed in a single file
+% It is not the whole package. Just the functions we use in Mirone
+% Data is returned on its native type. That is, it is not complient with the doubles tirany
+% Except in the case of - ints and scale_factor ~= 1 OR have _FillValue and array data have _FillValue
+% In that case we return the array variable as a single
+% Its is also striped of the Java shit
+% Joaquim Luis
 
 	switch opt
 		case 'getdiminfo'
@@ -797,9 +797,11 @@ else
 	num_atts = 0;
 end
 
-if (num_atts > 0),	str = sprintf('//global attributes:\n' );	end
-if (nargin == 2),	dump = [dump str];
-else				fprintf(1, str)
+if (num_atts > 0)
+	str = sprintf('//global attributes:\n' );
+	if (nargin == 2),	dump = [dump str];
+	else				fprintf(1, str)
+	end
 end
 
 for (k = 1:num_atts)
