@@ -58,6 +58,7 @@
  *	 
  *		04/06/06 J Luis, Updated to compile with version 4.1.3
  *		14/10/06 J Luis, Now includes the memory leak solving solution
+ *		03/03/08 J Luis, Adapted for 4.2.1
  */
 
 #include "gmt.h"
@@ -73,14 +74,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int i, j, nx, ny, n_read = 0, n_points = 0, one_or_zero;
 	int n_output = 0, n_fields, n_pts, ii, jj;
 	
-	BOOLEAN error = FALSE, bilinear = FALSE, suppress = FALSE, node = FALSE, z_only = FALSE;
+	BOOLEAN error = FALSE, suppress = FALSE, node = FALSE, z_only = FALSE;
 	BOOLEAN is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
 	BOOLEAN is_uint16 = FALSE, is_uint8 = FALSE;
 	
 	double value, west, east, south, north, threshold = 1.0, i_dx, i_dy, half, *in, *out;
 	float *f;
 
-	int	i2, argc = 0, nc_h, nr_h, mx, n_arg_no_char = 0, *i_4;
+	int	i2, argc = 0, nc_h, nr_h, mx, n_arg_no_char = 0, *i_4, interpolant = BCR_BICUBIC;
 	short int *i_2;
 	unsigned short int *ui_2;
 	char	**argv;
@@ -154,7 +155,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					node = TRUE;
 					break;
 				case 'Q':
-					bilinear = TRUE;
+					interpolant = BCR_BILINEAR;
 					threshold = (argv[i][2]) ? atof (&argv[i][2]) : 1.0;
 					break;
 				case 'S':
@@ -196,7 +197,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		return;
 	}
 
-	if (bilinear && (threshold <= 0.0 || threshold > 1.0)) {
+	if (threshold <= 0.0 || threshold > 1.0) {
 		mexPrintf ("%s: GMT SYNTAX ERROR -Q:  threshold must be in <0,1] range\n", "grdtrack");
 		error++;
 	}
@@ -322,7 +323,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	/* Initialize bcr structure:  */
 
-	GMT_bcr_init (&grd, GMT_pad, bilinear, threshold, &bcr);
+	/*GMT_bcr_init (&grd, GMT_pad, bilinear, threshold, &bcr);*/
+	GMT_bcr_init (&grd, GMT_pad, interpolant, threshold, &bcr);
 
 	/* Set boundary conditions  */
 	
