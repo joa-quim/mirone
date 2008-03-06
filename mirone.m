@@ -47,7 +47,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	%----- Those are ..., the hell with explanations for what I don't realy understand. They are needed, that's all.
 	%#function gmtlist_m country_select read_isf choosebox MagBarCode listbox_message add_poles animate_seismicity
 	%#function get_polygon rot_euler datums telha_m find_clusters fft_stuff select_cols uistack_j smoothing_param
-	%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j transform_fun iptchecknargin
+	%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j iptchecknargin
 	%#function load_defFilters mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line
 	%#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
 	%#function move2side aguentabar
