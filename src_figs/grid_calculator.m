@@ -226,7 +226,7 @@ function pushbutton_compute_Callback(hObject, eventdata, handles)
 	% Those start at 2 because they are meant to be used only when grid names apear repeatedly
 	in_g_count = 2;     out_g_count = 2;
 
-	com = move_operator(com);       % Make sure operators are not "glued" to operands
+	%com = move_operator(com);       % Make sure operators are not "glued" to operands (it currently screws names with '-' characters)
 	k = 0;      k = strfind(com,'&');
 
 	try                             % Wrap it here to report any possible error
