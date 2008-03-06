@@ -135,6 +135,7 @@ function coards_sliceShow(handles)
 		end
 
 		if ( get(handles.radio_shade, 'Val') )
+			indVar = 1;								% FAR FROM SURE THAT THIS IS CORRECT
 			img = ind2rgb8(img, handles.cmapLand);		% img is now RGB
 			head = handles.head;
 			if ( ~isempty(handles.ranges{indVar}) ),	head(5:6) = handles.ranges{indVar};		end
