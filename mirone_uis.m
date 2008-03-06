@@ -357,6 +357,7 @@ hVG(kv) = uimenu('Parent',h76,'Call','gmtedit','Label','gmtedit');	kv = kv + 1;
 uimenu('Parent',h76,'Call','rally_plater','Label','Rally Plater');
 uimenu('Parent',h76,'Label','entry_vtr','Sep','on');
 uimenu('Parent',h76,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
+uimenu('Parent',h76,'Call','zonal_integrator(guidata(gcbo))','Label','Zonal Integrator');
 uimenu('Parent',h76,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',h76,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
 % uimenu('Parent',h76,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
@@ -775,7 +776,7 @@ h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
 uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.2.3)');
 uimenu('Parent',h9, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 uimenu('Parent',h9,...
-'Call','about_box(guidata(gcbo),''Mirone Last modified at 21 February 2008'',''1.3.0b'')','Label','About','Sep','on');
+'Call','about_box(guidata(gcbo),''Mirone Last modified at 06 March 2008'',''1.3.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(h1);
