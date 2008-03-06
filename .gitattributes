@@ -392,6 +392,7 @@ utils/addframe_j.m -text
 utils/aguentabar.m -text
 utils/ancestor.m -text
 utils/applylutc.dll -text
+utils/aquaPlugin.m -text
 utils/aqua_suppfuns.m -text
 utils/area_geo.m -text
 utils/aux_funs.m -text
