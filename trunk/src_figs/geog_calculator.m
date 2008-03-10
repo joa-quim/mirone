@@ -913,7 +913,8 @@ function msg_err = transform_grid(handles)
 	set(handles.edit_xIncRight,'String',head(8))
 	set(handles.edit_yIncRight,'String',head(9))
 	setappdata(handles.figure1,'headProj',head)			% Store projected head for use in eventual new nRow|Cols
-%output.cmd = {opt_J; opt_R; opt_SF; opt_C; opt_A; opt_I};
+	comm = ['grdproject ' opt_J ' ' opt_R ' ' opt_SF ' ' opt_C ' ' opt_A ' ' opt_I];
+	set(handles.pushbutton_left2right,'TooltipString',comm)
 
 	set(handles.figure1,'pointer','arrow')
 	if (~handles.by_mirone2grid)
