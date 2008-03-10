@@ -346,7 +346,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		Z = single(Z);
 		handles.have_nans = 0;
 		if (~isempty(ind)),		Z(ind) = NaN;	handles.have_nans = 1;		end
-		Z(Z > 3) = 3;			% <==== CLIPING
+		Z(Z > 5) = 5;			% <==== CLIPING
 		zz = grdutils(Z,'-L');  handles.head(5:6) = [zz(1) zz(2)];
 
 		if (k == 1)
