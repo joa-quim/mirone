@@ -324,7 +324,11 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	% ----------------------------------------------------------------------------
 	
 	% --------------------- Fish the Global attributes ---------------------------
-	attribNames = {s.Attribute.Name};
+	if (~isempty(s.Attribute))
+		attribNames = {s.Attribute.Name};
+	else
+		attribNames = [];
+	end
 	ind = strcmp(attribNames,'node_offset');
 	if (any(ind)),	node_offset = s.Attribute(ind).Value;
 	else			node_offset = 0;				% Hmmm, ...
