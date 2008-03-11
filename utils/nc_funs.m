@@ -1852,16 +1852,16 @@ ncm = nc_info ( input_ncfiles{1} );
 mode = nc_clobber_mode;
 [ncid, status] = mexnc ( 'CREATE', output_ncfile, mode );
 if status ~= 0
-	snc_error ( 'SNCTOOLS:NC_CAT:CREATE', mexnc ( 'STRERROR', status ) );
+	snc_error ( 'NC_FUNS:NC_CAT:CREATE', mexnc ( 'STRERROR', status ) );
 end
 
 status = mexnc ( 'CLOSE', ncid );
 if status ~= 0
-	snc_error ( 'SNCTOOLS:NC_CAT:CLOSE', mexnc ( 'STRERROR', status ) );
+	snc_error ( 'NC_FUNS:NC_CAT:CLOSE', mexnc ( 'STRERROR', status ) );
 end
 
 % Add the dimensions.
-for d = 1:length(ncm.Dimension)
+for d = 1:numel(ncm.Dimension)
 	if ncm.Dimension(d).Unlimited
 		nc_add_dimension ( output_ncfile, ncm.Dimension(d).Name, 0 );
 	else
@@ -1870,7 +1870,7 @@ for d = 1:length(ncm.Dimension)
 end
 
 % Add the variables
-for v = 1:length(ncm.Dataset)
+for v = 1:numel(ncm.Dataset)
 	nc_addvar ( output_ncfile, ncm.Dataset(v) );
 
 	% If the variable is NOT unlimited, then we can copy over its data now
@@ -1878,6 +1878,11 @@ for v = 1:length(ncm.Dataset)
 		vardata = nc_varget ( input_ncfiles{1}, ncm.Dataset(v).Name );
 		nc_varput ( output_ncfile, ncm.Dataset(v).Name, vardata );
 	end
+end
+
+% Add the attributes
+for (j = 1:numel(ncm.Attribute))
+	nc_attput(output_ncfile, nc_global, ncm.Attribute(j).Name, ncm.Attribute(j).Value );
 end
 
 % Go thru and figure out how much data we are looking at, then pre-allocate for speed.
@@ -1893,7 +1898,7 @@ infile_abscissa_varindex = NaN*ones(total_length,1);
 
 % Now read in the abscissa variable for each file.
 start_index = 1;
-use_fake_time = false;
+use_fake_time = false;			% To signal when "time" var repeats between two contiguous files
 for j = 1:num_input_files
 	v = double(nc_varget ( input_ncfiles{j}, abscissa_var ));
 	if (j > 1 && v(1) == last_first_v)		% Poor patch for when the two contiguous files have the the same "time" origin
@@ -2036,7 +2041,7 @@ if isempty ( input_buffer ),	return,		end
 
 % Check that the record variable is present in the input buffer.
 if ~isfield ( input_buffer, record_variable )
-	snc_error ( 'SNCTOOLS:NC_ADDNEWRECS:missingRecordVariable', ...
+	snc_error ( 'NC_FUNS:NC_ADDNEWRECS:missingRecordVariable', ...
 	        'input structure is missing the record variable ''%s''.\n', record_variable );
 end
 
@@ -2205,14 +2210,14 @@ snc_nargchk(2,3,nargin);
 
 % Check that we were given good inputs.
 if ~isstruct ( new_data )
-	snc_error ( 'SNCTOOLS:NC_ADD_RECS:badStruct', '2nd input argument must be a structure .\n' );
+	snc_error ( 'NC_FUNS:NC_ADD_RECS:badStruct', '2nd input argument must be a structure .\n' );
 end
 
 % Check that each field of the structure has the same length.
 varnames = fieldnames ( new_data );
 num_fields = length(varnames);
 if ( num_fields <= 0 )
-	snc_error ( 'SNCTOOLS:NC_ADD_RECS:badRecord', 'data record cannot be empty' );
+	snc_error ( 'NC_FUNS:NC_ADD_RECS:badRecord', 'data record cannot be empty' );
 end
 field_length = zeros(num_fields,1);
 for j = 1:num_fields
@@ -2220,7 +2225,7 @@ for j = 1:num_fields
 	eval ( command );
 end
 if any(diff(field_length))
-	snc_error ( 'SNCTOOLS:NC_ADD_RECS:badFieldLengths', 'Some of the fields do not have the same length.\n' );
+	snc_error ( 'NC_FUNS:NC_ADD_RECS:badFieldLengths', 'Some of the fields do not have the same length.\n' );
 end
 
 % So we have this many records to write.
@@ -2269,7 +2274,7 @@ function varsize = get_all_varsizes ( ncfile, new_data,unlimited_dimension_dimid
 [ncid,status ]=mexnc( 'open', ncfile, nc_nowrite_mode );
 if status ~= 0
 	ncerr = mexnc ( 'strerror', status );
-	error_id = 'SNCTOOLS:NC_ADD_RECS:openFailed';
+	error_id = 'NC_FUNS:NC_ADD_RECS:openFailed';
 	snc_error ( error_id, ncerr );
 end
 
@@ -2283,14 +2288,14 @@ for j = 1:num_vars
 	if ( status ~= 0 )
 		mexnc('close',ncid);
 		ncerr = mexnc ( 'strerror', status );
-		snc_error ( 'SNCTOOLS:NC_ADD_RECS:inq_varidFailed', ncerr );
+		snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_varidFailed', ncerr );
 	end
 
 	[dimids, status] = mexnc('INQ_VARDIMID', ncid, varid);
 	if ( status ~= 0 )
 		mexnc('close',ncid);
 		ncerr = mexnc ( 'strerror', status );
-		snc_error ( 'SNCTOOLS:NC_ADD_RECS:inq_vardimidFailed', ncerr );
+		snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_vardimidFailed', ncerr );
 	end
 	ndims = length(dimids);
 	dimsize = zeros(ndims,1);
@@ -2299,7 +2304,7 @@ for j = 1:num_vars
 	if ~any(find(dimids==unlimited_dimension_dimid))
 		mexnc('close',ncid);
 		format = 'variable %s must be defined along unlimited dimension %s.\n';
-		snc_error ( 'SNCTOOLS:NC_ADD_RECS:missingUnlimitedDimension', ...
+		snc_error ( 'NC_FUNS:NC_ADD_RECS:missingUnlimitedDimension', ...
 		        format, input_variable{j}, unlimited_dimension_name );
 	end
 
@@ -2308,7 +2313,7 @@ for j = 1:num_vars
 		if ( status ~= 0 )
 			mexnc('close',ncid);
 			ncerr = mexnc ( 'strerror', status );
-			snc_error ( 'SNCTOOLS:NC_ADD_RECS:inq_dimlenFailed', ncerr );
+			snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_dimlenFailed', ncerr );
 		end
 		dimsize(k) = dim_length;
 	end
@@ -2318,7 +2323,7 @@ end
 status = mexnc('close',ncid);
 if status ~= 0 
 	ncerr = mexnc ( 'strerror', status );
-	snc_error ( 'SNCTOOLS:NC_ADD_RECS:closeFailed', ncerr );
+	snc_error ( 'NC_FUNS:NC_ADD_RECS:closeFailed', ncerr );
 end
 
 % =======================================================================
@@ -2328,7 +2333,7 @@ function [dimname, dimlen, dimid] = get_unlimdim_info ( ncfile, varargin )
 if status ~= 0
 	mexnc('close',ncid);
 	ncerr = mexnc ( 'strerror', status );
-	snc_error ( 'SNCTOOLS:NC_ADD_RECS:openFailed', ncerr );
+	snc_error ( 'NC_FUNS:NC_ADD_RECS:openFailed', ncerr );
 end
 
 % If we were not given the name of an unlimited dimension, get it now
@@ -2337,18 +2342,18 @@ if nargin < 2
 	if status ~= 0
 		mexnc('close',ncid);
 		ncerr = mexnc ( 'strerror', status );
-		snc_error ( 'SNCTOOLS:NC_ADD_RECS:inq_unlimdimFailed', ncerr );
+		snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_unlimdimFailed', ncerr );
 	end
 
 	[dimname, status] = mexnc ( 'INQ_DIMNAME', ncid, dimid );
 	if status ~= 0
 		mexnc('close',ncid);
 		ncerr = mexnc ( 'strerror', status );
-		snc_error ( 'SNCTOOLS:NC_ADD_RECS:inq_dimnameFailed', ncerr );
+		snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_dimnameFailed', ncerr );
 	end
 
 	if dimid == -1
-		error_id = 'SNCTOOLS:NC_ADD_RECS:noUnlimitedDimension';
+		error_id = 'NC_FUNS:NC_ADD_RECS:noUnlimitedDimension';
 		snc_error ( error_id, '%s is missing an unlimited dimension, %s requires it', ncfile, mfilename );
 	end
 
@@ -2358,8 +2363,8 @@ else
 	if status ~= 0
 		mexnc('close',ncid);
 		ncerr = mexnc ( 'strerror', status );
-		error_id = 'SNCTOOLS:NC_ADD_RECS:inq_dimidFailed';
-		snc_error ( 'SNCTOOLS:NC_ADD_RECS:OPEN', ncerr );
+		error_id = 'NC_FUNS:NC_ADD_RECS:inq_dimidFailed';
+		snc_error ( 'NC_FUNS:NC_ADD_RECS:OPEN', ncerr );
 	end
 	
 end
@@ -2368,13 +2373,13 @@ end
 if status ~= 0
 	mexnc('close',ncid);
 	ncerr = mexnc ( 'strerror', status );
-	snc_error ( 'SNCTOOLS:NC_ADD_RECS:inq_dimlenFailed', ncerr );
+	snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_dimlenFailed', ncerr );
 end
 
 status = mexnc('close',ncid);
 if status ~= 0 
 	ncerr = mexnc ( 'strerror', status );
-	snc_error ( 'SNCTOOLS:NC_ADD_RECS:closeFailed', ncerr );
+	snc_error ( 'NC_FUNS:NC_ADD_RECS:closeFailed', ncerr );
 end
 
 % --------------------------------------------------------------------
@@ -2425,7 +2430,7 @@ snc_nargoutchk(1,1,nargout);
 
 % check that the first argument is a char
 if ~ischar ( ncfile )
-   	snc_error (  'SNCTOOLS:NC_GETBUFFER:badInput', 'filename argument must be character.' );
+   	snc_error (  'NC_FUNS:NC_GETBUFFER:badInput', 'filename argument must be character.' );
 end
 
 [varlist,start,count] = parse_inputs_getbuf(varargin{:});
@@ -2443,7 +2448,7 @@ for j = 1:num_dims
 	end
 end
 if record_length < 0
-   	snc_error (  'SNCTOOLS:NC_GETBUFFER:noUnlimitedDimension', 'An unlimited dimension is required.');
+   	snc_error (  'NC_FUNS:NC_GETBUFFER:noUnlimitedDimension', 'An unlimited dimension is required.');
 end
 
 % figure out what the start and count really are.
@@ -2455,7 +2460,7 @@ if ~isempty(start) && ~isempty(count)
 		count = record_length - start;
 	end
 	if (start < 0) && (count < 0)
-   		snc_error (  'SNCTOOLS:NC_GETBUFFER:badIndexing', 'both start and count cannot be less than zero.');
+   		snc_error (  'NC_FUNS:NC_GETBUFFER:badIndexing', 'both start and count cannot be less than zero.');
 	end
 end
 
@@ -2490,26 +2495,26 @@ case 1
 	if iscell(varargin{1})
 		varlist = varargin{1};
 	else
-		snc_error ( 'SNCTOOLS:NC_GETBUFFER:badInput', '2nd of two input arguments must be a cell array.' );
+		snc_error ( 'NC_FUNS:NC_GETBUFFER:badInput', '2nd of two input arguments must be a cell array.' );
 	end
 case 2
 	if isnumeric(varargin{1}) && isnumeric(varargin{2})
 		start = varargin{1};
 		count = varargin{2};
 	else
-		snc_error ( 'SNCTOOLS:NC_GETBUFFER:badInput', '2nd and 3rd of three input arguments must be numeric.' );
+		snc_error ( 'NC_FUNS:NC_GETBUFFER:badInput', '2nd and 3rd of three input arguments must be numeric.' );
 	end
 case 3
 	if iscell(varargin{1})
 		varlist = varargin{1};
 	else
-		snc_error ( 'SNCTOOLS:NC_GETBUFFER:badInput', '2nd of four input arguments must be a cell array.' );
+		snc_error ( 'NC_FUNS:NC_GETBUFFER:badInput', '2nd of four input arguments must be a cell array.' );
 	end
 	if isnumeric(varargin{2}) && isnumeric(varargin{3})
 		start = varargin{2};
 		count = varargin{3};
 	else
-		snc_error ( 'SNCTOOLS:NC_GETBUFFER:badInput', '3rd and 4th of four input arguments must be numeric.' );
+		snc_error ( 'NC_FUNS:NC_GETBUFFER:badInput', '3rd and 4th of four input arguments must be numeric.' );
 	end
 end
 
@@ -2554,10 +2559,10 @@ snc_nargchk(2,2,nargin);
 snc_nargoutchk(1,1,nargout);
 
 if ~ischar(ncfile)
-	snc_error ( 'SNCTOOLS:NC_VARSIZE:badInputType', 'The input filename must be a string.' );
+	snc_error ( 'NC_FUNS:NC_VARSIZE:badInputType', 'The input filename must be a string.' );
 end
 if ~ischar(varname)
-	snc_error ( 'SNCTOOLS:NC_VARSIZE:badInputType', 'The input variable name must be a string.' );
+	snc_error ( 'NC_FUNS:NC_VARSIZE:badInputType', 'The input variable name must be a string.' );
 end
 
 v = nc_getvarinfo ( ncfile, varname );
