@@ -28,6 +28,8 @@ function  varargout = nc_funs(opt,varargin)
 			nc_varput(varargin{:})
 		case 'create_empty'
 			nc_create_empty(varargin{:})
+		case 'cat'
+			nc_cat(varargin{:})
 		case 'dump'
 			if (nargout),		varargout{1} = nc_dump(varargin{:});
 			else				nc_dump(varargin{:});
@@ -1157,9 +1159,9 @@ else
 
     % 2D and higher case.  These cases are easier.
     if ( ndims(data) ~= effective_nc_rank)
-        mexnc ( 'close', ncid );
-        efmt = 'Rank of input data (%d) does not work for netCDF variable %s.\n';
-        snc_error ( 'NC_FUNS:NC_VARPUT:badRank', sprintf(efmt, ndims(data), varname) );
+% 		mexnc ( 'close', ncid );
+% 		efmt = 'Rank of input data (%d) does not work for netCDF variable %s.\n';
+% 		snc_error ( 'NC_FUNS:NC_VARPUT:badRank', sprintf(efmt, ndims(data), varname) );
     end
 end
 
@@ -1542,9 +1544,8 @@ for j = 1:length(fnames)
 		% These are used to create the variable.  They are ok.
 		
 	case { 'Unlimited', 'Size', 'Rank' }
-		% These come from the output of nc_getvarinfo.  We don't 
-		% use them, but let's not give the user a warning about
-		% them either.
+		% These come from the output of nc_getvarinfo.  We don't use
+		% them, but let's not give the user a warning about	them either.
 
 	otherwise
 		fprintf ( 2, '%s:  unrecognized field name ''%s''.  Ignoring it...\n', mfilename, fname );
@@ -1771,6 +1772,802 @@ status = mexnc ( 'CLOSE', ncid );
 if ( status ~= 0 )
 	snc_error ( 'NC_FUNS:NC_CREATE:MEXNC:CLOSE', mexnc('STRERROR', status) );
 end
+
+% --------------------------------------------------------------------
+function nc_cat ( input_ncfiles, output_ncfile, abscissa_var )
+% NC_CAT_A:  concatentates a set of netcdf files into ascending order
+%
+% The concatenation is done only along unlimited variable, which by
+% definition have an unlimited dimension.  Variables which do NOT have
+% an unlimited dimension are copied over from the first of the input
+% netcdf input files.
+%
+% This m-file is not meant as a replacement for ncrcat or any of Charles
+% Zender's terrific NCO tools.  If you need NCO functionality, you should
+% get NCO tools from http://nco.sourceforge.net
+% 
+% USAGE:  nc_cat_a ( input_ncfiles, output_ncfile, abscissa_var )
+% 
+% PARAMETERS:
+%   Input:
+%       input_ncfiles:
+%           This can be either a cell array of netcdf files, or a text
+%           file with one netcdf file per line
+%       output_ncfile:
+%           This file will be generated from scratch.
+%       abscissa_var:
+%           Name of an unlimited variable.  Supposing we are dealing
+%           with time series, then a good candidate for this would
+%           be a variable called, oh, I don't know, maybe "time".  
+%   Output:
+%       None.  An exception is thrown in case of an error.
+%
+% The best way to explain this is with simple examples.  Suppose that
+% the abscissa_var is "time" and that the other netcdf variable is "tsq".
+% Suppose that the first netcdf file has files for "time" and "tsq" of
+%
+%      time: 0 2  4
+%      tsq:  0 4 16
+%
+% Suppose the 2nd netcdf file has values of
+%
+%      time:  4  6  8
+%      tsq:  18 36 64
+%
+% Note that the 2nd time series has a different value of "tsq" for the 
+% abscissa value of 4.
+%
+% Running nc_cat_asc will produce a single time series of
+% 
+%      time:  0   2   4   6   8
+%      tsq:   0   4  18  36  64
+%
+% In other words, the 2nd netcdf file's abscissa/ordinate values take
+% precedence.  So the order of your netcdf files matter, and the output
+% netcdf file will have unique abscissa values.
+
+snc_nargchk(3,3,nargin);
+snc_nargoutchk(0,0,nargout);
+
+% If the first input is of type char and is a file, then read it in.
+% At the end of this process, the list of netcdf files to be 
+% concatenated is in a cell array.
+if ischar(input_ncfiles) && exist(input_ncfiles,'file')
+	afid = fopen ( input_ncfiles, 'r' );
+	input_ncfiles = textscan ( afid, '%s' );
+elseif iscell ( input_ncfiles )
+	% Do nothing
+else
+	error ( 'first input must be either a text file or a cell array\n' );
+end
+
+num_input_files = length(input_ncfiles);
+
+% This is how close the abscissa variable values have to be before they
+% are considered to be the same value.
+tol = 10*eps;
+
+% Now construct the empty output netcdf file.
+ncm = nc_info ( input_ncfiles{1} );
+mode = nc_clobber_mode;
+[ncid, status] = mexnc ( 'CREATE', output_ncfile, mode );
+if status ~= 0
+	snc_error ( 'SNCTOOLS:NC_CAT:CREATE', mexnc ( 'STRERROR', status ) );
+end
+
+status = mexnc ( 'CLOSE', ncid );
+if status ~= 0
+	snc_error ( 'SNCTOOLS:NC_CAT:CLOSE', mexnc ( 'STRERROR', status ) );
+end
+
+% Add the dimensions.
+for d = 1:length(ncm.Dimension)
+	if ncm.Dimension(d).Unlimited
+		nc_add_dimension ( output_ncfile, ncm.Dimension(d).Name, 0 );
+	else
+		nc_add_dimension ( output_ncfile, ncm.Dimension(d).Name, ncm.Dimension(d).Length );
+	end
+end
+
+% Add the variables
+for v = 1:length(ncm.Dataset)
+	nc_addvar ( output_ncfile, ncm.Dataset(v) );
+
+	% If the variable is NOT unlimited, then we can copy over its data now
+	if ~ncm.Dataset(v).Unlimited
+		vardata = nc_varget ( input_ncfiles{1}, ncm.Dataset(v).Name );
+		nc_varput ( output_ncfile, ncm.Dataset(v).Name, vardata );
+	end
+end
+
+% Go thru and figure out how much data we are looking at, then pre-allocate for speed.
+total_length = 0;
+for (j = 1:num_input_files)
+	sz = nc_varsize ( input_ncfiles{j}, abscissa_var );
+	total_length = total_length + sz;
+end
+
+abscissa_vardata = NaN*ones(total_length,1);
+file_index = NaN*ones(total_length,1);
+infile_abscissa_varindex = NaN*ones(total_length,1);
+
+% Now read in the abscissa variable for each file.
+start_index = 1;
+use_fake_time = false;
+for j = 1:num_input_files
+	v = double(nc_varget ( input_ncfiles{j}, abscissa_var ));
+	if (j > 1 && v(1) == last_first_v)		% Poor patch for when the two contiguous files have the the same "time" origin
+		v = v + abscissa_vardata(inds(end)) + diff(abscissa_vardata(1:2));
+		use_fake_time = true;
+	end
+	nv = length(v);
+
+	end_index = start_index + nv - 1;
+	inds = start_index:end_index;
+	if (use_fake_time),		jump_index = inds(1);	end		% If not two input files result is unknown
+
+	abscissa_vardata(inds) = v;
+	file_index(inds) = j*ones(nv,1);
+	infile_abscissa_varindex(inds) = (0:nv-1)';
+	start_index = start_index + nv;
+	last_first_v = v(1);
+end
+
+% Sort the ascissa_vardata into ascending order.  
+[abscissa_vardata,I] = sort ( abscissa_vardata );
+file_index = file_index(I);
+infile_abscissa_varindex = infile_abscissa_varindex(I);
+
+% Are there any duplicates?
+ind = find ( diff(abscissa_vardata) < tol );
+if ~isempty(ind)
+	abscissa_vardata(ind) = [];
+	file_index(ind) = [];
+	infile_abscissa_varindex(ind) = [];
+end
+
+% So now go thru each record and append it to the output file and we are done.
+for j = 1:length(abscissa_vardata)
+	ncfile = input_ncfiles{file_index(j)};
+	start = infile_abscissa_varindex(j);
+	input_record = nc_getbuffer ( ncfile, start, 1 );
+	if (use_fake_time && j >= jump_index)			% PATCH for the case that the "time" variable repeats in the two files
+		input_record.(abscissa_var) = abscissa_vardata(j);
+	end
+	nc_addnewrecs ( output_ncfile, input_record, abscissa_var );
+end
+
+% --------------------------------------------------------------------
+function new_data = nc_addnewrecs ( ncfile, input_buffer, record_variable )
+% NC_ADDNEWRECS:  Tacks on new data from simple matlab structure to an unlimited-dimension netcdf file
+% 
+% The difference between this m-file and nc_add_recs is that this 
+% routine assumes that the unlimited dimension has a monotonically
+% increasing coordinate variable, e.g. time series.  This routine
+% actually calls nc_add_recs with suitable arguments.
+%
+% If the length of the record variable data that is to be appended is
+% just one, then a check is made for the rest of the incoming data to
+% make sure that they also have the proper rank.  This addresses the
+% issue of squeezed-out leading singleton dimensions.
+%
+% From this point foreward, assume we are talking about time series.
+% It doesn't have to be that way (the record variable could be 
+% monotonically increasing spatially instead ), but talking about it
+% in terms of time series is just easier.  If a field is present in 
+% the structure, but not in the netcdf file, then that field is 
+% ignored.  Only data that is more recent than the last record 
+% currently in the NetCDF file is written.   Older data is discarded.
+%
+% USAGE:  new_data = nc_addnewrecs ( ncfile, input_buffer, record_variable )
+% 
+% PARAMETERS:
+%   Input:
+%      ncfile:  
+%          netcdf file that we write information to
+%      input_buffer:  
+%          structure of time series data.  
+%      record_variable:
+%          Coordinate variable that is monotonically increasing.  
+%          In ROMS, it is "ocean_time".  For purposes of backwards
+%          compatibility, if this is not provided, it is assumed
+%          to be "time".
+%   Output:
+%      new_data:  
+%          Matlab structure of data corresponding in structure to "input_buffer", but
+%          consisting only of those records which were actually written to file.
+%  
+%   The dimensions of the data should match that of the target netcdf file.  For example, 
+%   suppose an ncdump of the
+%   NetCDF file looks something like
+%
+%       netcdf a_netcdf_file {
+%       dimensions:
+%       	lat = 1 ;
+%       	lon = 2 ;
+%       	depth = 2 ; 
+%       	time = UNLIMITED ; // (500 currently)
+%       variables:
+%       	double time(time) ;
+%       	float var1(time, depth) ;
+%       	float var2(time, depth, lat, lon) ;
+%       	float var3(time, depth, lat) ;
+%       
+%       // global attributes:
+%       }
+% 
+%   The "input_input_buffer" should look something like the following:
+%
+%       >> input_input_buffer
+%
+%       input_input_buffer =
+%
+%           time: [3x1 double]
+%           var1: [3x2 double]
+%           var2: [4-D double]
+%           var3: [3x2 double]
+%
+% The reason for the possible size discrepency here is that matlab will
+% ignore trailing singleton dimensions (but not interior ones, such as
+% that in var2.
+%
+% If a netcdf variable has no corresponding field in the input input_buffer,
+% then the corresponding NetCDF variable will populate with the appropriate
+% _FillValue for each new time step.
+%          
+% In case of an error, an exception is thrown.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% $Id: nc_addnewrecs.m 2178 2007-04-23 13:05:21Z johnevans007 $
+% $LastChangedDate: 2007-04-23 09:05:21 -0400 (Mon, 23 Apr 2007) $
+% $LastChangedRevision: 2178 $
+% $LastChangedBy: johnevans007 $
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+new_data = [];
+snc_nargchk(2,3,nargin);
+snc_nargoutchk(0,1,nargout);
+
+if nargin == 2
+	record_variable = 'time';
+end
+
+if isempty ( input_buffer ),	return,		end
+
+% Check that the record variable is present in the input buffer.
+if ~isfield ( input_buffer, record_variable )
+	snc_error ( 'SNCTOOLS:NC_ADDNEWRECS:missingRecordVariable', ...
+	        'input structure is missing the record variable ''%s''.\n', record_variable );
+end
+
+% check to see that all fields are actually there.
+nc = nc_info ( ncfile );
+num_nc_vars = length(nc.Dataset);
+
+
+fnames = fieldnames ( input_buffer );
+num_fields = length(fnames);
+for j = 1:num_fields
+	not_present = 1;
+	for k = 1:num_nc_vars
+		if strcmp(fnames{j}, nc.Dataset(k).Name)
+			not_present = 0;
+		end
+	end
+	if not_present
+		fprintf ( 1, '  %s not present in file %s.  Ignoring it...\n', fnames{j}, ncfile );
+		input_buffer = rmfield ( input_buffer, fnames{j} );
+	end
+end
+
+% If the length of the record variable data to be added is just one,
+% then we may have a special corner case.  The leading dimension might
+% have been squeezed out of the other variables.  MEXNC wants the rank
+% of the incoming data to match that of the infile variable.  We address 
+% this by forcing the leading dimension in these cases to be 1.
+input_buffer = force_leading_dimension ( ncfile, input_buffer, record_variable );
+
+% Retrieve the dimension id of the unlimited dimension upon which
+% all depends.  It must be the first dimension listed.
+varinfo = nc_getvarinfo ( ncfile, record_variable );
+unlimited_dimension_name = varinfo.Dimension{1};
+
+% Get the last time value.   If the record variable is empty, then
+% only take datums that are more recent than the latest old datum
+input_buffer_time_values = input_buffer.(record_variable);
+if varinfo.Size > 0
+	last_time = nc_getlast ( ncfile, record_variable, 1 );
+    recent_inds = find( input_buffer_time_values > last_time );
+else
+    recent_inds = 1:length(input_buffer_time_values);
+end
+
+% if no data is new enough, just return.  There's nothing to do.
+if isempty(recent_inds),	return,		end
+
+% Go thru each variable.  Restrict to what's new.
+varnames = fieldnames ( input_buffer );
+for j = 1:numel(varnames)
+	data = input_buffer.(varnames{j});
+	current_varsize = size(data);
+	new_output_size = [length(recent_inds) current_varsize(2:end)];
+	restricted_data = data(recent_inds,:);
+	restricted_data = reshape ( restricted_data, new_output_size );
+	input_buffer.(varnames{j}) = restricted_data;
+end
+
+% Write the records out to file.
+nc_add_recs ( ncfile, input_buffer, unlimited_dimension_name );
+
+new_data = input_buffer;
+
+%==============================================================================
+function input_buffer = force_leading_dimension ( ncfile, input_buffer, record_variable )
+
+varnames = fieldnames ( input_buffer );
+num_vars = length(varnames);
+if length(input_buffer.(record_variable)) == 1 
+	for j = 1:num_vars
+		% Skip the record variable, it's irrelevant at this stage.
+		if strcmp ( varnames{j}, record_variable ),		continue,	end
+
+		infile_vsize = nc_varsize(ncfile, varnames{j} );
+
+		% Disregard any trailing singleton dimensions.
+		effective_nc_rank = calculate_effective_nc_rank(infile_vsize);
+
+		% The input data has to have at least 2 as a rank.
+		mlrank = calculate_mlrank ( input_buffer, varnames, j );
+
+		if (effective_nc_rank == mlrank)
+			% Do nothing.  The data is fine in this case.
+			% This would be an example of a 1D variable, where we
+			% are tacking on a single value. Or it is the case of a row vector.
+
+		elseif ( effective_nc_rank == mlrank+1 )
+			% In this case, the infile definition is, e.g.,
+			% 10x5x5, or in other words, has rank 3.
+			% But the incoming data is just a single timestep,
+			% e.g. 5x5.  So we change it into a 1x5x5.
+			clear tmp;
+			tmp(1,:,:) = input_buffer.(varnames{j});
+			input_buffer.(varnames{j}) = tmp;
+
+		end
+	end
+end
+
+%==============================================================================
+function effective_nc_rank = calculate_effective_nc_rank(infile_vsize)
+
+	n = length(infile_vsize);
+
+	% Trim any trailing singleton dimensions. Do this by zeroing them out.
+	for k = n:-1:ceil(n/2)
+		if (infile_vsize(k) ~= 1),		break,		end
+		infile_vsize(k) = 0;
+	end
+
+	% Don't get fooled if there is no data in the file.
+	if ( infile_vsize(1) == 0 )
+		infile_vsize(1) = -1;
+	end
+	effective_nc_rank = numel(find(infile_vsize));
+
+%==============================================================================
+function mlrank = calculate_mlrank ( input_buffer, varnames, j )
+% If the rank of the file variable and the data is different,  then we assume two
+% conditions have to hold before we augment the data with a leading singleton dimension.
+% The extent of the incoming data must not be one, and the length of the size of the
+% incoming data must not match up with the length of the size of the file variable.
+	if ndims(input_buffer.(varnames{j})) == 2
+		sz = size(input_buffer.(varnames{j}));
+		if (sz(1) == 1) && (sz(2) == 1)
+			mlrank = 1;
+		else
+			mlrank = 2;
+		end
+	else
+		mlrank = length(size(input_buffer.(varnames{j})));
+	end
+
+% --------------------------------------------------------------------
+function nc_add_recs ( ncfile, new_data, varargin )
+% NC_ADD_RECS:  add records onto the end of a netcdf file
+%
+% USAGE:  nc_add_recs ( ncfile, new_data, unlimited_dimension );
+% 
+% INPUT:
+%   ncfile:  netcdf file
+%   new_data:  Matlab structure.  Each field is a data array
+%      to be written to the netcdf file.  Each array had
+%      better be the same length.  All arrays are written
+%      in the same fashion.
+%   unlimited_dimension:
+%      Optional.  Name of the unlimited dimension along which the data 
+%      is written.  If not provided, we query for the first unlimited 
+%      dimension (looking ahead to HDF5/NetCDF4).
+%     
+% OUTPUT:
+%   None.  In case of an error, an exception is thrown.
+%
+% AUTHOR: 
+%   johnevans@acm.org
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% $Id: nc_add_recs.m 2309 2007-08-31 20:30:56Z johnevans007 $
+% $LastChangedDate: 2007-08-31 16:30:56 -0400 (Fri, 31 Aug 2007) $
+% $LastChangedRevision: 2309 $
+% $LastChangedBy: johnevans007 $
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+snc_nargchk(2,3,nargin);
+
+% Check that we were given good inputs.
+if ~isstruct ( new_data )
+	snc_error ( 'SNCTOOLS:NC_ADD_RECS:badStruct', '2nd input argument must be a structure .\n' );
+end
+
+% Check that each field of the structure has the same length.
+varnames = fieldnames ( new_data );
+num_fields = length(varnames);
+if ( num_fields <= 0 )
+	snc_error ( 'SNCTOOLS:NC_ADD_RECS:badRecord', 'data record cannot be empty' );
+end
+field_length = zeros(num_fields,1);
+for j = 1:num_fields
+	command = sprintf ( 'field_length(j) = size(new_data.%s,1);', varnames{j} );
+	eval ( command );
+end
+if any(diff(field_length))
+	snc_error ( 'SNCTOOLS:NC_ADD_RECS:badFieldLengths', 'Some of the fields do not have the same length.\n' );
+end
+
+% So we have this many records to write.
+record_count(1) = field_length(1);
+
+
+[unlim_dimname, unlim_dimlen, unlim_dimid] = get_unlimdim_info ( ncfile, varargin{:} );
+
+varsize = get_all_varsizes ( ncfile, new_data, unlim_dimid );
+
+% So we start writing here.
+record_corner(1) = unlim_dimlen;
+
+% write out each data field, as well as the minimum and maximum
+input_variable = fieldnames ( new_data );
+num_vars = length(input_variable);
+for i = 1:num_vars
+
+	current_var = input_variable{i};
+	%fprintf ( 1, '%s:  processing %s...\n', mfilename, current_var );
+
+	current_var_data = new_data.(current_var);
+	var_buffer_size = size(current_var_data);
+
+	netcdf_var_size = varsize.(current_var);
+
+	corner = zeros( 1, length(netcdf_var_size) );
+	count = ones( 1, length(netcdf_var_size) );
+
+	corner(1) = record_corner(1);
+	count(1) = record_count(1);
+	
+	for j = 2:numel(var_buffer_size)
+		if ( var_buffer_size(j) > 1 )
+			count(j) = var_buffer_size(j);
+		end
+	end
+
+	% Ok, we are finally ready to write some data.
+	nc_varput ( ncfile, current_var, current_var_data, corner, count );
+end
+
+% ===============================================================================
+function varsize = get_all_varsizes ( ncfile, new_data,unlimited_dimension_dimid )
+
+[ncid,status ]=mexnc( 'open', ncfile, nc_nowrite_mode );
+if status ~= 0
+	ncerr = mexnc ( 'strerror', status );
+	error_id = 'SNCTOOLS:NC_ADD_RECS:openFailed';
+	snc_error ( error_id, ncerr );
+end
+
+% For each field of "new_data" buffer, inquire as to the dimensions in the
+% NetCDF file.  We need this data to properly tell nc_varput how to write the data
+input_variable = fieldnames ( new_data );
+num_vars = length(input_variable);
+varsize = [];
+for j = 1:num_vars
+	[varid, status] = mexnc('INQ_VARID', ncid, input_variable{j} );
+	if ( status ~= 0 )
+		mexnc('close',ncid);
+		ncerr = mexnc ( 'strerror', status );
+		snc_error ( 'SNCTOOLS:NC_ADD_RECS:inq_varidFailed', ncerr );
+	end
+
+	[dimids, status] = mexnc('INQ_VARDIMID', ncid, varid);
+	if ( status ~= 0 )
+		mexnc('close',ncid);
+		ncerr = mexnc ( 'strerror', status );
+		snc_error ( 'SNCTOOLS:NC_ADD_RECS:inq_vardimidFailed', ncerr );
+	end
+	ndims = length(dimids);
+	dimsize = zeros(ndims,1);
+
+	% make sure that this variable is defined along the unlimited dimension.
+	if ~any(find(dimids==unlimited_dimension_dimid))
+		mexnc('close',ncid);
+		format = 'variable %s must be defined along unlimited dimension %s.\n';
+		snc_error ( 'SNCTOOLS:NC_ADD_RECS:missingUnlimitedDimension', ...
+		        format, input_variable{j}, unlimited_dimension_name );
+	end
+
+	for k = 1:ndims
+		[dim_length, status] = mexnc('INQ_DIMLEN', ncid, dimids(k) );
+		if ( status ~= 0 )
+			mexnc('close',ncid);
+			ncerr = mexnc ( 'strerror', status );
+			snc_error ( 'SNCTOOLS:NC_ADD_RECS:inq_dimlenFailed', ncerr );
+		end
+		dimsize(k) = dim_length;
+	end
+	varsize.(input_variable{j}) = dimsize;
+end
+
+status = mexnc('close',ncid);
+if status ~= 0 
+	ncerr = mexnc ( 'strerror', status );
+	snc_error ( 'SNCTOOLS:NC_ADD_RECS:closeFailed', ncerr );
+end
+
+% =======================================================================
+function [dimname, dimlen, dimid] = get_unlimdim_info ( ncfile, varargin )
+
+[ncid,status ]=mexnc( 'open', ncfile, nc_nowrite_mode );
+if status ~= 0
+	mexnc('close',ncid);
+	ncerr = mexnc ( 'strerror', status );
+	snc_error ( 'SNCTOOLS:NC_ADD_RECS:openFailed', ncerr );
+end
+
+% If we were not given the name of an unlimited dimension, get it now
+if nargin < 2
+	[dimid, status] = mexnc ( 'inq_unlimdim', ncid );
+	if status ~= 0
+		mexnc('close',ncid);
+		ncerr = mexnc ( 'strerror', status );
+		snc_error ( 'SNCTOOLS:NC_ADD_RECS:inq_unlimdimFailed', ncerr );
+	end
+
+	[dimname, status] = mexnc ( 'INQ_DIMNAME', ncid, dimid );
+	if status ~= 0
+		mexnc('close',ncid);
+		ncerr = mexnc ( 'strerror', status );
+		snc_error ( 'SNCTOOLS:NC_ADD_RECS:inq_dimnameFailed', ncerr );
+	end
+
+	if dimid == -1
+		error_id = 'SNCTOOLS:NC_ADD_RECS:noUnlimitedDimension';
+		snc_error ( error_id, '%s is missing an unlimited dimension, %s requires it', ncfile, mfilename );
+	end
+
+else
+	dimname = varargin{1};
+	[dimid, status] = mexnc ( 'inq_dimid', ncid, dimname );
+	if status ~= 0
+		mexnc('close',ncid);
+		ncerr = mexnc ( 'strerror', status );
+		error_id = 'SNCTOOLS:NC_ADD_RECS:inq_dimidFailed';
+		snc_error ( 'SNCTOOLS:NC_ADD_RECS:OPEN', ncerr );
+	end
+	
+end
+	
+[dimlen, status] = mexnc ( 'INQ_DIMLEN', ncid, dimid );
+if status ~= 0
+	mexnc('close',ncid);
+	ncerr = mexnc ( 'strerror', status );
+	snc_error ( 'SNCTOOLS:NC_ADD_RECS:inq_dimlenFailed', ncerr );
+end
+
+status = mexnc('close',ncid);
+if status ~= 0 
+	ncerr = mexnc ( 'strerror', status );
+	snc_error ( 'SNCTOOLS:NC_ADD_RECS:closeFailed', ncerr );
+end
+
+% --------------------------------------------------------------------
+function theBuffer = nc_getbuffer ( ncfile, varargin )
+% NC_GETBUFFER:  read the unlimited variables of a netcdf file into a structure
+%
+% USAGE:  theBuffer = nc_getbuffer ( ncfile );
+% USAGE:  theBuffer = nc_getbuffer ( ncfile, varlist );
+% USAGE:  theBuffer = nc_getbuffer ( ncfile, start, count );
+% USAGE:  theBuffer = nc_getbuffer ( ncfile, varlist, start, count );
+%
+% PARAMETERS:
+% INPUT:
+%     ncfile:  
+%        Input netcdf file name.
+%     varlist:
+%        cell array of named variables.  Only data for these variables 
+%        will be retrieved from the file
+%     start, count:
+%        starting index and number of records to retrieve.  This is 
+%        optional.  If not provided, all of the record variables will
+%        be retrieved.
+%        
+%        If start is negative, then the last few records (total of
+%        "count") are retrieved.
+%
+%        If count is negative, then everything beginning at "start" 
+%        and going all the way to the end is retrieved.
+% 
+% OUTPUT:
+%     theBuffer:
+%        Structure with fields corresponding to each netcdf record variable.  
+%        Each such field contains the data for that variable.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% $Id: nc_getbuffer.m 2315 2007-09-03 16:07:33Z johnevans007 $
+% $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
+% $LastChangedRevision: 2315 $
+% $LastChangedBy: johnevans007 $
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% assume failure until success is known
+theBuffer = [];
+
+snc_nargchk(1,4,nargin);
+snc_nargoutchk(1,1,nargout);
+
+% check that the first argument is a char
+if ~ischar ( ncfile )
+   	snc_error (  'SNCTOOLS:NC_GETBUFFER:badInput', 'filename argument must be character.' );
+end
+
+[varlist,start,count] = parse_inputs_getbuf(varargin{:});
+metadata = nc_info ( ncfile );
+num_datasets = length(metadata.Dataset);
+skip_this_variable = construct_skip_list(varlist,metadata);
+
+%
+% Find the unlimited dimension and it's length
+record_length = -1;
+num_dims = length(metadata.Dimension);
+for j = 1:num_dims
+	if metadata.Dimension(j).Unlimited
+		record_length = metadata.Dimension(j).Length;
+	end
+end
+if record_length < 0
+   	snc_error (  'SNCTOOLS:NC_GETBUFFER:noUnlimitedDimension', 'An unlimited dimension is required.');
+end
+
+% figure out what the start and count really are.
+if ~isempty(start) && ~isempty(count)
+	if start < 0
+		start = record_length - count;
+	end
+	if count < 0
+		count = record_length - start;
+	end
+	if (start < 0) && (count < 0)
+   		snc_error (  'SNCTOOLS:NC_GETBUFFER:badIndexing', 'both start and count cannot be less than zero.');
+	end
+end
+
+for (j = 1:num_datasets)
+	% Did we restrict retrieval to a few variables?
+	if (~isempty(varlist) && skip_this_variable(j)),	continue,		end
+
+	% If it is not an unlimited variable, we don't want it.
+	if (~metadata.Dataset(j).Unlimited),	continue,	end
+
+	if ~isempty(start) && ~isempty(count) 
+		varstart = zeros(size(metadata.Dataset(j).Size));
+		varstart(1) = start;
+		varcount = metadata.Dataset(j).Size;
+		varcount(1) = count;
+		vardata = nc_varget ( ncfile, metadata.Dataset(j).Name, varstart, varcount );
+	else
+		vardata = nc_varget ( ncfile, metadata.Dataset(j).Name );
+	end
+
+	theBuffer.(metadata.Dataset(j).Name) = vardata;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [varlist, start, count] = parse_inputs_getbuf( varargin )
+
+varlist = {};	start = [];		count = [];
+
+% figure out what the inputs actually were
+switch nargin
+case 1
+	if iscell(varargin{1})
+		varlist = varargin{1};
+	else
+		snc_error ( 'SNCTOOLS:NC_GETBUFFER:badInput', '2nd of two input arguments must be a cell array.' );
+	end
+case 2
+	if isnumeric(varargin{1}) && isnumeric(varargin{2})
+		start = varargin{1};
+		count = varargin{2};
+	else
+		snc_error ( 'SNCTOOLS:NC_GETBUFFER:badInput', '2nd and 3rd of three input arguments must be numeric.' );
+	end
+case 3
+	if iscell(varargin{1})
+		varlist = varargin{1};
+	else
+		snc_error ( 'SNCTOOLS:NC_GETBUFFER:badInput', '2nd of four input arguments must be a cell array.' );
+	end
+	if isnumeric(varargin{2}) && isnumeric(varargin{3})
+		start = varargin{2};
+		count = varargin{3};
+	else
+		snc_error ( 'SNCTOOLS:NC_GETBUFFER:badInput', '3rd and 4th of four input arguments must be numeric.' );
+	end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function skip_it = construct_skip_list(varlist,metadata)
+
+num_datasets = length(metadata.Dataset);
+if ~isempty(varlist) 
+	skip_it = ones(num_datasets,1);
+	% Go thru and quickly set up a flag for each Dataset
+	for j = 1:num_datasets
+		for k = 1:length(varlist)
+			if strcmp(varlist{k}, metadata.Dataset(j).Name)
+				skip_it(j) = 0;
+			end
+		end
+	end
+else
+	skip_it = zeros(num_datasets,1);
+end
+
+retrievable_datasets = find(1 - skip_it);
+if ~any(retrievable_datasets)
+	error ( 'No datasets found.\n' );
+end
+
+% -------------------------------------------------------------------
+function varsize = nc_varsize(ncfile, varname)
+% NC_VARSIZE:  return the size of the requested netncfile variable
+%
+% VARSIZE = NC_VARSIZE(NCFILE,NCVAR) returns the size of the netCDF variable 
+% NCVAR in the netCDF file NCFILE.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% $Id: nc_varsize.m 2315 2007-09-03 16:07:33Z johnevans007 $
+% $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
+% $LastChangedRevision: 2315 $
+% $LastChangedBy: johnevans007 $
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+snc_nargchk(2,2,nargin);
+snc_nargoutchk(1,1,nargout);
+
+if ~ischar(ncfile)
+	snc_error ( 'SNCTOOLS:NC_VARSIZE:badInputType', 'The input filename must be a string.' );
+end
+if ~ischar(varname)
+	snc_error ( 'SNCTOOLS:NC_VARSIZE:badInputType', 'The input variable name must be a string.' );
+end
+
+v = nc_getvarinfo ( ncfile, varname );
+varsize = v.Size;
+
+
+
+
+
+
 
 
 
