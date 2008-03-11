@@ -46,6 +46,7 @@
  *		14/10/06 J Luis, Now includes the memory leak solving solution
  *		02/07/07 J Luis, Fixed Bug on the "head[3]" return value
  *		21/02/08 J Luis, Patched version to compile with 4.1.2
+ *		11/03/08 J Luis, Memory leak protection seams to make it hang on second call
  */
 
 #include "gmt.h"
@@ -99,12 +100,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char-1]);
 	}
 	
-	if (!GMTisLoaded) {
+	/*if (!GMTisLoaded) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
 	else
-		argc = GMT_short_begin (argc, argv);
+		argc = GMT_short_begin (argc, argv);*/
+	argc = GMT_begin (argc, argv);
 	
 	w = e = s = n = 0.0;
 	nx = ny = 0;
