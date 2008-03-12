@@ -26,6 +26,7 @@ function varargout = grdtrend_Mir(varargin)
 	if ~isempty(varargin)
 		handMir  = varargin{1};
 		handles.Z = getappdata(handMir.figure1,'dem_z');
+		handles.have_nans = handMir.have_nans;
 	else
         errordlg('GRDTREND: wrong number of arguments.','Error')
         delete(hObject);    return
@@ -123,10 +124,13 @@ function pushbutton_OK_Callback(hObject, handles)
 	% See what to compute
 	if (get(handles.radiobutton_trend,'Value'))
         opt_what = '-T';
+		tmp.name = 'Trend grid';
 	elseif (get(handles.radiobutton_residuals,'Value'))
         opt_what = '-D';
+		tmp.name = 'Residuals grid';
 	elseif (get(handles.radiobutton_weights,'Value'))
         opt_what = '-W';
+		tmp.name = 'Weights grid';
 	else
         errordlg('Nothing selected in "What to compute"','Error');  return
 	end
@@ -155,12 +159,14 @@ function pushbutton_OK_Callback(hObject, handles)
 
 	set(handles.figure1,'pointer','watch');     set(handles.hMirFig,'pointer','watch')
 	newZ = grdtrend_m(handles.Z,handles.head,opt_what,opt_N);
+	if (handles.have_nans && opt_what(2) == 'T' && get(handles.check_NaNs, 'Val'))
+		newZ(isnan(handles.Z)) = nan;		% Reset the NaNs where they belong
+	end
 	zz = grdutils(newZ,'-L');       handles.head(5:6) = zz(1:2);
 	set(handles.figure1,'pointer','arrow');     set(handles.hMirFig,'pointer','arrow')
 	tmp.X = linspace(handles.head(1),handles.head(2),size(handles.Z,2));
 	tmp.Y = linspace(handles.head(3),handles.head(4),size(handles.Z,1));
 	tmp.head = handles.head;
-	tmp.name = 'Resampled grid';
 	mirone(newZ,tmp);
 	figure(handles.figure1)         % Don't let this figure forgotten behind the newly created one
 
@@ -248,6 +254,14 @@ uicontrol('Parent',h1,...
 'String','Number of model parameters',...
 'Style','text',...
 'Tag','text1');
+
+uicontrol('Parent',h1,...
+'Position',[67 2 85 15],...
+'String','Protect NaNs',...
+'Style','checkbox',...
+'TooltipString','If checked put the NaNs back on the trend surface',...
+'Value',1,...
+'Tag','check_NaNs');
 
 uicontrol('Parent',h1,...
 'Callback',{@grdtrend_Mir_uicallback,h1,'pushbutton_cancel_Callback'},...
