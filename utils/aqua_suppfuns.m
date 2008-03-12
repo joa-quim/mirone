@@ -55,11 +55,11 @@ function init_header_params(handles,X,Y,head,misc)
 		end
 	end
 	handles.zMinMaxsGlobal = [min(handles.zMinMaxs(:,1)) max(handles.zMinMaxs(:,2))];
-	if (handles.number_of_timesteps > 1)
-		set(handles.edit_globalWaterMin,'String',handles.zMinMaxsGlobal(1))
-		set(handles.edit_globalWaterMax,'String',handles.zMinMaxsGlobal(2))
-	end
-	head(5:6) = handles.zMinMaxs(1,:);
+	set(handles.edit_globalWaterMin,'String',handles.zMinMaxsGlobal(1))
+	set(handles.edit_globalWaterMax,'String',handles.zMinMaxsGlobal(2))
+	handles.minWater = handles.zMinMaxsGlobal(1);
+	handles.maxWater = handles.zMinMaxsGlobal(2);
+	head(5:6) = handles.zMinMaxs(1,:);				% Take the first slice min/max
 	% ---------------------------------------------------------------------------------
 	
 	handles.cmapLand = jet(256);			% Reset the default colormap (default's Aquamoto is a specific one)
