@@ -53,6 +53,7 @@ function varargout = aquamoto(varargin)
 	handles.geog = 0;			% For the time being ANUGA no geoga
 	handles.is_sww = false;		% It will be true if a SWW file is loaded
 	handles.is_coards = false;
+	handles.minWater = [];		% Used when "scale to global min/max". If empty on call, it will be computed than
 	handles.plotVector = false;	% Use to know if plot arrows
 	handles.vecScale = 1;		% To scale eventual vector plots
 	handles.vecSpacing = 10;	% If vector plot, plot every this interval
@@ -338,6 +339,7 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 		[X,Y,Z,head,misc] = nc_io(handles.fname,'R');
 		if (numel(head) == 9 && isfield(misc,'z_id'))			% INTERCEPT POINT FOR PLAIN COARDS NETCDF FILES
 			handles.nc_info = s;		% Save the nc file info
+			set(handles.check_splitDryWet,'Val',0)
 			aqua_suppfuns('coards_hdr',handles,X,Y,head,misc)
 			return
 		end
@@ -457,10 +459,7 @@ function check_splitDryWet_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function check_globalMinMax_Callback(hObject, eventdata, handles)
-	if ( ~isempty(handles.nameList) )
-		set(hObject,'Val', 1)
-		warndlg('The "Time Grids" option always use Dry/Wet spliting.','Warning')
-	end
+% Do Nothing
 
 % -----------------------------------------------------------------------------------------
 function push_showSlice_Callback(hObject, eventdata, handles)
@@ -1589,6 +1588,9 @@ function slider_transparency_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function [minWater, maxWater, heads] = push_checkGlobalMM_Callback(hObject, eventdata, handles)
+	if (numel(handles.nameList) == 0)		% netCDF files don't use this mechanism
+		set(hObject,'Visible','off'),	return
+	end
 	[minWater, maxWater, heads] = get_globalMinMax(handles);
 	set(handles.edit_globalWaterMin,'String',sprintf('%.2f',minWater))
 	set(handles.edit_globalWaterMax,'String',sprintf('%.2f',maxWater))
