@@ -11,7 +11,7 @@ function aquaPlugin(handles)
 		return
 	end
 
-	qual = 'zonal';
+	qual = 'tvar';
 	do_return = true;
 	switch qual
 		case 'zonal'
