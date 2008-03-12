@@ -45,6 +45,7 @@ function init_header_params(handles,X,Y,head,misc)
 
 	% ------ Compute individual and global min/maxs ----------------------------------
 	handles.zMinMaxs = zeros(handles.number_of_timesteps,2);
+	aguentabar(0,'title','Computing global min/max')
 	for (k = 1:handles.number_of_timesteps)
 		Z = nc_funs('varget', handles.fname, s.Dataset(misc.z_id).Name, [(k-1) 0 0], [1 s.Dataset(misc.z_id).Size(end-1:end)]);
 		if ( isa(Z, 'double') )
@@ -53,6 +54,7 @@ function init_header_params(handles,X,Y,head,misc)
 			zz = grdutils(Z,'-L');
 			handles.zMinMaxs(k,:) = [zz(1) zz(2)];
 		end
+		aguentabar(k/handles.number_of_timesteps);
 	end
 	handles.zMinMaxsGlobal = [min(handles.zMinMaxs(:,1)) max(handles.zMinMaxs(:,2))];
 	set(handles.edit_globalWaterMin,'String',handles.zMinMaxsGlobal(1))
@@ -61,7 +63,7 @@ function init_header_params(handles,X,Y,head,misc)
 	handles.maxWater = handles.zMinMaxsGlobal(2);
 	head(5:6) = handles.zMinMaxs(1,:);				% Take the first slice min/max
 	% ---------------------------------------------------------------------------------
-	
+
 	handles.cmapLand = jet(256);			% Reset the default colormap (default's Aquamoto is a specific one)
 
 	handles.head = head;
