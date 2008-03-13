@@ -385,7 +385,15 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 		integDim = 1;
 	end
 
-	if ( strncmp(att.DriverShortName, 'HDF4', 4) && ~isempty(att.Metadata) && strfind(att.Metadata{2}, 'MODIS') )
+	if (~isempty(strfind(att.Metadata{2}, 'MODIS')) && strfind(att.Metadata{2}, 'MODIS'))
+		modis_or_seawifs = true;
+	elseif (~isempty(strfind(att.Metadata{2}, 'SeaWiFS')) && strfind(att.Metadata{2}, 'SeaWiFS'))
+		modis_or_seawifs = true;
+	else
+		modis_or_seawifs = false;
+	end
+		
+	if ( strncmp(att.DriverShortName, 'HDF4', 4) && ~isempty(att.Metadata) && modis_or_seawifs )
 		y_max = str2double(att.Metadata{39}(23:end));		% att.Metadata{39} -> Northernmost Latitude=90
 		y_min = str2double(att.Metadata{40}(23:end));		% att.Metadata{40} -> Southernmost Latitude=90
 		x_min = str2double(att.Metadata{41}(23:end));		% att.Metadata{41} -> Westernmost Longitude=-180
