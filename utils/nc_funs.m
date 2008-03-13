@@ -1902,7 +1902,7 @@ use_fake_time = false;			% To signal when "time" var repeats between two contigu
 for j = 1:num_input_files
 	v = double(nc_varget ( input_ncfiles{j}, abscissa_var ));
 	if (j > 1 && v(1) == last_first_v)		% Poor patch for when the two contiguous files have the the same "time" origin
-		v = v + abscissa_vardata(inds(end)) + diff(abscissa_vardata(1:2));
+		v = v + abscissa_vardata(end_index) + diff(abscissa_vardata(1:2));
 		use_fake_time = true;
 	end
 	nv = length(v);
@@ -2363,7 +2363,6 @@ else
 	if status ~= 0
 		mexnc('close',ncid);
 		ncerr = mexnc ( 'strerror', status );
-		error_id = 'NC_FUNS:NC_ADD_RECS:inq_dimidFailed';
 		snc_error ( 'NC_FUNS:NC_ADD_RECS:OPEN', ncerr );
 	end
 	
