@@ -35,10 +35,11 @@ function init_header_params(handles,X,Y,head,misc)
 		else
 			handles.time = [1:handles.number_of_timesteps];
 		end
+		slMax = handles.number_of_timesteps;
 	else
-		st = [1 1];		handles.time = 1;		% Defaults for no crashing
+		slMax = 1+eps;	st = [1 1];		handles.time = 1;		% Defaults for no crashing
 	end
-	set(handles.slider_layer,'Min',1,'Max',handles.number_of_timesteps,'Val',1,'SliderStep',st) 	
+	set(handles.slider_layer,'Min',1,'Max',slMax,'Val',1,'SliderStep',st) 	
 	set(handles.slider_layer,'Enable','on')
 	set(handles.edit_sliceNumber,'Enable','on')
 	set(handles.text_Info,'String',sprintf('Time steps = %d',handles.number_of_timesteps))
