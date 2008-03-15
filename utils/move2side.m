@@ -40,6 +40,7 @@ function move2side(hFigStatic, hFigMov, opt)
 	
 	% Get figures dimensions
 	posFigMov = get(hFigMov,'Pos');
+	outPosFigMov = get(hFigMov,'outerposition');
 	posFigStatic = get(hFigStatic,'Pos');
 	
 	if (lower(opt(1)) == 'r')		% Put moving figure on the RIGHT side of reference figure
@@ -56,8 +57,8 @@ function move2side(hFigStatic, hFigMov, opt)
 	end
 
 	yLL = (posFigStatic(2) + posFigStatic(4)/2+12) - (posFigMov(4) / 2 - 22);
-	if ( (yLL + posFigMov(4)) > ecran(4) )		% Figure is partially out from top
-		yLL = ecran(4) - posFigMov(4) - 73;		% 73 Is fck... who knows why (blue bar + uimenus + uitoolbar)
+	if ( (yLL + outPosFigMov(4) + 5) > ecran(4) )		% Figure is partially out from top (5 is au-pif)
+		yLL = ecran(4) - outPosFigMov(4) + 4;
 	end
 	set(hFigMov,'Pos',[xLL yLL posFigMov(3:4)])
 	
