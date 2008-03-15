@@ -16,12 +16,18 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %	Special case of multi-Layer writing:
 %			MODE == 'wN/levelsName' initialize the netCDF file for writing a 3D file.
 %					Where 'N' is the number of levels and 'levelsName' the name of thirth
-%					dimension variable (example 'w10/time').
-%			MODE == 'wK' use in subsequent call to save the K'th level.
+%					dimension variable.
+%					If N == 0 or negative 3rth dim is UNLIMITED
+%					If N < 0 it is taken as the first 3rth dim numeric value
+%					Example 'w10/time' or 'w-4.5/time.
+%			MODE == 'wK' or 'wK\thisLevel' use in subsequent call to save the K'th level.
+%					The second form transmits the 3rth dim numeric value. If this is not
+%					provided thisLevel = K is used.
 %					ATTENTION: K is zero based
-%				The levels vector may be transmitted via the handles structure. If absent, a default
-%				one with (1:N) is created. This information may be transmited only on the last call
-%				(for the cases of only than all values of that vector are known)
+%
+%				In case of a LIMITED var the levels vector may be transmitted via the handles structure.
+%				If absent, a default one with (1:N) is created. This information may be transmited 
+%				only on the last call	(for the cases of only than all values of that vector are known)
 
 %	AUTHOR
 %		Joaquim Luis  - 15-October-2007
@@ -37,12 +43,21 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 			write_nc(fname, handles, data, misc)
 		else					% Called in the 'append' mode.
 			ind = strfind(mode,'/');
-			if (isempty(ind))			% Append a new page to an existing 3D file
-				page = abs( round(str2double(mode(2:end))) );
-			else						% Initialize a new 3D file
-				page.nLevels = abs( round(str2double(mode(2:ind(1)-1))) );
+			if (~isempty(ind))					% Initialize a new 3D file
+				page.nLevels = str2double(mode(2:ind(1)-1));	% If it is 0 or a negative float -> 3D unlimited
 				page.levelName = mode(ind(1)+1:end);
+			else								% Append a new page to an existing 3D file
+
+				indLev = strfind(mode,'\');		% Search for a level (3rth dim) value
+				if (~isempty(indLev))
+					page{2} = str2double(mode(indLev(1)+1:end));
+					mode(indLev(1)+1:end) = [];		% Rip the level info from the mode string
+				end
+				tmp = abs( round(str2double(mode(2:end))) );
+				if (isnan(tmp)),	error('NC_IO:write_nc','Nonsense in PAGE number.'),		end
+				page{1} = tmp;
 			end
+
 			write_nc(fname, handles, data, misc, page)
 		end
 	elseif (mode(1) == 'R')		% Get all but Z
@@ -57,27 +72,44 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function write_nc(fname, handles, data, misc, page)
 
-	if (nargin > 4),	persistent levelName z_name,	end
+	if (nargin > 4),	
+		persistent levelName z_name is_unlimited
+	end
 	if (nargin == 4)							% Normal, write once, mode
 		is3D = false;
 	elseif (nargin == 5 && isa(page,'struct'))	% Initialize a new 3D file
+		is_unlimited = false;
 		levelName = page.levelName;
 		nLevels = page.nLevels;
-		if (isfield(handles,'levelVec') && ~isempty(handles.levelVec))
-			levelVec = handles.levelVec;
+		if (nLevels <= 0)						% UNLIMITED
+			is_unlimited = true;
+			if (nLevels < 0)
+				levelVec = nLevels;				% First value of the unlimited var
+				nLevels = 0;
+			else		% == 0
+				levelVec = 1;					% At least it won't be 9...10^36
+			end
+		elseif (isfield(handles,'levelVec') && ~isempty(handles.levelVec))
+			levelVec = handles.levelVec;		% Only for not UNLIMITED
 		else
-			levelVec = 1:nLevels;
+			levelVec = 1:nLevels;				%			"
 		end
 		is3D = true;
-	elseif (nargin == 5 && isnumeric(page))		% 'append' layer mode. Work and return
-		if (~isnumeric(page))
-			error('NC_IO:write_nc','Nonsense in PAGE number for append mode.')
+	elseif (nargin == 5 && isa(page,'cell'))	% 'append' layer mode. Work and return
+		if (is_unlimited)
+			if (numel(page) == 2)
+				level = page{2};
+			else
+				level = page{1};
+			end
+			nc_funs('varput', fname, levelName, level );	% The UNLIMITED var value
 		end
+
 		if (ndims(data) == 2)
 			[ny, nx] = size(data);
-			nc_funs('varput', fname, z_name, reshape(data,[1 ny nx]), [page 0 0], [1 ny nx] );
+			nc_funs('varput', fname, z_name, reshape(data,[1 ny nx]), [page{1} 0 0], [1 ny nx] );
 		elseif (ndims(data) == 3 && size(data,1) == 1)
-			nc_funs('varput', fname, z_name, data, [page 0 0], [1 ny nx] );
+			nc_funs('varput', fname, z_name, data, [page{1} 0 0], [1 ny nx] );
 		else
 			error('NC_IO:write_nc','input array on append mode must be MxN or 1xMxN')
 		end
@@ -197,7 +229,7 @@ function write_nc(fname, handles, data, misc, page)
 	% ------- Put the coords vectors ---
 	nc_funs('varput', fname, x_var, X );
 	nc_funs('varput', fname, y_var, Y );
-	if (is3D),	nc_funs('varput', fname, levelName, levelVec );		end
+	if (is3D && ~is_unlimited),	nc_funs('varput', fname, levelName, levelVec );		end		% not UNLIMITED
 
 	nc_funs('attput', fname, x_var, 'long_name', x_var );
 	nc_funs('attput', fname, x_var, 'units', x_units);
@@ -226,6 +258,7 @@ function write_nc(fname, handles, data, misc, page)
 		end
 	end
 
+	if (is3D && is_unlimited),	nc_funs('varput', fname, levelName, levelVec(1) );		end		% The UNLIMITED var value
 	if (ndims(data) == 2)
 		nc_funs('varput', fname, z_name, data, [0 0], [ny nx] );
 	elseif (ndims(data) == 3)
