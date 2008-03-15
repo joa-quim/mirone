@@ -52,6 +52,10 @@ function varargout = geog_calculator(varargin)
                     delete(hObject);    return
 				end
 				handles.gridLeft = getappdata(handMir.figure1,'dem_z');
+				if ( isempty(handMir.gridLeft) )
+					errordlg('GEOG CALCULATOR: Grid is not in memory. Check your "Grid max size" and restart.','ERROR')
+                    delete(hObject);    return
+				end
 				handles.gridLeftHead = handMir.head;
 				handles.x_min = handles.gridLeftHead(1);
 				handles.x_max = handles.gridLeftHead(2);
@@ -867,7 +871,9 @@ function msg_err = transform_grid(handles)
 		% First do the inverse conversion (get result in geogs)
 		opt_J = handles.projection_left;
 		% First apply the trick to get a good estimation of -R
-		if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
+		if (y_c < 0),   				opt_Rg = '-R-180/180/-80/0';             % Patches over inventions, not good
+		elseif (x_c == 0 && y_c == 0)	opt_Rg = '-R-180/180/-80/80';	% Antartica cases
+		end
 		tmp = mapproject_m([x_c y_c], opt_J, opt_Rg, opt_SF, opt_C, opt_mpF, '-I');
 		opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-1, tmp(1)+1, tmp(2)-1, tmp(2)+1)];
 
