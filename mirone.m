@@ -147,14 +147,15 @@ function hObject = mirone_OpeningFcn(varargin)
 	% ---------- Detect in which mode Mirone was called
 	drv = [];	grd_data_in = 0;	grd_data_interfero = 0;		pal = [];	win_name = 'Mirone';
 	if ~isempty(varargin)
-        if (length(varargin) == 1 && ischar(varargin{1}))				% Called with a file name as argument
+		n_argin = nargin;
+        if (n_argin == 1 && ischar(varargin{1}))				% Called with a file name as argument
 			[pato, fname, EXT] = fileparts(varargin{1});				% Test to check online command input
 			if (isempty(pato)),     varargin{1} = [handles.home_dir fsep fname EXT];     end
 			drv = aux_funs('findFileType',varargin{1});
         elseif ( isa(varargin{1},'uint8') || isa(varargin{1},'logical') )
 			% Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
 			dims = size(varargin{1});
-			if ( numel(varargin) == 2 && isa(varargin{2},'struct') )       % An image with coordinates
+			if ( n_argin == 2 && isa(varargin{2},'struct') )       % An image with coordinates
 				tmp = varargin{2};
 				handles.head = tmp.head;		X = tmp.X;		Y = tmp.Y;
 				handles.image_type = 3;			axis_t = 'xy';
@@ -176,8 +177,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			if (isa(varargin{1},'logical'))
 				set(handles.hImg,'CDataMapping','scaled');   set(handles.figure1,'ColorMap',gray(256));
 			end        
-		elseif ( isa(varargin{1},'uint16') || isa(varargin{1},'int16') || isa(varargin{1},'int32') || ...
-				 isa(varargin{1},'single') || isa(varargin{1},'double') )
+		elseif ( n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')) )
 			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
 			Z = varargin{1};			grd_data_in = 1;
 			if (~isa(Z,'single')),		Z = single(Z);		end
@@ -196,7 +196,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				handles.head = [1 size(Z,2) 1 size(Z,1) zz(1) zz(2) 0 1 1];
 				X = 1:size(Z,2);			Y = 1:size(Z,1);
 			end
-		elseif ( numel(varargin) == 4 && isnumeric(varargin{1}) && isa(varargin{2},'struct') && ...
+		elseif ( n_argin == 4 && isnumeric(varargin{1}) && isa(varargin{2},'struct') && ...
 				strcmp(varargin{3},'Deformation') && ishandle(varargin{4}) )
 			% A matrix. Treat it as if it'is a gmt grid. No error testing on the grid head descriptor
 			% Note: this is a special case of the situation above that will be used to identify this figure
@@ -206,7 +206,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles.head = tmp.head;    X = tmp.X;  Y = tmp.Y;  clear tmp;
 			setappdata(hObject,'hFigParent',varargin{4});
 			win_name = 'Okada deformation';
-		elseif ( numel(varargin) == 4 && isnumeric(varargin{1}) && isa(varargin{2},'struct') && ...
+		elseif ( n_argin == 4 && isnumeric(varargin{1}) && isa(varargin{2},'struct') && ...
                 strcmp(varargin{3},'Interfero') && isnumeric(varargin{4}) )
             % A matrix input containing an interfeogram with cdo == varargin{4}
             grd_data_interfero = 1;
@@ -361,59 +361,59 @@ first_nans = 0;		pal = [];		mask = [];	done = false;	crop_pol = 0;     % Default
 if (nargin < 3),    opt2 = [];      end
 if (nargin < 4),    opt3 = [];      end
 if ~isempty(opt)        % OPT must be a rectangle/polygon handle (the rect may serve many purposes)
-    x = get(opt,'XData');   y = get(opt,'YData');
-    if ~( (x(1) == x(end)) && (y(1) == y(end)) && length(x) == 5 && ...
+	x = get(opt,'XData');   y = get(opt,'YData');
+	if ~( (x(1) == x(end)) && (y(1) == y(end)) && length(x) == 5 && ...
 			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 		xp(1) = min(x);     xp(2) = max(x);
 		yp(1) = min(y);     yp(2) = max(y);
 		rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];
 		crop_pol = 1;       % Flag that we are croping from a polygon
-    else
+	else
 		rect_crop = [x(1) y(1) (x(3)-x(2)) (y(2)-y(1))];
-    end
-    if isempty(opt2)                            % Just pure Image croping
+	end
+	if isempty(opt2)                            % Just pure Image croping
 		Z_rect = get(handles.hImg,'CData');
 		limits = getappdata(handles.axes1,'ThisImageLims');
 		I = cropimg(limits(1:2),limits(3:4),Z_rect,rect_crop);
 		[m,n] = size(I);
-    elseif (strcmp(opt2,'CropaWithCoords'))     % Crop Image with coordinates
+	elseif (strcmp(opt2,'CropaWithCoords'))     % Crop Image with coordinates
 		Z_rect = get(handles.hImg,'CData');
 		[I,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z_rect,rect_crop,'out_grid');
 		[m,n] = size(I);
-    else                    % Extract the sub-grid inside the rectangle/polygon
-        [X,Y,Z,head] = load_grd(handles);
-        if isempty(Z),  set(handles.figure1,'pointer','arrow');    return;     end;    % An error message was already issued
-        [Z_rect,r_c] = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
-        if (crop_pol)
-            zzz = grdutils(Z_rect,'-L');  z_min = zzz(1);     clear zzz;
-            if (strcmp(opt2,'CropaGrid_pure'))
-                resp  = inputdlg({'Enter outside polygon value'},'Choose out value',[1 30],{sprintf('%.4f',z_min)});	pause(0.01)
-                if isempty(resp);    set(handles.figure1,'pointer','arrow');    return;     end
-            elseif (strcmp(opt2,'ROI_SetConst'))    % Set the polygon interiour to cte
-                resp  = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);    pause(0.01)
-                if isempty(resp);    set(handles.figure1,'pointer','arrow');    return;     end
-            end
-            x_lim = [min(x) max(x)];        y_lim = [min(y) max(y)];
-            mask = img_fun('roipoly_j',x_lim,y_lim,double(Z_rect),x,y);
-            if (strcmp(opt2,'CropaGrid_pure'))
-                Z_rect(~mask) = single(str2double(resp));
-            elseif (strcmp(opt2,'ROI_SetConst'))
-                Z_rect(mask) = single(str2double(resp));    % Set the mask values to const
+	else                    % Extract the sub-grid inside the rectangle/polygon
+		[X,Y,Z,head] = load_grd(handles);
+		if isempty(Z),  set(handles.figure1,'pointer','arrow');    return;     end;    % An error message was already issued
+		[Z_rect,r_c] = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
+		if (crop_pol)
+			zzz = grdutils(Z_rect,'-L');  z_min = zzz(1);     clear zzz;
+			if (strcmp(opt2,'CropaGrid_pure'))
+				resp  = inputdlg({'Enter outside polygon value'},'Choose out value',[1 30],{sprintf('%.4f',z_min)});	pause(0.01)
+				if isempty(resp);    set(handles.figure1,'pointer','arrow');    return;     end
+			elseif (strcmp(opt2,'ROI_SetConst'))    % Set the polygon interiour to cte
+				resp  = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);    pause(0.01)
+				if isempty(resp);    set(handles.figure1,'pointer','arrow');    return;     end
+			end
+			x_lim = [min(x) max(x)];        y_lim = [min(y) max(y)];
+			mask = img_fun('roipoly_j',x_lim,y_lim,double(Z_rect),x,y);
+			if (strcmp(opt2,'CropaGrid_pure'))
+				Z_rect(~mask) = single(str2double(resp));
+			elseif (strcmp(opt2,'ROI_SetConst'))
+				Z_rect(mask) = single(str2double(resp));    % Set the mask values to const
 				handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));    handles.r_c = r_c;			% For the Undo op
-                Z(r_c(1):r_c(2),r_c(3):r_c(4)) = Z_rect;
-                if (isnan(str2double(resp))),  handles.have_nans = 1;  first_nans = 1;  end
-            elseif (strcmp(opt2,'ROI_MedianFilter'))
-                [Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask);
-            elseif (strcmp(opt2,'CropaGrid_histo'))
-                Z_rect(~mask) = single(NaN);
-            else
-                warndlg('Unknown case in ImageCrop','Warning');     return
-            end
-        end
-        [m,n] = size(Z_rect);
+				Z(r_c(1):r_c(2),r_c(3):r_c(4)) = Z_rect;
+				if (isnan(str2double(resp))),  handles.have_nans = 1;  first_nans = 1;  end
+			elseif (strcmp(opt2,'ROI_MedianFilter'))
+				[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask);
+			elseif (strcmp(opt2,'CropaGrid_histo'))
+				Z_rect(~mask) = single(NaN);
+			else
+				warndlg('Unknown case in ImageCrop','Warning');     return
+			end
+		end
+		[m,n] = size(Z_rect);
     end
 else                    % Interactive croping (either Grid or Image)
-    if (strcmp(opt2,'CropaGrid'))   % Arrive here when called by "Grid Tools -> Crop Grid"
+	if (strcmp(opt2,'CropaGrid'))   % Arrive here when called by "Grid Tools -> Crop Grid"
 		[X,Y,Z,head] = load_grd(handles);
 		if isempty(Z),  set(handles.figure1,'pointer','arrow');    return;     end;
 		[p1,p2] = rubberbandbox;
@@ -426,18 +426,18 @@ else                    % Interactive croping (either Grid or Image)
 		tit = 'Grid cuted by Mirone';      % Have to change this to reflect the old title
 		GRDdisplay(handles,X,Y,Z_rect,head,tit,'Croped grid')
 		return
-    else            % Just a image crop op
+	else            % Just a image crop op
 		I = cropimg;     [m,n] = size(I);
-    end
+	end
 end
 
 if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))   % Just pure Image croping
     if (m < 2 || n < 2),  set(handles.figure1,'pointer','arrow');    return;     end;    % Image too small. Probably a user bad mouse control
     if (strcmp(get(handles.axes1,'Ydir'),'normal')),    I = flipdim(I,1);    end
     if (ndims(I) == 2)
-        pal = get(handles.figure1, 'Colormap');
-        if (length(pal) == 64), pal = jet(256);     end     % Risky - This is a patch for "Find Clusters"
-        setappdata(0,'CropedColormap',pal);         % indexed image, so I need to save it's colormap
+		pal = get(handles.figure1, 'Colormap');
+		if (length(pal) == 64), pal = jet(256);     end     % Risky - This is a patch for "Find Clusters"
+		setappdata(0,'CropedColormap',pal);         % indexed image, so I need to save it's colormap
     end
     set(handles.figure1,'pointer','arrow');
     if (isempty(opt2))
@@ -495,13 +495,13 @@ elseif (strcmp(opt2,'FillGaps'))
         YY = Y(:);          YY(aa) = [];
         if (~isempty(opt3))
             switch opt3
-                case 'surface', Z_rect = surface_m(XX,YY,ZZ,opt_R,opt_I,'-T.25');
-                case 'cubic',   Z_rect = griddata_j(XX,YY,ZZ,X,Y,'cubic');
-                case 'linear',  Z_rect = griddata_j(XX,YY,ZZ,X,Y,'linear');
-                case 'sea',     Z_rect(aa) = 0;
+				case 'surface', Z_rect = surface_m(XX,YY,ZZ,opt_R,opt_I,'-T.25');
+				case 'cubic',   Z_rect = griddata_j(XX,YY,ZZ,X,Y,'cubic');
+				case 'linear',  Z_rect = griddata_j(XX,YY,ZZ,X,Y,'linear');
+				case 'sea',     Z_rect(aa) = 0;
             end
         else
-            Z_rect = surface_m(XX,YY,ZZ,opt_R,opt_I,'-T.25','-v');
+			Z_rect = surface_m(XX,YY,ZZ,opt_R,opt_I,'-T.25','-v');
         end
         clear X XX Y YY ZZ;
     end
@@ -2281,21 +2281,21 @@ function DrawContours_CB(handles, opt)
 		set(handles.figure1,'pointer','arrow');     contouring(handles.figure1,head,handles.which_cont);
 		guidata(handles.figure1, handles);
 		return
-	elseif (isa(opt,'double'))      % Arrive here from the interface contouring GUI
+	elseif (isa(opt,'double'))			% Arrive here from the interface contouring GUI
 		if (~isempty(handles.which_cont))   % Do not compute/draw repeated contours
 			[c,ib] = setdiff(handles.which_cont,opt);   % Find eventual countours to remove (by GUI deselection)
-			for (i = 1:length(c))   % Loop over removing contours (if none, this loop has no effect)
+			for (i = 1:length(c))		% Loop over removing contours (if none, this loop has no effect)
 				h = findobj(handles.axes1,'type','line','userdata',handles.which_cont(ib(i)));
-				for (j = 1:length(h))   % We can easily have more than one
+				for (j = 1:length(h))	% We can easily have more than one
 					labHand = getappdata(h(j),'LabelHands');
-					try    delete(labHand);   end  % Delete contour's labels
+					try    delete(labHand);   end	% Delete contour's labels
 				end
-				delete(h)                           % And delete the selected contours
+				delete(h)							% And delete the selected contours
 			end
 			handles.which_cont(ib) = [];
 			guidata(handles.figure1, handles);
 			[c,ia,ib] = intersect(handles.which_cont,opt(:));
-			opt(ib) = [];                   % Remove repeated contours
+			opt(ib) = [];							% Remove repeated contours
 		end    
 		if (isempty(opt)),      set(handles.figure1,'pointer','arrow');    return;     end  % Nothing else to do
 		if (length(opt) == 1),  opt = [opt opt];    end
@@ -2316,9 +2316,12 @@ function DrawContours_CB(handles, opt)
 	end
 	handles.which_cont = unique([handles.which_cont; cont]);
 	[zlev, ind] = sort(cont);       clear zlev
-	h_cont = h_cont(ind);				% handles are now sorted by level
-	h_label = clabel_j(c,h_cont);		% Label countours automatically
-	set(h_label,'Tag','contour');		% The tag is used in "Delete all contours" to delete also the labels
+	h_cont = h_cont(ind);					% handles are now sorted by level
+	h_label = '';							% To not hang below if not clabel (anyway, I think it's not used anymore)
+	if (handles.plotContourLabels)
+		h_label = clabel_j(c,h_cont);		% Label countours automatically
+		set(h_label,'Tag','contour');		% The tag is used in "Delete all contours" to delete also the labels
+	end
 	for i = 1:length(h_cont)			% Set convenient uicontexts. One for each contour
 		setappdata(h_cont(i),'cont_label',get(h_cont(i),'UserData'))
 		draw_funs(h_cont(i),'ContourLines',h_label)
