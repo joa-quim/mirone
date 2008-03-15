@@ -155,10 +155,12 @@ function varargout = swan_options(varargin)
 
 	if ( ~isempty(handles.head_bat) && ~handles.is_tsun2 )
 		geog = guessGeog(handles.head_bat(1:4));
-		set(handles.radio_cartesian,'Value', ~double(geog))
-		set(handles.radio_geog,'Value', double(geog))
+		set(handles.radio_cartesian,'Value', ~geog)
+		set(handles.radio_geog,'Value', geog)
 		% Guess a valid dt
-		dt = handles.head_bat(8) / sqrt(abs(handles.head_bat(5)) * 9.8) * 0.5;
+		dx = handles.head_bat(9);
+		if (geog),		dx = dx * 111000;		end
+		dt = dx / sqrt(abs(handles.head_bat(5)) * 9.8) * 0.5;
 		if (dt > 0)
 			set(handles.edit_dt, 'String',sprintf('%.1f',dt))
 			handles.dt = dt;
@@ -789,10 +791,13 @@ function edit_dt_Callback(hObject, eventdata, handles)
 		set(hObject,'String',handles.dt),	return
 	end
 	% Check that xx is a valid (CFL condition) dt
-	dt = handles.head_bat(8) / sqrt(abs(handles.head_bat(5)) * 9.8);
-	if ( xx < dt )
-		warndlg('The value entered here, which doesn''t conform to the CFL condition, would make te simulation diverge.','Warning')
-		set(hObject,'String',handles.dt),	return
+	dx = handles.head_bat(9);
+	geog = get(handles.radio_geog,'Value');
+	if (geog),		dx = dx * 111000;		end
+	dt = dx / sqrt(abs(handles.head_bat(5)) * 9.8);
+	if ( xx > dt )
+		warndlg(['The value entered here doesn''t conform to the CFL condition (' ...
+				sprintf('%.3f',dt) ') and will probably make the simulation diverge.'],'Warning')
 	end
 	handles.dt = xx;
 	if (handles.got_params),	handles.params(1) = xx;		end
