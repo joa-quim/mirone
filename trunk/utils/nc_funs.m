@@ -248,8 +248,7 @@ elseif isnumeric ( arg1 ) && isnumeric ( arg2 )
 	Dataset = get_varinfo ( ncid,  varid );
 
 else
-	snc_error ( 'NC_FUNS:NC_GETVARINFO:badTypes', ...
-	        'Must have either both character inputs, or both numeric.' );
+	snc_error ( 'NC_FUNS:NC_GETVARINFO:badTypes', 'Must have either both character inputs, or both numeric.' );
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -270,8 +269,7 @@ end
 Dataset.Name = varname;
 Dataset.Nctype = datatype;
 
-% Assume the current variable does not have an unlimited dimension until
-% we know that it does.
+% Assume the current variable does not have an unlimited dimension until we know that it does.
 Dataset.Unlimited = false;
 
 if ndims == 0
@@ -1328,10 +1326,13 @@ case 'put_var1'
 case 'put_var'
     % Since 'put_var' writes all the data, check that the extents match up exactly.  
     if ( numel(data) ~= prod(nc_count) )
-	    mexnc ( 'close', ncid );
-        fmt = 'Total number of input datums was %d, but the netcdf variable size is %d elements.';
-	    msg = sprintf ( fmt, numel(data), prod(nc_count) );
-	    snc_error ( 'NC_FUNS:NC_VARPUT:badInput', msg );
+		% Added the following (stupid) test TO LET GO WITH THE UNLIMITED VAR -- J. LUIS
+		[rec_dim, status] = mexnc( 'INQ_UNLIMDIM', ncid );
+		if ( ~(rec_dim == 2 && numel(data) == 1) )
+			mexnc ( 'close', ncid );
+			fmt = 'Total number of input datums was %d, but the netcdf variable size is %d elements.';
+			snc_error ( 'NC_FUNS:NC_VARPUT:badInput', sprintf ( fmt, numel(data), prod(nc_count) ) );
+		end
     end
 
 case { 'put_vara', 'put_vars' }
@@ -1861,8 +1862,9 @@ if status ~= 0
 end
 
 % Add the dimensions.
+% ncm.Dimension(3).Unlimited=1;
 for d = 1:numel(ncm.Dimension)
-	if ncm.Dimension(d).Unlimited
+	if ( ncm.Dimension(d).Unlimited )
 		nc_add_dimension ( output_ncfile, ncm.Dimension(d).Name, 0 );
 	else
 		nc_add_dimension ( output_ncfile, ncm.Dimension(d).Name, ncm.Dimension(d).Length );
@@ -1870,6 +1872,8 @@ for d = 1:numel(ncm.Dimension)
 end
 
 % Add the variables
+% ncm.Dataset(3).Unlimited=1;
+% ncm.Dataset(4).Unlimited=1;
 for v = 1:numel(ncm.Dataset)
 	nc_addvar ( output_ncfile, ncm.Dataset(v) );
 
@@ -2434,6 +2438,9 @@ end
 
 [varlist,start,count] = parse_inputs_getbuf(varargin{:});
 metadata = nc_info ( ncfile );
+% metadata.Dimension(3).Unlimited=1;
+% metadata.Dataset(3).Unlimited=1;
+% metadata.Dataset(4).Unlimited=1;
 num_datasets = length(metadata.Dataset);
 skip_this_variable = construct_skip_list(varlist,metadata);
 
@@ -2567,6 +2574,45 @@ end
 v = nc_getvarinfo ( ncfile, varname );
 varsize = v.Size;
 
+% -------------------------------------------------------------------
+function values = nc_getlast(ncfile, var, num_datums)
+% NC_GETLAST:  Retrieves records at the end of an unlimited netCDF file
+%
+% DATA = NC_GETLAST(NCFILE,VARNAME,NUM_DATUMS) retrieves NUM_DATUMS 
+% datums from the netCDF variable VARNAME in the netCDF file NCFILE.
+% If NUM_DATUMS is not supplied, the default value is 1.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% $Id: nc_getlast.m 2315 2007-09-03 16:07:33Z johnevans007 $
+% $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
+% $LastChangedRevision: 2315 $
+% $LastChangedBy: johnevans007 $
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+snc_nargchk(2,3,nargin);
+snc_nargoutchk(1,1,nargout);
+
+if ~ischar(ncfile) 
+	snc_error ( 'NC_FUNS:NC_GETLAST:badInput', 'The netCDF file argument must be char.' );
+end
+
+if ~ischar(var) 
+	snc_error ( 'NC_FUNS:NC_GETLAST:badInput', 'The netCDF variable argument must be char.' );
+end
+
+if ( nargin == 2 )
+	num_datums = 1;
+else
+	if ~isnumeric(num_datums) 
+	    snc_error ( 'NC_FUNS:NC_GETLAST:badInput', 'The num_datums argument must be numeric.' );
+	end
+	if num_datums <= 0
+	    snc_error ( 'NC_FUNS:NC_GETLAST:badInput', 'The num_datums argument must be positive.' );
+	end
+end
+
+nb = nc_getbuffer ( ncfile, {var}, -1, num_datums );
+values = nb.(var);
 
 
 
