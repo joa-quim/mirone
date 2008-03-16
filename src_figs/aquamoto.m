@@ -341,6 +341,7 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 			handles.nc_info = s;		% Save the nc file info
 			set(handles.check_splitDryWet,'Val',0)
 			aqua_suppfuns('coards_hdr',handles,X,Y,head,misc)
+			set(handles.push_showMesh,'Enable','off')
 			return
 		end
 		errordlg('ERROR: This .sww file is not of recognizable type. For example: "number_of_volumes" was not found.','Error')
@@ -481,7 +482,7 @@ function push_showSlice_Callback(hObject, eventdata, handles)
 		[theVar, U, V, indVar, indWater] = get_swwVar(handles);
 	end
 	if (~isa(theVar, 'double')),	theVar = double(theVar);	end		% While we don't f... these doubles as well
-	
+
 	% create a grid in x and y
 	x = linspace(handles.head(1),handles.head(2),nx);
 	y = linspace(handles.head(3),handles.head(4),ny);
@@ -494,7 +495,7 @@ function push_showSlice_Callback(hObject, eventdata, handles)
 	splitDryWet = get(handles.check_splitDryWet,'Val');		% See if we need to build a wet and dry images, or only one
 
 	if ( splitDryWet )
-		indLand = get_landInd(handles, x, y, indWater);	% Compute Dry/Wet indexes - have to recompute, ... since water ... moves
+		indLand = get_landInd(handles, x, y, indWater);		% Compute Dry/Wet indexes - have to recompute, ... since water ... moves
 		if ( indVar == 8 )										% Max Water option. Calculate once the Water delimiting polygon
 			handles.indMaxWater = ~indLand;
 		end
@@ -864,15 +865,15 @@ function R = illumByType(handles, Z, head, illumComm)
 
 % -----------------------------------------------------------------------------------------
 function ind = get_landInd(handles, x, y, indWater)
-    % Compute indices such that 1 -> Dry; 0 -> Wet
-	% Note that "Land" (stage - elevation) is gridded
-	% INDWATER, if not empty, has ones at the indices of a max quantity areal extent
-	% The minimalist form (first one tried) is herited from 'tsunamovie'
+% Compute indices such that 1 -> Dry; 0 -> Wet
+% Note that "Land" (stage - elevation) is gridded
+% INDWATER, if not empty, has ones at the indices of a max quantity areal extent
+% The minimalist form (first one tried) is inherited from 'tsunamovie'
 
 	if (nargin == 2)
 		zBat = handles;		zWater = x;				% Just for human understanding
 		dife = cvlib_mex('absDiff',zBat,zWater);
-		ind = (dife < 1e-3);						% The 1e-3 must be parameterized
+		ind = (dife < 1e-3);						% The 1e-3 SHOULD be parameterized
 		return
 	end
 
@@ -3072,12 +3073,13 @@ uicontrol('Parent',h1,...
 'UserData','anuga');
 
 uicontrol('Parent',h1,...
+'BackgroundColor',get(0,'factoryUicontrolBackgroundColor'),...
 'FontName','Helvetica',...
 'FontSize',9,...
 'FontWeight','bold',...
 'HorizontalAlignment','left',...
-'Position',[27 377 125 17],...
-'String','Input a SWW file',...
+'Position',[27 377 135 17],...
+'String','Input a SWW or NC file',...
 'Style','text',...
 'Tag','text2',...
 'UserData','anuga');

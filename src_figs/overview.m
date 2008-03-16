@@ -51,7 +51,7 @@ if (length(varargin) > 0)
 end
 
 handles.path_tmp = [handles.home_dir filesep 'tmp' filesep];
-handles.icon_img = [];
+handles.hImg = [];
 handles.name_uncomp = [];
 handles.was_int16 = 0;
 handles.Nodata_int16 = [];
@@ -80,7 +80,7 @@ guidata(hObject, handles);
 % --------------------------------------------------------------------------------------------------
 function rectang_clickedcallback(obj,eventdata)
 handles = guidata(obj);     % get handles
-if (isempty(handles.icon_img))      return;     end
+if (isempty(handles.hImg))      return;     end
 try
     hl = findobj(handles.figure1,'Type','patch');
     if (~isempty(hl))       return;     end     % We already have a rectangle so don't need another.
@@ -107,7 +107,7 @@ end
 % --------------------------------------------------------------------------------------------------
 function info_clickedcallback(obj,eventdata)
 handles = guidata(obj);     % get handles
-if (isempty(handles.icon_img))      return;     end
+if (isempty(handles.hImg))      return;     end
 if (handles.image_type == 1)
     info_m(['grdinfo ' handles.fname]);
 elseif (handles.image_type == 2)
@@ -121,27 +121,32 @@ elseif (handles.image_type == 2)
     w{5} = ['   nx:  ' num2str(nx) '    ny: ' num2str(ny)];
     msgbox(w,'Image Info');
 else
-    w{1} = handles.Hdr.Driver;
-    w{2} = ['Width:  ' num2str(handles.Hdr.Dim_nx) '    Height:  ' num2str(handles.Hdr.Dim_ny)];
-    w{3} = ['Projection:  ' handles.Hdr.projection];
-    w{4} = ['Datum:  ' handles.Hdr.datum];
-    w{5} = ['Ellipsoide:  ' handles.Hdr.ellipsoid];
-    w{6} = ['Pizel Size:  (' num2str(handles.Hdr.pixel_x) ',' num2str(handles.Hdr.pixel_y) ')'];
-    w{7} = 'Projected corner coordinates';
-    w{8} = ['   Xmin:  ' num2str(handles.Hdr.LL_prj_xmin) '    Xmax: ' num2str(handles.Hdr.UR_prj_xmax)];
-    w{9} = ['   Ymin:  ' num2str(handles.Hdr.LL_prj_ymin) '    Ymax: ' num2str(handles.Hdr.UR_prj_ymax)];
-    if ~isempty(handles.Hdr.UL_geo_xmin)
-        w{10} = 'Geographical corner coordinates';
-        w{11} = ['   Xmin:  ' num2str(handles.Hdr.LL_geo_xmin) '    Xmax: ' num2str(handles.Hdr.LR_geo_xmax)];
-        w{12} = ['   Ymin:  ' num2str(handles.Hdr.LL_geo_ymin) '    Ymax: ' num2str(handles.Hdr.UR_geo_ymax)];
-    end
-    try,        w{13} = ['Zmin:  ' handles.Hdr.Zmin '   Zmax: ' handles.Hdr.Zmax];    end
-    w{14} = ['Color Type:  ' handles.Hdr.Cmap];
-    w{15} = [];
-    [PATH,FNAME,EXT] = fileparts(handles.fname);
-    
-    w{16} = ['NOTE: The file "' handles.path_tmp FNAME '.info" contains more detailed information about this Image'];
-    msgbox(w,'Image Info');
+%     w{1} = handles.Hdr.Driver;
+%     w{2} = ['Width:  ' num2str(handles.Hdr.Dim_nx) '    Height:  ' num2str(handles.Hdr.Dim_ny)];
+%     w{3} = ['Projection:  ' handles.Hdr.projection];
+%     w{4} = ['Datum:  ' handles.Hdr.datum];
+%     w{5} = ['Ellipsoide:  ' handles.Hdr.ellipsoid];
+%     w{6} = ['Pizel Size:  (' num2str(handles.Hdr.pixel_x) ',' num2str(handles.Hdr.pixel_y) ')'];
+%     w{7} = 'Projected corner coordinates';
+%     w{8} = ['   Xmin:  ' num2str(handles.Hdr.LL_prj_xmin) '    Xmax: ' num2str(handles.Hdr.UR_prj_xmax)];
+%     w{9} = ['   Ymin:  ' num2str(handles.Hdr.LL_prj_ymin) '    Ymax: ' num2str(handles.Hdr.UR_prj_ymax)];
+%     if ~isempty(handles.Hdr.UL_geo_xmin)
+%         w{10} = 'Geographical corner coordinates';
+%         w{11} = ['   Xmin:  ' num2str(handles.Hdr.LL_geo_xmin) '    Xmax: ' num2str(handles.Hdr.LR_geo_xmax)];
+%         w{12} = ['   Ymin:  ' num2str(handles.Hdr.LL_geo_ymin) '    Ymax: ' num2str(handles.Hdr.UR_geo_ymax)];
+%     end
+%     try,        w{13} = ['Zmin:  ' handles.Hdr.Zmin '   Zmax: ' handles.Hdr.Zmax];    end
+%     w{14} = ['Color Type:  ' handles.Hdr.Cmap];
+%     w{15} = [];
+%     [PATH,FNAME,EXT] = fileparts(handles.fname);
+%     
+%     w{16} = ['NOTE: The file "' handles.path_tmp FNAME '.info" contains more detailed information about this Image'];
+	w = getappdata(handles.axes1,'InfoMsg',w);
+	if (~isempty(w))
+	    msgbox(w,'Image Info');
+	else
+	    msgbox('Hoops, I lost the info','Error');
+	end
 end
 
 % --------------------------------------------------------------------------------------------------
@@ -163,13 +168,13 @@ helpdlg(str,'Help')
 % --------------------------------------------------------------------------------------------------
 function all_clickedcallback(obj,eventdata)
 handles = guidata(obj);     % get handles
-if (isempty(handles.icon_img))      return;     end
+if (isempty(handles.hImg))      return;     end
 CropaGrid(obj,eventdata,[],'all')
 
 % --------------------------------------------------------------------------------------------------
 function zoom_clickedcallback(obj,eventdata)
 handles = guidata(obj);     % get handles
-if (isempty(handles.icon_img))
+if (isempty(handles.hImg))
     set(obj,'State','off');    return;
 end
 if strcmp(get(obj,'State'),'on')
@@ -208,31 +213,32 @@ att =  gdalread(fname,'-M','-C');
 m = att.RasterXSize;            n = att.RasterYSize;
 handles.head = att.GMT_hdr;     handles.head_orig = handles.head;
 
-% The following serves only for storing file infos
-str = ['gdalinfo ' fname];
-[s,w] = mat_lyies(str,[handles.path_tmp FileName '.info']);     % FileName may retain the comp ext
-if ~(isequal(s,0))                  % An error has occured
-    msg = ['Error getting file info (gdalinfo).', sprintf('\n\n'), 'Error message was:', sprintf('\n'), w];
-    h = errordlg(msg,'Error');    movegui(h,'north');     return
-end
-set(handles.figure1,'pointer','watch')
-file_info = dataread('file',[handles.path_tmp FileName '.info'],'%s','delimiter','\n','whitespace','');
-Hdr = read_gdal_info(file_info);
-Hdr.LL_prj_xmin = num2str(att.Corners.LL(1));   Hdr.LL_prj_ymin = num2str(att.Corners.LL(2));
-Hdr.UR_prj_xmax = num2str(att.Corners.UR(1));   Hdr.UR_prj_ymax = num2str(att.Corners.UR(2));
-Hdr.Zmin = num2str(handles.head(5));            Hdr.Zmax = num2str(handles.head(6));
+% % The following serves only for storing file infos
+% str = ['gdalinfo ' fname];
+% [s,w] = mat_lyies(str,[handles.path_tmp FileName '.info']);     % FileName may retain the comp ext
+% if ~(isequal(s,0))                  % An error has occured
+%     msg = ['Error getting file info (gdalinfo).', sprintf('\n\n'), 'Error message was:', sprintf('\n'), w];
+%     h = errordlg(msg,'Error');    movegui(h,'north');     return
+% end
+% set(handles.figure1,'pointer','watch')
+% file_info = dataread('file',[handles.path_tmp FileName '.info'],'%s','delimiter','\n','whitespace','');
+% Hdr = read_gdal_info(file_info);
+% Hdr.LL_prj_xmin = num2str(att.Corners.LL(1));   Hdr.LL_prj_ymin = num2str(att.Corners.LL(2));
+% Hdr.UR_prj_xmax = num2str(att.Corners.UR(1));   Hdr.UR_prj_ymax = num2str(att.Corners.UR(2));
+% Hdr.Zmin = num2str(handles.head(5));            Hdr.Zmax = num2str(handles.head(6));
 
 jump = min(round(m / 200), round(n / 200));
 opt_P = ['-P' num2str(jump)];
 Z =  gdalread(fname,'-U','-S',opt_P);      [m,n] = size(Z);
 X = linspace(handles.head(1),handles.head(2),n);
 Y = linspace(handles.head(3),handles.head(4),m);
-colormap(handles.axes1,jet(256));       handles.icon_img = image(X,Y,Z);
+colormap(handles.axes1,jet(256));       handles.hImg = image(X,Y,Z);
 set(handles.axes1,'YDir','normal')
-Resize1(handles.axes1, handles.icon_img)
+Resize1(handles.axes1, handles.hImg)
 handles.fname = fname;
 handles.image_type = 4;
-handles.Hdr = Hdr;
+% handles.Hdr = Hdr;
+grid_info(handles,att,'gdal');				% Construct a info message and save proj (if ...)
 set(handles.figure1,'pointer','arrow')
 guidata(hObject,handles)
 
@@ -306,9 +312,9 @@ end
 [m,n] = size(Z);
 X = linspace(handles.head(1),handles.head(2),n);
 Y = linspace(handles.head(3),handles.head(4),m);
-colormap(handles.axes1,jet(256));       handles.icon_img = image(X,Y,Z);
+colormap(handles.axes1,jet(256));       handles.hImg = image(X,Y,Z);
 set(handles.axes1,'YDir','normal')
-Resize1(handles.axes1, handles.icon_img)
+Resize1(handles.axes1, handles.hImg)
 handles.fname = fname;                  handles.type = 'GMT';
 handles.image_type = 1;
 set(handles.figure1,'pointer','arrow')
@@ -351,31 +357,34 @@ att =  gdalread(fname,'-M','-C');
 m = att.RasterXSize;            n = att.RasterYSize;
 handles.head = att.GMT_hdr;     handles.head_orig = handles.head;
 
-% The following serves only for storing file infos
-str = ['gdalinfo ' fname];
-[s,w] = mat_lyies(str,[handles.path_tmp FileName '.info']);     % FileName may retain the comp ext
-if ~(isequal(s,0))                  % An error has occured
-    msg = ['Error getting file info (gdalinfo).', sprintf('\n\n'), 'Error message was:', sprintf('\n'), w];
-    h = errordlg(msg,'Error');    movegui(h,'north');     return
-end
-set(handles.figure1,'pointer','watch')
-file_info = dataread('file',[handles.path_tmp FileName '.info'],'%s','delimiter','\n','whitespace','');
-Hdr = read_gdal_info(file_info);
-Hdr.LL_prj_xmin = num2str(att.Corners.LL(1));   Hdr.LL_prj_ymin = num2str(att.Corners.LL(2));
-Hdr.UR_prj_xmax = num2str(att.Corners.UR(1));   Hdr.UR_prj_ymax = num2str(att.Corners.UR(2));
-Hdr.Zmin = num2str(handles.head(5));            Hdr.Zmax = num2str(handles.head(6));
+% % The following serves only for storing file infos
+% str = ['gdalinfo ' fname];
+% [s,w] = mat_lyies(str,[handles.path_tmp FileName '.info']);     % FileName may retain the comp ext
+% if ~(isequal(s,0))                  % An error has occured
+%     msg = ['Error getting file info (gdalinfo).', sprintf('\n\n'), 'Error message was:', sprintf('\n'), w];
+%     h = errordlg(msg,'Error');    movegui(h,'north');     return
+% end
+% set(handles.figure1,'pointer','watch')
+% file_info = dataread('file',[handles.path_tmp FileName '.info'],'%s','delimiter','\n','whitespace','');
+% Hdr = read_gdal_info(file_info);
+% Hdr.LL_prj_xmin = num2str(att.Corners.LL(1));   Hdr.LL_prj_ymin = num2str(att.Corners.LL(2));
+% Hdr.UR_prj_xmax = num2str(att.Corners.UR(1));   Hdr.UR_prj_ymax = num2str(att.Corners.UR(2));
+% Hdr.Zmin = num2str(handles.head(5));            Hdr.Zmax = num2str(handles.head(6));
 
 jump = min(round(m / 200), round(n / 200));
-opt_P = ['-P' num2str(jump)];
-Z =  gdalread(fname,'-U','-S',opt_P);      [m,n] = size(Z);
+opt_P = sprintf('-P%d',jump);
+opt_S = '-S';
+if (strcmp(att.Band(1).DataType,'Byte')),	opt_S = ' ';	end
+Z =  gdalread(fname,'-U',opt_S,opt_P);      [m,n] = size(Z);
 X = linspace(handles.head(1),handles.head(2),n);
 Y = linspace(handles.head(3),handles.head(4),m);
-colormap(handles.axes1,jet(256));           handles.icon_img = image(X,Y,Z);
+colormap(handles.axes1,jet(256));           handles.hImg = image(X,Y,Z);
 set(handles.axes1,'YDir','normal')
-Resize1(handles.axes1, handles.icon_img)
+Resize1(handles.axes1, handles.hImg)
 handles.fname = fname;
 handles.image_type = 4;
-handles.Hdr = Hdr;
+% handles.Hdr = Hdr;
+grid_info(handles,att,'gdal');				% Construct a info message and save proj (if ...)
 set(handles.figure1,'pointer','arrow')
 guidata(hObject,handles)
 
@@ -411,9 +420,9 @@ opt_P = ['-P' num2str(jump)];
 Z =  gdalread(fname,'-U','-S',opt_P,'-C');      [m,n] = size(Z);
 X = linspace(handles.head(1),handles.head(2),n);
 Y = linspace(handles.head(3),handles.head(4),m);
-colormap(handles.axes1,jet(256));           handles.icon_img = image(X,Y,Z);
+colormap(handles.axes1,jet(256));           handles.hImg = image(X,Y,Z);
 set(handles.axes1,'YDir','normal')
-Resize1(handles.axes1, handles.icon_img)
+Resize1(handles.axes1, handles.hImg)
 handles.fname = fname;
 handles.image_type = 2;             % Flags that info is minimal
 handles.name_uncomp = name_uncomp;  % If not empty this will signal read_DEMs to use the uncompressed file
@@ -512,9 +521,9 @@ opt_P = ['-P' num2str(jump)];
 Z =  gdalread(fname,'-U','-S',opt_P);      [m,n] = size(Z);
 X = linspace(handles.head(1),handles.head(2),n);
 Y = linspace(handles.head(3),handles.head(4),m);
-colormap(handles.axes1,jet(256));           handles.icon_img = image(X,Y,Z);
+colormap(handles.axes1,jet(256));           handles.hImg = image(X,Y,Z);
 set(handles.axes1,'YDir','normal')
-Resize1(handles.axes1, handles.icon_img)
+Resize1(handles.axes1, handles.hImg)
 handles.fname = fname;
 handles.image_type = 2;             % Flags that info is minimal
 handles.name_uncomp = name_uncomp;  % If not empty this will signal read_DEMs to use the uncompressed file
@@ -547,41 +556,39 @@ handles.was_int16 = 0;  % To make sure that it wasnt left = 1 from a previous us
 if isequal(FileName,0);     return;     end
 fname = [PathName FileName];
 
-str = ['gdalinfo ' fname];
-[s,w] = mat_lyies(str,[handles.path_tmp FileName '.info']);
+% str = ['gdalinfo ' fname];
+% [s,w] = mat_lyies(str,[handles.path_tmp FileName '.info']);
+% 
+% if ~(isequal(s,0))                  % An error as occured
+%     msg = ['Error getting file info (gdalinfo).', sprintf('\n\n'), 'Error message was:', sprintf('\n'), w];
+%     h = errordlg(msg,'Error');    movegui(h,'north');     return
+% end
 
-if ~(isequal(s,0))                  % An error as occured
-    msg = ['Error getting file info (gdalinfo).', sprintf('\n\n'), 'Error message was:', sprintf('\n'), w];
-    h = errordlg(msg,'Error');    movegui(h,'north');     return
-end
-
-file_info = dataread('file',[handles.path_tmp FileName '.info'],'%s','delimiter','\n','whitespace','');
-Hdr = read_gdal_info(file_info);
-
-if (strcmp(Hdr.Type,'Byte') | ~isempty(Hdr.CTable))     % We have a raster image
-    warndlg('Reading ENVI or Erdas images are not yet supported (only DEMs).','Warning')
-    return
-end
+% file_info = dataread('file',[handles.path_tmp FileName '.info'],'%s','delimiter','\n','whitespace','');
+% Hdr = read_gdal_info(file_info);
 
 set(handles.figure1,'pointer','watch')
 att =  gdalread(fname,'-M','-C');
 m = att.RasterXSize;            n = att.RasterYSize;
 handles.head = att.GMT_hdr;     handles.head_orig = handles.head;
 
-Hdr.LL_prj_xmin = num2str(att.Corners.LL(1));   Hdr.LL_prj_ymin = num2str(att.Corners.LL(2));
-Hdr.UR_prj_xmax = num2str(att.Corners.UR(1));   Hdr.UR_prj_ymax = num2str(att.Corners.UR(2));
-Hdr.Zmin = num2str(handles.head(5));            Hdr.Zmax = num2str(handles.head(6));
+% Hdr.LL_prj_xmin = num2str(att.Corners.LL(1));   Hdr.LL_prj_ymin = num2str(att.Corners.LL(2));
+% Hdr.UR_prj_xmax = num2str(att.Corners.UR(1));   Hdr.UR_prj_ymax = num2str(att.Corners.UR(2));
+% Hdr.Zmin = num2str(handles.head(5));            Hdr.Zmax = num2str(handles.head(6));
 
 jump = min(round(m / 200), round(n / 200));
-opt_P = ['-P' num2str(jump)];
-Z =  gdalread(fname,'-U','-S',opt_P);      [m,n] = size(Z);
+opt_P = sprintf('-P%d',jump);
+opt_S = '-S';
+if (strcmp(att.Band(1).DataType,'Byte')),	opt_S = ' ';	end
+Z =  gdalread(fname,'-U',opt_S,opt_P);      [m,n] = size(Z);
 X = linspace(handles.head(1),handles.head(2),n);
 Y = linspace(handles.head(3),handles.head(4),m);
-colormap(handles.axes1,jet(256));           handles.icon_img = image(X,Y,Z);
+colormap(handles.axes1,jet(256));           handles.hImg = image(X,Y,Z);
 set(handles.axes1,'YDir','normal')
-Resize1(handles.axes1, handles.icon_img)
+Resize1(handles.axes1, handles.hImg)
 handles.fname = fname;
 handles.image_type = 4;
+grid_info(handles,att,'gdal');				% Construct a info message and save proj (if ...)
 set(handles.figure1,'pointer','watch')
 guidata(hObject,handles)
 

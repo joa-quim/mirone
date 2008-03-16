@@ -307,7 +307,7 @@ function push_compute_Callback(hObject, eventdata, handles)
 function cut2cdf(handles, got_R, west, east, south, north)
 % Save into a multi-layer netCDF file
 
-	%grd_out = 'teste2.nc';
+% 	grd_out = 'teste2.nc';
 	txt1 = 'netCDF grid format (*.nc,*.grd)';
 	txt2 = 'Select output netCDF grid';
 	[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put');
@@ -350,7 +350,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		zz = grdutils(Z,'-L');  handles.head(5:6) = [zz(1) zz(2)];
 
 		if (k == 1)
-			nc_io(grd_out,sprintf('w%d/time',nSlices), handles, reshape(Z,[1 size(Z)]))
+% 			nc_io(grd_out,sprintf('w%d/time',nSlices), handles, reshape(Z,[1 size(Z)]))
+			nc_io(grd_out,sprintf('w%d/time',0), handles, reshape(Z,[1 size(Z)]))
 		else
 			nc_io(grd_out, sprintf('w%d', k-1), handles, Z)
 		end
