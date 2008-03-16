@@ -1834,8 +1834,9 @@ snc_nargoutchk(0,0,nargout);
 % At the end of this process, the list of netcdf files to be 
 % concatenated is in a cell array.
 if ischar(input_ncfiles) && exist(input_ncfiles,'file')
-	afid = fopen ( input_ncfiles, 'r' );
-	input_ncfiles = textscan ( afid, '%s' );
+	error('NC_FUNS:NC_CAT','Input files by file was not implemented')
+% 	afid = fopen ( input_ncfiles, 'r' );
+% 	input_ncfiles = textscan ( afid, '%s' );
 elseif iscell ( input_ncfiles )
 	% Do nothing
 else
@@ -1903,6 +1904,7 @@ infile_abscissa_varindex = NaN*ones(total_length,1);
 % Now read in the abscissa variable for each file.
 start_index = 1;
 use_fake_time = false;			% To signal when "time" var repeats between two contiguous files
+last_first_v = nan;		end_index = nan;		% Just to shut up the compiler
 for j = 1:num_input_files
 	v = double(nc_varget ( input_ncfiles{j}, abscissa_var ));
 	if (j > 1 && v(1) == last_first_v)		% Poor patch for when the two contiguous files have the the same "time" origin
@@ -2138,7 +2140,6 @@ if length(input_buffer.(record_variable)) == 1
 			% 10x5x5, or in other words, has rank 3.
 			% But the incoming data is just a single timestep,
 			% e.g. 5x5.  So we change it into a 1x5x5.
-			clear tmp;
 			tmp(1,:,:) = input_buffer.(varnames{j});
 			input_buffer.(varnames{j}) = tmp;
 
@@ -2291,15 +2292,13 @@ for j = 1:num_vars
 	[varid, status] = mexnc('INQ_VARID', ncid, input_variable{j} );
 	if ( status ~= 0 )
 		mexnc('close',ncid);
-		ncerr = mexnc ( 'strerror', status );
-		snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_varidFailed', ncerr );
+		snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_varidFailed', mexnc ( 'strerror', status ) );
 	end
 
 	[dimids, status] = mexnc('INQ_VARDIMID', ncid, varid);
 	if ( status ~= 0 )
 		mexnc('close',ncid);
-		ncerr = mexnc ( 'strerror', status );
-		snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_vardimidFailed', ncerr );
+		snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_vardimidFailed', mexnc ( 'strerror', status ) );
 	end
 	ndims = length(dimids);
 	dimsize = zeros(ndims,1);
@@ -2307,17 +2306,15 @@ for j = 1:num_vars
 	% make sure that this variable is defined along the unlimited dimension.
 	if ~any(find(dimids==unlimited_dimension_dimid))
 		mexnc('close',ncid);
-		format = 'variable %s must be defined along unlimited dimension %s.\n';
-		snc_error ( 'NC_FUNS:NC_ADD_RECS:missingUnlimitedDimension', ...
-		        format, input_variable{j}, unlimited_dimension_name );
+		format = 'variable %s must be defined along unlimited dimension.\n';
+		snc_error ( 'NC_FUNS:NC_ADD_RECS:missingUnlimitedDimension', format, input_variable{j} );
 	end
 
 	for k = 1:ndims
 		[dim_length, status] = mexnc('INQ_DIMLEN', ncid, dimids(k) );
 		if ( status ~= 0 )
 			mexnc('close',ncid);
-			ncerr = mexnc ( 'strerror', status );
-			snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_dimlenFailed', ncerr );
+			snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_dimlenFailed', mexnc ( 'strerror', status ) );
 		end
 		dimsize(k) = dim_length;
 	end
@@ -2326,8 +2323,7 @@ end
 
 status = mexnc('close',ncid);
 if status ~= 0 
-	ncerr = mexnc ( 'strerror', status );
-	snc_error ( 'NC_FUNS:NC_ADD_RECS:closeFailed', ncerr );
+	snc_error ( 'NC_FUNS:NC_ADD_RECS:closeFailed', mexnc ( 'strerror', status ) );
 end
 
 % =======================================================================
