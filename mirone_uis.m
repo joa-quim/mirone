@@ -61,7 +61,7 @@ if (double(version7(1)) > 54),      version7 = 1;
 else                                version7 = 0;
 end
 
-hVG = zeros(1,17);		kv = 5;
+hVG = zeros(1,17);		kv = 5;		% hVG will contain the handles of "not valid grid" uis to hide when they are not usable
 h_toolbar = uitoolbar('parent',h1, 'BusyAction','queue','HandleVisibility','on','Interruptible','on',...
    'Tag','FigureToolBar','Visible','on');
 uipushtool('parent',h_toolbar,'Click','mirone(''TransferB_CB'',guidata(gcbo),''NewEmpty'')', ...
@@ -400,7 +400,7 @@ hVG(kv) = uimenu('Parent',h92,...
 'Call','mirone(''DrawContours_CB'',guidata(gcbo),''gui'')','Label','Contours','Tag','Contours_i');	kv = kv + 1;
 
 % --------------------------- DATASETS MENU ------------------------------------
-h113 = uimenu('Parent',h1,'Label','Datasets','Tag','Datasets');		%hVG(kv) = h113;		 kv = kv + 1;
+h113 = uimenu('Parent',h1,'Label','Datasets','Tag','Datasets');
 h = uimenu('Parent',h113,'Label','Draw coastline','Tag','VoidDatasetsCoastLine');
 
 uimenu('Parent',h,'Call','datasets_funs(''CoastLines'',guidata(gcbo),''c'')',...
@@ -724,7 +724,8 @@ uimenu('Parent',h278,'Call','ml_clip(guidata(gcbo))','Label','Clip Grid');
 uimenu('Parent',h278,'Call','mirone(''ImageCrop_CB'',guidata(gcbo),[],''CropaGrid'')','Label','Crop Grid');
 uimenu('Parent',h278,'Call','mirone(''RotateTool_CB'',guidata(gcbo),''grid'')','Label','Rotate Grid');
 uimenu('Parent',h278,'Call','mirone(''GridToolsHistogram_CB'',guidata(gcbo))','Label','Histogram');
-uimenu('Parent',h278,'Call','mirone(''GridToolsGridMask_CB'',guidata(gcbo))','Label','Write Mask');
+uimenu('Parent',h278,'Call','mirone(''GridToolsGridMask_CB'',guidata(gcbo))','Label','Write Mask', 'Tag','haveNaNs');
+uimenu('Parent',h278,'Call','inpaint_nans(guidata(gcbo))','Label','Inpaint NaNs', 'Tag','haveNaNs');
 uimenu('Parent',h278,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Allopts'')','Label','FFT tool','Sep','on');
 
 h9 = uimenu('Parent',h278,'Label','Spectrum');
@@ -776,7 +777,7 @@ h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
 uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.2.3)');
 uimenu('Parent',h9, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 uimenu('Parent',h9,...
-'Call','about_box(guidata(gcbo),''Mirone Last modified at 15 March 2008'',''1.3.0b'')','Label','About','Sep','on');
+'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 March 2008'',''1.3.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(h1);
