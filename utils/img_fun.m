@@ -4,6 +4,8 @@ function  varargout = img_fun(opt,varargin)
 switch opt
     case 'adapthisteq'
         varargout{1} = adapthisteq(varargin{:});
+    case 'bwareaopen'
+        varargout{1} = bwareaopen(varargin{:});
     case 'bwboundaries'
         varargout{1} = bwboundaries(varargin{:});
     case 'bwmorph'
@@ -584,6 +586,95 @@ minClipLimit = ceil(numPixInTile/numBins);
 clipLimit = minClipLimit + round(normClipLimit*(numPixInTile-minClipLimit));
 
 %------------------------------------------------------------------------------
+function bw2 = bwareaopen(varargin)
+%BWAREAOPEN Binary area open; remove small objects.
+%   BW2 = BWAREAOPEN(BW,P) removes from a binary image all connected
+%   components (objects) that have fewer than P pixels, producing another
+%   binary image BW2.  The default connectivity is 8 for two dimensions,
+%   26 for three dimensions, and CONNDEF(NDIMS(BW),'maximal') for higer
+%   dimensions. 
+%
+%   BW2 = BWAREAOPEN(BW,P,CONN) specifies the desired connectivity.  CONN
+%   may have the following scalar values:  
+%
+%       4     two-dimensional four-connected neighborhood
+%       8     two-dimensional eight-connected neighborhood
+%       6     three-dimensional six-connected neighborhood
+%       18    three-dimensional 18-connected neighborhood
+%       26    three-dimensional 26-connected neighborhood
+%
+%   Connectivity may be defined in a more general way for any dimension by
+%   using for CONN a 3-by-3-by- ... -by-3 matrix of 0s and 1s.  The 1-valued
+%   elements define neighborhood locations relative to the center element of
+%   CONN.  CONN must be symmetric about its center element.
+%
+%   Class Support
+%   -------------
+%   BW can be a logical or numeric array of any dimension, 
+%   and it must be nonsparse.
+%
+%   BW2 is logical.
+%
+%   Example
+%   -------
+%   Remove all objects in the image text.png containing fewer than 50
+%   pixels.
+%
+%       bwOriginal = imread('text.png');
+%       imview(bwOriginal)
+%       bwAreaOpen_50pixels = bwareaopen(bwOriginal,50);
+%       imview(bwAreaOpen_50pixels)
+%
+%   See also BWLABEL, BWLABELN, CONNDEF, REGIONPROPS.
+
+%   Copyright 1993-2003 The MathWorks, Inc.
+%   $Revision: 1.12 $  $Date: 2003/01/27 20:15:56 $
+
+% Input/output specs
+% ------------------
+% BW:    N-D real full matrix
+%        any numeric class
+%        sparse not allowed
+%        anything that's not logical is converted first using
+%          bw = BW ~= 0
+%        Empty ok
+%        Inf's ok, treated as 1
+%        NaN's ok, treated as 1
+%
+% P:     double scalar
+%        nonnegative integer
+%
+% CONN:  connectivity
+%
+% BW2:   logical, same size as BW
+%        contains only 0s and 1s.
+
+[bw,p,conn] = parse_inputs_bwareaopen(varargin{:});
+
+L = bwlabeln(bw,conn);
+s = regionprops(L,'area');
+area = [s.Area];
+idx = find(area >= p);
+bw2 = ismember(L,idx);
+
+% ----------------------- parse_inputs ---
+function [bw,p,conn] = parse_inputs_bwareaopen(varargin)
+
+checknargin(2,3,nargin,mfilename)
+
+bw = varargin{1};
+checkinput(bw,{'numeric' 'logical'},{'nonsparse'},mfilename,'BW',1);
+if (~islogical(bw)),	bw = bw ~= 0;	end
+
+p = varargin{2};
+checkinput(p,{'double'},{'scalar' 'integer' 'nonnegative'},mfilename,'P',2);
+
+if (nargin >= 3),	conn = varargin{3};
+else				conn = conndef(ndims(bw),'maximal');
+end
+checkconn(conn,mfilename,'CONN',3)
+
+%------------------------------------------------------------------------------
 function [B,L,N,A] = bwboundaries(varargin)
 %BWBOUNDARIES Trace region boundaries in a binary image.
 %   Copyright 1993-2003 The MathWorks, Inc.
@@ -802,6 +893,77 @@ labels = blocks(labels);
 
 % Given label information, create output matrix.
 L = bwlabel2(sr, er, sc, labels, M, N);
+
+% ----------------------------------------------------------------------------
+function [L,num] = bwlabeln(varargin)
+%BWLABELN Label connected components in N-D binary image.
+%   L = BWLABELN(BW) returns a label matrix, L, containing labels for the
+%   connected components in BW.  BW can have any dimension; L is the same
+%   size as BW.  The elements of L are integer values greater than or equal
+%   to 0.  The pixels labeled 0 are the background.  The pixels labeled 1
+%   make up one object, the pixels labeled 2 make up a second object, and so
+%   on.  The default connectivity is 8 for two dimensions, 26 for three
+%   dimensions, and CONNDEF(NDIMS(BW),'maximal') for higher dimensions.
+%
+%   [L,NUM] = BWLABELN(BW) returns the number of connected objects found
+%   in BW.
+%
+%   [L,NUM] = BWLABELN(BW,CONN) specifies the desired connectivity.  CONN
+%   may have the following scalar values:
+%
+%       4     two-dimensional four-connected neighborhood
+%       8     two-dimensional eight-connected neighborhood
+%       6     three-dimensional six-connected neighborhood
+%       18    three-dimensional 18-connected neighborhood
+%       26    three-dimensional 26-connected neighborhood
+%
+%   Connectivity may be defined in a more general way for any dimension by
+%   using for CONN a 3-by-3-by- ... -by-3 matrix of 0s and 1s.  The 1-valued
+%   elements define neighborhood locations relative to the center element of
+%   CONN.  CONN must be symmetric about its center element.
+%
+%   Note: Comparing BWLABEL and BWLABELN
+%   ------------------------------------
+%   BWLABEL supports 2-D inputs only, whereas BWLABELN support any 
+%   input dimension.  In some cases you might prefer to use BWLABELN even
+%   for 2-D problems because it can be faster.  If you have a 2-D input
+%   whose objects are relatively "thick" in the vertical direction,
+%   BWLABEL will probably be faster; otherwise BWLABELN will probably be faster.
+%
+%   Class Support
+%   -------------
+%   BW can be numeric or logical, and it must be real and nonsparse. L is double.
+%
+%   Example
+%   -------
+%       BW = cat(3,[1 1 0; 0 0 0; 1 0 0],...
+%                  [0 1 0; 0 0 0; 0 1 0],...
+%                  [0 1 1; 0 0 0; 0 0 1])
+%       bwlabeln(BW)
+
+%   Copyright 1993-2003 The MathWorks, Inc.  
+%   $Revision: 1.9 $  $Date: 2003/01/17 16:27:22 $
+
+[A,conn] = parse_inputs_bwlabeln(varargin{:});
+
+[L,num] = bwlabelnmex(A,conn);
+
+% ----------------- parse_inputs ---
+function [A,conn] = parse_inputs_bwlabeln(varargin)
+
+checknargin(1,2,nargin,mfilename);
+
+checkinput(varargin{1}, {'numeric', 'logical'}, {'real' 'nonsparse'}, mfilename, 'BW', 1);
+
+A = varargin{1};
+if (~islogical(A)),		A = A ~= 0;		end
+
+if nargin < 2
+    conn = conndef(ndims(A), 'maximal');
+else
+    conn = varargin{2};
+    checkconn(conn,mfilename,'CONN',2);
+end
 
 %-----------------------------------------------------------------------------
 function pixelx = axes2pix(dim, x, axesx)
@@ -3503,14 +3665,11 @@ function image = changeclass(class, varargin)
 %   Copyright 1993-2003 The MathWorks, Inc.  
 %   $Revision: 1.9 $  $Date: 2003/01/17 16:28:15 $
 switch class
-case 'uint8'
-    image = im2uint8(varargin{:});
-case 'uint16'
-    image = im2uint16(varargin{:});
-case 'double'
-    image = im2double(varargin{:});
-otherwise
-    error('Unsupported IPT data class.');
+	case 'uint8',	image = im2uint8(varargin{:});
+	case 'uint16',	image = im2uint16(varargin{:});
+	case 'double',	image = im2double(varargin{:});
+	otherwise
+		error('Unsupported IPT data class.');
 end
 
 %----------------------------------------------------------------------------------
@@ -3530,8 +3689,7 @@ numeric_classes = {'double' 'uint8' 'uint16' 'uint32' 'int8' 'int16' 'int32' 'si
 tf = false;
 for p = 1:length(numeric_classes)
     if isa(A, numeric_classes{p})
-        tf = true;
-        break;
+        tf = true;		break
     end
 end
 
@@ -6204,3 +6362,873 @@ function tf = switch_to_nearest_method(new_size, old_size, method)
 % because of the input and output image sizes.
 
 tf = any(new_size < 4) && any(new_size < old_size) && (method(1) ~= 'n');
+
+% -----------------------------------------------------------------------
+function outstats = regionprops(varargin)
+%REGIONPROPS Measure properties of image regions.
+%   STATS = REGIONPROPS(L,PROPERTIES) measures a set of properties for each
+%   labeled region in the label matrix L. Positive integer elements of L
+%   correspond to different regions. For example, the set of elements of L
+%   equal to 1 corresponds to region 1; the set of elements of L equal to 2
+%   corresponds to region 2; and so on. STATS is a structure array of length
+%   max(L(:)). The fields of the structure array denote different properties
+%   for each region, as specified by PROPERTIES.
+%
+%   PROPERTIES can be a comma-separated list of strings, a cell array
+%   containing strings, the string 'all', or the string 'basic'. The set of
+%   valid measurement strings includes:
+%
+%     'Area'              'ConvexHull'    'EulerNumber'
+%     'Centroid'          'ConvexImage'   'Extrema'       
+%     'BoundingBox'       'ConvexArea'    'EquivDiameter' 
+%     'SubarrayIdx'       'Image'         'Solidity'      
+%     'MajorAxisLength'   'PixelList'     'Extent'        
+%     'MinorAxisLength'   'PixelIdxList'  'FilledImage'  
+%     'Orientation'                       'FilledArea'                   
+%     'Eccentricity'                       
+%                                                         
+%   Property strings are case insensitive and can be abbreviated.
+%
+%   If PROPERTIES is the string 'all', then all of the above measurements
+%   are computed. If PROPERTIES is not specified or if it is the string
+%   'basic', then these measurements are computed: 'Area', 'Centroid', and
+%   'BoundingBox'.
+%
+%   Note - REGIONPROPS and binary images
+%   ------------------------------------
+%   REGIONPROPS does not accept a binary image as its first input.  There
+%   are two common ways to convert a binary image to a label matrix:
+%
+%       1.  L = bwlabel(BW);
+%
+%       2.  L = double(BW);
+%
+%   Suppose that BW were a logical matrix containing these values:
+%
+%       1 1 0 0 0 0
+%       1 1 0 0 0 0
+%       0 0 0 0 0 0
+%       0 0 0 0 1 1
+%       0 0 0 0 1 1
+%
+%   The first method of forming a label matrix, L = bwlabel(BW), results
+%   in a label matrix containing two contiguous regions labeled by the
+%   integer values 1 and 2.  The second method of forming a label matrix,
+%   L = double(BW), results in a label matrix containing one
+%   discontiguous region labeled by the integer value 1.  Since each
+%   result is legitimately desirable in certain situations, REGIONPROPS
+%   does not accept binary images and convert them using either method.
+%   You should convert a binary image to a label matrix using one of
+%   these methods (or another method if appropriate) before calling
+%   REGIONPROPS.
+%
+%   Example
+%   -------
+%   Label the connected pixel components in the text.png image, compute
+%   their centroids, and superimpose the centroid locations on the
+%   image.
+%
+%       bw = imread('text.png');
+%       L = bwlabel(bw);
+%       s  = regionprops(L, 'centroid');
+%       centroids = cat(1, s.Centroid);
+%       imshow(bw)
+%       hold on
+%       plot(centroids(:,1), centroids(:,2), 'b*')
+%       hold off
+%
+%   Class Support
+%   -------------
+%   The input label matrix L can have any numeric class.
+%
+%   See also BWLABEL, BWLABELN, ISMEMBER, WATERSHED.
+
+%   Copyright 1993-2003 The MathWorks, Inc.  
+%   $Revision: 1.10 $  $Date: 2003/03/03 14:26:34 $
+
+officialStats = {'Area'
+                 'Centroid'
+                 'BoundingBox'
+                 'SubarrayIdx'
+                 'MajorAxisLength'
+                 'MinorAxisLength'
+                 'Eccentricity'
+                 'Orientation'
+                 'ConvexHull'
+                 'ConvexImage'
+                 'ConvexArea'
+                 'Image'
+                 'FilledImage'
+                 'FilledArea'
+                 'EulerNumber'
+                 'Extrema'
+                 'EquivDiameter'
+                 'Solidity'
+                 'Extent'
+                 'PixelIdxList'
+                 'PixelList'};
+tempStats = {'PerimeterCornerPixelList'};
+allStats = [officialStats ; tempStats];
+
+[L, requestedStats, msg] = ParseInputs_regionprops(officialStats, varargin{:});
+if (~isempty(msg))
+    error(msg);
+end
+
+if ndims(L) > 2
+    % Remove stats that aren't supported for N-D input and issue warning messages as appropriate.
+    requestedStats = PreprocessRequestedStats(requestedStats);
+end
+
+if isempty(requestedStats)
+    error('No input properties')
+end
+
+if (isempty(L))
+    numObjs = 0;
+else
+    numObjs = round(double(max(L(:))));
+end
+
+% Initialize the stats structure array.
+numStats = length(allStats);
+empties = cell(numStats, numObjs);
+stats = cell2struct(empties, allStats, 1);
+
+% Initialize the computedStats structure array.
+zz = cell(numStats, 1);
+for k = 1:numStats
+    zz{k} = 0;
+end
+computedStats = cell2struct(zz, allStats, 1);
+
+for k = 1:length(requestedStats)
+	switch requestedStats{k}
+		case 'Area',		[stats, computedStats] = ComputeArea(L, stats, computedStats);
+		case 'FilledImage',	[stats, computedStats] = ComputeFilledImage(L,stats,computedStats);
+		case 'FilledArea',	[stats, computedStats] = ComputeFilledArea(L,stats,computedStats);
+		case 'ConvexArea',	[stats, computedStats] = ComputeConvexArea(L, stats, computedStats);
+		case 'Centroid',	[stats, computedStats] = ComputeCentroid(L, stats, computedStats);
+		case 'EulerNumber',	[stats, computedStats] = ComputeEulerNumber(L,stats,computedStats);
+		case 'EquivDiameter',[stats, computedStats] = ComputeEquivDiameter(L, stats, computedStats);
+		case 'Extrema',		[stats, computedStats] = ComputeExtrema(L, stats, computedStats);
+		case 'BoundingBox',	[stats, computedStats] = ComputeBoundingBox(L, stats, computedStats);
+		case 'SubarrayIdx',	[stats, computedStats] = ComputeSubarrayIdx(L, stats, computedStats);
+		case {'MajorAxisLength', 'MinorAxisLength', 'Orientation', 'Eccentricity'}
+            [stats, computedStats] = ComputeEllipseParams(L, stats, computedStats);
+		case 'Solidity',	[stats, computedStats] = ComputeSolidity(L, stats, computedStats);
+		case 'Extent',		[stats, computedStats] = ComputeExtent(L, stats, computedStats);
+		case 'ConvexImage',	[stats, computedStats] = ComputeConvexImage(L, stats, computedStats);
+		case 'ConvexHull',	[stats, computedStats] = ComputeConvexHull(L, stats, computedStats);
+		case 'Image',		[stats, computedStats] = ComputeImage(L, stats, computedStats);
+		case 'PixelIdxList',[stats, computedStats] = ComputePixelIdxList(L, stats, computedStats);
+		case 'PixelList',	[stats, computedStats] = ComputePixelList(L, stats, computedStats);
+	end
+end
+
+% Initialize the output stats structure array.
+numStats = length(requestedStats);
+empties = cell(numStats, numObjs);
+outstats = cell2struct(empties, requestedStats, 1);
+
+% Initialize the subsref structure.
+s(1).type = '()';
+s(1).subs = {};
+s(2).type = '.';
+s(2).subs = '';
+
+% Copy only the requested stats into the output.
+for k = 1:numObjs
+    for p = 1:length(requestedStats)
+        s(1).subs = {k};
+        s(2).subs = {requestedStats{p}};
+        
+        % In normal MATLAB syntax, the line below is the same as:
+        %    outstats(k).fieldname = stats(k).fieldname
+        % where fieldname is the string contained in
+        % requestedStats{p}.  If you don't give subsasgn an
+        % output argument it changes its first input argument in-place.
+        outstats = subsasgn(outstats, s, subsref(stats, s));
+    end
+end
+    
+%%%
+%%% ComputeArea
+%%%
+function [stats, computedStats] = ComputeArea(L, stats, computedStats)
+%   The area is defined to be the number of pixels belonging to
+%   the region.
+
+if ~computedStats.Area
+    computedStats.Area = 1;
+
+    [stats, computedStats] = ComputePixelIdxList(L, stats, computedStats);
+
+    for k = 1:length(stats)
+        stats(k).Area = size(stats(k).PixelIdxList, 1);
+    end
+end
+
+%%%
+%%% ComputeEquivDiameter
+%%%
+function [stats, computedStats] = ComputeEquivDiameter(L, stats, computedStats)
+%   Computes the diameter of the circle that has the same area as
+%   the region.
+%   Ref: Russ, The Image Processing Handbook, 2nd ed, 1994, page
+%   511.
+
+if ~computedStats.EquivDiameter
+    computedStats.EquivDiameter = 1;
+    
+    if ndims(L) > 2
+		NoNDSupport('EquivDiameter');		return
+    end
+        
+    [stats, computedStats] = ComputeArea(L, stats, computedStats);
+
+    factor = 2/sqrt(pi);
+    for k = 1:length(stats)
+        stats(k).EquivDiameter = factor * sqrt(stats(k).Area);
+    end
+end
+
+%%%
+%%% ComputeFilledImage
+%%%
+function [stats, computedStats] = ComputeFilledImage(L,stats,computedStats)
+%   Uses imfill to fill holes in the region.
+
+if ~computedStats.FilledImage
+    computedStats.FilledImage = 1;
+    
+    [stats, computedStats] = ComputeImage(L, stats, computedStats);
+    
+    conn = conndef(ndims(L),'minimal');
+    
+    for k = 1:length(stats)
+        stats(k).FilledImage = imfill(stats(k).Image,conn,'holes');
+    end
+end
+
+%%%
+%%% ComputeConvexArea
+%%%
+function [stats, computedStats] = ComputeConvexArea(L, stats, computedStats)
+%   Computes the number of "on" pixels in ConvexImage.
+
+if ~computedStats.ConvexArea
+    computedStats.ConvexArea = 1;
+    
+    if ndims(L) > 2
+        NoNDSupport('ConvexArea');		return
+    end
+        
+    [stats, computedStats] = ComputeConvexImage(L, stats, computedStats);
+    
+    for k = 1:length(stats)
+        stats(k).ConvexArea = sum(stats(k).ConvexImage(:));
+    end
+end
+
+%%%
+%%% ComputeFilledArea
+%%%
+function [stats, computedStats] = ComputeFilledArea(L,stats,computedStats)
+%   Computes the number of "on" pixels in FilledImage.
+
+if ~computedStats.FilledArea
+    computedStats.FilledArea = 1;
+    
+    [stats, computedStats] = ComputeFilledImage(L,stats,computedStats);
+
+    for k = 1:length(stats)
+        stats(k).FilledArea = sum(stats(k).FilledImage(:));
+    end
+end
+
+%%%
+%%% ComputeConvexImage
+%%%
+function [stats, computedStats] = ComputeConvexImage(L, stats, computedStats)
+%   Uses ROIPOLY to fill in the convex hull.
+
+if ~computedStats.ConvexImage
+    computedStats.ConvexImage = 1;
+    
+    if ndims(L) > 2
+        NoNDSupport('ConvexImage');
+        return
+    end
+        
+    [stats, computedStats] = ComputeConvexHull(L, stats, computedStats);
+    [stats, computedStats] = ComputeBoundingBox(L, stats, computedStats);
+    
+    for k = 1:length(stats)
+        M = stats(k).BoundingBox(4);
+        N = stats(k).BoundingBox(3);
+        hull = stats(k).ConvexHull;
+        if (isempty(hull))
+            stats(k).ConvexImage = false(M,N);
+        else
+            firstRow = stats(k).BoundingBox(2) + 0.5;
+            firstCol = stats(k).BoundingBox(1) + 0.5;
+            r = hull(:,2) - firstRow + 1;
+            c = hull(:,1) - firstCol + 1;
+            stats(k).ConvexImage = roipoly(M, N, c, r);
+        end
+    end
+end
+
+%%%
+%%% ComputeCentroid
+%%%
+function [stats, computedStats] = ComputeCentroid(L, stats, computedStats)
+%   [mean(r) mean(c)]
+
+if ~computedStats.Centroid
+    computedStats.Centroid = 1;
+    
+    [stats, computedStats] = ComputePixelList(L, stats, computedStats);
+
+    
+    % Save the warning state and disable warnings to prevent divide-by-zero
+    % warnings.
+    state = warning;
+    warning off;
+    
+    for k = 1:length(stats)
+        stats(k).Centroid = mean(stats(k).PixelList,1);
+    end
+    
+    % Restore the warning state.
+    warning(state);
+end
+
+%%%
+%%% ComputeEulerNumber
+%%%
+function [stats, computedStats] = ComputeEulerNumber(L,stats,computedStats)
+%   Calls BWEULER on 'Image' using 8-connectivity
+
+if ~computedStats.EulerNumber
+    computedStats.EulerNumber = 1;
+    
+    if ndims(L) > 2
+        NoNDSupport('EulerNumber');
+        return
+    end
+    
+    [stats, computedStats] = ComputeImage(L, stats, computedStats);
+    
+    for k = 1:length(stats)
+        stats(k).EulerNumber = bweuler(stats(k).Image,8);
+    end
+end
+
+%%%
+%%% ComputeExtrema
+%%%
+function [stats, computedStats] = ComputeExtrema(L, stats, computedStats)
+%   A 8-by-2 array; each row contains the x and y spatial
+%   coordinates for these extrema:  leftmost-top, rightmost-top,
+%   topmost-right, bottommost-right, rightmost-bottom, leftmost-bottom,
+%   bottommost-left, topmost-left. 
+%   reference: Haralick and Shapiro, Computer and Robot Vision
+%   vol I, Addison-Wesley 1992, pp. 62-64.
+
+if ~computedStats.Extrema
+    computedStats.Extrema = 1;
+    
+    if ndims(L) > 2
+        NoNDSupport('Extrema');
+        return
+    end
+        
+    [stats, computedStats] = ComputePixelList(L, stats, computedStats);
+    
+    for k = 1:length(stats)
+        pixelList = stats(k).PixelList;
+        if (isempty(pixelList))
+            stats(k).Extrema = zeros(8,2) + 0.5;
+        else
+            r = pixelList(:,2);
+            c = pixelList(:,1);
+            
+            minR = min(r);
+            maxR = max(r);
+            minC = min(c);
+            maxC = max(c);
+            
+            minRSet = find(r==minR);
+            maxRSet = find(r==maxR);
+            minCSet = find(c==minC);
+            maxCSet = find(c==maxC);
+
+            % Points 1 and 2 are on the top row.
+            r1 = minR;
+            r2 = minR;
+            % Find the minimum and maximum column coordinates for top-row pixels.
+            tmp = c(minRSet);
+            c1 = min(tmp);
+            c2 = max(tmp);
+            
+            % Points 3 and 4 are on the right column.
+            % Find the minimum and maximum row coordinates for right-column pixels.
+            tmp = r(maxCSet);
+            r3 = min(tmp);
+            r4 = max(tmp);
+            c3 = maxC;
+            c4 = maxC;
+
+            % Points 5 and 6 are on the bottom row.
+            r5 = maxR;
+            r6 = maxR;
+            % Find the minimum and maximum column coordinates for bottom-row pixels.
+            tmp = c(maxRSet);
+            c5 = max(tmp);
+            c6 = min(tmp);
+            
+            % Points 7 and 8 are on the left column.
+            % Find the minimum and maximum row coordinates for left-column pixels.
+            tmp = r(minCSet);
+            r7 = max(tmp);
+            r8 = min(tmp);
+            c7 = minC;
+            c8 = minC;
+            
+            stats(k).Extrema = [c1-0.5 r1-0.5
+                c2+0.5 r2-0.5
+                c3+0.5 r3-0.5
+                c4+0.5 r4+0.5
+                c5+0.5 r5+0.5
+                c6-0.5 r6+0.5
+                c7-0.5 r7+0.5
+                c8-0.5 r8-0.5];
+        end
+    end
+    
+end
+        
+%%%
+%%% ComputeBoundingBox
+%%%
+function [stats, computedStats] = ComputeBoundingBox(L, stats, computedStats)
+%   [minC minR width height]; minC and minR end in .5.
+
+if ~computedStats.BoundingBox
+    computedStats.BoundingBox = 1;
+    
+    [stats, computedStats] = ComputePixelList(L, stats, computedStats);
+    
+    num_dims = ndims(L);
+    
+    for k = 1:length(stats)
+        list = stats(k).PixelList;
+        if (isempty(list))
+            stats(k).BoundingBox = [0.5*ones(1,num_dims) zeros(1,num_dims)];
+        else
+            min_corner = min(list,[],1) - 0.5;
+            max_corner = max(list,[],1) + 0.5;
+            stats(k).BoundingBox = [min_corner (max_corner - min_corner)];
+        end
+    end
+end
+
+%%%
+%%% ComputeSubarrayIdx
+%%%
+function [stats, computedStats] = ComputeSubarrayIdx(L, stats, computedStats)
+%   Find a cell-array containing indices so that L(idx{:}) extracts the
+%   elements of L inside the bounding box.
+
+if ~computedStats.SubarrayIdx
+    computedStats.SubarrayIdx = 1;
+    
+    [stats, computedStats] = ComputeBoundingBox(L, stats, computedStats);
+    num_dims = ndims(L);
+    idx = cell(1,num_dims);
+    for k = 1:length(stats)
+        boundingBox = stats(k).BoundingBox;
+        left = boundingBox(1:(end/2));
+        right = boundingBox((1+end/2):end);
+        left = left(1,[2 1 3:end]);
+        right = right(1,[2 1 3:end]);
+        for p = 1:num_dims
+            first = left(p) + 0.5;
+            last = first + right(p) - 1;
+            idx{p} = first:last;
+        end
+        stats(k).SubarrayIdx = idx;
+    end
+end
+
+%%%
+%%% ComputeEllipseParams
+%%%
+function [stats, computedStats] = ComputeEllipseParams(L, stats, computedStats)
+%   Find the ellipse that has the same 2nd-order moments as the region.
+%   Compute the axes lengths, orientation, and eccentricity of the ellipse.
+%   Ref: Haralick and Shapiro, Computer and Robot Vision
+%   vol I, Addison-Wesley 1992, Appendix A.
+
+
+if ~(computedStats.MajorAxisLength & computedStats.MinorAxisLength & ...
+            computedStats.Orientation & computedStats.Eccentricity)
+    computedStats.MajorAxisLength = 1;
+    computedStats.MinorAxisLength = 1;
+    computedStats.Eccentricity = 1;
+    computedStats.Orientation = 1;
+    
+    if ndims(L) > 2
+        NoNDSupport({'MajorAxisLength', 'MinorAxisLength', 'Eccentricity', 'Orientation'});
+        return
+    end
+        
+    [stats, computedStats] = ComputePixelList(L, stats, computedStats);
+    [stats, computedStats] = ComputeCentroid(L, stats, computedStats);
+
+    % Disable divide-by-zero warning
+    warning_state = warning;
+    warning('off');
+    
+    for k = 1:length(stats)
+        list = stats(k).PixelList;
+        if (isempty(list))
+            stats(k).MajorAxisLength = 0;
+            stats(k).MinorAxisLength = 0;
+            stats(k).Eccentricity = 0;
+            stats(k).Orientation = 0;
+            
+        else
+            % Assign X and Y variables so that we're measuring orientation
+            % counterclockwise from the horizontal axis.
+            
+            xbar = stats(k).Centroid(1);
+            ybar = stats(k).Centroid(2);
+            
+            x = list(:,1) - xbar;
+            y = -(list(:,2) - ybar);
+            
+            N = length(x);
+            uxx = sum(x.^2)/N + 1/12;
+            uyy = sum(y.^2)/N + 1/12;
+            uxy = sum(x.*y)/N;
+            
+            common = sqrt((uxx - uyy)^2 + 4*uxy^2);
+            stats(k).MajorAxisLength = 2*sqrt(2)*sqrt(uxx + uyy + common);
+            stats(k).MinorAxisLength = 2*sqrt(2)*sqrt(uxx + uyy - common);
+            stats(k).Eccentricity = 2*sqrt((stats(k).MajorAxisLength/2)^2 - ...
+                    (stats(k).MinorAxisLength/2)^2) / ...
+                    stats(k).MajorAxisLength;
+            
+            if (uyy > uxx)
+                num = uyy - uxx + sqrt((uyy - uxx)^2 + 4*uxy^2);
+                den = 2*uxy;
+            else
+                num = 2*uxy;
+                den = uxx - uyy + sqrt((uxx - uyy)^2 + 4*uxy^2);
+            end
+            if (num == 0) & (den == 0)
+                stats(k).Orientation = 0;
+            else
+                stats(k).Orientation = (180/pi) * atan(num/den);
+            end
+        end
+    end
+    
+    % Restore warning state.
+    warning(warning_state);
+end
+    
+%%%
+%%% ComputeSolidity
+%%%
+function [stats, computedStats] = ComputeSolidity(L, stats, computedStats)
+%   Area / ConvexArea
+
+if ~computedStats.Solidity
+    computedStats.Solidity = 1;
+    
+    if ndims(L) > 2
+        NoNDSupport('Solidity');
+        return
+    end
+        
+    [stats, computedStats] = ComputeArea(L, stats, computedStats);
+    [stats, computedStats] = ComputeConvexArea(L, stats, computedStats);
+    
+    for k = 1:length(stats)
+        if (stats(k).ConvexArea == 0)
+            stats(k).Solidity = NaN;
+        else
+            stats(k).Solidity = stats(k).Area / stats(k).ConvexArea;
+        end
+    end
+end
+
+%%%
+%%% ComputeExtent
+%%%
+function [stats, computedStats] = ComputeExtent(L, stats, computedStats)
+%   Area / (BoundingBox(3) * BoundingBox(4))
+
+if ~computedStats.Extent
+    computedStats.Extent = 1;
+    
+    if ndims(L) > 2
+        NoNDSupport('Extent');
+        return
+    end
+        
+    [stats, computedStats] = ComputeArea(L, stats, computedStats);
+    [stats, computedStats] = ComputeBoundingBox(L, stats, computedStats);
+    
+    for k = 1:length(stats)
+        if (stats(k).Area == 0)
+            stats(k).Extent = NaN;
+        else
+            stats(k).Extent = stats(k).Area / prod(stats(k).BoundingBox(3:4));
+        end
+    end
+end
+
+%%%
+%%% ComputeImage
+%%%
+function [stats, computedStats] = ComputeImage(L, stats, computedStats)
+%   Binary image containing "on" pixels corresponding to pixels
+%   belonging to the region.  The size of the image corresponds
+%   to the size of the bounding box for each region.
+
+if ~computedStats.Image
+    computedStats.Image = 1;
+
+    [stats, computedStats] = ComputeSubarrayIdx(L, stats, computedStats);
+
+    for k = 1:length(stats)
+        subarray = L(stats(k).SubarrayIdx{:});
+        if ~isempty(subarray)
+            stats(k).Image = (subarray == k);
+        else
+            stats(k).Image = logical(subarray);
+        end
+    end
+end
+
+%%%
+%%% ComputePixelIdxList
+%%%
+function [stats, computedStats] = ComputePixelIdxList(L, stats, computedStats)
+%   A P-by-1 matrix, where P is the number of pixels belonging to
+%   the region.  Each element contains the linear index of the corresponding pixel.
+
+if ~computedStats.PixelIdxList
+    computedStats.PixelIdxList = 1;
+    
+    % Form a sparse matrix containing one column per region.  In
+    % column P, the location of nonzero values correspond to the
+    % linear indices of pixels in L that have value P.  For
+    % example, S(100,5) is nonzero if and only L(100) equals 5.
+    idx = find(L);
+    elementValues = L(idx);
+    S = sparse(idx, double(elementValues), 1);
+
+    for k = 1:length(stats)
+        stats(k).PixelIdxList = find(S(:,k));
+    end
+end
+
+%%%
+%%% ComputePixelList
+%%%
+function [stats, computedStats] = ComputePixelList(L, stats, computedStats)
+%   A P-by-2 matrix, where P is the number of pixels belonging to
+%   the region.  Each row contains the row and column coordinates of a pixel.
+
+if ~computedStats.PixelList
+    computedStats.PixelList = 1;
+    
+    [stats, computedStats] = ComputePixelIdxList(L, stats, computedStats);
+    
+    % Loop over each column of the sparse matrix.  Finding the
+    % row indices of the nonzero entries in S(:,P) is equivalent
+    % to finding the linear indices of pixels in L that equal P.
+    % Convert the linear indices to subscripts and store
+    % the results in the pixel list.  Reverse the order of the first
+    % two subscripts to form x-y order.
+    In = cell(1,ndims(L));
+    for k = 1:length(stats)
+        if ~isempty(stats(k).PixelIdxList)
+            [In{:}] = ind2sub(size(L), stats(k).PixelIdxList);
+            stats(k).PixelList = [In{:}];
+            stats(k).PixelList = stats(k).PixelList(:,[2 1 3:end]);
+        else
+            stats(k).PixelList = zeros(0,ndims(L));
+        end
+    end
+end
+
+%%%
+%%% ComputePerimeterCornerPixelList
+%%%
+function [stats, computedStats] = ComputePerimeterCornerPixelList(L, stats, computedStats)
+%   Find the pixels on the perimeter of the region; make a list
+%   of the coordinates of their corners; sort and remove duplicates.
+
+if ~computedStats.PerimeterCornerPixelList
+    computedStats.PerimeterCornerPixelList = 1;
+    
+    if ndims(L) > 2
+        NoNDSupport('PerimeterCornerPixelList');
+        return
+    end
+    
+    [stats, computedStats] = ComputeImage(L, stats, computedStats);
+    [stats, computedStats] = ComputeBoundingBox(L, stats, computedStats);
+
+    for k = 1:length(stats)
+        perimImage = bwmorph(stats(k).Image, 'perim8');
+        firstRow = stats(k).BoundingBox(2) + 0.5;
+        firstCol = stats(k).BoundingBox(1) + 0.5;
+        [r,c] = find(perimImage);
+        % Force rectangular empties.
+        r = r(:) + firstRow - 1;
+        c = c(:) + firstCol - 1;
+        rr = [r-.5 ; r    ; r+.5 ; r   ];
+        cc = [c    ; c+.5 ; c    ; c-.5];
+        stats(k).PerimeterCornerPixelList = [cc rr];
+    end
+    
+end
+
+%%%
+%%% ComputeConvexHull
+%%%
+function [stats, computedStats] = ComputeConvexHull(L, stats, computedStats)
+%   A P-by-2 array representing the convex hull of the region.
+%   The first column contains row coordinates; the second column
+%   contains column coordinates.  The resulting polygon goes
+%   through pixel corners, not pixel centers.
+
+if ~computedStats.ConvexHull
+    computedStats.ConvexHull = 1;
+    
+    if ndims(L) > 2
+        NoNDSupport('ConvexHull');
+        return
+    end
+    
+    [stats, computedStats] = ComputePerimeterCornerPixelList(L, stats, computedStats);
+    [stats, computedStats] = ComputeBoundingBox(L, stats, computedStats);
+
+    for k = 1:length(stats)
+        list = stats(k).PerimeterCornerPixelList;
+        if (isempty(list))
+            stats(k).ConvexHull = zeros(0,2);
+        else
+            rr = list(:,2);
+            cc = list(:,1);
+            hullIdx = convhull(rr, cc);
+            stats(k).ConvexHull = list(hullIdx,:);
+        end
+    end
+end
+
+%%%
+%%% ParseInputs
+%%%
+function [L,reqStats,msg] = ParseInputs_regionprops(officialStats, varargin)
+
+L = [];
+reqStats = [];
+msg = '';
+
+if (length(varargin) < 1)
+    msg = 'Too few input arguments.';
+    return
+end
+
+L = varargin{1};
+
+if islogical(L)
+    msg = 'Use bwlabel(BW) or double(BW) convert binary image to label matrix before calling regionprops.';
+    error('Images:regionprops:binaryInput', '%s', msg);
+end
+
+checkinput(L, {'numeric'}, {'real', 'integer', 'nonnegative'}, mfilename, 'L', 1);
+
+list = varargin(2:end);
+if (~isempty(list) & ~iscell(list{1}) & strcmp(lower(list{1}), 'all'))
+    reqStats = officialStats;
+    reqStatsIdx = 1:length(officialStats);
+    
+elseif (isempty(list) | (~iscell(list{1}) & strcmp(lower(list{1}),'basic')))
+    % Default list
+    reqStats = {'Area' 'Centroid' 'BoundingBox'};
+else
+    
+    if (iscell(list{1})),	list = list{1};		end
+    list = list(:);
+
+    officialStatsL = lower(officialStats);
+
+    reqStatsIdx = [];
+    for k = 1:length(list)
+        if (~isstr(list{k}))
+            msg = 'Invalid input argument.';
+            return
+        end
+        
+        idx = strmatch(lower(list{k}), officialStatsL);
+        if (isempty(idx))
+            msg = sprintf('Unknown measurement: "%s".', list{k});
+            return
+        elseif (length(idx) > 1)
+            msg = sprintf('Ambiguous measurement: "%s".', list{k});
+            return
+        else
+            reqStatsIdx = [reqStatsIdx; idx];
+        end
+    end
+    
+    reqStats = officialStats(reqStatsIdx);
+end
+
+%%%
+%%% NoNDSupport
+%%%
+function NoNDSupport(str)
+%   Issue a warning message about lack of N-D support for a given  measurement or measurements.
+
+if iscell(str)
+    warn_str = sprintf('%s: %s ', 'These measurements are not supported if ndims(L) > 2', sprintf('%s ', str{:}));
+else
+    warn_str = sprintf('%s: %s', 'This measurement is not supported if ndims(L) > 2', str);
+end
+warning(warn_str)
+
+%%% PreprocessRequestedStats
+function requestedStats = PreprocessRequestedStats(requestedStats)
+%   Remove any requested stats that are not supported for N-D input and issue an appropriate warning.
+
+no_nd_measurements = {'MajorAxisLength'
+                    'MinorAxisLength'
+                    'Eccentricity'
+                    'Orientation'
+                    'ConvexHull'
+                    'ConvexImage'
+                    'ConvexArea'
+                    'EulerNumber'
+                    'Extrema'
+                    'EquivDiameter'
+                    'Solidity'
+                    'Extent'
+                    'PerimeterCornerPixelList'};
+
+bad_stats = find(ismember(requestedStats, no_nd_measurements));
+if ~isempty(bad_stats)
+    NoNDSupport(requestedStats(bad_stats));
+end
+
+requestedStats(bad_stats) = [];
