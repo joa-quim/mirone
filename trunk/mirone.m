@@ -478,33 +478,33 @@ elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )       % Do the ope
     end
     done = true;				% We are done. BYE BYE.
 elseif (strcmp(opt2,'FillGaps'))
-    if ~any(isnan(Z_rect(:)))    % No gaps
-        set(handles.figure1,'pointer','arrow');    warndlg('Selected area does not have any voids (NaNs)','Warning');   return
-    else
-        X = (head(1) + (r_c(3)-1)*head(8)):head(8):(head(1) + (r_c(4)-1)*head(8));
-        Y = (head(3) + (r_c(1)-1)*head(9)):head(9):(head(3) + (r_c(2)-1)*head(9));
-        if (~isempty(opt3) && strcmp(opt3,'surface'))
-            opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
-            opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
-        end
-        Z_rect = double(Z_rect);      % It has to be
-        aa = isnan(Z_rect(:));
-        [X,Y] = meshgrid(X,Y);
-        ZZ = Z_rect(:);     ZZ(aa) = [];
-        XX = X(:);          XX(aa) = [];
-        YY = Y(:);          YY(aa) = [];
-        if (~isempty(opt3))
-            switch opt3
+	if ~any(isnan(Z_rect(:)))    % No gaps
+		set(handles.figure1,'pointer','arrow');    warndlg('Selected area does not have any voids (NaNs)','Warning');   return
+	else
+		X = (head(1) + (r_c(3)-1)*head(8)):head(8):(head(1) + (r_c(4)-1)*head(8));
+		Y = (head(3) + (r_c(1)-1)*head(9)):head(9):(head(3) + (r_c(2)-1)*head(9));
+		if (~isempty(opt3) && strcmp(opt3,'surface'))
+			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
+			opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
+		end
+		Z_rect = double(Z_rect);      % It has to be
+		aa = isnan(Z_rect(:));
+		[X,Y] = meshgrid(X,Y);
+		ZZ = Z_rect(:);     ZZ(aa) = [];
+		XX = X(:);          XX(aa) = [];
+		YY = Y(:);          YY(aa) = [];
+		if (~isempty(opt3))
+			switch opt3
 				case 'surface', Z_rect = surface_m(XX,YY,ZZ,opt_R,opt_I,'-T.25');
 				case 'cubic',   Z_rect = griddata_j(XX,YY,ZZ,X,Y,'cubic');
 				case 'linear',  Z_rect = griddata_j(XX,YY,ZZ,X,Y,'linear');
 				case 'sea',     Z_rect(aa) = 0;
-            end
-        else
+			end
+		else
 			Z_rect = surface_m(XX,YY,ZZ,opt_R,opt_I,'-T.25','-v');
-        end
-        clear X XX Y YY ZZ;
-    end
+		end
+		clear X XX Y YY ZZ;
+	end
 elseif (strcmp(opt2,'SplineSmooth'))
 	X = (head(1) + (r_c(3)-1)*head(8)):head(8):(head(1) + (r_c(4)-1)*head(8));
 	Y = (head(3) + (r_c(1)-1)*head(9)):head(9):(head(3) + (r_c(2)-1)*head(9));
@@ -517,7 +517,7 @@ elseif (strcmp(opt2,'SplineSmooth'))
 	pp = spl_fun('csaps',{Y,X},Z_rect,str2double(resp{1}));
 	Z_rect = spl_fun('fnval',pp,{Y,X});    clear pp;
 elseif (strcmp(opt2,'MedianFilter'))
-    [Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, 'rect', 'no');
+	[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, 'rect', 'no');
 elseif (strcmp(opt2,'SetConst'))        % Replace grid values inside rect by a cte value
 	resp  = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);    pause(0.01)
 	if isempty(resp);    set(handles.figure1,'pointer','arrow'),	return,		end
@@ -540,49 +540,49 @@ if (~strcmp(opt2,'MedianFilter'))		% Otherwise, this was already done in roi_fil
 end
 
 if ~isempty(opt2)       % Here we have to update the image in the processed region
-    X = (head(1) + (r_c(3)-1)*head(8)):head(8):(head(1) + (r_c(4)-1)*head(8));
-    Y = (head(3) + (r_c(1)-1)*head(9)):head(9):(head(3) + (r_c(2)-1)*head(9));
+	X = (head(1) + (r_c(3)-1)*head(8)):head(8):(head(1) + (r_c(4)-1)*head(8));
+	Y = (head(3) + (r_c(1)-1)*head(9)):head(9):(head(3) + (r_c(2)-1)*head(9));
 	if (isa(Z,'single')),	zz = grdutils(Z,'-L');		z_min = zz(1);		z_max = zz(2);
 	else					z_min = double(min(Z(:)));	z_max = double(max(Z(:)));
 	end
 	img = [];
-    if ( (abs(z_min - head(5)) > 1e-5 || abs(z_max - head(6)) > 1e-5) && handles.Illumin_type == 0 )
+	if ( (abs(z_min - head(5)) > 1e-5 || abs(z_max - head(6)) > 1e-5) && handles.Illumin_type == 0 )
 		img = scaleto8(Z);              % Z_MIN or Z_MAX have changed. Need to recompute image (but only if no illumin)
-    end
-    if (first_nans)       % We have NaNs for the first time. Adjust the colormap
+	end
+	if (first_nans)		% We have NaNs for the first time. Adjust the colormap
 		aux_funs('colormap_bg',handles,Z,get(handles.figure1,'Colormap'));
-    end
-    z_int = uint8(round( ((double(Z_rect) - z_min) / (z_max - z_min))*255 ));
-    if ( handles.Illumin_type == 0)     % Nothing to do in particular
-    elseif ( handles.Illumin_type >= 1 && handles.Illumin_type <= 4 )
-        illumComm = getappdata(handles.figure1,'illumComm');
-        z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));    % z_int is now 3D
-        head_tmp = [X(1) X(end) Y(1) Y(end) head(5:9)];
-        if (handles.Illumin_type == 1)
+	end
+	z_int = uint8(round( ((double(Z_rect) - z_min) / (z_max - z_min))*255 ));
+	if ( handles.Illumin_type == 0)     % Nothing to do in particular
+	elseif ( handles.Illumin_type >= 1 && handles.Illumin_type <= 4 )
+		illumComm = getappdata(handles.figure1,'illumComm');
+		z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));    % z_int is now 3D
+		head_tmp = [X(1) X(end) Y(1) Y(end) head(5:9)];
+		if (handles.Illumin_type == 1)
 			opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
 			if (handles.geog),  R = grdgradient_m(Z_rect,head_tmp,'-M',illumComm,opt_N);
 			else                R = grdgradient_m(Z_rect,head_tmp,illumComm,opt_N);
 			end
 		else
 			R = grdgradient_m(Z_rect,head_tmp,illumComm);
-        end
-        z_int = shading_mat(z_int,R,'no_scale');    % and now it is illuminated
-    else
+		end
+		z_int = shading_mat(z_int,R,'no_scale');	% and now it is illuminated
+	else
 		warndlg('Sorry, this operation is not allowed with this shading illumination type','Warning')
 		set(handles.figure1,'pointer','arrow');     return
-    end
-    if (isempty(img)),		img = get(handles.hImg,'CData');      end     % If img was not recomputed, get from screen 
-    handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),:);      % For the undo op
-    if (~isempty(mask) && handles.Illumin_type ~= 0)
-        mask = repmat(~mask,[1 1 3]);
-        z_int(mask) = handles.img_back(mask);
-    end
+	end
+	if (isempty(img)),		img = get(handles.hImg,'CData');      end     % If img was not recomputed, get from screen 
+	handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),:);      % For the undo op
+	if (~isempty(mask) && handles.Illumin_type ~= 0)
+		mask = repmat(~mask,[1 1 3]);
+		z_int(mask) = handles.img_back(mask);
+	end
 	img(r_c(1):r_c(2),r_c(3):r_c(4),:) = z_int;         clear z_int Z_rect R;
 	set(handles.hImg,'CData',img)
 
-    head(5) = z_min;     head(6) = z_max;
-    handles.computed_grid = 1;              handles.head = head;    handles.origFig = img;
-    setappdata(handles.figure1,'dem_z',Z);
+	head(5) = z_min;     head(6) = z_max;
+	handles.computed_grid = 1;              handles.head = head;    handles.origFig = img;
+	setappdata(handles.figure1,'dem_z',Z);
 end
 
 % Experimental UNDO that works only with the "Median Filter" option
@@ -1456,7 +1456,9 @@ function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize
 	handles.hImg = image(X,Y,I,'Parent',handles.axes1);
 	zoom_state(handles,'off_yes');		set(handles.hImg,'CDataMapping','direct')
 	handles.geog = aux_funs('guessGeog',handles.head(1:4));		% Hmm... there are cases where I know for sure
+
 	magRatio = resizetrue(handles,imSize,axis_t);				% IMAGE IS VISIBLE HERE.
+
 	handles.origFig = I;            handles.no_file = 0;
 	handles.Illumin_type = 0;       handles.validGrid = validGrid;  % Signal that gmt grid opps are allowed
 	set(handles.figure1,'Name',[fname sprintf('  @  %d%%',magRatio)])
@@ -1469,6 +1471,9 @@ function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize
 	handles.computed_grid_orig = handles.computed_grid;
 	handles = SetAxesNumericType(handles);              % Set axes uicontextmenus
 	if (handles.image_type ~= 1),   handles.grdname = [];   end
+	if (~handles.have_nans),		set(handles.haveNaNs,'Vis','off')	% If no NaNs no need of these
+	else							set(handles.haveNaNs,'Vis','on')
+	end
 	guidata(handles.figure1, handles);
 
 	% Hide uicontrols that are useless to images only. First 4 are button are handles which don't stand hiding(???) 
@@ -3005,11 +3010,11 @@ function GridToolsDirDerive_CB(handles, opt)
 % --------------------------------------------------------------------
 function GridToolsFindHoles_CB(handles)
 	% Find holes in double arrays and draw rectangles arround them
-	if (aux_funs('msg_dlg',14,handles));     return;      end
-    if (~handles.have_nans),    warndlg('This grid has no holes','Warning');    return;  end
+	if (aux_funs('msg_dlg',14,handles)),	return,		end
+    if (~handles.have_nans),    warndlg('This grid has no holes','Warning'),	return,	end
 	[X,Y,Z,head,m,n] = load_grd(handles);
-	if isempty(Z),      return;     end;    % An error message was already issued
-	
+	if isempty(Z),		return,		end		% An error message was already issued
+
 	set(handles.figure1,'pointer','watch')
 	B = img_fun('find_holes',isnan(Z));
 	% Draw rectangles arround each hole
@@ -3017,7 +3022,7 @@ function GridToolsFindHoles_CB(handles)
 		x_min = min(B{i}(:,2));     x_max = max(B{i}(:,2));
 		y_min = min(B{i}(:,1));     y_max = max(B{i}(:,1));
 		x_min = max(1,x_min-5);     x_max = min(x_max+5,n);
-		y_min = max(1,y_min-5);     y_max = min(y_max+5,n);
+		y_min = max(1,y_min-5);     y_max = min(y_max+5,m);
 		x_min = head(1) + (x_min-1)*head(8);    x_max = head(1) + (x_max-1)*head(8);
 		y_min = head(3) + (y_min-1)*head(9);    y_max = head(3) + (y_max-1)*head(9);
 		h = line('XData',[x_min x_min x_max x_max x_min], 'YData',[y_min y_max y_max y_min y_min], ...
