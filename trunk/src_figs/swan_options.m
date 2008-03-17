@@ -159,10 +159,13 @@ function varargout = swan_options(varargin)
 		set(handles.radio_geog,'Value', geog)
 		% Guess a valid dt
 		dx = handles.head_bat(9);
-		if (geog),		dx = dx * 111000;		end
+		if (geog)
+			dx = dx * 111000;
+			handles.polar = 1;			% Southern hemisphere -1
+		end
 		dt = dx / sqrt(abs(handles.head_bat(5)) * 9.8) * 0.5;
 		if (dt > 0)
-			set(handles.edit_dt, 'String',sprintf('%.1f',dt))
+			set(handles.edit_dt, 'String',sprintf('%.2f',dt))
 			handles.dt = dt;
 		end
 	end
@@ -255,9 +258,14 @@ function push_BatGrid_Callback(hObject, eventdata, handles, opt)
 	set(handles.radio_cartesian,'Value', ~double(geog))
 	set(handles.radio_geog,'Value', double(geog))
 	% Guess a valid dt
-	dt = handles.head_bat(8) / sqrt(abs(handles.head_bat(5)) * 9.8) * 0.5;
+	dx = handles.head_bat(9);
+	if (geog)
+		dx = dx * 111000;
+		handles.polar = 1;
+	end
+	dt = dx / sqrt(abs(handles.head_bat(5)) * 9.8) * 0.5;
 	if (dt > 0)
-		set(handles.edit_dt, 'String',sprintf('%.1f',dt))
+		set(handles.edit_dt, 'String',sprintf('%.2f',dt))
 		handles.dt = dt;
 	end
 	guidata(handles.figure1,handles)
