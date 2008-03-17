@@ -100,6 +100,7 @@ function varargout = deform_okada(varargin)
 	handles.one_or_zero = ~head(7);
 	handles.x_min_or = head(1);			handles.x_max_or = head(2);
 	handles.y_min_or = head(3);			handles.y_max_or = head(4);
+	handles.mu = 3;							% Shear modulus (x 10^10)
 
 	if (~handles.fault_in)					% "NORMAL" case (not a fault-patch collection)
 		% Make them all cell arrays to simplify logic
@@ -526,6 +527,15 @@ function edit_uz_Callback(hObject, eventdata, handles)
 	if (isnan(xx)),     set(hObject,'String',handles.uz{fault}(seg));   return;     end
 	handles = convGeometry(handles, fault, seg, 'Us');
 	handles.uz{fault}(seg) = xx;
+	guidata(hObject, handles);
+
+% ------------------------------------------------------------------------------------
+function edit_mu_Callback(hObject, eventdata, handles)
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx)),		set(hObject,'String',handles.mu),	return,		end
+	handles.mu = abs(xx);
+	fault = getFaultSeg(handles);
+	handles = compMag(handles, fault);
 	guidata(hObject, handles);
 
 % ------------------------------------------------------------------------------------
@@ -1053,7 +1063,8 @@ function handles = set_all_faults(handles,varargin)
 % ------------------------------------------------------------------------------------
 function [handles, mag, M0] = compMag(handles, fault)
 	% Compute Moment magnitude
-	M0 = 3.0e10 * handles.um_milhao * handles.DislocSlip{fault}(:) .* handles.FaultWidth{fault}(:) .* ...
+	mu = handles.mu * 1e10;
+	M0 = mu * handles.um_milhao * handles.DislocSlip{fault}(:) .* handles.FaultWidth{fault}(:) .* ...
 		handles.FaultLength{fault}(:);
 	if (length(M0) > 1),    M0 = sum(M0);   end
 	mag = 2/3*(log10(M0) - 9.1);
@@ -1453,6 +1464,20 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 
 uicontrol('Parent',h1,'Enable','inactive','Position',[236 295 32 15],...
 'String','Faults','Style','text','Tag','fault_number');
+
+uicontrol('Parent',h1, 'Position',[419 197 60 18],...
+'String','Mu (x10^10)',...
+'Style','text',...
+'Tag','text_mu');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@deform_okada_uicallback,h1,'edit_mu_Callback'},...
+'Position',[481 198 40 21],...
+'String','3.0',...
+'Style','edit',...
+'TooltipString','Shear modulus (for Mw calculation)',...
+'Tag','edit_mu');
 
 uicontrol('Parent',h1,'Enable','inactive','FontSize',10,...
 'HorizontalAlignment','left','Position',[400 170 100 16],...
