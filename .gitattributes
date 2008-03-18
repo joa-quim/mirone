@@ -487,7 +487,6 @@ utils/movie2avi_j.m -text
 utils/multibandread_j.m -text
 utils/nc_funs.m -text
 utils/nc_io.m -text
-utils/nskew.m -text
 utils/ordf.dll -text
 utils/pan.m -text
 utils/parityscan.dll -text
