@@ -1034,13 +1034,14 @@ opt_R = handles.opt_R;		opt_L = handles.opt_L;		opt_U = handles.opt_U;
 sc = handles.script_type;	ellips = handles.curr_datum;
 opt_psc = handles.opt_psc;
 hAlfaPatch = [];			haveAlfa = 0;		% These ones are used to tell if transparency
-nameRGB = [];		% When not empty it means we'll do a screen capture ('image' or to capture transp)
+nameRGB = [];			% When not empty it means we'll do a screen capture ('image' or to capture transp)
 
 if (isempty(opt_psc)),  have_psc = 0;       % We do not have any pscoast commands
 else                    have_psc = 1;       end
 
 if (~strcmp(paper,'A4')),   paper_media = paper;
-else                        paper_media = [];   end
+else                        paper_media = [];
+end
 if (strcmp(sc,'bat'))
     comm = 'REM ';      pb = '%';   pf = '%';
 else
@@ -1051,6 +1052,8 @@ if (strcmp(ellips,'WGS-84'))     % It is the default, so don't use any
 else
     ellips = [' --ELLIPSOID=' ellips];
 end
+
+opt_annotsize = '--ANNOT_FONT_SIZE=10p';
 
 % ------------ Some (maybe) needed vars ------------------------------------------------------------------
 haveSymbol = 0;     used_grd = 0;  out_msg = 0;
@@ -1070,10 +1073,10 @@ try
 	h_axes = findobj(handMir.figure1,'Type','Axes');
 	Bx = get(h_axes,'XTick');      d_Bx = diff(Bx);
 	By = get(h_axes,'YTick');      d_By = diff(By);
-	opt_B = ['-B' num2str(d_Bx(1)) '/' num2str(d_By(1))];
+	opt_B = ['-B' num2str(d_Bx(1)) '/' num2str(d_By(1)) 'WSen'];
 	clear h_axes Bx By d_Bx d_By;
 catch
-    opt_B = '-B1000000';    % invented value
+    opt_B = '-B1000000WSen';    % invented value
 end
 % --------------------------------------------------------------------------------------
 
@@ -1122,6 +1125,9 @@ else                                            % Write a dos batch
 	script{l} = [comm ' ---- Longitude annotation style. The +ddd:mm:ss form => [0;360] range '];    l=l+1;
 	script{l} = ['set deg_form=' opt_deg];      l=l+1;
 	script{l} = '';                             l=l+1;
+	script{l} = [comm ' ---- Annotation font size in points'];    l=l+1;
+	script{l} = ['set annot_size=' opt_annotsize];      l=l+1;
+	script{l} = '';                             l=l+1;
     prefix_ddir = [dest_dir filesep prefix];    % Add destination dir to the name prefix
     if (~isempty(grd_name))
         if (~need_path)
@@ -1142,7 +1148,11 @@ end
 % ------------ Start writing GMT commands --------------------------------
 script{l} = ' ';            l=l+1;
 script{l} = [comm '-------- Start by creating the basemap frame'];  l=l+1;
-script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ' ' pb 'deg_form' pf ' -K > ' pb 'ps' pf];
+if (~strcmp(sc,'bat'))		% In Unix like sys let the annot_font_size param be controled by the .gmtdefaults
+	script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ' ' pb 'deg_form' pf ' -K > ' pb 'ps' pf];
+else
+	script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' -K > ' pb 'ps' pf];
+end
 l=l+1;
 if (~isempty(grd_name))
 	% If renderer == OpenGL, that is interpreted as a transparency request. In that case we need a screen capture
@@ -1178,12 +1188,12 @@ if (~isempty(grd_name))
     script{l} = ' ';                          l=l+1;
     if (have_gmt_illum)                     % grdimage with illumination
         script{l} = [comm '-------- Plot the the base image using grdimage & illumination'];    l=l+1;
-        script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf illum ellips opt_L ' -O -K >> ' pb 'ps' pf];
+        script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf illum ellips ' -O -K >> ' pb 'ps' pf];
         l=l+1;
         used_grd = 1;
     elseif (used_grd && ~have_gmt_illum)     % Simple grdimage call
         script{l} = [comm '-------- Plot the the base image using grdimage'];    l=l+1;
-        script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf ellips opt_L ' -O -K >> ' pb 'ps' pf];   l=l+1;
+        script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf ellips ' -O -K >> ' pb 'ps' pf];   l=l+1;
         used_grd = 1;
     else                                    % No grd used, use the R,G,B channels
         script{l} = [comm '-------- Plot the 3 RGB base images using grdimage'];    l=l+1;
@@ -1245,7 +1255,9 @@ end
 if (have_psc)       % We have pscoast commands
     script{l} = ' ';                        l=l+1;
     script{l} = [comm 'Plot coastlines'];   l=l+1;
-    script{l} = ['pscoast ' opt_psc ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+    script{l} = ['pscoast ' opt_psc ellips opt_L ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+elseif (~isempty(opt_L))
+    script{l} = ['psbasemap ' opt_L ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
 end
 
 % ------------- Search for contour lines ----------------------------------------------------
