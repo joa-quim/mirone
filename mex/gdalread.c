@@ -16,6 +16,9 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
+ * Revision 18  18/03/2008 Another attempt to patch the broken netCDF driver
+ * Revision 17  26/01/2008 Moved the y_min > y_max test to before the correct_bounds case.  
+ *                         opt_r (size by pixels) was extracting a grid one row & column too big 
  * Revision 16  29/10/2007 The netCDF driver is still highly broken. Apply patch to make it a bit less bad
  * Revision 15  21/07/2007 Added the -r option. Like -R but uses pixel units
  * Revision 14  24/04/2007 Was crashing when called with a coards NETCDF file and -M
@@ -248,6 +251,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (!strcmp(format,"ESAT"))	/* ENVISAT data are flipped left-right */
 		fliplr = TRUE;
 
+	if (!strcmp(format,"netCDF"))
+		flipud = FALSE;
+
 	if (got_R || got_r) {
 		/* -------------------------------------------------------------------- */
 		/*      Compute the source window from the projected source window      */
@@ -267,23 +273,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			GDALDestroyDriverManager();
 			return;
 		}
-		if (!strcmp(format,"netCDF") && GDAL_VERSION_NUM <= 1430) {
-			adfGeoTransform[3] *= -1;
-			adfGeoTransform[5] *= -1;
-			flipud = FALSE;
-		}
 
 		if (got_R) {	/* Region in map coordinates */
 			anSrcWin[0] = (int) ((dfULX - adfGeoTransform[0]) / adfGeoTransform[1] + 0.001);
 			anSrcWin[1] = (int) ((dfULY - adfGeoTransform[3]) / adfGeoTransform[5] + 0.001);
 			anSrcWin[2] = (int) ((dfLRX - dfULX) / adfGeoTransform[1] + 0.5);
 			anSrcWin[3] = (int) ((dfLRY - dfULY) / adfGeoTransform[5] + 0.5);
+			if (GDAL_VERSION_NUM <= 1600 && !strcmp(format,"netCDF")) {
+				/* PATCH against the never ending GDAL bug of reading netCDF files */
+				anSrcWin[1] = GDALGetRasterYSize(hDataset) - (anSrcWin[1] + anSrcWin[3]) - 1;
+			}
 		}
 		else {		/* Region in pixel/line */
 			anSrcWin[0] = (int) (dfULX);
 			anSrcWin[1] = (int) (dfLRY);
-			anSrcWin[2] = (int) (dfLRX - dfULX + 1);
-			anSrcWin[3] = (int) (dfULY - dfLRY + 1);
+			anSrcWin[2] = (int) (dfLRX - dfULX);
+			anSrcWin[3] = (int) (dfULY - dfLRY);
 		}
 
 		if( anSrcWin[0] < 0 || anSrcWin[1] < 0
@@ -984,7 +989,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 
 	status = record_geotransform ( gdal_filename, hDataset, adfGeoTransform );
 	if (!strcmp(GDALGetDriverShortName(GDALGetDatasetDriver(hDataset)),"netCDF") && 
-		    GDAL_VERSION_NUM <= 1430) {
+		    GDAL_VERSION_NUM <= 1450) {
 		adfGeoTransform[3] *= -1;
 		adfGeoTransform[5] *= -1;
 	}
@@ -1283,6 +1288,12 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		dptr2[7] = adfGeoTransform[1];
 		dptr2[8] = fabs(adfGeoTransform[5]);
 
+		if (dptr2[2] > dptr2[3]) {	/* Sometimes GDAL does it: y_min > y_max. If so, revert it */
+			tmpdble = dptr2[2];
+			dptr2[2] = dptr2[3];
+			dptr2[3] = tmpdble;
+		}
+
 		if (correct_bounds && !got_R) {
 			dptr2[0] += dptr2[7] / 2;	dptr2[1] -= dptr2[7] / 2;
 			dptr2[2] += dptr2[8] / 2;	dptr2[3] -= dptr2[8] / 2;
@@ -1290,11 +1301,6 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		else if (got_R) {
 			dptr2[0] = dfULX;	dptr2[1] = dfLRX;
 			dptr2[2] = dfLRY;	dptr2[3] = dfULY;
-		}
-		if (dptr2[2] > dptr2[3]) {	/* Sometimes GDAL does it: y_min > y_max. If so, revert it */
-			tmpdble = dptr2[2];
-			dptr2[2] = dptr2[3];
-			dptr2[3] = tmpdble;
 		}
 	}
 	mxSetField (metadata_struct, 0, "GMT_hdr", mxGMT_header);
@@ -1387,7 +1393,7 @@ int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double
 	if( GDALGetGeoTransform( hDataset, adfGeoTransform ) == CE_None ) {
         	pszProjection = GDALGetProjectionRef(hDataset);
 		if (!strcmp(GDALGetDriverShortName(GDALGetDatasetDriver(hDataset)),"netCDF") && 
-			    GDAL_VERSION_NUM <= 1410) {
+			    GDAL_VERSION_NUM <= 1450) {
 			adfGeoTransform[3] *= -1;
 			adfGeoTransform[5] *= -1;
 		}
@@ -1460,12 +1466,6 @@ int record_geotransform ( char *gdal_filename, GDALDatasetH hDataset, double *ad
 	if (status == 1)
 		return (0);
 
-	/* Newer versions of GDAL will try to guess if you pass NULL.  Older
-	   versions with barf, so be careful about attempting this. */
-	if ( GDAL_VERSION_NUM >= 1210 ) {
-		if ( GDALReadWorldFile ( gdal_filename, NULL, adfGeoTransform ) )
-			return (0);
-	}
 	return (-1);
 }
 
