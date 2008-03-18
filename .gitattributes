@@ -452,7 +452,6 @@ utils/grd2anugadem.m -text
 utils/grid_info.m -text
 utils/griddata_j.m -text
 utils/guess_file.m -text
-utils/guess_file_old.m -text
 utils/histo_m.m -text
 utils/histos_seis.m -text
 utils/imcapture.m -text
