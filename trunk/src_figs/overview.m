@@ -185,14 +185,22 @@ end
 
 % -----------------------------------------------------------------------------------------
 function rectangle_limits(obj,eventdata,h)
-% Change the Rectangle's limits by asking it's corner coordinates
-x = get(h,'XData');   y = get(h,'YData');
+	% Change the Rectangle's limits by asking it's corner coordinates
+	x = get(h,'XData');   y = get(h,'YData');
+	handles = guidata(obj);
 
-region = bg_region('with_limits',[x(1) x(3) y(1) y(3)]);
-if isempty(region),    return;  end     % User gave up
-x_min = region(1);      x_max = region(2);
-y_min = region(3);      y_max = region(4);
-set(h, 'XData', [x_min,x_min,x_max,x_max,x_min], 'YData', [y_min,y_max,y_max,y_min,y_min]);
+	region = bg_region('with_limits',[x(1) x(3) y(1) y(3)]);
+	if isempty(region),    return;  end     % User gave up
+	x_min = region(1);      x_max = region(2);
+	y_min = region(3);      y_max = region(4);
+
+	% Make sure -R & -I are exactly compatible
+	x_min = handles.head(1) + round( (x_min - handles.head(1)) / handles.head(8) ) * handles.head(8);
+	x_max = handles.head(1) + round( (x_max - handles.head(1)) / handles.head(8) ) * handles.head(8);
+	y_min = handles.head(3) + round( (y_min - handles.head(3)) / handles.head(9) ) * handles.head(9);
+	y_max = handles.head(3) + round( (y_max - handles.head(3)) / handles.head(9) ) * handles.head(9);
+
+	set(h, 'XData', [x_min,x_min,x_max,x_max,x_min], 'YData', [y_min,y_max,y_max,y_min,y_min]);
 
 % --------------------------------------------------------------------
 function FileOpenArcGrid_Callback(hObject, eventdata, handles, opt)
@@ -600,8 +608,8 @@ handles = guidata(obj);     % get handles
 
 if (nargin == 3)
 	x = get(h,'XData');     y = get(h,'YData');
-	if (min(x) < handles.head_orig(1) | max(x) > handles.head_orig(2) | ...
-            min(y) < handles.head_orig(3) | max(y) > handles.head_orig(4))
+	if (min(x) < handles.head_orig(1) || max(x) > handles.head_orig(2) || ...
+            min(y) < handles.head_orig(3) || max(y) > handles.head_orig(4))
         errordlg('Selected region is partially outside the grid domain','Error')
         return
 	end
@@ -643,7 +651,7 @@ if (strcmp(tipo,'GMT'))
         handles.was_int16 = 1;
         handles.Nodata_int16 = att.Band.NoDataValue;
     end
-elseif ( strcmp(tipo,'SRTM30') | strcmp(tipo,'SRTM3') | strcmp(tipo,'SRTM1') | strcmp(tipo,'MOLA') )    
+elseif ( strcmp(tipo,'SRTM30') || strcmp(tipo,'SRTM3') || strcmp(tipo,'SRTM1') || strcmp(tipo,'MOLA') )    
     name_uncomp = [];
     if (~isempty(handles.name_uncomp))      % That is, if file was compressed
         fname = handles.name_uncomp;
@@ -654,9 +662,9 @@ elseif ( strcmp(tipo,'SRTM30') | strcmp(tipo,'SRTM3') | strcmp(tipo,'SRTM1') | s
     Z(Z <= single(att.Band.NoDataValue)) = NaN;
     head = att.GMT_hdr;
     handles.was_int16 = 1;      handles.Nodata_int16 = att.Band.NoDataValue;
-elseif ( strcmp(tipo,'USGS_DEM') | strcmp(tipo,'GTOPO30') | strcmp(tipo,'DTED') | strcmp(tipo,'SDTS') | ...
-        strcmp(tipo,'GeoTiff_DEM') | strcmp(tipo,'ArcAscii')  | strcmp(tipo,'ArcBinary') | ...
-        strcmp(tipo,'GXF') | strcmp(tipo,'ENVI') | strcmp(tipo,'Erdas') | strcmp(tipo,'ESRI_hdr'))
+elseif ( strcmp(tipo,'USGS_DEM') || strcmp(tipo,'GTOPO30') || strcmp(tipo,'DTED') || strcmp(tipo,'SDTS') || ...
+        strcmp(tipo,'GeoTiff_DEM') || strcmp(tipo,'ArcAscii')  || strcmp(tipo,'ArcBinary') || ...
+        strcmp(tipo,'GXF') || strcmp(tipo,'ENVI') || strcmp(tipo,'Erdas') || strcmp(tipo,'ESRI_hdr'))
     
     [Z,att] =  gdalread(fname,'-U','-C',opt_I,opt_R);   Z = single(Z);
     head = att.GMT_hdr;
@@ -822,7 +830,7 @@ set(0, 'Units', rootUnits);
 function figure1_DeleteFcn(hObject, eventdata, handles)
 % Before deleting the fig see if there was files left to remove
 % (files that resulted from the uncompression)
-try         % This bludy stupid sometimes (and it's realy when it pleases) doesn't know handles
+try         % This bloody stupid sometimes (and it's realy when it pleases) doesn't know handles
 	if (~isempty(handles.name_uncomp))
         try
             delete(handles.name_uncomp);    delete(handles.name_hdr);
@@ -836,7 +844,7 @@ function figure1_KeyPressFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'CurrentKey'),'escape')
     % Before deleting the fig see if there was files left to remove
     % (files that resulted from the uncompression)
-    try         % This bludy stupid sometimes (and it's realy when it pleases) doesn't know handles
+    try         % This bloody stupid sometimes (and it's realy when it pleases) doesn't know handles
 		if (~isempty(handles.name_uncomp))
             try
                 delete(handles.name_uncomp);    delete(handles.name_hdr);
