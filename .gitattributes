@@ -499,7 +499,6 @@ utils/qhullmx.dll -text
 utils/read_gdal_info.m -text
 utils/read_gmt_grid.m -text
 utils/read_gmt_type_grids.m -text
-utils/read_textfile.m -text
 utils/register_img.m -text
 utils/resampsep.dll -text
 utils/resetplotview.m -text
