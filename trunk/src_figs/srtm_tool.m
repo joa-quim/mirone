@@ -585,7 +585,7 @@ else                % Compressed file
     end
 end
 
-h_wait = waitfig(['Reading File ' fname]);   % It might take some time
+aguentabar(0.1,'title',['Reading File ' fname]);   % It might take some time
 
 [Z,att] =  gdalread(full_name,'-U','-C');    Z = single(Z);
 head = att.GMT_hdr;
@@ -599,7 +599,7 @@ tmp.name = fname;
 % Delete auxiliary files
 delete(name_hdr);
 if (del_file)   delete(full_name);  end     % Original file is compressed
-delete(h_wait)
+aguentabar(1,'title','File read')
 new_window = mirone(Z,tmp);
 
 % -----------------------------------------------------------------------------------------
