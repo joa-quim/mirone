@@ -2048,7 +2048,7 @@ if isempty ( input_buffer ),	return,		end
 % Check that the record variable is present in the input buffer.
 if ~isfield ( input_buffer, record_variable )
 	snc_error ( 'NC_FUNS:NC_ADDNEWRECS:missingRecordVariable', ...
-	        'input structure is missing the record variable ''%s''.\n', record_variable );
+	        sprintf('input structure is missing the record variable ''%s''.\n', record_variable) );
 end
 
 % check to see that all fields are actually there.
@@ -2354,7 +2354,7 @@ if nargin < 2
 
 	if dimid == -1
 		error_id = 'NC_FUNS:NC_ADD_RECS:noUnlimitedDimension';
-		snc_error ( error_id, '%s is missing an unlimited dimension, %s requires it', ncfile, mfilename );
+		snc_error ( error_id, sprintf('%s is missing an unlimited dimension, %s requires it', ncfile, mfilename) );
 	end
 
 else
