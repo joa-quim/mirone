@@ -22,18 +22,18 @@ end
 
 str = ['gunzip -q -N -f -c ' full_name ' > ' [PATH filesep fname]];
 if (do_warn)
-    h_wait = waitfig(['Uncompressing ' full_name]);
+	aguentabar(0.2,'title',['Uncompressing ' full_name]);
 end
 
-if (isunix),    s = unix(str);
-elseif ispc,   s = dos(str);
-else            errordlg('Unknown platform.','Error');
+if (isunix),	s = unix(str);
+elseif ispc,	s = dos(str);
+else			errordlg('Unknown platform.','Error');
 end
 if ~(isequal(s,0))                  % An error as occured
     errordlg(['Error decompressing file ' full_name],'Error');
-    if (do_warn),   delete(h_wait);     end
+    if (do_warn),   aguentabar(1,'title','By'),		end
     return
 end
-if (do_warn),   delete(h_wait);     end
+if (do_warn),	aguentabar(1,'title','Donne'),		end
 
 out_name = [PATH filesep fname];
