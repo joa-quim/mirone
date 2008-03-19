@@ -1650,7 +1650,7 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	int i, j, k, m_nx, m1_nx, *volumes, *vertices, v1, v2, v3, v4;
 	float dummy2[2], *x, *y, yr, *tmp;
 	double dummy, nan, faultPolyX[11], faultPolyY[11], faultSlip[10], faultStrike[10], 
-		faultRake[10], faultWidth[10], faultDepth[10];
+		faultDip[10], faultRake[10], faultWidth[10], faultDepth[10];
 
 	if ( (status = nc_create (fname_sww, NC_CLOBBER, &ncid)) != NC_NOERR) {
 		mexPrintf ("swan: Unable to create file %s - exiting\n", fname_sww);
@@ -1705,6 +1705,7 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyY", NC_DOUBLE, 11, &faultPolyY));
 	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultStrike", NC_DOUBLE, 10, &faultStrike));
 	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultSlip", NC_DOUBLE, 10, &faultSlip));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDip", NC_DOUBLE, 10, &faultDip));
 	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultRake", NC_DOUBLE, 10, &faultRake));
 	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultWidth", NC_DOUBLE, 10, &faultWidth));
 	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDepth", NC_DOUBLE, 10, &faultDepth));
