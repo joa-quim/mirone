@@ -2,11 +2,11 @@ function grid_info(handles,X,Y,hdr)
 %#function grdinfo_m
 
 if (nargin == 3 && strcmp(Y,'gdal'))            % Just extract the relevant info from the attribute struct
-    att2Hdr(handles,X);    return
+	att2Hdr(handles,X);    return
 elseif (nargin == 3 && strcmp(Y,'iminfo'))
-    img2Hdr(handles,X);    return
+	img2Hdr(handles,X);    return
 elseif (nargin == 4 && strcmp(Y,'iminfo'))      % Used with internaly generated images
-    img2Hdr(handles,X,hdr);    return
+	img2Hdr(handles,X,hdr);    return
 end
 
 if (handles.no_file),     return;      end
@@ -79,39 +79,43 @@ else
     if (~isempty(InfoMsg))
 		meta = getappdata(handles.hImg,'meta');
 		if (~isempty(meta))						% If we have metadata use the window message to display everything
-			InfoMsg = [InfoMsg'; {' '; ' '}; meta];
+			InfoMsg = [InfoMsg; {' '; ' '}; meta];
 			message_win('create',InfoMsg,'position','east');
 		else
-	        msgbox(InfoMsg,'Image Info');
+			msgbox(InfoMsg,'Image Info');
 		end
     else
-        msgbox('Info missing or nothing to info about?','???')
+		msgbox('Info missing or nothing to info about?','???')
     end
 end
 
 % -----------------------------------------------------------
 function txt = wipe_zeros(txt)
-	% Wipe zeros at the end of the TXT string
+% Wipe zeros at the end of the TXT string
 	while (txt(end) == '0')
-        txt(end) = [];
+		txt(end) = [];
 	end
 
 % --------------------------------------------------------------------
 function att2Hdr(handles,att)
 	% Fill a header with the info from the att struct issued by gdalread
 
+	w = cell(13,1);
     w{1} = ['Driver : ' att.DriverShortName];
     w{2} = att.ProjectionRef;
     w{3} = [];
-    w{4} = ['Width:  ' num2str(att.RasterXSize) '    Height:  ' num2str(att.RasterYSize)];
-    w{5} = ['Pizel Size:  (' num2str(att.GMT_hdr(8)) ',' num2str(att.GMT_hdr(9)) ')'];
-    w{6} = 'Projected corner coordinates';
-    w{7}  = ['   Xmin:  ' num2str(att.Corners.LL(1)) '    Xmax: ' num2str(att.Corners.UR(1))];
-    w{8}  = ['   Ymin:  ' num2str(att.Corners.LL(2)) '    Ymax: ' num2str(att.Corners.UR(2))];
+    w{4} = 'Proj4 string:';
+	w{5} = ogrproj(att.ProjectionRef);		% Get equivalent in Proj4 format
+    w{6} = [];
+    w{7} = ['Width:  ' num2str(att.RasterXSize) '    Height:  ' num2str(att.RasterYSize)];
+    w{8} = ['Pizel Size:  (' num2str(att.GMT_hdr(8)) ',' num2str(att.GMT_hdr(9)) ')'];
+    w{9} = 'Projected corner coordinates';
+    w{10}  = ['   Xmin:  ' num2str(att.Corners.LL(1)) '    Xmax: ' num2str(att.Corners.UR(1))];
+    w{11}  = ['   Ymin:  ' num2str(att.Corners.LL(2)) '    Ymax: ' num2str(att.Corners.UR(2))];
     if (~isempty(att.GEOGCorners))
-        w{9} = 'Geographical corner coordinates';
-        w{10} = ['   Lon min:  ' att.GEOGCorners{1,1} '    Lon max: '  att.GEOGCorners{4,1}];
-        w{11} = ['   Lat min:  ' att.GEOGCorners{1,2} '    Lat max: '  att.GEOGCorners{2,2}];
+		w{12} = 'Geographical corner coordinates';
+		w{13} = ['   Lon min:  ' att.GEOGCorners{1,1} '    Lon max: '  att.GEOGCorners{4,1}];
+		w{14} = ['   Lat min:  ' att.GEOGCorners{1,2} '    Lat max: '  att.GEOGCorners{2,2}];
     end
     w{end+1} = ['   Zmin:  ' num2str(att.GMT_hdr(5)) '   Zmax: ' num2str(att.GMT_hdr(6))];
     w{end+1} = ['Color Type:  ' att.ColorInterp];
@@ -122,32 +126,33 @@ function att2Hdr(handles,att)
 
 % --------------------------------------------------------------------
 function img2Hdr(handles,imgName,img)
-    w = [];
-    if (nargin == 2)
-        try
-            info_img = imfinfo(imgName);
-            w{1} = ['File Name:    ' info_img.Filename];
-            w{2} = ['Image Size:    ' num2str(info_img.FileSize) '  Bytes'];
-            w{3} = ['Width:  ' num2str(info_img.Width) '    Height:  ' num2str(info_img.Height)];
-            w{4} = ['Bit Depth:  ' num2str(info_img.BitDepth)];
-            w{5} = ['Color Type:  ' info_img.ColorType];
-        end
-    else
-        [m n k] = size(img);
-        w{1} = 'File Name:  none (imported array)';
-        w{2} = ['Image Size:    ' num2str(m*n*k) '  Bytes'];
-        w{3} = ['Width:  ' num2str(n) '    Height:  ' num2str(m)];
-        if (k == 1)
-            w{4} = 'Bit Depth:  8 bits';
-            w{5} = 'Color Type:  Indexed';
-        else
-            w{4} = 'Bit Depth:  24 bits';
-            w{5} = 'Color Type:  True Color';
-        end
-    end
-    setappdata(handles.axes1,'InfoMsg',w)
+  
+	w = [];
+	if (nargin == 2)
+		try
+			info_img = imfinfo(imgName);
+			w{1} = ['File Name:    ' info_img.Filename];
+			w{2} = ['Image Size:    ' num2str(info_img.FileSize) '  Bytes'];
+			w{3} = ['Width:  ' num2str(info_img.Width) '    Height:  ' num2str(info_img.Height)];
+			w{4} = ['Bit Depth:  ' num2str(info_img.BitDepth)];
+			w{5} = ['Color Type:  ' info_img.ColorType];
+		end
+	else
+		[m n k] = size(img);
+		w{1} = 'File Name:  none (imported array)';
+		w{2} = ['Image Size:    ' num2str(m*n*k) '  Bytes'];
+		w{3} = ['Width:  ' num2str(n) '    Height:  ' num2str(m)];
+		if (k == 1)
+			w{4} = 'Bit Depth:  8 bits';
+			w{5} = 'Color Type:  Indexed';
+		else
+			w{4} = 'Bit Depth:  24 bits';
+			w{5} = 'Color Type:  True Color';
+		end
+	end
+	setappdata(handles.axes1,'InfoMsg',w)
 
-    % Maybe not the most apropriate place to do this but ...
-    if (isappdata(handles.figure1,'ProjWKT')),    rmappdata(handles.figure1,'ProjWKT'); end
-    if (isappdata(handles.figure1,'ProjGMT')),    rmappdata(handles.figure1,'ProjGMT'); end
-    if (isappdata(handles.figure1,'Proj4')),      rmappdata(handles.figure1,'Proj4'); end
+	% Maybe not the most apropriate place to do this but ...
+	if (isappdata(handles.figure1,'ProjWKT')),    rmappdata(handles.figure1,'ProjWKT'); end
+	if (isappdata(handles.figure1,'ProjGMT')),    rmappdata(handles.figure1,'ProjGMT'); end
+	if (isappdata(handles.figure1,'Proj4')),      rmappdata(handles.figure1,'Proj4'); end
