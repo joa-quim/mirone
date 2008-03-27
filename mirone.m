@@ -33,7 +33,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	% PRAGMA SECTION (It's far far from clear when files must be declared here)
 	%#function uigetfolder_standalone mapproject_m grdproject_m coordinate_system surface_m
 	%#function nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m grdtrack_m grdtrend_m 
-	%#function grdutils scaleto8 waitbar bpass3d inv3d nskew rtp3d syn3d igrf_m
+	%#function grdutils scaleto8 waitbar bpass3d inv3d rtp3d syn3d igrf_m
 	%#function range_change swan tsun2 mansinha_m deform_mansinha deform_okada dim_funs
 	%----- These are for image
 	%#function grayto8 grayto16 grayxform imfilter_mex imhistc imlincombc parityscan uintlutc ordf
@@ -41,19 +41,19 @@ function hObject = mirone_OpeningFcn(varargin)
 	%----- These are in utils
 	%#function tabpanelfcn degree2dms dms2degree dec2deg dec_year ivan_the_terrible ddewhite string_token
 	%#function test_dms text_read double2ascii save_seismicity jd2date trimpatch
-	%#function run_and_report_error guess_file shading_mat getline_j frame3D histos_seis
+	%#function guess_file shading_mat getline_j frame3D histos_seis
 	%----- These is for write_gmt_script
 	%#function draw_scale time_stamp pscoast_options_Mir paint_option w_option
 	%----- Those are ..., the hell with explanations for what I don't realy understand. They are needed, that's all.
 	%#function gmtlist_m country_select read_isf choosebox MagBarCode listbox_message add_poles animate_seismicity
 	%#function get_polygon rot_euler datums telha_m find_clusters fft_stuff select_cols uistack_j smoothing_param
 	%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j iptchecknargin
-	%#function load_defFilters mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line
+	%#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line
 	%#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
-	%#function move2side aguentabar
+	%#function move2side aguentabar grdlandmask_m
 
 	global home_dir;    home_dir = cd;      fsep = filesep;
-	addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
+	%addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
 
 	handles.home_dir = home_dir;
@@ -150,7 +150,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		n_argin = nargin;
         if (n_argin == 1 && ischar(varargin{1}))				% Called with a file name as argument
 			[pato, fname, EXT] = fileparts(varargin{1});				% Test to check online command input
-			if (isempty(pato)),     varargin{1} = [handles.home_dir fsep fname EXT];     end
+			if (isempty(pato)),		varargin{1} = [handles.home_dir fsep fname EXT];	end
 			drv = aux_funs('findFileType',varargin{1});
         elseif ( isa(varargin{1},'uint8') || isa(varargin{1},'logical') )
 			% Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
@@ -176,7 +176,8 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 			if (isa(varargin{1},'logical'))
 				set(handles.hImg,'CDataMapping','scaled');   set(handles.figure1,'ColorMap',gray(256));
-			end        
+			end
+			handles = aux_funs('isProj',handles);				% Check about coordinates type
 		elseif ( n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')) )
 			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
 			Z = varargin{1};			grd_data_in = 1;
@@ -231,6 +232,7 @@ function hObject = mirone_OpeningFcn(varargin)
         aux_funs('StoreZ',handles,X,Y,Z)	% If grid size is not to big we'll store it
         aux_funs('colormap_bg',handles,Z,pal);
         handles = show_image(handles,win_name,X,Y,zz,1,'xy',handles.head(7));
+		handles = aux_funs('isProj',handles);				% Check about coordinates type
 	end
 
 	%Find out which gmt version is beeing used. 
@@ -1256,31 +1258,31 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	set(handles.figure1,'Colormap',pal);
 	handles = show_image(handles,handles.fileName,X,Y,Z,0,ax_dir,0);
 	grid_info(handles,att,'gdal')               % Construct a info message
-    handles = aux_funs('isProj',handles);       % Check/set about coordinates type
-    handles = setAxesDefCoordIn(handles,1);     % Sets the value of the axes uicontextmenu that selects whether project or not
-    recentFiles(handles);                       % Insert fileName into "Recent Files" & save handles
+	handles = aux_funs('isProj',handles);       % Check/set about coordinates type
+	handles = setAxesDefCoordIn(handles,1);     % Sets the value of the axes uicontextmenu that selects whether project or not
+	recentFiles(handles);                       % Insert fileName into "Recent Files" & save handles
 
 % --------------------------------------------------------------------
 function FileOpenDEM_CB(handles, opt)
 	% Files of the following formats are read (well re-directed) here
 	tipo = opt;
 	switch opt
-        case {'GMT' 'Surfer', 'ENCOM'}
-            str1 = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)';'*.*', 'All Files (*.*)'};    tipo = 'GMT_relatives';
-        case 'MANI'
-            str1 = {'*.man;*.MAN', 'Grid files (*.man,*.MAN)';'*.*', 'All Files (*.*)'};    tipo = 'GMT_relatives';
-        case 'ArcAscii',        str1 = {'*.asc;*.ASC', 'Arc/Info grid (*.asc,*.ASC)'; '*.*', 'All Files (*.*)'};
-        case 'ArcBinary',       str1 = {'*.adf;*.ADF', 'Arc/Info grid (*.adf,*.ADF)'; '*.*', 'All Files (*.*)'};
-        case 'DTED',            str1 = {'*.dt0;*.DT0;*.dt1;*.DT1', 'DTED (*.dt0,*.DT0,*.dt1,*.DT1)'; '*.*', 'All Files (*.*)'};
-        case 'GTOPO30',         str1 = {'*.dem;*.DEM', 'GTOPO30 DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
-        case 'GeoTiff_DEM',     str1 = {'*.tif;*.TIF;*.tiff;*.TIFF', 'GeoTiff DEM(*.tif,*.tiff,*.TIF,*.TIFF)'; '*.*', 'All Files (*.*)'};
-        case 'GXF',             str1 = {'*.gxf;*.GXF', 'Geosoft GXF (*.gxf,*.GXF)'; '*.*', 'All Files (*.*)'};
-        case 'SDTS',            str1 = {'*catd.ddf;*CATD.DDF', 'USGS SDTS DEM (*catd.ddf,*CATD.DDF)'; '*.*', 'All Files (*.*)'};
-        case 'SRTM30',    	    str1 = {'*.srtm;*.SRTM;*.srtm.gz', 'SRTM30 DEM (*.srtm,*.SRTM,*.srtm.gz)'; '*.*', 'All Files (*.*)'};
-        case {'SRTM1' 'SRTM3'}, str1 = {'*.hgt;*.HGT;*.hgt.zip', [opt ' DEM (*.hgt,*.HGT,*.hgt.zip)']; '*.*', 'All Files (*.*)'};
-        case 'USGS_DEM',        str1 = {'*.dem;*.DEM', 'USGS DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
-        otherwise
-            errordlg(['OOPs, where did this ' opt ' code came in?'],'Error');   return
+		case {'GMT' 'Surfer', 'ENCOM'}
+			str1 = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)';'*.*', 'All Files (*.*)'};    tipo = 'GMT_relatives';
+		case 'MANI'
+			str1 = {'*.man;*.MAN', 'Grid files (*.man,*.MAN)';'*.*', 'All Files (*.*)'};    tipo = 'GMT_relatives';
+		case 'ArcAscii',        str1 = {'*.asc;*.ASC', 'Arc/Info grid (*.asc,*.ASC)'; '*.*', 'All Files (*.*)'};
+		case 'ArcBinary',       str1 = {'*.adf;*.ADF', 'Arc/Info grid (*.adf,*.ADF)'; '*.*', 'All Files (*.*)'};
+		case 'DTED',            str1 = {'*.dt0;*.DT0;*.dt1;*.DT1', 'DTED (*.dt0,*.DT0,*.dt1,*.DT1)'; '*.*', 'All Files (*.*)'};
+		case 'GTOPO30',         str1 = {'*.dem;*.DEM', 'GTOPO30 DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
+		case 'GeoTiff_DEM',     str1 = {'*.tif;*.TIF;*.tiff;*.TIFF', 'GeoTiff DEM(*.tif,*.tiff,*.TIF,*.TIFF)'; '*.*', 'All Files (*.*)'};
+		case 'GXF',             str1 = {'*.gxf;*.GXF', 'Geosoft GXF (*.gxf,*.GXF)'; '*.*', 'All Files (*.*)'};
+		case 'SDTS',            str1 = {'*catd.ddf;*CATD.DDF', 'USGS SDTS DEM (*catd.ddf,*CATD.DDF)'; '*.*', 'All Files (*.*)'};
+		case 'SRTM30',    	    str1 = {'*.srtm;*.SRTM;*.srtm.gz', 'SRTM30 DEM (*.srtm,*.SRTM,*.srtm.gz)'; '*.*', 'All Files (*.*)'};
+		case {'SRTM1' 'SRTM3'}, str1 = {'*.hgt;*.HGT;*.hgt.zip', [opt ' DEM (*.hgt,*.HGT,*.hgt.zip)']; '*.*', 'All Files (*.*)'};
+		case 'USGS_DEM',        str1 = {'*.dem;*.DEM', 'USGS DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
+		otherwise
+			errordlg(['OOPs, where did this ' opt ' code came in?'],'Error');   return
 	end
 	[FileName,PathName] = put_or_get_file(handles,str1,['Select ' opt ' File'],'get');
 	if isequal(FileName,0),		return,		end
@@ -1291,14 +1293,14 @@ function FileOpenDEM_CB(handles, opt)
 function FileOpenMOLA_CB(handles)
 	str1 = {'*.img;*.IMG', 'MOLA DEM (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select MOLA DEM File','get');
-	if isequal(FileName,0),     return;     end
+	if isequal(FileName,0),		return,		end
 	
 	type = 'MOLA';      error = 0;
 	[PATH,FNAME] = fileparts([PathName FileName]);
 	fname = [PATH filesep FNAME '.lbl'];
 	fp = fopen(fname,'rt');
 	if (fp < 0)
-        errordlg(['ERROR: Could not find format descriptive file: ' fname],'Error');  return
+		errordlg(['ERROR: Could not find format descriptive file: ' fname],'Error');  return
 	end
 	s = strread(fread(fp,'*char').','%s','delimiter','\n');
 
@@ -3343,8 +3345,8 @@ elseif (strcmp(opt,'bw'))
 	aux_funs('togCheck',handles.ImModBW , [handles.ImMod8cor handles.ImMod8gray handles.ImModRGB])
 
 elseif (strcmp(opt,'copyclip'))		% Img and frame capture to ClipBoard
-	h = getappdata(handles.figure1,'CoordsStBar');      set(h,'Visible','off');
-	imcapture(handles.axes1,'imgAx');                   set(h(2:end),'Visible','on')
+	h = getappdata(handles.figure1,'CoordsStBar');		set(h,'Visible','off');
+	imcapture(handles.axes1,'imgAx');					set(h(2:end),'Visible','on')
 
 elseif (strncmp(opt,'flip',4))		% LR or UP image flipage. OPT = flipLR or flipUD
 	% OPT == 'LR' -> Flips the image left-right. OPT == 'UD' -> Flips the image up-down
@@ -3355,21 +3357,21 @@ elseif (strncmp(opt,'flip',4))		% LR or UP image flipage. OPT = flipLR or flipUD
 
 elseif (strcmp(opt,'KML'))
 	[FileName,PathName] = put_or_get_file(handles,{'*.kml', 'KML files (*.kml)'},'Select file','put');
-	if isequal(FileName,0);     set(handles.figure1,'pointer','arrow');     return;     end             % User gave up
+	if isequal(FileName,0),		set(handles.figure1,'pointer','arrow'),		return,		end			% User gave up
 	Z = [];
 	if (handles.have_nans)
 		[X,Y,Z] = load_grd(handles);
-		if isempty(Z),      set(handles.figure1,'pointer','arrow');     return;     end;
+		if isempty(Z),		set(handles.figure1,'pointer','arrow'),		return,		end
 	end
 	writekml(handles,Z,[PathName FileName])     % Z will be used to setup a alpha channel
 
 elseif (strcmp(opt,'scatter'))
 	str = {'*.dat;*.DAT;*.txt;*.TXT', 'Data file (*.dat,*.DAT,*.txt,*.TXT)'; '*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
-	if isequal(FileName,0);     set(handles.figure1,'pointer','arrow');     return;     end             % User gave up
+	if isequal(FileName,0);		set(handles.figure1,'pointer','arrow');		return,		end			% User gave up
 	datasets_funs('scatter',handles, [PathName FileName])       % Do the work when file is multi-seg, or 
 	n_cols = getappdata(handles.figure1,'callScatterWin');      % return here to pass control to scatter_plot()
-	if (n_cols >= 3)       % Came back from datasets_funs() without doing anything
+	if (n_cols >= 3)		% Came back from datasets_funs() without doing anything
 		scatter_plot(handles,[PathName,FileName]);
 	else
 		errordlg('File must contain at least three columns OR ''>...'' multi-seg info.','Error')
@@ -3379,8 +3381,8 @@ elseif (strcmp(opt,'print'))
 	h = findobj('Type','uicontrol');		set(h,'Visible','off')	% We don't want to print the buttons
 	handsStBar = getappdata(handles.figure1,'CoordsStBar');
 	set(handsStBar,'Visible','off');		set(handles.figure1,'pointer','arrow')
-	if (ispc),      print -v
-	else            print;  end
+	if (ispc),		print -v
+	else			print;  end
 	set(h,'Visible','on');  set(handsStBar(2:end),'Visible','on');
 end
 set(handles.figure1,'pointer','arrow')
