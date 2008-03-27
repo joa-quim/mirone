@@ -12,8 +12,8 @@
  *
  *      Contact info: w3.ualg.pt/~jluis/m_gmt
  *--------------------------------------------------------------------*/
-/* Program:	gdawrite.c
- * Purpose:	matlab callable routine to write files supported by gdal
+/* Program:	ogrprof.c
+ * Purpose:	matlab callable routine to do vector data projection via gdal
  *
  * Revision 1.0  24/6/2006 Joaquim Luis
  *
@@ -56,8 +56,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if( oSrcSRS.SetFromUserInput( pszSrcSRS ) != OGRERR_NONE )
 			mexErrMsgTxt("OGRPROJ: Translating SRS string failed.");
 
-		oSrcSRS.exportToPrettyWkt( &pszSrcWKT, FALSE );
-		//oSrcSRS.exportToWkt( &pszSrcWKT );
+		if (pszSrcSRS[0] == '+')	// from Proj4 to WKT
+			oSrcSRS.exportToPrettyWkt( &pszSrcWKT, FALSE );
+		else				// from others to Proj4
+			oSrcSRS.exportToProj4( &pszSrcWKT );
+
 		if (nlhs == 1)
 			plhs[0] = mxCreateString(pszSrcWKT);
 		else
@@ -228,5 +231,6 @@ void Usage() {
 	mexPrintf("      WKT stands for a string on the 'Well Known Text' format\n\n");
 	mexPrintf("      If one of the Src or Dst fields is absent a GEOGRAPHIC WGS84 is assumed\n");
 	mexPrintf("\nout = ogrproj('SrcProjSRS')\n");
-	mexPrintf("      converts the SRS type string into its WKT form.\n");
+	mexPrintf("      converts the SRS Proj4 string into its WKT form,\n");
+	mexPrintf("      or from others (see 'SetFromUserInput' method info) into a Proj4 string.\n");
 }
