@@ -253,6 +253,7 @@ lib_mex/grayxform.dll -text
 lib_mex/grdfilter_m.dll -text
 lib_mex/grdgradient_m.dll -text
 lib_mex/grdinfo_m.dll -text
+lib_mex/grdlandmask_m.dll -text
 lib_mex/grdppa_m.dll -text
 lib_mex/grdproject_m.dll -text
 lib_mex/grdread_m.dll -text
