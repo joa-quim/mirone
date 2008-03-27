@@ -718,6 +718,7 @@ uimenu('Parent',h278,'Call','grdgradient_mir(guidata(gcbo))','Label','grdgradien
 uimenu('Parent',h278,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','grdproject');
 uimenu('Parent',h278,'Call','grdsample_mir(guidata(gcbo))','Label','grdsample');
 uimenu('Parent',h278,'Call','grdtrend_mir(guidata(gcbo))','Label','grdtrend');
+uimenu('Parent',h278,'Call','grdlandmask_win(guidata(gcbo))','Label','grdlandmask');
 uimenu('Parent',h278,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''grid'')','Label','Digital filtering Tool','Sep','on');
 
 uimenu('Parent',h278,'Call','ml_clip(guidata(gcbo))','Label','Clip Grid');
@@ -777,7 +778,7 @@ h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
 uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.2.3)');
 uimenu('Parent',h9, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 uimenu('Parent',h9,...
-'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 March 2008'',''1.3.0b'')','Label','About','Sep','on');
+'Call','about_box(guidata(gcbo),''Mirone Last modified at 26 Mars 2008'',''1.3.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(h1);
