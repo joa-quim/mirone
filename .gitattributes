@@ -325,6 +325,7 @@ mex/grdfft_m.c -text
 mex/grdfilter_m.c -text
 mex/grdgradient_m.c -text
 mex/grdinfo_m.c -text
+mex/grdlandmask_m.c -text
 mex/grdppa_m.c -text
 mex/grdproject_m.c -text
 mex/grdread_m.c -text
