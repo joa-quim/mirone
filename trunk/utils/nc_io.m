@@ -51,7 +51,7 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 				indLev = strfind(mode,'\');		% Search for a level (3rth dim) value
 				if (~isempty(indLev))
 					page{2} = str2double(mode(indLev(1)+1:end));
-					mode(indLev(1)+1:end) = [];		% Rip the level info from the mode string
+					mode(indLev(1):end) = [];		% Rip the level info from the mode string
 				end
 				tmp = abs( round(str2double(mode(2:end))) );
 				if (isnan(tmp)),	error('NC_IO:write_nc','Nonsense in PAGE number.'),		end
@@ -84,7 +84,7 @@ function write_nc(fname, handles, data, misc, page)
 		if (nLevels <= 0)						% UNLIMITED
 			is_unlimited = true;
 			if (nLevels < 0)
-				levelVec = nLevels;				% First value of the unlimited var
+				levelVec = -nLevels;			% First value of the unlimited var
 				nLevels = 0;
 			else		% == 0
 				levelVec = 1;					% At least it won't be 9...10^36
@@ -102,7 +102,7 @@ function write_nc(fname, handles, data, misc, page)
 			else
 				level = page{1};
 			end
-			nc_funs('varput', fname, levelName, level );	% The UNLIMITED var value
+			nc_funs('varput', fname, levelName, level, page{1}, 1 );	% The UNLIMITED var value
 		end
 
 		if (ndims(data) == 2)
@@ -162,7 +162,7 @@ function write_nc(fname, handles, data, misc, page)
 	% See if we have them in appdata
 	if ( isempty(misc.srsWKT) ),		misc.srsWKT = getappdata(handles.figure1,'ProjWKT');	end
 	if ( isempty(misc.strPROJ4) ),		misc.strPROJ4 = getappdata(handles.figure1,'Proj4');	end
-	
+
 	% Create the coordinates vectors
 	nx = round(diff(handles.head(1:2)) / handles.head(8) + ~handles.head(7));
 	ny = round(diff(handles.head(3:4)) / handles.head(9) + ~handles.head(7));
@@ -172,7 +172,7 @@ function write_nc(fname, handles, data, misc, page)
 	% ---------------------------- Write the dimensions --------------------------------
 	nc_funs('add_dimension', fname, x_var, nx )
 	nc_funs('add_dimension', fname, y_var, ny )
-	
+
 	if (is3D)		% Initialize a 3D file
  		nc_funs('add_dimension', fname, levelName, nLevels)
 	end
@@ -182,13 +182,13 @@ function write_nc(fname, handles, data, misc, page)
 	nc_funs('addvar', fname, x_varstruct)
 	nc_funs('addvar', fname, y_varstruct)
 	varstruct.Dimension = {y_var, x_var};
-	
+
 	if (is3D)		% Initialize a 3D file
 		t_varstruct.Name = levelName;		t_varstruct.Dimension = {levelName};
 		nc_funs('addvar', fname, t_varstruct)
 		varstruct.Dimension = {levelName, y_var, x_var};
 	end
-	
+
 	varstruct.Name = z_name;
 	add_off = [];
 	switch ( class(data) )
@@ -258,7 +258,7 @@ function write_nc(fname, handles, data, misc, page)
 		end
 	end
 
-	if (is3D && is_unlimited),	nc_funs('varput', fname, levelName, levelVec(1) );		end		% The UNLIMITED var value
+	if (is3D && is_unlimited),	nc_funs('varput', fname, levelName, levelVec(1), 0, 1 );		end		% The UNLIMITED var value
 	if (ndims(data) == 2)
 		nc_funs('varput', fname, z_name, data, [0 0], [ny nx] );
 	elseif (ndims(data) == 3)
