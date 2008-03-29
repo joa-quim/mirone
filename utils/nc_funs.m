@@ -2614,16 +2614,9 @@ values = nb.(var);
 
 
 
-
-
-
-
-
-
-
-
 % --------------------------------------------------------------------
 function snc_error ( error_id, error_msg )
+	disp ( [error_id ' ' error_msg] );			% On compiled version that's the only message we'll get
 	error ( error_id, error_msg );
 
 % --------------------------------------------------------------------
