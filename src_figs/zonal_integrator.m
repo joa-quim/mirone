@@ -11,11 +11,13 @@ function varargout = zonal_integrator(varargin)
 		handles.home_dir = handMir.home_dir;
 		handles.last_dir = handMir.last_dir;
 		handles.work_dir = handMir.work_dir;
+		handles.IamCompiled = handMir.IamCompiled;		% Need to know due to crazy issue of nc_funs
         d_path = handMir.path_data;
 	else
 		handles.home_dir = cd;
 		handles.last_dir = handles.home_dir;
 		handles.work_dir = handles.home_dir;
+		handles.IamCompiled = false;
         d_path = [pwd filesep 'data' filesep];
 	end
 	handles.nameList = [];
@@ -60,13 +62,31 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
     [bin,n_column] = guess_file(fname);
     % If error in reading file
     if isempty(bin)
-		errordlg(['Error reading file ' fname],'Error');    return
+		errordlg(['Error reading file ' fname],'Error'),	return
     end
 
 	fid = fopen(fname);
 	c = fread(fid,'*char')';      fclose(fid);
 	names = strread(c,'%s','delimiter','\n');   clear c fid;
 	m = length(names);
+	
+	handles.strTimes = [];          % To hold time steps as strings
+	if (n_column > 1)
+		handles.strTimes = cell(m,1);
+		c = false(m,1);
+		for (k=1:m)
+			[t,r] = strtok(names{k});
+			if (t(1) == '#'),  c(k) = true;		continue,	end
+			names{k} = t;
+			r = ddewhite(r);
+			handles.strTimes{k} = r;
+		end
+		% Remove eventual commented lines
+		if (any(c))
+			names(c) = [];			handles.strTimes(c) = [];
+			m = length(names);      % Count remaining ones
+		end
+	end
 
 	handles.shortNameList = cell(m,1);      % To hold grid names with path striped
 	c = false(m,1);
@@ -312,6 +332,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	txt2 = 'Select output netCDF grid';
 	[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put');
 	if isequal(FileName,0),		return,		end
+	[pato, fname, EXT] = fileparts(FileName);
+	if (isempty(EXT)),		FileName = [fname '.nc'];	end
 	grd_out = [PathName FileName];
 
 	set(handles.figure1,'pointer','watch')
@@ -349,11 +371,24 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		Z(Z > 5) = 5;			% <==== CLIPING
 		zz = grdutils(Z,'-L');  handles.head(5:6) = [zz(1) zz(2)];
 
-		if (k == 1)
-% 			nc_io(grd_out,sprintf('w%d/time',nSlices), handles, reshape(Z,[1 size(Z)]))
-			nc_io(grd_out,sprintf('w%d/time',0), handles, reshape(Z,[1 size(Z)]))
+		% Must treate compiled version differently since, biggest of misteries, nc_funs
+		% than hangs when writting unlimited variables
+		if (~handles.IamCompiled)
+			if (~isempty(handles.strTimes)),		t_val = handles.strTimes{k};
+			else									t_val = sprintf('%d',k - 1);
+			end
+			if (k == 1)
+				nc_io(grd_out, ['w-' t_val '/time'], handles, reshape(Z,[1 size(Z)]))
+			else
+				nc_io(grd_out, sprintf('w%d\\%s', k-1, t_val), handles, Z)
+			end
 		else
-			nc_io(grd_out, sprintf('w%d', k-1), handles, Z)
+			if (k == 1)
+				handles.levelVec = str2double(handles.strTimes);
+     			nc_io(grd_out,sprintf('w%d/time',nSlices), handles, reshape(Z,[1 size(Z)]))
+			else
+				nc_io(grd_out, sprintf('w%d', k-1), handles, Z)
+			end
 		end
 	end
 	set(handles.listbox_list,'Val',1)
