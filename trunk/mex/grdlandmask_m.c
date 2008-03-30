@@ -38,6 +38,10 @@
 #include "gmt.h"
 #include "mex.h"
 
+/* Since mexCallMATLAB crash on compiled version swapp between 0 & 1 to create the dll to use
+   respectively, with the non compiled and compiled versions */
+#define COMPILED 0
+
 #define GRDLANDMASK_N_CLASSES	(GMT_MAX_GSHHS_LEVEL + 1)	/* Number of bands separated by the levels */
 
 struct GRDLANDMASK_CTRL {	/* All control options for this program (except common args) */
@@ -321,12 +325,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_err_fail (GMT_map_setup (header.x_min, header.x_max, header.y_min, header.y_max), "");
 	wrap = GMT_360_RANGE (header.x_max, header.x_min);
 	
+#if defined COMPILED && COMPILED == 0
 	if (gmtdefs.verbose) {
 		rhs[0] = mxCreateDoubleScalar(0.0);
-		rhs[1] = mxCreateString("title");		/* Waitbar message */
+		rhs[1] = mxCreateString("title");
 		rhs[2] = mxCreateString("Masking ...");
 		mexCallMATLAB(0,NULL,3,rhs,"aguentabar");
 	}
+#endif
 
 	/* Fill out gridnode coordinates and apply the implicit linear projection */
 
@@ -342,10 +348,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	for (ind = 0; ind < c.nb; ind++) {	/* Loop over necessary bins only */
 
 		bin = c.bins[ind];
+#if defined COMPILED && COMPILED == 0
 		if (gmtdefs.verbose) {
 			rhs[0] = mxCreateDoubleScalar((double)(ind+1) / c.nb);
 			mexCallMATLAB(0,NULL,1,rhs,"aguentabar");
 		}
+#else
+		if (gmtdefs.verbose)
+			mexPrintf("Done %.0f %%\r", (double)(ind+1) / c.nb * 100);
+#endif
 
 		if ((err = GMT_get_shore_bin (ind, &c, Ctrl->A.area, Ctrl->A.low, Ctrl->A.high))) {
 			mexPrintf ("%s: %s [%s resolution shoreline]\n", GMT_program, GMT_strerror(err), shore_resolution[base]);
