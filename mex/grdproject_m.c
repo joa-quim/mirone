@@ -59,7 +59,7 @@ float *grd_out;
 /* Matlab Gateway routine */
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-	int i, j, i_pad, dpi, nx, ny, nm, unit = 0;
+	int i, j, k, i_pad, dpi, nx, ny, nm, unit = 0;
 	
 	BOOLEAN error = FALSE, inverse = FALSE, n_set = FALSE, set_n = FALSE, one_to_one = FALSE;
 	BOOLEAN d_set = FALSE, e_set = FALSE, m_set = FALSE, map_center = FALSE, offset, toggle_offset = FALSE;
@@ -173,11 +173,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (argc == 1 || error) {
 		mexPrintf("grdproject %s - Project geographical grid to/from rectangular grid\n\n", GMT_VERSION);
-		mexPrintf("usage: grdproject <in_grdfile> -J<parameters> -R<west/east/south/north>\n");
-		mexPrintf("\t[-A[k|m|n|i|c|p]] [-C] [-D<dx[m|c]>[/dy[m|c]]] [-E<dpi>] [-F] [-G<out_grdfile>] [-I] [-Mc|i|m]\n");
-		mexPrintf("\t[-N<nx/ny>] [-S<radius>] [-V]\n\n");
+		mexPrintf("usage: [out,hdr] = grdproject_m(grdfile, grdhead, '-J<parameters>', '-R<west/east/south/north>'\n");
+		mexPrintf("\t'[-A[k|m|n|i|c|p]]', '[-C]', '[-D<dx[m|c]>[/dy[m|c]]]', '[-E<dpi>]', '[-F]', '[-I]',\n");
+		mexPrintf("\t'[-Mc|i|m]', '[-N<nx/ny>]',)\n\n");
 		
-		mexPrintf("\t<in_grdfile> is data set to be transformed\n");
+		mexPrintf("\tgrdfile is data set to be transformed\n");
 		mexPrintf("\n\tOPTIONS:\n");
 		mexPrintf("\t-A force projected values to be in actual meters [Default uses the given map scale]\n");
 		mexPrintf("\t   Specify another unit by appending k (km), m (miles), n (nautical miles), i (inch), c (cm), or p (points)\n");
@@ -186,7 +186,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("\t-D sets the grid spacing for the new grid\n");
 		mexPrintf("\t-E sets dpi for output grid\n");
 		mexPrintf("\t-F toggle between pixel and grid registration  [Default is same as input]\n");
-		mexPrintf("\t-G name of output grid\n");
 		mexPrintf("\t-I Inverse transformation from rectangular to geographical\n");
 		mexPrintf("\t-M Temporarily reset MEASURE_UNIT to be c (cm), i (inch), m (meter), or p (point)\n");
 		mexPrintf("\t   Cannot be used if -A is set.\n");
@@ -327,31 +326,43 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_pad[0] = GMT_pad[1] = GMT_pad[2] = GMT_pad[3] = 2;
 	nm = (nx_in + 4) * (ny_in + 4);
 
-	grd_in = mxCalloc (nm, sizeof (float));
+	grd_in = mxMalloc (nm * sizeof (float));
 	/* Transpose from Matlab orientation to gmt grd orientation */
 	if (is_double) {
-		for (i = 0, i2 = ny_in - 1; i < ny_in; i++, i2--) 
-			for (j = 0; j < nx_in; j++) grd_in[i2*mx + j + i_pad*(mx + 1)] = (float)z_8[j*ny_in+i];
+		for (i = 0, i2 = ny_in - 1; i < ny_in; i++, i2--) {
+			k = i2 * mx + i_pad * (mx + 1); 
+			for (j = 0; j < nx_in; j++) grd_in[j + k] = (float)z_8[j*ny_in+i];
+		}
 	}
 	else if (is_single) {
-		for (i = 0, i2 = ny_in - 1; i < ny_in; i++, i2--) 
-			for (j = 0; j < nx_in; j++) grd_in[i2*mx + j + i_pad*(mx + 1)] = z_4[j*ny_in+i];
+		for (i = 0, i2 = ny_in - 1; i < ny_in; i++, i2--) {
+			k = i2 * mx + i_pad * (mx + 1); 
+			for (j = 0; j < nx_in; j++) grd_in[j + k] = z_4[j*ny_in+i];
+		}
 	}
 	else if (is_int32) {
-		for (i = 0, i2 = ny_in - 1; i < ny_in; i++, i2--) 
-			for (j = 0; j < nx_in; j++) grd_in[i2*mx + j + i_pad*(mx + 1)] = (float)i_4[j*ny_in+i];
+		for (i = 0, i2 = ny_in - 1; i < ny_in; i++, i2--) {
+			k = i2 * mx + i_pad * (mx + 1); 
+			for (j = 0; j < nx_in; j++) grd_in[j + k] = (float)i_4[j*ny_in+i];
+		}
 	}
 	else if (is_int16) {
-		for (i = 0, i2 = ny_in - 1; i < ny_in; i++, i2--) 
-			for (j = 0; j < nx_in; j++) grd_in[i2*mx + j + i_pad*(mx + 1)] = (float)i_2[j*ny_in+i];
+		for (i = 0, i2 = ny_in - 1; i < ny_in; i++, i2--) {
+			k = i2 * mx + i_pad * (mx + 1); 
+			for (j = 0; j < nx_in; j++) grd_in[j + k] = (float)i_2[j*ny_in+i];
+		}
 	}
 	else if (is_uint16) {
-		for (i = 0, i2 = ny_in - 1; i < ny_in; i++, i2--) 
-			for (j = 0; j < nx_in; j++) grd_in[i2*mx + j + i_pad*(mx + 1)] = (float)ui_2[j*ny_in+i];
+		for (i = 0, i2 = ny_in - 1; i < ny_in; i++, i2--) {
+			k = i2 * mx + i_pad * (mx + 1); 
+			for (j = 0; j < nx_in; j++) grd_in[j + k] = (float)ui_2[j*ny_in+i];
+		}
 	}
 	else if (is_uint8) {
-		for (i = 0, i2 = ny_in - 1; i < ny_in; i++, i2--) 
-			for (j = 0; j < nx_in; j++) grd_in[i2*mx + j + i_pad*(mx + 1)] = (float)ui_1[j*ny_in+i];
+		for (i = 0, i2 = ny_in - 1; i < ny_in; i++, i2--) {
+			k = i2 * mx + i_pad * (mx + 1); 
+			for (j = 0; j < nx_in; j++) grd_in[j + k] = (float)ui_1[j*ny_in+i];
+		}
 	}
 
 	if (inverse) {	/* Transforming from rectangular projection to geographical */
@@ -489,53 +500,44 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	else {
 		nx = r_head.nx;		ny = r_head.ny;
 	}
+	
+	mxFree(grd_in);
+
 	if (is_double) {
-		o_d = mxCalloc (nx*ny, sizeof (double));
-		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_d[j*ny+ny-i-1] = (double)grd_out[i*nx+j];
 		plhs[0] = mxCreateDoubleMatrix (ny,nx, mxREAL);
-		pdata_d = mxGetPr(plhs[0]);
-		memcpy(pdata_d, o_d, ny*nx * 8);
-		mxFree(o_d);	mxFree(grd_in);
+		o_d = (double *)mxGetData(plhs[0]);
+		for (i = 0; i < ny; i++) 
+			for (j = 0; j < nx; j++) o_d[j*ny+ny-i-1] = (double)grd_out[i*nx+j];
 	}
 	else if (is_single) {
-		o_s = mxCalloc (nx*ny, sizeof (float));
-		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_s[j*ny+ny-i-1] = grd_out[i*nx+j];
 		plhs[0] = mxCreateNumericMatrix (ny,nx,mxSINGLE_CLASS,mxREAL);
-		pdata_s = mxGetData(plhs[0]);
-		memcpy(pdata_s, o_s, ny*nx * 4);
-		mxFree(o_s);	mxFree(grd_in);
+		o_s = (float *)mxGetData(plhs[0]);
+		for (i = 0; i < ny; i++) 
+			for (j = 0; j < nx; j++) o_s[j*ny+ny-i-1] = grd_out[i*nx+j];
 	}
 	else if (is_int32) {
-		o_i4 = mxCalloc (nx*ny, sizeof (int));
-		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_i4[j*ny+ny-i-1] = irint(grd_out[i*nx+j]);
 		plhs[0] = mxCreateNumericMatrix (ny,nx,mxINT32_CLASS,mxREAL);
-		pdata_i4 = mxGetData(plhs[0]);
-		memcpy(pdata_i4, o_i4, ny*nx * 4);
-		mxFree(o_i4);	mxFree(grd_in);
+		o_i4 = (int *)mxGetData(plhs[0]);
+		for (i = 0; i < ny; i++) 
+			for (j = 0; j < nx; j++) o_i4[j*ny+ny-i-1] = irint(grd_out[i*nx+j]);
 	}
 	else if (is_int16) {
-		o_i2 = mxCalloc (nx*ny, sizeof (short int));
-		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_i2[j*ny+ny-i-1] = (short int)irint(grd_out[i*nx+j]);
 		plhs[0] = mxCreateNumericMatrix (ny,nx,mxINT16_CLASS,mxREAL);
-		pdata_i2 = mxGetData(plhs[0]);
-		memcpy(pdata_i2, o_i2, ny*nx * 2);
-		mxFree(o_i2);	mxFree(grd_in);
+		o_i2 = (short int *)mxGetData(plhs[0]);
+		for (i = 0; i < ny; i++) 
+			for (j = 0; j < nx; j++) o_i2[j*ny+ny-i-1] = (short int)irint(grd_out[i*nx+j]);
 	}
 	else if (is_uint16) {
-		o_ui2 = mxCalloc (nx*ny, sizeof (short int));
-		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_ui2[j*ny+ny-i-1] = (unsigned short int)irint(grd_out[i*nx+j]);
 		plhs[0] = mxCreateNumericMatrix (ny,nx,mxUINT16_CLASS,mxREAL);
-		pdata_ui2 = mxGetData(plhs[0]);
-		memcpy(pdata_ui2, o_ui2, ny*nx * 2);
-		mxFree(o_ui2);	mxFree(grd_in);
+		o_ui2 = (unsigned short int *)mxGetData(plhs[0]);
+		for (i = 0; i < ny; i++) 
+			for (j = 0; j < nx; j++) o_ui2[j*ny+ny-i-1] = (unsigned short int)irint(grd_out[i*nx+j]);
 	}
 	else if (is_uint8) {
-		o_ui1 = mxCalloc (nx*ny, sizeof (char));
-		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_ui1[j*ny+ny-i-1] = (unsigned char)grd_out[i*nx+j];
 		plhs[0] = mxCreateNumericMatrix (ny,nx,mxUINT8_CLASS ,mxREAL);
-		pdata_ui1 = mxGetData(plhs[0]);
-		memcpy(pdata_ui1, o_ui1, ny*nx * 1);
-		mxFree(o_ui1);	mxFree(grd_in);
+		o_ui1 = (unsigned char *)mxGetData(plhs[0]);
+		for (i = 0; i < ny; i++) 
+			for (j = 0; j < nx; j++) o_ui1[j*ny+ny-i-1] = (unsigned char)grd_out[i*nx+j];
 	}
 
 	GMT_free ((void *)grd_out);
