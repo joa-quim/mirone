@@ -49,7 +49,7 @@ void GMT_hsv_to_rgb(int rgb[], double h, double s, double v);
 void GMT_illuminate (double intensity, int rgb[]);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-	int rgb_pt[3], nx, ny, m, n, ndims[2], nsubs, is_single = 0;
+	int rgb_pt[3], nx, ny, m, n, nm, k1, k2, ndims[2], nsubs, is_single = 0;
 	char *r_out, *g_out, *b_out;
 	unsigned char *rgb;
 	float  *R_s;
@@ -93,34 +93,36 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	/* Create a matrix for the return arrays */
-	rgb = (unsigned char *)mxGetPr(prhs[0]);
+	rgb = (unsigned char *)mxGetData(prhs[0]);
 	ny = mxGetM(prhs[0]);
 	nx = mxGetN(prhs[0]);
 	nx /= 3;
 	ndims[0] = ny;		ndims[1] = nx;
 	if (is_single)
-		R_s = mxGetData(prhs[1]);
+		R_s = (float *)mxGetData(prhs[1]);
 	else
 		R_d = mxGetPr(prhs[1]);
 	plhs[0] = mxCreateNumericMatrix(ny, nx, mxUINT8_CLASS, mxREAL);
 	plhs[1] = mxCreateNumericMatrix(ny, nx, mxUINT8_CLASS, mxREAL);
 	plhs[2] = mxCreateNumericMatrix(ny, nx, mxUINT8_CLASS, mxREAL);
-	r_out = (char *)mxGetPr(plhs[0]);
-	g_out = (char *)mxGetPr(plhs[1]);
-	b_out = (char *)mxGetPr(plhs[2]);
+	r_out = (char *)mxGetData(plhs[0]);
+	g_out = (char *)mxGetData(plhs[1]);
+	b_out = (char *)mxGetData(plhs[2]);
+	nm = nx * ny;
 	for (m = 0; m < ny; m++){
 		for (n = 0; n < nx; n++){
-			rgb_pt[0] = (int)rgb[mnk_data(0,m,n)];
-			rgb_pt[1] = (int)rgb[mnk_data(1,m,n)];
-			rgb_pt[2] = (int)rgb[mnk_data(2,m,n)];
+			k1 = mn_data(m,n);
+			rgb_pt[0] = (int)rgb[k1];		/* k1 = mnk_data(0,m,n);*/
+			rgb_pt[1] = (int)rgb[nm + k1];		/* nm + k1 = mnk_data(1,m,n) */
+			rgb_pt[2] = (int)rgb[2*nm + k1];	/* 2*nm + k1 = mnk_data(2,m,n) */ 
 			if (is_single)
-				intensity = (double)R_s[mn_data(m,n)];
+				intensity = (double)R_s[k1];
 			else
-				intensity = R_d[mn_data(m,n)];
+				intensity = R_d[k1];
 			GMT_illuminate (intensity, rgb_pt);
-			r_out[mn_data(m,n)] = rgb_pt[0];
-			g_out[mn_data(m,n)] = rgb_pt[1];
-			b_out[mn_data(m,n)] = rgb_pt[2];
+			r_out[k1] = rgb_pt[0];
+			g_out[k1] = rgb_pt[1];
+			b_out[k1] = rgb_pt[2];
 		}
 	}
 }
@@ -139,21 +141,23 @@ void GMT_rgb_to_hsv (int rgb[], double *h, double *s, double *v) {
 	*h = 0.0;
 	if ((*s) == 0.0) return;	/* Hue is undefined */
 	idiff = 1.0 / diff;
-	r_dist = (max_v - xr) * idiff;
-	g_dist = (max_v - xg) * idiff;
-	b_dist = (max_v - xb) * idiff;
+	//r_dist = (max_v - xr);
+	//g_dist = (max_v - xg);
+	//b_dist = (max_v - xb);
 	if (xr == max_v)
-		*h = b_dist - g_dist;
+		//*h = (b_dist - g_dist) * idiff;
+		*h = (xg - xb) * idiff;
 	else if (xg == max_v)
-		*h = 2.0 + r_dist - b_dist;
+		//*h = 2.0 + (r_dist - b_dist) * idiff;
+		*h = 2.0 + (xb - xr) * idiff;
 	else
-		*h = 4.0 + g_dist - r_dist;
+		//*h = 4.0 + (g_dist - r_dist) * idiff;
+		*h = 4.0 + (xr - xg) * idiff;
 	(*h) *= 60.0;
 	if ((*h) < 0.0) (*h) += 360.0;
 }
 
-void GMT_hsv_to_rgb (int rgb[], double h, double s, double v)
-{
+void GMT_hsv_to_rgb (int rgb[], double h, double s, double v) {
 	int i;
 	double f, p, q, t, rr, gg, bb;
 	
@@ -214,8 +218,8 @@ void GMT_illuminate (double intensity, int rgb[])
 		v = di * v - intensity * hsv_min_value;
 	}
 	if (v < 0.0) v = 0.0;
+	else if (v > 1.0) v = 1.0;
 	if (s < 0.0) s = 0.0;
-	if (v > 1.0) v = 1.0;
-	if (s > 1.0) s = 1.0;
+	else if (s > 1.0) s = 1.0;
 	GMT_hsv_to_rgb (rgb, h, s, v);
 }
