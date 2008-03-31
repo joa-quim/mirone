@@ -50,7 +50,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j iptchecknargin
 	%#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line
 	%#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
-	%#function move2side aguentabar grdlandmask_m
+	%#function move2side aguentabar
 
 	global home_dir;    home_dir = cd;      fsep = filesep;
 	%addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
@@ -917,21 +917,21 @@ function ExtractProfile_CB(handles, opt)
 		% Here I don't realy know what is the good increment for interpolation, so I'll
 		% interpolate at the half grid spacing for each dimension.
 		% Construct the vectors with the points where to interpolate the profile
-		xx = [];     yy = [];
+		xx = [];	yy = [];
 		for (i = 1:n_nodes-1)
 			n_int = round( max( abs(xp(i+1)-xp(i))/(dx/2), abs(yp(i+1)-yp(i))/(dy/2) ) );         % find ...
 			xx = [xx linspace(xp(i),xp(i+1),n_int)];     yy = [yy linspace(yp(i),yp(i+1),n_int)];  % at nodes, values are repeated
 		end
-	else                    % Interpolation at line vetex
+	else					% Interpolation at line vetex
 		xx = xp;    yy = yp;
 	end
 
 	% Interpolate
-	if ~isempty(getappdata(handles.figure1,'dem_x'))        % Grid is in memory
-        if (~getappdata(handles.figure1,'PixelMode'))       % Interpolation mode
-			zz = grdtrack_m(Z,head,[xx' yy'],'-Z')';        % It uses less memory (and non doubles)
+	if ~isempty(getappdata(handles.figure1,'dem_x'))		% Grid is in memory
+        if (~getappdata(handles.figure1,'PixelMode'))		% Interpolation mode
+			zz = grdtrack_m(Z,head,[xx' yy'],'-Z')';		% It uses less memory (and non doubles)
 			%zz = interp2(X,Y,double(Z),xx,yy,'*cubic');
-        else                                                % NEARNEIGBOR mode
+		else												% NEARNEIGBOR mode
 			[rows,cols] = size(Z);
 			rp = aux_funs('axes2pix',rows, get(handles.hImg,'YData'),yy);
 			cp = aux_funs('axes2pix',cols, get(handles.hImg,'XData'),xx);
@@ -939,7 +939,7 @@ function ExtractProfile_CB(handles, opt)
 			rc = (c - 1) * rows + r;
 			zz = double(Z(rc));
         end
-	else                                % grid was loaded here (big according to preferences), so interp linearly
+	else								% grid was loaded here (big according to preferences), so interp linearly
 		zz = bi_linear(X,Y,Z,xx,yy);
 	end
 
@@ -966,14 +966,14 @@ function FileOpen_ENVI_Erdas_CB(handles, opt, opt2)
         PathName = [];      FileName = opt2;
 	end
 
-	if (handles.ForceInsitu),   opt_I = '-I';   % Use only in desperate cases.
-	else                        opt_I = ' ';    end
-	handles.was_int16 = 0;      % To make sure that it wasnt left = 1 from a previous use.
+	if (handles.ForceInsitu),	opt_I = '-I';   % Use only in desperate cases.
+	else						opt_I = ' ';    end
+	handles.was_int16 = 0;		% To make sure that it wasnt left = 1 from a previous use.
 	handles.fileName = [PathName FileName];
 
 	att = gdalread(handles.fileName,'-M','-C');
 	if ((att.RasterXSize * att.RasterYSize * 4) > handles.grdMaxSize)
-        if ( strcmp(yes_or_no('title','Warning'),'Yes')),  return;     end      % Advise accepted
+		if ( strcmp(yes_or_no('title','Warning'),'Yes')),  return;     end      % Advise accepted
 	end
 
 	set(handles.figure1,'pointer','watch')
@@ -981,16 +981,16 @@ function FileOpen_ENVI_Erdas_CB(handles, opt, opt2)
 		opt_S = ' ';
 		if (~strcmp(att.Band(1).DataType,'Byte')),		opt_S = '-S';	end
 		zz = gdalread(handles.fileName,'-U', opt_S);
-		head = att.GMT_hdr;             [m,n,k] = size(zz);
-		X = [head(1) head(2)];          Y = [head(3) head(4)];
-		if strcmp(att.ColorInterp,'gray'),          pal = gray(256);
+		head = att.GMT_hdr;				[m,n,k] = size(zz);
+		X = [head(1) head(2)];			Y = [head(3) head(4)];
+		if strcmp(att.ColorInterp,'gray'),			pal = gray(256);
 		elseif strcmp(att.ColorInterp,'Palette')
 			if (~isempty(att.Band(1).ColorMap)),	pal = att.Band(1).ColorMap.CMap(:,1:3);
 			else									pal = jet(256);
 			end
 		else										pal = jet(256);
 		end
-		validGrid = 0;                              % Signal that grid opps are not allowed
+		validGrid = 0;								% Signal that grid opps are not allowed
 		set(handles.figure1,'Colormap',pal)
 	else
 		Z = gdalread(handles.fileName,'-U','-C',opt_I);
@@ -1007,12 +1007,12 @@ function FileOpen_ENVI_Erdas_CB(handles, opt, opt2)
 	end
         
 	handles.image_type = 3 + validGrid;
-    handles.head = head;
-    handles = show_image(handles,handles.fileName,X,Y,zz,validGrid,'xy',1);
-    grid_info(handles,att,'gdal')           % Construct a info message
-    handles = aux_funs('isProj',handles);   % Check about coordinates type
-    handles = setAxesDefCoordIn(handles,1); % Sets the value of the axes uicontextmenu that selects whether project or not
-    recentFiles(handles);                   % Insert fileName into "Recent Files" & save handles
+	handles.head = head;
+	handles = show_image(handles,handles.fileName,X,Y,zz,validGrid,'xy',1);
+	grid_info(handles,att,'gdal')           % Construct a info message
+	handles = aux_funs('isProj',handles);   % Check about coordinates type
+	handles = setAxesDefCoordIn(handles,1); % Sets the value of the axes uicontextmenu that selects whether project or not
+	recentFiles(handles);                   % Insert fileName into "Recent Files" & save handles
 
 % --------------------------------------------------------------------
 function FileOpenNewImage_CB(handles, opt)
@@ -1041,20 +1041,20 @@ if (strcmpi(EXT,'.shade'))
 	if (fid < 0)
 		set(handles.figure1,'pointer','arrow');    errordlg([handles.fileName ': ' msg],'ERROR');   return
 	end
-	fseek(fid, 56, 'bof');                  % Seek forward to the image data.
-	nm = fread(fid,2,'uint16');             % read n_row & n_col
-	n_row = nm(1);      n_col = nm(2);
-	fseek(fid, 87, 'bof');                  % position the pointer at the end of the header
-	nbytes = n_row*n_col*4;                 % image is of RGBA type, so it has 4 channels
+	fseek(fid, 56, 'bof');					% Seek forward to the image data.
+	nm = fread(fid,2,'uint16');				% read n_row & n_col
+	n_row = nm(1);		n_col = nm(2);
+	fseek(fid, 87, 'bof');					% position the pointer at the end of the header
+	nbytes = n_row*n_col*4;					% image is of RGBA type, so it has 4 channels
 	I = fread(fid,nbytes,'*uint8');     fclose(fid);
 	I = reshape(I, [4 n_row n_col]);    I = permute(I, [3 2 1]);
 	I(:,:,1) = flipud(I(:,:,1));        I(:,:,2) = flipud(I(:,:,2));
 	I(:,:,3) = flipud(I(:,:,3));        I(:,:,4) = flipud(I(:,:,4));
-	I = I(:,:,2:4);                         % strip alpha off of I
+	I = I(:,:,2:4);							% strip alpha off of I
 elseif (strcmpi(EXT,'.raw') || strcmpi(EXT,'.bin'))
 	FileOpenGDALmultiBand_CB(handles, 'RAW', handles.fileName)
 	FOcandidate = [];
-	return      % We are done here. Bye Bye.
+	return		% We are done here. Bye Bye.
 else
 	info_img = imfinfo(handles.fileName);
 	if ( any(strcmpi(EXT,{'.tif' '.tiff'})) && strcmp(info_img.Compression,'LZW'))
@@ -1063,8 +1063,8 @@ else
 	elseif (strcmpi(EXT,'.gif') && handles.IamCompiled)   % Try with GDAL because, ML uses f... java
 		[I,att] = gdalread(handles.fileName);
 	else
-		try         [I,map] = imread(handles.fileName);
-		catch       errordlg(lasterr,'Error');      FOcandidate = [];  return % It realy may happen
+		try			[I,map] = imread(handles.fileName);
+		catch		errordlg(lasterr,'Error');		FOcandidate = [];  return % It realy may happen
 		end
 	end
 	[head_fw,err_msg] = tfw_funs('inquire',[size(I,1) size(I,2)],PATH,FNAME,EXT);  % See if we have .*fw file
@@ -1081,24 +1081,24 @@ else
 	end
 end
 
-if (isempty(head_fw))           % Image is not georeferenced
-	handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];   % Fake a grid reg GMT header
-	handles.image_type = 2;     X = [];     Y = [];         ax_dir = 'off';
-else                            % Got and decoded a .*fw file
-	handles.image_type = 3;     handles.head = head_fw;
-	X = handles.head(1:2);      Y = handles.head(3:4);      ax_dir = 'xy';
+if (isempty(head_fw))			% Image is not georeferenced
+	handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];	% Fake a grid reg GMT header
+	handles.image_type = 2;		X = [];     Y = [];			ax_dir = 'off';
+else							% Got and decoded a .*fw file
+	handles.image_type = 3;		handles.head = head_fw;
+	X = handles.head(1:2);		Y = handles.head(3:4);		ax_dir = 'xy';
 	I = flipdim(I,1);
 end
 handles = show_image(handles,handles.fileName,X,Y,I,0,ax_dir,0);
-grid_info(handles,handles.fileName,'iminfo');   % Construct a info string
-handles = aux_funs('isProj',handles);           % Check/set about coordinates type
+grid_info(handles,handles.fileName,'iminfo');	% Construct a info string
+handles = aux_funs('isProj',handles);			% Check/set about coordinates type
 guidata(handles.figure1,handles)
-if (~isempty(head_fw) && ishandle(handles.Projections))     % Case still unknown to aux_funs('isProj',... 
-	set(handles.Projections,'Enable','on')      % We don't know which but at least it is georeferenced
+if (~isempty(head_fw) && ishandle(handles.Projections))		% Case still unknown to aux_funs('isProj',... 
+	set(handles.Projections,'Enable','on')		% We don't know which but at least it is georeferenced
 	setappdata(handles.figure1,'ProjGMT','')
 end
-if (~isempty(FOcandidate))      % If we got here, fname should be re-loadable
-	recentFiles(handles);       % Insert fileName into "Recent Files" & save handles
+if (~isempty(FOcandidate))		% If we got here, fname should be re-loadable
+	recentFiles(handles);		% Insert fileName into "Recent Files" & save handles
 end
 
 % --------------------------------------------------------------------
@@ -1138,41 +1138,41 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2)
 		n_bands = att.RasterCount;
 		bands_inMemory = 1:min(n_bands,bands_inMemory);      % Make it a vector
 		handles.head = att.GMT_hdr;
-		if (~isempty(att.GCPvalues))    % Save GCPs so that we can plot them and warp the image
+		if (~isempty(att.GCPvalues))	% Save GCPs so that we can plot them and warp the image
 			setappdata(handles.figure1,'GCPregImage',att.GCPvalues)
-			setappdata(handles.figure1,'fnameGCP',fname)    % Save this to know when GCPs are to be removed
-		end                                                 % from appdata. That is donne in show_image()
+			setappdata(handles.figure1,'fnameGCP',fname)	% Save this to know when GCPs are to be removed
+		end													% from appdata. That is donne in show_image()
 	end
 
 	tmp1 = cell(n_bands+1,2);    tmp2 = cell(n_bands+1,2);
 	tmp1{1,1} = opt;    tmp1{1,2} = opt;
 	for (i = 1:n_bands)
-        tmp1{i+1,1} = ['band' sprintf('%d',i)];
-        tmp1{i+1,2} = ['banda' sprintf('%d',i)];	% TEMP
-        tmp2{i+1,1} = [sprintf('%d',i) 'x1 bip'];	% TEMP
-        tmp2{i+1,2} = i;
+		tmp1{i+1,1} = ['band' sprintf('%d',i)];
+		tmp1{i+1,2} = ['banda' sprintf('%d',i)];	% TEMP
+		tmp2{i+1,1} = [sprintf('%d',i) 'x1 bip'];	% TEMP
+		tmp2{i+1,2} = i;
 	end
 	tmp = {['+ ' opt]; I; tmp1; tmp2; fname; bands_inMemory; [att.RasterYSize att.RasterXSize n_bands]; reader};
-	if (n_bands > 3),       I(:,:,4:end) = [];      % Now I can only be MxN or MxNx3
+	if (n_bands > 3),		I(:,:,4:end) = [];		% Now I can only be MxN or MxNx3
 	elseif (n_bands == 2),  I(:,:,2) = [];
 	end
 
 	setappdata(handles.figure1,'BandList',tmp)
-	handles.image_type = 2;     handles.fileName = [];  % No eligible for automatic re-loading
-	handles.was_int16 = 0;      handles.computed_grid = 0;
-	handles.geog = 0;           % None of this image types is coordinated (nor geog nor anything else)
+	handles.image_type = 2;		handles.fileName = [];  % No eligible for automatic re-loading
+	handles.was_int16 = 0;		handles.computed_grid = 0;
+	handles.geog = 0;			% None of this image types is coordinated (nor geog nor anything else)
 	if (~strcmp(opt,'RAW'))
-		if (isempty(att.Band(1).ColorMap)),     set(handles.figure1,'Colormap',jet(256))
-		else                                    set(handles.figure1,'Colormap',att.Band(1).ColorMap.CMap)
+		if (isempty(att.Band(1).ColorMap)),		set(handles.figure1,'Colormap',jet(256))
+		else									set(handles.figure1,'Colormap',att.Band(1).ColorMap.CMap)
 		end
     	handles = recentFiles(handles);			% Insert fileName into "Recent Files"
 	end
 	if (n_bands == 1),      set(handles.figure1,'Colormap',gray(256));   end    % Takes precedence over the above
 	handles = show_image(handles,fname,[],[],I,0,'off',0);    % It also guidata(...) & reset pointer
 	if (isappdata(handles.axes1,'InfoMsg')),    rmappdata(handles.axes1,'InfoMsg');     end
-	if (~strcmp(opt,'RAW')),    grid_info(handles,att,'gdal');      end     % Construct a info message
-    aux_funs('isProj',handles,1);               % Check/set about coordinates type
-    setAxesDefCoordIn(handles);                 % Sets the value of the axes uicontextmenu that selects whether project or not
+	if (~strcmp(opt,'RAW')),	grid_info(handles,att,'gdal');		end		% Construct a info message
+	aux_funs('isProj',handles,1);				% Check/set about coordinates type
+	setAxesDefCoordIn(handles);					% Sets the value of the axes uicontextmenu that selects whether project or not
 
 % --------------------------------------------------------------------
 function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
@@ -1215,8 +1215,8 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	if (att.RasterCount == 0)			% Should never happen given the piece of code above, but ...
 		errordlg('Probably a multi-container file. Could not read it since its says that it has no raster bands.','ERROR'),	return
 	elseif (att.RasterCount > 3)            % Since it is a multiband file, try luck there
-        FileOpenGDALmultiBand_CB(handles,'AVHRR',handles.fileName);
-        return
+		FileOpenGDALmultiBand_CB(handles,'AVHRR',handles.fileName);
+		return
 	end
 
 	if (~strcmp(att.Band(1).DataType,'Byte'))       % JPK2, for example, may contain DTMs
@@ -1244,7 +1244,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 			try     pal = att.Band(1).ColorMap.CMap;     pal = pal(:,1:3);       % GDAL creates a Mx4 colormap
 			catch   warndlg('Figure ColorMap had troubles. Replacing by a default one.','Warning'); pal = jet(256);
 			end
-        end
+		end
 	elseif (strcmpi(att.ColorInterp,'gray'))
 			pal = repmat( (att.GMT_hdr(5):att.GMT_hdr(6))' / 255, 1, 3);
 	else	pal = jet(256);
@@ -1295,7 +1295,7 @@ function FileOpenMOLA_CB(handles)
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select MOLA DEM File','get');
 	if isequal(FileName,0),		return,		end
 	
-	type = 'MOLA';      error = 0;
+	type = 'MOLA';		error = 0;
 	[PATH,FNAME] = fileparts([PathName FileName]);
 	fname = [PATH filesep FNAME '.lbl'];
 	fp = fopen(fname,'rt');
@@ -1304,49 +1304,49 @@ function FileOpenMOLA_CB(handles)
 	end
 	s = strread(fread(fp,'*char').','%s','delimiter','\n');
 
-	LINES = findcell('LINES', s);                   if (isempty(LINES)),  error = 1;  end
-	[t,r] = strtok(s{LINES.cn},'=');                n_lines = str2double(r(3:end));
+	LINES = findcell('LINES', s);					if (isempty(LINES)),  error = 1;  end
+	[t,r] = strtok(s{LINES.cn},'=');				n_lines = str2double(r(3:end));
 
-	LINE_SAMPLES = findcell('LINE_SAMPLES', s);     if (isempty(LINE_SAMPLES)),  error = 1;  end
-	[t,r] = strtok(s{LINE_SAMPLES.cn},'=');         n_samples = str2double(r(3:end));
+	LINE_SAMPLES = findcell('LINE_SAMPLES', s);		if (isempty(LINE_SAMPLES)),  error = 1;  end
+	[t,r] = strtok(s{LINE_SAMPLES.cn},'=');			n_samples = str2double(r(3:end));
 
-	SAMPLE_BITS = findcell('SAMPLE_BITS', s);       if (isempty(SAMPLE_BITS)),  error = 1;  end
-	[t,r] = strtok(s{SAMPLE_BITS.cn},'=');          %n_bits = str2double(r(3:end));
+	SAMPLE_BITS = findcell('SAMPLE_BITS', s);		if (isempty(SAMPLE_BITS)),  error = 1;  end
+	[t,r] = strtok(s{SAMPLE_BITS.cn},'=');			%n_bits = str2double(r(3:end));
 
-	CENTER_LATITUDE = findcell('CENTER_LATITUDE', s);       if (isempty(CENTER_LATITUDE)),  error = 1;  end
-	[t,r] = strtok(s{CENTER_LATITUDE.cn},'=');      lat0 = str2double(strtok(strtok(r,'=')));
+	CENTER_LATITUDE = findcell('CENTER_LATITUDE', s);		if (isempty(CENTER_LATITUDE)),  error = 1;  end
+	[t,r] = strtok(s{CENTER_LATITUDE.cn},'=');		lat0 = str2double(strtok(strtok(r,'=')));
 
-	CENTER_LONGITUDE = findcell('CENTER_LONGITUDE', s);     if (isempty(CENTER_LONGITUDE)),  error = 1;  end
-	[t,r] = strtok(s{CENTER_LONGITUDE.cn},'=');     lon0 = str2double(strtok(strtok(r,'=')));
+	CENTER_LONGITUDE = findcell('CENTER_LONGITUDE', s);		if (isempty(CENTER_LONGITUDE)),  error = 1;  end
+	[t,r] = strtok(s{CENTER_LONGITUDE.cn},'=');		lon0 = str2double(strtok(strtok(r,'=')));
 
-	LINE_FIRST_PIXEL = findcell('LINE_FIRST_PIXEL', s);     if (isempty(LINE_FIRST_PIXEL)),  error = 1;  end
-	[t,r] = strtok(s{LINE_FIRST_PIXEL.cn},'=');     line_first_pix = str2double(r(3:end));
+	LINE_FIRST_PIXEL = findcell('LINE_FIRST_PIXEL', s);		if (isempty(LINE_FIRST_PIXEL)),	error = 1;  end
+	[t,r] = strtok(s{LINE_FIRST_PIXEL.cn},'=');		line_first_pix = str2double(r(3:end));
 
-	LINE_LAST_PIXEL = findcell('LINE_LAST_PIXEL', s);       if (isempty(LINE_LAST_PIXEL)),  error = 1;  end
-	[t,r] = strtok(s{LINE_LAST_PIXEL.cn},'=');      line_last_pix = str2double(r(3:end));
+	LINE_LAST_PIXEL = findcell('LINE_LAST_PIXEL', s);		if (isempty(LINE_LAST_PIXEL)),	error = 1;  end
+	[t,r] = strtok(s{LINE_LAST_PIXEL.cn},'=');		line_last_pix = str2double(r(3:end));
 
 	SAMPLE_FIRST_PIXEL = findcell('SAMPLE_FIRST_PIXEL', s); if (isempty(SAMPLE_FIRST_PIXEL)),  error = 1;  end
-	[t,r] = strtok(s{SAMPLE_FIRST_PIXEL.cn},'=');   sample_first_pix = str2double(r(3:end));
+	[t,r] = strtok(s{SAMPLE_FIRST_PIXEL.cn},'=');	sample_first_pix = str2double(r(3:end));
 	
-	SAMPLE_LAST_PIXEL = findcell('SAMPLE_LAST_PIXEL', s);   if (isempty(SAMPLE_LAST_PIXEL)),  error = 1;  end
-	[t,r] = strtok(s{SAMPLE_LAST_PIXEL.cn},'=');    sample_last_pix = str2double(r(3:end));
+	SAMPLE_LAST_PIXEL = findcell('SAMPLE_LAST_PIXEL', s);	if (isempty(SAMPLE_LAST_PIXEL)),  error = 1;  end
+	[t,r] = strtok(s{SAMPLE_LAST_PIXEL.cn},'=');	sample_last_pix = str2double(r(3:end));
 	
-	MAP_RESOLUTION = findcell('MAP_RESOLUTION', s);         if (isempty(MAP_RESOLUTION)),  error = 1;  end
-	[t,r] = strtok(s{MAP_RESOLUTION.cn},'=');       res = str2double(strtok(strtok(r,'=')));
+	MAP_RESOLUTION = findcell('MAP_RESOLUTION', s);			if (isempty(MAP_RESOLUTION)),  error = 1;  end
+	[t,r] = strtok(s{MAP_RESOLUTION.cn},'=');		res = str2double(strtok(strtok(r,'=')));
 	
 	LINE_PROJECTION_OFFSET = findcell('LINE_PROJECTION_OFFSET', s);
-	if (isempty(LINE_PROJECTION_OFFSET)),  error = 1;  end
+	if (isempty(LINE_PROJECTION_OFFSET)),		error = 1;	end
 	[t,r] = strtok(s{LINE_PROJECTION_OFFSET.cn},'=');line_off = str2double(r(3:end));
 
 	SAMPLE_PROJECTION_OFFSET = findcell('SAMPLE_PROJECTION_OFFSET', s);
-	if (isempty(SAMPLE_PROJECTION_OFFSET)),  error = 1;  end
+	if (isempty(SAMPLE_PROJECTION_OFFSET)),		error = 1;	end
 	[t,r] = strtok(s{SAMPLE_PROJECTION_OFFSET.cn},'=');sample_off = str2double(r(3:end));
 	
-	if (error),     errordlg('An error has occured in header file parsing','Error');    return;     end
+	if (error),		errordlg('An error has occured in header file parsing','Error');    return;     end
 	limits = [(sample_first_pix - sample_off)/res+lon0 (sample_last_pix - sample_off)/res+lon0 ...
         (line_first_pix - line_off)/res+lat0 (line_last_pix - line_off)/res+lat0];
 	
-	fullname{1} = PathName;     fullname{2} = FileName;
+	fullname{1} = PathName;		fullname{2} = FileName;
 	read_DEMs(handles,fullname,type,[limits n_samples n_lines 1/res])
 
 % --------------------------------------------------------------------
@@ -1431,9 +1431,9 @@ function read_DEMs(handles,fullname,tipo,opt)
 		if (isappdata(handles.figure1,'ProjWKT')),  rmappdata(handles.figure1,'ProjWKT');   end
 		if (isappdata(handles.figure1,'ProjGMT')),  rmappdata(handles.figure1,'ProjGMT');   end
 		if (isappdata(handles.figure1,'Proj4')),    rmappdata(handles.figure1,'Proj4');     end
-    end
-    handles = aux_funs('isProj',handles);		% Check about coordinates type
-    recentFiles(handles);						% Insert fileName into "Recent Files" & save handles
+	end
+	handles = aux_funs('isProj',handles);		% Check about coordinates type
+	recentFiles(handles);						% Insert fileName into "Recent Files" & save handles
 
 % _________________________________________________________________________________________________
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
@@ -1641,7 +1641,7 @@ function ImageIlluminateLambertian(luz, handles, opt)
 	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));    end    % Image is 2D   
 
 	if (strcmp(opt,'grdgrad_class'))		% GMT grdgradient classic illumination
-		illumComm = ['-A' sprintf('%.2f',luz.azim)];
+		illumComm = sprintf('-A%.2f',luz.azim);
 		if (handles.geog),  [R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
 		else				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt'); end
 		handles.Illumin_type = 1;
@@ -1759,10 +1759,10 @@ function ImageAnaglyph_CB(handles)
 	z_min = head(5);      z_max = head(6) + 1;  x_inc = head(8);      y_inc = head(9);
 
 	if (handles.geog)
-        p_size = sqrt((x_inc * deg2m) * (y_inc * deg2m * cos ((y_max + y_min)*0.5 * D2R))); 
-	else     p_size = x_inc * y_inc;    end
+		p_size = sqrt((x_inc * deg2m) * (y_inc * deg2m * cos ((y_max + y_min)*0.5 * D2R))); 
+	else		p_size = x_inc * y_inc;    end
 
-    azimuth	= -90 * D2R;     elevation = 20 * D2R;
+	azimuth	= -90 * D2R;     elevation = 20 * D2R;
 
 	% Tiling
 	[m,n] = size(Z);
@@ -1790,19 +1790,19 @@ function ImageAnaglyph_CB(handles)
 	left = repmat(uint8(255), 1, ana_header.nx);    right = left;
 	ar = repmat(uint8(0), ny, ana_header.nx);       ag = ar;    l = 0;  r = l;
 	for i=1:ny
-        for j=1:nx
-            iz=fix(alpha * (double(Z(i,j)) - z_min));
-            if (j == 1)
-                left(j+iz) = sh(i,j);
-                right(decal+j-iz) = sh(i,j);
-            else
-                for (k=r:decal + j - iz),   right(k) = sh(i,j);  end
-                for (k=l:j + iz),           left(k)  = sh(i,j);  end
-            end
-            l = j + iz;     r = decal + j-iz;
-        end
-        ar(i,:) = left;      ag(i,:) = right;
-        left  = repmat(uint8(0), 1, ana_header.nx);     right = repmat(uint8(0), 1, ana_header.nx);
+		for j=1:nx
+			iz=fix(alpha * (double(Z(i,j)) - z_min));
+			if (j == 1)
+				left(j+iz) = sh(i,j);
+				right(decal+j-iz) = sh(i,j);
+			else
+				for (k=r:decal + j - iz),	right(k) = sh(i,j);  end
+				for (k=l:j + iz),			left(k)  = sh(i,j);  end
+			end
+			l = j + iz;		r = decal + j-iz;
+		end
+		ar(i,:) = left;		ag(i,:) = right;
+		left  = repmat(uint8(0), 1, ana_header.nx);		right = repmat(uint8(0), 1, ana_header.nx);
 	end
 	zz(:,:,1) = ar;    zz(:,:,2) = ag;  zz(:,:,3) = ag; 
 	show_image(handles,'Anaglyph',X,Y,zz,1,'xy',0);
@@ -1833,11 +1833,11 @@ function ImageDrape_CB(handles)
 	son_img = get(handles.hImg,'CData');					% Get "son" image
 	h_f = getappdata(handles.figure1,'hFigParent');			% Get the parent figure handle
 	if (~ishandle(h_f))
-        msgbox('Parent window no longer exists (you kiled it). Exiting.','Warning');
-        set(handles.ImageDrape,'Enable','off');				% Set the Drape option to it's default value (off)
-        return
+		msgbox('Parent window no longer exists (you kiled it). Exiting.','Warning');
+		set(handles.ImageDrape,'Enable','off');				% Set the Drape option to it's default value (off)
+		return
 	end
-    handParent = guidata(h_f);      % We need the parent handles
+	handParent = guidata(h_f);      % We need the parent handles
 	parent_img = get(handParent.hImg,'CData');
 	[y_son x_son z] = size(son_img);                        % Get "son" image dimensions 
 	[y_parent x_parent z] = size(parent_img);               % Get "parent" image dimensions
@@ -1848,52 +1848,52 @@ function ImageDrape_CB(handles)
 	% See about transparency
 	dlg_title = 'Draping Transparency';        num_lines= [1 38];  defAns = {'0'};
 	resp  = inputdlg('Use Transparency (0-1)?',dlg_title,num_lines,defAns);     pause(0.01);
-    alfa = str2double(resp{1});
-    if (alfa > 1),                      alfa = 1;   end
-    if (alfa < 0.01 || isnan(alfa)),    alfa = 0;   end
+	alfa = str2double(resp{1});
+	if (alfa > 1),                      alfa = 1;   end
+	if (alfa < 0.01 || isnan(alfa)),    alfa = 0;   end
 
 	son_cm = [];
 	if (ndims(son_img) == 2),       son_cm = get(handles.figure1,'Colormap');   end       % Get "son" color map
 	if (flip),      son_img = flipdim(son_img,1);   end
-    
-    blind_drape = true;
-    if (handles.geog && handParent.geog),   blind_drape = false;    end
-    if (blind_drape)        % Drape based solely in images sizes
-	    if (y_son ~= y_parent || x_son ~= x_parent)              % Check if "son" and "parent" images have the same size
-           son_img = cvlib_mex('resize',son_img,[y_parent x_parent],'bicubic');
-	    end
-    else                    % Drape based in images coords
-        rect_crop = [handles.head(1) handles.head(3) diff(handles.head(1:2)) diff(handles.head(3:4))];
-        [I,r_c] = cropimg(handParent.head(1:2),handParent.head(3:4),parent_img,rect_crop,'out_grid');
-        if (diff(r_c(1:2)) <= 0 || diff(r_c(3:4)) <= 0)
-            return
-        end
-        son_img = cvlib_mex('resize',son_img,[diff(r_c(1:2)) diff(r_c(3:4))]+1,'bicubic');
-        % Make sure parent & son are both indexed or true color
-        if (ndims(son_img) == 2 && ndims(parent_img) == 3)
-            son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));
-        end
-        if (ndims(son_img) == 3 && ndims(parent_img) == 2)
-            parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));
-        end
-        if (alfa)       % We must process this case here
-            tmp = parent_img(r_c(1):r_c(2),r_c(3):r_c(4),:);
-            cvlib_mex('addweighted',son_img,(1 - alfa),tmp,alfa)     % In-place
-            alfa = 0;       % We don't want to repeat the alpha blending below
-        end
-        parent_img(r_c(1):r_c(2),r_c(3):r_c(4),:) = son_img;
-        son_img = parent_img;       % Do this to be compatible with the blind_drape mode
-    end
-    
+
+	blind_drape = true;
+	if (handles.geog && handParent.geog),   blind_drape = false;    end
+	if (blind_drape)        % Drape based solely in images sizes
+		if (y_son ~= y_parent || x_son ~= x_parent)              % Check if "son" and "parent" images have the same size
+			son_img = cvlib_mex('resize',son_img,[y_parent x_parent],'bicubic');
+		end
+	else					% Drape based in images coords
+		rect_crop = [handles.head(1) handles.head(3) diff(handles.head(1:2)) diff(handles.head(3:4))];
+		[I,r_c] = cropimg(handParent.head(1:2),handParent.head(3:4),parent_img,rect_crop,'out_grid');
+		if (diff(r_c(1:2)) <= 0 || diff(r_c(3:4)) <= 0)
+			return
+		end
+		son_img = cvlib_mex('resize',son_img,[diff(r_c(1:2)) diff(r_c(3:4))]+1,'bicubic');
+		% Make sure parent & son are both indexed or true color
+		if (ndims(son_img) == 2 && ndims(parent_img) == 3)
+			son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));
+		end
+		if (ndims(son_img) == 3 && ndims(parent_img) == 2)
+			parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));
+		end
+		if (alfa)       % We must process this case here
+			tmp = parent_img(r_c(1):r_c(2),r_c(3):r_c(4),:);
+			cvlib_mex('addweighted',son_img,(1 - alfa),tmp,alfa)     % In-place
+			alfa = 0;       % We don't want to repeat the alpha blending below
+		end
+		parent_img(r_c(1):r_c(2),r_c(3):r_c(4),:) = son_img;
+		son_img = parent_img;       % Do this to be compatible with the blind_drape mode
+	end
+
 	if (alfa)
-        if (ndims(son_img) == 2),       son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));    end
-        if (ndims(parent_img) == 2),    parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));      end
-        %son_img = uint8(double(parent_img) * alfa + double(son_img) * (1 - alfa));
-        cvlib_mex('addweighted',son_img,(1 - alfa),parent_img,alfa)     % In-place
+		if (ndims(son_img) == 2),       son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));    end
+		if (ndims(parent_img) == 2),    parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));      end
+		%son_img = uint8(double(parent_img) * alfa + double(son_img) * (1 - alfa));
+		cvlib_mex('addweighted',son_img,(1 - alfa),parent_img,alfa)     % In-place
 	end
 	set(handParent.hImg,'CData',son_img);
 	if (~isempty(son_cm) && (alfa > 0)),    set(h_f,'Colormap',son_cm);     end  % Set "son" colormap to "parent" figure
-	
+
 	% Signal in the parent image handles that it has a draped image
 	handParent.is_draped = 1;      handParent.Illumin_type = 0;
 	guidata(h_f,handParent)
@@ -1907,49 +1907,49 @@ function ToolsMeasure_CB(handles, opt)
 	if (strcmp(opt,'Area')),	opt2 = 'closed';	end
 	[xp,yp] = getline_j(handles.figure1, opt2);		% When opt ~= closed, 2th arg is ignored
 	if (numel(xp) < 2);     zoom_state(handles,'maybe_on');   return;     end
-    draw_funs([xp(:) yp(:)],['tell' opt])
+	draw_funs([xp(:) yp(:)],['tell' opt])
 	zoom_state(handles,'maybe_on');
 
 % --------------------------------------------------------------------
 function ToolsMeasureAreaPerCor_CB(handles)
-    if (handles.no_file),    return,	end
-    img = get(handles.hImg,'CData');        pal = get(handles.figure1,'ColorMap');
-    n = size(pal,1);    ny = size(img,1);   nx = size(img,2);       D2R = pi / 180;
-    if (ndims(img) == 3)        % RGB, reject unless it as a "gray RGB"
-        ind_m = round(rand(1,5)*(ny-1)+1);
-        ind_n = round(rand(1,5)*(nx-1)+1);
-        df = diff(double(img(ind_m,ind_n,:)),1,3);
-        if (~any(df(:) ~= 0))           % Yeap, a RGB gray
-            img(:,:,2:3) = [];          % Remove the non-needed pages
-        else
-            warndlg('This does not work with true color images (they are just too many)','Warning')
-            return
-        end
-        pal = unique(img(:));
-        pal = (0:double(pal(end)))' / 255;      % Pretend this is a colormap
-        n = numel(pal);
-    end
-	
-    if (handles.geog)
-        y3L = 1:3:ny;   y3L(end+1) = ny + 1;        % Vector with one every other third line
-        counts = zeros(n,1);
-        X = linspace(handles.head(1),handles.head(2),nx);
-        Y = linspace(handles.head(3),handles.head(4),ny);
-        Y(end+1) = Y(end);      % Some cases need one extra value in Y(y3L(i)+1) below
-        DX = (X(2) - X(1)) * 111.1949;       DY = (Y(2) - Y(1)) * 111.1949;    % Convert DX|Y to km (at the equator)
-        for (i=1:numel(y3L)-1)
-            threeL = img(y3L(i):y3L(i+1)-1,:);      % Chop 3 lines from image
-            counts = counts + imhistc(threeL, n, 0, n) * DY * DX * cos(Y(y3L(i)+1)*D2R);
-        end
-        ColNames = {'Intensity' 'Area km^2'};
-    else
-        counts = imhistc(img, n, 0, 255);         % Call MEX file to compute the histogram
-        ColNames = {'Intensity' 'N pixels'};
-    end
-    ind = (counts == 0);
-    counts(ind) = [];       pal(ind,:) = [];    % Remove zero counts
-    tableGUI('array',[round(pal(:,1)*255) counts],'ColWidth',[60 90],'ColNames',ColNames,...
-        'FigName','Area measures','RowNumbers','y','MAX_ROWS',20,'modal','');
+	if (handles.no_file),    return,	end
+	img = get(handles.hImg,'CData');        pal = get(handles.figure1,'ColorMap');
+	n = size(pal,1);    ny = size(img,1);   nx = size(img,2);       D2R = pi / 180;
+	if (ndims(img) == 3)        % RGB, reject unless it as a "gray RGB"
+		ind_m = round(rand(1,5)*(ny-1)+1);
+		ind_n = round(rand(1,5)*(nx-1)+1);
+		df = diff(double(img(ind_m,ind_n,:)),1,3);
+		if (~any(df(:) ~= 0))           % Yeap, a RGB gray
+			img(:,:,2:3) = [];          % Remove the non-needed pages
+		else
+			warndlg('This does not work with true color images (they are just too many)','Warning')
+			return
+		end
+		pal = unique(img(:));
+		pal = (0:double(pal(end)))' / 255;      % Pretend this is a colormap
+		n = numel(pal);
+	end
+
+	if (handles.geog)
+		y3L = 1:3:ny;   y3L(end+1) = ny + 1;        % Vector with one every other third line
+		counts = zeros(n,1);
+		X = linspace(handles.head(1),handles.head(2),nx);
+		Y = linspace(handles.head(3),handles.head(4),ny);
+		Y(end+1) = Y(end);      % Some cases need one extra value in Y(y3L(i)+1) below
+		DX = (X(2) - X(1)) * 111.1949;       DY = (Y(2) - Y(1)) * 111.1949;    % Convert DX|Y to km (at the equator)
+		for (i=1:numel(y3L)-1)
+			threeL = img(y3L(i):y3L(i+1)-1,:);      % Chop 3 lines from image
+			counts = counts + imhistc(threeL, n, 0, n) * DY * DX * cos(Y(y3L(i)+1)*D2R);
+		end
+		ColNames = {'Intensity' 'Area km^2'};
+	else
+		counts = imhistc(img, n, 0, 255);         % Call MEX file to compute the histogram
+		ColNames = {'Intensity' 'N pixels'};
+	end
+	ind = (counts == 0);
+	counts(ind) = [];       pal(ind,:) = [];    % Remove zero counts
+	tableGUI('array',[round(pal(:,1)*255) counts],'ColWidth',[60 90],'ColNames',ColNames,...
+		'FigName','Area measures','RowNumbers','y','MAX_ROWS',20,'modal','');
 	double2ascii([handles.path_tmp 'area_per_color.dat'],[round(pal(:,1)*255) counts],'%d\t%g')		% Save the result
 
 % --------------------------------------------------------------------
@@ -1989,12 +1989,12 @@ function DrawLine_CB(handles, opt)
 		end
 		return
 	else
-        if (xp(1) == xp(end) && yp(1) == yp(end))    % If line was close by hiting 'c'
-            h = patch('XData',xp,'YData',yp,'FaceColor','none','EdgeColor',handles.DefLineColor,...
-            'LineWidth',handles.DefLineThick,'Tag','Closedpolygon');
-        else
-            h = line('XData', xp, 'YData', yp,'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','polyline');
-        end
+		if (xp(1) == xp(end) && yp(1) == yp(end))    % If line was close by hiting 'c'
+			h = patch('XData',xp,'YData',yp,'FaceColor','none','EdgeColor',handles.DefLineColor,...
+				'LineWidth',handles.DefLineThick,'Tag','Closedpolygon');
+		else
+			h = line('XData', xp, 'YData', yp,'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','polyline');
+		end
 	end
 	draw_funs(h,'line_uicontext')        % Set lines's uicontextmenu
 	zoom_state(handles,'maybe_on');
