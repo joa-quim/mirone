@@ -1698,7 +1698,8 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	/* Initialize the following attribs with NaNs. A posterior call will eventualy fill them with the right values */
 	nan = mxGetNaN();
 	for (i = 0; i < 10; i++) {
-		faultPolyX[i] = faultPolyY[i] = faultSlip[i] = faultStrike[i] = faultRake[i] = faultWidth[i] = faultDepth[i] = nan;
+		faultPolyX[i] = faultPolyY[i] = faultSlip[i] = faultDip[i] = faultStrike[i] = 
+				faultRake[i] = faultWidth[i] = faultDepth[i] = nan;
 	}
 	faultPolyX[10] = faultPolyY[10] = nan;		/* Those have an extra element */
 	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyX", NC_DOUBLE, 11, &faultPolyX));
