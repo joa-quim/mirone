@@ -1630,7 +1630,8 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	int ncid, m, n, nx, ny, status, nVolumes, nPoints, dim0[5], dim2[2], dim3[2];
 	int i, j, k, m_nx, m1_nx, *volumes, *vertices, v1, v2, v3, v4;
 	float dummy2[2], *x, *y, yr, *tmp;
-	double dummy;
+	double dummy, nan, faultPolyX[11], faultPolyY[11], faultSlip[10], faultStrike[10], 
+		faultDip[10], faultRake[10], faultWidth[10], faultDepth[10];
 
 	if ( (status = nc_create (fname_sww, NC_CLOBBER, &ncid)) != NC_NOERR) {
 		mexPrintf ("swan: Unable to create file %s - exiting\n", fname_sww);
@@ -1677,6 +1678,21 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "datum", 5, "wgs84"));
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "projection", 3, "UTM"));
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "units", 1, "m"));
+	/* Initialize the following attribs with NaNs. A posterior call will eventualy fill them with the right values */
+	nan = mxGetNaN();
+	for (i = 0; i < 10; i++) {
+		faultPolyX[i] = faultPolyY[i] = faultSlip[i] = faultDip[i] = faultStrike[i] = 
+				faultRake[i] = faultWidth[i] = faultDepth[i] = nan;
+	}
+	faultPolyX[10] = faultPolyY[10] = nan;		/* Those have an extra element */
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyX", NC_DOUBLE, 11, &faultPolyX));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyY", NC_DOUBLE, 11, &faultPolyY));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultStrike", NC_DOUBLE, 10, &faultStrike));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultSlip", NC_DOUBLE, 10, &faultSlip));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDip", NC_DOUBLE, 10, &faultDip));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultRake", NC_DOUBLE, 10, &faultRake));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultWidth", NC_DOUBLE, 10, &faultWidth));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDepth", NC_DOUBLE, 10, &faultDepth));
 
 	/* ---- Write the vector coords ------ */
 	//mexPrintf("Write vector coords\n");
