@@ -93,7 +93,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %           27-Aug-2007     Was failing if H = fighandle; OPT = imgAx and there were more that one visible axes
 %                           Recognizes and captures a Mirone "At side" Colorbar (but not perfect)
 
-    hFig = [];      hAxes = [];
+    hAxes = [];
     if (nargin == 0 || isempty(h)),     h = get(0,'CurrentFigure');    end
     if (~ishandle(h))
         error('imcapture:a','First argument is not a valid handle')
@@ -139,7 +139,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
             end
         end
     elseif (nargout == 0 && nargin == 2)    % Clipboard
-        if (~strncmp(computer,'PC',2))
+        if (~ispc)
             error('imcapture:a','Copying to clipboard is only possible in windows')
         end
         inputargs{2} = '';
@@ -366,7 +366,7 @@ function img = allInFig(varargin)
 function [all_axes, cbFullWidth, cbAx] = getAllAxes(hFig)
     % Finds all visible axes plus the Mirone Colorbar (if present) which
     % has its Handlevisibility set to 'off'
-    cbAx = [];      cbFullWidth = 0;
+    cbFullWidth = 0;
     all_axes = findobj(hFig,'Type','axes');
     set(0,'ShowHiddenHandles','on')
     cbAx = findobj(hFig,'Type','axes','Tag','MIR_CBat');
