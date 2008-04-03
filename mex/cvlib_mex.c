@@ -15,6 +15,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 16.0  02/04/2008 JL	+ cvAbs & cvAbsDiffS & cvSubRS
  * Revision 15.0  28/03/2008 JL	Finally finished the approxPoly (Douglas-Peucker) function
  * Revision 14.0  21/03/2008 JL	Added cvPow, cvLog, cvExp and hypot. Also replaced a couple of mxCalloc by mxMalloc
  * Revision 13.0  01/01/2008 Chuong Nguyen added MatchTemplate
@@ -88,7 +89,7 @@ void morphologyexUsage(), colorUsage(), flipUsage(), filterUsage(), findContours
 void arithmUsage(), addWeightedUsage(), pyrDUsage(), pyrUUsage(), houghCirclesUsage();
 void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsage();
 void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage(), powUsage();
-void logUsage(), expUsage(), hypotUsage();
+void absUsage(), logUsage(), expUsage(), hypotUsage();
 void approxPolyUsage();
 void MatchTemplateUsage();
 
@@ -134,7 +135,9 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("List of currently coded OPENCV functions (original name in parentesis):\n");
 		mexPrintf("To get a short online help type cvlib_mex(funname)\n");
 		mexPrintf("E.G. cvlib_mex('resize')\n\n");
+		mexPrintf("\tabs (cvAbs)\n");
 		mexPrintf("\tabsDiff (cvAbsDiff)\n");
+		mexPrintf("\tabsDiffS (cvAbsDiffS)\n");
 		mexPrintf("\tadd (cvAdd)\n");
 		mexPrintf("\taddS (cvAddS)\n");
 		mexPrintf("\taddweighted (cvAddWeighted)\n");
@@ -175,6 +178,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tsobel (cvSobel)\n");
 		mexPrintf("\tsub (cvSub)\n");
 		mexPrintf("\tsubS (cvSubS)\n");
+		mexPrintf("\tsubRS (cvSubS)\n");
 		mexPrintf("\ttext (cvPutText)\n");
 		return;
 	}
@@ -232,6 +236,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	else if ( !strcmp(funName,"add") || !strcmp(funName,"sub") || !strcmp(funName,"mul") ||
 		 !strcmp(funName,"div") || !strcmp(funName,"addS") || !strcmp(funName,"subS") ||
+		 !strcmp(funName,"abs") || !strcmp(funName,"absDiffS") || !strcmp(funName,"subRS") || 
 		 !strcmp(funName,"absDiff") || !strncmp(funName,"Cvt", 3) || !strcmp(funName,"pow") || 
 		 !strcmp(funName,"hypot") || !strcmp(funName,"log") || !strcmp(funName,"exp") ) {
 		Jarithm(n_out, plhs, n_in, prhs, funName);
@@ -2260,21 +2265,29 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 		else if (!strcmp(op,"log")) logUsage();
 		else if (!strcmp(op,"exp")) expUsage();
 		else if (!strcmp(op,"hypot")) hypotUsage();
+		else if (!strcmp(op,"abs")) absUsage();
 		else arithmUsage();
 		return;
 	}
 
 	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);	nBands = getNK(prhs[1],2);
-	ny2 = mxGetM(prhs[2]);	nx2 = getNK(prhs[2],1);	nBands2 = getNK(prhs[2],2);
+	if (strcmp(op,"abs") && strcmp(op,"log") && strcmp(op,"exp")) {		/* those takes only one input */
+		ny2 = mxGetM(prhs[2]);	nx2 = getNK(prhs[2],1);	nBands2 = getNK(prhs[2],2);
+	}
+	else {
+		nx2 = ny2 = nBands2 = 1;	/* Fakes */
+	}
 	if (nx*ny == 1)
 		mexErrMsgTxt("CVLIB_MEX: First argument cannot be a scalar!");
+
 	if (ny != ny2 && ny2 != 1) error++;
 	if (nx != nx2 && nx2 != 1) error++;
 	if (error)
 		mexErrMsgTxt("CVLIB_MEX: Matrix dimensions must agree!");
 
-	if (nx2*ny2 == 1 && (strcmp(op,"addS") && strcmp(op,"subS") && strcmp(op,"pow") && strncmp(op,"Cvt",3)) )
-		mexErrMsgTxt("CVLIB_MEX: allowed only 'addS', pow, CvtScale or 'subS' when second arg is a scalar!");
+	if (nx2*ny2 == 1 && (strcmp(op,"addS") && strcmp(op,"subS") && strcmp(op,"pow") && strcmp(op,"subRS") && 
+			strncmp(op,"Cvt",3) && strcmp(op,"absDiffS") && strcmp(op,"abs")) )
+		mexErrMsgTxt("CVLIB_MEX: wrong combination of operator and second arg as a scalar!");
 
 	if (n_out == 0) {
 		if (!strcmp(op,"hypot")) 
@@ -2293,7 +2306,7 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 		src2 = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
 		cvSetImageData( src2, (void *)mxGetData(prhs[2]), nx * nBytes * nBands );
 	}
-	else
+	else if (strcmp(op,"abs")) 		/* cvAbs takes only one input argument */
 		value.val[0] = *(double *)mxGetData(prhs[2]);
 
 	if (!inplace) {
@@ -2303,18 +2316,24 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 		cvSetImageData( dst, (void *)mxGetData(plhs[0]), nx * nBytes * nBands );
 		if (!strcmp(op,"add"))
 			cvAdd( src1, src2, dst, NULL ); 
+		else if (!strcmp(op,"mul"))
+			cvMul( src1, src2, dst, 1 ); 
+		else if (!strcmp(op,"div"))
+			cvDiv( src1, src2, dst, 1 ); 
 		else if (!strcmp(op,"addS"))
 			cvAddS( src1, value, dst, NULL ); 
 		else if (!strcmp(op,"sub"))
 			cvSub( src1, src2, dst, NULL ); 
 		else if (!strcmp(op,"subS"))
 			cvSubS( src1, value, dst, NULL ); 
+		else if (!strcmp(op,"subRS"))
+			cvSubRS( src1, value, dst, NULL ); 
+		else if (!strcmp(op,"abs"))
+			cvAbs( src1, dst ); 
 		else if (!strcmp(op,"absDiff"))
 			cvAbsDiff( src1, src2, dst ); 
-		else if (!strcmp(op,"mul"))
-			cvMul( src1, src2, dst, 1 ); 
-		else if (!strcmp(op,"div"))
-			cvDiv( src1, src2, dst, 1 ); 
+		else if (!strcmp(op,"absDiffS"))
+			cvAbsDiffS( src1, dst, value ); 
 		else if (!strcmp(op,"CvtScale")) {
 			double scale, shift;
 			scale = *(double *)mxGetData(prhs[2]);
@@ -2353,18 +2372,24 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 	else {
 		if (!strcmp(op,"add"))
 			cvAdd( src1, src2, src1, NULL ); 
-		else if (!strcmp(op,"addS"))
-			cvAddS( src1, value, src1, NULL ); 
-		else if (!strcmp(op,"sub"))
-			cvSub( src1, src2, src1, NULL ); 
-		else if (!strcmp(op,"subS"))
-			cvSubS( src1, value, src1, NULL ); 
-		else if (!strcmp(op,"absDiff"))
-			cvAbsDiff( src1, src2, src1 ); 
 		else if (!strcmp(op,"mul"))
 			cvMul( src1, src2, src1, 1 ); 
 		else if (!strcmp(op,"div"))
 			cvDiv( src1, src2, src1, 1 );
+		else if (!strcmp(op,"addS"))
+			cvAddS( src1, value, src1, NULL ); 
+		else if (!strcmp(op,"abs"))
+			cvAbs( src1, src1 ); 
+		else if (!strcmp(op,"sub"))
+			cvSub( src1, src2, src1, NULL ); 
+		else if (!strcmp(op,"subS"))
+			cvSubS( src1, value, src1, NULL ); 
+		else if (!strcmp(op,"subRS"))
+			cvSubRS( src1, value, src1, NULL ); 
+		else if (!strcmp(op,"absDiff"))
+			cvAbsDiff( src1, src2, src1 ); 
+		else if (!strcmp(op,"absDiffS"))
+			cvAbsDiffS( src1, src1, value ); 
 		else if (!strcmp(op,"CvtScale")) {
 			double scale, shift;
 			scale = *(double *)mxGetData(prhs[2]);
@@ -3565,9 +3590,11 @@ void arithmUsage() {
 	mexPrintf("       absDiff -> B = abs(IMG1 - IMG2)\n");
 	mexPrintf("       mul -> B = IMG1 * IMG2\n");
 	mexPrintf("       div -> B = IMG1 / IMG2\n\n");
-	mexPrintf("       If IMG2 is a scalar than OP can also take these values:\n");
+	mexPrintf("       If IMG2 is a scalar than OP can take these values:\n");
 	mexPrintf("       addS -> B = IMG1 + IMG2\n");
-	mexPrintf("       subS -> B = IMG1 - IMG2\n\n");
+	mexPrintf("       subS -> B = IMG1 - IMG2\n");
+	mexPrintf("       subRS -> B = IMG2 - IMG1\t\tNote = scalar - array\n");
+	mexPrintf("       absDiffS -> B = abs(IMG1 - IMG2)\n\n");
 
 	mexPrintf("The form (that is, with no output)\n: cvlib_mex(OP,IMG1,IMG2);\n");
 	mexPrintf("       does the above operation in-place and stores the result in IMG1\n\n");
@@ -3595,6 +3622,17 @@ void addWeightedUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
+void absUsage() {
+	mexPrintf("Usage: B = cvlib_mex('abs',IMG);\n");
+	mexPrintf("       Calculates absolute value of array.\n");
+	mexPrintf("The form (that is, without output)\n: cvlib_mex('abs',IMG);\n");
+	mexPrintf("       does the above operation in-place and stores the result in IMG\n\n");
+
+	mexPrintf("       Class support: all but uint32 (I think).\n");
+	mexPrintf("       Memory overhead: none.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
 void powUsage() {
 	mexPrintf("Usage: B = cvlib_mex('pow',IMG,power);\n");
 	mexPrintf("       Raises every array element to power:\n");
@@ -3602,7 +3640,7 @@ void powUsage() {
 	mexPrintf("       B(I) = abs(img(I))^p, otherwise\n");
 	mexPrintf("       That is, for non-integer power exponent the absolute values of input\n");
 	mexPrintf("       array elements are used\n\n");
-	mexPrintf("The form (that is, with no output)\n: cvlib_mex('pow',IMG);\n");
+	mexPrintf("The form (that is, with no output)\n: cvlib_mex('pow',IMG, power);\n");
 	mexPrintf("       does the above operation in-place and stores the result in IMG\n\n");
 
 	mexPrintf("       Class support: all but uint32.\n");
