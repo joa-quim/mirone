@@ -10,6 +10,8 @@ switch opt
         varargout{1} = bwboundaries(varargin{:});
     case 'bwmorph'
         varargout{1} = bwmorph(varargin{:});
+    case 'bwselect'
+        varargout{1} = bwselect(varargin{:});        
     case 'decorrstretch'
         varargout{1} = decorrstretch(varargin{:});
     case 'histeq_j'
@@ -25,8 +27,8 @@ switch opt
     case 'im2bw'
         [bw,level] = im2bw(varargin{:});
         varargout{1} = bw;  varargout{2} = level;
-    case 'im2double'
-        varargout{1} = im2double(varargin{:});
+    case 'imfilter'
+        varargout{1} = imfilter(varargin{:});
     case 'imadjust_j'
         varargout{1} = imadjust_j(varargin{:});
     case 'imresize'
@@ -2520,7 +2522,6 @@ if isempty(a)
     elseif all(im_size>=0)
       b = feval(class(a),zeros(im_size));
     else
-      eid = sprintf('Images:%s:negativeDimensionBadSizeB',mfilename);
       msg = ['Error in size of B.  At least one dimension is negative. ',...
              '\n''Full'' output size calculation is: size(B) = size(A) ',...
              '+ size(H) - 1.'];
@@ -2546,14 +2547,14 @@ if  isempty(h)
     elseif all(im_size>=0)
       b = feval(class(a),zeros(im_size));
     else
-      eid = sprintf('Images:%s:negativeDimensionBadSizeB',mfilename);
+      eid = sprintf('imsize:negativeDimensionBadSizeB');
       msg = ['Error in size of B.  At least one dimension is negative. ',...
              '\n''Full'' output size calculation is: size(B) = size(A) +',...
              ' size(H) - 1.'];
-      error(eid,msg);
+      error('imfilter:negativeDimensionBadSizeB',msg);
     end
   end
-  return;
+  return
 end
 
 im_size = int32(im_size);
