@@ -476,6 +476,7 @@ utils/bwlabel1.dll -text
 utils/bwlabel2.dll -text
 utils/calcBoninEulerPole.m -text
 utils/calc_omori.m -text
+utils/canny.m -text
 utils/cdf2pal.m -text
 utils/checkinput_mex.dll -text
 utils/circ_geo.m -text
