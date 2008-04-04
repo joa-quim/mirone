@@ -244,7 +244,7 @@ function varargout = aquamoto(varargin)
 	set(hObject,'WindowButtonDownFcn',{@ButtonDown,h_line,handles});
 
 	% This will cause a silent error but it also load the mex file in memory so it will be fast on "first" use
-	try     lili = nc_funs('info','lixoxo');	end
+	try		lili = mexnc('open', 'lixoxo', 0 );	end
 
 	guidata(hObject, handles);
 	if (nargout),   varargout{1} = hObject;     end
