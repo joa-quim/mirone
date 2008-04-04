@@ -2525,10 +2525,10 @@ if isempty(a)
       msg = ['Error in size of B.  At least one dimension is negative. ',...
              '\n''Full'' output size calculation is: size(B) = size(A) ',...
              '+ size(H) - 1.'];
-      error(eid,msg);
+      error('imfilter:negativeDimensionBadSizeB',msg);
     end
   end
-  return;
+  return
 end
 
 if  isempty(h)
