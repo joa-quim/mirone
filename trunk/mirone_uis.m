@@ -301,6 +301,7 @@ uimenu('Parent',h9,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Corners'')','L
 
 uimenu('Parent',h54,'Label','entry_sh');
 uimenu('Parent',h54,'Call','mpaint(gcf)','Label','Paint Brush');
+uimenu('Parent',h54,'Call','mirone(''ImageSegment_CB'',guidata(gcbo))','Label','Image segmentation');
 uimenu('Parent',h54,'Call','classificationfig(gcf);','Label','K-means classification');
 uimenu('Parent',h54,'Call','imageresize(gcf)','Label','Image resize','Sep','on');
 uimenu('Parent',h54,'Call','mirone(''RotateTool_CB'',guidata(gcbo),''image'')','Label','Image rotation');
@@ -778,7 +779,7 @@ h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
 uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.2.3)');
 uimenu('Parent',h9, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 uimenu('Parent',h9,...
-'Call','about_box(guidata(gcbo),''Mirone Last modified at 31 Mars 2008'',''1.3.0b'')','Label','About','Sep','on');
+'Call','about_box(guidata(gcbo),''Mirone Last modified at 5 April 2008'',''1.3.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(h1);
