@@ -105,7 +105,15 @@ function att2Hdr(handles,att)
     w{2} = att.ProjectionRef;
     w{3} = [];
     w{4} = 'Proj4 string:';
-	w{5} = ogrproj(att.ProjectionRef);		% Get equivalent in Proj4 format
+	try
+		if (~isempty(att.ProjectionRef))
+			w{5} = ogrproj(att.ProjectionRef);		% Get equivalent in Proj4 format
+		else
+			w{5} = 'Ghrrr!! Don''t know (tried to find it but failed)';
+		end
+	catch
+		w{5} = 'Fiu Fiu Fiu! Translating from rubish ... obviously failed';
+	end
     w{6} = [];
     w{7} = ['Width:  ' num2str(att.RasterXSize) '    Height:  ' num2str(att.RasterYSize)];
     w{8} = ['Pizel Size:  (' num2str(att.GMT_hdr(8)) ',' num2str(att.GMT_hdr(9)) ')'];
