@@ -101,6 +101,7 @@ data/caravela.jpg -text
 data/caris256.mat -text
 data/countries.bin -text
 data/countries_dp5.bin -text
+data/ellipsoids_example.txt -text
 data/etopo2.jpg -text
 data/gdal_data/GDALLogoBW.svg -text
 data/gdal_data/GDALLogoColor.svg -text
