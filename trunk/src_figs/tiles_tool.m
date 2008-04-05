@@ -76,7 +76,7 @@ function varargout = tiles_tool(varargin)
 		% Remove comment and also eventual empty lines
 		m = numel(servers);		c = false(m,1);
 		for (k = 1:m)
-			if ( servers{k}(1) == '#' || isempty(servers{k}) ),		c(k) = true;	end
+			if ( isempty(servers{k}) || servers{k}(1) == '#' ),		c(k) = true;	end
 		end
 		servers(c) = [];			n_servers = numel(servers);
 
