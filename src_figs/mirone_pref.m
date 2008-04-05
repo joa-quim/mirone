@@ -22,7 +22,6 @@ function varargout = mirone_pref(varargin)
 
     handMir = varargin{1};
     home_dir = handMir.home_dir;
-    handles.d_path = handMir.path_data;
     handles.handMir = handMir;
 
 	directory_list = [];
@@ -102,100 +101,77 @@ function varargout = mirone_pref(varargin)
         set(handles.checkbox_meanLat,'Value',1)
 	end
 
-% This is the default ellipsoide order. It will be changed (and saved as so in mirone_pref) by the user
-% Note, however, that only the ellipsoide names are stored in mirone_pref. The parameters of the selected
-% ellipsoid are found by a "case" loop runned by the OK pushbutton.
-handles.ellipsoide = {'WGS-84 - 1984', 6378137.0, 0.0, 1.0/298.2572235630;
-		'OSU91A - 1991', 6378136.3, 0.0, 1.0/298.25722;
-		'OSU86F - 1986', 6378136.2, 0.0, 1.0/298.25722;
-		'Engelis - 1985', 6378136.05, 0.0, 1.0/298.2566;
-		'SGS-85 - 1985', 6378136.0, 0.0, 1.0/298.257;
-		'MERIT-83 - 1983', 6378137.0, 0.0, 1.0/298.257;
-		'GRS-80 - 1980', 6378137.0, 0.0, 1.0/298.257222101;
-		'Lerch - 1979', 6378139.0, 0.0, 1.0/298.257;
-		'ATS77 - 1977', 6378135.0, 0.0, 1.0/298.257;
-		'IAG-75 - 1975', 6378140.0, 0.0, 1.0/298.257222;
-		'Indonesian - 1974', 6378160.0, 0.0, 1.0/298.247;
-		'WGS-72 - 1972', 6378135.0, 0.0, 1.0/298.26;
-		'NWL-10D - 1972', 6378135.0, 0.0, 1.0/298.26;
-		'South-American - 1969', 6378160.0, 0.0, 1.0/298.25;
-		'Fischer-1968', 6378150.0, 0.0, 1.0/298.3;
-		'Modified-Mercury-1968', 6378150.0, 0.0, 1.0/298.3;
-		'GRS-67 - 1967', 6378160.0, 0.0, 1.0/298.247167427;
-		'International-1967', 6378157.5, 0.0, 1.0/298.25;
-		'WGS-66 - 1966', 6378145.0, 0.0, 1.0/298.25;
-		'NWL-9D - 1966', 6378145.0, 0.0, 1.0/298.25;
-		'Australian - 1965', 6378160.0, 0.0, 1.0/298.25;
-		'APL4.9 - 1965', 6378137.0, 0.0, 1.0/298.25;
-		'Kaula - 1961', 6378163.0, 0.0, 1.0/298.24;
-		'Hough - 1960', 6378270.0, 0.0, 1.0/297.0;
-		'WGS-60 - 1960', 6378165.0, 0.0, 1.0/298.3;
-		'Fischer-1960', 6378166.0, 0.0, 1.0/298.3;
-		'Mercury-1960', 6378166.0, 0.0, 1.0/298.3;
-		'Modified-Fischer-1960', 6378155.0, 0.0, 1.0/298.3;
-		'Fischer-1960-SouthAsia', 6378155.0, 0.0, 1.0/298.3;
-		'Krassovsky - 1940', 6378245.0, 0.0, 1.0/298.3;
-		'War-Office - 1926', 6378300.583, 0.0, 1.0/296.0;
-		'International-1924', 6378388.0, 0.0, 1.0/297.0;
-		'Hayford-1909', 6378388.0, 0.0, 1.0/297.0;
-		'Helmert-1906', 6378200.0, 0.0, 1.0/298.3;
-		'Clarke-1880', 6378249.145, 0.0, 1.0/293.465;
-		'Clarke-1880-Arc1950 - 1880', 6378249.145326, 0.0, 1.0/293.4663076;
-		'Clarke-1880-IGN', 6378249.2, 0.0, 1.0/293.4660213;
-		'Clarke-1880-Jamaica', 6378249.136, 0.0, 1.0/293.46631;
-		'Clarke-1880-Merchich', 6378249.2, 0.0, 1.0/293.46598;
-		'Clarke-1880-Palestine', 6378300.79, 0.0, 1.0/293.46623;
-		'Andrae - 1876', 6377104.43, 0.0, 1.0/300.0;
-		'Clarke-1866', 6378206.4, 0.0, 1.0/294.9786982;
-		'Clarke-1866-Michigan', 6378450.047484481, 0.0, 1.0/294.9786982;
-		'Struve - 1860', 6378297.0, 0.0, 1.0/294.73;
-		'Clarke-1858', 6378293.639, 0.0, 1.0/294.26068;
-		'Airy - 1830', 6377563.396, 0.0, 1.0/299.3249646;
-		'Airy-Ireland - 1830', 6377340.189, 0.0, 1.0/299.3249646;
-		'Modified-Airy - 1830', 6377340.189, 0.0, 1.0/299.3249646;
-		'Bessel - 1841', 6377397.155, 0.0, 1.0/299.1528128;
-		'Bessel-Schwazeck - 1841', 6377483.865, 0.0, 1.0/299.1528128;
-		'Bessel-Namibia - 1841', 6377483.865, 0.0, 1.0/299.1528128;
-		'Bessel-NGO1948 - 1841', 6377492.0176, 0.0, 1.0/299.15281;
-		'Everest-1830', 6377276.345, 0.0, 1.0/300.8017;
-		'Everest-1830-Kalianpur', 6377301.243, 0.0, 1.0/300.80174;
-		'Everest-1830-Kertau', 6377304.063, 0.0, 1.0/300.8017;
-		'Everest-1830-Timbalai', 6377298.556, 0.0, 1.0/300.8017;
-		'Everest-1830-Pakistan', 6377309.613, 0.0, 1.0/300.8017;
-		'Walbeck - 1819', 6376896.0, 0.0, 1.0/302.78;
-		'Plessis - 1817', 6376523.0, 0.0, 1.0/308.64;
-		'Delambre - 1810', 6376428.0, 0.0, 1.0/311.5;
-		'CPM - 1799', 6375738.7, 0.0, 1.0/334.29;
-		'Maupertius - 1738', 6397300.0, 0.0, 1.0/191.0;
-		'Sphere - 1980', 6371008.7714, 0.0, 0.0};
+	% This is the default ellipsoide order. It will be changed (and saved as so in mirone_pref) by the user
+	% The parameters of the selected ellipsoid are found by a "case" loop runned by the OK pushbutton.
+	was_ellips_from_file = false;
+	if (exist([handMir.path_data 'ellipsoids.txt']))		% If we have the ellipsoids provied in a file
+		fid = fopen([handMir.path_data 'ellipsoids.txt'],'rt');
+		if (fid > 0)				% Otherwise, non-existent file, revert to just WGS-84
+			ellips = strread(fread(fid,'*char').','%s','delimiter','\n');		fclose(fid)
+			% Remove comment and also eventual empty lines
+			m = numel(ellips);		c = false(m,1);
+			for (k = 1:m)
+				if ( isempty(ellips{k}) || ellips{k}(1) == '#' ),		c(k) = true;	end
+			end
+			ellips(c) = [];			n_ellips = numel(ellips);
+			handles.ellipsoide = cell(n_ellips,4);
+			for (k = 1:n_ellips)					% Loop over number of ellipsoides
+				ind = strfind(ellips{k},',');
+				handles.ellipsoide{k,1} = ellips{k}(1:ind(1)-1);		% Ellipsoid name
+				handles.ellipsoide{k,2} = str2double(ellips{k}(ind(1)+1:ind(2)-1));		% Major axis
+				handles.ellipsoide{k,3} = 0;
+				tmp = ellips{k}(ind(2)+1:end);
+				id = strfind(tmp,'/');
+				if (~isempty(id))
+					handles.ellipsoide{k,4} = 1 / str2double(tmp(id+1:end));		% Flattening given as 1/...
+				else
+					handles.ellipsoide{k,4} = str2double(tmp);
+				end
+			end
+			was_ellips_from_file = true;
+			set(handles.popup_ellipsoide,'String',handles.ellipsoide(:,1))
+		else
+			handles.ellipsoide = ellips_list;		% Use builtin list
+		end
 
-try
-	if (handles.geog == 0)      % For cartesian coords the following is no applyable
-        set(handles.popup_ellipsoide,'Enable','off')
-        set(handles.popup_MeasureUnites,'Enable','off')
+	else
+		handles.ellipsoide = ellips_list;			% Use builtin list
 	end
-catch   % In case of error, set the default list.
-    set(handles.popup_ellipsoide,'String',handles.ellipsoide(:,1))
-    set(handles.popup_MeasureUnites,'String',{'nautic miles'; 'kilometers'; 'meters'; 'user'})
-end
 
-% Create the "ForceInsitu" TooltipString
-str = sprintf(['Importing grids implies a conversion that uses\n'...
-    'matrix transposition. This operations is fast if\n'...
-    'we make a copy of the importing grid. However,\n'...
-    'this requires twice the grid size on memory.\n'...
-    'If you don''t have enough memory to import a\n'...
-    'large grid, use this option that do the transposition\n'...
-    '"insitu". That is, it uses only one time the grid\n'...
-    'size in memory. The price you will pay, however,\n'...
-    'is in speed because it runs about 10 times slower.']);
-set(handles.checkbox_ForceInsitu,'TooltipString',str)
+	% This test should resolve the case when we used to have a ellipsoids.txt file but it
+	% was removed so now we gat back to the builtin ellipsoids. However, it will fail if the
+	% ellipsoids file used to have the same number of ellipsoids as the builtins (30)
+	if (~was_ellips_from_file && numel(DefineEllipsoide) ~= size(handles.ellipsoide, 1) )
+		set(handles.popup_ellipsoide,'String',handles.ellipsoide(:,1))
+	end
 
-str = sprintf(['Since 1 degree of longitude and latitude do not cover the same\n'...
-        'arc length at Earth surface, isometric plotting of geographical\n'...
-        'grids squeezes the image vertically. Scaling the image to the\n'...
-        'cosinus of the mean lat minimizes this effect.']);
-set(handles.checkbox_meanLat,'TooltipString',str)
+	try
+		if (handles.geog == 0)      % For cartesian coords the following is no applyable
+			set(handles.popup_ellipsoide,'Enable','off')
+			set(handles.popup_MeasureUnites,'Enable','off')
+		end
+	catch   % In case of error, set the default list.
+		set(handles.popup_ellipsoide,'String',handles.ellipsoide(:,1))
+		set(handles.popup_MeasureUnites,'String',{'nautic miles'; 'kilometers'; 'meters'; 'user'})
+	end
+
+	% Create the "ForceInsitu" TooltipString
+	str = sprintf(['Importing grids implies a conversion that uses\n'...
+		'matrix transposition. This operations is fast if\n'...
+		'we make a copy of the importing grid. However,\n'...
+		'this requires twice the grid size on memory.\n'...
+		'If you don''t have enough memory to import a\n'...
+		'large grid, use this option that do the transposition\n'...
+		'"insitu". That is, it uses only one time the grid\n'...
+		'size in memory. The price you will pay, however,\n'...
+		'is in speed because it runs about 10 times slower.']);
+	set(handles.checkbox_ForceInsitu,'TooltipString',str)
+
+	str = sprintf(['Since 1 degree of longitude and latitude do not cover the same\n'...
+		'arc length at Earth surface, isometric plotting of geographical\n'...
+		'grids squeezes the image vertically. Scaling the image to the\n'...
+		'cosinus of the mean lat minimizes this effect.']);
+	set(handles.checkbox_meanLat,'TooltipString',str)
 
 % ------------------ TABPANEL SECTION ----------------------------------------
 % This is the tag that all tab push buttons share.  If you have multiple
@@ -222,9 +198,7 @@ handles = tabpanelfcn('make_groups',group_name, panel_names, handles, 1);
 guidata(hObject, handles);
 set(hObject,'Visible','on');
 
-if (nargout)
-    varargout{1} = hObject;
-end
+if (nargout),	varargout{1} = hObject;		end
 
 % -------------------------------------------------------------------------------------
 function tab_group_ButtonDownFcn(hObject, eventdata, handles)
@@ -234,7 +208,41 @@ function tab_group_ButtonDownFcn(hObject, eventdata, handles)
 % of which panel was hidden.
     handles = tabpanelfcn('tab_group_handler',hObject, handles, get(hObject, 'Tag'));
     guidata(hObject, handles);
-    
+
+	
+% -------------------------------------------------------------------------------------
+function ellipsoids = ellips_list()
+	ellipsoids = {'WGS-84 - 1984', 6378137.0, 0.0, 1.0/298.2572235630;
+			'OSU91A - 1991', 6378136.3, 0.0, 1.0/298.25722;
+			'Engelis - 1985', 6378136.05, 0.0, 1.0/298.2566;
+			'SGS-85 - 1985', 6378136.0, 0.0, 1.0/298.257;
+			'MERIT-83 - 1983', 6378137.0, 0.0, 1.0/298.257;
+			'GRS-80 - 1980', 6378137.0, 0.0, 1.0/298.257222101;
+			'IAG-75 - 1975', 6378140.0, 0.0, 1.0/298.257222;
+			'Indonesian - 1974', 6378160.0, 0.0, 1.0/298.247;
+			'WGS-72 - 1972', 6378135.0, 0.0, 1.0/298.26;
+			'WGS-66 - 1966', 6378145.0, 0.0, 1.0/298.25;
+			'WGS-60 - 1960', 6378165.0, 0.0, 1.0/298.3;
+			'South-American - 1969', 6378160.0, 0.0, 1.0/298.25;
+			'Fischer-1968', 6378150.0, 0.0, 1.0/298.3;
+			'GRS-67 - 1967', 6378160.0, 0.0, 1.0/298.247167427;
+			'International-1967', 6378157.5, 0.0, 1.0/298.25;
+			'Australian - 1965', 6378160.0, 0.0, 1.0/298.25;
+			'Hough - 1960', 6378270.0, 0.0, 1.0/297.0;
+			'Krassovsky - 1940', 6378245.0, 0.0, 1.0/298.3;
+			'International-1924', 6378388.0, 0.0, 1.0/297.0;
+			'Hayford-1909', 6378388.0, 0.0, 1.0/297.0;
+			'Helmert-1906', 6378200.0, 0.0, 1.0/298.3;
+			'Clarke-1880', 6378249.145, 0.0, 1.0/293.465;
+			'Andrae - 1876', 6377104.43, 0.0, 1.0/300.0;
+			'Airy - 1830', 6377563.396, 0.0, 1.0/299.3249646;
+			'Modified-Airy - 1830', 6377340.189, 0.0, 1.0/299.3249646;
+			'Bessel - 1841', 6377397.155, 0.0, 1.0/299.1528128;
+			'Bessel-Namibia - 1841', 6377483.865, 0.0, 1.0/299.1528128;
+			'Everest-1830', 6377276.345, 0.0, 1.0/300.8017;
+			'Sphere - 1980', 6371008.7714, 0.0, 0.0;
+			'Mars Sphere', 3396000.0, 0.0, 0.0};
+	
 % ------------------------------------------------------------------------------------
 function radiobutton_geog_Callback(hObject, eventdata, handles)
 	if get(hObject,'Value')     handles.geog = 1;   set(handles.radiobutton_cart,'Value',0)
@@ -388,24 +396,18 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 
 	% Decode the Ellipsoide into a var containg a,b,f
 	DefineEllipsoide = get(handles.popup_ellipsoide, 'String');
-	if (handles.geog == 1)
-		for i=1:length(handles.ellipsoide)
-			switch DefineEllipsoide{1}
-				case handles.ellipsoide(i)
-					handles.handMir.DefineEllipsoide(1) = handles.ellipsoide{i,2};
-					handles.handMir.DefineEllipsoide(2) = handles.ellipsoide{i,3};
-					handles.handMir.DefineEllipsoide(3) = handles.ellipsoide{i,4};
-			end
+	for i = 1:length(handles.ellipsoide)
+		switch DefineEllipsoide{1}
+			case handles.ellipsoide(i)
+				handles.handMir.DefineEllipsoide(1) = handles.ellipsoide{i,2};
+				handles.handMir.DefineEllipsoide(2) = handles.ellipsoide{i,3};
+				handles.handMir.DefineEllipsoide(3) = handles.ellipsoide{i,4};
 		end
-	else        % For the time beeing default to WGS-84
-		handles.handMir.DefineEllipsoide(1) = handles.ellipsoide{1,2};
-		handles.handMir.DefineEllipsoide(2) = handles.ellipsoide{1,3};
-		handles.handMir.DefineEllipsoide(3) = handles.ellipsoide{1,4};
 	end
 
-	fname = [handles.d_path 'mirone_pref.mat'];
+	fname = [handles.handMir.path_data 'mirone_pref.mat'];
 	% Save the preferences to a mat file under the data directory
-	% Note: for the ellipsoide we save it's parameters (a,b,f) instead of the name
+	% Note: for the ellipsoid we save it's parameters (a,b,f) and name on separate vars
 	DefineEllipsoide_params = handles.handMir.DefineEllipsoide;    % For saving purposes
 	geog = handles.handMir.geog;      grdMaxSize = handles.handMir.grdMaxSize;
 	swathRatio    = handles.handMir.swathRatio;
