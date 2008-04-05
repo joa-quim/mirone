@@ -1,5 +1,6 @@
 function varargout = geog_calculator(varargin)
-% M-File changed by desGUIDE 
+% Window wraper to grdproject
+%
 % NOTE: I use the GMT4.0 datum definitions. In it WGS84 has an ID=220, but due to the
 % fact that indices in Matlab start at 1, I sometimes have to refer at it as ID=221
 % In case of datum aditions to GMT, those numbers have to be reviewed. 
@@ -17,13 +18,6 @@ function varargout = geog_calculator(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
-
-% Fixed recently re-introduced bug when comparing to 'Nikles'
-% Removed some useless findobj
-% Removed callbacks of (inactive) left grid size params
-% Imports grids via read_gmt_type_grids()
-% After a first grid projection its possible to refine size|resolution
-% Datum Lx had wrong sign on DY (not compromizing one though)
 
 	hObject = figure('Tag','figure1','Visible','off');
 	geog_calculator_LayoutFcn(hObject);
@@ -52,7 +46,7 @@ function varargout = geog_calculator(varargin)
                     delete(hObject);    return
 				end
 				handles.gridLeft = getappdata(handMir.figure1,'dem_z');
-				if ( isempty(handMir.gridLeft) )
+				if ( isempty(handles.gridLeft) )
 					errordlg('GEOG CALCULATOR: Grid is not in memory. Check your "Grid max size" and restart.','ERROR')
                     delete(hObject);    return
 				end
@@ -155,72 +149,72 @@ handles.h_text_output = h_tt(3);
 delete(h_t)
 %------------- END Pro look (3D) -------------------------------------------------------
 
-%----------- Recall previous settings stored in mirone_pref -------------------
-% First the left side
-handles.txt_info_l_pos = get(handles.h_txt_info_l,'Position');
-set(handles.h_txt_info_l,'String',handles.proj_info_txt_left,'Position',handles.txt_info_l_pos)
-if (handles.is_geog_left)
-    set(handles.popup_UnitesLeft,'String',handles.DegreeFormat1,'Value',handles.DegreeFormat1_val_left)
-    set(handles.h_text_xLeft,'String','Longitude')
-    set(handles.h_text_yLeft,'String','Latitude')
-else
-    set(handles.popup_UnitesLeft,'String',handles.MeasureUnit,'Value',handles.MeasureUnit_val_left)
-    set(handles.h_text_xLeft,'String','East/West')
-    set(handles.h_text_yLeft,'String','North/South')
-end
+	%----------- Recall previous settings stored in mirone_pref -------------------
+	% First the left side
+	handles.txt_info_l_pos = get(handles.h_txt_info_l,'Position');
+	set(handles.h_txt_info_l,'String',handles.proj_info_txt_left,'Position',handles.txt_info_l_pos)
+	if (handles.is_geog_left)
+		set(handles.popup_UnitesLeft,'String',handles.DegreeFormat1,'Value',handles.DegreeFormat1_val_left)
+		set(handles.h_text_xLeft,'String','Longitude')
+		set(handles.h_text_yLeft,'String','Latitude')
+	else
+		set(handles.popup_UnitesLeft,'String',handles.MeasureUnit,'Value',handles.MeasureUnit_val_left)
+		set(handles.h_text_xLeft,'String','East/West')
+		set(handles.h_text_yLeft,'String','North/South')
+	end
 
-% And now the right side
-handles.txt_info_r_pos = get(handles.h_txt_info_r,'Position');
-set(handles.h_txt_info_r,'String',handles.proj_info_txt_right,'Position',handles.txt_info_r_pos)
-if (handles.is_geog_right)
-    set(handles.popup_UnitesRight,'String',handles.DegreeFormat1,'Value',handles.DegreeFormat1_val_right)
-    set(handles.h_text_xRight,'String','Longitude')
-    set(handles.h_text_yRight,'String','Latitude')
-else
-    set(handles.popup_UnitesRight,'String',handles.MeasureUnit,'Value',handles.MeasureUnit_val_right)
-    set(handles.h_text_xRight,'String','East/West')
-    set(handles.h_text_yRight,'String','North/South')
-end
+	% And now the right side
+	handles.txt_info_r_pos = get(handles.h_txt_info_r,'Position');
+	set(handles.h_txt_info_r,'String',handles.proj_info_txt_right,'Position',handles.txt_info_r_pos)
+	if (handles.is_geog_right)
+		set(handles.popup_UnitesRight,'String',handles.DegreeFormat1,'Value',handles.DegreeFormat1_val_right)
+		set(handles.h_text_xRight,'String','Longitude')
+		set(handles.h_text_yRight,'String','Latitude')
+	else
+		set(handles.popup_UnitesRight,'String',handles.MeasureUnit,'Value',handles.MeasureUnit_val_right)
+		set(handles.h_text_xRight,'String','East/West')
+		set(handles.h_text_yRight,'String','North/South')
+	end
 
-% This is the tag that all tab push buttons share.  If you have multiple
-% sets of tab push buttons, each group should have unique tag.
-group_name = 'tab_group';
+	% This is the tag that all tab push buttons share.  If you have multiple
+	% sets of tab push buttons, each group should have unique tag.
+	group_name = 'tab_group';
 
-% This is a list of the UserData values used to link tab push buttons and the
-% components on their linked panels. To add a new tab panel to the group
-%  Add the button using GUIDE
-%  Assign the Tag based on the group name - in this case tab_group
-%  Give the UserData a unique name - e.g. another_tab_panel
-%  Add components to GUIDE for the new panel
-%  Give the new components the same UserData as the tab button
-%  Add the new UserData name to the below cell array
+	% This is a list of the UserData values used to link tab push buttons and the
+	% components on their linked panels. To add a new tab panel to the group
+	%  Add the button using GUIDE
+	%  Assign the Tag based on the group name - in this case tab_group
+	%  Give the UserData a unique name - e.g. another_tab_panel
+	%  Add components to GUIDE for the new panel
+	%  Give the new components the same UserData as the tab button
+	%  Add the new UserData name to the below cell array
 
-if (handles.by_mirone2grid)
-	panel_names = {'GridConv','interactive','FileConv'};
-	h = findobj(hObject,'Style','pushbutton','String','File Conversions');
-	set(h,'Visible','off')
-	h = findobj(hObject,'Style','pushbutton','String','Interactive Conversions');
-	set(h,'Visible','off')
-	set(handles.edit_gridLeft,'Enable','off','String','In memory array')
-	set(handles.pushbutton_gridLeft,'Enable','off')
-	set(handles.edit_xIncLeft,'String',sprintf('%.12g',handles.gridLeftHead(8)))
-	set(handles.edit_yIncLeft,'String',sprintf('%.12g',handles.gridLeftHead(9)))
-	[m,n] = size(handles.gridLeft);
-	set(handles.edit_nColsLeft,'String',sprintf('%d',n))
-	set(handles.edit_nRowsLeft,'String',sprintf('%d',m))
-	% Now the right side
-	set(handles.edit_nColsRight,'String',sprintf('%d',n))
-	set(handles.edit_nRowsRight,'String',sprintf('%d',m))
-	set(handles.pushbutton_right2left,'Visible','off')
-	bgcolor = [0.8314 0.81569 0.7843];
-	set(handles.edit_gridRight,'Enable','off','BackgroundColor',bgcolor)
-	set(handles.pushbutton_gridRight,'Enable','off')
-	handles.which_conv = 3;
-else
-	panel_names = {'interactive','FileConv','GridConv'};
-	set(handles.h_text_input,'Visible','off')
-	set(handles.h_text_output,'Visible','off')
-end
+	if (handles.by_mirone2grid)
+		panel_names = {'GridConv','interactive','FileConv'};
+		h = findobj(hObject,'Style','pushbutton','String','File Conversions');
+		set(h,'Visible','off')
+		h = findobj(hObject,'Style','pushbutton','String','Interactive Conversions');
+		set(h,'Visible','off')
+		set(handles.edit_gridLeft,'Enable','off','String','In memory array')
+		set(handles.pushbutton_gridLeft,'Enable','off')
+		set(handles.edit_xIncLeft,'String',sprintf('%.12g',handles.gridLeftHead(8)))
+		set(handles.edit_yIncLeft,'String',sprintf('%.12g',handles.gridLeftHead(9)))
+		[m,n] = size(handles.gridLeft);
+		set(handles.edit_nColsLeft,'String',sprintf('%d',n))
+		set(handles.edit_nRowsLeft,'String',sprintf('%d',m))
+		% Now the right side
+		set(handles.edit_nColsRight,'String',sprintf('%d',n))
+		set(handles.edit_nRowsRight,'String',sprintf('%d',m))
+		set(handles.pushbutton_right2left,'Visible','off')
+		bgcolor = [0.8314 0.81569 0.7843];
+		set(handles.edit_gridRight,'Enable','off','BackgroundColor',bgcolor)
+		set(handles.pushbutton_gridRight,'Enable','off')
+		handles.which_conv = 3;
+	else
+		panel_names = {'interactive','FileConv','GridConv'};
+		set(handles.h_text_input,'Visible','off')
+		set(handles.h_text_output,'Visible','off')
+	end
 
 	% tabpanelfcn('makegroups',...) adds new fields to the handles structure,
 	% one for each panel name and another called 'group_name_all'.  These fields
@@ -832,17 +826,17 @@ function msg_err = transform_grid(handles)
 	% If we got an error, return here
 	if (~isempty(msg_err)),   return;   end
 
-	opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g',x_min,x_max,y_min,y_max)];
+	opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g',x_min,x_max,y_min,y_max);
 
 	% Check if we have a MAP_SCALE_FACTOR
 	if (~isempty(handles.map_scale_factor_right))
-		opt_SF = ['--MAP_SCALE_FACTOR=' sprintf('%.6f',handles.map_scale_factor_right)];
+		opt_SF = sprintf('--MAP_SCALE_FACTOR=%.6f',handles.map_scale_factor_right);
 	else    opt_SF = ' ';
 	end
 
 	% Check if we have false eastings/northings
 	if (~isempty(handles.system_FE_FN_right))
-		opt_C = ['-C' sprintf('%.6g',handles.system_FE_FN_right(1)) '/' sprintf('%.6g',handles.system_FE_FN_right(2))];
+		opt_C = sprintf('-C%.9g/%.9g',handles.system_FE_FN_right(1), handles.system_FE_FN_right(2));
 	else    opt_C = '-C';
 	end
 
@@ -871,15 +865,15 @@ function msg_err = transform_grid(handles)
 		% First do the inverse conversion (get result in geogs)
 		opt_J = handles.projection_left;
 		% First apply the trick to get a good estimation of -R
-		if (y_c < 0),   				opt_Rg = '-R-180/180/-80/0';             % Patches over inventions, not good
-		elseif (x_c == 0 && y_c == 0)	opt_Rg = '-R-180/180/-80/80';	% Antartica cases
+		if (y_c < 0),   				opt_Rg = '-R-180/180/-80/0';		% Patches over inventions, not good
+		elseif (x_c == 0 && y_c == 0)	opt_Rg = '-R-180/180/-80/80';		% Antartica cases
 		end
 		tmp = mapproject_m([x_c y_c], opt_J, opt_Rg, opt_SF, opt_C, opt_mpF, '-I');
-		opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-1, tmp(1)+1, tmp(2)-1, tmp(2)+1)];
+		opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g', tmp(1)-1, tmp(1)+1, tmp(2)-1, tmp(2)+1);
 
 		% Now find the exact lims in geogs
 		tmp = mapproject_m([x_min y_min; x_max y_max], opt_J, opt_R, opt_SF, opt_C, opt_mpF, '-I');
-		opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2))];
+		opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2));
 
 		% Convert to Geogs
 		[Z,head] = grdproject_m(handles.gridLeft, handles.gridLeftHead, opt_J, opt_R,...
@@ -888,7 +882,7 @@ function msg_err = transform_grid(handles)
 		% And now do a direct conversion to the final destination
 		opt_J = handles.projection_right;
 		try     % If right value exists, we need it. Otherwise, don't use shifts
-			opt_C = ['-C' sprintf('%.6g',handles.system_FE_FN_right(1)) '/' sprintf('%.6g',handles.system_FE_FN_right(2))];
+			opt_C = sprintf('-C%.9g/%.9g',handles.system_FE_FN_right(1), handles.system_FE_FN_right(2));
 		catch   opt_C = '-C';
 		end
 		[Z,head] = grdproject_m(Z, handles.gridLeftHead, opt_J, opt_R, opt_SF, opt_C, opt_F, opt_A, opt_N);
@@ -898,11 +892,11 @@ function msg_err = transform_grid(handles)
 		% First apply the trick to get a good estimation of -R
 		if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
 		tmp = mapproject_m([x_c y_c], opt_J, opt_Rg, opt_SF, opt_C, opt_mpF, '-I');
-		opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-1, tmp(1)+1, tmp(2)-1, tmp(2)+1)];
+		opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g', tmp(1)-1, tmp(1)+1, tmp(2)-1, tmp(2)+1);
 	
 		% Now find the exact lims in geogs
 		tmp = mapproject_m([x_min y_min; x_max y_max], opt_J, opt_R, opt_SF, opt_C, opt_mpF, '-I');
-		opt_R = ['-R' sprintf('%.10f/%.10f/%.10f/%.10f',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2))];
+		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2));
 
 		[Z,head] = grdproject_m(handles.gridLeft, handles.gridLeftHead, opt_A, opt_J, opt_R,...
 			opt_SF, opt_C, opt_F, opt_N, '-I');
@@ -916,11 +910,15 @@ function msg_err = transform_grid(handles)
         return
 	end                % Otherwise -> BOOM
 
+	comm = ['grdproject ' opt_J ' ' opt_R ' ' opt_SF ' ' opt_C ' ' opt_A ' ' opt_I];
+	set(handles.pushbutton_left2right,'TooltipString',comm)
+	if (numel(Z) < 4)
+		warndlg('The projected grid has less than 4 elements. This prj thing f again didn''t it?','Warnerr')
+		return
+	end
 	set(handles.edit_xIncRight,'String',head(8))
 	set(handles.edit_yIncRight,'String',head(9))
 	setappdata(handles.figure1,'headProj',head)			% Store projected head for use in eventual new nRow|Cols
-	comm = ['grdproject ' opt_J ' ' opt_R ' ' opt_SF ' ' opt_C ' ' opt_A ' ' opt_I];
-	set(handles.pushbutton_left2right,'TooltipString',comm)
 
 	set(handles.figure1,'pointer','arrow')
 	if (~handles.by_mirone2grid)
