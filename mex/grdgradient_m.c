@@ -401,7 +401,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	mx = nx + 4;
 	nm = header.nx * header.ny;
 
-	data = mxMalloc ((nx+4)*(ny+4) * sizeof (float));
+	data = (float *)mxMalloc ((nx+4)*(ny+4) * sizeof (float));
 
 	/* Transpose from Matlab orientation to gmt grd orientation */
 	if (is_double) {
