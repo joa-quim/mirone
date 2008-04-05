@@ -129,7 +129,12 @@ function out = findFileType(fname)
 	elseif ( any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17'})) )
         out = 'multiband';
 	elseif ( any(strcmpi(EXT,'.img')) )
-		out = 'envherd';
+		nome = [PATH filesep FNAME '.lbl'];
+		if (exist(nome, 'file'))
+			out = 'mola';
+		else
+			out = 'envherd';
+		end
 	elseif ( any(strcmpi(EXT,'.cpt')) )
 		out = 'cpt';
 	else
