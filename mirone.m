@@ -268,7 +268,6 @@ function hObject = mirone_OpeningFcn(varargin)
 	set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);        % For projections with GDAL
 	set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
 	set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
-	%if (handles.IamCompiled),	set_gmt(['MIRONE_HOME=' home_dir]);		end
 
 % --------------------------------------------------------------------------------------------------
 function erro = gateLoadFile(handles,drv,fname)
@@ -280,6 +279,7 @@ function erro = gateLoadFile(handles,drv,fname)
         case 'geotif',		FileOpenGeoTIFF_CB(handles, 'nikles', fname);
         case 'multiband',	FileOpenGDALmultiBand_CB(handles, 'AVHRR', fname);
         case 'envherd',		FileOpen_ENVI_Erdas_CB(handles, [], fname);
+        case 'mola',		FileOpenMOLA_CB(handles, fname);
         case 'mat',			FileOpenSession_CB(handles, fname)
         case 'cpt',			color_palettes(fname);
         case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);		% It means "I don't know"
@@ -309,12 +309,13 @@ function handles = recentFiles(handles, opt)
 	end
 	for (i = 1:N)			% The ishandle test below is crutial when GCPs
         if (isempty(handles.FOpenList{i}) || ~ishandle(handles.RecentF(i))),     continue,   end
-        set(handles.RecentF(i), 'Label',handles.FOpenList{i},'Call',{@openRF,guidata(handles.figure1),i}, 'Vis','on')
+        set(handles.RecentF(i), 'Label',handles.FOpenList{i},'Call',{@openRF,i}, 'Vis','on')
 	end
 	if (~nargout),  guidata(handles.figure1,handles),   end
 
 % --------------------------------------------------------------------------------------------------
-function openRF(obj,event,handles,n)
+function openRF(obj,event,n)
+	handles = guidata(obj);
 	[drv, sim] = aux_funs('findFileType',handles.FOpenList{n});
 	if (~sim)       % File does not exist. Update the FOpenList
 		warndlg(['File: ' handles.FOpenList{n} ' no longer exists'],'Warning')
@@ -635,11 +636,9 @@ function ImageHistEqualize_CB(handles, hObject)
             J = img_fun('histeq_j',zz);
         end
         set(handles.hImg,'CData', J);    set(hObject,'checked','on')
-	elseif ~isempty(handles.origFig)            % Then de-equalize
+	else            					% Then de-equalize
         set(handles.hImg,'CData', handles.origFig);
         handles.Illumin_type = 0;       set(hObject,'checked','off');
-	else
-        msgbox('Sorry. To save memory I didn''t make an image copy. You''ll have to reload the file again.','Warning')
 	end
 	guidata(handles.figure1, handles);
 
@@ -659,6 +658,43 @@ function ImageHistEqualizeGrid_CB(handles, hObject)
 		handles.Illumin_type = 0;       set(hObject,'checked','off');
 	end
 	guidata(hObject, handles);
+
+% --------------------------------------------------------------------
+function ImageSegment_CB(handles, hObject)
+	if (handles.no_file),		return,		end
+	rgbIm = get(handles.hImg,'CData');
+	if (ndims(rgbIm) == 2)
+		rgbIm = ind2rgb8(rgbIm, get(handles.figure1, 'Colormap'));
+	end
+
+	set(handles.figure1,'pointer','watch'),		pause(0.01)
+
+	luvIm = cvlib_mex('CvtScale',single(rgbIm), 1/255); 
+	luvIm = cvlib_mex('color',luvIm,'rgb2luv');
+	rgbIm = permute(rgbIm,[3 2 1]);
+	luvIm = permute(luvIm,[3 2 1]);
+
+	p.steps = 2;		p.SpeedUp = 2;		p.synergistic = true;
+	p.SpatialBandWidth = 7;			p.RangeBandWidth = 6.5;
+	p.MinimumRegionArea = 30;		p.GradientWindowRadius = 2;
+	p.MixtureParameter = .3;		p.EdgeStrengthThreshold = .3;
+
+	if p.steps == 1
+		[fimage] = edison_wrapper_mex(luvIm, rgbIm, p);
+	else
+		[fimage labels]  = edison_wrapper_mex(luvIm, rgbIm, p);
+	end
+	fimage = permute(fimage, [3 2 1]);
+	luvIm = cvlib_mex('color',fimage,'luv2rgb');
+	rgbIm = uint8(cvlib_mex('CvtScale',single(luvIm), 255));
+	set(handles.figure1,'pointer','arrow')
+
+	if (handles.image_type == 2)
+		h = mirone(rgbIm);        set(h,'Name','Color segmented')
+	else
+		tmp = struct('X',handles.head(1:2), 'Y',handles.head(3:4), 'name','Color segmented', 'geog',handles.geog, 'head',handles.head);
+		mirone(rgbIm, tmp)
+	end
 
 % --------------------------------------------------------------------
 function PanZoom_CB(handles, hObject, opt)
@@ -1290,10 +1326,14 @@ function FileOpenDEM_CB(handles, opt)
 	read_DEMs(handles,fullname,tipo)
 
 % --------------------------------------------------------------------
-function FileOpenMOLA_CB(handles)
-	str1 = {'*.img;*.IMG', 'MOLA DEM (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
-	[FileName,PathName] = put_or_get_file(handles,str1,'Select MOLA DEM File','get');
-	if isequal(FileName,0),		return,		end
+function FileOpenMOLA_CB(handles, FileName)
+	if (nargin == 1) 
+		str1 = {'*.img;*.IMG', 'MOLA DEM (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
+		[FileName,PathName] = put_or_get_file(handles,str1,'Select MOLA DEM File','get');
+		if isequal(FileName,0),		return,		end
+	else
+		PathName = [];		% To not error below
+	end
 	
 	type = 'MOLA';		error = 0;
 	[PATH,FNAME] = fileparts([PathName FileName]);
@@ -1304,48 +1344,32 @@ function FileOpenMOLA_CB(handles)
 	end
 	s = strread(fread(fp,'*char').','%s','delimiter','\n');
 
-	LINES = findcell('LINES', s);					if (isempty(LINES)),  error = 1;  end
+	LINES = findcell('LINES', s);
 	[t,r] = strtok(s{LINES.cn},'=');				n_lines = str2double(r(3:end));
 
-	LINE_SAMPLES = findcell('LINE_SAMPLES', s);		if (isempty(LINE_SAMPLES)),  error = 1;  end
+	LINE_SAMPLES = findcell('LINE_SAMPLES', s);
 	[t,r] = strtok(s{LINE_SAMPLES.cn},'=');			n_samples = str2double(r(3:end));
 
-	SAMPLE_BITS = findcell('SAMPLE_BITS', s);		if (isempty(SAMPLE_BITS)),  error = 1;  end
-	[t,r] = strtok(s{SAMPLE_BITS.cn},'=');			%n_bits = str2double(r(3:end));
+% 	SAMPLE_BITS = findcell('SAMPLE_BITS', s);
+% 	[t,r] = strtok(s{SAMPLE_BITS.cn},'=');			sn_bits = str2double(r(3:end));
 
-	CENTER_LATITUDE = findcell('CENTER_LATITUDE', s);		if (isempty(CENTER_LATITUDE)),  error = 1;  end
-	[t,r] = strtok(s{CENTER_LATITUDE.cn},'=');		lat0 = str2double(strtok(strtok(r,'=')));
+	MR = findcell('MAP_RESOLUTION', s);
+	[t,r] = strtok(s{MR.cn},'=');			res = str2double(strtok(strtok(r,'=')));
 
-	CENTER_LONGITUDE = findcell('CENTER_LONGITUDE', s);		if (isempty(CENTER_LONGITUDE)),  error = 1;  end
-	[t,r] = strtok(s{CENTER_LONGITUDE.cn},'=');		lon0 = str2double(strtok(strtok(r,'=')));
+	ML = findcell('MAXIMUM_LATITUDE', s);
+	ind = strfind(s{ML.cn},'=');			ULat = str2double(strtok(s{ML.cn}(ind+2:end)));
 
-	LINE_FIRST_PIXEL = findcell('LINE_FIRST_PIXEL', s);		if (isempty(LINE_FIRST_PIXEL)),	error = 1;  end
-	[t,r] = strtok(s{LINE_FIRST_PIXEL.cn},'=');		line_first_pix = str2double(r(3:end));
+	ML = findcell('MINIMUM_LATITUDE', s);
+	ind = strfind(s{ML.cn},'=');			LLat = str2double(strtok(s{ML.cn}(ind+2:end)));
 
-	LINE_LAST_PIXEL = findcell('LINE_LAST_PIXEL', s);		if (isempty(LINE_LAST_PIXEL)),	error = 1;  end
-	[t,r] = strtok(s{LINE_LAST_PIXEL.cn},'=');		line_last_pix = str2double(r(3:end));
+	WL = findcell('WESTERNMOST_LONGITUDE', s);
+	ind = strfind(s{WL.cn},'=');			WLon = str2double(strtok(s{WL.cn}(ind+2:end)));
 
-	SAMPLE_FIRST_PIXEL = findcell('SAMPLE_FIRST_PIXEL', s); if (isempty(SAMPLE_FIRST_PIXEL)),  error = 1;  end
-	[t,r] = strtok(s{SAMPLE_FIRST_PIXEL.cn},'=');	sample_first_pix = str2double(r(3:end));
-	
-	SAMPLE_LAST_PIXEL = findcell('SAMPLE_LAST_PIXEL', s);	if (isempty(SAMPLE_LAST_PIXEL)),  error = 1;  end
-	[t,r] = strtok(s{SAMPLE_LAST_PIXEL.cn},'=');	sample_last_pix = str2double(r(3:end));
-	
-	MAP_RESOLUTION = findcell('MAP_RESOLUTION', s);			if (isempty(MAP_RESOLUTION)),  error = 1;  end
-	[t,r] = strtok(s{MAP_RESOLUTION.cn},'=');		res = str2double(strtok(strtok(r,'=')));
-	
-	LINE_PROJECTION_OFFSET = findcell('LINE_PROJECTION_OFFSET', s);
-	if (isempty(LINE_PROJECTION_OFFSET)),		error = 1;	end
-	[t,r] = strtok(s{LINE_PROJECTION_OFFSET.cn},'=');line_off = str2double(r(3:end));
+	EL = findcell('EASTERNMOST_LONGITUDE', s);
+	ind = strfind(s{EL.cn},'=');			ELon = str2double(strtok(s{EL.cn}(ind+2:end)));
 
-	SAMPLE_PROJECTION_OFFSET = findcell('SAMPLE_PROJECTION_OFFSET', s);
-	if (isempty(SAMPLE_PROJECTION_OFFSET)),		error = 1;	end
-	[t,r] = strtok(s{SAMPLE_PROJECTION_OFFSET.cn},'=');sample_off = str2double(r(3:end));
-	
-	if (error),		errordlg('An error has occured in header file parsing','Error');    return;     end
-	limits = [(sample_first_pix - sample_off)/res+lon0 (sample_last_pix - sample_off)/res+lon0 ...
-        (line_first_pix - line_off)/res+lat0 (line_last_pix - line_off)/res+lat0];
-	
+	limits = [WLon ELon LLat ULat] + [1 -1 1 -1] / res / 2;
+
 	fullname{1} = PathName;		fullname{2} = FileName;
 	read_DEMs(handles,fullname,type,[limits n_samples n_lines 1/res])
 
@@ -1396,7 +1420,7 @@ function read_DEMs(handles,fullname,tipo,opt)
 	end
 
 	if (~isa(Z,'single')),		Z = single(Z);		end
-	
+
 	if (~strncmp(tipo,'GMT_',4))
 		if ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
 			ind = (Z == single(att.Band(1).NoDataValue));
@@ -1414,7 +1438,7 @@ function read_DEMs(handles,fullname,tipo,opt)
 		end
 		X = linspace(head(1),head(2),size(Z,2));	Y = linspace(head(3),head(4),size(Z,1));  % Need this for image
 	end
-	
+
 	aux_funs('StoreZ',handles,X,Y,Z)    % If grid size is not to big we'll store it
 	handles.head = head;
 	aux_funs('colormap_bg',handles,Z,jet(256));
@@ -3147,7 +3171,8 @@ elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
     if (ndims(img) == 3),   img = cvlib_mex('color',img,'rgb2gray');      end
     if (~strcmp(opt(1:3),'SUS'))
         %img = img_fun('edge',img,'canny');
-        img = cvlib_mex('canny',img,40,200,3);
+        %img = cvlib_mex('canny',img,40,200,3);
+        img = canny(img);
     else
         img = susan(img,'-e');              % Do SUSAN edge detect
         if (strcmp(opt(4:end),'vec')),      opt = 'Vec';        % This avoids some extra tests later
