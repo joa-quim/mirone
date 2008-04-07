@@ -321,7 +321,6 @@ mex/cvcolor_mex.c -text
 mex/cvlib_mex.c -text
 mex/existmex.c -text
 mex/gdalread.c -text
-mex/gdalwarp_mex.c -text
 mex/gdalwarp_mex.cpp -text
 mex/gdalwrite.c -text
 mex/gmtlist_m.c -text
