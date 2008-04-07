@@ -1,5 +1,5 @@
 % --------------------------- PROJECTIONS MENU ------------------------------------
-function projectionMenu(hFig, home_dir)
+function projectionMenu(hFig, hProj, home_dir)
     % Creates the Projection Menu from data read from the 'SRSproj_def.txt' file 
 
     fs = filesep;
@@ -63,9 +63,6 @@ function projectionMenu(hFig, home_dir)
 			projCOMM{k,2} = '-C';    % A must have
         end
     end
-    
-	% We are ready -- Create the "Projections" menu
-	hProj = uimenu('Parent',hFig,'Label','Projections','Tag','Projections');
 
     hMain = zeros(1,m);    hSec  = zeros(1,m);
     for (k=1:m)
