@@ -402,6 +402,7 @@ src_figs/fft_stuff.m -text
 src_figs/find_clusters.m -text
 src_figs/floodFill.m -text
 src_figs/focal_meca.m -text
+src_figs/gdal_project.m -text
 src_figs/geog_calculator.m -text
 src_figs/gmtedit.m -text
 src_figs/grdfilter_Mir.m -text
