@@ -247,6 +247,7 @@ lib_mex/cvlib_mex.dll -text
 lib_mex/ditherc.dll -text
 lib_mex/edison_wrapper_mex.dll -text
 lib_mex/gdalread.dll -text
+lib_mex/gdalwarp_mex.dll -text
 lib_mex/gdalwrite.dll -text
 lib_mex/gmtlist_m.dll -text
 lib_mex/grayto16.dll -text
