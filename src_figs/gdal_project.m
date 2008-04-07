@@ -147,7 +147,7 @@ function push_OK_Callback(hObject, eventdata, handles)
 		tipo = 'image';
 		if (ndims(Z) == 2),		cmap = get(handles.handMir.figure1,'Colormap');		end
 	end
-	[ras,att] = gdalvirtual(Z,handles.hdr);
+	[ras,att] = gdalwarp_mex(Z,handles.hdr);
 	
 	if (numel(ras) < 4)
 		errordlg('Sorry but the operation went wrong. We got nothing valuable on return.','Error'),	return
