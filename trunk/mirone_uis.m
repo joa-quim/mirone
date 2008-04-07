@@ -716,10 +716,10 @@ end
 
 uimenu('Parent',h278,'Call','grdfilter_mir(guidata(gcbo))','Label','grdfilter','Sep','on');
 uimenu('Parent',h278,'Call','grdgradient_mir(guidata(gcbo))','Label','grdgradient');
-uimenu('Parent',h278,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','grdproject');
 uimenu('Parent',h278,'Call','grdsample_mir(guidata(gcbo))','Label','grdsample');
 uimenu('Parent',h278,'Call','grdtrend_mir(guidata(gcbo))','Label','grdtrend');
 uimenu('Parent',h278,'Call','grdlandmask_win(guidata(gcbo))','Label','grdlandmask');
+uimenu('Parent',h278,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','grdproject');
 uimenu('Parent',h278,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''grid'')','Label','Digital filtering Tool','Sep','on');
 
 uimenu('Parent',h278,'Call','ml_clip(guidata(gcbo))','Label','Clip Grid');
@@ -772,7 +772,11 @@ uimenu('Parent',h278,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''ppa''
 'Label','Extract ridges/valleys','Sep','on');
 
 % --------------------------- PROJECTIONS MENU -----------------------------
-projection_menu(h1, home_dir)
+hProj = uimenu('Parent',h1,'Label','Projections','Tag','Projections');
+projection_menu(h1, hProj, home_dir);
+uimenu('Parent',hProj,'Label','-- REPROJECT --','HitTest','off','Sep','on');
+uimenu('Parent',hProj,'Call','gdal_project(guidata(gcbo))','Label','GDAL project');
+uimenu('Parent',hProj,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','GMT project');
 
 % --------------------------- HELP MENU ------------------------------------
 h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
