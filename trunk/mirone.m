@@ -524,6 +524,7 @@ elseif (strcmp(opt2,'MedianFilter'))
 elseif (strcmp(opt2,'SetConst'))        % Replace grid values inside rect by a cte value
 	resp  = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);    pause(0.01)
 	if isempty(resp);    set(handles.figure1,'pointer','arrow'),	return,		end
+	if (numel(resp) == 1 && (resp{1} == 'i' || resp{1} == 'j')),	resp = 'n';	end	% Otherwise it would turn into a complex
 	Z_rect = repmat(single(str2double(resp)),m,n);
 	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));    handles.r_c = r_c;			% For the Undo op
 	if (~handles.have_nans && isnan(str2double(resp)))      % See if we have new NaNs
@@ -1342,7 +1343,7 @@ function FileOpenMOLA_CB(handles, FileName)
 	if (fp < 0)
 		errordlg(['ERROR: Could not find format descriptive file: ' fname],'Error');  return
 	end
-	s = strread(fread(fp,'*char').','%s','delimiter','\n');
+	s = strread(fread(fp,'*char').','%s','delimiter','\n');		fclose(fp)
 
 	LINES = findcell('LINES', s);
 	[t,r] = strtok(s{LINES.cn},'=');				n_lines = str2double(r(3:end));
@@ -1483,7 +1484,7 @@ function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize
 	zoom_state(handles,'off_yes');		set(handles.hImg,'CDataMapping','direct')
 	handles.geog = aux_funs('guessGeog',handles.head(1:4));		% Hmm... there are cases where I know for sure
 
-	magRatio = resizetrue(handles,imSize,axis_t);				% IMAGE IS VISIBLE HERE.
+	magRatio = resizetrue(handles,imSize,axis_t);				% ----> IMAGE IS VISIBLE HERE. <-------
 
 	handles.origFig = I;            handles.no_file = 0;
 	handles.Illumin_type = 0;       handles.validGrid = validGrid;  % Signal that gmt grid opps are allowed
@@ -1504,11 +1505,12 @@ function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize
 
 	% Hide uicontrols that are useless to images only. First 4 are button are handles which don't stand hiding(???) 
 	st = {'off' 'on'};
-	if (ishandle(handles.Projections)),		set(handles.Projections,'Vis', st{(handles.image_type ~= 2) + 1}),	end
+	%set(handles.Projections,'Vis', st{(handles.image_type ~= 2) + 1})
 	set(handles.noVGlist(6:end),'Vis', st{validGrid + 1}),		set(handles.noVGlist(1:5),'Ena', st{validGrid + 1})
 	set([handles.Datasets handles.Geophysics],'Vis', st{(handles.image_type ~= 2) + 1})
 	set(handles.noAxes,'Vis', st{~strcmp(axis_t,'off') + 1})
 	set(handles.toGE,'Enable', st{handles.geog + 1})
+	set(findobj(handles.Projections,'Label','GMT project'), 'Vis', st{validGrid + 1})
 
 	GCPmemoryVis = 'off';
 	if (isappdata(handles.figure1,'GCPregImage'))
