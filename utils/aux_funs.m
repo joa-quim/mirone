@@ -195,24 +195,28 @@ function handles = isProj(handles, opt)
     
     if (~handles.geog)
         if (~isempty(projWKT))              % We have a GDAL projected file
-            handles.is_projected = 1;
-            % Desable the Projections menu.
-            if (ishandle(handles.Projections)),     set(handles.Projections,'Enable','off');   end
+            handles.is_projected = 1;		prjStr = false;
         elseif (~isempty(projGMT) || ~isempty(proj4))  % We have a GMT or Proj4 projection selection
-            handles.is_projected = 1;
-            if (ishandle(handles.Projections)),     set(handles.Projections,'Enable','on');   end
+            handles.is_projected = 1;		prjStr = false;
         else                                % We know nothing about these coords (e.g. an image)
-            handles.is_projected = 0;
-            if (ishandle(handles.Projections)),     set(handles.Projections,'Enable','on');   end
+            handles.is_projected = 0;		prjStr = true;
         end
     else
-        handles.is_projected = 0;
-        if (ishandle(handles.Projections)),     set(handles.Projections,'Enable','off');   end
+        handles.is_projected = 0;			prjStr = false;
     end
     if (handles.is_projected),      set(handles.hAxMenuLF, 'Vis', 'on', 'Separator','on')	% To load/not in prj coords
     else                            set(handles.hAxMenuLF, 'Vis', 'off', 'Separator','off')
     end
-    
+
+	child = get(handles.Projections,'Children');
+	h1 = findobj(handles.Projections,'Label','-- REPROJECT --');
+	h2 = findobj(handles.Projections,'Label','GDAL project');
+	h3 = findobj(handles.Projections,'Label','GMT project');
+	if (~prjStr)
+		set(child,'Enable','off')
+		set([h1 h2 h3],'Enable','on')		% These are always on
+	end
+
     if (handles.is_projected)       % When read a gdal referenced file we need to set this right away
         toProjPT(handles)
         setappdata(handles.figure1,'DispInGeogs',0)     % We need to set it now (this is the default)
