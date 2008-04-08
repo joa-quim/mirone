@@ -50,10 +50,10 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j iptchecknargin
 	%#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line
 	%#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
-	%#function move2side aguentabar
+	%#function move2side aguentabar gdal_project gdalwarp_mex
 
 	global home_dir;    home_dir = cd;      fsep = filesep;
-	%addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
+	addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
 
 	handles.home_dir = home_dir;
@@ -683,13 +683,13 @@ function ImageSegment_CB(handles, hObject)
 	if p.steps == 1
 		[fimage] = edison_wrapper_mex(luvIm, rgbIm, p);
 	else
-		[fimage labels]  = edison_wrapper_mex(luvIm, rgbIm, p);
+		[fimage labels] = edison_wrapper_mex(luvIm, rgbIm, p);
 	end
 	fimage = permute(fimage, [3 2 1]);
 	luvIm = cvlib_mex('color',fimage,'luv2rgb');
 	rgbIm = uint8(cvlib_mex('CvtScale',single(luvIm), 255));
 	set(handles.figure1,'pointer','arrow')
-
+	
 	if (handles.image_type == 2)
 		h = mirone(rgbIm);        set(h,'Name','Color segmented')
 	else
@@ -1505,7 +1505,7 @@ function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize
 
 	% Hide uicontrols that are useless to images only. First 4 are button are handles which don't stand hiding(???) 
 	st = {'off' 'on'};
-	%set(handles.Projections,'Vis', st{(handles.image_type ~= 2) + 1})
+	set(handles.Projections,'Vis', st{(handles.image_type ~= 2) + 1})
 	set(handles.noVGlist(6:end),'Vis', st{validGrid + 1}),		set(handles.noVGlist(1:5),'Ena', st{validGrid + 1})
 	set([handles.Datasets handles.Geophysics],'Vis', st{(handles.image_type ~= 2) + 1})
 	set(handles.noAxes,'Vis', st{~strcmp(axis_t,'off') + 1})
@@ -3172,9 +3172,10 @@ if (strcmp(opt,'ppa'))
 elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
     if (ndims(img) == 3),   img = cvlib_mex('color',img,'rgb2gray');      end
     if (~strcmp(opt(1:3),'SUS'))
-        %img = img_fun('edge',img,'canny');
         %img = cvlib_mex('canny',img,40,200,3);
-        img = canny(img);
+		if (~handles.IamCompiled),		img = canny(img);		% Economic version (uses singles & cvlib_mex but crashs in compiled)
+		else							img = img_fun('edge',img,'canny');
+		end
     else
         img = susan(img,'-e');              % Do SUSAN edge detect
         if (strcmp(opt(4:end),'vec')),      opt = 'Vec';        % This avoids some extra tests later
@@ -3186,7 +3187,6 @@ elseif (strcmp(opt,'Lines'))
     %B = cvlib_mex('houghlines2',img);       % If img == 3D cvlib_mex will take care
     %B = cvlib_mex('houghlines2',img,'standard',1,pi/180,100,0,0);
     %B = cvlib_mex('contours',img);
-    %
     BW = cvlib_mex('canny',img,40,200,3);
         
     [H,T,R] = img_fun('hough',BW);
