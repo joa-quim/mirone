@@ -1,4 +1,4 @@
-function p = ancestor(p,type,varargin)
+function p = ancestor_m(p,type,varargin)
 %ANCESTOR  Get object ancestor.
 %    P = ANCESTOR(H,TYPE) returns the handle of the closest ancestor
 %    of h of one of the types in TYPE, or empty if none exists. TYPE
@@ -29,10 +29,10 @@ if (length(p) > 1)
     n = length(p);
     pv = cell(n,1);
     for k=1:n
-        pv{k} = ancestor(p(k),type,varargin{:});
+        pv{k} = ancestor_m(p(k),type,varargin{:});
     end
     p = pv;
-    return;
+    return
 end
 
 if (nargin == 2)        % ancestor(h,type)
