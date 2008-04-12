@@ -54,6 +54,10 @@ switch opt
     case 'rgb2ind'
         [X,map] = rgb2ind(varargin{:});
         varargout{1} = X;  varargout{2} = map;
+    case 'rangefilt'
+        varargout{1} = rangefilt(varargin{:});
+    case 'stdfilt'
+        varargout{1} = stdfilt(varargin{:});
     case 'find_holes'
         varargout{1} = find_holes(varargin{:});
 end
@@ -2243,11 +2247,11 @@ function u = im2uint16(img, typestr)
 checknargin(1,2,nargin,mfilename);
 if isa(img, 'uint16')
     u = img; 
-elseif isa(img, 'double') | isa(img, 'uint8')
+elseif isa(img, 'double') || isa(img, 'uint8')
     if (nargin==1)        % intensity image; call MEX-file
         u = grayto16(img);
     elseif nargin==2
-        if ~ischar(typestr) | (typestr(1) ~= 'i')
+        if ~ischar(typestr) || (typestr(1) ~= 'i')
             eid = 'Images:im2uint16:invalidInput';
             msg = 'Invalid input arguments';
             error(eid,'%s',msg);
@@ -2273,9 +2277,7 @@ elseif isa(img, 'double') | isa(img, 'uint8')
 elseif islogical(img)
     u = uint16(img);    u(img) = 65535;
 else
-    eid = 'Images:im2uint16:unsupportedInputClass';
-    msg = 'Unsupported input class.';
-    error(eid,'%s',msg);
+    error('im2uint16:unsupportedInputClass','Unsupported input class.');
 end
 
 %----------------------------------------------------------------------------------
@@ -2300,15 +2302,25 @@ else
 end
 
 %----------------------------------------------------------------------------------
+function B = imdilate(A,se,varargin)
+	checknargin(2,4,nargin,'imdilate');
+	B = morphop(A,se,'dilate','imdilate',varargin{:});
+
+%----------------------------------------------------------------------------------
+function B = imerode(A,se,varargin)
+	checknargin(2,5,nargin,'imerode');
+	B = morphop(A,se,'erode','imerode',varargin{:});
+
+%----------------------------------------------------------------------------------
 function out = imadjust_j(varargin)
 %IMADJUST Adjust image intensity values or colormap.
 
 %Parse inputs and initialize variables
 [img,grayFlag,rgbFlag,low_in,high_in,low_out,high_out,gamma] = ParseInputs_imadjust_j(varargin{:});
 if ( isa(img,'uint8') || ( isa(img,'uint16') && numel(img) > 65536 ) )
-  out = AdjustWithLUT(img,grayFlag,rgbFlag,low_in,high_in,low_out,high_out,gamma);
+	out = AdjustWithLUT(img,grayFlag,rgbFlag,low_in,high_in,low_out,high_out,gamma);
 else
-  out = AdjustGeneric(img,grayFlag,rgbFlag,low_in,high_in,low_out,high_out, gamma);
+	out = AdjustGeneric(img,grayFlag,rgbFlag,low_in,high_in,low_out,high_out, gamma);
 end
 
 %------------------------------------
@@ -2385,9 +2397,7 @@ switch nargin
     if grayFlag
       lowhigh_in = stretchlim_j(img);
     else
-      msg = 'IMADJUST(I) is only supported for grayscale images.';
-      eid = sprintf('Images:%s:oneArgOnlyGrayscale',mfilename);
-      error(eid,msg);
+      error('imadjust_j:oneArgOnlyGrayscale','IMADJUST(I) is only supported for grayscale images.');
     end    
   case 2
     if ~isempty(varargin{2})
@@ -2437,21 +2447,19 @@ end
 %--------------------------------------------------------------------
 function [range_min, range_max] = range_split(range,grayFlag,argument_position,variable_name)
 
-msg1 = sprintf('Function %s expected its %s input argument, %s', mfilename,...
+msg1 = sprintf('Function %s expected its %s input argument, %s', 'range_split',...
                num2ordinal(argument_position),variable_name);
 
 if grayFlag
   if numel(range) ~= 2
-    msg2 = 'to be a two-element vector.';
-    eid = sprintf('Images:%s:InputMustBe2ElVec',mfilename);
-    error(eid, '%s\n%s', msg1, msg2);
+    eid = sprintf('Images:%s:InputMustBe2ElVec','range_split');
+    error(eid, '%s\n%s', msg1, 'to be a two-element vector.');
   end
     range_min = range(1); range_max = range(2);
 else
   if (numel(range) ~= 2) & ~isequal(size(range),[2 3])
-    msg2 = 'to be a two-element vector or a 2-by-3 matrix.';
-    eid = sprintf('Images:%s:InputMustBe2ElVecOr2by3Matrix',mfilename);
-    error(eid, '%s\n%s', msg1, msg2);
+    eid = sprintf('Images:%s:InputMustBe2ElVecOr2by3Matrix','range_split');
+    error(eid, '%s\n%s', msg1, 'to be a two-element vector or a 2-by-3 matrix.');
   end
   if min(size(range))==1,
     % Create triples for RGB image or Colormap
@@ -2634,29 +2642,28 @@ a = varargin{1};
 checkinput(a,{'numeric' 'logical'},{'nonsparse'},mfilename,'A',1);
 % im_size
 im_size = varargin{2};
-if ~strcmp(class(im_size),'int32') | issparse(im_size)
+if ~strcmp(class(im_size),'int32') || issparse(im_size)
   displayInternalError('im_size');
 end
 % h
 h = varargin{3};
-if ~isa(h,'double') | ~isreal(h) | issparse(h)
-  displayInternalError('h');
+if ~isa(h,'double') || ~isreal(h) || issparse(h)
+	displayInternalError('h');
 end
 % nonzero_h
 nonzero_h = varargin{4};
-if ~isa(nonzero_h,'double') | ~isreal(nonzero_h) | ...
-      issparse(nonzero_h)
-  displayInternalError('nonzero_h');
+if ~isa(nonzero_h,'double') || ~isreal(nonzero_h) || issparse(nonzero_h)
+	displayInternalError('nonzero_h');
 end
 % start
 start = varargin{6};
-if ~strcmp(class(start),'int32') | issparse(start)
-  displayInternalError('start');
+if ~strcmp(class(start),'int32') || issparse(start)
+	displayInternalError('start');
 end
 % flags
 flags = varargin{7};
-if ~isa(flags,'double') |  any(size(flags) ~= 1)
-  displayInternalError('flags');
+if ~isa(flags,'double') ||  any(size(flags) ~= 1)
+	displayInternalError('flags');
 end
 
 %--------------------------------------------------------------
@@ -2694,7 +2701,7 @@ function [X,m,qm,qe] = dither_parse_inputs(varargin)
 %           qm number of quantization bits for colormap
 %           qe number of quantization bits for errors, qe>qm
 
-checknargin(1,6,nargin,mfilename);
+checknargin(1,6,nargin,'dither');
 
 % Default values:
 qm = 5;     qe = 8;
@@ -2712,25 +2719,25 @@ switch nargin
         qm = varargin{3};
         qe = varargin{4};
 	otherwise,
-        eid = sprintf(':%s:invalidInput',mfilename);
-        error(eid,'Invalid input arguments in function %s.',mfilename);
+        eid = sprintf(':%s:invalidInput','dither');
+        error(eid,'Invalid input arguments in function %s.','dither');
 end
 
 % Check validity of the input parameters 
 if (ndims(X)==3) && (nargin==1),
-    eid = sprintf(':%s:imageMustBe2D',mfilename);  
+    eid = sprintf(':%s:imageMustBe2D','dither');  
     error(eid,'DITHER(I): the intensity image I has to be a two-dimensional array.');
 elseif (ndims(X)==2) && (nargin==2),
-    eid = sprintf(':%s:imageMustBe3D',mfilename);  
+    eid = sprintf(':%s:imageMustBe3D','dither');  
     error(eid,'DITHER(RGB,map): the RGB image has to be a three-dimensional array.');
 end
 
 X = im2uint8(X);
  
 if ((size(m,2) ~= 3) || (size(m,1) == 1) | ndims(m) > 2)
-  eid = sprintf(':%s:colormapMustBe2D',mfilename);  
+  eid = sprintf(':%s:colormapMustBe2D','dither');  
   error(eid,['In function %s, input colormap has to be a ',...
-             '2D array with at least 2 rows and exactly 3 columns.'], mfilename);
+             '2D array with at least 2 rows and exactly 3 columns.'], 'dither');
 end
 
 %----------------------------------------------------------------------------------
@@ -2802,13 +2809,11 @@ Z = imlincombc(images, scalars, output_class);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [images, scalars, output_class] = ParseInputs_imlincomb(varargin)
-checknargin(2, Inf, nargin, mfilename);
+checknargin(2, Inf, nargin, 'imlincomb');
 
 if ischar(varargin{end})
-  valid_strings = {'uint8' 'uint16' 'uint32' 'int8' 'int16' 'int32' ...
-                   'single' 'double'};
-  output_class = checkstrs(varargin{end}, valid_strings, mfilename, ...
-                           'OUTPUT_CLASS', 3);
+  valid_strings = {'uint8' 'uint16' 'uint32' 'int8' 'int16' 'int32' 'single' 'double'};
+  output_class = checkstrs(varargin{end}, valid_strings, 'imlincomb', 'OUTPUT_CLASS', 3);
   varargin(end) = [];
 else
   if islogical(varargin{2})
@@ -2826,8 +2831,7 @@ end
 
 % assign and check scalars
 for p = 1:2:length(varargin)
-  checkinput(varargin{p}, 'double', 'real nonsparse scalar', ...
-             mfilename, sprintf('K%d', (p+1)/2), p);
+  checkinput(varargin{p}, 'double', 'real nonsparse scalar', 'imlincomb', sprintf('K%d', (p+1)/2), p);
 end
 scalars = [varargin{1:2:end}];
 
@@ -2882,14 +2886,14 @@ end
 %----------------------------------------------------------------------------------
 function [ind,map] = parse_inputs_ind2gray(varargin)
   
-checknargin(2,2,nargin,mfilename);
+checknargin(2,2,nargin,'ind2gray');
 % For backward compatability, this function handles an indexed image that is
 % logical. This usage will be removed in a future release.
 checkinput(varargin{1},{'uint8', 'logical','double', 'uint16'},{'nonempty'}, ...
-           mfilename,'X',1);
+           'ind2gray','X',1);
 ind = varargin{1};
 if islogical(ind)
-  wid = sprintf('Images:%s:invalidType',mfilename);
+  wid = sprintf('Images:%s:invalidType','ind2gray');
   msg = ['X should be a double, uint8, or uint16 array.  Convert your image to ' ...
          'double using IM2DOUBLE(X,''INDEXED'').'];
   warning(wid,'%s',msg);
@@ -2898,19 +2902,17 @@ end
 
 % For backward compatability, this function handles colormaps that are not
 % double. This usage will be removed in a future release.
-checkinput(varargin{2},{'double','uint8','uint16'},{'nonempty','2d'},mfilename,'MAP',2);
+checkinput(varargin{2},{'double','uint8','uint16'},{'nonempty','2d'},'ind2gray','MAP',2);
 if ( size(varargin{2},2) ~=3 || size(varargin{2},1) < 1 )
-  eid = sprintf('Images:%s:invalidSizeForColormap',mfilename);
-  msg = 'MAP must be a m x 3 array.';
-  error(eid,'%s',msg);
+  eid = sprintf('Images:%s:invalidSizeForColormap','ind2gray');
+  error(eid,'%s','MAP must be a m x 3 array.');
 else
   map = varargin{2};
 end
 if ~isa(map,'double');
-  wid = sprintf('Images:%s:notAValidColormap',mfilename);
   msg = ['MAP should be a double m x 3 array with values in the range [0,1].'...
          'Convert your map to double using IM2DOUBLE.'];
-  warning(wid,'%s',msg);
+  warning('ind2gray:notAValidColormap','%s',msg);
   map = im2double(map);
 end
 
@@ -2957,7 +2959,7 @@ function [A,order,domain,s,padopt,msg] = ParseInputs_ordfilt2(varargin)
 A = [];         order = [];
 domain = [];    s = [];
 padopt = 'zeros';   msg = '';
-checknargin(3,5,nargin,mfilename);
+checknargin(3,5,nargin,'ordfilt2');
 A = varargin{1};
 order = varargin{2};
 domain = varargin{3};
@@ -2966,7 +2968,7 @@ options = {'zeros', 'ones', 'symmetric'};
 
 if (nargin == 4)
   if (ischar(varargin{4}))
-    padopt = checkstrs(varargin{4},options,mfilename,'PADOPT',4);
+    padopt = checkstrs(varargin{4},options,'ordfilt2','PADOPT',4);
   else
     s = varargin{4};
   end
@@ -2976,17 +2978,15 @@ elseif (nargin == 5)
 end
 
 % make sure that arguments are valid
-checkinput(order,'double',{'real','scalar','integer'},mfilename, 'ORDER',2);
+checkinput(order,'double',{'real','scalar','integer'},'ordfilt2', 'ORDER',2);
 
 if ~isempty(s)
-  if (~isa(A, 'double'))
-    A = double(A);
-  end
-  checkinput(A, 'double', {'2d','real'}, mfilename, 'A', 1);
-  s = s(find(domain));
-  checkinput(s, 'double', 'real', mfilename, 'S', 4);
+	if (~isa(A, 'double')),	A = double(A);	end
+	checkinput(A, 'double', {'2d','real'}, 'ordfilt2', 'A', 1);
+	s = s(find(domain));
+	checkinput(s, 'double', 'real', 'ordfilt2', 'S', 4);
 else
-  checkinput(A, {'numeric','logical'}, {'2d','real'}, mfilename, 'A', 1);
+	checkinput(A, {'numeric','logical'}, {'2d','real'}, 'ordfilt2', 'A', 1);
 end
 
 %----------------------------------------------------------------------------------
@@ -3844,17 +3844,17 @@ catch  tf = false;      end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_vector(A)
-try    tf = (ndims(A) == 2) & (any(size(A) == 1) | all(size(A) == 0));
+try    tf = (ndims(A) == 2) && (any(size(A) == 1) || all(size(A) == 0));
 catch  tf = false;      end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_row(A)
-try    tf = (ndims(A) == 2) & ((size(A,1) == 1) | isequal(size(A), [0 0]));
+try    tf = (ndims(A) == 2) && ((size(A,1) == 1) || isequal(size(A), [0 0]));
 catch  tf = false;      end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_column(A)
-try    tf = (ndims(A) == 2) & ((size(A,2) == 1) | isequal(size(A), [0 0]));
+try    tf = (ndims(A) == 2) && ((size(A,2) == 1) || isequal(size(A), [0 0]));
 catch  tf = false;      end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4232,15 +4232,471 @@ elseif length(varargin) >= 2,
   mn = varargin{2}(:).';
   if size(mn,2)~=2,
     msg = 'MEDFILT2(A,[M N]): Second argument must consist of two integers.';
-    error('Images:medfilt2:secondArgMustConsistOfTwoInts', msg);
+    error('medfilt2:secondArgMustConsistOfTwoInts', msg);
   elseif length(varargin) > 2,
-    msg = ['MEDFILT2(A,[M N],[Mb Nb],...) is an obsolete syntax. [Mb Nb]' ...
-             ' argument is ignored.'];
-    warning('Images:medfilt2:obsoleteSyntax', msg);
+    msg = ['MEDFILT2(A,[M N],[Mb Nb],...) is an obsolete syntax. [Mb Nb] argument is ignored.'];
+    warning('medfilt2:obsoleteSyntax', msg);
   end
 end
 
+% ---------------------------------------------------------------------------------
+function B = morphop(varargin)
+%MORPHOP Dilate or erode image.
+%   B = MORPHOP(OP_TYPE,A,SE,...) computes the erosion or dilation of A,
+%   depending on whether OP_TYPE is 'erode' or 'dilate'.  SE is a
+%   STREL array or an NHOOD array.  MORPHOP is intended to be called only
+%   by IMDILATE or IMERODE.  Any additional arguments passed into IMDILATE
+%   or IMERODE should be passed into MORPHOP following SE.  See the help
+%   entries for IMDILATE and IMERODE for more details about the allowable syntaxes.
+
+%   Copyright 1993-2003 The MathWorks, Inc.
+%   $Revision: 1.10 $  $Date: 2003/01/17 16:28:38 $
+
+[A,se,pre_pad, pre_pack,post_crop,post_unpack,op_type,is_packed, unpacked_M,mex_method] = ParseInputs_morphop(varargin{:});
+
+num_strels = length(se);
+
+if pre_pad
+    % Find the array offsets and heights for each structuring element
+    % in the sequence.
+    offsets = cell(1,num_strels);
+    for k = 1:num_strels
+        offsets{k} = getneighbors(se(k));
+    end
+    
+    % Now compute how padding is needed based on the strel offsets.
+    [pad_ul, pad_lr] = PadSize_morphop(offsets,op_type);
+    P = length(pad_ul);
+    Q = ndims(A);
+    if P < Q
+        pad_ul = [pad_ul zeros(1,Q-P)];
+        pad_lr = [pad_lr zeros(1,Q-P)];
+    end
+    
+    if (is_packed)			% Input is packed binary.  Adjust padding appropriately.
+        pad_ul(1) = ceil(pad_ul(1) / 32);
+        pad_lr(1) = ceil(pad_lr(1) / 32);
+    end
+
+    if strcmp(op_type, 'dilate')
+        pad_val = -Inf;
+    else
+        pad_val = Inf;
+    end
+    if islogical(A)			% Use 0s and 1s instead of plus/minus Inf.
+        pad_val = max(min(pad_val, 1), 0);
+    end
+    A = padarray(A,pad_ul,pad_val,'pre');
+    A = padarray(A,pad_lr,pad_val,'post');
+end
+
+if pre_pack
+    unpacked_M = size(A,1);
+    A = bwpack(A);
+end
+
+% Apply the sequence of dilations/erosions.
+B = A;
+for k = 1:num_strels
+    B = morphmex(mex_method, B, double(getnhood(se(k))), getheight(se(k)), unpacked_M);
+end
+
+% Image postprocessing steps.
+if post_unpack
+    B = bwunpack(B,unpacked_M);
+end
+
+if post_crop
+    % Extract the "middle" of the result; it should be the same size as
+    % the input image.
+    idx = cell(1,ndims(B));
+    for k = 1:ndims(B)
+        P = size(B,k) - pad_ul(k) - pad_lr(k);
+        first = pad_ul(k) + 1;
+        last = first + P - 1;
+        idx{k} = first:last;
+    end
+    B = B(idx{:});
+end
+
+%%%%%%%%%% ParseInputs %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [A,se,pre_pad,pre_pack, post_crop,post_unpack,op_type,input_is_packed, unpacked_M,mex_method] = ...
+	ParseInputs_morphop(A,se,op_type,func_name,varargin)
+
+checknargin(2,5,nargin-2,func_name);
+
+% Get the required inputs and check them for validity.
+se = strelcheck(se,func_name,'SE',2);
+A = CheckInputImage_morphop(A, func_name);
+
+% Process optional arguments.
+[padopt,packopt,unpacked_M] = ProcessOptionalArgs_morphop(func_name, varargin{:});
+if strcmp(packopt,'ispacked')
+    CheckUnpackedM_morphop(unpacked_M, size(A,1));
+end
+
+% Figure out the appropriate image preprocessing steps, image 
+% postprocessing steps, and MEX-file method to invoke.
+
+% First, find out the values of all the necessary predicates.
+se = getsequence(se);
+num_strels = length(se);
+strel_is_all_flat = all(isflat(se));
+input_numdims = ndims(A);
+strel_is_single = num_strels == 1;
+class_A = class(A);
+input_is_uint8 = strcmp(class_A,'uint8');
+input_is_uint32 = strcmp(class_A,'uint32');
+input_is_packed = strcmp(packopt,'ispacked');
+input_is_logical = islogical(A);
+input_is_2d = ndims(A) == 2;
+output_is_full = strcmp(padopt,'full');
+
+strel_is_all_2d = true;
+for k = 1:length(se)
+    if (ndims(getnhood(se(k))) > 2)
+        strel_is_all_2d = false;
+        break
+    end
+end
+
+% Check for error conditions related to packing
+if input_is_packed && strcmp(op_type, 'erode') && (unpacked_M < 1)
+    error(sprintf('Images:%s:missingPackedM', func_name), '%s', 'M must be provided for packed erosion.');
+end
+if input_is_packed && ~strel_is_all_2d
+    error(sprintf('Images:%s:packedStrelNot2D', func_name), ...
+          '%s', 'Cannot perform packed erosion or dilation unless structuring element is 2-D.');
+end
+if input_is_packed && ~input_is_uint32
+    error(sprintf('Images:%s:invalidPackedInputType', func_name), ...
+          '%s', 'Input image must be uint32 for packed erosion or dilation.');
+end
+if input_is_packed && ~strel_is_all_flat
+    error(sprintf('Images:%s:nonflatStrelPacked', func_name), ...
+          '%s', 'Structuring element must be flat for packed erosion or dilation.');
+end
+if input_is_packed && (input_numdims > 2)
+    error(sprintf('Images:%s:packedImageNot2D', func_name), ...
+          '%s', 'Cannot perform packed erosion or dilation unless input image is 2-D.');
+end
+if input_is_packed && output_is_full
+    error(sprintf('Images:%s:packedFull', func_name), ...
+          '%s', 'Cannot perform packed erosion or dilation with the ''full'' option.');
+end
+
+% Next, use predicate values to determine the necessary
+% preprocessing and postprocessing steps.
+
+% If the user has asked for full-size output, or if there are multiple
+% and/or decomposed strels, then pre-pad the input image.
+pre_pad = ~strel_is_single || output_is_full;
+
+% If the input image is logical, then the strel must be flat.
+if input_is_logical && ~strel_is_all_flat
+    msgId = sprintf('Images:%s:binaryWithNonflatStrel', func_name);
+    error(msgId,'Function %s cannot perform dilate a binary image with a nonflat structuring element.', func_name);
+end
+
+% If the input image is logical and not packed, and if there are multiple
+% all-flat strels, the prepack the input image.
+pre_pack = ~strel_is_single && input_is_logical && input_is_2d && strel_is_all_flat && strel_is_all_2d;
+
+% If we had to pre-pad the input but the user didn't specify the 'full'
+% option, then crop the image before returning it.
+post_crop = pre_pad && ~output_is_full;
+
+% If this function pre-packed the image, unpack it before returning it.
+post_unpack = pre_pack;
+
+% Finally, determine the appropriate MEX-file method to invoke.
+if pre_pack || strcmp(packopt,'ispacked')
+    mex_method = sprintf('%s_binary_packed',op_type);
+elseif input_is_logical
+    mex_method = sprintf('%s_binary',op_type);
+elseif strel_is_all_flat
+    mex_method = sprintf('%s_gray_flat',op_type);
+else
+    mex_method = sprintf('%s_gray_nonflat',op_type);
+end
+
+%%%%%%%%%% ProcessOptionalArgs %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [padopt,packopt,unpacked_M] = ProcessOptionalArgs_morphop(func_name, varargin)
+
+% Default values
+padopt = 'same';	packopt = 'notpacked';	unpacked_M = -1;	check_M = false;
+allowed_strings = {'same','full','ispacked','notpacked'};
+
+for k = 1:length(varargin)
+	if ischar(varargin{k})
+		string = checkstrs(varargin{k}, allowed_strings, func_name, 'OPTION', k+2);
+		switch string
+			case {'full','same'},			padopt = string;
+			case {'ispacked','notpacked'}, packopt = string;
+		end
+	else
+		unpacked_M = varargin{k};
+		check_M = true;
+		M_pos = k+2;
+	end
+end
+
+if check_M
+    checkinput(unpacked_M, {'double'}, {'real' 'nonsparse' 'scalar' 'integer' 'nonnegative'}, func_name, 'M', M_pos);
+end
+
+%%%%%%%%%% CheckInputImage %%%%%%%%%%%%%%%%%%%%%%%
+function B = CheckInputImage_morphop(A,op_function)
+	B = A;
+	checkinput(A, {'numeric' 'logical'}, {'real' 'nonsparse'}, op_function, 'IM', 1);
+
+%%%%%%%%%% CheckUnpackedM %%%%%%%%%%%%%%%%%%%%
+function CheckUnpackedM_morphop(unpacked_M, M)
+	if unpacked_M >= 0
+		d = 32*M - unpacked_M;
+		if (d < 0) | (d > 31)
+			error('imerode:inconsistentUnpackedM','M is not consistent with the row dimension of the image.');
+		end
+	end
+
+%%%%%%%%%% PadSize %%%%%%%%%%%%%%%%%%%%%%%%%%
+function [pad_ul, pad_lr] = PadSize_morphop(offsets,op_type)
+
+if isempty(offsets)
+    pad_ul = zeros(1,2);
+    pad_lr = zeros(1,2);
+else
+    num_dims = size(offsets{1},2);
+    for k = 2:length(offsets)
+        num_dims = max(num_dims, size(offsets{k},2));
+    end
+    for k = 1:length(offsets)
+        offsets{k} = [offsets{k} zeros(size(offsets{k},1), num_dims - size(offsets{k},2))];
+    end
+    
+    pad_ul = zeros(1,num_dims);
+    pad_lr = zeros(1,num_dims);
+    
+    for k = 1:length(offsets)
+        offsets_k = offsets{k};
+        if ~isempty(offsets_k)
+            pad_ul = pad_ul + max(0, -min(offsets_k,[],1));
+            pad_lr = pad_lr + max(0, max(offsets_k,[],1));
+        end
+    end
+    
+    if strcmp(op_type,'erode')        % Swap
+        tmp = pad_ul;
+        pad_ul = pad_lr;
+        pad_lr = tmp;
+    end
+end
+
+% ---------------------------------------------------------------------------------
+function tf = isflat(se)
+%   ISFLAT(SE) returns true (1) if the structuring element SE is flat;
+%   otherwise it returns false (0).  If SE is a STREL array, then TF is
+%   the same size as SE.
+% tf:           double logical array, same size as se, containing 0s and 1s. 
+
+	tf = logical(zeros(size(se)));
+	for k = 1:prod(size(se))
+		tf(k) = ~any(se(k).height(:));
+	end
+
+% ---------------------------------------------------------------------------------
+function se = strelcheck(in,func_name,arg_name,arg_position)
+%STRELCHECK Check validity of STREL object, or convert neighborhood to STREL.
+%   SE = STREL(IN) returns IN if it is already a STREL; otherwise it
+%   assumes IN is a neighborhood-style array and tries to convert it to a STREL.
+
+%   Copyright 1993-2003 The MathWorks, Inc.  $Revision: 1.7 $
+  
+msg = sprintf('%s\n%s', 'Expected a structuring element, which can be either',...
+              'a STREL object or an array containing 0s and 1s.');
+
+if isa(in, 'strel')
+    se = in;
+else
+    if ~( isnumeric(in) || islogical(in) )
+        msgId = sprintf('Images:%s:invalidStrelType', func_name);
+        error(msgId, 'Function %s expected its %s input argument, %s, to be either numeric or logical.', ...
+                      func_name, num2ordinal(arg_position), arg_name);
+    else
+        if (issparse(in)),	in = full(in);	end
+        in = double(in);
+        if ~isempty(in)
+            bad_elements = (in ~= 0) & (in ~= 1);
+            if any(bad_elements(:))
+                msgId = sprintf('Images:%s:invalidStrelValues', func_name);
+                error(msgId, '%s, the %s input argument to function %s, contained values other than 0 or 1.', ...
+                      arg_name, num2ordinal(arg_position), func_name);
+            end
+        end
+        se = Localstrel(in);
+    end
+end
+
+% ---------------------------------------------------------------------------------
+function [offsets,heights] = getneighbors(se)
+%   [OFFSETS,HEIGHTS] = GETNEIGHBORS(SE) returns the relative locations
+%   and corresponding heights for each of the neighbors in the
+%   structuring element object SE.  OFFSETS is a P-by-N array where P is
+%   the number of neighbors in the structuring element and N is the
+%   dimensionality of the structuring element.  Each row of OFFSETS
+%   contains the location of the corresponding neighbor, relative to the
+%   center of the structuring element.  HEIGHTS is a P-element column
+%   vector containing the height of each structuring element neighbor.
+
+%   Copyright 1993-2003 The MathWorks, Inc.
+%   $Revision: 1.5 $  $Date: 2003/01/17 16:28:42 $
+
+if length(se) ~= 1
+	error('SE must be a 1-by-1 STREL array.');
+end
+
+num_dims = ndims(se.nhood);
+idx = find(se.nhood);
+heights = se.height(idx);
+size_nhood = size(se.nhood);
+center = floor((size_nhood+1)/2);
+subs = cell(1,num_dims);
+[subs{:}] = ind2sub(size_nhood,idx);
+offsets = [subs{:}];
+offsets = reshape(offsets,length(idx),num_dims);
+offsets = offsets - repmat(center, size(offsets,1), 1);
+
 %----------------------------------------------------------------------------------
+function seq = getsequence(se)
+%   SEQ = GETSEQUENCE(SE), where SE is a structuring element array,
+%   returns another structuring element array SEQ containing the
+%   individual structuring elements that form the decomposition of SE.
+%   SEQ is equivalent to SE, but the elements of SEQ have no decomposition. 
+	if length(se) > 1
+		se = se(:);
+		seq = getsequence(se(1));
+		for k = 2:length(se)
+			seq = [seq; getsequence(se(k))];
+		end
+	elseif isempty(se)
+		% A bit of a hack here to return a 1-by-0 strel array.
+		seq = strel;
+		seq(1) = [];
+	else
+		if isempty(se.decomposition)
+			seq = se;
+		else
+			seq = getsequence(se.decomposition(1));
+			for k = 2:length(se.decomposition)
+				seq = [seq; getsequence(se.decomposition(k))];
+			end
+		end
+	end
+
+% ---------------------------------------------------------------------------------
+function nhood = getnhood(se)
+%   NHOOD = GETNHOOD(SE) returns the neighborhood associated with the structuring element SE.
+	if length(se) ~= 1
+		error('SE must be a 1-by-1 STREL array.');
+	end
+	nhood = se.nhood;
+
+% ---------------------------------------------------------------------------------
+function height = getheight(se)
+%   H = GETHEIGHT(SE) returns an array the same size as GETNHOOD(SE)
+%   containing the height associated with each of the structuring element
+%   neighbors.  H is all zeros for a flat structuring element.
+% se:      a 1-by-1 strel array; it may have no neighbors.
+% height:  a double array with the same size as NHOOD = GETNHOOD(SE).
+
+	if length(se) ~= 1
+		error('SE must be a 1-by-1 STREL array.');
+	end
+	height = se.height;
+
+% ---------------------------------------------------------------------------------	
+function se = Localstrel(varargin)
+% A STREL limited to MakeArbitraryStrel strel and no object shit
+
+if (nargin == 0)		% No input arguments --- return empty strel
+	se.nhood = [];
+	se.height = [];
+	se.decomposition = [];
+	se.version = 1;
+elseif ((nargin == 1) & isa(varargin{1}, 'strel'))
+    % One strel input --- return it unchanged
+    se = varargin{1};
+    return
+else
+	[type,params] = ParseInputs_strel(varargin{:});
+	if (~strcmp(type,'arbitrary'))
+        error('This limited strel only supports "arbitrary" strel type.');
+	end
+	se = MakeArbitraryStrel(params{:});
+end
+
+%%% MakeArbitraryStrel
+function se = MakeArbitraryStrel(nhood,height)
+
+se.decomposition = [];
+se.version = 1;
+se.nhood = nhood ~= 0;
+se.height = height;
+
+if (~isempty(nhood) & all(nhood(:)) & ~any(height(:)))
+    % Strel is flat with an all-ones neighborhood.  Decide whether to decompose it.
+    size_nhood = size(nhood);
+    % Heuristic --- if theoretical computation advantage is
+    % at least a factor of two, then assume that the advantage
+    % is worth the overhead cost of performing dilation or erosion twice.
+    advantage = prod(size_nhood) / sum(size_nhood);
+    if (advantage >= 2)
+        num_dims = ndims(nhood);
+        se.decomposition = Localstrel;
+        for k = 1:ndims(nhood)
+            size_k = ones(1,num_dims);
+            size_k(k) = size(nhood,k);
+            if k == 1
+                se.decomposition = Localstrel(ones(size_k));
+            else
+                se.decomposition(k) = Localstrel(ones(size_k));
+            end
+        end
+    end
+end
+
+% ---------------------------------------------------------------------------------	
+function [type,params] = ParseInputs_strel(varargin)
+
+checknargin(1, 4, nargin, 'strel');
+type = 'arbitrary';
+params = varargin;
+num_params = numel(params);
+
+switch type
+  case 'arbitrary'
+    if num_params < 1
+        error('Images:strel:tooFewInputsForArbitrary','%s','Too few inputs.');
+    end
+    
+    % Check validity of the NHOOD argument.
+    nhood = params{1};
+    checkinput(nhood, {'numeric', 'logical'}, {'real'}, 'strel', 'NHOOD', 2);
+    
+    % Check validity of the HEIGHT argument.
+    if num_params >= 2
+        height = params{2};
+        checkinput(height, {'double'}, {'real', 'nonnan'}, 'strel', 'HEIGHT', 3);
+        if ~isequal(size(height), size(nhood))
+            msg = 'For arbitrary strels, the HEIGHT input must be a real double matrix with the same size as the NHOOD input.';
+            error('Images:strel:sizeMismatch','%s',msg);
+        end
+    else
+        params{2} = zeros(size(nhood));
+    end
+end
+
+% ---------------------------------------------------------------------------------
 function string = num2ordinal(number)
 %NUM2ORDINAL Convert positive integer to ordinal string.
 if number <= 20
@@ -4248,12 +4704,11 @@ if number <= 20
             'eighth' 'ninth' 'tenth' 'eleventh' 'twelfth' 'thirteenth' ...
             'fourteenth' 'fifteenth' 'sixteenth' 'seventeenth' ...
             'eighteenth' 'nineteenth' 'twentieth'};
-  
-  string = table1{number};
+	string = table1{number};
 else
-  table2 = {'th' 'st' 'nd' 'rd' 'th' 'th' 'th' 'th' 'th' 'th'};
-  ones_digit = rem(number, 10);
-  string = sprintf('%d%s',number,table2{ones_digit + 1});
+	table2 = {'th' 'st' 'nd' 'rd' 'th' 'th' 'th' 'th' 'th' 'th'};
+	ones_digit = rem(number, 10);
+	string = sprintf('%d%s',number,table2{ones_digit + 1});
 end
 
 %----------------------------------------------------------------------------------
@@ -5384,13 +5839,212 @@ LUT = varargin{2};
 if (~isa(LUT,'double'))  LUT = double(LUT); end
 
 % ------------------------------------------------------------------------
+function J = stdfilt(varargin)
+%STDFILT Local standard deviation of image.
+%   J = STDFILT(I) returns the array J, where each output pixel contains the
+%   standard deviation value of the 3-by-3 neighborhood around the corresponding
+%   pixel in the input image I. I can have any dimension.  The output image J is
+%   the same size as the input image I.
+%
+%   For pixels on the borders of I, STDFILT uses symmetric padding.  In
+%   symmetric padding, the values of padding pixels are a mirror reflection
+%   of the border pixels in I.
+%  
+%   J = STDFILT(I,NHOOD) performs standard deviation filtering of the input
+%   image I where you specify the neighborhood in NHOOD.  NHOOD is a
+%   multidimensional array of zeros and ones where the nonzero elements specify
+%   the neighbors.  NHOOD's size must be odd in each dimension. 
+%
+%   By default, STDFILT uses the neighborhood ones(3). STDFILT determines the
+%   center element of the neighborhood by FLOOR((SIZE(NHOOD) + 1)/2). For
+%   information about specifying neighborhoods, see Notes.
+%
+%   Class Support
+%   -------------    
+%   I can be logical or numeric and must be real and nonsparse.  NHOOD can be
+%   logical or numeric and must contain zeros and/or ones.  I and NHOOD can have
+%   any dimension. J is uint8, single or double.
+%
+%   Notes
+%   -----    
+%   To specify the neighborhoods of various shapes, such as a disk, use the
+%   STREL function to create a structuring element object and then use the
+%   GETNHOOD function to extract the neighborhood from the structuring element object.
+
+%   Copyright 1993-2005 The MathWorks, Inc. $Revision.2 $  
+
+[I, h] = ParseInputs_stdfilt(varargin{:});
+c = class(I);
+if (~isa(I,'double')),	I = double(I);	end
+n = sum(h(:));
+
+% If n = 1 then return default J (all zeros) to avoid the divideByZero warning.
+% Otherwise, calculate standard deviation. The formula for standard deviation
+% can be rewritten in terms of the theoretical definition of
+% convolution. However, in practise, use correlation in IMFILTER to avoid a
+% flipped answer when NHOOD is asymmetric.
+% conv1 = imfilter(I.^2,h,'symmetric') / (n-1); 
+% conv2 = imfilter(I,h,'symmetric').^2 / (n*(n-1));
+% std = sqrt(conv1-conv2).  
+% These equations can be further optimized for speed.
+
+n1 = n - 1;
+if n ~= 1
+	conv1 = imfilter(I.^2, h/n1 , 'symmetric');
+	conv2 = imfilter(I, h, 'symmetric').^2 / (n*n1);
+	clear I;
+	J = sqrt(max((conv1 - conv2),0));
+else
+	J = zeros(size(I));
+end
+
+% I only antecipate to send in uint8 or singles but we should have a generic function here
+if (strcmp(c,'uint8') || strcmp(c,'logical'))
+	fac = 255 / max(J(:));
+	J = uint8(round(J * fac));
+elseif (strcmp(c,'single'))				% Grid?
+	J = single(J);
+end
+
+%%%%%%%%%%%%%%%ParseInputs%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [I,H] = ParseInputs_stdfilt(varargin)
+
+iptchecknargin(1,2,nargin,'stdfilt');
+iptcheckinput(varargin{1},{'numeric','logical'},{'real','nonsparse'}, 'stdfilt', 'I',1);
+I = varargin{1};
+
+if nargin == 2
+	iptcheckinput(varargin{2},{'logical','numeric'},{'nonsparse'}, 'stdfilt','NHOOD',2);
+	H = varargin{2};
+	
+	eid = 'stdfilt:invalidNeighborhood';
+	% H must contain zeros and/or ones.
+	bad_elements = (H ~= 0) & (H ~= 1);
+	if any(bad_elements(:))
+		error(eid,'%s','NHOOD must be a matrix that contains zeros and/or ones.');
+	end
+	
+	% H's size must be a factor of 2n-1 (odd).
+	sizeH = size(H);
+	if any(floor(sizeH/2) == (sizeH/2) )
+		error(eid,'%s','NHOOD must have a size that is odd in each dimension.');
+	end
+	if (~isa(H,'double')),	H = double(H);		end
+else
+	H = ones(3);
+end
+
+% ------------------------------------------------------------------------
+function J = rangefilt(varargin)
+%RANGEFILT Local range of image.  
+%   J = RANGEFILT(I) returns the array J, where each output pixel contains the
+%   range value (maximum value - minimum value) of the 3-by-3 neighborhood
+%   around the corresponding pixel in the input image I. I can have any
+%   dimension.  The output image J is the same size as the input image I.
+%  
+%   J = RANGEFILT(I,NHOOD) performs range filtering of the input image I where
+%   you specify the neighborhood in NHOOD.  NHOOD is a multidimensional array
+%   of zeros and ones where the nonzero elements specify the neighborhood for
+%   the range filtering operation.  NHOOD's size must be odd in each dimension.
+%  
+%   By default, RANGEFILT uses the neighborhood true(3). RANGEFILT determines
+%   the center element of the neighborhood by FLOOR((SIZE(NHOOD) + 1)/2). For
+%   information about specifying neighborhoods, see Notes.
+%
+%   Class Support
+%   -------------      
+%   I can be logical or numeric and must be real and nonsparse.  NHOOD can be
+%   logical or numeric and must contain zeros and/or ones.
+%  
+%   The output image J is the same class as I, except for signed integer data
+%   types. The output class for signed integer data types is the corresponding
+%   unsigned integer data type.  For example, if the class of I is int8, then
+%   the class of J is uint8.
+%
+%   Notes
+%   -----    
+%   RANGEFILT uses the morphological functions IMDILATE and IMERODE to
+%   determine the maximum and minimum values in the specified neighborhood.
+%   Consequently, RANGEFILT uses the padding behavior of these morphological
+%   functions.  
+%  
+%   To specify the neighborhoods of various shapes, such as a disk, use the
+%   STREL function to create a structuring element object and then use the
+%   GETNHOOD function to extract the neighborhood from the structuring element object.
+
+%   Copyright 1993-2005 The MathWorks, Inc. $Revision.1 $
+
+[I, h] = ParseInputs_rngfilt(varargin{:});
+
+% NHOOD is reflected across its origin in order for IMDILATE
+% to return the local maxima of I in NHOOD if it is asymmetric. A symmetric NHOOD
+% is naturally unaffected by this reflection.
+reflectH = h(:);
+reflectH = flipud(reflectH);
+reflectH = reshape(reflectH, size(h));
+
+dilateI = imdilate(I,reflectH);
+
+% IMERODE returns the local minima of I in NHOOD.
+erodeI = imerode(I,h);  
+
+% Set the output classes for signed integer data types.
+class_in = class(I);
+class_out = class_in;
+switch class_in
+	case 'int8'
+		class_out = 'uint8';
+	case 'int16'
+		class_out = 'uint16';
+	case 'int32'
+		class_out = 'uint32';
+end
+
+% Calculate the range with imlincomb instead of imsubtract so that you can
+% specify the output class.  Use the relational operator to calculate the
+% range for a logical image to be efficient.
+if strcmp(class_in, 'logical')
+	J = dilateI > erodeI;
+else
+	J = imlincomb(1, dilateI, -1, erodeI, class_out);
+end
+         
+%%%%%%%%%%%%%%%ParseInputs%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [I,H] = ParseInputs_rngfilt(varargin)
+
+iptchecknargin(1,2,nargin,'rangefilt');
+iptcheckinput(varargin{1},{'numeric' 'logical'}, {'real','nonsparse','nonnan'}, mfilename,'I',1);
+I = varargin{1};
+
+if nargin == 2
+	iptcheckinput(varargin{2},{'logical','numeric'},{'nonempty','nonsparse'}, 'rangefilt','NHOOD',2);
+	H = varargin{2};
+	
+	eid = 'rangefilt:invalidNeighborhood';
+	% H must contain zeros and or ones.
+	bad_elements = (H ~= 0) & (H ~= 1);
+	if any(bad_elements(:))
+		error(eid,'%s','NHOOD must be a matrix that contains zeros and/or ones.');
+	end
+	
+	% H's size must be odd.
+	sizeH = size(H);
+	if any(floor(sizeH/2) == (sizeH/2) )
+		error(eid,'%s','NHOOD''s size must be odd in each dimension.');
+	end
+	H = H ~= 0;		% Convert to logical
+else
+	H = true(3);
+end
+
+% ------------------------------------------------------------------------
 function B = find_holes(a)
-% Track ==>   a = bwperim(a,8);   B = bwboundaries(a,8,'noholes');
-lut = luts('lutper8');
-BW = applylutc(a, lut);
-L = bwlabel(BW, 8);
-O = bwboundariesmex(L, 8);
-B = [O; {}];
+	% Track ==>   a = bwperim(a,8);   B = bwboundaries(a,8,'noholes');
+	lut = luts('lutper8');
+	BW = applylutc(a, lut);
+	L = bwlabel(BW, 8);
+	O = bwboundariesmex(L, 8);
+	B = [O; {}];
 
 %---------------------------------------------------------------------
 function  varargout = luts(opt,varargin)
@@ -6264,7 +6918,7 @@ if bi_interp && nonzero_odr && any([defflt_reducedim,custm_flt]),
         for k = drec,           % create filter for drec-direction
             if isempty(h),      % make filter order corresponding to scale
                 h = 11;
-            end;
+            end
             hh(k,:) = DesignFilter(h,sn(k)/so(k));
         end
         if length(drec)==1,%filters in one direction only
@@ -6272,8 +6926,7 @@ if bi_interp && nonzero_odr && any([defflt_reducedim,custm_flt]),
             h = reshape(hh(k,:),(h-1)*(k==1)+1,(h-1)*(k==2)+1);
         else % filters in both directions
             for k=1:thirdD,%loop if A matrix is 3D
-                A(:,:,k) = imfilter(imfilter(A(:,:,k), hh(2,:),'replicate'),...
-                    hh(1,:).','replicate');
+                A(:,:,k) = imfilter(imfilter(A(:,:,k), hh(2,:),'replicate'), hh(1,:).','replicate');
             end
         end
     end
