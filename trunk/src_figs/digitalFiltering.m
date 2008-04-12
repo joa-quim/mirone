@@ -835,6 +835,8 @@ LinConvFilt.PreDefFilters.Emboss.E_NW = [1 1 0; 1 1 -1; 0 -1 -1];
 LinConvFilt.PreDefFilters.Emboss.E_N = [1 1 1; 0 1 0; -1 -1 -1];
 LinConvFilt.PreDefFilters.Emboss.E_NE = [0 1 1; -1 1 1; -1 -1 0];
 
+% NonLinFilt.stdfilt = ones(3);
+
 % First column contains the struct field name, second the name that will
 % show up in the tree. Notice how the first column cuincides with the
 % LinConvFilt structure fieldnames. This aspect is crutial.
@@ -896,6 +898,8 @@ nomes = {'Linear Convolution filters' 'Linear Convolution filters';...  % The fi
         'E_NW' 'Northwest (3x3)';...
         'E_N' 'North (3x3)';...
         'E_NE' 'Northeast (3x3)';...
+%         'Nonlinear Filters' 'Nonlinear Filters';...
+%         'stdfilt' 'Standard Deviation (mxn)';...
     };
 
 % Descriptive text that will show in a textbox. The number of elements must
@@ -944,6 +948,8 @@ texto = {'Output nodes are weighted sums of neighboring nodal values.';...
         ''; ''; ''; ''; ''; ''; ''; '';
         'Directional edge enhancement (''embossing'') filters.';...
         ''; ''; ''; ''; ''; ''; ''; '';
+% 		'General functions of neighboring nodes'; ...
+% 		'Standard deviation of nodes in neighborhood';
     };
 
 defFilters_struct = {'Linear Convolution filters'; LinConvFilt; nomes; texto};
