@@ -68,7 +68,7 @@ if (updateFigure)
     if (isfield(uistate,'docontext') && uistate.docontext)
         % Do not set an invalid handle or a handle that belongs to another figure. g239172
         if isempty(uistate.UIContextMenu{1}) || ( ishandle(uistate.UIContextMenu{1}) && ...
-              isequal(fig,ancestor(uistate.UIContextMenu{1},'figure') ))
+              isequal(fig,ancestor_m(uistate.UIContextMenu{1},'figure') ))
             set(fig,'UIContextMenu', uistate.UIContextMenu{1});
         end
     end
@@ -89,7 +89,7 @@ function LupdateChildren(uistate, childType, include)
         chi = uistate.Children(i);
         if (~ishandle(chi)),    continue;   end
         if isempty(fig) || ~ishandle(fig)
-            fig = ancestor(chi,'figure');
+            fig = ancestor_m(chi,'figure');
         end
         if ~isempty(childType)
             type = get(chi,'type');
@@ -103,7 +103,7 @@ function LupdateChildren(uistate, childType, include)
         if isfield(uistate,'docontext') && uistate.docontext
             % Do not set an invalid handle or a handle that belongs to another figure. g239172
             if isempty(uistate.UIContextMenu{i}) || ( ishandle(uistate.UIContextMenu{i}) && ...
-                 isequal(fig,ancestor(uistate.UIContextMenu{i},'figure')))
+                 isequal(fig,ancestor_m(uistate.UIContextMenu{i},'figure')))
                     set(chi, {'UIContextMenu'}, uistate.UIContextMenu(i));
             end
         end

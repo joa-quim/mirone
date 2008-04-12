@@ -465,7 +465,6 @@ utils/abifile.m -text
 utils/add_poles.m -text
 utils/addframe_j.m -text
 utils/aguentabar.m -text
-utils/ancestor.m -text
 utils/ancestor_m.m -text
 utils/applylutc.dll -text
 utils/aquaPlugin.m -text
