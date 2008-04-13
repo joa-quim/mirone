@@ -1,4 +1,4 @@
-function   OUT = draw_funs(hand,opt,data)
+function OUT = draw_funs(hand,opt,data)
 %   This contains several functions necessary to the "Draw" menu of mirone
 %   There are no error checking.
 %   HAND    contains the handle to the graphical object
@@ -207,8 +207,9 @@ function setLineWidth(item,cbs)
 function set_SHPline_uicontext(h,opt)
 % h is a handle to a shape line object
 
+handles = guidata(h(1));
 for (i = 1:numel(h))
-	cmenuHand = uicontextmenu;      set(h(i), 'UIContextMenu', cmenuHand);
+	cmenuHand = uicontextmenu('Parent',handles.figure1);      set(h(i), 'UIContextMenu', cmenuHand);
     uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated,h});
 	uimenu(cmenuHand, 'Label', 'Delete this line', 'Callback', {@del_line,h(i)});
 	uimenu(cmenuHand, 'Label', 'Delete class', 'Callback', 'delete(findobj(''Tag'',''SHPpolyline''))');
@@ -445,9 +446,9 @@ function wbd_MovePolygon(obj,eventdata,h,state)
 function set_country_uicontext(h)
 % Minimalist patch uicontext to be used with countries patches due to the insane/ultrageous
 % memory (and time) consumption taken by ML
-
+handles = guidata(h(1));
 for (i = 1:numel(h))
-	cmenuHand = uicontextmenu;
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h(i), 'UIContextMenu', cmenuHand);
     uimenu(cmenuHand, 'Label', 'Save line', 'Callback', @save_line);
 	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
@@ -514,7 +515,7 @@ end
 % -----------------------------------------------------------------------------------------
 function set_SRTM_rect_uicontext(h,opt)
 	% h is a handle to a line object (that can be closed)
-	cmenuHand = uicontextmenu;
+	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 	ui_edit_polygon(h)    % Set edition functions
 	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
@@ -530,43 +531,43 @@ function set_SRTM_rect_uicontext(h,opt)
 % -----------------------------------------------------------------------------------------
 function set_ContourLines_uicontext(h,h_label)
 % h is the handle to the contour value. Each contour is given this uicontext
-cmenuHand = uicontextmenu;
-set(h, 'UIContextMenu', cmenuHand);
-% cb1     = 'mirone(''DrawEditLine_Callback'',gcbo,[],guidata(gcbo))';
-ui_edit_polygon(h)            % Set edition functions
-cb_rac = {@remove_symbolClass,h};   % It will also remove the labels because they have the same tag.
-cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
-cb18 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb19 = 'set(gco, ''LineStyle'', ''--''); refresh';
-cb20 = 'set(gco, ''LineStyle'', '':''); refresh';   cb21 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-cb_color = uictx_color(h);      % there are 9 cb_color outputs
+	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	set(h, 'UIContextMenu', cmenuHand);
+	% cb1     = 'mirone(''DrawEditLine_Callback'',gcbo,[],guidata(gcbo))';
+	ui_edit_polygon(h)            % Set edition functions
+	cb_rac = {@remove_symbolClass,h};   % It will also remove the labels because they have the same tag.
+	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	cb18 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb19 = 'set(gco, ''LineStyle'', ''--''); refresh';
+	cb20 = 'set(gco, ''LineStyle'', '':''); refresh';   cb21 = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	cb_color = uictx_color(h);      % there are 9 cb_color outputs
 
-uimenu(cmenuHand, 'Label', 'Delete contour', 'Callback',{@remove_singleContour,h});
-uimenu(cmenuHand, 'Label', 'Delete all contours', 'Callback', cb_rac);
-% item1 = uimenu(cmenuHand, 'Label', 'Edit contour (left-click on it)', 'Callback', cb1);
-uimenu(cmenuHand, 'Label', 'Save contour', 'Callback', {@save_formated,h});
-uimenu(cmenuHand, 'Label', 'Contour length', 'Callback', {@show_LineLength,[]});
-uimenu(cmenuHand, 'Label', 'Area under contour', 'Callback', @show_Area);
-item_lw = uimenu(cmenuHand, 'Label', 'Contour Line Width', 'Separator','on');
-setLineWidth(item_lw,cb_LineWidth)
-item_ls = uimenu(cmenuHand, 'Label', 'Contour Line Style');
-setLineStyle(item_ls,{cb18 cb19 cb20 cb21})
-item_lc = uimenu(cmenuHand, 'Label', 'Contour Line Color');
-setLineColor(item_lc,cb_color)
-cb_CLineWidth = uictx_Class_LineWidth(h);           % there are 5 cb_CLineWidth outputs
-item8 = uimenu(cmenuHand, 'Label', 'All Contours Line Width', 'Separator','on');
-uimenu(item8, 'Label', '1       pt', 'Callback', cb_CLineWidth{1});
-uimenu(item8, 'Label', '2       pt', 'Callback', cb_CLineWidth{2});
-uimenu(item8, 'Label', '3       pt', 'Callback', cb_CLineWidth{3});
-uimenu(item8, 'Label', 'Other...', 'Callback', cb_CLineWidth{5});
-cb_CLineStyle = uictx_Class_LineStyle(h);        % there are 4 cb_CLineStyle outputs
-item9 = uimenu(cmenuHand, 'Label', 'All Contours Line Style');
-uimenu(item9, 'Label', 'solid', 'Callback', cb_CLineStyle{1});
-uimenu(item9, 'Label', 'dashed', 'Callback', cb_CLineStyle{2});
-uimenu(item9, 'Label', 'dotted', 'Callback', cb_CLineStyle{3});
-uimenu(item9, 'Label', 'dash-dotted', 'Callback', cb_CLineStyle{4});
-cb_CLineColor = uictx_Class_LineColor(h);              % there are 9 cb_CLineColor outputs
-item_lc = uimenu(cmenuHand, 'Label', 'All Contours Line Color');
-setLineColor(item_lc,cb_CLineColor)
+	uimenu(cmenuHand, 'Label', 'Delete contour', 'Callback',{@remove_singleContour,h});
+	uimenu(cmenuHand, 'Label', 'Delete all contours', 'Callback', cb_rac);
+	% item1 = uimenu(cmenuHand, 'Label', 'Edit contour (left-click on it)', 'Callback', cb1);
+	uimenu(cmenuHand, 'Label', 'Save contour', 'Callback', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Contour length', 'Callback', {@show_LineLength,[]});
+	uimenu(cmenuHand, 'Label', 'Area under contour', 'Callback', @show_Area);
+	item_lw = uimenu(cmenuHand, 'Label', 'Contour Line Width', 'Separator','on');
+	setLineWidth(item_lw,cb_LineWidth)
+	item_ls = uimenu(cmenuHand, 'Label', 'Contour Line Style');
+	setLineStyle(item_ls,{cb18 cb19 cb20 cb21})
+	item_lc = uimenu(cmenuHand, 'Label', 'Contour Line Color');
+	setLineColor(item_lc,cb_color)
+	cb_CLineWidth = uictx_Class_LineWidth(h);           % there are 5 cb_CLineWidth outputs
+	item8 = uimenu(cmenuHand, 'Label', 'All Contours Line Width', 'Separator','on');
+	uimenu(item8, 'Label', '1       pt', 'Callback', cb_CLineWidth{1});
+	uimenu(item8, 'Label', '2       pt', 'Callback', cb_CLineWidth{2});
+	uimenu(item8, 'Label', '3       pt', 'Callback', cb_CLineWidth{3});
+	uimenu(item8, 'Label', 'Other...', 'Callback', cb_CLineWidth{5});
+	cb_CLineStyle = uictx_Class_LineStyle(h);        % there are 4 cb_CLineStyle outputs
+	item9 = uimenu(cmenuHand, 'Label', 'All Contours Line Style');
+	uimenu(item9, 'Label', 'solid', 'Callback', cb_CLineStyle{1});
+	uimenu(item9, 'Label', 'dashed', 'Callback', cb_CLineStyle{2});
+	uimenu(item9, 'Label', 'dotted', 'Callback', cb_CLineStyle{3});
+	uimenu(item9, 'Label', 'dash-dotted', 'Callback', cb_CLineStyle{4});
+	cb_CLineColor = uictx_Class_LineColor(h);              % there are 9 cb_CLineColor outputs
+	item_lc = uimenu(cmenuHand, 'Label', 'All Contours Line Color');
+	setLineColor(item_lc,cb_CLineColor)
 
 % -----------------------------------------------------------------------------------------
 function setCoastLineUictx(h)
@@ -576,7 +577,8 @@ function setCoastLineUictx(h)
 	elseif (strcmp(tag,'PoliticalBoundaries')), label = 'Delete boundaries';
 	elseif (strcmp(tag,'Rivers')),              label = 'Delete rivers';
 	end
-	cmenuHand = uicontextmenu;
+	handles = guidata(h);
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 	cb13 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb14 = 'set(gco, ''LineStyle'', ''--''); refresh';
@@ -608,7 +610,7 @@ for i = 1:7     % Loop over all Plate Boundaries Types
         case 6,            h_cur = h.OCB;  data_cur = data.OCB;    % class = 'OCB'
         case 7,            h_cur = h.SUB;  data_cur = data.SUB;    % class = 'SUB'
     end
-    cmenuHand = uicontextmenu;
+	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
     set(h_cur, 'UIContextMenu', cmenuHand);
     cb_LineWidth = uictx_Class_LineWidth(h_cur);    % there are 5 cb_PB_LineWidth outputs
     cb_color = uictx_Class_LineColor(h_cur);        % there are 9 cb_PB_color outputs
@@ -631,7 +633,6 @@ function set_isochrons_uicontext(h,data)
 	if (iscell(tag)),   tag = tag{1};   end
 
 	handles = guidata(get(h(1),'Parent'));             % Get Mirone handles
-
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 	cb_LineWidth = uictx_LineWidth(h);       % there are 5 cb_LineWidth outputs
@@ -688,7 +689,7 @@ function set_gmtfile_uicontext(h,data)
 	tag = get(h,'Tag');
 	if (iscell(tag)),   tag = tag{1};   end
 
-	cmenuHand = uicontextmenu;
+	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 	cb_LineWidth = uictx_LineWidth(h);       % there are 5 cb_LineWidth outputs
 	cb_color = uictx_color(h);               % there are 9 cb_color outputs
@@ -808,7 +809,8 @@ function cb = uictx_Class_LineStyle(h)
 % -----------------------------------------------------------------------------------------
 function set_greatCircle_uicontext(h)
 	% h is a handle to a great circle arc (in geog coords) object
-	cmenuHand = uicontextmenu;      set(h, 'UIContextMenu', cmenuHand);
+	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	set(h, 'UIContextMenu', cmenuHand);
 	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
@@ -831,7 +833,7 @@ function set_circleGeo_uicontext(h)
 	% controls to change various circle parameters. Because it makes extensive use of the lines
 	% userdata, the move_circle function of this file cannot be used, for it also changes userdata.
 	tag = get(h,'Tag');
-	cmenuHand = uicontextmenu;
+	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
@@ -862,7 +864,7 @@ function set_circleGeo_uicontext(h)
 % -----------------------------------------------------------------------------------------
 function set_circleCart_uicontext(h)
 	% h is a handle to a circle (in cartesian coords) object
-	cmenuHand = uicontextmenu;
+	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
@@ -922,7 +924,7 @@ msgbox(msg,'Euler velocity')
 % -----------------------------------------------------------------------------------------
 function set_vector_uicontext(h)
 	% h is a handle to a vector object
-	cmenuHand = uicontextmenu;
+	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@delete_vector,h});
 	%set(h,'ButtonDownFcn','selectmoveresize')
@@ -1137,7 +1139,7 @@ function azim = show_lineAzims(obj,eventdata,h)
 % -----------------------------------------------------------------------------------------
 function set_bar_uicontext(h)
 	% Set uicontexts for the bars in a multibeam track. h is the handle to the bar objects
-	cmenuHand = uicontextmenu;
+	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs, but I only use 5 here
 	cb7 = 'set(gco, ''LineWidth'', 10); refresh';
@@ -1667,7 +1669,7 @@ fclose(fid);
 % -----------------------------------------------------------------------------------------
 function set_symbol_uicontext(h,data)
 % Set uicontexts for the symbols. h is the handle to the marker (line in fact) object
-% This funtion is a bit messy because it serves for seting uicontexes of individual
+% This funtion is a bit messy because it serves for setting uicontexes of individual
 % symbols, points and of "volcano", "hotspot" & "ODP" class symbols. 
 tag = get(h,'Tag');
 if (length(h) == 1 && length(get(h,'Xdata')) > 1)
@@ -1676,7 +1678,8 @@ else
     more_than_one = 0;
 end
 
-cmenuHand = uicontextmenu;      set(h, 'UIContextMenu', cmenuHand);
+handles = guidata(h(1));
+cmenuHand = uicontextmenu('Parent',handles.figure1);	set(h, 'UIContextMenu', cmenuHand);
 separator = 0;
 this_not = 0;       % for class symbols "this_not = 1";
 seismicity_options = 0;
@@ -2614,31 +2617,31 @@ set(T,'String', sprintf('Opacity = %.2f',val))
 function set_telhas_uicontext(h)
 % h is a handle to a telhas patch object
 
-cmenuHand = uicontextmenu;
-set(h, 'UIContextMenu', cmenuHand);
-cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
-cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
-cb_dashed = 'set(gco, ''LineStyle'', ''--''); refresh';
-cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';
-cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	set(h, 'UIContextMenu', cmenuHand);
+	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
+	cb_dashed = 'set(gco, ''LineStyle'', ''--''); refresh';
+	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';
+	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
 
-uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-setLineWidth(item_lw,cb_LineWidth)
-item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dashdot})
-item7 = uimenu(cmenuHand, 'Label', 'Line Color');
-cb_color = uictx_color(h,'EdgeColor');      % there are 9 cb_color outputs
-setLineColor(item7,cb_color)
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	setLineWidth(item_lw,cb_LineWidth)
+	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
+	setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dashdot})
+	item7 = uimenu(cmenuHand, 'Label', 'Line Color');
+	cb_color = uictx_color(h,'EdgeColor');      % there are 9 cb_color outputs
+	setLineColor(item7,cb_color)
 
-set_stack_order(cmenuHand)      % Change order in the stackpot
+	set_stack_order(cmenuHand)      % Change order in the stackpot
 
-uimenu(item7, 'Label', 'None', 'Separator','on', 'Callback', 'set(gco, ''EdgeColor'', ''none'');refresh');
-item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Separator','on');
-cb_color = uictx_color(h,'facecolor');      % there are 9 cb_color outputs
-setLineColor(item8,cb_color)
-uimenu(item8, 'Label', 'None', 'Separator','on', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
-uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
+	uimenu(item7, 'Label', 'None', 'Separator','on', 'Callback', 'set(gco, ''EdgeColor'', ''none'');refresh');
+	item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Separator','on');
+	cb_color = uictx_color(h,'facecolor');      % there are 9 cb_color outputs
+	setLineColor(item8,cb_color)
+	uimenu(item8, 'Label', 'None', 'Separator','on', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
+	uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
 
 % -----------------------------------------------------------------------------------------
 function set_stack_order(cmenuHand)
