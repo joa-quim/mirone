@@ -32,36 +32,35 @@ else
     is_radians = 0;
 end
 
-D2R = pi/180;
+D2R = pi/180;		R2D = 180 / pi;
 if (~is_radians)        % Angles are in degrees. We must convert them
 	lon = lon(:) * D2R;         lat = lat(:) * D2R;
 	p_lon = p_lon * D2R;        p_lat = p_lat * D2R;
 	omega = omega * D2R;
 end
 
-p_sin_lat = sin(p_lat);         p_cos_lat = cos(p_lat);
-s_lat = sin(lat);               c_lat = cos(lat);
-s_lon = sin(lon - p_lon);       c_lon = cos(lon - p_lon);
+p_sin_lat = sin(p_lat);			p_cos_lat = cos(p_lat);
+s_lat = sin(lat);				c_lat = cos(lat);
+d_lon = lon - p_lon;
+s_lon = sin(d_lon);				c_lon = cos(d_lon);
 clear lon lat;
 cc = c_lat .* c_lon;
 
-tlon = atan2(c_lat .* s_lon, p_sin_lat * cc - p_cos_lat * s_lat);
-s_lat = p_sin_lat * s_lat + p_cos_lat * cc;
+tmp_a = p_cos_lat * s_lat;
+tlon = atan2(c_lat .* s_lon, p_sin_lat * cc - tmp_a);
+tmp_b = p_sin_lat * s_lat;
+s_lat = tmp_b + p_cos_lat * cc;
 c_lat = sqrt(1 - s_lat .* s_lat);
 
-s_lon = sin(tlon + omega);      c_lon = cos(tlon + omega);
-cc = c_lat .* c_lon;
-clear tlon c_lon;
+s_lon = sin(tlon + omega);		c_lon = cos(tlon + omega);
+cc = c_lat .* c_lon;			clear tlon c_lon;
 
-rlat = asin(p_sin_lat * s_lat - p_cos_lat * cc);
-rlon = p_lon + atan2(c_lat .* s_lon, p_sin_lat * cc + p_cos_lat * s_lat);
+rlat = asin(tmp_b - p_cos_lat * cc);
+rlon = p_lon + atan2(c_lat .* s_lon, p_sin_lat * cc + tmp_a);
 
-ind = (rlon > pi);              rlon(ind) = rlon(ind) - 2*pi;
-if (~is_radians)                % User wants angles in degrees
-    rlon = rlon / D2R;          rlat = rlat / D2R;
+ind = (rlon > pi);				rlon(ind) = rlon(ind) - 2*pi;
+if (~is_radians)				% User wants angles in degrees
+	rlon = rlon * R2D;			rlat = rlat * R2D;
 end
 
-if (nargout == 1)
-    rlon = [rlon rlat];
-end
-    
+if (nargout == 1),		rlon = [rlon rlat];		end
