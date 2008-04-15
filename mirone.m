@@ -112,7 +112,7 @@ function hObject = mirone_OpeningFcn(varargin)
         handles.last_directories = directory_list;
         handles.DefLineThick = str2double(DefLineThick{1}(1));
         % Decode the line color string into the corresponding char (e.g. k,w, etc...)
-        if (strcmp(DefLineColor{1},'Black')),   handles.DefLineColor = 'k';
+		if (strcmp(DefLineColor{1},'Black')),   handles.DefLineColor = 'k';
         else									handles.DefLineColor = lower(DefLineColor{1}(1));
 		end
         % Decode the Measure unites into a char code (e.g. n, k, m, u from {'nautical miles' 'kilometers' 'meters' 'user'})
@@ -148,7 +148,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	drv = [];	grd_data_in = 0;	grd_data_interfero = 0;		pal = [];	win_name = 'Mirone';
 	if ~isempty(varargin)
 		n_argin = nargin;
-        if (n_argin == 1 && ischar(varargin{1}))				% Called with a file name as argument
+		if (n_argin == 1 && ischar(varargin{1}))				% Called with a file name as argument
 			[pato, fname, EXT] = fileparts(varargin{1});				% Test to check online command input
 			if (isempty(pato)),		varargin{1} = [handles.home_dir fsep fname EXT];	end
 			drv = aux_funs('findFileType',varargin{1});
@@ -170,7 +170,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				pal = getappdata(0,'CropedColormap');					% See if we have a colormap to use here
 				if (~isempty(pal)),		set(handles.figure1,'Colormap',pal);	rmappdata(0,'CropedColormap');  end
 				setappdata(hObject,'Croped','yes');						% ???
-            end
+			end
 			handles = show_image(handles,win_name,X,Y,varargin{1},0,axis_t,handles.head(7),1);
 			grid_info(handles,[],'iminfo',varargin{1});			% Contruct a info string
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
@@ -260,9 +260,9 @@ function hObject = mirone_OpeningFcn(varargin)
 	guidata(hObject, handles);  limpa(handles);
 	if (~isempty(drv))
 		gateLoadFile(handles,drv,varargin{1});      % load recognized file types
-    else
+	else
 		handles = recentFiles(handles,[]);          % Just make the "Recent files" entry available
-    end
+	end
 	set(handles.ctrLine, 'Accelerator','l');
 
 	set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);        % For projections with GDAL
@@ -290,9 +290,9 @@ function erro = gateLoadFile(handles,drv,fname)
 % --------------------------------------------------------------------------------------------------
 function handles = recentFiles(handles, opt)
 	jump = 0;		N = numel(handles.FOpenList);
-    if (nargin == 1)		% Update list
+	if (nargin == 1)		% Update list
         for (i = 1:N)		% See if new name is already in FOpenList
-            if (strcmpi(handles.fileName, handles.FOpenList{i}))
+			if (strcmpi(handles.fileName, handles.FOpenList{i}))
 				for (k = i:-1:2)	% Yes, it is. So move it to the top
 					handles.FOpenList{k} = handles.FOpenList{k-1};
 				end
@@ -360,17 +360,18 @@ function ImageCrop_CB(handles, opt, opt2, opt3)
 
 if (handles.no_file),		return,		end
 set(handles.figure1,'pointer','watch')
-first_nans = 0;		pal = [];		mask = [];	done = false;	crop_pol = 0;     % Defaults to croping from a rectangle
+first_nans = 0;		pal = [];		mask = [];	done = false;	crop_pol = false;     % Defaults to croping from a rectangle
 if (nargin < 3),    opt2 = [];      end
 if (nargin < 4),    opt3 = [];      end
-if ~isempty(opt)        % OPT must be a rectangle/polygon handle (the rect may serve many purposes)
+if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve many purposes)
 	x = get(opt,'XData');   y = get(opt,'YData');
 	if ~( (x(1) == x(end)) && (y(1) == y(end)) && length(x) == 5 && ...
 			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 		xp(1) = min(x);     xp(2) = max(x);
 		yp(1) = min(y);     yp(2) = max(y);
 		rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];
-		crop_pol = 1;       % Flag that we are croping from a polygon
+		x_lim = [min(x) max(x)];        y_lim = [min(y) max(y)];
+		crop_pol = true;		% Flag that we are croping from a polygon
 	else
 		rect_crop = [x(1) y(1) (x(3)-x(2)) (y(2)-y(1))];
 	end
@@ -378,14 +379,32 @@ if ~isempty(opt)        % OPT must be a rectangle/polygon handle (the rect may s
 		Z_rect = get(handles.hImg,'CData');
 		limits = getappdata(handles.axes1,'ThisImageLims');
 		I = cropimg(limits(1:2),limits(3:4),Z_rect,rect_crop);
+		if (crop_pol)				% Shape cropping
+			mask = ~(img_fun('roipoly_j',x_lim,y_lim,I,x,y));
+			if (ndims(I) == 2),		I(mask) = 0;
+			else
+				for (k = 1:3)		% Sorry for the clutereness
+					tmp = I(:,:,k);		tmp(mask) = 255;	I(:,:,k) = tmp;
+				end
+			end
+		end
 		[m,n] = size(I);
 	elseif (strcmp(opt2,'CropaWithCoords'))     % Crop Image with coordinates
 		Z_rect = get(handles.hImg,'CData');
 		[I,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z_rect,rect_crop,'out_grid');
+		if (crop_pol)				% Shape cropping
+			mask = ~(img_fun('roipoly_j',x_lim,y_lim,I,x,y));
+			if (ndims(I) == 2),		I(mask) = 0;
+			else
+				for (k = 1:3)
+					tmp = I(:,:,k);		tmp(mask) = 255;	I(:,:,k) = tmp;
+				end
+			end
+		end
 		[m,n] = size(I);
 	else                    % Extract the sub-grid inside the rectangle/polygon
 		[X,Y,Z,head] = load_grd(handles);
-		if isempty(Z),  set(handles.figure1,'pointer','arrow');    return;     end;    % An error message was already issued
+		if isempty(Z),  set(handles.figure1,'pointer','arrow'),		return,	end		% An error message was already issued
 		[Z_rect,r_c] = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
 		if (crop_pol)
 			zzz = grdutils(Z_rect,'-L');  z_min = zzz(1);     clear zzz;
@@ -396,7 +415,6 @@ if ~isempty(opt)        % OPT must be a rectangle/polygon handle (the rect may s
 				resp  = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);    pause(0.01)
 				if isempty(resp);    set(handles.figure1,'pointer','arrow');    return;     end
 			end
-			x_lim = [min(x) max(x)];        y_lim = [min(y) max(y)];
 			mask = img_fun('roipoly_j',x_lim,y_lim,double(Z_rect),x,y);
 			if (strcmp(opt2,'CropaGrid_pure'))
 				Z_rect(~mask) = single(str2double(resp));
@@ -414,7 +432,7 @@ if ~isempty(opt)        % OPT must be a rectangle/polygon handle (the rect may s
 			end
 		end
 		[m,n] = size(Z_rect);
-    end
+	end
 else                    % Interactive croping (either Grid or Image)
 	if (strcmp(opt2,'CropaGrid'))   % Arrive here when called by "Grid Tools -> Crop Grid"
 		[X,Y,Z,head] = load_grd(handles);
@@ -478,7 +496,7 @@ elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )       % Do the ope
         GridToolsSectrum_CB(guidata(handles.figure1), 'Autocorr', to_func)
     elseif (strcmp(curr_opt,'fftTools'))    % FFTTOOLS means call the fft_stuff
         GridToolsSectrum_CB(guidata(handles.figure1), 'Allopts', to_func)
-    end
+	end
     done = true;				% We are done. BYE BYE.
 elseif (strcmp(opt2,'FillGaps'))
 	if ~any(isnan(Z_rect(:)))    % No gaps
@@ -599,7 +617,7 @@ guidata(handles.figure1, handles);          set(handles.figure1,'pointer','arrow
 % -----------------------------------------------------------------------------------------
 function do_undo(obj,event,hFig,h,img)
 	handles = guidata(hFig);
-	[X,Y,Z,head] = load_grd(handles);   % Experimental. No testing for error in loading
+	[X,Y,Z] = load_grd(handles);   % Experimental. No testing for error in loading
 	Z(handles.r_c(1):handles.r_c(2),handles.r_c(3):handles.r_c(4)) = handles.Z_back;
 	if (isa(Z,'single')),	zz = grdutils(Z,'-L');		z_min = zz(1);		z_max = zz(2);
 	else					z_min = double(min(Z(:)));	z_max = double(max(Z(:)));
@@ -836,7 +854,6 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 	end
 
 	set(handles.figure1,'pointer','watch')
-	fmt = '=ns';
 	fmt = '';
 
 	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
@@ -866,13 +883,12 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 	end
 
 	if (ndims(img) == 2)
-        img = ind2rgb8(img,get(handles.figure1,'Colormap'));    % Need this because image is indexed
+		img = ind2rgb8(img,get(handles.figure1,'Colormap'));    % Need this because image is indexed
 	end
 	flip = false;
 	if (~strcmp(get(handles.axes1,'Ydir'),'normal')),    flip = true;      end
 
 	% Defaults and srsWKT fishing are set in nc_io
-	misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], 'title',tit,'history',[],'srsWKT',[], 'strPROJ4',[]);
 	if (~flip)
 		%grdwrite_m(img(:,:,1),D,f_name_r,tit);			grdwrite_m(img(:,:,2),D,f_name_g,tit)
 		%grdwrite_m(img(:,:,3),D,f_name_b,tit)
@@ -1068,10 +1084,9 @@ function FileOpenNewImage_CB(handles, opt)
 		PathName = [];      FileName = opt;
 	end
 	handles.fileName = [PathName FileName];
-	FOcandidate = handles.fileName;        % Copy candidate to "File ... previous"
 
 set(handles.figure1,'pointer','watch')
-err_msg = [];       head_fw = [];           % Used when check for a .*fw registering world file
+head_fw = [];           % Used when check for a .*fw registering world file
 [PATH,FNAME,EXT] = fileparts(handles.fileName);
 if (strcmpi(EXT,'.shade'))
 	[fid, msg] = fopen(handles.fileName, 'r');
@@ -1090,7 +1105,6 @@ if (strcmpi(EXT,'.shade'))
 	I = I(:,:,2:4);							% strip alpha off of I
 elseif (strcmpi(EXT,'.raw') || strcmpi(EXT,'.bin'))
 	FileOpenGDALmultiBand_CB(handles, 'RAW', handles.fileName)
-	FOcandidate = [];
 	return		% We are done here. Bye Bye.
 else
 	info_img = imfinfo(handles.fileName);
@@ -1098,17 +1112,17 @@ else
 		% If Tiffs are LZW, imread R13 is not able to read them 
 		I = gdalread(handles.fileName);
 	elseif (strcmpi(EXT,'.gif') && handles.IamCompiled)   % Try with GDAL because, ML uses f... java
-		[I,att] = gdalread(handles.fileName);
+		I = gdalread(handles.fileName);
 	else
-		try			[I,map] = imread(handles.fileName);
-		catch		errordlg(lasterr,'Error');		FOcandidate = [];  return % It realy may happen
+		try			I = imread(handles.fileName);
+		catch		errordlg(lasterr,'Error'),		return % It realy may happen
 		end
 	end
 	[head_fw,err_msg] = tfw_funs('inquire',[size(I,1) size(I,2)],PATH,FNAME,EXT);  % See if we have .*fw file
 	if (~isempty(err_msg))
 		warndlg(['A registering world file was found but the following error occured: ' err_msg],'Warning')
 	end
-	
+
 	if (strcmp(info_img(1).ColorType,'grayscale'))
 		set(handles.figure1,'Colormap',gray(256))
 	elseif (isfield(info_img(1),'ColorTable'))         % Gif images call it 'ColorTable'
@@ -1134,9 +1148,7 @@ if (~isempty(head_fw) && ishandle(handles.Projections))		% Case still unknown to
 	set(handles.Projections,'Enable','on')		% We don't know which but at least it is georeferenced
 	setappdata(handles.figure1,'ProjGMT','')
 end
-if (~isempty(FOcandidate))		% If we got here, fname should be re-loadable
-	recentFiles(handles);		% Insert fileName into "Recent Files" & save handles
-end
+recentFiles(handles);		% Insert fileName into "Recent Files" & save handles
 
 % --------------------------------------------------------------------
 function FileOpenGDALmultiBand_CB(handles, opt, opt2)
@@ -1232,7 +1244,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	handles.fileName = [PathName FileName];
 
 	erro = 0;
-	try,	att = gdalread(handles.fileName,'-M','-C');		% Safety against blind calls from 'try luck'
+	try		att = gdalread(handles.fileName,'-M','-C');		% Safety against blind calls from 'try luck'
 	catch	erro = 1;	return
 	end
 	set(handles.figure1,'pointer','watch')
@@ -1278,8 +1290,8 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	if (strcmpi(att.ColorInterp,'palette'))
 		if isempty(att.Band(1).ColorMap),       pal = jet(256);
 		else
-			try     pal = att.Band(1).ColorMap.CMap;     pal = pal(:,1:3);       % GDAL creates a Mx4 colormap
-			catch   warndlg('Figure ColorMap had troubles. Replacing by a default one.','Warning'); pal = jet(256);
+			try		pal = att.Band(1).ColorMap.CMap;     pal = pal(:,1:3);       % GDAL creates a Mx4 colormap
+			catch	warndlg('Figure ColorMap had troubles. Replacing by a default one.','Warning'); pal = jet(256);
 			end
 		end
 	elseif (strcmpi(att.ColorInterp,'gray'))
@@ -1786,7 +1798,8 @@ function ImageAnaglyph_CB(handles)
 
 	if (handles.geog)
 		p_size = sqrt((x_inc * deg2m) * (y_inc * deg2m * cos ((y_max + y_min)*0.5 * D2R))); 
-	else		p_size = x_inc * y_inc;    end
+	else		p_size = x_inc * y_inc;
+	end
 
 	azimuth	= -90 * D2R;     elevation = 20 * D2R;
 
@@ -2157,7 +2170,7 @@ function DrawImportText_CB(handles)
 	[str.x str.y str.name] = strread(todos,'%f %f %s');     % Note: text.name is a cell array of chars
 	limits = getappdata(handles.axes1,'ThisImageLims');   xx = limits(1:2);   yy = limits(3:4);
     if (handles.is_projected && handles.defCoordsIn > 0)
-        [tmp, msg] = geog2projected_pts(handles,[str.x str.y],limits);
+        tmp = geog2projected_pts(handles,[str.x str.y],limits);
         str.x = tmp(:,1);      str.y = tmp(:,2);
     end
 	% Get rid of Texts that are outside the map limits
@@ -2202,7 +2215,7 @@ function DrawImportShape_CB(handles)
 nPolygs = length(s);        h = zeros(nPolygs,1);
 imgLims = getappdata(handles.axes1,'ThisImageLims');
 if (strcmp(t,'Arc'))
-    for i = 1:nPolygs
+	for i = 1:nPolygs
 		out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) s(i).BoundingBox(2,2); ...
 			s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
 		if (any(out))       % It means the polyg BB is at least partially inside
@@ -2369,7 +2382,7 @@ function FileOpenSession_CB(handles, fname)
 		[FileName,PathName] = put_or_get_file(handles,str1,'Select session file name','get');
 		if isequal(FileName,0),		return,		end
 	else
-        FileName = fname;   PathName = [];
+		FileName = fname;   PathName = [];
 	end
 
 	set(handles.figure1,'pointer','watch')
@@ -3117,7 +3130,7 @@ function FileSaveFleder_CB(handles, opt)
 	% OPT = 'runPlanar' build a planar .sd file (but don't keep it) and run the viewer
 	% OPT = 'runSpherical' build a spherical .sd file (but don't keep it) and run the viewer
 	if (handles.no_file),     return,	end
-	if (nargin == 1),		opt = 'runPlanar',		end
+	if (nargin == 1),		opt = 'runPlanar';		end
 	if ( (strcmp(opt,'writeSpherical') || ~handles.flederPlanar) && ~handles.geog)
         errordlg('Spherical objects are allowed only for geographical grids','Error');    return
 	end
@@ -3170,37 +3183,42 @@ if (strcmp(opt,'ppa'))
 %     I = flipud(img(:,:,1));
 %     delete(h_lixo);
 elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
-    if (ndims(img) == 3),   img = cvlib_mex('color',img,'rgb2gray');      end
-    if (~strcmp(opt(1:3),'SUS'))
+	if (ndims(img) == 3),   img = cvlib_mex('color',img,'rgb2gray');      end
+	if (~strcmp(opt(1:3),'SUS'))
         %img = cvlib_mex('canny',img,40,200,3);
 		if (~handles.IamCompiled),		img = canny(img);		% Economic version (uses singles & cvlib_mex but crashs in compiled)
 		else							img = img_fun('edge',img,'canny');
 		end
     else
-        img = susan(img,'-e');              % Do SUSAN edge detect
-        if (strcmp(opt(4:end),'vec')),      opt = 'Vec';        % This avoids some extra tests later
-        else                                opt = 'Ras';
-        end
-    end
-    B = img_fun('bwboundaries',img,'noholes');
+		img = susan(img,'-e');              % Do SUSAN edge detect
+		if (strcmp(opt(4:end),'vec')),      opt = 'Vec';        % This avoids some extra tests later
+		else                                opt = 'Ras';
+		end
+	end
+	B = img_fun('bwboundaries',img,'noholes');
+	B = bwbound_unique(B);
 elseif (strcmp(opt,'Lines'))
-    %B = cvlib_mex('houghlines2',img);       % If img == 3D cvlib_mex will take care
-    %B = cvlib_mex('houghlines2',img,'standard',1,pi/180,100,0,0);
-    %B = cvlib_mex('contours',img);
-    BW = cvlib_mex('canny',img,40,200,3);
-        
-    [H,T,R] = img_fun('hough',BW);
-    P = img_fun('houghpeaks',H,50,'threshold',ceil(0.3*double(max(H(:)))));
-    lines = img_fun('houghlines',BW,T,R,P,'FillGap',10,'MinLength',50);
-    if (~isfield(lines,'point1')),      set(handles.figure1,'pointer','arrow');     return;   end
-    for k = 1:length(lines)
-        B{k} = [lines(k).point1(2:-1:1); lines(k).point2(2:-1:1)];
-    end
+	%B = cvlib_mex('houghlines2',img);       % If img == 3D cvlib_mex will take care
+	%B = cvlib_mex('houghlines2',img,'standard',1,pi/180,100,0,0);
+	%B = cvlib_mex('contours',img);
+	BW = cvlib_mex('canny',img,40,200,3);
+	
+	[H,T,R] = img_fun('hough',BW);
+	P = img_fun('houghpeaks',H,50,'threshold',ceil(0.3*double(max(H(:)))));
+	lines = img_fun('houghlines',BW,T,R,P,'FillGap',10,'MinLength',50);
+	if (~isfield(lines,'point1')),      set(handles.figure1,'pointer','arrow');     return;   end
+	for k = 1:length(lines)
+		B{k} = [lines(k).point1(2:-1:1); lines(k).point2(2:-1:1)];
+	end
 elseif (strcmp(opt,'Circles'))
-    B = cvlib_mex('houghcircles',img);
-    if (isempty(B))
-        set(handles.figure1,'pointer','arrow'),		return
-    end
+	B = cvlib_mex('houghcircles',img);
+	if (isempty(B))
+		set(handles.figure1,'pointer','arrow'),		return
+	end
+% elseif (strcmp(opt,'cocos'))
+% 	if (ndims(img) == 3),   img = cvlib_mex('color',img,'rgb2gray');      end
+% 	img = canny(img);
+% 	img = bwmorph(img,'open');
 end
 
 if (strcmp(opt,'Vec') || strcmp(opt,'Lines'))          % Convert the edges found into vector
@@ -3215,27 +3233,26 @@ if (strcmp(opt,'Vec') || strcmp(opt,'Lines'))          % Convert the edges found
 		if (length(boundary) < 20 && strcmp(opt,'Vec')),	continue,	end
 		y = (boundary(:,1)-1)*y_inc + y_min;
 		x = (boundary(:,2)-1)*x_inc + x_min;
-		%x = x(1:fix(end/2));  y = y(1:fix(end/2));    % This because the stupid has many duplicated points
 		h_edge(i) = line('XData',x, 'YData',y, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor,'Tag','edge_detected','Userdata',i);
 		i = i + 1;
 		%ellipse_t = fit_ellipse( x,y,handles.axes1 );
 	end
-	
+
 	h_edge(h_edge == 0) = [];					% Remove empty handles remaining from pre-declaration
 	multi_segs_str = cell(length(h_edge),1);	% Just create a set of empty info strings
 	draw_funs(h_edge,'isochron',multi_segs_str);
 elseif (strcmp(opt,'Circles'))
-    x = linspace(-pi,pi,360);       y = x;
-    xx = cos(x);                    yy = sin(y);
-    %h_circ = line('XData', [], 'YData', []);
-    for k = 1:size(B,1)
-        x = B(k,1) + B(k,3) * xx;           y = B(k,2) + B(k,3) * yy;
+	x = linspace(-pi,pi,360);       y = x;
+	xx = cos(x);                    yy = sin(y);
+	%h_circ = line('XData', [], 'YData', []);
+	for k = 1:size(B,1)
+		x = B(k,1) + B(k,3) * xx;           y = B(k,2) + B(k,3) * yy;
 		h_circ = line('XData',x, 'YData',y, 'Parent',handles.axes1, 'Linewidth',handles.DefLineThick, ...
-            'Color',handles.DefLineColor,'Userdata',B(k,:));
-        draw_funs(h_circ,'SessionRestoreCircleCart')    % Give uicontext
-        setappdata(h_circ,'LonLatRad',B(k,:))
-        %setappdata(h_circ,'X',xx);        setappdata(h_circ,'Y',yy);
-    end
+				'Color',handles.DefLineColor,'Userdata',B(k,:));
+		draw_funs(h_circ,'SessionRestoreCircleCart')    % Give uicontext
+		setappdata(h_circ,'LonLatRad',B(k,:))
+		%setappdata(h_circ,'X',xx);        setappdata(h_circ,'Y',yy);
+	end
 else                            % Display the bw image where the edges are the whites    
 	setappdata(0,'CropedColormap',gray);
 	if (handles.image_type == 2)
