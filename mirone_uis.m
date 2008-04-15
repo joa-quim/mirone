@@ -315,8 +315,10 @@ uimenu('Parent',h9,'Call','mirone(''ImageResetOrigImg_CB'',guidata(gcbo))','Labe
 
 % % ------------ Image filters _______ TO BE CONTINUED
 h = uimenu('Parent',h54,'Label','Filters','Sep','on');
-uimenu('Parent',h,'Callback','filter_funs(guidata(gcbo),''SUSAN'');','Label','Smooth (SUSAN)');
-uimenu('Parent',h,'Callback','filter_funs(guidata(gcbo),''Median'');','Label','Median (3x3)');
+uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''SUSAN'');','Label','Smooth (SUSAN)');
+uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''Median'');','Label','Median (3x3)');
+uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''STD'');','Label','STD (3x3)');
+uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''range'');','Label','Range (3x3)');
 
 uimenu('Parent',h54,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''image'')',...
 'Label','Digital Filtering Tool','Sep','on');
@@ -687,15 +689,15 @@ h260 = uimenu('Parent',h247,'Label','Tsun2');
 uimenu('Parent',h260,'Call','tsu_funs(''Tsun2'',guidata(gcbo),''compute'')','Label','Compute');
 uimenu('Parent',h260,'Call','tsu_funs(''Tsun2'',guidata(gcbo),''write_params'')', 'Label','Write params file');
 
-uimenu('Parent',h247,'Callback','igrf_options(guidata(gcbo))','Label','IGRF calculator','Sep','on');
-uimenu('Parent',h247,'Callback','parker_stuff(''parker_direct'',gcf)','Label','Parker Direct');
-uimenu('Parent',h247,'Callback','parker_stuff(''parker_inverse'',gcf)','Label','Parker Inversion');
-uimenu('Parent',h247,'Callback','parker_stuff(''redPole'',gcf)','Label','Reduction to the Pole');
-uimenu('Parent',h247,'Callback','plate_calculator','Label','Plate calculator','Sep','on');
-uimenu('Parent',h247,'Callback','geog_calculator(guidata(gcbo))','Label','Geographic calculator');
-uimenu('Parent',h247,'Callback','euler_stuff(gcf)','Label','Euler rotations','Sep','on');
-uimenu('Parent',h247,'Callback','compute_euler(gcf)','Label','Compute Euler pole');
-uimenu('Parent',h247,'Callback','manual_pole_adjust(gcf)','Label','Manual adjust Euler pole');
+uimenu('Parent',h247,'Call','igrf_options(guidata(gcbo))','Label','IGRF calculator','Sep','on');
+uimenu('Parent',h247,'Call','parker_stuff(''parker_direct'',gcf)','Label','Parker Direct');
+uimenu('Parent',h247,'Call','parker_stuff(''parker_inverse'',gcf)','Label','Parker Inversion');
+uimenu('Parent',h247,'Call','parker_stuff(''redPole'',gcf)','Label','Reduction to the Pole');
+uimenu('Parent',h247,'Call','plate_calculator','Label','Plate calculator','Sep','on');
+uimenu('Parent',h247,'Call','geog_calculator(guidata(gcbo))','Label','Geographic calculator');
+uimenu('Parent',h247,'Call','euler_stuff(gcf)','Label','Euler rotations','Sep','on');
+uimenu('Parent',h247,'Call','compute_euler(gcf)','Label','Compute Euler pole');
+uimenu('Parent',h247,'Call','manual_pole_adjust(gcf)','Label','Manual adjust Euler pole');
 
 uimenu('Parent',h247,'Label','entry_tl');
 
@@ -780,10 +782,10 @@ uimenu('Parent',hProj,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Labe
 
 % --------------------------- HELP MENU ------------------------------------
 h9 = uimenu('Parent',h1,'Label','Help','Tag','Help');
-uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.2.3)');
+uimenu('Parent',h9,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0b)');
 uimenu('Parent',h9, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 uimenu('Parent',h9,...
-'Call','about_box(guidata(gcbo),''Mirone Last modified at 5 April 2008'',''1.3.0b'')','Label','About','Sep','on');
+'Call','about_box(guidata(gcbo),''Mirone Last modified at 15 April 2008'',''1.3.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(h1);
