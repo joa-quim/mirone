@@ -279,8 +279,8 @@ if (IS_RECTANGLE)
     ui_edit_polygon(h)
 elseif (IS_LINE)
     uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@del_line,h});
-    ui_edit_polygon(h)    % Set edition functions
-elseif (IS_MBTRACK)     % Multibeam tracks, when deleted, have to delete also the bars
+    ui_edit_polygon(h)		% Set edition functions
+elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the bars
     uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Callback', 'save_track_mb(1);');
     % Old style edit function. New edit is provided by ui_edit_polygon which doesn't work with mbtracks 
     uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Callback', 'edit_track_mb');
@@ -303,47 +303,53 @@ if (LINE_ISCLOSED)
     uimenu(cmenuHand, 'Label', 'Area under polygon', 'Callback', @show_Area);
     %cbFill = {@fill_Polygon,h};     % Transform the polygon into a patch and open the patch door possibilities
     %itemFill = uimenu(cmenuHand, 'Label', 'Fill polygon', 'Callback', cbFill);
+	if (~IS_RECTANGLE && ~handles.validGrid)
+		uimenu(cmenuHand, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)','Sep','on');
+		if (handles.image_type == 3)
+				uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Callback', ...
+				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
+		end
+	end
 end
-if ( strcmp(opt,'line') && ~LINE_ISCLOSED && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid) )
-    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
-    uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack);
-    cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))';
-    uimenu(cmenuHand, 'Label', 'Extract profile', 'Callback', cbTrack);
+if ( ~LINE_ISCLOSED && strcmp(opt,'line') && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid) )
+	cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
+	uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack);
+	cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))';
+	uimenu(cmenuHand, 'Label', 'Extract profile', 'Callback', cbTrack);
 end
 if strcmp(opt,'MBtrack')
     uimenu(cmenuHand, 'Label', 'Show track''s Swath Ratio', 'Callback', {@show_swhatRatio,h});
 end
 if (IS_RECTANGLE)
-    cb_cropImage = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)';
-    uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Separator','on', 'Callback', @rectangle_limits);
-    uimenu(cmenuHand, 'Label', 'Crop Image', 'Callback', cb_cropImage);
-    if (handles.image_type == 3 || handles.validGrid)
-        uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Callback', ...
-            'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
-    end
-    uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', @rectangle_register_img);
-    uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Callback', @Transplant_Image);
-    if (handles.validGrid)    % Option only available to recognized grids
-        cb_SplineSmooth  = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')';
-        cb_MedianFilter  = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')';
-        cb_Fill_surface  = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')';
-        cb_Fill_cubic    = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');';
-        cb_Fill_linear   = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');';
-        cb_set_value     = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')';
-        item_tools = uimenu(cmenuHand, 'Label', 'Crop Tools','Separator','on');
-        uimenu(item_tools, 'Label', 'Spline smooth', 'Callback', cb_SplineSmooth);
-        uimenu(item_tools, 'Label', 'Median filter', 'Callback', cb_MedianFilter);
-        uimenu(item_tools, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
-        uimenu(item_tools, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
-        uimenu(item_tools, 'Label', 'Power', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
-        uimenu(item_tools, 'Label', 'Autocorrelation', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
-        uimenu(item_tools, 'Label', 'FFT tool', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
-        item_fill = uimenu(item_tools, 'Label', 'Fill gaps');
-        uimenu(item_fill, 'Label', 'Fill gaps (surface)', 'Callback', cb_Fill_surface);
-        uimenu(item_fill, 'Label', 'Fill gaps (cubic)', 'Callback', cb_Fill_cubic);
-        uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Callback', cb_Fill_linear);
-        uimenu(item_tools, 'Label','Set to constant', 'Callback', cb_set_value);
-    end
+	uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Separator','on', 'Callback', @rectangle_limits);
+	uimenu(cmenuHand, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
+	if (handles.image_type == 3 || handles.validGrid)
+		uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Callback', ...
+			'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
+	end
+	uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', @rectangle_register_img);
+	uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Callback', @Transplant_Image);
+	if (handles.validGrid)    % Option only available to recognized grids
+		cb_SplineSmooth  = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')';
+		cb_MedianFilter  = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')';
+		cb_Fill_surface  = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')';
+		cb_Fill_cubic    = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');';
+		cb_Fill_linear   = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');';
+		cb_set_value     = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')';
+		item_tools = uimenu(cmenuHand, 'Label', 'Crop Tools','Separator','on');
+		uimenu(item_tools, 'Label', 'Spline smooth', 'Callback', cb_SplineSmooth);
+		uimenu(item_tools, 'Label', 'Median filter', 'Callback', cb_MedianFilter);
+		uimenu(item_tools, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+		uimenu(item_tools, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+		uimenu(item_tools, 'Label', 'Power', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
+		uimenu(item_tools, 'Label', 'Autocorrelation', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
+		uimenu(item_tools, 'Label', 'FFT tool', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
+		item_fill = uimenu(item_tools, 'Label', 'Fill gaps');
+		uimenu(item_fill, 'Label', 'Fill gaps (surface)', 'Callback', cb_Fill_surface);
+		uimenu(item_fill, 'Label', 'Fill gaps (cubic)', 'Callback', cb_Fill_cubic);
+		uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Callback', cb_Fill_linear);
+		uimenu(item_tools, 'Label','Set to constant', 'Callback', cb_set_value);
+	end
 end
 item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 setLineWidth(item_lw,cb_LineWidth)
@@ -366,12 +372,12 @@ if (IS_PATCH && ~IS_SEISPOLYGON)
     uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
 end
 if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
-    if (handles.validGrid && ~IS_RECTANGLE)    % Option only available to recognized grids
-        item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Separator','on');
-        uimenu(item_tools2, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
-        uimenu(item_tools2, 'Label', 'Set to const', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
-        uimenu(item_tools2, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
-        uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
+ 	if (handles.validGrid && ~IS_RECTANGLE)    % Option only available to recognized grids
+		item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Separator','on');
+		uimenu(item_tools2, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+		uimenu(item_tools2, 'Label', 'Set to const', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
+		uimenu(item_tools2, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+		uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
     end
     if (strcmp(get(h,'Tag'),'EulerTrapezium'))
         uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Separator','on', 'Callback',...
