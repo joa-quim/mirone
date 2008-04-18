@@ -63,6 +63,7 @@ function init_header_params(handles,X,Y,head,misc)
 	handles.minWater = handles.zMinMaxsGlobal(1);
 	handles.maxWater = handles.zMinMaxsGlobal(2);
 	head(5:6) = handles.zMinMaxs(1,:);				% Take the first slice min/max
+	handles.geog = aux_funs('guessGeog',head(1:4));
 	% ---------------------------------------------------------------------------------
 
 	handles.cmapLand = jet(256);			% Reset the default colormap (default's Aquamoto is a specific one)
