@@ -259,7 +259,7 @@ if (get(hObject,'Value'))
         set(handles.edit_first_file,'String','Got left line','FontAngle','italic')
     else
         handles.isoca1 = [];
-        set(handles.edit_first_file,'')
+        set(handles.edit_first_file,'String','')
     end
     h_line = get_polygon(handles.h_calling_fig);          % Get second line handle
     if (~isempty(h_line))
@@ -269,7 +269,7 @@ if (get(hObject,'Value'))
         set(handles.edit_second_file,'String','Got right line','FontAngle','italic')
     else
         handles.isoca2 = [];
-        set(handles.edit_second_file,'')
+        set(handles.edit_second_file,'String','')
     end
     set(handles.h_calling_fig,'pointer','arrow')
     if (isempty(handles.isoca1) | isempty(handles.isoca2))
@@ -370,7 +370,7 @@ dist2 = distmin(rlon*D2R,rlat*D2R,handles.isoca2(:,1)*D2R,handles.isoca2(:,2)*D2
 sum2 = sum( dist2 ) / length(dist2);
 area0 = (sum1 + sum2) / 2;
 
-set(handles.edit_InitialResidue,'String',num2str(area0,'%.5f'));    pause(0.01)
+set(handles.edit_InitialResidue,'String',num2str(area0,'%.6f'));    pause(0.01)
 set(h_line,'XData',rlon,'YData',rlat)
 
 % Now comes the semi-brute force aproach to compute the pole
@@ -461,7 +461,7 @@ for (i=1:n)                % Loop over lon
                 set(handles.edit_pLat_fim,'String',num2str(p_lat(j) / D2R,'%.2f'))
                 set(handles.edit_pAng_fim,'String',num2str(p_omeg(k) / D2R,'%.2f'))
                 %set(handles.edit_BFresidue,'String',num2str(area / D2R,'%.5f'))
-                set(handles.edit_BFresidue,'String',num2str(area,'%.5f'))
+                set(handles.edit_BFresidue,'String',num2str(area,'%.6f'))
             elseif (count_ang > 3)      % We had more than 3 attemps with icreasing both the angle and
                 count_ang = 0;          % the error in the fit. So don't wast more time in this direction
                 continue
@@ -545,9 +545,9 @@ for (k=1:length(lon))
         y1 = r_lat(j);      y2 = r_lat(j+1);
         dd = 1e20;
         while (dd > epsilon)
-            d1 = sqrt((lon(k)-x1).^2+(lat(k)-y1).^2);
-            d2 = sqrt((lon(k)-x2).^2+(lat(k)-y2).^2);
-            dd = sqrt((x1-x2).^2+(y1-y2).^2);
+            d1 = sqrt((lon(k)-x1)^2+(lat(k)-y1)^2);
+            d2 = sqrt((lon(k)-x2)^2+(lat(k)-y2)^2);
+            dd = sqrt((x1-x2)^2+(y1-y2)^2);
             xm = (x1+x2) * 0.5;
             ym = (y1+y2) * 0.5;
             if (d1 < d2)
@@ -606,14 +606,15 @@ for (k=1:n_pt)
         continue
     end
     %for (j = ind-1:min(ind+1,n_pt_rot)-1)
-    for (j = ind-1:ind)
+	d1 = 0;		d2 = 0;		xm = 0;		ym = 0;
+	for (j = ind-1:ind)
         x1 = r_lon(j);      x2 = r_lon(j+1);
         y1 = r_lat(j);      y2 = r_lat(j+1);
         dd = 1e20;
         while (dd > eps2)
-            d1 = sqrt((lon(k)-x1).^2+(lat(k)-y1).^2);
-            d2 = sqrt((lon(k)-x2).^2+(lat(k)-y2).^2);
-            dd = (x1-x2).^2+(y1-y2).^2;
+            d1 = sqrt((lon(k)-x1)^2+(lat(k)-y1)^2);
+            d2 = sqrt((lon(k)-x2)^2+(lat(k)-y2)^2);
+            dd = (x1-x2)^2+(y1-y2)^2;
             xm = (x1+x2) * 0.5;
             ym = (y1+y2) * 0.5;
             if (d1 < d2)
