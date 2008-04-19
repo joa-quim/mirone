@@ -4580,7 +4580,10 @@ function seq = getsequence(se)
 		end
 	elseif isempty(se)
 		% A bit of a hack here to return a 1-by-0 strel array.
-		seq = strel;
+		seq.nhood = [];
+		seq.height = [];
+		seq.decomposition = [];
+		seq.version = 1;
 		seq(1) = [];
 	else
 		if isempty(se.decomposition)
