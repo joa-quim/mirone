@@ -274,35 +274,27 @@ cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
 cb_color = uictx_color(h);      % there are 9 cb_color outputs
 
 if (IS_RECTANGLE)
-    uimenu(cmenuHand, 'Label', 'Delete me', 'Callback', {@del_line,h});
-    uimenu(cmenuHand, 'Label', 'Delete inside rect', 'Callback', {@del_insideRect,h});
-    ui_edit_polygon(h)
+	uimenu(cmenuHand, 'Label', 'Delete me', 'Callback', {@del_line,h});
+	uimenu(cmenuHand, 'Label', 'Delete inside rect', 'Callback', {@del_insideRect,h});
+	ui_edit_polygon(h)
 elseif (IS_LINE)
-    uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@del_line,h});
-    ui_edit_polygon(h)		% Set edition functions
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@del_line,h});
+	ui_edit_polygon(h)		% Set edition functions
 elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the bars
-    uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Callback', 'save_track_mb(1);');
-    % Old style edit function. New edit is provided by ui_edit_polygon which doesn't work with mbtracks 
-    uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Callback', 'edit_track_mb');
+	uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Callback', 'save_track_mb(1);');
+	% Old style edit function. New edit is provided by ui_edit_polygon which doesn't work with mbtracks 
+	uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Callback', 'edit_track_mb');
 end
 uimenu(cmenuHand, 'Label', label_save, 'Callback', {@save_formated,h});
 if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))     % Those are not to allowed to copy
-    uimenu(cmenuHand, 'Label', 'Copy', 'Callback', {@copy_line_object,handles.figure1,handles.axes1});
+	uimenu(cmenuHand, 'Label', 'Copy', 'Callback', {@copy_line_object,handles.figure1,handles.axes1});
 end
-if (~IS_SEISPOLYGON)
-    uimenu(cmenuHand, 'Label', label_length, 'Callback', @show_LineLength);
-end
-if (IS_MBTRACK)
-    uimenu(cmenuHand, 'Label', 'All tracks length', 'Callback', @show_AllTrackLength);
-end
-if (~IS_SEISPOLYGON)
-    uimenu(cmenuHand, 'Label', label_azim, 'Callback', @show_lineAzims);
-end
+if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_length, 'Callback', @show_LineLength);		end
+if (IS_MBTRACK),		uimenu(cmenuHand, 'Label', 'All tracks length', 'Callback', @show_AllTrackLength);	end
+if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_azim, 'Callback', @show_lineAzims);	end
 
 if (LINE_ISCLOSED)
     uimenu(cmenuHand, 'Label', 'Area under polygon', 'Callback', @show_Area);
-    %cbFill = {@fill_Polygon,h};     % Transform the polygon into a patch and open the patch door possibilities
-    %itemFill = uimenu(cmenuHand, 'Label', 'Fill polygon', 'Callback', cbFill);
 	if (~IS_RECTANGLE && ~handles.validGrid)
 		uimenu(cmenuHand, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)','Sep','on');
 		if (handles.image_type == 3)
@@ -310,45 +302,47 @@ if (LINE_ISCLOSED)
 				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
 		end
 	end
+	if (IS_PATCH && ~IS_SEISPOLYGON)
+		item8 = uimenu(cmenuHand, 'Label','Fill Color');
+		setLineColor( item8, uictx_color(h, 'facecolor') )		% there are 9 cb_color outputs
+		uimenu(item8, 'Label', 'None', 'Separator','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
+		uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
+	end
+	uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
 end
+
 if ( ~LINE_ISCLOSED && strcmp(opt,'line') && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid) )
 	cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
-	uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack);
+	uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack);
 	cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))';
-	uimenu(cmenuHand, 'Label', 'Extract profile', 'Callback', cbTrack);
+	uimenu(cmenuHand, 'Label', 'Extract profile', 'Call', cbTrack);
 end
-if strcmp(opt,'MBtrack')
-    uimenu(cmenuHand, 'Label', 'Show track''s Swath Ratio', 'Callback', {@show_swhatRatio,h});
-end
+
+if strcmp(opt,'MBtrack'),	uimenu(cmenuHand, 'Label', 'Show track''s Swath Ratio', 'Call', {@show_swhatRatio,h});	end
+
 if (IS_RECTANGLE)
-	uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Separator','on', 'Callback', @rectangle_limits);
-	uimenu(cmenuHand, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
+	uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Separator','on', 'Call', @rectangle_limits);
+	uimenu(cmenuHand, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
 	if (handles.image_type == 3 || handles.validGrid)
-		uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Callback', ...
+		uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Call', ...
 			'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
 	end
-	uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', @rectangle_register_img);
-	uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Callback', @Transplant_Image);
+	uimenu(cmenuHand, 'Label', 'Register Image', 'Call', @rectangle_register_img);
+	uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Call', @Transplant_Image);
 	if (handles.validGrid)    % Option only available to recognized grids
-		cb_SplineSmooth  = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')';
-		cb_MedianFilter  = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')';
-		cb_Fill_surface  = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')';
-		cb_Fill_cubic    = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');';
-		cb_Fill_linear   = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');';
-		cb_set_value     = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')';
 		item_tools = uimenu(cmenuHand, 'Label', 'Crop Tools','Separator','on');
-		uimenu(item_tools, 'Label', 'Spline smooth', 'Callback', cb_SplineSmooth);
-		uimenu(item_tools, 'Label', 'Median filter', 'Callback', cb_MedianFilter);
+		uimenu(item_tools, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')');
+		uimenu(item_tools, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')');
 		uimenu(item_tools, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
 		uimenu(item_tools, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
 		uimenu(item_tools, 'Label', 'Power', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
 		uimenu(item_tools, 'Label', 'Autocorrelation', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
 		uimenu(item_tools, 'Label', 'FFT tool', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
 		item_fill = uimenu(item_tools, 'Label', 'Fill gaps');
-		uimenu(item_fill, 'Label', 'Fill gaps (surface)', 'Callback', cb_Fill_surface);
-		uimenu(item_fill, 'Label', 'Fill gaps (cubic)', 'Callback', cb_Fill_cubic);
-		uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Callback', cb_Fill_linear);
-		uimenu(item_tools, 'Label','Set to constant', 'Callback', cb_set_value);
+		uimenu(item_fill, 'Label', 'Fill gaps (surface)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')');
+		uimenu(item_fill, 'Label', 'Fill gaps (cubic)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');');
+		uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
+		uimenu(item_tools, 'Label','Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')');
 	end
 end
 item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
@@ -356,21 +350,11 @@ setLineWidth(item_lw,cb_LineWidth)
 item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
 setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dashdot})
 item7 = uimenu(cmenuHand, 'Label', 'Line Color');
-if (IS_PATCH)
-    cb_color = uictx_color(h,'EdgeColor');      % there are 9 cb_color outputs
-end
+if (IS_PATCH),		cb_color = uictx_color(h,'EdgeColor');	end      % there are 9 cb_color outputs
 setLineColor(item7,cb_color)
 
 set_stack_order(cmenuHand)      % Change order in the stackpot
 
-if (IS_PATCH && ~IS_SEISPOLYGON)
-    uimenu(item7, 'Label', 'None', 'Separator','on', 'Callback', 'set(gco, ''EdgeColor'', ''none'');refresh');
-    item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Separator','on');
-    cb_color = uictx_color(h,'facecolor');      % there are 9 cb_color outputs
-    setLineColor(item8,cb_color)
-    uimenu(item8, 'Label', 'None', 'Separator','on', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
-    uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
-end
 if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
  	if (handles.validGrid && ~IS_RECTANGLE)    % Option only available to recognized grids
 		item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Separator','on');
@@ -389,27 +373,27 @@ end
 
 if (strcmp(get(h,'Tag'),'FaultTrace'))      % For Okada modeling
 	uimenu(cmenuHand, 'Label', 'Okada', 'Separator','on', 'Callback', {@okada_model,h,'okada'});    
-	uimenu(cmenuHand, 'Label', 'Mansinha', 'Callback', {@okada_model,h,'mansinha'});    
+	uimenu(cmenuHand, 'Label', 'Mansinha', 'Call', {@okada_model,h,'mansinha'});    
 end
 
 if (IS_SEISPOLYGON)                         % Seismicity options
 	% gco gives the same handle as h 
-	uimenu(cmenuHand, 'Label', 'Save events', 'Callback', 'save_seismicity(gcf,[],gco)', 'Separator','on');
-	uimenu(cmenuHand, 'Label', 'Find clusters', 'Callback', 'find_clusters(gcf,gco)');
+	uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,[],gco)', 'Separator','on');
+	uimenu(cmenuHand, 'Label', 'Find clusters', 'Call', 'find_clusters(gcf,gco)');
 	itemHist = uimenu(cmenuHand, 'Label','Histograms');
-	uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Callback', 'histos_seis(gco,''GR'')');
-	uimenu(itemHist, 'Label', 'Cumulative number', 'Callback', 'histos_seis(gco,''CH'')');
-	uimenu(itemHist, 'Label', 'Cumulative moment', 'Callback', 'histos_seis(gco,''CM'')');
-	uimenu(itemHist, 'Label', 'Magnitude', 'Callback', 'histos_seis(gco,''MH'')');
-	uimenu(itemHist, 'Label', 'Time', 'Callback', 'histos_seis(gco,''TH'')');
-	uimenu(itemHist, 'Label', 'Display in Table', 'Callback', 'histos_seis(gcf,''HT'')','Sep','on');
-	%uimenu(itemHist, 'Label', 'Hour of day', 'Callback', 'histos_seis(gco,''HH'')');
+	uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
+	uimenu(itemHist, 'Label', 'Cumulative number', 'Call', 'histos_seis(gco,''CH'')');
+	uimenu(itemHist, 'Label', 'Cumulative moment', 'Call', 'histos_seis(gco,''CM'')');
+	uimenu(itemHist, 'Label', 'Magnitude', 'Call', 'histos_seis(gco,''MH'')');
+	uimenu(itemHist, 'Label', 'Time', 'Call', 'histos_seis(gco,''TH'')');
+	uimenu(itemHist, 'Label', 'Display in Table', 'Call', 'histos_seis(gcf,''HT'')','Sep','on');
+	%uimenu(itemHist, 'Label', 'Hour of day', 'Call', 'histos_seis(gco,''HH'')');
 	itemTime = uimenu(cmenuHand, 'Label','Time series');
-	uimenu(itemTime, 'Label', 'Time magnitude', 'Callback', 'histos_seis(gco,''TM'')');
-	uimenu(itemTime, 'Label', 'Time depth', 'Callback', 'histos_seis(gco,''TD'')');
-	uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Callback', 'histos_seis(gco,''BV'')');
-	uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Callback', 'histos_seis(gco,''OL'')');
-	%uimenu(cmenuHand, 'Label', 'Skell', 'Callback', 'esqueleto_tmp(gco)','Sep','on');
+	uimenu(itemTime, 'Label', 'Time magnitude', 'Call', 'histos_seis(gco,''TM'')');
+	uimenu(itemTime, 'Label', 'Time depth', 'Call', 'histos_seis(gco,''TD'')');
+	uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Call', 'histos_seis(gco,''BV'')');
+	uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gco,''OL'')');
+	%uimenu(cmenuHand, 'Label', 'Skell', 'Call', 'esqueleto_tmp(gco)','Sep','on');
 end
 
 % -----------------------------------------------------------------------------------------
