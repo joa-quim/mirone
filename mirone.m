@@ -174,9 +174,6 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles = show_image(handles,win_name,X,Y,varargin{1},0,axis_t,handles.head(7),1);
 			grid_info(handles,[],'iminfo',varargin{1});			% Contruct a info string
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
-			if (isa(varargin{1},'logical'))
-				set(handles.hImg,'CDataMapping','scaled');   set(handles.figure1,'ColorMap',gray(256));
-			end
 			handles = aux_funs('isProj',handles);				% Check about coordinates type
 		elseif ( n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')) )
 			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
@@ -1493,7 +1490,12 @@ function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize
 	end
 
 	handles.hImg = image(X,Y,I,'Parent',handles.axes1);
-	zoom_state(handles,'off_yes');		set(handles.hImg,'CDataMapping','direct')
+	zoom_state(handles,'off_yes');
+	if (isa(I,'logical'))
+		set(handles.hImg,'CDataMapping','scaled');   set(handles.figure1,'ColorMap',gray(64));
+	else
+		set(handles.hImg,'CDataMapping','direct')
+	end
 	handles.geog = aux_funs('guessGeog',handles.head(1:4));		% Hmm... there are cases where I know for sure
 
 	magRatio = resizetrue(handles,imSize,axis_t);				% ----> IMAGE IS VISIBLE HERE. <-------
