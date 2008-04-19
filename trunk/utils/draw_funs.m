@@ -451,8 +451,11 @@ for (i = 1:numel(h))
 	uimenu(item8, 'Label', 'Other...', 'Callback', cb_color{9});
 	uimenu(item8, 'Label', 'None', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
 	uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
-	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
-	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
+	uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+	if (handles.image_type ~= 20)
+		uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', ...
+			'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
+	end
 end
 
 % -----------------------------------------------------------------------------------------
