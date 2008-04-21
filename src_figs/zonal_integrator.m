@@ -348,8 +348,9 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	nSlices = numel(handles.nameList);
 	for (k = 1:nSlices)
 		set(handles.listbox_list,'Val',k)			% Show advance
-		att = gdalread(handles.nameList{k},'-M','-C');				% First, get only the attribs
-		Z =  double(gdalread(handles.nameList{k}, '-U', '-C', opt_R));
+% 		att = gdalread(handles.nameList{k},'-M','-C');				% First, get only the attribs
+% 		Z =  double(gdalread(handles.nameList{k}, '-U', '-C', opt_R));
+		[Z, att] = gdal_read_gdal(handles.nameList{k}, opt_R);
 		ind = [];
 		if (is_modis)
 			ind = (Z == 65535);
@@ -469,6 +470,39 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 		is_modis = true;			% We'll use this knowledge to 'avoid' Land pixels = 65535
 	end
 
+% -----------------------------------------------------------------------------------------
+function [Z, att] = gdal_read_gdal(full_name, opt_R)
+% Help function to gdalread that deals with cases when file is compressed.
+
+	str_d = [];		do_warn = 'true';
+	[PATH,fname,EXT] = fileparts(full_name);
+	out_name = [PATH filesep fname];		% Only used if file is compressed
+	if (strcmpi(EXT,'.bz2'))
+		str_d = ['bzip2 -d -q -f -c ' full_name ' > ' out_name;
+	elseif (strcmpi(EXT,'.zip') || strcmpi(EXT,'.gz'))
+		str_d = ['gunzip -q -N -f -c ' full_name ' > ' out_name;
+	end
+
+	if (~isempty(str_d))     % File is compressed.
+		[pato,fname,EXT] = fileparts(fname);	% Need to remove the true extension
+	
+		if (do_warn),	aguentabar(0.5,'title',['Uncompressing ' full_name]);	end
+		if (isunix),	s = unix(str);
+		elseif ispc,	s = dos(str);
+		else			errordlg('Unknown platform.','Error');	error('Unknown platform.')
+		end
+		if ~(isequal(s,0))                  % An error as occured
+			errordlg(['Error decompressing file ' full_name],'Error');
+			if (do_warn),   aguentabar(1,'title','By'),		end
+			return
+		end
+		if (do_warn),	aguentabar(1,'title','Donne'),		end
+		full_name = out_name;				% The uncompressed file name
+	end
+
+	[Z, att] = double(gdalread(full_name, '-U', '-C', opt_R));
+
+	if (~isempty(str_d)),	delete(out_name);	end		% Delete uncompressed file.
 	
 % ---------------------------------------------------------------------
 function zonal_integrator_LayoutFcn(h1);
