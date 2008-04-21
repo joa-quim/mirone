@@ -12,6 +12,7 @@ function aquaPlugin(handles)
 	end
 
 	qual = 'tvar';
+	qual = 'polygAVG';
 	do_return = true;
 	switch qual
 		case 'zonal'
@@ -31,6 +32,8 @@ function aquaPlugin(handles)
 			calcGrad(handles)		% Compute the Temp time rate of a file with anual means by fit of a straight line (Load entire file in memory)
 		case 'yearMean'
 			calc_yearMean(handles)	% Compute yearly averages from monthly data
+		case 'polygAVG'
+			calc_polygAVG(handles)	% Compute averages of whatever inside polygons (if any)
 		otherwise
 			do_return = false;		% Not finish (run the code below)
 	end
@@ -260,3 +263,116 @@ function calc_yearMean(handles)
 		
 		Tmed = Tmed * 0;			% Reset it to zeros
 	end
+
+% ----------------------------------------------------------------------
+function calc_polygAVG(handles)
+	
+	if (~ishandle(handles.handMir.figure1))		% No insult. Just quit
+		return
+	end
+
+	hLine = findobj(handles.handMir.axes1,'Type','line');
+	hLine = [hLine; findobj(handles.handMir.axes1,'Type','patch')];
+
+	N = 1;
+	for (k = 1:numel(hLine))
+		x = get(hLine(k),'XData');   y = get(hLine(k),'YData');
+		if (numel(x) >= 3 && x(1) == x(end) && y(1) == y(end) )
+			polys{N} = [x(:) y(:)];
+			N = N + 1;
+		end
+	end
+	N = N - 1;		% There was one too much incement above
+
+	if (N == 0)
+		errordlg('Fiu Fiu! No closed polygons to compute whaterver average value inside. Bye.','Error')
+		return
+	end
+	
+	z_id = handles.netcdf_z_id;
+	s = handles.nc_info;			% Retrieve the .nc info struct
+	rows = s.Dataset(z_id).Size(end-1);
+	cols = s.Dataset(z_id).Size(end);
+	nLayers = handles.number_of_timesteps;
+	avg = zeros(nLayers,N);
+	THRESH = 0.5;					% Minimum percentage of valid points inside poly
+
+	aguentabar(0,'title','Calcula as medias poligonais','CreateCancelBtn')
+
+	for (m = 1:nLayers)				% Loop over layers ensemble
+		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m-1 0 0], [1 rows cols]);
+
+		for (k = 1:N)				% Loop over polygons
+			x = polys{k}(:,1);				y = polys{k}(:,2);
+			xp(1) = min(x);     xp(2) = max(x);
+			yp(1) = min(y);     yp(2) = max(y);
+			rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];
+			x_lim = [xp(1) xp(2)];		y_lim = [yp(1) yp(2)];
+
+			% Extrai um rect que englobe o poligono para poupar na conta da mascara
+			[Z_rect,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z,rect_crop,'out_grid');
+			mask = img_fun('roipoly_j',x_lim,y_lim,Z_rect,x,y);
+
+			% Test for a minimum of valid elements inside polygon
+			zz = Z_rect(mask);
+			zz = zz(:);
+			ind = isnan(zz);
+			if (~any(ind))
+				avg(m,k) = sum(double(zz)) / numel(zz);
+			else			% Accept/Reject based on % of valid numbers
+				nAnoes = sum(ind);		nInPoly = numel(zz);
+				if ( nAnoes / nInPoly < THRESH )
+					zz = zz(~ind);
+					avg(m,k) = sum(double(zz)) / numel(zz);
+				end
+			end
+		end
+		h = aguentabar(m/nLayers);
+		if (isnan(h)),	break,	end
+		
+	end
+
+	if (isnan(h)),	return,		end
+	
+% 	% -------------- We still need to determine polygon's area to compute the areal average
+% 	for (k = 1:N)
+% 		x = polys{k}(:,1);		y = polys{k}(:,2);
+% 		if (handles.geog)
+% 			area = area_geo(y,x);    % Area is reported on the unit sphere
+% 			area = area * 4 * pi * (6371005^2);
+% 		else
+% 			area = polyarea(x,y);   % Area is reported in map user unites
+% 		end
+% 		avg(:,k) = avg(:,k) / (area * 1e-6);	% per km^2
+% 	end
+	
+	% --------------- Now finaly save the result in a file	------------------
+	[FileName,PathName] = put_or_get_file(handles,{'*.dat;*.DAT','ASCII file'; '*.*', 'All Files (*.*)'},'Output file','put');
+	if isequal(FileName,0),		return,		end
+	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
+	if isempty(EXT),	fname = [PathName FNAME '.dat'];
+	else				fname = [PathName FNAME EXT];
+	end
+	
+	%Open and write to ASCII file
+	if (ispc),		fid = fopen(fname,'wt');
+	elseif (isunix),fid = fopen(fname,'w');
+	else			error('aquamoto: Unknown platform.');
+	end
+
+	% Calculate a a rough polygon centroid
+	centro = zeros(N,2);
+	for (k = 1:N)				% Loop over polygons
+		x = polys{k}(:,1);				y = polys{k}(:,2);
+		centro(k,:) = mean(polys{k});
+	end
+	
+	fprintf(fid, ['#  \t', repmat('%g(X)\t', [1,N]) '\n'], centro(:,1));
+	fprintf(fid, ['# T\t', repmat('%g(Y)\t', [1,N]) '\n'], centro(:,2));
+
+	try			t = handles.time;		t = t(:);		% Layers's times
+	catch		t = (1:size(avg,1))';
+	end
+
+	fprintf(fid,['%.2f\t' repmat('%f\t',[1,N]) '\n'], [t avg]');
+	fclose(fid);
