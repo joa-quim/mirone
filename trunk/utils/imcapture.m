@@ -118,6 +118,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
     if (nargin <= 1),   opt = [];   end
     
     inputargs{1} = h;
+    pause(0.01);        % Otherwise it so fast (ah ha!?) that next line returns 'none'
     renderer = get(h, 'Renderer');
     
     if (nargout == 1)                   % Raster mode. We expect to return a RGB array
