@@ -348,9 +348,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	nSlices = numel(handles.nameList);
 	for (k = 1:nSlices)
 		set(handles.listbox_list,'Val',k)			% Show advance
-% 		att = gdalread(handles.nameList{k},'-M','-C');				% First, get only the attribs
-% 		Z =  double(gdalread(handles.nameList{k}, '-U', '-C', opt_R));
-		[Z, att] = gdal_read_gdal(handles.nameList{k}, opt_R);
+		[Z, att] = read_gdal(handles.nameList{k}, '-U', '-C', opt_R);
 		ind = [];
 		if (is_modis)
 			ind = (Z == 65535);
@@ -401,7 +399,7 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 % ...
 	opt_R = ' ';	is_modis = false;		is_linear = false;		is_log = false;		base = 0;
 
-	att = gdalread(handles.nameList{1},'-M','-C');
+	att = read_gdal(handles.nameList{1},'-M','-C');
 
 % 	if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 % 		errordlg('That I know MODIS or SeaWifs HDF files do not have subdatasets. Bye Bye','ERROR')
@@ -471,22 +469,23 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 	end
 
 % -----------------------------------------------------------------------------------------
-function [Z, att] = gdal_read_gdal(full_name, opt_R)
+function [Z, att] = read_gdal(full_name, varargin)
 % Help function to gdalread that deals with cases when file is compressed.
+% VARARGIN will normally contain one or more of '-U', '-C', '-M', opt_R
 
-	str_d = [];		do_warn = 'true';
+	str_d = [];		do_warn = 'true';		cext = [];
 	[PATH,fname,EXT] = fileparts(full_name);
 	out_name = [PATH filesep fname];		% Only used if file is compressed
 	if (strcmpi(EXT,'.bz2'))
-		str_d = ['bzip2 -d -q -f -c ' full_name ' > ' out_name];
+		str_d = ['bzip2 -d -q -f -c ' full_name ' > ' out_name];		cext = EXT;
 	elseif (strcmpi(EXT,'.zip') || strcmpi(EXT,'.gz'))
-		str_d = ['gunzip -q -N -f -c ' full_name ' > ' out_name];
+		str_d = ['gunzip -q -N -f -c ' full_name ' > ' out_name];		cext = EXT;
 	end
 
 	if (~isempty(str_d))     % File is compressed.
 		[pato,fname,EXT] = fileparts(fname);	% Need to remove the true extension
 	
-		if (do_warn),	aguentabar(0.5,'title',['Uncompressing ' full_name]);	end
+		if (do_warn),	aguentabar(0.5,'title',['Uncompressing ' fname EXT cext]);	end
 		if (isunix),	s = unix(str_d);
 		elseif ispc,	s = dos(str_d);
 		else			errordlg('Unknown platform.','Error');	error('Unknown platform.')
@@ -500,8 +499,15 @@ function [Z, att] = gdal_read_gdal(full_name, opt_R)
 		full_name = out_name;				% The uncompressed file name
 	end
 
-	[Z, att] = gdalread(full_name, '-U', '-C', opt_R);
-	Z = double(Z);
+	if (nargout == 2)
+		[Z, att] = gdalread(full_name, varargin{:});
+		Z = double(Z);
+	else
+		Z = gdalread(full_name, varargin{:});
+		if ( ~strmatch(varargin{:},'-M') )		% Get Z, otherwise get only the metadata
+			Z = double(Z);
+		end
+	end
 
 	if (~isempty(str_d)),	delete(out_name);	end		% Delete uncompressed file.
 	
