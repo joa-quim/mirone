@@ -112,7 +112,7 @@ function stopBar =  aguentabar(varargin)
 						'Position', butaoPos, 'Callback', {@closeBar, hFig})
 		end
 	
-		if ( ~isempty(titulo) ),	set(get(hAxes,'Title'),'String',titulo),	end
+		if ( ~isempty(titulo) ),	set(get(hAxes,'Title'),'String',titulo,'Interpreter','none'),	end
 	
 		% enable this code if you want the bar to change colors when the user clicks on the progress bar
 		set([hFig hAxes hPatch],'ButtonDownFcn',{@changecolor,hPatch})
@@ -125,7 +125,7 @@ function stopBar =  aguentabar(varargin)
         if (isempty(starttime) || (fractiondone == 0)),		starttime = clock;		end
 
 	elseif ( ~isempty(titulo) )			% Update title on an existing aguentabar figure
-		set(get(findobj(hFig, 'type', 'axes'),'Title'),'String',titulo)
+		set(get(findobj(hFig, 'type', 'axes'),'Title'),'String',titulo,'Interpreter','none')
 	end
 
 	% Enforce a minimum time interval between updates, but allows for
