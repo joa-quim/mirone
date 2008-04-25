@@ -114,13 +114,13 @@ function edit_ML_Callback(hObject, eventdata, handles)
 		if (~handles.IamCompiled)
 			stairs = eval(cmd);				% This wouldn't work on compiled version
 		else
-			ind = strfind(str,':');			% Search for a start:inc:end form
+			ind = strfind(cmd,':');			% Search for a start:inc:end form
 			if (numel(ind) ~= 2)
 				errordlg('BAD z_min:dz:z_max command','Ignorant'),		return
 			end
-			start = str2double( str(1:(ind(1)-1)) );
-			inc   = str2double( str((ind(1)+1):(ind(2)-1)) );
-			fim   = str2double( str((ind(2)+1):end) );
+			start = str2double( cmd(1:(ind(1)-1)) );
+			inc   = str2double( cmd((ind(1)+1):(ind(2)-1)) );
+			fim   = str2double( cmd((ind(2)+1):end) );
 			stairs = start:inc:fim;
 		end
 	catch
@@ -145,7 +145,7 @@ function edit_file_Callback(hObject, eventdata, handles)
 function push_file_Callback(hObject, eventdata, handles, opt)
 	if (nargin == 3)        % Direct call
 		cd(handles.last_dir)
-		str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
+		str1 = {'*.dat;*.DAT;*.txt;*.TXT;*.cpt', 'Data files (*.dat,*.DAT,*.txt,*.TXT,*.cpt)';'*.*', 'All Files (*.*)'};
 		[FileName,PathName] = uigetfile(str1,'File with step widths');
 		cd(handles.home_dir);
 	if isequal(FileName,0),		return,		end
