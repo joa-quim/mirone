@@ -43,6 +43,9 @@ function varargout = mirone_pref(varargin)
         else                                set(handles.radio_burnAll,'Val',1);     set(handles.radio_coastsOnly,'Val',0)
         end
 		handles.whichFleder = whichFleder;	% whichFleder = 1 for the free iview3d or 0 for the true thing (fledermaus)
+		if (~whichFleder)
+			set(handles.radio_fleder,'Val',1),		set(handles.radio_iview,'Val',0)
+		end
 	end
 
 	j = logical(zeros(1,length(directory_list)));           % vector for eventual cleaning non-existing dirs
