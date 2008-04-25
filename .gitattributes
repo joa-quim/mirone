@@ -396,6 +396,7 @@ src_figs/diluvio.m -text
 src_figs/draw_scale.m -text
 src_figs/earthquakes.m -text
 src_figs/ecran.m -text
+src_figs/escadeirar.m -text
 src_figs/euler_poles_selector.m -text
 src_figs/euler_stuff.m -text
 src_figs/fault_models.m -text
