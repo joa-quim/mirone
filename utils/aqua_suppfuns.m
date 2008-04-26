@@ -81,6 +81,14 @@ function init_header_params(handles,X,Y,head,misc)
 	set([handles.edit_x_min handles.edit_x_max handles.edit_y_min handles.edit_y_max ...
 		handles.edit_x_inc handles.edit_y_inc handles.edit_Ncols handles.edit_Nrows], 'Enable', 'inactive')
 	set(handles.hTabAnuga,'String','netCDF')
+	
+	% -------------------- See if we have a projection ----------------------------------
+	if (~isempty(misc.strPROJ4)),	handles.strPROJ4 = misc.strPROJ4;
+	else							handles.strPROJ4 = [];
+	end
+	if (~isempty(misc.srsWKT)),		handles.srsWKT = misc.srsWKT;
+	else							handles.srsWKT = [];
+	end
 
 	guidata(handles.figure1,handles)
 
@@ -105,6 +113,7 @@ function coards_sliceShow(handles)
 	if (isempty(handles.hMirFig) || ~ishandle(handles.hMirFig))			% First run or killed Mirone window
 		tmp.X = handles.x;		tmp.Y = handles.y;		tmp.head = handles.head;	tmp.cmap = handles.cmapLand;
 		tmp.name = sprintf('Layer = %g',handles.time(handles.sliceNumber+1));
+		if (~isempty(handles.srsWKT)),		tmp.srsWKT = handles.srsWKT;	end
 		handles.hMirFig = mirone(Z, tmp);
 		move2side(handles.figure1,handles.hMirFig,'left')
 		handles.handMir = guidata(handles.hMirFig);			% Get the handles of the now existing Mirone fig
