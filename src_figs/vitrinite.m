@@ -107,6 +107,7 @@ function clicked_loadMarkersImg_Callback(hObject, eventdata)
         set(handles.edit_reflectance,'String',reflectance)
     end
 	
+	handles.is_projected = 0;
 	if (handles.countMark >= 1 && ~isempty(handles.hImgSample))
         if (~handles.haveStatusBar)
             createStatusBar(handles);            handles.haveStatusBar = 1;
@@ -156,6 +157,7 @@ function clicked_loadSampleImg_Callback(hObject, eventdata)
     end
 	set(handles.axes1,'PlotBoxAspectRatio',[1 aspect 1],'Visible','off')
 	
+	handles.is_projected = 0;
     if (~handles.IamCallibrated)
 	    if (handles.countMark >= 1 && ~handles.haveStatusBar)
             createStatusBar(handles);            handles.haveStatusBar = 1;
