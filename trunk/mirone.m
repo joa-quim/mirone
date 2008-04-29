@@ -50,7 +50,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j iptchecknargin
 	%#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line
 	%#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
-	%#function move2side aguentabar gdal_project gdalwarp_mex
+	%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig
 
 	global home_dir;    home_dir = cd;      fsep = filesep;
 	addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
@@ -162,6 +162,9 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'geog')),		handles.geog = tmp.geog;    end % Prevails over the guess in show_image
 				if (isfield(tmp,'cmap')),		set(handles.figure1,'Colormap',tmp.cmap);   end
 				if (isfield(tmp,'name')),		win_name = tmp.name;    end
+				if (isfield(tmp,'srsWKT') && ~isempty(tmp.srsWKT) )
+					aux_funs('appP', handles, srsWKT)			% If we have a WKT proj store it
+				end
             else
 				X = [];			Y = [];			win_name = 'Cropped Image';
 				handles.image_type = 2;			handles.geog = 0;		axis_t = 'off';
@@ -187,6 +190,9 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'cmap')),	pal = tmp.cmap;			end
 				if (isfield(tmp,'was_int16'))
 					handles.was_int16 = tmp.was_int16;		handles.Nodata_int16 = tmp.Nodata_int16;
+				end
+				if (isfield(tmp,'srsWKT') && ~isempty(tmp.srsWKT) )
+					aux_funs('appP', handles, srsWKT)			% If we have a WKT proj store it
 				end
 				clear tmp;
 			else
@@ -230,6 +236,7 @@ function hObject = mirone_OpeningFcn(varargin)
         aux_funs('colormap_bg',handles,Z,pal);
         handles = show_image(handles,win_name,X,Y,zz,1,'xy',handles.head(7));
 		handles = aux_funs('isProj',handles);				% Check about coordinates type
+		handles = setAxesDefCoordIn(handles,1);
 	end
 
 	%Find out which gmt version is beeing used. 
@@ -679,9 +686,7 @@ function ImageHistEqualizeGrid_CB(handles, hObject)
 function ImageSegment_CB(handles, hObject)
 	if (handles.no_file),		return,		end
 	rgbIm = get(handles.hImg,'CData');
-	if (ndims(rgbIm) == 2)
-		rgbIm = ind2rgb8(rgbIm, get(handles.figure1, 'Colormap'));
-	end
+	if (ndims(rgbIm) == 2),		rgbIm = ind2rgb8(rgbIm, get(handles.figure1, 'Colormap'));	end
 
 	set(handles.figure1,'pointer','watch'),		pause(0.01)
 
@@ -695,10 +700,8 @@ function ImageSegment_CB(handles, hObject)
 	p.MinimumRegionArea = 30;		p.GradientWindowRadius = 2;
 	p.MixtureParameter = .3;		p.EdgeStrengthThreshold = .3;
 
-	if p.steps == 1
-		[fimage] = edison_wrapper_mex(luvIm, rgbIm, p);
-	else
-		[fimage labels] = edison_wrapper_mex(luvIm, rgbIm, p);
+	if (p.steps == 1),		[fimage] = edison_wrapper_mex(luvIm, rgbIm, p);
+	else					[fimage labels] = edison_wrapper_mex(luvIm, rgbIm, p);
 	end
 	fimage = permute(fimage, [3 2 1]);
 	luvIm = cvlib_mex('color',fimage,'luv2rgb');
@@ -1355,10 +1358,10 @@ function FileOpenMOLA_CB(handles, FileName)
 	s = strread(fread(fp,'*char').','%s','delimiter','\n');		fclose(fp)
 
 	LINES = findcell('LINES', s);
-	[t,r] = strtok(s{LINES.cn},'=');				n_lines = str2double(r(3:end));
+	[t,r] = strtok(s{LINES.cn},'=');				n_lines = str2double(r(3:end));		% N_rows
 
 	LINE_SAMPLES = findcell('LINE_SAMPLES', s);
-	[t,r] = strtok(s{LINE_SAMPLES.cn},'=');			n_samples = str2double(r(3:end));
+	[t,r] = strtok(s{LINE_SAMPLES.cn},'=');			n_samples = str2double(r(3:end));	% N_cols
 
 % 	SAMPLE_BITS = findcell('SAMPLE_BITS', s);
 % 	[t,r] = strtok(s{SAMPLE_BITS.cn},'=');			sn_bits = str2double(r(3:end));
@@ -1565,10 +1568,10 @@ function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize
 
 % --------------------------------------------------------------------
 function ToolsMBplaningStart_CB(handles)
-	if (aux_funs('msg_dlg',1,handles));     return;      end    % Test geog & no_file
-	if isempty(getappdata(handles.figure1,'dem_z'))     % Test if the grid is loaded in memory
-        warndlg('Grid file is bigger than the declared "Grid Max Size". See "File -> Preferences"','Warning');
-        return
+	if (aux_funs('msg_dlg',1,handles)),		return,		end		% Test geog & no_file
+	if isempty(getappdata(handles.figure1,'dem_z'))		% Test if the grid is loaded in memory
+		warndlg('Grid file is bigger than the declared "Grid Max Size". See "File -> Preferences"','Warning');
+		return
 	end
 	
 	prompt = {['The current value for the swath-width / water depth ratio is:   --> ' sprintf('%g',handles.swathRatio) '  <--']
@@ -1612,23 +1615,23 @@ function ToolsMBplaningImport_CB(handles)
 	end
 	str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select input xy file name','get');
-	if isequal(FileName,0);     return;     end
+	if isequal(FileName,0),		return,		end
 	
 	out = draw_funs([PathName FileName],'ImportLine');
 	prompt = {'Enter swath-width / water depth ratio'};
 	resp  = inputdlg(prompt,'Multi-beam planing input',[1 38],{'3'});     pause(0.01);
-	if isempty(resp);   return;     end
-	if (iscell(out)),   n_segments = length(out);
-	else                n_segments = 1;     end
+	if isempty(resp),	return,		end
+	if (iscell(out)),	n_segments = length(out);
+	else				n_segments = 1;		end
 	for (i = 1:n_segments)
-		if (iscell(out)),   xy = out{i}(:,1:2);
-		else                xy = out(:,1:2);    end
+		if (iscell(out)),	xy = out{i}(:,1:2);
+		else				xy = out(:,1:2);	end
 		z = abs(bi_linear(getappdata(handles.figure1,'dem_x'),getappdata(handles.figure1,'dem_y'),...
 			getappdata(handles.figure1,'dem_z'),xy(:,1),xy(:,2)));
 		rad = abs(z) * (str2double(resp{1})/2) / 111194.9; % meters -> degrees
 		handles.nTrack = handles.nTrack + 1;    % count the number of imported tracks
 		% make tags strings to tracks and track's Bars
-		tagL = ['MBtrack' sprintf('%d',handles.nTrack)];     tagB = ['swath_w' sprintf('%d',handles.nTrack)];
+		tagL = ['MBtrack' sprintf('%d',handles.nTrack)];	tagB = ['swath_w' sprintf('%d',handles.nTrack)];
 		nr = size(xy,1);
 		az = zeros(nr,1);    h_circ = zeros(1,nr);
 		az(2:nr) = azimuth_geo(xy(1:(nr-1),2), xy(1:(nr-1),1), xy(2:nr,2), xy(2:nr,1));
@@ -1733,11 +1736,11 @@ function ImageIlluminateGray(luz, handles, color)
 	end
 
 	if (strcmp(color,'color'))
-		if (handles.firstIllum),    img1 = get(handles.hImg,'CData');     handles.firstIllum = 0;
-		else                        img1 = handles.origFig;
+		if (handles.firstIllum),	img1 = get(handles.hImg,'CData');	handles.firstIllum = 0;
+		else						img1 = handles.origFig;
 		end
-		if (isempty(img1)),         img1 = get(handles.hImg,'CData');     end             % No copy in memory
-		if (ndims(img1) == 2),      img1 = ind2rgb8(img1,get(handles.figure1,'Colormap'));    end    % Image is 2D   
+		if (isempty(img1)),			img1 = get(handles.hImg,'CData');	end				% No copy in memory
+		if (ndims(img1) == 2),		img1 = ind2rgb8(img1,get(handles.figure1,'Colormap'));    end    % Image is 2D   
 		img = shading_mat(img1,img);
 		aux_funs('togCheck',handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
 	else
@@ -2117,18 +2120,18 @@ function DrawEulerPoleCircle_CB(handles)
 	h_circ = uicirclegeo(lon,lat);
 	set(h_circ,'Tag','CircleEuler')     % This is used by draw_funs to allow velocity computations
 	if ~isempty(out)
-        s = get(h_circ,'Userdata');
-        s.omega = out.omega;
-        if ~isempty(out.plates)     % Just in case
-            if isempty(strmatch('absolute',out.plates))     % A relative plate model
-                s.plates = [out.plates '  -- Model = ' out.model];
-            else                                            % An absolute plate model
-                s.plates = [out.plates(end-1:end) ' -- Model = ' out.model ' (Absolute)'];
-            end
-        else
-            s.plates = 'I''m lost';
-        end
-        set(h_circ,'Userdata',s)
+		s = get(h_circ,'Userdata');
+		s.omega = out.omega;
+		if ~isempty(out.plates)     % Just in case
+			if isempty(strmatch('absolute',out.plates))     % A relative plate model
+				s.plates = [out.plates '  -- Model = ' out.model];
+			else                                            % An absolute plate model
+				s.plates = [out.plates(end-1:end) ' -- Model = ' out.model ' (Absolute)'];
+			end
+		else
+			s.plates = 'I''m lost';
+		end
+		set(h_circ,'Userdata',s)
 	end
 	draw_funs(h_circ,'SessionRestoreCircle')
 	zoom_state(handles,'maybe_on');
@@ -2171,10 +2174,10 @@ function DrawImportText_CB(handles)
 	todos = fread(fid,'*char');     fclose(fid);
 	[str.x str.y str.name] = strread(todos,'%f %f %s');     % Note: text.name is a cell array of chars
 	limits = getappdata(handles.axes1,'ThisImageLims');   xx = limits(1:2);   yy = limits(3:4);
-    if (handles.is_projected && handles.defCoordsIn > 0)
-        tmp = geog2projected_pts(handles,[str.x str.y],limits);
-        str.x = tmp(:,1);      str.y = tmp(:,2);
-    end
+	if (handles.is_projected && handles.defCoordsIn > 0)
+		tmp = geog2projected_pts(handles,[str.x str.y],limits);
+		str.x = tmp(:,1);		str.y = tmp(:,2);
+	end
 	% Get rid of Texts that are outside the map limits
 	indx = (str.x < xx(1) | str.x > xx(2));
 	str.x(indx) = [];      str.y(indx) = [];      str.name(indx) = [];
@@ -2182,9 +2185,9 @@ function DrawImportText_CB(handles)
 	str.x(indx) = [];      str.y(indx) = [];      str.name(indx) = [];
 	
 	n_str = length(str.x);
-	if (n_str == 0),   return;     end             % No texts inside area. Return.
+	if (n_str == 0),	return,		end				% No texts inside area. Return.
 	
-	str.name = strrep(str.name,'_',' ');          % Replace '_' by ' '
+	str.name = strrep(str.name,'_',' ');			% Replace '_' by ' '
 	h = text(str.x(1),str.y(1),str.name{1},'FontName','Book Antiqua','FontWeight','bold');
 	draw_funs(h,'DrawText')
 	h = text(str.x(2),str.y(2),str.name{2},'FontSize',18,'FontWeight','bold');
@@ -2214,35 +2217,35 @@ function DrawImportShape_CB(handles)
 	% If we have no background region
 	if (handles.no_file),   FileNewBgFrame_CB(handles, [region handles.geog]);   end
 
-nPolygs = length(s);        h = zeros(nPolygs,1);
-imgLims = getappdata(handles.axes1,'ThisImageLims');
-if (strcmp(t,'Arc'))
-	for i = 1:nPolygs
-		out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) s(i).BoundingBox(2,2); ...
-			s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
-		if (any(out))       % It means the polyg BB is at least partially inside
-			h(i) = line('Xdata',s(i).X,'Ydata',s(i).Y,'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline');
+	nPolygs = length(s);        h = zeros(nPolygs,1);
+	imgLims = getappdata(handles.axes1,'ThisImageLims');
+	if (strcmp(t,'Arc'))
+		for i = 1:nPolygs
+			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) s(i).BoundingBox(2,2); ...
+				s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
+			if (any(out))       % It means the polyg BB is at least partially inside
+				h(i) = line('Xdata',s(i).X,'Ydata',s(i).Y,'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline');
+			end
+			h((h == 0)) = [];   % Those were jumped because thay were completely outside map limits
 		end
-        h((h == 0)) = [];   % Those were jumped because thay were completely outside map limits
+		draw_funs(h,'SHPuictx')            % Set lines's uicontextmenu
+	elseif (strcmp(t,'Polygon'))
+		nParanoia = 1000;                  % The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
+		for i = 1:nPolygs
+			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) s(i).BoundingBox(2,2); ...
+					s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
+			if (any(out))                       % It means the polyg BB is at least partially inside
+				h(i) = patch('XData',s(i).X,'YData', s(i).Y,'FaceColor','none','EdgeColor',handles.DefLineColor,'Tag','SHPpolygon');
+			end
+			if ((h(i) ~= 0) && nPolygs <= nParanoia)           % With luck, your hardware won't choke to dead with this
+				draw_funs(h(i),'line_uicontext')
+			end
+		end
+		if (nPolygs > nParanoia)                % nParanoia is an arbitrary number that practice will show dependency
+			h((h == 0)) = [];                   % Those were jumped because they were completely outside map limits
+			draw_funs(h,'country_patch')        % mostly on hardware, for I don't beleave ML will ever behave decently.
+		end
 	end
-	draw_funs(h,'SHPuictx')            % Set lines's uicontextmenu
-elseif (strcmp(t,'Polygon'))
-    nParanoia = 1000;                  % The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
-    for i = 1:nPolygs
-        out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) s(i).BoundingBox(2,2); ...
-            s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
-        if (any(out))                       % It means the polyg BB is at least partially inside
-            h(i) = patch('XData',s(i).X,'YData', s(i).Y,'FaceColor','none','EdgeColor',handles.DefLineColor,'Tag','SHPpolygon');
-        end
-        if ((h(i) ~= 0) && nPolygs <= nParanoia)           % With luck, your hardware won't choke to dead with this
-            draw_funs(h(i),'line_uicontext')
-        end
-    end
-    if (nPolygs > nParanoia)                % nParanoia is an arbitrary number that practice will show dependency
-        h((h == 0)) = [];                   % Those were jumped because they were completely outside map limits
-        draw_funs(h,'country_patch')        % mostly on hardware, for I don't beleave ML will ever behave decently.
-    end
-end
 	
 % --------------------------------------------------------------------
 function GeophysicsImportGmtFile_CB(handles, opt)
@@ -2300,9 +2303,9 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 	% And finaly do the ploting
 	colors = rand(length(track),3);         % Use a random color schema
 	for (k=1:length(track))
-        id0 = (track(k).longitude == 0);    % I must change gmtlist to do this
-        track(k).longitude(id0) = [];       track(k).latitude(id0) = [];
-        if (isempty(track(k).longitude)),   continue;   end     % This track is completely outside the map
+		id0 = (track(k).longitude == 0);    % I must change gmtlist to do this
+		track(k).longitude(id0) = [];       track(k).latitude(id0) = [];
+		if (isempty(track(k).longitude)),   continue;   end     % This track is completely outside the map
 		h = line(track(k).longitude,track(k).latitude,'Linewidth',handles.DefLineThick,'Color',...
 			colors(k,:),'Tag',names_ui{k},'Userdata',1);
 		setappdata(h,'FullName',names{k})    % Store file name in case the uicontext wants to open it with gmtedit
@@ -2319,6 +2322,7 @@ function DrawContours_CB(handles, opt)
 	if isempty(Z),		return,		end		% An error message was already issued
 	if (isempty(opt))				% Do the automatic contouring
 		c = contourc(X,Y,double(Z));
+		handles.plotContourLabels = 1;
 	elseif (isa(opt,'char'))        % Call the interface contouring GUI
 		h_which_cont = findobj(handles.figure1,'Type','line','Tag','contour');     % See if contours were mouse deleted
 		if (~isempty(h_which_cont))
@@ -2345,10 +2349,10 @@ function DrawContours_CB(handles, opt)
 			[c,ia,ib] = intersect(handles.which_cont,opt(:));
 			opt(ib) = [];							% Remove repeated contours
 		end    
-		if (isempty(opt)),      set(handles.figure1,'pointer','arrow');    return;     end  % Nothing else to do
+		if (isempty(opt)),		set(handles.figure1,'pointer','arrow');    return;     end  % Nothing else to do
 		if (length(opt) == 1),  opt = [opt opt];    end
 		c = contourc(X,Y,double(Z),opt);
-		if (isempty(c)),        set(handles.figure1,'pointer','arrow');    return;     end
+		if (isempty(c)),		set(handles.figure1,'pointer','arrow');    return;     end
 	end
 	limit = size(c,2);
 	i = 1;      h_cont = [];      cont = [];
@@ -2409,8 +2413,8 @@ if (isempty(grd_name) || tala == 0)
 	set(handles.figure1,'Colormap', ones( size(get(handles.figure1,'Colormap'),1), 3))
 	handles = show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',1);
 % elseif ( ~handles.no_file && strcmp(handles.fileName,grd_name) )    % Currently loaded background is the same as in session
-%     set(handles.figure1,'Colormap',img_pal)     % Not harmfull anyway
-%     flagIllum = false;                          % Do not try to illuminate again (if it is the case)
+% 	set(handles.figure1,'Colormap',img_pal)     % Not harmfull anyway
+% 	flagIllum = false;                          % Do not try to illuminate again (if it is the case)
 else
 	drv = aux_funs('findFileType',grd_name);
 	erro = gateLoadFile(handles,drv,grd_name);		% It loads the file (or dies)
@@ -2426,8 +2430,8 @@ try
 		[X,Y,Z,head] = load_grd(handles,'silent');
 		handles.Illumin_type = illumType;
 		if (handles.Illumin_type == 1)
-			if (handles.geog),  R = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
-			else                R = grdgradient_m(Z,head,illumComm,'-Nt');      end
+			if (handles.geog),	R = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
+			else				R = grdgradient_m(Z,head,illumComm,'-Nt');      end
 		else
 			R = grdgradient_m(Z,head,illumComm);
 		end
@@ -2438,21 +2442,21 @@ try
 end
 
 if (haveMBtrack)                % case of MB tracks
-    for i=1:length(MBtrack)
-        h_line = line('Xdata',MBtrack(i).x,'Ydata',MBtrack(i).y,'Parent',handles.axes1,'LineWidth',MBtrack(i).LineWidth,...
-            'color',MBtrack(i).color,'Tag',MBtrack(i).tag, 'LineStyle',MBtrack(i).LineStyle);
-        setappdata(h_line,'swathRatio',MBtrack(i).swathRatio)
-        draw_funs(h_line,'MBtrackUictx')       % Set track's uicontextmenu
-    end
-    for i=1:length(MBbar)       % now their's bars
-        h_bar = line('Xdata',MBbar(i).x,'Ydata',MBbar(i).y,'Parent',handles.axes1,'LineWidth',MBbar(i).LineWidth,...
-            'color',MBbar(i).color,'Tag',MBbar(i).tag,'UserData',MBbar(i).n_vert, 'LineStyle',MBbar(i).LineStyle);
-        draw_funs(h_bar,'MBbarUictx')         % Set track bar's uicontextmenu
-    end
-    handles.hMBplot = h_line;
+	for i=1:length(MBtrack)
+		h_line = line('Xdata',MBtrack(i).x,'Ydata',MBtrack(i).y,'Parent',handles.axes1,'LineWidth',MBtrack(i).LineWidth,...
+			'color',MBtrack(i).color,'Tag',MBtrack(i).tag, 'LineStyle',MBtrack(i).LineStyle);
+		setappdata(h_line,'swathRatio',MBtrack(i).swathRatio)
+		draw_funs(h_line,'MBtrackUictx')		% Set track's uicontextmenu
+	end
+	for i=1:length(MBbar)       % now their's bars
+		h_bar = line('Xdata',MBbar(i).x,'Ydata',MBbar(i).y,'Parent',handles.axes1,'LineWidth',MBbar(i).LineWidth,...
+			'color',MBbar(i).color,'Tag',MBbar(i).tag,'UserData',MBbar(i).n_vert, 'LineStyle',MBbar(i).LineStyle);
+		draw_funs(h_bar,'MBbarUictx')			% Set track bar's uicontextmenu
+	end
+	handles.hMBplot = h_line;
 end
 if (haveCircleGeo)              % case of Geographic circles
-    for i=1:length(CircleGeo)
+	for i=1:length(CircleGeo)
 		h_circ = line('Xdata',CircleGeo(i).x,'Ydata',CircleGeo(i).y,'Parent',handles.axes1,'LineWidth',CircleGeo(i).LineWidth,...
 			'color',CircleGeo(i).color,'Tag',CircleGeo(i).tag, 'LineStyle',CircleGeo(i).LineStyle);
 		setappdata(h_circ,'LonLatRad',CircleGeo(i).lon_lat_rad);
@@ -3291,10 +3295,10 @@ function RotateTool_CB(handles, opt)
 		if (ndims(img) == 2),   setappdata(0,'CropedColormap',get(handles.figure1,'ColorMap'));     end
 		if (~isempty(img)),     mirone(img);    end
 	else        % grid
-		[X,Y,Z] = load_grd(handles);            % load the grid array here
-		if isempty(Z),      return;     end     % An error message was already issued
+		[X,Y,Z] = load_grd(handles);			% load the grid array here
+		if isempty(Z),		return,		end		% An error message was already issued
 		[newZ, hdr] = rotatetool(Z,handles);
-		if (isempty(newZ)),    return;     end
+		if (isempty(newZ)),	return,		end
 		[ny,nx] = size(newZ);
 		X = linspace(hdr(1),hdr(2),nx);       Y = linspace(hdr(3),hdr(4),ny);
 		GRDdisplay(handles,X,Y,newZ,hdr,'Rotated grid','Rotated grid')
@@ -3319,32 +3323,45 @@ function TransferB_CB(handles, opt)
 		h = mirone;		
 		newHand = guidata(h);		newHand.last_dir = handles.last_dir;	guidata(h, newHand)
 		setappdata(h,'hFigParent',handles.figure1);				% Save the Parent fig handles in this new figure
-		set(findobj(h,'Tag','ImageDrape'),'Enable','on')        % Set the Drape option to 'on' in the New window 
+		set(findobj(h,'Tag','ImageDrape'),'Enable','on')		% Set the Drape option to 'on' in the New window 
 	
-	elseif ( strcmp(opt,'isGDAL') || (strcmp(opt,'isGMT')) )    % Test if GDAL or GMT are able to read this file
-        str = {'*.*', 'All Files (*.*)'};                       % Just a strings to the eye
-        if (strcmp(opt,'isGMT'))
-            str = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)'; '*.*', 'All Files (*.*)'};
-        end
-        [FileName,PathName] = put_or_get_file(handles,str,['Select ' opt(3:end) ' file'],'get');
-        if isequal(FileName,0);     return;     end             % User gave up
-        if (strcmp(opt,'isGDAL'))                               % Again, ...
-            [z,att] = gdalread([PathName FileName]);            % See if GDAL can do it ...
-        else
-            str = ['grdinfo ' [PathName FileName]];             % or GMT ...
-            [s,att] = mat_lyies(str,[handles.path_tmp FileName '.info']);
-            if ~(isequal(s,0)),     att = [];       end         % File could not be read
-        end
-        if (isempty(att)),		msg = ['Sorry, ' opt(3:end) ' Was not able to read the given file.'];
-        else					msg = ['Yeap, ' opt(3:end) ' can read the given file (which is not the same thing as ', ...
+	elseif ( strcmp(opt,'isGDAL') || (strcmp(opt,'isGMT')) )	% Test if GDAL or GMT are able to read this file
+		str = {'*.*', 'All Files (*.*)'};						% Just a strings to the eye
+		if (strcmp(opt,'isGMT'))
+			str = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)'; '*.*', 'All Files (*.*)'};
+		end
+		[FileName,PathName] = put_or_get_file(handles,str,['Select ' opt(3:end) ' file'],'get');
+		if isequal(FileName,0),		return,		end				% User gave up
+		if (strcmp(opt,'isGDAL'))								% Again, ...
+			[z,att] = gdalread([PathName FileName]);			% See if GDAL can do it ...
+		else
+			str = ['grdinfo ' [PathName FileName]];				% or GMT ...
+			[s,att] = mat_lyies(str,[handles.path_tmp FileName '.info']);
+			if ~(isequal(s,0)),		att = [];		end			% File could not be read
+		end
+		if (isempty(att)),		msg = ['Sorry, ' opt(3:end) ' Was not able to read the given file.'];
+		else					msg = ['Yeap, ' opt(3:end) ' can read the given file (which is not the same thing as ', ...
 										'beeing able to correctly decode it).'];
-        end
-        msgbox(msg,'Test result')
+		end
+		msgbox(msg,'Test result')
+	
+	elseif (strcmp(opt,'scale'))				% Apply a scale factor
+		resp = inputdlg({'Enter scale factor'},'Rescale grid',[1 30],{'-1'});	pause(0.01)
+		scal = str2double(resp);
+		if (isnan(scal)),	return,		end
+		[X,Y,Z] = load_grd(handles);			% load the grid array here
+		if isempty(Z),		return,		end		% An error message was already issued
+		Z = cvlib_mex('CvtScale',Z, scal);
+		head = [handles.head(1:4) handles.head(5:6)*scal handles.head(7:end)];
+		tmp = struct('X',X, 'Y',Y, 'head',head, 'geog',handles.geog, 'name','Scaled grid');
+		projWKT = getappdata(handles.figure1,'ProjWKT');
+		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
+		mirone(Z, tmp)
 	end
 
 % --------------------------------------------------------------------
 function Transfer_CB(handles, opt)
-if (handles.no_file),      return;      end
+if (handles.no_file),		return,		end
 
 if (strcmp(opt,'Shape')),		floodFill(handles.figure1);		return,		end
 set(handles.figure1,'pointer','watch')
