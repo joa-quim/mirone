@@ -7,7 +7,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function imcapture filter_funs overview imageresize classificationfig tfw_funs tsunamovie mirone_pref
 %#function griding_mir grdfilter_mir grdsample_mir grdtrend_mir grdgradient_mir ml_clip show_palette 
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
-%#function mxgridtrimesh aquamoto tiles_tool zonal_integrator grdlandmask_win grdlandmask_m
+%#function mxgridtrimesh aquamoto tiles_tool zonal_integrator grdlandmask_win grdlandmask_m escadeirar
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -275,7 +275,7 @@ uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''Lines'')
 uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''Circles'')','Label','Circles');
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Corners'')','Label','Good features to track');
 
-uimenu('Parent',hIM,'Label','entry_sh');
+uimenu('Parent',hIM,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Shape'')','Label','Shape detector')
 uimenu('Parent',hIM,'Call','mpaint(gcf)','Label','Paint Brush');
 uimenu('Parent',hIM,'Call','mirone(''ImageSegment_CB'',guidata(gcbo))','Label','Image segmentation');
 uimenu('Parent',hIM,'Call','classificationfig(gcf);','Label','K-means classification');
@@ -333,7 +333,7 @@ uimenu('Parent',hTL,'Call','zonal_integrator(guidata(gcbo))','Label','Zonal Inte
 uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
 % uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
-uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
+% uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
 
 % --------------------------- DRAW MENU ------------------------------------
 hDR = uimenu('Parent',H1,'Label','Draw','Tag','Draw');
@@ -564,18 +564,23 @@ uimenu('Parent',hGT,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label'
 uimenu('Parent',hGT,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''grid'')','Label','Digital filtering Tool','Sep','on');
 uimenu('Parent',hGT,'Call','ml_clip(guidata(gcbo))','Label','Clip Grid');
 uimenu('Parent',hGT,'Call','mirone(''ImageCrop_CB'',guidata(gcbo),[],''CropaGrid'')','Label','Crop Grid');
-uimenu('Parent',hGT,'Call','escadeirar(guidata(gcbo))','Label','Rice-field Grid');
 uimenu('Parent',hGT,'Call','mirone(''RotateTool_CB'',guidata(gcbo),''grid'')','Label','Rotate Grid');
 uimenu('Parent',hGT,'Call','mirone(''GridToolsHistogram_CB'',guidata(gcbo))','Label','Histogram');
 uimenu('Parent',hGT,'Call','mirone(''GridToolsGridMask_CB'',guidata(gcbo))','Label','Write Mask', 'Tag','haveNaNs');
 uimenu('Parent',hGT,'Call','inpaint_nans(guidata(gcbo))','Label','Inpaint NaNs', 'Tag','haveNaNs');
+
+h = uimenu('Parent',hGT,'Label','Hammer grid','Sep','on');
+uimenu('Parent',h,'Call','escadeirar(guidata(gcbo))','Label','Rice-field Grid');
+uimenu('Parent',h,'Call','mirone(''TransferB_CB'',guidata(gcbo),''scale'')','Label','Rescale');
+uimenu('Parent',h,'Call','mirone(''GridToolsPadd2Const_CB'',guidata(gcbo))','Label','Padd to zero');
+
 uimenu('Parent',hGT,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Allopts'')','Label','FFT tool','Sep','on');
 
 h = uimenu('Parent',hGT,'Label','Spectrum');
 uimenu('Parent',h,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Amplitude'')','Label','Amplitude spectrum');
 uimenu('Parent',h,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Power'')','Label','Power spectrum');
+uimenu('Parent',h,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Autocorr'')','Label','Autocorrelation');
 
-uimenu('Parent',hGT,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Autocorr'')','Label','Autocorrelation');
 uimenu('Parent',hGT,'Call','mirone(''GridToolsSmooth_CB'',guidata(gcbo))','Label','Spline Smooth','Sep','on');
 
 h = uimenu('Parent',hGT,'Label','SDG');
@@ -607,7 +612,6 @@ uimenu('Parent',h,'Callback','srtm_tool(''srtm30'')','Label','SRTM30');
 uimenu('Parent',h2,'Call','mirone(''GridToolsFindHoles_CB'',guidata(gcbo))','Label','Find holes');
 uimenu('Parent',h2,'Call','mirone(''GridToolsSaveAsSRTM_CB'',guidata(gcbo))','Label','Save as SRTM');
 
-uimenu('Parent',hGT,'Call','mirone(''GridToolsPadd2Const_CB'',guidata(gcbo))','Label','Padd to zero','Sep','on');
 uimenu('Parent',hGT,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''ppa'')',...
 'Label','Extract ridges/valleys','Sep','on');
 
@@ -622,7 +626,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0b)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 25 April 2008'',''1.3.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 29 April 2008'',''1.3.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
