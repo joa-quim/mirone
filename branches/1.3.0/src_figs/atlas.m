@@ -71,11 +71,11 @@ function varargout = atlas(varargin)
 	%file = textread([pwd filesep 'mex' filesep 'countries.h'],'%s','delimiter','\n','whitespace','');
 	file = dataread('file',[pwd filesep 'mex' filesep 'countries.h'],'%s','delimiter','\n','whitespace','');
 	res=findcell('*continent_list',file);
-	tmp = cell(9,1);
+	tmp = cell(10,1);
 	tmp {1} = '';
 	tmp {2} = 'All';
 	m = 2;
-	for (k=res.cn+1:res.cn+7)
+	for (k=res.cn+1:res.cn+8)
         tmp{m+1} = file{k}(3:end-2);
         m = m + 1;
 	end
@@ -105,7 +105,8 @@ function listbox_allCountries_Callback(hObject, eventdata, handles)
 	% Hints: contents = get(hObject,'String') returns listbox_allCountries contents as cell array
 	%        contents{get(hObject,'Value')} returns selected item from listbox_allCountries
 	contents = get(hObject,'String');
-	country = contents{get(hObject,'Value')};
+	val = get(hObject,'Value');
+	country = contents{val(1)};		% This skips error if multiple selections
 	if (~strcmp(country,'All'))     % Set the continents listbox into a "NULL" selection
         set(handles.listbox_continents,'Value',1);
 	else                            % Set the continents listbox to "All" as well
@@ -115,7 +116,8 @@ function listbox_allCountries_Callback(hObject, eventdata, handles)
 % ------------------------------------------------------------------------------
 function listbox_continents_Callback(hObject, eventdata, handles)
 	contents = get(hObject,'String');
-	continent = contents{get(hObject,'Value')};
+	val = get(hObject,'Value');
+	continent = contents{val(1)};		% This skips error if multiple selections
 	if (~strcmp(continent,'All'))   % Set the atlas listbox into a "NULL" selection
         set(handles.listbox_allCountries,'Value',1);
 	else                            % Set the atlas listbox to "All" as well
