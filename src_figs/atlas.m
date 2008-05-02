@@ -39,6 +39,8 @@ function varargout = atlas(varargin)
 	handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
 	handles_fake.geog = handMir.geog;
 	handles.handles_fake = handles_fake;
+	handles.path_tmp = handMir.path_tmp;
+
 	handles.h_calling_lims = getappdata(handles.mironeAxes,'ThisImageLims');
 	if (isempty(handles.h_calling_lims))
 		handles.h_calling_lims = [get(handles.mironeAxes,'Xlim') get(handles.mironeAxes,'Ylim')];
@@ -67,30 +69,30 @@ function varargout = atlas(varargin)
         set(handles.popup_resolution,'String','lower')
 	end
 
-	% It should be a better solution, but for know I have to read from atlas_export.h
+	% It should find a better solution, but for know I have to read from countries.h
 	%file = textread([pwd filesep 'mex' filesep 'countries.h'],'%s','delimiter','\n','whitespace','');
 	file = dataread('file',[pwd filesep 'mex' filesep 'countries.h'],'%s','delimiter','\n','whitespace','');
-	res=findcell('*continent_list',file);
-	tmp = cell(9,1);
+	res = findcell('*continent_list',file);
+	tmp = cell(10,1);
 	tmp {1} = '';
 	tmp {2} = 'All';
 	m = 2;
-	for (k=res.cn+1:res.cn+7)
-        tmp{m+1} = file{k}(3:end-2);
-        m = m + 1;
+	for (k=res.cn+1:res.cn+8)
+		tmp{m+1} = file{k}(3:end-2);
+		m = m + 1;
 	end
 	set(handles.listbox_continents,'String',tmp,'Value',2)
 	
 	% Now fill the atlas_export list box
-	res=findcell('*country_list',file);
+	res = findcell('*country_list',file);
 	n_to_read = length(file) - res.cn;
 	tmp = cell(n_to_read,1);
 	tmp {1} = '';
 	tmp {2} = 'All';
 	m = 2;
 	for (k=res.cn+1:res.cn+n_to_read-1)
-        tmp{m+1} = file{k}(3:end-2);
-        m = m + 1;
+		tmp{m+1} = file{k}(3:end-2);
+		m = m + 1;
 	end
 	set(handles.listbox_allCountries,'String',tmp,'Value',2)
     
@@ -102,24 +104,24 @@ function varargout = atlas(varargin)
 
 % ------------------------------------------------------------------------------
 function listbox_allCountries_Callback(hObject, eventdata, handles)
-	% Hints: contents = get(hObject,'String') returns listbox_allCountries contents as cell array
-	%        contents{get(hObject,'Value')} returns selected item from listbox_allCountries
 	contents = get(hObject,'String');
-	country = contents{get(hObject,'Value')};
-	if (~strcmp(country,'All'))     % Set the continents listbox into a "NULL" selection
-        set(handles.listbox_continents,'Value',1);
-	else                            % Set the continents listbox to "All" as well
-        set(handles.listbox_continents,'Value',2);
+	val = get(hObject,'Value');
+	country = contents{val(1)};		% This permits multiple selections
+	if (~strcmp(country,'All'))		% Set the continents listbox into a "NULL" selection
+		set(handles.listbox_continents,'Value',1);
+	else							% Set the continents listbox to "All" as well
+		set(handles.listbox_continents,'Value',2);
 	end
 
 % ------------------------------------------------------------------------------
 function listbox_continents_Callback(hObject, eventdata, handles)
 	contents = get(hObject,'String');
-	continent = contents{get(hObject,'Value')};
-	if (~strcmp(continent,'All'))   % Set the atlas listbox into a "NULL" selection
-        set(handles.listbox_allCountries,'Value',1);
-	else                            % Set the atlas listbox to "All" as well
-        set(handles.listbox_allCountries,'Value',2);
+	val = get(hObject,'Value');
+	continent = contents{val(1)};		% This permits multiple selections
+	if (~strcmp(continent,'All'))		% Set the atlas listbox into a "NULL" selection
+		set(handles.listbox_allCountries,'Value',1);
+	else								% Set the atlas listbox to "All" as well
+		set(handles.listbox_allCountries,'Value',2);
 	end
 
 % ------------------------------------------------------------------------------
@@ -190,14 +192,14 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 	if (handles.CeateBG)   % We DO NOT have a background to plot. It must be created later
         opt_R = ' ';
 	else                         % We have a background map where to plot
-        opt_R = ['-R' sprintf('%f/%f/%f/%f',handles.h_calling_lims(1:4))];
+        opt_R = sprintf('-R%f/%f/%f/%f',handles.h_calling_lims(1:4));
 	end
 	
-	if (strcmp(atlas{1},'All') | strcmp(continents{1},'All'))     % Required to plot all atlas (well, the ones who fit in)
+	if (strcmp(atlas{1},'All') || strcmp(continents{1},'All'))     % Required to plot all atlas (well, the ones who fit in)
             opt_P = ' ';
             opt_T = ' ';
 	else
-        if (~strcmp(continents{1},'All') & ~strcmp(continents{1},'')) % If a continent was selected
+        if (~strcmp(continents{1},'All') && ~strcmp(continents{1},'')) % If a continent was selected
             opt_T = ['-T' continents{1}];
             opt_P = ' ';
         else                                % A country was selected
@@ -205,7 +207,20 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
             opt_T = ' ';
         end
 	end
-	paises.ct = country_select(handles.atlas_file,opt_R,opt_P,opt_T,['-A' num2str(handles.minArea)]);
+
+	if (numel(atlas) > 1)
+		fname = [handles.path_tmp 'paises.txt'];
+		fid = fopen(fname,'w');
+		for (k = 1:numel(atlas))
+			fprintf(fid,'%s\n', atlas{k});
+		end
+		fclose(fid);
+		opt_P = ['-P' fname];
+		paises.ct = country_select(handles.atlas_file,opt_R,opt_P,opt_T,['-A' num2str(handles.minArea)]);
+		builtin('delete',fname);
+	else
+		paises.ct = country_select(handles.atlas_file,opt_R,opt_P,opt_T,['-A' num2str(handles.minArea)]);
+	end
 
 	% Clean up the empty fields in the ct struct (given I could not do it at mex level)
 	id = false(length(paises.ct),1);
@@ -482,8 +497,6 @@ set(h1,...
 'Name','Atlas',...
 'NumberTitle','off',...
 'Position',[520 446 411 354],...
-'Renderer',get(0,'defaultfigureRenderer'),...
-'RendererMode','manual',...
 'Resize','off',...
 'Tag','figure1');
 
@@ -492,7 +505,6 @@ uicontrol('Parent',h1,...
 'Callback',{@atlas_uicallback,h1,'listbox_allCountries_Callback'},...
 'Max',2,...
 'Position',[250 130 151 91],...
-'String',{  'Listbox' },...
 'Style','listbox',...
 'Value',1,...
 'Tag','listbox_allCountries');
@@ -502,7 +514,6 @@ uicontrol('Parent',h1,...
 'Callback',{@atlas_uicallback,h1,'listbox_continents_Callback'},...
 'Max',2,...
 'Position',[250 258 151 71],...
-'String',{  'Listbox' },...
 'Style','listbox',...
 'Value',1,...
 'Tag','listbox_continents');
@@ -549,7 +560,6 @@ uicontrol('Parent',h1,...
 'Callback',{@atlas_uicallback,h1,'slider_transparency_Callback'},...
 'Max',100,...
 'Position',[170 59 231 15],...
-'String',{  '' },...
 'Style','slider',...
 'TooltipString','Use color transparency',...
 'Tag','slider_transparency');
