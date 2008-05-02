@@ -157,7 +157,7 @@ function coards_sliceShow(handles)
 		end
 
 		set(handles.handMir.hImg, 'CData', img)
-		set(handles.handMir.figure1, 'Name', sprintf('Level = %g',handles.time(handles.sliceNumber+1)))
+		set(handles.handMir.figure1, 'Name', sprintf('Level = %.10g',handles.time(handles.sliceNumber+1)))
 		setappdata(handles.handMir.figure1,'dem_x',handles.x);		% Don't get bad surprises (like loaded another file)
 		setappdata(handles.handMir.figure1,'dem_y',handles.y);
 	end
