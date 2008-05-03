@@ -783,7 +783,8 @@ function FileNewBgFrame_CB(handles, region, imSize)
 	pal = repmat(handles.bg_color,256,1);    set(handles.figure1,'Colormap',pal);
 	handles.image_type = 20;
 	if (nargin <= 2),   imSize = [];    end
-	show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',0,imSize);
+	handles = show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',0,imSize);
+	aux_funs('isProj',handles);			% Check about coordinates type
     
 % --------------------------------------------------------------------
 function FileSaveGMTgrid_CB(handles, opt)
