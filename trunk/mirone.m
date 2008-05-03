@@ -763,9 +763,10 @@ function zoom_state(handles, state)
 	end
 
 % --------------------------------------------------------------------
-function FileNewBgFrame_CB(handles, region, imSize)
+function FileNewBgFrame_CB(handles, region, imSize, figTitle)
 	% Create a empty window with a frame selected in bg_region
 	% However, if REGION was transmited, it is assumed to have  [x_min x_max y_min y_max is_geog]
+	% IMSIZE may either be the image size or the Figure title
 	if (nargin == 1)
 		region = bg_region;		% region contains [x_min x_max y_min y_max is_geog]
 		if isempty(region),		return,		end		% User gave up
@@ -782,8 +783,10 @@ function FileNewBgFrame_CB(handles, region, imSize)
 	Z = repmat(uint8(255),ny,nx);
 	pal = repmat(handles.bg_color,256,1);    set(handles.figure1,'Colormap',pal);
 	handles.image_type = 20;
-	if (nargin <= 2),   imSize = [];    end
-	show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',0,imSize);
+	if (nargin <= 2),		imSize = [];		figTitle = 'Mirone Base Map';		end
+	if (nargin == 3 && isa(imSize,'char')),		figTitle = imSize;	end		% Fig title
+	handles = show_image(handles,figTitle,X,Y,Z,0,'xy',0,imSize);
+	aux_funs('isProj',handles);			% Check about coordinates type
     
 % --------------------------------------------------------------------
 function FileSaveGMTgrid_CB(handles, opt)
