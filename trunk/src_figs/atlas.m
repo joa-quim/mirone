@@ -207,6 +207,11 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
             opt_T = ' ';
         end
 	end
+	
+	% See if user wants uicontexts. Test here so that it can be overriden below
+	if (get(handles.check_setUicontrols,'Value')),		handles.uicontrols = 1;
+	else												handles.uicontrols = 0;
+	end
 
 	if (numel(atlas) > 1)
 		fname = [handles.path_tmp 'paises.txt'];
@@ -218,8 +223,10 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 		opt_P = ['-P' fname];
 		paises.ct = country_select(handles.atlas_file,opt_R,opt_P,opt_T,['-A' num2str(handles.minArea)]);
 		builtin('delete',fname);
+		if ( numel(atlas) < 50 ),	handles.uicontrols = 1;		end			% Override uicontexts choice 
 	else
 		paises.ct = country_select(handles.atlas_file,opt_R,opt_P,opt_T,['-A' num2str(handles.minArea)]);
+		if (opt_T(1) == ' '),	handles.uicontrols = 1;		end				% Override uicontexts choice
 	end
 
 	% Clean up the empty fields in the ct struct (given I could not do it at mex level)
@@ -241,13 +248,6 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
         handles.plot_fontSize = handles.fontSize;
 	else
         handles.plot_fontSize = [];
-	end
-	
-	% See if user wants uicontexts
-	if (get(handles.checkbox_setUicontrols,'Value'))
-        handles.uicontrols = 1;
-	else
-        handles.uicontrols = 0;
 	end
 
     handles.projection = 0;
@@ -327,7 +327,10 @@ else                                no_alfa = 0;    alfa = handles.transparency;
 if (handles.CeateBG)      % Yes
     region = [handles.region 1];
     if (abs(region(2) - region(1)) > 360 || abs(region(4) - region(3)) > 180),   region(5) = 0;   end
-    mirone('FileNewBgFrame_CB',guidata(handles.mirone_fig), region)
+	if (numel(paises.ct) == 1),		figTitle = paises.ct.Tag;
+	else							figTitle = 'Atlas';
+	end
+    mirone('FileNewBgFrame_CB',guidata(handles.mirone_fig), region, figTitle)
 end
 
 setappdata(handles.mirone_fig,'AtlasResolution',handles.atlas_file);    % Save this for use in write_gmt_script
@@ -473,7 +476,7 @@ end
 guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------
-function checkbox_setUicontrols_Callback(hObject, eventdata, handles)
+function check_setUicontrols_CB(hObject, eventdata, handles)
 str = sprintf(['Give the possibility of change colors,\n'...
     'transparency and other attributes. Be awere,\n'...
     'however, that is highly memory consuming.\n'...
@@ -615,11 +618,11 @@ uicontrol('Parent',h1,...
 'Tag','radiobutton_noColors');
 
 uicontrol('Parent',h1,...
-'Callback',{@atlas_uicallback,h1,'checkbox_setUicontrols_Callback'},...
+'Callback',{@atlas_uicallback,h1,'check_setUicontrols_CB'},...
 'Position',[9 185 155 15],...
 'String','Provide controls to polygons',...
 'Style','checkbox',...
-'Tag','checkbox_setUicontrols');
+'Tag','check_setUicontrols');
 
 uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
