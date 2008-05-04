@@ -191,8 +191,6 @@ function edit_true_Callback(hObject, eventdata, handles)
 	end
 	guidata(handles.figure1)
 
-
-
 % --- Creates and returns a handle to the GUI figure. 
 function run_cmd_LayoutFcn(h1);
 
