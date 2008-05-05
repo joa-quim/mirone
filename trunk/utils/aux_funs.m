@@ -46,8 +46,12 @@ switch opt(1:4)
 		if (ispc),      dos(str);
 		else            unix(str);
 		end
+	case 'getF'		% Get projection info (if it's there)
+ 		varargout{1} = getFigProjInfo(varargin{:});
 	case 'min_'		% 'min_max_single'
 		[varargout{1} varargout{2}] = min_max_single(varargin{:});
+	otherwise
+		error('Unknown option')
 end
 
 % --------------------------------------------------------------------
@@ -188,15 +192,13 @@ end
 function handles = isProj(handles, opt)
     % Se if we have projected grid/images and act acordingly
 
-    % Fish eventual proj strings
-    projGMT = getappdata(handles.figure1,'ProjGMT');
-    projWKT = getappdata(handles.figure1,'ProjWKT');
-    proj4 = getappdata(handles.figure1,'Proj4');
+	% Fish eventual proj strings
+	prjInfoStruc = getFigProjInfo(handles);
     
     if (~handles.geog)
-        if (~isempty(projWKT))              % We have a GDAL projected file
+        if (~isempty(prjInfoStruc.projWKT))              % We have a GDAL projected file
             handles.is_projected = 1;		prjStr = false;
-        elseif (~isempty(projGMT) || ~isempty(proj4))  % We have a GMT or Proj4 projection selection
+        elseif (~isempty(prjInfoStruc.projGMT) || ~isempty(prjInfoStruc.proj4))  % We have a GMT or Proj4 projection selection
             handles.is_projected = 1;		prjStr = false;
         else                                % We know nothing about these coords (e.g. an image)
             handles.is_projected = 0;		prjStr = true;
@@ -250,26 +252,31 @@ function toProjPT(handles)
 	dbud.toProjPT = 0;
 	if (handles.is_projected)
 		% Fish eventual proj strings
-		projGMT = getappdata(handles.figure1,'ProjGMT');
-		projWKT = getappdata(handles.figure1,'ProjWKT');
-		proj4 = getappdata(handles.figure1,'Proj4');
-		if (~isempty(projWKT) || ~isempty(proj4))
+		prjInfoStruc = getFigProjInfo(handles);
+		if (~isempty(prjInfoStruc.projWKT) || ~isempty(prjInfoStruc.proj4))
 			% In case we have both 'projWKT' takes precedence because it came from file metadata
-			if (~isempty(projWKT)),     dbud.projStruc.SrcProjWKT = projWKT;
-			else                        dbud.projStruc.SrcProjWKT = ogrproj(proj4);
+			if (~isempty(prjInfoStruc.projWKT)),	dbud.projStruc.SrcProjWKT = prjInfoStruc.projWKT;
+			else									dbud.projStruc.SrcProjWKT = ogrproj(prjInfoStruc.proj4);
 			end
 			dbud.toProjPT = 1;
-		elseif (~isempty(projGMT))
+		elseif (~isempty(prjInfoStruc.projGMT))
 			lims = [getappdata(handles.axes1,'ThisImageLims')];
-			out = mapproject_m([lims(1) lims(3); lims(2) lims(4)],'-R-180/180/0/80','-I','-F',projGMT{:});    % Convert lims back to geogs
+			out = mapproject_m([lims(1) lims(3); lims(2) lims(4)],'-R-180/180/0/80','-I','-F',prjInfoStruc.projGMT{:});    % Convert lims back to geogs
 			x_min = min(out(:,1));        x_max = max(out(:,1));
 			y_min = min(out(:,2));        y_max = max(out(:,2));
-			dbud.opt_R = ['-R' sprintf('%f',x_min) '/' sprintf('%f',x_max) '/' sprintf('%f',y_min) '/' sprintf('%f',y_max)];
-			dbud.projGMT = projGMT;
+			dbud.opt_R = sprintf('-R%f/%f/%f/%f',x_min, x_max, y_min, y_max);
+			dbud.projGMT = prjInfoStruc.projGMT;
 			dbud.toProjPT = 2;
 		end
 		set(displayBar, 'UserData', dbud);
     end
+
+% ----------------------------------------------------------------------------------
+function prjInfoStruc = getFigProjInfo(handles)
+    % Se if we have projection info stored in Figure's appdata. NOTE, often they are empty
+    prjInfoStruc.projGMT = getappdata(handles.figure1,'ProjGMT');
+    prjInfoStruc.projWKT = getappdata(handles.figure1,'ProjWKT');
+    prjInfoStruc.proj4 = getappdata(handles.figure1,'Proj4');
 
 % --------------------------------------------------------------------
 function [z_min,z_max] = min_max_single(Z)
