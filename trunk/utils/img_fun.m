@@ -3715,8 +3715,8 @@ end
 %----------------------------------------------------------------------------------
 function B = uintlut(varargin)
 %UINTLUT computes new values of A based on lookup table LUT.
-%   $Revision: 1.2 $  $Date: 2003/03/05 22:29:26 $
-B = uintlutc(varargin{:});
+% Used to be uintlutc
+B = intlutc(varargin{:});
 
 %----------------------------------------------------------------------------------
 function image = changeclass(class, varargin)
