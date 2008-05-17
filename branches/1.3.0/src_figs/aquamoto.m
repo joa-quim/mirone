@@ -338,6 +338,10 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 	if (~any(ind))
 		[X,Y,Z,head,misc] = nc_io(handles.fname,'R');
 		if (numel(head) == 9 && isfield(misc,'z_id'))			% INTERCEPT POINT FOR PLAIN COARDS NETCDF FILES
+			if (numel(misc.z_dim <= 2))
+				errordlg('This netCDF file is not 3D. Use Mirone directly to read it.','Error')
+				return
+			end
 			handles.nc_info = s;		% Save the nc file info
 			set(handles.check_splitDryWet,'Val',0)
 			aqua_suppfuns('coards_hdr',handles,X,Y,head,misc)
