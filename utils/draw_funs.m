@@ -2015,7 +2015,7 @@ function save_formated(obj,eventdata, h, opt)
 	% If OPT is given than it must contain a Mx3 array with the x,y,z data to be saved
 
 	if (nargin == 3)
-		h = h(ishandle(h));
+		h = gco;
 		xx = get(h,'XData');    yy = get(h,'YData');
         doSave_formated(xx, yy)
 	elseif (nargin == 4)
