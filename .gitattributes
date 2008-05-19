@@ -272,6 +272,7 @@ lib_mex/imhistc.dll -text
 lib_mex/imlincombc.dll -text
 lib_mex/imreconstructmex.dll -text
 lib_mex/ind2rgb8.dll -text
+lib_mex/intlutc.dll -text
 lib_mex/inv_lwm.dll -text
 lib_mex/inv_piecewiselinear.dll -text
 lib_mex/iptcheckinput.dll -text
