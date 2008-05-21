@@ -633,7 +633,7 @@ function set_isochrons_uicontext(h,data)
 	cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	if (~all(isempty(cat(2,data{:}))))
-		uimenu(cmenuHand, 'Label', [tag ' info'], 'Callback', {@Isochrons_Info,h,data});
+		uimenu(cmenuHand, 'Label', [tag ' info'], 'Callback', {@Isochrons_Info,data});
 		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', {@del_line,h}, 'Separator','on');
 	else
 		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', {@del_line,h});
@@ -2015,7 +2015,7 @@ function save_formated(obj,eventdata, h, opt)
 	% If OPT is given than it must contain a Mx3 array with the x,y,z data to be saved
 
 	if (nargin == 3)
-		h = h(ishandle(h));
+		h = gco;
 		xx = get(h,'XData');    yy = get(h,'YData');
         doSave_formated(xx, yy)
 	elseif (nargin == 4)
@@ -2130,19 +2130,19 @@ function volcano_info(obj,eventdata,h,name,desc,dating)
 
 % -----------------------------------------------------------------------------------------
 function ODP_info(obj,eventdata,h,leg,site,z,penetration)
-i = get(gco,'Userdata');
-tag = get(h,'Tag');     tag = tag{1};
-msgbox( sprintf([[tag ' Leg:    '] leg{i} '\n' [tag ' Site:    '] site{i} '\n' ...
-        'Depth:      ' z{i} '\n' 'Hole penetration: ' penetration{i}] ),'ODP info')
+	i = get(gco,'Userdata');
+	tag = get(h,'Tag');     tag = tag{1};
+	msgbox( sprintf([[tag ' Leg:    '] leg{i} '\n' [tag ' Site:    '] site{i} '\n' ...
+			'Depth:      ' z{i} '\n' 'Hole penetration: ' penetration{i}] ),'ODP info')
 
 % -----------------------------------------------------------------------------------------
-function Isochrons_Info(obj,eventdata,h,data)
-i = get(gco,'Userdata');
-if (isstruct(i))    % This happens when h is ui_edit_polygon(ed)
-    i = i.old_ud;
-end
-tag = data{i};
-msgbox( sprintf(tag),'This line info')
+function Isochrons_Info(obj,eventdata,data)
+	i = get(gco,'Userdata');
+	if (isstruct(i))    % This happens when h is ui_edit_polygon(ed)
+		i = i.old_ud;
+	end
+	tag = data{i};
+	msgbox( sprintf(tag),'This line info')
 
 % -----------------------------------------------------------------------------------------
 function gmtfile_Info(obj,eventdata,h,data)
