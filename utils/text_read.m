@@ -80,14 +80,18 @@ end
 % tenta o caso dos multi-segments
 if ~isnan(requestedMultiSeg)
 	p = find(string == requestedMultiSeg);
-	p(end+1) = length(string)+1;    vv = [];
-	for k = 1:length(p)-1;
-		T = string(p(k):p(k+1)-1);
-		h = min(find(T==10));		% 10 = end of line
-        vv = [vv p(k):p(k)+h];
+	if (~isempty(p))
+		p(end+1) = length(string)+1;    vv = [];
+		for k = 1:length(p)-1;
+			T = string(p(k):p(k+1)-1);
+			h = min(find(T==10));		% 10 = end of line
+            vv = [vv p(k):p(k)+h];
+		end
+		string(vv) = [];
+		clear p vv T h;
+	else
+		requestedMultiSeg = NaN;		% It was a false request
 	end
-	string(vv) = [];
-	clear p vv T h;
 end
 
 try
