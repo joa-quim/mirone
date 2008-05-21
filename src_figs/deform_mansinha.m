@@ -114,6 +114,8 @@ function varargout = deform_mansinha(varargin)
 			handles.FaultDepth{k}(1:nvert(k)) = NaN;	handles.FaultTopDepth{k}(1:nvert(k)) = 0;
 			handles.DislocSlip{k}(1:nvert(k)) = 1;	    handles.DislocRake{k}(1:nvert(k)) = 90;
 		end
+		handles.DislocRakeCopy = 90;			% In case of SCC
+		handles.DislocSlipCopy = 1;				% 		"
 		
 		z2 = sprintf('%.1f',handles.FaultStrike{1}(1));
 		set(handles.edit_FaultLength,'String',handles.FaultLength{1}(1),'Enable','off')
