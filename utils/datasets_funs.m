@@ -156,6 +156,10 @@ for (k=1:numel(names))
     j = strfind(fname,filesep);
     if (isempty(j)),    fname = [PathName fname];   end			% It was just the filename. Need to add path as well 
     [numeric_data,multi_segs_str] = text_read(fname,NaN,NaN,'>');
+	if (~isa(numeric_data,'cell'))			% File was not multi-segment. Now pretend it was but with no info
+		numeric_data = {numeric_data};
+		multi_segs_str = {'> No info provided'};
+	end
 	n_isoc = 0;     n_segments = length(numeric_data);
 	h_isoc = ones(n_segments,1)*NaN;							% This is the maximum we can have
 	n_clear = false(n_segments,1);
