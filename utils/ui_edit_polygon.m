@@ -309,9 +309,10 @@ switch key
 
 		% Now make the a new segment from rest of the original (but without markers)
 		lc = get(s.h_pol,'Color');			ls = get(s.h_pol,'LineStyle');
-		lw = get(s.h_pol,'LineWidth');		lT = get(s.h_pol,'Tag');      
+		lw = get(s.h_pol,'LineWidth');		lT = get(s.h_pol,'Tag');
+		ud = get(s.h_pol,'UserData');
 		% create a new line handle
-		tmp = line('XData',x2,'YData',y2,'LineWidth',lw,'Color',lc,'LineStyle',ls);
+		tmp = line('XData',x2,'YData',y2,'LineWidth',lw,'Color',lc,'LineStyle',ls, 'UserData',ud);
 		if (~isempty(lT)),		set(tmp,'Tag', lT),		end
 		set(tmp,'uicontextmenu',get(s.h_pol,'uicontextmenu'))   % Copy the uicontextmenu
 		ui_edit_polygon(tmp)
