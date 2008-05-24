@@ -163,7 +163,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'cmap')),		set(handles.figure1,'Colormap',tmp.cmap);   end
 				if (isfield(tmp,'name')),		win_name = tmp.name;    end
 				if (isfield(tmp,'srsWKT') && ~isempty(tmp.srsWKT) )
-					aux_funs('appP', handles, srsWKT)			% If we have a WKT proj store it
+					aux_funs('appP', handles, tmp.srsWKT)			% If we have a WKT proj store it
 				end
             else
 				X = [];			Y = [];			win_name = 'Cropped Image';
@@ -177,7 +177,6 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles = show_image(handles,win_name,X,Y,varargin{1},0,axis_t,handles.head(7),1);
 			grid_info(handles,[],'iminfo',varargin{1});			% Contruct a info string
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
-			handles = aux_funs('isProj',handles);				% Check about coordinates type
 		elseif ( n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')) )
 			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
 			Z = varargin{1};			grd_data_in = 1;
@@ -192,8 +191,9 @@ function hObject = mirone_OpeningFcn(varargin)
 					handles.was_int16 = tmp.was_int16;		handles.Nodata_int16 = tmp.Nodata_int16;
 				end
 				if (isfield(tmp,'srsWKT') && ~isempty(tmp.srsWKT) )
-					aux_funs('appP', handles, srsWKT)			% If we have a WKT proj store it
+					aux_funs('appP', handles, tmp.srsWKT)			% If we have a WKT proj store it
 				end
+				handles = aux_funs('isProj',handles);			% Check/set about coordinates type
 				clear tmp;
 			else
 				zz = grdutils(Z,'-L');
