@@ -193,7 +193,6 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'srsWKT') && ~isempty(tmp.srsWKT) )
 					aux_funs('appP', handles, tmp.srsWKT)			% If we have a WKT proj store it
 				end
-				handles = aux_funs('isProj',handles);			% Check/set about coordinates type
 				clear tmp;
 			else
 				zz = grdutils(Z,'-L');
