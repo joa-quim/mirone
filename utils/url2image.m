@@ -372,6 +372,7 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 		end
 		if ( strcmp(opt, 'callmir') )
 			if (~isempty(cmap)),	tmp.cmap = cmap;	end
+			if (reportMerc),		tmp.srsWKT = ogrproj('+proj=merc  +R=6371008.7714');	end
 			mirone(img, tmp)
 		else
 			url = img;
