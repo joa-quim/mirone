@@ -306,10 +306,10 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	dataNames = {s.Dataset.Name};			% example: {'x' 'y' 'z'}; Order may change
 	ind = strcmp(attribNames,'actual_range');		z_actual_range = [];
 	if (any(ind)),	z_actual_range = s.Dataset(z_id).Attribute(ind).Value;	end
-% 	ind = strcmp(attribNames,'scale_factor');		scale_factor = 1;
-% 	if (any(ind)),	scale_factor = s.Dataset(z_id).Attribute(ind).Value;	end
-% 	ind = strcmp(attribNames,'add_offset');			add_offset = 0;
-% 	if (any(ind)),	add_offset = s.Dataset(z_id).Attribute(ind).Value;		end
+	ind = strcmp(attribNames,'scale_factor');		scale_factor = 1;
+	if (any(ind)),	scale_factor = s.Dataset(z_id).Attribute(ind).Value;	end
+	ind = strcmp(attribNames,'add_offset');			add_offset = 0;
+	if (any(ind)),	add_offset = s.Dataset(z_id).Attribute(ind).Value;		end
 	% GDAL and ESRI put the eventual georeferencing on the layer
 	grid_mapping = [];		srsWKT = [];		strPROJ4 = [];
 	ind = strcmp(attribNames,'grid_mapping');
@@ -410,7 +410,14 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	if (~isempty(y_actual_range)),		head(3:4) = y_actual_range;
 	else								head(3:4) = [Y(1) Y(end)];
 	end
-	
+
+	if (get_Z && (scale_factor ~= 1 || add_offset ~= 0) )		% If we have scale or offset convert to single the "lower"
+		if ( ~(isa(Z, 'double') || isa(Z, 'single')) )			% types. Maybe not always apropriate but not general rule
+			Z = single(Z);
+		end
+		cvlib_mex('CvtScale',Z,scale_factor,add_offset)			% Do inplace
+	end
+
 	if (get_Z && isempty(z_actual_range))
 		if ( isa(Z, 'double') )
 			z_actual_range = [min(Z(:)) max(Z(:))];
