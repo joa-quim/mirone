@@ -594,29 +594,31 @@ function set_PB_uicontext(h,data)
 % h is a handle to the lines of the PB_All (P. Bird Plate Boundaries) object
 
 for i = 1:7     % Loop over all Plate Boundaries Types
-    switch i
-        case 1,            h_cur = h.OSR;  data_cur = data.OSR;    % class = 'OSR'
-        case 2,            h_cur = h.OTF;  data_cur = data.OTF;    % class = 'OTF'
-        case 3,            h_cur = h.CRB;  data_cur = data.CRB;    % class = 'CRB'
-        case 4,            h_cur = h.CTF;  data_cur = data.CTF;    % class = 'CTF'
-        case 5,            h_cur = h.CCB;  data_cur = data.CCB;    % class = 'CCB'
-        case 6,            h_cur = h.OCB;  data_cur = data.OCB;    % class = 'OCB'
-        case 7,            h_cur = h.SUB;  data_cur = data.SUB;    % class = 'SUB'
-    end
-	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
-    set(h_cur, 'UIContextMenu', cmenuHand);
-    cb_LineWidth = uictx_Class_LineWidth(h_cur);    % there are 5 cb_PB_LineWidth outputs
-    cb_color = uictx_Class_LineColor(h_cur);        % there are 9 cb_PB_color outputs
-    uimenu(cmenuHand, 'Label', 'Segment info', 'Callback', {@PB_All_Info,h_cur,data_cur});
-    uimenu(cmenuHand, 'Label', 'Delete class', 'Callback', 'delete(findobj(''Tag'',''PB_All''))', 'Separator','on');
-    uimenu(cmenuHand, 'Label', 'Segment length', 'Callback', {@show_LineLength,[]});
-    item3 = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-    uimenu(item3, 'Label', '2       pt', 'Callback', cb_LineWidth{2});
-    uimenu(item3, 'Label', '3       pt', 'Callback', cb_LineWidth{3});
-    uimenu(item3, 'Label', '4       pt', 'Callback', cb_LineWidth{4});
-    uimenu(item3, 'Label', 'Other...', 'Callback', cb_LineWidth{5});
-    item_lc = uimenu(cmenuHand, 'Label', 'Color');
-    setLineColor(item_lc,cb_color)
+	h_cur = [];
+	switch i
+		case 1,            h_cur = h.OSR;  data_cur = data.OSR;    % class = 'OSR'
+		case 2,            h_cur = h.OTF;  data_cur = data.OTF;    % class = 'OTF'
+		case 3,            h_cur = h.CRB;  data_cur = data.CRB;    % class = 'CRB'
+		case 4,            h_cur = h.CTF;  data_cur = data.CTF;    % class = 'CTF'
+		case 5,            h_cur = h.CCB;  data_cur = data.CCB;    % class = 'CCB'
+		case 6,            h_cur = h.OCB;  data_cur = data.OCB;    % class = 'OCB'
+		case 7,            h_cur = h.SUB;  data_cur = data.SUB;    % class = 'SUB'
+	end
+	if (isempty(h_cur)),	continue,	end
+	cmenuHand = uicontextmenu;
+	set(h_cur, 'UIContextMenu', cmenuHand);
+	cb_LineWidth = uictx_Class_LineWidth(h_cur);    % there are 5 cb_PB_LineWidth outputs
+	cb_color = uictx_Class_LineColor(h_cur);        % there are 9 cb_PB_color outputs
+	uimenu(cmenuHand, 'Label', 'Segment info', 'Callback', {@PB_All_Info,h_cur,data_cur});
+	uimenu(cmenuHand, 'Label', 'Delete class', 'Callback', 'delete(findobj(''Tag'',''PB_All''))', 'Separator','on');
+	uimenu(cmenuHand, 'Label', 'Segment length', 'Callback', {@show_LineLength,[]});
+	item3 = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	uimenu(item3, 'Label', '2       pt', 'Callback', cb_LineWidth{2});
+	uimenu(item3, 'Label', '3       pt', 'Callback', cb_LineWidth{3});
+	uimenu(item3, 'Label', '4       pt', 'Callback', cb_LineWidth{4});
+	uimenu(item3, 'Label', 'Other...', 'Callback', cb_LineWidth{5});
+	item_lc = uimenu(cmenuHand, 'Label', 'Color');
+	setLineColor(item_lc,cb_color)
 end
 
 % -----------------------------------------------------------------------------------------
