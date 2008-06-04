@@ -594,6 +594,7 @@ function set_PB_uicontext(h,data)
 % h is a handle to the lines of the PB_All (P. Bird Plate Boundaries) object
 
 for i = 1:7     % Loop over all Plate Boundaries Types
+	h_cur = [];
     switch i
         case 1,            h_cur = h.OSR;  data_cur = data.OSR;    % class = 'OSR'
         case 2,            h_cur = h.OTF;  data_cur = data.OTF;    % class = 'OTF'
@@ -603,7 +604,8 @@ for i = 1:7     % Loop over all Plate Boundaries Types
         case 6,            h_cur = h.OCB;  data_cur = data.OCB;    % class = 'OCB'
         case 7,            h_cur = h.SUB;  data_cur = data.SUB;    % class = 'SUB'
     end
-	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	if (isempty(h_cur)),	continue,	end
+	cmenuHand = uicontextmenu;
     set(h_cur, 'UIContextMenu', cmenuHand);
     cb_LineWidth = uictx_Class_LineWidth(h_cur);    % there are 5 cb_PB_LineWidth outputs
     cb_color = uictx_Class_LineColor(h_cur);        % there are 9 cb_PB_color outputs
