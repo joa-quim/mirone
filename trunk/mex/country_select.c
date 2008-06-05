@@ -14,7 +14,7 @@
 #define	FALSE	0
 
 /* In non-Windows this is may not be necessary (or guive conflicts) */
-#define copysign(x,y) ((y) < 0.0 ? -fabs(x) : fabs(x))
+#define Loc_copysign(x,y) ((y) < 0.0 ? -fabs(x) : fabs(x))
 
 #include "countries.h"
 #include "mex.h"
@@ -89,8 +89,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'A':
 					area = (float)atof(&argv[i][2]);
 					break;
-					//j = sscanf (&argv[i][2], "%f/%f", &min_area, &max_area);
-					//if (j == 1) max_level = MAX_LEVEL;
+					/*j = sscanf (&argv[i][2], "%f/%f", &min_area, &max_area);*/
+					/*if (j == 1) max_level = MAX_LEVEL;*/
 				case 'I':
 					id[0] = (short int)atoi (&argv[i][2]);
 					id_given = TRUE;
@@ -323,7 +323,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		id_curr = h.country_id;
 		if (id_curr != id_prev || id_prev == N_COUNTRIES-1) {	/* Got next country */
 			if (got_one) {		/* Got one output. Fill in the structure */
-				//mexPrintf("MERDA1 %s ID=%d ID2=%d X0=%.4f Y0=%.4f AREA=%.1f NP=%d\n", country_list[id[id_c]], id_c, id[id_c], tmp_cent[0], tmp_cent[1], max_area, is/2);
 
 				mxCountry = mxCreateDoubleMatrix (2,(int)(is/2), mxREAL);
 				pdata = mxGetPr(mxCountry);
@@ -354,9 +353,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			tmp_cent[1] = (double) h.centroid.y;
 			got_partialy = FALSE;
 			first_alloc = TRUE;
-			//if (h.country_id >= 112 && h.country_id < 127) mexPrintf("%s\tcurr=%d prev=%d id_c=%d %s", country_list[h.country_id], id_curr, id_prev, id_c, country_list[id[id_c]]);
+			/*if (h.country_id >= 112 && h.country_id < 127) mexPrintf("%s\tcurr=%d prev=%d id_c=%d %s", country_list[h.country_id], id_curr, id_prev, id_c, country_list[id[id_c]]);*/
 			if (h.country_id > id[id_c]) {		/* This is needed with decimated versions of the database */
-				//id_diff = id_curr - id_prev;
+				/*id_diff = id_curr - id_prev;*/
 				id_diff = id_curr - id[id_c];
 				if (id_diff > 1)
 					id_c += id_diff;
@@ -365,20 +364,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				if (id[id_c] < 0)
 					break;	/* No more countries to extract. We are done */
 			}
-			//if (h.country_id >= 112 && h.country_id < 127) mexPrintf("\tid_c=%d %s\n", id_c, country_list[id[id_c]]); 
+			/*if (h.country_id >= 112 && h.country_id < 127) mexPrintf("\tid_c=%d %s\n", id_c, country_list[id[id_c]]); */
 		}
 	}
 	fclose (fp);
 
 	/*for (i = 0; i < N_COUNTRIES; i++) {
-		//field_num = mxGetFieldNumber(countries_struct, country_list[i]); 
-		//mexPrintf("MMM %s %d\n", country_list[i], field_num);
+		field_num = mxGetFieldNumber(countries_struct, country_list[i]); 
+		mexPrintf("MMM %s %d\n", country_list[i], field_num);
 		ptr = mxGetFieldByNumber(countries_struct, i, 0);
 		ptr2 = mxGetFieldByNumber(countries_struct, i, 1);
 		if (ptr == NULL) {
 			mxFree(ptr);
 			mxFree(ptr2);
-			//mexErrMsgTxt("MMMMMMMaaaaaaa \n");
+			mexErrMsgTxt("MMMMMMMaaaaaaa \n");
 		}
 	}*/
 
@@ -468,11 +467,11 @@ double ddmmss_to_degree (char *text) {
 	suffix = (int)text[i-1];	/* Last character in string */
 	if (colons == 2) {	/* dd:mm:ss format */
 		sscanf (text, "%lf:%lf:%lf", &degree, &minute, &second);
-		degfrac = degree + copysign (minute / 60.0 + second / 3600.0, degree);
+		degfrac = degree + Loc_copysign (minute / 60.0 + second / 3600.0, degree);
 	}
 	else if (colons == 1) {	/* dd:mm format */
 		sscanf (text, "%lf:%lf", &degree, &minute);
-		degfrac = degree + copysign (minute / 60.0, degree);
+		degfrac = degree + Loc_copysign (minute / 60.0, degree);
 	}
 	else
 		degfrac = atof (text);
