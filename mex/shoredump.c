@@ -289,9 +289,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		GMT_world_map = TRUE;
 
 	if (GMT_world_map && greenwich) {
-		//edge = project_info.central_meridian;
+		/*edge = project_info.central_meridian;*/
 		edge = 0.5 * (east + west);
-		//shift = TRUE;		edge = 180;		/* I WANT LONGS <-180;+180>*/
+		/*shift = TRUE;		edge = 180;*/		/* I WANT LONGS <-180;+180>*/
 		shift = TRUE;					/* I WANT LONGS <-180;+180>*/
 	}
 	else if (!GMT_world_map && greenwich) {
@@ -307,17 +307,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 
 	/* I WANT LONGS <-180;+180> and this was the only way I found to force it (shit I don't understand how it works) */
-	//shift = TRUE;
-	//greenwich = TRUE;
-	//GMT_world_map = TRUE;
-	//edge = 180;
+	/*shift = TRUE;
+	greenwich = TRUE;
+	GMT_world_map = TRUE;
+	edge = 180;*/
 
 	/* Comment bellow because I WANT LONGS <-180;+180> */
-	//if (project_info.w < 0.0 && project_info.e <= 0.0) {	/* Temporarily shift boundaries */
-		//project_info.w += 360.0;
-		//project_info.e += 360.0;
-		//if (project_info.central_meridian < 0.0) project_info.central_meridian += 360.0;
-	//}
+	/*if (project_info.w < 0.0 && project_info.e <= 0.0) {*/	/* Temporarily shift boundaries */
+		/*project_info.w += 360.0;
+		project_info.e += 360.0;
+		if (project_info.central_meridian < 0.0) project_info.central_meridian += 360.0;
+	}*/
 
 	west_border = floor (project_info.w / c.bsize) * c.bsize;
 	east_border = ceil (project_info.e / c.bsize) * c.bsize;
