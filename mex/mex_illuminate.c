@@ -36,7 +36,7 @@
 /*#define copysign(x,y) _copysign(x,y)
 If compiling under unix probably the above line should be removed */
 /* In non-Windows this is may not be necessary (or give conflicts) */
-#define copysign(x,y) ((y) < 0.0 ? -fabs(x) : fabs(x))
+#define Loc_copysign(x,y) ((y) < 0.0 ? -fabs(x) : fabs(x))
 
 #define mn_data(m,n) (ny*(n)+(m))
 #define mnk_data(k,m,n) (k*ny*nx + ny*(n) + m)
@@ -141,17 +141,17 @@ void GMT_rgb_to_hsv (int rgb[], double *h, double *s, double *v) {
 	*h = 0.0;
 	if ((*s) == 0.0) return;	/* Hue is undefined */
 	idiff = 1.0 / diff;
-	//r_dist = (max_v - xr);
-	//g_dist = (max_v - xg);
-	//b_dist = (max_v - xb);
+	/*r_dist = (max_v - xr);
+	g_dist = (max_v - xg);
+	b_dist = (max_v - xb);*/
 	if (xr == max_v)
-		//*h = (b_dist - g_dist) * idiff;
+		/* *h = (b_dist - g_dist) * idiff;*/
 		*h = (xg - xb) * idiff;
 	else if (xg == max_v)
-		//*h = 2.0 + (r_dist - b_dist) * idiff;
+		/* *h = 2.0 + (r_dist - b_dist) * idiff;*/
 		*h = 2.0 + (xb - xr) * idiff;
 	else
-		//*h = 4.0 + (g_dist - r_dist) * idiff;
+		/* *h = 4.0 + (g_dist - r_dist) * idiff;*/
 		*h = 4.0 + (xr - xg) * idiff;
 	(*h) *= 60.0;
 	if ((*h) < 0.0) (*h) += 360.0;
@@ -204,7 +204,7 @@ void GMT_illuminate (double intensity, int rgb[])
 	
 	/*if (GMT_is_dnan (intensity)) return;*/
 	if (intensity == 0.0) return;
-	if (fabs (intensity) > 1.0) intensity = copysign (1.0, intensity);
+	if (fabs (intensity) > 1.0) intensity = Loc_copysign (1.0, intensity);
 	
 	GMT_rgb_to_hsv (rgb, &h, &s, &v);
 	if (intensity > 0.0) {
