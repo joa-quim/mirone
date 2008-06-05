@@ -457,7 +457,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					if (ii < 0 || ii > nx1) continue;
 					ii = header.ny * (ii + 1) - 1;
 					for (j = j_min; j <= j_max; j++) {
-						//ij = j * header.nx + ii;
+						/*ij = j * header.nx + ii;*/
 						ij = ii - j;
 						data_8[ij] = (unsigned char)k;
 					}
