@@ -40,10 +40,13 @@
 #include <netcdf.h>
 #include <float.h>
 #include <math.h>
+#include <string.h>
 
 #define	FALSE	0
 #define	TRUE	1
+#ifndef M_PI
 #define M_PI	3.14159265358979323846
+#endif
 #define D2R		M_PI / 180.
 #define LF		0x0A
 #define CR		0x0D
@@ -494,8 +497,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		x = tmp[i];		y = tmp[i+n_mareg];
 		ix = irint((x - hdr_b.x_min) / x_inc);
 		jy = irint((y - hdr_b.y_min) / y_inc); 
-		x_tmp = hdr_b.x_min + x_inc * ix;	// Adjusted x maregraph pos
-		y_tmp = hdr_b.y_min + y_inc * jy;	// Adjusted y maregraph pos
+		x_tmp = hdr_b.x_min + x_inc * ix;	/* Adjusted x maregraph pos*/
+		y_tmp = hdr_b.y_min + y_inc * jy;	/* Adjusted y maregraph pos*/
 		mexPrintf("%.4f\t%.4f\t%.4f\t%.4f\t%.1f\n",x,y,x_tmp,y_tmp,-dep[lcum_p[i]]);
 	}*/
 
@@ -1630,8 +1633,7 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	int ncid, m, n, nx, ny, status, nVolumes, nPoints, dim0[5], dim2[2], dim3[2];
 	int i, j, k, m_nx, m1_nx, *volumes, *vertices, v1, v2, v3, v4;
 	float dummy2[2], *x, *y, yr, *tmp;
-	double dummy, nan, faultPolyX[11], faultPolyY[11], faultSlip[10], faultStrike[10], 
-		faultDip[10], faultRake[10], faultWidth[10], faultDepth[10];
+	double dummy;
 
 	if ( (status = nc_create (fname_sww, NC_CLOBBER, &ncid)) != NC_NOERR) {
 		mexPrintf ("swan: Unable to create file %s - exiting\n", fname_sww);
@@ -1647,7 +1649,7 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	err_trap (nc_def_dim (ncid, "number_of_points", (size_t) nPoints, &dim0[3]));
 	err_trap (nc_def_dim (ncid, "number_of_timesteps", NC_UNLIMITED, &dim0[4]));
 
-	//mexPrintf("Write Dimensions\n");
+	/*mexPrintf("Write Dimensions\n");*/
 	/* ---- Define variables ------------- */
 	dim2[0] = dim0[4];		dim2[1] = dim0[3];
 	dim3[0] = dim0[0];		dim3[1] = dim0[1];
@@ -1665,7 +1667,7 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	err_trap (nc_def_var (ncid, "ymomentum",	NC_FLOAT,2, dim2, &ids[11]));
 	err_trap (nc_def_var (ncid, "ymomentum_range", 	NC_FLOAT,1, &dim0[2], &ids[12]));
 
-	//mexPrintf("Write Attributes\n");
+	/*mexPrintf("Write Attributes\n");*/
 	/* ---- Global Attributes ------------ */
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "institution", 10, "Mirone Tec"));
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "description", 22, "Created by Mirone-Swan"));
@@ -1678,24 +1680,9 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "datum", 5, "wgs84"));
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "projection", 3, "UTM"));
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "units", 1, "m"));
-	/* Initialize the following attribs with NaNs. A posterior call will eventualy fill them with the right values */
-	nan = mxGetNaN();
-	for (i = 0; i < 10; i++) {
-		faultPolyX[i] = faultPolyY[i] = faultSlip[i] = faultDip[i] = faultStrike[i] = 
-				faultRake[i] = faultWidth[i] = faultDepth[i] = nan;
-	}
-	faultPolyX[10] = faultPolyY[10] = nan;		/* Those have an extra element */
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyX", NC_DOUBLE, 11, &faultPolyX));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyY", NC_DOUBLE, 11, &faultPolyY));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultStrike", NC_DOUBLE, 10, &faultStrike));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultSlip", NC_DOUBLE, 10, &faultSlip));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDip", NC_DOUBLE, 10, &faultDip));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultRake", NC_DOUBLE, 10, &faultRake));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultWidth", NC_DOUBLE, 10, &faultWidth));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDepth", NC_DOUBLE, 10, &faultDepth));
 
 	/* ---- Write the vector coords ------ */
-	//mexPrintf("Write vector coords\n");
+	/*mexPrintf("Write vector coords\n");*/
 	x = (float *) mxMalloc (sizeof (float) * (nx * ny));
 	y = (float *) mxMalloc (sizeof (float) * (nx * ny));
 	vertices = (int *) mxMalloc (sizeof (int) * (nx * ny));
@@ -1740,7 +1727,7 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	}
 
 	err_trap (nc_put_var_float (ncid, ids[2], tmp));	/* z */
-	//mexPrintf("Write Z and Elevation coords\n");
+	/*mexPrintf("Write Z and Elevation coords\n");*/
 
 	err_trap (nc_put_var_float (ncid, ids[3], tmp));	/* elevation */
 	dummy2[0] = z_min;		dummy2[1] = z_max;
