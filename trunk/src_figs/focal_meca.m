@@ -91,7 +91,7 @@ function varargout = focal_meca(varargin)
 		end
 	end
 	
-	% Add this figure handle to the carraças list
+	% Add this figure handle to the carra?as list
 	plugedWin = getappdata(handMir.figure1,'dependentFigs');
 	plugedWin = [plugedWin hObject];
 	setappdata(handMir.figure1,'dependentFigs',plugedWin);
@@ -188,8 +188,8 @@ function pushbutton_readFile_Callback(hObject, eventdata, handles)
                     case 7,			handles.plot_pos = numeric_data(:,1:2);
                     case 9,			handles.plot_pos = numeric_data(:,8:9);
                     case 10,		handles.plot_pos = numeric_data(:,8:9);
-                end
-            else                % CMT convention
+				end
+			else                % CMT convention
                 if (~(n_column == 11 || n_column == 13 || n_column == 14))
                     errordlg('Wrong number of columns for an CMT file','Error');    return
                 end
@@ -201,8 +201,8 @@ function pushbutton_readFile_Callback(hObject, eventdata, handles)
 					case 11,		handles.plot_pos = numeric_data(:,1:2);
 					case 13,		handles.plot_pos = numeric_data(:,12:13);
 					case 14,		handles.plot_pos = numeric_data(:,12:13);
-                end
-            end
+				end
+			end
 	
         elseif (strcmp(filtro,'isf'))				% Read a ISF formated catalog
 			opt_R = '-';							% When no image at all
@@ -437,16 +437,12 @@ hand.have_focal = handles.Mag5;         % Signal that we have focal mechanisms a
 guidata(handles.mirone_fig,hand)        % Save the updated Mirone handles
 
 % -------------------------------------------------------------------------------------
-function pushbutton_Cancel_Callback(hObject, eventdata, handles)
-    delete(handles.figure1);
-
-% -------------------------------------------------------------------------------------
 function cor = find_color(z, id)
-	if (z < 33),				cor = id{1};
-	elseif (z >= 33 & z < 70)   cor = id{2};
-	elseif (z >= 70 & z < 150)  cor = id{3};
-	elseif (z >= 150 & z < 300) cor = id{4};
-	else						cor = id{5};
+	if (z < 33),					cor = id{1};
+	elseif (z >= 33 && z < 70)		cor = id{2};
+	elseif (z >= 70 && z < 150)		cor = id{3};
+	elseif (z >= 150 && z < 300)	cor = id{4};
+	else							cor = id{5};
 	end
 
 % -------------------------------------------------------------------------------------
@@ -524,7 +520,7 @@ function [data, mantiss_exp, eventDate, error] = readHarvardCMT(fname)
 	data = [];		mantiss_exp = [];		eventDate = [];		error = 0;
 	fid = fopen(fname, 'r');
 	if (fid < 0)
-		error = 1;		error(['Error opening file ' fname],'Error')
+		error = 1;		error(['Error opening file ' fname],'Error');
 		return
 	end
 
@@ -560,7 +556,7 @@ function figure1_KeyPressFcn(hObject, eventdata)
 	end
 
 % --- Creates and returns a handle to the GUI figure. 
-function focal_meca_LayoutFcn(h1);
+function focal_meca_LayoutFcn(h1)
 
 set(h1,...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
@@ -570,11 +566,8 @@ set(h1,...
 'Name','Focal mechanisms',...
 'NumberTitle','off',...
 'Position',[520 445 390 355],...
-'Renderer',get(0,'defaultfigureRenderer'),...
-'RendererMode','manual',...
 'Resize','off',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -618,7 +611,7 @@ uicontrol('Parent',h1, 'Position',[143 237 51 30],...
 
 uicontrol('Parent',h1,'Position',[10 44 371 141],'Style','frame','Tag','frame2');
 
-uicontrol('Parent',h1, 'Position',[19 140 42 30],...
+uicontrol('Parent',h1, 'Position',[15 140 51 30],...
 'String',{'Minimum'; 'depth'}, 'Style','text');
 
 uicontrol('Parent',h1, 'Position',[135 139 51 30],...
@@ -643,7 +636,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@focal_meca_uicallback,h1,'edit_DepthMin_Callback'},...
-'Position',[63 145 47 21],...
+'Position',[70 145 47 21],...
 'String','0',...
 'Style','edit',...
 'TooltipString','Do not plot events shalower than this',...
@@ -745,14 +738,8 @@ uicontrol('Parent',h1,...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@focal_meca_uicallback,h1,'pushbutton_Cancel_Callback'},...
-'Position',[224 10 66 23],...
-'String','Cancel',...
-'Tag','pushbutton_Cancel');
-
-uicontrol('Parent',h1,...
 'Callback',{@focal_meca_uicallback,h1,'pushbutton_OK_Callback'},...
-'Position',[315 10 66 23],...
+'Position',[315 10 66 21],...
 'String','OK',...
 'Tag','pushbutton_OK');
 
