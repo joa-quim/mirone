@@ -19,7 +19,9 @@
 /* Macro definition ij_data(i,j) finds the array index to an element
         containing the real data(i,j) in the padded complex array:  */
 #define ij_data(i,j) (nx*(j)+(i))
+#ifndef M_PI
 #define M_PI          3.14159265358979323846
+#endif
 #define D2R (M_PI / 180.0)
 #define rint(x) (floor((x)+0.5))
 #define irint(x) ((int)rint(x))
