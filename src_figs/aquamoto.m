@@ -70,14 +70,15 @@ function varargout = aquamoto(varargin)
 		'Max Depth'; ...
 		'Froude Number'; ...
 		'Velocity Head (V^2 / (2g))'; ...
-		'Energy (D + V^2 / (2g))'; ...
+		'Total Energy (Stage + V^2 / (2g))'; ...
+		'Specific Energy (D + V^2 / (2g))'; ...
 		'Taylor-V (D*(1+V+V**2))'; ...
 		'Hazard-RVD (D(1+V^2))'; ...
 		'Hazard-RVD (DV^2)'})
 
 	% In push_swwName_Callback() individual ranges MUST be assigned to handles.ranges
 	% following exactly the variables order used in the popup_derivedVar.
-	handles.ranges = cell(15,1);		% 15 = 3 (direct vars) + 12 (derived vars)
+	handles.ranges = cell(16,1);		% 16 = 3 (direct vars) + 13 (derived vars)
 	handles.elevRange = [];
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
@@ -338,7 +339,7 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 	if (~any(ind))
 		[X,Y,Z,head,misc] = nc_io(handles.fname,'R');
 		if (numel(head) == 9 && isfield(misc,'z_id'))			% INTERCEPT POINT FOR PLAIN COARDS NETCDF FILES
-			if (numel(misc.z_dim <= 2))
+			if (numel(misc.z_dim) <= 2)
 				errordlg('This netCDF file is not 3D. Use Mirone directly to read it.','Error')
 				return
 			end
@@ -412,10 +413,11 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 		handles.ranges{4}  = handles.ranges{5} ./ D;					% vRange
 		handles.ranges{10} = handles.ranges{4} ./ sqrt(D * 9.8);		% V / sqrt(gD) - froudeRange
 		handles.ranges{11} = handles.ranges{4} .^ 2 / (2*9.8);			% vHeadRange
-		handles.ranges{12} = D + handles.ranges{4} .^ 2 / (2*9.8);		% energyRange
-		handles.ranges{13} = D .* (1 + handles.ranges{4} + handles.ranges{4} .^ 2);		% D(1+V+V^2) - taylorVRange
-		handles.ranges{14} = D .* (1 + handles.ranges{4} .^ 2);			% D(1+V^2) -- hazard_rvd_Range
-		handles.ranges{15} = D .* (handles.ranges{4} .^ 2);				% DV^2 -- hazard2_rvd_Range
+		handles.ranges{12} = [min(handles.ranges{1}); max(handles.ranges{1})] + handles.ranges{4} .^ 2 / (2*9.8);		% total energyRange
+		handles.ranges{13} = D + handles.ranges{4} .^ 2 / (2*9.8);		% specific energyRange
+		handles.ranges{14} = D .* (1 + handles.ranges{4} + handles.ranges{4} .^ 2);		% D(1+V+V^2) - taylorVRange
+		handles.ranges{15} = D .* (1 + handles.ranges{4} .^ 2);			% D(1+V^2) -- hazard_rvd_Range
+		handles.ranges{16} = D .* (handles.ranges{4} .^ 2);				% DV^2 -- hazard2_rvd_Range
 	end
 
 	% --------------- Estimate a "reasonable" proposition for grid dimensions------------------
@@ -457,14 +459,6 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 	set([handles.textResize handles.popup_resize], 'Enable', 'off')
 
 	guidata(handles.figure1,handles)
-
-% -----------------------------------------------------------------------------------------
-function check_splitDryWet_Callback(hObject, eventdata, handles)
-% Do Nothing
-
-% -----------------------------------------------------------------------------------------
-function check_globalMinMax_Callback(hObject, eventdata, handles)
-% Do Nothing
 
 % -----------------------------------------------------------------------------------------
 function push_showSlice_Callback(hObject, eventdata, handles)
@@ -615,7 +609,7 @@ function push_runIn_Callback(hObject, eventdata, handles)
 
 	if ( isempty(handles.hMirFig) || ~ishandle(handles.hMirFig) || isempty(handles.indMaxWater) )		% Do a lot of tricks 
 		% We dont have a valid Mirone figure with data displayed. Try to create one from here.
-		% But since we need "Max Water" set the popup to that before calling "push_showSlice"
+		% But since we need "Max Water", set the popup to that before calling "push_showSlice"
 		if ( isempty(handles.indMaxWater) )				% If it has not yet been computed
 			set(handles.check_derivedVar, 'Val', 1)		% Simulate the all process
 			check_derivedVar_Callback(handles.check_derivedVar, eventdata, handles)
@@ -683,10 +677,11 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 	% 9  'Max Depth'; ...
 	% 10 'Froude Number'; ...
 	% 11 'Velocity Head (V^2 / (2g))'; ...
-	% 12 'Energy (D + V^2 / (2g))'; ...
-	% 13 'Taylor-V (D*(1+V+V**2))'
-	% 14 'Hazard-RVD (D(1+V^2))'; ...
-	% 15 'Hazard-RVD (DV^2)'; ...
+	% 12 'Total Energy (Stage + V^2 / (2g))'; ...
+	% 13 'Specific Energy (D + V^2 / (2g))'; ...
+	% 14 'Taylor-V (D*(1+V+V**2))'
+	% 15 'Hazard-RVD (D(1+V^2))'; ...
+	% 16 'Hazard-RVD (DV^2)'; ...
 
 	U = [];		V = [];		indWater = [];
 	contents = get(handles.popup_derivedVar, 'String');
@@ -768,7 +763,8 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 				if ( isnan(h) ),	break,	end
 			end
 			indVar = 9;
-		case {'Velocity He' 'Energy (D +' 'Taylor-V (D' 'Hazard-RVD '}	% V^2 / (2g) || D + V^2 / (2g) || D*(1+V+V^2) || D * (1 + V^2) || D * V^2
+		case {'Velocity He' 'Specific En' 'Total Energ' 'Taylor-V (D' 'Hazard-RVD '}
+			% V^2 / (2g) || Stage + V^2 / (2g) || D + V^2 / (2g) || D*(1+V+V^2) || D * (1 + V^2) || D * V^2
 			x = nc_funs('varget', handles.fname, 'xmomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			y = nc_funs('varget', handles.fname, 'ymomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
@@ -777,26 +773,31 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 			y = nc_funs('varget', handles.fname, 'elevation')';
 			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
 			D = (x - y + 1e-10);
-			clear x y;
+			clear y;
+			if (~strncmp(qual, 'To', 2)),	clear x,	end
 			ind_0 = (D < 1e-8);			% To get arround a devide-by-nearly-zero and Anuga bug in velocity problem 
 			if (qual(1) == 'V')
 				D = D .* D;
 				theVar = theVar ./ (19.6 * D);		% 19.6 = 2 * 9.8
 				indVar = 11;
+			elseif (qual(1) == 'T')		% Total Energy -- Stage + V^2 / (2g)
+				x(x <= 0) = 0;			% We don't want negative energies
+				theVar = x + theVar ./ (19.6 * (D .* D));
+				indVar = 12;
 			elseif (qual(1) == 'E')		% D + V^2 / (2g)
 				theVar = D + theVar ./ (19.6 * (D .* D));
-				indVar = 12;
-			elseif (qual(1) == 'T')
+				indVar = 13;
+			elseif (strncmp(qual, 'Ta', 2))
 				% theVar = D .* (1 + sqrt(theVar ./ (D .* D)) + theVar ./ (D .* D) );	% D(1+V+V^2) 
 				% theVar = D + theVar ./ D + sqrt((D .* D) .* theVar ./ (D .* D));		% D + DV^2 + sqrt(D^2 * (DV)^2 / D^2)
 				theVar = D + theVar ./ D + sqrt(theVar);								% D + DV^2 + DV = D(1+V+V^2)
-				indVar = 13;
+				indVar = 14;
 			elseif (qual(1) == 'H')
 				theVar = D + theVar ./ D;		% = D + (DV)^2/D = D + DV^2 = D * (1 + V^2)
-				indVar = 14;
+				indVar = 15;
 			else
 				theVar = theVar ./ D;			% = (DV)^2/D = DV^2
-				indVar = 15;
+				indVar = 16;
 			end
 			theVar(ind_0) = 0; 
 	end
@@ -1160,14 +1161,6 @@ function check_resetCmaps_Callback(hObject, eventdata, handles)
     end
 
 % -----------------------------------------------------------------------------------------
-function edit_elev_Callback(hObject, eventdata, handles)
-% Do Nothing
-
-% -----------------------------------------------------------------------------------------
-function edit_azim_Callback(hObject, eventdata, handles)
-% Do Nothing
-
-% -----------------------------------------------------------------------------------------
 function radio_noShade_Callback(hObject, eventdata, handles)
 	if ( ~get(hObject,'Val'))
 		set(hObject,'Val', 1)
@@ -1251,9 +1244,11 @@ function edit_fps_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function edit_imgHeight_Callback(hObject, eventdata, handles)
+% Nothing
 
 % -----------------------------------------------------------------------------------------
 function edit_imgWidth_Callback(hObject, eventdata, handles)
+% Nothing
 
 % -----------------------------------------------------------------------------------------
 function popup_resize_Callback(hObject, eventdata, handles)
@@ -1639,10 +1634,6 @@ function edit_globalWaterMin_Callback(hObject, eventdata, handles)
 		handles.usrMM = 1;          % Flag that user has changed the ensemble Min|Max
 		guidata(handles.figure1,handles)
 	end
-
-% -----------------------------------------------------------------------------------------
-function popup_surfType_Callback(hObject, eventdata, handles)
-% Do Nothing
 
 % -----------------------------------------------------------------------------------------
 function edit_landPhoto_Callback(hObject, eventdata, handles)
@@ -2032,14 +2023,6 @@ function push_singleWater_Callback(hObject, eventdata, handles, opt)
 	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
-function edit_profile_Callback(hObject, eventdata, handles)
-
-
-% -----------------------------------------------------------------------------------------
-function push_profile_Callback(hObject, eventdata, handles)
-
-
-% -----------------------------------------------------------------------------------------
 function edit_maregs_Callback(hObject, eventdata, handles)
     fname = get(hObject,'String');
 	if ( ~isempty(fname) ),    push_maregs_Callback([], [], handles, fname),	end
@@ -2161,9 +2144,6 @@ function layerInc = edit_miscLayerInc_Callback(hObject, eventdata, handles)
 	layerInc = handles.multiLayerInc;
 	handles.multiLayerInc = bak;		% Restore original value
 	guidata(handles.figure1, handles)
-
-% -----------------------------------------------------------------------------------------
-function check_miscWriteHeader_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function [theVar, U, V, indVar, indWater, theVarName] = get_swwVar(handles)
@@ -2675,7 +2655,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@aquamoto_uicallback,h1,'edit_elev_Callback'},...
 'Enable','off',...
 'Position',[616 420 30 18],...
 'String','30',...
@@ -2704,7 +2683,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@aquamoto_uicallback,h1,'edit_azim_Callback'},...
 'Enable','off',...
 'Position',[513 420 34 18],...
 'String','0',...
@@ -2913,7 +2891,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@aquamoto_uicallback,h1,'popup_surfType_Callback'},...
 'Position',[920 370 101 21],...
 'String',{  'Surface height'; 'Water depth' },...
 'Style','popupmenu',...
@@ -3332,7 +3309,6 @@ uicontrol('Parent',h1, 'Position',[328 279 25 23],...
 'UserData','anuga');
 
 uicontrol('Parent',h1,'Position',[212 50 90 15],...
-'Callback',{@aquamoto_uicallback,h1,'check_splitDryWet_Callback'},...
 'String','Split Dry/wet',...
 'Style','checkbox',...
 'TooltipString','If checked, water and land parts of the image are built separately - Nice with shadings.',...
@@ -3368,7 +3344,6 @@ uicontrol('Parent',h1,...
 'UserData','anuga');
 
 uicontrol('Parent',h1,...
-'Callback',{@aquamoto_uicallback,h1,'check_globalMinMax_Callback'},...
 'Position',[212 29 160 15],...
 'String','Scale color to global min/max',...
 'Style','checkbox',...
@@ -3450,7 +3425,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@aquamoto_uicallback,h1,'edit_profile_Callback'},...
 'HorizontalAlignment','left',...
 'Position',[690 50 311 21],...
 'Style','edit',...
@@ -3459,7 +3433,6 @@ uicontrol('Parent',h1,...
 'UserData','misc');
 
 uicontrol('Parent',h1,...
-'Callback',{@aquamoto_uicallback,h1,'push_profile_Callback'},...
 'Position',[1000 50 21 21],...
 'TooltipString','Browse for a file name',...
 'Tag','push_profile',...
@@ -3599,7 +3572,6 @@ uicontrol('Parent',h1, 'Position',[810 114 30 15],...
 'UserData','misc');
 
 uicontrol('Parent',h1, 'Position',[910 112 95 19],...
-'Callback',{@aquamoto_uicallback,h1,'check_miscWriteHeader_Callback'},...
 'FontName','Helvetica',...
 'String','Write header?',...
 'Style','checkbox',...
