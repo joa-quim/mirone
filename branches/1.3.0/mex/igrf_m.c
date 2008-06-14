@@ -16,10 +16,13 @@
 #include <time.h>
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "mex.h"
 
+#ifndef M_PI
 #define M_PI	3.14159265358979323846
+#endif
 #define D2R   M_PI/180.
 #define R2D   180./M_PI
 #define RAY   6.378165

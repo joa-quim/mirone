@@ -22,6 +22,7 @@
 
 #include "mex.h"
 #include <float.h>
+#include <math.h>
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */

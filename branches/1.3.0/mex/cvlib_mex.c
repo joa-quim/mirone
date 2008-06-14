@@ -42,6 +42,38 @@
 #define	TRUE	1
 #define	FALSE	0
 
+struct CV_CTRL {
+	/* active is TRUE if the option has been activated */
+	struct UInt8 {			/* Declare byte pointers */
+		int active;
+		unsigned char *img_out, *img_in, *tmp_img_in, *tmp_img_out;
+	} UInt8;
+	struct Int8 {			/* Declare byte pointers */
+		int active;
+		char *img_out, *img_in, *tmp_img_in, *tmp_img_out;
+	} Int8;
+	struct UInt16 {			/* Declare short int pointers */
+		int active;
+		unsigned short int *img_out, *img_in, *tmp_img_in, *tmp_img_out;
+	} UInt16;
+	struct Int16 {			/* Declare unsigned short int pointers */
+		int active;
+		short int *img_out, *img_in, *tmp_img_in, *tmp_img_out;
+	} Int16;
+	struct Int32 {			/* Declare unsigned int pointers */
+		int active;
+		int *img_out, *img_in, *tmp_img_in, *tmp_img_out;
+	} Int32;
+	struct Float {			/* Declare float pointers */
+		int active;
+		float *img_out, *img_in, *tmp_img_in, *tmp_img_out;
+	} Float;
+	struct Double {			/* Declare double pointers */
+		int active;
+		double *img_out, *img_in, *tmp_img_in, *tmp_img_out;
+	} Double;
+};
+
 void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jresize(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jfloodfill(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
@@ -92,39 +124,6 @@ void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage(), powUsage();
 void absUsage(), logUsage(), expUsage(), hypotUsage();
 void approxPolyUsage();
 void MatchTemplateUsage();
-
-struct CV_CTRL {
-	/* active is TRUE if the option has been activated */
-	struct UInt8 {			/* Declare byte pointers */
-		int active;
-		unsigned char *img_out, *img_in, *tmp_img_in, *tmp_img_out;
-	} UInt8;
-	struct Int8 {			/* Declare byte pointers */
-		int active;
-		char *img_out, *img_in, *tmp_img_in, *tmp_img_out;
-	} Int8;
-	struct UInt16 {			/* Declare short int pointers */
-		int active;
-		unsigned short int *img_out, *img_in, *tmp_img_in, *tmp_img_out;
-	} UInt16;
-	struct Int16 {			/* Declare unsigned short int pointers */
-		int active;
-		short int *img_out, *img_in, *tmp_img_in, *tmp_img_out;
-	} Int16;
-	struct Int32 {			/* Declare unsigned int pointers */
-		int active;
-		int *img_out, *img_in, *tmp_img_in, *tmp_img_out;
-	} Int32;
-	struct Float {			/* Declare float pointers */
-		int active;
-		float *img_out, *img_in, *tmp_img_in, *tmp_img_out;
-	} Float;
-	struct Double {			/* Declare double pointers */
-		int active;
-		double *img_out, *img_in, *tmp_img_in, *tmp_img_out;
-	} Double;
-};
-
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
