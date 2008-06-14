@@ -441,6 +441,7 @@ src_figs/grdgradient_Mir.m -text
 src_figs/grdlandmask_win.m -text
 src_figs/grdsample_Mir.m -text
 src_figs/grdtrend_Mir.m -text
+src_figs/grdtrend_Mir_.m -text
 src_figs/grid_calculator.m -text
 src_figs/griding_Mir.m -text
 src_figs/igrf_options.m -text
