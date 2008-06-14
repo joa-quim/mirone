@@ -240,6 +240,7 @@ typedef float      TOTAL_TYPE; /* for my PowerPC accelerator only */
 
 #include "mex.h"
 #include <math.h>
+#include <string.h>
 #define  FTOI(a) ( (a) < 0 ? ((int)(a-0.5)) : ((int)(a+0.5)) )
 typedef  unsigned char uchar;
 typedef  struct {int x,y,info, dx, dy, I;} CORNER_LIST[MAX_CORNERS];
