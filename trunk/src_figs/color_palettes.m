@@ -513,7 +513,7 @@ function change_cmap(handles,pal)
 			z_grd = linspace( handles.z_min_orig,handles.z_max_orig, size(pal,1) )';
 		end
 	elseif ( ~isempty(handles.z_min) && (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig) )
-		z_grd = linspace(handles.z_min, handles.z_max, size(pal,1))';
+		z_grd = linspace(handles.z_min_orig, handles.z_max_orig, size(pal,1))';
 	end
 
 	if (~isempty(z_grd))		% We have a non data-orig min/max
@@ -521,8 +521,16 @@ function change_cmap(handles,pal)
 		if ( ~get(handles.check_logIt,'Val') )
 			z_pal = linspace(handles.z_min,handles.z_max,len_Pal)';
 		else				% Calculate a logarithm cmap
-			log_maxmin = log(handles.z_max / handles.z_min) / len_Pal;
-			z_pal = handles.z_min * exp([1:len_Pal] * log_maxmin);
+			if (handles.z_min <= 0)		% We don't want to take logs of negative numbers
+				z_min = -handles.z_min;		z_max = handles.z_max + (z_min-handles.z_min);
+			else
+				z_min = handles.z_min;		z_max = handles.z_max;
+			end
+			log_maxmin = log(z_max / z_min) / len_Pal;
+			z_pal = z_min * exp([1:len_Pal] * log_maxmin);
+			if (handles.z_min <= 0)
+				z_pal = z_pal - (z_min-handles.z_min);		% Reset the shift applyied above to avoid taking log(negative)
+			end
 		end
 		% Interpolate the grid levels into the User selected extrema
 		ind_pal = interp1(z_pal,linspace(0,1,len_Pal),z_grd,'linear','extrap');
