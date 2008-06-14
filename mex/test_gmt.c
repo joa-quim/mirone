@@ -23,7 +23,6 @@
 
 #include "mex.h"
 #include <string.h>
-#include <io.h>
 
 #define CNULL		((char *)NULL)
 #ifndef TRUE
@@ -32,11 +31,12 @@
 #ifndef FALSE
 #define FALSE 0
 #endif
+#define R_OK 04
+#define F_OK 00
 
 #ifdef WIN32	/* Start of Windows setup */
 #define DIR_DELIM '\\'	/* Backslash as directory delimiter */
-#define R_OK 04
-#define F_OK 00
+#include <io.h>
 #endif		/* End of Windows setup */
 
 #ifndef DIR_DELIM

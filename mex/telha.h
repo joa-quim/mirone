@@ -7,7 +7,9 @@
 #define SMALL_CHUNK 	100
 #define	FALSE		0
 #define	TRUE		1
+#ifndef M_PI
 #define M_PI		3.14159265358979323846
+#endif
 #define TWO_PI		6.28318530717958647692
 #define EQ_RAD 		6371008.7714
 #define M_PR_DEG 	(EQ_RAD * M_PI / 180.0)
@@ -15,7 +17,9 @@
 #define R2D 		(180.0 / M_PI)
 #define	MAXCHAR		512
 #define SMALL           1.0e-4  /* Needed when results aren't exactly zero but close */
+#ifndef M_PI_2
 #define M_PI_2          1.57079632679489661923
+#endif
 #ifndef MIN
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))	/* min and max value macros */
 #endif
