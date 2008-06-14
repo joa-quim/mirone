@@ -47,10 +47,12 @@ function varargout = grid_calculator(varargin)
         n = 1;
         for (i=1:length(h_figs))
             hand_fig = guidata(h_figs(i));
-            % Use a try->catch because ML is too dumb to deal correctly with killed figures
-            try,    Z = getappdata(hand_fig.figure1,'dem_z');
-            catch   Z = [];
-            end
+            % Use a try->catch because ML is too dumb to deal correctly with killed figures            
+			try
+				Z = getappdata(hand_fig.figure1,'dem_z');
+			catch
+				Z = [];        
+			end
             if (isempty(Z))     continue;   end
             name = get(h_figs(i),'Name');
             ind = strfind(name,' @ ');
@@ -388,22 +390,18 @@ function str = move_operator(str)
 	if (k),		str = strrep(str,'\',' \ ');    end
 	k = strfind(str,'. ');
 	if (k)					% Here we want to have things like '.*' and not '. *'
-        while (length(k))
+        while (~isempty(k))
             str = [str(1:k(1)) str(min(k(1)+2,length(str)):end)];
             k = strfind(str,'. ');
         end
 	end
 	k = strfind(str,' '''); % Hard case of the transpose operator. It may fail often
 	if (k)                  % Here we don't want to have things like ")'" turned into ") '"
-        while (length(k))
-            str = [str(1:k(1)-1) str(min(k(1)+1,length(str)):end)]
+        while (~isempty(k))
+            str = [str(1:k(1)-1) str(min(k(1)+1,length(str)):end)];
             k = strfind(str,' ''');
         end    
 	end
-
-% ------------------------------------------------------------------------
-function pushbutton_cancel_Callback(hObject, eventdata, handles)
-	delete(handles.figure1)
 
 % ------------------------------------------------------------------------
 function pushbutton_help_Callback(hObject, eventdata, handles)
@@ -422,7 +420,7 @@ function pushbutton_help_Callback(hObject, eventdata, handles)
 	helpdlg(str,'Help')
 
 % --- Creates and returns a handle to the GUI figure. 
-function grid_calculator_LayoutFcn(h1);
+function grid_calculator_LayoutFcn(h1)
 
 set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
@@ -430,7 +428,6 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Name','Grid calculator',...
 'NumberTitle','off',...
 'Position',[520 602 669 198],...
-'RendererMode','manual',...
 'Resize','off',...
 'Tag','figure1');
 
@@ -619,14 +616,8 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Callback',{@grid_calculator_uicallback,h1,'pushbutton_compute_Callback'},...
 'FontSize',10,...
-'Position',[490 6 71 24],...
+'Position',[589 6 71 29],...
 'String','Compute','Tag','pushbutton_compute');
-
-uicontrol('Parent',h1,...
-'Callback',{@grid_calculator_uicallback,h1,'pushbutton_cancel_Callback'},...
-'FontSize',10,...
-'Position',[589 6 71 24],...
-'String','Cancel','Tag','pushbutton_cancel');
 
 uicontrol('Parent',h1,...
 'Callback',{@grid_calculator_uicallback,h1,'pushbutton_help_Callback'},...
