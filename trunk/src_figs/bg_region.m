@@ -18,40 +18,38 @@ function varargout = bg_region(varargin)
 % --------------------------------------------------------------------
  
 hObject = figure('Tag','figure1','Visible','off');
+bg_region_LayoutFcn(hObject);
 handles = guihandles(hObject);
-guidata(hObject, handles);
-bg_region_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
+movegui(hObject,'center');                  % Reposition the window on screen
  
 global nError
 handles.command = cell(15,1);
-movegui(hObject,'center');                  % Reposition the window on screen
 
 if ~isempty(varargin) && strcmp(varargin{1},'empty')
-    handles.x_min = [];                     handles.x_max = [];
-    handles.y_min = [];                     handles.y_max = [];
-    handles.command{3} = [];                handles.command{5} = [];
-    handles.command{7} = [];                handles.command{9} = [];
-    set(handles.edit_Xmin,'String','');     set(handles.edit_Xmax,'String','');
-    set(handles.edit_Ymin,'String','');     set(handles.edit_Ymax,'String','');
-    set(handles.figure1,'Name','Limits')
+	handles.x_min = [];                     handles.x_max = [];
+	handles.y_min = [];                     handles.y_max = [];
+	handles.command{3} = [];                handles.command{5} = [];
+	handles.command{7} = [];                handles.command{9} = [];
+	set(handles.edit_Xmin,'String','');     set(handles.edit_Xmax,'String','');
+	set(handles.edit_Ymin,'String','');     set(handles.edit_Ymax,'String','');
+	set(handles.figure1,'Name','Limits')
 elseif ~isempty(varargin) && strcmp(varargin{1},'with_limits')
-    tmp = varargin{2};
-    handles.x_min = tmp(1);                 handles.x_max = tmp(2);
-    handles.y_min = tmp(3);                 handles.y_max = tmp(4);
-    handles.command{3} = num2str(tmp(1));   handles.command{5} = num2str(tmp(2));
-    handles.command{7} = num2str(tmp(3));   handles.command{9} = num2str(tmp(4));
-    set(handles.edit_Xmin,'String',num2str(tmp(1)));   set(handles.edit_Xmax,'String',num2str(tmp(2)));
-    set(handles.edit_Ymin,'String',num2str(tmp(3)));   set(handles.edit_Ymax,'String',num2str(tmp(4)));
-    set(handles.figure1,'Name','Limits')
-    if ((tmp(2) - tmp(1)) > 360 || (tmp(4) - tmp(3)) > 180)  % See if limits rule out "geog"
-        set(handles.checkbox_IsGeog,'Value',0)
-    end
+	tmp = varargin{2};
+	handles.x_min = tmp(1);                 handles.x_max = tmp(2);
+	handles.y_min = tmp(3);                 handles.y_max = tmp(4);
+	handles.command{3} = num2str(tmp(1));   handles.command{5} = num2str(tmp(2));
+	handles.command{7} = num2str(tmp(3));   handles.command{9} = num2str(tmp(4));
+	set(handles.edit_Xmin,'String',num2str(tmp(1)));   set(handles.edit_Xmax,'String',num2str(tmp(2)));
+	set(handles.edit_Ymin,'String',num2str(tmp(3)));   set(handles.edit_Ymax,'String',num2str(tmp(4)));
+	set(handles.figure1,'Name','Limits')
+	if ((tmp(2) - tmp(1)) > 360 || (tmp(4) - tmp(3)) > 180)  % See if limits rule out "geog"
+		set(handles.checkbox_IsGeog,'Value',0)
+	end
 else
-    handles.x_min = -180;                   handles.x_max = 180;
-    handles.y_min = -90;                    handles.y_max = 90;
-    handles.command{3} = '-180';            handles.command{5} = '180';
-    handles.command{7} = '-90';             handles.command{9} = '90';
+	handles.x_min = -180;                   handles.x_max = 180;
+	handles.y_min = -90;                    handles.y_max = 90;
+	handles.command{3} = '-180';            handles.command{5} = '180';
+	handles.command{7} = '-90';             handles.command{9} = '90';
 end
 % Choose default command line output for bg_region_export
 handles.output = hObject;
@@ -62,17 +60,7 @@ set(hObject,'Visible','on');
 uiwait(handles.figure1);
 
 handles = guidata(hObject);
-out = bg_region_OutputFcn(hObject, [], handles);
-varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = bg_region_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-
-% Get default command line output from handles structure
 varargout{1} = handles.output;
-% The figure can be deleted now
 delete(handles.figure1);
 
 % --------------------------------------------------------------------------------------------------
@@ -250,7 +238,8 @@ function edit11_Callback(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------------------------------------
 % --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
+function figure1_CloseRequestFcn(hObject, eventdata)
+handles = guidata(hObject);
 if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
     % The GUI is still in UIWAIT, us UIRESUME
     handles.output = [];        % User gave up, return nothing
@@ -262,7 +251,8 @@ else
 end
 
 % --- Executes on key press over figure1 with no controls selected.
-function figure1_KeyPressFcn(hObject, eventdata, handles)
+function figure1_KeyPressFcn(hObject, eventdata)
+handles = guidata(hObject);
 if isequal(get(hObject,'CurrentKey'),'escape')
     handles.output = [];    % User said no by hitting escape
     guidata(hObject, handles);    uiresume(handles.figure1);
@@ -275,17 +265,16 @@ function checkbox_IsGeog_Callback(hObject, eventdata, handles)
 
 
 % --- Creates and returns a handle to the GUI figure. 
-function bg_region_LayoutFcn(h1,handles)
+function bg_region_LayoutFcn(h1)
 set(h1,...
 'PaperUnits','centimeters',...
-'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
+'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','bg_region',...
 'NumberTitle','off',...
 'Position',[520 659 258 141],...
-'RendererMode','manual',...
 'Resize','off',...
 'Tag','figure1');
 
@@ -383,7 +372,7 @@ uicontrol('Parent',h1,...
 'Tag','edit11');
 
 uicontrol('Parent',h1,...
-'Position',[10 32 91 15],...
+'Position',[10 32 100 15],...
 'String','Is Geographic?',...
 'Style','checkbox',...
 'Value',1,...
