@@ -438,6 +438,7 @@ src_figs/grdfilter_Mir.m -text
 src_figs/grdfilter_Mir_.m -text
 src_figs/grdfilter_mir.m -text
 src_figs/grdgradient_Mir.m -text
+src_figs/grdgradient_Mir_.m -text
 src_figs/grdlandmask_win.m -text
 src_figs/grdsample_Mir.m -text
 src_figs/grdtrend_Mir.m -text
