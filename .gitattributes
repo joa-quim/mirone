@@ -231,6 +231,7 @@ gmt_userdir/gmt.conf -text
 gmt_userdir/us.d -text
 /gunzip.exe -text
 /hd421m.dll -text
+/hd422m.dll -text
 /hm421m.dll -text
 lib_mex/alloc_mex.dll -text
 lib_mex/applylutc.dll -text
