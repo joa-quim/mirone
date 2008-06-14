@@ -1,6 +1,6 @@
 function varargout = zonal_integrator(varargin)
 % M-File changed by desGUIDE 
- 
+
 	hObject = figure('Tag','figure1','Visible','off');
 	zonal_integrator_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -21,6 +21,8 @@ function varargout = zonal_integrator(varargin)
         d_path = [pwd filesep 'data' filesep];
 	end
 	handles.nameList = [];
+
+	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','off')
 
 	% -------------- Import/set icons --------------------------------------------
 	load([d_path 'mirone_icons.mat'],'Mfopen_ico');
@@ -213,6 +215,7 @@ function radio_lon_Callback(hObject, eventdata, handles)
 function push_compute_Callback(hObject, eventdata, handles)
 % ...
 	if (isempty(handles.nameList))
+		errordlg('Yes, ComPute and SemPute. Empty filename list.','ERROR'),		return
 	end
 
 	got_R = false;		is_modis = false;		is_linear = false;		is_log = false;
@@ -234,14 +237,16 @@ function push_compute_Callback(hObject, eventdata, handles)
 		return
 	end
 
+	% MORE OR LESS DEPRECATED CODE (IT WILL PROBABLY FAIL) - FUNCTIONALITY MOVED TO AQUAMOTO SUPP FUNS
 	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim] = ...
 			get_headerInfo(handles, got_R, west, east, south, north);
 
- 	att = gdalread(handles.nameList{1},'-M','-C');
+	att = read_gdal(handles.nameList{1},'-M','-C');
+
 	if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 		ind = strfind(att.Subdatasets{1}, '=');
 		FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
-		att = gdalread(FileName,'-M','-C');				% Try again
+		att = read_gdal(FileName,'-M','-C');			% Try again
 		handles.nameList{1} = FileName;					% This way the first time in loop for below will access the subdataset
 	end
 
@@ -271,9 +276,9 @@ function push_compute_Callback(hObject, eventdata, handles)
 		if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 			ind = strfind(att.Subdatasets{1}, '=');
 			FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
-			[Z,att] =  gdalread(FileName, '-U', '-C', opt_R);
+			[Z,att] =  read_gdal(FileName, '-U', '-C', opt_R);
 		else
-			Z =  gdalread(handles.nameList{k}, '-U', '-C', opt_R);
+			Z =  read_gdal(handles.nameList{k}, '-U', '-C', opt_R);
 		end
 		this_has_nans = false;
 		if (is_modis)
@@ -347,11 +352,15 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	
 	nSlices = numel(handles.nameList);
 	for (k = 1:nSlices)
-		set(handles.listbox_list,'Val',k)			% Show advance
-		[Z, att] = read_gdal(handles.nameList{k}, '-U', '-C', opt_R);
+		set(handles.listbox_list,'Val',k),		pause(0.01)			% Show advance
+
+		[Z,att] = read_gdal(handles.nameList{k}, '-U', '-C', opt_R);
+
 		ind = [];
 		if (is_modis)
 			ind = (Z == 65535);
+		elseif ( ~isempty(att.Band(1).NoDataValue) && (att.Band(1).NoDataValue == -9999) )		% TEMP -> PATHFINDER
+			ind = (Z == 0);
 		elseif ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) )
 			ind = (Z == (att.Band(1).NoDataValue));
 		elseif (isnan(att.Band(1).NoDataValue))		% The nodata is NaN, replace NaNs in Z by zero
@@ -359,9 +368,9 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		end
 
 		% See if we must apply a scaling equation
-		if (is_modis && is_linear)
+		if (is_linear)
 			Z = Z * slope + intercept;
-		elseif (is_modis && is_log)
+		elseif (is_log)
 			Z = base .^ (Z * slope + intercept);
 		end
 		Z = single(Z);
@@ -401,10 +410,11 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 
 	att = read_gdal(handles.nameList{1},'-M','-C');
 
-% 	if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
-% 		errordlg('That I know MODIS or SeaWifs HDF files do not have subdatasets. Bye Bye','ERROR')
-% 		error('That I know MODIS or SeaWifs HDF files do not have subdatasets. Bye Bye')
-% 	end
+	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) && strcmp(att.DriverShortName, 'HDF4') )		% Some MODIS files
+		ind = strfind(att.Subdatasets{1}, '=');
+		FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
+		att = gdalread(FileName,'-M','-C');				% Try again
+	end
 
 	% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
 	if ( isequal([att.Corners.LR - att.Corners.UL],[att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
@@ -466,6 +476,32 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 			is_log = true;
 		end
 		is_modis = true;			% We'll use this knowledge to 'avoid' Land pixels = 65535
+	else							% TEMP -> SST PATHFINDER
+		finfo = hdfinfo(handles.nameList{1});
+		slope = double(finfo.SDS.Attributes(11).Value);		% = 0.075;
+		intercept= double(finfo.SDS.Attributes(12).Value);	% = -3.0;
+		lat = finfo.SDS.Dims(1).Scale;		% Get the latitudes
+		lon = finfo.SDS.Dims(2).Scale;		% Get the longitudes
+		x_min = lon(1);			x_max = lon(end);
+		y_min = lat(end);		y_max = lat(1);
+		head(1:4) = [x_min x_max y_min y_max];
+		dx = lon(3) - lon(2);
+		head(8:9) = dx;
+		if (got_R)			% We must give the region in pixels since the image is trully not georeferenced
+			rows = finfo.SDS.Dims(1).Size;					% Number of rows
+			cp = round(([west east] - x_min) / dx);
+			rp = round(([south north] - y_min) / dx);
+			rp(rp < 0) = 0;			cp(cp < 0) = 0;
+			head(1) = x_min + cp(1)*dx;		head(2) = x_min + cp(2)*dx;
+			head(3) = y_min + rp(1)*dx;		head(4) = y_min + rp(2)*dx;
+			rp = rows - rp -1;		rp = [rp(2) rp(1)];
+			opt_R = sprintf('-r%d/%d/%d/%d',cp(1:2),rp(1:2));
+			if (get(handles.radio_lon, 'Val')),		N_spatialSize = round(diff(rp) + 1);
+			else									N_spatialSize = round(diff(cp) + 1);
+			end
+		end
+		head(7) = 0;		% Make sure that grid reg is used
+		is_linear = true;
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -499,12 +535,18 @@ function [Z, att] = read_gdal(full_name, varargin)
 		full_name = out_name;				% The uncompressed file name
 	end
 
+	att = gdalread(full_name, '-M');		% This first call serves to be used in the next test
+	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) && strcmp(att.DriverShortName, 'HDF4') )		% Some MODIS files
+		ind = strfind(att.Subdatasets{1}, '=');
+		full_name = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
+	end
+
 	if (nargout == 2)
 		[Z, att] = gdalread(full_name, varargin{:});
 		Z = double(Z);
 	else
 		Z = gdalread(full_name, varargin{:});
-		if ( ~strmatch(varargin{:},'-M') )		% Get Z, otherwise get only the metadata
+		if ( ~isa(Z,'struct') )			% Get Z, otherwise get only the metadata
 			Z = double(Z);
 		end
 	end
@@ -532,20 +574,16 @@ uicontrol('Parent',h1,'Position',[240 40 191 117],...
 'Tag','frame1');
 
 uicontrol('Parent',h1,'Position',[358 40 20 15],...
-'String','S',...
-'Style','text');
+'String','S','Style','text');
 
 uicontrol('Parent',h1,'Position',[250 98 20 15],...
-'String','W',...
-'Style','text');
+'String','W','Style','text');
 
 uicontrol('Parent',h1,'Position',[402 99 20 15],...
-'String','E',...
-'Style','text');
+'String','E','Style','text');
 
 uicontrol('Parent',h1,'Position',[356 122 20 15],...
-'String','N',...
-'Style','text');
+'String','N','Style','text');
 
 uicontrol('Parent',h1,'Position',[6 254 401 21],...
 'BackgroundColor',[1 1 1],...
@@ -568,14 +606,14 @@ uicontrol('Parent',h1,'Position',[271 171 51 21],...
 'TooltipString','Width of the stripe over which integration is carried on',...
 'Tag','edit_stripeWidth');
 
-uicontrol('Parent',h1,'Position',[390 174 35 15],...
+uicontrol('Parent',h1,'Position',[390 174 40 15],...
 'Callback',{@zonal_integrator_uicallback,h1,'radio_lat_Callback'},...
 'String','Lat',...
 'Style','radiobutton',...
 'TooltipString','Integrate in Latitude',...
 'Tag','radio_lat');
 
-uicontrol('Parent',h1,'Position',[335 174 45 15],...
+uicontrol('Parent',h1,'Position',[335 174 50 15],...
 'Callback',{@zonal_integrator_uicallback,h1,'radio_lon_Callback'},...
 'String','Long',...
 'Style','radiobutton',...
@@ -583,7 +621,7 @@ uicontrol('Parent',h1,'Position',[335 174 45 15],...
 'Value',1,...
 'Tag','radio_lon');
 
-uicontrol('Parent',h1,'Position',[250 133 100 15],...
+uicontrol('Parent',h1,'Position',[250 133 110 15],...
 'Callback',{@zonal_integrator_uicallback,h1,'check_region_Callback'},...
 'String','Use sub-region?',...
 'Style','checkbox',...
@@ -625,7 +663,7 @@ uicontrol('Parent',h1,'Position',[6 9 225 236],...
 'Value',1,...
 'Tag','listbox_list');
 
-uicontrol('Parent',h1,'Position',[340 5 91 23],...
+uicontrol('Parent',h1,'Position',[340 5 90 23],...
 'Callback',{@zonal_integrator_uicallback,h1,'push_compute_Callback'},...
 'FontName','Helvetica',...
 'FontSize',9,...
@@ -633,19 +671,19 @@ uicontrol('Parent',h1,'Position',[340 5 91 23],...
 'String','Compute',...
 'Tag','push_compute');
 
-uicontrol('Parent',h1, 'Position',[244 210 139 15],...
+uicontrol('Parent',h1, 'Position',[244 210 150 15],...
 'Callback',{@zonal_integrator_uicallback,h1,'radio_conv2netcdf_Callback'},...
 'String','Convert to 3D netCDF file',...
 'Style','radiobutton',...
 'TooltipString','Take a list of .hdf files and create a single 3D netCDF file',...
+'Value',1,...
 'Tag','radio_conv2netcdf');
 
-uicontrol('Parent',h1, 'Position',[244 229 125 15],...
+uicontrol('Parent',h1, 'Position',[244 229 130 15],...
 'Callback',{@zonal_integrator_uicallback,h1,'radio_zonalInteg_Callback'},...
 'String','Do zonal integration',...
 'Style','radiobutton',...
 'TooltipString','Take a list of .hdf files and compute a zonal average file',...
-'Value',1,...
 'Tag','radio_zonalInteg');
 
 function zonal_integrator_uicallback(hObject, eventdata, h1, callback_name)
