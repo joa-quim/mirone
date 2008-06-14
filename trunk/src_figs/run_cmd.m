@@ -1,5 +1,4 @@
 function varargout = run_cmd(varargin)
-% M-File changed by desGUIDE 
  
 	hObject = figure('Tag','figure1','Visible','off');
 	run_cmd_LayoutFcn(hObject);
@@ -81,18 +80,19 @@ function push_compute_Callback(hObject, eventdata, handles)
 	com = get(handles.edit_com, 'String');
 	if (isempty(com)),	return,		end			% Idiot call
 
-	ind = strfind(com, '=');
-	if (isempty(ind))
-		com = ['Z = ' com ';'];
-	else
-		com = [com ';'];
-	end
+% 	ind = strfind(com, '=');
+% 	if (isempty(ind))
+% 		com = ['Z = ' com ';'];
+% 	else
+% 		com = [com ';'];
+% 	end
+	com = [com ';'];
 
 	fname = 'runCmd_cmd.m';
 	
 	% Write the running command in a temporary file 
 	fid = fopen(fname,'w');
-	fprintf(fid,'function Z = runCmd_cmd(arg1,varargin)\n');
+	fprintf(fid,'function Z = runCmd_cmd(arg1)\n');
 	fprintf(fid,'Z = arg1.Z;\n');
 	fprintf(fid,'claZ = [];\n');			% In case we need it to know if the fck doubles tirany came on ground
 	fprintf(fid,'try\n\t%s\n', com);		% Exec the command in a try wraper
@@ -135,9 +135,9 @@ function push_compute_Callback(hObject, eventdata, handles)
 	end
 
 	try
-		cb = str2func('runCmd_cmd');
+		cb = str2func('runCmd_cmda');
 		arg1.Z = Z;
-		Z_out = feval(cb,arg1);
+ 		Z_out = feval(cb,arg1,com);
 	catch
 		errordlg(['It didn''t work: ' lasterr],'Error'),		return
 	end
@@ -164,6 +164,35 @@ function push_compute_Callback(hObject, eventdata, handles)
 		tmp.srsWKT = prjInfStruct.projWKT;
 	end
 	mirone(Z_out, tmp)
+% -----------------------------------------------------------------------------------------
+function Z = runCmd_cmda(arg1,cmd)
+Z = arg1.Z;
+claZ = [];
+try
+	Z = eval(cmd);
+catch
+	le = lasterr;
+	ind = strfind(le, 'values of class');
+	if (~isempty(ind))
+		Z = double(Z);
+	end
+	try
+		Z = eval(cmd);
+	end
+end
+if (~isempty(claZ))
+	if (strcmp(claZ,'single'))
+		Z = single(Z);
+	elseif (strcmp(claZ,'int16'))
+		Z = int16(Z * (2^16  - 1) -2^16 / 2 );
+	elseif (strcmp(claZ,'uint16'))
+		Z = int16(Z * (2^16 - 1));
+	elseif (strcmp(claZ,'uint8'));
+		Z = uint8(Z * 255)
+	elseif (strcmp(claZ,'int8'));
+		Z = int8(Z * 255 - 127)
+	end
+end
 
 % -----------------------------------------------------------------------------------------
 function radio_onImage_Callback(hObject, eventdata, handles)

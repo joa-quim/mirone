@@ -17,9 +17,7 @@ function varargout = srtm_tool(varargin)
 % --------------------------------------------------------------------
 
 hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-srtm_tool_LayoutFcn(hObject,handles);
+srtm_tool_LayoutFcn(hObject);
 handles = guihandles(hObject);
  
 global home_dir
@@ -68,7 +66,7 @@ h_boundaries = line(ncst(:,1),ncst(:,2),'Linewidth',1,'Color','w','Tag','Politic
 % Read the directory list from mirone_pref
 directory_list = [];
 load([d_path 'mirone_pref.mat']);
-j = logical(zeros(1,length(directory_list)));           % vector for eventual cleaning non-existing dirs
+j = false(1,length(directory_list));					% vector for eventual cleaning non-existing dirs
 
 if iscell(directory_list)                               % When exists a dir list in mirone_pref
     for i = 1:length(directory_list)
@@ -127,30 +125,16 @@ handles.warnHandle = findobj(hObject,'Tag','text_warning');
 set(handles.warnHandle,'Visible','off')
 
 % Choose default command line output for srtm_tool_export
-handles.output = hObject;
 guidata(hObject, handles);
-
-% UIWAIT makes srtm_tool_export wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+if (nargout),	varargout{1} = hObject;		end
 
 % -----------------------------------------------------------------------------------------
 set(hObject,'Visible','on');
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = srtm_tool_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = srtm_tool_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% Get default command line output from handles structure
-varargout{1} = handles.output;
 
 % -----------------------------------------------------------------------------------------
 function togglebutton_zoom_OnOff_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))   zoom_j('on');
-else                        zoom_j('off');
+if (get(hObject,'Value')),	zoom_j('on');
+else						zoom_j('off');
 end
 
 % -----------------------------------------------------------------------------------------
@@ -206,7 +190,7 @@ more_srtm_zipfiles = dir([new_dir filesep '*.hgt.zip']);
 
 % Rip the .zip from file names (It will be easiear to deal with if they are used)
 for i=1:length(more_srtm_zipfiles)
-    [PATH,FNAME,EXT] = fileparts(more_srtm_zipfiles(i).name);
+    [PATH,FNAME] = fileparts(more_srtm_zipfiles(i).name);
     more_srtm_zipfiles(i).name = [PATH FNAME];
 end
 
@@ -322,8 +306,9 @@ for i=1:m               % Loop over selected tiles (by rows)
                 ii = strmatch(cur_file,strvcat(handles.srtm_zipfiles.name));
                 if ~isempty(ii) % Got a zipped file. Unzip it to the TMP dir
                     full_name = [handles.srtm_zipfiles(ii).path cur_file '.zip'];
-                    if (handles.have_srtm1)     warn = 'warn';
-                    else                        warn = [];  end
+					if (handles.have_srtm1),	warn = 'warn';
+					else						warn = [];
+					end
                     full_name = decompress(full_name,warn);     % Named with compression ext removed
                     if (isempty(full_name))   return;     end;  % Error message already issued.
                     del_file = 1;
@@ -342,10 +327,10 @@ for i=1:m               % Loop over selected tiles (by rows)
             end
             % Test that we are not mixing SRTM 1 & 3 second files
             [nr,nc] = size(Z);
-            if (handles.have_srtm1 & (nr ~= 3601 | nc ~= 3601))
+            if (handles.have_srtm1 && (nr ~= 3601 || nc ~= 3601))
                 errordlg(['File ' full_name ' is not a SRTM 1 second grid'],'Error');
                 clear Z;   return
-            elseif  (handles.have_srtm3 & (nr ~= 1201 | nc ~= 1201))
+            elseif  (handles.have_srtm3 && (nr ~= 1201 || nc ~= 1201))
                 errordlg(['File ' full_name ' is not a SRTM 3 second grid'],'Error');
                 clear Z;   return
             end
@@ -368,7 +353,7 @@ tmp.head = [limits z_min z_max 0 x_inc y_inc];
 tmp.X = limits(1):x_inc:limits(2);    tmp.Y = limits(3):y_inc:limits(4);
 tmp.name = 'SRTM blend';
 waitbar(1,h_wait,'Computing image')
-new_window = mirone(Z_tot,tmp);
+mirone(Z_tot,tmp);
 close(h_wait)
 
 % -----------------------------------------------------------------------------------------
@@ -422,7 +407,7 @@ end
 limits = [x_min x_max y_min y_max];
 
 % If we have only one tile (trivial case) there is no need for the following tests
-if (n == 1)     return;     end
+if (n == 1),	return;     end
 
 % Build a test mesh index with the final correct order 
 min_r = min(idx_r);     max_r = max(idx_r);
@@ -487,7 +472,7 @@ xz = strmatch(tag,strvcat(handles.srtm_zipfiles.name));
 stat = get(gcbo,'UserData');
 if ~stat        % If not selected
     set(gcbo,'FaceColor','r','UserData',1)
-    if (isempty(xx) & isempty(xz))
+    if (isempty(xx) && isempty(xz))
         str = ['The file ' tag ' does not exist in the current directory'];
         set(handles.warnHandle,'String',str,'Visible','on')
         pause(1)
@@ -540,7 +525,7 @@ end
 
 stat = get(gcbo,'UserData');
 if ~stat        % If not selected
-    if (isempty(xx) & isempty(xz))      % File not found
+    if (isempty(xx) && isempty(xz))      % File not found
         set(gcbo,'FaceColor','r','FaceAlpha',0.5,'UserData',1)
         str = ['The file ' tag ' does not exist in the current directory'];
         set(handles.warnHandle,'String',str,'Visible','on')
@@ -649,12 +634,8 @@ if (~isempty(ext2))         % That is, if we have one or more compression types 
 	end
 end
 
-% -----------------------------------------------------------------------------------------
-function pushbutton_cancel_Callback(hObject, eventdata, handles)
-delete(handles.figure1);
-
 % --- Creates and returns a handle to the GUI figure. 
-function srtm_tool_LayoutFcn(h1,handles);
+function srtm_tool_LayoutFcn(h1)
 
 set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
@@ -663,7 +644,6 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'NumberTitle','off',...
 'Position',[520 365 756 435],...
 'Renderer',get(0,'defaultfigureRenderer'),...
-'RendererMode','manual',...
 'Resize','off',...
 'Tag','figure1',...
 'UserData',[]);
@@ -694,20 +674,20 @@ set(h5,'Parent',h2,...
 'Rotation',90,...
 'VerticalAlignment','bottom');
 
-h7 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@srtm_tool_uicallback,h1,'togglebutton_zoom_OnOff_Callback'},...
-'Position',[30 32 74 23],...
+'Position',[30 32 74 21],...
 'String','Zoom On/Off',...
 'Style','togglebutton',...
 'Tag','togglebutton_zoom_OnOff');
 
-h8 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@srtm_tool_uicallback,h1,'pushbutton_draw_rectangle_Callback'},...
-'Position',[110 32 83 23],...
+'Position',[110 32 83 21],...
 'String','Draw rectangle',...
 'Tag','pushbutton_draw_rectangle');
 
-h9 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@srtm_tool_uicallback4,h1,[],'popup_directory_list_Callback'},...
 'Position',[219 33 272 22],...
@@ -716,21 +696,21 @@ h9 = uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','popup_directory_list');
 
-h10 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@srtm_tool_uicallback,h1,'pushbutton_help_Callback'},...
-'Position',[539 32 66 23],...
+'Position',[615 32 66 21],...
 'String','Help',...
 'Tag','pushbutton_help');
 
-h11 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@srtm_tool_uicallback,h1,'pushbutton_OK_Callback'},...
 'FontSize',9,...
 'FontWeight','bold',...
-'Position',[615 32 66 23],...
+'Position',[685 32 66 21],...
 'String','OK',...
 'Tag','pushbutton_OK');
 
-h12 = uicontrol('Parent',h1,'FontSize',9,...
+uicontrol('Parent',h1,'FontSize',9,...
 'FontWeight','demi',...
 'HorizontalAlignment','left',...
 'Position',[30 4 500 15],...
@@ -738,7 +718,7 @@ h12 = uicontrol('Parent',h1,'FontSize',9,...
 'Style','text',...
 'Tag','text_warning');
 
-h13 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'Callback',{@srtm_tool_uicallback,h1,'pushbutton_change_dir_Callback'},...
 'FontSize',10,...
 'FontWeight','bold',...
@@ -746,12 +726,6 @@ h13 = uicontrol('Parent',h1,...
 'String','...',...
 'TooltipString','Select a different directory',...
 'Tag','pushbutton_change_dir');
-
-h14 = uicontrol('Parent',h1,...
-'Callback',{@srtm_tool_uicallback,h1,'pushbutton_cancel_Callback'},...
-'Position',[685 32 66 23],...
-'String','Cancel',...
-'Tag','pushbutton_cancel');
 
 function srtm_tool_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
