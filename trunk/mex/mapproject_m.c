@@ -181,7 +181,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					break;
 				case 'D':
 					d_set = TRUE;
-					GMT_set_measure_unit ('D',argv[i][2]);
+					GMT_set_measure_unit (argv[i][2]);
 					break;
 				case 'd':
 					if (argv[i][2] == '0') range = 0;

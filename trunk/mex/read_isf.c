@@ -1,6 +1,6 @@
 #define TRUE	1
 #define FALSE	0
-#define copysign(x,y) ((y) < 0.0 ? -fabs(x) : fabs(x))
+#define Loc_copysign(x,y) ((y) < 0.0 ? -fabs(x) : fabs(x))
 
 #include "mex.h"
 #include "isf_head.h"
@@ -459,11 +459,11 @@ double ddmmss_to_degree (char *text) {
 	suffix = (int)text[i-1];	/* Last character in string */
 	if (colons == 2) {	/* dd:mm:ss format */
 		sscanf (text, "%lf:%lf:%lf", &degree, &minute, &second);
-		degfrac = degree + copysign (minute / 60.0 + second / 3600.0, degree);
+		degfrac = degree + Loc_copysign (minute / 60.0 + second / 3600.0, degree);
 	}
 	else if (colons == 1) {	/* dd:mm format */
 		sscanf (text, "%lf:%lf", &degree, &minute);
-		degfrac = degree + copysign (minute / 60.0, degree);
+		degfrac = degree + Loc_copysign (minute / 60.0, degree);
 	}
 	else
 		degfrac = atof (text);

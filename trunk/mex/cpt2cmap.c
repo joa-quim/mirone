@@ -9,6 +9,7 @@
  *	 
  *		04/06/06 J Luis, Updated to compile with version 4.1.3
  *		14/10/06 J Luis, Now includes the memory leak solving solution
+ *		19/05/08 J Luis, Patch to not free GMT_lut in GMT_end_for_mex (a crash inducer)
  */
 
 #include "gmt.h"
@@ -23,7 +24,7 @@ BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memo
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	int i, nz, log_mode = 0, argc = 0, n_arg_no_char = 0;
+	int i, nz, log_mode = 0, argc = 0, n_arg_no_char = 0, n_colors;
 	BOOLEAN error = FALSE, ok = FALSE, continuous = FALSE, reverse = FALSE;
 	char	*table = CNULL, CPT_file[BUFSIZ], **argv;
 	double	*z, z_start = 0, z_stop = 256, z_inc = 1;
@@ -131,7 +132,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_read_cpt (CPT_file);
 
 	nz = irint ((z_stop - z_start) / z_inc) + 1;
-	z = (double *) GMT_memory (VNULL, (size_t)nz, sizeof(double), GMT_program);
+	z = (double *) mxMalloc ((size_t)nz * sizeof(double));
 	for (i = 0; i < nz; i++) z[i] = z_start + i * z_inc;	/* Desired z values */
 
 
@@ -155,9 +156,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 	}*/
 
-	GMT_free ((void *)z);
+	mxFree ((void *)z);
 	
+	/* If we let GMT_end_for_mex free GMT_lut than a posterior call to grdgradient_m will crash
+	   The trick is to temporarely set GMT_n_colors to 0 and than the if () case is not executed
+	   This certainly results in one more memory leak */
+	n_colors = GMT_n_colors;
+	GMT_n_colors = FALSE;
 	GMT_end_for_mex (argc, argv);
+	GMT_n_colors = n_colors;
 }
 
 void sample_cpt (double z[], int nz, BOOLEAN continuous, BOOLEAN reverse, int log_mode, double *pal) {

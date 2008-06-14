@@ -24,6 +24,7 @@
 
 #include "telha.h"
 #include "mex.h"
+#include <string.h>
 
 int read_time_scale (FILE *fp_ts);
 int int_perf (double *c, int i_min, int n_flow, int k, int age_flow, int multi_flow);
@@ -429,8 +430,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	for (jj = 0; jj < n_isoc && isoc_scale[jj].age <= upper_age; jj++) n_flow++;
 	n_flow -= i_min;
 
-//mexPrintf("jj = %d isoc_scale = %f uper_age = %f\n", jj, isoc_scale[jj].age, upper_age);
-//mexPrintf("isoc_scale = %f n_flow = %d i_min = %d\n", isoc_scale[jj].age, n_flow, i_min);
+/*mexPrintf("jj = %d isoc_scale = %f uper_age = %f\n", jj, isoc_scale[jj].age, upper_age);*/
+/*mexPrintf("isoc_scale = %f n_flow = %d i_min = %d\n", isoc_scale[jj].age, n_flow, i_min);*/
 	/* NOTE. Since from the above loop jj is allways < n_isoc, but it also is incremented one
 	   too much before the condition fails, we can safely do the following. The intention is that
 	   we can have also the portion of the last brick between isoc_scale[jj-1].age and upper_age */
@@ -446,7 +447,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		isoc_scale[i_min].age = t_zero;
 		n_flow++;
 	}
-//mexPrintf("isoc_scale_imin = %f isoc_scalejj = %f i_min = %d n_flow = %d\n", isoc_scale[i_min].age, isoc_scale[jj].age, i_min, n_flow);
+/*mexPrintf("isoc_scale_imin = %f isoc_scalejj = %f i_min = %d n_flow = %d\n", isoc_scale[i_min].age, isoc_scale[jj].age, i_min, n_flow);*/
 
 	for (k = m = 0; k < n_seg; k++) {	/* Loop over segments */
 		c = mxCalloc ((size_t)(n_flow * data[k].np * 2), sizeof(double));
