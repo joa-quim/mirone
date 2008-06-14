@@ -154,7 +154,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					inverse = TRUE;
 					break;
 				case 'M':	/* Directly specify units */
-					GMT_set_measure_unit (argv[i][2], "-M");
+					GMT_set_measure_unit (argv[i][2]);
 					m_set = TRUE;
 					break;
 				case 'N':
