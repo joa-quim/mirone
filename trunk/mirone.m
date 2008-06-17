@@ -50,7 +50,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j iptchecknargin
 	%#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line
 	%#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
-	%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig
+	%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image
 
 	global home_dir;    home_dir = cd;      fsep = filesep;
 	addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
@@ -135,7 +135,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	cd(home_dir);				% Come back home because it was probably somewhere out there
 
 	if (isempty(handles.last_directories))              % Don't ever let it be empty
-        handles.last_directories = {handles.path_tmp; home_dir};    % Let it have something existent
+		handles.last_directories = {handles.path_tmp; home_dir};    % Let it have something existent
 	end
 	handles.work_dir = handles.last_directories{1};
 	handles.last_dir = handles.last_directories{1};		% Initialize last_dir to work_dir
@@ -162,10 +162,10 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'geog')),		handles.geog = tmp.geog;    end % Prevails over the guess in show_image
 				if (isfield(tmp,'cmap')),		set(handles.figure1,'Colormap',tmp.cmap);   end
 				if (isfield(tmp,'name')),		win_name = tmp.name;    end
-				if (isfield(tmp,'srsWKT') && ~isempty(tmp.srsWKT) )
-					aux_funs('appP', handles, srsWKT)			% If we have a WKT proj store it
+				if (isfield(tmp,'srsWKT'))
+					aux_funs('appP', handles, tmp.srsWKT)			% If we have a WKT proj, store it
 				end
-            else
+			else
 				X = [];			Y = [];			win_name = 'Cropped Image';
 				handles.image_type = 2;			handles.geog = 0;		axis_t = 'off';
 				handles.head = [1 dims(2) 1 dims(1) 0 255 0 1 1];		% Fake a grid reg GMT header
@@ -177,7 +177,6 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles = show_image(handles,win_name,X,Y,varargin{1},0,axis_t,handles.head(7),1);
 			grid_info(handles,[],'iminfo',varargin{1});			% Contruct a info string
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
-			handles = aux_funs('isProj',handles);				% Check about coordinates type
 		elseif ( n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')) )
 			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
 			Z = varargin{1};			grd_data_in = 1;
@@ -191,8 +190,8 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'was_int16'))
 					handles.was_int16 = tmp.was_int16;		handles.Nodata_int16 = tmp.Nodata_int16;
 				end
-				if (isfield(tmp,'srsWKT') && ~isempty(tmp.srsWKT) )
-					aux_funs('appP', handles, srsWKT)			% If we have a WKT proj store it
+				if (isfield(tmp,'srsWKT'))
+					aux_funs('appP', handles, tmp.srsWKT)			% If we have a WKT proj store it
 				end
 				clear tmp;
 			else
@@ -239,27 +238,34 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles = setAxesDefCoordIn(handles,1);
 	end
 
+% 	if (strncmp(computer,'MAC',3) && isempty(getappdata(0,'have_DYLD')))	% Deal with Mac OS X blindness
+% 		%set_gmt(['DYLD_LIBRARY_PATH=' cd ':'],'DYLD_LIBRARY_PATH')		% Prepend current dir to DYLD_LIBRARY_PATH
+% 		DYLD = getenv('DYLD_LIBRARY_PATH');		% Available only on > R14?? versions 
+% 		setenv('DYLD_LIBRARY_PATH',[DYLD ':' cd])
+% 		setappdata(0,'have_DYLD',true)			% Signal to do this only once
+% 	end
+
 	%Find out which gmt version is beeing used. 
 	info = getappdata(0,'gmt_version');     % See if the info is already there.
 	if (isempty(info))
         info = set_gmt(['GMT_USERDIR=' home_dir fsep 'gmt_userdir']);
         setappdata(0,'gmt_version',info);   % Save it so that the next time a new mirone window is opened
 	end
-    if (info.full ~= 'y'),
+	if (info.full ~= 'y'),
 		set([handles.CoastLineFull handles.PBFull handles.RiversFull], 'Enable','off')
-    end
-    if (info.high ~= 'y')
+	end
+	if (info.high ~= 'y')
 		set([handles.CoastLineHigh handles.PBHigh handles.RiversHigh], 'Enable','off')
-    end    
-    if (info.intermediate ~= 'y')
+	end    
+	if (info.intermediate ~= 'y')
 		set([handles.CoastLineInterm handles.PBInterm handles.RiversInterm], 'Enable','off')
-    end
-    if (info.low ~= 'y')
+	end
+	if (info.low ~= 'y')
 		set([handles.CoastLineLow handles.PBLow handles.RiversLow], 'Enable','off')
-    end
-    if (info.crude ~= 'y')
+	end
+	if (info.crude ~= 'y')
 		set([handles.CoastLineCrude handles.PBCrude handles.RiversCrude], 'Enable','off')
-    end
+	end
 
 	guidata(hObject, handles);  limpa(handles);
 	if (~isempty(drv))
@@ -1037,7 +1043,7 @@ function FileOpen_ENVI_Erdas_CB(handles, opt, opt2)
 		opt_S = ' ';
 		if (~strcmp(att.Band(1).DataType,'Byte')),		opt_S = '-S';	end
 		zz = gdalread(handles.fileName,'-U', opt_S);
-		head = att.GMT_hdr;				[m,n,k] = size(zz);
+		head = att.GMT_hdr;
 		X = [head(1) head(2)];			Y = [head(3) head(4)];
 		if strcmp(att.ColorInterp,'gray'),			pal = gray(256);
 		elseif strcmp(att.ColorInterp,'Palette')
@@ -1076,13 +1082,12 @@ function FileOpenNewImage_CB(handles, opt)
 		'*.png', 'Portable Network Graphics(*.png)';		'*.bmp', 'Windows Bitmap (*.bmp)'; ...
 		'*.gif', 'GIF image (*.gif)';						'*.tif', 'Tagged Image File (*.tif)'; ...
 		'*.pcx', 'Windows Paintbrush (*.pcx)';				'*.ras', 'SUN rasterfile (*.ras)'; ...
-		'*.hdf', 'Hieralchical Data Format (*.hdf)';		'*.ppm', 'Portable Pixmap (*.ppm)'; ...
-		'*.pgm', 'Portable Graymap (*.pgm)';				'*.raw;*.bin', 'RAW file (*.raw,*.bin)'; ...
-		'*.shade', 'IVS shade File (*.shade)';				'*.xwd', 'X Windows Dump (*.xwd)'; ...
-		'*.*', 'All Files (*.*)'};
+		'*.ppm', 'Portable Pixmap (*.ppm)';					'*.pgm', 'Portable Graymap (*.pgm)'; ...
+		'*.raw;*.bin', 'RAW file (*.raw,*.bin)'; 			'*.shade', 'IVS shade File (*.shade)'; ...
+		'*.xwd', 'X Windows Dump (*.xwd)';					'*.*', 'All Files (*.*)'};
 	if (nargin == 1)
 		[FileName,PathName,handles] = put_or_get_file(handles,str1,'Select image format','get');
-		if isequal(FileName,0);     return;     end
+		if isequal(FileName,0),		return,		end
 	else                % Filename was transmited in input
 		PathName = [];      FileName = opt;
 	end
@@ -1431,7 +1436,26 @@ function read_DEMs(handles,fullname,tipo,opt)
 		end
 
 		Z =  gdalread(handles.fileName, '-U', opt_I);
+% 		Z =  hdfread(handles.fileName, 'sst', 'index', {[1 1],[1 1], [4096 8192]});
 		if (strcmp(att.Band(1).DataType,'Int16')), handles.was_int16 = 1;  end
+		if (strcmp(att.DriverShortName, 'HDF4Image'))			% On HDF files search for an offset and scale factor
+			scale_fac = 1;	add_off = 0;
+			for (k = numel(att.Metadata):-1:1)					% Start from the bottom because they are likely close to it 
+				if ( strncmp(att.Metadata{k}, 'add_off', 7) )
+					add_off = str2double( att.Metadata{k}(9:end) );			break		% The 8th char is '='
+				end
+			end
+			for (k = numel(att.Metadata):-1:1)
+				if ( strncmp(att.Metadata{k}, 'scale_factor', 12) )
+					scale_fac = str2double( att.Metadata{k}(14:end) );		break		% The 13th char is '='
+				end
+			end
+			if (scale_fac ~= 1 || add_off ~= 0 && ~isnan(scale_fac) && ~isnan(add_off))	% If we found something, apply it
+				if (~isa(Z,'single')),		Z = single(Z);		end
+				cvlib_mex('CvtScale',Z,scale_fac,add_off)
+				handles.was_int16 = 0;			% Even if was before it isn't now for sure
+			end
+		end
 		handles.image_type = 4;     handles.Nodata_int16 = att.Band(1).NoDataValue;
 	end
 
@@ -2090,7 +2114,8 @@ function DrawClosedPolygon_CB(handles, opt)
 		end
 		if (strcmp(opt,'EulerTrapezium')),  tag = 'EulerTrapezium';
 		elseif (strcmp(opt,'SeismicityPolygon')),  tag = 'SeismicityPolygon';
-		else                                tag = 'Closedpolygon';      end
+		else								tag = 'Closedpolygon';
+		end
 		zoom_state(handles,'maybe_on');
 		xp = xp(:)';    yp = yp(:)';
 		% The following Tag is very important to distinguish from MB tracks, which have Tags = MBtrack#
@@ -2798,8 +2823,8 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
 	projWKT = getappdata(handles.figure1,'ProjWKT');
 	Proj4 = getappdata(handles.figure1,'Proj4');
 	if (~isempty(projWKT)),     hdr.projWKT = projWKT;
-    elseif (~isempty(Proj4)),   hdr.projWKT = ogrproj(Proj4);
-    end
+	elseif (~isempty(Proj4)),   hdr.projWKT = ogrproj(Proj4);
+	end
 
 	try
 		hdr.Xinc = head(8);     hdr.Yinc = head(9);
@@ -3310,7 +3335,8 @@ function RotateTool_CB(handles, opt)
 % --------------------------------------------------------------------
 function TransferB_CB(handles, opt)
 	if (strcmp(opt,'guessType'))
-		str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif;*.mat;*.cpt', 'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif,*.mat,*.cpt)'; '*.*', 'All Files (*.*)'};
+		str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif;*.mat;*.cpt;*.hdf', ...
+				'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif,*.mat,*.cpt,*.hdf)'; '*.*', 'All Files (*.*)'};
 		[FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
 		if isequal(FileName,0);     return;     end             % User gave up
 		drv = aux_funs('findFileType',[PathName FileName]);
