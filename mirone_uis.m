@@ -4,10 +4,11 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function about_box parker_stuff plate_calculator euler_stuff grid_calculator tableGUI
 %#function datasets_funs earthquakes manual_pole_adjust compute_euler focal_meca srtm_tool atlas
 %#function image_enhance image_adjust datasets_funs write_gmt_script vitrinite telhometro mpaint
-%#function imcapture filter_funs overview imageresize classificationfig tfw_funs tsunamovie mirone_pref
+%#function imcapture filter_funs overview imageresize classificationfig tfw_funs mirone_pref
 %#function griding_mir grdfilter_mir grdsample_mir grdtrend_mir grdgradient_mir ml_clip show_palette 
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
 %#function mxgridtrimesh aquamoto tiles_tool zonal_integrator grdlandmask_win grdlandmask_m escadeirar
+%#function run_cmd
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -242,7 +243,7 @@ uimenu('Parent',h,'Call','color_palettes(guidata(gcbo))','Label','Change Palette
 uimenu('Parent',h,'Call','show_palette(guidata(gcbo),''At'')','Label','Show At side','Tag','PalAt','Sep','on');
 uimenu('Parent',h,'Call','show_palette(guidata(gcbo),''In'')','Label','Show Inside','Tag','PalIn');
 uimenu('Parent',h,'Call','show_palette(guidata(gcbo),''Float'')','Label','Show Floating');
-uimenu('Parent',hIM,'Call','mirone(''ImageCrop_CB'',guidata(gcbo),[])','Label','Crop','Sep','on');
+uimenu('Parent',hIM,'Call','mirone(''ImageCrop_CB'',guidata(gcbo),[])','Label','Crop (interactive)','Sep','on');
 
 h = uimenu('Parent',hIM,'Label','Flip');
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''flipUD'')','Label','Flip Up-Down');
@@ -554,6 +555,7 @@ hGT = uimenu('Parent',H1,'Label','Grid Tools','Tag','GridTools');		hVG(kv) = hGT
 if (~IamCompiled)
     uimenu('Parent',hGT,'Call','grid_calculator(gcf)','Label','grid calculator');
 end
+uimenu('Parent',hGT,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command');
 
 uimenu('Parent',hGT,'Call','grdfilter_mir(guidata(gcbo))','Label','grdfilter','Sep','on');
 uimenu('Parent',hGT,'Call','grdgradient_mir(guidata(gcbo))','Label','grdgradient');
@@ -626,7 +628,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 29 April 2008'',''1.3.0'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 14 Juin 2008'',''1.3.1b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -705,10 +707,10 @@ function figure1_ResizeFcn(hObj, event)
 function figure1_CloseRequestFcn(hObj, event)
 	handles = guidata(hObj);
 	try		h = getappdata(handles.figure1,'dependentFigs');
-	catch	delete(gcf)
+	catch	delete(gcf),	return
 	end
-	delete(handles.figure1);            delete(h(ishandle(h)))      % Delete also any eventual 'carraças'
-	FOpenList = handles.FOpenList;      fname = [handles.path_data 'mirone_pref.mat'];
+	delete(handles.figure1);		delete(h(ishandle(h)))      % Delete also any eventual 'carraças'
+	FOpenList = handles.FOpenList;		fname = [handles.path_data 'mirone_pref.mat'];
 	if (~handles.version7),    	save(fname,'FOpenList','-append')   % Update the list for "Recent files"
 	else    	                save(fname,'FOpenList','-append', '-v6')
 	end
