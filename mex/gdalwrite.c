@@ -222,7 +222,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/* Use LZW compression with GeoTiff driver */
 	if (!strcmp(pszFormat,"GTiff")) {
 		papszOptions = CSLAddString( papszOptions, "COMPRESS=LZW" ); 
-		//papszOptions = CSLAddString( papszOptions, "INTERLEAVE=PIXEL" ); 
+		/*papszOptions = CSLAddString( papszOptions, "INTERLEAVE=PIXEL" ); */
 	}
 
 	hDstDS = GDALCreate( hDriver, fname, nx, ny, n_bands_in, typeCLASS, papszOptions );
