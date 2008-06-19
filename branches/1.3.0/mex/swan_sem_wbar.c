@@ -497,8 +497,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		x = tmp[i];		y = tmp[i+n_mareg];
 		ix = irint((x - hdr_b.x_min) / x_inc);
 		jy = irint((y - hdr_b.y_min) / y_inc); 
-		x_tmp = hdr_b.x_min + x_inc * ix;	/* Adjusted x maregraph pos*/
-		y_tmp = hdr_b.y_min + y_inc * jy;	/* Adjusted y maregraph pos*/
+		x_tmp = hdr_b.x_min + x_inc * ix;	/* Adjusted x maregraph pos
+		y_tmp = hdr_b.y_min + y_inc * jy;	/* Adjusted y maregraph pos
 		mexPrintf("%.4f\t%.4f\t%.4f\t%.4f\t%.1f\n",x,y,x_tmp,y_tmp,-dep[lcum_p[i]]);
 	}*/
 
