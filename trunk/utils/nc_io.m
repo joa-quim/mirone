@@ -411,12 +411,13 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	else								head(3:4) = [Y(1) Y(end)];
 	end
 
-	if (get_Z && (scale_factor ~= 1 || add_offset ~= 0) )		% If we have scale or offset convert to single the "lower"
-		if ( ~(isa(Z, 'double') || isa(Z, 'single')) )			% types. Maybe not always apropriate but not general rule
-			Z = single(Z);
-		end
-		cvlib_mex('CvtScale',Z,scale_factor,add_offset)			% Do inplace
-	end
+% THIS IS DEALT IN NC_FUNS
+% 	if (get_Z && (scale_factor ~= 1 || add_offset ~= 0) )		% If we have scale or offset convert to single the "lower"
+% 		if ( ~(isa(Z, 'double') || isa(Z, 'single')) )			% types. Maybe not always apropriate but not general rule
+% 			Z = single(Z);
+% 		end
+% 		cvlib_mex('CvtScale',Z,scale_factor,add_offset)			% Do inplace
+% 	end
 
 	if (get_Z && isempty(z_actual_range))
 		if ( isa(Z, 'double') )
