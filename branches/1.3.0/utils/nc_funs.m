@@ -601,7 +601,11 @@ if (have_scale && have_addoffset)
 elseif (have_scale)
 	cvlib_mex('CvtScale',values, scale_factor)
 elseif (have_addoffset)
-	cvlib_mex('addS',values, add_offset)
+	if (~isa(values,'int8'))		% Idiot OpenCV doesn't add to int8 arrays
+		cvlib_mex('addS',values, add_offset)
+	else
+		values = imlincombc({values}, [1 add_offset], 'int8');
+	end
 end
 	
 %values = values * scale_factor + add_offset;
