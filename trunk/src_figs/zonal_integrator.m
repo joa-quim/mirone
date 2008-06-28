@@ -369,13 +369,17 @@ function cut2cdf(handles, got_R, west, east, south, north)
 
 		% See if we must apply a scaling equation
 		if (is_linear)
-			Z = Z * slope + intercept;
+			Z = single(double(Z) * slope + intercept);
 		elseif (is_log)
-			Z = base .^ (Z * slope + intercept);
+			Z = single(base .^ (double(Z) * slope + intercept));
 		end
-		Z = single(Z);
 		handles.have_nans = 0;
-		if (~isempty(ind)),		Z(ind) = NaN;	handles.have_nans = 1;		end
+		if (~isempty(ind))
+			if (~isa(Z,'single') || ~isa(Z,'double'))		% Otherwise NaNs would be converted to 0
+				Z = single(Z);
+			end
+			Z(ind) = NaN;	handles.have_nans = 1;
+		end
 		%Z(Z > 5) = 5;			% <==== CLIPING
 		zz = grdutils(Z,'-L');  handles.head(5:6) = [zz(1) zz(2)];
 
@@ -430,9 +434,9 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 		integDim = 1;
 	end
 
-	if (~isempty(strfind(att.Metadata{2}, 'MODIS')) && strfind(att.Metadata{2}, 'MODIS'))
+	if ( ~isempty(att.Metadata) && ~isempty(strfind(att.Metadata{2}, 'MODIS')) && strfind(att.Metadata{2}, 'MODIS'))
 		modis_or_seawifs = true;
-	elseif (~isempty(strfind(att.Metadata{2}, 'SeaWiFS')) && strfind(att.Metadata{2}, 'SeaWiFS'))
+	elseif ( ~isempty(att.Metadata) && ~isempty(strfind(att.Metadata{2}, 'SeaWiFS')) && strfind(att.Metadata{2}, 'SeaWiFS'))
 		modis_or_seawifs = true;
 	else
 		modis_or_seawifs = false;
@@ -445,22 +449,13 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 		x_max = str2double(att.Metadata{42}(23:end));		% att.Metadata{41} -> Easternmost Longitude=-180
 		columns = str2double(att.Metadata{49}(19:end));		% att.Metadata{49} -> Number of Columns=4320
 		dx = (x_max - x_min) / columns;
+		dy = dx;
 		x_min = x_min + dx/2;		x_max = x_max - dx/2;	% Orig data was pixel registered
 		y_min = y_min + dx/2;		y_max = y_max - dx/2;
 		head(1:4) = [x_min x_max y_min y_max];
 		head(8:9) = dx;
 		if (got_R)			% We must give the region in pixels since the image is trully not georeferenced
 			rows = str2double(att.Metadata{48}(17:end));	% att.Metadata{48} -> Number of Lines=2160
-			cp = round(([west east] - x_min) / dx);
-			rp = round(([south north] - y_min) / dx);
-			rp(rp < 0) = 0;			cp(cp < 0) = 0;
-			head(1) = x_min + cp(1)*dx;		head(2) = x_min + cp(2)*dx;
-			head(3) = y_min + rp(1)*dx;		head(4) = y_min + rp(2)*dx;
-			rp = rows - rp -1;		rp = [rp(2) rp(1)];
-			opt_R = sprintf('-r%d/%d/%d/%d',cp(1:2),rp(1:2));
-			if (get(handles.radio_lon, 'Val')),		N_spatialSize = round(diff(rp) + 1);
-			else									N_spatialSize = round(diff(cp) + 1);
-			end
 		end
 		head(7) = 0;		% Make sure that grid reg is used
 
@@ -476,34 +471,47 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 			is_log = true;
 		end
 		is_modis = true;			% We'll use this knowledge to 'avoid' Land pixels = 65535
-	else							% TEMP -> SST PATHFINDER
+	elseif ( strncmp(att.DriverShortName, 'HDF4', 4) && ~modis_or_seawifs )		% TEMP -> SST PATHFINDER
 		finfo = hdfinfo(handles.nameList{1});
 		slope = double(finfo.SDS.Attributes(11).Value);		% = 0.075;
-		intercept= double(finfo.SDS.Attributes(12).Value);	% = -3.0;
+		intercept = double(finfo.SDS.Attributes(12).Value);	% = -3.0;
 		lat = finfo.SDS.Dims(1).Scale;		% Get the latitudes
 		lon = finfo.SDS.Dims(2).Scale;		% Get the longitudes
 		x_min = lon(1);			x_max = lon(end);
 		y_min = lat(end);		y_max = lat(1);
 		head(1:4) = [x_min x_max y_min y_max];
-		dx = lon(3) - lon(2);
+		dx = lon(3) - lon(2);	dy = dx;
 		head(8:9) = dx;
 		if (got_R)			% We must give the region in pixels since the image is trully not georeferenced
 			rows = finfo.SDS.Dims(1).Size;					% Number of rows
-			cp = round(([west east] - x_min) / dx);
-			rp = round(([south north] - y_min) / dx);
-			rp(rp < 0) = 0;			cp(cp < 0) = 0;
-			head(1) = x_min + cp(1)*dx;		head(2) = x_min + cp(2)*dx;
-			head(3) = y_min + rp(1)*dx;		head(4) = y_min + rp(2)*dx;
-			rp = rows - rp -1;		rp = [rp(2) rp(1)];
-			opt_R = sprintf('-r%d/%d/%d/%d',cp(1:2),rp(1:2));
-			if (get(handles.radio_lon, 'Val')),		N_spatialSize = round(diff(rp) + 1);
-			else									N_spatialSize = round(diff(cp) + 1);
-			end
 		end
 		head(7) = 0;		% Make sure that grid reg is used
 		is_linear = true;
+	else					% Other types
+		if (got_R)
+			rows = att.RasterYSize;
+		end
+		x_min = head(1);	y_min = head(3);
+		dx = head(8);		dy = head(9);
+		slope = 1;
+		intercept = 0;
 	end
 
+	% If user wants a sub-region
+	if (got_R)			% We must give the region in pixels since the image is trully not georeferenced (comment for nasa HDF)
+		cp = round(([west east] - x_min) / dx);
+		rp = round(([south north] - y_min) / dx);
+		rp(rp < 0) = 0;			cp(cp < 0) = 0;
+		head(1) = x_min + cp(1)*dx;		head(2) = x_min + cp(2)*dx;
+		head(3) = y_min + rp(1)*dy;		head(4) = y_min + rp(2)*dy;
+		rp = rows - rp -1;		rp = [rp(2) rp(1)];
+		opt_R = sprintf('-r%d/%d/%d/%d',cp(1:2),rp(1:2));
+		if (get(handles.radio_lon, 'Val')),		N_spatialSize = round(diff(rp) + 1);
+		else									N_spatialSize = round(diff(cp) + 1);
+		end
+	end
+
+	
 % -----------------------------------------------------------------------------------------
 function [Z, att] = read_gdal(full_name, varargin)
 % Help function to gdalread that deals with cases when file is compressed.
@@ -543,12 +551,8 @@ function [Z, att] = read_gdal(full_name, varargin)
 
 	if (nargout == 2)
 		[Z, att] = gdalread(full_name, varargin{:});
-		Z = double(Z);
 	else
 		Z = gdalread(full_name, varargin{:});
-		if ( ~isa(Z,'struct') )			% Get Z, otherwise get only the metadata
-			Z = double(Z);
-		end
 	end
 
 	if (~isempty(str_d)),	delete(out_name);	end		% Delete uncompressed file.
@@ -565,25 +569,12 @@ set(h1,'Position',[520 532 440 280],...
 'HandleVisibility','callback',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,'Position',[241 175 30 15],...
-'String','Delta',...
-'Style','text');
-
-uicontrol('Parent',h1,'Position',[240 40 191 117],...
-'Style','frame',...
-'Tag','frame1');
-
-uicontrol('Parent',h1,'Position',[358 40 20 15],...
-'String','S','Style','text');
-
-uicontrol('Parent',h1,'Position',[250 98 20 15],...
-'String','W','Style','text');
-
-uicontrol('Parent',h1,'Position',[402 99 20 15],...
-'String','E','Style','text');
-
-uicontrol('Parent',h1,'Position',[356 122 20 15],...
-'String','N','Style','text');
+uicontrol('Parent',h1,'Position',[241 175 30 15],'String','Delta','Style','text');
+uicontrol('Parent',h1,'Position',[240 40 191 117],'Style','frame','Tag','frame1');
+uicontrol('Parent',h1,'Position',[358 40 20 15],'String','S','Style','text');
+uicontrol('Parent',h1,'Position',[250 98 20 15],'String','W','Style','text');
+uicontrol('Parent',h1,'Position',[402 99 20 15],'String','E','Style','text');
+uicontrol('Parent',h1,'Position',[356 122 20 15],'String','N','Style','text');
 
 uicontrol('Parent',h1,'Position',[6 254 401 21],...
 'BackgroundColor',[1 1 1],...
