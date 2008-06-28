@@ -1468,7 +1468,7 @@ if (~isempty(ALLpatchHand))
 			    script{l} = ['telha ' name_sc ' ' saved.opt_E ' ' saved.opt_I ' ',...
                     saved.opt_N ' ' saved.opt_T ' -Blixo.dat'];     l=l+1;
                 script{l} = ['psxy lixo.dat ' ellips ' -R -J -M -L -O -K >> ' pb 'ps' pf];    l=l+1;
-                fclose(fid);
+                %fclose(fid);
             end
         end
         ALLpatchHand = setxor(ALLpatchHand, TelhasHand);       % TelhasHand is processed, so remove it from handles list
