@@ -163,8 +163,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 		fnames[j+3] = strdup ( dbf_field[j+3].pszFieldName );
 
 	/* To hold information on eventual polygons with rings */
-	//fnames[num_dbf_fields+3] = strdup ( "nParts" );
-	//fnames[num_dbf_fields+4] = strdup ( "PartsIndex" );
+	/*fnames[num_dbf_fields+3] = strdup ( "nParts" );*/
+	/*fnames[num_dbf_fields+4] = strdup ( "PartsIndex" );*/
 
 	/* Allocate space for the output structure. */
 	out_struct = mxCreateStructMatrix ( nEntities, 1, 3+num_dbf_fields, (const char **)fnames );
@@ -195,9 +195,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 		y_out_ptr = mxGetData ( y_out );
 
 		/* Just copy the verticies over. */
-		//sizebuf = mxGetElementSize ( x_out ) * psShape->nVertices;
-		//memcpy ( (void *) x_out_ptr, (void *) psShape->padfX, sizebuf );
-		//memcpy ( (void *) y_out_ptr, (void *) psShape->padfY, sizebuf );
+		/*sizebuf = mxGetElementSize ( x_out ) * psShape->nVertices;
+		memcpy ( (void *) x_out_ptr, (void *) psShape->padfX, sizebuf );
+		memcpy ( (void *) y_out_ptr, (void *) psShape->padfY, sizebuf );*/
 
 		if (psShape->nParts > 1) {
 			for (k = c = 0; k < psShape->nParts; k++) {
