@@ -36,7 +36,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function grdutils scaleto8 waitbar bpass3d inv3d rtp3d syn3d igrf_m
 	%#function range_change swan tsun2 mansinha_m deform_mansinha deform_okada dim_funs
 	%----- These are for image
-	%#function grayto8 grayto16 grayxform imfilter_mex imhistc imlincombc parityscan uintlutc ordf
+	%#function grayto8 grayto16 grayxform imfilter_mex imhistc imlincombc parityscan intlutc ordf
 	%#function imreconstructmex applylutc bwboundariesmex bwlabel1 bwlabel2
 	%----- These are in utils
 	%#function tabpanelfcn degree2dms dms2degree dec2deg dec_year ivan_the_terrible ddewhite string_token
@@ -105,38 +105,44 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.validGrid = 0;		%
 
 	try     % A file named mirone_pref.mat contains the preferences, read them from it
-        load([handles.path_data 'mirone_pref.mat']);
-        handles.geog = geog;
-        handles.grdMaxSize = grdMaxSize;				% 2^20 = 1 Mb
-        handles.swathRatio = swathRatio;
-        handles.last_directories = directory_list;
-        handles.DefLineThick = str2double(DefLineThick{1}(1));
-        % Decode the line color string into the corresponding char (e.g. k,w, etc...)
+		load([handles.path_data 'mirone_pref.mat']);
+		handles.geog = geog;
+		handles.grdMaxSize = grdMaxSize;				% 2^20 = 1 Mb
+		handles.swathRatio = swathRatio;
+		handles.last_directories = directory_list;
+		handles.DefLineThick = str2double(DefLineThick{1}(1));
+		% Decode the line color string into the corresponding char (e.g. k,w, etc...)
 		if (strcmp(DefLineColor{1},'Black')),   handles.DefLineColor = 'k';
-        else									handles.DefLineColor = lower(DefLineColor{1}(1));
+		else									handles.DefLineColor = lower(DefLineColor{1}(1));
 		end
-        % Decode the Measure unites into a char code (e.g. n, k, m, u from {'nautical miles' 'kilometers' 'meters' 'user'})
-        handles.DefineMeasureUnit = DefineMeasureUnit{1}(1);
-        handles.DefineEllipsoide = DefineEllipsoide_params;     % Set the default ellipsoide parameters (a,b,f)
-        handles.flederBurn = flederBurn;
-        handles.flederPlanar = flederPlanar;
-        handles.scale2meanLat = scale2meanLat;
-        for (i=1:numel(FOpenList)),		handles.FOpenList{i} = FOpenList{i};	end
+		% Decode the Measure unites into a char code (e.g. n, k, m, u from {'nautical miles' 'kilometers' 'meters' 'user'})
+		handles.DefineMeasureUnit = DefineMeasureUnit{1}(1);
+		handles.DefineEllipsoide = DefineEllipsoide_params;     % Set the default ellipsoide parameters (a,b,f)
+		handles.flederBurn = flederBurn;
+		handles.flederPlanar = flederPlanar;
+		handles.scale2meanLat = scale2meanLat;
+		for (i=1:numel(FOpenList)),		handles.FOpenList{i} = FOpenList{i};	end
 		handles.whichFleder = whichFleder;
 	end
 	
 	j = false(1,numel(handles.last_directories));			% vector for eventual cleaning non-existing dirs
 	for (i = 1:numel(handles.last_directories))				% Check that all dirs in last_directories exist
 		try			cd(handles.last_directories{i});		% NOTE. I don't use 'exist' anymore because
-		catch		j(i) = 1;		cd(home_dir);			% the stupid compiler has is completely f up
+		catch		j(i) = 1;								% the stupid compiler has is completely f up
 		end
 	end
 	handles.last_directories(j) = [];						% clean non-existing directories
-	cd(home_dir);				% Come back home because it was probably somewhere out there
+	cd(home_dir);				% Come back home since it was somewhere out there
 
 	if (isempty(handles.last_directories))              % Don't ever let it be empty
 		handles.last_directories = {handles.path_tmp; home_dir};    % Let it have something existent
 	end
+	if (any(j))					% If any of the old dirs evaporated, update that info in mirone_prefs
+		directory_list = handles.last_directories;
+		if (handles.version7),		save([handles.path_data 'mirone_pref.mat'],'directory_list', '-append', '-v6')
+		else						save([handles.path_data 'mirone_pref.mat'],'directory_list', '-append')
+		end
+	end	
 	handles.work_dir = handles.last_directories{1};
 	handles.last_dir = handles.last_directories{1};		% Initialize last_dir to work_dir
 	setappdata(hObject,'swathRatio',handles.swathRatio);		% I need this for getline_mb
@@ -2422,7 +2428,18 @@ function FileOpenSession_CB(handles, fname)
 	set(handles.figure1,'pointer','watch')
 	load([PathName FileName])
 
-tala = exist(grd_name,'file');      flagIllum = true;       % Illuminate (if it is the case)
+tala = exist(grd_name,'file');      flagIllum = true;	% Illuminate (if it is the case)
+if (~tala && ~isempty(grd_name))						% Give user a 2nd chance to tell where the grid is
+	[PathName FileName EXT] = fileparts(grd_name);
+	resp = inputdlg({'Full name (with path) of missing grid:'},'Whre is the grid?',1,{['.....' filesep FileName EXT]});
+	if (~isempty(resp))
+		grd_name = resp{1};
+		tala = exist(grd_name,'file');
+		if (~tala)
+			warndlg('The name provided doesn''t exist either. Give up trying to help you.','Warning')
+		end
+	end
+end
 if (isempty(grd_name) || tala == 0)
 	scrsz = get(0,'ScreenSize');         % Get screen size
 	dx = map_limits(2) - map_limits(1);   dy = map_limits(4) - map_limits(3);
@@ -2695,35 +2712,35 @@ for i = 1:length(ALLlineHand)
     end
 end
 
-% Patches may have associated particular meanings (eg Focal Mecas), but
-% they will loose them here. Maybe in the future I'll do something better.
-j = 1;
-ALLpatchHand = findobj(get(handles.axes1,'Child'),'Type','patch');
-for (i = 1:length(ALLpatchHand))
-    tag = get(ALLpatchHand(i),'Tag');
-    xx = get(ALLpatchHand(i),'XData');     yy = get(ALLpatchHand(i),'YData');
-    Patches(j).x = xx(:);           Patches(j).y = yy(:);
-    Patches(j).LineWidth = get(ALLpatchHand(i),'LineWidth');
-    Patches(j).LineStyle = get(ALLpatchHand(i),'LineStyle');
-    Patches(j).EdgeColor = get(ALLpatchHand(i),'EdgeColor');
-    Patches(j).FaceColor = get(ALLpatchHand(i),'FaceColor');
-    Patches(j).ud = get(ALLpatchHand(i),'UserData');
-    Patches(j).tag = tag;
-    j = j + 1;      havePatches = 1;
-end
+	% Patches may have associated particular meanings (eg Focal Mecas), but
+	% they will loose them here. Maybe in the future I'll do something better.
+	j = 1;
+	ALLpatchHand = findobj(get(handles.axes1,'Child'),'Type','patch');
+	for (i = 1:length(ALLpatchHand))
+		tag = get(ALLpatchHand(i),'Tag');
+		xx = get(ALLpatchHand(i),'XData');		yy = get(ALLpatchHand(i),'YData');
+		Patches(j).x = xx(:);					Patches(j).y = yy(:);
+		Patches(j).LineWidth = get(ALLpatchHand(i),'LineWidth');
+		Patches(j).LineStyle = get(ALLpatchHand(i),'LineStyle');
+		Patches(j).EdgeColor = get(ALLpatchHand(i),'EdgeColor');
+		Patches(j).FaceColor = get(ALLpatchHand(i),'FaceColor');
+		Patches(j).ud = get(ALLpatchHand(i),'UserData');
+		Patches(j).tag = tag;
+		j = j + 1;      havePatches = 1;
+	end
 
-ALLtextHand = findobj(get(handles.axes1,'Child'),'Type','text');
-for (i = 1:length(ALLtextHand))
-	Texto(n).str = get(ALLtextHand(i),'String');
-	if (isempty(Texto(n).str)),  continue;   end
-	Texto(n).pos = get(ALLtextHand(i),'Position');       Texto(n).FontAngle = get(ALLtextHand(i),'FontAngle');
-	Texto(n).angle = get(ALLtextHand(i),'Rotation');     Texto(n).Tag = get(ALLtextHand(i),'Tag');
-	Texto(n).color = get(ALLtextHand(i),'color');        Texto(n).FontName = get(ALLtextHand(i),'FontName');
-	Texto(n).FontSize = get(ALLtextHand(i),'FontSize');  Texto(n).FontWeight = get(ALLtextHand(i),'FontWeight');
-	Texto(n).HorizontalAlignment = get(ALLtextHand(i),'HorizontalAlignment');
-	Texto(n).VerticalAlignment = get(ALLtextHand(i),'VerticalAlignment');
-	haveText = 1;   n = n + 1;
-end
+	ALLtextHand = findobj(get(handles.axes1,'Child'),'Type','text');
+	for (i = 1:length(ALLtextHand))
+		Texto(n).str = get(ALLtextHand(i),'String');
+		if (isempty(Texto(n).str)),  continue;   end
+		Texto(n).pos = get(ALLtextHand(i),'Position');		Texto(n).FontAngle = get(ALLtextHand(i),'FontAngle');
+		Texto(n).angle = get(ALLtextHand(i),'Rotation');	Texto(n).Tag = get(ALLtextHand(i),'Tag');
+		Texto(n).color = get(ALLtextHand(i),'color');		Texto(n).FontName = get(ALLtextHand(i),'FontName');
+		Texto(n).FontSize = get(ALLtextHand(i),'FontSize');	Texto(n).FontWeight = get(ALLtextHand(i),'FontWeight');
+		Texto(n).HorizontalAlignment = get(ALLtextHand(i),'HorizontalAlignment');
+		Texto(n).VerticalAlignment = get(ALLtextHand(i),'VerticalAlignment');
+		haveText = 1;   n = n + 1;
+	end
 	save(fname,'grd_name','img_pal', 'havePline','Pline', 'haveMBtrack', 'MBtrack','MBbar', ...
 		'haveText','Texto', 'haveSymbol','Symbol', 'haveCircleGeo','CircleGeo', 'haveCircleCart', ...
 		'havePlineAsPoints','PlineAsPoints','CircleCart', 'map_limits', 'havePatches', 'Patches', ...
