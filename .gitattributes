@@ -440,6 +440,7 @@ src_figs/grdfilter_mir.m -text
 src_figs/grdgradient_mir.m -text
 src_figs/grdlandmask_win.m -text
 src_figs/grdsample_mir.m -text
+src_figs/grdtrend_mir.m -text
 src_figs/grid_calculator.m -text
 src_figs/griding_mir.m -text
 src_figs/igrf_options.m -text
