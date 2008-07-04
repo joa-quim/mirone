@@ -236,7 +236,7 @@ function popup_directory_list_Callback(hObject, eventdata, handles)
 		new_dir = opt;
 	end
 	handles.files_dir = new_dir;
-	guidata(handles,figure1, handles)
+	guidata(handles.figure1, handles)
 
 % ----------------------------------------------------------------------------
 function pushbutton_change_dir_Callback(hObject, eventdata, handles)
