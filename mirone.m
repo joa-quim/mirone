@@ -50,7 +50,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j iptchecknargin
 	%#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line
 	%#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
-	%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image
+	%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calcBoninEulerPole
 
 	global home_dir;    home_dir = cd;      fsep = filesep;
 	addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
@@ -128,11 +128,11 @@ function hObject = mirone_OpeningFcn(varargin)
 	j = false(1,numel(handles.last_directories));			% vector for eventual cleaning non-existing dirs
 	for (i = 1:numel(handles.last_directories))				% Check that all dirs in last_directories exist
 		try			cd(handles.last_directories{i});		% NOTE. I don't use 'exist' anymore because
-		catch		j(i) = 1;								% the stupid compiler has is completely f up
+		catch		j(i) = 1;								% the stupid compiler has it completely f up
 		end
 	end
-	handles.last_directories(j) = [];						% clean non-existing directories
 	cd(home_dir);				% Come back home since it was somewhere out there
+	handles.last_directories(j) = [];						% clean non-existing directories
 
 	if (isempty(handles.last_directories))              % Don't ever let it be empty
 		handles.last_directories = {handles.path_tmp; home_dir};    % Let it have something existent
@@ -150,7 +150,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	% Change the MeasureDistance label to the selected (in prefs) unites
 	set(handles.ToolsMeasureDist,'Label',['Distance in ' handles.DefineMeasureUnit])
 
-	% ---------- Detect in which mode Mirone was called
+	% ------------- Find in which mode Mirone was called ----------------------------
 	drv = [];	grd_data_in = 0;	grd_data_interfero = 0;		pal = [];	win_name = 'Mirone';
 	if ~isempty(varargin)
 		n_argin = nargin;
@@ -160,7 +160,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			drv = aux_funs('findFileType',varargin{1});
         elseif ( isa(varargin{1},'uint8') || isa(varargin{1},'logical') )
 			% Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
-			dims = size(varargin{1});
+			dims = size(varargin{1});			isReferenced = false;
 			if ( n_argin == 2 && isa(varargin{2},'struct') )       % An image with coordinates
 				tmp = varargin{2};
 				handles.head = tmp.head;		X = tmp.X;		Y = tmp.Y;
@@ -170,6 +170,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'name')),		win_name = tmp.name;    end
 				if (isfield(tmp,'srsWKT'))
 					aux_funs('appP', handles, tmp.srsWKT)			% If we have a WKT proj, store it
+					isReferenced = true;
 				end
 			else
 				X = [];			Y = [];			win_name = 'Cropped Image';
@@ -181,7 +182,9 @@ function hObject = mirone_OpeningFcn(varargin)
 				setappdata(hObject,'Croped','yes');						% ???
 			end
 			handles = show_image(handles,win_name,X,Y,varargin{1},0,axis_t,handles.head(7),1);
-			grid_info(handles,[],'iminfo',varargin{1});			% Contruct a info string
+			if (~isReferenced),		grid_info(handles,[],'iminfo',varargin{1});			% Create a info string
+			else					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});
+			end
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 		elseif ( n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')) )
 			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
@@ -197,7 +200,8 @@ function hObject = mirone_OpeningFcn(varargin)
 					handles.was_int16 = tmp.was_int16;		handles.Nodata_int16 = tmp.Nodata_int16;
 				end
 				if (isfield(tmp,'srsWKT'))
-					aux_funs('appP', handles, tmp.srsWKT)			% If we have a WKT proj store it
+					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});	% Create a info string
+					aux_funs('appP', handles, tmp.srsWKT)					% We have a WKT proj, store it
 				end
 				clear tmp;
 			else
@@ -227,7 +231,7 @@ function hObject = mirone_OpeningFcn(varargin)
 
 	% The following IF cases deal only with cases where a grid was given in argument
 	if (grd_data_in || grd_data_interfero)
-        handles.image_type = 1;    handles.computed_grid = 1;      % Signal that this is a computed grid
+        handles.image_type = 1;    handles.computed_grid = 1;	% Signal that this is a computed grid
 		if ( isempty(pal) ),	pal = jet(256);		end
         if (grd_data_interfero)			% Interferogram grid
             load([handles.path_data 'gmt_other_palettes.mat'],'circular');
@@ -2873,8 +2877,8 @@ function GridToolsHistogram_CB(handles, opt)
 	n = round( (z_max - z_min) / str2double(resp{1}) );
 	[n,xout] = histo_m('hist',Z(:),n,[z_min z_max]);
 	h = mirone;                         % Create a new Mirone figure
-	mirone('FileNewBgFrame_CB', guidata(h), [xout(1) xout(end) 0 max(n) 0], [600 600]);
-	set(h,'Name','Grid Histogram');       axes(get(h,'CurrentAxes'));
+	mirone('FileNewBgFrame_CB', guidata(h), [xout(1) xout(end) 0 max(n) 0], [600 600],'Grid Histogram');
+	axes(get(h,'CurrentAxes'));
 	histo_m('bar',xout,n,'hist');
 	set(handles.figure1,'pointer','arrow')
 
