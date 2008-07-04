@@ -1,12 +1,14 @@
 function grid_info(handles,X,Y,hdr)
 %#function grdinfo_m
 
-if (nargin == 3 && strcmp(Y,'gdal'))            % Just extract the relevant info from the attribute struct
-	att2Hdr(handles,X);    return
+if (nargin == 3 && strcmp(Y,'gdal'))			% Just extract the relevant info from the attribute struct
+	att2Hdr(handles,X);			return
 elseif (nargin == 3 && strcmp(Y,'iminfo'))
-	img2Hdr(handles,X);    return
-elseif (nargin == 4 && strcmp(Y,'iminfo'))      % Used with internaly generated images
-	img2Hdr(handles,X,hdr);    return
+	img2Hdr(handles,X);			return
+elseif (nargin == 4 && strcmp(Y,'iminfo'))      % Used when an non-referenced image was sent in input
+	img2Hdr(handles,X,hdr);		return
+elseif (nargin == 4 && strcmp(Y,'referenced'))	% Used when referenced img/grid was sent in input
+	ref2Hdr(handles,X,hdr);		return
 end
 
 if (handles.no_file),     return;      end
@@ -131,6 +133,23 @@ function att2Hdr(handles,att)
     setappdata(handles.axes1,'InfoMsg',w)
 	if (~isempty(att.Metadata)),	setappdata(handles.hImg,'meta', att.Metadata),	end
 	aux_funs('appP', handles, att.ProjectionRef)		% If we have a WKT proj store it, otherwise clean eventual predecessors
+
+% --------------------------------------------------------------------
+function ref2Hdr(handles, srs, img)
+% Deal with the cases when a grid or an image with a WKT proj string was sent in input to Mirone
+% We than build a fake minimalist 'att' like it outputs from gdalread and call ATT2HDR to do the job
+
+	att.DriverShortName = 'Input array';
+	att.ProjectionRef = srs;
+	att.RasterXSize = size(img,2);
+	att.RasterYSize = size(img,1);
+	att.Corners.LL = [handles.head(1) handles.head(3)];
+	att.Corners.UR = [handles.head(2) handles.head(4)];
+	att.GEOGCorners = [];
+	att.GMT_hdr = handles.head;
+	att.Metadata = '';
+	att.ColorInterp = 'Don''t know';
+	att2Hdr(handles,att)				% That's where the info string is built and stored
 
 % --------------------------------------------------------------------
 function img2Hdr(handles,imgName,img)
