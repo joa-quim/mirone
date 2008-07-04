@@ -1,5 +1,26 @@
 function varargout = cartas_militares(varargin)
-% M-File changed by desGUIDE 
+% Load GIF files with the Portuguese "Cartas Militares" and display them georeferenced in Mirone
+%
+% Georeferencing is acomplished in one of 3 ways (by that order):
+% 1. A corresponding Ozi Explorer .map file is found on the same directory as the GIF file
+% 2. A .gfw or .wrl (with contents like in a .tfw file) file is found on the same directory as the GIF file
+% 3. Internal georeferencing based on the known coordinates (in "Coordenadas Militares") of each image
+% 
+% Thirth method should be prefered (more accurate, I believe)
+
+%	Copyright (c) 2004-2008 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
  
 	hObject = figure('Tag','figure1','Visible','off');
 	cartas_militares_LayoutFcn(hObject);
@@ -153,7 +174,6 @@ function bdnTile(obj,event,hFig)
 		pato = get(handles.popup_directory_list,'String');
 		pato = pato{1};
 		if (pato(end) ~= filesep),		pato = [pato filesep];		end
-		pato = 'C:\SVN\';
 		fname = [pato tile_name '.gif'];
 		if (exist(fname,'file') ~= 2)
 			h = text(100000,50000, ['FILE  ' tile_name '.GIF  NOT FOUND IN THERE'], 'HorizontalAlignment','left', 'FontSize',25, 'Rotation', 65, 'Color','r');
@@ -197,7 +217,6 @@ function bdnTile(obj,event,hFig)
 		end
 		% Set the proj string for the "Coordenadas militares, datum Lisboa"
 		proj = '+proj=tmerc +lat_0=39.66666666666666 +lon_0=-8.131906111111111 +k=1.0 +x_0=200000 +y_0=300000 +ellps=intl +towgs84=-304.046,-60.576,103.640,0,0,0,0';
-		%img = flipdim(img, 1);
 	end
 
 	tmp.geog = 0;       tmp.name = fname;
