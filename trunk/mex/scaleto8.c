@@ -17,6 +17,7 @@
  *		17-Dec-2007 - No change in the code but WARNING: [min max] option changes input grid
  *		05-Jan-2008 - Fix bug (z_4 instead of z_8) when Z was double and [new_min new_max] option
  *			      Do explicitly castings when using mxGetData()
+ *		07-Jul-2008 - Let int8 (char) arrays be processed as well
  *
  */
 
@@ -38,8 +39,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double	*pNodata, *which_scale, *pLimits;
 	float	range, min = FLT_MAX, max = -FLT_MAX, *z_4, new_range, nodata;
 	int     nx, ny, i, is_double = 0, is_single = 0, is_int32 = 0, is_int16 = 0;
-	int     is_uint16 = 0, scale_range = 1, *i_4, scale8, scale16;
+	int     is_uint16 = 0, is_int8 = 0, scale_range = 1, *i_4, scale8, scale16;
 	int	n_row, n_col, got_nodata = 0, got_limits = 0;
+	char	*i_1;
 	short int *i_2;
 	unsigned short int *ui_2, *out16;
 	unsigned char *out8;
@@ -136,9 +138,13 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		ui_2 = (unsigned short int *)mxGetData(prhs[0]);
 		is_uint16 = 1;
 	}
+	else if (mxIsInt8(prhs[0])) {
+		i_1 = (char *)mxGetData(prhs[0]);
+		is_int8 = 1;
+	}
 	else {
 		mexPrintf("SCALETO8 ERROR: Unknown input data type.\n");
-		mexErrMsgTxt("Valid types are:double, single, Int32, Int16 and UInt16.\n");
+		mexErrMsgTxt("Valid types are:double, single, Int32, Int16, UInt16 and Int8.\n");
 	}
 
 	/*  set the output pointer to the output matrix */
@@ -350,6 +356,43 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)ui_2[i] == nodata) continue;
 					out16[i] = (unsigned short int)((((float)ui_2[i] - min) / range) * new_range) + 1;
+				}
+			}
+		}
+		else { 			/* min/max required */
+			*z_min = min;	*z_max = max;
+		}
+	}
+	else if (is_int8) {
+		if (got_limits)
+			mexErrMsgTxt("SCALETO8 ERROR: Asking for limits on a INT8 array is not availabe (does it make sense?).");
+
+		if (!got_nodata) {
+			for (i = 0; i < nx*ny; i++) {
+				min = MIN(min,i_1[i]);
+				max = MAX(max,i_1[i]);
+			}
+		}
+		else {
+			for (i = 0; i < nx*ny; i++) {
+				if ((float)i_1[i] == nodata) continue;
+				min = MIN(min,i_1[i]);
+				max = MAX(max,i_1[i]);
+			}
+		}
+
+		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
+			range = max - min;
+			if (scale8) {	/* Scale to uint8 */
+				for (i = 0; i < nx*ny; i++) {
+					if (got_nodata && (float)i_1[i] == nodata) continue;
+					out8[i] = (char)((((float)i_1[i] - min) / range) * new_range) + 1;
+				}
+			}
+			else if (scale16) {	/* Scale to uint16 - IDIOT thing to do but ... */
+				for (i = 0; i < nx*ny; i++) {
+					if (got_nodata && (float)i_1[i] == nodata) continue;
+					out16[i] = (unsigned short int)((((float)i_1[i] - min) / range) * new_range) + 1;
 				}
 			}
 		}
