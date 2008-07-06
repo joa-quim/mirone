@@ -95,6 +95,9 @@ bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
     % In that case the above test failed
     if (n_column == 0),     n_column = 1;   end     % (unless the file is empty!!!)
     
+	% If no header number request was made, return right away
+	if (nargout <= 3),		return,		end
+	
     % Now test if header lines are present (ascii 65:122 contain upper and lower case letters)
     for j=1:m
         head = find((str{j} > 32 & str{j} < 43) | str{j} > 58);
