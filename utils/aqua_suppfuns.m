@@ -49,11 +49,11 @@ function init_header_params(handles,X,Y,head,misc)
 	aguentabar(0,'title','Computing global min/max')
 	for (k = 1:handles.number_of_timesteps)
 		Z = nc_funs('varget', handles.fname, s.Dataset(misc.z_id).Name, [(k-1) 0 0], [1 s.Dataset(misc.z_id).Size(end-1:end)]);
-		if ( isa(Z, 'double') )
-			handles.zMinMaxs(k,:) = [min(Z(:)) max(Z(:))];
-		else					% min/max are bugged when NaNs in singles
+		if ( isa(Z, 'single') )			% min/max are bugged when NaNs in singles
 			zz = grdutils(Z,'-L');
 			handles.zMinMaxs(k,:) = [zz(1) zz(2)];
+		else
+			handles.zMinMaxs(k,:) = [double(min(Z(:))) double(max(Z(:)))];
 		end
 		aguentabar(k/handles.number_of_timesteps);
 	end
@@ -103,7 +103,10 @@ function coards_sliceShow(handles)
 	z_id = handles.netcdf_z_id;
 	s = handles.nc_info;			% Retrieve the .nc info struct 
 	Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [handles.sliceNumber 0 0], [1 s.Dataset(z_id).Size(end-1:end)]);
-	have_nans = grdutils(Z,'-N');	% No worry, very fast
+	have_nans = 0;
+	if (isa(Z,'single'))
+		have_nans = grdutils(Z,'-N');	% No worry, very fast
+	end
 	if ( have_nans && handles.useLandPhoto )
 		alphaMask = alloc_mex(size(Z),'uint8');	% Create an image mask of Dry/Wets
 		alphaMask(~isnan(Z)) = 255;				% nan pixeis will be transparent
