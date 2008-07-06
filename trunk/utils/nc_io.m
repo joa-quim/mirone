@@ -115,10 +115,10 @@ function write_nc(fname, handles, data, misc, page)
 		end
 
 		% Update global min/max
-		if ( isa(data, 'double') )
-			mima = [min(data(:)) max(data(:))];
-		else		% min/max are bugged when NaNs in singles
-			zz = grdutils(data,'-L');  mima = [zz(1) zz(2)];
+		if ( isa(data, 'single') )			% min/max is bugged when NaNs in singles
+			zz = grdutils(data,'-L');		mima = [zz(1) zz(2)];
+		else
+			mima = [double(min(data(:))) double(max(data(:)))];
 		end
 		z_actual_range = nc_funs('attget', fname, z_name, 'actual_range');
 		if (~isempty(z_actual_range))
