@@ -77,7 +77,9 @@ bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
     % Now decide how many columns have the data lines. The easeast is to assume that the info is in the last line
     % However this may fail if last line contains, for example, the multisegment symbol (">").
     % So, do another test.
+	n_col(~n_col) = [];				% Remove zeros which correspond to comment lines (the ones starting by '#') 
     m = min(nl_max,numel(n_col));
+
     if (m > 1)
         n_c1 = n_col(m);	n_c2 = n_col(m-1);		% With bad luck n_c2 can be zero
         if (n_c2 && n_c1 ~= n_c2 && isempty(find(str{n_col(m-1)} > 57 & str{n_col(m-1)} < 127)))
