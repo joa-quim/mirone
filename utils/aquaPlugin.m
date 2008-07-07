@@ -2,18 +2,23 @@ function aquaPlugin(handles)
 % Plugin function that is called by Aquamoto. Use this function to write custom code
 % to solve particular problems taking advantage from the fact that a LOT of information
 % about the netCDF files is accessible here. There are no instructions/manual but you
-% can learn by studing the functions on aquamoto.m file or the (not very clean) working
+% can learn by studing the functions on aquamoto.m file or the (not so clean) working
 % examples below. 
 
-% Compute the mean anual temperature gradient
 	if ( isempty(handles.fname) )
 		errordlg('Hey Lou. What about a walk on the Wild Side? Maybe you''ll find a little file there that you can use here!','Chico clever')
 		return
 	end
 
-	qual = 'tvar';
-	qual = 'polygAVG';
 	do_return = true;
+	casos = {'zonal' ...
+			'tvar' ...				% 2 - Compute the Temp time rate of a file with anual means by fit of a straight line (Load entire file in memory)
+			'yearMean' ...			% 3 - Compute yearly averages from monthly data
+			'yearMeanFlag' ...		% 4 - Compute yearly averages from monthly data but checked against a quality flag file
+			'polygAVG' ...			% 5 -Compute averages of whatever inside polygons (if any)
+			};
+	qual = casos{4};		% <== Active selection
+
 	switch qual
 		case 'zonal'
 			integ_lon = true;
@@ -29,11 +34,16 @@ function aquaPlugin(handles)
 
 			zonal(handles, dlat, integ_lon, have_polygon, x, y)
 		case 'tvar'
-			calcGrad(handles)		% Compute the Temp time rate of a file with anual means by fit of a straight line (Load entire file in memory)
+			calcGrad(handles) 
 		case 'yearMean'
-			calc_yearMean(handles)	% Compute yearly averages from monthly data
+			ano = 1:12;				% Compute yearly means
+			calc_yearMean(handles, ano)
+		case 'yearMeanFlag'
+			ano = 1:12;				% Compute yearly means
+			fname = 'C:\SVN\mironeWC\qual_85.nc';
+			calc_yearMean(handles, ano, fname, 7)
 		case 'polygAVG'
-			calc_polygAVG(handles)	% Compute averages of whatever inside polygons (if any)
+			calc_polygAVG(handles)
 		otherwise
 			do_return = false;		% Not finish (run the code below)
 	end
@@ -212,8 +222,14 @@ function calcGrad(handles)
 	mirone(Tvar, tmp)
 
 % ----------------------------------------------------------------------
-function calc_yearMean(handles)
+function calc_yearMean(handles, months, fname2, flag)
 % Calcula media anuais a partir de dados mensais
+% MONTHS 	is a vector with the months uppon which the mean is to be computed
+%		example: 	months = 1:12		==> Computes yearly mean
+%					months = 6:8		==> Computes June-July-August seazonal means
+% FNAME2 	name of a netCDF file with quality flags. Obviously this file must be of
+% 			the same size as the series under analysis.
+% FLAG		Threshold quality value. Only values of quality >= FLAG will be taken into account
 
 	txt1 = 'netCDF grid format (*.nc,*.grd)';
 	txt2 = 'Select output netCDF grid';
@@ -228,6 +244,30 @@ function calc_yearMean(handles)
 	s = handles.nc_info;				% Retrieve the .nc info struct
 	rows = s.Dataset(z_id).Size(end-1);
 	cols = s.Dataset(z_id).Size(end);
+	do_flags = false;
+
+	if (nargin == 1),		months = 1:12;		end		% Default to yearly means
+
+	if (nargin > 2)			% We have a quality-flag ghost file to check
+		s_flags = nc_funs('info',fname2);
+		[X,Y,Z,head,misc] = nc_io(fname2,'R');
+		z_id_flags = misc.z_id;
+		if ~(numel(head) == 9 && isfield(misc,'z_id'))
+			errordlg(['Blheak!! ' fname2 ' is is not a file with presumably with quality flags. By'],'Error'),	return
+		end
+		if (numel(misc.z_dim) <= 2)
+			errordlg(['Ghrrr!! The ' fname2 ' is is not a 3D file. By'],'Error'),		return
+		end
+		if (misc.z_dim(1) < handles.number_of_timesteps)
+			errordlg(['Buhhuu!! The quality flags file has less "planes" than the-to-be-flagged-file. By'],'Error'),	return
+		end
+		if (~isequal([rows cols], [s_flags.Dataset(z_id_flags).Size(end-1) s_flags.Dataset(z_id_flags).Size(end)]))
+			errordlg(['Buhhuu!! quality flags and the-to-be-flagged-file have not the same size. By'],'Error'),		return
+		end
+		do_flags = true;
+		
+		if (nargin == 3),		flag = 7;		end			% If not provided, defaults to best quality
+	end
 
 	handles.geog = 1;
 	handles.was_int16 = 0;
@@ -241,8 +281,14 @@ function calc_yearMean(handles)
 	warning off MATLAB:divideByZero
 	for (m = 1:anos)
 		contanoes = zeros(rows, cols);
-		for (n = 1:12)
+		for (n = months)
 			Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [mn 0 0], [1 rows cols]);
+
+			if (do_flags)
+				Z_flags = nc_funs('varget', fname2, s_flags.Dataset(z_id_flags).Name, [mn 0 0], [1 rows cols]);
+				Z(Z_flags < flag) = NaN;
+			end
+
 			ind = isnan(Z);
 			Z(ind) = 0;				% transmuta os anoes
 			contanoes = contanoes + ~ind;
