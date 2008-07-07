@@ -52,8 +52,8 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
     	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
         [FileName,PathName] = uigetfile(str1,'File with grids list');
         cd(handles.home_dir);
-	    if isequal(FileName,0);     return;     end
-        if (PathName ~= 0),         handles.last_dir = PathName;    end
+	    if isequal(FileName,0),		return,		end
+        if (PathName ~= 0),			handles.last_dir = PathName;    end
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
@@ -62,8 +62,8 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
 	fname = [PathName FileName];
 
     [bin,n_column] = guess_file(fname);
-    % If error in reading file
-    if isempty(bin)
+
+    if isempty(bin)					% If error in reading file
 		errordlg(['Error reading file ' fname],'Error'),	return
     end
 
@@ -71,32 +71,49 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
 	c = fread(fid,'*char')';      fclose(fid);
 	names = strread(c,'%s','delimiter','\n');   clear c fid;
 	m = length(names);
-	
-	handles.strTimes = [];          % To hold time steps as strings
-	if (n_column > 1)
-		handles.strTimes = cell(m,1);
-		c = false(m,1);
+
+	handles.strTimes = cell(m,1);	% To hold time steps as strings
+	c = false(m,1);
+	caracol = false(m,1);
+
+	n_msg = 1;							% Will hold the "change DV messages" counter
+	if (n_column > 1)					% When 2nd column holds the 3D numbering
 		for (k=1:m)
+			if ( isempty(names{k}) ),	continue,		end		% Jump empty lines
 			[t,r] = strtok(names{k});
-			if (t(1) == '#'),  c(k) = true;		continue,	end
+			if (t(1) == '#'),  c(k) = true;			continue,	end
+			if ( t(1) == '@')
+				caracol(k) = true;
+				handles.changeCD_msg{n_msg} = t(2:end);
+				n_msg = n_msg + 1;
+				continue
+			end
+
 			names{k} = t;
 			r = ddewhite(r);
 			handles.strTimes{k} = r;
 		end
-		% Remove eventual commented lines
-		if (any(c))
-			names(c) = [];			handles.strTimes(c) = [];
-			m = length(names);      % Count remaining ones
+	else								% Only one column with fnames
+		for (k=1:m)
+			if ( isempty(names{k}) ),	continue,			end		% Jump empty lines
+			if ( names{k}(1) == '#'),	c(k) = true;		continue,	end
+			if ( names{k}(1) == '@')
+				caracol(k) = true;
+				handles.changeCD_msg{n_msg} = names{k}(2:end);
+				n_msg = n_msg + 1;
+				continue
+			end
+			handles.strTimes{k} = k;
 		end
 	end
 
+	if (any(c))					% Remove eventual comment lines
+		names(c) = [];			handles.strTimes(c) = [];		caracol(c) = [];
+	end
+	m = length(names);			% Count remaining ones
+
 	handles.shortNameList = cell(m,1);      % To hold grid names with path striped
-	c = false(m,1);
 	for (k=1:m)
-		if ( isempty(names{k}) ),	continue,		end		% Jump empty lines
-		if (n_column == 1 && names{k}(1) == '#')    % If n_column > 1, this test was already done above
-			c(k) = true;    continue;
-		end
 		[PATH,FNAME,EXT] = fileparts(names{k});
 		if (isempty(PATH))
 			handles.shortNameList{k} = names{k};
@@ -104,22 +121,26 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
 		else
 			handles.shortNameList{k} = [FNAME EXT];
 		end
-		if (any(c))
-			names(c) = [];		handles.shortNameList(c) = [];
-		end
 	end
 
-	% Check that at least the files in provided list do exist
-	c = false(m,1);
-	for (k=1:m)
-		c(k) = (exist(names{k},'file') ~= 2);
+	% Check that the files provided in list do exist
+	if (~any(caracol))			% It makes no sense to test existance of files in other DVDs
+		c = false(m,1);
+		for (k=1:m)
+			c(k) = (exist(names{k},'file') ~= 2);		% Flag to kill all non-existant files
+		end
+		names(c) = [];      handles.shortNameList(c) = [];
 	end
-	names(c) = [];      handles.shortNameList(c) = [];
 
 	handles.nameList = names;
+	handles.caracol = caracol;
 	set(handles.edit_namesList, 'String', fname)
 	set(handles.listbox_list,'String',handles.shortNameList)
 	guidata(handles.figure1,handles)
+	
+	if (isempty(names))
+		warndlg('As you may have already realized, the goodness of the name list provied is ... fiu, fiu, fiu!','Warning')
+	end
 
 % -----------------------------------------------------------------------------------------
 function radio_conv2netcdf_Callback(hObject, eventdata, handles)
@@ -215,7 +236,7 @@ function radio_lon_Callback(hObject, eventdata, handles)
 function push_compute_Callback(hObject, eventdata, handles)
 % ...
 	if (isempty(handles.nameList))
-		errordlg('Yes, ComPute and SemPute. Empty filename list.','ERROR'),		return
+		errordlg('Yes, Com-Pute and Sem-Pute -- as you like. Empty filename list.','ERROR'),		return
 	end
 
 	got_R = false;		is_modis = false;		is_linear = false;		is_log = false;
@@ -351,8 +372,18 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	handles.computed_grid = 0;
 	
 	nSlices = numel(handles.nameList);
+	n_cd = 1;
 	for (k = 1:nSlices)
 		set(handles.listbox_list,'Val',k),		pause(0.01)			% Show advance
+	
+		if (handles.caracol(k))				% Ai, we need to change CD
+			msg = handles.changeCD_msg{n_cd};
+			resp = yes_or_no('string',['OK, this one is over. ' msg '  ... and Click "Yes" to continue']);
+			if (strcmp(resp, 'No')),	return
+			else						continue
+			end
+			n_cd = n_cd + 1;
+		end
 
 		[Z,att] = read_gdal(handles.nameList{k}, '-U', '-C', opt_R);
 
@@ -360,7 +391,15 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		if (is_modis)
 			ind = (Z == 65535);
 		elseif ( ~isempty(att.Band(1).NoDataValue) && (att.Band(1).NoDataValue == -9999) )		% TEMP -> PATHFINDER
-			ind = (Z == 0);
+			if ( ~isempty(att.Metadata) && strcmp(att.Metadata{2}, 'dsp_SubImageName=QUAL') )
+				% Quality flags files cannot be NaNified. 
+				% However, they should NOT have a scaling equation either. If quality is [0 7] why scalling?
+				is_linear = false;
+				% Furthermore, we also need to recast the flag array into int8 (it was uint8) because netCDF doesn't know UINT8
+				Z = int8(Z);
+			else
+				ind = (Z == 0);
+			end
 		elseif ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) )
 			ind = (Z == (att.Band(1).NoDataValue));
 		elseif (isnan(att.Band(1).NoDataValue))		% The nodata is NaN, replace NaNs in Z by zero
@@ -381,7 +420,11 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			Z(ind) = NaN;	handles.have_nans = 1;
 		end
 		%Z(Z > 5) = 5;			% <==== CLIPING
-		zz = grdutils(Z,'-L');  handles.head(5:6) = [zz(1) zz(2)];
+		if (isa(Z,'single'))
+			zz = grdutils(Z,'-L');		handles.head(5:6) = [zz(1) zz(2)];
+		else			% min/max is bugged when NaNs in singles
+			handles.head(5:6) = [double(min(Z(:))) double(max(Z(:)))];
+		end
 
 		% Must treate compiled version differently since, biggest of misteries, nc_funs
 		% than hangs when writting unlimited variables
@@ -511,13 +554,13 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 		end
 	end
 
-	
 % -----------------------------------------------------------------------------------------
 function [Z, att] = read_gdal(full_name, varargin)
 % Help function to gdalread that deals with cases when file is compressed.
 % VARARGIN will normally contain one or more of '-U', '-C', '-M', opt_R
 
-	str_d = [];		do_warn = 'true';		cext = [];
+	str_d = [];		do_warn = 'true';		cext = [];		% Some defaults
+	
 	[PATH,fname,EXT] = fileparts(full_name);
 	out_name = [PATH filesep fname];		% Only used if file is compressed
 	if (strcmpi(EXT,'.bz2'))
@@ -543,7 +586,7 @@ function [Z, att] = read_gdal(full_name, varargin)
 		full_name = out_name;				% The uncompressed file name
 	end
 
-	att = gdalread(full_name, '-M');		% This first call serves to be used in the next test
+	att = gdalread(full_name, '-M');		% This first call is used in the next test
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) && strcmp(att.DriverShortName, 'HDF4') )		% Some MODIS files
 		ind = strfind(att.Subdatasets{1}, '=');
 		full_name = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
