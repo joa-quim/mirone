@@ -84,7 +84,9 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
 			if (t(1) == '#'),  c(k) = true;			continue,	end
 			if ( t(1) == '@')
 				caracol(k) = true;
-				handles.changeCD_msg{n_msg} = t(2:end);
+				if (~isempty(t(2:end))),		handles.changeCD_msg{n_msg} = t(2:end);		% The '@' was glued with the message
+				else							handles.changeCD_msg{n_msg} = r;
+				end
 				n_msg = n_msg + 1;
 				continue
 			end
@@ -379,10 +381,10 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		if (handles.caracol(k))				% Ai, we need to change CD
 			msg = handles.changeCD_msg{n_cd};
 			resp = yes_or_no('string',['OK, this one is over. ' msg '  ... and Click "Yes" to continue']);
+			n_cd = n_cd + 1;
 			if (strcmp(resp, 'No')),	return
 			else						continue
 			end
-			n_cd = n_cd + 1;
 		end
 
 		[Z,att] = read_gdal(handles.nameList{k}, '-U', '-C', opt_R);
@@ -435,20 +437,22 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			if (k == 1)
 				nc_io(grd_out, ['w-' t_val '/time'], handles, reshape(Z,[1 size(Z)]))
 			else
-				nc_io(grd_out, sprintf('w%d\\%s', k-1, t_val), handles, Z)
+				kk = k - n_cd;			% = k - 1 - (n_cd - 1)	We need this when we had "@ change CD" messages
+				nc_io(grd_out, sprintf('w%d\\%s', kk, t_val), handles, Z)
 			end
 		else
 			if (k == 1)
 				handles.levelVec = str2double(handles.strTimes);
      			nc_io(grd_out,sprintf('w%d/time',nSlices), handles, reshape(Z,[1 size(Z)]))
 			else
-				nc_io(grd_out, sprintf('w%d', k-1), handles, Z)
+				kk = k - n_cd;			% = k - 1 - (n_cd - 1)	We need this when we had "@ change CD" messages
+				nc_io(grd_out, sprintf('w%d', kk), handles, Z)
 			end
 		end
 	end
 	set(handles.listbox_list,'Val',1)
 	set(handles.figure1,'pointer','arrow')
-	
+
 % -----------------------------------------------------------------------------------------
 function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim] = ...
 			get_headerInfo(handles, got_R, west, east, south, north)
