@@ -393,6 +393,7 @@ mex/swan_sem_wbar.c -text
 mex/telha.h -text
 mex/telha_m.c -text
 mex/test_gmt.c -text
+mex/trend1d_m.c -text
 mex/tsun2.c -text
 mex/tsun2_sem_wbar.c -text
 mex/typeconv.h -text
