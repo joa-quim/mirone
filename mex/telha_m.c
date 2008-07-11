@@ -20,38 +20,28 @@
  *
  *			  Changed the default time scale for that of Cand & Kent 95
  *			  The old Cand scale was renamed isoc_o
+ *          	 01/07/08 Killed all the globals
  */
 
 #include "telha.h"
 #include "mex.h"
 #include <string.h>
 
-int read_time_scale (FILE *fp_ts);
-int int_perf (double *c, int i_min, int n_flow, int k, int age_flow, int multi_flow);
+int read_time_scale (FILE *fp_ts, struct ISOC_SCALE *isoc_scale);
+int int_perf (double *c, int i_min, int n_flow, int k, int age_flow, int multi_flow,
+	      double ddeg, double filter_width, struct ISOC_SCALE *isoc_scale);
 int intp_lin (double *x, double *y, int n, int m, double *u, double *v, int mode);
-int set_up_filter(double t_i, double t_f, int n_pts);
 int spotter_init (char *file, struct EULER **p, int flowline, double t_max);
 int spotter_backtrack (double xp[], double yp[], double tp[], int np, struct EULER p[], int ns, double t_zero);
-int do_the_filter (double *fm, int n_rows, int n_cols);
-int flow_in_meters (double *x, double *y, int n_pts);
+int do_the_filter (double *fm, int n_rows, int n_cols, double half_width, double *mag_intp, int n_f_wts,
+		   int half_n_f_wts, double dt, double t_start, double t_stop, double *f_wt, double *f_in_m);
+int flow_in_meters (double *x, double *y, int n_pts, double *f_in_m);
 int no_sys_mem (char *where, int n);
-int intp_along_seg();
+int intp_along_seg(int n_seg, double dl);
 double	gaussian_weight (double radius, double half_width);
-
-double filter_width = 0.001;	/* Full width of filter in user's units */
-double half_width;		
-double	dt;			/* Delta time resolution for filter computation  */
-double	ddeg = 0.005;		/* Delta resolution in degrees for flow interpolation */
-double	dl = 0.05;		/* Delta resolution in degrees for along segment interpolation */
-double	*f_wt;			/* Pointer for array of filter coefficients  */
-double	*f_in_m;		/* Pointer for array of flow line in meters */
-double	*mag_intp;		/* Pointer for array of magnetizations */
-double  t_start;		/* x-value of first output point */
-double  t_stop;			/* x-value of last output point */
-int	n_f_wts;		/* Number of filter weights  */
-int	half_n_f_wts;		/* Half the number of filter weights  */
-int	n_seg;			/* Number of segments in input data */
-struct	ISOC_SCALE *isoc_scale;	/* Pointer to array of time scale */
+double	set_up_filter(double t_i, double t_f, int n_pts, double filter_width,
+		      double *dt, double *t_start, double *t_stop, int *half_n_f_wts, 
+		      int *n_f_wts, double *f_wt);
 
 
 /* --------------------------------------------------------------------------- */
@@ -59,26 +49,31 @@ struct	ISOC_SCALE *isoc_scale;	/* Pointer to array of time scale */
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	struct EULER *p;	/* Pointer to array of stage poles */
+	struct	EULER *p;		/* Pointer to array of stage poles */
+	struct	ISOC_SCALE *isoc_scale;	/* Pointer to array of time scale */
 	int	error = FALSE, brick = FALSE, age_flow = FALSE;
 	int	multi_flow = FALSE, first_seg = TRUE, invert_rot = FALSE, linear_age = FALSE;
 	int	np_in_seg, switch_xy = FALSE, first = TRUE, n_flow, isoc_c = TRUE;
+	int	n_seg;			/* Number of segments in input data */
 	int	m, i_min = 0, int_seg = FALSE, ts_file = FALSE, isoc_p = FALSE, isoc_o = FALSE;
 	int	data_in_input = FALSE, ages_given = FALSE, fake_origin = FALSE;
-	int     i, ii, j, jj, k, l, ll, lb, le, ndata, n_alloc, end, ix = 0, iy = 1, ns, i1, i2;
-	int	n_stages;	/* Number of stage poles */
-	int	n_isoc;		/* Number of isochrons in time scale */
-	int 	n_chunk;	/* Total length or array returned by libeuler functions */
+	int     i, ii, j, jj, k, l, ll, ndata, n_alloc, ix = 0, iy = 1, ns;
+	int	n_stages;		/* Number of stage poles */
+	int	n_isoc;			/* Number of isochrons in time scale */
+	int 	n_chunk;		/* Total length or array returned by libeuler functions */
 	int	argc, n_arg_no_char = 0, np_in, np_out;
-	double	dy, dx, in[2], xi, yi, lon, lat, *tmp, *out, *out2, *out_n_data, *out_n_seg, *out_n_flow;
+	double	in[2], lon, lat, *tmp, *out, *out2, *out_n_data, *out_n_seg, *out_n_flow;
 	double	upper_age = 0.0;	/* Extend oldest age back to this time, in Ma */
-	double	t_zero = 0.0;	/* Current age in Ma */
-	double	age = 0.0;	/* Age of isochron, in Ma */
-	double	age_shift = 0.0;/* Fake the chron table by shifting it by this amount, in Ma */
-	double	*c;		/* Array com os pts de todos os tijolos de cada seg */
+	double	t_zero = 0.0;		/* Current age in Ma */
+	double	age = 0.0;		/* Age of isochron, in Ma */
+	double	age_shift = 0.0;	/* Fake the chron table by shifting it by this amount, in Ma */
+	double	*c;			/* Array com os pts de todos os tijolos de cada seg */
+	double	filter_width = 0.001;	/* Full width of filter in user's units */
+	double	dl = 0.05;		/* Delta resolution in degrees for along segment interpolation */
+	double	ddeg = 0.005;		/* Delta resolution in degrees for flow interpolation */
 	double	age_lin_start, age_lin_stop, age_lin_inc, *first_mag;
 	char	line[MAXCHAR], *newseg = ">";
-	char	*euler_file = NULL;  /* Name pointer for file with stage poles */
+	char	*euler_file = NULL;	/* Name pointer for file with stage poles */
 	char	*t_scale = NULL;	/* Name pointer for file with time scale */
 	char	**argv;
 	FILE    *fp = NULL, *fp_ts = NULL;
@@ -269,7 +264,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			isoc_scale[i].age = isoc_scale[i-1].age + age_lin_inc;
 	}
 	else if (ts_file) /* read time scale provided by user */
-		n_isoc = read_time_scale (fp_ts);
+		n_isoc = read_time_scale (fp_ts, isoc_scale);
 	else if (isoc_p) {	/* use Patriat time scale */ 
 		n_isoc = sizeof isoc_scale_p / sizeof (struct ISOC_SCALE);
 		isoc_scale = (struct ISOC_SCALE *) mxCalloc ((size_t)n_isoc, sizeof(struct ISOC_SCALE));
@@ -349,7 +344,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		np_in = ndata + n_seg - 1;
 	}
 	
-	if (int_seg) intp_along_seg();
+	if (int_seg) intp_along_seg(n_seg, dl);
 
 	/* I'm not sure that the user realy wants this all the times */
 	if (upper_age == 0.0 && linear_age) upper_age = age_lin_stop;
@@ -447,7 +442,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		isoc_scale[i_min].age = t_zero;
 		n_flow++;
 	}
-/*mexPrintf("isoc_scale_imin = %f isoc_scalejj = %f i_min = %d n_flow = %d\n", isoc_scale[i_min].age, isoc_scale[jj].age, i_min, n_flow);*/
 
 	for (k = m = 0; k < n_seg; k++) {	/* Loop over segments */
 		c = mxCalloc ((size_t)(n_flow * data[k].np * 2), sizeof(double));
@@ -493,18 +487,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			first_seg = FALSE;
 		}
 		else
-			int_perf (c, i_min, n_flow, k, age_flow, multi_flow);
+			int_perf (c, i_min, n_flow, k, age_flow, multi_flow, ddeg, filter_width, isoc_scale);
 		mxFree ((void *)c);
 	}
 	mxFree ((void *)data);
-	/* mxFree ((void *)isoc_scale);		This one make a crash. Maybe because it should only be used when we load an external scale */
 	mxFree ((void *)p);
 	mxFree ((void *)argv);
 }
 
-int read_time_scale (FILE *fp_ts) {
+int read_time_scale (FILE *fp_ts, struct ISOC_SCALE *isoc_scale) {
 	/* Read file with a isochron time scale */
-	int n_alloc, ndata = 0, k;
+	int n_alloc, ndata = 0;
 	double in[2];
 	char line[512];
 
@@ -527,9 +520,18 @@ int read_time_scale (FILE *fp_ts) {
 	return (ndata);
 }
 
-int int_perf (double *c, int i_min, int n_flow, int k, int age_flow, int multi_flow) {
+int int_perf (double *c, int i_min, int n_flow, int k, int age_flow, int multi_flow,
+	      double ddeg, double filter_width, struct ISOC_SCALE *isoc_scale) {
 	int l, ll, i, j, n_pts, ii, go_x, sign;
 	double x1, y1, x2, y2, *xx, *yy, *m_a, *u, *v, *vm, dx, dy, dr;
+	int	n_f_wts;		/* Number of filter weights  */
+	int	half_n_f_wts;		/* Half the number of filter weights  */
+	double	*mag_intp;		/* Pointer for array of magnetizations */
+	double  t_start;		/* x-value of first output point */
+	double  t_stop;			/* x-value of last output point */
+	double	half_width, dt;	
+	double	*f_wt;			/* Pointer for array of filter coefficients  */
+	double	*f_in_m;		/* Pointer for array of flow line in meters */
 	/* Vai ser preciso mais tarde decidir quem sao os xx e yy transmitidos para intp_lin	*/
 
 	for (ll = 0; ll < data[k].np; ll++) {
@@ -593,9 +595,12 @@ int int_perf (double *c, int i_min, int n_flow, int k, int age_flow, int multi_f
 			if ((f_in_m = (double *) mxCalloc ((size_t)(n_pts+1), sizeof(double))) == NULL) {no_sys_mem("telha --> int_perf (f_in_m)", n_pts+1);} 
 			if ((mag_intp = (double *) mxCalloc ((size_t)(n_pts+1), sizeof(double))) == NULL) {no_sys_mem("telha --> int_perf (mag_intp)", n_pts+1);} 
 			/* Now covert to distance in m from begining of flow line */
-			flow_in_meters (u, v, n_pts);	/* output in pointer f_in_m */
-			set_up_filter(f_in_m[0], f_in_m[n_pts-1], n_pts);
-			do_the_filter (vm, n_pts, 2);
+			flow_in_meters (u, v, n_pts, f_in_m);	/* output in pointer f_in_m */
+			/*half_width = set_up_filter(f_in_m[0], f_in_m[n_pts-1], n_pts, filter_width);*/
+			half_width = set_up_filter(f_in_m[0], f_in_m[n_pts-1], n_pts, filter_width,
+						&dt, &t_start, &t_stop, &half_n_f_wts, &n_f_wts, f_wt);
+
+			do_the_filter (vm, n_pts, 2, half_width, mag_intp, n_f_wts, half_n_f_wts, dt, t_start, t_stop, f_wt, f_in_m);
 
 			if (multi_flow) mexPrintf ("%>\n");
 			for (j = 0; j < n_pts; j++)
@@ -682,28 +687,31 @@ int intp_lin (double *x, double *y, int n, int m, double *u, double *v, int mode
 	return (0);
 }
 
-int	set_up_filter(double t_i, double t_f, int n_pts) {
+double	set_up_filter(double t_i, double t_f, int n_pts, double filter_width,
+		      double *dt, double *t_start, double *t_stop, int *half_n_f_wts, 
+		      int *n_f_wts, double *f_wt) {
 	int	i, i1, i2;
-	double	time, w_sum;
+	double	time, w_sum, half_width;
 	
-	dt = (t_f - t_i) / (n_pts - 1);
+	*dt = (t_f - t_i) / (n_pts - 1);
 
 	half_width = 0.5 * filter_width;
-	half_n_f_wts = (int)floor (half_width / dt);
-	n_f_wts = 2 * half_n_f_wts + 1;
+	*half_n_f_wts = (int)floor (half_width / (*dt));
+	*n_f_wts = 2 * (*half_n_f_wts) + 1;
 		
-	f_wt = (double *) mxCalloc ((size_t)n_f_wts, sizeof(double));
-	for (i = 0; i <= half_n_f_wts; i++) {
-		time = i * dt;
-		i1 = half_n_f_wts - i;
-		i2 = half_n_f_wts + i;
+	f_wt = (double *) mxCalloc ((size_t)(*n_f_wts), sizeof(double));
+	for (i = 0; i <= *half_n_f_wts; i++) {
+		time = i * (*dt);
+		i1 = *half_n_f_wts - i;
+		i2 = *half_n_f_wts + i;
 		f_wt[i1] = f_wt[i2] = gaussian_weight(time, half_width);
 	}
 
-	t_start = t_i;	t_stop = t_f;	/* Initialize start/stop time */
+	*t_start = t_i;		*t_stop = t_f;	/* Initialize start/stop time */
 
-	return(0);
+	return(half_width);
 }
+
 
 double	gaussian_weight (double radius, double half_width) {
 	double weight, gauss_constant;
@@ -829,7 +837,9 @@ int spotter_backtrack (double xp[], double yp[], double tp[], int np, struct EUL
 	return (np);
 }
 
-int	do_the_filter (double *fm, int n_rows, int n_cols) {
+int	do_the_filter (double *fm, int n_rows, int n_cols, double half_width, double *mag_intp, 
+		       int n_f_wts, int half_n_f_wts, double dt, double t_start, double t_stop, 
+		       double *f_wt, double *f_in_m) {
 /*	n_rows	Number of array points	*/
 /*	n_cols	Should allways be = 2 in this program 	*/
 
@@ -877,7 +887,7 @@ int	do_the_filter (double *fm, int n_rows, int n_cols) {
 			
 		for (i_row = left; i_row < right; i_row++) {
 			delta_time = time - f_in_m[i_row];
-			i_f_wt = half_n_f_wts + (int)floor(0.5 + delta_time/dt);
+			i_f_wt = half_n_f_wts + (int)floor(0.5 + delta_time / dt);
 			if ( (i_f_wt < 0) || (i_f_wt >= n_f_wts) ) continue;
 				
 				i_col = 1;
@@ -916,7 +926,7 @@ int	do_the_filter (double *fm, int n_rows, int n_cols) {
 	return(0);
 }
 
-int	flow_in_meters (double *x, double *y, int n_pts) {
+int	flow_in_meters (double *x, double *y, int n_pts, double *f_in_m) {
 
 	int i;
 	double dx, dy;
@@ -935,7 +945,7 @@ int	no_sys_mem (char *where, int n) {
 		return (0);
 }
 
-int	intp_along_seg() {
+int	intp_along_seg(int n_seg, double dl) {
 	int i, m, j, n_ptsx, n_ptsy, n_pts, go_x, ndata = 0, n_alloc = CHUNK;
 	int sign, size_data;
 	double *xx, *yy, *u, *v, dx, dy, dr;
