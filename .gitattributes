@@ -252,6 +252,7 @@ lib_mex/gdalread.dll -text
 lib_mex/gdalwarp_mex.dll -text
 lib_mex/gdalwrite.dll -text
 lib_mex/gmtlist_m.dll -text
+lib_mex/gmtmbgrid_m.dll -text
 lib_mex/grayto16.dll -text
 lib_mex/grayto8.dll -text
 lib_mex/grayxform.dll -text
