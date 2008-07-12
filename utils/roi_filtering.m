@@ -68,7 +68,7 @@ Z_filt = Z_filt(:);     Z_filt(mask_b) = [];
 [X,Y] = meshgrid(X,Y);
 X = X(:);   X(mask_b) = [];
 Y = Y(:);   Y(mask_b) = [];
-Z_rect = surface_m(X,Y,Z_filt,opt_R,opt_I);    clear X Y Z_filt;
+Z_rect = gmtmbgrid_m(X,Y,Z_filt,opt_R,opt_I);    clear X Y Z_filt;
 if (have_local_nans)            % If we had NaNs inside original Z_rect, restore them
     Z_rect(rect_nans) = NaN;
 end
