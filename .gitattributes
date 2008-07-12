@@ -303,6 +303,7 @@ lib_mex/swan.dll -text
 lib_mex/swan_sem_wbar.dll -text
 lib_mex/telha_m.dll -text
 lib_mex/test_gmt.dll -text
+lib_mex/trend1d_m.dll -text
 lib_mex/tsun2.dll -text
 lib_mex/tsun2_sem_wbar.dll -text
 lib_mex/uigetfolder_win32.dll -text
