@@ -31,7 +31,7 @@ function varargout = mirone(varargin)
 % --------------------------------------------------------------------------------------------------
 function hObject = mirone_OpeningFcn(varargin)
 	% PRAGMA SECTION (It's far far from clear when files must be declared here)
-	%#function uigetfolder_standalone mapproject_m grdproject_m coordinate_system surface_m
+	%#function uigetfolder_standalone mapproject_m grdproject_m coordinate_system gmtmbgrid_m
 	%#function nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m grdtrack_m grdtrend_m 
 	%#function grdutils scaleto8 waitbar bpass3d inv3d rtp3d syn3d igrf_m
 	%#function range_change swan tsun2 mansinha_m deform_mansinha deform_okada dim_funs
@@ -158,8 +158,15 @@ function hObject = mirone_OpeningFcn(varargin)
 			[pato, fname, EXT] = fileparts(varargin{1});				% Test to check online command input
 			if (isempty(pato)),		varargin{1} = [handles.home_dir fsep fname EXT];	end
 			drv = aux_funs('findFileType',varargin{1});
-        elseif ( isa(varargin{1},'uint8') || isa(varargin{1},'logical') )
+        elseif ( isa(varargin{1},'uint8') ||  isa(varargin{1},'int8') || isa(varargin{1},'logical') )
 			% Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
+			if ( isa(varargin{1},'int8') )		% We cannot represent a int8 image. Do something
+				if ( any(varargin{1}(:) < 0) )	% [-128 127] -> [0 255] 
+					varargin{1} = uint8(imlincombc(varargin(1), [1 128], 'int8'));
+				else
+					varargin{1} = uint8(varargin{1});
+				end
+			end
 			dims = size(varargin{1});			isReferenced = false;
 			if ( n_argin == 2 && isa(varargin{2},'struct') )       % An image with coordinates
 				tmp = varargin{2};
@@ -531,18 +538,18 @@ elseif (strcmp(opt2,'FillGaps'))
 		Z_rect = double(Z_rect);      % It has to be
 		aa = isnan(Z_rect(:));
 		[X,Y] = meshgrid(X,Y);
-		ZZ = Z_rect(:);     ZZ(aa) = [];
-		XX = X(:);          XX(aa) = [];
-		YY = Y(:);          YY(aa) = [];
+		ZZ = Z_rect(:);		ZZ(aa) = [];
+		XX = X(:);			XX(aa) = [];
+		YY = Y(:);			YY(aa) = [];
 		if (~isempty(opt3))
 			switch opt3
-				case 'surface', Z_rect = surface_m(XX,YY,ZZ,opt_R,opt_I,'-T.25');
+				case 'surface', Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25');
 				case 'cubic',   Z_rect = griddata_j(XX,YY,ZZ,X,Y,'cubic');
 				case 'linear',  Z_rect = griddata_j(XX,YY,ZZ,X,Y,'linear');
 				case 'sea',     Z_rect(aa) = 0;
 			end
 		else
-			Z_rect = surface_m(XX,YY,ZZ,opt_R,opt_I,'-T.25','-v');
+			Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25','-v');
 		end
 		clear X XX Y YY ZZ;
 	end
