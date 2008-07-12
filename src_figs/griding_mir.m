@@ -66,36 +66,36 @@ handles.type = type;
 % Choose the default griding_mir_export method
 % In Mirone the 'Delauny Triangulation' method is not yet implemented
 if strcmp(type,'surface')
-    set(hObject,'Name','Surface')
-    %set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Delauny Triangulation';'Near Neighbor'});
-    set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Near Neighbor'});
-    handles.command{1} = 'surface ';
-    set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-    set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-    set(handles.pushbutton_Help_S,'Enable', 'off')
-    set(handles.checkbox_Option_F,'Enable', 'off')
+	set(hObject,'Name','Surface')
+	%set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Delauny Triangulation';'Near Neighbor'});
+	set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Near Neighbor'});
+	handles.command{1} = 'surface ';
+	set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+	set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+	set(handles.pushbutton_Help_S,'Enable', 'off')
+	set(handles.checkbox_Option_F,'Enable', 'off')
 elseif strcmp(type,'triangulate')
-    set(hObject,'Name','Triangulate')
-    set(handles.popup_GridMethod, 'String', {'Delauny Triangulation';'Minimum Curvature';'Near Neighbor'});
-    handles.command{1} = 'triangulate ';
-    set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-    set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-    set(handles.pushbutton_Help_S,'Enable', 'off')
+	set(hObject,'Name','Triangulate')
+	set(handles.popup_GridMethod, 'String', {'Delauny Triangulation';'Minimum Curvature';'Near Neighbor'});
+	handles.command{1} = 'triangulate ';
+	set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+	set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+	set(handles.pushbutton_Help_S,'Enable', 'off')
 elseif strcmp(type,'nearneighbor')
-    set(hObject,'Name','Nearneighbor')
-    %set(handles.popup_GridMethod, 'String', {'Near Neighbor';'Delauny Triangulation';'Minimum Curvature'});
-    set(handles.popup_GridMethod, 'String', {'Near Neighbor';'Minimum Curvature'});
-    set(handles.checkbox_Option_V,'Enable', 'off')
-    handles.command{1} = 'nearneighbor ';
+	set(hObject,'Name','Nearneighbor')
+	%set(handles.popup_GridMethod, 'String', {'Near Neighbor';'Delauny Triangulation';'Minimum Curvature'});
+	set(handles.popup_GridMethod, 'String', {'Near Neighbor';'Minimum Curvature'});
+	set(handles.checkbox_Option_V,'Enable', 'off')
+	handles.command{1} = 'nearneighbor ';
 else        % Defaults to surface
-    set(hObject,'Name','Surface')
-    %set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Delauny Triangulation';'Near Neighbor'});
-    set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Near Neighbor'});
-    handles.command{1} = 'surface ';
-    set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-    set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-    set(handles.checkbox_Option_F,'Enable', 'off')
-    set(handles.pushbutton_Help_S,'Enable', 'off')
+	set(hObject,'Name','Surface')
+	%set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Delauny Triangulation';'Near Neighbor'});
+	set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Near Neighbor'});
+	handles.command{1} = 'surface ';
+	set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+	set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+	set(handles.checkbox_Option_F,'Enable', 'off')
+	set(handles.pushbutton_Help_S,'Enable', 'off')
 end
 
 if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
@@ -145,15 +145,8 @@ set(hObject,'Visible','on');
 uiwait(handles.figure1);
 
 handles = guidata(hObject);
-out = griding_mir_OutputFcn(hObject, [], handles);
-varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = griding_mir_OutputFcn(hObject, eventdata, handles)
-% Get default command line output from handles structure
-try,    varargout{1} = handles.output;  end
-% The figure can be deleted now
 delete(handles.figure1);
+if (nargout),	varargout{1} = handles.output;		end
 
 % -----------------------------------------------------------------------------------
 function checkbox_Option_H_Callback(hObject, eventdata, handles)
@@ -540,7 +533,7 @@ if ~isempty(val)
         set(hObject,'String','');   guidata(hObject, handles);  return
     else
         handles.command{12} = xx;
-        handles.command{5} = [' -R'];handles.command{7} = ['/'];handles.command{9} = ['/'];
+        handles.command{5} = ' -R';	handles.command{7} = '/';	handles.command{9} = '/';
         handles.command{11} = '/';
         guidata(hObject, handles);
     end
@@ -550,15 +543,15 @@ if ~isempty(val)
         y_inc = ivan_the_terrible((y_max - handles.y_min),round(abs(str2double(nr))),1);
         xx = floor((handles.y_min - str2double(xx)) / (str2double(get(handles.edit_Yinc,'String')))+0.5) + handles.one_or_zero;
         set(handles.edit_Yinc,'String',num2str(y_inc,8))
-        handles.command{14} = [' -I'];      handles.command{16} = '/';
-        handles.command{17} = [num2str(y_inc,8)];
+        handles.command{14} = ' -I';      handles.command{16} = '/';
+        handles.command{17} = num2str(y_inc,8);
         guidata(hObject, handles);
     elseif ~isempty(handles.y_min)      % y_min box is filled but nrows is not, so put to the default (100)
         y_inc = ivan_the_terrible((y_max - handles.y_min),100,1);
         set(handles.edit_Yinc,'String',num2str(y_inc,8))
         set(handles.edit_Nrows,'String','100')
-        handles.command{14} = [' -I'];      handles.command{16} = '/';
-        handles.command{17} = [num2str(y_inc,8)];
+        handles.command{14} = ' -I';      handles.command{16} = '/';
+        handles.command{17} = num2str(y_inc,8);
         guidata(hObject, handles);
     end
 else                % This box is empty, so clear also y_inc and nrows
@@ -593,7 +586,7 @@ if ~isempty(handles.y_min) & ~isempty(handles.y_max)
     set(handles.edit_Nrows,'String',num2str(nrow))
 end
 handles.dms_yinc = dms;
-handles.command{14} = [' -I'];  handles.command{16} = '/';   handles.command{17} = [num2str(y_inc,8)];
+handles.command{14} = ' -I';  handles.command{16} = '/';   handles.command{17} = num2str(y_inc,8);
 guidata(hObject, handles);
 
 % -----------------------------------------------------------------------------------
@@ -661,7 +654,7 @@ end
 % -----------------------------------------------------------------------------------
 function checkbox_Option_F_Callback(hObject, eventdata, handles)
 if get(hObject,'Value')
-    handles.one_or_zero = 0;    handles.command{44} = [' -F'];
+    handles.one_or_zero = 0;    handles.command{44} = ' -F';
 else
     handles.one_or_zero = 1;    handles.command{44} = '';
 end
@@ -737,7 +730,7 @@ switch str{val};
         set(handles.checkbox_Option_F,'Enable', 'off')
         handles.command{19} = '';     handles.command{20} = '';
         handles.command{21} = '';     handles.command{30} = '';
-        handles.command{1} = ['surface '];
+        handles.command{1} = 'surface ';
         handles.type = 'surface';
     case 'Delauny Triangulation'
         set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
@@ -746,7 +739,7 @@ switch str{val};
         set(handles.checkbox_Option_F,'Enable', 'on')
         handles.command{19} = '';     handles.command{20} = '';
         handles.command{21} = '';     handles.command{30} = '';
-        handles.command{1} = ['triangulate '];
+        handles.command{1} = 'triangulate ';
         handles.type = 'triangulate';
     case 'Near Neighbor'
         set(handles.edit_S1_Neighbor,'Enable', 'on', 'Backgroundcolor','white')
@@ -755,7 +748,7 @@ switch str{val};
         set(handles.checkbox_Option_F,'Enable', 'on')
         set(handles.edit_S1_Neighbor,'String','')
         set(handles.popup_S2_Neighbor,'Value',1)
-        handles.command{1} = ['nearneighbor '];     handles.command{30} = '';
+        handles.command{1} = 'nearneighbor ';     handles.command{30} = '';
         handles.type = 'nearneighbor';
 end
 guidata(hObject,handles)
@@ -797,7 +790,7 @@ if error == 0
     set(handles.figure1,'Name','COMPUTING')
     switch handles.type
         case 'surface'
-            [Z,head] = surface_m(out{2:end});     % We don't want the last ','
+            [Z,head] = gmtmbgrid_m(out{2:end});     % We don't want the last ','
             tit = 'surface interpolation';          name = tit;
             set(handles.figure1,'Name','Surface')
         case 'nearneighbor'
@@ -923,11 +916,11 @@ end
 % --------------------------------------------------------------------
 function about_window_Callback(hObject, eventdata, handles)
 if (strcmp(handles.command{1},'surface '))
-    about_box('surface_Last_modified__01_June_2008');
+    about_box('surface_Last_modified__12_July_2008');
 elseif (strcmp(handles.command{1},'triangulate '))
-    about_box('triangulate_Last_modified_at_01_June_2008');
+    about_box('triangulate_Last_modified_at_12_July_2008');
 else
-    about_box('nearneighbor_Last_modified_at_01_June_2008');
+    about_box('nearneighbor_Last_modified_at_12_July_2008');
 end
 
 % --- Creates and returns a handle to the GUI figure. 
@@ -970,13 +963,11 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Callback',{@griding_mir_uicallback,h1,'checkbox_Option_H_Callback'},...
-'CData',[],...
 'Position',[21 318 70 15],...
 'String','Headers?',...
 'Style','checkbox',...
 'TooltipString','Are there any header lines in the input file?',...
-'Tag','checkbox_Option_H',...
-'UserData',[]);
+'Tag','checkbox_Option_H');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
