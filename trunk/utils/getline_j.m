@@ -11,6 +11,7 @@ function varargout = getline_j(varargin)
 %   [X,Y] = GETLINE_J is the same as [X,Y] = GETLINE_J(GCF).
 %   [X,Y] = GETLINE_J(...,'closed') animates and returns a closed polygon.
 %   [X,Y] = GETLINE_J(...,'freehand') draw a line following the mouse movements.
+%   [X,Y] = GETLINE_J(...,'dynamic') calls grdtrack_m to do dynamic profiling.
 %
 
 %   Grandfathered syntaxes:
@@ -23,12 +24,15 @@ function varargout = getline_j(varargin)
 
 ud.GETLINE_ISCLOSED = 0;
 ud.GETLINE_FREEHAND = 0;
+ud.GETLINE_DYNAMIC  = 0;
 if ((nargin >= 1) && (ischar(varargin{end})))
     str = varargin{end};
     if (str(1) == 'c')                  % getline_j(..., 'closed')
         ud.GETLINE_ISCLOSED = 1;        varargin = varargin(1:end-1);
     elseif (str(1) == 'f')              % getline_j(..., 'freehand')
         ud.GETLINE_FREEHAND = 1;        varargin = varargin(1:end-1);
+    elseif (str(1) == 'd')				% getline_j(..., 'dynamic')
+        ud.GETLINE_DYNAMIC = 1;			varargin = varargin(1:end-1);
     end
 end
 
@@ -271,8 +275,8 @@ end
 setappdata(ud.GETLINE_FIG, 'FromGetLine_j', ud);
 
 %-----------------------------------------------------------------------------------
-function ButtonMotion(obj,eventdata,hfig)
-ud = getappdata(hfig, 'FromGetLine_j');
+function ButtonMotion(obj,eventdata,hFig)
+ud = getappdata(hFig, 'FromGetLine_j');
 
 pt = get(ud.GETLINE_AX, 'CurrentPoint');
 newx = pt(1,1);    newy = pt(1,2);
@@ -284,7 +288,11 @@ else
 end
 
 if (~ud.GETLINE_FREEHAND)
-    set([ud.GETLINE_H1 ud.GETLINE_H2], 'XData', x, 'YData', y);
+	set([ud.GETLINE_H1 ud.GETLINE_H2], 'XData', x, 'YData', y);
+	if (ud.GETLINE_DYNAMIC)
+		% First logical indicates "not a point interpolation" and second that we are in dynamic mode
+		grid_profiler(hFig, x, y, false, true);
+	end
 else            % Do a freehand drawing
 	set([ud.GETLINE_H1 ud.GETLINE_H2],'xdata',[get(ud.GETLINE_H1,'xdata'),pt(1,1)],...
             'ydata',[get(ud.GETLINE_H1,'ydata'),pt(1,2)]);
