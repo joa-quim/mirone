@@ -28,6 +28,7 @@ function varargout = mirone_pref(varargin)
 	load([handMir.path_data 'mirone_pref.mat']);
 	handles.geog = geog;		% Just to not be empty.
 	handles.ForceInsitu = 0;	% 		"
+	handles.moveDoubleClick = 1;% 		"
 	handles.flederPlanar = 1;	%		"
 	handles.flederBurn = 1;
 	handles.whichFleder = 1;
@@ -46,25 +47,29 @@ function varargout = mirone_pref(varargin)
 		if (~whichFleder)
 			set(handles.radio_fleder,'Val',1),		set(handles.radio_iview,'Val',0)
 		end
+		if (moveDoubleClick)				% It will fail on the first time, but work after
+			set(handles.check_movPolyg,'Val',1)
+		end
+		handles.moveDoubleClick = moveDoubleClick;
 	end
 
-	j = logical(zeros(1,length(directory_list)));           % vector for eventual cleaning non-existing dirs
-	if iscell(directory_list)                               % When exists a dir list in mirone_pref
+	j = logical(zeros(1,length(directory_list)));			% vector for eventual cleaning non-existing dirs
+	if iscell(directory_list)								% When exists a dir list in mirone_pref
         for (i = 1:length(directory_list))
-            try,        cd(directory_list{i});              % NOTE. I don't use 'exist' anymore because
-            catch,      j(i) = 1;       cd(home_dir);       % the stupid compiler allways return something > 0
+            try,        cd(directory_list{i});				% NOTE. I don't use 'exist' anymore because
+            catch,      j(i) = 1;							% the stupid compiler allways return something > 0
             end
         end
-        cd(home_dir);                           % Need to come back home because it was probably somewere out there
-        directory_list(j) = [];                             % clean eventual non-existing directories
-        if (~isempty(directory_list))                       % If there is one left
+        cd(home_dir);							% Need to come back home because it was somewere out there
+        directory_list(j) = [];								% clean eventual non-existing directories
+        if (~isempty(directory_list))						% If there is one left
             set(handles.popup_directory_list,'String',directory_list)
             handles.last_directories = directory_list;
         else
             handles.last_directories = {[home_dir filesep 'tmp']; home_dir};    % Let it have something existent
             set(handles.popup_directory_list,'String',handles.last_directories)
         end
-	else                                                    % mirone_pref had no dir list
+	else													% mirone_pref had no dir list
         handles.last_directories = {[home_dir filesep 'tmp']; home_dir};    % Let it have something existent
         set(handles.popup_directory_list,'String',handles.last_directories)
 	end
@@ -174,7 +179,15 @@ function varargout = mirone_pref(varargin)
 		'arc length at Earth surface, isometric plotting of geographical\n'...
 		'grids squeezes the image vertically. Scaling the image to the\n'...
 		'cosinus of the mean lat minimizes this effect.']);
-	set(handles.checkbox_meanLat,'TooltipString',str)
+	set(handles.checkbox_meanLat,'Tooltip',str)
+
+	str = sprintf(['Controls what mouse selection is used to move polylines/patches\n'...
+			'If checked lines are moved with a left click drag-n-drop. Though\n',...
+			'easier to operate this has often anoying side effects (move the polyline\n',...
+			'when in fact we wanted to edit one of its vertex).\n\n',...
+			'Uncheck if you want to use a Shift-click left mouse button or click both\n',...
+			'left and right mouse buttons to move the line. A bit more cumbersome, but safer']);
+	set(handles.check_movePolyg,'Tooltip',str)
 
 % ------------------ TABPANEL SECTION ----------------------------------------
 % This is the tag that all tab push buttons share.  If you have multiple
@@ -212,7 +225,6 @@ function tab_group_ButtonDownFcn(hObject, eventdata, handles)
     handles = tabpanelfcn('tab_group_handler',hObject, handles, get(hObject, 'Tag'));
     guidata(hObject, handles);
 
-	
 % -------------------------------------------------------------------------------------
 function ellipsoids = ellips_list()
 	ellipsoids = {'WGS-84 - 1984', 6378137.0, 0.0, 1.0/298.2572235630;
@@ -293,34 +305,35 @@ function popup_directory_list_Callback(hObject, eventdata, handles)
 
 % ------------------------------------------------------------------------------------
 function pushbutton_change_dir_Callback(hObject, eventdata, handles)
-contents = get(handles.popup_directory_list,'String');
-if (ispc)
-    work_dir = uigetfolder_standalone('Select a directory',contents{get(handles.popup_directory_list,'Value')});
-else            % This guy says it cannot be compiled
-    work_dir = uigetdir;
-end
-
-if (isempty(work_dir) || isequal(work_dir,0))    return;     end
-
-handles.last_directories = [cellstr(work_dir); handles.last_directories];
-if length(handles.last_directories) > 15            % Keep only 15 adresses
-    handles.last_directories(16:end) = [];
-end
-set(handles.popup_directory_list,'String',handles.last_directories)
-guidata(hObject, handles);
+	contents = get(handles.popup_directory_list,'String');
+	if (ispc)
+		work_dir = uigetfolder_standalone('Select a directory',contents{get(handles.popup_directory_list,'Value')});
+	else            % This guy says it cannot be compiled
+		work_dir = uigetdir;
+	end
+	
+	if (isempty(work_dir) || isequal(work_dir,0))    return;     end
+	
+	handles.last_directories = [cellstr(work_dir); handles.last_directories];
+	if length(handles.last_directories) > 15            % Keep only 15 adresses
+		handles.last_directories(16:end) = [];
+	end
+	set(handles.popup_directory_list,'String',handles.last_directories)
+	guidata(hObject, handles);
 
 % ------------------------------------------------------------------------------------
 function checkbox_meanLat_Callback(hObject, eventdata, handles)
-	if (get(hObject,'Value')),      handles.scale2meanLat = 1;
-	else                            handles.scale2meanLat = 0;
-	end
+	handles.scale2meanLat = get(hObject,'Value');
 	guidata(hObject, handles);
 
 % ------------------------------------------------------------------------------------
 function checkbox_ForceInsitu_Callback(hObject, eventdata, handles)
-	if (get(hObject,'Value')),      handles.ForceInsitu = 1;
-	else                            handles.ForceInsitu = 0;
-	end
+	handles.ForceInsitu = get(hObject,'Value');
+	guidata(hObject, handles);
+
+% ------------------------------------------------------------------------------------
+function check_movePolyg_CB(hObject, eventdata, handles)
+	handles.moveDoubleClick = get(hObject,'Value');
 	guidata(hObject, handles);
 
 % ------------------------------------------------------------------------------------
@@ -416,6 +429,7 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 	swathRatio    = handles.handMir.swathRatio;
 	scale2meanLat = handles.handMir.scale2meanLat;
 	%ForceInsitu = handles.ForceInsitu;     % We don't save it because the user must choose it every time
+	moveDoubleClick = handles.moveDoubleClick;
 
 	% Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
 	version7 = version;
@@ -426,17 +440,22 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 	if (~version7)                  % R<=13
 		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
 			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
-			'flederPlanar', 'flederBurn', 'whichFleder', '-append')
+			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', '-append')
 	else
 		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
 			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
-			'flederPlanar', 'flederBurn', 'whichFleder', '-append', '-v6')
+			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', '-append', '-v6')
 	end
 
 	% Save the Mirone handles, on the Mirone fig obviously
 	guidata(handles.handMir.figure1, handles.handMir)
 	setappdata(handles.handMir.figure1,'swathRatio',swathRatio);    % We need this in getline_mb
 	set(handles.handMir.ToolsMeasureDist,'Label',['Distance in ' handles.handMir.DefineMeasureUnit])
+	if (moveDoubleClick)			% this info is used by UI_EDIT_POLYGON()
+		setappdata(handles.handMir.axes1,'MovPolyg',[])				% Move lines with a click drag-n-drop
+	else
+		setappdata(handles.handMir.axes1,'MovPolyg','extend')		% Move lines with a Shift-click drag-n-drop
+	end
 
 	delete(handles.figure1)
 
@@ -662,6 +681,15 @@ uicontrol('Parent',h1,...
 'String','Force "Insitu" transposition',...
 'Style','checkbox',...
 'Tag','checkbox_ForceInsitu',...
+'UserData','general');
+
+uicontrol('Parent',h1,...
+'Callback',{@mirone_pref_uicallback,h1,'check_movePolyg_CB'},...
+'Position',[10 90 230 15],...
+'String','Move lines with a left-click',...
+'Style','checkbox',...
+'Value',1,...
+'Tag','check_movePolyg',...
 'UserData','general');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
