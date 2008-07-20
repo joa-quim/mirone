@@ -51,13 +51,15 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic)
 			hAxes = axes('Parent',hFig,'Units','pixels','Position',[axSize(1) (axSize(2)+axSize(4)/2) axSize(3) min(axSize(4),200)], ...
 				'Tag','axDynProf','Visible','off');
 			r = dist_along_profile(xx, yy);
-			hLine = line('Parent',hAxes,'XData',r,'YData',zz);
+			hLine = line('Parent',hAxes,'XData',r,'YData',zz,'Color',handles.DefLineColor,'LineWidth',2);
+			set(hAxes,'xlim', [min(r) max(r)])
 			setappdata(handles.axes1, 'dynProfile', hAxes)
 			setappdata(hAxes,'theLine',hLine)
 		else
 			r = dist_along_profile(xx, yy);
 			hLine = getappdata(hDynProfAx,'theLine');
 			set(hLine,'XData',r,'YData',zz,'UserData',[xx(:) yy(:)])
+			set(hDynProfAx,'xlim', [min(r) max(r)])
 		end
 	end
 
