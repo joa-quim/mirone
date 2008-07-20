@@ -287,6 +287,7 @@ elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the 
 end
 uimenu(cmenuHand, 'Label', label_save, 'Callback', {@save_formated,h});
 if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))     % Those are not to allowed to copy
+	uimenu(cmenuHand, 'Label', 'Join lines', 'Callback', {@join_lines,handles.figure1});
 	uimenu(cmenuHand, 'Label', 'Copy', 'Callback', {@copy_line_object,handles.figure1,handles.axes1});
 end
 if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_length, 'Callback', @show_LineLength);		end
@@ -430,6 +431,49 @@ function wbm_MovePolygon(obj,eventdata,h,lim,hAxes)
 function wbd_MovePolygon(obj,eventdata,h,state)
 	uirestore_fig(state);           % Restore the figure's initial state
 	ui_edit_polygon(h)              % Reset the edition functions with the correct handle
+% -----------------------------------------------------------------------------------------
+
+% -----------------------------------------------------------------------------------------
+function join_lines(obj,eventdata,hFig)
+% Join lines that are NOT -- SEISPOLYGON, or MBTRACK, or FaultTrace or closed polygons
+
+	hCurrLine = gco;
+	hLines = get_polygon(hFig,'multi');		% Get the line handles
+	if ( numel(hLines) == 0 || (numel(hLines) == 1 && hLines == hCurrLine) ),	return,		end		% Nothing to join
+	for (k = 1:numel(hLines))
+		if (strcmp(get(hLines(k),'Type'),'patch')),		continue,	end
+		[x, y, was_closed] = join2lines([hCurrLine hLines(k)]);
+		if (~was_closed),	delete(hLines(k)),	end		% Closed polygons are ignored 
+		set(hCurrLine, 'XData',x, 'YData',y)
+	end
+
+% ---------
+function [x, y, was_closed] = join2lines(hLines)
+% Joint the two lines which have handles "hLines" by their closest connection points
+	x1 = get(hLines(1),'XData');		y1 = get(hLines(1),'YData');
+	x2 = get(hLines(2),'XData');		y2 = get(hLines(2),'YData');
+	
+	wa_closed = false;
+	if ( (x2(1) == x2(end)) && (y2(1) == y2(end)) )		% Ignore closed polygons
+		x = x1;		y = y1;
+		was_closed = true;
+		return
+	end
+
+	% Find how segments should be glued. That is find the closest extremities
+	dif_x = [(x1(1) - x2(1)); (x1(1) - x2(end)); (x1(end) - x2(1)); (x1(end) - x2(end))];
+	dif_y = [(y1(1) - y2(1)); (y1(1) - y2(end)); (y1(end) - y2(1)); (y1(end) - y2(end))];
+	dist = sum([dif_x dif_y] .^2 ,2);	% Square of distances between the 4 extremities
+	[mimi, I] = min(dist);				% We only care about the min location
+	if (I == 1)				% Lines grow in oposite directions from a "mid point"
+		x = [x2(end:-1:2) x1];		y = [y2(end:-1:2) y1];
+	elseif (I == 2)			% Line 2 ends near the begining of line 1 
+		x = [x2 x1];				y = [y2 y1];
+	elseif (I == 3)			% Line 1 ends near the begining of line 2
+		x = [x1 x2];				y = [y1 y2];
+	else					% Lines grow from the extremeties twards the "mid point"
+		x = [x1 x2(end:-1:2)];		y = [y1 y2(end:-1:2)];
+	end
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
