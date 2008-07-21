@@ -11,16 +11,19 @@ function aquaPlugin(handles)
 	end
 
 	do_return = true;
-	casos = {'zonal' ...
+	casos = {'zonal' ...			% 1 - Compute zonal means
 			'tvar' ...				% 2 - Compute the Temp time rate of a file with anual means by fit of a straight line (Load entire file in memory)
 			'yearMean' ...			% 3 - Compute yearly averages from monthly data
 			'yearMeanFlag' ...		% 4 - Compute yearly averages from monthly data but checked against a quality flag file
-			'polygAVG' ...			% 5 -Compute averages of whatever inside polygons (if any)
+			'polygAVG' ...			% 5 - Compute averages of whatever inside polygons (if any)
+			'flagsStats' ...		% 6 - Compute per/pixel anual or mounth counts of pixel values with a quality >= flag
+			'do_math' ...			% 7 - Perform some basic agebraic operations with the 3D planes
 			};
+
 	qual = casos{4};		% <== Active selection
 
 	switch qual
-		case 'zonal'
+		case 'zonal'				% case 1
 			integ_lon = true;
 			dlat = 0.5;
 			have_polygon = true;
@@ -33,17 +36,28 @@ function aquaPlugin(handles)
 			end
 
 			zonal(handles, dlat, integ_lon, have_polygon, x, y)
-		case 'tvar'
+		case 'tvar'					% case 2
 			calcGrad(handles) 
-		case 'yearMean'
+		case 'yearMean'				% case 3
 			ano = 1:12;				% Compute yearly means
 			calc_yearMean(handles, ano)
-		case 'yearMeanFlag'
+		case 'yearMeanFlag'			% case 4
 			ano = 1:12;				% Compute yearly means
-			fname = 'C:\SVN\mironeWC\qual_85.nc';
-			calc_yearMean(handles, ano, fname, 7)
-		case 'polygAVG'
+			fname = 'C:\SVN\mironeWC\qual_85_07.nc';
+			quality = 7;			% Retain only values of quality >= this
+			pintAnoes = true;		% If true instruct to fill holes <= nCells
+			nCells = 200;			% Holes (bad data) smaller than this are filled by interpolation
+			calc_yearMean(handles, ano, fname, quality, pintAnoes, nCells)
+		case 'polygAVG'				% case 5
 			calc_polygAVG(handles)
+		case 'flagsStats'			% case 6
+			ano = 1:12;				% Compute yearly stats
+			opt = 'per_year';		% Make the counting on a per year basis
+			opt = '';				% Make the counting on a per month basis
+			calc_flagsStats(handles, ano, 7, opt)
+		case 'do_math'				% case 7
+			opt = 'sum';			% Sum all layers (only operation for the time beeing)
+			do_math(handles, opt)
 		otherwise
 			do_return = false;		% Not finish (run the code below)
 	end
@@ -222,14 +236,17 @@ function calcGrad(handles)
 	mirone(Tvar, tmp)
 
 % ----------------------------------------------------------------------
-function calc_yearMean(handles, months, fname2, flag)
+function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells)
 % Calcula media anuais a partir de dados mensais
 % MONTHS 	is a vector with the months uppon which the mean is to be computed
 %		example: 	months = 1:12		==> Computes yearly mean
 %					months = 6:8		==> Computes June-July-August seazonal means
+%
+% OPTIONS:
 % FNAME2 	name of a netCDF file with quality flags. Obviously this file must be of
 % 			the same size as the series under analysis.
 % FLAG		Threshold quality value. Only values of quality >= FLAG will be taken into account
+% PINTANOES	Logical that if true instruct to fill holes <= NCELLS
 
 	txt1 = 'netCDF grid format (*.nc,*.grd)';
 	txt2 = 'Select output netCDF grid';
@@ -238,7 +255,6 @@ function calc_yearMean(handles, months, fname2, flag)
 	[pato, fname, EXT] = fileparts(FileName);
 	if (isempty(EXT)),		FileName = [fname '.nc'];	end
 	grd_out = [PathName FileName];
-% 	grd_out = 'PF_avgYear_85-06.nc';
 
 	z_id = handles.netcdf_z_id;
 	s = handles.nc_info;				% Retrieve the .nc info struct
@@ -269,19 +285,19 @@ function calc_yearMean(handles, months, fname2, flag)
 		if (nargin == 3),		flag = 7;		end			% If not provided, defaults to best quality
 	end
 
-	handles.geog = 1;
-	handles.was_int16 = 0;
-	handles.computed_grid = 0;
+	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
 
 	anos = handles.number_of_timesteps / 12;
 	
 	aguentabar(0,'title','Calcula as medias anuais','CreateCancelBtn')
 	Tmed = zeros([rows, cols]);			% Temp media para cada um dos anos
-	mn = 0;
 	warning off MATLAB:divideByZero
+
+	anos = 2;
 	for (m = 1:anos)
 		contanoes = zeros(rows, cols);
 		for (n = months)
+			mn = (m - 1)*12 + n - 1;
 			Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [mn 0 0], [1 rows cols]);
 
 			if (do_flags)
@@ -290,18 +306,21 @@ function calc_yearMean(handles, months, fname2, flag)
 			end
 
 			ind = isnan(Z);
+
+			if (pintAnoes && any(ind(:)))
+				Z = inpaint_nans(handles, Z, ind, nCells);		% Select interp method inside inpaint_nans()
+				ind = isnan(Z);
+			end
+
 			Z(ind) = 0;				% transmuta os anoes
 			contanoes = contanoes + ~ind;
 			Tmed(:,:) = Tmed(:,:) + double(Z);
-			mn = mn + 1;
 		end
 		Tmed(:,:) = Tmed(:,:) ./ contanoes;
 		tmp = single(Tmed(:,:));
 		
-		if (m == 1)
-			nc_io(grd_out,sprintf('w%d/time',anos), handles, reshape(tmp,[1 size(tmp)]))
-		else
-			nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
+		if (m == 1),		nc_io(grd_out,sprintf('w%d/time',anos), handles, reshape(tmp,[1 size(tmp)]))
+		else				nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
 		end
 		
 		h = aguentabar(m/anos);
@@ -309,6 +328,71 @@ function calc_yearMean(handles, months, fname2, flag)
 		
 		Tmed = Tmed * 0;			% Reset it to zeros
 	end
+
+% ----------------------------------------------------------------------
+function Z = inpaint_nans(handles, Z, bw, nCells)
+% Interpolate holes in Z that are smaller than NCELLS in size
+%
+% BW is a logicall array which maps where Z has NaNs
+	
+	if (nargin == 3),	nCells = 100;	end
+
+	use_surface = true;
+	use_bicubic = false;
+	pad = 4;				% Number of cells to increase the rectangle that encloses each hole
+	head = handles.head;
+	[rows, cols] = size(Z);
+	
+	% Retain only <= handles.nCells sized of connected groups
+	bw2 = img_fun('bwareaopen', bw, nCells);
+	bw = xor(bw, bw2);
+	clear bw2;
+	
+	B = img_fun('find_holes',bw);
+
+	if (use_surface)
+		opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
+	else
+		opt_I = ' ';
+	end
+
+	n_buracos = numel(B);
+	for (i = 1:n_buracos)
+		% Get rectangles arround each hole
+		x_min = min(B{i}(:,2));			x_max = max(B{i}(:,2));
+		y_min = min(B{i}(:,1));			y_max = max(B{i}(:,1));
+		x_min = max(1,x_min-pad);		x_max = min(x_max+pad,cols);
+		y_min = max(1,y_min-pad);		y_max = min(y_max+pad,rows);
+		x_min = head(1) + (x_min-1)*head(8);    x_max = head(1) + (x_max-1)*head(8);
+		y_min = head(3) + (y_min-1)*head(9);    y_max = head(3) + (y_max-1)*head(9);
+
+		rect_crop = [x_min y_min (x_max-x_min) (y_max-y_min)];
+		[Z_rect, r_c]  = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
+		bw_rect = cropimg(head(1:2),head(3:4),bw,rect_crop,'out_grid');
+		Z_rect = double(Z_rect);      % It has to be (GHRRRRRRRRRRRRR)
+
+		X = x_min:head(8):x_max;	Y = y_min:head(9):y_max;
+		[XX,YY] = meshgrid(X,Y);
+		XX(bw_rect) = [];			YY(bw_rect) = [];		Z_rect(bw_rect) = [];
+
+		if (use_surface)
+			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
+			%Z_rect = surface_m( XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25' );
+			Z_rect = gmtmbgrid_m( XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25', '-Mz' );
+		elseif (use_bicubic)
+			Z_rect = griddata_j(XX(:), YY(:), Z_rect(:), X, Y', 'cubic');
+		else
+			Z_rect = griddata_j(XX(:), YY(:), Z_rect(:), X, Y', 'linear');
+		end
+
+		% Inprint the processed rectangle back into orig array
+		if (isa(Z,'single')),		Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
+		elseif (isa(Z,'int16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = int16(Z_rect);
+		elseif (isa(Z,'uint16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = uint16(Z_rect);
+		else						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
+		end
+	end
+	%clear gmtmbgrid_m
 
 % ----------------------------------------------------------------------
 function calc_polygAVG(handles)
@@ -422,3 +506,121 @@ function calc_polygAVG(handles)
 
 	fprintf(fid,['%.2f\t' repmat('%f\t',[1,N]) '\n'], [t avg]');
 	fclose(fid);
+
+% ----------------------------------------------------------------------
+function calc_flagsStats(handles, months, flag, opt)
+% Compute per/pixel anual counts of pixel values with a quality >= flag
+% Perfect locations will have a count of 12. Completely cloudy => count = 0.
+%
+% MONTHS 	is a vector with the months uppon which the mean is to be computed
+%		example: 	months = 1:12		==> Computes yearly mean
+%					months = 6:8		==> Computes June-July-August seazonal means
+% FLAG		Threshold quality value. Only values of quality >= FLAG will be taken into account
+% OPT		== 'per_year' output a file with N years planes (count per year)
+%			otherwise ouputs a file with N months planes (each plane has a mounthly count)
+
+	if (nargin < 3),		flag = 7;	opt = 'per_year';		end			% If not provided, defaults to best quality
+	if (nargin < 4),		opt = 'per_year';		end
+
+	txt1 = 'netCDF grid format (*.nc,*.grd)';
+	txt2 = 'Select output netCDF grid';
+	[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put');
+	if isequal(FileName,0),		return,		end
+	[pato, fname, EXT] = fileparts(FileName);
+	if (isempty(EXT)),		FileName = [fname '.nc'];	end
+	grd_out = [PathName FileName];
+
+	s = handles.nc_info;				% Retrieve the .nc info struct
+	rows = s.Dataset(handles.netcdf_z_id).Size(end-1);
+	cols = s.Dataset(handles.netcdf_z_id).Size(end);
+
+	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
+
+	anos = handles.number_of_timesteps / 12;
+
+	aguentabar(0,'title','Compute flag quality counts','CreateCancelBtn')
+	goodCount = zeros([rows, cols]);			% 
+
+	if (strcmp(opt, 'per_year'))		% Make the counting on a per year basis
+		for (m = 1:anos)
+			contanoes = zeros(rows, cols);
+			for (n = months)
+				mn = (m - 1)*12 + n - 1;
+				Z = nc_funs('varget', handles.fname, s.Dataset(handles.netcdf_z_id).Name, [mn 0 0], [1 rows cols]);
+				ind = Z < flag;
+				Z(ind) = 0;
+				Z(~ind) = 1;				% Bellow threshold quality are set to zero
+				contanoes = contanoes + ~ind;
+				goodCount(:,:) = goodCount(:,:) + double(Z);
+			end
+			tmp = int16(goodCount(:,:));
+	
+			if (m == 1),	nc_io(grd_out,sprintf('w%d/time',anos), handles, reshape(tmp,[1 size(tmp)]))
+			else			nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
+			end
+			
+			h = aguentabar(m/anos);
+			if (isnan(h)),	break,	end
+			goodCount = goodCount * 0;			% Reset it to zeros
+		end
+
+	else			% Make the counting on a per month basis
+
+		for (n = months)
+			contanoes = zeros(rows, cols);
+			for (m = 1:anos)
+				mn = (m - 1)*12 + n - 1;
+				Z = nc_funs('varget', handles.fname, s.Dataset(handles.netcdf_z_id).Name, [mn 0 0], [1 rows cols]);
+				ind = Z < flag;
+				Z(ind) = 0;
+				Z(~ind) = 1;				% Bellow threshold quality are set to zero
+				contanoes = contanoes + ~ind;
+				goodCount(:,:) = goodCount(:,:) + double(Z);
+			end
+			tmp = int16(goodCount(:,:));
+	
+			if (n == 1),	nc_io(grd_out,sprintf('w%d/time',numel(months)), handles, reshape(tmp,[1 size(tmp)]))
+			else			nc_io(grd_out, sprintf('w%d', n-1), handles, tmp)
+			end
+			
+			h = aguentabar(n/numel(months));
+			if (isnan(h)),	break,	end	
+			goodCount = goodCount * 0;			% Reset it to zeros
+		end
+	end
+
+% ----------------------------------------------------------------------
+function do_math(handles, opt)
+% Perform some basic agebraic operations on 3D planes
+%
+% OPT = 'sum'	=> add all layers
+
+	s = handles.nc_info;				% Retrieve the .nc info struct
+	rows = s.Dataset(handles.netcdf_z_id).Size(end-1);
+	cols = s.Dataset(handles.netcdf_z_id).Size(end);
+	nLayers = handles.number_of_timesteps;
+
+	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
+
+	if (strcmp(opt, 'sum'))
+		soma = nc_funs('varget', handles.fname, s.Dataset(handles.netcdf_z_id).Name, [0 0 0], [1 rows cols]);
+		is_int8 = isa(soma, 'int8');		is_uint8 = isa(soma, 'uint8');
+		if (is_int8 || is_uint8),		soma = int16(soma);		end			% To avoid ovelflows
+		for (m = 2:nLayers)
+			Z = nc_funs('varget', handles.fname, s.Dataset(handles.netcdf_z_id).Name, [m-1 0 0], [1 rows cols]);
+			if (is_int8 || is_uint8),		Z = int16(Z);		end			% To avoid ovelflows
+			cvlib_mex('add',soma, Z);
+		end
+	end
+	
+	tmp.head = handles.head;
+	if (isa(soma,'single'))
+		zz = grdutils(soma,'-L');  tmp.head(5:6) = [zz(1) zz(2)];		% Singles & NaNs = BUGs in R13
+	else
+		tmp.head(5:6) = [double(min(soma(:))) double(max(soma(:)))];
+	end
+	tmp.X = linspace(tmp.head(1),tmp.head(2),cols);
+	tmp.Y = linspace(tmp.head(3),tmp.head(4),rows);
+	tmp.name = 'Computed grid';
+	mirone(soma, tmp)
+	
