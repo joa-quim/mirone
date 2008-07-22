@@ -48,18 +48,32 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic)
 			% Create a new axes on the Mirone figure
 			unit = get(handles.axes1,'Units');		set(handles.axes1,'Units', 'pixels');
 			axSize = get(handles.axes1,'Pos');		set(handles.axes1,'Units', unit);
-			hAxes = axes('Parent',hFig,'Units','pixels','Position',[axSize(1) (axSize(2)+axSize(4)/2) axSize(3) min(axSize(4),200)], ...
-				'Tag','axDynProf','Visible','off');
+			axSize = [axSize(1) (axSize(2)+axSize(4)/2) axSize(3) min(axSize(4),200)];
+			hAxes = axes('Parent',hFig,'Units','pixels','Position',axSize, ...
+				'Tag','axDynProf','Visible','on', 'Color','none');
 			r = dist_along_profile(xx, yy);
 			hLine = line('Parent',hAxes,'XData',r,'YData',zz,'Color',handles.DefLineColor,'LineWidth',2);
-			set(hAxes,'xlim', [min(r) max(r)])
+
+			% Estimate a right shift so that it can accommodate the Ylabels
+			ylab = get((hAxes),'YTickLabel');
+			nChars = max(numel(ylab(1,:)), numel(ylab(2,:)));
+			dx = nChars * 7;
+			axSize(1) = axSize(1) + dx;
+			axSize(3) = axSize(3) - dx;
+			set(hAxes,'Position',axSize)
+
+			r_max =  max(r);
+			if (r_max == 0),	r_max = 1;	end		% To not set a [0 0] xlim
+			set(hAxes,'xlim', [0 r_max])
 			setappdata(handles.axes1, 'dynProfile', hAxes)
 			setappdata(hAxes,'theLine',hLine)
 		else
 			r = dist_along_profile(xx, yy);
 			hLine = getappdata(hDynProfAx,'theLine');
 			set(hLine,'XData',r,'YData',zz,'UserData',[xx(:) yy(:)])
-			set(hDynProfAx,'xlim', [min(r) max(r)])
+			r_max =  max(r);
+			if (r_max == 0),	r_max = 1;	end		% To not set a [0 0] xlim
+			set(hDynProfAx,'xlim', [0 r_max])
 		end
 	end
 
