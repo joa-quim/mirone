@@ -4,7 +4,7 @@
 -35.10  17.800  -3.79    7.01 !ACO-NAM An4  J. Luis et al. 1984
 -32.20  21.700  -6.20    8.69 !ACO-NAM An4A J. Luis et al. 1984
 -37.00   2.200  -3.79   10.10 !ACO-NAM An5  J. Luis et al. 1984
-  0.0    0.0     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
+135.8   62.4     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
 132.67  66.84   -1.34    6.17 !NAM<-EUR An3A J. Luis  BF
 140.04  63.69   -1.64    7.75 !NAM<-EUR An4  J. Luis  BF
 138.46  58.95   -2.29   10.33 !NAM<-EUR An5  J. Luis  BF
@@ -19,7 +19,6 @@
 126.69  72.60  -12.15   51.30 !NAM<-IBE An23 J. Luis  BF
 123.10  74.27  -13.05   52.79 !NAM<-IBE An24 J. Luis  BF
 132.35  69.53  -13.88   56.14 !NAM<-IBE An25 J. Luis  BF
-#133.08  68.19  -14.22   57.70 !NAM<-IBE An26 J. Luis  BF
 131.50  70.56  -14.46   57.70 !NAM<-IBE An26 J. Luis  BF
 137.03  68.34  -15.32   63.09 !NAM<-IBE An28 J. Luis  Com truque
 135.54  70.64  -16.04   64.30 !NAM<-IBE An29 J. Luis  BF
@@ -27,6 +26,28 @@
 135.84  77.94  -18.63   72.25 !NAM<-IBE An32 J. Luis  BF
 106.26  85.71  -22.29   78.00 !NAM<-IBE An33 J. Luis  BF
 116.95  86.05  -23.22   81.00 !NAM<-IBE An33r J. Luis  BF
+
+139.87	62.78	2.34   10.33 !NAM<-EUR An5  J. Luis  Revisao	Global
+140.52	53.03	2.26   10.33 !NAM<-EUR An5  J. Luis  Revisao	Sul da CG
+140.04	61.88	4.56   19.55 !NAM<-IBE An6  J. Luis  Revisao	Global
+140.12	56.64	4.48   19.55 !NAM<-IBE An6  J. Luis  Revisao	Sul da CG
+139.25	61.87	7.24   33.25 !NAM<-IBE An13 J. Luis  Revisao 	Global
+125.25	71.27	7.51   33.25 !NAM<-IBE An13 J. Luis  Revisao	Iberico
+117.22	77.18	9.43   39.13 !NAM<-IBE An18 J. Luis  Revisao
+111.20	76.67	10.31   43.14 !NAM<-IBE An20 J. Luis Revisao
+113.54	78.28	11.50   47.06 !NAM<-IBE An21 J. Luis Revisao
+126.73	72.14	11.49   49.37 !NAM<-IBE An22 J. Luis Revisao
+124.72	72.20	12.11   51.30 !NAM<-IBE An23 J. Luis Revisao
+124.68	73.23	12.93   52.79 !NAM<-IBE An24 J. Luis Revisao
+133.00	68.87	13.83   56.14 !NAM<-IBE An25 J. Luis Revisao
+133.08	69.77	14.40   57.70 !NAM<-IBE An26 J. Luis Revisao
+136.90	66.16	15.17   63.09 !NAM<-IBE An28 J. Luis Revisao
+135.28	70.90	16.09   64.30 !NAM<-IBE An29 J. Luis Revisao
+135.65	69.70	16.51   67.02 !NAM<-IBE An30 J. Luis Revisao
+132.63	77.31	18.48   72.25 !NAM<-IBE An32 J. Luis Revisao
+116.00	85.46	22.11   78.00 !NAM<-IBE An33 J. Luis Revisao
+119.58	85.79	23.18   81.00 !NAM<-IBE An33r J. Luis Revisao
+
   0.0    0.0     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
 133.84  64.57   -2.39    9.8  !NAM<-IBE An5 Klitgord & Schouten 1986
 133.58  65.38   -2.44    9.8  !NAM<-IBE An5 Lawver et al. 1990
@@ -67,7 +88,7 @@
 -20.53  32.12   7.10   47.06  !Afr<-IBE An21 Fecho
 -22.12  33.15   8.64   56.14  !Afr<-IBE An25 Fecho
 -20.62  32.81   9.35   67.02  !Afr<-IBE An30 Fecho 
-  0.0    0.00    0.0     0.0  !NAM<-NWA North America-Africa (NAm fixed)
+ 38.8   78.8     0.0     0.0  !NAM<-NWA North America-Africa (NAm fixed)
  53.1   80.1    -0.48   1.86  !NAM<-NWA C2 S&P - idades deles
  67.7   77.7    -0.92   3.85  !NAM<-NWA C3 S&P
  76.3   77.2    -1.29   5.69  !NAM<-NWA C3A S&P
