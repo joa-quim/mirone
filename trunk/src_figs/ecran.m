@@ -1,8 +1,7 @@
 function varargout = ecran(varargin)
 % M-File changed by desGUIDE 
-% varargin   command line arguments to ecran (see VARARGIN)
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2008 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -18,553 +17,608 @@ function varargout = ecran(varargin)
 
 %#function select_cols
 
-hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-ecran_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
+	hObject = figure('Tag','figure1','Visible','off');
+	ecran_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	set(hObject,'RendererMode','auto')
+	movegui(hObject,'east');
 
-global x_fname_in x_fname_out nx_col nx_head x_toggle home_dir
-if isempty(home_dir),   handles.d_path = [pwd filesep 'data' filesep];
-else                    handles.d_path = [home_dir filesep 'data' filesep];   end
+	global home_dir
 
-% Reposition the window on screen
-movegui(hObject,'east');
-set(hObject,'RendererMode','auto')
+	if (~isempty(home_dir)),		handles.home_dir = home_dir;
+	else							handles.home_dir = cd;
+	end
+	handles.d_path = [handles.home_dir filesep 'data' filesep];
+	load([handles.d_path 'mirone_pref.mat']);
+	try
+		handles.last_dir = directory_list{1};
+	catch
+		handles.last_dir = cd;
+	end
 
-handles.n_plot = 0;         % Counter of the number of lines. Used for line color painting
+	if (~nargin),   varargin(1) = {[]};   end
 
-if isempty(nx_head) ,   handles.n_head = 0;             % When called with no file name
-else                    handles.n_head = nx_head;       end
+	handles.handMir = [];
+	if ( ~isempty(varargin{1}) && isa(varargin{1},'struct') )
+		handles.handMir = varargin{1};
+		varargin{1} = 'Image';			% For backward compatibility sake
+		handles.work_dir = handles.handMir.work_dir;
+	else
+		handles.work_dir = handles.last_dir;
+	end
 
-if (~nargin),   varargin(1) = {[]};   end
-for i=nargin:9                         % So that varargin{1:9} allways exists.
-    varargin{i+1} = [];
+	% Load some icons from mirone_icons.mat
+	load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico');
+	link_ico = imread([handles.d_path 'link.png']);
+
+	hTB = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
+		'Interruptible','on','Tag','FigureToolBar','Visible','on');
+	uitoggletool('parent',hTB,'Click',{@zoom_clickedCB,''}, 'cdata',zoom_ico,'Tooltip','Zoom');
+	uitoggletool('parent',hTB,'Click',{@zoom_clickedCB,'x'}, 'cdata',zoomx_ico,'Tooltip','Zoom X');
+	if (~isempty(handles.handMir))
+		uitoggletool('parent',hTB,'Click',@pick_clickedCB, 'cdata',link_ico,'Tooltip', ...
+			'Pick data point in curve and plot it the mirone figure','Sep','on');
+	end
+	uitoggletool('parent',hTB,'Click',@isocs_clickedCB, 'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on');
+
+	handles.n_plot = 0;         % Counter of the number of lines. Used for line color painting
+
+if (~isempty(varargin{1}) && ~ischar(varargin{1}))
+	errordlg('Error calling ecran: First arguments must be a string.','Error');     return
+end
+if (strcmp(varargin{1},'reuse') && nargin < 3)
+	errordlg('Error calling ecran: Minimum arguments are "type",X,Y','Error');      return
+end
+if ( strcmp(varargin{1},'Image') && nargin < 5 )   
+	errordlg('Error calling ecran: Minimum arguments are "type",X,Y,Z','Error');    return
 end
 
-if  (strcmp(varargin{1},'reuse') && nargin < 3)
-    errordlg('Error calling ecran: Minimum arguments are "type",X,Y','Error');      return
-end
-if ~isempty(varargin{1}) && ~ischar(varargin{1})
-    errordlg('Error calling ecran: First arguments must be a string.','Error');     return
-end
-if (strcmp(varargin{1},'Image') || strcmp(varargin{1},'grdtrack')) && nargin < 5
-    errordlg('Error calling ecran: Minimum arguments are "type",X,Y,Z','Error');    return
-end
+	handles.ageStart = 0;
+	handles.ageEnd = nan;
 
-% Choose the default ploting mode
-if isempty(varargin{1})          % When the file will be read latter
-    set(handles.checkbox_geog,'Visible','off')          % Hide those
-    set(handles.popup_selectPlot,'Visible','off');    set(handles.popup_selectSave,'Visible','off');
-    set(hObject,'Name','XY view')
-elseif strcmp(varargin{1},'Image')
-    handles.data(:,1) = varargin{2};    handles.data(:,2) = varargin{3};    handles.data(:,3) = varargin{4};
-    set(handles.popup_selectPlot,'String','Distance along profile (data units)');
-    set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
-        'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
-        'Distance,Z (data units -> mat file)'});
-    % Some ToolTips
-    set(handles.checkbox_geog,'TooltipString',sprintf(['Check this if your data is in geographical coordinates.\n' ...
-        'You will than be able to see and save the profile in km (or m) vs z.']));
-    set(handles.popup_selectPlot,'TooltipString',sprintf('Select different ways of seeing the profile'));
-    set(handles.popup_selectSave,'TooltipString',sprintf('Choose how to save the profile'));
-    xd = diff(handles.data(:,1));              yd = diff(handles.data(:,2));
-    tmp = sqrt(xd.*xd + yd.*yd);               rd = zeros(size(handles.data,1),1);
-    for i=2:length(handles.data(:,1));         rd(i) = rd(i-1) + tmp(i-1);        end
-    handles.dist = rd;    % This one is by default, so save it in case user wants to save it to file
-    plot(rd,handles.data(:,3));      axis tight;      zoom_j on;
-    set(hObject,'Name',varargin{5})
-    %handles.data(:,1) = get(h,'XData')';        handles.data(:,2) = get(h,'YData')';
-    
-elseif strcmp(varargin{1},'grdtrack')
-    set(handles.popup_selectPlot,'String','Distance along profile (data units)');
-    set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
-        'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
-        'Distance,Z (data units -> mat file)'});
-    % Some ToolTips
-    set(handles.checkbox_geog,'TooltipString',sprintf(['Check this if your data is in geographical coordinates.\n' ...
-        'You will than be able to see and save the profile in km (or m) vs z.']));
-    set(handles.popup_selectPlot,'TooltipString',sprintf('Select different ways of seeing the profile'));
-    set(handles.popup_selectSave,'TooltipString',sprintf('Choose how to save the profile'));
-    data = read_xy(handles,x_fname_in,nx_col);
-    if isempty(x_toggle) || ~isempty(findstr(x_toggle,':o')),   handles.data(:,1) = data(:,1); handles.data(:,2) = data(:,2);
-    else                                                        handles.data(:,1) = data(:,2); handles.data(:,2) = data(:,1);
-    end
-    handles.data(:,3) = data(:,nx_col); % nx_col because only last column contains the interpolated z value
-    xd = diff(data(:,1));               yd = diff(data(:,2));
-    tmp = sqrt(xd.*xd + yd.*yd);        rd(1:length(data(:,1))) = 0;
-    for i=2:length(data(:,1));          rd(i) = rd(i-1) + tmp(i-1);        end
-    handles.dist = rd;                  % This one is by default, so save it in case user wants to save it to file
-    plot(rd,data(:,nx_col));          axis tight;     zoom_j on;
-    set(hObject,'Name',varargin{5})
-    
-elseif strcmp(varargin{1},'reuse')                      % Case of auto-referenced call
-    set(handles.checkbox_geog,'Visible','off')          % Hide those
-    set(handles.popup_selectPlot,'Visible','off');    set(handles.popup_selectSave,'Visible','off');
-    handles.data(:,1) = varargin{2};        handles.data(:,2) = varargin{3};
-    if ~isempty(varargin{9}) && strcmp(varargin{9},'semilogy')
-        semilogy(handles.data(:,1),handles.data(:,2));          axis tight;     zoom_j on;
-    elseif ~isempty(varargin{9}) && strcmp(varargin{9},'semilogx')
-        semilogx(handles.data(:,1),handles.data(:,2));          axis tight;     zoom_j on;
-    else
-        plot(handles.data(:,1),handles.data(:,2));              axis tight;     zoom_j on;
-    end
-    if ~isempty(varargin{5}),    set(hObject,'Name',varargin{5});    end     % Figure Name
-    if ~isempty(varargin{6}),    xlabel(varargin{6});                end     % XLabel
-    if ~isempty(varargin{7}),    ylabel(varargin{7});                end     % YLabel
-    if ~isempty(varargin{8}),    title(varargin{8});                 end     % Title
+	axes(handles.axes1)		% Make it the active one
 
-elseif strcmp(varargin{1},'xy')                         % Case of call from a generic gmt xy program
-    set(handles.checkbox_geog,'Visible','off')          % Hide those
-    set(handles.popup_selectPlot,'Visible','off');    set(handles.popup_selectSave,'Visible','off');
-    data = read_xy(handles,x_fname_in,nx_col);
-    if isempty(x_toggle) || ~isempty(findstr(x_toggle,':o')),    h=plot(data(:,1),data(:,2));
-    else                                                        h=plot(data(:,2),data(:,1));    end
-    axis tight;     zoom_j on;    set(hObject,'Name',varargin{5})
-    handles.data(:,1) = get(h,'XData')';        handles.data(:,2) = get(h,'YData')';
-    hold on
+	% Choose the default ploting mode
+	if isempty(varargin{1})          % When the file will be read latter
+		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
+		set(hObject,'Name','XY view')
+	
+	elseif strcmp(varargin{1},'Image')
+		handles.data(:,1) = varargin{2};    handles.data(:,2) = varargin{3};    handles.data(:,3) = varargin{4};
+		set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
+			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
+			'Distance,Z (data units -> mat file)'});
+		rd = dist_along_profile(handles.data(:,1), handles.data(:,2));
+		handles.dist = rd;				% This one is by default, so save it in case user wants to save it to file
+		plot(rd,handles.data(:,3));		axis(handles.axes1,'tight');
+		set(hObject,'Name',varargin{5})
+	
+	elseif strcmp(varargin{1},'reuse')                      % Case of auto-referenced call
+		varargin(nargin+1:9) = cell(1,9-nargin);			% So that varargin{1:9} allways exists.
+		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
+		handles.data(:,1) = varargin{2};        handles.data(:,2) = varargin{3};
+		if ~isempty(varargin{9}) && strcmp(varargin{9},'semilogy')
+			semilogy(handles.data(:,1),handles.data(:,2));
+		elseif ~isempty(varargin{9}) && strcmp(varargin{9},'semilogx')
+			semilogx(handles.data(:,1),handles.data(:,2));
+		else
+			plot(handles.data(:,1),handles.data(:,2));
+		end
+		axis(handles.axes1,'tight');
+		
+		if ~isempty(varargin{5}),    set(hObject,'Name',varargin{5});	end     % Figure Name
+		if ~isempty(varargin{6}),    xlabel(varargin{6});				end     % XLabel
+		if ~isempty(varargin{7}),    ylabel(varargin{7});				end     % YLabel
+		if ~isempty(varargin{8}),    title(varargin{8});				end     % Title
+	end
 
-    if exist(x_fname_out)
-        data_out = read_xy(handles,x_fname_out,2);
-        plot(data_out(:,1),data_out(:,2),'Color','red');     axis tight;
-    end
-    hold off
-end
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),	varargout{1} = hObject;		end
 
-load([handles.d_path 'mirone_pref.mat']);
-if (~isempty(home_dir)),            handles.home_dir = home_dir;
-else                                handles.home_dir = pwd;     end
-try
-    if (iscell(directory_list)),    handles.last_dir = directory_list{1};
-    else                            handles.last_dir = directory_list;  end
-catch
-    handles.last_dir = pwd;
-end
+% --------------------------------------------------------------------------------------------------
+function zoom_clickedCB(obj,eventdata,opt)
+	if (strcmp(get(obj,'State'),'on'))
+		if (strcmp(opt,'x')),		zoom_j xon;
+		else						zoom_j on;
+		end
+	else
+		zoom_j off;
+	end
 
-handles.hFig = hObject;         handles.hAxes = gca;    % sometimes needed in 1 st or 2 nd derivatives
-%age_start = dir(x_fname_out);
+% --------------------------------------------------------------------------------------------------
+function pick_clickedCB(obj,eventdata)
+	handles = guidata(obj);
+	if (strcmp(get(obj,'State'),'on'))
+		set(handles.figure1,'WindowButtonDownFcn',@add_MarkColor)
+	else
+		set(handles.figure1,'WindowButtonDownFcn','')	
+	end
 
-% Choose default command line output for ecran_export
-handles.output = hObject;
-guidata(hObject, handles);
+% --------------------------------------------------------------------
+function add_MarkColor(obj, eventdata)
+% Add a red Marker over the closest (well, near closest) clicked point.
 
-set(hObject,'Visible','on');
+	handles = guidata(obj);     % get handles
 
-% UIWAIT makes ecran_export wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+	button = get(handles.figure1, 'SelectionType');
+	if (~strcmp(button,'normal')),		return,		end     % Accept only left-clicks
 
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = ecran_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
+	pt = get(handles.axes1, 'CurrentPoint');
 
-% --- Outputs from this function are returned to the command line.
-function varargout = ecran_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-delete(handles.figure1);
+    hM = findobj(handles.figure1,'Type','Line','tag','marker');
+	x = handles.dist;			y = handles.data(:,3);
 
-function xy = read_xy(handles,file,n_col)
-%global nx_head
-% build the format string to read the data n_columns
-format = [];    fid = fopen(file,'r');
-for (i=1:n_col),    format = [format '%f '];    end
+	x_lim = get(handles.axes1,'XLim');		y_lim = get(handles.axes1,'YLim');
+	dx = diff(x_lim) / 20;					% Search only betweem +/- 1/10 of x_lim
+	id = (x < (pt(1,1)-dx) | x > (pt(1,1)+dx));
+	x(id) = [];             y(id) = [];     % Clear outside-2*dx points to speed up the search code
+	x_off = find(~id);		x_off = x_off(1);	% Get the index of the first non killed x element
+	XScale = diff(x_lim);	YScale = diff(y_lim);
 
-% Jump header lines
-for (i = 1:handles.n_head),    tline = fgetl(fid);  end
+	r = sqrt(((pt(1,1)-x) ./ XScale).^2 + ((pt(1,2)-y) ./ YScale).^2);
+	[temp,i] = min(r);
+	pt_x = x(i);                pt_y = y(i);
+	
+	xr = get(hM,'XData');       yr = get(hM,'YData');
+	id = find(xr == pt_x);
+	if (isempty(id))            % New Marker
+		if (~isempty(handles.handMir))
+			% Get the X,Y coordinates to plot this point in the Mirone figure
+			% We need to add x_off since "i" counts only inside the +/- 1/10 of x_lim centered on current point
+			mir_pt_x = handles.data(i+x_off-1,1);	mir_pt_y = handles.data(i+x_off-1,2);
+			h = line(mir_pt_x, mir_pt_y,'Parent',handles.handMir.axes1,'Marker','o','MarkerFaceColor','k','MarkerSize',6,'LineStyle','none');
+			draw_funs(h,'DrawSymbol')		% Set uicontexts
+		end
 
-todos = fread(fid,'*char');
-xy = sscanf(todos,format,[n_col inf])';    % After hours strugling agains this FILHO DA PUTA, I might have found
-fclose(fid);
-%if (n_col > 2)    xy = xy(:,1:2);   end
+		if (isempty(hM))        % First red Marker on this axes
+			line(pt_x, pt_y,'Marker','s','MarkerFaceColor','r','MarkerSize',5,'LineStyle','none','Tag','marker','UserData',h);
+		else
+			xr = [xr pt_x];     yr = [yr pt_y];
+			set(hM,'XData',xr, 'YData', yr)
+			ud = get(hM,'UserData');
+			set(hM,'UserData', [ud h]);		% Save the Mirone symbol handle here
+		end
+	else                        % Marker already exists. Kill it
+		xr(id) = [];            yr(id) = [];
+		set(hM,'XData',xr, 'YData', yr)
+		ud = get(hM,'UserData');
+		try,	delete(ud(id)),		end
+		ud(id) = [];
+		set(hM,'UserData', ud)
+	end
 
-% --- Executes on button press in checkbox_geog.
+% --------------------------------------------------------------------------------------------------
+function isocs_clickedCB(obj,eventdata)
+	handles = guidata(obj);
+	if (strcmp(get(obj,'State'),'on'))
+		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')
+		set([handles.edit_ageStart handles.edit_ageEnd handles.push_magBar handles.text_ageStart ...
+				handles.text_ageEnd], 'Visible','on')
+	else
+		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','on')
+		set([handles.edit_ageStart handles.edit_ageEnd handles.push_magBar handles.text_ageStart ...
+				handles.text_ageEnd], 'Visible','off')
+	end
+
+% -------------------------------------------------------------------------------
 function checkbox_geog_Callback(hObject, eventdata, handles)
-if get(hObject,'Value')
-    set(handles.popup_selectPlot,'String',{'Distance along profile (data units)';
-    'Distance along profile (km)';'Distance along profile (NM)'});
-    set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
-        'Distance,Z (data units -> binary)';'Distance,Z (km -> ascii)';'Distance,Z (km -> binary)';
-        'Distance,Z (NM -> ascii)';'Distance,Z (NM -> binary)';
-        'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
-        'Distance,Z (NM -> mat file)';'Distance,Z (km -> mat file)';'Distance,Z (data units -> mat file)'});
-else
-    set(handles.popup_selectPlot,'String','Distance along profile (data units)','Value',1);
-    set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
-        'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
-        'Distance,Z (data units -> mat file)'},'Value',1);
-end
+	if get(hObject,'Value')
+		set(handles.popup_selectPlot,'String',{'Distance along profile (data units)';
+		'Distance along profile (km)';'Distance along profile (NM)'});
+		set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
+			'Distance,Z (data units -> binary)';'Distance,Z (km -> ascii)';'Distance,Z (km -> binary)';
+			'Distance,Z (NM -> ascii)';'Distance,Z (NM -> binary)';
+			'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
+			'Distance,Z (NM -> mat file)';'Distance,Z (km -> mat file)';'Distance,Z (data units -> mat file)'});
+	else
+		set(handles.popup_selectPlot,'String','Distance along profile (data units)','Value',1);
+		set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
+			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
+			'Distance,Z (data units -> mat file)'},'Value',1);
+	end
 
 % ---------------------------------------------------------------------------------
 function popup_selectPlot_Callback(hObject, eventdata, handles)
-val = get(hObject,'Value');     str = get(hObject, 'String');
-D2R = pi/180;
-h = findobj(handles.axes1,'Type','line');
-switch str{val};
-    case 'Distance along profile (data units)'  % Compute the accumulated distance along profile in data units
-        xd = diff(handles.data(:,1));               yd = diff(handles.data(:,2));
-        tmp = sqrt(xd.*xd + yd.*yd);                rd = zeros(size(handles.data,1),1);
-        for i=2:length(handles.data(:,1));          rd(i) = rd(i-1) + tmp(i-1);        end
-        %plot(rd,handles.data(:,3));                 axis tight;
-        set(h,'XData',rd);                          axis tight;
-    case 'Distance along profile (km)'           % Compute the accumulated distance along profile in km
-        deg2km = 111.1949;
-        xd = diff(handles.data(:,1)*deg2km).*cos(handles.data(2:end,2)*D2R);     yd = diff(handles.data(:,2))*deg2km;
-        tmp = sqrt(xd.*xd + yd.*yd);                rd = zeros(size(handles.data,1),1);
-        for i=2:length(handles.data(:,1));          rd(i) = rd(i-1) + tmp(i-1);        end
-        %plot(rd,handles.data(:,3));                 axis tight;
-        set(h,'XData',rd);                          axis tight;
-    case 'Distance along profile (NM)'            % Compute the accumulated distance along profile in Nmiles
-        deg2nm = 60.04;     %deg2km = 111194.9;
-        xd = diff(handles.data(:,1)*deg2nm).*cos(handles.data(2:end,2)*D2R);     yd = diff(handles.data(:,2))*deg2nm;
-        tmp = sqrt(xd.*xd + yd.*yd);                rd = zeros(size(handles.data,1),1);
-        for i=2:length(handles.data(:,1)),          rd(i) = rd(i-1) + tmp(i-1);        end
-        %plot(rd,handles.data(:,3));                 axis tight;
-        set(h,'XData',rd);                          axis tight;
-end
-guidata(hObject, handles);
+	val = get(hObject,'Value');     str = get(hObject, 'String');
+	D2R = pi/180;
+	h = findobj(handles.axes1,'Type','line');
+	switch str{val};
+	
+		case 'Distance along profile (data units)'  % Compute the accumulated distance along profile in data units
+			xd = handles.data(:,1);			yd = handles.data(:,2);
+	
+		case 'Distance along profile (km)'           % Compute the accumulated distance along profile in km
+            deg2km = 111.1949;
+			xd = (handles.data(:,1)*deg2km) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2km;
+	
+		case 'Distance along profile (NM)'            % Compute the accumulated distance along profile in Nmiles
+            deg2nm = 60.04;     %deg2km = 111194.9;
+			xd = (handles.data(:,1)*deg2nm) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2nm;
+	end
+	rd = dist_along_profile(xd, yd);
+	set(h,'XData',rd);				axis tight;
+	guidata(hObject, handles);
 
 % ---------------------------------------------------------------------------------
 function popup_selectSave_Callback(hObject, eventdata, handles)
 val = get(hObject,'Value');     str = get(hObject, 'String');
 D2R = pi/180;
+deg2km = 111.1949;		deg2nm = 60.04;
 switch str{val};
     case 'Save Profile on disk'                    %
     case 'Distance,Z (data units -> ascii)'                    % Save profile in ascii data units
-        cd(handles.last_dir);
-        [FileName,PathName] = uiputfile({'*.dat', 'Dist Z (*.dat)';'*.*', 'All Files (*.*)'}, 'Distance,Z (ascii)');
-        pause(0.01);    cd(handles.home_dir);
-        if isequal(FileName,0);     set(hObject,'Value',1);     return;      end     % User gave up
-        double2ascii([PathName FileName],[handles.dist' handles.data(:,3)'],'%f\t%f');
-        set(hObject,'Value',1);
+		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance,Z (ascii)','put','.dat');
+		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+		double2ascii([PathName FileName],[handles.dist handles.data(:,3)],'%f\t%f');
     case 'Distance,Z (data units -> binary)'                    % Save profile in binary data units
-        cd(handles.last_dir);
-        [FileName,PathName] = uiputfile({'*.dat', 'Dist Z (*.dat)';'*.*', 'All Files (*.*)'}, 'Distance,Z (binary float)');
-        pause(0.01);    cd(handles.home_dir);
-        if isequal(FileName,0);     set(hObject,'Value',1);     return;      end     % User gave up
-        fid = fopen([PathName FileName],'wb');
-        fwrite(fid,[handles.dist' handles.data(:,3)']','float');  fclose(fid);
-        set(hObject,'Value',1);
+		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance,Z (binary float)','put');
+		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+		fid = fopen([PathName FileName],'wb');
+		fwrite(fid,[handles.dist handles.data(:,3)]','float');  fclose(fid);
     case 'Distance,Z (km -> ascii)'                    % Save profile in ascii (km Z) 
-        cd(handles.last_dir);
-        [FileName,PathName] = uiputfile({'*.dat', 'Dist Z (*.dat)';'*.*', 'All Files (*.*)'}, 'Distance (km),Z (ascii)');
-        pause(0.01);    cd(handles.home_dir);
-        if isequal(FileName,0);     set(hObject,'Value',1);     return;      end     % User gave up
-        deg2km = 111.1949;
-        xd = diff(handles.data(:,1)*deg2km).*cos(handles.data(2:end,2)*D2R);     yd = diff(handles.data(:,2))*deg2km;
-        tmp = sqrt(xd.*xd + yd.*yd);                rd = zeros(size(handles.data,1),1);
-        for i=2:length(handles.data(:,1));          rd(i) = rd(i-1) + tmp(i-1);        end
-        double2ascii([PathName FileName],[rd handles.data(:,3)],'%f\t%f')
-        set(hObject,'Value',1);
+		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (km),Z (ascii)','put','.dat');
+		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+		xd = (handles.data(:,1)*deg2km) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2km;
+		rd = dist_along_profile(xd, yd);
+		double2ascii([PathName FileName],[rd handles.data(:,3)],'%f\t%f')
     case 'Distance,Z (km -> binary)'                    % Save profile in binary (km Z) 
-        cd(handles.last_dir);
-        [FileName,PathName] = uiputfile({'*.dat', 'Dist Z (*.dat)';'*.*', 'All Files (*.*)'}, 'Distance (km),Z (binary float)');
-        pause(0.01);    cd(handles.home_dir);
-        if isequal(FileName,0);     set(hObject,'Value',1);     return;      end     % User gave up
-        deg2km = 111.1949;
-        xd = diff(handles.data(:,1)*deg2km).*cos(handles.data(2:end,2)*D2R);     yd = diff(handles.data(:,2))*deg2km;
-        tmp = sqrt(xd.*xd + yd.*yd);                rd = zeros(1,size(handles.data,1));
-        for i=2:length(handles.data(:,1));          rd(i) = rd(i-1) + tmp(i-1);        end
-        fid = fopen([PathName FileName],'wb');
-        fwrite(fid,[rd' handles.data(:,3)']','float');  fclose(fid);
-        set(hObject,'Value',1);
+		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (km),Z (binary float)','put');
+		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+		xd = (handles.data(:,1)*deg2km) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2km;
+		rd = dist_along_profile(xd, yd);
+		fid = fopen([PathName FileName],'wb');
+		fwrite(fid,[rd handles.data(:,3)]','float');  fclose(fid);
     case 'Distance,Z (NM -> ascii)'                    % Save profile in ascii (NM Z) 
-        cd(handles.last_dir);
-        [FileName,PathName] = uiputfile({'*.dat', 'Dist Z (*.dat)';'*.*', 'All Files (*.*)'}, 'Distance (m),Z (ascii)');
-        pause(0.01);    cd(handles.home_dir);
-        if isequal(FileName,0);     set(hObject,'Value',1);     return;      end     % User gave up
-        deg2nm = 60.04;
-        xd = diff(handles.data(:,1)*deg2nm).*cos(handles.data(2:end,2)*D2R);     yd = diff(handles.data(:,2))*deg2nm;
-        tmp = sqrt(xd.*xd + yd.*yd);                rd = zeros(size(handles.data,1),1);
-        for i=2:length(handles.data(:,1));          rd(i) = rd(i-1) + tmp(i-1);        end
+		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (m),Z (ascii)','put','.dat');
+		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+		xd = (handles.data(:,1)*deg2nm) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2nm;
+		rd = dist_along_profile(xd, yd);
         double2ascii([PathName FileName],[rd handles.data(:,3)],'%f\t%f')
-        set(hObject,'Value',1);
     case 'Distance,Z (NM -> binary)'                    % Save profile in binary (NM Z) 
-        cd(handles.last_dir);
-        [FileName,PathName] = uiputfile({'*.dat', 'Dist Z (*.dat)';'*.*', 'All Files (*.*)'}, 'Distance (m),Z (binary float)');
-        pause(0.01);    cd(handles.home_dir);
-        if isequal(FileName,0);     set(hObject,'Value',1);     return;      end     % User gave up
-        deg2nm = 60.04;
-        xd = diff(handles.data(:,1)*deg2nm).*cos(handles.data(2:end,2)*D2R);     yd = diff(handles.data(:,2))*deg2nm;
-        tmp = sqrt(xd.*xd + yd.*yd);                rd = zeros(1,size(handles.data,1));
-        for i=2:length(handles.data(:,1));          rd(i) = rd(i-1) + tmp(i-1);        end
-        fid = fopen([PathName FileName],'wb');
-        fwrite(fid,[rd' handles.data(:,3)']','float');  fclose(fid);
-        set(hObject,'Value',1);
-    case 'X,Y,Z (data units -> ascii)'                    % Save profile in ascii (km Z) 
-        cd(handles.last_dir);
-        [FileName,PathName] = uiputfile({'*.dat', 'x,y,z (*.dat)';'*.*', 'All Files (*.*)'}, 'X,Y,Z (ascii)');
-        pause(0.01);    cd(handles.home_dir);
-        if isequal(FileName,0);     set(hObject,'Value',1);     return;      end     % User gave up
-        double2ascii([PathName FileName],[handles.data(:,1) handles.data(:,2) handles.data(:,3)],'%f\t%f\t%f')
-        set(hObject,'Value',1);
-    case 'X,Y,Z (data units -> binary)'                    % Save profile in binary (km Z) 
-        cd(handles.last_dir);
-        [FileName,PathName] = uiputfile({'*.dat', 'x,y,z (*.dat)';'*.*', 'All Files (*.*)'}, 'X,Y,Z (binary float)');
-        pause(0.01);    cd(handles.home_dir);
-        if isequal(FileName,0);     set(hObject,'Value',1);     return;      end     % User gave up
-        fid = fopen([PathName FileName],'wb');
-        fwrite(fid,[handles.data(:,1)' handles.data(:,2)' handles.data(:,3)']','float');  fclose(fid);
-        set(hObject,'Value',1);
-    case 'Distance,Z (NM -> mat file)'                    % Save profile in mat file (m Z) 
-        cd(handles.last_dir);
-        [FileName,PathName] = uiputfile({'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'}, 'Distance (m),Z (Matlab mat file)');
-        pause(0.01);    cd(handles.home_dir);
-        if isequal(FileName,0);     set(hObject,'Value',1);     return;      end     % User gave up
-        deg2nm = 60.04;
-        xd = diff(handles.data(:,1)*deg2nm).*cos(handles.data(2:end,2)*D2R);     yd = diff(handles.data(:,2))*deg2nm;
-        tmp = sqrt(xd.*xd + yd.*yd);                rd = zeros(1,size(handles.data,1));
-        for i=2:length(handles.data(:,1));          rd(i) = rd(i-1) + tmp(i-1);        end
-        R = rd';   Z = handles.data(:,3)';          % More one BUG, handles.data(:,3) canot be saved
-        save([PathName FileName],'R','Z')
-        set(hObject,'Value',1);
-    case 'Distance,Z (km -> mat file)'                    % Save profile in mat file (km Z)
-        cd(handles.last_dir);
-        [FileName,PathName] = uiputfile({'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'}, 'Distance (km),Z (Matlab mat file))');
-        pause(0.01);    cd(handles.home_dir);
-        if isequal(FileName,0);     set(hObject,'Value',1);     return;      end     % User gave up
-        deg2km = 111.1949;
-        xd = diff(handles.data(:,1)*deg2km).*cos(handles.data(2:end,2)*D2R);     yd = diff(handles.data(:,2))*deg2km;
-        tmp = sqrt(xd.*xd + yd.*yd);                rd = zeros(1,size(handles.data,1));
-        for i=2:length(handles.data(:,1));          rd(i) = rd(i-1) + tmp(i-1);        end
-        R = rd';   Z = handles.data(:,3)';          % More one BUG, handles.data(:,3) canot be saved
-        save([PathName FileName],'R','Z')
-        set(hObject,'Value',1);
-    case 'Distance,Z (data units -> mat file)'                    % Save profile in binary data units
-        cd(handles.last_dir);
-        [FileName,PathName] = uiputfile({'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'}, 'Distance,Z (Matlab mat file))');
-        pause(0.01);    cd(handles.home_dir);
-        if isequal(FileName,0);     set(hObject,'Value',1);     return;      end     % User gave up
-        R = handles.dist';   Z = handles.data(:,3)';      % More one BUG, handles.data(:,3) canot be saved
-        save([PathName FileName],'R','Z')
-        set(hObject,'Value',1);
+		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (m),Z (binary float)','put');
+		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+		xd = (handles.data(:,1)*deg2nm) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2nm;
+		rd = dist_along_profile(xd, yd);
+		fid = fopen([PathName FileName],'wb');
+		fwrite(fid,[rd handles.data(:,3)]','float');  fclose(fid);
+    case 'X,Y,Z (data units -> ascii)'						% Save profile in ascii (km Z) 
+		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'x,y,z (*.dat)';'*.*', 'All Files (*.*)'},'X,Y,Z (ascii)','put','.dat');
+		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+		double2ascii([PathName FileName],[handles.data(:,1) handles.data(:,2) handles.data(:,3)],'%f\t%f\t%f')
+    case 'X,Y,Z (data units -> binary)'						% Save profile in binary (km Z) 
+		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'x,y,z (*.dat)';'*.*', 'All Files (*.*)'},'X,Y,Z (binary float)','put');
+		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+		fid = fopen([PathName FileName],'wb');
+		fwrite(fid,[handles.data(:,1) handles.data(:,2) handles.data(:,3)]','float');  fclose(fid);
+    case 'Distance,Z (NM -> mat file)'						% Save profile in mat file (m Z) 
+		[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance (m),Z (Matlab mat file)','put');
+		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+		xd = (handles.data(:,1)*deg2nm) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2nm;
+		rd = dist_along_profile(xd, yd);
+		R = rd;		Z = handles.data(:,3);					% More one BUG, handles.data(:,3) canot be saved
+		save([PathName FileName],'R','Z')
+    case 'Distance,Z (km -> mat file)'						% Save profile in mat file (km Z)
+		[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance (km),Z (Matlab mat file)','put');
+		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+		xd = (handles.data(:,1)*deg2km) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2km;
+		rd = dist_along_profile(xd, yd);
+		R = rd;		Z = handles.data(:,3);
+		save([PathName FileName],'R','Z')
+    case 'Distance,Z (data units -> mat file)'				% Save profile in binary data units
+		[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance,Z (Matlab mat file)','put');
+		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+		R = handles.dist';   Z = handles.data(:,3)';      % More one BUG, handles.data(:,3) canot be saved
+		save([PathName FileName],'R','Z')
 end
-
-% --------------------------------------------------------------------
-function menuFile_Callback(hObject, eventdata, handles)
-% --------------------------------------------------------------------
+set(hObject,'Value',1);
 
 % --------------------------------------------------------------------
 function FileExport_Callback(hObject, eventdata, handles)
-FILEMENUFCN(gcf,'FileExport')
+	filemenufcn(handles.figure1,'FileExport')
 
 % --------------------------------------------------------------------
 function FilePrintSetup_Callback(hObject, eventdata, handles)
-print -dsetup
+	print -dsetup
 
 % --------------------------------------------------------------------
 function FilePrint_Callback(hObject, eventdata, handles)
-if (ispc);      print -v
-else            print;  end
-
-% --------------------------------------------------------------------
-function FileExit_Callback(hObject, eventdata, handles)
-uiresume(handles.figure1);
+	if (ispc),		print -v
+	else			print
+	end
 
 % --------------------------------------------------------------------
 function FileOpen_Callback(hObject, eventdata, handles)
 % Read the file and select what columns to plot
-cd(handles.last_dir);
-[FileName,PathName] = uigetfile({'*.dat;*.DAT;', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select input data');
-pause(0.01);    cd(handles.home_dir);
-if isequal(FileName,0),   return;     end
-fname = [PathName FileName];
-handles.last_dir = PathName;
+	cd(handles.last_dir);
+	[FileName,PathName] = uigetfile({'*.dat;*.DAT;', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select input data');
+	pause(0.01);    cd(handles.home_dir);
+	if isequal(FileName,0),   return;     end
+	fname = [PathName FileName];
+	handles.last_dir = PathName;
 
-data = text_read(fname,NaN);
-if (isempty(data))
-    errordlg('File doesn''t have any recognized nymeric data (Quiting).','Error');    return
-end
+	data = text_read(fname,NaN);
+	if (isempty(data))
+		errordlg('File doesn''t have any recognized nymeric data (Quiting).','Error');    return
+	end
 
-% If msgbox exist we have to move it from behind the main window. So get it's handle
-hMsgFig = gcf;
-if (handles.hFig ~= hMsgFig)
-    uistack(hMsgFig,'top');    % If error msgbox exists, bring it forward
-    % Here we have a stupid problem. If don't kill the message window before the
-    % select_cols is called this later wont work. FDS I have no more patiente for this.
-    pause(1)
-    try    delete(hMsgFig);    end
-end
+	% If msgbox exist we have to move it from behind the main window. So get it's handle
+	hMsgFig = gcf;
+	if (handles.figure1 ~= hMsgFig)
+		uistack(hMsgFig,'top');    % If error msgbox exists, bring it forward
+		% Here we have a stupid problem. If don't kill the message window before the
+		% select_cols is called this later wont work. FDS I have no more patiente for this.
+		pause(1)
+		try    delete(hMsgFig);    end
+	end
 
-out = select_cols(data,'xy',fname,1000);
-if (isempty(out)) ,   return;    end
-
-%lineHand = plot(data(:,out(1)),data(:,out(2)));    axis tight;     zoom_j on;
-lineHand = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));    axis tight;     zoom_j on;
-handles.n_plot = handles.n_plot + 1;
-if (handles.n_plot > 1)
-    c_order = get(handles.axes1,'ColorOrder');
-    if (handles.n_plot <= 7)
-        nc = handles.n_plot;
-    else
-        nc = rem(handles.n_plot,7);     % recycle through the default colors
-    end
-    cor = c_order(nc,:);
-    set(lineHand,'Color',cor)
-end
-handles.data = [data(:,out(1)) data(:,out(2))];     % NOTE, if handles.n_plot > 1 only last data is saved
-guidata(hObject, handles);
+	out = select_cols(data,'xy',fname,1000);
+	if (isempty(out)) ,   return;    end
+	
+	%lineHand = plot(data(:,out(1)),data(:,out(2)));    axis tight;
+	lineHand = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));    axis tight;
+	handles.n_plot = handles.n_plot + 1;
+	if (handles.n_plot > 1)
+		c_order = get(handles.axes1,'ColorOrder');
+		if (handles.n_plot <= 7)
+			nc = handles.n_plot;
+		else
+			nc = rem(handles.n_plot,7);     % recycle through the default colors
+		end
+		cor = c_order(nc,:);
+		set(lineHand,'Color',cor)
+	end
+	handles.data = [data(:,out(1)) data(:,out(2))];     % NOTE, if handles.n_plot > 1 only last data is saved
+	guidata(hObject, handles);
 
 % --------------------------------------------------------------------
 function FileSave_Callback(hObject, eventdata, handles)
-cd(handles.last_dir);
-[FileName,PathName] = uiputfile({'*.dat', 'X,Y (*.dat)';'*.*', 'All Files (*.*)'}, 'X,Y (ascii)');
-pause(0.01);    cd(handles.home_dir);
-if isequal(FileName,0);     return;      end     % User gave up
-h_lin=findobj(get(handles.hAxes,'Children'),'LineStyle','-');
-xx = get(h_lin,'XData');            yy = get(h_lin,'YData');
-double2ascii([PathName FileName],[xx' yy'],'%f\t%f');
-
-% --------------------------------------------------------------------
-function VoidMenuAnalysis_Callback(hObject, eventdata, handles)
-% --------------------------------------------------------------------
-
-% --------------------------------------------------------------------
-function VoidAnalysisFFT_Callback(hObject, eventdata, handles)
-% --------------------------------------------------------------------
+	cd(handles.last_dir);
+	[FileName,PathName] = uiputfile({'*.dat', 'X,Y (*.dat)';'*.*', 'All Files (*.*)'}, 'X,Y (ascii)');
+	pause(0.01);	cd(handles.home_dir);
+	if isequal(FileName,0),		return,		end     % User gave up
+	h_lin=findobj(get(handles.axes1,'Children'),'LineStyle','-');
+	xx = get(h_lin,'XData');			yy = get(h_lin,'YData');
+	double2ascii([PathName FileName],[xx(:) yy(:)],'%f\t%f');
 
 % --------------------------------------------------------------------
 function AnalysisFFT_AmpSpectrum_Callback(hObject, eventdata, handles)
-h_lin = findobj(get(handles.hAxes,'Children'),'LineStyle','-');
-x = get(h_lin,'XData');
-Fs = 1 / (x(2) - x(1));         % Sampling frequency
-Fn=Fs/2;                        % Nyquist frequency
-x = get(h_lin,'YData');
-NFFT=2.^(ceil(log(length(x))/log(2)));      % Next highest power of 2 greater than or equal to length(x)
-FFTX=fft(x,NFFT);                           % Take fft, padding with zeros, length(FFTX)==NFFT
-NumUniquePts = ceil((NFFT+1)/2);
-FFTX=FFTX(1:NumUniquePts);                  % fft is symmetric, throw away second half
-MX=abs(FFTX);                               % Take magnitude of X
-% Multiply by 2 to take into account the fact that we threw out second half of FFTX above
-MX=MX*2;                MX(1)=MX(1)/2;      % Account for endpoint uniqueness
-MX(length(MX))=MX(length(MX))/2;            % We know NFFT is even
-% Scale the FFT so that it is not a function of the length of x.
-MX=MX/length(x);        f=(0:NumUniquePts-1)*2*Fn/NFFT;
-ecran('reuse',f,MX,[],'Amplitude Spectrum','frequency',[],'Amplitude Spectrum')
+	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');
+	x = get(h_lin,'XData');
+	Fs = 1 / (x(2) - x(1));			% Sampling frequency
+	Fn=Fs/2;						% Nyquist frequency
+	x = get(h_lin,'YData');
+	NFFT=2.^(ceil(log(length(x))/log(2)));		% Next highest power of 2 greater than or equal to length(x)
+	FFTX=fft(x,NFFT);							% Take fft, padding with zeros, length(FFTX)==NFFT
+	NumUniquePts = ceil((NFFT+1)/2);
+	FFTX=FFTX(1:NumUniquePts);					% fft is symmetric, throw away second half
+	MX=abs(FFTX);								% Take magnitude of X
+	% Multiply by 2 to take into account the fact that we threw out second half of FFTX above
+	MX=MX*2;				MX(1)=MX(1)/2;		% Account for endpoint uniqueness
+	MX(length(MX))=MX(length(MX))/2;			% We know NFFT is even
+	% Scale the FFT so that it is not a function of the length of x.
+	MX=MX/length(x);        f=(0:NumUniquePts-1)*2*Fn/NFFT;
+	ecran('reuse',f,MX,[],'Amplitude Spectrum','frequency',[],'Amplitude Spectrum')
 
 % --------------------------------------------------------------------
 function AnalysisFFT_PSD_Callback(hObject, eventdata, handles)
-h_lin = findobj(get(handles.hAxes,'Children'),'LineStyle','-');
-x = get(h_lin,'XData');         Fs = 1 / (x(2) - x(1));         % Sampling frequency
-x = get(h_lin,'YData');
-[Pxx,w] = psd(x,Fs);
-% We want to guarantee that the result is an integer if X is a negative power of 10.
-% To do so, we force some rounding of precision by adding 300-300.
-Pxx = (10.*log10(Pxx)+300)-300;    % Compute db
-ecran('reuse',w,Pxx,[],'Power Spectrum','Frequency (Hz)','Power Spectral Density (dB/Hz)','Periodogram PSD Estimate')
+	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');
+	x = get(h_lin,'XData');			Fs = 1 / (x(2) - x(1));		% Sampling frequency
+	x = get(h_lin,'YData');
+	[Pxx,w] = psd(x,Fs);
+	% We want to guarantee that the result is an integer if X is a negative power of 10.
+	% To do so, we force some rounding of precision by adding 300-300.
+	Pxx = (10.*log10(Pxx)+300)-300;    % Compute db
+	ecran('reuse',w,Pxx,[],'Power Spectrum','Frequency (Hz)','Power Spectral Density (dB/Hz)','Periodogram PSD Estimate')
 
 % --------------------------------------------------------------------
 function AnalysisAutocorrelation_Callback(hObject, eventdata, handles)
-h_lin = findobj(get(handles.hAxes,'Children'),'LineStyle','-');
-xx = get(h_lin,'XData');        yy = get(h_lin,'YData');
-c = autocorr(yy);               n = length(yy);
-ecran('reuse',xx,c(n:end),[],'Normalized Autocorrelation','Lag in user X units')
+	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');
+	xx = get(h_lin,'XData');		yy = get(h_lin,'YData');
+	c = autocorr(yy);				n = length(yy);
+	ecran('reuse',xx,c(n:end),[],'Normalized Autocorrelation','Lag in user X units')
 
 % --------------------------------------------------------------------
 function AnalysisRemoveMean_Callback(hObject, eventdata, handles)
-h_lin = findobj(get(handles.hAxes,'Children'),'LineStyle','-');
-xx = get(h_lin,'XData');        yy = get(h_lin,'YData');
-ecran('reuse',xx,yy-mean(yy),[],'Mean Removed')
+	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');
+	xx = get(h_lin,'XData');		yy = get(h_lin,'YData');
+	ecran('reuse',xx,yy-mean(yy),[],'Mean Removed')
 
 % --------------------------------------------------------------------
 function AnalysisRemoveTrend_Callback(hObject, eventdata, handles)
-h_lin = findobj(get(handles.hAxes,'Children'),'LineStyle','-');
-xx = get(h_lin,'XData');        yy = get(h_lin,'YData');
-p = polyfit(xx,yy,1);           y = polyval(p,xx);
-ecran('reuse',xx,yy-y,[],'Trend Removed')
+	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');
+	xx = get(h_lin,'XData');		yy = get(h_lin,'YData');
+	p = polyfit(xx,yy,1);			y = polyval(p,xx);
+	ecran('reuse',xx,yy-y,[],'Trend Removed')
 
 % --------------------------------------------------------------------
 function AnalysisSmoothSpline_Callback(hObject, eventdata, handles)
-h = get(gca,'Children');      xx = get(h,'XData');        yy = get(h,'YData');
-[pp,p] = spl_fun('csaps',xx,yy);      % This is just to get csaps's p estimate
-y = spl_fun('csaps',xx,yy,p,xx);
-delete(findobj(get(handles.hAxes,'Children')));
-hold on;    plot(xx,yy,'r.');   plot(xx,y);     hold off;   axis tight;     zoom_j on;
-smoothing_param(p,[xx(1) xx(2)-xx(1) xx(end)],handles.hFig,handles.hAxes);
-guidata(hObject, handles);
+	h = get(handles.axes1,'Children');      xx = get(h,'XData');        yy = get(h,'YData');
+	[pp,p] = spl_fun('csaps',xx,yy);		% This is just to get csaps's p estimate
+	y = spl_fun('csaps',xx,yy,p,xx);
+	delete(findobj(get(handles.axes1,'Children')));
+	hold on;    plot(xx,yy,'r.');   plot(xx,y);     hold off;   axis tight;
+	smoothing_param(p,[xx(1) xx(2)-xx(1) xx(end)],handles.figure1,handles.axes1);
+	guidata(hObject, handles);
 
 % --------------------------------------------------------------------
 function Analysis1derivative_Callback(hObject, eventdata, handles)
-h_lin = findobj(get(handles.hAxes,'Children'),'LineStyle','-');       % this is the one to be replaced
-xx = get(h_lin,'XData');            yy = get(h_lin,'YData');
-pp = spl_fun('csaps',xx,yy,1);       % Use 1 for not smoothing, just interpolate
-v = spl_fun('ppual',pp,xx,'l','first');
-ecran('reuse',xx,v,[],'First derivative')
+	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');       % this is the one to be replaced
+	xx = get(h_lin,'XData');			yy = get(h_lin,'YData');
+	pp = spl_fun('csaps',xx,yy,1);		% Use 1 for not smoothing, just interpolate
+	v = spl_fun('ppual',pp,xx,'l','first');
+	ecran('reuse',xx,v,[],'First derivative')
 
 % --------------------------------------------------------------------
 function Analysis2derivative_Callback(hObject, eventdata, handles)
-h_lin = findobj(get(handles.hAxes,'Children'),'LineStyle','-');       % this is the one to be replaced
-xx = get(h_lin,'XData');            yy = get(h_lin,'YData');
-pp = spl_fun('csaps',xx,yy,1);       % Use 1 for not smoothing, just interpolate
-v = spl_fun('ppual',pp,xx,'l','second');
-ecran('reuse',xx,v,[],'Second derivative')
+	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');       % this is the one to be replaced
+	xx = get(h_lin,'XData');			yy = get(h_lin,'YData');
+	pp = spl_fun('csaps',xx,yy,1);		% Use 1 for not smoothing, just interpolate
+	v = spl_fun('ppual',pp,xx,'l','second');
+	ecran('reuse',xx,v,[],'Second derivative')
+
+% --------------------------------------------------------------------
+function edit_ageStart_Callback(hObject, eventdata, handles)
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx))
+		set(hObject,'String','')
+	elseif (xx < 0)
+		xx = 0;
+		set(hObject,'String',xx)
+	end
+	handles.ageStart = xx;
+	guidata(handles.figure1, handles)
+
+% --------------------------------------------------------------------
+function edit_ageEnd_Callback(hObject, eventdata, handles)
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx))
+		set(hObject,'String','')
+	end
+	handles.ageEnd = xx;
+	guidata(handles.figure1, handles)
+
+% --------------------------------------------------------------------
+function push_magBar_Callback(hObject, eventdata, handles)
+	if (isnan(handles.ageStart) || isnan(handles.ageEnd))
+		errordlg('Take a second look to what you are asking for. Wrong ages','Error'),		return
+	end
+
+	set(handles.axes2, 'Vis', 'on','XTick',[], 'YTick',[])
+
+	reverse_XDir = false;		% If first age > last age, we'll revert the sense of the X axis
+	if ( handles.ageStart >= handles.ageEnd )
+		reverse_XDir = true;
+		tmp = handles.ageStart;		handles.ageStart = handles.ageEnd;		handles.ageEnd = tmp;
+		set(handles.axes2,'XDir','reverse')
+	end
+
+	chron_file = [handles.d_path 'Cande_Kent_95.dat'];
+	fid = fopen(chron_file,'r');
+	todos = fread(fid,'*char');     [chron age_start age_end age_txt] = strread(todos,'%s %f %f %s');
+	fclose(fid);    clear todos
+
+	id_ini = (age_start >= handles.ageStart);		id_ini = find(id_ini);		id_ini = id_ini(1);
+	id_fim = (age_start <= handles.ageEnd);			id_fim = find(~id_fim);		id_fim = id_fim(1) - 1;
+	age_start = age_start(id_ini:id_fim);
+	age_end = age_end(id_ini:id_fim);
+	age_txt = age_txt(id_ini:id_fim);
+
+	% Take care of end ages which certainly do not cuincide with what was asked
+	if (age_start(1) > handles.ageStart)
+		age_start = [handles.ageStart; age_start];	age_end = [handles.ageStart; age_end];
+		age_txt = cat(1,{'a'}, age_txt(:));
+	end
+	if (age_end(end) < handles.ageEnd)
+		age_start(end+1) = handles.ageEnd;		age_end(end+1) = handles.ageEnd;		age_txt{end+1} = 'a';
+	end
+
+	x = [age_start'; age_end'];
+	x = x(:);
+	set(handles.axes2, 'xlim', [age_start(1) age_end(end)])
+	y = [zeros(numel(x),1); ones(numel(x),1)]; 
+	x = [x; x(end:-1:1)];
+
+	n_ages = numel(age_start);
+	n2 = 2 * n_ages;
+	c1 = (1:n2-1)';     c3 = n2*2 - c1;
+	c2 = c3 + 1;        c4 = c1 + 1;
+	faces = [c1 c2 c3 c4];
+
+	cor = repmat([0 0 0; 1 1 1],n_ages-1,1);    cor = [cor; [0 0 0]];
+	hp = patch('Parent',handles.axes2,'Faces',faces,'Vertices',[x y],'FaceVertexCData',cor,'FaceColor','flat');   
+	set(handles.figure1,'renderer','Zbuffer')	% The patch command above set it to OpenGL, which is f... bugged
+
+	% Get the index of anomalies that have names. We'll use them to plot those anomaly names
+	ind = false(1,n_ages);
+	for (i = 1:n_ages)
+		if (~strcmp(age_txt(i),'a')),	ind(i) = true;		end
+	end
+	ages = age_start(ind);
+
+	axes(handles.axes1)		% Put it back as current axes
+	% Since the two axes are touching, axes1 would hide the XTickLabels of axes2.
+	% So the trck is to plot what would have been axes2 XTickLabels as a text in axes1
+	DX1 = diff(get(handles.axes1,'xlim'));
+	y_lim = get(handles.axes1,'ylim');
+	DX2 = age_end(end) - age_start(1);
+	x_pos = (ages - x(1)) * DX1 / DX2;
+	ha = 'Left';
+	if (reverse_XDir)
+		x_pos = (age_end(end) - x(1)) * DX1 / DX2 - x_pos;
+		ha = 'Right';
+	end
+	text(x_pos,repmat(y_lim(2),numel(x_pos),1),age_txt(ind),'Parent',handles.axes1, ...
+		'VerticalAlignment','top', 'HorizontalAlignment', ha)
 
 % --------------------------------------------------------------------
 function ac = autocorr(x)
 %AUTOCORR Computes normalized auto-correlation of vector X.
-[x,nshift] = shiftdim(x);
-maxlag = size(x,1) - 1;
-x = x(:);   m = size(x,1);
-% Compute Autocorrelation via FFT
-X = fft(x,2^nextpow2(2*m-1));
-ac = ifft(abs(X).^2);
+	[x,nshift] = shiftdim(x);
+	maxlag = size(x,1) - 1;
+	x = x(:);   m = size(x,1);
+	% Compute Autocorrelation via FFT
+	X = fft(x,2^nextpow2(2*m-1));
+	ac = ifft(abs(X).^2);
 
-ac = real(ac);            % We want only the real part
-% Move negative lags before positive
-ac = [ac(end-maxlag+1:end,:);ac(1:maxlag+1,:)];
-ac = ac./ac(maxlag+1);     % Normalize by ac[0]
+	ac = real(ac);				% We want only the real part
+	% Move negative lags before positive
+	ac = [ac(end-maxlag+1:end,:);ac(1:maxlag+1,:)];
+	ac = ac./ac(maxlag+1);		% Normalize by ac[0]
 
-% If first vector is a row, return a row
-ac = shiftdim(ac,-nshift);
+	% If first vector is a row, return a row
+	ac = shiftdim(ac,-nshift);
 
 % --------------------------------------------------------------------
 function [Pxx,w] = psd(xw,Fs)
 %Power Spectral Density estimate via periodogram method.
-N = length(xw);     xw = xw(:);
-nfft  = max(256, 2^nextpow2(N));
+	N = length(xw);     xw = xw(:);
+	nfft  = max(256, 2^nextpow2(N));
 
-nx = size(xw,2);
-xw = [xw; zeros(nfft-N,1)];     % pad with zeros (I REALY don't like this)
-if (nx~=1),  xw = xw.';  end;    clear nx;
+	nx = size(xw,2);
+	xw = [xw; zeros(nfft-N,1)];     % pad with zeros (I REALY don't like this)
+	if (nx~=1),  xw = xw.';  end;    clear nx;
 
-% Compute the periodogram power spectrum [Power] estimate
-Sxx =(abs(fft(xw)).^2)./N; 
+	% Compute the periodogram power spectrum [Power] estimate
+	Sxx =(abs(fft(xw)).^2)./N; 
 
-% Generate the frequency vector in [rad/sample] at which Sxx was computed
-w = 2.*pi.*(0 : 1./nfft : 1-1./nfft);
+	% Generate the frequency vector in [rad/sample] at which Sxx was computed
+	w = 2.*pi.*(0 : 1./nfft : 1-1./nfft);
 
-% Compute the Power/freq (PSD), the Power and the frequency at which it is computed
-w = w(:);
+	% Compute the Power/freq (PSD), the Power and the frequency at which it is computed
+	w = w(:);
 
-% Generate the spectrum
-if rem(nfft,2),   select = 1:(nfft+1)/2;          % odd
-else                select = 1:nfft/2+1;    end     % even
-Sxx_unscaled = Sxx(select);
-w = w(select);
-Sxx = [Sxx_unscaled(1); 2*Sxx_unscaled(2:end-1); Sxx_unscaled(end)];
+	% Generate the spectrum
+	if rem(nfft,2),		select = 1:(nfft+1)/2;		% odd
+	else				select = 1:nfft/2+1;		% even
+	end
+	Sxx_unscaled = Sxx(select);
+	w = w(select);
+	Sxx = [Sxx_unscaled(1); 2*Sxx_unscaled(2:end-1); Sxx_unscaled(end)];
 
-Pxx = Sxx./Fs;      % Scale by the sampling frequency to obtain the psd
-w = w.*Fs./(2.*pi); % Scale the frequency vector from rad/sample to Hz   
+	Pxx = Sxx./Fs;      % Scale by the sampling frequency to obtain the psd
+	w = w.*Fs./(2.*pi); % Scale the frequency vector from rad/sample to Hz   
 
-% --------------------------------------------------------------------
-% --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-delete(handles.figure1);
+% -------------------------------------------------------------------------------------
+function rd = dist_along_profile(x, y)
+	xd = diff(x);		yd = diff(y);
+	tmp = sqrt(xd.*xd + yd.*yd);
+	rd = [0; cumsum(tmp(:))];
 
-% --- Executes on key press over figure1 with no controls selected.
-function figure1_KeyPressFcn(hObject, eventdata, handles)
-delete(handles.figure1);
+% -----------------------------------------------------------------------------
+function figure1_KeyPressFcn(hObject, eventdata)
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		handles = guidata(hObject);
+        delete(handles.figure1);
+	end
 
 % --- Creates and returns a handle to the GUI figure. 
-function ecran_LayoutFcn(h1,handles)
+function ecran_LayoutFcn(h1)
 
 set(h1,'Units','centimeters',...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
-'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','ecran',...
 'NumberTitle','off',...
@@ -574,8 +628,7 @@ set(h1,'Units','centimeters',...
 'Position',[13.7214409375 12.0822707291667 21.4414038541667 9.041874375],...
 'Renderer',get(0,'defaultfigureRenderer'),...
 'RendererMode','manual',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
 axes('Parent',h1,...
 'CameraPosition',[0.5 0.5 9.16025403784439],...
@@ -583,17 +636,27 @@ axes('Parent',h1,...
 'NextPlot','Add',...
 'Color',get(0,'defaultaxesColor'),...
 'ColorOrder',get(0,'defaultaxesColorOrder'),...
-'Position',[0.0493218249075216 0.184210526315789 0.939580764488286 0.730994152046784],...
+'Position',[0.0493218249075216 0.14619883040935672 0.939580764488286 0.7923976608187134],...
 'XColor',get(0,'defaultaxesXColor'),...
 'YColor',get(0,'defaultaxesYColor'),...
-'ZColor',get(0,'defaultaxesZColor'),...
 'Tag','axes1');
+
+axes('Parent',h1,...
+'CameraPosition',[0.5 0.5 9.16025403784439],...
+'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
+'Color',get(0,'defaultaxesColor'),...
+'ColorOrder',get(0,'defaultaxesColorOrder'),...
+'Position',[0.0493218249075216 0.93859649122807 0.939580764488286 0.0584795321637427],...
+'Tag','axes2',...
+'Visible','off');
 
 uicontrol('Parent',h1,...
 'Units','normalized',...
 'Callback',{@ecran_uicallback,h1,'checkbox_geog_Callback'},...
-'Position',[0.0480887792848335 0.0360655737704918 0.23921085080148 0.0524590163934426],...
+'Position',[0.0468557336621455 0.03216374269005848 0.2379778051787916 0.049707602339181284],...
 'String','Geographical coordinates',...
+'TooltipString',sprintf(['Check this if your data is in geographical coordinates.\n' ...
+			'You will than be able to see and save the profile in km (or m) vs z.']),...
 'Style','checkbox',...
 'Tag','checkbox_geog');
 
@@ -601,26 +664,25 @@ uicontrol('Parent',h1,...
 'Units','normalized',...
 'BackgroundColor',[1 1 1],...
 'Callback',{@ecran_uicallback,h1,'popup_selectPlot_Callback'},...
-'Position',[0.335099337748344 0.0192926045016077 0.327152317880795 0.0803858520900321],...
-'String',{  'Distance along profile (data units)'; 'Distance along profile (km)'; 'Distance along profile (NM)' },...
+'Position',[0.3341553637484587 0.02046783625730994 0.3316892725030826 0.06432748538011696],...
+'String','Distance along profile (data units)', ...
 'Style','popupmenu',...
 'Value',1,...
+'TooltipString', 'Select different ways of seeing the profile', ...
 'Tag','popup_selectPlot');
 
 uicontrol('Parent',h1,...
 'Units','normalized',...
 'BackgroundColor',[1 1 1],...
 'Callback',{@ecran_uicallback,h1,'popup_selectSave_Callback'},...
-'Position',[0.691390728476821 0.0192926045016077 0.288741721854305 0.0803858520900321],...
+'Position',[0.7028360049321825 0.02046783625730994 0.2836004932182491 0.06432748538011696],...
 'String',{  'Save Profile on disk'; 'distance Z (data units -> ascii)'; 'distance Z (data units -> binary)'; 'distance Z (km -> ascii)'; 'distance Z (km -> binary)'; 'distance Z (NM -> ascii)'; 'distance Z (NM -> binary)'; 'X Y Z (data units -> ascii)'; 'X Y Z (data units -> binary)' },...
 'Style','popupmenu',...
 'Value',1,...
+'TooltipString', 'Choose how to save the profile', ...
 'Tag','popup_selectSave');
 
-h10 = uimenu('Parent',h1,...
-'Callback',{@ecran_uicallback,h1,'menuFile_Callback'},...
-'Label','File',...
-'Tag','menuFile');
+h10 = uimenu('Parent',h1,'Label','File','Tag','menuFile');
 
 uimenu('Parent',h10,...
 'Callback',{@ecran_uicallback,h1,'FileOpen_Callback'},...
@@ -649,14 +711,7 @@ uimenu('Parent',h10,...
 'Label','Print...',...
 'Tag','FilePrint');
 
-uimenu('Parent',h10,...
-'Callback',{@ecran_uicallback,h1,'FileExit_Callback'},...
-'Label','Exit',...
-'Separator','on',...
-'Tag','FileExit');
-
 h17 = uimenu('Parent',h1,...
-'Callback',{@ecran_uicallback,h1,'VoidMenuAnalysis_Callback'},...
 'Label','Analysis',...
 'Tag','VoidMenuAnalysis');
 
@@ -671,7 +726,6 @@ uimenu('Parent',h17,...
 'Tag','AnalysisRemoveTrend');
 
 h20 = uimenu('Parent',h17,...
-'Callback',{@ecran_uicallback,h1,'VoidAnalysisFFT_Callback'},...
 'Label','FFT',...
 'Separator','on',...
 'Tag','VoidAnalysisFFT');
@@ -706,6 +760,61 @@ uimenu('Parent',h17,...
 'Callback',{@ecran_uicallback,h1,'Analysis2derivative_Callback'},...
 'Label','2 nd derivative',...
 'Tag','Analysis2derivative');
+
+uicontrol('Parent',h1,...
+'Units','normalized',...
+'BackgroundColor',[1 1 1],...
+'Callback',{@ecran_uicallback,h1,'edit_ageStart_Callback'},...
+'Position',[0.319358816276202 0.0204678362573099 0.0579531442663379 0.0614035087719298],...
+'String','0',...
+'Style','edit',...
+'Tooltip', sprintf(['Age at which we start ploting the bars. If older than "End age"\n' ...
+	'the bar code is plotted reversed. That is, from older to younger ages']),...
+'Tag','edit_ageStart',...
+'Visible','off');
+
+uicontrol('Parent',h1,...
+'Units','normalized',...
+'BackgroundColor',[1 1 1],...
+'Callback',{@ecran_uicallback,h1,'edit_ageEnd_Callback'},...
+'Position',[0.498150431565968 0.0233918128654971 0.0579531442663379 0.0614035087719298],...
+'String','',...
+'Style','edit',...
+'Tooltip', 'Age at which we stop ploting the bars.',...
+'Tag','edit_ageEnd',...
+'Visible','off');
+
+uicontrol('Parent',h1,...
+'Units','normalized',...
+'Callback',{@ecran_uicallback,h1,'push_magBar_Callback'},...
+'FontName','Helvetica',...
+'FontSize',9,...
+'ListboxTop',0,...
+'Position',[0.589395807644883 0.0204678362573099 0.129469790382244 0.0672514619883041],...
+'String','Create Mag Bar',...
+'TooltipString','Create a magnetic code bar on top of figure',...
+'Tag','push_magBar',...
+'Visible','off');
+
+uicontrol('Parent',h1,...
+'Units','normalized',...
+'HorizontalAlignment','right',...
+'ListboxTop',0,...
+'Position',[0.250308261405672 0.0321637426900585 0.0678175092478422 0.043859649122807],...
+'String','Start age',...
+'Style','text',...
+'Tag','text_ageStart',...
+'Visible','off');
+
+uicontrol('Parent',h1,...
+'Units','normalized',...
+'HorizontalAlignment','right',...
+'ListboxTop',0,...
+'Position',[0.429099876695438 0.0321637426900585 0.0678175092478422 0.043859649122807],...
+'String','End age',...
+'Style','text',...
+'Tag','text_ageEnd',...
+'Visible','off');
 
 function ecran_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
