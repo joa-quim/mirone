@@ -125,10 +125,10 @@ guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function edit_second_file_Callback(hObject, eventdata, handles)
-fname = get(hObject,'String');
-if isempty(fname)    return;    end
-% Let the pushbutton_first_file_Callback do all the work
-pushbutton_second_file_Callback(hObject,[],guidata(gcbo),fname)
+	fname = get(hObject,'String');
+	if isempty(fname)    return;    end
+	% Let the pushbutton_first_file_Callback do all the work
+	pushbutton_second_file_Callback(hObject,[],guidata(gcbo),fname)
 
 % -------------------------------------------------------------------------------------
 function pushbutton_second_file_Callback(hObject, eventdata, handles, opt)
@@ -197,24 +197,24 @@ end
 
 % -------------------------------------------------------------------------------------
 function edit_LonRange_Callback(hObject, eventdata, handles)
-handles.LonRange = str2double(get(hObject,'String'));
-guidata(hObject, handles);
+	handles.LonRange = str2double(get(hObject,'String'));
+	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function edit_Nintervals_Callback(hObject, eventdata, handles)
-handles.Nintervals = str2double(get(hObject,'String'));
-set(handles.slider_wait,'Max',handles.Nintervals^2)
-guidata(hObject, handles);
+	handles.Nintervals = str2double(get(hObject,'String'));
+	set(handles.slider_wait,'Max',handles.Nintervals^2)
+	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function edit_LatRange_Callback(hObject, eventdata, handles)
-handles.LatRange = str2double(get(hObject,'String'));
-guidata(hObject, handles);
+	handles.LatRange = str2double(get(hObject,'String'));
+	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function edit_AngRange_Callback(hObject, eventdata, handles)
-handles.AngRange = str2double(get(hObject,'String'));
-guidata(hObject, handles);
+	handles.AngRange = str2double(get(hObject,'String'));
+	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function togglebutton_pickLines_Callback(hObject, eventdata, handles)
@@ -280,21 +280,22 @@ function pushbutton_stop_Callback(hObject, eventdata, handles)
 function pushbutton_compute_Callback(hObject, eventdata, handles)
 % OK. See if we have all the information needed to compute the Euler pole
 
-set(handles.edit_BFresidue,'String','');        set(handles.edit_InitialResidue,'String','')
-set(handles.edit_pLon_fim,'String','');         set(handles.edit_pLat_fim,'String','')
-set(handles.edit_pAng_fim,'String','')
+	set(handles.edit_BFresidue,'String','');		set(handles.edit_InitialResidue,'String','')
+	set(handles.edit_pLon_fim,'String','');			set(handles.edit_pLat_fim,'String','')
+	set(handles.edit_pAng_fim,'String','')
 
-if (isempty(handles.isoca1) | isempty(handles.isoca2))
-    errordlg('Compute Euler pole with what? It would help if you provide me TWO lines.','Chico Clever')
-    return
-end
-if (isempty(handles.pLon_ini) | isempty(handles.pLat_ini) | isempty(handles.pAng_ini))
-    errordlg(['I need a first guess of the Euler pole you are seeking for.' ...
-    'Pay attention to the "Starting Pole Section"'],'Error')
-    return
-end
+	if (isempty(handles.isoca1) | isempty(handles.isoca2))
+		errordlg('Compute Euler pole with what? It would help if you provide me TWO lines.','Chico Clever')
+		return
+	end
+	if (isempty(handles.pLon_ini) | isempty(handles.pLat_ini) | isempty(handles.pAng_ini))
+		errordlg(['I need a first guess of the Euler pole you are seeking for.' ...
+			'Pay attention to the "Starting Pole Section"'],'Error')
+		return
+	end
 
-calca_pEuler(handles)
+	do_weighted = true;
+	calca_pEuler(handles, do_weighted)
 
 % -------------------------------------------------------------------------------
 function numeric_data = le_fiche(fname)
@@ -313,119 +314,78 @@ else
 end
 
 % -------------------------------------------------------------------------------
-function calca_pEuler(handles)
+function calca_pEuler(handles, do_weighted)
 
-D2R = pi / 180;
-if (handles.do_graphic)     % Create a empty line handle
-    h_line = line('parent',get(handles.h_calling_fig,'CurrentAxes'),'XData',[],'YData',[], ...
-        'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
-    %draw_funs(h_line,'isochron',{'Fitted Line'})
-end
+	D2R = pi / 180;
+	if (handles.do_graphic)     % Create a empty line handle
+		h_line = line('parent',get(handles.h_calling_fig,'CurrentAxes'),'XData',[],'YData',[], ...
+			'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
+	end
 
-% Compute the initial misfit with Bruno merit function
-% [rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini);
-% [teta,lambda] = mincoordspher(handles.pLon_ini*D2R,handles.pLat_ini*D2R,handles.isoca2(:,1)*D2R, ...
-%     handles.isoca2(:,2)*D2R,rlon*D2R,rlat*D2R);
-% sum2 = sum( log(cosh(1*teta).*cosh(lambda)) );
-% [rlon,rlat] = rot_euler(handles.isoca2(:,1),handles.isoca2(:,2),handles.pLon_ini,handles.pLat_ini,-handles.pAng_ini);
-% [teta,lambda] = mincoordspher(handles.pLon_ini*D2R,handles.pLat_ini*D2R,handles.isoca1(:,1)*D2R, ...
-%     handles.isoca1(:,2)*D2R,rlon*D2R,rlat*D2R);
-% sum1 = sum( log(cosh(1*teta).*cosh(lambda)) );
-% area0 = ((sum1 + sum2) / 2) / D2R;
+	% Compute distances between vertices of the moving isoc
+	xd = diff( (handles.isoca1(:,1) .* cos(handles.isoca1(:,2) * D2R) ) * D2R * 6371 );
+	yd = diff( handles.isoca1(:,2) * D2R * 6371 );
+	lengthsRot = sqrt(xd.*xd + yd.*yd);
 
-% Compute the initial misfit with the polygArea merit function
-% [rlon,rlat] = rot_euler(handles.isoca2(:,1),handles.isoca2(:,2),handles.pLon_ini,handles.pLat_ini,-handles.pAng_ini);
-% sum1 = polygArea(handles.isoca1(:,1)*D2R, handles.isoca1(:,2)*D2R ,rlon*D2R, rlat*D2R);
-% [rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini);
-% sum2 = polygArea(handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, rlon*D2R, rlat*D2R);
-% area0 = (sum1 + sum2) / 2;
+	[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini);
+	[dist1, segLen] = distmin(handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, rlon*D2R, rlat*D2R, lengthsRot, 1e20, do_weighted);
+	sum1 = weightedSum(dist1, segLen, do_weighted);
+	[dist2, segLen] = distmin(rlon*D2R, rlat*D2R, handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, lengthsRot, 1e20, do_weighted);
+	sum2 = weightedSum(dist2, segLen, do_weighted);
+	area0 = (sum1 + sum2) / 2;
 
-% Compute the initial misfit with Miguel merit function
-[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini);
-dist1 = distmin(handles.isoca2(:,1)*D2R,handles.isoca2(:,2)*D2R,rlon*D2R,rlat*D2R);
-sum1 = sum( dist1 ) / length(dist1);
-dist2 = distmin(rlon*D2R,rlat*D2R,handles.isoca2(:,1)*D2R,handles.isoca2(:,2)*D2R);
-sum2 = sum( dist2 ) / length(dist2);
-area0 = (sum1 + sum2) / 2;
+	set(handles.edit_InitialResidue,'String',sprintf('%.3f', area0));    pause(0.01)
+	set(h_line,'XData',rlon,'YData',rlat)
 
-set(handles.edit_InitialResidue,'String',num2str(area0,'%.6f'));    pause(0.01)
-set(h_line,'XData',rlon,'YData',rlat)
+	% Now comes the semi-brute force aproach to compute the pole
+	n = handles.Nintervals;         n1 = round(n/2);    n2 = n - n1;
+	dLon = handles.LonRange / 2;
+	dLat = handles.LatRange / 2;
+	dAng = handles.AngRange / 2;
+	p_lon = (handles.pLon_ini + linspace(-dLon,dLon,n)) * D2R;
+	p_lat = (handles.pLat_ini + linspace(-dLat,dLat,n)) * D2R;
+	p_omeg = (handles.pAng_ini + linspace(-dAng,dAng,n)) * D2R;
+	[p_lon,p_lat,p_omega,area_f] = fit_pEuler(handles, p_lon, p_lat, p_omeg,area0, h_line, lengthsRot, do_weighted);
 
-% Now comes the semi-brute force aproach to compute the pole
-n = handles.Nintervals;         n1 = round(n/2);    n2 = n - n1;
-dLon = handles.LonRange / 2;
-dLat = handles.LatRange / 2;
-dAng = handles.AngRange / 2;
-p_lon = (handles.pLon_ini + linspace(-dLon,dLon,n)) * D2R;
-p_lat = (handles.pLat_ini + linspace(-dLat,dLat,n)) * D2R;
-% p_lat = (handles.pLat_ini + linspace(0,-dLat,n1));
-% dx = abs(p_lat(2) - p_lat(1));
-% p_lat = [p_lat [handles.pLat_ini + dx + linspace(0,dLat,n2)]] * D2R;
-p_omeg = (handles.pAng_ini + linspace(-dAng,dAng,n)) * D2R;
-%[p_lon,p_lat,p_omega,area_f] = fit_pEuler(handles,p_lon,p_lat,p_omeg,area0*D2R,h_line);
-[p_lon,p_lat,p_omega,area_f] = fit_pEuler(handles,p_lon,p_lat,p_omeg,area0,h_line);
+	figure(handles.h_calling_fig)       % Bring the Mirone figure to front
+	draw_funs(h_line,'isochron',{'Fitted Line'})
 
-figure(handles.h_calling_fig)       % Bring the Mirone figure to front
-draw_funs(h_line,'isochron',{'Fitted Line'})
-
-if (area_f >= area0)
-    msgbox(['I am quite good, but this time I couldn''t find a better pole than the one ',...
-            'you gave me (Ah! probably it was me who computed it in a previous re-incarnation)'],'Report')
-end
+	if (area_f >= area0)
+		msgbox(['I am quite good, but this time I couldn''t find a better pole than the one ',...
+				'you gave me (Ah! probably it was me who computed it in a previous re-incarnation)'],'Report')
+	end
 
 % -------------------------------------------------------------------------------
-function [lon_bf,lat_bf,omega_bf,area_f] = fit_pEuler(handles,p_lon,p_lat,p_omeg,area0,h_line)
+function [lon_bf,lat_bf,omega_bf,area_f] = fit_pEuler(handles, p_lon, p_lat, p_omeg,area0, h_line, lengthsRot, do_weighted)
 % This is the function that does the real work of computing the best Euler pole
 % that fits the lines "isoca1" "isoca2"
-lon_bf = [];        lat_bf = [];
-omega_bf = [];      area_f = [];
-%area0 = 1e6;
-D2R = pi / 180;
-n = length(p_lon);
-isoca1 = handles.isoca1 * D2R;      % A maluca
-isoca2 = handles.isoca2 * D2R;      % A fixa
-
-%isoca2_lon_ct = isoca2(:,1) .* cos(isoca2(:,2));    % This doesn't change, so compute it only once here
-isoca2_lon_ct = isoca2(:,1);
+	lon_bf = [];        lat_bf = [];
+	omega_bf = [];      area_f = [];
+	D2R = pi / 180;
+	n = length(p_lon);
+	isoca1 = handles.isoca1 * D2R;      % A maluca
+	isoca2 = handles.isoca2 * D2R;      % A fixa
 
 i_m = 1;    j_m = 1;    k_m = 1;    ij = 0;
 for (i=1:n)                % Loop over lon
-    if (get(handles.slider_wait,'Max') == 1)        % The STOP button was pushed. So, stop
+    if (get(handles.slider_wait,'Max') == 1)			% The STOP button was pushed. So, stop
         set(handles.slider_wait,'Max',handles.Nintervals^2)     % Reset it for the next run
-        area_f = 0;     return;
+        area_f = 0;     return
     end
     for (j=1:n)            % Loop over lat
         ij = ij + 1;
-        if (get(handles.slider_wait,'Max') == 1)    % The STOP button was pushed. So, stop
+        if (get(handles.slider_wait,'Max') == 1)		% The STOP button was pushed. So, stop
             set(handles.slider_wait,'Max',handles.Nintervals^2)     % Reset it for the next run
-            area_f = 0;     return;
+            area_f = 0;     return
         end
-        set(handles.slider_wait,'Value',ij);     pause(0.001);   % Otherwise the slider risks to not be updated
-        count_ang = 0;
-        for (k=1:n)        % Loop over omega            
-%             [rlon,rlat] = rot_euler(isoca2(:,1),isoca2(:,2),p_lon(i),p_lat(j),-p_omeg(k),'radians');
-%             [teta,lambda] = mincoordspher(p_lon(i),p_lat(j),isoca1(:,1),isoca1(:,2),rlon,rlat);
-%             sum1 = sum( log(cosh(1*teta).*cosh(lambda)) );
-%             [rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians');
-%             [teta,lambda] = mincoordspher(p_lon(i),p_lat(j),isoca2(:,1),isoca2(:,2),rlon,rlat);
-%             sum2 = sum( log(cosh(1*teta).*cosh(lambda)) );
-            
-            % Isto e uma tentativa com a funcao custo do Miguel
+        set(handles.slider_wait,'Value',ij);     pause(0.01);   % Otherwise the slider risks to not be updated
+        for (k=1:n)        % Loop over omega
             [rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians');
-            %dist1 = distmin(isoca2(:,1),isoca2(:,2),rlon,rlat);
-            dist1 = distmin(isoca2_lon_ct,isoca2(:,2),rlon,rlat);
-            sum1 = sum( dist1 ) / length(dist1);
-            %dist2 = distmin(rlon,rlat,isoca2(:,1),isoca2(:,2));
-            dist2 = distmin(rlon,rlat,isoca2_lon_ct,isoca2(:,2));
-            sum2 = sum( dist2 ) / length(dist2);
-            %sum2 = sum1;
+            [dist1, segLen] = distmin(isoca2(:,1), isoca2(:,2), rlon,rlat, lengthsRot, area0, do_weighted);
+			sum1 = weightedSum(dist1, segLen, do_weighted);
+            [dist2, segLen] = distmin(rlon,rlat, isoca2(:,1), isoca2(:,2), lengthsRot, area0, do_weighted);
+			sum2 = weightedSum(dist2, segLen, do_weighted);
 
-%             % Isto e outra tentativa
-%             [rlon,rlat] = rot_euler(isoca2(:,1),isoca2(:,2),p_lon(i),p_lat(j),-p_omeg(k),'radians');
-%             sum1 = polygArea(isoca1(:,1),isoca1(:,2),rlon,rlat);
-%             [rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians');
-%             sum2 = polygArea(isoca2(:,1),isoca2(:,2),rlon,rlat);
-            
             area = (sum1 + sum2) / 2;
             if (area < area0)
                 area0 = area;
@@ -433,18 +393,12 @@ for (i=1:n)                % Loop over lon
                 count_ang = 0;
                 if (handles.do_graphic)
                     set(h_line,'XData',rlon/D2R,'YData',rlat/D2R)
-                    pause(0.001)
+                    pause(0.01)
                 end
-                set(handles.edit_pLon_fim,'String',num2str(p_lon(i) / D2R,'%.2f'))
-                set(handles.edit_pLat_fim,'String',num2str(p_lat(j) / D2R,'%.2f'))
-                set(handles.edit_pAng_fim,'String',num2str(p_omeg(k) / D2R,'%.2f'))
-                %set(handles.edit_BFresidue,'String',num2str(area / D2R,'%.5f'))
-                set(handles.edit_BFresidue,'String',num2str(area,'%.6f'))
-            elseif (count_ang > 3)      % We had more than 3 attemps with icreasing both the angle and
-                count_ang = 0;          % the error in the fit. So don't wast more time in this direction
-                continue
-            elseif (area - area0 > 0)           % Fit did not improve
-                count_ang = count_ang + 1;      % Count number of sucessive fit non-improving with angle
+                set(handles.edit_pLon_fim,'String',sprintf('%.2f', p_lon(i) / D2R))
+                set(handles.edit_pLat_fim,'String',sprintf('%.2f', p_lat(j) / D2R))
+                set(handles.edit_pAng_fim,'String',sprintf('%.3f', p_omeg(k) / D2R))
+                set(handles.edit_BFresidue,'String',sprintf('%.3f', area))
             end
         end
     end
@@ -454,190 +408,123 @@ set(handles.slider_wait,'Value',0)      % Reset it for the next run
 lon_bf = p_lon(i_m) / D2R;
 lat_bf = p_lat(j_m) / D2R;
 omega_bf = p_omeg(k_m) / D2R;
-%area_f = area0 / D2R;
 area_f = area0;
 
 % -------------------------------------------------------------------------------
-function area = polygArea(lon,lat,r_lon,r_lat)
-% a = polygArea(x,y) returns twice the signed area of the polygons
-% Reference: 
-% http://geometryalgorithms.com/Archive/algorithm_0101/algorithm_0101.htm
-% D2R = pi / 180;
-% DEG2KM = 2 * pi * 6371.0087714 / 360.0;         % GRS-80 sphere km/degree
-y = [lat; r_lat(end:-1:1)];
-x = [lon; r_lon(end:-1:1)];
-x = x .* cos(y);
-x = x - mean(x);
-n = length(x);
-i = [2:n 1];
-j = [3:n 1 2];
-area = abs(sum(x(i) .* (y(j) - y([1:n])))) * 1e6;
+function [dist, segLen] = distmin(lon, lat, r_lon, r_lat, lengthsRot, lastResidue, do_weighted)
+% Angles are already in radians
+	r_lon = r_lon .* cos(r_lat) * 6371;		% VERY strange. This should improve the fit
+	lon = lon .* cos(lat) * 6371;			% But, on the contrary, it degrades it ??
+	r_lon = r_lon(:)';      r_lat = r_lat(:)' * 6371;      % Make sure they are row vectors
+	lat = lat * 6371;
+	eps1 = 1e-1;            eps2 = eps1 * eps1;
+	n_pt = numel(lon);      n_pt_rot = numel(r_lon);
+	dist = zeros(n_pt,1);
+	segLen = ones(n_pt,1);
+	outliners = false(n_pt,1);      % To remove vertex where lines do not intersect
 
-% -------------------------------------------------------------------------------
-function [teta,lambda] = mincoordspher(p_lon,p_lat,lon,lat,r_lon,r_lat)
-% Given that this function is called many times, the angles (the arguments) are
-% expected to have already been converted to radians.
+	chunks = round([(n_pt * 0.25) (n_pt / 2) (n_pt * 0.75) (n_pt * 0.9) (n_pt+1)]);	% Checkpoints where current res is checked against min res
+	for (k = 1:n_pt)				% Loop over vertices of fixed isoc
+		Dsts = sqrt((lon(k)-r_lon).^2 + (lat(k)-r_lat).^2);   
+		[D,ind] = min(Dsts);
+		if (ind == 1 || ind == n_pt_rot && n_pt > 4)    % This point is outside the lines intersection. Flag it to die.
+			outliners(k) = true;						% Actually we waste all points that are closest to the rotated line end points
+			continue
+		end
+		
+		P  = [lon(k) lat(k)];
+		%d = abs(det([Q2-Q1,P-Q1]))/norm(Q2-Q1); % for col. vectors
+		Q1 = [r_lon(ind-1) r_lat(ind-1)];		Q2 = [r_lon(ind) r_lat(ind)];
+		D1 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1); % for row vectors.
+		Q1 = [r_lon(ind) r_lat(ind)];			Q2 = [r_lon(ind+1) r_lat(ind+1)];
+		D2 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
+		[dist(k),i] = min([D1 D2]);
+		if (i == 1),		segLen(k) = lengthsRot(ind-1);
+		else				segLen(k) = lengthsRot(ind);
+		end
 
-D2R = pi / 180;
-cosrf = sin(p_lat).*sin(lat) + cos(p_lat).*cos(lat).*cos(lon-p_lon);
-sinrf = sqrt(1 - cosrf.^2);
-rf = atan2(sinrf,cosrf);
-cthf = sin(lat) - cosrf.*sin(p_lat);
-sthf = cos(lat).*cos(p_lat).*sin(lon-p_lon);
-tetaf = atan2(sthf,cthf);
+		if (k == chunks(1))			% At 25, 50, and 75% of the points check if residue is already larger than minimum
+			res = weightedSum(dist, segLen, do_weighted);
+			if (res > lastResidue)
+				chunks = chunks(2:end);
+				break
+			end
+		end
+		
+% 		dist0 = 1e20;
+% 		d1 = 0;		d2 = 0;		xm = 0;		ym = 0;
+% 		for (j = ind-1:ind)
+% 			x1 = r_lon(j);      x2 = r_lon(j+1);
+% 			y1 = r_lat(j);      y2 = r_lat(j+1);
+% 			dd = 1e20;
+% 			while (dd > eps2)
+% 				d1 = sqrt((lon(k)-x1)^2 + (lat(k)-y1)^2);
+% 				d2 = sqrt((lon(k)-x2)^2 + (lat(k)-y2)^2);
+% 				dd = (x1-x2)^2 + (y1-y2)^2;
+% 				xm = (x1+x2) * 0.5;
+% 				ym = (y1+y2) * 0.5;
+% 				if (d1 < d2)
+% 					x2 = xm;    y2 = ym;
+% 				else
+% 					x1 = xm;    y1 = ym;
+% 				end
+% 			end
+% 			dist1 = (d1+d2) * 0.5;
+% 			if(dist1 < dist0)		% When true, the closest point on the other line was found
+%      			segLen(k) = lengthsRot(j);
+% 				dist0 = dist1;
+% 			end 
+% 		end
+% 		% 'dist' has the least distance of each vertex of line (lon,lat) to rotated line (r_lon,r_lat)
+% 		dist(k) = dist0;
+	end
 
-cosrn = sin(p_lat).*sin(r_lat) + cos(p_lat).*cos(r_lat).*cos(r_lon-p_lon);
-sinrn = sqrt(1 - cosrn.^2);
-rn = atan2(sinrn,cosrn);
-cthn = sin(r_lat) - cosrn.*sin(p_lat);
-sthn = cos(r_lat).*cos(p_lat).*sin(r_lon-p_lon);
-tetan = atan2(sthn,cthn);
+	dist(outliners) = [];		% Delete points not belonging to the lines intersection zone
+	segLen(outliners) = [];		%   and the same for the weights
+	if (isempty(dist)),     dist = 0;   segLen = 1;		end     % Don't let it go empty
 
-% Now the *f and *n have different sizes
-n_size = length(r_lon);
-f_size = length(lon);
-teta = repmat(0,f_size,1);      lambda = teta;
-for (k=1:f_size)
-    teta(k) = min( abs(rn - rf(k)) );
-    lambda(k) = min( abs(rn .* (tetan - tetaf(k))) );
-end
-% teta = teta / D2R;
-% lambda = lambda / D2R;
-teta = teta;
-lambda = lambda;
+% --------------------------------------------------------------------------------
+function soma = weightedSum(dists, segLen, do_weighted)
+% Convert the segment lengths along an isochron into a seres of weights
+% Lengths < 50 km weight 1. In the [50 80] interval weight 0.25. Longer weight zero
+	if (do_weighted)
+		weights = ones(numel(segLen), 1);
+		ind = (segLen > 50 & segLen < 80);
+		weights(ind) = 0.25;
+		weights(segLen >= 80) = 0;
+		soma = sum( dists .* weights ) / sum(weights);		% weighted sum
+	else
+		soma = sum( dists ) / numel(dists);
+	end
 
-
-% -------------------------------------------------------------------------------
-% subroutine distmin(tme,tmn,xvert,yvert,nvert,dist0)
-function dist = distmin__(lon,lat,r_lon,r_lat)
-D2R = pi / 180;
-r_lon = r_lon .* cos(r_lat);      % VERY strange. This should improve the fit
-lon = lon .* cos(lat);            % But, on the contrary, it degrades it ??
-epsilon = 1e-3;
-%eps2 = 1e-6;
-dist = zeros(length(lon),1);
-for (k=1:length(lon))
-    dist0 = 1e20;
-    for (j=1:length(r_lon)-1)
-        x1 = r_lon(j);      x2 = r_lon(j+1);
-        y1 = r_lat(j);      y2 = r_lat(j+1);
-        dd = 1e20;
-        while (dd > epsilon)
-            d1 = sqrt((lon(k)-x1)^2+(lat(k)-y1)^2);
-            d2 = sqrt((lon(k)-x2)^2+(lat(k)-y2)^2);
-            dd = sqrt((x1-x2)^2+(y1-y2)^2);
-            xm = (x1+x2) * 0.5;
-            ym = (y1+y2) * 0.5;
-            if (d1 < d2)
-                x2 = xm;    y2 = ym;
-            else
-                x1 = xm;    y1 = ym;
-            end
-        end
-        dist1 = (d1+d2) * 0.5;
-        if(dist1 < dist0) dist0 = dist1;  end   % When true, the closest point on the other line was found
-    end
-    dist(k) = dist0;
-end
-% for (jj=1:nvert-1)
-%     x1=xvert(jj);
-%     y1=yvert(jj);
-%     x2=xvert(jj+1);
-%     y2=yvert(jj+1);
-% 11  d1=sqrt((tme-x1).^2+(tmn-y1).^2);
-%     d2=sqrt((tme-x2).^2+(tmn-y2).^2);
-%     dd=sqrt((x1-x2).^2+(y1-y2).^2);
-%     while ()
-%    if(dd > eps)
-%        xm=(x1+x2)/2;
-%        ym=(y1+y2)/2;
-%        if (d1 < d2)
-%           x2=xm;
-%           y2=ym;
-%        else
-%           x1=xm;
-%           y1=ym;
-%        end
-%        go to 11
-%    end
-%    dist1=(d1+d2)/2;
-%    if(dist0 > dist1) dist0=dist1;  end
-% end
-
-% -------------------------------------------------------------------------------
-function dist = distmin(lon,lat,r_lon,r_lat)
-r_lon = r_lon .* cos(r_lat);      % VERY strange. This should improve the fit
-lon = lon .* cos(lat);            % But, on the contrary, it degrades it ??
-r_lon = r_lon(:)';      r_lat = r_lat(:)';      % Make sure they are row vectors
-eps1 = 1e-3;            eps2 = eps1 * eps1;
-n_pt = numel(lon);      n_pt_rot = numel(r_lon);
-dist = zeros(n_pt,1);
-%Dsts = zeros(n_pt,n_pt_rot);    % (i,j) element will hold distance from vertex i of line (lon,lat)
-                                % to vertex j of line (r_lon,r_lat)
-outliners = false(n_pt,1);      % To remove vertex where lines do not intersect
-for (k=1:n_pt)
-    dist0 = 1e20;
-    Dsts = sqrt((lon(k)-r_lon).^2+(lat(k)-r_lat).^2);
-    [D,ind] = min(Dsts);
-    if (ind == 1 || ind == n_pt_rot && n_pt > 4)    % This point is outside the lines intersection. Flag it to die.
-        outliners(k) = true;
-        continue
-    end
-    %for (j = ind-1:min(ind+1,n_pt_rot)-1)
-	d1 = 0;		d2 = 0;		xm = 0;		ym = 0;
-	for (j = ind-1:ind)
-        x1 = r_lon(j);      x2 = r_lon(j+1);
-        y1 = r_lat(j);      y2 = r_lat(j+1);
-        dd = 1e20;
-        while (dd > eps2)
-            d1 = sqrt((lon(k)-x1)^2+(lat(k)-y1)^2);
-            d2 = sqrt((lon(k)-x2)^2+(lat(k)-y2)^2);
-            dd = (x1-x2)^2+(y1-y2)^2;
-            xm = (x1+x2) * 0.5;
-            ym = (y1+y2) * 0.5;
-            if (d1 < d2)
-                x2 = xm;    y2 = ym;
-            else
-                x1 = xm;    y1 = ym;
-            end
-        end
-        dist1 = (d1+d2) * 0.5;
-        if(dist1 < dist0) dist0 = dist1;  end   % When true, the closest point on the other line was found        
-    end
-    % 'dist' has the least distance of each vertex of line (lon,lat) to rotated line (r_lon,r_lat)
-    dist(k) = dist0;
-end
-
-dist(outliners) = [];       % Delete points not belonging to the lines intersection zone
-if (isempty(dist)),     dist = 0;   end     % Don't let it go empty
 
 % --------------------------------------------------------------------------------
 function lat = geog2auth(lat0)
 % Convert geodetic (geographic) latitudes to authalic latitudes. 
 % Degrees are assumed in input
-lat0 = lat0 * pi / 180;
-flat = 1/298.257222101;         % GRS80 flatness
-ecc = sqrt(2*flat - flat.^2);   % exccentricity
-f1 = ecc^2 /3 + 31*ecc^4 / 180 + 59*ecc^6 / 560;
-f2 = 17*ecc^4 / 360 + 61*ecc^6 / 1260;
-f3 = 383*ecc^6 / 45360;
+	lat0 = lat0 * pi / 180;
+	flat = 1/298.257222101;         % GRS80 flatness
+	ecc = sqrt(2*flat - flat.^2);   % exccentricity
+	f1 = ecc^2 /3 + 31*ecc^4 / 180 + 59*ecc^6 / 560;
+	f2 = 17*ecc^4 / 360 + 61*ecc^6 / 1260;
+	f3 = 383*ecc^6 / 45360;
 
-lat = lat0 - f1*sin(2*lat0) + f2*sin(4*lat0) - f3*sin(6*lat0);
-lat = lat * 180 / pi;  %  Convert back to degrees
+	lat = lat0 - f1*sin(2*lat0) + f2*sin(4*lat0) - f3*sin(6*lat0);
+	lat = lat * 180 / pi;  %  Convert back to degrees
 
 % --------------------------------------------------------------------------------
 function lat = auth2geog(lat0)
 % Convert authalic  latitudes to geodetic (geographic) latitudes. 
 % Degrees are assumed in input
-lat0 = lat0 * pi / 180;
-flat = 1/298.257222101;         % GRS80 flatness
-ecc = sqrt(2*flat - flat.^2);   % exccentricity
-f1 = ecc^2 / 3 + 31*ecc^4 / 180 + 517*ecc^6 / 5040;
-f2 = 23*ecc^4 / 360 + 251*ecc^6 / 3780;
-f3 = 761*ecc^6 / 45360;
+	lat0 = lat0 * pi / 180;
+	flat = 1/298.257222101;         % GRS80 flatness
+	ecc = sqrt(2*flat - flat.^2);   % exccentricity
+	f1 = ecc^2 / 3 + 31*ecc^4 / 180 + 517*ecc^6 / 5040;
+	f2 = 23*ecc^4 / 360 + 251*ecc^6 / 3780;
+	f3 = 761*ecc^6 / 45360;
 
-lat = lat0 + f1*sin(2*lat0) + f2*sin(4*lat0) + f3*sin(6*lat0);
-lat = lat * 180 / pi;  %  Convert back to degrees
+	lat = lat0 + f1*sin(2*lat0) + f2*sin(4*lat0) + f3*sin(6*lat0);
+	lat = lat * 180 / pi;  %  Convert back to degrees
      
 % --- Creates and returns a handle to the GUI figure. 
 function compute_euler_LayoutFcn(h1);
@@ -819,7 +706,7 @@ uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[298 73 46 15],'St
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Position',[431 69 61 21],...
-'Style','edit','TooltipString','Residue of the merit function',...
+'Style','edit','TooltipString','Residue of the cost function',...
 'Tag','edit_BFresidue');
 
 uicontrol('Parent',h1,'Position',[433 92 57 15],'String','BF Residue','Style','text');
@@ -833,7 +720,7 @@ uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Position',[430 113 61 21],...
 'Style','edit',...
-'TooltipString','Starting residue (starting pole) of the merit function',...
+'TooltipString','Starting residue (starting pole) of the cost function',...
 'Tag','edit_InitialResidue');
 
 uicontrol('Parent',h1,...
