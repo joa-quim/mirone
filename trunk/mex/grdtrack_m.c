@@ -382,28 +382,40 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* Transpose from Matlab orientation to gmt grd orientation */
 	if (is_double) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) 
-			for (j = 0; j < nx; j++) f[i2*mx + j + 2*mx + 2] = (float)z_8[j*ny+i];
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+			ii = (i2 + 2)*mx + 2;
+			for (j = 0; j < nx; j++) f[ii + j] = (float)z_8[j*ny+i];
+		}
 	}
 	else if (is_single) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) 
-			for (j = 0; j < nx; j++) f[i2*mx + j + 2*mx + 2] = z_4[j*ny+i];
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+			ii = (i2 + 2)*mx + 2;
+			for (j = 0; j < nx; j++) f[ii + j] = z_4[j*ny+i];
+		}
 	}
 	else if (is_int32) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) 
-			for (j = 0; j < nx; j++) f[i2*mx + j + 2*mx + 2] = (float)i_4[j*ny+i];
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+			ii = (i2 + 2)*mx + 2;
+			for (j = 0; j < nx; j++) f[ii + j] = (float)i_4[j*ny+i];
+		}
 	}
 	else if (is_int16) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) 
-			for (j = 0; j < nx; j++) f[i2*mx + j + 2*mx + 2] = (float)i_2[j*ny+i];
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+			ii = (i2 + 2)*mx + 2;
+			for (j = 0; j < nx; j++) f[ii + j] = (float)i_2[j*ny+i];
+		}
 	}
 	else if (is_uint16) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) 
-			for (j = 0; j < nx; j++) f[i2*mx + j + 2*mx + 2] = (float)ui_2[j*ny+i];
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+			ii = (i2 + 2)*mx + 2;
+			for (j = 0; j < nx; j++) f[ii + j] = (float)ui_2[j*ny+i];
+		}
 	}
 	else if (is_uint8) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) 
-			for (j = 0; j < nx; j++) f[i2*mx + j + 2*mx + 2] = (float)ui_1[j*ny+i];
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+			ii = (i2 + 2)*mx + 2;
+			for (j = 0; j < nx; j++) f[ii + j] = (float)ui_1[j*ny+i];
+		}
 	}
 
 	GMT_pad[0] = GMT_pad[1] = GMT_pad[2] = GMT_pad[3] = 2;
