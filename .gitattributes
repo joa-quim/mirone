@@ -153,6 +153,7 @@ data/gvp_world.kmz -text
 data/hotspots.dat -text
 data/iodp_doc.kmz -text
 data/isochrons.dat -text
+data/link.png -text
 data/logo.png -text
 data/logo_etopo2.jpg -text
 data/m_coasts.mat -text
