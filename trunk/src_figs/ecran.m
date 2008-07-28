@@ -63,18 +63,17 @@ function varargout = ecran(varargin)
 
 	handles.n_plot = 0;         % Counter of the number of lines. Used for line color painting
 
-if (~isempty(varargin{1}) && ~ischar(varargin{1}))
-	errordlg('Error calling ecran: First arguments must be a string.','Error');     return
-end
-if (strcmp(varargin{1},'reuse') && nargin < 3)
-	errordlg('Error calling ecran: Minimum arguments are "type",X,Y','Error');      return
-end
-if ( strcmp(varargin{1},'Image') && nargin < 5 )   
-	errordlg('Error calling ecran: Minimum arguments are "type",X,Y,Z','Error');    return
-end
+	if (strcmp(varargin{1},'reuse') && nargin < 3)
+		errordlg('Error calling ecran: Minimum arguments are "type",X,Y','Error');      return
+	end
+	if ( strcmp(varargin{1},'Image') && nargin < 5 )   
+		errordlg('Error calling ecran: Minimum arguments are "type",X,Y,Z','Error');    return
+	end
 
 	handles.ageStart = 0;
 	handles.ageEnd = nan;
+	handles.hLine = [];			% Handles to the ploted line
+	handles.polyFig = [];		% Handles to the (eventual) figure for trend1d polyfit
 
 	axes(handles.axes1)		% Make it the active one
 
@@ -90,7 +89,7 @@ end
 			'Distance,Z (data units -> mat file)'});
 		rd = dist_along_profile(handles.data(:,1), handles.data(:,2));
 		handles.dist = rd;				% This one is by default, so save it in case user wants to save it to file
-		plot(rd,handles.data(:,3));		axis(handles.axes1,'tight');
+		handles.hLine = plot(rd,handles.data(:,3));		axis(handles.axes1,'tight');
 		set(hObject,'Name',varargin{5})
 	
 	elseif strcmp(varargin{1},'reuse')                      % Case of auto-referenced call
@@ -98,18 +97,18 @@ end
 		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
 		handles.data(:,1) = varargin{2};        handles.data(:,2) = varargin{3};
 		if ~isempty(varargin{9}) && strcmp(varargin{9},'semilogy')
-			semilogy(handles.data(:,1),handles.data(:,2));
+			handles.hLine = semilogy(handles.data(:,1),handles.data(:,2));
 		elseif ~isempty(varargin{9}) && strcmp(varargin{9},'semilogx')
-			semilogx(handles.data(:,1),handles.data(:,2));
+			handles.hLine = semilogx(handles.data(:,1),handles.data(:,2));
 		else
-			plot(handles.data(:,1),handles.data(:,2));
+			handles.hLine = plot(handles.data(:,1),handles.data(:,2));
 		end
 		axis(handles.axes1,'tight');
 		
-		if ~isempty(varargin{5}),    set(hObject,'Name',varargin{5});	end     % Figure Name
-		if ~isempty(varargin{6}),    xlabel(varargin{6});				end     % XLabel
-		if ~isempty(varargin{7}),    ylabel(varargin{7});				end     % YLabel
-		if ~isempty(varargin{8}),    title(varargin{8});				end     % Title
+		if ~isempty(varargin{5}),    set(hObject,'Name',varargin{5});	end		% Figure Name
+		if ~isempty(varargin{6}),    xlabel(varargin{6});				end		% XLabel
+		if ~isempty(varargin{7}),    ylabel(varargin{7});				end		% YLabel
+		if ~isempty(varargin{8}),    title(varargin{8});				end		% Title
 	end
 
 	guidata(hObject, handles);
@@ -233,11 +232,11 @@ function popup_selectPlot_Callback(hObject, eventdata, handles)
 			xd = (handles.data(:,1)*deg2km) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2km;
 	
 		case 'Distance along profile (NM)'            % Compute the accumulated distance along profile in Nmiles
-            deg2nm = 60.04;     %deg2km = 111194.9;
+            deg2nm = 60.04;
 			xd = (handles.data(:,1)*deg2nm) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2nm;
 	end
 	rd = dist_along_profile(xd, yd);
-	set(h,'XData',rd);				axis tight;
+	set(handles.hLine,'XData',rd);				axis tight;
 	guidata(hObject, handles);
 
 % ---------------------------------------------------------------------------------
@@ -318,10 +317,6 @@ function FileExport_Callback(hObject, eventdata, handles)
 	filemenufcn(handles.figure1,'FileExport')
 
 % --------------------------------------------------------------------
-function FilePrintSetup_Callback(hObject, eventdata, handles)
-	print -dsetup
-
-% --------------------------------------------------------------------
 function FilePrint_Callback(hObject, eventdata, handles)
 	if (ispc),		print -v
 	else			print
@@ -345,18 +340,18 @@ function FileOpen_Callback(hObject, eventdata, handles)
 	% If msgbox exist we have to move it from behind the main window. So get it's handle
 	hMsgFig = gcf;
 	if (handles.figure1 ~= hMsgFig)
-		uistack(hMsgFig,'top');    % If error msgbox exists, bring it forward
+		figure(hMsgFig);		% If error msgbox exists, bring it forward
 		% Here we have a stupid problem. If don't kill the message window before the
 		% select_cols is called this later wont work. FDS I have no more patiente for this.
-		pause(1)
-		try    delete(hMsgFig);    end
+		pause(0.5)
+		try		delete(hMsgFig),		end
 	end
 
 	out = select_cols(data,'xy',fname,1000);
-	if (isempty(out)) ,   return;    end
+	if (isempty(out)),		return,		end
 	
 	%lineHand = plot(data(:,out(1)),data(:,out(2)));    axis tight;
-	lineHand = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));    axis tight;
+	handles.hLine = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));    axis tight;
 	handles.n_plot = handles.n_plot + 1;
 	if (handles.n_plot > 1)
 		c_order = get(handles.axes1,'ColorOrder');
@@ -366,28 +361,26 @@ function FileOpen_Callback(hObject, eventdata, handles)
 			nc = rem(handles.n_plot,7);     % recycle through the default colors
 		end
 		cor = c_order(nc,:);
-		set(lineHand,'Color',cor)
+		set(handles.hLine,'Color',cor)
 	end
 	handles.data = [data(:,out(1)) data(:,out(2))];     % NOTE, if handles.n_plot > 1 only last data is saved
 	guidata(hObject, handles);
 
 % --------------------------------------------------------------------
 function FileSave_Callback(hObject, eventdata, handles)
-	cd(handles.last_dir);
-	[FileName,PathName] = uiputfile({'*.dat', 'X,Y (*.dat)';'*.*', 'All Files (*.*)'}, 'X,Y (ascii)');
-	pause(0.01);	cd(handles.home_dir);
-	if isequal(FileName,0),		return,		end     % User gave up
-	h_lin=findobj(get(handles.axes1,'Children'),'LineStyle','-');
-	xx = get(h_lin,'XData');			yy = get(h_lin,'YData');
+	if (isempty(handles.hLine)),	return,		end
+	[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'X,Y (*.dat)';'*.*', 'All Files (*.*)'},'X,Y (ascii)','put', '.dat');
+	if isequal(FileName,0),		return,		end     % User gave up	
+	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
 	double2ascii([PathName FileName],[xx(:) yy(:)],'%f\t%f');
 
 % --------------------------------------------------------------------
 function AnalysisFFT_AmpSpectrum_Callback(hObject, eventdata, handles)
-	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');
-	x = get(h_lin,'XData');
+	if (isempty(handles.hLine)),	return,		end
+	x = get(handles.hLine,'XData');
 	Fs = 1 / (x(2) - x(1));			% Sampling frequency
 	Fn=Fs/2;						% Nyquist frequency
-	x = get(h_lin,'YData');
+	x = get(handles.hLine,'YData');
 	NFFT=2.^(ceil(log(length(x))/log(2)));		% Next highest power of 2 greater than or equal to length(x)
 	FFTX=fft(x,NFFT);							% Take fft, padding with zeros, length(FFTX)==NFFT
 	NumUniquePts = ceil((NFFT+1)/2);
@@ -402,9 +395,9 @@ function AnalysisFFT_AmpSpectrum_Callback(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function AnalysisFFT_PSD_Callback(hObject, eventdata, handles)
-	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');
-	x = get(h_lin,'XData');			Fs = 1 / (x(2) - x(1));		% Sampling frequency
-	x = get(h_lin,'YData');
+	if (isempty(handles.hLine)),	return,		end
+	x = get(handles.hLine,'XData');			Fs = 1 / (x(2) - x(1));		% Sampling frequency
+	x = get(handles.hLine,'YData');
 	[Pxx,w] = psd(x,Fs);
 	% We want to guarantee that the result is an integer if X is a negative power of 10.
 	% To do so, we force some rounding of precision by adding 300-300.
@@ -413,46 +406,54 @@ function AnalysisFFT_PSD_Callback(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function AnalysisAutocorrelation_Callback(hObject, eventdata, handles)
-	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');
-	xx = get(h_lin,'XData');		yy = get(h_lin,'YData');
+	if (isempty(handles.hLine)),	return,		end
+	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
 	c = autocorr(yy);				n = length(yy);
 	ecran('reuse',xx,c(n:end),[],'Normalized Autocorrelation','Lag in user X units')
 
 % --------------------------------------------------------------------
 function AnalysisRemoveMean_Callback(hObject, eventdata, handles)
-	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');
-	xx = get(h_lin,'XData');		yy = get(h_lin,'YData');
+	if (isempty(handles.hLine)),	return,		end
+	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
 	ecran('reuse',xx,yy-mean(yy),[],'Mean Removed')
 
 % --------------------------------------------------------------------
 function AnalysisRemoveTrend_Callback(hObject, eventdata, handles)
-	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');
-	xx = get(h_lin,'XData');		yy = get(h_lin,'YData');
+	if (isempty(handles.hLine)),	return,		end
+	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
 	p = polyfit(xx,yy,1);			y = polyval(p,xx);
 	ecran('reuse',xx,yy-y,[],'Trend Removed')
 
 % --------------------------------------------------------------------
+function AnalysisFitPoly_Callback(hObject, eventdata, handles)
+	if (isempty(handles.hLine)),	return,		end
+	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
+	handles.polyFig = ecran_trend1d(handles.axes1, [xx(:) yy(:)]);
+	guidata(handles.figure1, handles)
+
+% --------------------------------------------------------------------
 function AnalysisSmoothSpline_Callback(hObject, eventdata, handles)
-	h = get(handles.axes1,'Children');      xx = get(h,'XData');        yy = get(h,'YData');
+	if (isempty(handles.hLine)),	return,		end
+	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
 	[pp,p] = spl_fun('csaps',xx,yy);		% This is just to get csaps's p estimate
 	y = spl_fun('csaps',xx,yy,p,xx);
-	delete(findobj(get(handles.axes1,'Children')));
-	hold on;    plot(xx,yy,'r.');   plot(xx,y);     hold off;   axis tight;
-	smoothing_param(p,[xx(1) xx(2)-xx(1) xx(end)],handles.figure1,handles.axes1);
+	hold on;	h = plot(xx,y);		hold off;
+
+	smoothing_param(p, [xx(1) xx(2)-xx(1) xx(end)], handles.figure1, handles.axes1, handles.hLine, h);
 	guidata(hObject, handles);
 
 % --------------------------------------------------------------------
 function Analysis1derivative_Callback(hObject, eventdata, handles)
-	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');       % this is the one to be replaced
-	xx = get(h_lin,'XData');			yy = get(h_lin,'YData');
+	if (isempty(handles.hLine)),	return,		end
+	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
 	pp = spl_fun('csaps',xx,yy,1);		% Use 1 for not smoothing, just interpolate
 	v = spl_fun('ppual',pp,xx,'l','first');
 	ecran('reuse',xx,v,[],'First derivative')
 
 % --------------------------------------------------------------------
 function Analysis2derivative_Callback(hObject, eventdata, handles)
-	h_lin = findobj(get(handles.axes1,'Children'),'LineStyle','-');       % this is the one to be replaced
-	xx = get(h_lin,'XData');			yy = get(h_lin,'YData');
+	if (isempty(handles.hLine)),	return,		end
+	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
 	pp = spl_fun('csaps',xx,yy,1);		% Use 1 for not smoothing, just interpolate
 	v = spl_fun('ppual',pp,xx,'l','second');
 	ecran('reuse',xx,v,[],'Second derivative')
@@ -609,8 +610,16 @@ function rd = dist_along_profile(x, y)
 function figure1_KeyPressFcn(hObject, eventdata)
 	if isequal(get(hObject,'CurrentKey'),'escape')
 		handles = guidata(hObject);
-        delete(handles.figure1);
+		delete(handles.figure1)
 	end
+
+% -----------------------------------------------------------------------------
+function figure1_CloseRequestFcn(hObject, eventdata)
+	handles = guidata(hObject);
+	if (~isempty(handles.polyFig))
+		try,	delete(handles.polyFig),	end
+	end
+	delete(handles.figure1)
 
 % --- Creates and returns a handle to the GUI figure. 
 function ecran_LayoutFcn(h1)
@@ -619,6 +628,7 @@ set(h1,'Units','centimeters',...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'KeyPressFcn',@figure1_KeyPressFcn,...
+'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'MenuBar','none',...
 'Name','ecran',...
 'NumberTitle','off',...
@@ -701,7 +711,7 @@ uimenu('Parent',h10,...
 'Tag','FileExport');
 
 uimenu('Parent',h10,...
-'Callback',{@ecran_uicallback,h1,'FilePrintSetup_Callback'},...
+'Callback','print -dsetup',...
 'Label','Print Setup',...
 'Separator','on',...
 'Tag','FilePrintSetup');
@@ -711,9 +721,7 @@ uimenu('Parent',h10,...
 'Label','Print...',...
 'Tag','FilePrint');
 
-h17 = uimenu('Parent',h1,...
-'Label','Analysis',...
-'Tag','VoidMenuAnalysis');
+h17 = uimenu('Parent',h1, 'Label','Analysis');
 
 uimenu('Parent',h17,...
 'Callback',{@ecran_uicallback,h1,'AnalysisRemoveMean_Callback'},...
@@ -725,10 +733,12 @@ uimenu('Parent',h17,...
 'Label','Remove Trend',...
 'Tag','AnalysisRemoveTrend');
 
-h20 = uimenu('Parent',h17,...
-'Label','FFT',...
-'Separator','on',...
-'Tag','VoidAnalysisFFT');
+uimenu('Parent',h17,...
+'Callback',{@ecran_uicallback,h1,'AnalysisFitPoly_Callback'},...
+'Label','Fit polynomial',...
+'Tag','AnalysisFitPoly');
+
+h20 = uimenu('Parent',h17, 'Label','FFT', 'Separator','on');
 
 uimenu('Parent',h20,...
 'Callback',{@ecran_uicallback,h1,'AnalysisFFT_AmpSpectrum_Callback'},...
@@ -817,5 +827,105 @@ uicontrol('Parent',h1,...
 'Visible','off');
 
 function ecran_uicallback(hObject, eventdata, h1, callback_name)
+% This function is executed by the callback and than the handles is allways updated.
+feval(callback_name,hObject,[],guidata(h1));
+
+%============================================================================
+function varargout = ecran_trend1d(varargin)
+% Little help figure where to select the order of polynomial to fit
+% The fit is done with the trend1d_m MEX because it allows robust fitting
+
+	hObject = figure('Tag','figure1','Visible','off');
+	ecran_trend1d_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	movegui(hObject,'center');
+
+	handles.hCallingAx = varargin{1};
+	handles.xy = varargin{2};
+	if (size(handles.xy, 2) > 2)		% X,Y must be column vectors
+		handles.xy = handles.xy';
+	end
+
+	handles.polyDeg = 1;
+
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),	varargout{1} = hObject;		end
+
+% --------------------------------------------------------------------
+function edit_polDeg_Callback(hObject, eventdata, handles)
+	xx = abs(fix(str2double(get(hObject,'String'))));
+	if (isnan(xx))
+		set(hObject,'String', handles.polyDeg)
+		return
+	end
+	handles.polyDeg = xx;
+	guidata(handles.figure1, handles)
+
+% --------------------------------------------------------------------
+function push_OK_Callback(hObject, eventdata, handles)
+	opt_N = sprintf('-N%d', handles.polyDeg + 1);
+	if (get(handles.check_robust, 'Val'))
+		opt_N = [opt_N 'r'];
+	end
+	
+	out = trend1d_m(handles.xy, '-Fxm', opt_N);
+	h = line('XData', out(:,1), 'YData', out(:,2), 'Parent', handles.hCallingAx, 'Tag','fitted');
+	
+	% Compute the model parameters (trend1d_m only computes them in the linear case)
+	p = polyfit(out(:,1), out(:,2), handles.polyDeg);
+	
+	% and put them on the line's uicontextmenu
+	cmenuHand = uicontextmenu('Parent',get(handles.hCallingAx,'Parent'));
+	set(h, 'UIContextMenu', cmenuHand);
+ 	uimenu(cmenuHand, 'Label', 'Poly Coefficients');
+	uimenu(cmenuHand, 'Label', num2str(p));
+	uimenu(cmenuHand, 'Label', 'Delete this line', 'Callback', 'delete(gco)', 'Sep', 'on');
+
+
+% --- Creates and returns a handle to the GUI figure. 
+function ecran_trend1d_LayoutFcn(h1)
+
+set(h1,...
+'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'MenuBar','none',...
+'Name','Fit polynomial',...
+'NumberTitle','off',...
+'Position',[520 755 241 60],...
+'Resize','off',...
+'HandleVisibility','callback',...
+'Tag','figure1');
+
+uicontrol('Parent',h1,...
+'Position',[161 38 75 15],...
+'String','Robust Fit',...
+'Style','checkbox',...
+'TooltipString','Do a robust fit. See trend1d (GMT) manual to further details',...
+'Tag','check_robust');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Callback',{@ecran_trend1d_uicallback,h1,'edit_polDeg_Callback'},...
+'Position',[111 34 30 21],...
+'String','1',...
+'Style','edit',...
+'TooltipString','"1" means linear trend; "2" a quadratic model, and so on.',...
+'Tag','edit_polDeg');
+
+uicontrol('Parent',h1,...
+'HorizontalAlignment','left',...
+'Position',[10 37 100 15],...
+'String','Polynomial degree',...
+'Style','text');
+
+uicontrol('Parent',h1,...
+'Callback',{@ecran_trend1d_uicallback,h1,'push_OK_Callback'},...
+'FontName','Helvetica',...
+'FontSize',9,...
+'Position',[164 6 66 21],...
+'String','OK',...
+'Tag','push_OK');
+
+function ecran_trend1d_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
 feval(callback_name,hObject,[],guidata(h1));
