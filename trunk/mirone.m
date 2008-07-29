@@ -53,7 +53,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calcBoninEulerPole
 
 	global home_dir;    home_dir = cd;      fsep = filesep;
-	%addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
+	addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
 
 	handles.home_dir = home_dir;
