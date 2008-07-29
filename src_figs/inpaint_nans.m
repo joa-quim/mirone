@@ -150,7 +150,7 @@ function push_OK_Callback(hObject, eventdata, handles)
 
 			if (get(handles.radio_surface,'Val'))
 				opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
-				Z_rect = gmtmbgrid_m( XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25' );
+				Z_rect = gmtmbgrid_m( XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25', '-Mz' );
 			elseif (get(handles.radio_bicubic,'Val'))
 				Z_rect = griddata_j(XX(:), YY(:), Z_rect(:), X, Y', 'cubic');
 			else
@@ -235,7 +235,7 @@ function [Z,h] = interpbytiles(handles, Z, head, rows, cols, opt_I, n_tiles)
 			
 			if (get(handles.radio_surface,'Val'))
 				opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
-				Z_rect = gmtmbgrid_m( XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25' );
+				Z_rect = gmtmbgrid_m( XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25', '-Mz' );
 			elseif (get(handles.radio_bicubic,'Val'))
 				Z_rect = griddata_j(XX(:), YY(:), Z_rect(:), X, Y', 'cubic');
 			else
