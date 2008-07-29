@@ -53,7 +53,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calcBoninEulerPole
 
 	global home_dir;    home_dir = cd;      fsep = filesep;
-	addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
+	%addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
 
 	handles.home_dir = home_dir;
@@ -439,8 +439,8 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 				resp  = inputdlg({'Enter outside polygon value'},'Choose out value',[1 30],{sprintf('%.4f',z_min)});	pause(0.01)
 				if isempty(resp);    set(handles.figure1,'pointer','arrow');    return;     end
 			elseif (strcmp(opt2,'ROI_SetConst'))    % Set the polygon interiour to cte
-				resp  = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);    pause(0.01)
-				if isempty(resp);    set(handles.figure1,'pointer','arrow');    return;     end
+				resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);    pause(0.01)
+				if isempty(resp),	set(handles.figure1,'pointer','arrow'),		return,		end
 			end
 			mask = img_fun('roipoly_j',x_lim,y_lim,double(Z_rect),x,y);
 			if (strcmp(opt2,'CropaGrid_pure'))
@@ -543,13 +543,13 @@ elseif (strcmp(opt2,'FillGaps'))
 		YY = Y(:);			YY(aa) = [];
 		if (~isempty(opt3))
 			switch opt3
-				case 'surface', Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25');
+				case 'surface', Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25', '-Mz');
 				case 'cubic',   Z_rect = griddata_j(XX,YY,ZZ,X,Y,'cubic');
 				case 'linear',  Z_rect = griddata_j(XX,YY,ZZ,X,Y,'linear');
 				case 'sea',     Z_rect(aa) = 0;
 			end
 		else
-			Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25','-v');
+			Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25','-v', '-Mz');
 		end
 		clear X XX Y YY ZZ;
 	end
@@ -826,14 +826,11 @@ function FileSaveGMTgrid_CB(handles, opt)
 		txt1 = 'netCDF grid format (*.grd,*.GRD)';      txt2 = 'Select output GMT grid';
 	end
 
-	[FileName,PathName] = put_or_get_file(handles,{'*.grd;*.GRD',txt1; '*.*', 'All Files (*.*)'},txt2,'put');
+	[FileName,PathName] = put_or_get_file(handles,{'*.grd;*.GRD',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.grd');
 	if isequal(FileName,0),		return,		end
+	f_name = [PathName FileName];
 
 	set(handles.figure1,'pointer','watch')
-	f_name = [PathName FileName];
-	[PATH,FNAME,EXT] = fileparts(f_name);
-	if (isempty(EXT)),		f_name = [PathName FNAME '.grd'];	end
-
 	if (~isempty(opt) && strcmp(opt,'Surfer'))
 		fid = fopen(f_name, 'wb');		fwrite(fid,'DSBB','char');
 		fwrite(fid,[size(Z,2) size(Z,1)],'int16');		fwrite(fid,head(1:6),'double');
@@ -931,19 +928,17 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 % --------------------------------------------------------------------
 function FileSaveENCOMgrid_CB(handles)
 	% Save memory resident grids into the Encom grid format
-	if (aux_funs('msg_dlg',14,handles));     return;      end
+	if (aux_funs('msg_dlg',14,handles));	return,	end
 
 	txt1 = 'Encom grid format (*.grd,*.GRD)';   txt2 = 'Select output Encom grid';
-	[FileName,PathName] = put_or_get_file(handles,{'*.grd;*.GRD',txt1; '*.*', 'All Files (*.*)'},txt2,'put');
-	if isequal(FileName,0);     return;     end
+	[FileName,PathName] = put_or_get_file(handles,{'*.grd;*.GRD',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.grd');
+	if isequal(FileName,0),		return,		end
 
 	[X,Y,Z,head,m,n] = load_grd(handles);
-	if isempty(Z),   return;     end;    % An error message was already issued
+	if isempty(Z),		return,		end		% An error message was already issued
+	f_name = [PathName FileName];
 
 	set(handles.figure1,'pointer','watch')
-	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-	if isempty(EXT),    f_name = [PathName FNAME '.grd'];
-	else                f_name = [PathName FNAME EXT];       end
 	fid = fopen(f_name,'wb');
 	ID = ['Model Vision Grid' repmat(' ',1,80-17)];     fwrite(fid,ID,'80*char');   % Fk stupid ML oblyged me to this
 	ID = ['Mirone Grid (Title unknown here)' repmat(' ',1,80-32)];     fwrite(fid,ID,'80*char');
@@ -964,21 +959,25 @@ function FileSaveENCOMgrid_CB(handles)
 
 % --------------------------------------------------------------------
 function ExtractProfile_CB(handles, opt)
-	if (handles.no_file),     return;      end
-	point_int = 0;                                  % Default to "profile" interpolation
-	if (nargin == 2),   point_int = 1;     end      % Interpolate at the line vertex only
+% OPT == 'point' or 'dynamic'. POINT, interpolates at the line vertex only
+	if (handles.no_file),	return,		end
+	if (nargin == 1),	opt = '';		end
+	point_int = false;					% Default to "profile" interpolation
+	if (strcmp(opt,'point')),	point_int = true;	end
+	track_is_done = false;
+
 	[X,Y,Z,head] = load_grd(handles,'silent');
 	if (isempty(Z) && handles.validGrid)			% Grid not in memory error
 		errordlg('Grid was not on memory. Increase "Grid max size" and start over again.','ERROR'); return
 	elseif (isempty(Z) && ndims(get(handles.hImg,'CData')) == 2)
 		Z = get(handles.hImg,'CData');
-		img_lims = getappdata(handles.axes1,'ThisImageLims');   % Get limits and correct them for the pix reg problem
+		img_lims = getappdata(handles.axes1,'ThisImageLims');	% Get limits and correct them for the pix reg problem
 		x_inc = (img_lims(2)-img_lims(1)) / size(Z,2);      y_inc = (img_lims(4)-img_lims(3)) / size(Z,1);
-		img_lims = img_lims + [x_inc -x_inc y_inc -y_inc]/2;    % Remember that the Image is ALWAYS pix reg
+		img_lims = img_lims + [x_inc -x_inc y_inc -y_inc]/2;	% Remember that the Image is ALWAYS pix reg
 		X = linspace(img_lims(1),img_lims(2),size(Z,2));    Y = linspace(img_lims(3),img_lims(4),size(Z,1));
 		head = [X(1) X(end) Y(1) Y(end) double(min(Z(:))) double(max(Z(:))) 1 X(2)-X(1) Y(2)-Y(1)];
 	elseif (isempty(Z))
-		errordlg('Extracting profile of a RGB image is not suported.','ERROR');     return
+		errordlg('Extracting profile of a RGB image is not suported.','ERROR'),		return
 	end
 
 	zoom_state(handles,'maybe_off')
@@ -987,46 +986,31 @@ function ExtractProfile_CB(handles, opt)
 		xp = get(hand,'Xdata');     yp = get(hand,'Ydata');
 		rmappdata(handles.figure1,'TrackThisLine')      % Clear it so that the next time it may work when called interactivelly
 	else
-		[xp,yp] = getline_j(handles.figure1);
-	end
-	n_nodes = length(xp);
-	if (n_nodes < 2),       zoom_state(handles,'maybe_on');      return;     end
-	if (~point_int)         % Profile interp
-		dx = X(2) - X(1);   dy = Y(2) - Y(1);
-		% Here I don't realy know what is the good increment for interpolation, so I'll
-		% interpolate at the half grid spacing for each dimension.
-		% Construct the vectors with the points where to interpolate the profile
-		xx = [];	yy = [];
-		for (i = 1:n_nodes-1)
-			n_int = round( max( abs(xp(i+1)-xp(i))/(dx/2), abs(yp(i+1)-yp(i))/(dy/2) ) );         % find ...
-			xx = [xx linspace(xp(i),xp(i+1),n_int)];     yy = [yy linspace(yp(i),yp(i+1),n_int)];  % at nodes, values are repeated
+		if (strcmp(opt,'dynamic'))
+			getline_j(handles.figure1,'dynamic');
+			hDynProfAx = getappdata(handles.axes1,'dynProfile');		% Get the handle of the dynamic profile Axes
+			hLine = getappdata(hDynProfAx,'theLine');
+			ud = get(hLine, 'UserData');
+			xx = ud(:,1);			yy = ud(:,2);		zz = get(hLine,'YData');
+			delete(hDynProfAx);		rmappdata(handles.axes1,'dynProfile');	% We are over with the dynamic tracking. Remove that axes
+			track_is_done = true;
+		else
+			[xp,yp] = getline_j(handles.figure1);
+			if (numel(xp) < 2),		zoom_state(handles,'maybe_on'),		return,		end
+			[xx, yy, zz] = grid_profiler(handles.figure1, xp, yp, point_int, false);	% The 'false' is for not 'do_dynamic'
 		end
-	else					% Interpolation at line vetex
-		xx = xp;    yy = yp;
 	end
 
-	% Interpolate
-	if ~isempty(getappdata(handles.figure1,'dem_x'))		% Grid is in memory
-        if (~getappdata(handles.figure1,'PixelMode'))		% Interpolation mode
-			zz = grdtrack_m(Z,head,[xx' yy'],'-Z')';		% It uses less memory (and non doubles)
-			%zz = interp2(X,Y,double(Z),xx,yy,'*cubic');
-		else												% NEARNEIGBOR mode
-			[rows,cols] = size(Z);
-			rp = aux_funs('axes2pix',rows, get(handles.hImg,'YData'),yy);
-			cp = aux_funs('axes2pix',cols, get(handles.hImg,'XData'),xx);
-			r = min(rows, max(1, round(rp)));   c = min(cols, max(1, round(cp)));
-			rc = (c - 1) * rows + r;
-			zz = double(Z(rc));
-        end
-	else								% grid was loaded here (big according to preferences), so interp linearly
-		zz = bi_linear(X,Y,Z,xx,yy);
+	if (~track_is_done)			% Otherwise we already know them
+		[xx, yy, zz] = grid_profiler(handles.figure1, xp, yp, point_int, track_is_done);
 	end
 
 	zoom_state(handles,'maybe_on')
-	if (~point_int)				% Disply profile in ecran
+	if (~strcmp(opt,'point'))			% Disply profile in ecran
 		[pato,name,ext] = fileparts(get(handles.figure1,'Name'));
 		ext = strtok(ext);		% Remove the "@ ??%" part
-		ecran('Image',xx,yy,zz,['Track from ' name ext])
+		%ecran('Image',xx,yy,zz,['Track from ' name ext])
+		ecran(handles,xx,yy,zz,['Track from ' name ext])
 	else						% Save result on file
 		draw_funs([],'save_xyz',[xx(:) yy(:) zz(:)])
 	end
@@ -2626,14 +2610,11 @@ end
 function FileSaveSession_CB(handles)
 	if (handles.image_type == 0),   return;      end
 	str1 = {'*.mat;*.MAT', 'Data files (*.mat,*.MAT)'};
-	[FileName,PathName] = put_or_get_file(handles,str1,'Select session file name','put');
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select session file name','put','.mat');
 	if isequal(FileName,0);     return;     end
+	fname = [PathName FileName];
 
 	set(handles.figure1,'pointer','watch')
-	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-	if isempty(EXT),    fname = [PathName FNAME '.mat'];
-	else                fname = [PathName FNAME EXT];       end
-
 	grd_name = handles.fileName;    % Use this variable name for compatibility reason
 	img_pal = get(handles.figure1,'Colormap');     illumComm = [];      illumType = handles.Illumin_type;
 	map_limits = getappdata(handles.axes1,'ThisImageLims');
@@ -2820,10 +2801,8 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
 		case 'ESRI',		str1 = {'*.bil;*.BIL', 'Esri (*.bil;*.BIL)'};			driver = 'EHdr';
 		case 'JP2K',		str1 = {'*.jp2;*.JP2', 'Jpeg2000 (*.jp2;*.JP2)'};		driver = 'JP2ECW';
 	end
-	[FileName,PathName] = put_or_get_file(handles,str1,['Select ' opt1 ' file name'],'put');
-	if isequal(FileName,0);     return,		end
-	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-	if isempty(EXT),    FileName = [FileName str1{1}(2:5)];  end
+	[FileName,PathName] = put_or_get_file(handles,str1,['Select ' opt1 ' file name'],'put', str1{1}(2:5));
+	if isequal(FileName,0),		return,		end
 	fname = [PathName FileName];
 
 	head = handles.head;
@@ -3476,7 +3455,7 @@ elseif (strncmp(opt,'flip',4))		% LR or UP image flipage. OPT = flipLR or flipUD
 	set(handles.hImg,'CData', img);
 
 elseif (strcmp(opt,'KML'))
-	[FileName,PathName] = put_or_get_file(handles,{'*.kml', 'KML files (*.kml)'},'Select file','put');
+	[FileName,PathName] = put_or_get_file(handles,{'*.kml', 'KML files (*.kml)'},'Select file','put','.kml');
 	if isequal(FileName,0),		set(handles.figure1,'pointer','arrow'),		return,		end			% User gave up
 	Z = [];
 	if (handles.have_nans)
