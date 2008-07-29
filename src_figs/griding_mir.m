@@ -790,7 +790,7 @@ if error == 0
     set(handles.figure1,'Name','COMPUTING')
     switch handles.type
         case 'surface'
-            [Z,head] = gmtmbgrid_m(out{2:end});     % We don't want the last ','
+            [Z,head] = gmtmbgrid_m(out{2:end}, '-Mz');     % We don't want the last ','
             tit = 'surface interpolation';          name = tit;
             set(handles.figure1,'Name','Surface')
         case 'nearneighbor'
