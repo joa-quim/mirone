@@ -47,9 +47,6 @@ function varargout = mirone_pref(varargin)
 		if (~whichFleder)
 			set(handles.radio_fleder,'Val',1),		set(handles.radio_iview,'Val',0)
 		end
-		if (moveDoubleClick)				% It will fail on the first time, but work after
-			set(handles.check_movPolyg,'Val',1)
-		end
 		handles.moveDoubleClick = moveDoubleClick;
 	end
 
@@ -88,6 +85,7 @@ function varargout = mirone_pref(varargin)
     set(handles.edit_GridMaxSize,'String',sprintf('%d',fix(handMir.grdMaxSize / (2^20))))
     set(handles.edit_swathRatio,'String',sprintf('%g',handMir.swathRatio))
     set(handles.checkbox_ForceInsitu,'Value',handMir.ForceInsitu)
+	set(handles.check_movePolyg,'Val',handles.moveDoubleClick)
     handles.ForceInsitu = handMir.ForceInsitu;
 
 	% Well this is split from the above because it was written later and I don't want to mess
