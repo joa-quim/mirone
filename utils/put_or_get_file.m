@@ -8,6 +8,10 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, e
 	elseif (strcmp(type,'put'))
 		cd(handles.work_dir)
 		[FileName,PathName] = uiputfile(str1,str2);
+		if (isequal(FileName,0))
+			cd(handles.home_dir);       % go home
+			return
+		end
 		if (nargin == 5)		% Check that 'FileName' goes with the desired extension
 			[PATH,FNAME,EXT] = fileparts(FileName);
 			if (ext(1) ~= '.'),		ext = ['.' ext];		end
