@@ -238,7 +238,7 @@ function bdnTile(obj,event,hFig)
 	set(handles.figure1,'pointer','arrow')
 
 % ----------------------------------------------------------------------------
-function popup_directory_list_Callback(hObject, eventdata, handles)
+function popup_directory_list_Callback(hObject, eventdata, handles, opt)
 % OPT is used by pushbutton_change_dir (just to save code)
 	if (nargin == 3)    opt = [];   end
 	if isempty(opt)
