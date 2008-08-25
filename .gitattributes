@@ -597,6 +597,7 @@ utils/mc_e_b_estimate.m -text
 utils/message_win.m -text
 utils/mltable_j.m -text
 utils/move2side.m -text
+utils/move_obj.m -text
 utils/movie2avi_j.m -text
 utils/multibandread_j.m -text
 utils/nc_funs.m -text
