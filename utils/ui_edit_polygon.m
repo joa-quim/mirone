@@ -34,6 +34,7 @@ function ui_edit_polygon(varargin)
 %									active vertice and the other from the active vertice + 1 till the end.
 %									Patches cannot be broken.
 %     "c":							close a polyline
+%     "e":							put the line in extending mode (add points at the end) by calling getline_j
 %     "p":							close a polyline and convert it into a patch
 %     escape:						stop edit mode
 %     delete:						delete the line/patch object
@@ -54,6 +55,7 @@ function ui_edit_polygon(varargin)
 %   JL & SH joint version -- ??-Nov-2005
 %	JL	20-Jul-2008 Guess best positions for the insert option
 %					Allow choosing what mouse selection is used to move the whole polygon.
+%	JL	25-Aug-2008 Added the "e" (extend) keyboard option
 
 %	Copyright (c) 2004-2008 by J. Luis
 %
@@ -359,10 +361,22 @@ switch key
 	case {'c', 'C'}					% close line
 		if (s.is_patch || s.is_closed),		return,		end		% Don't close what is already closed
 		x = get(s.h_pol,'XData');
-		if (length(x) <= 2); return; end   % don't close a line with less than 2 vertex 
+		if (length(x) <= 2),	return,		end   % don't close a line with less than 2 vertex 
 		y = get(s.h_pol,'YData');
 		set(s.h_pol,'XData',[x x(1)],'YData',[y y(1)]);
 		s.is_closed = 1;
+
+	case {'e', 'E'}					% edit (extend) line with getline_j
+		delete(s.h_vert);        s.h_vert = [];		s.vert_index = [];		% delete vertice markers
+		try delete(s.h_current_marker); s.h_current_marker = []; end
+		s.controls = 'off';
+		set(s.h_pol,'buttondownfcn',@polygonui);
+		set(s.h_fig,'KeyPressFcn',s.KeyPress_orig)
+		setappdata(s.h_fig,'epActivHand',0)
+		setappdata(s.h_pol,'polygon_data',s)		% Play safe
+		[x,y] = getline_j(s.h_pol);
+		set(s.h_pol, 'XData',x, 'YData',y);
+		return
 
 	case {'p', 'P'}					% close line -> patch
 		% Don't close what is already closed or line with less than 2 vertices
