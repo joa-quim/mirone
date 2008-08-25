@@ -287,7 +287,9 @@ elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the 
 end
 uimenu(cmenuHand, 'Label', label_save, 'Callback', {@save_formated,h});
 if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))     % Those are not to allowed to copy
-	uimenu(cmenuHand, 'Label', 'Join lines', 'Callback', {@join_lines,handles.figure1});
+	if (~LINE_ISCLOSED)
+		uimenu(cmenuHand, 'Label', 'Join lines', 'Callback', {@join_lines,handles.figure1});
+	end
 	uimenu(cmenuHand, 'Label', 'Copy', 'Callback', {@copy_line_object,handles.figure1,handles.axes1});
 end
 if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_length, 'Callback', @show_LineLength);		end
@@ -1427,20 +1429,15 @@ function change_CircCenter1(obj,eventdata,h)
 % -----------------------------------------------------------------------------------------
 function rectangle_limits(obj,eventdata)
 % Change the Rectangle's limits by asking it's corner coordinates
-% res = check_IsRectangle(h);
-% if ~res
-%     errordlg('This no longer a rectangle. The edition deformed it','Error');     return;
-% end
-%if (isempty(h) | nargin == 2)   h = gco;    end
-h = gco;
-x = get(h,'XData');     y = get(h,'YData');
+	h = gco;
+	x = get(h,'XData');     y = get(h,'YData');
 
-region = bg_region('with_limits',[x(1) x(3) y(1) y(3)]);
-if isempty(region),    return;  end     % User gave up
-x_min = region(1);      x_max = region(2);
-y_min = region(3);      y_max = region(4);
+	region = bg_region('with_limits',[x(1) x(3) y(1) y(3)]);
+	if isempty(region),    return;  end     % User gave up
+	x_min = region(1);      x_max = region(2);
+	y_min = region(3);      y_max = region(4);
 
-set(h, 'XData', [x_min,x_min,x_max,x_max,x_min], 'YData', [y_min,y_max,y_max,y_min,y_min]);
+	set(h, 'XData', [x_min,x_min,x_max,x_max,x_min], 'YData', [y_min,y_max,y_max,y_min,y_min]);
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -1602,8 +1599,8 @@ if (out.resizeIP)
     opt_N = ['-N' num2str(out.r_c(4)-out.r_c(3)+1) '/' num2str(out.r_c(2)-out.r_c(1)+1)]; % option for grdsample
     if (~indexed_ip)                                % Implanting image is of RGB type
         for i=1:3
-            %ZI(:,:,i) = interp2(double(out.ip_img(:,:,i)),X,Y,'*cubic');
-            ZI(:,:,i) = grdsample_m(single(out.ip_img(:,:,i)),head,opt_N);
+			%ZI(:,:,i) = interp2(double(out.ip_img(:,:,i)),X,Y,'*cubic');
+			ZI(:,:,i) = grdsample_m(single(out.ip_img(:,:,i)),head,opt_N);
         end
     else
         if isempty(out.ip_cmap)
@@ -1629,14 +1626,14 @@ elseif (out.resizeIP == 10) % So pra nao funcionar (da erro na penultima linha)
     %if (flip)    out.ip_img = flipdim(out.ip_img,1);    end
 end
 
-if (indexed_ip && ~indexed_bg)           % Implanting indexed image on a RGB bg image
-    I = ind2rgb8(out.ip_img,out.ip_cmap);    % Transform implanting image to RGB
-elseif (indexed_ip && indexed_bg)        % Shit, both ip & bg images are indexed. We have to RGB them
-    zz = ind2rgb8(zz,colormap);
-    I = ind2rgb8(out.ip_img,out.ip_cmap);
-elseif (~indexed_ip && ~indexed_bg)      % Nice, nothing to do
-elseif (~indexed_ip && indexed_bg)       % Implanting RGB image on a indexed bg image.
-    zz = ind2rgb8(zz,colormap);      % Transform bg image to RGB
+if (indexed_ip && ~indexed_bg)				% Implanting indexed image on a RGB bg image
+	I = ind2rgb8(out.ip_img,out.ip_cmap);	% Transform implanting image to RGB
+elseif (indexed_ip && indexed_bg)			% Shit, both ip & bg images are indexed. We have to RGB them
+	zz = ind2rgb8(zz,colormap);
+	I = ind2rgb8(out.ip_img,out.ip_cmap);
+elseif (~indexed_ip && ~indexed_bg)			% Nice, nothing to do
+elseif (~indexed_ip && indexed_bg)			% Implanting RGB image on a indexed bg image.
+	zz = ind2rgb8(zz,colormap);				% Transform bg image to RGB
 end
 
 zz(out.r_c(1):out.r_c(2), out.r_c(3):out.r_c(4), :) = uint8(ZI);
@@ -1672,38 +1669,37 @@ function rotate_text(obj,eventdata)
 	prompt = {'Enter angle of rotation'};     dlg_title = '';
 	num_lines= [1 30];
 	resp  = inputdlg(prompt,dlg_title,num_lines);
-	if isempty(resp);    return;     end
-	h = gco;
-	set(h,'Rotation',str2double(resp))
+	if isempty(resp),	return,		end
+	set(gco,'Rotation',str2double(resp))
 	refresh
 
 % -----------------------------------------------------------------------------------------
 function text_FontSize(obj,eventdata)
-h = gco;
-ft = uisetfont(h,'Change Font');
-if (~isstruct(ft) && ft == 0), return;   end
-set(h,'FontName',ft.FontName,'FontUnits',ft.FontUnits,'FontSize',ft.FontSize, ...
-    'FontWeight',ft.FontWeight,'FontAngle',ft.FontAngle)
-refresh
+	h = gco;
+	ft = uisetfont(h,'Change Font');
+	if (~isstruct(ft) && ft == 0),	return,		end
+	set(h,'FontName',ft.FontName,'FontUnits',ft.FontUnits,'FontSize',ft.FontSize, ...
+		'FontWeight',ft.FontWeight,'FontAngle',ft.FontAngle)
+	refresh
 
 % -----------------------------------------------------------------------------------------
 function export_text(obj,eventdata)
-h = gco;
-pos = get(h,'Position');    font = get(h,'FontName');      size = get(h,'FontSize');
-str = get(h,'String');      angle = get(h,'Rotation');
+	h = gco;
+	pos = get(h,'Position');    font = get(h,'FontName');      size = get(h,'FontSize');
+	str = get(h,'String');      angle = get(h,'Rotation');
 
-handles = guidata(gcbo);        % I hope I don't get into troubles because of this!
-cd(handles.work_dir)
-[FileName,PathName] = uiputfile({ ...
-    '*.txt;*.TXT', 'Text file (*.txt,*.TXT)'; '*.*', 'All Files (*.*)'}, 'Select Text File name');
-cd(handles.home_dir);       % allways come home to avoid troubles
-if isequal(FileName,0);     refresh;  return;     end
-pause(0.01)
-fname = [PathName FileName];
-fid = fopen(fname, 'w');
-if (fid < 0),   errordlg(['Can''t open file:  ' fname],'Error');    return;     end
-fprintf(fid,'%g\t%g\t%g\t%g\t%s ML  %s\n',pos(1), pos(2),size,angle,font,str);
-fclose(fid);
+	handles = guidata(gcbo);        % I hope I don't get into troubles because of this!
+	cd(handles.work_dir)
+	[FileName,PathName] = uiputfile({ ...
+		'*.txt;*.TXT', 'Text file (*.txt,*.TXT)'; '*.*', 'All Files (*.*)'}, 'Select Text File name');
+	cd(handles.home_dir);       % allways come home to avoid troubles
+	if isequal(FileName,0);     refresh;  return;     end
+	pause(0.01)
+	fname = [PathName FileName];
+	fid = fopen(fname, 'w');
+	if (fid < 0),   errordlg(['Can''t open file:  ' fname],'Error');    return;     end
+	fprintf(fid,'%g\t%g\t%g\t%g\t%s ML  %s\n',pos(1), pos(2),size,angle,font,str);
+	fclose(fid);
 
 % -----------------------------------------------------------------------------------------
 function set_symbol_uicontext(h,data)
@@ -1960,11 +1956,11 @@ set(h, 'XData',xp, 'YData',yp,'LineStyle','none');
 
 % -----------------------------------------------------------------------------------------
 function other_SymbSize(obj,eventdata,h)
-prompt = {'Enter new size (pt)'};     dlg_title = 'Symbol Size';
-num_lines= [1 30];
-resp  = inputdlg(prompt,dlg_title,num_lines);
-if isempty(resp);    return;     end
-set(h,'MarkerSize',str2double(resp));        refresh
+	prompt = {'Enter new size (pt)'};     dlg_title = 'Symbol Size';
+	num_lines= [1 30];
+	resp  = inputdlg(prompt,dlg_title,num_lines);
+	if isempty(resp);    return;     end
+	set(h,'MarkerSize',str2double(resp));        refresh
 
 % -----------------------------------------------------------------------------------------
 function res = check_IsRectangle(h)
@@ -1982,27 +1978,25 @@ end
 % -----------------------------------------------------------------------------------------
 function remove_symbolClass(obj,eventdata,h)
 % Delete all symbol that belong to the class of "h". We do this by fishing it's tag.
-
 % If individual symbols were previously removed (by "Remove symbol") h has invalid
 % handles, so make sure all handles are valid
-h=h(ishandle(h));
-
-tag = get(h,'Tag');
-if iscell(tag)          % When several symbol of class "tag" exists
-    h_all = findobj(gca,'Tag',tag{1});
-else                    % Only one symbol of class "tag" exists
-    h_all = findobj(gca,'Tag',tag);
-end
-delete(h_all)
+	h = h(ishandle(h));
+	tag = get(h,'Tag');
+	if iscell(tag)          % When several symbol of class "tag" exists
+		h_all = findobj(gca,'Tag',tag{1});
+	else                    % Only one symbol of class "tag" exists
+		h_all = findobj(gca,'Tag',tag);
+	end
+	delete(h_all)
 
 % -----------------------------------------------------------------------------------------
 function remove_singleContour(obj,eventdata,h)
-% Delete an individual contour and its eventual label(s)
-labHand = getappdata(h,'LabelHands');
-if (~isempty(labHand))
-    try     delete(labHand);   end
-end
-delete(h)
+	% Delete an individual contour and its eventual label(s)
+	labHand = getappdata(h,'LabelHands');
+	if (~isempty(labHand))
+		try     delete(labHand);   end
+	end
+	delete(h)
 
 % -----------------------------------------------------------------------------------------
 function save_line(obj,eventdata,h)
@@ -2040,20 +2034,19 @@ fclose(fid);
 % -----------------------------------------------------------------------------------------
 function export_symbol(obj,eventdata,h, opt)
 % If OPT is given than it must contain a Mx3 array with the x,y,z data to be saved
-
-if (nargin == 3)
-	h = h(ishandle(h));
-	tag = get(h,'Tag');
-	xx = get(h,'XData');    yy = get(h,'YData');
-	if (length(xx) > 1 && ~strcmp(tag,'Pointpolyline') && ~strcmp(tag,'Maregraph'))     % (don't remember why)
-        % Points and Maregraphs may be many but don't belong to a class
-        msgbox('Only individual symbols may be exported and this one seams to belong to a class of symbols. Exiting','Warning')
-        return
+	if (nargin == 3)
+		h = h(ishandle(h));
+		tag = get(h,'Tag');
+		xx = get(h,'XData');    yy = get(h,'YData');
+		if (length(xx) > 1 && ~strcmp(tag,'Pointpolyline') && ~strcmp(tag,'Maregraph'))     % (don't remember why)
+			% Points and Maregraphs may be many but don't belong to a class
+			msgbox('Only individual symbols may be exported and this one seams to belong to a class of symbols. Exiting','Warning')
+			return
+		end
+		doSave_formated(xx, yy)
+	else
+		errordlg('export_symbol called with a wrong number of arguments.','ERROR')
 	end
-    doSave_formated(xx, yy)
-else
-    errordlg('export_symbol called with a wrong number of arguments.','ERROR')
-end
 
 % -----------------------------------------------------------------------------------------
 function save_formated(obj,eventdata, h, opt)
