@@ -50,17 +50,17 @@ switch opt
     case 'DrawText'
         cmenuHand = uicontextmenu;
         set(hand, 'UIContextMenu', cmenuHand);
-        cb1 = 'set(gco, ''Editing'', ''on''); refresh';
         cb_color = uictx_color(hand);      % there are 9 cb_color outputs
-        uimenu(cmenuHand, 'Label', 'Change Font', 'Callback', @text_FontSize);
+        uimenu(cmenuHand, 'Label', 'Change Font', 'Call', @text_FontSize);
         item_fc = uimenu(cmenuHand, 'Label', 'Font Color');
         setLineColor(item_fc,cb_color)
-        uimenu(cmenuHand, 'Label', 'Edit   text', 'Callback', cb1, 'Separator','on');
-        uimenu(cmenuHand, 'Label', 'Copy   text', 'Callback', @copy_text_object);
-        uimenu(cmenuHand, 'Label', 'Delete text', 'Callback', 'delete(gco); refresh');
-        uimenu(cmenuHand, 'Label', 'Move   text', 'Callback', @move_text);
-        uimenu(cmenuHand, 'Label', 'Rotate text', 'Callback', @rotate_text);
-        uimenu(cmenuHand, 'Label', 'Export text', 'Callback', @export_text);
+        uimenu(cmenuHand, 'Label', 'Edit   text', 'Call', 'set(gco, ''Editing'', ''on''); refresh', 'Sep','on');
+        uimenu(cmenuHand, 'Label', 'Copy   text', 'Call', @copy_text_object);
+        uimenu(cmenuHand, 'Label', 'Delete text', 'Call', 'delete(gco); refresh');
+        uimenu(cmenuHand, 'Label', 'Move   text', 'Call', @move_text);
+        uimenu(cmenuHand, 'Label', 'Rotate text', 'Call', @rotate_text);
+        uimenu(cmenuHand, 'Label', 'Export text', 'Call', @export_text);
+		set(hand, 'ButtonDownFcn', 'move_obj(1)')
     case 'DrawSymbol'
         set_symbol_uicontext(hand)
     case 'ImportLine'                   % read AND plot the line
