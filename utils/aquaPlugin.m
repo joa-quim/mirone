@@ -18,9 +18,10 @@ function aquaPlugin(handles)
 			'polygAVG' ...			% 5 - Compute averages of whatever inside polygons (if any)
 			'flagsStats' ...		% 6 - Compute per/pixel anual or mounth counts of pixel values with a quality >= flag
 			'do_math' ...			% 7 - Perform some basic agebraic operations with the 3D planes
+			'conv2vtk' ...			% 8 - Convert a 3D netCDF file into a VTK format
 			};
 
-	qual = casos{4};		% <== Active selection
+	qual = casos{7};		% <== Active selection
 
 	switch qual
 		case 'zonal'				% case 1
@@ -58,6 +59,8 @@ function aquaPlugin(handles)
 		case 'do_math'				% case 7
 			opt = 'sum';			% Sum all layers (only operation for the time beeing)
 			do_math(handles, opt)
+		case 'conv2vtk'				% case 8
+			write_vtk(handles)
 		otherwise
 			do_return = false;		% Not finish (run the code below)
 	end
@@ -524,10 +527,8 @@ function calc_flagsStats(handles, months, flag, opt)
 
 	txt1 = 'netCDF grid format (*.nc,*.grd)';
 	txt2 = 'Select output netCDF grid';
-	[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put');
+	[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
 	if isequal(FileName,0),		return,		end
-	[pato, fname, EXT] = fileparts(FileName);
-	if (isempty(EXT)),		FileName = [fname '.nc'];	end
 	grd_out = [PathName FileName];
 
 	s = handles.nc_info;				% Retrieve the .nc info struct
@@ -623,4 +624,42 @@ function do_math(handles, opt)
 	tmp.Y = linspace(tmp.head(3),tmp.head(4),rows);
 	tmp.name = 'Computed grid';
 	mirone(soma, tmp)
-	
+
+% -----------------------------------------------------------------------------------------
+function fid = write_vtk(handles)
+% Write a 3D netCDF into a VTK format
+
+	txt1 = 'VTK format (*.vtk)';
+	txt2 = 'Select output VRT file';
+	[FileName,PathName] = put_or_get_file(handles,{'*.vtk',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.vtk');
+	if isequal(FileName,0),		return,		end
+	fname_out = [PathName FileName];
+
+	s = handles.nc_info;				% Retrieve the .nc info struct
+	rows = s.Dataset(handles.netcdf_z_id).Size(end-1);
+	cols = s.Dataset(handles.netcdf_z_id).Size(end);
+	nLayers = handles.number_of_timesteps;
+
+	fid = fopen(fname_out, 'wb','b');
+	fprintf(fid, '# vtk DataFile Version 2.0\n');
+	fprintf(fid, 'converted from A B\n');
+	fprintf(fid, 'BINARY\n');
+	fprintf(fid, 'DATASET RECTILINEAR_GRID\n');
+	fprintf(fid, 'DIMENSIONS %d %d %d\n', cols, rows, nLayers);
+	fprintf(fid, 'X_COORDINATES %d float\n', cols);
+	X = linspace(handles.head(1), handles.head(2), cols);
+	fwrite(fid, X, 'real*4');
+	fprintf(fid, 'Y_COORDINATES %d float\n', rows);
+	X = linspace(handles.head(3), handles.head(4), rows);
+	fwrite(fid, X, 'real*4');
+	fprintf(fid, 'Z_COORDINATES %d float\n', nLayers);
+	fwrite(fid, 1:nLayers, 'real*4');
+	fprintf(fid, 'POINT_DATA %d\n', cols * rows * nLayers);
+	fprintf(fid, 'SCALARS dono float 1\n');
+	fprintf(fid, 'LOOKUP_TABLE default\n');
+
+	for (m = 1:nLayers)
+		Z = nc_funs('varget', handles.fname, s.Dataset(handles.netcdf_z_id).Name, [m-1 0 0], [1 rows cols]);
+		Z = double(Z');
+		fwrite(fid, Z(:), 'real*4');
+	end
