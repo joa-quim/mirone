@@ -15,6 +15,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 17.0  24/08/2008 JL	Added Douglas-Peucker in geographical coords
  * Revision 16.0  02/04/2008 JL	+ cvAbs & cvAbsDiffS & cvSubRS
  * Revision 15.0  28/03/2008 JL	Finally finished the approxPoly (Douglas-Peucker) function
  * Revision 14.0  21/03/2008 JL	Added cvPow, cvLog, cvExp and hypot. Also replaced a couple of mxCalloc by mxMalloc
@@ -31,7 +32,6 @@
  * Revision  3.0  27/10/2006 JL	Updated cvHoughCircles call to 1.0
  * Revision  2.0  19/10/2006 JL	Edge 'laplace' needed exlicit kernel input
  * Revision  1.0  31/08/2006 Joaquim Luis
- *
  */
 
 #include <math.h>
@@ -41,6 +41,10 @@
 
 #define	TRUE	1
 #define	FALSE	0
+#ifndef M_PI
+#define M_PI          3.14159265358979323846
+#endif
+#define D2R (M_PI/180.0)
 
 struct CV_CTRL {
 	/* active is TRUE if the option has been activated */
@@ -102,6 +106,7 @@ void Set_pt_Ctrl_in (struct CV_CTRL *Ctrl, const mxArray *pi , mxArray *pit, int
 void Set_pt_Ctrl_out1 ( struct CV_CTRL *Ctrl, mxArray *pi );
 void Set_pt_Ctrl_out2 (struct CV_CTRL *Ctrl, mxArray *po, int interl);
 int  getNK(const mxArray *p, int which);
+int  Douglas_Peucker_geog (double x_source[], double y_source[], int n_source, double band, int index[]);
 
 void interleave(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir);
 void interleaveUI8(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir);
@@ -1440,10 +1445,10 @@ void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 /* --------------------------------------------------------------------------- */
 void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
-	int j, nx, ny, np;
-	int is_double = 1, is_single = 0, is_int = 0, *ptr_i;
+	int j, nx, ny, np, geog = 0;
+	int is_double = 1, is_single = 0, is_int = 0, *ptr_i, *index;
 	float *ptr_s;
-	double *ptr_d, par1 = 1;
+	double *ptr_d, *ptr_d2, *x, *y, tolerance = 1;
         CvSeq *seq = 0, *result;
 	CvPoint pt_in_2D32i, *pt_out_2D32i; 
 	CvPoint2D32f pt_in_2D32f, *pt_out_2D32f; 
@@ -1452,8 +1457,10 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	/* ---- Check for input and errors in user's call to function. ------- */
 	if (n_in == 1) { approxPolyUsage(); return; }
-	if (n_in == 3)
-		par1 = *mxGetPr(prhs[2]);
+	if (n_in >= 3)
+		tolerance = *mxGetPr(prhs[2]);
+	if (n_in == 4)
+		geog = 1;
 
 	if (mxIsDouble(prhs[1]))
 		ptr_d = mxGetPr(prhs[1]);
@@ -1479,7 +1486,7 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexErrMsgTxt("APPROXPOLY: when input array is of type Int32 it must be a Mx2 column vector.");
 	/* -------------------- End of parsing input ------------------------------------- */
 
-	if (is_double) {
+	if (is_double && !geog) {
 		if (nx = 2) {
 			seq = cvCreateSeq( CV_SEQ_KIND_CURVE + CV_32FC2, sizeof(CvContour), sizeof(CvPoint2D32f), storage );
 			for (j = 0; j < ny; j++) {
@@ -1496,7 +1503,7 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 			}
 		}
 	}
-	else if (is_single) {
+	else if (is_single && !geog) {
 		if (nx = 2) {
 			seq = cvCreateSeq( CV_SEQ_KIND_CURVE + CV_32FC2, sizeof(CvContour), sizeof(CvPoint2D32f), storage );
 			for (j = 0; j < ny; j++) {
@@ -1513,7 +1520,7 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 			}
 		}
 	}
-	else {
+	else if (is_int && !geog) {
 		seq = cvCreateSeq( CV_SEQ_KIND_CURVE + CV_32SC2, sizeof(CvContour), sizeof(CvPoint), storage );
 		for (j = 0; j < ny; j++) {
 			pt_in_2D32i.x = (int)ptr_i[j];		pt_in_2D32i.y = (int)ptr_i[j+ny];
@@ -1521,16 +1528,35 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		}
 	}
 
-	result = cvApproxPoly( seq, sizeof(CvContour), storage, CV_POLY_APPROX_DP, par1, 0 );
-	cvReleaseMemStorage( &storage );
+	if (!geog) {
+		result = cvApproxPoly( seq, sizeof(CvContour), storage, CV_POLY_APPROX_DP, tolerance, 0 );
+		cvReleaseMemStorage( &storage );
+		np = result->total; 		/* total number of surviving points */
+	}
+	else {
+		index = (int *)mxCalloc(ny, sizeof(int));
+		if (!is_double) {
+			x = (double *)mxCalloc(ny, sizeof(double));
+			y = (double *)mxCalloc(ny, sizeof(double));
+			for (j = 0; j < ny; j++) {
+				x[j] = (double)ptr_d[j];	y[j] = (double)ptr_d[j+ny];
+			}
+		}
+		else {
+			x = ptr_d;	y = ptr_d + ny;
+		}
+		np = Douglas_Peucker_geog (x, y, ny, tolerance, index);
+	}
 
 	/* ------------------- GET OUTPUT DATA --------------------------- */ 
-	np = result->total; 		/* total number of surviving points */
+	if (!geog)
+		plhs[0] = mxCreateNumericMatrix(np, nx, mxGetClassID(prhs[1]), mxREAL);
+	else 		/* The geographical coords case always returns the result in doubles */
+		plhs[0] = mxCreateDoubleMatrix (np, nx, mxREAL);
 
-	plhs[0] = mxCreateNumericMatrix(np, nx, mxGetClassID(prhs[1]), mxREAL);
-	if (is_double) {
+	if (is_double && !geog) {
 		ptr_d = (double *)mxGetData(plhs[0]);
-		if (nx = 2) {
+		if (nx == 2) {
 			for (j = 0; j < np; j++) {
 				pt_out_2D32f = (CvPoint2D32f*)cvGetSeqElem( result, j );
 				ptr_d[j] = pt_out_2D32f->x;	ptr_d[j+np] = pt_out_2D32f->y;
@@ -1544,9 +1570,9 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 			}
 		}
 	}
-	else if (is_single) {
+	else if (is_single && !geog) {
 		ptr_s = (float *)mxGetData(plhs[0]);
-		if (nx = 2) {
+		if (nx == 2) {
 			for (j = 0; j < np; j++) {
 				pt_out_2D32f = (CvPoint2D32f*)cvGetSeqElem( result, j );
 				ptr_s[j] = pt_out_2D32f->x;	ptr_s[j+np] = pt_out_2D32f->y;
@@ -1560,11 +1586,25 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 			}
 		}
 	}
-	else {
+	else if (is_int && !geog) {
 		ptr_i = (int *)mxGetData(plhs[0]);
 		for (j = 0; j < np; j++) {
 			pt_out_2D32i = (CvPoint*)cvGetSeqElem( result, j );
 			ptr_i[j] = pt_out_2D32i->x;	ptr_i[j+np] = pt_out_2D32i->y;
+		}
+	}
+	else {		/* The geographical coords case always returns the result in doubles */
+		ptr_d2 = (double *)mxGetData(plhs[0]);
+		for (j = 0; j < np; j++) {
+			ptr_d2[j] = x[index[j]];		ptr_d2[j+np] = y[index[j]];
+		}
+		if (nx == 3) {
+			for (j = 0; j < np; j++)
+				ptr_d2[j+2*np] = ptr_d[j+np + index[j]];
+		}
+		mxFree((void *)index);
+		if (!is_double) {
+			mxFree((void *)x);	mxFree((void *)y);
 		}
 	}
 }
@@ -2730,6 +2770,130 @@ void JMatchTemplate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[])
 }
 
 /* -------------------------------------------------------------------------------------------- */
+#define sqr(x) ((x)*(x))
+
+/* Stack-based Douglas Peucker line simplification routine */
+/* returned value is the number of output points */
+
+int Douglas_Peucker_geog (double x_source[], double y_source[], int n_source, double band, int index[]) {
+/* x/y_source	Input coordinates, n_source of them */
+/* band;		tolerance in km */
+/* index[]	output co-ordinates indices */
+
+	int	n_stack, n_dest, start, end, i, sig;
+	int	*sig_start, *sig_end;	/* indices of start&end of working section */
+
+	double dev_sqr, max_dev_sqr, band_sqr;
+	double  x12, y12, d12, x13, y13, d13, x23, y23, d23;
+
+        /* check for simple cases */
+
+        if ( n_source < 3 ) {     /* one or two points */
+                for ( i = 0; i < n_source; i++) index[i] = i;
+                return (n_source);
+        }
+
+        /* more complex case. initialise stack */
+
+ 	sig_start = (int *) mxCalloc (n_source, sizeof (int));
+ 	sig_end   = (int *) mxCalloc (n_source, sizeof (int));
+	
+ 	band *= 360.0 / (2.0 * M_PI * 6371.007181);	/* Now in degrees */
+	band_sqr = sqr(band);
+
+	n_dest = 0;
+
+        sig_start[0] = 0;
+        sig_end[0] = n_source-1;
+
+        n_stack = 1;
+
+        /* while the stack is not empty  ... */
+
+	while ( n_stack > 0 ) {
+                /* ... pop the top-most entries off the stacks */
+
+                start = sig_start[n_stack-1];
+                end = sig_end[n_stack-1];
+
+                n_stack--;
+
+                if ( end - start > 1 ) { /* any intermediate points ? */
+                        /* ... yes, so find most deviant intermediate point to
+                               either side of line joining start & end points */
+
+	                x12 = x_source[end] - x_source[start];
+                	if (fabs (x12) > 180.0) x12 = 360.0 - fabs (x12);
+                	y12 = y_source[end] - y_source[start];
+			x12 *= cos (D2R * 0.5 * (y_source[end] + y_source[start]));
+			d12 = sqr(x12) + sqr(y12);
+
+			for ( i = start + 1, sig = start, max_dev_sqr = -1.0; i < end; i++ ) {
+				x13 = x_source[i] - x_source[start];
+				if (fabs (x13) > 180.0) x13 = 360.0 - fabs (x13);
+				y13 = y_source[i] - y_source[start];
+
+				x23 = x_source[i] - x_source[end];
+				if (fabs (x23) > 180.0) x23 = 360.0 - fabs (x23);
+				y23 = y_source[i] - y_source[end];
+        
+				x13 *= cos (D2R * 0.5 * (y_source[i] + y_source[end]));
+				x23 *= cos (D2R * 0.5 * (y_source[i] + y_source[end]));
+                                
+				d13 = sqr(x13) + sqr(y13);
+				d23 = sqr(x23) + sqr(y23);
+
+				if ( d13 >= ( d12 + d23 ) )
+					dev_sqr = d23;
+				else if ( d23 >= ( d12 + d13 ) )
+					dev_sqr = d13;
+				else
+					dev_sqr =  sqr( x13 * y12 - y13 * x12 ) / d12;
+
+				if ( dev_sqr > max_dev_sqr  ) {
+					sig = i;
+					max_dev_sqr = dev_sqr;
+				}
+			}
+
+			if ( max_dev_sqr < band_sqr ) {  /* is there a sig.  intermediate point ? */
+				/* ... no, so transfer current start point */
+				index[n_dest] = start;
+				n_dest++;
+			}
+			else {
+				/* ... yes, so push two sub-sections on stack for further processing */
+
+				n_stack++;
+
+				sig_start[n_stack-1] = sig;
+				sig_end[n_stack-1] = end;
+
+				n_stack++;
+
+				sig_start[n_stack-1] = start;
+				sig_end[n_stack-1] = sig;
+			}
+		}
+		else {
+			/* ... no intermediate points, so transfer current start point */
+			index[n_dest] = start;
+			n_dest++;
+		}
+	}
+
+
+	/* transfer last point */
+
+	index[n_dest] = n_source-1;
+	n_dest++;
+
+	mxFree ((void *)sig_start);
+	mxFree ((void *)sig_end);
+
+        return(n_dest);
+}
+/* -------------------------------------------------------------------------------------------- */
 void localSetData(struct CV_CTRL *Ctrl, IplImage* img, int dir, int step) {
 	if (Ctrl->UInt8.active == TRUE)
 		if (dir == 1)
@@ -3383,15 +3547,15 @@ void findContoursUsage() {
 
 /* -------------------------------------------------------------------------------------------- */
 void approxPolyUsage() {
-	mexPrintf("Usage: B = cvlib_mex('dp',PTS, TOL);\n");
+	mexPrintf("Usage: B = cvlib_mex('dp',PTS, TOL, ['GEOG']);\n");
 	mexPrintf("       Approximates polygonal curve with desired precision using the Douglas-Peucker algorithm\n");
 	mexPrintf("       PTS is a Mx2 or Mx3 column vector of type single or double.\n");
 	mexPrintf("       PTS can also be of type Int32 but in that case it must be Mx2 column vector.\n");
+	mexPrintf("       GEOG is an optional argument indicating that data is in geographic coordinates.\n");
 	mexPrintf("       TOL is the desired approximation accuracy (see www.softsurfer.com/Archive/algorithm_0205/algorithm_0205.htm).\n\n");
-	mexPrintf("       NOTE: Using doubles is a waist since the computation is actualy donne in single precision.\n");
+	mexPrintf("       When data is in geogs, TOL is the tolerance in km.\n");
 
-	mexPrintf("       Class support: int, single or uint8.\n");
-	mexPrintf("       Memory overhead: none.\n");
+	mexPrintf("       Class support: int, single or double.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
