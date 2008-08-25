@@ -12,6 +12,7 @@ function varargout = getline_j(varargin)
 %   [X,Y] = GETLINE_J(...,'closed') animates and returns a closed polygon.
 %   [X,Y] = GETLINE_J(...,'freehand') draw a line following the mouse movements.
 %   [X,Y] = GETLINE_J(...,'dynamic') calls grdtrack_m to do dynamic profiling.
+%   [X,Y] = GETLINE_J(...,'spline') draw an spline interpolated line.
 %
 
 %   Grandfathered syntaxes:
@@ -22,17 +23,20 @@ function varargout = getline_j(varargin)
 %
 %   Joaquim Luis
 
-ud.GETLINE_ISCLOSED = 0;
-ud.GETLINE_FREEHAND = 0;
-ud.GETLINE_DYNAMIC  = 0;
+ud.GETLINE_ISCLOSED = false;
+ud.GETLINE_FREEHAND = false;
+ud.GETLINE_DYNAMIC  = false;
+ud.GETLINE_SPLINE   = false;
 if ((nargin >= 1) && (ischar(varargin{end})))
     str = varargin{end};
-    if (str(1) == 'c')                  % getline_j(..., 'closed')
-        ud.GETLINE_ISCLOSED = 1;        varargin = varargin(1:end-1);
-    elseif (str(1) == 'f')              % getline_j(..., 'freehand')
-        ud.GETLINE_FREEHAND = 1;        varargin = varargin(1:end-1);
+    if (str(1) == 'c')					% getline_j(..., 'closed')
+        ud.GETLINE_ISCLOSED = true;		varargin = varargin(1:end-1);
+    elseif (str(1) == 'f')				% getline_j(..., 'freehand')
+        ud.GETLINE_FREEHAND = true;		varargin = varargin(1:end-1);
     elseif (str(1) == 'd')				% getline_j(..., 'dynamic')
-        ud.GETLINE_DYNAMIC = 1;			varargin = varargin(1:end-1);
+        ud.GETLINE_DYNAMIC = true;		varargin = varargin(1:end-1);
+    elseif (str(1) == 's')				% getline_j(..., 'spline')
+        ud.GETLINE_SPLINE = true;		varargin = varargin(1:end-1);
     end
 end
 
@@ -88,7 +92,7 @@ ud.GETLINE_H2 = line('Parent', ud.GETLINE_AX, ...
                   'Visible', 'off', 'Clipping', 'off', ...
                   'Color', 'w', 'LineStyle', ':');
 
-setappdata(ud.GETLINE_FIG, 'FromGetLine_j', ud);
+setappdata(ud.GETLINE_FIG, 'fromGL', ud);
 
 % We're ready; wait for the user to do the drag. Wrap the call to waitfor
 % in try-catch so we'll have a chance to clean up after ourselves.
@@ -147,11 +151,11 @@ case 'unknown'
     varargout{1} = [];        varargout{2} = [];
 end
 
-try  rmappdata(ud.GETLINE_FIG,'FromGetLine_j');     end
+try  rmappdata(ud.GETLINE_FIG,'fromGL');     end
 
 %-------------------------------------------------------------------------------
 function KeyPress(obj,eventdata,hfig)
-ud = getappdata(hfig, 'FromGetLine_j');
+ud = getappdata(hfig, 'fromGL');
 
 if (ud.GETLINE_FREEHAND)        % NextButtonDown is the one who update those
     ud.GETLINE_X = get(ud.GETLINE_H1,'XData');  % but for the freehand case
@@ -176,7 +180,7 @@ case {char(8), char(127)}  % delete and backspace keys
         end
         set([ud.GETLINE_H1 ud.GETLINE_H2], 'XData', ud.GETLINE_X, 'YData', ud.GETLINE_Y);
     end
-case char(99)              % "c" char key (close line)
+case 'c'              % "c" char key (close line)
     if (length(ud.GETLINE_X) > 2  && ~ud.GETLINE_ISCLOSED)  % don't close a line with less than 2 vertex
         ud.GETLINE_X = [ud.GETLINE_X ud.GETLINE_X(1)];
         ud.GETLINE_Y = [ud.GETLINE_Y ud.GETLINE_Y(1)];
@@ -187,11 +191,11 @@ case {char(13), char(3)}   % enter and return keys
     % return control to line after waitfor
     set(ud.GETLINE_H1, 'UserData', 'Completed');     
 end
-setappdata(hfig, 'FromGetLine_j', ud);
+setappdata(hfig, 'fromGL', ud);
 
 %----------------------------------------------------------------------------------
 function FirstButtonDown(obj,eventdata,hfig)
-ud = getappdata(hfig, 'FromGetLine_j');
+ud = getappdata(hfig, 'fromGL');
 pt = get(ud.GETLINE_AX, 'CurrentPoint');
 x = pt(1,1);    y = pt(1,2);
 
@@ -216,11 +220,11 @@ else    % Let the motion functions take over.
     set(hfig, 'WindowButtonDownFcn', '', 'WindowButtonMotionFcn',{@ButtonMotion,hfig});
     set(hfig, 'WindowButtonDownFcn', {@NextButtonDown,hfig})
 end
-setappdata(hfig, 'FromGetLine_j', ud);
+setappdata(hfig, 'fromGL', ud);
 
 %---------------------------------------------------------------------------------------
 function NextButtonDown(obj,eventdata,hfig)
-ud = getappdata(hfig, 'FromGetLine_j');
+ud = getappdata(hfig, 'fromGL');
 
 selectionType = get(ud.GETLINE_FIG, 'SelectionType');
 if (~strcmp(selectionType,'open') && strcmp(selectionType,'normal') && ~ud.GETLINE_FREEHAND)
@@ -239,12 +243,12 @@ if (~strcmp(selectionType,'open') && strcmp(selectionType,'normal') && ~ud.GETLI
         ud.GETLINE_Y = [ud.GETLINE_Y(1:end-1) y ud.GETLINE_Y(end)];
     else
         ud.GETLINE_X = [ud.GETLINE_X x];        ud.GETLINE_Y = [ud.GETLINE_Y y];
+		% At this point, if (ud.GETLINE_SPLINE) we'll see the knots polyline until the next mouse mov
     end
     set([ud.GETLINE_H1 ud.GETLINE_H2], 'XData', ud.GETLINE_X, 'YData', ud.GETLINE_Y);
 end
 
-if (strcmp(get(hfig,'SelectionType'),'alt') && ~ud.GETLINE_FREEHAND)
-    % Right-click, delete previous point
+if (strcmp(get(hfig,'SelectionType'),'alt') && ~ud.GETLINE_FREEHAND)	% Right-click, delete previous point
     pt = get(ud.GETLINE_AX, 'CurrentPoint');
     x = pt(1,1);    y = pt(1,2);
     % check if GETLINE_X,GETLINE_Y is inside of axis
@@ -252,7 +256,7 @@ if (strcmp(get(hfig,'SelectionType'),'alt') && ~ud.GETLINE_FREEHAND)
     if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2))    % outside axis limits, ignore this ButtonDown
         return
     end    
-    switch length(ud.GETLINE_X)
+    switch numel(ud.GETLINE_X)
         case 0        % nothing to do
         case 1
             ud.GETLINE_X = [];        ud.GETLINE_Y = [];
@@ -270,13 +274,17 @@ if (strcmp(get(hfig,'SelectionType'),'alt') && ~ud.GETLINE_FREEHAND)
 end
 
 if (strcmp(selectionType, 'extend') || strcmp(selectionType, 'open'))    % We're done (midle button or double-click)
+	if (ud.GETLINE_SPLINE)		% Get the final splined curve
+		[ud.GETLINE_X, ud.GETLINE_Y] = spline_interp(ud.GETLINE_X, ud.GETLINE_Y);
+	    set([ud.GETLINE_H1 ud.GETLINE_H2], 'XData', ud.GETLINE_X, 'YData', ud.GETLINE_Y);
+	end
     set(ud.GETLINE_H1, 'UserData', 'Completed');
 end
-setappdata(ud.GETLINE_FIG, 'FromGetLine_j', ud);
+setappdata(ud.GETLINE_FIG, 'fromGL', ud);
 
 %-----------------------------------------------------------------------------------
 function ButtonMotion(obj,eventdata,hFig)
-ud = getappdata(hFig, 'FromGetLine_j');
+ud = getappdata(hFig, 'fromGL');
 
 pt = get(ud.GETLINE_AX, 'CurrentPoint');
 newx = pt(1,1);    newy = pt(1,2);
@@ -288,6 +296,9 @@ else
 end
 
 if (~ud.GETLINE_FREEHAND)
+	if (ud.GETLINE_SPLINE)
+		[x,y] = spline_interp(x,y);
+	end
 	set([ud.GETLINE_H1 ud.GETLINE_H2], 'XData', x, 'YData', y);
 	if (ud.GETLINE_DYNAMIC)
 		% First logical indicates "not a point interpolation" and second that we are in dynamic mode
