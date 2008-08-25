@@ -9,6 +9,7 @@ function varargout = getline_j(varargin)
 %
 %   [X,Y] = GETLINE_J(AX) lets you select a polyline in the axes specified by the handle AX.
 %   [X,Y] = GETLINE_J is the same as [X,Y] = GETLINE_J(GCF).
+%   [X,Y] = GETLINE_J(HLINE) extends (continue adding points) the editing of the line whose handle is HLINE.
 %   [X,Y] = GETLINE_J(...,'closed') animates and returns a closed polygon.
 %   [X,Y] = GETLINE_J(...,'freehand') draw a line following the mouse movements.
 %   [X,Y] = GETLINE_J(...,'dynamic') calls grdtrack_m to do dynamic profiling.
@@ -27,6 +28,7 @@ ud.GETLINE_ISCLOSED = false;
 ud.GETLINE_FREEHAND = false;
 ud.GETLINE_DYNAMIC  = false;
 ud.GETLINE_SPLINE   = false;
+extend_line = false;
 if ((nargin >= 1) && (ischar(varargin{end})))
     str = varargin{end};
     if (str(1) == 'c')					% getline_j(..., 'closed')
@@ -45,6 +47,9 @@ ud.GETLINE_X = [];     ud.GETLINE_Y = [];
 if (length(varargin) < 1)
     ud.GETLINE_AX = gca;
     ud.GETLINE_FIG = get(ud.GETLINE_AX, 'Parent');
+	while ( ~strcmp('figure', get(ud.GETLINE_FIG,'type')) )	% In case the axes is a uipanel descendent
+		ud.GETLINE_FIG = get(ud.GETLINE_FIG,'parent');
+	end
 else
     if (~ishandle(varargin{1}))
         varargout{1} = [];      varargout{2} = [];
@@ -60,9 +65,22 @@ else
         case 'axes'
             ud.GETLINE_AX = varargin{1};
             ud.GETLINE_FIG = get(ud.GETLINE_AX, 'Parent');
+			while ( ~strcmp('figure', get(ud.GETLINE_FIG,'type')) )	% In case the axes is a uipanel descendent
+				ud.GETLINE_FIG = get(ud.GETLINE_FIG,'parent');
+			end
+        case 'line'
+            ud.GETLINE_AX = get(varargin{1}, 'Parent');
+            ud.GETLINE_FIG = get(ud.GETLINE_AX, 'Parent');
+			while ( ~strcmp('figure', get(ud.GETLINE_FIG,'type')) )	% In case the axes is a uipanel descendent
+				ud.GETLINE_FIG = get(ud.GETLINE_FIG,'parent');
+			end
+			ud.GETLINE_X = get(varargin{1}, 'XData');
+			ud.GETLINE_Y = get(varargin{1}, 'YData');
+			set(varargin{1}, 'XData',[], 'YData',[])		% Don't need those duplicated
+			extend_line = true;
         otherwise
             varargout{1} = [];      varargout{2} = [];
-            error('First argument should be a figure or axes handle');
+            error('First argument should be a figure, axes or line handle');
     end
 end
     
@@ -93,6 +111,14 @@ ud.GETLINE_H2 = line('Parent', ud.GETLINE_AX, ...
                   'Color', 'w', 'LineStyle', ':');
 
 setappdata(ud.GETLINE_FIG, 'fromGL', ud);
+
+if (extend_line)
+	pt = get(ud.GETLINE_AX, 'CurrentPoint');		% Add a new point to show right away that we're in extending mode
+	newx = pt(1,1);    newy = pt(1,2);
+    x = [ud.GETLINE_X newx];    y = [ud.GETLINE_Y newy];
+	set([ud.GETLINE_H1 ud.GETLINE_H2], 'XData', x, 'YData', y, 'Vis', 'on')
+	set(ud.GETLINE_FIG, 'WindowButtonMotionFcn',{@ButtonMotion,ud.GETLINE_FIG})
+end
 
 % We're ready; wait for the user to do the drag. Wrap the call to waitfor
 % in try-catch so we'll have a chance to clean up after ourselves.
@@ -202,7 +228,7 @@ x = pt(1,1);    y = pt(1,2);
 % check if GETLINE_X,GETLINE_Y is inside of axis
 x_lim = get(ud.GETLINE_AX,'xlim');      y_lim = get(ud.GETLINE_AX,'ylim');
 if (x>=x_lim(1)) && (x<=x_lim(2)) && (y>=y_lim(1)) && (y<=y_lim(2))    % inside axis limits
-    ud.GETLINE_X = x;    ud.GETLINE_Y = y;
+    ud.GETLINE_X = [ud.GETLINE_X x];    ud.GETLINE_Y = [ud.GETLINE_Y y];
 else    % outside axis limits, ignore this FirstButtonDown
     return
 end
