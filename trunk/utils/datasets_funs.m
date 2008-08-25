@@ -30,7 +30,7 @@ end
 
 % --------------------------------------------------------------------
 function DatasetsHotspots(handles)
-	% Read hotspot.dat which has 4 columns (lon lat name age)
+% Read hotspot.dat which has 4 columns (lon lat name age)
 	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	fid = fopen([handles.path_data 'hotspots.dat'],'r');
 	tline = fgetl(fid);             % Jump the header line
@@ -39,17 +39,17 @@ function DatasetsHotspots(handles)
 	clear todos;
     [tmp, msg] = geog2projected_pts(handles,[hot.x hot.y]);     % If map in geogs, tmp is just a copy of input
     if (~strncmp(msg,'0',1))        % Coords were projected
-        hot.x = tmp(:,1);        hot.y = tmp(:,2);
+		hot.x = tmp(:,1);        hot.y = tmp(:,2);
     end
-	
+
 	% Get rid of Fogspots that are outside the map limits
 	[x,y,indx,indy] = aux_funs('in_map_region',handles,hot.x,hot.y,0,[]);
 	hot.name(indx) = [];   hot.age(indx) = [];
 	hot.name(indy) = [];   hot.age(indy) = [];
 	n_hot = length(x);    h_hotspot = zeros(1,n_hot);
 	for (i = 1:n_hot)
-        h_hotspot(i) = line(x(i),y(i),'Marker','p','MarkerFaceColor','r',...
-            'MarkerEdgeColor','k','MarkerSize',10,'Tag','hotspot','Userdata',i);
+		h_hotspot(i) = line(x(i),y(i),'Marker','p','MarkerFaceColor','r',...
+			'MarkerEdgeColor','k','MarkerSize',10,'Tag','hotspot','Userdata',i);
 	end
 	draw_funs(h_hotspot,'hotspot',hot)
 
@@ -63,7 +63,7 @@ function DatasetsVolcanoes(handles)
 	fclose(fid);    clear region todos
     [tmp, msg] = geog2projected_pts(handles,[volc.x volc.y]);     % If map in geogs, tmp is just a copy of input
     if (~strncmp(msg,'0',1))        % Coords were projected
-        volc.x = tmp(:,1);        volc.y = tmp(:,2);
+		volc.x = tmp(:,1);        volc.y = tmp(:,2);
     end
 	
 	% Get rid of Volcanoes that are outside the map limits
@@ -72,8 +72,8 @@ function DatasetsVolcanoes(handles)
 	volc.name(indy) = [];       volc.desc(indy) = [];       volc.dating(indy) = [];
 	n_volc = length(x);    h_volc = zeros(1,n_volc);
 	for (i = 1:n_volc)
-        h_volc(i) = line(x(i),y(i),'Marker','^','MarkerFaceColor','y',...
-            'MarkerEdgeColor','k','MarkerSize',8,'Tag','volcano','Userdata',i);
+		h_volc(i) = line(x(i),y(i),'Marker','^','MarkerFaceColor','y',...
+			'MarkerEdgeColor','k','MarkerSize',8,'Tag','volcano','Userdata',i);
 	end
 	draw_funs(h_volc,'volcano',volc)
 
@@ -81,20 +81,24 @@ function DatasetsVolcanoes(handles)
 function DatasetsTides(handles)
 	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	load([handles.path_data 't_xtide.mat']);
-    [tmp, msg] = geog2projected_pts(handles,[xharm.longitude xharm.latitude]);     % If map in geogs, tmp is just a copy of input
-    if (~strncmp(msg,'0',1))        % Coords were projected
-        xharm.longitude = tmp(:,1);        xharm.latitude = tmp(:,2);
-    end
+	[tmp, msg] = geog2projected_pts(handles,[xharm.longitude xharm.latitude]);     % If map in geogs, tmp is just a copy of input
+	if (~strncmp(msg,'0',1))        % Coords were projected
+		xharm.longitude = tmp(:,1);        xharm.latitude = tmp(:,2);
+	end
 	% Get rid of Tide stations that are outside the map limits
 	[x,y] = aux_funs('in_map_region',handles,xharm.longitude,xharm.latitude,0,[]);
 	h_tides = line(x,y,'Marker','^','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',6,...
-        'LineStyle','none','Tag','TideStation');
+		'LineStyle','none','Tag','TideStation');
 	draw_funs(h_tides,'TideStation',[])
 
 % --------------------------------------------------------------------
 function DatasetsIsochrons(handles, opt)
 % Read multisegment isochrons.dat which has 3 columns (lat lon id)
-if (nargin == 2)            % Read a ascii multi-segment with info file
+% OR read a generic ascii file that can be, or not, a multiseg file
+% Multi-segs files accept -G, -W & -S GMT type options.
+% If first line in file is of the form '>U_N_I_K', plot a single line NaN separated
+
+if (nargin == 2 && isempty(opt))            % Read a ascii multi-segment with info file
 	str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 	cd(handles.last_dir)
 	[FileName,PathName] = uigetfile(str1,'Select File');
@@ -103,9 +107,11 @@ if (nargin == 2)            % Read a ascii multi-segment with info file
 	if (FileName == 0),     return;     end
 
 	guidata(handles.figure1,handles)
-	tag = 'Unnamed';        fname = [PathName FileName];
+	tag = 'Unnamed';		fname = [PathName FileName];
+elseif (nargin == 2)		% Read a ascii multi-segment file of which we already know the name (drag N'drop)
+	tag = 'DragNdroped';	fname = opt;
 else
-	tag = 'isochron';       fname = [handles.path_data 'isochrons.dat'];
+	tag = 'isochron';		fname = [handles.path_data 'isochrons.dat'];
 end
 
 set(handles.figure1,'pointer','watch')
@@ -133,6 +139,9 @@ if (handles.no_file)        % Start empty but below we'll find the true data reg
             j = strfind(fname,filesep);
             if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well 
             [numeric_data,multi_segs_str] = text_read(fname,NaN,NaN,'>');
+			if (~isa(numeric_data,'cell'))			% File was not multi-segment.
+				numeric_data = {numeric_data};
+			end
             for i=1:length(numeric_data)
 				tmpx = numeric_data{i}(:,1);	tmpy = numeric_data{i}(:,2);
 				XMin = min(XMin,min(tmpx));		XMax = max(XMax,max(tmpx));
@@ -151,7 +160,7 @@ else							% Reading over an established region
 	end
 end
 
-for (k=1:numel(names))
+for (k = 1:numel(names))
     fname = names{k};
     j = strfind(fname,filesep);
     if (isempty(j)),    fname = [PathName fname];   end			% It was just the filename. Need to add path as well 
@@ -163,8 +172,8 @@ for (k=1:numel(names))
 	n_isoc = 0;     n_segments = length(numeric_data);
 	h_isoc = ones(n_segments,1)*NaN;							% This is the maximum we can have
 	n_clear = false(n_segments,1);
-	
-	% Test if conversion into a single, NaN separeted, line its wanted 
+
+	% Test if conversion into a single, NaN separated, line its wanted 
 	if (strncmp(multi_segs_str{1}, '>U_N_I_K', 8))
 		for (i = 1:n_segments-1)
 			numeric_data{i} = [numeric_data{i}; nan nan];
@@ -234,34 +243,34 @@ end
 
 % --------------------------------------------------------------------
 function [cor, str2] = parseG(str)
-    % Parse the STR string in search of color. If not found or error COR = [].
-    % STR2 is the STR string less the -Gr/g/b part
-    cor = [];   str2 = str;
-    ind = strfind(str,'-G');
-    if (isempty(ind)),      return;     end     % No -G option
-    try                             % There are so many ways to have it wrong that I won't bother testing
-        [strG, rem] = strtok(str(ind:end));
-        str2 = [str(1:ind(1)-1) rem];   % Remove the -G<str> from STR
-        
-        strG(1:2) = [];                 % Remove the '-G' part from strG
-        % OK, now 'strG' must contain the color in the r/g/b form
-        ind = strfind(strG,'/');
-        if (isempty(ind))           % E.G. -G100 form
-            cor = eval(['[' strG ']']);
-            cor = [cor cor cor] / 255;
-        else
-            % This the relevant part in num2str. I think it is enough here
-            cor = [eval(['[' strG(1:ind(1)-1) ']']) eval(['[' strG(ind(1)+1:ind(2)-1) ']']) eval(['[' strG(ind(2)+1:end) ']'])];
-            cor = cor / 255;
-        end
-        if (any(isnan(cor))),   cor = [];   end
-    end
+% Parse the STR string in search of color. If not found or error COR = [].
+% STR2 is the STR string less the -Gr/g/b part
+	cor = [];   str2 = str;
+	ind = strfind(str,'-G');
+	if (isempty(ind)),      return;     end     % No -G option
+	try									% There are so many ways to have it wrong that I won't bother testing
+		[strG, rem] = strtok(str(ind:end));
+		str2 = [str(1:ind(1)-1) rem];   % Remove the -G<str> from STR
+
+		strG(1:2) = [];					% Remove the '-G' part from strG
+		% OK, now 'strG' must contain the color in the r/g/b form
+		ind = strfind(strG,'/');
+		if (isempty(ind))           % E.G. -G100 form
+			cor = eval(['[' strG ']']);
+			cor = [cor cor cor] / 255;
+		else
+			% This the relevant part in num2str. I think it is enough here
+			cor = [eval(['[' strG(1:ind(1)-1) ']']) eval(['[' strG(ind(1)+1:ind(2)-1) ']']) eval(['[' strG(ind(2)+1:end) ']'])];
+			cor = cor / 255;
+		end
+		if (any(isnan(cor))),   cor = [];   end
+	end
 
 % --------------------------------------------------------------------
 function [thick, cor, str2] = parseW(str)
-    % Parse the STR string in search for a -Wpen. Valid options are -W1,38/130/255 -W3 or -W100/255/255
-    % If not found or error THICK = [] &/or COR = [].
-    % STR2 is the STR string less the -W[thick,][r/g/b] part
+% Parse the STR string in search for a -Wpen. Valid options are -W1,38/130/255 -W3 or -W100/255/255
+% If not found or error THICK = [] &/or COR = [].
+% STR2 is the STR string less the -W[thick,][r/g/b] part
     thick = [];     cor = [];   str2 = str;
     ind = strfind(str,'-W');
     if (isempty(ind)),      return;     end     % No -W option
@@ -300,8 +309,8 @@ function [thick, cor, str2] = parseW(str)
     
 % --------------------------------------------------------------------
 function DatasetsPlateBound_PB_All(handles)
-	% Read and plot the modified (by me) Peter Bird's Plate Boundaries
-	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
+% Read and plot the modified (by me) Peter Bird's Plate Boundaries (nice shit they are)
+	if (aux_funs('msg_dlg',5,handles)),		return,		end    % Test no_file || unknown proj
 	set(handles.figure1,'pointer','watch')
 	load([handles.path_data 'PB_boundaries.mat'])
 
@@ -315,8 +324,8 @@ function DatasetsPlateBound_PB_All(handles)
 	n = length(OTF);    k = false(n,1);
 	for i = 1:n
         if (handles.is_projected)      
-            tmp = geog2projected_pts(handles,[OTF(i).x_otf; OTF(i).y_otf]', lims);
-            OTF(i).x_otf = tmp(:,1)';        OTF(i).y_otf = tmp(:,2)';            
+			tmp = geog2projected_pts(handles,[OTF(i).x_otf; OTF(i).y_otf]', lims);
+			OTF(i).x_otf = tmp(:,1)';        OTF(i).y_otf = tmp(:,2)';            
         end
         ind = (OTF(i).x_otf < xx(1)-tol | OTF(i).x_otf > xx(2)+tol);
         OTF(i).x_otf(ind) = [];     OTF(i).y_otf(ind) = [];
@@ -934,20 +943,20 @@ function GTilesMap(handles)
 
 % ------------------------------------------------------------------------------------
 function setUIs(handles,h)
-    cmenuHand = uicontextmenu;
-    for k=1:numel(h)
-        set(h(k), 'UIContextMenu', cmenuHand);
-        uimenu(cmenuHand, 'Label', 'Delete this', 'Callback', {@del_line,h});
-        uimenu(cmenuHand, 'Label', 'Delete all', 'Callback', {@del_all,handles,h});
-        ui_edit_polygon(h(k))
-    end
+	cmenuHand = uicontextmenu;
+	for k=1:numel(h)
+		set(h(k), 'UIContextMenu', cmenuHand);
+		uimenu(cmenuHand, 'Label', 'Delete this', 'Callback', {@del_line,h});
+		uimenu(cmenuHand, 'Label', 'Delete all', 'Callback', {@del_all,handles,h});
+		ui_edit_polygon(h(k))
+	end
 
 % -----------------------------------------------------------------------------------------
 function del_all(obj,eventdata,handles,h)
-    % Delete all objects that share the same tag of h
-    tag = get(h,'Tag');
-    hAll = findobj(handles.axes1,'Tag',tag);
-    del_line(obj,eventdata,hAll)
+% Delete all objects that share the same tag of h
+	tag = get(h,'Tag');
+	hAll = findobj(handles.axes1,'Tag',tag);
+	del_line(obj,eventdata,hAll)
     
 % -----------------------------------------------------------------------------------------
 function del_line(obj,eventdata,h)
@@ -965,7 +974,7 @@ function del_line(obj,eventdata,h)
 % --------------------------------------------------------------------
 function [symbol, dim, str2] = parseS(str)
     % Parse the STR string in search for -S[symb][size]. Valid options are -Sc10, -Sa or -S (defaults to o 10 pt)
-    % If not found or error DIM = [].
+    % If not found or error, DIM = [].
     % STR2 is the STR string less the -S[symb][size] part
     symbol = 'o';   dim = 10;   str2 = str;
     ind = strfind(str,'-S');
