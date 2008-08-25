@@ -148,13 +148,19 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
 function radio_conv2netcdf_Callback(hObject, eventdata, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','off')
-	set(handles.radio_zonalInteg,'Val',0)
+	set([handles.radio_zonalInteg handles.radio_conv2vtk],'Val',0)
+
+% -----------------------------------------------------------------------------------------
+function radio_conv2vtk_Callback(hObject, eventdata, handles)
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','off')
+	set([handles.radio_zonalInteg handles.radio_conv2netcdf],'Val',0)
 
 % -----------------------------------------------------------------------------------------
 function radio_zonalInteg_Callback(hObject, eventdata, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','on')
-	set(handles.radio_conv2netcdf,'Val',0)
+	set([handles.radio_conv2netcdf handles.radio_conv2vtk],'Val',0)
 
 % -----------------------------------------------------------------------------------------
 function check_region_Callback(hObject, eventdata, handles)
@@ -254,8 +260,8 @@ function push_compute_Callback(hObject, eventdata, handles)
 		got_R = true;
 	end
 	
-	% HDF to netCDF conversion?
-	if (get(handles.radio_conv2netcdf,'Val'))
+	% to netCDF or VTK conversion?
+	if ( get(handles.radio_conv2netcdf,'Val') || get(handles.radio_conv2vtk,'Val') )
 		cut2cdf(handles, got_R, west, east, south, north)
 		return
 	end
@@ -356,28 +362,35 @@ function cut2cdf(handles, got_R, west, east, south, north)
 % Save into a multi-layer netCDF file
 
 % 	grd_out = 'teste2.nc';
-	txt1 = 'netCDF grid format (*.nc,*.grd)';
-	txt2 = 'Select output netCDF grid';
-	[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put');
+	if (get(handles.radio_conv2netcdf,'Val'))		% netCDF format
+		this_ext = '.nc';							txt0 = '*.nc;*.grd';
+		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
+	else											% VTK
+		this_ext = '.vtk';							txt0 = '*.vtk';
+		txt1 = 'VTK format (*.vtk)';				txt2 = 'Select output VRT file';
+	end
+	[FileName,PathName] = put_or_get_file(handles,{txt0,txt1; '*.*', 'All Files (*.*)'},txt2,'put');
 	if isequal(FileName,0),		return,		end
 	[pato, fname, EXT] = fileparts(FileName);
-	if (isempty(EXT)),		FileName = [fname '.nc'];	end
+	if (isempty(EXT)),		FileName = [fname this_ext];	end
 	grd_out = [PathName FileName];
 
 	set(handles.figure1,'pointer','watch')
 	% Read relevant metadata
 	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log] = get_headerInfo(handles, got_R, west, east, south, north);
 
-	handles.geog = 1;
-	handles.head = head;
-	handles.was_int16 = 0;
-	handles.computed_grid = 0;
-	
+	handles.geog = 1;			handles.head = head;
+	handles.was_int16 = 0;		handles.computed_grid = 0;
+
+	if (get(handles.radio_conv2vtk,'Val'))
+		fid = write_vtk(handles, grd_out, 'hdr');
+	end
+
 	nSlices = numel(handles.nameList);
 	n_cd = 1;
 	for (k = 1:nSlices)
 		set(handles.listbox_list,'Val',k),		pause(0.01)			% Show advance
-	
+
 		if (handles.caracol(k))				% Ai, we need to change CD
 			msg = handles.changeCD_msg{n_cd};
 			resp = yes_or_no('string',['OK, this one is over. ' msg '  ... and Click "Yes" to continue']);
@@ -422,6 +435,12 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			Z(ind) = NaN;	handles.have_nans = 1;
 		end
 		%Z(Z > 5) = 5;			% <==== CLIPING
+
+		if (get(handles.radio_conv2vtk,'Val'))				% Write this layer of the VTK file and continue
+			write_vtk(fid, grd_out, Z);
+			continue
+		end
+
 		if (isa(Z,'single'))
 			zz = grdutils(Z,'-L');		handles.head(5:6) = [zz(1) zz(2)];
 		else			% min/max is bugged when NaNs in singles
@@ -450,6 +469,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			end
 		end
 	end
+
+	if (get(handles.radio_conv2vtk,'Val')),		fclose(fid);	end
 	set(handles.listbox_list,'Val',1)
 	set(handles.figure1,'pointer','arrow')
 
@@ -603,7 +624,48 @@ function [Z, att] = read_gdal(full_name, varargin)
 	end
 
 	if (~isempty(str_d)),	delete(out_name);	end		% Delete uncompressed file.
-	
+
+% -----------------------------------------------------------------------------------------
+function fid = write_vtk(handles, grd_out, arg3)
+% Help function to write in the VTK format
+	if (isa(arg3,'char') && strcmp(arg3,'hdr'))
+		nx = (handles.head(2) - handles.head(1)) / handles.head(8) + ~handles.head(7);
+		ny = (handles.head(4) - handles.head(3)) / handles.head(9) + ~handles.head(7);
+		nz = numel(handles.nameList);
+% 		fid = fopen(grd_out, 'wa');
+		fid = fopen(grd_out, 'wb','b');
+		fprintf(fid, '# vtk DataFile Version 2.0\n');
+		fprintf(fid, 'converted from A B\n');
+% 		fprintf(fid, 'ASCII\n');
+		fprintf(fid, 'BINARY\n');
+		fprintf(fid, 'DATASET RECTILINEAR_GRID\n');
+		fprintf(fid, 'DIMENSIONS %d %d %d\n', nx, ny, nz);
+		fprintf(fid, 'X_COORDINATES %d float\n', nx);
+		X = linspace(handles.head(1), handles.head(2), nx);
+% 		fprintf(fid, '%.6f\n', X);
+		fwrite(fid, X, 'real*4');
+		fprintf(fid, 'Y_COORDINATES %d float\n', ny);
+		X = linspace(handles.head(3), handles.head(4), ny);
+% 		fprintf(fid, '%.6f\n', X);
+		fwrite(fid, X, 'real*4');
+		fprintf(fid, 'Z_COORDINATES %d float\n', nz);
+		X = str2double(handles.strTimes);
+% 		fprintf(fid, '%.6f\n', X);
+		fwrite(fid, X, 'real*4');
+		fprintf(fid, 'POINT_DATA %d\n', nx * ny * nz);
+		fprintf(fid, 'SCALARS dono float 1\n');
+		fprintf(fid, 'LOOKUP_TABLE default\n');
+	else
+		fid = handles;			% First arg actually contains the file id
+		Z = double((arg3)');
+% 		ind = isnan(Z);
+% 		if (any(ind(:)))
+% 			Z(ind) = 0;
+% 		end
+% 		fprintf(fid, '%.6f\n', Z(:));		
+		fwrite(fid, Z(:), 'real*4');		
+	end
+
 % ---------------------------------------------------------------------
 function zonal_integrator_LayoutFcn(h1);
 
@@ -616,8 +678,8 @@ set(h1,'Position',[520 532 440 280],...
 'HandleVisibility','callback',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,'Position',[241 175 30 15],'String','Delta','Style','text');
-uicontrol('Parent',h1,'Position',[240 40 191 117],'Style','frame','Tag','frame1');
+uicontrol('Parent',h1,'Position',[241 170 30 15],'String','Delta','Style','text');
+uicontrol('Parent',h1,'Position',[240 39 191 117],'Style','frame','Tag','frame1');
 uicontrol('Parent',h1,'Position',[358 40 20 15],'String','S','Style','text');
 uicontrol('Parent',h1,'Position',[250 98 20 15],'String','W','Style','text');
 uicontrol('Parent',h1,'Position',[402 99 20 15],'String','E','Style','text');
@@ -636,7 +698,30 @@ uicontrol('Parent',h1,'Position',[407 252 23 23],...
 'TooltipString','Browse for a grids list file',...
 'Tag','push_namesList');
 
-uicontrol('Parent',h1,'Position',[271 171 51 21],...
+uicontrol('Parent',h1, 'Position',[244 233 150 15],...
+'Callback',{@zonal_integrator_uicallback,h1,'radio_conv2netcdf_Callback'},...
+'String','Convert to 3D netCDF file',...
+'Style','radiobutton',...
+'TooltipString','Take a list of files and create a single 3D netCDF file',...
+'Value',1,...
+'Tag','radio_conv2netcdf');
+
+uicontrol('Parent',h1, 'Position',[244 214 150 15],...
+'Callback',{@zonal_integrator_uicallback,h1,'radio_conv2vtk_Callback'},...
+'String','Convert to 3D VTK file',...
+'Style','radiobutton',...
+'TooltipString','Take a list of files and create a single 3D VTK file',...
+'Value',0,...
+'Tag','radio_conv2vtk');
+
+uicontrol('Parent',h1, 'Position',[244 195 130 15],...
+'Callback',{@zonal_integrator_uicallback,h1,'radio_zonalInteg_Callback'},...
+'String','Do zonal integration',...
+'Style','radiobutton',...
+'TooltipString','Take a list of files and compute a zonal average file',...
+'Tag','radio_zonalInteg');
+
+uicontrol('Parent',h1,'Position',[271 166 51 21],...
 'BackgroundColor',[1 1 1],...
 'Callback',{@zonal_integrator_uicallback,h1,'edit_stripeWidth_Callback'},...
 'String','0.5',...
@@ -644,20 +729,20 @@ uicontrol('Parent',h1,'Position',[271 171 51 21],...
 'TooltipString','Width of the stripe over which integration is carried on',...
 'Tag','edit_stripeWidth');
 
-uicontrol('Parent',h1,'Position',[390 174 40 15],...
-'Callback',{@zonal_integrator_uicallback,h1,'radio_lat_Callback'},...
-'String','Lat',...
-'Style','radiobutton',...
-'TooltipString','Integrate in Latitude',...
-'Tag','radio_lat');
-
-uicontrol('Parent',h1,'Position',[335 174 50 15],...
+uicontrol('Parent',h1,'Position',[335 169 50 15],...
 'Callback',{@zonal_integrator_uicallback,h1,'radio_lon_Callback'},...
 'String','Long',...
 'Style','radiobutton',...
 'TooltipString','Integrate in Longitude',...
 'Value',1,...
 'Tag','radio_lon');
+
+uicontrol('Parent',h1,'Position',[390 169 40 15],...
+'Callback',{@zonal_integrator_uicallback,h1,'radio_lat_Callback'},...
+'String','Lat',...
+'Style','radiobutton',...
+'TooltipString','Integrate in Latitude',...
+'Tag','radio_lat');
 
 uicontrol('Parent',h1,'Position',[250 133 110 15],...
 'Callback',{@zonal_integrator_uicallback,h1,'check_region_Callback'},...
@@ -708,21 +793,6 @@ uicontrol('Parent',h1,'Position',[340 5 90 23],...
 'FontWeight','bold',...
 'String','Compute',...
 'Tag','push_compute');
-
-uicontrol('Parent',h1, 'Position',[244 210 150 15],...
-'Callback',{@zonal_integrator_uicallback,h1,'radio_conv2netcdf_Callback'},...
-'String','Convert to 3D netCDF file',...
-'Style','radiobutton',...
-'TooltipString','Take a list of .hdf files and create a single 3D netCDF file',...
-'Value',1,...
-'Tag','radio_conv2netcdf');
-
-uicontrol('Parent',h1, 'Position',[244 229 130 15],...
-'Callback',{@zonal_integrator_uicallback,h1,'radio_zonalInteg_Callback'},...
-'String','Do zonal integration',...
-'Style','radiobutton',...
-'TooltipString','Take a list of .hdf files and compute a zonal average file',...
-'Tag','radio_zonalInteg');
 
 function zonal_integrator_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
