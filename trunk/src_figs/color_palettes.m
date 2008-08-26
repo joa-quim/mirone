@@ -22,6 +22,8 @@ handles = guihandles(hObject);
 movegui(hObject,'center')
 
 handles.z_min = [];     handles.z_max = [];     handles.z_min_orig = [];    handles.z_max_orig = [];	cmap = [];
+handles.have_nans = 0;	handles.hCallingFig = [];	later_ReadPalette = false;
+
 if (nargin == 1 && isstruct(varargin{1}))
 	handMir = varargin{1};
 	if (~handMir.no_file)			% We have something on the Mirone window
@@ -39,16 +41,12 @@ if (nargin == 1 && isstruct(varargin{1}))
 			handles.z_min_orig = handMir.head(5);		handles.z_max_orig = handMir.head(6);
 			set(handles.edit_Zmin,'String',handles.z_min_orig)
 			set(handles.edit_Zmax,'String',handles.z_max_orig)
-		else                        % File was too big to stay on memory
-			handles.have_nans = 0;
 		end
 	else
 		set(handles.OptionsAutoApply,'checked','off','Enable','off')	% Prevent trying to update an unexisting figure cmap
 		set(handles.OptionsApply,'Enable','off')
 		set(handles.FileSavePaletteGrid','Vis','off')	% It makes no sense here
 		set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
-		handles.hCallingFig = [];
-		handles.have_nans = 0;
 		handles.home_dir = cd;     handles.work_dir = handles.home_dir;
 	end
 	% Add this figure handle to the carraças list
@@ -56,8 +54,12 @@ if (nargin == 1 && isstruct(varargin{1}))
 	plugedWin = [plugedWin hObject];
 	setappdata(handMir.figure1,'dependentFigs',plugedWin);
 elseif (nargin == 1 && ischar(varargin{1}))
-	cmap = FileReadPalette_Callback([], [], handles, [], varargin{1});
-	% to be continued
+	later_ReadPalette = true;
+	set(handles.OptionsAutoApply,'checked','off','Enable','off')	% Prevent trying to update an unexisting figure cmap
+	set(handles.OptionsApply,'Enable','off')
+	set(handles.FileSavePaletteGrid','Vis','off')	% It makes no sense here
+	set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
+	handles.home_dir = cd;     handles.work_dir = handles.home_dir;
 end
 handles.d_path = [handles.home_dir filesep 'data' filesep];
 
@@ -65,44 +67,7 @@ handles.pal_top = [];       % will contain new colormaps as changed by the the s
 handles.pal_bot = [];
 handles.bg_color = [1 1 1];
 handles.z_intervals = [];
-
-%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-% This stupid doesn't allow a frame in the background of an axes. I tried
-% everything but the axes is allways behind the frame. So the trick will be to
-% change it's size here (it was to small in guide) and let frame3D do the job.
-posf_b = get(handles.frame_bot,'Position');
-posf_t = get(handles.frame_top,'Position');
-set(handles.frame_top,'Position',[posf_t(1) posf_t(2) posf_b(3) posf_t(4)]);
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-h_f = [handles.frame_top handles.frame_bot];
-for i=1:numel(h_f)
-    frame_size = get(h_f(i),'Position');
-    frame3D(hObject,frame_size,framecolor,'',[])
-    delete(h_f(i))
-end
-%------------- END Pro look (3D) -------------------------------------------------------
-
 handles.txt_cZ_pos = get(handles.h_txt_cZ,'Position');
-
-% Show the current colormap in axes
-if (isempty(cmap))
-	if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
-		cmap = get(handles.hCallingFig,'Colormap');
-	else
-		cmap = colormap(jet(256));
-	end
-end
-
-handles.cmap = cmap;
-handles.cmap_original = cmap;
-colormap(cmap);      I = 1:length(cmap);
-h_img = image(I,'CDataMapping','direct');   set(gca,'YTick',[],'XTick',[]);
-set(h_img,'ButtonDownFcn',{@bdn_pal,handles})
-
-set(handles.slider_Top,'max',length(cmap),'min',1,'value',length(cmap))
-set(handles.slider_Bottom,'max',length(cmap),'min',1,'value',1)
-handles.no_slider = 1;
 
 % Generate lists of available color palettes
 palsML = {'ML -- autumn' 'ML -- bone' 'ML -- colorcube' 'ML -- cool' 'ML -- copper' ...
@@ -136,6 +101,46 @@ handles.palsGIMP = palsGIMP;
 %pals = {'Current' palsML{:} palsGMT{:} palsA{:}};
 pals = {'Current' palsML{:}};
 set(handles.listbox1,'String',pals);
+
+%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+% This stupid doesn't allow a frame in the background of an axes. I tried
+% everything but the axes is allways behind the frame. So the trick will be to
+% change it's size here (it was to small in guide) and let frame3D do the job.
+posf_b = get(handles.frame_bot,'Position');
+posf_t = get(handles.frame_top,'Position');
+set(handles.frame_top,'Position',[posf_t(1) posf_t(2) posf_b(3) posf_t(4)]);
+bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+h_f = [handles.frame_top handles.frame_bot];
+for i=1:numel(h_f)
+    frame_size = get(h_f(i),'Position');
+    frame3D(hObject,frame_size,framecolor,'',[])
+    delete(h_f(i))
+end
+%------------- END Pro look (3D) -------------------------------------------------------
+
+if (later_ReadPalette)		% When pallete filename was transmited in input
+	cmap = FileReadPalette_Callback([], [], handles, [], varargin{1});
+end
+
+% Show the current colormap in axes
+if (isempty(cmap))
+	if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
+		cmap = get(handles.hCallingFig,'Colormap');
+	else
+		cmap = colormap(jet(256));
+	end
+end
+
+handles.cmap = cmap;
+handles.cmap_original = cmap;
+colormap(cmap);      I = 1:length(cmap);
+h_img = image(I,'CDataMapping','direct');   set(gca,'YTick',[],'XTick',[]);
+set(h_img,'ButtonDownFcn',{@bdn_pal,handles})
+
+set(handles.slider_Top,'max',length(cmap),'min',1,'value',length(cmap))
+set(handles.slider_Bottom,'max',length(cmap),'min',1,'value',1)
+handles.no_slider = 1;
 
 % Choose default command line output for color_palettes_export
 handles.output = hObject;
@@ -703,6 +708,7 @@ function cmap = FileReadPalette_Callback(hObject, eventdata, handles, opt, opt2)
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
 	else
+		[PathName,FileName] = fileparts(opt2);
 		fname = opt2;
 	end
 	try
