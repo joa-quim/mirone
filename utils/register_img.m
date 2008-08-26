@@ -193,7 +193,7 @@ tmp.head(8) = diff(new_xlim) / (size(img,2) - 1);
 tmp.head(9) = diff(new_ylim) / (size(img,1) - 1);
 tmp.X = new_xlim;
 tmp.Y = new_ylim;
-tmp.name = 'Rigestered Image';
+tmp.name = 'Registered Image';
 if (ndims(img) == 2)
     tmp.cmap = get(handles.figure1,'ColorMap');
 end
