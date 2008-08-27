@@ -591,6 +591,7 @@ utils/jd2date.m -text
 utils/limpa.p -text
 utils/load_grd.m -text
 utils/luts.m -text
+utils/make_arrow.m -text
 utils/mat_lyies.m -text
 utils/mboard.m -text
 utils/mc_e_b_estimate.m -text
