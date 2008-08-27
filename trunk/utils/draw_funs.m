@@ -21,14 +21,14 @@ function OUT = draw_funs(hand,opt,data)
 % --------------------------------------------------------------------
 
 switch opt
-    case 'line_uicontext',          set_line_uicontext(hand,'line')
-    case 'SHPuictx',                set_SHPline_uicontext(hand)
-    case 'ContourLines',            set_ContourLines_uicontext(hand,data)
-    case 'MBtrackUictx',            set_line_uicontext(hand,'MBtrack')
-    case 'MBbarUictx',              set_bar_uicontext(hand)
-    case 'CoastLineUictx',          setCoastLineUictx(hand)
-    case 'DeleteObj',               delete_obj(hand);
-    case 'DrawGreatCircle'
+	case 'line_uicontext',          set_line_uicontext(hand,'line')
+	case 'SHPuictx',                set_SHPline_uicontext(hand)
+	case 'ContourLines',            set_ContourLines_uicontext(hand,data)
+	case 'MBtrackUictx',            set_line_uicontext(hand,'MBtrack')
+	case 'MBbarUictx',              set_bar_uicontext(hand)
+	case 'CoastLineUictx',          setCoastLineUictx(hand)
+	case 'DeleteObj',               delete_obj(hand);
+	case 'DrawGreatCircle'
         h = draw_greateCircle;
         if ~isempty(h)      % when in compiled version h may be empty (why?).
             set_greatCircle_uicontext(h)
@@ -44,48 +44,48 @@ switch opt
             set_circleCart_uicontext(h)
         end
     case 'SessionRestoreCircle'     % Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
-        set_circleGeo_uicontext(hand)
+		set_circleGeo_uicontext(hand)
     case 'SessionRestoreCircleCart'     % Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
-        set_circleCart_uicontext(hand)
+		set_circleCart_uicontext(hand)
     case 'DrawText'
-        cmenuHand = uicontextmenu;
-        set(hand, 'UIContextMenu', cmenuHand);
-        cb_color = uictx_color(hand);      % there are 9 cb_color outputs
-        uimenu(cmenuHand, 'Label', 'Change Font', 'Call', @text_FontSize);
-        item_fc = uimenu(cmenuHand, 'Label', 'Font Color');
-        setLineColor(item_fc,cb_color)
-        uimenu(cmenuHand, 'Label', 'Edit   text', 'Call', 'set(gco, ''Editing'', ''on''); refresh', 'Sep','on');
-        uimenu(cmenuHand, 'Label', 'Copy   text', 'Call', @copy_text_object);
-        uimenu(cmenuHand, 'Label', 'Delete text', 'Call', 'delete(gco); refresh');
-        uimenu(cmenuHand, 'Label', 'Move   text', 'Call', @move_text);
-        uimenu(cmenuHand, 'Label', 'Rotate text', 'Call', @rotate_text);
-        uimenu(cmenuHand, 'Label', 'Export text', 'Call', @export_text);
+		cmenuHand = uicontextmenu;
+		set(hand, 'UIContextMenu', cmenuHand);
+		cb_color = uictx_color(hand);      % there are 9 cb_color outputs
+		uimenu(cmenuHand, 'Label', 'Change Font', 'Call', @text_FontSize);
+		item_fc = uimenu(cmenuHand, 'Label', 'Font Color');
+		setLineColor(item_fc,cb_color)
+		uimenu(cmenuHand, 'Label', 'Edit   text', 'Call', 'set(gco, ''Editing'', ''on''); refresh', 'Sep','on');
+		uimenu(cmenuHand, 'Label', 'Copy   text', 'Call', @copy_text_object);
+		uimenu(cmenuHand, 'Label', 'Delete text', 'Call', 'delete(gco); refresh');
+		uimenu(cmenuHand, 'Label', 'Move   text', 'Call', @move_text);
+		uimenu(cmenuHand, 'Label', 'Rotate text', 'Call', @rotate_text);
+		uimenu(cmenuHand, 'Label', 'Export text', 'Call', @export_text);
 		set(hand, 'ButtonDownFcn', 'move_obj(1)')
     case 'DrawSymbol'
-        set_symbol_uicontext(hand)
+		set_symbol_uicontext(hand)
     case 'ImportLine'                   % read AND plot the line
-        fname = hand;
-        hFig = get(0,'CurrentFigure');         hAxes = get(hFig,'CurrentAxes');
-        [bin,n_column,multi_seg,n_headers] = guess_file(fname);
-        % If msgbox exist we have to move it from behind the main window. So get it's handle
-        hMsgFig = get(0,'CurrentFigure');
-        if (hFig ~= hMsgFig),       figure(hMsgFig);   end   % If msgbox exists, bring it forward
-        % If error in reading file
-        if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
-            errordlg(['Error reading file ' fname],'Error');    return
-        end
-        if (bin ~= 0)   % NOT ASCII
-            errordlg('Sorry, reading binary files is not yet programed','Error');   return
-        end
-        if (n_column < 2)
-            errordlg('File error. Your file doesn''t have at least 2 columns','Error'); return
-        end
-        if (isempty(n_headers)),    n_headers = NaN;    end
-        if (multi_seg)
-            [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers,'>');
-        else
-            [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
-        end
+		fname = hand;
+		hFig = get(0,'CurrentFigure');         hAxes = get(hFig,'CurrentAxes');
+		[bin,n_column,multi_seg,n_headers] = guess_file(fname);
+		% If msgbox exist we have to move it from behind the main window. So get it's handle
+		hMsgFig = get(0,'CurrentFigure');
+		if (hFig ~= hMsgFig),       figure(hMsgFig);   end   % If msgbox exists, bring it forward
+		% If error in reading file
+		if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
+			errordlg(['Error reading file ' fname],'Error');    return
+		end
+		if (bin ~= 0)   % NOT ASCII
+			errordlg('Sorry, reading binary files is not yet programed','Error');   return
+		end
+		if (n_column < 2)
+			errordlg('File error. Your file doesn''t have at least 2 columns','Error'); return
+		end
+		if (isempty(n_headers)),    n_headers = NaN;    end
+		if (multi_seg)
+			[numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers,'>');
+		else
+			[numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
+		end
         
         % Project if we need
         handles = guidata(hFig);
@@ -151,26 +151,23 @@ switch opt
                     setappdata(lineHand,'PatchHand',hp);
             end
         end
-        clear numeric_data;     hold off
-    case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation'}
-        set_symbol_uicontext(hand,data)
-    case 'PlateBoundPB',		set_PB_uicontext(hand,data)
-    case 'DrawVector'
-        h = draw_vector;
-        if ~isempty(h)      % when in compiled version h may be empty.
-            set_vector_uicontext(h)
-        end
-    case 'ChngAxLabels',		changeAxesLabels(data)
-    case 'MagBarCode',			draw_MagBarCode
-    case 'SRTMrect',			set_SRTM_rect_uicontext(hand)
-    case 'isochron',			set_isochrons_uicontext(hand,data)
-    case 'gmtfile',				set_gmtfile_uicontext(hand,data)
-    case 'country_patch',		set_country_uicontext(hand)
-    case 'telhas_patch',		set_telhas_uicontext(hand)
-    case 'save_xyz',			save_formated([],[],[], data)
-    case 'tellAzim',			show_lineAzims([],[], hand);
-    case 'tellLLength',			show_LineLength([],[], hand);
-    case 'tellArea',			show_Area([],[], hand);
+		clear numeric_data;     hold off
+	case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation'}
+		set_symbol_uicontext(hand,data)
+	case 'PlateBoundPB',		set_PB_uicontext(hand,data)
+	case 'DrawVector'
+		draw_vector;
+	case 'ChngAxLabels',		changeAxesLabels(data)
+	case 'MagBarCode',			draw_MagBarCode
+	case 'SRTMrect',			set_SRTM_rect_uicontext(hand)
+	case 'isochron',			set_isochrons_uicontext(hand,data)
+	case 'gmtfile',				set_gmtfile_uicontext(hand,data)
+	case 'country_patch',		set_country_uicontext(hand)
+	case 'telhas_patch',		set_telhas_uicontext(hand)
+	case 'save_xyz',			save_formated([],[],[], data)
+	case 'tellAzim',			show_lineAzims([],[], hand);
+	case 'tellLLength',			show_LineLength([],[], hand);
+	case 'tellArea',			show_Area([],[], hand);
 end
 
 % -----------------------------------------------------------------------------------------
@@ -274,32 +271,32 @@ cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
 cb_color = uictx_color(h);      % there are 9 cb_color outputs
 
 if (IS_RECTANGLE)
-	uimenu(cmenuHand, 'Label', 'Delete me', 'Callback', {@del_line,h});
-	uimenu(cmenuHand, 'Label', 'Delete inside rect', 'Callback', {@del_insideRect,h});
+	uimenu(cmenuHand, 'Label', 'Delete me', 'Call', {@del_line,h});
+	uimenu(cmenuHand, 'Label', 'Delete inside rect', 'Call', {@del_insideRect,h});
 	ui_edit_polygon(h)
 elseif (IS_LINE)
-	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@del_line,h});
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h});
 	ui_edit_polygon(h)		% Set edition functions
 elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the bars
-	uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Callback', 'save_track_mb(1);');
+	uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Call', 'save_track_mb(1);');
 	% Old style edit function. New edit is provided by ui_edit_polygon which doesn't work with mbtracks 
-	uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Callback', 'edit_track_mb');
+	uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Call', 'edit_track_mb');
 end
 uimenu(cmenuHand, 'Label', label_save, 'Callback', {@save_formated,h});
 if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))     % Those are not to allowed to copy
 	if (~LINE_ISCLOSED)
-		uimenu(cmenuHand, 'Label', 'Join lines', 'Callback', {@join_lines,handles.figure1});
+		uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
 	end
-	uimenu(cmenuHand, 'Label', 'Copy', 'Callback', {@copy_line_object,handles.figure1,handles.axes1});
+	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
 end
 if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_length, 'Callback', @show_LineLength);		end
 if (IS_MBTRACK),		uimenu(cmenuHand, 'Label', 'All tracks length', 'Callback', @show_AllTrackLength);	end
 if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_azim, 'Callback', @show_lineAzims);	end
 
 if (LINE_ISCLOSED)
-    uimenu(cmenuHand, 'Label', 'Area under polygon', 'Callback', @show_Area);
+    uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
 	if (~IS_RECTANGLE && ~handles.validGrid)
-		uimenu(cmenuHand, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)','Sep','on');
+		uimenu(cmenuHand, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)','Sep','on');
 		if (handles.image_type == 3)
 				uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Callback', ...
 				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
@@ -965,15 +962,19 @@ msgbox(msg,'Euler velocity')
 % -----------------------------------------------------------------------------------------
 function set_vector_uicontext(h)
 	% h is a handle to a vector object
-	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	h = h(1);
+	handles = guidata(h);	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
-	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@delete_vector,h});
-	%set(h,'ButtonDownFcn','selectmoveresize')
-
-% -----------------------------------------------------------------------------------------
-function delete_vector(obj,eventdata,h)
-    % Brute force delete a vector whose handle is h. delete(gco) just doesn't kill the head
-    try,	delete(h),	end		% Use a try because a something else may have deleted one part only
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1, handles.axes1});
+	item1 = uimenu(cmenuHand, 'Label', 'Line Color','Sep','on');
+	cb_color = uictx_color(h,'EdgeColor');					% there are 9 cb_color outputs
+	setLineColor(item1,cb_color)
+	item2 = uimenu(cmenuHand, 'Label','Fill Color');
+	setLineColor( item2, uictx_color(h, 'facecolor') )
+	uimenu(item2, 'Label', 'None', 'Separator','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
+	uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
 
 % -----------------------------------------------------------------------------------------
 function fill_Polygon(obj,eventdata,h)
@@ -1247,8 +1248,8 @@ function other_LineWidth(obj,eventdata,h)
 % -----------------------------------------------------------------------------------------
 function hVec = draw_vector
     hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
-	hVec(1) = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
-	hVec(2) = patch('XData', [], 'YData', [],'FaceColor',handles.DefLineColor,'EdgeColor',handles.DefLineColor,'Tag','Arrow');
+	hVec(1) = patch('XData',[], 'YData', [],'FaceColor',handles.DefLineColor,'EdgeColor',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
+	hVec(2) = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
 	state = uisuspend_fig(hFig);        % Remember initial figure state
 	set(hFig,'Pointer', 'crosshair');
 	w = waitforbuttonpress;
@@ -1259,43 +1260,49 @@ function hVec = draw_vector
 	end
 
 function vectorFirstButtonDown(hFig,hAxes,h,state)
-    pt = get(hAxes, 'CurrentPoint');
-    set(hFig,'WindowButtonMotionFcn',{@wbm_vector,[pt(1,1) pt(1,2)],h,hAxes},'WindowButtonDownFcn',{@wbd_vector,h,state});
+	pt = get(hAxes, 'CurrentPoint');
+ 	axLims = getappdata(hAxes,'ThisImageLims');
+	% create a conversion from data to points for the current axis
+	oldUnits = get(hAxes,'Units');			set(hAxes,'Units','points');
+	Pos = get(hAxes,'Position');			set(hAxes,'Units',oldUnits);
+	vscale = 1/Pos(4) * diff(axLims(1:2));	hscale = 1/Pos(3) * diff(axLims(3:4));
+	vscale = (vscale + hscale) / 2;			hscale = vscale;	% For not having a head direction dependency
+	DAR = get(hAxes, 'DataAspectRatio');
+	if (DAR(1) == 1 && DAR(1) ~= DAR(2))	% To account for the "Scale geog images at mean lat" effect
+		vscale = vscale * DAR(2);		hscale = hscale * DAR(1);
+	end
+	set(hFig,'WindowButtonMotionFcn',{@wbm_vector,[pt(1,1) pt(1,2)],h,hAxes,hscale,vscale},'WindowButtonDownFcn',{@wbd_vector,h,state});
 
-function wbm_vector(obj,eventdata,origin,h,hAxes)
+function wbm_vector(obj,eventdata,origin,h,hAxes, hscale, vscale)
 	pt = get(hAxes, 'CurrentPoint');
 	x  = [origin(1) pt(1,1)];   y = [origin(2) pt(1,2)];
-	dx = diff(x);               dy = diff(y);
-	set(h(1),'XData',x, 'YData',y)
-	ax = getappdata(hAxes,'ThisImageLims');
-	lx = diff(ax(1:2))*25e-3;   ly = diff(ax(3:4))*10e-3;
-	phi = atan2(dy,dx);
-	head = rotate2([-lx 0 -lx; ly 0 -ly], [0; 0], phi);
-	set(h(2),'XData',head(1,:)+pt(1,1), 'YData',head(2,:)+pt(1,2));
+ 	set(h(2),'XData',x, 'YData',y)
+	[xt, yt] = make_arrow(h(2) , hscale, vscale);
+ 	set(h(1),'XData',xt, 'YData',yt);
 
 function wbd_vector(obj,eventdata,h,state)
     uirestore_fig(state);           % Restore the figure's initial state
-    ui_edit_polygon(h(2))
-
-function newpoints = rotate2(points,orig,phi)
-	%ROTATE2  rotate points PHI radians around the ORIG point
-	A=[cos(phi) -sin(phi); sin(phi) cos(phi)];
-	newpoints=A*points+orig*ones(1,size(points,2));
-% -----------------------------------------------------------------------------------------
+	x = get(h(2), 'XData');		y = get(h(2), 'YData');
+	ud.tail = [x; y];		ud.vFac = 1.3;		ud.headHeight = 12;
+	set(h(1), 'UserData', ud)
+	delete(h(2));				% We don't need this (support) line anymore
+	set_vector_uicontext(h(1))
+    ui_edit_polygon(h(1))
+% -----------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
 function h_gcirc = draw_greateCircle
     hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
     h_gcirc = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick);
-	state = uisuspend_fig(hFig);     % Remember initial figure state
-	set(hFig,'Pointer', 'crosshair'); % to avoid the compiler BUG
-	w = waitforbuttonpress;                             %
-	if w == 0       % A mouse click                     %
-        gcircFirstButtonDown(hFig,h_gcirc,state)             %
-	else                                                %
-        set(hFig,'Pointer', 'arrow'); %
-        h_gcirc = [];                                   %
-	end                                                 %
+	state = uisuspend_fig(hFig);		% Remember initial figure state
+	set(hFig,'Pointer', 'crosshair');	% to avoid the compiler BUG
+	w = waitforbuttonpress;
+	if w == 0							% A mouse click
+        gcircFirstButtonDown(hFig,h_gcirc,state)
+	else
+        set(hFig,'Pointer', 'arrow');
+        h_gcirc = [];
+	end
 %---------------
 function gcircFirstButtonDown(hFig,h,state)
 	hAxes = get(hFig,'CurrentAxes');	pt = get(hAxes, 'CurrentPoint');
@@ -1837,33 +1844,6 @@ setLineColor(itemFColor,cb_color)
 cb_color = uictx_Class_LineColor(h,'MarkerEdgeColor');              % there are 9 cb_PB_color outputs
 itemEColor = uimenu(cmenuHand, 'Label', 'Edge Color');
 setLineColor(itemEColor,cb_color)
-
-% -----------------------------------------------------------------------------------------
-function move_symbol(obj,eventdata,h)
-hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
-state = uisuspend_fig(hFig);     % Remember initial figure state
-pt = get(hAxes, 'CurrentPoint');
-x = get(h,'XData');
-if (length(x) > 1)              % We have a class symbol
-    [c,i]=min(abs(x-pt(1,1)));  % Get the index of the current symbol
-else                            % We have a individual symbol
-    i = 1;
-end
-set(hFig,'WindowButtonMotionFcn',{@wbm_symb,h,i,hAxes},'WindowButtonDownFcn',{@wbd_symb,h,state,hAxes});
-
-function wbm_symb(obj,eventdata,h,i,hAxes)
-	pt = get(hAxes, 'CurrentPoint');
-	pos_x = pt(1,1);        pos_y = pt(1,2);
-	x = get(h,'XData');     x(i) = pos_x;
-	y = get(h,'YData');     y(i) = pos_y;
-	set(h,'XData',x,'YData',y);
-
-function wbd_symb(obj,eventdata,h,state,hAxes)
-	% check if x,y is inside of axis
-	pt = get(hAxes, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
-	x_lim = get(hAxes,'xlim');      y_lim = get(hAxes,'ylim');
-	if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
-	uirestore_fig(state);           % Restore the figure's initial state
 
 % -----------------------------------------------------------------------------------------
 function change_SymbPos(obj,eventdata,h)
