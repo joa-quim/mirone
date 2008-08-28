@@ -438,7 +438,8 @@ function join_lines(obj,eventdata,hFig)
 
 	hCurrLine = gco;
 	hLines = get_polygon(hFig,'multi');		% Get the line handles
-	if ( numel(hLines) == 0 || (numel(hLines) == 1 && hLines == hCurrLine) ),	return,		end		% Nothing to join
+	hLines = setxor(hLines, hCurrLine);
+	if (numel(hLines) == 0),	return,		end		% Nothing to join
 	for (k = 1:numel(hLines))
 		if (strcmp(get(hLines(k),'Type'),'patch')),		continue,	end
 		[x, y, was_closed] = join2lines([hCurrLine hLines(k)]);
@@ -452,7 +453,7 @@ function [x, y, was_closed] = join2lines(hLines)
 	x1 = get(hLines(1),'XData');		y1 = get(hLines(1),'YData');
 	x2 = get(hLines(2),'XData');		y2 = get(hLines(2),'YData');
 	
-	wa_closed = false;
+	was_closed = false;
 	if ( (x2(1) == x2(end)) && (y2(1) == y2(end)) )		% Ignore closed polygons
 		x = x1;		y = y1;
 		was_closed = true;
