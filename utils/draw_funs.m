@@ -28,26 +28,26 @@ switch opt
 	case 'MBbarUictx',              set_bar_uicontext(hand)
 	case 'CoastLineUictx',          setCoastLineUictx(hand)
 	case 'DeleteObj',               delete_obj(hand);
-	case 'DrawGreatCircle'
-        h = draw_greateCircle;
-        if ~isempty(h)      % when in compiled version h may be empty (why?).
-            set_greatCircle_uicontext(h)
-        end
-    case 'DrawCircleEulerPole'
-        h = draw_circleEulerPole(data(1),data(2));
-        if ~isempty(h)      % when in compiled version h may be empty (why?).
-            set_circleGeo_uicontext(h)
-        end
-    case 'DrawCartesianCircle'
-        h = draw_circleGeo;         % It also draws cartesian circles
-        if ~isempty(h)              % when in compiled version h may be empty (why?).
-            set_circleCart_uicontext(h)
-        end
-    case 'SessionRestoreCircle'     % Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
+	case 'DrawGreatCircle' 
+		h = draw_greateCircle;
+		if ~isempty(h)      % when in compiled version h may be empty (why?).
+			set_greatCircle_uicontext(h)
+		end
+	case 'DrawCircleEulerPole'
+		h = draw_circleEulerPole(data(1),data(2));  
+		if ~isempty(h)      % when in compiled version h may be empty (why?).
+			set_circleGeo_uicontext(h)
+		end
+	case 'DrawCartesianCircle'
+		h = draw_circleGeo;         % It also draws cartesian circles
+		if ~isempty(h)              % when in compiled version h may be empty (why?).
+			set_circleCart_uicontext(h)
+		end
+	case 'SessionRestoreCircle'     % Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
 		set_circleGeo_uicontext(hand)
-    case 'SessionRestoreCircleCart'     % Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
+	case 'SessionRestoreCircleCart'     % Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
 		set_circleCart_uicontext(hand)
-    case 'DrawText'
+	case 'DrawText'
 		cmenuHand = uicontextmenu;
 		set(hand, 'UIContextMenu', cmenuHand);
 		cb_color = uictx_color(hand);      % there are 9 cb_color outputs
@@ -61,9 +61,9 @@ switch opt
 		uimenu(cmenuHand, 'Label', 'Rotate text', 'Call', @rotate_text);
 		uimenu(cmenuHand, 'Label', 'Export text', 'Call', @export_text);
 		set(hand, 'ButtonDownFcn', 'move_obj(1)')
-    case 'DrawSymbol'
+	case 'DrawSymbol'
 		set_symbol_uicontext(hand)
-    case 'ImportLine'                   % read AND plot the line
+    case 'ImportLine'				% read AND plot the line
 		fname = hand;
 		hFig = get(0,'CurrentFigure');         hAxes = get(hFig,'CurrentAxes');
 		[bin,n_column,multi_seg,n_headers] = guess_file(fname);
@@ -1691,17 +1691,13 @@ function text_FontSize(obj,eventdata)
 
 % -----------------------------------------------------------------------------------------
 function export_text(obj,eventdata)
-	h = gco;
+	h = gco;		handles = guidata(h);
 	pos = get(h,'Position');    font = get(h,'FontName');      size = get(h,'FontSize');
 	str = get(h,'String');      angle = get(h,'Rotation');
 
-	handles = guidata(gcbo);        % I hope I don't get into troubles because of this!
-	cd(handles.work_dir)
-	[FileName,PathName] = uiputfile({ ...
-		'*.txt;*.TXT', 'Text file (*.txt,*.TXT)'; '*.*', 'All Files (*.*)'}, 'Select Text File name');
-	cd(handles.home_dir);       % allways come home to avoid troubles
-	if isequal(FileName,0);     refresh;  return;     end
-	pause(0.01)
+	str1 = {'*.txt;*.TXT', 'Text file (*.txt,*.TXT)'; '*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select Text File name','put','.txt');
+	if (isequal(FileName,0)),	refresh,	return,		end
 	fname = [PathName FileName];
 	fid = fopen(fname, 'w');
 	if (fid < 0),   errordlg(['Can''t open file:  ' fname],'Error');    return;     end
@@ -1715,9 +1711,9 @@ function set_symbol_uicontext(h,data)
 % symbols, points and of "volcano", "hotspot" & "ODP" class symbols. 
 tag = get(h,'Tag');
 if (length(h) == 1 && length(get(h,'Xdata')) > 1)
-    more_than_one = 1;     % Flags that h points to a multi-vertice object
+	more_than_one = 1;		% Flags that h points to a multi-vertice object
 else
-    more_than_one = 0;
+	more_than_one = 0;
 end
 
 handles = guidata(h(1));
@@ -1728,42 +1724,42 @@ seismicity_options = 0;
 tide_options = 0;
 
 if strcmp(tag,'hotspot')    % Then DATA must be a structure containing name & age for each hotspot
-    uimenu(cmenuHand, 'Label', 'Hotspot info', 'Callback', {@hotspot_info,h,data.name,data.age,[]});
-    uimenu(cmenuHand, 'Label', 'Plot name', 'Callback', {@hotspot_info,h,data.name,data.age,'text'});
-    separator = 1;
-    this_not = 1;           % It is used for not seting some options inapropriate to class symbols
+	uimenu(cmenuHand, 'Label', 'Hotspot info', 'Callback', {@hotspot_info,h,data.name,data.age,[]});
+	uimenu(cmenuHand, 'Label', 'Plot name', 'Callback', {@hotspot_info,h,data.name,data.age,'text'});
+	separator = 1;
+	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
 elseif strcmp(tag,'volcano')    % Then DATA must be a structure containing name, description & dating for each volcano
-    uimenu(cmenuHand, 'Label', 'Volcano info', 'Callback', {@volcano_info,h,data.name,data.desc,data.dating});
-    separator = 1;
-    this_not = 1;           % It is used for not seting some options inapropriate to class symbols
+	uimenu(cmenuHand, 'Label', 'Volcano info', 'Callback', {@volcano_info,h,data.name,data.desc,data.dating});
+	separator = 1;
+	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
 elseif strcmp(tag,'ODP')    % Then DATA must be a structure with leg, site, z, & penetration for each site
-    cb_ODPinfo = {@ODP_info,h,data.leg,data.site,data.z,data.penetration};
-    uimenu(cmenuHand, 'Label', 'ODP info', 'Callback', cb_ODPinfo);
-    separator = 1;
-    this_not = 1;           % It is used for not seting some options inapropriate to class symbols
+	cb_ODPinfo = {@ODP_info,h,data.leg,data.site,data.z,data.penetration};
+	uimenu(cmenuHand, 'Label', 'ODP info', 'Callback', cb_ODPinfo);
+	separator = 1;
+	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
 elseif strcmp(tag,'DSDP')   % Then DATA must be a structure with leg, site, z, & penetration for each site
-    cb_ODPinfo = {@ODP_info,h,data.leg,data.site,data.z,data.penetration};
-    uimenu(cmenuHand, 'Label', 'DSDP info', 'Callback', cb_ODPinfo);
-    separator = 1;
-    this_not = 1;           % It is used for not seting some options inapropriate to class symbols
+	cb_ODPinfo = {@ODP_info,h,data.leg,data.site,data.z,data.penetration};
+	uimenu(cmenuHand, 'Label', 'DSDP info', 'Callback', cb_ODPinfo);
+	separator = 1;
+	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
 elseif strcmp(tag,'City_major') || strcmp(tag,'City_other')
-    this_not = 1;
+	this_not = 1;
 elseif strcmp(tag,'Earthquakes')    % DATA is empty because I didn't store any info (they are too many)
-    seismicity_options = isappdata(h,'SeismicityTime');
-    this_not = 1;
+	seismicity_options = isappdata(h,'SeismicityTime');
+	this_not = 1;
 elseif strcmp(tag,'Pointpolyline')  % DATA is empty because it doesn't have any associated info
-    this_not = 0;
+	this_not = 0;
 elseif strcmp(tag,'TTT')            % DATA is empty
-    this_not = 0;
+	this_not = 0;
 elseif strcmp(tag,'TideStation')    % DATA is empty
-    tide_options = 1;
-    separator = 0;
-    this_not = 1;           % It is used for not seting some options inapropriate to class symbols
+	tide_options = 1;
+	separator = 0;
+	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
 end
 
 if (~this_not)   % non class symbols can be moved
-    ui_edit_polygon(h)    % Set edition functions
-    uimenu(cmenuHand, 'Label', 'Move (precise)', 'Callback', {@change_SymbPos,h});
+	ui_edit_polygon(h)    % Set edition functions
+	uimenu(cmenuHand, 'Label', 'Move (precise)', 'Callback', {@change_SymbPos,h});
 end
 
 if separator
@@ -1851,49 +1847,49 @@ function change_SymbPos(obj,eventdata,h)
 
 tag = get(h,'Tag');
 if (strcmp(tag,'Pointpolyline') || strcmp(tag,'Maregraph'))
-    pt = get(gca,'CurrentPoint');
-    xp = get(h,'XData');    yp = get(h,'YData');
-    % Find out which symb was selected
-    dif_x = xp - pt(1,1);   dif_y = yp - pt(1,2);
-    dist = sqrt(dif_x.^2 + dif_y.^2);   clear dif_x dif_y;
-    [B,IX] = sort(dist);    i = IX(1);  clear dist IX;
-    xx = xp(i);             yy = yp(i);
-    is_single = 0;
+	pt = get(gca,'CurrentPoint');
+	xp = get(h,'XData');    yp = get(h,'YData');
+	% Find out which symb was selected
+	dif_x = xp - pt(1,1);   dif_y = yp - pt(1,2);
+	dist = sqrt(dif_x.^2 + dif_y.^2);   clear dif_x dif_y;
+	[B,IX] = sort(dist);    i = IX(1);  clear dist IX;
+	xx = xp(i);             yy = yp(i);
+	is_single = 0;
 else                % Individual symbol
-    xx = get(h,'XData');        yy = get(h,'YData');
-    i = 1;
-    is_single = 1;
+	xx = get(h,'XData');        yy = get(h,'YData');
+	i = 1;
+	is_single = 1;
 end
 
 % Show the coordinates with same format as the axes label
 labelType = getappdata(gca,'LabelFormatType');
 if (~isempty(labelType))
-    switch labelType
-        case 'DegMin'
-            x_str = degree2dms(str2double( ddewhite(sprintf('%8f',xx)) ),'DDMM',0,'str');   % x_str is a structure with string fields
-            y_str = degree2dms(str2double( ddewhite(sprintf('%8f',yy)) ),'DDMM',0,'str');
-            xx = [x_str.dd ':' x_str.mm];
-            yy = [y_str.dd ':' y_str.mm];
-        case 'DegMinDec'
-            x_str = degree2dms(str2double( ddewhite(sprintf('%8f',xx)) ),'DDMM.x',2,'str');
-            y_str = degree2dms(str2double( ddewhite(sprintf('%8f',yy)) ),'DDMM.x',2,'str');
-            xx = [x_str.dd ':' x_str.mm];
-            yy = [y_str.dd ':' y_str.mm];
-        case 'DegMinSec'
-            x_str = degree2dms(str2double( ddewhite(sprintf('%8f',xx)) ),'DDMMSS',0,'str');
-            y_str = degree2dms(str2double( ddewhite(sprintf('%8f',yy)) ),'DDMMSS',0,'str');
-            xx = [x_str.dd ':' x_str.mm ':' x_str.ss];
-            yy = [y_str.dd ':' y_str.mm ':' y_str.ss];
-        case 'DegMinSecDec'
-            x_str = degree2dms(str2double( ddewhite(sprintf('%8f',xx)) ),'DDMMSS.x',1,'str');
-            y_str = degree2dms(str2double( ddewhite(sprintf('%8f',yy)) ),'DDMMSS.x',1,'str');
-            xx = [x_str.dd ':' x_str.mm ':' x_str.ss];
-            yy = [y_str.dd ':' y_str.mm ':' y_str.ss];
-        otherwise
-            xx = num2str(xx);    yy = num2str(yy);
-    end
-else
-    xx = num2str(xx);    yy = num2str(yy);
+	switch labelType
+		case 'DegMin'
+			x_str = degree2dms(str2double( ddewhite(sprintf('%8f',xx)) ),'DDMM',0,'str');   % x_str is a structure with string fields
+			y_str = degree2dms(str2double( ddewhite(sprintf('%8f',yy)) ),'DDMM',0,'str');
+			xx = [x_str.dd ':' x_str.mm];
+			yy = [y_str.dd ':' y_str.mm];
+		case 'DegMinDec'
+			x_str = degree2dms(str2double( ddewhite(sprintf('%8f',xx)) ),'DDMM.x',2,'str');
+			y_str = degree2dms(str2double( ddewhite(sprintf('%8f',yy)) ),'DDMM.x',2,'str');
+			xx = [x_str.dd ':' x_str.mm];
+			yy = [y_str.dd ':' y_str.mm];
+		case 'DegMinSec'
+			x_str = degree2dms(str2double( ddewhite(sprintf('%8f',xx)) ),'DDMMSS',0,'str');
+			y_str = degree2dms(str2double( ddewhite(sprintf('%8f',yy)) ),'DDMMSS',0,'str');
+			xx = [x_str.dd ':' x_str.mm ':' x_str.ss];
+			yy = [y_str.dd ':' y_str.mm ':' y_str.ss];
+		case 'DegMinSecDec'
+			x_str = degree2dms(str2double( ddewhite(sprintf('%8f',xx)) ),'DDMMSS.x',1,'str');
+			y_str = degree2dms(str2double( ddewhite(sprintf('%8f',yy)) ),'DDMMSS.x',1,'str');
+			xx = [x_str.dd ':' x_str.mm ':' x_str.ss];
+			yy = [y_str.dd ':' y_str.mm ':' y_str.ss];
+		otherwise
+			xx = num2str(xx);    yy = num2str(yy);
+	end
+else   
+	xx = num2str(xx);    yy = num2str(yy);
 end
 
 prompt = {'Enter new lon (or x)' ,'Enter new lat (or y)'};
@@ -1907,32 +1903,32 @@ x = 0;     y = 0;
 for (k = 1:length(val_x)),  x = x + sign(str2double(val_x{1}))*abs(str2double(val_x{k})) / (60^(k-1));    end
 for (k = 1:length(val_y)),  y = y + sign(str2double(val_y{1}))*abs(str2double(val_y{k})) / (60^(k-1));    end
 
-if (is_single)      % Individual symbol
-    xp = x;         yp = y;
-else                % Picked symbol from a list
-    xp(i) = x;      yp(i) = y;
+if (is_single)		% Individual symbol   
+	xp = x;			yp = y;
+else				% Picked symbol from a list
+	xp(i) = x;		yp(i) = y;
 end
 set(h, 'XData', xp, 'YData', yp);
 
 % -----------------------------------------------------------------------------------------
 function remove_one_from_many(obj,eventdata,h)
 %Delete one symbol that belongs to a class (in fact a vertex of a polyline)
-pt = get(gca,'CurrentPoint');
-xp = get(h,'XData');    yp = get(h,'YData');
-l = length(xp);
-if (iscell(xp))     % These stupids might be cell arrays, so they need to be converted to vectors
-    x = zeros(1,l);    y = zeros(1,l);
-    for i=1:l
-        x(i) = xp{i};   y(i) = yp{i};
-    end
-    xp = x;     yp = y;
-end
-% Find out which symb was selected
-dif_x = xp - pt(1,1);   dif_y = yp - pt(1,2);
-dist = sqrt(dif_x.^2 + dif_y.^2);   clear dif_x dif_y;
-[B,IX] = sort(dist);    i = IX(1);  clear dist IX;
-xp(i) = [];     yp(i) = [];
-set(h, 'XData',xp, 'YData',yp,'LineStyle','none');
+	pt = get(gca,'CurrentPoint');
+	xp = get(h,'XData');    yp = get(h,'YData');
+	l = length(xp);
+	if (iscell(xp))     % These stupids might be cell arrays, so they need to be converted to vectors   
+		x = zeros(1,l);    y = zeros(1,l);   
+		for i=1:l
+			x(i) = xp{i};   y(i) = yp{i};
+		end   
+		xp = x;     yp = y;
+	end
+	% Find out which symb was selected
+	dif_x = xp - pt(1,1);   dif_y = yp - pt(1,2);
+	dist = sqrt(dif_x.^2 + dif_y.^2);   clear dif_x dif_y;
+	[B,IX] = sort(dist);    i = IX(1);  clear dist IX;
+	xp(i) = [];     yp(i) = [];
+	set(h, 'XData',xp, 'YData',yp,'LineStyle','none');
 
 % -----------------------------------------------------------------------------------------
 function other_SymbSize(obj,eventdata,h)
@@ -1981,35 +1977,32 @@ function remove_singleContour(obj,eventdata,h)
 % -----------------------------------------------------------------------------------------
 function save_line(obj,eventdata,h)
 % Save either individual as well as class lines. The latter uses the ">" symbol to separate segments
-if (nargin == 3),   h = h(ishandle(h));     end
-handles = guidata(gcbo);        % I hope I don't get into troubles because of this!
-cd(handles.work_dir)
-[FileName,PathName] = uiputfile({ ...
-    '*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select Symbol File name');
-cd(handles.home_dir);       % allways go home to avoid troubles
-if isequal(FileName,0);   return;     end
-pause(0.01)
-if (nargin == 2)    % Save only one line
-    x = get(gco,'XData');    y = get(gco,'YData');
-else                % Save a line class
-    x = get(h,'XData');      y = get(h,'YData');
-end
-
-fname = [PathName FileName];
-[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-if isempty(EXT),    fname = [PathName FNAME '.dat'];    end
-
-fid = fopen(fname, 'w');
-if (fid < 0),   errordlg(['Can''t open file:  ' fname],'Error');    return;     end
-if (~iscell(x))
-   	fprintf(fid,'%.5f\t%.5f\n',[x(:)'; y(:)']);
-else
-    for i=1:length(h)
-        fprintf(fid,'%s\n','>');
-        fprintf(fid,'%.5f\t%.5f\n',[x{i}(:)'; y{i}(:)']);
-    end
-end
-fclose(fid);
+	if (nargin == 3),   h = h(ishandle(h));     end
+	handles = guidata(gcbo);
+	str1 = {'*.dat;*.DAT', 'Line file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select Line File name','put','.dat');
+	if isequal(FileName,0),		return,		end
+	if (nargin == 2)	% Save only one line   
+		x = get(gco,'XData');    y = get(gco,'YData');
+	else				% Save a line class
+		x = get(h,'XData');      y = get(h,'YData');
+	end
+	
+	fname = [PathName FileName];
+	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
+	if isempty(EXT),    fname = [PathName FNAME '.dat'];    end
+	
+	fid = fopen(fname, 'w');
+	if (fid < 0),   errordlg(['Can''t open file:  ' fname],'Error');    return;     end
+	if (~iscell(x))
+		fprintf(fid,'%.5f\t%.5f\n',[x(:)'; y(:)']);
+	else
+		for i=1:length(h)
+			fprintf(fid,'%s\n','>');
+			fprintf(fid,'%.5f\t%.5f\n',[x{i}(:)'; y{i}(:)']);
+		end
+	end
+	fclose(fid);
 
 % -----------------------------------------------------------------------------------------
 function export_symbol(obj,eventdata,h, opt)
@@ -2049,48 +2042,42 @@ function save_formated(obj,eventdata, h, opt)
 
 % -----------------------------------------------------------------------------------------
 function doSave_formated(xx, yy, opt_z)
-	% Save x,y[,z] vars into a file but taking into account the 'LabelFormatType'
-	% OPT_Z is what the name says, optional
+% Save x,y[,z] vars into a file but taking into account the 'LabelFormatType'
+% OPT_Z is what the name says, optional
 	hFig = get(0,'CurrentFigure');
 	handles = guidata(hFig);
-	cd(handles.work_dir)
-	[FileName,PathName] = uiputfile({ ...
-        '*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select Symbol File name');
-	cd(handles.home_dir);       % allways come home to avoid troubles
-	if isequal(FileName,0),   return;     end
-	pause(0.01)
-
-	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-	if isempty(EXT),    f_name = [PathName FNAME '.dat'];
-	else                f_name = [PathName FNAME EXT];       end
-
+	str1 = {'*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select Symbol File name','put','.dat');
+	if isequal(FileName,0),		return,		end
+	f_name = [PathName FileName];
+	
 	% Save data with a format determined by axes format
-	labelType = getappdata(handles.axes1,'LabelFormatType');             % find the axes label format
-	if isempty(labelType),      labelType = ' ';        end     % untempered matlab axes labels
+	labelType = getappdata(handles.axes1,'LabelFormatType');	% find the axes label format
+	if isempty(labelType),		labelType = ' ';		end		% untempered matlab axes labels
 	switch labelType
-        case {' ','DegDec','NotGeog'}
-            xy = [xx(:) yy(:)];
-            fmt = '%f\t%f';
-        case 'DegMin'
-            out_x = degree2dms(xx,'DDMM',0,'numeric');        out_y = degree2dms(yy,'DDMM',0,'numeric');
-            xy = [out_x.dd(:) out_x.mm(:) out_y.dd(:) out_y.mm(:)];
-            fmt = '%4d %02d\t%4d %02d';
-        case 'DegMinDec'        % I'm writing the minutes with a precision of 2 decimals
-            out_x = degree2dms(xx,'DDMM.x',2,'numeric');      out_y = degree2dms(yy,'DDMM.x',2,'numeric');
-            xy = [out_x.dd(:) out_x.mm(:) out_y.dd(:) out_y.mm(:)];
-            fmt = '%4d %02.2f\t%4d %02.2f';
-        case 'DegMinSec'
-            out_x = degree2dms(xx,'DDMMSS',0,'numeric');      out_y = degree2dms(yy,'DDMMSS',0,'numeric');
-            xy = [out_x.dd(:) out_x.mm(:) out_x.ss(:) out_y.dd(:) out_y.mm(:) out_y.ss(:)];
-            fmt = '%4d %02d %02d\t%4d %02d %02d';
-        case 'DegMinSecDec'     % I'm writing the seconds with a precision of 2 decimals
-            out_x = degree2dms(xx,'DDMMSS',2,'numeric');      out_y = degree2dms(yy,'DDMMSS',2,'numeric');
-            xy = [out_x.dd(:) out_x.mm(:) out_x.ss(:) out_y.dd(:) out_y.mm(:) out_y.ss(:)];
-            fmt = '%4d %02d %02.2f\t%4d %02d %02.2f';
+		case {' ','DegDec','NotGeog'}
+			xy = [xx(:) yy(:)];
+			fmt = '%f\t%f';
+		case 'DegMin'
+			out_x = degree2dms(xx,'DDMM',0,'numeric');        out_y = degree2dms(yy,'DDMM',0,'numeric');
+			xy = [out_x.dd(:) out_x.mm(:) out_y.dd(:) out_y.mm(:)];
+			fmt = '%4d %02d\t%4d %02d';
+		case 'DegMinDec'        % I'm writing the minutes with a precision of 2 decimals
+			out_x = degree2dms(xx,'DDMM.x',2,'numeric');      out_y = degree2dms(yy,'DDMM.x',2,'numeric');
+			xy = [out_x.dd(:) out_x.mm(:) out_y.dd(:) out_y.mm(:)];
+			fmt = '%4d %02.2f\t%4d %02.2f';
+		case 'DegMinSec'
+			out_x = degree2dms(xx,'DDMMSS',0,'numeric');      out_y = degree2dms(yy,'DDMMSS',0,'numeric');
+			xy = [out_x.dd(:) out_x.mm(:) out_x.ss(:) out_y.dd(:) out_y.mm(:) out_y.ss(:)];
+			fmt = '%4d %02d %02d\t%4d %02d %02d';
+		case 'DegMinSecDec'     % I'm writing the seconds with a precision of 2 decimals
+			out_x = degree2dms(xx,'DDMMSS',2,'numeric');      out_y = degree2dms(yy,'DDMMSS',2,'numeric');
+			xy = [out_x.dd(:) out_x.mm(:) out_x.ss(:) out_y.dd(:) out_y.mm(:) out_y.ss(:)];
+			fmt = '%4d %02d %02.2f\t%4d %02d %02.2f';		
 	end
-
-	if (nargin == 3)
-        xy = [xy opt_z(:)];    fmt = [fmt '\t%f'];
+	
+	if (nargin == 3)      
+		xy = [xy opt_z(:)];    fmt = [fmt '\t%f'];
 	end
 	double2ascii(f_name,xy,fmt,'maybeMultis');
 
@@ -2126,15 +2113,15 @@ function hotspot_info(obj,eventdata,h,name,age,opt)
 function tidesStuff(obj,eventdata,h,opt)
 	pt = get(gca,'CurrentPoint');
 	if (strcmp(opt,'plot'))
-        t_xtide(pt(1,1),pt(1,2));
+		t_xtide(pt(1,1),pt(1,2));
 	elseif (strcmp(opt,'info'))
-        info = t_xtide(pt(1,1),pt(1,2),'format','info');
-        str{1} = info.station;
-        str{2} = ['Position: Lon = ' num2str(info.longitude) '  Lat = ' num2str(info.latitude)];
-        str{3} = ['Timezone: UTC ' num2str(info.timezone)];
-        str{4} = ['Datum: ' num2str(info.datum)];
-        str{5} = ['Number of constit = ' num2str(length(info.freq))];
-        msgbox(str,'Satation info')
+		info = t_xtide(pt(1,1),pt(1,2),'format','info');
+		str{1} = info.station;
+		str{2} = ['Position: Lon = ' num2str(info.longitude) '  Lat = ' num2str(info.latitude)];
+		str{3} = ['Timezone: UTC ' num2str(info.timezone)];
+		str{4} = ['Datum: ' num2str(info.datum)];
+		str{5} = ['Number of constit = ' num2str(length(info.freq))];
+		msgbox(str,'Satation info')
 	% elseif (strcmp(opt,'calendar'))
 	%     date = clock;
 	%     tim = datenum(date(1),date(2),1):1/24:datenum(date(1),date(2),31);
@@ -2179,20 +2166,20 @@ function PB_All_Info(obj,eventdata,h,data)
 i = get(gco,'Userdata');
 txt_id = [];    txt_class = [];
 switch char(data(i).pb_id)
-    case {'EU-NA','NA-EU'},         txt_id = 'Eurasia-North America';
-    case {'AF-NA','NA-AF'},         txt_id = 'Africa-North America';
-    case 'EU-AF',                   txt_id = 'Eurasia-Africa';
-    case {'AF-AN','AN-AF'},         txt_id = 'Africa-Antartica';
+	case {'EU-NA','NA-EU'},         txt_id = 'Eurasia-North America';
+	case {'AF-NA','NA-AF'},         txt_id = 'Africa-North America';
+	case 'EU-AF',                   txt_id = 'Eurasia-Africa';
+	case {'AF-AN','AN-AF'},         txt_id = 'Africa-Antartica';
 end
 
 switch char(data(i).class)      % Make Type-of-Boundary text
-    case 'OTF',        txt_class = 'Oceanic Transform Fault';
-    case 'OSF',        txt_class = 'Oceanic Spreadin Ridge';
-    case 'CRB',        txt_class = 'Continental Rift Boundary';
-    case 'CTF',        txt_class = 'Continental Transform Fault';
-    case 'CCB',        txt_class = 'Continental Convergent Boundary';
-    case 'OCB',        txt_class = 'Oceanic Convergent Boundary';
-    case 'SUB',        txt_class = 'Subduction Zone';
+	case 'OTF',        txt_class = 'Oceanic Transform Fault';
+	case 'OSF',        txt_class = 'Oceanic Spreadin Ridge';
+	case 'CRB',        txt_class = 'Continental Rift Boundary';
+	case 'CTF',        txt_class = 'Continental Transform Fault';
+	case 'CCB',        txt_class = 'Continental Convergent Boundary';
+	case 'OCB',        txt_class = 'Oceanic Convergent Boundary';
+	case 'SUB',        txt_class = 'Subduction Zone';
 end
 
 if isempty(txt_id),     txt_id = char(data(i).pb_id);   end      % If id was not decoded, print id
