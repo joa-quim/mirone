@@ -79,18 +79,11 @@ function varargout = run_cmd(varargin)
 function push_compute_Callback(hObject, eventdata, handles)
 	com = get(handles.edit_com, 'String');
 	if (isempty(com)),	return,		end			% Idiot call
-
-% 	ind = strfind(com, '=');
-% 	if (isempty(ind))
-% 		com = ['Z = ' com ';'];
-% 	else
-% 		com = [com ';'];
-% 	end
 	com = [com ';'];
 
 	fname = 'runCmd_cmd.m';
 	
-	% Write the running command in a temporary file 
+	% Write the running command in a temporary file (This was an experimental idea, which is not in use)
 	fid = fopen(fname,'w');
 	fprintf(fid,'function Z = runCmd_cmd(arg1)\n');
 	fprintf(fid,'Z = arg1.Z;\n');
@@ -100,7 +93,8 @@ function push_compute_Callback(hObject, eventdata, handles)
 	fprintf(fid,'\tle = lasterr;\n');
 	fprintf(fid,'\tind = strfind(le, ''values of class'');\n');	% Screwed. Use lasterr to see if it was due to fck double issue
 	fprintf(fid,'\tif (~isempty(ind))\n');
-	fprintf(fid,'\t\tZ = double(Z);\n\tend\n');		% Try again with fck doubles
+	fprintf(fid,'\t\tZ = double(Z);\n');		% Try again with fck doubles
+	fprintf(fid,'\t\tclaZ = le(ind+17:end-2);\n\tend\n');	% Signal that we have to convert from doubles
 	fprintf(fid,'\ttry\n\t\t%s\n\tend\n', com);
 	fprintf(fid,'end\n');
 
@@ -175,9 +169,12 @@ catch
 	ind = strfind(le, 'values of class');
 	if (~isempty(ind))
 		Z = double(Z);
+		claZ = le(ind+17:end-2);		% Signal that we have to convert from doubles
 	end
 	try
 		Z = eval(cmd);
+	catch
+		errordlg(['Failed to run command. Probably you are running the compiled version. Error message was: ' lasterr],'ERROR')
 	end
 end
 if (~isempty(claZ))
@@ -244,17 +241,9 @@ uicontrol('Parent',h1,...
 'Callback',{@run_cmd_uicallback,h1,'push_compute_Callback'},...
 'FontName','Helvetica',...
 'FontSize',10,...
-'Position',[240 8 71 24],...
+'Position',[330 8 71 24],...
 'String','Compute',...
 'Tag','push_compute');
-
-uicontrol('Parent',h1,...
-'Callback','delete(gcf)',...
-'FontName','Helvetica',...
-'FontSize',10,...
-'Position',[330 8 71 24],...
-'String','Cancel',...
-'Tag','push_cancel');
 
 uicontrol('Parent',h1,...
 'Callback',{@run_cmd_uicallback,h1,'radio_onImage_Callback'},...
