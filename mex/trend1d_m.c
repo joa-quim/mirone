@@ -159,6 +159,11 @@ struct	TREND1D_DATA {
 	double	w;
 };
 
+int	GMT_ln_gamma_r(double x, double *lngam);
+int	GMT_comp_double_asc (const void *p_1, const void *p_2);
+double	GMT_ln_gamma (double xx);
+double	GMT_cf_beta (double a, double b, double x);
+
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
 
@@ -192,14 +197,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	void solve_system(double *gtg, double *gtd, double *model, int n_model, int mp, double *lambda, double *v, double *b, double *z, double c_no, int *ir);
 	void	GMT_cheb_to_pol (double c[], int n, double a, double b);
 	int	GMT_jacobi (double *a, int *n, int *m, double *d, double *v, double *b, double *z, int *nrots);
-	int	GMT_ln_gamma_r(double x, double *lngam);
 	int	GMT_inc_beta (double a, double b, double x, double *ibeta);
 	int     GMT_f_q (double chisq1, int nu1, double chisq2, int nu2, double *prob);
 	int	GMT_f_test_new (double chisq1, int nu1, double chisq2, int nu2, double *prob, int iside);
 	int	GMT_sig_f (double chi1, int n1, double chi2, int n2, double level, double *prob);
-	int	GMT_comp_double_asc (const void *p_1, const void *p_2);
-	double	GMT_ln_gamma (double xx);
-	double	GMT_cf_beta (double a, double b, double x);
 	void	*New_Trend1d_Ctrl (), Free_Trend1d_Ctrl (struct TREND1D_CTRL *C);
 
 	argc = nrhs;
@@ -278,7 +279,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	if (argc == 1 || error) {
-		mexPrintf("trend1d - Fit a [weighted] [robust] polynomial [or Fourier] model for y = f(x) to ascii xy[w]\n\n");
+		mexPrintf("trend1d - Fit a [weighted] [robust] polynomial [or Fourier] model for y = f(x) to xy[w]\n\n");
 		mexPrintf("usage:  [out, lin_params] = trend1d_m(in_array, '-F<xymrw>', '-N[f]<n_model>[r]', '[-C<condition_#>],'\n");
 		mexPrintf("\t'[-I[<confidence>]]', '[-L]', '[-W])'\n\n");
 
