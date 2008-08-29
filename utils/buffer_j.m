@@ -108,29 +108,22 @@ if iscell(lat)
 	[lat, lon] = map_funs('polyjoin',lat, lon);		% In case multiple faces in one cell.
 end
 
-lat = lat(:);
-lon = lon(:);
+lat = lat(:);	lon = lon(:);
 [latcells, loncells] = map_funs('polysplit',lat, lon);
 
 %---------------------------
 % Create buffer shapes
 %---------------------------
-
 latcrall = cell(0);		loncrall = cell(0);
 
 for (ipoly = 1:length(latcells))		% Circles around each vertex
     
 	range = repmat(dist, size(latcells{ipoly}));
-% 	[lattemp, lontemp] = scircle1(latcells{ipoly}, loncells{ipoly}, range, [], [], [], npts);
  	[lattemp, lontemp] = circ_geo(latcells{ipoly}, loncells{ipoly}, range, [], npts);
-%	lattemp = lattemp';		lontemp = lontemp';
 
-% 	latc = lattemp(:,1);    lonc = lontemp(:,1);
 	latc = lattemp(1,:);    lonc = lontemp(1,:);
-%	for (icirc = 2:size(lattemp,2))
 	for (icirc = 2:size(lattemp,1))
 		P1.x = lonc;	P1.y = latc;	P1.hole = 0;
-% 		P2.x = lontemp(:,icirc);		P2.y = lattemp(:,icirc);	P2.hole = 0;
 		P2.x = lontemp(icirc,:);		P2.y = lattemp(icirc,:);	P2.hole = 0;
 		P3 = PolygonClip(P1, P2, 3);
 		lonc = [P3(1).x; P3(1).x(1)];	latc = [P3(1).y;  P3(1).y(1)];		% Add first pt to close (bug in PolygonClip?)
@@ -143,11 +136,6 @@ for (ipoly = 1:length(latcells))		% Circles around each vertex
 	% Rectangles around each edge
 	range(end) = [];
 	az = azimuth_geo(latcells{ipoly}(1:end-1), loncells{ipoly}(1:end-1), latcells{ipoly}(2:end), loncells{ipoly}(2:end));
-% 	az = azimuth(latcells{ipoly}(1:end-1), loncells{ipoly}(1:end-1), latcells{ipoly}(2:end), loncells{ipoly}(2:end));
-% 	[latbl1,lonbl1] = reckon(latcells{ipoly}(1:end-1), loncells{ipoly}(1:end-1), range, az-90);
-% 	[latbr1,lonbr1] = reckon(latcells{ipoly}(1:end-1), loncells{ipoly}(1:end-1), range, az+90);
-% 	[latbl2,lonbl2] = reckon(latcells{ipoly}(2:end),   loncells{ipoly}(2:end),   range, az-90);
-% 	[latbr2,lonbr2] = reckon(latcells{ipoly}(2:end),   loncells{ipoly}(2:end),   range, az+90);
 
 	[latbl1,lonbl1] = circ_geo(latcells{ipoly}(1:end-1), loncells{ipoly}(1:end-1), range, az-90, 1);
 	[latbr1,lonbr1] = circ_geo(latcells{ipoly}(1:end-1), loncells{ipoly}(1:end-1), range, az+90, 1);
