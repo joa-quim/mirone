@@ -514,6 +514,7 @@ utils/axes2pix.m -text
 utils/azimuth_geo.m -text
 utils/bi_linear.m -text
 utils/bpass3d.m -text
+utils/buffer_j.m -text
 utils/bwbound_unique.m -text
 utils/bwboundariesmex.dll -text
 utils/bwlabel1.dll -text
