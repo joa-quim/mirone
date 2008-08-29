@@ -375,6 +375,7 @@ mex/houghmex.cpp -text
 mex/igrf_m.c -text
 mex/ind2rgb8.c -text
 mex/intlutc.c -text
+mex/iptcheckinput.cpp -text
 mex/isf_head.h -text
 mex/make_mexs.m -text
 mex/mansinha_m.c -text
