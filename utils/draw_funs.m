@@ -86,10 +86,10 @@ switch opt
 		else
 			[numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
 		end
-        
-        % Project if we need
-        handles = guidata(hFig);
-        if (handles.is_projected && handles.defCoordsIn > 0)
+           
+		% Project if we need
+		handles = guidata(hFig);
+		if (handles.is_projected && handles.defCoordsIn > 0)
             try
                 if (iscell(numeric_data))
                     for i=1:numel(numeric_data)
@@ -105,16 +105,16 @@ switch opt
         
         % If OUT is requested there is nothing left to be done here
         if (nargout)
-            OUT = numeric_data;     return
+			OUT = numeric_data;     return
         end
             
         if (hFig ~= hMsgFig);       figure(hFig);    axes(hAxes);   end     % gain access to the drawing figure
         % Get rid of points that are outside the map limits
         tol = 0.5;
         if (iscell(numeric_data))
-            n_segments = length(numeric_data);
+			n_segments = length(numeric_data);
         else
-            n_segments = 1;
+			n_segments = 1;
         end
         XYlim = getappdata(handles.axes1,'ThisImageLims');
         xx = XYlim(1:2);            yy = XYlim(3:4);
@@ -122,35 +122,35 @@ switch opt
         lt = handles.DefLineThick;   lc = handles.DefLineColor;
         for i=1:n_segments
             if (iscell(numeric_data))
-                tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
+				tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
             else
-                tmpx = numeric_data(:,1);       tmpy = numeric_data(:,2);
+				tmpx = numeric_data(:,1);       tmpy = numeric_data(:,2);
             end
             ind = find(tmpx < xx(1)-tol | tmpx > xx(2)+tol);
             tmpx(ind) = [];         tmpy(ind) = [];
             ind = find(tmpy < yy(1)-tol | tmpy > yy(2)+tol);
             tmpx(ind) = [];         tmpy(ind) = [];
             switch data
-                case 'AsLine'
-                    % The following Tag is very important to tell from MB tracks, which have Tags = MBtrack#
-                    lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','polyline');
-                    set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
-                case 'AsPoint'
-                    lineHand = plot(tmpx,tmpy,'ko','MarkerEdgeColor','w','MarkerFaceColor','k', ...
-                        'MarkerSize',4,'Tag','Pointpolyline');
-                    set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu (tag is very important)
-                case 'AsMaregraph'
-                    lineHand = plot(tmpx,tmpy,'Marker','o','MarkerFaceColor','y',...
-                        'MarkerEdgeColor','k','MarkerSize',10,'Tag','Maregraph');
-                    set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu
-                case 'FaultTrace'
-                    lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','FaultTrace');
-                    set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
-                    % Create empty patches that will contain the surface projection of the fault plane
-                    for (k=1:length(tmpx)-1),   hp(k) = patch('XData', [], 'YData',[]);    end
-                    setappdata(lineHand,'PatchHand',hp);
-            end
-        end
+				case 'AsLine'
+					% The following Tag is very important to tell from MB tracks, which have Tags = MBtrack#
+					lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','polyline');
+					set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
+				case 'AsPoint'
+					lineHand = plot(tmpx,tmpy,'ko','MarkerEdgeColor','w','MarkerFaceColor','k', ...
+						'MarkerSize',4,'Tag','Pointpolyline');
+					set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu (tag is very important)
+				case 'AsMaregraph'
+					lineHand = plot(tmpx,tmpy,'Marker','o','MarkerFaceColor','y',...
+						'MarkerEdgeColor','k','MarkerSize',10,'Tag','Maregraph');
+					set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu					
+				case 'FaultTrace'
+					lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','FaultTrace');
+					set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
+					% Create empty patches that will contain the surface projection of the fault plane
+					for (k=1:length(tmpx)-1),   hp(k) = patch('XData', [], 'YData',[]);    end
+					setappdata(lineHand,'PatchHand',hp);
+			end
+		end
 		clear numeric_data;     hold off
 	case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation'}
 		set_symbol_uicontext(hand,data)
@@ -173,32 +173,32 @@ end
 % -----------------------------------------------------------------------------------------
 function setLineStyle(item,cbs)
 	% Set the line Style uicontexts of graphic elements
-	uimenu(item, 'Label', 'solid', 'Callback', cbs{1});
-	uimenu(item, 'Label', 'dashed', 'Callback', cbs{2});
-	uimenu(item, 'Label', 'dotted', 'Callback', cbs{3});
-	uimenu(item, 'Label', 'dash-dotted', 'Callback', cbs{4});
+	uimenu(item, 'Label', 'solid', 'Call', cbs{1});
+	uimenu(item, 'Label', 'dashed', 'Call', cbs{2});
+	uimenu(item, 'Label', 'dotted', 'Call', cbs{3});
+	uimenu(item, 'Label', 'dash-dotted', 'Call', cbs{4});
 
 % -----------------------------------------------------------------------------------------
 function setLineColor(item,cbs)
 	% Set the line color uicontexts of graphic elements
-	uimenu(item, 'Label', 'Black', 'Callback', cbs{1});
-	uimenu(item, 'Label', 'White', 'Callback', cbs{2});
-	uimenu(item, 'Label', 'Red', 'Callback', cbs{3});
-	uimenu(item, 'Label', 'Green', 'Callback', cbs{4});
-	uimenu(item, 'Label', 'Blue', 'Callback', cbs{5});
-	uimenu(item, 'Label', 'Yellow', 'Callback', cbs{6});
-	uimenu(item, 'Label', 'Cyan', 'Callback', cbs{7});
-	uimenu(item, 'Label', 'Magenta', 'Callback', cbs{8});
-	uimenu(item, 'Label', 'Other...', 'Callback', cbs{9});
+	uimenu(item, 'Label', 'Black', 'Call', cbs{1});
+	uimenu(item, 'Label', 'White', 'Call', cbs{2});
+	uimenu(item, 'Label', 'Red', 'Call', cbs{3});
+	uimenu(item, 'Label', 'Green', 'Call', cbs{4});
+	uimenu(item, 'Label', 'Blue', 'Call', cbs{5});
+	uimenu(item, 'Label', 'Yellow', 'Call', cbs{6});
+	uimenu(item, 'Label', 'Cyan', 'Call', cbs{7});
+	uimenu(item, 'Label', 'Magenta', 'Call', cbs{8});
+	uimenu(item, 'Label', 'Other...', 'Call', cbs{9});
 
 % -----------------------------------------------------------------------------------------
 function setLineWidth(item,cbs)
 	% Set the line color uicontexts of graphic elements
-	uimenu(item, 'Label', '1       pt', 'Callback', cbs{1});
-	uimenu(item, 'Label', '2       pt', 'Callback', cbs{2});
-	uimenu(item, 'Label', '3       pt', 'Callback', cbs{3});
-	uimenu(item, 'Label', '4       pt', 'Callback', cbs{4});
-	uimenu(item, 'Label', 'Other...', 'Callback', cbs{5});
+	uimenu(item, 'Label', '1       pt', 'Call', cbs{1});
+	uimenu(item, 'Label', '2       pt', 'Call', cbs{2});
+	uimenu(item, 'Label', '3       pt', 'Call', cbs{3});
+	uimenu(item, 'Label', '4       pt', 'Call', cbs{4});
+	uimenu(item, 'Label', 'Other...', 'Call', cbs{5});
 
 % -----------------------------------------------------------------------------------------
 function set_SHPline_uicontext(h,opt)
@@ -207,9 +207,9 @@ function set_SHPline_uicontext(h,opt)
 handles = guidata(h(1));
 for (i = 1:numel(h))
 	cmenuHand = uicontextmenu('Parent',handles.figure1);      set(h(i), 'UIContextMenu', cmenuHand);
-    uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated,h});
-	uimenu(cmenuHand, 'Label', 'Delete this line', 'Callback', {@del_line,h(i)});
-	uimenu(cmenuHand, 'Label', 'Delete class', 'Callback', 'delete(findobj(''Tag'',''SHPpolyline''))');
+    uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', {@del_line,h(i)});
+	uimenu(cmenuHand, 'Label', 'Delete class', 'Call', 'delete(findobj(''Tag'',''SHPpolyline''))');
 	%ui_edit_polygon(h(i))    % Set edition functions   
 	
 	cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
@@ -218,13 +218,13 @@ for (i = 1:numel(h))
 	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-	uimenu(item_lw, 'Label', 'Other...', 'Callback', {@other_LineWidth,h(i)});
+	uimenu(item_lw, 'Label', 'Other...', 'Call', {@other_LineWidth,h(i)});
 	
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
 	setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dashdot})
 	
 	item7 = uimenu(cmenuHand, 'Label', 'Line Color');
-	uimenu(item7, 'Label', 'Other...', 'Callback', {@other_color,h(i)});    
+	uimenu(item7, 'Label', 'Other...', 'Call', {@other_color,h(i)});    
 end
 
 % -----------------------------------------------------------------------------------------
@@ -282,23 +282,23 @@ elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the 
 	% Old style edit function. New edit is provided by ui_edit_polygon which doesn't work with mbtracks 
 	uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Call', 'edit_track_mb');
 end
-uimenu(cmenuHand, 'Label', label_save, 'Callback', {@save_formated,h});
+uimenu(cmenuHand, 'Label', label_save, 'Call', {@save_formated,h});
 if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))     % Those are not to allowed to copy
 	if (~LINE_ISCLOSED)
 		uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
 	end
 	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
 end
-if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_length, 'Callback', @show_LineLength);		end
-if (IS_MBTRACK),		uimenu(cmenuHand, 'Label', 'All tracks length', 'Callback', @show_AllTrackLength);	end
-if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_azim, 'Callback', @show_lineAzims);	end
+if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength);		end
+if (IS_MBTRACK),		uimenu(cmenuHand, 'Label', 'All tracks length', 'Call', @show_AllTrackLength);	end
+if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_azim, 'Call', @show_lineAzims);	end
 
 if (LINE_ISCLOSED)
     uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
 	if (~IS_RECTANGLE && ~handles.validGrid)
 		uimenu(cmenuHand, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)','Sep','on');
 		if (handles.image_type == 3)
-				uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Callback', ...
+				uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Call', ...
 				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
 		end
 	end
@@ -364,15 +364,15 @@ if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
 		uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
     end
     if (strcmp(get(h,'Tag'),'EulerTrapezium'))
-        uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Separator','on', 'Callback',...
+        uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Separator','on', 'Call',...
             'calcBoninEulerPole(get(gco,''XData''), get(gco,''YData''));' );
     end
     cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
-    uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
+    uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', cb_roi);
 end
 
 if (strcmp(get(h,'Tag'),'FaultTrace'))      % For Okada modeling
-	uimenu(cmenuHand, 'Label', 'Okada', 'Separator','on', 'Callback', {@okada_model,h,'okada'});    
+	uimenu(cmenuHand, 'Label', 'Okada', 'Separator','on', 'Call', {@okada_model,h,'okada'});    
 	uimenu(cmenuHand, 'Label', 'Mansinha', 'Call', {@okada_model,h,'mansinha'});    
 end
 
@@ -484,20 +484,20 @@ handles = guidata(h(1));
 for (i = 1:numel(h))
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h(i), 'UIContextMenu', cmenuHand);
-    uimenu(cmenuHand, 'Label', 'Save line', 'Callback', @save_line);
-	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+    uimenu(cmenuHand, 'Label', 'Save line', 'Call', @save_line);
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	cb_LineWidth = uictx_LineWidth(h(i));      % there are 5 cb_LineWidth outputs
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-	uimenu(item_lw, 'Label', '1     pt', 'Callback', cb_LineWidth{1});
-	uimenu(item_lw, 'Label', 'Other...', 'Callback', cb_LineWidth{5});
+	uimenu(item_lw, 'Label', '1     pt', 'Call', cb_LineWidth{1});
+	uimenu(item_lw, 'Label', 'Other...', 'Call', cb_LineWidth{5});
 	item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Separator','on');
 	cb_color = uictx_color(h(i),'facecolor');      % there are 9 cb_color outputs
-	uimenu(item8, 'Label', 'Other...', 'Callback', cb_color{9});
-	uimenu(item8, 'Label', 'None', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
-	uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
+	uimenu(item8, 'Label', 'Other...', 'Call', cb_color{9});
+	uimenu(item8, 'Label', 'None', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
+	uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
 	uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
 	if (handles.image_type ~= 20)
-		uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', ...
+		uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', ...
 			'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
 	end
 end
@@ -555,15 +555,15 @@ function set_SRTM_rect_uicontext(h,opt)
 	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 	ui_edit_polygon(h)    % Set edition functions
-	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	cb_Fill_surface = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'');delete(gco)';
 	cb_Fill_cubic = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');delete(gco)';
 	cb_Fill_linear = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');delete(gco)';
 	cb_Fill_sea   = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''sea'');delete(gco)';
-	uimenu(cmenuHand, 'Label', 'Fill gaps (surface)', 'Callback', cb_Fill_surface);
-	uimenu(cmenuHand, 'Label', 'Fill gaps (cubic)', 'Callback', cb_Fill_cubic);
-	uimenu(cmenuHand, 'Label', 'Fill gaps (linear)', 'Callback', cb_Fill_linear);
-	uimenu(cmenuHand, 'Label', 'Fill gaps (sea)', 'Callback', cb_Fill_sea);
+	uimenu(cmenuHand, 'Label', 'Fill gaps (surface)', 'Call', cb_Fill_surface);
+	uimenu(cmenuHand, 'Label', 'Fill gaps (cubic)', 'Call', cb_Fill_cubic);
+	uimenu(cmenuHand, 'Label', 'Fill gaps (linear)', 'Call', cb_Fill_linear);
+	uimenu(cmenuHand, 'Label', 'Fill gaps (sea)', 'Call', cb_Fill_sea);
 
 % -----------------------------------------------------------------------------------------
 function set_ContourLines_uicontext(h,h_label)
@@ -578,12 +578,12 @@ function set_ContourLines_uicontext(h,h_label)
 	cb20 = 'set(gco, ''LineStyle'', '':''); refresh';   cb21 = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	cb_color = uictx_color(h);      % there are 9 cb_color outputs
 
-	uimenu(cmenuHand, 'Label', 'Delete contour', 'Callback',{@remove_singleContour,h});
-	uimenu(cmenuHand, 'Label', 'Delete all contours', 'Callback', cb_rac);
-	% item1 = uimenu(cmenuHand, 'Label', 'Edit contour (left-click on it)', 'Callback', cb1);
-	uimenu(cmenuHand, 'Label', 'Save contour', 'Callback', {@save_formated,h});
-	uimenu(cmenuHand, 'Label', 'Contour length', 'Callback', {@show_LineLength,[]});
-	uimenu(cmenuHand, 'Label', 'Area under contour', 'Callback', @show_Area);
+	uimenu(cmenuHand, 'Label', 'Delete contour', 'Call',{@remove_singleContour,h});
+	uimenu(cmenuHand, 'Label', 'Delete all contours', 'Call', cb_rac);
+	% item1 = uimenu(cmenuHand, 'Label', 'Edit contour (left-click on it)', 'Call', cb1);
+	uimenu(cmenuHand, 'Label', 'Save contour', 'Call', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Contour length', 'Call', {@show_LineLength,[]});
+	uimenu(cmenuHand, 'Label', 'Area under contour', 'Call', @show_Area);
 	item_lw = uimenu(cmenuHand, 'Label', 'Contour Line Width', 'Separator','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Contour Line Style');
@@ -592,16 +592,16 @@ function set_ContourLines_uicontext(h,h_label)
 	setLineColor(item_lc,cb_color)
 	cb_CLineWidth = uictx_Class_LineWidth(h);           % there are 5 cb_CLineWidth outputs
 	item8 = uimenu(cmenuHand, 'Label', 'All Contours Line Width', 'Separator','on');
-	uimenu(item8, 'Label', '1       pt', 'Callback', cb_CLineWidth{1});
-	uimenu(item8, 'Label', '2       pt', 'Callback', cb_CLineWidth{2});
-	uimenu(item8, 'Label', '3       pt', 'Callback', cb_CLineWidth{3});
-	uimenu(item8, 'Label', 'Other...', 'Callback', cb_CLineWidth{5});
+	uimenu(item8, 'Label', '1       pt', 'Call', cb_CLineWidth{1});
+	uimenu(item8, 'Label', '2       pt', 'Call', cb_CLineWidth{2});
+	uimenu(item8, 'Label', '3       pt', 'Call', cb_CLineWidth{3});
+	uimenu(item8, 'Label', 'Other...', 'Call', cb_CLineWidth{5});
 	cb_CLineStyle = uictx_Class_LineStyle(h);        % there are 4 cb_CLineStyle outputs
 	item9 = uimenu(cmenuHand, 'Label', 'All Contours Line Style');
-	uimenu(item9, 'Label', 'solid', 'Callback', cb_CLineStyle{1});
-	uimenu(item9, 'Label', 'dashed', 'Callback', cb_CLineStyle{2});
-	uimenu(item9, 'Label', 'dotted', 'Callback', cb_CLineStyle{3});
-	uimenu(item9, 'Label', 'dash-dotted', 'Callback', cb_CLineStyle{4});
+	uimenu(item9, 'Label', 'solid', 'Call', cb_CLineStyle{1});
+	uimenu(item9, 'Label', 'dashed', 'Call', cb_CLineStyle{2});
+	uimenu(item9, 'Label', 'dotted', 'Call', cb_CLineStyle{3});
+	uimenu(item9, 'Label', 'dash-dotted', 'Call', cb_CLineStyle{4});
 	cb_CLineColor = uictx_Class_LineColor(h);              % there are 9 cb_CLineColor outputs
 	item_lc = uimenu(cmenuHand, 'Label', 'All Contours Line Color');
 	setLineColor(item_lc,cb_CLineColor)
@@ -653,14 +653,14 @@ for i = 1:7     % Loop over all Plate Boundaries Types
 	set(h_cur, 'UIContextMenu', cmenuHand);
 	cb_LineWidth = uictx_Class_LineWidth(h_cur);    % there are 5 cb_PB_LineWidth outputs
 	cb_color = uictx_Class_LineColor(h_cur);        % there are 9 cb_PB_color outputs
-	uimenu(cmenuHand, 'Label', 'Segment info', 'Callback', {@PB_All_Info,h_cur,data_cur});
-	uimenu(cmenuHand, 'Label', 'Delete class', 'Callback', 'delete(findobj(''Tag'',''PB_All''))', 'Separator','on');
-	uimenu(cmenuHand, 'Label', 'Segment length', 'Callback', {@show_LineLength,[]});
+	uimenu(cmenuHand, 'Label', 'Segment info', 'Call', {@PB_All_Info,h_cur,data_cur});
+	uimenu(cmenuHand, 'Label', 'Delete class', 'Call', 'delete(findobj(''Tag'',''PB_All''))', 'Separator','on');
+	uimenu(cmenuHand, 'Label', 'Segment length', 'Call', {@show_LineLength,[]});
 	item3 = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-	uimenu(item3, 'Label', '2       pt', 'Callback', cb_LineWidth{2});
-	uimenu(item3, 'Label', '3       pt', 'Callback', cb_LineWidth{3});
-	uimenu(item3, 'Label', '4       pt', 'Callback', cb_LineWidth{4});
-	uimenu(item3, 'Label', 'Other...', 'Callback', cb_LineWidth{5});
+	uimenu(item3, 'Label', '2       pt', 'Call', cb_LineWidth{2});
+	uimenu(item3, 'Label', '3       pt', 'Call', cb_LineWidth{3});
+	uimenu(item3, 'Label', '4       pt', 'Call', cb_LineWidth{4});
+	uimenu(item3, 'Label', 'Other...', 'Call', cb_LineWidth{5});
 	item_lc = uimenu(cmenuHand, 'Label', 'Color');
 	setLineColor(item_lc,cb_color)
 end
@@ -679,16 +679,16 @@ function set_isochrons_uicontext(h,data)
 	cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	if (~all(isempty(cat(2,data{:}))))
-		uimenu(cmenuHand, 'Label', [tag ' info'], 'Callback', {@Isochrons_Info,data});
-		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', {@del_line,h}, 'Separator','on');
+		uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@Isochrons_Info,data});
+		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', {@del_line,h}, 'Separator','on');
 	else
-		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', {@del_line,h});
+		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', {@del_line,h});
 	end
-	uimenu(cmenuHand, 'Label', ['Delete all ' tag ' lines'], 'Callback', {@remove_symbolClass,h});
-	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Callback', @save_line);
-	uimenu(cmenuHand, 'Label', ['Save all ' tag ' lines'], 'Callback', {@save_line,h});
-	uimenu(cmenuHand, 'Label', 'Line azimuths', 'Callback', @show_lineAzims);
-	uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[],'nikles'});
+	uimenu(cmenuHand, 'Label', ['Delete all ' tag ' lines'], 'Call', {@remove_symbolClass,h});
+	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Call', @save_line);
+	uimenu(cmenuHand, 'Label', ['Save all ' tag ' lines'], 'Call', {@save_line,h});
+	uimenu(cmenuHand, 'Label', 'Line azimuths', 'Call', @show_lineAzims);
+	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[],'nikles'});
 	LINE_ISCLOSED = 0;
 	for i=1:length(h)
 		x = get(h(i),'XData');      y = get(h(i),'YData');
@@ -697,7 +697,7 @@ function set_isochrons_uicontext(h,data)
 		end
 	end
 	if (LINE_ISCLOSED)      % If at least one is closed, activate the Area option
-		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Callback', @show_Area);
+		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
 	end
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 	setLineWidth(item_lw,cb_LineWidth)
@@ -711,15 +711,15 @@ function set_isochrons_uicontext(h,data)
 	setLineColor(item_Class_lc,cb_ClassColor)
 	cb_ClassLineWidth = uictx_Class_LineWidth(h);    % there are 5 cb_ClassLineWidth outputs
 	item_Class_lw = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Width']);
-	uimenu(item_Class_lw, 'Label', '1       pt', 'Callback', cb_ClassLineWidth{1});
-	uimenu(item_Class_lw, 'Label', '2       pt', 'Callback', cb_ClassLineWidth{2});
-	uimenu(item_Class_lw, 'Label', '3       pt', 'Callback', cb_ClassLineWidth{3});
-	uimenu(item_Class_lw, 'Label', '4       pt', 'Callback', cb_ClassLineWidth{4});
-	uimenu(item_Class_lw, 'Label', 'Other...', 'Callback', cb_ClassLineWidth{5});
+	uimenu(item_Class_lw, 'Label', '1       pt', 'Call', cb_ClassLineWidth{1});
+	uimenu(item_Class_lw, 'Label', '2       pt', 'Call', cb_ClassLineWidth{2});
+	uimenu(item_Class_lw, 'Label', '3       pt', 'Call', cb_ClassLineWidth{3});
+	uimenu(item_Class_lw, 'Label', '4       pt', 'Call', cb_ClassLineWidth{4});
+	uimenu(item_Class_lw, 'Label', 'Other...', 'Call', cb_ClassLineWidth{5});
 	cb_ClassLineStyle = uictx_Class_LineStyle(h);    % there are 4 cb_ClassLineStyle outputs
 	item_Class_lt = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Style']);
 	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
-	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Separator','on', 'Callback', 'euler_stuff(gcf,gco)');
+	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Separator','on', 'Call', 'euler_stuff(gcf,gco)');
 	for i=1:length(h),   ui_edit_polygon(h(i));     end		% Set edition functions
 
 % -----------------------------------------------------------------------------------------
@@ -734,11 +734,11 @@ function set_gmtfile_uicontext(h,data)
 	cb_color = uictx_color(h);               % there are 9 cb_color outputs
 	cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	uimenu(cmenuHand, 'Label', [tag ' info'], 'Callback', {@gmtfile_Info,h,data});
-	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', 'delete(gco)', 'Separator','on');
-	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Callback', @save_line);
-	%uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Callback', ['gmtedit(getappdata(gco,''FullName''))']);
-	uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Callback', {@call_gmtedit,h});
+	uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@gmtfile_Info,h,data});
+	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', 'delete(gco)', 'Separator','on');
+	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Call', @save_line);
+	%uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Call', ['gmtedit(getappdata(gco,''FullName''))']);
+	uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Call', {@call_gmtedit,h});
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
@@ -777,59 +777,56 @@ function cb = uictx_setMarker(h,prop)
 % -----------------------------------------------------------------------------------------
 function cb = uictx_Class_LineWidth(h)
 % Set uicontext LineWidths in a PB object class hose handles are contained in h
-cb{1} = {@other_Class_LineWidth,h,1};      cb{2} = {@other_Class_LineWidth,h,2};
-cb{3} = {@other_Class_LineWidth,h,3};      cb{4} = {@other_Class_LineWidth,h,4};
-cb{5} = {@other_Class_LineWidth,h,[]};
+	cb{1} = {@other_Class_LineWidth,h,1};      cb{2} = {@other_Class_LineWidth,h,2};
+	cb{3} = {@other_Class_LineWidth,h,3};      cb{4} = {@other_Class_LineWidth,h,4};
+	cb{5} = {@other_Class_LineWidth,h,[]};
 
 function other_Class_LineWidth(obj,eventdata,h,opt)
 % If individual Lines were previously removed (by "Remove Line") h has invalid
 % handles, so make sure all handles are valid
-h=h(ishandle(h));
-if ~isempty(opt)
-    set(h,'LineWidth',opt);        refresh;
-else
-    prompt = {'Enter new line width (pt)'};     dlg_title = 'Line width';
-    num_lines= [1 30];
-    resp  = inputdlg(prompt,dlg_title,num_lines);
-    if isempty(resp);    return;     end
-    set(h,'LineWidth',str2double(resp));        refresh
-end
+	h=h(ishandle(h));
+	if ~isempty(opt)   
+		set(h,'LineWidth',opt);        refresh;
+	else
+		prompt = {'Enter new line width (pt)'};     dlg_title = 'Line width';
+		num_lines= [1 30];
+		resp  = inputdlg(prompt,dlg_title,num_lines);
+		if isempty(resp);    return;     end
+		set(h,'LineWidth',str2double(resp));        refresh
+	end
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_Class_LineColor(h,prop)
 % Set uicontext colors in a PB object class whose handles are contained in h.
 % PROP, when given, is either "MarkerFaceColor" or "MarkerEdgeColor"
-
-if (nargin == 1),   prop = [];  end
-cb{1} = {@other_Class_LineColor,h,'k',prop};       cb{2} = {@other_Class_LineColor,h,'w',prop};
-cb{3} = {@other_Class_LineColor,h,'r',prop};       cb{4} = {@other_Class_LineColor,h,'g',prop};
-cb{5} = {@other_Class_LineColor,h,'b',prop};       cb{6} = {@other_Class_LineColor,h,'y',prop};
-cb{7} = {@other_Class_LineColor,h,'c',prop};       cb{8} = {@other_Class_LineColor,h,'m',prop};
-cb{9} = {@other_Class_LineColor,h,[],prop};
+	if (nargin == 1),   prop = [];  end
+	cb{1} = {@other_Class_LineColor,h,'k',prop};       cb{2} = {@other_Class_LineColor,h,'w',prop};
+	cb{3} = {@other_Class_LineColor,h,'r',prop};       cb{4} = {@other_Class_LineColor,h,'g',prop};
+	cb{5} = {@other_Class_LineColor,h,'b',prop};       cb{6} = {@other_Class_LineColor,h,'y',prop};
+	cb{7} = {@other_Class_LineColor,h,'c',prop};       cb{8} = {@other_Class_LineColor,h,'m',prop};
+	cb{9} = {@other_Class_LineColor,h,[],prop};
 
 function other_Class_LineColor(obj,eventdata,h,cor,prop)
 % If individual Lines were previously removed (by "Remove Line") h has invalid
 % handles, so make sure all handles are valid
-h=h(ishandle(h));
-if ~isempty(cor)
-    if isempty(prop)    % line
-        set(h,'color',cor);   refresh;
-    else                % marker
-        set(h,prop,cor);   refresh;
-    end
-else
-    c = uisetcolor;
-    if (length(c) > 1),         % That is, if a color was selected
-        if isempty(prop)
-            set(h,'color',c);   refresh;
-        else
-            set(h,prop,c);   refresh;
-        end
-    else
-        return
-    end
-end
+	h=h(ishandle(h));
+	if ~isempty(cor)   
+		if isempty(prop)	% line
+			set(h,'color',cor);   refresh;
+		else				% marker
+			set(h,prop,cor);   refresh;
+		end
+	else
+		c = uisetcolor;
+		if (length(c) > 1),         % That is, if a color was selected
+			if isempty(prop)
+				set(h,'color',c);   refresh;
+			else
+				set(h,prop,c);   refresh;
+			end
+		end
+	end
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -855,9 +852,9 @@ function set_greatCircle_uicontext(h)
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	cb_color = uictx_color(h);      % there are 9 cb_color outputs
 	
-	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-	uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated,h});
-	uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[],'total'});
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[],'total'});
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
@@ -881,16 +878,16 @@ function set_circleGeo_uicontext(h)
 	% cb_ChangeCircCenter1 = {@change_CircCenter1,h};
 	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
 	
-	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-	uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
-	uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[]});
-	% item_MoveCenter = uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Callback', cb_MoveCircle);
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Save circle', 'Call', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[]});
+	% item_MoveCenter = uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Call', cb_MoveCircle);
 	% item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
-	% item_SetCenter1 = uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Callback', cb_ChangeCircCenter1);
+	% item_SetCenter1 = uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Call', cb_ChangeCircCenter1);
 	if ~strcmp(tag,'CircleEuler')       % "Just" a regular geographical circle
-        uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
+        uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', cb_roi);
 	else
-        uimenu(cmenuHand, 'Label', 'Compute velocity', 'Separator','on', 'Callback', {@compute_EulerVel,h});
+        uimenu(cmenuHand, 'Label', 'Compute velocity', 'Separator','on', 'Call', {@compute_EulerVel,h});
 	end
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
@@ -910,13 +907,13 @@ function set_circleCart_uicontext(h)
 	cb_color = uictx_color(h);      % there are 9 cb_color outputs
 	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
 	
-	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-	uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
-	uimenu(cmenuHand, 'Label', 'Circle perimeter', 'Callback', {@show_LineLength,[]});
-	uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Callback', {@move_circle,h});
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Save circle', 'Call', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Circle perimeter', 'Call', {@show_LineLength,[]});
+	uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Call', {@move_circle,h});
 	item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
-	uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Callback', {@change_CircCenter1,h});
-	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Callback', cb_roi);
+	uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Call', {@change_CircCenter1,h});
+	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', cb_roi);
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 	setLineWidth(item_lw,cb_LineWidth)
@@ -966,7 +963,7 @@ function set_vector_uicontext(h)
 	h = h(1);
 	handles = guidata(h);	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
-	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
 	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1, handles.axes1});
 	item1 = uimenu(cmenuHand, 'Label', 'Line Color','Sep','on');
@@ -1127,22 +1124,23 @@ function show_AllTrackLength(obj,eventdata)
 
 % -----------------------------------------------------------------------------------------
 function azim = show_lineAzims(obj,eventdata,h)
-	% Works either in geog or cart coordinates. Otherwise the result is a non-sense
-	% If output argument, return a structure % azim.az and azim.type, where "len" is line
-	% azimuth and "type" is either 'geog' or 'cart'.
-	% 22-10-05  H is now only to be used if we whant to specificaly use that handle. Otherwise use
-	% either [] or don't pass the H argument to fish it with gco (MUST use this form to work with copied objects)
-	% 16-08-07  H can contain a Mx2 column vector with the line vertices.
+% Works either in geog or cart coordinates. Otherwise the result is a non-sense
+% If output argument, return a structure % azim.az and azim.type, where "len" is line
+% azimuth and "type" is either 'geog' or 'cart'.
+% 22-10-05  H is now only to be used if we want to specifically use that handle. Otherwise use
+% either [] or don't pass the H argument to fish it with gco (MUST use this form to work with copied objects)
+% 16-08-07  H can contain a Mx2 column vector with the line vertices.
+% 28-08-08  If > 10 azimuths & ~nargout send the result to "ecran"
 
 	if (nargin == 3)
-        if (size(h,1) >= 2 && size(h,2) == 2)
-            x = h(:,1);     y = h(:,2);
-        elseif (ishandle(h))
-            x = get(h,'XData');    y = get(h,'YData');
-        end
+		if (size(h,1) >= 2 && size(h,2) == 2)   
+			x = h(:,1);     y = h(:,2);
+		elseif (ishandle(h))
+			x = get(h,'XData');    y = get(h,'YData');			
+		end
 	elseif (nargin == 2 || isempty(h) || length(h) > 1)
-        h = gco;
-        x = get(h,'XData');    y = get(h,'YData');
+		h = gco;  
+		x = get(h,'XData');    y = get(h,'YData');
 	end
 	
 	handles = guidata(get(0,'CurrentFigure'));
@@ -1159,25 +1157,25 @@ function azim = show_lineAzims(obj,eventdata,h)
         az(ind) = 360 + az(ind);
         azim.type = 'cart';                 % Even if it is never used
 	end
-	msg = cell(numel(az),1);
-	for (i = 1:numel(az))
-        if (nargout == 0)
-            msg{i} = ['Azimuth' sprintf('%d',i) '  =  ' sprintf('%3.1f',az(i)) '  degrees'];
-        else
-            azim.az = az;
-        end
-	end
+
 	if (nargout == 0)
-        if (numel(az) > 1)
-            msg{end+1} = '';
-            id = (az > 270);    az(id) = az(id) - 360;
-            az_mean = mean(az);
-            msg{end+1} = ['Mean azimuth = ' sprintf('%.1f',az_mean) '  degrees'];
-        end
-        if (numel(az) > 15),   msg = msg(end-2:end);   end
-        msgbox(msg,'Line(s) Azimuth')
+		if (numel(az) <= 10)
+			msg = cell(numel(az),1);
+			for (i = 1:numel(az))
+				msg{i} = ['Azimuth' sprintf('%d',i) '  =  ' sprintf('%3.1f',az(i)) '  degrees'];
+			end
+			msg{end+1} = '';
+			id = (az > 270);    az(id) = az(id) - 360;
+			az_mean = mean(az);
+			msg{end+1} = ['Mean azimuth = ' sprintf('%.1f',az_mean) '  degrees'];
+			msgbox(msg,'Line(s) Azimuth')
+		else
+			ecran(handles, x(2:end), y(2:end), az, ['Polyline azimuths (deg)'])
+		end
+	else
+		azim.az = az;
 	end
-	refresh
+	refresh	
 
 % -----------------------------------------------------------------------------------------
 function set_bar_uicontext(h)
@@ -1190,12 +1188,12 @@ function set_bar_uicontext(h)
 	cb12 = 'set(gco, ''LineStyle'', '':''); refresh';   cb13 = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	cb_color = uictx_color(h);      % there are 9 cb_color outputs
 	item1 = uimenu(cmenuHand, 'Label', 'Line Width');
-	uimenu(item1, 'Label', '1       pt', 'Callback', cb_LineWidth{1});
-	uimenu(item1, 'Label', '2       pt', 'Callback', cb_LineWidth{2});
-	uimenu(item1, 'Label', '3       pt', 'Callback', cb_LineWidth{3});
-	uimenu(item1, 'Label', '4       pt', 'Callback', cb_LineWidth{4});
-	uimenu(item1, 'Label', '5       pt', 'Callback', cb7);
-	uimenu(item1, 'Label', 'Other...', 'Callback', cb_LineWidth{5});
+	uimenu(item1, 'Label', '1       pt', 'Call', cb_LineWidth{1});
+	uimenu(item1, 'Label', '2       pt', 'Call', cb_LineWidth{2});
+	uimenu(item1, 'Label', '3       pt', 'Call', cb_LineWidth{3});
+	uimenu(item1, 'Label', '4       pt', 'Call', cb_LineWidth{4});
+	uimenu(item1, 'Label', '5       pt', 'Call', cb7);
+	uimenu(item1, 'Label', 'Other...', 'Call', cb_LineWidth{5});
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
 	setLineStyle(item_ls,{cb10 cb11 cb12 cb13})
 	item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
@@ -1205,30 +1203,28 @@ function set_bar_uicontext(h)
 function cb = uictx_color(h,opt)
 % Set uicontext colors in object whose handle is gco (or h for "other color")
 % If opt is not given opt = 'Color' is assumed
-if (nargin == 1),   opt = [];   end
-if (~isempty(opt) && ischar(opt))
-	c_type = opt;
-else
-	c_type = 'Color';
-end
-cb{1} = ['set(gco,''' c_type ''',''k'');refresh'];       cb{2} = ['set(gco,''' c_type ''',''w'');refresh'];
-cb{3} = ['set(gco,''' c_type ''',''r'');refresh'];       cb{4} = ['set(gco,''' c_type ''',''g'');refresh'];
-cb{5} = ['set(gco,''' c_type ''',''b'');refresh'];       cb{6} = ['set(gco,''' c_type ''',''y'');refresh'];
-cb{7} = ['set(gco,''' c_type ''',''c'');refresh'];       cb{8} = ['set(gco,''' c_type ''',''m'');refresh'];
-cb{9} = {@other_color,h,opt};
+	if (nargin == 1),   opt = [];   end
+	if (~isempty(opt) && ischar(opt))
+		c_type = opt;
+	else
+		c_type = 'Color';
+	end
+	cb{1} = ['set(gco,''' c_type ''',''k'');refresh'];       cb{2} = ['set(gco,''' c_type ''',''w'');refresh'];
+	cb{3} = ['set(gco,''' c_type ''',''r'');refresh'];       cb{4} = ['set(gco,''' c_type ''',''g'');refresh'];
+	cb{5} = ['set(gco,''' c_type ''',''b'');refresh'];       cb{6} = ['set(gco,''' c_type ''',''y'');refresh'];
+	cb{7} = ['set(gco,''' c_type ''',''c'');refresh'];       cb{8} = ['set(gco,''' c_type ''',''m'');refresh'];
+	cb{9} = {@other_color,h,opt};
 
-function other_color(obj,eventdata,h,opt)
-if (nargin == 3),   opt = [];   end
-c = uisetcolor;
-if (length(c) > 1),         % That is, if a color was selected
-    if ~isempty(opt) && ischar(opt)
-        set(h,opt,c);   refresh;
-    else
-        set(h,'color',c);   refresh;
-    end
-else
-    return;
-end
+	function other_color(obj,eventdata,h,opt)
+	if (nargin == 3),   opt = [];   end
+	c = uisetcolor;
+	if (length(c) > 1),			% That is, if a color was selected
+		if ~isempty(opt) && ischar(opt)
+			set(h,opt,c);   refresh;
+		else
+			set(h,'color',c);   refresh;
+		end
+	end
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -1418,15 +1414,15 @@ function wbd_MoveCircle(obj,eventdata,h,state,hAxes)
 
 % -----------------------------------------------------------------------------------------
 function change_CircCenter1(obj,eventdata,h)
-	% Change the Circle's center by asking it's coordinates
-	% ONLY FOR CARTESIAN CIRCLES.
+% Change the Circle's center by asking it's coordinates
+% ONLY FOR CARTESIAN CIRCLES.
 	lon_lat_rad = getappdata(h,'LonLatRad');
 	prompt = {'Enter new lon (or x)' ,'Enter new lat (or y)', 'Enter new radius'};     dlg_title = 'Change circle';
 	num_lines= [1 30; 1 30; 1 30];
 	def = {num2str(lon_lat_rad(1)) num2str(lon_lat_rad(2)) num2str(lon_lat_rad(3))};
 	resp  = inputdlg(prompt,dlg_title,num_lines,def);
 	if isempty(resp);    return;     end
-    np = numel(get(h,'XData'));     x = linspace(-pi,pi,np);
+	np = numel(get(h,'XData'));     x = linspace(-pi,pi,np);
 	y = sin(x);                     x = cos(x);    % unit circle coords
 	x = str2double(resp{1}) + str2double(resp{3}) * x;
 	y = str2double(resp{2}) + str2double(resp{3}) * y;
@@ -1450,7 +1446,7 @@ function rectangle_limits(obj,eventdata)
 
 % -----------------------------------------------------------------------------------------
 function rectangle_register_img(obj,event)
-	% Prompt user for rectangle corner coordinates and use them to register the image
+% Prompt user for rectangle corner coordinates and use them to register the image
 	h = gco;
 	handles = guidata(get(h,'Parent'));
 	rect_x = get(h,'XData');   rect_y = get(h,'YData');		% Get rectangle limits
@@ -1725,22 +1721,22 @@ seismicity_options = 0;
 tide_options = 0;
 
 if strcmp(tag,'hotspot')    % Then DATA must be a structure containing name & age for each hotspot
-	uimenu(cmenuHand, 'Label', 'Hotspot info', 'Callback', {@hotspot_info,h,data.name,data.age,[]});
-	uimenu(cmenuHand, 'Label', 'Plot name', 'Callback', {@hotspot_info,h,data.name,data.age,'text'});
+	uimenu(cmenuHand, 'Label', 'Hotspot info', 'Call', {@hotspot_info,h,data.name,data.age,[]});
+	uimenu(cmenuHand, 'Label', 'Plot name', 'Call', {@hotspot_info,h,data.name,data.age,'text'});
 	separator = 1;
 	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
 elseif strcmp(tag,'volcano')    % Then DATA must be a structure containing name, description & dating for each volcano
-	uimenu(cmenuHand, 'Label', 'Volcano info', 'Callback', {@volcano_info,h,data.name,data.desc,data.dating});
+	uimenu(cmenuHand, 'Label', 'Volcano info', 'Call', {@volcano_info,h,data.name,data.desc,data.dating});
 	separator = 1;
 	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
 elseif strcmp(tag,'ODP')    % Then DATA must be a structure with leg, site, z, & penetration for each site
 	cb_ODPinfo = {@ODP_info,h,data.leg,data.site,data.z,data.penetration};
-	uimenu(cmenuHand, 'Label', 'ODP info', 'Callback', cb_ODPinfo);
+	uimenu(cmenuHand, 'Label', 'ODP info', 'Call', cb_ODPinfo);
 	separator = 1;
 	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
 elseif strcmp(tag,'DSDP')   % Then DATA must be a structure with leg, site, z, & penetration for each site
 	cb_ODPinfo = {@ODP_info,h,data.leg,data.site,data.z,data.penetration};
-	uimenu(cmenuHand, 'Label', 'DSDP info', 'Callback', cb_ODPinfo);
+	uimenu(cmenuHand, 'Label', 'DSDP info', 'Call', cb_ODPinfo);
 	separator = 1;
 	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
 elseif strcmp(tag,'City_major') || strcmp(tag,'City_other')
@@ -1760,81 +1756,81 @@ end
 
 if (~this_not)   % non class symbols can be moved
 	ui_edit_polygon(h)    % Set edition functions
-	uimenu(cmenuHand, 'Label', 'Move (precise)', 'Callback', {@change_SymbPos,h});
+	uimenu(cmenuHand, 'Label', 'Move (precise)', 'Call', {@change_SymbPos,h});
 end
 
 if separator
     if (~more_than_one)         % Single symbol
-        uimenu(cmenuHand, 'Label', 'Remove', 'Callback', 'delete(gco)', 'Separator','on');
+        uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)', 'Separator','on');
     else                        % Multiple symbols
-        uimenu(cmenuHand, 'Label', 'Remove this', 'Callback', {@remove_one_from_many,h}, 'Separator','on');
+        uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h}, 'Separator','on');
     end
 else
     if (~more_than_one)         % Single symbol
-        uimenu(cmenuHand, 'Label', 'Remove', 'Callback', 'delete(gco)');
+        uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)');
     else                        % Multiple symbols
-        uimenu(cmenuHand, 'Label', 'Remove this', 'Callback', {@remove_one_from_many,h});
+        uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h});
     end
 end
 if (this_not)           % individual symbols don't belong to a class
-    uimenu(cmenuHand, 'Label', 'Remove class', 'Callback', {@remove_symbolClass,h});
+    uimenu(cmenuHand, 'Label', 'Remove class', 'Call', {@remove_symbolClass,h});
 end
 if (~this_not)          % class symbols don't export
-    uimenu(cmenuHand, 'Label', 'Export', 'Callback', {@export_symbol,h});
+    uimenu(cmenuHand, 'Label', 'Export', 'Call', {@export_symbol,h});
     if (strcmp(tag,'Pointpolyline'))    % Allow pure grdtrack interpolation
         cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
-        uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack, 'Separator','on');
+        uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack, 'Separator','on');
     end
 end
 if (seismicity_options)
-    uimenu(cmenuHand, 'Label', 'Save events', 'Callback', 'save_seismicity(gcf,gco)', 'Separator','on');
-    uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Callback', 'animate_seismicity(gcf,gco)');
+    uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,gco)', 'Separator','on');
+    uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Call', 'animate_seismicity(gcf,gco)');
     uimenu(cmenuHand, 'Label', 'Draw polygon', 'Call', ...
         'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''SeismicityPolygon'')');
     itemHist = uimenu(cmenuHand, 'Label','Histograms');
-    uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Callback', 'histos_seis(gco,''GR'')');
-    uimenu(itemHist, 'Label', 'Cumulative number', 'Callback', 'histos_seis(gco,''CH'')');
-    uimenu(itemHist, 'Label', 'Cumulative moment', 'Callback', 'histos_seis(gco,''CM'')');
-    uimenu(itemHist, 'Label', 'Magnitude', 'Callback', 'histos_seis(gco,''MH'')');
-    uimenu(itemHist, 'Label', 'Time', 'Callback', 'histos_seis(gco,''TH'')');
-    uimenu(itemHist, 'Label', 'Display in Table', 'Callback', 'histos_seis(gcf,''HT'')','Sep','on');
-    %uimenu(itemHist, 'Label', 'Hour of day', 'Callback', 'histos_seis(gco,''HM'')');
+    uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
+    uimenu(itemHist, 'Label', 'Cumulative number', 'Call', 'histos_seis(gco,''CH'')');
+    uimenu(itemHist, 'Label', 'Cumulative moment', 'Call', 'histos_seis(gco,''CM'')');
+    uimenu(itemHist, 'Label', 'Magnitude', 'Call', 'histos_seis(gco,''MH'')');
+    uimenu(itemHist, 'Label', 'Time', 'Call', 'histos_seis(gco,''TH'')');
+    uimenu(itemHist, 'Label', 'Display in Table', 'Call', 'histos_seis(gcf,''HT'')','Sep','on');
+    %uimenu(itemHist, 'Label', 'Hour of day', 'Call', 'histos_seis(gco,''HM'')');
     itemTime = uimenu(cmenuHand, 'Label','Time series');
-    uimenu(itemTime, 'Label', 'Time magnitude', 'Callback', 'histos_seis(gco,''TM'')');
-    uimenu(itemTime, 'Label', 'Time depth', 'Callback', 'histos_seis(gco,''TD'')');
-    uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Callback', 'histos_seis(gcf,''BV'')');
-    uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Callback', 'histos_seis(gcf,''OL'')');
+    uimenu(itemTime, 'Label', 'Time magnitude', 'Call', 'histos_seis(gco,''TM'')');
+    uimenu(itemTime, 'Label', 'Time depth', 'Call', 'histos_seis(gco,''TD'')');
+    uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Call', 'histos_seis(gcf,''BV'')');
+    uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gcf,''OL'')');
 end
 if (tide_options)
-    uimenu(cmenuHand, 'Label', 'Plot tides', 'Callback', {@tidesStuff,h,'plot'}, 'Separator','on');
-    uimenu(cmenuHand, 'Label', 'Station Info', 'Callback', {@tidesStuff,h,'info'});
-    %uimenu(cmenuHand, 'Label', 'Tide Calendar', 'Callback', {@tidesStuff,h,'calendar'});
+    uimenu(cmenuHand, 'Label', 'Plot tides', 'Call', {@tidesStuff,h,'plot'}, 'Separator','on');
+    uimenu(cmenuHand, 'Label', 'Station Info', 'Call', {@tidesStuff,h,'info'});
+    %uimenu(cmenuHand, 'Label', 'Tide Calendar', 'Call', {@tidesStuff,h,'calendar'});
 end
 itemSymb = uimenu(cmenuHand, 'Label', 'Symbol', 'Separator','on');
 cb_mark = uictx_setMarker(h,'Marker');              % there are 13 uictx_setMarker outputs
-uimenu(itemSymb, 'Label', 'plus sign', 'Callback', cb_mark{1});
-uimenu(itemSymb, 'Label', 'circle', 'Callback', cb_mark{2});
-uimenu(itemSymb, 'Label', 'asterisk', 'Callback', cb_mark{3});
-uimenu(itemSymb, 'Label', 'point', 'Callback', cb_mark{4});
-uimenu(itemSymb, 'Label', 'cross', 'Callback', cb_mark{5});
-uimenu(itemSymb, 'Label', 'square', 'Callback', cb_mark{6});
-uimenu(itemSymb, 'Label', 'diamond', 'Callback', cb_mark{7});
-uimenu(itemSymb, 'Label', 'upward triangle', 'Callback', cb_mark{8});
-uimenu(itemSymb, 'Label', 'downward triangle', 'Callback', cb_mark{9});
-uimenu(itemSymb, 'Label', 'right triangle', 'Callback', cb_mark{10});
-uimenu(itemSymb, 'Label', 'left triangle', 'Callback', cb_mark{11});
-uimenu(itemSymb, 'Label', 'five-point star', 'Callback', cb_mark{12});
-uimenu(itemSymb, 'Label', 'six-point star', 'Callback', cb_mark{13});
+uimenu(itemSymb, 'Label', 'plus sign', 'Call', cb_mark{1});
+uimenu(itemSymb, 'Label', 'circle', 'Call', cb_mark{2});
+uimenu(itemSymb, 'Label', 'asterisk', 'Call', cb_mark{3});
+uimenu(itemSymb, 'Label', 'point', 'Call', cb_mark{4});
+uimenu(itemSymb, 'Label', 'cross', 'Call', cb_mark{5});
+uimenu(itemSymb, 'Label', 'square', 'Call', cb_mark{6});
+uimenu(itemSymb, 'Label', 'diamond', 'Call', cb_mark{7});
+uimenu(itemSymb, 'Label', 'upward triangle', 'Call', cb_mark{8});
+uimenu(itemSymb, 'Label', 'downward triangle', 'Call', cb_mark{9});
+uimenu(itemSymb, 'Label', 'right triangle', 'Call', cb_mark{10});
+uimenu(itemSymb, 'Label', 'left triangle', 'Call', cb_mark{11});
+uimenu(itemSymb, 'Label', 'five-point star', 'Call', cb_mark{12});
+uimenu(itemSymb, 'Label', 'six-point star', 'Call', cb_mark{13});
 itemSize = uimenu(cmenuHand, 'Label', 'Size');
 cb_markSize = uictx_setMarker(h,'MarkerSize');              % there are 8 uictx_setMarker outputs
-uimenu(itemSize, 'Label', '7       pt', 'Callback', cb_markSize{1});
-uimenu(itemSize, 'Label', '8       pt', 'Callback', cb_markSize{2});
-uimenu(itemSize, 'Label', '9       pt', 'Callback', cb_markSize{3});
-uimenu(itemSize, 'Label', '10     pt', 'Callback', cb_markSize{4});
-uimenu(itemSize, 'Label', '12     pt', 'Callback', cb_markSize{5});
-uimenu(itemSize, 'Label', '14     pt', 'Callback', cb_markSize{6});
-uimenu(itemSize, 'Label', '16     pt', 'Callback', cb_markSize{7});
-uimenu(itemSize, 'Label', 'other...', 'Callback', cb_markSize{8});
+uimenu(itemSize, 'Label', '7       pt', 'Call', cb_markSize{1});
+uimenu(itemSize, 'Label', '8       pt', 'Call', cb_markSize{2});
+uimenu(itemSize, 'Label', '9       pt', 'Call', cb_markSize{3});
+uimenu(itemSize, 'Label', '10     pt', 'Call', cb_markSize{4});
+uimenu(itemSize, 'Label', '12     pt', 'Call', cb_markSize{5});
+uimenu(itemSize, 'Label', '14     pt', 'Call', cb_markSize{6});
+uimenu(itemSize, 'Label', '16     pt', 'Call', cb_markSize{7});
+uimenu(itemSize, 'Label', 'other...', 'Call', cb_markSize{8});
 cb_color = uictx_Class_LineColor(h,'MarkerFaceColor');              % there are 9 cb_PB_color outputs
 itemFColor = uimenu(cmenuHand, 'Label', 'Fill Color');
 setLineColor(itemFColor,cb_color)
@@ -2153,14 +2149,14 @@ function Isochrons_Info(obj,eventdata,data)
 
 % -----------------------------------------------------------------------------------------
 function gmtfile_Info(obj,eventdata,h,data)
-str{1} = ['N_recs = ' num2str(data(1)) ', N_grav = ' num2str(data(2)) ', N_mag = ' num2str(data(3)) ...
-    ', N_top = ' num2str(data(4))];
-str{2} = ['E: = ' num2str(data(5)) '  W: = ' num2str(data(6))];
-str{3} = ['S: = ' num2str(data(7)) '  N: = ' num2str(data(8))];
-str{4} = ['Start day,month,year: = ' num2str(data(9)) '  ' num2str(data(10)) '  ' num2str(data(11))];
-str{5} = ['End   day,month,year: = ' num2str(data(12)) '  ' num2str(data(13)) '  ' num2str(data(14))];
-tag = get(h,'Tag');
-msgbox(str,tag)
+	str{1} = ['N_recs = ' num2str(data(1)) ', N_grav = ' num2str(data(2)) ', N_mag = ' num2str(data(3)) ...
+		', N_top = ' num2str(data(4))];
+	str{2} = ['E: = ' num2str(data(5)) '  W: = ' num2str(data(6))];
+	str{3} = ['S: = ' num2str(data(7)) '  N: = ' num2str(data(8))];
+	str{4} = ['Start day,month,year: = ' num2str(data(9)) '  ' num2str(data(10)) '  ' num2str(data(11))];
+	str{5} = ['End   day,month,year: = ' num2str(data(12)) '  ' num2str(data(13)) '  ' num2str(data(14))];
+	tag = get(h,'Tag');
+	msgbox(str,tag)
 
 % -----------------------------------------------------------------------------------------
 function PB_All_Info(obj,eventdata,h,data)
@@ -2192,8 +2188,8 @@ msgbox( sprintf(['Plate pairs:           ' txt_id '\n' 'Boundary Type:    ' txt_
 
 % -----------------------------------------------------------------------------------------
 function delete_obj(hTesoura)
-	% hTesoura is the handle to the 'Tesoura' uitoggletool
-	% Build the scisors pointer (this was done with the help of an image file)
+% hTesoura is the handle to the 'Tesoura' uitoggletool
+% Build the scisors pointer (this was done with the help of an image file)
 	pointer = ones(16)*NaN;
 	pointer(2,7) = 1;       pointer(2,11) = 1;      pointer(3,7) = 1;       pointer(3,11) = 1;
 	pointer(4,7) = 1;       pointer(4,11) = 1;      pointer(5,7) = 1;       pointer(5,8) = 1;
@@ -2242,53 +2238,53 @@ delete(h);
 
 % -----------------------------------------------------------------------------------------
 function del_insideRect(obj,eventdata,h)
-    % Delete all lines/patches/text objects that have at least one vertex inside the rectangle
+% Delete all lines/patches/text objects that have at least one vertex inside the rectangle
     
-    s = getappdata(h,'polygon_data');
-    if (~isempty(s))            % If the rectangle is in edit mode, force it out of edit
-        if strcmpi(s.controls,'on'),    ui_edit_polygon(h);     end
-    end
-    set(h, 'HandleVis','off')           % Make the rectangle handle invisible
-    hAxes = get(h,'Parent');
-    
-    hLines = findobj(hAxes,'Type','line');     % Fish all objects of type line in Mirone figure
-    hPatch = findobj(hAxes,'Type','patch');
-    hText = findobj(hAxes,'Type','text');
-    hLP = [hLines(:); hPatch(:)];
-    rx = get(h,'XData');        ry = get(h,'YData');
-    rx = [min(rx) max(rx)];     ry = [min(ry) max(ry)];
-    found = false;
-    for (i=1:numel(hLP))    % Loop over objects to find if any is on edit mode
-        s = getappdata(hLP(i),'polygon_data');
-        if (~isempty(s))
-            if strcmpi(s.controls,'on')     % Object is in edit mode, so this
-                ui_edit_polygon(hLP(i))     % call will force out of edit mode
-                found = true;
-            end
+	s = getappdata(h,'polygon_data');
+	if (~isempty(s))            % If the rectangle is in edit mode, force it out of edit
+		if strcmpi(s.controls,'on'),    ui_edit_polygon(h);     end
+	end
+	set(h, 'HandleVis','off')           % Make the rectangle handle invisible
+	hAxes = get(h,'Parent');
+	
+	hLines = findobj(hAxes,'Type','line');     % Fish all objects of type line in Mirone figure
+	hPatch = findobj(hAxes,'Type','patch');
+	hText = findobj(hAxes,'Type','text');
+	hLP = [hLines(:); hPatch(:)];
+	rx = get(h,'XData');        ry = get(h,'YData');
+	rx = [min(rx) max(rx)];     ry = [min(ry) max(ry)];
+	found = false;
+	for (i=1:numel(hLP))    % Loop over objects to find if any is on edit mode
+		s = getappdata(hLP(i),'polygon_data');
+		if (~isempty(s))
+			if strcmpi(s.controls,'on')     % Object is in edit mode, so this
+				ui_edit_polygon(hLP(i))     % call will force out of edit mode
+				found = true;
+			end
         end
-    end
-    if (found)      % We have to do it again because some line handles have meanwhile desapeared
-        hLines = findobj(hAxes,'Type','line');
-        hPatch = findobj(hAxes,'Type','patch');
-        hLP = [hLines(:); hPatch(:)];
-    end
-    for (i=1:numel(hLP))        % Loop over objects to find out which cross the rectangle
-        x = get(hLP(i),'XData');        y = get(hLP(i),'YData');
-        if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
-            delete(hLP(i))
-        end
-    end
-
-    found = false;
-    for (i=1:numel(hText))      % Text objs are a bit different, so treat them separately
-        pos = get(hText(i),'Position');
-        if ( (pos(1) >= rx(1) && pos(1) <= rx(2)) && (pos(2) >= ry(1) && pos(2) <= ry(2)) )
-            delete(hText(i))
-            found = true;
-        end
-    end
-    if (found),     refresh;    end     % Bloody text bug
-    set(h, 'HandleVis','on')    % Make the rectangle handle findable again
+	end
+	if (found)      % We have to do it again because some line handles have meanwhile desapeared
+		hLines = findobj(hAxes,'Type','line');
+		hPatch = findobj(hAxes,'Type','patch');
+		hLP = [hLines(:); hPatch(:)];
+	end
+	for (i=1:numel(hLP))        % Loop over objects to find out which cross the rectangle
+		x = get(hLP(i),'XData');        y = get(hLP(i),'YData');
+		if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
+			delete(hLP(i))
+		end
+	end
+	
+	found = false;
+	for (i=1:numel(hText))      % Text objs are a bit different, so treat them separately
+		pos = get(hText(i),'Position');
+		if ( (pos(1) >= rx(1) && pos(1) <= rx(2)) && (pos(2) >= ry(1) && pos(2) <= ry(2)) )
+			delete(hText(i))
+			found = true;
+		end
+	end
+	if (found),     refresh;    end     % Bloody text bug
+	set(h, 'HandleVis','on')    % Make the rectangle handle findable again
 
 % -------------------------------------------------------------------------------------------------------
 function changeAxesLabels(opt)
@@ -2298,39 +2294,39 @@ x_tick = getappdata(hAxes,'XTickOrig');
 y_tick = getappdata(hAxes,'YTickOrig');
 n_xtick = size(x_tick,1);                   n_ytick = size(y_tick,1);
 switch opt
-    case 'ToDegDec'
-        % This is easy because original Labels where saved in appdata
-        set(hAxes,'XTickLabel',getappdata(hAxes,'XTickOrig'));
-        set(hAxes,'YTickLabel',getappdata(hAxes,'YTickOrig'))
-        setappdata(hAxes,'LabelFormatType','DegDec')       % Save it so zoom can know the label type
-    case 'ToDegMin'
-        x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM',0,'str');     % x_str is a structure with string fields
-        y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM',0,'str');
-        str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm];
-        str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm];
-        set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
-        setappdata(hAxes,'LabelFormatType','DegMin')        % Save it so zoom can know the label type
-    case 'ToDegMinDec'
-        x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM.x',2,'str');    % x_str is a structure with string fields
-        y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM.x',2,'str');
-        str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm];
-        str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm];
-        set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
-        setappdata(hAxes,'LabelFormatType','DegMinDec')     % Save it so zoom can know the label type
-    case 'ToDegMinSec'
-        x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS',0,'str');    % x_str is a structure with string fields
-        y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS',0,'str');
-        str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm repmat(' ',n_xtick,1) x_str.ss];
-        str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm repmat(' ',n_ytick,1) y_str.ss];
-        set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
-        setappdata(hAxes,'LabelFormatType','DegMinSec')      % Save it so zoom can know the label type
-    case 'ToDegMinSecDec'
-        x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS.x',1,'str');   % x_str is a structure with string fields
-        y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS.x',1,'str');
-        str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm repmat(' ',n_xtick,1) x_str.ss];
-        str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm repmat(' ',n_ytick,1) y_str.ss];
-        set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
-        setappdata(hAxes,'LabelFormatType','DegMinSecDec')   % Save it so zoom can know the label type
+	case 'ToDegDec'
+		% This is easy because original Labels where saved in appdata
+		set(hAxes,'XTickLabel',getappdata(hAxes,'XTickOrig'));
+		set(hAxes,'YTickLabel',getappdata(hAxes,'YTickOrig'))
+		setappdata(hAxes,'LabelFormatType','DegDec')       % Save it so zoom can know the label type
+	case 'ToDegMin'
+		x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM',0,'str');     % x_str is a structure with string fields
+		y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM',0,'str');
+		str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm];
+		str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm];
+		set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
+		setappdata(hAxes,'LabelFormatType','DegMin')        % Save it so zoom can know the label type
+	case 'ToDegMinDec'
+		x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM.x',2,'str');    % x_str is a structure with string fields
+		y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM.x',2,'str');
+		str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm];
+		str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm];
+		set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
+		setappdata(hAxes,'LabelFormatType','DegMinDec')     % Save it so zoom can know the label type
+	case 'ToDegMinSec'
+		x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS',0,'str');    % x_str is a structure with string fields
+		y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS',0,'str');
+		str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm repmat(' ',n_xtick,1) x_str.ss];
+		str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm repmat(' ',n_ytick,1) y_str.ss];
+		set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
+		setappdata(hAxes,'LabelFormatType','DegMinSec')      % Save it so zoom can know the label type
+	case 'ToDegMinSecDec'
+		x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS.x',1,'str');   % x_str is a structure with string fields
+		y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS.x',1,'str');
+		str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm repmat(' ',n_xtick,1) x_str.ss];
+		str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm repmat(' ',n_ytick,1) y_str.ss];
+		set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
+		setappdata(hAxes,'LabelFormatType','DegMinSecDec')   % Save it so zoom can know the label type
 end
 
 % -----------------------------------------------------------------------------------------
@@ -2435,13 +2431,13 @@ end
 line('XData',width*[.015 .015],'YData',barHeight_1M*([0+dy 5.4+dy]),'LineWidth',1)  
 line('XData',width*[.08 .08],'YData',barHeight_1M*([0+dy 5.4+dy]),'LineWidth',1)  
 text(width*.04, barHeight_1M*(.35 + dy), 'Bru','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.015 .08],'YData',barHeight_1M*([.73 .73]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.015 .08],'YData',barHeight_1M*([.73 .73]+dy),'LineWidth',.5)	% period separator
 text(width*.04, barHeight_1M*(1.62 + dy), 'Mathu','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.015 .08],'YData',barHeight_1M*([2.5 2.5]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.015 .08],'YData',barHeight_1M*([2.5 2.5]+dy),'LineWidth',.5)	% period separator
 text(width*.04, barHeight_1M*(2.95 + dy), 'Gau','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.015 .08],'YData',barHeight_1M*([3.4 3.4]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.015 .08],'YData',barHeight_1M*([3.4 3.4]+dy),'LineWidth',.5)	% period separator
 text(width*.04, barHeight_1M*(4.4 + dy), 'Gilbert','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.015 .08],'YData',barHeight_1M*([5.4 5.4]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.015 .08],'YData',barHeight_1M*([5.4 5.4]+dy),'LineWidth',.5)	% period separator
 
 %--------------------------
 % Draw two vertical lines for geological periods
@@ -2450,87 +2446,87 @@ line('XData',width*[.88 .88],'YData',barHeight_1M*([0+dy tmax+dy]),'LineWidth',1
 
 % Plistocene
 text(width*.84, barHeight_1M*(1 + dy), ' Plistocene','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([2 2]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([2 2]+dy),'LineWidth',.5)	% period separator
 
 % Pliocene
 text(width*.84, barHeight_1M*(3.5 + dy), 'Pliocene','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([5 5]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([5 5]+dy),'LineWidth',.5)	% period separator
 
 % Miocene
 text(width*.84, barHeight_1M*(14.75 + dy), 'Miocene','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([24.5 24.5]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([24.5 24.5]+dy),'LineWidth',.5)	% period separator
 
 % Oligocene
 text(width*.84, barHeight_1M*(31.25 + dy), 'Oligocene','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([38.0 38.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([38.0 38.0]+dy),'LineWidth',.5)	% period separator
 
 % Eocene
 text(width*.84, barHeight_1M*(46.5 + dy), 'Eocene','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([55.0 55.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([55.0 55.0]+dy),'LineWidth',.5)	% period separator
 
 % Paleocene
 text(width*.84, barHeight_1M*(60.0 + dy), 'Eocene','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([65.0 65.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([65.0 65.0]+dy),'LineWidth',.5)	% period separator
 
 % Maastricthian
 text(width*.84, barHeight_1M*(69.0 + dy), 'Maastricthian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([73.0 73.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([73.0 73.0]+dy),'LineWidth',.5)	% period separator
 
 % Campanian
 text(width*.84, barHeight_1M*(78.0 + dy), 'Campanian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([83.0 83.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([83.0 83.0]+dy),'LineWidth',.5)	% period separator
 
 % Santonian
 text(width*.84, barHeight_1M*(85.2 + dy), 'Santonian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([87.4 87.4]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([87.4 87.4]+dy),'LineWidth',.5)	% period separator
 
 % Coniacian
 text(width*.84, barHeight_1M*(87.95 + dy), 'Con','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([88.5 88.5]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([88.5 88.5]+dy),'LineWidth',.5)	% period separator
 
 % Turonian
 text(width*.84, barHeight_1M*(89.75 + dy), 'Turonian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([91.0 91.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([91.0 91.0]+dy),'LineWidth',.5)	% period separator
 
 % Cenomanian
 text(width*.84, barHeight_1M*(94.25 + dy), 'Cenomanian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([97.5 97.5]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([97.5 97.5]+dy),'LineWidth',.5)	% period separator
 
 % Albian
 text(width*.84, barHeight_1M*(100.25 + dy), 'Albian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([103.0 103.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([103.0 103.0]+dy),'LineWidth',.5)	% period separator
 
 % Aptian
 text(width*.84, barHeight_1M*(110.0 + dy), 'Aptian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([119.0 119.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([119.0 119.0]+dy),'LineWidth',.5)	% period separator
 
 % Barremian
 text(width*.84, barHeight_1M*(122.0 + dy), 'Barremian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([125.0 125.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([125.0 125.0]+dy),'LineWidth',.5)	% period separator
 
 % Hauterivian
 text(width*.84, barHeight_1M*(128.0 + dy), 'Hauterivian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([131.0 131.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([131.0 131.0]+dy),'LineWidth',.5)	% period separator
 
 % Valanginian
 text(width*.84, barHeight_1M*(134.5 + dy), 'Valanginian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([138.0 138.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([138.0 138.0]+dy),'LineWidth',.5)	% period separator
 
 % Berriasian
 text(width*.84, barHeight_1M*(141.0 + dy), 'Berriasian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([144.0 144.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([144.0 144.0]+dy),'LineWidth',.5)	% period separator
 
 % Tithonian
 text(width*.84, barHeight_1M*(147.0 + dy), 'Tithonian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([150.0 150.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([150.0 150.0]+dy),'LineWidth',.5)	% period separator
 
 % Kimmeridgian
 text(width*.84, barHeight_1M*(153.0 + dy), 'Kimmeridgian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([156.0 156.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([156.0 156.0]+dy),'LineWidth',.5)	% period separator
 
 % Oxfordian
 text(width*.84, barHeight_1M*(159.5 + dy), 'Oxfordian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([163.0 163.0]+dy),'LineWidth',.5)   % period separator
+line('XData',width*[.79 .88],'YData',barHeight_1M*([163.0 163.0]+dy),'LineWidth',.5)	% period separator
 
 set(F,'Visible','on')
 
@@ -2541,11 +2537,11 @@ function set_transparency(obj,eventdata)
 h_patch = gco;
 p_fc = get(h_patch,'FaceColor');
 if ( strcmpi(p_fc,'none') )
-    msg{1} = 'Transparency assumes that the element has a color';
-    msg{2} = 'However, as you will agree, that is not the case.';
-    msg{3} = 'See "Fill color" in this element properties.';
-    warndlg(msg,'Warning')
-    return
+	msg{1} = 'Transparency assumes that the element has a color';
+	msg{2} = 'However, as you will agree, that is not the case.';
+	msg{3} = 'See "Fill color" in this element properties.';
+	warndlg(msg,'Warning')
+	return
 end
 
 handles = guidata(get(0,'CurrentFigure'));
@@ -2562,23 +2558,23 @@ height = 2.0;           % Figure height in cm
 
 % Create figure for transparency display
 F = figure('Units','centimeters',...
-    'Position',[1 10 [width height]],...
-    'Toolbar','none', 'Menubar','none',...
-    'Numbertitle','off',...
-    'Name','Transparency',...
-    'doublebuffer','on',...
-    'RendererMode','auto',...
-    'Visible','of',...
-    'Color',[.75 .75 .75]);
+	'Position',[1 10 [width height]],...
+	'Toolbar','none', 'Menubar','none',...
+	'Numbertitle','off',...
+	'Name','Transparency',...
+	'doublebuffer','on',...
+	'RendererMode','auto',...
+	'Visible','of',...
+	'Color',[.75 .75 .75]);
 
 % Create axis for transparency display
 axes('Units','normalized',...
-    'Position',[0 0 1 1],...
-    'XLim',[0 width], 'YLim',[0 height],...
-    'Color',[.75 .75 .75],...
-    'XTick',[],'YTick',[],...
-    'DataAspectRatio',[1 1 1],...
-    'DefaultPatchEdgecolor', 'none');
+	'Position',[0 0 1 1],...
+	'XLim',[0 width], 'YLim',[0 height],...
+	'Color',[.75 .75 .75],...
+	'XTick',[],'YTick',[],...
+	'DataAspectRatio',[1 1 1],...
+	'DefaultPatchEdgecolor', 'none');
 
 T = uicontrol('style','text','string','Transparency  ',...
 	'fontweight','bold','horizontalalignment','left',...
@@ -2625,7 +2621,7 @@ function set_telhas_uicontext(h)
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';
 	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
 
-	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
@@ -2636,18 +2632,18 @@ function set_telhas_uicontext(h)
 
 	set_stack_order(cmenuHand)      % Change order in the stackpot
 
-	uimenu(item7, 'Label', 'None', 'Separator','on', 'Callback', 'set(gco, ''EdgeColor'', ''none'');refresh');
+	uimenu(item7, 'Label', 'None', 'Separator','on', 'Call', 'set(gco, ''EdgeColor'', ''none'');refresh');
 	item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Separator','on');
 	cb_color = uictx_color(h,'facecolor');      % there are 9 cb_color outputs
 	setLineColor(item8,cb_color)
-	uimenu(item8, 'Label', 'None', 'Separator','on', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
-	uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
+	uimenu(item8, 'Label', 'None', 'Separator','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
+	uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
 
 % -----------------------------------------------------------------------------------------
 function set_stack_order(cmenuHand)
-	% Change order in the stackpot. cmenuHand is what it says. 
+% Change order in the stackpot. cmenuHand is what it says. 
 	item_order = uimenu(cmenuHand, 'Label', 'Order');
-	uimenu(item_order, 'Label', 'Bring to Top', 'Callback','uistack_j(gco,''top'')');
-	uimenu(item_order, 'Label', 'Send to Bottom', 'Callback','uistack_j(gco,''bottom'')');
-	uimenu(item_order, 'Label', 'Move up', 'Callback','uistack_j(gco,''up'')');
-	uimenu(item_order, 'Label', 'Move down', 'Callback','uistack_j(gco,''down'')');
+	uimenu(item_order, 'Label', 'Bring to Top', 'Call','uistack_j(gco,''top'')');
+	uimenu(item_order, 'Label', 'Send to Bottom', 'Call','uistack_j(gco,''bottom'')');
+	uimenu(item_order, 'Label', 'Move up', 'Call','uistack_j(gco,''up'')');
+	uimenu(item_order, 'Label', 'Move down', 'Call','uistack_j(gco,''down'')');
