@@ -1,8 +1,8 @@
 function move2side(hFigStatic, hFigMov, opt)
 % Put a smaller figure right to the side of a reference (standing) figure
 %
-% Try to position figure "hFigMov" glued to the right or left of "hFigStatic" figure
-% OPT is an optional char string with 'left' or 'right' (if not provided, defaults to 'right')
+% Try to position figure "hFigMov" glued to the right, left or bottom of "hFigStatic" figure
+% OPT is an optional char string with 'left', 'right' or 'bottom' (if not provided, defaults to 'right')
 % that selects at which side to position the moving figure.
 %
 %	EXAMPLE:
@@ -43,20 +43,28 @@ function move2side(hFigStatic, hFigMov, opt)
 	outPosFigMov = get(hFigMov,'outerposition');
 	posFigStatic = get(hFigStatic,'Pos');
 	
+	refine_yLL = true;				% For the horizontal cases
 	if (lower(opt(1)) == 'r')		% Put moving figure on the RIGHT side of reference figure
 		xLL = posFigStatic(1) + posFigStatic(3) + 6;	% + 6 is empiric
 		xLR = xLL + posFigMov(3);
 		if (xLR > ecran(3))         % If figure is partially out, bring it totally into screen
 			xLL = ecran(3) - posFigMov(3);
 		end
-	else							% Put moving figure on the LEFT side of reference figure
+	elseif (lower(opt(1)) == 'l')	% Put moving figure on the LEFT side of reference figure
 		xLL = posFigStatic(1) - posFigMov(3) - 6;		% + 6 is empiric
 		if (xLL < 0)				% If figure is partially out, bring it totally into screen
 			xLL = 4;				% 4 is nicier than 0
 		end
+	else							% Put moving figure on the BOTOM side of reference figure
+		xLL = posFigStatic(1) + posFigStatic(3)/2  - posFigMov(3)/2;	% More or less centered
+		yLL = posFigStatic(2) - posFigMov(4) - 28;		% But this can leak trough the screen bottom ...
+		movegui(hFigMov, 'south')
+		posFigMov = get(hFigMov,'Pos');
+		yLL = max(yLL, posFigMov(2)+30);		% Take the highest of the two estimations. 30 is for bottom bar
+		refine_yLL = false;
 	end
 
-	yLL = (posFigStatic(2) + posFigStatic(4)/2+12) - (posFigMov(4) / 2 - 22);
+	if (refine_yLL),	yLL = (posFigStatic(2) + posFigStatic(4)/2+12) - (posFigMov(4) / 2 - 22);	end
 	if ( (yLL + outPosFigMov(4) + 5) > ecran(4) )		% Figure is partially out from top (5 is au-pif)
 		yLL = ecran(4) - outPosFigMov(4) + 4;
 	end
