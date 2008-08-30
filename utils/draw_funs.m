@@ -86,27 +86,25 @@ switch opt
 		else
 			[numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
 		end
-           
+         
 		% Project if we need
 		handles = guidata(hFig);
 		if (handles.is_projected && handles.defCoordsIn > 0)
-            try
-                if (iscell(numeric_data))
-                    for i=1:numel(numeric_data)
-                        numeric_data{i}  = geog2projected_pts(handles,numeric_data{i});
-                    end
-                else
-                    numeric_data = geog2projected_pts(handles,numeric_data);
-                end
+			try
+				if (iscell(numeric_data))
+					for i=1:numel(numeric_data)
+						numeric_data{i}  = geog2projected_pts(handles,numeric_data{i});
+					end
+				else
+					numeric_data = geog2projected_pts(handles,numeric_data);
+				end
             catch
-                errordlg(lasterr,'ERROR');    return
+				errordlg(lasterr,'ERROR');    return
             end
-        end
-        
-        % If OUT is requested there is nothing left to be done here
-        if (nargout)
-			OUT = numeric_data;     return
-        end
+		end
+            
+		% If OUT is requested there is nothing left to be done here  
+		if (nargout),		OUT = numeric_data;		return,		end
             
         if (hFig ~= hMsgFig);       figure(hFig);    axes(hAxes);   end     % gain access to the drawing figure
         % Get rid of points that are outside the map limits
@@ -121,16 +119,16 @@ switch opt
         hold on
         lt = handles.DefLineThick;   lc = handles.DefLineColor;
         for i=1:n_segments
-            if (iscell(numeric_data))
+			if (iscell(numeric_data))
 				tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
-            else
+			else
 				tmpx = numeric_data(:,1);       tmpy = numeric_data(:,2);
-            end
-            ind = find(tmpx < xx(1)-tol | tmpx > xx(2)+tol);
-            tmpx(ind) = [];         tmpy(ind) = [];
-            ind = find(tmpy < yy(1)-tol | tmpy > yy(2)+tol);
-            tmpx(ind) = [];         tmpy(ind) = [];
-            switch data
+			end
+			ind = find(tmpx < xx(1)-tol | tmpx > xx(2)+tol);
+			tmpx(ind) = [];         tmpy(ind) = [];
+			ind = find(tmpy < yy(1)-tol | tmpy > yy(2)+tol);
+			tmpx(ind) = [];         tmpy(ind) = [];    
+			switch data
 				case 'AsLine'
 					% The following Tag is very important to tell from MB tracks, which have Tags = MBtrack#
 					lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','polyline');
@@ -207,10 +205,9 @@ function set_SHPline_uicontext(h,opt)
 handles = guidata(h(1));
 for (i = 1:numel(h))
 	cmenuHand = uicontextmenu('Parent',handles.figure1);      set(h(i), 'UIContextMenu', cmenuHand);
-    uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
 	uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', {@del_line,h(i)});
 	uimenu(cmenuHand, 'Label', 'Delete class', 'Call', 'delete(findobj(''Tag'',''SHPpolyline''))');
-	%ui_edit_polygon(h(i))    % Set edition functions   
 	
 	cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
 	cb_dashed = 'set(gco, ''LineStyle'', ''--''); refresh';
@@ -236,18 +233,21 @@ IS_SEISPOLYGON = 0;     % Seismicity polygons have special options
 x = get(h,'XData');   y = get(h,'YData');
 if (isempty(x) || isempty(y)),   return;     end     % Line is totally out of the figure
 if ( (x(1) == x(end)) && (y(1) == y(end)) )
-    LINE_ISCLOSED = 1;
-    IS_RECTANGLE = 0;
-    if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
-        IS_RECTANGLE = 1;
-    end
-    if (strcmp(get(h,'Tag'),'SeismicityPolygon')),  IS_SEISPOLYGON = 1;    end
+	LINE_ISCLOSED = 1;
+	IS_RECTANGLE = 0;
+	if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
+		IS_RECTANGLE = 1;	
+	end  
+	if (strcmp(get(h,'Tag'),'SeismicityPolygon')),  IS_SEISPOLYGON = 1;    end
 else
     LINE_ISCLOSED = 0;
     IS_RECTANGLE = 0;       % If line is not closed, it cannot be a rectangle
 end
-if (strcmp(get(h,'Type'),'patch')), IS_PATCH = 1;
-else                                IS_PATCH = 0;
+if (strcmp(get(h,'Type'),'patch')),
+	IS_PATCH = 1;
+	if (IS_PATCH && ~LINE_ISCLOSED),	LINE_ISCLOSED = 1;	end
+else
+	IS_PATCH = 0;
 end
 
 handles = guidata(get(h,'Parent'));             % Get Mirone handles
@@ -256,12 +256,12 @@ handles = guidata(get(h,'Parent'));             % Get Mirone handles
 cmenuHand = uicontextmenu('Parent',handles.figure1);
 set(h, 'UIContextMenu', cmenuHand);
 switch opt
-    case 'line'
-        label_save = 'Save line';   label_length = 'Line length(s)';   label_azim = 'Line azimuth(s)';
-        IS_LINE = 1;    IS_MBTRACK = 0;
-    case 'MBtrack'
-        label_save = 'Save track';   label_length = 'Track length';   label_azim = 'Track azimuth(s)';
-        IS_LINE = 0;    IS_MBTRACK = 1;
+	case 'line'
+		label_save = 'Save line';   label_length = 'Line length(s)';   label_azim = 'Line azimuth(s)';
+		IS_LINE = 1;    IS_MBTRACK = 0;	
+	case 'MBtrack'
+		label_save = 'Save track';   label_length = 'Track length';   label_azim = 'Track azimuth(s)';
+		IS_LINE = 0;    IS_MBTRACK = 1;
 end
 cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
