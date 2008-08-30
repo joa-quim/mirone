@@ -142,88 +142,87 @@ function FirstButtonDown(obj,eventdata,hfig)
 
 %---------------------------------------------------------------------------------------
 function NextButtonDown(obj,eventdata,hfig)
-	% Most of what this does is to check if finish and if not call back FirstButtonDown
+% Most of what this does is to check if finish and if not call back FirstButtonDown
 	ud = getappdata(hfig, 'FromGetPolygon');
 	try,    selectionType = get(ud.GETLINE_FIG, 'SelectionType'); 
 	catch   % Open an exit door, otherwise we are stucked inside whatever caused the error.
-        set(ud.GETLINE_H1, 'UserData', 'Completed');
-    end
-	
+		set(ud.GETLINE_H1, 'UserData', 'Completed');
+	end
+
 	if (strcmp(selectionType,'alt')) || (strcmp(selectionType,'extend')) || (strcmp(selectionType,'open'))
-        % User changed his mind (right click) or ended selection
-        set(ud.GETLINE_H1, 'UserData', 'Completed');
-        if (ishandle(ud.markers)),        delete(ud.markers);     end
+		% User changed his mind (right click) or ended selection
+		set(ud.GETLINE_H1, 'UserData', 'Completed');
+		if (ishandle(ud.markers)),        delete(ud.markers);     end
 	elseif (strcmp(selectionType, 'normal'))    % left-click
-        pt = get(ud.GETLINE_AX, 'CurrentPoint');
-        x = pt(1,1);    y = pt(1,2);
-        % check if x,y is inside of axis
-        x_lim = get(ud.GETLINE_AX,'xlim');      y_lim = get(ud.GETLINE_AX,'ylim');
-        if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2))    % outside axis limits, ignore this ButtonDown
-            return
-        end    
-        set(hfig, 'WindowButtonDownFcn', {@FirstButtonDown,hfig}); 
+		pt = get(ud.GETLINE_AX, 'CurrentPoint');
+		x = pt(1,1);    y = pt(1,2);
+		% check if x,y is inside of axis
+		x_lim = get(ud.GETLINE_AX,'xlim');      y_lim = get(ud.GETLINE_AX,'ylim');
+		if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2))    % outside axis limits, ignore this ButtonDown         
+			return
+		end    
+		set(hfig, 'WindowButtonDownFcn', {@FirstButtonDown,hfig}); 
 	end
 	setappdata(hfig, 'FromGetPolygon', ud);
 
 %---------------------------------------------------------------------
 function [lineHandle,barHandles,button] = get_trackHandle(pt)
-	% get_trackHandle function is used to get the handle of the multi-beam track object.
-	% [lineHandle,barHandles,button]=get_trackHandle(pt)
-	% This subfunction and the next are based from GraphTools
-	%---------------------------------------------------------------------
-	ii = prop_list('axes');     h_lines=[];
+% get_trackHandle function is used to get the handle of the multi-beam track object.
+% [lineHandle,barHandles,button]=get_trackHandle(pt)
+% This subfunction and the next are based from GraphTools
+%---------------------------------------------------------------------
+	ii = prop_list('axes');		h_lines=[];	    lineHandle = [];     barHandles = [];
 	for i=1:length(ii)
        axes(ii(i))
-       h_lines=[h_lines; prop_list('line',1)]; % find the lines handles
+       h_lines=[h_lines; prop_list('line',1)];		% find the lines handles
+       h_lines=[h_lines; prop_list('patch',1)];		% find the patch handles
+	end
+	if (numel(h_lines) == 0)
+		warndlg('Sorry, but there are no lines to be selected!','Warning!')
+		lineHandle = [];		barHandles = [];	return 
 	end
 	
 	% Get rid of the swath width line handles. For that they have to have a 'swath_w#' Tag
 	% where # stands for the track number
-	tmp1 = h_lines;  tmp2 = zeros(1,length(h_lines));
-	for i = 1:length(h_lines)
-        tag = get(h_lines(i),'Tag');
-        if length(tag) < 7 || isempty(tag),     continue;   end         % prevents errors from line elements with tags shorter than 6 char 
-        if strcmp(tag(1:7),'swath_w')
-            tmp1(i) = 0;     tmp2(i) = h_lines(i);      % get the bar (or circle) handles
-        end
+	tmp1 = h_lines;  tmp2 = zeros(1,numel(h_lines));
+	for i = 1:numel(h_lines)
+		tag = get(h_lines(i),'Tag');
+		if (strncmp(tag, 'swath_w', 7))
+			tmp1(i) = 0;	tmp2(i) = h_lines(i);      % get the bar (or circle) handles
+		end
 	end
-	h_lines = h_lines(find(tmp1 ~= 0));         % get only the tracks handles
-	ALLbarHandles = tmp2(find(tmp2 ~= 0));         % get the handles to ALL bar handles (e.g. all bars of all tracks)
+	h_lines = h_lines(find(tmp1 ~= 0));			% get only the tracks handles
+	ALLbarHandles = tmp2(find(tmp2 ~= 0));		% get the handles to ALL bar handles (e.g. all bars of all tracks)
 	
-	key=0;      ii=[];     first = 1;  button = 1;    lineHandle = [];     barHandles = [];
-	while key==0
-        if (first),     x = pt(1,1);    y = pt(1,2);    first = 0;
-        else            [x,y,button] = ginput_pointer(1,'crosshair');     end
-        if button~=1, lineHandle=[];    return;     end
-        for i=1:length(h_lines)
-            ii=[ii,i];
-        end
-        hh = h_lines(ii);
-        if length(hh) > 0
-            if any(hh == gco), lineHandle=gco;  key=1;         end
-        else
-            warndlg('Sorry, there are no lines to be edited!','Warning!')
-            lineHandle=[];      return 
-        end   
+	key = 0;	first = 1;		button = 1;
+	while (key == 0)
+		if (first),		first = 0;
+		else            [x,y,button] = ginput_pointer(1,'crosshair');
+		end
+		if (button ~= 1),	lineHandle=[];	return,		end
+		if (any(h_lines == gco)),	lineHandle = gco;		key=1;		end
 	end
 	
 	% Now find the handles to the bar lines which correspond to the swath width
 	% at each vertex of the selected lineHandle
 	tag = get(lineHandle,'Tag');
-	nTrack = tag(8:end);        % get the string with the track number
-	barHandles = findobj(ALLbarHandles,'Tag',['swath_w' nTrack]);
-	barHandles = sort(barHandles);
+	if (strncmp(tag, 'swath_w', 7))
+		nTrack = tag(8:end);        % get the string with the track number
+		barHandles = findobj(ALLbarHandles,'Tag',['swath_w' nTrack]);
+		barHandles = sort(barHandles);
+	end
 
 %---------------------------------------------------------------------------
 function key = prop_list(Type,arg1)
-	%  key=prop_list(Type,arg1) 
-	%  return the handles of the specified property in the current window.
-	%---------------------------------------------------------------------------
-	if nargin==1, y=get(gcf,'Child');
-	else  y=get(gca,'Child'); end
-	ii=[];
-	for i=1:length(y)
-       c=get(y(i),'Type');
-       if strcmp(c,Type), ii=[ii,i]; end
+%  key=prop_list(Type,arg1) 
+%  return the handles of the specified property in the current window.
+%---------------------------------------------------------------------------
+	if (nargin == 1),	y = get(gcf,'Child');
+	else				y = get(gca,'Child');
+	end
+	ii = false(numel(y),1);
+	for i = 1:numel(y)
+		c = get(y(i),'Type');
+		if strcmp(c,Type),	ii(i) = true;	end
 	end   
-	key=y(ii);
+	key = y(ii);
