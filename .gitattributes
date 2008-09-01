@@ -572,6 +572,7 @@ utils/grid_info.m -text
 utils/grid_profiler.m -text
 utils/griddata_j.m -text
 utils/guess_file.m -text
+utils/hellinger.m -text
 utils/histo_m.m -text
 utils/histos_seis.m -text
 utils/imcapture.m -text
