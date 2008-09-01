@@ -16,22 +16,16 @@ function [latb,lonb] = buffer_j(lat,lon,dist,direction,npts,outputformat)
 %
 % Input variables:
 %
-%   lat:            Latitude values defining the polygon to be buffered.
+%   lon, lat        coordinates values defining the polygon to be buffered.
 %                   This can be either a NaN-delimited vector, or a cell
 %                   array containing individual polygonal contours.
-%                   External contours should be listed in a clockwise
-%                   direction, and internal contours (holes) in a
-%                   counterclockwise direction.
-%
-%   lon:            Longitude values defining the polygon to be buffered.
-%                   Same format as lat. 
 %
 %   dist:           Width of buffer, in degrees of arc along the surface
 %
 %   direction:      'in' or 'out'
 %
 %   npts:           Number of points used to contruct the circles around
-%                   each polygon vertex.  If omitted, default is 25. 
+%                   each polygon vertex.  If omitted, default is 13. 
 %
 %   outputformat:   'vector' (NaN-delimited vectors), 'cutvector'
 %                   (NaN-clipped vectors with cuts connecting holes to the
@@ -65,156 +59,94 @@ function [latb,lonb] = buffer_j(lat,lon,dist,direction,npts,outputformat)
 % Coffeeright (c) 2002-2008 by J. Luis
 % Joaquim Luis	27-Aug-2008
 
-%---------------------------
-% Check input
-%---------------------------
+	% Check input
+	nin = nargin;
+	if (nin < 3 || nin > 6),	error('Wrong number of input arguments'),	end
 
-nin = nargin;
-if (nin < 3 || nin > 6)
-    error('Wrong number of input arguments');
-end
+	% Set defaults if not provided as input
+	if (nin < 4),	direction = 'out';		end
+	if (nin < 5)	npts = 13;				end
+	if (nin < 6)	outputformat = 'vector';end
 
-% Set defaults if not provided as input
-if (nin < 4),	direction = 'out';		end
-if (nin < 5)	npts = 25;				end
-if (nin < 6)	outputformat = 'vector';end
+	% Check format and dimensions of input
+	if (direction(1) ~= 'i' && direction(1) ~= 'o'),	error('Direction must be either ''in'' or ''out''.'),	end
+	if (~isnumeric(dist) || numel(dist) > 1),	error('Distance must be a scalar.'),	end
+	if (~isnumeric(npts) || numel(npts) > 1),	error('Number of points must be a scalar.'),	end
 
-% Check format and dimensions of input
-if (direction(1) ~= 'i' && direction(1) ~= 'o'),	error('Direction must be either ''in'' or ''out''.'),	end
-if (~isnumeric(dist) || numel(dist) > 1),	error('Distance must be a scalar.'),	end
-if (~isnumeric(npts) || numel(npts) > 1),	error('Number of points must be a scalar.'),	end
-
-if ( ~(strcmp(outputformat(1:2), 've') || strcmp(outputformat(1:2), 'cu') || strcmp(outputformat(1:2), 'ce')) )   
-	error('Unrecognized output format flag.');
-end
-
-if iscell(lat)
-	latsizes = cellfun(@size, lat, 'UniformOutput', false);
-	lonsizes = cellfun(@size, lon, 'UniformOutput', false);
-	if ~isequal(latsizes, lonsizes)
-		error('Lat and lon must have identical dimensions');
+	if ( ~(strcmp(outputformat(1:2), 've') || strcmp(outputformat(1:2), 'cu') || strcmp(outputformat(1:2), 'ce')) )   
+		error('Unrecognized output format flag.');
 	end
-else
-	if ~isequal(size(lat), size(lon))
-		error('Lat and lon must have identical dimensions');
+
+	% Split (and test) NaN-polygon(s) into separate elements of cell arrays 
+	if ~(isa(lat,'cell'))
+		if (~isequal(size(lat), size(lon))),	error('Lat and lon must have identical dimensions'),	end
+		[latcells, loncells] = map_funs('polysplit',lat(:), lon(:));
+	else
+		[lat, lon] = map_funs('polyjoin',lat, lon);		% In case multiple faces in one cell.
+		lat = lat(:);	lon = lon(:);
+		[latcells, loncells] = map_funs('polysplit',lat, lon);
+		latsizes = cellfun(@size, lat, 'UniformOutput', false);
+		lonsizes = cellfun(@size, lon, 'UniformOutput', false);
+		if (~isequal(latsizes, lonsizes)),		error('Lat and lon must have identical dimensions'),	end
 	end
-end
 
-%---------------------------
-% Split polygon(s) into separate faces 
-%---------------------------
+	% Create buffer shapes on each face
+	xout = cell(numel(latcells), 1);	yout = cell(numel(latcells), 1);
+	for (ipoly = 1:numel(latcells))
+		[xb, yb] = buffer(loncells{ipoly}, latcells{ipoly}, dist, npts, direction);
+		xout{ipoly} = xb;		yout{ipoly} = yb;
+	end
 
-if iscell(lat)
-	[lat, lon] = map_funs('polyjoin',lat, lon);		% In case multiple faces in one cell.
-end
+	% Reformat output
+	switch outputformat
+        case 'vector'
+			if (isa(yout,'cell'))
+            	[latb, lonb] = map_funs('polyjoin',yout, xout);
+			end
+        case 'cutvector'
+            [latb, lonb] = map_funs('polycut',yout, xout);
+        case 'cell'
+			latb = yout;	lonb = xout;
+	end
 
-lat = lat(:);	lon = lon(:);
-[latcells, loncells] = map_funs('polysplit',lat, lon);
+% ------------------------------------------------------------------------------------------
+function [xb, yb] = buffer(x, y, dist, npts, direction)
+% BUFFER handles one non-interrupted polygon at a time
 
-%---------------------------
-% Create buffer shapes
-%---------------------------
-latcrall = cell(0);		loncrall = cell(0);
-
-for (ipoly = 1:length(latcells))		% Circles around each vertex
-    
-	range = repmat(dist, size(latcells{ipoly}));
- 	[lattemp, lontemp] = circ_geo(latcells{ipoly}, loncells{ipoly}, range, [], npts);
-
-	latc = lattemp(1,:);    lonc = lontemp(1,:);
-	for (icirc = 2:size(lattemp,1))
-		P1.x = lonc;	P1.y = latc;	P1.hole = 0;
-		P2.x = lontemp(icirc,:);		P2.y = lattemp(icirc,:);	P2.hole = 0;
-		P3 = PolygonClip(P1, P2, 3);
-		lonc = [P3(1).x; P3(1).x(1)];	latc = [P3(1).y;  P3(1).y(1)];		% Add first pt to close (bug in PolygonClip?)
-		if (numel(P3) > 1)			% The two circles did not intercept
-			lonc = [lonc; P3(2).x; P3(2).x(1)];
-			latc = [latc; P3(2).y; P3(2).y(1)];
-		end
-	end 
-    
+	n_vertex = numel(y);
+	range = zeros(n_vertex, 1) + dist;
+ 	[y_circ, x_circ] = circ_geo(y, x, range, [], npts);
+	
 	% Rectangles around each edge
 	range(end) = [];
-	az = azimuth_geo(latcells{ipoly}(1:end-1), loncells{ipoly}(1:end-1), latcells{ipoly}(2:end), loncells{ipoly}(2:end));
+	az = azimuth_geo(y(1:end-1), x(1:end-1), y(2:end), x(2:end));
+	[latbl1,lonbl1] = circ_geo(y(1:end-1), x(1:end-1), range, az-90, 1);
+	[latbr1,lonbr1] = circ_geo(y(1:end-1), x(1:end-1), range, az+90, 1);
+	[latbl2,lonbl2] = circ_geo(y(2:end),   x(2:end),   range, az-90, 1);
+	[latbr2,lonbr2] = circ_geo(y(2:end),   x(2:end),   range, az+90, 1);
 
-	[latbl1,lonbl1] = circ_geo(latcells{ipoly}(1:end-1), loncells{ipoly}(1:end-1), range, az-90, 1);
-	[latbr1,lonbr1] = circ_geo(latcells{ipoly}(1:end-1), loncells{ipoly}(1:end-1), range, az+90, 1);
-	[latbl2,lonbl2] = circ_geo(latcells{ipoly}(2:end),   loncells{ipoly}(2:end),   range, az-90, 1);
-	[latbr2,lonbr2] = circ_geo(latcells{ipoly}(2:end),   loncells{ipoly}(2:end),   range, az+90, 1);
+	y_rect = [latbl1 latbl2 latbr2 latbr1 latbl1]';
+	x_rect = [lonbl1 lonbl2 lonbr2 lonbr1 lonbl1]';
 
-    lattemp = [latbl1 latbl2 latbr2 latbr1 latbl1]';
-    lontemp = [lonbl1 lonbl2 lonbr2 lonbr1 lonbl1]';
-    
-	latr = lattemp(:,1);    lonr = lontemp(:,1);
-	c = 0;
-    for (irect = 2:size(lattemp,2))
-		P1.x = lonr;	P1.y = latr;	P1.hole = 0;
-		P2.x = lontemp(:,irect);		P2.y = lattemp(:,irect);	P2.hole = 0;
-		P3 = PolygonClip(P1, P2, 3);
-		lonr = P3(1).x;		latr = P3(1).y;			% WHAT IS IN THE P3(I>1) ?????
-		N = numel(P3);
-		if (N > 1)
-			c = c + 1;
-		end
-    end
+	P1.x = x_circ(1,:);			P1.y = y_circ(1,:);	P1.hole = 0;
+	P2.x = x_rect(:,1);			P2.y = y_rect(:,1);	P2.hole = 0;
+	Pprev = PolygonClip(P1, P2, 3);				% Union of first circle and rectangle
 
-	lonb = lonc;	latb = latc;
-    % Union of circles and rectangles
-    
-	P1.x = lonr;	P1.y = latr;	P1.hole = 0;
-	P2.x = lonc;	P2.y = latc;	P2.hole = 0;
-	P3 = PolygonClip(P1, P2, 3);
-	loncr = P3(1).x;		latcr = P3(1).y;
-	if (ipoly == 1)
-		P_1.x = loncr;		P_1.y = latcr;	P_1.hole = 0;
-	else
-		P2.x = loncr;	P2.y = latcr;	P2.hole = 0;
-		P3 = PolygonClip(P_1, P2, 3);
-		P_1 = P3;
+	for (i_vertex = 2:n_vertex-1)
+		P1.x = x_circ(i_vertex,:);		P1.y = y_circ(i_vertex,:);
+		P2.x = x_rect(:,i_vertex);		P2.y = y_rect(:,i_vertex);
+		P3 = PolygonClip(P1, P2, 3);			% Union of circle and rectangle
+		Pprev = PolygonClip(Pprev, P3, 3);		% Union of previous unions and new circle+rectangle union
 	end
-    
-end
+	P1.x = x_circ(n_vertex,:);		P1.y = y_circ(n_vertex,:);
+	P3 = PolygonClip(Pprev, P1, 3);				% Union of previous unions and last circle
 
-	N = numel(P3);
-	if (N == 1)
-		loncrall = P3.x;		latcrall = P3.y;
-		if ( latcrall(1) ~= latcrall(end) || loncrall(1) ~= loncrall(end) )		% open polygon -> BUG somewhere
-			loncrall = [loncrall; loncrall(1)];
-			latcrall = [latcrall; latcrall(1)];
-		end
+	if (numel(P3) == 1)
+		xb = P3.x;		yb = P3.y;
 	else
-		loncrall = [];		latcrall = [];
-		for (k = 1:N)
-			loncrall = [loncrall; P3(k).x; NaN];
-			latcrall = [latcrall; P3(k).y; NaN];
+		xb = [];		yb = [];
+		for (k = 1:numel(P3)-1)
+			xb = [xb; P3(k).x; NaN];		yb = [yb; P3(k).y; NaN];
 		end
-		loncrall(end) = [];
-		latcrall(end) = [];
+		xb = [xb; P3(k+1).x];				yb = [yb; P3(k+1).y];		% We didn't want the last NaN
 	end
-
-%---------------------------
-% Calculate union/difference
-%---------------------------
-
-% switch direction
-%     case 'out'
-% 		[lonb, latb] = polybool('+', loncells, latcells, loncrall, latcrall);
-%     case 'in'
-% 		[lonb, latb] = polybool('-', loncells, latcells, loncrall, latcrall);
-% end
-lonb = loncrall;
-latb = latcrall;
-
-%---------------------------
-% Reformat output
-%---------------------------
-
-switch outputformat
-    case 'vector'
-		if (isa(latb,'cell'))
-        	[latb, lonb] = map_funs('polyjoin',latb, lonb);
-		end
-    case 'cutvector'
-        [latb, lonb] = map_funs('polycut',latb, lonb);
-    case 'cell'
-end
