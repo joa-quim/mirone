@@ -22,6 +22,7 @@ if length(lat) == 1 && length(lon) == 1 && length(rng) ~= 0
 end
 
 if isempty(az),    az = [0 360];    az = az(ones([size(lat,1) 1]), :);  end
+if isequal(size(az), [1 2]),		az = az(ones([size(lat,1) 1]), :);  end
 
 % convert to radians
 lat = lat * D2R;    lon = lon * D2R;    az = az * D2R;    rng = rng * D2R;
