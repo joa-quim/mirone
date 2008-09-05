@@ -318,6 +318,7 @@ lib_mex/wgifc.dll -text
 /libnetcdf.dll -text
 /libsift.dll -text
 /lti_dsdk_dll.dll -text
+mex/PolygonClip.c -text
 mex/alloc_mex.c -text
 mex/callMir.c -text
 mex/countries.h -text
