@@ -1,4 +1,4 @@
-function az = azimuth_geo(lat1,lon1,lat2,lon2,unites)
+function [az, az2] = azimuth_geo(lat1,lon1,lat2,lon2,unites)
 % Calculates great circle azimuth on a sphere. 
 % lon1, lat1, ... are in degrees (unless, see below) and may be scalars or column vectors. 
 % If UNITES exists and == 'radians', lats & lons are assumed to be in radians and so will be az
@@ -32,3 +32,5 @@ if (~isempty(indx));  az(indx) = zeros(size(indx));  end
 if (do_conv)        % Convert back to degrees
     az = az / D2R;
 end
+
+if (nargout == 2),		az2 = az;	end		% For convenience of buffer_j()
