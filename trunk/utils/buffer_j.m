@@ -1,16 +1,17 @@
-function [latb,lonb] = buffer_j(lat,lon,dist,direction,npts,outputformat)
+function [latb,lonb] = buffer_j(lat, lon, dist, direction, npts, geog, outputformat)
 %BUFFERM2 Computes buffer zone around a polygon
 %
 % [latb,lonb] = buffer_j(lat,lon,dist,direction)
 % [latb,lonb] = buffer_j(lat,lon,dist,direction,npts)
-% [latb,lonb] = buffer_j(lat,lon,dist,direction,npts,outputformat)
+% [latb,lonb] = buffer_j(lat,lon,dist,direction,npts,geog)
+% [latb,lonb] = buffer_j(lat,lon,dist,direction,npts,geog,outputformat)
 %
 % This function is a replacement for the Mapping Toolbox function bufferm, 
 % which calculates a buffer zone around a polygon. It uses the same concept as
 % the original, constructing a buffer by placing rectangles around each edge
 % and circles around each vertex of the input polygon.  However, it relies
 % on the PolygonClip MEX library to calculate polygon unions/differences.
-% The input and output is identical in format to that for bufferm.
+% The output is identical in format to that for bufferm but it has more inputs.
 % This function is a modification of Kelly Kearney's BUFFERM2 which still
 % depended on the Mapping Toolbox. This one doesn't.
 %
@@ -22,10 +23,15 @@ function [latb,lonb] = buffer_j(lat,lon,dist,direction,npts,outputformat)
 %
 %   dist:           Width of buffer, in degrees of arc along the surface
 %
-%   direction:      'in' or 'out'
+%   direction:      'in' or 'out' or 'both'. Default is 'both'
 %
 %   npts:           Number of points used to contruct the circles around
-%                   each polygon vertex.  If omitted, default is 13. 
+%                   each polygon vertex.  If omitted, default is 13.
+%	geog 			= [a b], or [a f] uses geodetic computation, where a & b|f are ellipsoid params
+%					= [] uses WGS-84
+%					= 1  uses spherical aproximation
+%					= 0  do cartesian calculation
+%					If omitted, guesses if is geog from the X,Y coords (but never ellipsoidal)
 %
 %   outputformat:   'vector' (NaN-delimited vectors), 'cutvector'
 %                   (NaN-clipped vectors with cuts connecting holes to the
@@ -61,15 +67,25 @@ function [latb,lonb] = buffer_j(lat,lon,dist,direction,npts,outputformat)
 
 	% Check input
 	nin = nargin;
-	if (nin < 3 || nin > 6),	error('Wrong number of input arguments'),	end
+	if (nin < 3 || nin > 7),	error('Wrong number of input arguments'),	end
 
 	% Set defaults if not provided as input
-	if (nin < 4),	direction = 'out';		end
-	if (nin < 5)	npts = 13;				end
-	if (nin < 6)	outputformat = 'vector';end
+	if (nin < 4)
+		direction = 'both';		geog = guess_geog(lon, lat);
+		npts = 13;				outputformat = 'vector';
+	elseif (nin < 5)
+		npts = 13;				geog = guess_geog(lon, lat);
+		outputformat = 'vector';
+	elseif (nin < 6)
+		geog = guess_geog(lon, lat);	outputformat = 'vector';
+	else
+		outputformat = 'vector';
+	end
 
 	% Check format and dimensions of input
-	if (direction(1) ~= 'i' && direction(1) ~= 'o'),	error('Direction must be either ''in'' or ''out''.'),	end
+	if (direction(1) ~= 'i' && direction(1) ~= 'o' && direction(1) ~= 'b'),
+		error('Direction must be either ''in'' or ''out'' or ''both'' '),
+	end
 	if (~isnumeric(dist) || numel(dist) > 1),	error('Distance must be a scalar.'),	end
 	if (~isnumeric(npts) || numel(npts) > 1),	error('Number of points must be a scalar.'),	end
 
@@ -93,7 +109,7 @@ function [latb,lonb] = buffer_j(lat,lon,dist,direction,npts,outputformat)
 	% Create buffer shapes on each face
 	xout = cell(numel(latcells), 1);	yout = cell(numel(latcells), 1);
 	for (ipoly = 1:numel(latcells))
-		[xb, yb] = buffer(loncells{ipoly}, latcells{ipoly}, dist, npts, direction);
+		[xb, yb] = buffer(loncells{ipoly}, latcells{ipoly}, dist, npts, direction, geog);
 		xout{ipoly} = xb;		yout{ipoly} = yb;
 	end
 
@@ -110,20 +126,36 @@ function [latb,lonb] = buffer_j(lat,lon,dist,direction,npts,outputformat)
 	end
 
 % ------------------------------------------------------------------------------------------
-function [xb, yb] = buffer(x, y, dist, npts, direction)
+function [xb, yb] = buffer(x, y, dist, npts, direction, geog)
 % BUFFER handles one non-interrupted polygon at a time
+% GEOG = [a b], or [a f] uses geodetic computation, where a & b are ellipsoid params
+% GEOG = [] uses WGS-84
+% GEOG = 1  uses spherical aproximation
+% GEOG = 0  do cartesian calculation
 
-	n_vertex = numel(y);
-	range = zeros(n_vertex, 1) + dist;
- 	[y_circ, x_circ] = circ_geo(y, x, range, [], npts);
+	if ( numel(geog) == 2 || numel(geog) == 0 )
+		fhandle_circ = @vreckon;
+		fhandle_azim = @vdist;
+		dist = dist * 111194.927;
+	elseif (geog)
+		fhandle_circ = @circ_geo;
+		fhandle_azim = @azimuth_geo;
+	else
+		fhandle_circ = @circ_cart;
+		fhandle_azim = @azim_cart;	
+	end
+
+	xb = [];	yb = [];
+	perim = [0 360];
+	range = dist;
+ 	[y_circ, x_circ] = feval(fhandle_circ, y, x, range, perim, npts);
 	
 	% Rectangles around each edge
-	range(end) = [];
-	az = azimuth_geo(y(1:end-1), x(1:end-1), y(2:end), x(2:end));
-	[latbl1,lonbl1] = circ_geo(y(1:end-1), x(1:end-1), range, az-90, 1);
-	[latbr1,lonbr1] = circ_geo(y(1:end-1), x(1:end-1), range, az+90, 1);
-	[latbl2,lonbl2] = circ_geo(y(2:end),   x(2:end),   range, az-90, 1);
-	[latbr2,lonbr2] = circ_geo(y(2:end),   x(2:end),   range, az+90, 1);
+	[dumb, az] = feval( fhandle_azim, y(1:end-1), x(1:end-1), y(2:end), x(2:end) );
+	[latbl1,lonbl1] = feval( fhandle_circ, y(1:end-1), x(1:end-1), range, az-90, 1);
+	[latbr1,lonbr1] = feval( fhandle_circ, y(1:end-1), x(1:end-1), range, az+90, 1);
+	[latbl2,lonbl2] = feval( fhandle_circ, y(2:end),   x(2:end),   range, az-90, 1);
+	[latbr2,lonbr2] = feval( fhandle_circ, y(2:end),   x(2:end),   range, az+90, 1);
 
 	y_rect = [latbl1 latbl2 latbr2 latbr1 latbl1]';
 	x_rect = [lonbl1 lonbl2 lonbr2 lonbr1 lonbl1]';
@@ -132,6 +164,7 @@ function [xb, yb] = buffer(x, y, dist, npts, direction)
 	P2.x = x_rect(:,1);			P2.y = y_rect(:,1);	P2.hole = 0;
 	Pprev = PolygonClip(P1, P2, 3);				% Union of first circle and rectangle
 
+	n_vertex = numel(y);
 	for (i_vertex = 2:n_vertex-1)
 		P1.x = x_circ(i_vertex,:);		P1.y = y_circ(i_vertex,:);
 		P2.x = x_rect(:,i_vertex);		P2.y = y_rect(:,i_vertex);
@@ -141,12 +174,57 @@ function [xb, yb] = buffer(x, y, dist, npts, direction)
 	P1.x = x_circ(n_vertex,:);		P1.y = y_circ(n_vertex,:);
 	P3 = PolygonClip(Pprev, P1, 3);				% Union of previous unions and last circle
 
-	if (numel(P3) == 1)
-		xb = P3.x;		yb = P3.y;
-	else
-		xb = [];		yb = [];
-		for (k = 1:numel(P3)-1)
-			xb = [xb; P3(k).x; NaN];		yb = [yb; P3(k).y; NaN];
+	% Now deal with any particular 'direction' request
+	n_polygs = numel(P3);
+	if (n_polygs == 1)
+		if ( direction(1) == 'b' || direction(1) == 'o' )	% If only one, it will always be an outside
+			xb = P3.x;		yb = P3.y;
 		end
-		xb = [xb; P3(k+1).x];				yb = [yb; P3(k+1).y];		% We didn't want the last NaN
+	else
+		if ( direction(1) == 'b')			% Want both 'in' and 'out'
+			for (k = 1:n_polygs-1)
+				xb = [xb; P3(k).x; NaN];		yb = [yb; P3(k).y; NaN];
+			end
+			xb = [xb; P3(k+1).x];				yb = [yb; P3(k+1).y];		% We didn't want the last NaN
+		else								% Either 'out' or 'in'
+			n_in_polygs = zeros(n_polygs,1);
+			for (k = 1:n_polygs),	n_in_polygs(k) = numel(P3(k).x);	end	% Count np in each polygon
+			[dumb, m] = max(n_in_polygs);
+			if ( direction(1) == 'o')		% 'out'
+				xb = P3(m).x;		yb = P3(m).y;
+			else							% 'in'
+				u = 1:n_polygs;
+				u(m) = [];					% Remove the larger polygon count (supposedly the outer polygon)
+				for (k = u)
+					xb = [xb; P3(k).x; NaN];		yb = [yb; P3(k).y; NaN];
+				end
+				xb(end) = [];						yb(end) = [];		% We dont't want the last NaN
+			end
+		end
 	end
+
+% ------------------------------------------------------------------------------------------
+function [x_circ, y_circ] = circ_cart(x, y, range, perim, npts);
+	perim = perim * pi / 180;
+	t = linspace(perim(1),perim(end),npts);
+	x_circ = zeros(numel(x), npts);		y_circ = zeros(numel(x), npts);
+	xc = range * cos(t);				yc = range * sin(t);
+	for (k = 1:numel(x))
+		x_circ(k,:) = x(k) + xc;		y_circ(k,:) = y(k) + yc;
+	end
+
+% ------------------------------------------------------------------------------------------
+function [dumb, az] = azim_cart(x1, y1, x2, y2);
+	dumb = [];
+	dx = x2 - x1;   dy = y2 - y1;
+	angs = atan2(dy,dx) * 180/pi;		% and convert to degrees
+	az = (90 - angs);					% convert to azim (cw from north)
+	ind = find(az < 0);
+	az(ind) = 360 + az(ind);
+
+% --------------------------------------------------------------------
+function geog = guess_geog(x, y)
+% Make a good guess if LIMS are geographic
+	lims = [min(x) max(x) min(y) max(y)];
+	geog = ( (lims(1) >= -180 && lims(2) <= 180) || (lims(1) >= 0 && lims(2) <= 360) )...
+        && (lims(3) >= -90 && lims(4) <= 90);
