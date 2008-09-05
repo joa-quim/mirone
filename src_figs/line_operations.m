@@ -184,9 +184,7 @@ function push_apply_Callback(hObject, eventdata, handles)
 			end
 			for (k = 1:numel(handles.hLine))
 				x = get(handles.hLine(k), 'xdata');		y = get(handles.hLine(k), 'ydata');
-				tic
  				[y, x] = buffer_j(y, x, dist, direction, npts);
-				toc
 				if (isempty(x)),	return,		end
 				ind = find(isnan(x));
 				if (isempty(ind))			% One only, so no doubts
