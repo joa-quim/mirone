@@ -357,6 +357,7 @@ mex/gdalwarp_mex.cpp -text
 mex/gdalwrite.c -text
 mex/gmtlist_m.c -text
 mex/gmtmbgrid_m.c -text
+mex/gpc.c -text
 mex/grd2cdf.c -text
 mex/grdfft_m.c -text
 mex/grdfilter_m.c -text
