@@ -583,7 +583,7 @@ if (have_scale)
         snc_error('NC_FUNS:NC_VARGET:MEXNC:GET_ATT_DOUBLE', mexnc('strerror', status) );
     end
 	% If data is other than single or double, change it to single
-	if ( scale_factor ~= 1 && (~isa(values,'single') || ~isa(values,'double')) )
+	if ( scale_factor ~= 1 && ~( isa(values,'single') || isa(values,'double')) )
 		values = single(values);
 	end
 end
