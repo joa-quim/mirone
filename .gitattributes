@@ -663,6 +663,7 @@ utils/uisuspend_fig.m -text
 utils/uisuspend_j.m -text
 utils/url2image.m -text
 utils/vdist.m -text
+utils/vreckon.m -text
 utils/wfindobj.m -text
 utils/write_ESRI_hdr.m -text
 utils/write_flederFiles.m -text
