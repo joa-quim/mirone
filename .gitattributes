@@ -604,6 +604,7 @@ utils/load_grd.m -text
 utils/luts.m -text
 utils/make_arrow.m -text
 utils/map_funs.m -text
+utils/mat2clip.m -text
 utils/mat_lyies.m -text
 utils/mboard.m -text
 utils/mc_e_b_estimate.m -text
