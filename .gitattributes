@@ -243,6 +243,7 @@ lib_mex/bwboundariesmex.dll -text
 lib_mex/bwlabel1.dll -text
 lib_mex/bwlabel2.dll -text
 lib_mex/bwlabelnmex.dll -text
+lib_mex/clipbd_mex.dll -text
 lib_mex/country_select.dll -text
 lib_mex/cpt2cmap.dll -text
 lib_mex/cq.dll -text
