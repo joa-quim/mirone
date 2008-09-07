@@ -1,5 +1,4 @@
 function varargout = ecran(varargin)
-% M-File changed by desGUIDE 
 
 %	Copyright (c) 2004-2008 by J. Luis
 %
@@ -30,10 +29,8 @@ function varargout = ecran(varargin)
 	end
 	handles.d_path = [handles.home_dir filesep 'data' filesep];
 	load([handles.d_path 'mirone_pref.mat']);
-	try
-		handles.last_dir = directory_list{1};
-	catch
-		handles.last_dir = cd;
+	try,		handles.last_dir = directory_list{1};
+	catch		handles.last_dir = cd;
 	end
 
 	if (~nargin),   varargin(1) = {[]};   end
@@ -48,18 +45,21 @@ function varargout = ecran(varargin)
 	end
 
 	% Load some icons from mirone_icons.mat
-	load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico');
+	load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico');
 	link_ico = imread([handles.d_path 'link.png']);
 
 	hTB = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
 		'Interruptible','on','Tag','FigureToolBar','Visible','on');
-	uitoggletool('parent',hTB,'Click',{@zoom_clickedCB,''}, 'cdata',zoom_ico,'Tooltip','Zoom');
-	uitoggletool('parent',hTB,'Click',{@zoom_clickedCB,'x'}, 'cdata',zoomx_ico,'Tooltip','Zoom X');
+	uitoggletool('parent',hTB,'Click',{@zoom_CB,''}, 'cdata',zoom_ico,'Tooltip','Zoom');
+	uitoggletool('parent',hTB,'Click',{@zoom_CB,'x'}, 'cdata',zoomx_ico,'Tooltip','Zoom X');
+	if (strncmp(computer,'PC',2))
+		uipushtool('parent',hTB,'Click',@copyclipbd_CB, 'cdata',clipcopy_ico,'Tooltip', 'Copy to clipboard ','Sep','on');
+	end
 	if (~isempty(handles.handMir))
-		uitoggletool('parent',hTB,'Click',@pick_clickedCB, 'cdata',link_ico,'Tooltip', ...
+		uitoggletool('parent',hTB,'Click',@pick_CB, 'cdata',link_ico,'Tooltip', ...
 			'Pick data point in curve and plot it the mirone figure','Sep','on');
 	end
-	uitoggletool('parent',hTB,'Click',@isocs_clickedCB, 'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on');
+	uitoggletool('parent',hTB,'Click',@isocs_CB, 'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on');
 
 	handles.n_plot = 0;         % Counter of the number of lines. Used for line color painting
 
@@ -70,8 +70,8 @@ function varargout = ecran(varargin)
 		errordlg('Error calling ecran: Minimum arguments are "type",X,Y,Z','Error');    return
 	end
 
-	handles.ageStart = 0;
-	handles.ageEnd = nan;
+	handles.ageStart = 0;		handles.ageEnd = nan;
+	handles.dist = [];			% It will contain cumulated distance if input is (x,y,z)
 	handles.hLine = [];			% Handles to the ploted line
 	handles.polyFig = [];		% Handles to the (eventual) figure for trend1d polyfit
 
@@ -116,7 +116,7 @@ function varargout = ecran(varargin)
 	if (nargout),	varargout{1} = hObject;		end
 
 % --------------------------------------------------------------------------------------------------
-function zoom_clickedCB(obj,eventdata,opt)
+function zoom_CB(obj,eventdata,opt)
 	if (strcmp(get(obj,'State'),'on'))
 		if (strcmp(opt,'x')),		zoom_j xon;
 		else						zoom_j on;
@@ -126,7 +126,39 @@ function zoom_clickedCB(obj,eventdata,opt)
 	end
 
 % --------------------------------------------------------------------------------------------------
-function pick_clickedCB(obj,eventdata)
+function copyclipbd_CB(obj,eventdata)
+% Copy curve(s) to the Windows clipboard.
+	handles = guidata(obj);
+	if (isempty(handles.hLine)),	return,		end
+	hLines = findobj(handles.axes1,'type','line');
+	x = get(hLines(1), 'xdata');	y = get(hLines, 'ydata');
+	if (~isa(y,'cell'))
+		data = [x(:) y(:)];
+	else
+		n_pts = numel(x);
+		nys = zeros(numel(y),1);
+		for (k = 1:numel(y)),		nys(k) = numel(y{k});	end		% Count each curve number of points
+		ind = find(nys == nys(1));			% See if they are all of the same size
+		if (numel(ind) == numel(nys))		% All curves have the same number of points. Good.
+			data = x(:);
+			for (k = 1:numel(y))			% Loop over number of curves
+				data = [data y{k}(:)];		% Slower due to non-preallocation but safe
+			end
+		else
+			% Search for the first curve that has as many points as the X vector 
+			for (k = 1:numel(y))			% Loop over number of curves
+				if (numel(y{k}) == n_pts)
+					data = [x(:) y{k}(:)];	% Found one (We must have at least one)
+					break
+				end
+			end
+			warndlg('Several curves but not all of the same size. Only one was copyied.','Warning')
+		end
+	end
+	mat2clip(data)
+
+% --------------------------------------------------------------------------------------------------
+function pick_CB(obj,eventdata)
 	handles = guidata(obj);
 	if (strcmp(get(obj,'State'),'on'))
 		set(handles.figure1,'WindowButtonDownFcn',@add_MarkColor)
@@ -166,7 +198,8 @@ function add_MarkColor(obj, eventdata)
 			% Get the X,Y coordinates to plot this point in the Mirone figure
 			% We need to add x_off since "i" counts only inside the +/- 1/10 of x_lim centered on current point
 			mir_pt_x = handles.data(i+x_off-1,1);	mir_pt_y = handles.data(i+x_off-1,2);
-			h = line(mir_pt_x, mir_pt_y,'Parent',handles.handMir.axes1,'Marker','o','MarkerFaceColor','k','MarkerSize',6,'LineStyle','none');
+			h = line(mir_pt_x, mir_pt_y,'Parent',handles.handMir.axes1,'Marker','o','MarkerFaceColor','k', ...
+				'MarkerSize',6,'LineStyle','none', 'Tag','picked');
 			draw_funs(h,'DrawSymbol')		% Set uicontexts
 		end
 
@@ -188,7 +221,7 @@ function add_MarkColor(obj, eventdata)
 	end
 
 % --------------------------------------------------------------------------------------------------
-function isocs_clickedCB(obj,eventdata)
+function isocs_CB(obj,eventdata)
 	handles = guidata(obj);
 	if (strcmp(get(obj,'State'),'on'))
 		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')
@@ -325,16 +358,14 @@ function FilePrint_Callback(hObject, eventdata, handles)
 % --------------------------------------------------------------------
 function FileOpen_Callback(hObject, eventdata, handles)
 % Read the file and select what columns to plot
-	cd(handles.last_dir);
-	[FileName,PathName] = uigetfile({'*.dat;*.DAT;', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select input data');
-	pause(0.01);    cd(handles.home_dir);
-	if isequal(FileName,0),   return;     end
+	str1 = {'*.dat;*.DAT;', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select input data','get');
+	if isequal(FileName,0),		return,		end	
 	fname = [PathName FileName];
-	handles.last_dir = PathName;
 
 	data = text_read(fname,NaN);
-	if (isempty(data))
-		errordlg('File doesn''t have any recognized nymeric data (Quiting).','Error');    return
+	if (isempty(data) || size(data,2) == 1)
+		errordlg('File doesn''t have any recognized nymeric data (Quiting) or one column only.','Error');    return
 	end
 
 	% If msgbox exist we have to move it from behind the main window. So get it's handle
@@ -347,11 +378,22 @@ function FileOpen_Callback(hObject, eventdata, handles)
 		try		delete(hMsgFig),		end
 	end
 
+% 	if (size(data,2) > 2)			% Not yet mature
+% 		out = select_cols(data,'xyz',fname,1000);
+% 	else
+% 		out = select_cols(data,'xy',fname,1000);
+% 	end
 	out = select_cols(data,'xy',fname,1000);
 	if (isempty(out)),		return,		end
-	
-	%lineHand = plot(data(:,out(1)),data(:,out(2)));    axis tight;
-	handles.hLine = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));    axis tight;
+
+	if (numel(out) == 4)			% Not yet in use
+		rd = dist_along_profile( data(:,out(1)), data(:,out(2)) );
+		handles.dist = rd;				% Save it in case user wants to save it to file
+		handles.hLine = line('Parent',handles.axes1,'XData',rd, 'YData',data(:,out(3)));
+	else
+		handles.hLine = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));
+	end
+	axis(handles.axes1,'tight');
 	handles.n_plot = handles.n_plot + 1;
 	if (handles.n_plot > 1)
 		c_order = get(handles.axes1,'ColorOrder');
@@ -635,8 +677,7 @@ set(h1,'Units','centimeters',...
 'PaperPosition',[1 2.5 15.625 6.953],...
 'PaperSize',[20.98404194812 29.67743169791],...
 'PaperType',get(0,'defaultfigurePaperType'),...
-'Position',[13.7214409375 12.0822707291667 21.4414038541667 9.041874375],...
-'Renderer',get(0,'defaultfigureRenderer'),...
+'Position',[13.72 12.08 21.44 9.04],...
 'RendererMode','manual',...
 'Tag','figure1');
 
