@@ -66,47 +66,47 @@ hVG = zeros(1,17);		kv = 5;		% hVG will contain the handles of "not valid grid" 
 h_toolbar = uitoolbar('parent',H1, 'BusyAction','queue','HandleVisibility','on','Interruptible','on',...
 	'Tag','FigureToolBar','Visible','on');
 uipushtool('parent',h_toolbar,'Click','mirone(''TransferB_CB'',guidata(gcbo),''NewEmpty'')', ...
-	'Tag','NewFigure','cdata',Mfnew_ico,'TooltipString','Open New figure');
+	'Tag','NewFigure','cdata',Mfnew_ico,'Tooltip','Open New figure');
 uipushtool('parent',h_toolbar,'Click','mirone(''TransferB_CB'',guidata(gcbo),''guessType'')', ...
-	'Tag','ImportKnownTypes','cdata',Mfopen_ico,'TooltipString','Load recognized file types');
+	'Tag','ImportKnownTypes','cdata',Mfopen_ico,'Tooltip','Load recognized file types');
 hVG(1) = uipushtool('parent',h_toolbar,'Click','mirone(''FileSaveGMTgrid_CB'',guidata(gcbo))', ...
-	'Tag','SaveGMTgrid','cdata',Mfsave_ico,'TooltipString','Save GMT grid');
+	'Tag','SaveGMTgrid','cdata',Mfsave_ico,'Tooltip','Save GMT grid');
 uipushtool('parent',h_toolbar,'Click','mirone_pref(guidata(gcbo))', ...
-	'Tag','Preferences','cdata',tools_ico,'TooltipString','Preferences');
+	'Tag','Preferences','cdata',tools_ico,'Tooltip','Preferences');
 uipushtool('parent',h_toolbar,'Click','mirone(''Transfer_CB'',guidata(gcbo),''print'')', ...
-	'Tag','Print','cdata',Mprint_ico,'TooltipString','Print image');
+	'Tag','Print','cdata',Mprint_ico,'Tooltip','Print image');
 uipushtool('parent',h_toolbar,'Click','mirone(''Draw_CB'',guidata(gcbo),''Text'')', ...
-	'Tag','DrawText','cdata',text_ico,'TooltipString','Insert Text','Sep','on');
+	'Tag','DrawText','cdata',text_ico,'Tooltip','Insert Text','Sep','on');
 uipushtool('parent',h_toolbar,'Click','mirone(''DrawGeographicalCircle_CB'',guidata(gcbo))', ...
-	'Tag','DrawGeogCirc','cdata',circ_ico,'TooltipString','Draw geographical circle');
+	'Tag','DrawGeogCirc','cdata',circ_ico,'Tooltip','Draw geographical circle');
 uipushtool('parent',h_toolbar,'Click','mirone(''DrawLine_CB'',guidata(gcbo))', ...
-	'Tag','DrawLine','cdata',Mline_ico,'TooltipString','Draw Line');
+	'Tag','DrawLine','cdata',Mline_ico,'Tooltip','Draw Line');
 uipushtool('parent',h_toolbar,'Click','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''rectangle'')', ...
-	'Tag','DrawRect','cdata',rectang_ico,'TooltipString','Draw Rectangle');
+	'Tag','DrawRect','cdata',rectang_ico,'Tooltip','Draw Rectangle');
 uipushtool('parent',h_toolbar,'Click','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),[])', ...
-	'Tag','DrawPolyg','cdata',polygon_ico,'TooltipString','Draw Closed Polygon');
+	'Tag','DrawPolyg','cdata',polygon_ico,'Tooltip','Draw Closed Polygon');
 uipushtool('parent',h_toolbar,'Click','mirone(''Draw_CB'',guidata(gcbo),''Vector'')', ...
-	'Tag','DrawArrow','cdata',Marrow_ico,'TooltipString','Draw Arrow');
+	'Tag','DrawArrow','cdata',Marrow_ico,'Tooltip','Draw Arrow');
 uitoggletool('parent',h_toolbar,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''zoom'')', ...
-	'Tag','Zoom','cdata',zoom_ico,'TooltipString','Zooming on/off','Sep','on');
+	'Tag','Zoom','cdata',zoom_ico,'Tooltip','Zooming on/off','Sep','on');
 uitoggletool('parent',h_toolbar,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''pan'')', ...
-	'Tag','Mao','cdata',mao,'TooltipString','Pan');
+	'Tag','Mao','cdata',mao,'Tooltip','Pan');
 uitoggletool('parent',h_toolbar,'Click','draw_funs(gcbo,''DeleteObj'')', ...
-	'Tag','Tesoura','cdata',cut_ico,'TooltipString','Delete objects');
+	'Tag','Tesoura','cdata',cut_ico,'Tooltip','Delete objects');
 uipushtool('parent',h_toolbar,'Click','color_palettes(guidata(gcbo))', ...
-	'Tag','ColorPal','cdata',color_ico,'TooltipString','Color Palettes');
+	'Tag','ColorPal','cdata',color_ico,'Tooltip','Color Palettes');
 hVG(2) = uipushtool('parent',h_toolbar,'Click','mirone(''ImageIlluminationModel_CB'',guidata(gcbo),''grdgradient_A'')', ...
-	'Tag','Shading','cdata',shade2_ico,'TooltipString','Shaded illumination','Sep','on');
+	'Tag','Shading','cdata',shade2_ico,'Tooltip','Shaded illumination','Sep','on');
 hVG(3) = uipushtool('parent',h_toolbar,'Click','mirone(''ImageAnaglyph_CB'',guidata(gcbo))', ...
-	'Tag','Anaglyph','cdata',anaglyph_ico,'TooltipString','Anaglyph');
+	'Tag','Anaglyph','cdata',anaglyph_ico,'Tooltip','Anaglyph');
 hVG(4) = uipushtool('parent',h_toolbar,'Click','mirone(''ToolsMBplaningStart_CB'',guidata(gcbo))', ...
-	'Tag','MBplaning','cdata',MB_ico,'TooltipString','Multi-beam planing');
+	'Tag','MBplaning','cdata',MB_ico,'Tooltip','Multi-beam planing');
 uipushtool('parent',h_toolbar,'Click','mirone(''FileSaveFleder_CB'',guidata(gcbo),''runPlanar'')', ...  
-	'Tag','FlederPlanar','cdata',olho_ico,'TooltipString','Run Fleder 3D Viewer');
+	'Tag','FlederPlanar','cdata',olho_ico,'Tooltip','Run Fleder 3D Viewer');
 uipushtool('parent',h_toolbar,'Click','writekml(guidata(gcbo))', ...  
-	'Tag','toGE','cdata',GE_ico,'TooltipString','See it in Google Earth');
-uipushtool('parent',h_toolbar,'Click',@refresca, 'Tag','Refresh','cdata',refresh_ico,'TooltipString','Refresh','Sep','on');
-uipushtool('parent',h_toolbar,'Click','grid_info(guidata(gcbo))','Tag','ImageInfo','cdata',info_ico,'TooltipString','Image info');
+	'Tag','toGE','cdata',GE_ico,'Tooltip','See it in Google Earth');
+uipushtool('parent',h_toolbar,'Click',@refresca, 'Tag','Refresh','cdata',refresh_ico,'Tooltip','Refresh','Sep','on');
+uipushtool('parent',h_toolbar,'Click','grid_info(guidata(gcbo))','Tag','ImageInfo','cdata',info_ico,'Tooltip','Image info');
 
 h_axes = axes('Parent',H1,'Units','pixels','Position',[60 0 50 10],'Tag','axes1','Visible','off');
 cmenu_axes = uicontextmenu('Parent',H1);
@@ -190,6 +190,7 @@ if (strncmp(computer,'PC',2))
     h = uimenu('Parent',hFL,'Label','Copy to Clipboard','Tag','CopyClip');
     uimenu('Parent',h,'Call','imcapture(gca,''img'');','Label','Image only')
     uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''copyclip'')', 'Label','Image and frame','Tag','noAxes')
+	uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Ctrl-c'')','Label','Copy lines', 'Accel','c', 'Sep','on')
 end
 
 uimenu('Parent',hFL,'Call','mirone(''Transfer_CB'',guidata(gcbo),''KML'')', 'Label','Export to GoogleEarth','Sep','on');
@@ -335,13 +336,13 @@ uimenu('Parent',hTL,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','
 uimenu('Parent',hTL,'Call','zonal_integrator(guidata(gcbo))','Label','Zonal Integrator');
 uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
-uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Line Operations','Sep','on');
+uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Line Operations','Sep','on','Tag','lineOP');
 % uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
 % uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
 
 % --------------------------- DRAW MENU ------------------------------------
 hDR = uimenu('Parent',H1,'Label','Draw','Tag','Draw');
-uimenu('Parent',hDR,'Call','mirone(''DrawLine_CB'',guidata(gcbo))','Label','Draw line','Tag','ctrLine');
+uimenu('Parent',hDR,'Call','mirone(''DrawLine_CB'',guidata(gcbo))','Label','Draw line','Tag','ctrLine', 'Accelerator','l');
 uimenu('Parent',hDR,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''spline'')','Label','Draw interpolating spline');
 uimenu('Parent',hDR,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''freehand'')','Label','Freehand draw');
 uimenu('Parent',hDR,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),[])','Label','Draw closed polygon');
@@ -632,7 +633,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 30 Aug 2008'',''1.4.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 07 Sep 2008'',''1.4.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
