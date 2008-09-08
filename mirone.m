@@ -51,6 +51,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line move_obj make_arrow
 	%#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
 	%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calcBoninEulerPole spline_interp
+	%#function mat2clip
 
 	global home_dir;    home_dir = cd;      fsep = filesep;
 	addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
@@ -290,7 +291,6 @@ function hObject = mirone_OpeningFcn(varargin)
 	else
 		handles = recentFiles(handles,[]);			% Just make the "Recent files" entry available
 	end
-	set(handles.ctrLine, 'Accelerator','l');
 
 	set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);        % For projections with GDAL
 	set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
@@ -1026,7 +1026,7 @@ function FileOpen_ENVI_Erdas_CB(handles, opt, opt2)
 	if (nargin == 2)    % Otherwise, OPT2 already contains the File name
 		str1 = {'*.img;*.IMG', [opt ' (*.img,*.IMG)']; '*.*', 'All Files (*.*)'};
 		[FileName,PathName] = put_or_get_file(handles,str1,['Select ' opt ' File'],'get');
-		if isequal(FileName,0);     return;     end
+		if isequal(FileName,0),		return,		end
 	else
 		PathName = [];		FileName = opt2;
 	end
@@ -1399,9 +1399,9 @@ function FileOpenMOLA_CB(handles, FileName)
 
 % --------------------------------------------------------------------
 function read_DEMs(handles,fullname,tipo,opt)
-	% This function loads grid files that may contain DEMs or other grid (not images) types
-	% OPT is used when reading MOLA files, OPT = [x_min x_max y_min y_max n_cols n_rows grid_inc]
-	
+% This function loads grid files that may contain DEMs or other grid (not images) types
+% OPT is used when reading MOLA files, OPT = [x_min x_max y_min y_max n_cols n_rows grid_inc]
+
 	opt_I = ' ';	srsWKT = [];	att = [];     % If a file is read by gdal, this won't be empty at the end of this function
 	set(handles.figure1,'pointer','watch')
 	handles.fileName = [fullname{1} fullname{2}];       % To store any input grid/image file name
@@ -2591,9 +2591,9 @@ if (exist('havePatches','var') && havePatches)		% case of patchs - NOTE, the Tag
                 Patches(i).y = reshape(Patches(i).y,4,length(Patches(i).y)/4);
                 is_telha = 1;
             end
-%             if (Patches(i).FaceColor(1) == 1),    Patches(i).tag = 'tapete';
-%             else                                  Patches(i).tag = 'tapete_R';
-%             end
+% 			if (Patches(i).FaceColor(1) == 1),		Patches(i).tag = 'tapete';
+%			else									Patches(i).tag = 'tapete_R';
+%			end
             h_patch = patch('XData',Patches(i).x, 'YData',Patches(i).y, 'Parent',handles.axes1,'LineWidth',Patches(i).LineWidth,...
                 'EdgeColor',Patches(i).EdgeColor, 'FaceColor',Patches(i).FaceColor,...
                 'LineStyle',Patches(i).LineStyle, 'Tag', Patches(i).tag);
@@ -2609,12 +2609,12 @@ end
 try
 	if (haveCoasts),        datasets_funs('CoastLines', handles,coastUD);  end
 	if (havePolitic)
-        if (iscell(politicUD)),     politicUD = politicUD{1};     end
-        datasets_funs('Political',handles,politicUD(2),politicUD(1));
+		if (iscell(politicUD)),     politicUD = politicUD{1};     end
+		datasets_funs('Political',handles,politicUD(2),politicUD(1));
 	end
 	if (haveRivers)
-        if (iscell(riversUD)),      riversUD = riversUD{1};     end
-        datasets_funs('Rivers', handles,riversUD(2),riversUD(1));
+		if (iscell(riversUD)),      riversUD = riversUD{1};     end
+		datasets_funs('Rivers', handles,riversUD(2),riversUD(1));
 	end
 end
 guidata(handles.figure1, handles);
@@ -3466,13 +3466,19 @@ elseif (strcmp(opt,'bw'))
 elseif (strcmp(opt,'copyclip'))		% Img and frame capture to ClipBoard
 	h = getappdata(handles.figure1,'CoordsStBar');		set(h,'Visible','off');
 	imcapture(handles.axes1,'imgAx');					set(h(2:end),'Visible','on')
+	
+elseif (strcmp(opt,'Ctrl-c'))
+	h_active = getappdata(handles.figure1,'epActivHand');
+	if (h_active)		% We have a line or patch in edit mode. Copy it
+		x = get(h_active,'xdata');		y = get(h_active,'ydata');
+		mat2clip([x(:) y(:)],8)
+	end
 
 elseif (strncmp(opt,'flip',4))		% LR or UP image flipage. OPT = flipLR or flipUD
 	% OPT == 'LR' -> Flips the image left-right. OPT == 'UD' -> Flips the image up-down
-	if strcmp(opt(5:6),'LR'),	img = flipdim(img,2);
-	else						img = flipdim(img,1);
-	end
-	set(handles.hImg,'CData', img);
+	direction = 1;
+	if strcmp(opt(5:6),'LR'),	direction = 2;		end		% Flip left-right
+	set(handles.hImg,'CData', flipdim(img,direction));
 
 elseif (strcmp(opt,'KML'))
 	[FileName,PathName] = put_or_get_file(handles,{'*.kml', 'KML files (*.kml)'},'Select file','put','.kml');
