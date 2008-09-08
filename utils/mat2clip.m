@@ -51,7 +51,7 @@ function matstr = mat2clip(matrix,n)
 	[nrows, ncols] = size(matrix);
 
 	if (nargin < 2),	n = 15;		end
-	form = sprintf('%%.%dg',n);
+	form = sprintf('%%.%df',n);
 
 	% now guess how big string will need to be 
 	% covers (tab) between columns, the decimal point and the CR-LF
