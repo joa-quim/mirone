@@ -3469,10 +3469,16 @@ elseif (strcmp(opt,'copyclip'))		% Img and frame capture to ClipBoard
 	
 elseif (strcmp(opt,'Ctrl-c'))
 	h_active = getappdata(handles.figure1,'epActivHand');
-	if (h_active)		% We have a line or patch in edit mode. Copy it
+	if (h_active)					% We have a line or patch in edit mode. Copy it
 		x = get(h_active,'xdata');		y = get(h_active,'ydata');
 		mat2clip([x(:) y(:)],8)
+		setappdata(0, 'CtrlCHandle', [h_active handles.figure1])	% Put a handle copy on root's appdata
 	end
+	
+elseif (strcmp(opt,'Ctrl-v'))
+	h = getappdata(0, 'CtrlCHandle');	% Get what's in this root's appdata
+	if (isempty(h) || ~ishandle(h(1)) || h(end) == handles.figure1),	return,		end
+	draw_funs(h(1), 'Ctrl_v', [], [h(1) handles.axes1])		% Complicated due to transitional form of draw_funs
 
 elseif (strncmp(opt,'flip',4))		% LR or UP image flipage. OPT = flipLR or flipUD
 	% OPT == 'LR' -> Flips the image left-right. OPT == 'UD' -> Flips the image up-down
