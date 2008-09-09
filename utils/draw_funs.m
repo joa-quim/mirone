@@ -1,4 +1,5 @@
-function OUT = draw_funs(hand,opt,data)
+function varargout = draw_funs(hand, varargin)
+%function OUT = draw_funs(hand,opt,data)
 %   This contains several functions necessary to the "Draw" menu of mirone
 %   There are no error checking.
 %   HAND    contains the handle to the graphical object
@@ -19,6 +20,16 @@ function OUT = draw_funs(hand,opt,data)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
+if (numel(varargin) == 1)
+	opt = varargin{1};		% function name to evaluate (new) or keeword to select one (old form)
+else
+	opt = varargin{1};		data = varargin{2};
+	if (isempty(data))		% We need this for backward compatibility
+		varargin(2) = [];
+	end
+end
 
 switch opt
 	case 'line_uicontext',          set_line_uicontext(hand,'line')
@@ -104,7 +115,8 @@ switch opt
 		end
             
 		% If OUT is requested there is nothing left to be done here  
-		if (nargout),		OUT = numeric_data;		return,		end
+% 		if (nargout),		OUT = numeric_data;		return,		end
+		if (nargout),		varargout = numeric_data;		return,		end
             
         if (hFig ~= hMsgFig);       figure(hFig);    axes(hAxes);   end     % gain access to the drawing figure
         % Get rid of points that are outside the map limits
@@ -153,10 +165,7 @@ switch opt
 	case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation'}
 		set_symbol_uicontext(hand,data)
 	case 'PlateBoundPB',		set_PB_uicontext(hand,data)
-	case 'DrawVector'
-		draw_vector;
 	case 'ChngAxLabels',		changeAxesLabels(data)
-	case 'MagBarCode',			draw_MagBarCode
 	case 'SRTMrect',			set_SRTM_rect_uicontext(hand)
 	case 'isochron',			set_isochrons_uicontext(hand,data)
 	case 'gmtfile',				set_gmtfile_uicontext(hand,data)
@@ -166,11 +175,46 @@ switch opt
 	case 'tellAzim',			show_lineAzims([],[], hand);
 	case 'tellLLength',			show_LineLength([],[], hand);
 	case 'tellArea',			show_Area([],[], hand);
+	otherwise
+		if (nargout)
+			[varargout{1:nargout}] = ...
+				feval(opt, varargin{2:end});	% NEW. Eventualy, all calls should evolve to use this form
+		else
+			feval(opt, varargin{2:end});
+		end
 end
+% Now short-cuted:
+% 'DrawVector', 'MagBarCode' 'Ctrl_v'
+
+% -----------------------------------------------------------------------------------------
+function Ctrl_v(h)
+% Paste a line whose handle is h(1) in figure gcf that is different from parent(h(1))
+% If H has two elements, the second should contain the CurrentAxes
+	hLine = h(1);			% No testing. Do not fail
+	if (numel(h) == 2),		hAx = h(2);
+	else					hAx = get(get(0,'CurrentFigure'), 'CurrentAxes');
+	end
+	x = get(hLine, 'xdata');	y = get(hLine, 'ydata');
+	if (strcmp(get(hLine,'type'), 'line'))
+		h = line('xdata',x, 'ydata',y, 'Parent', hAx, 'LineWidth', get(hLine,'LineWidth'), ...
+			'LineStyle',get(hLine,'LineStyle'), 'Color',get(hLine,'Color'), 'Tag',get(hLine,'Tag') );
+	else
+		h = patch('xdata',x, 'ydata',y, 'Parent', hAx, 'LineWidth', get(hLine,'LineWidth'), ...
+			'LineStyle',get(hLine,'LineStyle'), 'EdgeColor',get(hLine,'EdgeColor'), 'FaceColor',get(hLine,'FaceColor'), ...
+			 'FaceAlpha',get(hLine,'FaceAlpha'), 'Tag',get(hLine,'Tag') );
+	end
+	ui_edit_polygon(h)
+
+% % -----------------------------------------------------------------------------------------
+% function setUIcbs(item, labels, cbs)
+% % Set uimenu uicontexts of graphic elements
+% 	for (k = 1:numel(cbs))
+% 		uimenu(item, 'Label', labels{k}, 'Call', cbs{k});
+% 	end
 
 % -----------------------------------------------------------------------------------------
 function setLineStyle(item,cbs)
-	% Set the line Style uicontexts of graphic elements
+% Set the line Style uicontexts of graphic elements
 	uimenu(item, 'Label', 'solid', 'Call', cbs{1});
 	uimenu(item, 'Label', 'dashed', 'Call', cbs{2});
 	uimenu(item, 'Label', 'dotted', 'Call', cbs{3});
@@ -178,7 +222,7 @@ function setLineStyle(item,cbs)
 
 % -----------------------------------------------------------------------------------------
 function setLineColor(item,cbs)
-	% Set the line color uicontexts of graphic elements
+% Set the line color uicontexts of graphic elements
 	uimenu(item, 'Label', 'Black', 'Call', cbs{1});
 	uimenu(item, 'Label', 'White', 'Call', cbs{2});
 	uimenu(item, 'Label', 'Red', 'Call', cbs{3});
@@ -191,7 +235,7 @@ function setLineColor(item,cbs)
 
 % -----------------------------------------------------------------------------------------
 function setLineWidth(item,cbs)
-	% Set the line color uicontexts of graphic elements
+% Set the line color uicontexts of graphic elements
 	uimenu(item, 'Label', '1       pt', 'Call', cbs{1});
 	uimenu(item, 'Label', '2       pt', 'Call', cbs{2});
 	uimenu(item, 'Label', '3       pt', 'Call', cbs{3});
@@ -209,10 +253,10 @@ for (i = 1:numel(h))
 	uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', {@del_line,h(i)});
 	uimenu(cmenuHand, 'Label', 'Delete class', 'Call', 'delete(findobj(''Tag'',''SHPpolyline''))');
 	
-	cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
-	cb_dashed = 'set(gco, ''LineStyle'', ''--''); refresh';
-	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';
-	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	cb_solid	= 'set(gco, ''LineStyle'', ''-''); refresh';
+	cb_dashed	= 'set(gco, ''LineStyle'', ''--''); refresh';
+	cb_dotted	= 'set(gco, ''LineStyle'', '':''); refresh';
+	cb_dashdot	= 'set(gco, ''LineStyle'', ''-.''); refresh';
 	
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 	uimenu(item_lw, 'Label', 'Other...', 'Call', {@other_LineWidth,h(i)});
@@ -1243,7 +1287,7 @@ function other_LineWidth(obj,eventdata,h)
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
-function hVec = draw_vector
+function hVec = DrawVector
     hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
 	hVec(1) = patch('XData',[], 'YData', [],'FaceColor',handles.DefLineColor,'EdgeColor',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
 	hVec(2) = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
@@ -2347,188 +2391,6 @@ function sout = ddewhite(s)
 	if (size(s, 1) == 1),   sout = s(min(c):max(c));
 	else                    sout = s(:,min(c):max(c));
 	end
-
-% --------------------------------------------------------------------
-function draw_MagBarCode
-handles = guidata(get(0,'CurrentFigure'));
-
-% Define height of the bar code
-tmax = 165;             % Max time (in Ma) represented
-width = 8.0;            % Figure width in cm
-height = 17;            % Figure height in cm
-barHeight_1M = 0.75;    % Scale factor for the height a 1 Ma bar will show in the display
-tscal = tmax * barHeight_1M;
-dy = 1;             % dy is used to shift down all bar code. It represents 1 Ma in the time scale
-
-% Create figure for bar code display
-F = figure('Units','centimeters',...
-    'Position',[1 1 [width height]],...
-    'Toolbar','none',...
-    'Menubar','none',...
-    'Numbertitle','off',...
-    'Name','Geomagnetic Bar Code',...
-    'doublebuffer','on',...
-    'Visible','of',...
-    'renderer','Zbuffer',...    % Otherwise the patch command below would set it to OpenGL and
-    'Color','k');               % despite what TMW says, in R13 it is awfully bugy.
-
-% Create axis for bar code display
-axes('Units','normalized',...
-    'Position',[0 0 1 1],...
-    'XLim',[0 width],...
-    'YLim',[0 height],...
-    'Color','w',...
-    'XTick',[],...
-    'YTick',[],...
-    'YDir','reverse',...
-    'DataAspectRatio',[1 1 1],...
-    'DefaultPatchEdgecolor', 'none');
-
-pos=[0.96 0 .04 1];
-S=['set(gca,''ylim'',[' num2str(tscal-height) ' ' num2str(tscal) ']-get(gcbo,''value''))'];
-uicontrol('style','slider','units','normalized','position',pos,...
-    'callback',S,'min',0,'max',tscal-height,'Value',tscal-height);
-
-%fid = fopen([handles.path_data 'BarCode_Cox_direct.dat'],'r');
-fid = fopen([handles.path_data 'Cande_Kent_95.dat'],'r');
-todos = fread(fid,'*char');     [chron age_start age_end age_txt] = strread(todos,'%s %f %f %s');
-fclose(fid);    clear todos
-
-y = barHeight_1M * ([age_start'; age_end'] + dy);
-y = y(:);
-x = [repmat(0.1,length(y),1); repmat(0.4,length(y),1)]*width; 
-y = [y; y(end:-1:1)];
-vert = [x y];
-
-n_ages = length(age_start);
-n2 = 2 * n_ages;
-c1 = (1:n2-1)';     c3 = n2*2 - c1;
-c2 = c3 + 1;        c4 = c1 + 1;
-faces = [c1 c2 c3 c4];
-
-cor = repmat([0 0 0; 1 1 1],n_ages-1,1);    cor = [cor; [0 0 0]];
-
-patch('Faces',faces,'Vertices',vert,'FaceVertexCData',cor,'FaceColor','flat');
-
-for (i=1:n_ages)
-    if (~strcmp(age_txt(i),'a'))   % Plot anomaly names
-        text(width*.42, barHeight_1M*(age_start(i)+dy),age_txt(i),'VerticalAlignment','cap')
-    end
-end
-
-% Draw a vertical line for time ruler
-line('XData',width*[.55 .55],'YData',barHeight_1M*([0+dy tmax+dy]),'LineWidth',2)  
-
-for i=0:5:tmax
-    line('XData',width*[.55 .58],'YData',barHeight_1M * ([i i]+dy),'LineWidth',.5)   % Time tick marks
-    text(width*.6, barHeight_1M * (i + dy), sprintf('%g%s',i,' Ma'))
-end
-for i=0:tmax
-    line('XData',width*[.55 .565],'YData',barHeight_1M * ([i i]+dy),'LineWidth',.5)   % 1 Ma ticks
-end
-
-% Draw two vertical lines for known geomagnetic periods
-line('XData',width*[.015 .015],'YData',barHeight_1M*([0+dy 5.4+dy]),'LineWidth',1)  
-line('XData',width*[.08 .08],'YData',barHeight_1M*([0+dy 5.4+dy]),'LineWidth',1)  
-text(width*.04, barHeight_1M*(.35 + dy), 'Bru','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.015 .08],'YData',barHeight_1M*([.73 .73]+dy),'LineWidth',.5)	% period separator
-text(width*.04, barHeight_1M*(1.62 + dy), 'Mathu','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.015 .08],'YData',barHeight_1M*([2.5 2.5]+dy),'LineWidth',.5)	% period separator
-text(width*.04, barHeight_1M*(2.95 + dy), 'Gau','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.015 .08],'YData',barHeight_1M*([3.4 3.4]+dy),'LineWidth',.5)	% period separator
-text(width*.04, barHeight_1M*(4.4 + dy), 'Gilbert','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.015 .08],'YData',barHeight_1M*([5.4 5.4]+dy),'LineWidth',.5)	% period separator
-
-%--------------------------
-% Draw two vertical lines for geological periods
-line('XData',width*[.79 .79],'YData',barHeight_1M*([0+dy tmax+dy]),'LineWidth',1)  
-line('XData',width*[.88 .88],'YData',barHeight_1M*([0+dy tmax+dy]),'LineWidth',1)  
-
-% Plistocene
-text(width*.84, barHeight_1M*(1 + dy), ' Plistocene','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([2 2]+dy),'LineWidth',.5)	% period separator
-
-% Pliocene
-text(width*.84, barHeight_1M*(3.5 + dy), 'Pliocene','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([5 5]+dy),'LineWidth',.5)	% period separator
-
-% Miocene
-text(width*.84, barHeight_1M*(14.75 + dy), 'Miocene','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([24.5 24.5]+dy),'LineWidth',.5)	% period separator
-
-% Oligocene
-text(width*.84, barHeight_1M*(31.25 + dy), 'Oligocene','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([38.0 38.0]+dy),'LineWidth',.5)	% period separator
-
-% Eocene
-text(width*.84, barHeight_1M*(46.5 + dy), 'Eocene','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([55.0 55.0]+dy),'LineWidth',.5)	% period separator
-
-% Paleocene
-text(width*.84, barHeight_1M*(60.0 + dy), 'Eocene','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([65.0 65.0]+dy),'LineWidth',.5)	% period separator
-
-% Maastricthian
-text(width*.84, barHeight_1M*(69.0 + dy), 'Maastricthian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([73.0 73.0]+dy),'LineWidth',.5)	% period separator
-
-% Campanian
-text(width*.84, barHeight_1M*(78.0 + dy), 'Campanian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([83.0 83.0]+dy),'LineWidth',.5)	% period separator
-
-% Santonian
-text(width*.84, barHeight_1M*(85.2 + dy), 'Santonian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([87.4 87.4]+dy),'LineWidth',.5)	% period separator
-
-% Coniacian
-text(width*.84, barHeight_1M*(87.95 + dy), 'Con','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([88.5 88.5]+dy),'LineWidth',.5)	% period separator
-
-% Turonian
-text(width*.84, barHeight_1M*(89.75 + dy), 'Turonian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([91.0 91.0]+dy),'LineWidth',.5)	% period separator
-
-% Cenomanian
-text(width*.84, barHeight_1M*(94.25 + dy), 'Cenomanian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([97.5 97.5]+dy),'LineWidth',.5)	% period separator
-
-% Albian
-text(width*.84, barHeight_1M*(100.25 + dy), 'Albian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([103.0 103.0]+dy),'LineWidth',.5)	% period separator
-
-% Aptian
-text(width*.84, barHeight_1M*(110.0 + dy), 'Aptian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([119.0 119.0]+dy),'LineWidth',.5)	% period separator
-
-% Barremian
-text(width*.84, barHeight_1M*(122.0 + dy), 'Barremian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([125.0 125.0]+dy),'LineWidth',.5)	% period separator
-
-% Hauterivian
-text(width*.84, barHeight_1M*(128.0 + dy), 'Hauterivian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([131.0 131.0]+dy),'LineWidth',.5)	% period separator
-
-% Valanginian
-text(width*.84, barHeight_1M*(134.5 + dy), 'Valanginian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([138.0 138.0]+dy),'LineWidth',.5)	% period separator
-
-% Berriasian
-text(width*.84, barHeight_1M*(141.0 + dy), 'Berriasian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([144.0 144.0]+dy),'LineWidth',.5)	% period separator
-
-% Tithonian
-text(width*.84, barHeight_1M*(147.0 + dy), 'Tithonian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([150.0 150.0]+dy),'LineWidth',.5)	% period separator
-
-% Kimmeridgian
-text(width*.84, barHeight_1M*(153.0 + dy), 'Kimmeridgian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([156.0 156.0]+dy),'LineWidth',.5)	% period separator
-
-% Oxfordian
-text(width*.84, barHeight_1M*(159.5 + dy), 'Oxfordian','rotation',90,'HorizontalAlignment','center')
-line('XData',width*[.79 .88],'YData',barHeight_1M*([163.0 163.0]+dy),'LineWidth',.5)	% period separator
-
-set(F,'Visible','on')
 
 % --------------------------------------------------------------------
 function set_transparency(obj,eventdata)
