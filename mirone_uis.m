@@ -190,7 +190,8 @@ if (strncmp(computer,'PC',2))
     h = uimenu('Parent',hFL,'Label','Copy to Clipboard','Tag','CopyClip');
     uimenu('Parent',h,'Call','imcapture(gca,''img'');','Label','Image only')
     uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''copyclip'')', 'Label','Image and frame','Tag','noAxes')
-	uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Ctrl-c'')','Label','Copy lines', 'Accel','c', 'Sep','on')
+	uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Ctrl-c'')','Label','Copy active line', 'Accel','c', 'Sep','on')
+	uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Ctrl-v'')','Label','Paste line', 'Accel','v')
 end
 
 uimenu('Parent',hFL,'Call','mirone(''Transfer_CB'',guidata(gcbo),''KML'')', 'Label','Export to GoogleEarth','Sep','on');
@@ -633,7 +634,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 07 Sep 2008'',''1.4.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 09 Sep 2008'',''1.4.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
