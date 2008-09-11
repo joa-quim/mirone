@@ -26,11 +26,11 @@ function matstr = mat2clip(matrix,n)
 	if (nargin < 1 || nargin > 2)
 		error('mat2clip:badinput','Wrong number of arguments.');
 	end
-	if isstr(matrix),
-		string = matrix;		return
+	if ischar(matrix),
+		matstr = matrix;		return
 	end
 	if isempty(matrix)
-		string = '';	return
+		matstr = '';	return
 	end
 	if (~isnumeric(matrix))
 		error('mat2clip:badinput','Input mmatrix must be of numeric type.');
