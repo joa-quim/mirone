@@ -156,10 +156,10 @@ function hObject = mirone_OpeningFcn(varargin)
 	if ~isempty(varargin)
 		n_argin = nargin;
 		if (n_argin == 1 && ischar(varargin{1}))				% Called with a file name as argument
-			[pato, fname, EXT] = fileparts(varargin{1});				% Test to check online command input
+			[pato, fname, EXT] = fileparts(varargin{1});		% Test to check online command input
 			if (isempty(pato)),		varargin{1} = [handles.home_dir fsep fname EXT];	end
 			drv = aux_funs('findFileType',varargin{1});
-		elseif ( isa(varargin{1},'uint8') ||  isa(varargin{1},'int8') || isa(varargin{1},'logical') )
+		elseif ( isa(varargin{1},'uint8') ||  isa(varargin{1},'int8') || islogical(varargin{1}) )
 			% Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
 			if ( isa(varargin{1},'int8') )		% We cannot represent a int8 image. Do something
 				if ( any(varargin{1}(:) < 0) )	% [-128 127] -> [0 255] 
@@ -199,7 +199,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			Z = varargin{1};			grd_data_in = 1;
 			if (~isa(Z,'single')),		Z = single(Z);		end
 			handles.have_nans = grdutils(Z,'-N');
-			if ( numel(varargin) == 2 && isa(varargin{2},'struct') )       % An grid with header
+			if ( numel(varargin) == 2 && isa(varargin{2},'struct') )       % An grid with a header
 				tmp = varargin{2};
 				handles.head = tmp.head;	X = tmp.X;  Y = tmp.Y;
 				if (isfield(tmp,'name')),	win_name = tmp.name;	end		% All calls should transmit a name, but ...
@@ -966,9 +966,9 @@ function ExtractProfile_CB(handles, opt)
 	if (nargin == 1),	opt = '';		end
 	point_int = false;					% Default to "profile" interpolation
 	if (strcmp(opt,'point')),	point_int = true;	end
-	track_is_done = false;
+	track_is_done = false;		do_stack = false;
 
-	[X,Y,Z,head] = load_grd(handles,'silent');
+	[X,Y,Z] = load_grd(handles,'silent');
 	if (isempty(Z) && handles.validGrid)			% Grid not in memory error
 		errordlg('Grid was not on memory. Increase "Grid max size" and start over again.','ERROR'); return
 	elseif (isempty(Z) && ndims(get(handles.hImg,'CData')) == 2)
@@ -977,16 +977,19 @@ function ExtractProfile_CB(handles, opt)
 		x_inc = (img_lims(2)-img_lims(1)) / size(Z,2);      y_inc = (img_lims(4)-img_lims(3)) / size(Z,1);
 		img_lims = img_lims + [x_inc -x_inc y_inc -y_inc]/2;	% Remember that the Image is ALWAYS pix reg
 		X = linspace(img_lims(1),img_lims(2),size(Z,2));    Y = linspace(img_lims(3),img_lims(4),size(Z,1));
-		head = [X(1) X(end) Y(1) Y(end) double(min(Z(:))) double(max(Z(:))) 1 X(2)-X(1) Y(2)-Y(1)];
 	elseif (isempty(Z))
 		errordlg('Extracting profile of a RGB image is not suported.','ERROR'),		return
 	end
 
 	zoom_state(handles,'maybe_off')
-	if ~isempty(getappdata(handles.figure1,'TrackThisLine'))
+	if ~isempty(getappdata(handles.figure1,'TrackThisLine'))		% Most common use
 		hand = getappdata(handles.figure1,'TrackThisLine');
 		xp = get(hand,'Xdata');     yp = get(hand,'Ydata');
 		rmappdata(handles.figure1,'TrackThisLine')      % Clear it so that the next time it may work when called interactivelly
+	elseif ~isempty(getappdata(handles.figure1,'StackTrack'))		% Stacking interpolation
+		do_stack = getappdata(handles.figure1,'StackTrack');		% do_stack is in fact the line handle (named for convinience)
+		xp = get(do_stack,'Xdata');     yp = get(do_stack,'Ydata');
+		rmappdata(handles.figure1,'StackTrack')      % Clear it so that the next time it may work when called interactivelly
 	else
 		if (strcmp(opt,'dynamic'))
 			getline_j(handles.figure1,'dynamic');
@@ -1004,14 +1007,13 @@ function ExtractProfile_CB(handles, opt)
 	end
 
 	if (~track_is_done)			% Otherwise we already know them
-		[xx, yy, zz] = grid_profiler(handles.figure1, xp, yp, point_int, track_is_done);
+		[xx, yy, zz] = grid_profiler(handles.figure1, xp, yp, point_int, track_is_done, do_stack);
 	end
 
 	zoom_state(handles,'maybe_on')
 	if (~strcmp(opt,'point'))			% Disply profile in ecran
 		[pato,name,ext] = fileparts(get(handles.figure1,'Name'));
 		ext = strtok(ext);		% Remove the "@ ??%" part
-		%ecran('Image',xx,yy,zz,['Track from ' name ext])
 		ecran(handles,xx,yy,zz,['Track from ' name ext])
 	else						% Save result on file
 		draw_funs([],'save_xyz',[xx(:) yy(:) zz(:)])
@@ -1359,7 +1361,7 @@ function FileOpenMOLA_CB(handles, FileName)
 		PathName = [];		% To not error below
 	end
 	
-	type = 'MOLA';		error = 0;
+	type = 'MOLA';
 	[PATH,FNAME] = fileparts([PathName FileName]);
 	fname = [PATH filesep FNAME '.lbl'];
 	fp = fopen(fname,'rt');
@@ -1514,6 +1516,14 @@ function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize
 		handles = gcpTool(handles,axis_t,X,Y,I);        return
 	end
 	if (nargin < 9),	imSize = [];    end
+	if (~isa(handles.head, 'double')),		handles.head = double(handles.head);	end
+	if (~isa(X, 'double')),		X = double(X);	end		% Security measure (+ lines above & below). It happened before
+	if (~isa(Y, 'double')),		Y = double(Y);	end
+	if (handles.head(8) == 0 || handles.head(9) == 0)	% Bad usage of the (Z,struct) mirone input mechanism
+		handles.head(8) = diff(handles.head(1:2)) / size(I,2) + ~handles.head(7);		% Get right values for them
+		handles.head(9) = diff(handles.head(3:4)) / size(I,1) + ~handles.head(7);
+	end
+	dxy = 0;
 	if (validGrid),		dx = X(2) - X(1);       dy = Y(2) - Y(1);
 	else				dx = 0;                 dy = 0;
 	end
