@@ -556,7 +556,7 @@ uimenu('Parent',h,'Call','mirone(''GeophysicsImportGmtFile_CB'',guidata(gcbo),''
 uimenu('Parent',h,'Call','mirone(''GeophysicsImportGmtFile_CB'',guidata(gcbo),''list'')','Label','List of files');
 
 % --------------------------- GRID TOOLS MENU ------------------------------------
-hGT = uimenu('Parent',H1,'Label','Grid Tools','Tag','GridTools');		hVG(kv) = hGT;		kv = kv + 1;
+hGT = uimenu('Parent',H1,'Label','Grid Tools','Tag','GridTools');		hVG(kv) = hGT;
 
 if (~IamCompiled)
     uimenu('Parent',hGT,'Call','grid_calculator(gcf)','Label','grid calculator');
@@ -634,7 +634,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 09 Sep 2008'',''1.4.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 12 Sep 2008'',''1.4.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
