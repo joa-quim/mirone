@@ -16,12 +16,13 @@ function aquaPlugin(handles)
 			'yearMean' ...			% 3 - Compute yearly averages from monthly data
 			'yearMeanFlag' ...		% 4 - Compute yearly averages from monthly data but checked against a quality flag file
 			'polygAVG' ...			% 5 - Compute averages of whatever inside polygons (if any)
-			'flagsStats' ...		% 6 - Compute per/pixel anual or mounth counts of pixel values with a quality >= flag
-			'do_math' ...			% 7 - Perform some basic agebraic operations with the 3D planes
-			'conv2vtk' ...			% 8 - Convert a 3D netCDF file into a VTK format
+			'flagsStats' ...		% 6 - Compute per/pixel anual or month counts of pixel values with a quality >= flag
+			'pass_by_count' ...		% 7 - Check the curently active 3D file against a count file
+			'do_math' ...			% 8 - Perform some basic agebraic operations with the 3D planes
+			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
 			};
 
-	qual = casos{7};		% <== Active selection
+	qual = casos{8};		% <== Active selection
 
 	switch qual
 		case 'zonal'				% case 1
@@ -44,22 +45,28 @@ function aquaPlugin(handles)
 			calc_yearMean(handles, ano)
 		case 'yearMeanFlag'			% case 4
 			ano = 1:12;				% Compute yearly means
-			fname = 'C:\SVN\mironeWC\qual_85_07.nc';
-			quality = 7;			% Retain only values of quality >= this
+			fname  = 'C:\SVN\mironeWC\qual_85_07.nc';
+			quality = 6;			% Retain only values of quality >= this
 			pintAnoes = true;		% If true instruct to fill holes <= nCells
 			nCells = 200;			% Holes (bad data) smaller than this are filled by interpolation
-			calc_yearMean(handles, ano, fname, quality, pintAnoes, nCells)
+			% Where to save track of filled holes. Ignored if pintAnoes = false OR fname3 = []
+			fname3 = 'C:\SVN\mironeWC\qual7_85_07_Interp200_Q6.nc';
+			calc_yearMean(handles, ano, fname, quality, pintAnoes, nCells, fname3)
 		case 'polygAVG'				% case 5
 			calc_polygAVG(handles)
 		case 'flagsStats'			% case 6
 			ano = 1:12;				% Compute yearly stats
-			opt = 'per_year';		% Make the counting on a per year basis
 			opt = '';				% Make the counting on a per month basis
+			opt = 'per_year';		% Make the counting on a per year basis
 			calc_flagsStats(handles, ano, 7, opt)
-		case 'do_math'				% case 7
+		case 'pass_by_count'		% case 7
+			count = 11;
+			fname = 'C:\SVN\mironeWC\countPerYear_flag7_Interp200.nc';
+			pass_by_count(handles, count, fname)
+		case 'do_math'				% case 8
 			opt = 'sum';			% Sum all layers (only operation for the time beeing)
 			do_math(handles, opt)
-		case 'conv2vtk'				% case 8
+		case 'conv2vtk'				% case 9
 			write_vtk(handles)
 		otherwise
 			do_return = false;		% Not finish (run the code below)
@@ -163,9 +170,7 @@ function zonal(handles, dlat, integ_lon, have_polygon, x, y)
 		if (have_polygon && k == 1)
 			mask = img_fun('roipoly_j',handles.head(1:2),handles.head(3:4),double(Z),x,y);
 		end
-		if (~isempty(mask))
-			Z(~mask) = NaN;
-		end
+		if (~isempty(mask)),		Z(~mask) = NaN;		end
 
 		ind = isnan(Z);
 		if (any(ind(:))),		Z(ind) = 0;		this_has_nans = true;		end
@@ -238,8 +243,8 @@ function calcGrad(handles)
 	tmp.name = 'Time gradient (deg/year)';
 	mirone(Tvar, tmp)
 
-% ----------------------------------------------------------------------
-function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells)
+% ------------------------------------------------------------------------------
+function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3)
 % Calcula media anuais a partir de dados mensais
 % MONTHS 	is a vector with the months uppon which the mean is to be computed
 %		example: 	months = 1:12		==> Computes yearly mean
@@ -250,13 +255,14 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells)
 % 			the same size as the series under analysis.
 % FLAG		Threshold quality value. Only values of quality >= FLAG will be taken into account
 % PINTANOES	Logical that if true instruct to fill holes <= NCELLS
+% FNAME3 	Optional name of a netCDF file where interpolated nodes will be set to FLAG
+%			and the others retain their FNAME2 value. This corresponds to the promotion
+%			of interpolated nodes to quality FLAG. Only used if PINTANOES == TRUE
 
 	txt1 = 'netCDF grid format (*.nc,*.grd)';
 	txt2 = 'Select output netCDF grid';
-	[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put');
+	[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
 	if isequal(FileName,0),		return,		end
-	[pato, fname, EXT] = fileparts(FileName);
-	if (isempty(EXT)),		FileName = [fname '.nc'];	end
 	grd_out = [PathName FileName];
 
 	z_id = handles.netcdf_z_id;
@@ -264,8 +270,10 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells)
 	rows = s.Dataset(z_id).Size(end-1);
 	cols = s.Dataset(z_id).Size(end);
 	do_flags = false;
+	track_filled = false;
 
 	if (nargin == 1),		months = 1:12;		end		% Default to yearly means
+	if (nargin == 7 && ~isempty(fname3)),		track_filled = true;	end		% Qeep track of interpolated nodes
 
 	if (nargin > 2)			% We have a quality-flag ghost file to check
 		s_flags = nc_funs('info',fname2);
@@ -278,10 +286,10 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells)
 			errordlg(['Ghrrr!! The ' fname2 ' is is not a 3D file. By'],'Error'),		return
 		end
 		if (misc.z_dim(1) < handles.number_of_timesteps)
-			errordlg(['Buhhuu!! The quality flags file has less "planes" than the-to-be-flagged-file. By'],'Error'),	return
+			errordlg('Buhhuu!! The quality flags file has less "planes" than the-to-be-flagged-file. By','Error'),	return
 		end
 		if (~isequal([rows cols], [s_flags.Dataset(z_id_flags).Size(end-1) s_flags.Dataset(z_id_flags).Size(end)]))
-			errordlg(['Buhhuu!! quality flags and the-to-be-flagged-file have not the same size. By'],'Error'),		return
+			errordlg('Buhhuu!! quality flags and the-to-be-flagged-file have not the same size. By','Error'),		return
 		end
 		do_flags = true;
 		
@@ -296,7 +304,6 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells)
 	Tmed = zeros([rows, cols]);			% Temp media para cada um dos anos
 	warning off MATLAB:divideByZero
 
-	anos = 2;
 	for (m = 1:anos)
 		contanoes = zeros(rows, cols);
 		for (n = months)
@@ -310,9 +317,18 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells)
 
 			ind = isnan(Z);
 
-			if (pintAnoes && any(ind(:)))
-				Z = inpaint_nans(handles, Z, ind, nCells);		% Select interp method inside inpaint_nans()
+			if (pintAnoes && any(ind(:)))			% If fill holes is requested
+				if (track_filled),		ind0 = ind;		end		% Get this Z level original NaNs mask
+				Z = inpaint_nans(handles, Z, ind, nCells);			% Select interp method inside inpaint_nans()
 				ind = isnan(Z);
+				if (track_filled)
+					ind0 = (ind0 & ~ind);			% Get those nodes that were filled
+					Z_flags(ind0) = flag;			% Promote interpolated pixels to quality 'flag'
+					% Write updated quality file
+					if (mn == 0),		nc_io(fname3, sprintf('w%d/time',anos*numel(months)), handles, reshape(Z_flags,[1 size(Z_flags)]))
+					else				nc_io(fname3, sprintf('w%d', mn), handles, Z_flags)
+					end
+				end
 			end
 
 			Z(ind) = 0;				% transmuta os anoes
@@ -322,14 +338,78 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells)
 		Tmed(:,:) = Tmed(:,:) ./ contanoes;
 		tmp = single(Tmed(:,:));
 		
-		if (m == 1),		nc_io(grd_out,sprintf('w%d/time',anos), handles, reshape(tmp,[1 size(tmp)]))
+		if (m == 1),		nc_io(grd_out, sprintf('w%d/time',anos), handles, reshape(tmp,[1 size(tmp)]))
 		else				nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
 		end
-		
+
 		h = aguentabar(m/anos);
 		if (isnan(h)),	break,	end
 		
 		Tmed = Tmed * 0;			% Reset it to zeros
+	end
+
+% ----------------------------------------------------------------------
+function pass_by_count(handles, count, fname2)
+% Check the curently active 3D file against a count file
+%
+% COUNT		Threshold count value. Nodes on in-memory file that have a count on the
+% 			corresponding node of FNAME2 < COUNT are set to NaN
+%
+% OPTIONS:
+% FNAME2 	name of a netCDF file with the count quality flags. Asked if not provided
+%			Obviously this file must be of the same size as the series under analysis.
+
+	txt1 = 'netCDF grid format (*.nc,*.grd)';		txt2 = 'Select output netCDF grid';
+	[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
+	if isequal(FileName,0),		return,		end
+	grd_out = [PathName FileName];
+	
+	if (nargin == 2)		% No count grid transmitted. Ask for it
+		[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},'Select input netCDF file','get');
+		if isequal(FileName,0),		return,		end
+		fname2 = [PathName FileName];
+	else					% Got a name. Check that it exists
+		if (exist(fname2,'file') ~= 2)
+			errordlg(['Blheak!! ' fname2 ' does not exist (even if you think so). Bye Bye'],'Error'),	return
+		end
+	end
+
+	z_id = handles.netcdf_z_id;
+	s = handles.nc_info;				% Retrieve the .nc info struct
+	rows = s.Dataset(z_id).Size(end-1);
+	cols = s.Dataset(z_id).Size(end);
+
+	s_flags = nc_funs('info',fname2);
+	[X,Y,Z,head,misc] = nc_io(fname2,'R');
+	z_id_flags = misc.z_id;
+	if ~(numel(head) == 9 && isfield(misc,'z_id'))
+		errordlg(['Blheak!! ' fname2 ' is is not a file with presumably with a count of quality flags. By'],'Error'),	return
+	end
+	if (misc.z_dim(1) < handles.number_of_timesteps)
+		errordlg('Buhhuu!! The count flags file has less "planes" than the-to-be-counted-file. By','Error'),	return
+	end
+	if (~isequal([rows cols], [s_flags.Dataset(z_id_flags).Size(end-1) s_flags.Dataset(z_id_flags).Size(end)]))
+		errordlg('Buhhuu!! quality flags and the-to-be-counted-file have not the same size. By','Error'),		return
+	end
+
+	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
+	
+	aguentabar(0,'title',['NaNify countings < ' sprintf('%d',count)],'CreateCancelBtn')
+
+	n_layers = handles.number_of_timesteps;
+	for (m = 1:n_layers)
+
+		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m-1 0 0], [1 rows cols]);
+		Z_flags = nc_funs('varget', fname2, s_flags.Dataset(z_id_flags).Name, [m-1 0 0], [1 rows cols]);
+		Z(Z_flags < count) = NaN;
+
+		if (m == 1),		nc_io(grd_out, sprintf('w%d/time',n_layers), handles, reshape(Z,[1 size(Z)]))
+		else				nc_io(grd_out, sprintf('w%d', m-1), handles, Z)
+		end
+
+		h = aguentabar(m/n_layers);
+		if (isnan(h)),	break,	end
+		
 	end
 
 % ----------------------------------------------------------------------
@@ -443,7 +523,7 @@ function calc_polygAVG(handles)
 			x_lim = [xp(1) xp(2)];		y_lim = [yp(1) yp(2)];
 
 			% Extrai um rect que englobe o poligono para poupar na conta da mascara
-			[Z_rect,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z,rect_crop,'out_grid');
+			Z_rect = cropimg(handles.head(1:2),handles.head(3:4),Z,rect_crop,'out_grid');
 			mask = img_fun('roipoly_j',x_lim,y_lim,Z_rect,x,y);
 
 			% Test for a minimum of valid elements inside polygon
@@ -496,7 +576,6 @@ function calc_polygAVG(handles)
 	% Calculate a a rough polygon centroid
 	centro = zeros(N,2);
 	for (k = 1:N)				% Loop over polygons
-		x = polys{k}(:,1);				y = polys{k}(:,2);
 		centro(k,:) = mean(polys{k});
 	end
 	
