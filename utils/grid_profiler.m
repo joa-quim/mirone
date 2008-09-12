@@ -1,4 +1,4 @@
-function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic)
+function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_stack)
 % Compute profiles on the grid displayed by the Mirone figure.
 %
 % POINT_INT  true|false		If true interpolate only on [xp, yp] vertex
@@ -6,19 +6,11 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic)
 
 	handles = guidata(hFig);
 	[X,Y,Z,head] = load_grd(handles,'silent');
-
-	n_nodes = numel(xp);
+	if (getappdata(handles.figure1,'PixelMode')),	do_stack = false;	end		% Case no programed
+	
+	if (nargin == 5),	do_stack = false;	end
 	if (~point_int)         % Profile interp
-		dx = X(2) - X(1);   dy = Y(2) - Y(1);
-		dx = handles.head(8);		dy = handles.head(9);
-		% Here I don't realy know what is the good increment for interpolation, so I'll
-		% interpolate at the half grid spacing for each dimension.
-		% Construct the vectors with the points where to interpolate the profile
-		xx = [];	yy = [];
-		for (i = 1:n_nodes-1)
-			n_int = round( max( abs(xp(i+1)-xp(i))/(dx/2), abs(yp(i+1)-yp(i))/(dy/2) ) );			% find ...
-			xx = [xx linspace(xp(i),xp(i+1),n_int)];     yy = [yy linspace(yp(i),yp(i+1),n_int)];	% at nodes, values are repeated
-		end
+		[xx, yy] = make_track(xp, yp, handles.head(8), handles.head(9), do_stack);
 	else					% Interpolation at line vertex
 		xx = xp;    yy = yp;
 	end
@@ -26,8 +18,16 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic)
 	% Interpolate
 	if ~isempty(getappdata(handles.figure1,'dem_x'))		% Grid is in memory
         if (~getappdata(handles.figure1,'PixelMode'))		% Interpolation mode
-			zz = grdtrack_m(Z,head,[xx' yy'],'-Z')';		% It uses less memory (and non doubles)
-			%zz = interp2(X,Y,double(Z),xx,yy,'*cubic');
+			if (ndims(xx) == 1)				% Typical, one tack interpolation only
+				zz = grdtrack_m(Z,head,[xx' yy'],'-Z')';
+			else							% Multi-track interpolation and stacking
+				zz = grdtrack_m(Z,head,[xx(1,:)' yy(1,:)'],'-Z')';
+				for (k = 2:size(xx,1))
+					zz = zz + grdtrack_m(Z,head,[xx(k,:)' yy(k,:)'],'-Z')';
+				end
+				zz = zz / size(xx,1);
+			end
+			xx = xx(round(size(xx,1)/2),:);		yy = yy(round(size(xx,1)/2),:);		% Mid track coordinates
 		else												% NEARNEIGBOR mode
 			[rows,cols] = size(Z);
 			rp = aux_funs('axes2pix',rows, get(handles.hImg,'YData'),yy);
@@ -82,3 +82,77 @@ function rd = dist_along_profile(x, y)
     xd = diff(x);		yd = diff(y);
     tmp = sqrt(xd.*xd + yd.*yd);
 	rd = [0; cumsum(tmp(:))];
+
+% -------------------------------------------------------------------------------------
+function [xx, yy] = make_track(x, y, dx, dy, do_stack)
+% Here I don't realy know what is the good increment for interpolation, so I'll
+% interpolate at the half grid spacing for each dimension.
+% Construct the vectors with the points where to interpolate the profile
+
+	if (~do_stack)				% Simple, most common and original case (one track only interpolation)
+		xx = [];	yy = [];
+		n_vertex = numel(x);
+		for (i = 1:n_vertex-1)
+			n_int = round( max( abs(x(i+1)-x(i))/(dx/2), abs(y(i+1)-y(i))/(dy/2) ) );			% find ...
+			xx = [xx linspace(x(i),x(i+1),n_int)];     yy = [yy linspace(y(i),y(i+1),n_int)];	% at nodes, values are repeated
+		end
+	else
+		ud = get(do_stack, 'UserData');		% See end of case 'thicken' in line_operations() for ud contents
+		[n_vertex, n_lines] = size(ud{1});
+		if ( isequal(x(:), ud{4}(:,1)) && isequal(y(:), ud{4}(:,2)) )	% Stack track line was not edited
+			for (k = 1:n_lines)
+				x = ud{1}(:,k);			y = ud{2}(:,k);
+				x0 = [];	y0 = [];
+				for (i = 1:n_vertex-1)
+					n_int = round( max( abs(x(i+1)-x(i))/(dx/2), abs(y(i+1)-y(i))/(dy/2) ) );
+					x0 = [x0 linspace(x(i),x(i+1),n_int)];     y0 = [y0 linspace(y(i),y(i+1),n_int)];
+				end
+				xx(k,:) = x0;			yy(k,:) = y0;
+				if (k == 1)		% Now that we know the final array size, we can pre-allocate
+					xx = zeros(n_lines,numel(x0));				yy = zeros(n_lines,numel(x0));
+					xx(k,:) = x0;		yy(k,:) = y0;
+				end
+			end
+
+		else								% Shit. Line was edited. Need to recompute the new tracks in it
+
+			% Compute line angle 
+			if (ud{5})				% Is geog?
+				[dumb, az] = vdist(y(1:end-1),x(1:end-1), y(2:end),x(2:end));
+				az = 90 - az;				% Make it trigonometric
+				co = cos(az * pi / 180);	si = sin(az * pi / 180);
+			else
+				dx = diff(x);				dy = diff(y);
+				hy = (dx.^2 + dy.^2)^.5;
+				co =  dx ./ hy;				si =  dy ./ hy;			% calculate the cosine and sine
+			end
+			
+			% Compute the new lines stack collection
+			dl = ud{3} / n_lines;
+			xL = zeros(n_vertex, n_lines+1);		yL = zeros(n_vertex, n_lines+1);
+			if (size(x,1) == 1),		x = x(:);	y = y(:);		end
+			for (k = 1:n_lines+1)
+				th = ud{3}/2 - (k-1) * dl;
+				foo = [co -si; si  co] * [0; th];
+				xL(:,k) = x + repmat(foo(1), n_vertex, 1);		% One line per column
+				yL(:,k) = y + repmat(foo(2), n_vertex, 1);
+			end
+
+			% And finaly interpoate them at inc/2
+			for (k = 1:n_lines)
+				x = xL(:,k);		y = yL(:,k);
+				x0 = [];			y0 = [];
+				for (i = 1:n_vertex-1)
+					n_int = round( max( abs(x(i+1)-x(i))/(dx/2), abs(y(i+1)-y(i))/(dy/2) ) );
+					x0 = [x0 linspace(x(i),x(i+1),n_int)];     y0 = [y0 linspace(y(i),y(i+1),n_int)];
+				end
+				xx(k,:) = x0;		yy(k,:) = y0;
+				if (k == 1)		% Now that we know the final array size, we can pre-allocate
+					xx = zeros(n_lines,numel(x0));				yy = zeros(n_lines,numel(x0));
+					xx(k,:) = x0;	yy(k,:) = y0;
+				end
+			end
+			
+		end			% End of, stack track line edited?
+
+	end
