@@ -32,36 +32,27 @@ else
 end
 
 switch opt
-	case 'line_uicontext',          set_line_uicontext(hand,'line')
-	case 'SHPuictx',                set_SHPline_uicontext(hand)
-	case 'ContourLines',            set_ContourLines_uicontext(hand,data)
-	case 'MBtrackUictx',            set_line_uicontext(hand,'MBtrack')
-	case 'MBbarUictx',              set_bar_uicontext(hand)
-	case 'CoastLineUictx',          setCoastLineUictx(hand)
-	case 'DeleteObj',               delete_obj(hand);
+	case 'line_uicontext',			set_line_uicontext(hand,'line')
+	case 'SHPuictx',				set_SHPline_uicontext(hand)
+	case 'ContourLines',			set_ContourLines_uicontext(hand,data)
+	case 'MBtrackUictx',			set_line_uicontext(hand,'MBtrack')
+	case 'MBbarUictx',				set_bar_uicontext(hand)
+	case 'CoastLineUictx',			setCoastLineUictx(hand)
+	case 'DeleteObj',				delete_obj(hand);
 	case 'DrawGreatCircle' 
 		h = draw_greateCircle;
-		if ~isempty(h)      % when in compiled version h may be empty (why?).
-			set_greatCircle_uicontext(h)
-		end
 	case 'DrawCircleEulerPole'
 		h = draw_circleEulerPole(data(1),data(2));  
-		if ~isempty(h)      % when in compiled version h may be empty (why?).
-			set_circleGeo_uicontext(h)
-		end
 	case 'DrawCartesianCircle'
-		h = draw_circleGeo;         % It also draws cartesian circles
-		if ~isempty(h)              % when in compiled version h may be empty (why?).
-			set_circleCart_uicontext(h)
-		end
-	case 'SessionRestoreCircle'     % Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
+		h = draw_circleGeo;				% It also draws cartesian circles
+	case 'SessionRestoreCircle'			% Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
 		set_circleGeo_uicontext(hand)
-	case 'SessionRestoreCircleCart'     % Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
+	case 'SessionRestoreCircleCart'		% Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
 		set_circleCart_uicontext(hand)
 	case 'DrawText'
 		cmenuHand = uicontextmenu;
 		set(hand, 'UIContextMenu', cmenuHand);
-		cb_color = uictx_color(hand);      % there are 9 cb_color outputs
+		cb_color = uictx_color(hand);	% there are 9 cb_color outputs
 		uimenu(cmenuHand, 'Label', 'Change Font', 'Call', @text_FontSize);
 		item_fc = uimenu(cmenuHand, 'Label', 'Font Color');
 		setLineColor(item_fc,cb_color)
@@ -1340,6 +1331,7 @@ function h_gcirc = draw_greateCircle
 	w = waitforbuttonpress;
 	if w == 0							% A mouse click
         gcircFirstButtonDown(hFig,h_gcirc,state)
+		set_greatCircle_uicontext(h_gcirc)
 	else
         set(hFig,'Pointer', 'arrow');
         h_gcirc = [];
@@ -1372,21 +1364,22 @@ function wbd_gcircle(obj,eventdata,h,state)
 
 % -----------------------------------------------------------------------------------------
 function h_circ = draw_circleGeo
-	% THIS IS NOW ONLY USED NOW WITH CARTESIAN CIRCLES
-	% Given one more compiler BUG, (WindowButtonDownFcn cannot be redefined)
-	% I found the following workaround.
+% THIS IS NOW ONLY USED NOW WITH CARTESIAN CIRCLES
+% Given one more compiler BUG, (WindowButtonDownFcn cannot be redefined)
+% I found the following workaround.
 	hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
 	h_circ = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick);
 	%set(hFig,'WindowButtonDownFcn',{@circFirstButtonDown,h_circ}, 'Pointer', 'crosshair');
 	state = uisuspend_fig(hFig);     % Remember initial figure state
 	set(hFig,'Pointer', 'crosshair'); % to avoid the compiler BUG
-	w = waitforbuttonpress;                             %
-	if w == 0       % A mouse click                     %
-        circFirstButtonDown(h_circ,state)               %
-	else                                                %
-        set(get(0,'CurrentFigure'),'Pointer', 'arrow'); %
-        h_circ = [];                                    %
-	end                                                 %
+	w = waitforbuttonpress;
+	if w == 0       % A mouse click
+        circFirstButtonDown(h_circ,state)
+		set_circleCart_uicontext(h_circ)
+	else
+        set(get(0,'CurrentFigure'),'Pointer', 'arrow');
+        h_circ = [];
+	end
 
 %---------------
 %function circFirstButtonDown(obj,eventdata,h)      % For non compiled version
@@ -1417,14 +1410,15 @@ function wbd_circle(obj,eventdata,h,state)
 
 % -----------------------------------------------------------------------------------------
 function h_circ = draw_circleEulerPole(lon,lat)
-	% Draw a circle (or arc of a circle) about the Euler Pole (or any other origin)
-	% See notes above for the reason why waitforbuttonpress is used.
+% Draw a circle (or arc of a circle) about the Euler Pole (or any other origin)
+% See notes above for the reason why waitforbuttonpress is used.
 	h_circ = line('XData', [], 'YData', []);
-	hFig = get(0,'CurrentFigure');         hAxes = get(hFig,'CurrentAxes');
+	hFig = get(0,'CurrentFigure');		hAxes = get(hFig,'CurrentAxes');
 	set(hFig,'Pointer', 'crosshair');
 	w = waitforbuttonpress;
 	if w == 0       % A mouse click
         set(hFig,'WindowButtonMotionFcn',{@wbm_circle,[lon lat],h_circ,hAxes},'WindowButtonDownFcn',{@wbd_circle,h_circ});
+		set_circleGeo_uicontext(h_circ)
 	else
         set(hFig,'Pointer', 'arrow');
         h_circ = [];
@@ -1433,13 +1427,13 @@ function h_circ = draw_circleEulerPole(lon,lat)
 % -----------------------------------------------------------------------------------------
 function move_circle(obj,eventdata,h)
 % ONLY FOR CARTESIAN CIRCLES.
-hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
-state = uisuspend_fig(hFig);      % Remember initial figure state
-np = numel(get(h,'XData'));     x = linspace(-pi,pi,np);
-setappdata(h,'X',cos(x));       setappdata(h,'Y',sin(x))    % Save unit circle coords
-center = getappdata(h,'LonLatRad');
-set(hFig,'WindowButtonMotionFcn',{@wbm_MoveCircle,h,center,hAxes},...
-    'WindowButtonDownFcn',{@wbd_MoveCircle,h,state,hAxes},'Pointer', 'crosshair');
+	hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
+	state = uisuspend_fig(hFig);      % Remember initial figure state
+	np = numel(get(h,'XData'));     x = linspace(-pi,pi,np);
+	setappdata(h,'X',cos(x));       setappdata(h,'Y',sin(x))    % Save unit circle coords
+	center = getappdata(h,'LonLatRad');
+	set(hFig,'WindowButtonMotionFcn',{@wbm_MoveCircle,h,center,hAxes},...   
+		'WindowButtonDownFcn',{@wbd_MoveCircle,h,state,hAxes},'Pointer', 'crosshair');
 
 function wbm_MoveCircle(obj,eventdata,h,center,hAxes)
 	pt = get(hAxes, 'CurrentPoint');
