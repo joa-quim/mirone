@@ -403,7 +403,7 @@ function push_save_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------
 function push_cancel_CB(hObject, eventdata, handles)
-    figure1_CloseRequestFcn([], [], handles)
+    figure1_CloseRequestFcn(hObject, [])
 
 % -----------------------------------------------------------------------------
 function [fname,ext] = stripExt(fname)
