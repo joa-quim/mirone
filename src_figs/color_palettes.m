@@ -33,7 +33,6 @@ if (nargin == 1 && isstruct(varargin{1}))
 		end
 		handles.hCallingFig = handMir.figure1;
 		handles.home_dir = handMir.home_dir;
-		handles.work_dir = handMir.work_dir;
 		Z = getappdata(handMir.figure1,'dem_z');
 		if (~isempty(Z))
 			handles.have_nans = handMir.have_nans;
@@ -47,7 +46,7 @@ if (nargin == 1 && isstruct(varargin{1}))
 		set(handles.OptionsApply,'Enable','off')
 		set(handles.FileSavePaletteGrid','Vis','off')	% It makes no sense here
 		set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
-		handles.home_dir = cd;     handles.work_dir = handles.home_dir;
+		handles.home_dir = cd;
 	end
 	% Add this figure handle to the carraças list
 	plugedWin = getappdata(handMir.figure1,'dependentFigs');
@@ -59,7 +58,7 @@ elseif (nargin == 1 && ischar(varargin{1}))
 	set(handles.OptionsApply,'Enable','off')
 	set(handles.FileSavePaletteGrid','Vis','off')	% It makes no sense here
 	set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
-	handles.home_dir = cd;     handles.work_dir = handles.home_dir;
+	handles.home_dir = cd;
 end
 handles.d_path = [handles.home_dir filesep 'data' filesep];
 
@@ -573,22 +572,13 @@ if (nargin == 3),   opt = [];   end
 
 % Get directory history
 if (~isempty(handles.hCallingFig))
-    hand_parent = guidata(handles.hCallingFig);
-    handles.last_dir = hand_parent.last_dir;
-    handles.home_dir = hand_parent.home_dir;
+    hand = guidata(handles.hCallingFig);
 else
-    handles.last_dir = pwd;
-    handles.home_dir = handles.last_dir;
+	hand = handles;
 end
 
-cd(handles.last_dir)
-[FileName,PathName] = uiputfile({'*.cpt', 'GMT color palette (*.cpt)'},'Select CPT File name');
-if isequal(FileName,0);     return;     end
-pause(0.01)
-
-[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-if (isempty(EXT) && ~isempty(FileName)),   FileName = [FileName '.cpt'];     end
-cd(handles.home_dir);       % allways go home to avoid troubles
+[FileName,PathName] = put_or_get_file(hand, {'*.cpt', 'GMT color palette (*.cpt)'},'Select CPT File name','put','.cpt');
+if isequal(FileName,0),		return,		end
 
 pal = get(handles.figure1,'Colormap');
 if (handles.have_nans),   pal = pal(2:end,:);   end     % Remove the bg color
@@ -701,10 +691,8 @@ function cmap = FileReadPalette_Callback(hObject, eventdata, handles, opt, opt2)
 	if (nargin == 3),   opt = [];	end
 	if (nargin < 5),	opt2 = [];	end
 	if (isempty(opt2))
-		str1 = {'*.cpt;*.CPT', 'CPT files (*.cpt,*.CPT)';'*.*', 'All Files (*.*)'};
-		cd(handles.work_dir);
-		[FileName,PathName] = uigetfile(str1,'Select CPT file');
-		cd(handles.home_dir);
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.cpt;*.CPT', 'CPT files (*.cpt,*.CPT)';'*.*', 'All Files (*.*)'},'Select CPT file','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
 	else
