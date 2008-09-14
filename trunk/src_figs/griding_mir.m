@@ -102,9 +102,11 @@ if (~isempty(handles.h_calling_fig))                    % If we know the handle 
     cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
     handles.last_dir = cfig_handles.last_dir;
     handles.home_dir = cfig_handles.home_dir;
+    handles.work_dir = cfig_handles.work_dir;
 else
-    handles.last_dir = pwd;
-    handles.home_dir = pwd;
+    handles.home_dir = home_dir;
+    handles.last_dir = home_dir;
+    handles.work_dir = home_dir;
 end
 
 %------------ Give a Pro look (3D) to the frame boxes  -------------------------------
@@ -329,16 +331,21 @@ end
 
 %----------------------------------------------------------------------------------------------
 function pushbutton_InputFile_Callback(hObject, eventdata, handles)
-cd(handles.last_dir)
-[FileName,PathName] = uigetfile({'*.dat;*.DAT;*.xyz;*.XYX', 'XYZ files (*.dat,*.DAT,*.xyz,*.XYZ)';'*.*', 'All Files (*.*)'},'Select input data');
-pause(0.01);
-cd(handles.home_dir);       % allways go home to avoid troubles
-if isequal(FileName,0);     return;     end
-handles.last_dir = PathName;
-handles.command{3} = [PathName FileName];
-set(handles.edit_InputFile, 'String',handles.command{3})
-guidata(hObject, handles);
-edit_InputFile_Callback(hObject, eventdata, handles,[PathName FileName]);
+
+	if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))			% If we know it and it exists
+        hand = guidata(handles.h_calling_fig);		% get handles of the calling fig
+	else
+        hand = handles;
+	end
+
+    [FileName,PathName] = put_or_get_file(hand,{ ...
+			'*.dat;*.DAT;*.xyz;*.XYX', 'XYZ files (*.dat,*.DAT,*.xyz,*.XYZ)';'*.*', 'All Files (*.*)'},'Select input data','get');
+    if isequal(FileName,0),		return,		end
+
+	handles.command{3} = [PathName FileName];
+	set(handles.edit_InputFile, 'String',handles.command{3})
+	guidata(hObject, handles);
+	edit_InputFile_Callback(hObject, eventdata, handles,[PathName FileName]);
 
 % -----------------------------------------------------------------------------------
 function edit_Xmin_Callback(hObject, eventdata, handles)
