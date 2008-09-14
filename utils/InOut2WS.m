@@ -96,26 +96,25 @@ try     % So many thing may go wrong
         end
 	
 	elseif strcmp(opt,'loadmat')            % Load a .mat file containing a 2D array
-		str1 = {'*.mat;','mat file format (*.mat)'; '*.*', 'All Files (*.*)'};
-		cd(handles.last_dir)
-		[FileName,PathName] = uigetfile(str1,'Select .mat file');
-		if isequal(FileName,0);     return;     end
-		pause(0.01);        cd(handles.home_dir);       % allways go home
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.mat;','mat file format (*.mat)'; '*.*', 'All Files (*.*)'},'Select .mat file','get');
+		if isequal(FileName,0),		return,		end
+
 		try                                             % We do a try-catch because evalin does not work on the compiled version
-            load([PathName FileName])
-            if (~isa(Z,'single')),   Z = single(Z);      end
+			load([PathName FileName])
+			if (~isa(Z,'single')),   Z = single(Z);      end
 		catch
-            try
-                if (~isa(z,'single')),   Z = single(z);  clear z;    end
-            catch
-                errordlg('The "Open .mat 2D array" requires that the array variable is named "Z" or "z"','ERROR')
-                return
-            end
+			try
+				if (~isa(z,'single')),   Z = single(z);  clear z;    end
+			catch
+				errordlg('The "Open .mat 2D array" requires that the array variable is named "Z" or "z"','ERROR')
+				return
+			end
 		end
 		[m,n,k] = size(Z);
 		if (m < 2 || n < 2)
-            errordlg('You must be joking. This is a vector, not a true 2D array.','ERROR')
-            return
+			errordlg('You must be joking. This is a vector, not a true 2D array.','ERROR')
+			return
 		end
 		if (ndims(Z) > 2),  Z = Z(:,:,1);    end
 		[zz] = grdutils(Z,'-L');  z_min = zz(1);     z_max = zz(2);     clear zz;
