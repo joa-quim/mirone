@@ -534,7 +534,7 @@ pushbutton_imageIn_Callback(gcbo,[],guidata(gcbo),fname)
 function pushbutton_imageIn_Callback(hObject, eventdata, handles, fname)
 if (nargin == 3),   fname = [];   end
 if (isempty(fname))
-	[FileName,PathName] = uigetfile({ ...
+	[FileName,PathName] = put_or_get_file(handles,{ ...
         '*.jpg', 'JPEG image (*.jpg)'; ...
         '*.png', 'Portable Network Graphics(*.png)'; ...
         '*.bmp', 'Windows Bitmap (*.bmp)'; ...
@@ -545,7 +545,7 @@ if (isempty(fname))
         '*.tif', 'Tagged Image File (*.tif)'; ...
         '*.xwd', 'X Windows Dump (*.xwd)'; ...
         '*.*', 'All Files (*.*)'}, ...
-        'Select image format');
+        'Select image format','get');
 	if isequal(FileName,0);     return;     end
     fname = [PathName FileName];
 	set(handles.edit_imageIn,'String',fname)
@@ -755,7 +755,7 @@ function pushbutton_loadFilter_Callback(hObject, eventdata, handles)
 % Load a filter from an external file. It must have a .dat extension
 
 str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-[FileName,PathName] = uigetfile(str1,'Select filter file');
+[FileName,PathName] = put_or_get_file(handles,str1,'Select filter file','get');
 if isequal(FileName,0),		return,		end
 
 try
