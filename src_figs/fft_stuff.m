@@ -270,18 +270,13 @@ if (nargin == 3),    opt = [];       end
 if (nargin == 4),    fname = opt;    end
 
 if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
-    if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-        cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-        last_dir = cfig_handles.last_dir;
-        home = cfig_handles.home_dir;
-    else
-        last_dir = [];
-    end
+    if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))		% If we know the handle to the calling fig
+        hand = guidata(handles.h_calling_fig);      % get handles of the calling fig
+	else
+		hand = handles;
+	end
 
-    if (~isempty(last_dir)),    cd(last_dir);   end
-    [FileName,PathName] = uigetfile({'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid');
-    pause(0.01);
-    if (~isempty(last_dir)),    cd(home);   end
+    [FileName,PathName] = put_or_get_file(hand,{'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
     if isequal(FileName,0);     return;     end
     fname = [PathName FileName];
 end
