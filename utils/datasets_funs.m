@@ -99,14 +99,9 @@ function DatasetsIsochrons(handles, opt)
 % If first line in file is of the form '>U_N_I_K', plot a single line NaN separated
 
 if (nargin == 2 && isempty(opt))            % Read a ascii multi-segment with info file
-	str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-	cd(handles.last_dir)
-	[FileName,PathName] = uigetfile(str1,'Select File');
-	if (PathName ~= 0),         handles.last_dir = PathName;    end
-	pause(0.01);        cd(handles.home_dir);       % allways go home
-	if (FileName == 0),     return;     end
-
-	guidata(handles.figure1,handles)
+	[FileName,PathName] = put_or_get_file(handles, ...
+		{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
+	if isequal(FileName,0),		return,		end
 	tag = 'Unnamed';		fname = [PathName FileName];
 elseif (nargin == 2)		% Read a ascii multi-segment file of which we already know the name (drag N'drop)
 	tag = 'DragNdroped';	fname = opt;
