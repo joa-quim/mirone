@@ -59,8 +59,8 @@
  *		04/06/06 J Luis, Updated to compile with version 4.1.3
  *		14/10/06 J Luis, Now includes the memory leak solving solution
  *		03/03/08 J Luis, Adapted for 4.2.1
- *	 
  *		12/07/08 J Luis, Made it standalone (no GMT lib dependency)
+ *		13/09/08 J Luis, Added column major code (when Z input in singles)
  */
 
 #include "mex.h"
@@ -110,6 +110,7 @@
 #define BCR_BSPLINE		2
 #define BCR_BICUBIC		3
 
+#define original_GMT_code	0	/* Set it to 1 to always use original (rowmajor) code */
 
 typedef int BOOLEAN;              /* BOOLEAN used for logical variables */
 
@@ -172,8 +173,9 @@ void GMT_boundcond_init (struct GMT_EDGEINFO *edgeinfo);
 int GMT_boundcond_set (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo, int *pad, float *a);
 int GMT_boundcond_param_prep (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo);
 int GMT_boundcond_parse (struct GMT_EDGEINFO *edgeinfo, char *edgestring);
-double GMT_get_bcr_z (struct GRD_HEADER *grd, double xx, double yy, float *data, struct GMT_EDGEINFO *edgeinfo, struct GMT_BCR *bcr);
+double GMT_get_bcr_z (struct GRD_HEADER *grd, double xx, double yy, float *data, struct GMT_EDGEINFO *edgeinfo, struct GMT_BCR *bcr, BOOLEAN row_maj);
 void GMT_bcr_init (struct GRD_HEADER *grd, int *pad, int interpolant, double threshold, struct GMT_BCR *bcr);
+double row_or_column_major (struct GMT_BCR *bcr, float *data, double *wx, double *wy, int ij, BOOLEAN row_maj);
 
 int decode_R (char *item, double *w, double *e, double *s, double *n);
 int check_region (double w, double e, double s, double n);
@@ -189,7 +191,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	BOOLEAN error = FALSE, suppress = FALSE, node = FALSE, z_only = FALSE;
 	BOOLEAN is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
-	BOOLEAN is_uint16 = FALSE, is_uint8 = FALSE;
+	BOOLEAN is_uint16 = FALSE, is_uint8 = FALSE, is_int8 = FALSE;
+	BOOLEAN free_copy = TRUE, need_padding = FALSE, row_maj = FALSE;
 	
 	double value, west, east, south, north, threshold = 1.0, i_dx, i_dy, half, *in, *out;
 	float *f;
@@ -197,7 +200,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	i2, argc = 0, nc_h, nr_h, mx, n_arg_no_char = 0, *i_4, interpolant = BCR_BICUBIC;
 	short int *i_2;
 	unsigned short int *ui_2;
-	char	**argv;
+	char	**argv, *i_1;
 	unsigned char *ui_1;
 	float	*z_4;
 	double	*pdata_d, *z_8, *head;
@@ -217,10 +220,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* get the length of the input string */
 	argv = (char **)mxCalloc(argc, sizeof(char *));
-	argv[0] = "grdtrack";
-	for (i = 1; i < argc; i++) {
+	argv[0] = "grdtrack_m";
+	for (i = 1; i < argc; i++)
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char-1]);
-	}
 
 	west = east = south = north = 0.0;
 	
@@ -268,10 +270,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	if (argc == 1 || error) {
 		mexPrintf ("grdtrack - Sampling of a 2-D gridded netCDF grdfile along 1-D trackline\n\n");
-		mexPrintf ("usage: out = grdtrack_m(grd,head,xyfile, ['-L<flag>'], ['-N']\n"); 
+		mexPrintf ("usage: out = grdtrack_m(grd,head,xydata, ['-L<flag>'], ['-N']\n"); 
 		mexPrintf ("\t['-Q[<value>]'], ['-R<west/east/south/north>[r]'] ['-S'] ['-Z'] ['-f[i|o]<colinfo>']\n");
 				
-		mexPrintf ("\t<xyfile> is an multicolumn file with (lon,lat) in the first two columns\n");
+		mexPrintf ("\t<xydata> is an multicolumn array with (lon,lat) in the first two columns\n");
 		mexPrintf ("\n\tOPTIONS:\n");
 		mexPrintf ("\t-L sets boundary conditions.  <flag> can be either\n");
 		mexPrintf ("\t   g for geographic boundary conditions\n");
@@ -287,6 +289,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\t-R specifies a subregion [Default is old region]\n");
 		mexPrintf ("\t-S Suppress output when result equals NaN\n");
 		mexPrintf ("\t-Z only output z-values [Default gives all columns]\n");
+		mexPrintf ("\n\tSECRET INFO:\n");
+		mexPrintf ("\t   When input points are inside the outer skirt of 2 rows and columns of\n");
+		mexPrintf ("\t   the 2-D grid we don't need to set boundary conditions and as\n");
+		mexPrintf ("\t   such we can use the input array without further to C order\n");
+		mexPrintf ("\t   conversion (to row major). This save a lot of memory and execution\n");
+		mexPrintf ("\t   time. However, this possibility works only when input 2-D array is\n");
+		mexPrintf ("\t   of tipe SINGLE (though the computations are all done in doubles).\n");
+		mexPrintf ("\t   The other cases request using a temporary array of size (M+2)x(N+2)\n");
 		return;
 	}
 
@@ -326,9 +336,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		ui_1 = mxGetData(prhs[0]);
 		is_uint8 = TRUE;
 	}
+	else if (mxIsInt8(prhs[0])) {
+		i_1 = mxGetData(prhs[0]);
+		is_int8 = TRUE;
+	}
 	else {
 		mexPrintf("GRDTRACK ERROR: Unknown input data type.\n");
-		mexErrMsgTxt("Valid types are:double, single, In32, In16, UInt16 and Uint8.\n");
+		mexErrMsgTxt("Valid types are:double, single, Int32, Int16, UInt16, UInt8 and Int8.\n");
 	}
 
 	nx = mxGetN (prhs[0]);
@@ -378,49 +392,118 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	i_dx = 1.0 / grd.x_inc;
 	i_dy = 1.0 / grd.y_inc;
 
-	f = mxCalloc ((nx+4)*(ny+4), sizeof (float));
-
-	/* Transpose from Matlab orientation to gmt grd orientation */
-	if (is_double) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
-			ii = (i2 + 2)*mx + 2;
-			for (j = 0; j < nx; j++) f[ii + j] = (float)z_8[j*ny+i];
-		}
-	}
-	else if (is_single) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
-			ii = (i2 + 2)*mx + 2;
-			for (j = 0; j < nx; j++) f[ii + j] = z_4[j*ny+i];
-		}
-	}
-	else if (is_int32) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
-			ii = (i2 + 2)*mx + 2;
-			for (j = 0; j < nx; j++) f[ii + j] = (float)i_4[j*ny+i];
-		}
-	}
-	else if (is_int16) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
-			ii = (i2 + 2)*mx + 2;
-			for (j = 0; j < nx; j++) f[ii + j] = (float)i_2[j*ny+i];
-		}
-	}
-	else if (is_uint16) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
-			ii = (i2 + 2)*mx + 2;
-			for (j = 0; j < nx; j++) f[ii + j] = (float)ui_2[j*ny+i];
-		}
-	}
-	else if (is_uint8) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
-			ii = (i2 + 2)*mx + 2;
-			for (j = 0; j < nx; j++) f[ii + j] = (float)ui_1[j*ny+i];
+	if (!node) {
+		/* If we don't have any point inside the two outer row/columns
+		   there is no need to set boundary conditions plus all the extra
+		   ovehead that it implies. So check it out here. */
+		int n;
+		double this_xmin, this_xmax, this_ymin, this_ymax;
+		n = (interpolant == BCR_BILINEAR) ? 1 : 2;
+		this_xmin = grd.x_min + n * grd.x_inc;
+		this_xmax = grd.x_max - n * grd.x_inc;
+		this_ymin = grd.y_min + n * grd.y_inc;
+		this_ymax = grd.y_max - n * grd.y_inc;
+		for (i = 0; i < n_pts; i++) {
+			if (in[i] < this_xmin || in[i] > this_xmax) {
+				need_padding = TRUE;
+				break;
+			}
+			if (in[i+n_pts] < this_ymin || in[i+n_pts] > this_ymax) {
+				need_padding = TRUE;
+				break;
+			}
 		}
 	}
 
-	GMT_pad[0] = GMT_pad[1] = GMT_pad[2] = GMT_pad[3] = 2;
+#if original_GMT_code
+	need_padding = TRUE;
+#endif
 
-	GMT_boundcond_param_prep (&grd, &edgeinfo);
+	if (need_padding) row_maj = TRUE;	/* Here we have to use the old row major code */
+
+	if (!need_padding) {		/* We can use the column major order of the Matlab array */
+
+		if (!is_single)
+			f = mxCalloc (nx * ny, sizeof (float));
+
+		if (is_double) 
+			for (j = 0; j < nx*ny; j++) f[j] = (float)z_8[j];
+
+		else if (is_single) {
+			f = z_4;
+			free_copy = FALSE;	/* Signal that we shouldn't free f */
+		}
+
+		else if (is_int32)
+			for (j = 0; j < nx*ny; j++) f[j] = (float)i_4[j];
+
+		else if (is_int16)
+			for (j = 0; j < nx*ny; j++) f[j] = (float)i_2[j];
+
+		else if (is_uint16)
+			for (j = 0; j < nx*ny; j++) f[j] = (float)ui_2[j];
+
+		else if (is_uint8)
+			for (j = 0; j < nx*ny; j++) f[j] = (float)ui_1[j];
+
+		else if (is_int8)
+			for (j = 0; j < nx*ny; j++) f[j] = (float)i_1[j];
+
+		GMT_pad[0] = GMT_pad[1] = GMT_pad[2] = GMT_pad[3] = 0;
+	}
+
+	else {
+
+		f = mxCalloc ((nx+4)*(ny+4), sizeof (float));
+
+		/* Transpose from Matlab orientation to gmt grd orientation */
+		if (is_double) {
+			for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+				ii = (i2 + 2)*mx + 2;
+				for (j = 0; j < nx; j++) f[ii + j] = (float)z_8[j*ny+i];
+			}
+		}
+		else if (is_single) {
+			for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+				ii = (i2 + 2)*mx + 2;
+				for (j = 0; j < nx; j++) f[ii + j] = z_4[j*ny+i];
+			}
+		}
+		else if (is_int32) {
+			for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+				ii = (i2 + 2)*mx + 2;
+				for (j = 0; j < nx; j++) f[ii + j] = (float)i_4[j*ny+i];
+			}
+		}
+		else if (is_int16) {
+			for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+			ii = (i2 + 2)*mx + 2;
+				for (j = 0; j < nx; j++) f[ii + j] = (float)i_2[j*ny+i];
+			}
+		}
+		else if (is_uint16) {
+			for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+				ii = (i2 + 2)*mx + 2;
+				for (j = 0; j < nx; j++) f[ii + j] = (float)ui_2[j*ny+i];
+			}
+		}
+		else if (is_uint8) {
+			for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+				ii = (i2 + 2)*mx + 2;
+				for (j = 0; j < nx; j++) f[ii + j] = (float)ui_1[j*ny+i];
+			}
+		}
+		else if (is_int8) {
+			for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
+				ii = (i2 + 2)*mx + 2;
+				for (j = 0; j < nx; j++) f[ii + j] = (float)i_1[j*ny+i];
+			}
+		}
+
+		GMT_pad[0] = GMT_pad[1] = GMT_pad[2] = GMT_pad[3] = 2;
+
+		GMT_boundcond_param_prep (&grd, &edgeinfo);
+	}
 	
 	/*project_info.w = west;	project_info.e = east;
 	project_info.s = south;	project_info.n = north;*/
@@ -429,9 +512,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	GMT_bcr_init (&grd, GMT_pad, interpolant, threshold, &bcr);
 
-	/* Set boundary conditions  */
-	
-	GMT_boundcond_set (&grd, &edgeinfo, GMT_pad, f);
+	if (need_padding)
+		/* Set boundary conditions  */
+		GMT_boundcond_set (&grd, &edgeinfo, GMT_pad, f);
 	
 	if ((out = mxCalloc(n_pts * (n_fields+1), sizeof (double))) == 0)
 		mexErrMsgTxt("GRDTRACK ERROR: Could not allocate memory\n");
@@ -462,7 +545,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			value = f[(jj+GMT_pad[3])*mx+ii+GMT_pad[0]];
 		}
 		else
-			value = GMT_get_bcr_z(&grd, in[i], in[i+n_pts], f, &edgeinfo, &bcr);
+			value = GMT_get_bcr_z(&grd, in[i], in[i+n_pts], f, &edgeinfo, &bcr, row_maj);
 
 		if (suppress && mxIsNaN (value)) continue;
 
@@ -475,15 +558,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 	}
 
+	/*if (!(!need_padding && !is_single)) {
+		mexPrintf("Merda vou Friar %d\t%d\n", need_padding, is_single);
+		mxFree((void *)f);
+	}*/
+	if (free_copy)
+		mxFree((void *)f);
+
 	plhs[0] = mxCreateDoubleMatrix (n_pts,n_fields+1, mxREAL);
 	pdata_d = mxGetPr(plhs[0]);
 	memcpy(pdata_d, out, n_pts*(n_fields+1)*8);
 	mxFree(out);
 }
-
-
-
-
 
 
 void GMT_bcr_init (struct GRD_HEADER *grd, int *pad, int interpolant, double threshold, struct GMT_BCR *bcr) {
@@ -509,13 +595,13 @@ void GMT_bcr_init (struct GRD_HEADER *grd, int *pad, int interpolant, double thr
 	bcr->offset = (grd->node_offset) ? 0.5 : 0.0;
 }
 
-double GMT_get_bcr_z (struct GRD_HEADER *grd, double xx, double yy, float *data, struct GMT_EDGEINFO *edgeinfo, struct GMT_BCR *bcr) {
+double GMT_get_bcr_z (struct GRD_HEADER *grd, double xx, double yy, float *data, struct GMT_EDGEINFO *edgeinfo, struct GMT_BCR *bcr, BOOLEAN row_maj) {
 	/* Given xx, yy in user's grid file (in non-normalized units)
 	   this routine returns the desired interpolated value (nearest-neighbor, bilinear
 	   B-spline or bicubic) at xx, yy. */
 
 	int i, j, ij;
-	double	x, y, retval, wsum, wx[4], wy[4], w, wp, wq;
+	double	x, y, wx[4], wy[4], w, wp, wq;
 
 	/* First check that xx,yy are not Nan - if so return NaN */
 	
@@ -563,9 +649,6 @@ double GMT_get_bcr_z (struct GRD_HEADER *grd, double xx, double yy, float *data,
 
 	if (i < -2 || j < -2 || i+bcr->n > grd_nx+2 || j+bcr->n > grd_ny+2) return (GMT_d_NaN);
 	*/
-
-	/* Save the location of the upper left corner point of the convolution kernel */
-	ij = (j + bcr->joff) * bcr->mx + (i + bcr->ioff);
 
 	/* Build weights */
 
@@ -632,20 +715,54 @@ double GMT_get_bcr_z (struct GRD_HEADER *grd, double xx, double yy, float *data,
 		break;
 	}
 
-	retval = wsum = 0.0;
-	for (j = 0; j < bcr->n; j++) {
-		for (i = 0; i < bcr->n; i++) {
-			if (!mxIsNaN(data[ij+i])) {
-				w = wx[i] * wy[j];
-				retval += data[ij+i] * w;
-				wsum += w;
-			}
-		}
-		ij += bcr->mx;
-	}
-	return ( ((wsum + GMT_CONV_LIMIT - bcr->threshold) > 0.0) ? retval / wsum : mxGetNaN());
+	/* Save the location of the upper left corner point of the convolution kernel */
+	if (row_maj)		/* C order */
+		ij = (j + bcr->joff) * bcr->mx + (i + bcr->ioff);
+	else
+		/* I'm not sure why we need that ... - j - 1. I think it is because in
+		   original GMT code y has origin ij upper left corner and j = (int)floor(y); 
+		   above. Whilst here Y origin his at lower left. So it might be that floor().
+		   Anyway, I tested it against GMT grdtrack and it gave the same result.
+		   So I believe this is ok. The NEARNEIGHBOR  case was not tested, but we don't
+		   use it in Mirone. 		*/
+		ij = (i + bcr->ioff) * bcr->my + (bcr->my - j - 1 + bcr->joff);
+
+	return (row_or_column_major (bcr, data, wx, wy, ij, row_maj));
 }
 
+double row_or_column_major (struct GMT_BCR *bcr, float *data, double *wx, double *wy, int ij, BOOLEAN row_maj) {
+
+	int i, j;
+	double	x, y, retval, wsum, w;
+
+	retval = wsum = 0.0;
+	if (row_maj) {	/* C order */
+		for (j = 0; j < bcr->n; j++) {
+			for (i = 0; i < bcr->n; i++) {
+				if (!mxIsNaN(data[ij+i])) {
+					w = wx[i] * wy[j];
+					retval += data[ij+i] * w;
+					wsum += w;
+				}
+			}
+			ij += bcr->mx;
+		}
+	}
+	else {		/* Matlab (fortran) ordering */
+		for (i = 0; i < bcr->n; i++) {
+			for (j = 0; j < bcr->n; j++) {
+				if (!mxIsNaN(data[ij-j])) {
+					w = wx[i] * wy[j];
+					retval += data[ij-j] * w;
+					wsum += w;
+				}
+			}
+			ij += bcr->my;
+		}
+	}
+
+	return ( ((wsum + GMT_CONV_LIMIT - bcr->threshold) > 0.0) ? retval / wsum : mxGetNaN());
+}
 
 void GMT_boundcond_init (struct GMT_EDGEINFO *edgeinfo) {
 	edgeinfo->nxp = 0;
@@ -933,20 +1050,16 @@ int GMT_boundcond_set (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo, int 
 				skipping corners:  */
 			for (i = iwi1; i <= iei1; i++) {
 				a[jno1 + i] = (float)(4.0 * a[jn + i])
-					- (a[jn + i - 1] + a[jn + i + 1]
-						+ a[jni1 + i]);
+					- (a[jn + i - 1] + a[jn + i + 1] + a[jni1 + i]);
 
 				a[jso1 + i] = (float)(4.0 * a[js + i])
-					- (a[js + i - 1] + a[js + i + 1]
-						+ a[jsi1 + i]);
+					- (a[js + i - 1] + a[js + i + 1] + a[jsi1 + i]);
 			}
 			for (jmx = jni1; jmx <= jsi1; jmx += mx) {
 				a[iwo1 + jmx] = (float)(4.0 * a[iw + jmx])
-					- (a[iw + jmx + mx] + a[iw + jmx - mx]
-						+ a[iwi1 + jmx]);
+					- (a[iw + jmx + mx] + a[iw + jmx - mx] + a[iwi1 + jmx]);
 				a[ieo1 + jmx] = (float)(4.0 * a[ie + jmx])
-					- (a[ie + jmx + mx] + a[ie + jmx - mx]
-						+ a[iei1 + jmx]);
+					- (a[ie + jmx + mx] + a[ie + jmx - mx] + a[iei1 + jmx]);
 			}
 
 			/* Now set d[Laplacian]/dn = 0 on all edge pts, including
