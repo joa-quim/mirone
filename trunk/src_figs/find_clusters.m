@@ -394,7 +394,8 @@ function pushbutton_save_Callback(hObject, eventdata, handles)
 
 	%save_seismicity(handles.mirone_fig, h_events)
 
-	[FileName,PathName] = put_or_get_file(handles, ...
+	handMir = guidata(handles.mirone_fig);				% Get the Mirone handles
+	[FileName,PathName] = put_or_get_file(handMir, ...
 		{'*.dat;*.DAT', 'Seimicity file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select File name','put','.dat');
 	if isequal(FileName,0),		return,		end
 	fname = [PathName FileName];
