@@ -10,11 +10,13 @@ function varargout = mk_movie_from_list(varargin)
 		handles.work_dir = handMir.work_dir;
 		handles.last_dir = handMir.last_dir;
 		handles.home_dir = handMir.home_dir;
+		handles.hMirFig = handMir.figure1;
 		move2side(handMir.figure1, hObject)
 	else
 		handles.home_dir = cd;
 		handles.last_dir = handles.home_dir;
 		handles.work_dir = handles.home_dir;
+		handles.hMirFig = [];
 	end
 
 	f_path = [handles.home_dir filesep 'data' filesep];
@@ -188,11 +190,14 @@ function edit_movieName_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_movieName_Callback(hObject, eventdata, handles, opt)
     if (nargin == 3)        % Direct call
-        cd(handles.work_dir)
-        [FileName,PathName] = uiputfile({'*.gif;*.avi', 'Grid files (*.gif,*.avi)'},'Select Movie name');
-        pause(0.01);        cd(handles.home_dir);
-        if isequal(FileName,0);     return;     end
-        if (PathName ~= 0),         handles.last_dir = PathName;    end
+		if (~isempty(handles.hMirFig) && ishandle(handles.hMirFig))
+			hand = guidata(handles.hMirFig);
+		else
+			hand = handles;
+		end
+		[FileName,PathName] = put_or_get_file(hand, ...
+			{'*.gif;*.avi', 'Grid files (*.gif,*.avi)'},'Select Movie name','put');
+		if isequal(FileName,0),		return,		end
         [dumb,FNAME,EXT]= fileparts(FileName);
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
