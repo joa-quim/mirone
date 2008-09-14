@@ -15,9 +15,7 @@ function varargout = line_operations(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 	
-	if (isempty(varargin))
-		delete(hObject),	return
-	end
+	if (isempty(varargin)),		return,		end
 	
 	floating = false;
  
@@ -71,6 +69,7 @@ function varargout = line_operations(varargin)
 	handles.lt = varargin{1}.DefLineThick;
 	handles.lc = varargin{1}.DefLineColor;
 	handles.geog = varargin{1}.geog;
+	handles.head = varargin{1}.head;
 	IamCompiled = varargin{1}.IamCompiled;
 
 	if (floating)
@@ -79,19 +78,26 @@ function varargout = line_operations(varargin)
 	end
 
 	handles.known_ops = {'buffer'; 'polysimplify'; 'bspline'; 'cspline'; 'polyunion'; 'polyintersect'; ...
-			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'hand2Workspace'};
+			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'hand2Workspace'};
 	handles.hLine = [];
 	set(handles.popup_cmds,'Tooltip', 'Select one operation from this list')
+	set(handles.popup_cmds,'String', {'Possible commands'; 'buffer DIST'; 'polysimplify TOL'; 'bspline'; ...
+			'cspline N RES'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; 'line2patch'; ...
+			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'hand2Workspace'} )
 
 	handles.ttips = cell(numel(handles.known_ops));
 	handles.ttips{1} = 'Select one operation from this list';
 	handles.ttips{2} = sprintf(['Compute buffer zones arround polylines.\n' ...
 								'Replace DIST by the width of the buffer zone.\n\n' ...
-								'Optionally you can append NPTS and DIR options. Where:\n' ...
+								'Optionally you can append NPTS, DIR or GEOD options. Where:\n' ...
 								'NPTS -> Number of points used to contruct the circles\n' ...
 								'around each polygon vertex. If omitted, default is 13.\n' ...
 								'DIR -> ''in'', ''out'' or ''both'' selects whether to plot\n' ...
-								'inside, outside or both delineations of the buffer zone.']);
+								'inside, outside or both delineations of the buffer zone.\n' ...
+								'GEOD -> ''geod'', or [A B|F] uses an ellipsoidal model.\n' ...
+								'First of this cases uses WGS-84 Ellipsoid. Second form selects\n' ...
+								'an ellipsoid with A = semi-major axis and B = semi-minor axis\n' ...
+								'or B = ellipsoid Flatenning.']);
 	handles.ttips{3} = sprintf(['Approximates polygonal curve with desired precision\n' ...
 								'using the Douglas-Peucker algorithm.\n' ...
 								'Replace TOL by the desired approximation accuracy.\n' ...
@@ -115,10 +121,15 @@ function varargout = line_operations(varargin)
 	handles.ttips{11} = sprintf(['Dray a polyline with vertices defined by coords [x1 xn; y1 yn].\n' ...
 								'Note: you must use the brackets and semi-comma notation as above.\n' ...
 								'Example vector: [1 1.5 3.1; 2 4 8.4]']);
-	handles.ttips{12} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
+	handles.ttips{12} = sprintf(['Thicken line object to a thickness corresponding to N grid cells.\n' ...
+								'The interest of this comes when used trough the "Extract profile"\n' ...
+								'option. Since the thickned line stored in its pocked N + 1 parallel\n' ...
+								'lines, roughly separate by 1 grid cell size, the profile interpolation\n' ...
+								'is carried on those N + 1 lines, which are averaged (stacked) in the end.']);
+	handles.ttips{13} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
 								'Use this if you want to gain access to all handle properties.']);
 
-	if (IamCompiled),	handles.known_ops(11) = [];	handles.ttips(12);	end		% regretably
+	if (IamCompiled),	handles.known_ops(12) = [];	handles.ttips(13) = [];	end		% regretably
 
 	% Add this figure handle to the carraças list
 	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
@@ -150,9 +161,9 @@ function popup_cmds_Callback(hObject, eventdata, handles)
 	str = get(hObject,'String');	val = get(hObject,'Val');
 	set(hObject, 'Tooltip', handles.ttips{val})
 	if (val == 1)
-		set(handles.edit_cmd,'String', '')
+		set(handles.edit_cmd,'String', '', 'Tooltip', '' )
 	else
-		set(handles.edit_cmd,'String', str{val})
+		set(handles.edit_cmd,'String', str{val}, 'Tooltip', handles.ttips{val} )
 	end
 
 % --------------------------------------------------------------------------------------------------
@@ -165,26 +176,36 @@ function push_apply_Callback(hObject, eventdata, handles)
 	[t, r] = strtok(cmd);
 	ind = strmatch(t, handles.known_ops);
 	if (isempty(ind))
-		% Here comes a function call which trys to adress the general command issue
+		% Here (will come) a function call which tries to adress the general command issue
 		return
 	end
 	if (isempty(handles.hLine) && ~strcmp(handles.known_ops{ind}, 'pline'))
 		errordlg('Fiu Fiu!! Apply WHERE????','ERROR'),	return
 	end
+	if (~strcmp(handles.known_ops{ind},'pline'))
+		handles.hLine = handles.hLine(ishandle(handles.hLine));
+		if (isempty(handles.hLine))
+			errordlg('Invalid handle. You probably killed the line(s)','ERROR'),	return
+		end
+	end
 	
 	switch handles.known_ops{ind}
 		case 'buffer'
-			[dist, msg] = validate_args(handles.known_ops{ind}, r, handles.geog);
+			[out, msg] = validate_args(handles.known_ops{ind}, r, handles.geog);
 			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
-			direction = 'both';		npts = 13;
-			if (isa(dist, 'struct'))
-				try,	direction = dist.dir;	end
-				try,	npts = dist.npts;		end
-				dist = dist.dist;
+
+			direction = 'both';		npts = 13;		% Defaults (+ next line)
+			geodetic = handles.geog;		% 1 uses spherical aproximation -- OR -- 0 do cartesian calculation
+			dist = out.dist;
+			try		direction = out.dir;	end
+			try		npts = out.npts;		end
+			try		geodetic = out.ab;
+			catch	geodetic = out.geod;
 			end
+
 			for (k = 1:numel(handles.hLine))
 				x = get(handles.hLine(k), 'xdata');		y = get(handles.hLine(k), 'ydata');
- 				[y, x] = buffer_j(y, x, dist, direction, npts);
+ 				[y, x] = buffer_j(y, x, dist, direction, npts, geodetic);
 				if (isempty(x)),	return,		end
 				ind = find(isnan(x));
 				if (isempty(ind))			% One only, so no doubts
@@ -281,6 +302,59 @@ function push_apply_Callback(hObject, eventdata, handles)
 				errordlg(['Something screwd up. Error message is ' lasterr])
 			end
 
+		case 'thicken'
+			[out, msg] = validate_args(handles.known_ops{ind}, r, handles.hMirAxes);
+			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
+			N = out(1);		hscale = out(2);	vscale = out(3);
+			x = get(handles.hLine(1), 'xdata');		y = get(handles.hLine(1), 'ydata');
+			
+			if (handles.geog)
+				[dumb, az] = vdist(y(1:end-1),x(1:end-1), y(2:end),x(2:end));
+				az = 90 - az;		% Make it trigonometric
+				co = cos(az * pi / 180);	si = sin(az * pi / 180);
+			else
+				dx = diff(x);				dy = diff(y);
+				% calculate the cosine and sine
+				hy = (dx.^2 + dy.^2)^.5;
+				co =  dx ./ hy;				si =  dy ./ hy;
+			end
+
+			thick = N * (handles.head(8) + handles.head(9)) / 2;		% desenrasque, mas foleiro
+			% rotate a control line, "th" cells long, based on the slope of the line
+% 			foo = [co -si; si  co] * [0	 0; thick/2 -thick/2];
+			% Add rotated points to line vertices
+			n_pts = numel(x);
+			x = x(:);			y = y(:);		% We need them as column vectrs
+			x_copy = x;			y_copy = y;
+% 			x = [x; x(end:-1:1)];		y = [y; y(end:-1:1)];		% Wrap arround
+% 			x(1:n_pts) = x(1:n_pts) + repmat(foo(1,1),n_pts,1);
+% 			x(n_pts+1:end) = x(n_pts+1:end) + repmat(foo(1,2),n_pts,1);
+% 			y(1:n_pts) = y(1:n_pts) + repmat(foo(2,1),n_pts,1);
+% 			y(n_pts+1:end) = y(n_pts+1:end) + repmat(foo(2,2),n_pts,1);
+% 			x(end+1) = x(1);			y(end+1) = y(1);			% Close line
+
+			scale = (hscale + vscale) / 2;		% Approximation that works relatively well
+ 			set(handles.hLine(1), 'LineWidth', thick / scale, 'Tag', 'cellthick')
+			refresh
+			hui = findobj(get(handles.hLine(1),'UIContextMenu'),'Label', 'Extract profile');
+			set(hui, 'Call', 'setappdata(gcf,''StackTrack'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))')
+			try		rmappdata(handles.hMirFig,'TrackThisLine'),		end		% Clear it so that ExtractProfile_CB() in mirone.m knows the way
+
+% 			h = line('XData',x', 'YData',y', 'Parent',handles.hMirAxes, 'Color','w', 'LineWidth',handles.lt, 'Tag','thickned');
+% 			draw_funs(h,'line_uicontext')
+
+			% Compute the N+1 lines that will be attached to this thickned line
+			dl = thick / N;
+			xL = zeros(n_pts, N+1);		yL = zeros(n_pts, N+1);
+			for (k = 1:N+1)
+				th = thick/2 - (k-1) * dl;
+				foo = [co -si; si  co] * [0; th];
+				xL(:,k) = x_copy + repmat(foo(1), n_pts, 1);		% One line per column
+				yL(:,k) = y_copy + repmat(foo(2), n_pts, 1);
+			end
+			set(handles.hLine(1), 'UserData', {xL; yL; thick; [x_copy y_copy]; handles.geog; ...	% We'll next info if line is edited
+					'MxN X and Y with M = number_vertex and N = number_lines; THICK = thickness in map units; Mx2 = original line; is geog?'})
+
 		case 'hand2Workspace'
 			assignin('base','lineHandles',handles.hLine);
 	end
@@ -291,42 +365,50 @@ function [out, msg] = validate_args(qual, str, np)
 	msg = [];	out = [];
 	switch qual
 		case 'buffer'
-% 			if (np ~= 1)		% np is in fact -> handles.geog
-% 				msg = 'Sorry but this operation is curretly only available with geographical coordinates';		return
-% 			end
-			[t, r] = strtok(str);
+			[t, str] = strtok(str);
 			if (strcmp(t, 'DIST'))
 				msg = 'The argument "DIST" must be replaced by a numeric value representing the width of the buffer zone';	return
 			end
-			out = abs( str2double(t) );
-			if (isnan(out)),		msg = 'BUFFER argument is nonsense';	return,		end
+			out.dist = abs( str2double(t) );
+			if (isnan(out.dist)),		msg = 'BUFFER argument is nonsense';	return,		end
 
-			% Check if we have options
-			[t1, r1] = strtok(r);		t2 = strtok(r1);
-			nopts = isempty(t1) + isempty(t2);
-			if (nopts == 1)			% We have an extra argument. Find if is 'direction' or npts
-				if ( strcmp(t1,'in') || strcmp(t1,'''in''') || strcmp(t1,'out') || strcmp(t1,'''out''') )
-					out.dist = out;			out.dir = strrep(t1,'''','');	% no ' ' around the char variable
-				else
-					np = round(abs( str2double(strtok(t1)) ));		% See if we have a circle npts request
-					if (~isnan(np))
-						out.dist = out;		out.npts = np;
-					end
-				end
-			else					% We have the two options. Find out which is which
-				if ( strcmp(t1,'in') || strcmp(t1,'''in''') || strcmp(t1,'out') || strcmp(t1,'''out''') )
-					out.dist = out;			out.dir = strrep(t1,'''','');
-					np = round(abs( str2double(strtok(t2)) ));		% See if we have a circle npts request
-					if (~isnan(np)),		out.npts = np;		end
-				else
-					out.dist = out;
-					np = round(abs( str2double(strtok(t1)) ));
-					if (~isnan(np)),		out.npts = np;		end
-					if ( strcmp(t2,'in') || strcmp(t2,'''in''') || strcmp(t2,'out') || strcmp(t2,'''out''') )
-						out.dir = strrep(t2,'''','');
-					end
-				end
+			% OPTIONS
+			str = strrep(str,'''','');		% no ' ' around the char variables
+			ind = strfind(str, 'in');
+			if (~isempty(ind))
+				out.dir = str(ind:ind+1);		str(ind:ind+1) = [];
 			end
+			ind = strfind(str, 'out');
+			if (~isempty(ind))
+				out.dir = str(ind:ind+2);		str(ind:ind+2) = [];
+			end
+
+			% Ok, here we are over with the 'in' or 'out' options. Proceed
+			ind = strfind(str, 'geod');
+			if (~isempty(ind))
+				out.geod = [];		str(ind:ind+3) = [];		% WGS-84
+			end
+
+			% See if we have an ellipsoid
+			ind1 = strfind(str,'[');
+			if (~isempty(ind1) && numel(ind1) ~= 1),	msg = 'Wrong syntax. ''['' symbol must appear one and only one time';	return,	end
+			ind2 = strfind(str,']');
+			if (~isempty(ind1) && numel(ind2) ~= 1),	msg = 'Wrong syntax. '']'' symbol must appear one and only one time';	return,	end
+
+			% test the geodetic option
+			if (ind1)
+				[t1, r] = strtok(str(ind1+1:ind2-1));		[t2, r] = strtok(r);
+				a = str2double(t1);		b = str2double(t2);		% b actually may be f (flatening)
+				if (isnan(a) || isnan(b))
+					msg = 'ellipsoid vector is screwed up. Please revise or pay more attention';	return
+				end
+				out.ab = [a b];
+				str(ind1:ind2) = [];		% Remove it from the opt string
+			end
+			
+			% We still may have the circle NPTS option 
+			np = round(abs( str2double(strtok(str)) ));
+			if (~isnan(np)),	out.npts = np;		end			
 
 		case 'polysimplify'
 			d = strtok(str);
@@ -338,6 +420,9 @@ function [out, msg] = validate_args(qual, str, np)
 
 		case 'cspline'
 			[N, r] = strtok(str);
+			if (isempty(N))
+				msg = 'Must provide N (decimation interval)';		return
+			end
 			out = round(abs( str2double(N) ));
 			if (isnan(out))
 				if (N(1) == 'N')
@@ -353,10 +438,34 @@ function [out, msg] = validate_args(qual, str, np)
 			if (~isnan(N)),		out(2) = N;		end
 
 		case {'polyunion' 'polyintersect' 'polyxor' 'polyminus'}
-			out = [];
 			if (str < 2)		% str is in fact the number of handles
 				msg = 'you want to make the union of a single line???. Wierd!';
 			end
+
+		case 'thicken'
+			N = strtok(str);
+			if (isempty(N)),	N = '10';		end		% Default value
+			out = round(abs( str2double(N) ));
+			if (isnan(out))
+				if (N(1) == 'N')
+					msg = 'The argument "N" is no to be taken literaly. It must contain the number of grid cell to thicken line';
+				else
+					msg = 'thicken argument is nonsense';
+				end
+				return
+			end
+			hMirAxes = np;
+         	axLims = getappdata(hMirAxes,'ThisImageLims');
+			% create a conversion from data to points for the current axis
+			oldUnits = get(hMirAxes,'Units');		set(hMirAxes,'Units','points');
+			Pos = get(hMirAxes,'Position');			set(hMirAxes,'Units',oldUnits);
+			vscale = 1/Pos(4) * diff(axLims(1:2));	hscale = 1/Pos(3) * diff(axLims(3:4));
+			%vscale = (vscale + hscale) / 2;			hscale = vscale;	% For not having a X|Y direction dependency
+			DAR = get(hMirAxes, 'DataAspectRatio');
+			if (DAR(1) == 1 && DAR(1) ~= DAR(2))	% To account for the "Scale geog images at mean lat" effect
+				vscale = vscale * DAR(2);		hscale = hscale * DAR(1);
+			end
+			out = [out hscale vscale];
 
 		case 'pline'
 			ind1 = strfind(str,'[');
@@ -413,7 +522,6 @@ h(3) = uicontrol('Parent',h2, 'Position',[140 28 201 21] + ofset,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@lop_CB,h1,'popup_cmds_Callback'},...
 'FontName','Helvetica',...
-'String',{'Possible commands'; 'buffer DIST'; 'polysimplify TOL'; 'bspline'; 'cspline N RES'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; 'line2patch'; 'pline [x1 ..xn; y1 .. yn]'; 'hand2Workspace' },...
 'Style','popupmenu',...
 'TooltipString','See list of possible operations and slect template if wished',...
 'Value',1,...
