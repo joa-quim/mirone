@@ -23,7 +23,7 @@ movegui(hObject,'center')
 
 global home_dir
 % Case when this function was called directly
-if isempty(home_dir),   home_dir = pwd;     end
+if isempty(home_dir),   home_dir = cd;     end
 
 if isempty(home_dir)        % Case when this function was called directly
     handles.path_data = ['data' filesep];
@@ -129,7 +129,18 @@ str = sprintf('Good FFT numbers for padding the grid');
 set(handles.listbox_nnx,'TooltipString',str)
 set(handles.listbox_nny,'TooltipString',str)
 
-% Give a Pro look (3D) to the frame boxes 
+if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
+    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
+    handles.last_dir = cfig_handles.last_dir;
+    handles.home_dir = cfig_handles.home_dir;
+    handles.work_dir = cfig_handles.work_dir;
+else
+    handles.home_dir = home_dir;
+    handles.last_dir = home_dir;
+    handles.work_dir = home_dir;
+end
+
+%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 bgcolor = get(0,'DefaultUicontrolBackgroundColor');
 framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
 set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
@@ -180,20 +191,16 @@ function pushbutton_BatGrid_Callback(hObject, eventdata, handles, opt)
 if (nargin == 4)    fname = opt;    end
 
 if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
-    if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-        cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-        last_dir = cfig_handles.last_dir;
-        home = cfig_handles.home_dir;
-    else
-        last_dir = [];
-    end
+	if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))			% If we know it and it exists
+        hand = guidata(handles.h_calling_fig);		% get handles of the calling fig
+	else
+        hand = handles;
+	end
 
-    if (~isempty(last_dir)),    cd(last_dir);   end
-    [FileName,PathName] = uigetfile({'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid');
-    pause(0.01);
-    if (~isempty(last_dir)),    cd(home);   end
-    if isequal(FileName,0);     return;     end
-    fname = [PathName FileName];
+    [FileName,PathName] = put_or_get_file(hand,{ ...
+			'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
+    if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
 end
 
 % Because GMT and Surfer share the .grd extension, find out which kind grid we are dealing with
@@ -243,20 +250,16 @@ function pushbutton_SourceGrid_Callback(hObject, eventdata, handles,opt)
 if (nargin == 4)    fname = opt;    end
 
 if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
-    if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-        cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-        last_dir = cfig_handles.last_dir;
-        home = cfig_handles.home_dir;
-    else
-        last_dir = [];
-    end
+	if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))			% If we know it and it exists
+        hand = guidata(handles.h_calling_fig);		% get handles of the calling fig
+	else
+        hand = handles;
+	end
 
-    if (~isempty(last_dir)),    cd(last_dir);   end
-    [FileName,PathName] = uigetfile({'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid');
-    pause(0.01);
-    if (~isempty(last_dir)),    cd(home);   end
-    if isequal(FileName,0);     return;     end
-    fname = [PathName FileName];
+    [FileName,PathName] = put_or_get_file(hand,{ ...
+			'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
+    if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];	
 end
 
 % Because GMT and Surfer share the .grd extension, find out which kind grid we are dealing with
