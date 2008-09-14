@@ -144,12 +144,9 @@ function edit_file_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_file_Callback(hObject, eventdata, handles, opt)
 	if (nargin == 3)        % Direct call
-		cd(handles.last_dir)
-		str1 = {'*.dat;*.DAT;*.txt;*.TXT;*.cpt', 'Data files (*.dat,*.DAT,*.txt,*.TXT,*.cpt)';'*.*', 'All Files (*.*)'};
-		[FileName,PathName] = uigetfile(str1,'File with step widths');
-		cd(handles.home_dir);
-	if isequal(FileName,0),		return,		end
-	if (PathName ~= 0),			handles.last_dir = PathName;    end
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.dat;*.DAT;*.txt;*.TXT;*.cpt', 'Data files (*.dat,*.DAT,*.txt,*.TXT,*.cpt)';'*.*', 'All Files (*.*)'},'File with step widths','put','.dat');
+		if isequal(FileName,0),		return,		end
 	else        % File name on input
 		[PathName,FNAME,EXT] = fileparts(opt);
 		PathName = [PathName filesep];      % To be coherent with the 'if' branch
