@@ -48,12 +48,9 @@ function edit_namesList_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_namesList_Callback(hObject, eventdata, handles, opt)
     if (nargin == 3)        % Direct call
-        cd(handles.last_dir)
     	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
-        [FileName,PathName] = uigetfile(str1,'File with grids list');
-        cd(handles.home_dir);
+        [FileName,PathName] = put_or_get_file(handles, str1,'File with grids list','get');
 	    if isequal(FileName,0),		return,		end
-        if (PathName ~= 0),			handles.last_dir = PathName;    end
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
