@@ -11,11 +11,13 @@ function out = select_cols(varargin)
 %                               the actual number of array rows, all of them are copied. 
 %                               Use Inf (NOT 'Inf') to use all rows. (Why this? SPEED people, SPEED)
 % NOTE about the modes ('igrf' or 'xy' or 'xyz').
-%       'xy'    Use this mode for (e.g.) 2D plots. Than X = OUT(1) and Y = OUT(2)
-%       'xyz'   Use this mode if you want 3 variables. Than X = OUT(1), Y = OUT(2) and Z = OUT(3)
-%       'igrf'  Use this mode for selecting the needed variables to input in the IGRF routine.
-%               The bare minimum for this is lon,lat,date & altitude but these last two may be easely
-%               set before calling the IGRF routine. The 'field' data is needed if computing the mag anomaly
+%		'xy'    Use this mode for (e.g.) 2D plots. Than X = OUT(1) and Y = OUT(2)
+%		'xyz'   Use this mode if you want 3 variables. Than X = OUT(1), Y = OUT(2) and Z = OUT(3)
+%				There is a checkbox in this mode that can be used to tell the reader to compute
+%				hypot(X,Y). If the box is checked OUT will have a fourth element (with 0).
+%		'igrf'  Use this mode for selecting the needed variables to input in the IGRF routine.
+%				The bare minimum for this is lon,lat,date & altitude but these last two may be easely
+%				set before calling the IGRF routine. The 'field' data is needed if computing the mag anomaly
 % OUT   contains a row vector with the order by which the array columns must be arranged in
 %       order to have X,Y[,Z] in the 'xy[z]' modes or lon,lat,F,Date,Altitude in the 'igrf' mode
 
@@ -61,7 +63,8 @@ else        % Default to 'xy' mode
 end
 
 if (nargin > 2 & isstr(varargin{3}))    fname = varargin{3};
-else                                    fname = [];     end
+else                                    fname = [];
+end
 
 if (nargin > 3)
     if (isinf(varargin{4}))
@@ -85,10 +88,10 @@ list_slider_w = 20;     % Listbox slider width got by trial & error (in my compu
 list_h = fig_size(4) - 23;   % 23 = trial & error
 
 if (~demo)      % Otherwise necessary variables were already set
-    text_nl = num2cell([1:use_rows]);
-    text = num2cell(data_in(1:use_rows,:));
-    tmp = char(65:65+cols-1);   tmp(end+1) = '#';
-    str_nc = cellstr(tmp(:))';  clear tmp;
+	text_nl = num2cell([1:use_rows]);
+	text = num2cell(data_in(1:use_rows,:));
+	tmp = char(65:65+cols-1);   tmp(end+1) = '#';
+	str_nc = cellstr(tmp(:))';  clear tmp;
 end
 
 % -------- Create the figure
@@ -116,14 +119,14 @@ end
 if (igrf_mode)
     % Here I cannot escape to do more a bunch of tests to try to guess what's inside the matrix columns
     label_pop = {'Lon','Lat','Field','Date','Altitude'};
-    min_mat = min(data_in(1:min(size(data_in,1),300),:));   % Limit the min/max search. We don't want to
-    max_mat = max(data_in(1:min(size(data_in,1),300),:));   % spend ages with thousands lines files.
-    i_lon = find(min_mat >= -180 & max_mat <= 360); % Search for longitude col (loosy guess)
-    i_lat = find(min_mat >= -90 & max_mat <= 90);   % Search for latitude col (loosy guess)
-    i_field = find(min_mat > 25000 & max_mat < 80000);  % Search for the Total field col (relatively trustful)
-    i_date = find(min_mat > 1900 & max_mat < 2020); % Search for the date col (quite trustful)
-    i_alt = find(min_mat > -10 & max_mat < 1500);   % Search for altitude (km) col (loosy guess)
-    if (length(i_alt) == 1 & (i_alt == 1 | i_alt == 2))     % Altitude values may be confused with lon/lat
+    min_mat = min(data_in(1:min(size(data_in,1),300),:));		% Limit the min/max search. We don't want to
+    max_mat = max(data_in(1:min(size(data_in,1),300),:));		% spend ages with thousands lines files.
+    i_lon = find(min_mat >= -180 & max_mat <= 360);				% Search for longitude col (loosy guess)
+    i_lat = find(min_mat >= -90 & max_mat <= 90);				% Search for latitude col (loosy guess)
+    i_field = find(min_mat > 25000 & max_mat < 80000);			% Search for the Total field col (relatively trustful)
+    i_date = find(min_mat > 1900 & max_mat < 2020);				% Search for the date col (quite trustful)
+    i_alt = find(min_mat > -10 & max_mat < 1500);				% Search for altitude (km) col (loosy guess)
+    if (length(i_alt) == 1 & (i_alt == 1 | i_alt == 2))			% Altitude values may be confused with lon/lat
         i_alt = [];
     elseif (length(i_alt) == 2)
         if ((i_alt(1) == 1 & i_alt(2) == 2) | (i_alt(1) == 2 & i_alt(2) == 1))   i_alt = [];
@@ -154,16 +157,19 @@ if (igrf_mode)
     if (n_rec_cols < 5)
         % Some of the possible fields are missing. We have to find which and ...
         if (cols == 2)
-            pop_def_value(3) = length(str_nc);
-            pop_def_value(4) = length(str_nc);
-            pop_def_value(5) = length(str_nc);
+			pop_def_value(3) = length(str_nc);
+			pop_def_value(4) = length(str_nc);
+			pop_def_value(5) = length(str_nc);
         elseif (cols >= 3)
-            if (emp_field)      pop_def_value(3) = length(str_nc);
-            else                pop_def_value(3) = i_field(1);            end
-            if (emp_date)       pop_def_value(4) = length(str_nc);
-            else                pop_def_value(4) = i_date(1);             end
-            if (emp_alt)        pop_def_value(5) = length(str_nc);
-            else                pop_def_value(5) = i_alt(1);              end
+			if (emp_field)		pop_def_value(3) = length(str_nc);
+			else				pop_def_value(3) = i_field(1);
+			end
+			if (emp_date)		pop_def_value(4) = length(str_nc);
+			else				pop_def_value(4) = i_date(1);
+			end
+			if (emp_alt)		pop_def_value(5) = length(str_nc);
+			else				pop_def_value(5) = i_alt(1);
+			end
         end
     else        % (n_rec_cols == 5)
         pop_def_value(3) = i_field(1);
@@ -207,7 +213,8 @@ end
 if (igrf_mode & cols == 2)     % Only lon and lat cols may be interchanged
     set(popup_but(3:5),'Enable','inactive');
 end
-% -------- Make two checkboxes for selecting what to write in file (only for the igrf case)
+% -------- Make one/two checkboxes for selecting what to write in file (only for the igrf or xyz cases)
+chk_but = [];
 if (igrf_mode)
     tip1 = 'Add a column to the file containg the computed IGRF Total field';
     tip2 = 'Add a column to the file containg the computed anomaly (measured field - IGRF)';
@@ -219,44 +226,46 @@ if (igrf_mode)
         set(chk_but(2),'Value',0,'Enable','inactive')   % No Total Field no anomaly
     end
 else
-    chk_but = [];    % We need this declared anyway for OK_push use
+	if (xyz_mode)
+	    chk_but = uicontrol(h_fig, 'Style','checkbox', 'Units','pixels', 'Value',0,...
+			'Position',[pos_pop(1) 70 101 18], 'String','A & B to dist', 'Tooltip','Tell reader to compute hypot(A,B)');
+	end
 end
 % -------- Make the OK button
 OK_but = uicontrol(h_fig, 'Style', 'pushbutton', 'Units','pixels',...
-        'Position',[pos_pop(1) 8 91 25],  'String', 'OK', 'FontWeight','Bold',...
-        'Callback', {@OK_push,popup_but,ListBox,chk_but}, 'Tag','ok');
+		'Position',[pos_pop(1) 8 91 25],  'String', 'OK', 'FontWeight','Bold',...
+		'Callback', {@OK_push, popup_but, ListBox, chk_but, igrf_mode, xyz_mode},'Tag','ok');
 
 % Cut the eventualy remaining figure width to an apropriate size.
 % NOTE: A slider should be introduced if the final width is wider than the screen
 pos = get(OK_but,'Position');
 
-if (pos(1)+pos(3) > screen(3))      % Figure wider than screen
-    % Do something - os botoes de escolha estao fora da janela
-end
-
 set(h_fig,'Position',[1 1 (pos(1)+pos(3)+10) fig_size(4)])
 
 if ( (pos(1) + pos(3)) > screen(3) )
-    %set(h_fig,'Position',get(h_fig,'Position')+[0 0 0 0]);
-    first_listBox_pos = get(ListBox(1),'Position');
-    slider_pos = [first_listBox_pos(1) first_listBox_pos(2)-5 (first_listBox_pos(1) + pos(1)+pos(3)+5) 10];
-    h_all_uis = findobj(gcf,'Style','listbox');     % Get the Listbox handles
-    pos_all_uis = get(h_all_uis,'Position');
-    
-    h_tmp = findobj(gcf,'Style','pushbutton');      % Get the pushbutton column names handles
-    h_all_uis = [h_all_uis; h_tmp];
-    pos_all_uis = [pos_all_uis; get(h_tmp,'Position')];
-    
-    h_tmp = findobj(gcf,'Style','popupmenu');       % Get the popupmenu handles
-    h_all_uis = [h_all_uis; h_tmp];
-    pos_all_uis = [pos_all_uis; get(h_tmp,'Position')];
-    
-    h_tmp = findobj(gcf,'Style','checkbox');        % Get the checkbox handles
-    h_all_uis = [h_all_uis; h_tmp];
-    pos_all_uis = [pos_all_uis; get(h_tmp,'Position')];     clear h_tmp;
-    cb_slider = {@move_all_uis,h_all_uis,pos_all_uis};
-    h=uicontrol('style','slider','units','pixels','position',slider_pos,...
-    'callback',cb_slider,'min',0,'max',slider_pos(3));
+	first_listBox_pos = get(ListBox(1),'Position');
+	slider_pos = [first_listBox_pos(1) first_listBox_pos(2)-5 (first_listBox_pos(1) + pos(1)+pos(3)+5) 10];
+	h_all_uis = findobj(gcf,'Style','listbox');     % Get the Listbox handles
+	pos_all_uis = get(h_all_uis,'Position');
+	
+	h_tmp = findobj(gcf,'Style','pushbutton');      % Get the pushbutton column names handles
+	h_all_uis = [h_all_uis; h_tmp];
+	pos_all_uis = [pos_all_uis; get(h_tmp,'Position')];
+	
+	h_tmp = findobj(gcf,'Style','popupmenu');       % Get the popupmenu handles
+	h_all_uis = [h_all_uis; h_tmp];
+	pos_all_uis = [pos_all_uis; get(h_tmp,'Position')];
+	
+	h_tmp = findobj(gcf,'Style','checkbox');        % Get the checkbox handles
+	h_all_uis = [h_all_uis; h_tmp];
+	pos = get(h_tmp,'Position');
+	if (~isa(pos,'cell')),		pos_all_uis = [pos_all_uis; {pos}];
+	else						pos_all_uis = [pos_all_uis; pos];
+	end
+	clear h_tmp pos;
+	cb_slider = {@move_all_uis,h_all_uis,pos_all_uis};
+	uicontrol('style','slider','units','pixels','position',slider_pos,...
+		'callback',cb_slider,'min',0,'max',slider_pos(3));
 end
 
 movegui(h_fig,'west');
@@ -272,53 +281,41 @@ end
 
 % -----------------------------------------------------------------------------------------
 function move_all_uis(obj,eventdata,h,orig_pos)
-m = length(h);
-for i=1:m
-    new_pos = [orig_pos{i}(1)-get(gcbo,'value') orig_pos{i}(2) orig_pos{i}(3) orig_pos{i}(4)];
-    set(h(i),'Position',new_pos);
-end
+	m = length(h);
+	for i=1:m
+		new_pos = [orig_pos{i}(1)-get(gcbo,'value') orig_pos{i}(2) orig_pos{i}(3) orig_pos{i}(4)];
+		set(h(i),'Position',new_pos);
+	end
 
 % -----------------------------------------------------------------------------------------
-function OK_push(obj,eventdata,h_pop,h_list,h_chk)
-% I know how many columns there are in the file but I don't know how to translate that into
-% the correct number of cases in the following switch loop, so wi'll test to an excess of 15.
-n_pops  = length(h_pop);    % How many popups?
-for (i=1:n_pops)            % See what was choosen by each popup
-    contents = get(h_pop(i),'String');
-    switch contents{get(h_pop(i),'Value')}
-        case 'A',   col(i) = 1;
-        case 'B',   col(i) = 2;
-        case 'C',   col(i) = 3;
-        case 'D',   col(i) = 4;
-        case 'E',   col(i) = 5;
-        case 'F',   col(i) = 6;
-        case 'G',   col(i) = 7;
-        case 'H',   col(i) = 8;
-        case 'I',   col(i) = 9;
-        case 'J',   col(i) = 10;
-        case 'K',   col(i) = 11;
-        case 'L',   col(i) = 12;
-        case 'M',   col(i) = 13;
-        case 'N',   col(i) = 14;
-        case 'O',   col(i) = 15;
-    end
-end
-
-if (~isempty(h_chk))      % Remember that the XY[Z] mode does not have the checkboxes
-    if ( strcmp(contents{get(h_pop(3),'Value')},'#') )     col(3) = 0;     end
-    if ( strcmp(contents{get(h_pop(4),'Value')},'#') )     col(4) = 0;     end
-    if ( strcmp(contents{get(h_pop(5),'Value')},'#') )     col(5) = 0;     end
-    % See if Total field and Anomaly are still selected for writing in file
-    write_total_field = 0;  write_anom = 0;
-    if (get(h_chk(1),'Value')),    write_total_field = 1;   end
-    if (get(h_chk(2),'Value')),    write_anom = 1;   end
-    set(obj,'UserData',[col write_total_field write_anom])
-else
-    set(obj,'UserData',col)
-end
-uiresume;
+function OK_push(obj, eventdata, h_pop, h_list, h_chk, igrf_mode, xyz_mode)
+	n_pops = numel(h_pop);    % How many popups?
+	col = zeros(1, n_pops);
+	for (i = 1:n_pops)            % See what was choosen by each popup
+		col(i) = get(h_pop(i),'Value');
+	end
+	
+	if (igrf_mode)
+		contents = get(h_pop(3),'String');
+		if ( strcmp(contents{get(h_pop(3),'Value')},'#') ),		col(3) = 0;     end
+		contents = get(h_pop(4),'String');
+		if ( strcmp(contents{get(h_pop(4),'Value')},'#') ),		col(4) = 0;     end
+		contents = get(h_pop(5),'String');
+		if ( strcmp(contents{get(h_pop(5),'Value')},'#') ),		col(5) = 0;     end
+		% See if Total field and Anomaly are still selected for writing in file
+		write_total_field = 0;			write_anom = 0;
+		if (get(h_chk(1),'Value')),		write_total_field = 1;   end
+		if (get(h_chk(2),'Value')),		write_anom = 1;   end
+		set(obj,'UserData',[col write_total_field write_anom])
+	else
+		if (xyz_mode && get(h_chk(1),'val'))
+			col = [col 0];				% This extra value is to be interpreted by the reader
+		end								% to compute hypot(col(1),col(2))
+		set(obj,'UserData',col)
+	end
+	uiresume
 
 % -----------------------------------------------------------------------------------------
 function scroll_lines(obj,eventdata,h_list)
 % Scrolls the data fields according to value of the # lines listbox
-set(h_list(2:end),'Value',get(gcbo,'value'))
+	set(h_list(2:end),'Value',get(gcbo,'value'))
