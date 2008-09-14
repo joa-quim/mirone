@@ -657,19 +657,17 @@ guidata(hObject,handles)
 
 % ------------------------------------------------------------------------------------
 function pushbutton_InputFile_Callback(hObject, eventdata, handles)
-if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-    last_dir = cfig_handles.last_dir;
-    home = cfig_handles.home_dir;
+if (~isempty(handles.h_calling_fig))			% If we know the handle to the calling fig
+    hand = guidata(handles.h_calling_fig);		% get handles of the calling fig
 else
-    last_dir = [];
+    hand = handles;
 end
 
-if (~isempty(last_dir)),    cd(last_dir);   end
-[FileName,PathName] = uigetfile({'*.dat;*.DAT;*.xy', 'Maregraph location (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraphs position');
-if (~isempty(last_dir)),    cd(home);   end
-if isequal(FileName,0);     return;     end
+[FileName,PathName] = put_or_get_file(hand, ...
+	{'*.dat;*.DAT;*.xy', 'Maregraph location (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraphs position','get');
+if isequal(FileName,0),		return,		end
 fname = [PathName FileName];
+
 hFig = gcf;
 [bin,n_column,multi_seg,n_headers] = guess_file(fname);
 % If msgbox exist we have to move it from behind the main window. So get it's handle
