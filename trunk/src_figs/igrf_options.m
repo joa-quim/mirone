@@ -24,11 +24,16 @@ function varargout = igrf_options(varargin)
         handMir = varargin{1};
         d_path = handMir.path_data;
 	    handles.h_calling_fig = handMir.figure1;
+		handles.home_dir = handMir.home_dir;
+		handles.work_dir = handMir.work_dir;
+		handles.last_dir = handMir.last_dir;
 	else
         d_path = [pwd filesep 'data' filesep];
 	    handles.h_calling_fig = [];
+		handles.home_dir = cd;
+		handles.work_dir = cd;		handles.last_dir = cd;	% To not compromize put_or_get_file
     end
-
+	
 	% Import icons
 	load([d_path 'mirone_icons.mat'],'Mfopen_ico');
 	set(handles.pushbutton_InputFile,'CData',Mfopen_ico)
@@ -528,18 +533,14 @@ function mon = monstr2monnum(monstr)
 
 % -------------------------------------------------------------------------------------------------
 function pushbutton_OutputFile_Callback(hObject, eventdata, handles)
-	if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-        cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-        last_dir = cfig_handles.last_dir;
-        home = cfig_handles.home_dir;
+	if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))			% If we know it and it exists
+        hand = guidata(handles.h_calling_fig);		% get handles of the calling fig
 	else
-        last_dir = [];
+        hand = handles;
 	end
-	if (~isempty(last_dir)),    cd(last_dir);   end
-	[FileName,PathName] = uiputfile({'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select file');
-	pause(0.01);
-	if (~isempty(last_dir)),    cd(home);   end
-	if isequal(FileName,0);     return;     end
+	[FileName,PathName] = put_or_get_file(hand, ...
+		{'*.dat;*.DAT', 'Mag file file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'},'Select File name','put','.dat');
+	if isequal(FileName,0),		return,		end
 	fname = [PathName FileName];
 	set(handles.edit_OutputFile,'String',fname)
 
