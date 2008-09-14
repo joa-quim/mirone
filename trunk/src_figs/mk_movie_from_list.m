@@ -75,6 +75,7 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
 		end
 		[FileName,PathName] = put_or_get_file(hand, ...
 			{'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'},'File with grids list','get');
+		if isequal(FileName,0),		return,		end
 		
 	else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
