@@ -21,9 +21,7 @@ function varargout = snapshot(varargin)
 % --------------------------------------------------------------------
  
 hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-snapshot_LayoutFcn(hObject,handles);
+snapshot_LayoutFcn(hObject);
 handles = guihandles(hObject);
 movegui(hObject,'north')
 
@@ -168,8 +166,6 @@ handles.quality = 75;       % Current quality level. Only applyes to the jpeg fo
 handles.currDPI  = 150;     % Current DPI for rasters
 handles.currVecDPI = 300;   % Current DPI for vector graphics
 handles.vecGraph = 0;       % To signal when we are dealing with vector graphics
-handles.work_dir = handlesMir.work_dir;
-handles.home_dir = handlesMir.home_dir;
 
 % ----------------- Choose default command line output for snapshot_export
 handles.output = [];
@@ -210,10 +206,10 @@ function push_outFile_CB(hObject, eventdata, handles)
     contents = get(handles.popup_fileType,'String');
     val = get(handles.popup_fileType,'Val');    
     str = {handles.exts{val} contents{val}};
-    cd(handles.work_dir)
-    [FileName,PathName] = uiputfile(str,'Select file name');
-    cd(handles.home_dir);       % allways go home
-    if isequal(FileName,0);     return;     end
+	handMir = guidata(handles.hCallingFig);
+	[FileName,PathName] = put_or_get_file(handMir, str,'Select File name','put');
+	if isequal(FileName,0),		return,		end
+	
     [pato,fname,ext] = fileparts(FileName);
     if (~strcmp(lower(ext),handles.exts{val}))
         errordlg(['You cannot choose a different file format here. It has to be of type ' handles.exts{val}],'ERROR')
@@ -422,7 +418,8 @@ function [fname,ext] = stripExt(fname)
 
 %-------------------------------------------------------------------------------------
 % --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
+function figure1_CloseRequestFcn(hObject, eventdata)
+handles = guidata(hObject),
 if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
     % The GUI is still in UIWAIT, us UIRESUME
     guidata(handles.figure1, handles);    uiresume(handles.figure1);
@@ -431,10 +428,10 @@ else    % The GUI is no longer waiting, just close it
 end
 
 % --- Creates and returns a handle to the GUI figure. 
-function snapshot_LayoutFcn(h1,handles);
+function snapshot_LayoutFcn(h1)
 
 set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
-'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
+'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'MenuBar','none',...
 'Name','Snapshot',...
