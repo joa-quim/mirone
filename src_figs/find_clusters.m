@@ -1,8 +1,6 @@
 function varargout = find_clusters(varargin)
-% M-File changed by desGUIDE 
-% varargin   command line arguments to find_clusters (see VARARGIN)
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2008 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -29,8 +27,6 @@ function varargout = find_clusters(varargin)
 	handles.h_polyg = varargin{2};
 
 	handles_mir = guidata(handles.mirone_fig);       % Get the Mirone handles structure
-	handles.work_dir = handles_mir.work_dir;
-	handles.home_dir = handles_mir.home_dir;
 
 	handles.h_events = findobj(handles.mirone_fig,'Tag','Earthquakes');
 	if (isempty(handles.h_events))      % Should issue an error message
@@ -398,31 +394,24 @@ function pushbutton_save_Callback(hObject, eventdata, handles)
 
 	%save_seismicity(handles.mirone_fig, h_events)
 
-	cd(handles.work_dir)
-	[FileName,PathName] = uiputfile({ ...
-        '*.dat;*.DAT', 'Seimicity file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select File name');
-	cd(handles.home_dir);       % allways go home to avoid troubles
-	if isequal(FileName,0);   return;     end
-	pause(0.01)
+	[FileName,PathName] = put_or_get_file(handles, ...
+		{'*.dat;*.DAT', 'Seimicity file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select File name','put','.dat');
+	if isequal(FileName,0),		return,		end
 	fname = [PathName FileName];
-	[PATH,FNAME,EXT] = fileparts(fname);
-	if (isempty(EXT))
-        fname = [fname '.dat'];
-	end
 
 	fid = fopen(fname, 'w');
 	if (fid < 0),    errordlg(['Can''t open file:  ' fname],'Error');    return;     end
 
 	for (k=1:length(handles.clusters))
-        year = fix(handles.times{k});       % integer part
-        frac = handles.times{k} - year;     % fraction part
-        jdYear = date2jd(year);             % True Julian day of the 1st January of YEAR
-        frac = frac .* (365 + isleapyear(year));
-        [dumb,month, day, hour, minute] = jd2date((jdYear+frac),[]);
+		year = fix(handles.times{k});       % integer part
+		frac = handles.times{k} - year;     % fraction part
+		jdYear = date2jd(year);             % True Julian day of the 1st January of YEAR
+		frac = frac .* (365 + isleapyear(year));
+		[dumb,month, day, hour, minute] = jd2date((jdYear+frac),[]);
 
-        fprintf(fid,'>\n');
-        fprintf(fid,'%.3f\t%.3f\t%.1f\t%.1f\t%d\t%02d\t%02d\t%02d\t%02d\n',[handles.clusters{k} double(handles.mags{k})/10,...
-                double(handles.depths{k})/10 year month day hour minute]');
+		fprintf(fid,'>\n');
+		fprintf(fid,'%.3f\t%.3f\t%.1f\t%.1f\t%d\t%02d\t%02d\t%02d\t%02d\n',[handles.clusters{k} double(handles.mags{k})/10,...
+			double(handles.depths{k})/10 year month day hour minute]');
 	end
 	fclose(fid);
 
