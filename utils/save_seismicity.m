@@ -21,58 +21,51 @@ function save_seismicity(h_mir_fig, h_events, opt)
 %     end
 % end
 
-handles_mir = guidata(h_mir_fig);       % Get the Mirone handles structure
-work_dir = handles_mir.work_dir;
-home_dir = handles_mir.home_dir;
+	handles_mir = guidata(h_mir_fig);       % Get the Mirone handles structure
 
-cd(work_dir)
-[FileName,PathName] = uiputfile({ ...
-    '*.dat;*.DAT', 'Seimicity file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select File name');
-cd(home_dir);       % allways go home to avoid troubles
-if isequal(FileName,0);   return;     end
-pause(0.01)
-fname = [PathName FileName];
-[PATH,FNAME,EXT] = fileparts(fname);
-if (isempty(EXT)),   fname = [fname '.dat'];    end
+	[FileName,PathName] = put_or_get_file(handles_mir, ...
+		{'*.dat;*.DAT', 'Seimicity file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'},'Select File name','put','.dat');
+	if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
 
-if (~ishandle(h_events))                % Data was transmited in input
-    x = h_events(1,:);    y = h_events(2,:);    % I hope that what guys from TMW say is true
-    events_time = h_events(3,:);                % and this doesn't use any extra memory
-    events_mag = h_events(4,:);
-    events_dep = h_events(5,:);
-else                                    % We have to fish the data from appdata
-    % Note: We have to tranpose those for fwrite (unbelivable stupid memory consuming fwrite)
-    if (isempty(h_events))              % For polygons we don't know yet the seismicity handle
-        h_events = findobj(h_mir_fig,'Tag','Earthquakes');
-    end
-    events_time = (getappdata(h_events,'SeismicityTime'))';
-    events_mag  = (double(getappdata(h_events,'SeismicityMag')) / 10)';
-    events_dep  = (double(getappdata(h_events,'SeismicityDepth')) / 10)';
-    x = (get(h_events,'XData'));       y = (get(h_events,'YData'));
-    if (nargin == 3 && ishandle(opt))            % OPT must be a handle to a polygon
-        IN = inpolygon(x,y,get(opt,'XData'),get(opt,'YData'));
-        if (any(IN))
-            x(~IN) = [];            y(~IN) = [];    events_time(~IN) = [];
-            events_mag(~IN) = [];   events_dep(~IN) = [];
-        else
-            warndlg('I don''t know about your eyes, but I don''t find any events inside the polygon.','Chico Clever')
-            return
+	if (~ishandle(h_events))				% Data was transmited in input
+		x = h_events(1,:);    y = h_events(2,:);	% I hope that what guys from TMW say is true
+		events_time = h_events(3,:);				% and this doesn't use any extra memory
+		events_mag = h_events(4,:);
+		events_dep = h_events(5,:);
+	else									% We have to fish the data from appdata
+        % Note: We have to tranpose those for fwrite (unbelivable stupid memory consuming fwrite)
+        if (isempty(h_events))				% For polygons we don't know yet the seismicity handle
+			h_events = findobj(h_mir_fig,'Tag','Earthquakes');
         end
-    end
-end
+        events_time = (getappdata(h_events,'SeismicityTime'))';
+        events_mag  = (double(getappdata(h_events,'SeismicityMag')) / 10)';
+        events_dep  = (double(getappdata(h_events,'SeismicityDepth')) / 10)';
+        x = (get(h_events,'XData'));       y = (get(h_events,'YData'));
+        if (nargin == 3 && ishandle(opt))		% OPT must be a handle to a polygon
+			IN = inpolygon(x,y,get(opt,'XData'),get(opt,'YData'));
+			if (any(IN))
+				x(~IN) = [];            y(~IN) = [];    events_time(~IN) = [];
+				events_mag(~IN) = [];   events_dep(~IN) = [];
+			else
+				warndlg('I don''t know about your eyes, but I don''t find any events inside the polygon.','Chico Clever')
+				return
+			end
+		end
+	end
 
-fid = fopen(fname, 'w');
-if (fid < 0),    errordlg(['Can''t open file:  ' fname],'Error');    return;     end
+	fid = fopen(fname, 'w');
+	if (fid < 0),    errordlg(['Can''t open file:  ' fname],'Error');    return;     end
 
-year = fix(events_time);            % integer part
-frac = events_time - year;          % fraction part
-jdYear = date2jd(year);             % True Julian day of the 1st January of YEAR
-frac = frac .* (365 + isleapyear(year));
-[dumb,month, day, hour, minute] = jd2date((jdYear+frac),[]);
-fprintf(fid,'%.3f\t%.3f\t%d\t%02d\t%02d\t%.1f\t%.1f\t%02d\t%02d\n',...
-    [x; y; year; month; day; events_mag; events_dep; hour; minute]);
-fclose(fid);
+	year = fix(events_time);            % integer part
+	frac = events_time - year;          % fraction part
+	jdYear = date2jd(year);             % True Julian day of the 1st January of YEAR
+	frac = frac .* (365 + isleapyear(year));
+	[dumb,month, day, hour, minute] = jd2date((jdYear+frac),[]);
+	fprintf(fid,'%.3f\t%.3f\t%d\t%02d\t%02d\t%.1f\t%.1f\t%02d\t%02d\n',...
+		[x; y; year; month; day; events_mag; events_dep; hour; minute]);
+	fclose(fid);
 
 %--------------------------------------------------------------------------
 function t = isleapyear(year)
-t = ( ~rem(year, 4) & rem(year, 100) ) | ~rem(year, 400);
+	t = ( ~rem(year, 4) & rem(year, 100) ) | ~rem(year, 400);
