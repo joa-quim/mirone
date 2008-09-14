@@ -34,7 +34,6 @@ handles.h_calling_fig = [];     % Handles to the calling figure
 handles.geog = 0;               % Set this as default
 handles.Z1 = [];
 handles.Z2 = [];
-last_dir = [];
 grid_in_continue = 0;
 
 if (~isempty(varargin))         % When called from a Mirone window
@@ -80,6 +79,16 @@ if (~isempty(varargin))         % When called from a Mirone window
         delete(hObject)
         return
     end
+end
+
+if (~isempty(handles.h_calling_fig))
+	handMir = guidata(handles.h_calling_fig);
+	handles.home_dir = handMir.home_dir;
+	handles.work_dir = handMir.work_dir;
+	handles.last_dir = handMir.last_dir;
+else
+	handles.home_dir = cd;
+	handles.work_dir = cd;		handles.last_dir = cd;	% To not compromize put_or_get_file
 end
 
 if (grid_in_continue)       % Grid recieved in argument. Fill the listboxes
@@ -141,32 +150,16 @@ for i=1:length(h_f)
     end
 end
 
-% Choose default command line output for fft_stuff_export
-handles.output = hObject;
 guidata(hObject, handles);
-% UIWAIT makes fft_stuff_export wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
 set(hObject,'Visible','on');
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = fft_stuff_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = fft_stuff_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-
-% Get default command line output from handles structure
-varargout{1} = handles.output;
+if (nargout),	varargout{1} = hObject;		end
 
 % -------------------------------------------------------------------------------------------------
 function edit_Grid1_Callback(hObject, eventdata, handles)
-fname = get(hObject,'String');
-if isempty(fname),   handles.Z1 = [];    return;     end
-% Let the pushbutton_Grid1_Callback do all the work
-fft_stuff('pushbutton_Grid1_Callback',gcbo,[],guidata(gcbo),fname)
+	fname = get(hObject,'String');
+	if isempty(fname),   handles.Z1 = [];    return;     end
+	% Let the pushbutton_Grid1_Callback do all the work
+	fft_stuff('pushbutton_Grid1_Callback',gcbo,[],guidata(gcbo),fname)
 
 % -------------------------------------------------------------------------------------------------
 function pushbutton_Grid1_Callback(hObject, eventdata, handles,opt)
@@ -174,20 +167,10 @@ if (nargin == 3),    opt = [];    end
 if (nargin == 4),    fname = opt;    end
 
 if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
-    if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-        cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-        last_dir = cfig_handles.last_dir;
-        home = cfig_handles.home_dir;
-    else
-        last_dir = [];
-    end
-
-    if (~isempty(last_dir)),    cd(last_dir);   end
-    [FileName,PathName] = uigetfile({'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid');
-    pause(0.01);
-    if (~isempty(last_dir)),    cd(home);   end
-    if isequal(FileName,0);     return;     end
-    fname = [PathName FileName];
+	[FileName,PathName] = put_or_get_file(handles, ...
+		{'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
+	if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
 end
 
 % Because GMT and Surfer share the .grd extension, find out which kind grid we are dealing with
@@ -484,28 +467,17 @@ set(handles.figure1,'pointer','arrow')
 % -------------------------------------------------------------------------------
 function calSave(obj,eventdata,h_fig)
 % Save data in file
-ud = get(h_fig,'UserData');          % Get userdata
-if (~isempty(ud.h_mir_fig))
-	handles_mir = guidata(ud.h_mir_fig);    % Get the Mirone fig handles
-	work_dir = handles_mir.work_dir;
-	home_dir = handles_mir.home_dir;
-	cd(work_dir)
-end
-[FileName,PathName] = uiputfile({ ...
-    '*.dat;*.DAT', 'radial spectrum file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select File name');
-try     % If fft_stuff was called directly home_dir does not exist
-    cd(home_dir);       % allways go home
-end
-if isequal(FileName,0);   return;     end
-pause(0.01)
-fname = [PathName FileName];
-[PATH,FNAME,EXT] = fileparts(fname);
-if (isempty(EXT)),    fname = [fname '.dat'];    end
+	ud = get(h_fig,'UserData');          % Get userdata
+	handles = guidata(h_fig);
+	[FileName,PathName] = put_or_get_file(handles, ...
+		{'*.dat;*.DAT', 'radial spectrum file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select File name','put','.dat');
+	if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
 
-fid = fopen(fname, 'w');
-if (fid < 0),    errordlg(['Can''t open file:  ' fname],'Error');    return;     end
-fprintf(fid,'%f\t%f\t%f\n',[ud.data(1,:); ud.data(2,:); ud.data(3,:)]);
-fclose(fid);
+	fid = fopen(fname, 'w');
+	if (fid < 0),    errordlg(['Can''t open file:  ' fname],'Error');    return;     end
+	fprintf(fid,'%f\t%f\t%f\n',[ud.data(1,:); ud.data(2,:); ud.data(3,:)]);
+	fclose(fid);
 
 % -------------------------------------------------------------------------------------------------
 function pushbutton_integrate_Callback(hObject, eventdata, handles, opt)
