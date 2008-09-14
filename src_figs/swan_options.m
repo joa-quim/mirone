@@ -301,10 +301,7 @@ function edit_SwanParams_Callback(hObject, eventdata, handles)
 function push_paramsFile_Callback(hObject, eventdata, handles, opt)
 
 	if ( nargin == 3 )
-		cd(handles.last_dir)
-		[FileName,PathName] = uigetfile({'*.par', 'Params file (*.par)';'*.*', 'All Files (*.*)'},'Select parameter file');
-		pause(0.01);
-		cd(handles.home_dir)
+		[FileName,PathName] = put_or_get_file(handles,{'*.par', 'Params file (*.par)';'*.*', 'All Files (*.*)'},'Select parameter file','get');
 		if ( isequal(FileName,0) ),		return,		end
 		fname = [PathName FileName];
 	else
@@ -441,10 +438,8 @@ function edit_MaregraphPosFile_Callback(hObject, eventdata, handles)
 function push_MaregraphPosFile_Callback(hObject, eventdata, handles, opt)
 
 	if (nargin == 3)
-		cd(handles.last_dir)
-		[FileName,PathName] = uigetfile({'*.dat;*.DAT;*.xy', 'Maregraph location (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraphs position');
-		pause(0.01);
-		cd(handles.home_dir)
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.dat;*.DAT;*.xy', 'Maregraph location (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraphs position','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
 	else
@@ -505,14 +500,8 @@ function edit_MaregraphDataFile_Callback(hObject, eventdata, handles)
 function push_MaregraphDataFile_Callback(hObject, eventdata, handles, opt)
 
 	if (nargin == 3)
-		cfig_handles = guidata(handles.hCallingFig);	% get handles of the calling fig
-		last_dir = cfig_handles.last_dir;
-		home = cfig_handles.home_dir;
-	
-		if (~isempty(last_dir)),    cd(last_dir);   end
-		[FileName,PathName] = uigetfile({'*.dat;*.DAT;*.xy', 'Maregraph data file (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraph');
-		pause(0.01);
-		if (~isempty(last_dir)),    cd(home);   end
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.dat;*.DAT;*.xy', 'Maregraph data file (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraph','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
 		
