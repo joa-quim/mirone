@@ -180,13 +180,9 @@ if (nargout == 1)   out = hf;   end
 function import_clickedcallback(hObject, eventdata, opt)
 handles = guidata(hObject);     % get handles
 if (isempty(opt))
-    cd(handles.last_dir)
-	[FileName,PathName] = uigetfile({'*.gmt;*.GMT', 'gmt files (*.gmt,*.GMT)'},'Select gmt File');
-	pause(0.01)
-    cd(handles.home_dir)        % Go back home
-	if isequal(FileName,0);     return;     end
+	[FileName,PathName] = put_or_get_file(handles,{'*.gmt;*.GMT', 'gmt files (*.gmt,*.GMT)'},'Select gmt File','get');
+	if isequal(FileName,0),		return,		end
     f_name = [PathName FileName];
-    handles.last_dir = PathName;
 else
     f_name = opt;
 end
@@ -286,17 +282,9 @@ guidata(handles.figure1,handles)
 function save_clickedcallback(hObject, eventdata)
 handles = guidata(hObject);     % get handles
 NODATA = -32000;
-cd(handles.last_dir)
-%[FileName,PathName] = uiputfile({'*.gmt;*.GMT', 'gmt files (*.gmt,*.GMT)'},'Select gmt File');
-[FileName,PathName] = uiputfile(handles.f_name,'Select gmt File');
-pause(0.01)
-cd(handles.home_dir)        % Go back home
-if isequal(FileName,0);     return;     end
-handles.last_dir = PathName;
-
-[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-FNAME = [FNAME '.gmt'];         % Make sure the extension is .gmt
-f_name = [PathName FNAME];
+[FileName,PathName] = put_or_get_file(handles, handles.f_name,'Select gmt File', 'put','.gmt');
+if isequal(FileName,0),		return,		end
+f_name = [PathName FileName];
 
 % Search for de-activated points handles (the reds)
 h_gn = findobj(handles.figure1,'Type','Line','tag','GravNull');
