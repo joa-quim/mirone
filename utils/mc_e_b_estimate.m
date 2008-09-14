@@ -248,24 +248,19 @@ mc_e_b_estimate('ca',ud)
 % -------------------------------------------------------------------------------
 function calSave(obj,eventdata,ud)
 % Save G & R curve in file
-ud = get(ud.h_fig,'UserData');          % Get the updated version
-handles_mir = guidata(ud.h_mir_fig);    % Get the Mirone fig handles
-work_dir = handles_mir.work_dir;
-home_dir = handles_mir.home_dir;
-cd(work_dir)
-[FileName,PathName] = uiputfile({ ...
-    '*.dat;*.DAT', 'Gutt Rich file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select File name');
-cd(home_dir);       % allways go home
-if isequal(FileName,0);   return;     end
-pause(0.01)
-fname = [PathName FileName];
-[PATH,FNAME,EXT] = fileparts(fname);
-if (isempty(EXT)),    fname = [fname '.dat'];    end
+	ud = get(ud.h_fig,'UserData');          % Get the updated version
+	handles_mir = guidata(ud.h_mir_fig);       % Get the Mirone handles structure
 
-fid = fopen(fname, 'w');
-if (fid < 0),    errordlg(['Can''t open file:  ' fname],'Error');    return;     end
-fprintf(fid,'%.1f\t%d\n',fliplr([ud.xt3; ud.bvalsum3]));    % Flip because Mags were in decreasing order
-fclose(fid);
+	[FileName,PathName] = put_or_get_file(handles_mir, ...
+		{'*.dat;*.DAT', 'Gutt Rich file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'},'Select File name','put','.dat');
+	if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
+
+
+	fid = fopen(fname, 'w');
+	if (fid < 0),    errordlg(['Can''t open file:  ' fname],'Error');    return;     end
+	fprintf(fid,'%.1f\t%d\n',fliplr([ud.xt3; ud.bvalsum3]));    % Flip because Mags were in decreasing order
+	fclose(fid);
 
 % -------------------------------------------------------------------------------
 function plorem(obj,eventdata,ud)
