@@ -9,9 +9,6 @@ function varargout = escadeirar(varargin)
 
 	if (numel(varargin) > 0)
 		handMir = varargin{1};
-		handles.home_dir = handMir.home_dir;
-		handles.last_dir = handMir.last_dir;
-		handles.work_dir = handMir.work_dir;
 		handles.head = handMir.head;
 	end
 
@@ -144,7 +141,8 @@ function edit_file_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_file_Callback(hObject, eventdata, handles, opt)
 	if (nargin == 3)        % Direct call
-		[FileName,PathName] = put_or_get_file(handles, ...
+		handMir = guidata(handles.hMirFig1);		% Get the Mirone handles
+		[FileName,PathName] = put_or_get_file(handMir, ...
 			{'*.dat;*.DAT;*.txt;*.TXT;*.cpt', 'Data files (*.dat,*.DAT,*.txt,*.TXT,*.cpt)';'*.*', 'All Files (*.*)'},'File with step widths','put','.dat');
 		if isequal(FileName,0),		return,		end
 	else        % File name on input
