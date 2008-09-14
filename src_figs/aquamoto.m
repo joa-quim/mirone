@@ -301,13 +301,11 @@ function push_swwName_Callback(hObject, eventdata, handles, opt)
 % This function does quite some work. It reads and extract relevant info from the netCDF file
 
     if (nargin == 3)        % Direct call
-        cd(handles.last_dir)
-    	str1 = {'*.sww;*.SWW;*.nc;*.NC', 'Data files (*.sww,*.SWW,*.nc,*.NC)';'*.*', 'All Files (*.*)'};
-        [FileName,PathName] = uigetfile(str1,'sww file');
-        cd(handles.home_dir);
-	    if isequal(FileName,0),		return,		end
-        if (PathName ~= 0),         handles.last_dir = PathName;    end
-    else        % File name on input
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.sww;*.SWW;*.nc;*.NC', 'Data files (*.sww,*.SWW,*.nc,*.NC)';'*.*', 'All Files (*.*)'},'sww file','get');
+		if isequal(FileName,0),		return,		end
+		
+	else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         if (~isempty(PathName)),	PathName = [PathName filesep];	end		% To be coherent with the 'if' branch
         FileName = [FNAME EXT];
@@ -1264,11 +1262,9 @@ function edit_movieName_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_movieName_Callback(hObject, eventdata, handles, opt)
 	if (nargin == 3)        % Direct call
-		cd(handles.work_dir)
-		[FileName,PathName] = uiputfile({'*.gif;*.avi;*.mpg', 'Grid files (*.gif,*.avi,*.mpg)'},'Select Movie name');
-		pause(0.01);        cd(handles.home_dir);
-		if isequal(FileName,0);     return;     end
-		if (PathName ~= 0),         handles.last_dir = PathName;    end
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.gif;*.avi;*.mpg', 'Grid files (*.gif,*.avi,*.mpg)'},'Select Movie name','put');
+		if isequal(FileName,0),		return,		end
 		[dumb,FNAME,EXT]= fileparts(FileName);
 		fname = [PathName FileName];
 	else        % File name on input
@@ -1860,13 +1856,10 @@ function edit_batGrid_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_batGrid_Callback(hObject, eventdata, handles, opt)
     if (nargin == 3)        % Direct call
-        cd(handles.last_dir)
-    	[FileName,PathName] = uigetfile({'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*',...
-                'All Files (*.*)'},'Select GMT grid');
-	    pause(0.01);        cd(handles.home_dir);
-	    if isequal(FileName,0),		return,		end
-        if (PathName ~= 0),         handles.last_dir = PathName;    end
-    else        % File name on input
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*','All Files (*.*)'},'Select GMT grid','get');
+		if isequal(FileName,0),		return,		end
+	else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
         FileName = [FNAME EXT];
@@ -1898,12 +1891,9 @@ function edit_namesList_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_namesList_Callback(hObject, eventdata, handles, opt)
     if (nargin == 3)        % Direct call
-        cd(handles.last_dir)
-    	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
-        [FileName,PathName] = uigetfile(str1,'File with grids list');
-        cd(handles.home_dir);
-	    if isequal(FileName,0);     return;     end
-        if (PathName ~= 0),         handles.last_dir = PathName;    end
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'},'File with grids list','get');
+		if isequal(FileName,0),		return,		end		
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
@@ -2002,12 +1992,9 @@ function edit_singleWater_Callback(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function push_singleWater_Callback(hObject, eventdata, handles, opt)
     if (nargin == 3)        % Direct call
-        cd(handles.last_dir)
-        [FileName,PathName] = uigetfile({'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', ...
-                'All Files (*.*)'},'Select GMT grid');
-	    pause(0.01);        cd(handles.home_dir);
-        if isequal(FileName,0);     return;     end
-        if (PathName ~= 0),         handles.last_dir = PathName;    end
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
+		if isequal(FileName,0),		return,		end		
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
@@ -2031,18 +2018,15 @@ function edit_maregs_Callback(hObject, eventdata, handles)
 function push_maregs_Callback(hObject, eventdata, handles, opt)
 
     if (nargin == 3)        % Direct call
-        cd(handles.last_dir)
-    	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.txt)';'*.*', 'All Files (*.*)'};
-        [FileName,PathName] = uigetfile(str1,'(x,y) file');
-        cd(handles.home_dir);
-	    if isequal(FileName,0),		return,		end
-        if (PathName ~= 0),         handles.last_dir = PathName;    end
-    else        % File name on input
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.txt)';'*.*', 'All Files (*.*)'},'(x,y) file','put','.dat');
+		if isequal(FileName,0),		return,		end
+	else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
         if (~isempty(PathName)),	PathName = [PathName filesep];	end		% To be coherent with the 'if' branch
         FileName = [FNAME EXT];
     end
-	pause(0.01);	fname = [PathName FileName];
+	fname = [PathName FileName];
 	
 	if (exist(fname, 'file') ~= 2)
 		errordlg(['File: ' fname ' does not exist.'],'Error'),		return
