@@ -14,23 +14,24 @@ function varargout = tfw_funs(opt,varargin)
 
 % -------------------------------------------------------------------------
 function write_tfw(handles,fname)
-    % HANDLES is the Mirone handles.
-    % FNAME (optional) is the name of the .tfw file
+% HANDLES is the Mirone handles.
+% FNAME (optional) is the name of the .tfw file
 
 	if (nargin == 1)    % Propose a name based on the image's name
-        name = get(handles.figure1,'Name');
-        [pato, fname, EXT] = fileparts(name);
-        if (strcmp(lower(EXT),'jpg')),      fname = [fname '.jgw'];
-        elseif (strcmp(lower(EXT),'png'))   fname = [fname '.pgw'];
-        elseif (strcmp(lower(EXT),'gif'))   fname = [fname '.gfw'];
-        else                                fname = [fname '.tfw'];
-        end
-        if (~isempty(pato)),	cd(pato);   end
-        [FileName,PathName] = uiputfile(fname,'Select TFW File name');
-		pause(0.01)
-		cd(handles.home_dir);       % allways go home
-		if isequal(FileName,0);     return;     end
-        fname = [PathName FileName];
+		name = get(handles.figure1,'Name');
+		[pato, fname, EXT] = fileparts(name);
+		EXT = strtok(EXT);		% Remove the "@ ??%" part
+		if (strcmp(lower(EXT),'jpg')),      fname = [fname '.jgw'];
+		elseif (strcmp(lower(EXT),'png'))   fname = [fname '.pgw'];
+		elseif (strcmp(lower(EXT),'gif'))   fname = [fname '.gfw'];
+		else                                fname = [fname '.tfw'];
+		end
+
+		if (~isempty(pato)),	handles.work_dir = pato;	end
+		str1 = fname;
+		[FileName,PathName] = put_or_get_file(handles,str1,'Select TFW File name','put');
+		if isequal(FileName,0),		return,		end
+		fname = [PathName FileName];
 	end
 	
 	% Write the .tfw file
