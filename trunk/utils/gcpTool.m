@@ -697,9 +697,10 @@ end
 function doWriteGCPs(event,obj,handles)
 % This function is ...
     handles = guidata(handles.figure1);
-    str1 = {'*.dat;*.DAT', 'Control points file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-    [FileName,PathName] = uiputfile(str1,'GCP file name');
-    if isequal(FileName,0);     return;     end
+	[FileName,PathName] = put_or_get_file(handles, ...
+		{'*.dat;*.DAT', 'Control points file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'GCP file name','put','.dat');
+	if isequal(FileName,0),		return,		end
+	
 	%Open and write to ASCII file
 	if ispc;        fid = fopen([PathName FileName],'wt');
 	elseif isunix;  fid = fopen([PathName FileName],'w');
