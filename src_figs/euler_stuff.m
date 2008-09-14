@@ -396,13 +396,15 @@ pol(n_new_finite+1:end,1) = pol(n_new_finite+1:end,1) + 180;
 id = pol(:,1) > 360;
 pol(id,1) = pol(id,1) - 360;
 
-str1 = {'*.dat;*.stg', 'Data file (*.dat,*.stg)';'*.*', 'All Files (*.*)'};
-[FileName,PathName] = uiputfile(str1,'Interp poles file');
-if isequal(FileName,0);     return;     end
+[FileName,PathName] = put_or_get_file(handles, ...
+	{'*.dat;*.stg', 'Data file (*.dat,*.stg)';'*.*', 'All Files (*.*)'},'Interp poles file','put','.dat');
+if isequal(FileName,0),		return,		end
+
 % Open and write to ASCII file
 if ispc;        fid = fopen([PathName FileName],'wt');
 elseif isunix;  fid = fopen([PathName FileName],'w');
-else    errordlg('Unknown platform.','Error');      end
+else			errordlg('Unknown platform.','Error');
+end
 fprintf(fid,'#longitude\tlatitude\tangle(deg)\tage(Ma)\n');
 fprintf(fid,'%9.5f\t%9.5f\t%7.4f\t%8.4f\n', pol');
 fclose(fid);
