@@ -149,10 +149,8 @@ else
 end
 
 if (isempty(opt))           % Otherwise we already know fname from the 4th input argument
-    if (~isempty(last_dir)),    cd(last_dir);   end
 	str1 = {'*.stg;*.dat;*.DAT', 'Data files (*.stg,*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-	[FileName,PathName] = uigetfile(str1,'Select poles file');  pause(0.05)
-    if (~isempty(last_dir)),    cd(home);   end
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select poles file','get');
 	if isequal(FileName,0)      return;    end
     fname = [PathName FileName];
 end
@@ -188,10 +186,8 @@ else
 end
 
 if (isempty(opt))           % Otherwise we already know fname from the 4th input argument
-	if (~isempty(last_dir)),    cd(last_dir);   end
 	str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-	[FileName,PathName] = uigetfile(str1,'Select ages file');   pause(0.05)
-    if (~isempty(last_dir)),    cd(home);   end
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select ages file','get');
 	if isequal(FileName,0)      return;    end
 	fname = [PathName,FileName];
 end
