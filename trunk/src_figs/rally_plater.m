@@ -114,6 +114,17 @@ handles.h_circ = line(cos(linspace(1,2*pi,180)),sin(linspace(1,2*pi,180)), 'Colo
 set(handles.edit_ageSlider,'String','150')
 set(handles.slider_age,'Max',150)
 
+if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
+    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
+    handles.last_dir = cfig_handles.last_dir;
+    handles.home_dir = cfig_handles.home_dir;
+    handles.work_dir = cfig_handles.work_dir;
+else
+    handles.home_dir = cd;
+    handles.last_dir = cd;
+    handles.work_dir = cd;
+end
+
 %--------------- Give a Pro look (3D) to the frame boxes -------------------------
 bgcolor = get(0,'DefaultUicontrolBackgroundColor');
 framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
@@ -617,20 +628,17 @@ function listbox_stages_Callback(hObject, eventdata, handles)
 function pushbutton_loadStages_Callback(hObject, eventdata, handles)
 % Get poles file name
 
-if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-    last_dir = cfig_handles.last_dir;
-    home = cfig_handles.home_dir;
-else
-    last_dir = [];
-end
+	if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))			% If we know it and it exists
+        hand = guidata(handles.h_calling_fig);		% get handles of the calling fig
+	else
+        hand = handles;
+	end
 
-if (~isempty(last_dir)),    cd(last_dir);   end
-str1 = {'*.stg;*.dat;*.DAT', 'Stage poles (*.stg,*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-[FileName,PathName] = uigetfile(str1,'Select poles file');  pause(0.05)
-if (~isempty(last_dir)),    cd(home);   end
-if isequal(FileName,0)      return;     end
-fname = [PathName FileName];
+    [FileName,PathName] = put_or_get_file(hand,{ ...
+			'*.stg;*.dat;*.DAT', 'Stage poles (*.stg,*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select poles file','get');
+    if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
+
 
 % Check that it is a goodly formated stage poles file. We don't want surprises in mexs
 dumb = read_stgs(fname);
@@ -701,35 +709,32 @@ function edit_ageStep_Callback(hObject, eventdata, handles)
 function LoadFile_clickedcallback(obj, eventdata)
 % Get the external file and draw it. All closed polygons are drawn as patches
 
-handles = guidata(obj);
+	handles = guidata(obj);
+	if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))			% If we know it and it exists
+        hand = guidata(handles.h_calling_fig);		% get handles of the calling fig
+	else
+        hand = handles;
+	end
 
-if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-    last_dir = cfig_handles.last_dir;
-    home = cfig_handles.home_dir;
-else
-    last_dir = [];
-end
+    [FileName,PathName] = put_or_get_file(hand,{ ...
+			'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select input xy file name','get');
+    if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
 
-if (~isempty(last_dir)),    cd(last_dir);   end
-str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-[FileName,PathName] = uigetfile(str1,'Select input xy file name');  pause(0.05)
-if (~isempty(last_dir)),    cd(home);   end
-if isequal(FileName,0)      return;     end
 
-[xy,tag] = read_plate_bodies([PathName FileName]);
-if (isempty(tag))
-    tag = 'unknown';        % New body/plate
-end
-
-if (iscell(xy))
-    for (k=1:length(xy))
-        draw_element(handles,xy{k}(:,1),xy{k}(:,2),tag)
-        handles = guidata(handles.figure1);     % The handles was updated inside draw_element, but this loop
-    end                                         % does not know it. So we have to update also here.
-else
-    draw_element(handles,xy(:,1),xy(:,2),tag)
-end
+	[xy,tag] = read_plate_bodies([PathName FileName]);
+	if (isempty(tag))
+		tag = 'unknown';        % New body/plate
+	end
+	
+	if (iscell(xy))
+		for (k=1:length(xy))
+			draw_element(handles,xy{k}(:,1),xy{k}(:,2),tag)
+			handles = guidata(handles.figure1);     % The handles was updated inside draw_element, but this loop
+		end                                         % does not know it. So we have to update also here.
+	else
+		draw_element(handles,xy(:,1),xy(:,2),tag)
+	end
 
 % --------------------------------------------------------------------
 function draw_element(handles,x,y,tag)
