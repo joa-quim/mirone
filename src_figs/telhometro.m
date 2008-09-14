@@ -49,19 +49,10 @@ function pushbutton_readPolesFile_Callback(hObject, eventdata, handles, opt)
 	else                opt = [];
 	end
 
-	if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-        cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-        last_dir = cfig_handles.last_dir;
-        home = cfig_handles.home_dir;
-	else
-        last_dir = [];
-	end
-
 	if (isempty(opt))           % Otherwise we already know fname from the 4th input argument
-        if (~isempty(last_dir)),    cd(last_dir);   end
+		handMir = guidata(handles.h_calling_fig);
 		str1 = {'*.stg;*.dat;*.DAT', 'Data files (*.stg,*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-		[FileName,PathName] = uigetfile(str1,'Select poles file');  pause(0.05)
-        if (~isempty(last_dir)),	cd(home);	end
+		[FileName,PathName] = put_or_get_file(handMir,str1,'Select poles file','get');
 		if isequal(FileName,0),		return,		end
         fname = [PathName FileName];
 	end
