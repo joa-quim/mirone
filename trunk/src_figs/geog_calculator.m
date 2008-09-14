@@ -75,6 +75,7 @@ function varargout = geog_calculator(varargin)
 
 	handles.last_dir = handMir.last_dir;
 	handles.home_dir = handMir.home_dir;
+	handles.work_dir = handMir.work_dir;
 	handles.version7 = handMir.version7;
 	handles.path_data = handMir.path_data;
 
@@ -596,7 +597,8 @@ function pushbutton_left2right_Callback(hObject, eventdata, handles)
 	elseif (handles.which_conv == 2)    % File Conversions
         fname = get(handles.edit_fileRight,'String');
         if (isempty(fname))
-			[FileName,PathName] = uiputfile({'*.dat;*.DAT', 'Coord file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select data file');
+			[FileName,PathName] = put_or_get_file(handles, ...
+				{'*.dat;*.DAT', 'Coord file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select data file','put','.dat');
 			if isequal(FileName,0);     return;     end
 			fname = [PathName FileName];
         end
@@ -781,7 +783,8 @@ if (handles.which_conv == 1)        % Interactive Conversions
 elseif (handles.which_conv == 2)    % File Conversions
     fname = get(handles.edit_fileLeft,'String');
     if (isempty(fname))
-        [FileName,PathName] = uiputfile({'*.dat;*.DAT', 'Coord file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select data file');
+        [FileName,PathName] = put_or_get_file(handles, ...
+			{'*.dat;*.DAT', 'Coord file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select data file', 'put','.dat');
         if isequal(FileName,0);     return;     end
         fname = [PathName FileName];
     end
@@ -961,12 +964,8 @@ function pushbutton_fileLeft_Callback(hObject, eventdata, handles,opt)
 	end
 
 	if (isempty(opt))    % Otherwise we already know fname from the 4th input argument
-		cd(handles.last_dir);
-		[FileName,PathName] = uigetfile({'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select data file');
-		pause(0.01);
-		cd(handles.home_dir);
+		[FileName,PathName] = put_or_get_file(handles,{'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select data file','get');
 		if isequal(FileName,0);     return;     end
-		handles.last_dir = PathName;
 		fname = [PathName FileName];
 		set(handles.edit_fileLeft,'String',fname)
 	end
@@ -1081,13 +1080,11 @@ guidata(hObject,handles)
 
 %-------------------------------------------------------------------------------------
 function pushbutton_fileRight_Callback(hObject, eventdata, handles)
-cd(handles.work_dir)
-[FileName,PathName] = uiputfile({'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select data file');
-cd(handles.home_dir);
-if (PathName ~= 0),         handles.last_dir = PathName;
-else    return;     end
-set(handles.edit_fileRight,'String',[PathName FileName])
-guidata(hObject, handles);
+	[FileName,PathName] = put_or_get_file(handles, ...
+		{'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select data file', 'put','.dat');
+	if isequal(FileName,0),		return,		end
+	set(handles.edit_fileRight,'String',[PathName FileName])
+	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
 function edit_fileRight_Callback(hObject, eventdata, handles)
@@ -1242,13 +1239,8 @@ function pushbutton_gridLeft_Callback(hObject, eventdata, handles, opt)
 	end
 
 	if (isempty(opt))    % Otherwise we already know fname from the 4th input argument
-		if (~isempty(handles.last_dir)),    cd(handles.last_dir);   end
-		[FileName,PathName] = uigetfile({'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid');
-		pause(0.01);
-		cd(handles.home_dir);       % allways go home to avoid troubles
-		if (PathName ~= 0),         handles.last_dir = PathName;
-		else    return;
-		end
+		[FileName,PathName] = put_or_get_file(handles,{'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
+		if isequal(FileName,0),		return,		end
 		fname = [PathName,FileName];
 	end
 
@@ -1385,14 +1377,9 @@ function edit_nRowsRight_Callback(hObject, eventdata, handles)
 
 %-------------------------------------------------------------------------------------
 function pushbutton_gridRight_Callback(hObject, eventdata, handles)
-	cd(handles.work_dir)
 	str1 = {'*.grd;*.GRD','netCDF int2 grid format (*.grd,*.GRD)'; '*.*', 'All Files (*.*)'};
-	str2 = 'Select output GMT grid';
-	[FileName,PathName] = uiputfile(str1,str2);
-	cd(handles.home_dir);
-	if (PathName ~= 0),         handles.last_dir = PathName;
-	else    return;
-	end
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select output GMT grid','put','.grd');
+	if isequal(FileName,0),		return,		end
 	set(handles.edit_gridRight,'String',[PathName FileName])
 	guidata(hObject, handles);
 
