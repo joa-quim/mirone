@@ -421,19 +421,14 @@ function edit_InputFile_Callback(hObject, eventdata, handles)
 function pushbutton_InputFile_Callback(hObject, eventdata, handles,opt)
 	if (nargin == 4),   fname = opt;     end
 
-	if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-        cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-        last_dir = cfig_handles.last_dir;
-        home = cfig_handles.home_dir;
+	if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))			% If we know it and it exists
+        hand = guidata(handles.h_calling_fig);		% get handles of the calling fig
 	else
-        last_dir = [];
+        hand = handles;
 	end
 
 	if (isempty(opt))    % Otherwise we already know fname from the 4th input argument
-        if (~isempty(last_dir)),    cd(last_dir);   end
-        [FileName,PathName] = uigetfile({'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select file');
-        pause(0.01);
-        if (~isempty(last_dir)),    cd(home);   end
+        [FileName,PathName] = put_or_get_file(hand,{'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select file','get');
         if isequal(FileName,0);     return;     end
         fname = [PathName FileName];
 	end
