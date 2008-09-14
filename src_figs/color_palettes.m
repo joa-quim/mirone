@@ -59,6 +59,7 @@ elseif (nargin == 1 && ischar(varargin{1}))
 	set(handles.FileSavePaletteGrid','Vis','off')	% It makes no sense here
 	set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
 	handles.home_dir = cd;
+	handles.work_dir = cd;		handles.last_dir = cd;	% To not compromize put_or_get_file
 end
 handles.d_path = [handles.home_dir filesep 'data' filesep];
 
@@ -691,7 +692,10 @@ function cmap = FileReadPalette_Callback(hObject, eventdata, handles, opt, opt2)
 	if (nargin == 3),   opt = [];	end
 	if (nargin < 5),	opt2 = [];	end
 	if (isempty(opt2))
-		[FileName,PathName] = put_or_get_file(handles, ...
+		if (~isempty(handles.hCallingFig)),		hand = guidata(handles.hCallingFig);
+		else									hand = handles;
+		end
+		[FileName,PathName] = put_or_get_file(hand, ...
 			{'*.cpt;*.CPT', 'CPT files (*.cpt,*.CPT)';'*.*', 'All Files (*.*)'},'Select CPT file','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
