@@ -212,7 +212,7 @@ mRes = mRes(vSel,:);
 if (length(mRes(:,1)) > 1)
     vSel = (mRes(:,1) == min(mRes(:,1)));
     mRes = mRes(vSel,:);
-end;
+end
 % Model to use for bootstrapping as of lowest AIC to observed data
 nMod = mRes(1,1);
 
@@ -225,29 +225,23 @@ set(h_fig,'Visible','on')
 % -------------------------------------------------------------------------------
 function calSave(obj,eventdata,h_fig,h_mir_fig)
 % Save the curves in file. [x_dat y_dat y_mod]
-handles_mir = guidata(h_mir_fig);    % Get the Mirone fig handles
-work_dir = handles_mir.work_dir;
-home_dir = handles_mir.home_dir;
-cd(work_dir)
-[FileName,PathName] = uiputfile({ ...
-    '*.dat;*.DAT', 'Gutt Rich file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select File name');
-cd(home_dir);       % allways go home
-if isequal(FileName,0);   return;     end
-pause(0.01)
-fname = [PathName FileName];
-[PATH,FNAME,EXT] = fileparts(fname);
-if (isempty(EXT))    fname = [fname '.dat'];    end
+	handles_mir = guidata(h_mir_fig);		% Get the Mirone handles structure
 
-% Fish the data
-h_mod = findobj(h_fig,'Tag','Model');       h_dat = findobj(h_fig,'Tag','Orig');
-x_mod = get(h_mod,'XData');                 y_mod = get(h_mod,'YData');
-x_dat = get(h_dat,'XData');                 y_dat = get(h_dat,'YData');
+	[FileName,PathName] = put_or_get_file(handles_mir, ...
+		{'*.dat;*.DAT', 'Gutt Rich file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'},'Select File name','put','.dat');
+	if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
 
-fid = fopen(fname, 'w');
-if (fid < 0)    errordlg(['Can''t open file:  ' fname],'Error');    return;     end
-fprintf(fid,'# Time (days)\tCum number\tCum number (model)\n');
-fprintf(fid,'%.7f\t%d\t%.2f\n',[x_dat; y_dat; y_mod]);
-fclose(fid);
+	% Fish the data
+	h_mod = findobj(h_fig,'Tag','Model');		h_dat = findobj(h_fig,'Tag','Orig');
+	x_mod = get(h_mod,'XData');					y_mod = get(h_mod,'YData');
+	x_dat = get(h_dat,'XData');					y_dat = get(h_dat,'YData');
+
+	fid = fopen(fname, 'w');
+	if (fid < 0)    errordlg(['Can''t open file:  ' fname],'Error');    return;     end
+	fprintf(fid,'# Time (days)\tCum number\tCum number (model)\n');
+	fprintf(fid,'%.7f\t%d\t%.2f\n',[x_dat; y_dat; y_mod]);
+	fclose(fid);
 
 % -----------------------------------------------------------------------------
 function [mMedModF, mStdL, loopout] = brutebootloglike_a2(time_as, time_asf, bootloops,fT1, nMod);
