@@ -657,13 +657,9 @@ guidata(hObject,handles)
 
 % ------------------------------------------------------------------------------------
 function pushbutton_InputFile_Callback(hObject, eventdata, handles)
-if (~isempty(handles.h_calling_fig))			% If we know the handle to the calling fig
-    hand = guidata(handles.h_calling_fig);		% get handles of the calling fig
-else
-    hand = handles;
-end
 
-[FileName,PathName] = put_or_get_file(hand, ...
+handMir = guidata(handles.h_calling_fig);		% get handles of the calling fig
+[FileName,PathName] = put_or_get_file(handMir, ...
 	{'*.dat;*.DAT;*.xy', 'Maregraph location (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraphs position','get');
 if isequal(FileName,0),		return,		end
 fname = [PathName FileName];
@@ -871,8 +867,11 @@ else        % Ground positions were given
                 E,N,s,opt_M);
         end
     end
-    [FileName,PathName] = uiputfile({'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select output deformation file');
-    if isequal(FileName,0);     return;      end     % User gave up
+	
+	handMir = guidata(handles.h_calling_fig);		% get handles of the calling fig
+	[FileName,PathName] = put_or_get_file(handMir, ...
+		{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select output deformation file','put','.dat');
+	if isequal(FileName,0),		return,		end
     double2ascii([PathName FileName],[U(:,1) U(:,2) U(:,3)],'%f\t%f\t%f');     %NAO SEI SE E ASSIM. FALTA TESTAR
 end
 
