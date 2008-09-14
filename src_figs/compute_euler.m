@@ -33,11 +33,12 @@ handles.pLon_ini = [];
 handles.pLat_ini = [];
 handles.pAng_ini = [];
 handles.do_graphic = 0;
+handles.DP_tol = 0.05;
 handles.path_continent = [pwd filesep 'continents' filesep];
 set(handles.slider_wait,'Max',handles.Nintervals^2)
 
 if (length(varargin) == 1)
-    handles.h_calling_fig = varargin{1};        % This the Mirone's fig handle
+    handles.h_calling_fig = varargin{1};        % This is the Mirone's fig handle
 else
     errordlg('COMPUTE EULER: wrong number of arguments.','Error')
     delete(hObject);    return
@@ -71,7 +72,7 @@ for i=1:length(h_f)
 end
 
 % Recopy the text fields on top of previously created frames (uistack is to damn slow)
-h_t = findobj(hObject,'Style','Text');
+h_t = [handles.txtSP handles.txtDS handles.txtCS];
 for i=1:length(h_t)
     usr_d = get(h_t(i),'UserData');
     t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
@@ -99,29 +100,19 @@ function edit_first_file_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function pushbutton_first_file_Callback(hObject, eventdata, handles,opt)
-if (nargin == 4)    fname = opt;
-else                opt = [];
-end
+	if (nargin == 4)    fname = opt;
+	else                opt = [];
+	end
 
-if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-    last_dir = cfig_handles.last_dir;
-    home = cfig_handles.home_dir;
-else
-    last_dir = [];
-end
-
-if (isempty(opt))    % Otherwise we already know fname from the 4th input argument
-    if (~isempty(last_dir)),    cd(last_dir);   end
-    [FileName,PathName] = uigetfile({'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select file');
-    pause(0.01);
-    if (~isempty(last_dir)),    cd(home);   end
-    if isequal(FileName,0);     return;     end
-    fname = [PathName FileName];
-end
-handles.isoca1 = le_fiche(fname);      % A maluca
-handles.isoca1(:,2) = geog2auth(handles.isoca1(:,2));   % Convert to authalic lats
-guidata(hObject, handles);
+	if (isempty(opt))    % Otherwise we already know fname from the 4th input argument
+		handMir = guidata(handles.h_calling_fig);
+		[FileName,PathName] = put_or_get_file(handMir,{'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select file','get');
+		if isequal(FileName,0),		return,		end
+		fname = [PathName FileName];
+	end
+	handles.isoca1 = le_fiche(fname);      % A maluca
+	handles.isoca1(:,2) = geog2auth(handles.isoca1(:,2));   % Convert to authalic lats
+	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function edit_second_file_Callback(hObject, eventdata, handles)
@@ -132,29 +123,19 @@ function edit_second_file_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function pushbutton_second_file_Callback(hObject, eventdata, handles, opt)
-if (nargin == 4)    fname = opt;
-else                opt = [];
-end
+	if (nargin == 4)    fname = opt;
+	else                opt = [];
+	end
 
-if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-    last_dir = cfig_handles.last_dir;
-    home = cfig_handles.home_dir;
-else
-    last_dir = [];
-end
-
-if (isempty(opt))    % Otherwise we already know fname from the 4th input argument
-    if (~isempty(last_dir)),    cd(last_dir);   end
-    [FileName,PathName] = uigetfile({'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select file');
-    pause(0.01);
-    if (~isempty(last_dir)),    cd(home);   end
-    if isequal(FileName,0);     return;     end
-    fname = [PathName FileName];
-end
-handles.isoca2 = le_fiche(fname);      % The fixed line
-handles.isoca2(:,2) = geog2auth(handles.isoca2(:,2));   % Convert to authalic lats
-guidata(hObject, handles);
+	if (isempty(opt))    % Otherwise we already know fname from the 4th input argument
+		handMir = guidata(handles.h_calling_fig);
+		[FileName,PathName] = put_or_get_file(handMir,{'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select file','get');
+		if isequal(FileName,0),		return,		end	   
+		fname = [PathName FileName];
+	end
+	handles.isoca2 = le_fiche(fname);      % The fixed line
+	handles.isoca2(:,2) = geog2auth(handles.isoca2(:,2));   % Convert to authalic lats
+	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function edit_pLon_ini_Callback(hObject, eventdata, handles)
@@ -202,8 +183,12 @@ function edit_LonRange_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function edit_Nintervals_Callback(hObject, eventdata, handles)
-	handles.Nintervals = str2double(get(hObject,'String'));
-	set(handles.slider_wait,'Max',handles.Nintervals^2)
+	if (~get(handles.check_hellinger,'Val'))
+		handles.Nintervals = str2double(get(hObject,'String'));
+		set(handles.slider_wait,'Max',handles.Nintervals^2)
+	else
+		handles.DP_tol = str2double(get(hObject,'String'));
+	end
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
@@ -271,6 +256,22 @@ else        % What should I do?
 end
 guidata(hObject, handles);
 
+% -----------------------------------------------------------------------------
+function check_hellinger_Callback(hObject, eventdata, handles)
+if (get(hObject,'Value'))
+	set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','off')
+	set(handles.edit_Nintervals,'String', handles.DP_tol)
+	set(handles.textNint,'String','DP tolerance')
+	set(handles.edit_Nintervals,'Tooltip', sprintf(['Tolerance used to break up the isochron into\n' ...
+			'linear chunks (the Heillinger segments).\n' ...
+			'The units of the tolerance are degrees\n', ...
+			'of arc on the surface of a sphere']))
+else
+	set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','on')
+	set(handles.textNint,'String','N of Intervals')
+	set(handles.edit_Nintervals,'String', 20,'Tooltip','The range parameters are divided into this number of intervals steps')
+end
+
 % -------------------------------------------------------------------------------
 function pushbutton_stop_Callback(hObject, eventdata, handles)
     set(handles.slider_wait,'Value',0)  % We have to do this first
@@ -284,18 +285,30 @@ function pushbutton_compute_Callback(hObject, eventdata, handles)
 	set(handles.edit_pLon_fim,'String','');			set(handles.edit_pLat_fim,'String','')
 	set(handles.edit_pAng_fim,'String','')
 
-	if (isempty(handles.isoca1) | isempty(handles.isoca2))
+	if (isempty(handles.isoca1) || isempty(handles.isoca2))
 		errordlg('Compute Euler pole with what? It would help if you provide me TWO lines.','Chico Clever')
 		return
 	end
-	if (isempty(handles.pLon_ini) | isempty(handles.pLat_ini) | isempty(handles.pAng_ini))
+	if (isempty(handles.pLon_ini) || isempty(handles.pLat_ini) || isempty(handles.pAng_ini))
 		errordlg(['I need a first guess of the Euler pole you are seeking for.' ...
 			'Pay attention to the "Starting Pole Section"'],'Error')
 		return
 	end
 
-	do_weighted = true;
-	calca_pEuler(handles, do_weighted)
+	if (~get(handles.check_hellinger,'Val'))		% Our method
+		do_weighted = true;
+		calca_pEuler(handles, do_weighted)
+	else											% Try with Hellinger's (pfiu)
+		[pLon,pLat,pAng] = hellinger(handles.pLon_ini,handles.pLat_ini,handles.pAng_ini, handles.isoca1, handles.isoca2, handles.DP_tol);
+		set(handles.edit_pLon_fim,'String',pLon);			set(handles.edit_pLat_fim,'String',pLat)
+		set(handles.edit_pAng_fim,'String',pAng)
+		if (handles.do_graphic)     % Create a empty line handle
+			[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),pLon, pLat, pAng);
+			h_line = line('parent',get(handles.h_calling_fig,'CurrentAxes'),'XData',rlon,'YData',rlat, ...
+			'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
+			draw_funs(h_line,'isochron',{'Fitted Line'})
+		end
+	end
 
 % -------------------------------------------------------------------------------
 function numeric_data = le_fiche(fname)
@@ -330,6 +343,11 @@ function calca_pEuler(handles, do_weighted)
 	[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini);
 	[dist1, segLen] = distmin(handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, rlon*D2R, rlat*D2R, lengthsRot, 1e20, do_weighted);
 	sum1 = weightedSum(dist1, segLen, do_weighted);
+
+	xd = diff( (handles.isoca2(:,1) .* cos(handles.isoca2(:,2) * D2R) ) * D2R * 6371 );
+	yd = diff( handles.isoca2(:,2) * D2R * 6371 );
+	lengthsRot = sqrt(xd.*xd + yd.*yd);
+	
 	[dist2, segLen] = distmin(rlon*D2R, rlat*D2R, handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, lengthsRot, 1e20, do_weighted);
 	sum2 = weightedSum(dist2, segLen, do_weighted);
 	area0 = (sum1 + sum2) / 2;
@@ -619,10 +637,9 @@ uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
 'Position',[20 128 84 16],...
 'String','Longitude Range',...
-'Style','text',...
-'Tag','text1');
+'Style','text');
 
-uicontrol('Parent',h1,'Position',[162 118 70 15],'String','N of Intervals','Style','text');
+uicontrol('Parent',h1,'Position',[162 118 70 15],'String','N of Intervals','Style','text','Tag','textNint');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -661,12 +678,12 @@ uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[21 74 72 15],'Str
 uicontrol('Parent',h1,'FontSize',10,'FontWeight','bold','Position',[136 282 41 16],'String','OR','Style','text');
 uicontrol('Parent',h1,'FontSize',10,'Position',[97 339 81 16],'String','First Line','Style','text');
 uicontrol('Parent',h1,'FontSize',10,'Position',[348 339 81 16],'String','Second Line','Style','text');
-uicontrol('Parent',h1,'FontSize',10,'Position',[248 237 154 16],'String','Starting Pole Section','Style','text');
-uicontrol('Parent',h1,'FontSize',10,'Position',[247 357 113 16],'String','Data Section','Style','text');
+uicontrol('Parent',h1,'FontSize',10,'Position',[248 237 154 16],'String','Starting Pole Section','Style','text','Tag','txtSP');
+uicontrol('Parent',h1,'FontSize',10,'Position',[247 357 113 16],'String','Data Section','Style','text','Tag','txtDS');
 uicontrol('Parent',h1,'Position',[24 225 51 15],'String','Longitude','Style','text');
 uicontrol('Parent',h1,'Position',[116 225 51 15],'String','Latitude','Style','text');
 uicontrol('Parent',h1,'Position',[205 225 51 15],'String','Angle','Style','text');
-uicontrol('Parent',h1,'FontSize',10,'Position',[248 150 122 16],'String','Compute Section','Style','text');
+uicontrol('Parent',h1,'FontSize',10,'Position',[248 150 122 16],'String','Compute Section','Style','text','Tag','txtCS');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -727,6 +744,14 @@ uicontrol('Parent',h1,...
 'Position',[432 136 57 15],...
 'String','St Residue',...
 'Style','text');
+
+uicontrol('Parent',h1,...
+'Callback',{@compute_euler_uicallback,h1,'check_hellinger_Callback'},...
+'Position',[170 58 110 15],...
+'String','Hellinger method',...
+'Style','checkbox',...
+'TooltipString','Use the Hellinger method',...
+'Tag','check_hellinger');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.9 0.9 0.9],...
