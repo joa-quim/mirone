@@ -338,6 +338,7 @@ uimenu('Parent',hTL,'Call','zonal_integrator(guidata(gcbo))','Label','Zonal Inte
 uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Line Operations','Sep','on','Tag','lineOP');
+% uimenu('Parent',hTL,'Call','world_is_not_round_enough(guidata(gcbo))','Label','World is not (round) enough');
 % uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
 % uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
 
@@ -634,7 +635,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 12 Sep 2008'',''1.4.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 15 Sep 2008'',''1.4.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
