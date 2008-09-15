@@ -50,37 +50,35 @@ function varargout = mirone_pref(varargin)
 		handles.moveDoubleClick = moveDoubleClick;
 	end
 
-	j = logical(zeros(1,length(directory_list)));			% vector for eventual cleaning non-existing dirs
-	if iscell(directory_list)								% When exists a dir list in mirone_pref
-        for (i = 1:length(directory_list))
-            try,        cd(directory_list{i});				% NOTE. I don't use 'exist' anymore because
-            catch,      j(i) = 1;							% the stupid compiler allways return something > 0
-            end
-        end
-        cd(home_dir);							% Need to come back home because it was somewere out there
-        directory_list(j) = [];								% clean eventual non-existing directories
-        if (~isempty(directory_list))						% If there is one left
-            set(handles.popup_directory_list,'String',directory_list)
-            handles.last_directories = directory_list;
-        else
-            handles.last_directories = {[home_dir filesep 'tmp']; home_dir};    % Let it have something existent
-            set(handles.popup_directory_list,'String',handles.last_directories)
-        end
+	if iscell(directory_list)								% When exists a dir list in mirone_pref		
+		j = false(1,numel(directory_list));				% vector for eventual cleaning non-existing dirs
+		for (i = 1:numel(directory_list))				% Check that all dirs in last_directories exist
+			j(i) = (exist(directory_list{i},'dir') ~= 7);
+		end
+		directory_list(j) = [];							% clean non-existing directories
+
+		if (~isempty(directory_list))						% If there is one left
+			set(handles.popup_directory_list,'String',directory_list)
+			handles.last_directories = directory_list;
+		else
+			handles.last_directories = {[home_dir filesep 'tmp']; home_dir};    % Let it have something existent
+			set(handles.popup_directory_list,'String',handles.last_directories)
+		end
 	else													% mirone_pref had no dir list
-        handles.last_directories = {[home_dir filesep 'tmp']; home_dir};    % Let it have something existent
-        set(handles.popup_directory_list,'String',handles.last_directories)
+		handles.last_directories = {[home_dir filesep 'tmp']; home_dir};    % Let it have something existent
+		set(handles.popup_directory_list,'String',handles.last_directories)
 	end
 
     if (handMir.geog)             % Signals a geographic grid/image
-        set(handles.radiobutton_geog,'Value',1)
-        set(handles.radiobutton_cart,'Value',0)
-        handles.geog = 1;
+		set(handles.radiobutton_geog,'Value',1)
+		set(handles.radiobutton_cart,'Value',0)
+		handles.geog = 1;
     elseif (handMir.geog == 0)
-        set(handles.radiobutton_geog,'Value',0)
-        set(handles.radiobutton_cart,'Value',1)
-        handles.geog = 0;
+		set(handles.radiobutton_geog,'Value',0)
+		set(handles.radiobutton_cart,'Value',1)
+		handles.geog = 0;
     else
-        handles.geog = 1;
+		handles.geog = 1;
     end
     set(handles.edit_GridMaxSize,'String',sprintf('%d',fix(handMir.grdMaxSize / (2^20))))
     set(handles.edit_swathRatio,'String',sprintf('%g',handMir.swathRatio))
