@@ -51,10 +51,13 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line move_obj make_arrow
 	%#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
 	%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calcBoninEulerPole spline_interp
-	%#function mat2clip
+	%#function mat2clip buffer_j PolygonClip
 
-	global home_dir;    home_dir = cd;      fsep = filesep;
-	addpath([home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
+	global home_dir;    	fsep = filesep;
+	if (isempty(home_dir))		% First time call. Find out where we are
+		[home_dir, nome] = fileparts(mfilename('fullpath'));		% Get the Mirone homr dir and set path
+		addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
+	end
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
 
 	handles.home_dir = home_dir;
@@ -128,11 +131,8 @@ function hObject = mirone_OpeningFcn(varargin)
 	
 	j = false(1,numel(handles.last_directories));			% vector for eventual cleaning non-existing dirs
 	for (i = 1:numel(handles.last_directories))				% Check that all dirs in last_directories exist
-		try			cd(handles.last_directories{i});		% NOTE. I don't use 'exist' anymore because
-		catch		j(i) = 1;								% the stupid compiler has it completely f up
-		end
+		j(i) = (exist(handles.last_directories{i},'dir') ~= 7);
 	end
-	cd(home_dir);				% Come back home since it was somewhere out there
 	handles.last_directories(j) = [];						% clean non-existing directories
 
 	if (isempty(handles.last_directories))					% Don't ever let it be empty
