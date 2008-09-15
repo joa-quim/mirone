@@ -7,7 +7,7 @@
 
 % Change the following command to specify the directories where you installed 
 % the 'Mirone' directory.  Leave the '-end' part alone.
-addpath('D:\SVN\mironeWC\', '-end');
+%addpath('D:\SVN\mironeWC\', '-end');
 
 
 % You can make an Mirone icon for your desktop this way:  Find matlab.exe
@@ -26,4 +26,4 @@ addpath('D:\SVN\mironeWC\', '-end');
 
 
 % Launch mirone.
-mirone
+%mirone
