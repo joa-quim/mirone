@@ -87,7 +87,7 @@ if ~isnan(requestedMultiSeg)
 			h = min(find(T==10));		% 10 = end of line
             vv = [vv p(k):p(k)+h];
 		end
-		string(vv) = [];
+		if (vv(end) > numel(string)),	vv(end) = numel(string);	end		% As when one have a ">" in the last line
 		clear p vv T h;
 	else
 		requestedMultiSeg = NaN;		% It was a false request
