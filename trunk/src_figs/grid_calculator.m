@@ -43,6 +43,8 @@ function varargout = grid_calculator(varargin)
 	end
 
 	% Fish whatever arrays are in memory now (hopefully)
+	handles.home_dir = cd;		% To be able to call put_or_get_file()
+	handles.last_dir = cd;		handles.work_dir = cd;
 	if (~isempty(h_figs))
         n = 1;
         for (i=1:length(h_figs))
@@ -50,6 +52,9 @@ function varargout = grid_calculator(varargin)
             % Use a try->catch because ML is too dumb to deal correctly with killed figures            
 			try
 				Z = getappdata(hand_fig.figure1,'dem_z');
+				handles.home_dir = hand_fig.home_dir;		% Since I don't know which is the last good one
+				handles.last_dir = hand_fig.last_dir;
+				handles.work_dir = hand_fig.work_dir;
 			catch
 				Z = [];        
 			end
@@ -162,8 +167,8 @@ function pushbutton_loadGrid_Callback(hObject, eventdata, handles)
 	% This function doesn't realy loads the grid. It only stores the grid name.
 	% True loading is donne in "Compute"
 	str1 = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)';'*.*', 'All Files (*.*)'};
-	[FileName,PathName] = uigetfile(str1,'Select GMT grid');
-	if isequal(FileName,0);     return;     end
+	[FileName,PathName] = put_or_get_file(handles, str1,'Select GMT grid','get');
+	if isequal(FileName,0),		return,		end
 	str = get(handles.listbox_inArrays,'String');
 	str{end+1} = FileName;
 	set(handles.listbox_inArrays,'String',str);
