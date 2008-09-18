@@ -25,23 +25,27 @@ function varargout = focal_meca(varargin)
 	focal_meca_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	movegui(hObject,'center');
-   
-    handles.mirone_fig = varargin{1};
-    handMir = guidata(handles.mirone_fig);
+
+	handles.hMirFig = varargin{1};
+	handMir = guidata(handles.hMirFig);
 	handles.no_file = handMir.no_file;
         
     if (~handMir.no_file && ~handMir.is_projected && ~handMir.geog)
         errordlg('This operation is only possible for geographic data OR when the Map Projection is known','ERROR')
         delete(hObject);    return
     end
-    
-    handles.is_projected = handMir.is_projected;
-    handles.defCoordsIn = handMir.defCoordsIn;
-    handles.mironeAxes = handMir.axes1;
-    zz = get(handles.mironeAxes,'XLim');
-    handles.x_min = zz(1);    handles.x_max = zz(2);
-    zz = get(handles.mironeAxes,'YLim');
-    handles.y_min = zz(1);    handles.y_max = zz(2);
+
+	handles.home_dir = handMir.home_dir;
+	handles.last_dir = handMir.last_dir;
+	handles.work_dir = handMir.work_dir;
+
+	handles.is_projected = handMir.is_projected;
+	handles.defCoordsIn = handMir.defCoordsIn;
+	handles.mironeAxes = handMir.axes1;
+	zz = get(handles.mironeAxes,'XLim');
+	handles.x_min = zz(1);    handles.x_max = zz(2);
+	zz = get(handles.mironeAxes,'YLim');
+	handles.y_min = zz(1);    handles.y_max = zz(2);
 
 	handles.date = [];
 	
@@ -60,7 +64,7 @@ function varargout = focal_meca(varargin)
 	set(handles.listbox_readFilter,'String',str);
 	set(handles.checkbox_plotDate,'Enable','off')
 
-    handles_fake.figure1 = handles.mirone_fig;              % Create a fake handles only for
+    handles_fake.figure1 = handles.hMirFig;              % Create a fake handles only for
     handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
     handles_fake.geog = handMir.geog;
     handles.handles_fake = handles_fake;
@@ -144,7 +148,7 @@ function pushbutton_readFile_Callback(hObject, eventdata, handles)
 	end
 
 	% Get file name
-	[FileName,PathName] = uigetfile(str1,'Select focal file');	pause(0.05)
+	[FileName,PathName] = put_or_get_file(handles, str1,'Select focal file', 'get');
 	if isequal(FileName,0),		return,		end
 	fname = [PathName,FileName];
 	handles.date = [];			% Allways reset
@@ -173,7 +177,7 @@ function pushbutton_readFile_Callback(hObject, eventdata, handles)
 				
 			else				% If we have a nothing window
 				region = [min(numeric_data(:,1)) max(numeric_data(:,1)) min(numeric_data(:,2)) max(numeric_data(:,2)) 1];
-				handMir = guidata(handles.mirone_fig);
+				handMir = guidata(handles.hMirFig);
 				mirone('FileNewBgFrame_CB', handMir, region + [-1 1 -1 1 0]*.1);		% Create a background
 			end
 
@@ -222,7 +226,7 @@ function pushbutton_readFile_Callback(hObject, eventdata, handles)
 
 			if (handles.no_file)			% If we have a nothing window
 				region = [min(out_d(1,:)) max(out_d(1,:)) min(out_d(2,:)) max(out_d(2,:)) 1];
-				handMir = guidata(handles.mirone_fig);
+				handMir = guidata(handles.hMirFig);
 				mirone('FileNewBgFrame_CB', handMir, region + [-1 1 -1 1 0]*.1);		% Create a background
 			end
 
@@ -244,7 +248,7 @@ function pushbutton_readFile_Callback(hObject, eventdata, handles)
 			if (error),		return,		end
 			if (handles.no_file)			% If we have a nothing window
 				region = [min(handles.data(:,1)) max(handles.data(:,1)) min(handles.data(:,2)) max(handles.data(:,2)) 1];
-				handMir = guidata(handles.mirone_fig);
+				handMir = guidata(handles.hMirFig);
 				mirone('FileNewBgFrame_CB', handMir, region + [-1 1 -1 1 0]*.1);		% Create a background
 			end
 			handles.plot_pos = handles.data(:,1:2);
@@ -380,7 +384,7 @@ y_lim = get(handles.mironeAxes,'YLim');
 handles.size_fac = (y_lim(2) - y_lim(1)) / (pos(4) - pos(2)) * 0.4;  % Scale facor
 Mag5 = get(handles.edit_Mag5,'String');			% Size (cm) of a mag 5 event
 handles.Mag5 = str2double(Mag5);
-setappdata(handles.mirone_fig,'MecaMag5',Mag5)	% For eventual use in 'write_script'
+setappdata(handles.hMirFig,'MecaMag5',Mag5)	% For eventual use in 'write_script'
 n_meca = size(handles.data(:,1),1);
 axes(handles.mironeAxes)
 h_pat = zeros(n_meca,3);
@@ -432,9 +436,9 @@ for (k=1:n_meca)
 	setappdata(h_pat(k,2),'Limits',[lim_x(:) lim_y(:)]);            % For using in the uiedit
 	set_uicontext(h_pat(k,1));    set_uicontext(h_pat(k,2));
 end
-hand = guidata(handles.mirone_fig);     % Get the Mirone's handles structure
+hand = guidata(handles.hMirFig);     % Get the Mirone's handles structure
 hand.have_focal = handles.Mag5;         % Signal that we have focal mechanisms and store the Mag5 size symbol
-guidata(handles.mirone_fig,hand)        % Save the updated Mirone handles
+guidata(handles.hMirFig,hand)        % Save the updated Mirone handles
 
 % -------------------------------------------------------------------------------------
 function cor = find_color(z, id)
