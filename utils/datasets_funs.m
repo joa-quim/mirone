@@ -55,7 +55,7 @@ function DatasetsHotspots(handles)
 
 % --------------------------------------------------------------------
 function DatasetsVolcanoes(handles)
-	% Read volcanoes.dat which has 6 columns (lat lon name ...)
+% Read volcanoes.dat which has 6 columns (lat lon name ...)
 	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	fid = fopen([handles.path_data 'volcanoes.dat'],'r');
 	todos = fread(fid,'*char');
@@ -84,7 +84,7 @@ function DatasetsTides(handles)
 	[tmp, msg] = geog2projected_pts(handles,[xharm.longitude xharm.latitude]);     % If map in geogs, tmp is just a copy of input
 	if (~strncmp(msg,'0',1))        % Coords were projected
 		xharm.longitude = tmp(:,1);        xharm.latitude = tmp(:,2);
-	end
+    end
 	% Get rid of Tide stations that are outside the map limits
 	[x,y] = aux_funs('in_map_region',handles,xharm.longitude,xharm.latitude,0,[]);
 	h_tides = line(x,y,'Marker','^','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',6,...
@@ -122,11 +122,12 @@ end
 tol = 0.5;
 do_project = false;         % We'll estimate below if this holds true
 
-if (handles.no_file)        % Start empty but below we'll find the true data region
-    XMin = 1e50;            XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
-    geog = 1;               % Not important. It will be confirmed later
-    if (nargin == 1)        % We know it's geog (Global Isochrons)
+if (handles.no_file)		% Start empty but below we'll find the true data region
+    XMin = 1e50;			XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
+    geog = 1;				% Not important. It will be confirmed later
+    if (nargin == 1)		% We know it's geog (Global Isochrons)
 		xx = [-180 180];    yy = [-90 90];
+		if (handles.geog == 2),		xx = [0 360];	end
 		region = [xx yy];
     else                    % We need to compute the file extents.
 		for (k=1:length(names))
@@ -955,7 +956,7 @@ function del_all(obj,eventdata,handles,h)
     
 % -----------------------------------------------------------------------------------------
 function del_line(obj,eventdata,h)
-	% Delete symbols but before check if they are in edit mode
+% Delete symbols but before check if they are in edit mode
     for (k=1:numel(h))
 		if (~isempty(getappdata(h(k),'polygon_data')))
             s = getappdata(h(k),'polygon_data');
@@ -968,9 +969,9 @@ function del_line(obj,eventdata,h)
 
 % --------------------------------------------------------------------
 function [symbol, dim, str2] = parseS(str)
-    % Parse the STR string in search for -S[symb][size]. Valid options are -Sc10, -Sa or -S (defaults to o 10 pt)
-    % If not found or error, DIM = [].
-    % STR2 is the STR string less the -S[symb][size] part
+% Parse the STR string in search for -S[symb][size]. Valid options are -Sc10, -Sa or -S (defaults to o 10 pt)
+% If not found or error, DIM = [].
+% STR2 is the STR string less the -S[symb][size] part
     symbol = 'o';   dim = 10;   str2 = str;
     ind = strfind(str,'-S');
     if (isempty(ind)),      return;     end     % No -S option
@@ -991,17 +992,17 @@ function [symbol, dim, str2] = parseS(str)
 
 % --------------------------------------------------------------------
 function found = parseIqual(str)
-    % Parse the STR string in search for a '-=' option. If found it means the symbol
-    % will be of exactly the same type as previously determined. So this cannot
-    % be used on a first '>' comment line.
+% Parse the STR string in search for a '-=' option. If found it means the symbol
+% will be of exactly the same type as previously determined. So this cannot
+% be used on a first '>' comment line.
     found = false;
     ind = strfind(str,'-=');
     if (~isempty(ind)),      found = true;     end
 
 % --------------------------------------------------------------------
 function [tag,str2] = parseT(str)
-    % Parse the STR string in search for '-T<tag>'. If not found uses default 'scatter_symbs' tag
-    % STR2 is the STR string less the -T<tag> part
+% Parse the STR string in search for '-T<tag>'. If not found uses default 'scatter_symbs' tag
+% STR2 is the STR string less the -T<tag> part
     tag = 'scatter_symbs';   str2 = str;
     ind = strfind(str,'-T');
     if (isempty(ind)),      return;     end     % No -T option

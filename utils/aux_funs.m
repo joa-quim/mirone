@@ -56,25 +56,29 @@ end
 
 % --------------------------------------------------------------------
 function StoreZ(handles,X,Y,Z)
-	% If grid size is not to big I'll store it
+% If grid size is not to big I'll store it
 	if (numel(Z)*4 > handles.grdMaxSize),		return,		end
-	if (~isa(Z,'single')),  setappdata(handles.figure1,'dem_z',single(Z));
-	else                    setappdata(handles.figure1,'dem_z',Z);  end
+	if (~isa(Z,'single')),	setappdata(handles.figure1,'dem_z',single(Z));
+	else					setappdata(handles.figure1,'dem_z',Z);
+	end
 	setappdata(handles.figure1,'dem_x',X);  setappdata(handles.figure1,'dem_y',Y);
 
 % --------------------------------------------------------------------
 function [x,y,indx,indy] = in_map_region(handles,x,y,tol,map_lims)
-	%   Given X & Y vectors retain only the elements that are inside the current map region
-	%   OPTIONS:
-	%   TOL is used normally when ploting lines and serves to extend the map
-	%       limits so that lines are allowed to be drawn until the image borders
-	%   MAP_LIMS a 1x4 vector with [x_min x_max y_min y_max]. If not given it will be geted here
-	%   NOTE THAT ALL ARGUMENTS MUST BE PROVIDED, EVEN IF THEY ARE EMPTY
+%   Given X & Y vectors retain only the elements that are inside the current map region
+%   OPTIONS:
+%   TOL is used normally when ploting lines and serves to extend the map
+%       limits so that lines are allowed to be drawn until the image borders
+%   MAP_LIMS a 1x4 vector with [x_min x_max y_min y_max]. If not given it will be geted here
+%   NOTE THAT ALL ARGUMENTS MUST BE PROVIDED, EVEN IF THEY ARE EMPTY
 	if (isempty(tol)),   tol = 0;    end
 	if (isempty(map_lims))
         x_lim = get(handles.axes1,'Xlim');      y_lim = get(handles.axes1,'Ylim');
 	else
         x_lim(1:2) = map_lims(1:2);    y_lim(1:2) = map_lims(3:4);
+	end
+	if (handles.geog == 2 && x_lim(2) > 180)			% If basemap is in the [0 360] range
+		indx = (x < 0);		x(indx) = x(indx) + 360;	% and we may need the wrapping. Do it.
 	end
 	indx = find((x < x_lim(1)-tol) | (x > x_lim(2)+tol));
 	x(indx) = [];           y(indx) = [];
@@ -274,20 +278,20 @@ function toProjPT(handles)
 
 % ----------------------------------------------------------------------------------
 function prjInfoStruc = getFigProjInfo(handles)
-    % Se if we have projection info stored in Figure's appdata. NOTE, often they are empty
-    prjInfoStruc.projGMT = getappdata(handles.figure1,'ProjGMT');
-    prjInfoStruc.projWKT = getappdata(handles.figure1,'ProjWKT');
-    prjInfoStruc.proj4 = getappdata(handles.figure1,'Proj4');
+% Se if we have projection info stored in Figure's appdata. NOTE, often they are empty
+	prjInfoStruc.projGMT = getappdata(handles.figure1,'ProjGMT');
+	prjInfoStruc.projWKT = getappdata(handles.figure1,'ProjWKT');
+	prjInfoStruc.proj4 = getappdata(handles.figure1,'Proj4');
 
 % --------------------------------------------------------------------
 function [z_min,z_max] = min_max_single(Z)
-	% Compute the min/max of single precision Z arrays. I need this due to (another) Matlab
-	% bug that gives wrong results when the Z (single) array has NaNs. Ouput are doubles.
+% Compute the min/max of single precision Z arrays. I need this due to (another) Matlab
+% bug that gives wrong results when the Z (single) array has NaNs. Ouput are doubles.
 	z_min = double(min(Z(~isnan(Z(:)))));   z_max = double(max(Z(~isnan(Z(:)))));
 
 % --------------------------------------------------------------------
 function img = strip_bg_color(handles,img)
-	% Strip eventual row/columns with color equal to the Figure's background color
+% Strip eventual row/columns with color equal to the Figure's background color
 	bg_color = uint8(get(handles.figure1,'color')*255);
 	c1 = bg_color(1);    c2 = bg_color(2);    c3 = bg_color(3);
 	center_row = round(size(img,1) / 2);
@@ -325,28 +329,31 @@ function img = strip_bg_color(handles,img)
 
 % --------------------------------------------------------------------
 function [X,Y] = adjust_lims(X,Y,m,n)
-	% Convert the image limits from pixel reg to grid reg
-	dx = (X(2) - X(1)) / n;         dy = (Y(2) - Y(1)) / m;
-	X(1) = X(1) + dx/2;             X(2) = X(2) - dx/2;
-	Y(1) = Y(1) + dy/2;             Y(2) = Y(2) - dy/2;
+% Convert the image limits from pixel reg to grid reg
+	dx = (X(2) - X(1)) / n;			dy = (Y(2) - Y(1)) / m;
+	X(1) = X(1) + dx/2;				X(2) = X(2) - dx/2;
+	Y(1) = Y(1) + dy/2;				Y(2) = Y(2) - dy/2;
 
 % --------------------------------------------------------------------
 function geog = guessGeog(lims)
-    % Make a good guess if LIMS are geographic
-    geog = double( ( (lims(1) >= -180 && lims(2) <= 180) || (lims(1) >= 0 && lims(2) <= 360) )...
-        && (lims(3) >= -90 && lims(4) <= 90) );
+% Make a good guess if LIMS are geographic
+	geog = double( ( (lims(1) >= -180 && lims(2) <= 180) || (lims(1) >= 0 && lims(2) <= 360) )...
+		&& (lims(3) >= -90 && lims(4) <= 90) );
+	if (geog && lims(2) > 180)
+		geog = 2;			% We have a [0 360] range
+	end
 
 % --------------------------------------------------------------------
 function res = insideRect(rect,pt)
-    % Check which elements of the  [x y] (Mx2) PT array are inside the rectangle RECT
-    % RECT = [x_min x_max y_min y_max]
-    % RES is a logical column vector with length = size(PT,1)
-    % NO ERROR TESTING
+% Check which elements of the  [x y] (Mx2) PT array are inside the rectangle RECT
+% RECT = [x_min x_max y_min y_max]
+% RES is a logical column vector with length = size(PT,1)
+% NO ERROR TESTING
     res = ( pt(:,1) >= rect(1) & pt(:,1) <= rect(2) & pt(:,2) >= rect(3) & pt(:,2) <= rect(4) );
 
 % --------------------------------------------------------------------
 function clean_GRDappdata(handles)
-	% If reistering an image against a grid, those cannot be empty (shity solution)
+% If reistering an image against a grid, those cannot be empty (shity solution)
 	try
 		rmappdata(handles.figure1,'dem_x');     rmappdata(handles.figure1,'dem_y');
 		rmappdata(handles.figure1,'dem_z');
