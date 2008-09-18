@@ -28,13 +28,17 @@ movegui(hObject,'east')
         delete(hObject);    return
     end
     
-    handles.mirone_fig = varargin{1};
-    handMir = guidata(handles.mirone_fig);
+    handles.hMirFig = varargin{1};
+    handMir = guidata(handles.hMirFig);
 	if (handMir.no_file)
         errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
         delete(hObject);    return
 	end
-    
+
+	handles.home_dir = handMir.home_dir;
+	handles.last_dir = handMir.last_dir;
+	handles.work_dir = handMir.work_dir;
+
     if (~handMir.is_projected && ~handMir.geog)
         errordlg('This operation is only possible for geographic data OR when the Map Projection is known','ERROR')
         delete(hObject);    return
@@ -48,9 +52,9 @@ movegui(hObject,'east')
     handles.y_min = zz(1);    handles.y_max = zz(2);
 
 	% Add this figure handle to the carraças list
-	plugedWin = getappdata(handles.mirone_fig,'dependentFigs');
+	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
 	plugedWin = [plugedWin hObject];
-	setappdata(handles.mirone_fig,'dependentFigs',plugedWin);
+	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
 
     handles.path_data = handMir.path_data;
 
@@ -71,7 +75,7 @@ movegui(hObject,'east')
 	handles.got_userFile = 0;
 	handles.have_mag_nans = 0;
 	handles.have_dep_nans = 0;
-    handles_fake.figure1 = handles.mirone_fig;              % Create a fake handles only for
+    handles_fake.figure1 = handles.hMirFig;              % Create a fake handles only for
     handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
     handles_fake.geog = handMir.geog;
     handles.handles_fake = handles_fake;
@@ -424,9 +428,8 @@ switch item
 end
 
 % Get file name
-[FileName,PathName] = uigetfile(str1,'Select earhquakes file');
-if isequal(FileName,0)      return;    end
-pause(0.05);
+[FileName,PathName] = put_or_get_file(handles, str1,'Select earhquakes file', 'get');
+if isequal(FileName,0),		return,		end
 fname = [PathName,FileName];
 
 try
