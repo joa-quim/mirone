@@ -109,7 +109,7 @@ else
 	tag = 'isochron';		fname = [handles.path_data 'isochrons.dat'];
 end
 
-set(handles.figure1,'pointer','watch')
+%set(handles.figure1,'pointer','watch')
 [bin,n_column,multi_seg,n_headers] = guess_file(fname);
 if (n_column == 1 && multi_seg == 0)        % Take it as a file names list
     fid = fopen(fname);
@@ -154,6 +154,7 @@ else							% Reading over an established region
 	if (handles.is_projected && (nargin == 1 || handles.defCoordsIn > 0) )
 		do_project = true;
 	end
+	XMin = XYlim(1);			XMax = XYlim(2);		% In case we need this names below for line trimming
 end
 
 for (k = 1:numel(names))
@@ -209,6 +210,12 @@ for (k = 1:numel(names))
         if (isempty(cor)),      cor = handles.DefLineColor;     end     %           "
         
         if (~is_closed)         % Line plottings
+			% See if we need to wrap arround the earth roundness discontinuity. Using 0.5 degrees from border. 
+			if (handles.geog == 1 && ~do_project && (XMin < -179.5 || XMax > 179.5) )
+				[tmpy, tmpx] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax],'wrap');
+			elseif (handles.geog == 2 && ~do_project && (XMin < 0.5 || XMax > 359.5) )
+				[tmpy, tmpx] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax],'wrap');
+			end
             n_isoc = n_isoc + 1;
             h_isoc(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',thick,...
                 'Color',cor,'Tag',tag,'Userdata',n_isoc);
