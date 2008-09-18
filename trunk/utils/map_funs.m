@@ -277,3 +277,174 @@ function [xc,yc,xh,yh,nanindx] = extractpoly(xp,yp)
 		xh = x(indxh);  yh = y(indxh);
 		nanindx = find(isnan(xh));
 	end
+
+% ---------------------------------------------------------------------
+function [lat,lon] = trimwrap(lat0,lon0,latlim,lonlim, opt)
+%  [lat,lon] = TRIMWRAP(lat0,lon0,latlim,lonlim) trims a line map
+%  to a region specified by latlim and lonlim.  Latlim and lonlim
+%  are two element vectors, defining the latitude and longitude limits
+%  respectively.  The inputs lat0 and lon0 must be vectors.
+%  [lat,lon] = TRIMWRAP(lat0,lon0,latlim,lonlim, opt) wraps lines
+%  at a 2PI discontinuity. NaN are inserted at each discontinuity point.
+
+if nargin < 4;   error('Incorrect number of arguments');   end
+
+%  Test the inputs
+latlim = sort(latlim);		lonlim = sort(lonlim);
+if  ~isequal(size(latlim), size(lonlim), [1 2])
+	error('Lat and lon limit inputs must be 2 element vectors')
+end
+if ~isequal(size(lat0),size(lon0))
+     error('Inconsistent dimensions on input data')
+end
+
+trim = true;
+if (nargin == 5),	trim = false;		end		% Wrap arround the world
+
+%  Ensure column vectors on input
+if (size(lat0,2) > 1)
+	lat0 = lat0(:);		lon0 = lon0(:);
+end
+
+%  Get the corners of the submap region
+up    = latlim(2);		low  = latlim(1);
+right = lonlim(2);		left = lonlim(1);
+
+if (trim)
+	% Determine the points which lie outside the region of interest
+	indx = find(lat0 < low | lat0 > up | lon0 < left | lon0 > right);
+else		% Wrap
+	% Determine the points which fall at the end of the world
+	dife = diff(lon0);
+	indx = (dife > 180 | dife < -180);
+	if (~any(indx)),
+		indx = [];
+	else
+		indx = [false; indx];
+	end
+end
+
+%  Extract the found points by first replacing the points outside the map
+%  with NaNs.  Then eliminate multiple NaNs in the vector.  This is
+%  necessary incase a line segement exits and enters the trim box, so
+%  as to NaN clip the exit/enter point.
+
+if (~isempty(indx) && trim)				% Trim
+	lat = lat0;             lon = lon0;
+	lat(indx) = NaN;        lon(indx) = NaN;	
+	nanloc = isnan(lat);	[r,c] = size(nanloc);
+	nanloc = find(nanloc(1:r-1,:) & nanloc(2:r,:));
+	lat(nanloc) = [];  lon(nanloc) = [];
+elseif (~isempty(indx) && ~trim)		% Wrap
+	nanloc = find(indx);
+	% Create vectors with the total number of points
+	lon = zeros(numel(lon0)+numel(nanloc),1);		lat = zeros(numel(lon0)+numel(nanloc),1);
+	nanloc = [1; nanloc];
+
+	for (k = 1:numel(nanloc)-1)
+		off = (k-1);
+		lon( nanloc(k)+off:nanloc(k+1)-1+off ) = lon0( nanloc(k):nanloc(k+1)-1 );		lon(nanloc(k+1)+off) = NaN;
+		lat( nanloc(k)+off:nanloc(k+1)-1+off ) = lat0( nanloc(k):nanloc(k+1)-1 );		lat(nanloc(k+1)+off) = NaN;
+	end
+	% Copy the oints since last NaN till end of arrays
+	lon( nanloc(end)+1+off:numel(lon) ) = lon0( nanloc(end):numel(lon0) );
+	lat( nanloc(end)+1+off:numel(lon) ) = lat0( nanloc(end):numel(lat0) );
+else
+	lat = lat0;             lon = lon0;
+end
+
+% ---------------------------------------------------------------------
+function [lat,lon] = maptrimp(lat0,lon0,latlim,lonlim)
+%  [lat,lon] = MAPTRIMP(lat0,lon0,latlim,lonlim) trims a patch map
+%  to a region specified by latlim and lonlim.  Latlim and lonlim
+%  are two element vectors, defining the latitude and longitude limits
+%  respectively.  The inputs lat0 and lon0 must be vectors representing
+%  patch map vector data.
+
+%  Copyright 1996-2003 The MathWorks, Inc.
+%  Written by:  E. Byrns, E. Brown
+
+
+if nargin < 4;   error('Incorrect number of arguments');   end
+
+%  Test the inputs
+if  ~isequal(sort(size(latlim)),sort(size(lonlim)),[1 2])
+	error('Lat and lon limit inputs must be 2 element vectors')
+end
+
+%  Get the corners of the submap region
+up    = max(latlim);   low  = min(latlim);
+right = max(lonlim);   left = min(lonlim);
+
+%  Copy the input data and ensure column vectors.
+lat = lat0(:);   lon = lon0(:);
+
+%  Get the vector of patch items and remove any NaN padding
+%  at the beginning or end of the column.  This eliminates potential
+%  multiple NaNs at the beginning and end of the patches.
+while (isnan(lat(1)) || isnan(lon(1)))
+	lat(1) = [];   lon(1) = [];
+end
+while ( isnan(lat(length(lat))) || isnan(lon(length(lon))) )   
+	lat(length(lat)) = [];   lon(length(lon)) = [];
+end
+
+%  Add a NaN to the end of the data vector.  Necessary for processing of multiple patches.
+lat(length(lat)+1) = NaN;   lon(length(lon)+1) = NaN;
+
+%  Find the individual patches and then trim the data
+indx = find(isnan(lon) | isnan(lat));
+if isempty(indx);   indx = length(lon)+1;   end
+
+for i = 1:length(indx)
+
+	if (i == 1),	startloc = 1;
+	else			startloc = indx(i-1)+1;
+	end
+	endloc   = indx(i)-1;
+	
+	indices = (startloc:endloc)';   %  Indices will be empty if NaNs are
+                                    %  neighboring in the vector data.
+	if ~isempty(indices)            %  Should not happen, but test just in case
+
+		%  Patches which lie completely outside the trim window.  Replace
+		%  with NaNs and then eliminate it entirely later.  Replacing with
+		%  NaNs is useful so that the indexing with indices is not messed
+		%  up if an entire patch is eliminated at this point.
+		
+		%  If at least one point of the patch edge does not lie with the
+		%  specified window limits, then the entire patch is trimmed.
+	
+         if ~any(lon(indices) >= left & lon(indices) <= right & ...
+			 	lat(indices) >= low  & lat(indices) <= up)
+				lon(indices) = NaN;    lat(indices) = NaN;
+         end
+	
+		%  Need to only test along edge since patch must lie somehow within the window.
+	
+		%  Points off the bottom
+		loctn = find( lon(indices) < left );
+		if ~isempty(loctn);  lon(indices(loctn)) = left;     end
+	
+		%  Points off the top
+		loctn = find( lon(indices) > right );
+		if ~isempty(loctn);   lon(indices(loctn)) = right;   end
+	
+		%  Points off the left
+		loctn = find( lat(indices) < low );
+		if ~isempty(loctn);   lat(indices(loctn)) = low;     end
+	
+		%  Points off the right
+		loctn = find( lat(indices) > up );
+		if ~isempty(loctn);   lat(indices(loctn)) = up;      end
+	end
+end
+
+
+%  Eliminate multiple NaNs in the vector.  Will occur if a patch
+%  lies entirely outside the window of interest.
+if ~isempty(lat)
+	nanloc = isnan(lat);	[r,c] = size(nanloc);
+	nanloc = find(nanloc(1:r-1,:) & nanloc(2:r,:));
+	lat(nanloc) = [];  lon(nanloc) = [];
+end
