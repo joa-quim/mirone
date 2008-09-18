@@ -53,6 +53,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calcBoninEulerPole spline_interp
 	%#function mat2clip buffer_j PolygonClip
 
+% 	global home_dir;    home_dir = cd;      fsep = filesep;		% To compile uncomment this and comment next 5 lines
 	global home_dir;    	fsep = filesep;
 	if (isempty(home_dir))		% First time call. Find out where we are
 		[home_dir, nome] = fileparts(mfilename('fullpath'));		% Get the Mirone homr dir and set path
@@ -465,7 +466,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 else					% Interactive croping (either Grid or Image)
 	if (strcmp(opt2,'CropaGrid'))	% Arrive here when called by "Grid Tools -> Crop Grid"
 		[X,Y,Z,head] = load_grd(handles);
-		if isempty(Z),  set(handles.figure1,'pointer','arrow');    return;     end;
+		if isempty(Z),  set(handles.figure1,'pointer','arrow'),		return,		end
 		[p1,p2] = rubberbandbox;
 		x0 = min(p1(1),p2(1));		y0 = min(p1(2),p2(2));
 		dx = abs(p2(1)-p1(1));		dy = abs(p2(2)-p1(2));
@@ -493,19 +494,19 @@ if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
 	if (isempty(opt2))
 		mirone(I);
 	else
-		head(2) = handles.head(1) + (r_c(4)-1)*handles.head(8);     head(1) = handles.head(1) + (r_c(3)-1)*handles.head(8);
-		head(4) = handles.head(3) + (r_c(2)-1)*handles.head(9);     head(3) = handles.head(3) + (r_c(1)-1)*handles.head(9);
-		head(5) = 0;            head(6) = 255;     head(7) = 0;     head(8:9) = handles.head(8:9);  tmp.name = 'Croped Image';
-		tmp.head = head;        tmp.geog = handles.geog;            tmp.X = head(1:2);    tmp.Y = head(3:4);
-		if (~isempty(pal)),     tmp.cmap = pal;     end
+		head(2) = handles.head(1) + (r_c(4)-1)*handles.head(8);		head(1) = handles.head(1) + (r_c(3)-1)*handles.head(8);
+		head(4) = handles.head(3) + (r_c(2)-1)*handles.head(9);		head(3) = handles.head(3) + (r_c(1)-1)*handles.head(9);
+		head(5) = 0;			head(6) = 255;		head(7) = 0;	head(8:9) = handles.head(8:9);  tmp.name = 'Croped Image';
+		tmp.head = head;		tmp.geog = handles.geog;			tmp.X = head(1:2);		tmp.Y = head(3:4);
+		if (~isempty(pal)),		tmp.cmap = pal;     end
 		mirone(flipdim(I,1),tmp);
 	end
 	done = true;				% We are done. BYE BYE.
 elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )       % Do the operatio indicated in opt2(11:end) & return
 	curr_opt = opt2(11:end);
 	if (~strcmp(curr_opt,'pure'))           % We will need those for all other options
-		head(2) = head(1) + (r_c(4)-1)*head(8);         head(1) = head(1) + (r_c(3)-1)*head(8);
-		head(4) = head(3) + (r_c(2)-1)*head(9);         head(3) = head(3) + (r_c(1)-1)*head(9);
+		head(2) = head(1) + (r_c(4)-1)*head(8);			head(1) = head(1) + (r_c(3)-1)*head(8);
+		head(4) = head(3) + (r_c(2)-1)*head(9);			head(3) = head(3) + (r_c(1)-1)*head(9);
 		if (isa(Z,'single')),	zz = grdutils(Z,'-L');			head(5:6) = [zz(1) zz(2)];
 		else					head(5) = double(min(Z(:)));	head(6) = double(max(Z(:)));
 		end
@@ -1508,7 +1509,7 @@ function read_DEMs(handles,fullname,tipo,opt)
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize)
 	% Show image and set other parameters
-	if (adjust)         % Convert the image limits from pixel reg to grid reg
+	if (adjust)				% Convert the image limits from pixel reg to grid reg
 		[m,n,k] = size(I);  [X,Y] = aux_funs('adjust_lims',X,Y,m,n);
 	end
 	if (strcmp(get(handles.GCPtool,'Checked'),'on'))		% Call gcpTool() and return
@@ -1524,8 +1525,8 @@ function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize
 		handles.head(9) = diff(handles.head(3:4)) / size(I,1) + ~handles.head(7);
 	end
 	dxy = 0;
-	if (validGrid),		dx = X(2) - X(1);       dy = Y(2) - Y(1);
-	else				dx = 0;                 dy = 0;
+	if (validGrid),		dx = X(2) - X(1);		dy = Y(2) - Y(1);
+	else				dx = 0;					dy = 0;
 	end
 	if (~validGrid && handles.validGrid),		aux_funs('cleanGRDappdata',handles);	end
 	if (isempty(imSize) && (abs(dx - dy) > 1e-4))       % Check for grid node spacing anisotropy
@@ -1534,7 +1535,7 @@ function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize
 
 	handles.hImg = image(X,Y,I,'Parent',handles.axes1);
 	zoom_state(handles,'off_yes');
-	if (isa(I,'logical'))
+	if (islogical(I))
 		set(handles.hImg,'CDataMapping','scaled');   set(handles.figure1,'ColorMap',gray(64));
 	else
 		set(handles.hImg,'CDataMapping','direct')
@@ -1566,7 +1567,7 @@ function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize
 	set(handles.noVGlist(6:end),'Vis', st{validGrid + 1}),		set(handles.noVGlist(1:5),'Ena', st{validGrid + 1})
 	set([handles.Datasets handles.Geophysics],'Vis', st{(handles.image_type ~= 2) + 1})
 	set(handles.noAxes,'Vis', st{~strcmp(axis_t,'off') + 1})
-	set(handles.toGE,'Enable', st{handles.geog + 1})
+	set(handles.toGE,'Enable', st{min(handles.geog,1) + 1})
 	set(findobj(handles.Projections,'Label','GMT project'), 'Vis', st{validGrid + 1})
 
 	GCPmemoryVis = 'off';
@@ -2529,10 +2530,10 @@ if (haveCircleGeo)				% case of Geographic circles
 		h_circ = line('Xdata',CircleGeo(i).x,'Ydata',CircleGeo(i).y,'Parent',handles.axes1,'LineWidth',CircleGeo(i).LineWidth,...
 			'color',CircleGeo(i).color,'Tag',CircleGeo(i).tag, 'LineStyle',CircleGeo(i).LineStyle);
 		setappdata(h_circ,'LonLatRad',CircleGeo(i).lon_lat_rad);
-		CircleGeo(i).ud.hcirc = h_circ;                 CircleGeo(i).ud.parent = handles.axes1;
-		CircleGeo(i).ud.h_fig = handles.figure1;        CircleGeo(i).ud.h_axes = handles.axes1;
+		CircleGeo(i).ud.hcirc = h_circ;					CircleGeo(i).ud.parent = handles.axes1;
+		CircleGeo(i).ud.h_fig = handles.figure1;		CircleGeo(i).ud.h_axes = handles.axes1;
 		set(h_circ,'UserData',CircleGeo(i).ud,'buttondownfcn','uicirclegeo(''circlemousedown'')')
-		draw_funs(h_circ,'SessionRestoreCircle')       % Set circle's uicontextmenu
+		draw_funs(h_circ,'SessionRestoreCircle')		% Set circle's uicontextmenu
 	end
 end
 if (haveCircleCart)				% case of Cartesian circles
@@ -2541,7 +2542,7 @@ if (haveCircleCart)				% case of Cartesian circles
 			'color',CircleCart(i).color,'Tag',CircleCart(i).tag, 'LineStyle',CircleCart(i).LineStyle);
 		setappdata(h_circ,'LonLatRad',CircleCart(i).lon_lat_rad);
 		x = linspace(-pi,pi,360);
-		setappdata(h_circ,'X',cos(x));       setappdata(h_circ,'Y',sin(x))    % Save unit circle coords
+		setappdata(h_circ,'X',cos(x));		setappdata(h_circ,'Y',sin(x))    % Save unit circle coords
 		CircleCart(i).ud.hcirc = h_circ;
 		CircleCart(i).ud.parent = handles.axes1;
 		draw_funs(h_circ,'SessionRestoreCircleCart')       % Set circle's uicontextmenu
@@ -2557,7 +2558,7 @@ if (havePline)					% case of polylines
 			draw_funs(h_line,'isochron',{Pline(i).LineInfo})
 		else
 			draw_funs(h_line,'line_uicontext')       % Set lines's uicontextmenu
-        end
+		end
 	end
 end
 if (havePlineAsPoints)			% case of polylines as points (markers) only
@@ -2577,44 +2578,44 @@ if (haveSymbol)					% case of Symbols (line Markers)
 	end
 end
 if (haveText)					% case of text strings
-    %if (~existmex('Texto','var') && existmex('Text','var')),       Texto= Text;   end     % Compatibility issue
+	%if (~existmex('Texto','var') && existmex('Text','var')),       Texto= Text;   end     % Compatibility issue
 	%try,r1=true;z=Texto;catch,r1=false;end;		try,r2=true;z=Text;catch,r2=false;end
 	%if (~r1 && r2),       Texto= Text;   end     % Compatibility issue
-    if (~exist('Texto','var') && exist('Text','var')),       Texto= Text;   end     % Compatibility issue
-    for i=1:length(Texto)
-        if (isempty(Texto(i).str)),  continue;   end
-        h_text = text(Texto(i).pos(1),Texto(i).pos(2),Texto(i).pos(3), Texto(i).str,...
-            'Parent',handles.axes1, 'Rotation',Texto(i).angle,...
-            'FontAngle',Texto(i).FontAngle, 'Tag',Texto(i).Tag, 'FontWeight',Texto(i).FontWeight,...
-            'color',Texto(i).color, 'FontName',Texto(i).FontName, 'FontSize',Texto(i).FontSize);
-        if (isfield(Texto(i),'VerticalAlignment')),      set(h_text,'VerticalAlignment',Texto(i).VerticalAlignment);        end
-        if (isfield(Texto(i),'HorizontalAlignment')),    set(h_text,'HorizontalAlignment',Texto(i).HorizontalAlignment);    end
-        draw_funs(h_text,'DrawText')		% Set texts's uicontextmenu
-    end
+	if (~exist('Texto','var') && exist('Text','var')),       Texto= Text;   end     % Compatibility issue  
+	for i=1:length(Texto)
+		if (isempty(Texto(i).str)),  continue;   end
+		h_text = text(Texto(i).pos(1),Texto(i).pos(2),Texto(i).pos(3), Texto(i).str,...
+			'Parent',handles.axes1, 'Rotation',Texto(i).angle,...
+			'FontAngle',Texto(i).FontAngle, 'Tag',Texto(i).Tag, 'FontWeight',Texto(i).FontWeight,...
+			'color',Texto(i).color, 'FontName',Texto(i).FontName, 'FontSize',Texto(i).FontSize);
+		if (isfield(Texto(i),'VerticalAlignment')),      set(h_text,'VerticalAlignment',Texto(i).VerticalAlignment);        end
+		if (isfield(Texto(i),'HorizontalAlignment')),    set(h_text,'HorizontalAlignment',Texto(i).HorizontalAlignment);    end
+		draw_funs(h_text,'DrawText')		% Set texts's uicontextmenu
+	end
 end
-if (exist('havePatches','var') && havePatches)		% case of patchs - NOTE, the Tags are currently lost
-    for (i=1:length(Patches))
-        try					% We never know with those guys, so it's better to play safe
-            is_telha = 0;
-            if (strcmp(Patches(i).tag,'tapete_R') || strcmp(Patches(i).tag,'tapete'))
-                Patches(i).x = reshape(Patches(i).x,4,length(Patches(i).x)/4);
-                Patches(i).y = reshape(Patches(i).y,4,length(Patches(i).y)/4);
-                is_telha = 1;
-            end
+if (exist('havePatches','var') && havePatches)		% case of patchs - NOTE, the Tags are currently lost 
+	for (i=1:length(Patches))
+		try					% We never know with those guys, so it's better to play safe
+			is_telha = 0;
+			if (strcmp(Patches(i).tag,'tapete_R') || strcmp(Patches(i).tag,'tapete'))
+				Patches(i).x = reshape(Patches(i).x,4,length(Patches(i).x)/4);
+				Patches(i).y = reshape(Patches(i).y,4,length(Patches(i).y)/4);
+				is_telha = 1;
+			end
 % 			if (Patches(i).FaceColor(1) == 1),		Patches(i).tag = 'tapete';
 %			else									Patches(i).tag = 'tapete_R';
 %			end
-            h_patch = patch('XData',Patches(i).x, 'YData',Patches(i).y, 'Parent',handles.axes1,'LineWidth',Patches(i).LineWidth,...
-                'EdgeColor',Patches(i).EdgeColor, 'FaceColor',Patches(i).FaceColor,...
-                'LineStyle',Patches(i).LineStyle, 'Tag', Patches(i).tag);
-            if (is_telha)
-                set(h_patch,'UserData',Patches(i).ud)
-                draw_funs(h_patch,'telhas_patch')       % Set telhas's uicontextmenu
-            else
-                draw_funs(h_patch,'line_uicontext')     % Set patch's uicontextmenu
-            end
-        end
-    end
+			h_patch = patch('XData',Patches(i).x, 'YData',Patches(i).y, 'Parent',handles.axes1,'LineWidth',Patches(i).LineWidth,...
+				'EdgeColor',Patches(i).EdgeColor, 'FaceColor',Patches(i).FaceColor,...
+				'LineStyle',Patches(i).LineStyle, 'Tag', Patches(i).tag);
+			if (is_telha)
+				set(h_patch,'UserData',Patches(i).ud)
+				draw_funs(h_patch,'telhas_patch')       % Set telhas's uicontextmenu
+			else
+				draw_funs(h_patch,'line_uicontext')     % Set patch's uicontextmenu
+			end
+		end
+	end
 end
 try
 	if (haveCoasts),        datasets_funs('CoastLines', handles,coastUD);  end
@@ -2952,21 +2953,21 @@ function GridToolsSmooth_CB(handles)
 
 	[ind_s,ind] = tile(m,nl,skirt);             % Get indexes for tiling.
 	if size(ind_s,1) > 1                        % There is still a very strange thing that I don't understand.
-        Zs = [];
-        for k = 1:size(ind_s,1)
-            tmp1 = (ind_s(k,1):ind_s(k,2));     % Indexes with overlapping zone
-            tmp2 = ind(k,1):ind(k,2);           % Indexes of chunks without the overlaping zone
-            pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1,:),str2double(resp{1}));
-            tmp = spl_fun('fnval',pp,{Y(tmp1),X});
-            Zs = [Zs; tmp(tmp2,:)];
-        end
-        clear pp tmp;
-        Z = Zs;     clear Zs;
+		Zs = [];
+		for k = 1:size(ind_s,1)
+			tmp1 = (ind_s(k,1):ind_s(k,2));     % Indexes with overlapping zone
+			tmp2 = ind(k,1):ind(k,2);           % Indexes of chunks without the overlaping zone
+			pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1,:),str2double(resp{1}));
+			tmp = spl_fun('fnval',pp,{Y(tmp1),X});
+			Zs = [Zs; tmp(tmp2,:)];
+		end
+		clear pp tmp;
+		Z = Zs;     clear Zs;
 	else
-        pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));
-        Z = spl_fun('fnval',pp,{Y,X});    clear pp;
+		pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));
+		Z = spl_fun('fnval',pp,{Y,X});    clear pp;
 	end
-	
+
 	tit = ['Spline smoothed grid. p parameter used = ' str2double(resp{1})];
 	GRDdisplay(handles,X,Y,Z,head,tit,'Spline smoothed grid');
 
@@ -3177,7 +3178,7 @@ function GridToolsSaveAsSRTM_CB(handles)
 
 % --------------------------------------------------------------------
 function GridToolsPadd2Const_CB(handles)
-	% Pad the array to a const value (currently ct = zero) using a Hanning window
+% Pad the array to a const value (currently ct = zero) using a Hanning window
 	if (aux_funs('msg_dlg',14,handles));     return;      end
 	[X,Y,Z,head,m,n] = load_grd(handles);
 	if isempty(Z),   return;     end;    % An error message was already issued
@@ -3193,16 +3194,16 @@ function GridToolsPadd2Const_CB(handles)
 
 % --------------------------------------------------------------------
 function FileSaveFleder_CB(handles, opt)
-	% Depending on the OPT value, this function builds either:
-	% OPT = 'writeAll3' a set of three files: .geo, .dtm, .shade as DMagic would do
-	% OPT = 'writePlanar' directly build a planar Sonar SD file to be used by Fledermaus
-	% OPT = 'writeSpherical' directly build a spherical Sonar SD file to be used by Fledermaus
-	% OPT = 'runPlanar' build a planar .sd file (but don't keep it) and run the viewer
-	% OPT = 'runSpherical' build a spherical .sd file (but don't keep it) and run the viewer
+% Depending on the OPT value, this function builds either:
+% OPT = 'writeAll3' a set of three files: .geo, .dtm, .shade as DMagic would do
+% OPT = 'writePlanar' directly build a planar Sonar SD file to be used by Fledermaus
+% OPT = 'writeSpherical' directly build a spherical Sonar SD file to be used by Fledermaus
+% OPT = 'runPlanar' build a planar .sd file (but don't keep it) and run the viewer
+% OPT = 'runSpherical' build a spherical .sd file (but don't keep it) and run the viewer
 	if (handles.no_file),     return,	end
 	if (nargin == 1),		opt = 'runPlanar';		end
 	if ( (strcmp(opt,'writeSpherical') || ~handles.flederPlanar) && ~handles.geog)
-        errordlg('Spherical objects are allowed only for geographical grids','Error');    return
+		errordlg('Spherical objects are allowed only for geographical grids','Error');    return
 	end
 
 	fname = write_flederFiles(opt, handles);		pause(0.01);
@@ -3211,18 +3212,18 @@ function FileSaveFleder_CB(handles, opt)
 		if (handles.whichFleder),	fcomm = ['iview3d -data ' fname ' &'];			% Free viewer
 		else						fcomm = ['fledermaus -data ' fname ' &'];		% The real thing
 		end
-        try
+		try
 			if (isunix)         % Stupid linux doesn't react to a non-existant iview3d
-                resp = unix(fcomm);
-                if (resp == 0)
-                    errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
-                end
+				resp = unix(fcomm);
+				if (resp == 0)
+					errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
+				end
 			elseif (ispc),  dos(fcomm);
 			else            errordlg('Unknown platform.','Error');  return;
 			end
-        catch
-            errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
-        end
+		catch
+			errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
+		end
 		builtin('delete',fname);
 	end
 
@@ -3241,21 +3242,21 @@ if (strcmp(opt,'ppa'))
 	draw_funs(h_ridge,'isochron',multi_segs_str)
 	set(handles.figure1,'pointer','arrow')
 	return
-%     x_lim = get(handles.axes1,'XLim');    y_lim = get(handles.axes1,'YLim');
-%     h_lixo = figure('MenuBar','none');
-%     h_tmp = line('XData',out(1,:),'YData',out(2,:),'Linewidth',0.1);
-%     set(handles.axes1,'XLim',x_lim,'YLim',y_lim)
-%     F = getframe(h_lixo);
-%     img = F.cdata;
-%     [m,n,k] = size(img);
-%     x_inc = (handles.head(2) - handles.head(1)) / n;
-%     y_inc = (handles.head(4) - handles.head(3)) / m;
-%     I = flipud(img(:,:,1));
-%     delete(h_lixo);
+% 	x_lim = get(handles.axes1,'XLim');    y_lim = get(handles.axes1,'YLim');
+% 	h_lixo = figure('MenuBar','none');
+% 	h_tmp = line('XData',out(1,:),'YData',out(2,:),'Linewidth',0.1);
+% 	set(handles.axes1,'XLim',x_lim,'YLim',y_lim)
+% 	F = getframe(h_lixo);
+% 	img = F.cdata;
+% 	[m,n,k] = size(img);
+% 	x_inc = (handles.head(2) - handles.head(1)) / n;
+% 	y_inc = (handles.head(4) - handles.head(3)) / m;
+% 	I = flipud(img(:,:,1));
+% 	delete(h_lixo);
 elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
 	if (ndims(img) == 3),   img = cvlib_mex('color',img,'rgb2gray');      end
 	if (~strcmp(opt(1:3),'SUS'))
-        %img = cvlib_mex('canny',img,40,200,3);
+		%img = cvlib_mex('canny',img,40,200,3);
 		if (~handles.IamCompiled),		img = canny(img);		% Economic version (uses singles & cvlib_mex but crashs in compiled)
 		else							img = img_fun('edge',img,'canny');
 		end
