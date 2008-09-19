@@ -173,7 +173,7 @@ for (k = 1:numel(names))
 	% Test if conversion into a single, NaN separated, line its wanted 
 	if (strncmp(multi_segs_str{1}, '>U_N_I_K', 8))
 		for (i = 1:n_segments-1)
-			numeric_data{i} = [numeric_data{i}; nan nan];
+			numeric_data{i} = [numeric_data{i}(:,1:2); nan nan];
 		end
 		numeric_data{1} = cat(1,numeric_data{:});
 		% Rip the U_N_I_K identifier
