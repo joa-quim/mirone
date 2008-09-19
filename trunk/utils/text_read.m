@@ -212,7 +212,10 @@ if (~isempty(ind))
 	newind = zeros(1,nHead);
 	for (k=1:nHead),        newind(k) = find(inds == ind(k));    end
 	res = [];
-	for (k=1:nHead),        res = [res inds(newind(k)):inds(newind(k)+1)];    end
+	if (newind(nHead) == numel(inds))		% Bad luck, but already happened (when last line is a header)
+		inds(end+1) = numel(str);
+	end
+	for (k=1:nHead),		res = [res inds(newind(k)):inds(newind(k)+1)];    end
 	str(res)=[];        % Removes chunks between a '>' and a newline
 end
 
