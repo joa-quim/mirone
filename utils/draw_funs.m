@@ -194,7 +194,7 @@ function Ctrl_v(h)
 			'LineStyle',get(hLine,'LineStyle'), 'EdgeColor',get(hLine,'EdgeColor'), 'FaceColor',get(hLine,'FaceColor'), ...
 			 'FaceAlpha',get(hLine,'FaceAlpha'), 'Tag',get(hLine,'Tag') );
 	end
-	ui_edit_polygon(h)
+	draw_funs(h,'line_uicontext')        % Set lines's uicontextmenu
 
 % % -----------------------------------------------------------------------------------------
 % function setUIcbs(item, labels, cbs)
