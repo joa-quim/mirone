@@ -2019,7 +2019,7 @@ function push_maregs_Callback(hObject, eventdata, handles, opt)
 
     if (nargin == 3)        % Direct call
 		[FileName,PathName] = put_or_get_file(handles, ...
-			{'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.txt)';'*.*', 'All Files (*.*)'},'(x,y) file','put','.dat');
+			{'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.txt)';'*.*', 'All Files (*.*)'},'(x,y) file','get');
 		if isequal(FileName,0),		return,		end
 	else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
