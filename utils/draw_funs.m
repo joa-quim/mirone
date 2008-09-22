@@ -194,7 +194,7 @@ function Ctrl_v(h)
 			'LineStyle',get(hLine,'LineStyle'), 'EdgeColor',get(hLine,'EdgeColor'), 'FaceColor',get(hLine,'FaceColor'), ...
 			 'FaceAlpha',get(hLine,'FaceAlpha'), 'Tag',get(hLine,'Tag') );
 	end
-	draw_funs(h,'line_uicontext')        % Set lines's uicontextmenu
+	set_line_uicontext(h,'line')		% Set lines's uicontextmenu
 
 % % -----------------------------------------------------------------------------------------
 % function setUIcbs(item, labels, cbs)
