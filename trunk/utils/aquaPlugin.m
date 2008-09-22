@@ -10,7 +10,6 @@ function aquaPlugin(handles)
 		return
 	end
 
-	do_return = true;
 	casos = {'zonal' ...			% 1 - Compute zonal means
 			'tvar' ...				% 2 - Compute the Temp time rate of a file with anual means by fit of a straight line (Load entire file in memory)
 			'yearMean' ...			% 3 - Compute yearly averages from monthly data
@@ -22,22 +21,18 @@ function aquaPlugin(handles)
 			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
 			};
 
-	qual = casos{8};		% <== Active selection
+	qual = casos{1};		% <== Active selection
 
 	switch qual
 		case 'zonal'				% case 1
 			integ_lon = true;
 			dlat = 0.5;
-			have_polygon = true;
-			if (have_polygon);
-				fname = 'plataforma_poly.dat';
-				S = load(fname);
-				x = S(:,1)+360;		y = S(:,2);
-			else
-				x = [];		y = [];
-			end
-
-			zonal(handles, dlat, integ_lon, have_polygon, x, y)
+ 			have_polygon = true;
+			trends = false;			% If true compute the trends (per stripe) of the zonal integration
+			fname = 'plataforma_poly.dat';		% If this name is uncorrect, another will be asked
+			fnam2 = 'plataforma_offset_poly.dat';		% If it exists, compute difference of zonal integrations
+			fnam2 = 'rectangle.dat';	fnam2= [];
+			zonal(handles, dlat, integ_lon, trends, have_polygon, fname, fnam2)
 		case 'tvar'					% case 2
 			calcGrad(handles) 
 		case 'yearMean'				% case 3
@@ -48,10 +43,12 @@ function aquaPlugin(handles)
 			fname  = 'C:\SVN\mironeWC\qual_85_07.nc';
 			quality = 6;			% Retain only values of quality >= this
 			pintAnoes = true;		% If true instruct to fill holes <= nCells
-			nCells = 200;			% Holes (bad data) smaller than this are filled by interpolation
+			nCells = 1000;			% Holes (bad data) smaller than this are filled by interpolation
+			splina = true;			% Fill missing monthly data by a spline interpolation taken over an year
 			% Where to save track of filled holes. Ignored if pintAnoes = false OR fname3 = []
 			fname3 = 'C:\SVN\mironeWC\qual7_85_07_Interp200_Q6.nc';
-			calc_yearMean(handles, ano, fname, quality, pintAnoes, nCells, fname3)
+			fname3 = [];
+			calc_yearMean(handles, ano, fname, quality, pintAnoes, nCells, fname3, splina)
 		case 'polygAVG'				% case 5
 			calc_polygAVG(handles)
 		case 'flagsStats'			% case 6
@@ -68,84 +65,46 @@ function aquaPlugin(handles)
 			do_math(handles, opt)
 		case 'conv2vtk'				% case 9
 			write_vtk(handles)
-		otherwise
-			do_return = false;		% Not finish (run the code below)
-	end
-	
-	if (do_return),		return,		end		% Finish work here
-	
-	% Old part of code that computes yearly rate of change from monthly data
-
-	z_id = handles.netcdf_z_id;
-	s = handles.nc_info;			% Retrieve the .nc info struct
-	rows = s.Dataset(z_id).Size(end-1);
-	cols = s.Dataset(z_id).Size(end);
-	
-	anos = handles.number_of_timesteps / 12;
-	
-	aguentabar(0,'title','Calcula as medias anuais ')
-	Tmed = zeros([rows, cols, anos]);	% Temp media para cada um dos anos
-	mn = 0;
-	warning off MATLAB:divideByZero
-	for (m = 1:anos)
-		contanoes = zeros(rows, cols);
-		for (n = 1:12)
-			Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [mn 0 0], [1 rows cols]);
-			ind = isnan(Z);
-			Z(ind) = 0;				% transmuta os anoes
-			contanoes = contanoes + ~ind;
-			Tmed(:,:,m) = Tmed(:,:,m) + double(Z);
-			mn = mn + 1;
-		end
-		Tmed(:,:,m) = Tmed(:,:,m) ./ contanoes;
 	end
 
-	clear Z
-	Tmed(Tmed == 0) = nan;			% Repoe os anoes
-	Tvar = zeros(rows,cols);
-
-	aguentabar(0,'title','Calcula a variaçao temporal','CreateCancelBtn')
-	
-	x = (0:anos-1)';
-	for (m = 1:rows)
-		for (n = 1:cols)
-			p = polyfit(x,squeeze(Tmed(m,n,:)),1);
-			Tvar(m,n) = p(1);
-		end
-		h = aguentabar(m/rows);
-		if (isnan(h)),	break,	end
-	end
-	if (isnan(h)),	return,		end
-	
-	clear Tmed
-	Tvar = single(Tvar);
-	
-	tmp.head = handles.head;
-	zz = grdutils(Tvar,'-L');  tmp.head(5:6) = [zz(1) zz(2)];
-	tmp.X = linspace(tmp.head(1),tmp.head(2),cols);
-	tmp.Y = linspace(tmp.head(3),tmp.head(4),rows);
-	tmp.name = 'Time rate (deg/year)';
-	mirone(Tvar, tmp)
-	
 % ----------------------------------------------------------------------
-function zonal(handles, dlat, integ_lon, have_polygon, x, y)
-% Compute zonal mean from a multi-layer file
+function out = zonal(handles, dlat, integ_lon, do_trends, have_polygon, fname, fname2)
+% Compute zonal means from a multi-layer file
+% DLAT 			width of the box in the direction orthogonal to INTEG_LON
+% INTEG_LON 	If true, integration is done along longitude
+% DO_TRENDS		If false compute zonal integrations. Otherwise compute trends of the zonal integrations (per DLAT)
+% HAVE_POLYGON	If true limit the analisys to the are delimited by the polygon stored in file FNAME 
+% FNAME2		Optional polygon file. If it points to a vald file. This function is called twice and results are subtracted
 
-	z_id = handles.netcdf_z_id;
-	s = handles.nc_info;			% Retrieve the .nc info struct
-	rows = s.Dataset(z_id).Size(end-1);
-	cols = s.Dataset(z_id).Size(end);
+	if (have_polygon)
+		if (exist(fname,'file') ~= 2)
+			[FileName,PathName] = put_or_get_file(handles, ...
+				{'*.dat;*.DAT', 'Data files (*.dat)';'*.*', 'All Files (*.*)'},'Enter polygon file','get');
+			if (isequal(FileName,0)),		return,		end
+			fname = [PathName FileName];
+		end
+		S = load(fname);
+		x = S(:,1);		y = S(:,2);
+	else
+		x = [];			y = [];
+	end
+
+	[z_id, s, rows, cols] = get_ncInfos(handles);
 
 	% Build the vectors to deal with the zonal integration
 	if (integ_lon)
 		N_spatialSize = rows;		% Number of points in the spatial dim
 		integDim = 2;							% Dimension along which we are going to integrate
-		vecD = floor(handles.head(3)):dlat:(handles.head(4));
+		ini = fix(handles.head(3) / dlat) * dlat;
+		fim = fix(handles.head(4) / dlat) * dlat + dlat;
+		vecD = (ini:dlat:fim);
 		Y = linspace(handles.head(3),handles.head(4), N_spatialSize);
 	else
 		N_spatialSize = cols;
 		integDim = 1;
-		vecD = floor(handles.head(1)):dlat:ceil(handles.head(2));
+		ini = fix(handles.head(1) / dlat) * dlat;
+		fim = fix(handles.head(2) / dlat) * dlat + dlat;
+		vecD = (ini:dlat:fim);
 		Y = linspace(handles.head(1),handles.head(2), N_spatialSize);
 	end
 	nStripes = numel(vecD) - 1;
@@ -161,6 +120,9 @@ function zonal(handles, dlat, integ_lon, have_polygon, x, y)
 
 	nSeries = handles.number_of_timesteps;
 	allSeries = zeros(nStripes, nSeries);
+	if (integ_lon),		N_tot = cols + 1e-10;		% Add eps so that we never have divisions by zero
+	else				N_tot = rows + 1e-10;
+	end
 	mask = [];
 	for (k = 1:nSeries)
 		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [k-1 0 0], [1 rows cols]);
@@ -170,53 +132,73 @@ function zonal(handles, dlat, integ_lon, have_polygon, x, y)
 		if (have_polygon && k == 1)
 			mask = img_fun('roipoly_j',handles.head(1:2),handles.head(3:4),double(Z),x,y);
 		end
-		if (~isempty(mask)),		Z(~mask) = NaN;		end
+		if (~isempty(mask)),	Z(~mask) = NaN;		end
 
-		ind = isnan(Z);
+		ind = isnan(Z);				% This may, or may not, be equal to 'mask'
 		if (any(ind(:))),		Z(ind) = 0;		this_has_nans = true;		end
 
-		tmp = sum(Z,integDim);			% Add along integration dim
-		if (integ_lon),		N = size(Z,2);
-		else				N = size(Z,1);
-		end
+		tmp = sum(Z,integDim);				% Add along integration dim
 		if (this_has_nans)
-			tmp2 = sum(ind,integDim);
-			tmp = tmp ./ (N - tmp2);
+			tmp2 = sum(ind,integDim);		% Get total number of NaNs along interp dim
+			tmp = tmp ./ (N_tot - tmp2);	% Now get the number of valid values along interp dim
 		else
-			tmp = tmp / N;
+			tmp = tmp / N_tot;
 		end
 		% Now add all inside each stripe
 		for (m = 1:nStripes)
 			tmp2 = tmp( indStripe(m):indStripe(m+1) );
+			tmp2(tmp2 == 0) = [];			% Not so unlikely
 			allSeries(m,k) = sum(tmp2) / numel(tmp2);
 		end
 
 		h = aguentabar(k/nSeries);
 		if (isnan(h)),	break,	end
 	end
-	if (isnan(h)),	return,		end
+	if (isnan(h)),	return,		end	
 
+	allSeries(allSeries == 0) = nan;		% NaN is more reasonable to denote data absence
+
+	if ( nargin == 7 && have_polygon  && exist(fname2,'file') == 2 )
+		out2 = zonal(handles, dlat, integ_lon, false, have_polygon, fname2);
+		allSeries = double(out2) - allSeries;
+	end
 	allSeries = single(allSeries);
-	zz = grdutils(allSeries,'-L');
-	head = [1 nSeries vecD(1) vecD(end) zz(1) zz(2) 0 1 dlat];
-	tmp.X = 1:nSeries;		tmp.Y = linspace( (vecD(1)+dlat/2), (vecD(end)-dlat/2), nStripes );
-	tmp.head = [head(1:2) tmp.Y(1) tmp.Y(end) head(5:end)];
-	tmp.geo = 0;			tmp.name = 'Zonal integration';
-	mirone(allSeries, tmp)
+
+	if (~nargout)			% If no argout, show result in a Mirone/Ecran window
+		zz = grdutils(allSeries,'-L');
+		head = [1 nSeries vecD(1) vecD(end) zz(1) zz(2) 0 1 dlat];
+		tmp.X = 1:nSeries;		tmp.Y = linspace( (vecD(1)+dlat/2), (vecD(end)-dlat/2), nStripes );
+		if (~do_trends)		% 2D, Mirone
+			tmp.head = [head(1:2) tmp.Y(1) tmp.Y(end) head(5:end)];
+			tmp.geo = 0;			tmp.name = 'Zonal integration';
+			mirone(allSeries, tmp)
+		else				% 1D, Ecran
+			trend = zeros(1,nStripes);
+			for (k = 1:nStripes)
+				p = polyfit(tmp.X, double(allSeries(k,:)), 1);
+				trend(k) = p(1);
+			end
+			ind = find(~isnan(trend));			% Remove any eventual leading or trailing NsNs
+			trend = trend(ind(1):ind(end) );
+			tmp.Y = tmp.Y(ind(1):ind(end) );
+ 			ecran(handles, tmp.Y, trend, 'Slope of line fit')
+		end
+	else
+		out = allSeries;
+	end
 	
 % ----------------------------------------------------------------------
 function calcGrad(handles)
 % Calcula o gradiente de um fiche ja com as medias anuais por ajuste de um recta (Loada o fiche todo na memoria)
 
-	z_id = handles.netcdf_z_id;
-	s = handles.nc_info;			% Retrieve the .nc info struct
-	rows = s.Dataset(z_id).Size(end-1);
-	cols = s.Dataset(z_id).Size(end);
+	[z_id, s, rows, cols] = get_ncInfos(handles);
 
 	anos = handles.number_of_timesteps;
+	anos = anos - 2;
 	Tmed = zeros([rows, cols, anos]);	% Temp media para cada um dos anos
 	for (m = 1:anos)
-		Tmed(:,:,m) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m-1 0 0], [1 rows cols]);
+% 		Tmed(:,:,m) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m-1 0 0], [1 rows cols]);
+		Tmed(:,:,m) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m 0 0], [1 rows cols]);
 	end
 
 	aguentabar(0,'title','Calcula o gradiente','CreateCancelBtn')
@@ -244,7 +226,7 @@ function calcGrad(handles)
 	mirone(Tvar, tmp)
 
 % ------------------------------------------------------------------------------
-function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3)
+function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3, splina)
 % Calcula media anuais a partir de dados mensais
 % MONTHS 	is a vector with the months uppon which the mean is to be computed
 %		example: 	months = 1:12		==> Computes yearly mean
@@ -258,22 +240,20 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3)
 % FNAME3 	Optional name of a netCDF file where interpolated nodes will be set to FLAG
 %			and the others retain their FNAME2 value. This corresponds to the promotion
 %			of interpolated nodes to quality FLAG. Only used if PINTANOES == TRUE
+% SPLINA	Logical that if true instruct to spline interpolate the missing monthly values
+%			before computing the yearly mean. This option acumulates with that of PINTANOES
 
-	txt1 = 'netCDF grid format (*.nc,*.grd)';
-	txt2 = 'Select output netCDF grid';
+	txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
 	[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
 	if isequal(FileName,0),		return,		end
 	grd_out = [PathName FileName];
 
-	z_id = handles.netcdf_z_id;
-	s = handles.nc_info;				% Retrieve the .nc info struct
-	rows = s.Dataset(z_id).Size(end-1);
-	cols = s.Dataset(z_id).Size(end);
+	[z_id, s, rows, cols] = get_ncInfos(handles);
 	do_flags = false;
 	track_filled = false;
 
 	if (nargin == 1),		months = 1:12;		end		% Default to yearly means
-	if (nargin == 7 && ~isempty(fname3)),		track_filled = true;	end		% Qeep track of interpolated nodes
+	if (nargin >= 7 && ~isempty(fname3)),		track_filled = true;	end		% Qeep track of interpolated nodes
 
 	if (nargin > 2)			% We have a quality-flag ghost file to check
 		s_flags = nc_funs('info',fname2);
@@ -296,18 +276,32 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3)
 		if (nargin == 3),		flag = 7;		end			% If not provided, defaults to best quality
 	end
 
-	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
+	if (nargin < 8),		splina = false;		end
+	if (splina)				ZtoSpline = single(false(rows, cols, 3*numel(months)));	cvlib_mex('CvtScale',ZtoSpline,NaN);	end
 
+	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
 	anos = handles.number_of_timesteps / 12;
-	
-	aguentabar(0,'title','Calcula as medias anuais','CreateCancelBtn')
+
+	aguentabar(0,'title','Compute anual means.','CreateCancelBtn')
 	Tmed = zeros([rows, cols]);			% Temp media para cada um dos anos
 	warning off MATLAB:divideByZero
 
 	for (m = 1:anos)
-		contanoes = zeros(rows, cols);
-		for (n = months)
-			mn = (m - 1)*12 + n - 1;
+		if (splina)						% Aqui temos de estar a fazer mesmo uma media anual.
+			if (m == 1)
+				this_months = 1:24;				past_months = 0;
+			elseif (m == anos)
+				this_months = 1:24;				past_months = (m - 2)*12;
+			else
+				this_months = 1:36;				past_months = (m - 2)*12;
+			end
+		else
+			this_months = months;				past_months = (m - 1)*12;
+			contanoes = zeros(rows, cols);
+		end
+
+		for (n = this_months)
+			mn = past_months + n - 1;
 			Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [mn 0 0], [1 rows cols]);
 
 			if (do_flags)
@@ -317,8 +311,8 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3)
 
 			ind = isnan(Z);
 
-			if (pintAnoes && any(ind(:)))			% If fill holes is requested
-				if (track_filled),		ind0 = ind;		end		% Get this Z level original NaNs mask
+			if (pintAnoes && any(ind(:)))			% If fill spatial holes is requested
+				if (track_filled),		ind0 = ind;		end			% Get this Z level original NaNs mask
 				Z = inpaint_nans(handles, Z, ind, nCells);			% Select interp method inside inpaint_nans()
 				ind = isnan(Z);
 				if (track_filled)
@@ -331,21 +325,66 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3)
 				end
 			end
 
-			Z(ind) = 0;				% transmuta os anoes
-			contanoes = contanoes + ~ind;
-			Tmed(:,:) = Tmed(:,:) + double(Z);
+			if (~splina)				% Do not interpolate along time (months)
+				Z(ind) = 0;				% Transmutate the anoes
+				contanoes = contanoes + ~ind;
+				Tmed(:,:) = Tmed(:,:) + double(Z);
+			else						% Pack this year into a 3D temporary variable, to be processed later.
+				ZtoSpline(:,:,n) = Z;
+			end
+
+		end		% End loop over months
+
+		if (~splina)				% Do not interpolate along time. Compute averages with all non NaNs
+			Tmed(:,:) = Tmed(:,:) ./ contanoes;
+			tmp = single(Tmed(:,:));
+
+		else						% Fill missing month data by a spline interpolation based on non-NaN yearly data
+
+			aguentabar(0,'title','Splining it.')
+			n_meses = numel(this_months);
+			for (i = 1:cols)
+				for (j = 1:rows)
+					y = double( squeeze( ZtoSpline(j,i,1:n_meses) ) );
+					ind = isnan(y);
+					if (any(ind) && numel(find(~ind)) > 18)		% If we have NaNs, spline interpolate in their positions
+						x = this_months(~ind);			y0 = y(~ind);
+						try
+							if ((m == 1 || m == anos))
+								yy = interp1(x, y0, this_months, 'spline', nan);
+							else
+								yy = spline(x, y0, this_months);
+							end
+							y(ind)= yy(ind);
+							ZtoSpline(j,i,1:n_meses) = single(y);
+						end
+					elseif (all(~ind))
+						ZtoSpline(j,i,1:n_meses) = single(y);
+					end
+				end
+				hh = aguentabar(i/(cols+1));
+			end
+
+			% Now we can finaly compute the yearly mean
+			if (m == 1),		first = 1;		second = 2;		last = 12;
+			else				first = 13;		second = 14;	last = 24;
+			end
+			tmp = ZtoSpline(:,:,first);
+			for (n = second:last)
+				tmp = cvlib_mex('add',tmp,ZtoSpline(:,:,n));
+			end
+			cvlib_mex('CvtScale',tmp,1/12,0);
 		end
-		Tmed(:,:) = Tmed(:,:) ./ contanoes;
-		tmp = single(Tmed(:,:));
-		
+
+		% Save this layer to file
 		if (m == 1),		nc_io(grd_out, sprintf('w%d/time',anos), handles, reshape(tmp,[1 size(tmp)]))
 		else				nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
 		end
 
-		h = aguentabar(m/anos);
+		h = aguentabar(m/anos,'title','Compute anual means.');
 		if (isnan(h)),	break,	end
-		
-		Tmed = Tmed * 0;			% Reset it to zeros
+
+		if (~splina),	Tmed = Tmed * 0;	end			% Reset it to zeros
 	end
 
 % ----------------------------------------------------------------------
@@ -742,3 +781,11 @@ function fid = write_vtk(handles)
 		Z = double(Z');
 		fwrite(fid, Z(:), 'real*4');
 	end
+		
+% ----------------------------------------------------------------------
+function [z_id, s, rows, cols] = get_ncInfos(handles)
+% Since this is done in nearly all functions, centralize it here
+	z_id = handles.netcdf_z_id;
+	s = handles.nc_info;			% Retrieve the .nc info struct
+	rows = s.Dataset(z_id).Size(end-1);
+	cols = s.Dataset(z_id).Size(end);
