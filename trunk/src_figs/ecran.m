@@ -29,22 +29,58 @@ function varargout = ecran(varargin)
 	end
 	handles.d_path = [handles.home_dir filesep 'data' filesep];
 	load([handles.d_path 'mirone_pref.mat']);
-	try,		handles.last_dir = directory_list{1};
+	try			handles.last_dir = directory_list{1};
 	catch		handles.last_dir = cd;
 	end
 
-	if (~nargin),   varargin(1) = {[]};   end
+	% ---- OK, the interface for this function is a mess. In part due to backward compatibility issues
+	n_in = nargin;
+	if (~n_in),   varargin(1) = {[]};   end
 
-	handles.handMir = [];
-	if ( ~isempty(varargin{1}) && isa(varargin{1},'struct') )
+	handles.handMir = [];		handles.show_popups = true;
+	if ( ~isempty(varargin{1}) && isa(varargin{1},'struct') )		% ecran(handles, ...)
 		handles.handMir = varargin{1};
 		varargin{1} = 'Image';			% For backward compatibility sake
 		handles.work_dir = handles.handMir.work_dir;
+		if (n_in == 3)
+			varargin{1} = 'reuse';
+		elseif (n_in == 4 && ischar(varargin{4}) )
+			varargin{1} = 'reuse';		varargin{5} = varargin{4};		% Figure title
+			varargin{4} = [];			n_in = 5;						% Pretend we had one more argin
+		end
+	elseif ( ~isempty(varargin{1}) && isnumeric(varargin{1}) )		% ecran(x, y, ...)
+		if ( n_in >= 3 && isnumeric(varargin{1}) && isnumeric(varargin{2}) && isnumeric(varargin{3}) )
+			if (n_in == 3)					% All args are numeric
+				varargin{4} = varargin{3};			varargin{3} = varargin{2};
+				varargin{2} = varargin{1};
+			else							% Three numeric and a title
+				varargin{5} = varargin{4};			varargin{4} = varargin{3};
+				varargin{3} = varargin{2};			varargin{2} = varargin{1};
+			end
+			varargin{1} = 'Image';			% For backward compatibility sake
+
+		elseif ( n_in >= 2 && isnumeric(varargin{1}) && isnumeric(varargin{2}) )
+			if (n_in == 2)					% All args are numeric
+				varargin{3} = varargin{2};			varargin{2} = varargin{1};
+			else							% Two numeric and a title
+				varargin{4} = varargin{3};			varargin{3} = varargin{2};
+				varargin{2} = varargin{1};
+			end
+			varargin{1} = 'reuse';
+		end
+		handles.work_dir = handles.last_dir;
 	else
 		handles.work_dir = handles.last_dir;
 	end
 
-	% Load some icons from mirone_icons.mat
+	if (strcmp(varargin{1},'reuse') && n_in < 3)
+		errordlg('Error calling ecran: Minimum arguments are "type",X,Y','Error');      return
+	end
+	if ( strcmp(varargin{1},'Image') && n_in < 5 )   
+		errordlg('Error calling ecran: Minimum arguments are "type",X,Y,Z','Error');    return
+	end
+
+	% ------------- Load some icons from mirone_icons.mat
 	load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico');
 	link_ico = imread([handles.d_path 'link.png']);
 
@@ -60,15 +96,9 @@ function varargout = ecran(varargin)
 			'Pick data point in curve and plot it the mirone figure','Sep','on');
 	end
 	uitoggletool('parent',hTB,'Click',@isocs_CB, 'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on');
+	% -----------------------------------------
 
 	handles.n_plot = 0;         % Counter of the number of lines. Used for line color painting
-
-	if (strcmp(varargin{1},'reuse') && nargin < 3)
-		errordlg('Error calling ecran: Minimum arguments are "type",X,Y','Error');      return
-	end
-	if ( strcmp(varargin{1},'Image') && nargin < 5 )   
-		errordlg('Error calling ecran: Minimum arguments are "type",X,Y,Z','Error');    return
-	end
 
 	handles.ageStart = 0;		handles.ageEnd = nan;
 	handles.dist = [];			% It will contain cumulated distance if input is (x,y,z)
@@ -81,6 +111,7 @@ function varargout = ecran(varargin)
 	if isempty(varargin{1})          % When the file will be read latter
 		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
 		set(hObject,'Name','XY view')
+		handles.show_popups = false;
 	
 	elseif strcmp(varargin{1},'Image')
 		handles.data(:,1) = varargin{2};    handles.data(:,2) = varargin{3};    handles.data(:,3) = varargin{4};
@@ -93,7 +124,7 @@ function varargout = ecran(varargin)
 		set(hObject,'Name',varargin{5})
 	
 	elseif strcmp(varargin{1},'reuse')                      % Case of auto-referenced call
-		varargin(nargin+1:9) = cell(1,9-nargin);			% So that varargin{1:9} allways exists.
+		varargin(n_in+1:9) = cell(1,9-n_in);			% So that varargin{1:9} allways exists.
 		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
 		handles.data(:,1) = varargin{2};        handles.data(:,2) = varargin{3};
 		if ~isempty(varargin{9}) && strcmp(varargin{9},'semilogy')
@@ -109,6 +140,7 @@ function varargout = ecran(varargin)
 		if ~isempty(varargin{6}),    xlabel(varargin{6});				end		% XLabel
 		if ~isempty(varargin{7}),    ylabel(varargin{7});				end		% YLabel
 		if ~isempty(varargin{8}),    title(varargin{8});				end		% Title
+		handles.show_popups = false;
 	end
 
 	guidata(hObject, handles);
@@ -228,7 +260,9 @@ function isocs_CB(obj,eventdata)
 		set([handles.edit_ageStart handles.edit_ageEnd handles.push_magBar handles.text_ageStart ...
 				handles.text_ageEnd], 'Visible','on')
 	else
-		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','on')
+		if (handles.show_popups)		% Make next fellows visible only when apropriate
+			set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','on')
+		end
 		set([handles.edit_ageStart handles.edit_ageEnd handles.push_magBar handles.text_ageStart ...
 				handles.text_ageEnd], 'Visible','off')
 	end
@@ -658,6 +692,7 @@ function figure1_KeyPressFcn(hObject, eventdata)
 % -----------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata)
 	handles = guidata(hObject);
+	if (isempty(handles)),		delete(gcf),	return,		end
 	if (~isempty(handles.polyFig))
 		try,	delete(handles.polyFig),	end
 	end
