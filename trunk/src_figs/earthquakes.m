@@ -16,10 +16,10 @@ function varargout = earthquakes(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-hObject = figure('Tag','figure1','Visible','off');
-earthquakes_LayoutFcn(hObject);
-handles = guihandles(hObject);
-movegui(hObject,'east')
+	hObject = figure('Tag','figure1','Visible','off');
+	earthquakes_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	movegui(hObject,'east')
 
     handles.got_userFile = 0;
 
@@ -101,12 +101,11 @@ movegui(hObject,'east')
         year_dec = dec_year(year,mo,day);
         
 		% Get rid of events that are outside the map limits
-		ind = (lon < x_min | lon > x_max);
-		year(ind) = [];     mo(ind) = [];   day(ind) = [];  lat(ind) = [];  lon(ind) = [];
-        depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
-		ind = (lat < y_min | lat > y_max);
-		year(ind) = [];     mo(ind) = [];   day(ind) = [];  lat(ind) = [];  lon(ind) = [];
-        depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
+		[lon,lat,indx,indy] = aux_funs('in_map_region', handMir, lon, lat, 0, [handles.x_min handles.x_max handles.y_min handles.y_max]);
+		year(indx) = [];	mo(indx) = [];		day(indx) = [];
+        depth(indx) = [];	mag(indx) = [];		year_dec(indx) = [];
+		year(indy) = [];	mo(indy) = [];		day(indy) = [];
+        depth(indy) = [];	mag(indy) = [];		year_dec(indy) = [];
 		
 		handles.def_StartYear = min(year);
 		handles.def_EndYear = max(year);
@@ -123,92 +122,91 @@ movegui(hObject,'east')
 		set_lims(handles,'def')
 	end
 
-% ------------- Give a Pro look (3D) to the frame boxes --------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
+	% ------------- Give a Pro look (3D) to the frame boxes --------------------
+	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+	set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
+	h_f = findobj(hObject,'Style','Frame');
+	for i=1:length(h_f)
+		frame_size = get(h_f(i),'Position');
+		f_bgc = get(h_f(i),'BackgroundColor');
+		usr_d = get(h_f(i),'UserData');
+		if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
+			frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
+		else
+			frame3D(hObject,frame_size,framecolor,'',usr_d)
+			delete(h_f(i))
+		end
+	end
 
-% Choose default command line output for earthquakes_export
-varargout{1} = hObject;
-guidata(hObject, handles);
-
-set(hObject,'Visible','on');
+	% Choose default command line output for earthquakes_export
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),   varargout{1} = hObject;     end
 
 % -------------------------------------------------------------------------------------------------
 function edit_StartYear_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if isnan(xx),    set(hObject,'String','1900');   end
+	xx = str2double(get(hObject,'String'));
+	if isnan(xx),    set(hObject,'String','1900');   end
 
 % -------------------------------------------------------------------------------------------------
 function edit_StartMonth_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx < 1 || xx > 12)
-    set(hObject,'String','1')
-end
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 1 || xx > 12)
+		set(hObject,'String','1')
+	end
 
 % -------------------------------------------------------------------------------------------------
 function edit_StartDay_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx < 1 || xx > 31)
-    set(hObject,'String','1')
-end
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 1 || xx > 31)
+		set(hObject,'String','1')
+	end
 
 % -------------------------------------------------------------------------------------------------
 function edit_EndYear_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if isnan(xx),   set(hObject,'String','2010');   end
+	xx = str2double(get(hObject,'String'));
+	if isnan(xx),   set(hObject,'String','2010');   end
 
 % -------------------------------------------------------------------------------------------------
 function edit_EndMonth_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx < 1 || xx > 12)
-    set(hObject,'String','12')
-end
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 1 || xx > 12)
+		set(hObject,'String','12')
+	end
 
 % -------------------------------------------------------------------------------------------------
 function edit_EndDay_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx < 1 || xx > 31)
-    set(hObject,'String','31')
-end
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 1 || xx > 31)
+		set(hObject,'String','31')
+	end
 
 % -------------------------------------------------------------------------------------------------
 function edit_MagMin_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx < 1 || xx > 10)
-    set(hObject,'String','1')
-end
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 1 || xx > 10)
+		set(hObject,'String','1')
+	end
 
 % -------------------------------------------------------------------------------------------------
 function edit_MagMax_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx < 1 || xx > 10)
-    set(hObject,'String','10')
-end
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 1 || xx > 10)
+		set(hObject,'String','10')
+	end
 
 % -------------------------------------------------------------------------------------------------
 function edit_DepthMin_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx < 0)
-    set(hObject,'String','0')
-end
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 0)
+		set(hObject,'String','0')
+	end
 
 % -------------------------------------------------------------------------------------------------
 function edit_DepthMax_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx > 900),    set(hObject,'String','900');       end
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx > 900),    set(hObject,'String','900');       end
 
 % -----------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
@@ -373,35 +371,35 @@ end
 
 % -----------------------------------------------------------------------------
 function set_lims(handles,opt)
-if (strcmp(opt,'def'))      % Set the limits corresponding to the default file
-	set(handles.edit_StartYear,'String',num2str(handles.def_StartYear))
-	set(handles.edit_EndYear,'String',num2str(handles.def_EndYear))
-	set(handles.edit_StartMonth,'String',num2str(handles.def_StartMonth))
-	set(handles.edit_EndMonth,'String',num2str(handles.def_EndMonth))
-	set(handles.edit_StartDay,'String',num2str(handles.def_StartMonth))
-	set(handles.edit_EndDay,'String',num2str(handles.def_EndDay))
-	set(handles.edit_MagMin,'String',num2str(handles.def_MagMin))
-	set(handles.edit_MagMax,'String',num2str(handles.def_MagMax))
-	set(handles.edit_DepthMin,'String',num2str(handles.def_DepthMin))
-	set(handles.edit_DepthMax,'String',num2str(handles.def_DepthMax))
-elseif (strcmp(opt,'usr'))  % Set the limits corresponding to the user's file
-	set(handles.edit_StartYear,'String',num2str(handles.usr_StartYear))
-	set(handles.edit_EndYear,'String',num2str(handles.usr_EndYear))
-	set(handles.edit_StartMonth,'String',num2str(handles.usr_StartMonth))
-	set(handles.edit_EndMonth,'String',num2str(handles.usr_EndMonth))
-	set(handles.edit_StartDay,'String',num2str(handles.usr_StartMonth))
-	set(handles.edit_EndDay,'String',num2str(handles.usr_EndDay))
-	set(handles.edit_MagMin,'String',num2str(handles.usr_MagMin))
-	set(handles.edit_MagMax,'String',num2str(handles.usr_MagMax))
-	set(handles.edit_DepthMin,'String',num2str(handles.usr_DepthMin))
-	set(handles.edit_DepthMax,'String',num2str(handles.usr_DepthMax))
-else                        % Set these fields to empty
-	set(handles.edit_StartYear,'String','');	set(handles.edit_EndYear,'String','')
-	set(handles.edit_StartMonth,'String','');	set(handles.edit_EndMonth,'String','')
-	set(handles.edit_StartDay,'String',''); 	set(handles.edit_EndDay,'String','')
-	set(handles.edit_MagMin,'String','');   	set(handles.edit_MagMax,'String','')
-	set(handles.edit_DepthMin,'String',''); 	set(handles.edit_DepthMax,'String','')
-end
+	if (strcmp(opt,'def'))      % Set the limits corresponding to the default file
+		set(handles.edit_StartYear,'String',num2str(handles.def_StartYear))
+		set(handles.edit_EndYear,'String',num2str(handles.def_EndYear))
+		set(handles.edit_StartMonth,'String',num2str(handles.def_StartMonth))
+		set(handles.edit_EndMonth,'String',num2str(handles.def_EndMonth))
+		set(handles.edit_StartDay,'String',num2str(handles.def_StartMonth))
+		set(handles.edit_EndDay,'String',num2str(handles.def_EndDay))
+		set(handles.edit_MagMin,'String',num2str(handles.def_MagMin))
+		set(handles.edit_MagMax,'String',num2str(handles.def_MagMax))
+		set(handles.edit_DepthMin,'String',num2str(handles.def_DepthMin))
+		set(handles.edit_DepthMax,'String',num2str(handles.def_DepthMax))
+	elseif (strcmp(opt,'usr'))  % Set the limits corresponding to the user's file
+		set(handles.edit_StartYear,'String',num2str(handles.usr_StartYear))
+		set(handles.edit_EndYear,'String',num2str(handles.usr_EndYear))
+		set(handles.edit_StartMonth,'String',num2str(handles.usr_StartMonth))
+		set(handles.edit_EndMonth,'String',num2str(handles.usr_EndMonth))
+		set(handles.edit_StartDay,'String',num2str(handles.usr_StartMonth))
+		set(handles.edit_EndDay,'String',num2str(handles.usr_EndDay))
+		set(handles.edit_MagMin,'String',num2str(handles.usr_MagMin))
+		set(handles.edit_MagMax,'String',num2str(handles.usr_MagMax))
+		set(handles.edit_DepthMin,'String',num2str(handles.usr_DepthMin))
+		set(handles.edit_DepthMax,'String',num2str(handles.usr_DepthMax))
+	else                        % Set these fields to empty
+		set(handles.edit_StartYear,'String','');	set(handles.edit_EndYear,'String','')
+		set(handles.edit_StartMonth,'String','');	set(handles.edit_EndMonth,'String','')
+		set(handles.edit_StartDay,'String',''); 	set(handles.edit_EndDay,'String','')
+		set(handles.edit_MagMin,'String','');   	set(handles.edit_MagMax,'String','')
+		set(handles.edit_DepthMin,'String',''); 	set(handles.edit_DepthMax,'String','')
+	end
 
 % -----------------------------------------------------------------------------
 function listbox_readFilter_Callback(hObject, eventdata, handles)
