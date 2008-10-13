@@ -115,6 +115,28 @@ function push_apply_Callback(hObject, eventdata, handles)
 	else
 		Z = get(handles.hMirImg,'CData');
 	end
+
+	Z = to_from_180(handles, handMir, Z, x_min, x_max, dy, eps_x);
+
+	% Update the Mirone window
+	if (handles.validGrid)
+		X = linspace(x_min, x_max, size(Z,2));
+		setappdata(handMir.figure1,'dem_x',X);
+		setappdata(handMir.figure1,'dem_z',Z);
+		Z = get(handles.hMirImg,'CData');
+		Z = to_from_180(handles, handMir, Z, x_min, x_max, dy, eps_x);
+		set(handles.hMirAxes,'XLim',[X(1) X(end)])
+	else
+		X(1) = x_min;		X(2) = x_max;
+		set(handles.hMirAxes,'XLim',X)
+	end
+
+	set(handles.hMirImg,'CData', Z, 'XData', X);
+	setappdata(handles.hMirAxes,'ThisImageLims',[get(handles.hMirAxes,'XLim') get(handles.hMirAxes,'YLim')])
+
+% -----------------------------------------------------------------------------------------
+function Z = to_from_180(handles, handMir, Z, x_min, x_max, dy, eps_x)
+
 	if ( x_max > 0 && (abs(x_min - 180) < eps_x) )			% 360 -> 180
 		[Z_rect,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z,[x_min handles.square(1,2) 180 dy],'out_grid');
 		Z = [Z_rect Z(:, 1:(size(Z,2)-size(Z_rect,2)), :)];
@@ -124,21 +146,6 @@ function push_apply_Callback(hObject, eventdata, handles)
 		Z = [Z_rect Z(:, 1:(size(Z,2)-size(Z_rect,2)), :)];
 		handMir.geog = 2;		guidata(handMir.figure1,handMir);
 	end
-
-	% Update the Mirone window
-	if (handles.validGrid)
-		X = linspace(x_min, x_max, size(Z,2));
-		setappdata(handles.figure1,'dem_x',X);
-		setappdata(handles.figure1,'dem_z',Z);
-		set(handles.hMirImg, 'XData', X);
-		set(handles.hMirAxes,'XLim',[X(1) X(end)])
-	else
-		X(1) = x_min;		X(2) = x_max;
-		set(handles.hMirImg,'CData', Z, 'XData', X);
-		set(handles.hMirAxes,'XLim',X)
-	end
-	
-	setappdata(handles.hMirAxes,'ThisImageLims',[get(handles.hMirAxes,'XLim') get(handles.hMirAxes,'YLim')])
 
 % -----------------------------------------------------------------------------------------
 function moveRect(obj,eventdata, handles, hRect)
