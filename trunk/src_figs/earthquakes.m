@@ -431,13 +431,13 @@ if isequal(FileName,0),		return,		end
 fname = [PathName,FileName];
 
 try
-    set(gcf,'Pointer','watch')
+    set(handles.figure1,'Pointer','watch')
 	if (filtro == 1)        % Read a ISF formated catalog
         if (handles.is_projected)               % Image is projected, we need this
-            opt_R = ['-R' sprintf('%f/%f/%f/%f',handles.lims_geogs(1),handles.lims_geogs(2), ...
-                    handles.lims_geogs(3),handles.lims_geogs(4))];
+            opt_R = sprintf('-R%f/%f/%f/%f',handles.lims_geogs(1),handles.lims_geogs(2), ...
+                    handles.lims_geogs(3),handles.lims_geogs(4));
         else
-            opt_R = ['-R' sprintf('%f/%f/%f/%f',handles.x_min,handles.x_max,handles.y_min,handles.y_max)];
+            opt_R = sprintf('-R%f/%f/%f/%f',handles.x_min,handles.x_max,handles.y_min,handles.y_max);
         end
         [out_d,out_i] = read_isf(fname,opt_R);
         if (isempty(out_d)),    return;     end     % Nothing inside region
@@ -449,7 +449,7 @@ try
 	elseif (filtro == 2 || filtro == 3 || filtro == 4)      % Read a lon,lat,dep,mag,yy,mm,dd file (3,4) or posit file (2)
 		fid = fopen(fname,'r');
 		if (fid < 0)
-            errordlg(['Could not open file: ' fname],'Error');  return;
+            errordlg(['Could not open file: ' fname],'Error'),		return
 		end
 		todos = fread(fid,'*char');
         if (filtro == 2)                    % posit file
@@ -475,8 +475,7 @@ try
 		    [lon lat depth mag year mo day] = strread(todos,'%f %f %f %f %d %d %d');
             year_dec = dec_year(year,mo,day);
         end
-		fclose(fid);    clear todos
-        if (isempty(lon)),      return;     end     % Nothing inside region
+		fclose(fid);	clear todos
 
         if (handles.is_projected && handles.defCoordsIn > 0)        % Image is projected, we need to use this
             x_min = handles.lims_geogs(1);      x_max = handles.lims_geogs(2);
@@ -487,12 +486,13 @@ try
         end
 		
 		% Get rid of events that are outside the map limits
-		ind = (lon < handles.x_min | lon > handles.x_max);
-		year(ind) = [];     mo(ind) = [];       day(ind) = [];  lat(ind) = [];
-		lon(ind) = [];      depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
-		ind = (lat < handles.y_min | lat > handles.y_max);
-		year(ind) = [];     mo(ind) = [];       day(ind) = [];  lat(ind) = [];
-		lon(ind) = [];      depth(ind) = [];    mag(ind) = [];  year_dec(ind) = [];
+		handMir = guidata(handles.hMirFig);
+		[lon,lat,indx,indy] = aux_funs('in_map_region', handMir, lon, lat, 0, [handles.x_min handles.x_max handles.y_min handles.y_max]);
+		year(indx) = [];	mo(indx) = [];		day(indx) = [];
+        depth(indx) = [];	mag(indx) = [];		year_dec(indx) = [];
+		year(indy) = [];	mo(indy) = [];		day(indy) = [];
+        depth(indy) = [];	mag(indy) = [];		year_dec(indy) = [];
+        if (isempty(lon)),		return,		set(handles.figure1,'Pointer','arrow'),		end		% Nothing inside region
 	end
 	handles.got_userFile = 1;
 	
@@ -520,9 +520,9 @@ try
         handles.have_mag_nans = 0;
         handles.have_dep_nans = 0;
 	end
-    set(gcf,'Pointer','arrow')
+    set(handles.figure1,'Pointer','arrow')
 catch   % In case of error, set the pointer back to "normal" 
-    set(gcf,'Pointer','arrow')
+    set(handles.figure1,'Pointer','arrow')
     msg{1} = 'An error occured while reading file. The error message was:';
     msg{2} = '';
     msg{3} = lasterr;
