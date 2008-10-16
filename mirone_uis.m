@@ -8,7 +8,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function griding_mir grdfilter_mir grdsample_mir grdtrend_mir grdgradient_mir ml_clip show_palette 
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
 %#function mxgridtrimesh aquamoto tiles_tool zonal_integrator grdlandmask_win grdlandmask_m escadeirar
-%#function run_cmd line_operations world_is_not_round_enough
+%#function run_cmd line_operations world_is_not_round_enough cartas_militares
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -91,7 +91,7 @@ uitoggletool('parent',h_toolbar,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcb
 	'Tag','Zoom','cdata',zoom_ico,'Tooltip','Zooming on/off','Sep','on');
 uitoggletool('parent',h_toolbar,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''pan'')', ...
 	'Tag','Mao','cdata',mao,'Tooltip','Pan');
-uitoggletool('parent',h_toolbar,'Click','draw_funs(gcbo,''DeleteObj'')', ...
+uitoggletool('parent',h_toolbar,'Click','draw_funs(gcbo,''deleteObj'')', ...
 	'Tag','Tesoura','cdata',cut_ico,'Tooltip','Delete objects');
 uipushtool('parent',h_toolbar,'Click','color_palettes(guidata(gcbo))', ...
 	'Tag','ColorPal','cdata',color_ico,'Tooltip','Color Palettes');
@@ -296,7 +296,10 @@ uimenu('Parent',h,'Call','mirone(''ImageResetOrigImg_CB'',guidata(gcbo))','Label
 h = uimenu('Parent',hIM,'Label','Filters','Sep','on');
 uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''SUSAN'');','Label','Smooth (SUSAN)');
 uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''Median'');','Label','Median (3x3)');
+uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''Adaptive'');','Label','Adaptive Median (7x7)');
 uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''STD'');','Label','STD (3x3)');
+uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''Min'');','Label','Min (3x3)');
+uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''Max'');','Label','Max (3x3)');
 uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''range'');','Label','Range (3x3)');
 
 uimenu('Parent',hIM,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''image'')','Label','Digital Filtering Tool','Sep','on');
@@ -334,11 +337,12 @@ hVG(kv) = uimenu('Parent',hTL,'Call','gmtedit','Label','gmtedit');	kv = kv + 1;
 uimenu('Parent',hTL,'Call','rally_plater','Label','Rally Plater');
 uimenu('Parent',hTL,'Label','entry_vtr','Sep','on');
 uimenu('Parent',hTL,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
-uimenu('Parent',hTL,'Call','zonal_integrator(guidata(gcbo))','Label','Zonal Integrator');
+uimenu('Parent',hTL,'Call','empilhador(guidata(gcbo))','Label','Empilhador');
 uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
+uimenu('Parent',hTL,'Call','cartas_militares(guidata(gcbo))','Label','Cartas Militares','Sep','on')
+uimenu('Parent',hTL,'Call','world_is_not_round_enough(guidata(gcbo))','Label','World is not (round) enough','Sep','on');
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Line Operations','Sep','on','Tag','lineOP');
-uimenu('Parent',hTL,'Call','world_is_not_round_enough(guidata(gcbo))','Label','World is not (round) enough');
 % uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
 % uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
 
@@ -635,7 +639,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 18 Sep 2008'',''1.4.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 Oct 2008'',''1.4.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -652,7 +656,9 @@ uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 18 
 % We need this function also when the pixval_stsbar got stucked
 function refresca(obj,eventdata)
 	hFig = get(0,'CurrentFigure');
-    set(hFig,'Pointer','arrow');     refresh(hFig)
+    set(hFig,'Pointer','arrow');
+	%set(hFig,'Renderer','painters', 'RendererMode','auto')
+	refresh(hFig)
 
 % --------------------------------------------------------------------------------------------------
 function showGDALdrivers(hObj,event)
