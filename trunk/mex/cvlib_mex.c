@@ -1,5 +1,5 @@
 /*
- *      Coffeeright (c) 2002-2007 by J. Luis
+ *      Coffeeright (c) 2002-2008 by J. Luis
  *
  *      This program is free software; you can redistribute it and/or modify
  *      it under the terms of the GNU General Public License as published by
@@ -15,6 +15,10 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 18.0  18/10/2008 JL	Added cvCvtScaleAbs.
+ * 				Fixed BUG in order of input/output 3D arrays. Due to the BGR
+ * 				order (f...) story, output form cvtColor was shifted by 2.
+ * 				That is, for example, SVH was issued instead of HSV i RGB2HSV.
  * Revision 17.0  24/08/2008 JL	Added Douglas-Peucker in geographical coords
  * Revision 16.0  02/04/2008 JL	+ cvAbs & cvAbsDiffS & cvSubRS
  * Revision 15.0  28/03/2008 JL	Finally finished the approxPoly (Douglas-Peucker) function
@@ -151,6 +155,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tcolor (cvCvtColor)\n");
 		mexPrintf("\tcontours (cvFindContours)\n");
 		mexPrintf("\tCvtScale (cvCvtScale)\n");
+		mexPrintf("\tCvtScaleAbs (cvCvtScaleAbs)\n");
 		mexPrintf("\tdilate (cvDilate)\n");
 		mexPrintf("\tdiv (cvDiv)\n");
 		mexPrintf("\tdp (cvApproxPoly)\n");
@@ -1896,14 +1901,16 @@ void JerodeDilate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], c
 
 /* --------------------------------------------------------------------------- */
 void Jcolor(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
-	int nx, ny, nBands, nBands_out, nBytes, img_depth, cv_code, out_dims[3];
+	int	nx, ny, nBands, nBands_out, nBytes, img_depth, cv_code, out_dims[3];
+	int	desinterleave_dir = 1; 	/* By default desinterleave from BGR to Matlab order */
+	int	interleave_dir = 1; 	/* By default interleave from Matlab order to BGR */
 	char	*argv;
 
 	IplImage *src_img = 0, *dst_img;
-	mxArray *ptr_in, *ptr_out;
+	mxArray	*ptr_in, *ptr_out;
 
-	struct CV_CTRL *Ctrl;
-	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
+	struct	CV_CTRL *Ctrl;
+	void	*New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
 
 	/* ---- Check for input and errors in user's call to function. ----------------- */
 	if (n_in == 1) { colorUsage();	return; }
@@ -1918,43 +1925,43 @@ void Jcolor(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		argv = (char *)mxArrayToString(prhs[2]);
 		/*<X>/<Y> = RGB, BGR, GRAY, HSV, YCrCb, XYZ, Lab, Luv, HLS */
 		if (!strcmp(argv,"rgb2lab"))
-			cv_code = CV_BGR2Lab;
+			{cv_code = CV_BGR2Lab;		desinterleave_dir = -1;}
 		else if (!strcmp(argv,"lab2rgb"))
-			cv_code = CV_Lab2BGR;
+			{cv_code = CV_Lab2BGR;		interleave_dir = 10;}
 
 		else if (!strcmp(argv,"rgb2luv"))
-			cv_code = CV_BGR2Luv;
+			{cv_code = CV_BGR2Luv;		desinterleave_dir = -1;}
 		else if (!strcmp(argv,"luv2rgb"))
-			cv_code = CV_Luv2BGR;
+			{cv_code = CV_Luv2BGR;		interleave_dir = 10;}
 
 		else if (!strcmp(argv,"rgb2xyz"))
-			cv_code = CV_BGR2XYZ;
+			{cv_code = CV_BGR2XYZ;		desinterleave_dir = -1;}
 		else if (!strcmp(argv,"xyz2rgb"))
-			cv_code = CV_XYZ2BGR;
+			{cv_code = CV_XYZ2BGR;		interleave_dir = 10;}
 
 		else if (!strcmp(argv,"rgb2yiq") || !strcmp(argv,"rgb2gray"))
 			cv_code = CV_BGR2GRAY;
 
 		else if (!strcmp(argv,"rgb2hsv"))
-			cv_code = CV_BGR2HSV;
+			{cv_code = CV_BGR2HSV;		desinterleave_dir = -1;}
 		else if (!strcmp(argv,"hsv2rgb"))
-			cv_code = CV_HSV2BGR;
+			{cv_code = CV_HSV2BGR;		interleave_dir = 10;}
 
 		else if (!strcmp(argv,"rgb2hls"))
-			cv_code = CV_BGR2HLS;
+			{cv_code = CV_BGR2HLS;		desinterleave_dir = -1;}
 		else if (!strcmp(argv,"hls2rgb"))
-			cv_code = CV_HLS2BGR;
+			{cv_code = CV_HLS2BGR;		interleave_dir = 10;}
 
 		else if (!strcmp(argv,"rgb2YCrCb"))
-			cv_code = CV_BGR2YCrCb;
+			{cv_code = CV_BGR2YCrCb;	desinterleave_dir = -1;}
 		else if (!strcmp(argv,"YCrCb2rgb"))
-			cv_code = CV_YCrCb2BGR;
+			{cv_code = CV_YCrCb2BGR;	interleave_dir = 10;}
 
 		else {
 			mexPrintf("CVCOLOR ERROR: Unknown conversion type string.\n");
 			mexPrintf("Valid types: rgb2lab,lab2rgb, rgb2luv,luv2rgb, rgb2xyz,xyz2rgb\n");
 			mexPrintf("             rgb2yiq,yiq2rgb, rgb2hsv,luv2hsv, rgb2gray,gray2rgb\n");
-			mexErrMsgTxt("             rgb2hsl,hsl2rgb, rgb2YCrCb,YCrCb2rgb.\n");
+			mexErrMsgTxt("          rgb2hsl,hsl2rgb, rgb2YCrCb,YCrCb2rgb.\n");
 		}
 	}
 
@@ -1989,7 +1996,7 @@ void Jcolor(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		  			out_dims, mxGetClassID(prhs[1]), mxREAL);
 	/* ------------------------------------------------------------------------------- */ 
 
-	Set_pt_Ctrl_in ( Ctrl, prhs[1], ptr_in, 1 ); 	/* Set pointer & interleave */
+	Set_pt_Ctrl_in ( Ctrl, prhs[1], ptr_in, interleave_dir ); 	/* Set pointer & interleave */
 	src_img = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
 	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
 
@@ -2004,7 +2011,7 @@ void Jcolor(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]), out_dims, mxGetClassID(prhs[1]), mxREAL);
 
-	Set_pt_Ctrl_out2 ( Ctrl, plhs[0], 1 ); 		/* Set pointer & desinterleave */
+	Set_pt_Ctrl_out2 ( Ctrl, plhs[0], desinterleave_dir ); 	/* Set pointer & desinterleave */
 
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 	cvReleaseImageHeader( &dst_img );
@@ -2293,6 +2300,7 @@ void Jegipt(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const c
 /* --------------------------------------------------------------------------- */
 void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op) {
 	int nx, nx2, ny, ny2, nBands, nBands2, nBytes, img_depth, inplace = FALSE, error = 0;
+	size_t lenop;
 	IplImage *src1, *src2, *dst;
 	CvScalar value;
 	struct CV_CTRL *Ctrl;
@@ -2328,10 +2336,13 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 			strncmp(op,"Cvt",3) && strcmp(op,"absDiffS") && strcmp(op,"abs")) )
 		mexErrMsgTxt("CVLIB_MEX: wrong combination of operator and second arg as a scalar!");
 
+	lenop = strlen(op);
 	if (n_out == 0) {
 		if (!strcmp(op,"hypot")) 
 			mexErrMsgTxt("CVLIB_MEX: 'hypot' does not support inplace computation");
-		inplace = TRUE;
+
+		if (lenop >= 11 && !strcmp(op,"CvtScaleAbs")) 
+			mexErrMsgTxt("CVLIB_MEX: 'CvtScaleAbs' does not support inplace computation");
 	}
 	/* -------------------- End of parsing input ------------------------------------- */
 
@@ -2349,9 +2360,16 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 		value.val[0] = *(double *)mxGetData(prhs[2]);
 
 	if (!inplace) {
-		plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+		if (lenop >= 11 && !strcmp(op,"CvtScaleAbs")) {
+			plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+		  			mxGetDimensions(prhs[1]), mxUINT8_CLASS, mxREAL);
+			dst = cvCreateImageHeader( cvSize(nx, ny), IPL_DEPTH_8U, nBands );
+		}
+		else {
+			plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
 		  			mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
-		dst = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+			dst = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+		}
 		cvSetImageData( dst, (void *)mxGetData(plhs[0]), nx * nBytes * nBands );
 		if (!strcmp(op,"add"))
 			cvAdd( src1, src2, dst, NULL ); 
@@ -2373,14 +2391,19 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 			cvAbsDiff( src1, src2, dst ); 
 		else if (!strcmp(op,"absDiffS"))
 			cvAbsDiffS( src1, dst, value ); 
-		else if (!strcmp(op,"CvtScale")) {
+		else if (!strncmp(op,"CvtScale", 8)) {
 			double scale, shift;
 			scale = *(double *)mxGetData(prhs[2]);
 			if (n_in == 4)
 				shift = *(double *)mxGetData(prhs[3]);
 			else
 				shift = 0.;
-			cvConvertScale( src1, dst, scale, shift );
+			if (!strcmp(op,"CvtScale"))
+				cvConvertScale( src1, dst, scale, shift );
+			else if (!strcmp(op,"CvtScaleAbs"))
+				cvConvertScaleAbs( src1, dst, scale, shift );
+			else
+				mexErrMsgTxt("CVLIB_MEX: 'CvtScale???' Unknown keyword usage.");
 		}
 		else if (!strcmp(op,"pow")) {
 			double p;
@@ -2972,11 +2995,17 @@ void interleaveBlind(unsigned char in[], unsigned char out[], int nx, int ny, in
 				for (k = 0, i = nBands-1; k < nBands; k++, i--)
 					out[c++] = in[m + n*ny + i*n_xy];
 	}
-	else {			/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
+	else if (dir == -1) {	/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
 		for (k = 0, i = nBands-1; k < nBands; k++, i--)
 			for (n = 0; n < nx; n++)
 				for (m = 0; m < ny; m++) 
 					out[c++] = in[nBands * (n + m*nx) + i];
+	}
+	else {			/* r0,g0,b0, r1,g1,b1, etc ...  to Matlab order */
+		for (k = 0; k < nBands; k++)
+			for (n = 0; n < nx; n++)
+				for (m = 0; m < ny; m++) 
+					out[c++] = in[nBands * (n + m*nx) + k];
 	}
 }
 
@@ -2991,11 +3020,24 @@ void interleaveUI8(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 				for (k = 0, i = nBands-1; k < nBands; k++, i--)
 					Ctrl->UInt8.tmp_img_in[c++] = Ctrl->UInt8.img_in[m + n*ny + i*n_xy];
 	}
-	else {			/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
+	else if (dir == 10) {	/* Matlab order to r0,g0,b0, r1,g1,b1, etc ... */ 
+		n_xy = nx*ny;
+		for (m = 0; m < ny; m++) 
+			for (n = 0; n < nx; n++)
+				for (k = 0, i = nBands-1; k < nBands; k++, i--)
+					Ctrl->UInt8.tmp_img_in[c++] = Ctrl->UInt8.img_in[m + n*ny + k*n_xy];
+	}
+	else if (dir == -1) {	/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
 		for (k = 0, i = nBands-1; k < nBands; k++, i--)
 			for (n = 0; n < nx; n++)
 				for (m = 0; m < ny; m++) 
 					Ctrl->UInt8.img_out[c++] = Ctrl->UInt8.tmp_img_out[nBands * (n + m*nx) + i];
+	}
+	else {			/* r0,g0,b0, r1,g1,b1, etc ...  to Matlab order */
+		for (k = 0; k < nBands; k++)
+			for (n = 0; n < nx; n++)
+				for (m = 0; m < ny; m++) 
+					Ctrl->UInt8.img_out[c++] = Ctrl->UInt8.tmp_img_out[nBands * (n + m*nx) + k];
 	}
 }
 
@@ -3010,11 +3052,24 @@ void interleaveI8(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 				for (k = 0, i = nBands-1; k < nBands; k++, i--)
 					Ctrl->Int8.tmp_img_in[c++] = Ctrl->Int8.img_in[m + n*ny + i*n_xy];
 	}
-	else {			/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
+	else if (dir == 10) {	/* Matlab order to r0,g0,b0, r1,g1,b1, etc ... */ 
+		n_xy = nx*ny;
+		for (m = 0; m < ny; m++) 
+			for (n = 0; n < nx; n++)
+				for (k = 0, i = nBands-1; k < nBands; k++, i--)
+					Ctrl->Int8.tmp_img_in[c++] = Ctrl->Int8.img_in[m + n*ny + k*n_xy];
+	}
+	else if (dir == -1) {	/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
 		for (k = 0, i = nBands-1; k < nBands; k++, i--)
 			for (n = 0; n < nx; n++)
 				for (m = 0; m < ny; m++) 
 					Ctrl->Int8.img_out[c++] = Ctrl->Int8.tmp_img_out[nBands * (n + m*nx) + i];
+	}
+	else {			/* r0,g0,b0, r1,g1,b1, etc ...  to Matlab order */
+		for (k = 0; k < nBands; k++)
+			for (n = 0; n < nx; n++)
+				for (m = 0; m < ny; m++) 
+					Ctrl->Int8.img_out[c++] = Ctrl->Int8.tmp_img_out[nBands * (n + m*nx) + k];
 	}
 }
 
@@ -3027,13 +3082,26 @@ void interleaveUI16(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 		for (m = 0; m < ny; m++) 
 			for (n = 0; n < nx; n++)
 				for (k = 0, i = nBands-1; k < nBands; k++, i--)
-					Ctrl->UInt16.tmp_img_in[c++] = Ctrl->UInt16.img_in[(m + n*ny + i*n_xy)];
+					Ctrl->UInt16.tmp_img_in[c++] = Ctrl->UInt16.img_in[m + n*ny + i*n_xy];
 	}
-	else {			/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
+	else if (dir == 10) {	/* Matlab order to r0,g0,b0, r1,g1,b1, etc ... */ 
+		n_xy = nx*ny;
+		for (m = 0; m < ny; m++) 
+			for (n = 0; n < nx; n++)
+				for (k = 0, i = nBands-1; k < nBands; k++, i--)
+					Ctrl->UInt16.tmp_img_in[c++] = Ctrl->UInt16.img_in[m + n*ny + k*n_xy];
+	}
+	else if (dir == -1) {	/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
 		for (k = 0, i = nBands-1; k < nBands; k++, i--)
 			for (n = 0; n < nx; n++)
 				for (m = 0; m < ny; m++) 
 					Ctrl->UInt16.img_out[c++] = Ctrl->UInt16.tmp_img_out[nBands * (n + m*nx) + i];
+	}
+	else {			/* r0,g0,b0, r1,g1,b1, etc ...  to Matlab order */
+		for (k = 0; k < nBands; k++)
+			for (n = 0; n < nx; n++)
+				for (m = 0; m < ny; m++) 
+					Ctrl->UInt16.img_out[c++] = Ctrl->UInt16.tmp_img_out[nBands * (n + m*nx) + k];
 	}
 }
 
@@ -3046,13 +3114,26 @@ void interleaveI16(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 		for (m = 0; m < ny; m++) 
 			for (n = 0; n < nx; n++)
 				for (k = 0, i = nBands-1; k < nBands; k++, i--)
-					Ctrl->Int16.tmp_img_in[c++] = Ctrl->Int16.img_in[(m + n*ny + i*n_xy)];
+					Ctrl->Int16.tmp_img_in[c++] = Ctrl->Int16.img_in[m + n*ny + i*n_xy];
 	}
-	else {			/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
+	else if (dir == 10) {	/* Matlab order to r0,g0,b0, r1,g1,b1, etc ... */ 
+		n_xy = nx*ny;
+		for (m = 0; m < ny; m++) 
+			for (n = 0; n < nx; n++)
+				for (k = 0, i = nBands-1; k < nBands; k++, i--)
+					Ctrl->Int16.tmp_img_in[c++] = Ctrl->Int16.img_in[m + n*ny + k*n_xy];
+	}
+	else if (dir == -1) {	/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
 		for (k = 0, i = nBands-1; k < nBands; k++, i--)
 			for (n = 0; n < nx; n++)
 				for (m = 0; m < ny; m++) 
 					Ctrl->Int16.img_out[c++] = Ctrl->Int16.tmp_img_out[nBands * (n + m*nx) + i];
+	}
+	else {			/* r0,g0,b0, r1,g1,b1, etc ...  to Matlab order */
+		for (k = 0; k < nBands; k++)
+			for (n = 0; n < nx; n++)
+				for (m = 0; m < ny; m++) 
+					Ctrl->Int16.img_out[c++] = Ctrl->Int16.tmp_img_out[nBands * (n + m*nx) + k];
 	}
 }
 
@@ -3065,13 +3146,26 @@ void interleaveI32(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 		for (m = 0; m < ny; m++) 
 			for (n = 0; n < nx; n++)
 				for (k = 0, i = nBands-1; k < nBands; k++, i--)
-					Ctrl->Int32.tmp_img_in[c++] = Ctrl->Int32.img_in[(m + n*ny + i*n_xy)];
+					Ctrl->Int32.tmp_img_in[c++] = Ctrl->Int32.img_in[m + n*ny + i*n_xy];
 	}
-	else {			/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
+	else if (dir == 10) {	/* Matlab order to r0,g0,b0, r1,g1,b1, etc ... */ 
+		n_xy = nx*ny;
+		for (m = 0; m < ny; m++) 
+			for (n = 0; n < nx; n++)
+				for (k = 0, i = nBands-1; k < nBands; k++, i--)
+					Ctrl->Int32.tmp_img_in[c++] = Ctrl->Int32.img_in[m + n*ny + k*n_xy];
+	}
+	else if (dir == -1) {	/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
 		for (k = 0, i = nBands-1; k < nBands; k++, i--)
 			for (n = 0; n < nx; n++)
 				for (m = 0; m < ny; m++) 
 					Ctrl->Int32.img_out[c++] = Ctrl->Int32.tmp_img_out[nBands * (n + m*nx) + i];
+	}
+	else {			/* r0,g0,b0, r1,g1,b1, etc ...  to Matlab order */
+		for (k = 0; k < nBands; k++)
+			for (n = 0; n < nx; n++)
+				for (m = 0; m < ny; m++) 
+					Ctrl->Int32.img_out[c++] = Ctrl->Int32.tmp_img_out[nBands * (n + m*nx) + k];
 	}
 }
 
@@ -3084,13 +3178,26 @@ void interleaveF32(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 		for (m = 0; m < ny; m++) 
 			for (n = 0; n < nx; n++)
 				for (k = 0, i = nBands-1; k < nBands; k++, i--)
-					Ctrl->Float.tmp_img_in[c++] = Ctrl->Float.img_in[(m + n*ny + i*n_xy)];
+					Ctrl->Float.tmp_img_in[c++] = Ctrl->Float.img_in[m + n*ny + i*n_xy];
 	}
-	else {			/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
+	else if (dir == 10) {	/* Matlab order to r0,g0,b0, r1,g1,b1, etc ... */ 
+		n_xy = nx*ny;
+		for (m = 0; m < ny; m++) 
+			for (n = 0; n < nx; n++)
+				for (k = 0, i = nBands-1; k < nBands; k++, i--)
+					Ctrl->Float.tmp_img_in[c++] = Ctrl->Float.img_in[m + n*ny + k*n_xy];
+	}
+	else if (dir == -1)  {	/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
 		for (k = 0, i = nBands-1; k < nBands; k++, i--)
 			for (n = 0; n < nx; n++)
 				for (m = 0; m < ny; m++) 
 					Ctrl->Float.img_out[c++] = Ctrl->Float.tmp_img_out[nBands * (n + m*nx) + i];
+	}
+	else {			/* r0,g0,b0, r1,g1,b1, etc ...  to Matlab order */
+		for (k = 0; k < nBands; k++)
+			for (n = 0; n < nx; n++)
+				for (m = 0; m < ny; m++) 
+					Ctrl->Float.img_out[c++] = Ctrl->Float.tmp_img_out[nBands * (n + m*nx) + k];
 	}
 }
 
@@ -3103,13 +3210,26 @@ void interleaveF64(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 		for (m = 0; m < ny; m++) 
 			for (n = 0; n < nx; n++)
 				for (k = 0, i = nBands-1; k < nBands; k++, i--)
-					Ctrl->Double.tmp_img_in[c++] = Ctrl->Double.img_in[(m + n*ny + i*n_xy)];
+					Ctrl->Double.tmp_img_in[c++] = Ctrl->Double.img_in[m + n*ny + i*n_xy];
 	}
-	else {			/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
+	else if (dir == 10) {	/* Matlab order to r0,g0,b0, r1,g1,b1, etc ... */ 
+		n_xy = nx*ny;
+		for (m = 0; m < ny; m++) 
+			for (n = 0; n < nx; n++)
+				for (k = 0, i = nBands-1; k < nBands; k++, i--)
+					Ctrl->Double.tmp_img_in[c++] = Ctrl->Double.img_in[m + n*ny + k*n_xy];
+	}
+	else if (dir == -1) {	/* b0,g0,r0, b1,g1,r1, etc ...  to Matlab order */
 		for (k = 0, i = nBands-1; k < nBands; k++, i--)
 			for (n = 0; n < nx; n++)
 				for (m = 0; m < ny; m++) 
 					Ctrl->Double.img_out[c++] = Ctrl->Double.tmp_img_out[nBands * (n + m*nx) + i];
+	}
+	else {			/* r0,g0,b0, r1,g1,b1, etc ...  to Matlab order */
+		for (k = 0; k < nBands; k++)
+			for (n = 0; n < nx; n++)
+				for (m = 0; m < ny; m++) 
+					Ctrl->Double.img_out[c++] = Ctrl->Double.tmp_img_out[nBands * (n + m*nx) + k];
 	}
 }
 
@@ -3129,6 +3249,7 @@ void Free_Cv_Ctrl (struct CV_CTRL *C) {	/* Deallocate control structure */
 /* ---------------------------------------------------------------------- */
 void Set_pt_Ctrl_in (struct CV_CTRL *Ctrl, const mxArray *pi, mxArray *pit, int interl) {
 	/* Set input image pointers to correct type and, optionaly, do the interleaving */ 
+	int	interl_dir;	/* To select between BGR and RGB interleaving */
 	if (Ctrl->UInt8.active == TRUE) {
 		Ctrl->UInt8.img_in      = (unsigned char *)mxGetData(pi);
 		Ctrl->UInt8.tmp_img_in  = (unsigned char *)mxGetData(pit);
@@ -3158,63 +3279,66 @@ void Set_pt_Ctrl_in (struct CV_CTRL *Ctrl, const mxArray *pi, mxArray *pit, int 
 		Ctrl->Double.tmp_img_in  = (double *)mxGetData(pit);
 	}
 
+	interl_dir = (interl == 1 ? 1: 10);	/* 10 interleaves from ML order to RGB */
 	if (interl)
-		interleave (Ctrl, getNK(pi,1), mxGetM(pi), getNK(pi,2), 1);
+		interleave (Ctrl, getNK(pi,1), mxGetM(pi), getNK(pi,2), interl_dir);
 }
 
 /* ---------------------------------------------------------------------- */
 void Set_pt_Ctrl_out1 ( struct CV_CTRL *Ctrl, mxArray *pi ) {
 	/* Set output tmp image pointer to correct type */ 
-	if (Ctrl->UInt8.active == TRUE) {
+	if (Ctrl->UInt8.active == TRUE)
 		Ctrl->UInt8.tmp_img_out  = (unsigned char *)mxGetData(pi);
-	}
-	else if (Ctrl->Int8.active == TRUE) {
+
+	else if (Ctrl->Int8.active == TRUE)
 		Ctrl->Int8.tmp_img_out   = (char *)mxGetData(pi);
-	}
-	else if (Ctrl->UInt16.active == TRUE) {
+
+	else if (Ctrl->UInt16.active == TRUE)
 		Ctrl->UInt16.tmp_img_out = (unsigned short int *)mxGetData(pi);
-	}
-	else if (Ctrl->Int16.active == TRUE) {
+
+	else if (Ctrl->Int16.active == TRUE)
 		Ctrl->Int16.tmp_img_out  = (short int *)mxGetData(pi);
-	}
-	else if (Ctrl->Int32.active == TRUE) {
+
+	else if (Ctrl->Int32.active == TRUE)
 		Ctrl->Int32.tmp_img_out  = (int *)mxGetData(pi);
-	}
-	else if (Ctrl->Float.active == TRUE) {
+
+	else if (Ctrl->Float.active == TRUE)
 		Ctrl->Float.tmp_img_out  = (float *)mxGetData(pi);
-	}
-	else if (Ctrl->Double.active == TRUE) {
+
+	else if (Ctrl->Double.active == TRUE)
 		Ctrl->Double.tmp_img_out = (double *)mxGetData(pi);
-	}
+
 }
 
 /* ---------------------------------------------------------------------- */
 void Set_pt_Ctrl_out2 (struct CV_CTRL *Ctrl, mxArray *po, int interl) {
 	/* Set output image pointers to correct type and, optionaly, do the interleaving */ 
-	if (Ctrl->UInt8.active == TRUE) {
+	int	interl_dir;	/* To select between BGR and RGB desinterleaving */
+	if (Ctrl->UInt8.active == TRUE)
 		Ctrl->UInt8.img_out  = (unsigned char *)mxGetData(po);
-	}
-	else if (Ctrl->Int8.active == TRUE) {
-		Ctrl->Int8.img_out   = (char *)mxGetData(po);
-	}
-	else if (Ctrl->UInt16.active == TRUE) {
-		Ctrl->UInt16.img_out = (unsigned short int *)mxGetData(po);
-	}
-	else if (Ctrl->Int16.active == TRUE) {
-		Ctrl->Int16.img_out  = (short int *)mxGetData(po);
-	}
-	else if (Ctrl->Int32.active == TRUE) {
-		Ctrl->Int32.img_out  = (int *)mxGetData(po);
-	}
-	else if (Ctrl->Float.active == TRUE) {
-		Ctrl->Float.img_out  = (float *)mxGetData(po);
-	}
-	else if (Ctrl->Double.active == TRUE) {
-		Ctrl->Double.img_out = (double *)mxGetData(po);
-	}
 
+	else if (Ctrl->Int8.active == TRUE)
+		Ctrl->Int8.img_out   = (char *)mxGetData(po);
+
+	else if (Ctrl->UInt16.active == TRUE)
+		Ctrl->UInt16.img_out = (unsigned short int *)mxGetData(po);
+
+	else if (Ctrl->Int16.active == TRUE)
+		Ctrl->Int16.img_out  = (short int *)mxGetData(po);
+
+	else if (Ctrl->Int32.active == TRUE)
+		Ctrl->Int32.img_out  = (int *)mxGetData(po);
+
+	else if (Ctrl->Float.active == TRUE)
+		Ctrl->Float.img_out  = (float *)mxGetData(po);
+
+	else if (Ctrl->Double.active == TRUE)
+		Ctrl->Double.img_out = (double *)mxGetData(po);
+
+
+	interl_dir = (interl == 1 ? -1: 0);	/* 0 desinterleaves from RGB to ML order */
 	if (interl)
-		interleave (Ctrl, getNK(po,1), mxGetM(po), getNK(po,2), -1);
+		interleave (Ctrl, getNK(po,1), mxGetM(po), getNK(po,2), interl_dir);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -3636,7 +3760,10 @@ void colorUsage() {
 	mexPrintf("       where IMG is a MxNx3 image of type: uint8, uint16 OR single (0..1 interval).\n");
 	mexPrintf("       TRF is a string controling the transformation. Possibilities are:\n");
 	mexPrintf("       rgb2lab,lab2rgb, rgb2luv,luv2rgb, rgb2xyz,xyz2rgb\n");
-	mexPrintf("       rgb2yiq,yiq2rgb, rgb2hsv,luv2hsv, rgb2hsl,hsl2rgb, rgb2YCrCb,YCrCb2rgb\n\n");
+	mexPrintf("       rgb2yiq,yiq2rgb, rgb2hsv,luv2hsv, rgb2hls,hls2rgb, rgb2YCrCb,YCrCb2rgb\n\n");
+
+	mexPrintf("       NOTE: When input is of type single, the rgb2hsv and rgb2hls transforms output\n");
+	mexPrintf("       H=[0..360], V=[0..1], S|L=[0..1].  The converse trasforms also expect H=[0..360];\n\n");
 
 	mexPrintf("       Class support: uint8, uint16 or single.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG and 1 copy of B.\n");
@@ -3766,6 +3893,10 @@ void arithmUsage() {
 	mexPrintf("       cvlib_mex(CvtScale,IMG1,IMG2,scale,shift);\n");
 	mexPrintf("       cvlib_mex(CvtScale,IMG1,scale,shift);\n");
 	mexPrintf("copies array IMG1 to IMG2 (first case) with optional scaling or into itself (second)\n\n");
+
+	mexPrintf("       B = cvlib_mex(CvtScaleAbs,IMG1,scale,shift);\n");
+	mexPrintf("The above form is similar to the previous one, but it stores absolute values of the:\n");
+	mexPrintf("conversion results and supports only destination arrays of 8-bit unsigned integers type\n\n");
 
 	mexPrintf("       Class support: all but uint32.\n");
 	mexPrintf("       Memory overhead: none.\n");
