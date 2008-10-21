@@ -50,6 +50,7 @@ bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
 	end
 	
 	nl_max = min(nl_max,numel(str));
+	if (nl_max == 0),	bin = [];	return,		end
 
     % Make a crude test to find number of columns and number of headers
     n_col(1:nl_max) = 0;    n_multi = 0;
@@ -93,7 +94,7 @@ bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
     
     % Well, this is a stupid patch for the case where the file has only one column.
     % In that case the above test failed
-    if (n_column == 0),     n_column = 1;   end     % (unless the file is empty!!!)
+    if (isempty(n_column) || n_column == 0),     n_column = 1;   end     % (unless the file is empty!!!)
     
 	% If no header number request was made, return right away
 	if (nargout <= 3),		return,		end
