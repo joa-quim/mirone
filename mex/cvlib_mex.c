@@ -2343,6 +2343,7 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 
 		if (lenop >= 11 && !strcmp(op,"CvtScaleAbs")) 
 			mexErrMsgTxt("CVLIB_MEX: 'CvtScaleAbs' does not support inplace computation");
+		inplace = TRUE;
 	}
 	/* -------------------- End of parsing input ------------------------------------- */
 
