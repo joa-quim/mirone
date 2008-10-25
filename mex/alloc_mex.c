@@ -29,6 +29,8 @@
  * AUTHOR Joaquim Luis (jluis@ualg.pt)
  * 	  22-Feb-2006 
  *
+ * Revision  1  25/10/2008 JL	Seting NaNs as 'fill_values' was returning zeros instead
+ *
  */
 
 #include "mex.h"
@@ -37,7 +39,7 @@
 /* the gateway function */
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double  *arg_dims, val = 0;
-	int     nx, ny, i, bytes_to_copy, argc, n_arg_char = 0, k = 0, n_dims, *dims, n_pts;
+	int     i, argc, n_arg_char = 0, k = 0, n_dims, *dims, n_pts;
 	char			*outI8, *classe, tmpI8;
 	unsigned char		*outUI8, tmpUI8;
 	short int		*outI16, tmpI16;
@@ -88,7 +90,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		n_dims = k;
 		n_pts = 1;
 		for (i = 0; i < k; i++) {
-			dims[i] = *mxGetPr(prhs[i]);
+			dims[i] = (int)*mxGetPr(prhs[i]);
 			if (dims[i] < 0) dims[i] = 0;
 			n_pts *= dims[i];
 		}
@@ -181,16 +183,16 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 		else if (!strncmp(classe,"float",5) || !strncmp(classe,"single",6)) {
 			plhs[0] = mxCreateNumericArray (n_dims,dims,mxSINGLE_CLASS, mxREAL);
-			outF32 = mxGetData(plhs[0]);
-			if (val != 0) {
+			outF32 = (float *)mxGetData(plhs[0]);
+			if (mxIsNaN(val) || val != 0) {
 				tmpF32 = (float)val;
 				for (i = 0; i < n_pts; i++) outF32[i] = tmpF32;
 			}
 		}
 		else if (!strncmp(classe,"double",6)) {
 			plhs[0] = mxCreateNumericArray (n_dims,dims,mxDOUBLE_CLASS, mxREAL);
-			outF64 = mxGetData(plhs[0]);
-			if (val != 0) {
+			outF64 = mxGetPr(plhs[0]);
+			if (mxIsNaN(val) || val != 0) {
 				tmpF64 = (double)val;
 				for (i = 0; i < n_pts; i++) outF64[i] = tmpF64;
 			}
