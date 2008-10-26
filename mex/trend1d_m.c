@@ -324,7 +324,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 		n_outputs++;
 	}
-        if (n_outputs == 0) {
+        if (n_outputs == 0 && !(Ctrl->L.active && (nlhs == 1))) {
                 mexPrintf ("TREND1D: SYNTAX ERROR -F option.  Must specify at least one output columns \n");
                 error++;
         }
