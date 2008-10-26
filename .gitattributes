@@ -355,6 +355,7 @@ mex/edison/segm/rlist.h -text
 mex/edison/segm/tdef.h -text
 mex/existmex.c -text
 mex/gdalread.c -text
+mex/gdalwarp_mex.c -text
 mex/gdalwarp_mex.cpp -text
 mex/gdalwrite.c -text
 mex/gmtlist_m.c -text
