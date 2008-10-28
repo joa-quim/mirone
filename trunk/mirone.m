@@ -53,10 +53,10 @@ function hObject = mirone_OpeningFcn(varargin)
 	%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calcBoninEulerPole spline_interp
 	%#function mat2clip buffer_j PolygonClip
 
-% 	global home_dir;    home_dir = cd;      fsep = filesep;		% To compile uncomment this and comment next 5 lines
-	global home_dir;    	fsep = filesep;
+%  	global home_dir;    home_dir = cd;      fsep = filesep;		% To compile uncomment this and comment next 5 lines
+	global home_dir;    fsep = filesep;
 	if (isempty(home_dir))		% First time call. Find out where we are
-		[home_dir, nome] = fileparts(mfilename('fullpath'));		% Get the Mirone homr dir and set path
+		[home_dir, nome] = fileparts(mfilename('fullpath'));		% Get the Mirone home dir and set path
 		addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
 	end
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
@@ -358,7 +358,7 @@ function openRF(obj,event,n)
 
 % --------------------------------------------------------------------------------------------------
 function handles = SetAxesNumericType(handles,event)
-	% Save original X & Y labels in appdata for easear access when we want to change them
+% Save original X & Y labels in appdata for easear access when we want to change them
 	setappdata(handles.axes1,'XTickOrig',get(handles.axes1,'XTickLabel'))
 	setappdata(handles.axes1,'YTickOrig',get(handles.axes1,'YTickLabel'))
 	set(handles.axes1, 'FontSize', 9)				% Make this the default
@@ -366,17 +366,25 @@ function handles = SetAxesNumericType(handles,event)
 	if (~handles.geog),		LFT = 'NotGeog';	visibility = 'off';		end 
 	setappdata(handles.axes1,'LabelFormatType',LFT)
 	set(handles.LabFormat, 'Vis', visibility)
-	if (handles.validGrid), set(handles.PixMode, 'Call', {@PixMode_CB,handles.figure1}, 'Vis', 'on')
+	if (handles.validGrid), set(handles.PixMode, 'Call', {@PixMode_CB,handles.figure1, true}, 'Vis', 'on')
 	else					set(handles.PixMode, 'Vis', 'off')
 	end
+	set(handles.RCMode,  'Call', {@PixMode_CB,handles.figure1, false})
 
 % --------------------------------------------------------------------
-function PixMode_CB(hObject, event, hFig)
-	% Inside each grid cell, which is a pixel in the screen, display only the grid node value
-	if (strcmp(get(hObject,'Checked'),'off'))
-		set(hObject,'Checked','on');    setappdata(hFig,'PixelMode',1)
-	else
-		set(hObject,'Checked','off');   setappdata(hFig,'PixelMode',0)
+function PixMode_CB(hObject, event, hFig, opt)
+% Inside each grid cell, which is a pixel in the screen, display only the grid node value
+	handles = guidata(hFig);
+	if (opt)		% Pixel mode on/off
+		if (strcmp(get(hObject,'Checked'),'off')),		set(hObject,'Checked','on');    setappdata(hFig,'PixelMode',true)
+		else											set(hObject,'Checked','off');   setappdata(hFig,'PixelMode',false)
+		end
+		set(handles.RCMode, 'Checked','off'),			setappdata(hFig,'RCMode',false)		% Put the RowColMode to off
+	else			% Row Col mode on/off
+		if (strcmp(get(hObject,'Checked'),'off')),		set(hObject,'Checked','on');    setappdata(hFig,'RCMode',true)
+		else											set(hObject,'Checked','off');   setappdata(hFig,'RCMode',false)
+		end
+		set(handles.PixMode, 'Checked','off'),			setappdata(hFig,'PixelMode',false)	% Put the PixMode to off
 	end
 
 % --------------------------------------------------------------------
@@ -674,13 +682,12 @@ function ImageResetOrigImg_CB(handles)
 % --------------------------------------------------------------------
 function ImageHistEqualize_CB(handles, hObject)
 	if (handles.no_file),		return,		end
-
 	zz = get(handles.hImg,'CData');
 	if strcmp(get(hObject,'checked'),'off')     % Then equalize
 		if (ndims(zz) == 3);
-			zz = cvlib_mex('color',zz,'rgb2hsv');
-			zz(:,:,3) = img_fun('histeq_j',zz(:,:,3));
-			J = cvlib_mex('color',zz,'hsv2rgb');
+			zz = cvlib_mex('color',zz,'rgb2hls');
+			zz(:,:,2) = img_fun('histeq_j',zz(:,:,2));
+			J = cvlib_mex('color',zz,'hls2rgb');
 		else
 			J = img_fun('histeq_j',zz);
 		end
@@ -770,7 +777,7 @@ function PanZoom_CB(handles, hObject, opt)
 
 % --------------------------------------------------------------------
 function zoom_state(handles, state)
-	% Sets the zoom sate to off, or reset it to on if ...
+% Sets the zoom sate to off, or reset it to on if ...
 	switch state
 		case 'off_yes'			% Set zoom permanently off
 			zoom_j('off');
@@ -778,8 +785,8 @@ function zoom_state(handles, state)
 			handles.zoom_state = 0;     guidata(handles.figure1,handles)
 		case 'maybe_off'		% If zoom was active, keep trace of it
 			zoom_j('off');		h = findobj(handles.figure1,'Tag','Zoom');
-			if (strcmp(get(h,'State'),'on')),   handles.zoom_state = 1;
-			else                                handles.zoom_state = 0;    end
+			if (strcmp(get(h,'State'),'on')),	handles.zoom_state = 1;
+			else								handles.zoom_state = 0;    end
 			set(h,'State','off');       guidata(handles.figure1,handles)
 		case 'maybe_on'			% Check if zoom has to be re-activated
 			handles = guidata(handles.figure1);  % Need to get the updated handles
@@ -790,9 +797,9 @@ function zoom_state(handles, state)
 
 % --------------------------------------------------------------------
 function FileNewBgFrame_CB(handles, region, imSize, figTitle)
-	% Create a empty window with a frame selected in bg_region
-	% However, if REGION was transmited, it is assumed to have  [x_min x_max y_min y_max is_geog]
-	% IMSIZE may either be the image size or the Figure title
+% Create a empty window with a frame selected in bg_region
+% However, if REGION was transmited, it is assumed to have  [x_min x_max y_min y_max is_geog]
+% IMSIZE may either be the image size or the Figure title
 	if (nargin == 1)
 		region = bg_region;		% region contains [x_min x_max y_min y_max is_geog]
 		if isempty(region),		return,		end		% User gave up
@@ -816,12 +823,12 @@ function FileNewBgFrame_CB(handles, region, imSize, figTitle)
     
 % --------------------------------------------------------------------
 function FileSaveGMTgrid_CB(handles, opt)
-	% Save internaly computed grids and GDAL recognized DEM grids into GMT grd grids
+% Save internaly computed grids and GDAL recognized DEM grids into GMT grd grids
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
-	if (nargin == 1),   opt = [];   end
-	
+	if (nargin == 1),	opt = [];   end
+
 	[X,Y,Z,head] = load_grd(handles);
-	if isempty(Z),   return,	end;    % An error message was already issued
+	if isempty(Z),	return,		end		% An error message was already issued
 	if (~isempty(opt) && strcmp(opt,'Surfer'))
 		txt1 = 'Surfer 6 binary grid (*.grd,*.GRD)';    txt2 = 'Select output Surfer 6 grid';
 	else           % Internaly computed grid  
@@ -930,8 +937,8 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 
 % --------------------------------------------------------------------
 function FileSaveENCOMgrid_CB(handles)
-	% Save memory resident grids into the Encom grid format
-	if (aux_funs('msg_dlg',14,handles));	return,	end
+% Save memory resident grids into the Encom grid format
+	if (aux_funs('msg_dlg',14,handles)),	return,		end
 
 	txt1 = 'Encom grid format (*.grd,*.GRD)';   txt2 = 'Select output Encom grid';
 	[FileName,PathName] = put_or_get_file(handles,{'*.grd;*.GRD',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.grd');
@@ -1022,9 +1029,9 @@ function ExtractProfile_CB(handles, opt)
 
 % --------------------------------------------------------------------
 function FileOpen_ENVI_Erdas_CB(handles, opt, opt2)
-	% This function reads both ENVI or Erdas files. Furthermore, based on the file byte
-	% type it guesses if we are dealing with a typical grid file (in which case it is
-	% treated like a native gmt grid) or a raster image file.
+% This function reads both ENVI or Erdas files. Furthermore, based on the file byte
+% type it guesses if we are dealing with a typical grid file (in which case it is
+% treated like a native gmt grid) or a raster image file.
 
 	if (nargin == 2)    % Otherwise, OPT2 already contains the File name
 		str1 = {'*.img;*.IMG', [opt ' (*.img,*.IMG)']; '*.*', 'All Files (*.*)'};
@@ -1166,8 +1173,8 @@ recentFiles(handles);		% Insert fileName into "Recent Files" & save handles
 
 % --------------------------------------------------------------------
 function FileOpenGDALmultiBand_CB(handles, opt, opt2)
-	% Read GDAL files that may be multiband
-	% OPT2, if present, MUST contain the full file name. Currently used to load RAW images
+% Read GDAL files that may be multiband
+% OPT2, if present, MUST contain the full file name. Currently used to load RAW images
 
 	if strcmp(opt,'ENVISAT')
 		str1 = {'*.n1;*.N1', 'Envisat (*.n1,*.N1)'; '*.*', 'All Files (*.*)'};
@@ -1508,7 +1515,7 @@ function read_DEMs(handles,fullname,tipo,opt)
 % _________________________________________________________________________________________________
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize)
-	% Show image and set other parameters
+% Show image and set other parameters
 	if (adjust)				% Convert the image limits from pixel reg to grid reg
 		[m,n,k] = size(I);  [X,Y] = aux_funs('adjust_lims',X,Y,m,n);
 	end
@@ -1654,8 +1661,7 @@ function ToolsMBplaningImport_CB(handles)
 	if isempty(getappdata(handles.figure1,'dem_x'))     % Test if the grid is loaded in memory
 		warndlg('Grid file is bigger than the declared "Grid Max Size". See "File -> Preferences"','Warning');  return
 	end
-	str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)'};
-	[FileName,PathName] = put_or_get_file(handles,str1,'Select input xy file name','get');
+	[FileName,PathName] = put_or_get_file(handles,{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)'},'Select input xy file name','get');
 	if isequal(FileName,0),		return,		end
 	
 	out = draw_funs([PathName FileName],'ImportLine');
@@ -1709,11 +1715,11 @@ function ImageIlluminationModel_CB(handles, opt)
 
 % --------------------------------------------------------------------
 function ImageIlluminateLambertian(luz, handles, opt)
-	% OPT ->  Select which of the GMT grdgradient illumination algorithms to use
-	% Illuminate a DEM file and turn it into a RGB image
-	% For multiple tryies I need to use the original image. Otherwise each attempt would illuminate
-	% the previously illuminated image. An exception occurs when the image was IP but only for the
-	% first time, repeated illums will use the original img. Otherwise we would need to make another img copy
+% OPT ->  Select which of the GMT grdgradient illumination algorithms to use
+% Illuminate a DEM file and turn it into a RGB image
+% For multiple tryies I need to use the original image. Otherwise each attempt would illuminate
+% the previously illuminated image. An exception occurs when the image was IP but only for the
+% first time, repeated illums will use the original img. Otherwise we would need to make another img copy
 
 	[X,Y,Z,head] = load_grd(handles);   % If needed, load gmt grid again
 	if isempty(Z),   return;     end;   % An error message was already issued
@@ -1985,7 +1991,7 @@ function ImageDrape_CB(handles)
 
 % --------------------------------------------------------------------
 function ToolsMeasure_CB(handles, opt)
-	% OPT = 'LLength' | 'Azim' | 'Area'
+% OPT = 'LLength' | 'Azim' | 'Area'
 	if (handles.no_file),    return;      end
 	zoom_state(handles,'maybe_off');
 	opt2 = opt;
@@ -2102,13 +2108,13 @@ function Draw_CB(handles, tipo, smb)
 
 % --------------------------------------------------------------------
 function DrawClosedPolygon_CB(handles, opt)
-	% OPT = [] Draw a closed polygon and exit
-	% OPT = 'EulerTrapezium' Draw a trapezium (only 4 sides => 5 pts). Used to fast compute an Euler pole
-	% OPT = 'SeismicityPolygon' Draw a closed polygon to which special seismicity opts will be added.
-	% OPT = 'from_ROI' Draw a closed polygon and call the ROI operations window
-	% OPT = 'rectangle' Draw a rectangle
-	% OPT = h (where h is a line handle) Calls the ROI operations window to operate on the polygon
-	%       whose handle is h. This mode is activated from a uicontextmenu that closed polylines share
+% OPT = [] Draw a closed polygon and exit
+% OPT = 'EulerTrapezium' Draw a trapezium (only 4 sides => 5 pts). Used to fast compute an Euler pole
+% OPT = 'SeismicityPolygon' Draw a closed polygon to which special seismicity opts will be added.
+% OPT = 'from_ROI' Draw a closed polygon and call the ROI operations window
+% OPT = 'rectangle' Draw a rectangle
+% OPT = h (where h is a line handle) Calls the ROI operations window to operate on the polygon
+%       whose handle is h. This mode is activated from a uicontextmenu that closed polylines share
 	if (handles.no_file),	return,		end
 	if (nargin == 1),		opt = [];   end
 	if (ishandle(opt)),		h_line = opt;   opt = 'from_uicontext';  end
@@ -2135,7 +2141,7 @@ function DrawClosedPolygon_CB(handles, opt)
 		h = patch('XData',xp,'YData',yp,'FaceColor','none','EdgeColor',handles.DefLineColor,...
 			'LineWidth',handles.DefLineThick,'Tag',tag);
 		draw_funs(h,'line_uicontext')		% Set lines's uicontextmenu
-		if (isempty(opt) || any(strcmp(tag,{'EulerTrapezium' 'SeismicityPolygon'}))),  return;     end      % We are done in this mode (just draw a closed polygon)
+		if (isempty(opt) || any(strcmp(tag,{'EulerTrapezium' 'SeismicityPolygon'}))),	return,		end		% We are done in this mode (just draw a closed polygon)
 		% If we come here it's because ROI operations were chosen
 		roi_image_operations(handles.axes1,[xp(:),yp(:)])
 	elseif (strcmp(opt,'from_uicontext'))
@@ -2185,7 +2191,7 @@ function DrawGeographicalCircle_CB(handles, opt)
 	zoom_state(handles,'maybe_off');
 	if (handles.geog && strcmp(opt,'gcirc'))
 		draw_funs([],'DrawGreatCircle')				% All work is done there
-	elseif (handles.geog ~= 1 && strcmp(opt,'gcirc'))
+	elseif (~handles.geog && strcmp(opt,'gcirc'))
 		warndlg('Great Circles are only programed to work with geog coordinates.','Warning')
 	elseif (~handles.geog && isempty(opt) || strcmp(opt,'cartCirc'))
 		draw_funs([],'DrawCartesianCircle')			% All work is done there
@@ -2282,27 +2288,27 @@ function DrawImportShape_CB(handles, fname)
 		for i = 1:nPolygs
 			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) s(i).BoundingBox(2,2); ...
 				s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
-			if (any(out))       % It means the polyg BB is at least partially inside
+			if (any(out))			% It means the polyg BB is at least partially inside
 				h(i) = line('Xdata',s(i).X,'Ydata',s(i).Y,'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline');
 			end
-			h((h == 0)) = [];   % Those were jumped because thay were completely outside map limits
+			h((h == 0)) = [];		% Those were jumped because thay were completely outside map limits
 		end
-		draw_funs(h,'SHPuictx')            % Set lines's uicontextmenu
+		draw_funs(h,'setSHPuictx')			% Set lines's uicontextmenu
 	elseif (strcmp(t,'Polygon'))
-		nParanoia = 1000;                  % The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
+		nParanoia = 1000;					% The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
 		for i = 1:nPolygs
 			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) s(i).BoundingBox(2,2); ...
 					s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
-			if (any(out))                       % It means the polyg BB is at least partially inside
+			if (any(out))					% It means the polyg BB is at least partially inside
 				h(i) = patch('XData',s(i).X,'YData', s(i).Y,'FaceColor','none','EdgeColor',handles.DefLineColor,'Tag','SHPpolygon');
 			end
-			if ((h(i) ~= 0) && nPolygs <= nParanoia)           % With luck, your hardware won't choke to dead with this
+			if ((h(i) ~= 0) && nPolygs <= nParanoia)		% With luck, your hardware won't choke to dead with this
 				draw_funs(h(i),'line_uicontext')
 			end
 		end
-		if (nPolygs > nParanoia)                % nParanoia is an arbitrary number that practice will show dependency
-			h((h == 0)) = [];                   % Those were jumped because they were completely outside map limits
-			draw_funs(h,'country_patch')        % mostly on hardware, for I don't beleave ML will ever behave decently.
+		if (nPolygs > nParanoia)				% nParanoia is an arbitrary number that practice will show dependency
+			h((h == 0)) = [];					% Those were jumped because they were completely outside map limits
+			draw_funs(h,'country_patch')		% mostly on hardware, for I don't beleave ML will ever behave decently.
 		end
 	end
 
@@ -2355,16 +2361,16 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 		FileNewBgFrame_CB(handles, [x_min x_max y_min y_max 1]),		pause(0.05)
 	else
 		x_lim = get(handles.axes1,'XLim');    y_lim = get(handles.axes1,'YLim');
-		opt_R = ['-R' sprintf('%.4f',x_lim(1)) '/' sprintf('%.4f',x_lim(2)) '/' sprintf('%.4f',y_lim(1)) '/' sprintf('%.4f',y_lim(2))];
+		opt_R = sprintf('-R%.6f/%.6f/%.6f/%.6f', x_lim(1), x_lim(2), y_lim(1), y_lim(2));
 		track = gmtlist_m(names{1:end},'-Fxy','-G',opt_R);
 	end
 
 	% And finaly do the ploting
-	colors = rand(length(track),3);         % Use a random color schema
+	colors = rand(length(track),3);			% Use a random color schema
 	for (k=1:length(track))
-		id0 = (track(k).longitude == 0);    % I must change gmtlist to do this
+		id0 = (track(k).longitude == 0);	% I must change gmtlist to do this
 		track(k).longitude(id0) = [];       track(k).latitude(id0) = [];
-		if (isempty(track(k).longitude)),   continue;   end     % This track is completely outside the map
+		if (isempty(track(k).longitude)),   continue,	end		% This track is completely outside the map
 		h = line(track(k).longitude,track(k).latitude,'Linewidth',handles.DefLineThick,'Color',...
 			colors(k,:),'Tag',names_ui{k},'Userdata',1);
 		setappdata(h,'FullName',names{k})    % Store file name in case the uicontext wants to open it with gmtedit
@@ -2807,7 +2813,7 @@ function GeophysicsSwanPlotStations_CB(handles)
 
 % --------------------------------------------------------------------
 function GRDdisplay(handles,X,Y,Z,head,tit,name)
-	% Show matrix Z in a new window.
+% Show matrix Z in a new window.
 	if (nargin < 7),    name = [];  end
 	if (isa(Z,'double')),		Z = single(Z);		end
 	zz = grdutils(Z,'-L');		head(5:6) = double(zz(1:2));
@@ -2816,9 +2822,9 @@ function GRDdisplay(handles,X,Y,Z,head,tit,name)
 
 % --------------------------------------------------------------------
 function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
-	% OPT1 = DRIVER == GTiff, HFA (erdas), ENVI, ECW, JP2ECW
-	% OPT2 == grid -> saves the underlaying grid
-	% ELSE -> do a screen capture
+% OPT1 = DRIVER == GTiff, HFA (erdas), ENVI, ECW, JP2ECW
+% OPT2 == grid -> saves the underlaying grid
+% ELSE -> do a screen capture
 	if (handles.no_file),    return;      end
 	if (strcmp(opt2,'grid') && ~handles.validGrid)
 		errordlg('You don''t have a Grid loaded, so OBVIOUSLY you cannot save it.','Error');  return
@@ -2878,7 +2884,7 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
 
 % --------------------------------------------------------------------
 function GridToolsHistogram_CB(handles, opt)
-	% OPT2 if present is a structure with two fields: opt2.Z (the matrix); opt2.head (its 9 elements header)
+% OPT2 if present is a structure with two fields: opt2.Z (the matrix); opt2.head (its 9 elements header)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	if (nargin == 1)						% Use entire grid
 		[X,Y,Z,head] = load_grd(handles);
@@ -2920,16 +2926,28 @@ function GridToolsSectrum_CB(handles, opt1, opt2)
 	if (handles.have_nans)
 		warndlg('This grid has NaNs. That is not allowed in FFTs','Warning');    return;
 	end
-	if (nargin == 2)                        % Use entire grid
+	if (nargin == 2)						% Use entire grid
 		[X,Y,Z,head] = load_grd(handles);   quick = 0;
-		if isempty(Z),  return,		end;    % An error message was already issued
-	else									% Use a subset grid extracted from a rectangular area
-		Z = opt2.Z;		head = opt2.head;	quick = 1;
+		if isempty(Z),	return,		end
+	else									% Use (maybe) a subset grid extracted from a rectangular area
+		if (strcmp(opt1(2:end),'pass'))		% Very special case (no subset)
+			h = getappdata(handles.figure1, 'ParentFig');
+			if (~ishandle(h))
+				errordlg('Too late. You killed the figure with the original data.'),	return
+			end
+			handles = guidata(h);			% Is the parent figure handles that FFT_STUFF() will need
+			[X,Y,Z,head] = load_grd(handles);   quick = 0;
+			if isempty(Z),	return,		end
+			handles.XXXhLine = opt2;		% Dumb field to be used only by FFT_STUFF()
+			guidata(handles.figure1, handles)
+		else
+			Z = opt2.Z;		head = opt2.head;	quick = 1;
+		end
 	end
 
-	if (quick),     set(handles.figure1,'pointer','watch'); end
+	if (quick),		set(handles.figure1,'pointer','watch');		end
 	fft_stuff(handles.figure1, Z, head, handles.geog, opt1);
-	if (quick),     set(handles.figure1,'pointer','arrow'); end
+	if (quick),		set(handles.figure1,'pointer','arrow');		end
 
 % --------------------------------------------------------------------
 function GridToolsSmooth_CB(handles)
@@ -3095,27 +3113,27 @@ function GridToolsDirDerive_CB(handles, opt)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	if (nargin == 1),	opt = 'first';		end
 	luz = shading_params('dirDerivative');      pause(0.01) % Give time to the azimuth window be deleted
-	if isempty(luz),   return;     end
+	if isempty(luz),	return,		end
 	azim = (90 - luz.azim) * pi/180;
 	
 	[X,Y,Z,head] = load_grd(handles);
-	if isempty(Z),   return;     end;    % An error message was already issued
-	if (~isa(Z,'double')),  Z = double(Z);  end;            % Make sure Z is of double type
+	if isempty(Z),		return,		end		% An error message was already issued
+	if (~isa(Z,'double')),		Z = double(Z);		end			% Make sure Z is of double type
 	
 	set(handles.figure1,'pointer','watch')
 	if (handles.geog)
-        [gradN gradE] = gradient_geo(Y,X,Z,'grad');             % df/dy & df/dx
-        if strcmp(opt,'first')
-            Z = gradE * cos(azim) + gradN * sin(azim);
-            str = 'First derivative';
-        else        % second derivative
-            Z = gradient_geo(Y,X,gradN,'gradN')*(sin(azim)^2);   clear gradN;       % d2f/dy2
-            Z = Z + gradient_geo(Y,X,gradE,'gradE')*(cos(azim)^2);                  % + d2f/dx2
-            Z = Z + 2*gradient_geo(Y,X,gradE,'gradN')*(cos(azim) * sin(azim));      % + d2f/dxdy
-            str = 'Second derivative';
-        end
+		[gradN gradE] = gradient_geo(Y,X,Z,'grad');             % df/dy & df/dx
+		if strcmp(opt,'first')
+			Z = gradE * cos(azim) + gradN * sin(azim);
+			str = 'First derivative';
+		else        % second derivative
+			Z = gradient_geo(Y,X,gradN,'gradN')*(sin(azim)^2);   clear gradN;		% d2f/dy2
+			Z = Z + gradient_geo(Y,X,gradE,'gradE')*(cos(azim)^2);					% + d2f/dx2
+			Z = Z + 2*gradient_geo(Y,X,gradE,'gradN')*(cos(azim) * sin(azim));		% + d2f/dxdy
+			str = 'Second derivative';
+		end
 	else
-        set(handles.figure1,'pointer','arrow');     warndlg('Not programed for cartesian grids','Warning');   return
+		set(handles.figure1,'pointer','arrow');     warndlg('Not programed for cartesian grids','Warning');   return
 	end
 	GRDdisplay(handles,X,Y,Z,head,str,str);
 
@@ -3146,7 +3164,7 @@ function GridToolsFindHoles_CB(handles)
 % --------------------------------------------------------------------
 function GridToolsSaveAsSRTM_CB(handles)
 	% Only grids with the same characteristics as SRTM 3c files are allowed to be saved
-	if (handles.no_file),     return;      end
+	if (handles.no_file),	return,		end
 	[X,Y,Z,head] = load_grd(handles);       % No need to test for in-memory Z
 	if ( ((head(2)-head(1)) - 1) > 1e-6 || ((head(4)-head(3)) - 1) > 1e-6 )      
 		errordlg('Grid does not cover a 1 degree square','Error');  return
@@ -3157,19 +3175,13 @@ function GridToolsSaveAsSRTM_CB(handles)
 	end
 	
 	% Build the file name (appended with the '_p' suffix)
-	if (sign(head(1)) > 0 ),    w = 'E';
-	else                        w = 'W';    end
-	if (sign(head(3)) > 0 ),    n = 'N';
-	else                        n = 'S';    end
+	if (sign(head(1)) > 0 ),	w = 'E';
+	else						w = 'W';    end
+	if (sign(head(3)) > 0 ),	n = 'N';
+	else						n = 'S';    end
 	name = [n sprintf('%.2d',abs(round(head(3)))) w sprintf('%.3d',abs(round(head(1)))) '_p.hgt'];
-	cd(handles.work_dir)
-	[FileName,PathName] = uiputfile(name,'Select SRTM File name');
-	if (PathName ~= 0),         handles.last_dir = PathName;    end
-	pause(0.01)
-	if isequal(FileName,0);     return;     end
-	cd(handles.home_dir);       % allways go home to avoid troubles
-	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-	if (isempty(EXT) && ~isempty(FileName)),   FileName = [FileName '.hgt'];     end
+	[FileName,PathName] = put_or_get_file(handles, name,'Select SRTM File name', 'put','.hgt');
+	if (isequal(FileName,0)),	return,		end
 	
 	Z(isnan(Z)) = -32768;  Z = int16(rot90(Z,-1));      % Reset eventual NaNs to the SRTM nodata value
 	fid = fopen([PathName FileName],'w','b');
@@ -3224,6 +3236,7 @@ function FileSaveFleder_CB(handles, opt)
 		catch
 			errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
 		end
+		pause(1)
 		builtin('delete',fname);
 	end
 
@@ -3260,7 +3273,7 @@ elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
 		if (~handles.IamCompiled),		img = canny(img);		% Economic version (uses singles & cvlib_mex but crashs in compiled)
 		else							img = img_fun('edge',img,'canny');
 		end
-    else
+	else
 		img = susan(img,'-e');              % Do SUSAN edge detect
 		if (strcmp(opt(4:end),'vec')),      opt = 'Vec';        % This avoids some extra tests later
 		else                                opt = 'Ras';
@@ -3293,11 +3306,11 @@ elseif (strcmp(opt,'Circles'))
 end
 
 if (strcmp(opt,'Vec') || strcmp(opt,'Lines'))          % Convert the edges found into vector
-    x_inc = handles.head(8);    y_inc = handles.head(9);
-    x_min = handles.head(1);    y_min = handles.head(3);
-    if (handles.head(7))            % Work in grid registration
-        x_min = x_min + x_inc/2;    y_min = y_min + y_inc/2;
-    end
+	x_inc = handles.head(8);    y_inc = handles.head(9);
+	x_min = handles.head(1);    y_min = handles.head(3);
+	if (handles.head(7))            % Work in grid registration
+		x_min = x_min + x_inc/2;    y_min = y_min + y_inc/2;
+	end
 	h_edge = zeros(length(B),1);    i = 1;
 	for k = 1:length(B)
 		boundary = B{k};
