@@ -30,14 +30,14 @@ else
     handles.path_data = [home_dir filesep 'data' filesep];
 end
 
-handles.h_calling_fig = [];     % Handles to the calling figure
-handles.geog = 0;               % Set this as default
+handles.hMirFig = [];			% Handle to the calling figure
+handles.geog = 0;				% Set this as default
 handles.Z1 = [];
 handles.Z2 = [];
 grid_in_continue = 0;
 
 if (~isempty(varargin))         % When called from a Mirone window
-    handles.h_calling_fig = varargin{1};
+    handles.hMirFig = varargin{1};
     handles.Z1 = varargin{2};
     handles.head_Z1 = varargin{3};
     handles.geog = varargin{4};
@@ -73,7 +73,7 @@ if (~isempty(varargin))         % When called from a Mirone window
         end
 	end
     if (~grid_in_continue)       % Called in the "quick mode" 
-        if (any(strcmp(mode,{'Power' 'Autocorr' 'Amplitude'})))
+        if (any( strcmp( mode,{'Power' 'Autocorr' 'Amplitude' 'lpass' 'hpass'} ) ))
             sectrumFun(handles, handles.Z1, handles.head_Z1, mode)
         end
         delete(hObject)
@@ -81,8 +81,8 @@ if (~isempty(varargin))         % When called from a Mirone window
     end
 end
 
-if (~isempty(handles.h_calling_fig))
-	handMir = guidata(handles.h_calling_fig);
+if (~isempty(handles.hMirFig))
+	handMir = guidata(handles.hMirFig);
 	handles.home_dir = handMir.home_dir;
 	handles.work_dir = handMir.work_dir;
 	handles.last_dir = handMir.last_dir;
@@ -270,8 +270,8 @@ if (nargin == 3),    opt = [];       end
 if (nargin == 4),    fname = opt;    end
 
 if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
-    if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))		% If we know the handle to the calling fig
-        hand = guidata(handles.h_calling_fig);      % get handles of the calling fig
+    if (~isempty(handles.hMirFig) && ishandle(handles.hMirFig))		% If we know the handle to the calling fig
+        hand = guidata(handles.hMirFig);      % get handles of the calling fig
 	else
 		hand = handles;
 	end
@@ -446,7 +446,7 @@ if (handles.geog),   freq = freq * 1000;     end     % Report frequency in 1/km
 
 h=figure('NumberTitle','off','Name','Radial average power spectrum',...
     'Color',get(0,'factoryUicontrolBackgroundColor'));
-ud.h_mir_fig = handles.h_calling_fig;
+ud.h_mir_fig = handles.hMirFig;
 ud.data = [freq; power'; eps_pow'];     % ready for the stupid fwrite
 set(h,'UserData',ud)
 uimenu('Label','Save data','callback',{@calSave,h});
@@ -504,77 +504,104 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 % OPT1 = 'Autocorr'    -> compute autocorrelation
 % OPT1 = 'CrossPower'  -> compute cross power spectra between Z & Z2
 % OPT1 = 'CrossCorrel' -> compute cross correlation between Z & Z2
+% OPT1 = 'lpass|hpass' -> compute low pass|high pass filtering of Z
 % Z2 -> needed when OPT1 = 'CrossPower' OR OPT1 = 'CrossCorrel'
 
-two_grids = 0;
-if (nargin == 5),    two_grids = 1;  end
-set(handles.figure1,'pointer','watch')
-if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-    Z = double(grdtrend_m(single(Z),handles.head_Z1,'-D','-N3'));
-    if (two_grids)
-        Z2 = double(grdtrend_m(single(Z2),handles.head_Z1,'-D','-N3'));
-    end
-end
-nx = handles.orig_ncols;        ny = handles.orig_nrows;
-[Z,band] = mboard(double(Z),nx,ny,handles.new_nx,handles.new_ny);
-if (two_grids)
-    Z2 = mboard(double(Z2),nx,ny,handles.new_nx,handles.new_ny);
-end
-if (any(strcmp(opt1,{'Amplitude' 'Power' 'CrossPower'})))   % For these this is more efficient
-    Z = fftshift(fft2(Z));
-    m1 = band(1)+1;     m2 = m1 + ny - 1;
-    n1 = band(3)+1;     n2 = n1 + nx - 1;
-    %Z = ifft2(ifftshift(Z));
-    Z = Z(m1:m2,n1:n2);                 % Remove the padding skirt
-    if (two_grids)
-        Z2 = fftshift(fft2(Z2));        Z2 = Z2(m1:m2,n1:n2);
-    end
-end
+	two_grids = 0;
+	if (nargin == 5),    two_grids = 1;  end
+	set(handles.figure1,'pointer','watch')
+	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
+		Z = double(grdtrend_m(single(Z),handles.head_Z1,'-D','-N3'));
+		if (two_grids)
+			Z2 = double(grdtrend_m(single(Z2),handles.head_Z1,'-D','-N3'));
+		end
+	end
+	nx = handles.orig_ncols;        ny = handles.orig_nrows;
+	[Z,band] = mboard(double(Z),nx,ny,handles.new_nx,handles.new_ny);
+	if (two_grids)
+		Z2 = mboard(double(Z2),nx,ny,handles.new_nx,handles.new_ny);
+	end
+	if (any(strcmp(opt1,{'Amplitude' 'Power' 'CrossPower'})))   % For these this is more efficient
+		Z = fftshift(fft2(Z));
+		m1 = band(1)+1;     m2 = m1 + ny - 1;
+		n1 = band(3)+1;     n2 = n1 + nx - 1;
+		%Z = ifft2(ifftshift(Z));
+		Z = Z(m1:m2,n1:n2);                 % Remove the padding skirt
+		if (two_grids)
+			Z2 = fftshift(fft2(Z2));        Z2 = Z2(m1:m2,n1:n2);
+		end
+	end
 
-if (strcmp(opt1,'Power'))
-	Z = log10( (Z .* conj(Z) / (nx*ny)) + 1);       % An offset of 1 is added to avoid log(0)
-    tmp.name = 'Power spectrum';
-elseif (strcmp(opt1,'CrossPower'))                  % Cross spectra
-	Z = log10( (real(Z).*real(Z2) + imag(Z).*imag(Z2)) / (nx*ny) + 1);  % An offset of 1 is added to avoid log(0)
-    tmp.name = 'Cross spectra';    clear Z2;
-elseif (strcmp(opt1,'Amplitude'))                   % Amplitude spectrum
-    Z = log10(abs(Z) / (nx*ny) + 1);
-    tmp.name = 'Amplitude spectrum';
-elseif (strcmp(opt1,'Autocorr'))                    % Autocorrelation
-    Z = fftshift(real(ifft2(abs(fft2(Z)).^2)));
-    m1 = band(1)+1;     m2 = m1 + ny - 1;
-    n1 = band(3)+1;     n2 = n1 + nx - 1;
-    Z = Z(m1:m2,n1:n2);                             % Remove the padding skirt
-    tmp.name = 'Autocorrelation';
-elseif (strcmp(opt1,'CrossCorrel'))                 % Cross Correlation
-    Z = ifft2(abs(fft2(Z) .* fft2(Z2)));
-    Z = fftshift(real(Z));
-    m1 = band(1)+1;     m2 = m1 + ny - 1;
-    n1 = band(3)+1;     n2 = n1 + nx - 1;
-    Z = Z(m1:m2,n1:n2);                             % Remove the padding skirt
-    tmp.name = 'Cross Correlation';
-end
+	if (strcmp(opt1,'Power'))
+		Z = log10( (Z .* conj(Z) / (nx*ny)) + 1);       % An offset of 1 is added to avoid log(0)
+		tmp.name = 'Power spectrum';
+	elseif (strcmp(opt1,'CrossPower'))                  % Cross spectra
+		Z = log10( (real(Z).*real(Z2) + imag(Z).*imag(Z2)) / (nx*ny) + 1);  % An offset of 1 is added to avoid log(0)
+		tmp.name = 'Cross spectra';    clear Z2;
+	elseif (strcmp(opt1,'Amplitude'))                   % Amplitude spectrum
+		Z = log10(abs(Z) / (nx*ny) + 1);
+		tmp.name = 'Amplitude spectrum';
+	elseif (strcmp(opt1,'Autocorr'))                    % Autocorrelation
+		Z = fftshift(real(ifft2(abs(fft2(Z)).^2)));
+		m1 = band(1)+1;     m2 = m1 + ny - 1;
+		n1 = band(3)+1;     n2 = n1 + nx - 1;
+		Z = Z(m1:m2,n1:n2);                             % Remove the padding skirt
+		tmp.name = 'Autocorrelation';
+	elseif (strcmp(opt1,'CrossCorrel'))                 % Cross Correlation
+		Z = ifft2(abs(fft2(Z) .* fft2(Z2)));
+		Z = fftshift(real(Z));
+		m1 = band(1)+1;     m2 = m1 + ny - 1;
+		n1 = band(3)+1;     n2 = n1 + nx - 1;
+		Z = Z(m1:m2,n1:n2);                             % Remove the padding skirt
+		tmp.name = 'Cross Correlation';
+	elseif ( any(strcmp(opt1,{'lpass' 'hpass'})) )		% Filtering
+		handMir = guidata(handles.hMirFig);				% Handles of the space domain figure
+		x = get(handMir.XXXhLine, 'XData');		y = get(handMir.XXXhLine, 'YData');
+		hand = guidata(handMir.XXXhLine);				% Handles of the Spectrum figure
+		xy_lims = getappdata(hand.axes1,'ThisImageLims');
+		mask = ifftshift(img_fun('roipoly_j',xy_lims(1:2), xy_lims(3:4), Z, x, y));
+		if (strcmp(opt1,'lpass')),	mask = ~mask;	end
+		Z = fft2(Z);
+		% Do the filtering
+		Z(mask) = 0;
+		Z = real(ifft2(Z));
+		m1 = band(1)+1;     m2 = m1 + ny - 1;
+		n1 = band(3)+1;     n2 = n1 + nx - 1;
+		Z = Z(m1:m2,n1:n2);                             % Remove the padding skirt
+		tmp.name = [upper(opt1(1))  'pass filtering'];
+	end
 
-if ( (strcmp(opt1,'Autocorr') || strcmp(opt1,'CrossCorrel')) )
-    delta_kx = 1;   delta_ky = 1;
-else            % make wave number array
-    delta_kx = 2*pi / (handles.new_nx * handles.scaled_dx);
-    delta_ky = 2*pi / (handles.new_ny * handles.scaled_dy);
-end
-if (handles.is_km)      % In km case scaled_dx|dy where in meters
-    delta_kx = delta_kx * 1000;
-    delta_ky = delta_ky * 1000;
-end
+	if ( (strcmp(opt1,'Autocorr') || strcmp(opt1,'CrossCorrel')) )
+        delta_kx = 1;   delta_ky = 1;
+	else            % make wave number array
+        delta_kx = 2*pi / (handles.new_nx * handles.scaled_dx);
+        delta_ky = 2*pi / (handles.new_ny * handles.scaled_dy);
+	end
+	if (handles.is_km)      % In km case scaled_dx|dy where in meters
+        delta_kx = delta_kx * 1000;
+        delta_ky = delta_ky * 1000;
+	end
 
-nx2 = fix(nx/2);    ny2 = fix(ny/2);
-if (rem(nx,2) == 0),   sft_x = 1;
-else                   sft_x = 0;     end
-if (rem(ny,2) == 0),   sft_y = 1;
-else                   sft_y = 0;     end
-tmp.X = (-nx2:nx2-sft_x).*delta_kx;     tmp.Y = (-ny2:ny2-sft_y).*delta_ky;
-tmp.head = [tmp.X(1) tmp.X(end) tmp.Y(1) tmp.Y(end) min(Z(:)) max(Z(:)) 0 delta_kx delta_ky];
-set(handles.figure1,'pointer','arrow')
-mirone(single(Z),tmp);
+	nx2 = fix(nx/2);		ny2 = fix(ny/2);
+	if (rem(nx,2) == 0),	sft_x = 1;
+	else					sft_x = 0;
+	end
+	if (rem(ny,2) == 0),	sft_y = 1;
+	else					sft_y = 0;
+	end
+	if ( ~any(strcmp(opt1,{'lpass' 'hpass'})) )
+		tmp.X = (-nx2:nx2-sft_x).*delta_kx;     tmp.Y = (-ny2:ny2-sft_y).*delta_ky;
+		tmp.geog = 0;
+	else
+		tmp.X = getappdata(handMir.figure1,'dem_x');	tmp.Y = getappdata(handMir.figure1,'dem_y');
+		delta_kx = handMir.head(8);						delta_ky = handMir.head(9);
+	end
+	tmp.head = [tmp.X(1) tmp.X(end) tmp.Y(1) tmp.Y(end) min(Z(:)) max(Z(:)) 0 delta_kx delta_ky];
+	set(handles.figure1,'pointer','arrow')
+	h = mirone(single(Z),tmp);
+	if ( (strcmp(opt1,'Power') || strcmp(opt1,'Amplitude')) )
+		setappdata(h, 'ParentFig', handles.hMirFig);		% Save the space domain Fig handle to eventual future use
+	end
 
 % --------------------------------------------------------------------
 function pushbutton_goUDcont_Callback(hObject, eventdata, handles)
