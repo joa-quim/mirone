@@ -7,8 +7,8 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function imcapture filter_funs overview imageresize classificationfig tfw_funs mirone_pref
 %#function griding_mir grdfilter_mir grdsample_mir grdtrend_mir grdgradient_mir ml_clip show_palette 
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
-%#function mxgridtrimesh aquamoto tiles_tool zonal_integrator grdlandmask_win grdlandmask_m escadeirar
-%#function run_cmd line_operations world_is_not_round_enough cartas_militares
+%#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
+%#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -122,7 +122,8 @@ uimenu(itemFS, 'Label', '8   pt', 'Call', 'set(gca, ''FontSize'', 8)');
 uimenu(itemFS, 'Label', '9   pt', 'Call', 'set(gca, ''FontSize'', 9)');
 uimenu(itemFS, 'Label', '10 pt', 'Call', 'set(gca, ''FontSize'', 10)');
 uimenu(cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid', 'Separator','on');
-uimenu(cmenu_axes, 'Label', 'Pixel mode on/off', 'Tag','PixMode', 'Separator','on');
+uimenu(cmenu_axes, 'Label', 'Row-Col mode on/off', 'Tag','RCMode', 'Separator','on');
+uimenu(cmenu_axes, 'Label', 'Pixel mode on/off', 'Tag','PixMode');
 % Those ones are manipulated in setAxesDefCoordIn()
 uimenu(cmenu_axes, 'Label', 'Load in projected coords', 'Checked','on', 'Vis','off','Tag','hAxMenuLF');
 uimenu(cmenu_axes, 'Label', 'Display projected coords', 'Vis','off','Tag','hAxMenuDM');
@@ -305,6 +306,8 @@ uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''range'');','Label','Range 
 uimenu('Parent',hIM,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''image'')','Label','Digital Filtering Tool','Sep','on');
 uimenu('Parent',hIM,'Call','image_enhance(gcf)','Label','Image Enhance (1 - Indexed and RGB)');
 uimenu('Parent',hIM,'Call','image_adjust(gcf)','Label','Image Enhance (2 - Indexed only)');
+uimenu('Parent',hIM,'Call','ice_m(gcf,''space'',''hsi'')','Label','Image Color Editor (Indexed and RGB)');
+
 uimenu('Parent',hIM,'Call','aux_funs(''togCheck'',gcbo)','Label','Activate Image-to-Image/Map GCP Tool','Tag','GCPtool','Sep','on');
 uimenu('Parent',hIM,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPpline'')','Label','Register Image (Draw GCP points)');
 uimenu('Parent',hIM,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPmemory'')',...
@@ -639,7 +642,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 Oct 2008'',''1.4.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 28 Oct 2008'',''1.4.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
