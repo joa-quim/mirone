@@ -156,24 +156,32 @@ end
 
 %-----------------------------------------------------------------------------------------
 function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
-	%   This is the motion callback for when we are displaying pixels.
-	%   Either we are in automatic display mode and the mouse pointer is
-	%   moving around or we are in normal mode and there has been a button-down
-	%   but not yet a button up. I get the current point and update the string.
+%   This is the motion callback for when we are displaying pixels.
+%   Either we are in automatic display mode and the mouse pointer is
+%   moving around or we are in normal mode and there has been a button-down
+%   but not yet a button up. I get the current point and update the string.
 
 	dbud = get(displayBar, 'UserData');
 	axHandle = dbud.axes1;
 	Zlim = dbud.head(5:6);
+	rcMode = false;
 
 	if (dbud.haveGrid)
-		if (getappdata(figHandle,'PixelMode'))
+		pMode = getappdata(figHandle,'PixelMode');		rcMode = getappdata(figHandle,'RCMode');
+		if (isempty(pMode)),		pMode = false;		end
+		if (isempty(rcMode)),		rcMode = false;		end
+ 		if (pMode || rcMode)
 			% Inside each grid cell, which is a pixel in the screen, display only the grid node value
 			[rows,cols,colors] = size(img);
 			rp = axes2pix(rows, get(imageHandle,'YData'),y);
 			cp = axes2pix(cols, get(imageHandle,'XData'),x);
 			r = min(rows, max(1, round(rp)));   c = min(cols, max(1, round(cp)));
-			Z = getappdata(figHandle,'dem_z');
-			pixel(1) = double(Z(r,c));
+			if (pMode)
+				Z = getappdata(figHandle,'dem_z');
+				pixel(1) = double(Z(r,c));
+			else
+				pixel = [r c];
+			end
 		else
 			pixel(1) = bi_linear(getappdata(figHandle,'dem_x'),getappdata(figHandle,'dem_y'),getappdata(figHandle,'dem_z'),x,y);
 		end
@@ -209,27 +217,27 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
 
 	% Find the coordinate output format
 	labelType = getappdata(axHandle,'LabelFormatType');
-	if (isempty(labelType))     % This is in fact an error test because labelType should never be empty.
+	if (isempty(labelType))     % Actualy this is an error test because labelType should never be empty.
 		labelType = 'NotGeog';
 	end
 	% Make a copy of x & y to use in the distance case. Needed when input was transformed to a string below
-	x1 = x;     y1 = y;
+	x1 = x;		y1 = y;
 	switch labelType
-        case {'DegDec', 'NotGeog'}       % This's the default. Just build the format string
+		case {'DegDec', 'NotGeog'}       % This's the default. Just build the format string
 			form_xy = ' %8.3f,%7.3f =';                
-        case 'DegMin'
+		case 'DegMin'
 			out_x = degree2dms(x,'DDMM',0,'str');   x = [out_x.dd ':' out_x.mm];
 			out_y = degree2dms(y,'DDMM',0,'str');   y = [out_y.dd ':' out_y.mm];
 			form_xy = ' %s, %s =';
-        case 'DegMinDec'
+		case 'DegMinDec'
 			out_x = degree2dms(x,'DDMM.x',2,'str');   x = [out_x.dd ':' out_x.mm];
 			out_y = degree2dms(y,'DDMM.x',2,'str');   y = [out_y.dd ':' out_y.mm];
 			form_xy = ' %s, %s =';
-        case 'DegMinSec'
+		case 'DegMinSec'
 			out_x = degree2dms(x,'DDMMSS',0,'str');   x = [out_x.dd ':' out_x.mm ':' out_x.ss];
 			out_y = degree2dms(y,'DDMMSS',0,'str');   y = [out_y.dd ':' out_y.mm ':' out_y.ss];
 			form_xy = ' %s, %s =';
-        case 'DegMinSecDec'
+		case 'DegMinSecDec'
 			out_x = degree2dms(x,'DDMMSS.x',2,'str');   x = [out_x.dd ':' out_x.mm ':' out_x.ss];
 			out_y = degree2dms(y,'DDMMSS.x',2,'str');   y = [out_y.dd ':' out_y.mm ':' out_y.ss];
 			form_xy = ' %s, %s =';
@@ -237,92 +245,89 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
  
 % figure out the new string
 switch dbud.displayMode
-case 'normal'   % Just display Z (or intensity) information
-    if strcmp(imageType,'rgb') || strcmp(imageType,'indexed')
-        if isa(img, 'uint8') &&  strcmp(imageType,'rgb')
-            if (dbud.haveGrid)           % Hacked here
-                pixval_str = sprintf([form_xy ' %6.3f'], x,y,pixel(1:end));
-            else
-                pixval_str = sprintf([form_xy ' %3d,%3d,%3d'], x,y,pixel(1:end));
-            end
-        elseif isa(img, 'uint16') && strcmp(imageType,'rgb')
-            pixval_str = sprintf([form_xy ' %5d,%5d,%5d'], x,y,pixel(1:end));  
-        elseif islogical(img) && strcmp(imageType,'rgb')
-            pixval_str = sprintf([form_xy ' %1d,%1d,%1d'], x,y,pixel(1:end));  
-        else  % all indexed images use double precision colormaps
-            if (dbud.haveGrid)           % Hacked here
-                pixval_str = sprintf([form_xy ' %6.3f'], x,y,pixel(1:end));
-            else
-                if (numel(pixel) == 3 && isequal(pixel(1),pixel(2),pixel(3)))
-                    pixval_str = sprintf([form_xy ' %d'], x,y,pixel(1));
-                else
-                    pixval_str = sprintf([form_xy ' %.0f,%.0f,%.0f'], x,y,pixel(1:end));
-                end
-            end
-        end
-    else      % intensity
-        if isa(img, 'uint8'),         pixval_str = sprintf([form_xy ' %g'],x,y,pixel(1));
-        elseif isa(img, 'uint16'),    pixval_str = sprintf([form_xy ' %g'],x,y,pixel(1));
-        elseif islogical(img),        pixval_str = sprintf([form_xy ' %g'],x,y,pixel(1));
-        else                          pixval_str = sprintf([form_xy ' %6.4f'],x,y,pixel(1));
-        end
-    end
-   
-case 'distance'
-	handles = guidata(figHandle);
-	delta_x = (x1 - dbud.x0);   delta_y = (y1 - dbud.y0);
-	set(dbud.line, 'XData', [dbud.x0 x1], 'YData', [dbud.y0 y1]);
-	if (handles.geog)
-		switch handles.DefineMeasureUnit     % I have to do it here to allow midtime changes in preferences
-			case 'n'        % Nautical miles
-				scale = 1852;   str_dist = 'dist(NM)';
-			case 'k'        % Kilometers
-				scale = 1000;   str_dist = 'dist(km)';
-			case 'm'        % Meters or user unites
-				scale = 1;      str_dist = 'dist(m)';
-			case 'u'        % Meters or user unites
-                scale = 1;      str_dist = 'dist(usr)';
+	case 'normal'   % Just display Z (or intensity) information
+		if strcmp(imageType,'rgb') || strcmp(imageType,'indexed')
+			if isa(img, 'uint8') &&  strcmp(imageType,'rgb')
+				if (dbud.haveGrid)           % Hacked here
+					pixval_str = sprintf([form_xy ' %6.3f'], x,y,pixel(1:end));
+				else
+					pixval_str = sprintf([form_xy ' %3d,%3d,%3d'], x,y,pixel(1:end));
+				end
+			elseif isa(img, 'uint16') && strcmp(imageType,'rgb')
+				pixval_str = sprintf([form_xy ' %5d,%5d,%5d'], x,y,pixel(1:end));  
+			elseif islogical(img) && strcmp(imageType,'rgb')
+				pixval_str = sprintf([form_xy ' %1d,%1d,%1d'], x,y,pixel(1:end));  
+			else	% all indexed images use double precision colormaps
+				if (dbud.haveGrid)           % Hacked here
+					pixval_str = sprintf([form_xy ' %6.3f'], x,y,pixel(1:end));
+					if (rcMode),	pixval_str = sprintf([form_xy(1:end-1) '\tRow = %d  Col = %d'], x,y,pixel(1:end));	end
+				else
+					if (numel(pixel) == 3 && isequal(pixel(1),pixel(2),pixel(3)))
+						pixval_str = sprintf([form_xy ' %d'], x,y,pixel(1));
+					else
+						pixval_str = sprintf([form_xy ' %.0f,%.0f,%.0f'], x,y,pixel(1:end));
+					end
+				end
+			end
+		else      % intensity
+			if isa(img, 'uint8'),			pixval_str = sprintf([form_xy ' %g'],x,y,pixel(1));
+			elseif isa(img, 'uint16'),		pixval_str = sprintf([form_xy ' %g'],x,y,pixel(1));
+			elseif islogical(img),			pixval_str = sprintf([form_xy ' %g'],x,y,pixel(1));
+			else							pixval_str = sprintf([form_xy ' %6.4f'],x,y,pixel(1));
+			end
 		end
-		if (delta_x ~= 0 && delta_y ~= 0)		% Its true on every first click 
-			dist = vdist(dbud.y0,dbud.x0,y1,x1,handles.DefineEllipsoide([1 3])) / scale;
-			D2R = pi/180;
-			lat1 = dbud.y0*D2R;     lon1 = dbud.x0*D2R;
-			lat2 = y1*D2R;          lon2 = x1*D2R;
-			f2 = cos(lat1) * sin(lat2);
-			f3 = sin(lat1) * cos(lat2) * cos(lon2-lon1);
-			az = 90 - atan2(cos(lat2) * sin(lon2-lon1), f2-f3) / D2R;
+
+	case 'distance'
+		handles = guidata(figHandle);
+		delta_x = (x1 - dbud.x0);   delta_y = (y1 - dbud.y0);
+		set(dbud.line, 'XData', [dbud.x0 x1], 'YData', [dbud.y0 y1]);
+		if (handles.geog)
+			switch handles.DefineMeasureUnit     % I have to do it here to allow midtime changes in preferences
+				case 'n',		scale = 1852;   str_dist = 'dist(NM)';		% Nautical miles
+				case 'k',		scale = 1000;   str_dist = 'dist(km)';		% Kilometers
+				case 'm',		scale = 1;      str_dist = 'dist(m)';		% Meters or user unites
+				case 'u',		scale = 1;      str_dist = 'dist(usr)';		% Meters or user unites
+			end
+			if (delta_x ~= 0 && delta_y ~= 0)		% Its true on every first click 
+				dist = vdist(dbud.y0,dbud.x0,y1,x1,handles.DefineEllipsoide([1 3])) / scale;
+				D2R = pi/180;
+				lat1 = dbud.y0*D2R;     lon1 = dbud.x0*D2R;
+				lat2 = y1*D2R;          lon2 = x1*D2R;
+				f2 = cos(lat1) * sin(lat2);
+				f3 = sin(lat1) * cos(lat2) * cos(lon2-lon1);
+				az = 90 - atan2(cos(lat2) * sin(lon2-lon1), f2-f3) / D2R;
+			else
+				dist = 0;	az = 0;
+			end
 		else
-			dist = 0;	az = 0;
+			dist = sqrt(delta_x^2 + delta_y^2);     str_dist = 'dist(usr)';
+			az = atan2(delta_y, delta_x) * 180/pi;
+			if(strcmp(get(handles.axes1,'YDir'),'reverse')),    az = -az;   end
 		end
-    else
-		dist = sqrt(delta_x^2 + delta_y^2);     str_dist = 'dist(usr)';
-		az = atan2(delta_y, delta_x) * 180/pi;
-		if(strcmp(get(handles.axes1,'YDir'),'reverse')),    az = -az;   end
-    end
-    
-	if strcmp(imageType,'rgb') || strcmp(imageType,'indexed')
-		if (isa(img, 'uint8') &&  strcmp(imageType,'rgb') && ~dbud.haveGrid)
-			pixval_str = sprintf([form_xy ' %3d,%3d,%3d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
-		elseif (isa(img, 'uint8') &&  strcmp(imageType,'rgb') && dbud.haveGrid)
-			pixval_str = sprintf([form_xy ' %g '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
-		elseif isa(img, 'uint16') &&  strcmp(imageType,'rgb')
-			pixval_str = sprintf([form_xy ' %5d,%5d,%5d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
-		elseif islogical(img) &&  strcmp(imageType,'rgb')
-			pixval_str = sprintf([form_xy ' %1d,%1d,%1d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
-		else  % all indexed images use double precision colormaps
-			pixval_str = sprintf([form_xy ' %6.3f  '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
+        
+		if strcmp(imageType,'rgb') || strcmp(imageType,'indexed')
+			if (isa(img, 'uint8') &&  strcmp(imageType,'rgb') && ~dbud.haveGrid)
+				pixval_str = sprintf([form_xy ' %3d,%3d,%3d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
+			elseif (isa(img, 'uint8') &&  strcmp(imageType,'rgb') && dbud.haveGrid)
+				pixval_str = sprintf([form_xy ' %g '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
+			elseif isa(img, 'uint16') &&  strcmp(imageType,'rgb')
+				pixval_str = sprintf([form_xy ' %5d,%5d,%5d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
+			elseif islogical(img) &&  strcmp(imageType,'rgb')
+				pixval_str = sprintf([form_xy ' %1d,%1d,%1d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
+			else	% all indexed images use double precision colormaps
+				pixval_str = sprintf([form_xy ' %6.3f  '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
+			end
+		else		% intensity
+			if isa(img, 'uint8')
+				pixval_str = sprintf([form_xy ' %3d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
+			elseif isa(img, 'uint16')
+				pixval_str = sprintf([form_xy ' %5d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
+			elseif islogical(img)
+				pixval_str = sprintf([form_xy ' %1d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);  
+			else
+				pixval_str = sprintf([form_xy ' %6.4f  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
+			end
 		end
-	else % intensity
-		if isa(img, 'uint8')
-			pixval_str = sprintf([form_xy ' %3d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
-		elseif isa(img, 'uint16')
-			pixval_str = sprintf([form_xy ' %5d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
-		elseif islogical(img)
-			pixval_str = sprintf([form_xy ' %1d  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);  
-		else
-			pixval_str = sprintf([form_xy ' %6.4f  dist = %3.3f ang = %.1f'], x,y,pixel(1),dist,az);
-		end
-	end
 end
 set(displayBar, 'String', pixval_str, 'UserData', dbud);
 
