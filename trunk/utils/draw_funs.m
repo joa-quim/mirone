@@ -33,18 +33,14 @@ end
 
 switch opt
 	case 'line_uicontext',			set_line_uicontext(hand,'line')
-	case 'SHPuictx',				set_SHPline_uicontext(hand)
+	case 'setSHPuictx',				setSHPuictx(hand)
 	case 'ContourLines',			set_ContourLines_uicontext(hand,data)
 	case 'MBtrackUictx',			set_line_uicontext(hand,'MBtrack')
 	case 'MBbarUictx',				set_bar_uicontext(hand)
 	case 'CoastLineUictx',			setCoastLineUictx(hand)
-	case 'DeleteObj',				delete_obj(hand);
-	case 'DrawGreatCircle' 
-		h = draw_greateCircle;
+	case 'deleteObj',				deleteObj(hand);
 	case 'DrawCircleEulerPole'
 		h = draw_circleEulerPole(data(1),data(2));  
-	case 'DrawCartesianCircle'
-		h = draw_circleGeo;				% It also draws cartesian circles
 	case 'SessionRestoreCircle'			% Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
 		set_circleGeo_uicontext(hand)
 	case 'SessionRestoreCircleCart'		% Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
@@ -175,7 +171,7 @@ switch opt
 		end
 end
 % Now short-cuted:
-% 'DrawVector', 'MagBarCode' 'Ctrl_v'
+% 'DrawVector', 'MagBarCode' 'Ctrl_v' 'DrawGreatCircle' 'DrawCartesianCircle'
 
 % -----------------------------------------------------------------------------------------
 function Ctrl_v(h)
@@ -234,7 +230,7 @@ function setLineWidth(item,cbs)
 	uimenu(item, 'Label', 'Other...', 'Call', cbs{5});
 
 % -----------------------------------------------------------------------------------------
-function set_SHPline_uicontext(h,opt)
+function setSHPuictx(h,opt)
 % h is a handle to a shape line object
 
 handles = guidata(h(1));
@@ -391,19 +387,25 @@ setLineColor(item7,cb_color)
 set_stack_order(cmenuHand)      % Change order in the stackpot
 
 if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
- 	if (handles.validGrid && ~IS_RECTANGLE)    % Option only available to recognized grids
+	if (handles.validGrid && ~IS_RECTANGLE)    % Option only available to recognized grids
 		item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Separator','on');
 		uimenu(item_tools2, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
 		uimenu(item_tools2, 'Label', 'Set to const', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
 		uimenu(item_tools2, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
 		uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
-    end
-    if (strcmp(get(h,'Tag'),'EulerTrapezium'))
-        uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Separator','on', 'Call',...
-            'calcBoninEulerPole(get(gco,''XData''), get(gco,''YData''));' );
-    end
-    cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
-    uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', cb_roi);
+		h = getappdata(handles.figure1, 'ParentFig');
+		if (strfind(get(handles.figure1,'Name'), 'spectrum') && ~isempty(h) && ishandle(h))
+			uimenu(item_tools2, 'Label', 'Low Pass FFT filter', 'Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
+			uimenu(item_tools2, 'Label', 'High Pass FFT filter','Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
+		end
+	end
+	if (strcmp(get(h,'Tag'),'EulerTrapezium'))
+		uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Separator','on', 'Call',...
+			'calcBoninEulerPole(get(gco,''XData''), get(gco,''YData''));' );
+	end
+	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
+	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', cb_roi);
+ 	%uimenu(cmenuHand, 'Label', 'Testa patches', 'Separator','on', 'Call', 'patch_options(gco)');
 end
 
 if (strcmp(get(h,'Tag'),'FaultTrace'))      % For Okada modeling
@@ -433,7 +435,7 @@ end
 
 % -----------------------------------------------------------------------------------------
 function copy_line_object(obj,eventdata,hFig,hAxes)
-    oldH = gco;
+    oldH = gco(hFig);
 	newH = copyobj(oldH,hAxes);
     h = findobj(get(newH,'uicontextmenu'),'label','Save line');
     if (~isempty(h))        % Replace the old line handle in the 'Save line' Callback by the just created one
@@ -515,27 +517,27 @@ function [x, y, was_closed] = join2lines(hLines)
 function set_country_uicontext(h)
 % Minimalist patch uicontext to be used with countries patches due to the insane/ultrageous
 % memory (and time) consumption taken by ML
-handles = guidata(h(1));
-for (i = 1:numel(h))
-	cmenuHand = uicontextmenu('Parent',handles.figure1);
-	set(h(i), 'UIContextMenu', cmenuHand);
-    uimenu(cmenuHand, 'Label', 'Save line', 'Call', @save_line);
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
-	cb_LineWidth = uictx_LineWidth(h(i));      % there are 5 cb_LineWidth outputs
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-	uimenu(item_lw, 'Label', '1     pt', 'Call', cb_LineWidth{1});
-	uimenu(item_lw, 'Label', 'Other...', 'Call', cb_LineWidth{5});
-	item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Separator','on');
-	cb_color = uictx_color(h(i),'facecolor');      % there are 9 cb_color outputs
-	uimenu(item8, 'Label', 'Other...', 'Call', cb_color{9});
-	uimenu(item8, 'Label', 'None', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
-	uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
-	uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
-	if (handles.image_type ~= 20)
-		uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', ...
-			'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
+	handles = guidata(h(1));
+	for (i = 1:numel(h))
+		cmenuHand = uicontextmenu('Parent',handles.figure1);
+		set(h(i), 'UIContextMenu', cmenuHand);   
+		uimenu(cmenuHand, 'Label', 'Save line', 'Call', @save_line);
+		uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
+		cb_LineWidth = uictx_LineWidth(h(i));      % there are 5 cb_LineWidth outputs
+		item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+		uimenu(item_lw, 'Label', '1     pt', 'Call', cb_LineWidth{1});
+		uimenu(item_lw, 'Label', 'Other...', 'Call', cb_LineWidth{5});
+		item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Separator','on');
+		cb_color = uictx_color(h(i),'facecolor');      % there are 9 cb_color outputs
+		uimenu(item8, 'Label', 'Other...', 'Call', cb_color{9});
+		uimenu(item8, 'Label', 'None', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
+		uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
+		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+		if (handles.image_type ~= 20)
+			uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', ...
+				'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
+		end
 	end
-end
 
 % -----------------------------------------------------------------------------------------
 function okada_model(obj,eventdata,h,opt)
@@ -706,11 +708,11 @@ function set_isochrons_uicontext(h,data)
 	tag = get(h,'Tag');
 	if (iscell(tag)),   tag = tag{1};   end
 
-	handles = guidata(get(h(1),'Parent'));             % Get Mirone handles
+	handles = guidata(get(h(1),'Parent'));				% Get Mirone handles
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
-	cb_LineWidth = uictx_LineWidth(h);       % there are 5 cb_LineWidth outputs
-	cb_color = uictx_color(h);               % there are 9 cb_color outputs
+	cb_LineWidth = uictx_LineWidth(h);		% there are 5 cb_LineWidth outputs
+	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 	cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	if (~all(isempty(cat(2,data{:}))))
@@ -720,20 +722,19 @@ function set_isochrons_uicontext(h,data)
 		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', {@del_line,h});
 	end
 	uimenu(cmenuHand, 'Label', ['Delete all ' tag ' lines'], 'Call', {@remove_symbolClass,h});
-	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Call', @save_line);
-	uimenu(cmenuHand, 'Label', ['Save all ' tag ' lines'], 'Call', {@save_line,h});
+	uimenu(cmenuHand, 'Label', ['Save this '  tag ' line'],  'Call', @save_line);
+	uimenu(cmenuHand, 'Label', ['Save all '   tag ' lines'], 'Call', {@save_line,h});
 	uimenu(cmenuHand, 'Label', 'Line azimuths', 'Call', @show_lineAzims);
 	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[],'nikles'});
 	LINE_ISCLOSED = 0;
-	for i=1:length(h)
+	for (i=1:numel(h))
 		x = get(h(i),'XData');      y = get(h(i),'YData');
-		if ( (x(1) == x(end)) && (y(1) == y(end)) && length(x) > 1)      % See if we have at least one closed line
-			LINE_ISCLOSED = 1;
+		if ( numel(x) > 2 && (x(1) == x(end)) && (y(1) == y(end)) )		% See if we have at least one closed line
+			LINE_ISCLOSED = 1;		break
 		end
 	end
-	if (LINE_ISCLOSED)      % If at least one is closed, activate the Area option
-		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
-	end
+	% If at least one is closed, activate the Area option
+	if (LINE_ISCLOSED),		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);	end
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
@@ -755,7 +756,7 @@ function set_isochrons_uicontext(h,data)
 	item_Class_lt = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Style']);
 	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
 	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Separator','on', 'Call', 'euler_stuff(gcf,gco)');
-	for i=1:length(h),   ui_edit_polygon(h(i));     end		% Set edition functions
+	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
 
 % -----------------------------------------------------------------------------------------
 function set_gmtfile_uicontext(h,data)
@@ -899,10 +900,10 @@ function set_greatCircle_uicontext(h)
 
 % -----------------------------------------------------------------------------------------
 function set_circleGeo_uicontext(h)
-	% h is a handle to a circle (in geog coords) object
-	% NOTE: on 1-1-04 I finished a function called uicirclegeo that draws circles and provides
-	% controls to change various circle parameters. Because it makes extensive use of the lines
-	% userdata, the move_circle function of this file cannot be used, for it also changes userdata.
+% h is a handle to a circle (in geog coords) object
+% NOTE: on 1-1-04 I finished a function called uicirclegeo that draws circles and provides
+% controls to change various circle parameters. Because it makes extensive use of the lines
+% userdata, the move_circle function of this file cannot be used, for it also changes userdata.
 	tag = get(h,'Tag');
 	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
@@ -934,7 +935,7 @@ function set_circleGeo_uicontext(h)
 
 % -----------------------------------------------------------------------------------------
 function set_circleCart_uicontext(h)
-	% h is a handle to a circle (in cartesian coords) object
+% h is a handle to a circle (in cartesian coords) object
 	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
@@ -949,6 +950,11 @@ function set_circleCart_uicontext(h)
 	item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
 	uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Call', {@change_CircCenter1,h});
 	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', cb_roi);
+	hp = getappdata(handles.figure1, 'ParentFig');
+	if (strfind(get(handles.figure1,'Name'), 'spectrum') && ~isempty(hp) && ishandle(hp))
+		uimenu(cmenuHand, 'Label', 'Low Pass FFT filter', 'Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
+		uimenu(cmenuHand, 'Label', 'High Pass FFT filter','Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
+	end
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 	setLineWidth(item_lw,cb_LineWidth)
@@ -1024,17 +1030,22 @@ function show_swhatRatio(obj,eventdata,h)
 function show_Area(obj,eventdata,h)
 	% Compute area under line and insult the user if the line is not closed
 	% NOTE that H is optional. Use only when want to make sure that this fun
-	% uses that handle (does notwork with copyied objects)
+	% uses that handle (does not work with copyied objects)
 
 	if (nargin == 3)
 		if (size(h,1) >= 2 && size(h,2) == 2)
 			x = h(:,1);     y = h(:,2);
+			handles = guidata(get(0,'CurrentFigure'));
 		elseif (ishandle(h))
 			x = get(h,'XData');    y = get(h,'YData');
+			handles = guidata(h);
 		end
 	elseif (nargin == 2 || isempty(h) || length(h) > 1)
 		h = gco;
 		x = get(h,'XData');    y = get(h,'YData');
+		handles = guidata(h);
+	else
+		handles = guidata(get(0,'CurrentFigure'));
 	end
 
 	% Contour lines for example have NaNs and not at the same x,y positions (???)
@@ -1042,7 +1053,6 @@ function show_Area(obj,eventdata,h)
 	x(ix) = [];             y(ix) = [];
 	iy = isnan(y);
 	x(iy) = [];             y(iy) = [];
-	handles = guidata(get(0,'CurrentFigure'));
 	if ~( (x(1) == x(end)) && (y(1) == y(end)) )
         msg{1} = 'This is not a closed line. Result is therefore probably VERY idiot';
 	else
@@ -1058,7 +1068,6 @@ function show_Area(obj,eventdata,h)
         msg{2} = ['Area = ' sprintf('%g',area) ' map units ^2'];
         msgbox(msg,'Area')
 	end
-	refresh
 
 % -----------------------------------------------------------------------------------------
 function ll = show_LineLength(obj,eventdata,h, opt)
@@ -1075,15 +1084,20 @@ function ll = show_LineLength(obj,eventdata,h, opt)
 	if (n_args == 3)
         if (size(h,1) >= 2 && size(h,2) == 2)
             x = h(:,1);     y = h(:,2);
+			handles = guidata(get(0,'CurrentFigure'));
         elseif (ishandle(h))
             x = get(h,'XData');    y = get(h,'YData');
+			handles = guidata(h);
         end
 	elseif (n_args == 2 || isempty(h) || length(h) > 1)
         h = gco;
         x = get(h,'XData');    y = get(h,'YData');
+		handles = guidata(h);
+	else
+		handles = guidata(get(0,'CurrentFigure'));
 	end
 
-msg = [];               handles = guidata(get(0,'CurrentFigure'));
+msg = [];
 
 % Contour lines for example have NaNs and not at the same x,y positions (???)
 ix = isnan(x);      x(ix) = [];     y(ix) = [];
@@ -1170,15 +1184,19 @@ function azim = show_lineAzims(obj,eventdata,h)
 	if (nargin == 3)
 		if (size(h,1) >= 2 && size(h,2) == 2)   
 			x = h(:,1);     y = h(:,2);
+			handles = guidata(get(0,'CurrentFigure'));
 		elseif (ishandle(h))
 			x = get(h,'XData');    y = get(h,'YData');			
+			handles = guidata(h);
 		end
 	elseif (nargin == 2 || isempty(h) || length(h) > 1)
 		h = gco;  
 		x = get(h,'XData');    y = get(h,'YData');
+		handles = guidata(h);
+	else
+		handles = guidata(get(0,'CurrentFigure'));
 	end
 	
-	handles = guidata(get(0,'CurrentFigure'));
 	if (handles.geog)
         az = azimuth_geo(y(1:end-1), x(1:end-1), y(2:end), x(2:end));
         azim.type = 'geog';                 % Even if it is never used
@@ -1323,7 +1341,7 @@ function wbd_vector(obj,eventdata,h,state)
 % -----------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
-function h_gcirc = draw_greateCircle
+function h_gcirc = DrawGreatCircle
     hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
     h_gcirc = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick);
 	state = uisuspend_fig(hFig);		% Remember initial figure state
@@ -1363,7 +1381,7 @@ function wbd_gcircle(obj,eventdata,h,state)
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
-function h_circ = draw_circleGeo
+function h_circ = DrawCartesianCircle
 % THIS IS NOW ONLY USED NOW WITH CARTESIAN CIRCLES
 % Given one more compiler BUG, (WindowButtonDownFcn cannot be redefined)
 % I found the following workaround.
@@ -2058,11 +2076,13 @@ function export_symbol(obj,eventdata,h, opt)
 
 % -----------------------------------------------------------------------------------------
 function save_formated(obj,eventdata, h, opt)
-	% Save x,y[,z] vars into a file but taking into account the 'LabelFormatType'
-	% If OPT is given than it must contain a Mx3 array with the x,y,z data to be saved
+% Save x,y[,z] vars into a file but taking into account the 'LabelFormatType'
+% If OPT is given than it must contain a Mx3 array with the x,y,z data to be saved
 
 	if (nargin == 3)
-		h = gco;
+		if (~isa(h,'cell')),	h = gco;		% Fish the handle so that it works with copyied objs
+		else					h = h{1};		% Really use this handle.
+		end
 		xx = get(h,'XData');    yy = get(h,'YData');
         doSave_formated(xx, yy)
 	elseif (nargin == 4)
@@ -2225,7 +2245,7 @@ msgbox( sprintf(['Plate pairs:           ' txt_id '\n' 'Boundary Type:    ' txt_
         'Speed Azimuth:      ' sprintf('%g',data(i).azim_vel)] ),'Segment info')
 
 % -----------------------------------------------------------------------------------------
-function delete_obj(hTesoura)
+function deleteObj(hTesoura)
 % hTesoura is the handle to the 'Tesoura' uitoggletool
 % Build the scisors pointer (this was done with the help of an image file)
 	pointer = ones(16)*NaN;
@@ -2387,10 +2407,12 @@ function sout = ddewhite(s)
 	end
 
 % --------------------------------------------------------------------
-function set_transparency(obj,eventdata)
+function set_transparency(obj,eventdata, h_patch)
 % Sets the transparency of a patch object
 
-h_patch = gco;
+if (nargin == 2)
+	h_patch = gco;
+end
 p_fc = get(h_patch,'FaceColor');
 if ( strcmpi(p_fc,'none') )
 	msg{1} = 'Transparency assumes that the element has a color';
@@ -2402,15 +2424,15 @@ end
 
 handles = guidata(get(0,'CurrentFigure'));
 r_mode = get(handles.figure1,'RendererMode');
-if ~(strcmp(r_mode,'auto'))
-    set(handles.figure1,'RendererMode','auto')
+if (~strcmp(r_mode,'auto'))
+	set(handles.figure1,'RendererMode','auto')
 end
 
 set(handles.figure1,'doublebuffer','on')        % I may be wrong, but I think patches are full of bugs
 
 % Define height of the bar code
-width = 8.0;            % Figure width in cm
-height = 2.0;           % Figure height in cm
+width = 7.0;            % Figure width in cm
+height = 1.5;           % Figure height in cm
 
 % Create figure for transparency display
 F = figure('Units','centimeters',...
@@ -2418,28 +2440,18 @@ F = figure('Units','centimeters',...
 	'Toolbar','none', 'Menubar','none',...
 	'Numbertitle','off',...
 	'Name','Transparency',...
-	'doublebuffer','on',...
 	'RendererMode','auto',...
 	'Visible','of',...
 	'Color',[.75 .75 .75]);
 
-% Create axis for transparency display
-axes('Units','normalized',...
-	'Position',[0 0 1 1],...
-	'XLim',[0 width], 'YLim',[0 height],...
-	'Color',[.75 .75 .75],...
-	'XTick',[],'YTick',[],...
-	'DataAspectRatio',[1 1 1],...
-	'DefaultPatchEdgecolor', 'none');
-
 T = uicontrol('style','text','string','Transparency  ',...
 	'fontweight','bold','horizontalalignment','left',...
-	'units','normalized','pos',[0.05  0.2  0.7  0.18],...
+	'units','normalized','pos',[0.05  0.2  0.7  0.25],...
 	'backgroundcolor',[.75 .75 .75]);
 
 transp = get(h_patch,'FaceAlpha');     % Get the previous transparency value
 
-pos=[0.05 0.5 .9 .2];
+pos=[0.02 0.5 .97 .25];
 S = {@apply_transparency,T,h_patch,handles};
 uicontrol('style','slider','units','normalized','position',pos,...
     'callback',S,'min',0,'max',1,'Value',transp);
@@ -2448,22 +2460,21 @@ set(F,'Visible','on')
 
 % -----------------------------------------------------------------------------------------
 function apply_transparency(obj,eventdata,T,h_patch,handles)
-val = get(obj,'Value');
-if (val > 0.01)
-    set(h_patch,'FaceAlpha',val)
-% else
-%     h_all = findobj(handles.figure1,'Type','patch');
-%     set_painters = 1;
-%     for i = 1:length(h_all)
-%         if (get(h_all(i),'FaceAlpha') > 0.04)
-%             set_painters = 0;
-%         end
-%     end
-%     if (set_painters)
-%         set(handles.figure1,'Renderer','painters')
-%     end
-end
-set(T,'String', sprintf('Opacity = %.2f',val))
+	val = get(obj,'Value');
+	set(h_patch,'FaceAlpha',val)
+	if (val > 0.99)
+		h_all = findobj(handles.figure1,'Type','patch');
+		set_painters = 1;
+		for i = 1:length(h_all)
+			if (get(h_all(i),'FaceAlpha') < 0.99)
+				set_painters = 0;
+			end
+		end
+		if (set_painters)
+			set(handles.figure1,'Renderer','painters', 'RendererMode','auto')
+		end
+	end
+	set(T,'String', sprintf('Opacity = %.2f',val))
 
 % -----------------------------------------------------------------------------------------
 function set_telhas_uicontext(h)
