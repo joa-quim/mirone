@@ -109,6 +109,19 @@ else
 	tag = 'isochron';		fname = [handles.path_data 'isochrons.dat'];
 end
 
+%	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
+% 	cmenuHand = get(h, 'UIContextMenu');
+% 	setappdata(handles.figure1, 'cmenuHand', cmenuHand)
+% 	cmenuHand = uicontextmenu('Parent',handles.figure1);
+% 	set(h, 'UIContextMenu', cmenuHand);
+% 	%uimenu(cmenuHand, 'Label', 'Set all UIcontexts', 'Call', {@resetUIctx,h,handles.axes1});
+% 	uimenu(cmenuHand, 'Label', 'Set all UIcontexts', 'Call', 'hand=guidata(gco); set(gco, ''UIContextMenu'', getappdata(hand.axes1, ''cmenuHand''))' );
+% 
+% function resetUIctx(obj,evt,h,hAxes)
+% 	cmenuHand = getappdata(hAxes, 'cmenuHand');
+% 	set(h, 'UIContextMenu', cmenuHand)
+		
+
 %set(handles.figure1,'pointer','watch')
 [bin,n_column,multi_seg,n_headers] = guess_file(fname);
 if (n_column == 1 && multi_seg == 0)        % Take it as a file names list
