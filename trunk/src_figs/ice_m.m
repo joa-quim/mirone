@@ -128,7 +128,7 @@ function varargout = ice_m(varargin)
 		varargin(1) = [];
 		n_arg = numel(varargin);
 	end
-	
+
 	if (n_arg)
 		for (i = 1:2:n_arg)
 			if (n_arg == i),		break,		end
@@ -137,23 +137,25 @@ function varargout = ice_m(varargin)
 					if (isempty(handles.input)) 	% Otherwise ignore this because, ... Mirone feeded
 						handles.input = varargin{i + 1};
 					end
-                    
+
 				case 'space'
 					handles.colortype = lower(varargin{i + 1});
-					list = cell(6,4);
+					list = cell(7,4);
 					list(1,:) = {'CMY' 'Cyan' 'Magenta' 'Yellow'};
 					list(2,:) = {'YCrCb' 'Luminance' 'Red Difference'  'Blue Difference'};
 					list(3,:) = {'HSV' 'Hue' 'Saturation' 'Value'};
 					list(4,:) = {'HSI' 'Hue' 'Saturation' 'Intensity'};
 					list(5,:) = {'YIQ' 'Luminance' 'Hue' 'Saturation'};
-					list(6,:) = {'RGB' 'Red' 'Green' 'Blue'};
+					list(6,:) = {'La*b*' 'Luminance' 'a*' 'b*'};
+					list(7,:) = {'RGB' 'Red' 'Green' 'Blue'};
 					switch handles.colortype
 						case 'cmy',			ind = 1;
 						case 'ycrcb',		ind = 2;		handles.colortype = 'YCrCb';
 						case 'hsv',			ind = 3;
 						case 'hsi',			ind = 4;		handles.colortype = 'hls';
 						case {'ntsc','yiq'},ind = 5;		handles.colortype = 'yiq';
-						otherwise,			ind = 6;		handles.colortype = 'rgb';
+						case 'lab',			ind = 6;		handles.colortype = 'Lab';
+						otherwise,			ind = 7;		handles.colortype = 'rgb';
 					end
 					handles.space_list = list;
 					set(handles.popup_component, 'String', list(ind,:));
@@ -165,30 +167,34 @@ function varargout = ice_m(varargin)
 		end
 	end
 
+	if (isempty(handles.input))			% Just give the user some trash to play with.
+		handles.input = uint8(rand(512,512,3) * 255);
+		hImg = image(handles.input);
+		handles.hMirImg = hImg;
+		handles.hMirFig = get(get(hImg,'Parent'), 'Parent');
+		hMirHand = guihandles(handles.hMirFig);
+		hMirHand.origFig = handles.input;		% Copy of the dumb image
+		guidata(handles.hMirFig, hMirHand)
+	elseif (ndims(handles.input) ~= 3)
+		errordlg('This tool works only with RGB true color images.','Error')
+		delete(hObject),	return
+	end
+	
 	% Create pseudo- and full-color mapping bars (grays and hues). Store
 	% a color space converted 1x128x3 line of each bar for mapping.
 	handles = set_colorSpace(handles);
-	
-	set(handles.gray_axes,  'XTick',[], 'YTick',[]);
-	set(handles.color_axes, 'XTick',[], 'YTick',[]);
 
 	% Compute ICE's screen position and display image/graph.
 	set(0, 'Units', 'pixels');      ssz = get(0, 'Screensize');
 	uisz = get(handles.figure1, 'Position');
-	if size(handles.input, 1)
-		fsz = get(handles.output, 'Position');
-		bc = (fsz(4) - uisz(4)) / 3;
-		if (bc > 0),		bc = bc + fsz(2);
-		else				bc = fsz(2) + fsz(4) - uisz(4) - 10;  
-		end
-		lc = fsz(1) + (size(handles.input, 2) / 4) + (3 * fsz(3) / 4);
-		lc = min(lc, ssz(3) - uisz(3) - 10);
-		set(handles.figure1, 'Position', [lc bc uisz(3:4)]);
-	else
-		bc = round((ssz(4) - uisz(4)) / 2) - 10;
-		lc = round((ssz(3) - uisz(3)) / 2) - 10;
-		set(handles.figure1, 'Position', [lc bc uisz(3) uisz(4)]);
+	fsz = get(handles.output, 'Position');
+	bc = (fsz(4) - uisz(4)) / 3;
+	if (bc > 0),		bc = bc + fsz(2);
+	else				bc = fsz(2) + fsz(4) - uisz(4) - 10;  
 	end
+	lc = fsz(1) + (size(handles.input, 2) / 4) + (3 * fsz(3) / 4);
+	lc = min(lc, ssz(3) - uisz(3)) + 5;
+	set(handles.figure1, 'Position', [lc bc uisz(3:4)]);
 	graph(handles);		render(handles);
 
 	% Update handles and make ICE wait before exit if required.
@@ -204,51 +210,45 @@ function handles = set_colorSpace(handles)
 	xi = 0:1/127:1;		x = (0:1/6:1)';
 	y = [1 1 0 0 0 1 1; 0 1 1 1 0 0 0; 0 0 0 1 1 1 0]';
  	gb = single(repmat(xi, [1 1 3]));		cb = reshape(single(interp1q(x, y, xi')), [1 128 3]);
-	if ~strcmp(handles.colortype, 'rgb')
-		if (strcmp(handles.colortype ,'cmy')),		txt = 'rgb2cmy(gb)';
-		else				txt = ['cvlib_mex(''color'', gb, ''rgb2' handles.colortype ''')'];
+	ctype = handles.colortype;
+	if ~strcmp(ctype, 'rgb')
+		if (strcmp(ctype ,'cmy') || strcmp(ctype ,'yiq')),		txt = ['rgb2' ctype '(gb)'];
+		else				txt = ['cvlib_mex(''color'', gb, ''rgb2' ctype ''')'];
 		end
 		gb = eval(txt);
-		if (strcmp(handles.colortype ,'cmy')),		txt = 'rgb2cmy(cb)';
-		else				txt = ['cvlib_mex(''color'', cb, ''rgb2' handles.colortype ''')'];
+		if (strcmp(ctype ,'cmy') || strcmp(ctype ,'yiq')),		txt = ['rgb2' ctype '(cb)'];
+		else				txt = ['cvlib_mex(''color'', cb, ''rgb2' ctype ''')'];
 		end
 		cb = eval(txt);
+		cb = max(0, cb);
 		if (size(cb,3) == 1)
 			gb = cat(3, gb, gb, gb);		cb = cat(3, cb, cb, cb);
 		end
 	end
-	if (handles.colortype(1) == 'h')
+	if (ctype(1) == 'h')
 		cb(:,:,1) = single(double(cb(:,:,1)) / 360);
 	end
 	handles.graybar = round(255 * double(gb));     handles.colorbar = round(255 * double(cb));
 
 	% Do color space transforms, clamp to [0, 255], compute histograms
 	% and cumulative distribution functions, and create output figure.
-	if (~isempty(handles.input))
-		if (ndims(handles.input) == 2)
-			handles.input = cat(3, handles.input, handles.input, handles.input);
+	if (~strcmp(handles.colortype, 'rgb'))
+		if (strcmp(ctype ,'cmy') || strcmp(ctype ,'yiq')),		txt = ['rgb2' ctype '(handles.input)'];
+		else				txt = ['cvlib_mex(''color'', handles.input, ''rgb2' handles.colortype ''')'];
 		end
-		if (~strcmp(handles.colortype, 'rgb'))
-			if (strcmp(handles.colortype ,'cmy')),		txt = 'rgb2cmy(handles.input)';
-			else				txt = ['cvlib_mex(''color'', handles.input, ''rgb2' handles.colortype ''')'];
-			end
-			handles.input = eval(txt);
-			if (ndims(handles.input) == 2)			% A 2yiq transform or alike has ben used
-				handles.input = cat(3, handles.input, handles.input, handles.input);
-			end
-		end
+		handles.input = eval(txt);
+	end
 
-		for (i = 1:3)
- 			color = handles.input(:, :, i);
-  			df = double(histc(color(:), 0:255))';
-  			%df = hist(double(color(:)), 0:255);
-			handles.df = [handles.df; df / max(df(:))];
-			df = df / sum(df(:));   df = cumsum(df);
-			handles.df = [handles.df; df];
-		end
-		if (~isempty(handles.hMirFig)),		handles.output = handles.hMirFig;
-		else								handles.output = figure;
-		end
+	for (i = 1:3)
+		color = handles.input(:, :, i);
+		df = double(histc(color(:), 0:255))';
+		%df = hist(double(color(:)), 0:255);
+		handles.df = [handles.df; df / max(df(:))];
+		df = df / sum(df(:));   df = cumsum(df);
+		handles.df = [handles.df; df];
+	end
+	if (~isempty(handles.hMirFig)),		handles.output = handles.hMirFig;
+	else								handles.output = figure;
 	end
 
 %-------------------------------------------------------------------%
@@ -346,9 +346,11 @@ function ice_m_WindowButtonUpFcn(hObject, eventdata)
 	end
 
 %-------------------------------------------------------------------%
-function popup_component_Callback(hObject, eventdata, handles)
+function popup_component_Callback(hObject, eventdata, handles, noRedraw)
 %  Accept color component selection, update component specific
 %  parameters on GUI, and draw the selected mapping function.
+
+	if (nargin == 3),	noRedraw = false;	end
 	c = get(hObject, 'Value');
 	handles.cindex = c;
 	handles.curve = strcat('set', num2str(c));
@@ -357,20 +359,28 @@ function popup_component_Callback(hObject, eventdata, handles)
 	set(handles.check_slope, 'Value', handles.slope(c));
 	set(handles.check_pdf, 'Value', handles.pdf(c));
 	set(handles.check_cdf, 'Value', handles.cdf(c));
-	graph(handles);
+	if (~noRedraw),		graph(handles),		end
 
 %-------------------------------------------------------------------%
 function popup_colorSpace_Callback(hObject, eventdata, handles)
 % Reinitiate with a new color space
+
+	set(handles.popup_component,'Val',1)
+	popup_component_Callback(handles.popup_component, [], handles, true)		% true e Do  not call graph
+	handles = guidata(handles.figure1);
+	push_resetall_Callback(handles.push_resetall, [], handles, true)		% true e noRedraw
+	handles = guidata(handles.figure1);
+	%push_reset_Callback(handles.push_reset, [], handles, true)
 	val = get(hObject,'Value');
 	set(handles.popup_component, 'String', handles.space_list(val,:))
 	handles.colortype = lower(handles.space_list{val,1});
 	if (numel(handles.colortype) == 5),		handles.colortype = 'YCrCb';	end
 	if (strcmp(handles.colortype, 'hsi')),	handles.colortype = 'hls';		end
-	handles = set_colorSpace(handles);
 	hMirHand = guidata(handles.hMirImg);
-	handles.input = hMirHand.origFig;		% Restart with the original data
-	graph(handles);		render(handles);
+	handles.input = hMirHand.origFig;		% Start with the original data
+	handles = set_colorSpace(handles);
+	graph(handles);
+	render(handles);
 	guidata(handles.figure1, handles)
 
 %-------------------------------------------------------------------%
@@ -392,53 +402,52 @@ function check_smooth_Callback(hObject, eventdata, handles)
 
 %-------------------------------------------------------------------%
 function push_reset_Callback(hObject, eventdata, handles)
-%  Init all display parameters for currently selected color
-%  component, make map 1:1, and redraw it.
+% Init all display parameters for currently selected color component and redraw it.
 	handles = setfield(handles, handles.curve, [0 0; 1 1]);
 	c = handles.cindex;
-	handles.smooth(c) = 0;  set(handles.check_smooth, 'Value', 0);
-	handles.slope(c) = 0;   set(handles.check_slope, 'Value', 0);
-	handles.pdf(c) = 0;     set(handles.check_pdf, 'Value', 0);
-	handles.cdf(c) = 0;     set(handles.check_cdf, 'Value', 0);
+	handles.smooth(c) = 0;		handles.slope(c) = 0;
+	handles.pdf(c) = 0;			handles.cdf(c) = 0;
+	set([handles.check_smooth handles.check_slope handles.check_pdf handles.check_cdf], 'Val', 0)
 	guidata(hObject, handles);
 	set(handles.figure1, 'Pointer', 'watch');
-	graph(handles);      render(handles);
+	graph(handles);		render(handles);
 	set(handles.figure1, 'Pointer', 'arrow');
+
+%-------------------------------------------------------------------%
+function push_resetall_Callback(hObject, eventdata, handles, noRedraw)
+% Init display parameters for color components and redraw display.
+% Fourth arg, 'noRedraw', is used when one changes the color space and
+% the redrawing is requested somewhere else.
+
+	if (nargin == 3),	noRedraw = false;	end
+	for c = 1:4
+		handles.smooth(c) = 0;		handles.slope(c) = 0;
+		handles.pdf(c) = 0;			handles.cdf(c) = 0;
+		handles = setfield(handles, ['set' num2str(c)], [0 0; 1 1]);
+	end
+	set([handles.check_smooth handles.check_slope handles.check_pdf handles.check_cdf], 'Val', 0)
+	guidata(hObject, handles);
+	graph(handles);
+	if (~noRedraw)
+		set(handles.figure1, 'Pointer', 'watch');
+		render(handles);
+		set(handles.figure1, 'Pointer', 'arrow');
+	end
 
 %-------------------------------------------------------------------%
 function check_slope_Callback(hObject, eventdata, handles)
 %  Accept slope clamp for currently selected color component and
 %  draw function if smoothing is on.
 
-if get(hObject, 'Value')
-	handles.slope(handles.cindex) = 1;
-else 
-	handles.slope(handles.cindex) = 0;    
-end
-guidata(hObject, handles);
-if handles.smooth(handles.cindex)
-	set(handles.figure1, 'Pointer', 'watch');
-	graph(handles);			render(handles);
-	set(handles.figure1, 'Pointer', 'arrow');   
-end
-
-%-------------------------------------------------------------------%
-function push_resetall_Callback(hObject, eventdata, handles)
-% Init display parameters for color components, make all maps 1:1, and redraw display.
-
-	for c = 1:4
-		handles.smooth(c) = 0;      handles.slope(c) = 0;
-		handles.pdf(c) = 0;         handles.cdf(c) = 0;
-		handles = setfield(handles, ['set' num2str(c)], [0 0; 1 1]);
+	if get(hObject, 'Value'),	handles.slope(handles.cindex) = 1;
+	else						handles.slope(handles.cindex) = 0;    
 	end
-	set(handles.check_smooth, 'Value', 0);
-	set(handles.check_slope, 'Value', 0);
-	set(handles.check_pdf, 'Value', 0);
-	set(handles.check_cdf, 'Value', 0);
 	guidata(hObject, handles);
-	set(handles.figure1, 'Pointer', 'watch');
-	graph(handles);      render(handles);
-	set(handles.figure1, 'Pointer', 'arrow');
+	if handles.smooth(handles.cindex)
+		set(handles.figure1, 'Pointer', 'watch');
+		graph(handles);			render(handles);
+		set(handles.figure1, 'Pointer', 'arrow');   
+	end
 
 %-------------------------------------------------------------------%
 function check_pdf_Callback(hObject, eventdata, handles)
@@ -490,7 +499,7 @@ colors = ['k' 'r' 'g' 'b'];
     
 % For piecewise linear interpolation, plot a map, map + PDF/CDF, or map + 3 PDFs/CDFs.
 if ~handles.smooth(handles.cindex)
-	if (~handles.pdf(c) & ~handles.cdf(c)) | (size(handles.df, 2) == 0)
+	if (~handles.pdf(c) && ~handles.cdf(c)) || (size(handles.df, 2) == 0)
 		plot(nodes(:, 1), nodes(:, 2), 'b-', nodes(:, 1),  nodes(:, 2), 'ko', 'Parent', handles.curve_axes);
 	elseif c > 1
 		i = 2 * c - 2 - handles.pdf(c);
@@ -512,7 +521,7 @@ else
 	i = find(y > 1);		y(i) = 1;
 	i = find(y < 0);		y(i) = 0;
 	
-	if (~handles.pdf(c) & ~handles.cdf(c)) | (size(handles.df, 2) == 0)
+	if (~handles.pdf(c) && ~handles.cdf(c)) || (size(handles.df, 2) == 0)
 		plot(nodes(:, 1), nodes(:, 2), 'ko',  x, y, 'b-', 'Parent', handles.curve_axes);
 	elseif c > 1
 		i = 2 * c - 2 - handles.pdf(c);
@@ -527,7 +536,7 @@ end
 % Put legend if more than two curves are shown.
 s = handles.colortype;
 if (strcmp(s, 'ntsc')),		s = 'yiq';		end
-if (c == 1) & (handles.pdf(c) | handles.cdf(c))
+if (c == 1) && (handles.pdf(c) || handles.cdf(c))
 	s1 = ['-- ' upper(s(1))];
 	if length(s) == 3
        s2 = ['-- ' upper(s(2))];		s3 = ['-- ' upper(s(3))];
@@ -562,14 +571,14 @@ function [inplot, x, y] = cursor(h, handles)
 		set(handles.output_text, 'String', num2str(y, 3));
 	end
 
-%-------------------------------------------------------------------%
+%-----------------------------------------------------------------------------
 function y = render(handles)
 %  Map the input image and bar components and convert them to RGB (if needed) and display.
 
 	set(handles.figure1, 'Interruptible', 'off', 'Pointer', 'watch');
 	ygb = handles.graybar;		ycb = handles.colorbar;
 	yi = handles.input;			mapon = handles.barmap;
-	imageon = handles.imagemap & size(handles.input, 1);
+	imageon = handles.imagemap;
 
 	for i = 2:4
 		nodes = getfield(handles, ['set' num2str(i)]);
@@ -594,39 +603,42 @@ function y = render(handles)
 		ygb = uint8(ygb);     ycb = uint8(ycb);
 	end
 
-	if ~strcmp(handles.colortype, 'rgb')	
-		if size(handles.input, 1)
-			if (strcmp(handles.colortype ,'cmy')),	txt = 'cmy2rgb(yi)';
-			else			txt = ['cvlib_mex(''color'', yi, ''' handles.colortype '2rgb'')'];
-			end
-			yi = eval(txt);
+	ctype = handles.colortype;
+	if ~strcmp(ctype, 'rgb')	
+		if (strcmp(ctype ,'cmy') || strcmp(ctype ,'yiq')),		txt = [ctype '2rgb(yi)'];
+		else						txt = ['cvlib_mex(''color'', yi, ''' ctype '2rgb'')'];
 		end
+		yi = eval(txt);
 
-		if (strcmp(handles.colortype ,'cmy')),	txt = 'cmy2rgb(ygb)';
-		else			txt = ['cvlib_mex(''color'', ygb, ''' handles.colortype '2rgb'')'];
+		if mapon
+			if (strcmp(ctype ,'cmy') || strcmp(ctype ,'yiq')),		txt = [ctype '2rgb(ygb)'];
+			else						txt = ['cvlib_mex(''color'', ygb, ''' ctype '2rgb'')'];
+			end
+			ygb = eval(txt);
+			if (strcmp(ctype ,'cmy') || strcmp(ctype ,'yiq')),		txt = [ctype '2rgb(ycb)'];
+			else						txt = ['cvlib_mex(''color'', ycb, ''' ctype '2rgb'')'];
+			end
+			ycb = eval(txt);
 		end
-		ygb = eval(txt);
-		if (strcmp(handles.colortype ,'cmy')),	txt = 'cmy2rgb(ycb)';
-		else			txt = ['cvlib_mex(''color'', ycb, ''' handles.colortype '2rgb'')'];
-		end
-		ycb = eval(txt);
 	end
 
-	if (~isempty(handles.input)),	set(handles.hMirImg,'CData',yi),	end
-	ygb = repmat(ygb, [32 1 1]);    ycb = repmat(ycb, [32 1 1]);
-	if (handles.first_bars)
-		handles.hImg_gray_axes  = image(ygb, 'Parent',handles.gray_axes);
-		handles.hImg_color_axes = image(ycb, 'Parent',handles.color_axes);
-		handles.first_bars = false;
-		guidata(handles.figure1, handles)
-	else
-		set(handles.hImg_gray_axes,  'CData',ygb);
-		set(handles.hImg_color_axes, 'CData',ycb);
+	set(handles.hMirImg,'CData',yi)
+	if mapon
+		ygb = repmat(ygb, [32 1 1]);    ycb = repmat(ycb, [32 1 1]);
+		if (handles.first_bars)
+			handles.hImg_gray_axes  = image(ygb, 'Parent',handles.gray_axes);
+			handles.hImg_color_axes = image(ycb, 'Parent',handles.color_axes);
+			handles.first_bars = false;
+			guidata(handles.figure1, handles)
+			set(handles.gray_axes,  'XTick',[], 'YTick',[]);
+			set(handles.color_axes, 'XTick',[], 'YTick',[]);
+		else
+			set(handles.hImg_gray_axes,  'CData',ygb);
+			set(handles.hImg_color_axes, 'CData',ycb);
+		end
 	end
 	set(handles.figure1, 'Interruptible', 'on', 'Pointer', 'arrow');
 
-	set(handles.gray_axes,  'XTick',[], 'YTick',[]);
-	set(handles.color_axes, 'XTick',[], 'YTick',[]);
 
 %-------------------------------------------------------------------%
 function t = lut(nodes, smooth, slope)
@@ -686,8 +698,14 @@ function g = rgb2cmy(f)
 		case 'double'
 			g = 1 - f;
 		case {'int8' 'int16' 'single' 'int32'}
-			g = f;
-			cvlib_mex('addS', g, -1);
+			if (ndims(f) > 2)
+				for (k = 1:size(f,3))
+					cvlib_mex('subRS', f(:,:,k), 1);		% Due to a BUG in OpenCV
+				end
+				g = f;
+			else
+				g = cvlib_mex('subRS', f, 1);
+			end
 		case 'uint8'
 			lut = uint8(255:-1:0);
 			g = uintlutc(f,lut);
@@ -704,6 +722,74 @@ function g = rgb2cmy(f)
 function g = cmy2rgb(f)
 %   Convert CMY to RGB
 	g = rgb2cmy(f);
+
+% --------------------------------------------------------------------
+function g = rgb2yiq(f)
+%RGB2YIQ Convert RGB values to NTSC (YIQ) colorspace.
+%   YIQ = RGB2YIQ(RGB) converts the truecolor image RGB to the
+%   equivalent NTSC image YIQ that contains the NTSC luminance (Y)
+%	and chrominance (I and Q) color components as columns that are
+%	equivalent to the colors in the RGB colormap.
+%
+%   Class Support
+%   -------------
+%   RGB can be uint8,uint16 or double; The output is double.
+
+	class_orig = class(f);
+	f = local_im2double(f);
+	T = [1.0 0.956 0.621; 1.0 -0.272 -0.647; 1.0 -1.106 1.703].';
+	[m n thirdD] = size(f);
+	g = reshape(reshape(f,m*n,thirdD)/T,m,n,thirdD);
+	if (strcmp(class_orig, 'uint8'))
+		g = uint8(g * 255);
+	end
+
+% --------------------------------------------------------------------
+function [r,g,b] = yiq2rgb(y,i,q)
+%   RGB = YIQ2RGB(YIQ) converts the NTSC image YIQ to the equivalent truecolor image RGB.
+%
+%   Class Support
+%   -------------
+%   The input image must be of class double. The output is of class double.
+
+	T = [1.0 0.956 0.621; 1.0 -0.272 -0.647; 1.0 -1.106 1.703];
+
+	threeD = (ndims(y)==3); % Determine if input includes a 3-D array.
+
+	if threeD
+		y = local_im2double(y);
+		rgb = reshape(y(:),size(y,1)*size(y,2),3)*T';
+	else
+		y = local_im2double(y);		i = local_im2double(i);		q = local_im2double(q);
+		rgb = [y(:) i(:) q(:)]*T';
+	end
+
+	% Make sure the rgb values are between 0.0 and 1.0
+	rgb = max(0,rgb);
+	d = find(any(rgb' > 1));
+	rgb(d,:) = rgb(d,:)./(max(rgb(d,:)')'*ones(1,3));
+
+	if (nargout==0 || nargout==1)
+		r = reshape(rgb,size(y,1),size(y,2),3);
+	else
+		[m,n] = size(y);
+		r = reshape(rgb(:,1),m,n);
+		g = reshape(rgb(:,2),m,n);
+		b = reshape(rgb(:,3),m,n);
+	end
+
+% -------------------------------------------------------------------
+function d = local_im2double(img)
+% Convert image to double precision. Local version without any error check
+	if isa(img, 'double')
+		d = img;
+	elseif (isa(img, 'logical') || isa(img, 'single'))
+		d = double(img);
+	elseif isa(img, 'uint8') || isa(img, 'uint16')
+		if isa(img, 'uint8'),	d = double(img)/255;	
+		else					d = double(img)/65535;
+		end
+	end
 
 % ----------------------------------------------------------------
 function ice_m_LayoutFcn(h1);
@@ -860,8 +946,7 @@ uicontrol('Parent',h1,...
 'Style','checkbox',...
 'Tag','check_cdf');
 
-axes(...
-'Parent',h1,...
+axes('Parent',h1,...
 'Units','pixels',...
 'CameraPosition',[0.5 0.5 9.16025403784439],...
 'Color',get(0,'defaultaxesColor'),...
@@ -875,8 +960,7 @@ axes(...
 'YTickMode','manual',...
 'Tag','gray_axes');
 
-axes(...
-'Parent',h1,...
+axes('Parent',h1,...
 'Units','pixels',...
 'CameraPosition',[0.5 0.5 9.16025403784439],...
 'Color',get(0,'defaultaxesColor'),...
