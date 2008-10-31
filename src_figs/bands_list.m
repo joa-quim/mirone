@@ -1,67 +1,68 @@
 function varargout = bands_list(varargin)
 % M-File changed by desGUIDE 
-% hObject    handle to figure
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to bands_list (see VARARGIN)
+
+	if (numel(varargin) == 0),		return,		end
  
-hObject = figure('Tag','figure1','Visible','off');
-bands_list_LayoutFcn(hObject);
-handles = guihandles(hObject);
+	hObject = figure('Tag','figure1','Visible','off');
+	bands_list_LayoutFcn(hObject);
+	handles = guihandles(hObject);
 
-movegui(hObject,'west')
-handles.Rband = [];     % To hold the band number that will be puted here
-handles.Gband = [];     %               "
-handles.Bband = [];     %               "
-handles.frame_movel_pos = get(handles.frame_movel,'Pos');
-handles.edit_Rband_pos = get(handles.edit_Rband,'Pos');
+	handles.Rband = [];		% To hold the band number that will be puted here
+	handles.Gband = [];		%               "
+	handles.Bband = [];		%               "
+	handles.frame_movel_pos = get(handles.frame_movel,'Pos');
+	handles.edit_Rband_pos = get(handles.edit_Rband,'Pos');
 
-if (length(varargin) > 0)
-    handles.h_mirone_fig = varargin{1};
-    bandList = getappdata(varargin{1},'BandList');
-    if (isempty(bandList))
-        errordlg('ERROR: There is no list of bands available. Do you know what you are doing?','ERROR')
-        delete(hObject);    return
-    end
-    handles.struct_names = bandList(1);
-    set(handles.listbox1,'String',bandList(1))
-    handles.image_bands = bandList{2};  % A MxNxP uint8 array, where P is the number of bands in memory (~= ntotal bands)
-    handles.all_names = bandList{3};    % A Mx2 cell array with struct field names & names to show up in the tree
-    handles.band_desc = bandList{4};    % A Mx2 cell array with the data description and band number (per struct field)
-    handles.fname = bandList{5};        % File name
-    handles.bands_inMemory = bandList{6};    % A vector with the band numbers already in memory
-    handles.dims = bandList{7};         % A [n_row n_col nBands_total] vector with the 2D image dimensions and the
-                                        % TOTAL number of bands in the dataset (some of them may not be on memory)
-    handles.reader = bandList{8};       % A string with 'GDAL' if the dataset was openend with it OR:
-                                        % a Mx2 cell array with {byte_resolution, header, interleave, endian};
-                                        % and a 1 to 3 elements with the subsets option of multiband read.
-    for ( i = 1:handles.dims(3) )
-        tmp.(['band' sprintf('%d',i)]) = i;
-    end
-    handles.struct_values = {tmp};      % TENHO DE MUDAR ESTE NOME
-else
-    delete(hObject);    return
-end
+	handles.hMirFig = varargin{1};
+	bandList = getappdata(varargin{1},'BandList');
+	if (isempty(bandList))
+		errordlg('ERROR: There is no list of bands available. Do you know what you are doing?','ERROR')
+		delete(hObject);    return
+	end
+	move2side(handles.hMirFig,hObject,'left')	% Reposition this figure
+	handles.struct_names = bandList(1);
+	set(handles.listbox1,'String',bandList(1))
+	handles.image_bands = bandList{2};	% A MxNxP uint8 array, where P is the number of bands in memory (~= ntotal bands)
+	handles.all_names = bandList{3};	% A Mx2 cell array with struct field names & names to show up in the tree
+	handles.band_desc = bandList{4};	% A Mx2 cell array with the data description and band number (per struct field)
+	handles.fname = bandList{5};		% File name
+	handles.bands_inMemory = bandList{6};    % A vector with the band numbers already in memory
+	handles.dims = bandList{7};			% A [n_row n_col nBands_total] vector with the 2D image dimensions and the
+										% TOTAL number of bands in the dataset (some of them may not be on memory)
+	handles.reader = bandList{8};		% A string with 'GDAL' if the dataset was openend with it OR:
+										% a Mx2 cell array with {byte_resolution, header, interleave, endian};
+										% and a 1 to 3 elements with the subsets option of multiband read.
 
-%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-h_f = [handles.frame2 handles.frame3];      % The third frame (handles.frame_movel) cannot be killed
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-%------------- END Pro look (3D) -------------------------------------------------------
+	for (i = 1:handles.dims(3))
+		tmp.(sprintf('band%d',i)) = i;	
+	end   
+	handles.struct_values = {tmp};		% TENHO DE MUDAR ESTE NOME
 
-guidata(hObject, handles);
-set(hObject,'Visible','on');
-if (nargout),	varargout{1} = hObject;		end
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+	h_f = [handles.frame2 handles.frame3];      % The third frame (handles.frame_movel) cannot be killed
+	for i=1:length(h_f)
+		frame_size = get(h_f(i),'Position');
+		f_bgc = get(h_f(i),'BackgroundColor');
+		usr_d = get(h_f(i),'UserData');
+		if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
+			frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
+		else
+			frame3D(hObject,frame_size,framecolor,'',usr_d)
+			delete(h_f(i))
+		end
+	end
+	%------------- END Pro look (3D) -------------------------------------------------------
+
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
+
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),	varargout{1} = hObject;		end
 
 % ------------------------------------------------------------------------
 function radiobutton_gray_Callback(hObject, eventdata, handles)
@@ -125,7 +126,31 @@ else
 end
 
 % --------------------------------------------------------------------------
-function pushbutton1_Callback(hObject, eventdata, handles)
+function push_pca_Callback(hObject, eventdata, handles)
+	[m,n,k] = size(handles.image_bands);
+	q = min(k, 6);					% for memory sake only 6 components are computed
+	P = princomp(handles.image_bands, q, true);
+	lamb = diag(P.Cy);				% The eigenvalues
+	P = reshape(P.Y, m, n, q);
+	P8 = alloc_mex(m,n,q,'uint8');
+	for (i = 1:q)
+		P8(:,:,i) = scaleto8(P(:,:,i),-8);		% Each component must be scaled independently of the others
+	end
+	hFig = mirone;		handNewMir = guidata(hFig);		set(hFig,'Name', 'PCA image')
+	handMir = guidata(handles.hMirFig);        % Retrive Mirone handles
+	handNewMir.head = handMir.head;
+	handNewMir.geog = handMir.geog;
+	handNewMir.image_type = handMir.image_type;
+	mirone('FileOpenGDALmultiBand_CB', handNewMir, 'PCA image', P8)
+	% Rename bands according to their varianves (eigenvalues)
+	tmp = getappdata(hFig,'BandList');
+	for (i = 1:q)
+		tmp{3}(i+1, 2)={sprintf('Var(%d)_%.0f',i,lamb(i))};
+	end
+	setappdata(hFig,'BandList',tmp)
+
+% --------------------------------------------------------------------------
+function push_Load_Callback(hObject, eventdata, handles)
 % TENHO QUE TESTAR SE CASO FOR PRECISO LOADAR BANDAS ELAS SEJAM GDALICAS
 
 if (get(handles.radiobutton_RGB,'Value') && ...
@@ -138,15 +163,14 @@ if ( get(handles.radiobutton_gray,'Value') && (isempty(handles.Rband)) )
     return
 end
 
-h_img = findobj(handles.h_mirone_fig,'Type','image');
-img = get(h_img,'CData');
-handles_mir = guidata(handles.h_mirone_fig);        % Retrive Mirone handles
+handMir = guidata(handles.hMirFig);        % Retrive Mirone handles
+img = get(handMir.hImg,'CData');
 head = [];              % It will be changed only if we load a composition of non uint8
 
 if (get(handles.radiobutton_RGB,'Value'))       % RGB - pure image for sure (is it??)
     [b,b] = ismember([handles.Rband handles.Gband handles.Bband],handles.bands_inMemory);
-    idx = (b == 0);     % ISMEMBER returns zeros for elements of A not in B
-    b(idx) = [];        % If they exis, clear them
+    idx = (b == 0);		% ISMEMBER returns zeros for elements of A not in B
+    b(idx) = [];		% If they exis, clear them
     if (length(b) == 3)         % All bands are aready in memory
         img = handles.image_bands(:,:,b);
     elseif (length(b) == 2)     % Two bands are in memory. Need to load the third
@@ -196,9 +220,9 @@ if (get(handles.radiobutton_RGB,'Value'))       % RGB - pure image for sure (is 
         end
     end
 
-    set(h_img,'CData',img)
-    try rmappdata(handles.h_mirone_fig,'dem_x');    rmappdata(handles.h_mirone_fig,'dem_y');
-        rmappdata(handles.h_mirone_fig,'dem_z');
+    set(handMir.hImg,'CData',img)
+    try rmappdata(handles.hMirFig,'dem_x');    rmappdata(handles.hMirFig,'dem_y');
+        rmappdata(handles.hMirFig,'dem_z');
     end
     image_type = 2;         % Reset indicator that this is an image only
     computed_grid = 0;      % Reset this also
@@ -223,7 +247,6 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
         was_int16 = 0;
         
     else                        % Not uint8, so we need scalings
-    
         % Now we are going to load the band not scaled and treat it as a GMT grid
         if (~iscell(handles.reader))    % reader is GDAL
             Z = gdalread(handles.fname, ['-B' num2str(handles.Rband)]);
@@ -259,10 +282,10 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
 			end
         end
         X = 1:handles.dims(2);    Y = 1:handles.dims(1);
-        head = handles_mir.head;
+        head = handMir.head;
         head(5:6) = [double(min(min(Z))) double(max(max(Z)))];
-        setappdata(handles.h_mirone_fig,'dem_z',Z);  setappdata(handles.h_mirone_fig,'dem_x',X);
-        setappdata(handles.h_mirone_fig,'dem_y',Y);
+        setappdata(handles.hMirFig,'dem_z',Z);  setappdata(handles.hMirFig,'dem_x',X);
+        setappdata(handles.hMirFig,'dem_y',Y);
         image_type = 1;         % Pretend this a GMT grid
         computed_grid = 1;      % But set to computed_grid to avoid attempts to reload it with grdread_m
         if (isa(Z,'uint16') || isa(Z,'int16'))
@@ -273,15 +296,15 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
     
     end         % end if is uint8
     
-    set(h_img,'CData',img)
-    set(handles.h_mirone_fig,'ColorMap',gray(256))
+    set(handMir.hImg,'CData',img)
+    set(handles.hMirFig,'ColorMap',gray(256))
 end
 
-if (~isempty(head)),    handles_mir.head = head;    end
-handles_mir.image_type = image_type;
-handles_mir.computed_grid = computed_grid;
-handles_mir.was_int16 = was_int16;
-guidata(handles.h_mirone_fig,handles_mir)           % Save those in Mirone handles
+if (~isempty(head)),    handMir.head = head;    end
+handMir.image_type = image_type;
+handMir.computed_grid = computed_grid;
+handMir.was_int16 = was_int16;
+guidata(handles.hMirFig,handMir)           % Save those in Mirone handles
 
 % --------------------------------------------------------------------------
 function listbox1_Callback(hObject, eventdata, handles)
@@ -292,8 +315,8 @@ struct_values = handles.struct_values;
 indent = '       ';
 root_1 = struct_names{index_struct};
 is_indent = strfind(root_1, indent);
-if (isempty(is_indent)),    level = 0;
-else                        level = (is_indent(end) - 1)/7 + 1;
+if (isempty(is_indent)),	level = 0;
+else						level = (is_indent(end) - 1)/7 + 1;
 end
     
 struct_val = struct_values{index_struct};
@@ -350,7 +373,7 @@ end
 guidata(hObject, handles);
 
 % ------------------------------------------------------------------------
-function cell_array =  indent_cell(cell_array, level)
+function cell_array = indent_cell(cell_array, level)
 	indent = '       ';             indent_app = [];
 	for (k = 1:level+1),            indent_app = [indent_app indent];   end
 	for (i=1:length(cell_array)),   cell_array{i} = [indent_app cell_array{i}];     end
@@ -464,6 +487,174 @@ function handles = order_bands(handles,idx)
 		handles.Rband = n_band;
 	end
 
+% ---------------------------------------------------------------------------
+function P = princomp(X, q, smaller)
+%PRINCOMP Obtain principal-component vectors and related quantities.
+%   P = PRINCOMP(X, Q) Computes the principal-component vectors of
+%   the vector population contained in the rows of X, a matrix of
+%   size K-by-n where K is the number of vectors and n is their
+%   dimensionality. Q, with values in the range [0, n], is the number
+%   of eigenvectors used in constructing the principal-components
+%   transformation matrix. P is a structure with the following fields:
+%
+%     P.Y      K-by-Q matrix whose columns are the principal-
+%              component vectors.
+%     P.A      Q-by-n principal components transformation matrix
+%              whose rows are the Q eigenvectors of Cx corresponding
+%              to the Q largest eigenvalues. 
+%     P.X      K-by-n matrix whose rows are the vectors reconstructed
+%              from the principal-component vectors. P.X and P.Y are
+%              identical if Q = n.
+%				NOTE COMPUTED IF NARGIN == 3
+%
+%     P.ems    The mean square error incurred in using only the Q
+%              eigenvectors corresponding to the largest
+%              eigenvalues. P.ems is 0 if Q = n.  
+%     P.Cx     The n-by-n covariance matrix of the population in X.
+%     P.mx     The n-by-1 mean vector of the population in X.
+%     P.Cy     The Q-by-Q covariance matrix of the population in
+%              Y. The main diagonal contains the eigenvalues (in
+%              descending order) corresponding to the Q eigenvectors.
+
+%   Copyright 2002-2004 R. C. Gonzalez, R. E. Woods, & S. L. Eddins
+%   Digital Image Processing Using MATLAB, Prentice-Hall, 2004
+%   $Revision: 1.4 $  $Date: 2003/10/26 23:16:16 $
+
+
+if (nargin == 3),	smaller = true;			% Do not compute P.X
+else				smaller = false;
+end
+
+X = imstack2vectors(X);
+
+[K, n] = size(X);		was_double = true;
+if (~isa(X,'double'))
+	X = double(X);		was_double = false;
+end
+
+% Obtain the mean vector and covariance matrix of the vectors in X.
+[P.Cx, P.mx] = covmatrix(X);
+P.mx = P.mx'; % Convert mean vector to a row vector.
+
+% Obtain the eigenvectors and corresponding eigenvalues of Cx.  The
+% eigenvectors are the columns of n-by-n matrix V.  D is an n-by-n
+% diagonal matrix whose elements along the main diagonal are the
+% eigenvalues corresponding to the eigenvectors in V, so that X*V = D*V.
+[V, D] = eig(P.Cx);
+
+% Sort the eigenvalues in decreasing order.  Rearrange the eigenvectors to match. 
+d = diag(D);
+[d, idx] = sort(d);
+d = flipud(d);
+idx = flipud(idx);
+D = diag(d);
+V = V(:, idx);
+
+% Now form the q rows of A from first q columns of V.
+P.A = V(:, 1:q)';
+
+% Compute the principal component vectors.
+Mx = repmat(P.mx, K, 1);	% M-by-n matrix.  Each row = P.mx.
+%P.Y = P.A*(X - Mx)';		% q-by-K matrix.
+P.Y = P.A*( cvlib_mex('sub', X, Mx) )';		% q-by-K matrix.
+
+if (~smaller)		% Obtain the reconstructed vectors.
+	P.X = (P.A'*P.Y)' + Mx;
+end
+
+% Save some memory
+if (~was_double),	clear X,	end		% The X was a local variable
+clear Mx
+
+% Convert P.Y to K-by-q array and P.mx to n-by-1 vector.
+P.Y = P.Y';
+P.mx = P.mx';
+
+% The mean square error is given by the sum of all the 
+% eigenvalues minus the sum of the q largest eigenvalues.
+d = diag(D);
+P.ems = sum(d(q + 1:end));
+
+% Covariance matrix of the Y's:
+P.Cy = P.A * P.Cx * P.A';
+
+% -------------------------------------------------------------------------------
+function [C, m] = covmatrix(X)
+%COVMATRIX Computes the covariance matrix of a vector population.
+%   [C, M] = COVMATRIX(X) computes the covariance matrix C and the
+%   mean vector M of a vector population organized as the rows of
+%   matrix X. C is of size N-by-N and M is of size N-by-1, where N is
+%   the dimension of the vectors (the number of columns of X).
+
+%   Copyright 2002-2004 R. C. Gonzalez, R. E. Woods, & S. L. Eddins
+%   Digital Image Processing Using MATLAB, Prentice-Hall, 2004
+%   $Revision: 1.4 $  $Date: 2003/05/19 12:09:06 $
+
+[K, n] = size(X);
+X = double(X);
+if n == 1		% Handle special case.
+	C = 0; 
+	m = X;
+else			% Compute an unbiased estimate of m.
+	m = sum(X, 1)/K;
+	% Subtract the mean from each row of X.
+	X = X - m(ones(K, 1), :);
+	% Compute an unbiased estimate of C. Note that the product is
+	% X'*X because the vectors are rows of X.	
+	C = (X'*X)/(K - 1);
+	m = m'; % Convert to a column vector.	 
+end
+
+% -------------------------------------------------------------------------------
+function [X, R] = imstack2vectors(S, MASK)
+%IMSTACK2VECTORS Extracts vectors from an image stack.
+%   [X, R] = imstack2vectors(S, MASK) extracts vectors from S, which
+%   is an M-by-N-by-n stack array of n registered images of size
+%   M-by-N each (see Fig. 11.24). The extracted vectors are arranged
+%   as the rows of array X. Input MASK is an M-by-N logical or
+%   numeric image with nonzero values (1s if it is a logical array)
+%   in the locations where elements of S are to be used in forming X
+%   and 0s in locations to be ignored. The number of row vectors in X
+%   is equal to the number of nonzero elements of MASK. If MASK is
+%   omitted, all M*N locations are used in forming X.  A simple way
+%   to obtain MASK interactively is to use function roipoly. Finally,
+%   R is an array whose rows are the 2-D coordinates containing the
+%   region locations in MASK from which the vectors in S were
+%   extracted to form X.  
+
+%   Copyright 2002-2004 R. C. Gonzalez, R. E. Woods, & S. L. Eddins
+%   Digital Image Processing Using MATLAB, Prentice-Hall, 2004
+%   $Revision: 1.6 $  $Date: 2003/11/21 14:37:21 $
+
+% Preliminaries.
+[M, N, n] = size(S);
+if (nargin == 1),		MASK = true(M, N);
+else					MASK = (MASK ~= 0);
+end
+
+% Find the set of locations where the vectors will be kept before
+% MASK is changed later in the program.
+if (nargout == 2)
+	[I, J] = find(MASK);
+	R = [I, J];
+end
+
+% Now find X.
+
+% First reshape S into X by turning each set of n values along the third
+% dimension of S so that it becomes a row of X. The order is from top to
+% bottom along the first column, the second column, and so on.
+Q = M*N;
+X = reshape(S, Q, n);
+
+% Now reshape MASK so that it corresponds to the right locations 
+% vertically along the elements of X.
+MASK = reshape(MASK, Q, 1);
+
+% Keep the rows of X at locations where MASK is not 0.
+X = X(MASK, :);
+
+% ---------------------------------------------------------------------------	
 % --- Creates and returns a handle to the GUI figure. 
 function bands_list_LayoutFcn(h1);
 
@@ -476,35 +667,32 @@ set(h1,...
 'Resize','off',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,...
-'Position',[5 68 260 102],...
-'Style','frame',...
-'Tag','frame_movel');
-
-uicontrol('Parent',h1,...
-'Position',[5 32 260 32],...
-'Style','frame',...
-'Tag','frame3');
-
-uicontrol('Parent',h1,...
-'Position',[5 177 260 33],...
-'Style','frame',...
-'Tag','frame2');
+uicontrol('Parent',h1, 'Position',[5 68 260 102], 'Style','frame', 'Tag','frame_movel');
+uicontrol('Parent',h1, 'Position',[5 32 260 32], 'Style','frame', 'Tag','frame3');
+uicontrol('Parent',h1, 'Position',[5 177 260 33], 'Style','frame','Tag','frame2');
 
 uicontrol('Parent',h1,...
 'Callback',{@bands_list_uicallback,h1,'radiobutton_gray_Callback'},...
-'Position',[15 185 79 15],...
+'Position',[12 185 79 15],...
 'String','Gray Scale',...
 'Style','radiobutton',...
 'Tag','radiobutton_gray');
 
 uicontrol('Parent',h1,...
 'Callback',{@bands_list_uicallback,h1,'radiobutton_RGB_Callback'},...
-'Position',[122 185 79 15],...
+'Position',[102 185 79 15],...
 'String','RGB Color',...
 'Style','radiobutton',...
 'Value',1,...
 'Tag','radiobutton_RGB');
+
+uicontrol('Parent',h1,...
+'Callback',{@bands_list_uicallback,h1,'push_pca_Callback'},...
+'FontName','Helvetica',...
+'Position',[181 182 80 23],...
+'Tooltip', 'Compute Principal Components', ...
+'String','Compute PCA',...
+'Tag','push_pca');
 
 uicontrol('Parent',h1,...
 'Callback',{@bands_list_uicallback,h1,'radiobutton_R_Callback'},...
@@ -560,14 +748,14 @@ uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
 'Position',[14 40 25 15],...
 'String','Dims',...
-'Style','text',...
-'Tag','text1');
+'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@bands_list_uicallback,h1,'pushbutton1_Callback'},...
+'Callback',{@bands_list_uicallback,h1,'push_Load_Callback'},...
+'FontName','Helvetica',...
 'Position',[90 5 66 23],...
 'String','Load',...
-'Tag','pushbutton1');
+'Tag','push_Load');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
