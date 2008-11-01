@@ -205,6 +205,8 @@ function varargout = ice_m(varargin)
 
 % ---------------------------------------------------------------------------------------------
 function handles = set_colorSpace(handles)
+% Do color space transforms, clamp to [0, 255], compute histograms
+% and cumulative distribution functions, and create output figure.
 % Create pseudo- and full-color mapping bars (grays and hues). Store
 % a color space converted 1x128x3 line of each bar for mapping.
 	xi = 0:1/127:1;		x = (0:1/6:1)';
@@ -212,15 +214,17 @@ function handles = set_colorSpace(handles)
  	gb = single(repmat(xi, [1 1 3]));		cb = reshape(single(interp1q(x, y, xi')), [1 128 3]);
 	ctype = handles.colortype;
 	if ~strcmp(ctype, 'rgb')
-		if (strcmp(ctype ,'cmy') || strcmp(ctype ,'yiq')),		txt = ['rgb2' ctype '(gb)'];
-		else				txt = ['cvlib_mex(''color'', gb, ''rgb2' ctype ''')'];
+		if (strcmp(ctype ,'cmy'))
+			gb = rgb2cmy(gb);		cb = rgb2cmy(cb);		handles.input = rgb2cmy(handles.input);
+		elseif (strcmp(ctype ,'yiq'))
+			gb = rgb2yiq(gb);		cb = rgb2yiq(cb);		handles.input = rgb2yiq(handles.input);
+		else
+			gb = cvlib_mex('color', gb, ['rgb2' ctype]);
+			cb = cvlib_mex('color', cb, ['rgb2' ctype]);
+			handles.input = cvlib_mex('color', handles.input, ['rgb2' ctype]);
 		end
-		gb = eval(txt);
-		if (strcmp(ctype ,'cmy') || strcmp(ctype ,'yiq')),		txt = ['rgb2' ctype '(cb)'];
-		else				txt = ['cvlib_mex(''color'', cb, ''rgb2' ctype ''')'];
-		end
-		cb = eval(txt);
-		cb = max(0, cb);
+		
+		cb = max(0, cb);		gb = max(0, gb);
 		if (size(cb,3) == 1)
 			gb = cat(3, gb, gb, gb);		cb = cat(3, cb, cb, cb);
 		end
@@ -229,15 +233,6 @@ function handles = set_colorSpace(handles)
 		cb(:,:,1) = single(double(cb(:,:,1)) / 360);
 	end
 	handles.graybar = round(255 * double(gb));     handles.colorbar = round(255 * double(cb));
-
-	% Do color space transforms, clamp to [0, 255], compute histograms
-	% and cumulative distribution functions, and create output figure.
-	if (~strcmp(handles.colortype, 'rgb'))
-		if (strcmp(ctype ,'cmy') || strcmp(ctype ,'yiq')),		txt = ['rgb2' ctype '(handles.input)'];
-		else				txt = ['cvlib_mex(''color'', handles.input, ''rgb2' handles.colortype ''')'];
-		end
-		handles.input = eval(txt);
-	end
 
 	for (i = 1:3)
 		color = handles.input(:, :, i);
@@ -286,7 +281,7 @@ if inplot
 			handles.below = below;   handles.above = above;
 			nodes(node, :) = [x y];
 		case 'extend'
-			if ~length(find(nodes(:, 1) == x))
+			if isempty(find(nodes(:, 1) == x))
 				nodes = [nodes(1:below, :); [x y]; nodes(above:end, :)];
 				handles.node = above;   handles.updown = 'down';
 				handles.below = below;  handles.above = above + 1;
@@ -298,7 +293,7 @@ if inplot
 			handles.node = 0;
 			set(handles.input_text, 'String', '');
 			set(handles.output_text, 'String', '');
-   end
+	end
     
    handles = setfield(handles, handles.curve, nodes);
    guidata(hObject, handles);
@@ -316,7 +311,7 @@ function ice_m_WindowButtonMotionFcn(hObject, eventdata)
 	if inplot
 		nodes = getfield(handles, handles.curve);
 		nudge = handles.smooth(handles.cindex) / 256;
-		if (handles.node ~= 1) & (handles.node ~= size(nodes, 1))
+		if (handles.node ~= 1) && (handles.node ~= size(nodes, 1))
 			if (x >= nodes(handles.above, 1)),			x = nodes(handles.above, 1) - nudge;
 			elseif (x <= nodes(handles.below, 1))		x = nodes(handles.below, 1) + nudge;    
 			end
@@ -518,8 +513,8 @@ else
 	else    
 		y = spline(nodes(:, 1), [0; nodes(:, 2); 0], x);    
 	end
-	i = find(y > 1);		y(i) = 1;
-	i = find(y < 0);		y(i) = 0;
+	y(y > 1) = 1;
+	y(y < 0) = 0;
 	
 	if (~handles.pdf(c) && ~handles.cdf(c)) || (size(handles.df, 2) == 0)
 		plot(nodes(:, 1), nodes(:, 2), 'ko',  x, y, 'b-', 'Parent', handles.curve_axes);
@@ -564,7 +559,6 @@ function [inplot, x, y] = cursor(h, handles)
 	else
 		x = min(x, 1);      x = max(x, 0);
 		y = min(y, 1);      y = max(y, 0);
-		nodes = getfield(handles, handles.curve);        
 		x = round(256 * x) / 256;
 		inplot = 1;
 		set(handles.input_text, 'String', num2str(x, 3));
@@ -572,7 +566,7 @@ function [inplot, x, y] = cursor(h, handles)
 	end
 
 %-----------------------------------------------------------------------------
-function y = render(handles)
+function render(handles)
 %  Map the input image and bar components and convert them to RGB (if needed) and display.
 
 	set(handles.figure1, 'Interruptible', 'off', 'Pointer', 'watch');
@@ -604,21 +598,18 @@ function y = render(handles)
 	end
 
 	ctype = handles.colortype;
-	if ~strcmp(ctype, 'rgb')	
-		if (strcmp(ctype ,'cmy') || strcmp(ctype ,'yiq')),		txt = [ctype '2rgb(yi)'];
-		else						txt = ['cvlib_mex(''color'', yi, ''' ctype '2rgb'')'];
+	if ~strcmp(ctype, 'rgb')
+		if (strcmp(ctype ,'cmy')),		yi = cmy2rgb(yi);
+		elseif (strcmp(ctype ,'yiq')),	yi = yiq2rgb(yi);
+		else							yi = cvlib_mex('color', yi, [ctype '2rgb']);
 		end
-		yi = eval(txt);
 
 		if mapon
-			if (strcmp(ctype ,'cmy') || strcmp(ctype ,'yiq')),		txt = [ctype '2rgb(ygb)'];
-			else						txt = ['cvlib_mex(''color'', ygb, ''' ctype '2rgb'')'];
+			if (strcmp(ctype ,'cmy')),		ygb = cmy2rgb(ygb);		ycb = cmy2rgb(ycb);
+			elseif (strcmp(ctype ,'yiq')),	ygb = yiq2rgb(ygb);		ycb = yiq2rgb(ycb);
+			else							ygb = cvlib_mex('color', ygb, [ctype '2rgb']);
+											ycb = cvlib_mex('color', ycb, [ctype '2rgb']);
 			end
-			ygb = eval(txt);
-			if (strcmp(ctype ,'cmy') || strcmp(ctype ,'yiq')),		txt = [ctype '2rgb(ycb)'];
-			else						txt = ['cvlib_mex(''color'', ycb, ''' ctype '2rgb'')'];
-			end
-			ycb = eval(txt);
 		end
 	end
 
@@ -638,7 +629,6 @@ function y = render(handles)
 		end
 	end
 	set(handles.figure1, 'Interruptible', 'on', 'Pointer', 'arrow');
-
 
 %-------------------------------------------------------------------%
 function t = lut(nodes, smooth, slope)
@@ -792,7 +782,7 @@ function d = local_im2double(img)
 	end
 
 % ----------------------------------------------------------------
-function ice_m_LayoutFcn(h1);
+function ice_m_LayoutFcn(h1)
 
 set(h1,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
