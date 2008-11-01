@@ -20,8 +20,14 @@ switch opt(1:4)
 	case 'find'		% 'findFileType'
 		varargout{1} = findFileType(varargin{:});
 		if (nargout == 2)       % Check if file exists
-			ind = exist(varargin{1},'file');
-			varargout{2} = (ind == 2);
+			ind = (exist(varargin{1},'file') == 2);
+			if (~ind)
+				[PATH,FNAME,EXT] = fileparts(varargin{1});
+				newFilePato = [cd filesep FNAME EXT];
+				ind = (exist(newFilePato,'file') == 2);
+				if (ind),		ind = newFilePato;		end		% File exists on the directory from where Mirone was called
+			end
+			varargout{2} = ind;		% Logical if file exists|not exists on Mirone's root directory. Otherwise -> actual full file path
 		end
 	case 'appP'		% 'appProjectionRef'
 		appProjectionRef(varargin{:})
@@ -51,7 +57,12 @@ switch opt(1:4)
 	case 'min_'		% 'min_max_single'
 		[varargout{1} varargout{2}] = min_max_single(varargin{:});
 	otherwise
-		error('Unknown option')
+		if (nargout)
+			[varargout{1:nargout}] = ...
+				feval(opt, varargin{:});	% NEW. All calls should evolve to use this form
+		else
+			feval(opt, varargin{:});
+		end
 end
 
 % --------------------------------------------------------------------
@@ -250,7 +261,7 @@ function togCheck(varargin)
 
 % ----------------------------------------------------------------------------------
 function toProjPT(handles)
-    % The following is to deal with eventual coords display in geogs and is used in PIXVAL_STSBAR 
+% The following is to deal with eventual coords display in geogs and is used in PIXVAL_STSBAR 
 
 	displayBar = findobj(handles.figure1, 'Tag', 'pixValStsBar');
 	dbud = get(displayBar, 'UserData');
@@ -275,6 +286,26 @@ function toProjPT(handles)
 		end
 		set(displayBar, 'UserData', dbud);
     end
+
+% ----------------------------------------------------------------------------------
+function toBandsList(hFig, I, array_name, fname, n_bands, bands_inMemory, reader)
+% Create a structure with data to be retrieved by the BANDS_LIST() GUI
+% This still needs to be improved. Not much of error testing
+	if (nargin == 3)
+		fname = [];		n_bands = size(I,3);	bands_inMemory = 1:n_bands;		reader = [];
+	end
+	if (isempty(n_bands)),			n_bands = size(I,3);		end
+	if (isempty(bands_inMemory)),	bands_inMemory = 1:n_bands;		end
+	tmp1 = cell(n_bands+1,2);		tmp2 = cell(n_bands+1,2);
+	tmp1{1,1} = array_name;			tmp1{1,2} = array_name;
+	for (i = 1:n_bands)
+		tmp1{i+1,1} = sprintf('band%d',i);
+		tmp1{i+1,2} = sprintf('banda%d',i);			% TEMP
+		tmp2{i+1,1} = [sprintf('%d',i) 'x1 bip'];	% TEMP
+		tmp2{i+1,2} = i;
+	end
+	tmp = {['+ ' array_name]; I; tmp1; tmp2; fname; bands_inMemory; [size(I,1) size(I,2) n_bands]; reader};
+	setappdata(hFig,'BandList',tmp)
 
 % ----------------------------------------------------------------------------------
 function prjInfoStruc = getFigProjInfo(handles)
