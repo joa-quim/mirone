@@ -96,7 +96,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.flederBurn = 1;		% When build a fleder obj burn eventual coastlines
 	handles.flederPlanar = 1;	% Default to planar flder objs (but mirone_pref knows better)
 	handles.whichFleder = 1;	% whichFleder = 1 for the free iview3d or 0 for the true thing (fledermaus)
-	handles.oldSize = get(hObject,'Pos');  
+	handles.oldSize = get(hObject,'Pos');
 	if (handles.oldSize(4) == 0),      handles.oldSize(4) = 1;    end
 	handles.is_projected = 0;	% To keep track if coords are projected or not
 	handles.defCoordsIn = 0;	% To use when Load files and have to decide if we need to project
@@ -159,7 +159,8 @@ function hObject = mirone_OpeningFcn(varargin)
 		if (n_argin == 1 && ischar(varargin{1}))				% Called with a file name as argument
 			[pato, fname, EXT] = fileparts(varargin{1});		% Test to check online command input
 			if (isempty(pato)),		varargin{1} = [handles.home_dir fsep fname EXT];	end
-			drv = aux_funs('findFileType',varargin{1});
+			[drv, somewhere] = aux_funs('findFileType',varargin{1});	
+			if (ischar(somewhere)),		varargin{1} = somewhere;	end		% File exists but not in Mirone's root dir
 		elseif ( isa(varargin{1},'uint8') ||  isa(varargin{1},'int8') || islogical(varargin{1}) )
 			% Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
 			if ( isa(varargin{1},'int8') )		% We cannot represent a int8 image. Do something
@@ -169,7 +170,10 @@ function hObject = mirone_OpeningFcn(varargin)
 					varargin{1} = uint8(varargin{1});
 				end
 			end
-			dims = size(varargin{1});			isReferenced = false;
+			% Now deal with the case of a eventual multiband ( > than 3 planes) array
+			if (size(varargin{1},3) > 3),		aux_funs('toBandsList', handles.figure1, varargin{1}, 'multiband array'),	end
+
+			isReferenced = false;
 			if ( n_argin == 2 && isa(varargin{2},'struct') )       % An image with coordinates
 				tmp = varargin{2};
 				handles.head = tmp.head;		X = tmp.X;		Y = tmp.Y;
@@ -184,7 +188,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			else
 				X = [];			Y = [];			win_name = 'Cropped Image';
 				handles.image_type = 2;			handles.geog = 0;		axis_t = 'off';
-				handles.head = [1 dims(2) 1 dims(1) 0 255 0 1 1];		% Fake a grid reg GMT header
+				handles.head = [1 size(varargin{1}, 2) 1 size(varargin{1}, 1) 0 255 0 1 1];		% Fake a grid reg GMT header
 				if (ndims(varargin{1}) == 2),	set(handles.figure1,'Colormap',gray(256));  end
 				pal = getappdata(0,'CropedColormap');					% See if we have a colormap to use here
 				if (~isempty(pal)),		set(handles.figure1,'Colormap',pal);	rmappdata(0,'CropedColormap');  end
@@ -1174,7 +1178,7 @@ recentFiles(handles);		% Insert fileName into "Recent Files" & save handles
 % --------------------------------------------------------------------
 function FileOpenGDALmultiBand_CB(handles, opt, opt2)
 % Read GDAL files that may be multiband
-% OPT2, if present, MUST contain the full file name. Currently used to load RAW images
+% OPT2, if present, MUST contain either the full file name OR a multiband array. Currently used to load RAW images
 
 	if strcmp(opt,'ENVISAT')
 		str1 = {'*.n1;*.N1', 'Envisat (*.n1,*.N1)'; '*.*', 'All Files (*.*)'};
@@ -1190,57 +1194,54 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2)
 		fname = opt2;
 	end
 
-	att.ProjectionRef = [];
-	reader = 'GDAL';                % this will be used by bands_list to decide which reader to use
+	att.ProjectionRef = [];			X = [];			Y = [];		ax_dir = 'off';		% Default values
+	reader = 'GDAL';				% this will be used by bands_list to decide which reader to use
 
 	set(handles.figure1,'pointer','watch')
 	if (strcmp(opt,'RAW'))          % 
 		[I,cmd1,cmd2] = read_FlatFile({fname});
-		if (isempty(I)),    set(handles.figure1,'pointer','arrow');     return;     end
-		[att.RasterYSize,att.RasterXSize,n_bands] = size(I);
+		if (isempty(I)),    set(handles.figure1,'pointer','arrow'),		return,		end
+		[att.RasterYSize, att.RasterXSize, n_bands] = size(I);
 		bands_inMemory = 1:n_bands;         % Make it a vector
 		reader = {cmd1; cmd2};
 		handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];   % Fake GMT header
+		handles.image_type = 2;		handles.geog = 0;
 	elseif (strcmp(opt,'ENVISAT') || strcmp(opt,'AVHRR'))    % 
-		bands_inMemory = 3;
-		opt_B = sprintf('%s%d','-B1-',bands_inMemory);
+		bands_inMemory = 10;				% AD-HOC
+		opt_B = sprintf('-B1-%d', bands_inMemory);
 		[I,att] = gdalread(fname,'-S', opt_B,'-C');
 		n_bands = att.RasterCount;
 		bands_inMemory = 1:min(n_bands,bands_inMemory);      % Make it a vector
 		handles.head = att.GMT_hdr;
+		handles.image_type = 2;		handles.geog = 0;
 		if (~isempty(att.GCPvalues))	% Save GCPs so that we can plot them and warp the image
 			setappdata(handles.figure1,'GCPregImage',att.GCPvalues)
 			setappdata(handles.figure1,'fnameGCP',fname)	% Save this to know when GCPs are to be removed
 		end													% from appdata. That is donne in show_image()
+	elseif (strncmp(opt,'PCA',3))    	% Generic multiband file transmited in input
+		I = fname;			fname = opt;
+		[att.RasterYSize, att.RasterXSize, n_bands] = size(I);	% Use 'att' to be consistent with the other cases
+		bands_inMemory = 1:n_bands;
+		if (handles.image_type == 3)
+			X = handles.head(1:2);      Y = handles.head(3:4);		ax_dir = 'xy';
+		end
+		reader = [];
 	end
 
-	tmp1 = cell(n_bands+1,2);    tmp2 = cell(n_bands+1,2);
-	tmp1{1,1} = opt;    tmp1{1,2} = opt;
-	for (i = 1:n_bands)
-		tmp1{i+1,1} = ['band' sprintf('%d',i)];
-		tmp1{i+1,2} = ['banda' sprintf('%d',i)];	% TEMP
-		tmp2{i+1,1} = [sprintf('%d',i) 'x1 bip'];	% TEMP
-		tmp2{i+1,2} = i;
-	end
-	tmp = {['+ ' opt]; I; tmp1; tmp2; fname; bands_inMemory; [att.RasterYSize att.RasterXSize n_bands]; reader};
-	if (n_bands > 3),		I(:,:,4:end) = [];		% Now I can only be MxN or MxNx3
-	elseif (n_bands == 2),  I(:,:,2) = [];
-	end
+	aux_funs('toBandsList', handles.figure1, I, opt, fname, n_bands, bands_inMemory, reader);
 
-	setappdata(handles.figure1,'BandList',tmp)
-	handles.image_type = 2;		handles.fileName = [];  % No eligible for automatic re-loading
+	handles.fileName = [];		% Not eligible for automatic re-loading
 	handles.was_int16 = 0;		handles.computed_grid = 0;
-	handles.geog = 0;			% None of this image types is coordinated (nor geog nor anything else)
-	if (~strcmp(opt,'RAW'))
+	if ( strcmp(opt,'ENVISAT') || strcmp(opt,'AVHRR') )
 		if (isempty(att.Band(1).ColorMap)),		set(handles.figure1,'Colormap',jet(256))
 		else									set(handles.figure1,'Colormap',att.Band(1).ColorMap.CMap)
 		end
 		handles = recentFiles(handles);			% Insert fileName into "Recent Files"
 	end
 	if (n_bands == 1),      set(handles.figure1,'Colormap',gray(256));   end    % Takes precedence over the above
-	handles = show_image(handles,fname,[],[],I,0,'off',0);    % It also guidata(...) & reset pointer
+	handles = show_image(handles,fname,X,Y,I,0,ax_dir,0);    % It also guidata(...) & reset pointer
 	if (isappdata(handles.axes1,'InfoMsg')),    rmappdata(handles.axes1,'InfoMsg');     end
-	if (~strcmp(opt,'RAW')),	grid_info(handles,att,'gdal');		end		% Construct a info message
+	if (strcmp(opt,'ENVISAT') || strcmp(opt,'AVHRR')),		grid_info(handles,att,'gdal');		end		% Construct a info message
 	aux_funs('isProj',handles,1);				% Check/set about coordinates type
 	setAxesDefCoordIn(handles);					% Sets the value of the axes uicontextmenu that selects whether project or not
 
@@ -1514,30 +1515,31 @@ function read_DEMs(handles,fullname,tipo,opt)
 
 % _________________________________________________________________________________________________
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
-function handles = show_image(handles,fname,X,Y,I,validGrid,axis_t,adjust,imSize)
+function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust, imSize)
 % Show image and set other parameters
 	if (adjust)				% Convert the image limits from pixel reg to grid reg
-		[m,n,k] = size(I);  [X,Y] = aux_funs('adjust_lims',X,Y,m,n);
+		[m,n,k] = size(I);  [X,Y] = aux_funs('adjust_lims', X, Y, m, n);
 	end
 	if (strcmp(get(handles.GCPtool,'Checked'),'on'))		% Call gcpTool() and return
 		if (handles.no_file),	aux_funs('togCheck', handles.GCPtool),	return,		end	% Security check
 		handles = gcpTool(handles,axis_t,X,Y,I);        return
 	end
-	if (nargin < 9),	imSize = [];    end
+	if (nargin < 9),	imSize = [];	end
 	if (~isa(handles.head, 'double')),		handles.head = double(handles.head);	end
-	if (~isa(X, 'double')),		X = double(X);	end		% Security measure (+ lines above & below). It happened before
-	if (~isa(Y, 'double')),		Y = double(Y);	end
+	if (~isa(X, 'double')),		X = double(X);	Y = double(Y);	end		% Security measure (+ lines above & below). It happened before
 	if (handles.head(8) == 0 || handles.head(9) == 0)	% Bad usage of the (Z,struct) mirone input mechanism
 		handles.head(8) = diff(handles.head(1:2)) / size(I,2) + ~handles.head(7);		% Get right values for them
 		handles.head(9) = diff(handles.head(3:4)) / size(I,1) + ~handles.head(7);
 	end
-	dxy = 0;
-	if (validGrid),		dx = X(2) - X(1);		dy = Y(2) - Y(1);
-	else				dx = 0;					dy = 0;
-	end
+
+	dxy = 0;			dx = 0;					dy = 0;
+	if (validGrid),		dx = X(2) - X(1);		dy = Y(2) - Y(1);	end
 	if (~validGrid && handles.validGrid),		aux_funs('cleanGRDappdata',handles);	end
 	if (isempty(imSize) && (abs(dx - dy) > 1e-4))       % Check for grid node spacing anisotropy
 		imSize = dx / dy;                               % resizetrue will know what to do with this
+	end
+	if (size(I,3) > 3),			I(:,:,4:end) = [];		% Make sure I is only MxN or MxNx3
+	elseif (size(I,3) == 2),	I(:,:,2) = [];			% (could be otherwise when input from multiband)
 	end
 
 	handles.hImg = image(X,Y,I,'Parent',handles.axes1);
