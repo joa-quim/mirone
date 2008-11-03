@@ -242,7 +242,7 @@ for (k = 1:numel(names))
         end
 	end
 	multi_segs_str(n_clear) = [];       % Clear the unused info
-	
+
 	ind = isnan(h_isoc);    h_isoc(ind) = [];      % Clear unused rows in h_isoc (due to over-dimensioning)
 	if (~isempty(h_isoc)),  draw_funs(h_isoc,'isochron',multi_segs_str);    end
 end
@@ -343,16 +343,11 @@ function DatasetsPlateBound_PB_All(handles)
 			tmp = geog2projected_pts(handles,[OTF(i).x_otf; OTF(i).y_otf]', lims);
 			OTF(i).x_otf = tmp(:,1)';        OTF(i).y_otf = tmp(:,2)';            
         end
-        ind = (OTF(i).x_otf < xx(1)-tol | OTF(i).x_otf > xx(2)+tol);
-        OTF(i).x_otf(ind) = [];     OTF(i).y_otf(ind) = [];
-        if isempty(OTF(i).x_otf),   k(i) = true;    end         % k is a counter to erase out-of-map segments
-	end
-	OTF(k) = [];
-	n = length(OTF);    k = false(n,1);
-	for i = 1:n
-        ind = (OTF(i).y_otf < yy(1)-tol | OTF(i).y_otf > yy(2)+tol);
-        OTF(i).x_otf(ind) = [];     OTF(i).y_otf(ind) = [];
-        if isempty(OTF(i).x_otf),   k(i) = true;    end
+		[OTF(i).x_otf, OTF(i).y_otf] = aux_funs('in_map_region', handles, OTF(i).x_otf, OTF(i).y_otf, tol, lims);
+		if (handles.geog == 2 && ~handles.is_projected && (lims(1) < 0.2 || lims(2) > 359.8) )
+			[OTF(i).y_otf, OTF(i).x_otf] = map_funs('trimwrap', OTF(i).y_otf, OTF(i).x_otf, [-90 90], [lims(1) lims(2)],'wrap');
+		end
+		if (isempty(OTF(i).x_otf) || isempty(OTF(i).y_otf)),	k(i) = true;	end
 	end
 	OTF(k) = [];
 	% ------------------ OSR class
@@ -362,17 +357,13 @@ function DatasetsPlateBound_PB_All(handles)
             tmp = geog2projected_pts(handles,[OSR(i).x_osr; OSR(i).y_osr]', lims);
             OSR(i).x_osr = tmp(:,1)';        OSR(i).y_osr = tmp(:,2)';            
         end
-        ind = (OSR(i).x_osr < xx(1)-tol | OSR(i).x_osr > xx(2)+tol);
-        OSR(i).x_osr(ind) = [];     OSR(i).y_osr(ind) = [];
-        if isempty(OSR(i).x_osr),   k(i) = true;    end
+		[OSR(i).x_osr, OSR(i).y_osr] = aux_funs('in_map_region', handles, OSR(i).x_osr, OSR(i).y_osr, tol, lims);
+		if (handles.geog == 2 && ~handles.is_projected && (lims(1) < 0.2 || lims(2) > 359.8) )
+			[OSR(i).y_osr, OSR(i).x_osr] = map_funs('trimwrap', OSR(i).y_osr, OSR(i).x_osr, [-90 90], [lims(1) lims(2)],'wrap');
+		end
+		if (isempty(OSR(i).x_osr) || isempty(OSR(i).y_osr)),	k(i) = true;	end
 	end
-	OSR(k) = [];
-	n = length(OSR);    k = false(n,1);
-	for i = 1:n
-        ind = (OSR(i).y_osr < yy(1)-tol | OSR(i).y_osr > yy(2)+tol);
-        OSR(i).x_osr(ind) = [];     OSR(i).y_osr(ind) = [];
-        if isempty(OSR(i).x_osr),   k(i) = true;    end
-	end
+	
 	OSR(k) = [];
 	% ------------------ CRB class
 	n = length(CRB);    k = false(n,1);
@@ -381,16 +372,8 @@ function DatasetsPlateBound_PB_All(handles)
             [tmp, msg] = geog2projected_pts(handles,[CRB(i).x_crb; CRB(i).y_crb]', lims);
             CRB(i).x_crb = tmp(:,1)';        CRB(i).y_crb = tmp(:,2)';            
         end
-        ind = (CRB(i).x_crb < xx(1)-tol | CRB(i).x_crb > xx(2)+tol);
-        CRB(i).x_crb(ind) = [];     CRB(i).y_crb(ind) = [];
-        if isempty(CRB(i).x_crb),   k(i) = true;    end
-	end
-	CRB(k) = [];
-	n = length(CRB);    k = false(n,1);
-	for i = 1:n
-        ind = (CRB(i).y_crb < yy(1)-tol | CRB(i).y_crb > yy(2)+tol);
-        CRB(i).x_crb(ind) = [];     CRB(i).y_crb(ind) = [];
-        if isempty(CRB(i).x_crb),   k(i) = true;    end
+		[CRB(i).x_crb, CRB(i).y_crb] = aux_funs('in_map_region', handles, CRB(i).x_crb, CRB(i).y_crb, tol, lims);
+		if (isempty(CRB(i).x_crb) || isempty(CRB(i).y_crb)),	k(i) = true;	end
 	end
 	CRB(k) = [];
 	% ------------------ CTF class
@@ -400,16 +383,8 @@ function DatasetsPlateBound_PB_All(handles)
             tmp = geog2projected_pts(handles,[CTF(i).x_ctf; CTF(i).y_ctf]', lims);
             CTF(i).x_ctf = tmp(:,1)';        CTF(i).y_ctf = tmp(:,2)';            
         end
-        ind = (CTF(i).x_ctf < xx(1)-tol | CTF(i).x_ctf > xx(2)+tol);
-        CTF(i).x_ctf(ind) = [];     CTF(i).y_ctf(ind) = [];
-        if isempty(CTF(i).x_ctf),   k(i) = true;    end
-	end
-	CTF(k) = [];
-	n = length(CTF);    k = false(n,1);
-	for i = 1:n
-        ind = (CTF(i).y_ctf < yy(1)-tol | CTF(i).y_ctf > yy(2)+tol);
-        CTF(i).x_ctf(ind) = [];     CTF(i).y_ctf(ind) = [];
-        if isempty(CTF(i).x_ctf),   k(i) = true;    end
+		[CTF(i).x_ctf, CTF(i).y_ctf] = aux_funs('in_map_region', handles, CTF(i).x_ctf, CTF(i).y_ctf, tol, lims);
+		if (isempty(CTF(i).x_ctf) || isempty(CTF(i).y_ctf)),	k(i) = true;	end
 	end
 	CTF(k) = [];
 	% ------------------ CCB class
@@ -419,16 +394,11 @@ function DatasetsPlateBound_PB_All(handles)
             tmp = geog2projected_pts(handles,[CCB(i).x_ccb; CCB(i).y_ccb]', lims);
             CCB(i).x_ccb = tmp(:,1)';        CCB(i).y_ccb = tmp(:,2)';            
         end
-        ind = (CCB(i).x_ccb < xx(1)-tol | CCB(i).x_ccb > xx(2)+tol);
-        CCB(i).x_ccb(ind) = [];     CCB(i).y_ccb(ind) = [];
-        if isempty(CCB(i).x_ccb),   k(i) = true;    end
-	end
-	CCB(k) = [];
-	n = length(CCB);    k = false(n,1);
-	for i = 1:n
-        ind = (CCB(i).y_ccb < yy(1)-tol | CCB(i).y_ccb > yy(2)+tol);
-        CCB(i).x_ccb(ind) = [];     CCB(i).y_ccb(ind) = [];
-        if isempty(CCB(i).x_ccb),   k(i) = true;    end
+		[CCB(i).x_ccb, CCB(i).y_ccb] = aux_funs('in_map_region', handles, CCB(i).x_ccb, CCB(i).y_ccb, tol, lims);
+		if (handles.geog == 2 && ~handles.is_projected && (lims(1) < 0.2 || lims(2) > 359.8) )
+			[CCB(i).y_ccb, CCB(i).x_ccb] = map_funs('trimwrap', CCB(i).y_ccb, CCB(i).x_ccb, [-90 90], [lims(1) lims(2)],'wrap');
+		end
+		if (isempty(CCB(i).x_ccb) || isempty(CCB(i).y_ccb)),	k(i) = true;	end
 	end
 	CCB(k) = [];
 	% ------------------ OCB class
@@ -438,16 +408,8 @@ function DatasetsPlateBound_PB_All(handles)
             tmp = geog2projected_pts(handles,[OCB(i).x_ocb; OCB(i).y_ocb]', lims);
             OCB(i).x_ocb = tmp(:,1)';        OCB(i).y_ocb = tmp(:,2)';            
         end
-        ind = (OCB(i).x_ocb < xx(1)-tol | OCB(i).x_ocb > xx(2)+tol);
-        OCB(i).x_ocb(ind) = [];     OCB(i).y_ocb(ind) = [];
-        if isempty(OCB(i).x_ocb),   k(i) = true;    end
-	end
-	OCB(k) = [];
-	n = length(OCB);    k = false(n,1);
-	for i = 1:n
-        ind = (OCB(i).y_ocb < yy(1)-tol | OCB(i).y_ocb > yy(2)+tol);
-        OCB(i).x_ocb(ind) = [];     OCB(i).y_ocb(ind) = [];
-        if isempty(OCB(i).x_ocb),   k(i) = true;    end
+		[OCB(i).x_ocb, OCB(i).y_ocb] = aux_funs('in_map_region', handles, OCB(i).x_ocb, OCB(i).y_ocb, tol, lims);
+		if (isempty(OCB(i).x_ocb) || isempty(OCB(i).y_ocb)),	k(i) = true;	end
 	end
 	OCB(k) = [];
 	% ------------------ SUB class
@@ -457,16 +419,8 @@ function DatasetsPlateBound_PB_All(handles)
             tmp = geog2projected_pts(handles,[SUB(i).x_sub; SUB(i).y_sub]', lims);
             SUB(i).x_sub = tmp(:,1)';        SUB(i).y_sub = tmp(:,2)';            
         end
-        ind = (SUB(i).x_sub < xx(1)-tol | SUB(i).x_sub > xx(2)+tol);
-        SUB(i).x_sub(ind) = [];     SUB(i).y_sub(ind) = [];
-        if isempty(SUB(i).x_sub),   k(i) = true;    end
-	end
-	SUB(k) = [];
-	n = length(SUB);    k = false(n,1);
-	for i = 1:n
-        ind = (SUB(i).y_sub < yy(1)-tol | SUB(i).y_sub > yy(2)+tol);
-        SUB(i).x_sub(ind) = [];     SUB(i).y_sub(ind) = [];
-        if isempty(SUB(i).x_sub),   k(i) = true;    end
+		[SUB(i).x_sub, SUB(i).y_sub] = aux_funs('in_map_region', handles, SUB(i).x_sub, SUB(i).y_sub, tol, lims);
+		if (isempty(SUB(i).x_sub) || isempty(SUB(i).y_sub)),	k(i) = true;	end
 	end
 	SUB(k) = [];
 
