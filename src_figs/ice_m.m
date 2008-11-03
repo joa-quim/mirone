@@ -114,6 +114,7 @@ function varargout = ice_m(varargin)
 	handles.colorbar = [];			% Color (hue) bar image
 	handles.hMirFig = [];
 	handles.first_bars = true;		% For creating colorbars
+	handles.is2D = false;
 
 	% Process Property Name/Property Value input argument pairs.
 	wait = 'on';
@@ -167,6 +168,11 @@ function varargout = ice_m(varargin)
 		end
 	end
 
+	if (ndims(handles.input) == 2)
+		handles.input = cat(3, handles.input, handles.input, handles.input);
+		handles.is2D = true;
+	end
+
 	if (isempty(handles.input))			% Just give the user some trash to play with.
 		handles.input = uint8(rand(512,512,3) * 255);
 		hImg = image(handles.input);
@@ -175,11 +181,8 @@ function varargout = ice_m(varargin)
 		hMirHand = guihandles(handles.hMirFig);
 		hMirHand.origFig = handles.input;		% Copy of the dumb image
 		guidata(handles.hMirFig, hMirHand)
-	elseif (ndims(handles.input) ~= 3)
-		errordlg('This tool works only with RGB true color images.','Error')
-		delete(hObject),	return
 	end
-	
+
 	% Create pseudo- and full-color mapping bars (grays and hues). Store
 	% a color space converted 1x128x3 line of each bar for mapping.
 	handles = set_colorSpace(handles);
@@ -196,7 +199,7 @@ function varargout = ice_m(varargin)
 	lc = min(lc, ssz(3) - uisz(3)) + 5;
 	set(handles.figure1, 'Position', [lc bc uisz(3:4)]);
 	graph(handles);		render(handles);
-
+	
 	% Update handles and make ICE wait before exit if required.
 	guidata(hObject, handles);
 	%if (strcmpi(wait, 'on')),	uiwait(handles.figure1);	end
@@ -245,6 +248,7 @@ function handles = set_colorSpace(handles)
 	if (~isempty(handles.hMirFig)),		handles.output = handles.hMirFig;
 	else								handles.output = figure;
 	end
+	%guidata(handles.figure1, handles)
 
 %-------------------------------------------------------------------%
 function ice_m_WindowButtonDownFcn(hObject, eventdata)
@@ -373,6 +377,9 @@ function popup_colorSpace_Callback(hObject, eventdata, handles)
 	if (strcmp(handles.colortype, 'hsi')),	handles.colortype = 'hls';		end
 	hMirHand = guidata(handles.hMirImg);
 	handles.input = hMirHand.origFig;		% Start with the original data
+	if (handles.is2D)						% Orig file is 2D. Need the expand
+		handles.input = cat(3, handles.input, handles.input, handles.input);
+	end
 	handles = set_colorSpace(handles);
 	graph(handles);
 	render(handles);
