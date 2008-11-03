@@ -468,6 +468,7 @@ src_figs/implanting_img.m -text
 src_figs/inpaint_nans.m -text
 src_figs/line_operations.m -text
 src_figs/listbox_message.m -text
+src_figs/magbarcode.m -text
 src_figs/magbarcode_.m -text
 src_figs/manual_pole_adjust.m -text
 src_figs/mirone_pref.m -text
