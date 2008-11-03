@@ -475,6 +475,7 @@ function DatasetsPlateBound_PB_All(handles)
 	data.OSR = OSR;    data.OTF = OTF;    data.CRB = CRB;    data.CTF = CTF;
 	data.CCB = CCB;    data.OCB = OCB;    data.SUB = SUB;
 	draw_funs(h,'PlateBoundPB',data);
+	drawnow
     set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
