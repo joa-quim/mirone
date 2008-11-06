@@ -126,6 +126,11 @@ function push_compute_Callback(hObject, eventdata, handles)
         nClusters = handles.nClasses;
     end
 
+	if (~ishandle(handles.hImg))
+		delete(handles.figure1)
+		warndlg('Apparently you loaded another file. So you need to call the "k-means classification" option again','Warning')
+		return
+	end
     img = double(get(handles.hImg,'CData')) / 255;      % Get the image
     nx = size(img,2);    ny = size(img,1);
     W = fix(handles.nNeighbors / 2);                    % If W = 3 it means a 3x3 window centered on point i
@@ -181,8 +186,12 @@ function push_compute_Callback(hObject, eventdata, handles)
         tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
         tmp.cmap = colors;
         tmp.name = 'Image classification';
-        mirone(Idx,tmp);
+        h = mirone(Idx,tmp);
     end
+	
+	handMir = guidata(h);
+	set(handMir.hImg, 'CDataMapping', 'scaled')
+	set(handMir.axes1, 'CLim', [0 size(colors,1)])
     
 %     figure; imshow(Idx,[]);
 %     colormap(colors);
@@ -258,26 +267,25 @@ DataSq = repmat(sum(Data.^2,2),1,k);	%sum squared data - save re-calculating rep
 
 hWait = waitbar(0,'Please wait ...','CreateCancelBtn','delete(gcf)');
 for i = 1:MaxIters
-   Dist = DataSq + repmat(sum((Centres.^2)',1),R,1) - 2.*(Data*(Centres'));   %i.e. d^2 = (x-c)^2 = x^2 + c^2 -2xc
-   [D,Centre] = min(Dist,[],2);		%label of nearest centre for each point
-   
-   for j=1:k
-      idx = find(Centre == j);
-      if (~isempty(idx))
-         Centres(j,:) = mean(Data(idx,:));
-      end
-   end
-   
-   Change = sum(sum(abs(OldCentres-Centres)));
-   if (Change < 1e-8)	%Have we converged yet?
-      break
-   end
-   OldCentres=Centres;
-   waitbar(i/MaxIters)
-   if (~ishandle(hWait))        % The Cancel button was hit and the waitbar destroyed
-       boing = 1;  break
-   end
+	Dist = DataSq + repmat(sum((Centres.^2)',1),R,1) - 2.*(Data*(Centres'));   %i.e. d^2 = (x-c)^2 = x^2 + c^2 -2xc
+	[D,Centre] = min(Dist,[],2);		%label of nearest centre for each point
+	
+	for j=1:k
+		idx = find(Centre == j);
+		if (~isempty(idx))
+			Centres(j,:) = mean(Data(idx,:));
+		end
+	end
+	
+	Change = sum(sum(abs(OldCentres-Centres)));
+	if (Change < 1e-8),		break,		end		%Have we converged yet?
+	OldCentres=Centres;
+	waitbar(i/MaxIters)
+	if (~ishandle(hWait)),        % The Cancel button was hit and the waitbar destroyed
+		boing = 1;  break
+	end
 end
+clear D Centre DataSq
 
 if (~boing)             % Normal termination
     delete(hWait)
