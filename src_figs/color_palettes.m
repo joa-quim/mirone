@@ -190,47 +190,47 @@ switch pal
 	case 'ML -- winter',		pal = winter(256);
 	case 'ML -- vivid',			pal = vivid(256);
 	case 'GMT -- drywet'
-		load([handles.d_path 'gmt_other_palettes.mat'],'drywet');        pal = drywet;
+		load([handles.d_path 'gmt_other_palettes.mat'],'drywet');		pal = drywet;
 	case 'GMT -- gebco'
-		load([handles.d_path 'gmt_other_palettes.mat'],'gebco');         pal = gebco;
+		load([handles.d_path 'gmt_other_palettes.mat'],'gebco');		pal = gebco;
 	case 'GMT -- globe'
-		load([handles.d_path 'gmt_other_palettes.mat'],'globo');         pal = globo;
+		load([handles.d_path 'gmt_other_palettes.mat'],'globo');		pal = globo;
 	case 'GMT -- gray'
-		load([handles.d_path 'gmt_other_palettes.mat'],'gray');          pal = gray;
+		load([handles.d_path 'gmt_other_palettes.mat'],'gray');			pal = gray;
 	case 'GMT -- haxby'
-		load([handles.d_path 'gmt_other_palettes.mat'],'haxby');         pal = haxby;
+		load([handles.d_path 'gmt_other_palettes.mat'],'haxby');		pal = haxby;
 	case 'GMT -- no_green'
-		load([handles.d_path 'gmt_other_palettes.mat'],'no_green');      pal = no_green;
+		load([handles.d_path 'gmt_other_palettes.mat'],'no_green');		pal = no_green;
 	case 'GMT -- ocean'
-		load([handles.d_path 'gmt_other_palettes.mat'],'ocean');         pal = ocean;
+		load([handles.d_path 'gmt_other_palettes.mat'],'ocean');		pal = ocean;
 	case 'GMT -- polar'
-		load([handles.d_path 'gmt_other_palettes.mat'],'polar');         pal = polar;
+		load([handles.d_path 'gmt_other_palettes.mat'],'polar');		pal = polar;
 	case 'GMT -- rainbow'
-		load([handles.d_path 'gmt_other_palettes.mat'],'rainbow');       pal = rainbow;
+		load([handles.d_path 'gmt_other_palettes.mat'],'rainbow');		pal = rainbow;
 	case 'GMT -- red2green'
-		load([handles.d_path 'gmt_other_palettes.mat'],'red2green');     pal = red2green;
+		load([handles.d_path 'gmt_other_palettes.mat'],'red2green');	pal = red2green;
 	case 'GMT -- sealand'
-		load([handles.d_path 'gmt_other_palettes.mat'],'sealand');       pal = sealand;
+		load([handles.d_path 'gmt_other_palettes.mat'],'sealand');		pal = sealand;
 	case 'GMT -- seis'
-		load([handles.d_path 'gmt_other_palettes.mat'],'seis');          pal = seis;
+		load([handles.d_path 'gmt_other_palettes.mat'],'seis');			pal = seis;
 	case 'GMT -- split'
-		load([handles.d_path 'gmt_other_palettes.mat'],'split');         pal = split;
+		load([handles.d_path 'gmt_other_palettes.mat'],'split');		pal = split;
 	case 'GMT -- topo'
-		load([handles.d_path 'gmt_other_palettes.mat'],'topo');          pal = topo;
+		load([handles.d_path 'gmt_other_palettes.mat'],'topo');			pal = topo;
 	case 'GMT -- wysiwyg'
-        load([handles.d_path 'gmt_other_palettes.mat'],'wysiwyg');       pal = wysiwyg;
+        load([handles.d_path 'gmt_other_palettes.mat'],'wysiwyg');		pal = wysiwyg;
 	case 'DEM_screen'
-        load([handles.d_path 'gmt_other_palettes.mat'],'DEM_screen');    pal = DEM_screen;
+        load([handles.d_path 'gmt_other_palettes.mat'],'DEM_screen');	pal = DEM_screen;
 	case 'DEM_print'
-        load([handles.d_path 'gmt_other_palettes.mat'],'DEM_print');     pal = DEM_print;
+        load([handles.d_path 'gmt_other_palettes.mat'],'DEM_print');	pal = DEM_print;
 	case 'DEM_poster'
-        load([handles.d_path 'gmt_other_palettes.mat'],'DEM_poster');    pal = DEM_poster;
+        load([handles.d_path 'gmt_other_palettes.mat'],'DEM_poster');	pal = DEM_poster;
 	case 'mag'
-        load([handles.d_path 'gmt_other_palettes.mat'],'mag');           pal = mag;
+        load([handles.d_path 'gmt_other_palettes.mat'],'mag');			pal = mag;
 	case 'ArcEnCiel'
-        load([handles.d_path 'gmt_other_palettes.mat'],'ArcEnCiel');     pal = ArcEnCiel;
+        load([handles.d_path 'gmt_other_palettes.mat'],'ArcEnCiel');	pal = ArcEnCiel;
 	case 'circular'
-        load([handles.d_path 'gmt_other_palettes.mat'],'circular');      pal = circular;
+        load([handles.d_path 'gmt_other_palettes.mat'],'circular');		pal = circular;
 	case 'ChromaDepth'
         load([handles.d_path 'gmt_other_palettes.mat'],'ChromaDepth');   pal = ChromaDepth;
 	case 'Mer'
@@ -544,9 +544,16 @@ function change_cmap(handles,pal)
 		% Map the old pal indices into the new ones
 		pal = interp1(linspace(0,len_Pal-1,length(pal)),pal,ind_pal,'linear','extrap');
 	end
+	
+	handMir = guidata(handles.hCallingFig);
+	if (strcmp(get(handMir.hImg, 'CDataMapping'), 'scaled'))	% Scaled images may have much shorter cmaps
+		clim = get(handMir.axes1, 'CLim');
+		pal = interp1(linspace(0,1,size(pal,1)), pal, linspace(0,1,diff(clim)), 'linear','extrap');
+	end
 
 	pal(pal > 1) = 1; % Sometimes interpolation gives values that are out of [0,1] range...
 	pal(pal < 0) = 0;
+	
 	set(handles.figure1,'Colormap',pal);
 
 	if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
