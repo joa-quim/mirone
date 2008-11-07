@@ -8,7 +8,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function griding_mir grdfilter_mir grdsample_mir grdtrend_mir grdgradient_mir ml_clip show_palette 
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
 %#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
-%#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m
+%#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -18,7 +18,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	catch
         IamCompiled = 1;
 	end
-	
+
 	% Import icons and fetch home_dir if compiled and called by extension association
 	% Here is what will happen. When called by windows extension association the 'home_dir'
 	% will contain the path of the file and not of the Mirone installation, and it will fail.
@@ -43,7 +43,7 @@ H1 = figure('PaperUnits','centimeters',...
 'IntegerHandle','off',...
 'InvertHardcopy',get(0,'defaultfigureInvertHardcopy'),...
 'MenuBar','none',...
-'Name','Mirone',...
+'Name','Mirone 1.4.0b',...
 'NumberTitle','off',...
 'PaperPositionMode','auto',...
 'PaperSize',[20.98404194812 29.67743169791],...
@@ -293,7 +293,7 @@ uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''gray'')','Label
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''bw'')','Label','Black and White','Tag','ImModBW');
 uimenu('Parent',h,'Call','mirone(''ImageResetOrigImg_CB'',guidata(gcbo))','Label','Original Image','Sep','on');
 
-% % ------------ Image filters _______ TO BE CONTINUED
+% ------------ Image filters _______ TO BE CONTINUED
 h = uimenu('Parent',hIM,'Label','Filters','Sep','on');
 uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''SUSAN'');','Label','Smooth (SUSAN)');
 uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''Median'');','Label','Median (3x3)');
@@ -305,9 +305,8 @@ uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''range'');','Label','Range 
 
 uimenu('Parent',hIM,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''image'')','Label','Digital Filtering Tool','Sep','on');
 uimenu('Parent',hIM,'Call','image_enhance(gcf)','Label','Image Enhance (1 - Indexed and RGB)');
-uimenu('Parent',hIM,'Call','image_adjust(gcf)','Label','Image Enhance (2 - Indexed only)');
-uimenu('Parent',hIM,'Call','ice_m(gcf,''space'',''hsi'')','Label','Image Color Editor (Indexed and RGB)');
-
+uimenu('Parent',hIM,'Call','image_adjust(gcf)','Label', 'Image Enhance (2 - Indexed only)');
+uimenu('Parent',hIM,'Call','ice_m(gcf,''space'',''rgb'')','Label','Image Color Editor (Indexed and RGB)');
 uimenu('Parent',hIM,'Call','aux_funs(''togCheck'',gcbo)','Label','Activate Image-to-Image/Map GCP Tool','Tag','GCPtool','Sep','on');
 uimenu('Parent',hIM,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPpline'')','Label','Register Image (Draw GCP points)');
 uimenu('Parent',hIM,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPmemory'')',...
@@ -345,7 +344,8 @@ uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Se
 hVG(kv) = uimenu('Parent',hTL,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
 uimenu('Parent',hTL,'Call','cartas_militares(guidata(gcbo))','Label','Cartas Militares','Sep','on')
 uimenu('Parent',hTL,'Call','world_is_not_round_enough(guidata(gcbo))','Label','World is not (round) enough','Sep','on');
-uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Line Operations','Sep','on','Tag','lineOP');
+uimenu('Parent',hTL,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command','Sep','on');
+uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Line Operations','Tag','lineOP');
 % uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
 % uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
 
@@ -516,7 +516,7 @@ uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''ODP'')','Label',
 uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''DSDP'')','Label','DSDP');
 uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''ODP_DSDP'')','Label','ODP and DSDP');
 
-uimenu('Parent',hDS,'Call','draw_funs([],''MagBarCode'')','Label','Mgnetic Bar Code');
+uimenu('Parent',hDS,'Call','magbarcode','Label','Mgnetic Bar Code');
 uimenu('Parent',hDS,'Call','atlas(guidata(gcbo))','Label','Atlas','Tag','Atlas','Sep','on');
 uimenu('Parent',hDS,'Call','datasets_funs(''Isochrons'',guidata(gcbo),[])','Label','External db','Sep','on');
 % uimenu('Parent',hDS,'Call','datasets_funs(''GTiles'', guidata(gcbo))','Label','GTiles Map','Sep','on');
@@ -566,12 +566,12 @@ uimenu('Parent',h,'Call','mirone(''GeophysicsImportGmtFile_CB'',guidata(gcbo),''
 % --------------------------- GRID TOOLS MENU ------------------------------------
 hGT = uimenu('Parent',H1,'Label','Grid Tools','Tag','GridTools');		hVG(kv) = hGT;
 
+sep = 'on';
 if (~IamCompiled)
-    uimenu('Parent',hGT,'Call','grid_calculator(gcf)','Label','grid calculator');
+    uimenu('Parent',hGT,'Call','grid_calculator(gcf)','Label','grid calculator');	sep = 'off';
 end
-uimenu('Parent',hGT,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command');
 
-uimenu('Parent',hGT,'Call','grdfilter_mir(guidata(gcbo))','Label','grdfilter','Sep','on');
+uimenu('Parent',hGT,'Call','grdfilter_mir(guidata(gcbo))','Label','grdfilter','Sep',sep);
 uimenu('Parent',hGT,'Call','grdgradient_mir(guidata(gcbo))','Label','grdgradient');
 uimenu('Parent',hGT,'Call','grdsample_mir(guidata(gcbo))','Label','grdsample');
 uimenu('Parent',hGT,'Call','grdtrend_mir(guidata(gcbo))','Label','grdtrend');
@@ -642,17 +642,17 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 28 Oct 2008'',''1.4.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 6 Nov 2008'',''1.4.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
 	handles.version7 = version7;			% If == 1 => R14 or latter
 	handles.IamCompiled = IamCompiled;		% If == 1 than we know that we are dealing with a compiled (V3) version
-	if (version7),  set(H1,'Pos',[pos(1:3) 1]);    end     % Adjust for > R13 bugginess
+	if (version7),  set(H1,'Pos',[pos(1:3) 1]);    end     % Adjust for the > R13 bugginess
 	handles.RecentF = handles.RecentF(6:-1:1);  % Inverse creation order so that newest files show on top of the list
 	handles.noVGlist = hVG;					% List of ui handles that will show when "not valid grid"
-	movegui(H1,'north');				% Reposition the window on screen
-	set(0,'CurrentFigure',H1)			% Due to a R2006a incredible BUG
+	movegui(H1,'north');					% Reposition the window on screen
+	set(0,'CurrentFigure',H1)				% Due to a R2006a incredible BUG
 	set(H1,'Visible','on');
 
 % --------------------------------------------------------------------------------------------------
