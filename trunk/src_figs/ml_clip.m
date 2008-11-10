@@ -101,7 +101,7 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
     tmp.X = linspace(handles.head(1),handles.head(2),size(handles.Z,2));
     tmp.Y = linspace(handles.head(3),handles.head(4),size(handles.Z,1));
     tmp.head = handles.head;
-    tmp.name = 'Cliped grid';
+    tmp.name = 'Clipped grid';
     mirone(handles.Z,tmp);
     delete(handles.figure1)
 
