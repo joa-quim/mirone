@@ -15,9 +15,10 @@
 /* Program:	gdawrite.c
  * Purpose:	matlab callable routine to write files supported by gdal
  *
- * Revision 3.0  06/9/2007 Start to add a nodata option (not finished)
- * Revision 2.0  12/6/2007 Was not aware of receiving a WKT proj string
- * Revision 1.0  24/6/2006 Joaquim Luis
+ * Revision 4.0  10/11/2008 Added a "meta" field to the hdr structure
+ * Revision 3.0  06/09/2007 Start to add a nodata option (not finished)
+ * Revision 2.0  12/06/2007 Was not aware of receiving a WKT proj string
+ * Revision 1.0  24/06/2006 Joaquim Luis
  *
  */
 
@@ -45,7 +46,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	ns, flipud = FALSE, i_x_nXYSize;
 	GDALDatasetH hDstDS;
 	char **papszOptions = NULL;
-	char *pszFormat = "GTiff", *projWKT = NULL; 
+	char *pszFormat = "GTiff", *projWKT = NULL, *metaString = NULL; 
 	GDALDriverH	hDriver;
 	double adfGeoTransform[6] = {0,1,0,0,0,1}; 
 	double dfNoData;
@@ -138,6 +139,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (mx_ptr != NULL)
 			projWKT = (char *)mxArrayToString(mx_ptr);
 
+		mx_ptr = mxGetField(prhs[1], 0, "meta");
+		if (mx_ptr != NULL)
+			metaString = (char *)mxArrayToString(mx_ptr);
+
 		mx_ptr = mxGetField(prhs[1], 0, "Cmap");
 		if (mx_ptr != NULL) {
 			nColors = mxGetM(mx_ptr);
@@ -224,6 +229,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		papszOptions = CSLAddString( papszOptions, "COMPRESS=LZW" ); 
 		/*papszOptions = CSLAddString( papszOptions, "INTERLEAVE=PIXEL" ); */
 	}
+
+	if (metaString)
+		papszOptions = CSLAddString( papszOptions, metaString ); 
 
 	hDstDS = GDALCreate( hDriver, fname, nx, ny, n_bands_in, typeCLASS, papszOptions );
 
