@@ -418,7 +418,6 @@ mex/wave_travel_time.c -text
 /projectionMenu.m -text
 /psl.dll -text
 /shapelib.dll -text
-src_figs/MagBarCode.m -text
 src_figs/about_box.m -text
 src_figs/animate_seismicity.m -text
 src_figs/aquamoto.m -text
@@ -469,7 +468,6 @@ src_figs/inpaint_nans.m -text
 src_figs/line_operations.m -text
 src_figs/listbox_message.m -text
 src_figs/magbarcode.m -text
-src_figs/magbarcode_.m -text
 src_figs/manual_pole_adjust.m -text
 src_figs/mirone_pref.m -text
 src_figs/mk_movie_from_list.m -text
