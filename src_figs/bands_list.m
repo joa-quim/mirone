@@ -60,6 +60,8 @@ function varargout = bands_list(varargin)
 	plugedWin = [plugedWin hObject];
 	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
 
+	handMir = guidata(handles.hMirFig);        % Retrive Mirone handles
+	handles.image_type_orig = handMir.image_type;
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 	if (nargout),	varargout{1} = hObject;		end
@@ -132,6 +134,7 @@ function push_pca_Callback(hObject, eventdata, handles)
 	P = princomp(handles.image_bands, q, true);
 	lamb = diag(P.Cy);				% The eigenvalues
 	P = reshape(P.Y, m, n, q);
+% 	P = reshape( fastica(reshape(handles.image_bands, m * n, k)', 'lastEig',q)', m, n, q );		lamb = ones(q,1);
 	P8 = alloc_mex(m,n,q,'uint8');
 	for (i = 1:q)
 		P8(:,:,i) = scaleto8(P(:,:,i),-8);		% Each component must be scaled independently of the others
@@ -221,10 +224,10 @@ if (get(handles.radiobutton_RGB,'Value'))       % RGB - pure image for sure (is 
     end
 
     set(handMir.hImg,'CData',img)
-    try rmappdata(handles.hMirFig,'dem_x');    rmappdata(handles.hMirFig,'dem_y');
-        rmappdata(handles.hMirFig,'dem_z');
+    try
+		rmappdata(handles.hMirFig,'dem_x');		rmappdata(handles.hMirFig,'dem_y');		rmappdata(handles.hMirFig,'dem_z');
     end
-    image_type = 2;         % Reset indicator that this is an image only
+    image_type = handles.image_type_orig;		% Reset indicator that this is an image only
     computed_grid = 0;      % Reset this also
     was_int16 = 0;
 else                        % GRAY SCALE, which can be an image or a > uint8 image band that needs scaling
@@ -240,12 +243,12 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
 %         img = gdalread(handles.fname, ['-B' num2str(handles.Rband)]);
 %         img = scaleto8(img,8,0);        % Need to give the noDataValue
     end
-    
-    if (isa(img,'uint8'))       % If we had GOTOs everything would be simpler and cleaner
-        image_type = 2;         % Reset indicator that this is an image only
-        computed_grid = 0;      % Reset this also
+
+    if (isa(img,'uint8') || islogical(img))
+        image_type = handles.image_type_orig;		% Reset indicator that this is an image only
+        computed_grid = 0;							% Reset this also
         was_int16 = 0;
-        
+
     else                        % Not uint8, so we need scalings
         % Now we are going to load the band not scaled and treat it as a GMT grid
         if (~iscell(handles.reader))    % reader is GDAL
@@ -296,8 +299,8 @@ else                        % GRAY SCALE, which can be an image or a > uint8 ima
     
     end         % end if is uint8
     
-    set(handMir.hImg,'CData',img)
-    set(handles.hMirFig,'ColorMap',gray(256))
+	set(handMir.hImg,'CData',img)
+	set(handles.hMirFig,'ColorMap',gray(256))
 end
 
 if (~isempty(head)),    handMir.head = head;    end
@@ -342,32 +345,38 @@ idx = strmatch(name_clean,all_names(:,1),'exact');
 %handles.tree_indice = idx;
 set(handles.edit_dimsDesc,'String',handles.band_desc{idx,1})
 
-if (isnumeric(struct_val))
-    handles = order_bands(handles,idx);
+if (isnumeric(struct_val))   
+	handles = order_bands(handles,idx);
 end
 
 % If double-click, and is struct, expand structure, and show fields
 if (strcmp(get(handles.figure1, 'SelectionType'), 'open')) % if double click
-    idxP = strfind(struct_names{index_struct}, '+');
-    idxM = strfind(struct_names{index_struct}, '-');
-    if ~isempty(idxP)
-        [struct_names, struct_values] = expand_struct(struct_names, struct_values, ...
-            index_struct, fields, level, idxP);
-    elseif  ~isempty(idxM)
-        [struct_names, struct_values] = shrink_struct(struct_names, struct_values, ...
-            index_struct, fields, level, idxM);
-    end
-    names = cell(length(struct_names),1);
-    for (i = 1:length(struct_names))
-        name_clean = ddewhite(struct_names{i});
-        if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
-        id1 = strmatch(name_clean,all_names(:,1),'exact');    % Find index to pretended name
-        id2 = findstr(name_clean,struct_names{i});              % Find index of starting text (after the blanks)
-        names{i} = [struct_names{i}(1:id2-1) all_names{id1,2}];        
-    end
-    set(handles.listbox1,'String',names);
-    handles.struct_names = struct_names;
-    handles.struct_values = struct_values;
+	idxP = strfind(struct_names{index_struct}, '+');
+	idxM = strfind(struct_names{index_struct}, '-');
+	if ~isempty(idxP)
+		[struct_names, struct_values] = expand_struct(struct_names, struct_values, ...
+			index_struct, fields, level, idxP);
+	elseif  ~isempty(idxM)
+		[struct_names, struct_values] = shrink_struct(struct_names, struct_values, ...
+			index_struct, fields, level, idxM);
+	else
+		if (get(handles.radiobutton_gray,'Value'))
+			guidata(hObject, handles);
+			push_Load_Callback(handles.push_Load, [], handles)
+		end
+		return
+	end
+	names = cell(length(struct_names),1);
+	for (i = 1:length(struct_names))
+		name_clean = ddewhite(struct_names{i});
+		if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
+		id1 = strmatch(name_clean,all_names(:,1),'exact');    % Find index to pretended name
+		id2 = findstr(name_clean,struct_names{i});              % Find index of starting text (after the blanks)
+		names{i} = [struct_names{i}(1:id2-1) all_names{id1,2}];        
+	end
+	set(handles.listbox1,'String',names);
+	handles.struct_names = struct_names;
+	handles.struct_values = struct_values;
 end
 
 guidata(hObject, handles);
