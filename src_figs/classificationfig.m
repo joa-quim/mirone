@@ -2,8 +2,6 @@ function varargout = classificationfig(varargin)
 %   Perform image classification, supervised an unsupervised, using kmeans
 %
 % M-File changed by desGUIDE 
-% hObject    handle to figure
-% varargin   command line arguments to classificationfig (see VARARGIN)
  
 	hObject = figure('Tag','figure1','Visible','off');
 	classificationfig_LayoutFcn(hObject);
@@ -113,7 +111,7 @@ function toggle_clickDefine_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function push_compute_Callback(hObject, eventdata, handles)
-    %
+%
     if (handles.supervised)
         h = findobj(handles.hCallingAxes,'Type','line','Tag','ClassifyPoly');
         if (isempty(h)),    return;     end
@@ -191,7 +189,6 @@ function push_compute_Callback(hObject, eventdata, handles)
 	
 	handMir = guidata(h);
 	set(handMir.hImg, 'CDataMapping', 'scaled')
-	set(handMir.axes1, 'CLim', [0 size(colors,1)])
     
 %     figure; imshow(Idx,[]);
 %     colormap(colors);
