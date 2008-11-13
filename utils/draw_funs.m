@@ -951,7 +951,7 @@ function set_circleCart_uicontext(h)
 	uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Call', {@change_CircCenter1,h});
 	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', cb_roi);
 	hp = getappdata(handles.figure1, 'ParentFig');
-	if (strfind(get(handles.figure1,'Name'), 'spectrum') && ~isempty(hp) && ishandle(hp))
+	if (strcmp(get(handles.figure1,'Name'), 'spectrum') && ~isempty(hp) && ishandle(hp))
 		uimenu(cmenuHand, 'Label', 'Low Pass FFT filter', 'Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
 		uimenu(cmenuHand, 'Label', 'High Pass FFT filter','Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
 	end
@@ -966,37 +966,35 @@ function set_circleCart_uicontext(h)
 % -----------------------------------------------------------------------------------------
 function compute_EulerVel(obj,eventdata,h)
 % alat & alon are the point coords. plat, plon & omega are the pole parameters
-D2R = pi/180;
-earth_rad = 6371e3;    % Earth radius in km
-s = get(h,'Userdata');
-plat = s.clat*D2R;      plon = s.clon*D2R;      omega = s.omega;
-alat = s.rlat*D2R;      alon = s.rlon*D2R;
+	D2R = pi/180;
+	earth_rad = 6371e3;    % Earth radius in km
+	s = get(h,'Userdata');
+	plat = s.clat*D2R;      plon = s.clon*D2R;      omega = s.omega;
+	alat = s.rlat*D2R;      alon = s.rlon*D2R;
 
-x = cos(plat)*sin(plon)*sin(alat) - cos(alat)*sin(alon)*sin(plat);    % East vel
-y = cos(alat)*cos(alon)*sin(plat) - cos(plat)*cos(plon)*sin(alat);    % North vel
-z = cos(plat)*cos(alat)*sin(alon-plon);
-vlon = -sin(alon)*x + cos(alon)*y;
-vlat = -sin(alat)*cos(alon)*x-sin(alat)*sin(alon)*y + cos(alat)*z;
-azim = 90 - atan2(vlat,vlon) / D2R;
+	x = cos(plat)*sin(plon)*sin(alat) - cos(alat)*sin(alon)*sin(plat);    % East vel
+	y = cos(alat)*cos(alon)*sin(plat) - cos(plat)*cos(plon)*sin(alat);    % North vel
+	z = cos(plat)*cos(alat)*sin(alon-plon);
+	vlon = -sin(alon)*x + cos(alon)*y;
+	vlat = -sin(alat)*cos(alon)*x-sin(alat)*sin(alon)*y + cos(alat)*z;
+	azim = 90 - atan2(vlat,vlon) / D2R;
 
-if (azim < 0)       % Give allways the result in the 0-360 range
-    azim = azim + 360;
-end
+	if (azim < 0),		azim = azim + 360;		end		% Give allways the result in the 0-360 range
 
-x = sin(alat)*sin(plat) + cos(alat)*cos(plat)*cos(plon-alon);
-delta = acos(x);
-vel = omega*D2R/1e+4 * earth_rad * sin(delta);      % to give velocity in cm/Ma
+	x = sin(alat)*sin(plat) + cos(alat)*cos(plat)*cos(plon-alon);
+	delta = acos(x);
+	vel = omega*D2R/1e+4 * earth_rad * sin(delta);      % to give velocity in cm/Ma
 
-msg = ['Pole name:  ', s.plates, sprintf('\n'), ...
-        'Pole lon = ', sprintf('%3.3f',s.clon), sprintf('\n'), ...
-        'Pole lat = ', sprintf('%2.3f',s.clat), sprintf('\n'), ...
-        'Pole rate = ', sprintf('%.3f',omega), sprintf('\n'), ...
-        'At point: ',sprintf('\n'), ...
-        'Lon = ', sprintf('%3.3f',s.rlon), sprintf('\n'), ...
-        'Lat = ', sprintf('%2.3f',s.rlat), sprintf('\n'), ...
-        'Speed (cm/yr) =   ', sprintf('%2.2f',vel), sprintf('\n'), ...
-        'Azimuth (degrees cw from North) = ', sprintf('%3.1f',azim)];
-msgbox(msg,'Euler velocity')
+	msg = ['Pole name:  ', s.plates, sprintf('\n'), ...
+			'Pole lon = ', sprintf('%3.3f',s.clon), sprintf('\n'), ...
+			'Pole lat = ', sprintf('%2.3f',s.clat), sprintf('\n'), ...
+			'Pole rate = ', sprintf('%.3f',omega), sprintf('\n'), ...
+			'At point: ',sprintf('\n'), ...
+			'Lon = ', sprintf('%3.3f',s.rlon), sprintf('\n'), ...
+			'Lat = ', sprintf('%2.3f',s.rlat), sprintf('\n'), ...
+			'Speed (cm/yr) =   ', sprintf('%2.2f',vel), sprintf('\n'), ...
+			'Azimuth (degrees cw from North) = ', sprintf('%3.1f',azim)];
+	msgbox(msg,'Euler velocity')
 
 % -----------------------------------------------------------------------------------------
 function set_vector_uicontext(h)
