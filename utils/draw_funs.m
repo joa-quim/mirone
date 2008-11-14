@@ -394,7 +394,7 @@ if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
 		uimenu(item_tools2, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
 		uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
 		h = getappdata(handles.figure1, 'ParentFig');
-		if (strfind(get(handles.figure1,'Name'), 'spectrum') && ~isempty(h) && ishandle(h))
+		if ( ~isempty(h) && ishandle(h) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
 			uimenu(item_tools2, 'Label', 'Low Pass FFT filter', 'Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
 			uimenu(item_tools2, 'Label', 'High Pass FFT filter','Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
 		end
@@ -951,7 +951,7 @@ function set_circleCart_uicontext(h)
 	uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Call', {@change_CircCenter1,h});
 	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', cb_roi);
 	hp = getappdata(handles.figure1, 'ParentFig');
-	if (strcmp(get(handles.figure1,'Name'), 'spectrum') && ~isempty(hp) && ishandle(hp))
+	if ( ~isempty(hp) && ishandle(hp) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
 		uimenu(cmenuHand, 'Label', 'Low Pass FFT filter', 'Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
 		uimenu(cmenuHand, 'Label', 'High Pass FFT filter','Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
 	end
@@ -1068,7 +1068,7 @@ function show_Area(obj,eventdata,h)
 	end
 
 % -----------------------------------------------------------------------------------------
-function ll = show_LineLength(obj,eventdata,h, opt)
+function ll = show_LineLength(obj, eventdata, h, opt)
 % Line length (perimeter if it is a closed polyline). If output argument, return a structure
 % ll.len and ll.type, where "len" is line length and "type" is either 'geog' or 'cart'.
 % For polylines ll.len contains only the total length.
@@ -1079,6 +1079,7 @@ function ll = show_LineLength(obj,eventdata,h, opt)
 
 	n_args = nargin;
 	if (n_args <= 3),   opt = [];   end
+	if (n_args == 2 || isempty(h)),		h = gco;	end
 	if (n_args == 3)
         if (size(h,1) >= 2 && size(h,2) == 2)
             x = h(:,1);     y = h(:,2);
@@ -1087,8 +1088,7 @@ function ll = show_LineLength(obj,eventdata,h, opt)
             x = get(h,'XData');    y = get(h,'YData');
 			handles = guidata(h);
         end
-	elseif (n_args == 2 || isempty(h) || length(h) > 1)
-        h = gco;
+	elseif (n_args == 2 || length(h) > 1)
         x = get(h,'XData');    y = get(h,'YData');
 		handles = guidata(h);
 	else
