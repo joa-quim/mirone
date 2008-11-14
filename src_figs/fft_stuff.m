@@ -613,8 +613,14 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		h = mirone(Z);
 		set(h,'Name','FFT filtered image')
 	end
+
+	if ( ~any(strcmp(opt1,{'lpass' 'hpass'})) )			% FFTs are never geogs
+		handMir = guidata(h);
+		handMir.geog = 0;
+		guidata(handMir.figure1, handMir)
+	end
 	if ( (strcmp(opt1,'Power') || strcmp(opt1,'Amplitude')) )
-		setappdata(h, 'ParentFig', handles.hMirFig);		% Save the space domain Fig handle to eventual future use
+		setappdata(h, 'ParentFig', handles.hMirFig);	% Save the space domain Fig handle to eventual future use
 	end
 
 % --------------------------------------------------------------------
