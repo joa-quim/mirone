@@ -2,12 +2,9 @@ function varargout = floodFill(varargin)
 % M-File changed by desGUIDE 
 % hObject    handle to figure
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to floodFill_export (see VARARGIN) 
  
 hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-floodFill_LayoutFcn(hObject,handles);
+floodFill_LayoutFcn(hObject);
 handles = guihandles(hObject);
 
 % Import icons
@@ -455,7 +452,7 @@ function radio_eightConn_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function toggle00_Callback(hObject, eventdata, handles)
-    % All color toggle end up here
+% All color toggle end up here
     toggleColors(hObject,handles)
 
 % -------------------------------------------------------------------------------------
@@ -493,7 +490,19 @@ function pushbutton_pickSingle_Callback(hObject, eventdata, handles)
     [params,but] = prepareParams(handles);
     if (isempty(params) || but ~= 1),   return;     end
     img = get(handles.hImage,'CData');              % Get the image
-    [dumb,mask] = cvlib_mex('floodfill',img,params);
+	if (~get(handles.check_mahal,'Val'))
+    	[dumb,mask] = cvlib_mex('floodfill',img,params);
+		clear dumb		% Humm, shouldn't we take care of this inside cvlib_mex?
+	else
+		r = params.Point(2);		c = params.Point(1);
+		r_min = max(r-3,0);			r_max = min(r+3, size(img,1));
+		c_min = max(c-3,0);			c_max = min(c+3, size(img,2));
+		I = img(r_min:r_max, c_min:c_max, :);
+		I = reshape(I, size(I,1)*size(I,2), 3);
+		[C, m] = covmatrix(I);
+		T = handles.tol;
+		mask = colorseg(img, T, m, C);
+	end
     if (get(handles.checkbox_useDilation,'Value'))
         mask  = img_fun('bwmorph',mask,'dilate');
     end
@@ -734,28 +743,28 @@ function pushbutton_pickMultiple_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function radio_colorSegment_Callback(hObject, eventdata, handles)
-    if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
-    set(handles.radio_digitize,'Value',0)
-    handles.colorSegment = 1;
-    set(handles.edit_minPts,'Visible','off')
-    set(handles.text_minPts,'Visible','off')
-    guidata(handles.figure1,handles)
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
+	set(handles.radio_digitize,'Value',0)
+	handles.colorSegment = 1;
+	set(handles.edit_minPts,'Visible','off')
+	set(handles.text_minPts,'Visible','off')
+	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function radio_digitize_Callback(hObject, eventdata, handles)
-    if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
-    set(handles.radio_colorSegment,'Value',0)
-    handles.colorSegment = 0;
-    set(handles.edit_minPts,'Visible','on')
-    set(handles.text_minPts,'Visible','on')
-    guidata(handles.figure1,handles)
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
+	set(handles.radio_colorSegment,'Value',0)
+	handles.colorSegment = 0;
+	set(handles.edit_minPts,'Visible','on')
+	set(handles.text_minPts,'Visible','on')
+	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function edit_minPts_Callback(hObject, eventdata, handles)
-    xx = round( str2double(get(hObject,'String')) );
-    if (isnan(xx)),     set(hObject,'String','50');     return;     end
-    handles.minPts = xx;
-    guidata(handles.figure1,handles)
+	xx = round( str2double(get(hObject,'String')) );
+	if (isnan(xx)),     set(hObject,'String','50');     return;     end
+	handles.minPts = xx;
+	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function push_restoreImg_Callback(hObject, eventdata, handles)
@@ -785,11 +794,7 @@ function pixelx = localAxes2pix(dim, x, axesx)
 % -------------------------------------------------------------------------------------
 function y = mean2(x)
 %MEAN2 Compute mean of matrix elements.
-y = sum(x(:)) / numel(x);
-
-% -------------------------------------------------------------------------------------
-function checkbox_useDilation_Callback(hObject, eventdata, handles)
-% It does nothing
+	y = sum(x(:)) / numel(x);
 
 % -------------------------------------------------------------------------------------
 function listbox_lineWidth_Callback(hObject, eventdata, handles)
@@ -809,6 +814,95 @@ function radio_round_Callback(hObject, eventdata, handles)
     handles.elemSquare = 0;
     set(handles.radio_square,'Value',0)
     guidata(handles.figure1, handles);
+
+% -------------------------------------------------------------------------------------
+function check_mahal_CB(hObject, eventdata, handles)
+	if (get(hObject,'Value')),		set(handles.pushbutton_pickMultiple,'Enable', 'off')
+	else							set(handles.pushbutton_pickMultiple,'Enable', 'on')
+	end
+
+% ---------------------------------------------------------------------
+function I = colorseg(f, T, m, C)
+%COLORSEG Performs segmentation of a color image.
+%	Minimalist code from the DIPUM version
+%
+%   S = COLORSEG(F, T, M, C) performs segmentation of
+%   color image F using the Mahalanobis distance as a measure of
+%   similarity. C is the 3-by-3 covariance matrix of the sample color
+%   vectors of the class of interest. See function covmatrix for the
+%   computation of C and M. 
+%
+%   I is the segmented image (a binary matrix) in which 0s denote the
+%   background. 
+
+	% Preliminaries. Recall that varargin is a cell array.
+	if ( (ndims(f) ~= 3) || (size(f, 3) ~= 3) ),	error('Input image must be RGB.');	end
+	M = size(f, 1);		N = size(f, 2);
+	% Convert f to vector format using function imstack2vectors.
+	f = reshape(f, M*N, size(f, 3));
+	
+	f = double(f);
+	% Initialize I as a column vector.  It will be reshaped later into an image.
+	I = false(M*N, 1); 
+	m = m(:)'; % Make sure that m is a row vector.
+
+	D = mahalanobis(f, C, m);
+
+	% D is a vector of size MN-by-1 containing the distance computations
+	% from all the color pixels to vector m. Find the distances <= T.
+	I(D <= T) = true;
+	% Reshape I into an M-by-N image.
+	I = reshape(I, M, N);
+
+% -------------------------------------------------------------------------------------
+function [C, m] = covmatrix(X)
+%COVMATRIX Computes the covariance matrix of a vector population.
+%   [C, M] = COVMATRIX(X) computes the covariance matrix C and the
+%   mean vector M of a vector population organized as the rows of
+%   matrix X. C is of size N-by-N and M is of size N-by-1, where N is
+%   the dimension of the vectors (the number of columns of X).
+
+	[K, n] = size(X);
+	X = double(X);
+	% Compute an unbiased estimate of m.
+	m = sum(X, 1)/K;
+	% Subtract the mean from each row of X.
+	X = X - m(ones(K, 1), :);
+	% Compute an unbiased estimate of C. Note that the product is
+	% X'*X because the vectors are rows of X.	
+	C = (X'*X)/(K - 1);
+	m = m';		% Convert to a column vector.	 
+
+% ---------------------------------------------------------------------
+function d = mahalanobis(varargin)
+%MAHALANOBIS Computes the Mahalanobis distance.
+%   D = MAHALANOBIS(Y, X) computes the Mahalanobis distance between
+%   each vector in Y to the mean (centroid) of the vectors in X, and
+%   outputs the result in vector D, whose length is size(Y, 1).  The
+%   vectors in X and Y are assumed to be organized as rows.  The
+%   input data can be real of complex. The outputs are real quantities.
+
+	param = varargin; % Keep in mind that param is a cell array.
+	Y = param{1};
+	ny = size(Y, 1); % Number of vectors in Y.
+	
+	if numel(param) == 2
+		X = param{2};
+		% Compute the mean vector and covariance matrix of the vectors in X.
+		[Cx, mx] = covmatrix(X);
+	elseif (numel(param) == 3)						% Cov. matrix and mean vector provided.
+		Cx = param{2};
+		mx = param{3};
+	else 
+		error('Wrong number of inputs.')
+	end
+	if (size(mx,1) > 1),	mx = mx(:)';	end		% Make sure that mx is a row vector.
+	
+	% Subtract the mean vector from each vector in Y.
+	Yc = Y - mx(ones(ny, 1), :);	
+	
+	% Compute the Mahalanobis distances.
+	d = real(sum(Yc / Cx .* conj(Yc), 2));
 
 % -------------------------------------------------------------------------------------------------------
 function p = getPointer(opt)
@@ -890,7 +984,7 @@ elseif (strcmp(opt,'bucket'))
 end
 
 % --- Creates and returns a handle to the GUI figure. 
-function floodFill_LayoutFcn(h1,handles);
+function floodFill_LayoutFcn(h1)
 
 set(h1,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
@@ -1029,7 +1123,7 @@ uicontrol('Parent',h1,...
 'Style','togglebutton',...
 'Value',1);
 
-h20 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[0 1 1],...
 'Callback',{@floodFill_uicallback,h1,'toggle00_Callback'},...
 'Enable','inactive',...
@@ -1037,7 +1131,7 @@ h20 = uicontrol('Parent',h1,...
 'Style','togglebutton',...
 'Value',1);
 
-h21 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 0.501960784313725 0.752941176470588],...
 'Callback',{@floodFill_uicallback,h1,'toggle00_Callback'},...
 'Enable','inactive',...
@@ -1154,14 +1248,21 @@ uicontrol('Parent',h1,...
 'Tag','push_restoreImg');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodFill_uicallback,h1,'checkbox_useDilation_Callback'},...
 'Position',[4 152 80 15],'String','Use Dilation',...
 'Style','checkbox',...
 'TooltipString','Use dilation operation to find better limits between neighboring shapes',...
 'Value',1,...
 'Tag','checkbox_useDilation');
 
-h37 = uicontrol('Parent',h1,...
+uicontrol('Parent',h1,...
+'Callback',{@floodFill_uicallback,h1,'check_mahal_CB'},...
+'Position',[95 152 90 15],'String','Mahalanobis',...
+'Style','checkbox',...
+'TooltipString','Do color segmentation using Mahalanobis distance',...
+'Value',0,...
+'Tag','check_mahal');
+
+uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@floodFill_uicallback,h1,'listbox_lineWidth_Callback'},...
 'Position',[10 238 40 32],'String',{'LineThickness'},...
