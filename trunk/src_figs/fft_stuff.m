@@ -15,144 +15,141 @@ function varargout = fft_stuff(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-hObject = figure('Tag','figure1','Visible','off');
-fft_stuff_LayoutFcn(hObject);
-handles = guihandles(hObject);
-movegui(hObject,'center')
-
-global home_dir
-% Case when this function was called directly
-if isempty(home_dir),   home_dir = pwd;     end
-
-if isempty(home_dir)        % Case when this function was called directly
-    handles.path_data = ['data' filesep];
-else
-    handles.path_data = [home_dir filesep 'data' filesep];
-end
-
-handles.hMirFig = [];			% Handle to the calling figure
-handles.geog = 0;				% Set this as default
-handles.Z1 = [];
-handles.Z2 = [];
-grid_in_continue = 0;
-
-if (~isempty(varargin))         % When called from a Mirone window
-    handles.hMirFig = varargin{1};
-    handles.Z1 = varargin{2};
-    handles.head_Z1 = varargin{3};
-    handles.geog = varargin{4};
-    mode = varargin{5};
-    if (strcmp(mode,'Allopts'))     % "Slow mode" show all options in this figure
-        grid_in_continue = 1;
-    end
-    [handles.orig_nrows,handles.orig_ncols] = size(handles.Z1);
-    [w,nlist] = mboard([],handles.orig_ncols,handles.orig_nrows,0,0);
-    handles.new_nx = w(1);
-    handles.new_ny = w(2);
-    rlat = (handles.head_Z1(4) + handles.head_Z1(3)) / 2;
-	if (handles.geog)
-        [sclat,sclon] = scltln(rlat);
-        dx = handles.head_Z1(8) * sclon;
-        dy = handles.head_Z1(9) * sclat;
-        handles.scaled_dx = dx;     handles.scaled_dy = dy;
-        handles.is_meters = 0;      handles.is_km = 0;
-	else        % Guess if grid units are meters or km
-        dx = handles.head_Z1(2) - handles.head_Z1(1);
-        dy = handles.head_Z1(4) - handles.head_Z1(3);
-        len = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
-        if (len > 1e5)      % If grid's diagonal > 1e5 consider we have meters
-            handles.is_meters = 1;     handles.is_km = 0;   handles.geog = 0;
-        else                % km
-            handles.is_meters = 0;     handles.is_km = 1;   handles.geog = 0;
-        end
-        handles.scaled_dx = handles.head_Z1(8);
-        handles.scaled_dy = handles.head_Z1(9);
-        if (handles.is_km)
-            handles.scaled_dx = handles.scaled_dx * 1000;
-            handles.scaled_dy = handles.scaled_dy * 1000;
-        end
-	end
-    if (~grid_in_continue)       % Called in the "quick mode" 
-        if (any( strcmp( mode,{'Power' 'Autocorr' 'Amplitude' 'lpass' 'hpass'} ) ))
-            sectrumFun(handles, handles.Z1, handles.head_Z1, mode)
-        end
-        delete(hObject)
-        return
-    end
-end
-
-if (~isempty(handles.hMirFig))
-	handMir = guidata(handles.hMirFig);
-	handles.home_dir = handMir.home_dir;
-	handles.work_dir = handMir.work_dir;
-	handles.last_dir = handMir.last_dir;
-else
-	handles.home_dir = cd;
-	handles.work_dir = cd;		handles.last_dir = cd;	% To not compromize put_or_get_file
-end
-
-if (grid_in_continue)       % Grid recieved in argument. Fill the listboxes
-	% The easeast way of not leting the user screw things by selecting a nnx and/or nny
-	% lower than nx or ny is to delete the forbiden numbers from the listboxes
-	ind = find(cat(1,nlist{:}) > handles.orig_ncols);
-	nlist_t = [{handles.orig_ncols}; nlist(ind)];
-	ind = find(cat(1,nlist_t{:}) == handles.new_nx);        % Find index of new_nx
-	set(handles.listbox_nnx,'String',nlist_t,'Value',ind)
-	set(handles.edit_Ncols,'string',num2str(handles.new_nx))
+	hObject = figure('Tag','figure1','Visible','off');
+	fft_stuff_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	movegui(hObject,'center')
 	
-	ind = find(cat(1,nlist{:}) > handles.orig_nrows);
-	nlist_t = [{handles.orig_nrows}; nlist(ind)];
-	ind = find(cat(1,nlist_t{:}) == handles.new_ny);        % Find index of new_ny
-	set(handles.listbox_nny,'String',nlist_t,'Value',ind)
-	set(handles.edit_Nrows,'string',num2str(handles.new_ny))
-    
-    handles.X = linspace(handles.head_Z1(1),handles.head_Z1(2),handles.orig_ncols);
-    handles.Y = linspace(handles.head_Z1(3),handles.head_Z1(4),handles.orig_nrows);
-    set(handles.edit_Grid1,'String','In Memory array')
-end
+	handles.hMirFig = [];			% Handle to the calling figure
+	handles.geog = 0;				% Set this as default
+	handles.Z1 = [];
+	handles.Z2 = [];
+	grid_in_continue = 0;
 
-% Import icons
-load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
-set(handles.pushbutton_Grid2,'CData',Mfopen_ico)
-set(handles.pushbutton_Grid1,'CData',Mfopen_ico)
-clear Mfopen_ico;
+	if (~isempty(varargin))         % When called from a Mirone window
+		handles.hMirFig = varargin{1};
+		handles.Z1 = varargin{2};
+		handles.head_Z1 = varargin{3};
+		handles.geog = varargin{4};
+		mode = varargin{5};
+		if (strcmp(mode,'Allopts')),	grid_in_continue = 1;	end     % "Slow mode" show all options in this figure
+		[handles.orig_nrows,handles.orig_ncols] = size(handles.Z1);
+		[w,nlist] = mboard([],handles.orig_ncols,handles.orig_nrows,0,0);
+		handles.new_nx = w(1);
+		handles.new_ny = w(2);
+		rlat = (handles.head_Z1(4) + handles.head_Z1(3)) / 2;
+		if (handles.geog)
+			[sclat,sclon] = scltln(rlat);
+			dx = handles.head_Z1(8) * sclon;
+			dy = handles.head_Z1(9) * sclat;
+			handles.scaled_dx = dx;     handles.scaled_dy = dy;
+			handles.is_meters = 0;      handles.is_km = 0;
+		else		% Guess if grid units are meters or km
+			dx = handles.head_Z1(2) - handles.head_Z1(1);
+			dy = handles.head_Z1(4) - handles.head_Z1(3);
+			len = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
+			if (len > 1e5)      % If grid's diagonal > 1e5 consider we have meters
+				handles.is_meters = 1;     handles.is_km = 0;   handles.geog = 0;
+			else				% km
+				handles.is_meters = 0;     handles.is_km = 1;   handles.geog = 0;
+			end
+			handles.scaled_dx = handles.head_Z1(8);
+			handles.scaled_dy = handles.head_Z1(9);
+			if (handles.is_km)
+				handles.scaled_dx = handles.scaled_dx * 1000;
+				handles.scaled_dy = handles.scaled_dy * 1000;
+			end
+		end
+		if (~grid_in_continue)       % Called in the "quick mode" 
+			if (any( strcmp( mode,{'Power' 'Autocorr' 'Amplitude' 'lpass' 'hpass'} ) ))
+				sectrumFun(handles, handles.Z1, handles.head_Z1, mode)
+			end
+			delete(hObject)
+			return
+		end
+	end
 
-% Set upt some useful tooltips
-str = sprintf(['The default value is the number of rows in the grid\n',...
-    'However, for reducing border effects you may want to apply\n',...
-    'a skirt to the grid. For that, select a value from the side\n',...
-    'listbox. Extra points will be padded by mirrowiong the west side.']);
-set(handles.edit_Nrows,'TooltipString',str)
-str = sprintf(['The default value is the number of cols in the grid\n',...
-    'However, for reducing border effects you may want to apply\n',...
-    'a skirt to the grid. For that, select a value from the side\n',...
-    'listbox. Extra points will be padded by mirrowiong the south side.']);
-set(handles.edit_Ncols,'TooltipString',str)
+	if (~isempty(handles.hMirFig))
+		handMir = guidata(handles.hMirFig);
+		handles.home_dir = handMir.home_dir;
+		handles.work_dir = handMir.work_dir;
+		handles.last_dir = handMir.last_dir;
+		handles.path_data = handMir.path_data;
+	else
+		handles.home_dir = cd;
+		handles.work_dir = cd;		handles.last_dir = cd;	% To not compromize put_or_get_file
+		handles.path_data = [cd filesep 'data' filesep];	% Wil fail if called from outside Mir home
+	end
 
-str = sprintf('Good FFT numbers for padding the grid');
-set(handles.listbox_nnx,'TooltipString',str)
-set(handles.listbox_nny,'TooltipString',str)
+	if (grid_in_continue)       % Grid recieved in argument. Fill the listboxes
+		% The easeast way of not leting the user screw things by selecting a nnx and/or nny
+		% lower than nx or ny is to delete the forbiden numbers from the listboxes
+		ind = find(cat(1,nlist{:}) > handles.orig_ncols);
+		nlist_t = [{handles.orig_ncols}; nlist(ind)];
+		ind = find(cat(1,nlist_t{:}) == handles.new_nx);        % Find index of new_nx
+		set(handles.listbox_nnx,'String',nlist_t,'Value',ind)
+		set(handles.edit_Ncols,'string',num2str(handles.new_nx))
+		
+		ind = find(cat(1,nlist{:}) > handles.orig_nrows);
+		nlist_t = [{handles.orig_nrows}; nlist(ind)];
+		ind = find(cat(1,nlist_t{:}) == handles.new_ny);        % Find index of new_ny
+		set(handles.listbox_nny,'String',nlist_t,'Value',ind)
+		set(handles.edit_Nrows,'string',num2str(handles.new_ny))
+		
+		handles.X = linspace(handles.head_Z1(1),handles.head_Z1(2),handles.orig_ncols);
+		handles.Y = linspace(handles.head_Z1(3),handles.head_Z1(4),handles.orig_nrows);
+		set(handles.edit_Grid1,'String','In Memory array')
+	end
 
-% Give a Pro look (3D) to the frame boxes 
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
+	% Import icons
+	load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
+	set(handles.pushbutton_Grid2,'CData',Mfopen_ico)
+	set(handles.pushbutton_Grid1,'CData',Mfopen_ico)
+	clear Mfopen_ico;
 
-guidata(hObject, handles);
-set(hObject,'Visible','on');
-if (nargout),	varargout{1} = hObject;		end
+	% Set upt some useful tooltips
+	str = sprintf(['The default value is the number of rows in the grid\n',...
+		'However, for reducing border effects you may want to apply\n',...
+		'a skirt to the grid. For that, select a value from the side\n',...
+		'listbox. Extra points will be padded by mirrowiong the west side.']);
+	set(handles.edit_Nrows,'TooltipString',str)
+	str = sprintf(['The default value is the number of cols in the grid\n',...
+		'However, for reducing border effects you may want to apply\n',...
+		'a skirt to the grid. For that, select a value from the side\n',...
+		'listbox. Extra points will be padded by mirrowiong the south side.']);
+	set(handles.edit_Ncols,'TooltipString',str)
+
+	str = sprintf('Good FFT numbers for padding the grid');
+	set(handles.listbox_nnx,'TooltipString',str)
+	set(handles.listbox_nny,'TooltipString',str)
+
+	% Give a Pro look (3D) to the frame boxes 
+	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+	set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
+	h_f = findobj(hObject,'Style','Frame');
+	for i=1:length(h_f)
+		frame_size = get(h_f(i),'Position');
+		f_bgc = get(h_f(i),'BackgroundColor');
+		usr_d = get(h_f(i),'UserData');
+		if (abs(f_bgc(1)-bgcolor(1)) > 0.01),		% When the frame's background color is not the default's
+			frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
+		else
+			frame3D(hObject,frame_size,framecolor,'',usr_d)
+			delete(h_f(i))
+		end
+	end
+
+	% Add this figure handle to the carraças list
+	if (~isempty(handles.hMirFig))
+		plugedWin = getappdata(handles.hMirFig,'dependentFigs');
+		plugedWin = [plugedWin hObject];
+		setappdata(handles.hMirFig,'dependentFigs',plugedWin);
+	end
+
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),	varargout{1} = hObject;		end
 
 % -------------------------------------------------------------------------------------------------
 function edit_Grid1_Callback(hObject, eventdata, handles)
@@ -314,39 +311,39 @@ function checkbox_leaveTrend_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------------------
 function listbox_nnx_Callback(hObject, eventdata, handles)
-contents = get(hObject,'String');
-nnx = str2double(contents{get(hObject,'Value')});
-set(handles.edit_Ncols,'String',num2str(nnx))
-handles.new_nx = nnx;     guidata(hObject,handles)
+	contents = get(hObject,'String');
+	nnx = str2double(contents{get(hObject,'Value')});
+	set(handles.edit_Ncols,'String',num2str(nnx))
+	handles.new_nx = nnx;     guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------------------
 function listbox_nny_Callback(hObject, eventdata, handles)
-contents = get(hObject,'String');
-nny = str2double(contents{get(hObject,'Value')});
-set(handles.edit_Nrows,'String',num2str(nny))
-handles.new_ny = nny;     guidata(hObject,handles)
+	contents = get(hObject,'String');
+	nny = str2double(contents{get(hObject,'Value')});
+	set(handles.edit_Nrows,'String',num2str(nny))
+	handles.new_ny = nny;     guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_Ncols_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isempty(get(hObject,'String')))
-    try,    set(hObject,'String',num2str(handles.ncols));   return;     end
-end
-if (xx < handles.cols)
-    set(hObject,'String',num2str(handles.ncols));    return;
-end
-handles.ncols = xx;     guidata(hObject,handles)
+	xx = str2double(get(hObject,'String'));
+	if (isempty(get(hObject,'String')))
+		try    set(hObject,'String',num2str(handles.ncols)),	return,		end
+	end
+	if (xx < handles.cols)   
+		set(hObject,'String',num2str(handles.ncols));    return;
+	end
+	handles.ncols = xx;     guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_Nrows_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx))
-    try    set(hObject,'String',num2str(handles.nrows));   return;     end
-end
-if (xx < handles.nrows)
-    set(hObject,'String',num2str(handles.nrows));   return;
-end
-handles.nrows = xx;     guidata(hObject,handles)
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx))
+		try    set(hObject,'String',num2str(handles.nrows)),	return,		end
+	end
+	if (xx < handles.nrows)
+		set(hObject,'String',num2str(handles.nrows)),	return
+	end
+	handles.nrows = xx;     guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_UDcont_Callback(hObject, eventdata, handles)
@@ -354,40 +351,40 @@ function edit_UDcont_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_dirDerivative_Callback(hObject, eventdata, handles)
-azim = str2double(get(hObject,'String'));
-if (isnan(azim)),   set(hObject,'String','0');  end
+	azim = str2double(get(hObject,'String'));
+	if (isnan(azim)),   set(hObject,'String','0');  end
 
 % -------------------------------------------------------------------------------------------------
 function edit_derivative_Callback(hObject, eventdata, handles)
-n_der = str2double(get(hObject,'String'));
-if (isnan(n_der)),   set(hObject,'String','1');  end
+	n_der = str2double(get(hObject,'String'));
+	if (isnan(n_der)),		set(hObject,'String','1'),		end
 
 % -------------------------------------------------------------------------------------------------
 function pushbutton_powerSpectrum_Callback(hObject, eventdata, handles)
-if (isempty(handles.Z1))
-    errordlg('No grid loaded. Rebooting ...','Error');  return
-end
-sectrumFun(handles, handles.Z1, handles.head_Z1, 'Power')
+	if (isempty(handles.Z1))   
+		errordlg('No grid loaded. Rebooting ...','Error');  return
+	end
+	sectrumFun(handles, handles.Z1, handles.head_Z1, 'Power')
 
 % --------------------------------------------------------------------
 function pushbutton_crossSpectra_Callback(hObject, eventdata, handles)
-if (isempty(handles.Z1) || isempty(handles.Z2))
-    errordlg('"Cross" means one grid against the other. You got the idea?','Error');
-    return
-end
-sectrumFun(handles, handles.Z1, handles.head_Z1, 'CrossPower', handles.Z2)
+	if (isempty(handles.Z1) || isempty(handles.Z2))
+		errordlg('"Cross" means one grid against the other. You got the idea?','Error');
+		return
+	end
+	sectrumFun(handles, handles.Z1, handles.head_Z1, 'CrossPower', handles.Z2)
 
 % -------------------------------------------------------------------------------------------------
 function pushbutton_autoCorr_Callback(hObject, eventdata, handles)
-sectrumFun(handles, handles.Z1, handles.head_Z1, 'Autocorr')
+	sectrumFun(handles, handles.Z1, handles.head_Z1, 'Autocorr')
 
 % -------------------------------------------------------------------------------------------------
 function pushbutton_crossCorr_Callback(hObject, eventdata, handles)
-if (isempty(handles.Z1) || isempty(handles.Z2))
-    errordlg('"Cross" means one grid against the other. You got the idea?','Error');
-    return
-end
-sectrumFun(handles, handles.Z1, handles.head_Z1, 'CrossCorrel', handles.Z2)
+	if (isempty(handles.Z1) || isempty(handles.Z2))
+		errordlg('"Cross" means one grid against the other. You got the idea?','Error');
+		return
+	end
+	sectrumFun(handles, handles.Z1, handles.head_Z1, 'CrossCorrel', handles.Z2)
 
 % -------------------------------------------------------------------------------------------------
 function pushbutton_radialPowerAverage_Callback(hObject, eventdata, handles)
@@ -402,62 +399,62 @@ function pushbutton_radialPowerAverage_Callback(hObject, eventdata, handles)
 % in the other dimension; that is, an approximation of the integral.
 %   ORIGINAL TEXT FROM WALTER SMITH IN GRDFFT
 
-if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error');    return; end
+	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error'),	return,		end
 
-nx2 = handles.new_nx;   ny2 = handles.new_ny;
-delta_kx = 2*pi / (nx2 * handles.scaled_dx);
-delta_ky = 2*pi / (ny2 * handles.scaled_dy);
-if (delta_kx < delta_ky)
-    delta_k = delta_kx;    nk = fix(nx2/2);
-else
-    delta_k = delta_ky;    nk = fix(ny2/2);
-end
-r_delta_k = 1 / delta_k;
-set(handles.figure1,'pointer','watch')
-if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-    handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
-end
-[Z,band,modk] = wavenumber_and_mboard(handles);
-ifreq = round(modk*r_delta_k) + 1;     clear modk;
-Z = fft2(Z);    Z(1,1) = 0;
-Z = Z.* conj(Z);
+	nx2 = handles.new_nx;   ny2 = handles.new_ny;
+	delta_kx = 2*pi / (nx2 * handles.scaled_dx);
+	delta_ky = 2*pi / (ny2 * handles.scaled_dy);
+	if (delta_kx < delta_ky)
+		delta_k = delta_kx;    nk = fix(nx2/2);
+	else
+		delta_k = delta_ky;    nk = fix(ny2/2);
+	end
+	r_delta_k = 1 / delta_k;
+	set(handles.figure1,'pointer','watch')
+	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
+		handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
+	end
+	[Z,band,modk] = wavenumber_and_mboard(handles);
+	ifreq = round(modk*r_delta_k) + 1;     clear modk;
+	Z = fft2(Z);    Z(1,1) = 0;
+	Z = Z.* conj(Z);
 
-ifreq(ifreq < 1) = 1;           % Might happen when doing r spectrum
-nk1 = nk + 1;
-power = zeros(nk1,1);
-n_used = 0;
-for (m=1:ny2)
-    for(n=1:nx2)
-	    if (ifreq(m,n) > nk1),  continue;	end % Might happen when doing r spectrum
-        power(ifreq(m,n)) = power(ifreq(m,n)) + Z(m,n);
-        n_used = n_used + 1;
-    end
-end
-power(1) = [];              % Remove DC component
+	ifreq(ifreq < 1) = 1;           % Might happen when doing r spectrum
+	nk1 = nk + 1;
+	power = zeros(nk1,1);
+	n_used = 0;
+	for (m=1:ny2)
+		for(n=1:nx2)
+			if (ifreq(m,n) > nk1),  continue;	end % Might happen when doing r spectrum
+			power(ifreq(m,n)) = power(ifreq(m,n)) + Z(m,n);
+			n_used = n_used + 1;
+		end
+	end
+	power(1) = [];				% Remove DC component
 
-eps_pow = 1 / sqrt(n_used/nk);
-delta_k = delta_k / (2*pi);         % Write out frequency, not wavenumber
-powfactor = 1 / (nx2*ny2)^2;
-power = power * powfactor;
-eps_pow = eps_pow * power;          % Wrong for admitance
-freq = (1:nk) * delta_k;
-%freq = 1 ./ freq;               % Wavelength
-if (handles.geog),   freq = freq * 1000;     end     % Report frequency in 1/km
+	eps_pow = 1 / sqrt(n_used/nk);
+	delta_k = delta_k / (2*pi);			% Write out frequency, not wavenumber
+	powfactor = 1 / (nx2*ny2)^2;
+	power = power * powfactor;
+	eps_pow = eps_pow * power;			% Wrong for admitance
+	freq = (1:nk) * delta_k;
+	%freq = 1 ./ freq;					% Wavelength
+	if (handles.geog),   freq = freq * 1000;     end     % Report frequency in 1/km
 
-h=figure('NumberTitle','off','Name','Radial average power spectrum',...
-    'Color',get(0,'factoryUicontrolBackgroundColor'));
-ud.h_mir_fig = handles.hMirFig;
-ud.data = [freq; power'; eps_pow'];     % ready for the stupid fwrite
-set(h,'UserData',ud)
-uimenu('Label','Save data','callback',{@calSave,h});
-semilogy(freq,power)
-if (handles.geog || handles.is_km)
-    xlabel('Frequency (1/km)','FontSize',12)
-else
-    xlabel('Frequency (1/m)','FontSize',12)
-end
-ylabel('Log(Power)','FontSize',12)
-set(handles.figure1,'pointer','arrow')
+	h=figure('NumberTitle','off','Name','Radial average power spectrum',...   
+		'Color',get(0,'factoryUicontrolBackgroundColor'));
+	ud.h_mir_fig = handles.hMirFig;
+	ud.data = [freq; power'; eps_pow'];     % ready for the stupid fwrite
+	set(h,'UserData',ud)
+	uimenu('Label','Save data','callback',{@calSave,h});
+	semilogy(freq,power)
+	if (handles.geog || handles.is_km)
+		xlabel('Frequency (1/km)','FontSize',12)
+	else
+		xlabel('Frequency (1/m)','FontSize',12)
+	end
+	ylabel('Log(Power)','FontSize',12)
+	set(handles.figure1,'pointer','arrow')
 
 % -------------------------------------------------------------------------------
 function calSave(obj,eventdata,h_fig)
@@ -476,26 +473,26 @@ function calSave(obj,eventdata,h_fig)
 
 % -------------------------------------------------------------------------------------------------
 function pushbutton_integrate_Callback(hObject, eventdata, handles, opt)
-if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error');    return; end
-if (isempty(opt))
-    scale = 1;
-else
-    scale = 980619.9203;    % Moritz's 1980 IGF value for gravity in mGal at 45 degrees latit
-end
-set(handles.figure1,'pointer','watch')
-if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-    handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
-end
-[Z,band,k] = wavenumber_and_mboard(handles);
-k(1,1) = eps;       % Avoid a devided by zero warning
-Z = fft2(Z) ./ (k*scale);    Z(1,1) = 0;    clear k;
-Z = real(ifft2(Z));
-[Z,tmp] = unband(handles,Z,band);
-if (scale == 1), tmp.name = 'Integrated grid';
-else                tmp.name = 'Geoid height';
-end
-set(handles.figure1,'pointer','arrow')
-mirone(single(Z),tmp);
+	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error'),	return,		end
+	if (isempty(opt))
+		scale = 1;
+	else
+		scale = 980619.9203;    % Moritz's 1980 IGF value for gravity in mGal at 45 degrees latit
+	end
+	set(handles.figure1,'pointer','watch')
+	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
+		handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
+	end
+	[Z,band,k] = wavenumber_and_mboard(handles);
+	k(1,1) = eps;       % Avoid a devided by zero warning
+	Z = fft2(Z) ./ (k*scale);    Z(1,1) = 0;    clear k;
+	Z = real(ifft2(Z));
+	[Z,tmp] = unband(handles,Z,band);
+	if (scale == 1),	tmp.name = 'Integrated grid';
+	else				tmp.name = 'Geoid height';
+	end
+	set(handles.figure1,'pointer','arrow')
+	mirone(single(Z),tmp);
 
 % --------------------------------------------------------------------
 function sectrumFun(handles, Z, head, opt1, Z2)
@@ -507,8 +504,8 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 % OPT1 = 'lpass|hpass' -> compute low pass|high pass filtering of Z
 % Z2 -> needed when OPT1 = 'CrossPower' OR OPT1 = 'CrossCorrel'
 
-	two_grids = 0;
-	if (nargin == 5),    two_grids = 1;  end
+	two_grids = 0;			image_type = 1;				% Used by the inverse transform case (default case)
+	if (nargin == 5),		two_grids = 1;		end
 	set(handles.figure1,'pointer','watch')
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
 		Z = double(grdtrend_m(single(Z),handles.head_Z1,'-D','-N3'));
@@ -556,6 +553,7 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		tmp.name = 'Cross Correlation';
 	elseif ( any(strcmp(opt1,{'lpass' 'hpass'})) )		% Filtering
 		handMir = guidata(handles.hMirFig);				% Handles of the space domain figure
+		image_type = handMir.image_type;				% Used by the inverse transform case
 		x = get(handMir.XXXhLine, 'XData');		y = get(handMir.XXXhLine, 'YData');
 		hand = guidata(handMir.XXXhLine);				% Handles of the Spectrum figure
 		xy_lims = getappdata(hand.axes1,'ThisImageLims');
@@ -572,14 +570,14 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 	end
 
 	if ( (strcmp(opt1,'Autocorr') || strcmp(opt1,'CrossCorrel')) )
-        delta_kx = 1;   delta_ky = 1;
-	else            % make wave number array
-        delta_kx = 2*pi / (handles.new_nx * handles.scaled_dx);
-        delta_ky = 2*pi / (handles.new_ny * handles.scaled_dy);
+		delta_kx = 1;   delta_ky = 1;
+	else				% make wave number array
+		delta_kx = 2*pi / (handles.new_nx * handles.scaled_dx);
+		delta_ky = 2*pi / (handles.new_ny * handles.scaled_dy);
 	end
 	if (handles.is_km)      % In km case scaled_dx|dy where in meters
-        delta_kx = delta_kx * 1000;
-        delta_ky = delta_ky * 1000;
+		delta_kx = delta_kx * 1000;
+		delta_ky = delta_ky * 1000;
 	end
 
 	nx2 = fix(nx/2);		ny2 = fix(ny/2);
@@ -589,16 +587,32 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 	if (rem(ny,2) == 0),	sft_y = 1;
 	else					sft_y = 0;
 	end
+
+	Z = single(Z);
 	if ( ~any(strcmp(opt1,{'lpass' 'hpass'})) )
 		tmp.X = (-nx2:nx2-sft_x).*delta_kx;     tmp.Y = (-ny2:ny2-sft_y).*delta_ky;
 		tmp.geog = 0;
 	else
 		tmp.X = getappdata(handMir.figure1,'dem_x');	tmp.Y = getappdata(handMir.figure1,'dem_y');
+		if (isempty(tmp.X))			% We are operating on an image
+			tmp.X = linspace(handMir.head(1), handMir.head(2), size(Z,2));
+			tmp.Y = linspace(handMir.head(3), handMir.head(4), size(Z,1));
+			Z = scaleto8(Z,-8);
+		end
+		tmp.name = 'FFT filtered';
 		delta_kx = handMir.head(8);						delta_ky = handMir.head(9);
 	end
-	tmp.head = [tmp.X(1) tmp.X(end) tmp.Y(1) tmp.Y(end) min(Z(:)) max(Z(:)) 0 delta_kx delta_ky];
+
 	set(handles.figure1,'pointer','arrow')
-	h = mirone(single(Z),tmp);
+	if (isa(Z,'uint8')),	tmp.cmap = gray(256);	end
+	if (image_type ~= 2)
+		tmp.head = [tmp.X(1) tmp.X(end) tmp.Y(1) tmp.Y(end) min(Z(:)) max(Z(:)) 0 delta_kx delta_ky];
+		h = mirone(Z,tmp);
+	else
+		setappdata(0,'CropedColormap', gray(256));		% Force it to use a gray colormap
+		h = mirone(Z);
+		set(h,'Name','FFT filtered image')
+	end
 	if ( (strcmp(opt1,'Power') || strcmp(opt1,'Amplitude')) )
 		setappdata(h, 'ParentFig', handles.hMirFig);		% Save the space domain Fig handle to eventual future use
 	end
@@ -944,8 +958,8 @@ uicontrol('Parent',h1,'ForegroundColor',[1 0 0],'Position',[31 109 51 15],...
 
 uicontrol('Parent',h1,...
 'Callback',{@fft_stuff_uicallback,h1,'checkbox_leaveTrend_Callback'},...
-'Position',[50 140 115 15],...
-'String','Leave trend alone',...
+'Position',[50 140 105 15],...
+'String','Remove trend',...
 'Style','checkbox',...
 'TooltipString','If checked remove a plane before transformations',...
 'Tag','checkbox_leaveTrend');
