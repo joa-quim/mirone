@@ -302,6 +302,7 @@ uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''STD'');','Label','STD (3x3
 uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''Min'');','Label','Min (3x3)');
 uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''Max'');','Label','Max (3x3)');
 uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''range'');','Label','Range (3x3)');
+uimenu('Parent',hIM,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Allopts'')','Label','FFT Spectrum');
 
 uimenu('Parent',hIM,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''image'')','Label','Digital Filtering Tool','Sep','on');
 uimenu('Parent',hIM,'Call','image_enhance(gcf)','Label','Image Enhance (1 - Indexed and RGB)');
@@ -566,9 +567,9 @@ uimenu('Parent',h,'Call','mirone(''GeophysicsImportGmtFile_CB'',guidata(gcbo),''
 % --------------------------- GRID TOOLS MENU ------------------------------------
 hGT = uimenu('Parent',H1,'Label','Grid Tools','Tag','GridTools');		hVG(kv) = hGT;
 
-sep = 'on';
+sep = 'off';
 if (~IamCompiled)
-    uimenu('Parent',hGT,'Call','grid_calculator(gcf)','Label','grid calculator');	sep = 'off';
+    uimenu('Parent',hGT,'Call','grid_calculator(gcf)','Label','grid calculator');	sep = 'on';
 end
 
 uimenu('Parent',hGT,'Call','grdfilter_mir(guidata(gcbo))','Label','grdfilter','Sep',sep);
@@ -642,7 +643,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 6 Nov 2008'',''1.4.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 14 Nov 2008'',''1.4.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
