@@ -15,6 +15,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 19.0  16/11/2008 JL	Added cvHaarDetectObjects (from 'FaceDetect' of Sreekar Krishna)
  * Revision 18.0  18/10/2008 JL	Added cvCvtScaleAbs.
  * 				Fixed BUG in order of input/output 3D arrays. Due to the BGR
  * 				order (f...) story, output form cvtColor was shifted by 2.
@@ -105,6 +106,7 @@ void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], cons
 void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jtext(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JMatchTemplate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+void JhaarDetect(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 
 void Set_pt_Ctrl_in (struct CV_CTRL *Ctrl, const mxArray *pi , mxArray *pit, int interl);
 void Set_pt_Ctrl_out1 ( struct CV_CTRL *Ctrl, mxArray *pi );
@@ -130,7 +132,7 @@ void morphologyexUsage(), colorUsage(), flipUsage(), filterUsage(), findContours
 void arithmUsage(), addWeightedUsage(), pyrDUsage(), pyrUUsage(), houghCirclesUsage();
 void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsage();
 void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage(), powUsage();
-void absUsage(), logUsage(), expUsage(), hypotUsage();
+void absUsage(), logUsage(), expUsage(), hypotUsage(), haarUsage();
 void approxPolyUsage();
 void MatchTemplateUsage();
 
@@ -167,6 +169,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tflip (cvFlip)\n");
 		mexPrintf("\tfloodfill (cvFloodFill)\n");
 		mexPrintf("\tgoodfeatures (cvGoodFeaturesToTrack)\n");
+		mexPrintf("\thaar (cvHaarDetectObjects)\n");
 		mexPrintf("\thoughlines2 (cvHoughLines2)\n");
 		mexPrintf("\thoughcircles (cvHoughCircles)\n");
 		mexPrintf("\thypot\n");
@@ -215,6 +218,9 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	else if (!strncmp(funName,"good", 4))		/* goodfeatures */
 		JgoodFeatures(n_out, plhs, n_in, prhs);
+
+	else if (!strcmp(funName,"haar"))
+		JhaarDetect(n_out, plhs, n_in, prhs);
 
 	else if (!strcmp(funName,"houghlines2"))
 		JhoughLines2(n_out, plhs, n_in, prhs);
@@ -1084,7 +1090,7 @@ void JgoodFeatures(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 	eig_image = cvCreateImage( cvSize(nx, ny), 32, 1 );
 	temp_image = cvCreateImage( cvSize(nx, ny), 32, 1 );
 
-	corners = (CvPoint2D32f*)cvAlloc(max_features*sizeof(corners));
+	corners = (CvPoint2D32f *)cvAlloc(max_features*sizeof(corners));
 
 	quality_level = 0.1; 
 	corner_count  = max_features; 
@@ -1110,6 +1116,146 @@ void JgoodFeatures(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 		ptr_d[n+nOut_corners] = corners[n].y + 1;
 	}
 	cvFree((void **)&corners );
+	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
+}
+
+/* --------------------------------------------------------------------------- */
+void JhaarDetect(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
+	int nx, ny, i, j, nBytes, img_depth, nBands, min_neighbors = 3, min_size = 30;
+	unsigned char *ptr_gray;
+	char	*input_buf;
+	double	scale_factor = 1.1;
+	double	*ptr_d;
+	mxArray *ptr_in;
+	CvSeq	*faces;
+	CvRect	*r;
+	IplImage *dummy, *src_img = NULL, *src_gray = NULL;
+	IplConvKernel	*se;
+	CvMemStorage *storage = NULL;
+	CvHaarClassifierCascade *cascade = NULL;
+
+	struct CV_CTRL *Ctrl;
+	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
+
+	/* ---- Check for errors in user's call to function.  -------------------- */
+	if (n_in == 1) { haarUsage(); return; }
+
+	if ( !mxIsChar(prhs[2]) )
+		mexErrMsgTxt("Second input must be a string.");
+
+	if ( n_in >= 4 && !mxIsEmpty(prhs[3]) )
+		scale_factor = *mxGetPr(prhs[3]);
+	if (n_in >= 5 && !mxIsEmpty(prhs[4]))
+		min_neighbors = (int)(*mxGetPr(prhs[4]));
+	if (n_in >= 6 && !mxIsEmpty(prhs[5]))
+		min_size = (int)(*mxGetPr(prhs[5]));
+
+	/* copy the string data from input[0] into a C string input_buf.    */
+	input_buf = mxArrayToString(prhs[2]);
+    
+	if (input_buf == NULL) 
+		mexErrMsgTxt("Could not read HarrCascade Filename to string.");
+    
+	/* Read the Haar Cascade from the XML file */
+	cascade = (CvHaarClassifierCascade*) cvLoad( input_buf, 0, 0, 0);
+        
+	if ( !cascade )
+		mexErrMsgTxt("ERROR: Could not load classifier cascade" );
+
+	/* -------------------- End of parsing input ------------------------------------- */
+
+	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);	nBands = getNK(prhs[1],2);
+	/* Allocate and initialize defaults in a new control structure */
+	Ctrl = (struct CV_CTRL *) New_Cv_Ctrl ();
+	getDataType(Ctrl, prhs, &nBytes, &img_depth);
+
+	/* ------ Create pointer for temporary array ------------------------------------- */
+	ptr_in  = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+		  mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
+	/* ------------------------------------------------------------------------------- */ 
+
+	Set_pt_Ctrl_in ( Ctrl, prhs[1], ptr_in, 1 ); 	/* Set pointer & interleave */
+
+	src_img = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
+
+	if (nBands == 3) {			/* Convert to GRAY */
+		src_gray = cvCreateImageHeader( cvSize(nx, ny), 8, 1 );
+		ptr_gray = (unsigned char *)mxMalloc (nx*ny);
+		cvSetImageData( src_gray, (void *)ptr_gray, nx );
+		cvCvtColor(src_img, src_gray, CV_BGR2GRAY);
+		for (i = 0; i < nx*ny; i++)	/* Copy the transformed image into Ctrl field */
+			Ctrl->UInt8.tmp_img_in[i] = ptr_gray[i]; 
+		mxFree(ptr_gray);
+		cvReleaseImageHeader( &src_gray );
+
+		/* Here we're going to cheat the src_img in order to pretend that its 2D */
+		src_img->nChannels = 1;
+		src_img->widthStep = nx * nBytes;
+		src_img->imageSize = ny * src_img->widthStep;
+	}
+
+	/**********************************************************************
+	 * There is a bug in OpenCV that if one calls the cvLoad function before calling
+	 * any other function from the cxCore lib, an error is thrown by the 
+	 * cvRead function that is part of cvLoad. In order to overcome this
+	 * any function from the cxcore lib needs to be called. Here we create 
+	 * a dummy image 11x11 pixels in size and erode the image using a small
+	 * kernel.
+	 ***********************************************************************/    
+	dummy = cvCreateImage( cvSize(11, 11), IPL_DEPTH_8U, 1 );	/* Make a dummy image */
+	se = cvCreateStructuringElementEx(3,3,1,1,CV_SHAPE_ELLIPSE, NULL);	/* Create a filter */
+	cvErode(dummy, dummy, se, 1);	/* Erode */
+	cvReleaseImage( &dummy );
+	cvReleaseStructuringElement(&se);
+   
+   
+	/********************************************************************
+ 	 *                              Detect faces                        *
+ 	 ********************************************************************/
+    
+	/* Histogram Equalize the image */
+	cvEqualizeHist( src_img, src_img);
+        
+	/* This is required in the face detection process */
+	storage = cvCreateMemStorage(0);
+	cvClearMemStorage( storage );
+
+	/* Do Face Detection */
+	faces = cvHaarDetectObjects( src_img, cascade, storage,
+					scale_factor, min_neighbors, 0, /*CV_HAAR_DO_CANNY_PRUNING*/
+					cvSize(min_size, min_size) );
+
+	cvReleaseImageHeader( &src_img );
+	mxDestroyArray(ptr_in);
+    
+	/* ------ GET OUTPUT DATA --------------------------- */ 
+	/* Number of rows = number of detected faces
+	   Number of columns = 4
+	   1: Location X of the face	2: Location Y of the face
+	   3: Width of the face		4: Height of the face */
+	if (faces->total) {
+		plhs[0] = mxCreateDoubleMatrix(faces->total, 4, mxREAL);
+		ptr_d = mxGetPr(plhs[0]);
+		/* Iterate trou each of the detected faces */
+		for( i = 0; i < faces->total; i++ ) {
+			r = (CvRect *)cvGetSeqElem( faces, i );
+			/* The Data pointer again has to be filled in a column wise manner
+			* The first column will contain the x location of all faces
+			* while column two will contain y location of all faces */
+			ptr_d [i] = r->x;
+			ptr_d [i+faces->total] = r->y;
+			ptr_d [i+faces->total*2] = r->width;
+			ptr_d [i+faces->total*3] = r->height;
+		}
+	}
+	else {
+		plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
+		ptr_d = mxGetPr(plhs[0]);
+	}
+
+	cvReleaseMemStorage(&storage);
+	cvReleaseHaarClassifierCascade( &cascade );
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 }
 
@@ -3428,6 +3574,54 @@ void getDataType(struct CV_CTRL *Ctrl, const mxArray *prhs[], int *nBytes, int *
 	}*/
 }
 
+/* -------------------------------------------------------------------------------------------- */
+void absUsage() {
+	mexPrintf("Usage: B = cvlib_mex('abs',IMG);\n");
+	mexPrintf("       Calculates absolute value of array.\n");
+	mexPrintf("The form (that is, without output)\n: cvlib_mex('abs',IMG);\n");
+	mexPrintf("       does the above operation in-place and stores the result in IMG\n\n");
+
+	mexPrintf("       Class support: all but uint32 (I think).\n");
+	mexPrintf("       Memory overhead: none.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void addWeightedUsage() {
+	mexPrintf("Usage: B = cvlib_mex('addweighted',IMG1,alpha,IMG2,beta[,gamma]);\n");
+	mexPrintf("       The function addweighted calculates weighted sum of two arrays as following:\n");
+	mexPrintf("       B(i) = img1(i)*alpha + img2(i)*beta + gamma\n");
+	mexPrintf("       If gamma is not provided, gamma = 0\n\n");
+	mexPrintf("The form (that is, with no output)\n: cvlib_mex('addweighted',IMG1,alpha,IMG2,beta[,gamma]);\n");
+	mexPrintf("       does the above operation in-place and stores the result in IMG1\n\n");
+
+	mexPrintf("       Class support: all but uint32.\n");
+	mexPrintf("       Memory overhead: none.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void approxPolyUsage() {
+	mexPrintf("Usage: B = cvlib_mex('dp',PTS, TOL, ['GEOG']);\n");
+	mexPrintf("       Approximates polygonal curve with desired precision using the Douglas-Peucker algorithm\n");
+	mexPrintf("       PTS is a Mx2 or Mx3 column vector of type single or double.\n");
+	mexPrintf("       PTS can also be of type Int32 but in that case it must be Mx2 column vector.\n");
+	mexPrintf("       GEOG is an optional argument indicating that data is in geographic coordinates.\n");
+	mexPrintf("       TOL is the desired approximation accuracy (see www.softsurfer.com/Archive/algorithm_0205/algorithm_0205.htm).\n\n");
+	mexPrintf("       When data is in geogs, TOL is the tolerance in km.\n");
+
+	mexPrintf("       Class support: int, single or double.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void cannyUsage() {
+	mexPrintf("Usage: C = cvlib_mex('canny',IMG);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
+	mexPrintf("       C = cvlib_mex('canny',IMG,threshold1,threshold2,aperture_size);\n");
+	mexPrintf("       If not provided threshold1 = 40, threshold2 = 200, aperture_size = 3;\n\n");
+
+	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG and a MxN uint8 matrix.\n");
+}
+
 /* ---------------------------------------------------------------------- */
 void cvResizeUsage() {
 	mexPrintf("Usage: B = cvlib_mex('resize',A,M,METHOD);\n");
@@ -3448,6 +3642,32 @@ void cvResizeUsage() {
 	mexPrintf("             If interpolation METHOD is 'nearest' all data types are supported:\n");
 	mexPrintf("             Otherwise: logical, uint8, uint16 and single!\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG and 1 copy of B.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void colorUsage() {
+	mexPrintf("Usage: B = cvlib_mex('color',IMG,'TRF');\n");
+	mexPrintf("       where IMG is a MxNx3 image of type: uint8, uint16 OR single (0..1 interval).\n");
+	mexPrintf("       TRF is a string controling the transformation. Possibilities are:\n");
+	mexPrintf("       rgb2lab,lab2rgb, rgb2luv,luv2rgb, rgb2xyz,xyz2rgb\n");
+	mexPrintf("       rgb2yiq,yiq2rgb, rgb2hsv,luv2hsv, rgb2hls,hls2rgb, rgb2YCrCb,YCrCb2rgb\n\n");
+
+	mexPrintf("       NOTE: When input is of type single, the rgb2hsv and rgb2hls transforms output\n");
+	mexPrintf("       H=[0..360], V=[0..1], S|L=[0..1].  The converse trasforms also expect H=[0..360];\n\n");
+
+	mexPrintf("       Class support: uint8, uint16 or single.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG and 1 copy of B.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void dilateUsage() {
+	mexPrintf("Usage: C = cvlib_mex('dilate',IMG);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image OR a MxN single:\n");
+	mexPrintf("       C = cvlib_mex('dilate',IMG,iterations);\n");
+	mexPrintf("       If not provided iterations = 1;\n\n");
+
+	mexPrintf("       Class support: logical, uint8 or single.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
@@ -3486,23 +3706,6 @@ void lineUsage() {
 	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
 }
 
-/* -------------------------------------------------------------------------------------------- */
-void rectUsage() {
-	mexPrintf("Usage: cvlib_mex('rectangle',IMG,PT1,PT2,[COLOR,THICK,LINE_TYPE]);\n");
-	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
-	mexPrintf("       draws, inplace, a rectangle between the oposit corners PT1 and PT2 in the image.\n");
-	mexPrintf("       IM2 = cvlib_mex('rectangle',IMG,PT1,PT2,[COLOR,THICK,LINE_TYPE]);\n");
-	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
-	mexPrintf("       Terms inside brakets are optional and can be empty,\n");
-	mexPrintf("       e.g (...,[],[],LINE_TYPE) or (...,[],5) are allowed.\n");
-	mexPrintf("	  PT1 & PT2 -> Oposit rectangle vertices. Note PT is a 1x2 vector e.g [x y]\n");
-	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
-	mexPrintf("       THICK -> Line thickness (default 1). If negative a filled rectangle is drawn.\n");
-	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), 4 - 4-connected, 16 - antialiased.\n\n");
-
-	mexPrintf("       Class support: uint8.\n");
-	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
-}
 /* -------------------------------------------------------------------------------------------- */
 void circUsage() {
 	mexPrintf("Usage: cvlib_mex('circle',IMG,CENTER,RADIUS,[COLOR,THICK,LINE_TYPE]);\n");
@@ -3622,6 +3825,35 @@ void goodFeaturesUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
+void haarUsage() {
+	mexPrintf("Usage: B = cvlib_mex('haar',IMG, HaarCascade_File, [scale, min_neighbors, min_size]);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 or MxN intensity image (other types not tested):\n");
+	mexPrintf("       Second input is the Location of the XML file that contains the Haar cascade.\n\n");
+
+	mexPrintf("       OPTIONS - Note, for setting option N you must also provide the option N-1\n");
+	mexPrintf("       	    If defaults are ok use [] for the value of that option.\n");
+	mexPrintf("	  scale -> The factor by which the search window is scaled between the subsequent scans,\n");
+	mexPrintf("	  	   for example, 1.1 means increasing window by 10%. [DEFAULT is 1.1]\n");
+	mexPrintf("	  min_neighbors -> Minimum number (minus 1) of neighbor rectangles that makes up an object.\n");
+	mexPrintf("	  	All the groups of a smaller number of rectangles than min_neighbors-1 are rejected.\n");
+	mexPrintf("	  	If min_neighbors is 0, the function does not any grouping at all and returns all\n");
+	mexPrintf("	  	and returns all the detected candidate rectangles, which may be useful if the user\n");
+	mexPrintf("	  	wants to apply a customized grouping procedure. [DEFAULT is 3]\n");
+	mexPrintf("	  min_size -> Minimum possible face size (for example, ~1/4 to 1/16 of the image area in case\n");
+	mexPrintf("	  	of video conferencing). [DEFAULT is 30]\n\n");
+
+	mexPrintf("       B is a M-by-N matrix where:\n");
+	mexPrintf("       	N is the number of objects\n");
+	mexPrintf("       	M = 4; 1: X location of object\n");
+	mexPrintf("       	       2: Y location of object\n");
+	mexPrintf("       	       3: Width of object\n");
+	mexPrintf("       	       4: Height of object\n\n");
+
+	mexPrintf("       Class support: uint8 (and maybe others - not tested).\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
 void houghLines2Usage() {
 	mexPrintf("Usage: B = cvlib_mex('houghlines2',IMG);\n");
 	mexPrintf("       where IMG is a uint8 MxNx3 or MxN intensity image OR a MxN logical (mask):\n");
@@ -3671,41 +3903,6 @@ void findContoursUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
-void approxPolyUsage() {
-	mexPrintf("Usage: B = cvlib_mex('dp',PTS, TOL, ['GEOG']);\n");
-	mexPrintf("       Approximates polygonal curve with desired precision using the Douglas-Peucker algorithm\n");
-	mexPrintf("       PTS is a Mx2 or Mx3 column vector of type single or double.\n");
-	mexPrintf("       PTS can also be of type Int32 but in that case it must be Mx2 column vector.\n");
-	mexPrintf("       GEOG is an optional argument indicating that data is in geographic coordinates.\n");
-	mexPrintf("       TOL is the desired approximation accuracy (see www.softsurfer.com/Archive/algorithm_0205/algorithm_0205.htm).\n\n");
-	mexPrintf("       When data is in geogs, TOL is the tolerance in km.\n");
-
-	mexPrintf("       Class support: int, single or double.\n");
-}
-
-/* -------------------------------------------------------------------------------------------- */
-void cannyUsage() {
-	mexPrintf("Usage: C = cvlib_mex('canny',IMG);\n");
-	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
-	mexPrintf("       C = cvlib_mex('canny',IMG,threshold1,threshold2,aperture_size);\n");
-	mexPrintf("       If not provided threshold1 = 40, threshold2 = 200, aperture_size = 3;\n\n");
-
-	mexPrintf("       Class support: uint8.\n");
-	mexPrintf("       Memory overhead: 1 copy of IMG and a MxN uint8 matrix.\n");
-}
-
-/* -------------------------------------------------------------------------------------------- */
-void sobelUsage() {
-	mexPrintf("Usage: C = cvlib_mex('sobel',IMG);\n");
-	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image OR a MxN single:\n");
-	mexPrintf("       C = cvlib_mex('sobel',IMG,xorder,yorder,aperture_size);\n");
-	mexPrintf("       If not provided xorder = 1, yorder = 0, aperture_size = 3;\n\n");
-
-	mexPrintf("       Class support: uint8 or single.\n");
-	mexPrintf("       Memory overhead: 1 copy of IMG and a MxN matrix of the same type as IMG.\n");
-}
-
-/* -------------------------------------------------------------------------------------------- */
 void laplaceUsage() {
 	mexPrintf("Usage: C = cvlib_mex('laplace',IMG);\n");
 	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image OR a MxN single:\n");
@@ -3717,21 +3914,24 @@ void laplaceUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
+void logUsage() {
+	mexPrintf("Usage: B = cvlib_mex('log',IMG);\n");
+	mexPrintf("       Calculates natural logarithm of every array element absolute value\n");
+	mexPrintf("       B(I) = dst(I)=log(abs(img(I))), img(I)!=0\n");
+	mexPrintf("       B(I) = dst(I)=C,  img(I)=0\n");
+	mexPrintf("       Where C is large negative number (~-700 in the current implementation)\n");
+	mexPrintf("The form (that is, with no output)\n: cvlib_mex('log',IMG);\n");
+	mexPrintf("       does the above operation in-place and stores the result in IMG\n\n");
+
+	mexPrintf("       Class support: all but uint32.\n");
+	mexPrintf("       Memory overhead: none.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
 void erodeUsage() {
 	mexPrintf("Usage: C = cvlib_mex('erode',IMG);\n");
 	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image OR a MxN single:\n");
 	mexPrintf("       C = cvlib_mex('erode',IMG,iterations);\n");
-	mexPrintf("       If not provided iterations = 1;\n\n");
-
-	mexPrintf("       Class support: logical, uint8 or single.\n");
-	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
-}
-
-/* -------------------------------------------------------------------------------------------- */
-void dilateUsage() {
-	mexPrintf("Usage: C = cvlib_mex('dilate',IMG);\n");
-	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image OR a MxN single:\n");
-	mexPrintf("       C = cvlib_mex('dilate',IMG,iterations);\n");
 	mexPrintf("       If not provided iterations = 1;\n\n");
 
 	mexPrintf("       Class support: logical, uint8 or single.\n");
@@ -3756,21 +3956,6 @@ void morphologyexUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
-void colorUsage() {
-	mexPrintf("Usage: B = cvlib_mex('color',IMG,'TRF');\n");
-	mexPrintf("       where IMG is a MxNx3 image of type: uint8, uint16 OR single (0..1 interval).\n");
-	mexPrintf("       TRF is a string controling the transformation. Possibilities are:\n");
-	mexPrintf("       rgb2lab,lab2rgb, rgb2luv,luv2rgb, rgb2xyz,xyz2rgb\n");
-	mexPrintf("       rgb2yiq,yiq2rgb, rgb2hsv,luv2hsv, rgb2hls,hls2rgb, rgb2YCrCb,YCrCb2rgb\n\n");
-
-	mexPrintf("       NOTE: When input is of type single, the rgb2hsv and rgb2hls transforms output\n");
-	mexPrintf("       H=[0..360], V=[0..1], S|L=[0..1].  The converse trasforms also expect H=[0..360];\n\n");
-
-	mexPrintf("       Class support: uint8, uint16 or single.\n");
-	mexPrintf("       Memory overhead: 1 copy of IMG and 1 copy of B.\n");
-}
-
-/* -------------------------------------------------------------------------------------------- */
 void flipUsage() {
 	mexPrintf("Usage: B = cvlib_mex('flip',IMG,'DIR');\n");
 	mexPrintf("       Flip a 2D array around vertical, horizontall or both axis\n");
@@ -3787,6 +3972,17 @@ void filterUsage() {
 
 	mexPrintf("       Class support: uint8, int16, uint16 or single.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG and 1 copy of FILTER.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void sobelUsage() {
+	mexPrintf("Usage: C = cvlib_mex('sobel',IMG);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image OR a MxN single:\n");
+	mexPrintf("       C = cvlib_mex('sobel',IMG,xorder,yorder,aperture_size);\n");
+	mexPrintf("       If not provided xorder = 1, yorder = 0, aperture_size = 3;\n\n");
+
+	mexPrintf("       Class support: uint8 or single.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG and a MxN matrix of the same type as IMG.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
@@ -3904,30 +4100,6 @@ void arithmUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
-void addWeightedUsage() {
-	mexPrintf("Usage: B = cvlib_mex('addweighted',IMG1,alpha,IMG2,beta[,gamma]);\n");
-	mexPrintf("       The function addweighted calculates weighted sum of two arrays as following:\n");
-	mexPrintf("       B(i) = img1(i)*alpha + img2(i)*beta + gamma\n");
-	mexPrintf("       If gamma is not provided, gamma = 0\n\n");
-	mexPrintf("The form (that is, with no output)\n: cvlib_mex('addweighted',IMG1,alpha,IMG2,beta[,gamma]);\n");
-	mexPrintf("       does the above operation in-place and stores the result in IMG1\n\n");
-
-	mexPrintf("       Class support: all but uint32.\n");
-	mexPrintf("       Memory overhead: none.\n");
-}
-
-/* -------------------------------------------------------------------------------------------- */
-void absUsage() {
-	mexPrintf("Usage: B = cvlib_mex('abs',IMG);\n");
-	mexPrintf("       Calculates absolute value of array.\n");
-	mexPrintf("The form (that is, without output)\n: cvlib_mex('abs',IMG);\n");
-	mexPrintf("       does the above operation in-place and stores the result in IMG\n\n");
-
-	mexPrintf("       Class support: all but uint32 (I think).\n");
-	mexPrintf("       Memory overhead: none.\n");
-}
-
-/* -------------------------------------------------------------------------------------------- */
 void powUsage() {
 	mexPrintf("Usage: B = cvlib_mex('pow',IMG,power);\n");
 	mexPrintf("       Raises every array element to power:\n");
@@ -3943,17 +4115,21 @@ void powUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
-void logUsage() {
-	mexPrintf("Usage: B = cvlib_mex('log',IMG);\n");
-	mexPrintf("       Calculates natural logarithm of every array element absolute value\n");
-	mexPrintf("       B(I) = dst(I)=log(abs(img(I))), img(I)!=0\n");
-	mexPrintf("       B(I) = dst(I)=C,  img(I)=0\n");
-	mexPrintf("       Where C is large negative number (~-700 in the current implementation)\n");
-	mexPrintf("The form (that is, with no output)\n: cvlib_mex('log',IMG);\n");
-	mexPrintf("       does the above operation in-place and stores the result in IMG\n\n");
+void rectUsage() {
+	mexPrintf("Usage: cvlib_mex('rectangle',IMG,PT1,PT2,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
+	mexPrintf("       draws, inplace, a rectangle between the oposit corners PT1 and PT2 in the image.\n");
+	mexPrintf("       IM2 = cvlib_mex('rectangle',IMG,PT1,PT2,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
+	mexPrintf("       Terms inside brakets are optional and can be empty,\n");
+	mexPrintf("       e.g (...,[],[],LINE_TYPE) or (...,[],5) are allowed.\n");
+	mexPrintf("	  PT1 & PT2 -> Oposit rectangle vertices. Note PT is a 1x2 vector e.g [x y]\n");
+	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
+	mexPrintf("       THICK -> Line thickness (default 1). If negative a filled rectangle is drawn.\n");
+	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), 4 - 4-connected, 16 - antialiased.\n\n");
 
-	mexPrintf("       Class support: all but uint32.\n");
-	mexPrintf("       Memory overhead: none.\n");
+	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
