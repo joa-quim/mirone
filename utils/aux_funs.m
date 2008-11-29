@@ -471,8 +471,11 @@ function [xdata, ydata, zdata] = localRemoveExtraNanSeps(xdata, ydata, zdata)
 
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function appProjectionRef(handles, strWKT)
-	% If we have a WKT proj store it, otherwise clean eventual predecessors
+% If we have a WKT proj store it, otherwise clean eventual predecessors
     if (~isempty(strWKT))					% If we have a WKT projection, store it
+		if (strWKT(1) == '+')				% Well, it is a proj4 string, convert it to WKT
+			strWKT = ogrproj(strWKT);
+		end
 		setappdata(handles.figure1,'ProjWKT',strWKT)
         out = decodeProjectionRef(strWKT);				% Decode Proj reference string
 		if ( ~isempty(out.datum) || ~isempty(out.ellipsoid) || ~isempty(out.projection) )
