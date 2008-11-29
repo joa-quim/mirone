@@ -9,16 +9,14 @@ function make_mexs(opt)
 if (nargin == 0)	opt = 'usage';	end
 
 % Adjust for your own path
-patoINC_GMT = 'd:\progs_cygw\GMTdev\GMT\';				% Include path for GMT
-patoLIB_GMT = 'd:\progs_cygw\GMTdev\GMT_win\libMEX\';	% Lib path for GMT - Libs compiled with 'MEX condition'
-%patoLIB_GMT = 'd:\progs_interix\GMTdev\GMT_win\lib\';	% Lib path for GMT
-%patoLIB_GMT = 'c:\programs\gmt4\lib\';					%
-pato_NETCDF = 'D:\progs_interix\netcdf-3.6.2b5_win\';	% path for NETCDF
-%pato_GDAL = 'D:\programas\GDALB143\';					% path for GDAL
-pato_GDAL = 'D:\programas\GDALtrunk\';					% path for GDAL
-pato_OCV = 'C:\programas\OpenCV\';					% path for OpenCV
-pato_SHAPELIB = 'D:\lixo\shapelib\';					% path for shapelib
-pato_VC98LIB = 'C:\programas\VisualStudio\VC98\Lib\';	% path for MSVC library dir
+patoINC_GMT = 'c:\progs_cygw\GMTdev\GMT\';				% Include path for GMT
+patoLIB_GMT = 'c:\progs_cygw\GMTdev\GMT_win\libMEX\';	% Lib path for GMT - Libs compiled with 'MEX condition'
+%patoLIB_GMT = 'c:\progs_interix\GMTdev\GMT_win\lib\';	% Lib path for GMT
+pato_NETCDF = 'c:\progs_interix\netcdf-3.6.2b5_win\';	% path for NETCDF
+pato_GDAL = 'c:\programs\GDALtrunk\gdal\';				% path for GDAL
+pato_OCV = 'C:\programs\OpenCV\';						% path for OpenCV
+pato_SHAPELIB = 'c:\lixo\shapelib\';					% path for shapelib
+pato_VC98LIB = 'C:\programs\VisualStudio\VC98\Lib\';	% path for MSVC library dir
 
 if (ispc)
 	COPT = '-DWIN32 -O';
@@ -46,12 +44,13 @@ INCLUDE_CV = [pato_OCV 'cv\include'];
 INCLUDE_HG = [pato_OCV 'otherlibs\highgui'];
 INCLUDE_CXCORE = [pato_OCV 'cxcore\include'];
 LIB_CV = [pato_OCV 'lib\cv.lib'];
+LIB_CV_HAAR = [pato_OCV 'lib\cvhaartraining.lib'];
 LIB_CXCORE = [pato_OCV 'lib\cxcore.lib'];
 LIB_HG = [pato_OCV 'lib\highgui.lib'];
 
 % GMT mexs
-str_gmt = {'grdgradient_m' 'grdinfo_m' 'grdproject_m' 'grdread_m' 'grdsample_m' ...
-        'grdtrack_m' 'grdtrend_m' 'grdwrite_m' 'mapproject_m' 'mapproject_m421' 'shoredump' 'surface_m' ...
+str_gmt = {'grdinfo_m' 'grdproject_m' 'grdread_m' 'grdsample_m' ...
+        'grdtrend_m' 'grdwrite_m' 'mapproject_m' 'mapproject_m421' 'shoredump' 'surface_m' ...
         'nearneighbor_m' 'grdfilter_m' 'cpt2cmap' 'grdlandmask_m' 'grdppa_m'}';
 
 % GMT MGG supplements mexs (currently only one)
@@ -75,10 +74,11 @@ str_withCDF = {'swan'; 'swan_sem_wbar'};
 % Non LIB dependent mexs (besides matlab libs, of course)
 str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'tsun2' 'wave_travel_time' 'mansinha_m' ...
         'telha_m' 'range_change' 'country_select' 'mex_illuminate' 'grdutils' ...
-        'read_isf' 'ind2rgb8' 'alloc_mex' 'susan' 'set_gmt' 'existmex' 'mxgridtrimesh' 'intlutc'}';
+        'read_isf' 'ind2rgb8' 'alloc_mex' 'susan' 'set_gmt' 'mxgridtrimesh' ...
+		'intlutc' 'trend1d_m', 'gmtmbgrid_m' 'grdgradient_m' 'grdtrack_m'}';
 
 % Non LIB dependent c++ mexs
-str_simple_cpp = {'houghmex' 'cimgmatlab_cannyderiche'}';
+str_simple_cpp = {'houghmex' 'cimgmatlab_cannyderiche' 'clipbd_mex'}';
 LIB_USER32 = [pato_VC98LIB 'USER32.LIB'];
 LIB_GDI32 = [pato_VC98LIB 'GDI32.LIB'];
 
@@ -92,7 +92,7 @@ include_gdal = ['-I' INCLUDE_GDAL];
 include_shape = ['-I' INCLUDE_SHAPE];
 library_shape = LIB_SHAPE;
 include_cv = ['-I' INCLUDE_CV ' -I' INCLUDE_CXCORE ' -I' INCLUDE_HG];
-library_cv = [LIB_CV ' ' LIB_CXCORE ' ' LIB_HG];
+library_cv = [LIB_CV ' ' LIB_CXCORE ' ' LIB_HG ' ' LIB_CV_HAAR];
 library_vc6 = [LIB_USER32 ' ' LIB_GDI32];
 
 opt_gmt = COPT;
@@ -102,38 +102,51 @@ if (ispc)
     opt_gmt_mgg = [COPT ' -DDLL_GMT -DGMT_MGG'];
 end
 
-if (strcmp(opt,'all'))              % Compile the whole family
-    for (i=1:length(str_gmt))       % Compile GMT mexs
+if (strcmp(opt,'all'))			% Compile the whole family
+    for (i=1:length(str_gmt))		% Compile GMT mexs
         cmd = ['mex ' [str_gmt{i} '.c'] ' ' include_gmt ' ' library_gmt ' ' opt_gmt];
         eval(cmd)
     end
-    for (i=1:length(str_gmt_mgg))    % Compile GMT MGG mexs
+    for (i=1:length(str_gmt_mgg))	% Compile GMT MGG mexs
         cmd = ['mex ' [str_gmt_mgg{i} '.c'] ' ' include_gmt ' ' include_gmt_mgg ' ' library_gmt_mgg ' ' opt_gmt_mgg];
         eval(cmd)
     end
-    for (i=1:length(str_gdal))      % Compile Gdal mexs
+    for (i=1:length(str_gdal))		% Compile GDAL mexs
         cmd = ['mex ' [str_gdal{i} '.c'] ' ' include_gdal ' ' library_gdal ' ' COPT];
         eval(cmd)
     end
-    for (i=1:length(str_cv))      % Compile OpenCV mexs
+    for (i=1:numel(str_gdal_cpp))	% Compile GDAL C++ mexs
+        cmd = ['mex ' [str_gdal_cpp{i} '.cpp'] ' ' include_gdal ' ' library_gdal ' ' COPT];
+        eval(cmd)
+    end
+    for (i=1:length(str_cv))		% Compile OpenCV mexs
         cmd = ['mex ' [str_cv{i} '.c'] ' ' include_cv ' ' library_cv ' ' COPT];
         eval(cmd)
     end
-    for (i=1:length(str_simple))    % Compile Other (simple) mexs
+    for (i=1:length(str_simple))	% Compile Other (simple) mexs
         cmd = ['mex ' [str_simple{i} '.c'] ' ' COPT];
         eval(cmd)
     end
-    for (i=1:length(str_simple_cpp))    % Compile Other (simple) c++ mexs
+    for (i=1:length(str_simple_cpp))	% Compile Other (simple) c++ mexs
         cmd = ['mex ' [str_simple_cpp{i} '.cpp'] ' ' COPT];
         eval(cmd)
     end
-elseif (strcmp(lower(opt),'gmt'))   % Compile only the GMT mexs (and supplements)
+elseif (strcmp(lower(opt),'gmt'))	% Compile only the GMT mexs (and supplements)
     for (i=1:length(str_gmt))
         cmd = ['mex ' [str_gmt{i} '.c'] ' ' include_gmt ' ' library_gmt ' ' opt_gmt];
         eval(cmd)
     end
-    for (i=1:length(str_gmt_mgg))    % Compile GMT MGG mexs
+    for (i=1:length(str_gmt_mgg))	% Compile GMT MGG mexs
         cmd = ['mex ' [str_gmt_mgg{i} '.c'] ' ' include_gmt ' ' include_gmt_mgg ' ' library_gmt_mgg ' ' opt_gmt_mgg];
+        eval(cmd)
+    end
+elseif (strcmp(lower(opt),'gdal'))	% Compile only the GDAL mexs
+    for (i=1:numel(str_gdal))		% Compile GDAL C mexs
+        cmd = ['mex ' [str_gdal{i} '.c'] ' ' include_gdal ' ' library_gdal ' ' COPT];
+        eval(cmd)
+    end
+    for (i=1:numel(str_gdal_cpp))	% Compile GDAL C++ mexs
+        cmd = ['mex ' [str_gdal_cpp{i} '.cpp'] ' ' include_gdal ' ' library_gdal ' ' COPT];
         eval(cmd)
     end
 else                                % Compile only one mex
@@ -155,9 +168,9 @@ else                                % Compile only one mex
         cmd = ['mex ' [str_gmt{idx1} '.c'] ' ' include_gmt ' ' library_gmt ' ' opt_gmt];
     elseif (~isempty(idx4))     % Compile GMT MGG mexs
         cmd = ['mex ' [str_gmt_mgg{idx4} '.c'] ' ' include_gmt ' ' include_gmt_mgg ' ' library_gmt_mgg ' ' opt_gmt_mgg];
-    elseif (~isempty(idx2))     % Compile Gdal mexs
+    elseif (~isempty(idx2))     % Compile GDAL mexs
         cmd = ['mex ' [str_gdal{idx2} '.c'] ' ' include_gdal ' ' library_gdal ' ' COPT];
-    elseif (~isempty(idx2pp))     % Compile Gdal c++ mexs
+    elseif (~isempty(idx2pp))     % Compile GDAL c++ mexs
         cmd = ['mex ' [str_gdal_cpp{idx2pp} '.cpp'] ' ' include_gdal ' ' library_gdal ' ' COPT];
     elseif (~isempty(idx22))    % Compile Shape mexs
         cmd = ['mex ' [str_shape{idx22} '.c'] ' ' include_shape ' ' library_shape ' ' COPT];
