@@ -61,23 +61,7 @@ function varargout = ml_clip(varargin)
 	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-	h_f = handles.frame1;
-	for i = 1:numel(h_f)
-		frame_size = get(h_f(i),'Position');
-		f_bgc = get(h_f(i),'BackgroundColor');
-		usr_d = get(h_f(i),'UserData');
-		if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-			frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-		else
-			frame3D(hObject,frame_size,framecolor,'',usr_d)
-			delete(h_f(i))
-		end
-	end
-	delete(handles.text_statHammer)		% Recreate this text. Better than call the stupid uistack function
-	handles.text_statHammer = uicontrol('Parent',hObject,'FontName','Helvetica','FontSize',10,'Position',[60 97 150 18],...
-		'FontAngle','italic', 'String','Statistical Hammering','Style','text');
+	new_frame3D(hObject, handles.text_statHammer, handles.frame1)
 	%------------- END Pro look (3D) -------------------------------------------------------
 
 	guidata(hObject, handles);
