@@ -9,6 +9,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
 %#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
+%#function obj_template_detect
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -338,13 +339,15 @@ uimenu('Parent',hTL,'Call','mirone(''TransferB_CB'',guidata(gcbo),''isGDAL'')','
 uimenu('Parent',hTL,'Call','ecran','Label','X,Y grapher','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','gmtedit','Label','gmtedit');	kv = kv + 1;
 uimenu('Parent',hTL,'Call','rally_plater','Label','Rally Plater');
-uimenu('Parent',hTL,'Label','entry_vtr','Sep','on');
 uimenu('Parent',hTL,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
 uimenu('Parent',hTL,'Call','empilhador(guidata(gcbo))','Label','Empilhador');
 uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
-uimenu('Parent',hTL,'Call','cartas_militares(guidata(gcbo))','Label','Cartas Militares','Sep','on')
 uimenu('Parent',hTL,'Call','world_is_not_round_enough(guidata(gcbo))','Label','World is not (round) enough','Sep','on');
+h = uimenu('Parent',hTL,'Label','Misc Tools','Sep','on');
+uimenu('Parent',h,'Call','cartas_militares(guidata(gcbo))','Label','Cartas Militares')
+uimenu('Parent',h,'Call','obj_template_detect(gcf)','Label','Object detection','Sep','on');
+uimenu('Parent',h,'Label','entry_vtr','Sep','on');
 uimenu('Parent',hTL,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command','Sep','on');
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Line Operations','Tag','lineOP');
 % uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
@@ -643,7 +646,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 14 Nov 2008'',''1.4.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 29 Nov 2008'',''1.4.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
