@@ -12,6 +12,7 @@ function varargout = gdal_project(varargin)
             delete(hObject),	return
 		end
 		handles.handMir = handMir;
+		handles.hMirFig = handMir.figure1;
 		handles.hdr.ULx = handMir.head(1) - handMir.head(8) / 2 * (~handMir.head(7));	% Goto pixel reg
 		handles.hdr.ULy = handMir.head(4) + handMir.head(9) / 2 * (~handMir.head(7));
 		handles.hdr.Xinc = handMir.head(8);    handles.hdr.Yinc = handMir.head(9);
@@ -48,12 +49,12 @@ function varargout = gdal_project(varargin)
 
 	% See if we have something to put in the source edit box
  	handles.have_prjIn = false;			% It will be true when input is projected and we know how
-	proj4 = getappdata(handMir.figure1,'Proj4');
+	proj4 = getappdata(handles.hMirFig,'Proj4');
 	if (~isempty(proj4))
 		set(handles.edit_source,'String',proj4)
 		handles.have_prjIn = true;
 	else
-		projWKT = getappdata(handMir.figure1,'ProjWKT');
+		projWKT = getappdata(handles.hMirFig,'ProjWKT');
 		if (~isempty(projWKT))
 			proj4 = ogrproj(projWKT);
 			set(handles.edit_source,'String',proj4)
@@ -63,8 +64,13 @@ function varargout = gdal_project(varargin)
 		end
 	end
 
-	% Give a Pro look (3D) to the frame boxes 
-	new_frame3D(hObject,handles.text_IM,handles.frame1)
+	%------------ Give a Pro look (3D) to the frame box ----------------------------
+	new_frame3D(hObject, handles.text_IM, handles.frame1)
+
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
@@ -147,7 +153,7 @@ function push_OK_Callback(hObject, eventdata, handles)
 		tipo = 'image';
 		if (ndims(Z) == 2),		cmap = get(handles.handMir.figure1,'Colormap');		end
 	end
-	[ras,att] = gdalwarp_mex(Z,handles.hdr);
+	[ras, att] = gdalwarp_mex(Z, handles.hdr);
 	
 	if (numel(ras) < 4)
 		errordlg('Sorry but the operation went wrong. We got nothing valuable on return.','Error'),	return
@@ -160,7 +166,9 @@ function push_OK_Callback(hObject, eventdata, handles)
 		tmp.X = att.GMT_hdr(1:2);		tmp.Y = att.GMT_hdr(3:4);
 	end
 	tmp.head = att.GMT_hdr;
-	tmp.name = ['Reprojected ' tipo];
+	prjName = handles.projGDAL_name{get(handles.popup_projections,'Value')};
+	tmp.name = ['Reprojected (' prjName ') ' tipo];
+	tmp.srsWKT = att.ProjectionRef;
 	if (~isempty(cmap)),	tmp.cmap = cmap;	end
 
 	mirone(ras,tmp)
