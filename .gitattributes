@@ -474,6 +474,7 @@ src_figs/mk_movie_from_list.m -text
 src_figs/ml_clip.m -text
 src_figs/mpaint.m -text
 src_figs/nearneighbor_options.m -text
+src_figs/obj_template_detect.m -text
 src_figs/overview.m -text
 src_figs/paint_option.m -text
 src_figs/parker_stuff.m -text
