@@ -22,13 +22,16 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 filename = varargin{1};     hlines = NaN;
 
 if (nargin > 1),    requestedDelimiter = varargin{2};
-else                requestedDelimiter = NaN;       end
+else                requestedDelimiter = NaN;
+end
 
 if (nargin > 2),    requestedHeaderLines = varargin{3};
-else                requestedHeaderLines = NaN;     end
+else                requestedHeaderLines = NaN;
+end
 
 if (nargin > 3),    requestedMultiSeg = varargin{4};
-else                requestedMultiSeg = NaN;     end
+else                requestedMultiSeg = NaN;
+end
 
 if ~ischar(filename)                 % get filename
 	errordlg('Filename must be a string.','Error');
@@ -47,6 +50,11 @@ if ~isequal(exist(filename,'file'), 2)     % make sure file exists
 	numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
 	return
 end
+
+if (isnan(requestedHeaderLines))   % GUESS_FILE is better (and probably faster) in in guessing headers
+	[bin, n_column, multi_seg, requestedHeaderLines] = guess_file(filename, 2048, 50);
+end
+
 
 % ----------------------------- open the file
 fid = fopen(filename);
