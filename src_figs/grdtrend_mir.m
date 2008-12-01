@@ -115,7 +115,7 @@ message = {'The trend surface is defined by:'
     'm1  +  m2*x + m3*y + m4*x*y + m5*x*x + m6*y*y + m7*x*x*x + m8*x*x*y + m9*x*y*y + m10*y*y*y'
     ''
     'The user must specify "Number of mode parameters", the number of model'
-    'parameters to use; thus, 4 fits a bilinear trend, 6 a quadratic surface,'
+    'parameters to use; thus, 3 fits a bilinear trend, 6 a quadratic surface,'
     'and so on. Optionally, select "Robust fit" to perform a robust fit.'};
 helpdlg(message,'Help on model parameters');
 
