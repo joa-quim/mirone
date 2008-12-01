@@ -111,12 +111,12 @@ function varargout = fft_stuff(varargin)
 	str = sprintf(['The default value is the number of rows in the grid\n',...
 		'However, for reducing border effects you may want to apply\n',...
 		'a skirt to the grid. For that, select a value from the side\n',...
-		'listbox. Extra points will be padded by mirrowiong the west side.']);
+		'listbox. Extra points are obtained by data extention and tapered to zero.']);
 	set(handles.edit_Nrows,'TooltipString',str)
 	str = sprintf(['The default value is the number of cols in the grid\n',...
 		'However, for reducing border effects you may want to apply\n',...
 		'a skirt to the grid. For that, select a value from the side\n',...
-		'listbox. Extra points will be padded by mirrowiong the south side.']);
+		'listbox. Extra points are obtained by data extention and tapered to zero.']);
 	set(handles.edit_Ncols,'TooltipString',str)
 
 	str = sprintf('Good FFT numbers for padding the grid');
@@ -644,22 +644,22 @@ mirone(single(Z),tmp);
 function pushbutton_goDerivative_Callback(hObject, eventdata, handles, opt)
 % Compute N-vertical derivative
 if (isempty(handles.Z1)),   errordlg('No grid loaded yet.','Error');    return; end
-if (isempty(opt)),   scale = 1;
-else                scale = 980619.9203;
-end                 % Moritz's 1980 IGF value for gravity in mGal at lat = 45 degrees
+if (isempty(opt)),	scale = 1;
+else				scale = 980619.9203;
+end					% Moritz's 1980 IGF value for gravity in mGal at lat = 45 degrees
 n_der = fix(str2double(get(handles.edit_derivative,'String')));
 set(handles.figure1,'pointer','watch')
 if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-    handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
+	handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
 end
-[Z,band,k] = wavenumber_and_mboard(handles);
+[Z,band,k] = wavenumber_and_mboard(handles,false,'taper');
 if (scale == 980619.9203),   n_der = 1;  end
 if (n_der > 1),  k = k.^n_der;   end
 Z = fft2(Z) .* k*scale;    Z(1,1) = 0;    clear k;
 Z = real(ifft2((Z)));
 [Z,tmp] = unband(handles,Z,band);
-if (scale == 1),  tmp.name = [num2str(n_der) 'th Vertical Derivative'];
-else                 tmp.name = 'Gravity anomaly (mGal)';
+if (scale == 1),	tmp.name = [num2str(n_der) 'th Vertical Derivative'];
+else				tmp.name = 'Gravity anomaly (mGal)';
 end
 set(handles.figure1,'pointer','arrow')
 mirone(single(Z),tmp);
@@ -684,49 +684,63 @@ set(handles.figure1,'pointer','arrow')
 mirone(single(Z),tmp);
 
 % --------------------------------------------------------------------
-function [Z,band,k] = wavenumber_and_mboard(handles,opt)
+function [Z,band,k] = wavenumber_and_mboard(handles,opt,mode)
 % Compute the wavenumber array and call mboard
 % Z is the expanded array (to handles.new_nx & handles.new_ny)
 % BAND is the second output od mboard
 % K is the wavenumber array
 % If opt = 1 K will be instead a structure with KX & KY fields
+% MODE is either 'taper' (the default) or 'mirror'
 
-if (nargin == 1),    opt = [];   end
-% calculate wavenumber array
-nx2 = fix(handles.new_nx/2);     ny2 = fix(handles.new_ny/2);
+	if (nargin == 1),	opt = false;	mode = 'taper';		end
+	if (nargin == 2),	mode = 'taper';		end
+	if (strcmp(mode, 'taper'))
+		new_nx = handles.new_nx;			new_ny = handles.new_ny;
+	else			% Mirror
+		new_nx = handles.orig_ncols * 2;	new_ny = handles.orig_nrows * 2;
+	end
+	% calculate wavenumber array
+	nx2 = fix(new_nx/2);		ny2 = fix(new_ny/2);
 
-if (rem(handles.new_nx,2) == 0), sft_x = 1;
-else                            sft_x = 0;     end
-if (rem(handles.new_ny,2) == 0), sft_y = 1;
-else                            sft_y = 0;     end
+	if (rem(new_nx,2) == 0),	sft_x = 1;
+	else						sft_x = 0;
+	end
+	if (rem(new_ny,2) == 0),	sft_y = 1;
+	else						sft_y = 0;
+	end
 
-%nx2 = handles.new_nx/2;     ny2 = handles.new_ny/2;    % Tivey way -> but and if n is odd?
-dkx = 2*pi / (handles.new_nx * handles.scaled_dx);
-dky = 2*pi / (handles.new_ny * handles.scaled_dy);
-%kx = (-nx2:nx2-1).*dkx;     ky = (-ny2:ny2-1).*dky;    % Tivey way
-kx = (-nx2:nx2-sft_x).*dkx;  ky = (-ny2:ny2-sft_y).*dky;
-%X = ones(size(ky))'*kx;     Y = ky'*ones(size(kx));
-X = repmat(kx,length(ky),1);    Y = repmat(ky',1,length(kx));
-if (opt)
-    k.x = ifftshift(X);     clear X;
-    k.y = ifftshift(Y);     clear Y;
-else
-    k = ifftshift(sqrt(X.^2+Y.^2));      % wavenumber array   (Tivey used fftshift)
-    clear X Y;
-end
-[Z,band] = mboard(double(handles.Z1),handles.orig_ncols,handles.orig_nrows,handles.new_nx,handles.new_ny);
+	%nx2 = handles.new_nx/2;     ny2 = handles.new_ny/2;    % Tivey way -> but and if n is odd?
+	dkx = 2*pi / (new_nx * handles.scaled_dx);
+	dky = 2*pi / (new_ny * handles.scaled_dy);
+	%kx = (-nx2:nx2-1).*dkx;     ky = (-ny2:ny2-1).*dky;    % Tivey way
+	kx = (-nx2:nx2-sft_x).*dkx;  ky = (-ny2:ny2-sft_y).*dky;
+	%X = ones(size(ky))'*kx;     Y = ky'*ones(size(kx));
+	X = repmat(kx,length(ky),1);    Y = repmat(ky',1,length(kx));
+	if (opt)
+		k.x = ifftshift(X);     clear X;
+		k.y = ifftshift(Y);     clear Y;
+	else
+		k = ifftshift(sqrt(X.^2+Y.^2));      % wavenumber array   (Tivey used fftshift)
+		clear X Y;
+	end
+	[Z,band] = mboard(double(handles.Z1),handles.orig_ncols,handles.orig_nrows,new_nx,new_ny, mode);
 
 % --------------------------------------------------------------------
 function [Z,hdr] = unband(handles,Z,band)
 % Take the BAND vector and remove the padding skirt previously applyed
 % (by mboard) to the Z matrix
 % Return also the HDR structure used the call a new Mirone window
-m1 = band(1)+1;     m2 = m1 + handles.orig_nrows - 1;
-n1 = band(3)+1;     n2 = n1 + handles.orig_ncols - 1;
-Z = Z(m1:m2,n1:n2);                 % Remove the padding skirt
-hdr.X = handles.X;      hdr.Y = handles.Y;
-hdr.head = handles.head_Z1;
-hdr.head(5) = min(min(Z));      hdr.head(6) = max(max(Z));
+	if (~isempty(band))
+		m1 = band(1)+1;     m2 = m1 + handles.orig_nrows - 1;
+		n1 = band(3)+1;     n2 = n1 + handles.orig_ncols - 1;
+	else					% The padding was made by replication
+		m1 = 1;				m2 = handles.orig_nrows;
+		n1 = 1;				n2 = handles.orig_ncols;
+	end
+	Z = Z(m1:m2,n1:n2);                 % Remove the padding skirt
+	hdr.X = handles.X;		hdr.Y = handles.Y;
+	hdr.head = handles.head_Z1;
+	hdr.head(5) = min(min(Z));		hdr.head(6) = max(max(Z));
 
 % --------------------------------------------------------------------
 function popup_GridCoords_Callback(hObject, eventdata, handles)
