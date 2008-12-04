@@ -176,8 +176,8 @@ function out = msg_dlg(in,handles)
 % Cast a window with a pre-deffined message
 out = {0};    msg = [];     h = [];
 if (handles.no_file)
-    msg = 'You didn''t even load a file. What are you expecting then?';    out = {1};
-    h = msgbox(msg,'Error');      return;
+	msg = 'You didn''t even load a file. What are you expecting then?';    out = {1};
+	h = msgbox(msg,'Error');      return;
 end
 switch in
     case 1
@@ -197,34 +197,36 @@ switch in
         end
 end
 if (~isempty(msg))
-    h = msgbox(msg,'Error');
+	h = msgbox(msg,'Error');
 end
 axes(handles.axes1)     % This is for the GCP mode be able to plot on the Master Image
 if (~isempty(h))        % Bring the figure forward because it was hiden by the previous command
-    figure(h)
+	figure(h)
 end
 
 % ----------------------------------------------------------------------------------
 function handles = isProj(handles, opt)
-    % Se if we have projected grid/images and act acordingly
+% Se if we have projected grid/images and act acordingly
 
+	if (~ishandle(handles.Projections)),	return,		end		% True when GCPtool
+	
 	% Fish eventual proj strings
 	prjInfoStruc = getFigProjInfo(handles);
     
-    if (~handles.geog)
-        if (~isempty(prjInfoStruc.projWKT))              % We have a GDAL projected file
-            handles.is_projected = 1;		prjStr = false;
-        elseif (~isempty(prjInfoStruc.projGMT) || ~isempty(prjInfoStruc.proj4))  % We have a GMT or Proj4 projection selection
-            handles.is_projected = 1;		prjStr = false;
-        else                                % We know nothing about these coords (e.g. an image)
-            handles.is_projected = 0;		prjStr = true;
-        end
-    else
-        handles.is_projected = 0;			prjStr = false;
-    end
-    if (handles.is_projected),      set(handles.hAxMenuLF, 'Vis', 'on', 'Separator','on')	% To load/not in prj coords
-    else                            set(handles.hAxMenuLF, 'Vis', 'off', 'Separator','off')
-    end
+	if (~handles.geog)
+		if (~isempty(prjInfoStruc.projWKT))              % We have a GDAL projected file
+			handles.is_projected = 1;		prjStr = false;
+		elseif (~isempty(prjInfoStruc.projGMT) || ~isempty(prjInfoStruc.proj4))  % We have a GMT or Proj4 projection selection
+			handles.is_projected = 1;		prjStr = false;
+		else                                % We know nothing about these coords (e.g. an image)
+			handles.is_projected = 0;		prjStr = true;
+		end
+	else
+		handles.is_projected = 0;			prjStr = false;
+	end
+	if (handles.is_projected),      set(handles.hAxMenuLF, 'Vis', 'on', 'Separator','on')	% To load/not in prj coords
+	else                            set(handles.hAxMenuLF, 'Vis', 'off', 'Separator','off')
+	end
 
 	child = get(handles.Projections,'Children');
 	h1 = findobj(handles.Projections,'Label','-- REPROJECT --');
@@ -235,18 +237,18 @@ function handles = isProj(handles, opt)
 		set([h1 h2 h3],'Enable','on')		% These are always on
 	end
 
-    if (handles.is_projected)       % When read a gdal referenced file we need to set this right away
-        toProjPT(handles)
-        setappdata(handles.figure1,'DispInGeogs',0)     % We need to set it now (this is the default)
-    end
-    
-    if (nargin == 2),       guidata(handles.figure1, handles);      end
+	if (handles.is_projected)       % When read a gdal referenced file we need to set this right away
+		toProjPT(handles)
+		setappdata(handles.figure1,'DispInGeogs',0)     % We need to set it now (this is the default)
+	end
+
+	if (nargin == 2),       guidata(handles.figure1, handles);      end
 
 % ----------------------------------------------------------------------------------
 function togCheck(varargin)
-	% Toggles the check state of a uimenu. If nargin == 2, second arg is assumed to contain
-	% a handles list of others uimenus belonging to a group. In this case, if one ui is 
-	% checked on, the others will be checked off. The contrary doesn not apply.
+% Toggles the check state of a uimenu. If nargin == 2, second arg is assumed to contain
+% a handles list of others uimenus belonging to a group. In this case, if one ui is 
+% checked on, the others will be checked off. The contrary does not apply.
 	h = varargin{1};	st = {'on', 'off'};
 	id = 0;
 	if (strcmp(get(h,'check'), 'on')),	id = 1;		end
