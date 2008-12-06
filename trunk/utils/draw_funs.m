@@ -84,7 +84,7 @@ switch opt
 		else
 			[numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
 		end
-         
+
 		% Project if we need
 		handles = guidata(hFig);
 		if (handles.is_projected && handles.defCoordsIn > 0)
@@ -100,24 +100,24 @@ switch opt
 				errordlg(lasterr,'ERROR');    return
             end
 		end
-            
+
 		% If OUT is requested there is nothing left to be done here  
 % 		if (nargout),		OUT = numeric_data;		return,		end
-		if (nargout),		varargout = numeric_data;		return,		end
-            
-        if (hFig ~= hMsgFig);       figure(hFig);    axes(hAxes);   end     % gain access to the drawing figure
-        % Get rid of points that are outside the map limits
-        tol = 0.5;
-        if (iscell(numeric_data))
+		if (nargout),		[varargout{1:nargout}] = numeric_data;		return,		end
+
+		if (hFig ~= hMsgFig);       figure(hFig);    axes(hAxes);   end     % gain access to the drawing figure
+		% Get rid of points that are outside the map limits
+		tol = 0.5;
+		if (iscell(numeric_data))
 			n_segments = length(numeric_data);
-        else
+		else
 			n_segments = 1;
         end
-        XYlim = getappdata(handles.axes1,'ThisImageLims');
-        xx = XYlim(1:2);            yy = XYlim(3:4);
-        hold on
-        lt = handles.DefLineThick;   lc = handles.DefLineColor;
-        for i=1:n_segments
+		XYlim = getappdata(handles.axes1,'ThisImageLims');
+		xx = XYlim(1:2);            yy = XYlim(3:4);
+		hold on
+		lt = handles.DefLineThick;   lc = handles.DefLineColor;
+		for i=1:n_segments
 			if (iscell(numeric_data))
 				tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
 			else
