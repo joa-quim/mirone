@@ -134,7 +134,7 @@ function push_OK_Callback(hObject, eventdata, handles)
 	if (~isempty(handles.xInc))			% Resolution takes precedence
 		handles.hdr.t_res = [handles.xInc handles.xInc];
 		if (~isempty(handles.yInc))
-			handles.hdr.t_res(2) = handles.xInc;
+			handles.hdr.t_res(2) = handles.yInc;
 		end
 	elseif ( ~isempty(handles.nCols) && ~isempty(handles.nRows) )
 		handles.hdr.t_size = [handles.nCols handles.nRows];
