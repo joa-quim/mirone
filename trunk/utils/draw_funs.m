@@ -93,8 +93,14 @@ switch opt
 					for i=1:numel(numeric_data)
 						numeric_data{i}  = geog2projected_pts(handles,numeric_data{i});
 					end
+					if (any( isinf(numeric_data{1}(1:max(10,size(numeric_data{1},1)))) ))
+						warndlg('Your data was probably already projected. Right-click on the axes frame and uncheck the ''Load files in Geogs'' ','Warning')
+					end
 				else
 					numeric_data = geog2projected_pts(handles,numeric_data);
+					if (any( isinf(numeric_data(1:max(10,size(numeric_data,1)))) ))
+						warndlg('Your data was probably already projected. Right-click on the axes frame and uncheck the ''Load files in Geogs'' ','Warning')
+					end
 				end
             catch
 				errordlg(lasterr,'ERROR');    return
@@ -102,7 +108,6 @@ switch opt
 		end
 
 		% If OUT is requested there is nothing left to be done here  
-% 		if (nargout),		OUT = numeric_data;		return,		end
 		if (nargout),		[varargout{1:nargout}] = numeric_data;		return,		end
 
 		if (hFig ~= hMsgFig);       figure(hFig);    axes(hAxes);   end     % gain access to the drawing figure
@@ -258,6 +263,7 @@ end
 % -----------------------------------------------------------------------------------------
 function set_line_uicontext(h,opt)
 % h is a handle to a line object (that can be closed)
+if (isempty(h)),	return,		end
 
 IS_SEISPOLYGON = 0;     % Seismicity polygons have special options
 % Check to see if we are dealing with a closed polyline
@@ -1760,8 +1766,9 @@ function set_symbol_uicontext(h,data)
 % Set uicontexts for the symbols. h is the handle to the marker (line in fact) object
 % This funtion is a bit messy because it serves for setting uicontexes of individual
 % symbols, points and of "volcano", "hotspot" & "ODP" class symbols. 
+if (isempty(h)),	return,		end
 tag = get(h,'Tag');
-if (length(h) == 1 && length(get(h,'Xdata')) > 1)
+if (numel(h) == 1 && length(get(h,'Xdata')) > 1)
 	more_than_one = 1;		% Flags that h points to a multi-vertice object
 else
 	more_than_one = 0;
