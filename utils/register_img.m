@@ -13,11 +13,13 @@ if ( ~ishandle(h) || ~(strcmp(get(h,'Type'),'line') || strcmp(get(h,'Type'),'pat
     return
 end
 if (isempty(handles))
-    handles.axes1 = get(h,'Parent');
-    handles.figure1 = get(handles.axes1,'Parent');
+	handles.axes1 = get(h,'Parent');
+	handles.figure1 = get(handles.axes1,'Parent');
+	hImg = findobj(handles.axes1,'Type','image');
+else
+	hImg = handles.hImg;
 end
 
-hImg = findobj(handles.axes1,'Type','image');
 if (isempty(hImg))
     errordlg('REGISTER_IMG: No image in this axes. So what do you want to register?','ERROR')
     return
@@ -25,33 +27,37 @@ end
 
 % Make the warping tooltips
 trfToolTips{1} = sprintf(['Use this transformation when shapes\n'...
-        'in the input image exhibit shearing.\n'...
-        'Straight lines remain straight,\n'...
-        'and parallel lines remain parallel,\n'...
-        'but rectangles become parallelograms.']);
+		'in the input image exhibit shearing.\n'...
+		'Straight lines remain straight,\n'...
+		'and parallel lines remain parallel,\n'...
+		'but rectangles become parallelograms.']);
 trfToolTips{2} = sprintf(['Use this transformation when shapes\n'...
-        'in the input image are unchanged,\n'...
-        'but the image is distorted by some\n'...
-        'combination of translation, rotation,\n'...
-        'and scaling. Straight lines remain straight,\n'...
-        'and parallel lines are still parallel.']);
+		'in the input image are unchanged,\n'...
+		'but the image is distorted by some\n'...
+		'combination of translation, rotation,\n'...
+		'and scaling. Straight lines remain straight,\n'...
+		'and parallel lines are still parallel.']);
 trfToolTips{3} = sprintf(['Use this transformation when the scene\n'...
-        'appears tilted. Straight lines remain\n'...
-        'straight, but parallel lines converge\n'...
-        'toward vanishing points that might or\n'...
-        'might not fall within the image.']);
+		'appears tilted. Straight lines remain\n'...
+		'straight, but parallel lines converge\n'...
+		'toward vanishing points that might or\n'...
+		'might not fall within the image.']);
 trfToolTips{4} = sprintf(['Use this transformation when objects\n'...
-        'in the image are curved. The higher the\n'...
-        'order of the polynomial, the better the\n'...
-        'fit, but the result can contain more\n'...
-        'curves than the base image.']);
+		'in the image are curved. The higher the\n'...
+		'order of the polynomial, the better the\n'...
+		'fit, but the result can contain more\n'...
+		'curves than the base image.']);
 trfToolTips{5} = trfToolTips{4};
 trfToolTips{6} = trfToolTips{4};
 trfToolTips{7} = sprintf(['Use this transformation when parts of\n'...
-        'the image appear distorted differently.']);
+		'the image appear distorted differently.']);
 trfToolTips{8} = sprintf(['Use this transformation (local weighted mean),\n'...
-        'when the distortion varies locally and\n'...
-        'piecewise linear is not sufficient.']);
+		'when the distortion varies locally and\n'...
+		'piecewise linear is not sufficient.']);
+trfToolTips{9} = 'GDAL warping with a polynomial of degree 1';
+trfToolTips{10} = 'GDAL warping with a polynomial of degree 2';
+trfToolTips{11} = 'GDAL warping with a polynomial of degree 3';
+trfToolTips{12} = 'GDAL warping with a thin plate spline';
 handles.trfToolTips = trfToolTips;              % Since handles is not saved this field exists only here
 
 ui_edit_polygon(h)    % Set edition functions
@@ -125,10 +131,17 @@ try             % I'm fed up with so many possible errors
             
             RegistMethod = getappdata(handles.figure1,'RegistMethod');
             trfType      = RegistMethod{1};
-            type         = checkTransform(trfType,numel(x));    % Test that n pts and tranfs type are compatible
-            if (isempty(type)),     return;    end              % Error message already issued
+            type         = checkTransform(trfType,numel(x));	% Test that n pts and tranfs type are compatible
+            if (isempty(type)),		return,		end				% Error message already issued
             
-			if (strncmp(type{1},'Poly',4))	% From referenced coords to pixels
+			if (strncmp(trfType,'gdal',4))		% 
+				hdr.gcp = input_base;
+				if (trfType(end) == 's'),	hdr.order = -1;
+				else						hdr.order = str2double(trfType(end));
+				end
+				xy = gdaltransform_mex(input_base(:,1:2), hdr);
+				x = xy(:,1);		y = xy(:,2);
+			elseif (strncmp(type{1},'Poly',4))			% From referenced coords to pixels
 				% Polynomial transformations are not ivertible, so here we do it the other way around
 				trf = transform_fun('cp2tform',input_base(:,3:4),input_base(:,1:2),type{:});			
 				[x,y] = transform_fun('tforminv',trf,input_base(:,3),input_base(:,4));
@@ -172,36 +185,48 @@ end
 
 % ----------------------------------------------------------------------------------
 function do_register(handles,input,base)
+	RegistMethod = getappdata(handles.figure1,'RegistMethod');
+	trfType     = RegistMethod{1};
+	interpola   = RegistMethod{2};
+	type = checkTransform(trfType,size(input,1));	% Test that n pts and tranfs type are compatible
+	if (isempty(type)),		return,		end			% Error message already issued
+	img         = get(handles.hImg,'CData');
 
-h_img = findobj(handles.axes1,'Type','image');
-x = input(:,1);     y = input(:,2);
+	if (strncmp(trfType,'gdal',4))		% 
+		if (trfType(end) == 's'),	hdr.order = -1;
+		else						hdr.order = str2double(trfType(end));
+		end
+		hdr.gcp = [input base];
+		hdr.ULx = 0;		hdr.ULy = 0;
+		hdr.Xinc = 1;		hdr.Yinc = 1;
+		hdr.ResampleAlg = interpola;
+		[img,att] = gdalwarp_mex(flipdim(img,1),hdr);
+		tmp.head  = att.GMT_hdr;
+		tmp.X = tmp.head(1:2);		tmp.Y = tmp.head(3:4);
+	else
+		trf = transform_fun('cp2tform',input,base,type{:});
+		[img,new_xlim,new_ylim] = transform_fun('imtransform',img,trf,interpola,'size',size(img));
+		%[img,new_xlim,new_ylim] = transform_fun('imtransform',img,trf,'XData',[1 size(img,2)],'YData',[1 size(img,1)]);
 
-RegistMethod = getappdata(handles.figure1,'RegistMethod');
-trfType     = RegistMethod{1};
-interpola   = RegistMethod{2};
-type = checkTransform(trfType,numel(x));    % Test that n pts and tranfs type are compatible
-if (isempty(type)),     return;    end      % Error message already issued
-img         = get(h_img,'CData');
-
-trf = transform_fun('cp2tform',input,base,type{:});
-[img,new_xlim,new_ylim] = transform_fun('imtransform',img,trf,interpola,'size',size(img));
-%[img,new_xlim,new_ylim] = transform_fun('imtransform',img,trf,'XData',[1 size(img,2)],'YData',[1 size(img,1)]);
-
-
-tmp.head(1:7) = [new_xlim new_ylim 0 255 1];
-tmp.head(8) = diff(new_xlim) / (size(img,2) - 1);
-tmp.head(9) = diff(new_ylim) / (size(img,1) - 1);
-tmp.X = new_xlim;
-tmp.Y = new_ylim;
-tmp.name = 'Registered Image';
-if (ndims(img) == 2)
-    tmp.cmap = get(handles.figure1,'ColorMap');
-end
-mirone(img,tmp);
+		tmp.head(1:7) = [new_xlim new_ylim 0 255 1];
+		tmp.head(8) = diff(new_xlim) / (size(img,2) - 1);
+		tmp.head(9) = diff(new_ylim) / (size(img,1) - 1);
+		tmp.X = new_xlim;
+		tmp.Y = new_ylim;
+	end
+	tmp.name = ['Registered (' trfType ') Image'];
+	if (ndims(img) == 2)
+		tmp.cmap = get(handles.figure1,'ColorMap');
+	end
+	mirone(img,tmp);
 
 % ---------------------------------------------------------------------------
 function type = checkTransform(type,n_cps)
 % Check that the number of points is enough for the selected transform
+
+if (strncmp(type,'gdal',4))		% GDAL warping numbers are not tested
+	type = {type};		return
+end
 
 switch type
     case 'affine',              transf = 1;
@@ -230,7 +255,7 @@ elseif (transf == 6 && n_cps < 6)
 elseif (transf == 7 && n_cps < 4)
     msg = 'Minimum Control points for piecewise linear transform is 4.';
 elseif (transf == 8 && n_cps < 6)
-    msg = 'Minimum Control points for Locolal weightd mean transform is 6.';
+    msg = 'Minimum Control points for Local weighted mean transform is 6.';
 end
 
 if (strncmp(type,'poly',4))
@@ -242,7 +267,7 @@ if (strncmp(type,'poly',4))
         case 16,    type = {'polynomial' 4};
     end
 else
-    type = {type};
+	type = {type};
 end
 
 if (~isempty(msg))
@@ -264,15 +289,16 @@ if (isempty(h_old))
 		
 	% ---------------- Create the popups
     str1 = {'Affine'; 'Linear conformal'; 'Projective'; 'Polynomial (6 pts)';...
-            'Polynomial (10 pts)'; 'Polynomial (16 pts)'; 'Piecewise linear'; 'Loc weighted mean'};
+            'Polynomial (10 pts)'; 'Polynomial (16 pts)'; 'Piecewise linear'; 'Loc weighted mean'; ...
+			'GDAL order 1'; 'GDAL order 2'; 'GDAL order 3'; 'GDAL splines'; };
 	hTrf = uicontrol('Units','Pixels','TooltipString','Type of transformation',...
         'String', str1, 'Pos',[10 2 130 22],'Style','popupmenu', 'BackgroundColor','w','Tag','Trf');
-    set(hTrf,'Callback',{@cb_trf,hFig,hTrf})
+    set(hTrf,'Callback',{@cb_trf, hFig, hTrf})
 	
     str2 = {'bilinear'; 'bicubic'; 'nearest';};
 	hInterp = uicontrol('Units','Pixels','TooltipString','Specifies the form of interpolation to use.',...
         'String',str2, 'BackgroundColor','w', 'Pos',[160 2 90 22],'Style','popupmenu','Tag','Interp');
-    set(hInterp,'Callback',{@cb_interp,hFig,hInterp})
+    set(hInterp,'Callback',{@cb_interp, hFig, hInterp})
     
     % Start with the last selected value
     RegistMethod = getappdata(hFig,'RegistMethod');
@@ -292,17 +318,21 @@ end
 
 %-----------------------------------------------------------------------------------
 function cb_trf(obj,event,hFig,h)
-	% Transform type popup callback
+% Transform type popup callback
 	transf = get(h,'Value');
 	switch transf
-		case 1,     type = 'affine';
-		case 2,     type = 'linear conformal';
-		case 3,     type = 'projective';
-		case 4,     type = 'polynomial (6 pts)';
-		case 5,     type = 'polynomial (10 pts)';
-		case 6,     type = 'polynomial (16 pts)';
-		case 7,     type = 'piecewise linear';
-		case 8,     type = 'lwm';
+		case 1,		type = 'affine';
+		case 2,		type = 'linear conformal';
+		case 3,		type = 'projective';
+		case 4,		type = 'polynomial (6 pts)';
+		case 5,		type = 'polynomial (10 pts)';
+		case 6,		type = 'polynomial (16 pts)';
+		case 7,		type = 'piecewise linear';
+		case 8,		type = 'lwm';
+		case 9,		type = 'gdal order 1';
+		case 10,	type = 'gdal order 2';
+		case 11,	type = 'gdal order 3';
+		case 12,	type = 'gdal splines';
 	end
 	RegistMethod = getappdata(hFig,'RegistMethod');
 	setappdata(hFig,'RegistMethod',{type RegistMethod{2}})
@@ -311,7 +341,7 @@ function cb_trf(obj,event,hFig,h)
 
 %-----------------------------------------------------------------------------------
 function cb_interp(obj,event,hFig,h)
-	% Interpolation method popup callback
+% Interpolation method popup callback
 	interpola = get(h,'String');
 	interpola = interpola{get(h,'Value')};
 	RegistMethod = getappdata(hFig,'RegistMethod');
