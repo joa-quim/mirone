@@ -41,7 +41,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %----- These are in utils
 %#function tabpanelfcn degree2dms dms2degree dec2deg dec_year ivan_the_terrible ddewhite string_token
 %#function test_dms text_read double2ascii save_seismicity jd2date trimpatch
-%#function guess_file shading_mat getline_j frame3D histos_seis
+%#function guess_file shading_mat getline_j frame3D new_frame3D histos_seis
 %----- These is for write_gmt_script
 %#function draw_scale time_stamp pscoast_options_Mir paint_option w_option
 %----- Those are ..., the hell with explanations for what I don't realy understand. They are needed, that's all.
@@ -51,7 +51,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line move_obj make_arrow
 %#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calcBoninEulerPole spline_interp
-%#function mat2clip buffer_j PolygonClip
+%#function mat2clip buffer_j PolygonClip trend1d_m
 
 % 	global home_dir;    home_dir = cd;      fsep = filesep;		% To compile uncomment this and comment next 5 lines
 	global home_dir;    fsep = filesep;
@@ -178,7 +178,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				tmp = varargin{2};
 				handles.head = tmp.head;		X = tmp.X;		Y = tmp.Y;
 				handles.image_type = 3;			axis_t = 'xy';
-				if (isfield(tmp,'geog')),		handles.geog = tmp.geog;    end % Prevails over the guess in show_image
+				if (isfield(tmp,'geog')),		handles.geog = tmp.geog;    end % Prevails over the guess in show_image (does it?)
 				if (isfield(tmp,'cmap')),		set(handles.figure1,'Colormap',tmp.cmap);   end
 				if (isfield(tmp,'name')),		win_name = tmp.name;    end
 				if (isfield(tmp,'srsWKT'))
@@ -724,8 +724,7 @@ function ImageSegment_CB(handles, hObject)
 	if (handles.no_file),		return,		end
 	rgbIm = get(handles.hImg,'CData');
 	if (ndims(rgbIm) == 2),		rgbIm = ind2rgb8(rgbIm, get(handles.figure1, 'Colormap'));	end
-
-	set(handles.figure1,'pointer','watch'),		pause(0.01)
+	set(handles.figure1,'pointer','watch')
 
 	luvIm = cvlib_mex('CvtScale',single(rgbIm), 1/255); 
 	luvIm = cvlib_mex('color',luvIm,'rgb2luv');
@@ -736,13 +735,11 @@ function ImageSegment_CB(handles, hObject)
 	p.SpatialBandWidth = 7;			p.RangeBandWidth = 6.5;
 	p.MinimumRegionArea = 30;		p.GradientWindowRadius = 2;
 	p.MixtureParameter = .3;		p.EdgeStrengthThreshold = .3;
+	[fimage] = edison_wrapper_mex(luvIm, rgbIm, p);
 
-	if (p.steps == 1),		[fimage] = edison_wrapper_mex(luvIm, rgbIm, p);
-	else					[fimage labels] = edison_wrapper_mex(luvIm, rgbIm, p);
-	end
 	fimage = permute(fimage, [3 2 1]);
-	luvIm = cvlib_mex('color',fimage,'luv2rgb');
-	rgbIm = uint8(cvlib_mex('CvtScale',single(luvIm), 255));
+	luvIm = cvlib_mex('color',fimage,'luv2rgb');	clear fimage
+	rgbIm = scaleto8(luvIm, -8);
 	set(handles.figure1,'pointer','arrow')
 	
 	if (handles.image_type == 2)
@@ -1276,7 +1273,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 
 	erro = 0;
 	try		att = gdalread(handles.fileName,'-M','-C');		% Safety against blind calls from 'try luck'
-	catch	erro = 1;	return
+	catch	erro = 1;	errordlg(lasterr,'Error'),  return
 	end
 	set(handles.figure1,'pointer','watch')
 
@@ -1934,8 +1931,35 @@ function img = shade_manip_raster(azimuth,elevation,Z)
 	img(img < 0) = 0;   img(img > 1) = 1;
 
 % --------------------------------------------------------------------
+function ImageLink_CB(handles, opt)
+	if (handles.no_file),	return,		end
+	hFigs = findobj(0,'type','figure');						% Fish all figures
+	if (numel(hFigs) == 1),	return,		end					% No one else arround
+% 	linkedFig = getappdata(handles.figure1,'LinkedTo');
+% 	if ( nargin == 2 && ~isempty(linkedFig) && ishandle(linkedFig) )	% We already have a linked pair
+% 		h = rectangle('Position',[100 100 80 25], 'LineWidth',1, 'FaceColor','r', 'Parent', handles.axes1);
+% 	end
+	ind = find((hFigs - handles.figure1) == 0);
+	hFigs(ind) = [];										% Remove current figure from the fished list
+	IAmAMir = true(1, numel(hFigs));
+	for (k = 1:numel(hFigs))
+		IAmAMir(k) = getappdata(hFigs(k), 'IAmAMirone');	% Only true survive because the others are = []
+	end
+	hFigs = hFigs(IAmAMir);									% Retain only the Mirone figures
+	nomes = get(hFigs,'name');
+	if (~isa(nomes,'cell')),	nomes = {nomes};	end
+	for (k = 1:numel(hFigs))
+		[pato, nomes{k}] = fileparts(nomes{k});
+	end
+	[s,v] = listdlg('PromptString','Link with', 'SelectionMode','single', 'ListString',nomes);
+	if (isempty(s)),	return,		end
+	linkedFig = hFigs(s);
+	setappdata(handles.figure1,'LinkedTo',linkedFig)		% pixval_stsbar will take over from here
+	setappdata(linkedFig,'LinkedTo',handles.figure1)
+
+% --------------------------------------------------------------------
 function ImageDrape_CB(handles)
-	if (handles.no_file),    return;      end
+	if (handles.no_file),	return,		end
 	son_img = get(handles.hImg,'CData');					% Get "son" image
 	h_f = getappdata(handles.figure1,'hFigParent');			% Get the parent figure handle
 	if (~ishandle(h_f))
@@ -2069,12 +2093,13 @@ function DrawLine_CB(handles, opt)
 	zoom_state(handles,'maybe_off');
 
 	if (strncmp(opt,'free',4)),				[xp,yp] = getline_j(handles.figure1,'freehand');
-	elseif (strcmp(opt,'GCPmemory')),		xp = [0 0];    % Jump the manual drawing
+	elseif (strcmp(opt,'GCPmemory')),		xp = [0 0];			% Jump the manual drawing
+	elseif (strcmp(opt,'GCPimport')),		xp = [0 0];			% Jump the manual drawing
 	elseif (strncmp(opt,'spl',3)),			[xp,yp] = getline_j(handles.figure1,'spline');
 	else									[xp,yp] = getline_j(handles.figure1);
 	end
 	n_nodes = numel(xp);
-	if (n_nodes < 2),   zoom_state(handles,'maybe_on');     return;     end
+	if (n_nodes < 2),	zoom_state(handles,'maybe_on'),		return,		end
 	% The polyline Tag is very important to destinguish from MB tracks, which have Tags = MBtrack#
 	if (strcmp(opt,'FaultTrace'))    % When this function is used for Okada modeling
 		h = line('XData', xp, 'YData', yp,'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','FaultTrace');
@@ -2085,9 +2110,17 @@ function DrawLine_CB(handles, opt)
 	elseif (strncmp(opt,'GCP',3))
 		if (strcmp(opt,'GCPmemory'))
 			GCPinMemory = getappdata(handles.figure1,'GCPregImage');
-			xp = GCPinMemory(:,1);    yp = GCPinMemory(:,2);
-		end         % else -> opt = 'GCPpline'
-		h = line('XData', xp, 'YData', yp,'Color','k','LineWidth',0.5,'LineStyle',':','Marker','o',...
+			xp = GCPinMemory(:,1);		yp = GCPinMemory(:,2);	LS = ':';
+		else		% Load GCPs file
+			str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
+			[FileName,PathName] = put_or_get_file(handles,str1,'Select input GCP file name','get');
+			if (isequal(FileName,0)),		return,		end
+			xy = draw_funs([PathName FileName], 'ImportLine');
+			xp = xy(:,1);				yp = xy(:,2);			LS = 'none';
+			setappdata(handles.figure1,'GCPregImage',xy)
+			setappdata(handles.figure1,'fnameGCP',FileName)	% To know when GCPs must be removed from appdata (in show_image)
+		end			% else -> opt = 'GCPpline'
+		h = line('XData', xp, 'YData', yp,'Color','k','LineWidth',0.5,'LineStyle',LS,'Marker','o',...
 			'MarkerFaceColor','y','MarkerSize',5,'Tag','GCPpolyline');
 		if (opt(4) == 'm'),		register_img(handles,h,GCPinMemory(:,1:4))      % Set uicontext for img registration
 		else					register_img(handles,h)
@@ -2109,7 +2142,7 @@ function Draw_CB(handles, tipo, smb)
 	if (handles.no_file),    return,	end
 	zoom_state(handles,'maybe_off');
 	if (strcmp(tipo, 'Vector'))
-		draw_funs([],'DrawVector')      % Vectors are drawn there
+		draw_funs([],'DrawVector')      % Vectors are ploted there
 	else
 		pt = ginput_pointer(1,'crosshair');
 		if (strcmp(tipo, 'Symbol'))
@@ -2760,7 +2793,6 @@ end
 	j = 1;
 	ALLpatchHand = findobj(get(handles.axes1,'Child'),'Type','patch');
 	for (i = 1:length(ALLpatchHand))
-		tag = get(ALLpatchHand(i),'Tag');
 		xx = get(ALLpatchHand(i),'XData');		yy = get(ALLpatchHand(i),'YData');
 		Patches(j).x = xx(:);					Patches(j).y = yy(:);
 		Patches(j).LineWidth = get(ALLpatchHand(i),'LineWidth');
@@ -2768,7 +2800,7 @@ end
 		Patches(j).EdgeColor = get(ALLpatchHand(i),'EdgeColor');
 		Patches(j).FaceColor = get(ALLpatchHand(i),'FaceColor');
 		Patches(j).ud = get(ALLpatchHand(i),'UserData');
-		Patches(j).tag = tag;
+		Patches(j).tag = get(ALLpatchHand(i),'Tag');
 		j = j + 1;      havePatches = 1;
 	end
 
@@ -2892,6 +2924,16 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
 	end
 	if ( (strcmp(opt2,'img') || strcmp(opt2,'screen')) && ndims(Z) == 2 )
 		hdr.Cmap = get(handles.figure1,'ColorMap');
+	end
+	if ( strcmp(driver,'GTiff') )
+		gcps = getappdata(handles.figure1,'GCPregImage');
+		if (~isempty(gcps))
+			h = findobj(handles.axes1,'Tag','GCPpolyline');		% If we have tem visible, they might have been edited
+			if (~isempty(h))
+				x = get(h,'XData');		y = get(h,'YData');		gcps(:,1:2) = [x(:) y(:)];
+			end
+			hdr.gcp = gcps;
+		end
 	end
 
 	if (ndims(Z) == 2 && strcmp(driver,'HFA') && strcmp(get(handles.hImg, 'CDataMapping'), 'scaled') )
@@ -3502,16 +3544,16 @@ if (strcmp(opt,'Corners'))
 elseif (strcmp(opt,'toRGB'))
 	if (ndims(img) == 3 || isa(img,'logical')),	set(handles.figure1,'pointer','arrow');		return,		end		% Nothing to do
 	img = ind2rgb8(img,get(handles.figure1,'Colormap'));
-	set(handles.hImg,'CData', img);
+	set(handles.hImg,'CData', img)
 	aux_funs('togCheck', handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
 
 elseif (strcmp(opt,'8-bit'))
-	if (ndims(img) ~= 3),	set(handles.figure1,'pointer','arrow');		return,		end		% Nothing to do
+	if (ndims(img) ~= 3),	set(handles.figure1,'pointer','arrow'),		return,		end		% Nothing to do
 	resp  = inputdlg({'Number of colors (2-256)'},'Color quantization',[1 30],{'256'});	pause(0.01)
 	nColors = round(abs(str2double(resp)));
-	if (isnan(nColors)),	set(handles.figure1,'pointer','arrow');		return,		end
+	if (isnan(nColors)),	set(handles.figure1,'pointer','arrow'),		return,		end
 	[img, map] = img_fun( 'rgb2ind', img, max(2, min(nColors, 256)) );	% Ensure we are in the [2-256] int
-	set(handles.hImg,'CData', img);             set(handles.figure1,'ColorMap',map)
+	set(handles.hImg,'CData', img),			set(handles.figure1,'ColorMap',map)
 	aux_funs('togCheck', handles.ImMod8cor, [handles.ImMod8gray handles.ImModBW handles.ImModRGB])
 
 elseif (strcmp(opt,'gray'))
