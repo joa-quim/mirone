@@ -60,7 +60,7 @@ str_gmt_mgg = {'gmtlist_m'};
 str_gdal = {'gdalread' 'gdalwrite'}';
 
 % Gdal c++ mexs
-str_gdal_cpp = {'gdalwarp_mex' 'ogrproj'}';
+str_gdal_cpp = {'gdalwarp_mex' 'gdaltransform_mex' 'ogrproj'}';
 
 % Shape mexs (currently only one)
 str_shape = {'mex_shape'}';
