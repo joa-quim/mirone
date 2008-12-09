@@ -335,6 +335,13 @@ set(displayBar, 'String', pixval_str, 'UserData', dbud);
 function ButtonDownOnImage
 	imageHandle = gcbo;
 	figHandle = get(get(imageHandle,'Parent'),'Parent');
+	stype = get(figHandle,'selectiontype');
+	if (strcmp(stype,'alt'))		% A right-click, either return or pass control to ...
+		if ( ~isempty(getappdata(figHandle,'LinkedTo')) )
+			linkDisplays(figHandle)
+		end
+		return
+	end
 	displayBar = findobj(figHandle, 'Tag', 'pixValStsBar');
 	dbud = get(displayBar, 'UserData');
 	axesHandle = get(imageHandle, 'Parent');
@@ -372,13 +379,14 @@ function pixelx = axes2pix(dim, x, axesx)
 	%   number of image columns for the x coordinate, or the number
 	%   of image rows for the y coordinate.
 	
-	if (max(size(dim)) ~= 1);   error('First argument must be a scalar.');  end
-	if (min(size(x)) > 1);      error('X must be a vector.');               end
-	xfirst = x(1);      xlast = x(max(size(x)));
-	if (dim == 1);      pixelx = axesx - xfirst + 1;    return;     end
+	if (max(size(dim)) ~= 1);   error('First argument must be a scalar.'),	end
+	if (min(size(x)) > 1);      error('X must be a vector.'),				end
+	xfirst = x(1);		xlast = x(max(size(x)));
+	if (dim == 1),		pixelx = axesx - xfirst + 1;	return,		end
 	xslope = (dim - 1) / (xlast - xfirst);
 	if ((xslope == 1) && (xfirst == 1));     pixelx = axesx;
-	else    pixelx = xslope * (axesx - xfirst) + 1;         end
+	else    pixelx = xslope * (axesx - xfirst) + 1;
+	end
 
 %----------------------------------------------------------------------
 function [A,state] = get_image_info(him)
@@ -422,3 +430,35 @@ else                                            % We did find an image.  Find ou
 		end
 	end
 end
+
+% ---------------------------------------------------------------------------------
+function linkDisplays(hFig)
+%
+	linkedFig = getappdata(hFig,'LinkedTo');
+	if (~ishandle(linkedFig)),		return,		end			% Linked Fig was killed
+	handMir_linked  = guidata(linkedFig);					% Fish the pair of handles
+	handMir_clicked = guidata(hFig);
+	img_linked  = get(handMir_linked.hImg,'CData');
+	img_clicked = get(handMir_clicked.hImg,'CData');		% We need to backup this before it is replaced by the linked
+	cmap_clicked = get(hFig,'colormap');
+
+	xlim_clicked  = get(handMir_clicked.axes1,'XLim');		ylim_clicked  = get(handMir_clicked.axes1,'YLim');
+	xlim_linked   = get(handMir_linked.axes1, 'XLim');		ylim_linked   = get(handMir_linked.axes1, 'YLim');
+	xdata_clicked = get(handMir_clicked.hImg, 'XData');		ydata_clicked = get(handMir_clicked.hImg, 'YData');
+	xdata_linked  = get(handMir_linked.hImg,  'XData');		ydata_linked  = get(handMir_linked.hImg,  'YData');
+
+	set(handMir_clicked.hImg,'CData', img_linked)
+	if (ndims(img_linked) == 2)
+		set(hFig, 'colormap',get(handMir_linked.figure1,'colormap'))
+	end
+	set(handMir_clicked.hImg, 'XData',xdata_linked, 'YData',ydata_linked)
+	set(hFig, 'WindowButtonUpFcn', {@link_bu, hFig, handMir_clicked.hImg, img_clicked, cmap_clicked, ...
+			xdata_clicked, ydata_clicked});
+
+% ---------------------------------------------------------------------------------
+function link_bu(obj, event, hFig, hImg, img_clicked, cmap_clicked, xdata, ydata)
+% Undo the image swapping and reset the 'WindowButtonUpFcn' to ''
+	handMir_clicked = guidata(hFig);
+	set(handMir_clicked.hImg,'CData', img_clicked)
+	set(hFig,'colormap', cmap_clicked, 'WindowButtonUpFcn', '')
+	set(hImg, 'XData',xdata, 'YData',ydata)
