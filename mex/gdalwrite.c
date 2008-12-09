@@ -1,5 +1,5 @@
 /*
- *      Coffeeright (c) 2002-2003 by J. Luis
+ *      Coffeeright (c) 2002-2008 by J. Luis
  *
  *      This program is free software; you can redistribute it and/or modify
  *      it under the terms of the GNU General Public License as published by
@@ -10,11 +10,12 @@
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *      GNU General Public License for more details.
  *
- *      Contact info: w3.ualg.pt/~jluis/m_gmt
+ *      Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 /* Program:	gdawrite.c
  * Purpose:	matlab callable routine to write files supported by gdal
  *
+ * Revision 5.0  07/12/2008 Accept GCPs in the "gcp" field of the hdr structure
  * Revision 4.0  10/11/2008 Added a "meta" field to the hdr structure
  * Revision 3.0  06/09/2007 Start to add a nodata option (not finished)
  * Revision 2.0  12/06/2007 Was not aware of receiving a WKT proj string
@@ -32,6 +33,7 @@
 #ifndef MAX
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
+#define debug	0
 
 #include "mex.h"
 #include "gdal.h"
@@ -39,22 +41,25 @@
 #include "cpl_string.h"
 #include "cpl_conv.h"
 
+void DEBUGA(int n);
 
 /* Matlab Gateway routine */
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	ns, flipud = FALSE, i_x_nXYSize;
-	GDALDatasetH hDstDS;
 	char **papszOptions = NULL;
 	char *pszFormat = "GTiff", *projWKT = NULL, *metaString = NULL; 
-	GDALDriverH	hDriver;
 	double adfGeoTransform[6] = {0,1,0,0,0,1}; 
 	double dfNoData;
-	OGRSpatialReferenceH hSRS;
 	char *pszSRS_WKT = NULL;
+	OGRSpatialReferenceH hSRS;
+	GDALDatasetH hDstDS;
+	GDALDriverH	hDriver;
 	GDALRasterBandH hBand;
 	GDALColorTableH	hColorTable = NULL;
 	GDALColorEntry	sEntry;
+	GDAL_GCP	*pasGCPs = NULL;
+	int	nGCPCount = 0;
 
 	const int *dim_array;
 	int	nx, ny, i, j, m, n, nn, n_bands_in, registration = 1;
@@ -157,6 +162,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 
+		/* -------- Do we have GCPs? ----------------------- */
+		mx_ptr = mxGetField(prhs[1], 0, "gcp");
+		if (mx_ptr != NULL) {
+			nGCPCount = mxGetM(mx_ptr);
+			if (mxGetN(mx_ptr) != 4)
+				mexErrMsgTxt("GDALWRITE: GCPs must be a Mx4 array");
+			ptr_d = mxGetPr(mx_ptr);
+			pasGCPs = (GDAL_GCP *) mxCalloc( nGCPCount, sizeof(GDAL_GCP) * nGCPCount );
+			GDALInitGCPs( 1, pasGCPs + nGCPCount - 1 );
+			for (i = 0; i < nGCPCount; i++) {
+				pasGCPs[i].dfGCPPixel = ptr_d[i];
+				pasGCPs[i].dfGCPLine = ptr_d[i+nGCPCount];
+				pasGCPs[i].dfGCPX = ptr_d[i+2*nGCPCount];
+				pasGCPs[i].dfGCPY = ptr_d[i+3*nGCPCount];
+				pasGCPs[i].dfGCPZ = 0;
+			}
+		}
+		/* -------------------------------------------------- */
+
 		/* If grid limits were in grid registration, convert them to pixel reg */
 		if (registration == 0) {
 			adfGeoTransform[0] -= adfGeoTransform[1]/2.;
@@ -252,6 +276,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		OSRExportToWkt( hSRS, &pszSRS_WKT );
 		OSRDestroySpatialReference( hSRS );
 		GDALSetProjection( hDstDS, pszSRS_WKT );
+		if ( nGCPCount == 0 )		/* Otherwise we still need this for setting the GCPs */
+			CPLFree( pszSRS_WKT );
+	}
+
+	if ( nGCPCount != 0 ) {
+DEBUGA(1);
+		if (GDALSetGCPs( hDstDS, nGCPCount, pasGCPs, "" ) != CE_None)
+			mexPrintf("WARNING: writing GCPs failed.\n");
 		CPLFree( pszSRS_WKT );
 	}
 
@@ -345,5 +377,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GDALClose( hDstDS );
 	mxFree(nVector);
 	mxFree(mVector);
+	if (nGCPCount) {
+		GDALDeinitGCPs( nGCPCount, pasGCPs );
+		mxFree((void *) pasGCPs );
+	}
 }
 
+void DEBUGA(int n) {
+#if debug
+	mexPrintf("Merda %d\n",n);
+#endif
+}
