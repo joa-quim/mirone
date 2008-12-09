@@ -384,6 +384,7 @@ mex/iptcheckinput.cpp -text
 mex/iptcheckinput.h -text
 mex/isf_head.h -text
 mex/make_mexs.m -text
+mex/makefile.mexs -text
 mex/mansinha_m.c -text
 mex/mapproject_m.c -text
 mex/mex_illuminate.c -text
