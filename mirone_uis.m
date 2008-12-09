@@ -262,8 +262,9 @@ hVG(kv) = uimenu('Parent',hIM,'Call','mirone(''ImageHistEqualizeGrid_CB'',guidat
 h = uimenu('Parent',hIM,'Label','Illuminate','Tag','Illuminate');	hVG(kv) = h;	kv = kv + 1;
 uimenu('Parent',h,'Call','mirone(''ImageIlluminationModel_CB'',guidata(gcbo),''grdgradient_A'')','Label','GMT grdgradient');
 uimenu('Parent',h,'Call','mirone(''ImageIlluminationModel_CB'',guidata(gcbo),''falseColor'')','Label','False color');
+uimenu('Parent',h,'Call','mirone(''ImageAnaglyph_CB'',guidata(gcbo))','Label','Anaglyph');
 
-hVG(kv) = uimenu('Parent',hIM,'Call','mirone(''ImageAnaglyph_CB'',guidata(gcbo))','Label','Anaglyph'); kv = kv + 1;
+uimenu('Parent',hIM,'Call','mirone(''ImageLink_CB'',guidata(gcbo))','Label','Link Displays...','Sep','on');
 uimenu('Parent',hIM,'Call','mirone(''ImageDrape_CB'',guidata(gcbo))','Label','Drape','Tag','ImageDrape','Enable','off');
 uimenu('Parent',hIM,'Call','mirone(''ImageMapLimits_CB'',guidata(gcbo))','Label','Map Limits');
 
@@ -282,7 +283,7 @@ uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Corners'')','La
 
 uimenu('Parent',hIM,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Shape'')','Label','Shape detector')
 uimenu('Parent',hIM,'Call','mpaint(gcf)','Label','Paint Brush');
-uimenu('Parent',hIM,'Call','mirone(''ImageSegment_CB'',guidata(gcbo))','Label','Image segmentation');
+uimenu('Parent',hIM,'Call','mirone(''ImageSegment_CB'',guidata(gcbo))','Label','Image segmentation (Mean shift)');
 uimenu('Parent',hIM,'Call','classificationfig(gcf);','Label','K-means classification');
 uimenu('Parent',hIM,'Call','imageresize(gcf)','Label','Image resize','Sep','on');
 uimenu('Parent',hIM,'Call','mirone(''RotateTool_CB'',guidata(gcbo),''image'')','Label','Image rotation');
@@ -310,7 +311,8 @@ uimenu('Parent',hIM,'Call','image_enhance(gcf)','Label','Image Enhance (1 - Inde
 uimenu('Parent',hIM,'Call','image_adjust(gcf)','Label', 'Image Enhance (2 - Indexed only)');
 uimenu('Parent',hIM,'Call','ice_m(gcf,''space'',''rgb'')','Label','Image Color Editor (Indexed and RGB)');
 uimenu('Parent',hIM,'Call','aux_funs(''togCheck'',gcbo)','Label','Activate Image-to-Image/Map GCP Tool','Tag','GCPtool','Sep','on');
-uimenu('Parent',hIM,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPpline'')','Label','Register Image (Draw GCP points)');
+uimenu('Parent',hIM,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPpline'')','Label','Register Image (Draw GCPoints)');
+uimenu('Parent',hIM,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPimport'')','Label','Register Image (Import GCPoints)');
 uimenu('Parent',hIM,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPmemory'')',...
 	'Tag','GCPmemory','Label','Register Image (Plot in memory GCPs)','Visible','off');  % To GDAL imported file with GCPs
 uimenu('Parent',hIM,'Callback','bands_list(gcf)','Label','Load Bands','Sep','on');
@@ -344,10 +346,12 @@ uimenu('Parent',hTL,'Call','empilhador(guidata(gcbo))','Label','Empilhador');
 uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
 uimenu('Parent',hTL,'Call','world_is_not_round_enough(guidata(gcbo))','Label','World is not (round) enough','Sep','on');
+
 h = uimenu('Parent',hTL,'Label','Misc Tools','Sep','on');
 uimenu('Parent',h,'Call','cartas_militares(guidata(gcbo))','Label','Cartas Militares')
 uimenu('Parent',h,'Call','obj_template_detect(gcf)','Label','Object detection','Sep','on');
 uimenu('Parent',h,'Label','entry_vtr','Sep','on');
+
 uimenu('Parent',hTL,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command','Sep','on');
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Line Operations','Tag','lineOP');
 % uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
