@@ -1,5 +1,5 @@
 /*
- *      Coffeeright (c) 2002-2003 by J. Luis
+ *      Coffeeright (c) 2002-2008 by J. Luis
  *
  *      This program is free software; you can redistribute it and/or modify
  *      it under the terms of the GNU General Public License as published by
@@ -10,14 +10,15 @@
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *      GNU General Public License for more details.
  *
- *      Contact info: w3.ualg.pt/~jluis/m_gmt
+ *      Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 /* Program:	gdalwarp_mex.c
  * Purpose:	matlab callable routine to reproject files using gdal/proj4
  *
- * Revision 3.0  07/4/2008 Joaquim Luis
- * Revision 2.0  23/7/2007 Joaquim Luis
- * Revision 1.0  24/6/2006 Joaquim Luis
+ * Revision 4.0  07/12/2008 Warp with GCPs Joaquim Luis
+ * Revision 3.0  07/04/2008 Joaquim Luis
+ * Revision 2.0  23/07/2007 Joaquim Luis
+ * Revision 1.0  24/06/2006 Joaquim Luis
  *
  */
 
@@ -54,7 +55,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GDALColorTableH	hColorTable = NULL;
 	OGRSpatialReference oSrcSRS, oDstSRS; 
 	GDALResampleAlg	interpMethod = GRA_NearestNeighbour;
-	CPLErr	eErr;
+	GDALTransformerFunc pfnTransformer = NULL;
+	CPLErr		eErr;
+	GDAL_GCP	*pasGCPs = NULL;
 	static int runed_once = FALSE;	/* It will be set to true if reaches end of main */
 
 	const int *dim_array;
@@ -70,6 +73,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	short int *tmpI16, *outI16;
 	int	*tmpI32, *outI32;
 	int	nPixels=0, nLines=0, nForceWidth=0, nForceHeight=0;
+	int	nGCPCount = 0, polyOrder = 0;
 	unsigned int *tmpUI32, *outUI32;
 	float	*tmpF32, *outF32;
 	double	*tmpF64, *outF64, *ptr_d;
@@ -84,25 +88,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (nrhs == 2 && mxIsStruct(prhs[1])) {
 		mx_ptr = mxGetField(prhs[1], 0, "ULx");
 		if (mx_ptr == NULL)
-			mexErrMsgTxt("GDALWRITE 'ULx' field not provided");
+			mexErrMsgTxt("GDALWARP 'ULx' field not provided");
 		ptr_d = mxGetPr(mx_ptr);
 		adfGeoTransform[0] = *ptr_d;
 
 		mx_ptr = mxGetField(prhs[1], 0, "Xinc");
 		if (mx_ptr == NULL)
-			mexErrMsgTxt("GDALWRITE 'Xinc' field not provided");
+			mexErrMsgTxt("GDALWARP 'Xinc' field not provided");
 		ptr_d = mxGetPr(mx_ptr);
 		adfGeoTransform[1] = *ptr_d;
 
 		mx_ptr = mxGetField(prhs[1], 0, "ULy");
 		if (mx_ptr == NULL)
-			mexErrMsgTxt("GDALWRITE 'ULy' field not provided");
+			mexErrMsgTxt("GDALWARP 'ULy' field not provided");
 		ptr_d = mxGetPr(mx_ptr);
 		adfGeoTransform[3] = *ptr_d;
 
 		mx_ptr = mxGetField(prhs[1], 0, "Yinc");
 		if (mx_ptr == NULL)
-			mexErrMsgTxt("GDALWRITE 'Yinc' field not provided");
+			mexErrMsgTxt("GDALWARP 'Yinc' field not provided");
 		ptr_d = mxGetPr(mx_ptr);
 		adfGeoTransform[5] = -*ptr_d;
 
@@ -165,6 +169,34 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			pszDstWKT = (char *)mxArrayToString(mx_ptr);
 		/* -------------------------------------------------- */
 
+		/* -------- Do we have GCPs? ----------------------- */
+		mx_ptr = mxGetField(prhs[1], 0, "gcp");
+		if (mx_ptr != NULL) {
+			nGCPCount = mxGetM(mx_ptr);
+			if (mxGetN(mx_ptr) != 4)
+				mexErrMsgTxt("GDALWARP: GCPs must be a Mx4 array");
+			ptr_d = mxGetPr(mx_ptr);
+			pasGCPs = (GDAL_GCP *) mxCalloc( nGCPCount, sizeof(GDAL_GCP) * nGCPCount );
+			GDALInitGCPs( 1, pasGCPs + nGCPCount - 1 );
+			for (i = 0; i < nGCPCount; i++) {
+				pasGCPs[i].dfGCPPixel = ptr_d[i];
+				pasGCPs[i].dfGCPLine = ptr_d[i+nGCPCount];
+				pasGCPs[i].dfGCPX = ptr_d[i+2*nGCPCount];
+				pasGCPs[i].dfGCPY = ptr_d[i+3*nGCPCount];
+				pasGCPs[i].dfGCPZ = 0;
+			}
+		}
+			/* ---- Have we an order request? --- */
+		mx_ptr = mxGetField(prhs[1], 0, "order");
+		if (mx_ptr != NULL) {
+			ptr_d = mxGetPr(mx_ptr);
+			polyOrder = *ptr_d;
+			if (polyOrder != -1 || polyOrder != 0 || polyOrder != 1 ||
+				polyOrder != 2 || polyOrder != 3)
+				polyOrder = 0;
+		}
+		/* -------------------------------------------------- */
+
 		mx_ptr = mxGetField(prhs[1], 0, "ResampleAlg");
 		if (mx_ptr != NULL) {
 			txt = (char *)mxArrayToString(mx_ptr);
@@ -172,7 +204,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				interpMethod = GRA_NearestNeighbour;
 			else if (!strcmp(txt,"bilinear"))
 				interpMethod = GRA_Bilinear;
-			else if (!strcmp(txt,"cubic"))
+			else if (!strcmp(txt,"cubic") || !strcmp(txt,"bicubic"))
 				interpMethod = GRA_Cubic;
 			else if (!strcmp(txt,"spline"))
 				interpMethod = GRA_CubicSpline;
@@ -204,6 +236,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("\t\t\tWKT stands for a string on the 'Well Known Text' format\n\n");
 		mexPrintf("\t\t\tIf one of the Src or Dst fields is absent a GEOGRAPHIC WGS84 is assumed\n");
 		mexPrintf("\nOPTIONS\n");
+		mexPrintf("\t\t'gcp' a [Mx4] array with Ground Control Points\n");
 		mexPrintf("\t\t't_size' a [width height] vector to set output file size in pixels\n");
 		mexPrintf("\t\t't_res' a [xres yres] vector to set output file resolution (in target georeferenced units)\n");
 		mexPrintf("\t\t'wm' amount of memory (in megabytes) that the warp API is allowed to use for caching\n");
@@ -265,7 +298,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		outF64 = (double *)mxMalloc (nx*ny * sizeof(double));
 	}
 	else
-		mexErrMsgTxt("GDALWRITE Unknown input data class!");
+		mexErrMsgTxt("GDALWARP Unknown input data class!");
 
 
 	in_data = (void *)mxGetData(prhs[0]);
@@ -367,6 +400,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (pszDstWKT == NULL)
 		oDstSRS.exportToWkt( &pszDstWKT );
 	/* ------------------------------------------------------------------ */
+DEBUGA(-6);
+
+	if ( nGCPCount != 0 ) {
+		if (GDALSetGCPs( hSrcDS, nGCPCount, pasGCPs, "" ) != CE_None)
+			mexPrintf("GDALWARP WARNING: writing GCPs failed.\n");
+	}
 
 	/* Create a transformer that maps from source pixel/line coordinates
 	   to destination georeferenced coordinates (not destination pixel line) 
@@ -375,15 +414,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	void *hTransformArg;
 
 	hTransformArg = 
-    		GDALCreateGenImgProjTransformer( hSrcDS, pszSrcWKT, NULL, pszDstWKT, FALSE, 0, 1 );
+    		GDALCreateGenImgProjTransformer( hSrcDS, pszSrcWKT, NULL, pszDstWKT, 
+						 nGCPCount == 0 ? FALSE : TRUE, 0, polyOrder );
 	CPLAssert( hTransformArg != NULL );
+DEBUGA(-5);
 
 	/* -------------------------------------------------------------------------- */
 	/*      Get approximate output georeferenced bounds and resolution for file
 	/* -------------------------------------------------------------------------- */
 	eErr = GDALSuggestedWarpOutput2( hSrcDS, GDALGenImgProjTransform, hTransformArg, 
                                 adfDstGeoTransform, &nPixels, &nLines, adfExtent, 0 );
+DEBUGA(-4);
+	//if ( nGCPCount != 0 && adfDstGeoTransform[5] < 0 ) adfDstGeoTransform[5] *= -1;
 
+#if debug
+mexPrintf("%g\t%g\t%g\t%g\t%g\t%g\n",adfDstGeoTransform[0],adfDstGeoTransform[1],adfDstGeoTransform[2],
+				adfDstGeoTransform[3], adfDstGeoTransform[4], adfDstGeoTransform[5]);
+#endif
 	dfMinX = adfExtent[0];
 	dfMaxX = adfExtent[2];
 	dfMaxY = adfExtent[3];
@@ -457,6 +504,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		nPixels = (int) ((dfMaxX - dfMinX + (dfXRes/2.0)) / dfXRes);
 		nLines = nForceHeight;
 	}
+DEBUGA(-6);
 
 	/* --------------------- Create the output --------------------------- */
 	hDstDS = GDALCreate( hDriver, "mem", nPixels, nLines, 
@@ -500,11 +548,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}*/
 
 	/* ------------ Establish reprojection transformer ------------------- */
-	psWarpOptions->pTransformerArg = GDALCreateGenImgProjTransformer( hSrcDS, 
-							GDALGetProjectionRef(hSrcDS), 
-							hDstDS,
-							GDALGetProjectionRef(hDstDS), 
-							FALSE, 0.0, 1 );
+	psWarpOptions->pTransformerArg = GDALCreateGenImgProjTransformer( hSrcDS, GDALGetProjectionRef(hSrcDS), 
+							hDstDS, GDALGetProjectionRef(hDstDS), 
+							nGCPCount == 0 ? FALSE : TRUE, 0.0, polyOrder );
 	psWarpOptions->pfnTransformer = GDALGenImgProjTransform;
 DEBUGA(1);
 
@@ -602,18 +648,25 @@ DEBUGA(4);
 				break;
 		}
 	}
-DEBUGA(6);
+DEBUGA(5);
 
 	mxFree(tmp);
 	OGRFree(pszSrcWKT);
 	OGRFree(pszDstWKT);
+	if (nGCPCount) {
+		GDALDeinitGCPs( nGCPCount, pasGCPs );	// makes this mex crash in the next call
+		mxFree((void *) pasGCPs );
+	}
+DEBUGA(6);
 
-	plhs[1] = populate_metadata_struct (hDstDS, 1);
+	if (nlhs == 2)
+		plhs[1] = populate_metadata_struct (hDstDS, 1);
+DEBUGA(7);
 
 	runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
 
 	//GDALDestroyDriverManager();
-	//GDALClose( hDstDS );		// IF used it crashes ML. Why the f why?
+	GDALClose( hDstDS );
 }
 	
 /* ---------------------------------------------------------------------- */
@@ -895,8 +948,6 @@ mxArray *populate_metadata_struct (GDALDatasetH hDataset, int correct_bounds) {
 	}
 
 	mxSetField (metadata_struct, 0, "GMT_hdr", mxGMT_header);
-
-	GDALClose ( hDataset );
 
 	return ( metadata_struct );
 }
