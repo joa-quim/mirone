@@ -224,38 +224,43 @@ function do_register(handles,input,base)
 function type = checkTransform(type,n_cps)
 % Check that the number of points is enough for the selected transform
 
-if (strncmp(type,'gdal',4))		% GDAL warping numbers are not tested
-	type = {type};		return
-end
-
 switch type
-    case 'affine',              transf = 1;
-    case 'linear conformal',    transf = 2;
-    case 'projective',          transf = 3;
-    case 'polynomial (6 pts)',  transf = 4;
-    case 'polynomial (10 pts)', transf = 5;
-    case 'polynomial (16 pts)', transf = 6;
-    case 'piecewise linear',    transf = 7;
-    case 'lwm',                 transf = 8;
+	case 'affine',				transf = 1;
+	case 'linear conformal',	transf = 2;
+	case 'projective',			transf = 3;
+	case 'polynomial (6 pts)',	transf = 4;
+	case 'polynomial (10 pts)',	transf = 5;
+	case 'polynomial (16 pts)',	transf = 6;
+	case 'piecewise linear',	transf = 7;
+	case 'lwm',					transf = 8;
+	case 'gdal order 1',		transf = 9;
+	case 'gdal order 2',		transf = 10;
+	case 'gdal order 3',		transf = 11;
 end
 
 msg = '';
 if (transf == 1 && n_cps < 3)
-    msg = 'Minimum Control points for affine transform is 3.';
+	msg = 'Minimum Control points for affine transform is 3.';
 elseif (transf == 2 && n_cps < 2)
-    msg = 'Minimum Control points for Linear conformal transform is 2.';
+	msg = 'Minimum Control points for Linear conformal transform is 2.';
 elseif (transf == 3 && n_cps < 4)
-    msg = 'Minimum Control points for projective transform is 4.';
+	msg = 'Minimum Control points for projective transform is 4.';
 elseif (transf == 4 && n_cps < 6)
-    msg = 'Minimum Control points for polynomial order 2 transform is 6.';
+	msg = 'Minimum Control points for polynomial order 2 transform is 6.';
 elseif (transf == 5 && n_cps < 6)
-    msg = 'Minimum Control points for polynomial order 3 transform is 10.';
+	msg = 'Minimum Control points for polynomial order 3 transform is 10.';
 elseif (transf == 6 && n_cps < 6)
-    msg = 'Minimum Control points for polynomial order 2 transform is 16.';
+	msg = 'Minimum Control points for polynomial order 2 transform is 16.';
 elseif (transf == 7 && n_cps < 4)
-    msg = 'Minimum Control points for piecewise linear transform is 4.';
+	msg = 'Minimum Control points for piecewise linear transform is 4.';
 elseif (transf == 8 && n_cps < 6)
-    msg = 'Minimum Control points for Local weighted mean transform is 6.';
+	msg = 'Minimum Control points for Local weighted mean transform is 6.';
+elseif (transf == 9 && n_cps < 3)
+	msg = 'Minimum Control points for GDAL order 1 is 3.';
+elseif (transf == 10 && n_cps < 6)
+	msg = 'Minimum Control points for GDAL order 2 is 6.';
+elseif (transf == 11 && n_cps < 10)
+	msg = 'Minimum Control points for GDAL order 3 is 10.';
 end
 
 if (strncmp(type,'poly',4))
