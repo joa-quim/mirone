@@ -73,7 +73,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	short int *tmpI16, *outI16;
 	int	*tmpI32, *outI32;
 	int	nPixels=0, nLines=0, nForceWidth=0, nForceHeight=0;
-	int	nGCPCount = 0, polyOrder = 0;
+	int	nGCPCount = 0, nOrder = 0;
 	unsigned int *tmpUI32, *outUI32;
 	float	*tmpF32, *outF32;
 	double	*tmpF64, *outF64, *ptr_d;
@@ -176,7 +176,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			if (mxGetN(mx_ptr) != 4)
 				mexErrMsgTxt("GDALWARP: GCPs must be a Mx4 array");
 			ptr_d = mxGetPr(mx_ptr);
-			pasGCPs = (GDAL_GCP *) mxCalloc( nGCPCount, sizeof(GDAL_GCP) * nGCPCount );
+			pasGCPs = (GDAL_GCP *) mxCalloc( nGCPCount, sizeof(GDAL_GCP) );
 			GDALInitGCPs( 1, pasGCPs + nGCPCount - 1 );
 			for (i = 0; i < nGCPCount; i++) {
 				pasGCPs[i].dfGCPPixel = ptr_d[i];
@@ -190,10 +190,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mx_ptr = mxGetField(prhs[1], 0, "order");
 		if (mx_ptr != NULL) {
 			ptr_d = mxGetPr(mx_ptr);
-			polyOrder = *ptr_d;
-			if (polyOrder != -1 || polyOrder != 0 || polyOrder != 1 ||
-				polyOrder != 2 || polyOrder != 3)
-				polyOrder = 0;
+			nOrder = (int)*ptr_d;
+			if (nOrder != -1 || nOrder != 0 || nOrder != 1 || nOrder != 2 || nOrder != 3)
+				nOrder = 0;
 		}
 		/* -------------------------------------------------- */
 
@@ -415,7 +414,7 @@ DEBUGA(-6);
 
 	hTransformArg = 
     		GDALCreateGenImgProjTransformer( hSrcDS, pszSrcWKT, NULL, pszDstWKT, 
-						 nGCPCount == 0 ? FALSE : TRUE, 0, polyOrder );
+						 nGCPCount == 0 ? FALSE : TRUE, 0, nOrder );
 	CPLAssert( hTransformArg != NULL );
 DEBUGA(-5);
 
@@ -550,7 +549,7 @@ DEBUGA(-6);
 	/* ------------ Establish reprojection transformer ------------------- */
 	psWarpOptions->pTransformerArg = GDALCreateGenImgProjTransformer( hSrcDS, GDALGetProjectionRef(hSrcDS), 
 							hDstDS, GDALGetProjectionRef(hDstDS), 
-							nGCPCount == 0 ? FALSE : TRUE, 0.0, polyOrder );
+							nGCPCount == 0 ? FALSE : TRUE, 0.0, nOrder );
 	psWarpOptions->pfnTransformer = GDALGenImgProjTransform;
 DEBUGA(1);
 
