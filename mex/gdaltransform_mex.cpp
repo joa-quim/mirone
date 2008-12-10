@@ -98,7 +98,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			if (mxGetN(mx_ptr) != 4)
 				mexErrMsgTxt("GDALWARP: GCPs must be a Mx4 array");
 			ptr_d = mxGetPr(mx_ptr);
-			pasGCPs = (GDAL_GCP *) mxCalloc( nGCPCount, sizeof(GDAL_GCP) * nGCPCount );
+			pasGCPs = (GDAL_GCP *) mxCalloc( nGCPCount, sizeof(GDAL_GCP) );
 			GDALInitGCPs( 1, pasGCPs + nGCPCount - 1 );
 			for (i = 0; i < nGCPCount; i++) {
 				pasGCPs[i].dfGCPPixel = ptr_d[i];
@@ -112,7 +112,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mx_ptr = mxGetField(prhs[1], 0, "order");
 		if (mx_ptr != NULL) {
 			ptr_d = mxGetPr(mx_ptr);
-			nOrder = *ptr_d;
+			nOrder = (int)*ptr_d;
 			if (nOrder != -1 || nOrder != 0 || nOrder != 1 ||
 				nOrder != 2 || nOrder != 3)
 				nOrder = 0;
@@ -163,7 +163,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 
-	if (!runed_once)		/* Do next call only at first time this MEX is loaded */
+	if (!runed_once) 		/* Do next call only at first time this MEX is loaded */
 		GDALAllRegister();
 
 
@@ -266,7 +266,7 @@ DEBUGA(5);
 		mexPrintf( "Transformation failed.\n" );
 
 
-DEBUGA(3);
+DEBUGA(6);
 	if( nGCPCount != 0 && nOrder == -1 )
 		GDALDestroyTPSTransformer(hTransformArg);
 	else if( nGCPCount != 0 )
