@@ -15,6 +15,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 20.0  14/12/2008 JL	Added SIFT detector (from Rob Hess code)
  * Revision 19.0  16/11/2008 JL	Added cvHaarDetectObjects (from 'FaceDetect' of Sreekar Krishna)
  * Revision 18.0  18/10/2008 JL	Added cvCvtScaleAbs.
  * 				Fixed BUG in order of input/output 3D arrays. Due to the BGR
@@ -43,6 +44,14 @@
 #include "mex.h"
 /*#include <opencv/cv.h> */
 #include <cv.h>
+
+#include "sift/sift.h"
+#include "sift/imgfeatures.h"
+#include "sift/kdtree.h"
+/* the maximum number of keypoint NN candidates to check during BBF search */
+#define KDTREE_BBF_MAX_NN_CHKS 200
+/* threshold on squared ratio of distances between NN and 2nd NN */
+#define NN_SQ_DIST_RATIO_THR 0.49
 
 #define	TRUE	1
 #define	FALSE	0
@@ -104,6 +113,7 @@ void Jshapes(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 void Jinpaint(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op);
 void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+void Jsift(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jtext(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JMatchTemplate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JhaarDetect(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
@@ -133,7 +143,7 @@ void arithmUsage(), addWeightedUsage(), pyrDUsage(), pyrUUsage(), houghCirclesUs
 void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsage();
 void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage(), powUsage();
 void absUsage(), logUsage(), expUsage(), hypotUsage(), haarUsage();
-void approxPolyUsage();
+void approxPolyUsage(), siftUsage();
 void MatchTemplateUsage();
 
 /* --------------------------------------------------------------------------- */
@@ -271,6 +281,9 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	else if (!strcmp(funName,"pyrU") || !strcmp(funName,"pyrD") )
 		Jegipt(n_out, plhs, n_in, prhs, funName);
+
+	else if (!strcmp(funName,"sift"))
+		Jsift(n_out, plhs, n_in, prhs);
 
 	else if (!strcmp(funName,"text"))
 		Jtext(n_out, plhs, n_in, prhs);
@@ -1023,6 +1036,99 @@ void Jshapes(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 	cvReleaseImageHeader( &src_img );
 	mxDestroyArray(ptr_in);
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
+}
+
+/* --------------------------------------------------------------------------- */
+void Jsift(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
+	int nx1, ny1, nx2, ny2, nBytes, img_depth, nBands1, nBands2;
+	IplImage *img1, *img2;
+	struct feature* feat1, * feat2, * feat;
+	struct feature** nbrs;
+	struct kd_node* kd_root;
+	//CvPoint pt1, pt2;
+	double d0, d1, *tmp, *ptr_d;
+	int n1, n2, k, i, n, m = 0;
+	mxArray *ptr_in1, *ptr_in2;
+
+	struct CV_CTRL *Ctrl;
+	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
+
+	/* ---- Check for errors in user's call to function.  -------------------- */
+	if (n_in == 1) { siftUsage(); return; }
+	/* Check that input image is of type UInt8 */
+	if ( !mxIsUint8(prhs[1]) )
+		mexErrMsgTxt("SIFT: Invalid input data type. Valid type is: UInt8.\n");
+	if (n_in != 3)
+		mexErrMsgTxt("SIFT: Need two input images.\n");
+	if (n_out != 1)
+		mexErrMsgTxt("SIFT returns one and only one output argument!");
+	/* -------------------- End of parsing input ------------------------------------- */
+
+	ny1 = mxGetM(prhs[1]);	nx1 = getNK(prhs[1],1);	nBands1 = getNK(prhs[1],2);
+	ny2 = mxGetM(prhs[2]);	nx2 = getNK(prhs[2],1);	nBands2 = getNK(prhs[2],2);
+	/* Allocate and initialize defaults in a new control structure */
+	Ctrl = (struct CV_CTRL *) New_Cv_Ctrl ();
+	getDataType(Ctrl, prhs, &nBytes, &img_depth);
+
+	/* ------ Create pointer for temporary array ------------------------------------- */
+	ptr_in1  = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+		  mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
+	ptr_in2  = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[2]),
+		  mxGetDimensions(prhs[2]), mxGetClassID(prhs[2]), mxREAL);
+	/* ------------------------------------------------------------------------------- */ 
+
+	Set_pt_Ctrl_in ( Ctrl, prhs[1], ptr_in1, 1 ); 	/* Set pointer & interleave */
+	img1 = cvCreateImageHeader( cvSize(nx1, ny1), img_depth, nBands1 );
+	localSetData( Ctrl, img1, 1, nx1 * nBands1 * nBytes );
+
+	Set_pt_Ctrl_in ( Ctrl, prhs[2], ptr_in2, 1 ); 	/* Set pointer & interleave */
+	img2 = cvCreateImageHeader( cvSize(nx2, ny2), img_depth, nBands2 );
+	localSetData( Ctrl, img2, 1, nx2 * nBands2 * nBytes );
+
+	n1 = sift_features( img1, &feat1 );
+	n2 = sift_features( img2, &feat2 );
+	kd_root = kdtree_build( feat2, n2 );
+	tmp = (double *)mxMalloc(n1 * 4 * sizeof(double));
+	for( i = 0, n = -1; i < n1; i++ ) {
+		feat = feat1 + i;
+		k = kdtree_bbf_knn( kd_root, feat, 2, &nbrs, KDTREE_BBF_MAX_NN_CHKS );
+		if( k == 2 ) {
+			d0 = descr_dist_sq( feat, nbrs[0] );
+			d1 = descr_dist_sq( feat, nbrs[1] );
+			if( d0 < d1 * NN_SQ_DIST_RATIO_THR ) {
+				//pt1 = cvPoint( cvRound( feat->x ), cvRound( feat->y ) );
+				//pt2 = cvPoint( cvRound( nbrs[0]->x ), cvRound( nbrs[0]->y ) );
+				//pt2.y += img1->height;
+				//cvLine( stacked, pt1, pt2, CV_RGB(255,0,255), 1, 8, 0 );
+				tmp[++n] = feat->x; 	tmp[++n] = feat->y;
+				tmp[++n] = nbrs[0]->x; 	tmp[++n] = nbrs[0]->y;
+				m++;
+				feat1[i].fwd_match = nbrs[0];
+			}
+		}
+		free( nbrs );
+	}
+
+	cvReleaseImageHeader( &img1 );
+	cvReleaseImageHeader( &img2 );
+	mxDestroyArray(ptr_in1);
+	mxDestroyArray(ptr_in2);
+	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
+	kdtree_release( kd_root );
+	free( feat1 );
+	free( feat2 );
+
+	/* ------ GET OUTPUT DATA --------------------------- */ 
+	plhs[0] = mxCreateNumericMatrix(m, 4, mxDOUBLE_CLASS, mxREAL);
+	ptr_d = mxGetPr(plhs[0]);	
+	for ( n = 0, k = -1; n < m; n++ ) {
+		ptr_d[n]     = tmp[++k] + 1;	/* +1 because ML is one-based */
+		ptr_d[n+m]   = tmp[++k] + 1;
+		ptr_d[n+2*m] = tmp[++k] + 1;
+		ptr_d[n+3*m] = tmp[++k] + 1;
+	}
+	mxFree((void *)tmp);
+
 }
 
 /* --------------------------------------------------------------------------- */
@@ -4168,6 +4274,16 @@ void inpaintUsage() {
 
 	mexPrintf("       Class support: uint8.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG and a MxN matrix of the same type as IMG.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void siftUsage() {
+	mexPrintf("Usage: out = cvlib_mex('sift',IMG1,IMG2);\n");
+	mexPrintf("       Gets the SIFT keepoints of image IMG1 and IMG2\n");
+	mexPrintf("       OUT is a Mx4 array with [x1,y1,x2,y2] pixel coords of the keepoints.\n\n");
+
+	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG1 and 1 of IMG2.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
