@@ -358,32 +358,33 @@ function showGCPnumbers(obj,event,handles)
 
 if (strcmp(get(obj,'Label'),'Show GCP numbers'))
     
-    hPts = findobj(handles.axes1,'Tag','GCPpolyline');     % Fish them because they might have been edited
+	hPts = findobj(handles.axes1,'Tag','GCPpolyline');     % Fish them because they might have been edited
 	xSlaves = get(hPts,'Xdata');        ySlaves = get(hPts,'Ydata');
-	
+
 	% Estimate the text position shift in order that it doesn't fall over the symbols
-    dpis = get(0,'ScreenPixelsPerInch') ;   % screen DPI
-    symb_size = 7 / 72 * 2.54;              % Symbol size in cm (circles size is 7 points)
+	dpis = get(0,'ScreenPixelsPerInch') ;   % screen DPI
+	symb_size = 7 / 72 * 2.54;              % Symbol size in cm (circles size is 7 points)
 	n_texts = numel(xSlaves);
-    
+
 	axUnit = get(handles.axes1,'Units');	set(handles.axes1,'Units','pixels')
 	pos = get(handles.axes1,'Position');    ylim = get(handles.axes1,'Ylim');
 	set(handles.axes1,'Units',axUnit)
-    escala = diff(ylim)/(pos(4)*2.54/dpis); % Image units / cm
-    dy = symb_size * escala;
-    
+	escala = diff(ylim)/(pos(4)*2.54/dpis); % Image units / cm
+	dy = symb_size * escala;
+
 	for i = 1:n_texts
-        text(xSlaves(i),ySlaves(i)+dy,0,num2str(i),'Fontsize',8,'Parent',handles.axes1,'Tag','GCPnumbers');
+		text(xSlaves(i),ySlaves(i)+dy,0,num2str(i),'Fontsize',8,'Tag','GCPnumbers', ...
+			'BackgroundColor','w', 'Margin',0.1, 'VerticalAlignment','cap','Parent',handles.axes1);
 	end
-    
-    % Change the uimenus label to "Hide"
-    hS = get(hPts,'uicontextmenu');
-    set(findobj(hS,'Tag','GCPlab'),'Label','Hide GCP numbers')
+
+	% Change the uimenus label to "Hide"
+	hS = get(hPts,'uicontextmenu');
+	set(findobj(hS,'Tag','GCPlab'),'Label','Hide GCP numbers')
 else
-    delete(findobj(handles.axes1,'Type','text','Tag','GCPnumbers'))
+	delete(findobj(handles.axes1,'Type','text','Tag','GCPnumbers'))
 	hPts = findobj(handles.axes1,'Type','line','Tag','GCPpolyline');
-    
-    % Change the uimenus labels to "Hide"
-    hS = get(hPts,'uicontextmenu');
-    set(findobj(hS,'Tag','GCPlab'),'Label','Show GCP numbers')
+
+	% Change the uimenus labels to "Hide"
+	hS = get(hPts,'uicontextmenu');
+	set(findobj(hS,'Tag','GCPlab'),'Label','Show GCP numbers')
 end
