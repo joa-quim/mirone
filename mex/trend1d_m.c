@@ -106,8 +106,12 @@
  *
  *
  *	MEXIFIED by Joaquim Luis 09-Jul-2008
- *		 Added -L option to output linear trend parameters (slope & intercept)
- *		 NOTE: this MEX does not neeed to link against the GMT library
+ *
+ *			Added -L option to output linear trend parameters (slope & intercept)
+ *	12-12-2008	Extended -L option  (not yet documented)
+ *			Added -X option to output the Chi
+ *
+ *		NOTE: this MEX does not neeed to link against the GMT library
  */
 
 #include "mex.h"
@@ -136,6 +140,9 @@ struct TREND1D_CTRL {
 	} I;
 	struct L {	/* -L When -N2[r] output slope & intercept*/
 		int active;
+		int chi;
+		int mad;
+		double value;
 	} L;
 	struct N {	/* -N[f]<n_model>[r] */
 		int active;
@@ -143,6 +150,9 @@ struct TREND1D_CTRL {
 		int mode;
 		int value;
 	} N;
+	struct X {	/* -X */
+		int active;
+	} X;
 	struct W {	/* -W */
 		int active;
 	} W;
@@ -247,6 +257,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					break;
 				case 'L':
 					Ctrl->L.active = TRUE;
+					if (argv[i][2] == 'x')		Ctrl->L.chi = TRUE;
+					else if (argv[i][2] == 'm')	Ctrl->L.mad = TRUE;
+					Ctrl->L.value = 1.5;		/* Default value, in case it is needed but not set */ 
+					if (argv[i][3])
+						Ctrl->L.value = atof(&argv[i][3]);
 					break;
 				case 'N':
 					Ctrl->N.active = TRUE;
@@ -267,6 +282,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
  						mexPrintf ("%TREND1D: GMT SYNTAX ERROR -N option.  No model specified\n");
 					}
 					break;
+				case 'X':
+					Ctrl->X.active = TRUE;
+					break;
 				case 'W':
 					Ctrl->W.active = TRUE;
 					break;
@@ -281,7 +299,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (argc == 1 || error) {
 		mexPrintf("trend1d - Fit a [weighted] [robust] polynomial [or Fourier] model for y = f(x) to xy[w]\n\n");
 		mexPrintf("usage:  [out, lin_params] = trend1d_m(in_array, '-F<xymrw>', '-N[f]<n_model>[r]', '[-C<condition_#>],'\n");
-		mexPrintf("\t'[-I[<confidence>]]', '[-L]', '[-W])'\n\n");
+		mexPrintf("\t'[-I[<confidence>]]', '[-L]', '[-X]', '[-W])'\n\n");
 
 		mexPrintf("\t-F Choose at least 1, up to 5, any order, of xymrw for ascii output to stdout.\n");
 		mexPrintf("\t   x=x, y=y, m=model, r=residual=y-m, w=weight.  w determined iteratively if robust fit used.\n");
@@ -297,6 +315,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("\t   If only one output is requested out = [slope, intercept].\n");
 		mexPrintf("\t   If two outputs, first is determined by -F and the second is [slope, intercept].\n");
 		mexPrintf("\t   Note, however, that by asking two outputs it is not necessary to use -L option.\n");
+		mexPrintf("\t-X For linear (-N2[r]) fits outputs SQRT(Chi-square). It forces -L and lin_prams is a 1x3 vector.\n");
 		mexPrintf("\t-W Weighted input given, weights in 3rd column.  [Default is unweighted].\n");
 		mexPrintf("\t   Default is 2 (or 3 if -W is set) input columns.\n");
 		return;
@@ -324,6 +343,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 		n_outputs++;
 	}
+        if (Ctrl->X.active)
+		Ctrl->L.active = TRUE;
+
         if (n_outputs == 0 && !(Ctrl->L.active && (nlhs == 1))) {
                 mexPrintf ("TREND1D: SYNTAX ERROR -F option.  Must specify at least one output columns \n");
                 error++;
@@ -347,6 +369,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (Ctrl->L.active && Ctrl->N.value != 2) {
 		mexPrintf("TREND1D WARNING: ouput model parameters is only possible with linear trend. Ignoring option -L\n");
 		Ctrl->L.active = FALSE;
+		Ctrl->X.active = FALSE;
 	}
 
 	if (nlhs == 2 && Ctrl->N.value == 2 && !Ctrl->L.active)		/* Two outputs and -N2 == -L */
@@ -460,14 +483,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	untransform_x(data, n_data, Ctrl->N.mode, xmin, xmax);
 
-	if (Ctrl->L.active) {	/* Output also line's slope and intercept */
-		double m, b;
+	if (Ctrl->L.active || Ctrl->X.active) {	/* Output also line's slope and intercept */
+		int	nLX;
+		double	m, b, nan;
+
+		nan = mxGetNaN();
 		m = (data[n_data - 1].m - data[0].m) / (data[n_data - 1].x - data[0].x);
 		b = -m * data[0].x + data[0].m;
+		if (Ctrl->L.chi && (sqrt(c_chisq) > Ctrl->L.value)) {
+			m = nan;	b = nan;
+		}
+		else if (Ctrl->L.mad && (scale > Ctrl->L.value)) {
+			m = nan;	b = nan;
+		}
+		nLX = (Ctrl->X.active ? 3 : 2);
 		if (nlhs == 1) {
-			plhs[0] = mxCreateDoubleMatrix (1, 2, mxREAL);
+			plhs[0] = mxCreateDoubleMatrix (1, nLX, mxREAL);
 			pdata = mxGetPr(plhs[0]);
 			pdata[0] = m;	pdata[1] = b;
+			if (Ctrl->X.active) pdata[2] = sqrt(c_chisq);
 		}
 		else {		/* Output whatever -F plus slope and intercept */
 			double *pdata_l;
@@ -475,9 +509,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			pdata = mxGetPr(plhs[0]);
 			write_output(data, n_data, Ctrl->F.col, n_outputs, pdata);
 
-			plhs[1] = mxCreateDoubleMatrix (1, 2, mxREAL);
+			plhs[1] = mxCreateDoubleMatrix (1, nLX, mxREAL);
 			pdata_l = mxGetPr(plhs[1]);
 			pdata_l[0] = m;	pdata_l[1] = b;
+			if (Ctrl->X.active) pdata_l[2] = sqrt(c_chisq);
 		}
 	}
 	else {
