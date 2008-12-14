@@ -400,6 +400,15 @@ mex/read_isf.c -text
 mex/scaleto8.c -text
 mex/set_gmt.c -text
 mex/shoredump.c -text
+mex/sift/LICENSE.ubc.txt -text
+mex/sift/imgfeatures.c -text
+mex/sift/imgfeatures.h -text
+mex/sift/kdtree.c -text
+mex/sift/kdtree.h -text
+mex/sift/minpq.c -text
+mex/sift/minpq.h -text
+mex/sift/sift.c -text
+mex/sift/sift.h -text
 mex/spa.c -text
 mex/spa.h -text
 mex/surface_m.c -text
