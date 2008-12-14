@@ -33,204 +33,204 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 	%delete(handles.TerrainMod);
 	if (ishandle(handles.Projections)),     delete(handles.Projections);   end
 
-% ------------- Cleverer deletion of unwanted uicontrols
-h1 = get(handles.File,'Children');
-h2 = setxor(h1,handles.OpenGI);
-delete(h2)
+	% ------------- Cleverer deletion of unwanted uicontrols
+	h1 = get(handles.File,'Children');
+	h2 = setxor(h1,handles.OpenGI);
+	delete(h2)
 
-h2 = get(handles.Datasets,'Children');
-h21 = handles.VoidDatasetsCoastLine;
-h22 = handles.VoidDatasetsPB;
-h23 = handles.VoidDatasetsRivers;
-h3 = setxor(h2,[h21; h22; h23]);
-delete(h3)
-% -------------
+	h2 = get(handles.Datasets,'Children');
+	h21 = handles.VoidDatasetsCoastLine;
+	h22 = handles.VoidDatasetsPB;
+	h23 = handles.VoidDatasetsRivers;
+	h3 = setxor(h2,[h21; h22; h23]);
+	delete(h3)
+	% -------------
 
-% Import icons
-load ([pwd filesep 'data' filesep 'mirone_icons.mat']);
-h_toolbar = handles.FigureToolBar;
-uitoggletool('parent',h_toolbar,'Click',{@InsertPoint_Callback,handles}, ...
-   'Tag','singlePoint','cdata',point_ico,'TooltipString','Insert point','Separator','on');
-uitoggletool('parent',h_toolbar,'Click',{@InsertPointAndPred_Callback,handles}, ...
-   'Tag','PointPred','cdata',pointPred_ico,'TooltipString','Insert point and prediction');
-uipushtool('parent',h_toolbar,'Click',{@registerImage_Callback,handles},...
-    'cdata',R_ico,'TooltipString','Register','Separator','on');
-uipushtool('parent',h_toolbar,'Click',{@registerSIFT_Callback,handles},...
-    'cdata',cerejas,'TooltipString','Automatic Registration','Separator','on');
+	% Import icons
+	load ([pwd filesep 'data' filesep 'mirone_icons.mat']);
+	h_toolbar = handles.FigureToolBar;
+	uitoggletool('parent',h_toolbar,'Click',@InsertPoint_Callback, ...  
+		'Tag','singlePoint','cdata',point_ico,'TooltipString','Insert point','Separator','on');
+	uitoggletool('parent',h_toolbar,'Click',@InsertPointAndPred_Callback, ...  
+		'Tag','PointPred','cdata',pointPred_ico,'TooltipString','Insert point and prediction');
+	uipushtool('parent',h_toolbar,'Click',@registerImage_Callback,...   
+		'cdata',R_ico,'TooltipString','Register','Separator','on');
+	uipushtool('parent',h_toolbar,'Click',@registerSIFT_Callback,...   
+		'cdata',cerejas,'TooltipString','Automatic Registration','Separator','on');
 
-handles.origFig = [];       % We don't need the image copy anymore
+	handles.origFig = [];       % We don't need the image copy anymore
 
-posStatusBar = get(findall(handles.figure1,'Type','axes','Tag','sbAxes'),'Pos');
-if (strcmp(get(handles.axes1,'Visible'),'on'))
-    margAnotVer = 30;      % Inventado
-    margAnotHor = 15;      % Inventado
-else
-    margAnotVer = 0;
-    margAnotHor = 0;
-end
-sldT = 13;              % Slider thickness
-marg = 5;               % Horizontal margin between the axes(+slider) and the figure
-topMargin = 30;         % To accomudate the uis on top of the images
-windowsBar = 60;        % In fact I don't know
-LeastImageWidth = 360;  % Working value for a 800 pixels width screen
-screen = get(0, 'ScreenSize');
-MaxImageWidth = screen(3)/2 - (2*sldT+3*marg + 2*margAnotVer);  % Maximum image width supported in this screen
+	posStatusBar = get(findall(handles.figure1,'Type','axes','Tag','sbAxes'),'Pos');
+	if (strcmp(get(handles.axes1,'Visible'),'on'))
+		margAnotVer = 30;      % Inventado
+		margAnotHor = 15;      % Inventado
+	else
+		margAnotVer = 0;
+		margAnotHor = 0;
+	end
+	sldT = 13;              % Slider thickness
+	marg = 5;               % Horizontal margin between the axes(+slider) and the figure
+	topMargin = 30;         % To accomudate the uis on top of the images
+	windowsBar = 60;        % In fact I don't know
+	LeastImageWidth = 360;  % Working value for a 800 pixels width screen
+	screen = get(0, 'ScreenSize');
+	MaxImageWidth = screen(3)/2 - (2*sldT+3*marg + 2*margAnotVer);  % Maximum image width supported in this screen
 
-dims1 = size(get(handles.hImg,'CData'));
-img1H = dims1(1);       img1W = dims1(2);
-dims2 = size(I);
-img2H = dims2(1);       img2W = dims2(2);
+	dims1 = size(get(handles.hImg,'CData'));
+	img1H = dims1(1);       img1W = dims1(2);
+	dims2 = size(I);
+	img2H = dims2(1);       img2W = dims2(2);
 
-% ------------- Don't make images too small
-if (img1W < LeastImageWidth)
-    img1H = img1H * LeastImageWidth / img1W;    % Rescale height of img1
-    img1W = LeastImageWidth;
-elseif (img1W > MaxImageWidth)
-    img1H = img1H * MaxImageWidth / img1W;      % Rescale height of img1    
-    img1W = MaxImageWidth;
-end
+	% ------------- Don't make images too small
+	if (img1W < LeastImageWidth)
+		img1H = img1H * LeastImageWidth / img1W;    % Rescale height of img1
+		img1W = LeastImageWidth;
+	elseif (img1W > MaxImageWidth)
+		img1H = img1H * MaxImageWidth / img1W;      % Rescale height of img1    
+		img1W = MaxImageWidth;
+	end
+	
+	if (img2W < LeastImageWidth)
+		img2H = img2H * LeastImageWidth / img2W;    % Rescale height of img2
+		img2W = LeastImageWidth;
+	elseif (img2W > MaxImageWidth)
+		img2H = img2H * MaxImageWidth / img2W;      % Rescale height of img2    
+		img2W = MaxImageWidth;
+	end
+	% ---------------
 
-if (img2W < LeastImageWidth)
-    img2H = img2H * LeastImageWidth / img2W;    % Rescale height of img2
-    img2W = LeastImageWidth;
-elseif (img2W > MaxImageWidth)
-    img2H = img2H * MaxImageWidth / img2W;      % Rescale height of img2    
-    img2W = MaxImageWidth;
-end
-% ---------------
+	% --------------- Compute new figure size
+	if (img1W + img2W <= screen(3)+2*sldT+3*marg)
+		figH = min(screen(4)-60,min(img1H,img2H)+posStatusBar(end)+margAnotHor) + topMargin + sldT;
+		posFig = [0 0 (img1W + img2W + 2*sldT+3*marg + margAnotVer) figH];
+	else
+		posFig = [0 0 screen(3) screen(4)-60];
+	end
 
-% --------------- Compute new figure size
-if (img1W + img2W <= screen(3)+2*sldT+3*marg)
-    figH = min(screen(4)-60,min(img1H,img2H)+posStatusBar(end)+margAnotHor) + topMargin + sldT;
-    posFig = [0 0 (img1W + img2W + 2*sldT+3*marg + margAnotVer) figH];
-else
-    posFig = [0 0 screen(3) screen(4)-60];
-end
+	axesW = min(img1W,img2W);
+	axesH = min(min(img1H,img2H),screen(4)-windowsBar);
+	aspectImg = axesH / axesW;
 
-axesW = min(img1W,img2W);
-axesH = min(min(img1H,img2H),screen(4)-windowsBar);
-aspectImg = axesH / axesW;
+	set(handles.figure1,'Visible','off')
+	set(handles.figure1,'Pos',posFig,'Name','GCP Tool')     % Resize the figure
+	movegui(handles.figure1,'north')                        % And reposition it
 
-set(handles.figure1,'Visible','off')
-set(handles.figure1,'Pos',posFig,'Name','GCP Tool')     % Resize the figure
-movegui(handles.figure1,'north')                        % And reposition it
+	% --------------- Reposition the existing axes
+	set(handles.axes1,'Units','pixels','Tag','axes1')
+	%set(handles.axes1,'Pos',[(posFig(3)-axesW-sldT-marg) (posStatusBar(4)+margAnotHor+sldT+5) axesW axesH])
+	set(handles.axes1,'Pos',[(posFig(3)-img1W-sldT-marg) (posStatusBar(4)+margAnotHor+sldT+5) img1W axesH])
+	tmp = getappdata(handles.axes1,'ThisImageLims');
+	xlim = tmp(1:2);    ylim = tmp(3:4);
+	aspectPixeis = img1H / img1W;
+	aspectData = dims1(1) / dims1(2);
+	if (abs(aspectPixeis - aspectImg) > 1e-3)      % This axes was distorted
+		if (aspectImg < 1)
+			aspectThis = axesH / img1H;
+			set(handles.axes1,'ylim',ylim(1)+[0 (ylim(2)-ylim(1))*aspectThis])
+		else
+			aspectThis = axesW / img1W;
+			set(handles.axes1,'xlim',xlim(1)+[0 (xlim(2)-xlim(1))*aspectThis])
+		end
+	end
+	handles.hMasterImage = handles.hImg;
+	% ---------------
 
-% --------------- Reposition the existing axes
-set(handles.axes1,'Units','pixels','Tag','axes1')
-%set(handles.axes1,'Pos',[(posFig(3)-axesW-sldT-marg) (posStatusBar(4)+margAnotHor+sldT+5) axesW axesH])
-set(handles.axes1,'Pos',[(posFig(3)-img1W-sldT-marg) (posStatusBar(4)+margAnotHor+sldT+5) img1W axesH])
-tmp = getappdata(handles.axes1,'ThisImageLims');
-xlim = tmp(1:2);    ylim = tmp(3:4);
-aspectPixeis = img1H / img1W;
-aspectData = dims1(1) / dims1(2);
-if (abs(aspectPixeis - aspectImg) > 1e-3)      % This axes was distorted
-    if (aspectImg < 1)
-        aspectThis = axesH / img1H;
-        set(handles.axes1,'ylim',ylim(1)+[0 (ylim(2)-ylim(1))*aspectThis])
-    else
-        aspectThis = axesW / img1W;
-        set(handles.axes1,'xlim',xlim(1)+[0 (xlim(2)-xlim(1))*aspectThis])
-    end
-end
-handles.hMasterImage = handles.hImg;
-% ---------------
+	% ------------- Create the second axes
+	fonteName = get(handles.axes1,'FontName');      fonteSize = get(handles.axes1,'FontSize');
+	handles.axes2 = axes('Units','pixels','FontName',fonteName,'FontSize',fonteSize, ...   
+		'Pos',[(posFig(1)+marg) (posStatusBar(end)+margAnotHor+sldT+5) img2W axesH]);
+	handles.hSlaveImage = image(X,Y,I,'Parent',handles.axes2);    set(handles.axes2,'Tag','axes2')
+	if (strcmp(axis_t,'xy')),			set(handles.axes2,'XDir','normal','YDir','normal')
+	elseif (strcmp(axis_t,'off')),		set(handles.axes2,'Visible','off')
+	end
+	xlim = get(handles.axes2,'xlim');	ylim = get(handles.axes2,'ylim');
+	setappdata(handles.axes2,'ThisImageLims',[xlim ylim])
 
-% ------------- Create the second axes
-fonteName = get(handles.axes1,'FontName');      fonteSize = get(handles.axes1,'FontSize');
-handles.axes2 = axes('Units','pixels','FontName',fonteName,'FontSize',fonteSize, ...
-    'Pos',[(posFig(1)+marg) (posStatusBar(end)+margAnotHor+sldT+5) img2W axesH]);
-handles.hSlaveImage = image(X,Y,I,'Parent',handles.axes2);    set(handles.axes2,'Tag','axes2')
-if (strcmp(axis_t,'xy')),           set(handles.axes2,'XDir','normal','YDir','normal')
-elseif (strcmp(axis_t,'off')),      set(handles.axes2,'Visible','off')
-end
-xlim = get(handles.axes2,'xlim');        ylim = get(handles.axes2,'ylim');
-setappdata(handles.axes2,'ThisImageLims',[xlim ylim])
+	aspectPixeis = img2H / img2W;
+	aspectData = dims2(1) / dims2(2);
+	if (abs(aspectPixeis - aspectImg) > 1e-3)      % This axes was distorted
+		if (aspectImg < 1)
+			aspectThis = axesH / img2H;
+			set(handles.axes2,'ylim',ylim(1)+[0 (ylim(2)-ylim(1))*aspectThis])
+		else
+			aspectThis = axesW / img2W;
+			set(handles.axes2,'xlim',xlim(1)+[0 (xlim(2)-xlim(1))*aspectThis])
+		end
+	end
+	% ----------------
 
-aspectPixeis = img2H / img2W;
-aspectData = dims2(1) / dims2(2);
-if (abs(aspectPixeis - aspectImg) > 1e-3)      % This axes was distorted
-    if (aspectImg < 1)
-        aspectThis = axesH / img2H;
-        set(handles.axes2,'ylim',ylim(1)+[0 (ylim(2)-ylim(1))*aspectThis])
-    else
-        aspectThis = axesW / img2W;
-        set(handles.axes2,'xlim',xlim(1)+[0 (xlim(2)-xlim(1))*aspectThis])
-    end
-end
-% ----------------
+	% ------------- Here we must check if both images are indexed and with different cmaps
+	if (ndims(I) == 2 && ndims(get(handles.hImg,'cdata')) == 2)
+		pal = get(handles.figure1,'ColorMap');          % Current colormap (was set according to SlaveImage)
+		d_pal = 1;
+		if (numel(pal) == numel(handles.origCmap))
+			d_pal = pal - handles.origCmap;
+		end
+		if (any(d_pal(:)))                               % Color maps difer. The only solution it to convert the
+			Imaster = get(handles.hMasterImage,'CData'); % Master image to RGB, so that it won't be changed to the
+			Imaster = ind2rgb8(Imaster,handles.origCmap);% Slave's colormap
+			set(handles.hMasterImage,'CData',Imaster);
+		end
+	end
+	% ----------------
 
-% ------------- Here we must check if both images are indexed and with different cmaps
-if (ndims(I) == 2 && ndims(get(handles.hImg,'cdata')) == 2)
-    pal = get(handles.figure1,'ColorMap');          % Current colormap (was set according to SlaveImage)
-    d_pal = 1;
-    if (numel(pal) == numel(handles.origCmap))
-        d_pal = pal - handles.origCmap;
-    end
-    if (any(d_pal(:)))                               % Color maps difer. The only solution it to convert the
-        Imaster = get(handles.hMasterImage,'CData'); % Master image to RGB, so that it won't be changed to the
-        Imaster = ind2rgb8(Imaster,handles.origCmap);% Slave's colormap
-        set(handles.hMasterImage,'CData',Imaster);
-    end
-end
-% ----------------
+	% ---------------- Create the sliders
+	pos1 = get(handles.axes1,'Pos');
+	handles.slider1_ver = uicontrol('Units','pixels','Style','slider','Pos',[pos1(1)+pos1(3)+1 pos1(2) sldT pos1(4)+1]);
+	handles.slider1_hor = uicontrol('Units','pixels','Style','slider','Pos',[pos1(1) pos1(2)-sldT-1-margAnotHor pos1(3)+1 sldT]);
+	set(handles.slider1_hor,'Min',0,'Max',1,'Value',0,'Tag','HOR','Callback',{@slider_Cb,handles.axes1,'SetSliderHor'})
+	set(handles.slider1_ver,'Min',0,'Max',1,'Value',0,'Tag','VER','Callback',{@slider_Cb,handles.axes1,'SetSliderVer'})
+	% Register the sliders in the axe's appdata
+	setappdata(handles.axes1,'SliderAxes',[handles.slider1_hor handles.slider1_ver])
+	imscroll_j(handles.axes1,'ZoomSetSliders')              % ...
+	%
+	pos2 = get(handles.axes2,'Pos');
+	handles.slider2_ver = uicontrol('Units','pixels','Style','slider','Pos',[pos2(1)+pos2(3)+1 pos2(2) sldT pos2(4)+1]);
+	handles.slider2_hor = uicontrol('Units','pixels','Style','slider','Pos',[pos2(1) pos2(2)-sldT-1-margAnotHor pos2(3)+1 sldT]);
+	set(handles.slider2_hor,'Min',0,'Max',1,'Value',0,'Tag','HOR','Callback',{@slider_Cb,handles.axes2,'SetSliderHor'})
+	set(handles.slider2_ver,'Min',0,'Max',1,'Value',0,'Tag','VER','Callback',{@slider_Cb,handles.axes2,'SetSliderVer'})
+	% Register the sliders in the axe's appdata
+	setappdata(handles.axes2,'SliderAxes',[handles.slider2_hor handles.slider2_ver])
+	imscroll_j(handles.axes2,'ZoomSetSliders')              % ...
 
-% ---------------- Create the sliders
-pos1 = get(handles.axes1,'Pos');
-handles.slider1_ver = uicontrol('Units','pixels','Style','slider','Pos',[pos1(1)+pos1(3)+1 pos1(2) sldT pos1(4)+1]);
-handles.slider1_hor = uicontrol('Units','pixels','Style','slider','Pos',[pos1(1) pos1(2)-sldT-1-margAnotHor pos1(3)+1 sldT]);
-set(handles.slider1_hor,'Min',0,'Max',1,'Value',0,'Tag','HOR','Callback',{@slider_Cb,handles.axes1,'SetSliderHor'})
-set(handles.slider1_ver,'Min',0,'Max',1,'Value',0,'Tag','VER','Callback',{@slider_Cb,handles.axes1,'SetSliderVer'})
-% Register the sliders in the axe's appdata
-setappdata(handles.axes1,'SliderAxes',[handles.slider1_hor handles.slider1_ver])
-imscroll_j(handles.axes1,'ZoomSetSliders')              % ...
-%
-pos2 = get(handles.axes2,'Pos');
-handles.slider2_ver = uicontrol('Units','pixels','Style','slider','Pos',[pos2(1)+pos2(3)+1 pos2(2) sldT pos2(4)+1]);
-handles.slider2_hor = uicontrol('Units','pixels','Style','slider','Pos',[pos2(1) pos2(2)-sldT-1-margAnotHor pos2(3)+1 sldT]);
-set(handles.slider2_hor,'Min',0,'Max',1,'Value',0,'Tag','HOR','Callback',{@slider_Cb,handles.axes2,'SetSliderHor'})
-set(handles.slider2_ver,'Min',0,'Max',1,'Value',0,'Tag','VER','Callback',{@slider_Cb,handles.axes2,'SetSliderVer'})
-% Register the sliders in the axe's appdata
-setappdata(handles.axes2,'SliderAxes',[handles.slider2_hor handles.slider2_ver])
-imscroll_j(handles.axes2,'ZoomSetSliders')              % ...
+	% ---------------- Create the popups
+	handles.popup_transf = uicontrol('Units','Pixels','TooltipString','Type of transformation',...
+		'String',{'Affine'; 'Linear conformal'; 'Projective'; 'Polynomial (6 pts)';...
+			'Polynomial (10 pts)'; 'Polynomial (16 pts)'; 'Piecewise linear'; 'Loc weighted mean'; ...
+			'GDAL order 1'; 'GDAL order 2'; 'GDAL order 3'; 'GDAL splines'}, ...
+		'Pos',[pos2(1)+pos2(3)-130 pos2(2)+pos2(4)+2 120 21],'Style','popupmenu', 'BackgroundColor','w');
+	
+	handles.popup_interpMethod = uicontrol('Units','Pixels','TooltipString','Specifies the form of interpolation to use.',...
+		'String',{'bilinear'; 'bicubic'; 'nearest';}, 'BackgroundColor','w', ...
+		'Pos',[pos1(1)+10 pos1(2)+pos1(4)+2 90 21],'Style','popupmenu');
+	% ----------------
 
-% ---------------- Create the popups
-handles.popup_transf = uicontrol('Units','Pixels','TooltipString','Type of transformation',...
-    'String',{'Affine'; 'Linear conformal'; 'Projective'; 'Polynomial (6 pts)';...
-        'Polynomial (10 pts)'; 'Polynomial (16 pts)'; 'Piecewise linear'; 'Loc weighted mean'}, ...
-    'Pos',[pos2(1)+pos2(3)-130 pos2(2)+pos2(4)+2 120 21],'Style','popupmenu', 'BackgroundColor','w');
+	% ---------------- Create the text image names
+	uicontrol('Units','Pixels','Style','text','String','Slave Image','FontName','Helvetica','FontSize',10, ...   
+		'Pos',[pos2(1) pos2(2)+pos2(4)+2 75 16],'HorizontalAlignment','left')
+	uicontrol('Units','Pixels','Style','text','String','Master Image','FontName','Helvetica','FontSize',10, ...   
+		'Pos',[pos1(1)+pos1(3)-90 pos1(2)+pos1(4)+2 90 16],'HorizontalAlignment','right')
+	% ----------------
 
-handles.popup_interpMethod = uicontrol('Units','Pixels','TooltipString','Specifies the form of interpolation to use.',...
-    'String',{'bilinear'; 'bicubic'; 'nearest';}, 'BackgroundColor','w', ...
-    'Pos',[pos1(1)+10 pos1(2)+pos1(4)+2 90 21],'Style','popupmenu');
-% ----------------
+	handles.slavePoints = [];	handles.masterPoints = [];
+	handles.count = 0;			handles.isCoupled = [];
+	handles.hTextSlave = [];	handles.hTextMaster = [];
 
-% ---------------- Create the text image names
-uicontrol('Units','Pixels','Style','text','String','Slave Image','FontName','Helvetica','FontSize',10, ...
-    'Pos',[pos2(1) pos2(2)+pos2(4)+2 75 16],'HorizontalAlignment','left')
-uicontrol('Units','Pixels','Style','text','String','Master Image','FontName','Helvetica','FontSize',10, ...
-    'Pos',[pos1(1)+pos1(3)-90 pos1(2)+pos1(4)+2 90 16],'HorizontalAlignment','right')
-% ----------------
-
-handles.slavePoints = [];
-handles.masterPoints = [];
-handles.count = 0;
-handles.isCoupled = [];
-
-hand_prev = guidata(handles.figure1);   % The geog type of the Master image is still in appdata
-handles.geog = hand_prev.geog;          % but the handles.geog contains the geog state of Slave img
-handles.Mhead = hand_prev.head;         %                   Same with the header
-handles.Shead  = handles.head;          %   Just to maintain name consistency
-handles.Mimage_type = hand_prev.image_type;
-set(handles.figure1,'Visible','on','pointer','arrow')
-guidata(handles.figure1,handles)
+	hand_prev = guidata(handles.figure1);	% The geog type of the Master image is still in appdata
+	handles.geog  = hand_prev.geog;			% but the handles.geog contains the geog state of Slave img
+	handles.Mhead = hand_prev.head;			%                   Same with the header
+	handles.Shead = handles.head;			%   Just to maintain name consistency
+	handles.Mimage_type = hand_prev.image_type;
+	set(handles.figure1,'Visible','on','pointer','arrow')
+	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
 function slider_Cb(obj,evt,ax,opt)
-imscroll_j(ax,opt)
+	imscroll_j(ax,opt)
 
 % -----------------------------------------------------------------------------------------
-function InsertPoint_Callback(hObject,event,handles)
-handles = guidata(handles.figure1);
+function InsertPoint_Callback(hObject,event)
+handles = guidata(hObject);
 but = 1;    count = handles.count;
 while (but == 1)
     lastClickedAx = getappdata(handles.figure1,'clickedAx');
@@ -291,26 +291,30 @@ while (but == 1)
             else                        handles.slavePoints(count,:) = [x y];
             end
         end
-    end
-    setappdata(handles.figure1,'clickedAx',wichAxes)
+    end   
+	setappdata(handles.figure1,'clickedAx',wichAxes)
 end
+if ( ~isempty(handles.hTextMaster) )	% It is annoying if they are visible, but we need to force a clean text rebuild
+	delete(handles.hTextMaster),	handles.hTextMaster = [];
+	delete(handles.hTextSlave),		handles.hTextSlave = [];
+end
+
 guidata(handles.figure1,handles)
 
 % ---------------------------------------------------------------------------
-function InsertPointAndPred_Callback(hObject,event,handles)
-handles = guidata(handles.figure1);
+function InsertPointAndPred_Callback(hObject,event)
+handles = guidata(hObject);
 tipo = checkTransform(handles);
 if (isempty(tipo)),     return;    end      % Error message already issued
 but = 1;    count = handles.count;
 while (but == 1)
     %lastClickedAx = getappdata(handles.figure1,'clickedAx');
     [x,y,but] = ginput_pointer(1,'crosshair');
-    if (but ~= 1),  break;  end
+    if (but ~= 1),		break,	end
     wichAxes = get(get(handles.figure1,'CurrentAxes'),'Tag');
     if (wichAxes(end) == '1')       % Master -> Slave prediction
         trf = transform_fun('cp2tform',handles.masterPoints, handles.masterPoints, tipo);
-        [x_pred,y_pred] = transform_fun('tformfwd',trf,[handles.masterPoints(:,1); x],...
-            [handles.masterPoints(:,2); y]);
+        [x_pred,y_pred] = transform_fun('tformfwd',trf, [handles.masterPoints(:,1); x], [handles.masterPoints(:,2); y]);
         handles.masterPoints = [handles.masterPoints; x y];
         handles.slavePoints = [handles.slavePoints; x_pred(end) y_pred(end)];
         h_pt = line(x,y,'Marker','o','MarkerFaceColor','y',...
@@ -319,8 +323,7 @@ while (but == 1)
             'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
     else                            % Slave -> Master prediction
         trf = transform_fun('cp2tform',handles.slavePoints, handles.masterPoints, tipo);
-        [x_pred,y_pred] = transform_fun('tformfwd',trf,[handles.slavePoints(:,1); x],...
-            [handles.slavePoints(:,2); y]);
+        [x_pred,y_pred] = transform_fun('tformfwd',trf,[handles.slavePoints(:,1); x], [handles.slavePoints(:,2); y]);
         handles.slavePoints = [handles.slavePoints; x y];
         handles.masterPoints = [handles.masterPoints; x_pred(end) y_pred(end)];
         h_pt = line(x,y,'Marker','o','MarkerFaceColor','y',...
@@ -328,6 +331,10 @@ while (but == 1)
         handles.hLastPt = line(x_pred(end),y_pred(end),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','y',...
             'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
     end
+	if ( ~isempty(handles.hTextMaster) )	% It is annoying if they are visible, but we need to force a clean text rebuild
+		delete(handles.hTextMaster),	handles.hTextMaster = [];
+		delete(handles.hTextSlave),		handles.hTextSlave = [];
+	end
     count = count + 1;
     handles.count = count;
     set_gcp_uicontext(handles,handles.hLastPt)
@@ -339,27 +346,30 @@ guidata(handles.figure1,handles)
 % -----------------------------------------------------------------------------------------
 function set_gcp_uicontext(handles,h)
 % Set uicontexts for the symbols. h is the handle to the marker (line in fact) object
-
-cmenuHand = uicontextmenu;      set(h, 'UIContextMenu', cmenuHand);
-ui_edit_polygon(h)    % Set edition functions
-uimenu(cmenuHand, 'Label', 'Remove GCP pair', 'Callback', {@remove_pair,handles,h});
-uimenu(cmenuHand, 'Label', 'Remove all GCPs', 'Callback', {@removeALLgcps,handles,h});
-uimenu(cmenuHand, 'Label', 'View GCPs table', 'Callback', {@show_gcp,handles},'Sep','on');
-uimenu(cmenuHand, 'Label', 'Show GCP numbers', 'Callback', {@showGCPnumbers,handles},'Tag','GCPlab');
-% uimenu(cmenuHand, 'Label', 'Try fine tune GCPs', 'Callback', {@doCPcorr,handles},'Separator','on');
-uimenu(cmenuHand, 'Label', 'Save GCPs', 'Callback', {@doWriteGCPs,handles},'Separator','on');
+	cmenuHand = uicontextmenu;      set(h, 'UIContextMenu', cmenuHand);
+	ui_edit_polygon(h)    % Set edition functions
+	uimenu(cmenuHand, 'Label', 'Remove GCP pair', 'Callback', {@remove_pair,h});
+	uimenu(cmenuHand, 'Label', 'Remove all GCPs', 'Callback', {@removeALLgcps,h});
+	uimenu(cmenuHand, 'Label', 'View GCPs table', 'Callback', {@show_gcp, handles},'Sep','on');
+	uimenu(cmenuHand, 'Label', 'Show GCP numbers', 'Callback', @showGCPnumbers,'Tag','GCPlab');
+	% uimenu(cmenuHand, 'Label', 'Try fine tune GCPs', 'Callback', {@doCPcorr,handles},'Separator','on');
+	uimenu(cmenuHand, 'Label', 'Save GCPs', 'Callback', @doWriteGCPs,'Separator','on');
 
 % -----------------------------------------------------------------------------------------
-function remove_pair(event,obj,handles,h)
-	% Remove a pair of conjugated GCPs
-	handles = guidata(handles.figure1);
+function remove_pair(obj,event,h)
+% Remove a pair of conjugated GCPs
+	handles = guidata(obj);
 	id = get(h,'UserData');
 	hh = findobj(handles.figure1,'Type','line','UserData',id);
 	delete(hh)
+	if ( ~isempty(handles.hTextMaster) )	% If we have text numbers, delete them as well
+		delete(handles.hTextMaster(id)),	delete(handles.hTextSlave(id))
+		handles.hTextMaster(id) = [];		handles.hTextSlave(id) = [];
+	end
 	np = size(handles.masterPoints,1);
 	for (i = id:np)
-        hh = findobj(handles.figure1,'Type','line','UserData',i);
-        set(hh,'UserData',i-1)
+		hh = findobj(handles.figure1,'Type','line','UserData',i);
+		set(hh,'UserData',i-1)
 	end
 	handles.masterPoints(id,:) = [];
 	handles.slavePoints(id,:) = [];
@@ -367,14 +377,14 @@ function remove_pair(event,obj,handles,h)
 	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
-function removeALLgcps(event,obj,handles,h)
-    delete(findobj(handles.figure1,'Tag','GCPSymbol'))
-    handles = guidata(handles.figure1);
-    handles.masterPoints = [];
-    handles.slavePoints = [];
-    handles.count = 0;
-    handles.isCoupled = [];
-    guidata(handles.figure1,handles)
+function removeALLgcps(obj,event,h)
+	handles = guidata(obj);
+	delete(findobj(handles.figure1,'Tag','GCPSymbol'))
+	delete(handles.hTextMaster),	delete(handles.hTextSlave)
+	handles.hTextMaster=[];			handles.hTextSlave=[];
+	handles.masterPoints = [];		handles.slavePoints = [];
+	handles.count = 0;				handles.isCoupled = [];
+	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
 function handles = getUpdatedCPs(handles)
@@ -407,102 +417,118 @@ handles.masterPoints = [xMasters yMasters];
 guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
-function resMod = show_gcp(event,obj,handles, opt)
+function resMod = show_gcp(obj, event, handles, opt)
 % Display the GCPs in tableGUI, OR return the residues norm (no table show then)
 % OPT is used to NOT call getUpdatedCPs, because that function fishes the data
 % from figure. Instead, when OPT ~= [], we trust on data stored in handles
 
-if (nargin == 3),   opt = [];   end
-handles = guidata(handles.figure1);
-if (isempty(opt))
-    handles = getUpdatedCPs(handles);       % Points may have been edited
-end
+	if (nargin == 3),   opt = [];   end
+	handles = guidata(handles.figure1);
+	if (isempty(opt))
+		handles = getUpdatedCPs(handles);       % Points may have been edited
+	end
 
-[tipo,to_order] = checkTransform(handles);
-if (isempty(tipo)),     return;    end      % Error message already issued
+	[tipo,to_order] = checkTransform(handles);
+	if (isempty(tipo)),		return,		end		% Error message already issued
 
-if (strncmp(tipo,'poly',4))
-    tipo = {'polynomial' to_order-2};   % to_order-2 is a trick to get the right order from popup list order
-else
-    tipo = {tipo};
-end
+	if (strncmp(tipo,'poly',4))
+		tipo = {'polynomial' to_order-2};   % to_order-2 is a trick to get the right order from popup list order
+	else
+		tipo = {tipo};
+	end
 
-try
-    trf = transform_fun('cp2tform',handles.slavePoints,handles.masterPoints,tipo{:});
-    %trf = cp2tform(handles.slavePoints,handles.masterPoints,tipo{:});
-catch
-    errordlg(lasterr,'Error');    trf = [];     return    
-end
+	if (strncmp(tipo{1},'gdal',4))		% A GDAL warping 
+		hdr.gcp = [handles.slavePoints handles.masterPoints];
+		if (tipo{1}(end) == 's'),	hdr.order = -1;
+		else						hdr.order = str2double(tipo{1}(end));
+		end
+		xy = gdaltransform_mex(hdr.gcp(:,1:2), hdr);
+		x = xy(:,1);		y = xy(:,2);
+	else
+		try
+			trf = transform_fun('cp2tform', handles.slavePoints, handles.masterPoints, tipo{:});
+			%trf = cp2tform(handles.slavePoints,handles.masterPoints,tipo{:});
+		catch
+			errordlg(lasterr,'Error');    trf = [];     return    
+		end
+		[x,y] = transform_fun('tformfwd',trf,handles.slavePoints(:,1),handles.slavePoints(:,2));
+	end
 
-[x,y] = transform_fun('tformfwd',trf,handles.slavePoints(:,1),handles.slavePoints(:,2));
-if (handles.geog)
-	resMod = vdist(handles.masterPoints(:,2),handles.masterPoints(:,1), y, x);
-	str_res = 'Residue (m)';
-else
-	residue = [handles.masterPoints(:,1) handles.masterPoints(:,2)] - [x y];
-	resMod = sqrt(residue(:,1).^2 + residue(:,2).^2);
-	str_res = 'Residue (?)';
-end
-
-if (nargout == 1)       % Just return the norm of the residues
-	return
-end
-
-gcp = [handles.masterPoints handles.slavePoints resMod];
-FigName = ['GCP Table - ' tipo{:} ' - RMS Res = ' num2str( sqrt(sum(resMod.^2))/sqrt(length(resMod)) )];
-out = tableGUI('array',gcp,'RowNumbers','y','ColNames',{'Master Points - X','Master Points - Y',...
-        'Slave Points - X','Slave Points - Y',str_res},'ColWidth',100,'FigName',FigName,'modal','');
+	if (handles.geog)
+		resMod = vdist(handles.masterPoints(:,2),handles.masterPoints(:,1), y, x);
+		str_res = 'Residue (m)';
+	else
+		residue = [handles.masterPoints(:,1) handles.masterPoints(:,2)] - [x y];
+		resMod = sqrt(residue(:,1).^2 + residue(:,2).^2);
+		str_res = 'Residue (?)';
+	end
+	
+	if (nargout == 1),	return,		end       % Just return the norm of the residues
+	
+	gcp = [handles.masterPoints handles.slavePoints resMod];
+	FigName = ['GCP Table - ' tipo{:} ' - RMS Res = ' num2str( sqrt(sum(resMod.^2))/sqrt(length(resMod)) )];
+	out = tableGUI('array',gcp,'RowNumbers','y','ColNames',{'Master Points - X','Master Points - Y',...
+			'Slave Points - X','Slave Points - Y',str_res},'ColWidth',100,'FigName',FigName,'modal','');
 
 % ---------------------------------------------------------------------------
-function trf = registerImage_Callback(hObject,event,handles)
-handles = guidata(handles.figure1);
-[tipo,to_order] = checkTransform(handles);
-if (isempty(tipo)),     return;    end      % Error message already issued
-handles = getUpdatedCPs(handles);           % Get update GCPs positions
+function trf = registerImage_Callback(hObject,event)
+	handles = guidata(hObject);
+	[tipo,to_order] = checkTransform(handles);
+	if (isempty(tipo)),		return,		end		% Error message already issued
+	handles = getUpdatedCPs(handles);			% Get update GCPs positions
 
-interpola = get(handles.popup_interpMethod,'String');
-interpola = interpola{get(handles.popup_interpMethod,'Value')};
+	interpola = get(handles.popup_interpMethod,'String');
+	interpola = interpola{get(handles.popup_interpMethod,'Value')};
 
-if (strncmp(tipo,'poly',4))
-    tipo = {'polynomial' to_order-2};   % to_order-2 is a trick to get the right order from popup list order
-else
-    tipo = {tipo};
-end
+	if (strncmp(tipo,'poly',4))
+		tipo = {'polynomial' to_order-2};   % to_order-2 is a trick to get the right order from popup list order
+	else
+		tipo = {tipo};
+	end
 
-try
-    trf = transform_fun('cp2tform',handles.slavePoints,handles.masterPoints,tipo{:});
-catch
-    errordlg(lasterr,'Error');    trf = [];     return    
-end
-
-if (nargout == 0)   % Register the image
-    lims = getappdata(handles.axes2,'ThisImageLims');
-	[reg,X,Y] = transform_fun('imtransform',get(handles.hSlaveImage,'CData'),trf,...
-                             interpola,'UData',lims(1:2), 'VData',lims(3:4),'size', ...
-                             size(get(handles.hSlaveImage,'CData')));
-% 	[reg,X,Y] = transform_fun('imtransform',get(handles.hSlaveImage,'CData'),trf,...
-%         interpola,'size',size(get(handles.hSlaveImage,'CData')));
-
-    if (handles.Mimage_type == 2)        % Master Image without coords
-        if (ndims(reg) == 2)
-            setappdata(0,'CropedColormap',get(handles.figure1,'Colormap'))
-        end
-        mirone(reg);
-    else
-        tmp.geog = handles.geog;
-        tmp.X = X;        tmp.Y = Y;
-        tmp.head(1:4) = [X Y];        tmp.head(5:7) = [0 255 1];
-        tmp.head(8) = diff(X) / (size(reg,2) - 1);
-        tmp.head(9) = diff(Y) / (size(reg,1) - 1);
-        tmp.name = 'Registered Image';
-        if (ndims(reg) == 2)
-            tmp.cmap = get(handles.figure1,'Colormap');
-        end
-        mirone(reg,tmp);
-    end
-else                % Just return the tform structure
-    %
-end
+	if (strncmp(tipo{1},'gdal',4))		% 
+		if (tipo{1}(end) == 's'),	hdr.order = -1;
+		else						hdr.order = str2double(tipo{1}(end));
+		end
+		hdr.gcp = [handles.slavePoints handles.masterPoints];
+		hdr.ULx = 0;		hdr.ULy = 0;
+		hdr.Xinc = 1;		hdr.Yinc = 1;
+		hdr.ResampleAlg = interpola;
+		[reg, att] = gdalwarp_mex(flipdim(get(handles.hSlaveImage,'CData'),1), hdr);
+		tmp.head  = att.GMT_hdr;
+		tmp.X = tmp.head(1:2);		tmp.Y = tmp.head(3:4);
+	else
+		try
+			trf = transform_fun('cp2tform', handles.slavePoints, handles.masterPoints, tipo{:});
+		catch
+			errordlg(lasterr,'Error');    trf = [];     return    
+		end
+		if (nargout == 1),		return,		end			% Just the transform (NOT USED)
+	
+		% Register the image
+		lims = getappdata(handles.axes2,'ThisImageLims');
+		[reg,X,Y] = transform_fun('imtransform',get(handles.hSlaveImage,'CData'),trf,...
+								interpola,'UData',lims(1:2), 'VData',lims(3:4),'size', ...
+								size(get(handles.hSlaveImage,'CData')));
+								%interpola,'size',size(get(handles.hSlaveImage,'CData')));
+	
+		if (handles.Mimage_type ~= 2)		% Master Image with coords
+			tmp.geog = handles.geog;
+			tmp.X = X;        tmp.Y = Y;
+			tmp.head(1:4) = [X Y];			tmp.head(5:7) = [0 255 1];
+			tmp.head(8) = diff(X) / (size(reg,2) - 1);
+			tmp.head(9) = diff(Y) / (size(reg,1) - 1);
+		end
+	end
+	
+	if (handles.Mimage_type == 2)			% Master Image without coords
+		if (ndims(reg) == 2),	setappdata(0,'CropedColormap',get(handles.figure1,'Colormap')),		end
+		mirone(reg);
+	else
+		if (ndims(reg) == 2),	tmp.cmap = get(handles.figure1,'Colormap');		end
+		tmp.name = ['Registered (' tipo{1} ') Image'];
+		mirone(reg, tmp);
+	end
 
 % ---------------------------------------------------------------------------
 function [ties,nPts] = registerSIFTautopano_Callback(img_l,img_r,handles)
@@ -539,28 +565,29 @@ function [ties,nPts] = registerSIFTautopano_Callback(img_l,img_r,handles)
     set(handles.figure1,'pointer','arrow')
         
 % ---------------------------------------------------------------------------
-function trf = registerSIFT_Callback(hObject,event,handles)
+function trf = registerSIFT_Callback(hObject,event)
 
+	handles = guidata(hObject);
     set(handles.figure1,'pointer','watch')
-	handles = guidata(handles.figure1);
 	imgM = get(handles.hMasterImage,'CData');
 	imgS = get(handles.hSlaveImage,'CData');
+	[mM,nM,k] = size(imgM);		[mS,nS,k] = size(imgS);
         
-	if (ndims(imgM) == 3),      imgM = cvlib_mex('color',imgM,'rgb2gray');    end
-	if (ndims(imgS) == 3),      imgS = cvlib_mex('color',imgS,'rgb2gray');    end
-    [mM,nM] = size(imgM);       [mS,nS] = size(imgS);
+% 	if (ndims(imgM) == 3),		imgM = cvlib_mex('color',imgM,'rgb2gray');		end
+% 	if (ndims(imgS) == 3),		imgS = cvlib_mex('color',imgS,'rgb2gray');		end
+% 	[xy_match,nPts] = registerSIFTautopano_Callback(imgS,imgM,handles);
 
-    [xy_match,nPts] = registerSIFTautopano_Callback(imgS,imgM,handles);
+	xy_match = cvlib_mex('sift',imgM,imgS);
+	nPts = size(xy_match,1);
 
-    if (nPts == 0)
-        warndlg('Sorry, I was not able to find any matching points between the two images. Quiting','Warning')
-        set(handles.figure1,'pointer','arrow')
-        return
-    end
+	if (nPts == 0)
+		warndlg('Sorry, I was not able to find any matching points between the two images. Quiting','Warning')
+		set(handles.figure1,'pointer','arrow')
+		return
+	end
     
-%     % Test if images have coordinates. If they do convert pixel coords to image coords
-%     % Fisrst the Master image
-    if (  handles.Mimage_type ~= 2 && handles.Mimage_type ~= 20)
+	% Test if images have coordinates. If they do, convert pixel coords to image coords
+    if (  handles.Mimage_type ~= 2 && handles.Mimage_type ~= 20)		% Fisrst the Master image
         % Convert pixel to x,y coordinates
         x_inc = handles.Mhead(8);    y_inc = handles.Mhead(9);
         x_min = handles.Mhead(1);    y_min = handles.Mhead(3);
@@ -570,8 +597,7 @@ function trf = registerSIFT_Callback(hObject,event,handles)
         end
         xy_match(:,1) = (xy_match(:,1)-1) * x_inc + x_min;
         xy_match(:,2) = (xy_match(:,2)-1) * y_inc + y_min;
-    end
-    % And now the Slave image
+    end														% And now the Slave image
     if ( handles.image_type ~= 2 )
         % Convert pixel to x,y coordinates
         x_inc = handles.Shead(8);    y_inc = handles.Shead(9);
@@ -590,20 +616,24 @@ function trf = registerSIFT_Callback(hObject,event,handles)
     handles.slavePoints  = [xy_match(:,3) xy_match(:,4)];
     handles.count = size(xy_match,1);
     handles.isCoupled = 1;
-    guidata(handles.figure1,handles)            % Need to save because it will be retrieved in show_gcp
+    guidata(handles.figure1, handles)			% Need to save because it will be retrieved in show_gcp
     if (nPts >= 3)
-        resMod = show_gcp([],[],handles,'No');
-        disp(['RMS = ' num2str(norm(resMod) / sqrt(handles.count))])
-        [resMod,id] = sort(resMod);    
-        xy_match = xy_match(id,:);
+		resMod = show_gcp([],[],handles,'No');
+		rms = norm(resMod) / sqrt(handles.count);
+		%disp(['RMS = ' num2str(rms)])
+		[resMod,id] = sort(resMod);
+		xy_match = xy_match(id,:);
+		id = (resMod > 1.1*rms);				% Trhow away these. They are likely not good
+		xy_match(id,:) = [];
+		nPts = size(xy_match,1);
     end
-    
+
     if (nPts > 50),   xy_match(51:end,:) = [];    end
     nPts   = size(xy_match,1);
-    
+
     x1M = xy_match(:,1);        y1M = xy_match(:,2);
     x1S = xy_match(:,3);        y1S = xy_match(:,4);
-    
+
     handles.masterPoints = [x1M y1M];
     handles.slavePoints  = [x1S y1S];
     handles.isCoupled = 1;
@@ -659,44 +689,55 @@ function [x,y] = axes2axes(handles,x,y,opt)
 function [tipo,transf] = checkTransform(handles)
 % Check that the number of points is enough for the selected transform
 
-transf = get(handles.popup_transf,'Value');
-switch transf
-    case 1,     tipo = 'affine';
-    case 2,     tipo = 'linear conformal';
-    case 3,     tipo = 'projective';
-    case 4,     tipo = 'polynomial (6 pts)';
-    case 5,     tipo = 'polynomial (10 pts)';
-    case 6,     tipo = 'polynomial (16 pts)';
-    case 7,     tipo = 'piecewise linear';
-    case 8,     tipo = 'lwm';
-end
-n_cps = size(handles.slavePoints,1);
-msg = '';
-if (transf == 1 && n_cps < 3)
-    msg = 'Minimum Control points for affine transform is 3.';
-elseif (transf == 2 && n_cps < 2)
-    msg = 'Minimum Control points for Linear conformal transform is 2.';
-elseif (transf == 3 && n_cps < 4)
-    msg = 'Minimum Control points for projective transform is 4.';
-elseif (transf == 4 && n_cps < 6)
-    msg = 'Minimum Control points for polynomial order 2 transform is 6.';
-elseif (transf == 5 && n_cps < 6)
-    msg = 'Minimum Control points for polynomial order 3 transform is 10.';
-elseif (transf == 6 && n_cps < 6)
-    msg = 'Minimum Control points for polynomial order 2 transform is 16.';
-elseif (transf == 7 && n_cps < 4)
-    msg = 'Minimum Control points for piecewise linear transform is 4.';
-elseif (transf == 8 && n_cps < 12)
-    msg = 'Minimum Control points for Locolal weightd mean transform is 12.';
-end
-if (~isempty(msg))
-    errordlg([msg ' Either select more CPs or choose another trasform type'],'Error');    tipo = [];
-end
+	transf = get(handles.popup_transf,'Value');
+	switch transf
+		case 1,     tipo = 'affine';
+		case 2,     tipo = 'linear conformal';
+		case 3,     tipo = 'projective';
+		case 4,     tipo = 'polynomial (6 pts)';
+		case 5,     tipo = 'polynomial (10 pts)';
+		case 6,     tipo = 'polynomial (16 pts)';
+		case 7,     tipo = 'piecewise linear';
+		case 8,     tipo = 'lwm';
+		case 9,		tipo = 'gdal order 1';
+		case 10,	tipo = 'gdal order 2';
+		case 11,	tipo = 'gdal order 3';
+		case 12,	tipo = 'gdal splines';
+	end
+
+	n_cps = size(handles.slavePoints,1);
+	msg = '';
+	if (transf == 1 && n_cps < 3)
+		msg = 'Minimum Control points for affine transform is 3.';
+	elseif (transf == 2 && n_cps < 2)
+		msg = 'Minimum Control points for Linear conformal transform is 2.';
+	elseif (transf == 3 && n_cps < 4)
+		msg = 'Minimum Control points for projective transform is 4.';
+	elseif (transf == 4 && n_cps < 6)
+		msg = 'Minimum Control points for polynomial order 2 transform is 6.';
+	elseif (transf == 5 && n_cps < 6)
+		msg = 'Minimum Control points for polynomial order 3 transform is 10.';
+	elseif (transf == 6 && n_cps < 6)
+		msg = 'Minimum Control points for polynomial order 2 transform is 16.';
+	elseif (transf == 7 && n_cps < 4)
+		msg = 'Minimum Control points for piecewise linear transform is 4.';
+	elseif (transf == 8 && n_cps < 12)
+		msg = 'Minimum Control points for Locolal weightd mean transform is 12.';
+	elseif (transf == 9 && n_cps < 3)
+		msg = 'Minimum Control points for GDAL order 1 is 3.';
+	elseif (transf == 10 && n_cps < 6)
+		msg = 'Minimum Control points for GDAL order 2 is 6.';
+	elseif (transf == 11 && n_cps < 10)
+		msg = 'Minimum Control points for GDAL order 3 is 10.';
+	end
+	if (~isempty(msg))
+		errordlg([msg ' Either select more CPs or choose another trasform type'],'Error');    tipo = [];
+	end
 
 %-----------------------------------------------------------------------------------
-function doWriteGCPs(event,obj,handles)
+function doWriteGCPs(obj,event)
 % This function is ...
-    handles = guidata(handles.figure1);
+    handles = guidata(obj);
 	[FileName,PathName] = put_or_get_file(handles, ...
 		{'*.dat;*.DAT', 'Control points file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'GCP file name','put','.dat');
 	if isequal(FileName,0),		return,		end
@@ -742,26 +783,26 @@ function doWriteGCPs(event,obj,handles)
 % end
 
 %-----------------------------------------------------------------------------------
-function showGCPnumbers(obj,event,handles)
+function showGCPnumbers(obj,event)
 % Plot/desplot the GCPs numbers
-handles = guidata(handles.figure1);
+handles = guidata(obj);
 
 if (strcmp(get(obj,'Label'),'Show GCP numbers'))
 	% We need to update the handles here because points may have been mouse edited
 	hSlaves = findobj(handles.axes2,'Type','line','Tag','GCPSymbol');
 	hMasters = findobj(handles.axes1,'Type','line','Tag','GCPSymbol');
 	ordem = get(hMasters,'Userdata');
-	xSlaves = get(hSlaves,'Xdata');     ySlaves = get(hSlaves,'Ydata');
-	xMasters = get(hMasters,'Xdata');   yMasters = get(hMasters,'Ydata');
+	xSlaves = get(hSlaves,'Xdata');			ySlaves = get(hSlaves,'Ydata');
+	xMasters = get(hMasters,'Xdata');		yMasters = get(hMasters,'Ydata');
 	
 	if (iscell(ordem))          % Almost allways. When number of GCPs > 1
-        ordem = cell2mat(ordem);
-        xSlaves = cell2mat(xSlaves);        ySlaves = cell2mat(ySlaves);
-        xSlaves = xSlaves(ordem);           ySlaves = ySlaves(ordem);
-        xMasters = cell2mat(xMasters);      yMasters = cell2mat(yMasters);
-        xMasters = xMasters(ordem);         yMasters = yMasters(ordem);
+		ordem = cell2mat(ordem);
+		xSlaves = cell2mat(xSlaves);		ySlaves = cell2mat(ySlaves);
+		xSlaves = xSlaves(ordem);			ySlaves = ySlaves(ordem);
+		xMasters = cell2mat(xMasters);		yMasters = cell2mat(yMasters);
+		xMasters = xMasters(ordem);			yMasters = yMasters(ordem);
 	end
-    ordem = ordem(ordem);
+	ordem = ordem(ordem);
 
 	% Estimate the text position shift in order that it doesn't fall over the symbols
     dpis = get(0,'ScreenPixelsPerInch') ;   % screen DPI
@@ -772,18 +813,32 @@ if (strcmp(get(obj,'Label'),'Show GCP numbers'))
     escala = diff(ylim)/(pos(4)*2.54/dpis); % Image units / cm
     dy = symb_size * escala;
     
-	handles.hTextMaster = zeros(1,n_texts);
-	for i = 1:n_texts
-        handles.hTextMaster(i) = text(xMasters(i),yMasters(i)+dy,0,num2str(ordem(i)),'Fontsize',8,'Parent',handles.axes1);
+	if (isempty(handles.hTextMaster))		% First time. Create the texts
+		handles.hTextMaster = zeros(1,n_texts);
+		for i = 1:n_texts
+			handles.hTextMaster(i) = text(xMasters(i),yMasters(i)+dy,0,num2str(ordem(i)), 'Fontsize',8, ...
+				'BackgroundColor','w', 'Margin',0.1, 'VerticalAlignment','cap', 'Parent',handles.axes1);
+		end
+	else
+		for i = 1:n_texts
+			set(handles.hTextMaster(i), 'Position',[xMasters(i) yMasters(i)+dy], 'Vis','on')
+		end
 	end
-    
+
 	pos = get(handles.axes2,'Position');    ylim = get(handles.axes2,'Ylim');
-    escala = diff(ylim)/(pos(4)*2.54/dpis); % Image units / cm
-    dy = symb_size * escala;
-    
-	handles.hTextSlave = zeros(1,n_texts);
-	for i = 1:n_texts
-        handles.hTextSlave(i) = text(xSlaves(i),ySlaves(i)+dy,0,num2str(ordem(i)),'Fontsize',8,'Parent',handles.axes2);
+	escala = diff(ylim)/(pos(4)*2.54/dpis); % Image units / cm
+	dy = symb_size * escala;
+
+	if (isempty(handles.hTextSlave))
+		handles.hTextSlave = zeros(1,n_texts);
+		for i = 1:n_texts
+			handles.hTextSlave(i) = text(xSlaves(i),ySlaves(i)+dy,0,num2str(ordem(i)), 'Fontsize',8, ...
+				'BackgroundColor','w',  'Margin',0.1, 'VerticalAlignment','cap', 'Parent',handles.axes2);
+		end
+	else
+		for i = 1:n_texts
+			set(handles.hTextSlave(i), 'Position',[xSlaves(i) ySlaves(i)+dy], 'Vis','on')
+		end
 	end
     
     % Change the uimenus labels to "Hide"
@@ -799,8 +854,10 @@ if (strcmp(get(obj,'Label'),'Show GCP numbers'))
         set(findobj(hS,'Tag','GCPlab'),'Label','Hide GCP numbers')
     end
 else
-    delete(handles.hTextMaster);        handles.hTextMaster = [];
-    delete(handles.hTextSlave);         handles.hTextSlave = [];
+% 	delete(handles.hTextMaster);        handles.hTextMaster = [];
+% 	delete(handles.hTextSlave);         handles.hTextSlave = [];
+	set(handles.hTextMaster, 'Vis', 'off')
+	set(handles.hTextSlave, 'Vis', 'off')
 	hSlaves = findobj(handles.axes2,'Type','line','Tag','GCPSymbol');
 	hMasters = findobj(handles.axes1,'Type','line','Tag','GCPSymbol');
     
