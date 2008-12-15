@@ -494,7 +494,7 @@ function pushbutton_pickSingle_Callback(hObject, eventdata, handles)
     	[dumb,mask] = cvlib_mex('floodfill',img,params);
 		clear dumb		% Humm, shouldn't we take care of this inside cvlib_mex?
 	else
-		r = params.Point(2);		c = params.Point(1);
+		r = round(params.Point(2));	c = round(params.Point(1));
 		r_min = max(r-3,0);			r_max = min(r+3, size(img,1));
 		c_min = max(c-3,0);			c_max = min(c+3, size(img,2));
 		I = img(r_min:r_max, c_min:c_max, :);
