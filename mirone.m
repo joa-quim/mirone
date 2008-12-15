@@ -1065,6 +1065,7 @@ function FileOpen_ENVI_Erdas_CB(handles, opt, opt2)
 		if (size(zz,3) > 3)
 			if (max(zz(:)) == 1),	zz = logical(zz);	handles.head(6) = 1;	end	% att.Metadata fails to detect NBITS
 			FileOpenGDALmultiBand_CB(handles, 'multiband', zz, att)
+			recentFiles(guidata(handles.figure1));	% Insert fileName into "Recent Files" & save handles
 			return
 		end
 		X = handles.head(1:2);			Y = handles.head(3:4);
@@ -1197,7 +1198,7 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		fname = opt2;
 	end
 
-	att.ProjectionRef = [];			X = [];			Y = [];		ax_dir = 'off';		% Default values
+	att.ProjectionRef = [];			X = [];			Y = [];		reseta = false;		ax_dir = 'off';
 	reader = 'GDAL';				% this will be used by bands_list to decide which reader to use
 
 	set(handles.figure1,'pointer','watch')
@@ -1222,7 +1223,8 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 			setappdata(handles.figure1,'fnameGCP',fname)	% Save this to know when GCPs are to be removed
 		end													% from appdata. That is donne in show_image()
 	elseif (strncmp(opt,'PCA',3) || strncmp(opt,'mul',3))	% Generic multiband file transmited in input
-		I = fname;			fname = opt;
+		I = fname;		fname = opt;	nome_tmp = handles.fileName;	opt_bak = opt;
+		if (~isempty(nome_tmp)),	fname = nome_tmp;	[pato, opt] = fileparts(fname);		reseta = true;	end
 		if (nargin == 4),	att = opt3;		end
 		[att.RasterYSize, att.RasterXSize, n_bands] = size(I);	% Use 'att' to be consistent with the other cases
 		bands_inMemory = 1:n_bands;
@@ -1233,6 +1235,7 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 	end
 
 	aux_funs('toBandsList', handles.figure1, I, opt, fname, n_bands, bands_inMemory, reader);
+	if (reseta),	opt = opt_bak;		end		% Wee need it with a known value for the remaining tests 
 
 	handles.fileName = [];		% Not eligible for automatic re-loading
 	handles.was_int16 = 0;		handles.computed_grid = 0;
@@ -1853,7 +1856,7 @@ function ImageIlluminateFalseColor(luz, handles)
 function ImageAnaglyph_CB(handles)
 	if (aux_funs('msg_dlg',14,handles));     return;      end
 	[X,Y,Z,head] = load_grd(handles);
-	if isempty(Z),   return;     end;    % An error message was already issued
+	if isempty(Z),	return,		end		% An error message was already issued
 
 	set(handles.figure1,'pointer','watch')
 	[ny,nx] = size(Z);    D2R = pi/180;         deg2m = 111194.9;
@@ -1916,14 +1919,14 @@ function img = shade_manip_raster(azimuth,elevation,Z)
 	u1 = sin(azimuth) * cos(elevation);     u2 = -cos(azimuth) * cos(elevation);
 	u3 = -sin(elevation);
 	if (~isa(Z,'double')),  Z = double(Z);  end     % Make sure Z is of double type
-	
+
 	% Derivatives of function with respect to rows and columns
 	dZdc = zeros(size(Z));      dZdr = zeros(size(Z));
-	
+
 	% Take forward differences on left and right edges
 	dZdr(1,:) = Z(2,:) - Z(1,:);      dZdr(end,:) = Z(end,:) - Z(end-1,:);
 	dZdc(:,1) = Z(:,2) - Z(:,1);      dZdc(:,end) = Z(:,end) - Z(:,end-1);
-	
+
 	% Take centered differences on interior points
 	dZdr(2:end-1,:) = (Z(3:end,:)-Z(1:end-2,:)) / size_amp;
 	dZdc(:,2:end-1) = (Z(:,3:end)-Z(:,1:end-2)) / size_amp;
@@ -1995,9 +1998,7 @@ function ImageDrape_CB(handles)
 	else					% Drape based in images coords
 		rect_crop = [handles.head(1) handles.head(3) diff(handles.head(1:2)) diff(handles.head(3:4))];
 		[I,r_c] = cropimg(handParent.head(1:2),handParent.head(3:4),parent_img,rect_crop,'out_grid');
-		if (diff(r_c(1:2)) <= 0 || diff(r_c(3:4)) <= 0)
-			return
-		end
+		if (diff(r_c(1:2)) <= 0 || diff(r_c(3:4)) <= 0),	return,		end
 		son_img = cvlib_mex('resize',son_img,[diff(r_c(1:2)) diff(r_c(3:4))]+1,'bicubic');
 		% Make sure parent & son are both indexed or true color
 		if (ndims(son_img) == 2 && ndims(parent_img) == 3)
@@ -2052,8 +2053,7 @@ function ToolsMeasureAreaPerCor_CB(handles)
 		if (~any(df(:) ~= 0))           % Yeap, a RGB gray
 			img(:,:,2:3) = [];          % Remove the non-needed pages
 		else
-			warndlg('This does not work with true color images (they are just too many)','Warning')
-			return
+			warndlg('This does not work with true color images (they are just too many)','Warning'),	return
 		end
 		pal = unique(img(:));
 		pal = (0:double(pal(end)))' / 255;      % Pretend this is a colormap
@@ -2311,8 +2311,8 @@ function DrawImportShape_CB(handles, fname)
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
 	end
-	try         [s,t] = mex_shape(fname);
-	catch       errordlg([lasterr ' Most probably, NOT a shapefile'],'Error');      return
+	try			[s,t] = mex_shape(fname);
+	catch		errordlg([lasterr ' Most probably, NOT a shapefile'],'Error');      return
 	end
 	
 	lt = handles.DefLineThick;    lc = handles.DefLineColor;
@@ -2520,25 +2520,25 @@ if (~tala && ~isempty(grd_name))						% Give user a 2nd chance to tell where the
 	end
 end
 if (isempty(grd_name) || tala == 0)
-	scrsz = get(0,'ScreenSize');         % Get screen size
+	scrsz = get(0,'ScreenSize');			% Get screen size
 	dx = map_limits(2) - map_limits(1);   dy = map_limits(4) - map_limits(3);
 	aspect = dy / dx;
-	nx = round(scrsz(3)*.6);        ny = round(nx * aspect);
+	nx = round(scrsz(3)*.6);		ny = round(nx * aspect);
 	if (ny > scrsz(4) - 30)
-		ny = scrsz(4) - 30;         nx = round(ny / aspect);
+		ny = scrsz(4) - 30;			nx = round(ny / aspect);
 	end
-	Z = repmat(uint8(255),ny,nx);       % Create a white image
-	X = [map_limits(1) map_limits(2)];      Y = [map_limits(3) map_limits(4)];
-	x_inc = diff(X) / nx;                   y_inc = diff(Y) / ny;
-	dx2 = x_inc / 2;                        dy2 = y_inc / 2;
-	X = X + [dx2 -dx2];                     Y = Y + [dy2 -dy2];     % Make it such that the pix-reg info = region
+	Z = repmat(uint8(255),ny,nx);			% Create a white image
+	X = [map_limits(1) map_limits(2)];		Y = [map_limits(3) map_limits(4)];
+	x_inc = diff(X) / nx;					y_inc = diff(Y) / ny;
+	dx2 = x_inc / 2;						dy2 = y_inc / 2;
+	X = X + [dx2 -dx2];						Y = Y + [dy2 -dy2];     % Make it such that the pix-reg info = region
 	handles.head = [X Y 0 255 0 x_inc y_inc];
 	handles.image_type = 20;
 	set(handles.figure1,'Colormap', ones( size(get(handles.figure1,'Colormap'),1), 3))
 	handles = show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',1);
 % elseif ( ~handles.no_file && strcmp(handles.fileName,grd_name) )    % Currently loaded background is the same as in session
-% 	set(handles.figure1,'Colormap',img_pal)     % Not harmfull anyway
-% 	flagIllum = false;                          % Do not try to illuminate again (if it is the case)
+% 	set(handles.figure1,'Colormap',img_pal)		% Not harmfull anyway
+% 	flagIllum = false;							% Do not try to illuminate again (if it is the case)
 else
 	drv = aux_funs('findFileType',grd_name);
 	erro = gateLoadFile(handles,drv,grd_name);		% It loads the file (or dies)
@@ -2775,8 +2775,8 @@ for i = 1:length(ALLlineHand)
 	elseif (strcmp(tag,'Rivers'))
 		haveRivers = 1;     riversUD = get(ALLlineHand(i),'UserData');	
 	else		% for the time beeing, it applyies to simple polylines
-		xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
-		Pline(m).x = xx(:);         Pline(m).y = yy(:);
+		xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
+		Pline(m).x = xx(:);			Pline(m).y = yy(:);
 		Pline(m).LineWidth = get(ALLlineHand(i),'LineWidth');
 		Pline(m).LineStyle = get(ALLlineHand(i),'LineStyle');
 		Pline(m).color = get(ALLlineHand(i),'color');
@@ -2784,7 +2784,7 @@ for i = 1:length(ALLlineHand)
 		if (isappdata(ALLlineHand(i),'LineInfo'))
 			Pline(m).LineInfo = getappdata(ALLlineHand(i),'LineInfo');
 		end
-		m = m + 1;      havePline = 1;
+		m = m + 1;		havePline = 1;
 	end
 end
 
@@ -3036,10 +3036,10 @@ function GridToolsSectrum_CB(handles, opt1, opt2)
 
 % --------------------------------------------------------------------
 function GridToolsSmooth_CB(handles)
-	if (aux_funs('msg_dlg',14,handles));     return;      end
-	[X,Y,Z,head,m,n] = load_grd(handles);       %  If gmt grid is not in memory, so read it again
-	if isempty(Z),      return;     end;        % An error message was already issued
-	if (~isa(Z,'double')),  Z = double(Z);  end;            % Make sure Z is of double type
+	if (aux_funs('msg_dlg',14,handles)),		return,		end
+	[X,Y,Z,head,m,n] = load_grd(handles);		%  If gmt grid is not in memory, so read it again
+	if isempty(Z),		return,		end			% An error message was already issued
+	if (~isa(Z,'double')),  Z = double(Z);  end	% Make sure Z is of double type
 	
 	[pp p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));   % Get a good estimate of p
 	prompt = {'Enter smoothing p paramer'};     dlg_title = 'Smoothing parameter input';
@@ -3468,7 +3468,7 @@ function TransferB_CB(handles, opt)
 	if (strcmp(opt,'guessType'))
 		str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif;*.mat;*.cpt;*.hdf', ...
 				'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif,*.mat,*.cpt,*.hdf)'; '*.*', 'All Files (*.*)'};
-		[FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
+		[FileName,PathName,handles] = put_or_get_file(handles,str,'Select file','get');
 		if (isequal(FileName,0)),	return,		end				% User gave up
 		drv = aux_funs('findFileType',[PathName FileName]);
 		if (~isempty(drv)),         gateLoadFile(handles,drv,[PathName FileName]);  end
