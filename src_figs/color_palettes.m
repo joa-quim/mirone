@@ -548,7 +548,7 @@ function change_cmap(handles,pal)
 	handMir = guidata(handles.hCallingFig);
 	if (strcmp(get(handMir.hImg, 'CDataMapping'), 'scaled'))	% Scaled images may have much shorter cmaps
 		clim = get(handMir.axes1, 'CLim');
-		pal = interp1(linspace(0,1,size(pal,1)), pal, linspace(0,1,diff(clim)), 'linear','extrap');
+		pal = interp1(linspace(0,1,size(pal,1)), pal, linspace(0,1,diff(clim)+1), 'linear','extrap');
 	end
 
 	pal(pal > 1) = 1; % Sometimes interpolation gives values that are out of [0,1] range...
