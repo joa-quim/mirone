@@ -215,6 +215,8 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 	handles.slavePoints = [];	handles.masterPoints = [];
 	handles.count = 0;			handles.isCoupled = [];
 	handles.hTextSlave = [];	handles.hTextMaster = [];
+	handles.dySlave = 0;		handles.dyMaster = 0;
+	handles.visibleNumbers = true;
 
 	hand_prev = guidata(handles.figure1);	% The geog type of the Master image is still in appdata
 	handles.geog  = hand_prev.geog;			% but the handles.geog contains the geog state of Slave img
@@ -235,9 +237,9 @@ but = 1;    count = handles.count;
 while (but == 1)
     lastClickedAx = getappdata(handles.figure1,'clickedAx');
     [x,y,but] = ginput_pointer(1,'crosshair');
-    if (but ~= 1)                                       % Stop insertion. Do eventual cleaning
+    if (but ~= 1)										% Stop insertion and do eventual cleaning
         wichAxes = get(get(handles.figure1,'CurrentAxes'),'Tag');
-        if (~handles.isCoupled)                % Unmatched point point
+        if (~handles.isCoupled)					% Unmatched point point
             delete(handles.hLastPt)
         end
         if (count > 0 && size(handles.slavePoints,1) ~= size(handles.masterPoints,1))
@@ -246,15 +248,17 @@ while (but == 1)
             else
                 handles.masterPoints(end,:) = [];
             end
-            count = count - 1;
         end
         setappdata(handles.figure1,'clickedAx',[]);     % Reset the point insertion machine
-        %handles.isCoupled = 0;
         set(findobj(handles.figure1,'Tag','singlePoint'),'State','off')
         break
     end
-    
+
     wichAxes = get(get(handles.figure1,'CurrentAxes'),'Tag');
+	if (~clickOverImage(handles, wichAxes))				% Take care of the smart guys clicking everywhere
+		continue
+	end
+
     if (isempty(lastClickedAx))                         % First GCP on this run
         handles.hLastPt = line(x,y,'Marker','o','MarkerFaceColor','y',...
             'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
@@ -285,63 +289,70 @@ while (but == 1)
             set(handles.hLastPt,'UserData',count)
             handles.count = count;
             set_gcp_uicontext(handles,handles.hLastPt)
+			handles = addOneNumber(handles);	% Add the new pair of numbers (even if invisible)
         else                                    % Click on the same axes. Reset point
             set(handles.hLastPt,'XData',x,'YData',y)
             if (wichAxes(end) == '1'),  handles.masterPoints(count,:) = [x y];
             else                        handles.slavePoints(count,:) = [x y];
             end
+			addOneNumber(handles, wichAxes, x, y);
         end
     end   
 	setappdata(handles.figure1,'clickedAx',wichAxes)
-end
-if ( ~isempty(handles.hTextMaster) )	% It is annoying if they are visible, but we need to force a clean text rebuild
-	delete(handles.hTextMaster),	handles.hTextMaster = [];
-	delete(handles.hTextSlave),		handles.hTextSlave = [];
 end
 
 guidata(handles.figure1,handles)
 
 % ---------------------------------------------------------------------------
 function InsertPointAndPred_Callback(hObject,event)
-handles = guidata(hObject);
-tipo = checkTransform(handles);
-if (isempty(tipo)),     return;    end      % Error message already issued
-but = 1;    count = handles.count;
-while (but == 1)
-    %lastClickedAx = getappdata(handles.figure1,'clickedAx');
-    [x,y,but] = ginput_pointer(1,'crosshair');
-    if (but ~= 1),		break,	end
-    wichAxes = get(get(handles.figure1,'CurrentAxes'),'Tag');
-    if (wichAxes(end) == '1')       % Master -> Slave prediction
-        trf = transform_fun('cp2tform',handles.masterPoints, handles.masterPoints, tipo);
-        [x_pred,y_pred] = transform_fun('tformfwd',trf, [handles.masterPoints(:,1); x], [handles.masterPoints(:,2); y]);
-        handles.masterPoints = [handles.masterPoints; x y];
-        handles.slavePoints = [handles.slavePoints; x_pred(end) y_pred(end)];
-        h_pt = line(x,y,'Marker','o','MarkerFaceColor','y',...
-            'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
-        handles.hLastPt = line(x_pred(end),y_pred(end),'Parent',handles.axes2,'Marker','o','MarkerFaceColor','y',...
-            'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
-    else                            % Slave -> Master prediction
-        trf = transform_fun('cp2tform',handles.slavePoints, handles.masterPoints, tipo);
-        [x_pred,y_pred] = transform_fun('tformfwd',trf,[handles.slavePoints(:,1); x], [handles.slavePoints(:,2); y]);
-        handles.slavePoints = [handles.slavePoints; x y];
-        handles.masterPoints = [handles.masterPoints; x_pred(end) y_pred(end)];
-        h_pt = line(x,y,'Marker','o','MarkerFaceColor','y',...
-            'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
-        handles.hLastPt = line(x_pred(end),y_pred(end),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','y',...
-            'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
-    end
-	if ( ~isempty(handles.hTextMaster) )	% It is annoying if they are visible, but we need to force a clean text rebuild
-		delete(handles.hTextMaster),	handles.hTextMaster = [];
-		delete(handles.hTextSlave),		handles.hTextSlave = [];
+	handles = guidata(hObject);
+	tipo = checkTransform(handles);
+	if (isempty(tipo))		      % Error message already issued
+		set(findobj(handles.figure1,'Tag','PointPred'),'State','off')
+		return
+	elseif (strncmp(tipo,'gdal',4))
+		warndlg('GDAL warping methods are not available for this option.','Warning')
+		set(findobj(handles.figure1,'Tag','PointPred'),'State','off')
+		return
 	end
-    count = count + 1;
-    handles.count = count;
-    set_gcp_uicontext(handles,handles.hLastPt)
-    set_gcp_uicontext(handles,h_pt)
-end
-set(findobj(handles.figure1,'Tag','PointPred'),'State','off')
-guidata(handles.figure1,handles)
+	but = 1;    count = handles.count;
+	while (but == 1)
+		[x,y,but] = ginput_pointer(1,'crosshair');
+		if (but ~= 1),		break,	end
+		wichAxes = get(get(handles.figure1,'CurrentAxes'),'Tag');
+		if (~clickOverImage(handles, wichAxes))				% Take care of the smart guys clicking everywhere
+			continue
+		end
+	
+		if (wichAxes(end) == '1')       % Master -> Slave prediction
+			trf = transform_fun('cp2tform',handles.masterPoints, handles.slavePoints, tipo);
+			[x_pred,y_pred] = transform_fun('tformfwd',trf, x, y);
+			handles.masterPoints = [handles.masterPoints; x y];
+			handles.slavePoints = [handles.slavePoints; x_pred y_pred];
+			h_pt = line(x,y,'Marker','o','MarkerFaceColor','y',...
+				'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
+			handles.hLastPt = line(x_pred(end),y_pred(end),'Parent',handles.axes2,'Marker','o','MarkerFaceColor','y',...
+				'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
+		else                            % Slave -> Master prediction
+			trf = transform_fun('cp2tform',handles.slavePoints, handles.masterPoints, tipo);
+			[x_pred,y_pred] = transform_fun('tformfwd',trf, x, y);
+			handles.slavePoints = [handles.slavePoints; x y];
+			handles.masterPoints = [handles.masterPoints; x_pred y_pred];
+			h_pt = line(x,y,'Marker','o','MarkerFaceColor','y',...
+				'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
+			handles.hLastPt = line(x_pred(end),y_pred(end),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','y',...
+				'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
+		end
+		count = count + 1;
+		handles.count = count;
+		handles.pointEpred = true;			% Used to inform addOneNumber() if we are coming from here
+		handles = addOneNumber(handles);	% Add the new pair of numbers (even if invisible)
+		handles.pointEpred = false;			% Reset to "don't know"
+		set_gcp_uicontext(handles,handles.hLastPt)
+		set_gcp_uicontext(handles,h_pt)
+	end
+	set(findobj(handles.figure1,'Tag','PointPred'),'State','off')
+	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
 function set_gcp_uicontext(handles,h)
@@ -350,8 +361,12 @@ function set_gcp_uicontext(handles,h)
 	ui_edit_polygon(h)    % Set edition functions
 	uimenu(cmenuHand, 'Label', 'Remove GCP pair', 'Callback', {@remove_pair,h});
 	uimenu(cmenuHand, 'Label', 'Remove all GCPs', 'Callback', {@removeALLgcps,h});
-	uimenu(cmenuHand, 'Label', 'View GCPs table', 'Callback', {@show_gcp, handles},'Sep','on');
-	uimenu(cmenuHand, 'Label', 'Show GCP numbers', 'Callback', @showGCPnumbers,'Tag','GCPlab');
+	uimenu(cmenuHand, 'Label', 'View GCPs residuals', 'Callback', {@show_gcp, handles},'Sep','on');
+	if (~handles.visibleNumbers)
+		uimenu(cmenuHand, 'Label', 'Show GCP numbers', 'Callback', @showGCPnumbers,'Tag','GCPlab');
+	else
+		uimenu(cmenuHand, 'Label', 'Hide GCP numbers', 'Callback', @showGCPnumbers,'Tag','GCPlab');
+	end
 	% uimenu(cmenuHand, 'Label', 'Try fine tune GCPs', 'Callback', {@doCPcorr,handles},'Separator','on');
 	uimenu(cmenuHand, 'Label', 'Save GCPs', 'Callback', @doWriteGCPs,'Separator','on');
 
@@ -361,15 +376,24 @@ function remove_pair(obj,event,h)
 	handles = guidata(obj);
 	id = get(h,'UserData');
 	hh = findobj(handles.figure1,'Type','line','UserData',id);
-	delete(hh)
+	for (k = 1:numel(hh))		% The loop should run only twice, but ... who knows
+		if (isa(get(hh(k),'ButtonDownFcn'),'cell'))		% Object is in edit mode, so this
+			ui_edit_polygon(hh(k))						% call will force it out of edit mode
+		end
+		delete(hh(k))
+	end
 	if ( ~isempty(handles.hTextMaster) )	% If we have text numbers, delete them as well
 		delete(handles.hTextMaster(id)),	delete(handles.hTextSlave(id))
 		handles.hTextMaster(id) = [];		handles.hTextSlave(id) = [];
 	end
 	np = size(handles.masterPoints,1);
-	for (i = id:np)
+	for (i = id+1:np)
 		hh = findobj(handles.figure1,'Type','line','UserData',i);
 		set(hh,'UserData',i-1)
+		if (~isempty(handles.hTextMaster))
+			set(handles.hTextMaster(i-1),'String',sprintf('%d',i-1))
+			set(handles.hTextSlave(i-1), 'String',sprintf('%d',i-1))
+		end
 	end
 	handles.masterPoints(id,:) = [];
 	handles.slavePoints(id,:) = [];
@@ -380,7 +404,10 @@ function remove_pair(obj,event,h)
 function removeALLgcps(obj,event,h)
 	handles = guidata(obj);
 	delete(findobj(handles.figure1,'Tag','GCPSymbol'))
-	delete(handles.hTextMaster),	delete(handles.hTextSlave)
+	if (~isempty(handles.hTextMaster))
+		delete(findobj(handles.figure1,'type','text'))		% It's safer this way
+	end
+	%delete(handles.hTextMaster),	delete(handles.hTextSlave)
 	handles.hTextMaster=[];			handles.hTextSlave=[];
 	handles.masterPoints = [];		handles.slavePoints = [];
 	handles.count = 0;				handles.isCoupled = [];
@@ -448,10 +475,10 @@ function resMod = show_gcp(obj, event, handles, opt)
 		try
 			trf = transform_fun('cp2tform', handles.slavePoints, handles.masterPoints, tipo{:});
 			%trf = cp2tform(handles.slavePoints,handles.masterPoints,tipo{:});
+			[x,y] = transform_fun('tformfwd',trf,handles.slavePoints(:,1),handles.slavePoints(:,2));
 		catch
-			errordlg(lasterr,'Error');    trf = [];     return    
+			errordlg(lasterr,'Error');		return    
 		end
-		[x,y] = transform_fun('tformfwd',trf,handles.slavePoints(:,1),handles.slavePoints(:,2));
 	end
 
 	if (handles.geog)
@@ -812,27 +839,29 @@ if (strcmp(get(obj,'Label'),'Show GCP numbers'))
 	pos = get(handles.axes1,'Position');    ylim = get(handles.axes1,'Ylim');
     escala = diff(ylim)/(pos(4)*2.54/dpis); % Image units / cm
     dy = symb_size * escala;
+	handles.dyMaster = dy;
     
 	if (isempty(handles.hTextMaster))		% First time. Create the texts
 		handles.hTextMaster = zeros(1,n_texts);
 		for i = 1:n_texts
-			handles.hTextMaster(i) = text(xMasters(i),yMasters(i)+dy,0,num2str(ordem(i)), 'Fontsize',8, ...
+			handles.hTextMaster(i) = text(xMasters(i),yMasters(i)-dy,0,sprintf('%d',ordem(i)), 'Fontsize',8, ...
 				'BackgroundColor','w', 'Margin',0.1, 'VerticalAlignment','cap', 'Parent',handles.axes1);
 		end
 	else
 		for i = 1:n_texts
-			set(handles.hTextMaster(i), 'Position',[xMasters(i) yMasters(i)+dy], 'Vis','on')
+			set(handles.hTextMaster(i), 'Position',[xMasters(i) yMasters(i)-dy], 'Vis','on')
 		end
 	end
 
 	pos = get(handles.axes2,'Position');    ylim = get(handles.axes2,'Ylim');
 	escala = diff(ylim)/(pos(4)*2.54/dpis); % Image units / cm
 	dy = symb_size * escala;
+	handles.dySlave = dy;
 
 	if (isempty(handles.hTextSlave))
 		handles.hTextSlave = zeros(1,n_texts);
 		for i = 1:n_texts
-			handles.hTextSlave(i) = text(xSlaves(i),ySlaves(i)+dy,0,num2str(ordem(i)), 'Fontsize',8, ...
+			handles.hTextSlave(i) = text(xSlaves(i),ySlaves(i)+dy,0, sprintf('%d',ordem(i)), 'Fontsize',8, ...
 				'BackgroundColor','w',  'Margin',0.1, 'VerticalAlignment','cap', 'Parent',handles.axes2);
 		end
 	else
@@ -853,9 +882,8 @@ if (strcmp(get(obj,'Label'),'Show GCP numbers'))
         set(findobj(hM,'Tag','GCPlab'),'Label','Hide GCP numbers')
         set(findobj(hS,'Tag','GCPlab'),'Label','Hide GCP numbers')
     end
+	handles.visibleNumbers = true;
 else
-% 	delete(handles.hTextMaster);        handles.hTextMaster = [];
-% 	delete(handles.hTextSlave);         handles.hTextSlave = [];
 	set(handles.hTextMaster, 'Vis', 'off')
 	set(handles.hTextSlave, 'Vis', 'off')
 	hSlaves = findobj(handles.axes2,'Type','line','Tag','GCPSymbol');
@@ -873,6 +901,52 @@ else
         set(findobj(hM,'Tag','GCPlab'),'Label','Show GCP numbers')
         set(findobj(hS,'Tag','GCPlab'),'Label','Show GCP numbers')
     end
+	handles.visibleNumbers = false;
 end
 guidata(handles.figure1,handles)
 refresh		% The R13 redraw bug
+
+%-----------------------------------------------------------------------------------
+function handles = addOneNumber(handles, wichAxes, x, y)
+% Plot one GCP pair numbers. If unvisible, just create it anyway
+
+% 	if (isempty(handles.hTextMaster)),		return,		end		% Too soon for this
+
+	if (nargin == 1)	% A new point
+		xMaster = handles.masterPoints(end,1);		yMaster = handles.masterPoints(end,2);
+		xSlave  = handles.slavePoints(end,1);		ySlave = handles.slavePoints(end,2);
+		N = handles.count;
+	
+		handles.hTextMaster(N) = text(xMaster,yMaster-handles.dyMaster,0, sprintf('%d',N), 'Fontsize',8, ...
+				'BackgroundColor','w',  'Margin',0.1, 'VerticalAlignment','cap', 'Parent',handles.axes1, 'Vis','off');
+	
+		handles.hTextSlave(N) = text(xSlave,ySlave+handles.dySlave,0, sprintf('%d',N), 'Fontsize',8, ...
+				'BackgroundColor','w',  'Margin',0.1, 'VerticalAlignment','cap', 'Parent',handles.axes2, 'Vis','off');
+
+		if ( handles.visibleNumbers && (handles.isCoupled || handles.pointEpred) )
+			set([handles.hTextMaster(N) handles.hTextSlave(N)],'Vis','on')
+		end
+	else
+		% A second click on same axes. Change text position
+		if (wichAxes(end) == '1'),  set(handles.hTextMaster(end), 'Pos',[x,y-handles.dyMaster])
+		else                        set(handles.hTextSlave(end),  'Pos',[x,y+handles.dySlave])
+		end
+	end
+
+%-----------------------------------------------------------------------------------------
+function yes = clickOverImage(handles, wichAxes)
+% Check that the user clicked over one of the images.
+% Some users find very funny to click everywhere.
+
+	if (wichAxes(end) == '1')
+		XLim = get(handles.axes1, 'XLim');   YLim = get(handles.axes1, 'YLim');
+		pt = get(handles.axes1, 'CurrentPoint');
+	else
+		XLim = get(handles.axes2, 'XLim');   YLim = get(handles.axes2, 'YLim');
+		pt = get(handles.axes2, 'CurrentPoint');
+	end
+	x = pt(1,1);	y = pt(1,2);
+	yes = true;
+	if ~(x >= XLim(1) && x <= XLim(2) && y >= YLim(1) && y <= YLim(2))
+		yes = false;
+	end
