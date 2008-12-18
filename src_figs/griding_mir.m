@@ -2,7 +2,7 @@ function varargout = griding_mir(varargin)
 % M-File changed by desGUIDE
 % varargin   command line arguments to griding_mir (see VARARGIN) 
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2008 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -20,10 +20,10 @@ hObject = figure('Tag','figure1','Visible','off');
 griding_mir_LayoutFcn(hObject);
 handles = guihandles(hObject);
 
-movegui(hObject,'center');                      % Reposition the window on screen
+movegui(hObject,'center');							% Reposition the window on screen
 global home_dir
 
-if (isempty(home_dir)),	handles.home_dir = pwd;        % Case when this function was called directly
+if (isempty(home_dir)),	handles.home_dir = pwd;		% Case when this function was called directly
 else					handles.home_dir = home_dir;
 end
 
@@ -144,10 +144,10 @@ guidata(hObject, handles);
 
 set(hObject,'Visible','on');
 % UIWAIT makes griding_mir_export wait for user response (see UIRESUME)
-uiwait(handles.figure1);
+% uiwait(handles.figure1);
 
 handles = guidata(hObject);
-delete(handles.figure1);
+% delete(handles.figure1);
 if (nargout),	varargout{1} = handles.output;		end
 
 % -----------------------------------------------------------------------------------
@@ -773,74 +773,71 @@ end
 guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
-function checkbox_Option_V_Callback(hObject, eventdata, handles)
-% The OK button will check this button state
-
-% -----------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
-error = VerifyCommand(handles);
-if error == 0
-    tmp = horzcat(handles.command{1:end});
-    [tok,rem] = strtok(tmp);
-    out{1} = tok;
-    i = 2;
-    while (rem)
-        [tok,rem] = strtok(rem);
-        out{i} = tok;        i = i + 1;
-    end
-    
-    if (get(handles.checkbox_Option_V,'Value'))
-        out{end+1} = '-V';
-    end
-    
-    % Call Mirone that will either draw or save the newly computed grid
-    set(handles.figure1,'Name','COMPUTING')
-    switch handles.type
-        case 'surface'
-            [Z,head] = gmtmbgrid_m(out{2:end}, '-Mz');     % We don't want the last ','
-            tit = 'surface interpolation';          name = tit;
-            set(handles.figure1,'Name','Surface')
-        case 'nearneighbor'
-            [Z,head] = nearneighbor_m(out{2:end}); % We don't want the last ','
-            tit = 'nearneighbor interpolation';     name = tit;
-            set(handles.figure1,'Name','Nearneighbor')
-    end
-    [ny,nx] = size(Z);
-    X = linspace(head(1),head(2),nx);       Y = linspace(head(3),head(4),ny);
-    tmp.head = [head(1) head(2) head(3) head(4) head(5) head(6) 0 head(8) head(9)];
-    tmp.X = X;    tmp.Y = Y;    tmp.name = 'surface interpolation';
-    new_window = mirone(Z,tmp);
+	error = VerifyCommand(handles);
+	if (error),		return,		end
+	tmp = horzcat(handles.command{1:end});
+	[tok,rem] = strtok(tmp);
+	out{1} = tok;
+	i = 2;
+	while (rem)
+		[tok,rem] = strtok(rem);
+		out{i} = tok;        i = i + 1;
+	end
+
+	if (get(handles.checkbox_Option_V,'Value'))
+		out{end+1} = '-V';
+	end
+
+	% Call Mirone that will either draw or save the newly computed grid
+	set(handles.figure1,'Name','COMPUTING')
+	switch handles.type
+		case 'surface'
+% 			[Z,head] = gmtmbgrid_m(out{2:end}, '-Mz');     % NOT READY because it doesn't read from file neither -:
+			[Z,head] = surface_m(out{2:end});
+			tit = 'surface interpolation';          name = tit;
+			set(handles.figure1,'Name','Surface')
+		case 'nearneighbor'
+			[Z,head] = nearneighbor_m(out{2:end}); % We don't want the last ','
+			tit = 'nearneighbor interpolation';     name = tit;
+			set(handles.figure1,'Name','Nearneighbor')
+	end
+	[ny,nx] = size(Z);
+	X = linspace(head(1),head(2),nx);       Y = linspace(head(3),head(4),ny);
+	tmp.head = [head(1) head(2) head(3) head(4) head(5) head(6) 0 head(8) head(9)];
+	tmp.X = X;    tmp.Y = Y;    tmp.name = tit;
+	new_window = mirone(Z,tmp);
 end
 
 % -----------------------------------------------------------------------------------
 function error = VerifyCommand(handles)
 % ERROR TESTING
-error = 0;
-if isempty(handles.command{6})
-    errordlg('Lon Min box is empty','Error');   error = error + 1;    
-end
-if isempty(handles.command{8})
-    errordlg('Lon Max box is empty','Error');   error = error + 1;    
-end
-if isempty(handles.command{10})
-    errordlg('Lat Min box is empty','Error');   error = error + 1;    
-end
-if isempty(handles.command{12})
-    errordlg('Lat Max box is empty','Error');   error = error + 1;    
-end
-if isempty(handles.command{15})
-    errordlg('X_INC box is empty','Error');     error = error + 1;    
-end
-if isempty(handles.command{17})
-    errordlg('Y_INC box is empty','Error');     error = error + 1;    
-end
-
-if (strcmp(handles.type,'nearneighbor'))
-    if (isempty(get(handles.edit_S1_Neighbor,'String')))
-        errordlg('Must give a value for "Search radius".','Error');
-        error = error + 1;
-    end
-end
+	error = 0;
+	if isempty(handles.command{6})
+		errordlg('Lon Min box is empty','Error');   error = error + 1;    
+	end
+	if isempty(handles.command{8})
+		errordlg('Lon Max box is empty','Error');   error = error + 1;    
+	end
+	if isempty(handles.command{10})
+		errordlg('Lat Min box is empty','Error');   error = error + 1;    
+	end
+	if isempty(handles.command{12})   
+		errordlg('Lat Max box is empty','Error');   error = error + 1;    
+	end
+	if isempty(handles.command{15})   
+		errordlg('X_INC box is empty','Error');     error = error + 1;    
+	end
+	if isempty(handles.command{17})   
+		errordlg('Y_INC box is empty','Error');     error = error + 1;    
+	end
+	
+	if (strcmp(handles.type,'nearneighbor'))
+		if (isempty(get(handles.edit_S1_Neighbor,'String')))
+			errordlg('Must give a value for "Search radius".','Error');
+			error = error + 1;
+		end
+	end
 
 % --------------------------------------------------------------------
 function Menu_Help_Callback(hObject, eventdata, handles)
@@ -1164,7 +1161,6 @@ uicontrol('Parent',h1,...
 'Tag','pushbutton_Grid_Options');
 
 uicontrol('Parent',h1,...
-'Callback',{@griding_mir_uicallback,h1,'checkbox_Option_V_Callback'},...
 'Position',[20 10 66 15],...
 'String','Verbose',...
 'Style','checkbox',...
