@@ -807,7 +807,6 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 	tmp.head = [head(1) head(2) head(3) head(4) head(5) head(6) 0 head(8) head(9)];
 	tmp.X = X;    tmp.Y = Y;    tmp.name = tit;
 	new_window = mirone(Z,tmp);
-end
 
 % -----------------------------------------------------------------------------------
 function error = VerifyCommand(handles)
