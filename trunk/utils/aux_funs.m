@@ -266,6 +266,7 @@ function toProjPT(handles)
 % The following is to deal with eventual coords display in geogs and is used in PIXVAL_STSBAR 
 
 	displayBar = findobj(handles.figure1, 'Tag', 'pixValStsBar');
+	if (isempty(displayBar)),	return,		end		% No file, no projection
 	dbud = get(displayBar, 'UserData');
 	dbud.toProjPT = 0;
 	if (handles.is_projected)
