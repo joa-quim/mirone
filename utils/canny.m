@@ -262,6 +262,7 @@ function [I,Thresh,Sigma] = parse_inputs(varargin)
 
 	I = varargin{1};
 	if (islogical(I)),	I = uint8(I);	end
+	if (ndims(I) == 3),	I = cvlib_mex('color', I, 'rgb2gray');		end
 	iptcheckinput(I,{'numeric'},{'nonsparse','2d'},mfilename,'I',1);
 
 	Thresh=[];
