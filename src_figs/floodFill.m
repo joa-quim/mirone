@@ -2,133 +2,132 @@ function varargout = floodFill(varargin)
 % M-File changed by desGUIDE 
 % hObject    handle to figure
 % handles    structure with handles and user data (see GUIDATA)
- 
-hObject = figure('Tag','figure1','Visible','off');
-floodFill_LayoutFcn(hObject);
-handles = guihandles(hObject);
 
-% Import icons
-load (['data' filesep 'mirone_icons.mat'],'lapis_ico','trincha_ico','pipeta_ico','balde_ico',...
-    'circ_ico','rectang_ico','ellipse_ico');
+	if (~isempty(varargin))
+		errordlg('FLOODFILL: wrong number of arguments.','Error'),	return
+	end
+     
+	hObject = figure('Tag','figure1','Visible','off');
+	floodFill_LayoutFcn(hObject);
+	handles = guihandles(hObject);
 
-h_toolbar = uitoolbar('parent',hObject, 'BusyAction','queue','HandleVisibility','on',...
-   'Interruptible','on','Tag','FigureToolBar','Visible','on');
-uipushtool('parent',h_toolbar,'Click',{@line_clickedcallback,'pencil'}, ...
-   'cdata',lapis_ico,'TooltipString','Pencil');
-uipushtool('parent',h_toolbar,'Click',{@line_clickedcallback,'paintbrush'}, ...
-   'cdata',trincha_ico,'TooltipString','Paintbrush');
-uipushtool('parent',h_toolbar,'Click',@pipeta_clickedcallback,'cdata',pipeta_ico,'TooltipString','Color Picker');
-uipushtool('parent',h_toolbar,'Click',@flood_clickedcallback,'cdata',balde_ico,'TooltipString','Floodfill');
-uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'circ'},'cdata',circ_ico,'TooltipString','Circle');
-uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'rect'},'cdata',rectang_ico,'TooltipString','Rectangle');
-uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'ellipse'},'cdata',ellipse_ico,'TooltipString','Ellipse');
-
-if (~isempty(varargin))
     handles.hCallingFig = varargin{1};
     handMir = guidata(handles.hCallingFig);
 	if (handMir.no_file)
-        errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
-        delete(hObject);    return
+		errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
+		delete(hObject);    return
 	end
-else
-    errordlg('FLOODFILL: wrong number of arguments.','Error')
-    delete(hObject);    return
-end
 
-% Add this figure handle to the carraças list
-plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
-plugedWin = [plugedWin hObject];
-setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
+	% Import icons
+	load ([handMir.path_data 'mirone_icons.mat'],'lapis_ico','trincha_ico','pipeta_ico','balde_ico',...
+		'circ_ico','rectang_ico','ellipse_ico');
 
-% Try to position this figure glued to the right of calling figure
-posThis = get(hObject,'Pos');
-posParent = get(handles.hCallingFig,'Pos');
-ecran = get(0,'ScreenSize');
-xLL = posParent(1) + posParent(3) + 6;
-xLR = xLL + posThis(3);
-if (xLR > ecran(3))         % If figure is partially out, bring totally into screen
-    xLL = ecran(3) - posThis(3);
-end
-yLL = (posParent(2) + posParent(4)/2) - posThis(4) / 2;
-set(hObject,'Pos',[xLL yLL posThis(3:4)])
+	h_toolbar = uitoolbar('parent',hObject, 'BusyAction','queue','HandleVisibility','on',...
+		'Interruptible','on','Tag','FigureToolBar','Visible','on');
+	uipushtool('parent',h_toolbar,'Click',{@line_clickedcallback,'pencil'}, ...
+		'cdata',lapis_ico,'TooltipString','Pencil');
+	uipushtool('parent',h_toolbar,'Click',{@line_clickedcallback,'paintbrush'}, ...
+		'cdata',trincha_ico,'TooltipString','Paintbrush');
+	uipushtool('parent',h_toolbar,'Click',@pipeta_clickedcallback,'cdata',pipeta_ico,'TooltipString','Color Picker');
+	uipushtool('parent',h_toolbar,'Click',@flood_clickedcallback,'cdata',balde_ico,'TooltipString','Floodfill');
+	uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'circ'},'cdata',circ_ico,'TooltipString','Circle');
+	uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'rect'},'cdata',rectang_ico,'TooltipString','Rectangle');
+	uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'ellipse'},'cdata',ellipse_ico,'TooltipString','Ellipse');
 
-handles.hCallingAxes = get(handles.hCallingFig,'CurrentAxes');
-handles.hImage = findobj(handles.hCallingFig,'Type','image');
-img = get(handles.hImage,'CData');
-handles.origFig = img;        % Make a copy of the original image
-handles.imgSize = size(img);
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
 
-handles.IAmAMirone = getappdata(handles.hCallingFig,'IAmAMirone');
-if (~isempty(handles.IAmAMirone))
-    handlesMir = guidata(handles.hCallingFig);
-    handles.head = handlesMir.head;
-    %handles.origFig = handlesMir.origFig;
-    handles.DefLineThick = handlesMir.DefLineThick;
-    handles.DefLineColor = handlesMir.DefLineColor;
-    handles.image_type = handlesMir.image_type;
-else
-    handles.IAmAMirone = 0;
-    % Build a GMT type header info
-    handles.head = [get(handles.hCallingAxes,'xlim') get(handles.hCallingAxes,'ylim') 0 0 1];
-    handles.head(8) = (handles.head(2)-handles.head(1)) / size(img,2);
-    handles.head(9) = (handles.head(4)-handles.head(3)) / size(img,1);
-    
-    handles.DefLineThick = 1;
-    handles.DefLineColor = [0 0 0];
-end
+	% Try to position this figure glued to the right of calling figure
+	posThis = get(hObject,'Pos');
+	posParent = get(handles.hCallingFig,'Pos');
+	ecran = get(0,'ScreenSize');
+	xLL = posParent(1) + posParent(3) + 6;
+	xLR = xLL + posThis(3);
+	if (xLR > ecran(3))         % If figure is partially out, bring totally into screen
+		xLL = ecran(3) - posThis(3);
+	end
+	yLL = (posParent(2) + posParent(4)/2) - posThis(4) / 2;
+	set(hObject,'Pos',[xLL yLL posThis(3:4)])
 
-% Initialize some vars
-handles.connect = 4;
-handles.tol = 20;
-handles.randColor = 1;
-handles.fillColor = [255 255 255];
-handles.useDilation = 1;            % Dilate mask before using it in picking shapes
-handles.colorSegment = 1;           % Default to do color segmentation
-%handles.colorModel = 'YCrCb';       % When color segmentation, default to this color space
-handles.colorModel = [];            % Do color segmentation in RGB
-handles.minPts = 50;                % When digitizing, dont create polygs with less than this pts
-handles.udCount = 1;                % Unique incremental identifier to set in UserData of polygons
-handles.single_poly = 0;            % IF == 1 -> all detected polygons are drawn in a single multi-polygon
-handles.bg_color = 0;               % Background color (or color number in cmap)
-handles.lineWidth = 3;
-handles.elemSquare = 1;
+	handles.hCallingAxes = get(handles.hCallingFig,'CurrentAxes');
+	handles.hImage = findobj(handles.hCallingFig,'Type','image');
+	img = get(handles.hImage,'CData');
+	handles.origFig = img;        % Make a copy of the original image
+	handles.imgSize = size(img);
 
-set(handles.listbox_lineWidth,'String',1:99,'Val',2)
-set(handles.slider_tolerance,'Value',handles.tol)
+	handles.IAmAMirone = getappdata(handles.hCallingFig,'IAmAMirone');
+	if (~isempty(handles.IAmAMirone))
+		handlesMir = guidata(handles.hCallingFig);
+		handles.head = handlesMir.head;
+		%handles.origFig = handlesMir.origFig;
+		handles.DefLineThick = handlesMir.DefLineThick;
+		handles.DefLineColor = handlesMir.DefLineColor;
+		handles.image_type = handlesMir.image_type;
+	else
+		handles.IAmAMirone = 0;
+		% Build a GMT type header info
+		handles.head = [get(handles.hCallingAxes,'xlim') get(handles.hCallingAxes,'ylim') 0 0 1];
+		handles.head(8) = (handles.head(2)-handles.head(1)) / size(img,2);
+		handles.head(9) = (handles.head(4)-handles.head(3)) / size(img,1);
 
-%--------------- Give a Pro look (3D) to the frame boxes -------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
+		handles.DefLineThick = 1;
+		handles.DefLineColor = [0 0 0];
+	end
 
-% Recopy the text fields on top of previously created frames (uistack is to damn slow)
-h_t = [handles.text_Paint handles.text_DS];
-for i=1:length(h_t)
-    usr_d = get(h_t(i),'UserData');
-    t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-    bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
-    t_just = get(h_t(i),'HorizontalAlignment');     t_tag = get(h_t(i),'Tag');
-    uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str,'Tag',t_tag, ...
-        'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,...
-        'UserData',usr_d,'HorizontalAlignment',t_just);
-end
-delete(h_t)
-%------------------- END Pro look (3D) ----------------------------------------------------------
+	% Initialize some vars
+	handles.connect = 4;
+	handles.tol = 20;
+	handles.randColor = 1;
+	handles.fillColor = [255 255 255];
+	handles.useDilation = 1;            % Dilate mask before using it in picking shapes
+	handles.colorSegment = 1;           % Default to do color segmentation
+	%handles.colorModel = 'YCrCb';       % When color segmentation, default to this color space
+	handles.colorModel = [];            % Do color segmentation in RGB
+	handles.minPts = 50;                % When digitizing, dont create polygs with less than this pts
+	handles.udCount = 1;                % Unique incremental identifier to set in UserData of polygons
+	handles.single_poly = 0;            % IF == 1 -> all detected polygons are drawn in a single multi-polygon
+	handles.bg_color = 0;               % Background color (or color number in cmap)
+	handles.lineWidth = 3;
+	handles.elemSquare = 1;
 
-guidata(hObject, handles);
-varargout{1} = hObject;
-set(hObject,'Visible','on');
+	set(handles.listbox_lineWidth,'String',1:99,'Val',2)
+	set(handles.slider_tolerance,'Value',handles.tol)
+
+	%--------------- Give a Pro look (3D) to the frame boxes -------------------------
+	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+	h_f = findobj(hObject,'Style','Frame');
+	for i=1:length(h_f)
+		frame_size = get(h_f(i),'Position');
+		f_bgc = get(h_f(i),'BackgroundColor');
+		usr_d = get(h_f(i),'UserData');
+		if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
+			frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
+		else
+			frame3D(hObject,frame_size,framecolor,'',usr_d)
+			delete(h_f(i))
+		end
+	end
+
+	% Recopy the text fields on top of previously created frames (uistack is to damn slow)
+	h_t = [handles.text_Paint handles.text_DS];
+	for i=1:length(h_t)
+		usr_d = get(h_t(i),'UserData');
+		t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
+		bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
+		t_just = get(h_t(i),'HorizontalAlignment');     t_tag = get(h_t(i),'Tag');
+		uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str,'Tag',t_tag, ...
+			'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,...
+			'UserData',usr_d,'HorizontalAlignment',t_just);
+	end
+	delete(h_t)
+	%------------------- END Pro look (3D) ----------------------------------------------------------
+
+	guidata(hObject, handles);
+	if (nargout),	varargout{1} = hObject;		end
+	set(hObject,'Visible','on');
 
 % --------------------------------------------------------------------
 function line_clickedcallback(hObject, eventdata, opt)
