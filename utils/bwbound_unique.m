@@ -7,7 +7,6 @@ function B = bwbound_unique(B)
 % This function tries to remove the duplicates and re-order vertex so that we have a decent line.
 
 	for (k = 1:numel(B))
-		got_it = true;
 		y = B{k}(:,1);		x = B{k}(:,2);
 		n_pts = numel(x);
 		if ( n_pts <= 2 ),	continue,		end
@@ -25,13 +24,14 @@ function B = bwbound_unique(B)
 				ind = find(dfx == 0 & dfy == 0);
 				ind = 2 * ind + 1;			% The differences start a 2nd pt
 			end
-			if (~isempty(ind)),		ind = ind(1);	end
+
+			if (isempty(ind)),		continue,		end
 			
-			if (ind >= n)					% Turning point is at or ahead of mid point
+			if (ind(1) >= n)					% Turning point is at or ahead of mid point
 				x = x((ind-n+1):ind);		y = y((ind-n+1):ind);
 			else 							% (ind < n)	 Before the mid point
 				x = x(ind:ind+n-1);			y = y(ind:ind+n-1);
 			end
 		end
-		if (got_it),	B{k} = [y x];	end
+		B{k} = [y x];
 	end
