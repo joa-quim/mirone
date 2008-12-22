@@ -15,7 +15,9 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
- * Revision 20.0  14/12/2008 JL	Added SIFT detector (from Rob Hess code)
+ * Revision 22.0  22/12/2008 JL	Added findRectangles
+ * Revision 21.0  15/12/2008 JL	Added cvFindHomography
+ * Revision 20.0  14/12/2008 JL	Added SIFT detector (from Hess code at web.engr.oregonstate.edu/~hess/)
  * Revision 19.0  16/11/2008 JL	Added cvHaarDetectObjects (from 'FaceDetect' of Sreekar Krishna)
  * Revision 18.0  18/10/2008 JL	Added cvCvtScaleAbs.
  * 				Fixed BUG in order of input/output 3D arrays. Due to the BGR
@@ -117,6 +119,8 @@ void Jsift(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jtext(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JMatchTemplate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JhaarDetect(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+void Jhomography(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+void JfindRectangles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 
 void Set_pt_Ctrl_in (struct CV_CTRL *Ctrl, const mxArray *pi , mxArray *pit, int interl);
 void Set_pt_Ctrl_out1 ( struct CV_CTRL *Ctrl, mxArray *pi );
@@ -143,7 +147,7 @@ void arithmUsage(), addWeightedUsage(), pyrDUsage(), pyrUUsage(), houghCirclesUs
 void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsage();
 void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage(), powUsage();
 void absUsage(), logUsage(), expUsage(), hypotUsage(), haarUsage();
-void approxPolyUsage(), siftUsage();
+void approxPolyUsage(), siftUsage(), homographyUsage(), findRectangUsage();
 void MatchTemplateUsage();
 
 /* --------------------------------------------------------------------------- */
@@ -176,10 +180,12 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\texp (cvExp)\n");
 		mexPrintf("\tfilter (cvFilter2D)\n");
 		mexPrintf("\tfillpoly (cvFillPoly)\n");
+		mexPrintf("\tfindrect\n");
 		mexPrintf("\tflip (cvFlip)\n");
 		mexPrintf("\tfloodfill (cvFloodFill)\n");
 		mexPrintf("\tgoodfeatures (cvGoodFeaturesToTrack)\n");
 		mexPrintf("\thaar (cvHaarDetectObjects)\n");
+		mexPrintf("\thomography (cvFindHomography)\n");
 		mexPrintf("\thoughlines2 (cvHoughLines2)\n");
 		mexPrintf("\thoughcircles (cvHoughCircles)\n");
 		mexPrintf("\thypot\n");
@@ -196,6 +202,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tpyrU (cvPyrUp)\n");
 		mexPrintf("\trectangle (cvRectangle)\n");
 		mexPrintf("\tresize (cvResize)\n");
+		mexPrintf("\tsift\n");
 		mexPrintf("\tsmooth (cvSmooth)\n");
 		mexPrintf("\tsobel (cvSobel)\n");
 		mexPrintf("\tsub (cvSub)\n");
@@ -210,8 +217,16 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	else
 		funName = (char *)mxArrayToString(prhs[0]);
 
-	if (!strcmp(funName,"resize"))
-		Jresize(n_out, plhs, n_in, prhs);
+	if (!strcmp(funName,"addweighted"))
+		JaddWeighted(n_out, plhs, n_in, prhs);
+
+	else if ( !strcmp(funName,"add") || !strcmp(funName,"sub") || !strcmp(funName,"mul") ||
+		 !strcmp(funName,"div") || !strcmp(funName,"addS") || !strcmp(funName,"subS") ||
+		 !strcmp(funName,"abs") || !strcmp(funName,"absDiffS") || !strcmp(funName,"subRS") || 
+		 !strcmp(funName,"absDiff") || !strncmp(funName,"Cvt", 3) || !strcmp(funName,"pow") || 
+		 !strcmp(funName,"hypot") || !strcmp(funName,"log") || !strcmp(funName,"exp") ) {
+		Jarithm(n_out, plhs, n_in, prhs, funName);
+	}
 
 	else if (!strcmp(funName,"dp"))
 		JapproxPoly(n_out, plhs, n_in, prhs);
@@ -226,11 +241,17 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	else if (!strncmp(funName,"poly",4) || !strcmp(funName,"fillpoly") )
 		Jpolyline(n_out, plhs, n_in, prhs, funName);
 
+	else if (!strcmp(funName,"findrect"))
+		JfindRectangles(n_out, plhs, n_in, prhs);
+
 	else if (!strncmp(funName,"good", 4))		/* goodfeatures */
 		JgoodFeatures(n_out, plhs, n_in, prhs);
 
 	else if (!strcmp(funName,"haar"))
 		JhaarDetect(n_out, plhs, n_in, prhs);
+
+	else if (!strncmp(funName,"homography",4))
+		Jhomography(n_out, plhs, n_in, prhs);
 
 	else if (!strcmp(funName,"houghlines2"))
 		JhoughLines2(n_out, plhs, n_in, prhs);
@@ -259,17 +280,6 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	else if (!strcmp(funName,"affine2"))
 		JGetQuadrangleSubPix(n_out, plhs, n_in, prhs);
 
-	else if ( !strcmp(funName,"add") || !strcmp(funName,"sub") || !strcmp(funName,"mul") ||
-		 !strcmp(funName,"div") || !strcmp(funName,"addS") || !strcmp(funName,"subS") ||
-		 !strcmp(funName,"abs") || !strcmp(funName,"absDiffS") || !strcmp(funName,"subRS") || 
-		 !strcmp(funName,"absDiff") || !strncmp(funName,"Cvt", 3) || !strcmp(funName,"pow") || 
-		 !strcmp(funName,"hypot") || !strcmp(funName,"log") || !strcmp(funName,"exp") ) {
-		Jarithm(n_out, plhs, n_in, prhs, funName);
-	}
-
-	else if (!strcmp(funName,"addweighted"))
-		JaddWeighted(n_out, plhs, n_in, prhs);
-
 	else if (!strcmp(funName,"flip"))
 		Jflip(n_out, plhs, n_in, prhs);
 
@@ -281,6 +291,9 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	else if (!strcmp(funName,"pyrU") || !strcmp(funName,"pyrD") )
 		Jegipt(n_out, plhs, n_in, prhs, funName);
+
+	else if (!strcmp(funName,"resize"))
+		Jresize(n_out, plhs, n_in, prhs);
 
 	else if (!strcmp(funName,"sift"))
 		Jsift(n_out, plhs, n_in, prhs);
@@ -1227,7 +1240,7 @@ void JgoodFeatures(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 
 /* --------------------------------------------------------------------------- */
 void JhaarDetect(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
-	int nx, ny, i, j, nBytes, img_depth, nBands, min_neighbors = 3, min_size = 30;
+	int nx, ny, i, nBytes, img_depth, nBands, min_neighbors = 3, min_size = 30;
 	unsigned char *ptr_gray;
 	char	*input_buf;
 	double	scale_factor = 1.1;
@@ -1366,6 +1379,207 @@ void JhaarDetect(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 }
 
 /* --------------------------------------------------------------------------- */
+void JfindRectangles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
+	int nx, ny, i, c, l, N = 1, nBytes, img_depth, nBands, np, kernel = 3;
+
+	double *ptr_d, thresh1 = 40, thresh2 = 200, s, t;
+	IplImage *src_img = 0, *gray, *pyr, *tgray;
+	CvPoint *pt0, *pt1, *pt2;
+	CvMemStorage *storage = 0;
+	CvSeq *contours, *result, *squares = NULL;
+	CvSize sz;
+	CvSeqReader reader;
+	mxArray *ptr_in, *mx_ptr;
+
+	struct CV_CTRL *Ctrl;
+	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
+
+	/* ---- Check for input and errors in user's call to function. ----------------- */
+	if (n_in == 1) { findRectangUsage(); return; }
+	/* Check that input image is of type UInt8 */
+	if ( !(mxIsUint8(prhs[1]) || mxIsLogical(prhs[1])) )
+		mexErrMsgTxt("SQUARES: Invalid input data type. Valid types are: UInt8 OR Logical.\n");
+
+	if (n_out != 1)
+		mexErrMsgTxt("SQUARES returns one (and one only) output!");
+
+	if (n_in >= 3) {
+		ptr_d = mxGetPr(prhs[2]);	thresh1 = (double)ptr_d[0];
+	}
+	if (n_in >= 4) {
+		ptr_d = mxGetPr(prhs[3]);	thresh2 = (double)ptr_d[0];
+	}
+	if (n_in == 5) {
+		ptr_d = mxGetPr(prhs[4]);	kernel = (int)ptr_d[0];
+	}
+	/* -------------------- End of parsing input ------------------------------------- */
+
+	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);	nBands = getNK(prhs[1],2);
+	/* Allocate and initialize defaults in a new control structure */
+	Ctrl = (struct CV_CTRL *) New_Cv_Ctrl ();
+	getDataType(Ctrl, prhs, &nBytes, &img_depth);
+
+	/* ------ Create pointers for output and temporary arrays ---------- */
+	ptr_in  = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+		  mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
+	/* ------------------------------------------------------------------------------- */ 
+
+	Set_pt_Ctrl_in ( Ctrl, prhs[1], ptr_in, 1 ); 	/* Set pointer & interleave */
+
+	src_img = cvCreateImageHeader( cvSize(nx, ny), 8, nBands );
+	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
+
+	if (nBands == 3) {			/* Convert to GRAY */
+		unsigned char *ptr_gray;
+		IplImage *src_gray;
+		src_gray = cvCreateImageHeader( cvSize(nx, ny), 8, 1 );
+		ptr_gray = (unsigned char *)mxMalloc (nx*ny);
+		cvSetImageData( src_gray, (void *)ptr_gray, nx );
+		cvCvtColor(src_img, src_gray, CV_BGR2GRAY);
+		for (i = 0; i < nx*ny; i++)	/* Copy the transformed image into Ctrl field */
+			Ctrl->UInt8.tmp_img_in[i] = ptr_gray[i]; 
+		mxFree(ptr_gray);
+		cvReleaseImageHeader( &src_gray );
+
+		/* Here we're going to cheat the src_img in order to pretend that its 2D */
+		src_img->nChannels = 1;
+		src_img->widthStep = nx * nBytes;
+		src_img->imageSize = ny * src_img->widthStep;
+		nBands = 1;
+	}
+
+	sz = cvSize( src_img->width & -2, src_img->height & -2 );
+	if (!mxIsLogical(prhs[1])) {
+		gray = cvCreateImage( sz, 8, 1 ); 
+		pyr = cvCreateImage( cvSize(sz.width/2, sz.height/2), 8, nBands );
+	}
+
+	/* create memory storage that will contain all the dynamic data */
+	storage = cvCreateMemStorage(0);
+
+	/* create empty sequence that will contain points -
+	   4 points per square (the square's vertices) */
+	squares = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
+
+	/* select the maximum ROI in the image with the width and height divisible by 2 */
+	cvSetImageROI( src_img, cvRect( 0, 0, sz.width, sz.height ));
+    
+	if (!mxIsLogical(prhs[1])) {
+		/* down-scale and upscale the image to filter out the noise */
+		cvPyrDown( src_img, pyr, 7 );
+		cvPyrUp( pyr, src_img, 7 );
+		tgray = cvCreateImage( sz, 8, 1 );
+	}
+ 
+	/* The color case is deactivated since RGB images were transformed to gray above */
+	for ( c = 0; c < nBands; c++ ) { /* find squares in every color plane of the image */
+		if (nBands == 3)
+			cvSetImageCOI( src_img, c+1 ); /* extract the c-th color plane */
+		if ( !mxIsLogical(prhs[1]) )
+			cvCopy( src_img, tgray, 0 );
+
+		for ( l = 0; l < N; l++ ) { /* try several threshold levels */
+			/* hack: use Canny instead of zero threshold level.
+			   Canny helps to catch squares with gradient shading    */
+			if ( l == 0 && !mxIsLogical(prhs[1]) ) {
+				/* apply Canny. Take the upper threshold from slider
+				   and set the lower to 0 (which forces edges merging)  */
+				cvCanny( tgray, gray, thresh1, thresh2, kernel );
+				/* dilate canny output to remove potential holes between edge segments  */
+				cvDilate( gray, gray, 0, 1 );
+				cvErode( gray, gray, 0, 1 );
+			}
+			else if (!mxIsLogical(prhs[1])) {
+				/* apply threshold if l!=0:
+				   tgray(x,y) = gray(x,y) < (l+1)*255/N ? 255 : 0 */
+				cvThreshold( tgray, gray, (l+1)*255/N, 255, CV_THRESH_BINARY );
+			}
+            
+			/* find contours and store them all as a list */
+			if (!mxIsLogical(prhs[1])) 
+				cvFindContours( gray, storage, &contours, sizeof(CvContour),
+						CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );
+			else		/* src_img is already a binary image */
+				cvFindContours( src_img, storage, &contours, sizeof(CvContour),
+						CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );
+            
+			while ( contours ) {
+				/* approximate contour with accuracy proportional to the contour perimeter */
+				result = cvApproxPoly( contours, sizeof(CvContour), storage,
+							CV_POLY_APPROX_DP, cvContourPerimeter(contours)*0.04, 0 );
+				/* square contours should have 4 vertices after approximation
+				   relatively large area (to filter out noisy contours) and be convex.
+				   Note: absolute value of an area is used because
+				   area may be positive or negative - in accordance with the contour orientation */
+				if( result->total == 4 && fabs(cvContourArea(result,CV_WHOLE_SEQ)) > 100 &&
+					cvCheckContourConvexity(result) ) {
+					s = 0;
+
+					for (i = 0; i < 5; i++) {
+						if( i >= 2 ) { /* find min angle between joint edges (max of cosine) */
+							double dx1, dy1, dx2, dy2;
+							pt1 = (CvPoint*)cvGetSeqElem( result, i );
+							pt2 = (CvPoint*)cvGetSeqElem( result, i-2 );
+							pt0 = (CvPoint*)cvGetSeqElem( result, i-1 );
+							dx1 = pt1->x - pt0->x;
+							dy1 = pt1->y - pt0->y;
+							dx2 = pt2->x - pt0->x;
+							dy2 = pt2->y - pt0->y;
+							t = fabs(dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*
+								(dx2*dx2 + dy2*dy2) + 1e-10);
+							s = s > t ? s : t;
+						}
+					}
+                    
+					/* if cosines of all angles are small (all angles are ~90 degree)
+					   then write quandrange vertices to resultant sequence */
+					if( s < 0.3 )
+						for( i = 0; i < 4; i++ )
+							cvSeqPush( squares, (CvPoint*)cvGetSeqElem( result, i ));
+				}
+                
+				contours = contours->h_next; /* take the next contour */
+			}
+		}
+	}
+    
+	if (!mxIsLogical(prhs[1])) {
+		cvReleaseImage( &gray );
+		cvReleaseImage( &pyr );
+		cvReleaseImage( &tgray );
+	}
+
+	cvReleaseImageHeader( &src_img );
+	mxDestroyArray(ptr_in);
+	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
+
+	/* ------ GET OUTPUT DATA --------------------------- */ 
+	np = squares->total;		/* total number of points */
+
+	plhs[0] = mxCreateCellMatrix(np/4, 1);
+	mx_ptr = mxCreateNumericMatrix(5, 2, mxDOUBLE_CLASS, mxREAL);
+	ptr_d = mxGetPr(mx_ptr);
+	cvStartReadSeq( squares, &reader, 0 ); /* initialize reader of the sequence */
+	for( i = c = 0; i < np; i += 4, c++ ) {
+		CvPoint pt[4];
+		CV_READ_SEQ_ELEM( pt[0], reader );	CV_READ_SEQ_ELEM( pt[1], reader );
+		CV_READ_SEQ_ELEM( pt[2], reader );	CV_READ_SEQ_ELEM( pt[3], reader );
+
+		/* +1 because ML is one-based */
+		ptr_d[0] = (double)pt[0].y + 1;		ptr_d[1] = (double)pt[1].y + 1;
+		ptr_d[2] = (double)pt[2].y + 1;		ptr_d[3] = (double)pt[3].y + 1;
+		ptr_d[4] = (double)pt[0].y + 1;
+
+		ptr_d[5] = (double)pt[0].x + 1;		ptr_d[6] = (double)pt[1].x + 1;
+		ptr_d[7] = (double)pt[2].x + 1;		ptr_d[8] = (double)pt[3].x + 1;
+		ptr_d[9] = (double)pt[0].x + 1;
+		mxSetCell(plhs[0],c,mxDuplicateArray(mx_ptr));
+	}
+	mxDestroyArray(mx_ptr);
+	cvReleaseMemStorage( &storage );
+}
+
+/* --------------------------------------------------------------------------- */
 void JhoughLines2(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	int nx, ny, i, nBytes, img_depth, nBands, np, method = CV_HOUGH_PROBABILISTIC, thresh = 50;
 	unsigned char *ptr_gray;
@@ -1375,7 +1589,7 @@ void JhoughLines2(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	IplImage *src_img = 0, *dst_img, *src_gray;
 	CvPoint *line;
         CvSeq* lines = 0;
-        CvMemStorage* storage;
+        CvMemStorage *storage;
 	mxArray *ptr_in, *ptr_out, *mx_ptr;
 
 	struct CV_CTRL *Ctrl;
@@ -1504,8 +1718,8 @@ void JhoughCircles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 	double	*ptr_d, dp = 1, min_dist = 20, par1 = 50, par2 = 60;
 	IplImage *src_img = 0, *src_gray;
 	IplConvKernel *element = 0;
-        CvSeq* circles = 0;
-        CvMemStorage* storage;
+        CvSeq *circles = 0;
+        CvMemStorage *storage;
 	mxArray *ptr_in;
 
 	struct CV_CTRL *Ctrl;
@@ -1549,7 +1763,7 @@ void JhoughCircles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 	src_img = cvCreateImageHeader( cvSize(nx, ny), 8, nBands );
 	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
 
-	/* Don't really know hoe effective the next commands are, but at least it worked ONCE */
+	/* Don't really know how effective the next commands are, but at least it worked ONCE */
        	element = cvCreateStructuringElementEx( 4*2+1, 4*2+1, 4, 4, CV_SHAPE_ELLIPSE, 0 );
 	cvErode(src_img,src_img,element,1);
 	cvDilate(src_img,src_img,element,1);
@@ -1681,7 +1895,7 @@ void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 	plhs[0] = mxCreateCellMatrix(ncont, 1);
 	for( i = 0; i < ncont; i++ ) {
 		np = contours->total;		/* This is the number of points in contour */
-		PointArray = (CvPoint*)mxMalloc( np*sizeof(CvPoint) );	/* Alloc memory for contour point set */
+		PointArray = (CvPoint*)mxMalloc( np * sizeof(CvPoint) );/* Alloc memory for contour point set */
 		cvCvtSeqToArray(contours, PointArray, CV_WHOLE_SEQ);	/* Get contour point set. */
 		mx_ptr = mxCreateNumericMatrix(np, 2, mxDOUBLE_CLASS, mxREAL);
 		ptr_d = mxGetPr(mx_ptr);
@@ -2391,6 +2605,50 @@ void Jfilter(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	mxFree((void *)kernel);
 	mxDestroyArray(ptr_in);
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
+}
+
+/* --------------------------------------------------------------------------- */
+void Jhomography(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
+	int	nSrcRows, nSrcCols, nDstRows, nDstCols;
+	double	*ptr1_d, *ptr2_d, *ptr3_d;
+	CvMat	*src, *dst, *homography;
+
+	/* ---- Check for errors in user's call to function. ----------------------------- */
+	if (n_in == 1) { filterUsage();	return; }
+	if (n_in != 3)
+		mexErrMsgTxt("HOMOGRAPHY: requires 2 input arguments!");
+	if ( !mxIsDouble(prhs[1]) || !mxIsDouble(prhs[2]) )
+		mexErrMsgTxt("HOMOGRAPHY: input arguments must be doubles!");
+	if (n_out != 1)
+		mexErrMsgTxt("HOMOGRAPHY: returns one (and one only) output");
+	nSrcRows = mxGetM(prhs[1]);	nSrcCols = mxGetN(prhs[1]);
+	nDstRows = mxGetM(prhs[2]);	nDstCols = mxGetN(prhs[2]);
+	/* -------------------- End of parsing input ------------------------------------- */
+
+	ptr1_d = mxGetPr(prhs[1]);
+	ptr2_d = mxGetPr(prhs[2]);
+
+	src = cvCreateMatHeader( nSrcRows, nSrcCols, CV_64FC1 );
+	cvSetData( src, (void *)ptr1_d, nSrcCols*8 );
+
+	dst = cvCreateMatHeader( nDstRows, nDstCols, CV_64FC1 );
+	cvSetData( dst, (void *)ptr2_d, nDstCols*8 );
+
+	ptr3_d = (double *)mxCalloc(9, sizeof(double));
+	homography = cvCreateMatHeader( 3, 3, CV_64FC1 );
+	cvSetData( homography, (void *)ptr3_d, 3*8 );
+
+	cvFindHomography( src, dst, homography );
+
+	cvReleaseMatHeader( &src );
+	cvReleaseMatHeader( &dst );
+
+	plhs[0] = mxCreateNumericMatrix(3, 3, mxDOUBLE_CLASS, mxREAL);
+	ptr3_d = mxGetPr(plhs[0]);
+	/*ptr3_d = homography->data.db;		Why doesn't this work? It's a pointer = to a bloody pointer!! */
+	memcpy(ptr3_d, homography->data.db, 9*8);
+
+	cvReleaseData( homography ); 
 }
 
 /* --------------------------------------------------------------------------- */
@@ -3910,6 +4168,34 @@ void fillConvUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
+void findContoursUsage() {
+	mexPrintf("Usage: B = cvlib_mex('contours',IMG);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 or MxN intensity image OR a MxN logical (mask):\n");
+	mexPrintf("       B is a P-by-1 cell array where P is the number of detected lines.\n");
+	mexPrintf("       Each cell in the cell array contains a Qx2 matrix. Each row in the\n");
+	mexPrintf("       matrix contains the row and column pixel coordinates of the line.\n\n");
+
+	mexPrintf("       Class support: logical or uint8.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG and, if IMG is not of type logical, a MxN.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void findRectangUsage() {
+	mexPrintf("Usage: B = cvlib_mex('findrect',IMG, [thresh1,thresh2,kernel]);\n");
+	mexPrintf("       Find rectangles in an image.\n");
+	mexPrintf("       IMG is a uint8 MxNx3 or MxN intensity image OR a MxN logical (mask):\n");
+	mexPrintf("       B is a P-by-1 cell array where P is the number of detected lines.\n");
+	mexPrintf("       Each cell in the cell array contains a 5x2 matrix. Each row in the array\n");
+	mexPrintf("       contains the row and column pixel coordinates of the rectangle corners.\n");
+	mexPrintf("       If not provided thresh1 = 40, thresh2 = 200, kernel = 3;\n");
+	mexPrintf("       If IMG is a logical array this function tries to find rectangles\n");
+	mexPrintf("       without any further image processing on IMG.\n\n");
+
+	mexPrintf("       Class support: uint8 and logical\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG and, if ~logical(IMG), 2.5 MxN uint8 matrices.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
 void goodFeaturesUsage() {
 	mexPrintf("Usage: B = cvlib_mex('goodfeatures',IMG,[,M,QUALITY,DIST]);\n");
 	mexPrintf("       where IMG is a uint8 MxNx3 or a MxN intensity image:\n");
@@ -3960,6 +4246,16 @@ void haarUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
+void homographyUsage() {
+	mexPrintf("Usage: MAT = cvlib_mex('homography',SRC, DST);\n");
+	mexPrintf("       where SRC and DST are Nx2 or 2xN duble arrays with point coordinates\n");
+	mexPrintf("       in the original and destination plane.\n");
+	mexPrintf("       MAT is the 3x3 transformation matrix.\n\n");
+
+	mexPrintf("       Memory overhead: none.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
 void houghLines2Usage() {
 	mexPrintf("Usage: B = cvlib_mex('houghlines2',IMG);\n");
 	mexPrintf("       where IMG is a uint8 MxNx3 or MxN intensity image OR a MxN logical (mask):\n");
@@ -3997,15 +4293,17 @@ void houghCirclesUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
-void findContoursUsage() {
-	mexPrintf("Usage: B = cvlib_mex('contours',IMG);\n");
-	mexPrintf("       where IMG is a uint8 MxNx3 or MxN intensity image OR a MxN logical (mask):\n");
-	mexPrintf("       B is a P-by-1 cell array where P is the number of detected lines.\n");
-	mexPrintf("       Each cell in the cell array contains a Qx2 matrix. Each row in the\n");
-	mexPrintf("       matrix contains the row and column pixel coordinates of the line.\n\n");
+void inpaintUsage() {
+	mexPrintf("Usage: cvlib_mex('inpaint',IMG1,IMG2);\n");
+	mexPrintf("       The function inpaint reconstructs IMG1 image area from the pixel near the area boundary.\n");
+	mexPrintf("       The function may be used to remove scratches or undesirable objects from images:\n");
+	mexPrintf("       IMG1 is a uint8 MxNx3 rgb OR a MxN intensity image and IMG2 is a mask array\n");
+	mexPrintf("       of the same size (MxN) of IMG1. It can be a logical array or a uint8 array.\n");
+	mexPrintf("       IMG = cvlib_mex('polyline',IMG1,IMG2);\n");
+	mexPrintf("       Returns the drawing in the the new array IMG.\n\n");
 
-	mexPrintf("       Class support: logical or uint8.\n");
-	mexPrintf("       Memory overhead: 1 copy of IMG and, if IMG is not of type logical, a MxN.\n");
+	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG and a MxN matrix of the same type as IMG.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
@@ -4260,20 +4558,6 @@ void hypotUsage() {
 
 	mexPrintf("       Class support: all but uint32.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG1.\n");
-}
-
-/* -------------------------------------------------------------------------------------------- */
-void inpaintUsage() {
-	mexPrintf("Usage: cvlib_mex('inpaint',IMG1,IMG2);\n");
-	mexPrintf("       The function inpaint reconstructs IMG1 image area from the pixel near the area boundary.\n");
-	mexPrintf("       The function may be used to remove scratches or undesirable objects from images:\n");
-	mexPrintf("       IMG1 is a uint8 MxNx3 rgb OR a MxN intensity image and IMG2 is a mask array\n");
-	mexPrintf("       of the same size (MxN) of IMG1. It can be a logical array or a uint8 array.\n");
-	mexPrintf("       IMG = cvlib_mex('polyline',IMG1,IMG2);\n");
-	mexPrintf("       Returns the drawing in the the new array IMG.\n\n");
-
-	mexPrintf("       Class support: uint8.\n");
-	mexPrintf("       Memory overhead: 1 copy of IMG and a MxN matrix of the same type as IMG.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
