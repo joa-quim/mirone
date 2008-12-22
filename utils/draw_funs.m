@@ -711,6 +711,7 @@ end
 % -----------------------------------------------------------------------------------------
 function set_isochrons_uicontext(h,data)
 % h are handles to the lines of isochrons (or other lines with a info)
+	if (isempty(h)),	return,		end
 	tag = get(h,'Tag');
 	if (iscell(tag)),   tag = tag{1};   end
 
