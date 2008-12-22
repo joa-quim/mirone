@@ -34,31 +34,10 @@ function varargout = mpaint(varargin)
 %       Joaquim Luis  - 19-March-2007
 %       jluis@ualg.pt - Universidade do Algarve
 %
-
-% M-File changed by desGUIDE 
  
 hObject = figure('Tag','figure1','Visible','off');
+mpaint_LayoutFcn(hObject);
 handles = guihandles(hObject);
-guidata(hObject, handles);
-mpaint_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
- 
-% Import icons
-load (['data' filesep 'mirone_icons.mat'],'lapis_ico','trincha_ico','pipeta_ico','balde_ico',...
-    'circ_ico','rectang_ico','ellipse_ico','R_ico');
-
-h_toolbar = uitoolbar('parent',hObject, 'BusyAction','queue','HandleVisibility','on',...
-   'Interruptible','on','Tag','FigureToolBar','Visible','on');
-uipushtool('parent',h_toolbar,'Click',{@line_clickedcallback,'pencil'}, ...
-   'cdata',lapis_ico,'TooltipString','Pencil');
-uipushtool('parent',h_toolbar,'Click',{@line_clickedcallback,'paintbrush'}, ...
-   'cdata',trincha_ico,'TooltipString','Paintbrush');
-uipushtool('parent',h_toolbar,'Click',@pipeta_clickedcallback,'cdata',pipeta_ico,'TooltipString','Color Picker');
-uipushtool('parent',h_toolbar,'Click',@flood_clickedcallback,'cdata',balde_ico,'TooltipString','Floodfill');
-uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'circ'},'cdata',circ_ico,'TooltipString','Circle');
-uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'rect'},'cdata',rectang_ico,'TooltipString','Rectangle');
-uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'ellipse'},'cdata',ellipse_ico,'TooltipString','Ellipse');
-uipushtool('parent',h_toolbar,'Click',{@restore_clickedcallback},'cdata',R_ico,'Tooltip','Restore Image','Sep','on');
 
 if (~isempty(varargin))
     handles.hCallingFig = varargin{1};
@@ -85,6 +64,25 @@ end
 % Ok now we will fish the tue fig handle (before it could have been an img handle for example)
 handles.hCallingFig = get(get(handles.hImage,'Parent'),'Parent');
 
+handMir = guidata(handles.hCallingFig);
+ 
+% Import icons
+load ([handMir.path_data 'mirone_icons.mat'],'lapis_ico','trincha_ico','pipeta_ico','balde_ico',...
+    'circ_ico','rectang_ico','ellipse_ico','R_ico');
+
+h_toolbar = uitoolbar('parent',hObject, 'BusyAction','queue','HandleVisibility','on',...
+   'Interruptible','on','Tag','FigureToolBar','Visible','on');
+uipushtool('parent',h_toolbar,'Click',{@line_clickedcallback,'pencil'}, ...
+   'cdata',lapis_ico,'TooltipString','Pencil');
+uipushtool('parent',h_toolbar,'Click',{@line_clickedcallback,'paintbrush'}, ...
+   'cdata',trincha_ico,'TooltipString','Paintbrush');
+uipushtool('parent',h_toolbar,'Click',@pipeta_clickedcallback,'cdata',pipeta_ico,'TooltipString','Color Picker');
+uipushtool('parent',h_toolbar,'Click',@flood_clickedcallback,'cdata',balde_ico,'TooltipString','Floodfill');
+uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'circ'},'cdata',circ_ico,'TooltipString','Circle');
+uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'rect'},'cdata',rectang_ico,'TooltipString','Rectangle');
+uipushtool('parent',h_toolbar,'Click',{@shape_clickedcallback,'ellipse'},'cdata',ellipse_ico,'TooltipString','Ellipse');
+uipushtool('parent',h_toolbar,'Click',{@restore_clickedcallback},'cdata',R_ico,'Tooltip','Restore Image','Sep','on');
+
 % Add this figure handle to the carraças list
 plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
 plugedWin = [plugedWin hObject];
@@ -107,9 +105,7 @@ handles.XData = get(handles.hImage,'XData');
 handles.YData = get(handles.hImage,'YData');
 handles.origImg = get(handles.hImage,'CData');        % Make a copy of the original image
 handles.imgSize = size(handles.origImg);
-
-handlesMir = guidata(handles.hCallingFig);
-handles.head = handlesMir.head;
+handles.head = handMir.head;
 
 handles.connect = 4;
 handles.tol = 20;
@@ -573,7 +569,7 @@ elseif (strcmp(opt,'bucket'))
 end
 
 % --- Creates and returns a handle to the GUI figure. 
-function mpaint_LayoutFcn(h1,handles);
+function mpaint_LayoutFcn(h1)
 
 set(h1,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
