@@ -1,9 +1,8 @@
 function varargout = floodFill(varargin)
-% M-File changed by desGUIDE 
-% hObject    handle to figure
-% handles    structure with handles and user data (see GUIDATA)
+% 
+%	Coffeeright (c) 2004-2008 by J. Luis
 
-	if (~isempty(varargin))
+	if (isempty(varargin))
 		errordlg('FLOODFILL: wrong number of arguments.','Error'),	return
 	end
      
@@ -399,7 +398,7 @@ function [params,but] = prepareParams(handles, opt, opt2)
 
 % -------------------------------------------------------------------------------------
 function [x,y] = getpixcoords(handles,x,y)
-    % Convert x,y to pixel coordinates (they are not when the image has other coordinates)
+% Convert x,y to pixel coordinates (they are not when the image has other coordinates)
     if (handles.head(7))                % Image is pixel registered
         X = [handles.head(1) handles.head(2)] + [handles.head(8) -handles.head(8)]/2;
         Y = [handles.head(3) handles.head(4)] + [handles.head(9) -handles.head(9)]/2;
@@ -412,47 +411,47 @@ function [x,y] = getpixcoords(handles,x,y)
 
 % --------------------------------------------------------------------
 function res = insideRect(handles,x,y)
-    % Check if the point x,y in PIXELS is inside the rectangle RECT
-    % RECT = [1 handles.imgSize(2) 1 handles.imgSize(1)]
-    res = ( x >= 1 && x <= handles.imgSize(2) && y >= 1 && y <= handles.imgSize(1) );
+% Check if the point x,y in PIXELS is inside the rectangle RECT
+% RECT = [1 handles.imgSize(2) 1 handles.imgSize(1)]
+	res = ( x >= 1 && x <= handles.imgSize(2) && y >= 1 && y <= handles.imgSize(1) );
 
 % -------------------------------------------------------------------------------------
 function radio_randColor_Callback(hObject, eventdata, handles)
-    if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
-    set(handles.radio_cteColor,'Value',0)
-    handles.randColor = 1;
-    set(findobj(handles.figure1,'Style','toggle'),'Enable','Inactive')
-    set(handles.pushbutton_moreColors,'Enable','Inactive')
-    set(handles.toggle_currColor,'BackgroundColor','w')
-    guidata(handles.figure1,handles)
+	if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
+	set(handles.radio_cteColor,'Value',0)
+	handles.randColor = 1;
+	set(findobj(handles.figure1,'Style','toggle'),'Enable','Inactive')
+	set(handles.pushbutton_moreColors,'Enable','Inactive')
+	set(handles.toggle_currColor,'BackgroundColor','w')
+	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function radio_cteColor_Callback(hObject, eventdata, handles)
-    if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
-    set(handles.radio_randColor,'Value',0)
-    handles.randColor = 0;
-    set(findobj(handles.figure1,'Style','toggle'),'Enable','on');
-    set(handles.pushbutton_moreColors,'Enable','on')
-    guidata(handles.figure1,handles)
+	if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
+	set(handles.radio_randColor,'Value',0)
+	handles.randColor = 0;
+	set(findobj(handles.figure1,'Style','toggle'),'Enable','on');
+	set(handles.pushbutton_moreColors,'Enable','on')
+	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function radio_fourConn_Callback(hObject, eventdata, handles)
-    if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
-    set(handles.radio_eightConn,'Value',0)
-    handles.connect = 4;
-    guidata(handles.figure1,handles)
+	if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
+	set(handles.radio_eightConn,'Value',0)
+	handles.connect = 4;
+	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function radio_eightConn_Callback(hObject, eventdata, handles)
-    if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
-    set(handles.radio_fourConn,'Value',0)
-    handles.connect = 8;
-    guidata(handles.figure1,handles)
+	if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
+	set(handles.radio_fourConn,'Value',0)
+	handles.connect = 8;
+	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function toggle00_Callback(hObject, eventdata, handles)
 % All color toggle end up here
-    toggleColors(hObject,handles)
+	toggleColors(hObject,handles)
 
 % -------------------------------------------------------------------------------------
 function toggleColors(hCurr,handles)
@@ -524,73 +523,63 @@ function pushbutton_pickSingle_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function digitize(handles,img)
-    % IMG is binary mask. Digitize its outer contours
+% IMG is binary mask. Digitize its outer contours
 
-    B = img_fun('bwboundaries',img,'noholes');
-    
-    % Remove short polygons, and reduce pts along rows & cols
-    j = false(1,length(B));
-	for k = 1:length(B)
-		if (length(B{k}) < handles.minPts)
-            j(k) = 1;
-        else
-            df = diff(B{k}(:,1));
-            id = df == 0;
-            id = id & [false; id(1:end-1)];
-            if (any(id)),       B{k}(id,:) = [];   end
-            df = diff(B{k}(:,2));
-            id = df == 0;
-            id = id & [false; id(1:end-1)];
-            if (any(id)),       B{k}(id,:) = [];   end
-        end
-    end
-    B(j) = [];
-    
-    x_inc = handles.head(8);    y_inc = handles.head(9);
-    x_min = handles.head(1);    y_min = handles.head(3);
-    if (handles.head(7))            % Work in grid registration
-        x_min = x_min + x_inc/2;
-        y_min = y_min + y_inc/2;
-    end
+	B = img_fun('bwboundaries',img,'noholes');
+
+	for (k = 1:numel(B))
+		boundary = B{k};
+		if (numel(boundary) > 4)
+			boundary = cvlib_mex('dp', boundary, 1);		% Simplify line
+			B{k} = boundary;
+		end
+	end
+
+	x_inc = handles.head(8);    y_inc = handles.head(9);
+	x_min = handles.head(1);    y_min = handles.head(3);
+	if (handles.head(7))            % Work in grid registration
+		x_min = x_min + x_inc/2;
+		y_min = y_min + y_inc/2;
+	end
 
     if (handles.single_poly)                    % Draw a single polygon
-        % Add NaNs to the end of each polygon
+		% Add NaNs to the end of each polygon
         nElem = zeros(length(B)+1,1);
 		for k = 1:length(B)
-            B{k}(end+1,1:2) = [NaN NaN];
-            nElem(k+1) = size(B{k},1);
+			B{k}(end+1,1:2) = [NaN NaN];
+			nElem(k+1) = size(B{k},1);
         end
         soma = cumsum(nElem);
-    
-        x = zeros(soma(end),1);     y = x;
+
+		x = zeros(soma(end),1);     y = x;
 		for k = 1:length(B)
-            y(soma(k)+1:soma(k+1)) = (B{k}(:,1)-1) * y_inc + y_min;
-            x(soma(k)+1:soma(k+1)) = (B{k}(:,2)-1) * x_inc + x_min;
-        end
-			
+			y(soma(k)+1:soma(k+1)) = (B{k}(:,1)-1) * y_inc + y_min;
+			x(soma(k)+1:soma(k+1)) = (B{k}(:,2)-1) * x_inc + x_min;
+		end
+
         h_edge = line(x, y,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor, ...
                 'Tag','shape_detected','Userdata',handles.udCount);
-            
+
 		multi_segs_str = cell(length(h_edge),1);    % Just create a set of empty info strings
 		draw_funs(h_edge,'isochron',multi_segs_str);
         handles.udCount = handles.udCount + 1;
-    else                                        % Draw separate polygons
+	else                                        % Draw separate polygons
 		for k = 1:length(B)
             x = (B{k}(:,2)-1) * x_inc + x_min;
             y = (B{k}(:,1)-1) * y_inc + y_min;
-            
+
             h_edge = line(x, y,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor, ...
                     'Tag','shape_detected');
-            draw_funs(h_edge,'line_uicontext')      % Set lines's uicontextmenu
-        end    
-    end
-    guidata(handles.figure1,handles)
-    
+			draw_funs(h_edge,'line_uicontext')      % Set lines's uicontextmenu
+		end    
+	end
+	guidata(handles.figure1,handles)
+
 % -------------------------------------------------------------------------------------
 function pushbutton_pickMultiple_Callback(hObject, eventdata, handles)
-    % I left the code that deals with processing in Lab & HSV color models but removed
-    % those options from the GUI. This is for the case that I change my mind and decide
-    % to reintroduce it. For the time beeing, RGB seams to work better.
+% I left the code that deals with processing in Lab & HSV color models but removed
+% those options from the GUI. This is for the case that I change my mind and decide
+% to reintroduce it. For the time beeing, RGB seams to work better.
     [params,but] = prepareParams(handles);
     if (isempty(params) || but ~= 1),   return;     end
     img = get(handles.hImage,'CData');              % Get the image
@@ -680,11 +669,11 @@ function pushbutton_pickMultiple_Callback(hObject, eventdata, handles)
         	        h = figure;     image(img);
                     set(h,'ColorMap',get(handles.hCallingFig,'ColorMap'),'Name','Color segmentation')
                 end
-            else                                % Create contours from mask
+            else								% Create contours from mask
                 digitize(handles,tmp)
             end
         end
-    else                                        % Either YCrCb or Lab model were used
+    else										% Either YCrCb or Lab model were used
         a = img(:,:,2);
         b = img(:,:,3);
         cm = zeros(nColors, 4);
