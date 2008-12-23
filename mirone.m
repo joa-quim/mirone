@@ -751,7 +751,7 @@ function ImageSegment_CB(handles, hObject)
 
 % --------------------------------------------------------------------
 function PanZoom_CB(handles, hObject, opt)
-	if (handles.no_file),    set(hObject,'State','off');   return,		end
+	if (handles.no_file),    set(hObject,'State','off'),	return,		end
 	
 	if (strcmp(get(handles.Tesoura,'State'),'on'))  % If Scisors were on
 		set(handles.Tesoura,'State','off')
@@ -760,7 +760,7 @@ function PanZoom_CB(handles, hObject, opt)
 		if strcmp(get(hObject,'State'),'on')
 			zoom_j('on');
 			if (strcmp(get(handles.Mao,'State'),'on'))
-				set(handles.Mao,'State','off');   pan('off');
+				set(handles.Mao,'State','off'),		pan('off');
 			end
 		else
 			zoom_j('off');
@@ -769,7 +769,7 @@ function PanZoom_CB(handles, hObject, opt)
 		if strcmp(get(hObject,'State'),'on')
 			pan('on');
 			if (strcmp(get(handles.Zoom,'State'),'on'))
-				set(handles.Zoom,'State','off');   zoom_j('off');
+				set(handles.Zoom,'State','off'),	zoom_j('off');
 			end
 		else
 			pan('off');
@@ -2032,12 +2032,12 @@ function ImageDrape_CB(handles)
 % --------------------------------------------------------------------
 function ToolsMeasure_CB(handles, opt)
 % OPT = 'LLength' | 'Azim' | 'Area'
-	if (handles.no_file),    return;      end
+	if (handles.no_file),	return,		end
 	zoom_state(handles,'maybe_off');
 	opt2 = opt;
 	if (strcmp(opt,'Area')),	opt2 = 'closed';	end
 	[xp,yp] = getline_j(handles.figure1, opt2);		% When opt ~= closed, 2th arg is ignored
-	if (numel(xp) < 2);     zoom_state(handles,'maybe_on');   return;     end
+	if (numel(xp) < 2),		zoom_state(handles,'maybe_on'),		return,		end
 	draw_funs([xp(:) yp(:)],['tell' opt])
 	zoom_state(handles,'maybe_on');
 
@@ -2175,7 +2175,7 @@ function DrawClosedPolygon_CB(handles, opt)
 	if ( isempty(opt) || any(strcmp(opt,{'from_ROI' 'EulerTrapezium' 'SeismicityPolygon'})) )
 		zoom_state(handles,'maybe_off');
 		[xp,yp] = getline_j(handles.figure1,'closed');      n_nodes = length(xp);
-		if (n_nodes < 4),    return;     end        % 4 because a straight line has 3 vertex (last one repeats)
+		if (n_nodes < 4),	return,		end			% 4 because a straight line has 3 vertex (last one repeats)
 		if (strcmp(opt,'EulerTrapezium') && n_nodes ~= 5)
 			errordlg('OK, I won''t insult you this time. Just RTFM or don''t use this option','Error');     return;
 		end
@@ -2205,13 +2205,13 @@ function DrawClosedPolygon_CB(handles, opt)
 
 % --------------------------------------------------------------------
 function DrawEulerPoleCircle_CB(handles)
-	if (aux_funs('msg_dlg',1,handles));     return;      end    % Test geog & no_file
+	if (aux_funs('msg_dlg',1,handles)),		return,		end		% Test geog & no_file
 	if ( strcmp(get(handles.figure1,'Pointer'), 'crosshair') ),		return,		end		% Already drawing something else
 	zoom_state(handles,'maybe_off');
 	
 	out = euler_poles_selector(handles.home_dir);         % The output is a struct with fields: lon lat omega plates model
-	if isempty(out),    return;     end % User gave up
-	lon = out.lon;      lat = out.lat;
+	if isempty(out),	return,		end % User gave up
+	lon = out.lon;		lat = out.lat;
 	h_circ = uicirclegeo(lon,lat);
 	set(h_circ,'Tag','CircleEuler')     % This is used by draw_funs to allow velocity computations
 	if ~isempty(out)
@@ -3352,22 +3352,25 @@ if (strcmp(opt,'ppa'))
 % 	I = flipud(img(:,:,1));
 % 	delete(h_lixo);
 elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
-	if (ndims(img) == 3),   img = cvlib_mex('color',img,'rgb2gray');      end
+	if (ndims(img) == 3),		img = cvlib_mex('color',img,'rgb2gray');      end
 	if (~strcmp(opt(1:3),'SUS'))
 		if (~handles.IamCompiled),		img = canny(img);		% Economic version (uses singles & cvlib_mex but crashs in compiled)
 		else							img = img_fun('edge',img,'canny');
 		end
 	else
-		img = susan(img,'-e');              % Do SUSAN edge detect
-		if (strcmp(opt(4:end),'vec')),      opt = 'Vec';        % This avoids some extra tests later
-		else                                opt = 'Ras';
+		img = susan(img,'-e');				% Do SUSAN edge detect
+		if (strcmp(opt(4:end),'vec')),	opt = 'Vec';		% This avoids some extra tests later
+		else							opt = 'Ras';
 		end
 	end
-	B = img_fun('bwboundaries',img,'noholes');
-	B = bwbound_unique(B);
+	if (strcmp(opt,'Vec'))
+		B = img_fun('bwboundaries',img,'noholes');
+		B = bwbound_unique(B);
+	end
 elseif (strcmp(opt,'Lines'))
 	%B = cvlib_mex('houghlines2',img,'standard',1,pi/180,100,0,0);
 	%BW = cvlib_mex('canny',img,40,200,3);
+	if (ndims(img) == 3),			img = cvlib_mex('color',img,'rgb2gray');	end
 	if (~handles.IamCompiled),		BW = canny(img);
 	else							BW = img_fun('edge',img,'canny');
 	end
@@ -3375,50 +3378,54 @@ elseif (strcmp(opt,'Lines'))
 	[H,T,R] = img_fun('hough',BW);
 	P = img_fun('houghpeaks',H,50,'threshold',ceil(0.3*double(max(H(:)))));
 	lines = img_fun('houghlines',BW,T,R,P,'FillGap',10,'MinLength',50);
-	if (~isfield(lines,'point1')),      set(handles.figure1,'pointer','arrow');     return;   end
-	for k = 1:length(lines)
+	if (~isfield(lines,'point1')),	set(handles.figure1,'pointer','arrow'),		return,		end
+	for (k = 1:length(lines))
 		B{k} = [lines(k).point1(2:-1:1); lines(k).point2(2:-1:1)];
 	end
 elseif (strcmp(opt,'Circles'))
 	B = cvlib_mex('houghcircles',img);
-	if (isempty(B))
-		set(handles.figure1,'pointer','arrow'),		return
-	end
+	if (isempty(B)),	set(handles.figure1,'pointer','arrow'),		return,		end
+elseif (strcmp(opt,'Rect'))
+	B = cvlib_mex('findrect',img);
+	if (isempty(B)),	set(handles.figure1,'pointer','arrow'),		return,		end
 end
 
-if (strcmp(opt,'Vec') || strcmp(opt,'Lines'))          % Convert the edges found into vector
-	x_inc = handles.head(8);    y_inc = handles.head(9);
-	x_min = handles.head(1);    y_min = handles.head(3);
-	if (handles.head(7))            % Work in grid registration
+if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert the edges found into vector
+	x_inc = handles.head(8);		y_inc = handles.head(9);
+	x_min = handles.head(1);		y_min = handles.head(3);
+	if (handles.head(7))			% Work in grid registration
 		x_min = x_min + x_inc/2;    y_min = y_min + y_inc/2;
 	end
 	h_edge = zeros(length(B),1);    i = 1;
 	for k = 1:length(B)
 		boundary = B{k};
 		if (length(boundary) < 20 && strcmp(opt,'Vec')),	continue,	end
+		if (numel(boundary) > 4)
+			boundary = cvlib_mex('dp', boundary, 0.7);		% Simplify line
+		end
 		y = (boundary(:,1)-1)*y_inc + y_min;
 		x = (boundary(:,2)-1)*x_inc + x_min;
-		h_edge(i) = line('XData',x, 'YData',y, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor,'Tag','edge_detected','Userdata',i);
+		h_edge(i) = line('XData',x, 'YData',y, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick, ...
+			'Color',handles.DefLineColor,'Tag','edge_detected','Userdata',i);
 		i = i + 1;
 		%ellipse_t = fit_ellipse( x,y,handles.axes1 );
 	end
-
 	h_edge(h_edge == 0) = [];					% Remove empty handles remaining from pre-declaration
 	multi_segs_str = cell(length(h_edge),1);	% Just create a set of empty info strings
 	draw_funs(h_edge,'isochron',multi_segs_str);
 elseif (strcmp(opt,'Circles'))
-	x = linspace(-pi,pi,360);       y = x;
-	xx = cos(x);                    yy = sin(y);
+	x = linspace(-pi,pi,360);		y = x;
+	xx = cos(x);					yy = sin(y);
 	%h_circ = line('XData', [], 'YData', []);
 	for k = 1:size(B,1)
-		x = B(k,1) + B(k,3) * xx;           y = B(k,2) + B(k,3) * yy;
+		x = B(k,1) + B(k,3) * xx;			y = B(k,2) + B(k,3) * yy;
 		h_circ = line('XData',x, 'YData',y, 'Parent',handles.axes1, 'Linewidth',handles.DefLineThick, ...
 				'Color',handles.DefLineColor,'Userdata',B(k,:));
 		draw_funs(h_circ,'SessionRestoreCircleCart')    % Give uicontext
 		setappdata(h_circ,'LonLatRad',B(k,:))
 		%setappdata(h_circ,'X',xx);        setappdata(h_circ,'Y',yy);
 	end
-else                            % Display the bw image where the edges are the whites    
+else							% Display the bw image where the edges are the whites    
 	setappdata(0,'CropedColormap',gray);
 	if (handles.image_type == 2)
 		mirone(img);
@@ -3436,8 +3443,8 @@ function DigitalFilt_CB(handles, opt)
 	if (strcmp(opt,'image'))
 		digitalFiltering(handles.hImg);
 	else        % grid
-		[X,Y,Z,handles.head] = load_grd(handles);   % load the grid array here
-		if isempty(Z),      return,		end;    % An error message was already issued
+		[X,Y,Z,handles.head] = load_grd(handles);	% load the grid array here
+		if isempty(Z),		return,		end			% An error message was already issued
 		[Z, img] = digitalFiltering(handles.hImg,Z,get(handles.figure1,'ColorMap'));
 		if (isempty(Z)),    return,		end
 
