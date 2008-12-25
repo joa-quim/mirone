@@ -161,16 +161,30 @@ end
 %-------------------------------------------------------------------------------
 function listbox_ElevValues_Callback(hObject, eventdata, handles)
 	handles.selected_val = get(hObject,'Value');
-	guidata(hObject, handles);
+	guidata(handles.figure1, handles);
 
 %-------------------------------------------------------------------------------
 function pushbutton_DeleteSelected_Callback(hObject, eventdata, handles)
-	if (~isempty(handles.selected_val))
-		list = get(handles.listbox_ElevValues,'String');
-		if (~isempty(list))
-			list(handles.selected_val) = [];
-			set(handles.listbox_ElevValues,'String',list,'Value',1)
-			handles.selected_val = [];
+	if (isempty(handles.selected_val)),		return,		end
+	list = get(handles.listbox_ElevValues,'String');
+	if (isempty(list)),		return,		end
+	this_cont = str2double(list{handles.selected_val});
+	list(handles.selected_val) = [];
+	set(handles.listbox_ElevValues,'String',list,'Value',1)
+	handles.selected_val = [];
+	guidata(handles.figure1, handles)
+
+	% Remove this contout from the Mirone figure and update the handMir.which_cont list
+	handMir = guidata(handles.hCallingFig);
+	h = findobj(handMir.axes1, 'type','line','tag','contour', 'userdata', this_cont);
+	if (~isempty(h))
+		labHand = getappdata(h,'LabelHands');
+		try		delete(labHand),	end
+		delete(h)
+		id = find(handMir.which_cont == h);
+		if (~isempty(id))		% It should not be empty
+			handMir.which_cont(id) = [];
+			guidata(handMir.figure1, handMir)
 		end
 	end
 
@@ -178,20 +192,25 @@ function pushbutton_DeleteSelected_Callback(hObject, eventdata, handles)
 function pushbutton_DeleteAll_Callback(hObject, eventdata, handles)
 	set(handles.listbox_ElevValues,'String','')
 	handles.selected_val = [];
+	guidata(handles.figure1, handles)
+
+	handMir = guidata(handles.hCallingFig);
+	delete(findobj(handMir.axes1,'tag','contour'))		% Remove all contours from the Mirone figure
+	handMir.which_cont = [];			% Reset so that next time Mirone knows it has to rebuild
+	guidata(handMir.figure1, handMir)
 
 %-------------------------------------------------------------------------------
 function pushbutton_Apply_Callback(hObject, eventdata, handles)
 	list = get(handles.listbox_ElevValues,'String');
 	if (isempty(list)),  return,	end
 	list = str2num(char(list{:}));
-	hMir = guidata(handles.hCallingFig);
+	handMir = guidata(handles.hCallingFig);
 	if (get(handles.check_plotLabels, 'Val'))
-		hMir.plotContourLabels = true;
+		handMir.plotContourLabels = true;
 	else
-		hMir.plotContourLabels = false;
+		handMir.plotContourLabels = false;
 	end
-	mirone('DrawContours_CB',hMir,list);
-	guidata(hObject, handles);		% Otherwise the handles was the one from Mirone
+	mirone('DrawContours_CB',handMir,list);
 
 %-------------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
@@ -199,7 +218,7 @@ function figure1_KeyPressFcn(hObject, eventdata)
 		delete(hObject);
 	end
 
-
+	
 % --- Creates and returns a handle to the GUI figure. 
 function contouring_LayoutFcn(h1)
 
