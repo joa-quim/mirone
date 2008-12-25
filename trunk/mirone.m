@@ -105,7 +105,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	catch	handles.Projections = nan;		% Set it to something to prevent "unknown field" error in setAxesDefCoordIn()
 	end
 	handles.scale2meanLat = 1;  % Scale geog ref images so that at middle image dx = dy in cartesian units (kind of proj)
-	handles.FOpenList = cell(6,1);
+	handles.FOpenList = cell(10,1);
 	handles.withSliders = true; % Set Zoom sliders
 	handles.validGrid = 0;		%
 
@@ -351,14 +351,12 @@ function handles = recentFiles(handles, opt)
 function openRF(obj,event,n)
 	handles = guidata(obj);
 	[drv, sim] = aux_funs('findFileType',handles.FOpenList{n});
-	if (~sim)       % File does not exist. Update the FOpenList
+	if (sim)
+		gateLoadFile(handles,drv,handles.FOpenList{n})
+	else		% File does not exist. Update the FOpenList
 		warndlg(['File: ' handles.FOpenList{n} ' no longer exists'],'Warning')
-		handles = guidata(handles.figure1);
-		handles.FOpenList{n} = [];
-		guidata(handles.figure1,handles)
-		return
+		handles.FOpenList{n} = [];		guidata(handles.figure1,handles)
 	end
-	gateLoadFile(handles,drv,handles.FOpenList{n});
 
 % --------------------------------------------------------------------------------------------------
 function handles = SetAxesNumericType(handles,event)
@@ -2443,17 +2441,17 @@ function DrawContours_CB(handles, opt)
 		else
 			handles.which_cont = [];
 		end
-		set(handles.figure1,'pointer','arrow');     contouring(handles.figure1,head,handles.which_cont);
-		guidata(handles.figure1, handles);
+		set(handles.figure1,'pointer','arrow'),		contouring(handles.figure1,head,handles.which_cont);
+		guidata(handles.figure1, handles)
 		return
-	elseif (isa(opt,'double'))			% Arrive here from the interface contouring GUI
+	elseif (isa(opt,'double'))				% Arrive here from the interface contouring GUI
 		if (~isempty(handles.which_cont))   % Do not compute/draw repeated contours
 			[c,ib] = setdiff(handles.which_cont,opt);   % Find eventual countours to remove (by GUI deselection)
-			for (i = 1:length(c))		% Loop over removing contours (if none, this loop has no effect)
+			for (i = 1:length(c))			% Loop over removing contours (if none, this loop has no effect)
 				h = findobj(handles.axes1,'type','line','userdata',handles.which_cont(ib(i)));
-				for (j = 1:length(h))	% We can easily have more than one
+				for (j = 1:length(h))		% We can easily have more than one
 					labHand = getappdata(h(j),'LabelHands');
-					try    delete(labHand);   end	% Delete contour's labels
+					try		delete(labHand),	end	% Delete contour's labels
 				end
 				delete(h)							% And delete the selected contours
 			end
@@ -2462,19 +2460,22 @@ function DrawContours_CB(handles, opt)
 			[c,ia,ib] = intersect(handles.which_cont,opt(:));
 			opt(ib) = [];							% Remove repeated contours
 		end    
-		if (isempty(opt)),		set(handles.figure1,'pointer','arrow');    return;     end  % Nothing else to do
-		if (length(opt) == 1),  opt = [opt opt];    end
+		if (isempty(opt)),		set(handles.figure1,'pointer','arrow'),		return,		end  % Nothing else to do
+		opt(find(~opt)) = eps * 1e-2;				% This can of BUGs sometimes ignores the zero contour
+		if (numel(opt) == 1),		opt = [opt opt];	end
 		c = contourc(X,Y,double(Z),opt);
-		if (isempty(c)),		set(handles.figure1,'pointer','arrow');    return;     end
+		if (isempty(c)),		set(handles.figure1,'pointer','arrow'),		return,		end
 	end
+
 	limit = size(c,2);
 	i = 1;      h_cont = [];      cont = [];
 	while(i < limit)
-		z_level = c(1,i);    npoints = c(2,i);
+		z_level = c(1,i);		npoints = c(2,i);
+		if (z_level < eps),		z_level = 0;	c(1,i) = 0;		end		% Account for another ML BUG
 		nexti = i+npoints+1;
 		xdata = c(1,i+1:i+npoints);     ydata = c(2,i+1:i+npoints);
 		% Create the lines
-		cu = line('XData',xdata,'YData',ydata,'LineWidth',1,'Color','k','userdata',z_level,'Tag','contour');
+		cu = line('XData',xdata,'YData',ydata,'LineWidth',1,'Color','k','Parent',handles.axes1,'userdata',z_level,'Tag','contour');
 		h_cont = [h_cont; cu(:)];
 		cont = [cont; z_level];
 		i = nexti;
@@ -2487,8 +2488,8 @@ function DrawContours_CB(handles, opt)
 		h_label = clabel_j(c,h_cont);		% Label countours automatically
 		set(h_label,'Tag','contour');		% The tag is used in "Delete all contours" to delete also the labels
 	end
-	for i = 1:length(h_cont)			% Set convenient uicontexts. One for each contour
-		setappdata(h_cont(i),'cont_label',get(h_cont(i),'UserData'))
+	for i = 1:length(h_cont)				% Set convenient uicontexts. One for each contour
+		setappdata(h_cont(i),'cont_label',get(h_cont(i),'UserData'))	% Used in write_script
 		draw_funs(h_cont(i),'ContourLines',h_label)
 	end
 	set(handles.figure1,'pointer','arrow')
@@ -2711,82 +2712,82 @@ function FileSaveSession_CB(handles)
 	haveCircleCart = 0; havePlineAsPoints = 0;  havePatches = 0;haveCoasts = 0; havePolitic = 0;    haveRivers = 0;
 	MBtrack = [];   MBbar = [];     Pline = [];     Symbol = [];    Texto = [];     CircleGeo = [];
 	CircleCart = [];    PlineAsPoints = [];         Patches = [];   coastUD = [];   politicUD = []; riversUD = [];
-for i = 1:length(ALLlineHand)
-	tag = get(ALLlineHand(i),'Tag');
-	if (strcmp(tag,'MBtrack'))       % case of a MBtrack line
-		xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
-		MBtrack(j).x = xx(:);       MBtrack(j).y = yy(:);
-		MBtrack(j).LineWidth = get(ALLlineHand(i),'LineWidth');
-		MBtrack(j).LineStyle = get(ALLlineHand(i),'LineStyle');
-		MBtrack(j).color = get(ALLlineHand(i),'color');
-		MBtrack(j).tag = tag;       MBtrack(j).swathRatio = getappdata(ALLlineHand(i),'swathRatio');
-		j = j + 1;      haveMBtrack = 1;
-	elseif (strcmp(tag,'swath_w'))   % case of a MBtrack's bar line
-		xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
-		MBbar(k).x = xx(:);         MBbar(k).y = yy(:);
-		MBbar(k).LineWidth = get(ALLlineHand(i),'LineWidth');
-		MBbar(k).LineStyle = get(ALLlineHand(i),'LineStyle');
-		MBbar(k).color = get(ALLlineHand(i),'color');
-		MBbar(k).tag = tag;
-		MBbar(k).n_vert = get(ALLlineHand(i),'UserData');
-		k = k + 1;	
-	elseif (strcmp(tag,'Symbol'))    % case of a Symbol (in fact a line Marker)
-		xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
-		Symbol(n).x = xx(:);          Symbol(n).y = yy(:);
-		Symbol(n).Marker = get(ALLlineHand(i),'Marker');
-		Symbol(n).Size = get(ALLlineHand(i),'MarkerSize');
-		Symbol(n).FillColor = get(ALLlineHand(i),'MarkerFaceColor');
-		Symbol(n).EdgeColor = get(ALLlineHand(i),'MarkerEdgeColor');
-		Symbol(n).tag = get(ALLlineHand(i),'Tag');
-		n = n + 1;      haveSymbol = 1;	
-	elseif (strcmp(tag,'circleGeo') || strcmp(tag,'CircleEuler'))   % circles are particular line cases
-		xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
-		CircleGeo(cg).x = xx(:);      CircleGeo(cg).y = yy(:);
-		CircleGeo(cg).LineWidth = get(ALLlineHand(i),'LineWidth');
-		CircleGeo(cg).LineStyle = get(ALLlineHand(i),'LineStyle');
-		CircleGeo(cg).color = get(ALLlineHand(i),'color');
-		CircleGeo(cg).tag = tag;
-		CircleGeo(cg).lon_lat_rad = getappdata(ALLlineHand(i),'LonLatRad');
-		CircleGeo(cg).ud = get(ALLlineHand(i),'UserData');   % UserData contains alot of need info
-		cg = cg + 1;      haveCircleGeo = 1;	
-	elseif (strcmp(tag,'circleCart'))   % circles are particular line cases
-		xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
-		CircleCart(cc).x = xx(:);      CircleCart(cc).y = yy(:);
-		CircleCart(cc).LineWidth = get(ALLlineHand(i),'LineWidth');
-		CircleCart(cc).LineStyle = get(ALLlineHand(i),'LineStyle');
-		CircleCart(cc).color = get(ALLlineHand(i),'color');
-		CircleCart(cc).tag = tag;
-		CircleCart(cc).lon_lat_rad = getappdata(ALLlineHand(i),'LonLatRad');
-		CircleCart(cc).ud = get(ALLlineHand(i),'UserData');
-		cc = cc + 1;      haveCircleCart = 1;	
-	elseif (strcmp(tag,'Pointpolyline'))   % Polyline with only markers are particular line cases
-		xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
-		PlineAsPoints(pp).x = xx(:);      PlineAsPoints(pp).y = yy(:);
-		PlineAsPoints(pp).Marker = get(ALLlineHand(i),'Marker');
-		PlineAsPoints(pp).Size = get(ALLlineHand(i),'MarkerSize');
-		PlineAsPoints(pp).FillColor = get(ALLlineHand(i),'MarkerFaceColor');
-		PlineAsPoints(pp).EdgeColor = get(ALLlineHand(i),'MarkerEdgeColor');
-		PlineAsPoints(pp).tag = tag;
-		pp = pp + 1;      havePlineAsPoints = 1;	
-	elseif (strcmp(tag,'CoastLineNetCDF'))
-		haveCoasts = 1;     coastUD = get(ALLlineHand(i),'UserData');	
-	elseif (strcmp(tag,'PoliticalBoundaries'))
-		havePolitic = 1;    politicUD = get(ALLlineHand(i),'UserData');	
-	elseif (strcmp(tag,'Rivers'))
-		haveRivers = 1;     riversUD = get(ALLlineHand(i),'UserData');	
-	else		% for the time beeing, it applyies to simple polylines
-		xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
-		Pline(m).x = xx(:);			Pline(m).y = yy(:);
-		Pline(m).LineWidth = get(ALLlineHand(i),'LineWidth');
-		Pline(m).LineStyle = get(ALLlineHand(i),'LineStyle');
-		Pline(m).color = get(ALLlineHand(i),'color');
-		Pline(m).tag = tag;
-		if (isappdata(ALLlineHand(i),'LineInfo'))
-			Pline(m).LineInfo = getappdata(ALLlineHand(i),'LineInfo');
+	for i = 1:length(ALLlineHand)
+		tag = get(ALLlineHand(i),'Tag');
+		if (strcmp(tag,'MBtrack'))       % case of a MBtrack line
+			xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
+			MBtrack(j).x = xx(:);		MBtrack(j).y = yy(:);
+			MBtrack(j).LineWidth = get(ALLlineHand(i),'LineWidth');
+			MBtrack(j).LineStyle = get(ALLlineHand(i),'LineStyle');
+			MBtrack(j).color = get(ALLlineHand(i),'color');
+			MBtrack(j).tag = tag;		MBtrack(j).swathRatio = getappdata(ALLlineHand(i),'swathRatio');
+			j = j + 1;		haveMBtrack = 1;
+		elseif (strcmp(tag,'swath_w'))   % case of a MBtrack's bar line
+			xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
+			MBbar(k).x = xx(:);         MBbar(k).y = yy(:);
+			MBbar(k).LineWidth = get(ALLlineHand(i),'LineWidth');
+			MBbar(k).LineStyle = get(ALLlineHand(i),'LineStyle');
+			MBbar(k).color = get(ALLlineHand(i),'color');
+			MBbar(k).tag = tag;
+			MBbar(k).n_vert = get(ALLlineHand(i),'UserData');
+			k = k + 1;	
+		elseif (strcmp(tag,'Symbol'))    % case of a Symbol (in fact a line Marker)
+			xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
+			Symbol(n).x = xx(:);          Symbol(n).y = yy(:);
+			Symbol(n).Marker = get(ALLlineHand(i),'Marker');
+			Symbol(n).Size = get(ALLlineHand(i),'MarkerSize');
+			Symbol(n).FillColor = get(ALLlineHand(i),'MarkerFaceColor');
+			Symbol(n).EdgeColor = get(ALLlineHand(i),'MarkerEdgeColor');
+			Symbol(n).tag = get(ALLlineHand(i),'Tag');
+			n = n + 1;      haveSymbol = 1;	
+		elseif (strcmp(tag,'circleGeo') || strcmp(tag,'CircleEuler'))   % circles are particular line cases
+			xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
+			CircleGeo(cg).x = xx(:);      CircleGeo(cg).y = yy(:);
+			CircleGeo(cg).LineWidth = get(ALLlineHand(i),'LineWidth');
+			CircleGeo(cg).LineStyle = get(ALLlineHand(i),'LineStyle');
+			CircleGeo(cg).color = get(ALLlineHand(i),'color');
+			CircleGeo(cg).tag = tag;
+			CircleGeo(cg).lon_lat_rad = getappdata(ALLlineHand(i),'LonLatRad');
+			CircleGeo(cg).ud = get(ALLlineHand(i),'UserData');   % UserData contains alot of need info
+			cg = cg + 1;      haveCircleGeo = 1;	
+		elseif (strcmp(tag,'circleCart'))   % circles are particular line cases
+			xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
+			CircleCart(cc).x = xx(:);      CircleCart(cc).y = yy(:);
+			CircleCart(cc).LineWidth = get(ALLlineHand(i),'LineWidth');
+			CircleCart(cc).LineStyle = get(ALLlineHand(i),'LineStyle');
+			CircleCart(cc).color = get(ALLlineHand(i),'color');
+			CircleCart(cc).tag = tag;
+			CircleCart(cc).lon_lat_rad = getappdata(ALLlineHand(i),'LonLatRad');
+			CircleCart(cc).ud = get(ALLlineHand(i),'UserData');
+			cc = cc + 1;      haveCircleCart = 1;	
+		elseif (strcmp(tag,'Pointpolyline'))   % Polyline with only markers are particular line cases
+			xx = get(ALLlineHand(i),'XData');     yy = get(ALLlineHand(i),'YData');
+			PlineAsPoints(pp).x = xx(:);      PlineAsPoints(pp).y = yy(:);
+			PlineAsPoints(pp).Marker = get(ALLlineHand(i),'Marker');
+			PlineAsPoints(pp).Size = get(ALLlineHand(i),'MarkerSize');
+			PlineAsPoints(pp).FillColor = get(ALLlineHand(i),'MarkerFaceColor');
+			PlineAsPoints(pp).EdgeColor = get(ALLlineHand(i),'MarkerEdgeColor');
+			PlineAsPoints(pp).tag = tag;
+			pp = pp + 1;      havePlineAsPoints = 1;	
+		elseif (strcmp(tag,'CoastLineNetCDF'))
+			haveCoasts = 1;     coastUD = get(ALLlineHand(i),'UserData');	
+		elseif (strcmp(tag,'PoliticalBoundaries'))
+			havePolitic = 1;    politicUD = get(ALLlineHand(i),'UserData');	
+		elseif (strcmp(tag,'Rivers'))
+			haveRivers = 1;     riversUD = get(ALLlineHand(i),'UserData');	
+		else		% for the time beeing, it applyies to simple polylines
+			xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
+			Pline(m).x = xx(:);			Pline(m).y = yy(:);
+			Pline(m).LineWidth = get(ALLlineHand(i),'LineWidth');
+			Pline(m).LineStyle = get(ALLlineHand(i),'LineStyle');
+			Pline(m).color = get(ALLlineHand(i),'color');
+			Pline(m).tag = tag;
+			if (isappdata(ALLlineHand(i),'LineInfo'))
+				Pline(m).LineInfo = getappdata(ALLlineHand(i),'LineInfo');
+			end
+			m = m + 1;		havePline = 1;
 		end
-		m = m + 1;		havePline = 1;
 	end
-end
 
 	% Patches may have associated particular meanings (eg Focal Mecas), but
 	% they will loose them here. Maybe in the future I'll do something better.
@@ -2824,7 +2825,7 @@ end
 
 % --------------------------------------------------------------------
 function ImageMapLimits_CB(handles)
-	% Change the Image limits by asking it's corner coordinates
+% Change the Image limits by asking it's corner coordinates
 	region = bg_region('empty');     % region contains [x_min x_max y_min y_max is_geog] in PIXEL REG MODE
 	if isempty(region),		return,		end     % User gave up
 	img = get(handles.hImg,'CData');
@@ -2908,17 +2909,17 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
 		head(9) = (imgLims(4)-imgLims(3)) / size(Z,1);
 	end
 
-	hdr.name = fname;       hdr.driver = driver;    hdr.Geog = handles.geog;
+	hdr.name = fname;		hdr.driver = driver;	hdr.Geog = handles.geog;
 	projWKT = getappdata(handles.figure1,'ProjWKT');
 	Proj4 = getappdata(handles.figure1,'Proj4');
-	if (~isempty(projWKT)),     hdr.projWKT = projWKT;
-	elseif (~isempty(Proj4)),   hdr.projWKT = ogrproj(Proj4);
+	if (~isempty(projWKT)),		hdr.projWKT = projWKT;
+	elseif (~isempty(Proj4)),	hdr.projWKT = ogrproj(Proj4);
 	end
 
 	try
-		hdr.Xinc = head(8);     hdr.Yinc = head(9);
-		hdr.ULx = imgLims(1);   hdr.ULy = imgLims(4);
-		hdr.Reg = 1;            hdr.Flip = flip;
+		hdr.Xinc = head(8);		hdr.Yinc = head(9);
+		hdr.ULx = imgLims(1);	hdr.ULy = imgLims(4);
+		hdr.Reg = 1;			hdr.Flip = flip;
 	catch
 		errordlg('Shit, image header was not saved as it should.','Error');     return
 	end
@@ -2960,12 +2961,12 @@ function GridToolsHistogram_CB(handles, opt)
 	else									% Use a subset grid extracted from a rectangular area
 		Z = opt.Z;				z_min = opt.head(5);	z_max = opt.head(6);
 	end
-	binwidth = (z_max - z_min) / 20;    % Default to 20 bins
+	binwidth = (z_max - z_min) / 20;	% Default to 20 bins
 	resp = inputdlg({'Enter Bin Width (default is 20 bins)'},'Histogram',[1 38],{sprintf('%g',binwidth)});     pause(0.01);
 	if isempty(resp);    set(handles.figure1,'pointer','arrow'),	return,		end
 	n = round( (z_max - z_min) / str2double(resp{1}) );
 	[n,xout] = histo_m('hist',Z(:),n,[z_min z_max]);
-	h = mirone;                         % Create a new Mirone figure
+	h = mirone;							% Create a new Mirone figure
 	mirone('FileNewBgFrame_CB', guidata(h), [xout(1) xout(end) 0 max(n) 0], [600 600],'Grid Histogram');
 	axes(get(h,'CurrentAxes'));
 	histo_m('bar',xout,n,'hist');
@@ -2973,21 +2974,21 @@ function GridToolsHistogram_CB(handles, opt)
 
 % --------------------------------------------------------------------
 function GridToolsGridMask_CB(handles)
-	if (aux_funs('msg_dlg',14,handles));     return;      end
+	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	if (~handles.have_nans)
 		msgbox('This option only works on grids that have NaNs.','Warning');    return;
 	end
-	[X,Y,Z,head] = load_grd(handles);    %  load gmt grid
-	if isempty(Z),   return;     end;    % An error message was already issued
+	[X,Y,Z,head] = load_grd(handles);
+	if isempty(Z),		return,		end		% An error message was already issued
 	Z(~isnan(Z)) = 1;
 	GRDdisplay(handles,X,Y,Z,head,'Mask grid','Mask grid')
 
 % --------------------------------------------------------------------
 function GridToolsSectrum_CB(handles, opt1, opt2)
-% OPT1 == 'Amplitude'   -> compute amplitude spectrum
-% OPT1 == 'Power'       -> compute power spectrum
-% OPT1 == 'Autocorr'    -> compute autocorrelation
-% OPT1 == 'Allopts'     -> call the fft_stuff window
+% OPT1 == 'Amplitude'	-> compute amplitude spectrum
+% OPT1 == 'Power'		-> compute power spectrum
+% OPT1 == 'Autocorr'	-> compute autocorrelation
+% OPT1 == 'Allopts'		-> call the fft_stuff window
 % OPT2	if present is a structure with two fields: opt2.Z (the matrix); opt2.head (its 9 elements header)
 %  -"-	OR a line/patch handle used to do band filtering
 	quick = 0;		head = [];
@@ -3042,30 +3043,30 @@ function GridToolsSmooth_CB(handles)
 	if (~isa(Z,'double')),  Z = double(Z);  end	% Make sure Z is of double type
 	
 	[pp p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));   % Get a good estimate of p
-	prompt = {'Enter smoothing p paramer'};     dlg_title = 'Smoothing parameter input';
-	defAns = {sprintf('%.12f',p_guess{1})};     resp  = inputdlg(prompt,dlg_title,[1 38],defAns);	pause(0.01)
-	if isempty(resp);    return;     end
-	
+	prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
+	defAns = {sprintf('%.12f',p_guess{1})};		resp  = inputdlg(prompt,dlg_title,[1 38],defAns);	pause(0.01)
+	if isempty(resp),	return,		end
+
 	set(handles.figure1,'pointer','watch')
 	Lim = handles.grdMaxSize*.6;
 	nl0 = round(Lim/(n*16*8));
 	if (rem(nl0,2) ~= 0),   nl0 = nl0 + 1;  end % Don't know why, but I rather have it as a even number
 	nl = round(nl0*.8);
-	if (rem(nl,2) ~= 0),    nl = nl + 1;  end
+	if (rem(nl,2) ~= 0),    nl = nl + 1;	end
 	skirt = ceil(nl0 - nl) - 2;
 
-	[ind_s,ind] = tile(m,nl,skirt);             % Get indexes for tiling.
-	if size(ind_s,1) > 1                        % There is still a very strange thing that I don't understand.
+	[ind_s,ind] = tile(m,nl,skirt);				% Get indexes for tiling.
+	if (size(ind_s,1) > 1),						% There is still a very strange thing that I don't understand.
 		Zs = [];
 		for k = 1:size(ind_s,1)
-			tmp1 = (ind_s(k,1):ind_s(k,2));     % Indexes with overlapping zone
-			tmp2 = ind(k,1):ind(k,2);           % Indexes of chunks without the overlaping zone
+			tmp1 = (ind_s(k,1):ind_s(k,2));		% Indexes with overlapping zone
+			tmp2 = ind(k,1):ind(k,2);			% Indexes of chunks without the overlaping zone
 			pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1,:),str2double(resp{1}));
 			tmp = spl_fun('fnval',pp,{Y(tmp1),X});
 			Zs = [Zs; tmp(tmp2,:)];
 		end
 		clear pp tmp;
-		Z = Zs;     clear Zs;
+		Z = Zs;		clear Zs;
 	else
 		pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));
 		Z = spl_fun('fnval',pp,{Y,X});    clear pp;
@@ -3076,14 +3077,14 @@ function GridToolsSmooth_CB(handles)
 
 % --------------------------------------------------------------------
 function GridToolsSDG_CB(handles, opt)
-	if (aux_funs('msg_dlg',14,handles));     return;      end
+	if (aux_funs('msg_dlg',14,handles)),		return,		end
 	[X,Y,Z,head] = load_grd(handles);           [m,n] = size(Z);
-	if isempty(Z),   return;     end    % An error message was already issued
-	if (~isa(Z,'double')),  Z = double(Z);  end;            % Make sure Z is of double type
+	if isempty(Z),		return,		end
+	if (~isa(Z,'double')),  Z = double(Z);  end				% Make sure Z is of double type
 	[pp p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));   % Get a good estimate of p
 	prompt = {'Enter smoothing p paramer'};     dlg_title = 'Smoothing parameter input';
 	defAns = {sprintf('%.12f',p_guess{1})};     resp  = inputdlg(prompt,dlg_title,[1 38],defAns);   pause(0.01)
-	if isempty(resp),     return;     end
+	if isempty(resp),	return,		end
 
 	% Apparently the biggest memory monster (pp) obeys roughly to the following relation:
 	% n_row x 4 x n_column x 4 * 8. So if I impose a limit "Lim" to this monster, I should
@@ -3097,32 +3098,32 @@ function GridToolsSDG_CB(handles, opt)
 	set(handles.figure1,'pointer','watch')
 	Lim = handles.grdMaxSize*.5;
 	nl0 = round(Lim/(n*16*8));
-	if rem(nl0,2) ~= 0, nl0 = nl0 + 1;  end     % Don't know why, but I rather have it as a even number
+	if (rem(nl0,2) ~= 0),	nl0 = nl0 + 1;	end     % Don't know why, but I rather have it as a even number
 	nl = round(nl0*.8);
-	if rem(nl,2) ~= 0, nl = nl + 1;  end
+	if (rem(nl,2) ~= 0),	nl = nl + 1;	end
 	skirt = ceil(nl0 - nl) - 2;
 
-[ind_s,ind] = tile(m,nl,skirt);           % Get indexes for tiling.
-if size(ind_s,1) > 1                        % There is still a very strange thing that I don't understand.
+[ind_s,ind] = tile(m,nl,skirt);				% Get indexes for tiling.
+if size(ind_s,1) > 1						% There is still a very strange thing that I don't understand.
 	R = [];
 	for k = 1:size(ind_s,1)
-		tmp1 = (ind_s(k,1):ind_s(k,2));     % Indexes with overlapping zone
-		tmp2 = ind(k,1):ind(k,2);           % Indexes of chunks without the overlaping zone
+		tmp1 = (ind_s(k,1):ind_s(k,2));		% Indexes with overlapping zone
+		tmp2 = ind(k,1):ind(k,2);			% Indexes of chunks without the overlaping zone
 		pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1,:),str2double(resp{1}));
-		DfDX = spl_fun('fnder',pp, [1 0]);            % df / dx
-		vx = spl_fun('fnval',DfDX,{Y(tmp1),X});       clear DfDX;
-		DfDY = spl_fun('fnder',pp, [0 1]);            % df / dy
-		vy = spl_fun('fnval',DfDY,{Y(tmp1),X});       clear DfDY;
-		D2fDX2 = spl_fun('fnder',pp, [2 0]);          % d^2f / dx^2
-		Hxx = spl_fun('fnval',D2fDX2,{Y(tmp1),X});    clear D2fDX2;
-		D2fDY2 = spl_fun('fnder',pp, [0 2]);          % d^2f / dy^2
-		Hyy = spl_fun('fnval',D2fDY2,{Y(tmp1),X});    clear D2fDY2;
-		D2fDXDY = spl_fun('fnder',pp, [1 1]);         clear pp;    % d^2f / (dx dy)
-		Hxy = spl_fun('fnval',D2fDXDY,{Y(tmp1),X});   clear D2fDXDY;
+		DfDX = spl_fun('fnder',pp, [1 0]);			% df / dx
+		vx = spl_fun('fnval',DfDX,{Y(tmp1),X});		clear DfDX;
+		DfDY = spl_fun('fnder',pp, [0 1]);			% df / dy
+		vy = spl_fun('fnval',DfDY,{Y(tmp1),X});		clear DfDY;
+		D2fDX2 = spl_fun('fnder',pp, [2 0]);		% d^2f / dx^2
+		Hxx = spl_fun('fnval',D2fDX2,{Y(tmp1),X});	clear D2fDX2;
+		D2fDY2 = spl_fun('fnder',pp, [0 2]);		% d^2f / dy^2
+		Hyy = spl_fun('fnval',D2fDY2,{Y(tmp1),X});	clear D2fDY2;
+		D2fDXDY = spl_fun('fnder',pp, [1 1]);		clear pp;    % d^2f / (dx dy)
+		Hxy = spl_fun('fnval',D2fDXDY,{Y(tmp1),X});	clear D2fDXDY;
 		tmp = zeros(ind(k,2),n);
 		for i = tmp2
 			for j=1:n
-				v = [vx(i,j) vy(i,j)] / norm([vx(i,j) vy(i,j)]);        % eq(2)       
+				v = [vx(i,j) vy(i,j)] / norm([vx(i,j) vy(i,j)]);		% eq(2)       
 				tmp(i,j) = (v * [Hxx(i,j) Hxy(i,j); Hxy(i,j) Hyy(i,j)] * v') / (v*v');
 			end
 		end
@@ -3130,17 +3131,17 @@ if size(ind_s,1) > 1                        % There is still a very strange thin
 	end
 else
 	pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));     clear Z;
-	DfDX = spl_fun('fnder',pp, [1 0]);        % df / dx
-	vx = spl_fun('fnval',DfDX,{Y,X});         clear DfDX;
-	DfDY = spl_fun('fnder',pp, [0 1]);        % df / dy
-	vy = spl_fun('fnval',DfDY,{Y,X});         clear DfDY;
-	D2fDX2 = spl_fun('fnder',pp, [2 0]);      % d^2f / dx^2
-	Hxx = spl_fun('fnval',D2fDX2,{Y,X});      clear D2fDX2;
-	D2fDY2 = spl_fun('fnder',pp, [0 2]);      % d^2f / dy^2
-	Hyy = spl_fun('fnval',D2fDY2,{Y,X});      clear D2fDY2;
-	D2fDXDY = spl_fun('fnder',pp, [1 1]);     clear pp;    % d^2f / (dx dy)
-	Hxy = spl_fun('fnval',D2fDXDY,{Y,X});     clear D2fDXDY;
-	m=length(Y); n=length(X);    R = zeros(m,n);
+	DfDX = spl_fun('fnder',pp, [1 0]);			% df / dx
+	vx = spl_fun('fnval',DfDX,{Y,X});			clear DfDX;
+	DfDY = spl_fun('fnder',pp, [0 1]);			% df / dy
+	vy = spl_fun('fnval',DfDY,{Y,X});			clear DfDY;
+	D2fDX2 = spl_fun('fnder',pp, [2 0]);		% d^2f / dx^2
+	Hxx = spl_fun('fnval',D2fDX2,{Y,X});		clear D2fDX2;
+	D2fDY2 = spl_fun('fnder',pp, [0 2]);		% d^2f / dy^2
+	Hyy = spl_fun('fnval',D2fDY2,{Y,X});		clear D2fDY2;
+	D2fDXDY = spl_fun('fnder',pp, [1 1]);		clear pp;    % d^2f / (dx dy)
+	Hxy = spl_fun('fnval',D2fDXDY,{Y,X});		clear D2fDXDY;
+	m=length(Y);	n=length(X);	R = zeros(m,n);
 	for i = 1:m
 		for j=1:n
 			v = [vx(i,j) vy(i,j)] / norm([vx(i,j) vy(i,j)]);        % eq(2)       
@@ -3150,19 +3151,19 @@ else
 	clear Hxx Hxy Hyy vx vy;
 end     % end of Tiling
 
-if strcmp(opt,'negative'),      R(R > 0) = 0;
-elseif strcmp(opt,'positive'),  R(R < 0) = 0;
+if strcmp(opt,'negative'),		R(R > 0) = 0;
+elseif strcmp(opt,'positive'),	R(R < 0) = 0;
 end
 GRDdisplay(handles,X,Y,R,head,'SDG field','SDG field');
 
 % --------------------------------------------------------------------
 function GridToolsSlope_CB(handles, opt)
-	% OPT == 'degrees'  Compute a DEM slope in degrees
-	% OPT == 'percent'  Compute a DEM slope in percentage
-	% OPT == 'aspect'   Compute a DEM aspect in degrees
+% OPT == 'degrees'	Compute a DEM slope in degrees
+% OPT == 'percent'	Compute a DEM slope in percentage
+% OPT == 'aspect'	Compute a DEM aspect in degrees
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	[X,Y,Z,head] = load_grd(handles);
-	if isempty(Z),		return,		end				% An error message was already issued
+	if isempty(Z),		return,		end
 	set(handles.figure1,'pointer','watch')
 	if (~isa(Z,'double')),  Z = double(Z);  end		% Make sure Z is of double type
 	
@@ -3176,10 +3177,10 @@ function GridToolsSlope_CB(handles, opt)
 		end
 	else
 		if (strcmp(opt,'aspect'))
-			set(handles.figure1,'pointer','arrow');    warndlg('Not yet programed for cartesian grids','Warning');  return
+			set(handles.figure1,'pointer','arrow');		warndlg('Not yet programed for cartesian grids','Warning');  return
 		end
-		[nx,ny] = meshgrid(X,Y);        [nx,ny,nz] = getnormals(nx,ny,Z);
-		vert = [0 0 1];     slope = zeros(m,n);
+		[nx,ny] = meshgrid(X,Y);	[nx,ny,nz] = getnormals(nx,ny,Z);
+		vert = [0 0 1];				slope = zeros(m,n);
 		for i=1:m
 			for j=1:n
 				slope(i,j) = acos(sum(vert .* [nx(i,j) ny(i,j) nz(i,j)]));
@@ -3207,7 +3208,7 @@ function GridToolsDirDerive_CB(handles, opt)
 	
 	set(handles.figure1,'pointer','watch')
 	if (handles.geog)
-		[gradN gradE] = gradient_geo(Y,X,Z,'grad');             % df/dy & df/dx
+		[gradN gradE] = gradient_geo(Y,X,Z,'grad');				% df/dy & df/dx
 		if strcmp(opt,'first')
 			Z = gradE * cos(azim) + gradN * sin(azim);
 			str = 'First derivative';
@@ -3234,16 +3235,16 @@ function GridToolsFindHoles_CB(handles)
 	B = img_fun('find_holes',isnan(Z));
 	% Draw rectangles arround each hole
 	for i=1:length(B)
-		x_min = min(B{i}(:,2));     x_max = max(B{i}(:,2));
-		y_min = min(B{i}(:,1));     y_max = max(B{i}(:,1));
-		x_min = max(1,x_min-5);     x_max = min(x_max+5,n);
-		y_min = max(1,y_min-5);     y_max = min(y_max+5,m);
-		x_min = head(1) + (x_min-1)*head(8);    x_max = head(1) + (x_max-1)*head(8);
-		y_min = head(3) + (y_min-1)*head(9);    y_max = head(3) + (y_max-1)*head(9);
+		x_min = min(B{i}(:,2));		x_max = max(B{i}(:,2));
+		y_min = min(B{i}(:,1));		y_max = max(B{i}(:,1));
+		x_min = max(1,x_min-5);		x_max = min(x_max+5,n);
+		y_min = max(1,y_min-5);		y_max = min(y_max+5,m);
+		x_min = head(1) + (x_min-1)*head(8);	x_max = head(1) + (x_max-1)*head(8);
+		y_min = head(3) + (y_min-1)*head(9);	y_max = head(3) + (y_max-1)*head(9);
 		h = line('XData',[x_min x_min x_max x_max x_min], 'YData',[y_min y_max y_max y_min y_min], ...
 			'Parent',handles.axes1,'Color',handles.DefLineColor,'LineWidth',1);
-		draw_funs(h,'SRTMrect')       % Set uicontexts
-	end   
+		draw_funs(h,'SRTMrect')		% Set uicontexts
+	end
 	set(handles.figure1,'pointer','arrow');
 
 % --------------------------------------------------------------------
@@ -3261,26 +3262,26 @@ function GridToolsSaveAsSRTM_CB(handles)
 	
 	% Build the file name (appended with the '_p' suffix)
 	if (sign(head(1)) > 0 ),	w = 'E';
-	else						w = 'W';    end
+	else						w = 'W';	end
 	if (sign(head(3)) > 0 ),	n = 'N';
-	else						n = 'S';    end
+	else						n = 'S';	end
 	name = [n sprintf('%.2d',abs(round(head(3)))) w sprintf('%.3d',abs(round(head(1)))) '_p.hgt'];
 	[FileName,PathName] = put_or_get_file(handles, name,'Select SRTM File name', 'put','.hgt');
 	if (isequal(FileName,0)),	return,		end
 	
-	Z(isnan(Z)) = -32768;  Z = int16(rot90(Z,-1));      % Reset eventual NaNs to the SRTM nodata value
+	Z(isnan(Z)) = -32768;		Z = int16(rot90(Z,-1));		% Reset eventual NaNs to the SRTM nodata value
 	fid = fopen([PathName FileName],'w','b');
-	fwrite(fid,Z,'int16');  fclose(fid);
+	fwrite(fid,Z,'int16');		fclose(fid);
 	guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
 function GridToolsPadd2Const_CB(handles)
 % Pad the array to a const value (currently ct = zero) using a Hanning window
-	if (aux_funs('msg_dlg',14,handles));     return;      end
+	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	[X,Y,Z,head,m,n] = load_grd(handles);
-	if isempty(Z),   return;     end;    % An error message was already issued
+	if isempty(Z),		return,		end		% An error message was already issued
 	resp  = inputdlg({'Enter number of border lines'},'Skirt width',[1 38],{'10'});     pause(0.01)
-	if isempty(resp);   return;     end
+	if isempty(resp),	return,		end
 	n_pad = str2double(resp{1}) * 2;
 	Z = mboard(Z,n,m,n+n_pad,m+n_pad);
 	zzz = grdutils(Z,'-L');  head(5) = zzz(1);  head(6) = zzz(2);     clear zzz;
@@ -3297,8 +3298,8 @@ function FileSaveFleder_CB(handles, opt)
 % OPT = 'writeSpherical' directly build a spherical Sonar SD file to be used by Fledermaus
 % OPT = 'runPlanar' build a planar .sd file (but don't keep it) and run the viewer
 % OPT = 'runSpherical' build a spherical .sd file (but don't keep it) and run the viewer
-	if (handles.no_file),     return,	end
-	if (nargin == 1),		opt = 'runPlanar';		end
+	if (handles.no_file),	return,		end
+	if (nargin == 1),		opt = 'runPlanar';	end
 	if ( (strcmp(opt,'writeSpherical') || ~handles.flederPlanar) && ~handles.geog)
 		errordlg('Spherical objects are allowed only for geographical grids','Error');    return
 	end
@@ -3310,13 +3311,13 @@ function FileSaveFleder_CB(handles, opt)
 		else						fcomm = ['fledermaus -data ' fname ' &'];		% The real thing
 		end
 		try
-			if (isunix)         % Stupid linux doesn't react to a non-existant iview3d
+			if (isunix)				% Stupid linux doesn't react to a non-existant iview3d
 				resp = unix(fcomm);
 				if (resp == 0)
 					errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
 				end
-			elseif (ispc),  dos(fcomm);
-			else            errordlg('Unknown platform.','Error');  return;
+			elseif (ispc),	dos(fcomm);
+			else			errordlg('Unknown platform.','Error'),	return
 			end
 		catch
 			errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
@@ -3442,7 +3443,7 @@ function DigitalFilt_CB(handles, opt)
 	if (handles.no_file),     return;      end
 	if (strcmp(opt,'image'))
 		digitalFiltering(handles.hImg);
-	else        % grid
+	else		% grid
 		[X,Y,Z,handles.head] = load_grd(handles);	% load the grid array here
 		if isempty(Z),		return,		end			% An error message was already issued
 		[Z, img] = digitalFiltering(handles.hImg,Z,get(handles.figure1,'ColorMap'));
