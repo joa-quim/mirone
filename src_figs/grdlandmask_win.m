@@ -1,6 +1,6 @@
 function varargout = grdlandmask_win(varargin)
 % Front end to grdlandmask mex
- 
+
 	hObject = figure('Tag','figure1','Visible','off');
 	grdlandmask_win_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -13,6 +13,11 @@ function varargout = grdlandmask_win(varargin)
 	if ~isempty(varargin)
 		handMir  = varargin{1};
 		home_dir = handMir.home_dir;
+		if (handMir.geog)			% If geogs, propose a mask that falls within data region
+			head = handMir.head;
+			handles.nr_or = round(diff(head(1:2)) / head(8)) + ~head(7);
+			handles.nc_or = round(diff(head(3:4)) / head(9)) + ~head(7);
+		end
 	else
 		home_dir = cd;
 	end
@@ -99,24 +104,8 @@ function varargout = grdlandmask_win(varargin)
 	delete(h_t)
 
 	guidata(hObject, handles);
-
 	set(hObject,'Visible','on');
 	if (nargout),   varargout{1} = hObject;     end
-
-% UIWAIT makes grdlandmask_win_export wait for user response (see UIRESUME)
-%uiwait(handles.figure1);
-
-% --------------------------------------------------------------------
-set(hObject,'Visible','on');
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = grdlandmask_win_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = grdlandmask_win_OutputFcn(hObject, eventdata, handles)
-% Get default command line output from handles structure
-varargout{1} = [];
 
 % --------------------------------------------------------------------
 function edit_x_min_Callback(hObject, eventdata, handles)
@@ -160,14 +149,6 @@ message = {'Min and Max, of "X Direction" and "Y Direction" specify the Region o
     'In "#of lines" it is offered the easyeast way of controling the grid'
     'dimensions (lines & columns).'};
 helpdlg(message,'Help on Grid Line Geometry');
-
-% --------------------------------------------------------------------
-function check_verbose_Callback(hObject, eventdata, handles)
-% Do nothing
-
-% -----------------------------------------------------------------------------------
-function check_gridReg_Callback(hObject, eventdata, handles)
-% Do nothing
 
 % -----------------------------------------------------------------------------------
 function popup_resolution_Callback(hObject, eventdata, handles)
@@ -258,10 +239,6 @@ function edit_pond_Callback(hObject, eventdata, handles)
 	if (isnan(str2double(xx))),		set(hObject,'String','NaN'),	xx = 'NaN';	end
 	handles.opt_N{5} = xx;
 	guidata(handles.figure1, handles)
-
-% -----------------------------------------------------------------------------------
-function check_bdNodes_Callback(hObject, eventdata, handles)
-% Do nothing
 
 % --------------------------------------------------------------------
 function push_OK_Callback(hObject, eventdata, handles)
@@ -494,7 +471,6 @@ uicontrol('Parent',h1,...
 'Tag','push_Help_R_F_T');
 
 uicontrol('Parent',h1,...
-'Callback',{@grdlandmask_win_uicallback,h1,'check_verbose_Callback'},...
 'FontName','Helvetica',...
 'Position',[330 99 80 16],...
 'String','Verbose ?',...
@@ -512,7 +488,6 @@ uicontrol('Parent',h1,...
 'Tag','push_OK');
 
 uicontrol('Parent',h1,...
-'Callback',{@grdlandmask_win_uicallback,h1,'check_gridReg_Callback'},...
 'FontName','Helvetica',...
 'Position',[330 120 100 16],...
 'String','Grid registration',...
@@ -632,7 +607,6 @@ uicontrol('Parent',h1,...
 'Tag','edit_pond');
 
 uicontrol('Parent',h1,...
-'Callback',{@grdlandmask_win_uicallback,h1,'check_bdNodes_Callback'},...
 'FontName','Helvetica',...
 'Position',[235 47 70 16],...
 'String','Boundary',...
