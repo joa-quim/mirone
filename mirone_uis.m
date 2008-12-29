@@ -234,7 +234,7 @@ if (~IamCompiled)
 end
 
 h = uimenu('Parent',hFL,'Label','Recent Files','Tag','RecentFiles','Sep','on');
-for (i=1:6),    uimenu('Parent',h,'Vis','off','Tag','RecentF');   end
+for (i=1:10),    uimenu('Parent',h,'Vis','off','Tag','RecentF');   end
 
 uimenu('Parent',hFL,'Call','print -dsetup','Label','Print Setup','Sep','on');
 uimenu('Parent',hFL,'Call','mirone(''Transfer_CB'',guidata(gcbo),''print'')','Label','Print...');
@@ -651,14 +651,14 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 22 Dec 2008'',''1.4.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 28 Dec 2008'',''1.4.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
 	handles.version7 = version7;			% If == 1 => R14 or latter
 	handles.IamCompiled = IamCompiled;		% If == 1 than we know that we are dealing with a compiled (V3) version
 	if (version7),  set(H1,'Pos',[pos(1:3) 1]);    end     % Adjust for the > R13 bugginess
-	handles.RecentF = handles.RecentF(6:-1:1);  % Inverse creation order so that newest files show on top of the list
+	handles.RecentF = handles.RecentF(end:-1:1);  % Inverse creation order so that newest files show on top of the list
 	handles.noVGlist = hVG;					% List of ui handles that will show when "not valid grid"
 	movegui(H1,'north');					% Reposition the window on screen
 	set(0,'CurrentFigure',H1)				% Due to a R2006a incredible BUG
