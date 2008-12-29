@@ -15,31 +15,32 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
- * Revision 22.0  22/12/2008 JL	Added findRectangles
- * Revision 21.0  15/12/2008 JL	Added cvFindHomography
- * Revision 20.0  14/12/2008 JL	Added SIFT detector (from Hess code at web.engr.oregonstate.edu/~hess/)
- * Revision 19.0  16/11/2008 JL	Added cvHaarDetectObjects (from 'FaceDetect' of Sreekar Krishna)
- * Revision 18.0  18/10/2008 JL	Added cvCvtScaleAbs.
+ * Revision 23  28/12/2008 JL	Added convexHull. Fixed bug when Mx3 input on Douglas-Peucker 
+ * Revision 22  22/12/2008 JL	Added findRectangles
+ * Revision 21  15/12/2008 JL	Added cvFindHomography
+ * Revision 20  14/12/2008 JL	Added SIFT detector (from Hess code at web.engr.oregonstate.edu/~hess/)
+ * Revision 19  16/11/2008 JL	Added cvHaarDetectObjects (from 'FaceDetect' of Sreekar Krishna)
+ * Revision 18  18/10/2008 JL	Added cvCvtScaleAbs.
  * 				Fixed BUG in order of input/output 3D arrays. Due to the BGR
  * 				order (f...) story, output form cvtColor was shifted by 2.
  * 				That is, for example, SVH was issued instead of HSV i RGB2HSV.
- * Revision 17.0  24/08/2008 JL	Added Douglas-Peucker in geographical coords
- * Revision 16.0  02/04/2008 JL	+ cvAbs & cvAbsDiffS & cvSubRS
- * Revision 15.0  28/03/2008 JL	Finally finished the approxPoly (Douglas-Peucker) function
- * Revision 14.0  21/03/2008 JL	Added cvPow, cvLog, cvExp and hypot. Also replaced a couple of mxCalloc by mxMalloc
- * Revision 13.0  01/01/2008 Chuong Nguyen added MatchTemplate
- * Revision 12.0  12/10/2007 JL	Added cvCvtScale (need to include in help)
- * Revision 11.0  30/04/2007 JL	corrected memory leaks as kindly pointed by James Hays
- * Revision 10.0  27/04/2007 JL	Added AbsDiff, finished PutText and fixed fix of JfindContours
- * Revision  9.0  04/03/2007 JL	Fixed JfindContours (well I thought I did - 28-4-07) 
- * Revision  8.0  14/02/2007 JL	In Floodfill convert fill color to [0 255] if it was [0 1]
- * Revision  7.0  26/01/2007 JL	Fixed crash when individual cell were empty with the polygon option
- * Revision  6.0  02/12/2006 JL	Added FillPoly and FillConvexPoly
- * Revision  5.0  29/11/2006 JL	Added half a dozen of functions more (line, rect, circ, poly, ellip, inpaint)
- * Revision  4.0  07/11/2006 JL	Erode & Diltate in cvHoughCircles  (almost the same shit)
- * Revision  3.0  27/10/2006 JL	Updated cvHoughCircles call to 1.0
- * Revision  2.0  19/10/2006 JL	Edge 'laplace' needed exlicit kernel input
- * Revision  1.0  31/08/2006 Joaquim Luis
+ * Revision 17  24/08/2008 JL	Added Douglas-Peucker in geographical coords
+ * Revision 16  02/04/2008 JL	+ cvAbs & cvAbsDiffS & cvSubRS
+ * Revision 15  28/03/2008 JL	Finally finished the approxPoly (Douglas-Peucker) function
+ * Revision 14  21/03/2008 JL	Added cvPow, cvLog, cvExp and hypot. Also replaced a couple of mxCalloc by mxMalloc
+ * Revision 13  01/01/2008 Chuong Nguyen added MatchTemplate
+ * Revision 12  12/10/2007 JL	Added cvCvtScale (need to include in help)
+ * Revision 11  30/04/2007 JL	corrected memory leaks as kindly pointed by James Hays
+ * Revision 10  27/04/2007 JL	Added AbsDiff, finished PutText and fixed fix of JfindContours
+ * Revision  9  04/03/2007 JL	Fixed JfindContours (well I thought I did - 28-4-07) 
+ * Revision  8  14/02/2007 JL	In Floodfill convert fill color to [0 255] if it was [0 1]
+ * Revision  7  26/01/2007 JL	Fixed crash when individual cell were empty with the polygon option
+ * Revision  6  02/12/2006 JL	Added FillPoly and FillConvexPoly
+ * Revision  5  29/11/2006 JL	Added half a dozen of functions more (line, rect, circ, poly, ellip, inpaint)
+ * Revision  4  07/11/2006 JL	Erode & Diltate in cvHoughCircles  (almost the same shit)
+ * Revision  3  27/10/2006 JL	Updated cvHoughCircles call to 1.0
+ * Revision  2  19/10/2006 JL	Edge 'laplace' needed exlicit kernel input
+ * Revision  1  31/08/2006 Joaquim Luis
  */
 
 #include <math.h>
@@ -94,7 +95,7 @@ struct CV_CTRL {
 	} Double;
 };
 
-void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op);
 void Jresize(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jfloodfill(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JgoodFeatures(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
@@ -146,7 +147,7 @@ void morphologyexUsage(), colorUsage(), flipUsage(), filterUsage(), findContours
 void arithmUsage(), addWeightedUsage(), pyrDUsage(), pyrUUsage(), houghCirclesUsage();
 void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsage();
 void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage(), powUsage();
-void absUsage(), logUsage(), expUsage(), hypotUsage(), haarUsage();
+void absUsage(), logUsage(), expUsage(), hypotUsage(), haarUsage(), convexHullUsage();
 void approxPolyUsage(), siftUsage(), homographyUsage(), findRectangUsage();
 void MatchTemplateUsage();
 
@@ -169,6 +170,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tcanny (cvCanny)\n");
 		mexPrintf("\tcircle (cvCircle)\n");
 		mexPrintf("\tcolor (cvCvtColor)\n");
+		mexPrintf("\tconvexHull (cvConvexHull)\n");
 		mexPrintf("\tcontours (cvFindContours)\n");
 		mexPrintf("\tCvtScale (cvCvtScale)\n");
 		mexPrintf("\tCvtScaleAbs (cvCvtScaleAbs)\n");
@@ -228,8 +230,8 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		Jarithm(n_out, plhs, n_in, prhs, funName);
 	}
 
-	else if (!strcmp(funName,"dp"))
-		JapproxPoly(n_out, plhs, n_in, prhs);
+	else if (!strcmp(funName,"dp") || !strncmp(funName,"convexHull",4))
+		JapproxPoly(n_out, plhs, n_in, prhs, funName);
 
 	else if (!strcmp(funName,"floodfill"))
 		Jfloodfill(n_out, plhs, n_in, prhs);
@@ -1914,9 +1916,9 @@ void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 }
 
 /* --------------------------------------------------------------------------- */
-void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
+void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op) {
 
-	int j, nx, ny, np, geog = 0;
+	int j, nx, ny, np, geog = 0, do_DP = TRUE, return_pts = 1;
 	int is_double = 1, is_single = 0, is_int = 0, *ptr_i, *index;
 	float *ptr_s;
 	double *ptr_d, *ptr_d2, *x, *y, tolerance = 1;
@@ -1927,9 +1929,21 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	CvMemStorage* storage = cvCreateMemStorage(0);
 
 	/* ---- Check for input and errors in user's call to function. ------- */
-	if (n_in == 1) { approxPolyUsage(); return; }
-	if (n_in >= 3)
-		tolerance = *mxGetPr(prhs[2]);
+	if (n_in == 1) { 
+		if (strncmp(op,"convexHull",4)) 
+			approxPolyUsage(); 
+		else
+			convexHullUsage(); 
+		return;
+	}
+	if (!strncmp(op,"convexHull",4)) 
+		do_DP = FALSE;
+	if (n_in >= 3) {
+		if (do_DP)
+			tolerance = *mxGetPr(prhs[2]);
+		else
+			return_pts = 0;		/* return the indices of the convex polygon */
+	}
 	if (n_in == 4)
 		geog = 1;
 
@@ -1944,21 +1958,23 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		is_int = 1;
 	}
 	else
-		mexErrMsgTxt("APPROXPOLY: Invalid input data type. Valid types are: Int32, Float or Double.\n");
+		mexErrMsgTxt("CVLIB_MEX: Invalid input data type. Valid types are: Int32, Float or Double.\n");
 
 	if (n_out != 1)
-		mexErrMsgTxt("APPROXPOLY: returns one (and one only) output!");
+		mexErrMsgTxt("CVLIB_MEX: returns one (and one only) output!");
 
 	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);
 
+	if (!do_DP && nx != 2)
+		mexErrMsgTxt("CONVEXHULL: input array must be a Mx2 array.");
 	if (nx < 2 || nx > 3)
-		mexErrMsgTxt("APPROXPOLY: input array must be a Mx2 or Mx3 column vector.");
+		mexErrMsgTxt("APPROXPOLY: input array must be a Mx2 or Mx3 array.");
 	if (is_int && nx != 2)
-		mexErrMsgTxt("APPROXPOLY: when input array is of type Int32 it must be a Mx2 column vector.");
+		mexErrMsgTxt("APPROXPOLY: when input array is of type Int32 it must be a Mx2 array.");
 	/* -------------------- End of parsing input ------------------------------------- */
 
 	if (is_double && !geog) {
-		if (nx = 2) {
+		if (nx == 2) {
 			seq = cvCreateSeq( CV_SEQ_KIND_CURVE + CV_32FC2, sizeof(CvContour), sizeof(CvPoint2D32f), storage );
 			for (j = 0; j < ny; j++) {
 				pt_in_2D32f.x = (float)ptr_d[j];	pt_in_2D32f.y = (float)ptr_d[j+ny];
@@ -1975,7 +1991,7 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		}
 	}
 	else if (is_single && !geog) {
-		if (nx = 2) {
+		if (nx == 2) {
 			seq = cvCreateSeq( CV_SEQ_KIND_CURVE + CV_32FC2, sizeof(CvContour), sizeof(CvPoint2D32f), storage );
 			for (j = 0; j < ny; j++) {
 				pt_in_2D32f.x = ptr_s[j];		pt_in_2D32f.y = ptr_s[j+ny];
@@ -2000,7 +2016,10 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	}
 
 	if (!geog) {
-		result = cvApproxPoly( seq, sizeof(CvContour), storage, CV_POLY_APPROX_DP, tolerance, 0 );
+		if (do_DP)
+			result = cvApproxPoly( seq, sizeof(CvContour), storage, CV_POLY_APPROX_DP, tolerance, 0 );
+		else
+			result = cvConvexHull2( seq, 0, CV_CLOCKWISE, return_pts );
 		cvReleaseMemStorage( &storage );
 		np = result->total; 		/* total number of surviving points */
 	}
@@ -2020,6 +2039,7 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	}
 
 	/* ------------------- GET OUTPUT DATA --------------------------- */ 
+	if (!do_DP && return_pts) np++;	/* Close the convexHull polygon */
 	if (!geog)
 		plhs[0] = mxCreateNumericMatrix(np, nx, mxGetClassID(prhs[1]), mxREAL);
 	else 		/* The geographical coords case always returns the result in doubles */
@@ -4021,6 +4041,16 @@ void colorUsage() {
 
 	mexPrintf("       Class support: uint8, uint16 or single.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG and 1 copy of B.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void convexHullUsage() {
+	/*mexPrintf("Usage: B = cvlib_mex('convexHull',PTS, [IND]);\n");*/
+	mexPrintf("Usage: B = cvlib_mex('convexHull',PTS);\n");
+	mexPrintf("       Finds convex hull of 2D point set using Sklansky’s algorithm.\n");
+	mexPrintf("       PTS is a Mx2 array of type single, double or Int32.\n");
+	/*mexPrintf("       If the optional IND arg is present returns the indices instead of the points.\n");*/
+	mexPrintf("       B is a Mx2 array with the vertices of the convex hull polygon.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
