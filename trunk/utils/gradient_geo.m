@@ -26,8 +26,10 @@ else
     errordlg('Eror in map input arguments to gradient_geo','Error');   return
 end
 
-[n,m] = size(varargin{3});
-if n < 3 || m < 3; errordlg('Matrix must be 4 by 4 or larger to compute gradient','Error'); return;  end
+[m,n] = size(varargin{3});
+if (n < 3 || m < 3)
+	errordlg('Matrix must be 4 by 4 or larger to compute gradient','Error'),	return
+end
 
 if (nargin == 3)
     all = 1;
@@ -68,7 +70,7 @@ f1 = 3*n / 2 - 9*n^3 / 16;  f2 = 15*n^2 / 16 - 15*n^4 / 32;
 f3 = 35*n^3 / 48;           f4 = 315*n^4 / 512;
 
 % Do the tiling
-[ind_s,ind] = tile(n,200,4);
+[ind_s,ind] = tile(m,200,4);
 if size(ind_s,1) > 1
     for i = 1:size(ind_s,1)
         tmp1 = (ind_s(i,1):ind_s(i,2));     % Indexes with overlapping zone
@@ -85,7 +87,7 @@ if size(ind_s,1) > 1
         % Adjust the longitude gradient for the convergence of the meridians
         convfactor = departure(zeros(size(latmesh)), ones(size(latmesh)),...
             latmesh,geoid) / departure(0,1,0,geoid);
-        convfactor(convfactor==0) = NaN; % avoid divisions by zero
+        convfactor(convfactor == 0) = NaN;		% avoid divisions by zero
         tmp_gradE = tmp_gradE ./ convfactor;    clear convfactor;
         gradE = [tmp_gradE; tmp_gradE(tmp2,:)];
         gradN = [tmp_gradN; tmp_gradN(tmp2,:)];
@@ -103,7 +105,7 @@ else
     % Adjust the longitude gradient for the convergence of the meridians
     convfactor = departure(zeros(size(latmesh)), ones(size(latmesh)),...
         latmesh,geoid) / departure(0,1,0,geoid);
-    convfactor(convfactor==0) = NaN; % avoid divisions by zero
+    convfactor(convfactor == 0) = NaN;			% avoid divisions by zero
     gradE = gradE ./ convfactor;
 end
 clear convfactor latmesh lonmesh;
@@ -111,7 +113,7 @@ clear convfactor latmesh lonmesh;
 % Now, compute only the strictly necessary
 if (only_aspect)
     aspect  = cart2pol(gradE,gradN);
-    aspect(gradN==0 & gradE==0) = NaN;
+    aspect(gradN == 0 & gradE == 0) = NaN;
     aspect  = zero_to_2pi(-aspect-pi/2);    % convert back to degrees
     aspect  = aspect / D2R;
 elseif (only_slope)
@@ -119,7 +121,7 @@ elseif (only_slope)
     slope = atan(mag);  slope = slope / D2R;
 elseif (all)
     [aspect,mag] = cart2pol(gradE,gradN);
-    aspect(gradN==0 & gradE==0) = NaN;
+    aspect(gradN == 0 & gradE == 0) = NaN;
     aspect  = zero_to_2pi(-aspect-pi/2);    aspect  = aspect / D2R;    % convert back to degrees
     slope = atan(mag);  slope = slope / D2R;
 end
@@ -143,8 +145,8 @@ function [dfdx,dfdy] = mtxgradient(f,x,y)
 dfdc = zeros(size(x));      dfdr = zeros(size(y));
 
 % Take forward differences on left and right edges
-dfdr(1,:)   = f(2,:) - f(1,:);      dfdr(end,:) = f(end,:) - f(end-1,:);
-dfdc(:,1)   = f(:,2) - f(:,1);      dfdc(:,end) = f(:,end) - f(:,end-1);
+dfdr(1,:) = f(2,:) - f(1,:);      dfdr(end,:) = f(end,:) - f(end-1,:);
+dfdc(:,1) = f(:,2) - f(:,1);      dfdc(:,end) = f(:,end) - f(:,end-1);
 
 % Take centered differences on interior points
 dfdr(2:end-1,:) = (f(3:end,:)-f(1:end-2,:)) / 2;
@@ -176,12 +178,12 @@ dfdx =  dfdc ./ coldist .* cos(colang) + dfdr ./ rowdist .* cos(rowang);
 dfdy =  dfdr ./ rowdist .* sin(rowang) + dfdc ./ coldist .* sin(colang);
 
 %-----------------------------------------------------------------------------------
-function dist=departure(lon1,lon2,lat,geoid)
+function dist = departure(lon1,lon2,lat,geoid)
 D2R = pi/180;
 % Ensure that longitudes are in the [0 2pi] range since they will be treated as distances.
 lon1 = lon1 * D2R;      lon1 = zero_to_2pi(lon1);
 lon2 = lon2 * D2R;      lon2 = zero_to_2pi(lon2);
-r=parallel_rad(geoid,lat);  dist = r .* abs(lon1-lon2);
+r = parallel_rad(geoid,lat);  dist = r .* abs(lon1-lon2);
 
 %-----------------------------------------------------------------------------------
 function angout = zero_to_2pi(angin)
@@ -190,13 +192,13 @@ epsilon = -1e-8;    indx = find(angout<epsilon);
 
 %  Shift the points in the -pi to 0 range to the pi to 2pi range
 if ~isempty(indx);  angout(indx) = angout(indx) + 2*pi;  end;
-indx = find(angout<0);            %  Reset near zero points
+indx = find(angout < 0);		%  Reset near zero points
 if ~isempty(indx);  angout(indx) = zeros(size(indx));  end
 
 %-----------------------------------------------------------------------------------
 function r = parallel_rad(geoid,lat)
 %  r = PARALLEL_RAD(geoid,lat) computes the parallel radius of curvature for the ellipsoid.
-semimajor = geoid(1);       eccent = geoid(2);
+semimajor = geoid(1);		eccent = geoid(2);
 % Compute the distance from the center of the geoid to the specified point
-num = 1-eccent^2;                       den = 1 - (eccent * cos(lat)).^2;
+num = 1-eccent^2;			den = 1 - (eccent * cos(lat)).^2;
 rho = semimajor * sqrt(num ./ den);  r = rho .* cos(lat);
