@@ -136,6 +136,9 @@ tol = 0.5;
 do_project = false;         % We'll estimate below if this holds true
 
 if (handles.no_file)		% Start empty but below we'll find the true data region
+	if (ischar(handles.DefLineColor) && handles.DefLineColor(1) == 'w')
+		handles.DefLineColor = 'k';		% To not plot a white line over a white background
+	end
     XMin = 1e50;			XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
     geog = 1;				% Not important. It will be confirmed later
     if (nargin == 1)		% We know it's geog (Global Isochrons)
@@ -157,8 +160,11 @@ if (handles.no_file)		% Start empty but below we'll find the true data region
 				YMin = min(YMin,min(tmpy));		YMax = max(YMax,max(tmpy));
             end
 		end
-        xx = [XMin XMax];           yy = [YMin YMax];
-        region = [xx yy];           % 1 stands for geog but that will be confirmed later
+		dx = XMax - XMin;			dy = YMax - YMin;
+		XMin = XMin - dx / 100;		XMax = XMax + dx / 100;		% Give an extra 1% padding margin
+		YMin = YMin - dy / 100;		YMax = YMax + dy / 100;
+        xx = [XMin XMax];			yy = [YMin YMax];
+        region = [xx yy];			% 1 stands for geog but that will be confirmed later
     end
 	mirone('FileNewBgFrame_CB', handles, [region geog])   % Create a background
 else							% Reading over an established region
