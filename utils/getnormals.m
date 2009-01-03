@@ -2,9 +2,12 @@ function [nxout,nyout,nzout] = getnormals(x,y,z,s)
 %   [Nx,Ny,Nz] = GETNORMALS(X,Y,Z) returns the components of the 3-D surface normal
 %   for the surface with components (X,Y,Z). The normal is normalized to length 1.
 %
-%   [s] = GETNORMALS(X,Y,Z,[azim elev]) returns the components of the 3-D surface normal
+%   s = GETNORMALS(X,Y,Z,[azim elev]) returns the components of the 3-D surface normal
 %   projected along the vector S. S = [azim,elev]. This form is used in one of the
 %   illumination algorithm, and the fact that is computed here allows saving a lot of space
+%
+%   Nz = GETNORMALS(X,Y,Z) returns only the vertical component of the normal vector
+%	This saves a little space since the horizontal components are not computed
 %
 %   The surface normals returned are based on a bicubic fit of the data.
 
@@ -26,7 +29,7 @@ end
 if ~isequal(length(y),m), error('Y must have the same number of rows as Z.'); end
 if ~isequal(length(x),n), error('X must have the same number of columns as Z.'); end
 
-stencil1 = [1 0 -1]/2;    stencil2 =  [-1;0;1]/2;
+stencil1 = [1 0 -1]/2;    stencil2 =  [-1; 0; 1]/2;
 
 % Expand x,y,z so interpolation is valid at the boundaries.
 x = [3*(x(1,1)-x(1,2))+x(1,3),x,3*(x(1,n)-x(1,n-1))+x(1,n-2)];
@@ -40,8 +43,8 @@ tmp = ffilter(stencil1,x(1,:));     ax = repmat(tmp(cols),m,1);
 az = ffilter(stencil1,z);           az = az(rows,cols);
 
 %bx = ffilter(stencil2,x);      % This component is allways 0
-tmp = ffilter(stencil2,y(:,1));     by = repmat(tmp(rows),1,n);  clear tmp;
-bz = ffilter(stencil2,z);           bz = bz(rows,cols);   clear z;
+tmp = ffilter(stencil2,y(:,1));     by = repmat(tmp(rows),1,n);
+bz = ffilter(stencil2,z);           bz = bz(rows,cols);
 
 % Perform cross product to get normals
 % nx = -(ay.*bz - az.*by);
@@ -55,17 +58,21 @@ nz = -ax.*by;   clear ax by;    % nz = cte (for grids)
 mag = sqrt(nx.*nx + ny.*ny + nz.*nz);
 d = find(mag==0); mag(d) = eps*ones(size(d));
 
-if (nargin == 4 && length(s) == 2)
-   D2R = pi / 180;
-   azim = s(1);    elev = s(2);
-   theta = elev*D2R; phi = azim*D2R; 
-   St = sin(theta); Ct = cos(theta); Sp = sin(phi); Cp = cos(phi);
-   nxout = (nx*Ct*Sp + ny*Ct*Cp + nz*St) ./ mag;
-   if (nargout == 3),  nyout = [];    nzout = [];   end   % Just a precaution
+if (nargin == 4 && numel(s) == 2)
+	D2R = pi / 180;
+	azim = s(1);    elev = s(2);
+	theta = elev*D2R; phi = azim*D2R; 
+	St = sin(theta); Ct = cos(theta); Sp = sin(phi); Cp = cos(phi);
+	nxout = (nx*Ct*Sp + ny*Ct*Cp + nz*St) ./ mag;
+	if (nargout == 3),  nyout = [];    nzout = [];   end   % Just a precaution
 else
-   nxout = nx ./mag;   clear nx;
-   nyout = ny ./mag;   clear ny;
-   nzout = nz ./mag;
+	if (nargout == 1)
+		nxout = nz ./mag;
+	else
+		nxout = nx ./mag;   clear nx;
+		nyout = ny ./mag;   clear ny;
+		nzout = nz ./mag;
+	end
 end
 
 % --------------------------------------------------------------------
