@@ -9,11 +9,17 @@ function [slope,aspect,gradN,gradE] = gradient_geo(varargin)
 % gradN = gradient_geo(lat,lon,Z,'gradN') returns only the gradient due North
 % gradE = gradient_geo(lat,lon,Z,'gradE') returns only the gradient due East
 % [gradN gradE] = gradient_geo(lat,lon,Z,'grad') returns only the gradients due North and East
+% [...] = gradient_geo(lat,lon,Z,...,'cart') Do as above but Z is taken as a cartesian array 
+% [slope,aspect,gradN,gradE] = gradient_geo(lat,lon,Z,'cart') Compute all 4 on a cartesian array
 %
 %  11-10-03     Updated to do Tiling. Now it hopfully can be used for any grid size
+%  03-01-09		Operates also on cartesian arrays
 
-if nargin < 3 || nargin > 4; error('Incorrect number of input arguments.'); end
-only_slope = 0;     only_aspect = 0;    only_gradN = 0;     only_gradE = 0;     only_grad = 0;  all = 0;
+if (nargin < 3 || nargin > 5)
+	error('Incorrect number of input arguments.')
+end
+only_slope = 0;     only_aspect = 0;    only_gradN = 0;     only_gradE = 0;     only_grad = 0;  todos = 0;
+geog = true;
 
 % Test  to see if varargin{1} & varargin{2} are vectors or meshgrids
 if ( min(size(varargin{1})) == 1 && min(size(varargin{2})) == 1 && ...    % lat,lon vectors as input
@@ -32,8 +38,8 @@ if (n < 3 || m < 3)
 end
 
 if (nargin == 3)
-    all = 1;
-elseif (nargin == 4)
+    todos = true;
+elseif (nargin >= 4)
     switch varargin{4}
         case 'slope'
             if (nargout ~= 1),  errordlg('GRADIENT_GEO: Must have only one output (slope).','Error');   return; end
@@ -50,18 +56,16 @@ elseif (nargin == 4)
         case 'grad'
             if (nargout ~= 2),  errordlg('GRADIENT_GEO: Must have two outputs (gradN & gradE).','Error');   return; end
             only_grad = 1;
+		case 'cart'
+			todos = true;
         otherwise
-            errordlg(['GRADIENT_GEO: wrong code ' '"' varargin{4} '"'],'Error');   return;
+            errordlg(['GRADIENT_GEO: wrong code ' '"' varargin{4} '"'],'Error'),	return
     end
-else
-    errordlg(['Unrecognized option ' varargin{4} ' in gradient_geo'],'Error');   return
 end
+if (nargin == 5 && strncmp(varargin{5},'cart',4)),		geog = false;	end
 
 D2R = pi/180;
 geoid = [6378137 0.0818191910428158];       % grs80 ellipsoid
-% em principio, para fazer isto funcionar com grelhas cartesianas tenho que fazer
-% geoid(1)=1, nao mexer nos latmesh,lonmesh e nao dividir gradE por convfactor
-%geoid(1)=1;
 
 % convert from the geodetic latitude to the rectifying latitude.
 % n = (semimajor axis - semiminor axis)/(semimajor axis + semiminor axis)
@@ -70,43 +74,51 @@ f1 = 3*n / 2 - 9*n^3 / 16;  f2 = 15*n^2 / 16 - 15*n^4 / 32;
 f3 = 35*n^3 / 48;           f4 = 315*n^4 / 512;
 
 % Do the tiling
-[ind_s,ind] = tile(m,200,4);
+[ind_s,ind] = tile(m,300,4);
 if size(ind_s,1) > 1
-    for i = 1:size(ind_s,1)
-        tmp1 = (ind_s(i,1):ind_s(i,2));     % Indexes with overlapping zone
-        tmp2 = ind(i,1):ind(i,2);           % Indexes of chunks without the overlaping zone
-        if (do_mesh)
-            [lonmesh,latmesh] = meshgrid(varargin{2},varargin{1}(tmp1));    % varargin{1} contains lat
-        else
-            [latmesh,lonmesh,map] = deal(varargin{1:3});                    % ??? tenho de adaptar este tb.
-        end
-        latmesh = latmesh * D2R;    lonmesh = lonmesh * D2R;
-        latmesh = latmesh - f1*sin(2*latmesh) + f2*sin(4*latmesh) - f3*sin(6*latmesh) + f4*sin(8*latmesh);
-        % Compute the gradient for the cell spacing in the projected cylindrical coordinates
-        [tmp_gradE,tmp_gradN] = mtxgradient(map(tmp1,:),geoid(1)*lonmesh, geoid(1)*latmesh);
+	for i = 1:size(ind_s,1)
+		tmp1 = (ind_s(i,1):ind_s(i,2));     % Indexes with overlapping zone
+		tmp2 = ind(i,1):ind(i,2);           % Indexes of chunks without the overlaping zone
+		if (do_mesh),	[lonmesh,latmesh] = meshgrid(varargin{2},varargin{1}(tmp1));	% varargin{1} contains lat
+		else			[latmesh,lonmesh,map] = deal(varargin{1:3});					% ??? tenho de adaptar este tb.
+		end
+		if (geog)
+			% Compute the gradient for the cell spacing in the projected cylindrical coordinates
+			latmesh = latmesh * D2R;    lonmesh = lonmesh * D2R;
+			latmesh = latmesh - f1*sin(2*latmesh) + f2*sin(4*latmesh) - f3*sin(6*latmesh) + f4*sin(8*latmesh);
+	        [tmp_gradE,tmp_gradN] = mtxgradient(map(tmp1,:), geoid(1) * lonmesh, geoid(1) * latmesh, geog);
+		else
+	        [tmp_gradE,tmp_gradN] = mtxgradient(map(tmp1,:), lonmesh, latmesh, geog);
+		end
         % Adjust the longitude gradient for the convergence of the meridians
-        convfactor = departure(zeros(size(latmesh)), ones(size(latmesh)),...
-            latmesh,geoid) / departure(0,1,0,geoid);
-        convfactor(convfactor == 0) = NaN;		% avoid divisions by zero
-        tmp_gradE = tmp_gradE ./ convfactor;    clear convfactor;
-        gradE = [tmp_gradE; tmp_gradE(tmp2,:)];
-        gradN = [tmp_gradN; tmp_gradN(tmp2,:)];
+		if (geog)
+			convfactor = departure(zeros(size(latmesh)), ones(size(latmesh)),...
+				latmesh,geoid) / departure(0,1,0,geoid);
+			convfactor(convfactor == 0) = NaN;		% avoid divisions by zero     
+			tmp_gradE = tmp_gradE ./ convfactor;    clear convfactor;
+		end
+		gradE = [tmp_gradE; tmp_gradE(tmp2,:)];
+		gradN = [tmp_gradN; tmp_gradN(tmp2,:)];
     end
 else
-    if (do_mesh)
-        [lonmesh,latmesh] = meshgrid(varargin{2},varargin{1});          % varargin{1} contains lat
-    else
-        [latmesh,lonmesh,map] = deal(varargin{1:3});                    % ??? tenho de adaptar este tb.
-    end
-    latmesh = latmesh * D2R;    lonmesh = lonmesh * D2R;
-    latmesh = latmesh - f1*sin(2*latmesh) + f2*sin(4*latmesh) - f3*sin(6*latmesh) + f4*sin(8*latmesh);
-    % Compute the gradient for the cell spacing in the projected cylindrical coordinates
-    [gradE,gradN] = mtxgradient(map,geoid(1)*lonmesh, geoid(1)*latmesh);
-    % Adjust the longitude gradient for the convergence of the meridians
-    convfactor = departure(zeros(size(latmesh)), ones(size(latmesh)),...
-        latmesh,geoid) / departure(0,1,0,geoid);
-    convfactor(convfactor == 0) = NaN;			% avoid divisions by zero
-    gradE = gradE ./ convfactor;
+	if (do_mesh),		[lonmesh,latmesh] = meshgrid(varargin{2},varargin{1});		% varargin{1} contains lat
+	else				[latmesh,lonmesh,map] = deal(varargin{1:3});				% ??? tenho de adaptar este tb.
+	end
+	if (geog)
+		% Compute the gradient for the cell spacing in the projected cylindrical coordinates
+		latmesh = latmesh * D2R;    lonmesh = lonmesh * D2R;
+		latmesh = latmesh - f1*sin(2*latmesh) + f2*sin(4*latmesh) - f3*sin(6*latmesh) + f4*sin(8*latmesh);
+		[gradE,gradN] = mtxgradient(map, geoid(1) * lonmesh, geoid(1) * latmesh, geog);
+	else
+		[gradE,gradN] = mtxgradient(map,lonmesh, latmesh, geog);
+	end
+	if (geog)
+        % Adjust the longitude gradient for the convergence of the meridians
+        convfactor = departure(zeros(size(latmesh)), ones(size(latmesh)),...
+			latmesh,geoid) / departure(0,1,0,geoid);
+        convfactor(convfactor == 0) = NaN;			% avoid divisions by zero
+        gradE = gradE ./ convfactor;
+	end
 end
 clear convfactor latmesh lonmesh;
 
@@ -118,12 +130,12 @@ if (only_aspect)
     aspect  = aspect / D2R;
 elseif (only_slope)
     [aspect,mag]  = cart2pol(gradE,gradN);      clear aspect;
-    slope = atan(mag);  slope = slope / D2R;
-elseif (all)
+    slope = atan(mag) / D2R;
+elseif (todos)
     [aspect,mag] = cart2pol(gradE,gradN);
     aspect(gradN == 0 & gradE == 0) = NaN;
-    aspect  = zero_to_2pi(-aspect-pi/2);    aspect  = aspect / D2R;    % convert back to degrees
-    slope = atan(mag);  slope = slope / D2R;
+    aspect  = zero_to_2pi(-aspect-pi/2) / D2R;    % convert back to degrees
+    slope = atan(mag) / D2R;
 end
 
 if (only_slope == 1)    % nothing to swap
@@ -138,44 +150,56 @@ elseif (only_grad)      % swap slope and aspect with gradN & gradE
 end                     % output all four quantities
 
 %-----------------------------------------------------------------------------------
-function [dfdx,dfdy] = mtxgradient(f,x,y)
+function [dfdx,dfdy] = mtxgradient(f,x,y, geog)
 %gradient for matrix with variable cell spacing
+% New thing - If ~GEOG operate on an cartesian array
 
 % Derivatives of function with respect to rows and columns
-dfdc = zeros(size(x));      dfdr = zeros(size(y));
+dfdc = zeros(size(f));		dfdr = zeros(size(f));
 
 % Take forward differences on left and right edges
-dfdr(1,:) = f(2,:) - f(1,:);      dfdr(end,:) = f(end,:) - f(end-1,:);
-dfdc(:,1) = f(:,2) - f(:,1);      dfdc(:,end) = f(:,end) - f(:,end-1);
+dfdr(1,:) = f(2,:) - f(1,:);		dfdr(end,:) = f(end,:) - f(end-1,:);
+dfdc(:,1) = f(:,2) - f(:,1);		dfdc(:,end) = f(:,end) - f(:,end-1);
 
 % Take centered differences on interior points
 dfdr(2:end-1,:) = (f(3:end,:)-f(1:end-2,:)) / 2;
 dfdc(:,2:end-1) = (f(:,3:end)-f(:,1:end-2)) / 2;
 
-% Differences of x and y with respect to row and column numbers
-dxdr = zeros(size(x));      dxdc = zeros(size(x));
-dxdr(1,:) = x(2,:)-x(1,:);  dxdr(end,:) = x(end,:)-x(end-1,:);  % Take forward differences on left and right edges
-dxdc(:,1) = x(:,2)-x(:,1);  dxdc(:,end) = x(:,end)-x(:,end-1);
-dxdr(2:end-1,:) = (x(3:end,:)-x(1:end-2,:))/2;                  % Take centered differences on interior points
-dxdc(:,2:end-1) = (x(:,3:end)-x(:,1:end-2))/2;
+if (geog)
+	% Differences of x and y with respect to row and column numbers
+	dxdr = zeros(size(x));      dxdc = zeros(size(x));
+	dxdr(1,:) = x(2,:)-x(1,:);  dxdr(end,:) = x(end,:)-x(end-1,:);  % Take forward differences on left and right edges
+	dxdc(:,1) = x(:,2)-x(:,1);  dxdc(:,end) = x(:,end)-x(:,end-1);
+	dxdr(2:end-1,:) = (x(3:end,:)-x(1:end-2,:))/2;                  % Take centered differences on interior points
+	dxdc(:,2:end-1) = (x(:,3:end)-x(:,1:end-2))/2;
 
-dydr = zeros(size(y));      dydc = zeros(size(y));
-dydr(1,:) = y(2,:)-y(1,:);  dydr(end,:) = y(end,:)-y(end-1,:);  % Take forward differences on left and right edges
-dydc(:,1) = y(:,2)-y(:,1);  dydc(:,end) = y(:,end)-y(:,end-1);
-dydr(2:end-1,:) = (y(3:end,:)-y(1:end-2,:))/2;                  % Take centered differences on interior points
-dydc(:,2:end-1) = (y(:,3:end)-y(:,1:end-2))/2;
+	dydr = zeros(size(y));      dydc = zeros(size(y));
+	dydr(1,:) = y(2,:)-y(1,:);  dydr(end,:) = y(end,:)-y(end-1,:);  % Take forward differences on left and right edges
+	dydc(:,1) = y(:,2)-y(:,1);  dydc(:,end) = y(:,end)-y(:,end-1);
+	dydr(2:end-1,:) = (y(3:end,:)-y(1:end-2,:))/2;                  % Take centered differences on interior points
+	dydc(:,2:end-1) = (y(:,3:end)-y(:,1:end-2))/2;
 
-colang = atan2(dydc,dxdc);              % Angles of mesh columns
-coldist = sqrt(dxdc.^2 + dydc.^2);      % distances between elements along mesh columns
-clear dxdc dydc;                        % free memory
+	colang = atan2(dydc,dxdc);				% Angles of mesh columns
+	coldist = sqrt(dxdc.^2 + dydc.^2);		% distances between elements along mesh columns
+	dfdc = dfdc ./ coldist;
+	clear dxdc dydc coldist;				% free memory
 
-rowang = atan2(dydr,dxdr);              % Angles of mesh rows
-rowdist = sqrt(dxdr.^2 + dydr.^2);      % distances between elements along mesh rows
-clear dxdr dydr;                        % free memory
+	rowang = atan2(dydr,dxdr);				% Angles of mesh rows
+	rowdist = sqrt(dxdr.^2 + dydr.^2);		% distances between elements along mesh rows
+	dfdr = dfdr ./ rowdist;
+	clear dxdr dydr rowdist;				% free memory
+end
 
 % derivatives in the x and y directions
-dfdx =  dfdc ./ coldist .* cos(colang) + dfdr ./ rowdist .* cos(rowang);
-dfdy =  dfdr ./ rowdist .* sin(rowang) + dfdc ./ coldist .* sin(colang);
+if (geog)
+	dfdx = dfdc .* cos(colang) + dfdr .* cos(rowang);
+	dfdy = dfdr .* sin(rowang) + dfdc .* sin(colang);
+else
+	rowdist = y(2) - y(1);
+	coldist = x(1,2) - x(1,1);
+	dfdx = dfdc / coldist;
+	dfdy = dfdr / rowdist;
+end
 
 %-----------------------------------------------------------------------------------
 function dist = departure(lon1,lon2,lat,geoid)
