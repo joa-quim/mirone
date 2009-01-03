@@ -16,61 +16,48 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 % STR_COL       If a column in file is of string type, return that column number
 %               In case nargout == 4, it contains the header text lines
 % OUT           A structure with NUMERIC_DATA, Header text and ... I think its idiot and gives nothing new
+%
+%	NOTE: When multi-segments it is better to not take a risk and ask only one or two outputs
+%
 % This function uses some sub-functions of IMPORTDATA
 % Coffeeright Joaquim Luis
 
-filename = varargin{1};     hlines = NaN;
+filename = varargin{1};     hlines = NaN;	headerlines = 0;
+requestedDelimiter = NaN;	requestedHeaderLines = NaN;		requestedMultiSeg = NaN;
+numeric_data = [];			date = [];		str_col = [];	out = [];
 
-if (nargin > 1),    requestedDelimiter = varargin{2};
-else                requestedDelimiter = NaN;
+if (nargin > 1),    requestedDelimiter = varargin{2};	end
+if (nargin > 2),    requestedHeaderLines = varargin{3};	end
+if (nargin > 3),    requestedMultiSeg = varargin{4};	end
+
+if ~ischar(filename)				% get filename
+	errordlg('Filename must be a string.','Error');		return
 end
 
-if (nargin > 2),    requestedHeaderLines = varargin{3};
-else                requestedHeaderLines = NaN;
+if isempty(filename)				% do some validation
+	errordlg('Filename must not be empty.','Error');	return
 end
 
-if (nargin > 3),    requestedMultiSeg = varargin{4};
-else                requestedMultiSeg = NaN;
-end
-
-if ~ischar(filename)                 % get filename
-	errordlg('Filename must be a string.','Error');
-	numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
-	return
-end
-
-if isempty(filename)                % do some validation
-	errordlg('Filename must not be empty.','Error');
-	numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
-	return
-end
-
-if ~isequal(exist(filename,'file'), 2)     % make sure file exists
-	errordlg('File not found.','Error');
-	numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
-	return
+if ~isequal(exist(filename,'file'), 2)	% make sure file exists
+	errordlg('File not found.','Error');	return
 end
 
 if (isnan(requestedHeaderLines))   % GUESS_FILE is better (and probably faster) in in guessing headers
 	[bin, n_column, multi_seg, requestedHeaderLines] = guess_file(filename, 2048, 50);
+	hlines = requestedHeaderLines;		headerlines = requestedHeaderLines;
 end
-
 
 % ----------------------------- open the file
 fid = fopen(filename);
 if fid == (-1)
-	errordlg(['Could not open file ', filename ,'.'],'Error');
-	numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
-	return
+	errordlg(['Could not open file ', filename ,'.'],'Error');		return
 end
-string = char(fread(fid)');
-%string=fread(fid,'*char').';
+%string = char(fread(fid)');
+string = fread(fid,'*char').';
 fclose(fid);
 
 if isempty(string)                  % Check that file is not empty
-	errordlg('Empty file.','Error');
-	numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
-	return
+	errordlg('Empty file.','Error');	return
 end
 
 % get the delimiter for the file
@@ -85,18 +72,26 @@ else
 	delimiter = sprintf(requestedDelimiter);
 end
 
-% tenta o caso dos multi-segments
+% Try the multi-segments case. If yes, finish right away.
 if ~isnan(requestedMultiSeg)
 	p = find(string == requestedMultiSeg);
 	if (~isempty(p))
-		p(end+1) = length(string)+1;    vv = [];
-		for k = 1:length(p)-1;
-			T = string(p(k):p(k+1)-1);
-			h = min(find(T==10));		% 10 = end of line
-            vv = [vv p(k):p(k)+h];
+		s = strread(string,'%s','delimiter','\n');		clear string;
+		if (headerlines),	s(1:headerlines) = [];		end
+		ix = strmatch(requestedMultiSeg,s);
+		if (ix(1) ~= 1),	ix = [0; ix];		end		% First line hadn't the multi-seg character
+		% ... descriptors
+		if (nargout > 1),	date = s(ix);		end
+		ix = [ix;size(s,1)+1];    ib = ix(1:end-1)+1;    ie = ix(2:end)-1;
+		ind = ((ib - ie) > 0);					% Find consecutive lines that start by the multi-seg character
+		ib(ind) = [];		ie(ind) = [];		% And remove the n-1 first (if they exist, certainly) 
+		% Because strread neads as many nargout as n_col, I do the following
+		numeric_data = cell(numel(ib),1);		% Reuse this var
+		for i=1:numel(ib)
+            sv = [char(s(ib(i):ie(i))) repmat(char(10),ie(i)-ib(i)+1,1)];
+            numeric_data{i} = strread(sv.');
 		end
-		if (vv(end) > numel(string)),	vv(end) = numel(string);	end		% As when one have a ">" in the last line
-		clear p vv T h;
+		return
 	else
 		requestedMultiSeg = NaN;		% It was a false request
 	end
@@ -150,25 +145,6 @@ end
 
 if (nargout == 4 && isempty(str_col))
 	str_col = out.headers;
-end
-
-if ~isnan(requestedMultiSeg)
-	fid = fopen(filename);
-	c = fread(fid,inf,'*char');
-	s = strread(c,'%s','delimiter','\n');     clear c;
-	fclose(fid);
-	ix = strmatch(requestedMultiSeg,s);
-	% ... descriptors
-	date = s(ix);
-	ix = [ix;size(s,1)+1];    ib = ix(1:end-1)+1;    ie = ix(2:end)-1;
-	ind = ((ib - ie) > 0);					% Find consecutive lines that start by the multi-seg character
-	ib(ind) = [];		ie(ind) = [];		% And remove the n-1 first (if they exist, certainly) 
-	% Because strread neads as many nargout as n_col, I do the following
-	numeric_data = cell(numel(ib),1);		% Reuse this var
-	for i=1:numel(ib)
-        sv = [char(s(ib(i):ie(i))) repmat(char(10),ie(i)-ib(i)+1,1)];
-        numeric_data{i} = strread(sv.');
-	end
 end
 
 %-------------------------------------------------------------------------------------------------------
