@@ -138,8 +138,10 @@ function out = findFileType(fname)
         out = 'gmt';
 	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.xwd' '.shade' '.raw' '.bin'})) )
         out = 'generic';
-	elseif ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.ecw' '.jp2' '.kap' '.nos'})) )
+	elseif ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.kap' '.nos'})) )
         out = 'geotif';
+	elseif ( any(strcmpi(EXT,{'.ecw' '.jp2'})) )	% This is a special case (they cause memory fragmentation)
+        out = 'ecw';
 	elseif ( any(strcmpi(EXT,'.mat')) )
         load(fname,'grd_name')
         if (exist(grd_name))    % The mat file is a Session file
