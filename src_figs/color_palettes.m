@@ -544,11 +544,13 @@ function change_cmap(handles,pal)
 		% Map the old pal indices into the new ones
 		pal = interp1(linspace(0,len_Pal-1,length(pal)),pal,ind_pal,'linear','extrap');
 	end
-	
-	handMir = guidata(handles.hCallingFig);
-	if (strcmp(get(handMir.hImg, 'CDataMapping'), 'scaled'))	% Scaled images may have much shorter cmaps
-		clim = get(handMir.axes1, 'CLim');
-		pal = interp1(linspace(0,1,size(pal,1)), pal, linspace(0,1,diff(clim)+1), 'linear','extrap');
+
+	if (~isempty(handles.hCallingFig))		% It is when drag-N-drop a .cpt file
+		handMir = guidata(handles.hCallingFig);
+		if (strcmp(get(handMir.hImg, 'CDataMapping'), 'scaled'))	% Scaled images may have much shorter cmaps
+			clim = get(handMir.axes1, 'CLim');
+			pal = interp1(linspace(0,1,size(pal,1)), pal, linspace(0,1,diff(clim)+1), 'linear','extrap');
+		end
 	end
 
 	pal(pal > 1) = 1; % Sometimes interpolation gives values that are out of [0,1] range...
