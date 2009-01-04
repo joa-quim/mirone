@@ -166,7 +166,7 @@ if (handles.no_file)		% Start empty but below we'll find the true data region
         xx = [XMin XMax];			yy = [YMin YMax];
         region = [xx yy];			% 1 stands for geog but that will be confirmed later
     end
-	mirone('FileNewBgFrame_CB', handles, [region geog])   % Create a background
+	hMirFig = mirone('FileNewBgFrame_CB', handles, [region geog]);	% Create a background
 else							% Reading over an established region
 	XYlim = getappdata(handles.axes1,'ThisImageLims');
 	xx = XYlim(1:2);			yy = XYlim(3:4);
@@ -178,6 +178,11 @@ end
 
 for (k = 1:numel(names))
     fname = names{k};
+	if (handles.no_file && k == 1)			% Rename figure with draged file name
+		[pato,barName,EXT] = fileparts(fname);
+		old_name = get(hMirFig,'Name');		ind = strfind(old_name, '@');
+		set(hMirFig,'Name',[barName old_name(ind-1:end)])
+	end
     j = strfind(fname,filesep);
     if (isempty(j)),    fname = [PathName fname];   end			% It was just the filename. Need to add path as well 
     [numeric_data,multi_segs_str] = text_read(fname,NaN,NaN,'>');
