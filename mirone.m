@@ -893,23 +893,21 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 		[FileName,PathName] = put_or_get_file(handles,str1,'Select output GMT grid','put');
 		if isequal(FileName,0),		return,		end
 	else		% It means the output file name was transmited in input
-		[PathName,FileName] = fileparts(opt2);
-		PathName = [PathName filesep];
+		[PathName,FileName] = fileparts(opt2);		PathName = [PathName filesep];
 	end
 
 	set(handles.figure1,'pointer','watch')
-	fmt = '';
+	tit = ' ';
 
 	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
 	if isempty(EXT)
-		f_name_r = [PathName FNAME ['_r.grd' fmt]];		f_name_g = [PathName FNAME ['_g.grd' fmt]];
-		f_name_b = [PathName FNAME ['_b.grd' fmt]];
+		f_name_r = [PathName FNAME '_r.grd'];		f_name_g = [PathName FNAME '_g.grd' ];
+		f_name_b = [PathName FNAME '_b.grd' ];
 	else
-		f_name_r = [PathName FNAME '_r' EXT fmt];		f_name_g = [PathName FNAME '_g' EXT fmt];
-		f_name_b = [PathName FNAME '_b' EXT fmt];
+		f_name_r = [PathName FNAME '_r' EXT];		f_name_g = [PathName FNAME '_g' EXT];
+		f_name_b = [PathName FNAME '_b' EXT];
 	end
 
-	tit = ' ';
 	if (isappdata(handles.axes1,'DatumProjInfo'))
 		DPI = getappdata(handles.axes1,'DatumProjInfo');
 		tit = ['Projection: ' DPI.projection ' Datum: ' DPI.datum];
@@ -931,16 +929,15 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 	end
 	flip = false;
 	if (~strcmp(get(handles.axes1,'Ydir'),'normal')),	flip = true;	end
+% 	if (~strcmp(get(handles.axes1,'Ydir'),'normal'))
+% 		img = flipdim(img,1);
+% 	end
 
 	% Defaults and srsWKT fishing are set in nc_io
 	if (~flip)
-		%grdwrite_m(img(:,:,1),D,f_name_r,tit);			grdwrite_m(img(:,:,2),D,f_name_g,tit)
-		%grdwrite_m(img(:,:,3),D,f_name_b,tit)
 		nc_io(f_name_r, 'w', handles, img(:,:,1));		nc_io(f_name_g, 'w', handles, img(:,:,2))
 		nc_io(f_name_b, 'w', handles, img(:,:,3))
 	else
-% 		grdwrite_m(flipud(img(:,:,1)),D,f_name_r,tit);	grdwrite_m(flipud(img(:,:,2)),D,f_name_g,tit)
-% 		grdwrite_m(flipud(img(:,:,3)),D,f_name_b,tit)
 		nc_io(f_name_r, 'w', handles, flipud(img(:,:,1)));		nc_io(f_name_g, 'w', handles, flipud(img(:,:,2)))
 		nc_io(f_name_b, 'w', handles, flipud(img(:,:,3)))
 	end
@@ -2846,14 +2843,14 @@ function FileSaveSession_CB(handles)
 function ImageMapLimits_CB(handles)
 % Change the Image limits by asking it's corner coordinates
 	region = bg_region('empty');		% region contains [x_min x_max y_min y_max is_geog] in PIXEL REG MODE
-	if isempty(region),		return,		end		% User gave up
+	if isempty(region),		return,		end
 	img = get(handles.hImg,'CData');
 	X = region(1:2);						Y = region(3:4);
 	x_inc = diff(X) / size(img,2);			y_inc = diff(Y) / size(img,1);
 	dx2 = x_inc / 2;						dy2 = y_inc / 2;
 	X = X + [dx2 -dx2];						Y = Y + [dy2 -dy2];		% X,Y in grid-reg so that the pix-reg info = region
 	handles.head(1:4) = [X Y];		handles.head(8:9) = [x_inc y_inc];  
-	handles.geog = aux_funs('guessGeog',handles.head(1:4));			% Traste better in this guess than on bg_region()
+	handles.geog = aux_funs('guessGeog',handles.head(1:4));			% Traste more in this guess than on bg_region()
 	handles.fileName = [];			% Not loadable in session
 	if (~handles.validGrid),		handles.image_type = 3;
 	else
@@ -3509,26 +3506,6 @@ function TransferB_CB(handles, opt)
 		setappdata(h,'hFigParent',handles.figure1);				% Save the Parent fig handles in this new figure
 		set(findobj(h,'Tag','ImageDrape'),'Enable','on')		% Set the Drape option to 'on' in the New window 
 	
-	elseif ( strcmp(opt,'isGDAL') || (strcmp(opt,'isGMT')) )	% Test if GDAL or GMT are able to read this file
-		str = {'*.*', 'All Files (*.*)'};						% Just a strings to the eye
-		if (strcmp(opt,'isGMT'))
-			str = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)'; '*.*', 'All Files (*.*)'};
-		end
-		[FileName,PathName] = put_or_get_file(handles,str,['Select ' opt(3:end) ' file'],'get');
-		if isequal(FileName,0),		return,		end				% User gave up
-		if (strcmp(opt,'isGDAL'))								% Again, ...
-			[z,att] = gdalread([PathName FileName]);			% See if GDAL can do it ...
-		else
-			str = ['grdinfo ' [PathName FileName]];				% or GMT ...
-			[s,att] = mat_lyies(str,[handles.path_tmp FileName '.info']);
-			if ~(isequal(s,0)),		att = [];		end			% File could not be read
-		end
-		if (isempty(att)),		msg = ['Sorry, ' opt(3:end) ' Was not able to read the given file.'];
-		else					msg = ['Yeap, ' opt(3:end) ' can read the given file (which is not the same thing as ', ...
-										'beeing able to correctly decode it).'];
-		end
-		msgbox(msg,'Test result')
-	
 	elseif (strcmp(opt,'scale'))				% Apply a scale factor
 		resp = inputdlg({'Enter scale factor'},'Rescale grid',[1 30],{'-1'});	pause(0.01)
 		if (isempty(resp)),	return,		end
@@ -3625,6 +3602,9 @@ elseif (strcmp(opt,'KML'))
 	end
 	writekml(handles,Z,[PathName FileName])		% Z will be used to setup a alpha channel
 
+elseif (strncmp(opt,'morph',5))		% OPT comes in form of: morph-OPERATION. Example, morph-gradient
+	set(handles.hImg,'CData', cvlib_mex('morpho',img, opt(7:end)))
+
 elseif (strcmp(opt,'scatter'))
 	str = {'*.dat;*.DAT;*.txt;*.TXT', 'Data file (*.dat,*.DAT,*.txt,*.TXT)'; '*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
@@ -3643,5 +3623,6 @@ elseif (strcmp(opt,'print'))
 	set(handsStBar,'Visible','off');		set(handles.figure1,'pointer','arrow')
 	if (ispc),		print -v,		else	print;  end
 	set(h,'Visible','on');  set(handsStBar(2:end),'Visible','on');
+
 end
 set(handles.figure1,'pointer','arrow')
