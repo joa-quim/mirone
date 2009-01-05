@@ -9,7 +9,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
 %#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
-%#function obj_template_detect
+%#function obj_template_detect floodFill
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -104,7 +104,7 @@ hVG(4) = uipushtool('parent',h_toolbar,'Click','mirone(''ToolsMBplaningStart_CB'
 	'Tag','MBplaning','cdata',MB_ico,'Tooltip','Multi-beam planing');
 uipushtool('parent',h_toolbar,'Click','mirone(''FileSaveFleder_CB'',guidata(gcbo),''runPlanar'')', ...  
 	'Tag','FlederPlanar','cdata',olho_ico,'Tooltip','Run Fleder 3D Viewer');
-uipushtool('parent',h_toolbar,'Click','writekml(guidata(gcbo))', ...  
+uipushtool('parent',h_toolbar,'Click','writekml(guidata(gcbo))', ...
 	'Tag','toGE','cdata',GE_ico,'Tooltip','See it in Google Earth');
 uipushtool('parent',h_toolbar,'Click',@refresca, 'Tag','Refresh','cdata',refresh_ico,'Tooltip','Refresh','Sep','on');
 uipushtool('parent',h_toolbar,'Click','grid_info(guidata(gcbo))','Tag','ImageInfo','cdata',info_ico,'Tooltip','Image info');
@@ -282,9 +282,16 @@ uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''Rect'')'
 uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''Circles'')','Label','Circles');
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Corners'')','Label','Good features to track');
 
-uimenu('Parent',hIM,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Shape'')','Label','Shape detector')
+h = uimenu('Parent',hIM,'Label','Image morphology');
+uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-gradient'')','Label','Gradient');
+uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-open'')','Label','Open');
+uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-close'')','Label','Close');
+uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-tophat'')','Label','Top-hat');
+uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-blackhat'')','Label','Bottom-hat');
+
+uimenu('Parent',hIM,'Call','mirone(''ImageSegment_CB'',guidata(gcbo))','Label','Image segmentation (Mean shift)','Sep','on');
+uimenu('Parent',hIM,'Call','floodFill(gcf)','Label','Shape detector')
 uimenu('Parent',hIM,'Call','mpaint(gcf)','Label','Paint Brush');
-uimenu('Parent',hIM,'Call','mirone(''ImageSegment_CB'',guidata(gcbo))','Label','Image segmentation (Mean shift)');
 uimenu('Parent',hIM,'Call','classificationfig(gcf);','Label','K-means classification');
 uimenu('Parent',hIM,'Call','imageresize(gcf)','Label','Image resize','Sep','on');
 uimenu('Parent',hIM,'Call','mirone(''RotateTool_CB'',guidata(gcbo),''image'')','Label','Image rotation');
@@ -318,7 +325,6 @@ uimenu('Parent',hIM,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPmemory'')'
 	'Tag','GCPmemory','Label','Register Image (Plot in memory GCPs)','Visible','off');  % To GDAL imported file with GCPs
 uimenu('Parent',hIM,'Callback','bands_list(gcf)','Label','Load Bands','Sep','on');
 %uimenu('Parent',hIM,'Callback','grid_calculator(gcf)','Label','Bands Arithmetic');
-uimenu('Parent',hIM,'Call','mk_movie_from_list(guidata(gcbo))', 'Label','Make movie from image list','Sep','on');
 
 % --------------------------- TOOLS MENU ------------------------------------
 hTL = uimenu('Parent',H1,'Label','Tools','Tag','Tools');
@@ -337,8 +343,6 @@ uimenu('Parent',h,'Call','mirone(''ToolsMBplaningStart_CB'',guidata(gcbo))','Lab
 uimenu('Parent',h,'Call','mirone(''ToolsMBplaningImport_CB'',guidata(gcbo))','Label','Import track');
 
 uimenu('Parent',hTL,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''from_ROI'')','Label','Region-Of-Interest','Sep','on');
-uimenu('Parent',hTL,'Call','mirone(''TransferB_CB'',guidata(gcbo),''isGMT'')','Label','Does GMT know this file?','Sep','on');
-uimenu('Parent',hTL,'Call','mirone(''TransferB_CB'',guidata(gcbo),''isGDAL'')','Label','Does GDAL know this file?');
 uimenu('Parent',hTL,'Call','ecran','Label','X,Y grapher','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','gmtedit','Label','gmtedit');	kv = kv + 1;
 uimenu('Parent',hTL,'Call','rally_plater','Label','Rally Plater');
@@ -347,6 +351,7 @@ uimenu('Parent',hTL,'Call','empilhador(guidata(gcbo))','Label','Empilhador');
 uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
 uimenu('Parent',hTL,'Call','world_is_not_round_enough(guidata(gcbo))','Label','World is not (round) enough','Sep','on');
+uimenu('Parent',hTL,'Call','mk_movie_from_list(guidata(gcbo))', 'Label','Make movie from image list','Sep','on');
 
 h = uimenu('Parent',hTL,'Label','Misc Tools','Sep','on');
 uimenu('Parent',h,'Call','cartas_militares(guidata(gcbo))','Label','Cartas Militares')
@@ -651,7 +656,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 28 Dec 2008'',''1.4.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 05 Jan 2009'',''1.4.0b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
