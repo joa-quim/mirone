@@ -111,6 +111,7 @@
  *	12-12-2008	Extended -L option  (not yet documented)
  *			Added -X option to output the Chi
  *	31-12-2008	Added -R option to output the R-squared (only linear)
+ *	07-01-2009	Added -P option to output the statistical significance of R
  *
  *		NOTE: this MEX does not neeed to link against the GMT library
  */
@@ -152,6 +153,10 @@ struct TREND1D_CTRL {
 		int mode;
 		int value;
 	} N;
+	struct P {	/* -P */
+		int active;
+		double value;
+	} P;
 	struct R {	/* -R */
 		int active;
 	} R;
@@ -178,6 +183,7 @@ int	GMT_ln_gamma_r(double x, double *lngam);
 int	GMT_comp_double_asc (const void *p_1, const void *p_2);
 double	GMT_ln_gamma (double xx);
 double	GMT_cf_beta (double a, double b, double x);
+double	tpvalue (double x, double v);
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -190,7 +196,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	error = FALSE, weighted_output = FALSE;
 
 	double	*gtg, *v, *gtd, *lambda, *workb, *workz, *c_model, *o_model, *w_model, *work, *in_m, *pdata;
-	double	xmin, xmax, c_chisq, o_chisq, w_chisq, scale = 1.0, prob, Rsq;
+	double	xmin, xmax, c_chisq, o_chisq, w_chisq, scale = 1.0, prob, Rsq, p = 0;
 	double	get_chisq(struct TREND1D_DATA *data, int n_data, int n_model);
 
 	int	argc = 0, n_arg_no_char = 0;
@@ -288,6 +294,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
  						mexPrintf ("%TREND1D: GMT SYNTAX ERROR -N option.  No model specified\n");
 					}
 					break;
+				case 'P':
+					Ctrl->P.active = TRUE;
+					Ctrl->P.value = 1.0;		/* Default value, in case it is needed but not set */ 
+					if (argv[i][3])
+						Ctrl->P.value = atof(&argv[i][3]);
+					break;
 				case 'R':
 					Ctrl->R.active = TRUE;
 					break;
@@ -308,7 +320,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (argc == 1 || error) {
 		mexPrintf("trend1d - Fit a [weighted] [robust] polynomial [or Fourier] model for y = f(x) to xy[w]\n\n");
 		mexPrintf("usage:  [out, lin_params] = trend1d_m(in_array, '-F<xymrw>', '-N[f]<n_model>[r]', '[-C<condition_#>],'\n");
-		mexPrintf("\t'[-I[<confidence>]]', '[-L]', '[-R]', '[-X]', '[-W])'\n\n");
+		mexPrintf("\t'[-I[<confidence>]]', '[-L]', '[-P]', '[-R]', '[-X]', '[-W])'\n\n");
 
 		mexPrintf("\t-F Choose at least 1, up to 5, any order, of xymrw for ascii output to stdout.\n");
 		mexPrintf("\t   x=x, y=y, m=model, r=residual=y-m, w=weight.  w determined iteratively if robust fit used.\n");
@@ -324,8 +336,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("\t   If only one output is requested out = [slope, intercept].\n");
 		mexPrintf("\t   If two outputs, first is determined by -F and the second is [slope, intercept].\n");
 		mexPrintf("\t   Note, however, that by asking two outputs it is not necessary to use -L option.\n");
-		mexPrintf("\t-X For linear (-N2[r]) fits outputs SQRT(Chi-square). It forces -L and lin_prams is a 1x3 vector.\n");
+		mexPrintf("\t-P For linear (-N2[r]) Forces -L and lin_prams is [m b R^2 p] vector.\n");
 		mexPrintf("\t-R For linear (-N2[r]) fits outputs the R-square. It forces -L and lin_prams is a 1x3 vector.\n");
+		mexPrintf("\t-X For linear (-N2[r]) fits outputs SQRT(Chi-square). It forces -L and lin_prams is a 1x3 vector.\n");
 		mexPrintf("\t-W Weighted input given, weights in 3rd column.  [Default is unweighted].\n");
 		mexPrintf("\t   Default is 2 (or 3 if -W is set) input columns.\n");
 		return;
@@ -493,27 +506,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	untransform_x(data, n_data, Ctrl->N.mode, xmin, xmax);
 
-	if (Ctrl->L.active || Ctrl->X.active || Ctrl->R.active) {	/* Output also line's slope and intercept */
+	/* -P, -R and -X options may be quite inconsistent still */
+	if (Ctrl->R.active || Ctrl->P.active) {
+		double SSR = 0, SST = 0, ymean = 0;
+		for (i = 0; i < n_data; i++)
+			ymean += data[i].y;
+
+		ymean /= n_data;
+		for (i = 0; i < n_data; i++){
+			SST += ((data[i].y - ymean) * (data[i].y - ymean));
+			SSR += ((data[i].m - ymean) * (data[i].m - ymean));
+		}
+
+		Rsq = SSR / SST;
+		if (Ctrl->P.active) {
+			p = 2 * tpvalue(-fabs(sqrt(Rsq * (n_data-2) / (1 - Rsq))),n_data-2);
+		}
+	}
+
+	if (Ctrl->L.active || Ctrl->X.active || Ctrl->R.active || Ctrl->P.active) {	/* Outputs also slope and intercept */
 		int	nLX;
 		double	m, b, nan;
 
 		nan = mxGetNaN();
 		m = (data[n_data - 1].m - data[0].m) / (data[n_data - 1].x - data[0].x);
 		b = -m * data[0].x + data[0].m;
-
-		if (Ctrl->R.active) {
-			double SSR = 0, SST = 0, ymean = 0;
-			for (i = 0; i < n_data; i++)
-				ymean += data[i].y;
-
-			ymean /= n_data;
-			for (i = 0; i < n_data; i++){
-				SST += ((data[i].y - ymean) * (data[i].y - ymean));
-				SSR += ((data[i].m - ymean) * (data[i].m - ymean));
-			}
-
-			Rsq = SSR / SST;
-		}
 
 		if (Ctrl->L.chi && (sqrt(c_chisq) > Ctrl->L.value)) {
 			m = nan;	b = nan;
@@ -525,12 +542,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			m = nan;	b = nan;
 		}
 		nLX = ((Ctrl->X.active || Ctrl->R.active) ? 3 : 2);
+		if (Ctrl->P.active) nLX++;
 		if (nlhs == 1) {
 			plhs[0] = mxCreateDoubleMatrix (1, nLX, mxREAL);
 			pdata = mxGetPr(plhs[0]);
 			pdata[0] = m;	pdata[1] = b;
 			if (Ctrl->X.active) pdata[2] = sqrt(c_chisq);
 			if (Ctrl->R.active) pdata[2] = Rsq;
+			if (Ctrl->P.active) pdata[3] = p;
 		}
 		else {		/* Output whatever -F plus slope and intercept */
 			double *pdata_l;
@@ -543,6 +562,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			pdata_l[0] = m;	pdata_l[1] = b;
 			if (Ctrl->X.active) pdata_l[2] = sqrt(c_chisq);
 			if (Ctrl->R.active) pdata_l[2] = Rsq;
+			if (Ctrl->P.active) pdata_l[3] = p;
 		}
 	}
 	else {
@@ -560,7 +580,6 @@ void read_data (struct TREND1D_DATA **data, double *in_m, int n_pts, double *xmi
 	/* Copy the vectors transmited as inputs into the data structure. For large inputs,
 	this implies a significant memory wasting.*/
 	int n;
-	double	*in;
 
 	(*data) = (struct TREND1D_DATA *) mxCalloc ((size_t)n_pts, sizeof(struct TREND1D_DATA));
 
@@ -1481,3 +1500,29 @@ int GMT_comp_double_asc (const void *p_1, const void *p_2) {
 		return (0);
 }
 
+double	tpvalue (double x, double v) {
+	/* Compute p-value for t statistic 
+	(from a function of the same name inside the MATLAB corrcoef) */
+
+	double	p = 0, xx = 0;
+
+	if (x == 0 && v != 1 && v > 0) return(0.5);
+
+	/* Return NaN for invalid inputs. */
+	if (v <= 0 || mxIsNaN(x) || mxIsNaN(v)) return(mxGetNaN());
+
+	if (v == 1)
+		p = 0.5 + atan(x) / M_PI;
+
+	/* See Abramowitz and Stegun, formulas 26.5.27 and 26.7.1 */
+	if (x != 0 && v != 1 && v > 0) {	/* first compute F(-|x|) */
+		xx = v / (v + x * x);
+		GMT_inc_beta(v/2, 0.5, xx, &p);
+		p /= 2;
+	}
+
+	/* Adjust for x>0.  Right now p<0.5, so this is numerically safe. */
+	if (x > 0 && v != 1 && v > 0)	p = 1 - p;
+
+	return (p);
+}
