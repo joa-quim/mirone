@@ -2234,11 +2234,11 @@ void Jedge(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const ch
 
 /* --------------------------------------------------------------------------- */
 void JmorphologyEx(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
-	int nx, ny, nBands, nBytes, img_depth, cv_code, iterations = 1;
+	int nx, ny, nBands, nBytes, img_depth, cv_code, iterations = 1, inplace = FALSE;
 	const char *operation;
 	double *ptr_d;
 
-	IplImage *src_img = 0, *dst_img, *tmp_img;
+	IplImage *src_img = NULL, *dst_img, *tmp_img = NULL;
 	mxArray *ptr_in, *ptr_out;
 
 	struct CV_CTRL *Ctrl;
@@ -2277,6 +2277,9 @@ void JmorphologyEx(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 	if (n_in == 4) {
 		ptr_d = mxGetPr(prhs[3]);	iterations = (int)ptr_d[0];
 	}
+
+	if (n_out == 0)		/* Not ready yet */
+		inplace = TRUE;
 	/* -------------------- End of parsing input ------------------------------------- */
 
 	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);	nBands = getNK(prhs[1],2);
@@ -2287,7 +2290,7 @@ void JmorphologyEx(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 	/* ------ Create pointers for output and temporary arrays ------------------------ */
 	ptr_in  = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
 		  mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
-	ptr_out = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+	if (!inplace) ptr_out = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
 		  mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
 	/* ------------------------------------------------------------------------------- */ 
 
@@ -2295,30 +2298,28 @@ void JmorphologyEx(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 	src_img = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
 	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
 
-	Set_pt_Ctrl_out1 ( Ctrl, ptr_out ); 
-	dst_img = cvCreateImageHeader(cvSize(nx, ny), img_depth , nBands );
-	localSetData( Ctrl, dst_img, 2, nx * nBands * nBytes );
-
-	if (cv_code == CV_MOP_GRADIENT || (iterations > 1 && (cv_code == CV_MOP_TOPHAT || cv_code == CV_MOP_BLACKHAT) )) {
+	if (cv_code == CV_MOP_GRADIENT || ((iterations > 1 || inplace) && (cv_code == CV_MOP_TOPHAT || cv_code == CV_MOP_BLACKHAT) ))
 		tmp_img = cvCreateImage( cvSize(nx, ny), img_depth, nBands );
+
+	if (!inplace) {
+		Set_pt_Ctrl_out1 ( Ctrl, ptr_out ); 
+		dst_img = cvCreateImageHeader(cvSize(nx, ny), img_depth , nBands );
+		localSetData( Ctrl, dst_img, 2, nx * nBands * nBytes );
+		cvMorphologyEx(src_img,dst_img,tmp_img,NULL,cv_code,iterations);
+
+		plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+		  			mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
+		Set_pt_Ctrl_out2 ( Ctrl, plhs[0], 1 ); 		/* Set pointer & desinterleave */
+		cvReleaseImageHeader( &dst_img );
 	}
-	else
-		tmp_img = NULL;
-
-	cvMorphologyEx(src_img,dst_img,tmp_img,NULL,cv_code,iterations);
-
-	if (cv_code == CV_MOP_GRADIENT || (iterations > 1 && (cv_code == CV_MOP_TOPHAT || cv_code == CV_MOP_BLACKHAT) ))
-		cvReleaseImage( &tmp_img );
+	else {
+		cvMorphologyEx(src_img,src_img,tmp_img,NULL,cv_code,iterations);
+	}
 
 	cvReleaseImageHeader( &src_img );
 	mxDestroyArray(ptr_in);
-
-	plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
-		  mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
-	Set_pt_Ctrl_out2 ( Ctrl, plhs[0], 1 ); 		/* Set pointer & desinterleave */
-
-	cvReleaseImageHeader( &dst_img );
-	mxDestroyArray(ptr_out);
+	if (tmp_img) cvReleaseImage( &tmp_img );
+	if (!inplace) mxDestroyArray(ptr_out);
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 }
 
@@ -3118,9 +3119,9 @@ void Jinpaint(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		Set_pt_Ctrl_out2 ( Ctrl, plhs[0], 1 ); 		/* Set pointer & desinterleave */
 		cvReleaseImageHeader( &dst );
 	}
-	else {
+	else
 		cvInpaint( src1, src2, src1, 3, CV_INPAINT_TELEA); 
-	}
+
 
 	cvReleaseImageHeader( &src1 );
 	cvReleaseImageHeader( &src2 );
@@ -3519,7 +3520,7 @@ void interleaveBlind(unsigned char in[], unsigned char out[], int nx, int ny, in
 	/* This a version to be used with vars that are not in the control struct */
 	int n_xy, m, n, k, i, c = 0;
 
-	if (dir == 1) {		/* Matlab order to b0,g0,r0, g1,g1,r1, etc ... */
+	if (dir == 1) {		/* Matlab order to b0,g0,r0, b1,g1,r1, etc ... */
 		n_xy = nx*ny;
 		for (m = 0; m < ny; m++) 
 			for (n = 0; n < nx; n++)
@@ -3544,7 +3545,7 @@ void interleaveBlind(unsigned char in[], unsigned char out[], int nx, int ny, in
 void interleaveUI8(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 	int n_xy, m, n, k, i, c = 0;
 
-	if (dir == 1) {		/* Matlab order to b0,g0,r0, g1,g1,r1, etc ... */
+	if (dir == 1) {		/* Matlab order to b0,g0,r0, b1,g1,r1, etc ... */
 		n_xy = nx*ny;
 		for (m = 0; m < ny; m++) 
 			for (n = 0; n < nx; n++)
@@ -3576,7 +3577,7 @@ void interleaveUI8(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 void interleaveI8(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 	int n_xy, m, n, k, i, c = 0;
 
-	if (dir == 1) {		/* Matlab order to b0,g0,r0, g1,g1,r1, etc ... */
+	if (dir == 1) {		/* Matlab order to b0,g0,r0, b1,g1,r1, etc ... */
 		n_xy = nx*ny;
 		for (m = 0; m < ny; m++) 
 			for (n = 0; n < nx; n++)
@@ -3608,7 +3609,7 @@ void interleaveI8(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 void interleaveUI16(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 	int n_xy, m, n, k, i, c = 0;
 
-	if (dir == 1) {		/* Matlab order to b0,g0,r0, g1,g1,r1, etc ... */
+	if (dir == 1) {		/* Matlab order to b0,g0,r0, b1,g1,r1, etc ... */
 		n_xy = nx*ny;
 		for (m = 0; m < ny; m++) 
 			for (n = 0; n < nx; n++)
@@ -3640,7 +3641,7 @@ void interleaveUI16(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 void interleaveI16(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 	int n_xy, m, n, k, i, c = 0;
 
-	if (dir == 1) {		/* Matlab order to b0,g0,r0, g1,g1,r1, etc ... */
+	if (dir == 1) {		/* Matlab order to b0,g0,r0, b1,g1,r1, etc ... */
 		n_xy = nx*ny;
 		for (m = 0; m < ny; m++) 
 			for (n = 0; n < nx; n++)
@@ -3672,7 +3673,7 @@ void interleaveI16(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 void interleaveI32(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 	int n_xy, m, n, k, i, c = 0;
 
-	if (dir == 1) {		/* Matlab order to b0,g0,r0, g1,g1,r1, etc ... */
+	if (dir == 1) {		/* Matlab order to b0,g0,r0, b1,g1,r1, etc ... */
 		n_xy = nx*ny;
 		for (m = 0; m < ny; m++) 
 			for (n = 0; n < nx; n++)
@@ -3704,7 +3705,7 @@ void interleaveI32(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 void interleaveF32(struct CV_CTRL *Ctrl, int nx, int ny, int nBands, int dir) {
 	int n_xy, m, n, k, i, c = 0;
 
-	if (dir == 1) {		/* Matlab order to b0,g0,r0, g1,g1,r1, etc ... */
+	if (dir == 1) {		/* Matlab order to b0,g0,r0, b1,g1,r1, etc ... */
 		n_xy = nx*ny;
 		for (m = 0; m < ny; m++) 
 			for (n = 0; n < nx; n++)
@@ -3838,7 +3839,6 @@ void Set_pt_Ctrl_out1 ( struct CV_CTRL *Ctrl, mxArray *pi ) {
 
 	else if (Ctrl->Double.active == TRUE)
 		Ctrl->Double.tmp_img_out = (double *)mxGetData(pi);
-
 }
 
 /* ---------------------------------------------------------------------- */
