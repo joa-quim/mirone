@@ -23,9 +23,10 @@ function varargout = world_is_not_round_enough(varargin)
 	handles.head = handMir.head;
 	handles.validGrid = handMir.validGrid;
 	d_path = handMir.path_data;
-	XYlim = getappdata(handMir.axes1,'ThisImageLims');
-	handles.square = [XYlim(1) XYlim(3);  XYlim(1) XYlim(4); XYlim(2) XYlim(4); XYlim(2) XYlim(3); XYlim(1) XYlim(3);];
-	handles.dx = diff(XYlim(1:2));
+	handles.dx = diff(handles.head(1:2));
+	handles.square = [handles.head(1) handles.head(3);  handles.head(1) handles.head(4); ...
+					handles.head(2) handles.head(4); handles.head(2) handles.head(3); handles.head(1) handles.head(3)];
+	
 	if (handles.dx < (360 - handles.head(8)/2))
 		set([handles.push_to360 handles.push_to180],'Enable','inactive')
 		str = sprintf(['This button is blocked because the map is not global\n' ...
@@ -130,6 +131,8 @@ function push_apply_Callback(hObject, eventdata, handles)
 		X(1) = x_min;		X(2) = x_max;
 		set(handles.hMirAxes,'XLim',X)
 	end
+	handMir.head(1:2) = [X(1) X(end)];
+	guidata(handles.hMirFig, handMir)
 
 	set(handles.hMirImg,'CData', Z, 'XData', X);
 	setappdata(handles.hMirAxes,'ThisImageLims',[get(handles.hMirAxes,'XLim') get(handles.hMirAxes,'YLim')])
