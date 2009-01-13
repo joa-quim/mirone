@@ -175,7 +175,7 @@ else                                % Compile only one mex
     elseif (~isempty(idx22))    % Compile Shape mexs
         cmd = ['mex ' [str_shape{idx22} '.c'] ' ' include_shape ' ' library_shape ' ' COPT];
     elseif (~isempty(idx5))     % Compile OpenCV mexs
-        cmd = ['mex ' [str_cv{idx5} '.c'] ' ' include_cv ' ' library_cv ' ' COPT];
+        cmd = ['mex ' [str_cv{idx5} '.c'] [' sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c'] ' ' include_cv ' ' library_cv ' ' COPT];
     elseif (~isempty(idx6))     % Compile Simple c++ mexs
         cmd = ['mex ' [str_simple_cpp{idx6} '.cpp'] ' ' library_vc6 ' ' COPT];
     elseif (~isempty(idx7))     % Compile netCDF dependent mexs
