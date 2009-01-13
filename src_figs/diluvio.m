@@ -6,22 +6,21 @@ function varargout = diluvio(varargin)
 	handles = guihandles(hObject);
      
 	if (numel(varargin) >= 1)
-        handMir = varargin{1};
+		handMir = varargin{1};
 		if ( ~(handMir.head(5) < 0 && handMir.head(6) > 0) )
-            errordlg('The grid Z values do not span both above and below zero. Quiting','Error')
-            delete(hObject);        return
+			warndlg('The grid Z values do not span both above and below zero. Result is undetermined.','Warning')
 		end
         Z = getappdata(handMir.figure1,'dem_z');
-        if (~isempty(Z))
-            handles.have_nans = handMir.have_nans;
-            handles.z_min = handMir.head(5);
-            handles.z_max = handMir.head(6);
-            handles.z_min_orig = handles.z_min;
-            handles.z_max_orig = handles.z_max;
-        else
-            warndlg('Grid was not stored in memory. Quiting','Warning')
-            delete(hObject);        return
-        end
+		if (~isempty(Z))
+			handles.have_nans = handMir.have_nans;
+			handles.z_min = handMir.head(5);
+			handles.z_max = handMir.head(6);
+			handles.z_min_orig = handles.z_min;
+			handles.z_max_orig = handles.z_max;
+   		else
+			warndlg('Grid was not stored in memory. Quiting','Warning')
+			delete(hObject);        return
+		end
         handles.hAxesMir = handMir.axes1;
         handles.hImgMir = handMir.hImg;
         zz = scaleto8(Z,16);
