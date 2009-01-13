@@ -33,6 +33,7 @@
 				Killed many gotos in bndy_()
 		03-01-2008	Added output to ANUGA and MOST formats (netCDF)
 		05-03-2008	Create empty (NaNs) global attribs to hold fault parameters in ANUGA format
+		12-05-2008	SWW stage comes out with/without land as controlled by -L option
  *
  *	version WITH waitbar
  */
@@ -41,10 +42,13 @@
 #include <netcdf.h>
 #include <float.h>
 #include <math.h>
+#include <string.h>
 
 #define	FALSE	0
 #define	TRUE	1
+#ifndef M_PI
 #define M_PI	3.14159265358979323846
+#endif
 #define D2R		M_PI / 180.
 #define LF		0x0A
 #define CR		0x0D
@@ -119,7 +123,7 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 		float z_min, float z_max);
 void write_anuga_slice(int ncid, int z_id, int i_start, int j_start, int i_end, int j_end, int nX, 
 		float *work, double *h, double *dep, double *u, double *v, float *tmp,
-		size_t *start, size_t *count, float *slice_range, int idx);
+		size_t *start, size_t *count, float *slice_range, int idx, int with_land);
 
 typedef int BOOLEAN;              /* BOOLEAN used for logical variables */
 int	ip, jp, polar, indl, indb, indr, indt, iopt;
@@ -167,6 +171,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	BOOLEAN	params_in_input = FALSE, bat_in_input = FALSE, source_in_input = FALSE;
 	BOOLEAN	write_grids = FALSE, movie = FALSE, movie_char = FALSE, movie_float = FALSE;
 	BOOLEAN	maregs_in_input = FALSE, out_velocity =	FALSE, out_momentum = FALSE, got_R = FALSE;
+	BOOLEAN	with_land = FALSE;
 	mxArray *rhs[2], *lhs[1];
 	size_t	start0 = 0, count0 = 1, start1_A[2] = {0,0}, count1_A[2], start1_M[3] = {0,0,0}, count1_M[3];
 	float	stage_range[2], xmom_range[2], ymom_range[2], *tmp_slice;
@@ -294,6 +299,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					break;
 				case 'J':
 					sscanf (&argv[i][2], "%f", &time_jump);
+					break;
+				case 'L':	/* Output land nodes in SWW file */ 
+					with_land = TRUE;
 					break;
 				case 'M':
 					max_level = TRUE;
@@ -751,11 +759,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				err_trap (nc_put_vara_double (ncid, ids[6], &start0, &count0, &time_for_anuga));
 
 				write_anuga_slice(ncid, ids[7], i_start, j_start, i_end, j_end, ip2, work,
-						h, dep, u, v, tmp_slice, start1_A, count1_A, stage_range, 1);
+						h, dep, u, v, tmp_slice, start1_A, count1_A, stage_range, 1, with_land);
 				write_anuga_slice(ncid, ids[9], i_start, j_start, i_end, j_end, ip2, work,
-						h, dep, u, v, tmp_slice, start1_A, count1_A, xmom_range, 2);
+						h, dep, u, v, tmp_slice, start1_A, count1_A, xmom_range, 2, with_land);
 				write_anuga_slice(ncid, ids[11],i_start, j_start, i_end, j_end, ip2, work,
-						h, dep, u, v, tmp_slice, start1_A, count1_A, ymom_range, 3);
+						h, dep, u, v, tmp_slice, start1_A, count1_A, ymom_range, 3, with_land);
 
 				start1_A[0]++;		/* Increment for the next slice */
 			}
@@ -1600,7 +1608,7 @@ void write_most_slice(int *ncid_most, int *ids_most, int i_start, int j_start, i
 /* --------------------------------------------------------------------------- */
 void write_anuga_slice(int ncid, int z_id, int i_start, int j_start, int i_end, int j_end, int nX, 
 		float *work, double *h, double *dep, double *u, double *v, float *tmp,
-		size_t *start, size_t *count, float *slice_range, int idx) {
+		size_t *start, size_t *count, float *slice_range, int idx, int with_land) {
 	/* Write a slice of either STAGE, XMOMENTUM or YMOMENTUM of a Anuga's .sww netCDF file */
 	int i, j, ij, k, ncl;
 
@@ -1608,11 +1616,15 @@ void write_anuga_slice(int ncid, int z_id, int i_start, int j_start, int i_end, 
 	k = 0;
 	for (j = j_start; j < j_end; j++) {
 		if (idx == 1) 			/* Anuga calls this -> stage */
-			for (i = i_start; i < i_end; i++) {
-				/*ij = ijs(i,j,nX);
-				if (work[ij] == 0 && dep[ij] < 0) tmp[k++] = (float)-dep[ij];
-				else 	tmp[k++] = work[ij]; */
-				tmp[k++] = work[ijs(i,j,nX)];
+			if (!with_land)		/* Land nodes are kept = 0 */
+				for (i = i_start; i < i_end; i++)
+					tmp[k++] = work[ijs(i,j,nX)];
+			else {
+				for (i = i_start; i < i_end; i++) {
+					ij = ijs(i,j,nX);
+					if (work[ij] == 0 && dep[ij] < 0) tmp[k++] = (float)-dep[ij];
+					else 	tmp[k++] = work[ij];
+				}
 			}
 
 		else if (idx == 2) {		/* X momentum */
@@ -1702,14 +1714,14 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 				faultRake[i] = faultWidth[i] = faultDepth[i] = nan;
 	}
 	faultPolyX[10] = faultPolyY[10] = nan;		/* Those have an extra element */
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyX", NC_DOUBLE, 11, &faultPolyX));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyY", NC_DOUBLE, 11, &faultPolyY));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultStrike", NC_DOUBLE, 10, &faultStrike));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultSlip", NC_DOUBLE, 10, &faultSlip));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDip", NC_DOUBLE, 10, &faultDip));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultRake", NC_DOUBLE, 10, &faultRake));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultWidth", NC_DOUBLE, 10, &faultWidth));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDepth", NC_DOUBLE, 10, &faultDepth));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyX", NC_DOUBLE, 11, faultPolyX));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyY", NC_DOUBLE, 11, faultPolyY));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultStrike", NC_DOUBLE, 10, faultStrike));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultSlip", NC_DOUBLE, 10, faultSlip));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDip", NC_DOUBLE, 10, faultDip));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultRake", NC_DOUBLE, 10, faultRake));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultWidth", NC_DOUBLE, 10, faultWidth));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDepth", NC_DOUBLE, 10, faultDepth));
 
 	/* ---- Write the vector coords ------ */
 	x = (float *) mxMalloc (sizeof (float) * (nx * ny));
