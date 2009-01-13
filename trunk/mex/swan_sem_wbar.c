@@ -32,6 +32,8 @@
 				Water heights < 5e-3 = 0
 				Killed many gotos in bndy_()
 		03-01-2008	Added output to ANUGA and MOST formats (netCDF)
+		05-03-2008	Create empty (NaNs) global attribs to hold fault parameters in ANUGA format
+		12-05-2008	SWW stage comes out with/without land as controlled by -L option
  *
  *	version WITHOUT waitbar
  */
@@ -121,7 +123,7 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 		float z_min, float z_max);
 void write_anuga_slice(int ncid, int z_id, int i_start, int j_start, int i_end, int j_end, int nX, 
 		float *work, double *h, double *dep, double *u, double *v, float *tmp,
-		size_t *start, size_t *count, float *slice_range, int idx);
+		size_t *start, size_t *count, float *slice_range, int idx, int with_land);
 
 typedef int BOOLEAN;              /* BOOLEAN used for logical variables */
 int	ip, jp, polar, indl, indb, indr, indt, iopt;
@@ -169,6 +171,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	BOOLEAN	params_in_input = FALSE, bat_in_input = FALSE, source_in_input = FALSE;
 	BOOLEAN	write_grids = FALSE, movie = FALSE, movie_char = FALSE, movie_float = FALSE;
 	BOOLEAN	maregs_in_input = FALSE, out_velocity =	FALSE, out_momentum = FALSE, got_R = FALSE;
+	BOOLEAN	with_land = FALSE;
 	size_t	start0 = 0, count0 = 1, start1_A[2] = {0,0}, count1_A[2], start1_M[3] = {0,0,0}, count1_M[3];
 	float	stage_range[2], xmom_range[2], ymom_range[2], *tmp_slice;
 	FILE	*fp;
@@ -295,6 +298,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					break;
 				case 'J':
 					sscanf (&argv[i][2], "%f", &time_jump);
+					break;
+				case 'L':	/* Output land nodes in SWW file */ 
+					with_land = TRUE;
 					break;
 				case 'M':
 					max_level = TRUE;
@@ -497,8 +503,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		x = tmp[i];		y = tmp[i+n_mareg];
 		ix = irint((x - hdr_b.x_min) / x_inc);
 		jy = irint((y - hdr_b.y_min) / y_inc); 
-		x_tmp = hdr_b.x_min + x_inc * ix;	/* Adjusted x maregraph pos
-		y_tmp = hdr_b.y_min + y_inc * jy;	/* Adjusted y maregraph pos
+		x_tmp = hdr_b.x_min + x_inc * ix;	// Adjusted x maregraph pos
+		y_tmp = hdr_b.y_min + y_inc * jy;	// Adjusted y maregraph pos
 		mexPrintf("%.4f\t%.4f\t%.4f\t%.4f\t%.1f\n",x,y,x_tmp,y_tmp,-dep[lcum_p[i]]);
 	}*/
 
@@ -740,11 +746,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				err_trap (nc_put_vara_double (ncid, ids[6], &start0, &count0, &time_for_anuga));
 
 				write_anuga_slice(ncid, ids[7], i_start, j_start, i_end, j_end, ip2, work,
-						h, dep, u, v, tmp_slice, start1_A, count1_A, stage_range, 1);
+						h, dep, u, v, tmp_slice, start1_A, count1_A, stage_range, 1, with_land);
 				write_anuga_slice(ncid, ids[9], i_start, j_start, i_end, j_end, ip2, work,
-						h, dep, u, v, tmp_slice, start1_A, count1_A, xmom_range, 2);
+						h, dep, u, v, tmp_slice, start1_A, count1_A, xmom_range, 2, with_land);
 				write_anuga_slice(ncid, ids[11],i_start, j_start, i_end, j_end, ip2, work,
-						h, dep, u, v, tmp_slice, start1_A, count1_A, ymom_range, 3);
+						h, dep, u, v, tmp_slice, start1_A, count1_A, ymom_range, 3, with_land);
 
 				start1_A[0]++;		/* Increment for the next slice */
 			}
@@ -1584,7 +1590,7 @@ void write_most_slice(int *ncid_most, int *ids_most, int i_start, int j_start, i
 /* --------------------------------------------------------------------------- */
 void write_anuga_slice(int ncid, int z_id, int i_start, int j_start, int i_end, int j_end, int nX, 
 		float *work, double *h, double *dep, double *u, double *v, float *tmp,
-		size_t *start, size_t *count, float *slice_range, int idx) {
+		size_t *start, size_t *count, float *slice_range, int idx, int with_land) {
 	/* Write a slice of either STAGE, XMOMENTUM or YMOMENTUM of a Anuga's .sww netCDF file */
 	int i, j, ij, k, ncl;
 
@@ -1592,11 +1598,15 @@ void write_anuga_slice(int ncid, int z_id, int i_start, int j_start, int i_end, 
 	k = 0;
 	for (j = j_start; j < j_end; j++) {
 		if (idx == 1) 			/* Anuga calls this -> stage */
-			for (i = i_start; i < i_end; i++) {
-				/*ij = ijs(i,j,nX);
-				if (work[ij] == 0 && dep[ij] < 0) tmp[k++] = (float)-dep[ij];
-				else 	tmp[k++] = work[ij]; */
-				tmp[k++] = work[ijs(i,j,nX)];
+			if (!with_land)		/* Land nodes are kept = 0 */
+				for (i = i_start; i < i_end; i++)
+					tmp[k++] = work[ijs(i,j,nX)];
+			else {
+				for (i = i_start; i < i_end; i++) {
+					ij = ijs(i,j,nX);
+					if (work[ij] == 0 && dep[ij] < 0) tmp[k++] = (float)-dep[ij];
+					else 	tmp[k++] = work[ij];
+				}
 			}
 
 		else if (idx == 2) {		/* X momentum */
@@ -1633,7 +1643,8 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	int ncid, m, n, nx, ny, status, nVolumes, nPoints, dim0[5], dim2[2], dim3[2];
 	int i, j, k, m_nx, m1_nx, *volumes, *vertices, v1, v2, v3, v4;
 	float dummy2[2], *x, *y, yr, *tmp;
-	double dummy;
+	double dummy, nan, faultPolyX[11], faultPolyY[11], faultSlip[10], faultStrike[10], 
+		faultDip[10], faultRake[10], faultWidth[10], faultDepth[10];
 
 	if ( (status = nc_create (fname_sww, NC_CLOBBER, &ncid)) != NC_NOERR) {
 		mexPrintf ("swan: Unable to create file %s - exiting\n", fname_sww);
@@ -1649,7 +1660,6 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	err_trap (nc_def_dim (ncid, "number_of_points", (size_t) nPoints, &dim0[3]));
 	err_trap (nc_def_dim (ncid, "number_of_timesteps", NC_UNLIMITED, &dim0[4]));
 
-	/*mexPrintf("Write Dimensions\n");*/
 	/* ---- Define variables ------------- */
 	dim2[0] = dim0[4];		dim2[1] = dim0[3];
 	dim3[0] = dim0[0];		dim3[1] = dim0[1];
@@ -1667,7 +1677,6 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	err_trap (nc_def_var (ncid, "ymomentum",	NC_FLOAT,2, dim2, &ids[11]));
 	err_trap (nc_def_var (ncid, "ymomentum_range", 	NC_FLOAT,1, &dim0[2], &ids[12]));
 
-	/*mexPrintf("Write Attributes\n");*/
 	/* ---- Global Attributes ------------ */
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "institution", 10, "Mirone Tec"));
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "description", 22, "Created by Mirone-Swan"));
@@ -1680,9 +1689,23 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "datum", 5, "wgs84"));
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "projection", 3, "UTM"));
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "units", 1, "m"));
+	/* Initialize the following attribs with NaNs. A posterior call will eventualy fill them with the right values */
+	nan = mxGetNaN();
+	for (i = 0; i < 10; i++) {
+		faultPolyX[i] = faultPolyY[i] = faultSlip[i] = faultDip[i] = faultStrike[i] = 
+				faultRake[i] = faultWidth[i] = faultDepth[i] = nan;
+	}
+	faultPolyX[10] = faultPolyY[10] = nan;		/* Those have an extra element */
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyX", NC_DOUBLE, 11, faultPolyX));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyY", NC_DOUBLE, 11, faultPolyY));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultStrike", NC_DOUBLE, 10, faultStrike));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultSlip", NC_DOUBLE, 10, faultSlip));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDip", NC_DOUBLE, 10, faultDip));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultRake", NC_DOUBLE, 10, faultRake));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultWidth", NC_DOUBLE, 10, faultWidth));
+	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDepth", NC_DOUBLE, 10, faultDepth));
 
 	/* ---- Write the vector coords ------ */
-	/*mexPrintf("Write vector coords\n");*/
 	x = (float *) mxMalloc (sizeof (float) * (nx * ny));
 	y = (float *) mxMalloc (sizeof (float) * (nx * ny));
 	vertices = (int *) mxMalloc (sizeof (int) * (nx * ny));
@@ -1727,7 +1750,6 @@ int open_anuga_sww (char *fname_sww, int *ids, int i_start, int j_start, int i_e
 	}
 
 	err_trap (nc_put_var_float (ncid, ids[2], tmp));	/* z */
-	/*mexPrintf("Write Z and Elevation coords\n");*/
 
 	err_trap (nc_put_var_float (ncid, ids[3], tmp));	/* elevation */
 	dummy2[0] = z_min;		dummy2[1] = z_max;
