@@ -165,7 +165,8 @@ function out = findFileType(fname)
 		% (which is where the 'dono's end up) was not so broken.
 		[fid, msg] = fopen(fname, 'r');
 		if (fid < 0)
-			error(['aux_funs:findFileType -> error opening file ', fname])
+			out = 'dono';
+			return
 		end
 		ID = fread(fid,3,'*char');      ID = ID';      fclose(fid);
 		if (strcmp(ID, 'CDF')),			out = 'gmt';
