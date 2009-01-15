@@ -16,35 +16,36 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
- * Revision 18  18/03/2008 Another attempt to patch the broken netCDF driver
- * Revision 17  26/01/2008 Moved the y_min > y_max test to before the correct_bounds case.  
- *                         opt_r (size by pixels) was extracting a grid one row & column too big 
- * Revision 16  29/10/2007 The netCDF driver is still highly broken. Apply patch to make it a bit less bad
- * Revision 15  21/07/2007 Added the -r option. Like -R but uses pixel units
- * Revision 14  24/04/2007 Was crashing when called with a coards NETCDF file and -M
- * 			   Patch to deal with NETCDF driver adfGeoTransform bug
- * Revision 13  09/03/2007 Added MinMax field to the Band struct field
- * Revision 12  22/01/2007 Left-right flip ENVISAT GCPs because they have X positive to left (can we kill the guy?)
- * Revision 11  21/11/2006 Removed globals
- *                         Fixed a bug with pointer name confusion(dptr & dptr2)
- * Revision 10  04/11/2006 The 'ProjectionRef' metadata attempts to report in PrettyWkt
- * Revision 9.0 15/09/2006 Fixed (or at least reduced) the memory leak
- *                         Added the att = gdalread('','-M'); form. only att.Drivers is non-empty 
- * Revision 8.0 12/09/2006 Added the "Subdatasets" & "ImageStructure" to the attributes struct
- * Revision 7.0 11/09/2006 Requested bands could be larger than actual number of bands
- *                         Ignore option -C (scale) if data is already unsigned int
- * Revision 6.0 05/09/2006 Added the GCPs and Metadata to the attributes structure
- * Revision 5.0 08/05/2006 Added Color Table to the attributes structure
- * Revision 4.0 01/02/2006 Corrected uggly bug in index computations
- *			   Added -B option
- *			   Acelareted the indeces computation
- * Revision 3.0 07/06/2005 Added the -R (GMT style) option.
- * Revision 2.0 28/02/2005 Improved memory usage.
- *			   Passing options via -M<echanism>
- *			   Added a "insitu" option
- *			   Outputs an attribute structure with Dataset metadata
- *			   Taken (and modified) from mexgdal of John Evans (johnevans@acm.org)
- * Revision 1.0  25/6/2003 Joaquim Luis
+ * Revision 19 15/01/2009 Added the "Name" field to the attributes struct
+ * Revision 18 18/03/2008 Another attempt to patch the broken netCDF driver
+ * Revision 17 26/01/2008 Moved the y_min > y_max test to before the correct_bounds case.  
+ *                        opt_r (size by pixels) was extracting a grid one row & column too big 
+ * Revision 16 29/10/2007 The netCDF driver is still highly broken. Apply patch to make it a bit less bad
+ * Revision 15 21/07/2007 Added the -r option. Like -R but uses pixel units
+ * Revision 14 24/04/2007 Was crashing when called with a coards NETCDF file and -M
+ * 			  Patch to deal with NETCDF driver adfGeoTransform bug
+ * Revision 13 09/03/2007 Added MinMax field to the Band struct field
+ * Revision 12 22/01/2007 Left-right flip ENVISAT GCPs because they have X positive to left (can we kill the guy?)
+ * Revision 11 21/11/2006 Removed globals
+ *                        Fixed a bug with pointer name confusion(dptr & dptr2)
+ * Revision 10 04/11/2006 The 'ProjectionRef' metadata attempts to report in PrettyWkt
+ * Revision  9 15/09/2006 Fixed (or at least reduced) the memory leak
+ *                        Added the att = gdalread('','-M'); form. only att.Drivers is non-empty 
+ * Revision  8 12/09/2006 Added the "Subdatasets" & "ImageStructure" to the attributes struct
+ * Revision  7 11/09/2006 Requested bands could be larger than actual number of bands
+ *                        Ignore option -C (scale) if data is already unsigned int
+ * Revision  6 05/09/2006 Added the GCPs and Metadata to the attributes structure
+ * Revision  5 08/05/2006 Added Color Table to the attributes structure
+ * Revision  4 01/02/2006 Corrected uggly bug in index computations
+ *			  Added -B option
+ *			  Acelareted the indeces computation
+ * Revision  3 07/06/2005 Added the -R (GMT style) option.
+ * Revision  2 28/02/2005 Improved memory usage.
+ *			  Passing options via -M<echanism>
+ *			  Added a "insitu" option
+ *			  Outputs an attribute structure with Dataset metadata
+ *			  Taken (and modified) from mexgdal of John Evans (johnevans@acm.org)
+ * Revision  1 25/6/2003  Joaquim Luis
  *
  */
 
@@ -835,6 +836,9 @@ void grd_FLIPUD_F32(float data[], int nx, int ny) {
  *    Metadata:
  *        A cell array with the metadata associated to the dataset. In most cases it will be empty
  *
+ *    Name:
+ *        A string with the name of was is being open, which can be the main file or a subdataset
+ *
  * */
 mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int pixel_reg, int got_R, 
 				int nXSize, int nYSize, double dfULX, double dfULY, double dfLRX, 
@@ -911,7 +915,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* ------------------------------------------------------------------------- */
 	/* Create the metadata structure. Just one element, with XXX fields. */
 	/* ------------------------------------------------------------------------- */
-	num_struct_fields = 18;
+	num_struct_fields = 19;
 	fieldnames[0] = strdup ("ProjectionRef");
 	fieldnames[1] = strdup ("GeoTransform");
 	fieldnames[2] = strdup ("DriverShortName");
@@ -930,6 +934,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	fieldnames[15] = strdup("Metadata");
 	fieldnames[16] = strdup("Subdatasets");
 	fieldnames[17] = strdup("ImageStructure");
+	fieldnames[18] = strdup("Name");
 	metadata_struct = mxCreateStructMatrix ( 1, 1, num_struct_fields, (const char **)fieldnames );
 
 	num_driver_fields = 2;
@@ -989,7 +994,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 
 	status = record_geotransform ( gdal_filename, hDataset, adfGeoTransform );
 	if (!strcmp(GDALGetDriverShortName(GDALGetDatasetDriver(hDataset)),"netCDF") && 
-		    GDAL_VERSION_NUM <= 1450) {
+		    GDAL_VERSION_NUM <= 1600) {
 		adfGeoTransform[3] *= -1;
 		adfGeoTransform[5] *= -1;
 	}
@@ -1369,6 +1374,11 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	}
 	mxSetField (metadata_struct, 0, "ImageStructure", mxtmp);
 
+	/* ------------------------------------------------------------------------- */
+	/* Record Name
+	/* ------------------------------------------------------------------------- */
+	mxSetField( metadata_struct, 0, "Name", mxCreateString( gdal_filename ) );
+
 	GDALClose ( hDataset );
 
 	return ( metadata_struct );
@@ -1393,7 +1403,7 @@ int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double
 	if( GDALGetGeoTransform( hDataset, adfGeoTransform ) == CE_None ) {
         	pszProjection = GDALGetProjectionRef(hDataset);
 		if (!strcmp(GDALGetDriverShortName(GDALGetDatasetDriver(hDataset)),"netCDF") && 
-			    GDAL_VERSION_NUM <= 1450) {
+			    GDAL_VERSION_NUM <= 1600) {
 			adfGeoTransform[3] *= -1;
 			adfGeoTransform[5] *= -1;
 		}
