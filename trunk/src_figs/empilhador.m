@@ -1,12 +1,40 @@
 function varargout = empilhador(varargin)
 % Stacks a bunch of grids into a single 3D file
 % (It used to be called zonal_integrator)
+%
+% WARNING: FOR COMPILING THIS WE NEED TO INCLUDE THE HDF_FUNS.M SRC
+%
+% NOTE: The gotFromMETA and getZ functions are called directly by mirone
 
+%	Copyright (c) 2004-2009 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
+	if (nargin > 1 && ischar(varargin{1}))
+		gui_Callback = str2func(varargin{1});
+		[varargout{1:nargout}] = feval(gui_Callback,varargin{2:end});
+	else
+		h = empilhador_OpeningFcn(varargin{:});
+		if (nargout)    varargout{1} = h;   end
+	end
+
+% ---------------------------------------------------------------------------------
+function hObject = empilhador_OpeningFcn(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	empilhador_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	movegui(hObject,'east')
- 
+
 	if (numel(varargin) > 0)
 		handMir = varargin{1};
 		handles.home_dir = handMir.home_dir;
@@ -39,16 +67,16 @@ function varargout = empilhador(varargin)
 
 	set(hObject,'Visible','on');
 	guidata(hObject, handles);
-	if (nargout),   varargout{1} = hObject;     end
+	if (nargout),	varargout{1} = hObject;     end
 
 % -----------------------------------------------------------------------------------------
-function edit_namesList_Callback(hObject, eventdata, handles)
+function edit_namesList_CB(hObject, handles)
     fname = get(hObject,'String');
-    push_namesList_Callback([], [], handles, fname)
+    push_namesList_CB([], handles, fname)
 
 % -----------------------------------------------------------------------------------------
-function push_namesList_Callback(hObject, eventdata, handles, opt)
-    if (nargin == 3)        % Direct call
+function push_namesList_CB(hObject, handles, opt)
+    if (nargin == 2)        % Direct call
     	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
         [FileName,PathName] = put_or_get_file(handles, str1,'File with grids list','get');
 	    if isequal(FileName,0),		return,		end
@@ -103,7 +131,7 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
 				n_msg = n_msg + 1;
 				continue
 			end
-			handles.strTimes{k} = k;
+			handles.strTimes{k} = sprintf('%d',k);
 		end
 	end
 
@@ -129,7 +157,7 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
 		for (k=1:m)
 			c(k) = (exist(names{k},'file') ~= 2);		% Flag to kill all non-existant files
 		end
-		names(c) = [];      handles.shortNameList(c) = [];
+		names(c) = [];		handles.shortNameList(c) = [];
 	end
 
 	handles.nameList = names;
@@ -137,31 +165,32 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
 	set(handles.edit_namesList, 'String', fname)
 	set(handles.listbox_list,'String',handles.shortNameList)
 	guidata(handles.figure1,handles)
+	set(handles.figure1,'pointer','arrow')
 	
 	if (isempty(names))
 		warndlg('As you may have already realized, the goodness of the name list provied is ... fiu, fiu, fiu!','Warning')
 	end
 
 % -----------------------------------------------------------------------------------------
-function radio_conv2netcdf_Callback(hObject, eventdata, handles)
+function radio_conv2netcdf_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','off')
 	set([handles.radio_zonalInteg handles.radio_conv2vtk],'Val',0)
 
 % -----------------------------------------------------------------------------------------
-function radio_conv2vtk_Callback(hObject, eventdata, handles)
+function radio_conv2vtk_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','off')
 	set([handles.radio_zonalInteg handles.radio_conv2netcdf],'Val',0)
 
 % -----------------------------------------------------------------------------------------
-function radio_zonalInteg_Callback(hObject, eventdata, handles)
+function radio_zonalInteg_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','on')
 	set([handles.radio_conv2netcdf handles.radio_conv2vtk],'Val',0)
 
 % -----------------------------------------------------------------------------------------
-function check_region_Callback(hObject, eventdata, handles)
+function check_region_CB(hObject, handles)
 	if (get(hObject,'Val'))
 		set([handles.edit_north handles.edit_south handles.edit_west handles.edit_east],'Enable','on')
 	else
@@ -169,7 +198,7 @@ function check_region_Callback(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function edit_north_Callback(hObject, eventdata, handles)
+function edit_north_CB(hObject, handles)
 	x1 = str2double(get(hObject,'String'));
 	if (isnan(x1)),		set(hObject,'String',''),	return,		end
 	x2 = get(handles.edit_south,'String');
@@ -182,7 +211,7 @@ function edit_north_Callback(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function edit_south_Callback(hObject, eventdata, handles)
+function edit_south_CB(hObject, handles)
 	x1 = str2double(get(hObject,'String'));
 	if (isnan(x1)),		set(hObject,'String',''),	return,		end
 	x2 = get(handles.edit_north,'String');
@@ -195,7 +224,7 @@ function edit_south_Callback(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function edit_west_Callback(hObject, eventdata, handles)
+function edit_west_CB(hObject, handles)
 	x1 = str2double(get(hObject,'String'));
 	if (isnan(x1)),		set(hObject,'String',''),	return,		end
 	x2 = get(handles.edit_east,'String');
@@ -208,7 +237,7 @@ function edit_west_Callback(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function edit_east_Callback(hObject, eventdata, handles)
+function edit_east_CB(hObject, handles)
 	x1 = str2double(get(hObject,'String'));
 	if (isnan(x1)),		set(hObject,'String',''),	return,		end
 	x2 = get(handles.edit_west,'String');
@@ -221,25 +250,25 @@ function edit_east_Callback(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function listbox_list_Callback(hObject, eventdata, handles)
+function listbox_list_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------------
-function edit_stripeWidth_Callback(hObject, eventdata, handles)
+function edit_stripeWidth_CB(hObject, handles)
 	x1 = str2double(get(hObject,'String'));
 	if (isnan(x1)),		set(hObject,'String','0.5'),	end
 
 % -----------------------------------------------------------------------------------------
-function radio_lat_Callback(hObject, eventdata, handles)
+function radio_lat_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set(handles.radio_lon,'Val',0)
 
 % -----------------------------------------------------------------------------------------
-function radio_lon_Callback(hObject, eventdata, handles)
+function radio_lon_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set(handles.radio_lat,'Val',0)
 
 % -----------------------------------------------------------------------------------------
-function push_compute_Callback(hObject, eventdata, handles)
+function push_compute_CB(hObject, handles)
 % ...
 	if (isempty(handles.nameList))
 		errordlg('Yes, Com-Pute and Sem-Pute -- as you like. Empty filename list.','ERROR'),		return
@@ -268,12 +297,12 @@ function push_compute_Callback(hObject, eventdata, handles)
 	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim] = ...
 			get_headerInfo(handles, got_R, west, east, south, north);
 
-	att = read_gdal(handles.nameList{1},'-M','-C');
+	att = read_gdal(handles.nameList{1}, [], '-M','-C');
 
 	if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 		ind = strfind(att.Subdatasets{1}, '=');
 		FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
-		att = read_gdal(FileName,'-M','-C');			% Try again
+		att = read_gdal(FileName,[],'-M','-C');			% Try again
 		handles.nameList{1} = FileName;					% This way the first time in loop for below will access the subdataset
 	end
 
@@ -303,9 +332,9 @@ function push_compute_Callback(hObject, eventdata, handles)
 		if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 			ind = strfind(att.Subdatasets{1}, '=');
 			FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
-			[Z,att] =  read_gdal(FileName, '-U', '-C', opt_R);
+			[Z,att] =  read_gdal(FileName, [], '-U', '-C', opt_R);
 		else
-			Z =  read_gdal(handles.nameList{k}, '-U', '-C', opt_R);
+			Z =  read_gdal(handles.nameList{k}, att, '-U', '-C', opt_R);
 		end
 		this_has_nans = false;
 		if (is_modis)
@@ -398,41 +427,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			end
 		end
 
-		[Z,att] = read_gdal(handles.nameList{k}, '-U', '-C', opt_R);
-
-		ind = [];
-		if (is_modis)
-			ind = (Z == 65535);
-		elseif ( ~isempty(att.Band(1).NoDataValue) && (att.Band(1).NoDataValue == -9999) )		% TEMP -> PATHFINDER
-			if ( ~isempty(att.Metadata) && strcmp(att.Metadata{2}, 'dsp_SubImageName=QUAL') )
-				% Quality flags files cannot be NaNified. 
-				% However, they should NOT have a scaling equation either. If quality is [0 7] why scalling?
-				is_linear = false;
-				% Furthermore, we also need to recast the flag array into int8 (it was uint8) because netCDF doesn't know UINT8
-				Z = int8(Z);
-			else
-				ind = (Z == 0);
-			end
-		elseif ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) )
-			ind = (Z == (att.Band(1).NoDataValue));
-		elseif (isnan(att.Band(1).NoDataValue))		% The nodata is NaN, replace NaNs in Z by zero
-			ind = isnan(Z);
-		end
-
-		% See if we must apply a scaling equation
-		if (is_linear)
-			Z = single(double(Z) * slope + intercept);
-		elseif (is_log)
-			Z = single(base .^ (double(Z) * slope + intercept));
-		end
-		handles.have_nans = 0;
-		if (~isempty(ind))
-			if (~isa(Z,'single') || ~isa(Z,'double'))		% Otherwise NaNs would be converted to 0
-				Z = single(Z);
-			end
-			Z(ind) = NaN;	handles.have_nans = 1;
-		end
-		%Z(Z > 5) = 5;			% <==== CLIPING
+		% In the following, if any of slope, intercept or base changes from file to file ... f
+		[Z, handles.have_nans, att] = getZ(handles.nameList{k}, [], is_modis, is_linear, is_log, slope, intercept, base, opt_R);
 
 		if (get(handles.radio_conv2vtk,'Val'))				% Write this layer of the VTK file and continue
 			write_vtk(fid, grd_out, Z);
@@ -473,24 +469,22 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	set(handles.figure1,'pointer','arrow')
 
 % -----------------------------------------------------------------------------------------
-function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim] = ...
+function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim, att] = ...
 			get_headerInfo(handles, got_R, west, east, south, north)
 % ...
-	opt_R = ' ';	is_modis = false;		is_linear = false;		is_log = false;		base = 0;
 
-	att = read_gdal(handles.nameList{1},'-M','-C');
+	att = read_gdal(handles.nameList{1}, [], '-M','-C');	% Do this because it deals also with ziped files
 
-	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) && strcmp(att.DriverShortName, 'HDF4') )		% Some MODIS files
+	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) && strncmp(att.DriverShortName, 'HDF4', 4) )		% Some MODIS files
 		ind = strfind(att.Subdatasets{1}, '=');
 		FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
-		att = gdalread(FileName,'-M','-C');				% Try again
+		att = gdalread(FileName,'-M','-C');				% Try again (it will probabçy fail on ziped files)
 	end
 
 	% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
 	if ( isequal([att.Corners.LR - att.Corners.UL],[att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
 		att.GMT_hdr(1:4) = [1 att.RasterXSize 1 att.RasterYSize];
 	end
-	head = att.GMT_hdr;
 
 	if (get(handles.radio_lon, 'Val'))
 		N_spatialSize = att.RasterYSize;		% Number of points in the spatial dim
@@ -499,6 +493,27 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 		N_spatialSize = att.RasterXSize;
 		integDim = 1;
 	end
+
+	att.fname = handles.nameList{1};			% This case needs it
+	[head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R] = ...
+		getFromMETA(att, got_R, handles, west, east, south, north);
+
+% -----------------------------------------------------------------------------------------
+function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R] = ...
+	getFromMETA(att, got_R, handles, west, east, south, north)
+% Get complementary data from an att struct. This is mostly a helper function to get_headerInfo()
+% but it is detached from it because in this way it can be called by exterir code. Namelly by Mirone.
+% The cases addressed here are some ones raised by HDF files.
+% WARNING: the ATT struct must have and extra field att.fname (to be eventualy used by hdfread)
+% NOTE: When called from outside (e.g Mirone) use only the [...] = getFromMETA(att) form
+% NOTE: For HDF files the ATT struct will be added the field 'hdrInfo' (returned when hdrfinfo)
+
+	if (nargin == 1),	got_R = false;		end
+
+	opt_R = ' ';	is_modis = false;		is_linear = false;		is_log = false;
+	slope = 1;		intercept = 0;			base = 1;
+	att.hdrInfo = [];
+	head = att.GMT_hdr;
 
 	if ( ~isempty(att.Metadata) && ~isempty(strfind(att.Metadata{2}, 'MODIS')) && strfind(att.Metadata{2}, 'MODIS'))
 		modis_or_seawifs = true;
@@ -513,15 +528,17 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 		y_min = str2double(att.Metadata{40}(23:end));		% att.Metadata{40} -> Southernmost Latitude=90
 		x_min = str2double(att.Metadata{41}(23:end));		% att.Metadata{41} -> Westernmost Longitude=-180
 		x_max = str2double(att.Metadata{42}(23:end));		% att.Metadata{41} -> Easternmost Longitude=-180
-		columns = str2double(att.Metadata{49}(19:end));		% att.Metadata{49} -> Number of Columns=4320
-		dx = (x_max - x_min) / columns;
+		dx = (x_max - x_min) / att.RasterXSize;
 		dy = dx;
 		x_min = x_min + dx/2;		x_max = x_max - dx/2;	% Orig data was pixel registered
 		y_min = y_min + dx/2;		y_max = y_max - dx/2;
 		head(1:4) = [x_min x_max y_min y_max];
 		head(8:9) = dx;
+		att.GMT_hdr(1:4) = head(1:4);	% We need this updated
+		att.Corners.UL = [x_min y_max];			
+		att.Corners.LR = [x_max y_min];			
 		if (got_R)			% We must give the region in pixels since the image is trully not georeferenced
-			rows = str2double(att.Metadata{48}(17:end));	% att.Metadata{48} -> Number of Lines=2160
+			rows = att.RasterYSize;
 		end
 		head(7) = 0;		% Make sure that grid reg is used
 
@@ -538,36 +555,67 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 		end
 		is_modis = true;			% We'll use this knowledge to 'avoid' Land pixels = 65535
 	elseif ( strncmp(att.DriverShortName, 'HDF4', 4) && ~modis_or_seawifs )		% TEMP -> SST PATHFINDER
-		finfo = hdfinfo(handles.nameList{1});
-		slope = double(finfo.SDS.Attributes(11).Value);		% = 0.075;
-		intercept = double(finfo.SDS.Attributes(12).Value);	% = -3.0;
+		finfo = hdf_funs('hdfinfo', att.fname);
+		if (strcmpi(finfo.SDS.Attributes(11).Name, 'slope'))
+			slope = double(finfo.SDS.Attributes(11).Value);		% = 0.075;
+			intercept = double(finfo.SDS.Attributes(12).Value);	% = -3.0;
+		else
+			out = search_scaleOffset(finfo.SDS.Attributes, 'slope');
+			if (~isempty(out))		% Otherwise, no need to search for a 'intercept'
+				slope = out;
+				out = search_scaleOffset(finfo.SDS.Attributes, 'intercept');
+				if (~isempty(out)),		intercept = out;	end
+			end
+			if (slope == 1)			% We may have a netCDF style naming. Check
+				out = search_scaleOffset(finfo.SDS.Attributes, 'scale_factor');
+				if (~isempty(out))
+					slope = out;
+					out = search_scaleOffset(finfo.SDS.Attributes, 'add_offset');
+					if (~isempty(out)),		intercept = out;	end
+				end
+			end
+		end
 		lat = finfo.SDS.Dims(1).Scale;		% Get the latitudes
 		lon = finfo.SDS.Dims(2).Scale;		% Get the longitudes
-		x_min = lon(1);			x_max = lon(end);
-		y_min = lat(end);		y_max = lat(1);
+		if (isnumeric(lat))
+			x_min = lon(1);			x_max = lon(end);
+			y_min = min(lat(1),lat(end));
+			y_max = max(lat(1),lat(end));
+			att.GMT_hdr(1:4) = [x_min x_max y_min y_max];	% We need this updated
+			att.Corners.UL = [x_min y_max];			
+			att.Corners.LR = [x_max y_min];			
+			dx = lon(3) - lon(2);	dy = abs(lat(3) - lat(2));
+		else				% If not, use array size as coordinates
+			x_min = 1;		x_max = finfo.SDS.Dims(2).Size;
+			y_min = 1;		y_max = finfo.SDS.Dims(1).Size;
+			dx = 1;			dy = 1;
+		end
 		head(1:4) = [x_min x_max y_min y_max];
-		dx = lon(3) - lon(2);	dy = dx;
-		head(8:9) = dx;
+		head(8:9) = [dx dy];
 		if (got_R)			% We must give the region in pixels since the image is trully not georeferenced
 			rows = finfo.SDS.Dims(1).Size;					% Number of rows
 		end
 		head(7) = 0;		% Make sure that grid reg is used
 		is_linear = true;
+		att.hdrInfo = finfo;
 	else					% Other types
-		if (got_R)
-			rows = att.RasterYSize;
-		end
+		if (got_R),		rows = att.RasterYSize;		end
 		x_min = head(1);	y_min = head(3);
 		dx = head(8);		dy = head(9);
-		slope = 1;
-		intercept = 0;
 	end
 
 	% If user wants a sub-region
 	if (got_R)			% We must give the region in pixels since the image is trully not georeferenced (comment for nasa HDF)
 		cp = round(([west east] - x_min) / dx);
 		rp = round(([south north] - y_min) / dx);
-		rp(rp < 0) = 0;			cp(cp < 0) = 0;
+		if (cp(1) < 0 || cp(2) > att.RasterXSize)		% Almost sure it should be >=
+			msg = 'Sub-region West/Est is outside that grid''s limits';
+			errordlg(msg, 'ERROR'),		error(msg)
+		end
+		if (rp(1) < 0 || rp(2) > att.RasterYSize)		% Almost sure it should be >=
+			msg = 'Sub-region South/North is outside that grid''s limits';
+			errordlg(msg, 'ERROR'),		error(msg)
+		end
 		head(1) = x_min + cp(1)*dx;		head(2) = x_min + cp(2)*dx;
 		head(3) = y_min + rp(1)*dy;		head(4) = y_min + rp(2)*dy;
 		rp = rows - rp -1;		rp = [rp(2) rp(1)];
@@ -577,10 +625,64 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 		end
 	end
 
+% ----------------------------------------------------------------------------------------
+function out = search_scaleOffset(attributes, what)
+% Search for the WHAT attribute in ATTRIBUTES. If find return its VALUE.
+% Used to search for slope/intercept or scale_factor/add_offset in HDF files
+	out = [];
+	for (k = numel(attributes):-1:1)					% Start from the bottom because they are likely close to it 
+		if ( strcmpi(attributes(k).Name, what) )
+			out = double(attributes(k).Value);			break
+		end
+	end
+
 % -----------------------------------------------------------------------------------------
-function [Z, att] = read_gdal(full_name, varargin)
+function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R)
+% ATT may be still unknown (empty). In that case it will be returned by read_gdal()
+
+	if (nargin < 9),	opt_R = ' ';	end
+	[Z,att] = read_gdal(fname, att, '-U', '-C', opt_R);
+
+	ind = [];
+	if (is_modis)
+		ind = (Z == 65535);
+	elseif ( ~isempty(att.Band(1).NoDataValue) && (att.Band(1).NoDataValue == -9999) )		% TEMP -> PATHFINDER
+		if ( ~isempty(att.Metadata) && strcmp(att.Metadata{2}, 'dsp_SubImageName=QUAL') )
+			% Quality flags files cannot be NaNified. 
+			% However, they should NOT have a scaling equation either. If quality is [0 7] why scalling?
+			is_linear = false;
+			% Furthermore, we also need to recast the flag array into int8 (it was uint8) because netCDF doesn't know UINT8
+			Z = int8(Z);
+		else
+			ind = (Z == 0);
+		end
+	elseif ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) )
+		ind = (Z == (att.Band(1).NoDataValue));
+	elseif (isnan(att.Band(1).NoDataValue))		% The nodata is NaN, replace NaNs in Z by zero
+		ind = isnan(Z);
+	end
+
+	% See if we must apply a scaling equation
+	if (is_linear && (slope ~= 1 || intercept ~= 0))
+		if (~isa(Z,'single')),		Z = single(Z);		end
+		cvlib_mex('CvtScale',Z, slope, intercept)
+	elseif (is_log)
+		Z = single(base .^ (double(Z) * slope + intercept));
+	end
+	have_nans = 0;
+	if (~isempty(ind))
+		if (~isa(Z,'single') || ~isa(Z,'double'))		% Otherwise NaNs would be converted to 0
+			Z = single(Z);
+		end
+		Z(ind) = NaN;		have_nans = 1;
+	end
+
+% -----------------------------------------------------------------------------------------
+function [Z, att] = read_gdal(full_name, att, varargin)
 % Help function to gdalread that deals with cases when file is compressed.
+% ATT is the GDALREAD returned attributes. If empty, we'll get it here
 % VARARGIN will normally contain one or more of '-U', '-C', '-M', opt_R
+% WARNING: If exist(att.hdfInfo) than att.fname should exist as well (both non standard)
 
 	str_d = [];		do_warn = 'true';		cext = [];		% Some defaults
 	
@@ -603,22 +705,32 @@ function [Z, att] = read_gdal(full_name, varargin)
 		if ~(isequal(s,0))                  % An error as occured
 			errordlg(['Error decompressing file ' full_name],'Error');
 			if (do_warn),   aguentabar(1,'title','By'),		end
-			return
+			error(['Error decompressing file ' full_name])
 		end
 		if (do_warn),	aguentabar(1,'title','Donne'),		end
 		full_name = out_name;				% The uncompressed file name
 	end
 
-	att = gdalread(full_name, '-M');		% This first call is used in the next test
-	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) && strcmp(att.DriverShortName, 'HDF4') )		% Some MODIS files
+	if (isempty(att))
+		att = gdalread(full_name, '-M');		% This first call is used in the next test
+	end
+
+	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) && strncmp(att.DriverShortName, 'HDF4', 4) )		% Some MODIS files
 		ind = strfind(att.Subdatasets{1}, '=');
 		full_name = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
 	end
 
-	if (nargout == 2)
-		[Z, att] = gdalread(full_name, varargin{:});
+	% att.hdrInfo is not a default field of the ATT struct
+	if (isfield(att, 'hdrInfo') && ~isempty(att.hdrInfo) && (strcmp(att.hdrInfo.SDS.Name,'sst')) )
+		% Only particular case dealt now
+		Z = hdf_funs('hdfread', att.fname, att.hdrInfo.SDS.Name, 'index', {[1 1],[1 1], [att.RasterYSize att.RasterXSize]});
+		Z = flipud(Z);
 	else
-		Z = gdalread(full_name, varargin{:});
+		if (nargout == 2)
+			[Z, att] = gdalread(full_name, varargin{:});	% This ATT might be of a subdataset
+		else
+			Z = gdalread(full_name, varargin{:});
+		end
 	end
 
 	if (~isempty(str_d)),	delete(out_name);	end		% Delete uncompressed file.
@@ -685,19 +797,19 @@ uicontrol('Parent',h1,'Position',[356 122 20 15],'String','N','Style','text');
 
 uicontrol('Parent',h1,'Position',[6 254 401 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@empilhador_uicallback,h1,'edit_namesList_Callback'},...
+'Callback','empilhador(''edit_namesList_CB'',gcbo,guidata(gcbo))',...
 'HorizontalAlignment','left',...
 'Style','edit',...
 'TooltipString','Name of an ascii file with the grids list. One grid name per row',...
 'Tag','edit_namesList');
 
 uicontrol('Parent',h1,'Position',[407 252 23 23],...
-'Callback',{@empilhador_uicallback,h1,'push_namesList_Callback'},...
+'Callback','empilhador(''push_namesList_CB'',gcbo,guidata(gcbo))',...
 'TooltipString','Browse for a grids list file',...
 'Tag','push_namesList');
 
 uicontrol('Parent',h1, 'Position',[244 233 150 15],...
-'Callback',{@empilhador_uicallback,h1,'radio_conv2netcdf_Callback'},...
+'Callback','empilhador(''radio_conv2netcdf_CB'',gcbo,guidata(gcbo))',...
 'String','Convert to 3D netCDF file',...
 'Style','radiobutton',...
 'TooltipString','Take a list of files and create a single 3D netCDF file',...
@@ -705,7 +817,7 @@ uicontrol('Parent',h1, 'Position',[244 233 150 15],...
 'Tag','radio_conv2netcdf');
 
 uicontrol('Parent',h1, 'Position',[244 214 150 15],...
-'Callback',{@empilhador_uicallback,h1,'radio_conv2vtk_Callback'},...
+'Callback','empilhador(''radio_conv2vtk_CB'',gcbo,guidata(gcbo))',...
 'String','Convert to 3D VTK file',...
 'Style','radiobutton',...
 'TooltipString','Take a list of files and create a single 3D VTK file',...
@@ -713,7 +825,7 @@ uicontrol('Parent',h1, 'Position',[244 214 150 15],...
 'Tag','radio_conv2vtk');
 
 uicontrol('Parent',h1, 'Position',[244 195 130 15],...
-'Callback',{@empilhador_uicallback,h1,'radio_zonalInteg_Callback'},...
+'Callback','empilhador(''radio_zonalInteg_CB'',gcbo,guidata(gcbo))',...
 'String','Do zonal integration',...
 'Style','radiobutton',...
 'TooltipString','Take a list of files and compute a zonal average file',...
@@ -721,14 +833,14 @@ uicontrol('Parent',h1, 'Position',[244 195 130 15],...
 
 uicontrol('Parent',h1,'Position',[271 166 51 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@empilhador_uicallback,h1,'edit_stripeWidth_Callback'},...
+'Callback','empilhador(''edit_stripeWidth_CB'',gcbo,guidata(gcbo))',...
 'String','0.5',...
 'Style','edit',...
 'TooltipString','Width of the stripe over which integration is carried on',...
 'Tag','edit_stripeWidth');
 
 uicontrol('Parent',h1,'Position',[335 169 50 15],...
-'Callback',{@empilhador_uicallback,h1,'radio_lon_Callback'},...
+'Callback','empilhador(''radio_lon_CB'',gcbo,guidata(gcbo))',...
 'String','Long',...
 'Style','radiobutton',...
 'TooltipString','Integrate in Longitude',...
@@ -736,14 +848,14 @@ uicontrol('Parent',h1,'Position',[335 169 50 15],...
 'Tag','radio_lon');
 
 uicontrol('Parent',h1,'Position',[390 169 40 15],...
-'Callback',{@empilhador_uicallback,h1,'radio_lat_Callback'},...
+'Callback','empilhador(''radio_lat_CB'',gcbo,guidata(gcbo))',...
 'String','Lat',...
 'Style','radiobutton',...
 'TooltipString','Integrate in Latitude',...
 'Tag','radio_lat');
 
 uicontrol('Parent',h1,'Position',[250 133 110 15],...
-'Callback',{@empilhador_uicallback,h1,'check_region_Callback'},...
+'Callback','empilhador(''check_region_CB'',gcbo,guidata(gcbo))',...
 'String','Use sub-region?',...
 'Style','checkbox',...
 'TooltipString','Perform computations inside a data sub-region',...
@@ -751,47 +863,43 @@ uicontrol('Parent',h1,'Position',[250 133 110 15],...
 
 uicontrol('Parent',h1,'Position',[300 104 71 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@empilhador_uicallback,h1,'edit_north_Callback'},...
+'Callback','empilhador(''edit_north_CB'',gcbo,guidata(gcbo))',...
 'Enable','off',...
 'Style','edit',...
 'Tag','edit_north');
 
 uicontrol('Parent',h1,'Position',[250 79 71 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@empilhador_uicallback,h1,'edit_west_Callback'},...
+'Callback','empilhador(''edit_west_CB'',gcbo,guidata(gcbo))',...
 'Enable','off',...
 'Style','edit',...
 'Tag','edit_west');
 
 uicontrol('Parent',h1,'Position',[350 79 71 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@empilhador_uicallback,h1,'edit_east_Callback'},...
+'Callback','empilhador(''edit_east_CB'',gcbo,guidata(gcbo))',...
 'Enable','off',...
 'Style','edit',...
 'Tag','edit_east');
 
 uicontrol('Parent',h1,'Position',[300 54 71 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@empilhador_uicallback,h1,'edit_south_Callback'},...
+'Callback','empilhador(''edit_south_CB'',gcbo,guidata(gcbo))',...
 'Enable','off',...
 'Style','edit',...
 'Tag','edit_south');
 
 uicontrol('Parent',h1,'Position',[6 9 225 236],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@empilhador_uicallback,h1,'listbox_list_Callback'},...
+'Callback','empilhador(''listbox_list_CB'',gcbo,guidata(gcbo))',...
 'Style','listbox',...
 'Value',1,...
 'Tag','listbox_list');
 
 uicontrol('Parent',h1,'Position',[340 5 90 23],...
-'Callback',{@empilhador_uicallback,h1,'push_compute_Callback'},...
+'Callback','empilhador(''push_compute_CB'',gcbo,guidata(gcbo))',...
 'FontName','Helvetica',...
 'FontSize',9,...
 'FontWeight','bold',...
 'String','Compute',...
 'Tag','push_compute');
-
-function empilhador_uicallback(hObject, eventdata, h1, callback_name)
-% This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
