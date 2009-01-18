@@ -21,17 +21,17 @@ function aquaPlugin(handles)
 			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
 			};
 
-	qual = casos{1};		% <== Active selection
+	qual = casos{2};		% <== Active selection
 
 	switch qual
 		case 'zonal'				% case 1
 			integ_lon = true;
-			dlat = 0.5;
+			dlat = 1.0;
  			have_polygon = true;
-			trends = false;			% If true compute the trends (per stripe) of the zonal integration
+			trends = true;			% If true compute the trends (per stripe) of the zonal integration
 			fname = 'plataforma_poly.dat';		% If this name is uncorrect, another will be asked
 			fnam2 = 'plataforma_offset_poly.dat';		% If it exists, compute difference of zonal integrations
-			fnam2 = 'rectangle.dat';	fnam2= [];
+			fnam2 = 'poly_largo.dat';	%fnam2= [];
 			zonal(handles, dlat, integ_lon, trends, have_polygon, fname, fnam2)
 		case 'tvar'					% case 2
 			calcGrad(handles) 
@@ -39,12 +39,12 @@ function aquaPlugin(handles)
 			ano = 1:12;				% Compute yearly means
 			calc_yearMean(handles, ano)
 		case 'yearMeanFlag'			% case 4
-			ano = 1:12;				% Compute yearly means
+			ano = [1:6 10:12];			% Compute yearly (ano = 1:12) or seasonal means (ano = start_month:end_month)
 			fname  = 'C:\SVN\mironeWC\qual_85_07.nc';
 			quality = 6;			% Retain only values of quality >= this
 			pintAnoes = true;		% If true instruct to fill holes <= nCells
 			nCells = 1000;			% Holes (bad data) smaller than this are filled by interpolation
-			splina = true;			% Fill missing monthly data by a spline interpolation taken over an year
+			splina = true;			% Fill missing monthly data by a spline interpolation taken over two years
 			% Where to save track of filled holes. Ignored if pintAnoes = false OR fname3 = []
 			fname3 = 'C:\SVN\mironeWC\qual7_85_07_Interp200_Q6.nc';
 			fname3 = [];
@@ -194,20 +194,30 @@ function calcGrad(handles)
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
 	anos = handles.number_of_timesteps;
-	anos = anos - 2;
+% 	anos = anos - 1;
 	Tmed = zeros([rows, cols, anos]);	% Temp media para cada um dos anos
 	for (m = 1:anos)
-% 		Tmed(:,:,m) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m-1 0 0], [1 rows cols]);
-		Tmed(:,:,m) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m 0 0], [1 rows cols]);
+ 		Tmed(:,:,m) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m-1 0 0], [1 rows cols]);
+% 		Tmed(:,:,m) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m 0 0], [1 rows cols]);
 	end
 
-	aguentabar(0,'title','Calcula o gradiente','CreateCancelBtn')
-	
+	aguentabar(0,'title','Compute the Time rate','CreateCancelBtn')
+
 	Tvar = zeros(rows,cols);
 	x = (0:anos-1)';
 	for (m = 1:rows)
 		for (n = 1:cols)
-			p = polyfit(x,squeeze(Tmed(m,n,:)),1);
+			y = squeeze(Tmed(m,n,:));
+			ind = isnan(y);
+			y(ind) = [];
+			if (numel(y) < 10)				% Completely ad-hoc test
+				Tvar(m,n) = NaN;
+				continue
+			end
+%  			p = polyfit(x(~ind),y,1);
+ 			p = trend1d_m([x(~ind) y],'-L','-N2r');
+%  			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
+% 			z=[xvalues(1:4);ones(1,4)]'\yvalues';
 			Tvar(m,n) = p(1);
 		end
 		h = aguentabar(m/rows);
@@ -277,47 +287,83 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 	end
 
 	if (nargin < 8),		splina = false;		end
-	if (splina)				ZtoSpline = single(false(rows, cols, 3*numel(months)));	cvlib_mex('CvtScale',ZtoSpline,NaN);	end
+	if (splina)
+		n_pad_months = 7;		% Example: if months = 7:9 interpolation domain is 7-n_pad_months-1:9+n_pad_months
+		total_months = numel(months) + 2*n_pad_months;
+		ZtoSpline = alloc_mex(rows, cols, total_months, 'single', NaN);
+	end
 
 	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
 	anos = handles.number_of_timesteps / 12;
 
-	aguentabar(0,'title','Compute anual means.','CreateCancelBtn')
+	h = aguentabar(0,'title','Computing anual means.','CreateCancelBtn');
 	Tmed = zeros([rows, cols]);			% Temp media para cada um dos anos
+	in_break = false;					% Inner loop cancel option
+	last_processed_month = 0;		already_processed = 0;
 	warning off MATLAB:divideByZero
+	%anos = 3;	%pintAnoes =0;
 
 	for (m = 1:anos)
-		if (splina)						% Aqui temos de estar a fazer mesmo uma media anual.
+		if (splina)
+% 			if (m == 1)
+% 				this_months = 1:(months(end)+n_pad_months);		past_months = max(1,months(1)-n_pad_months) - 1;
+% 			elseif (m == anos)
+% 				this_months = 1:( n_pad_months + numel(months) + min(n_pad_months, 12-months(end)) );
+% 				past_months = (m - 1)*12 + months(1) - n_pad_months - 1;
+% 			else
+% 				this_months = 1:(numel(months)+2*n_pad_months);		past_months = (m - 1)*12 + months(1) - n_pad_months - 1;
+% 			end
 			if (m == 1)
-				this_months = 1:24;				past_months = 0;
+				past_months = max(1,months(1)-n_pad_months) - 1;
+				this_months = past_months+1 : past_months+(months(end)+n_pad_months);
 			elseif (m == anos)
-				this_months = 1:24;				past_months = (m - 2)*12;
+				past_months = (m - 1)*12 + months(1) - n_pad_months - 1;
+				this_months = past_months+1 : past_months+( n_pad_months + numel(months) + min(n_pad_months, 12-months(end)) );
 			else
-				this_months = 1:36;				past_months = (m - 2)*12;
+				past_months = (m - 1)*12 + months(1) - n_pad_months - 1;
+				this_months = past_months+1 : past_months+(numel(months)+2*n_pad_months);
 			end
 		else
 			this_months = months;				past_months = (m - 1)*12;
 			contanoes = zeros(rows, cols);
 		end
 
+		counter = 0;
 		for (n = this_months)
-			mn = past_months + n - 1;
-			Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [mn 0 0], [1 rows cols]);
+% 			mn = past_months + n - 1;
+% 			Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [mn 0 0], [1 rows cols]);
+			counter = counter + 1;
+			if (m == 1)
+				Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [n-1 0 0], [1 rows cols]);
+			else
+				if (n <= last_processed_month)
+					already_processed = already_processed + 1;
+					offset = 1;
+					if (m == 2),	offset = months(1)-n_pad_months;		end		% Because for the 1st year the series may be shorter
+					offset = total_months - (last_processed_month - n) + offset - 1;
+					ZtoSpline(:,:,already_processed) = ZtoSpline(:,:,offset);
+				else
+					Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [n-1 0 0], [1 rows cols]);
+					already_processed = 0;
+				end
+			end
 
-			if (do_flags)
-				Z_flags = nc_funs('varget', fname2, s_flags.Dataset(z_id_flags).Name, [mn 0 0], [1 rows cols]);
+% 			if (do_flags)
+% 				Z_flags = nc_funs('varget', fname2, s_flags.Dataset(z_id_flags).Name, [mn 0 0], [1 rows cols]);
+			if (do_flags && ~already_processed)
+				Z_flags = nc_funs('varget', fname2, s_flags.Dataset(z_id_flags).Name, [n-1 0 0], [1 rows cols]);
 				Z(Z_flags < flag) = NaN;
 			end
 
 			ind = isnan(Z);
 
-			if (pintAnoes && any(ind(:)))			% If fill spatial holes is requested
+ 			if (pintAnoes && ~already_processed && any(ind(:)))			% If fill spatial holes is requested
+%  			if (pintAnoes && any(ind(:)))			% If fill spatial holes is requested
 				if (track_filled),		ind0 = ind;		end			% Get this Z level original NaNs mask
 				Z = inpaint_nans(handles, Z, ind, nCells);			% Select interp method inside inpaint_nans()
 				ind = isnan(Z);
 				if (track_filled)
-					ind0 = (ind0 & ~ind);			% Get those nodes that were filled
-					Z_flags(ind0) = flag;			% Promote interpolated pixels to quality 'flag'
+					Z_flags(ind0 & ~ind) = flag;	% Promote interpolated pixels to quality 'flag'
 					% Write updated quality file
 					if (mn == 0),		nc_io(fname3, sprintf('w%d/time',anos*numel(months)), handles, reshape(Z_flags,[1 size(Z_flags)]))
 					else				nc_io(fname3, sprintf('w%d', mn), handles, Z_flags)
@@ -330,58 +376,79 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 				contanoes = contanoes + ~ind;
 				Tmed(:,:) = Tmed(:,:) + double(Z);
 			else						% Pack this year into a 3D temporary variable, to be processed later.
-				ZtoSpline(:,:,n) = Z;
+%  				ZtoSpline(:,:,n) = Z;
+ 				if (~already_processed),	ZtoSpline(:,:,counter) = Z;		end
 			end
-
-		end		% End loop over months
+		end			% End loop over months
+		last_processed_month = this_months(end);
 
 		if (~splina)				% Do not interpolate along time. Compute averages with all non NaNs
 			Tmed(:,:) = Tmed(:,:) ./ contanoes;
 			tmp = single(Tmed(:,:));
 
-		else						% Fill missing month data by a spline interpolation based on non-NaN yearly data
-
-			aguentabar(0,'title','Splining it.')
+		else						% Fill missing month data by interpolation based on non-NaN data
+			hh = aguentabar(eps,'title','Splining it.');
+			if (isnan(hh)),		in_break = true;	break,		end		% Over time loop said: break
 			n_meses = numel(this_months);
+
+			if (m == 1),	first_wanted_month = months(1);				% First year in the stack
+			else			first_wanted_month = n_pad_months + 1;
+			end
+			last_wanted_month = first_wanted_month + numel(months) - 1;
+			
 			for (i = 1:cols)
 				for (j = 1:rows)
+					if (already_processed),		break,	end
 					y = double( squeeze( ZtoSpline(j,i,1:n_meses) ) );
-					ind = isnan(y);
-					if (any(ind) && numel(find(~ind)) > 18)		% If we have NaNs, spline interpolate in their positions
-						x = this_months(~ind);			y0 = y(~ind);
+					ind = ~isnan(y);
+					% If have NaNs inside the months of interest and the overall series has enough points, interp in the missing positions
+					if ( all( ind(first_wanted_month:last_wanted_month) ) )		% We have them all, so nothing to interp
+						ZtoSpline(j,i,1:n_meses) = single(y);
+					elseif ( numel(ind(ind)) >= (fix(numel(months)/2) + n_pad_months - 0) )
+						x = this_months(ind);			y0 = y(ind);
+						%yy = gmtmbgrid_m(x(:), zeros(numel(x),1)+2, y0(:), '-I1', sprintf('-R%d/%d/0/4', x(1), x(end)), '-Mz', '-W-2', '-T100');
+						%yy = yy(3,:);
 						try
 							if ((m == 1 || m == anos))
-								yy = interp1(x, y0, this_months, 'spline', nan);
+% 								yy = interp1(x, y0, this_months, 'spline', nan);
+%  								yy = cubicspline(x, y0, this_months);
+ 								yy = akimaspline(x, y0, this_months);
+% 								yy = spline1d(this_months, x, y0, [], [], 0.0);
 							else
-								yy = spline(x, y0, this_months);
+% 								yy = spline(x, y0, this_months);
+%  								yy = cubicspline(x, y0, this_months);
+								yy = akimaspline(x, y0, this_months);
+% 								yy = spline1d(this_months, x, y0, [], [], 0.0);
 							end
-							y(ind)= yy(ind);
+							y(first_wanted_month:last_wanted_month)= yy(first_wanted_month:last_wanted_month);
 							ZtoSpline(j,i,1:n_meses) = single(y);
 						end
-					elseif (all(~ind))
-						ZtoSpline(j,i,1:n_meses) = single(y);
+					else
+						ZtoSpline(j,i,1:n_meses) = single((1:n_meses)*nan);
 					end
 				end
 				hh = aguentabar(i/(cols+1));
-			end
+				if (isnan(hh)),		in_break = true;	break,		end		% Over time loop said: break (comment: FCK ML SHIT)
+			end				% end loops over this 2D layer
 
-			% Now we can finaly compute the yearly mean
-			if (m == 1),		first = 1;		second = 2;		last = 12;
-			else				first = 13;		second = 14;	last = 24;
-			end
-			tmp = ZtoSpline(:,:,first);
-			for (n = second:last)
+			if (in_break),		break,		end		% Fck no gotos paranoia obliges to this recursive break
+
+			% Now we can finaly compute the season mean
+			tmp = ZtoSpline(:,:,first_wanted_month);
+			for (n = (first_wanted_month+1):last_wanted_month)
 				tmp = cvlib_mex('add',tmp,ZtoSpline(:,:,n));
 			end
-			cvlib_mex('CvtScale',tmp,1/12,0);
-		end
+			cvlib_mex('CvtScale',tmp,1/numel(months),0);
+		end				% End interpolate along time
 
-		% Save this layer to file
+		if (in_break),		break,		end		% Fck no gotos paranoia obliges to this recursive break
+
+		% Write this layer to file
 		if (m == 1),		nc_io(grd_out, sprintf('w%d/time',anos), handles, reshape(tmp,[1 size(tmp)]))
 		else				nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
 		end
 
-		h = aguentabar(m/anos,'title','Compute anual means.');
+		h = aguentabar(m/anos,'title','Computing anual means.');
 		if (isnan(h)),	break,	end
 
 		if (~splina),	Tmed = Tmed * 0;	end			% Reset it to zeros
