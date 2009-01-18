@@ -1076,9 +1076,8 @@ function FileOpen_ENVI_Erdas_CB(handles, opt, opt2)
 			return
 		end
 		X = handles.head(1:2);			Y = handles.head(3:4);
-		pal = jet(256);
-		if strcmp(att.ColorInterp,'gray'),			pal = gray(256);
-		elseif ( strcmp(att.ColorInterp,'Palette') && ~isempty(att.Band(1).ColorMap) )
+		pal = gray(256);
+		if ( strcmp(att.ColorInterp,'Palette') && ~isempty(att.Band(1).ColorMap) )
 			pal = att.Band(1).ColorMap.CMap(:,1:3);
 		end
 		validGrid = 0;								% Signal that grid opps are not allowed
@@ -1282,23 +1281,25 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	handles.fileName = [PathName FileName];
 
 	ECWpatch(handles, tipo)					% Check if we need to patch the ECW library memory fragmentation
-	erro = 0;
+	erro = 0;			gotHDRcoords = false;		opt_U = '-U';		fnameBak = handles.fileName;
 	try		att = gdalread(handles.fileName,'-M','-C');	% Safety against blind calls from 'try luck'
 	catch	erro = 1;	errordlg(lasterr,'Error'),		return
 	end
-	set(handles.figure1,'pointer','watch')
+	att.fname = handles.fileName;						% If hdfread is used, it will need the file name (not eventual dataset name)
 
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 		str = strrep(att.Subdatasets, '=', ' ');
 		[s,ok] = listdlg('PromptString',{'This file has subdatasets' 'you have to select one:'}, 'ListSize', [500 min((size(str,1)*20 + 50), 200)], ...
-				'Name','DATASET Selection', 'SelectionMode','single', 'ListString',str);
+				'Name','DATASET Selection', 'SelectionMode','single', 'ListString',str);	pause(0.01)
 		if (~ok),	return,		end						% Uset hit "Cancel"
 		if (rem(s,2) == 0),		s = s - 1;		end		% Selection was done over "description" and not the "name" 
 		ind = strfind(str{s}, ' ');
 		FileName = str{s}(ind+1:end);					% First "ind" chars are of the form SUBDATASET_1_NAME=
 		handles.fileName = FileName;
-		att = gdalread(handles.fileName,'-M','-C');		% Try again
+		att = gdalread(FileName,'-M','-C');				% Try again
 	end
+	att.fname = fnameBak;								% If hdfread is used, it will need the file name (not eventual dataset name)
+	set(handles.figure1,'pointer','watch')
 
 	if (att.RasterCount == 0)			% Should never happen given the piece of code above, but ...
 		errordlg('Probably a multi-container file. Could not read it since its says that it has no raster bands.','ERROR'),	return
@@ -1308,18 +1309,24 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 
 	if (~strcmp(att.Band(1).DataType,'Byte'))			% JPK2, for example, may contain DTMs
 		fullname{1} = PathName;		fullname{2} = FileName;
-		read_DEMs(handles,fullname,'JP2_DEM');		return
+		read_DEMs(handles,fullname,'JP2_DEM', att);		return
 	end
 
-	opt_U = '-U';		if (isempty(att.GeoTransform)),		opt_U = ' ';	end
-	Z = gdalread(handles.fileName,opt_U);
+	if (strncmp(att.DriverShortName, 'HDF4', 4))
+		tmp = att.GMT_hdr(1:4);			% It will change if we find coords in HDF variables not scaned by GDAL
+		[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
+		if ( ~isequal(att.GMT_hdr(1:4), tmp) ),		gotHDRcoords = true;		end
+	end
+
+	if (isempty(att.GeoTransform) && ~gotHDRcoords),		opt_U = ' ';	end
+	Z = gdalread(handles.fileName, opt_U);
 	handles.head = att.GMT_hdr;
 
-	if (~isempty(att.GeoTransform))		% Georeferenced image
+	if (~isempty(att.GeoTransform) || gotHDRcoords)		% Georeferenced image
 		X = handles.head(1:2);		Y = handles.head(3:4);
 		handles.head(8) = diff(X) / (size(Z,2) - 1);		handles.head(9) = diff(Y) / (size(Z,1) - 1);
 		ax_dir = 'xy';				handles.image_type = 3;
-		att.GMT_hdr(8:9) = handles.head(8:9);	% Update the attrib struct
+		att.GMT_hdr(8:9) = handles.head(8:9);			% Update the attrib struct
 	else							% Case of "raw" imagerie
 		X = [1 size(Z,2)];		Y = [1 size(Z,1)];	ax_dir = 'off';		handles.image_type = 2;
 		handles.head = [X Y 0 255 0 1 1];
@@ -1338,7 +1345,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		end
 	elseif (strcmpi(att.ColorInterp,'gray'))
 			pal = repmat( (att.GMT_hdr(5):att.GMT_hdr(6))' / 255, 1, 3);
-	else	pal = jet(256);
+	else	pal = gray(256);
 	end
 
 	if (~isempty(att.GCPvalues) && isempty(att.GeoTransform))		% Save GCPs so that we can plot them and warp the image
@@ -1447,7 +1454,7 @@ function read_DEMs(handles,fullname,tipo,opt)
 	handles.fileName = [fullname{1} fullname{2}];	% To store any input grid/image file name
 	if (handles.ForceInsitu),	opt_I = '-I';		end	% Use only in desperate cases.
 	handles.was_int16 = 0;			% To make sure that it wasnt left = 1 from a previous use.
-	
+
 	if (strncmp(tipo,'GMT_',4))		% GMT_relatives - Reading is done by the read_gmt_type_grids function
 		[handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,handles.fileName);
 		if (isempty(X)),	set(handles.figure1,'pointer','arrow'),		return,		end
@@ -1473,31 +1480,21 @@ function read_DEMs(handles,fullname,tipo,opt)
 		if (~isempty(name_uncomp)),		delete(name_uncomp);	end
 	elseif (strcmp(tipo,'USGS_DEM') || strcmp(tipo,'GTOPO30') || strcmp(tipo,'DTED') || strcmp(tipo,'SDTS') || ...
 			strncmp(tipo,'GeoTiff_DEM',3) || strncmp(tipo,'Arc',3) || strcmp(tipo,'GXF') || strcmp(tipo,'JP2_DEM'))
-		att = gdalread(handles.fileName,'-M','-C');
+		if (nargin == 4 && isa(opt,'struct')),		att = opt;			% From FileOpenGeoTIFF_CB
+		else		att = gdalread(handles.fileName,'-M','-C');
+		end
 		if ((att.RasterXSize * att.RasterYSize * 4) > handles.grdMaxSize)
 			if ( strcmp(yes_or_no('title','Warning'),'Yes')),	return,		end		% Advise accepted
 		end
-
-		Z = gdalread(handles.fileName, '-U', opt_I);
-% 		Z = hdfread(handles.fileName, 'sst', 'index', {[1 1],[1 1], [4096 8192]});
 		if (strcmp(att.Band(1).DataType,'Int16')),		handles.was_int16 = 1;	end
-		if (strcmp(att.DriverShortName, 'HDF4Image'))			% On HDF files search for an offset and scale factor
-			scale_fac = 1;	add_off = 0;
-			for (k = numel(att.Metadata):-1:1)					% Start from the bottom because they are likely close to it 
-				if ( strncmp(att.Metadata{k}, 'add_off', 7) )
-					add_off = str2double( att.Metadata{k}(9:end) );			break		% The 8th char is '='
-				end
-			end
-			for (k = numel(att.Metadata):-1:1)
-				if ( strncmp(att.Metadata{k}, 'scale_factor', 12) )
-					scale_fac = str2double( att.Metadata{k}(14:end) );		break		% The 13th char is '='
-				end
-			end
-			if (scale_fac ~= 1 || add_off ~= 0 && ~isnan(scale_fac) && ~isnan(add_off))	% If we found something, apply it
-				if (~isa(Z,'single')),		Z = single(Z);		end
-				cvlib_mex('CvtScale',Z,scale_fac,add_off)
-				handles.was_int16 = 0;			% Even if was before it isn't now for sure
-			end
+
+		if (~strncmp(att.DriverShortName, 'HDF4', 4))
+			Z = gdalread(att.Name, '-U', opt_I);
+		else								% HDF files need a special care. Search for an offset and scale factor, etc...
+			[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
+			[Z, handles.have_nans] = empilhador('getZ', handles.fileName, att, is_modis, is_linear, is_log, slope, intercept, base);
+			handles.fileName = att.fname;	% We'll need better but for now this ensures that no subdataset name is taken as the whole.
+			if (~isa(Z,'int16')),		handles.was_int16 = 0;		end
 		end
 		handles.image_type = 4;		handles.Nodata_int16 = att.Band(1).NoDataValue;
 	end
@@ -1525,6 +1522,7 @@ function read_DEMs(handles,fullname,tipo,opt)
 	aux_funs('StoreZ',handles,X,Y,Z)		% If grid size is not to big we'll store it
 	handles.head = head;
 	aux_funs('colormap_bg',handles,Z,jet(256));
+	%if (handles.have_nans),		Z(isnan(Z)) = head(5);		end
 	zz = scaleto8(Z);
 	handles = show_image(handles,handles.fileName,X,Y,zz,1,'xy',head(7));
 	if (isappdata(handles.axes1,'InfoMsg')),	rmappdata(handles.axes1,'InfoMsg'),		end
@@ -3019,7 +3017,7 @@ function GridToolsSectrum_CB(handles, opt1, opt2)
 			Z = get(handles.hImg, 'CData');
 			if (ndims(Z) == 3)
 				Z = cvlib_mex('color', Z, 'rgb2gray');
-				warning('Currently FFT of RGB images is done by converting the RGB to gray.','Warning');
+				warndlg('Currently FFT of RGB images is done by converting the RGB to gray.','Warning');
 			end
 			if (~isempty(Z)),		head = handles.head;	Z = double(Z);		end			% Ghrrrrrr
 		end
@@ -3188,7 +3186,7 @@ function GridToolsSlope_CB(handles, opt)
 	set(handles.figure1,'pointer','watch')
 	if (~isa(Z,'double')),  	Z = double(Z);  	end
 	
-	[m,n] = size(Z);		D2R = pi/180;	R2D = 180/pi;	tit = ['Slope in ' opt];
+	D2R = pi/180;	R2D = 180/pi;	tit = ['Slope in ' opt];
 	if (handles.geog)
 		if (strcmp(opt,'aspect'))
 			slope = gradient_geo(Y,X,Z,'aspect');		tit = 'Terrain aspect in degrees clockwise from North';
