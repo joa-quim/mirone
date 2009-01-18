@@ -1545,11 +1545,8 @@ function rectangle_register_img(obj,event)
 	U1 = X1 * trans;
 	new_xlim = U1(:,1)';        new_ylim = U1(:,2)';
 
-	% Rebuild the image with the new limits.
-	% Here, I found no way to just update the image with the new limits.
-	% The command: image(new_xlim,new_ylim,img); just added a new image (CData) to the
-	% existing one (that's not what the manual says). So I have to kill the old image
-	% and redraw it again. That's f... stupid.
+	% Rebuild the image with the new limits. After many atempts I found that
+	% kill and redraw is the safer way.
 	[m,n,k] = size(img);
 	[new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
 	delete(handles.hImg);
@@ -1561,28 +1558,19 @@ function rectangle_register_img(obj,event)
 	handles.old_size = get(handles.figure1,'Pos');      % Save fig size to prevent maximizing
 	handles.origFig = img;
 
-	% [m,n,k] = size(img);
-	% [new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
-	% set(gca,'XLim',new_xlim,'YLim',new_ylim,'YDir','normal')
-	% set(h_img,'XData',new_xlim,'YData',new_ylim)
-	% resizetrue(handles, [])
-	% x = [x_min x_min x_max x_max x_min];        y = [y_min y_max y_max y_min y_min];
-	% set(h,'XData',x,'YData',y)
-
 	% Redraw the rectangle that meanwhile has gone to the ether togheter with gca.
-	lt = handles.DefLineThick;  lc = handles.DefLineColor;
-	x = [x_min x_min x_max x_max x_min];        y = [y_min y_max y_max y_min y_min];
+	lt = handles.DefLineThick;				lc = handles.DefLineColor;
+	x = [x_min x_min x_max x_max x_min];	y = [y_min y_max y_max y_min y_min];
 	h = line('XData',x,'YData',y,'Color',lc,'LineWidth',lt,'Parent',handles.axes1);
-	if (handles.image_type == 2)                    % Lets pretend that we have a GeoTIFF image
+	if (handles.image_type == 2)					% Lets pretend that we have a GeoTIFF image
 		handles.image_type = 3;
-		Hdr.LL_prj_xmin = new_xlim(1);      Hdr.LR_prj_xmax = new_xlim(2);
-		Hdr.LL_prj_ymin = new_ylim(1);      Hdr.UR_prj_ymax = new_ylim(2);
-		Hdr.projection = 'linear';          Hdr.datum = 'unknown';
-		set(handles.figure1,'UserData',Hdr);        % Minimalist Hdr to allow saving as a GeoTIFF image
+		Hdr.LL_prj_xmin = new_xlim(1);		Hdr.LR_prj_xmax = new_xlim(2);
+		Hdr.LL_prj_ymin = new_ylim(1);		Hdr.UR_prj_ymax = new_ylim(2);
+		Hdr.projection = 'linear';			Hdr.datum = 'unknown';
+		set(handles.figure1,'UserData',Hdr);		% Minimalist Hdr to allow saving as a GeoTIFF image
 	end
 	x_inc = (new_xlim(2)-new_xlim(1)) / (size(img,2) - 1);
 	y_inc = (new_ylim(2)-new_ylim(1)) / (size(img,1) - 1);
-	%handles.head = [new_xlim(1) new_xlim(2) new_ylim(1) new_ylim(2) 0 255 0 x_inc y_inc];     % TEMP and ...
 	handles.head(8:9) = [x_inc y_inc];   
 
 	handles.fileName = [];			% Not loadable in session
