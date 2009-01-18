@@ -148,6 +148,7 @@ data/gdal_data/version_history.csv -text
 data/ghost.gif -text
 data/gimp256.mat -text
 data/gmt_other_palettes.mat -text
+data/gp_girl.dat -text
 data/gvp_world.kmz -text
 data/hotspots.dat -text
 data/iodp_doc.kmz -text
