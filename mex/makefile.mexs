@@ -164,7 +164,7 @@ ogrproj:
 
 # ------------------------- OPEN_CV progs ---------------------------------
 cvlib_mex:	
-		$(MEX) $(OCV_FLAGS) cvlib_mex.c $(OCV_LIB) $(MEXLIB)
+		$(MEX) $(OCV_FLAGS) cvlib_mex.c sift/sift.c sift/imgfeatures.c sift/kdtree.c sift/minpq.c  $(OCV_LIB) $(MEXLIB)
 cvcolor_mex:	
 		$(MEX) $(OCV_FLAGS) cvcolor_mex.c $(OCV_LIB) $(MEXLIB)
 
