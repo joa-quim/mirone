@@ -19,6 +19,7 @@
  *			      Do explicitly castings when using mxGetData()
  *		07-Jul-2008 - Let int8 (char) arrays be processed as well
  *		30-Oct-2008 - -8 | -16 scale to int without adding 1. Work with 3D arrays
+ *		19-JAN-2009 - Test if NaN before scaling. This is worth doing.
  *
  */
 
@@ -196,14 +197,18 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			range8 = max8 - min8;	/* This range8 means input has 8 bytes */
+			range8 = new_range / (max - min);
 			if (scale8) {	/* Scale to uint8 */
-				for (i = 0; i < nx*ny; i++) 	/* if z == NaN, out will be = 0 */
-					out8[i] = (char)(((z_8[i] - min8) / range8) * new_range) + add_off;
+				for (i = 0; i < nx*ny; i++) { 	/* if z == NaN, out will be = 0 */
+					if (mxIsNaN(z_8[i])) continue;
+					out8[i] = (char)((z_8[i] - min8) * range8) + add_off;
+				}
 			} 
 			else if (scale16) {	/* Scale to uint16 */
-				for (i = 0; i < nx*ny; i++)
-					out16[i] = (unsigned short int)(((z_8[i] - min8) / range8) * new_range) + add_off;
+				for (i = 0; i < nx*ny; i++) {
+					if (mxIsNaN(z_8[i])) continue;
+					out16[i] = (unsigned short int)((z_8[i] - min8) * range8) + add_off;
+				}
 			} 
 		}
 		else { 			/* min/max required */
@@ -226,14 +231,18 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			range = max - min;
+			range = new_range / (max - min);
 			if (scale8) {	/* Scale to uint8 */
-				for (i = 0; i < nx*ny; i++) 	/* if z == NaN, out will be = 0 */
-					out8[i] = (char)((((z_4[i] - min) / range) * new_range) + add_off);
+				for (i = 0; i < nx*ny; i++) {	/* if z == NaN, out will be = 0 */
+					if (mxIsNaN(z_4[i])) continue;
+					out8[i] = (char)(((z_4[i] - min) * range) + add_off);
+				}
 			} 
 			else if (scale16) {	/* Scale to uint16 */
-				for (i = 0; i < nx*ny; i++)
-					out16[i] = (unsigned short int)((((z_4[i] - min) / range) * new_range) + add_off);
+				for (i = 0; i < nx*ny; i++) {
+					if (mxIsNaN(z_4[i])) continue;
+					out16[i] = (unsigned short int)(((z_4[i] - min) * range) + add_off);
+				} 
 			} 
 		}
 		else { 			/* min/max required */
@@ -266,17 +275,17 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			range = max - min;
+			range = new_range / (max - min);
 			if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_4[i] == nodata) continue;
-					out8[i] = (char)((((float)i_4[i] - min) / range) * new_range) + add_off;
+					out8[i] = (char)(((float)i_4[i] - min) * range) + add_off;
 				}
 			}
 			else if (scale16) {	/* Scale to uint16 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_4[i] == nodata) continue;
-					out16[i] = (unsigned short int)((((float)i_4[i] - min) / range) * new_range) + add_off;
+					out16[i] = (unsigned short int)(((float)i_4[i] - min) * range) + add_off;
 				}
 			}
 		}
@@ -310,17 +319,17 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			range = max - min;
+			range = new_range / (max - min);
 			if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_2[i] == nodata) continue;
-					out8[i] = (char)((((float)i_2[i] - min) / range) * new_range) + add_off;
+					out8[i] = (char)(((float)i_2[i] - min) * range) + add_off;
 				}
 			}
 			else if (scale16) {	/* Scale to uint16 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_2[i] == nodata) continue;
-					out16[i] = (unsigned short int)((((float)i_2[i] - min) / range) * new_range) + add_off;
+					out16[i] = (unsigned short int)(((float)i_2[i] - min) * range) + add_off;
 				}
 			}
 		}
@@ -354,17 +363,17 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			range = max - min;
+			range = new_range / (max - min);
 			if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)ui_2[i] == nodata) continue;
-					out8[i] = (char)((((float)ui_2[i] - min) / range) * new_range) + add_off;
+					out8[i] = (char)(((float)ui_2[i] - min) * range) + add_off;
 				}
 			}
 			else if (scale16) {	/* Scale to uint16 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)ui_2[i] == nodata) continue;
-					out16[i] = (unsigned short int)((((float)ui_2[i] - min) / range) * new_range) + add_off;
+					out16[i] = (unsigned short int)(((float)ui_2[i] - min) * range) + add_off;
 				}
 			}
 		}
@@ -391,17 +400,17 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			range = max - min;
+			range = new_range / (max - min);
 			if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_1[i] == nodata) continue;
-					out8[i] = (char)((((float)i_1[i] - min) / range) * new_range) + add_off;
+					out8[i] = (char)(((float)i_1[i] - min) * range) + add_off;
 				}
 			}
 			else if (scale16) {	/* Scale to uint16 - IDIOT thing to do but ... */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_1[i] == nodata) continue;
-					out16[i] = (unsigned short int)((((float)i_1[i] - min) / range) * new_range) + add_off;
+					out16[i] = (unsigned short int)(((float)i_1[i] - min) * range) + add_off;
 				}
 			}
 		}
