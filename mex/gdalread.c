@@ -280,7 +280,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			anSrcWin[1] = (int) ((dfULY - adfGeoTransform[3]) / adfGeoTransform[5] + 0.001);
 			anSrcWin[2] = (int) ((dfLRX - dfULX) / adfGeoTransform[1] + 0.5);
 			anSrcWin[3] = (int) ((dfLRY - dfULY) / adfGeoTransform[5] + 0.5);
-			if (GDAL_VERSION_NUM <= 1600 && !strcmp(format,"netCDF")) {
+			if (GDAL_VERSION_NUM <= 1610 && !strcmp(format,"netCDF")) {
 				/* PATCH against the never ending GDAL bug of reading netCDF files */
 				anSrcWin[1] = GDALGetRasterYSize(hDataset) - (anSrcWin[1] + anSrcWin[3]) - 1;
 			}
@@ -994,7 +994,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 
 	status = record_geotransform ( gdal_filename, hDataset, adfGeoTransform );
 	if (!strcmp(GDALGetDriverShortName(GDALGetDatasetDriver(hDataset)),"netCDF") && 
-		    GDAL_VERSION_NUM <= 1600) {
+		    GDAL_VERSION_NUM <= 1450) {
 		adfGeoTransform[3] *= -1;
 		adfGeoTransform[5] *= -1;
 	}
@@ -1403,7 +1403,7 @@ int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double
 	if( GDALGetGeoTransform( hDataset, adfGeoTransform ) == CE_None ) {
         	pszProjection = GDALGetProjectionRef(hDataset);
 		if (!strcmp(GDALGetDriverShortName(GDALGetDatasetDriver(hDataset)),"netCDF") && 
-			    GDAL_VERSION_NUM <= 1600) {
+			    GDAL_VERSION_NUM <= 1450) {
 			adfGeoTransform[3] *= -1;
 			adfGeoTransform[5] *= -1;
 		}
