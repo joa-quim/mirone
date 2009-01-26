@@ -407,7 +407,7 @@ if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
 	end
 	if (strcmp(get(h,'Tag'),'EulerTrapezium'))
 		uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Separator','on', 'Call',...
-			'calcBoninEulerPole(get(gco,''XData''), get(gco,''YData''));' );
+			'calc_bonin_euler_pole(get(gco,''XData''), get(gco,''YData''));' );
 	end
 	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
 	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', cb_roi);
