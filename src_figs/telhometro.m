@@ -132,7 +132,7 @@ function pushbutton_compute_Callback(hObject, eventdata, handles)
 		% from that isochron back to old eternity.
         x1 = [linha(1,1) linha(2,1)];       y1 = [linha(1,2) linha(2,2)];		% Lon, Lat vertex of the seed line
         x2 = [out_x(1,1) out_x(2,1)];       y2 = [out_y(1,1) out_y(2,1)];		% Lon, Lat vertex of telha whose age is t0
-        [p_lon,p_lat,omega] = calcBoninEulerPole(x1,y1,x2,y2);
+        [p_lon,p_lat,omega] = calc_bonin_euler_pole (x1,y1,x2,y2);
         [rlon,rlat] = rot_euler(out_x(:),out_y(:),p_lon,p_lat,-omega);
         % Now we have to rebuild the "telhas" matrix format
         n_col = size(out_x,2); 
