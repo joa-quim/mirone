@@ -546,7 +546,6 @@ utils/bwbound_unique.m -text
 utils/bwboundariesmex.dll -text
 utils/bwlabel1.dll -text
 utils/bwlabel2.dll -text
-utils/calcBoninEulerPole.m -text
 utils/calc_bonin_euler_pole.m -text
 utils/calc_omori.m -text
 utils/canny.m -text
