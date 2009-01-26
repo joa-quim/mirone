@@ -48,8 +48,10 @@ function projectionMenu(hFig, hProj, home_dir)
 		end
 
 		[t,r] = strtok(projStr{k});
-		if ( ~strcmp(t(end-1:end),'/1') )
-			t = [t '/1'];   % Append scale
+		if ( strcmp(t(end-1:end),'/1') )
+			t = [t ':1'];		% Append scale
+		elseif ( ~strcmp(t(end-2:end), '1:1') )
+			t = [t '/1:1'];		% Append scale
 		end
 		projCOMM{k,1} = t;
 		if (~isempty(r))            % Either a -C<...> or -T
