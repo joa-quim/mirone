@@ -1,7 +1,7 @@
 function [plon,plat,omega] = calc_bonin_euler_pole (xx,yy,x2,y2)
 % Computes an Euler pole using the simplified (AKA Bonin) method.
-%   calcBoninEulerPole(xx,yy) is used with an "Euler trapezium" (length(xx) MUST be = 5)
-%   calcBoninEulerPole(xx,yy,x2,y2) computes the pole that brings together the
+%   calc_bonin_euler_pole(xx,yy) is used with an "Euler trapezium" (length(xx) MUST be = 5)
+%   calc_bonin_euler_pole(xx,yy,x2,y2) computes the pole that brings together the
 %   lines defined by xx,yy and x2,y2. NOTE first and second line must be given in the same order.
 % If no output is requested the pole is written on the command line
 
