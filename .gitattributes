@@ -461,7 +461,6 @@ src_figs/euler_stuff.m -text
 src_figs/fault_models.m -text
 src_figs/fft_stuff.m -text
 src_figs/find_clusters.m -text
-src_figs/floodfill.m -text
 src_figs/focal_meca.m -text
 src_figs/gdal_project.m -text
 src_figs/geog_calculator.m -text
