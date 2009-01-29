@@ -87,13 +87,20 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
     [bin,n_column,multi_seg,n_headers] = guess_file(fname);
     % If error in reading file
     if isempty(bin)
-        errordlg(['Error reading file ' fname],'Error');    return
+        errordlg(['Error reading file ' fname],'Error'),	return
     end
 
     fid = fopen(fname);
 	c = char(fread(fid))';      fclose(fid);
 	names = strread(c,'%s','delimiter','\n');   clear c fid;
 	m = length(names);
+	while (isempty(names{m}) && m > 0)
+		names(m) = [];
+		m = m - 1;
+	end
+	if (isempty(names))
+		errordlg('The list file is ... EMPTY!!!','Error'),	return
+	end
     
     if (n_column > 1)
         c = false(m,1);
@@ -112,7 +119,7 @@ function push_namesList_Callback(hObject, eventdata, handles, opt)
     c = false(m,1);
 	for (k=1:m)
         if (n_column == 1 && names{k}(1) == '#')    % If n_column > 1, this test was already done above
-            c(k) = true;    continue;
+            c(k) = true;	continue
         end
         [PATH,FNAME,EXT] = fileparts(names{k});
         if (isempty(PATH))
