@@ -62,9 +62,14 @@ end
 
 % Get the Mirone handles. We need it here
 handlesMir = guidata(handles.h_calling_fig);
+handles.geog = handlesMir.geog;
 if (handlesMir.no_file)
     errordlg('You didn''t even load a file. What are you expecting then?','Error')
     delete(hObject);    return
+end
+if (~handles.geog)
+	errordlg('This tool works only with geographical type data','Error')
+	delete(hObject);    return
 end
 
 plugedWin = getappdata(handles.h_calling_fig,'dependentFigs');
@@ -257,6 +262,10 @@ if (get(handles.checkbox_singleRotation,'Value'))
         lon = get(handles.h_line_orig(i),'XData');
         lat = get(handles.h_line_orig(i),'YData');
         [rlon,rlat] = rot_euler(lon,lat,handles.p_lon,handles.p_lat,handles.p_omega);
+		if (handles.geog == 2)
+			ind = (rlon < 0);
+			rlon(ind) = rlon(ind) + 360;
+		end
         axes(handles.mironeAxes)       % Make the Mirone axes the CurrentAxes
         if (length(rlon) == 1)          % Single point rotation
             smb = get(handles.hLineSelected(i),'Marker');
