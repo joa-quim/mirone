@@ -12,7 +12,7 @@ include $(GMTSRCDIR)gmtalldeps.macros
 #----------------------------------------------------------------------------
 # Where install will place the files.  Notice that it must allways be ..../"mirone root"/lib_mex
 
-mirone_mex_dir	= /Users/j/programs/mirone130/lib_mex
+mirone_mex_dir	= /Users/j/programs/mirone140/lib_mex
 MATLAB		= /Applications/MATLAB74
 
 MEX_EXT		= mexmaci
@@ -142,24 +142,28 @@ houghmex:
 		$(MEX) -I$(MATLAB)/extern/include houghmex.cpp $(MEXLIB)
 mxgridtrimesh:	
 		$(MEX) -I$(MATLAB)/extern/include mxgridtrimesh.c $(MEXLIB)
-intlutc:	
+intlutc:
 		$(MEX) -I$(MATLAB)/extern/include intlutc.c $(MEXLIB)
-grdgradient_m:	
+grdgradient_m:
 		$(MEX) -I$(MATLAB)/extern/include grdgradient_m.c $(MEXLIB)
-grdtrack_m:	
+grdtrack_m:
 		$(MEX) -I$(MATLAB)/extern/include grdtrack_m.c $(MEXLIB)
-gmtmbgrid_m:	
+gmtmbgrid_m:
 		$(MEX) -I$(MATLAB)/extern/include gmtmbgrid_m.c $(MEXLIB)
+trend1d_m:
+		$(MEX) -I$(MATLAB)/extern/include trend1d_m.c $(MEXLIB)
 
 # ------------------------- GDAL progs -----------------------------------
-gdalread:	
+gdalread:
 		$(MEX) $(GDAL_FLAGS) gdalread.c $(GDAL_LIB) $(MEXLIB)
-gdalwrite:	
+gdalwrite:
 		$(MEX) $(GDAL_FLAGS) gdalwrite.c $(GDAL_LIB) $(MEXLIB)
-gdalwarp_mex:	
+gdalwarp_mex:
 		$(MEX) $(GDAL_FLAGS) gdalwarp_mex.cpp $(GDAL_LIB) $(MEXLIB)
-ogrproj:	
+ogrproj:
 		$(MEX) $(GDAL_FLAGS) ogrproj.cpp $(GDAL_LIB) $(MEXLIB)
+gdaltransform_mex:
+		$(MEX) $(GDAL_FLAGS) gdaltransform_mex.cpp $(GDAL_LIB) $(MEXLIB)
 
 
 # ------------------------- OPEN_CV progs ---------------------------------
