@@ -118,6 +118,7 @@
 
 #include "mex.h"
 #include <string.h>
+#include <math.h>
 
 #define TREND1D_N_OUTPUT_CHOICES 5
 #define	FALSE	0
