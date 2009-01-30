@@ -18,7 +18,7 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 	% Interpolate
 	if ~isempty(getappdata(handles.figure1,'dem_x'))		% Grid is in memory
         if (~getappdata(handles.figure1,'PixelMode'))		% Interpolation mode
-			if (ndims(xx) == 1)				% Typical, one tack interpolation only
+			if ((size(xx,1) == 1) || (size(xx,2) == 1))		% Typical, one tack interpolation only
 				zz = grdtrack_m(Z,head,[xx' yy'],'-Z')';
 			else							% Multi-track interpolation and stacking
 				zz = grdtrack_m(Z,head,[xx(1,:)' yy(1,:)'],'-Z')';
@@ -36,6 +36,21 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 			rc = (c - 1) * rows + r;
 			zz = double(Z(rc));
         end
+	elseif (isempty(Z) && ndims(get(handles.hImg,'CData')) == 2)	% Gray image inperp (linear)
+		Z = get(handles.hImg,'CData');
+		img_lims = getappdata(handles.axes1,'ThisImageLims');	% Get limits and correct them for the pix reg problem
+		x_inc = (img_lims(2)-img_lims(1)) / size(Z,2);		y_inc = (img_lims(4)-img_lims(3)) / size(Z,1);
+		img_lims = img_lims + [x_inc -x_inc y_inc -y_inc]/2;	% Remember that the Image is ALWAYS pix reg
+		X = linspace(img_lims(1),img_lims(2),size(Z,2));	Y = linspace(img_lims(3),img_lims(4),size(Z,1));
+		zz = bi_linear(X,Y,Z,xx,yy);
+		if ((size(zz,1) ~= 1) && (size(zz,2) ~= 1))		% A thickned line
+			z = 0;
+			for (k = 1:size(zz,1))
+				z = z + zz(k,:);
+			end
+			zz = z / size(zz,1);
+			xx = xx(round(size(xx,1)/2),:);		yy = yy(round(size(xx,1)/2),:);		% Mid track coordinates
+		end
 	else								% grid was loaded here (big according to preferences), so interp linearly
 		zz = bi_linear(X,Y,Z,xx,yy);
 	end
