@@ -23,7 +23,7 @@ nlist = {64,72,75,80,81,90,96,100,108,120,125,128,135,144,150,160,162,180,192,20
     2400,2430,2500,2560,2592,2700,2880,2916,3000,3072,3125,3200,3240,3375,3456,...
     3600,3645,3750,3840,3888,4000,4096,4320,4374,4500,4608,4800,4860,5000}';
 
-if (nnx == 0)               % Find the good number that is about 20% larger than nx
+if (nargin >= 4 && nnx == 0)               % Find the good number that is about 20% larger than nx
     nnx = round(nx*1.2);
     if (nnx > nlist{end})   % Ohps, the list is too short
         nnx = nx;
@@ -33,7 +33,7 @@ if (nnx == 0)               % Find the good number that is about 20% larger than
         nnx = nlist{id(1)};
     end
 end
-if (nny == 0)               % Find the good number that is about 20% larger than ny
+if (nargin >= 5 && nny == 0)               % Find the good number that is about 20% larger than ny
     nny = round(ny*1.2);
     if (nny > nlist{end})
         nny = ny;
