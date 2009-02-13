@@ -1095,7 +1095,7 @@ function ll = show_LineLength(obj, eventdata, h, opt)
             x = get(h,'XData');    y = get(h,'YData');
 			handles = guidata(h);
         end
-	elseif (n_args == 2 || length(h) > 1)
+	elseif (n_args == 4 || length(h) > 1)
         x = get(h,'XData');    y = get(h,'YData');
 		handles = guidata(h);
 	else
