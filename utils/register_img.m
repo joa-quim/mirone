@@ -236,6 +236,7 @@ switch type
 	case 'gdal order 1',		transf = 9;
 	case 'gdal order 2',		transf = 10;
 	case 'gdal order 3',		transf = 11;
+	case 'gdal splines',		transf = 12;
 end
 
 msg = '';
