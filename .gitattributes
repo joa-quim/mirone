@@ -323,6 +323,7 @@ lib_mex/wgifc.dll -text
 /libsift.dll -text
 /lti_dsdk_dll.dll -text
 mex/PolygonClip.c -text
+mex/akimaspline.cpp -text
 mex/alloc_mex.c -text
 mex/callMir.c -text
 mex/clipbd_mex.cpp -text
