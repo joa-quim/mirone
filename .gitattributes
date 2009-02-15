@@ -238,6 +238,7 @@ gmt_userdir/us.d -text
 /hm421m.dll -text
 /hm422m.dll -text
 lib_mex/PolygonClip.dll -text
+lib_mex/akimaspline.dll -text
 lib_mex/alloc_mex.dll -text
 lib_mex/applylutc.dll -text
 lib_mex/avi.dll -text
