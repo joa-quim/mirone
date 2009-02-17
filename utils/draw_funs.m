@@ -1095,11 +1095,11 @@ function ll = show_LineLength(obj, eventdata, h, opt)
             x = get(h,'XData');    y = get(h,'YData');
 			handles = guidata(h);
         end
-	elseif (n_args == 4 || length(h) > 1)
+	elseif (n_args == 2 || n_args == 4 || length(h) > 1)
         x = get(h,'XData');    y = get(h,'YData');
 		handles = guidata(h);
 	else
-		handles = guidata(get(0,'CurrentFigure'));
+		errordlg('Unknown case in show_LineLength()','error'),	return
 	end
 
 msg = [];
@@ -1122,42 +1122,40 @@ if (handles.geog)
     end
     total_len = sum(tmp) / scale;
     if (nargout == 0 && isempty(opt))
-        len_i = zeros(1,length(tmp));
-        for i = 1:length(tmp)
-            len_i(i) = tmp(i) / scale;
-            msg = [msg; {['Length' sprintf('%d',i) '  =  ' sprintf('%.5f',len_i(i)) str_unit]}];
-        end
-        if (length(msg) < 20)
+		len_i = tmp / scale;
+		if (numel(tmp) <= 20)
+			for i = 1:numel(tmp)
+				msg = [msg; {['Length' sprintf('%d',i) '  =  ' sprintf('%.5f',len_i(i)) str_unit]}];
+			end
             msg = [msg; {['Total length = ' sprintf('%.5f',total_len) str_unit]}];
-        else
-            msg = {['Total length = ' sprintf('%.5f',total_len) str_unit]};
-        end
+		else
+			msg = {['Total length = ' sprintf('%.5f',total_len) str_unit]};
+		end
         msgbox(msg,'Line(s) length')
-    elseif (nargout == 0 && ~isempty(opt))
-        msgbox(['Total length = ' sprintf('%.5f',total_len) str_unit],'Line length')
-    else        % Should we also out output also the partial lengths?
-        ll.len = total_len;   ll.type = 'geog';
-    end
+	elseif (nargout == 0 && ~isempty(opt))
+		msgbox(['Total length = ' sprintf('%.5f',total_len) str_unit],'Line length')
+	else        % Should we also out output also the partial lengths?
+		ll.len = total_len;   ll.type = 'geog';
+	end
 else
-    dx = diff(x);   dy = diff(y);
-    total_len = sum(sqrt(dx.*dx + dy.*dy));
-    if (nargout == 0 && isempty(opt))
-        len_i = zeros(1,length(dx));
-        for i = 1:length(dx)
-            len_i(i) = sqrt(dx(i)^2 + dy(i)^2);
-            msg = [msg; {['Length' sprintf('%d',i) '  =  ' sprintf('%.5f',len_i(i)) ' map units']}];
-        end
-        if (length(msg) < 20)
-            msg = [msg; {['Total length = ' sprintf('%.5f',total_len) ' map units']}];
-        else
-            msg = {['Total length = ' sprintf('%.5f',total_len) ' map units']};
-        end
-        msgbox(msg,'Line(s) length')
-    elseif (nargout == 0 && ~isempty(opt))
-        msgbox(['Total length = ' sprintf('%.5f',total_len) ' map units'],'Line length')
-    else        % The same question as in the geog case
-        ll.len = total_len;   ll.type = 'cart';
-    end
+	dx = diff(x);   dy = diff(y);
+	total_len = sum(sqrt(dx.*dx + dy.*dy));
+	if (nargout == 0 && isempty(opt))
+		len_i = sqrt(dx.^2 + dy.^2);
+        if (numel(dx) <= 200)
+			for i = 1:numel(dx)
+				msg = [msg; {['Length' sprintf('%d',i) '  =  ' sprintf('%.5f',len_i(i)) ' map units']}];
+			end
+			msg = [msg; {['Total length = ' sprintf('%.5f',total_len) ' map units']}];
+		else
+			msg = {['Total length = ' sprintf('%.5f',total_len) ' map units']};
+		end
+		msgbox(msg,'Line(s) length')
+	elseif (nargout == 0 && ~isempty(opt))
+		msgbox(['Total length = ' sprintf('%.5f',total_len) ' map units'],'Line length')
+	else        % The same question as in the geog case
+		ll.len = total_len;   ll.type = 'cart';
+	end
 end
 
 % -----------------------------------------------------------------------------------------
