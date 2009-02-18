@@ -94,7 +94,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	float	*data_32;
 	double	*x, *y, xmin, xmax, ymin, ymax, west_border, east_border, i_dx_inch, i_dy_inch;
-	double	xinc2, yinc2, i_dx, i_dy, edge = 0.0, del_off, dummy, *hdr;
+	double	xinc2, yinc2, i_dx, i_dy, edge = 0.0, del_off, dummy, *hdr, *ptr_wb;
 
 	struct GMT_SHORE c;
 	struct GRD_HEADER header;
@@ -122,13 +122,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argv[i] = (char *)mxArrayToString(prhs[i-1]);
 	}
 
-	/*if (!GMTisLoaded) {
+	if (!GMTisLoaded) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
 	else
-		argc = GMT_short_begin (argc, argv);*/
-	argc = GMT_begin (argc, argv);
+		argc = GMT_short_begin (argc, argv);
 
 	/* Check and interpret the command line arguments */
 
@@ -328,8 +327,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #if defined COMPILED && COMPILED == 0
 	if (gmtdefs.verbose) {
 		rhs[0] = mxCreateDoubleScalar(0.0);
+		ptr_wb = mxGetPr(rhs[0]);
 		rhs[1] = mxCreateString("title");
-		rhs[2] = mxCreateString("Masking ...");
+		rhs[2] = mxCreateString("Creating Mask ...");
 		mexCallMATLAB(0,NULL,3,rhs,"aguentabar");
 	}
 #endif
@@ -350,7 +350,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		bin = c.bins[ind];
 #if defined COMPILED && COMPILED == 0
 		if (gmtdefs.verbose) {
-			rhs[0] = mxCreateDoubleScalar((double)(ind+1) / c.nb);
+			*ptr_wb = (double)(ind+1) / c.nb;
 			mexCallMATLAB(0,NULL,1,rhs,"aguentabar");
 		}
 #else
