@@ -191,16 +191,13 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
 		cp = axes2pix(cols, get(imageHandle,'XData'),x);
 		r = min(rows, max(1, round(rp)));   c = min(cols, max(1, round(cp)));
 		if strcmp(imageType,'indexed')
-			map=get(dbud.figHandle, 'Colormap');
-			idx = img(r,c);
-			if (~isa(idx,'double')), idx = double(idx)+1;   end
+			map = get(dbud.figHandle, 'Colormap');
+			idx = img(r,c);		ind = double(idx);
+			if (~isa(idx,'double')), 	idx = double(idx)+1;   end
 			idx = round(idx);
-			if (idx <= size(map,1)), pixel = map(idx,:)*255;
-			else                     pixel = map(end,:)*255;   end
-			% This trick is limited to 255 intervals
-			dz = Zlim(2) - Zlim(1);
-			pixel(1) = Zlim(1) + idx/size(map,1) * dz;
-			pixel(2:3) = [];
+			if (idx <= size(map,1)),	pixel = [ind round(map(idx,:)*255)];
+			else						pixel = [ind round(map(end,:)*255)];
+			end
 		else
 			pixel = double(img(r,c,:));
 		end
@@ -247,7 +244,7 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
 switch dbud.displayMode
 	case 'normal'   % Just display Z (or intensity) information
 		if strcmp(imageType,'rgb') || strcmp(imageType,'indexed')
-			if isa(img, 'uint8') &&  strcmp(imageType,'rgb')
+			if isa(img, 'uint8') && strcmp(imageType,'rgb')
 				if (dbud.haveGrid)           % Hacked here
 					pixval_str = sprintf([form_xy ' %6.3f'], x,y,pixel(1:end));
 				else
@@ -258,12 +255,12 @@ switch dbud.displayMode
 			elseif islogical(img) && strcmp(imageType,'rgb')
 				pixval_str = sprintf([form_xy ' %1d,%1d,%1d'], x,y,pixel(1:end));  
 			else	% all indexed images use double precision colormaps
-				if (dbud.haveGrid)           % Hacked here
+				if (dbud.haveGrid)				% Hacked here
 					pixval_str = sprintf([form_xy ' %6.3f'], x,y,pixel(1:end));
 					if (rcMode),	pixval_str = sprintf([form_xy(1:end-1) '\tRow = %d  Col = %d'], x,y,pixel(1:end));	end
 				else
-					if (numel(pixel) == 3 && isequal(pixel(1),pixel(2),pixel(3)))
-						pixval_str = sprintf([form_xy ' %d'], x,y,pixel(1));
+					if (numel(pixel) == 4)		% Display indexed color plus matrix value
+						pixval_str = sprintf([form_xy ' %3d,%3d,%3d [%d]'], x,y,pixel(2:4),pixel(1));
 					else
 						pixval_str = sprintf([form_xy ' %.0f,%.0f,%.0f'], x,y,pixel(1:end));
 					end
@@ -279,7 +276,7 @@ switch dbud.displayMode
 
 	case 'distance'
 		handles = guidata(figHandle);
-		delta_x = (x1 - dbud.x0);   delta_y = (y1 - dbud.y0);
+		delta_x = (x1 - dbud.x0);		delta_y = (y1 - dbud.y0);
 		set(dbud.line, 'XData', [dbud.x0 x1], 'YData', [dbud.y0 y1]);
 		if (handles.geog)
 			switch handles.DefineMeasureUnit     % I have to do it here to allow midtime changes in preferences
@@ -314,8 +311,8 @@ switch dbud.displayMode
 				pixval_str = sprintf([form_xy ' %5d,%5d,%5d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
 			elseif islogical(img) &&  strcmp(imageType,'rgb')
 				pixval_str = sprintf([form_xy ' %1d,%1d,%1d  '  str_dist ' = %3.3f ang = %.1f'], x,y,pixel(1:end),dist,az);
-			else	% all indexed images use double precision colormaps
-				pixval_str = sprintf([form_xy ' %6.3f  '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1:end),dist,az);
+			else		% all indexed images use double precision colormaps
+				pixval_str = sprintf([form_xy ' %g  '  str_dist ' = %4.4f ang = %.1f'], x,y,pixel(1),dist,az);
 			end
 		else		% intensity
 			if isa(img, 'uint8')
