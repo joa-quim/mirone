@@ -15,6 +15,8 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 25  03/02/2009 JL	Added cvAvgSdv & cvAvg (not documented yet)
+ * Revision 24  30/01/2009 JL	Added cvAdaptiveThreshold (It's failing when RGB in)
  * Revision 23  28/12/2008 JL	Added convexHull. Fixed bug when Mx3 input on Douglas-Peucker 
  * Revision 22  22/12/2008 JL	Added findRectangles
  * Revision 21  15/12/2008 JL	Added cvFindHomography
@@ -122,6 +124,8 @@ void JMatchTemplate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[])
 void JhaarDetect(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jhomography(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JfindRectangles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+void Jthreshold(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+void Jstat(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op);
 
 void Set_pt_Ctrl_in (struct CV_CTRL *Ctrl, const mxArray *pi , mxArray *pit, int interl);
 void Set_pt_Ctrl_out1 ( struct CV_CTRL *Ctrl, mxArray *pi );
@@ -149,7 +153,7 @@ void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsa
 void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage(), powUsage();
 void absUsage(), logUsage(), expUsage(), hypotUsage(), haarUsage(), convexHullUsage();
 void approxPolyUsage(), siftUsage(), homographyUsage(), findRectangUsage();
-void MatchTemplateUsage();
+void MatchTemplateUsage(), thresholdUsage();
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -211,6 +215,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tsubS (cvSubS)\n");
 		mexPrintf("\tsubRS (cvSubS)\n");
 		mexPrintf("\ttext (cvPutText)\n");
+		/*mexPrintf("\tthresh (cvAdaptiveThreshold)\n");	Hide until the RGB issue is solved */
 		return;
 	}
 
@@ -300,8 +305,15 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	else if (!strcmp(funName,"sift"))
 		Jsift(n_out, plhs, n_in, prhs);
 
+	else if (!strcmp(funName,"mean") || !strcmp(funName,"avgstd") || !strcmp(funName,"A-mean") || 
+		!strcmp(funName,"A-half") || !strcmp(funName,"avg"))
+		Jstat(n_out, plhs, n_in, prhs, funName);
+
 	else if (!strcmp(funName,"text"))
 		Jtext(n_out, plhs, n_in, prhs);
+
+	else if (!strncmp(funName,"thre",4))
+		Jthreshold(n_out, plhs, n_in, prhs);
 
 	else if (!strncmp(funName,"MatchTemplate",5))
 		JMatchTemplate(n_out, plhs, n_in, prhs);
@@ -2101,6 +2113,98 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], co
 }
 
 /* --------------------------------------------------------------------------- */
+void Jthreshold(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
+	int nx, ny, nBands, i, nBytes, img_depth, block_size = 3;
+	int adaptive_method = CV_ADAPTIVE_THRESH_MEAN_C;
+	int threshold_type = CV_THRESH_BINARY;
+	unsigned char *ptr_gray;
+	double max_value = 1, param1 = 5, *ptr_d;
+
+	IplImage *src_img = 0, *dst_img, *src_gray, *dst_16;
+	mxArray *ptr_in, *ptr_out, *ptr_16;
+
+	struct CV_CTRL *Ctrl;
+	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
+
+	/* ---- Check for input and errors in user's call to function. ----------------- */
+	if (n_in == 1) { thresholdUsage();	return; }
+	if ( !mxIsUint8(prhs[1]) )
+		mexErrMsgTxt("Threshold requires image of uint8 type!");
+
+	if (n_out != 1)
+		mexErrMsgTxt("Threshold returns one (and one only) output");
+
+	if (n_in >= 3) {
+		ptr_d = mxGetData(prhs[4]);	adaptive_method = (int)ptr_d[0];
+		if (adaptive_method == 1)
+			adaptive_method = CV_ADAPTIVE_THRESH_GAUSSIAN_C;
+	}
+	if (n_in >= 4) {
+		ptr_d = mxGetData(prhs[3]);	block_size = (int)ptr_d[0];
+		if (block_size < 3) {
+			mexPrintf("Threshold: block_size argument %d is nonsensic. Reseting to 3\n", block_size);
+			block_size = 3;
+		}
+	}
+	if (n_in >= 5) {
+		ptr_d = mxGetData(prhs[4]);	param1 = (double)ptr_d[0];
+	}
+	/* -------------------- End of parsing input ------------------------------------- */
+
+	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);	nBands = getNK(prhs[1],2);
+	/* Allocate and initialize defaults in a new control structure */
+	Ctrl = (struct CV_CTRL *) New_Cv_Ctrl ();
+	getDataType(Ctrl, prhs, &nBytes, &img_depth);
+
+	src_img = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+	dst_img = cvCreateImageHeader( cvSize(nx, ny), IPL_DEPTH_8U, 1 );
+	plhs[0] = mxCreateNumericMatrix(ny, nx, mxLOGICAL_CLASS, mxREAL);
+
+	if (nBands == 3) {			/* Convert to GRAY */
+		/* ------ Create pointers for output and temporary arrays ---------------- */
+		ptr_in = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+			 mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
+		ptr_out = mxCreateNumericMatrix(ny, nx, mxGetClassID(prhs[1]), mxREAL);
+		/* ----------------------------------------------------------------------- */ 
+		Set_pt_Ctrl_in ( Ctrl, prhs[1], ptr_in, 1 ); 	/* Set pointer & interleave */
+
+		src_gray = cvCreateImageHeader( cvSize(nx, ny), 8, 1 );
+		ptr_gray = (unsigned char *)mxMalloc (nx*ny);
+		cvSetImageData( src_gray, (void *)ptr_gray, nx );
+		localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
+		cvCvtColor(src_img, src_gray, CV_BGR2GRAY);
+		for (i = 0; i < nx*ny; i++)	/* Copy the transformed image into Ctrl field */
+			Ctrl->UInt8.tmp_img_in[i] = ptr_gray[i]; 
+		mxFree(ptr_gray);
+		cvReleaseImageHeader( &src_gray );
+
+		/* Here we're going to cheat the src_img in order to pretend that its 2D */
+		src_img->nChannels = 1;
+		src_img->widthStep = nx * nBytes;
+		src_img->imageSize = ny * src_img->widthStep;
+
+		Set_pt_Ctrl_out1 ( Ctrl, ptr_out ); 
+		localSetData( Ctrl, dst_img, 2, nx * nBytes );
+	}
+	else {
+		cvSetImageData( src_img, (void *)mxGetData(prhs[1]), nx * nBytes );
+		cvSetImageData( dst_img, (void *)mxGetData(plhs[0]), nx * nBytes );
+	}
+
+	cvAdaptiveThreshold(src_img, dst_img, max_value, adaptive_method, threshold_type, block_size, param1);
+
+	if (nBands == 3) {
+		mxDestroyArray(ptr_in);
+		Set_pt_Ctrl_out2 ( Ctrl, plhs[0], 1 ); 		/* Set pointer & desinterleave */
+		mxDestroyArray(ptr_out);
+	}
+
+	cvReleaseImageHeader( &src_img );
+	cvReleaseImageHeader( &dst_img );
+	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
+}
+
+/* --------------------------------------------------------------------------- */
 void Jedge(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *method) {
 	int nx, ny, nBands, i, nBytes, img_depth, kernel = 3, xord = 1, yord = 0;
 	unsigned char *ptr_gray;
@@ -2826,6 +2930,69 @@ void Jegipt(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const c
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 	cvReleaseImageHeader( &dst );
 	mxDestroyArray(ptr_out);
+}
+
+/* --------------------------------------------------------------------------- */
+void Jstat(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op) {
+	int nx, nx2, ny, ny2, nBands, nBands2, nBytes, img_depth, error = 0;
+	double *out, min_val, max_val;
+	IplImage *src1, *dst;
+	CvScalar mean, std_dev;
+	struct CV_CTRL *Ctrl;
+	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
+
+	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);	nBands = getNK(prhs[1],2);
+	/* -------------------- End of parsing input ------------------------------------- */
+
+	/* Allocate and initialize defaults in a new control structure */
+	Ctrl = (struct CV_CTRL *) New_Cv_Ctrl ();
+	getDataType(Ctrl, prhs, &nBytes, &img_depth);
+
+	src1 = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+	cvSetImageData( src1, (void *)mxGetData(prhs[1]), nx * nBytes * nBands );
+
+	if (!strcmp(op,"avg") || !strcmp(op,"mean")) {
+		mean = cvAvg( src1, NULL ); 
+		plhs[0] = mxCreateNumericMatrix(1, 1, mxDOUBLE_CLASS, mxREAL);
+		out = mxGetPr(plhs[0]);
+		*(out) = mean.val[0];
+	}
+	else if (!strcmp(op,"avgstd")) {
+		cvAvgSdv( src1, &mean, &std_dev, NULL ); 
+		plhs[0] = mxCreateNumericMatrix(1, 2, mxDOUBLE_CLASS, mxREAL);
+		out = mxGetPr(plhs[0]);
+		out[0] = mean.val[0];
+		out[1] = std_dev.val[0];
+	}
+	else if (!strcmp(op,"A-mean") || !strcmp(op,"A-half")) {
+		if (!strcmp(op,"A-mean"))
+			mean = cvAvg( src1, NULL ); 
+		else {
+			cvMinMaxLoc( src1, &min_val, &max_val, NULL, NULL, NULL ); 
+			mean.val[0] = min_val + (max_val - min_val) * 0.5;
+		}
+
+		mean.val[0] *= -1;
+		if (n_out > 0) {
+			plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+		  			mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
+			dst = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+			cvSetImageData( dst, (void *)mxGetData(plhs[0]), nx * nBytes * nBands );
+			cvAddS( src1, mean, dst, NULL ); 
+			cvReleaseImageHeader( &dst );
+			if (n_out == 2) {
+				plhs[1] = mxCreateNumericMatrix(1, 1, mxDOUBLE_CLASS, mxREAL);
+				out = mxGetPr(plhs[1]);
+				*(out) = -mean.val[0];
+			}
+		}
+		else {	/* Insitu */
+			cvAddS( src1, mean, src1, NULL ); 
+		}
+	}
+
+	cvReleaseImageHeader( &src1 );
+	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 }
 
 /* --------------------------------------------------------------------------- */
@@ -4500,6 +4667,21 @@ void textUsage() {
 
 	mexPrintf("       Class support: uint8.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void thresholdUsage() {
+	mexPrintf("Usage: cvlib_mex('thresh',IMG,[METHOD,BSIZE,C]);\n");
+	mexPrintf("       Applies adaptive threshold to grayscale or rgb images.\n");
+	mexPrintf("       IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
+	mexPrintf("       Adaptive thresholding algorithm to use: MEAN [default] or WEIGHTED MEAN.\n");
+	mexPrintf("       \tTo use a WEIGHTED MEAN use METHOD = 1. Any other value sets METHOD to MEAN.\n");
+	mexPrintf("       BSIZE The size of a pixel neighborhood that is used to calculate a\n");
+	mexPrintf("       a threshold value for the pixel: 3, 5, 7, ...\n");
+	mexPrintf("       C is a constant subtracted from mean or weighted mean [default = 0]\n\n");
+
+	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Memory overhead: None if IMG is gray or 1 copy of IMG if RGB.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
