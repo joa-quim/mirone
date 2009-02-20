@@ -110,8 +110,12 @@ function push_OK_Callback(hObject, eventdata, handles)
 		hdr.X = X;		hdr.Y = Y;		hdr.head = head;		% Save this for use at this function's end
 	end
 
-	bw = isnan(Z);
+	[semaforo, pal] = aux_funs('semaforo_red');
+	hImg = image(semaforo,'Parent', handles.axes1);
+	set(handles.axes1, 'XTick',[], 'YTick', [])
+	set(handles.figure1, 'Colormap', pal),		drawnow
 
+	bw = isnan(Z);
 	if (get(handles.radio_paintSmall,'Val'))		% Retain only <= handles.nCells sized of connected groups
 		bw2 = img_fun('bwareaopen', bw, handles.nCells);
 		bw = xor(bw, bw2);
@@ -119,6 +123,10 @@ function push_OK_Callback(hObject, eventdata, handles)
 	end
 	
 	B = img_fun('find_holes',bw);
+
+	[semaforo, pal] = aux_funs('semaforo_green');
+	set(hImg,'CData',semaforo)
+	set(handles.figure1, 'Colormap', pal),		drawnow
 	
 	if (get(handles.radio_surface,'Val'))
 		opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
@@ -141,10 +149,12 @@ function push_OK_Callback(hObject, eventdata, handles)
 
 			rect_crop = [x_min y_min (x_max-x_min) (y_max-y_min)];
 			[Z_rect, r_c]  = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
-			bw_rect = cropimg(head(1:2),head(3:4),bw,rect_crop,'out_grid');
+			[bw_rect, zz] = cropimg(head(1:2),head(3:4),bw,rect_crop,'out_grid');
 			Z_rect = double(Z_rect);      % It has to be (GHRRRRRRRRRRRRR)
 
-			X = x_min:head(8):x_max;	Y = y_min:head(9):y_max;
+			%X = x_min:head(8):x_max;	Y = y_min:head(9):y_max;
+			X = linspace(x_min,x_max,size(Z_rect,2));		% It is safer this way (against rounding errors)
+			Y = linspace(y_min,y_max,size(Z_rect,1));
 			[XX,YY] = meshgrid(X,Y);
 			XX(bw_rect) = [];			YY(bw_rect) = [];		Z_rect(bw_rect) = [];
 
@@ -393,6 +403,14 @@ uicontrol('Parent',h1,...
 'String','Cancel',...
 'Tag','push_cancel');
 
+axes('Parent',h1,...
+'Units','pixels',...
+'Position',[220 68 14 46],...
+'CameraPosition',[0.5 0.5 9.16025403784439],...
+'XTick', [], ...
+'YTick', [], ...
+'Visible', 'off', ...
+'Tag','axes1');
 
 function inpaint_nans_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
