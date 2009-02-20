@@ -16,6 +16,7 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
+ * Revision 20 17/02/2009 Added -L option to deal with MODIS L2 left-right flipping stupidity
  * Revision 19 15/01/2009 Added the "Name" field to the attributes struct
  * Revision 18 18/03/2008 Another attempt to patch the broken netCDF driver
  * Revision 17 26/01/2008 Moved the y_min > y_max test to before the correct_bounds case.  
@@ -160,6 +161,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'I':
 					insitu = TRUE;
 					break;
+				case 'L':
+					fliplr = TRUE;
+					break;
 				case 'M':
 					metadata_only = TRUE;
 					break;
@@ -189,12 +193,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	if (error || nrhs < 1 || nlhs > 2) {
 		mexPrintf ("usage(s): z = gdalread('filename','[-C]','[-F]','[-I[size]]','[-M]','[-Rw/e/s/n]','[-S]','[-U]);\n");
-		mexPrintf (" 	  [z,attrib] = gdalread('filename','[-C]','[-F]','[-I[size]]','[-Rw/e/s/n]','[-M]','[-S]','[-U]);\n");
+		mexPrintf (" 	  [z,attrib] = gdalread('filename','[-C]','[-F]','[-I[size]]',[-L],'[-Rw/e/s/n]','[-M]','[-S]','[-U]);\n");
 		mexPrintf (" 	  attrib     = gdalread('','-M');\n\n");
 		mexPrintf ("\t   attrib is a structure with metadata.\n");
 		mexPrintf ("\t-C correct the grid bounds reported by GDAL (it thinks that all grids are pixel registered)\n");
 		mexPrintf ("\t-F force pixel registration in attrib.GMT_hdr\n");
 		mexPrintf ("\t-I force importing via the 'insitu' transposition (about 10 times slower)\n");
+		mexPrintf ("\t-L flip the grid LeftRight (For the time being, ignored if -U).\n");
 		mexPrintf ("\t-M ouputs only the metadata structure\n");
 		mexPrintf ("\t-S scale ouptut into the [0-255] range\n");
 		mexPrintf ("\t-R read only the sub-region enclosed by <west/east/south/north>\n");
