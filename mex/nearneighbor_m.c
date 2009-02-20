@@ -32,10 +32,15 @@
  *	 
  *		04/06/06 J Luis, Updated to compile with version 4.1.3
  *		14/10/06 J Luis, Now includes the memory leak solving solution
+ *		17/02/09 J Luis, Accept numeric data in input. Couple of bug fixes
  */
  
 #include "gmt.h"
 #include "mex.h"
+
+/* Since mexCallMATLAB crash on compiled version swapp between 0 & 1 to create the dll to use
+   respectively, with the non compiled and compiled versions */
+#define COMPILED 0
 
 struct NODE {	/* Structure with point id and distance pairs for all sectors */
 	float *distance;	/* Distance of nearest datapoint to this node per sector */
@@ -56,18 +61,19 @@ BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memo
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	int i, j, k, ij, i0, j0, *di, dj, n_sectors = 4, sector, n, n_alloc = 5 * GMT_CHUNK, n_fields, nx_2;
-	int n_set, n_almost, n_none, n_files = 0, n_args, fno, one_or_zero, n_expected_fields, pad[4], distance_flag = 0;
-	int max_di, actual_max_di, ii, jj, x_wrap, y_wrap, ix, iy;
+	int i, j, k, ij, i0, j0, *di, dj, n_sectors = 4, sector, n, n_alloc = GMT_CHUNK, n_fields, nx_2;
+	int n_set, n_almost, n_none, n_files = 0, fno, one_or_zero, n_expected_fields, pad[4], distance_flag = 0;
+	int max_di, actual_max_di, ii, jj, x_wrap, y_wrap, ix = 0, iy = 1;
 
-	BOOLEAN go, error = FALSE, done = FALSE, nofile = TRUE;
+	BOOLEAN go, error = FALSE, done = FALSE, nofile = TRUE, isDouble = TRUE;
 	BOOLEAN set_empty = FALSE, weighted = FALSE, wrap_180, replicate_x, replicate_y;
 
+	float empty = 0.0, *grd, *z_4, *pdata, *z1_4, *z2_4, *z3_4, *z4_4, percentage = 0;
+	double *z1_8, *z2_8, *z3_8, *z4_8, radius2, *ptr_wb;
 	double radius = 0.0, weight, weight_sum, grd_sum, *x0, *y0, dx, dy, delta, distance, factor;
 	double *in, *shrink, km_pr_deg, x_left, x_right, y_top, y_bottom, offset, xinc2, yinc2, idx, idy;
 	double half_y_width, y_width, half_x_width, x_width, three_over_radius, *info;
-	float empty = 0.0, *grd, *z_4, *pdata;
-	int	argc = 0, n_arg_no_char = 0, n_cols, nx, ny;
+	int	argc = 0, n_arg_no_char = 0, n_cols, nx, ny, n_pts, n_2pts, nToParse, nin;
 	char	line[BUFSIZ], **argv, buffer[BUFSIZ], *p;
 
 	FILE *fp = NULL;
@@ -76,6 +82,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	struct GMT_EDGEINFO edgeinfo;
 	struct NODE **grid_node;
 	struct POINT  *point;
+	mxArray *rhs[3];	/* For the aguentabar */
 	
 	argc = nrhs;
 	for (i = 0; i < nrhs; i++) {		/* Check input to find how many arguments are of type char */
@@ -156,7 +163,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					n_sectors = atoi (&argv[i][2]);
 					break;
 				case 'S':
-					GMT_getinc (&argv[i][2], &radius, &radius);
+					GMT_getinc (&argv[i][2], &radius, &radius2);
+					radius2 = radius * radius;
 					if (argv[i][strlen(argv[i])-1] == 'k') distance_flag = 1;
 					if (argv[i][strlen(argv[i])-1] == 'K') distance_flag = 2;
 					break;
@@ -175,15 +183,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					mexPrintf ("nearneighbor_m: cannot open input data file %s\n", argv[i]);
 					mexErrMsgTxt("\n");
 				}
+        			n_files++;
 			}
 		}
 	}
 	
 	if (argc == 1 || GMT_give_synopsis_and_exit) {
 		mexPrintf ("nearneighbor %s - A \"Nearest neighbor\" gridding algorithm\n\n", GMT_VERSION);
-		mexPrintf("usage: nearneighbor [xyzfile(s)] -I<dx>[m|c][/<dy>[m|c]]\n");
-		mexPrintf("\t-N<sectors> -R<west/east/south/north> -S<radius>[m|c|k|K] [-E<empty>] [-F]\n");
-		mexPrintf("\t[-H ] [-L<flags>] [-V ] [-W] [-:] [-bi[s][<n>]] [-f[i|o]<colinfo>]\n\n");
+		mexPrintf("usage: [Z, head] = nearneighbor([xyzfile(s)], -I<dx>[m|c][/<dy>[m|c]],\n");
+		mexPrintf("\t-N<sectors>, -R<west/east/south/north>, -S<radius>[m|c|k|K], [-E<empty>], [-F],\n");
+		mexPrintf("\t[-H ], [-L<flags>], [-W], [-:], [-bi[s][<n>]], [-f[i|o]<colinfo>])\n\n");
+		mexPrintf("\t xyzfile is either a filename of a file with x,y,z[,w] values OR a Mx3 array\n");
+		mexPrintf("\t OR a Mx4 array (4rth column is weight) OR X,Y,Z and optionaly a W vectors.\n");
+		mexPrintf("\t NOTE: Input data can be either all singles or all doubles (but not mixed).\n\n");
 		mexPrintf("\t-I sets the grid spacing for the grid.  Append m for minutes, c for seconds.\n");
 		mexPrintf("\t-N sets number of sectors. Default is quadrant search [4].\n");
 		mexPrintf("\t-S sets search radius in -R, -I units; append m or c for minutes or seconds.\n");
@@ -224,44 +236,87 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	if (error) mexErrMsgTxt("\n");
 
-	/*GMT_grd_RI_verify (&header, 1);*/		/* IF (IVAN == TRUE)  ==> Matlab = BOOM */
-
-	n_expected_fields = 3 + weighted;
-	
         if (n_files > 0)
         	nofile = FALSE;
-        else
-        	n_files = 1;
-        n_args = (argc > 1) ? argc : 2;
-        
-	if (header.node_offset) {
-		one_or_zero = 0;
-		offset = 0.0;
-		xinc2 = 0.5 * header.x_inc;
-		yinc2 = 0.5 * header.y_inc;
+
+	if (nofile) {		/* x,y,z data transmitted in input */
+		/* Fish pointers and parse/test numeric inputs */
+		n_pts = mxGetM(prhs[0]);
+		if (n_arg_no_char == 1) {
+			n_cols = mxGetN(prhs[0]);
+			if (!(n_cols == 3 || n_cols == 4))
+				mexErrMsgTxt("NEARNEIGHBOR ERROR: input data must be a Mx3 or Mx4 array.");
+			if (n_cols == 4) weighted = TRUE;
+		}
+		else if (n_arg_no_char >= 3) {
+			int n2, n3, n4;
+			n_pts = MAX(mxGetM(prhs[0]), mxGetN(prhs[0]));	/* In this case they can be row or column vectors */
+			n2 = MAX(mxGetM(prhs[1]), mxGetN(prhs[1]));
+			n3 = MAX(mxGetM(prhs[2]), mxGetN(prhs[2]));
+			if (n_pts != n2 || n2 != n3)
+				mexErrMsgTxt("NEARNEIGHBOR ERROR: X,Y,Z input data must have the same number of elements.");
+			if (n_arg_no_char == 4) {
+				n4 = MAX(mxGetM(prhs[3]), mxGetN(prhs[3]));
+				if (n_pts != n4)
+					mexErrMsgTxt("NEARNEIGHBOR ERROR: X,Y,Z,W input data must have the same number of elements.");
+				weighted = TRUE;
+			}
+		}
+		nToParse = n_pts;
+		n_2pts = n_pts * 2;
+
+		if (mxIsDouble(prhs[0])) {
+			isDouble = TRUE;
+			z1_8 = mxGetPr(prhs[0]);
+			if (n_arg_no_char >= 3) {
+				if (!mxIsDouble(prhs[1]) || !mxIsDouble(prhs[2]))
+					mexErrMsgTxt("NEARNEIGHBOR ERROR: Y,Z data MUST ALSO be of type double.");
+				z2_8 = mxGetPr(prhs[1]);
+				z3_8 = mxGetPr(prhs[2]);
+				if (n_arg_no_char == 4)
+					z4_8 = mxGetPr(prhs[3]);
+			}
+		}
+		else if (mxIsSingle(prhs[0])) {
+			isDouble = FALSE;
+			z1_4 = (float *)mxGetData(prhs[0]);
+			if (n_arg_no_char >= 3) {
+				if (!mxIsSingle(prhs[1]) || !mxIsSingle(prhs[2]))
+					mexErrMsgTxt("NEARNEIGHBOR ERROR: Y,Z data MUST ALSO be of type single.");
+				z2_4 = (float *)mxGetData(prhs[1]);
+				z3_4 = (float *)mxGetData(prhs[2]);
+				if (n_arg_no_char == 4)
+					z4_4 = (float *)mxGetData(prhs[3]);
+			}
+		}
 	}
 	else {
-		one_or_zero = 1;
-		offset = 0.5;
-		xinc2 = yinc2 = 0.0;
+		/* Use here the old toggle recipe because things inside GMT_get_common_args are behaving odly */
+		if (gmtdefs.xy_toggle[0]) {
+			ix = 1;		iy = 0;
+		}
+		for (i = 0; i < gmtdefs.n_header_recs; i++) fgets (line, 1024, fp);
+
+		n_expected_fields = 3 + weighted;
 	}
-	
+        
+	GMT_RI_prepare (&header);	/* Ensure -R -I consistency and set nx, ny */
+	header.xy_off = 0.5 * header.node_offset;
+	xinc2 = header.xy_off * header.x_inc;
+	yinc2 = header.xy_off * header.y_inc;
 	idx = 1.0 / header.x_inc;
 	idy = 1.0 / header.y_inc;
 
-	header.nx = irint ( (header.x_max - header.x_min) * idx) + one_or_zero;
-	header.ny = irint ( (header.y_max - header.y_min) * idy) + one_or_zero;
-	
 	GMT_boundcond_param_prep (&header, &edgeinfo);
 
 	grid_node = (struct NODE **) GMT_memory (VNULL, (size_t)(header.nx * header.ny), sizeof (struct NODE *), GMT_program);
 	point = (struct POINT *) GMT_memory (VNULL, (size_t)n_alloc, sizeof (struct POINT), GMT_program);
 	
-	di = (int *) GMT_memory (VNULL, (size_t)header.ny, sizeof (int), GMT_program);
-	shrink = (double *) GMT_memory (VNULL, (size_t)header.ny, sizeof (double), GMT_program);
+	di = (int *) mxMalloc ((size_t)header.ny * sizeof (int));
+	shrink = (double *) mxMalloc ((size_t)header.ny * sizeof (double));
 
-	x0 = (double *) GMT_memory (VNULL, (size_t)header.nx, sizeof (double), GMT_program);
-	y0 = (double *) GMT_memory (VNULL, (size_t)header.ny, sizeof (double), GMT_program);
+	x0 = (double *) mxMalloc ((size_t)header.nx * sizeof (double));
+	y0 = (double *) mxMalloc ((size_t)header.ny * sizeof (double));
 	for (i = 0; i < header.nx; i++) x0[i] = header.x_min + i * header.x_inc + xinc2;
 	for (j = 0; j < header.ny; j++) y0[j] = header.y_max - j * header.y_inc - yinc2;
 	if (distance_flag) {	/* Input data is geographical */
@@ -289,56 +344,103 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	x_width = header.x_max - header.x_min;		y_width = header.y_max - header.y_min;
 	half_x_width = 0.5 * x_width;			half_y_width = 0.5 * y_width;
 	nx_2 = edgeinfo.nxp / 2;
-	n = 0;
+	n = nin = 0;
 	replicate_x = (edgeinfo.nxp && !header.node_offset);	/* Gridline registration has duplicate column */
 	replicate_y = (edgeinfo.nyp && !header.node_offset);	/* Gridline registration has duplicate row */
 	x_wrap = header.nx - 1;			/* Add to node index to go to right column */
 	y_wrap = (header.ny - 1) * header.nx;	/* Add to node index to go to bottom row */
 	
-	in = (double *) calloc ((size_t)(4), sizeof(double));
 
-	/* Use here the old toggle recipe because things inside GMT_get_common_args are behaving odly */
-	if (gmtdefs.xy_toggle[0]) {
-		ix = 1;		iy = 0;
-	}
-	else {
-		ix = 0;		iy = 1;
-	}
-	for (i = 0; i < gmtdefs.n_header_recs; i++) fgets (line, 1024, fp);
+	in = (double *) mxCalloc ((size_t)(4), sizeof(double));
 
-	while (fgets (line, 1024, fp)) {
-		if (n_cols == 0) {	/* First time, allocate # of columns */
-			strcpy (buffer, line);
-			p = (char *)strtok (buffer, " \t\n");
-			while (p) {	/* Count # of fields */
-				n_cols++;
+#if defined COMPILED && COMPILED == 0
+	rhs[0] = mxCreateDoubleScalar(0.0);
+	ptr_wb = mxGetPr(rhs[0]);
+	rhs[1] = mxCreateString("title");
+	rhs[2] = mxCreateString("Interpolating ...");
+	mexCallMATLAB(0,NULL,3,rhs,"aguentabar");
+#endif
+
+	while (nofile ? nToParse : fgets (line, 1024, fp)) {	/* Read from data from file */
+
+		if (nofile && n_arg_no_char == 1 && isDouble) {		/* x,y,z data transmitted in input */
+			in[0] = z1_8[nin];
+			in[1] = z1_8[nin + n_pts];
+			in[2] = z1_8[nin + n_2pts];
+			if (weighted) in[3] = z1_8[nin + 3*n_pts]; 
+			nToParse--;
+		}
+		else if (nofile && n_arg_no_char == 1 && !isDouble) {		/* x,y,z data transmitted in input */
+			in[0] = z1_4[nin];
+			in[1] = z1_4[nin + n_pts];
+			in[2] = z1_4[nin + n_2pts];
+			if (weighted) in[3] = z1_4[nin + 3*n_pts];
+			nToParse--;
+		}
+		else if (nofile && n_arg_no_char >= 3 && isDouble) {		/* x,y,z data transmitted in input */
+			in[0] = z1_8[nin];
+			in[1] = z2_8[nin];
+			in[2] = z3_8[nin];
+			if (weighted) in[3] = z4_8[nin]; 
+			nToParse--;
+		}
+		else if (nofile && n_arg_no_char >= 3 && !isDouble) {		/* x,y,z data transmitted in input */
+			in[0] = z1_4[nin];
+			in[1] = z2_4[nin];
+			in[2] = z3_4[nin];
+			if (weighted) in[3] = z4_4[nin];
+			nToParse--;
+		}
+
+		/* File name transmitted. Must read from that file */
+		else {
+			if (n_cols == 0) {	/* First time, allocate # of columns */
+				strcpy (buffer, line);
+				p = (char *)strtok (buffer, " \t\n");
+				while (p) {	/* Count # of fields */
+					n_cols++;
+					p = (char *)strtok ((char *)NULL, " \t\n");
+				}
+				/* Now we know # of columns */
+				if (!weighted && n_cols < 3)
+					mexErrMsgTxt("NEARNEIGHBOR ERROR: input file must have at least 3 columns");
+
+				else if (weighted && n_cols < 4)
+					mexErrMsgTxt("NEARNEIGHBOR ERROR: input file must have at least 4 columns");
+
+			}
+			p = (char *)strtok (line, " \t\n");
+			jj = 0;
+			while (p && jj < n_expected_fields) {
+				sscanf (p, "%lf", &in[jj]);
+				jj++;
 				p = (char *)strtok ((char *)NULL, " \t\n");
 			}
-			/* Now we know # of columns */
-			if (!weighted && n_cols < 3) {
-				mexPrintf("NEARNEIGHBOR ERROR: input file must have at least 3 columns");
-				mexErrMsgTxt("\n");
-			}
-			else if (weighted && n_cols < 4) {
-				mexPrintf("NEARNEIGHBOR ERROR: input file must have at least 4 columns");
-				mexErrMsgTxt("\n");
+			if (jj != n_expected_fields) {
+				mexPrintf ("Expected %d but found %d fields in record # %d\n", n_expected_fields, jj, k);
+				continue;
 			}
 		}
-		p = (char *)strtok (line, " \t\n");
-		jj = 0;
-		while (p && jj < n_expected_fields) {
-			sscanf (p, "%lf", &in[jj]);
-			jj++;
-			p = (char *)strtok ((char *)NULL, " \t\n");
+#if defined COMPILED && COMPILED == 0
+		if ( (float)nin / n_pts * 100 >= percentage ) {
+			if (nofile)
+				*ptr_wb = (double)(nin+1) / n_pts;
+			else
+				*ptr_wb = (double)(n) / n_alloc;	/* Idiot, but we don't know total pts */ 
+			mexCallMATLAB(0,NULL,1,rhs,"aguentabar");
+			percentage += 5;
 		}
-		if (jj != n_expected_fields) {
-			mexPrintf ("Expected %d but found %d fields in record # %d\n", n_expected_fields, jj, k);
-			continue;
-		}
-	
+#else
+		if (nofile)
+			mexPrintf("Done %.0f %%\r", (double)(nin+1) / n_pts * 100);
+		else
+			mexPrintf("Done %.0f %%\r", (double)(n) / n_alloc * 100);	/* Idiot, but we don't know total pts */
+#endif
+
+		nin++;
 		if (in[ix] < x_left || in[ix] > x_right) continue;
 		if (in[iy] < y_bottom || in[iy] > y_top) continue;
-		
+
 		point[n].x = (float)in[ix];
 		point[n].y = (float)in[iy];
 		point[n].z = (float)in[2];
@@ -346,8 +448,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 		/* Find indices of the node closest to this data point */
 
-		i0 = GMT_x_to_i(in[0], header.x_min, idx, offset, header.nx);
-		j0 = GMT_y_to_j(in[1], header.y_min, idy, offset, header.ny);
+		i0 = GMT_x_to_i(in[ix], header.x_min, header.x_inc, header.xy_off, header.nx);
+		j0 = GMT_y_to_j(in[iy], header.y_min, header.y_inc, header.xy_off, header.ny);
 
 		/* Loop over all nodes within radius of this node */
 
@@ -361,8 +463,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 				/* Here, (ii,jj) is index of a node (k) inside the grid */
 
-				k = jj * header.nx + ii;
-				dx = in[0] - x0[ii];	dy = in[1] - y0[jj];
+				dx = in[ix] - x0[ii];	dy = in[iy] - y0[jj];
 
 				/* Check for wrap-around in x or y.  This should only occur if the
 				   search radius is larger than 1/2 the grid width/height so that
@@ -374,7 +475,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 				switch (distance_flag) {	/* Take different action depending on how we want distances calculated */
 					case 0:		/* Cartesian distance */
-						distance = hypot (dx, dy);
+						distance = dx*dx + dy*dy;	/* This, instead of sqrt(), saves a lot of time */
+						if (distance > radius2) continue;	/* Data constraint is too far from this node */
+						distance = sqrt(distance);
 						break;
 					case 1:		/* Flat Earth Approximation */
 						distance = km_pr_deg * hypot (dx * shrink[jj], dy);
@@ -390,6 +493,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 				/* OK, this point should constrain this node.  Calculate which sector and assign the value */
 
+				k = jj * header.nx + ii;
 				sector = ((int)((d_atan2 (dy, dx) + M_PI) * factor)) % n_sectors;
 				assign_node (&grid_node[k], n_sectors, sector, distance, n);
 
@@ -413,13 +517,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 		n++;
 		if (n == n_alloc) {
-			n_alloc += GMT_CHUNK;
+			n_alloc <<= 1;
 			point = (struct POINT *) GMT_memory ((void *)point, (size_t)n_alloc, sizeof (struct POINT), GMT_program);
 		}
 	}
+#if defined COMPILED && COMPILED == 0
+	*ptr_wb = 1.0;
+	mexCallMATLAB(0,NULL,1,rhs,"aguentabar");
+#endif
 				
 	point = (struct POINT *) GMT_memory ((void *)point, (size_t)n, sizeof (struct POINT), GMT_program);
-	grd = (float *) GMT_memory (VNULL, (size_t)(header.nx * header.ny), sizeof (float), GMT_program);
+	grd = (float *) mxMalloc ((size_t)(header.nx * header.ny * sizeof (float)));
 
 	/* Compute weighted averages based on the nearest neighbors */
 	
@@ -461,13 +569,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	/* Transpose from gmt grd orientation to Matlab orientation */
 	nx = header.nx;		ny = header.ny;
-	z_4 = mxCalloc (nx*ny, sizeof (float));
-	for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) z_4[j*ny+ny-i-1] = grd[i*nx+j];
-
 	plhs[0] = mxCreateNumericMatrix (ny,nx,mxSINGLE_CLASS,mxREAL);
-	pdata = mxGetData(plhs[0]);
-	memcpy(pdata, z_4, ny*nx * 4);
-	mxFree(z_4);
+	z_4 = (float *)mxGetData(plhs[0]);
+	for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) z_4[j*ny+ny-i-1] = grd[i*nx+j];
 
 	if (nlhs == 2) {	/* User also wants the header */
 		plhs[1] = mxCreateDoubleMatrix (1, 9, mxREAL);
@@ -483,31 +587,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		info[8] = header.y_inc;
 	}
 
-	GMT_free ((void *)grd);
 	GMT_free ((void *)point);
 	GMT_free ((void *)grid_node);
-	GMT_free ((void *)shrink);
-	GMT_free ((void *)di);
-	GMT_free ((void *)x0);
-	GMT_free ((void *)y0);
+	mxFree ((void *)grd);
+	mxFree((void *)shrink);
+	mxFree((void *)di);
+	mxFree((void *)x0);
+	mxFree((void *)y0);
 	
 	GMT_end_for_mex (argc, argv);
 }
 
-struct NODE *add_new_node(int n)
-{
+struct NODE *add_new_node(int n) {
 	struct NODE *new;
 	
-	new = (struct NODE *) GMT_memory (VNULL, (size_t)1, sizeof (struct NODE), GMT_program);
-	new->distance = (float *) GMT_memory (VNULL, (size_t)n, sizeof (float), GMT_program);
-	new->datum = (int *) GMT_memory (VNULL, (size_t)n, sizeof (int), GMT_program);
+	new = (struct NODE *) mxMalloc (sizeof (struct NODE));
+	new->distance = (float *) mxMalloc ((size_t)(n * sizeof (float)));
+	new->datum = (int *) mxMalloc ((size_t)(n * sizeof (int)));
 	while (n > 0) new->datum[--n] = -1;
 	
 	return (new);
 }
 
-void assign_node (struct NODE **node, int n_sector, int sector, double distance, int id)
-{
+void assign_node (struct NODE **node, int n_sector, int sector, double distance, int id) {
 	/* Allocates node space if not already used and updates the value if closer to node */
 
 	if (!(*node)) *node = add_new_node (n_sector);
