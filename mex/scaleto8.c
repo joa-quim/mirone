@@ -20,6 +20,7 @@
  *		07-Jul-2008 - Let int8 (char) arrays be processed as well
  *		30-Oct-2008 - -8 | -16 scale to int without adding 1. Work with 3D arrays
  *		19-JAN-2009 - Test if NaN before scaling. This is worth doing.
+ *		23-FEB-2009 - Do not scale int8 arrays if they have no negative values.
  *
  */
 
@@ -381,7 +382,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			*z_min = min;	*z_max = max;
 		}
 	}
-	else if (is_int8) {
+	else if (is_int8) {	/* This whole cases are a bit stupid */
 		if (got_limits)
 			mexErrMsgTxt("SCALETO8 ERROR: Asking for limits on a INT8 array is not availabe (does it make sense?).");
 
@@ -401,7 +402,11 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
 			range = new_range / (max - min);
-			if (scale8) {	/* Scale to uint8 */
+			if (min >= 0 && scale8) {	/* There is nothing to scale here */ 
+				for (i = 0; i < nx*ny; i++)
+					out8[i] = (char)i_1[i];
+			}
+			else if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_1[i] == nodata) continue;
 					out8[i] = (char)(((float)i_1[i] - min) * range) + add_off;
