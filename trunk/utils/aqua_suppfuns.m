@@ -130,8 +130,9 @@ function coards_sliceShow(handles)
 
 	else									% We already have a Mirone image. Update it with this new slice
 		handles.handMir = guidata(handles.hMirFig);			% Get updated handles to see if illum has changed
-		setappdata(handles.handMir.figure1,'dem_z',Z);		% Update grid so that coursor display correct values
-															% Have to do it here because minmax arg to scalet8 CHANGES Z
+		if ( ~(isa(Z,'uint8') || isa(Z,'int8')) )
+			setappdata(handles.handMir.figure1,'dem_z',Z);	% Update grid so that coursor display correct values
+		end													% Have to do it here because minmax arg to scalet8 CHANGES Z
 
 		if ( handles.useLandPhoto )							% External Land image
 			if (handles.firstLandPhoto)						% First time, create the background image
@@ -145,6 +146,7 @@ function coards_sliceShow(handles)
 		if ( ~get(handles.check_globalMinMax, 'Val') ),		minmax = [];		% Use Slice's min/max
 		else							minmax = handles.zMinMaxsGlobal;
 		end
+		if (isa(Z,'uint8') || isa(Z,'int8') && ~isempty(minmax)),	minmax = [];	end	% We don't want to scale a 1 byte array
 
 		if ( ~isempty(minmax) ),		img = scaleto8(Z, 8, minmax);
 		else							img = scaleto8(Z);
