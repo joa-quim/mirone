@@ -486,6 +486,7 @@ src_figs/line_operations.m -text
 src_figs/listbox_message.m -text
 src_figs/magbarcode.m -text
 src_figs/manual_pole_adjust.m -text
+src_figs/meca_studio.m -text
 src_figs/mirone_pref.m -text
 src_figs/mk_movie_from_list.m -text
 src_figs/ml_clip.m -text
