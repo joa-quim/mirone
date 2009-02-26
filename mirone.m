@@ -50,7 +50,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j iptchecknargin
 %#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line move_obj make_arrow
 %#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
-%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calcBoninEulerPole spline_interp
+%#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
 %#function mat2clip buffer_j PolygonClip trend1d_m
 
 % 	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
@@ -324,6 +324,7 @@ function erro = gateLoadFile(handles,drv,fname)
 
 % --------------------------------------------------------------------------------------------------
 function handles = recentFiles(handles, opt)
+	if (~isempty(handles.fileName) && ~exist(handles.fileName,'file')),		return,		end		% For example, subdatasets
 	jump = 0;		N = numel(handles.FOpenList);
 	if (nargin == 1)		% Update list
 		for (i = 1:N)		% See if new name is already in FOpenList
@@ -1003,7 +1004,7 @@ function ExtractProfile_CB(handles, opt)
 		xp = get(hand,'Xdata');			yp = get(hand,'Ydata');
 		rmappdata(handles.figure1,'TrackThisLine')		% Clear it so that the next time it may work when called interactivelly
 	elseif ~isempty(getappdata(handles.figure1,'StackTrack'))		% Stacking interpolation
-		do_stack = getappdata(handles.figure1,'StackTrack');		% do_stack is in fact the line handle (named for convinience)
+		do_stack = getappdata(handles.figure1,'StackTrack');		% do_stack is in fact the line handle (named for convenience)
 		xp = get(do_stack,'Xdata');		yp = get(do_stack,'Ydata');
 		rmappdata(handles.figure1,'StackTrack')
 	else
@@ -1281,11 +1282,12 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	handles.fileName = [PathName FileName];
 
 	ECWpatch(handles, tipo)					% Check if we need to patch the ECW library memory fragmentation
-	erro = 0;			gotHDRcoords = false;		opt_U = '-U';		fnameBak = handles.fileName;
+	erro = 0;			gotHDRcoords = false;		opt_U = '-U';		opt_L = ' ';		fnameBak = handles.fileName;
 	try		att = gdalread(handles.fileName,'-M','-C');	% Safety against blind calls from 'try luck'
 	catch	erro = 1;	errordlg(lasterr,'Error'),		return
 	end
 	att.fname = handles.fileName;						% If hdfread is used, it will need the file name (not eventual dataset name)
+	att.subDsName = '';
 
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 		str = strrep(att.Subdatasets, '=', ' ');
@@ -1296,7 +1298,12 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		ind = strfind(str{s}, ' ');
 		FileName = str{s}(ind+1:end);					% First "ind" chars are of the form SUBDATASET_1_NAME=
 		handles.fileName = FileName;
+		ind = strfind(str{s+1}, ' ');
+		subDsName = str{s+1}(ind(2)+1:ind(3)-1);		% Get dataset name
+		AllSubdatasets = att.Subdatasets;				% Copy this for eventual use in "empilhador"
 		att = gdalread(FileName,'-M','-C');				% Try again
+		att.subDsName = subDsName;						% Another non-standard
+		att.AllSubdatasets = AllSubdatasets;			% and another
 	end
 	att.fname = fnameBak;								% If hdfread is used, it will need the file name (not eventual dataset name)
 	set(handles.figure1,'pointer','watch')
@@ -1313,13 +1320,14 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	end
 
 	if (strncmp(att.DriverShortName, 'HDF4', 4))
-		tmp = att.GMT_hdr(1:4);			% It will change if we find coords in HDF variables not scaned by GDAL
+		tmp = att.GMT_hdr(1:4);			% It will change if we find coords in HDF variables not scanned by GDAL
 		[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
 		if ( ~isequal(att.GMT_hdr(1:4), tmp) ),		gotHDRcoords = true;		end
+		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2)),	opt_L = '-L';	end
 	end
 
 	if (isempty(att.GeoTransform) && ~gotHDRcoords),		opt_U = ' ';	end
-	Z = gdalread(handles.fileName, opt_U);
+	Z = gdalread(handles.fileName, opt_U, opt_L);
 	handles.head = att.GMT_hdr;
 
 	if (~isempty(att.GeoTransform) || gotHDRcoords)		% Georeferenced image
@@ -1330,6 +1338,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	else							% Case of "raw" imagerie
 		X = [1 size(Z,2)];		Y = [1 size(Z,1)];	ax_dir = 'off';		handles.image_type = 2;
 		handles.head = [X Y 0 255 0 1 1];
+		if (opt_L(1) == '-'),	ax_dir = 'xy';		handles.head = head;	end	% A dumb test for MODIS quality flags
 	end
 
 	if (strcmpi(att.ColorInterp,'palette'))
@@ -1337,14 +1346,14 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		else
 			try
 				pal = att.Band(1).ColorMap.CMap;	pal = pal(:,1:3);		% GDAL creates a Mx4 colormap
-				if (handles.head(6) < size(pal,1) && isequal(pal(handles.head(6)+2,:), [0 0 0]) )
+				if ((handles.head(6)+1) < size(pal,1) && isequal(pal(handles.head(6)+2,:), [0 0 0]) )
 					pal(handles.head(6)+2:end,:) = [];		% TEMP!? GDAL forces pals of 256 and that screws some cases
 				end
 			catch	warndlg('Figure ColorMap had troubles. Replacing by a default one.','Warning'); pal = jet(256);
 			end
 		end
 	elseif (strcmpi(att.ColorInterp,'gray'))
-			pal = repmat( (att.GMT_hdr(5):att.GMT_hdr(6))' / 255, 1, 3);
+			pal = repmat( (att.GMT_hdr(5):att.GMT_hdr(6))' / att.GMT_hdr(6), 1, 3);
 	else	pal = gray(256);
 	end
 
@@ -1354,7 +1363,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	end																% from appdata. That is donne in show_image()
 
 	set(handles.figure1,'Colormap',pal);
-	handles = show_image(handles,handles.fileName,X,Y,Z,0,ax_dir,0);
+	handles = show_image(handles,att.fname,X,Y,Z,0,ax_dir,0);
 	grid_info(handles,att,'gdal')				% Construct a info message
 	handles = aux_funs('isProj',handles);		% Check/set about coordinates type
 	handles = setAxesDefCoordIn(handles,1);		% Sets the value of the axes uicontextmenu that selects whether project or not
@@ -1492,7 +1501,7 @@ function read_DEMs(handles,fullname,tipo,opt)
 			Z = gdalread(att.Name, '-U', opt_I);
 		else								% HDF files need a special care. Search for an offset and scale factor, etc...
 			[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
-			[Z, handles.have_nans] = empilhador('getZ', handles.fileName, att, is_modis, is_linear, is_log, slope, intercept, base);
+			[Z, handles.have_nans, att] = empilhador('getZ', handles.fileName, att, is_modis, is_linear, is_log, slope, intercept, base);
 			handles.fileName = att.fname;	% We'll need better but for now this ensures that no subdataset name is taken as the whole.
 			if (~isa(Z,'int16')),		handles.was_int16 = 0;		end
 		end
@@ -1517,6 +1526,10 @@ function read_DEMs(handles,fullname,tipo,opt)
 			zz = grdutils(Z,'-L');			head(5:6) = [zz(1) zz(2)];
 		end
 		X = linspace(head(1),head(2),size(Z,2));	Y = linspace(head(3),head(4),size(Z,1));	% Need this for image
+		if (~isempty(att.GCPvalues))					% Save GCPs so that we can plot them and warp the image
+			setappdata(handles.figure1,'GCPregImage',att.GCPvalues)
+			setappdata(handles.figure1,'fnameGCP',handles.fileName)		% Save this to know when GCPs are to be removed
+		end																% from appdata. That is donne in show_image()
 	end
 
 	aux_funs('StoreZ',handles,X,Y,Z)		% If grid size is not to big we'll store it
@@ -1576,7 +1589,8 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	else
 		set(handles.hImg,'CDataMapping','direct')
 	end
-	handles.geog = aux_funs('guessGeog',handles.head(1:4));		% Hmm... there are cases where I know for sure
+	handles.geog = aux_funs('guessGeog',handles.head(1:4));		% Hmm... there are cases where we know for sure!!!
+	if (handles.image_type == 2),	handles.geog = 0;	end
 
 	magRatio = resizetrue(handles,imSize,axis_t);				% ----> IMAGE IS VISIBLE HERE. <-------
 
@@ -1960,7 +1974,7 @@ function ImageLink_CB(handles, opt)
 	hFigs(ind) = [];										% Remove current figure from the fished list
 	IAmAMir = true(1, numel(hFigs));
 	for (k = 1:numel(hFigs))
-		IAmAMir(k) = getappdata(hFigs(k), 'IAmAMirone');	% Only true survive because the others are = []
+		if (isempty(getappdata(hFigs(k), 'IAmAMirone'))),	IAmAMir(k) = false;		end
 	end
 	hFigs = hFigs(IAmAMir);									% Retain only the Mirone figures
 	nomes = get(hFigs,'name');
@@ -2135,7 +2149,7 @@ function DrawLine_CB(handles, opt)
 			setappdata(handles.figure1,'fnameGCP',FileName)	% To know when GCPs must be removed from appdata (in show_image)
 		end			% else -> opt = 'GCPpline'
 		h = line('XData', xp, 'YData', yp,'Color','k','LineWidth',0.5,'LineStyle',LS,'Marker','o',...
-			'MarkerFaceColor','y','MarkerSize',5,'Tag','GCPpolyline');
+			'MarkerFaceColor','y','MarkerSize',4,'Tag','GCPpolyline');
 		if (opt(4) == 'm'),		register_img(handles,h,GCPinMemory(:,1:4))		% Set uicontext for img registration
 		else					register_img(handles,h)
 		end
@@ -2487,7 +2501,7 @@ function DrawContours_CB(handles, opt)
 	i = 1;		h_cont = [];	cont = [];
 	while(i < limit)
 		z_level = c(1,i);		npoints = c(2,i);
-		if (z_level < eps),		z_level = 0;	c(1,i) = 0;		end		% Account for another ML BUG
+		if (abs(z_level) < eps),		z_level = 0;	c(1,i) = 0;		end		% Account for another ML BUG
 		nexti = i+npoints+1;
 		xdata = c(1,i+1:i+npoints);		ydata = c(2,i+1:i+npoints);
 		% Create the lines
@@ -2942,7 +2956,7 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
 	if ( strcmp(driver,'GTiff') )
 		gcps = getappdata(handles.figure1,'GCPregImage');
 		if (~isempty(gcps))
-			h = findobj(handles.axes1,'Tag','GCPpolyline');		% If we have tem visible, they might have been edited
+			h = findobj(handles.axes1,'Tag','GCPpolyline');		% If we have them visible, they might have been edited
 			if (~isempty(h))
 				x = get(h,'XData');		y = get(h,'YData');		gcps(:,1:2) = [x(:) y(:)];
 			end
