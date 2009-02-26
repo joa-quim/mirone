@@ -50,6 +50,7 @@ function hObject = empilhador_OpeningFcn(varargin)
         d_path = [pwd filesep 'data' filesep];
 	end
 	handles.nameList = [];
+	handles.testedDS = false;		% To test if a Sub-Dataset request is idiot
 
 	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','off')
 
@@ -67,7 +68,6 @@ function hObject = empilhador_OpeningFcn(varargin)
 
 	set(hObject,'Visible','on');
 	guidata(hObject, handles);
-	if (nargout),	varargout{1} = hObject;     end
 
 % -----------------------------------------------------------------------------------------
 function edit_namesList_CB(hObject, handles)
@@ -99,15 +99,16 @@ function push_namesList_CB(hObject, handles, opt)
 	m = length(names);
 
 	handles.strTimes = cell(m,1);	% To hold time steps as strings
+	SDSinfo = cell(m,1);			% To hold Sub Datasets info
+	handles.SDSinfo = [];			% If above exists, it will be copied here
 	c = false(m,1);
 	caracol = false(m,1);
 
 	n_msg = 1;							% Will hold the "change DV messages" counter
 	if (n_column > 1)					% When 2nd column holds the 3D numbering
-		for (k=1:m)
-			if ( isempty(names{k}) ),	continue,		end		% Jump empty lines
+		for (k = 1:m)
 			[t,r] = strtok(names{k});
-			if (t(1) == '#'),  c(k) = true;			continue,	end
+			if (t(1) == '#' || isempty(t)),  	c(k) = true;	continue,	end		% Jump empty and comment lines
 			if ( t(1) == '@')
 				caracol(k) = true;
 				if (~isempty(t(2:end))),		handles.changeCD_msg{n_msg} = t(2:end);		% The '@' was glued with the message
@@ -118,11 +119,18 @@ function push_namesList_CB(hObject, handles, opt)
 			end
 
 			names{k} = t;
-			r = ddewhite(r);
-			handles.strTimes{k} = r;
+			if (n_column == 2)			% Names & numeric label format
+				r = ddewhite(r);
+				handles.strTimes{k} = r;
+			else						% Names, numeric label & SDS info format
+				[t,r] = strtok(r);
+				t = ddewhite(t);
+				handles.strTimes{k} = t;
+				SDSinfo{k} = ddewhite(r);
+			end
 		end
 	else								% Only one column with fnames
-		for (k=1:m)
+		for (k = 1:m)
 			if ( isempty(names{k}) ),	continue,			end		% Jump empty lines
 			if ( names{k}(1) == '#'),	c(k) = true;		continue,	end
 			if ( names{k}(1) == '@')
@@ -138,7 +146,24 @@ function push_namesList_CB(hObject, handles, opt)
 	if (any(c))					% Remove eventual comment lines
 		names(c) = [];			handles.strTimes(c) = [];		caracol(c) = [];
 	end
-	m = length(names);			% Count remaining ones
+	m = numel(names);			% Count remaining ones
+	
+	if (m == 0)
+		errordlg('Beautiful service. Your list file had nothing but a bunch of trash.','Error'),	return
+	end
+
+	% -------------- Check if we have a Sub-Datasets request ------------------
+	if (n_column == 3 && strncmpi(SDSinfo{1}, 'sds', 3))
+		if (any(c)),	SDSinfo(c) = [];	end
+		handles.SDSinfo = SDSinfo;
+	elseif (n_column == 2 && strncmpi(handles.strTimes{1}, 'sds', 3))		% Two cols with SDS info in the second
+		handles.SDSinfo = handles.strTimes;
+		for (k = 1:m),		handles.strTimes{k} = sprintf('%d',k);		end
+	end
+	if (~isempty(handles.SDSinfo))
+		handles.SDSthis = str2num(handles.SDSinfo{1}(4:end));
+	end
+	% --------------------------------------------------------------------------
 
 	handles.shortNameList = cell(m,1);      % To hold grid names with path striped
 	for (k=1:m)
@@ -154,7 +179,7 @@ function push_namesList_CB(hObject, handles, opt)
 	% Check that the files provided in list do exist
 	if (~any(caracol))			% It makes no sense to test existance of files in other DVDs
 		c = false(m,1);
-		for (k=1:m)
+		for (k = 1:m)
 			c(k) = (exist(names{k},'file') ~= 2);		% Flag to kill all non-existant files
 		end
 		names(c) = [];		handles.shortNameList(c) = [];
@@ -165,11 +190,6 @@ function push_namesList_CB(hObject, handles, opt)
 	set(handles.edit_namesList, 'String', fname)
 	set(handles.listbox_list,'String',handles.shortNameList)
 	guidata(handles.figure1,handles)
-	set(handles.figure1,'pointer','arrow')
-	
-	if (isempty(names))
-		warndlg('As you may have already realized, the goodness of the name list provied is ... fiu, fiu, fiu!','Warning')
-	end
 
 % -----------------------------------------------------------------------------------------
 function radio_conv2netcdf_CB(hObject, handles)
@@ -250,9 +270,6 @@ function edit_east_CB(hObject, handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function listbox_list_CB(hObject, handles)
-
-% -----------------------------------------------------------------------------------------
 function edit_stripeWidth_CB(hObject, handles)
 	x1 = str2double(get(hObject,'String'));
 	if (isnan(x1)),		set(hObject,'String','0.5'),	end
@@ -270,12 +287,8 @@ function radio_lon_CB(hObject, handles)
 % -----------------------------------------------------------------------------------------
 function push_compute_CB(hObject, handles)
 % ...
-	if (isempty(handles.nameList))
-		errordlg('Yes, Com-Pute and Sem-Pute -- as you like. Empty filename list.','ERROR'),		return
-	end
 
-	got_R = false;		is_modis = false;		is_linear = false;		is_log = false;
-	west = [];			east = [];		south = [];		north = [];
+	got_R = false;	west = [];			east = [];		south = [];		north = [];
 	if (get(handles.check_region,'Val'))
 		north = str2double(get(handles.edit_north,'String')); 
 		west = str2double(get(handles.edit_west,'String')); 
@@ -286,7 +299,7 @@ function push_compute_CB(hObject, handles)
 		end
 		got_R = true;
 	end
-	
+
 	% to netCDF or VTK conversion?
 	if ( get(handles.radio_conv2netcdf,'Val') || get(handles.radio_conv2vtk,'Val') )
 		cut2cdf(handles, got_R, west, east, south, north)
@@ -332,9 +345,9 @@ function push_compute_CB(hObject, handles)
 		if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 			ind = strfind(att.Subdatasets{1}, '=');
 			FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
-			[Z,att] =  read_gdal(FileName, [], '-U', '-C', opt_R);
+			[Z,att] =  read_gdal(FileName, [], '-C', opt_R, '-U');
 		else
-			Z =  read_gdal(handles.nameList{k}, att, '-U', '-C', opt_R);
+			Z =  read_gdal(handles.nameList{k}, att, '-C', opt_R, '-U');
 		end
 		this_has_nans = false;
 		if (is_modis)
@@ -402,16 +415,14 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	if (isempty(EXT)),		FileName = [fname this_ext];	end
 	grd_out = [PathName FileName];
 
-	set(handles.figure1,'pointer','watch')
 	% Read relevant metadata
-	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log] = get_headerInfo(handles, got_R, west, east, south, north);
+	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim, att] = ...
+		get_headerInfo(handles, got_R, west, east, south, north);
 
 	handles.geog = 1;			handles.head = head;
 	handles.was_int16 = 0;		handles.computed_grid = 0;
 
-	if (get(handles.radio_conv2vtk,'Val'))
-		fid = write_vtk(handles, grd_out, 'hdr');
-	end
+	if (get(handles.radio_conv2vtk,'Val')),		fid = write_vtk(handles, grd_out, 'hdr');	end
 
 	nSlices = numel(handles.nameList);
 	n_cd = 1;
@@ -428,7 +439,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		end
 
 		% In the following, if any of slope, intercept or base changes from file to file ... f
-		[Z, handles.have_nans, att] = getZ(handles.nameList{k}, [], is_modis, is_linear, is_log, slope, intercept, base, opt_R);
+		[Z, handles.have_nans, att] = getZ(handles.nameList{k}, [], is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles);
 
 		if (get(handles.radio_conv2vtk,'Val'))				% Write this layer of the VTK file and continue
 			write_vtk(fid, grd_out, Z);
@@ -466,7 +477,6 @@ function cut2cdf(handles, got_R, west, east, south, north)
 
 	if (get(handles.radio_conv2vtk,'Val')),		fclose(fid);	end
 	set(handles.listbox_list,'Val',1)
-	set(handles.figure1,'pointer','arrow')
 
 % -----------------------------------------------------------------------------------------
 function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim, att] = ...
@@ -475,10 +485,16 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 
 	att = read_gdal(handles.nameList{1}, [], '-M','-C');	% Do this because it deals also with ziped files
 
-	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) && strncmp(att.DriverShortName, 'HDF4', 4) )		% Some MODIS files
-		ind = strfind(att.Subdatasets{1}, '=');
+	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )
+		if (~isempty(handles.SDSinfo))
+			ind = strfind(att.Subdatasets{handles.SDSthis}, '=');
+		elseif (strncmp(att.DriverShortName, 'HDF4', 4))	% Some MODIS files
+			ind = strfind(att.Subdatasets{1}, '=');
+		else
+			errordlg('File has Sub-Datasets but you told me nothing about it.','ERROR'),	return
+		end
 		FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
-		att = gdalread(FileName,'-M','-C');				% Try again (it will probabçy fail on ziped files)
+		att = gdalread(FileName,'-M','-C');				% Try again (it will probably fail on ziped files)
 	end
 
 	% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
@@ -486,12 +502,10 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 		att.GMT_hdr(1:4) = [1 att.RasterXSize 1 att.RasterYSize];
 	end
 
+	N_spatialSize = att.RasterYSize;		integDim = 2;
 	if (get(handles.radio_lon, 'Val'))
-		N_spatialSize = att.RasterYSize;		% Number of points in the spatial dim
-		integDim = 2;							% Dimension along which we are going to integrate
-	else
-		N_spatialSize = att.RasterXSize;
-		integDim = 1;
+		N_spatialSize = att.RasterXSize;		% Number of points in the spatial dim
+		integDim = 1;							% Dimension along which we are going to integrate
 	end
 
 	att.fname = handles.nameList{1};			% This case needs it
@@ -515,15 +529,33 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 	att.hdrInfo = [];
 	head = att.GMT_hdr;
 
-	if ( ~isempty(att.Metadata) && ~isempty(strfind(att.Metadata{2}, 'MODIS')) && strfind(att.Metadata{2}, 'MODIS'))
+	if ( ~isempty(att.Metadata) && ~isempty(strfind(att.Metadata{2}, 'MODIS')))
 		modis_or_seawifs = true;
-	elseif ( ~isempty(att.Metadata) && ~isempty(strfind(att.Metadata{2}, 'SeaWiFS')) && strfind(att.Metadata{2}, 'SeaWiFS'))
+	elseif ( ~isempty(att.Metadata) && ~isempty(strfind(att.Metadata{2}, 'SeaWiFS')))
 		modis_or_seawifs = true;
 	else
 		modis_or_seawifs = false;
 	end
-		
-	if ( strncmp(att.DriverShortName, 'HDF4', 4) && ~isempty(att.Metadata) && modis_or_seawifs )
+
+	if ( modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4) && ~isempty(strfind(att.Metadata{1}, 'Level-2')) )
+		out = search_scaleOffset(att.Metadata, 'slope');
+		if (~isempty(out))		% Otherwise, no need to search for a 'intercept'
+			slope = out;
+			if (slope ~= 1)
+				out = search_scaleOffset(att.Metadata, 'intercept');
+				if (~isempty(out)),		intercept = out;	end
+				is_linear = true;
+			end
+		end
+		head(1:4) = [1 att.RasterXSize 1 att.RasterYSize];
+		att.Band(1).NoDataValue = -32767;	% Shity format doesn't declare this null part (good for SST)
+		if (isfield(att, 'subDsName'))		% Known values (found by file inspection)
+			NoDataValue = guess_nodataval(att.subDsName);
+			if (~isempty(NoDataValue)),		att.Band(1).NoDataValue = NoDataValue;		end
+		end
+		is_modis = true;						% We'll use this knowledge to 'avoid' Land pixels = -32767  
+		att.hdrModisL2 = hdf_funs('hdfinfo', att.fname);
+	elseif ( modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4) )
 		y_max = str2double(att.Metadata{39}(23:end));		% att.Metadata{39} -> Northernmost Latitude=90
 		y_min = str2double(att.Metadata{40}(23:end));		% att.Metadata{40} -> Southernmost Latitude=90
 		x_min = str2double(att.Metadata{41}(23:end));		% att.Metadata{41} -> Westernmost Longitude=-180
@@ -553,6 +585,7 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 			intercept = str2double(att.Metadata{57}(11:end));	% att.Metadata{41} -> Intercept=-2
 			is_log = true;
 		end
+		att.Band(1).NoDataValue = 65535;		% Shity format doesn't declare this null part
 		is_modis = true;			% We'll use this knowledge to 'avoid' Land pixels = 65535
 	elseif ( strncmp(att.DriverShortName, 'HDF4', 4) && ~modis_or_seawifs )		% TEMP -> SST PATHFINDER
 		finfo = hdf_funs('hdfinfo', att.fname);
@@ -630,23 +663,68 @@ function out = search_scaleOffset(attributes, what)
 % Search for the WHAT attribute in ATTRIBUTES. If find return its VALUE.
 % Used to search for slope/intercept or scale_factor/add_offset in HDF files
 	out = [];
-	for (k = numel(attributes):-1:1)					% Start from the bottom because they are likely close to it 
-		if ( strcmpi(attributes(k).Name, what) )
-			out = double(attributes(k).Value);			break
+	if (isa(attributes, 'struct'))
+		for (k = numel(attributes):-1:1)					% Start from the bottom because they are likely close to it 
+			if ( strcmpi(attributes(k).Name, what) )
+				out = double(attributes(k).Value);			break
+			end
+		end
+	else					% Not tested but it must be a cell array (the att.Metadata)
+		for (k = numel(attributes):-1:1)					% Start from the bottom because they are likely close to it
+			id = strfind(attributes{k}, what);
+			if ( ~isempty(id) )
+				id_eq = findstr(attributes{k},'=');			% Find the '=' sign
+				out = str2double(attributes{k}(id_eq+1:end));			break
+			end
 		end
 	end
 
 % -----------------------------------------------------------------------------------------
-function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R)
+function NoDataValue = guess_nodataval(DsName)
+% Make an educated guess of the no-data value of HDF4 (MODIS) files
+	NoDataValue = [];
+	if (strncmp(DsName, 'sst', 3)),			NoDataValue = -32767;
+	elseif (strcmp(DsName, 'l3m_data')),	NoDataValue = 65535;		% L3 SST
+	elseif (strcmp(DsName, 'chlor_a')),		NoDataValue = -1;
+	elseif (strncmp(DsName, 'nLw_',4)),		NoDataValue = 0;			% ???
+	elseif (strcmp(DsName, 'K_490')),		NoDataValue = -5000;
+	elseif (strcmp(DsName, 'tau_869')),		NoDataValue = 0;
+	elseif (strcmp(DsName, 'eps_78')),		NoDataValue = 0;
+	elseif (strcmp(DsName, 'angstrom_531')),NoDataValue = -32767;
+	end
+
+% -----------------------------------------------------------------------------------------
+function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles)
 % ATT may be still unknown (empty). In that case it will be returned by read_gdal()
+% HANDLES, is transmitted only within internal calls of this function (that is, not from outside calls)
 
 	if (nargin < 9),	opt_R = ' ';	end
-	[Z,att] = read_gdal(fname, att, '-U', '-C', opt_R);
+	str_d = [];
+	if (nargin == 10 && ~isempty(handles.SDSinfo))	% We have a Sub-Dataset request
+		clear_att = false;
+		if (isempty(att))
+			[fname, str_d] = deal_with_compressed(fname);
+			att = gdalread(fname, '-M');	clear_att = true;
+			str_d = fname;
+		end
+		ind = strfind(att.Subdatasets{handles.SDSthis * 2 - 1}, '=');
+		fname = att.Subdatasets{handles.SDSthis * 2 - 1}(ind+1:end);	% First "ind" chars are of the form SUBDATASET_?_NAME=
+		if (clear_att),		att = [];	end
+	end
+	saveNoData = false;
+	if (is_modis && ~isempty(att))
+		NoDataValue = att.Band(1).NoDataValue;		% Save this value to reset it after read_gdal()
+		saveNoData = true;
+	end
+	[Z,att] = read_gdal(fname, att, '-C', opt_R, '-U');
+	if (~isempty(str_d)),	delete(str_d);		end		% Delete uncompressed file.
+
+	if ( is_modis && ~isempty(att.Band(1).NoDataValue) && saveNoData)	% att.Band... is isempty when all work has been done before
+		att.Band(1).NoDataValue = NoDataValue;		% Shity format doesn't inform on the no-data.
+	end
 
 	ind = [];
-	if (is_modis)
-		ind = (Z == 65535);
-	elseif ( ~isempty(att.Band(1).NoDataValue) && (att.Band(1).NoDataValue == -9999) )		% TEMP -> PATHFINDER
+	if ( ~isempty(att.Band(1).NoDataValue) && (att.Band(1).NoDataValue == -9999) )		% TEMP -> PATHFINDER
 		if ( ~isempty(att.Metadata) && strcmp(att.Metadata{2}, 'dsp_SubImageName=QUAL') )
 			% Quality flags files cannot be NaNified. 
 			% However, they should NOT have a scaling equation either. If quality is [0 7] why scalling?
@@ -662,6 +740,11 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		ind = isnan(Z);
 	end
 
+	if ( is_modis && (isa(Z, 'int8') || isa(Z, 'uint8')) )
+		is_linear = false;		ind = [];
+		if (isa(Z, 'uint8')),	Z = int8(Z);	end		% netCDF doesn't know UINT8
+	end
+
 	% See if we must apply a scaling equation
 	if (is_linear && (slope ~= 1 || intercept ~= 0))
 		if (~isa(Z,'single')),		Z = single(Z);		end
@@ -675,23 +758,141 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 			Z = single(Z);
 		end
 		Z(ind) = NaN;		have_nans = 1;
+	elseif (isempty(att.Band(1).NoDataValue) && isa(Z,'single'))		% It comes from the interpolation
+		att.Band(1).NoDataValue = NaN;
+		have_nans = grdutils(Z, '-N');
 	end
 
 % -----------------------------------------------------------------------------------------
 function [Z, att] = read_gdal(full_name, att, varargin)
 % Help function to gdalread that deals with cases when file is compressed.
 % ATT is the GDALREAD returned attributes. If empty, we'll get it here
-% VARARGIN will normally contain one or more of '-U', '-C', '-M', opt_R
+% VARARGIN will normally contain one or more of '-C', '-M', opt_R, '-U'
 % WARNING: If exist(att.hdfInfo) than att.fname should exist as well (both non standard)
 
-	str_d = [];		do_warn = 'true';		cext = [];		% Some defaults
-	
+	NoDataValue = [];	% Some defaults
+	[full_name, str_d, uncomp_name] = deal_with_compressed(full_name);
+
+	if (isempty(att))
+		att = gdalread(full_name, '-M');	% This first call is used in the next test
+		if ( att.RasterCount > 0 && numel(varargin) <= 2)		% CONVOLUTED TEST, BUT THIS IS A CONFUSED PROGRAM
+			handles = guidata(gcf);
+			if ( ~isempty(handles.SDSinfo) && handles.SDSthis > 1 && ~handles.testedDS)
+				errordlg('Input File has no Sub-Datasets so the silly sub-dataset request forced me to abort.','Error')
+				error('empilhador: File has no Sub-Datasets so the silly sub-dataset request forced me to abort')
+				handles.testedDS = true;
+				guidata(handles.figure1, handles)
+			end
+		end
+	end
+
+	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) && strncmp(att.DriverShortName, 'HDF4', 4) )		% Some MODIS files
+		sds_num = 1;
+		handles = guidata(gcf);
+		if (~isempty(handles.SDSinfo))		sds_num = handles.SDSthis * 2 - 1;		end		% We have a SubDataset request
+		ind = strfind(att.Subdatasets{sds_num}, '=');
+		full_name = att.Subdatasets{sds_num}(ind+1:end);				% First "ind" chars are of the form SUBDATASET_1_NAME=
+		ind = strfind(att.Subdatasets{sds_num+1}, ' ');					% Need to guess the no-data value
+		subDsName = att.Subdatasets{sds_num+1}(ind(1)+1:ind(2)-1);		% Get dataset name
+		NoDataValue = guess_nodataval(subDsName);
+	end
+
+	% att.hdrInfo and att.hdrModisL2 are not a default fields of the ATT struct
+	fname = [];
+	if (isfield(att, 'hdrInfo') && ~isempty(att.hdrInfo) && (strcmp(att.hdrInfo.SDS.Name,'sst')) )
+		% Only particular case dealt now
+		Z = hdf_funs('hdfread', att.fname, att.hdrInfo.SDS.Name, 'index', {[1 1],[1 1], [att.RasterYSize att.RasterXSize]});
+		Z = flipud(Z);
+		fname = att.fname;
+	else
+		opt_L = ' ';	GCPvalues = [];
+		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2) )
+			% These boys think they are very funy. Oh it's so cute to write the file from right-to-left !!!
+			lon = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(4).SDS(1).Name, 'index', {[],[], []}) );
+			lat = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(4).SDS(2).Name, 'index', {[],[], []}) );
+			cntl_pt_cols = hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(4).SDS(3).Name, 'index', {[],[], []});
+
+			cntl_pt_cols = double(cntl_pt_cols);
+			lat = double(lat);		lon = double(lon);
+			lat_full = zeros(size(lon,1), cntl_pt_cols(end));
+			lon_full = zeros(size(lon,1), cntl_pt_cols(end));
+			cols_vec = 1:cntl_pt_cols(end);
+			for (k = 1:size(lon,1))
+				lon_full(k,:) = akimaspline(cntl_pt_cols, lon(k,:), cols_vec);
+				lat_full(k,:) = akimaspline(cntl_pt_cols, lat(k,:), cols_vec);
+			end
+			x_min = lon(end,1);		x_max = lon(1,end);
+			y_min = lat(1);			y_max = lat(end,end);
+			clear lon lat cols_vec
+			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', x_min, x_max, y_min, y_max);
+
+			fname = att.fname;
+			AllSubdatasets = att.AllSubdatasets;
+			NoDataValue = att.Band(1).NoDataValue;		% Save this that has been ESTIMATED before
+			if (strcmp(varargin{end}, '-U')),	varargin(end) = [];		end		% We also don't want to UpDown
+			opt_L = '-L';
+		end
+
+		if (nargout == 2)
+			[Z, att] = gdalread(full_name, varargin{:}, opt_L);	% This ATT might be of a subdataset
+		else
+			Z = gdalread(full_name, varargin{:}, opt_L);
+		end
+		if (isempty(att.GCPvalues) && ~isempty(GCPvalues)),		att.GCPvalues = GCPvalues;		end
+		if (~isempty(NoDataValue)),		att.Band(1).NoDataValue = NoDataValue;	end		% Recover ESTIMATED value
+
+		% For MODIS L2 products, we may still have many things to do
+		if (strcmp(opt_L,'-L'))		% We are using this as an indication that the file is MODIS (need clever solution)
+			what = l2_choices(AllSubdatasets);			% Call secondary GUI to select what to do next
+			if ( ~isempty(what.quality) && what.quality < 2 )		% We have a quality request
+				qual = gdalread(what.qualSDS, opt_L);
+				Z(qual > what.quality) = NoDataValue;
+			end
+			if ( ~isempty(what) && what.georeference)
+				ind = (Z == (att.Band(1).NoDataValue));
+				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];
+				if (what.nearneighbor)
+					lon_full = single(lon_full);			lat_full = single(lat_full);	Z = single(Z);
+					[Z, head] = nearneighbor_m(lon_full(:), lat_full(:), Z(:), opt_R, '-N2', '-I0.01', '-S0.04');
+				else
+					[Z, head] = gmtmbgrid_m(lon_full(:), lat_full(:), double(Z(:)), '-I0.01', opt_R, '-Mz', '-C5');
+					Z = single(Z);
+				end
+				if (what.mask)
+					opt_D = {'-Dc' '-Dl' '-Di' '-Dh' '-Df'};
+					opt_D = opt_D{what.coastRes};
+					mask = grdlandmask_m(opt_R, opt_D, '-I0.01', '-V');
+					Z(mask) = NaN;
+				end
+				att.GMT_hdr = head;
+				att.Band(1).NoDataValue = [];		% Don't wast time later trying to NaNify again
+				x_min = head(1) - head(8)/2;		x_max = head(2) + head(8)/2;		% Goto pixel registration
+				y_min = head(3) - head(9)/2;		y_max = head(4) + head(9)/2;
+			end
+			att.RasterXSize = size(Z,2);		att.RasterYSize = size(Z,1);
+			att.Band.XSize = size(Z,2);			att.Band.YSize = size(Z,1);
+			att.Corners.LL = [x_min y_min];		att.Corners.UL = [x_min y_max];		% CONFIRMAR
+			att.Corners.UR = [x_max y_max];		att.Corners.LR = [x_max y_min];
+		end
+	end
+
+	if (~isempty(fname)),	att.fname = fname;		end		% Needed in some HDF cases
+	if (~isempty(str_d)),	delete(uncomp_name);	end		% Delete uncompressed file
+
+% -----------------------------------------------------------------------------------------
+function [full_name, str_d, uncompressed_name] = deal_with_compressed(full_name)
+% Check if FULL_NAME is a compressed file. If it is, uncompress it and return the uncompressed
+% name as FULL_NAME.
+% STR_D informs if decompressing was done. If it is not empty, it means file was decompressed.
+% Use this info to eventualy remove the FULL_NAME (note that in this case this not the original file name)
+
+	str_d = [];		do_warn = true;		cext = [];
 	[PATH,fname,EXT] = fileparts(full_name);
-	out_name = [PATH filesep fname];		% Only used if file is compressed
+	uncompressed_name = [PATH filesep fname];		% Only used if file is compressed
 	if (strcmpi(EXT,'.bz2'))
-		str_d = ['bzip2 -d -q -f -c ' full_name ' > ' out_name];		cext = EXT;
+		str_d = ['bzip2 -d -q -f -c ' full_name ' > ' uncompressed_name];		cext = EXT;
 	elseif (strcmpi(EXT,'.zip') || strcmpi(EXT,'.gz'))
-		str_d = ['gunzip -q -N -f -c ' full_name ' > ' out_name];		cext = EXT;
+		str_d = ['gunzip -q -N -f -c ' full_name ' > ' uncompressed_name];		cext = EXT;
 	end
 
 	if (~isempty(str_d))     % File is compressed.
@@ -708,32 +909,8 @@ function [Z, att] = read_gdal(full_name, att, varargin)
 			error(['Error decompressing file ' full_name])
 		end
 		if (do_warn),	aguentabar(1,'title','Donne'),		end
-		full_name = out_name;				% The uncompressed file name
+		full_name = uncompressed_name;				% The uncompressed file name
 	end
-
-	if (isempty(att))
-		att = gdalread(full_name, '-M');		% This first call is used in the next test
-	end
-
-	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) && strncmp(att.DriverShortName, 'HDF4', 4) )		% Some MODIS files
-		ind = strfind(att.Subdatasets{1}, '=');
-		full_name = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
-	end
-
-	% att.hdrInfo is not a default field of the ATT struct
-	if (isfield(att, 'hdrInfo') && ~isempty(att.hdrInfo) && (strcmp(att.hdrInfo.SDS.Name,'sst')) )
-		% Only particular case dealt now
-		Z = hdf_funs('hdfread', att.fname, att.hdrInfo.SDS.Name, 'index', {[1 1],[1 1], [att.RasterYSize att.RasterXSize]});
-		Z = flipud(Z);
-	else
-		if (nargout == 2)
-			[Z, att] = gdalread(full_name, varargin{:});	% This ATT might be of a subdataset
-		else
-			Z = gdalread(full_name, varargin{:});
-		end
-	end
-
-	if (~isempty(str_d)),	delete(out_name);	end		% Delete uncompressed file.
 
 % -----------------------------------------------------------------------------------------
 function fid = write_vtk(handles, grd_out, arg3)
@@ -777,7 +954,7 @@ function fid = write_vtk(handles, grd_out, arg3)
 	end
 
 % ---------------------------------------------------------------------
-function empilhador_LayoutFcn(h1);
+function empilhador_LayoutFcn(h1)
 
 set(h1,'Position',[520 532 440 280],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
@@ -891,7 +1068,6 @@ uicontrol('Parent',h1,'Position',[300 54 71 21],...
 
 uicontrol('Parent',h1,'Position',[6 9 225 236],...
 'BackgroundColor',[1 1 1],...
-'Callback','empilhador(''listbox_list_CB'',gcbo,guidata(gcbo))',...
 'Style','listbox',...
 'Value',1,...
 'Tag','listbox_list');
@@ -903,3 +1079,203 @@ uicontrol('Parent',h1,'Position',[340 5 90 23],...
 'FontWeight','bold',...
 'String','Compute',...
 'Tag','push_compute');
+
+% -----------------------------------------------------------------------------------
+% -----------------------------------------------------------------------------------
+% -----------------------------------------------------------------------------------
+function varargout = l2_choices(varargin)
+% M-File changed by desGUIDE  
+ 
+	hObject = figure('Tag','figure1','Visible','off');
+	l2_choices_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+
+	handles.out.georeference = 0;
+	handles.out.nearneighbor = 1;
+	handles.out.mask = 0;
+	handles.out.coastRes = 0;
+	handles.out.quality = '';
+
+	AllSubdatasets = varargin{1};
+	for (k = numel(AllSubdatasets):-2:2)
+		ind = strfind(AllSubdatasets{k}, ' ');
+		subDsName = AllSubdatasets{k}(ind(1)+1:ind(2)-1);		% Get dataset name
+		if (strcmp(subDsName,'qual_sst'))
+			set([handles.popup_quality handles.text_quality],'Enable','on')
+			ind = strfind(AllSubdatasets{k-1}, '=');
+			handles.out.qualSDS = AllSubdatasets{k-1}(ind+1:end);
+			break
+		end
+	end
+
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	% UIWAIT makes l2_choices wait for user response
+	uiwait(handles.figure1);
+	handles = guidata(handles.figure1);
+	varargout{1} = handles.out;
+	delete(handles.figure1),	drawnow
+
+% -----------------------------------------------------------------------
+function radio_sensor_Callback(hObject, eventdata, handles)
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	set([handles.radio_interpMin handles.radio_interpNear handles.check_landMask],'Enable','off')
+	set(handles.radio_georef,'Val',0)
+
+% -----------------------------------------------------------------------
+function radio_georef_Callback(hObject, eventdata, handles)
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	set([handles.radio_interpMin handles.radio_interpNear handles.check_landMask],'Enable','on')
+	set(handles.radio_sensor,'Val',0)
+
+% -----------------------------------------------------------------------
+function radio_interpNear_Callback(hObject, eventdata, handles)
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	set(handles.radio_interpMin,'Val',0)
+
+% -----------------------------------------------------------------------
+function radio_interpMin_Callback(hObject, eventdata, handles)
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	set(handles.radio_interpNear,'Val',0)
+
+% -----------------------------------------------------------------------
+function check_landMask_Callback(hObject, eventdata, handles)
+	if ( get(hObject,'Val') )
+		info = getappdata(0,'gmt_version');		% It should never be empty
+		if (info.crude ~= 'y')
+			errordlg('You do not have GMT installed. So, no coastlines no masking.','Error')
+			set(hObject,'Val',0),	return
+		elseif (info.full == 'y'),			handles.out.coastRes = 5;
+		elseif (info.high == 'y'),			handles.out.coastRes = 4;
+		elseif (info.intermediate == 'y'),	handles.out.coastRes = 3;
+		elseif (info.low == 'y'),			handles.out.coastRes = 2;
+		else,								handles.out.coastRes = 1;
+		end
+		guidata(handles.figure1, handles)
+	end
+
+% -----------------------------------------------------------------------
+function push_OK_Callback(hObject, eventdata, handles)	
+	handles.out.georeference = get(handles.radio_georef, 'Val');
+	handles.out.nearneighbor = get(handles.radio_interpNear, 'Val');
+	handles.out.mask = get(handles.check_landMask, 'Val');
+	ind = get(handles.popup_quality, 'Val');
+	if (ind ~= 1)
+		handles.out.quality = 3 - ind;
+	end
+	guidata(handles.figure1, handles)
+	uiresume(handles.figure1);
+
+% -----------------------------------------------------------------------
+function figure1_CloseRequestFcn(hObject, eventdata)
+% The GUI is still in UIWAIT, us UIRESUME
+	handles = guidata(hObject);
+	handles.out = '';        % User gave up, return nothing
+	guidata(handles.figure1, handles);
+	uiresume(handles.figure1);
+
+% -----------------------------------------------------------------------
+function figure1_KeyPressFcn(hObject, eventdata)
+% Check for "escape"
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		handles = guidata(hObject);
+		handles.out = '';    % User said no by hitting escape
+		guidata(handles.figure1, handles);
+		uiresume(handles.figure1);
+	end
+
+% --- Creates and returns a handle to the GUI figure. 
+function l2_choices_LayoutFcn(h1)
+
+set(h1, 'Position',[520 400 271 148],...
+'CloseRequestFcn',@figure1_CloseRequestFcn,...
+'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'KeyPressFcn',@figure1_KeyPressFcn,...
+'MenuBar','none',...
+'Name','L2 product choices',...
+'NumberTitle','off',...
+'Resize','off',...
+'HandleVisibility','callback',...
+'Tag','figure1');
+
+uicontrol('Parent',h1, 'Position',[2 124 265 22],...
+'FontAngle','oblique',...
+'FontName','Helvetica',...
+'FontSize',11,...
+'FontWeight','demi',...
+'ForegroundColor',[1 0.50196 0],...
+'String','L2 Level product - Needs decisions',...
+'Style','text');
+
+uicontrol('Parent',h1, 'Position',[10 101 161 16],...
+'Callback',{@l2_choices_uicallback,h1,'radio_sensor_Callback'},...
+'FontName','Helvetica',...
+'String','Plot in Sensor coordinates',...
+'Style','radiobutton',...
+'TooltipString','Plot data as it is in file (faster, but deformed)',...
+'Value',1,...
+'Tag','radio_sensor');
+
+uicontrol('Parent',h1, 'Position',[10 78 231 16],...
+'Callback',{@l2_choices_uicallback,h1,'radio_georef_Callback'},...
+'FontName','Helvetica',...
+'String','Compute georeferenced grid (takes time)',...
+'Style','radiobutton',...
+'TooltipString','Reinterpolate data to get a georeferenced grid. (It may take 1 minute)',...
+'Tag','radio_georef');
+
+uicontrol('Parent',h1, 'Position',[31 55 101 16],...
+'Callback',{@l2_choices_uicallback,h1,'radio_interpNear_Callback'},...
+'Enable','off',...
+'FontName','Helvetica',...
+'String','Nearneighbor',...
+'Style','radiobutton',...
+'TooltipString','Interpolation method',...
+'Value',1,...
+'Tag','radio_interpNear');
+
+uicontrol('Parent',h1, 'Position',[31 36 121 16],...
+'Callback',{@l2_choices_uicallback,h1,'radio_interpMin_Callback'},...
+'Enable','off',...
+'FontName','Helvetica',...
+'String','Minimum curvature',...
+'Style','radiobutton',...
+'TooltipString','Interpolation method',...
+'Tag','radio_interpMin');
+
+uicontrol('Parent',h1, 'Position',[10 6 51 22],...
+'BackgroundColor',[1 1 1],...
+'Enable','off',...
+'ListboxTop',0,...
+'String',{'2'; '1'; '0'},...
+'Style','popupmenu',...
+'TooltipString','Select the least quality level. 2 - worst - means all values. 0 - only the best',...
+'Value',1,...
+'Tag','popup_quality');
+
+uicontrol('Parent',h1, 'Position',[64 10 75 15],...
+'Enable','off',...
+'FontName','Helvetica',...
+'HorizontalAlignment','left',...
+'String','Quality factor',...
+'Style','text',...
+'Tag','text_quality');
+
+uicontrol('Parent',h1, 'Position',[160 48 110 15],...
+'Callback',{@l2_choices_uicallback,h1,'check_landMask_Callback'},...
+'Enable','off',...
+'String','Apply Land Mask',...
+'Style','checkbox',...
+'TooltipString','Mask reinterpolated Land pixels (need high definition coastlines installed)',...
+'Tag','check_landMask');
+
+uicontrol('Parent',h1, 'Position',[195 7 66 23],...
+'Callback',{@l2_choices_uicallback,h1,'push_OK_Callback'},...
+'FontName','Helvetica',...
+'FontSize',9,...
+'String','OK',...
+'Tag','push_OK');
+
+function l2_choices_uicallback(hObject, eventdata, h1, callback_name)
+% This function is executed by the callback and than the handles is allways updated.
+feval(callback_name,hObject,[],guidata(h1));
