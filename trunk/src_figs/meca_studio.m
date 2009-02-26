@@ -17,6 +17,12 @@ function varargout = meca_studio(varargin)
 		handles.strike = varargin{1};
 		handles.dip = varargin{2};
 		handles.rake = varargin{3};
+		set(handles.edit_strike,'String', handles.strike)
+		set(handles.slider_strike, 'Val', handles.strike)
+		set(handles.edit_dip,'String', handles.dip)
+		set(handles.slider_dip, 'Val', handles.dip)
+		set(handles.edit_rake,'String', handles.rake)
+		set(handles.slider_rake, 'Val', handles.rake)
 	end
 	set(hObject,'Visible','on');
 
