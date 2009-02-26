@@ -9,7 +9,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
 %#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
-%#function obj_template_detect floodFill
+%#function obj_template_detect floodfill meca_studio
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -44,7 +44,7 @@ H1 = figure('PaperUnits','centimeters',...
 'IntegerHandle','off',...
 'InvertHardcopy',get(0,'defaultfigureInvertHardcopy'),...
 'MenuBar','none',...
-'Name','Mirone 1.4.0',...
+'Name','Mirone 1.4.1(dev)',...
 'NumberTitle','off',...
 'PaperPositionMode','auto',...
 'PaperSize',[20.98404194812 29.67743169791],...
@@ -290,7 +290,7 @@ uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-tophat'')
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-blackhat'')','Label','Bottom-hat');
 
 uimenu('Parent',hIM,'Call','mirone(''ImageSegment_CB'',guidata(gcbo))','Label','Image segmentation (Mean shift)','Sep','on');
-uimenu('Parent',hIM,'Call','floodFill(gcf)','Label','Shape detector')
+uimenu('Parent',hIM,'Call','floodfill(gcf)','Label','Shape detector')
 uimenu('Parent',hIM,'Call','mpaint(gcf)','Label','Paint Brush');
 uimenu('Parent',hIM,'Call','classificationfig(gcf);','Label','K-means classification');
 uimenu('Parent',hIM,'Call','imageresize(gcf)','Label','Image resize','Sep','on');
@@ -360,7 +360,7 @@ uimenu('Parent',h,'Label','entry_vtr','Sep','on');
 
 uimenu('Parent',hTL,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command','Sep','on');
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Line Operations','Tag','lineOP');
-% uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
+uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
 % uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
 
 % --------------------------- DRAW MENU ------------------------------------
@@ -561,6 +561,7 @@ uimenu('Parent',hGP,'Call','igrf_options(guidata(gcbo))','Label','IGRF calculato
 uimenu('Parent',hGP,'Call','parker_stuff(''parker_direct'',gcf)','Label','Parker Direct');
 uimenu('Parent',hGP,'Call','parker_stuff(''parker_inverse'',gcf)','Label','Parker Inversion');
 uimenu('Parent',hGP,'Call','parker_stuff(''redPole'',gcf)','Label','Reduction to the Pole');
+%uimenu('Parent',hGP,'Call','gravfft(gcf)','Label','GravFFT');
 uimenu('Parent',hGP,'Call','plate_calculator','Label','Plate calculator','Sep','on');
 uimenu('Parent',hGP,'Call','geog_calculator(guidata(gcbo))','Label','Geographic calculator');
 uimenu('Parent',hGP,'Call','euler_stuff(gcf)','Label','Euler rotations','Sep','on');
@@ -572,6 +573,7 @@ uimenu('Parent',hGP,'Label','entry_tl');
 h = uimenu('Parent',hGP,'Label','Seismicity','Sep','on');
 uimenu('Parent',h,'Callback','earthquakes(gcf,''external'');','Label','Epicenters');
 uimenu('Parent',h,'Callback','focal_meca(gcf)','Label','Focal mechanisms');
+uimenu('Parent',hGP,'Call','meca_studio','Label','Focal Mechanisms demo');
 
 h = uimenu('Parent',hGP,'Label','Import *.gmt files(s)','Sep','on');
 uimenu('Parent',h,'Call','mirone(''GeophysicsImportGmtFile_CB'',guidata(gcbo),''single'')','Label','Single *.gmt file');
@@ -586,6 +588,7 @@ if (~IamCompiled)
 end
 
 uimenu('Parent',hGT,'Call','grdfilter_mir(guidata(gcbo))','Label','grdfilter','Sep',sep);
+%uimenu('Parent',hGT,'Call','regional_residual(guidata(gcbo))','Label','Regional-Residual');
 uimenu('Parent',hGT,'Call','grdgradient_mir(guidata(gcbo))','Label','grdgradient');
 uimenu('Parent',hGT,'Call','grdsample_mir(guidata(gcbo))','Label','grdsample');
 uimenu('Parent',hGT,'Call','grdtrend_mir(guidata(gcbo))','Label','grdtrend');
@@ -654,9 +657,9 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 
 % --------------------------- HELP MENU ------------------------------------
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
-uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.3.0)');
+uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 Jan 2009'',''1.4.0'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 26 Feb 2009'',''1.4.1(dev)'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
