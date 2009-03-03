@@ -415,6 +415,7 @@ mex/sift/sift.c -text
 mex/sift/sift.h -text
 mex/spa.c -text
 mex/spa.h -text
+mex/spa_mex.c -text
 mex/surface_m.c -text
 mex/susan.c -text
 mex/swan.c -text
