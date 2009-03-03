@@ -699,4 +699,5 @@ utils/write_flederFiles.m -text
 utils/writegif.m -text
 utils/writekml.m -text
 utils/zoom_j.m -text
+/wget.exe -text
 /zlib1.dll -text
