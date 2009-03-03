@@ -28,7 +28,7 @@ function varargout = tiles_tool(varargin)
 	handles.uistbar(7) = uipushtool('parent',h_tb,'Click',@click_help_CB,'cdata',help_ico, 'Tooltip','Help','Sep','on');
 
 	handles.proxy = [];			handles.port = [];
-	handles.proxyPort = [];		handles.patchHandles = [];
+	handles.proxyPort = [];		handles.patchHandles = [];		handles.hImgZoomed = [];
 	handles.doProxySetting = false;
 	handles.whatkind = {'aerial' 'road', 'hybryd'};		% The 3 possible imge types
 	handles.slected_whatkind = 'aerial';
@@ -203,18 +203,19 @@ function click_MOSAIC_e_GO_CB(hObject, eventdata)
 	% ---------------- Have cache info? -----------------
 	val = get(handles.popup_directory_list,'Value');
 	contents = get(handles.popup_directory_list, 'String');
-	str = contents{val};
-	if ( ~isempty(str) ),		cacheDir = str;
-	else						cacheDir = [];
-	end
+	str = contents{val};		cacheDir = [];
+	if ( ~isempty(str) ),		cacheDir = str;		end
 
 	% --------------- Proxy settings --------------------
 	if (~isempty(handles.proxyPort))
-		ind = strfind(handles.proxyPort, ':');
-		if ( isempty(ind) && get(handles.check_proxy,'Val') )		% either adress or port are missing
+		ii = strfind(handles.proxyPort, ':');
+		if ( isempty(ii) && get(handles.check_proxy,'Val') )		% either adress or port are missing
 			warndlg('Your proxy settings are incomplete. Ignoring','Warning')
 		elseif (handles.doProxySetting)
-			set_gmt(['http_proxy=' handles.proxyPort]);
+			if (get(handles.check_proxy,'val')),	prx = handles.proxyPort;
+			else									prx = '';		% This will remove the http_proxy value (no proxy)
+			end
+			set_gmt(['http_proxy=' prx]);
 			handles.doProxySetting = false;
 			guidata(handles.figure1, handles)
 		end
@@ -261,9 +262,7 @@ function region2tiles(handles,lon,lat,zoomFactor)
 	end
 	if ( zoomFactor == 1 ),		return,		end
 
-	%profile on
 	[url, lonT, latT] = url2image('tile2url', lon, lat, zoomFactor,'quadonly',1);
-	%profile viewer
 	[lims, tiles_bb]  = url2image('quadcoord', url);
 	[m,n] = size(url);		hp = zeros(m, n);
 
@@ -285,26 +284,54 @@ function region2tiles(handles,lon,lat,zoomFactor)
 % -----------------------------------------------------------------------------------------
 function bdn_tile(obj,eventdata,handles)
 	stat = get(gcbo,'UserData');
-	if ~stat        % If not selected
-		set(gcbo,'FaceColor','y','UserData',1),			refresh
-	else
-		set(gcbo,'FaceColor','none','UserData',0),		refresh
+	if (~stat),		set(gcbo,'FaceColor','y','UserData',1)        % If not selected
+	else			set(gcbo,'FaceColor','none','UserData',0)
 	end
+	refresh
 
 % -------------------------------------------------------------------------------------
 function slider_zoomFactor_Callback(hObject, eventdata, handles)
 %
 	zoomLevel = round(get(hObject,'Value')) + 1;
-
 	lon = get(handles.axes1,'XLim')+[1e-6 -1e-6];	lat = get(handles.axes1,'YLim');
 	lat(1) = max(lat(1), -85);			lat(2) = min(lat(2), 85);
 
 	nXpatch = getPixel(lon, zoomLevel);
-	while (nXpatch > 20 || nXpatch > 20)
+	if (nXpatch > 16)
 		zoom_j(handles.figure1, 2)
-		lon = get(handles.axes1,'XLim')+[1e-6 -1e-6];	lat = get(handles.axes1,'YLim');
+		lon = get(handles.axes1,'XLim');	lat = get(handles.axes1,'YLim');
+		lon = lon + [-.15 +.15]*diff(lon);	lat = lat + [-.15 +.15]*diff(lat);	% Add 15% on each side to create squares beyound visible
+		lon(1) = max(lon(1), -180);			lon(2) = min(lon(2), 180);
 		lat(1) = max(lat(1), -85);			lat(2) = min(lat(2), 85);
 		nXpatch = getPixel(lon, zoomLevel);
+	elseif (nXpatch < 15)
+		zoom_j(handles.figure1, 0.5)
+		lon = get(handles.axes1,'XLim');	lat = get(handles.axes1,'YLim');
+		lon = lon + [-.15 +.15]*diff(lon);	lat = lat + [-.15 +.15]*diff(lat);
+		lon(1) = max(lon(1), -180);			lon(2) = min(lon(2), 180);
+		lat(1) = max(lat(1), -85);			lat(2) = min(lat(2), 85);
+		nXpatch = getPixel(lon, zoomLevel);
+	end
+
+	if (zoomLevel > 8)				% At higher zoom levels the bg image is too poor, so get a better one
+		bgZoomLevel = zoomLevel - 3;
+		val = get(handles.popup_directory_list,'Value');			% Have cache info?
+		contents = get(handles.popup_directory_list, 'String');
+		str = contents{val};		cacheDir = [];
+		if ( ~isempty(str) ),		cacheDir = str;		end
+		src_PN = 'treta';			src_PV = [];		% Dumb value used to default to VE 
+		if ( isempty(strfind(handles.serversImageOut, 'virtualearth')) )	% Use other than VE for bg
+			src_PN = 'source';		quadkee = handles.servers_quadkey(handles.serversOrder(1));
+			src_PV = {handles.serversImageOut, quadkee{1}};
+		end
+		[img, hdr, lat_mm] = ...
+			url2image('tile2img',lon,lat, bgZoomLevel, 'cache', cacheDir, 'what','aerial', src_PN, src_PV,'lonlat', 'yes', 'verbose','y');
+		h = image('XData',hdr.X, 'YData',hdr.Y, 'CData',img, 'Parent', handles.axes1);
+		if (ishandle(handles.hImgZoomed)),		delete(handles.hImgZoomed),		end		% Delete the previous zoomed image
+		handles.hImgZoomed = h;
+		guidata(handles.figure1, handles)
+	elseif (ishandle(handles.hImgZoomed))
+		delete(handles.hImgZoomed)
 	end
 
 	region2tiles(handles,lon,lat,zoomLevel)
@@ -318,31 +345,22 @@ function nXpatch = getPixel(lon, zoomL)
 	pixPerDeg = 2^(zoomL - 1) / 360;
 	x = (lon + 180) * pixPerDeg;
 	nXpatch = fix(x(2)) - fix(x(1));
-	
 
 % -------------------------------------------------------------------------------------
 function slider_Cb(obj,evt,hAxes,opt)
 % Control side image sliders
 	imscroll_j(hAxes,opt)
 
-% -----------------------------------------------------------------------------------------
-function pushbutton_cancel_Callback(hObject, eventdata, handles)
-	delete(handles.figure1);
-
 % -------------------------------------------------------------------------------------
 function radio_mercator_Callback(hObject, eventdata, handles)
-	if (get(hObject, 'Val'))
-		set(handles.radio_geogs, 'Val', 0)
-	else
-		set(hObject, 'Val', 1)
+	if (get(hObject, 'Val')),		set(handles.radio_geogs, 'Val', 0)
+	else							set(hObject, 'Val', 1)
 	end
 
 % -------------------------------------------------------------------------------------
 function radio_geogs_Callback(hObject, eventdata, handles)
-	if (get(hObject, 'Val'))
-		set(handles.radio_mercator, 'Val', 0)
-	else
-		set(hObject, 'Val', 1)
+	if (get(hObject, 'Val')),		set(handles.radio_mercator, 'Val', 0)
+	else							set(hObject, 'Val', 1)
 	end
 
 % -------------------------------------------------------------------------------------
@@ -378,7 +396,7 @@ msg{1} = ['Tool to select several tile images from internet (or local cache) and
 		'(the other button). Hit the the button with the green arrow to fetch data and build the mosaic.'];
 msg{2} = ' ';
 msg{3} = ['Tiles images are obtained, by default, from MS servers - the same that serve the live.com maps (Virtual Earth). ' ...
-		'However it is ppossible to declare other servers. To do it, follow the instruction on top of the "tilesServers.txt" ' ...
+		'However it is possible to declare other servers. To do it, follow the instruction on top of the "tilesServers.txt" ' ...
 		'that resides on the "data" subdirectory of Mirone''s instalation. If you have more than one set of servers, you can ' ...
 		'select among them by clicking on the button with hammers icon. '];
 msg{4} = ' ';
@@ -529,7 +547,7 @@ uicontrol('Parent',h1, 'Position',[18 28 70 17],...
 'String','Zoom Level',...
 'Style','text');
 
-uicontrol('Parent',h1, 'Position',[604 27 55 15],...
+uicontrol('Parent',h1, 'Position',[604 27 58 15],...
 'Callback',{@tiles_tool_uicallback,h1,'check_proxy_Callback'},...
 'String','proxy?',...
 'Style','checkbox',...
