@@ -1,4 +1,5 @@
 function  varargout = url2image(opt, varargin)
+% Mosaic image tiles from the Microsoft Virtual Earth web map servers
 %
 %	[img, lon_mm, lat_mm, x, y] = url2image('tile2img', lon, lat, zoom, PN/PV)
 %			LON, LAT , ZOOM are mandatory. PN, PV are property name/value pairs
@@ -15,7 +16,7 @@ function  varargout = url2image(opt, varargin)
 %			Since the Mars images are free, we'll use that as an example
 %			SERVER is cell array with two fields
 %				SERVER{1} = url-to-the-map-server (for example for Mars: mw1.google.com/mw-planetary/mars/elevation/t )
-%				SERVSR{2} = the key characters used to code the tiles names ( example MS '0123' or Google's 'qrst' )
+%				SERVSR{2} = the key characters used to code the tiles names ( example MS '0132' or Google's 'qrst' )
 %
 %		url2image(...,'what', whatKind).
 %			whatKind is any of 'aerial', 'road' or 'hybrid'
@@ -83,9 +84,29 @@ function  varargout = url2image(opt, varargin)
 %			zoomL ->  zoom level
 % 			tiles_midpt -> a Mx2 matrix with tiles mid point coordinates
 %
+%
+%	WARNING: If you access the internet via a proxy you might need to declare this environmental variable
+%			set http_proxy=proxy_adress:port
+%
 %	EXAMPLES:
+%	---------
+%			- Get the whole world (well, not higher than +- 85 degrees N/S)
+%		[img, lon, lat] = url2image('tile2img',[-180 180],[-80 80], 4);
+%
+%			- Get a 3x3 mosaic of level 19 over a part of l'ile de France in Paris
+%		[img, lon, lat, x, y] = url2image('tile2img',2+20.869/60,48+51.29/60,19,'mosaic',3,'lonlat', 'yes');
+%
+%			- Sow the image in its original Mercator projection
+%		image(x,y,img), axis xy, axis image
+%
+%			- Or for Mirone usage
 %		url2image('callmir',-8,37.014,14,'mosaic',3);
 %		url2image('callmir',[-180 180],[-80 80], 4);
+%
+%
+%   AUTHOR
+%       Joaquim Luis (jluis@ualg.pt)   01-Feb-2008
+%
 
 	quadkey = {'0' '1'; '2' '3'};				% Default to Virtual Earth
 	prefix = 'http://a0.ortho.tiles.virtualearth.net/tiles/a';
@@ -159,21 +180,12 @@ function  varargout = url2image(opt, varargin)
 	% -------------------------------------------------------------------------
 	
 	%geoid = [6378137, 1/298.2572235630];	% WGS84
-	geoid = [6371008.7714, 0];				% Spherical
-
+	%geoid = [6371008.7714, 0];				% Spherical
+	geoid = [6378137, 0];					% Spherical - I don't understand why the WGS82 major axis is used to specify a spherical Earth
+											%				but it seams that everybody is using this (e.g. EPSG:3785)
 	switch lower(opt)
 		case {'tile2url' 'tile2img'}
-			switch nargout
-				case 1
-					varargout{1} = tile2url(opt, geoid, quadkey, prefix, lon, lat, zoomL, cache, varargs{:});
-				case 2
-					[varargout{1} varargout{2}] = tile2url(opt, geoid, quadkey, prefix, lon, lat, zoomL, cache, varargs{:});
-				case 3
-					[varargout{1} varargout{2} varargout{3}] = tile2url(opt, geoid, quadkey, prefix, lon, lat, zoomL, cache, varargs{:});
-				otherwise
-					[varargout{1} varargout{2} varargout{3} varargout{4} varargout{5}] = ...
-						tile2url(opt, geoid, quadkey, prefix, lon, lat, zoomL, cache, varargs{:});
-			end
+			[varargout{1:nargout}] = tile2url(opt, geoid, quadkey, prefix, lon, lat, zoomL, cache, varargs{:});
 		case 'callmir'					% After composing the image, feed it into Mirone
 			tile2url(opt, geoid, quadkey, prefix, lon, lat, zoomL, cache, varargs{:});
 		case 'quadcoord'
@@ -181,7 +193,7 @@ function  varargout = url2image(opt, varargin)
 				case 1
 					varargout{1} = quadcoord(geoid(2), quadkey, varargin{1});
 				case 2
-					[varargout{1} varargout{2}] = quadcoord(geoid(2), quadkey, varargin{1});
+					[varargout{1:nargout}] = quadcoord(geoid(2), quadkey, varargin{1});
 				otherwise
 					error('url2image:quadcoord', 'Wrong number (min 1, max 2) of output args')
 			end
@@ -285,9 +297,13 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 	% ----------------------- Find the tile decimal adress. x counts from 0 at -180 to 2^(zoomL - 1) - 1 at +180 
 	decimal_adress = getQuadLims([prefix(end) quad], quadkey, 1);		% prefix(end) == 't' || 'a'
 	
+	isMapForFree = false;
+	pref_bak = prefix;
 	if ( quadkey{1} ~= '0' && ~isempty(strfind('rh',whatKind)) )		% hiden cat with outside tail
-		pref_bak = prefix;
-		prefix = [prefix sprintf('%d&y=%d&zoom=%d',decimal_adress,18-zoomL)];
+		prefix = [prefix sprintf('%d&y=%d&z=%d',decimal_adress,zoomL-1)];
+	elseif ( quadkey{1} == 'm' && quadkey{2} == 'e' && quadkey{3} == 'f' && quadkey{4} == 'r')
+		isMapForFree = true;
+		prefix = [prefix sprintf( '%d/row%d/%d_%d-%d.jpg',zoomL-1,decimal_adress(2),zoomL-1,decimal_adress(1),decimal_adress(2) )];
 	end
 
 	if (quadonly)		% NOT TO BE USED WITH IMGs. The character used is irrelevant
@@ -313,14 +329,22 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
  				quad_{i+mc,j+nc} = getNext(quad, quadkey, i, j);
 				if (quadkey{1} == '0')					% VE
 					url{i+mc,j+nc} = [prefix quad_{i+mc,j+nc} '?g=22'];
-				elseif (whatKind(1) == 'a')				% ~VE and 'aerial'
-					url{i+mc,j+nc} = [prefix quad_{i+mc,j+nc}];
-					if ( (numel(prefix) > 9) && strcmp(prefix(8:10), 'mw1') )		% Good for Mars but fails for Moon (different algo)
-						url{i+mc,j+nc} = [url{i+mc,j+nc} '.jpg'];
-					end
-				else									% ~VE and road|hybrid
+				else
 					decAdr = getQuadLims([quadkey{2} quad_{i+mc,j+nc}], quadkey, 1);		% Get decimal adress
-					url{i+mc,j+nc} = [pref_bak sprintf('%d&y=%d&zoom=%d',decAdr, 18-zoomL)];
+					if (whatKind(1) == 'a')				% ~VE and 'aerial'
+						if (isMapForFree)					% We already know the name (e.g. maps-for-free) - no QuadTree in it
+							url{i+mc,j+nc} = [pref_bak sprintf('%d/row%d/%d_%d-%d.jpg',zoomL-1,decAdr(2),zoomL-1,decAdr(1),decAdr(2))];
+						else
+							url{i+mc,j+nc} = [prefix quad_{i+mc,j+nc}];
+							if ( numel(prefix) > 9 && strcmp(prefix(8:10), 'mw1') )			% Good for Mars but fails for Moon (different algo)
+								url{i+mc,j+nc} = [url{i+mc,j+nc} '.jpg'];
+							elseif ( numel(prefix) > 9)
+								url{i+mc,j+nc} = [pref_bak sprintf('%d&y=%d&z=%d',decAdr, zoomL-1)];
+							end
+						end
+					else									% ~VE and road|hybrid
+						url{i+mc,j+nc} = [pref_bak sprintf('%d&y=%d&z=%d',decAdr, zoomL-1)];
+					end
 				end
 			end
 		end
@@ -330,7 +354,7 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 			lat_mm = isometric2geod(latiso_mm, flatness);
 		end
 	end
-
+	
 	% ----------------------- Compute mercator meters (even if don't need they are cheap) ------------ 
 	D2R = pi / 180;
 	if (flatness ~= 0)		% Copyed from GMT
@@ -347,11 +371,16 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 
 	if ( strcmp(opt, 'callmir') || strcmp(opt, 'tile2img') )
 
+		nTilesX = size(mosaic,2);			nTilesY = size(mosaic,1);
 		if (reportMerc)			% Output coords in Mercator
-			tmp.head = [x y 0 255 0 diff(x)/(256-1) diff(y)/(256-1)];
+			dx = diff(x)/(256*nTilesX);			dy = diff(y)/(256*nTilesY);		% Here we are still in the Pixel reg world
+			x = x + [1 -1] * dx / 2;			y = y + [1 -1] * dy / 2;		% But now we are on Grid reg
+			tmp.head = [x y 0 255 0 dx dy];
 			tmp.X = x;			tmp.Y = y;
 		else					% Output coords in Geogs (image is unchanged, that is it remain mercatorized)
-			tmp.head = [lon_mm lat_mm 0 255 0 diff(lon_mm)/(256-1) diff(lat_mm)/(256-1)];
+			dx = diff(lon_mm)/(256*nTilesX);	dy = diff(lat_mm)/(256*nTilesY);		% Here we are still in the Pixel reg world
+			lon_mm = lon_mm + [1 -1] * dx / 2;	lat_mm = lat_mm + [1 -1] * dy / 2;		% But now we are on Grid reg
+			tmp.head = [lon_mm lat_mm 0 255 0 dx dy];
 			tmp.X = lon_mm;		tmp.Y = lat_mm;
 		end
 		tmp.geog = 0;		tmp.name = 'EuGooglo';
@@ -611,7 +640,7 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, cache_supp, ext, de
 		cmap = [];		att = [];
 		if (~isempty(cache))		% We have a cache dir to look for
 
-			if ( isWW )		% We guessed it before as beeing a a WW cache
+			if ( isWW )		% We guessed it before as beeing a WW cache
 				fname = [cache cache_supp filesep sprintf('%.4d_%.4d', decAdr(2), decAdr(1)) '.' ext];
 			else
 				fname = [cache cache_supp filesep quad '.' ext];
@@ -620,13 +649,10 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, cache_supp, ext, de
 				if (verbose),	disp(['Retrieving file from cache: ' fname]),	end
 				[img, cmap] = imread(fname);
 			else										% File is not in cache. Need to download
-				if (verbose),	disp(['Downloading file ' url]),	end
-				[img, att] = gdalread(url);				% Don't read flipped ('-U') because of saving
-				saveInCache([cache cache_supp], fname, att, img, ext)	% Save tile in the cache directory (if CACHE exists)
+				[img, att] = netFetchTile(url, [cache cache_supp], quad, ext, verbose, fname);
 			end
 		else						% No cache, download it
-			if (verbose),	disp(['Downloading file ' url]),	end
-			[img, att] = gdalread(url, 'U');
+			[img, att] = netFetchTile(url, [], quad, ext, verbose);
 		end
 		img = flipdim(img, 1);
 		
@@ -651,6 +677,30 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, cache_supp, ext, de
 	end
 
 % --------------------------------------------------------------------------------------	
+function [img, att] = netFetchTile(url, cache, quad, ext, verbose, fname)
+% Fetch a file from the web either using gdal or wget (when gdal is not able to)
+	if (verbose),	disp(['Downloading file ' url]),	end
+	if (strcmp(url(8:9),'kh') || strcmp(url(8:9),'mt'))
+		if ( ~isempty(cache) )
+			if ( exist(cache,'dir') ~= 7 ),		make_dir(cache),	end		% Need to create a new dir
+			dest_fiche = [cache filesep quad '.' ext];		% Save the file directly in susitu (cache)
+		else
+			dest_fiche = 'lixogrr';
+		end
+
+		if (ispc),		dos(['wget "' url '" -q -O ' dest_fiche]);
+		else			unix(['wget ''' url ''' -q -O ' dest_fiche]);
+		end
+		[img, att] = gdalread(dest_fiche);
+		if (size(img,3) == 4),		img(:,:,4) = [];	end		% We don't deal yet with alpha-maps in images
+	else
+		[img, att] = gdalread(url);				% Don't read flipped ('-U') because of saving
+		if ( ~isempty(cache) )
+			saveInCache(cache, fname, att, img, ext)	% Save tile in the cache directory
+		end
+	end
+
+% --------------------------------------------------------------------------------------	
 function saveInCache(cache, fname, att, img, ext)
 % This function gets called when a file was downloaded. If a cache dir info is available, save it there. 
 % Still, if cache (main)dir exists but not the required cache (sub)dir, than create it (or raise error exception)
@@ -662,7 +712,7 @@ function saveInCache(cache, fname, att, img, ext)
 
 	if ( isempty(cache) ),		return,		end			% No CACHE, no money
 	
-	if ( exist(cache,'dir') ~= 7 )					% Ghrr, make a new dir
+	if ( exist(cache,'dir') ~= 7 )						% Ghrr, make a new dir
 		make_dir(cache)
 	end
 
