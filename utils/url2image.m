@@ -28,7 +28,8 @@ function  varargout = url2image(opt, varargin)
 %			don't grow linearly from lat_min to lat_max
 %
 %		url2image(...,'verbose', 'yes')
-%			print out info while loading or downloading the image files
+%			print out info while downloading the image files (silent when geting file from cache)
+%			If value is 'all' instead of 'yes', prints info either when retrieving from cache or downloading
 %
 %		url2image(...,'cache', cache).
 %			Search in the CACHE directory for tile files before trying to download them
@@ -152,6 +153,7 @@ function  varargout = url2image(opt, varargin)
 				end
 				if (~isempty(msg)),		error('url2image:tile2url', msg),	end
 				prefix  = varargs{k+1}{1};
+				if (~strcmp(prefix(1:7),'http://')),	prefix = ['http://' prefix];	end
 				quadkey = varargs{k+1}{2};
 				if ( isa(quadkey, 'char') )			% Need to conver to the cell array format
 					if (numel(quadkey) ~= 4)
@@ -228,6 +230,7 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 			reportMerc = false;
 		elseif ( strncmp(varargin{k}, 'verbose', 1) )
 			verbose = true;
+			if (varargin{k+1}(1) == 'a'),		verbose = 2;	end		% Speak up also when reading file from cache
 		elseif ( strncmp(varargin{k}, 'quadonly', 1) )		% NOT TO BE USED WITH IMGs
 			quadonly = true;
 		end
@@ -314,7 +317,7 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 	if (isempty(mosaic))				% One single tile
 		url = prefix;
 		quad_ = quad;					% A copy
-		if (quadkey{1} == '0'),			url = [url quad '?g=22'];		% VE
+		if (quadkey{1} == '0'),			url = [url quad '?g=244'];		% VE
 		elseif (whatKind(1) == 'a'),	url = [url quad];
 		end
 
@@ -327,11 +330,11 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 		for (i=mm(1):mm(end))
 			for (j=nn(1):nn(end))
  				quad_{i+mc,j+nc} = getNext(quad, quadkey, i, j);
-				if (quadkey{1} == '0')					% VE
-					url{i+mc,j+nc} = [prefix quad_{i+mc,j+nc} '?g=22'];
+				if (quadkey{1} == '0')						% VE
+					url{i+mc,j+nc} = [prefix quad_{i+mc,j+nc} '?g=244'];
 				else
 					decAdr = getQuadLims([quadkey{2} quad_{i+mc,j+nc}], quadkey, 1);		% Get decimal adress
-					if (whatKind(1) == 'a')				% ~VE and 'aerial'
+					if (whatKind(1) == 'a')					% ~VE and 'aerial'
 						if (isMapForFree)					% We already know the name (e.g. maps-for-free) - no QuadTree in it
 							url{i+mc,j+nc} = [pref_bak sprintf('%d/row%d/%d_%d-%d.jpg',zoomL-1,decAdr(2),zoomL-1,decAdr(1),decAdr(2))];
 						else
@@ -405,7 +408,7 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 		end
 		if ( strcmp(opt, 'callmir') )
 			if (~isempty(cmap)),	tmp.cmap = cmap;	end
-			if (reportMerc),		tmp.srsWKT = ogrproj('+proj=merc  +R=6371008.7714');	end
+			if (reportMerc),		tmp.srsWKT = ogrproj(['+proj=merc +R=' num2str(geoid(1))]);	end
 			mirone(img, tmp)
 		else
 			url = img;
@@ -646,7 +649,7 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, cache_supp, ext, de
 				fname = [cache cache_supp filesep quad '.' ext];
 			end
 			if (exist(fname, 'file'))
-				if (verbose),	disp(['Retrieving file from cache: ' fname]),	end
+				if (verbose > 1),	disp(['Retrieving file from cache: ' fname]),	end
 				[img, cmap] = imread(fname);
 			else										% File is not in cache. Need to download
 				[img, att] = netFetchTile(url, [cache cache_supp], quad, ext, verbose, fname);
@@ -688,8 +691,15 @@ function [img, att] = netFetchTile(url, cache, quad, ext, verbose, fname)
 			dest_fiche = 'lixogrr';
 		end
 
-		if (ispc),		dos(['wget "' url '" -q -O ' dest_fiche]);
-		else			unix(['wget ''' url ''' -q -O ' dest_fiche]);
+		if (ispc),		dos(['wget "' url '" -q --tries=1 --connect-timeout=5 -O ' dest_fiche]);	% One try is enough
+		else			unix(['wget ''' url ''' -q --tries=1 --connect-timeout=5 -O ' dest_fiche]);
+		end
+		finfo = dir(dest_fiche);
+		if (finfo.bytes < 100)					% Delete the file anyway because it exists but is empty
+			disp(['Failed to download file: ' dest_fiche])
+			builtin('delete',dest_fiche);
+			img = [];							% At least this way it won't generate an error
+			return
 		end
 		[img, att] = gdalread(dest_fiche);
 		if (size(img,3) == 4),		img(:,:,4) = [];	end		% We don't deal yet with alpha-maps in images
