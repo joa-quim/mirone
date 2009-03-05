@@ -640,7 +640,7 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, cache_supp, ext, de
 		else						quad = [quadkey{2} quad];
 		end
 
-		cmap = [];		att = [];
+		cmap = [];		att = [];	fname = [];		img = [];
 		if (~isempty(cache))		% We have a cache dir to look for
 
 			if ( isWW )		% We guessed it before as beeing a WW cache
@@ -676,6 +676,9 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, cache_supp, ext, de
 		end
 	catch
 		disp(lasterr)
+		if ( isempty(img) && ~isempty(fname) )			% An empty screwed tile exists in the cache. Delete it
+			builtin('delete',fname);
+		end
 		img = repmat(uint8(200), [256 256 3]);
 	end
 
@@ -683,7 +686,7 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, cache_supp, ext, de
 function [img, att] = netFetchTile(url, cache, quad, ext, verbose, fname)
 % Fetch a file from the web either using gdal or wget (when gdal is not able to)
 	if (verbose),	disp(['Downloading file ' url]),	end
-	if (strcmp(url(8:9),'kh') || strcmp(url(8:9),'mt'))
+	if (true || strcmp(url(8:9),'kh') || strcmp(url(8:9),'mt'))		% --> FORCE USE OF WGET 
 		if ( ~isempty(cache) )
 			if ( exist(cache,'dir') ~= 7 ),		make_dir(cache),	end		% Need to create a new dir
 			dest_fiche = [cache filesep quad '.' ext];		% Save the file directly in susitu (cache)
@@ -691,12 +694,12 @@ function [img, att] = netFetchTile(url, cache, quad, ext, verbose, fname)
 			dest_fiche = 'lixogrr';
 		end
 
-		if (ispc),		dos(['wget "' url '" -q --tries=1 --connect-timeout=5 -O ' dest_fiche]);	% One try is enough
-		else			unix(['wget ''' url ''' -q --tries=1 --connect-timeout=5 -O ' dest_fiche]);
+		if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+		else			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
 		end
 		finfo = dir(dest_fiche);
 		if (finfo.bytes < 100)					% Delete the file anyway because it exists but is empty
-			disp(['Failed to download file: ' dest_fiche])
+			disp(['Failed to download file: ' url])
 			builtin('delete',dest_fiche);
 			img = [];							% At least this way it won't generate an error
 			return
