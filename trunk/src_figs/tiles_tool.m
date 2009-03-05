@@ -29,7 +29,6 @@ function varargout = tiles_tool(varargin)
 
 	handles.proxy = [];			handles.port = [];
 	handles.proxyPort = [];		handles.patchHandles = [];		handles.hImgZoomed = [];
-	handles.doProxySetting = false;
 	handles.whatkind = {'aerial' 'road', 'hybryd'};		% The 3 possible imge types
 	handles.slected_whatkind = 'aerial';
 
@@ -206,22 +205,6 @@ function click_MOSAIC_e_GO_CB(hObject, eventdata)
 	str = contents{val};		cacheDir = [];
 	if ( ~isempty(str) ),		cacheDir = str;		end
 
-	% --------------- Proxy settings --------------------
-	if (~isempty(handles.proxyPort))
-		ii = strfind(handles.proxyPort, ':');
-		if ( isempty(ii) && get(handles.check_proxy,'Val') )		% either adress or port are missing
-			warndlg('Your proxy settings are incomplete. Ignoring','Warning')
-		elseif (handles.doProxySetting)
-			if (get(handles.check_proxy,'val')),	prx = handles.proxyPort;
-			else									prx = '';		% This will remove the http_proxy value (no proxy)
-			end
-			set_gmt(['http_proxy=' prx]);
-			handles.doProxySetting = false;
-			guidata(handles.figure1, handles)
-		end
-	end
-	% ----------------------------------------------------
-
 	tiles_bb = handles.tiles_bb(ind,:);
 	lon = [min(tiles_bb(:,1)) max(tiles_bb(:,2))] + [1 -1] * 1e-6;		% eps is for not getting neighboring tiles
 	lat = [min(tiles_bb(:,3)) max(tiles_bb(:,4))] + [1 -1] * 1e-6;
@@ -367,24 +350,32 @@ function radio_geogs_Callback(hObject, eventdata, handles)
 function check_proxy_Callback(hObject, eventdata, handles)
 	if ( get(hObject, 'Val') )
 		set([handles.edit_proxy handles.edit_port handles.text_port], 'Enable', 'on')
+		ind = strfind(handles.proxyPort, ':');
+		if ( ~isempty(ind) )		% We already have a full proxy adress
+			set_gmt(['http_proxy=' handles.proxyPort]);
+		end
 	else
 		set([handles.edit_proxy handles.edit_port handles.text_port], 'Enable', 'off')
+		set_gmt('http_proxy=');
 	end
-	handles.doProxySetting = true;			% If the checkbox state was changed, interpret it
 	guidata(handles.figure1, handles)		% as a request to change the proxy settings
 
 % -------------------------------------------------------------------------------------
 function edit_proxy_Callback(hObject, eventdata, handles)
 	handles.proxy = get(hObject, 'String');
 	handles.proxyPort = [handles.proxy ':' handles.port];
-	if (~isempty(handles.port)),		handles.doProxySetting = true;	end
+	if (~isempty(handles.port))
+		set_gmt(['http_proxy=' handles.proxyPort]);
+	end
 	guidata(handles.figure1, handles)
-
+	
 % -------------------------------------------------------------------------------------
 function edit_port_Callback(hObject, eventdata, handles)
 	handles.port = get(hObject, 'String');
 	handles.proxyPort = [handles.proxy ':' handles.port];
-	if (~isempty(handles.proxy)),		handles.doProxySetting = true;	end
+	if (~isempty(handles.port))
+		set_gmt(['http_proxy=' handles.proxyPort]);
+	end
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
