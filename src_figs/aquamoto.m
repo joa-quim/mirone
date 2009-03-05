@@ -1,5 +1,8 @@
 function varargout = aquamoto(varargin)
-% M-File changed by desGUIDE
+% A general purpose 3D grid/image file viewer, specialy taylored for tsunami (ANUGA) files
+%
+% For compiling one need to include the aqua_suppfuns.m file. Useless to do the same with
+% aquaPlugin.m before I write a GUI interface to its functions.
 
 	hObject = figure('Tag','figure1','Visible','off');
 	aquamoto_LayoutFcn(hObject);
@@ -84,7 +87,7 @@ function varargout = aquamoto(varargin)
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
 	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-	frames = [handles.frame1 handles.frame2 handles.frame3 handles.frame4 handles.frame5 handles.frame6 handles.frame7];
+	frames = [handles.frame1 handles.frame2 handles.frame3 handles.frame4 handles.frame5 handles.frame6 handles.frame7 handles.frame8];
 	for (k = 1:numel(frames))
     	frame_size = get(frames(k),'Position');
 		frame3D(hObject,frame_size,framecolor,'',get(frames(k),'UserData'))
@@ -92,7 +95,7 @@ function varargout = aquamoto(varargin)
 	end
 
 	% Recopy the text fields on top of previously created frames
-	h_t = [handles.text_Pq; handles.text_GLG; handles.text_MovType; handles.text_MovSize; handles.text_testFile; handles.text_globalMM];
+	h_t = [handles.text_Pq; handles.text_GLG; handles.text_MovType; handles.text_MovSize; handles.text_testFile; handles.text_globalMM; handles.text_montage];
 	% This is a destilled minimalist uistack(H,'top')
 	Children = findobj(allchild(hObject), 'flat', 'type', 'uicontrol');
 	HandleLoc = find(ismember(Children,h_t));
@@ -1338,12 +1341,16 @@ function radio_timeGridsList_Callback(hObject, eventdata, handles)
 	set(handles.edit_multiLayerInc, 'Enable', 'off')
 
 % -----------------------------------------------------------------------------------------
-function push_OK_Callback(hObject, eventdata, handles)
+function push_OK_Callback(hObject, eventdata, handles, opt)
 % Do whatever it has to do (and that is a lot) to make a movie
 
 	is_gif = get(handles.radio_gif,'Value');
 	is_avi = get(handles.radio_avi,'Value');
 	is_mpg = get(handles.radio_mpg,'Value');
+	is_montage = false;
+	if (nargin == 4)
+		is_montage = true;		is_gif = false;		is_avi = false;		is_mpg = false;
+	end
 
 	% ------------------------- Do a movie (if so) from a "packed" netcdf file ------------------------
 	if ( get(handles.radio_multiLayer, 'Val') )
@@ -1389,10 +1396,12 @@ function push_OK_Callback(hObject, eventdata, handles)
 		if (is_avi)
 			mname = [handles.moviePato handles.movieName '.avi'];
 			movie2avi_j(M,mname,'compression','none','fps',handles.fps)
-        elseif (is_mpg)
+		elseif (is_mpg)
 			mname = [handles.moviePato handles.movieName '.mpg'];
 			opt = [1, 0, 1, 0, 10, 5, 5, 5];
 			mpgwrite(M,map,mname,opt)
+		elseif (is_montage)
+			montage(M)
 		end
 		return
 	end
@@ -1549,10 +1558,12 @@ function push_OK_Callback(hObject, eventdata, handles)
 	if (is_avi)
 		mname = [handles.moviePato handles.movieName '.avi'];
 		movie2avi_j(M,mname,'compression','none','fps',handles.fps)
-    elseif (is_mpg)
+	elseif (is_mpg)
 		mname = [handles.moviePato handles.movieName '.mpg'];
 		opt = [1, 0, 1, 0, 10, 5, 5, 5];
 		mpgwrite(M,map,mname,opt)
+	elseif (is_montage)
+		montage(M)
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -2475,7 +2486,7 @@ function closeBar(obj, evt, hFig)
 		set(hFig, 'UserData', ud)
 	end
 
-	
+
 % --- Creates and returns a handle to the GUI figure. 
 function aquamoto_LayoutFcn(h1);
 
@@ -2563,6 +2574,11 @@ uicontrol('Parent',h1, 'Position',[690 190 221 41],...
 'Tag','frame4',...
 'UserData','cinema');
 
+ uicontrol('Parent',h1, 'Position',[610 238 71 58],...
+'Style','frame',...
+'Tag','frame8',...
+'UserData','cinema');
+
 uicontrol('Parent',h1, 'Position',[690 455 311 21],...
 'BackgroundColor',[1 1 1],...
 'Callback',{@aquamoto_uicallback,h1,'edit_batGrid_Callback'},...
@@ -2646,6 +2662,15 @@ uicontrol('Parent',h1,...
 'TooltipString','Elevation light direction',...
 'Tag','edit_elev',...
 'UserData','shade');
+
+uicontrol('Parent',h1, 'Position',[620 255 51 23],...
+'Callback',{@aquamoto_uiCB2,h1,[],'push_OK_Callback'},...
+'FontName','Helvetica',...
+'FontSize',10,...
+'String','Do it',...
+'TooltipString','Display multiple images as a montage of subplots',...
+'Tag','push_montage',...
+'UserData','cinema');
 
 uicontrol('Parent',h1,...
 'Callback',{@aquamoto_uicallback,h1,'push_OK_Callback'},...
@@ -2746,6 +2771,13 @@ uicontrol('Parent',h1,...
 'String','Movie type',...
 'Style','text',...
 'Tag','text_MovType',...
+'UserData','cinema');
+
+uicontrol('Parent',h1, 'Position',[617 288 55 15],...
+'FontName','Helvetica', 'FontSize',9,...
+'String','Montage',...
+'Style','text',...
+'Tag','text_montage',...
 'UserData','cinema');
 
 uicontrol('Parent',h1,...
@@ -3573,7 +3605,10 @@ uicontrol('Parent',h1, 'Position',[140 450 121 81],...
 
 function aquamoto_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,[],guidata(h1));
+
+function aquamoto_uiCB2(hObject, eventdata, h1, opt, callback_name)
+	feval(callback_name,hObject,[], guidata(h1), opt);
 
 % ----------------------------------------------------------------------------------
 % ----------------------------------------------------------------------------------
