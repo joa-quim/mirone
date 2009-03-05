@@ -633,6 +633,7 @@ utils/mboard.m -text
 utils/mc_e_b_estimate.m -text
 utils/message_win.m -text
 utils/mltable_j.m -text
+utils/montage.m -text
 utils/move2side.m -text
 utils/move_obj.m -text
 utils/movie2avi_j.m -text
