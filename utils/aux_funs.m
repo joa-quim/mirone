@@ -159,6 +159,8 @@ function out = findFileType(fname)
 	elseif ( any(strcmpi(EXT,'.cpt')) ),		out = 'cpt';
 	elseif ( any(strcmpi(EXT,'.dat')) ),		out = 'dat';
 	elseif ( any(strcmpi(EXT,'.shp')) ),		out = 'shp';
+	elseif ( any(strcmpi(EXT,'.gmt')) )			% In future we'll have to test if MGG or ogr2ogr (e.g. multiseg) file
+		out = 'mgg_gmt';
 	else
 		% Before we give up with a 'dono' check if its a netCDF file.
 		% One normaly shouldn't need it if the GDAL netCDF driver
