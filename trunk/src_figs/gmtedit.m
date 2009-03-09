@@ -113,10 +113,11 @@ handles.begin = begin;
 handles.center_win = center_win;
 
 if (got_inFile)
-    handles.last_dir = PATH;
+	handles.last_dir = PATH;
 else
-    handles.last_dir = handles.home_dir;    % This means, last_dir is not saved between sessions
+	handles.last_dir = handles.home_dir;    % This means, last_dir is not saved between sessions
 end
+handles.work_dir = handles.last_dir;
 
 % Load some icons from mirone_icons.mat
 load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','trincha_ico');
@@ -310,24 +311,24 @@ end
 set(handles.figure1,'Pointer','watch')
 x_lim = get(get(handles.figure1,'CurrentAxes'),'XLim');
 if (~isempty(x_gn))
-    id_x = zeros(length(x_gn),1);
-    for (k=1:length(x_gn))
+    id_x = zeros(numel(x_gn),1);
+    for (k=1:numel(x_gn))
         tmp = find((x_g - x_gn(k)) == 0);   % Find the gravity points that were marked
         id_x(k) = tmp(1);               % Old files often have repeated coords
     end
     y_g(id_x) = NODATA;                 % Remove them
 end
 if (~isempty(x_mn))
-    id_x = zeros(length(x_mn),1);
-    for (k=1:length(x_mn))
+    id_x = zeros(numel(x_mn),1);
+    for (k=1:numel(x_mn))
         tmp = find((x_m - x_mn(k)) == 0);   % Find the magnetic points that were marked
         id_x(k) = tmp(1);               % Old files often have repeated coords
     end
     y_m(id_x) = NODATA;                 % Remove them
 end
 if (~isempty(x_tn))
-    id_x = zeros(length(x_tn),1);
-    for (k=1:length(x_tn))
+    id_x = zeros(numel(x_tn),1);
+    for (k=1:numel(x_tn))
         tmp = find((x_t - x_tn(k)) == 0);   % Find the topo points that were marked
         id_x(k) = tmp(1);               % Old files often have repeated coords
     end
@@ -594,7 +595,6 @@ function varargout = outliersdetect(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	outliersdetect_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	%movegui(hObject,'center')
 
 	handles.hCallingFig = varargin{1};
 	handles.hCallingAx1 = varargin{2};
@@ -613,34 +613,34 @@ function varargout = outliersdetect(varargin)
 	set(hObject,'Visible','on');	drawnow
 	
 	x = get(handles.hChannel(1),'XData');		y = get(handles.hChannel(1),'YData');
-	n1 = min(100,numel(x));
-	if (n1)
-		[pp,p] = spl_fun('csaps',x(1:n1),y(1:n1));		% This is just to get csaps's p estimate
+	have_g = any(~isnan(y));
+	if (have_g)
+		[pp,p] = spl_fun('csaps',x,y);		% This is just to get csaps's p estimate
 		handles.smooth(1) = p;
 	else
 		set(handles.radio_G, 'Enable','off')
 	end
 	x = get(handles.hChannel(2),'XData');		y = get(handles.hChannel(2),'YData');
-	n2 = min(100,numel(x));
-	if (n2)
-		[pp,p] = spl_fun('csaps',x(1:n2),y(1:n2));
+	have_m = any(~isnan(y));
+	if (have_m)
+		[pp,p] = spl_fun('csaps',x,y);
 		handles.smooth(2) = p;
 	else
 		set(handles.radio_M, 'Enable','off')
 	end
 	x = get(handles.hChannel(3),'XData');		y = get(handles.hChannel(3),'YData');
-	n3 = min(100,numel(x));
-	if (n3)
-		[pp,p] = spl_fun('csaps',x(1:n3),y(1:n3));
+	have_t = any(~isnan(y));
+	if (have_t)
+		[pp,p] = spl_fun('csaps',x,y);
 		handles.smooth(3) = p;
 	else
 		set(handles.radio_T, 'Enable','off')
 	end
 
 	% Fill the edit boxes with appropriate values (priority is Mag, than Grav and last is Topo)
-	if (n2),		handles.id_gmt = 2;		set(handles.radio_M,'Val',1)
-	elseif (n1),	handles.id_gmt = 1;		set(handles.radio_G,'Val',1)
-	else			handles.id_gmt = 3;		set(handles.radio_T,'Val',1)
+	if (have_g),		handles.id_gmt = 2;		set(handles.radio_M,'Val',1)
+	elseif (have_m),	handles.id_gmt = 1;		set(handles.radio_G,'Val',1)
+	else				handles.id_gmt = 3;		set(handles.radio_T,'Val',1)
 	end
 	set(handles.edit_thresh,'String',handles.thresh(handles.id_gmt));
 	set(handles.edit_SmoothParam,'String',num2str(handles.smooth(handles.id_gmt)));
