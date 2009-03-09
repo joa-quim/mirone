@@ -16,7 +16,7 @@ function out = gmtedit(varargin)
 %       OUT, if given will contain this figure handle.
 %
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2009 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -119,7 +119,7 @@ else
 end
 
 % Load some icons from mirone_icons.mat
-load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico');
+load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','trincha_ico');
 
 %SetAxesNumericType(handles.axes1);        % Set axes uicontextmenus
 set(get(h_a1,'YLabel'),'String','Gravity anomaly (mGal)')
@@ -128,26 +128,23 @@ set(get(h_a3,'YLabel'),'String','Bathymetry (m)')
 
 handles.def_width_km = def_width_km;
 handles.max_x_data = 10000;
-scroll_plots(def_width_km,[0 10000])     % The [0 10000] will reset inside scroll_plots to a more appropriate val
+scroll_plots(def_width_km,[0 10000])     % The [0 10000] will be reset inside scroll_plots to a more appropriate val
 movegui(hf,'north')
 
 h_toolbar = uitoolbar('parent',hf,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
    'Interruptible','on','Tag','FigureToolBar','Visible','on');
 uipushtool('parent',h_toolbar,'Click',{@import_clickedcallback,f_name},'Tag','import',...
-   'cdata',openFile_img,'TooltipString','Open gmt file');
-uipushtool('parent',h_toolbar,'Click',@save_clickedcallback,'Tag','save',...
-   'cdata',saveFile_img,'TooltipString','Save gmt file');
+   'cdata',openFile_img,'Tooltip','Open gmt file');
+uipushtool('parent',h_toolbar,'Click',@save_clickedcallback,'Tag','save', 'cdata',saveFile_img,'Tooltip','Save gmt file');
 % uitoggletool('parent',h_toolbar,'Click',@zoom_clickedcallback,'Tag','zoom',...
 %    'cdata',zoom_img,'TooltipString','Zoom');
-uipushtool('parent',h_toolbar,'Click',@info_clickedcallback,'Tag','info','cdata',info_ico,...
-   'TooltipString','Cruise Info');
+uipushtool('parent',h_toolbar,'Click',@info_clickedcallback,'Tag','info','cdata',info_ico, 'Tooltip','Cruise Info');
 uipushtool('parent',h_toolbar,'Click',@rectang_clickedcallback,'Tag','rectang','cdata',rectang_ico,...
-   'TooltipString','Rectangular region','Separator','on');
-uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedcallback,'cdata',rectang_ico,'TooltipString','Select for moving');
-uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedcallback,'inc'},...
-   'cdata',zoomIn_img,'TooltipString','Increase scale','Separator','on');
-uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedcallback,'dec'},...
-   'cdata',zoomOut_img,'TooltipString','Decrease scale');
+   'Tooltip','Rectangular region','Sep','on');
+uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedcallback,'cdata',rectang_ico,'Tooltip','Select for moving');
+uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zoomIn_img,'Tooltip','Increase scale','Sep','on');
+uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'dec'}, 'cdata',zoomOut_img,'Tooltip','Decrease scale');
+uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',trincha_ico,'Tooltip','Outliers detector','Sep','on');
 
 
 % Create empty lines just for the purpose of having their handles
@@ -174,7 +171,7 @@ set(hf,'WindowButtonDownFcn',@add_MarkColor)
 set(hf,'Visible','on')
 
 % Choose default command line output for gmtedit
-if (nargout == 1)   out = hf;   end
+if (nargout == 1),	out = hf;   end
 
 % --------------------------------------------------------------------
 function import_clickedcallback(hObject, eventdata, opt)
@@ -260,12 +257,10 @@ if (~handles.begin)         % Start the display at a user selected coordinate
     r2 = sqrt((handles.lon(id2) - handles.center_win(1))^2 + (handles.lat(id2) - handles.center_win(2))^2);
     id = id1;
     if (r1 ~= r2)
-        if (r2 < r1)
-            id = id2;
-        end
+        if (r2 < r1),	id = id2;	end
     end
     x_lim = track.distance(id) + [-handles.def_width_km/2 handles.def_width_km/2];
-    set(findall(gcf,'Type','axes'),'xlim',x_lim)
+    set(findall(handles.figure1,'Type','axes'),'xlim',x_lim)
     val0 = track.distance(id)-handles.def_width_km;
     if (val0 > track.distance(1))
         val = val0;
@@ -312,8 +307,8 @@ if (~isempty(handles.h_broken))         % If we have broken lines we must join t
     y_m = y_m(id);                      % Otherwise the y's would be out of order
 end
 
-set(gcf,'Pointer','watch')
-x_lim = get(gca,'XLim');
+set(handles.figure1,'Pointer','watch')
+x_lim = get(get(handles.figure1,'CurrentAxes'),'XLim');
 if (~isempty(x_gn))
     id_x = zeros(length(x_gn),1);
     for (k=1:length(x_gn))
@@ -373,7 +368,7 @@ for (k=1:n_rec)
 end
 fclose(fid);
 
-set(gcf,'Pointer','arrow')
+set(handles.figure1,'Pointer','arrow')
 
 % --------------------------------------------------------------------
 function add_MarkColor(hObject, eventdata)
@@ -381,10 +376,10 @@ function add_MarkColor(hObject, eventdata)
 handles = guidata(hObject);     % get handles
 
 button = get(handles.figure1, 'SelectionType');
-if (~strcmp(button,'normal'))     return;     end     % Accept only left-clicks
+if (~strcmp(button,'normal')),		return,		end		% Accept only left-clicks
 
 in_grav = 0;    in_mag = 0;     in_topo = 0;
-ax = gca;
+ax = get(handles.figure1,'CurrentAxes');
 pt = get(ax, 'CurrentPoint');
 if (strcmp(get(ax,'Tag'),'axes1'))
     in_grav = 1;        opt = 'GravNull';
@@ -393,7 +388,7 @@ elseif (strcmp(get(ax,'Tag'),'axes2'))
 elseif (strcmp(get(ax,'Tag'),'axes3'))
     in_topo = 1;        opt = 'TopNull';
 end
-if ((in_grav + in_mag + in_topo) == 0)      return;     end     % Click was outside axes
+if ((in_grav + in_mag + in_topo) == 0),		return,		end		% Click was outside axes
 
 if (in_grav)
     hM = findobj(handles.figure1,'Type','Line','tag','GravNull');
@@ -406,50 +401,49 @@ else
     x = get(handles.h_tm,'XData');      y = get(handles.h_tm,'YData');
 end
 
-x_lim = get(ax,'XLim');                 y_lim = get(ax,'YLim');
-dx = diff(x_lim) / 20;                  % Search only betweem +/- 1/10 of x_lim
+x_lim = get(ax,'XLim');					y_lim = get(ax,'YLim');
+dx = diff(x_lim) / 20;					% Search only betweem +/- 1/10 of x_lim
 id = (x < (pt(1,1)-dx) | x > (pt(1,1)+dx));
-x(id) = [];             y(id) = [];     % Clear outside-2*dx points to speed up the search code
-XScale = diff(x_lim);       YScale = diff(y_lim);
+x(id) = [];					y(id) = [];	% Clear outside-2*dx points to speed up the search code
+XScale = diff(x_lim);		YScale = diff(y_lim);
 
 r = sqrt(((pt(1,1)-x)./XScale).^2+((pt(1,2)-y)./YScale).^2);
 [temp,i] = min(r);
-pt_x = x(i);                pt_y = y(i);
+pt_x = x(i);				pt_y = y(i);
 
-xr = get(hM,'XData');       yr = get(hM,'YData');
+xr = get(hM,'XData');		yr = get(hM,'YData');		% Red markers
 id = find(xr == pt_x);
-if (isempty(id))            % New Marker
-    if (isempty(hM))        % First red Marker on this axes
+if (isempty(id))			% New Marker
+    if (isempty(hM))		% First red Marker on this axes
         line(pt_x,pt_y,'Marker','s','MarkerFaceColor','r','MarkerSize',4,'LineStyle','none','Tag',opt);
     else
-        xr = [xr pt_x];     yr = [yr pt_y];
+        xr = [xr pt_x];		yr = [yr pt_y];
         set(hM,'XData',xr, 'YData', yr)
     end
-else                        % Marker already exists. Kill it
-    xr(id) = [];            yr(id) = [];
+else						% Marker already exists. Kill it
+    xr(id) = [];			yr(id) = [];
     set(hM,'XData',xr, 'YData', yr)
 end
 
 % --------------------------------------------------------------------------------------------------
 function zoom_clickedcallback(obj,eventdata)
-if (strcmp(get(obj,'State'),'on'))
-    zoom_j xon;
-else
-    zoom_j off;
-end
+	if (strcmp(get(obj,'State'),'on'))
+		zoom_j xon;
+	else
+		zoom_j off;
+	end
 
 % --------------------------------------------------------------------------------------------------
 function info_clickedcallback(obj,eventdata)
-handles = guidata(obj);     % get handles
-if (isempty(handles.info))      return;     end
-data = handles.info;
-str{1} = ['N_recs = ' num2str(data(1)) ', N_grav = ' num2str(data(2)) ', N_mag = ' num2str(data(3)) ...
-    ', N_top = ' num2str(data(4))];
-str{2} = ['E: = ' num2str(data(5)) '  W: = ' num2str(data(6))];
-str{3} = ['S: = ' num2str(data(7)) '  N: = ' num2str(data(8))];
-str{4} = ['Start day,month,year: = ' num2str(data(9)) '  ' num2str(data(10)) '  ' num2str(data(11))];
-str{5} = ['End   day,month,year: = ' num2str(data(12)) '  ' num2str(data(13)) '  ' num2str(data(14))];
-msgbox(str,'Cruise Info')
+	handles = guidata(obj);     % get handles
+	if (isempty(handles.info)),		return,		end
+	data = handles.info;
+	str{1} = sprintf('N_recs = %d, N_grav = %d, N_mag = %d, N_topo = %d', data(1:4));
+	str{2} = ['E: = ' num2str(data(5)) '  W: = ' num2str(data(6))];
+	str{3} = ['S: = ' num2str(data(7)) '  N: = ' num2str(data(8))];
+	str{4} = ['Start day,month,year: = ' num2str(data(9)) '  ' num2str(data(10)) '  ' num2str(data(11))];
+	str{5} = ['End   day,month,year: = ' num2str(data(12)) '  ' num2str(data(13)) '  ' num2str(data(14))];
+	msgbox(str,'Cruise Info')
 
 % --------------------------------------------------------------------------------------------------
 function rectang_clickedcallback(obj,eventdata)
@@ -457,12 +451,12 @@ handles = guidata(obj);     % get handles
 try
     [p1,p2] = rubberbandbox;
 catch       % Don't know why but uisuspend sometimes breaks
-    set(gcf,'Pointer','arrow');
+    set(handles.figure1,'Pointer','arrow');
     return
 end
 
 in_grav = 0;    in_mag = 0;     in_topo = 0;
-ax = gca;
+ax = get(handles.figure1,'CurrentAxes');
 if (strcmp(get(ax,'Tag'),'axes1'))
     in_grav = 1;        opt = 'GravNull';
 elseif (strcmp(get(ax,'Tag'),'axes2'))
@@ -513,7 +507,7 @@ catch
     return
 end
 
-if (~strcmp(get(gca,'Tag'),'axes2'))     % This option is meant only to magnetic data
+if (~strcmp(get(get(handles.figure1,'CurrentAxes'),'Tag'),'axes2'))		% This option is meant only to magnetic data
     return
 end
 
@@ -521,7 +515,7 @@ x = get(handles.h_mm,'XData');      y = get(handles.h_mm,'YData');
 
 % Search for "regular" points inside the rectangle
 id = find(x >= p1(1,1) & x <= p2(1,1) & y >= p1(1,2) & y <= p2(1,2));
-if (isempty(id))    return;     end     % Nothing inside rect
+if (isempty(id)),	return,		end		% Nothing inside rect
 
 % create a new line and set it the line_uicontext in order that they may be moved
 golo_x = x(id);             golo_y = y(id);
@@ -533,23 +527,21 @@ n = length(handles.h_broken);
 handles.h_broken(n+1) = line(golo_x,golo_y,'Marker','s','MarkerFaceColor','b','MarkerSize',4,'LineStyle','-');
 ui_edit_polygon(handles.h_broken(n+1))      % Set edition functions
 
-guidata(obj,handles)
+guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------------------------------------
-function changeScale_clickedcallback(obj,eventdata,opt)
+function changeScale_clickedCB(obj,eventdata,opt)
 handles = guidata(obj);     % get handles
 
 if (strcmp(opt,'inc'))
-    handles.def_width_km = handles.def_width_km - 50;
-    if (handles.def_width_km < 50)
-        return
-    end
+	handles.def_width_km = handles.def_width_km - 50;
+	if (handles.def_width_km < 50),		return,		end
 else            % Decrease scale
-    handles.def_width_km = handles.def_width_km + 50;
+	handles.def_width_km = handles.def_width_km + 50;
 end
 
-x_lim = get(gca,'Xlim');
-set(findall(gcf,'Type','axes'),'Xlim',x_lim(1)+[0 handles.def_width_km])
+x_lim = get(get(handles.figure1,'CurrentAxes'),'Xlim');
+set([handles.axes1 handles.axes2 handles.axes3],'Xlim',x_lim(1)+[0 handles.def_width_km])
 
 h_slider = findobj(handles.figure1,'style','slider');
 cb = get(h_slider,'callback');
@@ -564,18 +556,16 @@ new_max = handles.max_x_data - handles.def_width_km;
 set(h_slider,'Max',new_max)
 
 val = get(h_slider,'Value');
-if (val > new_max)
-    set(h_slider,'Value',new_max)
-end
+if (val > new_max),		set(h_slider,'Value',new_max),		end
 
-min_s = get(h_slider,'Min');
-max_s = get(h_slider,'Max');
-if (min_s >= max_s)
-    disp(['DEBUG. Error in slider. Min = ' num2str(min_s) ' Max = ' num2str(max_s)])
-    aa=0;
-end
+guidata(handles.figure1, handles)
 
-guidata(obj,handles)
+% --------------------------------------------------------------------------------------------------
+function outliers_clickedCB(obj,eventdata,opt)
+% Detect outliers using a spline smooth technique.
+	handles = guidata(obj);					% get handles
+	outliersdetect(handles.figure1, handles.axes1, handles.axes2, handles.axes3, ...
+		[handles.h_gm handles.h_mm handles.h_tm]);
 
 % --------------------------------------------------------------------
 function scroll_plots(width,x);
@@ -589,7 +579,7 @@ pos = get(gca,'position');
 
 % This will create a slider which is just underneath the axis
 % but still leaves room for the axis labels above the slider
-Newpos=[pos(1) 5 pos(3) 20];
+Newpos=[pos(1) 5 pos(3) 15];
 
 S=['set(findall(gcf,''Type'',''axes''),''xlim'',get(gcbo,''value'')+[0 ' num2str(width) '])'];
 
@@ -597,3 +587,243 @@ S=['set(findall(gcf,''Type'',''axes''),''xlim'',get(gcbo,''value'')+[0 ' num2str
 uicontrol('style','slider','units','pixels','position',Newpos, ...
     'callback',S,'min',x(1),'max',x(end)-width,'value',x(1));
 
+% --------------------------------------------------------------------------
+function varargout = outliersdetect(varargin)
+% Do automatic outliers detection by comparison with spline sooth version data
+ 
+	hObject = figure('Tag','figure1','Visible','off');
+	outliersdetect_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	%movegui(hObject,'center')
+
+	handles.hCallingFig = varargin{1};
+	handles.hCallingAx1 = varargin{2};
+	handles.hCallingAx2 = varargin{3};
+	handles.hCallingAx3 = varargin{4};
+	handles.hChannel = varargin{5};
+	
+	handles.thresh(1) = 0.4;
+	handles.thresh(2) = 4;
+	handles.thresh(3) = 10;
+	handles.smooth(1) = 1;
+	handles.smooth(2) = 1;
+	handles.smooth(3) = 1;
+	warning off SPLINES:CHCKXYWP:NaNs
+
+	set(hObject,'Visible','on');	drawnow
+	
+	x = get(handles.hChannel(1),'XData');		y = get(handles.hChannel(1),'YData');
+	n1 = min(100,numel(x));
+	if (n1)
+		[pp,p] = spl_fun('csaps',x(1:n1),y(1:n1));		% This is just to get csaps's p estimate
+		handles.smooth(1) = p;
+	else
+		set(handles.radio_G, 'Enable','off')
+	end
+	x = get(handles.hChannel(2),'XData');		y = get(handles.hChannel(2),'YData');
+	n2 = min(100,numel(x));
+	if (n2)
+		[pp,p] = spl_fun('csaps',x(1:n2),y(1:n2));
+		handles.smooth(2) = p;
+	else
+		set(handles.radio_M, 'Enable','off')
+	end
+	x = get(handles.hChannel(3),'XData');		y = get(handles.hChannel(3),'YData');
+	n3 = min(100,numel(x));
+	if (n3)
+		[pp,p] = spl_fun('csaps',x(1:n3),y(1:n3));
+		handles.smooth(3) = p;
+	else
+		set(handles.radio_T, 'Enable','off')
+	end
+
+	% Fill the edit boxes with appropriate values (priority is Mag, than Grav and last is Topo)
+	if (n2),		handles.id_gmt = 2;		set(handles.radio_M,'Val',1)
+	elseif (n1),	handles.id_gmt = 1;		set(handles.radio_G,'Val',1)
+	else			handles.id_gmt = 3;		set(handles.radio_T,'Val',1)
+	end
+	set(handles.edit_thresh,'String',handles.thresh(handles.id_gmt));
+	set(handles.edit_SmoothParam,'String',num2str(handles.smooth(handles.id_gmt)));
+
+	str = sprintf(['Residues greater or equal than this are outliers.\n' ...
+		'Notice that we use small numbers because the spline\n' ...
+		'smoothing will do only a mild smoothing, so the residues\n', ...
+		'are naturally small. Unless you decrease the p parameter']);
+	set(handles.edit_thresh,'Tooltip', str)
+
+	guidata(hObject, handles);	
+	if (nargout),	varargout{1} = hObject;		end
+
+% ----------------------------------------------------------------------------
+function edit_SmoothParam_Callback(hObject, eventdata, handles)
+	xx = str2double(get(hObject,'String'));
+	if (xx < 0 || xx > 1 || isnan(xx))
+		xx = 1;		set(hObject,'String',xx)
+	end
+	handles.smooth(handles.id_gmt) = xx;
+	guidata(handles.figure1, handles);
+
+% ----------------------------------------------------------------------------
+function edit_thresh_Callback(hObject, eventdata, handles)
+	xx = str2double(get(hObject,'String'));
+	if (xx < 0 || isnan(xx))
+		xx = 0;		set(hObject,'String',xx)
+	end
+	handles.thresh(handles.id_gmt) = xx;
+	guidata(handles.figure1, handles);
+
+% ----------------------------------------------------------------------------
+function radio_G_Callback(hObject, eventdata, handles)
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
+	set([handles.radio_M handles.radio_T],'Val', 0)
+	handles.id_gmt = 1;		guidata(handles.figure1, handles)
+
+% ----------------------------------------------------------------------------
+function radio_M_Callback(hObject, eventdata, handles)
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
+	set([handles.radio_G handles.radio_T],'Val', 0)
+	handles.id_gmt = 2;		guidata(handles.figure1, handles)
+
+% ----------------------------------------------------------------------------
+function radio_T_Callback(hObject, eventdata, handles)
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
+	set([handles.radio_G handles.radio_M],'Val', 0)
+	handles.id_gmt = 3;		guidata(handles.figure1, handles)
+
+% ----------------------------------------------------------------------------
+function push_Apply_Callback(hObject, eventdata, handles)
+% Detect outliers using a spline smooth technique. Note that the threshold is normaly low
+% because the smoothing is very mild and therefore the residues are small.
+
+	% ------------- Get the working channel ---------------------------
+	id_gmt = handles.id_gmt;
+	hChannel = handles.hChannel(id_gmt);
+	markers_tag = {'GravNull' 'MagNull' 'TopNull'};
+	gmtedit_axes = [handles.hCallingAx1 handles.hCallingAx2 handles.hCallingAx3];
+	% -----------------------------------------------------------------
+
+	set(handles.figure1,'pointer','watch')
+	x = get(hChannel,'XData');				y = get(hChannel,'YData');
+	yy = spl_fun('csaps',x,y,handles.smooth(id_gmt),x);
+	difa = abs(y - yy);
+	ind = (difa >= handles.thresh(id_gmt));
+	clear difa
+	xx = x(ind);		yy = y(ind);
+
+	hM = findobj(handles.hCallingFig,'Type','Line','tag',markers_tag{id_gmt});
+	if (isempty(hM))
+		line(xx, yy,'Parent',gmtedit_axes(id_gmt),'Marker','s','MarkerFaceColor','r','MarkerSize',4,'LineStyle','none','Tag',markers_tag{id_gmt});
+	else
+		set(hM, 'XData',xx, 'YData',yy)
+	end
+	set(handles.figure1,'pointer','arrow')
+
+% ----------------------------------------------------------------------------
+function push_applyNreturn_Callback(hObject, eventdata, handles)
+	push_Apply_Callback(handles.push_Apply, eventdata, handles)
+	delete(handles.figure1)
+
+% ----------------------------------------------------------------------------
+% ----------------------------------------------------------------------------
+function push_clear_Callback(hObject, eventdata, handles)
+% Remove all eventually detected outlaws from current channel
+	if (handles.id_gmt == 1)
+		hM = findobj(handles.hCallingFig,'Type','Line','tag','GravNull');
+	elseif (handles.id_gmt == 2)
+		hM = findobj(handles.hCallingFig,'Type','Line','tag','MagNull');
+	else
+		hM = findobj(handles.hCallingFig,'Type','Line','tag','TopNull');
+	end
+	set(hM, 'XData',[], 'YData',[])
+	
+
+% --- Creates and returns a handle to the GUI figure. 
+function outliersdetect_LayoutFcn(h1)
+
+set(h1, 'Position',[520 420 311 65],...
+'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'MenuBar','none',...
+'Name','Detect outliers',...
+'NumberTitle','off',...
+'Resize','off',...
+'HandleVisibility','callback',...
+'Tag','figure1');
+
+uicontrol('Parent',h1, 'Position',[10 27 121 21],...
+'BackgroundColor',[1 1 1],...
+'Callback',{@outliersdetect_CB,h1,'edit_SmoothParam_Callback'},...
+'HorizontalAlignment','left',...
+'Style','edit',...
+'TooltipString','Enter a Smoothing Parameter between [0 1]',...
+'Tag','edit_SmoothParam');
+
+uicontrol('Parent',h1, 'Position',[9 48 125 15],...
+'FontName','Helvetica',...
+'String','Smoothing parameter (p)',...
+'Style','text');
+
+uicontrol('Parent',h1, 'Position',[212 31 90 21],...
+'Callback',{@outliersdetect_CB,h1,'push_Apply_Callback'},...
+'FontName','Helvetica',...
+'FontSize',9,...
+'String','Apply',...
+'TooltipString','Use this for testing',...
+'Tag','push_Apply');
+
+uicontrol('Parent',h1, 'Position',[146 27 51 21],...
+'BackgroundColor',[1 1 1],...
+'Callback',{@outliersdetect_CB,h1,'edit_thresh_Callback'},...
+'String','4',...
+'Style','edit',...
+'Tag','edit_thresh');
+
+uicontrol('Parent',h1, 'Position',[143 48 56 15],...
+'FontName','Helvetica',...
+'String','Threshold',...
+'Style','text');
+
+uicontrol('Parent',h1, 'Position',[11 6 30 15],...
+'Callback',{@outliersdetect_CB,h1,'radio_G_Callback'},...
+'FontName','Helvetica',...
+'FontSize',9,...
+'String','G',...
+'Style','radiobutton',...
+'TooltipString','Select Gravity channel',...
+'Tag','radio_G');
+
+uicontrol('Parent',h1, 'Position',[60 6 30 15],...
+'Callback',{@outliersdetect_CB,h1,'radio_M_Callback'},...
+'FontName','Helvetica',...
+'FontSize',9,...
+'String','M',...
+'Style','radiobutton',...
+'TooltipString','Select Magnetic channel',...
+'Tag','radio_M');
+
+uicontrol('Parent',h1, 'Position',[108 6 30 15],...
+'Callback',{@outliersdetect_CB,h1,'radio_T_Callback'},...
+'FontName','Helvetica',...
+'FontSize',9,...
+'String','T',...
+'Style','radiobutton',...
+'TooltipString','Select Topography channel',...
+'Tag','radio_T');
+
+uicontrol('Parent',h1, 'Position',[212 7 90 21],...
+'Callback',{@outliersdetect_CB,h1,'push_applyNreturn_Callback'},...
+'FontName','Helvetica',...
+'FontSize',9,...
+'String','Apply n return',...
+'TooltipString','Do it and go away',...
+'Tag','push_applyNreturn');
+
+uicontrol('Parent',h1, 'Position',[147 0 50 21],...
+'Callback',{@outliersdetect_CB,h1,'push_clear_Callback'},...
+'FontName','Helvetica',...
+'String','Clear',...
+'TooltipString','Clear detections from current selected channel',...
+'Tag','push_clear');
+
+function outliersdetect_CB(hObject, eventdata, h1, callback_name)
+% This function is executed by the callback and than the handles is allways updated.
+feval(callback_name,hObject,[],guidata(h1));
