@@ -79,7 +79,7 @@ ax_width = sc_size(3) - marg_l - marg_r;
 
 hf = figure('name','gmtedit','resize','off','numbertitle','off', 'visible','off', ...
     'position',fp, 'DoubleBuffer','on', 'Tag','figure1', 'closerequestfcn','delete(gcbf)');
-	
+
 % Use system color scheme for figure:
 set(hf,'Color',get(0,'defaultUicontrolBackgroundColor'));
 
@@ -142,7 +142,7 @@ uipushtool('parent',h_toolbar,'Click',@save_clickedcallback,'Tag','save', 'cdata
 uipushtool('parent',h_toolbar,'Click',@info_clickedcallback,'Tag','info','cdata',info_ico, 'Tooltip','Cruise Info');
 uipushtool('parent',h_toolbar,'Click',@rectang_clickedcallback,'Tag','rectang','cdata',rectang_ico,...
    'Tooltip','Rectangular region','Sep','on');
-uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedcallback,'cdata',rectang_ico,'Tooltip','Select for moving');
+uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedCB,'cdata',rectang_ico,'Tooltip','Select for moving');
 uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zoomIn_img,'Tooltip','Increase scale','Sep','on');
 uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'dec'}, 'cdata',zoomOut_img,'Tooltip','Decrease scale');
 uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',trincha_ico,'Tooltip','Outliers detector','Sep','on');
@@ -314,32 +314,32 @@ if (~isempty(x_gn))
     id_x = zeros(numel(x_gn),1);
     for (k=1:numel(x_gn))
         tmp = find((x_g - x_gn(k)) == 0);   % Find the gravity points that were marked
-        id_x(k) = tmp(1);               % Old files often have repeated coords
+        id_x(k) = tmp(1);				% Old files often have repeated coords
     end
-    y_g(id_x) = NODATA;                 % Remove them
+    y_g(id_x) = NODATA;					% Remove them
 end
 if (~isempty(x_mn))
     id_x = zeros(numel(x_mn),1);
     for (k=1:numel(x_mn))
         tmp = find((x_m - x_mn(k)) == 0);   % Find the magnetic points that were marked
-        id_x(k) = tmp(1);               % Old files often have repeated coords
+        id_x(k) = tmp(1);				% Old files often have repeated coords
     end
-    y_m(id_x) = NODATA;                 % Remove them
+    y_m(id_x) = NODATA;					% Remove them
 end
 if (~isempty(x_tn))
     id_x = zeros(numel(x_tn),1);
     for (k=1:numel(x_tn))
         tmp = find((x_t - x_tn(k)) == 0);   % Find the topo points that were marked
-        id_x(k) = tmp(1);               % Old files often have repeated coords
+        id_x(k) = tmp(1);				% Old files often have repeated coords
     end
-    y_t(id_x) = NODATA;                 % Remove them
+    y_t(id_x) = NODATA;					% Remove them
 end
 
 n_rec = length(handles.lon);
-if (isempty(y_g))                       % Original file had no gravity data
+if (isempty(y_g))						% Original file had no gravity data
     y_g = repmat(int16(NODATA),1,n_rec);
-else                                    % Replace eventual NaNs with NODATA
-    y_g(isnan(y_g*10)) = NODATA;        % But before convert to GU units
+else									% Replace eventual NaNs with NODATA
+    y_g(isnan(y_g*10)) = NODATA;		% But before convert to GU units
     y_g = int16(y_g);
 end
 if (isempty(y_m))                       % Original file had no magnetic data
@@ -406,7 +406,7 @@ x_lim = get(ax,'XLim');					y_lim = get(ax,'YLim');
 dx = diff(x_lim) / 20;					% Search only betweem +/- 1/10 of x_lim
 id = (x < (pt(1,1)-dx) | x > (pt(1,1)+dx));
 x(id) = [];					y(id) = [];	% Clear outside-2*dx points to speed up the search code
-XScale = diff(x_lim);		YScale = diff(y_lim);
+XScale = diff(x_lim);		YScale = diff(y_lim)*6;		% The 6 factor compensates the ~6:1 horizontal/vertical axes dimension
 
 r = sqrt(((pt(1,1)-x)./XScale).^2+((pt(1,2)-y)./YScale).^2);
 [temp,i] = min(r);
@@ -450,20 +450,17 @@ function info_clickedcallback(obj,eventdata)
 function rectang_clickedcallback(obj,eventdata)
 handles = guidata(obj);     % get handles
 try
-    [p1,p2] = rubberbandbox;
-catch       % Don't know why but uisuspend sometimes breaks
-    set(handles.figure1,'Pointer','arrow');
-    return
+	[p1,p2] = rubberbandbox;
+catch		% Don't know why but uisuspend sometimes breaks
+	set(handles.figure1,'Pointer','arrow');
+	return
 end
 
-in_grav = 0;    in_mag = 0;     in_topo = 0;
+in_grav = 0;	in_mag = 0;		in_topo = 0;
 ax = get(handles.figure1,'CurrentAxes');
-if (strcmp(get(ax,'Tag'),'axes1'))
-    in_grav = 1;        opt = 'GravNull';
-elseif (strcmp(get(ax,'Tag'),'axes2'))
-    in_mag = 1;         opt = 'MagNull';
-elseif (strcmp(get(ax,'Tag'),'axes3'))
-    in_topo = 1;        opt = 'TopNull';
+if (strcmp(get(ax,'Tag'),'axes1')),			in_grav = 1;	opt = 'GravNull';
+elseif (strcmp(get(ax,'Tag'),'axes2')),		in_mag = 1;		opt = 'MagNull';
+elseif (strcmp(get(ax,'Tag'),'axes3')),		in_topo = 1;	opt = 'TopNull';
 end
 
 if (in_grav)
@@ -500,7 +497,7 @@ else
 end
 
 % --------------------------------------------------------------------------------------------------
-function rectangMove_clickedcallback(obj,eventdata)
+function rectangMove_clickedCB(obj,eventdata)
 handles = guidata(obj);     % get handles
 try
     [p1,p2] = rubberbandbox;
@@ -638,8 +635,8 @@ function varargout = outliersdetect(varargin)
 	end
 
 	% Fill the edit boxes with appropriate values (priority is Mag, than Grav and last is Topo)
-	if (have_g),		handles.id_gmt = 2;		set(handles.radio_M,'Val',1)
-	elseif (have_m),	handles.id_gmt = 1;		set(handles.radio_G,'Val',1)
+	if (have_g),		handles.id_gmt = 1;		set(handles.radio_G,'Val',1)
+	elseif (have_m),	handles.id_gmt = 2;		set(handles.radio_M,'Val',1)
 	else				handles.id_gmt = 3;		set(handles.radio_T,'Val',1)
 	end
 	set(handles.edit_thresh,'String',handles.thresh(handles.id_gmt));
