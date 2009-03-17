@@ -3022,8 +3022,6 @@ void Jarithm(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 	else {
 		nx2 = ny2 = nBands2 = 1;	/* Fakes */
 	}
-	if (nx*ny == 1)
-		mexErrMsgTxt("CVLIB_MEX: First argument cannot be a scalar!");
 
 	if (ny != ny2 && ny2 != 1) error++;
 	if (nx != nx2 && nx2 != 1) error++;
