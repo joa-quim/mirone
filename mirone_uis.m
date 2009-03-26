@@ -1,6 +1,6 @@
 function [H1,handles,home_dir] = mirone_uis(home_dir)
 % --- Creates and returns a handle to the GUI MIRONE figure. 
-%#function pan resetplotview igrf_options rally_plater plate_calculator gmtedit ecran snapshot
+%#function pan resetplotview igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff plate_calculator euler_stuff grid_calculator tableGUI
 %#function datasets_funs earthquakes manual_pole_adjust compute_euler focal_meca srtm_tool atlas
 %#function image_enhance image_adjust datasets_funs write_gmt_script vitrinite telhometro mpaint
@@ -360,7 +360,7 @@ uimenu('Parent',h,'Label','entry_vtr','Sep','on');
 
 uimenu('Parent',hTL,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command','Sep','on');
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Line Operations','Tag','lineOP');
-uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
+% uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
 % uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
 
 % --------------------------- DRAW MENU ------------------------------------
@@ -575,8 +575,8 @@ uimenu('Parent',h,'Callback','earthquakes(gcf,''external'');','Label','Epicenter
 uimenu('Parent',h,'Callback','focal_meca(gcf)','Label','Focal mechanisms');
 uimenu('Parent',hGP,'Call','meca_studio','Label','Focal Mechanisms demo');
 
-h = uimenu('Parent',hGP,'Label','Import *.gmt files(s)','Sep','on');
-uimenu('Parent',h,'Call','mirone(''GeophysicsImportGmtFile_CB'',guidata(gcbo),''single'')','Label','Single *.gmt file');
+h = uimenu('Parent',hGP,'Label','Import *.gmt/*.nc files(s)','Sep','on');
+uimenu('Parent',h,'Call','mirone(''GeophysicsImportGmtFile_CB'',guidata(gcbo),''single'')','Label','Single *.gmt/*.nc file');
 uimenu('Parent',h,'Call','mirone(''GeophysicsImportGmtFile_CB'',guidata(gcbo),''list'')','Label','List of files');
 
 % --------------------------- GRID TOOLS MENU ------------------------------------
@@ -657,9 +657,9 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 
 % --------------------------- HELP MENU ------------------------------------
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
-uimenu('Parent',h,'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
+uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 05 Mars 2009'',''1.4.1(dev)'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 26 Mars 2009'',''1.4.1(dev)'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
