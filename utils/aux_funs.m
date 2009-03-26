@@ -10,7 +10,7 @@ switch opt(1:4)
 	case 'msg_'		% 'msg_dlg'
 		varargout = msg_dlg(varargin{:});
 	case 'in_m'		% 'in_map_region'
-		[varargout{1} varargout{2} varargout{3} varargout{4}] = in_map_region(varargin{:});
+		[varargout{1:nargout}] = in_map_region(varargin{:});
 	case 'clea'		% 'cleanGRDappdata'
 		clean_GRDappdata(varargin{:})
 	case 'gues'		% 'guessGeog'
@@ -55,7 +55,7 @@ switch opt(1:4)
 	case 'getF'		% Get projection info (if it's there)
  		varargout{1} = getFigProjInfo(varargin{:});
 	case 'min_'		% 'min_max_single'
-		[varargout{1} varargout{2}] = min_max_single(varargin{:});
+		[varargout{1:nargout}] = min_max_single(varargin{:});
 	otherwise
 		if (nargout)
 			[varargout{1:nargout}] = ...
@@ -132,23 +132,32 @@ set(handles.figure1,'Colormap',pal)
 
 % ----------------------------------------------------------------------------------
 function out = findFileType(fname)
-    % From the extension guess what function should be called to open this file
+% From the extension guess what function should be called to open this file
 	out = [];	[PATH,FNAME,EXT] = fileparts(fname);
-	if ( any(strcmpi(EXT,{'.grd' '.nc'})) )
-        out = 'gmt';
+	if ( strcmpi(EXT,'.grd') )
+		out = 'gmt';
+	elseif ( strcmpi(EXT,'.nc') )		% .nc files can have grids, mgd77 files or any other thing
+		s = nc_funs('info',fname);
+		try
+			if ( any(strcmp({s.Dimension.Name}, 'id_dim')) ),	out = 'mgg_gmt';
+			else		out = 'gmt';
+			end
+		catch
+			out = 'dono';
+		end
 	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.xwd' '.shade' '.raw' '.bin'})) )
-        out = 'generic';
+		out = 'generic';
 	elseif ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.kap' '.nos'})) )
-        out = 'geotif';
+		out = 'geotif';
 	elseif ( any(strcmpi(EXT,{'.ecw' '.jp2'})) )	% This is a special case (they cause memory fragmentation)
-        out = 'ecw';
+		out = 'ecw';
 	elseif ( any(strcmpi(EXT,'.mat')) )
-        load(fname,'grd_name')
-        if (exist(grd_name))    % The mat file is a Session file
-            out = 'mat';
-        end
+		load(fname,'grd_name')
+		if (exist(grd_name))    % The mat file is a Session file
+			out = 'mat';
+		end
 	elseif ( any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17'})) )
-        out = 'multiband';
+		out = 'multiband';
 	elseif ( any(strcmpi(EXT,'.img')) )
 		nome = [PATH filesep FNAME '.lbl'];
 		if (exist(nome, 'file'))
@@ -411,13 +420,36 @@ function pixelx = axes2pix(dim, x, axesx)
 %   Copyright 1993-2002 The MathWorks, Inc.  
 %   $Revision: 5.12 $  $Date: 2002/03/15 15:57:01 $
 
-	if (max(size(dim)) ~= 1);   error('First argument must be a scalar.');  end
-	if (min(size(x)) > 1);      error('X must be a vector.');               end
+	if (max(size(dim)) ~= 1);   error('First argument must be a scalar.'),	end
+	if (min(size(x)) > 1);      error('X must be a vector.'),				end
 	xfirst = x(1);      xlast = x(max(size(x)));
-	if (dim == 1);      pixelx = axesx - xfirst + 1;    return;     end
+	if (dim == 1);      pixelx = axesx - xfirst + 1;	return,		end
 	xslope = (dim - 1) / (xlast - xfirst);
 	if ((xslope == 1) && (xfirst == 1));     pixelx = axesx;
-	else    pixelx = xslope * (axesx - xfirst) + 1;         end
+	else    pixelx = xslope * (axesx - xfirst) + 1;
+	end
+
+% --------------------------------------------------------------------------------
+function [track, x_min, x_max, y_min, y_max] = get_mgg(names, EXT, varargin)
+	if (strcmpi(EXT, '.gmt'))		% Old style .gmt files
+		track = gmtlist_m(names, varargin{:});
+	else							% mgd77 netCDF files
+		for (k = 1:numel(names))
+			track(k).longitude = double(nc_funs('varget', [names{k} EXT], 'lon'));
+			track(k).latitude  = double(nc_funs('varget', [names{k} EXT], 'lat'));
+			track(k).info = [names{k} EXT];
+		end
+	end
+
+	if (nargout == 5)
+		len_t = numel(track);  x_min = zeros(1,len_t); x_max = x_min;  y_min = x_min;  y_max = x_min;
+		for (k = 1:len_t)
+			x_min(k) = min(track(k).longitude);		x_max(k) = max(track(k).longitude);
+			y_min(k) = min(track(k).latitude);		y_max(k) = max(track(k).latitude);
+		end
+		x_min = min(x_min);		x_max = max(x_max);
+		y_min = min(y_min);		y_max = max(y_max);
+	end
 
 % --------------------------------------------------------------------------------
 function [latcells,loncells] = localPolysplit(lat,lon)
@@ -455,7 +487,7 @@ function [latcells,loncells] = localPolysplit(lat,lon)
 
 % --------------------------------------------------------------------------------
 function [xdata, ydata, zdata] = localRemoveExtraNanSeps(xdata, ydata, zdata)
-    %removeExtraNanSeps  Clean up NaN separators in polygons and lines
+%removeExtraNanSeps  Clean up NaN separators in polygons and lines
 
 	p = find(isnan(xdata(:)'));     % Determing the positions of each NaN.
 	
