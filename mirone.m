@@ -31,9 +31,9 @@ function varargout = mirone(varargin)
 % --------------------------------------------------------------------------------------------------
 function hObject = mirone_OpeningFcn(varargin)
 % PRAGMA SECTION (It's far far from clear when files must be declared here)
-%#function uigetfolder_standalone mapproject_m grdproject_m coordinate_system gmtmbgrid_m
+%#function uigetfolder_standalone mapproject_m grdproject_m coordinate_system gmtmbgrid_m gmtedit
 %#function nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m grdtrack_m grdtrend_m 
-%#function grdutils scaleto8 waitbar bpass3d inv3d rtp3d syn3d igrf_m
+%#function grdutils scaleto8 waitbar bpass3d inv3d rtp3d syn3d igrf_m surface_m
 %#function range_change swan tsun2 mansinha_m deform_mansinha deform_okada dim_funs
 %----- These are for image
 %#function grayto8 grayto16 grayxform imfilter_mex imhistc imlincombc parityscan intlutc ordf
@@ -51,7 +51,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line move_obj make_arrow
 %#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
-%#function mat2clip buffer_j PolygonClip trend1d_m
+%#function mat2clip buffer_j PolygonClip trend1d_m 
 
 % 	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
 	global home_dir;	fsep = filesep;
@@ -300,6 +300,8 @@ function hObject = mirone_OpeningFcn(varargin)
 	set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);		% For projections with GDAL
 	set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
 	set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
+	tmp.home_dir = home_dir;	tmp.work_dir = handles.work_dir;	tmp.last_dir = handles.last_dir;
+	setappdata(0,'MIRONE_DIRS',tmp);			% Save it so that we access it from other places where handles.home_dir is unknown
 
 % --------------------------------------------------------------------------------------------------
 function erro = gateLoadFile(handles,drv,fname)
@@ -317,6 +319,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'cpt',			color_palettes(fname);
 		case 'dat',			datasets_funs('Isochrons',handles,fname);
 		case 'shp',			DrawImportShape_CB(handles,fname);
+		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles,fname);
 		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);		% It means "I don't know"
 		otherwise			erro = 1;
 	end
@@ -761,11 +764,9 @@ function ImageSegment_CB(handles, hObject)
 
 % --------------------------------------------------------------------
 function PanZoom_CB(handles, hObject, opt)
-	if (handles.no_file),	set(hObject,'State','off'),		return,		end
-	
-	if (strcmp(get(handles.Tesoura,'State'),'on'))	% If Scisors were on
-		set(handles.Tesoura,'State','off')
-	end
+	if (handles.no_file),	set(hObject,'State','off'),		return,		end	
+	if (strcmp(get(handles.Tesoura,'State'),'on')),		set(handles.Tesoura,'State','off'),		end		% If Scisors were on
+
 	if (strcmp(opt,'zoom'))
 		if strcmp(get(hObject,'State'),'on')
 			zoom_j('on');
@@ -2390,7 +2391,7 @@ function DrawImportShape_CB(handles, fname)
 
 % --------------------------------------------------------------------
 function GeophysicsImportGmtFile_CB(handles, opt)
-	% Open a .gmt file OR a list of .gmt files
+% Open a .gmt/.nc(MGD77+) file OR a list of .gmt/.nc files
 	if (~handles.no_file && ~handles.geog),		aux_funs('msg_dlg',1,handles);		return,		end
 	if (strcmp(opt, 'list'))
 		str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
@@ -2399,60 +2400,61 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 		fid = fopen([PathName FileName]);
 		c = fread(fid,inf,'*char');		fclose(fid);
 		names = strread(c,'%s','delimiter','\n');	clear c fid;
-	else
-		[FileName,PathName] = put_or_get_file(handles,{'*.gmt;*.GMT', 'gmt files (*.gmt,*.GMT)'},'Select gmt File','get');
+	elseif (strcmp(opt, 'single'))
+		[FileName,PathName] = put_or_get_file(handles,{'*.gmt;*.GMT;*.nc;*.NC', 'gmt files (*.gmt,*.GMT,*.nc,*.NC)'},'Select gmt File','get');
 		if isequal(FileName,0),		return,		end
 		names = {[PathName FileName]};		% So that below the code is the same as for the list case
+	else
+		names = {opt};		% Filename sent in input
 	end
+
 	% Test if any file in the list does not exist
-	m = length(names);		nao = zeros(m,1);
-	for (k=1:m),	nao(k) = exist(names{k},'file');	end
+	m = numel(names);		nao = zeros(m,1);
+	for (k = 1:m),			nao(k) = exist(names{k},'file');	end
 	id = find(nao ~= 2);
 	if (~isempty(id))
-		msgbox(names(id(1:max(numel(id),20))),'FILES NOT FOUND');
+		msgbox(names(id(1:min(numel(id),25))),'FILES NOT FOUND');
 		names(id) = [];				% Remove them from the list
 		if (isempty(names)),	return,		end		% empty list
 	end
 	names_ui = names;				% For 'Tagging' lines purpose
-	for (k=1:length(names))			% Rip the .gmt extension
-		[PATH,FNAME] = fileparts(names{k});
+
+	for (k = 1:numel(names))		% Rip the .??? extension
+		[PATH, FNAME, EXT] = fileparts(names{k});
 		names{k} = FNAME;		names_ui{k} = FNAME;
-		if (~isempty(PATH))		% File names in the list have a path
+		if (~isempty(PATH))			% File names in the list have a path
 			names{k} = [PATH filesep names{k}];
-		else					% They do not have a path, but we need it. So prepend the list-file path
+		else						% They do not have a path, but we need it. So prepend the list-file path
 			names{k} = [PathName names{k}];
 		end
 	end
 
 	set(handles.figure1,'Pointer','watch');
-	if (handles.no_file)		% We don't have a BG map, so we have to create one
-		track = gmtlist_m(names{1:end},'-Fxy','-G');
-		len_t = length(track);  x_min = zeros(1,len_t); x_max = x_min;  y_min = x_min;  y_max = x_min;
-		for (k=1:length(track))
-			x_min(k) = min(track(k).longitude);		x_max(k) = max(track(k).longitude);
-			y_min(k) = min(track(k).latitude);		y_max(k) = max(track(k).latitude);
-		end
-		x_min = min(x_min);		x_max = max(x_max);
-		y_min = min(y_min);		y_max = max(y_max);
+	if (handles.no_file)			% We don't have a BG map, so we have to create one
+% 		[track, x_min, x_max, y_min, y_max] = aux_funs('get_mgg', names{1:end}, EXT, '-FxyM','-G');
+		[track, x_min, x_max, y_min, y_max] = aux_funs('get_mgg', names, EXT, '-FxyM','-G');
 		FileNewBgFrame_CB(handles, [x_min x_max y_min y_max 1]),		pause(0.05)
+		handles.no_file = 0;	guidata(handles.figure1, handles)
 	else
 		x_lim = get(handles.axes1,'XLim');		y_lim = get(handles.axes1,'YLim');
 		opt_R = sprintf('-R%.6f/%.6f/%.6f/%.6f', x_lim(1), x_lim(2), y_lim(1), y_lim(2));
-		track = gmtlist_m(names{1:end},'-Fxy','-G',opt_R);
+		%track = gmtlist_m(names{1:end},'-FxyM','-G',opt_R);
+		track = aux_funs('get_mgg', names, EXT, '-FxyM', '-G', opt_R);
 	end
 
 	% And finaly do the ploting
-	colors = rand(length(track),3);			% Use a random color schema
-	for (k=1:length(track))
-		id0 = (track(k).longitude == 0);	% I must change gmtlist to do this
-		track(k).longitude(id0) = [];		track(k).latitude(id0) = [];
+	colors = rand(numel(track),3);			% Use a random color schema
+	for (k = 1:numel(track))
 		if (isempty(track(k).longitude)),	continue,	end		% This track is completely outside the map
-		h = line(track(k).longitude,track(k).latitude,'Linewidth',handles.DefLineThick,'Color',...
+		h = line(track(k).longitude,track(k).latitude, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick,'Color',...
 			colors(k,:),'Tag',names_ui{k},'Userdata',1);
 		setappdata(h,'FullName',names{k})	% Store file name in case the uicontext wants to open it with gmtedit
 		draw_funs(h,'gmtfile',track(k).info)
 	end
 	set(handles.figure1,'Pointer','arrow');
+	if (~strcmp(opt, 'list'))				% Insert fileName into "Recent Files" & save handles
+		handles.fileName = [names{1} EXT];		recentFiles(handles);		
+	end
 
 % --------------------------------------------------------------------
 function DrawContours_CB(handles, opt)
