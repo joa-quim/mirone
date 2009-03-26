@@ -36,35 +36,46 @@ def_width_km = 200;         % Default width in km (approximatly 1/2 of a day at 
 opt_G = '-G';               % Default output to [-180/+180] range
 begin = 1;                  % This means that the display starts at the begining of track
 center_win = [];
+handles.is_gmt = false;
+handles.is_mgd77 = false;
 
 if (nargin > 0)
     f_name = varargin{1};
     [PATH,FNAME,EXT] = fileparts(f_name);
     if (isempty(EXT))       % Remember that here we need the extension
-        f_name = [f_name '.gmt'];
+		[fid, msg] = fopen([f_name '.nc'], 'r');
+		if (fid < 0)		% Ok, since it is not a .nc we'll assume it is a .gmt file
+			EXT = '.gmt';	f_name = [f_name EXT];
+		else				% Confirm that it's a netCDF file
+			ID = fread(fid,3,'*char');		ID = ID';		fclose(fid);
+			if (strcmp(ID,'CDF')),			EXT = '.nc';	f_name = [varargin{1} EXT];	end
+		end
     end
     if (exist(f_name,'file') == 2)
         got_inFile = 1;
         varargin(1) = [];
+		if (strcmpi(EXT,'.nc')),		handles.is_mgd77 = true;		handles.is_gmt = false;
+		else							handles.is_gmt = true;			handles.is_mgd77 = false;
+		end
     end
-    for (k=1:length(varargin))
+	for (k = 1:numel(varargin))
         switch (varargin{k}(1:2))
-            case '-L'
-                def_width_km = str2double(varargin{k}(3:end));
-                if (isnan(def_width_km))        % Nonsense use of -L option
-                    def_width_km = 200;
-                end
-            case '-G'
-                opt_G = ' ';
-            case '-P'
-                str = varargin{k}(3:end);
-                [tok,rem] = strtok(str,'/');
-                lon = str2double(tok);
-                lat = str2double(rem(2:end));
-                begin = 0;
-                center_win = [lon lat];
-        end
-    end
+			case '-L'
+				def_width_km = str2double(varargin{k}(3:end));
+				if (isnan(def_width_km))        % Nonsense use of -L option
+					def_width_km = 200;
+				end
+			case '-G'
+				opt_G = ' ';
+			case '-P'
+				str = varargin{k}(3:end);
+				[tok,rem] = strtok(str,'/');
+				lon = str2double(tok);
+				lat = str2double(rem(2:end));
+				begin = 0;
+				center_win = [lon lat];
+		end
+	end
 end
 
 sc_size = get(0,'ScreenSize');
@@ -106,16 +117,22 @@ h_a3 = axes('Parent',hf,'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km
 
 handles = guihandles(hf);
 handles.opt_G = opt_G;
-handles.home_dir = pwd;
 handles.info = [];
 handles.h_broken = [];
 handles.begin = begin;
 handles.center_win = center_win;
 
+MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
+if (~isempty(MIRONE_DIRS))							% Should not be empty, but ...
+	handles.home_dir = MIRONE_DIRS.home_dir;		% False info if not called from Mir root dir
+else
+	handles.home_dir = cd;
+end
+
 if (got_inFile)
 	handles.last_dir = PATH;
 else
-	handles.last_dir = handles.home_dir;    % This means, last_dir is not saved between sessions
+	handles.last_dir = handles.home_dir;			% This means, last_dir is not saved between sessions
 end
 handles.work_dir = handles.last_dir;
 
@@ -134,19 +151,18 @@ movegui(hf,'north')
 
 h_toolbar = uitoolbar('parent',hf,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
    'Interruptible','on','Tag','FigureToolBar','Visible','on');
-uipushtool('parent',h_toolbar,'Click',{@import_clickedcallback,f_name},'Tag','import',...
+uipushtool('parent',h_toolbar,'Click',{@import_clickedCB,f_name},'Tag','import',...
    'cdata',openFile_img,'Tooltip','Open gmt file');
-uipushtool('parent',h_toolbar,'Click',@save_clickedcallback,'Tag','save', 'cdata',saveFile_img,'Tooltip','Save gmt file');
+uipushtool('parent',h_toolbar,'Click',@save_clickedCB,'Tag','save', 'cdata',saveFile_img,'Tooltip','Save gmt file');
 % uitoggletool('parent',h_toolbar,'Click',@zoom_clickedcallback,'Tag','zoom',...
 %    'cdata',zoom_img,'TooltipString','Zoom');
-uipushtool('parent',h_toolbar,'Click',@info_clickedcallback,'Tag','info','cdata',info_ico, 'Tooltip','Cruise Info');
-uipushtool('parent',h_toolbar,'Click',@rectang_clickedcallback,'Tag','rectang','cdata',rectang_ico,...
+uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','cdata',info_ico, 'Tooltip','Cruise Info');
+uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang','cdata',rectang_ico,...
    'Tooltip','Rectangular region','Sep','on');
 uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedCB,'cdata',rectang_ico,'Tooltip','Select for moving');
 uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zoomIn_img,'Tooltip','Increase scale','Sep','on');
 uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'dec'}, 'cdata',zoomOut_img,'Tooltip','Decrease scale');
 uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',trincha_ico,'Tooltip','Outliers detector','Sep','on');
-
 
 % Create empty lines just for the purpose of having their handles
 handles.h_gl = line('XData',[],'YData',[],'Color','k','Parent',h_a1);
@@ -161,270 +177,318 @@ handles.h_tm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
 
 guidata(hf, handles);
 
-% Now that we have a figure and its handles, we can open the .gmt file if it was requested on input
-if (got_inFile)
-    import_clickedcallback(hf,[],f_name)
-end
+% Now that we have a figure and its handles, we can open the file if it was requested on input
+if (got_inFile),	import_clickedCB(hf,[],f_name),		end
 
 % Add or remove red Markers
-set(hf,'WindowButtonDownFcn',@add_MarkColor)
-
-set(hf,'Visible','on')
+set(hf,'WindowButtonDownFcn',@add_MarkColor,'Visible','on')
 
 % Choose default command line output for gmtedit
 if (nargout == 1),	out = hf;   end
 
 % --------------------------------------------------------------------
-function import_clickedcallback(hObject, eventdata, opt)
-handles = guidata(hObject);     % get handles
-if (isempty(opt))
-	[FileName,PathName] = put_or_get_file(handles,{'*.gmt;*.GMT', 'gmt files (*.gmt,*.GMT)'},'Select gmt File','get');
-	if isequal(FileName,0),		return,		end
-    f_name = [PathName FileName];
-else
-    f_name = opt;
-end
+function import_clickedCB(hObject, eventdata, opt)
+	handles = guidata(hObject);     % get handles
+	if (isempty(opt))
+		[FileName,PathName] = put_or_get_file(handles,{'*.gmt;*.GMT;*.nc', 'gmt files (*.gmt,*.GMT,*.nc)'},'Select gmt File','get');
+		if isequal(FileName,0),		return,		end
+		f_name = [PathName FileName];
+	else
+		f_name = opt;
+	end
 
-[PATH,FNAME,EXT] = fileparts(f_name);
-handles.f_name = [FNAME '.gmt'];
-f_name = [PATH filesep FNAME];          % Rip the .gmt extension (we can't have here)
-set(handles.figure1,'Name',['gmtedit  ' f_name])
+	[PATH,FNAME,EXT] = fileparts(f_name);
+	if (strcmpi(EXT,'.nc'))
+		handles.f_name = [PATH filesep FNAME '.nc'];		handles.is_mgd77 = true;		handles.is_gmt = false;
+		[handles, track] = read_mgd77_plus(handles, f_name);
+	else
+		handles.f_name = [FNAME '.gmt'];	handles.is_gmt = true;			handles.is_mgd77 = false;
+		track = gmtlist_m([PATH filesep FNAME], '-Fsxygmtd', handles.opt_G);
+	end
+	set(handles.figure1,'Name',['gmtedit  ' FNAME EXT])	
 
-set(handles.figure1,'Pointer','watch')
-track = gmtlist_m(f_name,'-Fsxygmtd',handles.opt_G);
-% Save those for use when saving into a new file
-handles.time = track.time;
-handles.lon = track.longitude;
-handles.lat = track.latitude;
-handles.year = track.year;
-handles.info = track.info;
-if (length(track.agency) ~= 10)         % Ensures that agency is exactly 10 chars
-    agency = '          ';              % 10 blanks
-    len = min(length(track.agency),10);
-    agency(1:len) = track.agency(1:len);
-    handles.agency = agency;
-else
-    handles.agency = track.agency;
-end
+	% Save those for use when saving into a new file
+	if (handles.is_gmt),	handles.time = track.time;		end
+	handles.lon = track.longitude;
+	handles.lat = track.latitude;
+	handles.year = track.year;
+	handles.info = track.info;
+	if (length(track.agency) ~= 10)         % Ensures that agency is exactly 10 chars
+		agency = '          ';              % 10 blanks
+		len = min(length(track.agency),10);
+		agency(1:len) = track.agency(1:len);
+		handles.agency = agency;
+	else
+		handles.agency = track.agency;
+	end
 
-% Search for de-activated (red marked) points handles - They may exist if another file was already loaded
-h_gn = findobj(handles.figure1,'Type','Line','tag','GravNull');
-h_mn = findobj(handles.figure1,'Type','Line','tag','MagNull');
-h_tn = findobj(handles.figure1,'Type','Line','tag','TopNull');
-if (~isempty(h_gn))     set(h_gn,'XData',[],'YData',[]);    end
-if (~isempty(h_mn))     set(h_mn,'XData',[],'YData',[]);    end
-if (~isempty(h_tn))     set(h_tn,'XData',[],'YData',[]);    end
+	% Search for de-activated (red marked) points handles - They may exist if another file was already loaded
+	h_gn = findobj(handles.figure1,'Type','Line','tag','GravNull');
+	h_mn = findobj(handles.figure1,'Type','Line','tag','MagNull');
+	h_tn = findobj(handles.figure1,'Type','Line','tag','TopNull');
+	if (~isempty(h_gn)),	set(h_gn,'XData',[],'YData',[]);	end
+	if (~isempty(h_mn)),	set(h_mn,'XData',[],'YData',[]);	end
+	if (~isempty(h_tn)),	set(h_tn,'XData',[],'YData',[]);	end
 
-% See if any "broken line" was left behind - They may exist if another file was already loaded and processed
-if (~isempty(handles.h_broken))         % If we have broken lines, delete them
-    for (k=1:length(handles.h_broken))
-        set(handles.h_broken(k),'Xdata',[],'YData',[])
-    end
-    rmfield(handles,'h_broken');
-    handles.h_broken = [];
-end
+	% See if any "broken line" was left behind - They may exist if another file was already loaded and processed
+	if (~isempty(handles.h_broken))         % If we have broken lines, delete them
+		for (k=1:length(handles.h_broken))
+			set(handles.h_broken(k),'Xdata',[],'YData',[])
+		end
+		rmfield(handles,'h_broken');
+		handles.h_broken = [];
+	end
 
-if (~all(isnan(track.gravity)))
-    set(handles.h_gm,'XData',track.distance,'YData',track.gravity, 'Tag','orig_grav')
-else
-    set(handles.h_gm,'XData',[],'YData',[])    
-end
-if (~all(isnan(track.magnetics)))
-    set(handles.h_mm,'XData',track.distance,'YData',track.magnetics, 'Tag','orig_mag')
-else
-    set(handles.h_mm,'XData',[],'YData',[])    
-end
-if (~all(isnan(track.topography)))
-    set(handles.h_tm,'XData',track.distance,'YData',track.topography, 'Tag','orig_topo')
-else
-    set(handles.h_tm,'XData',[],'YData',[])    
-end
+	if ( numel(track.gravity) > 1 && ~all(isnan(track.gravity)) )
+		set(handles.h_gm,'XData',track.distance,'YData',track.gravity, 'Tag','orig_grav')
+	else
+		set(handles.h_gm,'XData',[],'YData',[])    
+	end
+	if ( numel(track.magnetics) > 1 && ~all(isnan(track.magnetics)) )
+		set(handles.h_mm,'XData',track.distance,'YData',track.magnetics, 'Tag','orig_mag')
+	else
+		set(handles.h_mm,'XData',[],'YData',[])    
+	end
+	if ( numel(track.topography) > 1 && ~all(isnan(track.topography)) )
+		set(handles.h_tm,'XData',track.distance,'YData',track.topography, 'Tag','orig_topo')
+	else
+		set(handles.h_tm,'XData',[],'YData',[])    
+	end
 
-% Update the slider Max propertie
-hs = findobj(handles.figure1,'style','slider');
-handles.max_x_data = track.distance(end);
-max_s = handles.max_x_data-handles.def_width_km;
-if (max_s < 0)      % I already had one case like this. A very short track
-    max_s = handles.max_x_data;
-end
-val = track.distance(1);
-%set(hs,'Max',handles.max_x_data-handles.def_width_km,'value',track.distance(1))
+	% Update the slider Max propertie
+	hs = findobj(handles.figure1,'style','slider');
+	handles.max_x_data = track.distance(end);
+	max_s = handles.max_x_data - handles.def_width_km;
+	if (max_s < 0),		max_s = handles.max_x_data;		end			% I already had one case like this. A very short track
+	val = track.distance(1);
+	%set(hs,'Max',handles.max_x_data-handles.def_width_km,'value',track.distance(1))
 
-if (~handles.begin)         % Start the display at a user selected coordinate
-    x = handles.lon - handles.center_win(1);    [zz,id1] = min(abs(x));     clear x;
-    y = handles.lat - handles.center_win(2);    [zz,id2] = min(abs(y));     clear y;
-    % id1 and id2 are not forcedly equal. Find out the "best"
-    r1 = sqrt((handles.lon(id1) - handles.center_win(1))^2 + (handles.lat(id1) - handles.center_win(2))^2);
-    r2 = sqrt((handles.lon(id2) - handles.center_win(1))^2 + (handles.lat(id2) - handles.center_win(2))^2);
-    id = id1;
-    if (r1 ~= r2)
-        if (r2 < r1),	id = id2;	end
-    end
-    x_lim = track.distance(id) + [-handles.def_width_km/2 handles.def_width_km/2];
-    set(findall(handles.figure1,'Type','axes'),'xlim',x_lim)
-    val0 = track.distance(id)-handles.def_width_km;
-    if (val0 > track.distance(1))
-        val = val0;
-    end
-    %disp(['X_aqui = ' num2str(track.longitude(id)) '   Y_aqui = ' num2str(track.latitude(id))])
-end
+	if (~handles.begin)         % Start the display at a user selected coordinate
+		x = handles.lon - handles.center_win(1);    [zz,id1] = min(abs(x));     clear x;
+		y = handles.lat - handles.center_win(2);    [zz,id2] = min(abs(y));     clear y;
+		% id1 and id2 are not forcedly equal. Find out the "best"
+		r1 = sqrt((handles.lon(id1) - handles.center_win(1))^2 + (handles.lat(id1) - handles.center_win(2))^2);
+		r2 = sqrt((handles.lon(id2) - handles.center_win(1))^2 + (handles.lat(id2) - handles.center_win(2))^2);
+		id = id1;
+		if (r2 < r1),	id = id2;	end
+		x_lim = track.distance(id) + [-handles.def_width_km/2 handles.def_width_km/2];
+		set(findall(handles.figure1,'Type','axes'),'xlim',x_lim)
+		val0 = track.distance(id)-handles.def_width_km;
+		if (val0 > track.distance(1)),		val = val0;		end
+	end
 
-% Update the slider properties
-set(hs,'Max',max_s,'value',val)
-set(handles.figure1,'Pointer','arrow')
-guidata(handles.figure1,handles)
+	% Update the slider properties
+	set(hs,'Max',max_s,'value',val)
+	guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
-function save_clickedcallback(hObject, eventdata)
-handles = guidata(hObject);     % get handles
-NODATA = -32000;
-[FileName,PathName] = put_or_get_file(handles, handles.f_name,'Select gmt File', 'put','.gmt');
-if isequal(FileName,0),		return,		end
-f_name = [PathName FileName];
+function [handles, track] = read_mgd77_plus(handles, fname)
+	s = nc_funs('info',fname);
 
-% Search for de-activated points handles (the reds)
-h_gn = findobj(handles.figure1,'Type','Line','tag','GravNull');
-h_mn = findobj(handles.figure1,'Type','Line','tag','MagNull');
-h_tn = findobj(handles.figure1,'Type','Line','tag','TopNull');
+	% ------------------ OK, Get numerics now -----------------------------------
+	track.longitude = double(nc_funs('varget', fname, 'lon'));
+	track.latitude  = double(nc_funs('varget', fname, 'lat'));
+	track.magnetics = nc_funs('varget', fname, 'mtf1');
+	track.gravity = nc_funs('varget', fname, 'faa');
+	track.topography = nc_funs('varget', fname, 'depth');
+	
+	% Need to compute the acumulated distance along profile
+	D2R = pi / 180;		KMPRDEG = 111.1949;
+	co = cos(track.latitude * D2R);
+	dx = [0; diff(track.longitude)];		dy = [0; diff(track.latitude)] .* co;
+	track.distance = cumsum(sqrt(dx .^2 + dy .^2) * KMPRDEG);
 
-% And the corresponding red marker values values
-x_gn = get(h_gn,'XData');       y_gn = get(h_gn,'YData');
-x_mn = get(h_mn,'XData');       y_mn = get(h_mn,'YData');
-x_tn = get(h_tn,'XData');       y_tn = get(h_tn,'YData');
+	% -------------- Get the nodata-values ---------------------------------------
+	ind = strcmp({s.Dataset.Name}, 'mtf1');
+	id = strcmp({s.Dataset(ind).Attribute.Name}, 'missing_value');
+	handles.magNoValue = s.Dataset(ind).Attribute(id).Value;
+	id = strcmp({s.Dataset(ind).Attribute.Name}, 'scale_factor');
+	handles.magScaleF = s.Dataset(ind).Attribute(id).Value;
+	
+	ind = strcmp({s.Dataset.Name}, 'faa');
+	id = strcmp({s.Dataset(ind).Attribute.Name}, 'missing_value');
+	handles.gravNoValue = s.Dataset(ind).Attribute(id).Value;
+	id = strcmp({s.Dataset(ind).Attribute.Name}, 'scale_factor');
+	handles.gravScaleF = s.Dataset(ind).Attribute(id).Value;
+	
+	ind = strcmp({s.Dataset.Name}, 'depth');
+	id = strcmp({s.Dataset(ind).Attribute.Name}, 'missing_value');
+	handles.topoNoValue = s.Dataset(ind).Attribute(id).Value;
+	id = strcmp({s.Dataset(ind).Attribute.Name}, 'scale_factor');
+	handles.topoScaleF = s.Dataset(ind).Attribute(id).Value;
+	% -----------------------------------------------------------------------------
 
-% Get G,M,T values
-x_g = get(handles.h_gm,'XData');         y_g = get(handles.h_gm,'YData');
-x_m = get(handles.h_mm,'XData');         y_m = get(handles.h_mm,'YData');
-x_t = get(handles.h_tm,'XData');         y_t = get(handles.h_tm,'YData');
+	ind = strcmp({s.Attribute.Name}, 'File_Creation_Year');
+	track.year = str2double(s.Attribute(ind).Value);
+	ind = strcmp({s.Attribute.Name}, 'Source_Institution');
+	track.agency = s.Attribute(ind).Value;
+	track.info = 'Bla Bla';				% PRECISAMOS ACABAR AQUI
 
-if (~isempty(handles.h_broken))         % If we have broken lines we must join them
-    x_broken = [];    y_broken = [];
-    for (k=1:length(handles.h_broken))
-        x_broken = [x_broken get(handles.h_broken(k),'XData')];
-        y_broken = [y_broken get(handles.h_broken(k),'YData')];
-    end
-    [x_m,id] = sort([x_m x_broken]);
-    y_m = [y_m y_broken];
-    y_m = y_m(id);                      % Otherwise the y's would be out of order
-end
+% --------------------------------------------------------------------
+function save_clickedCB(hObject, eventdata)
+	handles = guidata(hObject);     % get handles
+	if (handles.is_gmt)
+		NODATA(1:3) = -32000;
+		[FileName,PathName] = put_or_get_file(handles, handles.f_name,'Select gmt File', 'put','.gmt');
+		if isequal(FileName,0),		return,		end
+		f_name = [PathName FileName];
+	else
+		NODATA(1) = handles.gravNoValue;	NODATA(2) = handles.magNoValue;		NODATA(3) = handles.topoNoValue;
+		f_name = handles.f_name;	% Since we only update, there is no choice here.
+	end
 
-set(handles.figure1,'Pointer','watch')
-x_lim = get(get(handles.figure1,'CurrentAxes'),'XLim');
-if (~isempty(x_gn))
-    id_x = zeros(numel(x_gn),1);
-    for (k=1:numel(x_gn))
-        tmp = find((x_g - x_gn(k)) == 0);   % Find the gravity points that were marked
-        id_x(k) = tmp(1);				% Old files often have repeated coords
-    end
-    y_g(id_x) = NODATA;					% Remove them
-end
-if (~isempty(x_mn))
-    id_x = zeros(numel(x_mn),1);
-    for (k=1:numel(x_mn))
-        tmp = find((x_m - x_mn(k)) == 0);   % Find the magnetic points that were marked
-        id_x(k) = tmp(1);				% Old files often have repeated coords
-    end
-    y_m(id_x) = NODATA;					% Remove them
-end
-if (~isempty(x_tn))
-    id_x = zeros(numel(x_tn),1);
-    for (k=1:numel(x_tn))
-        tmp = find((x_t - x_tn(k)) == 0);   % Find the topo points that were marked
-        id_x(k) = tmp(1);				% Old files often have repeated coords
-    end
-    y_t(id_x) = NODATA;					% Remove them
-end
+	% Search for de-activated points handles (the reds)
+	h_gn = findobj(handles.figure1,'Type','Line','tag','GravNull');
+	h_mn = findobj(handles.figure1,'Type','Line','tag','MagNull');
+	h_tn = findobj(handles.figure1,'Type','Line','tag','TopNull');
 
-n_rec = length(handles.lon);
-if (isempty(y_g))						% Original file had no gravity data
-    y_g = repmat(int16(NODATA),1,n_rec);
-else									% Replace eventual NaNs with NODATA
-    y_g(isnan(y_g*10)) = NODATA;		% But before convert to GU units
-    y_g = int16(y_g);
-end
-if (isempty(y_m))                       % Original file had no magnetic data
-    y_m = repmat(int16(NODATA),1,n_rec);
-else                                    % Replace eventual NaNs with NODATA
-    y_m(isnan(y_m)) = NODATA;
-    y_m = int16(y_m);
-end
-if (isempty(y_t))                       % Original file had no topography data
-    y_t = repmat(int16(NODATA),1,n_rec);
-else                                    % Replace eventual NaNs with NODATA
-    y_t(isnan(y_t)) = NODATA;
-    y_t = int16(y_t);
-end
+	% And the corresponding red marker values values
+	x_gn = get(h_gn,'XData');			y_gn = get(h_gn,'YData');
+	x_mn = get(h_mn,'XData');			y_mn = get(h_mn,'YData');
+	x_tn = get(h_tn,'XData');			y_tn = get(h_tn,'YData');
 
-tempo = int32(handles.time);
-lat  = int32(handles.lat * 1e6);    % And convert back to millidegrees
-lon  = int32(handles.lon * 1e6);
+	% Get G,M,T values
+	x_g = get(handles.h_gm,'XData');	y_g = get(handles.h_gm,'YData');
+	x_m = get(handles.h_mm,'XData');	y_m = get(handles.h_mm,'YData');
+	x_t = get(handles.h_tm,'XData');	y_t = get(handles.h_tm,'YData');
 
-fid = fopen(f_name,'wb');
-fwrite(fid,[int32(handles.year) n_rec],'int32');
-fwrite(fid,handles.agency,'schar');
-% This is STUPIDLY slow but I didn't find any other way to do it.
-for (k=1:n_rec)
-    fwrite(fid,[tempo(k) lat(k) lon(k)],'int32');
-    fwrite(fid,[y_g(k) y_m(k) y_t(k)],'int16');
-end
-fclose(fid);
+	if (~isempty(handles.h_broken))         % If we have broken lines we must join them
+		x_broken = [];    y_broken = [];
+		for (k=1:length(handles.h_broken))
+			x_broken = [x_broken get(handles.h_broken(k),'XData')];
+			y_broken = [y_broken get(handles.h_broken(k),'YData')];
+		end
+		[x_m,id] = sort([x_m x_broken]);
+		y_m = [y_m y_broken];
+		y_m = y_m(id);                      % Otherwise the y's would be out of order
+	end
 
-set(handles.figure1,'Pointer','arrow')
+	set(handles.figure1,'Pointer','watch')
+	x_lim = get(get(handles.figure1,'CurrentAxes'),'XLim');
+	if (~isempty(x_gn))
+		id_x = zeros(numel(x_gn),1);
+		for (k=1:numel(x_gn))
+			tmp = find((x_g - x_gn(k)) == 0);   % Find the gravity points that were marked
+			id_x(k) = tmp(1);				% Old files often have repeated coords
+		end
+		y_g(id_x) = NODATA(1);				% Remove them
+	end
+	if (~isempty(x_mn))
+		id_x = zeros(numel(x_mn),1);
+		for (k=1:numel(x_mn))
+			tmp = find((x_m - x_mn(k)) == 0);   % Find the magnetic points that were marked
+			id_x(k) = tmp(1);				% Old files often have repeated coords
+		end
+		y_m(id_x) = NODATA(2);					% Remove them
+	end
+	if (~isempty(x_tn))
+		id_x = zeros(numel(x_tn),1);
+		for (k=1:numel(x_tn))
+			tmp = find((x_t - x_tn(k)) == 0);   % Find the topo points that were marked
+			id_x(k) = tmp(1);				% Old files often have repeated coords
+		end
+		y_t(id_x) = NODATA(3);					% Remove them
+	end
+
+	n_rec = numel(handles.lon);
+	if (handles.is_gmt && (isempty(y_gn) || isempty(y_mn) || isempty(y_tn)) )
+		if (isempty(y_g)),		y_g = repmat(int16(NODATA(1)),1,n_rec);		end		% Original had not this type of data
+		if (isempty(y_m)),		y_m = repmat(int16(NODATA(1)),1,n_rec);		end
+		if (isempty(y_t)),		y_t = repmat(int16(NODATA(1)),1,n_rec);		end
+	end
+
+	if (~isempty(y_g))
+		if (handles.is_gmt),	y_g(isnan(y_g*10)) = NODATA(1);		y_g = int16(y_g);
+		elseif (~isempty(x_gn))	y_g = y_g / handles.gravScaleF;		y_g(isnan(y_g)) = NODATA(1);	y_g = int16(y_g);
+		end
+	end
+	if (~isempty(y_m))
+		if (handles.is_gmt),	y_m(isnan(y_m)) = NODATA(2);		y_m = int16(y_m);
+		elseif (~isempty(x_mn))	y_m = y_m / handles.magScaleF;		y_m(isnan(y_m)) = NODATA(2);	y_m = int32(y_m);
+		end
+	end
+	if (~isempty(y_t))
+		if (handles.is_gmt),	y_t(isnan(y_t)) = NODATA(3);		y_t = int16(y_t);
+		elseif (~isempty(x_tn))	y_t = y_t / handles.topoScaleF;		y_t(isnan(y_t)) = NODATA(3);	y_t = int32(y_t);
+		end
+	end
+
+	if (handles.is_gmt)			% Old style .gmt files
+		tempo = int32(handles.time);
+		lat  = int32(handles.lat * 1e6);    % And convert back to millidegrees
+		lon  = int32(handles.lon * 1e6);
+
+		fid = fopen(f_name,'wb');
+		fwrite(fid,[int32(handles.year) n_rec],'int32');
+		fwrite(fid,handles.agency,'schar');
+		% This is STUPIDLY slow but I didn't find any other way to do it.
+		for (k=1:n_rec)
+			fwrite(fid,[tempo(k) lat(k) lon(k)],'int32');
+			fwrite(fid,[y_g(k) y_m(k) y_t(k)],'int16');
+		end
+		fclose(fid);
+	else						% New mgf77+ netCDF style files
+		if (~isempty(y_gn)),		nc_funs('varput', f_name, 'faa', y_g, 0);		end
+		if (~isempty(y_mn)),		nc_funs('varput', f_name, 'mtf1', y_m, 0);		end
+		if (~isempty(y_tn)),		nc_funs('varput', f_name, 'depth', y_t, 0);		end
+	end
+
+	set(handles.figure1,'Pointer','arrow')
 
 % --------------------------------------------------------------------
 function add_MarkColor(hObject, eventdata)
 % Add a red Marker over the closest (well, near closest) clicked point.
-handles = guidata(hObject);     % get handles
+	handles = guidata(hObject);     % get handles
 
-button = get(handles.figure1, 'SelectionType');
-if (~strcmp(button,'normal')),		return,		end		% Accept only left-clicks
+	button = get(handles.figure1, 'SelectionType');
+	if (~strcmp(button,'normal')),		return,		end		% Accept only left-clicks
 
-in_grav = 0;    in_mag = 0;     in_topo = 0;
-ax = get(handles.figure1,'CurrentAxes');
-pt = get(ax, 'CurrentPoint');
-if (strcmp(get(ax,'Tag'),'axes1'))
-    in_grav = 1;        opt = 'GravNull';
-elseif (strcmp(get(ax,'Tag'),'axes2'))
-    in_mag = 1;         opt = 'MagNull';
-elseif (strcmp(get(ax,'Tag'),'axes3'))
-    in_topo = 1;        opt = 'TopNull';
-end
-if ((in_grav + in_mag + in_topo) == 0),		return,		end		% Click was outside axes
+	in_grav = 0;    in_mag = 0;     in_topo = 0;
+	ax = get(handles.figure1,'CurrentAxes');
+	pt = get(ax, 'CurrentPoint');
+	if (strcmp(get(ax,'Tag'),'axes1'))
+		in_grav = 1;        opt = 'GravNull';
+	elseif (strcmp(get(ax,'Tag'),'axes2'))
+		in_mag = 1;         opt = 'MagNull';
+	elseif (strcmp(get(ax,'Tag'),'axes3'))
+		in_topo = 1;        opt = 'TopNull';
+	end
+	if ((in_grav + in_mag + in_topo) == 0),		return,		end		% Click was outside axes
 
-if (in_grav)
-    hM = findobj(handles.figure1,'Type','Line','tag','GravNull');
-    x = get(handles.h_gm,'XData');      y = get(handles.h_gm,'YData');
-elseif (in_mag)
-    hM = findobj(handles.figure1,'Type','Line','tag','MagNull');
-    x = get(handles.h_mm,'XData');      y = get(handles.h_mm,'YData');
-else
-    hM = findobj(handles.figure1,'Type','Line','tag','TopNull');
-    x = get(handles.h_tm,'XData');      y = get(handles.h_tm,'YData');
-end
+	if (in_grav)
+		hM = findobj(handles.figure1,'Type','Line','tag','GravNull');
+		x = get(handles.h_gm,'XData');      y = get(handles.h_gm,'YData');
+	elseif (in_mag)
+		hM = findobj(handles.figure1,'Type','Line','tag','MagNull');
+		x = get(handles.h_mm,'XData');      y = get(handles.h_mm,'YData');
+	else
+		hM = findobj(handles.figure1,'Type','Line','tag','TopNull');
+		x = get(handles.h_tm,'XData');      y = get(handles.h_tm,'YData');
+	end
 
-x_lim = get(ax,'XLim');					y_lim = get(ax,'YLim');
-dx = diff(x_lim) / 20;					% Search only betweem +/- 1/10 of x_lim
-id = (x < (pt(1,1)-dx) | x > (pt(1,1)+dx));
-x(id) = [];					y(id) = [];	% Clear outside-2*dx points to speed up the search code
-XScale = diff(x_lim);		YScale = diff(y_lim)*6;		% The 6 factor compensates the ~6:1 horizontal/vertical axes dimension
+	x_lim = get(ax,'XLim');					y_lim = get(ax,'YLim');
+	dx = diff(x_lim) / 20;					% Search only betweem +/- 1/10 of x_lim
+	id = (x < (pt(1,1)-dx) | x > (pt(1,1)+dx));
+	x(id) = [];					y(id) = [];	% Clear outside-2*dx points to speed up the search code
+	XScale = diff(x_lim);		YScale = diff(y_lim)*6;		% The 6 factor compensates the ~6:1 horizontal/vertical axes dimension
 
-r = sqrt(((pt(1,1)-x)./XScale).^2+((pt(1,2)-y)./YScale).^2);
-[temp,i] = min(r);
-pt_x = x(i);				pt_y = y(i);
+	r = sqrt(((pt(1,1)-x)./XScale).^2+((pt(1,2)-y)./YScale).^2);
+	[temp,i] = min(r);
+	pt_x = x(i);				pt_y = y(i);
 
-xr = get(hM,'XData');		yr = get(hM,'YData');		% Red markers
-id = find(xr == pt_x);
-if (isempty(id))			% New Marker
-    if (isempty(hM))		% First red Marker on this axes
-        line(pt_x,pt_y,'Marker','s','MarkerFaceColor','r','MarkerSize',4,'LineStyle','none','Tag',opt);
-    else
-        xr = [xr pt_x];		yr = [yr pt_y];
-        set(hM,'XData',xr, 'YData', yr)
-    end
-else						% Marker already exists. Kill it
-    xr(id) = [];			yr(id) = [];
-    set(hM,'XData',xr, 'YData', yr)
-end
+	xr = get(hM,'XData');		yr = get(hM,'YData');		% Red markers
+	id = find(xr == pt_x);
+	if (isempty(id))			% New Marker
+		if (isempty(hM))		% First red Marker on this axes
+			line(pt_x,pt_y,'Marker','s','MarkerFaceColor','r','MarkerSize',4,'LineStyle','none','Tag',opt);
+		else
+			xr = [xr pt_x];		yr = [yr pt_y];
+			set(hM,'XData',xr, 'YData', yr)
+		end
+	else						% Marker already exists. Kill it
+		xr(id) = [];			yr(id) = [];
+		set(hM,'XData',xr, 'YData', yr)
+	end
 
 % --------------------------------------------------------------------------------------------------
 function zoom_clickedcallback(obj,eventdata)
@@ -435,7 +499,7 @@ function zoom_clickedcallback(obj,eventdata)
 	end
 
 % --------------------------------------------------------------------------------------------------
-function info_clickedcallback(obj,eventdata)
+function info_clickedCB(obj,eventdata)
 	handles = guidata(obj);     % get handles
 	if (isempty(handles.info)),		return,		end
 	data = handles.info;
@@ -447,7 +511,7 @@ function info_clickedcallback(obj,eventdata)
 	msgbox(str,'Cruise Info')
 
 % --------------------------------------------------------------------------------------------------
-function rectang_clickedcallback(obj,eventdata)
+function rectang_clickedCB(obj,eventdata)
 handles = guidata(obj);     % get handles
 try
 	[p1,p2] = rubberbandbox;
