@@ -590,6 +590,7 @@ utils/getline_j.m -text
 utils/getline_mb.m -text
 utils/getnormals.m -text
 utils/ginput_pointer.m -text
+utils/gmt2mgd77_plus.m -text
 utils/gradient_geo.m -text
 utils/grayto16.dll -text
 utils/grayto8.dll -text
