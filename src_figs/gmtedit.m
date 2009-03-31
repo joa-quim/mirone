@@ -164,27 +164,31 @@ uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zo
 uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'dec'}, 'cdata',zoomOut_img,'Tooltip','Decrease scale');
 uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',trincha_ico,'Tooltip','Outliers detector','Sep','on');
 
-% Create empty lines just for the purpose of having their handles
-handles.h_gl = line('XData',[],'YData',[],'Color','k','Parent',h_a1);
-handles.h_gm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
-    'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',h_a1);
-handles.h_ml = line('XData',[],'YData',[],'Color','k','Parent',h_a2);
-handles.h_mm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
-    'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',h_a2);
-handles.h_tl = line('XData',[],'YData',[],'Color','k','Parent',h_a3);
-handles.h_tm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
-    'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',h_a3);
+	% Create empty lines just for the purpose of having their handles
+	handles.h_gl = line('XData',[],'YData',[],'Color','k','Parent',h_a1);
+	handles.h_gm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
+		'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',h_a1);
+	handles.h_ml = line('XData',[],'YData',[],'Color','k','Parent',h_a2);
+	handles.h_mm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
+		'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',h_a2);
+	handles.h_tl = line('XData',[],'YData',[],'Color','k','Parent',h_a3);
+	handles.h_tm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
+		'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',h_a3);
 
-guidata(hf, handles);
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	set([h_a1 h_a2 h_a3], 'UIContextMenu', cmenuHand);
+	uimenu(cmenuHand, 'Label', 'Overly interpolation', 'Call',@interp_on_grid);
 
-% Now that we have a figure and its handles, we can open the file if it was requested on input
-if (got_inFile),	import_clickedCB(hf,[],f_name),		end
+	guidata(hf, handles);
 
-% Add or remove red Markers
-set(hf,'WindowButtonDownFcn',@add_MarkColor,'Visible','on')
+	% Now that we have a figure and its handles, we can open the file if it was requested on input
+	if (got_inFile),	import_clickedCB(hf,[],f_name),		end
 
-% Choose default command line output for gmtedit
-if (nargout == 1),	out = hf;   end
+	% Add or remove red Markers
+	set(hf,'WindowButtonDownFcn',@add_MarkColor,'Visible','on')
+
+	% Choose default command line output for gmtedit
+	if (nargout == 1),	out = hf;   end
 
 % --------------------------------------------------------------------
 function import_clickedCB(hObject, eventdata, opt)
@@ -278,8 +282,15 @@ function import_clickedCB(hObject, eventdata, opt)
 	end
 
 	% Update the slider properties
-	set(hs,'Max',max_s,'value',val)
+	r = 0.90 * handles.def_width_km / handles.max_x_data;		% Give a 10% overlap between display area when click on slider arrow
+	set(hs,'Max',max_s,'value',val,'SliderStep',[r r*10])
 	guidata(handles.figure1,handles)
+
+% --------------------------------------------------------------------
+function interp_on_grid(obj, event)
+	handles = guidata(obj);
+	hAx = get(handles.figure1, 'CurrentAxes');		% Find which axes are we working on
+	gmtedit_track(handles.lon, handles.lat, handles.year, hAx, handles.h_tm)
 
 % --------------------------------------------------------------------
 function [handles, track] = read_mgd77_plus(handles, fname)
@@ -318,10 +329,21 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 	handles.topoScaleF = s.Dataset(ind).Attribute(id).Value;
 	% -----------------------------------------------------------------------------
 
-	ind = strcmp({s.Attribute.Name}, 'File_Creation_Year');
-	track.year = str2double(s.Attribute(ind).Value);
-	ind = strcmp({s.Attribute.Name}, 'Source_Institution');
-	track.agency = s.Attribute(ind).Value;
+	ind = strcmp({s.Attribute.Name}, 'Survey_Departure_Year');
+	if (~any(ind))
+		ind = strcmp({s.Attribute.Name}, 'Survey_Departure_Year_REVISED');
+		track.year = str2double(s.Attribute(ind).Value);
+		ind = strcmp({s.Attribute.Name}, 'Survey_Departure_Month_REVISED');
+		track.month = str2double(s.Attribute(ind).Value);
+		ind = strcmp({s.Attribute.Name}, 'Source_Institution_REVISED');
+		track.agency = s.Attribute(ind).Value;
+	else
+		track.year = str2double(s.Attribute(ind).Value);
+		ind = strcmp({s.Attribute.Name}, 'Survey_Departure_Month');
+		track.month = str2double(s.Attribute(ind).Value);
+		ind = strcmp({s.Attribute.Name}, 'Source_Institution');
+		track.agency = s.Attribute(ind).Value;
+	end
 	track.info = 'Bla Bla';				% PRECISAMOS ACABAR AQUI
 
 % --------------------------------------------------------------------
@@ -374,12 +396,10 @@ function save_clickedCB(hObject, eventdata)
 		y_g(id_x) = NODATA(1);				% Remove them
 	end
 	if (~isempty(x_mn))
-		id_x = zeros(numel(x_mn),1);
 		for (k=1:numel(x_mn))
 			tmp = find((x_m - x_mn(k)) == 0);   % Find the magnetic points that were marked
-			id_x(k) = tmp(1);				% Old files often have repeated coords
+			y_m(tmp) = NODATA(2);				% Remove them
 		end
-		y_m(id_x) = NODATA(2);					% Remove them
 	end
 	if (~isempty(x_tn))
 		id_x = zeros(numel(x_tn),1);
@@ -468,6 +488,7 @@ function add_MarkColor(hObject, eventdata)
 
 	x_lim = get(ax,'XLim');					y_lim = get(ax,'YLim');
 	dx = diff(x_lim) / 20;					% Search only betweem +/- 1/10 of x_lim
+	dx = max(dx, 10);
 	id = (x < (pt(1,1)-dx) | x > (pt(1,1)+dx));
 	x(id) = [];					y(id) = [];	% Clear outside-2*dx points to speed up the search code
 	XScale = diff(x_lim);		YScale = diff(y_lim)*6;		% The 6 factor compensates the ~6:1 horizontal/vertical axes dimension
@@ -648,6 +669,10 @@ S=['set(findall(gcf,''Type'',''axes''),''xlim'',get(gcbo,''value'')+[0 ' num2str
 % Creating Uicontrol with initial value of the minimum of x
 uicontrol('style','slider','units','pixels','position',Newpos, ...
     'callback',S,'min',x(1),'max',x(end)-width,'value',x(1));
+
+% % --------------------------------------------------------------------------
+% function sliderCB(obj,event,width)
+% 	set(findall(gcf,'Type','axes'),'xlim',get(gcbo,'value')+[0 width]);
 
 % --------------------------------------------------------------------------
 function varargout = outliersdetect(varargin)
@@ -886,5 +911,121 @@ uicontrol('Parent',h1, 'Position',[147 0 50 21],...
 'Tag','push_clear');
 
 function outliersdetect_CB(hObject, eventdata, h1, callback_name)
+% This function is executed by the callback and than the handles is allways updated.
+feval(callback_name,hObject,[],guidata(h1));
+
+% -------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------
+function gmtedit_track(varargin)
+% M-File changed by desGUIDE 
+ 
+	hObject = figure('Tag','figure1','Visible','off');
+	gmtedit_track_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+ 
+	handles.lon = varargin{1};
+	handles.lat = varargin{2};
+	handles.year = varargin{3};
+	handles.hCallingAxes = varargin{4};
+	handles.h_tm = varargin{5};		% Handle of the Topography line
+
+	handles.fileName = [];
+
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+
+% ----------------------------------------------------------------------------
+function edit_gridToInterp_Callback(hObject, eventdata, handles)
+	fname = get(hObject,'String');
+	if isempty(fname),		return,		end
+	% Let the push_gridToInterp_Callback do all the work
+	push_gridToInterp_Callback(handles.push_gridToInterp, [], handles, fname)
+
+% ----------------------------------------------------------------------------
+function push_gridToInterp_Callback(hObject, eventdata, handles, opt)
+	if (nargin == 3),		opt = [];		end
+	if (nargin == 4),		fname = opt;	end
+
+	if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.grd;*.GRD', 'Grid files (*.grd,*.GRD,*.nc)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
+		if isequal(FileName,0),		return,		end
+		fname = [PathName FileName];
+		set(handles.fname,'String',fname)
+	end
+
+	handles.fname = fname;
+	guidata(handles.figure1, handles)
+
+% ----------------------------------------------------------------------------
+function zz = push_OK_Callback(hObject, eventdata, handles)
+% Read the grid and interpolate this track
+	if (isempty(handles.fname)),	return,		end
+	if (~exist(handles.fname,'file'))
+		errordlg('The grid name provided does not exist.','Error'),		return
+	end
+
+	[handles, X, Y, Z, head] = read_gmt_type_grids(handles,handles.fname);
+	if (isempty(X)),		zz = [];	return,		end
+	zz = grdtrack_m(Z,head,[handles.lon handles.lat],'-Z');
+
+	if (get(handles.check_addIGRF, 'Val'))
+		out = igrf_m(handles.lon, handles.lat, 0, handles.year + 0.5, '-Ft');	% Date doesn't need to be very accurate here
+		zz = zz + out;
+	end
+
+	x_t = get(handles.h_tm,'XData');
+	line('XData',x_t,'YData',zz,'Color','b','Parent',handles.hCallingAxes, 'LineWidth', 2, 'HitTest', 'off');
+	delete(handles.figure1)
+
+% ----------------------------------------------------------------------------
+% --- Creates and returns a handle to the GUI figure. 
+function gmtedit_track_LayoutFcn(h1)
+
+set(h1, 'Position',[520 491 351 80],...
+'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'MenuBar','none',...
+'Name','Track from grid',...
+'NumberTitle','off',...
+'Resize','off',...
+'HandleVisibility','callback',...
+'Tag','figure1');
+
+uicontrol('Parent',h1, 'Position',[9 39 311 21],...
+'BackgroundColor',[1 1 1],...
+'Callback',{@gmtedit_track_uicallback,h1,'edit_gridToInterp_Callback'},...
+'HorizontalAlignment','left',...
+'Style','edit',...
+'TooltipString','Name (full name) of grid to sample along track coords',...
+'Tag','edit_gridToInterp');
+
+uicontrol('Parent',h1, 'Position',[319 38 23 23],...
+'Callback',{@gmtedit_track_uicallback,h1,'push_gridToInterp_Callback'},...
+'FontSize',12,...
+'FontWeight','bold',...
+'String','...',...
+'Tag','push_gridToInterp');
+
+uicontrol('Parent',h1, 'Position',[10 15 70 15],...
+'FontName','Helvetica',...
+'String','Add IGRF',...
+'Style','checkbox',...
+'TooltipString','For magnetic anomalies only, add an IGRF to interpolation',...
+'Tag','check_addIGRF');
+
+uicontrol('Parent',h1, 'Position',[276 9 66 23],...
+'Callback',{@gmtedit_track_uicallback,h1,'push_OK_Callback'},...
+'FontName','Helvetica',...
+'FontSize',9,...
+'String','OK',...
+'Tag','push_OK');
+
+uicontrol('Parent',h1, 'Position',[10 62 180 16],...
+'FontName','Helvetica',...
+'HorizontalAlignment','left',...
+'String','Grid to sample along track coords',...
+'Style','text');
+
+function gmtedit_track_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
 feval(callback_name,hObject,[],guidata(h1));
