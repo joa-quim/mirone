@@ -670,10 +670,6 @@ S=['set(findall(gcf,''Type'',''axes''),''xlim'',get(gcbo,''value'')+[0 ' num2str
 uicontrol('style','slider','units','pixels','position',Newpos, ...
     'callback',S,'min',x(1),'max',x(end)-width,'value',x(1));
 
-% % --------------------------------------------------------------------------
-% function sliderCB(obj,event,width)
-% 	set(findall(gcf,'Type','axes'),'xlim',get(gcbo,'value')+[0 width]);
-
 % --------------------------------------------------------------------------
 function varargout = outliersdetect(varargin)
 % Do automatic outliers detection by comparison with spline sooth version data
@@ -974,8 +970,15 @@ function zz = push_OK_Callback(hObject, eventdata, handles)
 		zz = zz + out;
 	end
 
-	x_t = get(handles.h_tm,'XData');
-	line('XData',x_t,'YData',zz,'Color','b','Parent',handles.hCallingAxes, 'LineWidth', 2, 'HitTest', 'off');
+	if (strcmp(get(handles.hCallingAxes,'Tag'), 'axes1'))
+		h = findobj('Type','line','Tag','orig_grav');
+	elseif (strcmp(get(handles.hCallingAxes,'Tag'), 'axes2'))
+		h = findobj('Type','line','Tag','orig_mag');
+	else
+		h = findobj('Type','line','Tag','orig_topo');
+	end
+	x = get(h,'XData');
+	line('XData',x,'YData',zz,'Color','b','Parent',handles.hCallingAxes, 'LineWidth', 2, 'HitTest', 'off');
 	delete(handles.figure1)
 
 % ----------------------------------------------------------------------------
