@@ -6,24 +6,37 @@ function make_mexs(opt)
 %  Author:	Joaquim Luis (based on make_mexcdf53)
 %  Date:	29-April-2005
 
-if (nargin == 0)	opt = 'usage';	end
+if (nargin == 0)	opt = 'usage';	end			% Quite poor message though
 
-% Adjust for your own path
-patoINC_GMT = 'c:\progs_cygw\GMTdev\GMT\';				% Include path for GMT
-patoLIB_GMT = 'c:\progs_cygw\GMTdev\GMT_win\libMEX\';	% Lib path for GMT - Libs compiled with 'MEX condition'
+% ------------- Adjust for your own path -----------------------------------------------
+
+% Include path for GMT. Directory where the several *.h GMT files reside 
+patoINC_GMT = 'c:\progs_cygw\GMTdev\GMT\';
+
+% Lib path for GMT - Libs compiled with 'MEX condition'. Must contain the GMT *.lib library files
+patoLIB_GMT = 'c:\progs_cygw\GMTdev\GMT_win\libMEX\';
 %patoLIB_GMT = 'c:\progs_interix\GMTdev\GMT_win\lib\';	% Lib path for GMT
-pato_NETCDF = 'c:\progs_interix\netcdf-3.6.2b5_win\';	% path for NETCDF
-pato_GDAL = 'c:\programs\GDALtrunk\gdal\';				% path for GDAL
-pato_OCV = 'C:\programs\OpenCV\';						% path for OpenCV
-pato_SHAPELIB = 'c:\lixo\shapelib\';					% path for shapelib
-pato_VC98LIB = 'C:\programs\VisualStudio\VC98\Lib\';	% path for MSVC library dir
 
-if (ispc)
-	COPT = '-DWIN32 -O';
-else
-	COPT = '-O';
-end
+% path for NETCDF bae dir. Sub-directories 'lib' and 'include' must exist with, respectively, libnetcdf.lib and header files
+% I use ftp://ftp.unidata.ucar.edu/pub/netcdf/contrib/win32/netcdf-3.6.2-beta5_pgi_w32bin.zip
+pato_NETCDF = 'c:\progs_interix\netcdf-3.6.2b5_win\';
+
+% path for GDAL. Sub-directories 'lib' and 'include' must exist with, respectively, the gdal_i.lib and header files
+pato_GDAL = 'c:\programs\GDALtrunk\gdal\';
+
+% path for OpenCV. Base directory where the OpenCV library was installed (still using v1.0)
+pato_OCV = 'C:\programs\OpenCV\';
+
+% path for shapelib. Directory where shapelib.lib shapefil.h files reside
+pato_SHAPELIB = 'c:\lixo\shapelib\';
+
+% path for MSVC library dir
+pato_VC98LIB = 'C:\programs\VisualStudio\VC98\Lib\';
 % -------------------------- Stop editing (at least on Windows) ---------------------------
+
+if (ispc),	COPT = '-DWIN32 -O';
+else		COPT = '-O';
+end
 
 INCLUDE_GMT = [patoINC_GMT 'src\'];               % Core gmt programs
 INCLUDE_GMT_MGG = [patoINC_GMT 'src\mgg'];        % MGG supplements
@@ -51,7 +64,7 @@ LIB_HG = [pato_OCV 'lib\highgui.lib'];
 % GMT mexs
 str_gmt = {'grdinfo_m' 'grdproject_m' 'grdread_m' 'grdsample_m' ...
         'grdtrend_m' 'grdwrite_m' 'mapproject_m' 'mapproject_m421' 'shoredump' 'surface_m' ...
-        'nearneighbor_m' 'grdfilter_m' 'cpt2cmap' 'grdlandmask_m' 'grdppa_m'}';
+        'nearneighbor_m' 'grdfilter_m' 'cpt2cmap' 'grdlandmask_m' 'grdppa_m' 'dimfilter_m'}';
 
 % GMT MGG supplements mexs (currently only one)
 str_gmt_mgg = {'gmtlist_m'};
@@ -73,9 +86,9 @@ str_withCDF = {'swan'; 'swan_sem_wbar'};
 
 % Non LIB dependent mexs (besides matlab libs, of course)
 str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'tsun2' 'wave_travel_time' 'mansinha_m' ...
-        'telha_m' 'range_change' 'country_select' 'mex_illuminate' 'grdutils' ...
-        'read_isf' 'ind2rgb8' 'alloc_mex' 'susan' 'set_gmt' 'mxgridtrimesh' ...
-		'intlutc' 'trend1d_m', 'gmtmbgrid_m' 'grdgradient_m' 'grdtrack_m'}';
+	'telha_m' 'range_change' 'country_select' 'mex_illuminate' 'grdutils' ...
+	'read_isf' 'ind2rgb8' 'alloc_mex' 'susan' 'set_gmt' 'mxgridtrimesh' ...
+	'intlutc' 'trend1d_m', 'gmtmbgrid_m' 'grdgradient_m' 'grdtrack_m' 'spa_mex'}';
 
 % Non LIB dependent c++ mexs
 str_simple_cpp = {'houghmex' 'cimgmatlab_cannyderiche' 'clipbd_mex'}';
