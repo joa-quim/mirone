@@ -780,7 +780,6 @@ function set_gmtfile_uicontext(h,data)
 	uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@gmtfile_Info,h,data});
 	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', 'delete(gco)', 'Separator','on');
 	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Call', @save_line);
-	%uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Call', ['gmtedit(getappdata(gco,''FullName''))']);
 	uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Call', {@call_gmtedit,h});
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 	setLineWidth(item_lw,cb_LineWidth)
@@ -792,7 +791,11 @@ function set_gmtfile_uicontext(h,data)
 % -----------------------------------------------------------------------------------------
 function call_gmtedit(obj,eventdata,h)
 	pt = get(gca, 'CurrentPoint');
-	gmtedit(getappdata(h,'FullName'),['-P' sprintf('%.6f',pt(1,1)) '/' sprintf('%.6f',pt(1,2))]);
+	vars = getappdata(h,'VarsName');		opt_V = '  ';	% To be ignored opt_V needs to have at least 2 chars
+	if (~isempty(vars))
+		opt_V = ['-V' vars{1} ','  vars{2} ',' vars{3}];	% Need to encode the Vars info in a single string
+	end
+	gmtedit(getappdata(h,'FullName'), sprintf('-P%.6f/%.6f',pt(1,1:2)), opt_V );
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_setMarker(h,prop)
