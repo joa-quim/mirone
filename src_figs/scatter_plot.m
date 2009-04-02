@@ -1,20 +1,19 @@
 function varargout = scatter_plot(varargin)
 % M-File changed by desGUIDE 
+    
+	if (isempty(varargin))
+		errordlg('SCATTER PLOT: wrong number of arguments.','Error'),	return
+	end
  
 	hObject = figure('Tag','figure1','Visible','off');
 	scatter_plot_LayoutFcn(hObject);
 	handles = guihandles(hObject);
  
-    if (numel(varargin) > 1)
-    	handMir = varargin{1};
-        handles.handMir = handMir;
-        handles.hCallingFig = handMir.figure1;        % This is the Mirone's fig handle
-        handles.hCallingAxes = handMir.axes1;
-        fname = varargin{2};
-	else
-        errordlg('SCATTER PLOT: wrong number of arguments.','Error')
-        delete(hObject);    return
-	end
+	handMir = varargin{1};
+	handles.handMir = handMir;
+	handles.hCallingFig = handMir.figure1;        % This is the Mirone's fig handle
+	handles.hCallingAxes = handMir.axes1;
+	fname = varargin{2};
 
 	% Position this figure glued to the right of calling figure
 	posThis = get(hObject,'Pos');
@@ -23,7 +22,7 @@ function varargout = scatter_plot(varargin)
 	xLL = posParent(1) + posParent(3) + 6;
 	xLR = xLL + posThis(3);
 	if (xLR > ecran(3))         % If figure is partially out, bring totally into screen
-        xLL = ecran(3) - posThis(3);
+		xLL = ecran(3) - posThis(3);
 	end
 	yLL = (posParent(2) + posParent(4)/2) - posThis(4) / 2;
 	set(hObject,'Pos',[xLL yLL posThis(3:4)])
@@ -66,28 +65,33 @@ function varargout = scatter_plot(varargin)
         end
     end
 
-    handles.symbXYZ = numeric_data(:,1:3);
+	handles.symbXYZ = numeric_data(:,1:3);
 
-    set(hObject,'Visible','on')
-    guidata(hObject, handles);
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
+
+	set(hObject,'Visible','on')
+	guidata(hObject, handles);
 
 % ------------------------------------------------------------------------------------
 function popup_symbol_Callback(hObject, eventdata, handles)
-    % Select a symbol
-    %'plus sign' 'circle' 'asterisk' 'cross' 'square' 'diamond' 'upward triangle'
-    %'downward triangle' 'right triangle' 'left triangle' 'five-pointed star' 'six-pointed star'
-    symbs = '+o*xsd^v><ph';
-    handles.symbSYMB = symbs(get(hObject,'Value'));
-    guidata(handles.figure1,handles)
+% Select a symbol
+%'plus sign' 'circle' 'asterisk' 'cross' 'square' 'diamond' 'upward triangle'
+%'downward triangle' 'right triangle' 'left triangle' 'five-pointed star' 'six-pointed star'
+	symbs = '+o*xsd^v><ph';
+	handles.symbSYMB = symbs(get(hObject,'Value'));
+	guidata(handles.figure1,handles)
     
 % ------------------------------------------------------------------------------------
 function popup_symbSize_Callback(hObject, eventdata, handles)
-    contents = get(hObject,'String');
-    s = contents{get(hObject,'Value')};
-    ss = str2double(s);         % 2 cases may occur here
-    if (~isnan(ss))             % its NaN when 'other' was selected
-        set(handles.edit_symbSize,'String',ss)
-    end
+	contents = get(hObject,'String');
+	s = contents{get(hObject,'Value')};
+	ss = str2double(s);         % 2 cases may occur here
+	if (~isnan(ss))             % its NaN when 'other' was selected
+		set(handles.edit_symbSize,'String',ss)
+	end
 
 % ------------------------------------------------------------------------------------
 function edit_symbSize_Callback(hObject, eventdata, handles)
@@ -113,7 +117,7 @@ function edit_symbSize_Callback(hObject, eventdata, handles)
 
 % ------------------------------------------------------------------------------------
 function push_plot_Callback(hObject, eventdata, handles)
-    % 
+% 
 	if (handles.no_file)        % Start empty but below we'll find the true data region
         XMin = 1e50;            XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
         geog = 1;               % Not important. It will be confirmed later
@@ -123,25 +127,25 @@ function push_plot_Callback(hObject, eventdata, handles)
         region = [xx yy];           % 1 stands for geog but that will be confirmed later
         mirone('FileNewBgFrame_CB', handles, [region geog])   % Create a background
 	else                        % Reading over an established region
-        XYlim = getappdata(handles.hCallingAxes,'ThisImageLims');
-        xx = XYlim(1:2);            yy = XYlim(3:4);
+		XYlim = getappdata(handles.hCallingAxes,'ThisImageLims');
+		xx = XYlim(1:2);            yy = XYlim(3:4);
 	end
 
-    % Get rid of points that are outside the map limits
-    [x,y,indx,indy] = aux_funs('in_map_region',handles.handMir,handles.symbXYZ(:,1),handles.symbXYZ(:,2),0.5,[xx yy]);
-    if (isempty(x))
-        warndlg('There are no points inside the current Window limits.','Warning');
-        return
-    end
-    z = handles.symbXYZ(:,3);
-    z(indx) = [];       z(indy) = [];
-    if (~isempty(handles.symbCOR))          % Don't forget the color
-        zC = handles.symbCOR;
-        zC(indx) = [];      zC(indy) = [];
-    end
-    nPts = numel(x);
-    
-    if (handles.no_file)        % We need to compute the data extent in order to set the correct axes limits
+	% Get rid of points that are outside the map limits
+	[x,y,indx,indy] = aux_funs('in_map_region',handles.handMir,handles.symbXYZ(:,1),handles.symbXYZ(:,2),0.5,[xx yy]);
+	if (isempty(x))
+		warndlg('There are no points inside the current Window limits.','Warning');
+		return
+	end
+	z = handles.symbXYZ(:,3);
+	z(indx) = [];       z(indy) = [];
+	if (~isempty(handles.symbCOR))          % Don't forget the color
+		zC = handles.symbCOR;
+		zC(indx) = [];      zC(indy) = [];
+	end
+	nPts = numel(x);
+
+	if (handles.no_file)        % We need to compute the data extent in order to set the correct axes limits
         XMin = min(XMin,min(x));     XMax = max(XMax,max(x));
         YMin = min(YMin,min(y));     YMax = max(YMax,max(y));
         region = [XMin XMax YMin YMax];
@@ -149,36 +153,37 @@ function push_plot_Callback(hObject, eventdata, handles)
         setappdata(handles.hCallingAxes,'ThisImageLims',region)
         handles.geog = aux_funs('guessGeog',region);
         guidata(handles.hCallingFig,handles)
-    end
+	end
 
-    if (isempty(handles.symbSIZES))     % Symbol sizes was not provided in input
-        ss = str2double(get(handles.edit_symbSize,'String'));
-        symbSIZES = repmat(ss,nPts,1);
-    else
-        symbSIZES = handles.symbSIZES;
-    end
+	if (isempty(handles.symbSIZES))     % Symbol sizes was not provided in input
+		ss = str2double(get(handles.edit_symbSize,'String'));
+		symbSIZES = repmat(ss,nPts,1);
+	else
+		symbSIZES = handles.symbSIZES;
+	end
 
-    if (isempty(handles.symbCOR))
+	if (isempty(handles.symbCOR))
         cmap = get(handles.figure1,'ColorMap');
         Zmin = min(z);        Zmax = max(z);
         dZ = Zmax - Zmin;
         if (dZ == 0)        % Cte color
-            zC = repmat(cmap(round(size(cmap,1)/2),:),nPts,1);      % Midle color
+			zC = repmat(cmap(round(size(cmap,1)/2),:),nPts,1);      % Midle color
         else            
-            zC = round(((z - Zmin) / dZ) * (size(cmap,1)-1) + 1);
-            zC = cmap(zC,:);
+			zC = round(((z - Zmin) / dZ) * (size(cmap,1)-1) + 1);
+			zC = cmap(zC,:);
         end
-    end
-    
-    h = zeros(1,nPts);
-    for (k=1:nPts)
-        h(k) = line('XData',x(k),'YData',y(k),'ZData',z(k),'Parent',handles.hCallingAxes,'Tag','scatter_symbs',...
-            'Marker',handles.symbSYMB,'Color','k','MarkerFaceColor',zC(k,:),'MarkerSize',symbSIZES(k));
-    end
-    setUIs(handles,h)
-    
-    handles.hSymbs = h;
-    guidata(handles.figure1, handles)
+	end
+
+	z = abs(z);			% Currently the Z is only used (and many times badly) to make cylinders in GE
+	h = zeros(1,nPts);
+	for (k=1:nPts)
+		h(k) = line('XData',x(k),'YData',y(k),'ZData',z(k),'Parent',handles.hCallingAxes,'Tag','scatter_symbs',...
+			'Marker',handles.symbSYMB,'Color','k','MarkerFaceColor',zC(k,:),'MarkerSize',symbSIZES(k));
+	end
+	setUIs(handles,h)
+
+	handles.hSymbs = h;
+	guidata(handles.figure1, handles)
 
 % ------------------------------------------------------------------------------------
 function push_delete_Callback(hObject, eventdata, handles)
