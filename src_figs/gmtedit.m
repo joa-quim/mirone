@@ -36,118 +36,135 @@ def_width_km = 200;         % Default width in km (approximatly 1/2 of a day at 
 opt_G = '-G';               % Default output to [-180/+180] range
 begin = 1;                  % This means that the display starts at the begining of track
 center_win = [];
-handles.is_gmt = false;
-handles.is_mgd77 = false;
+is_gmt = false;
+is_mgd77 = false;
+vars = [];					% Container to eventual user selected fields to plot (MGD77+ only)
 
-if (nargin > 0)
-    f_name = varargin{1};
-    [PATH,FNAME,EXT] = fileparts(f_name);
-    if (isempty(EXT))       % Remember that here we need the extension
-		[fid, msg] = fopen([f_name '.nc'], 'r');
-		if (fid < 0)		% Ok, since it is not a .nc we'll assume it is a .gmt file
-			EXT = '.gmt';	f_name = [f_name EXT];
-		else				% Confirm that it's a netCDF file
-			ID = fread(fid,3,'*char');		ID = ID';		fclose(fid);
-			if (strcmp(ID,'CDF')),			EXT = '.nc';	f_name = [varargin{1} EXT];	end
+	if (nargin > 0)
+		f_name = varargin{1};
+		[PATH,FNAME,EXT] = fileparts(f_name);
+		if (isempty(EXT))       % Remember that here we need the extension
+			[fid, msg] = fopen([f_name '.nc'], 'r');
+			if (fid < 0)		% Ok, since it is not a .nc we'll assume it is a .gmt file
+				EXT = '.gmt';	f_name = [f_name EXT];
+			else				% Confirm that it's a netCDF file
+				ID = fread(fid,3,'*char');		ID = ID';		fclose(fid);
+				if (strcmp(ID,'CDF')),			EXT = '.nc';	f_name = [varargin{1} EXT];	end
+			end
 		end
-    end
-    if (exist(f_name,'file') == 2)
-        got_inFile = 1;
-        varargin(1) = [];
-		if (strcmpi(EXT,'.nc')),		handles.is_mgd77 = true;		handles.is_gmt = false;
-		else							handles.is_gmt = true;			handles.is_mgd77 = false;
+		if (exist(f_name,'file') == 2)
+			got_inFile = 1;
+			varargin(1) = [];
+			if (strcmpi(EXT,'.nc')),		is_mgd77 = true;		is_gmt = false;
+			else							is_gmt = true;			is_mgd77 = false;
+			end
 		end
-    end
-	for (k = 1:numel(varargin))
-        switch (varargin{k}(1:2))
-			case '-L'
-				def_width_km = str2double(varargin{k}(3:end));
-				if (isnan(def_width_km))        % Nonsense use of -L option
-					def_width_km = 200;
-				end
-			case '-G'
-				opt_G = ' ';
-			case '-P'
-				str = varargin{k}(3:end);
-				[tok,rem] = strtok(str,'/');
-				lon = str2double(tok);
-				lat = str2double(rem(2:end));
-				begin = 0;
-				center_win = [lon lat];
+		for (k = 1:numel(varargin))
+            switch (varargin{k}(1:2))
+				case '-L'
+					def_width_km = str2double(varargin{k}(3:end));
+					if (isnan(def_width_km))        % Nonsense use of -L option
+						def_width_km = 200;
+					end
+				case '-G'
+					opt_G = ' ';
+				case '-P'
+					str = varargin{k}(3:end);
+					[tok,rem] = strtok(str,'/');
+					lon = str2double(tok);
+					lat = str2double(rem(2:end));
+					begin = 0;
+					center_win = [lon lat];
+				case '-V'
+					% For new MGD77+ files only. It contains a user selection of the fields to be plot (instead of GMT)
+					str = varargin{k}(3:end);
+					ind = strfind(str,',');
+					vars{1} = str(1:ind(1)-1);
+					vars{2} = str(ind(1)+1:ind(2)-1);
+					vars{3} = str(ind(2)+1:end);
+			end
 		end
 	end
-end
 
-sc_size = get(0,'ScreenSize');
-fig_height = fix(sc_size(4)*.9);
-fp = [1 sc_size(4)-fig_height sc_size(3) fig_height];
-marg_l = 60;                            % Left margin
-marg_r = 15;                            % Right margin
-marg_tb = 10;                           % Top & Bottom margins
-marg_ax = 15;                           % Margin between axes
-ax_height = fix(fig_height * .295);
-ax_width = sc_size(3) - marg_l - marg_r;
+	sc_size = get(0,'ScreenSize');
+	fig_height = fix(sc_size(4)*.9);
+	fp = [1 sc_size(4)-fig_height sc_size(3) fig_height];
+	marg_l = 60;                            % Left margin
+	marg_r = 15;                            % Right margin
+	marg_tb = 10;                           % Top & Bottom margins
+	marg_ax = 15;                           % Margin between axes
+	ax_height = fix(fig_height * .295);
+	ax_width = sc_size(3) - marg_l - marg_r;
 
-hf = figure('name','gmtedit','resize','off','numbertitle','off', 'visible','off', ...
-    'position',fp, 'DoubleBuffer','on', 'Tag','figure1', 'closerequestfcn','delete(gcbf)');
+	hf = figure('name','gmtedit','resize','off','numbertitle','off', 'visible','off', ...
+        'position',fp, 'DoubleBuffer','on', 'Tag','figure1', 'closerequestfcn','delete(gcbf)');
 
-% Use system color scheme for figure:
-set(hf,'Color',get(0,'defaultUicontrolBackgroundColor'));
+	% Use system color scheme for figure:
+	set(hf,'Color',get(0,'defaultUicontrolBackgroundColor'));
 
-% Apply this trick to get the icons. Let's hope that this is not version/OS dependent 
-hA = findall(hf);
-hh = findobj(hA,'TooltipString','Open File');
-openFile_img = get(hh(1),'CData');
-hh = findobj(hA,'TooltipString','Save Figure');
-saveFile_img = get(hh(1),'CData');
-hh = findobj(hA,'TooltipString','Zoom In');
-zoomIn_img = get(hh(1),'CData');
-hh = findobj(hA,'TooltipString','Zoom Out');
-zoomOut_img = get(hh(1),'CData');
-set(hf,'menubar','none')            % Set the menubar to none
+	% Apply this trick to get the icons. Let's hope that this is not version/OS dependent 
+	hA = findall(hf);
+	hh = findobj(hA,'TooltipString','Open File');
+	openFile_img = get(hh(1),'CData');
+	hh = findobj(hA,'TooltipString','Save Figure');
+	saveFile_img = get(hh(1),'CData');
+	hh = findobj(hA,'TooltipString','Zoom In');
+	zoomIn_img = get(hh(1),'CData');
+	hh = findobj(hA,'TooltipString','Zoom Out');
+	zoomOut_img = get(hh(1),'CData');
+	set(hf,'menubar','none')            % Set the menubar to none
 
-pos = [marg_l fig_height-ax_height-marg_tb ax_width ax_height];
-h_a1 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes1');
+	pos = [marg_l fig_height-ax_height-marg_tb ax_width ax_height];
+	h_a1 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes1');
 
-pos = [marg_l fig_height-2*(ax_height+marg_tb)-marg_ax ax_width ax_height];
-h_a2 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes2');
+	pos = [marg_l fig_height-2*(ax_height+marg_tb)-marg_ax ax_width ax_height];
+	h_a2 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes2');
 
-pos = [marg_l fig_height-3*(ax_height+marg_tb)-2*marg_ax ax_width ax_height];
-h_a3 = axes('Parent',hf,'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes3');
+	pos = [marg_l fig_height-3*(ax_height+marg_tb)-2*marg_ax ax_width ax_height];
+	h_a3 = axes('Parent',hf,'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes3');
 
-handles = guihandles(hf);
-handles.opt_G = opt_G;
-handles.info = [];
-handles.h_broken = [];
-handles.begin = begin;
-handles.center_win = center_win;
+	handles = guihandles(hf);
+	handles.opt_G = opt_G;
+	handles.info = [];
+	handles.h_broken = [];
+	handles.begin = begin;
+	handles.center_win = center_win;
+	handles.is_gmt = is_gmt;
+	handles.is_mgd77 = is_mgd77;
+	handles.vars = vars;
 
-MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
-if (~isempty(MIRONE_DIRS))							% Should not be empty, but ...
-	handles.home_dir = MIRONE_DIRS.home_dir;		% False info if not called from Mir root dir
-else
-	handles.home_dir = cd;
-end
+	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
+	if (~isempty(MIRONE_DIRS))							% Should not be empty, but ...
+		handles.home_dir = MIRONE_DIRS.home_dir;		% False info if not called from Mir root dir
+	else
+		handles.home_dir = cd;
+	end
 
-if (got_inFile)
-	handles.last_dir = PATH;
-else
-	handles.last_dir = handles.home_dir;			% This means, last_dir is not saved between sessions
-end
-handles.work_dir = handles.last_dir;
+	if (got_inFile)
+		handles.last_dir = PATH;
+	else
+		handles.last_dir = handles.home_dir;			% This means, last_dir is not saved between sessions
+	end
+	handles.work_dir = handles.last_dir;
 
-% Load some icons from mirone_icons.mat
-load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','trincha_ico');
+	% Load some icons from mirone_icons.mat
+	load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','trincha_ico');
 
-%SetAxesNumericType(handles.axes1);        % Set axes uicontextmenus
-set(get(h_a1,'YLabel'),'String','Gravity anomaly (mGal)')
-set(get(h_a2,'YLabel'),'String','Magnetic anomaly (nT)')
-set(get(h_a3,'YLabel'),'String','Bathymetry (m)')
+	%SetAxesNumericType(handles.axes1);        % Set axes uicontextmenus
+	if (isempty(vars))		% Default GMT axes names
+		set(get(h_a1,'YLabel'),'String','Gravity anomaly (mGal)')
+		set(get(h_a2,'YLabel'),'String','Magnetic anomaly (nT)')
+		set(get(h_a3,'YLabel'),'String','Bathymetry (m)')
+	else
+		set(get(h_a1,'YLabel'),'String',vars{1})
+		set(get(h_a2,'YLabel'),'String',vars{2})
+		set(get(h_a3,'YLabel'),'String',vars{3})
+	end
 
-handles.def_width_km = def_width_km;
-handles.max_x_data = 10000;
-scroll_plots(def_width_km,[0 10000])     % The [0 10000] will be reset inside scroll_plots to a more appropriate val
-movegui(hf,'north')
+	handles.def_width_km = def_width_km;
+	handles.max_x_data = 10000;
+	scroll_plots(def_width_km,[0 10000])     % The [0 10000] will be reset inside scroll_plots to a more appropriate val
+	movegui(hf,'north')
 
 h_toolbar = uitoolbar('parent',hf,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
    'Interruptible','on','Tag','FigureToolBar','Visible','on');
@@ -297,17 +314,55 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 	s = nc_funs('info',fname);
 
 	% ------------------ OK, Get numerics now -----------------------------------
+	tempo = [];
 	track.longitude = double(nc_funs('varget', fname, 'lon'));
 	track.latitude  = double(nc_funs('varget', fname, 'lat'));
-	track.magnetics = nc_funs('varget', fname, 'mtf1');
-	track.gravity = nc_funs('varget', fname, 'faa');
-	track.topography = nc_funs('varget', fname, 'depth');
+	if (isempty(handles.vars))
+		track.magnetics = nc_funs('varget', fname, 'mtf1');
+		track.gravity = nc_funs('varget', fname, 'faa');
+		track.topography = nc_funs('varget', fname, 'depth');
+	else
+		try
+			ind_v = strmatch('vel', handles.vars);		% Was velocity asked for?
+			if ( any(ind_v) )		% A bit boring below because 'vel' is not a MGD77+ Variable. So we need to avoid error
+				tempo = nc_funs('varget', fname, 'time');
+				if (ind_v(1) == 1)
+					track.magnetics  = nc_funs('varget', fname, handles.vars{2});
+					track.topography = nc_funs('varget', fname, handles.vars{3});
+				elseif (ind_v(1) == 2)
+					track.gravity  = nc_funs('varget', fname, handles.vars{1});
+					track.topography = nc_funs('varget', fname, handles.vars{3});
+				else
+					track.gravity  = nc_funs('varget', fname, handles.vars{1});
+					track.magnetics = nc_funs('varget', fname, handles.vars{2});
+				end
+			else
+				track.gravity = nc_funs('varget', fname, handles.vars{1});
+				track.magnetics  = nc_funs('varget', fname, handles.vars{2});
+				track.topography = nc_funs('varget', fname, handles.vars{3});
+			end
+		catch
+			errordlg('GMTEDIT: At least one custom selected field name does ot exist in dataset','Error')
+			error('GMTEDIT:read_mgd77_plus', lasterr)
+		end
+	end
 	
-	% Need to compute the acumulated distance along profile
-	D2R = pi / 180;		KMPRDEG = 111.1949;
-	co = cos(track.latitude * D2R);
-	dx = [0; diff(track.longitude)];		dy = [0; diff(track.latitude)] .* co;
-	track.distance = cumsum(sqrt(dx .^2 + dy .^2) * KMPRDEG);
+	if ( (any(strmatch('lon', handles.vars)) | any(strmatch('lat', handles.vars))) & isempty(tempo) )
+		track.distance = 1:numel(track.gravity);		% We plot lon/lat against the record number
+	else												% Need to compute the acumulated distance along profile
+		D2R = pi / 180;		KMPRDEG = 111.1949;
+		co = cos(track.latitude * D2R);
+		dx = [0; diff(track.longitude)];		dy = [0; diff(track.latitude)] .* co;
+		track.distance = cumsum(sqrt(dx .^2 + dy .^2) * KMPRDEG);
+		if (~isempty(tempo))			% Compute velocity and find where to store it
+			vel = [4; diff(track.distance) ./ diff(tempo) * 1e3];		% Speed in m/s
+			if (ind_v(1) == 1),			track.gravity = vel;		% Remember that grav, mag, topo are default field names 
+			elseif (ind_v(1) == 2),		track.magnetics = vel;
+			else						track.topography = vel;
+			end
+			track.distance = 1:numel(track.gravity);	% We plot against the record number
+		end
+	end
 
 	% -------------- Get the nodata-values ---------------------------------------
 	ind = strcmp({s.Dataset.Name}, 'mtf1');
@@ -315,7 +370,7 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 	handles.magNoValue = s.Dataset(ind).Attribute(id).Value;
 	id = strcmp({s.Dataset(ind).Attribute.Name}, 'scale_factor');
 	handles.magScaleF = s.Dataset(ind).Attribute(id).Value;
-	
+
 	ind = strcmp({s.Dataset.Name}, 'faa');
 	id = strcmp({s.Dataset(ind).Attribute.Name}, 'missing_value');
 	handles.gravNoValue = s.Dataset(ind).Attribute(id).Value;
@@ -448,7 +503,7 @@ function save_clickedCB(hObject, eventdata)
 		end
 		fclose(fid);
 	else						% New mgf77+ netCDF style files
-		if (~isempty(y_gn)),		nc_funs('varput', f_name, 'faa', y_g, 0);		end
+		if (~isempty(y_gn)),		nc_funs('varput', f_name, 'faa', y_g, 0);		end		% The 0 flags nc_funs for not try to scale
 		if (~isempty(y_mn)),		nc_funs('varput', f_name, 'mtf1', y_m, 0);		end
 		if (~isempty(y_tn)),		nc_funs('varput', f_name, 'depth', y_t, 0);		end
 	end
