@@ -2403,43 +2403,22 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 	elseif (strcmp(opt, 'single'))
 		[FileName,PathName] = put_or_get_file(handles,{'*.gmt;*.GMT;*.nc;*.NC', 'gmt files (*.gmt,*.GMT,*.nc,*.NC)'},'Select gmt File','get');
 		if isequal(FileName,0),		return,		end
-		names = {[PathName FileName]};		% So that below the code is the same as for the list case
+		names = {[PathName FileName]};			% So that below the code is the same as for the list case
 	else
-		names = {opt};		% Filename sent in input
-	end
-
-	% Test if any file in the list does not exist
-	m = numel(names);		nao = zeros(m,1);
-	for (k = 1:m),			nao(k) = exist(names{k},'file');	end
-	id = find(nao ~= 2);
-	if (~isempty(id))
-		msgbox(names(id(1:min(numel(id),25))),'FILES NOT FOUND');
-		names(id) = [];				% Remove them from the list
-		if (isempty(names)),	return,		end		% empty list
-	end
-	names_ui = names;				% For 'Tagging' lines purpose
-
-	for (k = 1:numel(names))		% Rip the .??? extension
-		[PATH, FNAME, EXT] = fileparts(names{k});
-		names{k} = FNAME;		names_ui{k} = FNAME;
-		if (~isempty(PATH))			% File names in the list have a path
-			names{k} = [PATH filesep names{k}];
-		else						% They do not have a path, but we need it. So prepend the list-file path
-			names{k} = [PathName names{k}];
-		end
+		PathName = '';		names = {opt};		% Filename sent in input
 	end
 
 	set(handles.figure1,'Pointer','watch');
 	if (handles.no_file)			% We don't have a BG map, so we have to create one
-% 		[track, x_min, x_max, y_min, y_max] = aux_funs('get_mgg', names{1:end}, EXT, '-FxyM','-G');
-		[track, x_min, x_max, y_min, y_max] = aux_funs('get_mgg', names, EXT, '-FxyM','-G');
+		[track, names, names_ui, vars, x_min, x_max, y_min, y_max] = aux_funs('get_mgg', names, PathName, '-Fxym','-G');
+		if (isempty(names)),	return,		end			% Non existing files probably
 		FileNewBgFrame_CB(handles, [x_min x_max y_min y_max 1]),		pause(0.05)
 		handles.no_file = 0;	guidata(handles.figure1, handles)
 	else
 		x_lim = get(handles.axes1,'XLim');		y_lim = get(handles.axes1,'YLim');
 		opt_R = sprintf('-R%.6f/%.6f/%.6f/%.6f', x_lim(1), x_lim(2), y_lim(1), y_lim(2));
-		%track = gmtlist_m(names{1:end},'-FxyM','-G',opt_R);
-		track = aux_funs('get_mgg', names, EXT, '-FxyM', '-G', opt_R);
+		[track, names, names_ui, vars] = aux_funs('get_mgg', names, PathName, '-Fxym', '-G', opt_R);
+		if (isempty(names)),	return,		end			% Non existing files probably
 	end
 
 	% And finaly do the ploting
@@ -2449,10 +2428,12 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 		h = line(track(k).longitude,track(k).latitude, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick,'Color',...
 			colors(k,:),'Tag',names_ui{k},'Userdata',1);
 		setappdata(h,'FullName',names{k})	% Store file name in case the uicontext wants to open it with gmtedit
+		setappdata(h,'VarsName',vars(k,:))	% Store field name in case the uicontext wants to open it with gmtedit
 		draw_funs(h,'gmtfile',track(k).info)
 	end
 	set(handles.figure1,'Pointer','arrow');
 	if (~strcmp(opt, 'list'))				% Insert fileName into "Recent Files" & save handles
+		[PATH, FNAME, EXT] = fileparts(names{1});
 		handles.fileName = [names{1} EXT];		recentFiles(handles);		
 	end
 
