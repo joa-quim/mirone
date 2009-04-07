@@ -35,7 +35,6 @@ function  varargout = nc_funs(opt,varargin)
 			else				nc_dump(varargin{:});
 			end
 	end
-		
 
 % --------------------------------------------------------------------
 function fileinfo = nc_info( ncfile )
@@ -1019,6 +1018,13 @@ function nc_varput( ncfile, varname, data, varargin )
 snc_nargchk(3,6,nargin);
 snc_nargoutchk(0,0,nargout);
 
+n_in = nargin;		try_to_scale = true;
+if (n_in == 4)
+	n_in = 3;
+	varargin = {[]};
+	try_to_scale = false;
+end
+
 [start, count, stride] = parse_and_validate_args_varput(ncfile,varname,varargin{:});
 
 [ncid, status] = mexnc('open', ncfile, nc_write_mode);
@@ -1033,7 +1039,7 @@ if ( status ~= 0 )
     snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:INQ_VARID', mexnc('STRERROR', status) );
 end
 
-[dud,var_type,nvdims,var_dim,dud, status]=mexnc('INQ_VAR',ncid,varid);
+[dud,var_type,nvdims,var_dim,dud, status] = mexnc('INQ_VAR',ncid,varid);
 if status ~= 0 
     mexnc ( 'close', ncid );
     snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:INQ_VAR', mexnc('STRERROR', status) );
@@ -1056,11 +1062,11 @@ end
 % VARPUT1.  If a stride was given, we must use VARPUTG.  Otherwise just use VARPUT.
 if nvdims == 0
     write_op = 'put_var1';
-elseif nargin == 3
+elseif n_in == 3
     write_op = 'put_var';
-elseif nargin == 5
+elseif n_in == 5
     write_op = 'put_vara';
-elseif nargin == 6
+elseif n_in == 6
     write_op = 'put_vars';
 else
     error ( 'unhandled write op.  How did we come to this??\n' );
@@ -1068,8 +1074,20 @@ end
 
 validate_input_size_vs_netcdf_size(ncid,data,nc_count,count,write_op);
 
-data = handle_fill_value ( ncid, varid, data );
-data = handle_scaling(ncid,varid,data);
+if (try_to_scale)
+	[data, did_scale] = handle_scaling(ncid,varid,data);
+	data = handle_fill_value ( ncid, varid, data );			% WARNING: Operates only in singles or doubles
+	if ( did_scale )					% Dangerous case. Scaling implies toDouble conversion but we may NOT WANT that (J. LUIS)
+		[var_type,status] = mexnc('INQ_VARTYPE',ncid,varid);
+		switch var_type
+			case nc_byte,	    data = int8(data);
+			case nc_char,	    data = uint8(data);
+			case nc_short,	    data = int16(data);
+			case nc_int,	    data = int32(data);
+			case nc_float,	    data = single(data);
+		end
+	end
+end
 
 write_the_data(ncid,varid,start,count,stride,write_op,data);
 
@@ -1218,29 +1236,26 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function data = handle_scaling(ncid,varid,data)
+function [data, did_scale] = handle_scaling(ncid,varid,data)
 % HANDLE_MEX_SCALING
-%     If there is a scale factor and/or  add_offset attribute, convert the data
-%     to double precision and apply the scaling.
-%
+%	If there is a scale factor and/or  add_offset attribute, convert the data
+%	to double precision and apply the scaling. The DID_SCALE informs the caller
+%	that a scalling and/or offset was performed
 
+did_scale = false;
 [dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'scale_factor' );
-if ( status == 0 )
-    have_scale_factor = 1;
-else
-    have_scale_factor = 0;
+if ( status == 0 ),		have_scale_factor = 1;
+else					have_scale_factor = 0;
 end
+
 [dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'add_offset' );
-if ( status == 0 )
-    have_add_offset = 1;
-else
-    have_add_offset = 0;
+
+if ( status == 0 ),		have_add_offset = 1;
+else					have_add_offset = 0;
 end
 
 % Return early if we don't have either one.
-if ~(have_scale_factor || have_add_offset)
-    return;
-end
+if ~(have_scale_factor || have_add_offset),		return,		end
 
 scale_factor = 1.0;
 add_offset = 0.0;
@@ -1261,19 +1276,20 @@ if have_add_offset
 	end
 end
 
-[var_type,status]=mexnc('INQ_VARTYPE',ncid,varid);
+[var_type,status] = mexnc('INQ_VARTYPE',ncid,varid);
 if status ~= 0 
     mexnc ( 'close', ncid );
     snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:INQ_VARTYPE', mexnc('STRERROR', status) );
 end
 
 data = (double(data) - add_offset) / scale_factor;
+did_scale = true;
 
 % When scaling to an integer, we should add 0.5 to the data.  Otherwise
 % there is a tiny loss in precision, e.g. 82.7 should round to 83, not .
 switch var_type
 	case { nc_int, nc_short, nc_byte, nc_char }
-	    data = round(data);
+		data = round(data);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1305,53 +1321,50 @@ if ( status == 0 )
 	if ( ~isnan(fill_value) && (isa(data,'single') || isa(data,'double')) )
     	data(isnan(data)) = fill_value;
 	end
-
 end
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function validate_input_size_vs_netcdf_size(ncid,data,nc_count,count,write_op)
 % VALIDATE_INPUT_SIZE_VS_NETCDF_SIZE
 %
-% We are now in a position to do a check on the input var size vs. 
-% the known size in the netcdf file.  If we don't do this, it would 
-% be possible to send a larger then expected chunk of data to the 
-% netcdf file, have parts of it get lopped off in order to fit, and 
-% never be the wiser.
+% We are now in a position to do a check on the input var size vs. the known 
+% size in the netcdf file.  If we don't do this, it would be possible to send
+% a larger then expected chunk of data to the netcdf file, have parts of it
+% get lopped off in order to fit, and  never be the wiser.
+
 switch ( write_op )
 
-case 'put_var1'
-	% Just check that the length of the input data was 1.
-	if numel(data) ~= 1
-		mexnc ( 'close', ncid );
-		snc_error ( 'NC_FUNS:NC_VARPUT:badInput', 'Length of input data must be 1 for singleton variable.'  );
-	end
-
-case 'put_var'
-    % Since 'put_var' writes all the data, check that the extents match up exactly.  
-    if ( numel(data) ~= prod(nc_count) )
-		% Added the following (stupid) test TO LET GO WITH THE UNLIMITED VAR -- J. LUIS
-		[rec_dim, status] = mexnc( 'INQ_UNLIMDIM', ncid );
-		if ( ~(rec_dim == 2 && numel(data) == 1) )
+	case 'put_var1'
+		% Just check that the length of the input data was 1.
+		if numel(data) ~= 1
 			mexnc ( 'close', ncid );
-			fmt = 'Total number of input datums was %d, but the netcdf variable size is %d elements.';
-			snc_error ( 'NC_FUNS:NC_VARPUT:badInput', sprintf ( fmt, numel(data), prod(nc_count) ) );
+			snc_error ( 'NC_FUNS:NC_VARPUT:badInput', 'Length of input data must be 1 for singleton variable.'  );
 		end
-    end
 
-case { 'put_vara', 'put_vars' }
-    % Just check that the chunk of data the user gave us is the same
-    % size as the given count.  This works for put_vars as well.
-    if ( numel(data) ~= prod(count) )
+	case 'put_var'
+        % Since 'put_var' writes all the data, check that the extents match up exactly.  
+        if ( numel(data) ~= prod(nc_count) )
+			% Added the following (stupid) test TO LET GO WITH THE UNLIMITED VAR -- J. LUIS
+			[rec_dim, status] = mexnc( 'INQ_UNLIMDIM', ncid );
+			if ( ~(rec_dim == 2 && numel(data) == 1) )
+				mexnc ( 'close', ncid );
+				fmt = 'Total number of input datums was %d, but the netcdf variable size is %d elements.';
+ 				snc_error ( 'NC_FUNS:NC_VARPUT:badInput', sprintf ( fmt, numel(data), prod(nc_count) ) );
+			end
+        end
+
+	case { 'put_vara', 'put_vars' }
+        % Just check that the chunk of data the user gave us is the same
+        % size as the given count.  This works for put_vars as well.
+        if ( numel(data) ~= prod(count) )
+			mexnc ( 'close', ncid );
+			fmt = 'Total number of input datums was %d, but the count parameter indicated %d elements.\n';
+			snc_error ( 'NC_FUNS:NC_VARPUT:badInput', sprintf( fmt, numel(data), prod(count)) );
+        end
+
+	otherwise 
 		mexnc ( 'close', ncid );
-		fmt = 'Total number of input datums was %d, but the count parameter indicated %d elements.\n';
-		snc_error ( 'NC_FUNS:NC_VARPUT:badInput', sprintf( fmt, numel(data), prod(count)) );
-    end
-
-otherwise 
-	mexnc ( 'close', ncid );
-	snc_error ( 'NC_FUNS:NC_VARPUT:unhandledCase', sprintf('Unhandled write operation family, ''%s''.', write_op) );
-
+		snc_error ( 'NC_FUNS:NC_VARPUT:unhandledCase', sprintf('Unhandled write operation family, ''%s''.', write_op) );
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1360,64 +1373,63 @@ function write_the_data(ncid,varid,start,count,stride,write_op,data)
 % write the data
 pdata = permute(data, fliplr( 1:ndims(data) ));
 switch ( write_op )
-
     case 'put_var1'
         switch ( class(data) ),
-        case 'double',		funcstr = 'put_var1_double';
-        case 'single',		funcstr = 'put_var1_float';
-        case 'int32',		funcstr = 'put_var1_int';
-        case 'int16',		funcstr = 'put_var1_short';
-        case 'int8',		funcstr = 'put_var1_schar';
-        case 'uint8',		funcstr = 'put_var1_uchar';
-        case 'char',		funcstr = 'put_var1_text';
-        otherwise
-            mexnc('close',ncid);
-            snc_error ( 'NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
+            case 'double',		funcstr = 'put_var1_double';
+            case 'single',		funcstr = 'put_var1_float';
+            case 'int32',		funcstr = 'put_var1_int';
+            case 'int16',		funcstr = 'put_var1_short';
+            case 'int8',		funcstr = 'put_var1_schar';
+            case 'uint8',		funcstr = 'put_var1_uchar';
+            case 'char',		funcstr = 'put_var1_text';
+            otherwise
+                mexnc('close',ncid);
+                snc_error ( 'NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
         end
         status = mexnc (funcstr, ncid, varid, start, pdata );
 
     case 'put_var'
         switch ( class(data) )
-        case 'double',		funcstr = 'put_var_double';
-        case 'single',		funcstr = 'put_var_float';
-        case 'int32',		funcstr = 'put_var_int';
-        case 'int16',		funcstr = 'put_var_short';
-        case 'int8',		funcstr = 'put_var_schar';
-        case 'uint8',		funcstr = 'put_var_uchar';
-        case 'char',		funcstr = 'put_var_text';
-        otherwise
-            mexnc('close',ncid);
-            snc_error ( 'NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
+            case 'double',		funcstr = 'put_var_double';
+            case 'single',		funcstr = 'put_var_float';
+            case 'int32',		funcstr = 'put_var_int';
+            case 'int16',		funcstr = 'put_var_short';
+            case 'int8',		funcstr = 'put_var_schar';
+            case 'uint8',		funcstr = 'put_var_uchar';
+            case 'char',		funcstr = 'put_var_text';
+            otherwise
+                mexnc('close',ncid);
+                snc_error ( 'NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
         end
         status = mexnc (funcstr, ncid, varid, pdata );
     
     case 'put_vara'
         switch ( class(data) )
-        case 'double',		funcstr = 'put_vara_double';
-        case 'single',		funcstr = 'put_vara_float';
-        case 'int32',		funcstr = 'put_vara_int';
-        case 'int16',		funcstr = 'put_vara_short';
-        case 'int8',		funcstr = 'put_vara_schar';
-        case 'uint8',		funcstr = 'put_vara_uchar';
-        case 'char',		funcstr = 'put_vara_text';
-        otherwise
-            mexnc('close',ncid);
-            snc_error ('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
+            case 'double',		funcstr = 'put_vara_double';
+            case 'single',		funcstr = 'put_vara_float';
+            case 'int32',		funcstr = 'put_vara_int';
+            case 'int16',		funcstr = 'put_vara_short';
+            case 'int8',		funcstr = 'put_vara_schar';
+            case 'uint8',		funcstr = 'put_vara_uchar';
+            case 'char',		funcstr = 'put_vara_text';
+            otherwise
+                mexnc('close',ncid);
+                snc_error ('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
         end
         status = mexnc(funcstr, ncid, varid, start, count, pdata );
 
     case 'put_vars'
         switch ( class(data) )
 			case 'double',		funcstr = 'put_vars_double';
-			case 'single',		funcstr = 'put_vars_float';
-			case 'int32',		funcstr = 'put_vars_int';
-			case 'int16',		funcstr = 'put_vars_short';
-			case 'int8',		funcstr = 'put_vars_schar';
-			case 'uint8',		funcstr = 'put_vars_uchar';
-			case 'char',		funcstr = 'put_vars_text';
-			otherwise
-				mexnc('close',ncid);
-				snc_error ('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
+				case 'single',		funcstr = 'put_vars_float';
+				case 'int32',		funcstr = 'put_vars_int';
+				case 'int16',		funcstr = 'put_vars_short';
+				case 'int8',		funcstr = 'put_vars_schar';
+				case 'uint8',		funcstr = 'put_vars_uchar';
+				case 'char',		funcstr = 'put_vars_text';
+				otherwise
+					mexnc('close',ncid);
+					snc_error ('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
         end
         status = mexnc (funcstr, ncid, varid, start, count, stride, pdata );
 
@@ -2613,8 +2625,6 @@ end
 
 nb = nc_getbuffer ( ncfile, {var}, -1, num_datums );
 values = nb.(var);
-
-
 
 
 
