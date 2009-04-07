@@ -430,18 +430,98 @@ function pixelx = axes2pix(dim, x, axesx)
 	end
 
 % --------------------------------------------------------------------------------
-function [track, x_min, x_max, y_min, y_max] = get_mgg(names, EXT, varargin)
-	if (strcmpi(EXT, '.gmt'))		% Old style .gmt files
-		track = gmtlist_m(names, varargin{:});
+function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(names, PathName, varargin)
+% Get tracks from either the old style .gmt format or new MGD77+ netCDF format
+	
+% 	[bin,n_column] = guess_file(names{1});
+%     if isempty(bin)					% If error in reading file
+% 		errordlg(['Error reading file ' names],'Error')
+% 		error('AUX_FUNS:GET_MGG', ['Error reading file ' names])
+%     end
+	[t,r] = strtok(names{1});
+	if (~isempty(r)),	n_column = 2;	end
+
+	m = numel(names);		c = false(m,1);
+	if (n_column > 1)					% When 2nd column holds the variable to plot info
+		lixo = cell(m,1);
+		for (k = 1:m)
+			[t,r] = strtok(names{k});
+			if (t(1) == '#' || isempty(t)),  	c(k) = true;	continue,	end		% Jump empty and comment lines
+			names{k} = t;
+			r = ddewhite(r);
+			lixo{k} = r;
+		end
+		if (any(c)),	names(c) = [];		lixo(c) = [];	end		% Remove eventual comment lines
+	else								% Only one column with fnames
+		lixo = [];
+		for (k = 1:m)
+			if ( isempty(names{k}) || names{k}(1) == '#'),	c(k) = true;		continue,	end
+		end
+		if (any(c)),	names(c) = [];	end		% Remove eventual comment lines
+	end
+
+	m = numel(names);		c = false(m,1);		% Count remaining ones
+	vars = cell(m,3);		names_ui = names;
+
+	for (k = 1:numel(names))			% Rip the .??? extension
+		[PATH, FNAME, EXT] = fileparts(names{k});
+		names{k} = FNAME;		names_ui{k} = FNAME;
+		if (~isempty(PATH))				% File names in the list have a path
+			names{k} = [PATH filesep names{k}];
+		else							% They do not have a path, but we need it. So prepend the list-file path
+			names{k} = [PathName names{k}];
+		end
+		if (exist([names{k} EXT],'file') ~= 2),			c(k) = true;		continue,	end		% File does not exist
+		if (~isempty(lixo))					% Scan second column for the names of the variables to plot
+			ind = strfind(lixo{k}, ',');	% See how many required fields
+			if (isempty(ind))				% Only one. It will be ploted in the 'faa' axes
+				vars{k,1} = lixo{k};	vars(k,2:3) = {'mtf1' 'depth'};
+			elseif (numel(ind) == 1)
+				vars{k,1} = lixo{k}(1:ind(1)-1);		vars{k,2} = lixo{k}(ind(1)+1:end);		vars{k,3} = 'depth';
+			elseif (numel(ind) == 2)
+				vars{k,1} = lixo{k}(1:ind(1)-1);		vars{k,2} = lixo{k}(ind(1)+1:ind(2)-1);	vars{k,3} = lixo{k}(ind(2)+1:end);
+			else
+				error('AUX_FUNS:GET_MGG', 'Wrong formating strig for MGD77 variabe selection')
+			end
+		end
+	end
+	if (any(c)),	names(c) = [];		names_ui(c) = [];	vars(c,:) = [];		end		% Remove eventual non-existing files
+
+	if (isempty(names))					% Empty names list
+		track = [];		x_min = [];		x_max = [];		y_min = [];		y_max = [];
+		return
+	end
+
+	% EXTRACT NAVIGATION
+	if (strcmpi(EXT, '.gmt'))		% Old style .gmt files (many of the above was useless)
+		track = gmtlist_m(names{:}, varargin{:});
 	else							% mgd77 netCDF files
-		for (k = 1:numel(names))
-			track(k).longitude = double(nc_funs('varget', [names{k} EXT], 'lon'));
-			track(k).latitude  = double(nc_funs('varget', [names{k} EXT], 'lat'));
-			track(k).info = [names{k} EXT];
+		if (numel(names) == 1)		% Extrac the entire navigation
+ 			track.longitude = double(nc_funs('varget', [names{1} EXT], 'lon'));
+ 			track.latitude  = double(nc_funs('varget', [names{1} EXT], 'lat'));
+ 			track.magnetics = nc_funs('varget', [names{1} EXT], 'mtf1');
+			track.info = [names{1} EXT];
+		else						% Since the poor lousy HG gets stupidly slow, plot only one every other 5th point
+			for (k = 1:numel(names))
+				this_name = [names{k} EXT];
+				x = double(nc_funs('varget', this_name, 'lon'));		track(k).longitude = x(1:5:end);
+				x = double(nc_funs('varget', this_name, 'lat'));		track(k).latitude = x(1:5:end);
+				x = nc_funs('varget', this_name, 'mtf1');				track(k).magnetics = x(1:5:end);
+				track(k).info = this_name;
+			end
 		end
 	end
 
-	if (nargout == 5)
+	for (k = 1:length(track))
+		%ind_x = diff(track(k).longitude) > 0.1;		ind_y = diff(track(k).latitude) > 0.1;
+		%ind = (ind_x & ind_y);
+		try
+			ind = isnan(track(k).magnetics);
+			track(k).longitude(ind) = NaN;
+		end
+	end
+
+	if (nargout == 8)
 		len_t = numel(track);  x_min = zeros(1,len_t); x_max = x_min;  y_min = x_min;  y_max = x_min;
 		for (k = 1:len_t)
 			x_min(k) = min(track(k).longitude);		x_max(k) = max(track(k).longitude);
