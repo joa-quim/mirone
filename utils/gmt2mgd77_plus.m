@@ -21,7 +21,7 @@ function gmt2mgd77_plus(fname, varargin)
 %								leg				(Default 'Chicken Leg')
 %								port_departure	(Default 'Port Wine')
 %								port_arrival	(Default 'Green Wine')
-%								tow_dist		(Default '200')
+%								tow_dist		(Default '199')
 %								survey_id		(Default '00000000')
 %								DC_file_number	(Default '00000000')
 
@@ -52,7 +52,7 @@ function gmt2mgd77_plus(fname, varargin)
 	att.leg = 'Chicken Leg';
 	att.port_departure = 'Port Wine';
 	att.port_arrival = 'Green Wine';
-	att.tow_dist = '200';
+	att.tow_dist = '199';
 	att.survey_id = '00000000';
 	att.DC_file_number = '00000000';
 	if (~isempty(meta))		% get meta data
@@ -83,6 +83,7 @@ function gmt2mgd77_plus(fname, varargin)
 	track.time = track.time + (date2jd(track.year) - date2jd(1970)) * 86400;	% Here we need time in seconds since 1970
 	
 	att.source_institution = track.agency;
+	if (double(att.source_institution(end)) < 32),		att.source_institution(end) = ' ';		end		% Prevent trash
 	tempo = clock;
 	att.yearNow = tempo(1);		att.monthNow = tempo(2);	att.dayNow = tempo(3);
 	
@@ -196,7 +197,9 @@ function gmt2mgd77_plus(fname, varargin)
  	nc_funs('varput', fname, 'time', track.time, 0, numel(track.time));
 
 	write_var(fname, 'drt', 1, [], 'Data Record Type', '', [], 'Normally 5', nons,  nons, [])
-	write_var(fname, 'tz',  1, [], 'Time Zone Correction', '', [], '-13 to +12 inclusive', nons,  nons, [])
+	nc_funs('varput', fname, 'drt', -128);
+	write_var(fname, 'tz',  1, [], 'Time Zone Correction', 'hours', [], '-13 to +12 inclusive', nons,  nons, [])
+	nc_funs('varput', fname, 'tz', -128);
 
 	write_var(fname, 'lat', 4, 'time', 'Latitude', 'degrees_north', [min_lat max_lat], 'Negative south of Equator', int32(-2147483648), int32(-2147483648), 1e-7)
 	nc_funs('varput', fname, 'lat', track.latitude);		% Scaling and type conversion is done inside nc_funs()
@@ -205,58 +208,73 @@ function gmt2mgd77_plus(fname, varargin)
 	nc_funs('varput', fname, 'lon', track.longitude);		% Scaling and type conversion is done inside nc_funs()
 
 	write_var(fname, 'ptc', 1, [], 'Position Type Code', 'hours', [], 'Observed (1), Interpolated (3), or Unspecified (9)', nons,  nons, [])
+	nc_funs('varput', fname, 'ptc', -128);
 	write_var(fname, 'twt', 4, [], 'Bathymetry Two-Way Travel-Time', 'seconds', [], 'Corrected for transducer depth, etc.', int32(-2147483648), int32(-2147483648), 1e-8)	
+	nc_funs('varput', fname, 'twt', -2147483648);
 
 	% ------------- Write TOPO ---------------------------------------------------------
 	if (~all(isnan(track.topography)))
 		write_var(fname, 'depth', 4, 'time', 'Bathymetry Corrected Depth', 'meter', [min(track.topography) max(track.topography)], 'Corrected for sound velocity variations (if known)', int32(-2147483648), int32(-2147483648), 1e-005)
 		nc_funs('varput', fname, 'depth', -track.topography);
 	else
-		write_var(fname, 'depth', 4, [], 'Bathymetry Corrected Depth', 'meter', [min(track.topography) max(track.topography)], 'Corrected for sound velocity variations (if known)', int32(-2147483648), int32(-2147483648), 1e-005)
+		write_var(fname, 'depth', 4, [], 'Bathymetry Corrected Depth', 'meter', [], 'Corrected for sound velocity variations (if known)', int32(-2147483648), int32(-2147483648), 1e-005)
+		nc_funs('varput', fname, 'depth', -2147483648);
 	end
 	nc_funs('attput', fname, 'depth', 'positive', 'down');
 	% ----------------------------------------------------------------------------------
 
-	write_var(fname, 'bcc', 1, [], 'Time Zone Correction', 'hours', [], '-13 to +12 inclusive', nons,  nons, [])	
+	write_var(fname, 'bcc', 1, [], 'Bathymetry Correction Code', '', [], '', nons,  nons, [])	
+	nc_funs('varput', fname, 'bcc', -128);
 	write_var(fname, 'btc', 1, [], 'Bathymetry Type Code', '', [], 'Observed (1), Interpolated (3), or Unspecified (9)', nons,  nons, [])	
+	nc_funs('varput', fname, 'btc', -128);
 
 	% ------------- Write TOTAL FIELD ----------------------------------------------------------
 	if (~is_anom && ~all(isnan(track.magnetics)))
 		write_var(fname, 'mtf1', 4, 'time', 'Magnetics First Sensor Total Field', 'gamma', [], 'Leading sensor', int32(-2147483648), int32(-2147483648), 0.0001)
 		nc_funs('varput', fname, 'mtf1', track.magnetics + F_offset);
 	else
-		write_var(fname, 'mtf1', 4, [], 'Magnetics First Sensor Total Field', 'gamma', [], 'Leading sensor', int32(-2147483648), int32(-2147483648), 0.0001)	
+		write_var(fname, 'mtf1', 4, [], 'Magnetics First Sensor Total Field', 'gamma', [], 'Leading sensor', int32(-2147483648), int32(-2147483648), 0.0001)
+		nc_funs('varput', fname, 'mtf1', -2147483648);
 	end
 	% ----------------------------------------------------------------------------------
 
 	write_var(fname, 'mtf2', 4, [], 'Magnetics Second Sensor Total Field', 'gamma', [], 'Trailing sensor', int32(-2147483648), int32(-2147483648), 0.0001)	
+	nc_funs('varput', fname, 'mtf2', -2147483648);
 
 	% ------------- Write Anomaly ----------------------------------------------------------
 	if (is_anom && ~all(isnan(track.magnetics)))
 		write_var(fname, 'mag', 3, 'time', 'Magnetics Residual Field', 'gamma', [], 'Corrected for reference field (see header)', int16(-32768), int16(-32768), 0.1)	
 		nc_funs('varput', fname, 'mag', track.magnetics);
 	else
-		write_var(fname, 'mag', 3, [], 'Magnetics Residual Field', 'gamma', [], 'Corrected for reference field (see header)', int16(-32768), int16(-32768), 0.1)	
+		write_var(fname, 'mag', 3, [], 'Magnetics Residual Field', 'gamma', [], 'Corrected for reference field (see header)', int16(-32768), int16(-32768), 0.1)
+		nc_funs('varput', fname, 'mag', -32768);
 	end
 	% ----------------------------------------------------------------------------------
 
 	write_var(fname, 'msens', 1, [], 'Magnetics Sensor For Residual Field', '', [], 'Magnetic sensor used: 1, 2, or Unspecified (9)', nons,  nons, [])	
+	nc_funs('varput', fname, 'msens', -128);
 	write_var(fname, 'diur', 3, [], 'Magnetics Diurnal Correction', 'gamma', [], 'Already applied to data', int16(-32768), int16(-32768), 0.1)	
+	nc_funs('varput', fname, 'diur', -32768);
 	write_var(fname, 'msd', 3, [], 'Magnetics Sensor Depth or Altitude', 'meter', [], 'Positive below sealevel', int16(-32768), int16(-32768), [])	
+	nc_funs('varput', fname, 'msd', -32768);
 	write_var(fname, 'gobs', 4, [], 'Gravity Observed', 'mGal', [], 'Corrected for Eotvos, drift, and tares', int32(-2147483648), int32(-2147483648), 1e-005)
+	nc_funs('varput', fname, 'gobs', -2147483648);
 	nc_funs('attput', fname, 'gobs', 'add_offset', 980000);
 	write_var(fname, 'eot', 3, [], 'Gravity Eotvos Correction', 'mGal', [], '7.5 V cos (lat) sin (azim) + 0.0042 V*V', int16(-32768), int16(-32768), 0.1)
+	nc_funs('varput', fname, 'eot', -32768);
 	
 	% ------------- Write FAA ----------------------------------------------------------
 	if (~all(isnan(track.gravity)))
 		write_var(fname, 'faa', 3, 'time', 'Gravity Free-Air Anomaly', 'mGal', [min(track.gravity) max(track.gravity)], 'Observed - theoretical', int16(-32768), int16(-32768), 0.1)
 		nc_funs('varput', fname, 'faa', track.gravity);			% Scaling and type conversion is done inside nc_funs()
 	else
-		write_var(fname, 'faa', 3, [], 'Gravity Free-Air Anomaly', 'mGal', [min(track.gravity) max(track.gravity)], 'Observed - theoretical', int16(-32768), int16(-32768), 0.1)
+		write_var(fname, 'faa', 3, [], 'Gravity Free-Air Anomaly', 'mGal', [], 'Observed - theoretical', int16(-32768), int16(-32768), 0.1)
+		nc_funs('varput', fname, 'faa', -32768);
 	end
 	% ----------------------------------------------------------------------------------
 	
 	write_var(fname, 'nqc', 1, [], 'Navigation Quality Code', '', [], 'Suspected by (5) source agency, (6) NGDC, or no problems found (9)',  nons,  nons, [])
+	nc_funs('varput', fname, 'nqc', -128);
 	write_var(fname, 'id', 1, 'id_dim', 'Survey ID', '', [], 'Identical to ID in header', nons,  nons, [])
 	nc_funs('varput', fname, 'id', int8(att.survey_id));
 	write_var(fname, 'sln', 1, 'sln_dim', 'Seismic Line Number', '', [], 'For cross-referencing with seismic data', nons,  nons, [])
