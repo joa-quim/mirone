@@ -2203,12 +2203,17 @@ function Isochrons_Info(obj,eventdata,data)
 
 % -----------------------------------------------------------------------------------------
 function gmtfile_Info(obj,eventdata,h,data)
+	agency = [];
+	if (exist(data, 'file') == 2)		% MGD77+ files transmit their names in 'data'
+		[data, agency] = aux_funs('mgd77info',data);
+	end
 	str{1} = ['N_recs = ' num2str(data(1)) ', N_grav = ' num2str(data(2)) ', N_mag = ' num2str(data(3)) ...
 		', N_top = ' num2str(data(4))];
 	str{2} = ['E: = ' num2str(data(5)) '  W: = ' num2str(data(6))];
 	str{3} = ['S: = ' num2str(data(7)) '  N: = ' num2str(data(8))];
 	str{4} = ['Start day,month,year: = ' num2str(data(9)) '  ' num2str(data(10)) '  ' num2str(data(11))];
 	str{5} = ['End   day,month,year: = ' num2str(data(12)) '  ' num2str(data(13)) '  ' num2str(data(14))];
+	if (~isempty(agency)),		str{6} = '';	str{7} = agency;	end
 	tag = get(h,'Tag');
 	msgbox(str,tag)
 
