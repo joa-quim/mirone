@@ -433,11 +433,7 @@ function pixelx = axes2pix(dim, x, axesx)
 function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(names, PathName, varargin)
 % Get tracks from either the old style .gmt format or new MGD77+ netCDF format
 	
-% 	[bin,n_column] = guess_file(names{1});
-%     if isempty(bin)					% If error in reading file
-% 		errordlg(['Error reading file ' names],'Error')
-% 		error('AUX_FUNS:GET_MGG', ['Error reading file ' names])
-%     end
+	n_column = 1;
 	[t,r] = strtok(names{1});
 	if (~isempty(r)),	n_column = 2;	end
 
@@ -465,7 +461,7 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 
 	for (k = 1:numel(names))			% Rip the .??? extension
 		[PATH, FNAME, EXT] = fileparts(names{k});
-		names{k} = FNAME;		names_ui{k} = FNAME;
+		names{k} = FNAME;		names_ui{k} = [FNAME EXT];
 		if (~isempty(PATH))				% File names in the list have a path
 			names{k} = [PATH filesep names{k}];
 		else							% They do not have a path, but we need it. So prepend the list-file path
@@ -495,19 +491,21 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 	% EXTRACT NAVIGATION
 	if (strcmpi(EXT, '.gmt'))		% Old style .gmt files (many of the above was useless)
 		track = gmtlist_m(names{:}, varargin{:});
+		for (k = 1:numel(names)),	names{k} = [names{k} EXT];		end		% Restore the extension
 	else							% mgd77 netCDF files
 		if (numel(names) == 1)		% Extrac the entire navigation
- 			track.longitude = double(nc_funs('varget', [names{1} EXT], 'lon'));
- 			track.latitude  = double(nc_funs('varget', [names{1} EXT], 'lat'));
- 			track.magnetics = nc_funs('varget', [names{1} EXT], 'mtf1');
-			track.info = [names{1} EXT];
+			names{1} = [names{1} EXT];
+ 			track.longitude = double(nc_funs('varget', names{1}, 'lon'));
+ 			track.latitude  = double(nc_funs('varget', names{1}, 'lat'));
+ 			track.magnetics = nc_funs('varget', names{1}, 'mtf1');
+			track.info = names{1};
 		else						% Since the poor lousy HG gets stupidly slow, plot only one every other 5th point
 			for (k = 1:numel(names))
-				this_name = [names{k} EXT];
-				x = double(nc_funs('varget', this_name, 'lon'));		track(k).longitude = x(1:5:end);
-				x = double(nc_funs('varget', this_name, 'lat'));		track(k).latitude = x(1:5:end);
-				x = nc_funs('varget', this_name, 'mtf1');				track(k).magnetics = x(1:5:end);
-				track(k).info = this_name;
+				names{k} = [names{k} EXT];
+				x = double(nc_funs('varget', names{k}, 'lon'));		track(k).longitude = x(1:5:end);
+				x = double(nc_funs('varget', names{k}, 'lat'));		track(k).latitude = x(1:5:end);
+				x = nc_funs('varget', names{k}, 'mtf1');			track(k).magnetics = x(1:5:end);
+				track(k).info = names{k};
 			end
 		end
 	end
@@ -518,6 +516,7 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 		try
 			ind = isnan(track(k).magnetics);
 			track(k).longitude(ind) = NaN;
+			track(k).latitude(ind) = NaN;
 		end
 	end
 
@@ -530,6 +529,28 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 		x_min = min(x_min);		x_max = max(x_max);
 		y_min = min(y_min);		y_max = max(y_max);
 	end
+
+% --------------------------------------------------------------------------------
+function [data, agency] = mgd77info(fname)
+% Get info from a MGD77+ netCDF file. The 'data' array is the way it is to be compatible with that of old .gmt files
+
+	N_recs = numel(nc_funs('varget', fname, 'time'));
+	x = nc_funs('varget', fname, 'mtf1');		x = ~isnan(x);		N_mag = numel(x(x));
+	x = nc_funs('varget', fname, 'faa');		x = ~isnan(x);		N_grav = numel(x(x));
+	x = nc_funs('varget', fname, 'depth');		x = ~isnan(x);		N_topo = numel(x(x));
+	
+	data = [N_recs N_grav N_mag N_topo];
+	x = nc_funs('varget', fname, 'lon');		data(5:6) = double([min(x) max(x)]);
+	x = nc_funs('varget', fname, 'lat');		data(7:8) = double([min(x) max(x)]);	clear x
+
+	s = nc_funs('info',fname);
+	ind = strcmp({s.Attribute.Name}, 'Survey_Departure_Year');		data(9) = str2double(s.Attribute(ind).Value);
+	ind = strcmp({s.Attribute.Name}, 'Survey_Departure_Month');		data(10) = str2double(s.Attribute(ind).Value);
+	ind = strcmp({s.Attribute.Name}, 'Survey_Departure_Day');		data(11) = str2double(s.Attribute(ind).Value);
+	ind = strcmp({s.Attribute.Name}, 'Survey_Arrival_Year');		data(12) = str2double(s.Attribute(ind).Value);
+	ind = strcmp({s.Attribute.Name}, 'Survey_Arrival_Month');		data(13) = str2double(s.Attribute(ind).Value);
+	ind = strcmp({s.Attribute.Name}, 'Survey_Arrival_Day');			data(14) = str2double(s.Attribute(ind).Value);
+	ind = strcmp({s.Attribute.Name}, 'Source_Institution');			agency = s.Attribute(ind).Value;
 
 % --------------------------------------------------------------------------------
 function [latcells,loncells] = localPolysplit(lat,lon)
