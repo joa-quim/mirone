@@ -70,9 +70,9 @@ vars = [];					% Container to eventual user selected fields to plot (MGD77+ only
 					opt_G = ' ';
 				case '-P'
 					str = varargin{k}(3:end);
-					[tok,rem] = strtok(str,'/');
+					[tok,r] = strtok(str,'/');
 					lon = str2double(tok);
-					lat = str2double(rem(2:end));
+					lat = str2double(r(2:end));
 					begin = 0;
 					center_win = [lon lat];
 				case '-V'
@@ -132,6 +132,7 @@ vars = [];					% Container to eventual user selected fields to plot (MGD77+ only
 	handles.is_gmt = is_gmt;
 	handles.is_mgd77 = is_mgd77;
 	handles.vars = vars;
+	handles.force_gmt = false;		% If TRUE save in old .gmt format
 
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 	if (~isempty(MIRONE_DIRS))							% Should not be empty, but ...
@@ -166,20 +167,20 @@ vars = [];					% Container to eventual user selected fields to plot (MGD77+ only
 	scroll_plots(def_width_km,[0 10000])     % The [0 10000] will be reset inside scroll_plots to a more appropriate val
 	movegui(hf,'north')
 
-h_toolbar = uitoolbar('parent',hf,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
-   'Interruptible','on','Tag','FigureToolBar','Visible','on');
-uipushtool('parent',h_toolbar,'Click',{@import_clickedCB,f_name},'Tag','import',...
-   'cdata',openFile_img,'Tooltip','Open gmt file');
-uipushtool('parent',h_toolbar,'Click',@save_clickedCB,'Tag','save', 'cdata',saveFile_img,'Tooltip','Save gmt file');
-% uitoggletool('parent',h_toolbar,'Click',@zoom_clickedcallback,'Tag','zoom',...
-%    'cdata',zoom_img,'TooltipString','Zoom');
-uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','cdata',info_ico, 'Tooltip','Cruise Info');
-uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang','cdata',rectang_ico,...
-   'Tooltip','Rectangular region','Sep','on');
-uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedCB,'cdata',rectang_ico,'Tooltip','Select for moving');
-uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zoomIn_img,'Tooltip','Increase scale','Sep','on');
-uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'dec'}, 'cdata',zoomOut_img,'Tooltip','Decrease scale');
-uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',trincha_ico,'Tooltip','Outliers detector','Sep','on');
+	h_toolbar = uitoolbar('parent',hf,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
+		'Interruptible','on','Tag','FigureToolBar','Visible','on');
+	uipushtool('parent',h_toolbar,'Click',{@import_clickedCB,f_name},'Tag','import',...
+		'cdata',openFile_img,'Tooltip','Open gmt file');
+	uipushtool('parent',h_toolbar,'Click',@save_clickedCB,'Tag','save', 'cdata',saveFile_img,'Tooltip','Save gmt file');
+	% uitoggletool('parent',h_toolbar,'Click',@zoom_clickedcallback,'Tag','zoom',...
+	%    'cdata',zoom_img,'TooltipString','Zoom');
+	uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','cdata',info_ico, 'Tooltip','Cruise Info');
+	uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang','cdata',rectang_ico,...
+		'Tooltip','Rectangular region','Sep','on');
+	uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedCB,'cdata',rectang_ico,'Tooltip','Select for moving');
+	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zoomIn_img,'Tooltip','Increase scale','Sep','on');
+	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'dec'}, 'cdata',zoomOut_img,'Tooltip','Decrease scale');
+	uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',trincha_ico,'Tooltip','Outliers detector','Sep','on');
 
 	% Create empty lines just for the purpose of having their handles
 	handles.h_gl = line('XData',[],'YData',[],'Color','k','Parent',h_a1);
@@ -293,9 +294,12 @@ function import_clickedCB(hObject, eventdata, opt)
 		id = id1;
 		if (r2 < r1),	id = id2;	end
 		x_lim = track.distance(id) + [-handles.def_width_km/2 handles.def_width_km/2];
-		set(findall(handles.figure1,'Type','axes'),'xlim',x_lim)
+		set([handles.axes1 handles.axes2 handles.axes3],'xlim',x_lim)
 		val0 = track.distance(id)-handles.def_width_km;
 		if (val0 > track.distance(1)),		val = val0;		end
+		line('XData',[track.distance(id) track.distance(id)], 'YData',get(handles.axes1,'ylim'), 'Parent', handles.axes1)
+		line('XData',[track.distance(id) track.distance(id)], 'YData',get(handles.axes2,'ylim'), 'Parent', handles.axes2)
+		line('XData',[track.distance(id) track.distance(id)], 'YData',get(handles.axes3,'ylim'), 'Parent', handles.axes3)
 	end
 
 	% Update the slider properties
@@ -352,7 +356,7 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 	else												% Need to compute the acumulated distance along profile
 		D2R = pi / 180;		KMPRDEG = 111.1949;
 		co = cos(track.latitude * D2R);
-		dx = [0; diff(track.longitude)];		dy = [0; diff(track.latitude)] .* co;
+		dx = [0; diff(track.longitude)] .* co;		dy = [0; diff(track.latitude)];
 		track.distance = cumsum(sqrt(dx .^2 + dy .^2) * KMPRDEG);
 		if (~isempty(tempo))			% Compute velocity and find where to store it
 			vel = [4; diff(track.distance) ./ diff(tempo) * 1e3];		% Speed in m/s
@@ -399,14 +403,19 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 		ind = strcmp({s.Attribute.Name}, 'Source_Institution');
 		track.agency = s.Attribute(ind).Value;
 	end
-	track.info = 'Bla Bla';				% PRECISAMOS ACABAR AQUI
+	track.info = 'Bla Bla';
 
 % --------------------------------------------------------------------
 function save_clickedCB(hObject, eventdata)
 	handles = guidata(hObject);     % get handles
-	if (handles.is_gmt)
+	if (handles.is_gmt || handles.force_gmt)
 		NODATA(1:3) = -32000;
-		[FileName,PathName] = put_or_get_file(handles, handles.f_name,'Select gmt File', 'put','.gmt');
+		f_name = handles.f_name;
+		if (handles.force_gmt && ~handles.is_gmt)		% Conversion from the mgd77+ format
+			[PATH,FNAME] = fileparts(handles.f_name);
+			f_name = [PATH filesep FNAME '.gmt'];
+		end
+		[FileName,PathName] = put_or_get_file(handles, f_name,'Select gmt File', 'put','.gmt');
 		if isequal(FileName,0),		return,		end
 		f_name = [PathName FileName];
 	else
@@ -443,33 +452,22 @@ function save_clickedCB(hObject, eventdata)
 	set(handles.figure1,'Pointer','watch')
 	x_lim = get(get(handles.figure1,'CurrentAxes'),'XLim');
 	if (~isempty(x_gn))
-		id_x = zeros(numel(x_gn),1);
 		for (k=1:numel(x_gn))
 			tmp = find((x_g - x_gn(k)) == 0);   % Find the gravity points that were marked
-			id_x(k) = tmp(1);				% Old files often have repeated coords
+			y_g(tmp) = NaN;				% Remove them
 		end
-		y_g(id_x) = NODATA(1);				% Remove them
 	end
 	if (~isempty(x_mn))
 		for (k=1:numel(x_mn))
 			tmp = find((x_m - x_mn(k)) == 0);   % Find the magnetic points that were marked
-			y_m(tmp) = NODATA(2);				% Remove them
+			y_m(tmp) = NaN;				% Remove them
 		end
 	end
 	if (~isempty(x_tn))
-		id_x = zeros(numel(x_tn),1);
 		for (k=1:numel(x_tn))
 			tmp = find((x_t - x_tn(k)) == 0);   % Find the topo points that were marked
-			id_x(k) = tmp(1);				% Old files often have repeated coords
+			y_t(tmp) = NaN;				% Remove them
 		end
-		y_t(id_x) = NODATA(3);					% Remove them
-	end
-
-	n_rec = numel(handles.lon);
-	if (handles.is_gmt && (isempty(y_gn) || isempty(y_mn) || isempty(y_tn)) )
-		if (isempty(y_g)),		y_g = repmat(int16(NODATA(1)),1,n_rec);		end		% Original had not this type of data
-		if (isempty(y_m)),		y_m = repmat(int16(NODATA(1)),1,n_rec);		end
-		if (isempty(y_t)),		y_t = repmat(int16(NODATA(1)),1,n_rec);		end
 	end
 
 	if (~isempty(y_g))
@@ -478,8 +476,13 @@ function save_clickedCB(hObject, eventdata)
 		end
 	end
 	if (~isempty(y_m))
-		if (handles.is_gmt),	y_m(isnan(y_m)) = NODATA(2);		y_m = int16(y_m);
-		elseif (~isempty(x_mn))	y_m = y_m / handles.magScaleF;		y_m(isnan(y_m)) = NODATA(2);	y_m = int32(y_m);
+		is_gmt = handles.is_gmt;	% Local copy to handle also the force_gmt case 
+		if (handles.force_gmt && ~is_gmt),		y_m = y_m - 40000;	is_gmt = true;		end		% Conversion from the mgd77+ format
+		if (is_gmt),			y_m(isnan(y_m)) = NODATA(2);		y_m = int16(y_m);
+		elseif (~isempty(x_mn))
+			y_m = y_m / handles.magScaleF;
+			y_m(isnan(y_m)) = NODATA(2);
+			y_m = int32(y_m);
 		end
 	end
 	if (~isempty(y_t))
@@ -488,7 +491,20 @@ function save_clickedCB(hObject, eventdata)
 		end
 	end
 
-	if (handles.is_gmt)			% Old style .gmt files
+	n_rec = numel(handles.lon);
+	if ( (handles.is_gmt || handles.force_gmt) && (isempty(y_gn) || isempty(y_mn) || isempty(y_tn)) )
+		if (isempty(y_g)),		y_g = repmat(int16(NODATA(1)),1,n_rec);		end		% Original had not this type of data
+		if (isempty(y_m)),		y_m = repmat(int16(NODATA(1)),1,n_rec);		end
+		if (isempty(y_t)),		y_t = repmat(int16(NODATA(1)),1,n_rec);		end
+	end
+
+	if (handles.is_gmt || handles.force_gmt)			% Old style .gmt files
+		if (handles.force_gmt && ~handles.is_gmt)		% Conversion from the mgd77+ format
+			tempo = nc_funs('varget', handles.f_name, 'time');
+			handles.time = tempo - (date2jd(handles.year) - date2jd(1970)) * 86400;	% We need time in seconds since begining of year
+			[PATH,FNAME] = fileparts(f_name);
+			f_name = [PATH filesep FNAME '.gmt'];
+		end
 		tempo = int32(handles.time);
 		lat  = int32(handles.lat * 1e6);    % And convert back to millidegrees
 		lon  = int32(handles.lon * 1e6);
@@ -503,8 +519,8 @@ function save_clickedCB(hObject, eventdata)
 		end
 		fclose(fid);
 	else						% New mgf77+ netCDF style files
-		if (~isempty(y_gn)),		nc_funs('varput', f_name, 'faa', y_g, 0);		end		% The 0 flags nc_funs for not try to scale
-		if (~isempty(y_mn)),		nc_funs('varput', f_name, 'mtf1', y_m, 0);		end
+		if (~isempty(y_gn)),		nc_funs('varput', f_name, 'faa',   y_g, 0);		end		% The 0 flags nc_funs for not try to scale
+		if (~isempty(y_mn)),		nc_funs('varput', f_name, 'mtf1',  y_m, 0);		end
 		if (~isempty(y_tn)),		nc_funs('varput', f_name, 'depth', y_t, 0);		end
 	end
 
@@ -568,22 +584,26 @@ function add_MarkColor(hObject, eventdata)
 
 % --------------------------------------------------------------------------------------------------
 function zoom_clickedcallback(obj,eventdata)
-	if (strcmp(get(obj,'State'),'on'))
-		zoom_j xon;
-	else
-		zoom_j off;
+	if (strcmp(get(obj,'State'),'on')),		zoom_j xon;
+	else									zoom_j off;
 	end
 
 % --------------------------------------------------------------------------------------------------
 function info_clickedCB(obj,eventdata)
 	handles = guidata(obj);     % get handles
 	if (isempty(handles.info)),		return,		end
-	data = handles.info;
+	if (handles.is_gmt)
+		data = handles.info;
+	else
+		[data, agency] = aux_funs('mgd77info',handles.f_name);
+	end
+
 	str{1} = sprintf('N_recs = %d, N_grav = %d, N_mag = %d, N_topo = %d', data(1:4));
 	str{2} = ['E: = ' num2str(data(5)) '  W: = ' num2str(data(6))];
 	str{3} = ['S: = ' num2str(data(7)) '  N: = ' num2str(data(8))];
 	str{4} = ['Start day,month,year: = ' num2str(data(9)) '  ' num2str(data(10)) '  ' num2str(data(11))];
 	str{5} = ['End   day,month,year: = ' num2str(data(12)) '  ' num2str(data(13)) '  ' num2str(data(14))];
+	if (~handles.is_gmt),	str{6} = '';	str{7} = agency;	end
 	msgbox(str,'Cruise Info')
 
 % --------------------------------------------------------------------------------------------------
