@@ -53,7 +53,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
 %#function mat2clip buffer_j PolygonClip trend1d_m 
 
-% 	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
+%  	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
 	global home_dir;	fsep = filesep;
 	if (isempty(home_dir))		% First time call. Find out where we are
 		[home_dir, nome] = fileparts(mfilename('fullpath'));		% Get the Mirone home dir and set path
@@ -2127,7 +2127,7 @@ function DrawLine_CB(handles, opt)
 	elseif (strncmp(opt,'spl',3)),			[xp,yp] = getline_j(handles.figure1,'spline');
 	else									[xp,yp] = getline_j(handles.figure1);
 	end
-	n_nodes = numel(xp);
+	n_nodes = numel(xp);					LS = 'none';
 	if (n_nodes < 2),	zoom_state(handles,'maybe_on'),		return,		end
 	% The polyline Tag is very important to destinguish from MB tracks, which have Tags = MBtrack#
 	if (strcmp(opt,'FaultTrace'))		% When this function is used for Okada modeling
@@ -2140,12 +2140,12 @@ function DrawLine_CB(handles, opt)
 		if (strcmp(opt,'GCPmemory'))
 			GCPinMemory = getappdata(handles.figure1,'GCPregImage');
 			xp = GCPinMemory(:,1);		yp = GCPinMemory(:,2);	LS = ':';
-		else		% Load GCPs file
+		elseif (strcmp(opt,'GCPimport'))		% Load GCPs file
 			str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 			[FileName,PathName] = put_or_get_file(handles,str1,'Select input GCP file name','get');
 			if (isequal(FileName,0)),		return,		end
 			xy = draw_funs([PathName FileName], 'ImportLine');
-			xp = xy(:,1);				yp = xy(:,2);			LS = 'none';
+			xp = xy(:,1);				yp = xy(:,2);
 			setappdata(handles.figure1,'GCPregImage',xy)
 			setappdata(handles.figure1,'fnameGCP',FileName)	% To know when GCPs must be removed from appdata (in show_image)
 		end			% else -> opt = 'GCPpline'
@@ -2423,6 +2423,8 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 
 	% And finaly do the ploting
 	colors = rand(numel(track),3);			% Use a random color schema
+	%use_aguenta = false;					% Less than 20 tracks don't use aguentabar
+% 	if (numel(track) > 20),		aguentabar(0,'title','Plotting tracks'),	use_aguenta = true;		end
 	for (k = 1:numel(track))
 		if (isempty(track(k).longitude)),	continue,	end		% This track is completely outside the map
 		h = line(track(k).longitude,track(k).latitude, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick,'Color',...
@@ -2430,6 +2432,8 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 		setappdata(h,'FullName',names{k})	% Store file name in case the uicontext wants to open it with gmtedit
 		setappdata(h,'VarsName',vars(k,:))	% Store field name in case the uicontext wants to open it with gmtedit
 		draw_funs(h,'gmtfile',track(k).info)
+		%ui_edit_polygon(h)
+		%if (use_aguenta),	h = aguentabar(k/numel(track));		end
 	end
 	set(handles.figure1,'Pointer','arrow');
 	if (~strcmp(opt, 'list'))				% Insert fileName into "Recent Files" & save handles
