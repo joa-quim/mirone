@@ -41,7 +41,7 @@ SHAPE_FLAGS = -I/usr/local/include -I$(MATLAB)/extern/include
 PROG_GMT	= grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m mapproject_m shoredump surface_m nearneighbor_m grdfilter_m cpt2cmap grdlandmask_m grdppa_m gmtlist_m
 
 # Non LIB dependent mexs (besides matlab libs, of course)
-PROG_SIMPLE	= test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select mex_illuminate grdutils  read_isf ind2rgb8 alloc_mex susan set_gmt mxgridtrimesh houghmex intlutc trend1d_m gmtmbgrid_m grdgradient_m grdtrack_m
+PROG_SIMPLE	= test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select mex_illuminate grdutils  read_isf ind2rgb8 alloc_mex susan set_gmt mxgridtrimesh houghmex intlutc trend1d_m gmtmbgrid_m grdgradient_m grdtrack_m cm4field_m
 
 # netCDF mexs (other than GMT ones)
 PROG_withCDF = swan swan_sem_wbar
