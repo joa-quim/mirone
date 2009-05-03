@@ -328,6 +328,7 @@ mex/akimaspline.cpp -text
 mex/alloc_mex.c -text
 mex/callMir.c -text
 mex/clipbd_mex.cpp -text
+mex/cm4field_m.c -text
 mex/countries.h -text
 mex/country_extract.c -text
 mex/country_select.c -text
