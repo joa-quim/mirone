@@ -30,15 +30,16 @@ function out = gmtedit(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-f_name = '';
-got_inFile = 0;
-def_width_km = 200;         % Default width in km (approximatly 1/2 of a day at 10 knots)
-opt_G = '-G';               % Default output to [-180/+180] range
-begin = 1;                  % This means that the display starts at the begining of track
-center_win = [];
-is_gmt = false;
-is_mgd77 = false;
-vars = [];					% Container to eventual user selected fields to plot (MGD77+ only)
+	f_name = '';
+	got_inFile = 0;
+	def_width_km = 200;         % Default width in km (approximatly 1/2 of a day at 10 knots)
+	opt_G = '-G';               % Default output to [-180/+180] range
+	begin = 1;                  % This means that the display starts at the begining of track
+	center_win = [];
+	is_gmt = false;
+	is_mgd77 = false;
+	vars = [];					% Container to eventual user selected fields to plot (MGD77+ only)
+	multi_plot = [];			% Container to eventual user selected extra fields to overlay in plot (MGD77+ only)
 
 	if (nargin > 0)
 		f_name = varargin{1};
@@ -78,10 +79,31 @@ vars = [];					% Container to eventual user selected fields to plot (MGD77+ only
 				case '-V'
 					% For new MGD77+ files only. It contains a user selection of the fields to be plot (instead of GMT)
 					str = varargin{k}(3:end);
-					ind = strfind(str,',');
-					vars{1} = str(1:ind(1)-1);
-					vars{2} = str(ind(1)+1:ind(2)-1);
-					vars{3} = str(ind(2)+1:end);
+					ind2 = strfind(str,':');
+					if (isempty(ind2)),		last = numel(str);
+					else					last = ind2 - 1;
+					end
+					if (~isempty(ind2) && ind2(1) == 1)		% The form '-V:anom+2' is also aceptable
+						vars{1} = 'faa';		vars{2} = 'mtf1';		vars{3} = 'depth';
+					else
+						ind = strfind(str,',');
+						vars{1} = str(1:ind(1)-1);
+						vars{2} = str(ind(1)+1:ind(2)-1);
+						vars{3} = str(ind(2)+1:last);
+					end
+
+					if (~isempty(ind2))				% Have a multiple plots request
+						str = str(ind2+1:end);		% Retain the multi-plot info string only
+						ind = strfind(str,'/');		% How many extra curves?
+						multi_plot = cell(numel(ind)+1,2);
+						ind3 = [1 ind numel(str)+1];
+						for (n = 1:numel(ind3)-1)
+							str2 = str(ind3(n):ind3(n+1)-1);
+							ind = strfind(str2,'+');% To find in which slot will go this plot
+							multi_plot{n,1} = str2(1:ind-1);
+							multi_plot{n,2} = str2(ind+1:end);
+						end
+					end
 			end
 		end
 	end
@@ -132,6 +154,7 @@ vars = [];					% Container to eventual user selected fields to plot (MGD77+ only
 	handles.is_gmt = is_gmt;
 	handles.is_mgd77 = is_mgd77;
 	handles.vars = vars;
+	handles.multi_plot = multi_plot;
 	handles.force_gmt = false;		% If TRUE save in old .gmt format
 
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
@@ -302,6 +325,20 @@ function import_clickedCB(hObject, eventdata, opt)
 		line('XData',[track.distance(id) track.distance(id)], 'YData',get(handles.axes3,'ylim'), 'Parent', handles.axes3)
 	end
 
+	% If we have multi-plots requests
+	if (~isempty(handles.multi_plot))
+		for (k = 1:size(handles.multi_plot,1))
+			switch handles.multi_plot{k,2}
+				case '1'
+					line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes1)
+				case '2'
+					line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes2)
+				case '3'
+					line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes3)
+			end
+		end
+	end
+
 	% Update the slider properties
 	r = 0.90 * handles.def_width_km / handles.max_x_data;		% Give a 10% overlap between display area when click on slider arrow
 	set(hs,'Max',max_s,'value',val,'SliderStep',[r r*10])
@@ -345,12 +382,24 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 				track.magnetics  = nc_funs('varget', fname, handles.vars{2});
 				track.topography = nc_funs('varget', fname, handles.vars{3});
 			end
+
+			% If there is a multi plot request, try to fetch the requested extra fields
+			if (~isempty(handles.multi_plot))
+				try
+					for (k = 1:size(handles.multi_plot,1))
+						track.multi{k} = nc_funs('varget', fname, handles.multi_plot{k,1});
+					end
+				catch
+					errordlg('GMTEDIT: At least one of custom selected EXTRA field name does not exist in dataset','Error')
+					if (isfield(track,'multi')),	rmfield(track,'multi');		end
+				end
+			end
 		catch
-			errordlg('GMTEDIT: At least one custom selected field name does ot exist in dataset','Error')
+			errordlg('GMTEDIT: At least one of custom selected field name does not exist in dataset','Error')
 			error('GMTEDIT:read_mgd77_plus', lasterr)
 		end
 	end
-	
+
 	if ( (any(strmatch('lon', handles.vars)) | any(strmatch('lat', handles.vars))) & isempty(tempo) )
 		track.distance = 1:numel(track.gravity);		% We plot lon/lat against the record number
 	else												% Need to compute the acumulated distance along profile
