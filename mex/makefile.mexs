@@ -152,6 +152,8 @@ gmtmbgrid_m:
 		$(MEX) -I$(MATLAB)/extern/include gmtmbgrid_m.c $(MEXLIB)
 trend1d_m:
 		$(MEX) -I$(MATLAB)/extern/include trend1d_m.c $(MEXLIB)
+PolygonClip:
+		$(MEX) -I$(MATLAB)/extern/include PolygonClip.c gpc.c $(MEXLIB)
 
 # ------------------------- GDAL progs -----------------------------------
 gdalread:
