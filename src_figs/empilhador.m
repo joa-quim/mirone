@@ -821,8 +821,10 @@ function [Z, att] = read_gdal(full_name, att, varargin)
 				lon_full(k,:) = akimaspline(cntl_pt_cols, lon(k,:), cols_vec);
 				lat_full(k,:) = akimaspline(cntl_pt_cols, lat(k,:), cols_vec);
 			end
-			x_min = lon(end,1);		x_max = lon(1,end);
-			y_min = lat(1);			y_max = lat(end,end);
+			x_min = min([lon(1) lon(1,end) lon(end,1) lon(end)]);
+			x_max = max([lon(1) lon(1,end) lon(end,1) lon(end)]);
+			y_min = min([lat(1) lat(1,end) lat(end,1) lat(end)]);
+			y_max = max([lat(1) lat(1,end) lat(end,1) lat(end)]);
 			clear lon lat cols_vec
 			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', x_min, x_max, y_min, y_max);
 
