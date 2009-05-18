@@ -92,7 +92,7 @@ str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'tsun2' 'wave_travel_time' 'mansinh
 	'PolygonClip' }';
 
 % Non LIB dependent c++ mexs
-str_simple_cpp = {'houghmex' 'clipbd_mex'}';
+str_simple_cpp = {'houghmex' 'clipbd_mex' 'akimaspline'}';
 LIB_USER32 = [pato_VC98LIB 'USER32.LIB'];
 LIB_GDI32 = [pato_VC98LIB 'GDI32.LIB'];
 
