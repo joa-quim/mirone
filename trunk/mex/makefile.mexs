@@ -154,6 +154,8 @@ trend1d_m:
 		$(MEX) -I$(MATLAB)/extern/include trend1d_m.c $(MEXLIB)
 PolygonClip:
 		$(MEX) -I$(MATLAB)/extern/include PolygonClip.c gpc.c $(MEXLIB)
+akimaspline:	
+		$(MEX) -I$(MATLAB)/extern/include akimaspline.cpp $(MEXLIB)
 
 # ------------------------- GDAL progs -----------------------------------
 gdalread:
