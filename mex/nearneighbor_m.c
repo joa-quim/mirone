@@ -431,10 +431,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			percentage += 5;
 		}
 #else
-		if (nofile)
-			mexPrintf("Done %.0f %%\r", (double)(nin+1) / n_pts * 100);
-		else
-			mexPrintf("Done %.0f %%\r", (double)(n) / n_alloc * 100);	/* Idiot, but we don't know total pts */
+		if ( (float)nin / n_pts * 100 >= percentage ) {
+			if (nofile)
+				mexPrintf("Done %.0f %%\r", (double)(nin+1) / n_pts * 100);
+			else
+				mexPrintf("Done %.0f %%\r", (double)(n) / n_alloc * 100);	/* Idiot, but we don't know total pts */
+			percentage += 2;
+		}
 #endif
 
 		nin++;
