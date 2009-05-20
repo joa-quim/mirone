@@ -39,14 +39,15 @@ function aquaPlugin(handles)
 			ano = 1:12;				% Compute yearly means
 			calc_yearMean(handles, ano)
 		case 'yearMeanFlag'			% case 4
-			ano = [1:6 10:12];			% Compute yearly (ano = 1:12) or seasonal means (ano = start_month:end_month)
-			fname  = 'C:\SVN\mironeWC\qual_85_07.nc';
-			quality = 6;			% Retain only values of quality >= this
+			ano = 9;				% Compute yearly (ano = 1:12) or seasonal means (ano = start_month:end_month)
+			fname  = 'C:\a1\terra_qual.nc';
+			fname  = 'C:\a1\pathfinder\qual_85_07.nc';
+			quality = -1;			% Retain only values of quality >= this (or <= abs(this) when MODIS)
 			pintAnoes = true;		% If true instruct to fill holes <= nCells
-			nCells = 1000;			% Holes (bad data) smaller than this are filled by interpolation
+			nCells = 500;			% Holes (bad data) smaller than this are filled by interpolation
 			splina = true;			% Fill missing monthly data by a spline interpolation taken over two years
 			% Where to save track of filled holes. Ignored if pintAnoes = false OR fname3 = []
-			fname3 = 'C:\SVN\mironeWC\qual7_85_07_Interp200_Q6.nc';
+			fname3 = 'C:\a1\pathfinder\qual7_85_07_Interp200_Q6.nc';
 			fname3 = [];
 			calc_yearMean(handles, ano, fname, quality, pintAnoes, nCells, fname3, splina)
 		case 'polygAVG'				% case 5
@@ -58,7 +59,7 @@ function aquaPlugin(handles)
 			calc_flagsStats(handles, ano, 7, opt)
 		case 'pass_by_count'		% case 7
 			count = 11;
-			fname = 'C:\SVN\mironeWC\countPerYear_flag7_Interp200.nc';
+			fname = 'C:\a1\pathfinder\countPerYear_flag7_Interp200.nc';
 			pass_by_count(handles, count, fname)
 		case 'do_math'				% case 8
 			opt = 'sum';			% Sum all layers (only operation for the time beeing)
@@ -201,24 +202,81 @@ function calcGrad(handles)
 % 		Tmed(:,:,m) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m 0 0], [1 rows cols]);
 	end
 
+	% ------------------------------------------ 
+	hFigs = findobj(0,'type','figure');						% Fish all figures
+	IAmAMir = zeros(1, numel(hFigs));
+	for (k = 1:numel(hFigs))								% Get the first Mirone figure with something in it
+		if (~isempty(getappdata(hFigs(k), 'IAmAMirone')))
+			handMir = guidata(hFigs(k));
+			if (handMir.no_file),	continue,	end			% An virgin Mirone bar figure
+			IAmAMir(k) = 1;		break,	
+		end
+	end
+	if (sum(IAmAMir) ~= 1)
+		errordlg('Did not find any valid Mirone figure with data displayed.','Error'),	return
+	end
+
+	hLine = findobj(handMir.axes1,'Type','line');
+	if (isempty(hLine)),	hLine = findobj(handMir.axes1,'Type','patch');	end		% Try once more
+	x = get(hLine,'XData');		y = get(hLine,'YData');
+	if (isempty(x))
+		errordlg('The Mirone figure needs to have at least one polygon loaded.','Error'),	return
+	end
+	mask = img_fun('roipoly_j',handles.head(1:2),handles.head(3:4),get(handMir.hImg,'CData'),x,y);
+	B = img_fun('find_holes',mask);
+	col_min = min(B{1}(:,2));		col_max = max(B{1}(:,2));
+	row_min = min(B{1}(:,1));		row_max = max(B{1}(:,1));
+	row_vec = row_min:row_max;
+	col_vec = col_min:col_max;
+	x = (0:anos-1)';
+	k = 1;
+	for (n = col_vec)
+		IN = inpolygon(repmat(n, numel(row_vec), 1), row_vec, B{1}(:,2), B{1}(:,1));		% See if ...
+		this_row = 1;
+		for (m = row_vec)
+			if (~IN(this_row)),		continue,	end				% This pixel is outside polygon POI
+			this_row = this_row + 1;
+			y = squeeze(Tmed(m,n,:));
+			ind = isnan(y);
+			y(ind) = [];
+			if (numel(y) < anos/2),		continue,	end			% Completely ad-hoc test
+			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
+			stack{k,1} = [x(~ind)+1 y];	% x,temp
+			stack{k,2} = p(1);			% Slope
+			stack{k,3} = p(4);			% p-value
+			k = k + 1;
+		end
+	end
+	%h=figure;hold on,for z=1:size(stack,1), plot(stack{z,1}(:,2)), end
+	
+	str1 = {'*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select Output File name','put','.dat');
+	if isequal(FileName,0),		return,		end
+	f_name = [PathName FileName];
+	double2ascii(f_name, stack, '%.0f\t%.3f', 'maybeMultis');
+	[PATH, FNAME, EXT] = fileparts(f_name);
+	f_name = [PATH filesep FNAME '_mp' EXT];		% Write a second file with 2 columns where 1st col is slope and 2nth is p-value
+	xy = [cat(1,stack{:,2}) cat(1, stack{:,3})];
+	double2ascii(f_name, xy);
+	return
+	% ---------------------------------------
+
 	aguentabar(0,'title','Compute the Time rate','CreateCancelBtn')
 
-	Tvar = zeros(rows,cols);
+	Tvar = zeros(rows,cols) * NaN;
 	x = (0:anos-1)';
 	for (m = 1:rows)
 		for (n = 1:cols)
 			y = squeeze(Tmed(m,n,:));
 			ind = isnan(y);
 			y(ind) = [];
-			if (numel(y) < 10)				% Completely ad-hoc test
-				Tvar(m,n) = NaN;
-				continue
-			end
+			%if (numel(y) < anos/2),		continue,	end			% Completely ad-hoc test
 %  			p = polyfit(x(~ind),y,1);
- 			p = trend1d_m([x(~ind) y],'-L','-N2r');
-%  			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
+%  			p = trend1d_m([x(~ind) y],'-L','-N2r');
+			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
 % 			z=[xvalues(1:4);ones(1,4)]'\yvalues';
-			Tvar(m,n) = p(1);
+			if (p(1) < -0.5 || p(1) > 1),	continue,	end		% Another ad-hoc (CLIPPING)
+			Tvar(m,n) = p(4);
 		end
 		h = aguentabar(m/rows);
 		if (isnan(h)),	break,	end
@@ -246,6 +304,7 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 % FNAME2 	name of a netCDF file with quality flags. Obviously this file must be of
 % 			the same size as the series under analysis.
 % FLAG		Threshold quality value. Only values of quality >= FLAG will be taken into account
+%			NOTE: For MODIS use negative FLAG. Than, values are retained if quality <= abs(FLAG)
 % PINTANOES	Logical that if true instruct to fill holes <= NCELLS
 % FNAME3 	Optional name of a netCDF file where interpolated nodes will be set to FLAG
 %			and the others retain their FNAME2 value. This corresponds to the promotion
@@ -285,6 +344,10 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 		
 		if (nargin == 3),		flag = 7;		end			% If not provided, defaults to best quality
 	end
+	
+	if (flag > 0),		growing_flag = true;				% Pathfinder style (higher the best) quality flag
+	else				growing_flag = false;	flag = -flag;	% MODIS style (lower the best) quality flag
+	end
 
 	if (nargin < 8),		splina = false;		end
 	if (splina)
@@ -305,17 +368,9 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 
 	for (m = 1:anos)
 		if (splina)
-% 			if (m == 1)
-% 				this_months = 1:(months(end)+n_pad_months);		past_months = max(1,months(1)-n_pad_months) - 1;
-% 			elseif (m == anos)
-% 				this_months = 1:( n_pad_months + numel(months) + min(n_pad_months, 12-months(end)) );
-% 				past_months = (m - 1)*12 + months(1) - n_pad_months - 1;
-% 			else
-% 				this_months = 1:(numel(months)+2*n_pad_months);		past_months = (m - 1)*12 + months(1) - n_pad_months - 1;
-% 			end
 			if (m == 1)
 				past_months = max(1,months(1)-n_pad_months) - 1;
-				this_months = past_months+1 : past_months+(months(end)+n_pad_months);
+				this_months = past_months+1 : (months(end)+n_pad_months);
 			elseif (m == anos)
 				past_months = (m - 1)*12 + months(1) - n_pad_months - 1;
 				this_months = past_months+1 : past_months+( n_pad_months + numel(months) + min(n_pad_months, 12-months(end)) );
@@ -330,16 +385,14 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 
 		counter = 0;
 		for (n = this_months)
-% 			mn = past_months + n - 1;
-% 			Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [mn 0 0], [1 rows cols]);
 			counter = counter + 1;
 			if (m == 1)
 				Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [n-1 0 0], [1 rows cols]);
 			else
-				if (n <= last_processed_month)
+				if (n <= last_processed_month && splina)
 					already_processed = already_processed + 1;
 					offset = 1;
-					if (m == 2),	offset = months(1)-n_pad_months;		end		% Because for the 1st year the series may be shorter
+					if (m == 2),	offset = min(1, months(1)-n_pad_months);		end		% Because for the 1st year the series may be shorter
 					offset = total_months - (last_processed_month - n) + offset - 1;
 					ZtoSpline(:,:,already_processed) = ZtoSpline(:,:,offset);
 				else
@@ -348,23 +401,21 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 				end
 			end
 
-% 			if (do_flags)
-% 				Z_flags = nc_funs('varget', fname2, s_flags.Dataset(z_id_flags).Name, [mn 0 0], [1 rows cols]);
 			if (do_flags && ~already_processed)
 				Z_flags = nc_funs('varget', fname2, s_flags.Dataset(z_id_flags).Name, [n-1 0 0], [1 rows cols]);
-				Z(Z_flags < flag) = NaN;
+				if (growing_flag),		Z(Z_flags < flag) = NaN;	% Pathfinder style (higher the best) quality flag
+				else					Z(Z_flags > flag) = NaN;	% MODIS style (lower the best) quality flag
+				end
 			end
 
 			ind = isnan(Z);
 
- 			if (pintAnoes && ~already_processed && any(ind(:)))			% If fill spatial holes is requested
-%  			if (pintAnoes && any(ind(:)))			% If fill spatial holes is requested
+ 			if (pintAnoes && ~already_processed && any(ind(:)))		% If fill spatial holes is requested
 				if (track_filled),		ind0 = ind;		end			% Get this Z level original NaNs mask
 				Z = inpaint_nans(handles, Z, ind, nCells);			% Select interp method inside inpaint_nans()
 				ind = isnan(Z);
-				if (track_filled)
+				if (track_filled)					% Write updated quality file
 					Z_flags(ind0 & ~ind) = flag;	% Promote interpolated pixels to quality 'flag'
-					% Write updated quality file
 					if (mn == 0),		nc_io(fname3, sprintf('w%d/time',anos*numel(months)), handles, reshape(Z_flags,[1 size(Z_flags)]))
 					else				nc_io(fname3, sprintf('w%d', mn), handles, Z_flags)
 					end
@@ -376,7 +427,6 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 				contanoes = contanoes + ~ind;
 				Tmed(:,:) = Tmed(:,:) + double(Z);
 			else						% Pack this year into a 3D temporary variable, to be processed later.
-%  				ZtoSpline(:,:,n) = Z;
  				if (~already_processed),	ZtoSpline(:,:,counter) = Z;		end
 			end
 		end			% End loop over months
@@ -387,7 +437,7 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 			tmp = single(Tmed(:,:));
 
 		else						% Fill missing month data by interpolation based on non-NaN data
-			hh = aguentabar(eps,'title','Splining it.');
+			hh = aguentabar(eps,'title','Splining it.');	drawnow
 			if (isnan(hh)),		in_break = true;	break,		end		% Over time loop said: break
 			n_meses = numel(this_months);
 
@@ -404,30 +454,29 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 					% If have NaNs inside the months of interest and the overall series has enough points, interp in the missing positions
 					if ( all( ind(first_wanted_month:last_wanted_month) ) )		% We have them all, so nothing to interp
 						ZtoSpline(j,i,1:n_meses) = single(y);
-					elseif ( numel(ind(ind)) >= (fix(numel(months)/2) + n_pad_months - 0) )
+					elseif (~any(ind))		% They are all NaNs -- Almost sure a land pixel
+						continue
+					elseif ( numel(ind(ind)) >= round(numel(this_months)/2 + 1) )
+					%elseif ( numel(ind(ind)) >= (fix(numel(months)/2) + n_pad_months - 0) )
 						x = this_months(ind);			y0 = y(ind);
 						%yy = gmtmbgrid_m(x(:), zeros(numel(x),1)+2, y0(:), '-I1', sprintf('-R%d/%d/0/4', x(1), x(end)), '-Mz', '-W-2', '-T100');
 						%yy = yy(3,:);
 						try
 							if ((m == 1 || m == anos))
 % 								yy = interp1(x, y0, this_months, 'spline', nan);
-%  								yy = cubicspline(x, y0, this_months);
  								yy = akimaspline(x, y0, this_months);
 % 								yy = spline1d(this_months, x, y0, [], [], 0.0);
 							else
 % 								yy = spline(x, y0, this_months);
-%  								yy = cubicspline(x, y0, this_months);
 								yy = akimaspline(x, y0, this_months);
 % 								yy = spline1d(this_months, x, y0, [], [], 0.0);
 							end
 							y(first_wanted_month:last_wanted_month)= yy(first_wanted_month:last_wanted_month);
 							ZtoSpline(j,i,1:n_meses) = single(y);
 						end
-					else
-						ZtoSpline(j,i,1:n_meses) = single((1:n_meses)*nan);
 					end
 				end
-				hh = aguentabar(i/(cols+1));
+				hh = aguentabar(i/(cols+1));	drawnow
 				if (isnan(hh)),		in_break = true;	break,		end		% Over time loop said: break (comment: FCK ML SHIT)
 			end				% end loops over this 2D layer
 
@@ -448,7 +497,7 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 		else				nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
 		end
 
-		h = aguentabar(m/anos,'title','Computing anual means.');
+		h = aguentabar(m/anos,'title','Computing anual means.');	drawnow
 		if (isnan(h)),	break,	end
 
 		if (~splina),	Tmed = Tmed * 0;	end			% Reset it to zeros
@@ -539,11 +588,8 @@ function Z = inpaint_nans(handles, Z, bw, nCells)
 	
 	B = img_fun('find_holes',bw);
 
-	if (use_surface)
-		opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
-	else
-		opt_I = ' ';
-	end
+	opt_I = ' ';
+	if (use_surface),		opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));	end
 
 	n_buracos = numel(B);
 	for (i = 1:n_buracos)
@@ -556,11 +602,13 @@ function Z = inpaint_nans(handles, Z, bw, nCells)
 		y_min = head(3) + (y_min-1)*head(9);    y_max = head(3) + (y_max-1)*head(9);
 
 		rect_crop = [x_min y_min (x_max-x_min) (y_max-y_min)];
-		[Z_rect, r_c]  = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
-		bw_rect = cropimg(head(1:2),head(3:4),bw,rect_crop,'out_grid');
+		[Z_rect, r_c] = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
+		[bw_rect, zz] = cropimg(head(1:2),head(3:4),bw,rect_crop,'out_grid');
 		Z_rect = double(Z_rect);      % It has to be (GHRRRRRRRRRRRRR)
 
-		X = x_min:head(8):x_max;	Y = y_min:head(9):y_max;
+		%X = x_min:head(8):x_max;	Y = y_min:head(9):y_max;
+		X = linspace(x_min, x_max, size(Z_rect, 2));		% Safer against round off errors 
+		Y = linspace(y_min, y_max, size(Z_rect, 1));
 		[XX,YY] = meshgrid(X,Y);
 		XX(bw_rect) = [];			YY(bw_rect) = [];		Z_rect(bw_rect) = [];
 
@@ -581,7 +629,6 @@ function Z = inpaint_nans(handles, Z, bw, nCells)
 		else						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 		end
 	end
-	%clear gmtmbgrid_m
 
 % ----------------------------------------------------------------------
 function calc_polygAVG(handles)

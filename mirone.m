@@ -51,7 +51,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line move_obj make_arrow
 %#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
-%#function mat2clip buffer_j PolygonClip trend1d_m 
+%#function mat2clip buffer_j PolygonClip trend1d_m akimaspline
 
 %  	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
 	global home_dir;	fsep = filesep;
@@ -2370,6 +2370,7 @@ function DrawImportShape_CB(handles, fname)
 			end
 			h((h == 0)) = [];		% Those were jumped because thay were completely outside map limits
 		end
+		if (isempty(h)),	warndlg('No data inside dysplay region','Warning'),		return,		end
 		draw_funs(h,'setSHPuictx')			% Set lines's uicontextmenu
 	elseif (strcmp(t,'Polygon'))
 		nParanoia = 1000;					% The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
@@ -2385,6 +2386,7 @@ function DrawImportShape_CB(handles, fname)
 		end
 		if (nPolygs > nParanoia)				% nParanoia is an arbitrary number that practice will show dependency
 			h((h == 0)) = [];					% Those were jumped because they were completely outside map limits
+			if (isempty(h)),	warndlg('No data inside dysplay region','Warning'),		return,		end
 			draw_funs(h,'country_patch')		% mostly on hardware, for I don't beleave ML will ever behave decently.
 		end
 	end
@@ -2525,7 +2527,7 @@ function FileOpenSession_CB(handles, fname)
 	set(handles.figure1,'pointer','watch')
 	load([PathName FileName])
 
-	tala = exist(grd_name,'file');		flagIllum = true;	% Illuminate (if it is the case)
+	tala = (exist(grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
 	if (~tala && ~isempty(grd_name))						% Give user a 2nd chance to tell where the grid is
 		[PathName FileName EXT] = fileparts(grd_name);
 		resp = inputdlg({'Full name (with path) of missing grid:'},'Whre is the grid?',1,{['.....' filesep FileName EXT]});

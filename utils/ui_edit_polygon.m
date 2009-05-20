@@ -290,6 +290,7 @@ function wbm_MovePolygon(obj,eventdata,h,lim)
 	setappdata(s.h_pol,'old_pt',[pt(1,1) pt(1,2)])
 	set(s.h_pol, 'XData',xx, 'YData',yy);
 	set(s.h_vert, 'XData',xv, 'YData',yv);
+%  	set(s.h_pol, 'YData',yy);	set(s.h_vert, 'YData',yv);
 
 	if (~isempty(s.h_current_marker))      % If the black marker exists, move it also
 		x = get(s.h_current_marker,'XData');      y = get(s.h_current_marker,'YData');
