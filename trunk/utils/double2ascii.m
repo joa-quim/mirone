@@ -28,44 +28,53 @@ function double2ascii(filename, X, formatString, multiseg)
 % email: gilbertd@dfo-mpo.gc.ca  Web: http://www.qc.dfo-mpo.gc.ca/iml/
 % September 2001; Revision: 25-Apr-2002
 %
-% J. Luis   06-01-2007  Added multisegment writing option
+% J. Luis   06-01-2007  Added multisegment writing and other options
 
 % Set default format string
 if (nargin < 3),        formatString = '%f ';  end
-if (~isnumeric(X)),     error('Input variable ''X'' must be numeric');   end
-if (nargin < 2),        error('At least two input arguments are required: ''filename'' and ''X'''); end
-if (ndims(X) > 2),      error('Input variable ''X'' cannot have more than 2 dimensions');     end
+if (~(isnumeric(X) || isa(X,'cell'))),		error('Input variable ''X'' must be numeric or cell array'),	end
+if (nargin < 2),        error('At least two input arguments are required: ''filename'' and ''X'''),			end
+if (~isa(X,'cell') && ndims(X) > 2),		error('Input variable ''X'' cannot have more than 2 dimensions'),end	% Cell case is not tested
+n_arg = nargin;
+if (isa(X,'cell')),		n_arg = 4;		end		% Force multisegment case. Will crash if nargin == 2
 
 %Find all occurrences of the percent (%) format specifier within the input format string
 kpercent = strfind(formatString,'%');
 
 %Open and write to ASCII file
-if (ispc),      fid = fopen(filename,'wt');
-elseif (isunix) fid = fopen(filename,'w');
-else            fclose(fid);    error('DOUBLE2ASCII: Unknown platform.');
+if (ispc),		fid = fopen(filename,'wt');
+elseif (isunix)	fid = fopen(filename,'w');
+else			fclose(fid);    error('DOUBLE2ASCII: Unknown platform.');
 end
-ncols  = size(X,2);     % Determine the number of rows and columns in array X
+ncols  = size(X,2);					% Determine the number of rows and columns in array X
 
-if (nargin < 4)                 % Original form. No eventual NaN cleaning
-	if (kpercent == 1)          % Same format for ALL columns
-        fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], X');
-	else                        % Different format for each column
-       fprintf(fid,[formatString '\n'], X');
+if (n_arg < 4)						% Original form. No eventual NaN cleaning
+	if (kpercent == 1)				% Same format for ALL columns
+		fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], X');
+	else							% Different format for each column
+		fprintf(fid,[formatString '\n'], X');
 	end
-else                            % We might have NaNs (that is multi-segments files)
-    if ( ~any(isnan(X)) )       % NO, we haven't
-		if (kpercent == 1),     fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], X');
-		else                    fprintf(fid,[formatString '\n'], X');
-		end
-    else                        % YES, we have them (then multisegs)
-        [y_cell,x_cell] = localPolysplit(X(:,2),X(:,1));
-        for (k=1:numel(x_cell))
-            fprintf(fid,'%s\n','>');
-    		if (kpercent == 1),     fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], [x_cell{k}(:)'; y_cell{k}(:)']);
-		    else                    fprintf(fid,[formatString '\n'], [x_cell{k}(:)'; y_cell{k}(:)']);
+else								% We might have NaNs (that is multi-segments files)
+	if (isa(X,'cell'))
+		for (k=1:length(X))			% Currently deals only with Mx2 arrays case
+			fprintf(fid,'%s\n','>');
+			if (kpercent == 1),		fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], [X{k}(:,1)'; X{k}(:,2)']);
+		    else					fprintf(fid,[formatString '\n'], [X{k}(:,1)'; X{k}(:,2)']);
 		    end
-        end
-    end
+		end
+	elseif ( ~any(isnan(X)) )		% NO, we haven't
+		if (kpercent == 1),			fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], X');
+		else						fprintf(fid,[formatString '\n'], X');
+		end
+	else							% YES, we have them (then multisegs)
+		[y_cell,x_cell] = localPolysplit(X(:,2),X(:,1));
+		for (k=1:numel(x_cell))
+			fprintf(fid,'%s\n','>');
+			if (kpercent == 1),		fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], [x_cell{k}(:)'; y_cell{k}(:)']);
+		    else					fprintf(fid,[formatString '\n'], [x_cell{k}(:)'; y_cell{k}(:)']);
+			end
+		end
+	end
 end
 
 fclose(fid);
