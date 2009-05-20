@@ -196,7 +196,6 @@ data/volcanoes.dat -text
 data/wcity.dat -text
 data/wcity_major.dat -text
 doc/MironeMan.chm -text
-/gdal15.dll -text
 /gdal16.dll -text
 /gdal_ECW_JP2ECW.dll -text
 /gdal_translate.exe -text
@@ -233,9 +232,7 @@ gmt_userdir/coastline.conf -text
 gmt_userdir/gmt.conf -text
 gmt_userdir/us.d -text
 /gunzip.exe -text
-/hd421m.dll -text
 /hd422m.dll -text
-/hm421m.dll -text
 /hm422m.dll -text
 lib_mex/PolygonClip.dll -text
 lib_mex/akimaspline.dll -text
@@ -433,9 +430,7 @@ mex/wave_travel_time.c -text
 /mexnc.dll -text
 /mirone.m -text
 /mirone_uis.m -text
-/proj.dll -text
 /proj_mir.dll -text
-/projectionMenu.m -text
 /psl.dll -text
 /shapelib.dll -text
 src_figs/about_box.m -text
