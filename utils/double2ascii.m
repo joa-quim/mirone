@@ -8,27 +8,28 @@ function double2ascii(filename, X, formatString, multiseg)
 % Syntax:  double2ascii(filename, X, formatString, multiseg)
 %
 % Inputs:  filename  - Name of the output ASCII file
-%          X  - double array can be a vector (1-D) or matrix (2-D)
-%          formatString  - OPTIONAL format string  (Default = '%f')
-%          multiseg      - OPTIONAL Replace NaNs lines with the GMT '>' multisegment flag
+%		X  - double array can be a vector (1-D), a matrix (2-D) or a cell array.
+%		In later case each cell must contain a Mx2 array and output file will be multisegment
+%		formatString  - OPTIONAL format string  (Default = '%f')
+%		multiseg      - OPTIONAL Replace NaNs lines with the GMT '>' multisegment flag
 %
 % Example 1: Export array X to ASCII file with the same format for all columns
-%            X = rand(300,10);
-%            double2ascii('foo1.txt', X, '%4.2f ')
+%		X = rand(300,10);
+%		double2ascii('foo1.txt', X, '%4.2f ')
 %
 % Example 2: Export array X to ASCII file with different formats for each column
-%            year = (1991:2000)';
-%            x = (1:10)';
-%            column2 = x / 100;         column3 = x * 1e27;
-%            X = [ year column2 column3];
-%            double2ascii('foo2.txt', X, '%d  %5.2f  %10.3e');
+%		year = (1991:2000)';
+%		x = (1:10)';
+%		column2 = x / 100;         column3 = x * 1e27;
+%		X = [ year column2 column3];
+%		double2ascii('foo2.txt', X, '%d  %5.2f  %10.3e');
 
 % Author: Denis Gilbert, Ph.D., physical oceanography
 % Maurice Lamontagne Institute, Dept. of Fisheries and Oceans Canada
 % email: gilbertd@dfo-mpo.gc.ca  Web: http://www.qc.dfo-mpo.gc.ca/iml/
 % September 2001; Revision: 25-Apr-2002
 %
-% J. Luis   06-01-2007  Added multisegment writing and other options
+% J. Luis   06-01-2007  Added multisegment writing and several other changes
 
 % Set default format string
 if (nargin < 3),        formatString = '%f ';  end
