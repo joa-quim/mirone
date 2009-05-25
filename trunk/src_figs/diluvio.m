@@ -36,10 +36,10 @@ function varargout = diluvio(varargin)
 	handles.cmap = cmap_orig;
 	handles.cmap_original = cmap_orig;
 	set(handles.figure1,'ColorMap',cmap_orig);      I = 1:length(cmap_orig);
-	h_img = image(I(end:-1:1)','Parent',handles.axes1);
+	image(I(end:-1:1)','Parent',handles.axes1);
 	set(handles.axes1,'YTick',[],'XTick',[]);
 
-	% Add this figure handle to the carraças list
+	% Add this figure handle to the carra?as list
 	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
 	plugedWin = [plugedWin hObject];
 	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
@@ -70,6 +70,7 @@ function varargout = diluvio(varargin)
 	guidata(hObject, handles);
 	
 	set(hObject,'Vis','on')
+	if (nargout),	varargout{1} = hObject;		end
 
 % -----------------------------------------------------------------------------------
 function slider_zeroLevel_Callback(hObject, eventdata, handles)
@@ -130,7 +131,7 @@ function figure1_KeyPressFcn(hObject, eventdata)
 
 
 % --- Creates and returns a handle to the GUI figure. 
-function diluvio_LayoutFcn(h1);
+function diluvio_LayoutFcn(h1)
 
 set(h1,...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
@@ -243,7 +244,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Callback',{@diluvio_uicallback,h1,'pushbutton_run_Callback'},...
-'Position',[81 74 40 23],...
+'Position',[81 74 40 21],...
 'String','Run',...
 'TooltipString','Run the Noe deluge',...
 'Tag','pushbutton_run');
