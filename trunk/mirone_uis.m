@@ -90,8 +90,7 @@ uipushtool('parent',h_toolbar,'Click','mirone(''Draw_CB'',guidata(gcbo),''Vector
 	'Tag','DrawArrow','cdata',Marrow_ico,'Tooltip','Draw Arrow');
 uitoggletool('parent',h_toolbar,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''zoom'')', ...
 	'Tag','Zoom','cdata',zoom_ico,'Tooltip','Zooming on/off','Sep','on');
-uitoggletool('parent',h_toolbar,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''pan'')', ...
-	'Tag','Mao','cdata',mao,'Tooltip','Pan');
+uitoggletool('parent',h_toolbar,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''pan'')', 'Tag','Mao','cdata',mao,'Tooltip','Pan');
 uitoggletool('parent',h_toolbar,'Click','draw_funs(gcbo,''deleteObj'')', ...
 	'Tag','Tesoura','cdata',cut_ico,'Tooltip','Delete objects');
 uipushtool('parent',h_toolbar,'Click','color_palettes(guidata(gcbo))', ...
@@ -104,8 +103,7 @@ hVG(4) = uipushtool('parent',h_toolbar,'Click','mirone(''ToolsMBplaningStart_CB'
 	'Tag','MBplaning','cdata',MB_ico,'Tooltip','Multi-beam planing');
 uipushtool('parent',h_toolbar,'Click','mirone(''FileSaveFleder_CB'',guidata(gcbo),''runPlanar'')', ...  
 	'Tag','FlederPlanar','cdata',olho_ico,'Tooltip','Run Fleder 3D Viewer');
-uipushtool('parent',h_toolbar,'Click','writekml(guidata(gcbo))', ...
-	'Tag','toGE','cdata',GE_ico,'Tooltip','See it in Google Earth');
+uipushtool('parent',h_toolbar,'Click','writekml(guidata(gcbo))', 'Tag','toGE','cdata',GE_ico,'Tooltip','See it in Google Earth');
 uipushtool('parent',h_toolbar,'Click',@refresca, 'Tag','Refresh','cdata',refresh_ico,'Tooltip','Refresh','Sep','on');
 uipushtool('parent',h_toolbar,'Click','grid_info(guidata(gcbo))','Tag','ImageInfo','cdata',info_ico,'Tooltip','Image info');
 
@@ -659,7 +657,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 18 May 2009'',''1.4.1(dev)'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 25 May 2009'',''1.4.1(dev)'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -686,8 +684,8 @@ function showGDALdrivers(hObj,event)
 	long  = {att.Driver.DriverLongName}';
 	short = {att.Driver.DriverShortName}';
 	list  = cat(2,short,long);
-    tableGUI('array',list,'ColWidth',[60 220],'ColNames',{'Short' 'Long Format Name'},...
-        'FigName','Potentialy Available GDAL formats','RowNumbers','y','MAX_ROWS',20,'modal','');
+    tableGUI('array',list,'ColWidth',[70 220],'ColNames',{'Short' 'Long Format Name'},...
+        'FigName','Potentialy Available GDAL formats','RowNumbers','y','MAX_ROWS',20,'modal','','RowHeight',24);
 
 % -----------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObj, event)
@@ -742,7 +740,7 @@ function figure1_CloseRequestFcn(hObj, event)
 	try		h = getappdata(handles.figure1,'dependentFigs');
 	catch	delete(gcf),	return
 	end
-	delete(handles.figure1);		delete(h(ishandle(h)))      % Delete also any eventual 'carraças'
+	delete(handles.figure1);		delete(h(ishandle(h)))      % Delete also any eventual 'carra?as'
 	FOpenList = handles.FOpenList;		fname = [handles.path_data 'mirone_pref.mat'];
 	if (~handles.version7),    	save(fname,'FOpenList','-append')   % Update the list for "Recent files"
 	else    	                save(fname,'FOpenList','-append', '-v6')
