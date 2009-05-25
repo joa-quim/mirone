@@ -44,8 +44,8 @@ function varargout = cartas_militares(varargin)
     naos{7} = [1 58];
     naos{8} = 1;
     naos{9} = [56 58];
-    naos{10} = [56:58];
-    naos{11} = [56:58];
+    naos{10} = 56:58;
+    naos{11} = 56:58;
     naos{12} = [1 2 56:58];
     naos{13} = [1:9 29:30 56:58];
     naos{14} = [1:11 16:20 26:30 57:58];
@@ -53,7 +53,7 @@ function varargout = cartas_militares(varargin)
     naos{16} = [1:46 57:58];
     naos{17} = [1:47 57:58];
     naos{18} = [1:49 54:58];
-    naos{19} = [1:58];
+    naos{19} = 1:58;
 	
     atlas_file = [path_data 'countries_dp5.bin'];
     paises.ct = country_select(atlas_file,'-Pportugal');
@@ -234,21 +234,21 @@ function bdnTile(obj,event,hFig)
 	if (~isempty(proj))			% If we know the projection, convert it to the WKT form
 		tmp.srsWKT = ogrproj(proj);
 	end
-	hMir = mirone(img, tmp);
+	mirone(img, tmp);
 	set(handles.figure1,'pointer','arrow')
 
 % ----------------------------------------------------------------------------
 function popup_directory_list_Callback(hObject, eventdata, handles, opt)
 % OPT is used by pushbutton_change_dir (just to save code)
-	if (nargin == 3)    opt = [];   end
+	if (nargin == 3),	opt = [];   end
 	if isempty(opt)
 		val = get(hObject,'Value');     str = get(hObject, 'String');
 		% Put the selected field on top of the String list. This is necessary because the "OK" button will
 		tmp = str(val);         str(val) = [];
 		new_str = [tmp; str];   set(hObject,'String',new_str); 
 		set(hObject,'Value',1)
-		if iscell(tmp)          new_dir = tmp{1};
-		elseif ischar(tmp)      new_dir = tmp;
+		if iscell(tmp),			new_dir = tmp{1};
+		elseif ischar(tmp),		new_dir = tmp;
 		else                    return        % ???
 		end
 	else
@@ -416,7 +416,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Callback',{@cartas_militares_uicallback,h1,'radio_inWeb_Callback'},...
 'FontName','Helvetica',...
-'Position',[130 30 61 15],...
+'Position',[130 30 71 15],...
 'String','In Web',...
 'Style','radiobutton',...
 'TooltipString','When you have get the files from Web',...

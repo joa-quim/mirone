@@ -2,7 +2,7 @@ function varargout = color_palettes(varargin)
 % M-File changed by desGUIDE 
 % varargin   command line arguments to color_palettes
 
-%	Copyright (c) 2004-2007 by J. Luis
+%	Copyright (c) 2004-2009 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ if (nargin == 1 && isstruct(varargin{1}))
 		set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
 		handles.home_dir = cd;
 	end
-	% Add this figure handle to the carraças list
+	% Add this figure handle to the carra?as list
 	plugedWin = getappdata(handMir.figure1,'dependentFigs');
 	plugedWin = [plugedWin hObject];
 	setappdata(handMir.figure1,'dependentFigs',plugedWin);
@@ -533,7 +533,7 @@ function change_cmap(handles,pal)
 				z_min = handles.z_min;		z_max = handles.z_max;
 			end
 			log_maxmin = log(z_max / z_min) / len_Pal;
-			z_pal = z_min * exp([1:len_Pal] * log_maxmin);
+			z_pal = z_min * exp((1:len_Pal) * log_maxmin);
 			if (handles.z_min <= 0)
 				z_pal = z_pal - (z_min-handles.z_min);		% Reset the shift applyied above to avoid taking log(negative)
 			end
@@ -1241,13 +1241,13 @@ uicontrol('Parent',h1,...
 'Tag','slider_Top');
 
 uicontrol('Parent',h1,...
-'Position',[16 258 71 15],...
+'Position',[16 258 75 15],...
 'String','Stretch Bottom',...
 'Style','text',...
 'Tag','text2');
 
 uicontrol('Parent',h1,...
-'Position',[14 226 60 14],...
+'Position',[14 226 65 14],...
 'String','Stretch Top',...
 'Style','text',...
 'Tag','text3');
@@ -1316,20 +1316,20 @@ uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_ML_Callb
 'Position',[12 196 45 15], 'String','ML', 'Style','radiobutton', 'Tag','radiobutton_ML','Val',1);
 
 uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_GMT_Callback'},...
-'Position',[70 196 45 15], 'String','GMT', 'Style','radiobutton', 'Tag','radiobutton_GMT');
+'Position',[70 196 55 15], 'String','GMT', 'Style','radiobutton', 'Tag','radiobutton_GMT');
 
 uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_MR_Callback'},...
 'Position',[133 196 45 15], 'String','MR', 'Style','radiobutton', 'Tag','radiobutton_MR');
 
 uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_CAR_Callback'},...
-'Position',[12 176 45 15],'String','CAR', 'Style','radiobutton', 'Tag','radiobutton_CAR');
+'Position',[12 176 55 15],'String','CAR', 'Style','radiobutton', 'Tag','radiobutton_CAR');
 
 uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_GIMP_Callback'},...
-'Position',[70 176 50 15],'String','GIMP', 'Style','radiobutton','Tag','radiobutton_GIMP');
+'Position',[70 176 60 15],'String','GIMP', 'Style','radiobutton','Tag','radiobutton_GIMP');
 
 uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'check_logIt_CB'},...
 'ToolTip','Take a natural logarithm (ln()) of the current color palette', ...
-'Position',[210 186 80 15],'String','Logaritmize', 'Style','checkbox','Tag','check_logIt');
+'Position',[210 186 85 15],'String','Logaritmize', 'Style','checkbox','Tag','check_logIt');
 
 uimenu('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'Help_Callback'}, 'Label','Help', 'Tag','Help');
 
