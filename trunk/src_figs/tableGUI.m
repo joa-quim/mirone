@@ -208,9 +208,9 @@ for (i = 1:hand.NumRows)
             hand.Checks_pos_orig(i,:),'Value',1);
     end
     for (j = 1:hand.NumCol)
-        hand.Edits_pos_orig{i,j} = [arr_pos_xi(j) hand.arr_pos_y(i) arr_pos_xw(j) 20];
+        hand.Edits_pos_orig{i,j} = [arr_pos_xi(j) hand.arr_pos_y(i) arr_pos_xw(j) hand.RowHeight];
         hand.hEdits(i,j) = uicontrol('Style','edit','unit','pixels','backgroundcolor','w','position', ...
-            [arr_pos_xi(j) hand.arr_pos_y(i) arr_pos_xw(j) 20],'String',hand.array{i,j},...
+            [arr_pos_xi(j) hand.arr_pos_y(i) arr_pos_xw(j) hand.RowHeight],'String',hand.array{i,j},...
             'HorizontalAlignment',hand.HorAlin);
     end
     if (~isempty(hand.RowNumbers))
