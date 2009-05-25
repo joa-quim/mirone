@@ -2,7 +2,7 @@ function varargout = focal_meca(varargin)
 % M-File changed by desGUIDE 
 % varargin   command line arguments to focal_meca (see VARARGIN)
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2009 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ function varargout = focal_meca(varargin)
 	if (isempty(varargin))
 		errordlg('FOCAL MECA: wrong number of arguments.','Error')
 		return
-    end
+	end
 
 	hObject = figure('Tag','figure1','Visible','off');
 	focal_meca_LayoutFcn(hObject);
@@ -102,7 +102,7 @@ function varargout = focal_meca(varargin)
 
 	% Choose default command line output for focal_meca
 	set(hObject,'Visible','on');
-	if (nargout),	varagout{1} = hObject;		end
+	if (nargout),	varargout{1} = hObject;		end
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
@@ -283,27 +283,27 @@ function pushbutton_readFile_Callback(hObject, eventdata, handles)
 % -------------------------------------------------------------------------------------
 function edit_MagMin_Callback(hObject, eventdata, handles)
 	xx = str2double(get(hObject,'String'));
-	if (isnan(xx) || xx < 1 || xx > 10)    set(hObject,'String','1');     end
+	if (isnan(xx) || xx < 1 || xx > 10),	set(hObject,'String','1');     end
 
 % -------------------------------------------------------------------------------------
 function edit_MagMax_Callback(hObject, eventdata, handles)
 	xx = str2double(get(hObject,'String'));
-	if (isnan(xx) || xx < 1 || xx > 10)    set(hObject,'String','10');    end
+	if (isnan(xx) || xx < 1 || xx > 10),	set(hObject,'String','10');    end
 
 % -------------------------------------------------------------------------------------
 function edit_Mag5_Callback(hObject, eventdata, handles)
 	xx = str2double(get(hObject,'String'));
-	if (isnan(xx) || xx < 0)    set(hObject,'String','1');   end
+	if (isnan(xx) || xx < 0),		set(hObject,'String','1');   end
 
 % -------------------------------------------------------------------------------------
 function edit_DepthMin_Callback(hObject, eventdata, handles)
 	xx = str2double(get(hObject,'String'));
-	if (isnan(xx) || xx < 0)    set(hObject,'String','0');   end
+	if (isnan(xx) || xx < 0),		set(hObject,'String','0');   end
 
 % -------------------------------------------------------------------------------------
 function edit_DepthMax_Callback(hObject, eventdata, handles)
 	xx = str2double(get(hObject,'String'));
-	if (isnan(xx) || xx > 900)    set(hObject,'String','900');end
+	if (isnan(xx) || xx > 900),		set(hObject,'String','900');end
 
 % -------------------------------------------------------------------------------------
 function checkbox_depSlices_Callback(hObject, eventdata, handles)
@@ -347,10 +347,10 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 	if (strcmp(filtro,'aki'))
 		ind2 = (handles.data(:,7) < MagMin | handles.data(:,7) > MagMax);
 	else							% ISF catalog, CMT, CMT .ndk 
-        handles.mantiss_exp(ind1,:) = [];   % This risked to heve been left behind
+		handles.mantiss_exp(ind1,:) = [];   % This risked to heve been left behind
 		ind2 = (handles.data(:,10) < MagMin | handles.data(:,10) > MagMax);
-        handles.mantiss_exp(ind2,:) = [];
-    end
+		handles.mantiss_exp(ind2,:) = [];
+	end
     handles.data(ind2,:) = [];      handles.plot_pos(ind2,:) = [];
     if (~isempty(handles.date))     handles.date(ind2,:) = [];  end
 
@@ -456,7 +456,7 @@ function [numeric_data,n_column,error] = read_file(fname)
 	[bin,n_column,multi_seg,n_headers] = guess_file(fname);
 	% If msgbox exist we have to move it from behind the main window. So get it's handle
 	hMsgFig = gcf;
-	if (hFig ~= hMsgFig)        figure(hMsgFig);   end   % If msgbox exists, bring it forward
+	if (hFig ~= hMsgFig),		figure(hMsgFig);   end   % If msgbox exists, bring it forward
 	% If error in reading file
 	if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
 		errordlg(['Error reading file ' fname],'Error');
@@ -466,11 +466,11 @@ function [numeric_data,n_column,error] = read_file(fname)
 		error = 1;  return
 	end
 	
-	if (isempty(n_headers))     n_headers = NaN;    end
+	if (isempty(n_headers)),	n_headers = NaN;    end
 	if (multi_seg)
-		[numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers,'>');
+		numeric_data = text_read(fname,NaN,n_headers,'>');
 	else
-		[numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
+		numeric_data = text_read(fname,NaN,n_headers);
 	end
 	if (hFig ~= hMsgFig);       figure(hFig);   end     % gain access to the drawing figure
 	if (iscell(numeric_data))
@@ -610,16 +610,16 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1, 'Position',[18 236 51 30],...
 'String',{'Minimum'; 'magnitude' }, 'Style','text');
 
-uicontrol('Parent',h1, 'Position',[143 237 51 30],...
-'String',{  'Maximum'; 'magnitude' }, 'Style','text');
+uicontrol('Parent',h1, 'Position',[135 237 58 30],...
+'String',{  'Maximum'; 'magnitude' }, 'Style','text','HorizontalAlignment','right');
 
 uicontrol('Parent',h1,'Position',[10 44 371 141],'Style','frame','Tag','frame2');
 
 uicontrol('Parent',h1, 'Position',[15 140 51 30],...
 'String',{'Minimum'; 'depth'}, 'Style','text');
 
-uicontrol('Parent',h1, 'Position',[135 139 51 30],...
-'String',{'Maximum'; 'depth' }, 'Style','text');
+uicontrol('Parent',h1, 'Position',[131 139 55 30],...
+'String',{'Maximum'; 'depth' }, 'Style','text','HorizontalAlignment','right');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -631,7 +631,7 @@ uicontrol('Parent',h1,...
 'Tag','edit_Mag5');
 
 uicontrol('Parent',h1,...
-'Position',[69 208 101 15],...
+'Position',[69 208 115 15],...
 'String','Plot event date',...
 'Style','checkbox',...
 'TooltipString','Plot time information',...
@@ -649,14 +649,14 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@focal_meca_uicallback,h1,'edit_DepthMax_Callback'},...
-'Position',[187 145 47 21],...
+'Position',[190 145 47 21],...
 'Style','edit',...
 'TooltipString','Do not plot events deeper than this',...
 'Tag','edit_DepthMax');
 
 uicontrol('Parent',h1,...
 'Callback',{@focal_meca_uicallback,h1,'checkbox_depSlices_Callback'},...
-'Position',[19 110 211 15],...
+'Position',[19 110 230 15],...
 'String','Use different colors for depth intervals',...
 'Style','checkbox',...
 'TooltipString','Destinguish the epicenter depths by color',...
