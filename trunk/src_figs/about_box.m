@@ -17,11 +17,8 @@ function varargout = about_box(varargin)
 % --------------------------------------------------------------------
  
 	hObject = figure('Tag','figure1','Visible','off');
+	about_box_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	guidata(hObject, handles);
-	about_box_LayoutFcn(hObject,handles);
-	handles = guihandles(hObject);
-	% Reposition the window on screen
 	movegui(hObject,'northeast')
 
     handMir = varargin{1};
@@ -45,47 +42,29 @@ function varargout = about_box(varargin)
 	end
 	
 	set(hObject,'Visible','on');
+	guidata(hObject,handles)
 	
 	% Choose default command line output for about_box
 	if (nargout),    varargout{1} = hObject;    end
-	guidata(hObject, handles);
 
 % -------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
-delete(handles.figure1);
-
-% --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-% Hint: delete(hObject) closes the figure
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    handles.output = '';        % User gave up, return nothing
-    guidata(hObject, handles);
-    uiresume(handles.figure1);
-else
-    % The GUI is no longer waiting, just close it
-    handles.output = '';        % User gave up, return nothing
-    guidata(hObject, handles);
-    delete(handles.figure1);
-end
+	delete(handles.figure1);
 
 % --- Executes on key press over figure1 with no controls selected.
-function figure1_KeyPressFcn(hObject, eventdata, handles)
+function figure1_KeyPressFcn(hObject, eventdata)
 % Check for "escape"
+handles = guidata(hObject);
 if isequal(get(hObject,'CurrentKey'),'escape')
-    handles.output = '';    % User said no by hitting escape
-    guidata(hObject, handles);
     delete(handles.figure1);
 end
 
 % --- Creates and returns a handle to the GUI figure. 
-function about_box_LayoutFcn(h1,handles);
+function about_box_LayoutFcn(h1)
 
 set(h1,...
-'PaperUnits','centimeters',...
-'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','about_box',...
 'NumberTitle','off',...
@@ -119,8 +98,7 @@ uicontrol('Parent',h1,'Position',[86 45 45 21],...
 'FontSize',12,...
 'HorizontalAlignment','left',...
 'String','J Luis',...
-'Style','text',...
-'Tag','text3');
+'Style','text');
 
 uicontrol('Parent',h1, 'Position',[138 47 113 17],...
 'ForegroundColor',[0 0.501960784313725 0.250980392156863],...
@@ -135,7 +113,7 @@ uicontrol('Parent',h1, 'Position',[10 16 201 15],...
 'HorizontalAlignment','left',...
 'Style','text','Tag','text_prog');
 
-uicontrol('Parent',h1, 'Position',[216 11 46 23],...
+uicontrol('Parent',h1, 'Position',[216 11 46 21],...
 'Callback',{@about_box_uicallback,h1,'pushbutton_OK_Callback'},...
 'String','OK',...
 'Tag','pushbutton_OK');
