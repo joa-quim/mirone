@@ -1,8 +1,8 @@
 function varargout = parker_stuff(varargin)
 % M-File changed by desGUIDE 
-% Last Modified 31-May-2005
+% Last Modified 25-May-2009
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2009 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -44,7 +44,6 @@ handles.Z_bat = [];
 handles.Z_src = [];
 handles.zobs = 0;               % Default observation level
 handles.data = [];              % Date has no default value
-last_dir = [];
 no_igrf  = 0;                   % In reduction to the pole we don't need to compute the IGRF
 
 if (~isempty(varargin))
@@ -161,21 +160,7 @@ end
 handles.output = hObject;
 guidata(hObject, handles);
 set(hObject,'Visible','on');
-% UIWAIT makes parker_stuff_export wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = parker_stuff_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = parker_stuff_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-
-% Get default command line output from handles structure
-varargout{1} = handles.output;
+if (nargout),   varargout{1} = hObject;     end
 
 % -------------------------------------------------------------------------------------------------
 function edit_BatGrid_Callback(hObject, eventdata, handles)
@@ -188,7 +173,7 @@ parker_stuff('pushbutton_BatGrid_Callback',gcbo,[],guidata(gcbo),fname)
 
 % -------------------------------------------------------------------------------------------------
 function pushbutton_BatGrid_Callback(hObject, eventdata, handles, opt)
-if (nargin == 4)    fname = opt;    end
+if (nargin == 4),	fname = opt;	end
 
 if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
 	if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))			% If we know it and it exists
@@ -210,7 +195,7 @@ if (fid < 0)
 end
 ID = fread(fid,4,'*char');
 ID = strread(ID,'%s');      fclose(fid);
-if strcmp(ID,'DSBB') | strcmp(ID,'DSRB') 
+if strcmp(ID,'DSBB') || strcmp(ID,'DSRB') 
     fname = [fname '=6'];
 elseif strcmp(ID,'DSAA')
     warndlg('I don''t know and do not intend to learn how to read ASCII Surfer grids.','Warning')
@@ -220,10 +205,10 @@ end
 [X,Y,handles.Z_bat,handles.head_bat] = grdread_m(fname);
 % See if Source/Mag grid is already loaded and, if yes, if they are compatible
 if (~isempty(get(handles.edit_SourceGrid,'String')))
-    if ( abs(handles.head_bat(1) - handles.head_src(1)) > 1e-4 | abs(handles.head_bat(2) - handles.head_src(2)) > 1e-4 |...
-            abs(handles.head_bat(3) - handles.head_src(3)) > 1e-4 | abs(handles.head_bat(4) - handles.head_src(4)) > 1e-4)
+    if ( abs(handles.head_bat(1) - handles.head_src(1)) > 1e-4 || abs(handles.head_bat(2) - handles.head_src(2)) > 1e-4 || ...
+            abs(handles.head_bat(3) - handles.head_src(3)) > 1e-4 || abs(handles.head_bat(4) - handles.head_src(4)) > 1e-4)
         errordlg('Error: Bathymetry & Source grids do not cover the same region','Error');  return
-    elseif(abs(handles.head_bat(8) - handles.head_src(8)) > 1e-6 | abs(handles.head_bat(9) - handles.head_src(9)) > 1e-6)
+    elseif(abs(handles.head_bat(8) - handles.head_src(8)) > 1e-6 || abs(handles.head_bat(9) - handles.head_src(9)) > 1e-6)
         errordlg('Error: Bathymetry & Source grids do not have the same size.','Error');     return
     end
 end
@@ -247,7 +232,7 @@ parker_stuff('pushbutton_InputFile_Callback',gcbo,[],guidata(gcbo),fname)
 
 % -------------------------------------------------------------------------------------------------
 function pushbutton_SourceGrid_Callback(hObject, eventdata, handles,opt)
-if (nargin == 4)    fname = opt;    end
+if (nargin == 4),	fname = opt;	end
 
 if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
 	if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))			% If we know it and it exists
@@ -269,7 +254,7 @@ if fid < 0
 end
 ID = fread(fid,4,'*char');
 ID = strread(ID,'%s');
-if strcmp(ID,'DSBB') | strcmp(ID,'DSRB') 
+if strcmp(ID,'DSBB') || strcmp(ID,'DSRB') 
     fname = [fname '=6'];
 elseif strcmp(ID,'DSAA')
     warndlg('I don''t know and do not intend to learn how to read ASCII Surfer grids.','Warning')
@@ -278,10 +263,10 @@ end
 [handles.X,handles.Y,handles.Z_src,handles.head_src] = grdread_m(fname);
 % See if Bat grid is already loaded and, if yes, if both grids are compatible
 if (~isempty(get(handles.edit_BatGrid,'String')))
-    if ( abs(handles.head_bat(1) - handles.head_src(1)) > 1e-4 | abs(handles.head_bat(2) - handles.head_src(2)) > 1e-4 |...
-            abs(handles.head_bat(3) - handles.head_src(3)) > 1e-4 | abs(handles.head_bat(4) - handles.head_src(4)) > 1e-4)
+    if ( abs(handles.head_bat(1) - handles.head_src(1)) > 1e-4 || abs(handles.head_bat(2) - handles.head_src(2)) > 1e-4 || ...
+            abs(handles.head_bat(3) - handles.head_src(3)) > 1e-4 || abs(handles.head_bat(4) - handles.head_src(4)) > 1e-4)
         errordlg('Error: Bathymetry & Source grids do not cover the same region','Error');  return
-    elseif(abs(handles.head_bat(8) - handles.head_src(8)) > 1e-6 | abs(handles.head_bat(9) - handles.head_src(9)) > 1e-6)
+    elseif(abs(handles.head_bat(8) - handles.head_src(8)) > 1e-6 || abs(handles.head_bat(9) - handles.head_src(9)) > 1e-6)
         errordlg('Error: Bathymetry & Source grids do not have the same size.','Error');     return
     end
 end
@@ -294,7 +279,7 @@ set(handles.edit_Nrows,'string',num2str(handles.nrows))
 set(handles.edit_Ncols,'string',num2str(handles.ncols))
 
 % Try to guess if grid is in geogs (restricting to 90 degrees spaning is more than enough as a test)
-if (abs(handles.head_src(2)-handles.head_src(1)) < 90 | abs(handles.head_src(4)-handles.head_src(3)) < 90)
+if (abs(handles.head_src(2)-handles.head_src(1)) < 90 || abs(handles.head_src(4)-handles.head_src(3)) < 90)
     handles.geog = 1;   % We probably have a geog grid
     set(handles.checkbox_geog,'Value',1)
 end
@@ -304,7 +289,7 @@ end
 contents = get(handles.listbox_nny,'String');
 %xx=str2num(cat(1,contents{:}));
 [m,n] = size(contents);
-for (i=1:m)    xx(i) = str2num(contents{i});    end
+for (i=1:m),	xx(i) = str2num(contents{i});    end
 ind = find(xx > handles.nrows);
 nlist = num2cell(xx(ind),1);
 set(handles.listbox_nny,'String',nlist)
@@ -362,7 +347,7 @@ if (get(handles.checkbox_fieldIsRTP,'Value'))
     return
 end
 xx = str2double(get(hObject,'String'));
-if (xx < handles.start_stop_epoch(1) | xx > handles.start_stop_epoch(2))
+if (xx < handles.start_stop_epoch(1) || xx > handles.start_stop_epoch(2))
     errordlg('Date outside the current IGRF model limits','Error');
     handles.date = [];
     set(hObject,'String','');       return
@@ -415,7 +400,7 @@ if (~strcmp(handles.what_parker,'redPole'))
 	end
 end
 xx = str2double(get(hObject,'String'));
-if (xx < -90 | xx > 90)
+if (xx < -90 || xx > 90)
     errordlg('Inlinations are restricted to the [-90;+90] interval.','Error');
     set(hObject,'String','');       return
 else
@@ -434,21 +419,13 @@ if (~strcmp(handles.what_parker,'redPole'))
 	end
 end
 xx = str2double(get(hObject,'String'));
-if (xx < -90 | xx > 90)
+if (xx < -90 || xx > 90)
     errordlg('Declinations are restricted to the [-90;+90] interval.','Error');
     set(hObject,'String','');       return
 else
     handles.sdec = xx;
 end
 guidata(hObject,handles)
-
-% -------------------------------------------------------------------------------------------------
-function edit_wshort_Callback(hObject, eventdata, handles)
-% Nothing to do. The "Compute" button will read this field
-
-% -------------------------------------------------------------------------------------------------
-function edit_wlong_Callback(hObject, eventdata, handles)
-% Nothing to do. The "Compute" button will read this field
 
 % -------------------------------------------------------------------------------------------------
 function listbox_nnx_Callback(hObject, eventdata, handles)
@@ -470,7 +447,7 @@ handles.nrows = nny;     guidata(hObject,handles)
 function edit_Ncols_Callback(hObject, eventdata, handles)
 xx = str2double(get(hObject,'String'));
 if (isempty(get(hObject,'String')))
-    try,    set(hObject,'String',num2str(handles.ncols));   return;     end
+    try		set(hObject,'String',num2str(handles.ncols));   return;     end
 end
 if (xx < handles.cols)
     set(hObject,'String',num2str(handles.ncols));    return;
@@ -481,16 +458,12 @@ handles.ncols = xx;     guidata(hObject,handles)
 function edit_Nrows_Callback(hObject, eventdata, handles)
 xx = str2double(get(hObject,'String'));
 if (isnan(xx))
-    try,    set(hObject,'String',num2str(handles.nrows));   return;     end
+    try		set(hObject,'String',num2str(handles.nrows));   return;     end
 end
 if (xx < handles.nrows)
     set(hObject,'String',num2str(handles.nrows));   return;
 end
 handles.nrows = xx;     guidata(hObject,handles)
-
-% -------------------------------------------------------------------------------------------------
-function checkbox_geog_Callback(hObject, eventdata, handles)
-% Nothing to do
 
 % -------------------------------------------------------------------------------------------------
 function checkbox_fieldIsRTP_Callback(hObject, eventdata, handles)
@@ -516,20 +489,18 @@ if (isempty(handles.Z_src))
     errordlg('You didn''t give me a Source grid (Field or Magnetization). What do you want me to do?','Chico Clever')
     return
 end
-nrows = str2double(get(handles.edit_Nrows,'String'));
-ncols = str2double(get(handles.edit_Ncols,'String'));
-if (isempty(get(handles.edit_Nrows,'String')) | isempty(get(handles.edit_Ncols,'String')))
+if (isempty(get(handles.edit_Nrows,'String')) || isempty(get(handles.edit_Ncols,'String')))
     errordlg('One or both of grid size dimensions are empty. What have you done?','Error')
     return
 end
 
 % Now those that are common to direct/inverse cases
-if (strcmp(handles.what_parker,'direct') | strcmp(handles.what_parker,'inverse'))
+if (strcmp(handles.what_parker,'direct') || strcmp(handles.what_parker,'inverse'))
     if (isempty(handles.Z_bat))
         errordlg('Must give me a grid with the bathymetry','Error');    return
     end
     date = str2double(get(handles.edit_date,'String'));
-    if (isnan(date) & ~get(handles.checkbox_fieldIsRTP,'Value'))
+    if (isnan(date) && ~get(handles.checkbox_fieldIsRTP,'Value'))
         errordlg('I need to know the year of the survey (see Date box)','Error');   return
     end
     thick = str2double(get(handles.edit_thickness,'String'));
@@ -550,7 +521,7 @@ new_ny = str2double(get(handles.edit_Nrows,'String'));
 
 switch handles.what_parker
     case 'direct'
-        if (handles.orig_ncols < handles.ncols | handles.orig_nrows < handles.nrows)      % Padding was asked for
+        if (handles.orig_ncols < handles.ncols || handles.orig_nrows < handles.nrows)      % Padding was asked for
             if (get(handles.checkbox_mirror,'Value'))   % Do mirror
                 h = mboard(handles.Z_bat,handles.orig_ncols,handles.orig_nrows);
                 f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows);
@@ -572,7 +543,7 @@ switch handles.what_parker
         tmp.head = [handles.head_src(1) handles.head_src(2) handles.head_src(3) handles.head_src(4) ...
                 z_min z_max 0 handles.head_src(8) handles.head_src(9)];
         tmp.X = handles.X;      tmp.Y = handles.Y;      tmp.name = 'Magnetic Anomaly (nT)';
-        new_window = mirone(single(f3d),tmp);
+        mirone(single(f3d),tmp);
     case 'inverse'
         if (get(handles.checkbox_fieldIsRTP,'Value'))   % Case of a already RTP Field
             handles.rlat = 90;      handles.rlon = 0;
@@ -580,7 +551,7 @@ switch handles.what_parker
         end
         ws = str2double(get(handles.edit_wshort,'String'));
         wl = str2double(get(handles.edit_wlong,'String'));
-        if (handles.orig_ncols < handles.ncols | handles.orig_nrows < handles.nrows)      % Padding was asked for
+        if (handles.orig_ncols < handles.ncols || handles.orig_nrows < handles.nrows)      % Padding was asked for
             if (get(handles.checkbox_mirror,'Value'))   % Do mirror
                 h = mboard(handles.Z_bat,handles.orig_ncols,handles.orig_nrows);
                 f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows);
@@ -602,19 +573,19 @@ switch handles.what_parker
         tmp.head = [handles.head_src(1) handles.head_src(2) handles.head_src(3) handles.head_src(4) ...
                 z_min z_max 0 handles.head_src(8) handles.head_src(9)];
         tmp.X = handles.X;      tmp.Y = handles.Y;      tmp.name = 'Magnetization (A/m^2)';
-        new_window = mirone(single(m3d),tmp);
+        mirone(single(m3d),tmp);
     case 'redPole'
         incl_fld = str2double(get(handles.edit_zobs,'String'));
         decl_fld = str2double(get(handles.edit_thickness,'String'));
         incl_mag = str2double(get(handles.edit_sdip,'String'));
         decl_mag = str2double(get(handles.edit_sdec,'String'));
-        if (isnan(incl_fld) | isnan(decl_fld))
+        if (isnan(incl_fld) || isnan(decl_fld))
             errordlg('You need to give me valid magnetic field Inclination and Declination.','Error');  return;
         end
-        if (isnan(incl_mag) | isnan(decl_mag))
+        if (isnan(incl_mag) || isnan(decl_mag))
             errordlg('You need to give me valid magnetization Inclination and Declination.','Error');  return;
         end
-        if (handles.orig_ncols < handles.ncols | handles.orig_nrows < handles.nrows)      % Padding was asked for
+        if (handles.orig_ncols < handles.ncols || handles.orig_nrows < handles.nrows)      % Padding was asked for
             if (get(handles.checkbox_mirror,'Value'))   % Do mirror
                 f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows);
                 f = rtp3d(double(f),incl_fld,decl_fld,incl_mag,decl_mag);
@@ -633,7 +604,7 @@ switch handles.what_parker
         tmp.head = [handles.head_src(1) handles.head_src(2) handles.head_src(3) handles.head_src(4) ...
                 z_min z_max 0 handles.head_src(8) handles.head_src(9)];
         tmp.X = handles.X;      tmp.Y = handles.Y;      tmp.name = 'Reduction to the Pole anomaly (nT)';
-        new_window = mirone(single(f),tmp);
+        mirone(single(f),tmp);
 end
 
 % -------------------------------------------------------------------------------------------------
@@ -764,7 +735,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@parker_stuff_uicallback,h1,'edit_wshort_Callback'},...
 'Position',[335 150 41 21],...
 'Style','edit',...
 'TooltipString','filter short wavelength cutoff (km)',...
@@ -772,7 +742,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@parker_stuff_uicallback,h1,'edit_wlong_Callback'},...
 'Position',[335 110 41 21],...
 'Style','edit',...
 'TooltipString','filter long wavelength cutoff (km)',...
@@ -794,7 +763,7 @@ uicontrol('Parent',h1,'HorizontalAlignment','right','Position',[12 22 40 15],...
 
 uicontrol('Parent',h1,'Position',[291 153 41 15],'String','Wshort','Style','text','Tag','text_wshort');
 
-uicontrol('Parent',h1,'HorizontalAlignment','right','Position',[299 114 31 15],...
+uicontrol('Parent',h1,'HorizontalAlignment','right','Position',[295 114 35 15],...
 'String','Wlong','Style','text','Tag','text_wlong');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
@@ -804,7 +773,7 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 uicontrol('Parent',h1,...
 'Callback',{@parker_stuff_uicallback,h1,'pushbutton_compute_Callback'},...
 'FontWeight','bold',...
-'Position',[326 11 65 23],...
+'Position',[326 11 65 21],...
 'String','Compute',...
 'Tag','pushbutton_compute');
 
@@ -832,12 +801,11 @@ uicontrol('Parent',h1,...
 'TooltipString','Number of grid columns',...
 'Tag','edit_Ncols');
 
-uicontrol('Parent',h1,'Position',[87 159 39 15],'String','# Rows','Style','text','Tag','text11');
+uicontrol('Parent',h1,'Position',[86 159 39 15],'String','# Rows','Style','text','Tag','text11');
 uicontrol('Parent',h1,'Position',[192 159 39 15],'String','# Cols','Style','text','Tag','text12');
 
 uicontrol('Parent',h1,...
-'Callback',{@parker_stuff_uicallback,h1,'checkbox_geog_Callback'},...
-'Position',[50 210 125 15],...
+'Position',[50 210 140 15],...
 'String','Geographic coords?',...
 'Style','checkbox',...
 'TooltipString','Are the grids in geographical coordinates?',...
@@ -845,7 +813,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Callback',{@parker_stuff_uicallback,h1,'checkbox_CenterDipole_Callback'},...
-'Position',[227 19 85 15],...
+'Position',[227 19 90 15],...
 'String','Geocentric?',...
 'Style','checkbox',...
 'TooltipString','Check this to assume geocentric dipole hypothesis',...
@@ -853,7 +821,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Callback',{@parker_stuff_uicallback,h1,'checkbox_mirror_Callback'},...
-'Position',[19 139 50 15],...
+'Position',[19 139 60 15],...
 'String','Mirror',...
 'Style','checkbox',...
 'TooltipString','Check this to Mirror the grid before FFT',...
@@ -861,7 +829,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Callback',{@parker_stuff_uicallback,h1,'checkbox_fieldIsRTP_Callback'},...
-'Position',[225 210 117 15],...
+'Position',[225 210 140 15],...
 'String','Field is already RTP',...
 'Style','checkbox',...
 'TooltipString','Check this box if the anomalous field is already Reduced To the Pole',...
