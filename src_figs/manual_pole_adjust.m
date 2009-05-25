@@ -2,7 +2,7 @@ function varargout = manual_pole_adjust(varargin)
 % M-File changed by desGUIDE 
 % varargin   command line arguments to manual_pole_adjust (see VARARGIN)
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2009 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -66,14 +66,14 @@ function edit_lon_Callback(hObject, eventdata, handles)
 x = str2double(get(hObject,'String'));
 set(handles.slider_lon,'Value',x)
 handles.p_lon = x;
-if (isempty(handles.p_lat) | isempty(handles.p_omega))
+if (isempty(handles.p_lat) || isempty(handles.p_omega))
     handles.have_pole = 0;
 else                            % OK, we have all the pole parameters
     handles.have_pole = 1;
 end
 guidata(hObject, handles);
-if (~handles.have_pole)         return;     end     % We don't still have a pole
-if (isempty(handles.h_line))    return;     end     % There is nothing to do yet
+if (~handles.have_pole),		return;     end     % We don't still have a pole
+if (isempty(handles.h_line)),	return;     end     % There is nothing to do yet
 apply_rot(handles)
 
 % --------------------------------------------------------------------------
@@ -81,7 +81,7 @@ function slider_lon_Callback(hObject, eventdata, handles)
 if (isempty(handles.h_line))
     set(hObject,'Value',0);         return;
 end
-if (~handles.have_pole)     return;     end     % We don't still have a pole
+if (~handles.have_pole),		return;     end     % We don't still have a pole
 val = get(hObject,'Value');
 set(handles.edit_lon,'String',num2str(val))
 handles.p_lon = val;
@@ -93,14 +93,14 @@ function edit_lat_Callback(hObject, eventdata, handles)
 x = str2double(get(hObject,'String'));
 set(handles.slider_lat,'Value',x)
 handles.p_lat = x;
-if (isempty(handles.p_lon) | isempty(handles.p_omega))
+if (isempty(handles.p_lon) || isempty(handles.p_omega))
     handles.have_pole = 0;
 else                            % OK, we have all the pole parameters
     handles.have_pole = 1;
 end
 guidata(hObject, handles);
-if (~handles.have_pole)         return;     end     % We don't still have a pole
-if (isempty(handles.h_line))    return;     end     % There is nothing to do yet
+if (~handles.have_pole),		return;     end     % We don't still have a pole
+if (isempty(handles.h_line)),	return;     end     % There is nothing to do yet
 apply_rot(handles)
 
 % --------------------------------------------------------------------------
@@ -120,14 +120,14 @@ function edit_omega_Callback(hObject, eventdata, handles)
 x = str2double(get(hObject,'String'));
 set(handles.slider_omega,'Value',x)
 handles.p_omega = x;
-if (isempty(handles.p_lon) | isempty(handles.p_lat))
+if (isempty(handles.p_lon) || isempty(handles.p_lat))
     handles.have_pole = 0;
 else                            % OK, we have all the pole parameters
     handles.have_pole = 1;
 end
 guidata(hObject, handles);
-if (~handles.have_pole)         return;     end     % We don't still have a pole
-if (isempty(handles.h_line))    return;     end     % There is nothing to do yet
+if (~handles.have_pole),		return;     end     % We don't still have a pole
+if (isempty(handles.h_line)),	return;     end     % There is nothing to do yet
 apply_rot(handles)
 
 % --------------------------------------------------------------------------
@@ -135,7 +135,7 @@ function slider_omega_Callback(hObject, eventdata, handles)
 if (isempty(handles.h_line))
     set(hObject,'Value',0);         return;
 end
-if (~handles.have_pole)     return;     end     % We don't still have a pole
+if (~handles.have_pole),	return;     end     % We don't still have a pole
 val = get(hObject,'Value');
 set(handles.edit_omega,'String',num2str(val))
 handles.p_omega = val;
@@ -215,7 +215,7 @@ function apply_rot(handles)
 		ind = (rlon < 0);
 		rlon(ind) = rlon(ind) + 360;
 	end
-	try,	set(handles.h_line,'XData',rlon,'YData',rlat),		end		% Use a 'try' because line may have been killed
+	try		set(handles.h_line,'XData',rlon,'YData',rlat),		end		% Use a 'try' because line may have been killed
 
 % -----------------------------------------------------------------------------------
 % --- Executes on key press over figure1 with no controls selected.
@@ -243,8 +243,6 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Name','Manual pole adjust',...
 'NumberTitle','off',...
 'Position',[520 660 650 140],...
-'Renderer',get(0,'defaultfigureRenderer'),...
-'RendererMode','manual',...
 'Resize','off',...
 'Tag','figure1');
 
@@ -325,14 +323,14 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Callback',{@manual_pole_adjust_uicallback,h1,'pushbutton_polesList_Callback'},...
-'Position',[520 107 121 23],...
+'Position',[520 107 121 21],...
 'String','Poles selector',...
 'TooltipString','Select a pole from the default list',...
 'Tag','pushbutton_polesList');
 
 uicontrol('Parent',h1,...
 'Callback',{@manual_pole_adjust_uicallback,h1,'togglebutton_pickLine_Callback'},...
-'Position',[10 107 121 23],...
+'Position',[10 107 121 21],...
 'String','Pick line from Figure',...
 'TooltipString','Allows you to mouse select one line from a Mirone figure',...
 'Tag','togglebutton_pickLine');
