@@ -104,12 +104,12 @@ function hObject = mirone_OpeningFcn(varargin)
 	try		zz = handles.Projections;		% Use a try/catch since isfield is brain-dead long
 	catch	handles.Projections = nan;		% Set it to something to prevent "unknown field" error in setAxesDefCoordIn()
 	end
-	handles.scale2meanLat = 1;% Scale geog ref images so that at middle image dx = dy in cartesian units (kind of proj)
+	handles.scale2meanLat = 1;	% Scale geog ref images so that at middle image dx = dy in cartesian units (kind of proj)
 	handles.FOpenList = cell(numel(handles.RecentF),1);
 	handles.withSliders = true; % Set Zoom sliders
 	handles.validGrid = 0;		%
 
-	try		% A file named mirone_pref.mat contains the preferences, read them from it
+	try							% A file named mirone_pref.mat contains the preferences, read them from it
 		load([handles.path_data 'mirone_pref.mat']);
 		handles.geog = geog;
 		handles.grdMaxSize = grdMaxSize;				% 2^20 = 1 Mb
@@ -261,12 +261,14 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles = setAxesDefCoordIn(handles,1);
 	end
 
-% 	if (strncmp(computer,'MAC',3) && isempty(getappdata(0,'have_DYLD')))	% Deal with Mac OS X blindness
-% 		%set_gmt(['DYLD_LIBRARY_PATH=' cd ':'],'DYLD_LIBRARY_PATH')		% Prepend current dir to DYLD_LIBRARY_PATH
-% 		DYLD = getenv('DYLD_LIBRARY_PATH');		% Available only on > R14?? versions 
-% 		setenv('DYLD_LIBRARY_PATH',[DYLD ':' cd])
-% 		setappdata(0,'have_DYLD',true)			% Signal to do this only once
-% 	end
+	IAmAMac = strncmp(computer,'MAC',3);
+	setappdata(0,'IAmAMac',IAmAMac)
+	if (IAmAMac && isempty(getappdata(0,'have_DYLD')))	% Deal with Mac OS X blindness
+		%set_gmt(['DYLD_LIBRARY_PATH=' cd ':'],'DYLD_LIBRARY_PATH')		% Prepend current dir to DYLD_LIBRARY_PATH
+		DYLD = getenv('DYLD_LIBRARY_PATH');		% Available only on > R14?? versions 
+		setenv('DYLD_LIBRARY_PATH',[DYLD ':' cd])
+		setappdata(0,'have_DYLD',true)			% Signal to do this only once
+	end
 
 	%Find out which gmt version is beeing used. 
 	info = getappdata(0,'gmt_version');		% See if the info is already there.
