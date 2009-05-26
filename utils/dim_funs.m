@@ -32,7 +32,7 @@ function edit_x_min(hObject, handles)
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if ~isempty(val)            % when dd:mm or dd:mm:ss was given
 		% Calculate printing format
-		nDigit = round( log10(abs(x_min_or)) );		% Number of digits of the integer part
+		nDigit = numel( sprintf('%.0f',x_min_or) );		% Number of digits of the integer part
 		frmt = sprintf('%%.%dg',nDigit+8);			% it will be of the type '%.Ng'
         x_min = 0;
         if str2double(val{1}) > 0
@@ -70,7 +70,7 @@ function edit_x_max(hObject, handles)
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if ~isempty(val)
 		% Calculate printing format
-		nDigit = round( log10(abs(x_max_or)) );		% Number of digits of the integer part
+		nDigit = numel( sprintf('%.0f',x_max_or) );		% Number of digits of the integer part
 		frmt = sprintf('%%.%dg',nDigit+8);			% it will be of the type '%.Ng'
         x_max = 0;
         if str2double(val{1}) > 0
@@ -109,7 +109,7 @@ function edit_y_min(hObject, handles)
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if ~isempty(val)
 		% Calculate printing format
-		nDigit = round( log10(abs(y_min_or)) );		% Number of digits of the integer part
+		nDigit = numel( sprintf('%.0f',y_min_or) );		% Number of digits of the integer part
 		frmt = sprintf('%%.%dg',nDigit+8);			% it will be of the type '%.Ng'
         y_min = 0;
         if str2double(val{1}) > 0
@@ -147,7 +147,7 @@ function edit_y_max(hObject, handles)
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if ~isempty(val)
 		% Calculate printing format
-		nDigit = round( log10(abs(y_max_or)) );		% Number of digits of the integer part
+		nDigit = numel( sprintf('%.0f',y_max_or) );		% Number of digits of the integer part
 		frmt = sprintf('%%.%dg',nDigit+8);			% it will be of the type '%.Ng'
         y_max = 0;
         if str2double(val{1}) > 0
@@ -194,7 +194,7 @@ function edit_x_inc(hObject, handles)
         x_inc = ivan_the_terrible((handles.x_max - handles.x_min), x_inc,2, handles.one_or_zero);
         if ~dms         % case of decimal unities
 			% Calculate printing format
-			nDigit = round( log10(abs(x_inc)) );		% Number of digits of the integer part
+			nDigit = numel( sprintf('%.0f',x_inc) );	% Number of digits of the integer part
 			frmt = sprintf('%%.%dg',nDigit+10);			% it will be of the type '%.Ng'
             set(hObject,'String',sprintf(frmt,x_inc))
         else            % inc was in dd:mm or dd:mm:ss format
@@ -219,7 +219,7 @@ function edit_Ncols(hObject, handles)
             set(handles.edit_x_inc,'String',ddmm)
         else                    % x_inc was given in decimal format
 			% Calculate printing format
-			nDigit = round( log10(abs(x_inc)) );		% Number of digits of the integer part
+			nDigit = numel( sprintf('%.0f',x_inc) );	% Number of digits of the integer part
 			frmt = sprintf('%%.%dg',nDigit+10);			% it will be of the type '%.Ng'
             set(handles.edit_x_inc,'String',sprintf(frmt,x_inc));
         end
@@ -241,7 +241,7 @@ function edit_y_inc(hObject, handles)
         y_inc = ivan_the_terrible((handles.y_max - handles.y_min), y_inc, 2, handles.one_or_zero);
         if ~dms         % case of decimal unities
 			% Calculate printing format
-			nDigit = round( log10(abs(y_inc)) );		% Number of digits of the integer part
+			nDigit = numel( sprintf('%.0f',y_inc) );	% Number of digits of the integer part
 			frmt = sprintf('%%.%dg',nDigit+10);			% it will be of the type '%.Ng'
             set(hObject,'String',sprintf(frmt,y_inc))
         else            % inc was in dd:mm or dd:mm:ss format
@@ -265,7 +265,7 @@ function edit_Nrows(hObject, handles)
             set(handles.edit_y_inc,'String',ddmm)
         else                    % y_inc was given in decimal format
 			% Calculate printing format
-			nDigit = round( log10(abs(y_inc)) );		% Number of digits of the integer part
+			nDigit = numel( sprintf('%.0f',y_inc) );	% Number of digits of the integer part
 			frmt = sprintf('%%.%dg',nDigit+10);			% it will be of the type '%.Ng'
             set(handles.edit_y_inc,'String',sprintf(frmt,y_inc));
         end
