@@ -50,10 +50,10 @@ function varargout = igrf_options(varargin)
 	handles.y_max = 89;
     
     % We need these if dim_funs() is called
-    handles.x_min_or = handles.x_min;
-    handles.x_max_or = handles.x_max;
-    handles.y_min_or = handles.y_min;
-    handles.y_max_or = handles.y_max;
+    handles.x_min_or = -180;
+    handles.x_max_or = 360;
+    handles.y_min_or = -89.9;
+    handles.y_max_or = 89.9;
 	handles.one_or_zero = 1;            % Def to grid reg
 
 	time = clock;
