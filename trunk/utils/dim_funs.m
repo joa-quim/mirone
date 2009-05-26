@@ -1,29 +1,26 @@
 function  dim_funs(opt, varargin)
 % Functions to deal with -R -I (Ivan the Terrible) stuff of Windows that need it
 % There are no outputs. All changes are saved by guidata.
-
+%
 % handles must have these fields
 % handles.x_min  handles.x_max handles.y_min  handles.y_max
-% handles.x_min_or handles.x_max_or handles.y_min_or  handles.y_max_or
 % handles.dms_xinc handles.dms_yinc	handles.one_or_zero
+% handles.x_min_or handles.x_max_or handles.y_min_or handles.y_max_or
+%
+% If any of the above "_or" is empty the corresponding modified value can take any value,
+% otherwise it cannot be lower/higher than the original value. That is, for example, if
+% handles.x_min_or = 10;  x_min cannot be < 10. This is used for example in grdsample, where
+% sampled grid cannot have larger limits than the original.
 	
 switch opt
-    case 'xMin'
-        edit_x_min(varargin{:})
-    case 'xMax'
-        edit_x_max(varargin{:})
-    case 'yMin'
-        edit_y_min(varargin{:})
-    case 'yMax'
-        edit_y_max(varargin{:})
-    case 'xInc'
-        edit_x_inc(varargin{:})
-    case 'yInc'
-        edit_y_inc(varargin{:})
-    case 'nRows'
-        edit_Nrows(varargin{:})
-    case 'nCols'
-        edit_Ncols(varargin{:})
+    case 'xMin',	edit_x_min(varargin{:})
+    case 'xMax',	edit_x_max(varargin{:})
+    case 'yMin',	edit_y_min(varargin{:})
+    case 'yMax',	edit_y_max(varargin{:})
+    case 'xInc',	edit_x_inc(varargin{:})
+    case 'yInc',	edit_y_inc(varargin{:})
+    case 'nRows',	edit_Nrows(varargin{:})
+    case 'nCols',	edit_Ncols(varargin{:})
 end
 
 % --------------------------------------------------------------------------------------
@@ -31,16 +28,14 @@ function edit_x_min(hObject, handles)
 	x_min_or = handles.x_min_or;
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if ~isempty(val)            % when dd:mm or dd:mm:ss was given
-		% Calculate printing format
-		nDigit = numel( sprintf('%.0f',x_min_or) );		% Number of digits of the integer part
-		frmt = sprintf('%%.%dg',nDigit+8);			% it will be of the type '%.Ng'
         x_min = 0;
         if str2double(val{1}) > 0
             for i = 1:numel(val)   x_min = x_min + str2double(val{i}) / (60^(i-1));    end
         else
             for i = 1:numel(val)   x_min = x_min - abs(str2double(val{i})) / (60^(i-1));   end
         end
-        if (x_min < x_min_or);  set(hObject,'String',sprintf(frmt,x_min_or));    return;     end; 
+		frmt = get_format_str(x_min);					% Get format string (it will be of the type '%.Ng')
+        if (~isempty(x_min_or) && (x_min < x_min_or)),	set(hObject,'String',sprintf(frmt,x_min_or)),	return,		end
         handles.x_min = x_min;
         if ~isempty(handles.x_max) && x_min >= handles.x_max
             errordlg('West Longitude >= East Longitude ','Error in Longitude limits')
@@ -69,16 +64,14 @@ function edit_x_max(hObject, handles)
 	x_max_or = handles.x_max_or;
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if ~isempty(val)
-		% Calculate printing format
-		nDigit = numel( sprintf('%.0f',x_max_or) );		% Number of digits of the integer part
-		frmt = sprintf('%%.%dg',nDigit+8);			% it will be of the type '%.Ng'
         x_max = 0;
         if str2double(val{1}) > 0
             for i = 1:numel(val)   x_max = x_max + str2double(val{i}) / (60^(i-1));    end
         else
             for i = 1:numel(val)   x_max = x_max - abs(str2double(val{i})) / (60^(i-1));   end
         end
-        if (x_max > x_max_or);  set(hObject,'String',sprintf(frmt,x_max_or));    return;     end; 
+		frmt = get_format_str(x_max);					% Get format string (it will be of the type '%.Ng')
+        if (~isempty(x_max_or) && (x_max > x_max_or)),	set(hObject,'String',sprintf(frmt,x_max_or)),	return,		end
         handles.x_max = x_max;
         if ~isempty(handles.x_min) && x_max <= handles.x_min 
             errordlg('East Longitude <= West Longitude','Error in Longitude limits')
@@ -88,7 +81,6 @@ function edit_x_max(hObject, handles)
         if ~isempty(handles.x_min) && ~isempty(nc)       % x_max and ncols boxes are filled
             % Compute Ncols, but first must recompute x_inc
             x_inc = ivan_the_terrible((x_max - handles.x_min),round(abs(str2double(nc))),1, handles.one_or_zero);
-            %xx = floor((handles.x_min - str2double(xx)) / (str2double(get(handles.edit_x_inc,'String')))+0.5) + handles.one_or_zero;
             set(handles.edit_x_inc,'String',sprintf(frmt,x_inc))
             guidata(hObject, handles);    
         elseif ~isempty(handles.x_min)      % x_min box is filled but ncol is not, so put to the default (100)
@@ -108,16 +100,14 @@ function edit_y_min(hObject, handles)
 	y_min_or = handles.y_min_or;
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if ~isempty(val)
-		% Calculate printing format
-		nDigit = numel( sprintf('%.0f',y_min_or) );		% Number of digits of the integer part
-		frmt = sprintf('%%.%dg',nDigit+8);			% it will be of the type '%.Ng'
         y_min = 0;
         if str2double(val{1}) > 0
             for i = 1:numel(val)   y_min = y_min + str2double(val{i}) / (60^(i-1));    end
         else
             for i = 1:numel(val)   y_min = y_min - abs(str2double(val{i})) / (60^(i-1));   end
         end
-        if (y_min < y_min_or);  set(hObject,'String',sprintf(frmt,y_min_or));    return;     end; 
+		frmt = get_format_str(y_min);					% Get format string (it will be of the type '%.Ng')
+        if (~isempty(y_min_or) && (y_min < y_min_or)),	set(hObject,'String',sprintf(frmt,y_min_or)),	return,		end
         handles.y_min = y_min;
         if ~isempty(handles.y_max) && y_min >= handles.y_max
             errordlg('South Latitude >= North Latitude','Error in Latitude limits')
@@ -127,7 +117,6 @@ function edit_y_min(hObject, handles)
         if ~isempty(handles.y_max) && ~isempty(nr)       % y_max and nrows boxes are filled
             % Compute Nrows, but first must recompute y_inc
             y_inc = ivan_the_terrible((handles.y_max - y_min),round(abs(str2double(nr))),1, handles.one_or_zero);
-            %xx = floor((handles.y_max - str2double(xx)) / (str2double(get(handles.edit_y_inc,'String')))+0.5) + handles.one_or_zero;
             set(handles.edit_y_inc,'String',sprintf(frmt,y_inc))
             guidata(hObject, handles);
         elseif ~isempty(handles.y_max)      % y_max box is filled but nrows is not, so put to the default (100)
@@ -146,16 +135,14 @@ function edit_y_max(hObject, handles)
 	y_max_or = handles.y_max_or;
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if ~isempty(val)
-		% Calculate printing format
-		nDigit = numel( sprintf('%.0f',y_max_or) );		% Number of digits of the integer part
-		frmt = sprintf('%%.%dg',nDigit+8);			% it will be of the type '%.Ng'
         y_max = 0;
         if str2double(val{1}) > 0
             for i = 1:numel(val)   y_max = y_max + str2double(val{i}) / (60^(i-1));    end
         else
             for i = 1:numel(val)   y_max = y_max - abs(str2double(val{i})) / (60^(i-1));   end
         end
-        if (y_max > y_max_or);  set(hObject,'String',sprintf(frmt,y_max_or));    return;     end; 
+		frmt = get_format_str(y_max);					% Get format string (it will be of the type '%.Ng')
+        if (~isempty(y_max_or) && (y_max > y_max_or)),	set(hObject,'String',sprintf(frmt,y_max_or)),	return,		end
         handles.y_max = y_max;
         if ~isempty(handles.y_min) && y_max <= handles.y_min 
             errordlg('North Latitude <= South Latitude','Error in Latitude limits')
@@ -165,7 +152,6 @@ function edit_y_max(hObject, handles)
         if ~isempty(handles.y_min) && ~isempty(nr)       % y_min and nrows boxes are filled
             % Compute Nrows, but first must recompute y_inc
             y_inc = ivan_the_terrible((y_max - handles.y_min),round(abs(str2double(nr))),1, handles.one_or_zero);
-            %xx = floor((handles.y_min - str2double(xx)) / (str2double(get(handles.edit_y_inc,'String')))+0.5) + handles.one_or_zero;
             set(handles.edit_y_inc,'String',sprintf(frmt,y_inc))
             guidata(hObject, handles);
         elseif ~isempty(handles.y_min)      % y_min box is filled but nrows is not, so put to the default (100)
@@ -193,9 +179,7 @@ function edit_x_inc(hObject, handles)
         % Make whatever x_inc given compatible with GMT_grd_RI_verify
         x_inc = ivan_the_terrible((handles.x_max - handles.x_min), x_inc,2, handles.one_or_zero);
         if ~dms         % case of decimal unities
-			% Calculate printing format
-			nDigit = numel( sprintf('%.0f',x_inc) );	% Number of digits of the integer part
-			frmt = sprintf('%%.%dg',nDigit+10);			% it will be of the type '%.Ng'
+			frmt = get_format_str(x_inc,10);			% Get format string (it will be of the type '%.Ng')
             set(hObject,'String',sprintf(frmt,x_inc))
         else            % inc was in dd:mm or dd:mm:ss format
             ddmm = dec2deg(x_inc);
@@ -218,9 +202,7 @@ function edit_Ncols(hObject, handles)
             ddmm = dec2deg(x_inc);
             set(handles.edit_x_inc,'String',ddmm)
         else                    % x_inc was given in decimal format
-			% Calculate printing format
-			nDigit = numel( sprintf('%.0f',x_inc) );	% Number of digits of the integer part
-			frmt = sprintf('%%.%dg',nDigit+10);			% it will be of the type '%.Ng'
+			frmt = get_format_str(x_inc,10);			% Get format string (it will be of the type '%.Ng')
             set(handles.edit_x_inc,'String',sprintf(frmt,x_inc));
         end
         guidata(hObject, handles);
@@ -240,9 +222,7 @@ function edit_y_inc(hObject, handles)
         % Make whatever y_inc given compatible with GMT_grd_RI_verify
         y_inc = ivan_the_terrible((handles.y_max - handles.y_min), y_inc, 2, handles.one_or_zero);
         if ~dms         % case of decimal unities
-			% Calculate printing format
-			nDigit = numel( sprintf('%.0f',y_inc) );	% Number of digits of the integer part
-			frmt = sprintf('%%.%dg',nDigit+10);			% it will be of the type '%.Ng'
+			frmt = get_format_str(y_inc,10);			% Get format string (it will be of the type '%.Ng')
             set(hObject,'String',sprintf(frmt,y_inc))
         else            % inc was in dd:mm or dd:mm:ss format
             ddmm = dec2deg(y_inc);
@@ -264,10 +244,15 @@ function edit_Nrows(hObject, handles)
             ddmm = dec2deg(y_inc);
             set(handles.edit_y_inc,'String',ddmm)
         else                    % y_inc was given in decimal format
-			% Calculate printing format
-			nDigit = numel( sprintf('%.0f',y_inc) );	% Number of digits of the integer part
-			frmt = sprintf('%%.%dg',nDigit+10);			% it will be of the type '%.Ng'
+			frmt = get_format_str(y_inc,10);			% Get format string (it will be of the type '%.Ng')
             set(handles.edit_y_inc,'String',sprintf(frmt,y_inc));
         end
         guidata(hObject, handles);
 	end
+
+% --------------------------------------------------------------------------------------
+function frmt = get_format_str(x, N)
+% Estimate a good format string with many decimals to use in sprintf()
+	if (nargin == 1),	N = 8;		end
+	nDigit = numel( sprintf('%.0f',x) );		% Number of digits of the integer part
+	frmt = sprintf('%%.%dg',nDigit + N);		% it will be of the type '%.Ng'
