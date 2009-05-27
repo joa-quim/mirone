@@ -509,7 +509,7 @@ function push_showSlice_Callback(hObject, eventdata, handles)
 			handles.indMaxWater = ~indLand;
 		end
 
-		if ( isempty(handles.imgBat) )							% First time, compute it (not shaded)
+		if ( isempty(handles.imgBat) || size(handles.imgBat,1) ~= numel(y) || size(handles.imgBat,2) ~= numel(x) )	% First time, compute it (not shaded)
 			handles.imgBat = do_imgBat(handles, indVar, x, y);	% IMG is always RGB
 		end
 
