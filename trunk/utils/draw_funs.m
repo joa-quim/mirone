@@ -63,7 +63,7 @@ switch opt
 		set_symbol_uicontext(hand)
     case 'ImportLine'				% read AND plot the line
 		fname = hand;
-		hFig = get(0,'CurrentFigure');         hAxes = get(hFig,'CurrentAxes');
+		hFig = get(0,'CurrentFigure');
 		[bin,n_column,multi_seg,n_headers] = guess_file(fname);
 		% If msgbox exist we have to move it from behind the main window. So get it's handle
 		hMsgFig = get(0,'CurrentFigure');
@@ -110,37 +110,47 @@ switch opt
 		% If OUT is requested there is nothing left to be done here  
 		if (nargout),		[varargout{1:nargout}] = numeric_data;		return,		end
 
-		if (hFig ~= hMsgFig);       figure(hFig);    axes(hAxes);   end     % gain access to the drawing figure
-		% Get rid of points that are outside the map limits
-		tol = 0.5;
-		if (iscell(numeric_data))
-			n_segments = length(numeric_data);
-		else
-			n_segments = 1;
+		if (hFig ~= hMsgFig);       figure(hFig);   end     % gain access to the drawing figure
+		tol = 0.5;					% Used to get rid of points that are outside the map limits
+		if (iscell(numeric_data)),		n_segments = length(numeric_data);
+		else							n_segments = 1;
         end
 		XYlim = getappdata(handles.axes1,'ThisImageLims');
-		xx = XYlim(1:2);            yy = XYlim(3:4);
+		xx = XYlim(1:2);				yy = XYlim(3:4);
+		lt = handles.DefLineThick;		lc = handles.DefLineColor;
+		if (handles.validGrid),			min_max = handles.head(5:6);	end		% To be used in testing if we store eventual ZData
 		hold on
-		lt = handles.DefLineThick;   lc = handles.DefLineColor;
-		for i=1:n_segments
+		for (i = 1:n_segments)
+			tmpz = [];
+			if (~handles.validGrid),	tmpz = [];		end			% If not in a grid we don't care of Z's anyway
 			if (iscell(numeric_data))
 				tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
+				if (n_column >= 3),				tmpz = numeric_data{i}(:,3);	end
 			else
 				tmpx = numeric_data(:,1);       tmpy = numeric_data(:,2);
+				if (n_column >= 3),				tmpz = numeric_data(:,3);		end
 			end
 			ind = find(tmpx < xx(1)-tol | tmpx > xx(2)+tol);
 			tmpx(ind) = [];         tmpy(ind) = [];
+			if (~isempty(tmpz)),	tmpz(ind) = [];		end
 			ind = find(tmpy < yy(1)-tol | tmpy > yy(2)+tol);
 			tmpx(ind) = [];         tmpy(ind) = [];    
+			if (~isempty(tmpz)),	tmpz(ind) = [];		end
 			switch data
 				case 'AsLine'
 					% The following Tag is very important to tell from MB tracks, which have Tags = MBtrack#
-					lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','polyline');
+					lineHand = line('XData',tmpx,'YData',tmpy,'parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','polyline');
+					if (~isempty(tmpz) && (tmpz(1) >= min_max(1) && tmpz(1) <= min_max(2)))	% Crude test to keep only if inside Z range
+						set(lineHand,'UserData',tmpz');										% So that Fleder can drape this line
+					end	
 					set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
 				case 'AsPoint'
 					lineHand = plot(tmpx,tmpy,'ko','MarkerEdgeColor','w','MarkerFaceColor','k', ...
 						'MarkerSize',4,'Tag','Pointpolyline');
 					set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu (tag is very important)
+					if (~isempty(tmpz) && (tmpz(1) >= min_max(1) && tmpz(1) <= min_max(2)))
+						set(lineHand,'UserData',tmpz');
+					end	
 				case 'AsMaregraph'
 					lineHand = plot(tmpx,tmpy,'Marker','o','MarkerFaceColor','y',...
 						'MarkerEdgeColor','k','MarkerSize',10,'Tag','Maregraph');
@@ -153,7 +163,7 @@ switch opt
 					setappdata(lineHand,'PatchHand',hp);
 			end
 		end
-		clear numeric_data;     hold off
+		hold off
 	case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation'}
 		set_symbol_uicontext(hand,data)
 	case 'PlateBoundPB',		set_PB_uicontext(hand,data)
