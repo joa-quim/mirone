@@ -322,7 +322,11 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
             varargin(5) = [];           % We don't want it to go into hardcopy
         end
         
-        img = hardcopy( varargin{:} );      % Capture
+		DAR = get(hAxes, 'DataAspectRatio');
+		if (~isequal(DAR, [1 1 1])),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
+
+        img = hardcopy( varargin{:} );      % CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE
+
         if (confirm)                        % We asked for a pre-determined size. Check that the result is correct
             dy = mrows - size(img,1);       % DX & DY should be zero or one (when it buggs).
             dx = ncols - size(img,2);
@@ -333,6 +337,7 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
                 img = hardcopy( varargin{:} );      % Insist
             end
         end
+		if (~isequal(DAR, [1 1 1])),	set(hAxes, 'DataAspectRatio', DAR);			end		% Reset it if its the case
     catch                                   % If it screws, restore original Fig properties anyway
         set(hAxes,'Units',axUnit,'pos',axPos,'Visible','on')
         set(h,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
