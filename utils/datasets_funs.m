@@ -158,7 +158,7 @@ if (handles.no_file)		% Start empty but below we'll find the true data region
 				tmpx = numeric_data{i}(:,1);	tmpy = numeric_data{i}(:,2);
 				XMin = min(XMin,min(tmpx));		XMax = max(XMax,max(tmpx));
 				YMin = min(YMin,min(tmpy));		YMax = max(YMax,max(tmpy));
-            end
+			end
 		end
 		dx = XMax - XMin;			dy = YMax - YMin;
 		XMin = XMin - dx / 100;		XMax = XMax + dx / 100;		% Give an extra 1% padding margin
@@ -176,7 +176,8 @@ else							% Reading over an established region
 	XMin = XYlim(1);			XMax = XYlim(2);		% In case we need this names below for line trimming
 end
 
-for (k = 1:numel(names))
+if (handles.validGrid),			min_max = handles.head(5:6);	end		% To be used in testing if we store eventual ZData
+for (k = 1:numel(names))		% Main loop over data files
     fname = names{k};
 	if (handles.no_file && k == 1)			% Rename figure with draged file name
 		[pato,barName,EXT] = fileparts(fname);
@@ -208,49 +209,62 @@ for (k = 1:numel(names))
 		end
 		n_segments = 1;				% Pretend we have only one segment
 	end
-	
-	for (i = 1:n_segments)
-        if (do_project)         % We need to project
-            numeric_data{i} = geog2projected_pts(handles,numeric_data{i});
-        end
-        difes = [numeric_data{i}(1,1)-numeric_data{i}(end,1) numeric_data{i}(1,2)-numeric_data{i}(end,2)];
-        if (any(abs(difes) > 1e-4))
-            is_closed = false;
-            % Not a closed polygon, so get rid of points that are outside the map limits
-            [tmpx,tmpy] = aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
-        else
-            tmpx = numeric_data{i}(:,1);       tmpy = numeric_data{i}(:,2);
-            is_closed = true;
-        end
-        if (isempty(tmpx)),     n_clear(i) = 1;     continue,	end     % Store indexes for clearing vanished segments info
 
-        if (handles.no_file)        % We need to compute the data extent in order to set the correct axes limits
-            XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
-            YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
-        end
-        
-        [thick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(min(2,numel(multi_segs_str{i})):end)); % First time, we can chop the '>' char
-        if (isempty(thick)),    thick = handles.DefLineThick;   end     % IF not provided, use default
-        if (isempty(cor)),      cor = handles.DefLineColor;     end     %           "
-        
-        if (~is_closed)         % Line plottings
+	for (i = 1:n_segments)
+		tmpz = [];
+		if (~handles.validGrid),	tmpz = [];		end			% If not in a grid we don't care of Z's anyway
+		if (do_project)         % We need to project
+			numeric_data{i} = geog2projected_pts(handles,numeric_data{i});
+		end
+		difes = [numeric_data{i}(1,1)-numeric_data{i}(end,1) numeric_data{i}(1,2)-numeric_data{i}(end,2)];
+		if (any(abs(difes) > 1e-4))
+			is_closed = false;
+			% Not a closed polygon, so get rid of points that are outside the map limits
+			[tmpx,tmpy,indx,indy] = aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
+		else
+			tmpx = numeric_data{i}(:,1);       tmpy = numeric_data{i}(:,2);
+			is_closed = true;
+			indx = false;			% No need for map clipping
+		end
+		if (isempty(tmpx)),     n_clear(i) = 1;     continue,		end     % Store indexes for clearing vanished segments info
+		if ( numel(numeric_data{i}(1,:)) >=3 )		% If we have a Z column
+			tmpz = numeric_data{i}(:,3);
+			if (indx),		tmpz(indx) = [];	tmpz(indy) = [];	end		% If needed, clip outside map data			
+		end
+
+		if (handles.no_file)        % We need to compute the data extent in order to set the correct axes limits
+			XMin = min(XMin,min(tmpx));		XMax = max(XMax,max(tmpx));
+			YMin = min(YMin,min(tmpy));		YMax = max(YMax,max(tmpy));
+		end
+		
+		[thick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(min(2,numel(multi_segs_str{i})):end)); % First time, we can chop the '>' char
+		if (isempty(thick)),	thick = handles.DefLineThick;	end		% IF not provided, use default
+		if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
+		
+		if (~is_closed)         % Line plottings
 			% See if we need to wrap arround the earth roundness discontinuity. Using 0.5 degrees from border. 
 			if (handles.geog == 1 && ~do_project && (XMin < -179.5 || XMax > 179.5) )
-				[tmpy, tmpx] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax],'wrap');
+					[tmpy, tmpx] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax],'wrap');
 			elseif (handles.geog == 2 && ~do_project && (XMin < 0.5 || XMax > 359.5) )
-				[tmpy, tmpx] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax],'wrap');
+					[tmpy, tmpx] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax],'wrap');
 			end
-            n_isoc = n_isoc + 1;
-            h_isoc(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',thick,...
-                'Color',cor,'Tag',tag,'Userdata',n_isoc);
-            setappdata(h_isoc(i),'LineInfo',multi_segs_str{i})  % To work with the sessions and will likely replace old mechansim
-        else
+			n_isoc = n_isoc + 1;
+			h_isoc(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',thick,...
+				'Color',cor,'Tag',tag,'Userdata',n_isoc);
+			if (~isempty(tmpz) && (tmpz(1) >= min_max(1) && tmpz(1) <= min_max(2)))	% Crude test to keep only if inside Z range
+				set(h_isoc(i),'UserData',tmpz');									% So that Fleder can drape this line
+			end	
+			setappdata(h_isoc(i),'LineInfo',multi_segs_str{i})  % To work with the sessions and will likely replace old mechansim
+		else
 			[Fcor str2] = parseG(multi_segs_str{i});
 			if (isempty(Fcor)),      Fcor = 'none';   end
 			hPat = patch('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',thick,'EdgeColor',cor,'FaceColor',Fcor);
+			if (~isempty(tmpz) && (tmpz(1) >= min_max(1) && tmpz(1) <= min_max(2)))	% Crude test to keep only if inside Z range
+				set(hPat,'UserData',tmpz');											% So that Fleder can drape this patch
+			end	
 			draw_funs(hPat,'line_uicontext')
 			n_clear(i) = 1;     % Must delete this header info because it only applyies to lines, not patches
-        end
+		end
 	end
 	multi_segs_str(n_clear) = [];       % Clear the unused info
 
