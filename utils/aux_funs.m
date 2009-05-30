@@ -433,6 +433,7 @@ function pixelx = axes2pix(dim, x, axesx)
 function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(names, PathName, varargin)
 % Get tracks from either the old style .gmt format or new MGD77+ netCDF format
 	
+	ONLY_IF_MAGNETICS = true;			% We only care to plot tracks if they contain magnetic data
 	n_column = 1;
 	[t,r] = strtok(names{1});
 	if (~isempty(r)),	n_column = 2;	end
@@ -504,19 +505,25 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 				names{k} = [names{k} EXT];
 				x = double(nc_funs('varget', names{k}, 'lon'));		track(k).longitude = x(1:5:end);
 				x = double(nc_funs('varget', names{k}, 'lat'));		track(k).latitude = x(1:5:end);
-				x = nc_funs('varget', names{k}, 'mtf1');			track(k).magnetics = x(1:5:end);
+				x = nc_funs('varget', names{k}, 'mtf1');
+				if (numel(x) > 1),			track(k).magnetics = x(1:5:end);
+				else						track(k).magnetics = x;
+				end
 				track(k).info = names{k};
 			end
 		end
 	end
 
-	for (k = 1:length(track))
-		%ind_x = diff(track(k).longitude) > 0.1;		ind_y = diff(track(k).latitude) > 0.1;
-		%ind = (ind_x & ind_y);
-		try
-			ind = isnan(track(k).magnetics);
-			track(k).longitude(ind) = NaN;
-			track(k).latitude(ind) = NaN;
+	if (ONLY_IF_MAGNETICS)
+		for (k = 1:length(track))
+			try
+				ind = isnan(track(k).magnetics);
+				track(k).longitude(ind) = NaN;
+				track(k).latitude(ind) = NaN;
+				if (numel(ind) == 1)				% When there is no magnetic data
+					track(k).longitude = NaN;		track(k).latitude = NaN;
+				end
+			end
 		end
 	end
 
@@ -528,6 +535,9 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 		end
 		x_min = min(x_min);		x_max = max(x_max);
 		y_min = min(y_min);		y_max = max(y_max);
+		if (isnan(x_min))
+			warndlg('This file had all magnetic records set to NaN. An error further down the road will likely occur','Warning')
+		end
 	end
 
 % --------------------------------------------------------------------------------
