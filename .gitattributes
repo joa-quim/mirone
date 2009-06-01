@@ -395,6 +395,15 @@ mex/mansinha_m.c -text
 mex/mapproject_m.c -text
 mex/mex_illuminate.c -text
 mex/mex_shape.c -text
+mex/mexnc/AUTHORS -text
+mex/mexnc/COPYING -text
+mex/mexnc/common.c -text
+mex/mexnc/mexgateway.c -text
+mex/mexnc/mexnc.h -text
+mex/mexnc/netcdf2.c -text
+mex/mexnc/netcdf2.h -text
+mex/mexnc/netcdf3.c -text
+mex/mexnc/netcdf3.h -text
 mex/mxgridtrimesh.c -text
 mex/nearneighbor_m.c -text
 mex/ogrproj.cpp -text
