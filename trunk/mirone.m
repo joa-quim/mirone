@@ -820,6 +820,9 @@ function FileNewBgFrame_CB(handles, region, imSize, figTitle)
 		if isempty(region),		return,		end		% User gave up
 	end
 
+	if ( any(isnan(region(1:4))) )
+		errordlg('The requested region limts is undeterminated (it has NaNs)','Error'),		return
+	end
 	X = region(1:2);	Y = region(3:4);		handles.head = [X Y 0 255 0];
 	scrsz = get(0,'ScreenSize');		% Get screen size
 	aspect = diff(Y) / diff(X);
