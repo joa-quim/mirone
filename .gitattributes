@@ -439,6 +439,16 @@ mex/typeconv.h -text
 mex/wave_travel_time.c -text
 /mirone.m -text
 /mirone_uis.m -text
+netcdf3.6.3/include/msc_inttypes.h -text
+netcdf3.6.3/include/msc_stdint.h -text
+netcdf3.6.3/include/ncvalues.h -text
+netcdf3.6.3/include/netcdf.h -text
+netcdf3.6.3/include/netcdf.hh -text
+netcdf3.6.3/include/netcdf.inc -text
+netcdf3.6.3/include/netcdfcpp.h -text
+netcdf3.6.3/lib/libnetcdf_w32.dll -text
+netcdf3.6.3/lib/libnetcdf_w32.exp -text
+netcdf3.6.3/lib/libnetcdf_w32.lib -text
 /proj_mir.dll -text
 /psl.dll -text
 /shapelib.dll -text
