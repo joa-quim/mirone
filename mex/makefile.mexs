@@ -36,6 +36,7 @@ OCV_LIB = -L/usr/local/lib/ -lcv -lcxcore -lcvhaartraining
 OCV_FLAGS = -I/usr/local/include/opencv -I$(MATLAB)/extern/include
 SHAPE_LIB = -L/usr/local/lib/ -lshp
 SHAPE_FLAGS = -I/usr/local/include -I$(MATLAB)/extern/include
+MEXNC_FLAGS = -I$(NETCDF)/include -I$(MATLAB)/extern/include
 
 
 PROG_GMT	= grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m mapproject_m shoredump surface_m nearneighbor_m grdfilter_m cpt2cmap grdlandmask_m grdppa_m gmtlist_m
@@ -170,8 +171,12 @@ gdaltransform_mex:
 		$(MEX) $(GDAL_FLAGS) gdaltransform_mex.cpp $(GDAL_LIB) $(MEXLIB)
 
 
+# ------------------------- MEXNC progs -----------------------------------
+mexnc:
+		$(MEX) $(MEXNC_FLAGS) mexnc/mexgateway.c mexnc/netcdf2.c mexnc/netcdf3.c mexnc/common.c  -output mexnc $(CDF) $(MEXLIB)
+
 # ------------------------- OPEN_CV progs ---------------------------------
-cvlib_mex:	
+cvlib_mex:
 		$(MEX) $(OCV_FLAGS) cvlib_mex.c sift/sift.c sift/imgfeatures.c sift/kdtree.c sift/minpq.c  $(OCV_LIB) $(MEXLIB)
 cvcolor_mex:	
 		$(MEX) $(OCV_FLAGS) cvcolor_mex.c $(OCV_LIB) $(MEXLIB)
