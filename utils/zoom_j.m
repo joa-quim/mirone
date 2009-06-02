@@ -724,33 +724,32 @@ function ChangeAxesLabels(hFig,hAx,type,eixo)
 % EIXO is a single character (X or Y) that indicates on which axe (abssissa or
 % ordenate) this function will operate with.
 
-tick = getappdata(hFig,[eixo,'TickOrig']);
+tick = getappdata(hAx,[eixo,'TickOrig']);
 if (isempty(tick)),     return;     end     % Not a Mirone (type) figure
 n_tick = size(tick,1);
+sep = ':';
 
 switch type
     case 'DegDec'
-        % This is easy because original Labels where saved in appdata
-        set(hAx,[eixo,'TickLabel'],getappdata(hFig,[eixo,'TickOrig']));
         setappdata(hAx,'LabelFormatType','DegDec')                      % Save it so zoom can know the label type
     case 'DegMin'
         e_str = degree2dms(str2num( ddewhite(tick) ),'DDMM',0,'str');   % e_str is a structure with string fields
-        str_e = [e_str.dd repmat(' ',n_tick,1) e_str.mm];
+        str_e = [e_str.dd repmat(sep, n_tick,1) e_str.mm];
         set(hAx,[eixo,'TickLabel'],str_e);
         setappdata(hAx,'LabelFormatType','DegMin')                     % Save it so zoom can know the label type
     case 'DegMinDec'
         e_str = degree2dms(str2num( ddewhite(tick) ),'DDMM.x',2,'str'); % e_str is a structure with string fields
-        str_e = [e_str.dd repmat(' ',n_tick,1) e_str.mm];
+        str_e = [e_str.dd repmat(sep, n_tick,1) e_str.mm];
         set(hAx,[eixo,'TickLabel'],str_e);
         setappdata(hAx,'LabelFormatType','DegMinDec')                  % Save it so zoom can know the label type
     case 'DegMinSec'
         e_str = degree2dms(str2num( ddewhite(tick) ),'DDMMSS',0,'str'); % e_str is a structure with string fields
-        str_e = [e_str.dd repmat(' ',n_tick,1) e_str.mm repmat(' ',n_tick,1) e_str.ss];
+        str_e = [e_str.dd repmat(sep, n_tick,1) e_str.mm repmat(sep, n_tick,1) e_str.ss];
         set(hAx,[eixo,'TickLabel'],str_e);
         setappdata(hAx,'LabelFormatType','DegMinSec')                  % Save it so zoom can know the label type
     case 'DegMinSecDec'
         e_str = degree2dms(str2num( ddewhite(tick) ),'DDMMSS.x',1,'str');   % e_str is a structure with string fields
-        str_e = [e_str.dd repmat(' ',n_tick,1) e_str.mm repmat(' ',n_tick,1) e_str.ss];
+        str_e = [e_str.dd repmat(sep, n_tick,1) e_str.mm repmat(sep, n_tick,1) e_str.ss];
         set(hAx,[eixo,'TickLabel'],str_e);
         setappdata(hAx,'LabelFormatType','DegMinSecDec')               % Save it so zoom can know the label type
 end
