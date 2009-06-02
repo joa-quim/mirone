@@ -2362,6 +2362,7 @@ hFig = get(0,'CurrentFigure');      hAxes = get(hFig,'CurrentAxes');
 x_tick = getappdata(hAxes,'XTickOrig');
 y_tick = getappdata(hAxes,'YTickOrig');
 n_xtick = size(x_tick,1);                   n_ytick = size(y_tick,1);
+sep = ':';
 switch opt
 	case 'ToDegDec'
 		% This is easy because original Labels where saved in appdata
@@ -2371,29 +2372,29 @@ switch opt
 	case 'ToDegMin'
 		x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM',0,'str');     % x_str is a structure with string fields
 		y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM',0,'str');
-		str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm];
-		str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm];
+		str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm];
+		str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm];
 		set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
 		setappdata(hAxes,'LabelFormatType','DegMin')        % Save it so zoom can know the label type
 	case 'ToDegMinDec'
 		x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM.x',2,'str');    % x_str is a structure with string fields
 		y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM.x',2,'str');
-		str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm];
-		str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm];
+		str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm];
+		str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm];
 		set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
 		setappdata(hAxes,'LabelFormatType','DegMinDec')     % Save it so zoom can know the label type
 	case 'ToDegMinSec'
 		x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS',0,'str');    % x_str is a structure with string fields
 		y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS',0,'str');
-		str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm repmat(' ',n_xtick,1) x_str.ss];
-		str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm repmat(' ',n_ytick,1) y_str.ss];
+		str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm repmat(sep,n_xtick,1) x_str.ss];
+		str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm repmat(sep,n_ytick,1) y_str.ss];
 		set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
 		setappdata(hAxes,'LabelFormatType','DegMinSec')      % Save it so zoom can know the label type
 	case 'ToDegMinSecDec'
 		x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS.x',1,'str');   % x_str is a structure with string fields
 		y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS.x',1,'str');
-		str_x = [x_str.dd repmat(' ',n_xtick,1) x_str.mm repmat(' ',n_xtick,1) x_str.ss];
-		str_y = [y_str.dd repmat(' ',n_ytick,1) y_str.mm repmat(' ',n_ytick,1) y_str.ss];
+		str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm repmat(sep,n_xtick,1) x_str.ss];
+		str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm repmat(sep,n_ytick,1) y_str.ss];
 		set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
 		setappdata(hAxes,'LabelFormatType','DegMinSecDec')   % Save it so zoom can know the label type
 end
