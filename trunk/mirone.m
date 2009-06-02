@@ -2377,13 +2377,16 @@ function DrawImportShape_CB(handles, fname)
 		end
 		if (isempty(h)),	warndlg('No data inside dysplay region','Warning'),		return,		end
 		draw_funs(h,'setSHPuictx')			% Set lines's uicontextmenu
-	elseif (strcmp(t,'Polygon'))
+	elseif (strncmp(t,'Polygon',7))
 		nParanoia = 1000;					% The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
 		for i = 1:nPolygs
 			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) s(i).BoundingBox(2,2); ...
 					s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
 			if (any(out))					% It means the polyg BB is at least partially inside
 				h(i) = patch('XData',s(i).X,'YData', s(i).Y,'FaceColor','none','EdgeColor',lc,'Parent',handles.axes1,'Tag','SHPpolygon');
+				if (numel(t >= 8) && t(8) == 'Z')
+					set(h(i), 'UserData', s(i).Z)			% Fleder can drape it (+ other eventual usages)
+				end
 			end
 			if ((h(i) ~= 0) && nPolygs <= nParanoia)		% With luck, your hardware won't choke to dead with this
 				draw_funs(h(i),'line_uicontext')
