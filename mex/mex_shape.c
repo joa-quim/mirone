@@ -48,8 +48,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 	mxArray *m_shape_type;
 
 	/* Error code returned pj_transform */
-	int	error_code;
-	int	nShapeType, nEntities, i, j, k, iPart;
+	int	error_code, nShapeType, nEntities, i, j, k, iPart, nFields;
 	const	char *pszPartType = "";
 
 	int	buflen;		/* length of input shapefile name */
@@ -75,14 +74,11 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 	DBF_Field_Descriptor *dbf_field;
 
 	/* stores individual values from the DBF.  */
-	double	dbf_double_val;
-	int	dbf_integer_val;
-	char	*dbf_char_val;
-	char	error_buffer[500];
+	int	dbf_integer_val, dims[2], *p_parts_ptr, nNaNs, c, i_start, i_stop;
+	char	*dbf_char_val, error_buffer[500];
 	char	*fnames[100];  /* holds name of fields */
-	mxArray *out_struct, *x_out, *y_out, *bbox, *p_parts;
-	double	*x_out_ptr, *y_out_ptr, *bb_ptr, nan;
-	int	dims[2], *p_parts_ptr, nNaNs, c, i_start, i_stop;
+	mxArray *out_struct, *x_out, *y_out, *z_out, *bbox, *p_parts;
+	double	*x_out_ptr, *y_out_ptr, *z_out_ptr, *bb_ptr, nan, dbf_double_val;
 	size_t	sizebuf;
 
 	/*  Initialize the dbf record.  */
@@ -130,6 +126,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 			break;
 		case SHPT_POLYGON:
 			break;
+		case SHPT_POLYGONZ:
+			break;
 		case SHPT_MULTIPOINT:		/* JL */
 			break;
 		default:
@@ -148,26 +146,33 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 	/* Allocate space for a description of each record, and populate it.
 	 * I allocate space for two extra "dummy" records that go in positions
 	 * 0 and 1.  These I reserve for the xy data. */
-	dbf_field = (DBF_Field_Descriptor *) malloc ( (num_dbf_fields+3) * sizeof ( DBF_Field_Descriptor ) );
+	nFields = 3;
+	if ( nShapeType == SHPT_POLYGONZ ) nFields++;
+	dbf_field = (DBF_Field_Descriptor *) mxMalloc ( (num_dbf_fields+nFields) * sizeof ( DBF_Field_Descriptor ) );
 	if ( dbf_field == NULL )
 		mexErrMsgTxt("Memory allocation for DBF_Field_Descriptor failed."); 
 
 	for ( j = 0; j < num_dbf_fields; ++j )
-		dbf_field[j+3].field_type = DBFGetFieldInfo ( dbh, j, dbf_field[j+3].pszFieldName, NULL, NULL );
+		dbf_field[j+nFields].field_type = DBFGetFieldInfo ( dbh, j, dbf_field[j+nFields].pszFieldName, NULL, NULL );
 
 	fnames[0] = strdup ( "X" );
 	fnames[1] = strdup ( "Y" );
-	fnames[2] = strdup ( "BoundingBox" );
+	if ( nShapeType == SHPT_POLYGONZ ) {
+		fnames[2] = strdup ( "Z" );
+		fnames[3] = strdup ( "BoundingBox" );
+	}
+	else
+		fnames[2] = strdup ( "BoundingBox" );
 
 	for ( j = 0; j < num_dbf_fields; ++j )
-		fnames[j+3] = strdup ( dbf_field[j+3].pszFieldName );
+		fnames[j+nFields] = strdup ( dbf_field[j+nFields].pszFieldName );
 
 	/* To hold information on eventual polygons with rings */
 	/*fnames[num_dbf_fields+3] = strdup ( "nParts" );*/
 	/*fnames[num_dbf_fields+4] = strdup ( "PartsIndex" );*/
 
 	/* Allocate space for the output structure. */
-	out_struct = mxCreateStructMatrix ( nEntities, 1, 3+num_dbf_fields, (const char **)fnames );
+	out_struct = mxCreateStructMatrix ( nEntities, 1, nFields + num_dbf_fields, (const char **)fnames );
 
 	/* create the BoundingBox - Overwriten later, must call it something else*/
 	dims[0] = 4;
@@ -193,11 +198,10 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 		x_out_ptr = mxGetData ( x_out );
 		y_out = mxCreateNumericArray ( 2, dims, mxDOUBLE_CLASS, mxREAL );
 		y_out_ptr = mxGetData ( y_out );
-
-		/* Just copy the verticies over. */
-		/*sizebuf = mxGetElementSize ( x_out ) * psShape->nVertices;
-		memcpy ( (void *) x_out_ptr, (void *) psShape->padfX, sizebuf );
-		memcpy ( (void *) y_out_ptr, (void *) psShape->padfY, sizebuf );*/
+		if ( nShapeType == SHPT_POLYGONZ ) {
+			z_out = mxCreateNumericArray ( 2, dims, mxDOUBLE_CLASS, mxREAL );
+			z_out_ptr = mxGetData ( z_out );
+		}
 
 		if (psShape->nParts > 1) {
 			for (k = c = 0; k < psShape->nParts; k++) {
@@ -206,23 +210,45 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 					i_stop = psShape->panPartStart[k+1];
 				else
 					i_stop = psShape->nVertices;
-				for (j = i_start; j < i_stop; c++, j++) {
+				/*for (j = i_start; j < i_stop; c++, j++) {
 					x_out_ptr[c] = psShape->padfX[j];
 					y_out_ptr[c] = psShape->padfY[j];
 				}
 				x_out_ptr[c] = nan;
-				y_out_ptr[c] = nan;
+				y_out_ptr[c] = nan;*/
+				if ( nShapeType == SHPT_POLYGONZ ) {
+					for (j = i_start; j < i_stop; c++, j++) {
+						x_out_ptr[c] = psShape->padfX[j];
+						y_out_ptr[c] = psShape->padfY[j];
+						z_out_ptr[c] = psShape->padfZ[j];
+					}
+					x_out_ptr[c] = nan;
+					y_out_ptr[c] = nan;
+					z_out_ptr[c] = nan;
+				}
+				else {
+					for (j = i_start; j < i_stop; c++, j++) {
+						x_out_ptr[c] = psShape->padfX[j];
+						y_out_ptr[c] = psShape->padfY[j];
+					}
+					x_out_ptr[c] = nan;
+					y_out_ptr[c] = nan;
+				}
 				c++;
 			}
 		}
-		else {		/* Just copy the verticies over. */
+		else {		/* Just copy the vertices over. */
 			sizebuf = mxGetElementSize ( x_out ) * psShape->nVertices;
 			memcpy ( (void *) x_out_ptr, (void *) psShape->padfX, sizebuf );
 			memcpy ( (void *) y_out_ptr, (void *) psShape->padfY, sizebuf );
+			if ( nShapeType == SHPT_POLYGONZ )
+				memcpy ( (void *) z_out_ptr, (void *) psShape->padfZ, sizebuf );
 		}
 
 		mxSetField ( out_struct, i, "X", x_out );
 		mxSetField ( out_struct, i, "Y", y_out );
+		if ( nShapeType == SHPT_POLYGONZ )
+			mxSetField ( out_struct, i, "Z", z_out );
 
 		bbox = mxCreateNumericMatrix ( 4, 2, mxDOUBLE_CLASS, mxREAL );
 		bb_ptr = (double *)mxGetData ( bbox );
@@ -244,23 +270,23 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 
 		/* Now do the attributes */
 		for ( j = 0; j < num_dbf_fields; ++j ) {
-			switch ( dbf_field[j+3].field_type ) {
+			switch ( dbf_field[j+nFields].field_type ) {
 				case FTString:
 					dbf_char_val = (char *) DBFReadStringAttribute ( dbh, i, j );
-					mxSetField ( out_struct, i, dbf_field[j+3].pszFieldName, mxCreateString ( dbf_char_val ) );
+					mxSetField ( out_struct, i, dbf_field[j+nFields].pszFieldName, mxCreateString ( dbf_char_val ) );
 					break;
 				case FTDouble:
 					dbf_double_val = DBFReadDoubleAttribute ( dbh, i, j );
-					mxSetField ( out_struct, i, dbf_field[j+3].pszFieldName, mxCreateDoubleScalar ( dbf_double_val ) );
+					mxSetField ( out_struct, i, dbf_field[j+nFields].pszFieldName, mxCreateDoubleScalar ( dbf_double_val ) );
 					break;
 				case FTInteger:
 				case FTLogical:
 					dbf_integer_val = DBFReadIntegerAttribute ( dbh, i, j );
 					dbf_double_val = dbf_integer_val;
-					mxSetField ( out_struct, i, dbf_field[j+3].pszFieldName, mxCreateDoubleScalar ( dbf_double_val ) );
+					mxSetField ( out_struct, i, dbf_field[j+nFields].pszFieldName, mxCreateDoubleScalar ( dbf_double_val ) );
 					break;
 				default:
-					sprintf ( error_buffer, "Unhandled code %d, shape %d, record %d\n", dbf_field[j+3].field_type, i, j );
+					sprintf ( error_buffer, "Unhandled code %d, shape %d, record %d\n", dbf_field[j+nFields].field_type, i, j );
 	        			mexErrMsgTxt("Unhandled code"); 
 			}
 		}
@@ -272,7 +298,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 	DBFClose ( dbh );
 
 	if ( dbf_field != NULL )
-		free ( dbf_field );
+		mxFree ( (void *)dbf_field );
 
 	plhs[0] = out_struct;
 }
