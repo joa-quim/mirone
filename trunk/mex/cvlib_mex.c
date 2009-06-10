@@ -1,5 +1,5 @@
 /*
- *      Coffeeright (c) 2002-2008 by J. Luis
+ *      Coffeeright (c) 2002-2009 by J. Luis
  *
  *      This program is free software; you can redistribute it and/or modify
  *      it under the terms of the GNU General Public License as published by
@@ -15,6 +15,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 26  06/09/2009 Chuan Li	Added cvCalcOpticalFlowPyrLK
  * Revision 25  03/02/2009 JL	Added cvAvgSdv & cvAvg (not documented yet)
  * Revision 24  30/01/2009 JL	Added cvAdaptiveThreshold (It's failing when RGB in)
  * Revision 23  28/12/2008 JL	Added convexHull. Fixed bug when Mx3 input on Douglas-Peucker 
@@ -30,7 +31,7 @@
  * Revision 16  02/04/2008 JL	+ cvAbs & cvAbsDiffS & cvSubRS
  * Revision 15  28/03/2008 JL	Finally finished the approxPoly (Douglas-Peucker) function
  * Revision 14  21/03/2008 JL	Added cvPow, cvLog, cvExp and hypot. Also replaced a couple of mxCalloc by mxMalloc
- * Revision 13  01/01/2008 Chuong Nguyen added MatchTemplate
+ * Revision 13  01/01/2008 Chuong Nguyen	Added MatchTemplate
  * Revision 12  12/10/2007 JL	Added cvCvtScale (need to include in help)
  * Revision 11  30/04/2007 JL	corrected memory leaks as kindly pointed by James Hays
  * Revision 10  27/04/2007 JL	Added AbsDiff, finished PutText and fixed fix of JfindContours
@@ -47,8 +48,11 @@
 
 #include <math.h>
 #include "mex.h"
-/*#include <opencv/cv.h> */
+#if defined(WIN32) || defined(WIN64)	/* The intention is to know whether we are on Windows or not */
 #include <cv.h>
+#else
+#include <opencv/cv.h>
+#endif
 
 #include "sift/sift.h"
 #include "sift/imgfeatures.h"
@@ -126,6 +130,7 @@ void Jhomography(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JfindRectangles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jthreshold(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jstat(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op);
+void JopticalFlowPyrLK(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 
 void Set_pt_Ctrl_in (struct CV_CTRL *Ctrl, const mxArray *pi , mxArray *pit, int interl);
 void Set_pt_Ctrl_out1 ( struct CV_CTRL *Ctrl, mxArray *pi );
@@ -153,7 +158,7 @@ void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsa
 void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage(), powUsage();
 void absUsage(), logUsage(), expUsage(), hypotUsage(), haarUsage(), convexHullUsage();
 void approxPolyUsage(), siftUsage(), homographyUsage(), findRectangUsage();
-void MatchTemplateUsage(), thresholdUsage();
+void MatchTemplateUsage(), thresholdUsage(), opticalFlowyrLKUsage(); 
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -202,6 +207,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tmatchtemplate (cvMatchTemplate)\n");
 		mexPrintf("\tmorphologyex (cvMorphologyEx)\n");
 		mexPrintf("\tmul (cvMul)\n");
+		mexPrintf("\topticalFlowPyrLK (cvCalcOpticalFlowPyrLK)\n");
 		mexPrintf("\tpolyline (cvPolyLine)\n");
 		mexPrintf("\tpow (cvPow)\n");
 		mexPrintf("\tpyrD (cvPyrDown)\n");
@@ -314,6 +320,9 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	else if (!strncmp(funName,"thre",4))
 		Jthreshold(n_out, plhs, n_in, prhs);
+
+	else if (!strncmp(funName,"optical",7))
+		JopticalFlowPyrLK(n_out, plhs, n_in, prhs);
 
 	else if (!strncmp(funName,"MatchTemplate",5))
 		JMatchTemplate(n_out, plhs, n_in, prhs);
@@ -3478,7 +3487,7 @@ void JMatchTemplate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[])
 		*(out_max_loc+1) = max_loc.x + 1;
 	}
 
-	/* -------------------- Release the temporal memonry ------------------------ */
+	/* -------------------- Release the temporal memory -------------------------- */
 	cvReleaseImageHeader( &result );
 	cvReleaseImageHeader( &tmp );
 	cvReleaseImageHeader( &img );
@@ -3488,6 +3497,132 @@ void JMatchTemplate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[])
 	Free_Cv_Ctrl (img_Ctrl);	/* Deallocate control structure */
 	Free_Cv_Ctrl (tmp_Ctrl);	/* Deallocate control structure */
 }
+
+
+/* ---------- Chuan06/09/2009 -------------------------------------------------------- */
+void JopticalFlowPyrLK(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
+    
+	double *ptr_d; /* pointer for assigning values */
+	int nCorner; /* number of corners (input and output should be the same) */
+	mxArray *ptr_corner_in_Array; /* array of pointers for input cornners */
+	CvPoint2D32f *corners_in = {0}; /* input conner, in OpenCV format */
+	CvPoint2D32f *corners_out ={0}; /* output conner, in OpenCV format */
+
+	int n, nx, ny, i, nBytes, img_depth, nBands;
+	int win_size = 10;
+	int flags = 0;
+	char *status = 0;
+	unsigned char *ptr_gray;
+	struct CV_CTRL *Ctrl;
+	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
+	mxArray *ptr_in;
+	IplImage *src_img = 0, *src_gray;
+	IplImage *tar_img = 0, *tar_gray;
+	IplImage *src_pyramid = 0, *tar_pyramid = 0;
+	
+	/* first, we read in the input conner from ML to OpenCV and initial the images & pyramids */
+
+	/* ---- Check for errors in user's call to function.  -------------------- */
+	if (n_in == 1) { opticalFlowyrLKUsage(); return; }
+	/* Check that input image is of type UInt8 */
+	if ( !mxIsUint8(prhs[1]) )
+		mexErrMsgTxt("OPTICALFLOW: Invalid input data type. Valid type is: UInt8.\n");
+	if ( !mxIsUint8(prhs[2]) )
+		mexErrMsgTxt("OPTICALFLOW: Invalid input data type. Valid type is: UInt8.\n");
+	if (n_out > 3)
+		mexErrMsgTxt("OPTICALFLOW returns only three output arguments!");
+	if (n_in >= 4 && !mxIsEmpty(prhs[3])){
+		ptr_corner_in_Array = mxDuplicateArray(prhs[3]); /* associate inputs */
+		ptr_d = mxGetPr(ptr_corner_in_Array);
+		nCorner = mxGetM(ptr_corner_in_Array);
+		corners_in = (CvPoint2D32f *)cvAlloc(nCorner*sizeof(corners_in[0]));
+		corners_out = (CvPoint2D32f *)cvAlloc(nCorner*sizeof(corners_in[0]));
+		for (n = 0; n < nCorner; n++ ) {
+			corners_in[n].x = (float)(ptr_d[n] - 1);
+			corners_in[n].y = (float)(ptr_d[n+nCorner] - 1);
+		}
+		win_size = (int)(*mxGetPr(prhs[4]));
+	}
+
+	status = (char*)cvAlloc(nCorner);
+	/* -------------------- End of parsing input ------------------------------------- */
+
+	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);	nBands = getNK(prhs[1],2);
+	/* Allocate and initialize defaults in a new control structure */
+	Ctrl = (struct CV_CTRL *) New_Cv_Ctrl ();
+	getDataType(Ctrl, prhs, &nBytes, &img_depth);
+
+	/* ------ Create pointer for temporary array ------------------------------------- */
+	ptr_in  = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+		  mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
+	/* ------------------------------------------------------------------------------- */ 
+
+	Set_pt_Ctrl_in ( Ctrl, prhs[1], ptr_in, 1 ); 	/* Set pointer & interleave */
+
+	src_img = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+	localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
+
+	if (nBands == 3) {			/* Convert to GRAY */
+		src_gray = cvCreateImageHeader( cvSize(nx, ny), 8, 1 );
+		ptr_gray = (unsigned char *)mxMalloc (nx*ny);
+		cvSetImageData( src_gray, (void *)ptr_gray, nx );
+		cvCvtColor(src_img, src_gray, CV_BGR2GRAY);
+		for (i = 0; i < nx*ny; i++)	/* Copy the transformed image into Ctrl field */
+			Ctrl->UInt8.tmp_img_in[i] = ptr_gray[i]; 
+		mxFree(ptr_gray);
+		cvReleaseImageHeader( &src_gray );
+
+		/* Here we're going to cheat the src_img in order to pretend that its 2D */
+		src_img->nChannels = 1;
+		src_img->widthStep = nx * nBytes;
+		src_img->imageSize = ny * src_img->widthStep;
+	}
+
+	/* ------ Create pointer for temporary array ------------------------------------- */
+	ptr_in  = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[2]),
+		  mxGetDimensions(prhs[2]), mxGetClassID(prhs[2]), mxREAL);
+	/* ------------------------------------------------------------------------------- */ 
+
+	Set_pt_Ctrl_in ( Ctrl, prhs[2], ptr_in, 1 ); 	/* Set pointer & interleave */
+
+	tar_img = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+	localSetData( Ctrl, tar_img, 1, nx * nBands * nBytes );
+
+	if (nBands == 3) {			/* Convert to GRAY */
+		tar_gray = cvCreateImageHeader( cvSize(nx, ny), 8, 1 );
+		ptr_gray = (unsigned char *)mxMalloc (nx*ny);
+		cvSetImageData( tar_gray, (void *)ptr_gray, nx );
+		cvCvtColor(tar_img, tar_gray, CV_BGR2GRAY);
+		for (i = 0; i < nx*ny; i++)	/* Copy the transformed image into Ctrl field */
+			Ctrl->UInt8.tmp_img_in[i] = ptr_gray[i]; 
+		mxFree(ptr_gray);
+		cvReleaseImageHeader( &tar_gray );
+
+		/* Here we're going to cheat the src_img in order to pretend that its 2D */
+		tar_img->nChannels = 1;
+		tar_img->widthStep = nx * nBytes;
+		tar_img->imageSize = ny * tar_img->widthStep;
+	}
+
+	src_pyramid = cvCreateImage( cvGetSize(src_img), 8, 1);
+	tar_pyramid = cvCreateImage( cvGetSize(tar_img), 8, 1);
+
+	/* Second, Track use OpenCV */
+	cvCalcOpticalFlowPyrLK( src_img, tar_img, src_pyramid, tar_pyramid, corners_in, corners_out, 
+				nCorner, cvSize(win_size,win_size), 5, status, 0,
+				cvTermCriteria(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS,20,0.03), 
+				flags );
+
+	/* Third, Output the tracked points */
+	plhs[0] = mxCreateNumericMatrix(nCorner, mxGetN(ptr_corner_in_Array), mxDOUBLE_CLASS, mxREAL);
+	ptr_d = mxGetPr(plhs[0]);
+	for (n = 0; n < nCorner; n++ ) {
+		ptr_d[n] 	 = (float)(corners_out[n].x + 1);	/* +1 because ML is one-based */
+	 	ptr_d[n+nCorner] = (float)(corners_out[n].y + 1);
+	}		
+	return;
+}
+
 
 /* -------------------------------------------------------------------------------------------- */
 #define sqr(x) ((x)*(x))
@@ -4306,22 +4441,13 @@ void eBoxUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
-void plineUsage() {
-	mexPrintf("Usage: cvlib_mex('polyline',IMG,PT,[COLOR,THICK,LINE_TYPE]);\n");
-	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
-	mexPrintf("       draws, inplace, the polyline whose vertex are contained in the Mx2 or 2xN PT array.\n");
-	mexPrintf("       If PT is a cell vector with N elements, draws N polylines in the image.\n");
-	mexPrintf("       Each cell element must contain a Mx2 OR 2xN array with the x,y pixel coords\n");
-	mexPrintf("       of the polyline to be ploted.\n");
-	mexPrintf("       IM2 = cvlib_mex('polyline',IMG,PT,[COLOR,THICK,LINE_TYPE]);\n");
-	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
-	mexPrintf("       Terms inside brakets are optional and can be empty,\n");
-	mexPrintf("       e.g (...,[],[],LINE_TYPE) or (...,[],5) are allowed.\n");
-	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
-	mexPrintf("       THICK -> Line thickness (default 1)\n");
-	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), 4 - 4-connected, 16 - antialiased.\n\n");
+void erodeUsage() {
+	mexPrintf("Usage: C = cvlib_mex('erode',IMG);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image OR a MxN single:\n");
+	mexPrintf("       C = cvlib_mex('erode',IMG,iterations);\n");
+	mexPrintf("       If not provided iterations = 1;\n\n");
 
-	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Class support: logical, uint8 or single.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
 }
 
@@ -4391,6 +4517,25 @@ void findRectangUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
+void flipUsage() {
+	mexPrintf("Usage: B = cvlib_mex('flip',IMG,'DIR');\n");
+	mexPrintf("       Flip a 2D array around vertical, horizontall or both axis\n");
+	mexPrintf("       where IMG is an array of any type and DIR = 'ud', 'lr' or 'both'\n");
+	mexPrintf("       for Up-Down, Left-Right or Both.\n\n");
+	mexPrintf("       cvlib_mex('flip',IMG,'DIR');\n");
+	mexPrintf("       Flips IMG inplace.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void filterUsage() {
+	mexPrintf("Usage: B = cvlib_mex('filter',IMG,FILTER);\n");
+	mexPrintf("       Convolves image IMG with the kernel FILTER\n\n");
+
+	mexPrintf("       Class support: uint8, int16, uint16 or single.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG and 1 copy of FILTER.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
 void goodFeaturesUsage() {
 	mexPrintf("Usage: B = cvlib_mex('goodfeatures',IMG,[,M,QUALITY,DIST]);\n");
 	mexPrintf("       where IMG is a uint8 MxNx3 or a MxN intensity image:\n");
@@ -4438,6 +4583,16 @@ void haarUsage() {
 
 	mexPrintf("       Class support: uint8 (and maybe others - not tested).\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void hypotUsage() {
+	mexPrintf("Usage: B = cvlib_mex('hypot',IMG1, IMG2);\n");
+	mexPrintf("       Calculates the square root of the sum of squares\n");
+	mexPrintf("       B(I) = sqrt(img1(I).^2 + img2(I).^2)\n\n");
+
+	mexPrintf("       Class support: all but uint32.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG1.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
@@ -4527,17 +4682,6 @@ void logUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
-void erodeUsage() {
-	mexPrintf("Usage: C = cvlib_mex('erode',IMG);\n");
-	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image OR a MxN single:\n");
-	mexPrintf("       C = cvlib_mex('erode',IMG,iterations);\n");
-	mexPrintf("       If not provided iterations = 1;\n\n");
-
-	mexPrintf("       Class support: logical, uint8 or single.\n");
-	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
-}
-
-/* -------------------------------------------------------------------------------------------- */
 void morphologyexUsage() {
 	mexPrintf("Usage: C = cvlib_mex('morphologyex',IMG,OPERATION);\n");
 	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image OR a MxN single:\n");
@@ -4555,22 +4699,44 @@ void morphologyexUsage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
-void flipUsage() {
-	mexPrintf("Usage: B = cvlib_mex('flip',IMG,'DIR');\n");
-	mexPrintf("       Flip a 2D array around vertical, horizontall or both axis\n");
-	mexPrintf("       where IMG is an array of any type and DIR = 'ud', 'lr' or 'both'\n");
-	mexPrintf("       for Up-Down, Left-Right or Both.\n\n");
-	mexPrintf("       cvlib_mex('flip',IMG,'DIR');\n");
-	mexPrintf("       Flips IMG inplace.\n");
+void opticalFlowyrLKUsage(){
+	mexPrintf("Usage: COR_OUT = cvlib_mex('opticalFlowPyrLK', IM1, IM2, COR_IN, WINDOW_SIZE);\n");
+	mexPrintf("	Calculates optical flow for a sparse feature set\n");
+	mexPrintf("	using iterative Lucas-Kanade method in pyramids\n");
+	mexPrintf("       where IM1 is a uint8 MxNx3 image containing the previous frame\n");
+	mexPrintf("             IM2 is a uint8 MxNx3 image containing the current frame\n");
+	mexPrintf("             COR_IN is a kx2 array each row represents a feature point\n");
+	mexPrintf("             WINDOW_SIZE is int represents windows of the feature, default is 10 \n");
+	mexPrintf("       return COR_OUT is a k*2 array each row represents a feature point\n");
+	mexPrintf("       COR_IN can be detected use cor_in = cvlib_mex('goodfeatures',im,[M,QUALITY,DIST]) \n");
+	mexPrintf("       Refer to OpenCV documentation for details of the matching methods.\n\n");
+
+	mexPrintf("Example:\n");
+	mexPrintf("       im1 = imread('frame0.png');\n");
+	mexPrintf("       im2 = imread('frame1.png');\n");
+	mexPrintf("       cor_out = cvlib_mex('opticalFlowPyrLK', im1, im2, cor_in, 10);\n\v");
+
+	mexPrintf("       Class support: uint8.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
-void filterUsage() {
-	mexPrintf("Usage: B = cvlib_mex('filter',IMG,FILTER);\n");
-	mexPrintf("       Convolves image IMG with the kernel FILTER\n\n");
+void plineUsage() {
+	mexPrintf("Usage: cvlib_mex('polyline',IMG,PT,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       where IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
+	mexPrintf("       draws, inplace, the polyline whose vertex are contained in the Mx2 or 2xN PT array.\n");
+	mexPrintf("       If PT is a cell vector with N elements, draws N polylines in the image.\n");
+	mexPrintf("       Each cell element must contain a Mx2 OR 2xN array with the x,y pixel coords\n");
+	mexPrintf("       of the polyline to be ploted.\n");
+	mexPrintf("       IM2 = cvlib_mex('polyline',IMG,PT,[COLOR,THICK,LINE_TYPE]);\n");
+	mexPrintf("       Returns the drawing in the the new array IM2.\n\n");
+	mexPrintf("       Terms inside brakets are optional and can be empty,\n");
+	mexPrintf("       e.g (...,[],[],LINE_TYPE) or (...,[],5) are allowed.\n");
+	mexPrintf("       COLOR -> Line color. Can be a 1x3 vector, e.g. the default [255 255 255], or a scalar (gray).\n");
+	mexPrintf("       THICK -> Line thickness (default 1)\n");
+	mexPrintf("       LINE_TYPE -> Type of line. 8 - 8-connected line (default), 4 - 4-connected, 16 - antialiased.\n\n");
 
-	mexPrintf("       Class support: uint8, int16, uint16 or single.\n");
-	mexPrintf("       Memory overhead: 1 copy of IMG and 1 copy of FILTER.\n");
+	mexPrintf("       Class support: uint8.\n");
+	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
@@ -4758,16 +4924,6 @@ void expUsage() {
 
 	mexPrintf("       Class support: all but uint32.\n");
 	mexPrintf("       Memory overhead: none.\n");
-}
-
-/* -------------------------------------------------------------------------------------------- */
-void hypotUsage() {
-	mexPrintf("Usage: B = cvlib_mex('hypot',IMG1, IMG2);\n");
-	mexPrintf("       Calculates the square root of the sum of squares\n");
-	mexPrintf("       B(I) = sqrt(img1(I).^2 + img2(I).^2)\n\n");
-
-	mexPrintf("       Class support: all but uint32.\n");
-	mexPrintf("       Memory overhead: 1 copy of IMG1.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
