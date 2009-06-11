@@ -397,6 +397,13 @@ if ( status ~= 0 )
 	snc_error ( 'NC_FUNS:NC_VARGET:%s', mexnc('strerror', status) );
 end
 
+% Test for situations like the Ifremer SST files where when we get here we have
+% the_var_size = [1 1024 1024]		and values = [1024 x 1024]
+% That is, the variable on the netCDF file is singleton on the leading dimension
+if ( (the_var_size(1) == 1) && (numel(the_var_size) > 2) && (ndims(values) == (numel(the_var_size) - 1)) )
+	the_var_size = the_var_size(2:end);
+end
+
 % If it's a 1D vector, make it a column vector.  Otherwise permute the data
 % to make up for the row-major-order-vs-column-major-order issue.
 if (length(the_var_size) == 1)
@@ -406,8 +413,10 @@ else
     values = permute(values,pv);
 end                                                                                   
 
-values = handle_fill_value_mex ( ncid, varid, var_type, values );
-values = handle_mex_missing_value ( ncid, varid, var_type, values );
+[values, status] = handle_fill_value_mex ( ncid, varid, var_type, values );		% Do both '_FillValue' & 'missing_value'
+if (status)		% '_FillValue' was not found. Try the 'missing_value'
+	values = handle_mex_missing_value ( ncid, varid, var_type, values );
+end
 values = handle_scaling_mex ( ncid, varid, values );
 
 % remove any singleton dimensions.
@@ -480,11 +489,19 @@ switch ( var_type )
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function values = handle_fill_value_mex ( ncid, varid, var_type, values )
+function [values, status] = handle_fill_value_mex ( ncid, varid, var_type, values )
 % HANDLE_MEX_FILL_VALUE: If there is a fill value, then replace such values with NaN.
+% And, since the Job is exactly the same as for the missing_value case we now deal
+% both cases here (J. Luis 11-06-2009).
+% However, a situation may arise where there is no '_FillValue'. In that case STATUS
+% contains that ifo and the calling routine should call handle_mex_missing_value()
+
+miss_value = [];
 
 [dud, dud, status] = mexnc('INQ_ATT', ncid, varid, '_FillValue' );
 if ( status == 0 )
+	
+	[dud, dud, status2] = mexnc('INQ_ATT', ncid, varid, 'missing_value' );
 
     switch ( var_type )
         case {nc_char, nc_byte}
@@ -492,8 +509,15 @@ if ( status == 0 )
 			% If it does, please tell me so.
         case { nc_int, nc_short}
 			[fill_value, status] = mexnc( 'get_att_double', ncid, varid, '_FillValue' );
-			if (~isnan(fill_value))
+			if ( ~status2 )			% Get also the 'missing_value' and do the job for both
+				[miss_value, status2] = mexnc( 'get_att_double', ncid, varid, 'missing_value' );
+			end
+			if (~isnan(fill_value) || ~isnan(miss_value))
 				ind = (values == fill_value);
+				if ( ~isempty(miss_value) && (fill_value ~= miss_value) )	% If 'missing_value' is different from '_FillValue'
+					ind2 = (values == miss_value);
+					ind = (ind | ind2);				% Ensemble of fill_ and miss_ values
+				end
 				if (any(ind))
 					values = single(values);		% Here I give up and convert to singles
 					values(ind) = NaN;
@@ -503,8 +527,14 @@ if ( status == 0 )
 			end
         case { nc_double, nc_float }
 			[fill_value, status] = mexnc( 'get_att_double', ncid, varid, '_FillValue' );
+			if ( ~status2 )			% Get also the 'missing_value' and do the job for both
+				[miss_value, status2] = mexnc( 'get_att_double', ncid, varid, 'missing_value' );
+			end
 			if (~isnan(fill_value))
 				values(values == fill_value) = NaN;
+			end
+			if ( ~isnan(miss_value) && (miss_value ~= fill_value) )
+				values(values == miss_value) = NaN;
 			end
         otherwise
 			mexnc('close',ncid);
@@ -585,6 +615,7 @@ if (have_scale)
 	if ( scale_factor ~= 1 && ~( isa(values,'single') || isa(values,'double')) )
 		values = single(values);
 	end
+	if ( scale_factor == 1 ),	have_scale = false;		end
 end
 
 if (have_addoffset)
@@ -593,6 +624,7 @@ if (have_addoffset)
         mexnc('close',ncid);
         snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:GET_ATT_DOUBLE', mexnc('strerror', status) );
     end
+	if ( add_offset == 0 ),		have_addoffset = false;		end
 end
 
 if (have_scale && have_addoffset)
