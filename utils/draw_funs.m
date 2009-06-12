@@ -118,6 +118,7 @@ switch opt
 		XYlim = getappdata(handles.axes1,'ThisImageLims');
 		xx = XYlim(1:2);				yy = XYlim(3:4);
 		lt = handles.DefLineThick;		lc = handles.DefLineColor;
+		min_max = [NaN NaN];
 		if (handles.validGrid),			min_max = handles.head(5:6);	end		% To be used in testing if we store eventual ZData
 		hold on
 		for (i = 1:n_segments)
