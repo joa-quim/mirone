@@ -510,7 +510,7 @@ if ( status == 0 )
         case { nc_int, nc_short}
 			[fill_value, status] = mexnc( 'get_att_double', ncid, varid, '_FillValue' );
 			if ( ~status2 )			% Get also the 'missing_value' and do the job for both
-				[miss_value, status2] = mexnc( 'get_att_double', ncid, varid, 'missing_value' );
+				miss_value = mexnc( 'get_att_double', ncid, varid, 'missing_value' );
 			end
 			if (~isnan(fill_value) || ~isnan(miss_value))
 				ind = (values == fill_value);
@@ -528,12 +528,12 @@ if ( status == 0 )
         case { nc_double, nc_float }
 			[fill_value, status] = mexnc( 'get_att_double', ncid, varid, '_FillValue' );
 			if ( ~status2 )			% Get also the 'missing_value' and do the job for both
-				[miss_value, status2] = mexnc( 'get_att_double', ncid, varid, 'missing_value' );
+				miss_value = mexnc( 'get_att_double', ncid, varid, 'missing_value' );
 			end
 			if (~isnan(fill_value))
 				values(values == fill_value) = NaN;
 			end
-			if ( ~isnan(miss_value) && (miss_value ~= fill_value) )
+			if (  ~isempty(miss_value) && (~isnan(miss_value) && (miss_value ~= fill_value)) )
 				values(values == miss_value) = NaN;
 			end
         otherwise
