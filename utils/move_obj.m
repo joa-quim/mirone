@@ -38,7 +38,7 @@ switch arg
 			new_pos(2,:) = obj_pos(2,:) + (pos(2)-last_pos(2));
 		end
 		switch get(this_obj, 'type')
-			case 'text',	set(this_obj, 'Pos', new_pos);
+			case 'text',	set(this_obj, 'Pos', new_pos);		refresh
 			case 'line',
 				set(this_obj, 'xdata', new_pos(1,:), 'ydata', new_pos(2,:));
 		end
