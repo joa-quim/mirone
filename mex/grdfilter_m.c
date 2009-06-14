@@ -94,7 +94,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	x_half_width, y_half_width, j_origin, i_out, j_out;
 	int	i_in, j_in, ii, jj, i, ij_in, ij_out, ij_wt, effort_level;
 	int	distance_flag, filter_type, one_or_zero = 1, nr_h, nc_h;
-	int	argc = 0, n_arg_no_char = 0, *i_4, *o_i4, *pdata_i4, j, i2, nx, ny;
+	int	argc = 0, n_arg_no_char = 0, *i_4, *o_i4, *pdata_i4, j, i2, nx, ny, k1, k2;
 	char	**argv, c;
 	short int *i_2, *o_i2, *pdata_i2;
 	unsigned short int *ui_2, *o_ui2, *pdata_ui2;
@@ -327,7 +327,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	else
 		one_or_zero = (h.node_offset) ? 0 : 1;
 	
-	input = (float *) GMT_memory (VNULL, (size_t)(h.nx * h.ny), sizeof(float), GMT_program);
+	input = (float *)mxMalloc ((size_t)(h.nx * h.ny) * sizeof (float));
 
 	/* Transpose from Matlab orientation to gmt grd orientation */
 	if (is_double) {
@@ -376,7 +376,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (north_new > h.y_max) error = TRUE;
 	if (dx_new <= 0.0) error = TRUE;
 	if (dy_new <= 0.0) error = TRUE;
-	
+
 	if (error) {
 		mexPrintf("%s: New WESN incompatible with old.\n", GMT_program);
 		mexErrMsgTxt("\n");
@@ -392,7 +392,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	   if new grid spacing is multiple of old spacing */
 
 	fast_way = (fabs (fmod (dx_new / h.x_inc, 1.0)) < GMT_SMALL && fabs (fmod (dy_new / h.y_inc, 1.0)) < GMT_SMALL);
-	
+
 	if (!fast_way && gmtdefs.verbose) {
 		mexPrintf ("%s: Warning - Your output grid spacing is such that filter-weights must\n", GMT_program);
 		mexPrintf ("be recomputed for every output node, so expect this run to be slow.  Calculations\n");
@@ -403,10 +403,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	nx_out = one_or_zero + irint ( (east_new - west_new) / dx_new);
 	ny_out = one_or_zero + irint ( (north_new - south_new) / dy_new);
-	
-	output = (float *) GMT_memory (VNULL, (size_t)(nx_out*ny_out), sizeof(float), GMT_program);
-	i_origin = (int *) GMT_memory (VNULL, (size_t)nx_out, sizeof(int), GMT_program);
-	if (!fast_way) x_shift = (double *) GMT_memory (VNULL, (size_t)nx_out, sizeof(double), GMT_program);
+
+	output = (float *)mxMalloc ((size_t)(nx_out*ny_out) * sizeof (float));
+	i_origin = (int *)mxMalloc ((size_t)nx_out * sizeof (float));
+	if (!fast_way) x_shift = (double *) mxMalloc ((size_t)nx_out * sizeof(double));
 
 	xincnew2 = (one_or_zero) ? 0.0 : 0.5 * dx_new;
 	yincnew2 = (one_or_zero) ? 0.0 : 0.5 * dy_new;
@@ -455,11 +455,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		ny_fil = h.ny;
 		y_half_width = h.ny / 2;
 	}
-	weight = (double *) GMT_memory (VNULL, (size_t)(nx_fil*ny_fil), sizeof(double), GMT_program);
+	weight = (double *)mxMalloc ((size_t)(nx_fil*ny_fil) * sizeof (double));
 
 	slow = (filter_type >= 3);	/* Will require sorting or comparisons */
 	
-	if (slow) work_array = (double *) GMT_memory (VNULL, (size_t)(nx_fil*ny_fil), sizeof(double), GMT_program);
+	if (slow) work_array = (double *) mxMalloc ((size_t)(nx_fil*ny_fil) * sizeof(double));
 
 	/* Compute nearest xoutput i-indices and shifts once */
 	
@@ -597,11 +597,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		memcpy(pdata, head_o, 8*9);
 	}
 
-	GMT_free ((void *) input);
-	GMT_free ((void *) weight);
-	GMT_free ((void *) i_origin);
-	if (slow) GMT_free ((void *) work_array);
-	if (!fast_way) GMT_free ((void *) x_shift);
+	mxFree((void *) input);
+	mxFree((void *) i_origin);
+	mxFree ((void *) weight);
+	if (slow) mxFree((void *) work_array);
+	if (!fast_way) mxFree(x_shift);
 	
 	GMT_end_for_mex (argc, argv);
 
@@ -610,59 +610,62 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	nx = h.nx;		ny = h.ny;
 	if (is_double) {
-		o_d = mxCalloc (nx*ny, sizeof (double));
-		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_d[j*ny+ny-i-1] = (double)output[i*nx+j];
 		plhs[0] = mxCreateDoubleMatrix (ny,nx, mxREAL);
 		pdata_d = mxGetPr(plhs[0]);
-		memcpy(pdata_d, o_d, ny*nx * 8);
+		for (i = 0; i < ny; i++) {
+			k1 = ny - i - 1;	k2 = i * nx;
+			for (j = 0; j < nx; j++) pdata_d[j*ny+k1] = (double)output[k2+j];
+		}
 	}
 	else if (is_single) {
-		o_s = mxCalloc (nx*ny, sizeof (float));
-		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_s[j*ny+ny-i-1] = output[i*nx+j];
 		plhs[0] = mxCreateNumericMatrix (ny,nx,mxSINGLE_CLASS,mxREAL);
-		pdata_s = mxGetData(plhs[0]);
-		memcpy(pdata_s, o_s, ny*nx * 4);
+		pdata_s = (float *)mxGetData(plhs[0]);
+		for (i = 0; i < ny; i++) {
+			k1 = ny - i - 1;	k2 = i * nx;
+			for (j = 0; j < nx; j++) pdata_s[j*ny+k1] = output[k2+j];
+		}
 	}
 	else if (is_int32) {
-		o_i4 = mxCalloc (nx*ny, sizeof (int));
-		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_i4[j*ny+ny-i-1] = irint(output[i*nx+j]);
 		plhs[0] = mxCreateNumericMatrix (ny,nx,mxINT32_CLASS,mxREAL);
-		pdata_i4 = mxGetData(plhs[0]);
-		memcpy(pdata_i4, o_i4, ny*nx * 4);
+		pdata_i4 = (int *)mxGetData(plhs[0]);
+		for (i = 0; i < ny; i++) {
+			k1 = ny - i - 1;	k2 = i * nx;
+			for (j = 0; j < nx; j++) pdata_i4[j*ny+k1] = irint(output[k2+j]);
+		}
 	}
 	else if (is_int16) {
-		o_i2 = mxCalloc (nx*ny, sizeof (short int));
-		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_i2[j*ny+ny-i-1] = (short int)irint(output[i*nx+j]);
 		plhs[0] = mxCreateNumericMatrix (ny,nx,mxINT16_CLASS,mxREAL);
-		pdata_i2 = mxGetData(plhs[0]);
-		memcpy(pdata_i2, o_i2, ny*nx * 2);
+		pdata_i2 = (short int *)mxGetData(plhs[0]);
+		for (i = 0; i < ny; i++) {
+			k1 = ny - i - 1;	k2 = i * nx;
+			for (j = 0; j < nx; j++) pdata_i2[j*ny+k1] = (short int)irint(output[k2+j]);
+		}
 	}
 	else if (is_uint16) {
-		o_ui2 = mxCalloc (nx*ny, sizeof (short int));
-		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_ui2[j*ny+ny-i-1] = (unsigned short int)irint(output[i*nx+j]);
 		plhs[0] = mxCreateNumericMatrix (ny,nx,mxUINT16_CLASS,mxREAL);
-		pdata_ui2 = mxGetData(plhs[0]);
-		memcpy(pdata_ui2, o_ui2, ny*nx * 2);
+		pdata_ui2 = (unsigned short int *)mxGetData(plhs[0]);
+		for (i = 0; i < ny; i++) {
+			k1 = ny - i - 1;	k2 = i * nx;
+			for (j = 0; j < nx; j++) pdata_ui2[j*ny+k1] = (unsigned short int)irint(output[k2+j]);
+		}
 	}
 	else if (is_uint8) {
-		o_ui1 = mxCalloc (nx*ny, sizeof (char));
-		for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) o_ui1[j*ny+ny-i-1] = (unsigned char)output[i*nx+j];
 		plhs[0] = mxCreateNumericMatrix (ny,nx,mxUINT8_CLASS ,mxREAL);
-		pdata_ui1 = mxGetData(plhs[0]);
-		memcpy(pdata_ui1, o_ui1, ny*nx * 1);
+		pdata_ui1 = (unsigned char *)mxGetData(plhs[0]);
+		for (i = 0; i < ny; i++) {
+			k1 = ny - i - 1;	k2 = i * nx;
+			for (j = 0; j < nx; j++) pdata_ui1[j*ny+k1] = (unsigned char)irint(output[k2+j]);
+		}
 	}
 
-	GMT_free ((void *) output);
+	mxFree((void *) output);
 }
 
-void	set_weight_matrix (int nx_f, int ny_f, double y_0, double north, double south, double dx, double dy, double f_wid, int f_flag, int d_flag, double x_off, double y_off, BOOLEAN fast)
+void	set_weight_matrix (int nx_f, int ny_f, double y_0, double north, double south, double dx, double dy, double f_wid, int f_flag, int d_flag, double x_off, double y_off, BOOLEAN fast) {
 
-      	                                               	/* Last two gives offset between output node and 'origin' input node for this window (0,0 for integral grids) */
-   	           
-             	/* TRUE when input/output grids are offset by integer values in dx/dy */
-   	               
-{
-
+	/* Last two gives offset between output node and 'origin' input node for this window (0,0 for integral grids) */
+	/* TRUE when input/output grids are offset by integer values in dx/dy */
+            
 	int	i, j, ij, i_half, j_half;
 	double	x_scl, y_scl, f_half, r_f_half, sigma, sig_2;
 	double	y1, y2, theta, x, y, r, s_y1, c_y1, s_y2, c_y2;
