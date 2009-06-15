@@ -294,7 +294,7 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
         set(hAxes,'pos',[0 0 1 1],'Visible','off')
     end
     
-    confirm = false;
+    confirm = false;			Stsb = [];
     try
         if (strcmp(varargin{4},'-r0'))              % One-to-one capture
             varargin{4} = ['-r' sprintf('%d',round(dpi))];
@@ -322,8 +322,20 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
             varargin(5) = [];           % We don't want it to go into hardcopy
         end
         
+		% This block is meant to deal with Mirone figures. Other cases were not tested recently
+		leave_DAR_alone = false;
+		Stsb = getappdata(h,'CoordsStBar');		% Mirone status bar
+		if (~isempty(Stsb))
+			set(Stsb(2:end), 'Vis', 'off')
+		end
+		
 		DAR = get(hAxes, 'DataAspectRatio');
-		if (~isequal(DAR, [1 1 1])),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
+		
+		if ( abs((size(im,2) / size(im,1)) - (DAR(1) / DAR(2))) < 1e-3 )	% Mirone Figs with cos(lat) active or anyso dx/dy
+			leave_DAR_alone = true;
+		end
+		
+		if ( ~isequal(DAR, [1 1 1]) && ~leave_DAR_alone ),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
 
         img = hardcopy( varargin{:} );      % CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE
 
@@ -337,10 +349,12 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
                 img = hardcopy( varargin{:} );      % Insist
             end
         end
-		if (~isequal(DAR, [1 1 1])),	set(hAxes, 'DataAspectRatio', DAR);			end		% Reset it if its the case
+		if (~isempty(Stsb)),	set(Stsb(2:end), 'Vis', 'on'),	end
+		if (~isequal(DAR, [1 1 1]) && ~leave_DAR_alone),	set(hAxes, 'DataAspectRatio', DAR);			end		% Reset it if its the case
     catch                                   % If it screws, restore original Fig properties anyway
         set(hAxes,'Units',axUnit,'pos',axPos,'Visible','on')
         set(h,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
+		if (~isempty(Stsb)),	set(Stsb(2:end), 'Vis', 'on'),	end
         msg = lasterr;      img = [];
     end
    
