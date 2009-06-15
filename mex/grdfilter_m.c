@@ -135,7 +135,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		GMTisLoaded = TRUE;
 	}
 	else
-		argc = GMT_short_begin (argc, argv);
+		argc = GMT_begin (argc, argv);
+		/*argc = GMT_short_begin (argc, argv);*/	/* Ate conseguir compilar todos os GMT MEXs */
 	
 	error = new_range = new_increment = FALSE;
 	filter_width = dx_new = dy_new = west_new = east_new = 0.0;
