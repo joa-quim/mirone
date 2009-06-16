@@ -520,7 +520,7 @@ function CoastLines(handles, res)
         case 'f',        opt_res = '-Df';        pad = 0.005;
 	end
 	coast = shoredump(opt_R,opt_res,'-A1/1/1');
-	if (isempty(coast)),	return,		end
+	if (isempty(coast)),	set(handles.figure1,'pointer','arrow'),		return,		end
 
 	[coast, msg] = geog2projected_pts(handles,coast',[lon lat],0);
     if (numel(msg) > 2)
@@ -575,7 +575,7 @@ function PoliticalBound(handles, type, res)
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
 	boundaries = shoredump(opt_R,opt_N,opt_res);
-	if (isempty(boundaries)),	return,		end
+	if (isempty(boundaries)),	set(handles.figure1,'pointer','arrow'),		return,		end
 
     [boundaries, msg] = geog2projected_pts(handles,boundaries',[lon lat],0);
     if (numel(msg) > 2)
@@ -635,7 +635,7 @@ function Rivers(handles, type, res)
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
 	rivers = shoredump(opt_R,opt_I,opt_res);
-	if (isempty(rivers)),	return,		end
+	if (isempty(rivers)),	set(handles.figure1,'pointer','arrow'),		return,		end
 
     [rivers, msg] = geog2projected_pts(handles,rivers',[lon lat],0);
     if (numel(msg) > 2)
