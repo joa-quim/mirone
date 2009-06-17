@@ -134,6 +134,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'R':
 				case 'J':
 				case 'f':
+#ifdef GMT_MINOR_VERSION
+				case 'm':
+				case 'M':
+#endif
 				case '\0':
 					error += GMT_parse_common_options (argv[i], &west, &east, &south, &north);
 					break;
@@ -236,9 +240,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					if (argv[i][2] == 'd') g_report += 2;
 					if (argv[i][2] == '\0') g_report = 3;
 					break;
+#ifndef GMT_MINOR_VERSION
 				case 'M':               /* Multiple line segments */
 					GMT_multisegment (&argv[i][2]);
-					break;
+					break;*/
+#endif
 				case 'S':
 					suppress = TRUE;
 					break;
