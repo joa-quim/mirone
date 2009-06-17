@@ -16,10 +16,14 @@
  *	 
  *		04/06/06 J Luis, Updated to compile with version 4.1.3
  *		14/10/06 J Luis, Now includes the memory leak solving solution
+ *		17/06/09 J Luis, Updated to compile with version 4.5.0
  */
 
 #include "gmt.h"
 #include "mex.h"
+
+#define LAKE	0
+#define RIVER	1
 
 int prep_polygons(struct GMT_GSHHS_POL **p_old, int np, BOOLEAN greenwich, BOOLEAN sample, double step, int anti_bin);
 BOOLEAN getpathname (char *name);
@@ -48,6 +52,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	struct GMT_BR b, r;
 	char **argv, res = 'l';
 	char *shore_resolution[5] = {"full", "high", "intermediate", "low", "crude"};
+#ifdef GMT_MINOR_VERSION
+	struct GMT_SHORE_SELECT Ainfo;
+#endif
 
 	if (nrhs < 1 || nrhs > 6) {
 		mexPrintf ("shoredump - Extract shorelines, rivers, or borders\n\n");
@@ -137,8 +144,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				/* Supplemental parameters */
 
 				case 'A':
+#ifdef GMT_MINOR_VERSION
+					GMT_set_levels (&argv[i][2], &Ainfo);
+#else
 					j = sscanf (&argv[i][2], "%lf/%d/%d", &min_area, &min_level, &max_level);
 					if (j == 1) min_level = 0, max_level = GMT_MAX_GSHHS_LEVEL;
+#endif
 					break;
 				case 'D':
 					res = argv[i][2];
@@ -262,7 +273,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/*GMT_map_getproject ("x1d"); /* Fake linear projection */
 	/*GMT_map_setup (west, east, south, north);*/
 
+#ifdef GMT_MINOR_VERSION
+	if (get_shore && GMT_init_shore(res, &c, west, east, south, north, &Ainfo))  {
+#else
 	if (get_shore && GMT_init_shore(res, &c, west, east, south, north))  {
+#endif
 		mexPrintf ("SHOREDUMP: %s resolution shoreline data base not installed\n", shore_resolution[base]);
 		return;
 	}
@@ -291,7 +306,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (GMT_world_map && greenwich) {
 		/*edge = project_info.central_meridian;*/
 		edge = 0.5 * (east + west);
-		/*shift = TRUE;		edge = 180;*/		/* I WANT LONGS <-180;+180>*/
 		shift = TRUE;					/* I WANT LONGS <-180;+180>*/
 	}
 	else if (!GMT_world_map && greenwich) {
@@ -305,20 +319,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (edge > 180.0) edge = 180.0;
 	}
 
-
-	/* I WANT LONGS <-180;+180> and this was the only way I found to force it (shit I don't understand how it works) */
-	/*shift = TRUE;
-	greenwich = TRUE;
-	GMT_world_map = TRUE;
-	edge = 180;*/
-
-	/* Comment bellow because I WANT LONGS <-180;+180> */
-	/*if (project_info.w < 0.0 && project_info.e <= 0.0) {*/	/* Temporarily shift boundaries */
-		/*project_info.w += 360.0;
-		project_info.e += 360.0;
-		if (project_info.central_meridian < 0.0) project_info.central_meridian += 360.0;
-	}*/
-
 	west_border = floor (project_info.w / c.bsize) * c.bsize;
 	east_border = ceil (project_info.e / c.bsize) * c.bsize;
 	
@@ -326,10 +326,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		n = 0;
 		for (ind = 0; ind < c.nb; ind++) {	/* Loop over necessary bins only */
 			bin = c.bins[ind];
+#ifdef GMT_MINOR_VERSION
+			GMT_get_shore_bin (ind, &c);
+#else
 			GMT_get_shore_bin (ind, &c, min_area, min_level, max_level);
+#endif
 			if (c.ns == 0) continue;
 			
+#ifdef GMT_MINOR_VERSION
+			if ((np = GMT_assemble_shore (&c, direction, FALSE, greenwich, west_border, east_border, &p)) == 0)
+#else
 			if ((np = GMT_assemble_shore (&c, direction, min_level, FALSE, greenwich, west_border, east_border, &p)) == 0)
+#endif
 				continue;
 
 			if (first_shore) {
