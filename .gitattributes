@@ -233,7 +233,9 @@ gmt_userdir/gmt.conf -text
 gmt_userdir/us.d -text
 /gunzip.exe -text
 /hd422m.dll -text
+/hd424m_mir.dll -text
 /hm422m.dll -text
+/hm424m_mir.dll -text
 lib_mex/PolygonClip.dll -text
 lib_mex/akimaspline.dll -text
 lib_mex/alloc_mex.dll -text
@@ -317,8 +319,10 @@ lib_mex/uintlutc.dll -text
 lib_mex/wave_travel_time.dll -text
 lib_mex/wgifc.dll -text
 /libcurl.dll -text
+/libcurl_mir.dll -text
 /libecwj2.dll -text
 /libguide40.dll -text
+/libjpeg_mir.dll -text
 /libnetcdf.dll -text
 /libnetcdf_w32.dll -text
 /libsift.dll -text
@@ -545,6 +549,7 @@ src_figs/write_gmt_script.m -text
 src_figs/yes_or_no.m -text
 /startup.m -text
 /szlibdll.dll -text
+/szlibdll_mir.dll -text
 /uigetfolder_standalone.m -text
 /unzip.exe -text
 utils/InOut2WS.m -text
@@ -721,3 +726,4 @@ utils/writekml.m -text
 utils/zoom_j.m -text
 /wget.exe -text
 /zlib1.dll -text
+/zlib1_mir.dll -text
