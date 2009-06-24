@@ -464,7 +464,6 @@ src_figs/atlas.m -text
 src_figs/bands_list.m -text
 src_figs/bg_map.m -text
 src_figs/bg_region.m -text
-src_figs/bg_region_map_tilled.m -text
 src_figs/cartas_militares.m -text
 src_figs/choosebox.m -text
 src_figs/classificationfig.m -text
