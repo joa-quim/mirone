@@ -2535,7 +2535,7 @@ function FileOpenSession_CB(handles, fname)
 	set(handles.figure1,'pointer','watch')
 	load([PathName FileName])
 
-	tala = (exist(grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
+	tala = (~isempty(grd_name) && exist(grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
 	if (~tala && ~isempty(grd_name))						% Give user a 2nd chance to tell where the grid is
 		[PathName FileName EXT] = fileparts(grd_name);
 		resp = inputdlg({'Full name (with path) of missing grid:'},'Whre is the grid?',1,{['.....' filesep FileName EXT]});
@@ -3504,7 +3504,7 @@ function TransferB_CB(handles, opt)
 		if (~isempty(drv)),		gateLoadFile(handles,drv,[PathName FileName]);  end
 
 	elseif (strcmp(opt,'BgMap'))
-		out = bg_region_map_tilled(handles.path_data);
+		out = bg_map(handles.path_data);
 		if isempty(out),	return,		end		% User gave up loading the fig tille
 		handles.geog = 1;				handles.image_type = 3;		handles.head = out.head;
 		show_image(handles,out.imgName,out.X,out.Y,out.img,0,'xy',1,1);
