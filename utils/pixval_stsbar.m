@@ -285,7 +285,9 @@ switch dbud.displayMode
 				case 'm',		scale = 1;      str_dist = 'dist(m)';		% Meters or user unites
 				case 'u',		scale = 1;      str_dist = 'dist(usr)';		% Meters or user unites
 			end
-			if (delta_x ~= 0 && delta_y ~= 0)		% Its true on every first click 
+			if (delta_x == 0 && delta_y == 0)		% Its true on every first click 
+				dist = 0;	az = 0;
+			else
 				dist = vdist(dbud.y0,dbud.x0,y1,x1,handles.DefineEllipsoide([1 3])) / scale;
 				D2R = pi/180;
 				lat1 = dbud.y0*D2R;     lon1 = dbud.x0*D2R;
@@ -293,8 +295,6 @@ switch dbud.displayMode
 				f2 = cos(lat1) * sin(lat2);
 				f3 = sin(lat1) * cos(lat2) * cos(lon2-lon1);
 				az = 90 - atan2(cos(lat2) * sin(lon2-lon1), f2-f3) / D2R;
-			else
-				dist = 0;	az = 0;
 			end
 		else
 			dist = sqrt(delta_x^2 + delta_y^2);     str_dist = 'dist(usr)';
