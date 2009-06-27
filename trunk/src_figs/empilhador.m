@@ -603,7 +603,7 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 				out = search_scaleOffset(finfo.SDS.Attributes, 'scale_factor');
 				if (~isempty(out))
 					slope = out;
-					out = search_scaleOffset(finfo.SDS.Attributes, 'add_offset');
+					out = search_scaleOffset(finfo.SDS.Attributes, 'add_off', 7);	% Sometimes is ADD_OFF, others ADD_OFFSET and no-one is killed for that
 					if (~isempty(out)),		intercept = out;	end
 				end
 			end
@@ -659,14 +659,22 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 	end
 
 % ----------------------------------------------------------------------------------------
-function out = search_scaleOffset(attributes, what)
+function out = search_scaleOffset(attributes, what, N)
 % Search for the WHAT attribute in ATTRIBUTES. If find return its VALUE.
 % Used to search for slope/intercept or scale_factor/add_offset in HDF files
 	out = [];
 	if (isa(attributes, 'struct'))
-		for (k = numel(attributes):-1:1)					% Start from the bottom because they are likely close to it 
-			if ( strcmpi(attributes(k).Name, what) )
-				out = double(attributes(k).Value);			break
+		if (nargin == 2)						% Exact search for WHAT
+			for (k = numel(attributes):-1:1)					% Start from the bottom because they are likely close to it 
+				if ( strcmpi(attributes(k).Name, what) )
+					out = double(attributes(k).Value);			break
+				end
+			end
+		else									% Search with a strncmp. Motivated by the uterly stupid play with ADD_OFF & ADD_OFFSET
+			for (k = numel(attributes):-1:1)					% Start from the bottom because they are likely close to it 
+				if ( strncmpi(attributes(k).Name, what, N) )
+					out = double(attributes(k).Value);			break
+				end
 			end
 		end
 	else					% Not tested but it must be a cell array (the att.Metadata)
