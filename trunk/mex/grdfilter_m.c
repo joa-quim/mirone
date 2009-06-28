@@ -1,5 +1,6 @@
 /*--------------------------------------------------------------------
- *	$Id: grdfilter.c,v 1.18 2004/08/14 00:38:19 pwessel Exp $
+ *	$Id$
+ *	grdfilter.c,v 1.18 2004/08/14 00:38:19
  *
  *	Copyright (c) 1991-2004 by P. Wessel and W. H. F. Smith
  *	See COPYING file for copying and redistribution conditions.
@@ -135,8 +136,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		GMTisLoaded = TRUE;
 	}
 	else
-		argc = GMT_begin (argc, argv);
-		/*argc = GMT_short_begin (argc, argv);*/	/* Ate conseguir compilar todos os GMT MEXs */
+		argc = GMT_short_begin (argc, argv);	/* Ate conseguir compilar todos os GMT MEXs */
 	
 	error = new_range = new_increment = FALSE;
 	filter_width = dx_new = dy_new = west_new = east_new = 0.0;
