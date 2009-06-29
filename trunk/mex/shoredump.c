@@ -58,12 +58,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (nrhs < 1 || nrhs > 6) {
 		mexPrintf ("shoredump - Extract shorelines, rivers, or borders\n\n");
-		mexPrintf ("usage: shoredump -R<west>/<east>/<south>/<north> [-A<min_area>[/<max_level>]]\n");
+		mexPrintf ("usage: shoredump -R<west>/<east>/<south>/<north> [-A<min_area>[/<min_level>/<max_level>]]\n");
 		mexPrintf ("	 [-D<resolution>] [-I<feature>] [-N<feature>] [-S] \n");
 
 		mexPrintf ("\n\tOPTIONS:\n");
 		mexPrintf ("	-A features smaller than <min_area> (in km^2) or of higher level (0-4) than <max_level>\n");
-		mexPrintf ("	will be skipped [0/4 (4 means lake inside island inside lake)]\n");
+		mexPrintf ("	will be skipped [0/0/4 (4 means lake inside island inside lake)]\n");
 		mexPrintf ("	-D Choose one of the following resolutions:\n");
 		mexPrintf ("	   f - full resolution (may be very slow for large regions)\n");
 		mexPrintf ("	   h - high resolution (may be slow for large regions)\n");
@@ -145,7 +145,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 				case 'A':
 #ifdef GMT_MINOR_VERSION
-					Ainfo.fraction = 0;	/* Need to initialize this */
+					Ainfo.fraction = Ainfo.flag = Ainfo.low = 0;
+					Ainfo.high = GMT_MAX_GSHHS_LEVEL;
+					Ainfo.area = 0.;
 					GMT_set_levels (&argv[i][2], &Ainfo);
 #else
 					j = sscanf (&argv[i][2], "%lf/%d/%d", &min_area, &min_level, &max_level);
