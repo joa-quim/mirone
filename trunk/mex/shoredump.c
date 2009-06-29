@@ -138,13 +138,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				/* Common parameters */
 				
 				case 'R':
-					error += GMT_get_common_args (argv[i], &west, &east, &south, &north);
+					error += GMT_parse_common_options (argv[i], &west, &east, &south, &north);
 					break;
 				
 				/* Supplemental parameters */
 
 				case 'A':
 #ifdef GMT_MINOR_VERSION
+					Ainfo.fraction = 0;	/* Need to initialize this */
 					GMT_set_levels (&argv[i][2], &Ainfo);
 #else
 					j = sscanf (&argv[i][2], "%lf/%d/%d", &min_area, &min_level, &max_level);
