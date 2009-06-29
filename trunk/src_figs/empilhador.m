@@ -526,15 +526,16 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 
 	opt_R = ' ';	is_modis = false;		is_linear = false;		is_log = false;
 	slope = 1;		intercept = 0;			base = 1;
+	modis_or_seawifs = false;				is_HDFEOS = false;
 	att.hdrInfo = [];
 	head = att.GMT_hdr;
 
-	if ( ~isempty(att.Metadata) && ~isempty(strfind(att.Metadata{2}, 'MODIS')))
+	if ( ~isempty(att.Metadata) && ~isempty(strfind(att.Metadata{1}, 'HDFEOSVersion')) )
+		is_HDFEOS = true;
+	end
+
+	if ( ~is_HDFEOS && ~isempty(att.Metadata) && (~isempty(strfind(att.Metadata{2}, 'MODIS')) || ~isempty(strfind(att.Metadata{2}, 'SeaWiFS'))) )
 		modis_or_seawifs = true;
-	elseif ( ~isempty(att.Metadata) && ~isempty(strfind(att.Metadata{2}, 'SeaWiFS')))
-		modis_or_seawifs = true;
-	else
-		modis_or_seawifs = false;
 	end
 
 	if ( modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4) && ~isempty(strfind(att.Metadata{1}, 'Level-2')) )
@@ -587,7 +588,7 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		end
 		att.Band(1).NoDataValue = 65535;		% Shity format doesn't declare this null part
 		is_modis = true;			% We'll use this knowledge to 'avoid' Land pixels = 65535
-	elseif ( strncmp(att.DriverShortName, 'HDF4', 4) && ~modis_or_seawifs )		% TEMP -> SST PATHFINDER
+	elseif ( ~is_HDFEOS && ~modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4)  )		% TEMP -> SST PATHFINDER
 		finfo = hdf_funs('hdfinfo', att.fname);
 		if (strcmpi(finfo.SDS.Attributes(11).Name, 'slope'))
 			slope = double(finfo.SDS.Attributes(11).Value);		% = 0.075;
@@ -631,6 +632,21 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		head(7) = 0;		% Make sure that grid reg is used
 		is_linear = true;
 		att.hdrInfo = finfo;
+	elseif ( is_HDFEOS )	% This case might not be complete as yet.
+		x_min = search_scaleOffset(att.Metadata, 'WESTBOUNDINGCOORDINATE');
+		x_max = search_scaleOffset(att.Metadata, 'EASTBOUNDINGCOORDINATE');
+		y_min = search_scaleOffset(att.Metadata, 'SOUTHBOUNDINGCOORDINATE');
+		y_max = search_scaleOffset(att.Metadata, 'NORTHBOUNDINGCOORDINATE');
+		rows = search_scaleOffset(att.Metadata, 'DATAROWS');
+		cols = search_scaleOffset(att.Metadata, 'DATACOLUMNS');
+		dx = (x_max - x_min) / cols;
+		dy = (y_max - y_min) / rows;
+		att.GMT_hdr(1:4) = [x_min x_max y_min y_max];	% We need this updated
+		att.GMT_hdr(7:9) = [0 dx dy];
+		head = att.GMT_hdr;
+		att.Corners.UL = [x_min y_max];			
+		att.Corners.LR = [x_max y_min];			
+		is_linear = true;
 	else					% Other types
 		if (got_R),		rows = att.RasterYSize;		end
 		x_min = head(1);	y_min = head(3);
@@ -805,13 +821,14 @@ function [Z, att] = read_gdal(full_name, att, varargin)
 		NoDataValue = guess_nodataval(subDsName);
 	end
 
-	% att.hdrInfo and att.hdrModisL2 are not a default fields of the ATT struct
-	fname = [];
+	% att.hdrInfo and att.hdrModisL2 are not default fields of the ATT struct
+	try		fname = att.fname;
+	catch	fname = [];
+	end
 	if (isfield(att, 'hdrInfo') && ~isempty(att.hdrInfo) && (strcmp(att.hdrInfo.SDS.Name,'sst')) )
 		% Only particular case dealt now
 		Z = hdf_funs('hdfread', att.fname, att.hdrInfo.SDS.Name, 'index', {[1 1],[1 1], [att.RasterYSize att.RasterXSize]});
 		Z = flipud(Z);
-		fname = att.fname;
 	else
 		opt_L = ' ';	GCPvalues = [];
 		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2) )
@@ -836,7 +853,6 @@ function [Z, att] = read_gdal(full_name, att, varargin)
 			clear lon lat cols_vec
 			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', x_min, x_max, y_min, y_max);
 
-			fname = att.fname;
 			AllSubdatasets = att.AllSubdatasets;
 			NoDataValue = att.Band(1).NoDataValue;		% Save this that has been ESTIMATED before
 			if (strcmp(varargin{end}, '-U')),	varargin(end) = [];		end		% We also don't want to UpDown
@@ -875,7 +891,7 @@ function [Z, att] = read_gdal(full_name, att, varargin)
 					Z(mask) = NaN;
 				end
 				att.GMT_hdr = head;
-				att.Band(1).NoDataValue = [];		% Don't wast time later trying to NaNify again
+				att.Band(1).NoDataValue = [];		% Don't waist time later trying to NaNify again
 				x_min = head(1) - head(8)/2;		x_max = head(2) + head(8)/2;		% Goto pixel registration
 				y_min = head(3) - head(9)/2;		y_max = head(4) + head(9)/2;
 			end
