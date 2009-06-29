@@ -497,8 +497,8 @@ else					% Interactive croping (either Grid or Image)
 		x0 = min(p1(1),p2(1));		y0 = min(p1(2),p2(2));
 		dx = abs(p2(1)-p1(1));		dy = abs(p2(2)-p1(2));
 		[Z_rect,r_c] = cropimg([head(1) head(2)],[head(3) head(4)],Z,[x0 y0 dx dy],'out_grid');
-		X = (head(1) + (r_c(3)-1)*head(8)):head(8):(head(1) + (r_c(4)-1)*head(8));
-		Y = (head(3) + (r_c(1)-1)*head(9)):head(9):(head(3) + (r_c(2)-1)*head(9));
+		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
+		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
 		tit = 'Grid cuted by Mirone';		% Have to change this to reflect the old title
 		GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped grid')
@@ -539,8 +539,8 @@ elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )		% Do the operatio
 		to_func.Z = Z_rect;		to_func.head = head;
 	end
 	if (strcmp(curr_opt,'pure'))			% PURE means pure CropaGrid
-		X = (head(1) + (r_c(3)-1)*head(8)):head(8):(head(1) + (r_c(4)-1)*head(8));
-		Y = (head(3) + (r_c(1)-1)*head(9)):head(9):(head(3) + (r_c(2)-1)*head(9));
+		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
+		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
 		tit = 'Grid cuted by Mirone';		% Have to change this to reflect the old title
 		GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped grid')
@@ -558,8 +558,8 @@ elseif (strcmp(opt2,'FillGaps'))
 	if ~any(isnan(Z_rect(:)))	% No gaps
 		set(handles.figure1,'pointer','arrow'),		warndlg('Selected area does not have any voids (NaNs)','Warning'),	 return
 	else
-		X = (head(1) + (r_c(3)-1)*head(8)):head(8):(head(1) + (r_c(4)-1)*head(8));
-		Y = (head(3) + (r_c(1)-1)*head(9)):head(9):(head(3) + (r_c(2)-1)*head(9));
+		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
+		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 		if (~isempty(opt3) && strcmp(opt3,'surface'))
 			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
 			opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
@@ -583,8 +583,8 @@ elseif (strcmp(opt2,'FillGaps'))
 		clear X XX Y YY ZZ;
 	end
 elseif (strcmp(opt2,'SplineSmooth'))
-	X = (head(1) + (r_c(3)-1)*head(8)):head(8):(head(1) + (r_c(4)-1)*head(8));
-	Y = (head(3) + (r_c(1)-1)*head(9)):head(9):(head(3) + (r_c(2)-1)*head(9));
+	X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
+	Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 	Z_rect = double(Z_rect);	% It has to be
 	[pp p_guess] = spl_fun('csaps',{Y(1:min(m,10)),X(1:min(n,10))},Z_rect(1:min(m,10),1:min(n,10)));% Get a good estimate of p
 	prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
@@ -619,8 +619,8 @@ if (~strcmp(opt2,'MedianFilter'))		% Otherwise, this was already done in roi_fil
 end
 
 if ~isempty(opt2)		% Here we have to update the image in the processed region
-	X = (head(1) + (r_c(3)-1)*head(8)):head(8):(head(1) + (r_c(4)-1)*head(8));
-	Y = (head(3) + (r_c(1)-1)*head(9)):head(9):(head(3) + (r_c(2)-1)*head(9));
+	X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
+	Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 	if (isa(Z,'single')),	zz = grdutils(Z,'-L');		z_min = zz(1);		z_max = zz(2);
 	else					z_min = double(min(Z(:)));	z_max = double(max(Z(:)));
 	end
