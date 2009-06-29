@@ -99,8 +99,8 @@ function bdn_bgTile(obj,eventdata,hFig)
 			x_min = x_min + 360;		x_max = x_max + 360;
 		end
 		y_min = 90 - ud(1)*45;			y_max = y_min + 45;
-		n1 = max(1,(ud(2)-1)*675 - 1);	n2 = min(n1 + 675 + 1, 5400);
-		m1 = max(1,(ud(1)-1)*675 - 1);	m2 = min(m1 + 675 + 1, 2700);
+		n1 = max(1,(ud(2)-1)*675);		n2 = min(n1 + 675 + 1, 5400);
+		m1 = max(1,(ud(1)-1)*675);		m2 = min(m1 + 675 + 1, 2700);
 		opt_r = sprintf('-r%d/%d/%d/%d', n1, n2, m1, m2);
 		out.img = get_img(handles.figure1, obj, [handles.f_path 'etopo4.jpg'], opt_r, '-U');
 		out.X = [x_min x_max];      out.Y = [y_min y_max];
