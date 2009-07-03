@@ -390,7 +390,6 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 			end
 			Z = nc_funs('varget', fname, s.Dataset(z_id).Name, zeros(1,nD), [ones(1,nD-2) s.Dataset(z_id).Size(end-1:end)]);
 		end
-		%[ny, nx] = size(Z);
 	else
 		misc.z_id = z_id;		% Return the z_id so that we don't have to repeat the fishing process
 		misc.z_dim = z_dim;
@@ -411,13 +410,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	else								head(3:4) = [Y(1) Y(end)];
 	end
 
-% THIS IS DEALT IN NC_FUNS
-% 	if (get_Z && (scale_factor ~= 1 || add_offset ~= 0) )		% If we have scale or offset convert to single the "lower"
-% 		if ( ~(isa(Z, 'double') || isa(Z, 'single')) )			% types. Maybe not always apropriate but not general rule
-% 			Z = single(Z);
-% 		end
-% 		cvlib_mex('CvtScale',Z,scale_factor,add_offset)			% Do inplace
-% 	end
+	[X, Y, Z, head] = deal_exceptions(Z, X, Y, head, s, attribNames);	% Currently, deal with Ifremer hosted SST stupidities (no coords and Kelvins)
 
 	if (get_Z && isempty(z_actual_range))
 		if ( isa(Z, 'double') )
@@ -487,3 +480,72 @@ function [X,Y,Z,head,misc] = read_old_cdf(fname, s)
 	head = double([x_range(:)' y_range(:)' z_range(:)' node_offset spacing(:)']);
 	misc = struct('desc',[], 'title',titulo, 'history',source, 'srsWKT',[], 'strPROJ4',[]);
 
+
+% _________________________________________________________________________________________________	
+% -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
+function [X, Y, Z, head] = deal_exceptions(Z, X, Y, head, s, attribNames)
+% For one reason or another some files need special treatment.
+% This function deals with the known (to me) cases
+
+	if (isempty(attribNames)),		return,		end
+
+	% SST files hosted at ftp.ifremer.fr/pub/ifremer/cersat/SAFOSI/Products/NARSST/
+	% The guys claim that they are COARDS compliant, which is a shameless lie.
+	ind = strcmp(attribNames,'producer_agency');		agency = [];
+	if (any(ind)),	agency = s.Attribute(ind).Value;	end
+	if (strncmp(agency, 'O&SI SAF', 8))
+		cvlib_mex('addS', Z, -273.15)		% I want temperatures in Celsius
+		
+		dirs = getappdata(0,'MIRONE_DIRS');	% Not called through a Mirone session
+		if (isempty(dirs)),		return,		end
+		fid = fopen([dirs.home_dir filesep 'data' filesep 'sst_by_ifremer.txt'],'r');
+		if (fid < 0),			return,		end		% Parameter file does not exist
+
+	    todos = fread(fid,'*char');		fclose(fid);
+		txt = strread(todos,'%s','delimiter','\n');
+		fname_coords = [];		nGrids = 0;
+		for (k = 1:numel(txt))
+			if (isempty(txt{k}) || txt{k}(1) == '#'),	continue,	end		% Jump comment lines
+			if (strncmpi(txt{k}, 'sst_by_ifremer_coords', 21))
+				[t, r] = strtok(txt{k});
+				nGrids = nGrids + 1;
+				fname_coords{nGrids} = ddewhite(r);
+			end
+		end
+
+		if (isempty(fname_coords)),		return,		end		% Parameter file has not the necessary info
+
+		lat = nc_funs('varget', fname_coords{1}, 'latitude');			% Load the LAT array
+		lon = nc_funs('varget', fname_coords{1}, 'longitude');			% Load the LON array
+		ind = strcmp(attribNames,'north_west_latitude');		NW_lat_check = double(s.Attribute(ind).Value);
+		ind = strcmp(attribNames,'south_east_longitude');		SE_lon_check = double(s.Attribute(ind).Value);
+
+		NW_lat = double(lat(end,1));	NE_lat = double(lat(end,end));		SW_lat = double(lat(1));		SE_lat = double(lat(1,end));
+		NW_lon = double(lon(end,1));	NE_lon = double(lon(end,end));		SW_lon = double(lon(1));		SE_lon = double(lon(1,end));
+		
+		% Confirm that the given LAT/LON arrays are likely to be the right one for this file
+		k = 2;
+		while ( abs(NW_lat - NW_lat_check) > 0.1 || abs(SE_lon - SE_lon_check) > 0.1 && (k <= nGrids) )	% If TRUE try next file on list
+			lat = nc_funs('varget', fname_coords{k}, 'latitude');			% Try with this coords file
+			lon = nc_funs('varget', fname_coords{k}, 'longitude');
+			NW_lat = double(lat(end,1));	NE_lat = double(lat(end,end));		SW_lat = double(lat(1));		SE_lat = double(lat(1,end));
+			NW_lon = double(lon(end,1));	NE_lon = double(lon(end,end));		SW_lon = double(lon(1));		SE_lon = double(lon(1,end));
+			k = k + 1;
+		end
+		if (k > nGrids + 1)
+			warndlg('WARNING: Very likely NONE of the provided coordinate files are correct for this file.','Warning')
+		end
+		
+		[ny, nx] = size(Z);
+		y_west = linspace(SW_lat, NW_lat, ny);		y_east = linspace(SE_lat, NE_lat, ny);
+		x_south = linspace(SW_lon, NW_lon, ny);		x_north = linspace(SE_lon, NE_lon, ny);
+		
+		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', min(NW_lon,SW_lon), max(NE_lon,SE_lon), min(SW_lat,SE_lat), max(NW_lat,NE_lat));
+		lon = single(lon);		lat = (single(lat));
+		[Z, head] = nearneighbor_m(lon(:), lat(:), Z(:), opt_R, '-N2', '-I0.02', '-S0.06');
+		if ( any( isnan(head(5:6)) ) )
+			zz = grdutils(Z,'-L');  head(5:6) = zz(1:2);
+		end
+		X = linspace(head(1), head(2), size(Z,2));
+		Y = linspace(head(3), head(4), size(Z,1));
+	end
