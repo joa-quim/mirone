@@ -293,6 +293,8 @@ function hObject = mirone_OpeningFcn(varargin)
 	end
 
 	guidata(hObject, handles);	limpa(handles);
+	tmp.home_dir = home_dir;	tmp.work_dir = handles.work_dir;	tmp.last_dir = handles.last_dir;
+	setappdata(0,'MIRONE_DIRS',tmp);			% To access from places where handles.home_dir is unknown (must precede gateLoadFile())
 	if (~isempty(drv))
 		gateLoadFile(handles,drv,varargin{1});		% load recognized file types
 	else
@@ -302,8 +304,6 @@ function hObject = mirone_OpeningFcn(varargin)
 	set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);		% For projections with GDAL
 	set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
 	set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
-	tmp.home_dir = home_dir;	tmp.work_dir = handles.work_dir;	tmp.last_dir = handles.last_dir;
-	setappdata(0,'MIRONE_DIRS',tmp);			% Save it so that we access it from other places where handles.home_dir is unknown
 
 % --------------------------------------------------------------------------------------------------
 function erro = gateLoadFile(handles,drv,fname)
