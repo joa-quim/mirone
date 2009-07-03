@@ -159,6 +159,7 @@ data/proj_lib/stlrnc -text
 data/proj_lib/stpaul -text
 data/proj_lib/world -text
 data/quakes90-03.dat -text
+data/sst_by_ifremer.txt -text
 data/swan.par -text
 data/t_xtide.mat -text
 data/tilesServers.txt -text
