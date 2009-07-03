@@ -217,6 +217,7 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 	handles.hTextSlave = [];	handles.hTextMaster = [];
 	handles.dySlave = 0;		handles.dyMaster = 0;
 	handles.visibleNumbers = true;
+	handles.pointEpred = false;	
 
 	hand_prev = guidata(handles.figure1);	% The geog type of the Master image is still in appdata
 	handles.geog  = hand_prev.geog;			% but the handles.geog contains the geog state of Slave img
