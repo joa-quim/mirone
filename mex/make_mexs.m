@@ -16,12 +16,12 @@ pato_VCLIB = 'C:\programs\VisualStudio\VC98\Lib\';
 patoINC_GMT = 'c:\progs_cygw\GMTdev\GMT\';
 
 % Lib path for GMT - Libs compiled with 'MEX condition'. Must contain the GMT *.lib library files
-patoLIB_GMT = 'c:\progs_cygw\GMTdev\GMT_win\libMEX\';
-%patoLIB_GMT = 'c:\progs_cygw\GMTdev\GMT_win\lib\';	% Lib path for GMT
+%patoLIB_GMT = 'c:\progs_cygw\GMTdev\GMT_win\libMEX2\';
+patoLIB_GMT = 'c:\progs_cygw\GMTdev\GMT_win\lib\';	% Lib path for GMT
 
 % path for NETCDF bae dir. Sub-directories 'lib' and 'include' must exist with, respectively, libnetcdf.lib and header files
 % I use ftp://ftp.unidata.ucar.edu/pub/netcdf/contrib/win32/netcdf-3.6.2-beta5_pgi_w32bin.zip
-pato_NETCDF = 'c:\progs_interix\netcdf-3.6.2b5_win\';
+%pato_NETCDF = 'c:\progs_interix\netcdf-3.6.2b5_win\';
 pato_NETCDF = 'C:\progs_cygw\netcdf-3.6.3\';
 
 % path for GDAL. Sub-directories 'lib' and 'include' must exist with, respectively, the gdal_i.lib and header files
