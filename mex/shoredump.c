@@ -42,7 +42,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	BOOLEAN	error = FALSE, get_river = FALSE, shift = FALSE, first_shore = TRUE, first_river = TRUE;
 	BOOLEAN	greenwich = FALSE, get_shore = FALSE, get_border = FALSE, first_border = TRUE, test = FALSE;
 	
-	double	west = 0.0, east = 0.0, south = 0.0, north = 0.0, edge = 720.0, left, right;
+	double	west = 0.0, east = 0.0, south = 0.0, north = 0.0, edge = 720.0, left, right, bsize;
 	double min_area = 0.0, *p_shore, *p_river, *p_border;
 	double west_border, east_border, nan, *pdata, step = 0.01;
 	
@@ -62,8 +62,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("	 [-D<resolution>] [-I<feature>] [-N<feature>] [-S] \n");
 
 		mexPrintf ("\n\tOPTIONS:\n");
-		mexPrintf ("	-A features smaller than <min_area> (in km^2) or of higher level (0-4) than <max_level>\n");
-		mexPrintf ("	will be skipped [0/0/4 (4 means lake inside island inside lake)]\n");
+		mexPrintf ("	-A features smaller than <min_area> (in km^2) or of levels (0-4) outside min-max levels\n");
+		mexPrintf ("	will be skipped [0/4 (4 means lake inside island inside lake)]\n");
 		mexPrintf ("	-D Choose one of the following resolutions:\n");
 		mexPrintf ("	   f - full resolution (may be very slow for large regions)\n");
 		mexPrintf ("	   h - high resolution (may be slow for large regions)\n");
@@ -248,10 +248,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/* Check that the options selected are mutually consistant */
 	if ((get_shore + get_border + get_river) == 0) get_shore = TRUE;	/* Default */
 
-	if (!project_info.region_supplied) {
-		mexPrintf ("SHOREDUMP SYNTAX ERROR:  Must specify -R option\n");
-		return;
-	}
+	if (!project_info.region_supplied)
+		mexErrMsgTxt ("SHOREDUMP SYNTAX ERROR:  Must specify -R option\n");
 
 	if (get_river) {
 		for (k = 0; k < GMT_N_RLEVELS; k++) {
@@ -273,26 +271,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		west -= 360.0;	east -= 360.0;
 	}
 	
-	/*GMT_map_getproject ("x1d"); /* Fake linear projection */
-	/*GMT_map_setup (west, east, south, north);*/
-
 #ifdef GMT_MINOR_VERSION
 	if (get_shore && GMT_init_shore(res, &c, west, east, south, north, &Ainfo))  {
 #else
 	if (get_shore && GMT_init_shore(res, &c, west, east, south, north))  {
 #endif
 		mexPrintf ("SHOREDUMP: %s resolution shoreline data base not installed\n", shore_resolution[base]);
-		return;
+		mexErrMsgTxt("");
 	}
 	
 	if (get_border && GMT_init_br('b', res, &b, west, east, south, north)) {
 		mexPrintf ("SHOREDUMP: %s resolution political boundary data base not installed\n", shore_resolution[base]);
-		return;
+		mexErrMsgTxt("");
 	}
 	
 	if (get_river && GMT_init_br('r', res, &r, west, east, south, north)) {
 		mexPrintf ("SHOREDUMP: %s resolution river data base not installed\n", shore_resolution[base]);
-		return;
+		mexErrMsgTxt("");
 	}
 
 	if (west < -180 && east > 180) {	/* Patch for a probable GMT bug */
@@ -302,13 +297,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		project_info.e = east;
 	}
 
+	if (get_shore)			/* Get the bin size from the first one available */
+		bsize = c.bsize;
+	else if (get_border)
+		bsize = b.bsize;
+	else
+		bsize = r.bsize;
+
 	if (west < 0.0 && east > 0.0) greenwich = TRUE;
-	if ((360.0 - fabs (project_info.e - project_info.w) ) < c.bsize)
+	if ((360.0 - fabs (project_info.e - project_info.w) ) < bsize)
 		GMT_world_map = TRUE;
 
 	if (GMT_world_map && greenwich) {
-		/*edge = project_info.central_meridian;*/
-		edge = 0.5 * (east + west);
+		edge = 180;
 		shift = TRUE;					/* I WANT LONGS <-180;+180>*/
 	}
 	else if (!GMT_world_map && greenwich) {
@@ -316,15 +317,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		edge = west;	if (edge < 0.0) edge += 360.0;
 		if (edge > 180.0) edge = 180.0;
 	}
-	else if (!GMT_world_map && (west < 0.0 && east < 0.0)) {	/* I WANT LONGS <-180;+180>*/
+	else if (!GMT_world_map && (west < 0.0 && east <= 0.0)) {	/* I WANT LONGS <-180;+180>*/
 		shift = TRUE;
 		edge = west;	if (edge < 0.0) edge += 360.0;
 		if (edge > 180.0) edge = 180.0;
 	}
 
-	west_border = floor (project_info.w / c.bsize) * c.bsize;
-	east_border = ceil (project_info.e / c.bsize) * c.bsize;
-	
+	west_border = floor (project_info.w / bsize) * bsize;
+	east_border = ceil (project_info.e / bsize) * bsize;
+
 	if (get_shore) {	/* Read shoreline file and extract lines */
 		n = 0;
 		for (ind = 0; ind < c.nb; ind++) {	/* Loop over necessary bins only */
@@ -388,7 +389,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			
 			if (b.ns == 0) continue;
 			
-			if (GMT_world_map && greenwich) {
+			if (FALSE && GMT_world_map && greenwich) {	/* Don't understand what is this for. So short-circuit it */
 				left = b.bsize * (bin % b.bin_nx);	right = left + b.bsize;
 				shift = ((left - edge) <= 180.0 && (right - edge) > 180.0);
 			}
