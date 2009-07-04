@@ -21,11 +21,6 @@ function varargout = gdal_project(varargin)
 		delete(hObject);    return
 	end
 
-	if (handMir.have_nans)
-		errordlg('GDAL_PROJECT: GDAL is alergic to NaNs and this grid have them. Sorry but quiting.','Error')
-		delete(hObject);    return
-	end
-
 	handles.nRows = '';		handles.nCols = '';
 	handles.xInc = '';		handles.yInc = '';
 
@@ -142,11 +137,6 @@ function push_OK_Callback(hObject, eventdata, handles)
 
 	if (handles.handMir.validGrid)
 		[X,Y,Z] = load_grd(handles.handMir);
-		have_nans = grdutils(Z,'-N');		% Check again. They could have been introduced later
-		if (have_nans)
-			errordlg('GDAL is alergic to NaNs and this grid now have them. Quiting.','Error')
-			return
-		end
 		tipo = 'grid';
 	else
 		Z = get(handles.handMir.hImg,'CData');
