@@ -88,10 +88,11 @@ function bdn_bgTile(obj,eventdata,hFig)
     handles = guidata(hFig);
 	if (get(handles.radio_WorldMap,'Val'))
 		out.img = get_img(handles.figure1, obj, [handles.f_path 'etopo4.jpg'], '-U');
-		if (get(handles.radio_360,'Val')),	out.X = [0 360];
-		else								out.X = [-180 180];
+		out.X = [-180 180];		out.Y = [-90 90];
+		if (get(handles.radio_360,'Val'))		% Must swap left and right halfs
+			out.img = [out.img(:,2700:5400,:) out.img(:,1:2700,:)];
+			out.X = [0 360];
 		end
-		out.Y = [-90 90];
 	else
 		ud = get(gcbo,'UserData');
 		x_min = -180 + (ud(2)-1)*45;	x_max = x_min + 45;
