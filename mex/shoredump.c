@@ -34,8 +34,8 @@ BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memo
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	int i, np, ind, bin, base = 3, max_level = GMT_MAX_GSHHS_LEVEL, direction = 1, min_level = 0;
-	int blevels[GMT_N_BLEVELS], n_blevels = 0, rlevels[GMT_N_RLEVELS], n_rlevels = 0;
+	GMT_LONG	i, np, ind, bin, base = 3, max_level = GMT_MAX_GSHHS_LEVEL, direction = 1, min_level = 0;
+	GMT_LONG	blevels[GMT_N_BLEVELS], n_blevels = 0, rlevels[GMT_N_RLEVELS], n_rlevels = 0;
 	int is = 0, ir = 0, ib = 0, p_alloc = 0, bytes_to_copy, k, j;
 	int argc, dims[] = {0,0}, n;
 	
