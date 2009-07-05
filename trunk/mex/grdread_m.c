@@ -59,7 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double *z_8, *info = (double *)NULL, *x, *y, off;
 	char *filein, *argv = "grdread-mex", *text, string[BUFSIZ];
 	char first_opt[10], second_opt[10];
-	int ns, ssz, pz, i, j, pad[4];
+	GMT_LONG	ns, ssz, pz, i, j, pad[4];
 	int is_double = 0;	/* Defaults to output in double */
 	int insitu = 0;		/* Defaults to no in-situ transposition */
 	int grd_min_size = 0, argc = 0;

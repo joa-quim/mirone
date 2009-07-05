@@ -50,8 +50,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 /* ny		:	number of y points */
 /* pix		:	1 if pixel reg, 0 if gridline registered */
 
-	int i, j, i2, pad[4], error = 0, argc = 0;
-	int ns, ssz, nx, ny, k, pix = 0;	/* If no info we assume gridline reg */
+	GMT_LONG	i, j, i2, pad[4], error = 0, argc = 0;
+	GMT_LONG	ns, ssz, nx, ny, k, pix = 0;	/* If no info we assume gridline reg */
 	int	is_double = 0, is_single = 0, is_int32 = 0, is_uint32 = 0;
 	int	is_int16 = 0, is_uint16 = 0, is_int8 = 0, is_uint8 = 0;
 	float *z_4;           /* real array for output */
