@@ -48,9 +48,13 @@ struct GRDLANDMASK_CTRL {	/* All control options for this program (except common
 	/* ctive is TRUE if the option has been activated */
 	struct A {	/* -A<min_area>[/<min_level>/<max_level>] */
 		BOOLEAN active;
+#ifdef GMT_MINOR_VERSION
+		struct GMT_SHORE_SELECT info;
+#else
 		int low;	/* Lowest hierarchical level to use [0] */
 		int high;	/* Highest hierarchical level to use [4] */
 		double area;	/* Area of smallest geographical feature to include [0] */
+#endif
 	} A;
 	struct D {	/* -D<resolution> */
 		BOOLEAN active;
@@ -87,8 +91,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char line[GMT_LONG_TEXT], ptr[BUFSIZ];
 	char *shore_resolution[5] = {"full", "high", "intermediate", "low", "crude"};
 
-	int	i, j, k, ij, ii, bin, ind, nm, np, side, i_min, i_max, j_min, j_max, nx1, ny1, np_new, pos;
-	int	one_or_zero, base = 3, direction, is_inside = 1, err;
+	GMT_LONG	i, j, k, ij, ii, bin, ind, nm, np, side, i_min, i_max, j_min, j_max, nx1, ny1, np_new, pos;
+	int		one_or_zero, base = 3, direction, is_inside = 1, err;
 
 	unsigned char *data_8;
 
@@ -155,8 +159,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 				case 'A':
 					Ctrl->A.active = TRUE;
+#ifdef GMT_MINOR_VERSION
+					Ctrl->A.info.fraction = Ctrl->A.info.flag = Ctrl->A.info.low = 0;
+					Ctrl->A.info.high = GMT_MAX_GSHHS_LEVEL;
+					Ctrl->A.info.area = 0.;
+					GMT_set_levels (&argv[i][2], &Ctrl->A.info);
+#else
 					j = sscanf (&argv[i][2], "%lf/%d/%d", &Ctrl->A.area, &Ctrl->A.low, &Ctrl->A.high);
 					if (j == 1) Ctrl->A.low = 0, Ctrl->A.high = GMT_MAX_GSHHS_LEVEL;
+#endif
 					break;
 				case 'D':
 					Ctrl->D.active = TRUE;
@@ -174,10 +185,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						Ctrl->N.mask[j] = (ptr[0] == 'N' || ptr[0] == 'n') ? GMT_f_NaN : (float)atof (ptr);
 						j++;
 					}
-					if (!(j == 2 || j == 5)) {
-						mexPrintf ("%s: GMT SYNTAX ERROR -N option:  Specify 2 or 5 arguments\n", GMT_program);
-						return (EXIT_FAILURE);
-					}
+					if (!(j == 2 || j == 5))
+						mexErrMsgTxt ("grdlandmask_m: SYNTAX ERROR -N option:  Specify 2 or 5 arguments\n");
+
 					dry_wet_only = (j == 2);
 					for (k = 0; k < j; k++) {	/* Pick up what the output data type will be */
 						if (Ctrl->N.mask[k] != 0 && Ctrl->N.mask[k] != 1) {
@@ -221,7 +231,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("usage: [MASK,hdr,X,Y] = grdlandmask_m( %s, %s, \n", GMT_I_OPT, GMT_Rgeo_OPT);
 		mexPrintf ("\t[-A<min_area>[/<min_level>/<max_level>]], [-D<resolution>], [-F], [-N<maskvalues>[o]])\n\n");
 
-		if (GMT_give_synopsis_and_exit) return (EXIT_FAILURE);
+		if (GMT_give_synopsis_and_exit) return;
 
 		mexPrintf ("\t-I sets the grid spacing (dx, dy) for the new grid\n");
 		mexPrintf ("\n\tOPTIONS:\n");
@@ -243,7 +253,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\t   By default (-N with 0 & 1) MASK is of type logical but that depends on the -N option\n");
 		mexPrintf ("\t   If NaN or values outside the [0-255] range are transmitted, MASK is of type float.\n");
 		mexPrintf ("\t   For values in the [0-255] range, MASK is of type uint8.\n");
-		return (EXIT_FAILURE);
+		return;
 	}
 
 	if (!project_info.region_supplied) {
@@ -255,7 +265,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		error = TRUE;
 	}
 
-	if (error) return(EXIT_FAILURE);
+	if (error) return;
 
 	header.x_inc = Ctrl->I.xinc;
 	header.y_inc = Ctrl->I.yinc;
@@ -280,9 +290,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		Ctrl->N.mask[2] = Ctrl->N.mask[4] = Ctrl->N.mask[0];
 	}
 
-	if (GMT_init_shore (Ctrl->D.set, &c, header.x_min, header.x_max, header.y_min, header.y_max)) {
+#ifdef GMT_MINOR_VERSION
+	if (GMT_init_shore(Ctrl->D.set, &c, header.x_min, header.x_max, header.y_min, header.y_max, &Ctrl->A.info))  {
+#else
+	if (GMT_init_shore(Ctrl->D.set, &c, header.x_min, header.x_max, header.y_min, header.y_max))  {
+#endif
 		mexPrintf ("%s: %s resolution shoreline data base not installed\n", GMT_program, shore_resolution[base]);
-		return (EXIT_FAILURE);
+		mexErrMsgTxt ("");
 	}
 
 	sprintf (line, "%s\n", gmtdefs.d_format);
@@ -358,9 +372,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			mexPrintf("Done %.0f %%\r", (double)(ind+1) / c.nb * 100);
 #endif
 
-		if ((err = GMT_get_shore_bin (ind, &c, Ctrl->A.area, Ctrl->A.low, Ctrl->A.high))) {
+#ifdef GMT_MINOR_VERSION
+			if ((err = GMT_get_shore_bin (ind, &c))) {
+#else
+			if ((err = GMT_get_shore_bin (ind, &c,  Ctrl->A.area, Ctrl->A.low, Ctrl->A.high))) {
+#endif
 			mexPrintf ("%s: %s [%s resolution shoreline]\n", GMT_program, GMT_strerror(err), shore_resolution[base]);
-			return (EXIT_FAILURE);
+			mexErrMsgTxt ("");
 		}
 
 		/* Use polygons, if any.  Go in both directions to cover both land and sea */
@@ -370,8 +388,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		for (direction = -1; c.ns > 0 && direction < 2; direction += 2) {
 
 			/* Assemble one or more segments into polygons */
-
+#ifdef GMT_MINOR_VERSION
+			np = GMT_assemble_shore (&c, direction, TRUE, greenwich, west_border, east_border, &p);
+#else
 			np = GMT_assemble_shore (&c, direction, Ctrl->A.low, TRUE, greenwich, west_border, east_border, &p);
+#endif
 
 			/* Get clipped polygons in x,y inches that can be processed */
 
@@ -544,7 +565,11 @@ void *New_Grdlandmask_Ctrl () {	/* Allocate and initialize a new control structu
 	
 	/* Initialize values whose defaults are not 0/FALSE/NULL */
 	
+#ifdef GMT_MINOR_VERSION
+	C->A.info.high = GMT_MAX_GSHHS_LEVEL;			/* Include all GSHHS levels */
+#else
 	C->A.high = GMT_MAX_GSHHS_LEVEL;				/* Include all GSHHS levels */
+#endif
 	C->D.set = 'l';							/* Low-resolution coastline data */
 	memset ((void *)C->N.mask, 0, (size_t)(GRDLANDMASK_N_CLASSES * sizeof (float)));	/* Default "wet" value = 0 */
 	C->N.mask[1] = C->N.mask[3] = 1.0;				/* Default for "dry" areas = 1 (inside) */
