@@ -61,19 +61,19 @@ BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memo
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	int i, j, k, ij, i0, j0, *di, dj, n_sectors = 4, sector, n, n_alloc = GMT_CHUNK, n_fields, nx_2;
-	int n_set, n_almost, n_none, n_files = 0, fno, one_or_zero, n_expected_fields, pad[4], distance_flag = 0;
-	int max_di, actual_max_di, ii, jj, x_wrap, y_wrap, ix = 0, iy = 1;
+	GMT_LONG i, j, k, ij, i0, j0, *di, dj, n_sectors = 4, sector, n, n_alloc = GMT_CHUNK, n_fields, nx_2;
+	GMT_LONG n_set, n_almost, n_none, n_files = 0, fno, one_or_zero, n_expected_fields, distance_flag = 0;
+	GMT_LONG max_di, actual_max_di, ii, jj, x_wrap, y_wrap, ix = 0, iy = 1;
 
 	BOOLEAN go, error = FALSE, done = FALSE, nofile = TRUE, isDouble = TRUE;
 	BOOLEAN set_empty = FALSE, weighted = FALSE, wrap_180, replicate_x, replicate_y;
 
-	float empty = 0.0, *grd, *z_4, *pdata, *z1_4, *z2_4, *z3_4, *z4_4, percentage = 0;
-	double *z1_8, *z2_8, *z3_8, *z4_8, radius2, *ptr_wb;
-	double radius = 0.0, weight, weight_sum, grd_sum, *x0, *y0, dx, dy, delta, distance, factor;
-	double *in, *shrink, km_pr_deg, x_left, x_right, y_top, y_bottom, offset, xinc2, yinc2, idx, idy;
-	double half_y_width, y_width, half_x_width, x_width, three_over_radius, *info;
-	int	argc = 0, n_arg_no_char = 0, n_cols, nx, ny, n_pts, n_2pts, nToParse, nin;
+	float	empty = 0.0, *grd, *z_4, *pdata, *z1_4, *z2_4, *z3_4, *z4_4, percentage = 0;
+	double	*z1_8, *z2_8, *z3_8, *z4_8, radius2, *ptr_wb;
+	double	radius = 0.0, weight, weight_sum, grd_sum, *x0, *y0, dx, dy, delta, distance, factor;
+	double	*in, *shrink, km_pr_deg, x_left, x_right, y_top, y_bottom, offset, xinc2, yinc2, idx, idy;
+	double	half_y_width, y_width, half_x_width, x_width, three_over_radius, *info;
+	GMT_LONG	argc = 0, n_arg_no_char = 0, n_cols, nx, ny, n_pts, n_2pts, nToParse, nin;
 	char	line[BUFSIZ], **argv, buffer[BUFSIZ], *p;
 
 	FILE *fp = NULL;
@@ -109,8 +109,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	GMT_boundcond_init (&edgeinfo);
 	GMT_grd_init (&header, argc, argv, FALSE);
-
-	pad[0] = pad[1] = pad[2] = pad[3] = 0;
 	
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] == '-') {
@@ -312,7 +310,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	grid_node = (struct NODE **) GMT_memory (VNULL, (size_t)(header.nx * header.ny), sizeof (struct NODE *), GMT_program);
 	point = (struct POINT *) GMT_memory (VNULL, (size_t)n_alloc, sizeof (struct POINT), GMT_program);
 	
-	di = (int *) mxMalloc ((size_t)header.ny * sizeof (int));
+	di = (GMT_LONG *) mxMalloc ((size_t)header.ny * sizeof (GMT_LONG));
 	shrink = (double *) mxMalloc ((size_t)header.ny * sizeof (double));
 
 	x0 = (double *) mxMalloc ((size_t)header.nx * sizeof (double));
@@ -349,7 +347,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	replicate_y = (edgeinfo.nyp && !header.node_offset);	/* Gridline registration has duplicate row */
 	x_wrap = header.nx - 1;			/* Add to node index to go to right column */
 	y_wrap = (header.ny - 1) * header.nx;	/* Add to node index to go to bottom row */
-	
 
 	in = (double *) mxCalloc ((size_t)(4), sizeof(double));
 

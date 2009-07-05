@@ -82,7 +82,7 @@ char *filter_name[9] = {
 	"Upper-"
 };
 
-int GMT_mode_selection = 0, GMT_n_multiples = 0;
+GMT_LONG GMT_mode_selection = 0, GMT_n_multiples = 0;
 
 BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
@@ -91,11 +91,11 @@ BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memo
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	int	nx_out, ny_out, nx_fil, ny_fil, n_in_median, n_nan = 0;
-	int	x_half_width, y_half_width, j_origin, i_out, j_out;
-	int	i_in, j_in, ii, jj, i, ij_in, ij_out, ij_wt, effort_level;
-	int	distance_flag, filter_type, one_or_zero = 1, nr_h, nc_h;
-	int	argc = 0, n_arg_no_char = 0, *i_4, *o_i4, *pdata_i4, j, i2, nx, ny, k1, k2;
+	GMT_LONG	nx_out, ny_out, nx_fil, ny_fil, n_in_median, n_nan = 0;
+	GMT_LONG	x_half_width, y_half_width, j_origin, i_out, j_out, i2, nx, ny, k1, k2;
+	GMT_LONG	i_in, j_in, ii, jj, i, j, ij_in, ij_out, ij_wt, effort_level;
+	GMT_LONG	distance_flag, filter_type, one_or_zero = 1, nr_h, nc_h;
+	int	argc = 0, n_arg_no_char = 0, *i_4, *o_i4, *pdata_i4;
 	char	**argv, c;
 	short int *i_2, *o_i2, *pdata_i2;
 	unsigned short int *ui_2, *o_ui2, *pdata_ui2;
