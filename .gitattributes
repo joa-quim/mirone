@@ -547,7 +547,6 @@ utils/calc_bonin_euler_pole.m -text
 utils/calc_omori.m -text
 utils/canny.m -text
 utils/cdf2pal.m -text
-utils/checkinput_mex.dll -text
 utils/circ_geo.m -text
 utils/clabel_j.m -text
 utils/conv2anugapts.m -text
