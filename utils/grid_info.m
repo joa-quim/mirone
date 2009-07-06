@@ -28,41 +28,39 @@ if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived 
 	w{3} = ['Remark: ' info1.Remark];
 	w{4} = info1.Registration;
 	w{5} = ['grdfile format: #' num2str(info1.Scale(3))];
-	txt1 = sprintf('%.6f',handles.head(1));      txt1 = wipe_zeros(txt1);    % x_min
-	txt2 = sprintf('%.6f',handles.head(2));      txt2 = wipe_zeros(txt2);    % x_max
-	txt3 = sprintf('%.7f',handles.head(8));      txt3 = wipe_zeros(txt3);    % x_inc
+	txt1 = sprintf('%.8g',handles.head(1));		% x_min
+	txt2 = sprintf('%.8g',handles.head(2));		% x_max
+	txt3 = sprintf('%.8g',handles.head(8));		% x_inc
 	w{6} = ['x_min: ' txt1 '  x_max: ' txt2 '  x_inc: ' txt3 '  nx: ' num2str(info1.X_info(4))];
-	txt1 = sprintf('%.6f',handles.head(3));      txt1 = wipe_zeros(txt1);    % y_min
-	txt2 = sprintf('%.6f',handles.head(4));      txt2 = wipe_zeros(txt2);    % y_max
-	txt3 = sprintf('%.7f',handles.head(9));      txt3 = wipe_zeros(txt3);    % y_inc
+	txt1 = sprintf('%.8g',handles.head(3));		% y_min
+	txt2 = sprintf('%.8g',handles.head(4));		% y_max
+	txt3 = sprintf('%.8g',handles.head(9));		% y_inc
 	w{7} = ['y_min: ' txt1 '  y_max: ' txt2 '  y_inc: ' txt3 '  ny: ' num2str(info1.Y_info(4))];
-	txt1 = sprintf('%.4f',info2(1));            txt1 = wipe_zeros(txt1);    % z_min
-	txt2 = sprintf('%.4f',info2(2));            txt2 = wipe_zeros(txt2);    % z_max
+	txt1 = sprintf('%.8g',info2(1));            % z_min
+	txt2 = sprintf('%.8g',info2(2));			% z_max
 
 	if (handles.head(7)),   half = 0.5;
 	else                    half = 0;       end
-	x_min = handles.head(1) + (fix(info2(3) / length(X)) + half) * handles.head(8);    % x of z_min
-	x_max = handles.head(1) + (fix(info2(4) / length(X)) + half) * handles.head(8);    % x of z_max
-	y_min = handles.head(3) + (rem(info2(3)-1, length(Y)) + half) * handles.head(9);   % y of z_min
-	y_max = handles.head(3) + (rem(info2(4)-1, length(Y)) + half) * handles.head(9);   % y of z_max
-	txt_x1 = sprintf('%.6f',x_min);     txt_x1 = wipe_zeros(txt_x1);
-	txt_x2 = sprintf('%.6f',x_max);     txt_x2 = wipe_zeros(txt_x2);
-	txt_y1 = sprintf('%.6f',y_min);     txt_y1 = wipe_zeros(txt_y1);
-	txt_y2 = sprintf('%.6f',y_max);     txt_y2 = wipe_zeros(txt_y2);
+	x_min = handles.head(1) + (fix(info2(3) / numel(Y)) + half) * handles.head(8);    % x of z_min
+	x_max = handles.head(1) + (fix(info2(4) / numel(Y)) + half) * handles.head(8);    % x of z_max
+	y_min = handles.head(3) + (rem(info2(3)-1, numel(Y)) + half) * handles.head(9);   % y of z_min
+	y_max = handles.head(3) + (rem(info2(4)-1, numel(Y)) + half) * handles.head(9);   % y of z_max
+	txt_x1 = sprintf('%.8g',x_min);
+	txt_x2 = sprintf('%.8g',x_max);
+	txt_y1 = sprintf('%.8g',y_min);
+	txt_y2 = sprintf('%.8g',y_max);
 
 	w{8} = ['z_min: ' txt1 ' at x = ' txt_x1 ' y = ' txt_y1]; 
 	w{9} = ['z_max: ' txt2 ' at x = ' txt_x2 ' y = ' txt_y2];
 
 	w{10} = ['scale factor: ' num2str(info1.Scale(1)) ' add_offset: ' num2str(info1.Scale(2))];
 	if (~isequal(info2,0))
-		txt1 = num2str(info2(6),'%.3f');    txt1 = wipe_zeros(txt1);    % mean
-		txt2 = num2str(info2(7),'%.3f');    txt2 = wipe_zeros(txt2);    % stdev
-		w{11} = ['mean: ' txt1 '  stdev: ' txt2];
+		w{11} = sprintf('mean: %.8g  stdev: %.8g',info2(6), info2(7));
 	else
 		w{11} = 'WARNING: GRID WAS NOT IN MEMORY SO SOME INFO MIGHT NO BE ENTIRELY CORRECT.';
 	end
 	if (info2(5))       % We have NaNs, report them also
-		w{12} = ['nodes set to NaN: ' num2str(info2(5))];
+		w{12} = ['nodes set to NaN: ' sprintf('%d',info2(5))];
 	end
 	msgbox(w,'Grid Info');
 elseif (handles.computed_grid)  % Computed array
@@ -90,13 +88,6 @@ else
 		msgbox('Info missing or nothing to info about?','???')
     end
 end
-
-% -----------------------------------------------------------
-function txt = wipe_zeros(txt)
-% Wipe zeros at the end of the TXT string
-	while (txt(end) == '0')
-		txt(end) = [];
-	end
 
 % --------------------------------------------------------------------
 function att2Hdr(handles,att)
