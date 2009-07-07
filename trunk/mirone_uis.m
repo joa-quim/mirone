@@ -44,7 +44,7 @@ H1 = figure('PaperUnits','centimeters',...
 'IntegerHandle','off',...
 'InvertHardcopy',get(0,'defaultfigureInvertHardcopy'),...
 'MenuBar','none',...
-'Name','Mirone 1.5.0',...
+'Name','Mirone 1.5.1(dev)',...
 'NumberTitle','off',...
 'PaperPositionMode','auto',...
 'PaperSize',[20.98404194812 29.67743169791],...
@@ -423,14 +423,6 @@ uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''2'',''i'')
 uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''2'',''h'')','Label','High resolution','Tag','PBHigh');
 uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''2'',''f'')','Label','Full resolution','Tag','PBFull');
 
-h = uimenu('Parent',h2,'Label','Marine boundaries');
-
-uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''3'',''c'')','Label','Crude resolution','Tag','PBCrude');
-uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''3'',''l'')','Label','Low resolution','Tag','PBLow');
-uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''3'',''i'')','Label','Intermediate resolution','Tag','PBInterm');
-uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''3'',''h'')','Label','High resolution','Tag','PBHigh');
-uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''3'',''f'')','Label','Full resolution','Tag','PBFull');
-
 h = uimenu('Parent',h2,'Label','All boundaries');
 
 uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''a'',''c'')','Label','Crude resolution','Tag','PBCrude');
@@ -657,7 +649,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 5 July 2009'',''1.5.0'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 8 July 2009'',''1.5.1(dev)'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
