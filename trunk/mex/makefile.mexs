@@ -49,18 +49,21 @@ PROG_withCDF = swan swan_sem_wbar
 
 PROG_GDAL	= gdalread gdalwrite ogrproj gdalwarp_mex gdaltransform_mex
 
-PROG_OCV	= cvlib_mex cvcolor_mex
+PROG_MEXNC	= mexnc
+
+PROG_OCV	= cvlib_mex
 
 PROG_SHAPE	= mex_shape
 
 
-all:		$(PROG_GMT) $(PROG_GDAL) $(PROG_SIMPLE) $(PROG_withCDF) $(PROG_OCV) $(PROG_SHAPE)
+all:		$(PROG_GMT) $(PROG_GDAL) $(PROG_SIMPLE) $(PROG_withCDF) $(PROG_OCV) $(PROG_SHAPE) $(PROG_MEXNC)
 gmt:		$(PROG_GMT)
-withCDF:	$(PROG_withCDF)
-simple:		$(PROG_SIMPLE)
 gdal:		$(PROG_GDAL)
+mexnc:		$(PROG_MEXNC)
 opencv:		$(PROG_OCV)
 shape:		$(PROG_SHAPE)
+simple:		$(PROG_SIMPLE)
+withCDF:	$(PROG_withCDF)
 
 install:
 		for f in *.$(MEX_EXT); do \
