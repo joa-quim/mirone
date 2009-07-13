@@ -15,7 +15,7 @@ function F = bi_linear(arg1,arg2,arg3,arg4,arg5)
 %
 %   Clay M. Thompson 4-26-91, revised 7-3-91, 3-22-93 by CMT.
 
-[nrows,ncols] = size(arg3);
+[nrows,ncols,dumb] = size(arg3);
 mx = numel(arg1);   my = numel(arg2);
 if any([mx my] ~= [ncols nrows]) && ~isequal(size(arg1),size(arg2),size(arg3))
     error('The lengths of the X and Y vectors must match Z.');
