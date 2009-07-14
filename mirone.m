@@ -2384,7 +2384,7 @@ function DrawImportShape_CB(handles, fname)
 					s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
 			if (any(out))					% It means the polyg BB is at least partially inside
 				h(i) = patch('XData',s(i).X,'YData', s(i).Y,'FaceColor','none','EdgeColor',lc,'Parent',handles.axes1,'Tag','SHPpolygon');
-				if (numel(t >= 8) && t(8) == 'Z')
+				if ( (numel(t) >= 8) && (t(8) == 'Z') )
 					set(h(i), 'UserData', s(i).Z)			% Fleder can drape it (+ other eventual usages)
 				end
 			end
