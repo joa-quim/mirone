@@ -1,6 +1,7 @@
 #		$Id: makefile.in,v 1.3 22/08/2007
 #
-#	Makefile for mirone mexs 
+#	Makefile for mirone mexs
+#	make -f makefile.mexs
 #	Use with GMT 4.3
 #
 
@@ -12,8 +13,8 @@ include $(GMTSRCDIR)gmtalldeps.macros
 #----------------------------------------------------------------------------
 # Where install will place the files.  Notice that it must allways be ..../"mirone root"/lib_mex
 
-mirone_mex_dir	= /Users/j/programs/mirone140/lib_mex
-MATLAB		= /Applications/MATLAB74
+mirone_mex_dir	= /Users/j/programs/mironeTrunk/lib_mex
+MATLAB		= /Applications/MATLAB_R2008a
 
 MEX_EXT		= mexmaci
 MATLAB_MEX	= glnx86
@@ -49,7 +50,7 @@ PROG_withCDF = swan swan_sem_wbar
 
 PROG_GDAL	= gdalread gdalwrite ogrproj gdalwarp_mex gdaltransform_mex
 
-PROG_MEXNC	= mexnc
+PROG_MEXNC	= mex_nc
 
 PROG_OCV	= cvlib_mex
 
@@ -59,7 +60,7 @@ PROG_SHAPE	= mex_shape
 all:		$(PROG_GMT) $(PROG_GDAL) $(PROG_SIMPLE) $(PROG_withCDF) $(PROG_OCV) $(PROG_SHAPE) $(PROG_MEXNC)
 gmt:		$(PROG_GMT)
 gdal:		$(PROG_GDAL)
-mexnc:		$(PROG_MEXNC)
+mex_nc:		$(PROG_MEXNC)
 opencv:		$(PROG_OCV)
 shape:		$(PROG_SHAPE)
 simple:		$(PROG_SIMPLE)
@@ -175,7 +176,7 @@ gdaltransform_mex:
 
 
 # ------------------------- MEXNC progs -----------------------------------
-mexnc:
+mex_nc:
 		$(MEX) $(MEXNC_FLAGS) mexnc/mexgateway.c mexnc/netcdf2.c mexnc/netcdf3.c mexnc/common.c  -output mexnc $(CDF) $(MEXLIB)
 
 # ------------------------- OPEN_CV progs ---------------------------------
