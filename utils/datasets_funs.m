@@ -176,6 +176,7 @@ else							% Reading over an established region
 	XMin = XYlim(1);			XMax = XYlim(2);		% In case we need this names below for line trimming
 end
 
+min_max = [Inf -Inf];			% We will need something here when data file has 3 columns
 if (handles.validGrid),			min_max = handles.head(5:6);	end		% To be used in testing if we store eventual ZData
 for (k = 1:numel(names))		% Main loop over data files
     fname = names{k};
@@ -241,7 +242,7 @@ for (k = 1:numel(names))		% Main loop over data files
 		if (isempty(thick)),	thick = handles.DefLineThick;	end		% IF not provided, use default
 		if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
 		
-		if (~is_closed)         % Line plottings
+		if (~is_closed)				% Line plottings
 			% See if we need to wrap arround the earth roundness discontinuity. Using 0.5 degrees from border. 
 			if (handles.geog == 1 && ~do_project && (XMin < -179.5 || XMax > 179.5) )
 					[tmpy, tmpx] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax],'wrap');
@@ -263,17 +264,17 @@ for (k = 1:numel(names))		% Main loop over data files
 				set(hPat,'UserData',tmpz');											% So that Fleder can drape this patch
 			end	
 			draw_funs(hPat,'line_uicontext')
-			n_clear(i) = 1;     % Must delete this header info because it only applyies to lines, not patches
+			n_clear(i) = 1;			% Must delete this header info because it only applyies to lines, not patches
 		end
 	end
-	multi_segs_str(n_clear) = [];       % Clear the unused info
+	multi_segs_str(n_clear) = [];	% Clear the unused info
 
 	ind = isnan(h_isoc);    h_isoc(ind) = [];      % Clear unused rows in h_isoc (due to over-dimensioning)
 	if (~isempty(h_isoc)),  draw_funs(h_isoc,'isochron',multi_segs_str);    end
 end
 set(handles.figure1,'pointer','arrow')
 
-if (handles.no_file)        % We have a kind of inf Lims. Adjust for current values
+if (handles.no_file)				% We have a kind of inf Lims. Adjust for current values
 	region = [XMin XMax YMin YMax];
 	set(handles.axes1,'XLim',[XMin XMax],'YLim',[YMin YMax])
 	setappdata(handles.axes1,'ThisImageLims',region)
