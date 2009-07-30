@@ -105,6 +105,7 @@ if (nargin == 2 && isempty(opt))            % Read a ascii multi-segment with in
 	tag = 'Unnamed';		fname = [PathName FileName];
 elseif (nargin == 2)		% Read a ascii multi-segment file of which we already know the name (drag N'drop)
 	tag = 'DragNdroped';	fname = opt;
+	[PathName, dumb] = fileparts(fname);		% We need the 'PathName' below
 else
 	tag = 'isochron';		fname = [handles.path_data 'isochrons.dat'];
 end
@@ -120,7 +121,6 @@ end
 % function resetUIctx(obj,evt,h,hAxes)
 % 	cmenuHand = getappdata(hAxes, 'cmenuHand');
 % 	set(h, 'UIContextMenu', cmenuHand)
-		
 
 %set(handles.figure1,'pointer','watch')
 [bin,n_column,multi_seg,n_headers] = guess_file(fname);
