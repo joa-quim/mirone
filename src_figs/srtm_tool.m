@@ -495,7 +495,7 @@ for (i=1:3)
         xp = [(j-1)*40 (j-1)*40 j*40 j*40 (j-1)*40] - 180;
         if (xp(1) >  0)  c1 = 'e';
         else             c1 = 'w';   end
-        tag = [c1 num2str(abs(xp(1)),'%.3d') c2 num2str(abs(yp(2)),'%.2d') '.Bathmetry.srtm'];
+        tag = [c1 num2str(abs(xp(1)),'%.3d') c2 num2str(abs(yp(2)),'%.2d') '.Bathymetry.srtm'];
         hp = patch(xp,yp,0,'FaceColor','none','Tag',tag,'UserData',0,'ButtonDownFcn',{@bdn_srtm30Tile,handles});
     end
 end
@@ -505,7 +505,7 @@ for (j=1:6)
     xp = [(j-1)*60 (j-1)*60 j*60 j*60 (j-1)*60] - 180;
     if (xp(1) > 0)   c1 = 'e';
     else             c1 = 'w';   end
-    tag = [c1 num2str(abs(xp(1)),'%.3d') 's60.Bathmetry.srtm'];
+    tag = [c1 num2str(abs(xp(1)),'%.3d') 's60.Bathymetry.srtm'];
     hp = patch(xp,yp,0,'FaceColor','none','Tag',tag,'UserData',0,'ButtonDownFcn',{@bdn_srtm30Tile,handles});
 end
 
