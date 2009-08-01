@@ -518,7 +518,7 @@ if ( status == 0 )
 					ind2 = (values == miss_value);
 					ind = (ind | ind2);				% Ensemble of fill_ and miss_ values
 				end
-				if (any(ind))
+				if (any(ind(:)))
 					values = single(values);		% Here I give up and convert to singles
 					values(ind) = NaN;
 				end
@@ -564,7 +564,7 @@ if ( status == 0 )
 			[fill_value, status] = mexnc( 'get_att_double', ncid, varid, 'missing_value' );
 			if (~isnan(fill_value))
 				ind = (values == fill_value);
-				if (any(ind))
+				if (any(ind(:)))
 					values = single(values);		% Here I give up and convert to singles
 					values(ind) = NaN;
 				end
