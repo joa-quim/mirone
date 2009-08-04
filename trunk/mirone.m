@@ -257,8 +257,6 @@ function hObject = mirone_OpeningFcn(varargin)
 		aux_funs('StoreZ',handles,X,Y,Z)	% If grid size is not to big we'll store it
 		aux_funs('colormap_bg',handles,Z,pal);
 		handles = show_image(handles,win_name,X,Y,zz,1,'xy',handles.head(7));
-		handles = aux_funs('isProj',handles);				% Check about coordinates type
-		handles = setAxesDefCoordIn(handles,1);
 	end
 
 	IAmAMac = strncmp(computer,'MAC',3);
@@ -298,7 +296,12 @@ function hObject = mirone_OpeningFcn(varargin)
 	if (~isempty(drv))
 		gateLoadFile(handles,drv,varargin{1});		% load recognized file types
 	else
-		handles = recentFiles(handles,[]);			% Just make the "Recent files" entry available
+		recentFiles(handles,[]);					% Just make the "Recent files" entry available
+	end
+
+	if (handles.hImg)								% If we had something in input, check the coordinates type
+		handles = aux_funs('isProj', guidata(hObject));
+		setAxesDefCoordIn(handles,1);
 	end
 
 	set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);		% For projections with GDAL
