@@ -306,7 +306,6 @@ function import_clickedCB(hObject, eventdata, opt)
 	max_s = handles.max_x_data - handles.def_width_km;
 	if (max_s < 0),		max_s = handles.max_x_data;		end			% I already had one case like this. A very short track
 	val = track.distance(1);
-	%set(hs,'Max',handles.max_x_data-handles.def_width_km,'value',track.distance(1))
 
 	if (~handles.begin)         % Start the display at a user selected coordinate
 		x = handles.lon - handles.center_win(1);    [zz,id1] = min(abs(x));     clear x;
@@ -341,7 +340,9 @@ function import_clickedCB(hObject, eventdata, opt)
 
 	% Update the slider properties
 	r = 0.90 * handles.def_width_km / handles.max_x_data;		% Give a 10% overlap between display area when click on slider arrow
-	set(hs,'Max',max_s,'value',val,'SliderStep',[r r*10])
+	if (r > 1),		set(hs,'Vis','off')			% Would otherwise generate an error
+	else			set(hs,'Max',max_s,'value',val,'SliderStep',[r r*10])
+	end
 	guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
