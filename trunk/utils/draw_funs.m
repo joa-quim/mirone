@@ -2215,7 +2215,7 @@ function Isochrons_Info(obj,eventdata,data)
 % -----------------------------------------------------------------------------------------
 function gmtfile_Info(obj,eventdata,h,data)
 	agency = [];
-	if (exist(data, 'file') == 2)		% MGD77+ files transmit their names in 'data'
+	if (ischar(data) && exist(data, 'file') == 2)		% MGD77+ files transmit their names in 'data'
 		[data, agency] = aux_funs('mgd77info',data);
 	end
 	str{1} = ['N_recs = ' num2str(data(1)) ', N_grav = ' num2str(data(2)) ', N_mag = ' num2str(data(3)) ...
