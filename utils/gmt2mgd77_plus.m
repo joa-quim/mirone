@@ -30,6 +30,7 @@ function gmt2mgd77_plus(fname, varargin)
 %		jluis@ualg.pt - Universidade do Algarve
 
 	F_offset = 40000;		name_out = [];		meta = [];		is_anom = false;
+	fsep = filesep;
 
 	for (k = 1:2:numel(varargin))
 		if ( strcmp(varargin{k}, 'name') )
@@ -78,7 +79,8 @@ function gmt2mgd77_plus(fname, varargin)
 % 	att.tow_dist = '160';
 
 	[PATO, FNAME, EXT] = fileparts(fname);
-	track = gmtlist_m([PATO filesep FNAME], '-Fsxygmt', '-G');
+	if (isempty(PATO)),		fsep = [];	end		% File is in the current directory
+	track = gmtlist_m([PATO fsep FNAME], '-Fsxygmt', '-G');
 
 	track.time = track.time + (date2jd(track.year) - date2jd(1970)) * 86400;	% Here we need time in seconds since 1970
 	
@@ -91,7 +93,7 @@ function gmt2mgd77_plus(fname, varargin)
 	if (~isempty(name_out))
 		fname = name_out;
 	else
-		fname = [PATO filesep FNAME '.nc'];
+		fname = [PATO fsep FNAME '.nc'];
 	end
 	% ------------------------------------------------------------
 
