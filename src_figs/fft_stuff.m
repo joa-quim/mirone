@@ -460,7 +460,7 @@ function pushbutton_radialPowerAverage_Callback(hObject, eventdata, handles)
 function calSave(obj,eventdata,h_fig)
 % Save data in file
 	ud = get(h_fig,'UserData');          % Get userdata
-	handles = guidata(h_fig);
+	handles = guidata(ud.h_mir_fig);
 	[FileName,PathName] = put_or_get_file(handles, ...
 		{'*.dat;*.DAT', 'radial spectrum file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'}, 'Select File name','put','.dat');
 	if isequal(FileName,0),		return,		end
