@@ -108,10 +108,10 @@ function varargout = mirone_pref(varargin)
 	% This is the default ellipsoide order. It will be changed (and saved as so in mirone_pref) by the user
 	% The parameters of the selected ellipsoid are found by a "case" loop runned by the OK pushbutton.
 	was_ellips_from_file = false;
-	if (exist([handMir.path_data 'ellipsoids.txt']))		% If we have the ellipsoids provied in a file
+	if (exist([handMir.path_data 'ellipsoids.txt'], 'file') == 2)		% If we have the ellipsoids provied in a file
 		fid = fopen([handMir.path_data 'ellipsoids.txt'],'rt');
 		if (fid > 0)				% Otherwise, non-existent file, revert to just WGS-84
-			ellips = strread(fread(fid,'*char').','%s','delimiter','\n');		fclose(fid)
+			ellips = strread(fread(fid,'*char').','%s','delimiter','\n');		fclose(fid);
 			% Remove comment and also eventual empty lines
 			m = numel(ellips);		c = false(m,1);
 			for (k = 1:m)
@@ -384,7 +384,7 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 	handles.handMir.flederBurn = handles.flederBurn;			flederBurn = handles.flederBurn;
 	handles.handMir.whichFleder = handles.whichFleder;			whichFleder = handles.whichFleder;
 	% Decode the line thickness string into a number
-	handles.handMir.DefLineThick = str2num(DefLineThick{1}(1));
+	handles.handMir.DefLineThick = str2double(DefLineThick{1}(1));
 	% Decode the line color string into the corresponding char (e.g. k,w, etc...)
 	switch DefLineColor{1}
 		case 'Black',       handles.handMir.DefLineColor = 'k';
