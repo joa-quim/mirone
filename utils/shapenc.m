@@ -7,8 +7,17 @@ function shapenc(fname, data, varargin)
 % shapenc(..., 'inner', polyg)	where POLYG is a polygon representing a hole in the DATA
 %								Several polygons/holes are allowed but if > 1 they must be in a cell array
 % shapenc(..., 'srs','proj4string')  DATA is in projected coords described by PROJ4STRING 
-% shapenc(..., 'geog',1|0)  If keyword GEOG is used  PROJ4STRING -> +proj=latlong  ---- NOT CONFIRMED
+% shapenc(..., '-b','binstr')	Mean DATA is a filename of a binary file. BINSTR will than contain a GMT -b style info
+%								E.G 's3' means single and 3, three columns. (valid: 's2', 's3', 'd2', 'd3')
+% shapenc(..., 'geog',1|0)		If keyword GEOG is used  PROJ4STRING -> +proj=latlong  ---- NOT CONFIRMED
+% shapenc(..., 'multiseg', 'whatever')	Convert the contents of DATA into a multisegment array (NaN separated)
+%								Note that this only apply when DATA is a cell array or the name of a multisegment file.
 % shapenc(..., 'desc','description')  Create a global attribute with contents DESCRIPTION
+% shapenc(..., 'tag','attribs') Add the contents of ATTRIBS to the container variable that is automatically created for each
+%								DATA ensemble. This works only for the first ensemble of DATA (if it has more, others are ignored).
+%								If ATTRIBS is a char, its contents will go to an attribute called 'name'.
+%								If ATTRIBS is a cell, it must contain a Mx2 array where firts column contains the
+%								attribute name and the second the attribute value.
 %
 % possibilidades
 % data				<== Point swarm 
@@ -29,6 +38,9 @@ function shapenc(fname, data, varargin)
 	nMaxChunks = 50;		% Apply only to shapefiles and multisegment ascii files
 	multiSegPos = [];		% Positions of NaN multiseg separators in a packed multisegment data array (mostly for shapefiles)
 	fver = [];				% File version
+	conv2multiseg = false;	% When true convert a cell array into a multiseg poly...
+	inbin = false;			% May contain a -bi... GMT type info for DATA in plain binary
+	tag = [];				% TAG name (or cell with attribs) of the main ensemble
 
 	for (k = 1:2:numel(varargin))
 		if (~ischar(varargin{k})),		error('SHAPENC:error','property name must be a character string'),	end
@@ -36,13 +48,20 @@ function shapenc(fname, data, varargin)
 			outer_polygs = varargin{k+1};
 		elseif ( strncmpi(varargin{k}, 'inner', 2) )
 			inner_polygs = varargin{k+1};
-		elseif ( strncmpi(varargin{k}, 'geog', 4) )
-			if (~varargin{k+1}),	is_geog = false;	end
-			spatial_ref = '+proj=xy';
-		elseif ( strcmpi(varargin{k}, 'srs') )
-			spatial_ref = varargin{k+1};
+		elseif ( strncmpi(varargin{k}, 'version', 3) )
+			fver = varargin{k+1};
 		elseif ( strncmpi(varargin{k}, 'desc', 4) )
 			desc = varargin{k+1};
+		elseif ( strcmpi(varargin{k}, 'tag') )
+			tag = varargin{k+1};
+			if (~ischar(tag) && ~isa(tag,'cell'))
+				disp('TAG contents is neither a char nor a cell array. Ignoring it')
+				tag = []
+			end
+		elseif ( strncmpi(varargin{k}, 'geog', 4) )
+			if (~varargin{k+1}),	is_geog = false;	end
+		elseif ( strcmpi(varargin{k}, 'srs') )
+			spatial_ref = varargin{k+1};
 		elseif ( strcmpi(varargin{k}, 'point2d') )
 			is_point_2D = true;
 		elseif ( strcmpi(varargin{k}, 'polygon2D') )
@@ -55,8 +74,10 @@ function shapenc(fname, data, varargin)
 			is_polyline_3D = true;
 		elseif ( strcmpi(varargin{k}, 'maxpoly') )
 			nMaxChunks = varargin{k+1};
-		elseif ( strncmpi(varargin{k}, 'version', 3) )
-			fver = varargin{k+1};
+		elseif ( strncmpi(varargin{k}, 'multiseg', 5) )
+			conv2multiseg = true;
+		elseif ( strcmp(varargin{k}, '-b') )
+			inbin = varargin{k+1};
 		end
 	end
 	if ( ~is_geog && strcmp(spatial_ref(7:end), 'longlat') ),	spatial_ref = '+proj=xy';	end
@@ -64,7 +85,7 @@ function shapenc(fname, data, varargin)
 	if (ischar(data))		% Try to load data from file (including shapefiles)
 		try
 			[data, multiSegPos, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3D, is_point_2D] = ...
-				readFile(data, nMaxChunks, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3D, is_point_2D);
+				readFile(data, nMaxChunks, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3D, is_point_2D, inbin);
 		catch
 			error(['SHAPENC:reading DATA ' lasterr])
 		end
@@ -90,6 +111,10 @@ function shapenc(fname, data, varargin)
 		end
 	end
 
+	if (conv2multiseg && isa(data,'cell'))		% When user wants a single multisegment poly...
+		[data, multiSegPos] = cell2multiseg(data);
+	end
+
 	if (isa(data,'cell')),		is_Pts_cell = true;		n_swarms = numel(data);		end
 
 	if ( is_Pts_cell && ~isempty(outer_polygs) && ~isa(outer_polygs,'cell') )
@@ -100,6 +125,7 @@ function shapenc(fname, data, varargin)
 		long_name = {'Longitude' 'Latitude'};	units = {'degrees_east' 'degrees_north'};
 	else
 		long_name = {'unknown' 'unknown'};		units = {'xunits' 'yunits'};
+		long_name = {'X' 'Y'};		units = {'meters' 'meters'};
 	end
 	% -------------------------- END PARSING & DEFAULT SETTINGS -------------------------
 
@@ -222,16 +248,16 @@ function shapenc(fname, data, varargin)
 	% ------------------------------ Write the variables --------------------------------
 	if (is_point_2D || is_point_3D)
 		write_pt_type(fname, data, outer_polygs, nOuterPolys, inner_polygs, nInnerPolys, is_point_3D, is_geog, is_Pts_cell, ...
-						long_name, units, ultimo, global_BB, n_swarms)
+						long_name, units, ultimo, global_BB, n_swarms, tag)
 	else
 		write_poly_type(fname, data, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3D, is_geog, is_Pts_cell, ...
-						long_name, units, ultimo, global_BB, n_swarms, multiSegPos)
+						long_name, units, ultimo, global_BB, n_swarms, multiSegPos, tag)
 	end
 
 
 % ----------------------------------------------------------------------------------------------
 function write_pt_type(fname, data, outer_polygs, nOuterPolys, inner_polygs, nInnerPolys, is_point_3D, is_geog, is_Pts_cell, ...
-						long_name, units, ultimo, global_BB, n_swarms)
+						long_name, units, ultimo, global_BB, n_swarms, tag)
 % Write variables for the 2D & 3D point swarm cases
 
 	if (is_point_3D),	prefix = 'PointZ_';
@@ -269,9 +295,13 @@ function write_pt_type(fname, data, outer_polygs, nOuterPolys, inner_polygs, nIn
 			nc_funs('varput', fname, sprintf('z_%d',kk), z);
 		end
 
-		% Create a container variable to hold the BB info
-		write_var(fname, sprintf('%s%d', prefix, kk), 2)
-		nc_funs('attput', fname, sprintf('%s%d', prefix, kk), 'BoundingBox', BB);
+		% Create a container variable to hold the BB info and other eventual attribs
+		cname = sprintf('%s%d', prefix, kk);
+		write_var(fname, cname, 2)
+		nc_funs('attput', fname, cname, 'BoundingBox', BB);
+		if (k == 1 && ~isempty(tag))
+			write_attribs(fname, cname, tag)
+		end
 		
 		% Update the global BB
 		global_BB = [min(BB(1), global_BB(1)) max(BB(2), global_BB(2)) min(BB(3), global_BB(3)) max(BB(4), global_BB(4))];
@@ -308,7 +338,7 @@ function write_pt_type(fname, data, outer_polygs, nOuterPolys, inner_polygs, nIn
 
 % ----------------------------------------------------------------------------------------------
 function write_poly_type(fname, data, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3D, is_geog, is_Pts_cell, ...)
-						long_name, units, ultimo, global_BB, n_ensembles, multiSegPos)
+						long_name, units, ultimo, global_BB, n_ensembles, multiSegPos, tag)
 % Write variables for the 2D & 3D polygon|polyline cases
 
 	is_3D = false;
@@ -351,13 +381,17 @@ function write_poly_type(fname, data, is_polygon_2D, is_polygon_3D, is_polyline_
 			nc_funs('varput', fname, sprintf('Z%s%d', prefix, kk), z);
 		end
 
-		% Create a container variable to hold the BB info
-		write_var(fname, sprintf('%s%d', prefix, kk), 2)
-		nc_funs('attput', fname, sprintf('%s%d', prefix, kk), 'BoundingBox', BB);
+		% Create a container variable to hold the BB info and other eventual attribs
+		cname = sprintf('%s%d', prefix, kk);
+		write_var(fname, cname, 2)
+		nc_funs('attput', fname, cname, 'BoundingBox', BB);
 		if (k == 1 && ~isempty(multiSegPos))
-			nc_funs('attput', fname, sprintf('%s%d', prefix, kk), 'SegmentBoundaries', multiSegPos);
+			nc_funs('attput', fname, cname, 'SegmentBoundaries', multiSegPos);
 		end
-		
+		if (k == 1 && ~isempty(tag))
+			write_attribs(fname, cname, tag)
+		end
+
 		% Update the global BB
 		global_BB = [min(BB(1), global_BB(1)) max(BB(2), global_BB(2)) min(BB(3), global_BB(3)) max(BB(4), global_BB(4))];
 	end
@@ -383,6 +417,18 @@ function write_var(fname, name, tipo, dim, long_name, units, actual_range, comme
 	if (~isempty(missing_value)),	nc_funs('attput', fname, varstruct.Name, 'missing_value', missing_value),	end
 	if (~isempty(scale_factor)),	nc_funs('attput', fname, varstruct.Name, 'scale_factor', scale_factor),	end
 
+
+% ----------------------------------------------------------------------------------------------
+function write_attribs(fname, cname, tag)
+% Add the attribs in TAG to the (already created) container variable CNAME
+	if (ischar(tag))
+		nc_funs('attput', fname, cname, 'name', tag);
+	else
+		for (k = 1:size(tag,1))		% TAG must be of the form {PN, PV}
+			nc_funs('attput', fname, cname, tag{k, 1}, tag{k, 2});
+		end
+	end
+
 % ----------------------------------------------------------------------------------------------
 function Nctype = getDataType(data)	
 	
@@ -397,10 +443,9 @@ function Nctype = getDataType(data)
 			error('SHAPENC:getDataType', ['Unsuported data type: ' class(data)])
 	end
 
-
 % ----------------------------------------------------------------------------------------------
 function [data, pos, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3D, is_point_2D] = ...
-		readFile(fname, nMaxChunks, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3D, is_point_2D)
+		readFile(fname, nMaxChunks, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3D, is_point_2D, inbin)
 % Try to read from a file (if ASCII or from a shapefile is binary)
 % The POS output variable (when not empty) contains the positions of the multiseg separators (NaNs)
 % when DATA was packed into a single multisegment array.
@@ -409,8 +454,29 @@ function [data, pos, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3
 
 	pos = [];
 	[bin,n_column,multi_seg,n_headers] = guess_file(fname);
+	if ( isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers) )
+		error('SHAPENC:readFile',['Error reading file ' fname])
+	end
 
 	if (bin ~= 0)   % NOT ASCII
+		
+		if (inbin)				% Inside info tells us that input file is a plain binary.
+			switch inbin(end-1)
+				case 's',	fform = '*float';
+				case 'd',	fform = '*double';
+				case 'c',	fform = '*char';
+				otherwise
+					error('SHAPENC:readFile','Binary type not in use here. (only: single, double or char)')
+			end
+			fid = fopen(fname);		data = fread(fid,fform);		fclose(fid);
+			nCols = str2double(inbin(end));
+			if (~(nCols == 2 || nCols == 3) )
+				error('SHAPENC:readFile','Binary file can have only 2 or 3 columns.')
+			end
+			data = reshape(data,nCols,numel(data)/nCols)';
+			return
+		end
+		
 		% Try to see if it is a shapefile
 		try		[s,t] = mex_shape(fname);
 		catch
@@ -433,7 +499,7 @@ function [data, pos, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3
 		end
 
 		nChunks = numel(s);
-		if (nChunks > nMaxChunks)
+		if (nChunks > nMaxChunks)				% Too many entities. Wrapp them in a single multisegment file
 			pos = zeros(1,nChunks+1);
 			pos(1) = 1;
 			n = 0;
@@ -472,9 +538,6 @@ function [data, pos, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3
 		return
 	end
 
-	if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
-		error('SHAPENC:readFile',['Error reading file ' fname])
-	end
 	if (n_column < 2)
 		error('SHAPENC:readFile','File error. The file doesn''t have at least 2 columns')
 	end
@@ -488,3 +551,44 @@ function [data, pos, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3
 		%fid = fopen('lisboa_igoe_geo.bin');		data=fread(fid,'*float');	fclose(fid);	data=reshape(data,3,numel(data)/3)';
 		data = single(text_read(fname,NaN,n_headers));
 	end
+
+% ----------------------------------------------------------------------------------------------
+function [out, pos] = cell2multiseg(data)
+% Pack a cell array of entities into a single multisegment array, where the segments are separated by NaNs
+% The POS output variable contains the positions of the multiseg separators (NaNs)
+
+	is_3D = false;
+	nCols_a = 0;	nCols_b = 0;
+	nSegs = numel(data);
+	for (k = 1:nSegs)						% See if data is 2D or 3D and if it is consistent
+		if (size(data{k},2) == 2),		nCols_a = 2;
+		elseif (size(data{k},2) >= 3),	nCols_b = 3;
+		end
+	end
+	if ( (nCols_a && nCols_b) || (nCols_a + nCols_b == 0) )
+		error('SHAPENC:cell2multiseg','Data in cell array does not have the same number of columns, or is empty.')
+	elseif (nCols_b)
+		is_3D = true;
+	end
+	
+	pos = zeros(1,nSegs+1);
+	pos(1) = 1;
+	n = 0;
+	for (k = 1:nSegs)						% Count total number of data points
+		n = n + size(data{k},1);
+		pos(k+1) = n + k+1;					% Positions that will hold the NaN multiseg separators
+	end
+
+	nCols = 2;
+	if (is_3D),		nCols = 3;	end
+	out = single(zeros(n+nSegs-1,1)*NaN);		% Pre-allocate
+	out = repmat(out,1,nCols);
+
+	for (k = 1:nSegs)
+		ini = pos(k)+1;		fim = pos(k+1)-1;
+		out(ini:fim,1) = single(data{k}(:,1));
+		out(ini:fim,2) = single(data{k}(:,2));
+		if (is_3D),		out(ini:fim,3) = single(data{k}(:,3));	end
+	end
+	pos(end) = [];		% Last point was in excess (for algo convenience only)
+	pos = int32(pos);
