@@ -403,6 +403,10 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	else					Y = 1:ny;
 	end
 
+	if (Y(2) < Y(1))
+		Y = Y(end:-1:1);		Z = flipud(Z);
+	end
+
 	if (~isempty(x_actual_range)),		head(1:2) = x_actual_range;
 	else								head(1:2) = [X(1) X(end)];
 	end
