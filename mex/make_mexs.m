@@ -11,6 +11,7 @@ if (nargin == 0),	opt = 'usage';	end			% Quite poor message though
 % ------------- Adjust for your own path -----------------------------------------------
 % path for MSVC library dir
 pato_VCLIB = 'C:\programs\VisualStudio\VC98\Lib\';
+pato_VCLIB = '"C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK\Lib\"';
 
 % Include path for GMT. Directory where the several *.h GMT files reside 
 patoINC_GMT = 'c:\progs_cygw\GMTdev\GMT\';
@@ -82,8 +83,7 @@ str_mexnc = {'mexgateway.c netcdf2.c netcdf3.c common.c'; 'swan_sem_wbar'};
 str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'tsun2' 'wave_travel_time' 'mansinha_m' ...
 	'telha_m' 'range_change' 'country_select' 'mex_illuminate' 'grdutils' ...
 	'read_isf' 'ind2rgb8' 'alloc_mex' 'susan' 'set_gmt' 'mxgridtrimesh' ...
-	'intlutc' 'trend1d_m', 'gmtmbgrid_m' 'grdgradient_m' 'grdtrack_m' 'spa_mex' 'cm4field_m' ...
-	'PolygonClip' }';
+	'intlutc' 'trend1d_m', 'gmtmbgrid_m' 'grdgradient_m' 'grdtrack_m' 'spa_mex' 'cm4field_m' }';
 
 % Non LIB dependent c++ mexs
 str_simple_cpp = {'houghmex' 'clipbd_mex' 'akimaspline'}';
@@ -138,29 +138,35 @@ if (strcmp(opt,'all'))			% Compile the whole family
         eval(cmd)
 	end
 	for (i=1:numel(str_simple_cpp))	% Compile Other (simple) c++ mexs
-		cmd = ['mex ' [str_simple_cpp{i} '.cpp'] ' ' COPT];
+		cmd = ['mex ' [str_simple_cpp{i} '.cpp'] ' ' library_vc6  ' ' COPT];
 		eval(cmd)
 	end
 	cmd = ['mex PolygonClip.c gpc.c ' COPT];
 	eval(cmd)
+	% Compile the MEXNC mexs
+	cmd = ['mex mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c -output mexnc ' opt_mexnc ' ' COPT];
+	eval(cmd)
+	% Compile Shape mexs
+	cmd = ['mex mex_shape.c ' include_shape ' ' library_shape ' ' COPT];
+	eval(cmd)
 elseif (strcmpi(opt,'gmt'))	% Compile only the GMT mexs (and supplements)
-    for (i=1:numel(str_gmt))
+	for (i=1:numel(str_gmt))
         cmd = ['mex ' [str_gmt{i} '.c'] ' ' include_gmt ' ' library_gmt ' ' opt_gmt];
         eval(cmd)
-    end
-    for (i=1:numel(str_gmt_mgg))	% Compile GMT MGG mexs
+	end
+	for (i=1:numel(str_gmt_mgg))	% Compile GMT MGG mexs
         cmd = ['mex ' [str_gmt_mgg{i} '.c'] ' ' include_gmt ' ' include_gmt_mgg ' ' library_gmt_mgg ' ' opt_gmt_mgg];
         eval(cmd)
-    end
+	end
 elseif (strcmpi(opt,'gdal'))	% Compile only the GDAL mexs
-    for (i=1:numel(str_gdal))		% Compile GDAL C mexs
+	for (i=1:numel(str_gdal))		% Compile GDAL C mexs
         cmd = ['mex ' [str_gdal{i} '.c'] ' ' include_gdal ' ' library_gdal ' ' COPT];
         eval(cmd)
-    end
-    for (i=1:numel(str_gdal_cpp))	% Compile GDAL C++ mexs
+	end
+	for (i=1:numel(str_gdal_cpp))	% Compile GDAL C++ mexs
         cmd = ['mex ' [str_gdal_cpp{i} '.cpp'] ' ' include_gdal ' ' library_gdal ' ' COPT];
         eval(cmd)
-    end
+	end
 elseif (strcmpi(opt,'mexnc'))	% Compile only the MEXNC mexs
 	cmd = ['mex mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c -output mexnc ' opt_mexnc ' ' COPT];
 	eval(cmd)
