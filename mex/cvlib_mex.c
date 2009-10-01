@@ -15,6 +15,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 27  01/10/2009 JL	#ifdef the Sift building
  * Revision 26  06/09/2009 Chuan Li	Added cvCalcOpticalFlowPyrLK
  * Revision 25  03/02/2009 JL	Added cvAvgSdv & cvAvg (not documented yet)
  * Revision 24  30/01/2009 JL	Added cvAdaptiveThreshold (It's failing when RGB in)
@@ -54,6 +55,9 @@
 #include <opencv/cv.h>
 #endif
 
+#define USE_SIFT	/* Comment this line if you do not want to build with external sift support */
+
+#ifdef USE_SIFT
 #include "sift/sift.h"
 #include "sift/imgfeatures.h"
 #include "sift/kdtree.h"
@@ -61,6 +65,7 @@
 #define KDTREE_BBF_MAX_NN_CHKS 200
 /* threshold on squared ratio of distances between NN and 2nd NN */
 #define NN_SQ_DIST_RATIO_THR 0.49
+#endif
 
 #define	TRUE	1
 #define	FALSE	0
@@ -122,7 +127,9 @@ void Jshapes(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 void Jinpaint(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op);
 void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+#ifdef USE_SIFT
 void Jsift(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+#endif
 void Jtext(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JMatchTemplate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JhaarDetect(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
@@ -157,8 +164,11 @@ void arithmUsage(), addWeightedUsage(), pyrDUsage(), pyrUUsage(), houghCirclesUs
 void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsage();
 void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage(), powUsage();
 void absUsage(), logUsage(), expUsage(), hypotUsage(), haarUsage(), convexHullUsage();
-void approxPolyUsage(), siftUsage(), homographyUsage(), findRectangUsage();
+void approxPolyUsage(), homographyUsage(), findRectangUsage();
 void MatchTemplateUsage(), thresholdUsage(), opticalFlowyrLKUsage(); 
+#ifdef USE_SIFT
+void siftUsage();
+#endif
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -214,7 +224,9 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tpyrU (cvPyrUp)\n");
 		mexPrintf("\trectangle (cvRectangle)\n");
 		mexPrintf("\tresize (cvResize)\n");
+#ifdef USE_SIFT
 		mexPrintf("\tsift\n");
+#endif
 		mexPrintf("\tsmooth (cvSmooth)\n");
 		mexPrintf("\tsobel (cvSobel)\n");
 		mexPrintf("\tsub (cvSub)\n");
@@ -308,8 +320,10 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	else if (!strcmp(funName,"resize"))
 		Jresize(n_out, plhs, n_in, prhs);
 
+#ifdef USE_SIFT
 	else if (!strcmp(funName,"sift"))
 		Jsift(n_out, plhs, n_in, prhs);
+#endif
 
 	else if (!strcmp(funName,"mean") || !strcmp(funName,"avgstd") || !strcmp(funName,"A-mean") || 
 		!strcmp(funName,"A-half") || !strcmp(funName,"avg"))
@@ -324,7 +338,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	else if (!strncmp(funName,"optical",7))
 		JopticalFlowPyrLK(n_out, plhs, n_in, prhs);
 
-	else if (!strncmp(funName,"MatchTemplate",5))
+	else if (!strncmp(funName,"matchtemplate",5))
 		JMatchTemplate(n_out, plhs, n_in, prhs);
 
 	else
@@ -1074,6 +1088,7 @@ void Jshapes(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const 
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 }
 
+#ifdef USE_SIFT
 /* --------------------------------------------------------------------------- */
 void Jsift(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	int nx1, ny1, nx2, ny2, nBytes, img_depth, nBands1, nBands2;
@@ -1166,6 +1181,7 @@ void Jsift(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	mxFree((void *)tmp);
 
 }
+#endif
 
 /* --------------------------------------------------------------------------- */
 void JgoodFeatures(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
@@ -2129,8 +2145,8 @@ void Jthreshold(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	unsigned char *ptr_gray;
 	double max_value = 1, param1 = 5, *ptr_d;
 
-	IplImage *src_img = 0, *dst_img, *src_gray, *dst_16;
-	mxArray *ptr_in, *ptr_out, *ptr_16;
+	IplImage *src_img = 0, *dst_img, *src_gray;
+	mxArray *ptr_in, *ptr_out;
 
 	struct CV_CTRL *Ctrl;
 	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
@@ -2772,7 +2788,11 @@ void Jhomography(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	homography = cvCreateMatHeader( 3, 3, CV_64FC1 );
 	cvSetData( homography, (void *)ptr3_d, 3*8 );
 
+#if (CV_MAJOR_VERSION == 1)
 	cvFindHomography( src, dst, homography );
+#else
+	cvFindHomography( src, dst, homography, 0, 0.0, NULL );
+#endif
 
 	cvReleaseMatHeader( &src );
 	cvReleaseMatHeader( &dst );
@@ -4926,6 +4946,7 @@ void expUsage() {
 	mexPrintf("       Memory overhead: none.\n");
 }
 
+#ifdef USE_SIFT
 /* -------------------------------------------------------------------------------------------- */
 void siftUsage() {
 	mexPrintf("Usage: out = cvlib_mex('sift',IMG1,IMG2);\n");
@@ -4935,6 +4956,7 @@ void siftUsage() {
 	mexPrintf("       Class support: uint8.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG1 and 1 of IMG2.\n");
 }
+#endif
 
 /* -------------------------------------------------------------------------------------------- */
 void MatchTemplateUsage() {
