@@ -29,7 +29,13 @@ pato_NETCDF = 'C:\progs_cygw\netcdf-3.6.3\';
 pato_GDAL = 'c:\programs\GDALtrunk\gdal\';
 
 % path for OpenCV. Base directory where the OpenCV library was installed (still using v1.0)
-pato_OCV = 'C:\programs\OpenCV\';
+which_OCV = 2.0;        % Valid options are -- 1.0 or 2.0 -- for obvious meanings
+if (which_OCV == 1)
+    pato_OCV = 'C:\programs\OpenCV\';
+else
+    % 2.0 Version. NOTE: INCLUDE & LIB MUST BE DIRECT DESCENDENTS OF "pato_OCV" DIR
+    pato_OCV = 'C:\programs\OpenCV_CVS\trunk\opencv\';
+end
 
 % path for shapelib. Directory where shapelib.lib shapefil.h files reside
 pato_SHAPELIB = 'c:\lixo\shapelib\';
@@ -48,10 +54,17 @@ INCLUDE_GDAL = [pato_GDAL 'include'];			LIB_GDAL = [pato_GDAL 'lib\gdal_i.lib'];
 
 INCLUDE_SHAPE = pato_SHAPELIB;					LIB_SHAPE = [pato_SHAPELIB 'shapelib.lib'];
 
-INCLUDE_CV = [pato_OCV 'cv\include'];			LIB_CV = [pato_OCV 'lib\cv.lib'];
-INCLUDE_HG = [pato_OCV 'otherlibs\highgui'];	LIB_HG = [pato_OCV 'lib\highgui.lib'];
-INCLUDE_CXCORE = [pato_OCV 'cxcore\include'];	LIB_CXCORE = [pato_OCV 'lib\cxcore.lib'];
-LIB_CV_HAAR = [pato_OCV 'lib\cvhaartraining.lib'];
+if (which_OCV == 1)
+    INCLUDE_CV = [pato_OCV 'cv\include'];			LIB_CV = [pato_OCV 'lib\cv.lib'];
+    INCLUDE_HG = [pato_OCV 'otherlibs\highgui'];	LIB_HG = [pato_OCV 'lib\highgui.lib'];
+    INCLUDE_CXCORE = [pato_OCV 'cxcore\include'];	LIB_CXCORE = [pato_OCV 'lib\cxcore.lib'];
+    LIB_CV_HAAR = [pato_OCV 'lib\cvhaartraining.lib'];
+else
+    INCLUDE_CV = [pato_OCV 'include\opencv'];		LIB_CV = [pato_OCV 'lib\cv200.lib'];
+    INCLUDE_HG = INCLUDE_CV;						LIB_HG = [pato_OCV 'lib\highgui200.lib'];
+    INCLUDE_CXCORE = INCLUDE_CV;					LIB_CXCORE = [pato_OCV 'lib\cxcore200.lib'];
+    LIB_CV_HAAR = [pato_OCV 'lib\cvhaartraining.lib'];
+end
 
 % GMT mexs
 str_gmt = {'grdinfo_m' 'grdproject_m' 'grdread_m' 'grdsample_m' ...
