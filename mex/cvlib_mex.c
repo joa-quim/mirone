@@ -15,6 +15,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 28  04/10/2009 JL	Added scale8. Documented rev 25
  * Revision 27  01/10/2009 JL	#ifdef the Sift building
  * Revision 26  06/09/2009 Chuan Li	Added cvCalcOpticalFlowPyrLK
  * Revision 25  03/02/2009 JL	Added cvAvgSdv & cvAvg (not documented yet)
@@ -138,6 +139,7 @@ void JfindRectangles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]
 void Jthreshold(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jstat(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op);
 void JopticalFlowPyrLK(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+void Jscaleto8(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 
 void Set_pt_Ctrl_in (struct CV_CTRL *Ctrl, const mxArray *pi , mxArray *pit, int interl);
 void Set_pt_Ctrl_out1 ( struct CV_CTRL *Ctrl, mxArray *pi );
@@ -165,7 +167,8 @@ void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsa
 void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage(), powUsage();
 void absUsage(), logUsage(), expUsage(), hypotUsage(), haarUsage(), convexHullUsage();
 void approxPolyUsage(), homographyUsage(), findRectangUsage();
-void MatchTemplateUsage(), thresholdUsage(), opticalFlowyrLKUsage(); 
+void MatchTemplateUsage(), thresholdUsage(), opticalFlowyrLKUsage(), scaleto8Usage();
+void statUsage(char *op);
 #ifdef USE_SIFT
 void siftUsage();
 #endif
@@ -186,6 +189,10 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\taddS (cvAddS)\n");
 		mexPrintf("\taddweighted (cvAddWeighted)\n");
 		/*mexPrintf("\taffine2 (cvWarpAffine)\n");	No help yet*/
+		mexPrintf("\tavg (cvAvg)\n");
+		mexPrintf("\tavgstd (cvAvgSdv)\n");
+		mexPrintf("\tA-mean\n");
+		mexPrintf("\tA-half\n");
 		mexPrintf("\tcanny (cvCanny)\n");
 		mexPrintf("\tcircle (cvCircle)\n");
 		mexPrintf("\tcolor (cvCvtColor)\n");
@@ -215,6 +222,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tline (cvLine)\n");
 		mexPrintf("\tlog (cvLog)\n");
 		mexPrintf("\tmatchtemplate (cvMatchTemplate)\n");
+		mexPrintf("\tmean (cvAvg)\n");
 		mexPrintf("\tmorphologyex (cvMorphologyEx)\n");
 		mexPrintf("\tmul (cvMul)\n");
 		mexPrintf("\topticalFlowPyrLK (cvCalcOpticalFlowPyrLK)\n");
@@ -227,6 +235,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 #ifdef USE_SIFT
 		mexPrintf("\tsift\n");
 #endif
+		mexPrintf("\tscale8\n");
 		mexPrintf("\tsmooth (cvSmooth)\n");
 		mexPrintf("\tsobel (cvSobel)\n");
 		mexPrintf("\tsub (cvSub)\n");
@@ -313,6 +322,9 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	else if (!strcmp(funName,"smooth"))
 		Jsmooth(n_out, plhs, n_in, prhs);
+
+	else if (!strcmp(funName,"scale8"))
+		Jscaleto8(n_out, plhs, n_in, prhs);
 
 	else if (!strcmp(funName,"pyrU") || !strcmp(funName,"pyrD") )
 		Jegipt(n_out, plhs, n_in, prhs, funName);
@@ -2963,13 +2975,18 @@ void Jegipt(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const c
 
 /* --------------------------------------------------------------------------- */
 void Jstat(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op) {
-	int nx, nx2, ny, ny2, nBands, nBands2, nBytes, img_depth, error = 0;
+	int nx, ny, nBands, nBytes, img_depth, error = 0;
 	double *out, min_val, max_val;
 	IplImage *src1, *dst;
 	CvScalar mean, std_dev;
 	struct CV_CTRL *Ctrl;
 	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
 
+	/* ---- Check for errors in user's call to function. ----------------------------- */
+	if (n_in == 1) {
+		statUsage(op);
+		return;
+	}
 	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);	nBands = getNK(prhs[1],2);
 	/* -------------------- End of parsing input ------------------------------------- */
 
@@ -3021,6 +3038,47 @@ void Jstat(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const ch
 	}
 
 	cvReleaseImageHeader( &src1 );
+	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
+}
+
+/* --------------------------------------------------------------------------- */
+void Jscaleto8(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
+	int nx, nx2, ny, ny2, nBands, nBands2, nBytes, img_depth, error = 0;
+	double *out, min_val, max_val, scale, shift;
+	IplImage *src, *dst;
+	struct CV_CTRL *Ctrl;
+	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
+
+	/* ---- Check for errors in user's call to function. ----------------------------- */
+	if (n_in == 1) {
+		scaleto8Usage();
+		return;
+	}
+	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);	nBands = getNK(prhs[1],2);
+	if (n_out == 0)
+		mexErrMsgTxt("CVLIB_MEX: 'scale8' does not support inplace computation");
+	if (nBands != 1)
+		mexErrMsgTxt("CVLIB_MEX: 'scale8' operates only on 2D arrays");
+	/* -------------------- End of parsing input ------------------------------------- */
+
+	/* Allocate and initialize defaults in a new control structure */
+	Ctrl = (struct CV_CTRL *) New_Cv_Ctrl ();
+	getDataType(Ctrl, prhs, &nBytes, &img_depth);
+
+	src = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands );
+	cvSetData( src, (void *)mxGetData(prhs[1]), nx * nBytes * nBands );
+
+	cvMinMaxLoc( src, &min_val, &max_val, NULL, NULL, NULL ); 
+	scale = 255 / (max_val - min_val);
+	shift = -scale * min_val;
+	plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+  			mxGetDimensions(prhs[1]), mxUINT8_CLASS, mxREAL);
+	dst = cvCreateImageHeader( cvSize(nx, ny), IPL_DEPTH_8U, 1 );
+	cvSetData( dst, (void *)mxGetData(plhs[0]), nx );
+	cvConvertScaleAbs( src, dst, scale, shift);
+	cvReleaseImageHeader( &dst );
+
+	cvReleaseImageHeader( &src );
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 }
 
@@ -4957,6 +5015,48 @@ void siftUsage() {
 	mexPrintf("       Memory overhead: 1 copy of IMG1 and 1 of IMG2.\n");
 }
 #endif
+
+/* -------------------------------------------------------------------------------------------- */
+void scaleto8Usage() {
+	mexPrintf("Usage: out = cvlib_mex('scale8',IMG);\n");
+	mexPrintf("       Converts the 2D array IMG into a uint8 matrix scaled to the [0-255] range.\n");
+	mexPrintf("       WARNING: unfortunately this function does not know how to handle NaNs, so\n");
+	mexPrintf("       	don't use it when IMG has NaNs.\n\n");
+
+	mexPrintf("       Class support: all that matters.\n");
+	mexPrintf("       Memory overhead: none.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void statUsage(char *op) {
+	if (!strcmp(op,"avg") || !strcmp(op,"mean")) {
+		mexPrintf("Usage: out = cvlib_mex('mean',IMG);\n");
+		mexPrintf("       Returns the mean of array IMG\n");
+	}
+	else if (!strcmp(op,"avgstd")) {
+		mexPrintf("Usage: out = cvlib_mex('avgstd',IMG);\n");
+		mexPrintf("       Returns the mean and standard deviation of array IMG\n");
+	}
+	else if (!strcmp(op,"A-mean")) {
+		mexPrintf("Usage: out = cvlib_mex('A-mean',IMG);\n");
+		mexPrintf("       Returns the the array IMG with the mean removed\n");
+		mexPrintf("       The form\n");
+		mexPrintf("       cvlib_mex('A-mean',IMG);\n");
+		mexPrintf("       does the operation inplace.\n");
+	}
+	else if (!strcmp(op,"A-half")) {
+		mexPrintf("Usage: out = cvlib_mex('A-half',IMG);\n");
+		mexPrintf("       Returns the the array IMG with the mid-way value removed\n");
+		mexPrintf("       The form\n");
+		mexPrintf("       cvlib_mex('A-half',IMG);\n");
+		mexPrintf("       does the operation inplace.\n");
+	}
+	mexPrintf("       WARNING: unfortunately this function does not know how to handle NaNs, so\n");
+	mexPrintf("       	don't use it when IMG has NaNs.\n\n");
+
+	mexPrintf("       Class support: all.\n");
+	mexPrintf("       Memory overhead: none.\n");
+}
 
 /* -------------------------------------------------------------------------------------------- */
 void MatchTemplateUsage() {
