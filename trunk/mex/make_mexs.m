@@ -1,7 +1,6 @@
 function make_mexs(opt)
-%  make_gmt_mex -- Make the GMT-mex supplement directly in Matlab
-%  This make works on Windows using the VC6 compiler. It should also work
-%  for other configurations, but it was not tested.
+%  make_mexs -- Make the Mirone-mex supplement directly in Matlab
+%  This make works (it means, it was tested) on Windows using the VC6 & VC7.1 compilers.
 %
 %  Author:	Joaquim Luis (based on make_mexcdf53)
 %  Date:	29-April-2005
@@ -94,9 +93,9 @@ str_mexnc = {'mexgateway.c netcdf2.c netcdf3.c common.c'; 'swan_sem_wbar'};
 
 % Non LIB dependent mexs (besides matlab libs, of course)
 str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'tsun2' 'wave_travel_time' 'mansinha_m' ...
-	'telha_m' 'range_change' 'country_select' 'mex_illuminate' 'grdutils' ...
-	'read_isf' 'ind2rgb8' 'alloc_mex' 'susan' 'set_gmt' 'mxgridtrimesh' ...
-	'intlutc' 'trend1d_m', 'gmtmbgrid_m' 'grdgradient_m' 'grdtrack_m' 'spa_mex' 'cm4field_m' }';
+	'telha_m' 'range_change' 'country_select' 'mex_illuminate' 'grdutils' 'read_isf' ...
+	'alloc_mex' 'susan' 'set_gmt' 'mxgridtrimesh' 'trend1d_m', 'gmtmbgrid_m' ...
+	'grdgradient_m' 'grdtrack_m' 'spa_mex' }';
 
 % Non LIB dependent c++ mexs
 str_simple_cpp = {'houghmex' 'clipbd_mex' 'akimaspline'}';
@@ -121,34 +120,34 @@ opt_mexnc = [' -I' INCLUDE_NETCDF ' ' LIB_NETCDF ' -DDLL_NETCDF'];
 opt_gmt = COPT;
 opt_gmt_mgg = COPT;
 if (ispc)
-    opt_gmt = [COPT ' -DDLL_GMT -DDLL_NETCDF'];		% Are the -D... really needed?
-    opt_gmt_mgg = [COPT ' -DDLL_GMT -DGMT_MGG'];
+	opt_gmt = [COPT ' -DDLL_GMT -DDLL_NETCDF'];		% Are the -D... really needed?
+	opt_gmt_mgg = [COPT ' -DDLL_GMT -DGMT_MGG'];
 end
 
 if (strcmp(opt,'all'))			% Compile the whole family
 	for (i=1:numel(str_gmt))		% Compile GMT mexs
-        cmd = ['mex ' [str_gmt{i} '.c'] ' ' include_gmt ' ' library_gmt ' ' opt_gmt];
-        eval(cmd)
+		cmd = ['mex ' [str_gmt{i} '.c'] ' ' include_gmt ' ' library_gmt ' ' opt_gmt];
+		eval(cmd)
 	end
 	for (i=1:numel(str_gmt_mgg))	% Compile GMT MGG mexs
-        cmd = ['mex ' [str_gmt_mgg{i} '.c'] ' ' include_gmt ' ' include_gmt_mgg ' ' library_gmt_mgg ' ' opt_gmt_mgg];
-        eval(cmd)
+		cmd = ['mex ' [str_gmt_mgg{i} '.c'] ' ' include_gmt ' ' include_gmt_mgg ' ' library_gmt_mgg ' ' opt_gmt_mgg];
+		eval(cmd)
 	end
 	for (i=1:numel(str_gdal))		% Compile GDAL mexs
-        cmd = ['mex ' [str_gdal{i} '.c'] ' ' include_gdal ' ' library_gdal ' ' COPT];
-        eval(cmd)
+		cmd = ['mex ' [str_gdal{i} '.c'] ' ' include_gdal ' ' library_gdal ' ' COPT];
+		eval(cmd)
 	end
 	for (i=1:numel(str_gdal_cpp))	% Compile GDAL C++ mexs
-        cmd = ['mex ' [str_gdal_cpp{i} '.cpp'] ' ' include_gdal ' ' library_gdal ' ' COPT];
-        eval(cmd)
+		cmd = ['mex ' [str_gdal_cpp{i} '.cpp'] ' ' include_gdal ' ' library_gdal ' ' COPT];
+		eval(cmd)
 	end
-	for (i=1:numel(str_cv))		% Compile OpenCV mexs
-        cmd = ['mex ' [str_cv{i} '.c']  ' sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c ' include_cv ' ' library_cv ' ' COPT];
-        eval(cmd)
+	for (i=1:numel(str_cv))			% Compile OpenCV mexs
+		cmd = ['mex ' [str_cv{i} '.c']  ' sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c ' include_cv ' ' library_cv ' ' COPT];
+		eval(cmd)
 	end
-	for (i=1:numel(str_simple))	% Compile Other (simple) mexs
-        cmd = ['mex ' [str_simple{i} '.c'] ' ' COPT];
-        eval(cmd)
+	for (i=1:numel(str_simple))		% Compile Other (simple) mexs
+		cmd = ['mex ' [str_simple{i} '.c'] ' ' COPT];
+		eval(cmd)
 	end
 	for (i=1:numel(str_simple_cpp))	% Compile Other (simple) c++ mexs
 		cmd = ['mex ' [str_simple_cpp{i} '.cpp'] ' ' library_vc6  ' ' COPT];
@@ -162,7 +161,7 @@ if (strcmp(opt,'all'))			% Compile the whole family
 	% Compile Shape mexs
 	cmd = ['mex mex_shape.c ' include_shape ' ' library_shape ' ' COPT];
 	eval(cmd)
-elseif (strcmpi(opt,'gmt'))	% Compile only the GMT mexs (and supplements)
+elseif (strcmpi(opt,'gmt'))			% Compile only the GMT mexs (and supplements)
 	for (i=1:numel(str_gmt))
         cmd = ['mex ' [str_gmt{i} '.c'] ' ' include_gmt ' ' library_gmt ' ' opt_gmt];
         eval(cmd)
@@ -171,7 +170,7 @@ elseif (strcmpi(opt,'gmt'))	% Compile only the GMT mexs (and supplements)
         cmd = ['mex ' [str_gmt_mgg{i} '.c'] ' ' include_gmt ' ' include_gmt_mgg ' ' library_gmt_mgg ' ' opt_gmt_mgg];
         eval(cmd)
 	end
-elseif (strcmpi(opt,'gdal'))	% Compile only the GDAL mexs
+elseif (strcmpi(opt,'gdal'))		% Compile only the GDAL mexs
 	for (i=1:numel(str_gdal))		% Compile GDAL C mexs
         cmd = ['mex ' [str_gdal{i} '.c'] ' ' include_gdal ' ' library_gdal ' ' COPT];
         eval(cmd)
@@ -188,7 +187,8 @@ elseif (strcmp(opt,'usage'))
 	disp('	OR: make_mexs(''ALL'') -- Compile all familly')
 	disp('	OR: make_mexs(''GMT'') -- Compile GMT mexs')
 else							% Compile only one mex
-    idx = strmatch(opt,[str_gmt; str_gmt_mgg; str_gdal; str_gdal_cpp; str_simple; str_shape; str_cv; str_simple_cpp; str_withCDF]);
+    idx = strmatch(opt,[str_gmt; str_gmt_mgg; str_gdal; str_gdal_cpp; str_simple; str_shape; str_cv; str_simple_cpp; ...
+			str_withCDF]);
     if (isempty(idx))
 		disp('Example usage: make_mexs(''mapproject_m'')');
 		error('Bad use, or my fault');
@@ -205,24 +205,37 @@ else							% Compile only one mex
     idx8   = strcmpi(opt, 'polygonclip');
     if (~isempty(idx1))         % Compile GMT mexs
         cmd = ['mex ' [str_gmt{idx1} '.c'] ' ' include_gmt ' ' library_gmt ' ' opt_gmt];
+
     elseif (~isempty(idx4))     % Compile GMT MGG mexs
         cmd = ['mex ' [str_gmt_mgg{idx4} '.c'] ' ' include_gmt ' ' include_gmt_mgg ' ' library_gmt_mgg ' ' opt_gmt_mgg];
+
     elseif (~isempty(idx2))     % Compile GDAL mexs
         cmd = ['mex ' [str_gdal{idx2} '.c'] ' ' include_gdal ' ' library_gdal ' ' COPT];
+
     elseif (~isempty(idx2pp))     % Compile GDAL c++ mexs
         cmd = ['mex ' [str_gdal_cpp{idx2pp} '.cpp'] ' ' include_gdal ' ' library_gdal ' ' COPT];
+
     elseif (~isempty(idx22))    % Compile Shape mexs
         cmd = ['mex ' [str_shape{idx22} '.c'] ' ' include_shape ' ' library_shape ' ' COPT];
+
+    elseif (~isempty(idx3))     % Compile Simple c mexs
+        cmd = ['mex ' [str_simple{idx3} '.c'] ' ' COPT];
+
     elseif (~isempty(idx5))     % Compile OpenCV mexs
         cmd = ['mex ' [str_cv{idx5} '.c'] ' sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c ' include_cv ' ' library_cv ' ' COPT];
+
     elseif (~isempty(idx6))     % Compile Simple c++ mexs
         cmd = ['mex ' [str_simple_cpp{idx6} '.cpp'] ' ' library_vc6 ' ' COPT];
+
     elseif (~isempty(idx7))     % Compile netCDF dependent mexs
         cmd = ['mex ' str_withCDF{idx7} '.c' ' -I' INCLUDE_NETCDF ' ' LIB_NETCDF ' ' COPT];
-	elseif (~isempty(idx8))
+
+	elseif (~isempty(idx8) && idx8)
 		cmd = ['mex PolygonClip.c gpc.c ' COPT];
+
     else                        % Compile Other (simple) mexs
         cmd = ['mex ' [str_simple{idx3} '.c'] ' ' COPT];
+
     end
     eval(cmd)
 end
