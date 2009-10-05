@@ -11,16 +11,12 @@
  * finite integers.
  */
 template<typename _T1>
-bool chkInteger(const _T1 *ptr, int num_elements)
-{
+bool chkInteger(const _T1 *ptr, int num_elements) {
     bool result = true;
 
-    if (ptr != NULL)
-    {
-        for (int k = 0; k < num_elements; k++)
-        {
-            if (! mxIsFinite(ptr[k]) || (floor(ptr[k]) != ptr[k]))
-            {
+    if (ptr != NULL) {
+        for (int k = 0; k < num_elements; k++) {
+            if (! mxIsFinite(ptr[k]) || (floor(ptr[k]) != ptr[k])) {
                 result = false;
                 break;
             }
@@ -35,16 +31,12 @@ bool chkInteger(const _T1 *ptr, int num_elements)
  * are nonnegative.
  */
 template<typename _T1>
-bool chkNonnegative(const _T1 *ptr, int num_elements)
-{
+bool chkNonnegative(const _T1 *ptr, int num_elements) {
     bool result = true;
 
-    if (ptr != NULL)
-    {
-        for (int k = 0; k < num_elements; k++)
-        {
-            if (ptr[k] < (_T1) 0)
-            {
+    if (ptr != NULL) {
+        for (int k = 0; k < num_elements; k++) {
+            if (ptr[k] < (_T1) 0) {
                 result = false;
                 break;
             }
@@ -59,16 +51,12 @@ bool chkNonnegative(const _T1 *ptr, int num_elements)
  * are positive.
  */
 template<typename _T1>
-bool chkPositive(const _T1 *ptr, int num_elements)
-{
+bool chkPositive(const _T1 *ptr, int num_elements) {
     bool result = true;
 
-    if (ptr != NULL)
-    {
-        for (int k = 0; k < num_elements; k++)
-        {
-            if (ptr[k] <= (_T1) 0)
-            {
+    if (ptr != NULL) {
+        for (int k = 0; k < num_elements; k++) {
+            if (ptr[k] <= (_T1) 0) {
                 result = false;
                 break;
             }
@@ -83,16 +71,12 @@ bool chkPositive(const _T1 *ptr, int num_elements)
  * are NaN.
  */
 template<typename _T1>
-bool chkNonnan(const _T1 *ptr, int num_elements)
-{
+bool chkNonnan(const _T1 *ptr, int num_elements) {
     bool result = true;
 
-    if (ptr != NULL)
-    {
-        for (int k = 0; k < num_elements; k++)
-        {
-            if (mxIsNaN((double) ptr[k]))
-            {
+    if (ptr != NULL) {
+        for (int k = 0; k < num_elements; k++) {
+            if (mxIsNaN((double) ptr[k])) {
                 result = false;
                 break;
             }
@@ -107,16 +91,12 @@ bool chkNonnan(const _T1 *ptr, int num_elements)
  * are finite.
  */
 template<typename _T1>
-bool chkFinite(const _T1 *ptr, int num_elements)
-{
+bool chkFinite(const _T1 *ptr, int num_elements) {
     bool result = true;
 
-    if (ptr != NULL)
-    {
-        for (int k = 0; k < num_elements; k++)
-        {
-            if (! mxIsFinite((double) ptr[k]))
-            {
+    if (ptr != NULL) {
+        for (int k = 0; k < num_elements; k++) {
+            if (! mxIsFinite((double) ptr[k])) {
                 result = false;
                 break;
             }
@@ -131,16 +111,12 @@ bool chkFinite(const _T1 *ptr, int num_elements)
  * are nonzero.  Returns false if the input array is empty.
  */
 template<typename _T1>
-bool chkNonzero(const _T1 *ptr, int num_elements)
-{
+bool chkNonzero(const _T1 *ptr, int num_elements) {
     bool result = false;
 
-    if (ptr != NULL)
-    {
-        for (int k = 0; k < num_elements; k++)
-        {
-            if ( (ptr[k] != (_T1) 0) )
-            {
+    if (ptr != NULL) {
+        for (int k = 0; k < num_elements; k++) {
+            if ( (ptr[k] != (_T1) 0) ) {
                 result = true;
                 break;
             }
@@ -157,17 +133,13 @@ bool chkNonzero(const _T1 *ptr, int num_elements)
  * The input type, _T1, must be an integer type.
  */
 template<typename _T1>
-bool chkParityInt(const _T1 *ptr, int num_elements, _T1 parity)
-{
+bool chkParityInt(const _T1 *ptr, int num_elements, _T1 parity) {
     bool result = true;
     parity = parity ? 0 : 1; // to be consistent with chkParityFloat
 
-    if (ptr != NULL)
-    {
-        for (int k = 0; k < num_elements; k++)
-        {
-            if (ptr[k] & parity)
-            {
+    if (ptr != NULL) {
+        for (int k = 0; k < num_elements; k++) {
+            if (ptr[k] & parity) {
                 result = false;
                 break;
             }
@@ -184,21 +156,15 @@ bool chkParityInt(const _T1 *ptr, int num_elements, _T1 parity)
  * The input type, _T1, must be float or double.
  */
 template<typename _T1>
-bool chkParityFloat(const _T1 *ptr, int num_elements, _T1 parity)
-{
+bool chkParityFloat(const _T1 *ptr, int num_elements, _T1 parity) {
     bool result = true;
 
-    if (ptr != NULL)
-    {
-        for (int k = 0; k < num_elements; k++)
-        {
+    if (ptr != NULL) {
+        for (int k = 0; k < num_elements; k++) {
             _T1 v  = ptr[k] + parity;
             _T1 vf = (_T1) floor((double) v);
             
-            if ( (! mxIsFinite(v)) ||
-                 (v != vf)         ||
-                 (2.0 * floor(v / 2.0) != v) )
-            {
+            if ( (! mxIsFinite(v)) || (v != vf) || (2.0 * floor(v / 2.0) != v) ) {
                 result = false;
                 break;
             }
