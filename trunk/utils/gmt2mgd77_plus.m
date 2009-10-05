@@ -69,14 +69,14 @@ function gmt2mgd77_plus(fname, varargin)
 		if (isfield(meta, 'DC_file_number')),	att.DC_file_number = meta.DC_file_number;	end
 	end
 	% ------------------------------------------------------------
-% 	att.country = 'Portugal';
-% 	att.funding = 'IFREMER';
+	att.country = 'Portugal';
+	att.funding = 'EMEPC';
 % 	att.chief = 'Marc Andre Gutcher';
 % 	att.ship = 'D. Carlos I';
 % 	att.leg = 'Chicken Leg';
 % 	att.port_departure = 'Lisboa';
 % 	att.port_arrival = 'Lisboa';
-% 	att.tow_dist = '160';
+	att.tow_dist = '1';
 
 	[PATO, FNAME, EXT] = fileparts(fname);
 	if (isempty(PATO)),		fsep = [];	end		% File is in the current directory
