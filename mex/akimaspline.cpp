@@ -4,7 +4,7 @@
 #define MLABVECTOR_H
 
 #include <stdio.h>
-#include <iostream.h>
+//#include <iostream.h>		// Had to comment this on VC7.1 Must check if it's really needed on VC6.0
 
 #include "mex.h"
 #undef malloc
