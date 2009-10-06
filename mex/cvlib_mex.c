@@ -168,7 +168,7 @@ void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage(), powUsage();
 void absUsage(), logUsage(), expUsage(), hypotUsage(), haarUsage(), convexHullUsage();
 void approxPolyUsage(), homographyUsage(), findRectangUsage();
 void MatchTemplateUsage(), thresholdUsage(), opticalFlowyrLKUsage(), scaleto8Usage();
-void statUsage(char *op);
+void statUsage(const char *op);
 #ifdef USE_SIFT
 void siftUsage();
 #endif
@@ -1108,7 +1108,7 @@ void Jsift(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	struct feature* feat1, * feat2, * feat;
 	struct feature** nbrs;
 	struct kd_node* kd_root;
-	//CvPoint pt1, pt2;
+	/*CvPoint pt1, pt2;*/
 	double d0, d1, *tmp, *ptr_d;
 	int n1, n2, k, i, n, m = 0;
 	mxArray *ptr_in1, *ptr_in2;
@@ -1159,10 +1159,10 @@ void Jsift(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 			d0 = descr_dist_sq( feat, nbrs[0] );
 			d1 = descr_dist_sq( feat, nbrs[1] );
 			if( d0 < d1 * NN_SQ_DIST_RATIO_THR ) {
-				//pt1 = cvPoint( cvRound( feat->x ), cvRound( feat->y ) );
+				/*pt1 = cvPoint( cvRound( feat->x ), cvRound( feat->y ) );
 				//pt2 = cvPoint( cvRound( nbrs[0]->x ), cvRound( nbrs[0]->y ) );
 				//pt2.y += img1->height;
-				//cvLine( stacked, pt1, pt2, CV_RGB(255,0,255), 1, 8, 0 );
+				//cvLine( stacked, pt1, pt2, CV_RGB(255,0,255), 1, 8, 0 );*/
 				tmp[++n] = feat->x; 	tmp[++n] = feat->y;
 				tmp[++n] = nbrs[0]->x; 	tmp[++n] = nbrs[0]->y;
 				m++;
@@ -5028,7 +5028,7 @@ void scaleto8Usage() {
 }
 
 /* -------------------------------------------------------------------------------------------- */
-void statUsage(char *op) {
+void statUsage(const char *op) {
 	if (!strcmp(op,"avg") || !strcmp(op,"mean")) {
 		mexPrintf("Usage: out = cvlib_mex('mean',IMG);\n");
 		mexPrintf("       Returns the mean of array IMG\n");
