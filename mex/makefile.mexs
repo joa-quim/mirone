@@ -137,8 +137,6 @@ read_isf:
 		$(MEX) -I$(MATLAB)/extern/include read_isf.c $(MEXLIB)
 ind2rgb8:	
 		$(MEX) -I$(MATLAB)/extern/include ind2rgb8.c $(MEXLIB)
-intlutc:
-		$(MEX) -I$(MATLAB)/extern/include intlutc.c $(MEXLIB)
 alloc_mex:	
 		$(MEX) -I$(MATLAB)/extern/include alloc_mex.c $(MEXLIB)
 susan:	
