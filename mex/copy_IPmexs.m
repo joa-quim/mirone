@@ -12,7 +12,7 @@ if (ispc)
 	suffix = '.dll';
 	suffix = '.mexw32';
 elseif (strncmp(computer,'MAC',3))
-	suffix = '.maci';
+	suffix = '.mexmaci';
 else
 	suffix = '.mexglx';
 end
