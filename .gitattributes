@@ -361,6 +361,7 @@ mex/grdutils.c -text
 mex/grdwrite_m.c -text
 mex/houghmex.cpp -text
 mex/igrf_m.c -text
+mex/ind2rgb8.c -text
 mex/isf_head.h -text
 mex/make_mexs.m -text
 mex/makefile.mexs -text
