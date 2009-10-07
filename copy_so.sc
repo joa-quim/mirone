@@ -6,51 +6,58 @@
 # It should only be needed if we want to create a destributable package
 
 lib_loc=/usr/local/lib
+gmt_loc=/Users/j/programs/GMT/lib
+
+# On Mac set it like this
+mac_sufix=.dylib
+linus_sufix=
+# But on Linus, this way
+#mac_sufix=
+#linus_sufix=.so
 
 # ---------- OpenCV libs -------------------------
-cp -f ${lib_loc}/libcv.so.1.0.0 .
-ln -s -f libcv.so.1.0.0 libcv.so.1
+cp -f ${lib_loc}/libcv${linus_sufix}.1.0.0${mac_sufix} .
+ln -s -f libcv${linus_sufix}.1.0.0${mac_sufix} libcv${linus_sufix}.1${mac_sufix}
 
-cp -f ${lib_loc}/libcxcore.so.1.0.0 .
-ln -s -f libcxcore.so.1.0.0 libcxcore.so.1
+cp -f ${lib_loc}/libcxcore${linus_sufix}.1.0.0${mac_sufix} .
+ln -s -f libcxcore${linus_sufix}.1.0.0 libcxcore${linus_sufix}.1${mac_sufix}
 
 # ---------- ?? libs ------------------------------
-cp -f /usr/lib/libexpat.so.1.5.2 .
-ln -s -f libexpat.so.1.0.0 libexpat.so.1
+#cp -f /usr/lib/libexpat${linus_sufix}.1.5.2${mac_sufix} .
+#ln -s -f libexpat${linus_sufix}.1.0.0 libexpat${linus_sufix}.1${mac_sufix}
 
 # ---------- GDAL libs ---------------------------
-cp -f ${lib_loc}/libgdal.so.1.13.0 .
-ln -s -f libgdal.so.1.13.0 libgdal.so.1
+cp -f ${lib_loc}/libgdal${linus_sufix}.1${mac_sufix} .
+ln -s -f libgdal${linus_sufix}.1 libgdal${linus_sufix}.1${mac_sufix}
 
-cp -f ${lib_loc}/libNCSCnet.so.0.0.0 .
-ln -s -f libNCSCnet.so.0.0.0 libNCSCnet.so.0
+cp -f ${lib_loc}/libNCSCnet${linus_sufix}.0.0.0${mac_sufix} .
+ln -s -f libNCSCnet${linus_sufix}.0.0.0 libNCSCnet${linus_sufix}.0${mac_sufix}
 
-cp -f ${lib_loc}/libNCSEcw.so.0.0.0 .
-ln -s -f libNCSEcw.so.0.0.0 libNCSEcw.so.0
+cp -f ${lib_loc}/libNCSEcw${linus_sufix}.0.0.0${mac_sufix} .
+ln -s -f libNCSEcw${linus_sufix}.0.0.0 libNCSEcw${linus_sufix}.0${mac_sufix}
 
-cp -f ${lib_loc}/libNCSEcwC.so.0.0.0 .
-ln -s -f libNCSEcwC.so.0.0.0 libNCSEcwC.so.0
+cp -f ${lib_loc}/libNCSEcwC${linus_sufix}.0.0.0${mac_sufix} .
+ln -s -f libNCSEcwC${linus_sufix}.0.0.0 libNCSEcwC${linus_sufix}.0${mac_sufix}
 
-cp -f ${lib_loc}/libNCSUtil.so.0.0.0 .
-ln -s -f libNCSUtil.so.0.0.0 libNCSUtil.so.0
+cp -f ${lib_loc}/libNCSUtil${linus_sufix}.0.0.0${mac_sufix} .
+ln -s -f libNCSUtil${linus_sufix}.0.0.0 libNCSUtil${linus_sufix}.0${mac_sufix}
 
 # ---------- netcdf libs ---------------------------
-cp -f ${lib_loc}/libnetcdf.so.4.0.0 .
-ln -s -f libnetcdf.so.4.0.0 libnetcdf.so.4
+#cp -f ${lib_loc}/libnetcdf${linus_sufix}.4.0.0${mac_sufix} .
+#ln -s -f libnetcdf${linus_sufix}.4.0.0 libnetcdf${linus_sufix}.4${mac_sufix}
 
 # ---------- Proj4 libs ----------------------------
-cp -f ${lib_loc}/libproj.so.0.5.4 .
-ln -s -f libproj.so.0.5.4 libproj.so.0
+cp -f ${lib_loc}/libproj${linus_sufix}.0.5.4${mac_sufix} .
+ln -s -f libproj${linus_sufix}.0.5.4 libproj${linus_sufix}.0${mac_sufix}
 
 # ---------- Shapefile libs ------------------------
-cp -f ${lib_loc}/libshp.so.1.0.1 .
-ln -s -f libshp.so.1.0.1 libshp.so.1
+cp -f ${lib_loc}/libshp${linus_sufix}.1.2.10${mac_sufix} .
+ln -s -f libshp${linus_sufix}.1.2.10 libshp${linus_sufix}.1${mac_sufix}
 
 # ---------- GMT libs ------------------------------
-# Hmm, My GMT is not under /usr/local
-cp -f /home/bagside/programs/GMT/lib/libgmt.so.4 .
-ln -s -f libgmt.so.4 libgmt.so
+cp -f ${gmt_loc}/libgmt${linus_sufix}.4${mac_sufix} .
+ln -s -f libgmt${linus_sufix}.4 libgmt${linus_sufix}${mac_sufix}
 
-cp -f /home/bagside/programs/GMT/lib/libpsl.so.4 .
-ln -s -f libpsl.so.4 libpsl.so
-
+cp -f ${gmt_loc}/libpsl${linus_sufix}.4${mac_sufix} .
+ln -s -f libpsl${linus_sufix}.4 libpsl${linus_sufix}${mac_sufix}
+	
