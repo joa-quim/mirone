@@ -620,6 +620,7 @@ uimenu('Parent',h2,'Call','mirone(''GridToolsSlope_CB'',guidata(gcbo),''aspect''
 h = uimenu('Parent',h2,'Label','Directional derivative');
 uimenu('Parent',h,'Call','mirone(''GridToolsDirDerive_CB'',guidata(gcbo),''first'')','Label','First derivative');
 uimenu('Parent',h,'Call','mirone(''GridToolsDirDerive_CB'',guidata(gcbo),''second'')','Label','Second derivative');
+uimenu('Parent',h2,'Call','mirone(''TransferB_CB'',guidata(gcbo),''Multiscale'')','Label','Multi-scale Analysis');
 
 h = uimenu('Parent',hGT,'Label','Interpolate','Sep','on');
 uimenu('Parent',h,'Callback','griding_mir(gcf,''surface'');', 'Label','Minimum curvature');
@@ -649,7 +650,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 8 July 2009'',''1.5.1(dev)'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 11 Oct 2009'',''1.5.1(dev)'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
