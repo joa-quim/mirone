@@ -380,6 +380,7 @@ mex/mexnc/netcdf2.c -text
 mex/mexnc/netcdf2.h -text
 mex/mexnc/netcdf3.c -text
 mex/mexnc/netcdf3.h -text
+mex/mirblock.c -text
 mex/mxgridtrimesh.c -text
 mex/nearneighbor_m.c -text
 mex/ogrproj.cpp -text
