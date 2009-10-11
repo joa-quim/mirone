@@ -326,7 +326,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'shp',			DrawImportShape_CB(handles,fname);
 		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles,fname);
 		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);		% It means "I don't know"
-		otherwise			erro = 1;
+		otherwise,			erro = 1;
 	end
 	if (erro),		warndlg(['Sorry but couldn''t figure out what to do with the ' fname ' file'],'Warning'),	end
 
@@ -907,7 +907,6 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 	end
 
 	set(handles.figure1,'pointer','watch')
-	tit = ' ';
 
 	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
 	if isempty(EXT)
@@ -920,17 +919,10 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 
 	if (isappdata(handles.axes1,'DatumProjInfo'))
 		DPI = getappdata(handles.axes1,'DatumProjInfo');
-		tit = ['Projection: ' DPI.projection ' Datum: ' DPI.datum];
 	end
-	D = handles.head(1:7);
-
-	if (handles.image_type == 1),		tit = 'GMT grid converted to 3 RGB grids';		% GMT grid
-	elseif (handles.image_type == 2)	tit = get(handles.figure1,'Name');				% Generic formats
-	end
-	if (numel(tit) > 80),	tit = tit(1:80);	end		% (1:80) otherwise it BOOMs
 
 	if (strcmp(opt1,'image')),			img = get(handles.hImg,'CData');			% Get image
-	elseif (strcmp(opt1,'screen'))		img = snapshot(handles.figure1,'noname');	% Screen capture with resizing option
+	elseif (strcmp(opt1,'screen')),		img = snapshot(handles.figure1,'noname');	% Screen capture with resizing option
 	else								img = flipdim(imcapture(handles.axes1,'img',0),1);		% Call from write_script
 	end
 
@@ -1431,7 +1423,7 @@ function FileOpenMOLA_CB(handles, FileName)
 	if (fp < 0)
 		errordlg(['ERROR: Could not find format descriptive file: ' fname],'Error'),	return
 	end
-	s = strread(fread(fp,'*char').','%s','delimiter','\n');		fclose(fp)
+	s = strread(fread(fp,'*char').','%s','delimiter','\n');		fclose(fp);
 
 	LINES = findcell('LINES', s);
 	[t,r] = strtok(s{LINES.cn},'=');				n_lines = str2double(r(3:end));		% N_rows
@@ -1544,7 +1536,6 @@ function read_DEMs(handles,fullname,tipo,opt)
 	aux_funs('StoreZ',handles,X,Y,Z)		% If grid size is not to big we'll store it
 	handles.head = head;
 	aux_funs('colormap_bg',handles,Z,jet(256));
-	%if (handles.have_nans),		Z(isnan(Z)) = head(5);		end
 	zz = scaleto8(Z);
 	handles = show_image(handles,handles.fileName,X,Y,zz,1,'xy',head(7));
 	if (isappdata(handles.axes1,'InfoMsg')),	rmappdata(handles.axes1,'InfoMsg'),		end
@@ -1769,7 +1760,7 @@ function ImageIlluminationModel_CB(handles, opt)
 function ImageIlluminateLambertian(luz, handles, opt)
 % OPT ->  Select which of the GMT grdgradient illumination algorithms to use
 % Illuminate a DEM file and turn it into a RGB image
-% For multiple tryies I need to use the original image. Otherwise each attempt would illuminate
+% For multiple tries I need to use the original image. Otherwise each attempt would illuminate
 % the previously illuminated image. An exception occurs when the image was IP but only for the
 % first time, repeated illums will use the original img. Otherwise we would need to make another img copy
 
@@ -1979,7 +1970,7 @@ function ImageLink_CB(handles, opt)
 % 	if ( nargin == 2 && ~isempty(linkedFig) && ishandle(linkedFig) )	% We already have a linked pair
 % 		h = rectangle('Position',[100 100 80 25], 'LineWidth',1, 'FaceColor','r', 'Parent', handles.axes1);
 % 	end
-	ind = find((hFigs - handles.figure1) == 0);
+	ind = (hFigs - handles.figure1) == 0;
 	hFigs(ind) = [];										% Remove current figure from the fished list
 	IAmAMir = true(1, numel(hFigs));
 	for (k = 1:numel(hFigs))
@@ -1991,7 +1982,7 @@ function ImageLink_CB(handles, opt)
 	for (k = 1:numel(hFigs))
 		[pato, nomes{k}] = fileparts(nomes{k});
 	end
-	[s,v] = listdlg('PromptString','Link with', 'SelectionMode','single', 'ListString',nomes);
+	s = listdlg('PromptString','Link with', 'SelectionMode','single', 'ListString',nomes);
 	if (isempty(s)),	return,		end
 	linkedFig = hFigs(s);
 	setappdata(handles.figure1,'LinkedTo',linkedFig)		% pixval_stsbar will take over from here
@@ -2491,7 +2482,7 @@ function DrawContours_CB(handles, opt)
 			opt(ib) = [];							% Remove repeated contours
 		end
 		if (isempty(opt)),		set(handles.figure1,'pointer','arrow'),		return,		end  % Nothing else to do
-		opt(find(~opt)) = eps * 1e-2;				% This can of BUGs sometimes ignores the zero contour
+		opt(~opt) = eps * 1e-2;				% This can of BUGs sometimes ignores the zero contour
 		if (numel(opt) == 1),		opt = [opt opt];	end
 		c = contourc(X,Y,double(Z),opt);
 		if (isempty(c)),		set(handles.figure1,'pointer','arrow'),		return,		end
@@ -3528,6 +3519,24 @@ function TransferB_CB(handles, opt)
 		Z = cvlib_mex('CvtScale',Z, scal);
 		head = [handles.head(1:4) handles.head(5:6)*scal handles.head(7:end)];
 		tmp = struct('X',X, 'Y',Y, 'head',head, 'geog',handles.geog, 'name','Scaled grid');
+		projWKT = getappdata(handles.figure1,'ProjWKT');
+		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
+		mirone(Z, tmp)
+	
+	elseif (strncmp(opt,'Multiscale',5))					% 
+		[X,Y,Z] = load_grd(handles);			% load the grid array here
+		if isempty(Z),		return,		end
+		resp = multiscale;
+		if (isempty(resp)),		return,		end
+		opt_A = sprintf('-A%d', resp.method);
+		opt_W = sprintf('-W%d', resp.size);
+		opt_N = sprintf('-N%d', handles.have_nans);
+
+		Z = mirblock(Z, opt_A, opt_N);
+		if (handles.have_nans),		zz = grdutils(Z,'-L');
+		else						zz = [min(Z(:)) max(Z(:))];
+		end
+		tmp = struct('X',X, 'Y',Y, 'head',[handles.head(1:4) zz(:)' handles.head(7:9)], 'geog',handles.geog, 'name',[opt(9:end) '_grid']);
 		projWKT = getappdata(handles.figure1,'ProjWKT');
 		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
 		mirone(Z, tmp)
