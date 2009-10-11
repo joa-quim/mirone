@@ -18,6 +18,7 @@ function varargout = multiscale(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	multiscale_LayoutFcn(hObject);
 	handles = guihandles(hObject);
+	movegui(hObject,'center')
  
 	handles.nWin = 3;		% Default to a 3x3 window
 	handles.method = 0;		% "Terrain Ruggedness Index"
