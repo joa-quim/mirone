@@ -619,6 +619,7 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 			att.Corners.UL = [x_min y_max];			
 			att.Corners.LR = [x_max y_min];			
 			dx = lon(3) - lon(2);	dy = abs(lat(3) - lat(2));
+			att.GMT_hdr(7:9) = [0 dx dy];
 		else				% If not, use array size as coordinates
 			x_min = 1;		x_max = finfo.SDS.Dims(2).Size;
 			y_min = 1;		y_max = finfo.SDS.Dims(1).Size;
