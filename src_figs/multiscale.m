@@ -45,7 +45,7 @@ function varargout = multiscale(varargin)
 function popup_algo_Callback(hObject, eventdata, handles)
 % VERY IMPORTANT. The Method's order in popup must agree strictly with the mirblock.c MEX
 	val = get(hObject,'Value');
-	handles.method = val;
+	handles.method = val - 1;
 	guidata(handles.figure1,handles)
 
 % ----------------------------------------------------------------------------
