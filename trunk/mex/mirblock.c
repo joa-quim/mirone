@@ -1,5 +1,5 @@
 /*
- * Tool to compute moving window block operations
+ * Tool to compute moving window block operations. NaNs tolerant and respecteful.
  *
  * Currently implemented:
  *
@@ -108,8 +108,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (n_arg_no_char == 0 || error) {
-		mexPrintf ("mirdem - Compute morphological quantities from DEMs single precision arrays\n\n");
-		mexPrintf ("usage: out = mirdem(input, ['-A<0|...|5>'], [-N<0|1>], [-W<winsize>]\n");
+		mexPrintf ("mirblock - Compute morphological quantities from DEMs single precision arrays\n\n");
+		mexPrintf ("usage: out = mirblock(input, ['-A<0|...|5>'], [-N<0|1>], [-W<winsize>]\n");
 		
 		mexPrintf ("\t<input> is name of input array (singles only)\n");
 		mexPrintf ("\n\tOPTIONS:\n");
@@ -119,7 +119,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\t   1 -> Topographic Position Index\n");
 		mexPrintf ("\t   2 -> Roughness\n");
 		mexPrintf ("\t   3 -> Mean\n");
-		mexPrintf ("\t   3 -> Minimum\n");
+		mexPrintf ("\t   4 -> Minimum\n");
 		mexPrintf ("\t   5 -> Mmaximum\n");
 		mexPrintf ("\t-N Inform if input has NaNs (1) or not (0) thus avoiding wasting time with repeated test.\n");
 		mexPrintf ("\t-W select the rectangular window size [default is 3, which means 3x3].\n");
@@ -127,19 +127,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (nlhs == 0) {
-		mexPrintf("MIRDEM ERROR: Must provide an output.\n");
+		mexPrintf("MIRBLOCK ERROR: Must provide an output.\n");
 		return;
 	}
 
 	if (!mxIsSingle(prhs[0]))
-		mexErrMsgTxt("MIRDEM ERROR: Invalid input data type. Only valid type is: Single.\n");
+		mexErrMsgTxt("MIRBLOCK ERROR: Invalid input data type. Only valid type is: Single.\n");
+
+	if (n_win % 2 == 0)
+		mexErrMsgTxt("MIRBLOCK -W ERROR: Window size must be an odd number.\n");
+
+	if (algo < 0 || algo > 5)
+		mexErrMsgTxt("MIRBLOCK -A ERROR: unknown algorithm selection.\n");
 
 	nx = mxGetN (prhs[0]);
 	ny = mxGetM (prhs[0]);
 	nm = nx * ny;
 
 	if (!mxIsNumeric(prhs[0]) || ny < 2 || nx < 2)
-		mexErrMsgTxt("MIRDEM ERROR: First argument must contain a decent array\n");
+		mexErrMsgTxt("MIRBLOCK ERROR: First argument must contain a decent array\n");
 
 	zdata = (float *)mxGetData(prhs[0]);
 
@@ -258,7 +264,7 @@ void callAlgo(int id, float *in, float *out, int n_win, int nx, int ny, int chec
 	mxFree((void *)pad_cols);
 	mxFree((void *)out_cols);
 
-	/* Since this bloody thing still f.. on the corners I give up and replace them by their next diagonal neighbor */
+	/* Since this bloody thing still f on the corners I give up and replace them by their next diagonal neighbor */
 	for (n = 0; n < nHalfWin; n++) {
 		for (m = 0; m < nHalfWin; m++)           out[m + n*ny] = out[nHalfWin * ny + nHalfWin];	/* First_rows/West */
 		for (m = ny - nHalfWin - 1; m < ny; m++) out[m + n*ny] = out[(nHalfWin+1) * ny - nHalfWin];
