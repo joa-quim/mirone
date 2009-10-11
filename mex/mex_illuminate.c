@@ -128,7 +128,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 }
 
 void GMT_rgb_to_hsv (int rgb[], double *h, double *s, double *v) {
-	double xr, xg, xb, r_dist, g_dist, b_dist, max_v, min_v, diff, idiff;
+	double xr, xg, xb, r_dist, g_dist, b_dist, max_v, min_v, diff;
 	
 	xr = rgb[0] * I_255;
 	xg = rgb[1] * I_255;
@@ -140,19 +140,12 @@ void GMT_rgb_to_hsv (int rgb[], double *h, double *s, double *v) {
 	*s = (max_v == 0.0) ? 0.0 : diff / max_v;
 	*h = 0.0;
 	if ((*s) == 0.0) return;	/* Hue is undefined */
-	idiff = 1.0 / diff;
-	/*r_dist = (max_v - xr);
-	g_dist = (max_v - xg);
-	b_dist = (max_v - xb);*/
 	if (xr == max_v)
-		/* *h = (b_dist - g_dist) * idiff;*/
-		*h = (xg - xb) * idiff;
+		*h = (xg - xb) / diff;
 	else if (xg == max_v)
-		/* *h = 2.0 + (r_dist - b_dist) * idiff;*/
-		*h = 2.0 + (xb - xr) * idiff;
+		*h = 2.0 + (xb - xr) / diff;
 	else
-		/* *h = 4.0 + (g_dist - r_dist) * idiff;*/
-		*h = 4.0 + (xr - xg) * idiff;
+		*h = 4.0 + (xr - xg) / diff;
 	(*h) *= 60.0;
 	if ((*h) < 0.0) (*h) += 360.0;
 }
