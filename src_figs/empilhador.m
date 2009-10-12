@@ -567,13 +567,13 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		y_min = y_min + dx/2;		y_max = y_max - dx/2;
 		head(1:4) = [x_min x_max y_min y_max];
 		head(8:9) = dx;
-		att.GMT_hdr(1:4) = head(1:4);	% We need this updated
 		att.Corners.UL = [x_min y_max];			
 		att.Corners.LR = [x_max y_min];			
 		if (got_R)			% We must give the region in pixels since the image is trully not georeferenced
 			rows = att.RasterYSize;
 		end
 		head(7) = 0;		% Make sure that grid reg is used
+		att.GMT_hdr = head;	% We need this updated
 
 		% Get the the scaling equation and its parameters
 		if ( strcmp(att.Metadata{53}(9:end), 'linear') )
@@ -741,7 +741,20 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		NoDataValue = att.Band(1).NoDataValue;		% Save this value to reset it after read_gdal()
 		saveNoData = true;
 	end
+
+	GMT_hdr = att.GMT_hdr;			% Make copies of these
+	Corners.LR = att.Corners.LR;
+	Corners.UL = att.Corners.UL;
+
 	[Z,att] = read_gdal(fname, att, '-C', opt_R, '-U');
+
+	% See if we knew the image coordinates but that knowedge is lost in new att
+	if ( isequal(att.GMT_hdr(8:9), [1 1]) && ~isequal(GMT_hdr(8:9), [1 1]) )
+		att.GMT_hdr = GMT_hdr;		% Recover the header info
+		att.Corners.LR = Corners.LR;
+		att.Corners.UL = Corners.UL;
+	end
+
 	if (~isempty(str_d)),	delete(str_d);		end		% Delete uncompressed file.
 
 	if ( is_modis && ~isempty(att.Band(1).NoDataValue) && saveNoData)	% att.Band... is isempty when all work has been done before
