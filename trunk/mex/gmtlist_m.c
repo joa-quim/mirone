@@ -73,7 +73,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int mon1, day1 = 0, year1, hour1, min1, time, last_lat = 0, mon2, day2 = 0, year2, hour2, min2;
 	int dt, last_time = 0, n_cruises = 0;
 	
-	int error = FALSE, wantgmt, want_all = FALSE, geodetic = TRUE;
+	int error = FALSE, wantgmt, want_all = FALSE, geodetic = TRUE, swapa = FALSE;
 	int correct = FALSE, tsec = FALSE, calender = FALSE, do_heading = FALSE;
 	int no_g, no_m, no_t, greenwich = FALSE, do_speed = FALSE, binary = FALSE;
 	
@@ -223,6 +223,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'G':
 					geodetic = FALSE;
 					break;
+				case 'Y':
+					swapa = TRUE;
+					break;
 				case 'W':		/* Assign a weight to these data */
 					weight = atof (&argv[i][2]);
 					break;
@@ -247,7 +250,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (error || argc == 1) {	/* Display usage */
 		mexPrintf("usage: OUT = gmtlist_m(<cruise(s)>, '[-Da<startdate>]', '[-Db<stopdate>]', '[-F<dataflags>]',\n");
-		mexPrintf("	'[-G]', '[-R<west>/<east>/<south>/<north>]', '[-Sa<startdist>]', '[-Sb<stopdist>]', '[-W<Weight>]')\n\n");
+		mexPrintf("	'[-G]', '[-R<west>/<east>/<south>/<north>]', '[-Sa<startdist>]', '[-Sb<stopdist>]', '[-W<Weight>]', '[-Y]')\n\n");
          
 		mexPrintf("	OUT is a MxN structure matrix where M = n_cruises and N = n_dataflags + 3 (-F<option> + 3) \n");
 		mexPrintf("	the three extra fields contain the cruises''s YEAR, AGENCY info and INFO (lower cases).\n");
@@ -280,6 +283,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("	-Sa<dist> lists from dist (in km)\n");
 		mexPrintf("	-Sb<dist> lists up to dist (in km)\n");
 		mexPrintf("	-W sets weight for these data\n");
+		mexPrintf("	-Y swapp bytes. Use this if file was created in a machine with different endianess.\n");
 		return;
 	}
 
@@ -344,6 +348,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			mexPrintf ("gmtlist: Error while reading info-header\n");
 			return;
 		}
+
+		if (n_records < 0 && leg_year < 0) {	/* Almost sure this happens only with big endian files */
+			swapa = TRUE;
+		}
+		if (swapa) {
+			leg_year  = GMT_swab4(leg_year);
+			n_records = GMT_swab4(n_records);
+		}
 	
 		gmt = gmtmgg_init (leg_year);	/* Initialize gmt_structure */
 		if (correct)
@@ -380,6 +392,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			if (fread ((void *)(&record), (size_t)18, (size_t)1, fp) != 1) {
 				mexPrintf ("gmtlist: Error reading data record no %d\n",rec);
 				continue;
+			}
+
+			if (swapa) {
+				record.lon = GMT_swab4 (record.lon);
+				record.lat = GMT_swab4 (record.lat);
+				record.time = GMT_swab4 (record.time);
+				record.gmt[0] = GMT_swab2 (record.gmt[0]);
+				record.gmt[1] = GMT_swab2 (record.gmt[1]);
+				record.gmt[2] = GMT_swab2 (record.gmt[2]);
 			}
 		
 			/* Compute accumulated distance along track (Flat Earth) */
