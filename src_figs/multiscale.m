@@ -22,6 +22,7 @@ function varargout = multiscale(varargin)
  
 	handles.nWin = 3;		% Default to a 3x3 window
 	handles.method = 0;		% "Terrain Ruggedness Index"
+	handles.method_name = 'Terrain Ruggedness Index';
 
 	% Update handles structure
 	guidata(hObject, handles);
@@ -36,7 +37,7 @@ function varargout = multiscale(varargin)
 	handles = guidata(hObject);
 	varargout{1} = [];
 	if (handles.ok)
-		varargout{1} = struct('method',handles.method, 'size',handles.nWin);
+		varargout{1} = struct('method',handles.method, 'size',handles.nWin, 'name',handles.method_name);
 	end
 
 	delete(handles.figure1)
@@ -44,8 +45,9 @@ function varargout = multiscale(varargin)
 % ----------------------------------------------------------------------------
 function popup_algo_Callback(hObject, eventdata, handles)
 % VERY IMPORTANT. The Method's order in popup must agree strictly with the mirblock.c MEX
-	val = get(hObject,'Value');
+	val = get(hObject,'Value');		str = get(hObject,'String');
 	handles.method = val - 1;
+	handles.method_name = str{val};
 	guidata(handles.figure1,handles)
 
 % ----------------------------------------------------------------------------
@@ -117,7 +119,7 @@ uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Callback',{@multiscale_uicallback,h1,'popup_algo_Callback'},...
 'Position',[60 49 181 22],...
-'String',{'Terrain Ruggedness Index'; 'Topographic Position Index'; 'Roughness (aka Range)'; 'Mean'; 'Min'; 'Max' },...
+'String',{'Terrain Ruggedness Index'; 'Topographic Position Index'; 'Roughness (aka Range)'; 'Mean'; 'Min'; 'Max'; 'Slope'; 'Aspect' },...
 'Style','popupmenu',...
 'TooltipString','Select one method',...
 'Value',1,...
