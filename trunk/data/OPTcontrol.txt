@@ -1,0 +1,9 @@
+# File to provide fine control on some Mirone modules.
+# Control options are indicated (exactly) by the # MIR_PARAM line start. Specific option follow on the rest of the line
+# Currently used only by gmtedit
+#
+# For gmtedit the general usage is:
+# -Vvar1,var2,var3:varI+slotI[/varI+slotI[/varI+slotI]] 
+
+# Next will put Total field on first axes, CM4 anomaly on second and bathymetry on third
+## MIR_PARAM -Vmtf1,anom_cm4,depth	# Doube '#' comments this line
