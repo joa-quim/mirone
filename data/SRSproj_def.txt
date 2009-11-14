@@ -6,9 +6,11 @@ Mercator    0	-Jm0/0
 "Mercator Sphere GMT"    0	-Jm0/0 -C --ELLIPSOID=Sphere
 "Mercator Sphere Prj4"    0	+proj=merc +R=6371008.7714
 
-# Next we have a Proj4 ProjectionString 
+"Portuguese system" "Gauss (D73 - GMT)"	-Jt-8:07:54.862/39:40 -C180.598/-86.99 -T220/48
+
 "Portuguese system" "Gauss-Militar (DLx - GMT)"	-Jt-8:07:54.862/39:40 -C200000/300000 -T220/49
 
+# Next we have Proj4 ProjectionString 
 "Portuguese system" "Gauss-Militar (DLx)"	+proj=tmerc +lat_0=39.66666666666666 +lon_0=-8.131906111111111 +k=1.0 +x_0=200000 +y_0=300000 +ellps=intl +towgs84=-302.581,-61.360,103.047,0,0,0,0
 
 "Portuguese system" "Gauss-Militar2 (DLx)"	+proj=tmerc +lat_0=39.66666666666666 +lon_0=-8.131906111111111 +k=1.0 +x_0=200000 +y_0=300000 +ellps=intl +towgs84=-304.046,-60.576,103.640,0,0,0,0
