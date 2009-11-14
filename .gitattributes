@@ -49,6 +49,7 @@ data/MIRONE.GIF -text
 data/MIRONE.tif -text
 data/Nuvel1A_NNR_poles.dat -text
 data/Nuvel1A_poles.dat -text
+data/OPTcontrol.txt -text
 data/PB2002_AF.dat -text
 data/PB2002_AN.dat -text
 data/PB2002_EU.dat -text
