@@ -40,12 +40,13 @@ function out = gmtedit(varargin)
 	is_mgd77 = false;
 	vars = [];					% Container to eventual user selected fields to plot (MGD77+ only)
 	multi_plot = [];			% Container to eventual user selected extra fields to overlay in plot (MGD77+ only)
+	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 
 	if (nargin > 0)
 		f_name = varargin{1};
 		[PATH,FNAME,EXT] = fileparts(f_name);
 		if (isempty(EXT))       % Remember that here we need the extension
-			[fid, msg] = fopen([f_name '.nc'], 'r');
+			fid = fopen([f_name '.nc'], 'r');
 			if (fid < 0)		% Ok, since it is not a .nc we'll assume it is a .gmt file
 				EXT = '.gmt';	f_name = [f_name EXT];
 			else				% Confirm that it's a netCDF file
@@ -60,8 +61,25 @@ function out = gmtedit(varargin)
 			else							is_gmt = true;			is_mgd77 = false;
 			end
 		end
+
+		opt_file = [MIRONE_DIRS.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
+		if ( exist(opt_file, 'file') == 2 )
+			fid = fopen(opt_file, 'r');
+			c = (fread(fid,'*char'))';      fclose(fid);
+			lines = strread(c,'%s','delimiter','\n');   clear c fid;
+			m = numel(lines);
+			for (k = 1:m)
+				if (~strncmp(lines{k},'# MIR_PARAM',11)),	continue,	end
+				if (numel(lines{k}) <= 14),	continue,	end		% The minimum it takes to have a -? switch
+				t = strtok(lines{k}(13:end));
+				if ( strcmp(t(1:2), '-V') )		% Here we only check for a -V... and do not check for errors
+					varargin{end+1} = t;
+				end
+			end
+		end
+		
 		for (k = 1:numel(varargin))
-            switch (varargin{k}(1:2))
+			switch (varargin{k}(1:2))
 				case '-L'
 					def_width_km = str2double(varargin{k}(3:end));
 					if (isnan(def_width_km))        % Nonsense use of -L option
@@ -78,6 +96,9 @@ function out = gmtedit(varargin)
 					center_win = [lon lat];
 				case '-V'
 					% For new MGD77+ files only. It contains a user selection of the fields to be plot (instead of GMT)
+					% USAGE (example) -Vvar1,var2,var3; -Vvar1,var2,var3:varI+slotI[/varI+slotI[/varI+slotI]]
+					% Where var1,var2,var3 is the name of any of the variables in the .nc file
+					% The varI+slotI form will plot (add) the varI (again, one of the .nc variables) to the slot I (1:3) axes
 					str = varargin{k}(3:end);
 					ind2 = strfind(str,':');
 					if (isempty(ind2)),		last = numel(str);
@@ -87,15 +108,19 @@ function out = gmtedit(varargin)
 						vars{1} = 'faa';		vars{2} = 'mtf1';		vars{3} = 'depth';
 					else
 						ind = strfind(str,',');
-						vars{1} = str(1:ind(1)-1);
-						vars{2} = str(ind(1)+1:ind(2)-1);
-						vars{3} = str(ind(2)+1:last);
+						if (numel(ind) ~= 2)                % Failed to use the -Vvar1,var2,var3[:...] form
+							vars{1} = 'faa';	vars{2} = 'mtf1';		vars{3} = 'depth';
+						else
+							vars{1} = str(1:ind(1)-1);
+							vars{2} = str(ind(1)+1:ind(2)-1);
+							vars{3} = str(ind(2)+1:last);
+						end
 					end
 
 					if (~isempty(ind2))				% Have a multiple plots request
 						str = str(ind2+1:end);		% Retain the multi-plot info string only
 						ind = strfind(str,'/');		% How many extra curves?
-						multi_plot = cell(numel(ind)+1,2);
+						multi_plot = cell(numel(ind)+1,2);		% Pre-allocate
 						ind3 = [1 ind numel(str)+1];
 						for (n = 1:numel(ind3)-1)
 							str2 = str(ind3(n):ind3(n+1)-1);
@@ -157,19 +182,19 @@ function out = gmtedit(varargin)
 	handles.multi_plot = multi_plot;
 	handles.force_gmt = false;		% If TRUE save in old .gmt format
 
-	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 	if (~isempty(MIRONE_DIRS))							% Should not be empty, but ...
 		handles.home_dir = MIRONE_DIRS.home_dir;		% False info if not called from Mir root dir
+		handles.last_dir = MIRONE_DIRS.last_dir;
+		handles.work_dir = MIRONE_DIRS.work_dir;
 	else
 		handles.home_dir = cd;
+		handles.last_dir = cd;
+		handles.work_dir = handles.last_dir;
 	end
 
 	if (got_inFile)
 		handles.last_dir = PATH;
-	else
-		handles.last_dir = handles.home_dir;			% This means, last_dir is not saved between sessions
 	end
-	handles.work_dir = handles.last_dir;
 
 	% Load some icons from mirone_icons.mat
 	load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','trincha_ico');
@@ -218,7 +243,7 @@ function out = gmtedit(varargin)
 
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set([h_a1 h_a2 h_a3], 'UIContextMenu', cmenuHand);
-	uimenu(cmenuHand, 'Label', 'Overly interpolation', 'Call',@interp_on_grid);
+	uimenu(cmenuHand, 'Label', 'Overlay interpolation', 'Call',@interp_on_grid);
 
 	guidata(hf, handles);
 
@@ -349,7 +374,7 @@ function import_clickedCB(hObject, eventdata, opt)
 function interp_on_grid(obj, event)
 	handles = guidata(obj);
 	hAx = get(handles.figure1, 'CurrentAxes');		% Find which axes are we working on
-	gmtedit_track(handles.lon, handles.lat, handles.year, hAx, handles.h_tm)
+	gmtedit_track(handles.lon, handles.lat, handles.year, hAx, handles.h_tm, handles.last_dir, handles.work_dir)
 
 % --------------------------------------------------------------------
 function [handles, track] = read_mgd77_plus(handles, fname)
@@ -497,26 +522,26 @@ function save_clickedCB(hObject, eventdata)
 		[x_m,id] = sort([x_m x_broken]);
 		y_m = [y_m y_broken];
 		y_m = y_m(id);                      % Otherwise the y's would be out of order
+		if (isempty(y_mn)),		y_mn = 0;	end	% It can't be empty on the test to update the .nc file
 	end
 
 	set(handles.figure1,'Pointer','watch')
-	x_lim = get(get(handles.figure1,'CurrentAxes'),'XLim');
 	if (~isempty(x_gn))
 		for (k=1:numel(x_gn))
-			tmp = find((x_g - x_gn(k)) == 0);   % Find the gravity points that were marked
-			y_g(tmp) = NaN;				% Remove them
+			tmp = (x_g - x_gn(k)) == 0;		% Find the gravity points that were marked
+			y_g(tmp) = NaN;					% Remove them
 		end
 	end
 	if (~isempty(x_mn))
 		for (k=1:numel(x_mn))
-			tmp = find((x_m - x_mn(k)) == 0);   % Find the magnetic points that were marked
-			y_m(tmp) = NaN;				% Remove them
+			tmp = (x_m - x_mn(k)) == 0;		% Find the magnetic points that were marked
+			y_m(tmp) = NaN;					% Remove them
 		end
 	end
 	if (~isempty(x_tn))
 		for (k=1:numel(x_tn))
-			tmp = find((x_t - x_tn(k)) == 0);   % Find the topo points that were marked
-			y_t(tmp) = NaN;				% Remove them
+			tmp = (x_t - x_tn(k)) == 0;		% Find the topo points that were marked
+			y_t(tmp) = NaN;					% Remove them
 		end
 	end
 
@@ -619,7 +644,12 @@ function add_MarkColor(hObject, eventdata)
 	pt_x = x(i);				pt_y = y(i);
 
 	xr = get(hM,'XData');		yr = get(hM,'YData');		% Red markers
-	id = find(xr == pt_x);
+	if ( ~isempty(xr) && ~isempty(pt_x) ),
+		id = find(xr == pt_x);
+	else
+		id = [];
+	end
+
 	if (isempty(id))			% New Marker
 		if (isempty(hM))		% First red Marker on this axes
 			line(pt_x,pt_y,'Marker','s','MarkerFaceColor','r','MarkerSize',4,'LineStyle','none','Tag',opt);
@@ -666,11 +696,10 @@ catch		% Don't know why but uisuspend sometimes breaks
 	return
 end
 
-in_grav = 0;	in_mag = 0;		in_topo = 0;
+in_grav = 0;	in_mag = 0;
 ax = get(handles.figure1,'CurrentAxes');
 if (strcmp(get(ax,'Tag'),'axes1')),			in_grav = 1;	opt = 'GravNull';
 elseif (strcmp(get(ax,'Tag'),'axes2')),		in_mag = 1;		opt = 'MagNull';
-elseif (strcmp(get(ax,'Tag'),'axes3')),		in_topo = 1;	opt = 'TopNull';
 end
 
 if (in_grav)
@@ -776,7 +805,7 @@ function outliers_clickedCB(obj,eventdata,opt)
 		[handles.h_gm handles.h_mm handles.h_tm]);
 
 % --------------------------------------------------------------------
-function scroll_plots(width,x);
+function scroll_plots(width,x)
 %   This function uses the idea of the scrollplotdemo from Steven Lord (http://www.mathworks.com/matlabcentral)
 %   scroll_plots(width,x);
 %   width: window width in x units
@@ -1033,12 +1062,11 @@ uicontrol('Parent',h1, 'Position',[147 0 50 21],...
 
 function outliersdetect_CB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,[],guidata(h1));
 
 % -------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------
 function gmtedit_track(varargin)
-% M-File changed by desGUIDE 
  
 	hObject = figure('Tag','figure1','Visible','off');
 	gmtedit_track_LayoutFcn(hObject);
@@ -1049,8 +1077,10 @@ function gmtedit_track(varargin)
 	handles.year = varargin{3};
 	handles.hCallingAxes = varargin{4};
 	handles.h_tm = varargin{5};		% Handle of the Topography line
+	handles.last_dir = varargin{6};
+	handles.work_dir = varargin{7};
 
-	handles.fileName = [];
+	handles.fname = [];
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
@@ -1066,13 +1096,14 @@ function edit_gridToInterp_Callback(hObject, eventdata, handles)
 function push_gridToInterp_Callback(hObject, eventdata, handles, opt)
 	if (nargin == 3),		opt = [];		end
 	if (nargin == 4),		fname = opt;	end
+	handles = guidata(hObject);		% Get udated handles
 
 	if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
 		[FileName,PathName] = put_or_get_file(handles, ...
 			{'*.grd;*.GRD', 'Grid files (*.grd,*.GRD,*.nc)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
-		set(handles.fname,'String',fname)
+		set(handles.edit_gridToInterp,'String',fname)
 	end
 
 	handles.fname = fname;
