@@ -76,6 +76,9 @@ f3 = 35*n^3 / 48;           f4 = 315*n^4 / 512;
 % Do the tiling
 [ind_s,ind] = tile(m,300,4);
 if size(ind_s,1) > 1
+	gradE = zeros(size(varargin{3}));
+	gradN = zeros(size(varargin{3}));
+	old_height = 0;
 	for i = 1:size(ind_s,1)
 		tmp1 = (ind_s(i,1):ind_s(i,2));     % Indexes with overlapping zone
 		tmp2 = ind(i,1):ind(i,2);           % Indexes of chunks without the overlaping zone
@@ -97,9 +100,10 @@ if size(ind_s,1) > 1
 			convfactor(convfactor == 0) = NaN;		% avoid divisions by zero     
 			tmp_gradE = tmp_gradE ./ convfactor;    clear convfactor;
 		end
-		gradE = [tmp_gradE; tmp_gradE(tmp2,:)];
-		gradN = [tmp_gradN; tmp_gradN(tmp2,:)];
-    end
+		gradE(old_height+1:old_height+numel(tmp2), :) = tmp_gradE(tmp2,:);
+		gradN(old_height+1:old_height+numel(tmp2), :) = tmp_gradN(tmp2,:);
+		old_height = old_height + numel(tmp2);
+	end
 else
 	if (do_mesh),		[lonmesh,latmesh] = meshgrid(varargin{2},varargin{1});		% varargin{1} contains lat
 	else				[latmesh,lonmesh,map] = deal(varargin{1:3});				% ??? tenho de adaptar este tb.
