@@ -1537,6 +1537,9 @@ function read_DEMs(handles,fullname,tipo,opt)
 	handles.head = head;
 	aux_funs('colormap_bg',handles,Z,jet(256));
 	zz = scaleto8(Z);
+	%if (handles.have_nans),		zz = scaleto8(Z);	% Need to update cvlib_mex before we can use this
+	%else						zz = cvlib_mex('scale8',Z);
+	%end
 	handles = show_image(handles,handles.fileName,X,Y,zz,1,'xy',head(7));
 	if (isappdata(handles.axes1,'InfoMsg')),	rmappdata(handles.axes1,'InfoMsg'),		end
 	if (~isempty(att))
@@ -3476,6 +3479,7 @@ function RotateTool_CB(handles, opt)
 	if (strcmp(opt,'image'))
 		img = rotatetool(get(handles.hImg,'CData'),handles);
 		if (ndims(img) == 2),	setappdata(0,'CropedColormap',get(handles.figure1,'ColorMap')),		end
+		if(strcmp(get(handles.axes1,'YDir'),'normal')),		img = flipdim(img,1);	end
 		if (~isempty(img)),		mirone(img);	end
 	else		% grid
 		[X,Y,Z] = load_grd(handles);			% load the grid array here
@@ -3532,11 +3536,11 @@ function TransferB_CB(handles, opt)
 		opt_W = sprintf('-W%d', resp.size);
 		opt_N = sprintf('-N%d', handles.have_nans);
 
-		Z = mirblock(Z, opt_A, opt_N);
+		Z = mirblock(Z, handles.head, opt_A, opt_N, opt_W);
 		if (handles.have_nans),		zz = grdutils(Z,'-L');
 		else						zz = [min(Z(:)) max(Z(:))];
 		end
-		tmp = struct('X',X, 'Y',Y, 'head',[handles.head(1:4) zz(:)' handles.head(7:9)], 'geog',handles.geog, 'name',[opt(9:end) '_grid']);
+		tmp = struct('X',X, 'Y',Y, 'head',[handles.head(1:4) zz(:)' handles.head(7:9)], 'geog',handles.geog, 'name',resp.name);
 		projWKT = getappdata(handles.figure1,'ProjWKT');
 		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
 		mirone(Z, tmp)
