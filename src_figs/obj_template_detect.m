@@ -185,7 +185,7 @@ function push_detectObj_Callback(hObject, eventdata, handles)
 % ----------------------------------------------------------------------------------
 function [rect, result] = match_template(target, template, method)
 
-	[map, min_loc, max_loc] = cvlib_mex('MatchTemplate', target, template, method);
+	[map, min_loc, max_loc] = cvlib_mex('matchtemplate', target, template, method);
 
 	i = double(max_loc(1));
 	j = double(max_loc(2));
