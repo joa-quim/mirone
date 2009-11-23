@@ -84,7 +84,7 @@ function DatasetsTides(handles)
 	[tmp, msg] = geog2projected_pts(handles,[xharm.longitude xharm.latitude]);     % If map in geogs, tmp is just a copy of input
 	if (~strncmp(msg,'0',1))        % Coords were projected
 		xharm.longitude = tmp(:,1);        xharm.latitude = tmp(:,2);
-    end
+	end
 	% Get rid of Tide stations that are outside the map limits
 	[x,y] = aux_funs('in_map_region',handles,xharm.longitude,xharm.latitude,0,[]);
 	h_tides = line(x,y,'Marker','^','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',6,...
@@ -105,7 +105,7 @@ if (nargin == 2 && isempty(opt))            % Read a ascii multi-segment with in
 	tag = 'Unnamed';		fname = [PathName FileName];
 elseif (nargin == 2)		% Read a ascii multi-segment file of which we already know the name (drag N'drop)
 	tag = 'DragNdroped';	fname = opt;
-	[PathName, dumb] = fileparts(fname);		% We need the 'PathName' below
+	PathName = fileparts(fname);		% We need the 'PathName' below
 else
 	tag = 'isochron';		fname = [handles.path_data 'isochrons.dat'];
 end
@@ -123,7 +123,7 @@ end
 % 	set(h, 'UIContextMenu', cmenuHand)
 
 %set(handles.figure1,'pointer','watch')
-[bin,n_column,multi_seg,n_headers] = guess_file(fname);
+[bin,n_column, multi_seg] = guess_file(fname);
 if (n_column == 1 && multi_seg == 0)        % Take it as a file names list
     fid = fopen(fname);
     c = char(fread(fid))';      fclose(fid);
@@ -150,11 +150,11 @@ if (handles.no_file)		% Start empty but below we'll find the true data region
             fname = names{k};
             j = strfind(fname,filesep);
             if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well 
-            [numeric_data,multi_segs_str] = text_read(fname,NaN,NaN,'>');
+            numeric_data = text_read(fname,NaN,NaN,'>');
 			if (~isa(numeric_data,'cell'))			% File was not multi-segment.
 				numeric_data = {numeric_data};
 			end
-            for i=1:length(numeric_data)
+			for i=1:length(numeric_data)
 				tmpx = numeric_data{i}(:,1);	tmpy = numeric_data{i}(:,2);
 				XMin = min(XMin,min(tmpx));		XMax = max(XMax,max(tmpx));
 				YMin = min(YMin,min(tmpy));		YMax = max(YMax,max(tmpy));
@@ -181,13 +181,13 @@ if (handles.validGrid),			min_max = handles.head(5:6);	end		% To be used in test
 for (k = 1:numel(names))		% Main loop over data files
     fname = names{k};
 	if (handles.no_file && k == 1)			% Rename figure with draged file name
-		[pato,barName,EXT] = fileparts(fname);
+		[pato,barName] = fileparts(fname);
 		old_name = get(hMirFig,'Name');		ind = strfind(old_name, '@');
 		set(hMirFig,'Name',[barName old_name(ind-1:end)])
 	end
     j = strfind(fname,filesep);
     if (isempty(j)),    fname = [PathName fname];   end			% It was just the filename. Need to add path as well 
-    [numeric_data,multi_segs_str] = text_read(fname,NaN,NaN,'>');
+    [numeric_data, multi_segs_str] = text_read(fname,NaN,NaN,'>');
 	if (~isa(numeric_data,'cell'))			% File was not multi-segment. Now pretend it was but with no info
 		numeric_data = {numeric_data};
 		multi_segs_str = {'> No info provided'};
@@ -257,7 +257,7 @@ for (k = 1:numel(names))		% Main loop over data files
 			end	
 			setappdata(h_isoc(i),'LineInfo',multi_segs_str{i})  % To work with the sessions and will likely replace old mechansim
 		else
-			[Fcor str2] = parseG(multi_segs_str{i});
+			Fcor = parseG(multi_segs_str{i});
 			if (isempty(Fcor)),      Fcor = 'none';   end
 			hPat = patch('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',thick,'EdgeColor',cor,'FaceColor',Fcor);
 			if (~isempty(tmpz) && (tmpz(1) >= min_max(1) && tmpz(1) <= min_max(2)))	% Crude test to keep only if inside Z range
@@ -808,7 +808,7 @@ if (handles.no_file)        % Start empty but below we'll find the true data reg
         %j = strfind(fname,filesep);
         %if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well
         % No caso acima tenho que testar se o fiche existe
-        [numeric_data,multi_segs_str] = text_read(fname,NaN,n_headers,'>');
+        numeric_data = text_read(fname,NaN,n_headers,'>');
         for i=1:length(numeric_data)
             tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
             XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
