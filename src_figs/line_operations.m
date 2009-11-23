@@ -346,11 +346,22 @@ function push_apply_Callback(hObject, eventdata, handles)
 			% Compute the N+1 lines that will be attached to this thickned line
 			dl = thick / N;
 			xL = zeros(n_pts, N+1);		yL = zeros(n_pts, N+1);
+% 			co = [co co(end)];			si = [si si(end)];
+% 			foo1 = zeros(n_pts, 1);		foo2 = zeros(n_pts, 1);
 			for (k = 1:N+1)
 				th = thick/2 - (k-1) * dl;
-				foo = [co -si; si  co] * [0; th];
+				foo = [co(1) -si(1); si(1) co(1)] * [0; th];
 				xL(:,k) = x_copy + repmat(foo(1), n_pts, 1);		% One line per column
 				yL(:,k) = y_copy + repmat(foo(2), n_pts, 1);
+				
+				% Tenho de voltar a remoer isto. O problema (em baixo) é que depois não vai ter
+				% o mesmo número de elementos quando interpolada no grid_profiler (para stakar)
+% 				for (m = 1:n_pts)		% This loop has meaning only for polylines, as angles vray between segments
+% 					foo = [co(m) -si(m); si(m) co(m)] * [0; th];
+% 					foo1(m) = foo(1);	foo2(m) = foo(2);
+% 				end
+% 				xL(:,k) = x_copy + foo1;		% One line per column
+% 				yL(:,k) = y_copy + foo2;
 			end
 			set(handles.hLine(1), 'UserData', {xL; yL; thick; [x_copy y_copy]; handles.geog; ...	% We'll next info if line is edited
 					'MxN X and Y with M = number_vertex and N = number_lines; THICK = thickness in map units; Mx2 = original line; is geog?'})
@@ -397,7 +408,7 @@ function [out, msg] = validate_args(qual, str, np)
 
 			% test the geodetic option
 			if (ind1)
-				[t1, r] = strtok(str(ind1+1:ind2-1));		[t2, r] = strtok(r);
+				[t1, r] = strtok(str(ind1+1:ind2-1));	t2 = strtok(r);
 				a = str2double(t1);		b = str2double(t2);		% b actually may be f (flatening)
 				if (isnan(a) || isnan(b))
 					msg = 'ellipsoid vector is screwed up. Please revise or pay more attention';	return
