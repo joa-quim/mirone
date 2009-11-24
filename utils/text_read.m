@@ -44,8 +44,8 @@ end
 
 if (isnan(requestedHeaderLines))   % GUESS_FILE is better (and probably faster) in in guessing headers
 	[bin, n_column, multi_seg, requestedHeaderLines] = guess_file(filename, 2048, 50);
-	hlines = requestedHeaderLines;		headerlines = requestedHeaderLines;
 end
+hlines = requestedHeaderLines;		headerlines = requestedHeaderLines;
 
 % ----------------------------- open the file
 fid = fopen(filename);
@@ -79,9 +79,9 @@ if ~isnan(requestedMultiSeg)
 		s = strread(string,'%s','delimiter','\n');		clear string;
 		if (headerlines),	s(1:headerlines) = [];		end
 		ix = strmatch(requestedMultiSeg,s);
-		if (ix(1) ~= 1),	ix = [0; ix];		end		% First line hadn't the multi-seg character
 		% ... descriptors
 		if (nargout > 1),	date = s(ix);		end
+		if (ix(1) ~= 1),	ix = [0; ix];		end		% First line hadn't the multi-seg character
 		ix = [ix;size(s,1)+1];    ib = ix(1:end-1)+1;    ie = ix(2:end)-1;
 		ind = ((ib - ie) > 0);					% Find consecutive lines that start by the multi-seg character
 		ib(ind) = [];		ie(ind) = [];		% And remove the n-1 first (if they exist, certainly) 
@@ -589,29 +589,44 @@ if (isstruct(in1) && ~isempty(in1.textdata))     % We have at least one string c
         % When the string is in the last column, we still want to know if the previous are numeric
         % In that case in1.textdata will containt only one column per line
         cellstring = strread(in1.textdata{1},'%s','delimiter',delimiter)';
-        try
+		try
             flags = isdata(cellstring(1:length(cellstring)-1));
             n_good = max(find(flags ~= 0));
         catch   % Error occurs when in1.textdata has more than 1 column and the n_good condition is not necessary
             n_good = 0;
-        end
-        if (n_good)             % Yes, there are valid data cols before the string col
+		end
+		if (n_good)             % Yes, there are valid data cols before the string col
             tmp = [];   m = size(in1.textdata,1);
             for (i=1:m)
-                tmp = [tmp; strread(in1.textdata{i},'%s','delimiter',delimiter)'];
+				tmp = [tmp; strread(in1.textdata{i},'%s','delimiter',delimiter)'];
             end
-            numeric_data = reshape(str2num(cat(1,tmp{:,1:n_good})),m,n_good);
+			numeric_data = str2double(in1.textdata(:,1:n_good));
             clear tmp;
             str_col = n_good+1;  % Keep trace on the string column number
         else
             [m,n] = size(in1.textdata);
-            numeric_data = reshape(str2num(cat(1,in1.textdata{:,1:n-1})),m,n-1);    % Fds this was tough
+            %numeric_data = reshape(str2num(cat(1,in1.textdata{:,1:n-1})),m,n-1);    % Fds this was tough
+			numeric_data = str2double(in1.textdata(:,1:n-1));
             in1.textdata(:,1:end-1) = [];     % retain only the data string in this variable
             str_col = n;            % Keep trace on the string column number
-        end
-        if (~isempty(in1.data))     % cat the eventual data after the string column
-            numeric_data = [numeric_data in1.data];
-        end
+		end
+		if (~isempty(in1.data))     % cat the eventual data after the string column
+			numeric_data = [numeric_data in1.data];
+		end
+
+		% See if the text column may be of the form dd-mmm-yyyy or alike described below.
+		% If it clearly is not, than do not try to decode it as a date string.
+		if (~n_good)
+			d = in1.textdata{1};
+			if ( numel(d) < 10 || numel(d) > 11 )
+				str_col = [];
+			elseif ( ~isempty(strfind(d, '-')) || ~isempty(strfind(d, '/')) || ~isempty(strfind(d, ':')) )
+				str_col = [];
+			end
+		else
+			disp('Unforseen case. Don''t know what will happen next (in "col_str2dec")')
+		end
+
     else        % Shit, what shell I do?
         errordlg('Case not forseen in "col_str2dec".','Error')
         numeric_data = [];  date = [];  str_col = [];   return;
