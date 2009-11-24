@@ -100,7 +100,7 @@ bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
 	if (nargout <= 3),		return,		end
 	
     % Now test if header lines are present (ascii 65:122 contain upper and lower case letters)
-    for j=1:m
+	for j=1:m
         head = find((str{j} > 32 & str{j} < 43) | str{j} > 58);
         tmp = find(str{j} == 78);    % I'm searching for a NaN string (ascii 78,97,78)
         if ~isempty(tmp) && length(tmp) == 2
@@ -124,5 +124,21 @@ bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
                 head = find((w > 31 & w < 43) | w > 58);
             end
         end
-        if ~isempty(head);   n_headers = n_headers + 1;  end
-    end
+        if ~isempty(head),	n_headers = n_headers + 1;	end
+	end
+	
+	% Another trouble we may face is when there is a text column in file (e.g. a date string)
+	% In that case the above test failed miserably and I don't really know what clever thing to do.
+	% So we do a more dumb test. If first element of last line is a number we re-test again for
+	% headers, but this time will accept only those lines whose first character is '#'
+	if (n_headers == m)
+		t = strtok(str{m});
+		if (~isnan(t))
+			n_headers = 0;
+			j = 1;
+			while (str{j}(1) == '#' && j <= m)
+				n_headers = n_headers + 1;
+				j = j + 1;
+			end
+		end
+	end
