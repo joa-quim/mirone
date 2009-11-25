@@ -56,7 +56,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %  	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
 	global home_dir;	fsep = filesep;
 	if (isempty(home_dir))		% First time call. Find out where we are
-		[home_dir, nome] = fileparts(mfilename('fullpath'));		% Get the Mirone home dir and set path
+		home_dir = fileparts(mfilename('fullpath'));			% Get the Mirone home dir and set path
 		addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
 	end
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
@@ -102,7 +102,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.defCoordsIn = 0;	% To use when Load files and have to decide if we need to project
 								% 0 -> don't know; -1 -> Coords are already projected; 1 -> geog coords needing project
 	try		zz = handles.Projections;		% Use a try/catch since isfield is brain-dead long
-	catch	handles.Projections = nan;		% Set it to something to prevent "unknown field" error in setAxesDefCoordIn()
+	catch,	handles.Projections = nan;		% Set it to something to prevent "unknown field" error in setAxesDefCoordIn()
 	end
 	handles.scale2meanLat = 1;	% Scale geog ref images so that at middle image dx = dy in cartesian units (kind of proj)
 	handles.FOpenList = cell(numel(handles.RecentF),1);
@@ -679,9 +679,6 @@ function do_undo(obj,event,hFig,h,img)
 	handles = guidata(hFig);
 	[X,Y,Z] = load_grd(handles);	% Experimental. No testing for error in loading
 	Z(handles.r_c(1):handles.r_c(2),handles.r_c(3):handles.r_c(4)) = handles.Z_back;
-	if (isa(Z,'single')),	zz = grdutils(Z,'-L');		z_min = zz(1);		z_max = zz(2);
-	else					z_min = double(min(Z(:)));	z_max = double(max(Z(:)));
-	end
 	setappdata(handles.figure1,'dem_z',Z);
 	handles.origFig = get(handles.hImg,'CData');
 	handles.origFig(handles.r_c(1):handles.r_c(2),handles.r_c(3):handles.r_c(4),:) = handles.img_back;
@@ -1151,7 +1148,7 @@ else
 		I = gdalread(handles.fileName);
 	else
 		try			I = imread(handles.fileName);
-		catch		errordlg(lasterr,'Error'),		return	% It realy may happen
+		catch,		errordlg(lasterr,'Error'),		return	% It realy may happen
 		end
 	end
 	[head_fw,err_msg] = tfw_funs('inquire',[size(I,1) size(I,2)],PATH,FNAME,EXT);	% See if we have .*fw file
@@ -1285,7 +1282,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	ECWpatch(handles, tipo)					% Check if we need to patch the ECW library memory fragmentation
 	erro = 0;			gotHDRcoords = false;		opt_U = '-U';		opt_L = ' ';		fnameBak = handles.fileName;
 	try		att = gdalread(handles.fileName,'-M','-C');	% Safety against blind calls from 'try luck'
-	catch	erro = 1;	errordlg(lasterr,'Error'),		return
+	catch,	erro = 1;	errordlg(lasterr,'Error'),		return
 	end
 	att.fname = handles.fileName;						% If hdfread is used, it will need the file name (not eventual dataset name)
 	att.subDsName = '';
@@ -1350,7 +1347,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 				if ((handles.head(6)+1) < size(pal,1) && isequal(pal(handles.head(6)+2,:), [0 0 0]) )
 					pal(handles.head(6)+2:end,:) = [];		% TEMP!? GDAL forces pals of 256 and that screws some cases
 				end
-			catch	warndlg('Figure ColorMap had troubles. Replacing by a default one.','Warning'); pal = jet(256);
+			catch,	warndlg('Figure ColorMap had troubles. Replacing by a default one.','Warning'); pal = jet(256);
 			end
 		end
 	elseif (strcmpi(att.ColorInterp,'gray'))
@@ -1519,7 +1516,7 @@ function read_DEMs(handles,fullname,tipo,opt)
 			end
 		end
 		% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
-		if ( isequal([att.Corners.LR - att.Corners.UL],[att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
+		if ( isequal((att.Corners.LR - att.Corners.UL),[att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
 			att.GMT_hdr(1:4) = [1 att.RasterXSize 1 att.RasterYSize];
 		end
 		head = att.GMT_hdr;
@@ -2343,7 +2340,7 @@ function DrawImportShape_CB(handles, fname)
 		fname = [PathName FileName];
 	end
 	try			[s,t] = mex_shape(fname);
-	catch		errordlg([lasterr ' Most probably, NOT a shapefile'],'Error'),		return
+	catch,		errordlg([lasterr ' Most probably, NOT a shapefile'],'Error'),		return
 	end
 	
 	lt = handles.DefLineThick;		lc = handles.DefLineColor;
