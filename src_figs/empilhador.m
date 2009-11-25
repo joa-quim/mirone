@@ -498,7 +498,7 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 	end
 
 	% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
-	if ( isequal([att.Corners.LR - att.Corners.UL],[att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
+	if ( isequal((att.Corners.LR - att.Corners.UL), [att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
 		att.GMT_hdr(1:4) = [1 att.RasterXSize 1 att.RasterYSize];
 	end
 
@@ -586,8 +586,12 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 			intercept = str2double(att.Metadata{57}(11:end));	% att.Metadata{41} -> Intercept=-2
 			is_log = true;
 		end
-		att.Band(1).NoDataValue = 65535;		% Shity format doesn't declare this null part
+
+		att.Band(1).NoDataValue = 65535;						% Shity format doesn't declare this.
+		nv = search_scaleOffset(att.Metadata, 'Fill');			% But sometimes (some SeaWifs) it exists
+		if (~isempty(nv)),	att.Band(1).NoDataValue = nv;	end
 		is_modis = true;			% We'll use this knowledge to 'avoid' Land pixels = 65535
+
 	elseif ( ~is_HDFEOS && ~modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4)  )		% TEMP -> SST PATHFINDER
 		finfo = hdf_funs('hdfinfo', att.fname);
 		if (strcmpi(finfo.SDS.Attributes(11).Name, 'slope'))
@@ -730,7 +734,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		if (isempty(att))
 			[fname, str_d] = deal_with_compressed(fname);
 			att = gdalread(fname, '-M');	clear_att = true;
-			str_d = fname;
+			if (~isempty(str_d)),	str_d = fname;		end
 		end
 		ind = strfind(att.Subdatasets{handles.SDSthis * 2 - 1}, '=');
 		fname = att.Subdatasets{handles.SDSthis * 2 - 1}(ind+1:end);	% First "ind" chars are of the form SUBDATASET_?_NAME=
@@ -749,7 +753,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 	[Z,att] = read_gdal(fname, att, '-C', opt_R, '-U');
 
 	% See if we knew the image coordinates but that knowedge is lost in new att
-	if ( isequal(att.GMT_hdr(8:9), [1 1]) && ~isequal(GMT_hdr(8:9), [1 1]) )
+	if ( (isequal(att.GMT_hdr(8:9), [1 1]) && ~isequal(GMT_hdr(8:9), [1 1])) || (diff(GMT_hdr(1:2)) > 359.9) )
 		att.GMT_hdr = GMT_hdr;		% Recover the header info
 		att.Corners.LR = Corners.LR;
 		att.Corners.UL = Corners.UL;
@@ -816,10 +820,10 @@ function [Z, att] = read_gdal(full_name, att, varargin)
 		if ( att.RasterCount > 0 && numel(varargin) <= 2)		% CONVOLUTED TEST, BUT THIS IS A CONFUSED PROGRAM
 			handles = guidata(gcf);
 			if ( ~isempty(handles.SDSinfo) && handles.SDSthis > 1 && ~handles.testedDS)
-				errordlg('Input File has no Sub-Datasets so the silly sub-dataset request forced me to abort.','Error')
-				error('empilhador: File has no Sub-Datasets so the silly sub-dataset request forced me to abort')
 				handles.testedDS = true;
 				guidata(handles.figure1, handles)
+				errordlg('Input File has no Sub-Datasets so the silly sub-dataset request forced me to abort.','Error')
+				error('empilhador: File has no Sub-Datasets so the silly sub-dataset request forced me to abort')
 			end
 		end
 	end
@@ -837,7 +841,7 @@ function [Z, att] = read_gdal(full_name, att, varargin)
 
 	% att.hdrInfo and att.hdrModisL2 are not default fields of the ATT struct
 	try		fname = att.fname;
-	catch	fname = [];
+	catch,	fname = [];
 	end
 	if (isfield(att, 'hdrInfo') && ~isempty(att.hdrInfo) && (strcmp(att.hdrInfo.SDS.Name,'sst')) )
 		% Only particular case dealt now
@@ -847,9 +851,15 @@ function [Z, att] = read_gdal(full_name, att, varargin)
 		opt_L = ' ';	GCPvalues = [];
 		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2) )
 			% These boys think they are very funy. Oh it's so cute to write the file from right-to-left !!!
-			lon = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(4).SDS(1).Name, 'index', {[],[], []}) );
-			lat = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(4).SDS(2).Name, 'index', {[],[], []}) );
-			cntl_pt_cols = hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(4).SDS(3).Name, 'index', {[],[], []});
+			Vg_index = 4;		% The uncomprehensible MESS never ends. I have to do trial-error to find the right index
+			try
+				lon = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(1).Name, 'index', {[],[], []}) );
+			catch				% I already crossed these two cases. HOW MANY MORE WILL THEY INVENT???
+				Vg_index = 3;
+				lon = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(1).Name, 'index', {[],[], []}) );
+			end
+			lat = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(2).Name, 'index', {[],[], []}) );
+			cntl_pt_cols = hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(3).Name, 'index', {[],[], []});
 
 			cntl_pt_cols = double(cntl_pt_cols);
 			lat = double(lat);		lon = double(lon);
@@ -1189,7 +1199,7 @@ function check_landMask_Callback(hObject, eventdata, handles)
 		elseif (info.high == 'y'),			handles.out.coastRes = 4;
 		elseif (info.intermediate == 'y'),	handles.out.coastRes = 3;
 		elseif (info.low == 'y'),			handles.out.coastRes = 2;
-		else,								handles.out.coastRes = 1;
+		else								handles.out.coastRes = 1;
 		end
 		guidata(handles.figure1, handles)
 	end
