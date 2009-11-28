@@ -305,7 +305,7 @@ function import_clickedCB(hObject, eventdata, opt)
 		for (k=1:length(handles.h_broken))
 			set(handles.h_broken(k),'Xdata',[],'YData',[])
 		end
-		rmfield(handles,'h_broken');
+		handles = rmfield(handles,'h_broken');
 		handles.h_broken = [];
 	end
 
@@ -333,13 +333,19 @@ function import_clickedCB(hObject, eventdata, opt)
 	val = track.distance(1);
 
 	if (~handles.begin)         % Start the display at a user selected coordinate
-		x = handles.lon - handles.center_win(1);    [zz,id1] = min(abs(x));     clear x;
-		y = handles.lat - handles.center_win(2);    [zz,id2] = min(abs(y));     clear y;
-		% id1 and id2 are not forcedly equal. Find out the "best"
-		r1 = sqrt((handles.lon(id1) - handles.center_win(1))^2 + (handles.lat(id1) - handles.center_win(2))^2);
-		r2 = sqrt((handles.lon(id2) - handles.center_win(1))^2 + (handles.lat(id2) - handles.center_win(2))^2);
-		id = id1;
-		if (r2 < r1),	id = id2;	end
+		r1 = 1;		r2 = 1;		n_iter = 0;
+		x = handles.lon - handles.center_win(1);		y = handles.lat - handles.center_win(2);
+		while ( (min(r1, r2) > 0.02) && (n_iter < 10) )	% We need this loop for cases when both id1 & id2 are bad
+			[zz,id1] = min(abs(x));			[zz,id2] = min(abs(y));
+			% id1 and id2 are not forcedly equal. Find out the "best"
+			r1 = sqrt((handles.lon(id1) - handles.center_win(1))^2 + (handles.lat(id1) - handles.center_win(2))^2);
+			r2 = sqrt((handles.lon(id2) - handles.center_win(1))^2 + (handles.lat(id2) - handles.center_win(2))^2);
+			id = id1;
+			if (r2 < r1),	id = id2;	end
+			x(id1) = 1e2;	y(id2) = 1e2;		% If they are no good, don't reuse them, otherwise it doesn't matter
+			n_iter = n_iter + 1;
+		end
+		clear x y;
 		x_lim = track.distance(id) + [-handles.def_width_km/2 handles.def_width_km/2];
 		set([handles.axes1 handles.axes2 handles.axes3],'xlim',x_lim)
 		val0 = track.distance(id)-handles.def_width_km;
@@ -417,7 +423,7 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 					end
 				catch
 					errordlg('GMTEDIT: At least one of custom selected EXTRA field name does not exist in dataset','Error')
-					if (isfield(track,'multi')),	rmfield(track,'multi');		end
+					if (isfield(track,'multi')),	track = rmfield(track,'multi');		end
 				end
 			end
 		catch
@@ -554,7 +560,7 @@ function save_clickedCB(hObject, eventdata)
 		is_gmt = handles.is_gmt;	% Local copy to handle also the force_gmt case 
 		if (handles.force_gmt && ~is_gmt),		y_m = y_m - 40000;	is_gmt = true;		end		% Conversion from the mgd77+ format
 		if (is_gmt),			y_m(isnan(y_m)) = NODATA(2);		y_m = int16(y_m);
-		elseif (~isempty(x_mn))
+		elseif ( ~isempty(x_mn) || ~isempty(handles.h_broken) )
 			y_m = y_m / handles.magScaleF;
 			y_m(isnan(y_m)) = NODATA(2);
 			y_m = int32(y_m);
@@ -1127,11 +1133,11 @@ function zz = push_OK_Callback(hObject, eventdata, handles)
 	end
 
 	if (strcmp(get(handles.hCallingAxes,'Tag'), 'axes1'))
-		h = findobj('Type','line','Tag','orig_grav');
+		h = findobj('Parent',handles.hCallingAxes, 'Type','line','Tag','orig_grav');
 	elseif (strcmp(get(handles.hCallingAxes,'Tag'), 'axes2'))
-		h = findobj('Type','line','Tag','orig_mag');
+		h = findobj('Parent',handles.hCallingAxes, 'Type','line','Tag','orig_mag');
 	else
-		h = findobj('Type','line','Tag','orig_topo');
+		h = findobj('Parent',handles.hCallingAxes, 'Type','line','Tag','orig_topo');
 	end
 	x = get(h,'XData');
 	line('XData',x,'YData',zz,'Color','b','Parent',handles.hCallingAxes, 'LineWidth', 2, 'HitTest', 'off');
