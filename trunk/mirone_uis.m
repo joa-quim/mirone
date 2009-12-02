@@ -650,7 +650,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 25 Nov 2009'',''1.5.1(dev)'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 02 Dec 2009'',''1.5.1(dev)'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -714,7 +714,7 @@ function figure1_ResizeFcn(hObj, event)
 	handles = guidata(hObj);
 	if (isempty(handles)),      return,     end
 	screen = get(0,'ScreenSize');	    pos = get(handles.figure1,'Pos');
-	if (screen(3) == pos(3))            % Do not allow figure miximizing
+	if ( isequal(screen(3:4), pos(3:4)) )            % Do not allow figure miximizing
 		set(handles.figure1,'Pos',handles.oldSize)
 	else
 		hSliders = getappdata(handles.axes1,'SliderAxes');
@@ -731,7 +731,7 @@ function figure1_ResizeFcn(hObj, event)
 function figure1_CloseRequestFcn(hObj, event)
 	handles = guidata(hObj);
 	try		h = getappdata(handles.figure1,'dependentFigs');
-	catch,	delete(gcf),	return
+	catch,	delete(handles.figure1),	return
 	end
 	delete(handles.figure1);		delete(h(ishandle(h)))      % Delete also any eventual 'carra?as'
 	FOpenList = handles.FOpenList;		fname = [handles.path_data 'mirone_pref.mat'];
