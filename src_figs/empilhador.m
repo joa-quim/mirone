@@ -573,7 +573,6 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 			rows = att.RasterYSize;
 		end
 		head(7) = 0;		% Make sure that grid reg is used
-		att.GMT_hdr = head;	% We need this updated
 
 		% Get the the scaling equation and its parameters
 		if ( strcmp(att.Metadata{53}(9:end), 'linear') )
@@ -590,6 +589,8 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		att.Band(1).NoDataValue = 65535;						% Shity format doesn't declare this.
 		nv = search_scaleOffset(att.Metadata, 'Fill');			% But sometimes (some SeaWifs) it exists
 		if (~isempty(nv)),	att.Band(1).NoDataValue = nv;	end
+		if (head(5) == att.Band(1).NoDataValue),	head(5) = NaN;	end		% Force later recomputing of array min/max
+		att.GMT_hdr = head;			% We need this updated
 		is_modis = true;			% We'll use this knowledge to 'avoid' Land pixels = 65535
 
 	elseif ( ~is_HDFEOS && ~modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4)  )		% TEMP -> SST PATHFINDER
