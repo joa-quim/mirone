@@ -63,60 +63,60 @@ elseif (nargin == 1 && ischar(varargin{1}))
 end
 handles.d_path = [handles.home_dir filesep 'data' filesep];
 
-handles.pal_top = [];       % will contain new colormaps as changed by the the sliders
+handles.pal_top = [];			% will contain new colormaps as changed by the the sliders
 handles.pal_bot = [];
 handles.bg_color = [1 1 1];
 handles.z_intervals = [];
+handles.thematic = false;		% Some thematic pals will use a pre-set handles.z_intervals
+handles.hinge = false;			% Thematic pals may have a hinge point
 handles.txt_cZ_pos = get(handles.h_txt_cZ,'Position');
 
 % Generate lists of available color palettes
 palsML = {'ML -- autumn' 'ML -- bone' 'ML -- colorcube' 'ML -- cool' 'ML -- copper' ...
-    'ML -- flag' 'ML -- gray' 'ML -- hot' 'ML -- hsv' 'ML -- jet' 'ML -- lines' 'ML -- pink' ...
-    'ML -- prism' 'ML -- summer' 'ML -- winter' 'ML -- vivid'};
-palsGMT = {'GMT -- drywet' 'GMT -- gebco' 'GMT -- globe' 'GMT -- rainbow' ...
-    'GMT -- haxby' 'GMT -- no_green' 'GMT -- ocean' 'GMT -- polar' 'GMT -- red2green' ...
-    'GMT -- sealand' 'GMT -- seis' 'GMT -- split' 'GMT -- topo' 'GMT -- wysiwyg' ...
-    'DEM_screen' 'DEM_print' 'DEM_poster'};
-palsA = {'mag' 'ArcEnCiel' 'circular' 'ChromaDepth' 'Mer' 'MetalChaud' 'Paysage' 'RougeVert' ...
-    'Sbm' 'Sismique' 'Terre' 'Terre_Mer' 'Tubulare' 'Tubulare_inv' 'atlas' 'bvr_180' 'bvr_90' ...
-    'bvr_clair' 'bvr_sombre' 'pente_90' 'rainbow_hist'};
-palsCAR = {'CAR -- Blue' 'CAR -- Carnation' 'CAR -- Cyan' 'CAR -- Desert' 'CAR -- Earth' 'CAR -- Green' ...
-    'CAR -- HotMetal' 'CAR -- Jelly' 'CAR -- Magenta' 'CAR -- MorningGlory' 'CAR -- Mustard' ...
-    'CAR -- Ocean' 'CAR -- OceanLight' 'CAR -- Olive' 'CAR -- Oysters' 'CAR -- Pumpkin' 'CAR -- Red' ...
-    'CAR -- Rose' 'CAR -- Saturn' 'CAR -- Seafloor' 'CAR -- Space' 'CAR -- SuperNova' ...
-    'CAR -- Topographic' 'CAR -- TrackLine' 'CAR -- Yellow' 'CAR -- colors10'};
-palsGIMP = {'Abstract_1' 'Abstract_2' 'Abstract_3' 'Aneurism' 'Blinds' 'Browns' 'Brushed_Aluminium' ...
-    'Burning_Paper' 'Burning_Transparency' 'Caribbean_Blues' 'CD' 'CD_Half' 'Cold_Steel' ...
-    'Deep_Sea' 'Flare_Glow_Angular_1' 'Flare_Glow_Radial_2' 'Flare_Radial_102' 'Flare_Radial_103' ...
-    'Flare_Rays_Size_1' 'Four_bars' 'Full_saturation_spectrum_CCW' 'Full_saturation_spectrum_CW' ...
-    'Golden' 'Greens' 'Horizon_1' 'Incandescent' 'Land_1' 'Land_and_Sea' 'Metallic_Something' ...
-    'Nauseating_Headache' 'Pastels' 'Pastel_Rainbow' 'Purples' 'Radial_Eyeball_Blue' ...
-    'Radial_Eyeball_Brown' 'Radial_Eyeball_Green' 'Radial_Rainbow_Hoop' 'Rounded_edge' ...
-    'Shadows_1' 'Shadows_2' 'Shadows_3' 'Skyline' 'Skyline_polluted' 'Sunrise' ...
-    'Tropical_Colors' 'Wood_1' 'Wood_2' 'Yellow_Contrast' 'Yellow_Orange'};
+	'ML -- flag' 'ML -- gray' 'ML -- hot' 'ML -- hsv' 'ML -- jet' 'ML -- lines' 'ML -- pink' ...
+	'ML -- prism' 'ML -- summer' 'ML -- winter' 'ML -- vivid'};
+handles.palsGMT = {'GMT -- drywet' 'GMT -- gebco' 'GMT -- globe' 'GMT -- rainbow' ...
+	'GMT -- haxby' 'GMT -- no_green' 'GMT -- ocean' 'GMT -- polar' 'GMT -- red2green' ...
+	'GMT -- sealand' 'GMT -- seis' 'GMT -- split' 'GMT -- topo' 'GMT -- wysiwyg' ...
+	'DEM_screen' 'DEM_print' 'DEM_poster'};
+handles.palsA = {'mag' 'ArcEnCiel' 'circular' 'ChromaDepth' 'Mer' 'MetalChaud' 'Paysage' 'RougeVert' ...
+	'Sbm' 'Sismique' 'Terre' 'Terre_Mer' 'Tubulare' 'Tubulare_inv' 'atlas' 'bvr_180' 'bvr_90' ...
+	'bvr_clair' 'bvr_sombre' 'pente_90' 'rainbow_hist'};
+handles.palsCAR = {'CAR -- Blue' 'CAR -- Carnation' 'CAR -- Cyan' 'CAR -- Desert' 'CAR -- Earth' 'CAR -- Green' ...
+	'CAR -- HotMetal' 'CAR -- Jelly' 'CAR -- Magenta' 'CAR -- MorningGlory' 'CAR -- Mustard' ...
+	'CAR -- Ocean' 'CAR -- OceanLight' 'CAR -- Olive' 'CAR -- Oysters' 'CAR -- Pumpkin' 'CAR -- Red' ...
+	'CAR -- Rose' 'CAR -- Saturn' 'CAR -- Seafloor' 'CAR -- Space' 'CAR -- SuperNova' ...
+	'CAR -- Topographic' 'CAR -- TrackLine' 'CAR -- Yellow' 'CAR -- colors10'};
+handles.palsGIMP = {'Abstract_1' 'Abstract_2' 'Abstract_3' 'Aneurism' 'Blinds' 'Browns' 'Brushed_Aluminium' ...
+	'Burning_Paper' 'Burning_Transparency' 'Caribbean_Blues' 'CD' 'CD_Half' 'Cold_Steel' ...
+	'Deep_Sea' 'Flare_Glow_Angular_1' 'Flare_Glow_Radial_2' 'Flare_Radial_102' 'Flare_Radial_103' ...
+	'Flare_Rays_Size_1' 'Four_bars' 'Full_saturation_spectrum_CCW' 'Full_saturation_spectrum_CW' ...
+	'Golden' 'Greens' 'Horizon_1' 'Incandescent' 'Land_1' 'Land_and_Sea' 'Metallic_Something' ...
+	'Nauseating_Headache' 'Pastels' 'Pastel_Rainbow' 'Purples' 'Radial_Eyeball_Blue' ...
+	'Radial_Eyeball_Brown' 'Radial_Eyeball_Green' 'Radial_Rainbow_Hoop' 'Rounded_edge' ...
+	'Shadows_1' 'Shadows_2' 'Shadows_3' 'Skyline' 'Skyline_polluted' 'Sunrise' ...
+	'Tropical_Colors' 'Wood_1' 'Wood_2' 'Yellow_Contrast' 'Yellow_Orange'};
+handles.palsT = {'Mag - anomaly' 'SeaLand (m)' 'Bathymetry (m)' 'Topography (m)'};
 
-handles.palsML = palsML;        handles.palsGMT = palsGMT;
-handles.palsA = palsA;          handles.palsCAR = palsCAR;
-handles.palsGIMP = palsGIMP;
-%pals = {'Current' palsML{:} palsGMT{:} palsA{:}};
-pals = {'Current' palsML{:}};
+handles.palsML = palsML;
+pals = [{'Current'} palsML];
 set(handles.listbox1,'String',pals);
 
 %------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 % This stupid doesn't allow a frame in the background of an axes. I tried
 % everything but the axes is allways behind the frame. So the trick will be to
 % change it's size here (it was to small in guide) and let frame3D do the job.
-posf_b = get(handles.frame_bot,'Position');
-posf_t = get(handles.frame_top,'Position');
-set(handles.frame_top,'Position',[posf_t(1) posf_t(2) posf_b(3) posf_t(4)]);
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-h_f = [handles.frame_top handles.frame_bot];
-for i=1:numel(h_f)
-    frame_size = get(h_f(i),'Position');
-    frame3D(hObject,frame_size,framecolor,'',[])
-    delete(h_f(i))
-end
+	posf_b = get(handles.frame_bot,'Position');
+	posf_t = get(handles.frame_top,'Position');
+	set(handles.frame_top,'Position',[posf_t(1) posf_t(2) posf_b(3) posf_t(4)]);
+	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+	h_f = [handles.frame_top handles.frame_bot];
+	for i=1:numel(h_f)
+		frame_size = get(h_f(i),'Position');
+		frame3D(hObject,frame_size,framecolor,'',[])
+		delete(h_f(i))
+	end
 %------------- END Pro look (3D) -------------------------------------------------------
 
 if (later_ReadPalette)		% When pallete filename was transmited in input
@@ -153,27 +153,32 @@ if (nargout)
     set(handles.edit_Zmax,'Visible','off')      % The other on the row are already hiden by the pushbutton
     uiwait(handles.figure1);
     handles = guidata(handles.figure1);     % Get updated version
-    if (handles.killed)          % Don't try to output eventual non-existing variables
+    if (handles.killed)				% Don't try to output eventual non-existing variables
         varargout{1} = [];
     else
         varargout{1} = get(handles.figure1,'Colormap');
     end
-    delete(handles.figure1);        % The figure can be deleted now
+    delete(handles.figure1);		% The figure can be deleted now
 end
 
 % -----------------------------------------------------------------------------------
 function listbox1_Callback(hObject, eventdata, handles)
-contents = get(hObject,'String');       pal = contents{get(hObject,'Value')};
-if (length(pal) > 8 && strcmp(pal(1:8),'Imported'))
-    pal = pal(1:8);
-end
+	contents = get(hObject,'String');		pal = contents{get(hObject,'Value')};
+	old_thematic = handles.thematic;
+	handles.thematic = false;
+	handles.hinge = false;
+	if (numel(pal) > 8 && strcmp(pal(1:8),'Imported'))
+		pal = pal(1:8);
+	end
+
 switch pal
-    case 'Current'
-        pal = handles.cmap_original;
-    case 'Imported'
-        pal = handles.imported_cmap;
-    case 'ML -- autumn',		pal = autumn(256);
-    case 'ML -- bone',			pal = bone(256);
+	case 'Current'
+		pal = handles.cmap_original;
+	case 'Imported'
+		pal = handles.imported_cmap;
+		handles.thematic = old_thematic;
+	case 'ML -- autumn',		pal = autumn(256);
+	case 'ML -- bone',			pal = bone(256);
 	case 'ML -- colorcube',		pal = colorcube(256);
 	case 'ML -- cool',			pal = cool(256);
 	case 'ML -- copper',		pal = copper(256);
@@ -227,203 +232,230 @@ switch pal
         load([handles.d_path 'gmt_other_palettes.mat'],'DEM_poster');	pal = DEM_poster;
 	case 'mag'
         load([handles.d_path 'gmt_other_palettes.mat'],'mag');			pal = mag;
+	case 'Mag - anomaly'
+		load([handles.d_path 'gmt_other_palettes.mat'],'mag');			pal = mag;
+		handles.z_intervals = [-800 -600 -500 -400 -300 -200 -100 -50 50 100 200 300 400 500 600;
+								-600 -500 -400 -300 -200 -100 -50 50 100 200 300 400 500 600 800]';
+		handles.thematic = true;
+	case 'Chlorophyll'				% Not visible (results of this are lousy and I need to find why)
+		load([handles.d_path 'gmt_other_palettes.mat'],'rainbow_hist');	pal = rainbow_hist;
+		y = (10).^ [-2 + (0:269-2)*(2 + 2)/(floor(269)-1), 2];		% The same as y = logspace(-2, 2, 269);
+		handles.z_intervals = [0 y(1:254); y(1:255)]';
+		handles.thematic = true;
+	case 'SeaLand (m)'				% The "y" case is not used (needs to finish/find a clever algo)
+        load([handles.d_path 'gmt_other_palettes.mat'],'Terre_Mer');	pal = Terre_Mer;
+		y = [linspace(-7000,-1,146) linspace(0,5500,108) 6000]';
+		handles.z_intervals = [y(1:end-1) y(2:end)];
+		handles.thematic = true;
+		handles.hinge = 147;
+	case 'Bathymetry (m)'			% The "y" case is not used (needs to finish/find a clever algo)
+		load([handles.d_path 'caris256.mat'],'Earth');					pal = Earth/255;
+		y = [(-6000:1000:-3000) (-2500:500:-500) (-400:100:-100) -50 0]';
+		handles.z_intervals = [y(1:end-1) y(2:end)];
+		handles.thematic = true;
+	case 'Topography (m)'			% The "y" case is not used (needs to finish/find a clever algo)
+		load([handles.d_path 'caris256.mat'],'Topographic');			pal = Topographic/255;
+		handles.z_intervals = [0 50 100 200 500 (1000:1000:5000); 50 100 200 500 (1000:1000:6000)]';
+		handles.thematic = true;
+		handles.hinge = 1;
 	case 'ArcEnCiel'
-        load([handles.d_path 'gmt_other_palettes.mat'],'ArcEnCiel');	pal = ArcEnCiel;
+		load([handles.d_path 'gmt_other_palettes.mat'],'ArcEnCiel');	pal = ArcEnCiel;
 	case 'circular'
-        load([handles.d_path 'gmt_other_palettes.mat'],'circular');		pal = circular;
+		load([handles.d_path 'gmt_other_palettes.mat'],'circular');		pal = circular;
 	case 'ChromaDepth'
-        load([handles.d_path 'gmt_other_palettes.mat'],'ChromaDepth');   pal = ChromaDepth;
+		load([handles.d_path 'gmt_other_palettes.mat'],'ChromaDepth');	pal = ChromaDepth;
 	case 'Mer'
-        load([handles.d_path 'gmt_other_palettes.mat'],'Mer');           pal = Mer;
+        load([handles.d_path 'gmt_other_palettes.mat'],'Mer');			pal = Mer;
 	case 'MetalChaud'
-        load([handles.d_path 'gmt_other_palettes.mat'],'MetalChaud');    pal = MetalChaud;
+        load([handles.d_path 'gmt_other_palettes.mat'],'MetalChaud');	pal = MetalChaud;
 	case 'Paysage'
-        load([handles.d_path 'gmt_other_palettes.mat'],'Paysage');       pal = Paysage;
+        load([handles.d_path 'gmt_other_palettes.mat'],'Paysage');		pal = Paysage;
 	case 'RougeVert'
-        load([handles.d_path 'gmt_other_palettes.mat'],'RougeVert');     pal = RougeVert;
+        load([handles.d_path 'gmt_other_palettes.mat'],'RougeVert');	pal = RougeVert;
 	case 'Sbm'
-        load([handles.d_path 'gmt_other_palettes.mat'],'Sbm');           pal = Sbm;
+        load([handles.d_path 'gmt_other_palettes.mat'],'Sbm');			pal = Sbm;
 	case 'Sismique'
-        load([handles.d_path 'gmt_other_palettes.mat'],'Sismique');      pal = Sismique;
+        load([handles.d_path 'gmt_other_palettes.mat'],'Sismique');		pal = Sismique;
 	case 'Terre'
-        load([handles.d_path 'gmt_other_palettes.mat'],'Terre');         pal = Terre;
+        load([handles.d_path 'gmt_other_palettes.mat'],'Terre');		pal = Terre;
 	case 'Terre_Mer'
-        load([handles.d_path 'gmt_other_palettes.mat'],'Terre_Mer');     pal = Terre_Mer;
+        load([handles.d_path 'gmt_other_palettes.mat'],'Terre_Mer');	pal = Terre_Mer;
 	case 'Tubulare'
-        load([handles.d_path 'gmt_other_palettes.mat'],'Tubulare');      pal = Tubulare;
+        load([handles.d_path 'gmt_other_palettes.mat'],'Tubulare');		pal = Tubulare;
 	case 'Tubulare_inv'
-        load([handles.d_path 'gmt_other_palettes.mat'],'Tubulare_inv');  pal = Tubulare_inv;
+        load([handles.d_path 'gmt_other_palettes.mat'],'Tubulare_inv');	pal = Tubulare_inv;
 	case 'atlas'
-        load([handles.d_path 'gmt_other_palettes.mat'],'atlas');         pal = atlas;
+        load([handles.d_path 'gmt_other_palettes.mat'],'atlas');		pal = atlas;
 	case 'bvr_180'
-        load([handles.d_path 'gmt_other_palettes.mat'],'bvr_180');       pal = bvr_180;
+        load([handles.d_path 'gmt_other_palettes.mat'],'bvr_180');		pal = bvr_180;
 	case 'bvr_90'
-        load([handles.d_path 'gmt_other_palettes.mat'],'bvr_90');        pal = bvr_90;
+        load([handles.d_path 'gmt_other_palettes.mat'],'bvr_90');		pal = bvr_90;
 	case 'bvr_clair'
-        load([handles.d_path 'gmt_other_palettes.mat'],'bvr_clair');     pal = bvr_clair;
+        load([handles.d_path 'gmt_other_palettes.mat'],'bvr_clair');	pal = bvr_clair;
 	case 'bvr_sombre'
-        load([handles.d_path 'gmt_other_palettes.mat'],'bvr_sombre');    pal = bvr_sombre;
+        load([handles.d_path 'gmt_other_palettes.mat'],'bvr_sombre');	pal = bvr_sombre;
 	case 'pente_90'
-        load([handles.d_path 'gmt_other_palettes.mat'],'pente_90');      pal = pente_90;
+        load([handles.d_path 'gmt_other_palettes.mat'],'pente_90');		pal = pente_90;
 	case 'rainbow_hist'
-        load([handles.d_path 'gmt_other_palettes.mat'],'rainbow_hist');  pal = rainbow_hist;
+        load([handles.d_path 'gmt_other_palettes.mat'],'rainbow_hist');	pal = rainbow_hist;
 	case 'CAR -- Blue'
-        load([handles.d_path 'caris256.mat'],'Blue');                    pal = Blue/255;
+        load([handles.d_path 'caris256.mat'],'Blue');					pal = Blue/255;
 	case 'CAR -- Carnation'
-        load([handles.d_path 'caris256.mat'],'Carnation');               pal = Carnation/255;
+        load([handles.d_path 'caris256.mat'],'Carnation');				pal = Carnation/255;
 	case 'CAR -- Cyan'
-        load([handles.d_path 'caris256.mat'],'Cyan');                    pal = Cyan/255;
+        load([handles.d_path 'caris256.mat'],'Cyan');					pal = Cyan/255;
 	case 'CAR -- Desert'
-        load([handles.d_path 'caris256.mat'],'Desert');                  pal = Desert/255;
+        load([handles.d_path 'caris256.mat'],'Desert');					pal = Desert/255;
 	case 'CAR -- Earth'
-        load([handles.d_path 'caris256.mat'],'Earth');                   pal = Earth/255;
+		load([handles.d_path 'caris256.mat'],'Earth');					pal = Earth/255;
 	case 'CAR -- Green'
-        load([handles.d_path 'caris256.mat'],'Green');                   pal = Green/255;
+        load([handles.d_path 'caris256.mat'],'Green');					pal = Green/255;
 	case 'CAR -- HotMetal'
-        load([handles.d_path 'caris256.mat'],'HotMetal');                pal = HotMetal/255;
+        load([handles.d_path 'caris256.mat'],'HotMetal');				pal = HotMetal/255;
 	case 'CAR -- Jelly'
-        load([handles.d_path 'caris256.mat'],'Jelly');                   pal = Jelly/255;
+        load([handles.d_path 'caris256.mat'],'Jelly');					pal = Jelly/255;
 	case 'CAR -- Magenta'
-        load([handles.d_path 'caris256.mat'],'Magenta');                 pal = Magenta/255;
+        load([handles.d_path 'caris256.mat'],'Magenta');				pal = Magenta/255;
 	case 'CAR -- MorningGlory'
-        load([handles.d_path 'caris256.mat'],'MorningGlory');            pal = MorningGlory/255;
+        load([handles.d_path 'caris256.mat'],'MorningGlory');			pal = MorningGlory/255;
 	case 'CAR -- Mustard'
-        load([handles.d_path 'caris256.mat'],'Mustard');                 pal = Mustard/255;
+        load([handles.d_path 'caris256.mat'],'Mustard');				pal = Mustard/255;
 	case 'CAR -- Ocean'
-        load([handles.d_path 'caris256.mat'],'Ocean');                   pal = Ocean/255;
+        load([handles.d_path 'caris256.mat'],'Ocean');					pal = Ocean/255;
 	case 'CAR -- OceanLight'
-        load([handles.d_path 'caris256.mat'],'OceanLight');              pal = OceanLight/255;
+        load([handles.d_path 'caris256.mat'],'OceanLight');				pal = OceanLight/255;
 	case 'CAR -- Olive'
-        load([handles.d_path 'caris256.mat'],'Olive');                   pal = Olive/255;
+        load([handles.d_path 'caris256.mat'],'Olive');					pal = Olive/255;
 	case 'CAR -- Oysters'
-        load([handles.d_path 'caris256.mat'],'Oysters');                 pal = Oysters/255;
+        load([handles.d_path 'caris256.mat'],'Oysters');				pal = Oysters/255;
 	case 'CAR -- Pumpkin'
-        load([handles.d_path 'caris256.mat'],'Pumpkin');                 pal = Pumpkin/255;
+        load([handles.d_path 'caris256.mat'],'Pumpkin');				pal = Pumpkin/255;
 	case 'CAR -- Red'
-        load([handles.d_path 'caris256.mat'],'Red');                     pal = Red/255;
+        load([handles.d_path 'caris256.mat'],'Red');					pal = Red/255;
 	case 'CAR -- Rose'
-        load([handles.d_path 'caris256.mat'],'Rose');                    pal = Rose/255;
+        load([handles.d_path 'caris256.mat'],'Rose');					pal = Rose/255;
 	case 'CAR -- Saturn'
-        load([handles.d_path 'caris256.mat'],'Saturn');                  pal = Saturn/255;
+        load([handles.d_path 'caris256.mat'],'Saturn');					pal = Saturn/255;
 	case 'CAR -- Seafloor'
-        load([handles.d_path 'caris256.mat'],'Seafloor');                pal = Seafloor/255;
+        load([handles.d_path 'caris256.mat'],'Seafloor');				pal = Seafloor/255;
 	case 'CAR -- Space'
-        load([handles.d_path 'caris256.mat'],'Space');                   pal = Space/255;
+        load([handles.d_path 'caris256.mat'],'Space');					pal = Space/255;
 	case 'CAR -- SuperNova'
-        load([handles.d_path 'caris256.mat'],'SuperNova');               pal = SuperNova/255;
+        load([handles.d_path 'caris256.mat'],'SuperNova');				pal = SuperNova/255;
 	case 'CAR -- Topographic'
-        load([handles.d_path 'caris256.mat'],'Topographic');             pal = Topographic/255;
+        load([handles.d_path 'caris256.mat'],'Topographic');			pal = Topographic/255;
 	case 'CAR -- TrackLine'
-        load([handles.d_path 'caris256.mat'],'TrackLine');               pal = TrackLine/255;
+        load([handles.d_path 'caris256.mat'],'TrackLine');				pal = TrackLine/255;
 	case 'CAR -- Yellow'
-        load([handles.d_path 'caris256.mat'],'Yellow');                  pal = Yellow/255;
+        load([handles.d_path 'caris256.mat'],'Yellow');					pal = Yellow/255;
 	case 'CAR -- colors10'
-        load([handles.d_path 'caris256.mat'],'colors10');                pal = colors10/255;
+        load([handles.d_path 'caris256.mat'],'colors10');				pal = colors10/255;
 	case 'Abstract_1'
-        load([handles.d_path 'gimp256.mat'],'Abstract_1');               pal = Abstract_1/255;
+        load([handles.d_path 'gimp256.mat'],'Abstract_1');				pal = Abstract_1/255;
 	case 'Abstract_2'
-        load([handles.d_path 'gimp256.mat'],'Abstract_2');               pal = Abstract_2/255;
+        load([handles.d_path 'gimp256.mat'],'Abstract_2');				pal = Abstract_2/255;
 	case 'Abstract_3'
-        load([handles.d_path 'gimp256.mat'],'Abstract_3');               pal = Abstract_3/255;
+        load([handles.d_path 'gimp256.mat'],'Abstract_3');				pal = Abstract_3/255;
 	case 'Aneurism'
-        load([handles.d_path 'gimp256.mat'],'Aneurism');                 pal = Aneurism/255;
+        load([handles.d_path 'gimp256.mat'],'Aneurism');				pal = Aneurism/255;
 	case 'Blinds'
-        load([handles.d_path 'gimp256.mat'],'Blinds');                   pal = Blinds/255;
+        load([handles.d_path 'gimp256.mat'],'Blinds');					pal = Blinds/255;
 	case 'Browns'
-        load([handles.d_path 'gimp256.mat'],'Browns');                   pal = Browns/255;
+        load([handles.d_path 'gimp256.mat'],'Browns');					pal = Browns/255;
 	case 'Brushed_Aluminium'
-        load([handles.d_path 'gimp256.mat'],'Brushed_Aluminium');        pal = Brushed_Aluminium/255;
+        load([handles.d_path 'gimp256.mat'],'Brushed_Aluminium');		pal = Brushed_Aluminium/255;
 	case 'Burning_Paper'
-        load([handles.d_path 'gimp256.mat'],'Burning_Paper');            pal = Burning_Paper/255;
+        load([handles.d_path 'gimp256.mat'],'Burning_Paper');			pal = Burning_Paper/255;
 	case 'Burning_Transparency'
-        load([handles.d_path 'gimp256.mat'],'Burning_Transparency');     pal = Burning_Transparency/255;
+        load([handles.d_path 'gimp256.mat'],'Burning_Transparency');	pal = Burning_Transparency/255;
 	case 'Caribbean_Blues'
-        load([handles.d_path 'gimp256.mat'],'Caribbean_Blues');          pal = Caribbean_Blues/255;
+        load([handles.d_path 'gimp256.mat'],'Caribbean_Blues');			pal = Caribbean_Blues/255;
 	case 'CD'
-        load([handles.d_path 'gimp256.mat'],'CD');                       pal = CD/255;
+        load([handles.d_path 'gimp256.mat'],'CD');						pal = CD/255;
 	case 'CD_Half'
-        load([handles.d_path 'gimp256.mat'],'CD_Half');                  pal = CD_Half/255;
+        load([handles.d_path 'gimp256.mat'],'CD_Half');					pal = CD_Half/255;
 	case 'Cold_Steel'
-        load([handles.d_path 'gimp256.mat'],'Cold_Steel');               pal = Cold_Steel/255;
+        load([handles.d_path 'gimp256.mat'],'Cold_Steel');				pal = Cold_Steel/255;
 	case 'Deep_Sea'
-        load([handles.d_path 'gimp256.mat'],'Deep_Sea');                 pal = Deep_Sea/255;
+        load([handles.d_path 'gimp256.mat'],'Deep_Sea');				pal = Deep_Sea/255;
 	case 'Flare_Glow_Angular_1'
-        load([handles.d_path 'gimp256.mat'],'Flare_Glow_Angular_1');     pal = Flare_Glow_Angular_1/255;
+        load([handles.d_path 'gimp256.mat'],'Flare_Glow_Angular_1');	pal = Flare_Glow_Angular_1/255;
 	case 'Flare_Glow_Radial_2'
-        load([handles.d_path 'gimp256.mat'],'Flare_Glow_Radial_2');      pal = Flare_Glow_Radial_2/255;
+        load([handles.d_path 'gimp256.mat'],'Flare_Glow_Radial_2');		pal = Flare_Glow_Radial_2/255;
 	case 'Flare_Radial_102'
-        load([handles.d_path 'gimp256.mat'],'Flare_Radial_102');         pal = Flare_Radial_102/255;
+        load([handles.d_path 'gimp256.mat'],'Flare_Radial_102');		pal = Flare_Radial_102/255;
 	case 'Flare_Radial_103'
-        load([handles.d_path 'gimp256.mat'],'Flare_Radial_103');         pal = Flare_Radial_103/255;
+        load([handles.d_path 'gimp256.mat'],'Flare_Radial_103');		pal = Flare_Radial_103/255;
 	case 'Flare_Rays_Size_1'
-        load([handles.d_path 'gimp256.mat'],'Flare_Rays_Size_1');        pal = Flare_Rays_Size_1/255;
+        load([handles.d_path 'gimp256.mat'],'Flare_Rays_Size_1');		pal = Flare_Rays_Size_1/255;
 	case 'Four_bars'
-        load([handles.d_path 'gimp256.mat'],'Four_bars');                pal = Four_bars/255;
+        load([handles.d_path 'gimp256.mat'],'Four_bars');				pal = Four_bars/255;
 	case 'Full_saturation_spectrum_CCW'
-        load([handles.d_path 'gimp256.mat'],'Full_saturation_spectrum_CCW');    pal = Full_saturation_spectrum_CCW/255;
+        load([handles.d_path 'gimp256.mat'],'Full_saturation_spectrum_CCW');	pal = Full_saturation_spectrum_CCW/255;
 	case 'Full_saturation_spectrum_CW'
-        load([handles.d_path 'gimp256.mat'],'Full_saturation_spectrum_CW');     pal = Full_saturation_spectrum_CW/255;
+        load([handles.d_path 'gimp256.mat'],'Full_saturation_spectrum_CW');		pal = Full_saturation_spectrum_CW/255;
 	case 'Golden'
-        load([handles.d_path 'gimp256.mat'],'Golden');                   pal = Golden/255;
+        load([handles.d_path 'gimp256.mat'],'Golden');					pal = Golden/255;
 	case 'Greens'
-        load([handles.d_path 'gimp256.mat'],'Greens');                   pal = Greens/255;
+        load([handles.d_path 'gimp256.mat'],'Greens');					pal = Greens/255;
 	case 'Horizon_1'
-        load([handles.d_path 'gimp256.mat'],'Horizon_1');                pal = Horizon_1/255;
+        load([handles.d_path 'gimp256.mat'],'Horizon_1');				pal = Horizon_1/255;
 	case 'Incandescent'
-        load([handles.d_path 'gimp256.mat'],'Incandescent');             pal = Incandescent/255;
+        load([handles.d_path 'gimp256.mat'],'Incandescent');			pal = Incandescent/255;
 	case 'Land_1'
-        load([handles.d_path 'gimp256.mat'],'Land_1');                   pal = Land_1/255;
+        load([handles.d_path 'gimp256.mat'],'Land_1');					pal = Land_1/255;
 	case 'Land_and_Sea'
-        load([handles.d_path 'gimp256.mat'],'Land_and_Sea');             pal = Land_and_Sea/255;
+        load([handles.d_path 'gimp256.mat'],'Land_and_Sea');			pal = Land_and_Sea/255;
 	case 'Metallic_Something'
-        load([handles.d_path 'gimp256.mat'],'Metallic_Something');       pal = Metallic_Something/255;
+        load([handles.d_path 'gimp256.mat'],'Metallic_Something');		pal = Metallic_Something/255;
 	case 'Nauseating_Headache'
-        load([handles.d_path 'gimp256.mat'],'Nauseating_Headache');      pal = Nauseating_Headache/255;
+        load([handles.d_path 'gimp256.mat'],'Nauseating_Headache');		pal = Nauseating_Headache/255;
 	case 'Pastels'
-        load([handles.d_path 'gimp256.mat'],'Pastels');                  pal = Pastels/255;
+        load([handles.d_path 'gimp256.mat'],'Pastels');					pal = Pastels/255;
 	case 'Pastel_Rainbow'
-        load([handles.d_path 'gimp256.mat'],'Pastel_Rainbow');           pal = Pastel_Rainbow/255;
+        load([handles.d_path 'gimp256.mat'],'Pastel_Rainbow');			pal = Pastel_Rainbow/255;
 	case 'Purples'
-        load([handles.d_path 'gimp256.mat'],'Purples');                  pal = Purples/255;
+        load([handles.d_path 'gimp256.mat'],'Purples');					pal = Purples/255;
 	case 'Radial_Eyeball_Blue'
-        load([handles.d_path 'gimp256.mat'],'Radial_Eyeball_Blue');      pal = Radial_Eyeball_Blue/255;
+        load([handles.d_path 'gimp256.mat'],'Radial_Eyeball_Blue');		pal = Radial_Eyeball_Blue/255;
 	case 'Radial_Eyeball_Brown'
-        load([handles.d_path 'gimp256.mat'],'Radial_Eyeball_Brown');     pal = Radial_Eyeball_Brown/255;
+        load([handles.d_path 'gimp256.mat'],'Radial_Eyeball_Brown');	pal = Radial_Eyeball_Brown/255;
 	case 'Radial_Eyeball_Green'
-        load([handles.d_path 'gimp256.mat'],'Radial_Eyeball_Green');     pal = Radial_Eyeball_Green/255;
+        load([handles.d_path 'gimp256.mat'],'Radial_Eyeball_Green');	pal = Radial_Eyeball_Green/255;
 	case 'Radial_Rainbow_Hoop'
-        load([handles.d_path 'gimp256.mat'],'Radial_Rainbow_Hoop');      pal = Radial_Rainbow_Hoop/255;
+        load([handles.d_path 'gimp256.mat'],'Radial_Rainbow_Hoop');		pal = Radial_Rainbow_Hoop/255;
 	case 'Rounded_edge'
-        load([handles.d_path 'gimp256.mat'],'Rounded_edge');             pal = Rounded_edge/255;
+        load([handles.d_path 'gimp256.mat'],'Rounded_edge');			pal = Rounded_edge/255;
 	case 'Shadows_1'
-        load([handles.d_path 'gimp256.mat'],'Shadows_1');                pal = Shadows_1/255;
+        load([handles.d_path 'gimp256.mat'],'Shadows_1');				pal = Shadows_1/255;
 	case 'Shadows_2'
-		load([handles.d_path 'gimp256.mat'],'Shadows_2');                pal = Shadows_2/255;
+		load([handles.d_path 'gimp256.mat'],'Shadows_2');				pal = Shadows_2/255;
 	case 'Shadows_3'
-		load([handles.d_path 'gimp256.mat'],'Shadows_3');                pal = Shadows_3/255;
+		load([handles.d_path 'gimp256.mat'],'Shadows_3');				pal = Shadows_3/255;
 	case 'Skyline'
-		load([handles.d_path 'gimp256.mat'],'Skyline');                  pal = Skyline/255;
+		load([handles.d_path 'gimp256.mat'],'Skyline');					pal = Skyline/255;
 	case 'Skyline_polluted'
-		load([handles.d_path 'gimp256.mat'],'Skyline_polluted');         pal = Skyline_polluted/255;
+		load([handles.d_path 'gimp256.mat'],'Skyline_polluted');		pal = Skyline_polluted/255;
 	case 'Sunrise'
-		load([handles.d_path 'gimp256.mat'],'Sunrise');                  pal = Sunrise/255;
+		load([handles.d_path 'gimp256.mat'],'Sunrise');					pal = Sunrise/255;
 	case 'Tropical_Colors'
-		load([handles.d_path 'gimp256.mat'],'Tropical_Colors');          pal = Tropical_Colors/255;
+		load([handles.d_path 'gimp256.mat'],'Tropical_Colors');			pal = Tropical_Colors/255;
 	case 'Wood_1'
-		load([handles.d_path 'gimp256.mat'],'Wood_1');                   pal = Wood_1/255;
+		load([handles.d_path 'gimp256.mat'],'Wood_1');					pal = Wood_1/255;
 	case 'Wood_2'
-		load([handles.d_path 'gimp256.mat'],'Wood_2');                   pal = Wood_2/255;
+		load([handles.d_path 'gimp256.mat'],'Wood_2');					pal = Wood_2/255;
 	case 'Yellow_Contrast'
-		load([handles.d_path 'gimp256.mat'],'Yellow_Contrast');          pal = Yellow_Contrast/255;
+		load([handles.d_path 'gimp256.mat'],'Yellow_Contrast');			pal = Yellow_Contrast/255;
 	case 'Yellow_Orange'
-		load([handles.d_path 'gimp256.mat'],'Yellow_Orange');            pal = Yellow_Orange/255;
+		load([handles.d_path 'gimp256.mat'],'Yellow_Orange');			pal = Yellow_Orange/255;
 end
+
 % Search eventual color markers and delete them
-hp = findobj(handles.axes1,'Tag','Picos');
-if (~isempty(hp)),      delete(hp);     end
-handles.no_slider = 1;
-guidata(hObject, handles);
-change_cmap(handles,pal);
+	hp = findobj(handles.axes1,'Tag','Picos');
+	if (~isempty(hp)),		delete(hp);		end
+	handles.no_slider = 1;
+	guidata(handles.figure1, handles);
+	change_cmap(handles,pal);
 
 % -----------------------------------------------------------------------------------
 % --- Executes on slider movement.
@@ -438,7 +470,7 @@ else
     val_t = length(handles.cmap);
 end
 
-for i = 1:val,       cmap(i,:) = handles.cmap(1,:);     end
+for i = 1:val,		cmap(i,:) = handles.cmap(1,:);		end
 %yi = interp1(handles.cmap,linspace(1,length(cmap),length(cmap)-round(val)));
 %cmap(round(val)+1:end,:) = yi(:,:);
 if (val < val_t)
@@ -458,33 +490,33 @@ change_cmap(handles,cmap)
 % -----------------------------------------------------------------------------------
 % --- Executes on slider movement.
 function slider_Top_Callback(hObject, eventdata, handles)
-val = round(get(hObject,'Value'));
+	val = round(get(hObject,'Value'));
 
-if ~isempty(handles.pal_bot)        % The other slider has been activated
-    val_b = round(get(handles.slider_Bottom,'Value'));
-    cmap = handles.pal_bot;         % Make a copy of the full current colormap
-else
-    cmap = handles.cmap;            % Make a copy of the full current colormap
-    val_b = length(handles.cmap);
-end
+	if ~isempty(handles.pal_bot)        % The other slider has been activated
+		val_b = round(get(handles.slider_Bottom,'Value'));    
+		cmap = handles.pal_bot;         % Make a copy of the full current colormap
+	else
+		cmap = handles.cmap;            % Make a copy of the full current colormap
+		val_b = length(handles.cmap);
+	end
 
-for i = round(val):length(cmap),       cmap(i,:) = handles.cmap(end,:);     end
-if (val > val_b)
-    yi = interp1(handles.cmap,linspace(1,length(cmap),val-val_b+1));
-    cmap(val_b:val,:) = yi(:,:);
-elseif (val < val_b)
-    yi = interp1(handles.cmap,linspace(1,length(cmap),val_b-val+1));
-    yi(1:end,:) = yi(end:-1:1,:);       % Invert the colormap
-    cmap(val:val_b,:) = yi(:,:);
-    for i = val_b:length(cmap),   cmap(i,:) = handles.cmap(1,:);   end
-    for i = 1:val,            cmap(i,:) = handles.cmap(end,:); end
-end
+	for i = round(val):length(cmap),       cmap(i,:) = handles.cmap(end,:);     end
+	if (val > val_b)
+		yi = interp1(handles.cmap,linspace(1,length(cmap),val-val_b+1));
+		cmap(val_b:val,:) = yi(:,:);
+	elseif (val < val_b)
+		yi = interp1(handles.cmap,linspace(1,length(cmap),val_b-val+1));
+		yi(1:end,:) = yi(end:-1:1,:);       % Invert the colormap
+		cmap(val:val_b,:) = yi(:,:);
+		for i = val_b:length(cmap),   cmap(i,:) = handles.cmap(1,:);   end
+		for i = 1:val,            cmap(i,:) = handles.cmap(end,:); end
+	end
 
-handles.pal_top = cmap;     handles.no_slider = 0;      guidata(hObject, handles);
-change_cmap(handles,cmap)
+	handles.pal_top = cmap;     handles.no_slider = 0;      guidata(hObject, handles);
+	change_cmap(handles,cmap)
 
 % -----------------------------------------------------------------------------------
-function change_cmap(handles,pal)
+function change_cmap(handles, pal)
 % Change the Image's colormap to 'pal'
 	if strcmp(get(handles.OptionsAutoApply,'checked'),'on') % otherwise we are just playing with color_palettes alone
 		del = 0;
@@ -494,21 +526,23 @@ function change_cmap(handles,pal)
 			waitfor(msgbox('True color images do not use color palettes. So you cannot change it.','Warning','warn'))
 			del = 1;
 		end
-		if (del),   delete(h);     return,		end
+		if (del),	delete(h);		return,		end
 	end
 
-	if (~isempty(handles.z_intervals))			% Imported GMT palette with Z levels
+	if (handles.thematic && ~handles.hinge)			% Imported GMT palette with Z levels, OR ...
 		len_Pal = size(pal, 1);    
-		z_grd = linspace(handles.z_min_orig, handles.z_max_orig, len_Pal)';			% Z[min max] descretized in len_Pal intervals
-		z_pal = [handles.z_intervals(:,1); handles.z_intervals(end,2)];				% Palette z intervals
-		len_zPal = numel(z_pal);
+		z_grd = linspace(handles.z_min_orig, handles.z_max_orig, len_Pal)';		% Z[min max] descretized in len_Pal intervals
+		z_pal = [handles.z_intervals(:,1); handles.z_intervals(end,2)];			% Palette z intervals
 		% Interpolate the grid levels into the palette Z levels
-		ind_pal = interp1(z_pal,linspace(0,1,len_zPal),z_grd,'linear','extrap');
-		ind_pal = round(ind_pal * len_Pal);
+		y = (len_Pal - 1) * ((z_pal - z_pal(1)) / (z_pal(end) - z_pal(1)));
+		ind_pal = interp1(z_pal, y, z_grd, 'linear', 'extrap');
+		ind_pal = round(ind_pal + 1);
+		ind_pal(ind_pal < 1) = 1;		ind_pal(ind_pal > len_Pal) = len_Pal;	% Can happen easily for |z_grd| > |z_pal|
 		% Map the old pal indices into the new ones
-		pal = interp1( linspace(0, len_Pal, length(pal)), pal, ind_pal, 'linear', 'extrap');
-		handles.z_intervals = [];					% Reset for the case of a new GMT palette import
-		set(handles.check_logIt_CB,'Val',0)			% Let no confusions about this 
+		pal = pal(ind_pal,:);
+		set(handles.check_logIt,'Val',0)			% Let no confusions about this
+	elseif (handles.thematic && handles.hinge)
+		pal = makeCmapBat(handles.z_min_orig, handles.z_max_orig, handles.hinge, pal);
 	end
 
 	z_grd = [];				% Most common case. No particular scaling or logarimization
@@ -553,7 +587,7 @@ function change_cmap(handles,pal)
 		end
 	end
 
-	pal(pal > 1) = 1; % Sometimes interpolation gives values that are out of [0,1] range...
+	pal(pal > 1) = 1;			% Sometimes interpolation gives values that are out of [0,1] range...
 	pal(pal < 0) = 0;
 	
 	set(handles.figure1,'Colormap',pal);
@@ -572,6 +606,23 @@ function change_cmap(handles,pal)
 		handles.cmap = pal;
 	end
 	guidata(handles.figure1,handles)
+
+% --------------------------------------------------------------------
+function new_cmap = makeCmapBat(z_min, z_max, hinge, cmap)
+% Put the cmap discontinuity at the zero of bathymetry (coastline)
+
+	nc = length(cmap);
+	z_inc = (z_max - z_min) / (nc - 1);
+	ind_c = round(abs(0 - z_min) / z_inc + 1);
+
+	nl = hinge;		nu = ind_c;
+	if (hinge < 3)			% Among other reasons, there seams to be a BUGish in interp1 that wont let do the else case
+		new_cmap_l = repmat(cmap(1,:),nu,1);
+	else
+		new_cmap_l = interp1(linspace(0,1,nl), cmap(1:nl,:), linspace(0,1,nu));
+	end
+	new_cmap_u = interp1(linspace(0,1,nc-hinge), cmap(hinge+1:nc,:), linspace(0,1,nc-ind_c));
+	new_cmap = [new_cmap_l; new_cmap_u];
 
 % --------------------------------------------------------------------
 function FileSavePalette_Callback(hObject, eventdata, handles, opt)
@@ -654,7 +705,7 @@ function OptionsDiscretizePalette_Callback(hObject, eventdata, handles, opt)
 	% Now we have to replicate the n_colors until we get 256 because uint8 has that many colors
 	pal256 = [];    n_rep = 256 / n_color;
 	try         % Wrap it in a try-catch for the case it fails
-		for i=1:n_color
+		for (i = 1:n_color)
 			pal256 = [pal256; repmat(pal(i,:),n_rep,1)];
 		end
 	catch
@@ -674,9 +725,9 @@ function OptionsApply_Callback(hObject, eventdata, handles)
 		if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
 			change_cmap(handles,cmap)
 		else
-			set(handles.OptionsAutoApply,'checked','on')    % temporarly set it to on
-			change_cmap(handles,cmap)                   % in order that change_cmap
-			set(handles.OptionsAutoApply,'checked','off')   % may work.
+			set(handles.OptionsAutoApply,'checked','on')	% temporarly set it to on
+			change_cmap(handles,cmap)						% in order that change_cmap
+			set(handles.OptionsAutoApply,'checked','off')	% may work.
 		end
 	else
 		msgbox('Apply what?','Chico Clever')
@@ -728,14 +779,9 @@ function cmap = FileReadPalette_Callback(hObject, eventdata, handles, opt, opt2)
 	list{1} = ['Imported (' FileName ')'];
 	set(handles.listbox1,'String',list,'Value',1);
 	guidata(handles.figure1,handles)
-	handles.z_intervals = [];					% Trick to avoid cmap recalculation inside change_cmap()
-	change_cmap(handles,handles.cmap);
-
-% --------------------------------------------------------------------
-function [z_min,z_max] = min_max_single(Z)
-	% Compute the min/max of single precision Z arrays. I need this due to (another) Matlab
-	% bug that gives wrong results when the Z (single) array has NaNs.
-	zz = grdutils(Z,'-L');		z_min = zz(1);		z_max = zz(2);
+	%if (~strcmp(opt,'z_levels')),	handles.z_intervals = [];	end	% Trick to avoid cmap recalculation inside change_cmap()
+	handles.thematic = true;
+	change_cmap(handles, cmap);
 
 % --------------------------------------------------------------------
 function push_retColorMap_Callback(hObject, eventdata, handles)
@@ -745,42 +791,44 @@ function push_retColorMap_Callback(hObject, eventdata, handles)
 % --------------------------------------------------------------------
 function radio_ML_Callback(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
-	des = [handles.radiobutton_GMT handles.radiobutton_MR handles.radiobutton_CAR handles.radiobutton_GIMP];
-	set(des,'Value', 0)
+	set([handles.radio_GMT handles.radio_MR handles.radio_CAR handles.radio_GIMP handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
-	set(handles.listbox1,'String',{pals{1} handles.palsML{:}},'Value',1)
+	set(handles.listbox1,'String',[pals{1} handles.palsML],'Value',1)
 
 % --------------------------------------------------------------------
 function radio_GMT_Callback(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
-	des = [handles.radiobutton_ML handles.radiobutton_MR handles.radiobutton_CAR handles.radiobutton_GIMP];
-	set(des,'Value', 0)
+	set([handles.radio_ML handles.radio_MR handles.radio_CAR handles.radio_GIMP handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
-	set(handles.listbox1,'String',{pals{1} handles.palsGMT{:}},'Value',1)
+	set(handles.listbox1,'String',[pals{1} handles.palsGMT],'Value',1)
 
 % --------------------------------------------------------------------
 function radio_MR_Callback(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
-	des = [handles.radiobutton_ML handles.radiobutton_GMT handles.radiobutton_CAR handles.radiobutton_GIMP];
-	set(des,'Value', 0)
+	set([handles.radio_ML handles.radio_GMT handles.radio_CAR handles.radio_GIMP handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
-	set(handles.listbox1,'String',{pals{1} handles.palsA{:}},'Value',1)
+	set(handles.listbox1,'String',[pals{1} handles.palsA],'Value',1)
 
 % --------------------------------------------------------------------
 function radio_CAR_Callback(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
-	des = [handles.radiobutton_ML handles.radiobutton_GMT handles.radiobutton_MR handles.radiobutton_GIMP];
-	set(des,'Value', 0)
+	set([handles.radio_ML handles.radio_GMT handles.radio_MR handles.radio_GIMP handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
-	set(handles.listbox1,'String',{pals{1} handles.palsCAR{:}},'Value',1)
+	set(handles.listbox1,'String',[pals{1} handles.palsCAR],'Value',1)
 
 % --------------------------------------------------------------------
 function radio_GIMP_Callback(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
-	des = [ handles.radiobutton_ML handles.radiobutton_GMT handles.radiobutton_MR handles.radiobutton_CAR];
-	set(des,'Value', 0)
+	set([handles.radio_ML handles.radio_GMT handles.radio_MR handles.radio_CAR handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
-	set(handles.listbox1,'String',{pals{1} handles.palsGIMP{:}},'Value',1)
+	set(handles.listbox1,'String',[pals(1) handles.palsGIMP],'Value',1)
+
+% --------------------------------------------------------------------
+function radio_T_CB(hObject, eventdata, handles)
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set([handles.radio_ML handles.radio_GMT  handles.radio_MR handles.radio_CAR handles.radio_GIMP],'Value', 0)
+	pals = get(handles.listbox1,'String');
+	set(handles.listbox1,'String',[pals(1) handles.palsT],'Value',1)
 
 % --------------------------------------------------------------------
 function check_logIt_CB(hObject, eventdata, handles)
@@ -810,7 +858,7 @@ function bdn_pal(obj,eventdata,handles)
 		h = patch(pico(:,1),pico(:,2),'k');
 		% Set Z grid value corresponding to the picked palette value
 		z_inc = (handles.z_max_orig - handles.z_min_orig) / length(handles.cmap);
-		ind_c = round(px - x(1) / (x(2)-x(1)) * length(handles.cmap)) + 1;
+		ind_c = round(px - x(1) / (x(2)-x(1)) * length(handles.cmap)) + 0;
 		z_cur = handles.z_min_orig + ind_c * z_inc;
 		set(handles.h_txt_cZ,'String',['Z = ' num2str(z_cur,'%.3f')],'Visible','on')
 		set(h,'Tag','Picos','ButtonDownFcn',{@bdn_pico,handles,h,x,y,yh,yv,xw})
@@ -826,7 +874,7 @@ function bdn_pico(obj,eventdata,handles,h,x,y,yh,yv,xw)
 		set(handles.figure1,'WindowButtonMotionFcn','','WindowButtonUpFcn','')
 	else
 		p = get(handles.axes1,'currentpoint');  px = p(1,1);
-		ind_c = round(px - x(1) / (x(2)-x(1)) * length(handles.cmap)) + 1;
+		ind_c = round(px - x(1) / (x(2)-x(1)) * length(handles.cmap)) + 0;
 		set(h,'UserData',ind_c)
 		hp = findobj(handles.axes1,'Tag','Picos');
 		inds = get(hp,'UserData');
@@ -844,9 +892,9 @@ function bdn_pico(obj,eventdata,handles,h,x,y,yh,yv,xw)
 
 % -----------------------------------------------------------------------------------------
 function wbm_pico(obj,eventdata,handles,h,x,y,yh,yv,xw,ind_old,ind_b,ind_a)
-	% ind_old is the cmap index of starting marker position
-	% ind_b is the index of the precedent marker (or 1 if it doesn't exist)
-	% ind_a is the index of the following marker (or ncolors if it doesn't exist)
+% ind_old is the cmap index of starting marker position
+% ind_b is the index of the precedent marker (or 1 if it doesn't exist)
+% ind_a is the index of the following marker (or ncolors if it doesn't exist)
 	p = get(handles.axes1,'currentpoint');  px = p(1,1);
 	cmap = handles.cmap;
 	nc = length(cmap);
@@ -975,12 +1023,12 @@ function map = colorcube(m)
 %    is currently two - because we can't go lower than that...
 
 nrgsteps = fix(m^(1/3)+eps);
-extra = m-nrgsteps^3;
+extra = m - nrgsteps^3;
 if (extra == 0) && (nrgsteps > 2)
-  nbsteps = nrgsteps - 1;
-  extra = m-(nrgsteps^2 * nbsteps);
+	nbsteps = nrgsteps - 1;
+	%extra = m - (nrgsteps^2 * nbsteps);
 else
-  nbsteps = nrgsteps;
+	nbsteps = nrgsteps;
 end
 
 % 2: create the colormap consisting of this cube:
@@ -994,13 +1042,12 @@ map = [r(:) g(:) b(:)];
 
 diffmap = diff(map')';
 summap = sum(abs(diffmap),2);
-notgrays = find(summap ~= 0);
-map = map(notgrays,:);
+map = map(summap ~= 0,:);
 
 % 4: remove pure colors (ones with two elements zero):
 
 summap = [sum(map(:,[1 2]),2) sum(map(:,[2 3]),2) sum(map(:,[1 3]),2)];
-map = map(find(min(summap,[],2) ~= 0),:);
+map = map(min(summap,[],2) ~= 0,:);
 
 % 5: find out how many slots are left (saving one for black)
 
@@ -1211,10 +1258,9 @@ uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','listbox1');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[12 274 271 16],...
 'BackgroundColor',[0.9 0.9 0.9],...
 'Callback',{@color_palettes_uicallback,h1,'slider_Bottom_Callback'},...
-'Position',[12 274 271 16],...
 'Style','slider',...
 'Tag','slider_Bottom');
 
@@ -1233,24 +1279,14 @@ axes('Parent',h1, 'Units','pixels',...
 'ZColor',get(0,'defaultaxesZColor'),...
 'Tag','axes1');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[12 241 271 16],...
 'BackgroundColor',[0.9 0.9 0.9],...
 'Callback',{@color_palettes_uicallback,h1,'slider_Top_Callback'},...
-'Position',[12 241 271 16],...
 'Style','slider',...
 'Tag','slider_Top');
 
-uicontrol('Parent',h1,...
-'Position',[16 258 75 15],...
-'String','Stretch Bottom',...
-'Style','text',...
-'Tag','text2');
-
-uicontrol('Parent',h1,...
-'Position',[14 226 65 14],...
-'String','Stretch Top',...
-'Style','text',...
-'Tag','text3');
+uicontrol('Parent',h1, 'Position',[16 258 75 15],'String','Stretch Bottom','Style','text');
+uicontrol('Parent',h1, 'Position',[14 226 65 14],'String','Stretch Top','Style','text');
 
 h14 = uimenu('Parent',h1,'Label','File','Tag','VoidFile');
 h15 = uimenu('Parent',h14,'Label','Read GMT palette','Tag','VoidFileReadPalette');
@@ -1263,7 +1299,7 @@ uimenu('Parent',h15,...
 'Callback',{@color_palettes_uicallback4,h1,'z_levels','FileReadPalette_Callback'},...
 'Label','Use Z levels','Tag','FileReadPalette_Zlevels');
 
-h18 = uimenu('Parent',h14,'Label','Save as GMT palette','Tag','VoidFileSavePalette');
+h18 = uimenu('Parent',h14,'Label','Save as GMT palette');
 
 uimenu('Parent',h18,...
 'Callback',{@color_palettes_uicallback4,h1,[],'FileSavePalette_Callback'},...
@@ -1284,7 +1320,7 @@ uimenu('Parent',h14,...
 'Callback',{@color_palettes_uicallback,h1,'FileExit_Callback'},...
 'Label','Exit','Separator','on','Tag','FileExit');
 
-h23 = uimenu('Parent',h1,'Label','Options','Tag','VoidOptions');
+h23 = uimenu('Parent',h1,'Label','Options');
 
 uimenu('Parent',h23,...
 'Callback',{@color_palettes_uicallback,h1,'OptionsApply_Callback'},...
@@ -1294,7 +1330,7 @@ uimenu('Parent',h23,...
 'Callback',{@color_palettes_uicallback,h1,'OptionsAutoApply_Callback'},...
 'Checked','on','Label','Auto Apply','Tag','OptionsAutoApply');
 
-h26 = uimenu('Parent',h23,'Label','Discretize Palette','Separator','on','Tag','VoidDiscretizePalette');
+h26 = uimenu('Parent',h23,'Label','Discretize Palette','Separator','on');
 
 uimenu('Parent',h26,...
 'Callback',{@color_palettes_uicallback4,h1,'8','OptionsDiscretizePalette_Callback'},...
@@ -1313,19 +1349,22 @@ uimenu('Parent',h26,...
 'Label','64 colors', 'Tag','OptionsDiscretizePalette64');
 
 uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_ML_Callback'},...
-'Position',[12 196 45 15], 'String','ML', 'Style','radiobutton', 'Tag','radiobutton_ML','Val',1);
+'Position',[12 196 45 15], 'String','ML', 'Style','radiobutton', 'Tag','radio_ML','Val',1);
 
 uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_GMT_Callback'},...
-'Position',[70 196 55 15], 'String','GMT', 'Style','radiobutton', 'Tag','radiobutton_GMT');
+'Position',[70 196 55 15], 'String','GMT', 'Style','radiobutton', 'Tag','radio_GMT');
 
 uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_MR_Callback'},...
-'Position',[133 196 45 15], 'String','MR', 'Style','radiobutton', 'Tag','radiobutton_MR');
+'Position',[133 196 45 15], 'String','MR', 'Style','radiobutton', 'Tag','radio_MR');
 
 uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_CAR_Callback'},...
-'Position',[12 176 55 15],'String','CAR', 'Style','radiobutton', 'Tag','radiobutton_CAR');
+'Position',[12 176 55 15],'String','CAR', 'Style','radiobutton', 'Tag','radio_CAR');
 
 uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_GIMP_Callback'},...
-'Position',[70 176 60 15],'String','GIMP', 'Style','radiobutton','Tag','radiobutton_GIMP');
+'Position',[70 176 60 15],'String','GIMP', 'Style','radiobutton','Tag','radio_GIMP');
+
+uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_T_CB'},...
+'Position',[133 176 80 15], 'String','Thematic', 'Style','radiobutton', 'Tag','radio_T');
 
 uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'check_logIt_CB'},...
 'ToolTip','Take a natural logarithm (ln()) of the current color palette', ...
@@ -1333,18 +1372,16 @@ uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'check_logIt_CB
 
 uimenu('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'Help_Callback'}, 'Label','Help', 'Tag','Help');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[50 357 80 21],...
 'BackgroundColor',[1 1 1],...
 'Callback',{@color_palettes_uicallback,h1,'edit_Zmin_Callback'},...
-'Position',[50 357 80 21],...
 'Style','edit',...
 'TooltipString','Use a different value to set a fixed color minimum',...
 'Tag','edit_Zmin');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[200 357 80 21],...
 'BackgroundColor',[1 1 1],...
 'Callback',{@color_palettes_uicallback,h1,'edit_Zmax_Callback'},...
-'Position',[200 357 80 21],...
 'Style','edit',...
 'TooltipString','Use a different value to set a fixed color miximum',...
 'Tag','edit_Zmax');
@@ -1352,15 +1389,13 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,'Position',[160 359 40 15],'String','Max Z','Style','text','Tag','text_MaxZ');
 uicontrol('Parent',h1,'Position',[10 359 40 15],'String','Min Z','Style','text','Tag','text_MinZ');
 
-uicontrol('Parent',h1,...
-'Position',[100 333 85 16], 'Visible','off', ...
+uicontrol('Parent',h1, 'Position',[100 333 85 16], 'Visible','off', ...
 'FontSize',10, 'HorizontalAlignment','left',...
 'Style','text', 'Tag','h_txt_cZ');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[10 356 201 23],...
 'Callback',{@color_palettes_uicallback,h1,'push_retColorMap_Callback'},...
 'FontName','Helvetica','FontSize',9,...
-'Position',[10 356 201 23],...
 'String','Finish and return the Color Map',...
 'Visible','off',...
 'Tag','push_retColorMap');
