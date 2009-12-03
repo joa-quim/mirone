@@ -98,11 +98,11 @@ function varargout = aquamoto(varargin)
 	h_t = [handles.text_Pq; handles.text_GLG; handles.text_MovType; handles.text_MovSize; handles.text_testFile; handles.text_globalMM; handles.text_montage];
 	% This is a destilled minimalist uistack(H,'top')
 	Children = findobj(allchild(hObject), 'flat', 'type', 'uicontrol');
-	HandleLoc = find(ismember(Children,h_t));
+	HandleLoc = ismember(Children,h_t);
 	Children(HandleLoc) = [];  
 	NewOrder = [h_t; Children];		% 'top'
 	AllChildren = allchild(hObject);
-	AllChildren(find(ismember(AllChildren,NewOrder))) = NewOrder;
+	AllChildren(ismember(AllChildren,NewOrder)) = NewOrder;
 	set(hObject,'Children',AllChildren);
 	%------------- END Pro look (3D) -------------------------------------------------------
 
@@ -140,7 +140,6 @@ function varargout = aquamoto(varargin)
 
 	%------ Ok, we still have a couple of things to do, but we can do them with the figure already visible
 	% -- Move the uicontrols that are still 'somewhere' to their correct positions
-	hhs = findobj(hObject, 'UserData', 't_grids');
 	hTab = findobj(handles.tab_group,'UserData','anuga'); 		% Find the handle of the "ANUGA" tab push button
 	handles.hTabAnuga = hTab;				% save this in case we will need it later
 	
@@ -1692,7 +1691,7 @@ function push_landPhoto_Callback(hObject, eventdata, handles, opt)
 	
 	if ( any(strcmpi(EXT,{'.tif' '.tiff' '.jp2' '.ecw' '.sid' '.gif' '.kap'})) )		% GDAL territory
 		try		att = gdalread(fileName,'-M','-C');
-		catch	errordlg(lasterr,'Error'),	return
+		catch,	errordlg(lasterr,'Error'),	return
 		end
 		if ( att.RasterCount == 0 || att.RasterCount > 3 || ~strcmp(att.Band(1).DataType,'Byte') )
 			errordlg('Hmm, I don''t think this is an apropriate file to use here. Bye Bye','ERROR'),	return
@@ -1708,8 +1707,8 @@ function push_landPhoto_Callback(hObject, eventdata, handles, opt)
 			return
 		end
 		if (strcmpi(att.ColorInterp,'palette') && ~isempty(att.Band(1).ColorMap) )
-			try     pal = att.Band(1).ColorMap.CMap;     pal = pal(:,1:3);       % GDAL creates a Mx4 colormap
-			catch   errordlg('Figure ColorMap had troubles. Quiting.','ERROR'),		return
+			try		pal = att.Band(1).ColorMap.CMap;     pal = pal(:,1:3);       % GDAL creates a Mx4 colormap
+			catch,	errordlg('Figure ColorMap had troubles. Quiting.','ERROR'),		return
 			end
 			I = ind2rgb8(I, pal);
 		elseif ( strcmpi(att.ColorInterp,'gray') )
@@ -1722,7 +1721,7 @@ function push_landPhoto_Callback(hObject, eventdata, handles, opt)
 
 	else
 		try		[I,pal] = imread(fileName);
-		catch	errordlg(lasterr,'Error'),	return	% It realy may happen
+		catch,	errordlg(lasterr,'Error'),	return	% It realy may happen
 		end
 		I = flipdim(I,1);
 		if ( ndims(I) == 2 && ~isempty(pal) )
@@ -1864,10 +1863,6 @@ function ButtonUp(obj,eventdata,h,handles)
 		handles.waterElevStrBack = get(handles.edit_elev,'String');
 	end
 	guidata(handles.figure1,handles)
-
-% -----------------------------------------------------------------------------------------
-function push_most_Callback(hObject, eventdata, handles)
-% Do Nothing
 
 % -----------------------------------------------------------------------------------------
 function edit_batGrid_Callback(hObject, eventdata, handles)
@@ -2177,7 +2172,7 @@ function geog = guessGeog(lims)
 % -----------------------------------------------------------------------------------------
 function flederize(fname,n, Z, imgWater, indLand, limits)
 	% Write a .sd fleder file with z_max smashed to (?) times min water height
-	[pato, name] = fileparts(fname);
+	pato = fileparts(fname);
 	%fname = [pato filesep name '.sd'];
 	fname = [pato filesep sprintf('z_%.2d.sd',n)];
 	
@@ -2269,7 +2264,7 @@ function hh = loc_quiver(struc_in,varargin)
 	hv = [y+v-alpha*(v-beta*(u+eps)); y+v; y+v-alpha*(v+beta*(u+eps)); repmat(NaN,size(v))];
 
 	if (struc_in.spacingChanged)
-		try,	delete(struc_in.hQuiver),	struc_in.hQuiver = [];	end		% Remove previous arrow field
+		try		delete(struc_in.hQuiver),	struc_in.hQuiver = [];	end		% Remove previous arrow field
 	end
 
 	if ( isempty(struc_in.hQuiver) || ~ishandle(struc_in.hQuiver(1)) )		% No arrows yet.
@@ -2340,7 +2335,7 @@ function stopBar =  aguentabar(varargin)
 				fractiondone = varargin{i};
 			elseif ( strncmpi(varargin{i}, 'title',5) )
 				try		titulo = varargin{i+1};				% In case title string was not provided
-				catch	titulo = '';
+				catch,	titulo = '';
 				end
 			elseif ( strncmpi(varargin{i}, 'createcancelbtn',7) )
 				haveCancel = 1;
@@ -3699,7 +3694,7 @@ function push_vp_cancel_Callback(hObject, eventdata, handles)
 
 
 % ------------ Creates and returns a handle to the GUI figure. --------
-function vector_plot_LayoutFcn(h1);
+function vector_plot_LayoutFcn(h1)
 
 set(h1,'Position',[520 620 161 180],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
