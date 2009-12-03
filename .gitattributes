@@ -315,6 +315,7 @@ mex/country_select.c -text
 mex/cpt2cmap.c -text
 mex/cvcolor_mex.c -text
 mex/cvlib_mex.c -text
+mex/ditherc.c -text
 mex/edison/compile_edison_wrapper.m -text
 mex/edison/edge/BgDefaults.h -text
 mex/edison/edge/BgEdge.cpp -text
