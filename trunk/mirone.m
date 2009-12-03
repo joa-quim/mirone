@@ -811,7 +811,7 @@ function zoom_state(handles, state)
 	end
 
 % --------------------------------------------------------------------
-function FileNewBgFrame_CB(handles, region, imSize, figTitle)
+function handles = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 % Create a empty window with a frame selected in bg_region
 % However, if REGION was transmited, it is assumed to have [x_min x_max y_min y_max is_geog]
 % IMSIZE may either be the image size or the Figure title
@@ -1512,8 +1512,9 @@ function read_DEMs(handles,fullname,tipo,opt)
 		if ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
 			ind = (Z == single(att.Band(1).NoDataValue));
 			if (any(ind(:)))
-				Z(ind) = NaN;		handles.have_nans = 1;		clear ind;
+				Z(ind) = NaN;		handles.have_nans = 1;
 			end
+			clear ind;
 		end
 		% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
 		if ( isequal((att.Corners.LR - att.Corners.UL),[att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
@@ -1521,7 +1522,7 @@ function read_DEMs(handles,fullname,tipo,opt)
 		end
 		head = att.GMT_hdr;
 		if (isequal(head(5:6),[0 0]) || any(isnan(head(5:6))))		% It can happen with GeoTiff_DEM
-			zz = grdutils(Z,'-L');			head(5:6) = [zz(1) zz(2)];
+			zz = grdutils(Z,'-L');			head(5:6) = [zz(1) zz(2)];		att.GMT_hdr(5:6) = head(5:6);
 		end
 		X = linspace(head(1),head(2),size(Z,2));	Y = linspace(head(3),head(4),size(Z,1));	% Need this for image
 		if (~isempty(att.GCPvalues))					% Save GCPs so that we can plot them and warp the image
@@ -2416,8 +2417,8 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 	if (handles.no_file)			% We don't have a BG map, so we have to create one
 		[track, names, names_ui, vars, x_min, x_max, y_min, y_max] = aux_funs('get_mgg', names, PathName, '-Fxym','-G');
 		if (isempty(names)),	return,		end			% Non existing files probably
-		FileNewBgFrame_CB(handles, [x_min x_max y_min y_max 1]),		pause(0.05)
-		handles.no_file = 0;	guidata(handles.figure1, handles)
+		handles = FileNewBgFrame_CB(handles, [x_min x_max y_min y_max 1]);		pause(0.05)
+		handles.no_file = 0;	handles.geog = 1;	guidata(handles.figure1, handles)
 	else
 		x_lim = get(handles.axes1,'XLim');		y_lim = get(handles.axes1,'YLim');
 		opt_R = sprintf('-R%.6f/%.6f/%.6f/%.6f', x_lim(1), x_lim(2), y_lim(1), y_lim(2));
