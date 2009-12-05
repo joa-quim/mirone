@@ -751,13 +751,15 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 	Corners.LR = att.Corners.LR;
 	Corners.UL = att.Corners.UL;
 
-	[Z,att] = read_gdal(fname, att, '-C', opt_R, '-U');
+	[Z, att, known_coords] = read_gdal(fname, att, '-C', opt_R, '-U');
 
 	% See if we knew the image coordinates but that knowedge is lost in new att
-	if ( (isequal(att.GMT_hdr(8:9), [1 1]) && ~isequal(GMT_hdr(8:9), [1 1])) || (diff(GMT_hdr(1:2)) > 359.9) )
-		att.GMT_hdr = GMT_hdr;		% Recover the header info
-		att.Corners.LR = Corners.LR;
-		att.Corners.UL = Corners.UL;
+	if ( ~known_coords )	% For the moment we only know for sure for L2 georeferenced products
+		if ( (isequal(att.GMT_hdr(8:9), [1 1]) && ~isequal(GMT_hdr(8:9), [1 1])) || (diff(GMT_hdr(1:2)) > 359.9) )
+			att.GMT_hdr = GMT_hdr;		% Recover the header info
+			att.Corners.LR = Corners.LR;
+			att.Corners.UL = Corners.UL;
+		end
 	end
 
 	if (~isempty(str_d)),	delete(str_d);		end		% Delete uncompressed file.
@@ -807,13 +809,14 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 	end
 
 % -----------------------------------------------------------------------------------------
-function [Z, att] = read_gdal(full_name, att, varargin)
+function [Z, att, known_coords] = read_gdal(full_name, att, varargin)
 % Help function to gdalread that deals with cases when file is compressed.
 % ATT is the GDALREAD returned attributes. If empty, we'll get it here
 % VARARGIN will normally contain one or more of '-C', '-M', opt_R, '-U'
 % WARNING: If exist(att.hdfInfo) than att.fname should exist as well (both non standard)
 
-	NoDataValue = [];	% Some defaults
+	NoDataValue = [];		% Some defaults
+	known_coords = false;	% If we know for sure the coords (as for georefed L2 products) tell that to caller
 	[full_name, str_d, uncomp_name] = deal_with_compressed(full_name);
 
 	if (isempty(att))
@@ -916,6 +919,7 @@ function [Z, att] = read_gdal(full_name, att, varargin)
 					Z(mask) = NaN;
 				end
 				att.GMT_hdr = head;
+				known_coords = true;				% Signal that coordinates are known and should not be guessed again
 				att.Band(1).NoDataValue = [];		% Don't waist time later trying to NaNify again
 				x_min = head(1) - head(8)/2;		x_max = head(2) + head(8)/2;		% Goto pixel registration
 				y_min = head(3) - head(9)/2;		y_max = head(4) + head(9)/2;
