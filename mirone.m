@@ -1156,7 +1156,7 @@ else
 		warndlg(['A registering world file was found but the following error occured: ' err_msg],'Warning')
 	end
 
-	if (strcmp(info_img(1).ColorType,'grayscale'))
+	if (strcmp(info_img(1).ColorType,'grayscale') || (strcmp(info_img(1).ColorType,'truecolor') && (ndims(I) ~= 3)) )
 		set(handles.figure1,'Colormap',gray(256))
 	elseif (isfield(info_img(1),'ColorTable'))			% Gif images call it 'ColorTable'
 		set(handles.figure1,'Colormap',info_img(1).ColorTable)
