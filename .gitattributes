@@ -387,6 +387,7 @@ mex/imhistc.c -text
 mex/ind2rgb8.c -text
 mex/intlutc.c -text
 mex/inv_lwm.c -text
+mex/invcmap.c -text
 mex/iptutil.c -text
 mex/iptutil.h -text
 mex/iptutil_cpp.h -text
