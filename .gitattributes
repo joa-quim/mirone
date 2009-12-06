@@ -305,6 +305,9 @@ lib_mex/wgifc.dll -text
 mex/PolygonClip.c -text
 mex/akimaspline.cpp -text
 mex/alloc_mex.c -text
+mex/applylutc.c -text
+mex/bwlabel1.c -text
+mex/bwlabel2.c -text
 mex/callMir.c -text
 mex/clipbd_mex.cpp -text
 mex/cm4field_m.c -text
@@ -313,6 +316,7 @@ mex/countries.h -text
 mex/country_extract.c -text
 mex/country_select.c -text
 mex/cpt2cmap.c -text
+mex/cq.c -text
 mex/cvcolor_mex.c -text
 mex/cvlib_mex.c -text
 mex/ditherc.c -text
@@ -351,6 +355,8 @@ mex/gmtlist_m.c -text
 mex/gmtmbgrid_m.c -text
 mex/gpc.c -text
 mex/gpc.h -text
+mex/grayto16.c -text
+mex/grayto8.c -text
 mex/grd2cdf.c -text
 mex/grdfft_m.c -text
 mex/grdfilter_m.c -text
@@ -367,7 +373,11 @@ mex/grdutils.c -text
 mex/grdwrite_m.c -text
 mex/houghmex.cpp -text
 mex/igrf_m.c -text
+mex/imhistc.c -text
 mex/ind2rgb8.c -text
+mex/intlutc.c -text
+mex/inv_lwm.c -text
+mex/iptutil.h -text
 mex/isf_head.h -text
 mex/make_mexs.m -text
 mex/makefile.mexs -text
@@ -388,6 +398,7 @@ mex/mirblock.c -text
 mex/mxgridtrimesh.c -text
 mex/nearneighbor_m.c -text
 mex/ogrproj.cpp -text
+mex/parityscan.c -text
 mex/range_change.c -text
 mex/read_isf.c -text
 mex/scaleto8.c -text
@@ -412,6 +423,7 @@ mex/swan_sem_wbar.c -text
 mex/telha.h -text
 mex/telha_m.c -text
 mex/test_gmt.c -text
+mex/transform_points.h -text
 mex/trend1d_m.c -text
 mex/tsun2.c -text
 mex/tsun2_sem_wbar.c -text
