@@ -410,6 +410,8 @@ mex/mexnc/netcdf3.h -text
 mex/mirblock.c -text
 mex/morphmex.cpp -text
 mex/morphmex.h -text
+mex/mwippl.cpp -text
+mex/mwippl.h -text
 mex/mwsize.h -text
 mex/mxgridtrimesh.c -text
 mex/nearneighbor_m.c -text
