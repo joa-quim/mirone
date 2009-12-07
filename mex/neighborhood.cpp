@@ -130,8 +130,7 @@ mwSignedIndex sub_to_ind_signed(mwSignedIndex *coords, mwSize *cumprod, mwSize n
  * ======
  * relative linear offset
  */
-mwSignedIndex sub_to_relative_ind(mwSignedIndex *coords, mwSize num_dims)
-{
+mwSignedIndex sub_to_relative_ind(mwSignedIndex *coords, mwSize num_dims) {
     mwSignedIndex N;
     mwSignedIndex P;
     mwSignedIndex abs_coord;
@@ -156,21 +155,17 @@ mwSignedIndex sub_to_relative_ind(mwSignedIndex *coords, mwSize num_dims)
      * Find the maximum absolute neighbor offset.
      */
     N = 0;
-    for (mwSize k = 0; k < num_dims; k++)
-    {
+    for (mwSize k = 0; k < num_dims; k++) {
         abs_coord = coords[k] > 0 ? coords[k] : -coords[k];
         if (abs_coord > N)
-        {
             N = abs_coord;
-        }
     }
     P = 2*N + 1;
 
     /*
      * Perform sub_to_ind computation.
      */
-    for (mwSize k = 0; k < num_dims; k++)
-    {
+    for (mwSize k = 0; k < num_dims; k++) {
         index += coords[k] * cumprod;
         cumprod *= P;
     }
@@ -194,8 +189,7 @@ mwSignedIndex sub_to_relative_ind(mwSignedIndex *coords, mwSize num_dims)
  * true/false
  */
 static
-bool is_leading_neighbor(mwSignedIndex *coords, mwSize num_dims)
-{
+bool is_leading_neighbor(mwSignedIndex *coords, mwSize num_dims) {
     
     return (sub_to_relative_ind(coords, num_dims) > 0);
 }
@@ -214,9 +208,7 @@ bool is_leading_neighbor(mwSignedIndex *coords, mwSize num_dims)
  * ======
  * true/false
  */
-static
-bool is_trailing_neighbor(mwSignedIndex *coords, mwSize num_dims)
-{
+static bool is_trailing_neighbor(mwSignedIndex *coords, mwSize num_dims) {
     return (sub_to_relative_ind(coords, num_dims) < 0);
 }
 
@@ -233,17 +225,13 @@ bool is_trailing_neighbor(mwSignedIndex *coords, mwSize num_dims)
  * ======
  * true if specified neighbor is the neighborhood center; false otherwise
  */
-static
-bool is_neighborhood_center(mwSignedIndex *coords, mwSize num_dims)
-{
+static bool is_neighborhood_center(mwSignedIndex *coords, mwSize num_dims) {
     bool result = true;
 
     mxAssert(coords != NULL, "");
     
-    for (mwSize k = 0; k < num_dims; k++)
-    {
-        if (coords[k] != 0)
-        {
+    for (mwSize k = 0; k < num_dims; k++) {
+        if (coords[k] != 0) {
             result = false;
             break;
         }
@@ -265,8 +253,7 @@ bool is_neighborhood_center(mwSignedIndex *coords, mwSize num_dims)
  * ======
  * new neighborhood object
  */
-Neighborhood_T allocate_neighborhood(mwSize num_neighbors, mwSize num_dims)
-{
+Neighborhood_T allocate_neighborhood(mwSize num_neighbors, mwSize num_dims) {
     Neighborhood_T result;
 
     result = (Neighborhood_T) mxCalloc(1, sizeof(*result));
@@ -290,9 +277,7 @@ Neighborhood_T allocate_neighborhood(mwSize num_neighbors, mwSize num_dims)
  * ======
  * new neighborhood object
  */
-static
-Neighborhood_T create_neighborhood_special_2d(int code)
-{
+static Neighborhood_T create_neighborhood_special_2d(int code) {
     Neighborhood_T result;
     int r;
     int c;
@@ -325,17 +310,14 @@ Neighborhood_T create_neighborhood_special_2d(int code)
 
     result = allocate_neighborhood(num_neighbors, num_dims);
     count = 0;
-    for (c = -1; c <= 1; c++)
-    {
-        for (r = -1; r <= 1; r++)
-        {
+    for (c = -1; c <= 1; c++) {
+        for (r = -1; r <= 1; r++) {
             /*
              * sum == 1 implies edge-connected
              * sum == 2 implies edge- or vertex-connected
              */
             sum = (r != 0) + (c != 0);
-            if (sum <= max)
-            {
+            if (sum <= max) {
                 p = count*num_dims;
                 (result->array_coords)[p] = r;
                 (result->array_coords)[p + 1] = c;
@@ -360,9 +342,7 @@ Neighborhood_T create_neighborhood_special_2d(int code)
  * ======
  * new neighborhood object
  */
-static
-Neighborhood_T create_neighborhood_special_3d(int code)
-{
+static Neighborhood_T create_neighborhood_special_3d(int code) {
     Neighborhood_T result;
     int r;
     int c;
@@ -397,20 +377,16 @@ Neighborhood_T create_neighborhood_special_3d(int code)
 
     result = allocate_neighborhood(num_neighbors, num_dims);
     count = 0;
-    for (z = -1; z <= 1; z++)
-    {
-        for (c = -1; c <= 1; c++)
-        {
-            for (r = -1; r <= 1; r++)
-            {
+    for (z = -1; z <= 1; z++) {
+        for (c = -1; c <= 1; c++) {
+            for (r = -1; r <= 1; r++) {
                 /*
                  * sum == 1 implies face-connected
                  * sum == 2 implies edge-connected
                  * sum == 3 implies vertex-connected
                  */
                 sum = (r != 0) + (c != 0) + (z != 0);
-                if (sum <= max)
-                {
+                if (sum <= max) {
                     p = count*num_dims;
                     (result->array_coords)[p] = r;
                     (result->array_coords)[p + 1] = c;
@@ -438,23 +414,15 @@ Neighborhood_T create_neighborhood_special_3d(int code)
  * ======
  * new neighborhood object
  */
-static
-Neighborhood_T create_neighborhood_special(int code)
-{
+static Neighborhood_T create_neighborhood_special(int code) {
     Neighborhood_T result = NULL;
 
     if ((code == 4) || (code == 8))
-    {
         result = create_neighborhood_special_2d(code);
-    }
     else if ((code == 6) || (code == 18) || (code == 26))
-    {
         result = create_neighborhood_special_3d(code);
-    }
     else
-    {
         mxAssert(false,"");
-    }
 
     return result;
 }
@@ -471,8 +439,7 @@ Neighborhood_T create_neighborhood_special(int code)
  * ======
  * number of nonzero elements of real part of D.
  */
-mwSize num_nonzeros(const mxArray *D)
-{
+mwSize num_nonzeros(const mxArray *D) {
     mwSize num_elements;
     void *pr;
     int count = 0;
@@ -482,41 +449,30 @@ mwSize num_nonzeros(const mxArray *D)
 
     num_elements = mxGetNumberOfElements(D);
     if (mxIsLogical(D))
-    {
         pr = mxGetLogicals(D);
-    }
     else
-    {
         pr = mxGetData(D);
-    }
     array_class = mxGetClassID(D);
     
-    switch(array_class)
-    {
+    switch(array_class) {
       case(mxLOGICAL_CLASS):
-      case(mxUINT8_CLASS):
-      {
+      case(mxUINT8_CLASS): {
           uint8_T *npr = (uint8_T *)pr;
-          for (mwSize p = 0; p < num_elements; p++)
-          { 
+          for (mwSize p = 0; p < num_elements; p++) { 
               if (*npr) count++; npr++; 
           }
           break;
       }
-      case(mxINT8_CLASS):
-      {
+      case(mxINT8_CLASS): {
           int8_T *npr = (int8_T *)pr;
-          for (mwSize p = 0; p < num_elements; p++)
-          { 
+          for (mwSize p = 0; p < num_elements; p++) { 
               if (*npr) count++; npr++; 
           }
           break;
       }
-      case(mxUINT16_CLASS):
-      {
+      case(mxUINT16_CLASS): {
           uint16_T *npr = (uint16_T *)pr;
-          for (mwSize p = 0; p < num_elements; p++)
-          { 
+          for (mwSize p = 0; p < num_elements; p++) { 
               if (*npr) count++; npr++; 
           }
           break;
@@ -597,10 +553,7 @@ mwSize num_nonzeros(const mxArray *D)
  * ======
  * new neighborhood object.
  */
-static
-Neighborhood_T create_neighborhood_general(const mxArray *D,
-                                           int center_location)
-{
+static Neighborhood_T create_neighborhood_general(const mxArray *D, int center_location) {
     void *pr;
     mxClassID array_class;
     Neighborhood_T result = NULL;
@@ -701,9 +654,7 @@ void nhCheckConnectivityDomain(const mxArray *D,
     mxDestroyArray(prhs[3]);
 
     if (plhs[0] != NULL)
-    {
         mxDestroyArray(plhs[0]);
-    }
 }
 
 
@@ -1189,16 +1140,13 @@ bool is_inbounds_neighbor(mwSignedIndex *offset_coords, mwSize *array_coords,
  * true if successful; false if there were no more neighbors.  If false is 
  * returned then p and idx are not set.
  */
-bool nhGetNextInboundsNeighbor(NeighborhoodWalker_T walker, mwSize *p,
-                               mwSize *idx)
-{
+bool nhGetNextInboundsNeighbor(NeighborhoodWalker_T walker, mwSize *p, mwSize *idx) {
     bool found = false;
 
     mxAssert(walker != NULL, "");
     mxAssert(p != NULL, "");
     
-    for (mwSize k = walker->next_neighbor_idx; k < walker->num_neighbors; k++)
-    {
+    for (mwSize k = walker->next_neighbor_idx; k < walker->num_neighbors; k++) {
         if (walker->use[k] && 
             is_inbounds_neighbor(walker->array_coords + k*walker->num_dims,
                                  walker->center_coords, 
@@ -1208,16 +1156,13 @@ bool nhGetNextInboundsNeighbor(NeighborhoodWalker_T walker, mwSize *p,
             found = true;
             *p = walker->pixel_offset + walker->neighbor_offsets[k];
             if (idx != NULL)
-            {
                 *idx = k;
-            }
             walker->next_neighbor_idx = k + 1;
             break;
         }
     }
 
-    if (! found)
-    {
+    if (! found) {
         /*
          * Make sure this walker can't be used again until
          * nhSetWalkerLocation is called.
@@ -1241,8 +1186,7 @@ bool nhGetNextInboundsNeighbor(NeighborhoodWalker_T walker, mwSize *p,
  * ======
  * offsets - array of array coordinates
  */
-mwSignedIndex *nhGetWalkerNeighborOffsets(NeighborhoodWalker_T walker)
-{
+mwSignedIndex *nhGetWalkerNeighborOffsets(NeighborhoodWalker_T walker) {
     mxAssert(walker != NULL, "");
 
     return(walker->neighbor_offsets);
@@ -1262,8 +1206,7 @@ mwSignedIndex *nhGetWalkerNeighborOffsets(NeighborhoodWalker_T walker)
  * number of neighbors (int32)
  */
 
-mwSize nhGetNumNeighbors(NeighborhoodWalker_T walker)
-{
+mwSize nhGetNumNeighbors(NeighborhoodWalker_T walker) {
     mxAssert(walker != NULL, "");
 
     return(walker->num_neighbors);
@@ -1279,8 +1222,7 @@ mwSize nhGetNumNeighbors(NeighborhoodWalker_T walker)
  * walker - NeighborhoodWalker_T object (modified)
  *
  */
-void nhDestroyNeighborhoodWalker(NeighborhoodWalker_T walker)
-{
+void nhDestroyNeighborhoodWalker(NeighborhoodWalker_T walker) {
     mxAssert(walker != NULL, "");
     
     mxFree(walker->array_coords);
