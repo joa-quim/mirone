@@ -9,8 +9,9 @@ if (nargin == 0),	opt = 'usage';	end			% Quite poor message though
 
 % ------------- Adjust for your own path -----------------------------------------------
 % path for MSVC library dir
-pato_VCLIB = 'C:\programs\VisualStudio\VC98\Lib\';
-pato_VCLIB = '"C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK\Lib\"';
+%pato_VCLIB = 'C:\programs\VisualStudio\VC98\Lib\';
+%pato_VCLIB = '"C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK\Lib\"';
+pato_VCLIB = '"C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\"';
 
 % Include path for GMT. Directory where the several *.h GMT files reside 
 patoINC_GMT = 'c:\progs_cygw\GMTdev\GMT\';
@@ -88,17 +89,18 @@ str_cv = {'cvlib_mex'}';
 % netCDF mexes (other than GMT ones)
 str_withCDF = {'swan'; 'swan_sem_wbar'};
 
-% MEXNC mexes
-str_mexnc = {'mexgateway.c netcdf2.c netcdf3.c common.c'; 'swan_sem_wbar'};
-
 % Non LIB dependent mexs (besides matlab libs, of course)
 str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'tsun2' 'wave_travel_time' 'mansinha_m' ...
 	'telha_m' 'range_change' 'country_select' 'mex_illuminate' 'grdutils' 'read_isf' ...
 	'alloc_mex' 'susan' 'set_gmt' 'mxgridtrimesh' 'trend1d_m', 'gmtmbgrid_m' ...
-	'grdgradient_m' 'grdtrack_m' 'spa_mex' 'ind2rgb8' 'mirblock' }';
+	'grdgradient_m' 'grdtrack_m' 'spa_mex' 'ind2rgb8' 'mirblock' 'applylutc' 'cq' ...
+	'bwlabel1' 'bwlabel2' 'imhistc' 'intlutc' 'inv_lwm' 'grayto8' 'grayto16' 'ordf' ...
+	'parityscan'}';
 
 % Non LIB dependent c++ mexs
-str_simple_cpp = {'houghmex' 'clipbd_mex' 'akimaspline'}';
+str_simple_cpp = {'houghmex' 'clipbd_mex' 'akimaspline' 'bwlabelnmex' 'bwboundariesmex' ...
+	'imreconstructmex' 'morphmex' 'grayxform' 'resampsep'}';
+
 LIB_USER32 = [pato_VCLIB 'USER32.LIB'];
 LIB_GDI32 = [pato_VCLIB 'GDI32.LIB'];
 library_vc6 = [LIB_USER32 ' ' LIB_GDI32];		% Only used with the c++ simple mexs
@@ -145,14 +147,9 @@ if (strcmp(opt,'all'))			% Compile the whole family
 		cmd = ['mex ' [str_cv{i} '.c']  ' sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c ' include_cv ' ' library_cv ' ' COPT];
 		eval(cmd)
 	end
-	for (i=1:numel(str_simple))		% Compile Other (simple) mexs
-		cmd = ['mex ' [str_simple{i} '.c'] ' ' COPT];
-		eval(cmd)
-	end
-	for (i=1:numel(str_simple_cpp))	% Compile Other (simple) c++ mexs
-		cmd = ['mex ' [str_simple_cpp{i} '.cpp'] ' ' library_vc6  ' ' COPT];
-		eval(cmd)
-	end
+
+	make_simple(str_simple, str_simple_cpp, library_vc6, COPT)
+
 	cmd = ['mex PolygonClip.c gpc.c ' COPT];
 	eval(cmd)
 	% Compile the MEXNC mexs
@@ -182,6 +179,8 @@ elseif (strcmpi(opt,'gdal'))		% Compile only the GDAL mexs
 elseif (strcmpi(opt,'mexnc'))	% Compile only the MEXNC mexs
 	cmd = ['mex mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c -output mexnc ' opt_mexnc ' ' COPT];
 	eval(cmd)
+elseif (strcmpi(opt,'simple'))		% Compile the 'simple' mexs
+	make_simple(str_simple, str_simple_cpp, library_vc6, COPT)
 elseif (strcmp(opt,'usage'))
 	disp('Example usage: make_mexs(''mapproject_m'')')
 	disp('	OR: make_mexs(''ALL'') -- Compile all familly')
@@ -239,3 +238,30 @@ else							% Compile only one mex
     end
     eval(cmd)
 end
+
+% ----------------------------------------------------------------------------
+function make_simple(str_simple, str_simple_cpp, library_vc, COPT)
+% Compile the so called 'simple' mexs. That is, mexs that don't depend on external libs
+	for (i=1:numel(str_simple))
+		if (strcmp(str_simple{i}, 'ditherc'))
+			cmd = ['mex ' [str_simple{i} '.c '] 'invcmap.c ' COPT];
+		else
+			cmd = ['mex ' [str_simple{i} '.c '] COPT];
+		end
+        eval(cmd)
+	end
+	for (i=1:numel(str_simple_cpp))	% Compile GMT MGG mexs
+		if (strcmp(str_simple_cpp{i}, 'bwlabelnmex'))
+	        cmd = ['mex ' [str_simple_cpp{i} '.cpp '] 'neighborhood.cpp unionfind.c ' library_vc ' ' COPT];
+		elseif (strcmp(str_simple_cpp{i}, 'bwboundariesmex'))
+	        cmd = ['mex ' [str_simple_cpp{i} '.cpp '] 'boundaries.cpp ' library_vc ' ' COPT];
+		elseif (strcmp(str_simple_cpp{i}, 'morphmex'))
+	        cmd = ['mex ' [str_simple_cpp{i} '.cpp '] 'dilate_erode_gray_nonflat.cpp dilate_erode_packed.cpp dilate_erode_binary.cpp neighborhood.cpp vectors.cpp ' library_vc ' ' COPT];
+		elseif (strcmp(str_simple_cpp{i}, 'imreconstructmex'))
+	        cmd = ['mex ' [str_simple_cpp{i} '.cpp '] 'neighborhood.cpp ' library_vc ' ' COPT];
+		else
+	        cmd = ['mex ' [str_simple_cpp{i} '.cpp '] library_vc ' ' COPT];
+		end
+        eval(cmd)
+	end
+
