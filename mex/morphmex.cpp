@@ -169,14 +169,11 @@ bool is_linear_strel(const mxArray *input_nhood, mwSize *dim, mwSize *lambda, mw
      * in the neighborhood.  If there are no nonzero values
      * then it's not a linear strel.
      */
-    if (result)
-    {
+    if (result) {
         bool found = false;
 
-        for (k = 0; k < numel; k++)
-        {
-            if (pr[k])
-            {
+        for (k = 0; k < numel; k++) {
+            if (pr[k]) {
                 first_nonzero_value = k;
                 found = true;
                 break;
@@ -184,9 +181,7 @@ bool is_linear_strel(const mxArray *input_nhood, mwSize *dim, mwSize *lambda, mw
         }
 
         if (! found)
-        {
             result = false;
-        }
     }
 
     if (result) {
@@ -458,8 +453,7 @@ void dilate_gray_flat(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]
 
 }
 
-void erode_gray_linear(const mxArray *A, mxArray *B, mwSize dim, mwSize lambda, mwSignedIndex origin)
-{
+void erode_gray_linear(const mxArray *A, mxArray *B, mwSize dim, mwSize lambda, mwSignedIndex origin) {
     mwSize        numdims      = mxGetNumberOfDimensions(A);
     const mwSize  *size        = mxGetDimensions(A);
     size_t        elem_size    = mxGetElementSize(A);
@@ -662,8 +656,7 @@ void erode_gray_flat(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 }
 
-double *get_heights(const mxArray *input_nhood, const mxArray *input_height)
-{
+double *get_heights(const mxArray *input_nhood, const mxArray *input_height) {
     mwSize num_neighbors;
     mwSize num_elements;
     double *heights;
@@ -674,21 +667,16 @@ double *get_heights(const mxArray *input_nhood, const mxArray *input_height)
     num_elements = mxGetNumberOfElements(input_nhood);
     input_nhood_pr = (double *) mxGetData(input_nhood);
     num_neighbors = 0;
-    for (mwSize k = 0; k < num_elements; k++)
-    {
+    for (mwSize k = 0; k < num_elements; k++) {
         if (input_nhood_pr[k] != 0)
-        {
             num_neighbors++;
-        }
     }
     
     heights = (double *) mxCalloc(num_neighbors, sizeof(double));
     input_height_pr = (double *) mxGetData(input_height);
     pr = heights;
-    for (mwSize k = 0; k < num_elements; k++)
-    {
-        if (input_nhood_pr[k] != 0.0)
-        {
+    for (mwSize k = 0; k < num_elements; k++) {
+        if (input_nhood_pr[k] != 0.0) {
             *pr = input_height_pr[k];
             pr++;
         }
@@ -697,9 +685,7 @@ double *get_heights(const mxArray *input_nhood, const mxArray *input_height)
     return heights;
 }
 
-void dilate_gray_nonflat(int nlhs, mxArray *plhs[], int nrhs, 
-                      const mxArray *prhs[])
-{
+void dilate_gray_nonflat(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     Neighborhood_T nhood;
     NeighborhoodWalker_T walker;
     const mwSize *input_size;
@@ -721,17 +707,11 @@ void dilate_gray_nonflat(int nlhs, mxArray *plhs[], int nrhs,
     input_size = mxGetDimensions(input_image);
     input_dims = mxGetNumberOfDimensions(input_image);
     input_class = mxGetClassID(input_image);
-    output_image = mxCreateNumericArray(input_dims, 
-                                        input_size,
-                                        mxGetClassID(input_image),
-                                        mxREAL);
+    output_image = mxCreateNumericArray(input_dims, input_size, mxGetClassID(input_image), mxREAL);
     
     nhood = nhMakeNeighborhood(input_nhood,NH_CENTER_MIDDLE_ROUNDDOWN);
     nhReflectNeighborhood(nhood);
-    walker = nhMakeNeighborhoodWalker(nhood,
-                                      input_size,
-                                      input_dims,
-                                      0U);
+    walker = nhMakeNeighborhoodWalker(nhood, input_size, input_dims, 0U);
 
     num_elements = mxGetNumberOfElements(input_image);
     In = mxGetData(input_image);
@@ -739,46 +719,37 @@ void dilate_gray_nonflat(int nlhs, mxArray *plhs[], int nrhs,
 
     heights = get_heights(input_nhood, input_height);
 
-    switch (input_class)
-    {
+    switch (input_class) {
     case mxUINT8_CLASS:
-        dilate_gray_nonflat_uint8((uint8_T *)In, (uint8_T *)Out,
-                                  num_elements, walker, heights);
+        dilate_gray_nonflat_uint8((uint8_T *)In, (uint8_T *)Out, num_elements, walker, heights);
         break;
         
     case mxUINT16_CLASS:
-        dilate_gray_nonflat_uint16((uint16_T *)In, (uint16_T *)Out,
-                                   num_elements, walker, heights);
+        dilate_gray_nonflat_uint16((uint16_T *)In, (uint16_T *)Out, num_elements, walker, heights);
         break;
         
     case mxUINT32_CLASS:
-        dilate_gray_nonflat_uint32((uint32_T *)In, (uint32_T *)Out,
-                                   num_elements, walker, heights);
+        dilate_gray_nonflat_uint32((uint32_T *)In, (uint32_T *)Out, num_elements, walker, heights);
         break;
         
     case mxINT8_CLASS:
-        dilate_gray_nonflat_int8((int8_T *)In, (int8_T *)Out,
-                                 num_elements, walker, heights);
+        dilate_gray_nonflat_int8((int8_T *)In, (int8_T *)Out, num_elements, walker, heights);
         break;
         
     case mxINT16_CLASS:
-        dilate_gray_nonflat_int16((int16_T *)In, (int16_T *)Out,
-                                  num_elements, walker, heights);
+        dilate_gray_nonflat_int16((int16_T *)In, (int16_T *)Out, num_elements, walker, heights);
         break;
         
     case mxINT32_CLASS:
-        dilate_gray_nonflat_int32((int32_T *)In, (int32_T *)Out,
-                                  num_elements, walker, heights);
+        dilate_gray_nonflat_int32((int32_T *)In, (int32_T *)Out, num_elements, walker, heights);
         break;
         
     case mxSINGLE_CLASS:
-        dilate_gray_nonflat_single((float *)In, (float *)Out,
-                                   num_elements, walker, heights);
+        dilate_gray_nonflat_single((float *)In, (float *)Out, num_elements, walker, heights);
         break;
         
     case mxDOUBLE_CLASS:
-        dilate_gray_nonflat_double((double *)In, (double *)Out, 
-                                   num_elements, walker, heights);
+        dilate_gray_nonflat_double((double *)In, (double *)Out, num_elements, walker, heights);
         break;
         
     default:
@@ -793,9 +764,7 @@ void dilate_gray_nonflat(int nlhs, mxArray *plhs[], int nrhs,
     plhs[0] = output_image;
 }
 
-void erode_gray_nonflat(int nlhs, mxArray *plhs[], int nrhs, 
-                        const mxArray *prhs[])
-{
+void erode_gray_nonflat(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     Neighborhood_T nhood;
     NeighborhoodWalker_T walker;
     const mwSize *input_size;
@@ -817,16 +786,10 @@ void erode_gray_nonflat(int nlhs, mxArray *plhs[], int nrhs,
     input_size = mxGetDimensions(input_image);
     input_dims = mxGetNumberOfDimensions(input_image);
     input_class = mxGetClassID(input_image);
-    output_image = mxCreateNumericArray(input_dims, 
-                                        input_size,
-                                        mxGetClassID(input_image),
-                                        mxREAL);
+    output_image = mxCreateNumericArray(input_dims, input_size, mxGetClassID(input_image), mxREAL);
     
     nhood = nhMakeNeighborhood(input_nhood,NH_CENTER_MIDDLE_ROUNDDOWN);
-    walker = nhMakeNeighborhoodWalker(nhood,
-                                      input_size,
-                                      input_dims,
-                                      0U);
+    walker = nhMakeNeighborhoodWalker(nhood, input_size, input_dims, 0U);
 
     num_elements = mxGetNumberOfElements(input_image);
     In = mxGetData(input_image);
@@ -837,43 +800,35 @@ void erode_gray_nonflat(int nlhs, mxArray *plhs[], int nrhs,
     switch (input_class)
     {
     case mxUINT8_CLASS:
-        erode_gray_nonflat_uint8((uint8_T *)In, (uint8_T *)Out, 
-                                 num_elements, walker, heights);
+        erode_gray_nonflat_uint8((uint8_T *)In, (uint8_T *)Out, num_elements, walker, heights);
         break;
         
     case mxUINT16_CLASS:
-        erode_gray_nonflat_uint16((uint16_T *)In, (uint16_T *)Out,
-                                  num_elements, walker, heights);
+        erode_gray_nonflat_uint16((uint16_T *)In, (uint16_T *)Out, num_elements, walker, heights);
         break;
         
     case mxUINT32_CLASS:
-        erode_gray_nonflat_uint32((uint32_T *)In, (uint32_T *)Out,
-                                  num_elements, walker, heights);
+        erode_gray_nonflat_uint32((uint32_T *)In, (uint32_T *)Out, num_elements, walker, heights);
         break;
         
     case mxINT8_CLASS:
-        erode_gray_nonflat_int8((int8_T *)In, (int8_T *)Out, 
-                                num_elements, walker, heights);
+        erode_gray_nonflat_int8((int8_T *)In, (int8_T *)Out, num_elements, walker, heights);
         break;
         
     case mxINT16_CLASS:
-        erode_gray_nonflat_int16((int16_T *)In, (int16_T *)Out,
-                                 num_elements, walker, heights);
+        erode_gray_nonflat_int16((int16_T *)In, (int16_T *)Out, num_elements, walker, heights);
         break;
         
     case mxINT32_CLASS:
-        erode_gray_nonflat_int32((int32_T *)In, (int32_T *)Out,
-                                 num_elements, walker, heights);
+        erode_gray_nonflat_int32((int32_T *)In, (int32_T *)Out, num_elements, walker, heights);
         break;
         
     case mxSINGLE_CLASS:
-        erode_gray_nonflat_single((float *)In, (float *)Out,
-                                  num_elements, walker, heights);
+        erode_gray_nonflat_single((float *)In, (float *)Out, num_elements, walker, heights);
         break;
         
     case mxDOUBLE_CLASS:
-        erode_gray_nonflat_double((double *)In, (double *)Out, 
-                                  num_elements, walker, heights);
+        erode_gray_nonflat_double((double *)In, (double *)Out, num_elements, walker, heights);
         break;
         
     default:
@@ -888,9 +843,7 @@ void erode_gray_nonflat(int nlhs, mxArray *plhs[], int nrhs,
     plhs[0] = output_image;
 }
 
-void get_rc_offsets(const mxArray *nhood, mwSize *num_neighbors, 
-                    mwSignedIndex **rc_offsets)
-{
+void get_rc_offsets(const mxArray *nhood, mwSize *num_neighbors, mwSignedIndex **rc_offsets) {
     mwSize M;
     mwSize N;
     mwSize center_row;
@@ -901,8 +854,7 @@ void get_rc_offsets(const mxArray *nhood, mwSize *num_neighbors,
     mwSize c;
     mwSize r;
     
-    if (mxGetNumberOfDimensions(nhood) != 2)
-    {
+    if (mxGetNumberOfDimensions(nhood) != 2) {
         mexErrMsgIdAndTxt("Images:morphmex:nhoodMustBe2DForPackedMethods",
                           "%s","Neighborhood must be 2-D for packed methods.");
     }
@@ -916,23 +868,17 @@ void get_rc_offsets(const mxArray *nhood, mwSize *num_neighbors,
     *num_neighbors = 0;
     pr = (double *) mxGetData(nhood);
     
-    for (mwSize k = 0; k < num_elements; k++)
-    {
+    for (mwSize k = 0; k < num_elements; k++) {
         if (pr[k] != 0.0)
-        {
             (*num_neighbors)++;
-        }
     }
     
     *rc_offsets = (mwSignedIndex *) mxCalloc(*num_neighbors * 2, sizeof(**rc_offsets));
     
     counter = 0;
-    for (c = 0; c < N; c++)
-    {
-        for (r = 0; r < M; r++)
-        {
-            if (*pr != 0.0)
-            {
+    for (c = 0; c < N; c++) {
+        for (r = 0; r < M; r++) {
+            if (*pr != 0.0) {
                 (*rc_offsets)[counter] = static_cast<mwSignedIndex>(r) - center_row;
                 (*rc_offsets)[counter + *num_neighbors] = 
                     static_cast<mwSignedIndex>(c) - center_col;
@@ -943,9 +889,7 @@ void get_rc_offsets(const mxArray *nhood, mwSize *num_neighbors,
     }
 }
 
-void dilate_packed(int nlhs, mxArray *plhs[], int nrhs,
-                   const mxArray *prhs[])
-{
+void dilate_packed(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     const mxArray *input_image = prhs[1];
     const mxArray *input_nhood = prhs[2];
     mxArray *output_image;
@@ -960,15 +904,13 @@ void dilate_packed(int nlhs, mxArray *plhs[], int nrhs,
     (void) nlhs;
     (void) nrhs;
 
-    if (!mxIsUint32(input_image))
-    {
+    if (!mxIsUint32(input_image)) {
         mexErrMsgIdAndTxt("Images:morphmex:"
                           "inputImageMustBeUint32ForPackedMethods",
                           "%s","Input image must be uint32 for packed methods.");
     }
 
-    if (mxGetNumberOfDimensions(input_image) != 2)
-    {
+    if (mxGetNumberOfDimensions(input_image) != 2) {
         mexErrMsgIdAndTxt("Images:morphmex:inputImageMustBe2DForPackedMethods",
                           "%s","Input image must be 2-D for packed methods.");
     }
@@ -989,9 +931,7 @@ void dilate_packed(int nlhs, mxArray *plhs[], int nrhs,
     plhs[0] = output_image;
 }
 
-void erode_packed(int nlhs, mxArray *plhs[], int nrhs,
-                  const mxArray *prhs[])
-{
+void erode_packed(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     const mxArray *input_image = prhs[1];
     const mxArray *input_nhood = prhs[2];
     mxArray *output_image;
@@ -1005,27 +945,23 @@ void erode_packed(int nlhs, mxArray *plhs[], int nrhs,
 
     (void) nlhs;  // unused parameter
 
-    if (!mxIsUint32(input_image))
-    {
+    if (!mxIsUint32(input_image)) {
         mexErrMsgIdAndTxt("Images:morphmex:"
                           "inputImageMustBeUint32ForPackedMethods","%s",
                           "Input image must be uint32 for packed methods.");
     }
 
-    if (mxGetNumberOfDimensions(input_image) != 2)
-    {
+    if (mxGetNumberOfDimensions(input_image) != 2) {
         mexErrMsgIdAndTxt("Images:morphmex:inputImageMustBe2DForPackedMethods",
                           "%s","Input image must be 2-D for packed methods.");
     }
 
-    if (nrhs < 5)
-    {
+    if (nrhs < 5) {
         mexErrMsgIdAndTxt("Images:morphmex:missingMForPackedErosion",
                           "%s","M must be provided for packed erosion.");
     }
 
-    if (mxGetScalar(prhs[4]) < 0.0)
-    {
+    if (mxGetScalar(prhs[4]) < 0.0) {
         mexErrMsgIdAndTxt("Images:morphmex:inputMMustBeNonnegative",
                           "%s","M must be nonnegative.");
     }
@@ -1048,8 +984,7 @@ void erode_packed(int nlhs, mxArray *plhs[], int nrhs,
     plhs[0] = output_image;
 }
 
-void check_for_nans(const mxArray *input_image)
-{
+void check_for_nans(const mxArray *input_image) {
     double *double_ptr;
     float *single_ptr;
     mwSize k;
@@ -1057,13 +992,10 @@ void check_for_nans(const mxArray *input_image)
     
     num_elements = mxGetNumberOfElements(input_image);
     
-    if (mxIsDouble(input_image))
-    {
+    if (mxIsDouble(input_image)) {
         double_ptr = (double *) mxGetData(input_image);
-        for (k = 0; k < num_elements; k++)
-        {
-            if (mxIsNaN(double_ptr[k]))
-            {
+        for (k = 0; k < num_elements; k++) {
+            if (mxIsNaN(double_ptr[k])) {
                 mexErrMsgIdAndTxt("Images:morphmex:expectedNonnan",
                                   "%s",
                                   "Input image may not contain NaNs.");
@@ -1073,29 +1005,23 @@ void check_for_nans(const mxArray *input_image)
     else if (mxIsSingle(input_image))
     {
         single_ptr = (float *) mxGetData(input_image);
-        for (k = 0; k < num_elements; k++)
-        {
-            if (mxIsNaN(single_ptr[k]))
-            {
+        for (k = 0; k < num_elements; k++) {
+            if (mxIsNaN(single_ptr[k])) {
                 mexErrMsgIdAndTxt("Images:morphmex:expectedNonnan",
                                   "%s","Input image may not contain NaNs.");
             }
         }
     }
-    else
-    {
+    else {
         mexErrMsgIdAndTxt("Images:morphmex:internalBadInputClass",
                           "%s","Internal problem: unexpected input"
                           " class in check_for_nans.");
     }
 }
 
-typedef void (matlab_fcn)(int nlhs, mxArray *plhs[], int nrhs,
-                          const mxArray *prhs[]);
+typedef void (matlab_fcn)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 
-void check_inputs_generic(int nlhs, mxArray *plhs[], int nrhs,
-                          const mxArray *prhs[])
-{
+void check_inputs_generic(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     const mxArray *method;
     const mxArray *input_image;
     const mxArray *nhood;
@@ -1111,10 +1037,8 @@ void check_inputs_generic(int nlhs, mxArray *plhs[], int nrhs,
     (void) nlhs;
     (void) plhs;
     
-    if (nrhs < 4)
-    {
-        mexErrMsgIdAndTxt("Images:morphmex:tooFewInputs",
-                          "%s","Not enough input arguments.");
+    if (nrhs < 4) {
+        mexErrMsgIdAndTxt("Images:morphmex:tooFewInputs", "%s","Not enough input arguments.");
     }
     
     method = prhs[0];
@@ -1122,82 +1046,67 @@ void check_inputs_generic(int nlhs, mxArray *plhs[], int nrhs,
     nhood = prhs[2];
     height = prhs[3];
     
-    if (!mxIsChar(method))
-    {
+    if (!mxIsChar(method)) {
         mexErrMsgIdAndTxt("Images:morphmex:firstInputMustBeMethodString","%s",
                           "First input argument must be a method string.");
     }
     
-    if (!mxIsNumeric(input_image) && !mxIsLogical(input_image))
-    {
+    if (!mxIsNumeric(input_image) && !mxIsLogical(input_image)) {
         mexErrMsgIdAndTxt("Images:morphmex:inputImageMustBeNumericOrLogical",
                           "%s","Input image must be numeric or logical.");
     }
-    if (mxIsSparse(input_image))
-    {
+    if (mxIsSparse(input_image)) {
         mexErrMsgIdAndTxt("Images:morphmex:inputImageMustBeNonsparse",
                           "%s","Input image must not be sparse.");
     }
-    if (mxIsComplex(input_image))
-    {
+    if (mxIsComplex(input_image)) {
         mexErrMsgIdAndTxt("Images:morphmex:inputImageMustBeReal",
                           "%s","Input image must be real.");
     }
     
-    if (mxIsDouble(input_image) || mxIsSingle(input_image))
-    {
+    if (mxIsDouble(input_image) || mxIsSingle(input_image)) {
         check_for_nans(input_image);
     }
 
     nhCheckDomain(nhood);
     
-    if (mxIsSparse(height))
-    {
+    if (mxIsSparse(height)) {
         mexErrMsgIdAndTxt("Images:morphmex:heightMustBeNonsparse",
                           "%s","Height must not be sparse.");
     }
-    if (!mxIsDouble(height))
-    {
+    if (!mxIsDouble(height)) {
         mexErrMsgIdAndTxt("Images:morphmex:heightMustBeDoubleArray",
                           "%s","Height must be a double array.");
     }
-    if (mxIsComplex(height))
-    {
+    if (mxIsComplex(height)) {
         mexErrMsgIdAndTxt("Images:morphmex:heightMustBeReal",
                           "%s","Height must be real.");
     }
 
     num_nhood_dims = mxGetNumberOfDimensions(nhood);
-    if (num_nhood_dims != mxGetNumberOfDimensions(height))
-    {
+    if (num_nhood_dims != mxGetNumberOfDimensions(height)) {
         mexErrMsgIdAndTxt("Images:morphmex:nhoodAndHeightMustHaveSameSize",
                           "%s",
                           "Neighborhood and height must have the same size.");
     }
     nhood_size = mxGetDimensions(nhood);
     height_size = mxGetDimensions(height);
-    for (i = 0; i < num_nhood_dims; i++)
-    {
-        if (nhood_size[i] != height_size[i])
-        {
+    for (i = 0; i < num_nhood_dims; i++) {
+        if (nhood_size[i] != height_size[i]) {
             mexErrMsgIdAndTxt("Images:morphmex:nhoodAndHeightMustHaveSameSize",
                               "%s","Neighborhood and height must have"
                               " the same size.");
         }
     }
 
-    if (nrhs == 5)
-    {
+    if (nrhs == 5) {
         unpacked_M = prhs[4];
-        if (! mxIsDouble(unpacked_M) || 
-            (mxGetNumberOfElements(unpacked_M) != 1))
-        {
+        if (! mxIsDouble(unpacked_M) || (mxGetNumberOfElements(unpacked_M) != 1)) {
             mexErrMsgIdAndTxt("Images:morphmex:inputMMustBeDoubleScalar",
                               "%s","M must be a double scalar.");
         }
         scalar = mxGetScalar(unpacked_M);
-        if (floor(scalar) != scalar)
-        {
+        if (floor(scalar) != scalar) {
             mexErrMsgIdAndTxt("Images:morphmex:inputMMustBeInteger",
                               "%s","M must be an integer.");
         }
@@ -1205,8 +1114,7 @@ void check_inputs_generic(int nlhs, mxArray *plhs[], int nrhs,
 }
 
 extern "C"
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
-{
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     struct 
     {
         char *name;
@@ -1232,10 +1140,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     method_string = mxArrayToString(prhs[0]);
         
-    while (morph_methods[i].func != NULL)
-    {
-        if (strcmp(method_string, morph_methods[i].name) == 0)
-        {
+    while (morph_methods[i].func != NULL) {
+        if (strcmp(method_string, morph_methods[i].name) == 0) {
             method_idx = i;
             break;
         }
@@ -1244,12 +1150,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     mxFree(method_string);
     
-    if (method_idx >= 0)
-    {
+    if (method_idx >= 0) {
         (*(morph_methods[method_idx].func))(nlhs, plhs, nrhs, prhs);
     }
-    else
-    {
+    else {
         mexErrMsgIdAndTxt("Images:morphmex:unknownMethodString",
                           "%s","Unknown method string.");
     }
