@@ -323,6 +323,10 @@ mex/cpt2cmap.c -text
 mex/cq.c -text
 mex/cvcolor_mex.c -text
 mex/cvlib_mex.c -text
+mex/dilate_erode_binary.cpp -text
+mex/dilate_erode_gray_nonflat.cpp -text
+mex/dilate_erode_gray_nonflat.h -text
+mex/dilate_erode_packed.cpp -text
 mex/dilate_linear.h -text
 mex/ditherc.c -text
 mex/edison/compile_edison_wrapper.m -text
