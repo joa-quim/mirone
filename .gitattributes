@@ -388,6 +388,7 @@ mex/igrf_m.c -text
 mex/imfilter_mex.cpp -text
 mex/imfilter_mex.h -text
 mex/imhistc.c -text
+mex/imreconstructmex.cpp -text
 mex/ind2rgb8.c -text
 mex/intlutc.c -text
 mex/inv_lwm.c -text
@@ -427,12 +428,15 @@ mex/ordf_hist.h -text
 mex/ordf_ordfilt2.h -text
 mex/ordf_select.h -text
 mex/parityscan.c -text
+mex/queue.h -text
 mex/range_change.c -text
 mex/read_isf.c -text
+mex/reconstruct.h -text
 mex/resampsep.cpp -text
 mex/resampsep.h -text
 mex/resampsep_types.h -text
 mex/scaleto8.c -text
+mex/sequencemex.h -text
 mex/set_gmt.c -text
 mex/shoredump.c -text
 mex/sift/LICENSE.ubc.txt -text
