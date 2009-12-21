@@ -153,7 +153,7 @@ function out = findFileType(fname)
 		out = 'ecw';
 	elseif ( any(strcmpi(EXT,'.mat')) )
 		load(fname,'grd_name')
-		if (exist(grd_name))    % The mat file is a Session file
+		if (exist(grd_name,'file') == 2)			% The mat file is a Session file
 			out = 'mat';
 		end
 	elseif ( any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17'})) )
@@ -174,7 +174,7 @@ function out = findFileType(fname)
 		% Before we give up with a 'dono' check if its a netCDF file.
 		% One normaly shouldn't need it if the GDAL netCDF driver
 		% (which is where the 'dono's end up) was not so broken.
-		[fid, msg] = fopen(fname, 'r');
+		fid = fopen(fname, 'r');
 		if (fid < 0)
 			out = 'dono';
 			return
@@ -191,7 +191,7 @@ function out = msg_dlg(in,handles)
 out = {0};    msg = [];     h = [];
 if (handles.no_file)
 	msg = 'You didn''t even load a file. What are you expecting then?';    out = {1};
-	h = msgbox(msg,'Error');      return;
+	msgbox(msg,'Error'),	return
 end
 switch in
     case 1
@@ -293,7 +293,7 @@ function toProjPT(handles)
 			end
 			dbud.toProjPT = 1;
 		elseif (~isempty(prjInfoStruc.projGMT))
-			lims = [getappdata(handles.axes1,'ThisImageLims')];
+			lims = getappdata(handles.axes1,'ThisImageLims');
 			out = mapproject_m([lims(1) lims(3); lims(2) lims(4)],'-R-180/180/0/80','-I','-F',prjInfoStruc.projGMT{:});    % Convert lims back to geogs
 			x_min = min(out(:,1));        x_max = max(out(:,1));
 			y_min = min(out(:,2));        y_max = max(out(:,2));
@@ -301,8 +301,8 @@ function toProjPT(handles)
 			dbud.projGMT = prjInfoStruc.projGMT;
 			dbud.toProjPT = 2;
 		end
-		set(displayBar, 'UserData', dbud);
-    end
+		set(displayBar, 'UserData', dbud)
+	end
 
 % ----------------------------------------------------------------------------------
 function toBandsList(hFig, I, array_name, fname, n_bands, bands_inMemory, reader)
@@ -344,8 +344,6 @@ function img = strip_bg_color(handles,img)
 	c1 = bg_color(1);    c2 = bg_color(2);    c3 = bg_color(3);
 	center_row = round(size(img,1) / 2);
 	center_col = round(size(img,2) / 2);
-	h_Xlabel = get(handles.axes1,'Xlabel');
-	h_Ylabel = get(handles.axes1,'Ylabel');
 	% Strip north
 	i = 1;
 	while (img(i,center_col,1) == c1 && img(i,center_col,2) == c2 && img(i,center_col,3) == c3)
