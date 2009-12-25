@@ -614,6 +614,7 @@ utils/date2jd.m -text
 utils/datums.m -text
 utils/days2hms.m -text
 utils/ddewhite.m -text
+utils/deal_opts.m -text
 utils/dec2deg.m -text
 utils/dec_year.m -text
 utils/decompress.m -text
