@@ -1,9 +1,11 @@
 # File to provide fine control on some Mirone modules.
-# Control options are indicated (exactly) by the # MIR_PARAM line start. Specific option follow on the rest of the line
-# Currently used only by gmtedit
-#
+# Control options are indicated by the MIR_XXX keyword.
+# Specific options follow on the rest of the line. Comment (#) each that you don't want to use
+
 # For gmtedit the general usage is:
 # -Vvar1,var2,var3:varI+slotI[/varI+slotI[/varI+slotI]] 
-
 # Next will put Total field on first axes, CM4 anomaly on second and bathymetry on third
-## MIR_PARAM -Vmtf1,anom_cm4,depth	# Doube '#' comments this line
+#MIR_GMTEDIT -Vmtf1,anom_cm4,depth
+
+# Activate MGG (.nc) tracks fishing inside rectangles (set to 0, or comment (#) if not wanted)
+MIR_MGG 1
