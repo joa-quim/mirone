@@ -69,7 +69,7 @@ function out = gmtedit(varargin)
 			lines = strread(c,'%s','delimiter','\n');   clear c fid;
 			m = numel(lines);
 			for (k = 1:m)
-				if (~strncmp(lines{k},'# MIR_PARAM',11)),	continue,	end
+				if (~strncmp(lines{k},'MIR_GMTEDIT',11)),	continue,	end
 				if (numel(lines{k}) <= 14),	continue,	end		% The minimum it takes to have a -? switch
 				t = strtok(lines{k}(13:end));
 				if ( strcmp(t(1:2), '-V') )		% Here we only check for a -V... and do not check for errors
