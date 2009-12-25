@@ -276,26 +276,21 @@ function set_line_uicontext(h,opt)
 % h is a handle to a line object (that can be closed)
 if (isempty(h)),	return,		end
 
-IS_SEISPOLYGON = 0;     % Seismicity polygons have special options
+IS_SEISPOLYGON = false;     % Seismicity polygons have special options
+LINE_ISCLOSED = false;		IS_RECTANGLE = false;	IS_PATCH = false;
 % Check to see if we are dealing with a closed polyline
 x = get(h,'XData');   y = get(h,'YData');
 if (isempty(x) || isempty(y)),   return;     end     % Line is totally out of the figure
 if ( (x(1) == x(end)) && (y(1) == y(end)) )
-	LINE_ISCLOSED = 1;
-	IS_RECTANGLE = 0;
+	LINE_ISCLOSED = true;
 	if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
-		IS_RECTANGLE = 1;	
+		IS_RECTANGLE = true;	
 	end  
-	if (strcmp(get(h,'Tag'),'SeismicityPolygon')),  IS_SEISPOLYGON = 1;    end
-else
-    LINE_ISCLOSED = 0;
-    IS_RECTANGLE = 0;       % If line is not closed, it cannot be a rectangle
+	if (strcmp(get(h,'Tag'),'SeismicityPolygon')),  IS_SEISPOLYGON = true;    end
 end
 if (strcmp(get(h,'Type'),'patch')),
-	IS_PATCH = 1;
-	if (IS_PATCH && ~LINE_ISCLOSED),	LINE_ISCLOSED = 1;	end
-else
-	IS_PATCH = 0;
+	IS_PATCH = true;
+	if (IS_PATCH && ~LINE_ISCLOSED),	LINE_ISCLOSED = true;	end
 end
 
 handles = guidata(get(h,'Parent'));             % Get Mirone handles
@@ -306,10 +301,10 @@ set(h, 'UIContextMenu', cmenuHand);
 switch opt
 	case 'line'
 		label_save = 'Save line';   label_length = 'Line length(s)';   label_azim = 'Line azimuth(s)';
-		IS_LINE = 1;    IS_MBTRACK = 0;	
+		IS_LINE = true;		IS_MBTRACK = false;	
 	case 'MBtrack'
 		label_save = 'Save track';   label_length = 'Track length';   label_azim = 'Track azimuth(s)';
-		IS_LINE = 0;    IS_MBTRACK = 1;
+		IS_LINE = false;	IS_MBTRACK = true;
 end
 cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
@@ -339,7 +334,7 @@ if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))     % 
 end
 if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength);		end
 if (IS_MBTRACK),		uimenu(cmenuHand, 'Label', 'All tracks length', 'Call', @show_AllTrackLength);	end
-if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_azim, 'Call', @show_lineAzims);	end
+if (~IS_SEISPOLYGON && ~IS_RECTANGLE),	uimenu(cmenuHand, 'Label', label_azim, 'Call', @show_lineAzims);	end
 
 if (LINE_ISCLOSED)
     uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
@@ -392,14 +387,13 @@ if (IS_RECTANGLE)
 		uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
 		uimenu(item_tools, 'Label','Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')');
 	end
+	deal_opts('MGG', cmenuHand)
 end
-item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-setLineWidth(item_lw,cb_LineWidth)
-item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dashdot})
-item7 = uimenu(cmenuHand, 'Label', 'Line Color');
+
+setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on'), cb_LineWidth)
+setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
 if (IS_PATCH),		cb_color = uictx_color(h,'EdgeColor');	end      % there are 9 cb_color outputs
-setLineColor(item7,cb_color)
+setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
 
 set_stack_order(cmenuHand)      % Change order in the stackpot
 
