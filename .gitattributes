@@ -455,6 +455,7 @@ mex/surface_m.c -text
 mex/susan.c -text
 mex/swan.c -text
 mex/swan_sem_wbar.c -text
+mex/swreadl3b_m.c -text
 mex/telha.h -text
 mex/telha_m.c -text
 mex/test_gmt.c -text
