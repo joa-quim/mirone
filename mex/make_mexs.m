@@ -25,6 +25,10 @@ patoLIB_GMT = 'c:\progs_cygw\GMTdev\GMT_win\lib\';	% Lib path for GMT
 %pato_NETCDF = 'c:\progs_interix\netcdf-3.6.2b5_win\';
 pato_NETCDF = 'C:\progs_cygw\netcdf-3.6.3\';
 
+% path for the HDF4 base dir. Here I use my own compiled libs that have an extra '_mir' in their
+% names to avoid name clashing with the often incompatible versions shiped by Matlab
+pato_HDF = 'C:\programs\compa_libs\HDF4.2r4\compileds\vc71\';
+
 % path for GDAL. Sub-directories 'lib' and 'include' must exist with, respectively, the gdal_i.lib and header files
 pato_GDAL = 'c:\programs\GDALtrunk\gdal\';
 
@@ -46,6 +50,7 @@ else		COPT = '-O';
 end
 
 INCLUDE_NETCDF = [pato_NETCDF 'include\'];		LIB_NETCDF = [pato_NETCDF 'lib\libnetcdf_w32.lib'];
+INCLUDE_HDF = [pato_HDF 'include\'];			LIB_HDF = [pato_HDF 'lib\hm424m_mir.lib ' pato_HDF 'lib\hd424m_mir.lib'];
 
 INCLUDE_GMT = [patoINC_GMT 'src\'];				LIB_GMT = [patoLIB_GMT 'gmt.lib'];
 INCLUDE_GMT_MGG = [patoINC_GMT 'src\mgg'];		LIB_GMT_MGG = [patoLIB_GMT 'gmt_mgg.lib'];
@@ -88,6 +93,9 @@ str_cv = {'cvlib_mex'}';
 
 % netCDF mexes (other than GMT ones)
 str_withCDF = {'swan'; 'swan_sem_wbar'};
+
+% HDF mexes (L3 binned HDF SeaWiffs files)
+str_withHDF = {'swreadl3b_m'};
 
 % Non LIB dependent mexs (besides matlab libs, of course)
 str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'tsun2' 'wave_travel_time' 'mansinha_m' ...
@@ -147,6 +155,14 @@ if (strcmp(opt,'all'))			% Compile the whole family
 		cmd = ['mex ' [str_cv{i} '.c']  ' sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c ' include_cv ' ' library_cv ' ' COPT];
 		eval(cmd)
 	end
+	for (i=1:numel(str_withCDF))	% Compile netCDF (simple) mexs
+		cmd = ['mex ' [str_withCDF{i} '.c']  ' -I' INCLUDE_NETCDF ' ' LIB_NETCDF ' ' COPT];
+		eval(cmd)
+	end
+	for (i=1:numel(str_withHDF))	% Compile HDF (simple) mexs
+		cmd = ['mex ' [str_withHDF{i} '.c']  ' -I' INCLUDE_HDF ' ' LIB_HDF ' ' COPT];
+		eval(cmd)
+	end
 
 	make_simple(str_simple, str_simple_cpp, library_vc6, COPT)
 
@@ -187,21 +203,22 @@ elseif (strcmp(opt,'usage'))
 	disp('	OR: make_mexs(''GMT'') -- Compile GMT mexs')
 else							% Compile only one mex
     idx = strmatch(opt,[str_gmt; str_gmt_mgg; str_gdal; str_gdal_cpp; str_simple; str_shape; str_cv; str_simple_cpp; ...
-			str_withCDF]);
+			str_withCDF; str_withHDF]);
     if (isempty(idx))
 		disp('Example usage: make_mexs(''mapproject_m'')');
 		error('Bad use, or my fault');
     end
-    idx1   = strmatch(opt, str_gmt, 'exact');
-    idx2   = strmatch(opt, str_gdal, 'exact');
-    idx2pp = strmatch(opt, str_gdal_cpp, 'exact');
-    idx22  = strmatch(opt, str_shape, 'exact');
-    idx3   = strmatch(opt, str_simple, 'exact');
-    idx4   = strmatch(opt, str_gmt_mgg, 'exact');
-    idx5   = strmatch(opt, str_cv, 'exact');
-    idx6   = strmatch(opt, str_simple_cpp, 'exact');
-    idx7   = strmatch(opt, str_withCDF, 'exact');
-    idx8   = strcmpi(opt, 'polygonclip');
+	idx1   = strmatch(opt, str_gmt, 'exact');
+	idx2   = strmatch(opt, str_gdal, 'exact');
+	idx2pp = strmatch(opt, str_gdal_cpp, 'exact');
+	idx22  = strmatch(opt, str_shape, 'exact');
+	idx3   = strmatch(opt, str_simple, 'exact');
+	idx4   = strmatch(opt, str_gmt_mgg, 'exact');
+	idx5   = strmatch(opt, str_cv, 'exact');
+	idx6   = strmatch(opt, str_simple_cpp, 'exact');
+	idx7   = strmatch(opt, str_withCDF, 'exact');
+	idx8   = strmatch(opt, str_withHDF, 'exact');
+	idx9   = strcmpi(opt, 'polygonclip');
     if (~isempty(idx1))         % Compile GMT mexs
         cmd = ['mex ' [str_gmt{idx1} '.c'] ' ' include_gmt ' ' library_gmt ' ' opt_gmt];
 
@@ -229,7 +246,10 @@ else							% Compile only one mex
     elseif (~isempty(idx7))     % Compile netCDF dependent mexs
         cmd = ['mex ' str_withCDF{idx7} '.c' ' -I' INCLUDE_NETCDF ' ' LIB_NETCDF ' ' COPT];
 
-	elseif (~isempty(idx8) && idx8)
+    elseif (~isempty(idx8))     % Compile netHDF dependent mexs
+        cmd = ['mex ' str_withHDF{idx8} '.c' ' -I' INCLUDE_HDF ' ' LIB_HDF ' ' COPT];
+
+	elseif (~isempty(idx9) && idx9)
 		cmd = ['mex PolygonClip.c gpc.c ' COPT];
 
     else                        % Compile Other (simple) mexs
