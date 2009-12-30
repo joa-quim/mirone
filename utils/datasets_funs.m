@@ -126,10 +126,10 @@ end
 [bin,n_column, multi_seg] = guess_file(fname);
 if (n_column == 1 && multi_seg == 0)        % Take it as a file names list
     fid = fopen(fname);
-    c = char(fread(fid))';      fclose(fid);
+    c = fread(fid,'*char')';	fclose(fid);
     names = strread(c,'%s','delimiter','\n');   clear c fid;
 else
-    names = {fname};
+	names = {fname};
 end
 
 tol = 0.5;
@@ -140,7 +140,6 @@ if (handles.no_file)		% Start empty but below we'll find the true data region
 		handles.DefLineColor = 'k';		% To not plot a white line over a white background
 	end
     XMin = 1e50;			XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
-    geog = 1;				% Not important. It will be confirmed later
     if (nargin == 1)		% We know it's geog (Global Isochrons)
 		xx = [-180 180];    yy = [-90 90];
 		if (handles.geog == 2),		xx = [0 360];	end
@@ -150,9 +149,10 @@ if (handles.no_file)		% Start empty but below we'll find the true data region
             fname = names{k};
             j = strfind(fname,filesep);
             if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well 
-            numeric_data = text_read(fname,NaN,NaN,'>');
+            [numeric_data, multi_segs_str] = text_read(fname,NaN,NaN,'>');
 			if (~isa(numeric_data,'cell'))			% File was not multi-segment.
 				numeric_data = {numeric_data};
+				multi_segs_str = {'> No info provided'};
 			end
 			for i=1:length(numeric_data)
 				tmpx = numeric_data{i}(:,1);	tmpy = numeric_data{i}(:,2);
@@ -165,8 +165,9 @@ if (handles.no_file)		% Start empty but below we'll find the true data region
 		YMin = YMin - dy / 100;		YMax = YMax + dy / 100;
         xx = [XMin XMax];			yy = [YMin YMax];
         region = [xx yy];			% 1 stands for geog but that will be confirmed later
+		handles.geog = aux_funs('guessGeog',region);
     end
-	hMirFig = mirone('FileNewBgFrame_CB', handles, [region geog]);	% Create a background
+	hMirFig = mirone('FileNewBgFrame_CB', handles, [region handles.geog]);	% Create a background
 else							% Reading over an established region
 	XYlim = getappdata(handles.axes1,'ThisImageLims');
 	xx = XYlim(1:2);			yy = XYlim(3:4);
@@ -185,9 +186,11 @@ for (k = 1:numel(names))		% Main loop over data files
 		old_name = get(hMirFig,'Name');		ind = strfind(old_name, '@');
 		set(hMirFig,'Name',[barName old_name(ind-1:end)])
 	end
-    j = strfind(fname,filesep);
-    if (isempty(j)),    fname = [PathName fname];   end			% It was just the filename. Need to add path as well 
-    [numeric_data, multi_segs_str] = text_read(fname,NaN,NaN,'>');
+	j = strfind(fname,filesep);
+	if (isempty(j)),    fname = [PathName fname];   end			% It was just the filename. Need to add path as well
+	if (~handles.no_file)					% Otherwise we already read it
+		[numeric_data, multi_segs_str] = text_read(fname,NaN,NaN,'>');
+	end
 	if (~isa(numeric_data,'cell'))			% File was not multi-segment. Now pretend it was but with no info
 		numeric_data = {numeric_data};
 		multi_segs_str = {'> No info provided'};
