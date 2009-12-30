@@ -161,6 +161,10 @@ if (handles.no_file)		% Start empty but below we'll find the true data region
 			end
 		end
 		dx = XMax - XMin;			dy = YMax - YMin;
+		if (dx == 0 || dy == 0)
+			errordlg('File is has only one point or all XXs are equal or all YYs are equal','Error')
+			return
+		end
 		XMin = XMin - dx / 100;		XMax = XMax + dx / 100;		% Give an extra 1% padding margin
 		YMin = YMin - dy / 100;		YMax = YMax + dy / 100;
         xx = [XMin XMax];			yy = [YMin YMax];
