@@ -13,19 +13,20 @@ function shapenc(fname, data, varargin)
 % shapenc(..., 'multiseg', 'whatever')	Convert the contents of DATA into a multisegment array (NaN separated)
 %								Note that this only apply when DATA is a cell array or the name of a multisegment file.
 % shapenc(..., 'desc','description')  Create a global attribute with contents DESCRIPTION
+% shapenc(..., 'version','ver')  Create a global attribute 'File Version' with contents VER
 % shapenc(..., 'tag','attribs') Add the contents of ATTRIBS to the container variable that is automatically created for each
 %								DATA ensemble. This works only for the first ensemble of DATA (if it has more, others are ignored).
 %								If ATTRIBS is a char, its contents will go to an attribute called 'name'.
 %								If ATTRIBS is a cell, it must contain a Mx2 array where firts column contains the
 %								attribute name and the second the attribute value.
 %
-% possibilidades
+% possibilidades de combinações DATA, OUTER, INNER
 % data				<== Point swarm 
 % data, data		<== Point swarm + external polygon
 % data, data, data	<== Point swarm + 1 external polygon + 1 internal polygon
 % data, data, cell	<== Um poly externo e varios internos
-% cell				<== Cada cellula tem um molho
-% cell, cell		<== Cada cellula tem um molho e cada molho tem 0 ou 1 poly externo
+% cell				<== Cada celula tem um molho
+% cell, cell		<== Cada celula tem um molho e cada molho tem 0 ou 1 poly externo
 
 	% ------------------ Parsing and defaults settings------------------ --------------
 	if (nargin < 2),	error('SHAPENC:error', 'Please, minimum 2 arguments -- FNAME & DATA'),	end
@@ -56,7 +57,7 @@ function shapenc(fname, data, varargin)
 			tag = varargin{k+1};
 			if (~ischar(tag) && ~isa(tag,'cell'))
 				disp('TAG contents is neither a char nor a cell array. Ignoring it')
-				tag = []
+				tag = [];
 			end
 		elseif ( strncmpi(varargin{k}, 'geog', 4) )
 			if (~varargin{k+1}),	is_geog = false;	end
@@ -92,16 +93,17 @@ function shapenc(fname, data, varargin)
 	end
 	if (ischar(outer_polygs))		% Try to load data from file
 		try			outer_polygs = readFile(outer_polygs, nMaxChunks);
-		catch		error(['SHAPENC:reading OUTER_POLYGS ' lasterr])
+		catch,		error(['SHAPENC:reading OUTER_POLYGS ' lasterr])
 		end
 	end
 	if (ischar(inner_polygs))		% Try to load data from file
 		try			inner_polygs = readFile(inner_polygs, nMaxChunks);
-		catch		error(['SHAPENC:reading INNER_POLYGS ' lasterr])
+		catch,		error(['SHAPENC:reading INNER_POLYGS ' lasterr])
 		end
 	elseif (isa(inner_polygs,'cell'))	% Hmm, must see if it is a cell of fnames to load
 		if (ischar(inner_polygs{1}))	% Yep, so they seam
 			try
+				inner_polygs = cell(1, numel(inner_polygs));
 				for (k = 1:numel(inner_polygs))
 					inner_polygs{k} = readFile(inner_polygs{k}, nMaxChunks);
 				end
@@ -124,7 +126,7 @@ function shapenc(fname, data, varargin)
 	if (is_geog)
 		long_name = {'Longitude' 'Latitude'};	units = {'degrees_east' 'degrees_north'};
 	else
-		long_name = {'unknown' 'unknown'};		units = {'xunits' 'yunits'};
+		%long_name = {'unknown' 'unknown'};		units = {'xunits' 'yunits'};
 		long_name = {'X' 'Y'};		units = {'meters' 'meters'};
 	end
 	% -------------------------- END PARSING & DEFAULT SETTINGS -------------------------
