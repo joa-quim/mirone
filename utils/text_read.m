@@ -92,8 +92,6 @@ if ~isnan(requestedMultiSeg)
             numeric_data{i} = strread(sv.');
 		end
 		return
-	else
-		requestedMultiSeg = NaN;		% It was a false request
 	end
 end
 
@@ -199,7 +197,7 @@ if (~isempty(ind))
 	if (newind(nHead) == numel(inds))		% Bad luck, but already happened (when last line is a header)
 		inds(end+1) = numel(str);
 	end
-	for (k=1:nHead),		res = [res inds(newind(k)):inds(newind(k)+1)];    end
+	for (k = 1:nHead),		res = [res inds(newind(k)):inds(newind(k)+1)];    end
 	str(res)=[];        % Removes chunks between a '>' and a newline
 end
 
@@ -339,6 +337,7 @@ try
     wasError = 0;
 catch
     wasError = 1;
+	warning(lasterr);
 end
 
 % setup some default answers if we're not able to do the full read below
@@ -357,6 +356,8 @@ if (nargout > 1)
         textData(:,i) = textCellData{i};
     end
 end
+
+numericData = zeros(numRows,numel(numericCellData));
 
 for (i = 1:numDataCols)
     numericData(:,i) = numericCellData{i};
@@ -377,8 +378,8 @@ end
 if wasError && numHeaderChars
     % rebuild format string
     formatString = ['%' num2str(numHeaderChars) 'c' repmat('%n', 1, numDataCols)];
-    textCharData = '';
-    try
+    textCharData = '';		numRows = 0;
+	try
         [textCharData, numericCellData{1:numDataCols}] = ...
             strread(string,formatString,'delimiter',delimiter,'headerlines',numHeaderRows,'returnonerror',1);
         numHeaderCols = 1;
@@ -387,28 +388,27 @@ if wasError && numHeaderChars
         else
             numRows = length(textCharData);
         end
-    end        
-    
-    numericData = [];
-    
-    if numDataCols
-        headerData = [origHeaderData, cell(length(origHeaderData), numHeaderCols + numDataCols - 1)];
-    else
-        headerData = [origHeaderData, cell(length(origHeaderData), numHeaderCols)];
-    end
-    
-    if ~useAsCells
+	end
+
+	if numDataCols
+		headerData = [origHeaderData, cell(length(origHeaderData), numHeaderCols + numDataCols - 1)];
+	else
+		headerData = [origHeaderData, cell(length(origHeaderData), numHeaderCols)];
+	end
+
+	if ~useAsCells
         if numDataCols
             headerLine = [origHeaderLine, cell(1, numHeaderCols + numDataCols - 1)];
         else
             headerLine = [origHeaderLine, cell(1, numHeaderCols)];
         end
-    end
-    
-    for (i = 1:numDataCols)
-        numericData(:,i) = numericCellData{i};
-    end
-    
+	end
+
+	numericData = zeros(numRows,numel(numericCellData));
+	for (i = 1:numDataCols)
+		numericData(:,i) = numericCellData{i};
+	end
+
     if (nargout > 1 && ~isempty(textCharData))
         textCellData = cellstr(textCharData);
         if ~isempty(headerLine)
@@ -673,25 +673,23 @@ if (~isempty(str_col))
     yr_pos = find([length(d1) length(d2) length(d3)] == 4);
     
     if (yr_pos == 3)        % We are in the cases of '??-???-yyyy' or '???-??-yyyy'
-        year = d3;
         mon_pos = find([length(d1) length(d2)] == 3);
         if (mon_pos ~= 0)   % We have a month in the mmm type, but in what position?
             if (mon_pos == 1)
-                month = d1;   day = d2;     dateform = ['mmm' delim_sep 'dd' delim_sep 'yyyy'];
+                dateform = ['mmm' delim_sep 'dd' delim_sep 'yyyy'];
             else
-                month = d2;   day = d1;     dateform = ['dd' delim_sep 'mmm' delim_sep 'yyyy'];
+                dateform = ['dd' delim_sep 'mmm' delim_sep 'yyyy'];
             end
         else                % We have a month in the mm type (shit)
             dateform = ['mm' delim_sep 'dd' delim_sep 'yyyy'];
         end
     elseif (yr_pos == 1)    % We are in the cases of 'yyyy-??-???' or 'yyyy-???-??'
-        year = d1;
         mon_pos = find([length(d2) length(d3)] == 3);
         if (mon_pos ~= 0)   % We have a month in the mmm type, but in what position?
             if (mon_pos == 2)
-                month = d2;   day = d3;     dateform = ['yyyy' delim_sep 'mmm' delim_sep 'dd'];
+				dateform = ['yyyy' delim_sep 'mmm' delim_sep 'dd'];
             else
-                month = d3;   day = d2;     dateform = ['yyyy' delim_sep 'dd' delim_sep 'mmm'];
+				 dateform = ['yyyy' delim_sep 'dd' delim_sep 'mmm'];
             end
         else                % We have a month in the mm type (shit)
             dateform = ['yyyy' delim_sep 'mm' delim_sep 'dd'];
@@ -718,7 +716,6 @@ switch dateform         % Convert the date from its string form to decimal years
         mon = monstr2monnum(tmp1);      year = str2num(tmp3);   day = str2num(tmp2);
         clear tmp1 tmp2 tmp3 tmp;
         date = dec_year(year,mon,day);
-        %date = year + (datenummx(year,mon,day) - datenummx(year,1,1))/365;
     case 'dd-mm-yyyy'
         tmp1 = tmp(:,1:delim_dash(1)-1);
         tmp2 = tmp(:,delim_dash(1)+1:delim_dash(2)-1);
