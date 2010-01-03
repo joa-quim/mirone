@@ -327,9 +327,7 @@ elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the 
 end
 uimenu(cmenuHand, 'Label', label_save, 'Call', {@save_formated,h});
 if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))     % Those are not to allowed to copy
-	if (~LINE_ISCLOSED)
-		uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
-	end
+	uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
 	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
 end
 if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength);		end
@@ -1658,7 +1656,7 @@ if (out.resizeIP)
     head = [1 nc_ip 1 nl_ip 0 255 0 1 1];
     opt_N = ['-N' num2str(out.r_c(4)-out.r_c(3)+1) '/' num2str(out.r_c(2)-out.r_c(1)+1)]; % option for grdsample
     if (~indexed_ip)                                % Implanting image is of RGB type
-        for i=1:3
+        for (i = 1:3)
 			%ZI(:,:,i) = interp2(double(out.ip_img(:,:,i)),X,Y,'*cubic');
 			ZI(:,:,i) = grdsample_m(single(out.ip_img(:,:,i)),head,opt_N);
         end
