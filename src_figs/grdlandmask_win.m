@@ -13,7 +13,7 @@ function varargout = grdlandmask_win(varargin)
 	if ~isempty(varargin)
 		handMir  = varargin{1};
 		home_dir = handMir.home_dir;
-		if (handMir.geog)			% If geogs, propose a mask that falls within data region
+		if (~handMir.no_file && handMir.geog)			% If geogs, propose a mask that falls within data region
 			head = handMir.head;
 			handles.nr_or = round(diff(head(1:2)) / head(8)) + ~head(7);
 			handles.nc_or = round(diff(head(3:4)) / head(9)) + ~head(7);
