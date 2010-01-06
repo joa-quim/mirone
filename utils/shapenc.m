@@ -245,6 +245,7 @@ function shapenc(fname, data, varargin)
 	if (~isempty(fver))
 		nc_funs('attput', fname, -1, 'File Version', fver );
 	end
+	if (~isempty(desc)),	nc_funs('attput', fname, -1, 'Description', desc);		end
 	% -----------------------------------------------------------------------------------
 
 	% ------------------------------ Write the variables --------------------------------
