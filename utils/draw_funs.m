@@ -114,7 +114,7 @@ switch opt
 		tol = 0.5;					% Used to get rid of points that are outside the map limits
 		if (iscell(numeric_data)),		n_segments = length(numeric_data);
 		else							n_segments = 1;
-        end
+		end
 		XYlim = getappdata(handles.axes1,'ThisImageLims');
 		xx = XYlim(1:2);				yy = XYlim(3:4);
 		lt = handles.DefLineThick;		lc = handles.DefLineColor;
@@ -385,7 +385,7 @@ if (IS_RECTANGLE)
 		uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
 		uimenu(item_tools, 'Label','Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')');
 	end
-	deal_opts('MGG', cmenuHand)
+	deal_opts('MGG', cmenuHand);
 end
 
 setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on'), cb_LineWidth)
@@ -1128,7 +1128,7 @@ if (handles.geog)
             scale = 1;   str_unit = ' meters(?)';
     end
     total_len = sum(tmp) / scale;
-    if (nargout == 0 && isempty(opt))
+	if (nargout == 0 && isempty(opt))
 		len_i = tmp / scale;
 		if (numel(tmp) <= 20)
 			for i = 1:numel(tmp)
@@ -1149,7 +1149,7 @@ else
 	total_len = sum(sqrt(dx.*dx + dy.*dy));
 	if (nargout == 0 && isempty(opt))
 		len_i = sqrt(dx.^2 + dy.^2);
-        if (numel(dx) <= 200)
+		if (numel(dx) <= 200)
 			for i = 1:numel(dx)
 				msg = [msg; {['Length' sprintf('%d',i) '  =  ' sprintf('%.5f',len_i(i)) ' map units']}];
 			end
@@ -1233,7 +1233,7 @@ function azim = show_lineAzims(obj,eventdata,h)
 			msg{end+1} = ['Mean azimuth = ' sprintf('%.1f',az_mean) '  degrees'];
 			msgbox(msg,'Line(s) Azimuth')
 		else
-			ecran(handles, x(2:end), y(2:end), az, ['Polyline azimuths (deg)'])
+			ecran(handles, x(2:end), y(2:end), az, 'Polyline azimuths (deg)')
 		end
 	else
 		azim.az = az;
@@ -2323,7 +2323,7 @@ function del_insideRect(obj,eventdata,h)
 				ui_edit_polygon(hLP(i))     % call will force out of edit mode
 				found = true;
 			end
-        end
+		end
 	end
 	if (found)      % We have to do it again because some line handles have meanwhile desapeared
 		hLines = findobj(hAxes,'Type','line');
