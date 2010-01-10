@@ -40,7 +40,7 @@ switch opt
 	case 'CoastLineUictx',			setCoastLineUictx(hand)
 	case 'deleteObj',				deleteObj(hand);
 	case 'DrawCircleEulerPole'
-		h = draw_circleEulerPole(data(1),data(2));  
+		draw_circleEulerPole(data(1),data(2));  
 	case 'SessionRestoreCircle'			% Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
 		set_circleGeo_uicontext(hand)
 	case 'SessionRestoreCircleCart'		% Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
@@ -80,9 +80,9 @@ switch opt
 		end
 		if (isempty(n_headers)),    n_headers = NaN;    end
 		if (multi_seg)
-			[numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers,'>');
+			numeric_data = text_read(fname,NaN,n_headers,'>');
 		else
-			[numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
+			numeric_data = text_read(fname,NaN,n_headers);
 		end
 
 		% Project if we need
@@ -104,7 +104,7 @@ switch opt
 				end
             catch
 				errordlg(lasterr,'ERROR');    return
-            end
+			end
 		end
 
 		% If OUT is requested there is nothing left to be done here  
@@ -149,9 +149,7 @@ switch opt
 					lineHand = plot(tmpx,tmpy,'ko','MarkerEdgeColor','w','MarkerFaceColor','k', ...
 						'MarkerSize',4,'Tag','Pointpolyline');
 					set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu (tag is very important)
-					if (~isempty(tmpz) && (tmpz(1) >= min_max(1) && tmpz(1) <= min_max(2)))
-						set(lineHand,'UserData',tmpz');
-					end	
+					if (~isempty(tmpz)),	set(lineHand,'UserData',tmpz'),		end	
 				case 'AsMaregraph'
 					lineHand = plot(tmpx,tmpy,'Marker','o','MarkerFaceColor','y',...
 						'MarkerEdgeColor','k','MarkerSize',10,'Tag','Maregraph');
@@ -160,7 +158,8 @@ switch opt
 					lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','FaultTrace');
 					set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
 					% Create empty patches that will contain the surface projection of the fault plane
-					for (k=1:length(tmpx)-1),   hp(k) = patch('XData', [], 'YData',[]);    end
+					hp = zeros(1, numel(tmpx)-1);
+					for (k=1:numel(tmpx)-1),	hp(k) = patch('XData', [], 'YData',[]);    end
 					setappdata(lineHand,'PatchHand',hp);
 			end
 		end
@@ -563,19 +562,20 @@ else
     else                                        min_len = 5000; % Assume meters
     end
 end
-if (length(hh) > 1)
-    for k=1:length(hh)
-        xx = get(hh(k),'XData');    yy = get(hh(k),'YData');
-        dx = diff(xx);  dy = diff(yy);              dr = sqrt(dx.*dx + dy.*dy);
-        ind = find(dr < min_len);
-        if (~isempty(ind) && length(xx) > 2)     % Remove too short segments
-            xx(ind) = [];   yy(ind) = [];
-            set(hh(k),'XData',xx,'YData',yy)
-        end
-        azim = show_lineAzims([],[],hh(k));
-        az{k} = azim.az;
-    end
-    h = hh;
+if (numel(hh) > 1)
+	az = cell(1,numel(hh));
+	for k=1:numel(hh)
+		xx = get(hh(k),'XData');    yy = get(hh(k),'YData');
+		dx = diff(xx);  dy = diff(yy);              dr = sqrt(dx.*dx + dy.*dy);
+		ind = find(dr < min_len);
+		if (~isempty(ind) && length(xx) > 2)     % Remove too short segments
+			xx(ind) = [];   yy(ind) = [];
+			set(hh(k),'XData',xx,'YData',yy)
+		end
+		azim = show_lineAzims([],[],hh(k));
+		az{k} = azim.az;
+	end
+	h = hh;
 else
     xx = get(h,'XData');    yy = get(h,'YData');
     dx = diff(xx);      dy = diff(yy);          dr = sqrt(dx.*dx + dy.*dy);
@@ -2057,20 +2057,18 @@ function save_line(obj,eventdata,h)
 	fclose(fid);
 
 % -----------------------------------------------------------------------------------------
-function export_symbol(obj,eventdata,h, opt)
-% If OPT is given than it must contain a Mx3 array with the x,y,z data to be saved
-	if (nargin == 3)
-		h = h(ishandle(h));
-		tag = get(h,'Tag');
-		xx = get(h,'XData');    yy = get(h,'YData');
-		if (length(xx) > 1 && ~strcmp(tag,'Pointpolyline') && ~strcmp(tag,'Maregraph'))     % (don't remember why)
-			% Points and Maregraphs may be many but don't belong to a class
-			msgbox('Only individual symbols may be exported and this one seams to belong to a class of symbols. Exiting','Warning')
-			return
-		end
-		doSave_formated(xx, yy)
-	else
-		errordlg('export_symbol called with a wrong number of arguments.','ERROR')
+function export_symbol(obj, eventdata, h, opt)
+	h = h(ishandle(h));
+	tag = get(h,'Tag');
+	xx = get(h,'XData');    yy = get(h,'YData');
+	if (numel(xx) > 1 && ~strcmp(tag,'Pointpolyline') && ~strcmp(tag,'Maregraph'))     % (don't remember why)
+		% Points and Maregraphs may be many but don't belong to a class
+		msgbox('Only individual symbols may be exported and this one seams to belong to a class of symbols. Exiting','Warning')
+		return
+	end
+	zz = set(lineHand,'UserData');
+	if (isempty(zz)),		doSave_formated(xx, yy)
+	else					doSave_formated(xx, yy, zz)
 	end
 
 % -----------------------------------------------------------------------------------------
