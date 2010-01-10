@@ -13,7 +13,11 @@ function get_MGGtracks(obj, event)
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 	lim = sprintf('-R%.4f/%.4f/%.4f/%.4f',x(1),x(3),y(1:2));
 	tmp_file = [MIRONE_DIRS.home_dir filesep 'tmp' filesep 'MGGtracks.txt'];
-	system(['x2sys_get -TMGD77+ -Fmtf1 -D -E ' lim ' > ' tmp_file]);
+	if (ispc)
+		dos(['x2sys_get -TMGD77+ -Fmtf1 -D -E ' lim ' > ' tmp_file]);
+	else
+		unix(['x2sys_get -TMGD77+ -Fmtf1 -D -E ' lim ' > ' tmp_file]);
+	end
 
 	fid = fopen(tmp_file,'r');	one_file = fgetl(fid);		fclose(fid);
 	if (isempty(one_file)),		warndlg('No MGG tracks found inside this rectangle'),	return,		end
