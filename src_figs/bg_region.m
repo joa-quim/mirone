@@ -22,7 +22,6 @@ bg_region_LayoutFcn(hObject);
 handles = guihandles(hObject);
 movegui(hObject,'center');                  % Reposition the window on screen
  
-global nError
 handles.command = cell(15,1);
 
 if ~isempty(varargin) && strcmp(varargin{1},'empty')
@@ -184,59 +183,54 @@ else                % box is empty
 end
 
 % --------------------------------------------------------------------------------------------------
-function VerifyCommand(handles)
-global nError
+function error = VerifyCommand(handles)
 % ERROR TESTING
-error = 0;
-if isempty(handles.command{3})
-    errordlg('Lon Min box is empty','Error');
-    error = error + 1;    
-end
-if isempty(handles.command{5})
-    errordlg('Lon Max box is empty','Error');
-    error = error + 1;    
-end
-if isempty(handles.command{7})
-    errordlg('Lat Min box is empty','Error');
-    error = error + 1;    
-end
-if isempty(handles.command{9})
-    errordlg('Lat Max box is empty','Error');
-    error = error + 1;    
-end
-nError = error;
+	error = 0;
+	if isempty(handles.command{3})
+		errordlg('Lon Min box is empty','Error');
+		error = error + 1;    
+	end
+	if isempty(handles.command{5})
+		errordlg('Lon Max box is empty','Error');
+		error = error + 1;    
+	end
+	if isempty(handles.command{7})
+		errordlg('Lat Min box is empty','Error');
+		error = error + 1;    
+	end
+	if isempty(handles.command{9})
+		errordlg('Lat Max box is empty','Error');
+		error = error + 1;    
+	end
 
 % --------------------------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
-VerifyCommand(handles)
-global nError
-if nError == 0
-    is_geog = get(handles.checkbox_IsGeog,'Value');
-    handles.output = [handles.x_min handles.x_max handles.y_min handles.y_max is_geog];
-    guidata(hObject,handles);
-    uiresume(handles.figure1);
-else
-    nError = 0;
-end
+	nError = VerifyCommand(handles);
+	if nError == 0
+		is_geog = get(handles.checkbox_IsGeog,'Value');
+		handles.output = [handles.x_min handles.x_max handles.y_min handles.y_max is_geog];
+		guidata(hObject,handles);
+		uiresume(handles.figure1);
+	end
 
 % --------------------------------------------------------------------------------------------------
 function pushbutton_Cancel_Callback(hObject, eventdata, handles)
-handles.output = [];        % User gave up, return nothing
-guidata(hObject, handles);  uiresume(handles.figure1);
+	handles.output = [];        % User gave up, return nothing
+	guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --------------------------------------------------------------------------------------------------
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, eventdata)
-handles = guidata(hObject);
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);    uiresume(handles.figure1);
-else
-    % The GUI is no longer waiting, just close it
-    handles.output = [];        % User gave up, return nothing
-    guidata(hObject, handles);    delete(handles.figure1);
-end
+	handles = guidata(hObject);
+	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+		% The GUI is still in UIWAIT, us UIRESUME
+		handles.output = [];        % User gave up, return nothing
+		guidata(hObject, handles);    uiresume(handles.figure1);
+	else
+		% The GUI is no longer waiting, just close it
+		handles.output = [];        % User gave up, return nothing
+		guidata(hObject, handles);    delete(handles.figure1);
+	end
 
 % --- Executes on key press over figure1 with no controls selected.
 function figure1_KeyPressFcn(hObject, eventdata)
@@ -246,16 +240,9 @@ if isequal(get(hObject,'CurrentKey'),'escape')
     guidata(hObject, handles);    uiresume(handles.figure1);
 end
 
-% --------------------------------------------------------------------------------------------------
-function checkbox_IsGeog_Callback(hObject, eventdata, handles)
-% Don't need any code because the output will be checked by pushbutton_OK and
-% the only thing that matters is if this is checked or not.
-
-
 % --- Creates and returns a handle to the GUI figure. 
 function bg_region_LayoutFcn(h1)
 set(h1,...
-'PaperUnits','centimeters',...
 'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'KeyPressFcn',@figure1_KeyPressFcn,...
@@ -325,8 +312,7 @@ uicontrol('Parent',h1,...
 'FontSize',10,...
 'Position',[25 104 22 22],...
 'String','N',...
-'Style','edit',...
-'Tag','edit8');
+'Style','edit');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -334,8 +320,7 @@ uicontrol('Parent',h1,...
 'FontSize',10,...
 'Position',[9 80 24 22],...
 'String','W',...
-'Style','edit',...
-'Tag','edit9');
+'Style','edit');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -343,8 +328,7 @@ uicontrol('Parent',h1,...
 'FontSize',10,...
 'Position',[39 80 24 22],...
 'String','E',...
-'Style','edit',...
-'Tag','edit10');
+'Style','edit');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -352,8 +336,7 @@ uicontrol('Parent',h1,...
 'FontSize',10,...
 'Position',[25 57 22 22],...
 'String','S',...
-'Style','edit',...
-'Tag','edit11');
+'Style','edit');
 
 uicontrol('Parent',h1,...
 'Position',[10 32 110 15],...
