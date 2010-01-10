@@ -199,8 +199,10 @@ function push_apply_Callback(hObject, eventdata, handles)
 			dist = out.dist;
 			try		direction = out.dir;	end
 			try		npts = out.npts;		end
-			try		geodetic = out.ab;
-			catch	geodetic = out.geod;
+			if (isfield(out, 'ab'))
+				geodetic = out.ab;
+			elseif (isfield(out, 'geod'))
+				geodetic = out.geod;
 			end
 
 			for (k = 1:numel(handles.hLine))
