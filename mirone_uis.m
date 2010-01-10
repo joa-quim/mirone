@@ -264,7 +264,9 @@ uimenu('Parent',h,'Call','mirone(''ImageAnaglyph_CB'',guidata(gcbo))','Label','A
 
 uimenu('Parent',hIM,'Call','mirone(''ImageLink_CB'',guidata(gcbo))','Label','Link Displays...','Sep','on');
 uimenu('Parent',hIM,'Call','mirone(''ImageDrape_CB'',guidata(gcbo))','Label','Drape','Tag','ImageDrape','Enable','off');
-uimenu('Parent',hIM,'Call','mirone(''ImageMapLimits_CB'',guidata(gcbo))','Label','Map Limits');
+h = uimenu('Parent',hIM,'Label','Limits (Map or Image)');
+uimenu('Parent',h,'Call','mirone(''ImageMapLimits_CB'',guidata(gcbo), ''img'')','Label','Image (data) Limits');
+uimenu('Parent',h,'Call','mirone(''ImageMapLimits_CB'',guidata(gcbo), ''map'')','Label','Map (display) Limits');
 
 h = uimenu('Parent',hIM,'Label','Edge detect (Canny)','Sep','on');
 uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''Vec'')','Label','Vector');
@@ -650,7 +652,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 02 Dec 2009'',''1.5.1(dev)'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 10 Jan 2010'',''1.5.1(dev)'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
