@@ -1573,7 +1573,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 		handles.head(9) = diff(handles.head(3:4)) / size(I,1) + ~handles.head(7);
 	end
 
-	dxy = 0;			dx = 0;					dy = 0;
+	dx = 0;				dy = 0;
 	if (validGrid),		dx = X(2) - X(1);		dy = Y(2) - Y(1);	end
 	if (~validGrid && handles.validGrid),		aux_funs('cleanGRDappdata',handles);	end
 	if (isempty(imSize) && (abs(dx - dy) > 1e-4))		% Check for grid node spacing anisotropy
@@ -1593,7 +1593,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	handles.geog = aux_funs('guessGeog',handles.head(1:4));		% Hmm... there are cases where we know for sure!!!
 	if (handles.image_type == 2),	handles.geog = 0;	end
 
-	magRatio = resizetrue(handles,imSize,axis_t);				% ----> IMAGE IS VISIBLE HERE. <-------
+	magRatio = resizetrue(handles,imSize,axis_t);				% -------> IMAGE IS VISIBLE HERE. <-------
 
 	handles.origFig = I;			handles.no_file = 0;
 	handles.Illumin_type = 0;		handles.validGrid = validGrid;	% Signal that gmt grid opps are allowed
@@ -1620,6 +1620,9 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	set(handles.noAxes,'Vis', st{~strcmp(axis_t,'off') + 1})
 	set(handles.toGE,'Enable', st{min(handles.geog,1) + 1})
 	set(findobj(handles.Projections,'Label','GMT project'), 'Vis', st{validGrid + 1})
+	if (handles.geog),		set(handles.DrawGeogCirc,'Tooltip','Draw geographical circle')
+	else					set(handles.DrawGeogCirc,'Tooltip','Draw circle')
+	end
 
 	GCPmemoryVis = 'off';
 	if (isappdata(handles.figure1,'GCPregImage'))
@@ -1846,8 +1849,8 @@ function ImageIlluminateGray(luz, handles, color)
 
 % --------------------------------------------------------------------
 function ImageIlluminateFalseColor(luz, handles)
-	% Illuminate a grid from 3 different directions and turn it into a RGB image
-	
+% Illuminate a grid from 3 different directions and turn it into a RGB image
+
 	[X,Y,Z,head,m] = load_grd(handles);
 	if isempty(Z),		return,		end		% An error message was already issued
 	set(handles.figure1,'pointer','watch')
@@ -1967,10 +1970,6 @@ function ImageLink_CB(handles, opt)
 	if (handles.no_file),	return,		end
 	hFigs = findobj(0,'type','figure');						% Fish all figures
 	if (numel(hFigs) == 1),	return,		end					% No one else arround
-% 	linkedFig = getappdata(handles.figure1,'LinkedTo');
-% 	if ( nargin == 2 && ~isempty(linkedFig) && ishandle(linkedFig) )	% We already have a linked pair
-% 		h = rectangle('Position',[100 100 80 25], 'LineWidth',1, 'FaceColor','r', 'Parent', handles.axes1);
-% 	end
 	ind = (hFigs - handles.figure1) == 0;
 	hFigs(ind) = [];										% Remove current figure from the fished list
 	IAmAMir = true(1, numel(hFigs));
@@ -2280,7 +2279,7 @@ function DrawGeographicalCircle_CB(handles, opt)
 
 % --------------------------------------------------------------------
 function DrawImportLine_CB(handles, opt)
-	% OPT is a string with either "AsLine", or "AsPoint", or "AsMaregraph", or "FaultTrace"
+% OPT is a string with either "AsLine", or "AsPoint", or "AsMaregraph", or "FaultTrace"
 	if (handles.no_file),	return,		end
 	str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select input xy file name','get');
@@ -2398,10 +2397,14 @@ function DrawImportShape_CB(handles, fname)
 function GeophysicsImportGmtFile_CB(handles, opt)
 % Open a .gmt/.nc(MGD77+) file OR a list of .gmt/.nc files
 	if (~handles.no_file && ~handles.geog),		aux_funs('msg_dlg',1,handles);		return,		end
-	if (strcmp(opt, 'list'))
-		str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
-		[FileName,PathName] = put_or_get_file(handles,str1,'Select list file','get');
-		if isequal(FileName,0),		return,		end
+	if (strncmp(opt, 'list', 4))
+		if (numel(opt) == 4)			% Else OPT contains already the name of the file with list
+			str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
+			[FileName,PathName] = put_or_get_file(handles,str1,'Select list file','get');
+			if isequal(FileName,0),		return,		end
+		else
+			FileName = opt(6:end);		PathName = '';
+		end
 		fid = fopen([PathName FileName]);
 		c = fread(fid,inf,'*char');		fclose(fid);
 		names = strread(c,'%s','delimiter','\n');	clear c fid;
@@ -2410,7 +2413,10 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 		if isequal(FileName,0),		return,		end
 		names = {[PathName FileName]};			% So that below the code is the same as for the list case
 	else
-		PathName = '';		names = {opt};		% Filename sent in input
+		PathName = '';
+		if (~isa(opt,'cell')),		names = {opt};		% Filename sent in input
+		else						names = opt;		% A list of fnames was sent in
+		end
 	end
 
 	set(handles.figure1,'Pointer','watch');
@@ -2653,9 +2659,6 @@ if (haveSymbol)					% case of Symbols (line Markers)
 	end
 end
 if (haveText)					% case of text strings
-	%if (~existmex('Texto','var') && existmex('Text','var')),		Texto= Text;	end		% Compatibility issue
-	%try,r1=true;z=Texto;catch,r1=false;end;		try,r2=true;z=Text;catch,r2=false;end
-	%if (~r1 && r2),	Texto= Text;	end		% Compatibility issue
 	if (~exist('Texto','var') && exist('Text','var')),		Texto= Text;	end		% Compatibility issue  
 	for i=1:length(Texto)
 		if (isempty(Texto(i).str)),		continue,	end
@@ -2732,7 +2735,7 @@ function FileSaveSession_CB(handles)
 	haveCircleCart = 0; havePlineAsPoints = 0;  havePatches = 0;haveCoasts = 0; havePolitic = 0;	haveRivers = 0;
 	MBtrack = [];	MBbar = [];		Pline = [];		Symbol = [];	Texto = [];		CircleGeo = [];
 	CircleCart = [];	PlineAsPoints = [];			Patches = [];	coastUD = [];	politicUD = [];	riversUD = [];
-	for i = 1:length(ALLlineHand)
+	for i = 1:numel(ALLlineHand)
 		tag = get(ALLlineHand(i),'Tag');
 		if (strcmp(tag,'MBtrack'))		% case of a MBtrack line
 			xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
@@ -2813,7 +2816,7 @@ function FileSaveSession_CB(handles)
 	% they will loose them here. Maybe in the future I'll do something better.
 	j = 1;
 	ALLpatchHand = findobj(get(handles.axes1,'Child'),'Type','patch');
-	for (i = 1:length(ALLpatchHand))
+	for (i = 1:numel(ALLpatchHand))
 		xx = get(ALLpatchHand(i),'XData');		yy = get(ALLpatchHand(i),'YData');
 		Patches(j).x = xx(:);					Patches(j).y = yy(:);
 		Patches(j).LineWidth = get(ALLpatchHand(i),'LineWidth');
@@ -2826,7 +2829,7 @@ function FileSaveSession_CB(handles)
 	end
 
 	ALLtextHand = findobj(get(handles.axes1,'Child'),'Type','text');
-	for (i = 1:length(ALLtextHand))
+	for (i = 1:numel(ALLtextHand))
 		Texto(n).str = get(ALLtextHand(i),'String');
 		if (isempty(Texto(n).str)),  continue,	end
 		Texto(n).pos = get(ALLtextHand(i),'Position');		Texto(n).FontAngle = get(ALLtextHand(i),'FontAngle');
@@ -2844,19 +2847,27 @@ function FileSaveSession_CB(handles)
 	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
-function ImageMapLimits_CB(handles)
-% Change the Image limits by asking it's corner coordinates
-	region = bg_region('empty');		% region contains [x_min x_max y_min y_max is_geog] in PIXEL REG MODE
+function ImageMapLimits_CB(handles, opt)
+% Change the Image OR the Map extents limits by asking it's corner coordinates
+% region contains [x_min x_max y_min y_max is_geog] in PIXEL REG MODE
+	if (strcmpi(opt,'map'))				% Change the display extentents and go away
+		region = bg_region('with_limits', [get(handles.axes1, 'XLim') get(handles.axes1, 'YLim')] );
+		if isempty(region),		return,		end
+		set(handles.axes1, 'XLim',region(1:2), 'YLim',region(3:4))
+		setappdata(handles.axes1,'ThisImageLims',region)
+		return
+	end
+	region = bg_region('empty');
 	if isempty(region),		return,		end
 	img = get(handles.hImg,'CData');
 	X = region(1:2);						Y = region(3:4);
 	x_inc = diff(X) / size(img,2);			y_inc = diff(Y) / size(img,1);
 	dx2 = x_inc / 2;						dy2 = y_inc / 2;
 	X = X + [dx2 -dx2];						Y = Y + [dy2 -dy2];		% X,Y in grid-reg so that the pix-reg info = region
-	handles.head(1:4) = [X Y];		handles.head(8:9) = [x_inc y_inc];  
-	handles.geog = aux_funs('guessGeog',handles.head(1:4));			% Traste more in this guess than on bg_region()
-	handles.fileName = [];			% Not loadable in session
-	if (~handles.validGrid),		handles.image_type = 3;
+	handles.head(1:4) = [X Y];				handles.head(8:9) = [x_inc y_inc];  
+	handles.geog = aux_funs('guessGeog',handles.head(1:4));			% Trust more in this guess than on bg_region()
+	handles.fileName = [];					% Not loadable in session
+	if (~handles.validGrid),				handles.image_type = 3;
 	else
 		X = linspace(X(1),X(2),size(img,2));		Y = linspace(Y(1),Y(2),size(img,1));
 		setappdata(handles.figure1,'dem_x',X);  	setappdata(handles.figure1,'dem_y',Y);
