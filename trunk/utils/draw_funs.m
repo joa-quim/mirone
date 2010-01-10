@@ -2066,7 +2066,7 @@ function export_symbol(obj, eventdata, h, opt)
 		msgbox('Only individual symbols may be exported and this one seams to belong to a class of symbols. Exiting','Warning')
 		return
 	end
-	zz = set(lineHand,'UserData');
+	zz = get(h,'UserData');
 	if (isempty(zz)),		doSave_formated(xx, yy)
 	else					doSave_formated(xx, yy, zz)
 	end
