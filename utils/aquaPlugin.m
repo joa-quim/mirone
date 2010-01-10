@@ -11,17 +11,17 @@ function aquaPlugin(handles)
 	end
 
 	casos = {'zonal' ...			% 1 - Compute zonal means
-			'tvar' ...				% 2 - Compute the Temp time rate of a file with anual means by fit of a straight line (Load entire file in memory)
+			'tvar' ...				% 2 - Compute the Temp time rate of a file with annual means by fit of a straight line (Load entire file in memory)
 			'yearMean' ...			% 3 - Compute yearly averages from monthly data
 			'yearMeanFlag' ...		% 4 - Compute yearly averages from monthly data but checked against a quality flag file
 			'polygAVG' ...			% 5 - Compute averages of whatever inside polygons (if any)
-			'flagsStats' ...		% 6 - Compute per/pixel anual or month counts of pixel values with a quality >= flag
+			'flagsStats' ...		% 6 - Compute per/pixel annual or month counts of pixel values with a quality >= flag
 			'pass_by_count' ...		% 7 - Check the curently active 3D file against a count file
 			'do_math' ...			% 8 - Perform some basic agebraic operations with the 3D planes
 			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
 			};
 
-	qual = casos{4};		% <== Active selection
+	qual = casos{2};		% <== Active selection
 
 	switch qual
 		case 'zonal'				% CASE 1
@@ -34,14 +34,14 @@ function aquaPlugin(handles)
 			fnam2 = 'poly_largo.dat';	%fnam2= [];
 			zonal(handles, dlat, integ_lon, trends, have_polygon, fname, fnam2)
 		case 'tvar'					% CASE 2
-			sub_set = [3 1];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
+			sub_set = [3 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
 			%sub_set = [0 0];
 			calcGrad(handles, sub_set) 
 		case 'yearMean'				% CASE 3
 			ano = 1:12;				% Compute yearly means
 			calc_yearMean(handles, ano)
 		case 'yearMeanFlag'			% CASE 4
-			ano = 10:12;				% Compute yearly (ano = 1:12) or seasonal means (ano = start_month:end_month)
+			ano = 1:12;				% Compute yearly (ano = 1:12) or seasonal means (ano = start_month:end_month)
 			fname  = 'C:\a1\terra_qual.nc';
 			fname  = 'C:\a1\pathfinder\qual_82_08.nc';
 			quality = 6;			% Retain only values of quality >= this (or <= abs(this) when MODIS)
@@ -260,7 +260,6 @@ function calcGrad(handles, sub_set)
 				k = k + 1;
 			end
 		end
-		%h=figure;hold on,for z=1:size(stack,1), plot(stack{z,1}(:,2)), end
 	
 		str1 = {'*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
 		[FileName,PathName] = put_or_get_file(handles,str1,'Select Output File name','put','.dat');
@@ -285,13 +284,13 @@ function calcGrad(handles, sub_set)
 			ind = isnan(y);
 			y(ind) = [];
 			if (numel(y) < n_anos/2),		continue,	end			% Completely ad-hoc test
-%  			p = polyfit(x(~ind),y,1);
-% 			z=[xvalues(1:4);ones(1,4)]'\yvalues';
+ 			%p = polyfit(x(~ind),y,1);
+			%z=[xvalues(1:4);ones(1,4)]'\yvalues';
  			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
 			if (p(1) < -0.5 || p(1) > 1),	continue,	end		% Another ad-hoc (CLIPPING)
 			Tvar(m,n) = p(4);
-  			%p = trend1d_m([x(~ind) y],'-L','-N2r');
-			%Tvar(m,n) = p(1);
+%			p = trend1d_m([x(~ind) y],'-L','-N2r');
+% 			Tvar(m,n) = p(1);
 		end
 		h = aguentabar(m/rows);
 		if (isnan(h)),	break,	end
@@ -384,7 +383,7 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
 	n_anos = handles.number_of_timesteps / 12;
 
-	h = aguentabar(0,'title','Computing anual means.','CreateCancelBtn');
+	h = aguentabar(0,'title','Computing annual means.','CreateCancelBtn');
 	Tmed = zeros([rows, cols]);			% Temp media para cada um dos anos
 	in_break = false;					% Inner loop cancel option
 	last_processed_month = 0;		already_processed = 0;
@@ -508,8 +507,11 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 			if (in_break),		break,		end		% Fck no gotos paranoia obliges to this recursive break
 
 			% Now we can finaly compute the season mean
-			contanoes = zeros(rows, cols);
 			tmp = ZtoSpline(:,:,first_wanted_month);
+% 			tmp(tmp < regionalMIN | tmp > regionalMAX) = NaN;
+% 			ind = isnan(tmp);
+% 			contanoes = zeros(rows, cols);
+% 			contanoes = contanoes + ~ind;
 			for (n = (first_wanted_month+1):last_wanted_month)
 % 				tmp2 = ZtoSpline(:,:,n);
 % 				tmp2(tmp2 < regionalMIN | tmp2 > regionalMAX) = NaN;
@@ -519,7 +521,7 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 				cvlib_mex('add',tmp,ZtoSpline(:,:,n));
 			end
 			%tmp = single(double(tmp) ./ contanoes);
-			cvlib_mex('CvtScale', tmp, 1/numel(months), -3);
+			cvlib_mex('CvtScale', tmp, 1/numel(months));
 		end				% End interpolate along time
 
 		if (in_break),		break,		end		% Fckng no gotos paranoia obliges to this recursive break
@@ -535,7 +537,7 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 		else				nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
 		end
 
-		h = aguentabar(m/n_anos,'title','Computing anual means.');	drawnow
+		h = aguentabar(m/n_anos,'title','Computing annual means.');	drawnow
 		if (isnan(h)),	break,	end
 
 		if (~splina),	Tmed = Tmed * 0;	end			% Reset it to zeros
@@ -782,7 +784,7 @@ function calc_polygAVG(handles)
 
 % ----------------------------------------------------------------------
 function calc_flagsStats(handles, months, flag, opt)
-% Compute per/pixel anual counts of pixel values with a quality >= flag
+% Compute per/pixel annual counts of pixel values with a quality >= flag
 % Perfect locations will have a count of 12. Completely cloudy => count = 0.
 %
 % MONTHS 	is a vector with the months uppon which the mean is to be computed
