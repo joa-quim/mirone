@@ -163,7 +163,6 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
 
 	dbud = get(displayBar, 'UserData');
 	axHandle = dbud.axes1;
-	Zlim = dbud.head(5:6);
 	rcMode = false;
 
 	if (dbud.haveGrid)
@@ -395,24 +394,24 @@ else                                            % We did find an image.  Find ou
     userdata = get(him, 'UserData');
     cdatamapping = get(him, 'CDataMapping');
     A = get(him, 'CData');
-    if ((ndims(A) == 3) && (size(A,3) == 3))     % We have an RGB image
-        state = 4;
-    else                                        % Not an RGB image
-        if (isequal(cdatamapping,'direct'))
-            % Do we have an indexed image or an old-style intensity or scaled image?
-            if (isequal(size(userdata), [1 2]))
-                % We have an old-style intensity or scaled image. How long is the colormap?
-                N = size(get(get(get(him,'Parent'),'Parent'),'Colormap'),1);
-                if (isequal(userdata, [0 1]))   % We have an old-style intensity image.
-                    A = (A-1)/(N-1);
-                    state = 2;
-                else                            % We have an old-style scaled image.
-                    A = (A-1)*((userdata(2)-userdata(1))/(N-1))+userdata(1);
-                    state = 3;
-                end
-            else                                % We have an indexed image.
-                state = 1;
-            end
+	if ((ndims(A) == 3) && (size(A,3) == 3))     % We have an RGB image
+		state = 4;
+	else                                        % Not an RGB image
+		if (isequal(cdatamapping,'direct'))
+			% Do we have an indexed image or an old-style intensity or scaled image?
+			if (isequal(size(userdata), [1 2]))
+				% We have an old-style intensity or scaled image. How long is the colormap?
+				N = size(get(get(get(him,'Parent'),'Parent'),'Colormap'),1);
+				if (isequal(userdata, [0 1]))   % We have an old-style intensity image.
+					A = (A-1)/(N-1);
+					state = 2;
+				else                            % We have an old-style scaled image.
+					A = (A-1)*((userdata(2)-userdata(1))/(N-1))+userdata(1);
+					state = 3;
+				end
+			else                                % We have an indexed image.
+				state = 1;
+			end
 		else                                    % CDataMapping is 'scaled'
 			hax = get(him, 'Parent');
 			clim = get(hax, 'CLim');
@@ -422,7 +421,7 @@ else                                            % We did find an image.  Find ou
 				% We have an intensity image.
 				state = 2;
 			else                                % We have a scaled image.
-                state = 3;
+				state = 3;
 			end
 		end
 	end
@@ -435,22 +434,22 @@ function linkDisplays(hFig)
 	if (~ishandle(linkedFig)),		return,		end			% Linked Fig was killed
 	handMir_linked  = guidata(linkedFig);					% Fish the pair of handles
 	handMir_clicked = guidata(hFig);
-	img_linked  = get(handMir_linked.hImg,'CData');
-	img_clicked = get(handMir_clicked.hImg,'CData');		% We need to backup this before it is replaced by the linked
-	cmap_clicked = get(hFig,'colormap');
+	imgLinked  = get(handMir_linked.hImg,'CData');
+	imgClicked = get(handMir_clicked.hImg,'CData');			% We need to backup this before it is replaced by the linked
+	cmapClicked = get(hFig,'colormap');
 
-	xlim_clicked  = get(handMir_clicked.axes1,'XLim');		ylim_clicked  = get(handMir_clicked.axes1,'YLim');
-	xlim_linked   = get(handMir_linked.axes1, 'XLim');		ylim_linked   = get(handMir_linked.axes1, 'YLim');
-	xdata_clicked = get(handMir_clicked.hImg, 'XData');		ydata_clicked = get(handMir_clicked.hImg, 'YData');
-	xdata_linked  = get(handMir_linked.hImg,  'XData');		ydata_linked  = get(handMir_linked.hImg,  'YData');
+% 	xlimClicked  = get(handMir_clicked.axes1,'XLim');		ylimClicked  = get(handMir_clicked.axes1,'YLim');
+% 	xlimLinked   = get(handMir_linked.axes1, 'XLim');		ylimLinked   = get(handMir_linked.axes1, 'YLim');
+	xdataClicked = get(handMir_clicked.hImg, 'XData');		ydataClicked = get(handMir_clicked.hImg, 'YData');
+	xdataLinked  = get(handMir_linked.hImg,  'XData');		ydataLinked  = get(handMir_linked.hImg,  'YData');
 
-	set(handMir_clicked.hImg,'CData', img_linked)
+	set(handMir_clicked.hImg,'CData', imgLinked)
 	if (ndims(img_linked) == 2)
 		set(hFig, 'colormap',get(handMir_linked.figure1,'colormap'))
 	end
-	set(handMir_clicked.hImg, 'XData',xdata_linked, 'YData',ydata_linked)
-	set(hFig, 'WindowButtonUpFcn', {@link_bu, hFig, handMir_clicked.hImg, img_clicked, cmap_clicked, ...
-			xdata_clicked, ydata_clicked});
+	set(handMir_clicked.hImg, 'XData',xdataLinked, 'YData',ydataLinked)
+	set(hFig, 'WindowButtonUpFcn', {@link_bu, hFig, handMir_clicked.hImg, imgClicked, cmapClicked, ...
+			xdataClicked, ydataClicked});
 
 % ---------------------------------------------------------------------------------
 function link_bu(obj, event, hFig, hImg, img_clicked, cmap_clicked, xdata, ydata)
