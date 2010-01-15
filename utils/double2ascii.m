@@ -45,7 +45,7 @@ kpercent = strfind(formatString,'%');
 %Open and write to ASCII file
 if (ispc),		fid = fopen(filename,'wt');
 elseif (isunix)	fid = fopen(filename,'w');
-else			fclose(fid);    error('DOUBLE2ASCII: Unknown platform.');
+else			error('DOUBLE2ASCII: Unknown platform.');
 end
 ncols  = size(X,2);					% Determine the number of rows and columns in array X
 
@@ -60,8 +60,8 @@ else								% We might have NaNs (that is multi-segments files)
 		for (k=1:length(X))			% Currently deals only with Mx2 arrays case
 			fprintf(fid,'%s\n','>');
 			if (kpercent == 1),		fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], [X{k}(:,1)'; X{k}(:,2)']);
-		    else					fprintf(fid,[formatString '\n'], [X{k}(:,1)'; X{k}(:,2)']);
-		    end
+			else					fprintf(fid,[formatString '\n'], [X{k}(:,1)'; X{k}(:,2)']);
+			end
 		end
 	elseif ( ~any(isnan(X)) )		% NO, we haven't
 		if (kpercent == 1),			fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], X');
