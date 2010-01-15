@@ -1029,8 +1029,8 @@ function set_vector_uicontext(h)
 
 % -----------------------------------------------------------------------------------------
 function fill_Polygon(obj,eventdata,h)
-	% Turn a closed polygon into a patch and fill it in light gray by default
-	% EXPERIMENTAL CODE. NOT IN USE.
+% Turn a closed polygon into a patch and fill it in light gray by default
+% EXPERIMENTAL CODE. NOT IN USE.
 	x = get(h,'XData');      y = get(h,'YData');
 	patch(x,y,0,'FaceColor',[.7 .7 .7], 'EdgeColor','k');
 
@@ -1040,9 +1040,9 @@ function show_swhatRatio(obj,eventdata,h)
 
 % -----------------------------------------------------------------------------------------
 function show_Area(obj,eventdata,h)
-	% Compute area under line and insult the user if the line is not closed
-	% NOTE that H is optional. Use only when want to make sure that this fun
-	% uses that handle (does not work with copyied objects)
+% Compute area under line and insult the user if the line is not closed
+% NOTE that H is optional. Use only when want to make sure that this fun
+% uses that handle (does not work with copyied objects)
 
 	if (nargin == 3)
 		if (size(h,1) >= 2 && size(h,2) == 2)
@@ -1967,7 +1967,7 @@ function remove_one_from_many(obj,eventdata,h)
 %Delete one symbol that belongs to a class (in fact a vertex of a polyline)
 	pt = get(gca,'CurrentPoint');
 	xp = get(h,'XData');    yp = get(h,'YData');
-	l = length(xp);
+	l = numel(xp);
 	if (iscell(xp))     % These stupids might be cell arrays, so they need to be converted to vectors   
 		x = zeros(1,l);    y = zeros(1,l);   
 		for i=1:l
@@ -1981,6 +1981,11 @@ function remove_one_from_many(obj,eventdata,h)
 	[B,IX] = sort(dist);    i = IX(1);  clear dist IX;
 	xp(i) = [];     yp(i) = [];
 	set(h, 'XData',xp, 'YData',yp,'LineStyle','none');
+	zz = get(h, 'UserData');
+	if (~isempty(zz))
+		zz(i) = [];
+		set(h, 'UserData', zz)
+	end
 
 % -----------------------------------------------------------------------------------------
 function other_SymbSize(obj,eventdata,h)
