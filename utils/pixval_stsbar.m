@@ -444,7 +444,7 @@ function linkDisplays(hFig)
 	xdataLinked  = get(handMir_linked.hImg,  'XData');		ydataLinked  = get(handMir_linked.hImg,  'YData');
 
 	set(handMir_clicked.hImg,'CData', imgLinked)
-	if (ndims(img_linked) == 2)
+	if (ndims(imgLinked) == 2)
 		set(hFig, 'colormap',get(handMir_linked.figure1,'colormap'))
 	end
 	set(handMir_clicked.hImg, 'XData',xdataLinked, 'YData',ydataLinked)
