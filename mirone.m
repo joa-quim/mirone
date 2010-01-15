@@ -2360,13 +2360,16 @@ function DrawImportShape_CB(handles, fname)
 
 	nPolygs = length(s);	h = zeros(nPolygs,1);
 	imgLims = getappdata(handles.axes1,'ThisImageLims');
-	if (strcmp(t,'Arc'))
+	if (strncmp(t,'Arc',3))
+		is3D = false;
+		if (strcmp(t,'ArcZ'))	is3D = true;	end
 		for i = 1:nPolygs
 			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) s(i).BoundingBox(2,2); ...
 				s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
 			if (any(out))			% It means the polyg BB is at least partially inside
-				h(i) = line('Xdata',s(i).X,'Ydata',s(i).Y,'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Parent',handles.axes1,'Tag','SHPpolyline');
+				h(i) = line('Xdata',single(s(i).X),'Ydata',single(s(i).Y),'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline');
 			end
+			if (is3D),		set(h(i),'UserData', single(s(i).Z)),	end
 			h((h == 0)) = [];		% Those were jumped because thay were completely outside map limits
 		end
 		if (isempty(h)),	warndlg('No data inside dysplay region','Warning'),		return,		end
@@ -2387,7 +2390,7 @@ function DrawImportShape_CB(handles, fname)
 			end
 		end
 		if (nPolygs > nParanoia)				% nParanoia is an arbitrary number that practice will show dependency
-			h((h == 0)) = [];					% Those were jumped because they were completely outside map limits
+			h((h == 0)) = [];						% Those were jumped because they were completely outside map limits
 			if (isempty(h)),	warndlg('No data inside dysplay region','Warning'),		return,		end
 			draw_funs(h,'country_patch')		% mostly on hardware, for I don't beleave ML will ever behave decently.
 		end
