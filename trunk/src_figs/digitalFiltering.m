@@ -575,6 +575,7 @@ guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------
 function [grd,img] = pushbutton_apply_Callback(hObject, eventdata, handles)
+	grd = [];
 	info = get(handles.tblParams, 'userdata');
 	f = cell2mat(info.data);				% Fish out the filter coefs
 	norma = sum(f(:));
