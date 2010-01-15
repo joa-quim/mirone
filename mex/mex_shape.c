@@ -122,7 +122,11 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 	switch ( nShapeType ) {
 		case SHPT_POINT:
 			break;
+		case SHPT_POINTZ:
+			break;
 		case SHPT_ARC:
+			break;
+		case SHPT_ARCZ:
 			break;
 		case SHPT_POLYGON:
 			break;
@@ -147,7 +151,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 	 * I allocate space for two extra "dummy" records that go in positions
 	 * 0 and 1.  These I reserve for the xy data. */
 	nFields = 3;
-	if ( nShapeType == SHPT_POLYGONZ ) nFields++;
+	if ( (nShapeType == SHPT_POLYGONZ) || (nShapeType == SHPT_ARCZ) ) nFields++;
 	dbf_field = (DBF_Field_Descriptor *) mxMalloc ( (num_dbf_fields+nFields) * sizeof ( DBF_Field_Descriptor ) );
 	if ( dbf_field == NULL )
 		mexErrMsgTxt("Memory allocation for DBF_Field_Descriptor failed."); 
@@ -157,7 +161,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 
 	fnames[0] = strdup ( "X" );
 	fnames[1] = strdup ( "Y" );
-	if ( nShapeType == SHPT_POLYGONZ ) {
+	if ( (nShapeType == SHPT_POLYGONZ) || (nShapeType == SHPT_ARCZ)) {
 		fnames[2] = strdup ( "Z" );
 		fnames[3] = strdup ( "BoundingBox" );
 	}
@@ -174,12 +178,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 	/* Allocate space for the output structure. */
 	out_struct = mxCreateStructMatrix ( nEntities, 1, nFields + num_dbf_fields, (const char **)fnames );
 
-	/* create the BoundingBox - Overwriten later, must call it something else*/
+	/* create the BoundingBox */
 	dims[0] = 4;
 	dims[1] = 2;
 	bbox = mxCreateNumericArray ( 2, dims, mxDOUBLE_CLASS, mxREAL );
 	bb_ptr = mxGetData ( bbox );
-	for (i = 0; i < 4; i++) bb_ptr[i] = adfMinBound[i];
+	for (i = 0; i < 4; i++) bb_ptr[i]   = adfMinBound[i];
 	for (i = 0; i < 4; i++) bb_ptr[i+4] = adfMaxBound[i];
 	mxSetField ( out_struct, 0, "BoundingBox", bbox );
 
@@ -198,7 +202,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 		x_out_ptr = mxGetData ( x_out );
 		y_out = mxCreateNumericArray ( 2, dims, mxDOUBLE_CLASS, mxREAL );
 		y_out_ptr = mxGetData ( y_out );
-		if ( nShapeType == SHPT_POLYGONZ ) {
+		if ( (nShapeType == SHPT_POLYGONZ) || (nShapeType == SHPT_POINTZ) || (nShapeType == SHPT_ARCZ)) {
 			z_out = mxCreateNumericArray ( 2, dims, mxDOUBLE_CLASS, mxREAL );
 			z_out_ptr = mxGetData ( z_out );
 		}
@@ -241,13 +245,13 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 			sizebuf = mxGetElementSize ( x_out ) * psShape->nVertices;
 			memcpy ( (void *) x_out_ptr, (void *) psShape->padfX, sizebuf );
 			memcpy ( (void *) y_out_ptr, (void *) psShape->padfY, sizebuf );
-			if ( nShapeType == SHPT_POLYGONZ )
+			if ( (nShapeType == SHPT_POLYGONZ)  || (nShapeType == SHPT_POINTZ) || (nShapeType == SHPT_ARCZ))
 				memcpy ( (void *) z_out_ptr, (void *) psShape->padfZ, sizebuf );
 		}
 
 		mxSetField ( out_struct, i, "X", x_out );
 		mxSetField ( out_struct, i, "Y", y_out );
-		if ( nShapeType == SHPT_POLYGONZ )
+		if ( (nShapeType == SHPT_POLYGONZ)  || (nShapeType == SHPT_POINTZ) || (nShapeType == SHPT_ARCZ))
 			mxSetField ( out_struct, i, "Z", z_out );
 
 		bbox = mxCreateNumericMatrix ( 4, 2, mxDOUBLE_CLASS, mxREAL );
