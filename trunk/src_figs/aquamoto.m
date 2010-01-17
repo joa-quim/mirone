@@ -247,7 +247,7 @@ function varargout = aquamoto(varargin)
 	set(hObject,'WindowButtonDownFcn',{@ButtonDown,h_line,handles});
 
 	% This will cause a silent error but it also load the mex file in memory so it will be fast on "first" use
-	try		lili = mexnc('open', 'lixoxo', 0 );	end
+	try		mexnc('open', 'lixoxo', 0 );	end
 
 	guidata(hObject, handles);
 	if (nargout),   varargout{1} = hObject;     end
@@ -743,7 +743,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 			theVar = (stage - elevation);
 			indVar = 6;
 		case 'Max Water'			% Maximum water height (we need to compute it)
-			h = aguentabar(0, 'title','Computing max water height ...', 'CreateCancelBtn');
+			aguentabar(0, 'title','Computing max water height ...', 'CreateCancelBtn');
 			theVar = zeros(1, handles.number_of_points);
 			stage = nc_funs('varget', handles.fname, 'elevation')';
 			indWater = (stage < 0);	% Still water indices 
@@ -758,7 +758,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 			end
 			indVar = 8;
 		case 'Max Depth'			% Maximum water depth (we need to compute it)
-			h = aguentabar(0, 'title','Computing max water depth ...', 'CreateCancelBtn');
+			aguentabar(0, 'title','Computing max water depth ...', 'CreateCancelBtn');
 			theVar = zeros(1, handles.number_of_points);
 			elevation = nc_funs('varget', handles.fname, 'elevation')';
 			indWater = (elevation < 0);			% Still water indices 
@@ -1373,7 +1373,7 @@ function push_OK_Callback(hObject, eventdata, handles, opt)
 			slice_vec = handles.multiLayerInc;			% Increments were already in a vector form
 		end
 
-		hAguenta = aguentabar(0,'title','Relax and wait ... I''m flooding','createcancelbtn');
+		aguentabar(0,'title','Relax and wait ... I''m flooding','createcancelbtn');
 		n_slices = numel(slice_vec);
 		M.cdata = [];		M.colormap = [];
 		for (i = 1:n_slices )
@@ -1512,7 +1512,7 @@ function push_OK_Callback(hObject, eventdata, handles, opt)
 
 % 		logo = flipdim( imread('c:\tmp\cafe_cima.jpg'), 1);
 		if ( ~handles.useLandPhoto )		% Otherwise the bar is either hiden by the Mirone window, or screws the transparency  
-			hAguenta = aguentabar(0,'title','Please wait ... I''m flooding','createcancelbtn');
+			aguentabar(0,'title','Please wait ... I''m flooding','createcancelbtn');
 		end
 
 		M = [];
@@ -2280,7 +2280,7 @@ function hh = loc_quiver(struc_in,varargin)
 
 % ------------------------------------------------------------------------------
 function stopBar =  aguentabar(varargin)
-% AGUENTABAR Display a await bar.
+% AGUENTABAR Display a wait bar.
 %
 % Usage:
 %   STOP = AGUENTABAR(X) will set the length of the bar in the most recently
