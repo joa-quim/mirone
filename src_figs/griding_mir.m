@@ -1,7 +1,7 @@
 function varargout = griding_mir(varargin)
-% M-File changed by desGUIDE
-
-%	Copyright (c) 2004-2009 by J. Luis
+% Wrapper figure to call apropriate interpolation MEX
+%
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -15,133 +15,135 @@ function varargout = griding_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-hObject = figure('Tag','figure1','Visible','off');
-griding_mir_LayoutFcn(hObject);
-handles = guihandles(hObject);
+	hObject = figure('Tag','figure1','Visible','off');
+	griding_mir_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	movegui(hObject,'center');							% Reposition the window on screen
 
-movegui(hObject,'center');							% Reposition the window on screen
-global home_dir
+	dirs = getappdata(0,'MIRONE_DIRS');
+	if (isempty(dirs))
+		handles.home_dir = pwd;
+		handles.last_dir = handles.home_dir;
+		handles.work_dir = handles.home_dir;
+		f_path = [pwd filesep 'data' filesep];
+	else
+		handles.home_dir = dirs.home_dir;
+		handles.last_dir = dirs.last_dir;
+		handles.work_dir = dirs.work_dir;
+		f_path = [handles.home_dir filesep 'data' filesep];
+	end
 
-if (isempty(home_dir)),	handles.home_dir = pwd;		% Case when this function was called directly
-else					handles.home_dir = home_dir;
-end
+	% Import icons
+	load([f_path 'mirone_icons.mat'],'Mfopen_ico');
+	set(handles.pushbutton_InputFile,'CData',Mfopen_ico)
+	clear Mfopen_ico;
 
-if isempty(home_dir),	f_path = [pwd filesep 'data' filesep];
-else					f_path = [home_dir filesep 'data' filesep];
-end
+	handles.command = cell(50,1);
+	handles.x_min = [];				handles.x_max = [];
+	handles.y_min = [];				handles.y_max = [];
+	handles.x_min_or = [];			handles.x_max_or = [];
+	handles.y_min_or = [];			handles.y_max_or = [];
+	handles.x_inc = [];				handles.y_inc = [];
+	handles.dms_xinc = 0;			handles.dms_yinc = 0;
+	handles.IamCompiled = false;
+	handles.one_or_zero = 1;		% For Grid Registration grids, which are the most common cases
+	handles.hMirFig = [];			% Update this bellow when integrated in Mirone
 
-% Import icons
-load([f_path 'mirone_icons.mat'],'Mfopen_ico');
-set(handles.pushbutton_InputFile,'CData',Mfopen_ico)
-clear Mfopen_ico;
+	% Inactivate the headers parameters. They will be activated by the header checkbox
+	set(handles.edit_nHeaders,'Enable','inactive')
+	set(handles.popup_binInput,'Visible','off')
+	set(handles.edit_binary_ncolumnIn,'Visible','off')  % Those two have to wait until we
+	set(handles.pushbutton_Help_H,'Visible','off')      % know how to read binary files
 
-handles.command = cell(50,1);
-handles.x_min = [];				handles.x_max = [];
-handles.y_min = [];				handles.y_max = [];
-handles.x_min_or = [];			handles.x_max_or = [];
-handles.y_min_or = [];			handles.y_max_or = [];
-handles.x_inc = [];             handles.y_inc = [];
-handles.dms_xinc = 0;           handles.dms_yinc = 0;
-handles.one_or_zero = 1;        % For Grid Registration grids, which are the most common cases
-handles.h_calling_fig = [];     % Update this bellow when integrated in Mirone
+	% When called by Mirone varargin must contain: mirone fig handle, "type"
+	if ~isempty(varargin)
+		if ( length(varargin) == 2 && ishandle(varargin{1}) && ischar(varargin{2}) )
+			handles.hMirFig = varargin{1};
+			type = varargin{2};
+			%handles.IamCompiled = handMir.IamCompiled;
+		else
+			type = 'surface';		% Default to surface
+		end
+	else
+		type = 'surface';			% Default to surface
+	end
+	handles.type = type;
 
-% Inactivate the headers parameters. They will be activated by the header checkbox
-set(handles.edit_nHeaders,'Enable','inactive')
-set(handles.popup_binInput,'Visible','off')
-set(handles.edit_binary_ncolumnIn,'Visible','off')  % Those two have to wait until we
-set(handles.pushbutton_Help_H,'Visible','off')      % know how to read binary files
+	% Choose the default griding_mir_export method
+	% In Mirone the 'Delauny Triangulation' method is not yet implemented
+	if strcmp(type,'surface')
+		set(hObject,'Name','Surface')
+		%set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Delauny Triangulation';'Near Neighbor'});
+		set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Near Neighbor'});
+		handles.command{1} = 'surface ';
+		set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+		set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+		set(handles.pushbutton_Help_S,'Enable', 'off')
+		set(handles.checkbox_Option_F,'Enable', 'off')
+	elseif strcmp(type,'triangulate')
+		set(hObject,'Name','Triangulate')
+		set(handles.popup_GridMethod, 'String', {'Delauny Triangulation';'Minimum Curvature';'Near Neighbor'});
+		handles.command{1} = 'triangulate ';
+		set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+		set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+		set(handles.pushbutton_Help_S,'Enable', 'off')
+	elseif strcmp(type,'nearneighbor')
+		set(hObject,'Name','Nearneighbor')
+		%set(handles.popup_GridMethod, 'String', {'Near Neighbor';'Delauny Triangulation';'Minimum Curvature'});
+		set(handles.popup_GridMethod, 'String', {'Near Neighbor';'Minimum Curvature'});
+		set(handles.checkbox_Option_V,'Enable', 'off')
+		handles.command{1} = 'nearneighbor ';
+	else			% Defaults to surface
+		set(hObject,'Name','Surface')
+		%set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Delauny Triangulation';'Near Neighbor'});
+		set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Near Neighbor'});
+		handles.command{1} = 'surface ';
+		set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+		set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+		set(handles.checkbox_Option_F,'Enable', 'off')
+		set(handles.pushbutton_Help_S,'Enable', 'off')
+	end
 
-% When called by Mirone varargin must contain: mirone fig handle, "type"
-if ~isempty(varargin)
-    if ( length(varargin) == 2 && ishandle(varargin{1}) && ischar(varargin{2}) )
-        handles.h_calling_fig = varargin{1};
-        type = varargin{2};
-    else
-        type = 'surface';   % Default to surface
-    end
-else
-    type = 'surface';   % Default to surface
-end
-handles.type = type;
+	if (~isempty(handles.hMirFig))						% If we know the handle to the calling fig
+		handMir = guidata(handles.hMirFig);				% get handles of the calling fig
+		handles.last_dir = handMir.last_dir;
+		handles.home_dir = handMir.home_dir;
+		handles.work_dir = handMir.work_dir;
+		handles.IamCompiled = handMir.IamCompiled;
+	end
 
-% Choose the default griding_mir_export method
-% In Mirone the 'Delauny Triangulation' method is not yet implemented
-if strcmp(type,'surface')
-	set(hObject,'Name','Surface')
-	%set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Delauny Triangulation';'Near Neighbor'});
-	set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Near Neighbor'});
-	handles.command{1} = 'surface ';
-	set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-	set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-	set(handles.pushbutton_Help_S,'Enable', 'off')
-	set(handles.checkbox_Option_F,'Enable', 'off')
-elseif strcmp(type,'triangulate')
-	set(hObject,'Name','Triangulate')
-	set(handles.popup_GridMethod, 'String', {'Delauny Triangulation';'Minimum Curvature';'Near Neighbor'});
-	handles.command{1} = 'triangulate ';
-	set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-	set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-	set(handles.pushbutton_Help_S,'Enable', 'off')
-elseif strcmp(type,'nearneighbor')
-	set(hObject,'Name','Nearneighbor')
-	%set(handles.popup_GridMethod, 'String', {'Near Neighbor';'Delauny Triangulation';'Minimum Curvature'});
-	set(handles.popup_GridMethod, 'String', {'Near Neighbor';'Minimum Curvature'});
-	set(handles.checkbox_Option_V,'Enable', 'off')
-	handles.command{1} = 'nearneighbor ';
-else        % Defaults to surface
-	set(hObject,'Name','Surface')
-	%set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Delauny Triangulation';'Near Neighbor'});
-	set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Near Neighbor'});
-	handles.command{1} = 'surface ';
-	set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-	set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-	set(handles.checkbox_Option_F,'Enable', 'off')
-	set(handles.pushbutton_Help_S,'Enable', 'off')
-end
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+	set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
+	h_f = findobj(hObject,'Style','Frame');
+	for i=1:numel(h_f)
+		frame_size = get(h_f(i),'Position');
+		f_bgc = get(h_f(i),'BackgroundColor');
+		usr_d = get(h_f(i),'UserData');
+		if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
+			frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
+		else
+			frame3D(hObject,frame_size,framecolor,'',usr_d)
+			delete(h_f(i))
+		end
+	end
 
-if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-    handles.last_dir = cfig_handles.last_dir;
-    handles.home_dir = cfig_handles.home_dir;
-    handles.work_dir = cfig_handles.work_dir;
-else
-    handles.home_dir = home_dir;
-    handles.last_dir = home_dir;
-    handles.work_dir = home_dir;
-end
+	% Recopy the text fields on top of previously created frames (uistack is to slow)
+	h_t = findobj(hObject,'Style','Text');
+	for i=1:numel(h_t)
+		usr_d = get(h_t(i),'UserData');
+		t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
+		bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');tag=get(h_t(i),'Tag');
+		uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str, ...
+			'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,'UserData',usr_d,'Tag',tag);
+	end
+	delete(h_t)
+	%------------- END Pro look (3D) -------------------------------------------------------
 
-%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-
-% Recopy the text fields on top of previously created frames (uistack is to slow)
-h_t = findobj(hObject,'Style','Text');
-for i=1:length(h_t)
-    usr_d = get(h_t(i),'UserData');
-    t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-    bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');tag=get(h_t(i),'Tag');
-    uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str, ...
-        'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,'UserData',usr_d,'Tag',tag);
-end
-delete(h_t)
-%------------- END Pro look (3D) -------------------------------------------------------
-
-guidata(hObject, handles);
-set(hObject,'Visible','on');
-if (nargout),	varargout{1} = hObject;		end
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),	varargout{1} = hObject;		end
 
 % -----------------------------------------------------------------------------------
 function checkbox_Option_H_Callback(hObject, eventdata, handles)
@@ -324,8 +326,8 @@ guidata(handles.figure1, handles)
 %----------------------------------------------------------------------------------------------
 function pushbutton_InputFile_Callback(hObject, eventdata, handles)
 
-	if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))			% If we know it and it exists
-        hand = guidata(handles.h_calling_fig);		% get handles of the calling fig
+	if (~isempty(handles.hMirFig) && ishandle(handles.hMirFig))			% If we know it and it exists
+        hand = guidata(handles.hMirFig);		% get handles of the calling fig
 	else
         hand = handles;
 	end
@@ -419,12 +421,12 @@ end
 
 % -----------------------------------------------------------------------------------
 function checkbox_Option_F_Callback(hObject, eventdata, handles)
-if get(hObject,'Value')
-    handles.one_or_zero = 0;    handles.command{44} = ' -F';
-else
-    handles.one_or_zero = 1;    handles.command{44} = '';
-end
-guidata(hObject,handles)
+	if get(hObject,'Value')
+		handles.one_or_zero = 0;    handles.command{44} = ' -F';
+	else
+		handles.one_or_zero = 1;    handles.command{44} = '';
+	end
+	guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
 function pushbutton_Help_R_F_toggle_Callback(hObject, eventdata, handles)
@@ -445,19 +447,19 @@ helpdlg(message,'Help on Grid Line Geometry');
 
 % -----------------------------------------------------------------------------------
 function edit_S1_Neighbor_Callback(hObject, eventdata, handles)
-xx = get(hObject,'String');
-if isnan(str2double(xx)) && ~isempty(xx)
-    set(hObject, 'String', '');
-    errordlg('"Search radius" must be a number','Error');
-    return
-end
-if ~isempty(xx)
-    handles.command{19} = ' -S';      handles.command{20} = [num2str(abs(str2double(xx)))];
-    guidata(hObject, handles);
-else
-    handles.command{19} = '';      handles.command{20} = [xx];
-    guidata(hObject, handles);
-end
+	xx = get(hObject,'String');
+	if isnan(str2double(xx)) && ~isempty(xx)
+		set(hObject, 'String', '');
+		errordlg('"Search radius" must be a number','Error');
+		return
+	end
+	if ~isempty(xx)
+		handles.command{19} = ' -S';      handles.command{20} = num2str(abs(str2double(xx)));
+		guidata(hObject, handles);
+	else
+		handles.command{19} = '';      handles.command{20} = xx;
+		guidata(hObject, handles);
+	end
 
 % -----------------------------------------------------------------------------------
 function popup_S2_Neighbor_Callback(hObject, eventdata, handles)
@@ -528,14 +530,14 @@ guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
+% I will still use the old technique
 
-	% I will still use the old technique
 	tmp = horzcat(handles.command{1:end});
 	[tok,rem] = strtok(tmp);
 	out{1} = tok;
 	i = 2;
 	while (rem)
-		[tok,rem] = strtok(rem);
+		[tok, rem] = strtok(rem);
 		out{i} = tok;        i = i + 1;
 	end
 
@@ -561,6 +563,9 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 
 	opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f',handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 	opt_I = ['-I' get(handles.edit_x_inc,'string') '/' get(handles.edit_y_inc,'string')];
+	if (handles.IamCompiled),	opt_e = '-e';
+	else						opt_e = '';
+	end
 	out{3} = opt_R;
 	out{4} = opt_I;
 
@@ -568,13 +573,13 @@ function pushbutton_OK_Callback(hObject, eventdata, handles)
 	set(handles.figure1,'Name','COMPUTING')
 	switch handles.type
 		case 'surface'
-% 			[Z,head] = gmtmbgrid_m(out{2:end}, '-Mz');     % NOT READY because it doesn't read from file neither -:
+% 			[Z,head] = gmtmbgrid_m(out{2:end}, '-Mz');		% NOT READY because it doesn't read from file neither -:
 			[Z,head] = surface_m(out{2:end});
-			tit = 'surface interpolation';          name = tit;
+			tit = 'surface interpolation';
 			set(handles.figure1,'Name','Surface')
 		case 'nearneighbor'
-			[Z,head] = nearneighbor_m(out{2:end}); % We don't want the last ','
-			tit = 'nearneighbor interpolation';     name = tit;
+			[Z,head] = nearneighbor_m(out{2:end}, opt_e);	% We don't want the last ','
+			tit = 'nearneighbor interpolation';
 			set(handles.figure1,'Name','Nearneighbor')
 	end
 	[ny,nx] = size(Z);
