@@ -914,10 +914,6 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 		f_name_b = [PathName FNAME '_b' EXT];
 	end
 
-	if (isappdata(handles.axes1,'DatumProjInfo'))
-		DPI = getappdata(handles.axes1,'DatumProjInfo');
-	end
-
 	if (strcmp(opt1,'image')),			img = get(handles.hImg,'CData');			% Get image
 	elseif (strcmp(opt1,'screen')),		img = snapshot(handles.figure1,'noname');	% Screen capture with resizing option
 	else								img = flipdim(imcapture(handles.axes1,'img',0),1);		% Call from write_script
@@ -928,9 +924,6 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 	end
 	flip = false;
 	if (~strcmp(get(handles.axes1,'Ydir'),'normal')),	flip = true;	end
-% 	if (~strcmp(get(handles.axes1,'Ydir'),'normal'))
-% 		img = flipdim(img,1);
-% 	end
 
 	% Defaults and srsWKT fishing are set in nc_io
 	if (~flip)
@@ -1559,7 +1552,7 @@ function read_DEMs(handles,fullname,tipo,opt)
 function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust, imSize)
 % Show image and set other parameters
 	if (adjust)				% Convert the image limits from pixel reg to grid reg
-		[m,n,k] = size(I);	[X,Y] = aux_funs('adjust_lims', X, Y, m, n);
+		[X,Y] = aux_funs('adjust_lims', X, Y, size(I,1), size(I,2));
 	end
 	if (strcmp(get(handles.GCPtool,'Checked'),'on'))		% Call gcpTool() and return
 		if (handles.no_file),	aux_funs('togCheck', handles.GCPtool),	return,		end	% Security check
@@ -1716,7 +1709,9 @@ function ToolsMBplaningImport_CB(handles)
 	resp	= inputdlg(prompt,'Multi-beam planing input',[1 38],{'3'});	pause(0.01);
 	if isempty(resp),	return,		end
 	if (iscell(out)),	n_segments = length(out);
-	else				n_segments = 1;		end
+	else				n_segments = 1;
+	end
+	h_line = zeros(1, n_segments);
 	for (i = 1:n_segments)
 		if (iscell(out)),	xy = out{i}(:,1:2);
 		else				xy = out(:,1:2);	end
@@ -1808,7 +1803,7 @@ function ImageIlluminateLambertian(luz, handles, opt)
 
 % --------------------------------------------------------------------
 function ImageIlluminateGray(luz, handles, color)
-	% Illuminate a DEM file and turn it into a RGB or gray scale image.	For multiple tryies see note above. 
+% Illuminate a DEM file and turn it into a RGB or gray scale image.	For multiple tryies see note above. 
 	
 	[X,Y,Z,head,m] = load_grd(handles);
 	if isempty(Z),		return,		end		% An error message was already issued
@@ -1903,7 +1898,7 @@ function ImageAnaglyph_CB(handles)
 	azimuth	= -90 * D2R;	elevation = 20 * D2R;
 
 	% Tiling
-	[m,n] = size(Z);
+	m = size(Z,1);
 	[ind_s,ind] = tile(m,400,4);	% shade_manip_raster "only consumes" 3 times Z grid size
 	if (size(ind_s,1) > 1)
 		sh = [];
@@ -2279,7 +2274,8 @@ function DrawGeographicalCircle_CB(handles, opt)
 
 % --------------------------------------------------------------------
 function DrawImportLine_CB(handles, opt)
-% OPT is a string with either "AsLine", or "AsPoint", or "AsMaregraph", or "FaultTrace"
+% OPT is a string with either "AsLine", "AsPoint", "AsArrow", "AsMaregraph", or "FaultTrace"
+	if (strcmp(opt,'AsArrow'))	datasets_funs('Isochrons', handles, [],'arrows'),	return,		end
 	if (handles.no_file),	return,		end
 	str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select input xy file name','get');
