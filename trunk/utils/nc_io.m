@@ -105,8 +105,8 @@ function write_nc(fname, handles, data, misc, page)
 			nc_funs('varput', fname, levelName, level, page{1}, 1 );	% The UNLIMITED var value
 		end
 
+		ny = size(data, 1);		nx = size(data, 2);
 		if (ndims(data) == 2)
-			[ny, nx] = size(data);
 			nc_funs('varput', fname, z_name, reshape(data,[1 ny nx]), [page{1} 0 0], [1 ny nx] );
 		elseif (ndims(data) == 3 && size(data,1) == 1)
 			nc_funs('varput', fname, z_name, data, [page{1} 0 0], [1 ny nx] );
@@ -440,11 +440,11 @@ function [X,Y,Z,head,misc] = read_old_cdf(fname, s)
 
 	% Fish the IDs of	x_range, y_range, z_range, spacing, dimension & z
 	dataNames = {s.Dataset.Name};
-	x_range_id = find(strcmp(dataNames, 'x_range'));
-	y_range_id = find(strcmp(dataNames, 'y_range'));
-	z_range_id = find(strcmp(dataNames, 'z_range'));
-	spacing_id = find(strcmp(dataNames, 'spacing'));
-	dimension_id = find(strcmp(dataNames, 'dimension'));
+	x_range_id = strcmp(dataNames, 'x_range');
+	y_range_id = strcmp(dataNames, 'y_range');
+	z_range_id = strcmp(dataNames, 'z_range');
+	spacing_id = strcmp(dataNames, 'spacing');
+	dimension_id = strcmp(dataNames, 'dimension');
 	z_id = find(strcmp(dataNames, 'z'));
 
 	% --------------------- Fish in the attribs of the Z var ----------------------
@@ -539,14 +539,18 @@ function [X, Y, Z, head] = deal_exceptions(Z, X, Y, head, s, attribNames)
 		if (k > nGrids + 1)
 			warndlg('WARNING: Very likely NONE of the provided coordinate files are correct for this file.','Warning')
 		end
-		
-		[ny, nx] = size(Z);
-		y_west = linspace(SW_lat, NW_lat, ny);		y_east = linspace(SE_lat, NE_lat, ny);
-		x_south = linspace(SW_lon, NW_lon, ny);		x_north = linspace(SE_lon, NE_lon, ny);
-		
+	
+		% Find out if we are using Matlab or compiled code
+		try
+			which('mirone');
+			opt_e = '';
+		catch
+			opt_e = '-e';
+		end
+
 		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', min(NW_lon,SW_lon), max(NE_lon,SE_lon), min(SW_lat,SE_lat), max(NW_lat,NE_lat));
 		lon = single(lon);		lat = (single(lat));
-		[Z, head] = nearneighbor_m(lon(:), lat(:), Z(:), opt_R, '-N2', '-I0.02', '-S0.06');
+		[Z, head] = nearneighbor_m(lon(:), lat(:), Z(:), opt_R, opt_e, '-N2', '-I0.02', '-S0.06');
 		if ( any( isnan(head(5:6)) ) )
 			zz = grdutils(Z,'-L');  head(5:6) = zz(1:2);
 		end
