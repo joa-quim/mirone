@@ -33,14 +33,11 @@
  *		04/06/06 J Luis, Updated to compile with version 4.1.3
  *		14/10/06 J Luis, Now includes the memory leak solving solution
  *		17/02/09 J Luis, Accept numeric data in input. Couple of bug fixes
+ *		18/01/10 J Luis, Add option to call aguentabar.dll via mexEvalString
  */
  
 #include "gmt.h"
 #include "mex.h"
-
-/* Since mexCallMATLAB crash on compiled version swapp between 0 & 1 to create the dll to use
-   respectively, with the non compiled and compiled versions */
-#define COMPILED 0
 
 struct NODE {	/* Structure with point id and distance pairs for all sectors */
 	float *distance;	/* Distance of nearest datapoint to this node per sector */
@@ -65,7 +62,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_LONG n_set, n_almost, n_none, n_files = 0, fno, one_or_zero, n_expected_fields, distance_flag = 0;
 	GMT_LONG max_di, actual_max_di, ii, jj, x_wrap, y_wrap, ix = 0, iy = 1;
 
-	BOOLEAN go, error = FALSE, done = FALSE, nofile = TRUE, isDouble = TRUE;
+	BOOLEAN go, error = FALSE, done = FALSE, nofile = TRUE, isDouble = TRUE, IamCompiled = FALSE;
 	BOOLEAN set_empty = FALSE, weighted = FALSE, wrap_180, replicate_x, replicate_y;
 
 	float	empty = 0.0, *grd, *z_4, *pdata, *z1_4, *z2_4, *z3_4, *z4_4, percentage = 0;
@@ -132,6 +129,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'I':
 					GMT_getinc (&argv[i][2], &header.x_inc, &header.y_inc);
 					break;
+				case 'e':
+					IamCompiled = TRUE;
+					break;
 				case 'E':
 					if (!argv[i][2]) {
 						mexPrintf ("%s: GMT SYNTAX ERROR -E option:  Must specify value or NaN\n", GMT_program);
@@ -190,7 +190,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("nearneighbor %s - A \"Nearest neighbor\" gridding algorithm\n\n", GMT_VERSION);
 		mexPrintf("usage: [Z, head] = nearneighbor([xyzfile(s)], -I<dx>[m|c][/<dy>[m|c]],\n");
 		mexPrintf("\t-N<sectors>, -R<west/east/south/north>, -S<radius>[m|c|k|K], [-E<empty>], [-F],\n");
-		mexPrintf("\t[-H ], [-L<flags>], [-W], [-:], [-bi[s][<n>]], [-f[i|o]<colinfo>])\n\n");
+		mexPrintf("\t[-H ], [-L<flags>], [-W], [-:], [-bi[s][<n>]], [-f[i|o]<colinfo>], [-e])\n\n");
 		mexPrintf("\t xyzfile is either a filename of a file with x,y,z[,w] values OR a Mx3 array\n");
 		mexPrintf("\t OR a Mx4 array (4rth column is weight) OR X,Y,Z and optionaly a W vectors.\n");
 		mexPrintf("\t NOTE: Input data can be either all singles or all doubles (but not mixed).\n\n");
@@ -208,6 +208,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("\t   y for periodic boundary conditions on y\n");
 		mexPrintf("\t-W input file has observation weights in 4th column.\n");
 		mexPrintf("\t   Default is 3 (or 4 if -W is set) columns\n");
+		mexPrintf("\t-e To be used from the Mirone stand-alone version.\n");
 		
 		return;
 	}
@@ -350,13 +351,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	in = (double *) mxCalloc ((size_t)(4), sizeof(double));
 
-#if defined COMPILED && COMPILED == 0
-	rhs[0] = mxCreateDoubleScalar(0.0);
-	ptr_wb = mxGetPr(rhs[0]);
-	rhs[1] = mxCreateString("title");
-	rhs[2] = mxCreateString("Interpolating ...");
-	mexCallMATLAB(0,NULL,3,rhs,"aguentabar");
-#endif
+	if (!IamCompiled) {
+		rhs[0] = mxCreateDoubleScalar(0.0);
+		ptr_wb = mxGetPr(rhs[0]);
+		rhs[1] = mxCreateString("title");
+		rhs[2] = mxCreateString("Interpolating ...");
+		mexCallMATLAB(0,NULL,3,rhs,"aguentabar");
+	}
+	else
+		mexEvalString("aguentabar(0,\"title\",\"Interpolating ...\")");
 
 	while (nofile ? nToParse : fgets (line, 1024, fp)) {	/* Read from data from file */
 
@@ -418,24 +421,32 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				continue;
 			}
 		}
-#if defined COMPILED && COMPILED == 0
-		if ( (float)nin / n_pts * 100 >= percentage ) {
-			if (nofile)
-				*ptr_wb = (double)(nin+1) / n_pts;
-			else
-				*ptr_wb = (double)(n) / n_alloc;	/* Idiot, but we don't know total pts */ 
-			mexCallMATLAB(0,NULL,1,rhs,"aguentabar");
-			percentage += 5;
+
+		if (!IamCompiled) {
+			if ( (float)nin / n_pts * 100 >= percentage ) {
+				if (nofile)
+					*ptr_wb = (double)(nin+1) / n_pts;
+				else
+					*ptr_wb = (double)(n) / n_alloc;	/* Idiot, but we don't know total pts */ 
+				mexCallMATLAB(0,NULL,1,rhs,"aguentabar");
+				percentage += 5;
+			}
 		}
-#else
-		if ( (float)nin / n_pts * 100 >= percentage ) {
-			if (nofile)
-				mexPrintf("Done %.0f %%\r", (double)(nin+1) / n_pts * 100);
-			else
-				mexPrintf("Done %.0f %%\r", (double)(n) / n_alloc * 100);	/* Idiot, but we don't know total pts */
-			percentage += 2;
+		else {
+			if ( (float)nin / n_pts * 100 >= percentage ) {
+				float prc;
+				char cmd[16];
+				if (nofile)
+					prc = (float)(nin+1) / n_pts;
+				else
+					prc = (float)(n) / n_alloc;	/* Idiot, but we don't know total pts */
+
+				mexPrintf("Done %.0f %%\r", prc * 100);
+				sprintf(cmd, "aguentabar(%f)",prc);
+				mexEvalString(cmd);
+				percentage += 2;
+			}
 		}
-#endif
 
 		nin++;
 		if (in[ix] < x_left || in[ix] > x_right) continue;
@@ -521,10 +532,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			point = (struct POINT *) GMT_memory ((void *)point, (size_t)n_alloc, sizeof (struct POINT), GMT_program);
 		}
 	}
-#if defined COMPILED && COMPILED == 0
-	*ptr_wb = 1.0;
-	mexCallMATLAB(0,NULL,1,rhs,"aguentabar");
-#endif
+	if (!IamCompiled) {
+		*ptr_wb = 1.0;
+		mexCallMATLAB(0,NULL,1,rhs,"aguentabar");
+	}
+	else
+		mexEvalString("aguentabar(1.0)");
 				
 	point = (struct POINT *) GMT_memory ((void *)point, (size_t)n, sizeof (struct POINT), GMT_program);
 	grd = (float *) mxMalloc ((size_t)(header.nx * header.ny * sizeof (float)));

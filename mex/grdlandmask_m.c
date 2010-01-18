@@ -33,14 +33,11 @@
  *
  * Mexified by	Joaquim Luis
  * Date:	26-MAR-2008
+ *		18/01/10 	J Luis, Add option to call aguentabar.dll via mexEvalString
  */
  
 #include "gmt.h"
 #include "mex.h"
-
-/* Since mexCallMATLAB crash on compiled version swapp between 0 & 1 to create the dll to use
-   respectively, with the non compiled and compiled versions */
-#define COMPILED 0
 
 #define GRDLANDMASK_N_CLASSES	(GMT_MAX_GSHHS_LEVEL + 1)	/* Number of bands separated by the levels */
 
@@ -60,6 +57,9 @@ struct GRDLANDMASK_CTRL {	/* All control options for this program (except common
 		BOOLEAN active;
 		char set;	/* One of f, h, i, l, c */
 	} D;
+	struct e {	/* -e For use in compiled Mirone */
+		BOOLEAN active;
+	} e;
 	struct F {	/* -F */
 		BOOLEAN active;
 	} F;
@@ -88,7 +88,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	BOOLEAN temp_shift = FALSE, wrap, used_polygons;
 	BOOLEAN	out_logic = TRUE, out_uint = FALSE, out_float = FALSE;
 
-	char line[GMT_LONG_TEXT], ptr[BUFSIZ];
+	char line[GMT_LONG_TEXT], ptr[BUFSIZ], cmd[24];
 	char *shore_resolution[5] = {"full", "high", "intermediate", "low", "crude"};
 
 	GMT_LONG	i, j, k, ij, ii, bin, ind, nm, np, side, i_min, i_max, j_min, j_max, nx1, ny1, np_new, pos;
@@ -173,6 +173,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					Ctrl->D.active = TRUE;
 					Ctrl->D.set = argv[i][2];
 					break;
+				case 'e':
+					Ctrl->e.active = TRUE;
+					break;
 				case 'N':
 					Ctrl->N.active = TRUE;
 					strcpy (line, &argv[i][2]);
@@ -229,7 +232,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (argc == 1 || GMT_give_synopsis_and_exit) {
 		mexPrintf ("grdlandmask_m - Create \"wet-dry\" mask grid file from shoreline data base\n\n");
 		mexPrintf ("usage: [MASK,hdr,X,Y] = grdlandmask_m( %s, %s, \n", GMT_I_OPT, GMT_Rgeo_OPT);
-		mexPrintf ("\t[-A<min_area>[/<min_level>/<max_level>]], [-D<resolution>], [-F], [-N<maskvalues>[o]])\n\n");
+		mexPrintf ("\t[-A<min_area>[/<min_level>/<max_level>]], [-D<resolution>], [-e] [-F], [-N<maskvalues>[o]])\n\n");
 
 		if (GMT_give_synopsis_and_exit) return;
 
@@ -253,6 +256,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\t   By default (-N with 0 & 1) MASK is of type logical but that depends on the -N option\n");
 		mexPrintf ("\t   If NaN or values outside the [0-255] range are transmitted, MASK is of type float.\n");
 		mexPrintf ("\t   For values in the [0-255] range, MASK is of type uint8.\n");
+		mexPrintf ("\t-e To be used from the Mirone stand-alone version.\n");
 		return;
 	}
 
@@ -338,15 +342,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_err_fail (GMT_map_setup (header.x_min, header.x_max, header.y_min, header.y_max), "");
 	wrap = GMT_360_RANGE (header.x_max, header.x_min);
 	
-#if defined COMPILED && COMPILED == 0
-	if (gmtdefs.verbose) {
+	if (!Ctrl->e.active && gmtdefs.verbose) {
 		rhs[0] = mxCreateDoubleScalar(0.0);
 		ptr_wb = mxGetPr(rhs[0]);
 		rhs[1] = mxCreateString("title");
 		rhs[2] = mxCreateString("Creating Mask ...");
 		mexCallMATLAB(0,NULL,3,rhs,"aguentabar");
 	}
-#endif
+	else if (Ctrl->e.active && gmtdefs.verbose)
+		mexEvalString("aguentabar(0,\"title\",\"Creating Mask ...\")");
 
 	/* Fill out gridnode coordinates and apply the implicit linear projection */
 
@@ -362,15 +366,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	for (ind = 0; ind < c.nb; ind++) {	/* Loop over necessary bins only */
 
 		bin = c.bins[ind];
-#if defined COMPILED && COMPILED == 0
-		if (gmtdefs.verbose) {
+		if (!Ctrl->e.active && gmtdefs.verbose) {
 			*ptr_wb = (double)(ind+1) / c.nb;
 			mexCallMATLAB(0,NULL,1,rhs,"aguentabar");
 		}
-#else
-		if (gmtdefs.verbose)
-			mexPrintf("Done %.0f %%\r", (double)(ind+1) / c.nb * 100);
-#endif
+		else if (Ctrl->e.active && gmtdefs.verbose) {
+			sprintf(cmd, "aguentabar(%f)", (double)(ind+1) / c.nb);
+			mexEvalString(cmd);
+		}
 
 #ifdef GMT_MINOR_VERSION
 			if ((err = GMT_get_shore_bin (ind, &c))) {
