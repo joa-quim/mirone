@@ -13,12 +13,14 @@ function varargout = grdlandmask_win(varargin)
 	if ~isempty(varargin)
 		handMir  = varargin{1};
 		home_dir = handMir.home_dir;
+		handles.IamCompiled = handMir.IamCompiled;
 		if (~handMir.no_file && handMir.geog)			% If geogs, propose a mask that falls within data region
 			head = handMir.head;
 			handles.nr_or = round(diff(head(1:2)) / head(8)) + ~head(7);
 			handles.nc_or = round(diff(head(3:4)) / head(9)) + ~head(7);
 		end
 	else
+		handles.IamCompiled = false;
 		home_dir = cd;
 	end
 	
@@ -278,8 +280,12 @@ function push_OK_Callback(hObject, eventdata, handles)
 		opt_A = sprintf('-A%.1f/%d/%d',handles.minArea, handles.minLevel, handles.maxLevel);
 	end
 
+	if (handles.IamCompiled),	opt_e = '-e';
+	else						opt_e = '';
+	end
+
 	% Finally call the guy that really do the work
-	[mask,tmp.head,tmp.X,tmp.Y] = grdlandmask_m(opt_R, opt_I, opt_D, opt_N, opt_A, opt_F, opt_V);
+	[mask,tmp.head,tmp.X,tmp.Y] = grdlandmask_m(opt_R, opt_I, opt_D, opt_N, opt_A, opt_F, opt_V, opt_e);
     tmp.name = 'Landmask';		tmp.geog = 1;
 	
 	if (get(handles.check_isFloat,'Val') && ~isa(mask,'single'))	% User wants floats
