@@ -310,12 +310,12 @@ function push_compute_CB(hObject, handles)
 	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim] = ...
 			get_headerInfo(handles, got_R, west, east, south, north);
 
-	att = read_gdal(handles.nameList{1}, [], '-M','-C');
+	att = read_gdal(handles.nameList{1}, [], handles.IamCompiled, '-M','-C');
 
 	if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 		ind = strfind(att.Subdatasets{1}, '=');
 		FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
-		att = read_gdal(FileName,[],'-M','-C');			% Try again
+		att = read_gdal(FileName,[],handles.IamCompiled,'-M','-C');			% Try again
 		handles.nameList{1} = FileName;					% This way the first time in loop for below will access the subdataset
 	end
 
@@ -345,9 +345,9 @@ function push_compute_CB(hObject, handles)
 		if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 			ind = strfind(att.Subdatasets{1}, '=');
 			FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
-			[Z,att] =  read_gdal(FileName, [], '-C', opt_R, '-U');
+			[Z,att] =  read_gdal(FileName, [], handles.IamCompiled, '-C', opt_R, '-U');
 		else
-			Z =  read_gdal(handles.nameList{k}, att, '-C', opt_R, '-U');
+			Z =  read_gdal(handles.nameList{k}, att, handles.IamCompiled, '-C', opt_R, '-U');
 		end
 		this_has_nans = false;
 		if (is_modis)
@@ -483,7 +483,7 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 			get_headerInfo(handles, got_R, west, east, south, north)
 % ...
 
-	att = read_gdal(handles.nameList{1}, [], '-M','-C');	% Do this because it deals also with ziped files
+	att = read_gdal(handles.nameList{1}, [], handles.IamCompiled, '-M','-C');	% Do this because it deals also with ziped files
 
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 		if (~isempty(handles.SDSinfo))
@@ -751,7 +751,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 	Corners.LR = att.Corners.LR;
 	Corners.UL = att.Corners.UL;
 
-	[Z, att, known_coords] = read_gdal(fname, att, '-C', opt_R, '-U');
+	[Z, att, known_coords] = read_gdal(fname, att, handles.IamCompiled, '-C', opt_R, '-U');
 
 	% See if we knew the image coordinates but that knowedge is lost in new att
 	if ( ~known_coords )	% For the moment we only know for sure for L2 georeferenced products
@@ -809,7 +809,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 	end
 
 % -----------------------------------------------------------------------------------------
-function [Z, att, known_coords] = read_gdal(full_name, att, varargin)
+function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, varargin)
 % Help function to gdalread that deals with cases when file is compressed.
 % ATT is the GDALREAD returned attributes. If empty, we'll get it here
 % VARARGIN will normally contain one or more of '-C', '-M', opt_R, '-U'
@@ -818,9 +818,12 @@ function [Z, att, known_coords] = read_gdal(full_name, att, varargin)
 	NoDataValue = [];		% Some defaults
 	known_coords = false;	% If we know for sure the coords (as for georefed L2 products) tell that to caller
 	[full_name, str_d, uncomp_name] = deal_with_compressed(full_name);
+	
+	opt_e = '';
+	if (IamCompiled),	opt_e = '-e';	end		% Use aguentabar.dll
 
 	if (isempty(att))
-		att = gdalread(full_name, '-M');	% This first call is used in the next test
+		att = gdalread(full_name, '-M');		% This first call is used in the next test
 		if ( att.RasterCount > 0 && numel(varargin) <= 2)		% CONVOLUTED TEST, BUT THIS IS A CONFUSED PROGRAM
 			handles = guidata(gcf);
 			if ( ~isempty(handles.SDSinfo) && handles.SDSthis > 1 && ~handles.testedDS)
@@ -907,7 +910,7 @@ function [Z, att, known_coords] = read_gdal(full_name, att, varargin)
 				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];
 				if (what.nearneighbor)
 					lon_full = single(lon_full);			lat_full = single(lat_full);	Z = single(Z);
-					[Z, head] = nearneighbor_m(lon_full(:), lat_full(:), Z(:), opt_R, '-N2', '-I0.01', '-S0.04');
+					[Z, head] = nearneighbor_m(lon_full(:), lat_full(:), Z(:), opt_R, opt_e, '-N2', '-I0.01', '-S0.04');
 				else
 					[Z, head] = gmtmbgrid_m(lon_full(:), lat_full(:), double(Z(:)), '-I0.01', opt_R, '-Mz', '-C5');
 					Z = single(Z);
@@ -915,7 +918,7 @@ function [Z, att, known_coords] = read_gdal(full_name, att, varargin)
 				if (what.mask)
 					opt_D = {'-Dc' '-Dl' '-Di' '-Dh' '-Df'};
 					opt_D = opt_D{what.coastRes};
-					mask = grdlandmask_m(opt_R, opt_D, '-I0.01', '-V');
+					mask = grdlandmask_m(opt_R, opt_D, opt_e, '-I0.01', '-V');
 					Z(mask) = NaN;
 				end
 				att.GMT_hdr = head;
