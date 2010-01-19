@@ -740,6 +740,13 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		ind = strfind(att.Subdatasets{handles.SDSthis * 2 - 1}, '=');
 		fname = att.Subdatasets{handles.SDSthis * 2 - 1}(ind+1:end);	% First "ind" chars are of the form SUBDATASET_?_NAME=
 		if (clear_att),		att = [];	end
+		IamCompiled = handles.IamCompiled;
+	else
+		% Need to know if "IamCompiled". Since that info is in handles, we need to find it out here
+		try			which('mirone');			IamCompiled = false;
+		catch,		IamCompiled = true;
+		end
+		
 	end
 	saveNoData = false;
 	if (is_modis && ~isempty(att))
@@ -751,7 +758,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 	Corners.LR = att.Corners.LR;
 	Corners.UL = att.Corners.UL;
 
-	[Z, att, known_coords] = read_gdal(fname, att, handles.IamCompiled, '-C', opt_R, '-U');
+	[Z, att, known_coords] = read_gdal(fname, att, IamCompiled, '-C', opt_R, '-U');
 
 	% See if we knew the image coordinates but that knowedge is lost in new att
 	if ( ~known_coords )	% For the moment we only know for sure for L2 georeferenced products
