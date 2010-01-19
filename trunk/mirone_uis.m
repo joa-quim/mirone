@@ -14,7 +14,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	% The following test will tell us if we are using the compiled or the ML version
 	try
         %dumb=evalin('base','who');
-        dumb = which('mirone');
+        which('mirone');
         IamCompiled = 0;
 	catch
         IamCompiled = 1;
@@ -372,6 +372,7 @@ uimenu('Parent',hDR,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),[])','
 uimenu('Parent',hDR,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''EulerTrapezium'')','Label','Draw Euler trapezium');
 uimenu('Parent',hDR,'Call','mirone(''DrawImportLine_CB'',guidata(gcbo),''AsLine'')','Label','Import line','Sep','on');
 uimenu('Parent',hDR,'Call','mirone(''DrawImportLine_CB'',guidata(gcbo),''AsPoint'')','Label','Import points');
+uimenu('Parent',hDR,'Call','mirone(''DrawImportLine_CB'',guidata(gcbo),''AsArrow'')','Label','Import Arrow field');
 uimenu('Parent',hDR,'Call','mirone(''Transfer_CB'',guidata(gcbo),''scatter'')','Label','Import scaled symbols');
 uimenu('Parent',hDR,'Call','mirone(''DrawImportText_CB'',guidata(gcbo))','Label','Import text');
 uimenu('Parent',hDR,'Call','mirone(''DrawImportShape_CB'',guidata(gcbo))','Label','Import shape file');
@@ -652,7 +653,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 10 Jan 2010'',''1.5.1(dev)'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 19 Jan 2010'',''1.5.1(dev)'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
