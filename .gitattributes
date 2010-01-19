@@ -36,7 +36,9 @@ continents/south_america.dat -text
 /copy_so.sc -text
 /country_extract.exe -text
 /cv100.dll -text
+/cv200.dll -text
 /cxcore100.dll -text
+/cxcore200.dll -text
 data/AKIM2000_poles.dat -text
 data/AKIM2000_polyg.mat -text
 data/AsteriskIcon.gif -text
