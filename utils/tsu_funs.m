@@ -74,9 +74,9 @@ function TTT(handles,opt)
 
 % --------------------------------------------------------------------
 function SwanCompute(handles)
-	% The following are flags to signal how much information is already known before
-	% calling "swan_options". They will be set to 1 by the guessing code. 
-	% I don't try to guess a "deform_only".
+% The following are flags to signal how much information is already known before
+% calling "swan_options". They will be set to 1 by the guessing code. 
+% I don't try to guess a "deform_only".
 	small = 1e-6;   % Used in postion comparation. It places the accuracy at sub-meter level
 	Z_bat = [];     head_bat = [];      Z_src = [];     head_src = [];
 	haveBat = 0;	haveSource = 0;
@@ -135,17 +135,17 @@ function SwanCompute(handles)
 		mareg_pos = [];
 		side = zeros(1,numel(h_mareg));
 		for (i = 1:numel(h_mareg)),		side(i) = isappdata(h_mareg(i),'Side');    end
-		if (any(side) & ~all(side))
+		if (any(side) && ~all(side))
 			errordlg('ERROR: you cannot mix individual stations with stations on grid borders.','ERROR');   return
 		end
 		if (all(side))		% We are in the stations on grid borders case
 			side = cell(1,numel(h_mareg));
 			for (i=1:numel(h_mareg)),		side{i} = getappdata(h_mareg(i),'Side');    end
-				side = strrep(side,'W','1');	side = strrep(side,'S','2');
-				side = strrep(side,'E','3');	side = strrep(side,'N','4');
-				[i,j] = sort(side);				% Now we can sort them to find the correct WSEN order
-				h_mareg = h_mareg(j);			% And reorder the handles to follow the expected order
-			end
+			side = strrep(side,'W','1');	side = strrep(side,'S','2');
+			side = strrep(side,'E','3');	side = strrep(side,'N','4');
+			[i,j] = sort(side);				% Now we can sort them to find the correct WSEN order
+			h_mareg = h_mareg(j);			% And reorder the handles to follow the expected order
+		end
 		for (i = 1:numel(h_mareg))
 			mareg_pos = [mareg_pos; [get(h_mareg(i),'XData')' get(h_mareg(i),'YData')']];
 		end
@@ -219,26 +219,28 @@ function SwanCompute(handles)
 	end
 
 	Z_bat = double(Z_bat);      Z_src = double(Z_src);      % make sure they are both doubles
-	if (~handles.IamCompiled),  swan_hand = @swan;          % To stop once for all with the bloody version mixing
-	else                        swan_hand = @swan_sem_wbar;
+	if (handles.IamCompiled)	opt_e = '-e';
+	else						opt_e = '';
 	end
 
 	% Make sure we start with zero water on land 
 	Z_src(Z_bat > 0) = 0;
-	
+
 	if (isfield(out,'maregraph_xy'))	% Ask for computation of maregraphs
         if (~isempty(opt_m))			% Movie option
-            tmovie = feval(swan_hand,Z_bat, head_bat, Z_src, head_src, out.params, out.maregraph_xy, opt_O, ...
-                    opt_M, opt_N, opt_G, '-f', opt_R, opt_J);
+            tmovie = swan(Z_bat, head_bat, Z_src, head_src, out.params, out.maregraph_xy, opt_O, ...
+                    opt_M, opt_N, opt_G, '-f', opt_R, opt_J, opt_e);
         else
-            feval(swan_hand,Z_bat, head_bat, Z_src, head_src, out.params, out.maregraph_xy, opt_O, ...
-                    opt_M, opt_N, opt_G, opt_S, opt_s, opt_R, opt_J);
+            swan(Z_bat, head_bat, Z_src, head_src, out.params, out.maregraph_xy, opt_O, ...
+                    opt_M, opt_N, opt_G, opt_S, opt_s, opt_R, opt_J, opt_e);
         end    
 	else								% Compute grids or movie
         if (~isempty(opt_m))			% Movie option
-            tmovie = feval(swan_hand, Z_bat, head_bat, Z_src, head_src, out.params, opt_M, opt_N, opt_G, '-f', opt_S, opt_s, opt_R, opt_J);
+            tmovie = swan(Z_bat, head_bat, Z_src, head_src, out.params, opt_M, opt_N, opt_G, ...
+					'-f', opt_S, opt_s, opt_R, opt_J, opt_e);
         else
-            feval(swan_hand, Z_bat, head_bat, Z_src, head_src, out.params, opt_M, opt_N, opt_G, opt_S, opt_s, opt_R, opt_J);
+            swan(Z_bat, head_bat, Z_src, head_src, out.params, opt_M, opt_N, opt_G, opt_S, ...
+					opt_s, opt_R, opt_J, opt_e);
         end
 	end
 	pause(0.01);        % Give time to waitbar window to die
@@ -246,7 +248,7 @@ function SwanCompute(handles)
 
 % --------------------------------------------------------------------
 function SwanGridBorderStations(handles)
-	% Get the limits of smaller grid and plot them as a rectangle (individual lines) on current fig
+% Get the limits of smaller grid and plot them as a rectangle (individual lines) on current fig
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	small = 1e-5;       % Used in relative origin comparation.
 	str_R = [];         str_I =[];
@@ -262,10 +264,10 @@ function SwanGridBorderStations(handles)
 	D = grdinfo_m([PathName FileName],'silent');
 
 	% Verify if, on the overlapping zone, the nodes of the larger grid cuincide with nodes of the smaler
-	xoff_w = abs(head(1) - D(1));   xoff_e = abs(head(2) - D(2));
-	yoff_s = abs(head(3) - D(3));   yoff_n = abs(head(4) - D(4));
-	dx_w = xoff_w / D(8);           dx_e = xoff_e / D(8);
-	dy_s = yoff_s / D(9);           dy_n = yoff_n / D(9);
+	xoff_w = abs(head(1) - D(1));   %xoff_e = abs(head(2) - D(2));
+	yoff_s = abs(head(3) - D(3));   %yoff_n = abs(head(4) - D(4));
+	dx_w = xoff_w / D(8);           %dx_e = xoff_e / D(8);
+	dy_s = yoff_s / D(9);           %dy_n = yoff_n / D(9);
 	if ((dx_w - fix(dx_w)) > small)     % Need to adjust at the west border
 		adjust_w = 1;
 		if ((dx_w - fix(dx_w)) > head(8)/2) % The adjustment is to the east
@@ -286,7 +288,7 @@ function SwanGridBorderStations(handles)
 	end
 	if ((inc_y_ratio - fix(inc_y_ratio)) > 1e-3)
 		adjust_y_inc = 1;
-		new_y_inc = (D(4) - D(3)) / (fix(inc_y_ratio) - 1);
+		%new_y_inc = (D(4) - D(3)) / (fix(inc_y_ratio) - 1);
 	end
 
 	if (adjust_w || adjust_s || adjust_x_inc || adjust_y_inc)
@@ -553,7 +555,9 @@ function do_movie(handles,tmovie,opt)
 		head(5) = 0;
 		R0 = grdgradient_m(Z0,head,opt_E);
 		R0 = flipud(R0);    idx0 = flipud(idx0);
-	else    clear idx0;     end
+	else
+		clear idx0;
+	end
 	Z0 = flipud(Z0);
 
 	i = 1;
