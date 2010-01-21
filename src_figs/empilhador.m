@@ -897,6 +897,25 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, varargi
 			opt_L = '-L';
 		end
 
+% 		% Experimental code only - to read and grid MODIS L3 Binned products
+% 		if (strcmp(att.Band(1).DataType,'L3Bin'))
+% 			west_data  = att.hdfinfo.Attributes(38).Value;		east_data  = att.hdfinfo.Attributes(37).Value;
+% 			south_data = att.hdfinfo.Attributes(36).Value;		north_data = att.hdfinfo.Attributes(35).Value;
+% 			out = swreadl3b_m(att.fname,att.subDsName,[-20 -10 32 44]);
+% 			opt_R = '-R-20/-10/32/44';
+% 			[Z, head] = nearneighbor_m(out(:,1), out(:,2), out(:,3), opt_R, opt_e, '-N2', '-I0.01', '-S0.04');
+% 			att.GMT_hdr = head;
+% 			known_coords = true;				% Signal that coordinates are known and should not be guessed again
+% 			att.Band(1).NoDataValue = [];		% Don't waist time later trying to NaNify again
+% 			x_min = head(1) - head(8)/2;		x_max = head(2) + head(8)/2;		% Goto pixel registration
+% 			y_min = head(3) - head(9)/2;		y_max = head(4) + head(9)/2;
+% 			att.RasterXSize = size(Z,2);		att.RasterYSize = size(Z,1);
+% 			att.Band.XSize = size(Z,2);			att.Band.YSize = size(Z,1);
+% 			att.Corners.LL = [x_min y_min];		att.Corners.UL = [x_min y_max];		% CONFIRMAR
+% 			att.Corners.UR = [x_max y_max];		att.Corners.LR = [x_max y_min];
+% 			return
+% 		end
+
 		if (nargout == 2)
 			[Z, att] = gdalread(full_name, varargin{:}, opt_L);	% This ATT might be of a subdataset
 		else
