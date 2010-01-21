@@ -219,6 +219,7 @@ else							% Compile only one mex
 	idx7   = strmatch(opt, str_withCDF, 'exact');
 	idx8   = strmatch(opt, str_withHDF, 'exact');
 	idx9   = strcmpi(opt, 'polygonclip');
+	idx10  = strcmpi(opt, 'ditherc');
 	if (idx9 && idx3),		idx3 = [];		end		% Need  a extra arg , so treat sep
 	if (idx10 && idx3),		idx3 = [];		end		% 			"
     if (~isempty(idx1))         % Compile GMT mexs
