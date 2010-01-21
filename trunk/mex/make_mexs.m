@@ -103,7 +103,7 @@ str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'tsun2' 'wave_travel_time' 'mansinh
 	'alloc_mex' 'susan' 'set_gmt' 'mxgridtrimesh' 'trend1d_m', 'gmtmbgrid_m' ...
 	'grdgradient_m' 'grdtrack_m' 'spa_mex' 'ind2rgb8' 'mirblock' 'applylutc' 'cq' ...
 	'bwlabel1' 'bwlabel2' 'imhistc' 'intlutc' 'inv_lwm' 'grayto8' 'grayto16' 'ordf' ...
-	'parityscan'}';
+	'parityscan' 'ditherc' 'PolygonClip'}';
 
 % Non LIB dependent c++ mexs
 str_simple_cpp = {'houghmex' 'clipbd_mex' 'akimaspline' 'bwlabelnmex' 'bwboundariesmex' ...
@@ -219,6 +219,8 @@ else							% Compile only one mex
 	idx7   = strmatch(opt, str_withCDF, 'exact');
 	idx8   = strmatch(opt, str_withHDF, 'exact');
 	idx9   = strcmpi(opt, 'polygonclip');
+	if (idx9 && idx3),		idx3 = [];		end		% Need  a extra arg , so treat sep
+	if (idx10 && idx3),		idx3 = [];		end		% 			"
     if (~isempty(idx1))         % Compile GMT mexs
         cmd = ['mex ' [str_gmt{idx1} '.c'] ' ' include_gmt ' ' library_gmt ' ' opt_gmt];
 
@@ -252,6 +254,9 @@ else							% Compile only one mex
 	elseif (~isempty(idx9) && idx9)
 		cmd = ['mex PolygonClip.c gpc.c ' COPT];
 
+	elseif (~isempty(idx10))
+		cmd = ['mex ditherc.c invcmap.c ' COPT];
+
     else                        % Compile Other (simple) mexs
         cmd = ['mex ' [str_simple{idx3} '.c'] ' ' COPT];
 
@@ -265,6 +270,8 @@ function make_simple(str_simple, str_simple_cpp, library_vc, COPT)
 	for (i=1:numel(str_simple))
 		if (strcmp(str_simple{i}, 'ditherc'))
 			cmd = ['mex ' [str_simple{i} '.c '] 'invcmap.c ' COPT];
+		elseif (strcmp(str_simple{i}, 'PolygonClip'))
+			cmd = ['mex ' [str_simple{i} '.c  gpc.c '] COPT];
 		else
 			cmd = ['mex ' [str_simple{i} '.c '] COPT];
 		end
