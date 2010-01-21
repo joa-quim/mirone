@@ -101,7 +101,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.is_projected = 0;	% To keep track if coords are projected or not
 	handles.defCoordsIn = 0;	% To use when Load files and have to decide if we need to project
 								% 0 -> don't know; -1 -> Coords are already projected; 1 -> geog coords needing project
-	try		zz = handles.Projections;		% Use a try/catch since isfield is brain-dead long
+	try		handles.Projections;			% Use a try/catch since isfield is brain-dead long
 	catch,	handles.Projections = nan;		% Set it to something to prevent "unknown field" error in setAxesDefCoordIn()
 	end
 	handles.scale2meanLat = 1;	% Scale geog ref images so that at middle image dx = dy in cartesian units (kind of proj)
@@ -1282,7 +1282,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 		str = strrep(att.Subdatasets, '=', ' ');
-		[s,ok] = listdlg('PromptString',{'This file has subdatasets' 'you have to select one:'}, 'ListSize', [500 min((size(str,1)*20 + 50), 200)], ...
+		[s,ok] = listdlg('PromptString',{'This file has subdatasets' 'you have to select one:'}, 'ListSize', [min(numel(str{1})*6,640) min((size(str,1)*20 + 50), 200)], ...
 				'Name','DATASET Selection', 'SelectionMode','single', 'ListString',str);	pause(0.01)
 		if (~ok),	return,		end						% Uset hit "Cancel"
 		if (rem(s,2) == 0),		s = s - 1;		end		% Selection was done over "description" and not the "name" 
@@ -1300,7 +1300,24 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	set(handles.figure1,'pointer','watch')
 
 	if (att.RasterCount == 0)			% Should never happen given the piece of code above, but ...
-		errordlg('Probably a multi-container file. Could not read it since its says that it has no raster bands.','ERROR'),	return
+% 		if (~isempty( strfind(att.Metadata{2}, 'Level-3 Binned Data') ))	% TRY this
+% 			info = hdf_funs('hdfinfo', handles.fileName);
+% 			str = cell(11,1);
+% 			for (k = 1:11)
+% 				str{k} = info.Vgroup.Vdata(k+2).Name;
+% 			end
+% 			[s,ok] = listdlg('PromptString',{'MODIS Level-3 Binned' 'select one variable:'}, 'ListSize', [200 min((size(str,1)*20 + 50), 180)], ...
+% 				'Name','MODIS L3 Binn Selection', 'SelectionMode','single', 'ListString',str);	pause(0.01)
+% 			if (~ok),	return,		end					% Uset hit "Cancel"
+% 			att.subDsName = str{s};						% Another non-standard
+% 			att.Band(1).DataType = 'L3Bin';				% Needed to cheat a test inside read_DEMs
+% 			att.hdfinfo = info;							% We'll need to access this info inside empilhador
+% 			fullname{1} = PathName;		fullname{2} = FileName;
+% 			read_DEMs(handles, fullname, 'JP2_DEM', att);
+% 			return
+% 		end
+		errordlg('Probably a multi-container file. Could not read it since its says that it has no raster bands.','ERROR')
+		return
 	elseif (att.RasterCount > 3)		% Since it is a multiband file, try luck there
 		FileOpenGDALmultiBand_CB(handles,'AVHRR',handles.fileName);		return
 	end
@@ -1490,6 +1507,8 @@ function read_DEMs(handles,fullname,tipo,opt)
 
 		if (~strncmp(att.DriverShortName, 'HDF4', 4))
 			Z = gdalread(att.Name, '-U', opt_I);
+		elseif (strcmp(att.Band(1).DataType,'L3Bin'))
+			[Z, handles.have_nans, att] = empilhador('getZ', handles.fileName, att, false, false, false, 1, 0, []);
 		else								% HDF files need a special care. Search for an offset and scale factor, etc...
 			[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
 			[Z, handles.have_nans, att] = empilhador('getZ', handles.fileName, att, is_modis, is_linear, is_log, slope, intercept, base);
@@ -1527,10 +1546,10 @@ function read_DEMs(handles,fullname,tipo,opt)
 	aux_funs('StoreZ',handles,X,Y,Z)		% If grid size is not to big we'll store it
 	handles.head = head;
 	aux_funs('colormap_bg',handles,Z,jet(256));
-	zz = scaleto8(Z);
-	%if (handles.have_nans),		zz = scaleto8(Z);	% Need to update cvlib_mex before we can use this
-	%else						zz = cvlib_mex('scale8',Z);
-	%end
+	%zz = scaleto8(Z);
+	if (handles.have_nans),		zz = scaleto8(Z);	% Need to update cvlib_mex before we can use this
+	else						zz = cvlib_mex('scale8',Z);
+	end
 	handles = show_image(handles,handles.fileName,X,Y,zz,1,'xy',head(7));
 	if (isappdata(handles.axes1,'InfoMsg')),	rmappdata(handles.axes1,'InfoMsg'),		end
 	if (~isempty(att))
