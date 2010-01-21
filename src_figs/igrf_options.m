@@ -1,7 +1,7 @@
 function varargout = igrf_options(varargin)
-% M-File changed by desGUIDE 
-
-%	Copyright (c) 2004-2006 by J. Luis
+% Select options to pass to the igrf_m MEX and conpute IGRF 
+%
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -68,7 +68,7 @@ function varargout = igrf_options(varargin)
 	lat = str2double(get(handles.edit_LatDec,'String'));
 	lon = str2double(get(handles.edit_LonDec,'String'));
 
-	start = 1900; stop = 2010;
+	start = 1900; stop = 2015;
 
 	handles.start_stop_epoch = [start stop];
 	out = igrf_m(lon, lat, 0, yd);
@@ -545,7 +545,6 @@ function pushbutton_ComputeFile_Callback(hObject, eventdata, handles)
 
 	fname = get(handles.edit_OutputFile,'String');
 	if (~isempty(fname) && ~isempty(handles.input_file))
-        [m,n] = size(handles.input_file);       % Remember that n is in excess of 2
         ind_igrf = handles.ind_igrf;            % ind_igrf(6) tells if write Total Field and
                                                 % ind_igrf(7) if write anomaly.    
         f = igrf_m(handles.input_file(:,ind_igrf(1)), handles.input_file(:,ind_igrf(2)),...
@@ -654,7 +653,7 @@ function pushbutton_ComputeGrid_Callback(hObject, eventdata, handles)
             opt_F = '-Fx';  name = 'IGRF X component';
         case 'Y component'
             opt_F = '-Fy';  name = 'IGRF Y component';
-        case 'Y component'
+        case 'Z component'
             opt_F = '-Fz';  name = 'IGRF Z component';
         case 'Declination'
             opt_F = '-Fd';  name = 'IGRF Declination';
