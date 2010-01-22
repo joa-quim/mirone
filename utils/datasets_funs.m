@@ -8,6 +8,8 @@ switch opt(1:3)
 		PoliticalBound(varargin{:})
 	case 'Riv'
 		Rivers(varargin{:})
+	case 'Iso'
+		DatasetsIsochrons(varargin{:})
 	case 'Pla'
 		DatasetsPlateBound_PB_All(varargin{:})
 	case 'ODP'
@@ -16,10 +18,10 @@ switch opt(1:3)
 		DatasetsHotspots(varargin{:})
 	case 'Vol'
 		DatasetsVolcanoes(varargin{:})
+	case 'Met'
+		DatasetsMeteor(varargin{:})
 	case 'Tid'
 		DatasetsTides(varargin{:})
-	case 'Iso'
-		DatasetsIsochrons(varargin{:})
 	case 'Cit'
 		DatasetsCities(varargin{:})
 	case 'sca'
@@ -58,26 +60,50 @@ function DatasetsHotspots(handles)
 % --------------------------------------------------------------------
 function DatasetsVolcanoes(handles)
 % Read volcanoes.dat which has 6 columns (lat lon name ...)
-	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
+	if (aux_funs('msg_dlg',5,handles)),		return,		end			% Test no_file || unknown proj
 	fid = fopen([handles.path_data 'volcanoes.dat'],'r');
 	todos = fread(fid,'*char');
 	[volc.y volc.x volc.name region volc.desc volc.dating] = strread(todos,'%f %f %s %s %s %s');
 	fclose(fid);    clear region todos
-    [tmp, msg] = geog2projected_pts(handles,[volc.x volc.y]);     % If map in geogs, tmp is just a copy of input
+    [tmp, msg] = geog2projected_pts(handles,[volc.x volc.y]);		% If map in geogs, tmp is just a copy of input
     if (~strncmp(msg,'0',1))        % Coords were projected
 		volc.x = tmp(:,1);        volc.y = tmp(:,2);
     end
 	
 	% Get rid of Volcanoes that are outside the map limits
 	[x,y,indx,indy] = aux_funs('in_map_region',handles,volc.x,volc.y,0,[]);
-	volc.name(indx) = [];       volc.desc(indx) = [];       volc.dating(indx) = [];
-	volc.name(indy) = [];       volc.desc(indy) = [];       volc.dating(indy) = [];
-	n_volc = length(x);    h_volc = zeros(1,n_volc);
+	volc.name(indx) = [];		volc.desc(indx) = [];		volc.dating(indx) = [];
+	volc.name(indy) = [];		volc.desc(indy) = [];		volc.dating(indy) = [];
+	n_volc = numel(x);			h_volc = zeros(1,n_volc);
 	for (i = 1:n_volc)
 		h_volc(i) = line(x(i),y(i),'Marker','^','MarkerFaceColor','y',...
 			'MarkerEdgeColor','k','MarkerSize',8,'Tag','volcano','Userdata',i);
 	end
 	draw_funs(h_volc,'volcano',volc)
+
+% --------------------------------------------------------------------
+function DatasetsMeteor(handles)
+% Read meteoritos.dat which has 7 columns (lat lon name diameter age exposed type)
+	if (aux_funs('msg_dlg',5,handles)),		return,		end			% Test no_file || unknown proj
+	fid = fopen([handles.path_data 'meteoritos.dat'],'r');
+	todos = fread(fid,'*char');
+	[meteor.x meteor.y meteor.name meteor.diameter meteor.dating meteor.exposed meteor.btype] = strread(todos,'%f %f %s %s %s %s %s');
+	fclose(fid);    clear todos
+    [tmp, msg] = geog2projected_pts(handles,[meteor.x meteor.y]);	% If map in geogs, tmp is just a copy of input
+    if (~strncmp(msg,'0',1))        % Coords were projected
+		meteor.x = tmp(:,1);        meteor.y = tmp(:,2);
+    end
+	
+	% Get rid of Volcanoes that are outside the map limits
+	[x,y,indx,indy] = aux_funs('in_map_region',handles,meteor.x, meteor.y, 0, []);
+	meteor.name(indx) = [];		meteor.diameter(indx) = [];		meteor.dating(indx) = [];		meteor.exposed(indx) = [];
+	meteor.name(indy) = [];		meteor.diameter(indy) = [];		meteor.dating(indy) = [];		meteor.btype(indx) = [];
+	n_meteo = numel(x);			h = zeros(1,n_meteo);
+	for (i = 1:n_meteo)
+		h(i) = line(x(i),y(i),'Marker','h','MarkerFaceColor','r',...
+			'MarkerEdgeColor','k','MarkerSize',10,'Tag','meteor','Userdata',i);
+	end
+	draw_funs(h,'volcano',meteor)
 
 % --------------------------------------------------------------------
 function DatasetsTides(handles)
