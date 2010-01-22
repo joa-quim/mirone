@@ -380,8 +380,7 @@ void BgEdgeDetect::GenerateMaskAngle(double* a,double theta) {
 void BgEdgeDetect::CreateFilters(void) {
    int i,j;
    double w;
-   for (i=-WL_; i<=WL_; i++)
-   {
+   for (i=-WL_; i<=WL_; i++) {
       w = pow(2.,(-2*WL_))*factorial(2*WL_)/(factorial(WL_-i)*factorial(WL_+i));
       smofil_[i+WL_] = w;
       diffil_[i+WL_] = (2*i*w)/WL_;
@@ -389,7 +388,6 @@ void BgEdgeDetect::CreateFilters(void) {
    for (j=0; j<WW_; j++)
       for (i=0; i<WW_; i++)
          wdy_[j+i*WW_] = wdx_[i+j*WW_] = smofil_[j]*diffil_[i];
-   }
    
    double norms = 0;
    double normd = 0;
