@@ -280,7 +280,7 @@ int igrf10syn(int isv, double date, int itype, double alt, double lat, double el
 
     /* Initialized data */
     static struct {
-	double e_1[];
+	double e_1[3255];
 	} equiv_22 = {
         -31543.,-2298., 5922., -677., 2905.,-1061.,  924., 1121., /* g0 (1900) */
          1022.,-1469., -330., 1256.,    3.,  572.,  523.,  876.,
