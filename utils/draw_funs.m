@@ -164,7 +164,7 @@ switch opt
 			end
 		end
 		hold off
-	case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation'}
+	case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation', 'Meteor'}
 		set_symbol_uicontext(hand,data)
 	case 'PlateBoundPB',		set_PB_uicontext(hand,data)
 	case 'ChngAxLabels',		changeAxesLabels(data)
@@ -803,21 +803,21 @@ function call_gmtedit(obj,eventdata,h)
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_setMarker(h,prop)
-	% Set uicontext colors in a PB object class hose handles are contained in h
-	% PROP is either "Marker" or "MarkerSize". OPT is either the symbol or it's size
+% Set uicontext colors in a PB object class hose handles are contained in h
+% PROP is either "Marker" or "MarkerSize". OPT is either the symbol or it's size
 	if (strcmp(prop,'Marker'))
-        cb{1} = {@other_Marker,h,prop,'+'};       cb{2} = {@other_Marker,h,prop,'o'};
-        cb{3} = {@other_Marker,h,prop,'*'};       cb{4} = {@other_Marker,h,prop,'.'};
-        cb{5} = {@other_Marker,h,prop,'x'};       cb{6} = {@other_Marker,h,prop,'s'};
-        cb{7} = {@other_Marker,h,prop,'d'};       cb{8} = {@other_Marker,h,prop,'^'};
-        cb{9} = {@other_Marker,h,prop,'v'};       cb{10} = {@other_Marker,h,prop,'>'};
-        cb{11} = {@other_Marker,h,prop,'<'};       cb{12} = {@other_Marker,h,prop,'p'};
-        cb{13} = {@other_Marker,h,prop,'h'};
+		cb{1} = {@other_Marker,h,prop,'+'};       cb{2} = {@other_Marker,h,prop,'o'};
+		cb{3} = {@other_Marker,h,prop,'*'};       cb{4} = {@other_Marker,h,prop,'.'};
+		cb{5} = {@other_Marker,h,prop,'x'};       cb{6} = {@other_Marker,h,prop,'s'};
+		cb{7} = {@other_Marker,h,prop,'d'};       cb{8} = {@other_Marker,h,prop,'^'};
+		cb{9} = {@other_Marker,h,prop,'v'};       cb{10} = {@other_Marker,h,prop,'>'};
+		cb{11} = {@other_Marker,h,prop,'<'};       cb{12} = {@other_Marker,h,prop,'p'};
+		cb{13} = {@other_Marker,h,prop,'h'};
 	elseif (strcmp(prop,'MarkerSize'))
-        cb{1} = {@other_Marker,h,prop,7};       cb{2} = {@other_Marker,h,prop,8};
-        cb{3} = {@other_Marker,h,prop,9};       cb{4} = {@other_Marker,h,prop,10};
-        cb{5} = {@other_Marker,h,prop,12};      cb{6} = {@other_Marker,h,prop,14};
-        cb{7} = {@other_Marker,h,prop,16};      cb{8} = {@other_SymbSize,h};
+		cb{1} = {@other_Marker,h,prop,7};       cb{2} = {@other_Marker,h,prop,8};
+		cb{3} = {@other_Marker,h,prop,9};       cb{4} = {@other_Marker,h,prop,10};
+		cb{5} = {@other_Marker,h,prop,12};      cb{6} = {@other_Marker,h,prop,14};
+		cb{7} = {@other_Marker,h,prop,16};      cb{8} = {@other_SymbSize,h};
 	end
 	
 	function other_Marker(obj,eventdata,h,prop,opt)
@@ -1771,42 +1771,37 @@ end
 handles = guidata(h(1));
 cmenuHand = uicontextmenu('Parent',handles.figure1);	set(h, 'UIContextMenu', cmenuHand);
 separator = 0;
-this_not = 0;       % for class symbols "this_not = 1";
+this_not = 1;       % for class symbols "this_not = 1". Used for not seting some options inapropriate to class symbols
 seismicity_options = 0;
 tide_options = 0;
 
-if strcmp(tag,'hotspot')    % Then DATA must be a structure containing name & age for each hotspot
+if strcmp(tag,'hotspot')		% Then DATA must be a structure containing name & age for each hotspot
 	uimenu(cmenuHand, 'Label', 'Hotspot info', 'Call', {@hotspot_info,h,data.name,data.age,[]});
 	uimenu(cmenuHand, 'Label', 'Plot name', 'Call', {@hotspot_info,h,data.name,data.age,'text'});
 	separator = 1;
-	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
 elseif strcmp(tag,'volcano')    % Then DATA must be a structure containing name, description & dating for each volcano
 	uimenu(cmenuHand, 'Label', 'Volcano info', 'Call', {@volcano_info,h,data.name,data.desc,data.dating});
 	separator = 1;
-	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
-elseif strcmp(tag,'ODP')    % Then DATA must be a structure with leg, site, z, & penetration for each site
-	cb_ODPinfo = {@ODP_info,h,data.leg,data.site,data.z,data.penetration};
-	uimenu(cmenuHand, 'Label', 'ODP info', 'Call', cb_ODPinfo);
+elseif strcmp(tag,'meteor')		% Then DATA must be a structure containing name, diameter & dating for each impact
+	uimenu(cmenuHand, 'Label', 'Impact info', 'Call', {@meteor_info,h,data.name,data.diameter,data.dating,data.exposed,data.btype});
+	separator = 1;	
+elseif strcmp(tag,'ODP')		% Then DATA must be a structure with leg, site, z, & penetration for each site
+	uimenu(cmenuHand, 'Label', 'ODP info', 'Call', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
 	separator = 1;
-	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
-elseif strcmp(tag,'DSDP')   % Then DATA must be a structure with leg, site, z, & penetration for each site
-	cb_ODPinfo = {@ODP_info,h,data.leg,data.site,data.z,data.penetration};
-	uimenu(cmenuHand, 'Label', 'DSDP info', 'Call', cb_ODPinfo);
+elseif strcmp(tag,'DSDP')		% Then DATA must be a structure with leg, site, z, & penetration for each site
+	uimenu(cmenuHand, 'Label', 'DSDP info', 'Call', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
 	separator = 1;
-	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
 elseif strcmp(tag,'City_major') || strcmp(tag,'City_other')
 	this_not = 1;
-elseif strcmp(tag,'Earthquakes')    % DATA is empty because I didn't store any info (they are too many)
+elseif strcmp(tag,'Earthquakes')	% DATA is empty because I didn't store any info (they are too many)
 	seismicity_options = isappdata(h,'SeismicityTime');
-	this_not = 1;
-elseif strcmp(tag,'Pointpolyline')  % DATA is empty because it doesn't have any associated info
+elseif strcmp(tag,'Pointpolyline')	% DATA is empty because it doesn't have any associated info
 	this_not = 0;
-elseif strcmp(tag,'TTT')            % DATA is empty
+elseif strcmp(tag,'TTT')			% DATA is empty
 	this_not = 0;
-elseif strcmp(tag,'TideStation')    % DATA is empty
+elseif strcmp(tag,'TideStation')	% DATA is empty
 	tide_options = 1;
 	separator = 0;
-	this_not = 1;           % It is used for not seting some options inapropriate to class symbols
 end
 
 if (~this_not)   % non class symbols can be moved
@@ -1815,17 +1810,17 @@ if (~this_not)   % non class symbols can be moved
 end
 
 if separator
-    if (~more_than_one)         % Single symbol
-        uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)', 'Separator','on');
-    else                        % Multiple symbols
-        uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h}, 'Separator','on');
-    end
+	if (~more_than_one)         % Single symbol
+		uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)', 'Separator','on');
+	else                        % Multiple symbols
+		uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h}, 'Separator','on');
+	end
 else
-    if (~more_than_one)         % Single symbol
-        uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)');
-    else                        % Multiple symbols
-        uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h});
-    end
+	if (~more_than_one)         % Single symbol
+		uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)');
+	else                        % Multiple symbols
+		uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h});
+	end
 end
 if (this_not)           % individual symbols don't belong to a class
     uimenu(cmenuHand, 'Label', 'Remove class', 'Call', {@remove_symbolClass,h});
@@ -2186,7 +2181,18 @@ function tidesStuff(obj,eventdata,h,opt)
 	end
 
 % -----------------------------------------------------------------------------------------
-function volcano_info(obj,eventdata,h,name,desc,dating)
+function meteor_info(obj,eventdata,h, name, diameter, dating, exposed, btype)
+	i = get(gco,'Userdata');
+	nome = strrep(name{i},'_',' ');			dating = strrep(dating{i},'_',' ');
+	str = sprintf('Impact name:   %s\nDiameter (km):   %s\nAge (Ma):   %s\nExposed:    %s', nome, diameter{i}, dating, exposed{i});
+	if (btype{i}(1) ~= '-')
+		btype = strrep(btype{i},'_',' ');
+		str = sprintf('%s\nBolid Type:   %s', str, btype);
+	end
+	msgbox( sprintf(str),'Impact info')
+
+% -----------------------------------------------------------------------------------------
+function volcano_info(obj,eventdata, h, name, desc, dating)
 	i = get(gco,'Userdata');
 	msgbox( sprintf(['Volcano name: ' name{i} '\n' 'Volcano type:   ' desc{i} '\n' ...
             'Activity:      ' dating{i}] ),'Volcano info')
