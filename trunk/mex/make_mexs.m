@@ -168,12 +168,20 @@ if (strcmp(opt,'all'))			% Compile the whole family
 
 	cmd = ['mex PolygonClip.c gpc.c ' COPT];
 	eval(cmd)
+
 	% Compile the MEXNC mexs
 	cmd = ['mex mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c -output mexnc ' opt_mexnc ' ' COPT];
 	eval(cmd)
+
 	% Compile Shape mexs
 	cmd = ['mex mex_shape.c ' include_shape ' ' library_shape ' ' COPT];
 	eval(cmd)
+
+	% Compile the edison_wraper
+	try		cd edison;		compile_edison_wrapper;		cd ..
+	catch,	cd ..
+	end
+
 elseif (strcmpi(opt,'gmt'))			% Compile only the GMT mexs (and supplements)
 	for (i=1:numel(str_gmt))
         cmd = ['mex ' [str_gmt{i} '.c'] ' ' include_gmt ' ' library_gmt ' ' opt_gmt];
