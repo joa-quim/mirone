@@ -377,84 +377,67 @@ void BgEdgeDetect::GenerateMaskAngle(double* a,double theta) {
       a[i] /= comcoor;
 }
 
-void BgEdgeDetect::CreateFilters(void)
-{
+void BgEdgeDetect::CreateFilters(void) {
    int i,j;
    double w;
    for (i=-WL_; i<=WL_; i++)
    {
-      w = pow(2,(-2*WL_))*factorial(2*WL_)/(factorial(WL_-i)*factorial(WL_+i));
+      w = pow(2.,(-2*WL_))*factorial(2*WL_)/(factorial(WL_-i)*factorial(WL_+i));
       smofil_[i+WL_] = w;
       diffil_[i+WL_] = (2*i*w)/WL_;
    }
    for (j=0; j<WW_; j++)
-   {
       for (i=0; i<WW_; i++)
-      {
          wdy_[j+i*WW_] = wdx_[i+j*WW_] = smofil_[j]*diffil_[i];
-      }
    }
    
    double norms = 0;
    double normd = 0;
-   for (i=0; i<WW_; i++)
-   {
+   for (i=0; i<WW_; i++) {
       norms += smofil_[i]*smofil_[i];
       normd += diffil_[i]*diffil_[i];
    }
    
-   for (j=0; j<WW_; j++)
-   {
-      for (i=0; i<WW_; i++)
-      {
+   for (j=0; j<WW_; j++) {
+      for (i=0; i<WW_; i++) {
          mQ_[i][j] = (smofil_[j]*smofil_[i])/norms + (diffil_[j]*diffil_[i])/normd;
          mN_[i][j] = (i==j) ? 1-mQ_[i][j] : -mQ_[i][j];
       }
    }
 }
 
-void BgEdgeDetect::CreateLookTable()
-{
+void BgEdgeDetect::CreateLookTable() {
    bgLog("Creating angle lookup table\n");
    int i;
-   for (i=-180; i<=180; i++)
-   {
+   for (i=-180; i<=180; i++) {
       lookTable_[i+180] = new double[WW_*WW_];
       GenerateMaskAngle(lookTable_[i+180], (double) i);
    }
 }
 
-void BgEdgeDetect::DeleteLookTable()
-{
+void BgEdgeDetect::DeleteLookTable() {
    int i;
    for (i=0; i<NO_ANGLES; i++)
-   {
       delete [] lookTable_[i];
-   }
 }
 
-void BgEdgeDetect::GetPixels(int* nopix, int* pixx, int* pixy, double x1, double x2, double y1, double y2)
-{
+void BgEdgeDetect::GetPixels(int* nopix, int* pixx, int* pixy, double x1, double x2, double y1, double y2) {
    double minx,maxx,miny,maxy;
    
-   if (x1<x2)
-   {
+   if (x1<x2) {
       minx = x1;
       maxx = x2;
    }
-   else
-   {
+   else {
       minx = x2;
       maxx = x1;
    }
    
-   if (y1<y2)
-   {
+   if (y1<y2) {
       miny = y1;
       maxy = y2;
    }
-   else
-   {
+   else {
       miny = y2;
       maxy = y1;
    }
@@ -474,27 +457,22 @@ void BgEdgeDetect::GetPixels(int* nopix, int* pixx, int* pixy, double x1, double
    *nopix = npix;
 }
 
-void BgEdgeDetect::GetNmxPixels(int* nopix, int* pixx, int* pixy, double x1, double x2, double y1, double y2)
-{
+void BgEdgeDetect::GetNmxPixels(int* nopix, int* pixx, int* pixy, double x1, double x2, double y1, double y2) {
    double minx,maxx,miny,maxy;
-   if (x1<x2)
-   {
+   if (x1<x2) {
       minx = x1;
       maxx = x2;
    }
-   else
-   {
+   else {
       minx = x2;
       maxx = x1;
    }
    
-   if (y1<y2)
-   {
+   if (y1<y2) {
       miny = y1;
       maxy = y2;
    }
-   else
-   {
+   else {
       miny = y2;
       maxy = y1;
    }
