@@ -511,6 +511,7 @@ uimenu('Parent',hDS,'Call','earthquakes(gcf);','Label','Global seismicity','Sep'
 uimenu('Parent',hDS,'Call','datasets_funs(''Hotspots'',guidata(gcbo))','Label','Hotspot locations');
 uimenu('Parent',hDS,'Call','datasets_funs(''Isochrons'',guidata(gcbo))','Label','Magnetic isochrons');
 uimenu('Parent',hDS,'Call','datasets_funs(''Volcanoes'',guidata(gcbo))','Label','Volcanoes');
+uimenu('Parent',hDS,'Call','datasets_funs(''Meteorite'',guidata(gcbo))','Label','Meteorite impacts');
 uimenu('Parent',hDS,'Call','datasets_funs(''Tides'',guidata(gcbo))','Label','Tide Stations');
 uimenu('Parent',hDS,'Call','datasets_funs(''Plate'',guidata(gcbo))','Label','Plate boundaries');
 
@@ -653,7 +654,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 19 Jan 2010'',''1.5.1(dev)'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 22 Jan 2010'',''1.5.1(dev)'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
