@@ -21,23 +21,24 @@
 
 #include "gmt.h"
 #include "mex.h"
+#include "mwsize.h"
 
 #define LAKE	0
 #define RIVER	1
 
-int prep_polygons(struct GMT_GSHHS_POL **p_old, int np, BOOLEAN greenwich, BOOLEAN sample, double step, int anti_bin);
+mwSize prep_polygons(struct GMT_GSHHS_POL **p_old, mwSize np, BOOLEAN greenwich, BOOLEAN sample, double step, mwSize anti_bin);
 BOOLEAN getpathname (char *name);
 
 BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 /* Matlab Gateway routine */
 
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
+void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[]) {
 
 	GMT_LONG	i, np, ind, bin, base = 3, max_level = GMT_MAX_GSHHS_LEVEL, direction = 1, min_level = 0;
 	GMT_LONG	blevels[GMT_N_BLEVELS], n_blevels = 0, rlevels[GMT_N_RLEVELS], n_rlevels = 0;
-	int is = 0, ir = 0, ib = 0, p_alloc = 0, bytes_to_copy, k, j;
-	int argc, dims[] = {0,0}, n;
+	mwSize is = 0, ir = 0, ib = 0, p_alloc = 0, bytes_to_copy, k, j;
+	mwSize argc, dims[] = {0,0}, n;
 	
 	BOOLEAN	error = FALSE, get_river = FALSE, shift = FALSE, first_shore = TRUE, first_river = TRUE;
 	BOOLEAN	greenwich = FALSE, get_shore = FALSE, get_border = FALSE, first_border = TRUE, test = FALSE;
@@ -94,15 +95,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		return;
 	}
 
-	if (nlhs < 1) {
-		mexPrintf ("ERROR: Need to specify at least one output;\n");
-		return;
-	}
+	if (nlhs < 1)
+		mexErrMsgTxt ("ERROR: Need to specify at least one output;\n");
 
-	if (nlhs > 3) {
-		mexPrintf ("ERROR: Pssible outputs are: shore, borders & rivers. What else do you want more?\n");
-		return;
-	}
+	if (nlhs > 3)
+		mexErrMsgTxt ("ERROR: Pssible outputs are: shore, borders & rivers. What else do you want more?\n");
 
 	nan = mxGetNaN();
 	memset((char *)rlevels, 0, GMT_N_RLEVELS * sizeof(int));
@@ -127,7 +124,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		GMTisLoaded = TRUE;
 	}
 	else
-		argc = GMT_short_begin (argc, argv);
+		argc = GMT_begin (argc, argv);
+		//argc = GMT_short_begin (argc, argv);
 
 	/* Check and interpret the command line arguments */
 	
@@ -272,7 +270,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 #ifdef GMT_MINOR_VERSION
-	if (get_shore && GMT_init_shore(res, &c, west, east, south, north, &Ainfo))  {
+	if (get_shore && GMT_init_shore(res, &c, west, east, south, north, &Ainfo)) {
 #else
 	if (get_shore && GMT_init_shore(res, &c, west, east, south, north))  {
 #endif
@@ -576,12 +574,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mxFree(p_river);
 	}
 
-	GMT_end_for_mex (argc, argv);
+	//GMT_end_for_mex (argc, argv);
+	GMT_end(argc, argv);
 	mxFree(argv);
 }
 
-int prep_polygons(struct GMT_GSHHS_POL **p_old, int np, BOOLEAN greenwich, BOOLEAN sample, double step, int anti_bin)
-{
+mwSize prep_polygons(struct GMT_GSHHS_POL **p_old, mwSize np, BOOLEAN greenwich, BOOLEAN sample, double step, mwSize anti_bin) {
 	/* This function will go through each of the polygons and determine
 	 * if the polygon is clipped by the map boundary, and if so if it
 	 * wraps around to the other side due to 360 degree periodicities
@@ -596,7 +594,7 @@ int prep_polygons(struct GMT_GSHHS_POL **p_old, int np, BOOLEAN greenwich, BOOLE
 	 * anti_bin, if >= 0, indicates a possible problem bin at the antipole using -JE only
 	 */
 
-	int k, np_new, n_use, n, start;
+	mwSize k, np_new, n_use, n, start;
 	double *xtmp, *ytmp;
 	struct GMT_GSHHS_POL *p;
 
