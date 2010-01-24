@@ -29,6 +29,7 @@
 #include "mex.h"
 #include <float.h>
 #include <math.h>
+#include <string.h>
 
 #define TRUE	1
 #define FALSE	0
