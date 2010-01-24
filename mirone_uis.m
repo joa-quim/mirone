@@ -13,11 +13,11 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
-        %dumb=evalin('base','who');
-        which('mirone');
-        IamCompiled = 0;
+		%dumb=evalin('base','who');
+		h = which('mirone');
+		IamCompiled = 0;
 	catch
-        IamCompiled = 1;
+		IamCompiled = 1;
 	end
 
 	% Import icons and fetch home_dir if compiled and called by extension association
@@ -654,7 +654,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 22 Jan 2010'',''1.5.1(dev)'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 24 Jan 2010'',''1.5.1(dev)'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
