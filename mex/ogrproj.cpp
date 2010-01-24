@@ -168,14 +168,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		poCT->Transform( n_pts, x, y, z );
 	}
 	else {
-		poCT->Transform( n_pts, x, y );
-		//if( !poCT->Transform( n_pts, x, y ) )
-			//mexPrintf( "Transformation failed.\n" );
+		//poCT->Transform( n_pts, x, y );
+		if( !poCT->Transform( n_pts, x, y ) )
+			mexErrMsgTxt( "Transformation failed.\n" );
 	}
 
 	delete (poCT);
-	OGRFree(pszSrcWKT);
-	OGRFree(pszDstWKT);
+	if (pszSrcWKT && strlen(pszSrcWKT) > 1 ) OGRFree(pszSrcWKT);
+	if (pszDstWKT && strlen(pszDstWKT) > 1 ) OGRFree(pszDstWKT);	
+
 
 	/* -------------- Copy the result into plhs  --------------------------------- */
 	plhs[0] = mxCreateDoubleMatrix (n_pts,n_fields, mxREAL);
