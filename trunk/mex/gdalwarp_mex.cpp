@@ -328,7 +328,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (pszSrcWKT == NULL)
 		oSrcSRS.exportToWkt( &pszSrcWKT );
 
-	GDALSetProjection( hSrcDS, pszSrcWKT );
+	GDALSetProjection( hSrcDS, pszSrcWKT );	
+	//pszSrcWKT = (char *)GDALGetProjectionRef( hSrcDS );
+	CPLAssert( pszSrcWKT != NULL && strlen(pszSrcWKT) > 0 );
 	/* ------------------------------------------------------------------ */
 
 
@@ -381,9 +383,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				break;
 		}
 	}
-
-	pszSrcWKT = (char *)GDALGetProjectionRef( hSrcDS );
-	CPLAssert( pszSrcWKT != NULL && strlen(pszSrcWKT) > 0 );
 
 	/* ---------- Set up the Target coordinate system ------------------- */
 	/* If it was not provided assume it is Geog WGS84 */
@@ -650,7 +649,6 @@ DEBUGA(4);
 DEBUGA(5);
 
 	mxFree(tmp);
-	OGRFree(pszSrcWKT);
 	OGRFree(pszDstWKT);
 	if (nGCPCount) {
 		GDALDeinitGCPs( nGCPCount, pasGCPs );	// makes this mex crash in the next call
