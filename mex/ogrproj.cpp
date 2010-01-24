@@ -167,11 +167,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 		poCT->Transform( n_pts, x, y, z );
 	}
-	else {
-		//poCT->Transform( n_pts, x, y );
-		if( !poCT->Transform( n_pts, x, y ) )
-			mexErrMsgTxt( "Transformation failed.\n" );
-	}
+	else
+		poCT->Transform( n_pts, x, y );
 
 	delete (poCT);
 	if (pszSrcWKT && strlen(pszSrcWKT) > 1 ) OGRFree(pszSrcWKT);
