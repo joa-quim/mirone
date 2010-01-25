@@ -395,6 +395,8 @@ mex/ind2rgb8.c -text
 mex/intlutc.c -text
 mex/inv_lwm.c -text
 mex/invcmap.c -text
+mex/iptcheckinput.cpp -text
+mex/iptcheckinput.h -text
 mex/iptutil.c -text
 mex/iptutil.h -text
 mex/iptutil_cpp.h -text
