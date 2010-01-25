@@ -119,28 +119,27 @@ end
 % Subfunction Resize1
 %--------------------------------------------
 function Resize1(axHandle, imHandle, imSize, opt, withSliders)
-	% Resize figure containing a single axes object with a single image.
-	
+% Resize figure containing a single axes object with a single image.
+
 	figHandle = get(axHandle, 'Parent');
-	axUnits = get(axHandle, 'Units');
 	set(axHandle,'Units','normalized','Position',[0 0 1 1]) % Don't realy understand why, but I need this
-	
+
 	if (isempty(imSize))    % How big is the image?
-        imageWidth  = size(get(imHandle, 'CData'), 2);
-        imageHeight = size(get(imHandle, 'CData'), 1);
+		imageWidth  = size(get(imHandle, 'CData'), 2);
+		imageHeight = size(get(imHandle, 'CData'), 1);
 	else
-        imageWidth  = imSize(2);
-        imageHeight = imSize(1);
+		imageWidth  = imSize(2);
+		imageHeight = imSize(1);
 	end
-	
+
 	if (length(opt) > 12 && strcmp(opt(1:11),'adjust_size'))   % We have an anisotropic dx/dy. OPT is of the form adjust_size_[aniso]
-        aniso = str2double(opt(13:end));
+		aniso = str2double(opt(13:end));
 		if (aniso == 0),	aniso = 1;		end				% Troublematic SeaWiFS files had made this happen
-        if (aniso > 1)
-            imageWidth  = imageWidth * aniso;
-        else
-            imageHeight = imageHeight / aniso;
-        end
+		if (aniso > 1)
+			imageWidth  = imageWidth * aniso;
+		else
+			imageHeight = imageHeight / aniso;
+		end
 	end
 
 	% Don't try to handle the degenerate case.
@@ -251,34 +250,26 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
     nYchars = size(YTickLabel,2);
 	t = max(abs(YTick));
 	if (t - fix(t) == 0 && ~tenSizeY),			nYchars = nYchars + 2;		end
-    % This is kitchen sizing, but what else can it be done with such can of bugs?
-    Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
+	% This is kitchen sizing, but what else can it be done with such can of bugs?
+	Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
 
-    if strcmp(opt,'sCapture'),    stsbr_height = 0;
-    else                          stsbr_height = 20;
+	if strcmp(opt,'sCapture'),		stsbr_height = 0;    
+	else							stsbr_height = 20;
 	end
 
 	y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin') + tenSizeY + stsbr_height;    % To hold the Xlabel height
-	x_margin = abs(Ylabel_pos(1));%+get(h_Ylabel,'Margin');               % To hold the Ylabel width
-    if (y_margin > 70)          % Play safe. LabelPos non-sense is always ready to strike 
-        y_margin = 30 + tenSizeY + stsbr_height;
-    end
-
-	if (isempty(opt) || strcmp(opt(1:5),'fixed') || strcmp(opt(1:6),'adjust')) 
-        setappdata(axHandle,'Backup_LabelPos',[Xlabel_pos Ylabel_pos])
-	elseif strcmp(opt,'after_screen_capture')
-        lab_tmp = getappdata(axHandle,'Backup_LabelPos');
-        Xlabel_pos = [lab_tmp(1) lab_tmp(2) lab_tmp(3)];
-        Ylabel_pos = [lab_tmp(4) lab_tmp(5) lab_tmp(6)];
+	x_margin = max( abs(Ylabel_pos(1)),15 );			% To hold the Ylabel width
+	if (y_margin > 70)									% Play safe. LabelPos non-sense is always ready to strike 
+		y_margin = 30 + tenSizeY + stsbr_height;
 	end
-	
+
 	topMarg = 0;
-	if (~tenSizeY),     topMarg = 5;    end                % To account for Ylabels exceeding image height
-	if strcmp(get(axHandle,'Visible'),'off')               % No Labels, give only a 20 pixels margin to account for Status bar
-        x_margin = 0;   y_margin = stsbr_height;
-        topMarg  = 0;
-	elseif (minFigWidth - x_margin > imageWidth + x_margin)% Image + x_margin still fits inside minFigWidth
-        x_margin = 0;
+	if (~tenSizeY),     topMarg = 5;    end					% To account for Ylabels exceeding image height
+	if strcmp(get(axHandle,'Visible'),'off')				% No Labels, give only a 20 pixels margin to account for Status bar
+		x_margin = 0;   y_margin = stsbr_height;
+		topMarg  = 0;
+	elseif (minFigWidth - x_margin > imageWidth + x_margin)	% Image + x_margin still fits inside minFigWidth
+		x_margin = 0;
 	end
 	set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
 
@@ -289,12 +280,12 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 		imageWidth = screenWidth - x_margin;
 	end
 	newFigHeight = max(newFigHeight, minFigHeight) + y_margin + topMarg;
-	
+
 	figPos(1) = max(1, figPos(1) - floor((newFigWidth  - figPos(3))/2));
 	figPos(2) = max(1, figPos(2) - floor((newFigHeight - figPos(4))/2));
 	figPos(3) = newFigWidth;
 	figPos(4) = newFigHeight;
-	
+
 	% Figure out where to place the axes object in the resized figure
 	gutterWidth  = newFigWidth  - imageWidth;
 	gutterHeight = newFigHeight - imageHeight;
@@ -303,10 +294,19 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
     
 	axPos(1) = gutterLeft;      axPos(2) = gutterBottom - tenSizeY;
 	axPos(3) = imageWidth;      axPos(4) = imageHeight;
+% 	if ( (newFigHeight - 22) > (1.25 * imageHeight) )
+% 		xLim = get(axHandle, 'XLim');		yLim = get(axHandle, 'YLim');
+% 		aspectWH = diff(xLim) / diff(yLim);
+% 		if (aspectWH > 3)
+% 			yLim(2) = yLim(2) * (1 + (newFigHeight / imageHeight - 1));
+% 			set(axHandle, 'YLim', yLim)
+% 		end
+% 	end
 	
 	% Force the window to be in the "north" position. 73 is the height of the blue Bar + ...
 	figPos(2) = screenHeight - figPos(4) - 73;
-	set(figHandle, 'Position', figPos);     set(axHandle, 'Position', axPos);
+	set(figHandle, 'Position', figPos);
+	set(axHandle, 'Position', axPos);
 
 	if ~strncmp(opt,'sCap',4)		% sCapture. I think it's not used anymore
         %-------------- This section simulates a box at the bottom of the figure
@@ -314,7 +314,7 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
         sbPos(1) = 1;               sbPos(2) = 2;
         sbPos(3) = figPos(3)-2;     sbPos(4) = H-1;
         h = axes('Parent',figHandle,'Box','off','Visible','off','Tag','sbAxes','Units','Pixels',...
-            'Position',sbPos,'XLim',[0 sbPos(3)],'YLim',[0 H-1]);
+			'Position',sbPos,'XLim',[0 sbPos(3)],'YLim',[0 H-1]);
         tenXMargin = 1;
         if (tenSizeX),     tenXMargin = 30;     end
         hFieldFrame = createframe(h,[1 (figPos(3) - tenXMargin)],H);
@@ -322,12 +322,11 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
         set(hFieldFrame,'Visible','on')
         set(h,'HandleVisibility','off')
         if (withSliders),        setSliders(figHandle, axHandle, figPos, axPos, sldT, H);    end   
-    end
+	end
 	%------------------------------------
 	  
 	% Restore the units
 	set(figHandle, 'Units', figUnits);
-	%set(axHandle, 'Units', axUnits);       % Original (pixels) Units
 	set(axHandle, 'Units', 'normalized');   % So that resizing the Fig also resizes the image
 	set(0, 'Units', rootUnits);
 	pause(0.01)				% Needed for example when creating bg on which slow things will be rendered
@@ -336,9 +335,9 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 
 %--------------------------------------------------------------------------
 function hFrame = createframe(ah,fieldPos,H)
-	% Creates a virtual panel surrounding the field starting at fieldPos(1) and
-	% ending end fieldPos(2) pixels. ah is the sb's handle (axes).
-	% It returns a handle array designating the frame.
+% Creates a virtual panel surrounding the field starting at fieldPos(1) and
+% ending end fieldPos(2) pixels. ah is the sb's handle (axes).
+% It returns a handle array designating the frame.
 	
 	from = fieldPos(1);     to = fieldPos(2);
 	% col = rgb2hsv(get(fh,'Color'));       % fh was the figure's handle
@@ -355,12 +354,12 @@ function hFrame = createframe(ah,fieldPos,H)
 
 %--------------------------------------------------------------------------
 function figPos = setSliders(figHandle, axHandle, figPos, axPos, sldT, H)
-    % Create a pair of sliders and register them to use in 'imscroll_j'
-    gutterRight = figPos(3) - (axPos(1) + axPos(3));
-    if (gutterRight < sldT+1)       % Grow Figure's width to acomodate the slider
-        figPos(3) = figPos(3) + (sldT-gutterRight) + 1;
-        set(figHandle, 'Position', figPos);
-    end
+% Create a pair of sliders and register them to use in 'imscroll_j'
+	gutterRight = figPos(3) - (axPos(1) + axPos(3));
+	if (gutterRight < sldT+1)       % Grow Figure's width to acomodate the slider
+		figPos(3) = figPos(3) + (sldT-gutterRight) + 1;
+		set(figHandle, 'Position', figPos);
+	end
 
     hSliders = getappdata(axHandle,'SliderAxes');
 	if (isempty(hSliders))
@@ -374,11 +373,11 @@ function figPos = setSliders(figHandle, axHandle, figPos, axPos, sldT, H)
 		% Register the sliders in the axe's appdata
 		setappdata(axHandle,'SliderAxes',[sliderHor sliderVer])
 		imscroll_j(axHandle,'ZoomSetSliders')              % ...
-    else        % We have them already. They just need to be updated
+	else			% We have them already. They just need to be updated
         set(hSliders(1), 'Pos',[axPos(1)+axPos(3)+1 axPos(2) sldT axPos(4)+1],'Vis','off')
         set(hSliders(2), 'Pos',[axPos(1) H-1 axPos(3)+1 sldT],'Vis','off')
 	end
 
 % -----------------------------------------------------------------------------------------
 function slider_Cb(obj,evt,ax,opt)
-    imscroll_j(ax,opt)
+	imscroll_j(ax,opt)
