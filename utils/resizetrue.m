@@ -265,7 +265,9 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 
 	topMarg = 0;
 	if (~tenSizeY),     topMarg = 5;    end					% To account for Ylabels exceeding image height
-	if strcmp(get(axHandle,'Visible'),'off')				% No Labels, give only a 20 pixels margin to account for Status bar
+	axVisible = strcmp(get(axHandle,'Visible'),'on');
+% 	if strcmp(get(axHandle,'Visible'),'off')				% No Labels, give only a 20 pixels margin to account for Status bar
+	if (~axVisible)				% No Labels, give only a 20 pixels margin to account for Status bar
 		x_margin = 0;   y_margin = stsbr_height;
 		topMarg  = 0;
 	elseif (minFigWidth - x_margin > imageWidth + x_margin)	% Image + x_margin still fits inside minFigWidth
@@ -294,23 +296,28 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
     
 	axPos(1) = gutterLeft;      axPos(2) = gutterBottom - tenSizeY;
 	axPos(3) = imageWidth;      axPos(4) = imageHeight;
-% 	if ( (newFigHeight - 22) > (1.25 * imageHeight) )
-% 		xLim = get(axHandle, 'XLim');		yLim = get(axHandle, 'YLim');
-% 		aspectWH = diff(xLim) / diff(yLim);
-% 		if (aspectWH > 3)
-% 			yLim(2) = yLim(2) * (1 + (newFigHeight / imageHeight - 1));
-% 			set(axHandle, 'YLim', yLim)
-% 		end
-% 	end
-	
+
+	H = 22;		% The status bar (simulated box at bottom) height
+	if ( ~axVisible && ((newFigHeight - H) > (1.25 * imageHeight)) )	% A sign of a potentialy large aspect ratio
+		xLim = get(axHandle, 'XLim');		yLim = get(axHandle, 'YLim');
+		aspectWH = diff(xLim) / diff(yLim);
+		if (aspectWH > 3)			% Yes, large aspect ratio. Try to make it a bit more usable (when zooming)
+			ampFact = (1 + (newFigHeight / imageHeight - 1));
+			newH = round(axPos(4) * ampFact) - H;
+			axPos(2) = round(axPos(2) - (newH - axPos(4)) / 2);
+			axPos(4) = round((axPos(4) - H) * ampFact);			
+			yLim(2) = yLim(2) * ampFact * 1;
+			set(axHandle, 'YLim', yLim)
+		end
+	end
+
 	% Force the window to be in the "north" position. 73 is the height of the blue Bar + ...
 	figPos(2) = screenHeight - figPos(4) - 73;
 	set(figHandle, 'Position', figPos);
 	set(axHandle, 'Position', axPos);
 
-	if ~strncmp(opt,'sCap',4)		% sCapture. I think it's not used anymore
+	if ~strncmp(opt,'sCap',4)		% sCapture. I'm not sure this is used anymore
         %-------------- This section simulates a box at the bottom of the figure
-        H = 22;
         sbPos(1) = 1;               sbPos(2) = 2;
         sbPos(3) = figPos(3)-2;     sbPos(4) = H-1;
         h = axes('Parent',figHandle,'Box','off','Visible','off','Tag','sbAxes','Units','Pixels',...
