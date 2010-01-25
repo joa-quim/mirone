@@ -198,6 +198,8 @@ morphmex:
 		$(MEX) -I$(MATLAB)/extern/include morphmex.cpp dilate_erode_gray_nonflat.cpp dilate_erode_packed.cpp dilate_erode_binary.cpp neighborhood.cpp vectors.cpp $(MEXLIB)
 resampsep:
 		$(MEX) -I$(MATLAB)/extern/include resampsep.cpp $(MEXLIB)
+iptcheckinput:
+		$(MEX) -I$(MATLAB)/extern/include iptcheckinput.cpp $(MEXLIB)
 
 #imfilter_mex:
 
