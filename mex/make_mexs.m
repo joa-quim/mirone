@@ -107,7 +107,7 @@ str_simple = {'test_gmt' 'igrf_m' 'scaleto8' 'tsun2' 'wave_travel_time' 'mansinh
 
 % Non LIB dependent c++ mexs
 str_simple_cpp = {'houghmex' 'clipbd_mex' 'akimaspline' 'bwlabelnmex' 'bwboundariesmex' ...
-	'imreconstructmex' 'morphmex' 'grayxform' 'resampsep'}';
+	'imreconstructmex' 'morphmex' 'grayxform' 'resampsep' 'iptcheckinput'}';
 
 LIB_USER32 = [pato_VCLIB 'USER32.LIB'];
 LIB_GDI32 = [pato_VCLIB 'GDI32.LIB'];
@@ -286,7 +286,7 @@ function make_simple(str_simple, str_simple_cpp, library_vc, COPT)
 		end
         eval(cmd)
 	end
-	for (i=1:numel(str_simple_cpp))	% Compile GMT MGG mexs
+	for (i=1:numel(str_simple_cpp))
 		if (strcmp(str_simple_cpp{i}, 'bwlabelnmex'))
 	        cmd = ['mex ' [str_simple_cpp{i} '.cpp '] 'neighborhood.cpp unionfind.c ' library_vc ' ' COPT];
 		elseif (strcmp(str_simple_cpp{i}, 'bwboundariesmex'))
