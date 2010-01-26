@@ -295,8 +295,10 @@ DEBUGA(6);
 	mxFree((void *)z);
 
 
-	OGRFree(pszSrcWKT);
-	OGRFree(pszDstWKT);
+	if (pszDstWKT && strlen(pszDstWKT) > 1 ) OGRFree(pszDstWKT);	
+	if (pszSrcWKT && strlen(pszSrcWKT) > 1 ) OGRFree(pszSrcWKT);
+	//OGRFree(pszSrcWKT);
+	//OGRFree(pszDstWKT);
 	if (nGCPCount > 0) {
 		GDALDeinitGCPs( nGCPCount, pasGCPs );	// makes this mex crash in the next call
 		mxFree((void *) pasGCPs );

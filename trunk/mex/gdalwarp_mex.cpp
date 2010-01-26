@@ -649,7 +649,6 @@ DEBUGA(4);
 DEBUGA(5);
 
 	mxFree(tmp);
-	OGRFree(pszDstWKT);
 	if (nGCPCount) {
 		GDALDeinitGCPs( nGCPCount, pasGCPs );	// makes this mex crash in the next call
 		mxFree((void *) pasGCPs );
@@ -663,7 +662,10 @@ DEBUGA(7);
 	runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
 
 	//GDALDestroyDriverManager();
+	//OGRFree(pszDstWKT);
 	GDALClose( hDstDS );
+	if (pszDstWKT && strlen(pszDstWKT) > 1 ) OGRFree(pszDstWKT);	
+	if (pszSrcWKT && strlen(pszSrcWKT) > 1 ) OGRFree(pszSrcWKT);
 }
 	
 /* ---------------------------------------------------------------------- */
