@@ -3,7 +3,7 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 % Image registration tool. If the master image has coordinates this will work
 % as Image-to-Map rectification, otherwise it works in the Image-to-Image mode.
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -49,30 +49,30 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 	% Import icons
 	load ([pwd filesep 'data' filesep 'mirone_icons.mat']);
 	h_toolbar = handles.FigureToolBar;
-	uitoggletool('parent',h_toolbar,'Click',@InsertPoint_Callback, ...  
+	uitoggletool('parent',h_toolbar,'Click',@InsertPoint_CB, ...  
 		'Tag','singlePoint','cdata',point_ico,'TooltipString','Insert point','Separator','on');
-	uitoggletool('parent',h_toolbar,'Click',@InsertPointAndPred_Callback, ...  
+	uitoggletool('parent',h_toolbar,'Click',@InsertPointAndPred_CB, ...  
 		'Tag','PointPred','cdata',pointPred_ico,'TooltipString','Insert point and prediction');
-	uipushtool('parent',h_toolbar,'Click',@registerImage_Callback,...   
+	uipushtool('parent',h_toolbar,'Click',@registerImage_CB,...   
 		'cdata',R_ico,'TooltipString','Register','Separator','on');
-	uipushtool('parent',h_toolbar,'Click',@registerSIFT_Callback,...   
+	uipushtool('parent',h_toolbar,'Click',@registerSIFT_CB,...   
 		'cdata',cerejas,'TooltipString','Automatic Registration','Separator','on');
 
-	handles.origFig = [];       % We don't need the image copy anymore
+	handles.origFig = [];		% We don't need the image copy anymore
 
 	posStatusBar = get(findall(handles.figure1,'Type','axes','Tag','sbAxes'),'Pos');
 	if (strcmp(get(handles.axes1,'Visible'),'on'))
-		margAnotVer = 30;      % Inventado
-		margAnotHor = 15;      % Inventado
+		margAnotVer = 30;		% Inventado
+		margAnotHor = 15;		% Inventado
 	else
 		margAnotVer = 0;
 		margAnotHor = 0;
 	end
-	sldT = 13;              % Slider thickness
-	marg = 5;               % Horizontal margin between the axes(+slider) and the figure
-	topMargin = 30;         % To accomudate the uis on top of the images
-	windowsBar = 60;        % In fact I don't know
-	LeastImageWidth = 360;  % Working value for a 800 pixels width screen
+	sldT = 13;					% Slider thickness
+	marg = 5;					% Horizontal margin between the axes(+slider) and the figure
+	topMargin = 30;				% To accomudate the uis on top of the images
+	windowsBar = 60;			% In fact I don't know
+	LeastImageWidth = 360;		% Working value for a 800 pixels width screen
 	screen = get(0, 'ScreenSize');
 	MaxImageWidth = screen(3)/2 - (2*sldT+3*marg + 2*margAnotVer);  % Maximum image width supported in this screen
 
@@ -122,7 +122,6 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 	tmp = getappdata(handles.axes1,'ThisImageLims');
 	xlim = tmp(1:2);    ylim = tmp(3:4);
 	aspectPixeis = img1H / img1W;
-	aspectData = dims1(1) / dims1(2);
 	if (abs(aspectPixeis - aspectImg) > 1e-3)      % This axes was distorted
 		if (aspectImg < 1)
 			aspectThis = axesH / img1H;
@@ -147,7 +146,6 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 	setappdata(handles.axes2,'ThisImageLims',[xlim ylim])
 
 	aspectPixeis = img2H / img2W;
-	aspectData = dims2(1) / dims2(2);
 	if (abs(aspectPixeis - aspectImg) > 1e-3)      % This axes was distorted
 		if (aspectImg < 1)
 			aspectThis = axesH / img2H;
@@ -232,100 +230,114 @@ function slider_Cb(obj,evt,ax,opt)
 	imscroll_j(ax,opt)
 
 % -----------------------------------------------------------------------------------------
-function InsertPoint_Callback(hObject,event)
-handles = guidata(hObject);
-but = 1;    count = handles.count;
-while (but == 1)
-    lastClickedAx = getappdata(handles.figure1,'clickedAx');
-    [x,y,but] = ginput_pointer(1,'crosshair');
-    if (but ~= 1)										% Stop insertion and do eventual cleaning
-        wichAxes = get(get(handles.figure1,'CurrentAxes'),'Tag');
-        if (~handles.isCoupled)					% Unmatched point point
-            delete(handles.hLastPt)
-        end
-        if (count > 0 && size(handles.slavePoints,1) ~= size(handles.masterPoints,1))
-            if (size(handles.slavePoints,1) > size(handles.masterPoints,1))
-                handles.slavePoints(end,:) = [];
-            else
-                handles.masterPoints(end,:) = [];
-            end
-        end
-        setappdata(handles.figure1,'clickedAx',[]);     % Reset the point insertion machine
-        set(findobj(handles.figure1,'Tag','singlePoint'),'State','off')
-        break
-    end
+function InsertPoint_CB(hObject,event)
+	handles = guidata(hObject);
+	if ( ~strcmp(get(handles.figure1,'pointer'),'arrow') )		% Ghrr. Idiot click while already in inserting mode.
+		set(hObject,'State','off'),			return
+	end
+	set([handles.Zoom handles.Mao],'Enable','off')		% Block these to avoid uncontrolable desire of screwing things
 
-    wichAxes = get(get(handles.figure1,'CurrentAxes'),'Tag');
-	if (~clickOverImage(handles, wichAxes))				% Take care of the smart guys clicking everywhere
-		continue
+	but = 1;    count = handles.count;
+	while (but == 1)
+		lastClickedAx = getappdata(handles.figure1,'clickedAx');
+		[x,y,but] = ginput_pointer(1,'crosshair');
+		if (but ~= 1)										% Stop insertion and do eventual cleaning
+			if (~handles.isCoupled)							% Unmatched point point
+				delete(handles.hLastPt)
+			end
+			if (count > 0 && size(handles.slavePoints,1) ~= size(handles.masterPoints,1))
+				if (size(handles.slavePoints,1) > size(handles.masterPoints,1))
+					handles.slavePoints(end,:) = [];
+				else
+					handles.masterPoints(end,:) = [];
+				end
+			end
+			setappdata(handles.figure1,'clickedAx',[]);     % Reset the point insertion machine
+			set(hObject,'State','off')
+			set([handles.Zoom handles.Mao],'Enable','on')
+			break
+		end
+
+		wichAxes = get(get(handles.figure1,'CurrentAxes'),'Tag');
+		if (~clickOverImage(handles, wichAxes))				% Take care of the smart guys clicking everywhere
+			continue
+		end
+
+		if (isempty(lastClickedAx))                         % First GCP on this run
+			handles.hLastPt = line(x,y,'Marker','o','MarkerFaceColor','y',...
+				'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
+			handles.isCoupled = 0;
+			if (wichAxes(end) == '1')
+				handles.masterPoints = [handles.masterPoints; x y];
+			else
+				handles.slavePoints = [handles.slavePoints; x y];
+			end
+			count = count + 1;
+			handles.count = count;
+			set_gcp_uicontext(handles,handles.hLastPt)
+		else                                                % Next GCPs
+			if (lastClickedAx(end) ~= wichAxes(end))        % Conjugated point, OR ...
+				handles.hLastPt = line(x,y,'Marker','o','MarkerFaceColor','y',...
+					'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol');
+				if (wichAxes(end) == '1')
+					handles.masterPoints = [handles.masterPoints; x y];
+				else
+					handles.slavePoints  = [handles.slavePoints; x y];
+				end
+				if (handles.isCoupled == 1)        % Start new pair on the other axes
+					handles.isCoupled = 0;
+					count = count + 1;
+				else                               % Finish pair OR non left-click on the other axes
+					handles.isCoupled = 1;
+				end
+				set(handles.hLastPt,'UserData',count)
+				handles.count = count;
+				set_gcp_uicontext(handles,handles.hLastPt)
+				handles = addOneNumber(handles);	% Add the new pair of numbers (even if invisible)
+			else									% Click on the same axes. Reset point
+				set(handles.hLastPt,'XData',x,'YData',y)
+				if (wichAxes(end) == '1'),	handles.masterPoints(count,:) = [x y];
+				else						handles.slavePoints(count,:)  = [x y];
+				end
+				addOneNumber(handles, wichAxes, x, y);
+			end
+		end
+		setappdata(handles.figure1,'clickedAx',wichAxes)
 	end
 
-    if (isempty(lastClickedAx))                         % First GCP on this run
-        handles.hLastPt = line(x,y,'Marker','o','MarkerFaceColor','y',...
-            'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
-        handles.isCoupled = 0;
-        if (wichAxes(end) == '1')
-            handles.masterPoints = [handles.masterPoints; x y];
-        else
-            handles.slavePoints = [handles.slavePoints; x y];
-        end
-        count = count + 1;
-        handles.count = count;
-        set_gcp_uicontext(handles,handles.hLastPt)
-    else                                                % Next GCPs
-        if (lastClickedAx(end) ~= wichAxes(end))        % Conjugated point, OR ...
-            handles.hLastPt = line(x,y,'Marker','o','MarkerFaceColor','y',...
-                'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol');
-            if (wichAxes(end) == '1')
-                handles.masterPoints = [handles.masterPoints; x y];
-            else
-                handles.slavePoints = [handles.slavePoints; x y];
-            end
-            if (handles.isCoupled == 1)        % Start new pair on the other axes
-                handles.isCoupled = 0;
-                count = count + 1;
-            else                               % Finish pair OR non left-click on the other axes
-                handles.isCoupled = 1;
-            end
-            set(handles.hLastPt,'UserData',count)
-            handles.count = count;
-            set_gcp_uicontext(handles,handles.hLastPt)
-			handles = addOneNumber(handles);	% Add the new pair of numbers (even if invisible)
-        else                                    % Click on the same axes. Reset point
-            set(handles.hLastPt,'XData',x,'YData',y)
-            if (wichAxes(end) == '1'),  handles.masterPoints(count,:) = [x y];
-            else                        handles.slavePoints(count,:) = [x y];
-            end
-			addOneNumber(handles, wichAxes, x, y);
-        end
-    end   
-	setappdata(handles.figure1,'clickedAx',wichAxes)
-end
-
-guidata(handles.figure1,handles)
+	guidata(handles.figure1,handles)
 
 % ---------------------------------------------------------------------------
-function InsertPointAndPred_Callback(hObject,event)
+function InsertPointAndPred_CB(hObject,event)
 	handles = guidata(hObject);
+	if ( ~strcmp(get(handles.figure1,'pointer'),'arrow') )		% Ghrr. Idiot click while already in inserting mode.
+		set(hObject,'State','off'),		return
+	end
+
 	tipo = checkTransform(handles);
 	if (isempty(tipo))		      % Error message already issued
-		set(findobj(handles.figure1,'Tag','PointPred'),'State','off')
+		set(hObject,'State','off')
 		return
 	elseif (strncmp(tipo,'gdal',4))
 		warndlg('GDAL warping methods are not available for this option.','Warning')
-		set(findobj(handles.figure1,'Tag','PointPred'),'State','off')
+		set(hObject,'State','off')
 		return
 	end
+	set([handles.Zoom handles.Mao],'Enable','off')		% Block these to avoid uncontrolable desire of screwing things
+
 	but = 1;    count = handles.count;
 	while (but == 1)
 		[x,y,but] = ginput_pointer(1,'crosshair');
-		if (but ~= 1),		break,	end
+		if (but ~= 1)		% Input ended
+			set([handles.Zoom handles.Mao],'Enable','on')
+			break
+		end
 		wichAxes = get(get(handles.figure1,'CurrentAxes'),'Tag');
 		if (~clickOverImage(handles, wichAxes))				% Take care of the smart guys clicking everywhere
 			continue
 		end
 	
-		if (wichAxes(end) == '1')       % Master -> Slave prediction
+		if (wichAxes(end) == '1')		% Master -> Slave prediction
 			trf = transform_fun('cp2tform',handles.masterPoints, handles.slavePoints, tipo);
 			[x_pred,y_pred] = transform_fun('tformfwd',trf, x, y);
 			handles.masterPoints = [handles.masterPoints; x y];
@@ -334,7 +346,7 @@ function InsertPointAndPred_Callback(hObject,event)
 				'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
 			handles.hLastPt = line(x_pred(end),y_pred(end),'Parent',handles.axes2,'Marker','o','MarkerFaceColor','y',...
 				'MarkerEdgeColor','k','MarkerSize',7,'Tag','GCPSymbol','UserData',count+1);
-		else                            % Slave -> Master prediction
+		else							% Slave -> Master prediction
 			trf = transform_fun('cp2tform',handles.slavePoints, handles.masterPoints, tipo);
 			[x_pred,y_pred] = transform_fun('tformfwd',trf, x, y);
 			handles.slavePoints = [handles.slavePoints; x y];
@@ -495,12 +507,15 @@ function resMod = show_gcp(obj, event, handles, opt)
 	
 	gcp = [handles.masterPoints handles.slavePoints resMod];
 	FigName = ['GCP Table - ' tipo{:} ' - RMS Res = ' num2str( sqrt(sum(resMod.^2))/sqrt(length(resMod)) )];
-	out = tableGUI('array',gcp,'RowNumbers','y','ColNames',{'Master Points - X','Master Points - Y',...
+	tableGUI('array',gcp,'RowNumbers','y','ColNames',{'Master Points - X','Master Points - Y',...
 			'Slave Points - X','Slave Points - Y',str_res},'ColWidth',100,'FigName',FigName,'modal','');
 
 % ---------------------------------------------------------------------------
-function trf = registerImage_Callback(hObject,event)
+function trf = registerImage_CB(hObject,event)
 	handles = guidata(hObject);
+	if ( ~strcmp(get(handles.figure1,'pointer'),'arrow') )		% Ghrr. Idiot click while already in inserting mode.
+		return
+	end
 	[tipo,to_order] = checkTransform(handles);
 	if (isempty(tipo)),		return,		end		% Error message already issued
 	handles = getUpdatedCPs(handles);			% Get update GCPs positions
@@ -559,7 +574,7 @@ function trf = registerImage_Callback(hObject,event)
 	end
 
 % ---------------------------------------------------------------------------
-function [ties,nPts] = registerSIFTautopano_Callback(img_l,img_r,handles)
+function [ties,nPts] = registerSIFTautopano_CB(img_l,img_r,handles)
 
     set(handles.figure1,'pointer','watch')
     imwrite(img_l,'lixoleft.jpg','Quality',100);
@@ -575,7 +590,6 @@ function [ties,nPts] = registerSIFTautopano_Callback(img_l,img_r,handles)
     fclose(fid);
     %dos([fname ' &']);
     dos(fname);
-    %system(fname);
     delete('keyfile_left.xml.gz');      delete('keyfile_right.xml.gz');
     delete('lixoright.jpg');            delete('lixoleft.jpg');
     fid=fopen('outputa.pto','r');
@@ -587,23 +601,25 @@ function [ties,nPts] = registerSIFTautopano_Callback(img_l,img_r,handles)
     idx = repmat([true(4,1); false(4,1)],nPts,1);
     txt(idx) = [];
     txt = char(txt);
-    txt = txt(:,2:end);                 % Uf1, we finaly have numbers only, though they are still strings
+    txt = txt(:,2:end);					% Uf1, we finaly have numbers only, though they are still strings
     ties = str2num(txt);
-    ties = reshape(ties',4,nPts)';      % Uf2, ties is now a nx4 array
+    ties = reshape(ties',4,nPts)';		% Uf2, ties is now a nx4 array
     set(handles.figure1,'pointer','arrow')
         
 % ---------------------------------------------------------------------------
-function trf = registerSIFT_Callback(hObject,event)
-
+function registerSIFT_CB(hObject,event)
 	handles = guidata(hObject);
+	if ( ~strcmp(get(handles.figure1,'pointer'),'arrow') )		% Ghrr. Idiot click while already in inserting mode.
+		set(hObject,'State','off'),			return
+	end
+
     set(handles.figure1,'pointer','watch')
 	imgM = get(handles.hMasterImage,'CData');
 	imgS = get(handles.hSlaveImage,'CData');
-	[mM,nM,k] = size(imgM);		[mS,nS,k] = size(imgS);
         
 % 	if (ndims(imgM) == 3),		imgM = cvlib_mex('color',imgM,'rgb2gray');		end
 % 	if (ndims(imgS) == 3),		imgS = cvlib_mex('color',imgS,'rgb2gray');		end
-% 	[xy_match,nPts] = registerSIFTautopano_Callback(imgS,imgM,handles);
+% 	[xy_match,nPts] = registerSIFTautopano_CB(imgS,imgM,handles);
 
 	xy_match = cvlib_mex('sift',imgM,imgS);
 	nPts = size(xy_match,1);
@@ -688,7 +704,6 @@ function [x,y] = axes2axes(handles,x,y,opt)
     axSpos = get(handles.axes2,'Pos');
 	dimM = [size(get(handles.hMasterImage,'CData'),2) size(get(handles.hMasterImage,'CData'),1)];
 	dimS = [size(get(handles.hSlaveImage,'CData'),2) size(get(handles.hSlaveImage,'CData'),1)];
-    xx = x;yy=y;
     if (opt == 1)       % x,y are in Master axes
         x = axMpos(1) + x / dimM(1) * axMpos(3);            % Pixels in the figure reference
         y = axMpos(2) + (dimM(2)-y) / dimM(2) * axMpos(4);  % Pixels in the figure reference
@@ -711,7 +726,6 @@ function [x,y] = axes2axes(handles,x,y,opt)
         rMy  = dimM(2) / axMpos(4);
         Murf = axMpos(4);
         y    = rMy * (Murf  - y);
-        
     end
 % ---------------------------------------------------------------------------
 function [tipo,transf] = checkTransform(handles)
@@ -910,8 +924,6 @@ refresh		% The R13 redraw bug
 %-----------------------------------------------------------------------------------
 function handles = addOneNumber(handles, wichAxes, x, y)
 % Plot one GCP pair numbers. If unvisible, just create it anyway
-
-% 	if (isempty(handles.hTextMaster)),		return,		end		% Too soon for this
 
 	if (nargin == 1)	% A new point
 		xMaster = handles.masterPoints(end,1);		yMaster = handles.masterPoints(end,2);
