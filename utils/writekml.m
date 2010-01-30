@@ -411,7 +411,7 @@ function writePolyLine(fid,x,y,z,line_color,line_thick,name)
 	fprintf(fid,[sTab_p1 '%s\n'],'</Style>');
 
 	fprintf(fid,[sTab_p1 '%s\n'],'<LineString>');
-	fprintf(fid,[sTab_p1 '%s\n'],'<tessellate>1</tessellate>');
+% 	fprintf(fid,[sTab_p1 '%s\n'],'<tessellate>1</tessellate>');
 	fprintf(fid,[sTab_p2 '%s\n'],'<coordinates>');
 	fmt = repmat('%.6f,%.6f,%.0f ',1,4);
 	fprintf(fid,[fmt '\n'], [x; y; z]);        % Write the data
