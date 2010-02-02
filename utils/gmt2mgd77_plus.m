@@ -69,16 +69,16 @@ function gmt2mgd77_plus(fname, varargin)
 		if (isfield(meta, 'DC_file_number')),	att.DC_file_number = meta.DC_file_number;	end
 	end
 	% ------------------------------------------------------------
-	att.country = 'Portugal';
-	att.funding = 'EMEPC';
+% 	att.country = 'Portugal';
+% 	att.funding = 'EMEPC';
 % 	att.chief = 'Marc Andre Gutcher';
 % 	att.ship = 'D. Carlos I';
 % 	att.leg = 'Chicken Leg';
 % 	att.port_departure = 'Lisboa';
 % 	att.port_arrival = 'Lisboa';
-	att.tow_dist = '1';
+% 	att.tow_dist = '1';
 
-	[PATO, FNAME, EXT] = fileparts(fname);
+	[PATO, FNAME] = fileparts(fname);
 	if (isempty(PATO)),		fsep = [];	end		% File is in the current directory
 	track = gmtlist_m([PATO fsep FNAME], '-Fsxygmt', '-G');
 
@@ -100,7 +100,6 @@ function gmt2mgd77_plus(fname, varargin)
 	nc_funs('create_empty', fname)
 
 	% ---------------------------- Write the dimensions --------------------------------
-	nn = numel(track.time);
 	nc_funs('add_dimension', fname, 'time', 0 )
 	nc_funs('add_dimension', fname, 'id_dim', 8 )
 	nc_funs('add_dimension', fname, 'sln_dim', 5 )
