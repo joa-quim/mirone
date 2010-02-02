@@ -42,7 +42,7 @@ function varargout = tiles_tool(varargin)
 	% --------------------- Read the cache directory list from mirone_pref ----------------------
 	load([handles.path_data 'mirone_pref.mat']);
 	try			cacheDirs = cacheTilesDir;	% Try if we already have a cache directory store in prefs
-	catch		cacheDirs = [];
+	catch,		cacheDirs = [];
 	end
 
 	if ( ~isempty(cacheDirs) )			% We have cache dir(s), but make sure it exists
@@ -92,7 +92,7 @@ function varargout = tiles_tool(varargin)
 				[tok,rem] = strtok(rem);		handles.servers_hybrid{k} = tok;
 			end
 			if ( ~isempty(rem) )				% Quadtree keeword
-				[tok,rem] = strtok(rem);		handles.servers_quadkey{k} = tok;
+				tok = strtok(rem);				handles.servers_quadkey{k} = tok;
 			end
 		end
 	end
@@ -245,7 +245,7 @@ function region2tiles(handles,lon,lat,zoomFactor)
 	end
 	if ( zoomFactor == 1 ),		return,		end
 
-	[url, lonT, latT] = url2image('tile2url', lon, lat, zoomFactor,'quadonly',1);
+	url = url2image('tile2url', lon, lat, zoomFactor,'quadonly',1);
 	[lims, tiles_bb]  = url2image('quadcoord', url);
 	[m,n] = size(url);		hp = zeros(m, n);
 
@@ -286,14 +286,12 @@ function slider_zoomFactor_Callback(hObject, eventdata, handles)
 		lon = lon + [-.15 +.15]*diff(lon);	lat = lat + [-.15 +.15]*diff(lat);	% Add 15% on each side to create squares beyound visible
 		lon(1) = max(lon(1), -180);			lon(2) = min(lon(2), 180);
 		lat(1) = max(lat(1), -85);			lat(2) = min(lat(2), 85);
-		nXpatch = getPixel(lon, zoomLevel);
 	elseif (nXpatch < 15)
 		zoom_j(handles.figure1, 0.5)
 		lon = get(handles.axes1,'XLim');	lat = get(handles.axes1,'YLim');
 		lon = lon + [-.15 +.15]*diff(lon);	lat = lat + [-.15 +.15]*diff(lat);
 		lon(1) = max(lon(1), -180);			lon(2) = min(lon(2), 180);
 		lat(1) = max(lat(1), -85);			lat(2) = min(lat(2), 85);
-		nXpatch = getPixel(lon, zoomLevel);
 	end
 
 	if (zoomLevel > 8)				% At higher zoom levels the bg image is too poor, so get a better one
@@ -307,7 +305,7 @@ function slider_zoomFactor_Callback(hObject, eventdata, handles)
 			src_PN = 'source';		quadkee = handles.servers_quadkey(handles.serversOrder(1));
 			src_PV = {handles.serversImageOut, quadkee{1}};
 		end
-		[img, hdr, lat_mm] = ...
+		[img, hdr] = ...
 			url2image('tile2img',lon,lat, bgZoomLevel, 'cache', cacheDir, 'what','aerial', src_PN, src_PV,'lonlat', 'yes', 'verbose','y');
 		h = image('XData',hdr.X, 'YData',hdr.Y, 'CData',img, 'Parent', handles.axes1);
 		if (ishandle(handles.hImgZoomed)),		delete(handles.hImgZoomed),		end		% Delete the previous zoomed image
@@ -443,7 +441,7 @@ function figure1_KeyPressFcn(hObj, eventdata)
 
 
 % --- Creates and returns a handle to the GUI figure. 
-function tiles_tool_LayoutFcn(h1);
+function tiles_tool_LayoutFcn(h1)
 
 set(h1, 'Position',[520 365 765 435],...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
@@ -699,7 +697,7 @@ function figure_servers_KeyPressFcn(hObject, eventdata)
 	end
 
 % --- Creates and returns a handle to the GUI figure. 
-function tiles_servers_LayoutFcn(h1);
+function tiles_servers_LayoutFcn(h1)
 
 set(h1, 'Position',[520 541 550 175],...
 'CloseRequestFcn',@figure_servers_CloseRequestFcn,...
