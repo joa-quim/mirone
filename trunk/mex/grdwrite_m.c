@@ -79,10 +79,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argc = GMT_begin (argc, &argv);
 		GMTisLoaded = TRUE;
 	}
-	else
-		argc = GMT_short_begin (argc, &argv);
+	/*else
+		argc = GMT_short_begin (argc, &argv);*/
 
-	/*GMT_grdio_init ();*/
 	GMT_grd_init (&grd, 0, &argv, FALSE);	/* New in version 4.?.? */
  
 	/* Load the file name into a char string */

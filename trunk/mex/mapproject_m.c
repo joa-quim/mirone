@@ -122,8 +122,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	else
-		argc = GMT_short_begin (argc, argv);
+	/*else
+		argc = GMT_short_begin (argc, argv);*/
 
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] == '-') {
@@ -649,7 +649,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	mxFree(in);
 	mxFree(out);
-	GMT_end_for_mex (argc, argv);
+	/*GMT_end_for_mex (argc, argv);*/
 
 	if (geodetic_calc)
 		k = n_fields + 1;

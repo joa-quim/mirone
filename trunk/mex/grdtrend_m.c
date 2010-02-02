@@ -173,8 +173,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	else
-		argc = GMT_short_begin (argc, argv);
+	/*else
+		argc = GMT_short_begin (argc, argv);*/
 	
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] == '-') {
@@ -465,7 +465,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_free ((void *)resid);
 	GMT_free ((void *)trend);
 
-	GMT_end_for_mex (argc, argv);
+	/*GMT_end_for_mex (argc, argv);*/
 }		
 
 void  set_up_vals(double *val, int nval, double vmin, double vmax, double dv, int pixel_reg)

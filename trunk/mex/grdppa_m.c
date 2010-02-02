@@ -82,8 +82,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	else
-		argc = GMT_short_begin (argc, argv);
+	/*else
+		argc = GMT_short_begin (argc, argv);*/
 
         for (i = 1; !error && i < argc; i++) {
                 if (argv[i][0] == '-') {

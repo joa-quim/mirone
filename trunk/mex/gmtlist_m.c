@@ -97,12 +97,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	struct GMTMGG_REC record;
 	
-	/* Do we realy need this ?
-	if ((LIBDIR = getenv ("GMTHOME")) == (char *)NULL) {
-		mexPrintf ("gmtlist_m: Environment variable GMTHOME not set!\n");
-		return;
-	}*/
-
 	g = m = t = no_g = no_m = no_t = FALSE;
 	
 	/* Check and interpret the command line arguments */
@@ -127,8 +121,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	else
-		argc = GMT_short_begin (argc, argv);
+	/*else
+		argc = GMT_begin (argc, argv);
+		argc = GMT_short_begin (argc, argv);*/
 
 	for (i =1; !error && i < argc; i++) {
 		if (argv[i][0] == '-') {
@@ -567,7 +562,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		memcpy(pdata, &tmp, sizeof(double));
 		mxSetField(gmtlist_struct, n_cruises, fieldnames[10], mxOut);
 		/* I'm really pissed off with this so I'll use all the letters.
-		   Why the fuck this crashs Matlab? (not because leg_year is a int)
+		   Why the f... this crashs Matlab? (not because leg_year is a int)
 			mxSetField(gmtlist_struct, n_cruises, fieldnames[10], &leg_year); */
 
 		mxStr = mxCreateString(agency);
@@ -586,7 +581,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		n_cruises++;
 
 	}
-	GMT_end_for_mex (argc, argv);
+	/*GMT_end_for_mex (argc, argv);
+	GMT_end (argc, argv); */
 	plhs[0] = gmtlist_struct;
 	
 }
