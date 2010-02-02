@@ -55,6 +55,11 @@ switch nargin
 		if ( isempty(varargin{3}) )				% Do a zoom centered on the current point or the image center
 			scale_factor = varargin{2};
 			zoomCommand = 'ptscale';
+			anchor_pt = [];
+		elseif ( numel(varargin{3}) == 2 && isnumeric(varargin{3}(1)) )	% Center on the varargin{3} point
+			scale_factor = varargin{2};
+			zoomCommand = 'ptscale';
+			anchor_pt = varargin{3};
 		else
 			zoomCommand = varargin{2};
 			funHand = varargin{3}{1};			% Tchan tchan -- a function handle
@@ -489,7 +494,11 @@ case 'fill',
 case 'ptscale'
     xlim = get(ax,'xlim');
     ylim = get(ax,'ylim');
-    ZOOM_Pt1 = get_currentpoint(ax);
+	if (isempty(anchor_pt))
+	    ZOOM_Pt1 = get_currentpoint(ax);
+	else
+		ZOOM_Pt1 = anchor_pt(:)';
+	end
     center = ZOOM_Pt1;
 
     if (xlim(1) <= ZOOM_Pt1(1,1) && ZOOM_Pt1(1,1) <= xlim(2) && ...
