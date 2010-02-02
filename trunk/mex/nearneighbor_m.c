@@ -97,12 +97,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char-1]);
 	}
 	
-	if (!GMTisLoaded) {
+	/*if (!GMTisLoaded) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	/*else
+	else
 		argc = GMT_short_begin (argc, argv);*/
+	argc = GMT_begin (argc, argv);
 
 	GMT_boundcond_init (&edgeinfo);
 	GMT_grd_init (&header, argc, argv, FALSE);
@@ -608,7 +609,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	mxFree((void *)x0);
 	mxFree((void *)y0);
 	
-	/*GMT_end_for_mex (argc, argv);*/
+	GMT_end (argc, argv);
 }
 
 struct NODE *add_new_node(int n) {

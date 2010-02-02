@@ -92,12 +92,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char-1]);
 	}
 
-	if (!GMTisLoaded) {
+	/*if (!GMTisLoaded) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	/*else
+	else
 		argc = GMT_short_begin (argc, argv);*/
+	argc = GMT_begin (argc, argv);
 
 	GMT_grd_init (&grd_b, argc, argv, FALSE);
 	GMT_boundcond_init (&edgeinfo);
@@ -357,7 +358,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	GMT_free ((void *)lon);
 	mxFree(a);
-	/*GMT_end_for_mex (argc, argv);*/
+	GMT_end (argc, argv);
 
 	/* Transpose from gmt grd orientation to Matlab orientation */
 	/* Because we need to do the transposition and also a type conversion, we need a extra array */

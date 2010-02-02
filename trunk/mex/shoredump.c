@@ -119,13 +119,13 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 		argv[i] = (char *)mxArrayToString(prhs[i-1]);
 	}
 
-	if (!GMTisLoaded) {
+	/*if (!GMTisLoaded) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	/*else
-		argc = GMT_begin (argc, argv);
+	else
 		argc = GMT_short_begin (argc, argv);*/
+	argc = GMT_begin (argc, argv);
 
 	/* Check and interpret the command line arguments */
 	
@@ -574,8 +574,7 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 		mxFree(p_river);
 	}
 
-	/*GMT_end_for_mex (argc, argv);
-	GMT_end(argc, argv);*/
+	GMT_end(argc, argv);
 	mxFree(argv);
 }
 
