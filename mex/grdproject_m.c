@@ -100,13 +100,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char-1]);
 	}
 	
-	/*if (!GMTisLoaded) {
+	if (!GMTisLoaded) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	else
+	/*else
 		argc = GMT_short_begin (argc, argv);*/
-	argc = GMT_begin (argc, argv);
 	
 	w = e = s = n = 0.0;
 	nx = ny = 0;
@@ -541,7 +540,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	GMT_free ((void *)grd_out);
-	GMT_end_for_mex (argc, argv);
+	/*GMT_end_for_mex (argc, argv);*/
 
 	if (inverse) {
 		head_o[0] = g_head.x_min;		head_o[1] = g_head.x_max;

@@ -50,8 +50,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	else
-		argc = GMT_short_begin (argc, argv);
+	/*else
+		argc = GMT_short_begin (argc, argv);*/
 
 	for (i = 1; !error && i < argc; i++) {
 		if (argv[i][0] == '-') {
@@ -161,10 +161,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/* If we let GMT_end_for_mex free GMT_lut than a posterior call to grdgradient_m will crash
 	   The trick is to temporarely set GMT_n_colors to 0 and than the if () case is not executed
 	   This certainly results in one more memory leak */
-	n_colors = GMT_n_colors;
+	/*n_colors = GMT_n_colors;
 	GMT_n_colors = FALSE;
 	GMT_end_for_mex (argc, argv);
-	GMT_n_colors = n_colors;
+	GMT_n_colors = n_colors;*/
 }
 
 void sample_cpt (double z[], int nz, BOOLEAN continuous, BOOLEAN reverse, int log_mode, double *pal) {

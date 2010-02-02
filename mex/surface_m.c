@@ -232,8 +232,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	else
-		argc = GMT_short_begin (argc, argv);
+	/*else
+		argc = GMT_short_begin (argc, argv);*/
 
 	GMT_grd_init (&h, argc, argv, FALSE);
 
@@ -606,7 +606,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	GMT_free ((void *) u);
 	GMT_free ((void *)v2);
-	GMT_end_for_mex (argc, argv);
+	/*GMT_end_for_mex (argc, argv);*/
 }
 
 void	set_coefficients(void) {

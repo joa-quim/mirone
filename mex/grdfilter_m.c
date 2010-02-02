@@ -135,8 +135,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	else
-		argc = GMT_short_begin (argc, argv);	/* Ate conseguir compilar todos os GMT MEXs */
+	/*else
+		argc = GMT_short_begin (argc, argv);*/
 	
 	error = new_range = new_increment = FALSE;
 	filter_width = dx_new = dy_new = west_new = east_new = 0.0;
@@ -604,7 +604,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (slow) mxFree((void *) work_array);
 	if (!fast_way) mxFree(x_shift);
 	
-	GMT_end_for_mex (argc, argv);
+	/*GMT_end_for_mex (argc, argv);*/
 
 	/* Transpose from gmt grd orientation to Matlab orientation */
 	/* Because we need to do the transposition and also a type conversion, we need a extra array */
