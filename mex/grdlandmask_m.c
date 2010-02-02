@@ -126,12 +126,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argv[i] = (char *)mxArrayToString(prhs[i-1]);
 	}
 
-	if (!GMTisLoaded) {
+	/*if (!GMTisLoaded) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	/*else
+	else
 		argc = GMT_short_begin (argc, argv);*/
+	argc = GMT_begin (argc, argv);
 
 	/* Check and interpret the command line arguments */
 
@@ -558,7 +559,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	Free_Grdlandmask_Ctrl (Ctrl);	/* Deallocate control structure */
 
-	/*GMT_end_for_mex (argc, argv);*/
+	GMT_end (argc, argv);
 }
 
 void *New_Grdlandmask_Ctrl () {	/* Allocate and initialize a new control structure */

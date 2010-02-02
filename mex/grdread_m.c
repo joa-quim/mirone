@@ -68,12 +68,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	pad[0] = pad[1] = pad[2] = pad[3] = 0;
 
-	if (!GMTisLoaded) {
+	/*if (!GMTisLoaded) {
 		argc = GMT_begin (argc, &argv);
 		GMTisLoaded = TRUE;
 	}
-	/*else
+	else
 		argc = GMT_short_begin (argc, &argv);*/
+	argc = GMT_begin (argc, &argv);
 
 	GMT_grd_init (&grd, 0, &argv, FALSE);	/* New in version 4.?.? */
 
@@ -216,7 +217,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		for (i = 0; i < grd.nx; i++) x[i] = grd.x_min + (i + off) * grd.x_inc;
 		for (i = 0; i < grd.ny; i++) y[i] = grd.y_min + (i + off) * grd.y_inc;
 	}
+
 	mxFree (filein);
+	GMT_end (argc, argv);
 	return;
 }
 
