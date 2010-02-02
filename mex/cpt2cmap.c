@@ -46,12 +46,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char-1]);
 	}
 
-	if (!GMTisLoaded) {
+	/*if (!GMTisLoaded) {
 		argc = GMT_begin (argc, argv);
 		GMTisLoaded = TRUE;
 	}
-	/*else
+	else
 		argc = GMT_short_begin (argc, argv);*/
+	argc = GMT_begin (argc, argv);
 
 	for (i = 1; !error && i < argc; i++) {
 		if (argv[i][0] == '-') {
@@ -165,6 +166,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_n_colors = FALSE;
 	GMT_end_for_mex (argc, argv);
 	GMT_n_colors = n_colors;*/
+	GMT_end (argc, argv);
 }
 
 void sample_cpt (double z[], int nz, BOOLEAN continuous, BOOLEAN reverse, int log_mode, double *pal) {

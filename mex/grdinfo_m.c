@@ -57,16 +57,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	mxArray *mxZinfo;
 	mxArray *mxScale;
 
-	if (!GMTisLoaded) {
+	/*if (!GMTisLoaded) {
 		argc = GMT_begin (argc, &argv);
 		GMTisLoaded = TRUE;
 	}
-	/*else
+	else
 		argc = GMT_short_begin (argc, &argv);*/
+	argc = GMT_begin (argc, &argv);
 
-	/*GMT_grdio_init ();*/
-	/*GMT_grd_init (&grd, 0, &argv, FALSE);	/* New in version 4.?.? */
- 
 	/* Load the file name into a char string */
 
 	ns = mxGetN (prhs[0]) + 1;
@@ -221,5 +219,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	mxFree (filein);
+	GMT_end (argc, argv);
 	return;
 }
