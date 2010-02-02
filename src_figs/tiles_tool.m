@@ -1,5 +1,19 @@
 function varargout = tiles_tool(varargin)
-% M-File changed by desGUIDE 
+% Get tiles and mosaic them from Virtual Earth (and others) web tile servers 
+
+%	Copyright (c) 2004-2010 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
  
 	hObject = figure('Tag','figure1','Visible','off');
 	tiles_tool_LayoutFcn(hObject);
@@ -16,7 +30,7 @@ function varargout = tiles_tool(varargin)
 	% -------------- Import icons -----------------------------------------------
 	load([handles.path_data 'mirone_icons.mat'],'zoom_ico','tools_ico','help_ico','um_ico','dois_ico','tres_ico','Mplay_ico');
 
-	handles.uistbar = zeros(1,7);
+	handles.uistbar = zeros(1,8);
 	h_tb = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
        'Interruptible','on','Tag','FigureToolBar','Visible','on');
 	handles.uistbar(1) = uitoggletool('parent',h_tb,'Click',{@click_whatkind_CB,1},'cdata',um_ico, 'Tooltip','Only Satellite Images', 'State', 'on');
@@ -24,8 +38,10 @@ function varargout = tiles_tool(varargin)
 	handles.uistbar(3) = uitoggletool('parent',h_tb,'Click',{@click_whatkind_CB,3},'cdata',tres_ico, 'Tooltip','Map over Satellite');
 	handles.uistbar(4) = uipushtool('parent',h_tb,'Click',@click_source_CB,'cdata',tools_ico, 'Tooltip','Select Source servers','Sep','on');
 	handles.uistbar(5) = uitoggletool('parent',h_tb,'Click',@click_zoom_CB,'cdata',zoom_ico, 'Tooltip','Zoom','Sep','on');
-	handles.uistbar(6) = uipushtool('parent',h_tb,'Click',@click_MOSAIC_e_GO_CB,'cdata',Mplay_ico, 'Tooltip','Get necessary images and build Mosaic','Sep','on');
-	handles.uistbar(7) = uipushtool('parent',h_tb,'Click',@click_help_CB,'cdata',help_ico, 'Tooltip','Help','Sep','on');
+	ico = icon_ancora;		ico(~ico) = NaN;		ico = single(ico / 255);
+	handles.uistbar(6) = uipushtool('parent',h_tb,'Click',@click_anchor_CB,'cdata',ico, 'Tooltip','Set zoom anchor point','Sep','on');
+	handles.uistbar(7) = uipushtool('parent',h_tb,'Click',@click_MOSAIC_e_GO_CB,'cdata',Mplay_ico, 'Tooltip','Get necessary images and build Mosaic','Sep','on');
+	handles.uistbar(8) = uipushtool('parent',h_tb,'Click',@click_help_CB,'cdata',help_ico, 'Tooltip','Help','Sep','on');
 
 	handles.proxy = [];			handles.port = [];
 	handles.proxyPort = [];		handles.patchHandles = [];		handles.hImgZoomed = [];
@@ -33,11 +49,8 @@ function varargout = tiles_tool(varargin)
 	handles.slected_whatkind = 'aerial';
 
 	w_map = flipdim(imread([handles.path_data 'etopo2.jpg']),1);
-	image([-180 180],[-90 90],w_map,'Parent',handles.axes1);
+	handles.hImg = image([-180 180],[-90 90],w_map,'Parent',handles.axes1);
 	set(handles.axes1, 'XLim',[-180 180], 'YLim',[-90 90],'YDir','normal')	% Oblige limits to be what we want
-
-	load([handles.path_data 'm_coasts.mat']);
-	line('XData',ncst(:,1),'YData',ncst(:,2),'Parent',handles.axes1,'Linewidth',1,'Color','w');
 
 	% --------------------- Read the cache directory list from mirone_pref ----------------------
 	load([handles.path_data 'mirone_pref.mat']);
@@ -137,7 +150,6 @@ function click_whatkind_CB(obj, evt, opt)
 function click_zoom_CB(hObject, evt)
 	handles = guidata(hObject);
 	if ( strcmp(get(hObject,'State'), 'on') )
-% 		zoom_j(handles.figure1, 'on', {@meshtiles,handles.axes1})
 		zoom_j(handles.figure1, 'on')
 	else
 		zoom_j(handles.figure1, 'off')
@@ -161,7 +173,7 @@ function click_source_CB(hObject, evt)
 	end
 
 % -----------------------------------------------------------------------------------------
-function popup_directory_list_Callback(hObject, eventdata, handles, opt)
+function popup_directory_list_CB(hObject, eventdata, handles, opt)
 % OPT, used by push_change_dir, is char array
 
 	if (nargin == 3)    opt = [];   end
@@ -177,20 +189,35 @@ function popup_directory_list_Callback(hObject, eventdata, handles, opt)
 	end
 
 % -----------------------------------------------------------------------------------------
-function push_change_dir_Callback(hObject, eventdata, handles)
+function push_change_dir_CB(hObject, event, handles)
 	%cache_dir = uigetdir;        % This guy doesn't let to be compiled
 	cache_dir = uigetfolder_standalone;
 	if ~isempty(cache_dir)
-		popup_directory_list_Callback(handles.popup_directory_list, eventdata, handles, cache_dir)
+		popup_directory_list_CB(handles.popup_directory_list, eventdata, handles, cache_dir)
 	end
 
 % -----------------------------------------------------------------------------------------
-function push_clearCacheInfo_Callback(hObject, eventdata, handles)
+function push_clearCacheInfo_CB(hObject, event, handles)
 	cacheTilesDir = [];
 	save([handles.path_data 'mirone_pref.mat'],'cacheTilesDir', '-append')		% Update the prefs file
 
 % -----------------------------------------------------------------------------------------
-function click_MOSAIC_e_GO_CB(hObject, eventdata)
+function click_anchor_CB(hObject, event)
+	handles = guidata(hObject);
+	pt = ginput_pointer(1,'crosshair');
+	hAnchor = findobj(handles.axes1,'Tag','Anchor');
+	if (isempty(hAnchor))
+		hAnchor = line(pt(1,1),pt(1,2),'Marker','p','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',12,'Tag','Anchor');
+	else
+		set(hAnchor,'XData',pt(1,1) ,'YData',pt(1,2))
+	end
+	ui_edit_polygon(hAnchor)
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	set(hAnchor, 'UIContextMenu', cmenuHand);   
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
+
+% -----------------------------------------------------------------------------------------
+function click_MOSAIC_e_GO_CB(hObject, event)
 % Test if everything is ok and call mosaicing function with (which outputs to Mirone)
 
 	handles = guidata(hObject);
@@ -273,21 +300,27 @@ function bdn_tile(obj,eventdata,handles)
 	refresh
 
 % -------------------------------------------------------------------------------------
-function slider_zoomFactor_Callback(hObject, eventdata, handles)
+function slider_zoomFactor_CB(hObject, eventdata, handles)
 %
 	zoomLevel = round(get(hObject,'Value')) + 1;
 	lon = get(handles.axes1,'XLim')+[1e-6 -1e-6];	lat = get(handles.axes1,'YLim');
 	lat(1) = max(lat(1), -85);			lat(2) = min(lat(2), 85);
 
+	hAnchor = findobj(handles.axes1,'Tag','Anchor');	% See if we have zooming anchor point
+	anchor_pt = [];
+	if (~isempty(hAnchor))
+		anchor_pt = [get(hAnchor,'XData') get(hAnchor,'YData')];	% Yes, so send this to the zoom fun
+	end
+
 	nXpatch = getPixel(lon, zoomLevel);
 	if (nXpatch > 16)
-		zoom_j(handles.figure1, 2)
+		zoom_j(handles.figure1, 2, anchor_pt)
 		lon = get(handles.axes1,'XLim');	lat = get(handles.axes1,'YLim');
 		lon = lon + [-.15 +.15]*diff(lon);	lat = lat + [-.15 +.15]*diff(lat);	% Add 15% on each side to create squares beyound visible
 		lon(1) = max(lon(1), -180);			lon(2) = min(lon(2), 180);
 		lat(1) = max(lat(1), -85);			lat(2) = min(lat(2), 85);
 	elseif (nXpatch < 15)
-		zoom_j(handles.figure1, 0.5)
+		zoom_j(handles.figure1, 0.5, anchor_pt)
 		lon = get(handles.axes1,'XLim');	lat = get(handles.axes1,'YLim');
 		lon = lon + [-.15 +.15]*diff(lon);	lat = lat + [-.15 +.15]*diff(lat);
 		lon(1) = max(lon(1), -180);			lon(2) = min(lon(2), 180);
@@ -317,6 +350,18 @@ function slider_zoomFactor_Callback(hObject, eventdata, handles)
 
 	region2tiles(handles,lon,lat,zoomLevel)
 	set(handles.text_zoomFactor, 'String', zoomLevel)
+	if (~isempty(hAnchor))					% If we have one, make sure it's always on top
+		Parent = get(hAnchor,{'Parent'});
+		Children = allchild(Parent{1});
+		Children = setxor(Children, hAnchor);
+		if (ishandle(handles.hImgZoomed))
+			Children = setxor(Children, handles.hImgZoomed);
+			Children = [Children; handles.hImgZoomed];
+		end
+		Children = setxor(Children, handles.hImg);
+		Children = [hAnchor; Children; handles.hImg];
+		set(handles.axes1,'Children',Children);
+	end
 	
 % ----------------------------------------------------------------------------	
 function nXpatch = getPixel(lon, zoomL)
@@ -333,19 +378,19 @@ function slider_Cb(obj,evt,hAxes,opt)
 	imscroll_j(hAxes,opt)
 
 % -------------------------------------------------------------------------------------
-function radio_mercator_Callback(hObject, eventdata, handles)
+function radio_mercator_CB(hObject, eventdata, handles)
 	if (get(hObject, 'Val')),		set(handles.radio_geogs, 'Val', 0)
 	else							set(hObject, 'Val', 1)
 	end
 
 % -------------------------------------------------------------------------------------
-function radio_geogs_Callback(hObject, eventdata, handles)
+function radio_geogs_CB(hObject, eventdata, handles)
 	if (get(hObject, 'Val')),		set(handles.radio_mercator, 'Val', 0)
 	else							set(hObject, 'Val', 1)
 	end
 
 % -------------------------------------------------------------------------------------
-function check_proxy_Callback(hObject, eventdata, handles)
+function check_proxy_CB(hObject, eventdata, handles)
 	if ( get(hObject, 'Val') )
 		set([handles.edit_proxy handles.edit_port handles.text_port], 'Enable', 'on')
 		ind = strfind(handles.proxyPort, ':');
@@ -359,7 +404,7 @@ function check_proxy_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1, handles)		% as a request to change the proxy settings
 
 % -------------------------------------------------------------------------------------
-function edit_proxy_Callback(hObject, eventdata, handles)
+function edit_proxy_CB(hObject, eventdata, handles)
 	handles.proxy = get(hObject, 'String');
 	handles.proxyPort = [handles.proxy ':' handles.port];
 	if (~isempty(handles.port))
@@ -368,7 +413,7 @@ function edit_proxy_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1, handles)
 	
 % -------------------------------------------------------------------------------------
-function edit_port_Callback(hObject, eventdata, handles)
+function edit_port_CB(hObject, eventdata, handles)
 	handles.port = get(hObject, 'String');
 	handles.proxyPort = [handles.proxy ':' handles.port];
 	if (~isempty(handles.port))
@@ -411,6 +456,63 @@ msg{6} = sprintf(['1) NASA World Wind type cache. There is a plugin for WW that 
 
 helpdlg(msg,'Help on Tiles tool');
 
+%-------------------------------------------------------------------------------
+function img = icon_ancora
+%
+img(:,:,1) = [...
+ 0   0   0   0   0   0   3   7   7   3   0   0   0   0   0 0
+ 0   0   0   0   0   0   7   0   0   7   0   0   0   0   0 0
+ 0   0   0   0   0   0   7   0   0   7   0   0   0   0   0 0
+ 0   0   0   0   0   0   3   7   7   3   0   0   0   0   0 0
+ 0   0   0   0  35  23  52 103 103  52  23  35   0   0   0 0
+ 0   0   0   0  17  35  70  87  87  70  35  17   0   0   0 0
+ 0   0   0   0   0   0   0  28  28   0   0   0   0   0   0 0
+ 0   0   0   0   0   0   0  78  72   0   0   0   0   0   0 0
+ 0   0   0   0   0   0   0  64  58   0   0   0   0   0   0 0
+ 1  39  31  26   0   0   0  50  45   0   0   0  25  16  39 0
+ 1  30  88  77  27   0   0  39  33   0   0  27  36  17  16 1
+ 0  22  68  53  26   4   0  28  24   0   3  13  32  17  11 0
+ 0   4  28  72  53  35  30  30  30  17  17  17  17  15   2 0
+ 0   0   5  33  46  69  83  42  41  34  32  17  12   3   0 0
+ 0   0   0   2  11  23  15  17  17  15  11   4   1   0   0 0
+ 0   0   0   0   5   7   8   9   9   8   6   4   0   0   0 0 ];
+
+img(:,:,2) = [...
+ 0   0   0   0   0   0  37  84  84  37   0   0   0   0   0 0
+ 0   0   0   0   0   0  84   0   0  84   0   0   0   0   0 0
+ 0   0   0   0   0   0  84   0   0  84   0   0   0   0   0 0
+ 0   0   0   0   0   0  37  84  84  37   0   0   0   0   0 0
+ 0   0   0   0 128 116 141 202 202 141 116 128   0   0   0 0
+ 0   0   0   0  61 128 165 183 183 165 128  61   0   0   0 0
+ 0   0   0   0   0   0   0 124 124   0   0   0   0   0   0 0
+ 0   0   0   0   0   0   0 166 161   0   0   0   0   0   0 0
+ 0   0   0   0   0   0   0 155 149   0   0   0   0   0   0 0
+ 2 136 129 108   0   0   0 143 139   0   0   0 106 107 136 2
+ 4 128 196 184 116   0   0 133 129   0   0 114 144 112 108 3
+ 0  89 174 157  66  13   0 124 121   0  12  52 135 112  70 0
+ 0  13 118 178 157 137 132 132 132 112 112 112 112  98  10 0
+ 0   0  19 104 149 175 188 155 152 138 134 112  76  15   0 0
+ 0   0   0   2  40  92  99 112 112  99  72  29   2   0   0 0
+ 0   0   0   0   7   9  11  12  12  11   8   6   0   0   0 0 ];
+
+img(:,:,3) = [...
+ 0   0   0   0   0   0  66 150 150  66   0   0   0   0   0 0
+ 0   0   0   0   0   0 150   0   0 150   0   0   0   0   0 0
+ 0   0   0   0   0   0 150   0   0 150   0   0   0   0   0 0
+ 0   0   0   0   0   0  66 150 150  66   0   0   0   0   0 0
+ 0   0   0   0 206 200 216 240 240 216 200 206   0   0   0 0
+ 0   0   0   0  99 206 221 228 228 221 206  99   0   0   0 0
+ 0   0   0   0   0   0   0 204 204   0   0   0   0   0   0 0
+ 0   0   0   0   0   0   0 223 220   0   0   0   0   0   0 0
+ 0   0   0   0   0   0   0 218 215   0   0   0   0   0   0 0
+ 3 209 200 165   0   0   0 213 211   0   0   0 165 187 209 3
+ 5 202 239 234 179   0   0 208 206   0   0 178 217 196 189 5
+ 0 135 229 220  86  19   0 204 203   0  18  81 211 196 122 0
+ 0  19 184 231 220 211 208 208 208 196 196 196 196 171  17 0
+ 0   0  27 149 217 229 235 224 223 213 210 196 134  24   0 0
+ 0   0   0   3  58 139 173 196 196 173 127  51   2   0   0 0
+ 0   0   0   0   8  11  14  15  15  13  10   7   0   0   1 0 ];
+
 % -------------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObj, eventdata)
 	handles = guidata(hObj);
@@ -443,7 +545,7 @@ function figure1_KeyPressFcn(hObj, eventdata)
 % --- Creates and returns a handle to the GUI figure. 
 function tiles_tool_LayoutFcn(h1)
 
-set(h1, 'Position',[520 365 765 435],...
+set(h1, 'Position',[320 30 940 540],...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'DoubleBuffer','on',...
@@ -456,45 +558,41 @@ set(h1, 'Position',[520 365 765 435],...
 'HandleVisibility','callback',...
 'Tag','figure1');
 
-axes('Parent',h1,...
-'Units','pixels',...
-'FontSize',8,...
-'Position',[31 75 721 361],...
-'Tag','axes1');
+axes('Parent',h1, 'Units','pixels', 'FontSize',8, 'Position',[30 75 900 450], 'Tag','axes1');
 
 uicontrol('Parent',h1, 'Position',[90 4 281 22],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@tiles_tool_uicallback,h1,'popup_directory_list_Callback'},...
+'Callback',{@tiles_tool_uicallback,h1,'popup_directory_list_CB'},...
 'Style','popupmenu',...
 'String',{''},...
 'TooltipString','Select a cache directory where to search/save tiles files',...
 'Value',1,...
 'Tag','popup_directory_list');
 
-uicontrol('Parent',h1, 'Position',[370 5 18 21],...
-'Callback',{@tiles_tool_uicallback,h1,'push_change_dir_Callback'},...
+uicontrol('Parent',h1, 'Position',[370 5 20 21],...
+'Callback',{@tiles_tool_uicallback,h1,'push_change_dir_CB'},...
 'FontSize',10,...
 'FontWeight','bold',...
 'String','...',...
 'TooltipString','Select a different directory',...
 'Tag','push_change_dir');
 
-uicontrol('Parent',h1, 'Position',[398 5 18 21],...
-'Callback',{@tiles_tool_uicallback,h1,'push_clearCacheInfo_Callback'},...
+uicontrol('Parent',h1, 'Position',[398 5 23 21],...
+'Callback',{@tiles_tool_uicallback,h1,'push_clearCacheInfo_CB'},...
 'FontSize',10,...
 'FontWeight','bold',...
 'String','C',...
 'TooltipString','Clear cache info (NOT the cache itself)',...
 'Tag','push_clearCacheInfo');
 
-uicontrol('Parent',h1, 'Position',[90 30 281 14],...
+uicontrol('Parent',h1, 'Position',[90 30 300 14],...
 'BackgroundColor',[0.96 0.96 0.96],...
-'Callback',{@tiles_tool_uicallback,h1,'slider_zoomFactor_Callback'},...
+'Callback',{@tiles_tool_uicallback,h1,'slider_zoomFactor_CB'},...
 'Max',23,...
 'Style','slider',...
 'Tag','slider_zoomFactor');
 
-uicontrol('Parent',h1, 'Position',[377 29 20 15],...
+uicontrol('Parent',h1, 'Position',[398 29 20 15],...
 'FontSize',10,...
 'FontWeight','demi',...
 'HorizontalAlignment','left',...
@@ -502,12 +600,12 @@ uicontrol('Parent',h1, 'Position',[377 29 20 15],...
 'Style','text',...
 'Tag','text_zoomFactor');
 
-uicontrol('Parent',h1, 'Position',[30 50 721 8],...
+uicontrol('Parent',h1, 'Position',[30 48 900 10],...
 'Style','slider',...
 'Tag','HOR',...
 'Visible','off');
 
-uicontrol('Parent',h1, 'Position',[754 74 9 361],...
+uicontrol('Parent',h1, 'Position',[931 74 10 450],...
 'Style','slider',...
 'Tag','VER',...
 'Visible','off');
@@ -516,15 +614,15 @@ uicontrol('Parent',h1, 'Position',[10 5 80 17],...
 'String','Cache directory',...
 'Style','text');
 
-uicontrol('Parent',h1, 'Position',[441 30 125 15],...
-'Callback',{@tiles_tool_uicallback,h1,'radio_mercator_Callback'},...
+uicontrol('Parent',h1, 'Position',[550 30 110 15],...
+'Callback',{@tiles_tool_uicallback,h1,'radio_mercator_CB'},...
 'String','Mercator (correct)',...
 'Style','radiobutton',...
 'Value',1,...
 'Tag','radio_mercator');
 
-uicontrol('Parent',h1, 'Position',[441 10 110 15],...
-'Callback',{@tiles_tool_uicallback,h1,'radio_geogs_Callback'},...
+uicontrol('Parent',h1, 'Position',[550 8 100 15],...
+'Callback',{@tiles_tool_uicallback,h1,'radio_geogs_CB'},...
 'String','Geogs (approx)',...
 'Style','radiobutton',...
 'Tag','radio_geogs');
@@ -536,31 +634,31 @@ uicontrol('Parent',h1, 'Position',[18 28 70 17],...
 'String','Zoom Level',...
 'Style','text');
 
-uicontrol('Parent',h1, 'Position',[604 27 65 15],...
-'Callback',{@tiles_tool_uicallback,h1,'check_proxy_Callback'},...
+uicontrol('Parent',h1, 'Position',[782 27 55 15],...
+'Callback',{@tiles_tool_uicallback,h1,'check_proxy_CB'},...
 'String','proxy?',...
 'Style','checkbox',...
 'Tag','check_proxy');
 
-uicontrol('Parent',h1, 'Position',[661 25 91 20],...
+uicontrol('Parent',h1, 'Position',[838 25 91 20],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@tiles_tool_uicallback,h1,'edit_proxy_Callback'},...
+'Callback',{@tiles_tool_uicallback,h1,'edit_proxy_CB'},...
 'Enable','off',...
 'HorizontalAlignment','left',...
 'Style','edit',...
 'TooltipString','proxy adress here',...
 'Tag','edit_proxy');
 
-uicontrol('Parent',h1, 'Position',[661 3 51 20],...
+uicontrol('Parent',h1, 'Position',[839 3 51 20],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@tiles_tool_uicallback,h1,'edit_port_Callback'},...
+'Callback',{@tiles_tool_uicallback,h1,'edit_port_CB'},...
 'Enable','off',...
 'HorizontalAlignment','left',...
 'Style','edit',...
 'TooltipString','port here',...
 'Tag','edit_port');
 
-uicontrol('Parent',h1,'Position',[630 7 28 15],...
+uicontrol('Parent',h1,'Position',[808 7 28 15],...
 'Enable','off',...
 'String','Port',...
 'Style','text',...
@@ -613,55 +711,55 @@ function varargout = tiles_servers(varargin)
 	if ( ishandle(handles.figure1) ),	delete(handles.figure1),	end
 
 % -----------------------------------------------------------------------------------------
-function edit_aerial_Callback(hObject, eventdata, handles, opt)
+function edit_aerial_CB(hObject, eventdata, handles, opt)
 	if (nargin == 4),		handles.aerial = opt;		% Called by popupmenu
 	else					handles.aerial = get(hObject, 'String');
 	end
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
-function edit_road_Callback(hObject, eventdata, handles, opt)
+function edit_road_CB(hObject, eventdata, handles, opt)
 	if (nargin == 4),		handles.road = opt;			% Called by popupmenu
 	else					handles.road = get(hObject, 'String');
 	end
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
-function edit_hybrid_Callback(hObject, eventdata, handles, opt)
+function edit_hybrid_CB(hObject, eventdata, handles, opt)
 	if (nargin == 4),		handles.hybrid = opt;		% Called by popupmenu
 	else					handles.hybrid = get(hObject, 'String');
 	end
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
-function popup_aerial_Callback(hObject, eventdata, handles)
+function popup_aerial_CB(hObject, eventdata, handles)
 % Get selected server and transmit info to corresponding edit box (which will do the rest) 
 	val = get(hObject,'Value');
 	contents = get(hObject,'String');		server = contents{val};
 	set(handles.edit_aerial, 'String', server)
 	handles.aerial_ind = val;
-	edit_aerial_Callback(hObject, [], handles, server)
+	edit_aerial_CB(hObject, [], handles, server)
 
 % -----------------------------------------------------------------------------------------
-function popup_road_Callback(hObject, eventdata, handles)
+function popup_road_CB(hObject, eventdata, handles)
 % Get selected server and transmit info to corresponding edit box (which will do the rest) 
 	val = get(hObject,'Value');
 	contents = get(hObject,'String');		server = contents{val};
 	set(handles.edit_road, 'String', server)
 	handles.road_ind = val;
-	edit_road_Callback(hObject, [], handles, server)
+	edit_road_CB(hObject, [], handles, server)
 
 % -----------------------------------------------------------------------------------------
-function popup_hybrid_Callback(hObject, eventdata, handles)
+function popup_hybrid_CB(hObject, eventdata, handles)
 % Get selected server and transmit info to corresponding edit box (which will do the rest) 
 	val = get(hObject,'Value');
 	contents = get(hObject,'String');		server = contents{val};
 	set(handles.edit_hybrid, 'String', server)
 	handles.hybrid_ind = val;
-	edit_hybrid_Callback(hObject, [], handles, server)
+	edit_hybrid_CB(hObject, [], handles, server)
 
 % -----------------------------------------------------------------------------------------
-function push_OK_Callback(hObject, eventdata, handles)
+function push_OK_CB(hObject, eventdata, handles)
 	out.whatkind = {handles.aerial; handles.road; handles.hybrid};		% Selected server for "whatkind"
 	out.order = [handles.aerial_ind; handles.road_ind; handles.hybrid_ind];		% Indices order to recover correspondent quadkeey
 	handles.output = out;           guidata(hObject,handles)
@@ -669,7 +767,7 @@ function push_OK_Callback(hObject, eventdata, handles)
 	uiresume(handles.figure1);
 
 % -----------------------------------------------------------------------------------------
-function push_cancel_Callback(hObject, eventdata, handles)
+function push_cancel_CB(hObject, eventdata, handles)
 	handles.output = [];
 	guidata(hObject,handles)
 	uiresume(handles.figure1);
@@ -712,19 +810,19 @@ set(h1, 'Position',[520 541 550 175],...
 
 uicontrol('Parent',h1, 'Position',[10 133 251 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@tiles_servers_uicallback,h1,'edit_aerial_Callback'},...
+'Callback',{@tiles_servers_uicallback,h1,'edit_aerial_CB'},...
 'HorizontalAlignment','left',...
 'Style','edit', 'Tag','edit_aerial');
 
 uicontrol('Parent',h1, 'Position',[10 83 251 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@tiles_servers_uicallback,h1,'edit_road_Callback'},...
+'Callback',{@tiles_servers_uicallback,h1,'edit_road_CB'},...
 'HorizontalAlignment','left',...
 'Style','edit', 'Tag','edit_road');
 
 uicontrol('Parent',h1, 'Position',[10 33 251 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@tiles_servers_uicallback,h1,'edit_hybrid_Callback'},...
+'Callback',{@tiles_servers_uicallback,h1,'edit_hybrid_CB'},...
 'HorizontalAlignment','left',...
 'Style','edit',...
 'Tag','edit_hybrid');
@@ -749,7 +847,7 @@ uicontrol('Parent',h1, 'Position',[10 157 110 15],...
 
 uicontrol('Parent',h1, 'Position',[269 133 271 22],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@tiles_servers_uicallback,h1,'popup_aerial_Callback'},...
+'Callback',{@tiles_servers_uicallback,h1,'popup_aerial_CB'},...
 'Style','popupmenu',...
 'TooltipString','Read from ''tileServers.txt'' on ''data'' directory',...
 'Value',1,...
@@ -757,7 +855,7 @@ uicontrol('Parent',h1, 'Position',[269 133 271 22],...
 
 uicontrol('Parent',h1, 'Position',[269 83 271 22],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@tiles_servers_uicallback,h1,'popup_road_Callback'},...
+'Callback',{@tiles_servers_uicallback,h1,'popup_road_CB'},...
 'Style','popupmenu',...
 'TooltipString','Read from ''tileServers.txt'' on ''data'' directory',...
 'Value',1,...
@@ -765,7 +863,7 @@ uicontrol('Parent',h1, 'Position',[269 83 271 22],...
 
 uicontrol('Parent',h1, 'Position',[269 33 271 22],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@tiles_servers_uicallback,h1,'popup_hybrid_Callback'},...
+'Callback',{@tiles_servers_uicallback,h1,'popup_hybrid_CB'},...
 'Style','popupmenu',...
 'TooltipString','Read from ''tileServers.txt'' on ''data'' directory',...
 'Value',1,...
@@ -778,14 +876,14 @@ uicontrol('Parent',h1, 'Position',[320 157 150 16],...
 'Style','text');
 
 uicontrol('Parent',h1, 'Position',[381 3 70 23],...
-'Callback',{@tiles_servers_uicallback,h1,'push_OK_Callback'},...
+'Callback',{@tiles_servers_uicallback,h1,'push_OK_CB'},...
 'FontName','Helvetica',...
 'FontWeight','bold',...
 'String','OK',...
 'Tag','push_OK');
 
 uicontrol('Parent',h1, 'Position',[471 3 70 23],...
-'Callback',{@tiles_servers_uicallback,h1,'push_cancel_Callback'},...
+'Callback',{@tiles_servers_uicallback,h1,'push_cancel_CB'},...
 'FontName','Helvetica',...
 'FontWeight','bold',...
 'String','Cancel',...
