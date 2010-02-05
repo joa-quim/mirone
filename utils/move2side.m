@@ -21,27 +21,43 @@ function move2side(hFigStatic, hFigMov, opt)
 	if (n_args < 2)
 		error('move2side: need at least two inputs')
 	elseif (n_args == 2)
-		opt = 'right';
+		if (isa(hFigMov,'char'))
+			opt = hFigMov;
+			hFigMov = hFigStatic;
+			hFigStatic = false;
+		else
+			opt = 'right';
+		end
 	elseif (n_args == 3 && ~ischar(opt))
 		error('move2side: third argument must be a character string')
 	end
-	
-	if ( ~(ishandle(hFigStatic) && strcmp(get(hFigStatic,'Type'), 'figure')) || ...
-			~(ishandle(hFigMov) && strcmp(get(hFigMov,'Type'), 'figure')) )
-		error('move2side: one or both of the firts two input args are not figure handles.')
+
+	if ( ~(ishandle(hFigMov) && strcmp(get(hFigMov,'Type'), 'figure')) )
+		error('move2side: first argument must be a valid figure handle')
 	end
-	
+	if (hFigStatic && ~(ishandle(hFigStatic) && strcmp(get(hFigStatic,'Type'), 'figure')) )
+		error('move2side: second argument must be a valid figure handle')
+	end
+
 	% get the screen size
 	ecran = get(0,'ScreenSize');
 	
 	% save original figures units and temp set them to pixels
-	FigStaticUnit = get(hFigStatic,'Units');	set(hFigStatic,'Units','Pixels')
-	FigMovUnit    = get(hFigMov,'Units');		set(hFigMov,'Units','Pixels')
+	if (hFigStatic),	FigStaticUnit = get(hFigStatic,'Units');	set(hFigStatic,'Units','Pixels'),	end
+	FigMovUnit = get(hFigMov,'Units');		set(hFigMov,'Units','Pixels')
 	
 	% Get figures dimensions
 	posFigMov = get(hFigMov,'Pos');
 	outPosFigMov = get(hFigMov,'outerposition');
-	posFigStatic = get(hFigStatic,'Pos');
+	if (hFigStatic)
+		posFigStatic = get(hFigStatic,'Pos');
+	else
+		if (lower(opt(1)) == 'r')
+			posFigStatic = [ecran(3) ecran(2:4)];
+		else
+			posFigStatic = [-1 0 ecran(3:4)];
+		end
+	end
 	
 	refine_yLL = true;				% For the horizontal cases
 	if (lower(opt(1)) == 'r')		% Put moving figure on the RIGHT side of reference figure
@@ -71,5 +87,5 @@ function move2side(hFigStatic, hFigMov, opt)
 	set(hFigMov,'Pos',[xLL yLL posFigMov(3:4)])
 	
 	% Reset original figures units
-	set(hFigStatic,'Units',FigStaticUnit)
+	if (hFigStatic),	set(hFigStatic,'Units',FigStaticUnit),		end
 	set(hFigMov,'Units',FigMovUnit)
