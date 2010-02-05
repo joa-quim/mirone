@@ -567,6 +567,7 @@ src_figs/show_palette.m -text
 src_figs/smoothing_param.m -text
 src_figs/snapshot.m -text
 src_figs/srtm_tool.m -text
+src_figs/structuring_elem.m -text
 src_figs/surface_options.m -text
 src_figs/swan_options.m -text
 src_figs/tableGUI.m -text
