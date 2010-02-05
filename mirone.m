@@ -267,6 +267,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		setenv('DYLD_LIBRARY_PATH',[DYLD ':' cd])
 		setappdata(0,'have_DYLD',true)			% Signal to do this only once
 	end
+	if (IAmAMac),	set(hObject,'DockControls','off'),	end
 
 	%Find out which gmt version is beeing used. 
 	info = getappdata(0,'gmt_version');		% See if the info is already there.
@@ -3654,13 +3655,34 @@ elseif (strcmp(opt,'KML'))
 	end
 	writekml(handles,Z,[PathName FileName])		% Z will be used to setup a alpha channel
 
-elseif (strncmp(opt,'morph',5))		% OPT comes in form of: morph-OPERATION. Example, morph-gradient
-	set(handles.hImg,'CData', cvlib_mex('morpho',img, opt(7:end)))
+elseif (strncmp(opt,'morph',5))			% Works for either image or grids
+	strela = structuring_elem;
+	if (isempty(strela)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	if (strcmp(opt(7:end), 'grd'))
+		[X,Y,img] = load_grd(handles);			% Call it 'img' to easy things
+		if isempty(img),		set(handles.figure1,'pointer','arrow'),		return,		end
+	end
+	if ( strcmp(strela.operation,'dilate') || strcmp(strela.operation,'erode') )
+		img = cvlib_mex(strela.operation, img, strela);
+	else
+		img = cvlib_mex('morpho',img, strela.operation, strela);
+	end
+	if (strcmp(opt(7:end), 'img'))
+		set(handles.hImg,'CData', img);
+	else
+		if (handles.have_nans),		zz = grdutils(img,'-L');
+		else						zz = [min(img(:)) max(img(:))];
+		end
+		tmp = struct('X',X, 'Y',Y, 'head',[handles.head(1:4) zz(:)' handles.head(7:9)], 'geog',handles.geog, 'name',[strela.operation ' grid']);
+		projWKT = getappdata(handles.figure1,'ProjWKT');
+		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
+		mirone(img, tmp)
+	end
 
 elseif (strcmp(opt,'scatter'))
 	str = {'*.dat;*.DAT;*.txt;*.TXT', 'Data file (*.dat,*.DAT,*.txt,*.TXT)'; '*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
-	if isequal(FileName,0);		set(handles.figure1,'pointer','arrow');		return,		end			% User gave up
+	if isequal(FileName,0),		set(handles.figure1,'pointer','arrow'),		return,		end			% User gave up
 	datasets_funs('scatter',handles, [PathName FileName])		% Do the work when file is multi-seg, or 
 	n_cols = getappdata(handles.figure1,'callScatterWin');		% return here to pass control to scatter_plot()
 	if (n_cols >= 3)		% Came back from datasets_funs() without doing anything
