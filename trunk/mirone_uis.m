@@ -282,12 +282,7 @@ uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''Rect'')'
 uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''Circles'')','Label','Circles');
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Corners'')','Label','Good features to track');
 
-h = uimenu('Parent',hIM,'Label','Image morphology');
-uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-gradient'')','Label','Gradient');
-uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-open'')','Label','Open');
-uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-close'')','Label','Close');
-uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-tophat'')','Label','Top-hat');
-uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-blackhat'')','Label','Bottom-hat');
+uimenu('Parent',hIM,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-img'')','Label','Image morphology');
 
 uimenu('Parent',hIM,'Call','mirone(''ImageSegment_CB'',guidata(gcbo))','Label','Image segmentation (Mean shift)','Sep','on');
 uimenu('Parent',hIM,'Call','floodfill(gcf)','Label','Shape detector')
@@ -595,6 +590,7 @@ uimenu('Parent',hGT,'Call','mirone(''RotateTool_CB'',guidata(gcbo),''grid'')','L
 uimenu('Parent',hGT,'Call','mirone(''GridToolsHistogram_CB'',guidata(gcbo))','Label','Histogram');
 uimenu('Parent',hGT,'Call','mirone(''GridToolsGridMask_CB'',guidata(gcbo))','Label','Write Mask', 'Tag','haveNaNs');
 uimenu('Parent',hGT,'Call','inpaint_nans(guidata(gcbo))','Label','Inpaint NaNs', 'Tag','haveNaNs');
+uimenu('Parent',hGT,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-grd'')','Label','Morphology');
 
 h = uimenu('Parent',hGT,'Label','Hammer grid','Sep','on');
 uimenu('Parent',h,'Call','escadeirar(guidata(gcbo))','Label','Rice-field Grid');
@@ -654,7 +650,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 24 Jan 2010'',''1.5.1(dev)'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 5 Feb 2010'',''1.5.1'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
