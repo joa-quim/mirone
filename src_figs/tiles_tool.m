@@ -193,7 +193,7 @@ function push_change_dir_CB(hObject, event, handles)
 	%cache_dir = uigetdir;        % This guy doesn't let to be compiled
 	cache_dir = uigetfolder_standalone;
 	if ~isempty(cache_dir)
-		popup_directory_list_CB(handles.popup_directory_list, eventdata, handles, cache_dir)
+		popup_directory_list_CB(handles.popup_directory_list, event, handles, cache_dir)
 	end
 
 % -----------------------------------------------------------------------------------------
