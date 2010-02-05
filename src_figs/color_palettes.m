@@ -32,7 +32,6 @@ if (nargin == 1 && isstruct(varargin{1}))
 			delete(hObject);		return
 		end
 		handles.hCallingFig = handMir.figure1;
-		handles.home_dir = handMir.home_dir;
 		Z = getappdata(handMir.figure1,'dem_z');
 		if (~isempty(Z))
 			handles.have_nans = handMir.have_nans;
@@ -46,8 +45,10 @@ if (nargin == 1 && isstruct(varargin{1}))
 		set(handles.OptionsApply,'Enable','off')
 		set(handles.FileSavePaletteGrid','Vis','off')	% It makes no sense here
 		set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
-		handles.home_dir = cd;
 	end
+	handles.home_dir = handMir.home_dir;
+	handles.work_dir = handMir.work_dir;
+	handles.last_dir = handMir.last_dir;
 	% Add this figure handle to the carra?as list
 	plugedWin = getappdata(handMir.figure1,'dependentFigs');
 	plugedWin = [plugedWin hObject];
@@ -780,7 +781,7 @@ function cmap = FileReadPalette_Callback(hObject, eventdata, handles, opt, opt2)
 	set(handles.listbox1,'String',list,'Value',1);
 	guidata(handles.figure1,handles)
 	%if (~strcmp(opt,'z_levels')),	handles.z_intervals = [];	end	% Trick to avoid cmap recalculation inside change_cmap()
-	handles.thematic = true;
+	if (~isempty(handles.hCallingFig)),		handles.thematic = true;	end
 	change_cmap(handles, cmap);
 
 % --------------------------------------------------------------------
