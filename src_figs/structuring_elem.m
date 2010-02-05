@@ -95,7 +95,7 @@ if (~gotPrevFig)
 	xs = max( ceil(pos(1)+pos(3)/2), pos(1)+H.x*H.p-89+3*20 );
 	for i=3:4
 		H.iconaxes(i) = axes('parent',H.gcf,'units','pixel','pos',[xs+(i-3)*(15+d) pos(2)+4 15 15]);
-		H.icon(i)= image(228-uint8(repmat(img(:,:,i),[1 1 3])),'UserData',uint8(repmat(img(:,:,i),[1 1 3])));
+		H.icon(i)= image(uint8(228-repmat(img(:,:,i),[1 1 3])),'UserData',uint8(repmat(img(:,:,i),[1 1 3])));
 		set(H.iconaxes(i),'vis','off')
 	end
 
@@ -380,8 +380,8 @@ if ~ishandle(obj)
       case 'reset'
          setappdata(H.gcf,'undoid',1)
          setappdata(H.gcf,'undo',{get(H.draw,'FaceVertexCData')});
-         set(H.icon(3),'CData',228-get(H.icon(3),'UserData'),'buttondownfcn','')
-         set(H.icon(4),'CData',228-get(H.icon(4),'UserData'),'buttondownfcn','')
+         set(H.icon(3),'CData',uint8(228-double(get(H.icon(3),'UserData'))),'buttondownfcn','')
+         set(H.icon(4),'CData',uint8(228-double(get(H.icon(4),'UserData'))),'buttondownfcn','')
 
       case 'add'
          undo = undo(1:undoid);
@@ -390,7 +390,7 @@ if ~ishandle(obj)
          setappdata(H.gcf,'undoid',undoid+1);
 
          set(H.icon(3),'CData',get(H.icon(3),'UserData'),'buttondownfcn',{@undo_feature,H,-1});
-         set(H.icon(4),'CData',228-get(H.icon(4),'UserData'),'buttondownfcn','')
+         set(H.icon(4),'CData',uint8(228-double(get(H.icon(4),'UserData'))),'buttondownfcn','')
    end
 else
    undoid = min(max(undoid+step,1),length(undo));
@@ -400,13 +400,13 @@ else
    if undoid<length(undo)
       set(H.icon(4),'CData',get(H.icon(4),'UserData'),'buttondownfcn',{@undo_feature,H,1});
    else
-      set(H.icon(4),'CData',228-get(H.icon(4),'UserData'),'buttondownfcn','')
+      set(H.icon(4),'CData',uint8(228-double(get(H.icon(4),'UserData'))),'buttondownfcn','')
    end
 
    if undoid>1
       set(H.icon(3),'CData',get(H.icon(3),'UserData'),'buttondownfcn',{@undo_feature,H,-1});
    else
-      set(H.icon(3),'CData',228-get(H.icon(3),'UserData'),'buttondownfcn','')
+      set(H.icon(3),'CData',uint8(228-double(get(H.icon(3),'UserData'))),'buttondownfcn','')
    end
 
 end
