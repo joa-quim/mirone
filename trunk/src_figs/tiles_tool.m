@@ -18,7 +18,7 @@ function varargout = tiles_tool(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	tiles_tool_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'east')
+	move2side(hObject,'right')
 
 	if (numel(varargin) > 0)
 		handMir = varargin{1};
@@ -178,7 +178,7 @@ function popup_directory_list_CB(hObject, eventdata, handles, opt)
 
 	if (nargin == 3)    opt = [];   end
 	if ( ~isempty(opt) )				% Add a new entry to the cache dir list. Otherwise, just normal popup functioning.
-		val = get(hObject,'Value');     contents = get(hObject, 'String');
+		contents = get(hObject, 'String');
 		if ( numel(contents) == 1 ),	rest = [];
 		else							rest = contents(2:end);
 		end
@@ -316,13 +316,13 @@ function slider_zoomFactor_CB(hObject, eventdata, handles)
 	if (nXpatch > 16)
 		zoom_j(handles.figure1, 2, anchor_pt)
 		lon = get(handles.axes1,'XLim');	lat = get(handles.axes1,'YLim');
-		lon = lon + [-.15 +.15]*diff(lon);	lat = lat + [-.15 +.15]*diff(lat);	% Add 15% on each side to create squares beyound visible
+		lon = lon + [-.2 +.2]*diff(lon);	lat = lat + [-.2 +.2]*diff(lat);	% Add 20% on each side to create squares beyound visible
 		lon(1) = max(lon(1), -180);			lon(2) = min(lon(2), 180);
 		lat(1) = max(lat(1), -85);			lat(2) = min(lat(2), 85);
 	elseif (nXpatch < 15)
 		zoom_j(handles.figure1, 0.5, anchor_pt)
 		lon = get(handles.axes1,'XLim');	lat = get(handles.axes1,'YLim');
-		lon = lon + [-.15 +.15]*diff(lon);	lat = lat + [-.15 +.15]*diff(lat);
+		lon = lon + [-.2 +.2]*diff(lon);	lat = lat + [-.2 +.2]*diff(lat);
 		lon(1) = max(lon(1), -180);			lon(2) = min(lon(2), 180);
 		lat(1) = max(lat(1), -85);			lat(2) = min(lat(2), 85);
 	end
@@ -545,7 +545,7 @@ function figure1_KeyPressFcn(hObj, eventdata)
 % --- Creates and returns a handle to the GUI figure. 
 function tiles_tool_LayoutFcn(h1)
 
-set(h1, 'Position',[320 30 940 540],...
+set(h1, 'Position',[320 30 940 520],...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'DoubleBuffer','on',...
