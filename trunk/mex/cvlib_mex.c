@@ -2383,7 +2383,7 @@ void JmorphologyEx(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 
 	IplImage *src_img = NULL, *dst_img, *tmp_img = NULL;
 	IplConvKernel *strel = NULL;
-	mxArray *ptr_in, *ptr_out;
+	mxArray *ptr_in, *ptr_out, *mx_ptr;
 
 	struct CV_CTRL *Ctrl;
 	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
@@ -2421,6 +2421,9 @@ void JmorphologyEx(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 	if (n_in == 4) {
 		if (mxIsStruct(prhs[3])) {
 			strel = makeStrel(prhs[3]);
+			mx_ptr = mxGetField(prhs[3], 0, "iterations");
+			if (mx_ptr != NULL)
+				iterations = (int)*mxGetPr(mx_ptr);
 		}
 		else if (mxGetM(prhs[3]) * mxGetN(prhs[3]) == 1 && mxIsDouble(prhs[3])) {
 			ptr_d = mxGetPr(prhs[3]);	iterations = (int)ptr_d[0];
@@ -2467,7 +2470,7 @@ void JmorphologyEx(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 		Set_pt_Ctrl_out1 ( Ctrl, ptr_out ); 
 		dst_img = cvCreateImageHeader(cvSize(nx, ny), img_depth , nBands );
 		localSetData( Ctrl, dst_img, 2, nx * nBands * nBytes );
-		cvMorphologyEx(src_img,dst_img,tmp_img,NULL,cv_code,iterations);
+		cvMorphologyEx(src_img,dst_img,tmp_img,strel,cv_code,iterations);
 
 		plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
 		  			mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
@@ -2475,19 +2478,20 @@ void JmorphologyEx(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 		cvReleaseImageHeader( &dst_img );
 	}
 	else {
-		cvMorphologyEx(src_img,src_img,tmp_img,NULL,cv_code,iterations);
+		cvMorphologyEx(src_img,src_img,tmp_img,strel,cv_code,iterations);
 	}
 
 	cvReleaseImageHeader( &src_img );
 	mxDestroyArray(ptr_in);
 	if (tmp_img) cvReleaseImage( &tmp_img );
 	if (!inplace) mxDestroyArray(ptr_out);
+	if (strel != NULL) cvReleaseStructuringElement(&strel); 
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 }
 
 /* --------------------------------------------------------------------------- */
 IplConvKernel *makeStrel(const mxArray *prhs) {
-	int *values, cols, rows, anchorX, anchorY, shape;
+	int *values = NULL, cols, rows, anchorX, anchorY, shape;
 	double *ptr_d;
 	char *str;
 	mxArray	*mx_ptr;
@@ -2511,17 +2515,17 @@ IplConvKernel *makeStrel(const mxArray *prhs) {
 
 	if (shape != CV_SHAPE_CUSTOM) {		/* Must have element description */
 
-		ptr_d = mxGetPr(mxGetField(prhs, 0, "cols"));
-		if (ptr_d == NULL)
+		mx_ptr = mxGetField(prhs, 0, "cols");
+		if (mx_ptr == NULL)
 			mexErrMsgTxt("CVLIB_MEX: must provide number of columns of structuring element");
 		else
-			cols = (int)*ptr_d;
+			cols = (int)*mxGetPr(mx_ptr);
 
-		ptr_d = mxGetPr(mxGetField(prhs, 0, "rows"));
-		if (ptr_d == NULL)
+		mx_ptr = mxGetField(prhs, 0, "rows");
+		if (mx_ptr == NULL)
 			mexErrMsgTxt("CVLIB_MEX: must provide number of rows of structuring element");
 		else
-			rows = (int)*ptr_d;
+			rows = (int)*mxGetPr(mx_ptr);
 
 		mx_ptr = mxGetField(prhs, 0, "anchorX");
 		if (mx_ptr == NULL)
@@ -2537,23 +2541,29 @@ IplConvKernel *makeStrel(const mxArray *prhs) {
 	}
 	else {			/* CUSTOM strel */
 
-		ptr_d = mxGetPr(mxGetField(prhs, 0, "values"));
-		if (ptr_d == NULL)
+		mx_ptr = mxGetField(prhs, 0, "cols");
+		if (mx_ptr == NULL)
+			cols = mxGetN(mx_ptr);
+		else
+			cols = (int)*mxGetPr(mx_ptr);
+
+		mx_ptr = mxGetField(prhs, 0, "rows");
+		if (mx_ptr == NULL)
+			rows = mxGetM(mx_ptr);
+		else
+			rows = (int)*mxGetPr(mx_ptr);
+
+		mx_ptr = mxGetField(prhs, 0, "values");
+		if (mx_ptr == NULL)
 			mexErrMsgTxt("CVLIB_MEX: must provide structuring element values");
-		else
-			values = (int *)ptr_d;
-
-		ptr_d = mxGetPr(mxGetField(prhs, 0, "cols"));
-		if (ptr_d == NULL)
-			cols = mxGetN(prhs);
-		else
-			cols = (int)*ptr_d;
-
-		ptr_d = mxGetPr(mxGetField(prhs, 0, "rows"));
-		if (ptr_d == NULL)
-			rows = mxGetM(prhs);
-		else
-			rows = (int)*ptr_d;
+		else {
+			int i, j, n = 0;
+			values = (int *)mxMalloc (rows * cols * sizeof(int));
+			ptr_d = mxGetPr(mx_ptr);
+			for (j = rows - 1; j >= 0; j--)
+				for (i = 0; i < cols; i++)
+					values[n++] = (int)ptr_d[j*cols + i];
+		}
 
 		mx_ptr = mxGetField(prhs, 0, "anchorX");
 		if (mx_ptr == NULL)
@@ -2568,10 +2578,7 @@ IplConvKernel *makeStrel(const mxArray *prhs) {
 			anchorY = (int)*mxGetPr(mx_ptr);
 	}
 
-	if (shape != CV_SHAPE_CUSTOM)
-		strel = cvCreateStructuringElementEx(cols, rows, anchorX, anchorY, shape, NULL);
-	else
-		strel = cvCreateStructuringElementEx(cols, rows, anchorX, anchorY, shape, values);
+	strel = cvCreateStructuringElementEx(cols, rows, anchorX, anchorY, shape, values);
 
 	return (strel);	
 }
@@ -2582,7 +2589,7 @@ void JerodeDilate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], c
 	double *ptr_d;
 
 	IplImage *src_img = 0, *dst_img;
-	mxArray *ptr_in;
+	mxArray *ptr_in, *mx_ptr;
 	IplConvKernel *strel = NULL;
 
 	struct CV_CTRL *Ctrl;
@@ -2605,6 +2612,9 @@ void JerodeDilate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], c
 	if (n_in == 3) {
 		if (mxIsStruct(prhs[2])) {
 			strel = makeStrel(prhs[2]);
+			mx_ptr = mxGetField(prhs[2], 0, "iterations");
+			if (mx_ptr != NULL)
+				iterations = (int)*mxGetPr(mx_ptr);
 		}
 		else if (mxGetM(prhs[2]) * mxGetN(prhs[2]) == 1 && mxIsDouble(prhs[2])) {
 			ptr_d = mxGetPr(prhs[2]);	iterations = (int)ptr_d[0];
@@ -2655,6 +2665,7 @@ void JerodeDilate(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], c
 
 	cvReleaseImageHeader( &src_img );
 	cvReleaseImageHeader( &dst_img );
+	if (strel != NULL) cvReleaseStructuringElement(&strel); 
 	mxDestroyArray(ptr_in);
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 }
@@ -4572,13 +4583,14 @@ void dilateUsage() {
 	mexPrintf("	     'rows' Number of rows in the structuring element\n");
 	mexPrintf("	     'anchorX' Relative horizontal offset of the anchor point\n");
 	mexPrintf("	     'anchorY' Relative vertical offset of the anchor point\n");
+	mexPrintf("	     'iterations' Number of iterations. If absent defaults to 1.\n");
 	mexPrintf("	     'shape'   Shape of the structuring element; may have the following values:\n");
 	mexPrintf("	        'rect'    - a rectangular element\n");
 	mexPrintf("	        'cross'   - a cross-shaped element\n");
 	mexPrintf("	        'ellipse' - an elliptic element\n");
 	mexPrintf("	        'custom'  - a user-defined element. In this case a further parameter 'values'\n");
 	mexPrintf("	                    specifies the mask, that is, which neighbors of the pixel must be considered\n");
-	mexPrintf("	        'values'  - a plane array, representing row-by-row scanning of the element matrix.\n");
+	mexPrintf("	        'values'  - a [rows x cols] array, in the Matlab column major order.\n");
 	mexPrintf("	                    Non-zero values indicate points that belong to the element.\n");
 	mexPrintf("	  If STREL is not provided, a 3x3 square element is used.\n");
 	mexPrintf("	  ITER number of iterations. If not provided iterations = 1;\n\n");
@@ -4672,13 +4684,14 @@ void erodeUsage() {
 	mexPrintf("	     'rows' Number of rows in the structuring element\n");
 	mexPrintf("	     'anchorX' Relative horizontal offset of the anchor point\n");
 	mexPrintf("	     'anchorY' Relative vertical offset of the anchor point\n");
+	mexPrintf("	     'iterations' Number of iterations. If absent defaults to 1.\n");
 	mexPrintf("	     'shape'   Shape of the structuring element; may have the following values:\n");
 	mexPrintf("	        'rect'    - a rectangular element\n");
 	mexPrintf("	        'cross'   - a cross-shaped element\n");
 	mexPrintf("	        'ellipse' - an elliptic element\n");
 	mexPrintf("	        'custom'  - a user-defined element. In this case a further parameter 'values'\n");
 	mexPrintf("	                    specifies the mask, that is, which neighbors of the pixel must be considered\n");
-	mexPrintf("	        'values'  - a plane array, representing row-by-row scanning of the element matrix.\n");
+	mexPrintf("	        'values'  - a [rows x cols] array, in the Matlab column major order.\n");
 	mexPrintf("	                    Non-zero values indicate points that belong to the element.\n");
 	mexPrintf("	  If STREL is not provided, a 3x3 square element is used.\n");
 	mexPrintf("	  ITER number of iterations. If not provided iterations = 1;\n\n");
@@ -4932,13 +4945,14 @@ void morphologyexUsage() {
 	mexPrintf("	     'rows' Number of rows in the structuring element\n");
 	mexPrintf("	     'anchorX' Relative horizontal offset of the anchor point\n");
 	mexPrintf("	     'anchorY' Relative vertical offset of the anchor point\n");
+	mexPrintf("	     'iterations' Number of iterations. If absent defaults to 1.\n");
 	mexPrintf("	     'shape'   Shape of the structuring element; may have the following values:\n");
 	mexPrintf("	        'rect'    - a rectangular element\n");
 	mexPrintf("	        'cross'   - a cross-shaped element\n");
 	mexPrintf("	        'ellipse' - an elliptic element\n");
 	mexPrintf("	        'custom'  - a user-defined element. In this case a further parameter 'values'\n");
 	mexPrintf("	                    specifies the mask, that is, which neighbors of the pixel must be considered\n");
-	mexPrintf("	        'values'  - a plane array, representing row-by-row scanning of the element matrix.\n");
+	mexPrintf("	        'values'  - a [rows x cols] array, in the Matlab column major order.\n");
 	mexPrintf("	                    Non-zero values indicate points that belong to the element.\n");
 	mexPrintf("	  If STREL is not provided, a 3x3 square element is used.\n");
 	mexPrintf("	  ITER number of iterations. If not provided iterations = 1;\n\n");
