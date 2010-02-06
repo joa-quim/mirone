@@ -41,9 +41,9 @@ switch opt
 	case 'deleteObj',				deleteObj(hand);
 	case 'DrawCircleEulerPole'
 		draw_circleEulerPole(data(1),data(2));  
-	case 'SessionRestoreCircle'			% Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
+	case 'SessionRestoreCircle'			% Called by "FileOpenSession" or "DrawGeogCircle_CB"
 		set_circleGeo_uicontext(hand)
-	case 'SessionRestoreCircleCart'		% Called by "FileOpenSession" or "DrawGeographicalCircle_CB"
+	case 'SessionRestoreCircleCart'		% Called by "FileOpenSession" or "DrawGeogCircle_CB"
 		set_circleCart_uicontext(hand)
 	case 'DrawText'
 		cmenuHand = uicontextmenu;
@@ -1552,7 +1552,7 @@ function rectangle_register_img(obj,event)
 
 	% Rebuild the image with the new limits. After many atempts I found that
 	% kill and redraw is the safer way.
-	[m,n,k] = size(img);
+	m = size(img,1);		n = size(img,2);
 	[new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
 	delete(handles.hImg);
 	handles.hImg = image(new_xlim,new_ylim,img,'Parent',handles.axes1);
