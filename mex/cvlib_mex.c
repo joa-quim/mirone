@@ -15,6 +15,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 30  06/02/2010 JL	Fixed crashing of cvFindContours on R13 (didn't like a freeing of storage)
  * Revision 29  03/02/2010 JL	Added structuring element input to the morphology operations
  * Revision 28  04/10/2009 JL	Added scale8. Documented rev 25
  * Revision 27  01/10/2009 JL	#ifdef the Sift building
@@ -1941,7 +1942,6 @@ void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 				CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );
 
 	cvReleaseImageHeader( &src_img );
-	cvReleaseMemStorage( &storage );
 	mxDestroyArray(ptr_in);
 
 	/* ------ GET OUTPUT DATA --------------------------- */ 
@@ -1962,6 +1962,7 @@ void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 		contours = contours->h_next;
 		mxDestroyArray(mx_ptr);
 	}
+	cvReleaseMemStorage( &storage );
 
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 }
