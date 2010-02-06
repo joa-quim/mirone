@@ -95,7 +95,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.firstIllum = 1;		% First illumination will use the displayed image which may have been IP
 	handles.flederBurn = 1;		% When build a fleder obj burn eventual coastlines
 	handles.flederPlanar = 1;	% Default to planar flder objs (but mirone_pref knows better)
-	handles.whichFleder = 1;	% whichFleder = 1 for the free iview3d or 0 for the true thing (fledermaus)
+	handles.whichFleder = 1;	% whichFleder = 1 for the free iview4d or 0 for the true thing (fledermaus)
 	handles.oldSize = get(hObject,'Pos');
 	if (handles.oldSize(4) == 0),	handles.oldSize(4) = 1;		end
 	handles.is_projected = 0;	% To keep track if coords are projected or not
@@ -981,11 +981,11 @@ function ExtractProfile_CB(handles, opt)
 	if (isempty(Z) && handles.validGrid)			% Grid not in memory error
 		errordlg('Grid was not on memory. Increase "Grid max size" and start over again.','ERROR'); return
 	elseif (isempty(Z) && ndims(get(handles.hImg,'CData')) == 2)
-		Z = get(handles.hImg,'CData');
-		img_lims = getappdata(handles.axes1,'ThisImageLims');	% Get limits and correct them for the pix reg problem
-		x_inc = (img_lims(2)-img_lims(1)) / size(Z,2);		y_inc = (img_lims(4)-img_lims(3)) / size(Z,1);
-		img_lims = img_lims + [x_inc -x_inc y_inc -y_inc]/2;	% Remember that the Image is ALWAYS pix reg
-		X = linspace(img_lims(1),img_lims(2),size(Z,2));	Y = linspace(img_lims(3),img_lims(4),size(Z,1));
+		%Z = get(handles.hImg,'CData');
+		%img_lims = getappdata(handles.axes1,'ThisImageLims');	% Get limits and correct them for the pix reg problem
+		%x_inc = (img_lims(2)-img_lims(1)) / size(Z,2);		y_inc = (img_lims(4)-img_lims(3)) / size(Z,1);
+		%img_lims = img_lims + [x_inc -x_inc y_inc -y_inc]/2;	% Remember that the Image is ALWAYS pix reg
+		%X = linspace(img_lims(1),img_lims(2),size(Z,2));	Y = linspace(img_lims(3),img_lims(4),size(Z,1));
 	elseif (isempty(Z))
 		errordlg('Extracting profile of a RGB image is not suported.','ERROR'),		return
 	end
@@ -2275,7 +2275,7 @@ function DrawEulerPoleCircle_CB(handles)
 	zoom_state(handles,'maybe_on');
 
 % --------------------------------------------------------------------
-function DrawGeographicalCircle_CB(handles, opt)
+function DrawGeogCircle_CB(handles, opt)
 	if (handles.no_file),	return,		end
 	if ( strcmp(get(handles.figure1,'Pointer'), 'crosshair') ),		return,		end		% Already drawing something else
 	if (nargin == 1),	opt = [];	end
@@ -3018,7 +3018,6 @@ function GridToolsHistogram_CB(handles, opt)
 	[n,xout] = histo_m('hist',Z(:),n,[z_min z_max]);
 	h = mirone;							% Create a new Mirone figure
 	mirone('FileNewBgFrame_CB', guidata(h), [xout(1) xout(end) 0 max(n) 0], [600 600],'Grid Histogram');
-	axes(get(h,'CurrentAxes'));
 	histo_m('bar',xout,n,'hist');
 	set(handles.figure1,'pointer','arrow')
 
@@ -3354,11 +3353,11 @@ function FileSaveFleder_CB(handles, opt)
 	fname = write_flederFiles(opt, handles);		pause(0.01);
 	if (isempty(fname)),	return,		end
 	if (strncmp(opt,'run',3))		% Run the viewer and remove the tmp .sd file
-		if (handles.whichFleder),	fcomm = ['iview3d -data ' fname ' &'];			% Free viewer
+		if (handles.whichFleder),	fcomm = ['iview4d -data ' fname ' &'];			% Free viewer
 		else						fcomm = ['fledermaus -data ' fname ' &'];		% The real thing
 		end
 		try
-			if (isunix)				% Stupid linux doesn't react to a non-existant iview3d
+			if (isunix)				% Stupid linux doesn't react to a non-existant iview4d
 				resp = unix(fcomm);
 				if (resp == 0)
 					errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
@@ -3427,6 +3426,7 @@ elseif (strcmp(opt,'Lines'))
 	P = img_fun('houghpeaks',H,50,'threshold',ceil(0.3*double(max(H(:)))));
 	lines = img_fun('houghlines',BW,T,R,P,'FillGap',10,'MinLength',50);
 	if (~isfield(lines,'point1')),	set(handles.figure1,'pointer','arrow'),		return,		end
+	B = cell(1,length(lines));
 	for (k = 1:length(lines))
 		B{k} = [lines(k).point1(2:-1:1); lines(k).point2(2:-1:1)];
 	end
@@ -3656,7 +3656,7 @@ elseif (strcmp(opt,'KML'))
 	writekml(handles,Z,[PathName FileName])		% Z will be used to setup a alpha channel
 
 elseif (strncmp(opt,'morph',5))			% Works for either image or grids
-	strela = structuring_elem;
+	strela = structuring_elem;		pause(0.01)
 	if (isempty(strela)),	set(handles.figure1,'pointer','arrow'),		return,		end
 	if (strcmp(opt(7:end), 'grd'))
 		[X,Y,img] = load_grd(handles);			% Call it 'img' to easy things
