@@ -1081,7 +1081,10 @@ function FileOpen_ENVI_Erdas_CB(handles, opt, opt2)
 		Z = single(Z);			handles.head = att.GMT_hdr;
 		if (~isempty(att.Band(1).NoDataValue)),		Z(Z <= single(att.Band(1).NoDataValue)) = NaN;		end
 		handles.have_nans = grdutils(Z,'-N');
-		zz = scaleto8(Z);		[m,n] = size(Z);
+		if (handles.have_nans),		zz = scaleto8(Z);
+		else						zz = cvlib_mex('scale8',Z);
+		end
+		[m,n] = size(Z);
 		X = linspace(handles.head(1),handles.head(2),n);	Y = linspace(handles.head(3),handles.head(4),m);	% Need this for image
 		aux_funs('StoreZ',handles,X,Y,Z)		% If grid size is not to big we'll store it
 		validGrid = 1;							% Signal that grid opps are allowed
@@ -1547,7 +1550,6 @@ function read_DEMs(handles,fullname,tipo,opt)
 	aux_funs('StoreZ',handles,X,Y,Z)		% If grid size is not to big we'll store it
 	handles.head = head;
 	aux_funs('colormap_bg',handles,Z,jet(256));
-	%zz = scaleto8(Z);
 	if (handles.have_nans),		zz = scaleto8(Z);	% Need to update cvlib_mex before we can use this
 	else						zz = cvlib_mex('scale8',Z);
 	end
