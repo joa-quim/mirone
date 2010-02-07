@@ -6,8 +6,6 @@
 #
 
 GMTSRCDIR = /Users/j/programs/GMT/src/
-#include $(GMTSRCDIR)makegmt.macros
-#include $(GMTSRCDIR)gmtalldeps.macros
 include $(GMTSRCDIR)config.mk
 include $(GMTSRCDIR)common.mk
 
@@ -16,10 +14,16 @@ include $(GMTSRCDIR)common.mk
 # Where install will place the files.  Notice that it must allways be ..../"mirone root"/lib_mex
 
 mirone_mex_dir	= /Users/j/programs/mironeTrunk/lib_mex
-MATLAB		= /Applications/MATLAB_R2009b.app
 
+# On Mac (but need to addapt to 32 or 64)
+MATLAB		= /Applications/MATLAB_R2009b.app
 MATLAB_MEX	= maci64
-MEX_EXT		= mexmaci64
+MEX_EXT	= mexmaci64
+
+# On linux
+#MATLAB		= /home/bagside/programs/matlab
+#MATLAB_MEX	= glnx86
+#MEX_EXT	= mexglx
 
 #----------------------------------------------------------------------------
 #	The rest should should be ok. WELL, IF ON *NIX THEY WERE NOT CHANGING THINGS ALL THE TIME
@@ -38,7 +42,7 @@ GDAL_FLAGS = -I/usr/local/include -I$(MATLAB)/extern/include
 OCV_LIB = -L/usr/local/lib/ -lcv -lcxcore #-lcvhaartraining      # used on v1.0
 OCV_FLAGS = -I/usr/local/include/opencv -I$(MATLAB)/extern/include
 SHAPE_LIB = -L/usr/local/lib/ -lshp
-SHAPE_FLAGS = -I/usr/local/include -I$(MATLAB)/extern/include
+SHAPE_FLAGS = -I/usr/local/include -I/usr/local/include/libshp -I$(MATLAB)/extern/include
 MEXNC_FLAGS = $(NETCDF_INC) -I$(MATLAB)/extern/include
 
 PROG_GMT	= grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m mapproject_m shoredump surface_m nearneighbor_m grdfilter_m cpt2cmap grdlandmask_m grdppa_m gmtlist_m
