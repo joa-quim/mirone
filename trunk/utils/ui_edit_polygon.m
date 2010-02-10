@@ -13,7 +13,9 @@ function ui_edit_polygon(varargin)
 % 	MOVE_CHOICE			% Controls what mouse selection is used to move the whole polygon.
 % 						% If == empty, polygon is moved with a left click. That has often anoying side effects
 % 						% If == 'extend', means that we need a Shift-click left mouse button or click both
-% 						% left and right mouse buttons to move it. A bit more cumbersome, but safer.
+% 						%		left and right mouse buttons to move it. A bit more cumbersome, but safer.
+% 						% If == 'y', OR == 'x' means that Y or X vertices are move while editing
+%
 %		An alternative way to set the MOVE_CHOICE option is to put it as an appdata of the axes where lines are drawn.
 %		As an example of how it works see this snipet showing how it is recovered here
 % 				hAx = get(varargin{1},'parent');				% Get parent axes
@@ -56,8 +58,9 @@ function ui_edit_polygon(varargin)
 %	JL	20-Jul-2008 Guess best positions for the insert option
 %					Allow choosing what mouse selection is used to move the whole polygon.
 %	JL	25-Aug-2008 Added the "e" (extend) keyboard option
+%	JL	08-Feb-2010 Added 'y' or 'x' to the move_choice option
 
-%	Copyright (c) 2004-2008 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -74,7 +77,8 @@ function ui_edit_polygon(varargin)
 	if (isa(varargin{end},'char'))	% Moving polygon option was transmitted in input
 		move_choice = varargin{end};
 		varargin(end) = [];
-		if ( ~strcmp(move_choice, 'extend') )		% Besides [], the only other possible value is 'extend'
+		if ( ~(strncmp(move_choice, 'ex' ,2) || strcmp(move_choice, 'x') || strcmp(move_choice, 'y')) )
+			% Besides [], the other possible values are 'extend', 'x' or 'y'
 			move_choice = [];
 		end
 	else							% See if the Moving polygon option is stored in axe's appdata
@@ -85,14 +89,17 @@ function ui_edit_polygon(varargin)
 			move_choice = [];
 		end
 	end
+	if ( ~isempty(move_choice) && ~((move_choice(1) == 'x') || (move_choice(1) == 'y')) )
+		move_choice = 'a';		% Means 'xy'
+	end
 
 	for (i = 1:numel(varargin))				% Argument check
 		if (~ishandle(varargin{i}))
 			disp(['Warning: Input argument ' sprintf('%d',i) 'is not a valid handle.'])
-            
+
 		elseif ~(strcmp(get(varargin{i},'Type'),'patch') || strcmp(get(varargin{i},'Type'),'line'))
 			disp(['Warning: Input argument ' sprintf('%d',i) 'needs to be line or patch.'])
-            
+
 		% If the patch is allready editable by ui_edit_polygon, disable the edit mode (if set on) 
 		elseif ~isempty(getappdata(varargin{i},'polygon_data'))
 			s = getappdata(varargin{i},'polygon_data');
@@ -100,7 +107,7 @@ function ui_edit_polygon(varargin)
 				set(s.h_fig,'selectiontype','open');
 				polygonui(s.h_pol)
 			end
-            
+
 		else
 			% Creating data-structure for polygon
 			s.h_pol = varargin{i};
@@ -109,12 +116,12 @@ function ui_edit_polygon(varargin)
 			s.h_ax = get(s.h_pol,'parent');
 			s.h_fig = get(s.h_ax,'parent');
 			s.KeyPress_orig = get(s.h_fig,'KeyPressFcn');
-	
+
 			s.controls = 'off';
 			s.vert_index = [];
 			s.save_x = [];
 			s.save_y = [];
-	
+
 			x = get(s.h_pol,'XData');
 			y = get(s.h_pol,'YData');
 			s.is_closed_patch = 0;
@@ -131,9 +138,9 @@ function ui_edit_polygon(varargin)
 			else
 				s.is_closed = 0;
 			end
-			
+
 			s.what_move = move_choice;
-	
+
 			set(s.h_pol,'buttondownfcn',@polygonui);
 			setappdata(s.h_pol,'polygon_data',s)
 		end
@@ -214,7 +221,7 @@ function wbm_EditPolygon(obj,eventdata,h,lim,hFig)
 	xx = xx(:)';                    yy = yy(:)';    % Make sure they are row vectors
 	newx = pt(1,1);                 newy = pt(1,2);
 
-	if (s.is_rect && s.keep_rect)                % We are dealing with a line/patch rectangle
+	if (s.is_rect && s.keep_rect)				% We are dealing with a line/patch rectangle
 		if (s.vert_index == 1)
 			x = [newx newx xx(3) xx(4) newx];   y = [newy yy(2) yy(3) newy newy];
 		elseif (s.vert_index == 2)
@@ -226,32 +233,32 @@ function wbm_EditPolygon(obj,eventdata,h,lim,hFig)
 		elseif (s.vert_index == 5)
 			x = [newx newx xx(3) xx(4) newx];   y = [newy yy(2) yy(3) newy newy];
 		end
-	elseif (s.vert_index == 1)                  % Selected first vertice
-        if (s.is_closed && s.is_closed_patch)
-            x = [newx xx(2:end-1) newx];    y = [newy yy(2:end-1) newy];
+	elseif (s.vert_index == 1)					% Selected first vertice
+		if (s.is_closed && s.is_closed_patch)
+			x = [newx xx(2:end-1) newx];    y = [newy yy(2:end-1) newy];
 		elseif (s.is_closed && ~s.is_closed_patch)
 			if (s.is_patch)
 				x = [newx xx(2:end)];           y = [newy yy(2:end)];
-			else                                % deformable rectangle (rect given in cw direction)
+			else								% deformable rectangle (rect given in cw direction)
 				x = [newx xx(2:end-1) newx];    y = [newy yy(2:end-1) newy];
 			end
-		else								% "Open" polyline
+		else									% "Open" polyline
 			x = [newx xx(2:end)];           y = [newy yy(2:end)];
 		end
 	elseif (s.vert_index == length(xx) && ~s.is_patch)     % Selected last polyline vertice
 		if (s.is_closed)
 			x = [newx xx(2:end-1) newx];    y = [newy yy(2:end-1) newy];
-		else								% "Open" polyline
+		else									% "Open" polyline
 			x = [xx(1:end-1) newx];         y = [yy(1:end-1) newy];
 		end
-	else                                    % Midle vertices
+	else										% Midle vertices
 		x = [xx(1:s.vert_index-1) newx xx(s.vert_index+1:end)];
 		y = [yy(1:s.vert_index-1) newy yy(s.vert_index+1:end)];
 	end
 
 	set(s.h_pol, 'XData',x, 'YData',y);
-	set(s.h_current_marker,'XData',newx,'YData',newy)   % Move the current point marker together with the editing point
-	set(s.h_vert,'XData',x, 'YData',y)                  % Move the marker together with the editing point
+	set(s.h_current_marker,'XData',newx,'YData',newy)	% Move the current point marker together with the editing point
+	set(s.h_vert,'XData',x, 'YData',y)					% Move the marker together with the editing point
 
 %--------------------------------------------------
 function wbu_EditPolygon(obj,eventdata,h,state)
@@ -266,7 +273,9 @@ function move_polygon(obj,eventdata,h)
 	stype = get(s.h_fig,'selectiontype');
 
 	if (strcmp(stype,'open')),		polygonui(s.h_pol,[]),		return,		end
-	if (~isempty(s.what_move) && ~strcmp(stype,s.what_move)),	return,		end		% needs "password" to continue
+	if (~isempty(s.what_move) && ((stype(1) ~= 'e') && s.what_move(1) ~= 'y') )		% needs "password" to continue
+		return
+	end
 
 	state = uisuspend_safe(s.h_fig);                 % Remember initial figure state    
 	x_lim = get(s.h_ax,'xlim');        y_lim = get(s.h_ax,'ylim');
@@ -280,7 +289,7 @@ function move_polygon(obj,eventdata,h)
 function wbm_MovePolygon(obj,eventdata,h,lim)
 	s = getappdata(h,'polygon_data');
 	pt = get(s.h_ax, 'CurrentPoint');
-	if (pt(1,1) < lim(1)) || (pt(1,1) > lim(2)) || (pt(1,2) < lim(3)) || (pt(1,2) > lim(4));   return; end
+	if (pt(1,1) < lim(1)) || (pt(1,1) > lim(2)) || (pt(1,2) < lim(3)) || (pt(1,2) > lim(4)),	return,	end
 	old_pt = getappdata(s.h_pol,'old_pt');
 	xx = get(s.h_pol,'XData');      yy = get(s.h_pol,'YData');
 	xv = get(s.h_vert,'XData');     yv = get(s.h_vert,'YData');
@@ -288,13 +297,24 @@ function wbm_MovePolygon(obj,eventdata,h,lim)
 	xx = xx + dx;                   yy = yy + dy;
 	xv = xv + dx;                   yv = yv + dy;
 	setappdata(s.h_pol,'old_pt',[pt(1,1) pt(1,2)])
-	set(s.h_pol, 'XData',xx, 'YData',yy);
-	set(s.h_vert, 'XData',xv, 'YData',yv);
-%  	set(s.h_pol, 'YData',yy);	set(s.h_vert, 'YData',yv);
+ 	if ( isempty(s.what_move) || s.what_move(1) == 'a' )
+		set(s.h_pol, 'XData',xx, 'YData',yy);
+		set(s.h_vert, 'XData',xv, 'YData',yv);
+ 	elseif ( ~isempty(s.what_move) && s.what_move(1) == 'y' )
+		set(s.h_pol, 'YData',yy);	set(s.h_vert, 'YData',yv);
+	else
+		set(s.h_pol, 'YData',xx);	set(s.h_vert, 'XData',xv);
+	end
 
-	if (~isempty(s.h_current_marker))      % If the black marker exists, move it also
-		x = get(s.h_current_marker,'XData');      y = get(s.h_current_marker,'YData');
-		x = x + dx;     y = y + dy;
+	if (~isempty(s.h_current_marker))				% If the black marker exists, move it too
+		x = get(s.h_current_marker,'XData');		y = get(s.h_current_marker,'YData');
+		if ( isempty(s.what_move) || s.what_move(1) == 'a' )
+			x = x + dx;		y = y + dy;
+	 	elseif ( ~isempty(s.what_move) && s.what_move(1) == 'y' )
+			y = y + dy;
+		else
+			x = x + dx;
+		end
 		set(s.h_current_marker,'XData',x,'YData',y)
 	end
 
