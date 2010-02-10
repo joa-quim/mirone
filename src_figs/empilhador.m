@@ -6,7 +6,7 @@ function varargout = empilhador(varargin)
 %
 % NOTE: The gotFromMETA and getZ functions are called directly by mirone
 
-%	Copyright (c) 2004-2009 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -416,7 +416,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	grd_out = [PathName FileName];
 
 	% Read relevant metadata
-	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim, att] = ...
+	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log] = ...
 		get_headerInfo(handles, got_R, west, east, south, north);
 
 	handles.geog = 1;			handles.head = head;
@@ -439,7 +439,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		end
 
 		% In the following, if any of slope, intercept or base changes from file to file ... f
-		[Z, handles.have_nans, att] = getZ(handles.nameList{k}, [], is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles);
+		[Z, handles.have_nans] = getZ(handles.nameList{k}, [], is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles);
 
 		if (get(handles.radio_conv2vtk,'Val'))				% Write this layer of the VTK file and continue
 			write_vtk(fid, grd_out, Z);
@@ -675,9 +675,6 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		head(3) = y_min + rp(1)*dy;		head(4) = y_min + rp(2)*dy;
 		rp = rows - rp -1;		rp = [rp(2) rp(1)];
 		opt_R = sprintf('-r%d/%d/%d/%d',cp(1:2),rp(1:2));
-		if (get(handles.radio_lon, 'Val')),		N_spatialSize = round(diff(rp) + 1);
-		else									N_spatialSize = round(diff(cp) + 1);
-		end
 	end
 
 % ----------------------------------------------------------------------------------------
@@ -743,25 +740,28 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		IamCompiled = handles.IamCompiled;
 	else
 		% Need to know if "IamCompiled". Since that info is in handles, we need to find it out here
-		try			which('mirone');			IamCompiled = false;
+		try			dumb = which('mirone');			IamCompiled = false;
 		catch,		IamCompiled = true;
 		end
-		
 	end
+
 	saveNoData = false;
 	if (is_modis && ~isempty(att))
 		NoDataValue = att.Band(1).NoDataValue;		% Save this value to reset it after read_gdal()
 		saveNoData = true;
 	end
 
-	GMT_hdr = att.GMT_hdr;			% Make copies of these
-	Corners.LR = att.Corners.LR;
-	Corners.UL = att.Corners.UL;
+	GMT_hdr = [];
+	if (~isempty(att))					% Make copies of these
+		GMT_hdr = att.GMT_hdr;
+		Corners.LR = att.Corners.LR;
+		Corners.UL = att.Corners.UL;
+	end
 
 	[Z, att, known_coords] = read_gdal(fname, att, IamCompiled, '-C', opt_R, '-U');
 
 	% See if we knew the image coordinates but that knowedge is lost in new att
-	if ( ~known_coords )	% For the moment we only know for sure for L2 georeferenced products
+	if ( ~known_coords && ~isempty(GMT_hdr) )	% For the moment we only know for sure for L2 georeferenced products
 		if ( (isequal(att.GMT_hdr(8:9), [1 1]) && ~isequal(GMT_hdr(8:9), [1 1])) || (diff(GMT_hdr(1:2)) > 359.9) )
 			att.GMT_hdr = GMT_hdr;		% Recover the header info
 			att.Corners.LR = Corners.LR;
