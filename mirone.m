@@ -120,7 +120,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		if (strcmp(DefLineColor{1},'Black')),	handles.DefLineColor = 'k';
 		else									handles.DefLineColor = lower(DefLineColor{1}(1));
 		end
-		% Decode the Measure unites into a char code (e.g. n, k, m, u from {'nautical miles' 'kilometers' 'meters' 'user'})
+		% Decode the Measure unities into a char code (e.g. n, k, m, u from {'nautical miles' 'kilometers' 'meters' 'user'})
 		handles.DefineMeasureUnit = DefineMeasureUnit{1}(1);
 		handles.DefineEllipsoide = DefineEllipsoide_params;		% Set the default ellipsoide parameters (a,b,f)
 		handles.flederBurn = flederBurn;
@@ -128,6 +128,9 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles.scale2meanLat = scale2meanLat;
 		for (i=1:numel(FOpenList)),		handles.FOpenList{i} = FOpenList{i};	end
 		handles.whichFleder = whichFleder;
+		if (~moveDoubleClick)				% this info is used by UI_EDIT_POLYGON()
+			setappdata(handles.handMir.axes1,'MovPolyg','extend')		% Move lines with a Shift-click drag-n-drop
+		end
 	end
 	
 	j = false(1,numel(handles.last_directories));			% vector for eventual cleaning non-existing dirs
