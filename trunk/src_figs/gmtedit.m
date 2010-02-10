@@ -16,7 +16,7 @@ function out = gmtedit(varargin)
 %       OUT, if given will contain this figure handle.
 %
 
-%	Copyright (c) 2004-2009 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -225,10 +225,14 @@ function out = gmtedit(varargin)
 	uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','cdata',info_ico, 'Tooltip','Cruise Info');
 	uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang','cdata',rectang_ico,...
 		'Tooltip','Rectangular region','Sep','on');
+	rectang_ico(7:10,8,:) = 0;
 	uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedCB,'cdata',rectang_ico,'Tooltip','Select for moving');
 	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zoomIn_img,'Tooltip','Increase scale','Sep','on');
 	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'dec'}, 'cdata',zoomOut_img,'Tooltip','Decrease scale');
 	uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',trincha_ico,'Tooltip','Outliers detector','Sep','on');
+	if (~is_gmt)	
+		uipushtool('parent',h_toolbar,'Click',{@NavFilters_ClickedCB,f_name}, 'cdata',flipdim(trincha_ico,1),'Tooltip','Find Nav/Grad troubles','Sep','on');
+	end
 
 	% Create empty lines just for the purpose of having their handles
 	handles.h_gl = line('XData',[],'YData',[],'Color','k','Parent',h_a1);
@@ -381,6 +385,16 @@ function interp_on_grid(obj, event)
 	handles = guidata(obj);
 	hAx = get(handles.figure1, 'CurrentAxes');		% Find which axes are we working on
 	gmtedit_track(handles.lon, handles.lat, handles.year, hAx, handles.h_tm, handles.last_dir, handles.work_dir)
+
+% --------------------------------------------------------------------
+function NavFilters_ClickedCB(obj, event, fname)
+% Rise a Window with controls for filtering Nav/Grads
+	handles = guidata(obj);
+	if ( isempty(get(handles.h_mm,'YData')) )
+		errordlg('Warning. This option operates only on magnetic data ... and you don''t have any here.','Warnerr')
+		return
+	end
+	gmtedit_NavFilters(handles.axes2, handles.h_mm, fname)
 
 % --------------------------------------------------------------------
 function [handles, track] = read_mgd77_plus(handles, fname)
@@ -768,7 +782,7 @@ set(handles.h_mm,'XData',x,'YData',y)
 
 n = length(handles.h_broken);
 handles.h_broken(n+1) = line(golo_x,golo_y,'Marker','s','MarkerFaceColor','b','MarkerSize',4,'LineStyle','-');
-ui_edit_polygon(handles.h_broken(n+1))      % Set edition functions
+ui_edit_polygon(handles.h_broken(n+1), 'y')      % Set edition functions
 
 guidata(handles.figure1, handles)
 
@@ -807,31 +821,30 @@ guidata(handles.figure1, handles)
 function outliers_clickedCB(obj,eventdata,opt)
 % Detect outliers using a spline smooth technique.
 	handles = guidata(obj);					% get handles
-	outliersdetect(handles.figure1, handles.axes1, handles.axes2, handles.axes3, ...
+	gmtedit_outliersdetect(handles.figure1, handles.axes1, handles.axes2, handles.axes3, ...
 		[handles.h_gm handles.h_mm handles.h_tm]);
 
 % --------------------------------------------------------------------
-function scroll_plots(width,x)
+function scroll_plots(width, x)
 %   This function uses the idea of the scrollplotdemo from Steven Lord (http://www.mathworks.com/matlabcentral)
 %   scroll_plots(width,x);
 %   width: window width in x units
 %   x: absicssae vector
 
-% Generate constants for use in uicontrol initialization
-pos = get(gca,'position');
+	% Generate constants for use in uicontrol initialization
+	pos = get(gca,'position');
 
-% This will create a slider which is just underneath the axis
-% but still leaves room for the axis labels above the slider
-Newpos=[pos(1) 5 pos(3) 15];
+	% This will create a slider which is just underneath the axis
+	% but still leaves room for the axis labels above the slider
+	Newpos = [pos(1) 5 pos(3) 15];
 
-S=['set(findall(gcf,''Type'',''axes''),''xlim'',get(gcbo,''value'')+[0 ' num2str(width) '])'];
+	S = ['set(findall(gcf,''Type'',''axes''),''xlim'',get(gcbo,''value'')+[0 ' num2str(width) '])'];
 
-% Creating Uicontrol with initial value of the minimum of x
-uicontrol('style','slider','units','pixels','position',Newpos, ...
-    'callback',S,'min',x(1),'max',x(end)-width,'value',x(1));
+	% Creating Uicontrol with initial value of the minimum of x
+	uicontrol('style','slider','units','pixels','Pos',Newpos, 'Call',S,'min',x(1),'max',x(end)-width,'value',x(1));
 
 % --------------------------------------------------------------------------
-function varargout = outliersdetect(varargin)
+function varargout = gmtedit_outliersdetect(varargin)
 % Do automatic outliers detection by comparison with spline sooth version data
  
 	hObject = figure('Tag','figure1','Visible','off');
@@ -897,7 +910,7 @@ function varargout = outliersdetect(varargin)
 	if (nargout),	varargout{1} = hObject;		end
 
 % ----------------------------------------------------------------------------
-function edit_SmoothParam_Callback(hObject, eventdata, handles)
+function edit_SmoothParam_CB(hObject, eventdata, handles)
 	xx = str2double(get(hObject,'String'));
 	if (xx < 0 || xx > 1 || isnan(xx))
 		xx = 1;		set(hObject,'String',xx)
@@ -906,7 +919,7 @@ function edit_SmoothParam_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1, handles);
 
 % ----------------------------------------------------------------------------
-function edit_thresh_Callback(hObject, eventdata, handles)
+function edit_thresh_CB(hObject, eventdata, handles)
 	xx = str2double(get(hObject,'String'));
 	if (xx < 0 || isnan(xx))
 		xx = 0;		set(hObject,'String',xx)
@@ -915,25 +928,25 @@ function edit_thresh_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1, handles);
 
 % ----------------------------------------------------------------------------
-function radio_G_Callback(hObject, eventdata, handles)
+function radio_G_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_M handles.radio_T],'Val', 0)
 	handles.id_gmt = 1;		guidata(handles.figure1, handles)
 
 % ----------------------------------------------------------------------------
-function radio_M_Callback(hObject, eventdata, handles)
+function radio_M_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_G handles.radio_T],'Val', 0)
 	handles.id_gmt = 2;		guidata(handles.figure1, handles)
 
 % ----------------------------------------------------------------------------
-function radio_T_Callback(hObject, eventdata, handles)
+function radio_T_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_G handles.radio_M],'Val', 0)
 	handles.id_gmt = 3;		guidata(handles.figure1, handles)
 
 % ----------------------------------------------------------------------------
-function push_Apply_Callback(hObject, eventdata, handles)
+function push_Apply_CB(hObject, eventdata, handles)
 % Detect outliers using a spline smooth technique. Note that the threshold is normaly low
 % because the smoothing is very mild and therefore the residues are small.
 
@@ -961,13 +974,13 @@ function push_Apply_Callback(hObject, eventdata, handles)
 	set(handles.figure1,'pointer','arrow')
 
 % ----------------------------------------------------------------------------
-function push_applyNreturn_Callback(hObject, eventdata, handles)
-	push_Apply_Callback(handles.push_Apply, eventdata, handles)
+function push_applyNreturn_CB(hObject, eventdata, handles)
+	push_Apply_CB(handles.push_Apply, eventdata, handles)
 	delete(handles.figure1)
 
 % ----------------------------------------------------------------------------
 % ----------------------------------------------------------------------------
-function push_clear_Callback(hObject, eventdata, handles)
+function push_clear_CB(hObject, eventdata, handles)
 % Remove all eventually detected outlaws from current channel
 	if (handles.id_gmt == 1)
 		hM = findobj(handles.hCallingFig,'Type','Line','tag','GravNull');
@@ -993,7 +1006,7 @@ set(h1, 'Position',[520 420 311 65],...
 
 uicontrol('Parent',h1, 'Position',[10 27 121 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@outliersdetect_CB,h1,'edit_SmoothParam_Callback'},...
+'Callback',{@outliersdetect_CB,h1,'edit_SmoothParam_CB'},...
 'HorizontalAlignment','left',...
 'Style','edit',...
 'TooltipString','Enter a Smoothing Parameter between [0 1]',...
@@ -1005,7 +1018,7 @@ uicontrol('Parent',h1, 'Position',[9 48 125 15],...
 'Style','text');
 
 uicontrol('Parent',h1, 'Position',[212 31 90 21],...
-'Callback',{@outliersdetect_CB,h1,'push_Apply_Callback'},...
+'Callback',{@outliersdetect_CB,h1,'push_Apply_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'String','Apply',...
@@ -1014,7 +1027,7 @@ uicontrol('Parent',h1, 'Position',[212 31 90 21],...
 
 uicontrol('Parent',h1, 'Position',[146 27 51 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@outliersdetect_CB,h1,'edit_thresh_Callback'},...
+'Callback',{@outliersdetect_CB,h1,'edit_thresh_CB'},...
 'String','4',...
 'Style','edit',...
 'Tag','edit_thresh');
@@ -1025,7 +1038,7 @@ uicontrol('Parent',h1, 'Position',[143 48 56 15],...
 'Style','text');
 
 uicontrol('Parent',h1, 'Position',[11 6 30 15],...
-'Callback',{@outliersdetect_CB,h1,'radio_G_Callback'},...
+'Callback',{@outliersdetect_CB,h1,'radio_G_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'String','G',...
@@ -1034,7 +1047,7 @@ uicontrol('Parent',h1, 'Position',[11 6 30 15],...
 'Tag','radio_G');
 
 uicontrol('Parent',h1, 'Position',[60 6 30 15],...
-'Callback',{@outliersdetect_CB,h1,'radio_M_Callback'},...
+'Callback',{@outliersdetect_CB,h1,'radio_M_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'String','M',...
@@ -1043,7 +1056,7 @@ uicontrol('Parent',h1, 'Position',[60 6 30 15],...
 'Tag','radio_M');
 
 uicontrol('Parent',h1, 'Position',[108 6 30 15],...
-'Callback',{@outliersdetect_CB,h1,'radio_T_Callback'},...
+'Callback',{@outliersdetect_CB,h1,'radio_T_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'String','T',...
@@ -1052,7 +1065,7 @@ uicontrol('Parent',h1, 'Position',[108 6 30 15],...
 'Tag','radio_T');
 
 uicontrol('Parent',h1, 'Position',[212 7 90 21],...
-'Callback',{@outliersdetect_CB,h1,'push_applyNreturn_Callback'},...
+'Callback',{@outliersdetect_CB,h1,'push_applyNreturn_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'String','Apply n return',...
@@ -1060,7 +1073,7 @@ uicontrol('Parent',h1, 'Position',[212 7 90 21],...
 'Tag','push_applyNreturn');
 
 uicontrol('Parent',h1, 'Position',[147 0 50 21],...
-'Callback',{@outliersdetect_CB,h1,'push_clear_Callback'},...
+'Callback',{@outliersdetect_CB,h1,'push_clear_CB'},...
 'FontName','Helvetica',...
 'String','Clear',...
 'TooltipString','Clear detections from current selected channel',...
@@ -1092,14 +1105,14 @@ function gmtedit_track(varargin)
 	set(hObject,'Visible','on');
 
 % ----------------------------------------------------------------------------
-function edit_gridToInterp_Callback(hObject, eventdata, handles)
+function edit_gridToInterp_CB(hObject, eventdata, handles)
 	fname = get(hObject,'String');
 	if isempty(fname),		return,		end
-	% Let the push_gridToInterp_Callback do all the work
-	push_gridToInterp_Callback(handles.push_gridToInterp, [], handles, fname)
+	% Let the push_gridToInterp_CB do all the work
+	push_gridToInterp_CB(handles.push_gridToInterp, [], handles, fname)
 
 % ----------------------------------------------------------------------------
-function push_gridToInterp_Callback(hObject, eventdata, handles, opt)
+function push_gridToInterp_CB(hObject, eventdata, handles, opt)
 	if (nargin == 3),		opt = [];		end
 	if (nargin == 4),		fname = opt;	end
 	handles = guidata(hObject);		% Get udated handles
@@ -1116,7 +1129,7 @@ function push_gridToInterp_Callback(hObject, eventdata, handles, opt)
 	guidata(handles.figure1, handles)
 
 % ----------------------------------------------------------------------------
-function zz = push_OK_Callback(hObject, eventdata, handles)
+function zz = push_OK_CB(hObject, eventdata, handles)
 % Read the grid and interpolate this track
 	if (isempty(handles.fname)),	return,		end
 	if (~exist(handles.fname,'file'))
@@ -1158,14 +1171,14 @@ set(h1, 'Position',[520 491 351 80],...
 
 uicontrol('Parent',h1, 'Position',[9 39 311 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@gmtedit_track_uicallback,h1,'edit_gridToInterp_Callback'},...
+'Callback',{@gmtedit_track_uicallback,h1,'edit_gridToInterp_CB'},...
 'HorizontalAlignment','left',...
 'Style','edit',...
 'TooltipString','Name (full name) of grid to sample along track coords',...
 'Tag','edit_gridToInterp');
 
 uicontrol('Parent',h1, 'Position',[319 38 23 23],...
-'Callback',{@gmtedit_track_uicallback,h1,'push_gridToInterp_Callback'},...
+'Callback',{@gmtedit_track_uicallback,h1,'push_gridToInterp_CB'},...
 'FontSize',12,...
 'FontWeight','bold',...
 'String','...',...
@@ -1179,7 +1192,7 @@ uicontrol('Parent',h1, 'Position',[10 15 70 15],...
 'Tag','check_addIGRF');
 
 uicontrol('Parent',h1, 'Position',[276 9 66 23],...
-'Callback',{@gmtedit_track_uicallback,h1,'push_OK_Callback'},...
+'Callback',{@gmtedit_track_uicallback,h1,'push_OK_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'String','OK',...
@@ -1193,4 +1206,149 @@ uicontrol('Parent',h1, 'Position',[10 62 180 16],...
 
 function gmtedit_track_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,[],guidata(h1));
+
+
+% -------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------
+function gmtedit_NavFilters(varargin)
+ % Window with params for Nav/grads filtering
+ 
+	hObject = figure('Tag','figure1','Visible','off');
+	NavFilters_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+ 
+	handles.hAxes = varargin{1};
+	handles.hMag  = varargin{2};
+	handles.fname = varargin{3};
+	handles.minSpeed = 0;
+	handles.maxSpeed = 14;
+	handles.maxSlope = 200;
+
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+
+
+% ----------------------------------------------------------------------------
+function edit_MaxSpeed_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
+	if (xx <= 0 || isnan(xx))
+		xx = 14;		set(hObject,'String',xx)
+	end
+	handles.maxSpeed = xx;
+	guidata(handles.figure1, handles);
+
+% ----------------------------------------------------------------------------
+function edit_MinSpeed_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
+	if (xx <= 0 || isnan(xx))
+		xx = 0;		set(hObject,'String',xx)
+	end
+	handles.minSpeed = xx;
+	guidata(handles.figure1, handles);
+
+% ----------------------------------------------------------------------------
+function edit_maxSlope_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
+	if (xx <= 0 || isnan(xx))
+		xx = 14;		set(hObject,'String',xx)
+	end
+	handles.maxSlope = xx;
+	guidata(handles.figure1, handles);
+
+% ----------------------------------------------------------------------------
+function push_navFiltClean_CB(hObject, handles)
+% Remove all eventually detected bad Nav/grads from Mag channel
+	hM = findobj(handles.hAxes,'Type','Line','tag','MagNull');
+	set(hM, 'XData',[], 'YData',[])
+	oldTit = get(handles.figure1, 'Name');
+	set(handles.figure1, 'Name', oldTit(1:22))
+
+% ----------------------------------------------------------------------------
+function push_navFiltApply_CB(hObject, handles)
+% Detect bad Nav and excessive gradients in data
+
+	x = get(handles.hMag,'XData');			y = get(handles.hMag,'YData');
+	
+	try			tempo = nc_funs('varget', handles.fname, 'time');
+	catch,		errordlg('No Time in this file (???)','Error'),		return
+	end
+	
+	vel = diff(x) ./ diff(tempo') * (1000 / 1852 * 3600);		% x -> km; tempo -> sec. Now vel -> knots
+	ind = (vel < handles.minSpeed | vel > handles.maxSpeed);
+	ind = ind | ( abs(diff(y) ./ diff(x)) > handles.maxSlope);
+	
+	ind = find(ind);
+	howmany = numel(ind);
+	oldTit = get(handles.figure1, 'Name');
+	set(handles.figure1, 'Name', sprintf('%s (found %d)', oldTit(1:22), howmany))
+	if (~howmany),		return,		end			% Nothing
+
+	ind = ind + 1;
+	xx = x(ind);		yy = y(ind);
+
+	hM = findobj(handles.hAxes,'Type','Line','tag','MagNull');
+	if (isempty(hM))
+		line(xx, yy,'Parent',handles.hAxes,'Marker','s','MarkerFaceColor','r','MarkerSize',4,'LineStyle','none','Tag','MagNull');
+	else
+		set(hM, 'XData',xx, 'YData',yy)
+	end
+
+% ----------------------------------------------------------------------------
+function push_navFiltApplyNreturn_CB(hObject, handles)
+	push_navFiltApply_CB(handles.push_navFiltApply, handles)
+	delete(handles.figure1)
+
+% ----------------------------------------------------------------------------
+% --- Creates and returns a handle to the GUI figure. 
+function NavFilters_LayoutFcn(h1)
+
+set(h1, 'Position',[520 500 356 61],...
+'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'MenuBar','none',...
+'Name','Speed and Slope filter', 'NumberTitle','off',...
+'Resize','off', 'HandleVisibility','callback',...
+'Tag','figure1');
+
+uicontrol('Parent',h1, 'Position',[5 32 38 22], 'Style','edit',...
+'BackgroundColor',[1 1 1],...
+'Call',{@navFilters_uicallback,h1,'edit_MaxSpeed_CB'},...
+'String','14',...
+'TooltipString','Flag speeds higher than this',...
+'Tag','edit_MaxSpeed');
+
+uicontrol('Parent',h1, 'HorizontalAlignment','left', 'Position',[44 31 95 20],...
+'String','Max speed (knots)','Style','text')
+
+uicontrol('Parent',h1, 'Position',[151 31 38 22], 'Style','edit',...
+'BackgroundColor',[1 1 1],...
+'Call',{@navFilters_uicallback,h1,'edit_MinSpeed_CB'},...
+'String','0',...
+'Tag','edit_MinSpeed');
+
+uicontrol('Parent',h1, 'HorizontalAlignment','left', 'Position',[191 31 60 19],'String','Min speed','Style','text')
+
+uicontrol('Parent',h1, 'Position',[5 4 38 22], 'Style','edit',...
+'BackgroundColor',[1 1 1],...
+'Call',{@navFilters_uicallback,h1,'edit_maxSlope_CB'},...
+'String','200',...
+'Tag','edit_maxSlope');
+
+uicontrol('Parent',h1, 'HorizontalAlignment','left', 'Position',[44 3 109 20],...
+'String','Max Slope (nT/km)','Style','text')
+
+uicontrol('Parent',h1, 'Position',[260 32 90 21],...
+'Call',{@navFilters_uicallback,h1,'push_navFiltApply_CB'},...
+'String','Apply', 'Tag','push_navFiltApply')
+
+uicontrol('Parent',h1, 'Position',[177 4 69 21],...
+'Call',{@navFilters_uicallback,h1,'push_navFiltClean_CB'},...
+'String','Clean', 'Tag','push_navFiltClean')
+
+uicontrol('Parent',h1, 'Position',[260 4 90 21],...
+'Call',{@navFilters_uicallback,h1,'push_navFiltApplyNreturn_CB'},...
+'String','Apply n''return', 'Tag','push_navFiltApplyNreturn')
+
+function navFilters_uicallback(hObject, event, h1, callback_name)
+% This function is executed by the callback and than the handles is allways updated.
+	feval(callback_name,hObject,guidata(h1));
