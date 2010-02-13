@@ -1,5 +1,6 @@
 function out = gmtedit(varargin)
 % Revival of the ancient Sunview gmtedit.
+%
 % gmtedit lets the user edit a gmtfile by mousing. The use should be
 % fairly obvious from the menues and buttons' labels. Clicking on a point
 % changes its status from good (green) to bad (red), a second click turns
@@ -38,8 +39,6 @@ function out = gmtedit(varargin)
 	center_win = [];
 	is_gmt = false;
 	is_mgd77 = false;
-	vars = [];					% Container to eventual user selected fields to plot (MGD77+ only)
-	multi_plot = [];			% Container to eventual user selected extra fields to overlay in plot (MGD77+ only)
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 
 	if (nargin > 0)
@@ -62,22 +61,8 @@ function out = gmtedit(varargin)
 			end
 		end
 
-		opt_file = [MIRONE_DIRS.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
-		if ( exist(opt_file, 'file') == 2 )
-			fid = fopen(opt_file, 'r');
-			c = (fread(fid,'*char'))';      fclose(fid);
-			lines = strread(c,'%s','delimiter','\n');   clear c fid;
-			m = numel(lines);
-			for (k = 1:m)
-				if (~strncmp(lines{k},'MIR_GMTEDIT',11)),	continue,	end
-				if (numel(lines{k}) <= 14),	continue,	end		% The minimum it takes to have a -? switch
-				t = strtok(lines{k}(13:end));
-				if ( strcmp(t(1:2), '-V') )		% Here we only check for a -V... and do not check for errors
-					varargin{end+1} = t;
-				end
-			end
-		end
-		
+		[vars, multi_plot, xISdist] = parse_optV(MIRONE_DIRS.home_dir);
+
 		for (k = 1:numel(varargin))
 			switch (varargin{k}(1:2))
 				case '-L'
@@ -94,41 +79,6 @@ function out = gmtedit(varargin)
 					lat = str2double(r(2:end));
 					begin = 0;
 					center_win = [lon lat];
-				case '-V'
-					% For new MGD77+ files only. It contains a user selection of the fields to be plot (instead of GMT)
-					% USAGE (example) -Vvar1,var2,var3; -Vvar1,var2,var3:varI+slotI[/varI+slotI[/varI+slotI]]
-					% Where var1,var2,var3 is the name of any of the variables in the .nc file
-					% The varI+slotI form will plot (add) the varI (again, one of the .nc variables) to the slot I (1:3) axes
-					str = varargin{k}(3:end);
-					ind2 = strfind(str,':');
-					if (isempty(ind2)),		last = numel(str);
-					else					last = ind2 - 1;
-					end
-					if (~isempty(ind2) && ind2(1) == 1)		% The form '-V:anom+2' is also aceptable
-						vars{1} = 'faa';		vars{2} = 'mtf1';		vars{3} = 'depth';
-					else
-						ind = strfind(str,',');
-						if (numel(ind) ~= 2)                % Failed to use the -Vvar1,var2,var3[:...] form
-							vars{1} = 'faa';	vars{2} = 'mtf1';		vars{3} = 'depth';
-						else
-							vars{1} = str(1:ind(1)-1);
-							vars{2} = str(ind(1)+1:ind(2)-1);
-							vars{3} = str(ind(2)+1:last);
-						end
-					end
-
-					if (~isempty(ind2))				% Have a multiple plots request
-						str = str(ind2+1:end);		% Retain the multi-plot info string only
-						ind = strfind(str,'/');		% How many extra curves?
-						multi_plot = cell(numel(ind)+1,2);		% Pre-allocate
-						ind3 = [1 ind numel(str)+1];
-						for (n = 1:numel(ind3)-1)
-							str2 = str(ind3(n):ind3(n+1)-1);
-							ind = strfind(str2,'+');% To find in which slot will go this plot
-							multi_plot{n,1} = str2(1:ind-1);
-							multi_plot{n,2} = str2(ind+1:end);
-						end
-					end
 			end
 		end
 	end
@@ -144,7 +94,7 @@ function out = gmtedit(varargin)
 	ax_width = sc_size(3) - marg_l - marg_r;
 
 	hf = figure('name','gmtedit','resize','off','numbertitle','off', 'visible','off', ...
-        'position',fp, 'DoubleBuffer','on', 'Tag','figure1', 'closerequestfcn','delete(gcbf)');
+        'position',fp, 'DoubleBuffer','on', 'Tag','figure1', 'closerequestfcn',@fig_CloseRequestFcn);
 
 	% Use system color scheme for figure:
 	set(hf,'Color',get(0,'defaultUicontrolBackgroundColor'));
@@ -179,6 +129,7 @@ function out = gmtedit(varargin)
 	handles.is_gmt = is_gmt;
 	handles.is_mgd77 = is_mgd77;
 	handles.vars = vars;
+	handles.xISdist = xISdist;
 	handles.multi_plot = multi_plot;
 	handles.force_gmt = false;		% If TRUE save in old .gmt format
 
@@ -220,7 +171,7 @@ function out = gmtedit(varargin)
 	uipushtool('parent',h_toolbar,'Click',{@import_clickedCB,f_name},'Tag','import',...
 		'cdata',openFile_img,'Tooltip','Open gmt file');
 	uipushtool('parent',h_toolbar,'Click',@save_clickedCB,'Tag','save', 'cdata',saveFile_img,'Tooltip','Save gmt file');
-	% uitoggletool('parent',h_toolbar,'Click',@zoom_clickedcallback,'Tag','zoom',...
+	% uitoggletool('parent',h_toolbar,'Click',@zoom_clickedCB,'Tag','zoom',...
 	%    'cdata',zoom_img,'TooltipString','Zoom');
 	uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','cdata',info_ico, 'Tooltip','Cruise Info');
 	uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang','cdata',rectang_ico,...
@@ -260,6 +211,80 @@ function out = gmtedit(varargin)
 	% Choose default command line output for gmtedit
 	if (nargout == 1),	out = hf;   end
 
+% --------------------------------------------------------------------------
+function [vars, multi_plot, xISdist] = parse_optV(home_dir)
+
+	opt_V = false;
+	vars = [];					% Container to eventual user selected fields to plot (MGD77+ only)
+	multi_plot = [];			% Container to eventual user selected extra fields to overlay in plot (MGD77+ only)
+	xISdist = true;				% Default absicssae to distance in km
+
+	opt_file = [home_dir filesep 'data' filesep 'OPTcontrol.txt'];
+	if ( exist(opt_file, 'file') == 2 )
+		fid = fopen(opt_file, 'r');
+		c = (fread(fid,'*char'))';      fclose(fid);
+		lines = strread(c,'%s','delimiter','\n');   clear c fid;
+		m = numel(lines);
+		for (k = 1:m)
+			if (~strncmp(lines{k},'MIR_GMTEDIT',11)),	continue,	end
+			if (numel(lines{k}) <= 14),	continue,	end		% The minimum it takes to have a -? switch
+			t = strtok(lines{k}(13:end));
+			if ( strcmp(t(1:2), '-V') )		% Here we only check for a -V... and do not check for errors
+				opt_V = t(3:end);
+				break
+			end
+		end
+	end
+
+	if (opt_V)
+		% For new MGD77+ files only. It contains a user selection of the fields to be plot (instead of GMT)
+		% USAGE (example) 
+		%	-Vvar1,var2,var3
+		%	-Vvar1,var2,var3[:varI+slotI[/varI+slotI[/varI+slotI]]][|]
+		% Where var1,var2,var3 is the name of any of the variables in the .nc file
+		% The varI+slotI form will plot (add) the varI (again, one of the .nc variables) to the slot I (1:3) axes
+		% Append the optional end '|' char to indicate that absicssae is record number (fids) instead of distances in km
+		if (opt_V(end) == '|')	% Absicssae will be the "fiducial" numbers
+			xISdist = false;	opt_V(end) = '';
+		end
+		ind2 = strfind(opt_V,':');
+		if (isempty(ind2)),		last = numel(opt_V);
+		else					last = ind2 - 1;
+		end
+		
+		vars = {'faa' 'mtf1' 'depth'};	% Used when (ex) '-V:anom+2' or -Vvar1,var2,var3[:...] forms
+		if (~isempty(ind2) && ind2(1) == 1)		% The form '-V:anom+2' is also aceptable
+		else
+			ind = strfind(opt_V,',');
+			if (numel(ind) == 2)
+				vars{1} = opt_V(1:ind(1)-1);
+				vars{2} = opt_V(ind(1)+1:ind(2)-1);
+				vars{3} = opt_V(ind(2)+1:last);
+			end
+		end
+
+		if (~isempty(ind2))				% Have a multiple plots request
+			str = opt_V(ind2+1:end);	% Retain the multi-plot info string only
+			ind = strfind(str,'/');		% How many extra curves?
+			multi_plot = cell(numel(ind)+1,2);		% Pre-allocate
+			ind3 = [1 ind numel(str)+1];
+			for (n = 1:numel(ind3)-1)
+				str2 = str(ind3(n):ind3(n+1)-1);
+				ind = strfind(str2,'+');% To find in which slot will go this plot
+				multi_plot{n,1} = str2(1:ind-1);
+				multi_plot{n,2} = str2(ind+1:end);
+			end
+		end
+	end
+
+% -----------------------------------------------------------------------------
+function fig_CloseRequestFcn(hObj, event)
+	handles = guidata(hObj);
+	try		h = getappdata(handles.figure1,'Filhas');
+	catch,	delete(handles.figure1),	return
+	end
+	delete(handles.figure1);		delete(h(ishandle(h)))      % Delete also any eventual 'carra?as'
+
 % --------------------------------------------------------------------
 function import_clickedCB(hObject, eventdata, opt)
 	handles = guidata(hObject);     % get handles
@@ -275,6 +300,8 @@ function import_clickedCB(hObject, eventdata, opt)
 	if (strcmpi(EXT,'.nc'))
 		handles.f_name = [PATH filesep FNAME '.nc'];		handles.is_mgd77 = true;		handles.is_gmt = false;
 		[handles, track] = read_mgd77_plus(handles, f_name);
+		MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
+		[handles.vars, handles.multi_plot, handles.xISdist] = parse_optV(MIRONE_DIRS.home_dir);
 	else
 		handles.f_name = [FNAME '.gmt'];	handles.is_gmt = true;			handles.is_mgd77 = false;
 		track = gmtlist_m([PATH filesep FNAME], '-Fsxygmtd', handles.opt_G);
@@ -287,8 +314,8 @@ function import_clickedCB(hObject, eventdata, opt)
 	handles.lat = track.latitude;
 	handles.year = track.year;
 	handles.info = track.info;
-	if (length(track.agency) ~= 10)         % Ensures that agency is exactly 10 chars
-		agency = '          ';              % 10 blanks
+	if (length(track.agency) ~= 10)			% Ensures that agency is exactly 10 chars
+		agency = '          ';				% 10 blanks
 		len = min(length(track.agency),10);
 		agency(1:len) = track.agency(1:len);
 		handles.agency = agency;
@@ -384,7 +411,9 @@ function import_clickedCB(hObject, eventdata, opt)
 function interp_on_grid(obj, event)
 	handles = guidata(obj);
 	hAx = get(handles.figure1, 'CurrentAxes');		% Find which axes are we working on
-	gmtedit_track(handles.lon, handles.lat, handles.year, hAx, handles.h_tm, handles.last_dir, handles.work_dir)
+	h = gmtedit_track(handles.lon, handles.lat, handles.year, hAx, handles.h_tm, handles.last_dir, handles.work_dir);
+	filhas = getappdata(handles.figure1,'Filhas');
+	setappdata(handles.figure1,'Filhas',[filhas(:); h])
 
 % --------------------------------------------------------------------
 function NavFilters_ClickedCB(obj, event, fname)
@@ -394,7 +423,9 @@ function NavFilters_ClickedCB(obj, event, fname)
 		errordlg('Warning. This option operates only on magnetic data ... and you don''t have any here.','Warnerr')
 		return
 	end
-	gmtedit_NavFilters(handles.axes2, handles.h_mm, fname)
+	h = gmtedit_NavFilters(handles.axes2, handles.h_mm, fname);
+	filhas = getappdata(handles.figure1,'Filhas');
+	setappdata(handles.figure1,'Filhas',[filhas(:); h])
 
 % --------------------------------------------------------------------
 function [handles, track] = read_mgd77_plus(handles, fname)
@@ -446,21 +477,22 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 		end
 	end
 
-	if ( (any(strmatch('lon', handles.vars)) | any(strmatch('lat', handles.vars))) & isempty(tempo) )
-		track.distance = 1:numel(track.gravity);		% We plot lon/lat against the record number
-	else												% Need to compute the acumulated distance along profile
-		D2R = pi / 180;		KMPRDEG = 111.1949;
-		co = cos(track.latitude * D2R);
-		dx = [0; diff(track.longitude)] .* co;		dy = [0; diff(track.latitude)];
-		track.distance = cumsum(sqrt(dx .^2 + dy .^2) * KMPRDEG);
-		if (~isempty(tempo))			% Compute velocity and find where to store it
-			vel = [4; diff(track.distance) ./ diff(tempo) * 1e3];		% Speed in m/s
-			if (ind_v(1) == 1),			track.gravity = vel;		% Remember that grav, mag, topo are default field names 
-			elseif (ind_v(1) == 2),		track.magnetics = vel;
-			else						track.topography = vel;
-			end
-			track.distance = 1:numel(track.gravity);	% We plot against the record number
+	D2R = pi / 180;		KMPRDEG = 111.1949;
+	co = cos(track.latitude * D2R);
+	dx = [0; diff(track.longitude)] .* co;		dy = [0; diff(track.latitude)];
+	dist = cumsum(sqrt(dx .^2 + dy .^2) * KMPRDEG);
+
+	if (~isempty(tempo))				% Compute velocity and find where to store it
+		vel = [diff(dist(1:2)) ./ diff(tempo(1:2)); diff(dist) ./ diff(tempo)] * 1e3 / 1852 * 3600;		% Speed in knots
+		if (ind_v(1) == 1),			track.gravity = vel;		% Remember that grav, mag, topo are default field names 
+		elseif (ind_v(1) == 2),		track.magnetics = vel;
+		else						track.topography = vel;
 		end
+	end
+	if (handles.xISdist)				% Plot against accumulated distance
+		track.distance = dist;
+	else								% Plot against the record number (the 'fids')
+		track.distance = 1:numel(track.gravity);
 	end
 
 	% -------------- Get the nodata-values ---------------------------------------
@@ -683,7 +715,7 @@ function add_MarkColor(hObject, eventdata)
 	end
 
 % --------------------------------------------------------------------------------------------------
-function zoom_clickedcallback(obj,eventdata)
+function zoom_clickedCB(obj,eventdata)
 	if (strcmp(get(obj,'State'),'on')),		zoom_j xon;
 	else									zoom_j off;
 	end
@@ -788,41 +820,44 @@ guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------------------------------------
 function changeScale_clickedCB(obj,eventdata,opt)
-handles = guidata(obj);     % get handles
+	handles = guidata(obj);		% get handles
 
-if (strcmp(opt,'inc'))
-	handles.def_width_km = handles.def_width_km - 50;
-	if (handles.def_width_km < 50),		return,		end
-else            % Decrease scale
-	handles.def_width_km = handles.def_width_km + 50;
-end
+	if (strcmp(opt,'inc'))
+		handles.def_width_km = handles.def_width_km - 50;
+		handles.def_width_km = max(handles.def_width_km, 25);
+		if (handles.def_width_km < 25),		return,		end
+	else            % Decrease scale
+		handles.def_width_km = handles.def_width_km + 50;
+	end
 
-x_lim = get(get(handles.figure1,'CurrentAxes'),'Xlim');
-set([handles.axes1 handles.axes2 handles.axes3],'Xlim',x_lim(1)+[0 handles.def_width_km])
+	x_lim = get(get(handles.figure1,'CurrentAxes'),'Xlim');
+	set([handles.axes1 handles.axes2 handles.axes3],'Xlim',x_lim(1)+[0 handles.def_width_km])
 
-h_slider = findobj(handles.figure1,'style','slider');
-cb = get(h_slider,'callback');
-% Here we make use of the knowledge that the "cb" is a string of the form:
-% set(findall(gcf,'Type','axes'),'xlim',get(gcbo,'value')+[0 ???])
-% where '???' is the width of the currently displyed axes. And that's what we need to change
-new_cb = [cb(1:59) num2str(handles.def_width_km) '])'];
-set(h_slider,'callback',new_cb)
+	h_slider = findobj(handles.figure1,'style','slider');
+	cb = get(h_slider,'callback');
+	% Here we make use of the knowledge that the "cb" is a string of the form:
+	% set(findall(gcf,'Type','axes'),'xlim',get(gcbo,'value')+[0 ???])
+	% where '???' is the width of the currently displyed axes. And that's what we need to change
+	new_cb = [cb(1:59) num2str(handles.def_width_km) '])'];
+	set(h_slider,'callback',new_cb)
 
-% Now update the slider 'Max' propertie
-new_max = handles.max_x_data - handles.def_width_km;
-set(h_slider,'Max',new_max)
+	% Now update the slider 'Max' propertie
+	new_max = handles.max_x_data - handles.def_width_km;
+	set(h_slider,'Max',new_max)
 
-val = get(h_slider,'Value');
-if (val > new_max),		set(h_slider,'Value',new_max),		end
+	val = get(h_slider,'Value');
+	if (val > new_max),		set(h_slider,'Value',new_max),		end
 
-guidata(handles.figure1, handles)
+	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------------------------------------
 function outliers_clickedCB(obj,eventdata,opt)
 % Detect outliers using a spline smooth technique.
 	handles = guidata(obj);					% get handles
-	gmtedit_outliersdetect(handles.figure1, handles.axes1, handles.axes2, handles.axes3, ...
+	h = gmtedit_outliersdetect(handles.figure1, handles.axes1, handles.axes2, handles.axes3, ...
 		[handles.h_gm handles.h_mm handles.h_tm]);
+	filhas = getappdata(handles.figure1,'Filhas');
+	setappdata(handles.figure1,'Filhas',[filhas(:); h])	
 
 % --------------------------------------------------------------------
 function scroll_plots(width, x)
@@ -1085,11 +1120,11 @@ function outliersdetect_CB(hObject, eventdata, h1, callback_name)
 
 % -------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------
-function gmtedit_track(varargin)
+function h = gmtedit_track(varargin)
  
-	hObject = figure('Tag','figure1','Visible','off');
-	gmtedit_track_LayoutFcn(hObject);
-	handles = guihandles(hObject);
+	h = figure('Tag','figure1','Visible','off');
+	gmtedit_track_LayoutFcn(h);
+	handles = guihandles(h);
  
 	handles.lon = varargin{1};
 	handles.lat = varargin{2};
@@ -1098,11 +1133,10 @@ function gmtedit_track(varargin)
 	handles.h_tm = varargin{5};		% Handle of the Topography line
 	handles.last_dir = varargin{6};
 	handles.work_dir = varargin{7};
-
 	handles.fname = [];
 
-	guidata(hObject, handles);
-	set(hObject,'Visible','on');
+	guidata(h, handles);
+	set(h,'Visible','on');
 
 % ----------------------------------------------------------------------------
 function edit_gridToInterp_CB(hObject, eventdata, handles)
@@ -1211,22 +1245,22 @@ function gmtedit_track_uicallback(hObject, eventdata, h1, callback_name)
 
 % -------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------
-function gmtedit_NavFilters(varargin)
+function h = gmtedit_NavFilters(varargin)
  % Window with params for Nav/grads filtering
  
-	hObject = figure('Tag','figure1','Visible','off');
-	NavFilters_LayoutFcn(hObject);
-	handles = guihandles(hObject);
+	h = figure('Tag','figure1','Visible','off');
+	NavFilters_LayoutFcn(h);
+	handles = guihandles(h);
  
 	handles.hAxes = varargin{1};
 	handles.hMag  = varargin{2};
 	handles.fname = varargin{3};
-	handles.minSpeed = 0;
+	handles.minSpeed = 1;
 	handles.maxSpeed = 14;
-	handles.maxSlope = 200;
+	handles.maxSlope = 250;
 
-	guidata(hObject, handles);
-	set(hObject,'Visible','on');
+	guidata(h, handles);
+	set(h,'Visible','on');
 
 
 % ----------------------------------------------------------------------------
@@ -1323,7 +1357,7 @@ uicontrol('Parent',h1, 'HorizontalAlignment','left', 'Position',[44 31 95 20],..
 uicontrol('Parent',h1, 'Position',[151 31 38 22], 'Style','edit',...
 'BackgroundColor',[1 1 1],...
 'Call',{@navFilters_uicallback,h1,'edit_MinSpeed_CB'},...
-'String','0',...
+'String','1',...
 'Tag','edit_MinSpeed');
 
 uicontrol('Parent',h1, 'HorizontalAlignment','left', 'Position',[191 31 60 19],'String','Min speed','Style','text')
@@ -1331,7 +1365,7 @@ uicontrol('Parent',h1, 'HorizontalAlignment','left', 'Position',[191 31 60 19],'
 uicontrol('Parent',h1, 'Position',[5 4 38 22], 'Style','edit',...
 'BackgroundColor',[1 1 1],...
 'Call',{@navFilters_uicallback,h1,'edit_maxSlope_CB'},...
-'String','200',...
+'String','250',...
 'Tag','edit_maxSlope');
 
 uicontrol('Parent',h1, 'HorizontalAlignment','left', 'Position',[44 3 109 20],...
