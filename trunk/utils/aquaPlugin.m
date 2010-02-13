@@ -21,7 +21,7 @@ function aquaPlugin(handles)
 			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
 			};
 
-	qual = casos{2};		% <== Active selection
+	qual = casos{5};		% <== Active selection
 
 	switch qual
 		case 'zonal'				% CASE 1
@@ -643,7 +643,7 @@ function Z = inpaint_nans(handles, Z, bw, nCells)
 
 		rect_crop = [x_min y_min (x_max-x_min) (y_max-y_min)];
 		[Z_rect, r_c] = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
-		[bw_rect, zz] = cropimg(head(1:2),head(3:4),bw,rect_crop,'out_grid');
+		[bw_rect, lixo] = cropimg(head(1:2),head(3:4),bw,rect_crop,'out_grid');
 		Z_rect = double(Z_rect);      % It has to be (GHRRRRRRRRRRRRR)
 
 		%X = x_min:head(8):x_max;	Y = y_min:head(9):y_max;
@@ -716,7 +716,7 @@ function calc_polygAVG(handles)
 			x_lim = [xp(1) xp(2)];		y_lim = [yp(1) yp(2)];
 
 			% Extrai um rect que englobe o poligono para poupar na conta da mascara
-			Z_rect = cropimg(handles.head(1:2),handles.head(3:4),Z,rect_crop,'out_grid');
+			[Z_rect, lixo] = cropimg(handles.head(1:2),handles.head(3:4),Z,rect_crop,'out_grid');
 			mask = img_fun('roipoly_j',x_lim,y_lim,Z_rect,x,y);
 
 			% Test for a minimum of valid elements inside polygon
@@ -776,7 +776,7 @@ function calc_polygAVG(handles)
 	fprintf(fid, ['# T\t', repmat('%g(Y)\t', [1,N]) '\n'], centro(:,2));
 
 	try			t = handles.time;		t = t(:);		% Layers's times
-	catch		t = (1:size(avg,1))';
+	catch,		t = (1:size(avg,1))';
 	end
 
 	fprintf(fid,['%.2f\t' repmat('%f\t',[1,N]) '\n'], [t avg]');
