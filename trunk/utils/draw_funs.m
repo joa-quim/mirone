@@ -1046,15 +1046,15 @@ function show_Area(obj,eventdata,h)
 
 	if (nargin == 3)
 		if (size(h,1) >= 2 && size(h,2) == 2)
-			x = h(:,1);     y = h(:,2);
+			x = h(:,1);				y = h(:,2);
 			handles = guidata(get(0,'CurrentFigure'));
 		elseif (ishandle(h))
-			x = get(h,'XData');    y = get(h,'YData');
+			x = get(h,'XData');		y = get(h,'YData');
 			handles = guidata(h);
 		end
 	elseif (nargin == 2 || isempty(h) || length(h) > 1)
 		h = gco;
-		x = get(h,'XData');    y = get(h,'YData');
+		x = get(h,'XData');			y = get(h,'YData');
 		handles = guidata(h);
 	else
 		handles = guidata(get(0,'CurrentFigure'));
@@ -1062,9 +1062,9 @@ function show_Area(obj,eventdata,h)
 
 	% Contour lines for example have NaNs and not at the same x,y positions (???)
 	ix = isnan(x);
-	x(ix) = [];             y(ix) = [];
+	x(ix) = [];				y(ix) = [];
 	iy = isnan(y);
-	x(iy) = [];             y(iy) = [];
+	x(iy) = [];				y(iy) = [];
 	if ~( (x(1) == x(end)) && (y(1) == y(end)) )
         msg{1} = 'This is not a closed line. Result is therefore probably VERY idiot';
 	else
@@ -1072,8 +1072,10 @@ function show_Area(obj,eventdata,h)
 	end
 	if (handles.geog)
         area = area_geo(y,x);    % Area is reported on the unit sphere
-        area = area * 4 * pi * (handles.EarthRad^2);
-        msg{2} = ['Area = ' sprintf('%g',area) ' km^2'];
+		eRad = handles.EarthRad;	str_units = 'km^2';
+		if (handles.DefineMeasureUnit(1) == 'm'),	eRad = eRad * 1000;		str_units = 'm^2';	end
+        area = area * 4 * pi * (eRad ^2);
+        msg{2} = sprintf('Area = %g %s', area, str_units);
         msgbox(msg,'Area')
 	else
         area = polyarea(x,y);   % Area is reported in map user unites
