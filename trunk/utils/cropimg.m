@@ -77,16 +77,20 @@ function varargout = cropimg(varargin)
 
 %   (Most) Copyright 1993-2003 The MathWorks, Inc.  
 
-if (~isempty(varargin) && ( strcmp(varargin{end},'out') || strcmp(varargin{end},'out_ind') ))
-    out = 1;    precise = 0;    varargin(end) = [];
-elseif (~isempty(varargin) && strcmp(varargin{end},'out_precise'))
-    out = 1;    precise = 1;    varargin(end) = [];
-elseif (~isempty(varargin) && strcmp(varargin{end},'out_grid') && nargout == 2)
-    out = 2;    precise = 0;    varargin(end) = [];     % OUT == 2 will signal that the 2 outputs are [crop, [r1,r2,c1,c2]]
-else
-    out = 0;    precise = 0;
-end
 n_out = nargout;
+
+if (~isempty(varargin) && ( strcmp(varargin{end},'out') || strcmp(varargin{end},'out_ind') ))
+	out = 1;    precise = 0;    varargin(end) = [];
+elseif (~isempty(varargin) && strcmp(varargin{end},'out_precise'))
+	out = 1;    precise = 1;    varargin(end) = [];
+elseif (~isempty(varargin) && strcmp(varargin{end},'out_grid'))
+	out = 1;    precise = 0;    varargin(end) = [];
+	if (n_out == 2)		% OUT == 2 will signal that the 2 outputs are [crop, [r1,r2,c1,c2]]
+		out = 2;
+	end
+else
+	out = 0;    precise = 0;
+end
 
 [x,y,a,cm,rect] = ParseInputs(varargin{:});
 [m,n,o] = size(a);
