@@ -13,24 +13,26 @@ switch nargin
     case 0
         h = gca;
     case 1
-        h = varargin{1};  axes(h);
+        h = varargin{1};  %axes(h);
     otherwise
         errordlg('Too many input arguments.','Error');
 end
 
 hFig = get(h,'Parent');
+set(hFig, 'CurrentAxes', h)			% Was not necessarely the case
 
 % Get current user data
-state = uisuspend_fig(hFig);     % Remember initial figure state
+state = uisuspend_fig(hFig);		% Remember initial figure state
 cudata = get(hFig,'UserData'); 
 set(hFig,'Pointer','Crosshair')
 % Wait for left mouse button to be pressed
-k = waitforbuttonpress;
+waitforbuttonpress;
+h = get(hFig,'CurrentAxes');		% O multi-axes previous current axes may not be the same as current one (eg gmtedit)
 
-p1 = get(h,'CurrentPoint');       %get starting point
-p1 = p1(1,1:2);                   %extract x and y
+p1 = get(h,'CurrentPoint');			% get starting point
+p1 = p1(1,1:2);						% extract x and y
 
-lh1 = line('XData',p1(1),'YData',p1(2),'Parent',h,'Color', 'k', 'LineStyle', '-');      %plot starting point
+lh1 = line('XData',p1(1),'YData',p1(2),'Parent',h,'Color', 'k', 'LineStyle', '-');		%plot starting point
 lh2 = line('XData',p1(1),'YData',p1(2),'Parent',h,'Color', 'w', 'LineStyle', ':');
 
 % Save current point (p1) data in a structure to be passed
