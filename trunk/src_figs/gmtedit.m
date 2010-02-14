@@ -565,15 +565,15 @@ function save_clickedCB(hObject, eventdata)
 	x_m = get(handles.h_mm,'XData');	y_m = get(handles.h_mm,'YData');
 	x_t = get(handles.h_tm,'XData');	y_t = get(handles.h_tm,'YData');
 
-	if (~isempty(handles.h_broken))         % If we have broken lines we must join them
+	if (~isempty(handles.h_broken))			% If we have broken lines we must join them
 		x_broken = [];    y_broken = [];
-		for (k=1:length(handles.h_broken))
+		for (k = 1:numel(handles.h_broken))
 			x_broken = [x_broken get(handles.h_broken(k),'XData')];
 			y_broken = [y_broken get(handles.h_broken(k),'YData')];
 		end
 		[x_m,id] = sort([x_m x_broken]);
 		y_m = [y_m y_broken];
-		y_m = y_m(id);                      % Otherwise the y's would be out of order
+		y_m = y_m(id);						% Otherwise the y's would be out of order
 		if (isempty(y_mn)),		y_mn = 0;	end	% It can't be empty on the test to update the .nc file
 	end
 
@@ -692,11 +692,12 @@ function add_MarkColor(hObject, eventdata)
 	XScale = diff(x_lim);		YScale = diff(y_lim)*6;		% The 6 factor compensates the ~6:1 horizontal/vertical axes dimension
 
 	r = sqrt(((pt(1,1)-x)./XScale).^2+((pt(1,2)-y)./YScale).^2);
-	[temp,i] = min(r);
+	[mini,i] = min(r);
+	if (mini > 0.04),		return,		end					% Do not accept click if its too far away of the closest point
 	pt_x = x(i);				pt_y = y(i);
 
 	xr = get(hM,'XData');		yr = get(hM,'YData');		% Red markers
-	if ( ~isempty(xr) && ~isempty(pt_x) ),
+	if ( ~isempty(xr) && ~isempty(pt_x) )
 		id = find(xr == pt_x);
 	else
 		id = [];
@@ -740,83 +741,84 @@ function info_clickedCB(obj,eventdata)
 
 % --------------------------------------------------------------------------------------------------
 function rectang_clickedCB(obj,eventdata)
-handles = guidata(obj);     % get handles
-try
-	[p1,p2] = rubberbandbox;
-catch		% Don't know why but uisuspend sometimes breaks
-	set(handles.figure1,'Pointer','arrow');
-	return
-end
+	handles = guidata(obj);     % get handles
+	try
+		[p1,p2] = rubberbandbox;
+	catch		% Don't know why but uisuspend sometimes breaks
+		set(handles.figure1,'Pointer','arrow')
+		return
+	end
 
-in_grav = 0;	in_mag = 0;
-ax = get(handles.figure1,'CurrentAxes');
-if (strcmp(get(ax,'Tag'),'axes1')),			in_grav = 1;	opt = 'GravNull';
-elseif (strcmp(get(ax,'Tag'),'axes2')),		in_mag = 1;		opt = 'MagNull';
-end
+	in_grav = 0;	in_mag = 0;
+	ax = get(handles.figure1,'CurrentAxes');
+	if (strcmp(get(ax,'Tag'),'axes1')),			in_grav = 1;	opt = 'GravNull';
+	elseif (strcmp(get(ax,'Tag'),'axes2')),		in_mag = 1;		opt = 'MagNull';
+	end
 
-if (in_grav)
-    hM = findobj(handles.figure1,'Type','Line','tag','GravNull');
-    x = get(handles.h_gm,'XData');      y = get(handles.h_gm,'YData');
-elseif (in_mag)
-    hM = findobj(handles.figure1,'Type','Line','tag','MagNull');
-    x = get(handles.h_mm,'XData');      y = get(handles.h_mm,'YData');
-else
-    hM = findobj(handles.figure1,'Type','Line','tag','TopNull');
-    x = get(handles.h_tm,'XData');      y = get(handles.h_tm,'YData');
-end
+	if (in_grav)
+		hM = findobj(handles.figure1,'Type','Line','tag','GravNull');
+		x = get(handles.h_gm,'XData');      y = get(handles.h_gm,'YData');
+	elseif (in_mag)
+		hM = findobj(handles.figure1,'Type','Line','tag','MagNull');
+		x = get(handles.h_mm,'XData');      y = get(handles.h_mm,'YData');
+	else
+		hM = findobj(handles.figure1,'Type','Line','tag','TopNull');
+		x = get(handles.h_tm,'XData');      y = get(handles.h_tm,'YData');
+	end
 
-% Search for "regular" points inside the rectangle
-id = find(x >= p1(1,1) & x <= p2(1,1) & y >= p1(1,2) & y <= p2(1,2));
-if (isempty(id))    return;     end     % Nothing inside rect
-golo_x = x(id);             golo_y = y(id);
+	% Search for "regular" points inside the rectangle
+	id = find(x >= p1(1,1) & x <= p2(1,1) & y >= p1(1,2) & y <= p2(1,2));
+	if (isempty(id)),	return,		end		% Nothing inside rect
+	golo_x = x(id);				golo_y = y(id);
 
-% Now search also for eventual pre-existing red markers inside the rectangle
-xr = get(hM,'XData');       yr = get(hM,'YData');
-if (~isempty(xr))           % We have red markers. See if any is inside rect
-    id = find(xr >= p1(1,1) & xr <= p2(1,1) & yr >= p1(1,2) & yr <= p2(1,2));
-    if (~isempty(id))       % Yes we have, so remove them for not creating duplicates
-        xr(id) = [];        yr(id) = [];
-    end
-end
+	% Now search also for eventual pre-existing red markers inside the rectangle
+	xr = get(hM,'XData');       yr = get(hM,'YData');
+	if (~isempty(xr))           % We have red markers. See if any is inside rect
+		id = find(xr >= p1(1,1) & xr <= p2(1,1) & yr >= p1(1,2) & yr <= p2(1,2));
+		if (~isempty(id))       % Yes we have, so remove them for not creating duplicates
+			xr(id) = [];        yr(id) = [];
+		end
+	end
 
-% Finaly plot the points cought inside the rect
-if (isempty(hM))        % First red Markers on this axes
-    line(golo_x,golo_y,'Marker','s','MarkerFaceColor','r','MarkerSize',4,'LineStyle','none','Tag',opt);
-else
-    golo_x = [golo_x xr];    golo_y = [golo_y yr];
-    set(hM,'XData',golo_x, 'YData', golo_y)
-end
+	% Finaly plot the points cought inside the rect
+	if (isempty(hM))        % First red Markers on this axes
+		line(golo_x,golo_y,'Marker','s','MarkerFaceColor','r','MarkerSize',4,'LineStyle','none','Tag',opt);
+	else
+		golo_x = [golo_x xr];    golo_y = [golo_y yr];
+		set(hM,'XData',golo_x, 'YData', golo_y)
+	end
 
 % --------------------------------------------------------------------------------------------------
 function rectangMove_clickedCB(obj,eventdata)
-handles = guidata(obj);     % get handles
-try
-    [p1,p2] = rubberbandbox;
-catch
-    return
-end
+	handles = guidata(obj);		% get handles
+	
+	try
+		[p1,p2] = rubberbandbox(handles.axes2);
+	catch
+		return
+	end
+	
+	if (~strcmp(get(get(handles.figure1,'CurrentAxes'),'Tag'),'axes2'))		% This option is meant only to magnetic data
+		return
+	end
 
-if (~strcmp(get(get(handles.figure1,'CurrentAxes'),'Tag'),'axes2'))		% This option is meant only to magnetic data
-    return
-end
+	x = get(handles.h_mm,'XData');		y = get(handles.h_mm,'YData');
 
-x = get(handles.h_mm,'XData');      y = get(handles.h_mm,'YData');
+	% Search for "regular" points inside the rectangle
+	id = find(x >= p1(1,1) & x <= p2(1,1) & y >= p1(1,2) & y <= p2(1,2));
+	if (isempty(id)),	return,		end		% Nothing inside rect
 
-% Search for "regular" points inside the rectangle
-id = find(x >= p1(1,1) & x <= p2(1,1) & y >= p1(1,2) & y <= p2(1,2));
-if (isempty(id)),	return,		end		% Nothing inside rect
+	% create a new line and set it with the ui_edit_polygon so that it can be moved
+	golo_x = x(id);				golo_y = y(id);
 
-% create a new line and set it the line_uicontext in order that they may be moved
-golo_x = x(id);             golo_y = y(id);
+	x(id) = [];         y(id) = [];			% Remove these from the main line
+	set(handles.h_mm,'XData',x,'YData',y)
 
-x(id) = [];         y(id) = [];         % Remove these from the main line
-set(handles.h_mm,'XData',x,'YData',y)
+	n = numel(handles.h_broken);
+	handles.h_broken(n+1) = line(golo_x,golo_y,'Marker','s','MarkerFaceColor','b','MarkerSize',4,'LineStyle','-');
+	ui_edit_polygon(handles.h_broken(n+1), 'y')		% Set edition functions
 
-n = length(handles.h_broken);
-handles.h_broken(n+1) = line(golo_x,golo_y,'Marker','s','MarkerFaceColor','b','MarkerSize',4,'LineStyle','-');
-ui_edit_polygon(handles.h_broken(n+1), 'y')      % Set edition functions
-
-guidata(handles.figure1, handles)
+	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------------------------------------
 function changeScale_clickedCB(obj,eventdata,opt)
