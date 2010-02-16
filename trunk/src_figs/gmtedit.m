@@ -88,16 +88,15 @@ function out = gmtedit(varargin)
 
 	sc_size = get(0,'ScreenSize');
 	fig_height = fix(sc_size(4)*.9);
-	%fp = [1 sc_size(4)-fig_height sc_size(3) fig_height];
 	marg_l = 60;                            % Left margin
 	marg_r = 15;                            % Right margin
 	marg_tb = 10;                           % Top & Bottom margins
 	marg_ax = 15;                           % Margin between axes
 	ax_height = fix(fig_height * .295);
 	ax_width = sc_size(3) - marg_l - marg_r;
-	fp = [0 0.04 1 0.96];
+	fp = [0 0.035 1 0.965];
 
-	hf = figure('name','gmtedit','resize','off','numbertitle','off', 'visible','on', 'units','normalized',...
+	hf = figure('name','gmtedit','numbertitle','off', 'visible','off', 'units','normalized',...
         'outerposition',fp, 'DoubleBuffer','on', 'Tag','figure1', 'closerequestfcn',@fig_CloseRequestFcn, ...
 		'Color',get(0,'defaultUicontrolBackgroundColor'),'units','pixel');
 
@@ -122,15 +121,6 @@ function out = gmtedit(varargin)
 	hh = findobj(hA,'Tooltip','Zoom Out');			zoomOut_img  = get(hh(1),'CData');
 	set(hf,'menubar','none')            % Set the menubar to none
 
-	pos = [marg_l fig_height-ax_height-marg_tb ax_width ax_height];
-	h_a1 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes1');
-
-	pos(2) = fig_height-2*(ax_height+marg_tb)-marg_ax;
-	h_a2 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes2');
-
-	pos(2) = fig_height-3*(ax_height+marg_tb)-2*marg_ax;
-	h_a3 = axes('Parent',hf,'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes3');
-
 	% Load some icons from mirone_icons.mat
 	load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','trincha_ico');
 
@@ -139,7 +129,6 @@ function out = gmtedit(varargin)
 	uipushtool('parent',h_toolbar,'Click',{@import_clickedCB,f_name},'Tag','import',...
 		'cdata',openFile_img,'Tooltip','Open gmt file');
 	uipushtool('parent',h_toolbar,'Click',@save_clickedCB,'Tag','save', 'cdata',saveFile_img,'Tooltip','Save gmt file');
-	% uitoggletool('parent',h_toolbar,'Click',@zoom_clickedCB,'Tag','zoom','cdata',zoom_img,'TooltipString','Zoom');
 	uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','cdata',info_ico, 'Tooltip','Cruise Info');
 	uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang','cdata',rectang_ico,...
 		'Tooltip','Rectangular region','Sep','on');
@@ -151,6 +140,15 @@ function out = gmtedit(varargin)
 	if (~is_gmt)	
 		uipushtool('parent',h_toolbar,'Click',{@NavFilters_ClickedCB,f_name}, 'cdata',flipdim(trincha_ico,1),'Tooltip','Find Nav/Grad troubles','Sep','on');
 	end
+
+	pos = [marg_l fig_height-ax_height-marg_tb ax_width ax_height];
+	h_a1 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes1');
+
+	pos(2) = fig_height-2*(ax_height+marg_tb)-marg_ax;
+	h_a2 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes2');
+
+	pos(2) = fig_height-3*(ax_height+marg_tb)-2*marg_ax;
+	h_a3 = axes('Parent',hf,'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes3');
 
 	if (isempty(vars))		% Default GMT axes names
 		set(get(h_a1,'YLabel'),'String','Gravity anomaly (mGal)')
@@ -165,7 +163,6 @@ function out = gmtedit(varargin)
 	handles.def_width_km = def_width_km;
 	handles.max_x_data = 10000;
 	scroll_plots(def_width_km,[0 10000])     % The [0 10000] will be reset inside scroll_plots to a more appropriate val
-	%movegui(hf,'north')
 
 	% Create empty lines just for the purpose of having their handles
 	handles.h_gl = line('XData',[],'YData',[],'Color','k','Parent',h_a1);
@@ -710,12 +707,6 @@ function add_MarkColor(hObject, eventdata)
 	end
 
 % --------------------------------------------------------------------------------------------------
-function zoom_clickedCB(obj,eventdata)
-	if (strcmp(get(obj,'State'),'on')),		zoom_j xon;
-	else									zoom_j off;
-	end
-
-% --------------------------------------------------------------------------------------------------
 function info_clickedCB(obj,eventdata)
 	handles = guidata(obj);     % get handles
 	if (isempty(handles.info)),		return,		end
@@ -870,8 +861,7 @@ function scroll_plots(width, x)
 	pos = get(gca,'position');
 
 	% This will create a slider which is just underneath the axis
-	% but still leaves room for the axis labels above the slider
-	Newpos = [pos(1) 5 pos(3) 15];
+	Newpos = [pos(1) 2 pos(3) 13];
 
 	S = ['set(findall(gcf,''Type'',''axes''),''xlim'',get(gcbo,''value'')+[0 ' num2str(width) '])'];
 
