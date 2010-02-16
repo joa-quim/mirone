@@ -37,6 +37,9 @@ function out = gmtedit(varargin)
 	opt_G = '-G';               % Default output to [-180/+180] range
 	begin = 1;                  % This means that the display starts at the begining of track
 	center_win = [];
+	vars = [];					% Container to eventual user selected fields to plot (MGD77+ only)
+	multi_plot = [];			% Container to eventual user selected extra fields to overlay in plot (MGD77+ only)
+	xISdist = true;				% Default absicssae to distance in km
 	is_gmt = false;
 	is_mgd77 = false;
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
@@ -85,53 +88,20 @@ function out = gmtedit(varargin)
 
 	sc_size = get(0,'ScreenSize');
 	fig_height = fix(sc_size(4)*.9);
-	fp = [1 sc_size(4)-fig_height sc_size(3) fig_height];
+	%fp = [1 sc_size(4)-fig_height sc_size(3) fig_height];
 	marg_l = 60;                            % Left margin
 	marg_r = 15;                            % Right margin
 	marg_tb = 10;                           % Top & Bottom margins
 	marg_ax = 15;                           % Margin between axes
 	ax_height = fix(fig_height * .295);
 	ax_width = sc_size(3) - marg_l - marg_r;
+	fp = [0 0.04 1 0.96];
 
-	hf = figure('name','gmtedit','resize','off','numbertitle','off', 'visible','off', ...
-        'position',fp, 'DoubleBuffer','on', 'Tag','figure1', 'closerequestfcn',@fig_CloseRequestFcn);
-
-	% Use system color scheme for figure:
-	set(hf,'Color',get(0,'defaultUicontrolBackgroundColor'));
-
-	% Apply this trick to get the icons. Let's hope that this is not version/OS dependent 
-	hA = findall(hf);
-	hh = findobj(hA,'TooltipString','Open File');
-	openFile_img = get(hh(1),'CData');
-	hh = findobj(hA,'TooltipString','Save Figure');
-	saveFile_img = get(hh(1),'CData');
-	hh = findobj(hA,'TooltipString','Zoom In');
-	zoomIn_img = get(hh(1),'CData');
-	hh = findobj(hA,'TooltipString','Zoom Out');
-	zoomOut_img = get(hh(1),'CData');
-	set(hf,'menubar','none')            % Set the menubar to none
-
-	pos = [marg_l fig_height-ax_height-marg_tb ax_width ax_height];
-	h_a1 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes1');
-
-	pos = [marg_l fig_height-2*(ax_height+marg_tb)-marg_ax ax_width ax_height];
-	h_a2 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes2');
-
-	pos = [marg_l fig_height-3*(ax_height+marg_tb)-2*marg_ax ax_width ax_height];
-	h_a3 = axes('Parent',hf,'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes3');
+	hf = figure('name','gmtedit','resize','off','numbertitle','off', 'visible','on', 'units','normalized',...
+        'outerposition',fp, 'DoubleBuffer','on', 'Tag','figure1', 'closerequestfcn',@fig_CloseRequestFcn, ...
+		'Color',get(0,'defaultUicontrolBackgroundColor'),'units','pixel');
 
 	handles = guihandles(hf);
-	handles.opt_G = opt_G;
-	handles.info = [];
-	handles.h_broken = [];
-	handles.begin = begin;
-	handles.center_win = center_win;
-	handles.is_gmt = is_gmt;
-	handles.is_mgd77 = is_mgd77;
-	handles.vars = vars;
-	handles.xISdist = xISdist;
-	handles.multi_plot = multi_plot;
-	handles.force_gmt = false;		% If TRUE save in old .gmt format
 
 	if (~isempty(MIRONE_DIRS))							% Should not be empty, but ...
 		handles.home_dir = MIRONE_DIRS.home_dir;		% False info if not called from Mir root dir
@@ -142,15 +112,46 @@ function out = gmtedit(varargin)
 		handles.last_dir = cd;
 		handles.work_dir = handles.last_dir;
 	end
+	if (got_inFile),		handles.last_dir = PATH;	end
 
-	if (got_inFile)
-		handles.last_dir = PATH;
-	end
+	% Apply this trick to get the icons. Let's hope that this is not version/OS dependent 
+	hA = findall(hf);
+	hh = findobj(hA,'Tooltip','Open File');			openFile_img = get(hh(1),'CData');
+	hh = findobj(hA,'Tooltip','Save Figure');		saveFile_img = get(hh(1),'CData');
+	hh = findobj(hA,'Tooltip','Zoom In');			zoomIn_img   = get(hh(1),'CData');
+	hh = findobj(hA,'Tooltip','Zoom Out');			zoomOut_img  = get(hh(1),'CData');
+	set(hf,'menubar','none')            % Set the menubar to none
+
+	pos = [marg_l fig_height-ax_height-marg_tb ax_width ax_height];
+	h_a1 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes1');
+
+	pos(2) = fig_height-2*(ax_height+marg_tb)-marg_ax;
+	h_a2 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes2');
+
+	pos(2) = fig_height-3*(ax_height+marg_tb)-2*marg_ax;
+	h_a3 = axes('Parent',hf,'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes3');
 
 	% Load some icons from mirone_icons.mat
 	load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','trincha_ico');
 
-	%SetAxesNumericType(handles.axes1);        % Set axes uicontextmenus
+	h_toolbar = uitoolbar('parent',hf,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
+		'Interruptible','on','Tag','FigureToolBar','Visible','on');
+	uipushtool('parent',h_toolbar,'Click',{@import_clickedCB,f_name},'Tag','import',...
+		'cdata',openFile_img,'Tooltip','Open gmt file');
+	uipushtool('parent',h_toolbar,'Click',@save_clickedCB,'Tag','save', 'cdata',saveFile_img,'Tooltip','Save gmt file');
+	% uitoggletool('parent',h_toolbar,'Click',@zoom_clickedCB,'Tag','zoom','cdata',zoom_img,'TooltipString','Zoom');
+	uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','cdata',info_ico, 'Tooltip','Cruise Info');
+	uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang','cdata',rectang_ico,...
+		'Tooltip','Rectangular region','Sep','on');
+	rectang_ico(7:10,8,:) = 0;
+	uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedCB,'cdata',rectang_ico,'Tooltip','Select for moving');
+	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zoomIn_img,'Tooltip','Increase scale','Sep','on');
+	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'dec'}, 'cdata',zoomOut_img,'Tooltip','Decrease scale');
+	uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',trincha_ico,'Tooltip','Outliers detector','Sep','on');
+	if (~is_gmt)	
+		uipushtool('parent',h_toolbar,'Click',{@NavFilters_ClickedCB,f_name}, 'cdata',flipdim(trincha_ico,1),'Tooltip','Find Nav/Grad troubles','Sep','on');
+	end
+
 	if (isempty(vars))		% Default GMT axes names
 		set(get(h_a1,'YLabel'),'String','Gravity anomaly (mGal)')
 		set(get(h_a2,'YLabel'),'String','Magnetic anomaly (nT)')
@@ -164,26 +165,7 @@ function out = gmtedit(varargin)
 	handles.def_width_km = def_width_km;
 	handles.max_x_data = 10000;
 	scroll_plots(def_width_km,[0 10000])     % The [0 10000] will be reset inside scroll_plots to a more appropriate val
-	movegui(hf,'north')
-
-	h_toolbar = uitoolbar('parent',hf,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
-		'Interruptible','on','Tag','FigureToolBar','Visible','on');
-	uipushtool('parent',h_toolbar,'Click',{@import_clickedCB,f_name},'Tag','import',...
-		'cdata',openFile_img,'Tooltip','Open gmt file');
-	uipushtool('parent',h_toolbar,'Click',@save_clickedCB,'Tag','save', 'cdata',saveFile_img,'Tooltip','Save gmt file');
-	% uitoggletool('parent',h_toolbar,'Click',@zoom_clickedCB,'Tag','zoom',...
-	%    'cdata',zoom_img,'TooltipString','Zoom');
-	uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','cdata',info_ico, 'Tooltip','Cruise Info');
-	uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang','cdata',rectang_ico,...
-		'Tooltip','Rectangular region','Sep','on');
-	rectang_ico(7:10,8,:) = 0;
-	uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedCB,'cdata',rectang_ico,'Tooltip','Select for moving');
-	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zoomIn_img,'Tooltip','Increase scale','Sep','on');
-	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'dec'}, 'cdata',zoomOut_img,'Tooltip','Decrease scale');
-	uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',trincha_ico,'Tooltip','Outliers detector','Sep','on');
-	if (~is_gmt)	
-		uipushtool('parent',h_toolbar,'Click',{@NavFilters_ClickedCB,f_name}, 'cdata',flipdim(trincha_ico,1),'Tooltip','Find Nav/Grad troubles','Sep','on');
-	end
+	%movegui(hf,'north')
 
 	% Create empty lines just for the purpose of having their handles
 	handles.h_gl = line('XData',[],'YData',[],'Color','k','Parent',h_a1);
@@ -199,6 +181,18 @@ function out = gmtedit(varargin)
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set([h_a1 h_a2 h_a3], 'UIContextMenu', cmenuHand);
 	uimenu(cmenuHand, 'Label', 'Overlay interpolation', 'Call',@interp_on_grid);
+
+	handles.opt_G = opt_G;
+	handles.info = [];
+	handles.h_broken = [];
+	handles.begin = begin;
+	handles.center_win = center_win;
+	handles.is_gmt = is_gmt;
+	handles.is_mgd77 = is_mgd77;
+	handles.vars = vars;
+	handles.xISdist = xISdist;
+	handles.multi_plot = multi_plot;
+	handles.force_gmt = false;		% If TRUE save in old .gmt format
 
 	guidata(hf, handles);
 
@@ -753,6 +747,7 @@ function rectang_clickedCB(obj,eventdata)
 	ax = get(handles.figure1,'CurrentAxes');
 	if (strcmp(get(ax,'Tag'),'axes1')),			in_grav = 1;	opt = 'GravNull';
 	elseif (strcmp(get(ax,'Tag'),'axes2')),		in_mag = 1;		opt = 'MagNull';
+	else	opt = 'TopNull';
 	end
 
 	if (in_grav)
@@ -850,6 +845,9 @@ function changeScale_clickedCB(obj,eventdata,opt)
 	val = get(h_slider,'Value');
 	if (val > new_max),		set(h_slider,'Value',new_max),		end
 
+	r = 0.90 * handles.def_width_km / handles.max_x_data;
+	set(h_slider,'SliderStep', [r r*10])
+	
 	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------------------------------------
@@ -1258,7 +1256,7 @@ function h = gmtedit_NavFilters(varargin)
 	handles.hMag  = varargin{2};
 	handles.fname = varargin{3};
 	handles.minSpeed = 1;
-	handles.maxSpeed = 14;
+	handles.maxSpeed = 15;
 	handles.maxSlope = 250;
 
 	guidata(h, handles);
@@ -1269,7 +1267,7 @@ function h = gmtedit_NavFilters(varargin)
 function edit_MaxSpeed_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (xx <= 0 || isnan(xx))
-		xx = 14;		set(hObject,'String',xx)
+		xx = 15;		set(hObject,'String',xx)
 	end
 	handles.maxSpeed = xx;
 	guidata(handles.figure1, handles);
@@ -1277,7 +1275,7 @@ function edit_MaxSpeed_CB(hObject, handles)
 % ----------------------------------------------------------------------------
 function edit_MinSpeed_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
-	if (xx <= 0 || isnan(xx))
+	if (xx < 0 || isnan(xx))
 		xx = 0;		set(hObject,'String',xx)
 	end
 	handles.minSpeed = xx;
@@ -1286,8 +1284,8 @@ function edit_MinSpeed_CB(hObject, handles)
 % ----------------------------------------------------------------------------
 function edit_maxSlope_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
-	if (xx <= 0 || isnan(xx))
-		xx = 14;		set(hObject,'String',xx)
+	if (xx < 0 || isnan(xx))
+		xx = 250;		set(hObject,'String',xx)
 	end
 	handles.maxSlope = xx;
 	guidata(handles.figure1, handles);
@@ -1331,11 +1329,6 @@ function push_navFiltApply_CB(hObject, handles)
 	end
 
 % ----------------------------------------------------------------------------
-function push_navFiltApplyNreturn_CB(hObject, handles)
-	push_navFiltApply_CB(handles.push_navFiltApply, handles)
-	delete(handles.figure1)
-
-% ----------------------------------------------------------------------------
 % --- Creates and returns a handle to the GUI figure. 
 function NavFilters_LayoutFcn(h1)
 
@@ -1349,7 +1342,7 @@ set(h1, 'Position',[520 500 356 61],...
 uicontrol('Parent',h1, 'Position',[5 32 38 22], 'Style','edit',...
 'BackgroundColor',[1 1 1],...
 'Call',{@navFilters_uicallback,h1,'edit_MaxSpeed_CB'},...
-'String','14',...
+'String','15',...
 'TooltipString','Flag speeds higher than this',...
 'Tag','edit_MaxSpeed');
 
@@ -1374,16 +1367,12 @@ uicontrol('Parent',h1, 'HorizontalAlignment','left', 'Position',[44 3 109 20],..
 'String','Max Slope (nT/km)','Style','text')
 
 uicontrol('Parent',h1, 'Position',[260 32 90 21],...
-'Call',{@navFilters_uicallback,h1,'push_navFiltApply_CB'},...
-'String','Apply', 'Tag','push_navFiltApply')
-
-uicontrol('Parent',h1, 'Position',[177 4 69 21],...
 'Call',{@navFilters_uicallback,h1,'push_navFiltClean_CB'},...
 'String','Clean', 'Tag','push_navFiltClean')
 
-uicontrol('Parent',h1, 'Position',[260 4 90 21],...
-'Call',{@navFilters_uicallback,h1,'push_navFiltApplyNreturn_CB'},...
-'String','Apply n''return', 'Tag','push_navFiltApplyNreturn')
+uicontrol('Parent',h1, 'Position',[260 5 90 21],...
+'Call',{@navFilters_uicallback,h1,'push_navFiltApply_CB'},...
+'String','Apply', 'Tag','push_navFiltApply')
 
 function navFilters_uicallback(hObject, event, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
