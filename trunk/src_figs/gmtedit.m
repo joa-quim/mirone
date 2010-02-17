@@ -142,22 +142,22 @@ function out = gmtedit(varargin)
 	end
 
 	pos = [marg_l fig_height-ax_height-marg_tb ax_width ax_height];
-	h_a1 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes1');
+	handles.axes1 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes1');
 
 	pos(2) = fig_height-2*(ax_height+marg_tb)-marg_ax;
-	h_a2 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes2');
+	handles.axes2 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes2');
 
 	pos(2) = fig_height-3*(ax_height+marg_tb)-2*marg_ax;
-	h_a3 = axes('Parent',hf,'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes3');
+	handles.axes3 = axes('Parent',hf,'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes3');
 
 	if (isempty(vars))		% Default GMT axes names
-		set(get(h_a1,'YLabel'),'String','Gravity anomaly (mGal)')
-		set(get(h_a2,'YLabel'),'String','Magnetic anomaly (nT)')
-		set(get(h_a3,'YLabel'),'String','Bathymetry (m)')
+		set(get(handles.axes1,'YLabel'),'String','Gravity anomaly (mGal)')
+		set(get(handles.axes2,'YLabel'),'String','Magnetic anomaly (nT)')
+		set(get(handles.axes3,'YLabel'),'String','Bathymetry (m)')
 	else
-		set(get(h_a1,'YLabel'),'String',vars{1})
-		set(get(h_a2,'YLabel'),'String',vars{2})
-		set(get(h_a3,'YLabel'),'String',vars{3})
+		set(get(handles.axes1,'YLabel'),'String',vars{1})
+		set(get(handles.axes2,'YLabel'),'String',vars{2})
+		set(get(handles.axes3,'YLabel'),'String',vars{3})
 	end
 
 	handles.def_width_km = def_width_km;
@@ -165,18 +165,18 @@ function out = gmtedit(varargin)
 	scroll_plots(def_width_km,[0 10000])     % The [0 10000] will be reset inside scroll_plots to a more appropriate val
 
 	% Create empty lines just for the purpose of having their handles
-	handles.h_gl = line('XData',[],'YData',[],'Color','k','Parent',h_a1);
+	handles.h_gl = line('XData',[],'YData',[],'Color','k','Parent',handles.axes1);
 	handles.h_gm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
-		'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',h_a1);
-	handles.h_ml = line('XData',[],'YData',[],'Color','k','Parent',h_a2);
+		'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',handles.axes1);
+	handles.h_ml = line('XData',[],'YData',[],'Color','k','Parent',handles.axes2);
 	handles.h_mm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
-		'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',h_a2);
-	handles.h_tl = line('XData',[],'YData',[],'Color','k','Parent',h_a3);
+		'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',handles.axes2);
+	handles.h_tl = line('XData',[],'YData',[],'Color','k','Parent',handles.axes3);
 	handles.h_tm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
-		'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',h_a3);
+		'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',handles.axes3);
 
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
-	set([h_a1 h_a2 h_a3], 'UIContextMenu', cmenuHand);
+	set([handles.axes1 handles.axes2 handles.axes3], 'UIContextMenu', cmenuHand);
 	uimenu(cmenuHand, 'Label', 'Overlay interpolation', 'Call',@interp_on_grid);
 
 	handles.opt_G = opt_G;
@@ -571,22 +571,23 @@ function save_clickedCB(hObject, eventdata)
 	set(handles.figure1,'Pointer','watch')
 	if (~isempty(x_gn))
 		for (k=1:numel(x_gn))
-			tmp = (x_g - x_gn(k)) == 0;		% Find the gravity points that were marked
+			tmp = (x_g - x_gn(k)) == 0;		% Find the GRAV points that were marked
 			y_g(tmp) = NaN;					% Remove them
 		end
 	end
 	if (~isempty(x_mn))
 		for (k=1:numel(x_mn))
-			tmp = (x_m - x_mn(k)) == 0;		% Find the magnetic points that were marked
+			tmp = (x_m - x_mn(k)) == 0;		% Find the MAG points that were marked
 			y_m(tmp) = NaN;					% Remove them
 		end
 	end
 	if (~isempty(x_tn))
 		for (k=1:numel(x_tn))
-			tmp = (x_t - x_tn(k)) == 0;		% Find the topo points that were marked
+			tmp = (x_t - x_tn(k)) == 0;		% Find the TOPO points that were marked
 			y_t(tmp) = NaN;					% Remove them
 		end
 	end
+	
 
 	if (~isempty(y_g))
 		if (handles.is_gmt),	y_g(isnan(y_g*10)) = NODATA(1);		y_g = int16(y_g);
@@ -594,6 +595,11 @@ function save_clickedCB(hObject, eventdata)
 		end
 	end
 	if (~isempty(y_m))
+		hD = findobj(handles.h_mm,'Type','Line','tag','despikado');	% Do we have "Despiked" points?
+		if (~isempty(hD))			% Yes, we have them so update the y_m vector with their values
+			yD = get(hD, 'YData');			ud = get(hD,'UserData');
+			y_m(ud) = yD;
+		end
 		is_gmt = handles.is_gmt;	% Local copy to handle also the force_gmt case 
 		if (handles.force_gmt && ~is_gmt),		y_m = y_m - 40000;	is_gmt = true;		end		% Conversion from the mgd77+ format
 		if (is_gmt),			y_m(isnan(y_m)) = NODATA(2);		y_m = int16(y_m);
@@ -649,62 +655,112 @@ function add_MarkColor(hObject, eventdata)
 % Add a red Marker over the closest (well, near closest) clicked point.
 	handles = guidata(hObject);     % get handles
 
+	do_despika = false;
 	button = get(handles.figure1, 'SelectionType');
-	if (~strcmp(button,'normal')),		return,		end		% Accept only left-clicks
+	if (strcmp(button,'extend'))		% Shift-click to despike a point
+		do_despika = true;
+	elseif (~strcmp(button,'normal'))	% Than accept only left-clicks
+		return
+	end
 
 	in_grav = 0;    in_mag = 0;     in_topo = 0;
-	ax = get(handles.figure1,'CurrentAxes');
-	pt = get(ax, 'CurrentPoint');
-	if (strcmp(get(ax,'Tag'),'axes1'))
-		in_grav = 1;        opt = 'GravNull';
-	elseif (strcmp(get(ax,'Tag'),'axes2'))
-		in_mag = 1;         opt = 'MagNull';
-	elseif (strcmp(get(ax,'Tag'),'axes3'))
-		in_topo = 1;        opt = 'TopNull';
+	hAx = get(handles.figure1,'CurrentAxes');
+	pt = get(hAx, 'CurrentPoint');
+	if (strcmp(get(hAx,'Tag'),'axes1'))
+		in_grav = 1;		opt = 'GravNull';		currHline = handles.h_gm;
+	elseif (strcmp(get(hAx,'Tag'),'axes2'))
+		in_mag = 1;			opt = 'MagNull';		currHline = handles.h_mm;
+	else
+		in_topo = 1;		opt = 'TopNull';		currHline = handles.h_tm;
 	end
 	if ((in_grav + in_mag + in_topo) == 0),		return,		end		% Click was outside axes
 
-	if (in_grav)
-		hM = findobj(handles.figure1,'Type','Line','tag','GravNull');
-		x = get(handles.h_gm,'XData');      y = get(handles.h_gm,'YData');
-	elseif (in_mag)
-		hM = findobj(handles.figure1,'Type','Line','tag','MagNull');
-		x = get(handles.h_mm,'XData');      y = get(handles.h_mm,'YData');
-	else
-		hM = findobj(handles.figure1,'Type','Line','tag','TopNull');
-		x = get(handles.h_tm,'XData');      y = get(handles.h_tm,'YData');
-	end
+% 	if (in_grav)
+% 		hM = findobj(hAx,'Type','Line','tag','GravNull');
+% 		currHline = handles.h_gm;
+% 	elseif (in_mag)
+% 		hM = findobj(hAx,'Type','Line','tag','MagNull');
+% 		currHline = handles.h_mm;
+% 	else
+% 		hM = findobj(hAx,'Type','Line','tag','TopNull');
+% 		currHline = handles.h_tm;
+% 	end
+	hM = findobj(hAx,'Type','Line','tag',opt);
+	x = get(currHline,'XData');		y = get(currHline,'YData');
 
-	x_lim = get(ax,'XLim');					y_lim = get(ax,'YLim');
-	dx = diff(x_lim) / 20;					% Search only betweem +/- 1/10 of x_lim
+	x_lim = get(hAx,'XLim');		y_lim = get(hAx,'YLim');
+	dx = diff(x_lim) / 20;			% Search only betweem +/- 1/10 of x_lim
 	dx = max(dx, 10);
 	id = (x < (pt(1,1)-dx) | x > (pt(1,1)+dx));
+	if (do_despika)
+		fids = find(~id);		% W'll need this info to reconstruct the true fid of the clicked point 
+	end
 	x(id) = [];					y(id) = [];	% Clear outside-2*dx points to speed up the search code
 	XScale = diff(x_lim);		YScale = diff(y_lim)*6;		% The 6 factor compensates the ~6:1 horizontal/vertical axes dimension
 
 	r = sqrt(((pt(1,1)-x)./XScale).^2+((pt(1,2)-y)./YScale).^2);
 	[mini,i] = min(r);
-	if (mini > 0.04),		return,		end					% Do not accept click if its too far away of the closest point
-	pt_x = x(i);				pt_y = y(i);
+	if (mini > 0.04),			return,		end				% Do not accept click if its too far away of the closest point
+	ptClicked_x = x(i);			ptClicked_y = y(i);
+
+	if (do_despika)
+		despika(hAx, currHline, (fids(1) + i - 1))
+		return
+	end
 
 	xr = get(hM,'XData');		yr = get(hM,'YData');		% Red markers
-	if ( ~isempty(xr) && ~isempty(pt_x) )
-		id = find(xr == pt_x);
-	else
-		id = [];
+	if ( ~isempty(xr) && ~isempty(ptClicked_x) )
+		id = find(xr == ptClicked_x);
+		if (~isempty(id))		% Marker already exists. Kill it and return
+			xr(id) = [];		yr(id) = [];
+			set(hM,'XData',xr, 'YData', yr)
+			return
+		end
 	end
 
-	if (isempty(id))			% New Marker
-		if (isempty(hM))		% First red Marker on this axes
-			line(pt_x,pt_y,'Marker','s','MarkerFaceColor','r','MarkerSize',4,'LineStyle','none','Tag',opt);
-		else
-			xr = [xr pt_x];		yr = [yr pt_y];
-			set(hM,'XData',xr, 'YData', yr)
-		end
-	else						% Marker already exists. Kill it
-		xr(id) = [];			yr(id) = [];
+	% New Marker
+	if (isempty(hM))			% First red Marker on this axes
+		line(ptClicked_x,ptClicked_y,'Marker','s','MarkerFaceColor','r','MarkerSize',4,'LineStyle','none','Tag',opt);
+	else
+		xr = [xr ptClicked_x];		yr = [yr ptClicked_y];
 		set(hM,'XData',xr, 'YData', yr)
 	end
+
+% --------------------------------------------------------------------------------------------------
+function despika(hAx, hLine, n)
+% Move one isolated point (spike) onto its most likely position as computed from neighbors
+	x = get(hLine,'XData');		y = get(hLine,'YData');
+	ind1 = max(n-4,1);			ind2 = min(n+4,numel(x));
+	Xs = x(ind1:ind2);			Ys = y(ind1:ind2);
+	ind = find(Xs == x(n));
+	Xs(ind) = [];				Ys(ind) = [];		% Remove the clicked point. Easier this way
+	ind = isnan(Ys);
+	if (~isempty(ind))			% We cannot have NaNs in the vectors sent to interp1
+		Xs(ind) = [];			Ys(ind) = [];
+		if (numel(Xs) < 4)
+			return
+		end
+	end
+	
+	newY = interp1(Xs,Ys,x(n), 'spline');
+	
+	hD = findobj(hAx,'Type','Line','tag','despikado');
+	if (isempty(hD))				% First despiked Marker on this axes
+		hD = line(x(n),newY,'Parent',hAx,'Marker','o','MarkerFaceColor','r','MarkerSize',5,'LineStyle','none','Tag','despikado');
+		set(hD,'UserData',false(1,numel(x)))
+	else
+		xd = get(hD,'XData');		yd = get(hD,'YData');		% Cyan markers
+		xd = [xd x(n)];				yd = [yd newY];
+		set(hD,'XData',xd, 'YData', yd)
+	end
+	
+	ud = get(hD,'UserData');		% Store the FID of the relocated point in UserData
+	ud(n) = true;
+	set(hD,'UserData',ud)
+
+	y(n) = NaN;
+	set(hLine, 'YData', y)
+	
 
 % --------------------------------------------------------------------------------------------------
 function info_clickedCB(obj,eventdata)
@@ -735,9 +791,9 @@ function rectang_clickedCB(obj,eventdata)
 	end
 
 	in_grav = 0;	in_mag = 0;
-	ax = get(handles.figure1,'CurrentAxes');
-	if (strcmp(get(ax,'Tag'),'axes1')),			in_grav = 1;	opt = 'GravNull';
-	elseif (strcmp(get(ax,'Tag'),'axes2')),		in_mag = 1;		opt = 'MagNull';
+	hAx = get(handles.figure1,'CurrentAxes');
+	if (strcmp(get(hAx,'Tag'),'axes1')),			in_grav = 1;	opt = 'GravNull';
+	elseif (strcmp(get(hAx,'Tag'),'axes2'))			in_mag = 1;		opt = 'MagNull';
 	else	opt = 'TopNull';
 	end
 
@@ -778,10 +834,8 @@ function rectang_clickedCB(obj,eventdata)
 function rectangMove_clickedCB(obj,eventdata)
 	handles = guidata(obj);		% get handles
 	
-	try
-		[p1,p2] = rubberbandbox(handles.axes2);
-	catch
-		return
+	try			[p1,p2] = rubberbandbox(handles.axes2);
+	catch,		return
 	end
 	
 	if (~strcmp(get(get(handles.figure1,'CurrentAxes'),'Tag'),'axes2'))		% This option is meant only to magnetic data
@@ -857,12 +911,8 @@ function scroll_plots(width, x)
 %   width: window width in x units
 %   x: absicssae vector
 
-	% Generate constants for use in uicontrol initialization
 	pos = get(gca,'position');
-
-	% This will create a slider which is just underneath the axis
 	Newpos = [pos(1) 2 pos(3) 13];
-
 	S = ['set(findall(gcf,''Type'',''axes''),''xlim'',get(gcbo,''value'')+[0 ' num2str(width) '])'];
 
 	% Creating Uicontrol with initial value of the minimum of x
@@ -1256,7 +1306,7 @@ function h = gmtedit_NavFilters(varargin)
 % ----------------------------------------------------------------------------
 function edit_MaxSpeed_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
-	if (xx <= 0 || isnan(xx))
+	if (xx < 0 || isnan(xx))
 		xx = 15;		set(hObject,'String',xx)
 	end
 	handles.maxSpeed = xx;
