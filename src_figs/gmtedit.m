@@ -647,8 +647,6 @@ function save_clickedCB(hObject, eventdata)
 		if (~isempty(y_mn)),		nc_funs('varput', f_name, 'mtf1',  y_m, 0);		end
 		if (~isempty(y_tn)),		nc_funs('varput', f_name, 'depth', y_t, 0);		end
 		if (handles.adjustedVel)	% We had Nav changes
-% 			nc_funs('varput', f_name, 'lon',  int32(handles.lon * 2e7), 0);
-% 			nc_funs('varput', f_name, 'lat',  int32(handles.lat * 1e7), 0);
 			nc_funs('varput', f_name, 'lon',  handles.lon);
 			nc_funs('varput', f_name, 'lat',  handles.lat);
 		end
@@ -1391,7 +1389,7 @@ function push_navFiltApply_CB(hObject, handles)
 	
 	vel = diff(x) ./ diff(tempo') * (1000 / 1852 * 3600);		% x -> km; tempo -> sec. Now vel -> knots
 	ind = (vel < handles.minSpeed | vel > handles.maxSpeed);
-	indNaN = ~isnan(y);
+	indNaN = ~isnan(y(2:end));
 	ind = ind & indNaN;			% We don't want the numbers reflect bad nav on ... non existing data
 	ind = ind | ( abs(diff(y) ./ diff(x)) > handles.maxSlope);
 	
