@@ -98,7 +98,15 @@ function out = gmtedit(varargin)
 
 	hf = figure('name','gmtedit','numbertitle','off', 'visible','off', 'units','normalized',...
         'outerposition',fp, 'DoubleBuffer','on', 'Tag','figure1', 'closerequestfcn',@fig_CloseRequestFcn, ...
-		'Color',get(0,'defaultUicontrolBackgroundColor'),'units','pixel');
+		'Color',get(0,'defaultUicontrolBackgroundColor'));
+
+	% Apply this trick to get the icons. Let's hope that this is not version/OS dependent 
+	hA = findall(hf);
+	hh = findobj(hA,'Tooltip','Open File');			openFile_img = get(hh(1),'CData');
+	hh = findobj(hA,'Tooltip','Save Figure');		saveFile_img = get(hh(1),'CData');
+	hh = findobj(hA,'Tooltip','Zoom In');			zoomIn_img   = get(hh(1),'CData');
+	hh = findobj(hA,'Tooltip','Zoom Out');			zoomOut_img  = get(hh(1),'CData');
+	set(hf,'menubar','none','units','pixel')		% Set the menubar to none
 
 	handles = guihandles(hf);
 
@@ -112,14 +120,6 @@ function out = gmtedit(varargin)
 		handles.work_dir = handles.last_dir;
 	end
 	if (got_inFile),		handles.last_dir = PATH;	end
-
-	% Apply this trick to get the icons. Let's hope that this is not version/OS dependent 
-	hA = findall(hf);
-	hh = findobj(hA,'Tooltip','Open File');			openFile_img = get(hh(1),'CData');
-	hh = findobj(hA,'Tooltip','Save Figure');		saveFile_img = get(hh(1),'CData');
-	hh = findobj(hA,'Tooltip','Zoom In');			zoomIn_img   = get(hh(1),'CData');
-	hh = findobj(hA,'Tooltip','Zoom Out');			zoomOut_img  = get(hh(1),'CData');
-	set(hf,'menubar','none')            % Set the menubar to none
 
 	% Load some icons from mirone_icons.mat
 	load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','trincha_ico');
@@ -190,6 +190,8 @@ function out = gmtedit(varargin)
 	handles.xISdist = xISdist;
 	handles.multi_plot = multi_plot;
 	handles.force_gmt = false;		% If TRUE save in old .gmt format
+	handles.got_vel = 0;			% To tell if we have a Vel channel and where.
+	handles.adjustedVel = false;	% Will be set to true if any velocity (coords) is recalculated
 
 	guidata(hf, handles);
 
@@ -381,12 +383,9 @@ function import_clickedCB(hObject, eventdata, opt)
 	if (~isempty(handles.multi_plot))
 		for (k = 1:size(handles.multi_plot,1))
 			switch handles.multi_plot{k,2}
-				case '1'
-					line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes1)
-				case '2'
-					line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes2)
-				case '3'
-					line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes3)
+				case '1',		line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes1)
+				case '2',		line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes2)
+				case '3',		line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes3)
 			end
 		end
 	end
@@ -427,8 +426,8 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 	track.longitude = double(nc_funs('varget', fname, 'lon'));
 	track.latitude  = double(nc_funs('varget', fname, 'lat'));
 	if (isempty(handles.vars))
-		track.magnetics = nc_funs('varget', fname, 'mtf1');
-		track.gravity = nc_funs('varget', fname, 'faa');
+		track.magnetics  = nc_funs('varget', fname, 'mtf1');
+		track.gravity    = nc_funs('varget', fname, 'faa');
 		track.topography = nc_funs('varget', fname, 'depth');
 	else
 		try
@@ -479,6 +478,7 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 		elseif (ind_v(1) == 2),		track.magnetics = vel;
 		else						track.topography = vel;
 		end
+		handles.got_vel = ind_v(1);		% Store in which axes we have the velocity
 	end
 	if (handles.xISdist)				% Plot against accumulated distance
 		track.distance = dist;
@@ -646,6 +646,10 @@ function save_clickedCB(hObject, eventdata)
 		if (~isempty(y_gn)),		nc_funs('varput', f_name, 'faa',   y_g, 0);		end		% The 0 flags nc_funs for not try to scale
 		if (~isempty(y_mn)),		nc_funs('varput', f_name, 'mtf1',  y_m, 0);		end
 		if (~isempty(y_tn)),		nc_funs('varput', f_name, 'depth', y_t, 0);		end
+		if (handles.adjustedVel)	% We had Nav changes
+			nc_funs('varput', f_name, 'lon',  handles.lon, 0);
+			nc_funs('varput', f_name, 'lat',  handles.lat, 0);
+		end
 	end
 
 	set(handles.figure1,'Pointer','arrow')
@@ -675,16 +679,6 @@ function add_MarkColor(hObject, eventdata)
 	end
 	if ((in_grav + in_mag + in_topo) == 0),		return,		end		% Click was outside axes
 
-% 	if (in_grav)
-% 		hM = findobj(hAx,'Type','Line','tag','GravNull');
-% 		currHline = handles.h_gm;
-% 	elseif (in_mag)
-% 		hM = findobj(hAx,'Type','Line','tag','MagNull');
-% 		currHline = handles.h_mm;
-% 	else
-% 		hM = findobj(hAx,'Type','Line','tag','TopNull');
-% 		currHline = handles.h_tm;
-% 	end
 	hM = findobj(hAx,'Type','Line','tag',opt);
 	x = get(currHline,'XData');		y = get(currHline,'YData');
 
@@ -704,7 +698,11 @@ function add_MarkColor(hObject, eventdata)
 	ptClicked_x = x(i);			ptClicked_y = y(i);
 
 	if (do_despika)
-		despika(hAx, currHline, (fids(1) + i - 1))
+		if ( handles.got_vel && strcmp( get(hAx,'Tag'), sprintf('axes%d',handles.got_vel) ) )	% Velocity recomp
+			despikeNav(hAx, currHline, (fids(1) + i - 1))
+		else
+			despika(hAx, currHline, (fids(1) + i - 1))
+		end
 		return
 	end
 
@@ -727,8 +725,51 @@ function add_MarkColor(hObject, eventdata)
 	end
 
 % --------------------------------------------------------------------------------------------------
+function despikeNav(hAx, hLine, n)
+% Try to remove a spike in Vel by interpolation of its faulty coords
+	handles = guidata(hAx);
+	if (~handles.xISdist)
+		warndlg('Sorry. Cannot recompute velocity when X axes has record numbers instead of ditances. Bye.','Warning')
+		return
+	end
+	if (n == 1 || n == numel(handles.lon))
+		warndlg('First or last point cannot be recalculated. Bye.','Warning'),		return
+	end
+	ind1 = max(n-3,1);			ind2 = min(n+3,numel(handles.lon));
+	lon = handles.lon(ind1:ind2);			lat = handles.lat(ind1:ind2);
+	meanDLon = abs(lon(end) - lon(1)) / (numel(lon) - 1);
+	meanDLat = abs(lat(end) - lat(1)) / (numel(lat) - 1);
+	lonInt = handles.lon(n+1) - handles.lon(n-1);
+	latInt = handles.lat(n+1) - handles.lat(n-1);
+	if (lonInt > 4*meanDLon || latInt > 4*meanDLat)		% Ad-hoc test, but we must test for something resonable.
+		warndlg('Sorry. Coordinate data arround clicked point does not allow a reasonable estimate of new Lon/Lat. Likely close to a data gap','Warning')
+		return
+	end
+	newLon = handles.lon(n-1) + lonInt/2;
+	newLat = handles.lat(n-1)  + latInt/2;
+	handles.lon(n) = newLon;
+	handles.lat(n)  = newLat;
+	handles.adjustedVel = true;
+	guidata(hAx, handles)
+
+	% Recompute the velocity for this point but we must use a trick to recover the time which we don't store anywhere
+	co = cos(newLat *  pi / 180);
+	dx = [newLon - handles.lon(n+1)] .* co;		dy = [newLat - handles.lat(n-1)];
+	dist = sqrt(dx .^2 + dy .^2) * 111.1949;
+	x = get(hLine,'XData');			y = get(hLine,'YData');
+	dt = (x(n) - x(n-1)) / y(n);			% Recover the time from the previous velocity value
+	newVel = [dist / dt];					% Speed in knots. Notice that dt above was obtained by km / (NM / h)
+	x(n) = x(n-1) + dist;			y(n) = newVel;
+	set(hLine, 'XData', x, 'YData', y)
+
+% --------------------------------------------------------------------------------------------------
 function despika(hAx, hLine, n)
 % Move one isolated point (spike) onto its most likely position as computed from neighbors
+	if (~strcmp(get(hAx,'Tag'), 'axes2'))
+		warndlg('Sorry, relocation by interpolation only works when the magnetic channel is plotted in the middle axes','Warning')
+		return
+	end
+
 	x = get(hLine,'XData');		y = get(hLine,'YData');
 	ind1 = max(n-4,1);			ind2 = min(n+4,numel(x));
 	Xs = x(ind1:ind2);			Ys = y(ind1:ind2);
@@ -737,9 +778,7 @@ function despika(hAx, hLine, n)
 	ind = isnan(Ys);
 	if (~isempty(ind))			% We cannot have NaNs in the vectors sent to interp1
 		Xs(ind) = [];			Ys(ind) = [];
-		if (numel(Xs) < 4)
-			return
-		end
+		if (numel(Xs) < 4),		return,		end
 	end
 	
 	newY = interp1(Xs,Ys,x(n), 'spline');
@@ -1350,6 +1389,8 @@ function push_navFiltApply_CB(hObject, handles)
 	
 	vel = diff(x) ./ diff(tempo') * (1000 / 1852 * 3600);		% x -> km; tempo -> sec. Now vel -> knots
 	ind = (vel < handles.minSpeed | vel > handles.maxSpeed);
+	indNaN = ~isnan(y);
+	ind = ind & indNaN;			% We don't want the numbers reflect bad nav on ... non existing data
 	ind = ind | ( abs(diff(y) ./ diff(x)) > handles.maxSlope);
 	
 	ind = find(ind);
