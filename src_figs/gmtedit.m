@@ -788,9 +788,9 @@ function despika(hAx, hLine, n)
 		hD = line(x(n),newY,'Parent',hAx,'Marker','o','MarkerFaceColor','r','MarkerSize',5,'LineStyle','none','Tag','despikado');
 		set(hD,'UserData',false(1,numel(x)))
 	else
-		xd = get(hD,'XData');		yd = get(hD,'YData');		% Cyan markers
-		xd = [xd x(n)];				yd = [yd newY];
-		set(hD,'XData',xd, 'YData', yd)
+		xd = get(hD,'XData');		yd = get(hD,'YData');		% Circle markers
+		[xd,id] = sort([xd x(n)]);	yd = [yd newY];
+		set(hD,'XData',xd, 'YData', yd(id))
 	end
 	
 	ud = get(hD,'UserData');		% Store the FID of the relocated point in UserData
