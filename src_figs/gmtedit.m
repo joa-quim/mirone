@@ -588,14 +588,14 @@ function save_clickedCB(hObject, eventdata)
 		end
 	end
 	
-
+	hD = [];		% May get to contain the handle to 'despikado' line
 	if (~isempty(y_g))
 		if (handles.is_gmt),	y_g(isnan(y_g*10)) = NODATA(1);		y_g = int16(y_g);
 		elseif (~isempty(x_gn))	y_g = y_g / handles.gravScaleF;		y_g(isnan(y_g)) = NODATA(1);	y_g = int16(y_g);
 		end
 	end
 	if (~isempty(y_m))
-		hD = findobj(handles.h_mm,'Type','Line','tag','despikado');	% Do we have "Despiked" points?
+		hD = findobj(handles.figure1,'Type','Line','tag','despikado');	% Do we have "Despiked" points?
 		if (~isempty(hD))			% Yes, we have them so update the y_m vector with their values
 			yD = get(hD, 'YData');			ud = get(hD,'UserData');
 			y_m(ud) = yD;
@@ -644,7 +644,7 @@ function save_clickedCB(hObject, eventdata)
 		fclose(fid);
 	else						% New mgf77+ netCDF style files
 		if (~isempty(y_gn)),		nc_funs('varput', f_name, 'faa',   y_g, 0);		end		% The 0 flags nc_funs for not try to scale
-		if (~isempty(y_mn)),		nc_funs('varput', f_name, 'mtf1',  y_m, 0);		end
+		if (~isempty(y_mn) || ~isempty(hD)),	nc_funs('varput', f_name, 'mtf1',  y_m, 0);		end
 		if (~isempty(y_tn)),		nc_funs('varput', f_name, 'depth', y_t, 0);		end
 		if (handles.adjustedVel)	% We had Nav changes
 			nc_funs('varput', f_name, 'lon',  handles.lon);
