@@ -603,7 +603,7 @@ function save_clickedCB(hObject, eventdata)
 		is_gmt = handles.is_gmt;	% Local copy to handle also the force_gmt case 
 		if (handles.force_gmt && ~is_gmt),		y_m = y_m - 40000;	is_gmt = true;		end		% Conversion from the mgd77+ format
 		if (is_gmt),			y_m(isnan(y_m)) = NODATA(2);		y_m = int16(y_m);
-		elseif ( ~isempty(x_mn) || ~isempty(handles.h_broken) )
+		elseif ( ~isempty(x_mn) || ~isempty(handles.h_broken) || ~isempty(hD) )
 			y_m = y_m / handles.magScaleF;
 			y_m(isnan(y_m)) = NODATA(2);
 			y_m = int32(y_m);
