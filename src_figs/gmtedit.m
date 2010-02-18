@@ -64,7 +64,9 @@ function out = gmtedit(varargin)
 			end
 		end
 
-		[vars, multi_plot, xISdist] = parse_optV(MIRONE_DIRS.home_dir);
+		if (is_mgd77)
+			[vars, multi_plot, xISdist] = parse_optV(MIRONE_DIRS.home_dir);
+		end
 
 		for (k = 1:numel(varargin))
 			switch (varargin{k}(1:2))
@@ -152,7 +154,7 @@ function out = gmtedit(varargin)
 
 	if (isempty(vars))		% Default GMT axes names
 		set(get(handles.axes1,'YLabel'),'String','Gravity anomaly (mGal)')
-		set(get(handles.axes2,'YLabel'),'String','Magnetic anomaly (nT)')
+		set(get(handles.axes2,'YLabel'),'String','Magnetic field (nT)')
 		set(get(handles.axes3,'YLabel'),'String','Bathymetry (m)')
 	else
 		set(get(handles.axes1,'YLabel'),'String',vars{1})
@@ -165,13 +167,10 @@ function out = gmtedit(varargin)
 	scroll_plots(def_width_km,[0 10000])     % The [0 10000] will be reset inside scroll_plots to a more appropriate val
 
 	% Create empty lines just for the purpose of having their handles
-	handles.h_gl = line('XData',[],'YData',[],'Color','k','Parent',handles.axes1);
 	handles.h_gm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
 		'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',handles.axes1);
-	handles.h_ml = line('XData',[],'YData',[],'Color','k','Parent',handles.axes2);
 	handles.h_mm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
 		'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',handles.axes2);
-	handles.h_tl = line('XData',[],'YData',[],'Color','k','Parent',handles.axes3);
 	handles.h_tm = line('XData',[],'YData',[],'LineStyle','none','Marker','s', ...
 		'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',4,'Parent',handles.axes3);
 
@@ -244,7 +243,7 @@ function [vars, multi_plot, xISdist] = parse_optV(home_dir)
 		if (isempty(ind2)),		last = numel(opt_V);
 		else					last = ind2 - 1;
 		end
-		
+
 		vars = {'faa' 'mtf1' 'depth'};	% Used when (ex) '-V:anom+2' or -Vvar1,var2,var3[:...] forms
 		if (~isempty(ind2) && ind2(1) == 1)		% The form '-V:anom+2' is also aceptable
 		else
@@ -556,6 +555,18 @@ function save_clickedCB(hObject, eventdata)
 	x_m = get(handles.h_mm,'XData');	y_m = get(handles.h_mm,'YData');
 	x_t = get(handles.h_tm,'XData');	y_t = get(handles.h_tm,'YData');
 
+	% Find out which variables we need to save (and NOT save by mistake)
+	saveGRAV = false;		saveMAG = false;		saveTOPO = false;
+	if (isempty(handles.vars))
+		saveGRAV = ~isempty(y_gn);		saveMAG = ~isempty(y_mn);		saveTOPO = ~isempty(y_tn);
+	else
+		for (k = 1:numel(handles.vars))		% Would be more elegant with a strmatch but this is lighter
+			if ( strcmp(handles.vars{k}, 'faa')   && ~isempty(y_gn) && k == 1 ),		saveGRAV = true;	end
+			if ( strcmp(handles.vars{k}, 'mtf1')  && ~isempty(y_mn) && k == 2 ),		saveMAG = true;		end
+			if ( strcmp(handles.vars{k}, 'depth') && ~isempty(y_tn) && k == 3 ),		saveTOPO = true;	end
+		end
+	end
+
 	if (~isempty(handles.h_broken))			% If we have broken lines we must join them
 		x_broken = [];    y_broken = [];
 		for (k = 1:numel(handles.h_broken))
@@ -569,26 +580,16 @@ function save_clickedCB(hObject, eventdata)
 	end
 
 	set(handles.figure1,'Pointer','watch')
-	if (~isempty(x_gn))
-		for (k=1:numel(x_gn))
-			tmp = (x_g - x_gn(k)) == 0;		% Find the GRAV points that were marked
-			y_g(tmp) = NaN;					% Remove them
-		end
+	if (~isempty(x_gn))						% Find and remove marked GRAV points
+		for (k=1:numel(x_gn)),		y_g((x_g - x_gn(k)) == 0) = NaN;		end
 	end
-	if (~isempty(x_mn))
-		for (k=1:numel(x_mn))
-			tmp = (x_m - x_mn(k)) == 0;		% Find the MAG points that were marked
-			y_m(tmp) = NaN;					% Remove them
-		end
+	if (~isempty(x_mn))						% Find and remove marked MAG points
+		for (k=1:numel(x_mn)),		y_m((x_m - x_mn(k)) == 0) = NaN;		end
 	end
-	if (~isempty(x_tn))
-		for (k=1:numel(x_tn))
-			tmp = (x_t - x_tn(k)) == 0;		% Find the TOPO points that were marked
-			y_t(tmp) = NaN;					% Remove them
-		end
+	if (~isempty(x_tn))						% Find and remove marked TOPO points
+		for (k=1:numel(x_tn)),		y_t((x_t - x_tn(k)) == 0) = NaN;		end
 	end
 	
-	hD = [];		% May get to contain the handle to 'despikado' line
 	if (~isempty(y_g))
 		if (handles.is_gmt),	y_g(isnan(y_g*10)) = NODATA(1);		y_g = int16(y_g);
 		elseif (~isempty(x_gn))	y_g = y_g / handles.gravScaleF;		y_g(isnan(y_g)) = NODATA(1);	y_g = int16(y_g);
@@ -599,10 +600,12 @@ function save_clickedCB(hObject, eventdata)
 		if (~isempty(hD))			% Yes, we have them so update the y_m vector with their values
 			yD = get(hD, 'YData');			ud = get(hD,'UserData');
 			y_m(ud) = yD;
+			saveMAG = true;
 		end
 		is_gmt = handles.is_gmt;	% Local copy to handle also the force_gmt case 
 		if (handles.force_gmt && ~is_gmt),		y_m = y_m - 40000;	is_gmt = true;		end		% Conversion from the mgd77+ format
-		if (is_gmt),			y_m(isnan(y_m)) = NODATA(2);		y_m = int16(y_m);
+		if (is_gmt)
+			y_m(isnan(y_m)) = NODATA(2);		y_m = int16(y_m);
 		elseif ( ~isempty(x_mn) || ~isempty(handles.h_broken) || ~isempty(hD) )
 			y_m = y_m / handles.magScaleF;
 			y_m(isnan(y_m)) = NODATA(2);
@@ -642,10 +645,10 @@ function save_clickedCB(hObject, eventdata)
 			fwrite(fid,[y_g(k) y_m(k) y_t(k)],'int16');
 		end
 		fclose(fid);
-	else						% New mgf77+ netCDF style files
-		if (~isempty(y_gn)),		nc_funs('varput', f_name, 'faa',   y_g, 0);		end		% The 0 flags nc_funs for not try to scale
-		if (~isempty(y_mn) || ~isempty(hD)),	nc_funs('varput', f_name, 'mtf1',  y_m, 0);		end
-		if (~isempty(y_tn)),		nc_funs('varput', f_name, 'depth', y_t, 0);		end
+	else						% New mgd77+ netCDF style files
+		if (saveGRAV),		nc_funs('varput', f_name, 'faa',   y_g, 0);		end		% The 0 flags nc_funs for not try to scale
+		if (saveMAG),		nc_funs('varput', f_name, 'mtf1',  y_m, 0);		end
+		if (saveTOPO),		nc_funs('varput', f_name, 'depth', y_t, 0);		end
 		if (handles.adjustedVel)	% We had Nav changes
 			nc_funs('varput', f_name, 'lon',  handles.lon);
 			nc_funs('varput', f_name, 'lat',  handles.lat);
@@ -754,11 +757,11 @@ function despikeNav(hAx, hLine, n)
 
 	% Recompute the velocity for this point but we must use a trick to recover the time which we don't store anywhere
 	co = cos(newLat *  pi / 180);
-	dx = [newLon - handles.lon(n+1)] .* co;		dy = [newLat - handles.lat(n-1)];
+	dx = (newLon - handles.lon(n+1)) .* co;		dy = newLat - handles.lat(n-1);
 	dist = sqrt(dx .^2 + dy .^2) * 111.1949;
 	x = get(hLine,'XData');			y = get(hLine,'YData');
 	dt = (x(n) - x(n-1)) / y(n);			% Recover the time from the previous velocity value
-	newVel = [dist / dt];					% Speed in knots. Notice that dt above was obtained by km / (NM / h)
+	newVel = dist / dt;						% Speed in knots. Notice that dt above was obtained by km / (NM / h)
 	x(n) = x(n-1) + dist;			y(n) = newVel;
 	set(hLine, 'XData', x, 'YData', y)
 
