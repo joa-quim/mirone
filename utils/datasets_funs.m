@@ -14,6 +14,8 @@ switch opt(1:3)
 		DatasetsPlateBound_PB_All(varargin{:})
 	case 'ODP'
 		DatasetsODP_DSDP(varargin{:})
+	case 'Hyd'
+		DatasetsHydrotermal(varargin{:})
 	case 'Hot'
 		DatasetsHotspots(varargin{:})
 	case 'Vol'
@@ -82,6 +84,26 @@ function DatasetsVolcanoes(handles)
 	draw_funs(h_volc,'volcano',volc)
 
 % --------------------------------------------------------------------
+function DatasetsHydrotermal(handles)
+% Read HydroVents.mat which has 7 columns (lat lon name diameter age exposed type)
+	if (aux_funs('msg_dlg',5,handles)),		return,		end			% Test no_file || unknown proj
+	load([handles.path_data 'HydroVents.mat']);
+    [tmp, msg] = geog2projected_pts(handles,pos);	% If map in geogs, tmp is just a copy of input
+	if (~strncmp(msg,'0',1))        % Coords were projected
+		pos = tmp;
+	end
+
+	% Get rid of Vents that are outside the map limits
+	[x,y,indx,indy] = aux_funs('in_map_region',handles,pos(:,1), pos(:,2), 0, []);
+	desc(indx,:) = [];			desc(indy,:) = [];
+	n_hydro = numel(x);			h = zeros(1,n_hydro);
+	for (i = 1:n_hydro)
+		h(i) = line(x(i),y(i),'Marker','h','MarkerFaceColor','r',...
+			'MarkerEdgeColor','k','MarkerSize',10,'Tag','hydro','Userdata',i);
+	end
+	draw_funs(h,'Hydro',desc)
+
+% --------------------------------------------------------------------
 function DatasetsMeteor(handles)
 % Read meteoritos.dat which has 7 columns (lat lon name diameter age exposed type)
 	if (aux_funs('msg_dlg',5,handles)),		return,		end			% Test no_file || unknown proj
@@ -89,11 +111,11 @@ function DatasetsMeteor(handles)
 	todos = fread(fid,'*char');
 	[meteor.x meteor.y meteor.name meteor.diameter meteor.dating meteor.exposed meteor.btype] = strread(todos,'%f %f %s %s %s %s %s');
 	fclose(fid);    clear todos
-    [tmp, msg] = geog2projected_pts(handles,[meteor.x meteor.y]);	% If map in geogs, tmp is just a copy of input
-    if (~strncmp(msg,'0',1))        % Coords were projected
+	[tmp, msg] = geog2projected_pts(handles,[meteor.x meteor.y]);	% If map in geogs, tmp is just a copy of input
+	if (~strncmp(msg,'0',1))        % Coords were projected
 		meteor.x = tmp(:,1);        meteor.y = tmp(:,2);
-    end
-	
+	end
+
 	% Get rid of Volcanoes that are outside the map limits
 	[x,y,indx,indy] = aux_funs('in_map_region',handles,meteor.x, meteor.y, 0, []);
 	meteor.name(indx) = [];		meteor.diameter(indx) = [];		meteor.dating(indx) = [];		meteor.exposed(indx) = [];
