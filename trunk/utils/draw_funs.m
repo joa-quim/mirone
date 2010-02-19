@@ -164,7 +164,7 @@ switch opt
 			end
 		end
 		hold off
-	case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation', 'Meteor'}
+	case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation', 'Meteor', 'Hydro'}
 		set_symbol_uicontext(hand,data)
 	case 'PlateBoundPB',		set_PB_uicontext(hand,data)
 	case 'ChngAxLabels',		changeAxesLabels(data)
@@ -1786,6 +1786,9 @@ elseif strcmp(tag,'volcano')    % Then DATA must be a structure containing name,
 	separator = 1;
 elseif strcmp(tag,'meteor')		% Then DATA must be a structure containing name, diameter & dating for each impact
 	uimenu(cmenuHand, 'Label', 'Impact info', 'Call', {@meteor_info,h,data.name,data.diameter,data.dating,data.exposed,data.btype});
+	separator = 1;
+elseif strcmp(tag,'hydro')		% Then DATA must be a cell array with 5 cols contining description of each Vent
+	uimenu(cmenuHand, 'Label', 'Hydrotermal info', 'Call', {@hydro_info,h,data});
 	separator = 1;	
 elseif strcmp(tag,'ODP')		% Then DATA must be a structure with leg, site, z, & penetration for each site
 	uimenu(cmenuHand, 'Label', 'ODP info', 'Call', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
@@ -2192,6 +2195,13 @@ function meteor_info(obj,eventdata,h, name, diameter, dating, exposed, btype)
 		str = sprintf('%s\nBolid Type:   %s', str, btype);
 	end
 	msgbox( sprintf(str),'Impact info')
+
+% -----------------------------------------------------------------------------------------
+function hydro_info(obj,eventdata, h, desc)
+	i = get(gco,'Userdata');
+	str = sprintf('Vent name:   %s\nDepth (m):   %s\nActivity:   %s\nDeposit Type: %s\nBiology:  %s', ...
+		desc{i,1}, desc{i,2}, desc{i,3}, desc{i,4}, desc{i,5});
+	msgbox( sprintf(str),'Hydrothermal info')
 
 % -----------------------------------------------------------------------------------------
 function volcano_info(obj,eventdata, h, name, desc, dating)
