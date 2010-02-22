@@ -794,28 +794,28 @@ function radio_ML_Callback(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set([handles.radio_GMT handles.radio_MR handles.radio_CAR handles.radio_GIMP handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
-	set(handles.listbox1,'String',[pals{1} handles.palsML],'Value',1)
+	set(handles.listbox1,'String',[pals(1) handles.palsML],'Value',1)
 
 % --------------------------------------------------------------------
 function radio_GMT_Callback(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set([handles.radio_ML handles.radio_MR handles.radio_CAR handles.radio_GIMP handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
-	set(handles.listbox1,'String',[pals{1} handles.palsGMT],'Value',1)
+	set(handles.listbox1,'String',[pals(1) handles.palsGMT],'Value',1)
 
 % --------------------------------------------------------------------
 function radio_MR_Callback(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set([handles.radio_ML handles.radio_GMT handles.radio_CAR handles.radio_GIMP handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
-	set(handles.listbox1,'String',[pals{1} handles.palsA],'Value',1)
+	set(handles.listbox1,'String',[pals(1) handles.palsA],'Value',1)
 
 % --------------------------------------------------------------------
 function radio_CAR_Callback(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set([handles.radio_ML handles.radio_GMT handles.radio_MR handles.radio_GIMP handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
-	set(handles.listbox1,'String',[pals{1} handles.palsCAR],'Value',1)
+	set(handles.listbox1,'String',[pals(1) handles.palsCAR],'Value',1)
 
 % --------------------------------------------------------------------
 function radio_GIMP_Callback(hObject, eventdata, handles)
