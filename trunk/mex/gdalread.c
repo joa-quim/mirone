@@ -16,6 +16,7 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
+ * Revision 20 23/02/2010 nedCDF bug is perhaps fixed. Limit previous solution to to pre 1.7 version
  * Revision 20 17/02/2009 Added -L option to deal with MODIS L2 left-right flipping stupidity
  * Revision 19 15/01/2009 Added the "Name" field to the attributes struct
  * Revision 18 18/03/2008 Another attempt to patch the broken netCDF driver
@@ -257,7 +258,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (!strcmp(format,"ESAT"))	/* ENVISAT data are flipped left-right */
 		fliplr = TRUE;
 
-	if (!strcmp(format,"netCDF"))
+	if (GDAL_VERSION_NUM < 1700 && !strcmp(format,"netCDF"))
 		flipud = FALSE;
 
 	if (got_R || got_r) {
@@ -285,7 +286,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			anSrcWin[1] = (int) ((dfULY - adfGeoTransform[3]) / adfGeoTransform[5] + 0.001);
 			anSrcWin[2] = (int) ((dfLRX - dfULX) / adfGeoTransform[1] + 0.5);
 			anSrcWin[3] = (int) ((dfLRY - dfULY) / adfGeoTransform[5] + 0.5);
-			if (GDAL_VERSION_NUM <= 1700 && !strcmp(format,"netCDF")) {
+			if (GDAL_VERSION_NUM < 1700 && !strcmp(format,"netCDF")) {
 				/* PATCH against the never ending GDAL bug of reading netCDF files */
 				anSrcWin[1] = GDALGetRasterYSize(hDataset) - (anSrcWin[1] + anSrcWin[3]) - 1;
 			}
@@ -998,11 +999,6 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	dptr = mxGetPr ( mxGeoTransform );
 
 	status = record_geotransform ( gdal_filename, hDataset, adfGeoTransform );
-	if (!strcmp(GDALGetDriverShortName(GDALGetDatasetDriver(hDataset)),"netCDF") && 
-		    GDAL_VERSION_NUM <= 1450) {
-		adfGeoTransform[3] *= -1;
-		adfGeoTransform[5] *= -1;
-	}
 	if ( status == 0 ) {
 		dptr[0] = adfGeoTransform[0];
 		dptr[1] = adfGeoTransform[1];
@@ -1407,11 +1403,6 @@ int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double
 /* -------------------------------------------------------------------- */
 	if( GDALGetGeoTransform( hDataset, adfGeoTransform ) == CE_None ) {
         	pszProjection = GDALGetProjectionRef(hDataset);
-		if (!strcmp(GDALGetDriverShortName(GDALGetDatasetDriver(hDataset)),"netCDF") && 
-			    GDAL_VERSION_NUM <= 1450) {
-			adfGeoTransform[3] *= -1;
-			adfGeoTransform[5] *= -1;
-		}
         	dfGeoX = adfGeoTransform[0] + adfGeoTransform[1] * x + adfGeoTransform[2] * y;
         	dfGeoY = adfGeoTransform[3] + adfGeoTransform[4] * x + adfGeoTransform[5] * y;
 	}
