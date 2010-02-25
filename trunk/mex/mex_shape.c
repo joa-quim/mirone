@@ -29,6 +29,7 @@
  * In case of an error, an exception is thrown.
  *
  *=================================================================*/
+/* $Revision: 1.5 If POINT or POINTZ output struct with vectors instead of a vector os structs - JL 24-02-10 */
 /* $Revision: 1.4 First BoundingBox contains the ensemble extent - JL 28-01-07 */
 /* $Revision: 1.3 BoundingBox per element - JL 4-10-06 */
 /*                Insert NaNs between rings on polylines */
@@ -40,20 +41,17 @@
 #include "shapefil.h"
 
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) { 
-	/* Construct error and warning messages using this buffer. */
-	char error_msg[500];
 
 	/* Pointer to temporary matlab array */
 	const mxArray *mx;
 	mxArray *m_shape_type;
 
-	/* Error code returned pj_transform */
-	int	error_code, nShapeType, nEntities, i, j, k, iPart, nFields;
-	const	char *pszPartType = "";
-
+	int	nShapeType, nEntities, i, j, k, iPart, nFields, nStructElem, isPoint, firstInPoints = 1;
+	int	num_dbf_fields, num_dbf_records; /* number of DBF attributes, records */
 	int	buflen;		/* length of input shapefile name */
-	char	*shapefile;	/* holder for input shapefile name */
 	int	status;		/* success or failure */
+	char	*shapefile;	/* holder for input shapefile name */
+	const	char *pszPartType = "";
 
 	/* Not used. */
 	double adfMinBound[4], adfMaxBound[4];
@@ -62,8 +60,6 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 	SHPHandle	hSHP;
 	SHPObject	*psShape;
 	DBFHandle	dbh;	/* handle for DBF file */
-
-	int num_dbf_fields, num_dbf_records; /* number of DBF attributes, records */
 
 	/* This structure will hold a description of each field in the DBF file. */
 	typedef struct DBF_Field_Descriptor {
@@ -151,7 +147,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 	 * I allocate space for two extra "dummy" records that go in positions
 	 * 0 and 1.  These I reserve for the xy data. */
 	nFields = 3;
-	if ( (nShapeType == SHPT_POLYGONZ) || (nShapeType == SHPT_ARCZ) ) nFields++;
+	if ( (nShapeType == SHPT_POLYGONZ) || (nShapeType == SHPT_ARCZ) || (nShapeType == SHPT_POINTZ) ) nFields++;
 	dbf_field = (DBF_Field_Descriptor *) mxMalloc ( (num_dbf_fields+nFields) * sizeof ( DBF_Field_Descriptor ) );
 	if ( dbf_field == NULL )
 		mexErrMsgTxt("Memory allocation for DBF_Field_Descriptor failed."); 
@@ -161,7 +157,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 
 	fnames[0] = strdup ( "X" );
 	fnames[1] = strdup ( "Y" );
-	if ( (nShapeType == SHPT_POLYGONZ) || (nShapeType == SHPT_ARCZ)) {
+	if ( (nShapeType == SHPT_POLYGONZ) || (nShapeType == SHPT_ARCZ) || (nShapeType == SHPT_POINTZ) ) {
 		fnames[2] = strdup ( "Z" );
 		fnames[3] = strdup ( "BoundingBox" );
 	}
@@ -176,11 +172,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 	/*fnames[num_dbf_fields+4] = strdup ( "PartsIndex" );*/
 
 	/* Allocate space for the output structure. */
-	out_struct = mxCreateStructMatrix ( nEntities, 1, nFields + num_dbf_fields, (const char **)fnames );
+	isPoint = ( nShapeType == SHPT_POINT || nShapeType == SHPT_POINTZ ) ? 1: 0;
+	nStructElem = ( nShapeType == SHPT_POINT || nShapeType == SHPT_POINTZ ) ? 1: nEntities;
+	out_struct = mxCreateStructMatrix ( nStructElem, 1, nFields + num_dbf_fields, (const char **)fnames );
 
 	/* create the BoundingBox */
-	dims[0] = 4;
-	dims[1] = 2;
+	dims[0] = 4;		dims[1] = 2;
 	bbox = mxCreateNumericArray ( 2, dims, mxDOUBLE_CLASS, mxREAL );
 	bb_ptr = mxGetData ( bbox );
 	for (i = 0; i < 4; i++) bb_ptr[i]   = adfMinBound[i];
@@ -195,31 +192,39 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 		psShape = SHPReadObject( hSHP, i );
 
 		/* Create the fields in this struct element.  */
-		nNaNs = psShape->nParts > 1 ? psShape->nParts : 0;
-		dims[0] = psShape->nVertices + nNaNs;
-		dims[1] = 1;
-		x_out = mxCreateNumericArray ( 2, dims, mxDOUBLE_CLASS, mxREAL );
-		x_out_ptr = mxGetData ( x_out );
-		y_out = mxCreateNumericArray ( 2, dims, mxDOUBLE_CLASS, mxREAL );
-		y_out_ptr = mxGetData ( y_out );
-		if ( (nShapeType == SHPT_POLYGONZ) || (nShapeType == SHPT_POINTZ) || (nShapeType == SHPT_ARCZ)) {
-			z_out = mxCreateNumericArray ( 2, dims, mxDOUBLE_CLASS, mxREAL );
-			z_out_ptr = mxGetData ( z_out );
+		if ( !isPoint ) {
+			nNaNs = psShape->nParts > 1 ? psShape->nParts : 0;
+			dims[0] = psShape->nVertices + nNaNs;
+			dims[1] = 1;
+			x_out = mxCreateNumericArray ( 2, dims, mxDOUBLE_CLASS, mxREAL );
+			x_out_ptr = mxGetData ( x_out );
+			y_out = mxCreateNumericArray ( 2, dims, mxDOUBLE_CLASS, mxREAL );
+			y_out_ptr = mxGetData ( y_out );
+			if ( (nShapeType == SHPT_POLYGONZ) || (nShapeType == SHPT_POINTZ) || (nShapeType == SHPT_ARCZ)) {
+				z_out = mxCreateNumericArray ( 2, dims, mxDOUBLE_CLASS, mxREAL );
+				z_out_ptr = mxGetData ( z_out );
+			}
+		}
+		else if (firstInPoints) {	/* Allocate all memory we'll need */
+			x_out = mxCreateDoubleMatrix (nEntities, 1, mxREAL);
+			x_out_ptr = mxGetPr ( x_out );
+			y_out = mxCreateDoubleMatrix (nEntities, 1, mxREAL);
+			y_out_ptr = mxGetPr ( y_out );
+			if (nShapeType == SHPT_POINTZ) {
+				z_out = mxCreateDoubleMatrix (nEntities, 1, mxREAL);
+				z_out_ptr = mxGetPr ( z_out );
+			}
+			firstInPoints = 0;
 		}
 
-		if (psShape->nParts > 1) {
+		if (!isPoint && psShape->nParts > 1) {
 			for (k = c = 0; k < psShape->nParts; k++) {
 				i_start = psShape->panPartStart[k];
 				if (k < psShape->nParts - 1)
 					i_stop = psShape->panPartStart[k+1];
 				else
 					i_stop = psShape->nVertices;
-				/*for (j = i_start; j < i_stop; c++, j++) {
-					x_out_ptr[c] = psShape->padfX[j];
-					y_out_ptr[c] = psShape->padfY[j];
-				}
-				x_out_ptr[c] = nan;
-				y_out_ptr[c] = nan;*/
+
 				if ( nShapeType == SHPT_POLYGONZ ) {
 					for (j = i_start; j < i_stop; c++, j++) {
 						x_out_ptr[c] = psShape->padfX[j];
@@ -241,17 +246,26 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 				c++;
 			}
 		}
+		else if ( isPoint ) {
+			x_out_ptr[i] = *psShape->padfX;
+			y_out_ptr[i] = *psShape->padfY;
+			if (nShapeType == SHPT_POINTZ) z_out_ptr[i] = *psShape->padfZ;
+			if (i > 0) {
+        			SHPDestroyObject( psShape );
+				continue;
+			}
+		}
 		else {		/* Just copy the vertices over. */
 			sizebuf = mxGetElementSize ( x_out ) * psShape->nVertices;
 			memcpy ( (void *) x_out_ptr, (void *) psShape->padfX, sizebuf );
 			memcpy ( (void *) y_out_ptr, (void *) psShape->padfY, sizebuf );
-			if ( (nShapeType == SHPT_POLYGONZ)  || (nShapeType == SHPT_POINTZ) || (nShapeType == SHPT_ARCZ))
+			if ( (nShapeType == SHPT_POLYGONZ)  || (nShapeType == SHPT_ARCZ))
 				memcpy ( (void *) z_out_ptr, (void *) psShape->padfZ, sizebuf );
 		}
 
 		mxSetField ( out_struct, i, "X", x_out );
 		mxSetField ( out_struct, i, "Y", y_out );
-		if ( (nShapeType == SHPT_POLYGONZ)  || (nShapeType == SHPT_POINTZ) || (nShapeType == SHPT_ARCZ))
+		if ( (nShapeType == SHPT_POLYGONZ) || (nShapeType == SHPT_ARCZ) )
 			mxSetField ( out_struct, i, "Z", z_out );
 
 		bbox = mxCreateNumericMatrix ( 4, 2, mxDOUBLE_CLASS, mxREAL );
@@ -263,16 +277,6 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 		if (i > 0)	/* First BB contains the ensemble extent */
 			mxSetField ( out_struct, i, "BoundingBox", bbox );
 
-		/*mxSetField ( out_struct, i, "nParts", mxCreateDoubleScalar ((double)psShape->nParts) );
-		if (psShape->nParts > 1) {
-			p_parts = mxCreateNumericMatrix(1, psShape->nParts, mxINT32_CLASS, mxREAL);
-			p_parts_ptr = (int *)mxGetData ( p_parts );
-			for (j = 0; j < psShape->nParts; j++)
-				p_parts_ptr[j] = psShape->panPartStart[j];
-			mxSetField ( out_struct, i, "PartsIndex", p_parts );
-		}*/
-
-		/* Now do the attributes */
 		for ( j = 0; j < num_dbf_fields; ++j ) {
 			switch ( dbf_field[j+nFields].field_type ) {
 				case FTString:
@@ -295,6 +299,13 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 			}
 		}
         	SHPDestroyObject( psShape );
+	}
+
+	if ( isPoint ) {	/* In this case we still need to "send the true data out" */
+		mxSetField ( out_struct, 0, "X", x_out );
+		mxSetField ( out_struct, 0, "Y", y_out );
+		if (nShapeType == SHPT_POINTZ)
+			mxSetField ( out_struct, 0, "Z", z_out );
 	}
 
 	/* Clean up, close up shop. */
