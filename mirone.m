@@ -2361,7 +2361,7 @@ function DrawImportShape_CB(handles, fname)
 		fname = [PathName FileName];
 	end
 	try			[s,t] = mex_shape(fname);
-	catch,		errordlg([lasterr ' Most probably, NOT a shapefile'],'Error'),		return
+	catch,		errordlg([lasterr ' Quite likely, NOT a shapefile'],'Error'),		return
 	end
 	
 	lt = handles.DefLineThick;		lc = handles.DefLineColor;
@@ -2381,14 +2381,15 @@ function DrawImportShape_CB(handles, fname)
 
 	nPolygs = length(s);	h = zeros(nPolygs,1);
 	imgLims = getappdata(handles.axes1,'ThisImageLims');
-	if (strncmp(t,'Arc',3))
-		is3D = false;
-		if (strcmp(t,'ArcZ'))	is3D = true;	end
+	if ( strncmp(t,'Arc',3) || strncmp(t,'Point',5) )
+		is3D = false;		lsty = {'LineStyle', '-'};
+		if (t(end) == 'Z')	is3D = true;	end
+		if (t(1) == 'P')	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
 		for i = 1:nPolygs
 			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) s(i).BoundingBox(2,2); ...
 				s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
 			if (any(out))			% It means the polyg BB is at least partially inside
-				h(i) = line('Xdata',single(s(i).X),'Ydata',single(s(i).Y),'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline');
+				h(i) = line('Xdata',single(s(i).X),'Ydata',single(s(i).Y),'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
 			end
 			if (is3D),		set(h(i),'UserData', single(s(i).Z)),	end
 			h((h == 0)) = [];		% Those were jumped because thay were completely outside map limits
