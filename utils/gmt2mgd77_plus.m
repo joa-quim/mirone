@@ -200,7 +200,7 @@ function gmt2mgd77_plus(fname, varargin)
 	write_var(fname, 'drt', 1, [], 'Data Record Type', '', [], 'Normally 5', nons,  nons, [])
 	nc_funs('varput', fname, 'drt', -128);
 	write_var(fname, 'tz',  1, [], 'Time Zone Correction', 'hours', [], '-13 to +12 inclusive', nons,  nons, [])
-	nc_funs('varput', fname, 'tz', -128);
+	nc_funs('varput', fname, 'tz', 0);
 
 	write_var(fname, 'lat', 4, 'time', 'Latitude', 'degrees_north', [min_lat max_lat], 'Negative south of Equator', int32(-2147483648), int32(-2147483648), 1e-7)
 	nc_funs('varput', fname, 'lat', track.latitude);		% Scaling and type conversion is done inside nc_funs()
