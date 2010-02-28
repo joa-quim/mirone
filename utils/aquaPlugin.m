@@ -700,7 +700,7 @@ function calc_polygAVG(handles)
 	rows = s.Dataset(z_id).Size(end-1);
 	cols = s.Dataset(z_id).Size(end);
 	nLayers = handles.number_of_timesteps;
-	avg = zeros(nLayers,N);
+	avg = zeros(nLayers,N) * NaN;
 	THRESH = 0.5;					% Minimum percentage of valid points inside poly
 
 	aguentabar(0,'title','Calcula as medias poligonais','CreateCancelBtn')
