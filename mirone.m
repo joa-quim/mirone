@@ -20,9 +20,17 @@ function varargout = mirone(varargin)
 % --------------------------------------------------------------------
 
 	if (nargin > 1 && ischar(varargin{1}))
-		gui_Callback = str2func(varargin{1});
-		feval(gui_Callback,varargin{2:end});
-		if (nargout),	varargout{1} = varargin{2}.figure1;		end
+		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
+			% Very likely called with a filename with those horrendous stupid blanks
+			for (k = 1:nargin-1),	varargin{k}(end+1) = ' ';	end
+			varargin = {[varargin{:}]};
+			h = mirone_OpeningFcn(varargin{:});
+			if (nargout),	varargout{1} = h;		end
+		else
+			gui_Callback = str2func(varargin{1});
+			feval(gui_Callback,varargin{2:end});
+			if (nargout),	varargout{1} = varargin{2}.figure1;		end
+		end
 	else
 		h = mirone_OpeningFcn(varargin{:});
 		if (nargout),	varargout{1} = h;		end
@@ -161,9 +169,10 @@ function hObject = mirone_OpeningFcn(varargin)
 		n_argin = nargin;
 		if (n_argin == 1 && ischar(varargin{1}))				% Called with a file name as argument
 			[pato, fname, EXT] = fileparts(varargin{1});		% Test to check online command input
-			if (isempty(pato)),		varargin{1} = [cd fsep fname EXT];	end
-			[drv, somewhere] = aux_funs('findFileType',varargin{1});
-			if (ischar(somewhere)),		varargin{1} = somewhere;	end		% File exists but not in Mirone's root dir
+			if (isempty(pato)),			varargin{1} = [cd fsep fname EXT];	end
+			[drv, algures] = aux_funs('findFileType',varargin{1});
+			if (ischar(algures)),		varargin{1} = algures;	end 		% File exists but not in Mirone's root dir
+			if (ischar(algures) || algures),	handles.fileName = varargin{1};		end		% Can be added by recentFiles
 		elseif ( isa(varargin{1},'uint8') || isa(varargin{1},'int8') || islogical(varargin{1}) )
 			% Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
 			if ( isa(varargin{1},'int8') )		% We cannot represent a int8 image. Do something
@@ -2363,11 +2372,15 @@ function DrawImportShape_CB(handles, fname)
 	try			[s,t] = mex_shape(fname);
 	catch,		errordlg([lasterr ' Quite likely, NOT a shapefile'],'Error'),		return
 	end
-	
+
+	if ( ~(strncmp(t,'Arc',3) || strncmp(t,'Point',5) || strncmp(t,'Polygon',7)) )
+		errordlg(['Sorry. Dealing with this type of data: ' t ' is not (yet?) supported'],'WarnError'),	return
+	end
+
 	lt = handles.DefLineThick;		lc = handles.DefLineColor;
 	region = [s(1).BoundingBox(1,1:2) s(1).BoundingBox(2,1:2)];
 	is_geog = aux_funs('guessGeog',region(1:4));
-	
+
 	if (~handles.no_file && handles.geog && ~is_geog)
 		errordlg('Error. Your background image is in geographics but the shape file is not','ERROR'),	return
 	elseif (~handles.no_file && handles.geog == 0 && is_geog && ~isempty(handles.hImg))
@@ -2375,9 +2388,9 @@ function DrawImportShape_CB(handles, fname)
 	else
 		handles.geog = is_geog;		guidata(handles.figure1, handles);
 	end
-	
-	% If we have no background region
-	if (handles.no_file),	FileNewBgFrame_CB(handles, [region handles.geog]);	lc = 'k';	end
+
+	% If we have nothing opened create a background region
+	if (handles.no_file),	handles = FileNewBgFrame_CB(handles, [region handles.geog]);	lc = 'k';	end
 
 	nPolygs = length(s);	h = zeros(nPolygs,1);
 	imgLims = getappdata(handles.axes1,'ThisImageLims');
@@ -2412,11 +2425,23 @@ function DrawImportShape_CB(handles, fname)
 			end
 		end
 		if (nPolygs > nParanoia)				% nParanoia is an arbitrary number that practice will show dependency
-			h((h == 0)) = [];						% Those were jumped because they were completely outside map limits
+			h((h == 0)) = [];					% Those were jumped because they were completely outside map limits
 			if (isempty(h)),	warndlg('No data inside dysplay region','Warning'),		return,		end
 			draw_funs(h,'country_patch')		% mostly on hardware, for I don't beleave ML will ever behave decently.
 		end
 	end
+
+	[PathName, fnamePRJ] = fileparts(fname);
+	if ( exist([PathName filesep fnamePRJ '.prj'], 'file') )
+		fid = fopen([PathName filesep fnamePRJ '.prj']);
+		c = fread(fid,inf,'*char');		fclose(fid);
+		if (double(c(end) == 10)),		c(end) = [];	end		% Remove '\n' character
+		prj = c';
+		aux_funs('appP', handles, prj)				% If we have a WKT proj store it
+		handles = aux_funs('isProj',handles);		% Check about coordinates type
+		handles = setAxesDefCoordIn(handles,1);
+	end
+	recentFiles(handles);							% Insert fileName into "Recent Files" & save handles
 
 % --------------------------------------------------------------------
 function GeophysicsImportGmtFile_CB(handles, opt)
