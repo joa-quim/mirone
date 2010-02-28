@@ -123,7 +123,7 @@ function colormap_bg(handles,Z,pal)
 % return
 
 %if any(Z(:)~=Z(:))     pal = [handles.bg_color; pal];   end
-if ( handles.have_nans & ~isequal(pal(1,:),handles.bg_color) )
+if ( handles.have_nans && ~isequal(pal(1,:),handles.bg_color) )
     if (size(pal,1) == 256),    pal = [handles.bg_color; pal(2:end,:)];     % Jump firts color to not have
     else                        pal = [handles.bg_color; pal];              % a CMAP with more than 256 colors
     end
