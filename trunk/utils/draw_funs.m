@@ -1807,6 +1807,8 @@ elseif strcmp(tag,'TTT')			% DATA is empty
 elseif strcmp(tag,'TideStation')	% DATA is empty
 	tide_options = 1;
 	separator = 0;
+else
+	this_not = 0;
 end
 
 if (~this_not)   % non class symbols can be moved
