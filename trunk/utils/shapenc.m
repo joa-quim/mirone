@@ -103,7 +103,7 @@ function shapenc(fname, data, varargin)
 	elseif (isa(inner_polygs,'cell'))	% Hmm, must see if it is a cell of fnames to load
 		if (ischar(inner_polygs{1}))	% Yep, so they seam
 			try
-				inner_polygs = cell(1, numel(inner_polygs));
+				%inner_polygs = cell(1, numel(inner_polygs));
 				for (k = 1:numel(inner_polygs))
 					inner_polygs{k} = readFile(inner_polygs{k}, nMaxChunks);
 				end
