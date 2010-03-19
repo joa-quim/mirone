@@ -2585,6 +2585,7 @@ function FileOpenSession_CB(handles, fname)
 
 	set(handles.figure1,'pointer','watch')
 	load([PathName FileName])
+	if (strcmpi(grd_name(max(numel(grd_name)-3,1):end),'.mat')),	grd_name = [];		end		% Otherwise infinite loop below
 
 	tala = (~isempty(grd_name) && exist(grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
 	if (~tala && ~isempty(grd_name))						% Give user a 2nd chance to tell where the grid is
