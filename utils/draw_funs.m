@@ -248,27 +248,29 @@ function setLineWidth(item,cbs)
 function setSHPuictx(h,opt)
 % h is a handle to a shape line object
 
-handles = guidata(h(1));
-for (i = 1:numel(h))
-	cmenuHand = uicontextmenu('Parent',handles.figure1);      set(h(i), 'UIContextMenu', cmenuHand);
-	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
-	uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', {@del_line,h(i)});
-	uimenu(cmenuHand, 'Label', 'Delete class', 'Call', 'delete(findobj(''Tag'',''SHPpolyline''))');
-	
-	cb_solid	= 'set(gco, ''LineStyle'', ''-''); refresh';
-	cb_dashed	= 'set(gco, ''LineStyle'', ''--''); refresh';
-	cb_dotted	= 'set(gco, ''LineStyle'', '':''); refresh';
-	cb_dashdot	= 'set(gco, ''LineStyle'', ''-.''); refresh';
-	
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
-	uimenu(item_lw, 'Label', 'Other...', 'Call', {@other_LineWidth,h(i)});
-	
-	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-	setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dashdot})
-	
-	item7 = uimenu(cmenuHand, 'Label', 'Line Color');
-	uimenu(item7, 'Label', 'Other...', 'Call', {@other_color,h(i)});    
-end
+	handles = guidata(h(1));
+	for (i = 1:numel(h))
+		cmenuHand = uicontextmenu('Parent',handles.figure1);      set(h(i), 'UIContextMenu', cmenuHand);
+		uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
+		uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', {@del_line,h(i)});
+		uimenu(cmenuHand, 'Label', 'Delete class', 'Call', 'delete(findobj(''Tag'',''SHPpolyline''))');
+
+		cb_solid	= 'set(gco, ''LineStyle'', ''-''); refresh';
+		cb_dashed	= 'set(gco, ''LineStyle'', ''--''); refresh';
+		cb_dotted	= 'set(gco, ''LineStyle'', '':''); refresh';
+		cb_dashdot	= 'set(gco, ''LineStyle'', ''-.''); refresh';
+
+		item = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+		uimenu(item, 'Label', 'Other...', 'Call', {@other_LineWidth,h(i)});
+
+		item = uimenu(cmenuHand, 'Label', 'Line Style');
+		setLineStyle(item,{cb_solid cb_dashed cb_dotted cb_dashdot})
+
+		item = uimenu(cmenuHand, 'Label', 'Line Color');
+		uimenu(item, 'Label', 'Other...', 'Call', {@other_color,h(i)});
+		ui_edit_polygon(h(i))
+		uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
+	end
 
 % -----------------------------------------------------------------------------------------
 function set_line_uicontext(h,opt)
