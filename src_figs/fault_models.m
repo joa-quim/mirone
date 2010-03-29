@@ -97,7 +97,7 @@ function subfault(handles, localHandles, fname, cmap)
 
 	D2R = pi / 180;
 	nCores = size(cmap,1) - 1;
-	[numeric_data,multi_segs_str] = text_read(fname,NaN,5,'#');
+	[numeric_data,multi_segs_str] = text_read(fname,NaN,0,'#');		% We force 0 header lines because the'r all multi-segs
 
 	w = min(numeric_data{1}(:,1));		e = max(numeric_data{1}(:,1));
 	s = min(numeric_data{1}(:,2));		n = max(numeric_data{1}(:,2));
