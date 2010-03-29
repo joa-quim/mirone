@@ -93,12 +93,12 @@ switch opt
 					for i=1:numel(numeric_data)
 						numeric_data{i}  = geog2projected_pts(handles,numeric_data{i});
 					end
-					if (any( isinf(numeric_data{1}(1:max(10,size(numeric_data{1},1)))) ))
+					if (any( isinf(numeric_data{1}(1:min(20,size(numeric_data{1},1)))) ))
 						warndlg('Your data was probably already projected. Right-click on the axes frame and uncheck the ''Load files in Geogs'' ','Warning')
 					end
 				else
 					numeric_data = geog2projected_pts(handles,numeric_data);
-					if (any( isinf(numeric_data(1:max(10,size(numeric_data,1)))) ))
+					if (any( isinf(numeric_data(1:min(20,size(numeric_data,1)))) ))
 						warndlg('Your data was probably already projected. Right-click on the axes frame and uncheck the ''Load files in Geogs'' ','Warning')
 					end
 				end
