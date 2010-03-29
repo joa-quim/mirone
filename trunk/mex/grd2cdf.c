@@ -50,10 +50,10 @@ void GMT_end_for_mex (int argc, char **argv);
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	int i, j, nxy, nx, ny, one_or_zero, nfound, ngood, ncdf, log_mode = 0;
-	BOOLEAN error = FALSE, set_limits = FALSE, set_z_vals = FALSE, ok = FALSE;
-	BOOLEAN equal_inc = FALSE, scale = TRUE;
-	BOOLEAN is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
-	BOOLEAN is_uint16 = FALSE;
+	int error = FALSE, set_limits = FALSE, set_z_vals = FALSE, ok = FALSE;
+	int equal_inc = FALSE, scale = TRUE;
+	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
+	int is_uint16 = FALSE;
 	int	argc = 0, n_arg_no_char = 0, nc_h, nr_h, i2, *i_4, *o_i4;
 	short int *i_2;
 	unsigned short int *ui_2, *o_ui2;

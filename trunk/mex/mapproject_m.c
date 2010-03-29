@@ -59,7 +59,7 @@
 
 void lon_range_adjust (int range, double *lon);
 
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -68,11 +68,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_LONG	i, j, k, n = 0, n_files = 0, unit = 0, n_slash, g_report = 0;
 	GMT_LONG	n_fields, distance = 0, proj_type = 0, save[2], n_lines, two;
 	
-	BOOLEAN error = FALSE, inverse = FALSE, suppress = FALSE, one_to_one = FALSE, ECEF_conv = FALSE;
-	BOOLEAN map_center = FALSE, nofile = TRUE, done = FALSE, first = TRUE, datum_conv = FALSE;
-	BOOLEAN back_az = FALSE, d_set = FALSE, line_start = TRUE, do_az = FALSE;
-	BOOLEAN geodetic_calc = FALSE, do_geocentric, do_line_dist = FALSE, greenwich = FALSE;
-	BOOLEAN datum_conv_only = FALSE, double_whammy = FALSE, shift_xy = FALSE, T_heights = FALSE;
+	int error = FALSE, inverse = FALSE, suppress = FALSE, one_to_one = FALSE, ECEF_conv = FALSE;
+	int map_center = FALSE, nofile = TRUE, done = FALSE, first = TRUE, datum_conv = FALSE;
+	int back_az = FALSE, d_set = FALSE, line_start = TRUE, do_az = FALSE;
+	int geodetic_calc = FALSE, do_geocentric, do_line_dist = FALSE, greenwich = FALSE;
+	int datum_conv_only = FALSE, double_whammy = FALSE, shift_xy = FALSE, T_heights = FALSE;
 	
 	double west = 0.0, east = 0.0, south = 0.0, north = 0.0, d, s, x0, y0;
 	double *in, *out, fwd_scale, inv_scale, xtmp, ytmp;

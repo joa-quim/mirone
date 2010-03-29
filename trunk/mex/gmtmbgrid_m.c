@@ -150,8 +150,7 @@ struct GRD_HEADER {
 	char remark[160];		/* comments re this data set */
 }; 
 
-typedef int BOOLEAN;              /* BOOLEAN used for logical variables */
-BOOLEAN verbose = FALSE;
+int verbose = FALSE;
 static int npoints=0;			/* Number of data points */
 static int nx=0;			/* Number of nodes in x-dir. */
 static int ny=0;			/* Number of nodes in y-dir. (Final grid) */

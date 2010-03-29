@@ -104,7 +104,6 @@ int count_col (char *line);
 int read_index(char *file, int *nl_w, int *nl_e, int *nc_s, int *nc_n);
 void bnc_n(int nx, int ny, double *z, int kk, int nl_w, int nl_e, int nc_s, int nc_n);
 
-typedef int BOOLEAN;              /* BOOLEAN used for logical variables */
 
 int  *ip_s, *ip_n, *jp_w, *jp_e, n_mareg;
 double GX = 1e-10;
@@ -141,9 +140,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char 	*mareg_index = NULL;	/* Name pointer for maregraph index file */
 	char 	*maregs_out_hgt = NULL;	/* Name pointer for output maregraph wave height file */
 	char	**argv, w_bar_title[] = "Aguenta ai";
-	BOOLEAN	params_in_input = FALSE, bat_in_input = FALSE;
-	BOOLEAN	write_grids = FALSE, movie = FALSE, movie_char = FALSE, movie_float = FALSE;
-	BOOLEAN	maregs_in_input = FALSE;
+	int	params_in_input = FALSE, bat_in_input = FALSE;
+	int	write_grids = FALSE, movie = FALSE, movie_char = FALSE, movie_float = FALSE;
+	int	maregs_in_input = FALSE;
 	mxArray *rhs[2], *lhs[1];
 
 	int ip[7] = {0,20,40,60,80,100,120};
@@ -1134,7 +1133,7 @@ void	no_sys_mem (char *where, int n) {
 
 int intp_lin (double *x, double *y, int n, int m, double *u, double *v, int mode) {
 	int i, j, err_flag = 0;
-	BOOLEAN down = FALSE;
+	int down = FALSE;
 	double dx;
 	
 	/* Check to see if x-values are monotonically increasing/decreasing */

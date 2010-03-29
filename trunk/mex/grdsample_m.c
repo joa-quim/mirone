@@ -52,7 +52,7 @@
 #include "gmt.h"
 #include "mex.h"
 
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -65,11 +65,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	unsigned short int *ui_2, *o_ui2, *pdata_ui2;
 	char	**argv;
 	unsigned char *ui_1, *o_ui1, *pdata_ui1;
-	BOOLEAN error = FALSE, greenwich = FALSE, offset = FALSE, bilinear = FALSE;
-	BOOLEAN area_set = FALSE, n_set = FALSE, inc_set = FALSE, toggle = FALSE;
-	BOOLEAN is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
-	BOOLEAN is_uint16 = FALSE, is_uint8 = FALSE;
-	
+	int error = FALSE, greenwich = FALSE, offset = FALSE, bilinear = FALSE;
+	int area_set = FALSE, n_set = FALSE, inc_set = FALSE, toggle = FALSE;
+	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
+	int is_uint16 = FALSE, is_uint8 = FALSE;
+
 	double *lon, lat, dx2, dy2, threshold = 1.0, *pdata_d, *z_8, *head, *o_d;
 	float *a, *b, *z_4, *pdata_s, *o_s;
 	struct GRD_HEADER grd_a, grd_b;

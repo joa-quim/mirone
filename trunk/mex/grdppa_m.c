@@ -36,22 +36,22 @@ int no_sys_mem (char *where, int n);
 void con(int i, int j, int k, int *n, int jc, float *s);
 void grd_FLIPUD (float data[], int nx, int ny);
 
-BOOLEAN verbose = FALSE, first = TRUE;
+int verbose = FALSE, first = TRUE;
 int	ic = 1, ib = 3, n_cols, n_rows;
 int	neigh_x[8] = {0, 1, 1, 1, 0, -1, -1, -1};
 int	neigh_y[8] = {1, 1, 0, -1, -1, -1, 0, 1};
 float	x_inc, y_inc, x_min, y_min, z_min, z_max, z_scale, *data, *w;
 char	*v;
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/*int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	BOOLEAN error = FALSE, global = FALSE;
-	BOOLEAN is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
-	BOOLEAN is_uint16 = FALSE;
+	int error = FALSE, global = FALSE;
+	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
+	int is_uint16 = FALSE;
 	int	argc = 0, n_arg_no_char = 0, nc_h, nr_h, i2, *i_4;
         int	i, j, k, n, ic, nx, ny,  mx;
 	int	nx_new, ny_new, one_or_zero, ndatac, p_alloc, bytes_to_copy;
