@@ -15,6 +15,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 31  29/03/2010 JL	#ifdefed the call to cvContourArea that stupidly changed the API
  * Revision 30  06/02/2010 JL	Fixed crashing of cvFindContours on R13 (didn't like a freeing of storage)
  * Revision 29  03/02/2010 JL	Added structuring element input to the morphology operations
  * Revision 28  04/10/2009 JL	Added scale8. Documented rev 25
@@ -52,7 +53,7 @@
 
 #include <math.h>
 #include "mex.h"
-#if defined(WIN32) || defined(WIN64)	/* The intention is to know whether we are on Windows or not */
+#if defined(WIN32) || defined(_WIN64)	/* The intention is to know whether we are on Windows or not */
 #include <cv.h>
 #else
 #include <opencv/cv.h>
@@ -1565,7 +1566,11 @@ void JfindRectangles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]
 				   relatively large area (to filter out noisy contours) and be convex.
 				   Note: absolute value of an area is used because
 				   area may be positive or negative - in accordance with the contour orientation */
+#if CV_MAJOR_VERSION >= 2 && CV_MINOR_VERSION >= 1  
+				if( result->total == 4 && fabs(cvContourArea(result,CV_WHOLE_SEQ,0)) > 100 &&
+#else
 				if( result->total == 4 && fabs(cvContourArea(result,CV_WHOLE_SEQ)) > 100 &&
+#endif
 					cvCheckContourConvexity(result) ) {
 					s = 0;
 
