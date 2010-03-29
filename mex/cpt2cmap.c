@@ -15,9 +15,9 @@
 #include "gmt.h"
 #include "mex.h"
 
-void sample_cpt (double z[], int nz, BOOLEAN continuous, BOOLEAN reverse, int log_mode, double *pal);
+void sample_cpt (double z[], int nz, int continuous, int reverse, int log_mode, double *pal);
 
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -25,7 +25,7 @@ BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memo
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	int i, nz, log_mode = 0, argc = 0, n_arg_no_char = 0, n_colors;
-	BOOLEAN error = FALSE, ok = FALSE, continuous = FALSE, reverse = FALSE;
+	int error = FALSE, ok = FALSE, continuous = FALSE, reverse = FALSE;
 	char	*table = CNULL, CPT_file[BUFSIZ], **argv;
 	double	*z, z_start = 0, z_stop = 256, z_inc = 1;
 	double	*pal, *z_ints;
@@ -169,7 +169,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_end (argc, argv);
 }
 
-void sample_cpt (double z[], int nz, BOOLEAN continuous, BOOLEAN reverse, int log_mode, double *pal) {
+void sample_cpt (double z[], int nz, int continuous, int reverse, int log_mode, double *pal) {
 	/* Resamples the current cpt table based on new z-array.
 	 * Old cpt is normalized to 0-1 range and scaled to fit new z range.
 	 * New cpt may be continuous and/or reversed.

@@ -106,7 +106,7 @@ are conveniently sized near 0 or 1.
 #define MAX_TABLE_COLS 10	/* Used by Menke routine gauss  */
 
 char format[BUFSIZ];
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 	void	gauss(double *a, double *vec, int n, int nstore, double test, int *ierror, int itriag);		/* QR solution of the Normal equations  */
 	void	set_up_vals(double *val, int nval, double vmin, double vmax, double dv, int pixel_reg);		/* Store x[i], y[j] once for all to save time  */
@@ -125,10 +125,10 @@ BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memo
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	int	i, j, k, nx, ny, ierror = 0, iterations, nxy, n_model = 0;
-	BOOLEAN	error = FALSE, robust = FALSE, trivial, weighted;
-	BOOLEAN is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
-	BOOLEAN is_uint16 = FALSE, is_uint8 = FALSE;
-	BOOLEAN	d_filename = FALSE, t_filename = FALSE, w_filename = FALSE;
+	int	error = FALSE, robust = FALSE, trivial, weighted;
+	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
+	int is_uint16 = FALSE, is_uint8 = FALSE;
+	int	d_filename = FALSE, t_filename = FALSE, w_filename = FALSE;
 	double	chisq, old_chisq, zero_test = 1.0e-08, scale = 1.0;
 	int		argc = 0, n_arg_no_char = 0, nc_h, nr_h, i2, *i_4, *o_i4, *pdata_i4;
 	short int *i_2, *o_i2, *pdata_i2;

@@ -64,7 +64,6 @@ struct srf_header {		/* Surfer file header structure */
 	double z_max;		/* Maximum z value */
 };
 
-typedef int BOOLEAN;              /* BOOLEAN used for logical variables */
 
 double uscal(double x1, double x2, double x3, double c, double cc, double dp);
 double udcal(double x1, double x2, double x3, double c, double cc, double dp);

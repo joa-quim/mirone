@@ -62,7 +62,6 @@
 /* Table of constant values */
 
 static double c_b235 = 0.;
-typedef int BOOLEAN;              /* BOOLEAN used for logical variables */
 
 void rngchn_comp(double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, int, int);
 int form_all_part3(double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, int);
@@ -95,9 +94,9 @@ double	central_meridian;
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	int i, i1, i2, j, k, m, n, nseg, npts, nnl, mmx, mmy, nnx, nny;
+	int	i, i1, i2, j, k, m, n, nseg, npts, nnl, mmx, mmy, nnx, nny;
 	int	argc = 0, n_arg_no_char = 0;
-	BOOLEAN isarr = FALSE;
+	int	isarr = FALSE;
 	char	**argv;
 	double *ptrsx, *ptrsy;
 	double *sx, *sy, *tx, *ty, *faultdelta, *partials, *faultlambda, *faultstrike, *plook;

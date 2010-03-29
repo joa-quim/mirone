@@ -43,10 +43,9 @@
 #define DIR_DELIM '/'
 #endif
 
-typedef int BOOLEAN;		/* BOOLEAN used for logical variables */
 
-BOOLEAN getpathname (char *name, char *path, char *GMTHOME, char *GMT_HOMEDIR, char *GMT_USERDIR);
-BOOLEAN shore_conffile (char *name, char *dir, char *path);
+int getpathname (char *name, char *path, char *GMTHOME, char *GMT_HOMEDIR, char *GMT_USERDIR);
+int shore_conffile (char *name, char *dir, char *path);
 void chop (char *string);
 
 /* Matlab Gateway routine */
@@ -160,9 +159,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	plhs[0] = info_struct;
 }
 
-BOOLEAN getpathname (char *name, char *path, char *GMTHOME, char *GMT_HOMEDIR, char *GMT_USERDIR) {
+int getpathname (char *name, char *path, char *GMTHOME, char *GMT_HOMEDIR, char *GMT_USERDIR) {
 	/* Prepends the appropriate directory to the file name and returns TRUE if file is readable. */
-	BOOLEAN found = FALSE;
+	int found = FALSE;
 	char dir[BUFSIZ];
 
 	/* This is the order of checking:
@@ -215,8 +214,8 @@ BOOLEAN getpathname (char *name, char *path, char *GMTHOME, char *GMT_HOMEDIR, c
 	return (found);
 }
 
-BOOLEAN shore_conffile (char *name, char *dir, char *path) {
-	BOOLEAN found = FALSE;
+int shore_conffile (char *name, char *dir, char *path) {
+	int found = FALSE;
 	FILE *fp;
 	
 	/* Given the dir of a coastline.conf file, look to see if it can be found/read,

@@ -26,10 +26,10 @@
 #define LAKE	0
 #define RIVER	1
 
-mwSize prep_polygons(struct GMT_GSHHS_POL **p_old, mwSize np, BOOLEAN greenwich, BOOLEAN sample, double step, mwSize anti_bin);
-BOOLEAN getpathname (char *name);
+mwSize prep_polygons(struct GMT_GSHHS_POL **p_old, mwSize np, int greenwich, int sample, double step, mwSize anti_bin);
+int getpathname (char *name);
 
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 /* Matlab Gateway routine */
 
@@ -40,8 +40,8 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 	mwSize is = 0, ir = 0, ib = 0, p_alloc = 0, bytes_to_copy, k, j;
 	mwSize argc, dims[] = {0,0}, n;
 	
-	BOOLEAN	error = FALSE, get_river = FALSE, shift = FALSE, first_shore = TRUE, first_river = TRUE;
-	BOOLEAN	greenwich = FALSE, get_shore = FALSE, get_border = FALSE, first_border = TRUE, test = FALSE;
+	int	error = FALSE, get_river = FALSE, shift = FALSE, first_shore = TRUE, first_river = TRUE;
+	int	greenwich = FALSE, get_shore = FALSE, get_border = FALSE, first_border = TRUE, test = FALSE;
 	
 	double	west = 0.0, east = 0.0, south = 0.0, north = 0.0, edge = 720.0, left, right, bsize;
 	double min_area = 0.0, *p_shore, *p_river, *p_border;
@@ -578,7 +578,7 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 	mxFree(argv);
 }
 
-mwSize prep_polygons(struct GMT_GSHHS_POL **p_old, mwSize np, BOOLEAN greenwich, BOOLEAN sample, double step, mwSize anti_bin) {
+mwSize prep_polygons(struct GMT_GSHHS_POL **p_old, mwSize np, int greenwich, int sample, double step, mwSize anti_bin) {
 	/* This function will go through each of the polygons and determine
 	 * if the polygon is clipped by the map boundary, and if so if it
 	 * wraps around to the other side due to 360 degree periodicities

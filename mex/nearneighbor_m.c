@@ -51,7 +51,7 @@ struct POINT {	/* Structure with input data constraints */
 struct NODE *add_new_node(int n);
 void assign_node (struct NODE **node, int n_sector, int sector, double distance, int id);
 
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -62,8 +62,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_LONG n_set, n_almost, n_none, n_files = 0, fno, one_or_zero, n_expected_fields, distance_flag = 0;
 	GMT_LONG max_di, actual_max_di, ii, jj, x_wrap, y_wrap, ix = 0, iy = 1;
 
-	BOOLEAN go, error = FALSE, done = FALSE, nofile = TRUE, isDouble = TRUE, IamCompiled = FALSE;
-	BOOLEAN set_empty = FALSE, weighted = FALSE, wrap_180, replicate_x, replicate_y;
+	int go, error = FALSE, done = FALSE, nofile = TRUE, isDouble = TRUE, IamCompiled = FALSE;
+	int set_empty = FALSE, weighted = FALSE, wrap_180, replicate_x, replicate_y;
 
 	float	empty = 0.0, *grd, *z_4, *pdata, *z1_4, *z2_4, *z3_4, *z4_4, percentage = 0;
 	double	*z1_8, *z2_8, *z3_8, *z4_8, radius2, *ptr_wb;

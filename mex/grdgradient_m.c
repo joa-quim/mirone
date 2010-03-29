@@ -112,8 +112,6 @@
 #define EQ_RAD 6371.0087714
 #define M_PR_DEG (EQ_RAD * 1000 * M_PI / 180.0)
 
-typedef int BOOLEAN;              /* BOOLEAN used for logical variables */
-
 struct GRD_HEADER {
 /* Do not change the first three items. They are copied verbatim to the native grid header */
 	int nx;				/* Number of columns */
@@ -152,8 +150,8 @@ struct GMT_EDGEINFO {
 	/* Description below is the final outcome after parse and verify */
 	int	nxp;	/* if X periodic, nxp > 0 is the period in pixels  */
 	int	nyp;	/* if Y periodic, nxp > 0 is the period in pixels  */
-	BOOLEAN	gn;	/* TRUE if top    edge will be set as N pole  */
-	BOOLEAN	gs;	/* TRUE if bottom edge will be set as S pole  */
+	int	gn;	/* TRUE if top    edge will be set as N pole  */
+	int	gs;	/* TRUE if bottom edge will be set as S pole  */
 };
 
 double specular(double nx, double ny, double nz, double *s);
@@ -175,12 +173,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char	**argv;
 	unsigned char *ui_1, *o_ui1, *pdata_ui1;
 	
-	BOOLEAN	error = FALSE, map_units = FALSE, normalize = FALSE, atan_trans = FALSE, bad, do_direct_deriv = FALSE;
-	BOOLEAN find_directions = FALSE, do_cartesian = FALSE, do_orientations = FALSE, save_slopes = FALSE, add_ninety = FALSE;
-	BOOLEAN lambertian_s = FALSE, peucker = FALSE, lambertian = FALSE;
-	BOOLEAN sigma_set = FALSE, offset_set = FALSE, exp_trans = FALSE, two_azims = FALSE;
-	BOOLEAN is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
-	BOOLEAN is_uint16 = FALSE, is_uint8 = FALSE;
+	int	error = FALSE, map_units = FALSE, normalize = FALSE, atan_trans = FALSE, bad, do_direct_deriv = FALSE;
+	int find_directions = FALSE, do_cartesian = FALSE, do_orientations = FALSE, save_slopes = FALSE, add_ninety = FALSE;
+	int lambertian_s = FALSE, peucker = FALSE, lambertian = FALSE;
+	int sigma_set = FALSE, offset_set = FALSE, exp_trans = FALSE, two_azims = FALSE;
+	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
+	int is_uint16 = FALSE, is_uint8 = FALSE;
 	
 	float	*data, *z_4, *pdata_s;
 	double	dx_grid, dy_grid, x_factor, y_factor, dzdx, dzdy, ave_gradient, norm_val = 1.0, sigma = 0.0;
