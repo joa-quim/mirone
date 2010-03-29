@@ -49,7 +49,7 @@ void grd_FLIPLR(float data[], int nx, int ny);
 int troca_insitu(float *a, int nx, int ny);
 
 int n_cols;
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 /* Matlab Gateway routine */
 

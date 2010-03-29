@@ -640,7 +640,7 @@ int int_perf (double *c, int i_min, int n_flow, int k, int age_flow, int multi_f
 
 int intp_lin (double *x, double *y, int n, int m, double *u, double *v, int mode) {
 	int i, j, err_flag = 0;
-	BOOLEAN down = FALSE;
+	int down = FALSE;
 	double dx, *c;
 	
 	/* Check to see if x-values are monotonically increasing/decreasing */
@@ -849,7 +849,7 @@ int	do_the_filter (double *fm, int n_rows, int n_cols, double half_width, double
 	double	time, delta_time, *outval, wt, val;
 	double	*wt_sum;		/* Pointer for array of weight sums [each column]  */
 	double	*data_sum;		/* Pointer for array of data * weight sums [columns]  */
-	BOOLEAN	*good_one;		/* Pointer to array of logicals [one per column]  */
+	int	*good_one;		/* Pointer to array of logicals [one per column]  */
 
 	outval = (double *)mxCalloc ((size_t)n_cols, sizeof (double));
 	n_this_col = (int *)mxCalloc ((size_t)n_cols, sizeof(int));

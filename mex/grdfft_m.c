@@ -56,7 +56,7 @@
 int	narray[2];
 int	i, j, k, n, nx2 = 0, ny2 = 0, ndatac, i_data_start, j_data_start;
 
-BOOLEAN	map_units = FALSE, force_narray = FALSE, suggest_narray = FALSE, leave_trend_alone = FALSE, n_user_set = FALSE;
+int	map_units = FALSE, force_narray = FALSE, suggest_narray = FALSE, leave_trend_alone = FALSE, n_user_set = FALSE;
 
 float	*datac, *workc;
 double	data_var, data2_var, delta_kx, delta_ky, scale_out = 1.0;
@@ -102,7 +102,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	argc = 0, n_arg_no_char = 0, *kk;
 	int	ij, i2, j2, width_in, width_out, height_out;
 	int	first_col, last_col, first_row, last_row;
-	BOOLEAN error = FALSE, stop, chose_spectrum = FALSE, give_wavelength = FALSE;
+	int	error = FALSE, stop, chose_spectrum = FALSE, give_wavelength = FALSE;
 	float	*pdata;
 	char	**argv;
 	double	*par = NULL, w, e, s, n;

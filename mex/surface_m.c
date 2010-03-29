@@ -197,7 +197,7 @@ void find_nearest_point(void), fill_in_forecast(void), check_errors(void), repla
 
 int to_data(int n_pts), read_data(void);
 
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */

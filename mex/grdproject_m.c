@@ -52,7 +52,7 @@
 #include "gmt.h"
 #include "mex.h"
 
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 float *grd_out;
 
 /* --------------------------------------------------------------------------- */
@@ -61,11 +61,11 @@ float *grd_out;
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int i, j, k, i_pad, dpi, nx, ny, nm, unit = 0;
 	
-	BOOLEAN error = FALSE, inverse = FALSE, n_set = FALSE, set_n = FALSE, one_to_one = FALSE;
-	BOOLEAN d_set = FALSE, e_set = FALSE, m_set = FALSE, map_center = FALSE, offset, toggle_offset = FALSE;
-	BOOLEAN bilinear = FALSE, shift_xy = FALSE;
-	BOOLEAN is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
-	BOOLEAN is_uint16 = FALSE, is_uint8 = FALSE;
+	int error = FALSE, inverse = FALSE, n_set = FALSE, set_n = FALSE, one_to_one = FALSE;
+	int d_set = FALSE, e_set = FALSE, m_set = FALSE, map_center = FALSE, offset, toggle_offset = FALSE;
+	int bilinear = FALSE, shift_xy = FALSE;
+	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
+	int is_uint16 = FALSE, is_uint8 = FALSE;
 	
 	double w, e, s, n, x_inc = 0.0, y_inc = 0.0, max_radius = 0.0, one_or_zero;
 	double xmin, xmax, ymin, ymax, inch_to_unit, unit_to_inch, fwd_scale, inv_scale;

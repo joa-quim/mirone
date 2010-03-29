@@ -112,8 +112,6 @@
 
 #define original_GMT_code	0	/* Set it to 1 to always use original (rowmajor) code */
 
-typedef int BOOLEAN;              /* BOOLEAN used for logical variables */
-
 struct GRD_HEADER {
 /* Do not change the first three items. They are copied verbatim to the native grid header */
 	int nx;				/* Number of columns */
@@ -152,8 +150,8 @@ struct GMT_EDGEINFO {
 	/* Description below is the final outcome after parse and verify */
 	int	nxp;	/* if X periodic, nxp > 0 is the period in pixels  */
 	int	nyp;	/* if Y periodic, nxp > 0 is the period in pixels  */
-	BOOLEAN	gn;	/* TRUE if top    edge will be set as N pole  */
-	BOOLEAN	gs;	/* TRUE if bottom edge will be set as S pole  */
+	int	gn;	/* TRUE if top    edge will be set as N pole  */
+	int	gs;	/* TRUE if bottom edge will be set as S pole  */
 };
 
 struct GMT_BCR {	/* Used mostly in gmt_support.c */
@@ -173,9 +171,9 @@ void GMT_boundcond_init (struct GMT_EDGEINFO *edgeinfo);
 int GMT_boundcond_set (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo, int *pad, float *a);
 int GMT_boundcond_param_prep (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo);
 int GMT_boundcond_parse (struct GMT_EDGEINFO *edgeinfo, char *edgestring);
-double GMT_get_bcr_z (struct GRD_HEADER *grd, double xx, double yy, float *data, struct GMT_EDGEINFO *edgeinfo, struct GMT_BCR *bcr, BOOLEAN row_maj);
+double GMT_get_bcr_z (struct GRD_HEADER *grd, double xx, double yy, float *data, struct GMT_EDGEINFO *edgeinfo, struct GMT_BCR *bcr, int row_maj);
 void GMT_bcr_init (struct GRD_HEADER *grd, int *pad, int interpolant, double threshold, struct GMT_BCR *bcr);
-double row_or_column_major (struct GMT_BCR *bcr, float *data, double *wx, double *wy, int ij, BOOLEAN row_maj);
+double row_or_column_major (struct GMT_BCR *bcr, float *data, double *wx, double *wy, int ij, int row_maj);
 
 int decode_R (char *item, double *w, double *e, double *s, double *n);
 int check_region (double w, double e, double s, double n);
@@ -189,10 +187,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int i, j, nx, ny, n_read = 0, n_points = 0, one_or_zero;
 	int n_output = 0, n_fields, n_pts, ii, jj, GMT_pad[4];
 	
-	BOOLEAN error = FALSE, suppress = FALSE, node = FALSE, z_only = FALSE;
-	BOOLEAN is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
-	BOOLEAN is_uint16 = FALSE, is_uint8 = FALSE, is_int8 = FALSE;
-	BOOLEAN free_copy = TRUE, need_padding = FALSE, row_maj = FALSE;
+	int error = FALSE, suppress = FALSE, node = FALSE, z_only = FALSE;
+	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
+	int is_uint16 = FALSE, is_uint8 = FALSE, is_int8 = FALSE;
+	int free_copy = TRUE, need_padding = FALSE, row_maj = FALSE;
 	
 	double value, west, east, south, north, threshold = 1.0, i_dx, i_dy, half, *in, *out;
 	float *f;
@@ -595,7 +593,7 @@ void GMT_bcr_init (struct GRD_HEADER *grd, int *pad, int interpolant, double thr
 	bcr->offset = (grd->node_offset) ? 0.5 : 0.0;
 }
 
-double GMT_get_bcr_z (struct GRD_HEADER *grd, double xx, double yy, float *data, struct GMT_EDGEINFO *edgeinfo, struct GMT_BCR *bcr, BOOLEAN row_maj) {
+double GMT_get_bcr_z (struct GRD_HEADER *grd, double xx, double yy, float *data, struct GMT_EDGEINFO *edgeinfo, struct GMT_BCR *bcr, int row_maj) {
 	/* Given xx, yy in user's grid file (in non-normalized units)
 	   this routine returns the desired interpolated value (nearest-neighbor, bilinear
 	   B-spline or bicubic) at xx, yy. */
@@ -730,7 +728,7 @@ double GMT_get_bcr_z (struct GRD_HEADER *grd, double xx, double yy, float *data,
 	return (row_or_column_major (bcr, data, wx, wy, ij, row_maj));
 }
 
-double row_or_column_major (struct GMT_BCR *bcr, float *data, double *wx, double *wy, int ij, BOOLEAN row_maj) {
+double row_or_column_major (struct GMT_BCR *bcr, float *data, double *wx, double *wy, int ij, int row_maj) {
 
 	int i, j;
 	double	x, y, retval, wsum, w;

@@ -35,7 +35,7 @@
 #include "gmt.h"
 #include "mex.h"
 
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 /* --------------------------------------------------------------------------- */
  /* Gateway routine */

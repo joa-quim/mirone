@@ -125,13 +125,12 @@ void write_anuga_slice(int ncid, int z_id, int i_start, int j_start, int i_end, 
 		float *work, double *h, double *dep, double *u, double *v, float *tmp,
 		size_t *start, size_t *count, float *slice_range, int idx, int with_land);
 
-typedef int BOOLEAN;              /* BOOLEAN used for logical variables */
 int	ip, jp, polar, indl, indb, indr, indt, iopt;
 int	ip1, jp1, ip2, jp2, grn, cumint, *lcum_p;
 double	dx, dy, dt, cf, cc, sfx, sfy, time_h, rough;
 double	pistal, pistbl, pistab, pistbb, pistar, pistbr, pistat, pistbt;
 double	dangx, dangy, *anglt;
-BOOLEAN first_in_uvh = TRUE;
+int first_in_uvh = TRUE;
 struct	srf_header hdr_b;
 struct	srf_header hdr_f;
 
@@ -168,10 +167,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char	stem[80], prenome[128];
 	char	**argv;
 	unsigned char	*ptr_mov_8, *mov_8, *mov_8_tmp;
-	BOOLEAN	params_in_input = FALSE, bat_in_input = FALSE, source_in_input = FALSE;
-	BOOLEAN	write_grids = FALSE, movie = FALSE, movie_char = FALSE, movie_float = FALSE;
-	BOOLEAN	maregs_in_input = FALSE, out_velocity =	FALSE, out_momentum = FALSE, got_R = FALSE;
-	BOOLEAN	with_land = FALSE;
+	int	params_in_input = FALSE, bat_in_input = FALSE, source_in_input = FALSE;
+	int	write_grids = FALSE, movie = FALSE, movie_char = FALSE, movie_float = FALSE;
+	int	maregs_in_input = FALSE, out_velocity =	FALSE, out_momentum = FALSE, got_R = FALSE;
+	int	with_land = FALSE;
 	size_t	start0 = 0, count0 = 1, start1_A[2] = {0,0}, count1_A[2], start1_M[3] = {0,0,0}, count1_M[3];
 	float	stage_range[2], xmom_range[2], ymom_range[2], *tmp_slice;
 	FILE	*fp;

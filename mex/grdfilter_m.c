@@ -62,7 +62,7 @@
 #include "mex.h"
 
 double	get_wt();
-void	set_weight_matrix(int nx_f, int ny_f, double y_0, double north, double south, double dx, double dy, double f_wid, int f_flag, int d_flag, double x_off, double y_off, BOOLEAN fast);
+void	set_weight_matrix(int nx_f, int ny_f, double y_0, double north, double south, double dx, double dy, double f_wid, int f_flag, int d_flag, double x_off, double y_off, int fast);
 void DEBUGA(int n);
 
 int	*i_origin;
@@ -84,7 +84,7 @@ char *filter_name[9] = {
 
 GMT_LONG GMT_mode_selection = 0, GMT_n_multiples = 0;
 
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -101,9 +101,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	unsigned short int *ui_2, *o_ui2, *pdata_ui2;
 	unsigned char *ui_1, *o_ui1, *pdata_ui1;
 	
-	BOOLEAN	error, new_range, new_increment, fast_way, shift = FALSE, slow, toggle = FALSE, pole_trouble = FALSE;
-	BOOLEAN is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
-	BOOLEAN is_uint16 = FALSE, is_uint8 = FALSE;
+	int	error, new_range, new_increment, fast_way, shift = FALSE, slow, toggle = FALSE, pole_trouble = FALSE;
+	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
+	int is_uint16 = FALSE, is_uint8 = FALSE;
 	
 	float	*z_4, *pdata_s, *o_s;
 	double	west_new, east_new, south_new, north_new, dx_new, dy_new, offset;
@@ -663,7 +663,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	mxFree((void *) output);
 }
 
-void	set_weight_matrix (int nx_f, int ny_f, double y_0, double north, double south, double dx, double dy, double f_wid, int f_flag, int d_flag, double x_off, double y_off, BOOLEAN fast) {
+void	set_weight_matrix (int nx_f, int ny_f, double y_0, double north, double south, double dx, double dy, double f_wid, int f_flag, int d_flag, double x_off, double y_off, int fast) {
 
 	/* Last two gives offset between output node and 'origin' input node for this window (0,0 for integral grids) */
 	/* TRUE when input/output grids are offset by integer values in dx/dy */

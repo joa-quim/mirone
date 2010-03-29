@@ -44,7 +44,7 @@
 struct GRDLANDMASK_CTRL {	/* All control options for this program (except common args) */
 	/* ctive is TRUE if the option has been activated */
 	struct A {	/* -A<min_area>[/<min_level>/<max_level>] */
-		BOOLEAN active;
+		int active;
 #ifdef GMT_MINOR_VERSION
 		struct GMT_SHORE_SELECT info;
 #else
@@ -54,39 +54,39 @@ struct GRDLANDMASK_CTRL {	/* All control options for this program (except common
 #endif
 	} A;
 	struct D {	/* -D<resolution> */
-		BOOLEAN active;
+		int active;
 		char set;	/* One of f, h, i, l, c */
 	} D;
 	struct e {	/* -e For use in compiled Mirone */
-		BOOLEAN active;
+		int active;
 	} e;
 	struct F {	/* -F */
-		BOOLEAN active;
+		int active;
 	} F;
 	struct G {	/* -G<maskfile> */
-		BOOLEAN active;
+		int active;
 		char *file;
 	} G;
 	struct I {	/* -Idx[/dy] */
-		BOOLEAN active;
+		int active;
 		double xinc, yinc;
 	} I;
 	struct N {	/* -N<maskvalues>[o] */
-		BOOLEAN active;
-		BOOLEAN edge;	/* TRUE if edges are considere outside */
+		int active;
+		int edge;	/* TRUE if edges are considere outside */
 		double mask[GRDLANDMASK_N_CLASSES];	/* values for each level */
 	} N;
 };
 
-BOOLEAN GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	BOOLEAN	error = FALSE, dry_wet_only = FALSE, greenwich = FALSE;
-	BOOLEAN temp_shift = FALSE, wrap, used_polygons;
-	BOOLEAN	out_logic = TRUE, out_uint = FALSE, out_float = FALSE;
+	int	error = FALSE, dry_wet_only = FALSE, greenwich = FALSE;
+	int	temp_shift = FALSE, wrap, used_polygons;
+	int	out_logic = TRUE, out_uint = FALSE, out_float = FALSE;
 
 	char line[GMT_LONG_TEXT], ptr[BUFSIZ], cmd[24];
 	char *shore_resolution[5] = {"full", "high", "intermediate", "low", "crude"};
