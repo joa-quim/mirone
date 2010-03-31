@@ -2033,8 +2033,8 @@ function ImageDrape_CB(handles)
 	[y_parent x_parent z] = size(parent_img);			% Get "parent" image dimensions
 	
 	% Find if image needs to be ud fliped
-	flip = 0;
-	if(strcmp(get(handles.axes1,'YDir'),'reverse')),	flip = 1;	end
+	if(strcmp(get(handles.axes1,'YDir'),'reverse')),	son_img = flipdim(son_img,1);	end
+
 	% See about transparency
 	dlg_title = 'Draping Transparency';		num_lines= [1 38];	defAns = {'0'};
 	resp = inputdlg('Use Transparency (0-1)?',dlg_title,num_lines,defAns);		pause(0.01);
@@ -2044,10 +2044,9 @@ function ImageDrape_CB(handles)
 
 	son_cm = [];
 	if (ndims(son_img) == 2),		son_cm = get(handles.figure1,'Colormap');	end		% Get "son" color map
-	if (flip),		son_img = flipdim(son_img,1);	end
 
 	blind_drape = true;
-	if (handles.geog && handParent.geog),	blind_drape = false;	end
+	if ((handles.image_type ~= 2) && (handParent.image_type ~= 2)),		blind_drape = false;	end
 	if (blind_drape)		% Drape based solely in images sizes
 		if (y_son ~= y_parent || x_son ~= x_parent)				% Check if "son" and "parent" images have the same size
 			son_img = cvlib_mex('resize',son_img,[y_parent x_parent],'bicubic');
@@ -2060,8 +2059,7 @@ function ImageDrape_CB(handles)
 		% Make sure parent & son are both indexed or true color
 		if (ndims(son_img) == 2 && ndims(parent_img) == 3)
 			son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));
-		end
-		if (ndims(son_img) == 3 && ndims(parent_img) == 2)
+		elseif (ndims(son_img) == 3 && ndims(parent_img) == 2)
 			parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));
 		end
 		if (alfa)		% We must process this case here
@@ -2076,7 +2074,6 @@ function ImageDrape_CB(handles)
 	if (alfa)
 		if (ndims(son_img) == 2),		son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));	end
 		if (ndims(parent_img) == 2),	parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));			end
-		%son_img = uint8(double(parent_img) * alfa + double(son_img) * (1 - alfa));
 		cvlib_mex('addweighted',son_img,(1 - alfa),parent_img,alfa)		% In-place
 	end
 	set(handParent.hImg,'CData',son_img);
