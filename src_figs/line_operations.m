@@ -197,23 +197,30 @@ function push_apply_Callback(hObject, eventdata, handles)
 			direction = 'both';		npts = 13;		% Defaults (+ next line)
 			geodetic = handles.geog;		% 1 uses spherical aproximation -- OR -- 0 do cartesian calculation
 			dist = out.dist;
-			try		direction = out.dir;	end
-			try		npts = out.npts;		end
-			if (isfield(out, 'ab'))
+			if (out.dir)		direction = out.dir;	end
+			if (out.npts)		npts = out.npts;		end
+			if (out.ab)
 				geodetic = out.ab;
-			elseif (isfield(out, 'geod'))
+			elseif (out.geod)
 				geodetic = out.geod;
 			end
 
+			disp('MERDA1')
 			for (k = 1:numel(handles.hLine))
+				disp('MERDA2')
 				x = get(handles.hLine(k), 'xdata');		y = get(handles.hLine(k), 'ydata');
+				disp('MERDA3')
  				[y, x] = buffer_j(y, x, dist, direction, npts, geodetic);
+				disp('MERDA4')
 				if (isempty(x)),	return,		end
+				disp('MERDA5')
 				ind = find(isnan(x));
 				if (isempty(ind))			% One only, so no doubts
 					h = patch('XData',x, 'YData',y, 'Parent',handles.hMirAxes, 'EdgeColor',handles.lc, ...
 						'FaceColor','none', 'LineWidth',handles.lt, 'Tag','polybuffer');
+					disp('MERDA6')
 					uistack_j(h,'bottom'),		draw_funs(h,'line_uicontext')
+					disp('MERDA7')
 				else
 					% Get the length of the segments by ascending order and plot them in that order.
 					% Since the uistack will send the last ploted one to the bottom, that will be the larger polygon
@@ -378,6 +385,7 @@ function [out, msg] = validate_args(qual, str, np)
 	msg = [];	out = [];
 	switch qual
 		case 'buffer'
+			out.dir = false;	out.npts = false;		out.ab = false;		out.geod = false;
 			[t, str] = strtok(str);
 			if (strcmp(t, 'DIST'))
 				msg = 'The argument "DIST" must be replaced by a numeric value representing the width of the buffer zone';	return
@@ -399,7 +407,7 @@ function [out, msg] = validate_args(qual, str, np)
 			% Ok, here we are over with the 'in' or 'out' options. Proceed
 			ind = strfind(str, 'geod');
 			if (~isempty(ind))
-				out.geod = [];		str(ind:ind+3) = [];		% WGS-84
+				out.geod = true;		str(ind:ind+3) = [];		% WGS-84
 			end
 
 			% See if we have an ellipsoid
