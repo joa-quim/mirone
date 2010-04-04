@@ -172,26 +172,32 @@ function push_apply_Callback(hObject, eventdata, handles)
 	if (isempty(cmd))
 		errordlg('Fiu Fiu!! Apply WHAT????','ERROR'),	return
 	end
+	disp('MERDA-2')
 
 	[t, r] = strtok(cmd);
 	ind = strmatch(t, handles.known_ops);
 	if (isempty(ind))
 		% Here (will come) a function call which tries to adress the general command issue
+		disp('MERDA-1')
 		return
 	end
 	if (isempty(handles.hLine) && ~strcmp(handles.known_ops{ind}, 'pline'))
 		errordlg('Fiu Fiu!! Apply WHERE????','ERROR'),	return
 	end
+	disp('MERDA1')
 	if (~strcmp(handles.known_ops{ind},'pline'))
 		handles.hLine = handles.hLine(ishandle(handles.hLine));
 		if (isempty(handles.hLine))
 			errordlg('Invalid handle. You probably killed the line(s)','ERROR'),	return
 		end
 	end
+	disp('MERDA2')
 	
 	switch handles.known_ops{ind}
 		case 'buffer'
+			disp('MERDA3')
 			[out, msg] = validate_args(handles.known_ops{ind}, r, handles.geog);
+			disp('MERDA4')
 			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
 
 			direction = 'both';		npts = 13;		% Defaults (+ next line)
@@ -205,22 +211,21 @@ function push_apply_Callback(hObject, eventdata, handles)
 				geodetic = out.geod;
 			end
 
-			disp('MERDA1')
+			disp('MERDA44')
 			for (k = 1:numel(handles.hLine))
-				disp('MERDA2')
 				x = get(handles.hLine(k), 'xdata');		y = get(handles.hLine(k), 'ydata');
-				disp('MERDA3')
- 				[y, x] = buffer_j(y, x, dist, direction, npts, geodetic);
-				disp('MERDA4')
-				if (isempty(x)),	return,		end
 				disp('MERDA5')
+ 				[y, x] = buffer_j(y, x, dist, direction, npts, geodetic);
+				disp('MERDA6')
+				if (isempty(x)),	return,		end
+				disp('MERDA7')
 				ind = find(isnan(x));
 				if (isempty(ind))			% One only, so no doubts
 					h = patch('XData',x, 'YData',y, 'Parent',handles.hMirAxes, 'EdgeColor',handles.lc, ...
 						'FaceColor','none', 'LineWidth',handles.lt, 'Tag','polybuffer');
-					disp('MERDA6')
+					disp('MERDA8')
 					uistack_j(h,'bottom'),		draw_funs(h,'line_uicontext')
-					disp('MERDA7')
+					disp('MERDA9')
 				else
 					% Get the length of the segments by ascending order and plot them in that order.
 					% Since the uistack will send the last ploted one to the bottom, that will be the larger polygon
