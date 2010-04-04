@@ -2029,8 +2029,8 @@ function ImageDrape_CB(handles)
 	end
 	handParent = guidata(h_f);		% We need the parent handles
 	parent_img = get(handParent.hImg,'CData');
-	[y_son x_son z] = size(son_img);					% Get "son" image dimensions 
-	[y_parent x_parent z] = size(parent_img);			% Get "parent" image dimensions
+	y_son = size(son_img,1);			x_son = size(son_img,2);			% Get "son" image dimensions 
+	y_parent = size(parent_img,1);		x_parent = size(parent_img,2);		% Get "son" image dimensions 
 	
 	% Find if image needs to be ud fliped
 	if(strcmp(get(handles.axes1,'YDir'),'reverse')),	son_img = flipdim(son_img,1);	end
@@ -2051,11 +2051,19 @@ function ImageDrape_CB(handles)
 		if (y_son ~= y_parent || x_son ~= x_parent)				% Check if "son" and "parent" images have the same size
 			son_img = cvlib_mex('resize',son_img,[y_parent x_parent],'bicubic');
 		end
-	else					% Drape based in images coords
-		rect_crop = [handles.head(1) handles.head(3) diff(handles.head(1:2)) diff(handles.head(3:4))];
-		[I,r_c] = cropimg(handParent.head(1:2),handParent.head(3:4),parent_img,rect_crop,'out_grid');
+	else					% Drape based in images coords - First find the intersection of the 2 regions 
+		P1.x = [handles.head(1) handles.head(1) handles.head(2) handles.head(2) handles.head(1)];	P1.hole = 0;
+		P1.y = [handles.head(3) handles.head(4) handles.head(4) handles.head(3) handles.head(3)];
+		P2.x = [handParent.head(1) handParent.head(1) handParent.head(2) handParent.head(2) handParent.head(1)];	P2.hole = 0;
+		P2.y = [handParent.head(3) handParent.head(4) handParent.head(4) handParent.head(3) handParent.head(3)];
+		P3 = PolygonClip(P1, P2, 1);				% Intersection of the two rectangles
+		rx_min = min(P3.x);			rx_max = max(P3.x);		ry_min = min(P3.y);			ry_max = max(P3.y);
+		rect_crop = [rx_min ry_min rx_max-rx_min ry_max-ry_min];
+
+		[r_c] = cropimg(handParent.head(1:2),handParent.head(3:4),parent_img,rect_crop,'out_ind');
 		if (diff(r_c(1:2)) <= 0 || diff(r_c(3:4)) <= 0),	return,		end
-		son_img = cvlib_mex('resize',son_img,[diff(r_c(1:2)) diff(r_c(3:4))]+1,'bicubic');
+		[I,P1.hole] = cropimg(handles.head(1:2),handles.head(3:4),son_img,rect_crop,'out_grid');	% P1.hole to shut up MLint
+		son_img = cvlib_mex('resize',I,[diff(r_c(1:2)) diff(r_c(3:4))]+1,'bicubic');
 		% Make sure parent & son are both indexed or true color
 		if (ndims(son_img) == 2 && ndims(parent_img) == 3)
 			son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));
