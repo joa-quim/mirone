@@ -128,17 +128,23 @@ function push_OK_CB(hObject, eventdata, handles)
 	tmp.X = X;		tmp.Y = Y;
 	for (k = 1:n_out)
 		if (~isempty(ind_0))				% Sea side
-			varargout{k}(ind_0) = 0;
+			varargout{k}(ind_0) = NaN;
 		end
 		zz = grdutils(varargout{k},'-L');		head(5:6) = double(zz(1:2));
 		if (opt_O(k+2) == 'i')
-			tmp.head = head;		tmp.name = 'Intensity';		mirone(varargout{k},tmp);		
+			n = ones(1,16);
+			pal = ([221*n 208*n 195*n 181*n 168*n 154*n 141*n 128*n 114*n 101*n 87*n 74*n 60*n 47*n 34*n 20*n] / 255)';
+			tmp.cmap = [pal pal pal];		% Build a gray color map
+			tmp.head = head;		tmp.name = 'Intensity';		mirone(varargout{k},tmp);
+			X = tmp.X;		Y = tmp.Y;
+			clear tmp;						% We don't want to apply the gray cmap to the grids
+			tmp.X = X;		tmp.Y = Y;
 		end
 		if (opt_O(k+2) == 'a')
-			tmp.head = head;		tmp.name = 'PGA';			mirone(varargout{k},tmp);		
+			tmp.head = head;		tmp.name = 'PGA';			mirone(varargout{k},tmp);
 		end
 		if (opt_O(k+2) == 'v')
-			tmp.head = head;		tmp.name = 'PGV';			mirone(varargout{k},tmp);		
+			tmp.head = head;		tmp.name = 'PGV';			mirone(varargout{k},tmp);
 		end
 	end
 
