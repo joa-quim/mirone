@@ -311,7 +311,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	ind = strcmp(attribNames,'add_offset');			add_offset = 0;
 	if (any(ind)),	add_offset = s.Dataset(z_id).Attribute(ind).Value;		end
 	% GDAL and ESRI put the eventual georeferencing on the layer
-	grid_mapping = [];		srsWKT = [];		strPROJ4 = [];
+	srsWKT = [];		strPROJ4 = [];
 	ind = strcmp(attribNames,'grid_mapping');
 	if (any(ind))
 		grid_mapping = s.Dataset(z_id).Attribute(ind).Value;
@@ -322,7 +322,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 		if (any(ind)),	srsWKT = s.Dataset(containor_id).Attribute(ind).Value;		end
 		
 		ind = strcmp(containerNames,'strPROJ4');
-		if (any(ind)),	strPROJ4 = s.Dataset(containor_id).Attribute(ind).Value;		end
+		if (any(ind)),	strPROJ4 = s.Dataset(containor_id).Attribute(ind).Value;	end
 	end
 	if (isempty(srsWKT))
 		ind = strcmp(attribNames,'esri_pe_string');			% ESRI uses this
@@ -417,10 +417,10 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	[X, Y, Z, head] = deal_exceptions(Z, X, Y, head, s, attribNames);	% Currently, deal with Ifremer hosted SST stupidities (no coords and Kelvins)
 
 	if (get_Z && isempty(z_actual_range))
-		if ( isa(Z, 'double') )
-			z_actual_range = [min(Z(:)) max(Z(:))];
-		else		% min/max are bugged when NaNs in singles
+		if ( isa(Z, 'single') )			% min/max are bugged when NaNs in singles
 			zz = grdutils(Z,'-L');  z_actual_range = [zz(1) zz(2)];
+		else
+			z_actual_range = double([min(Z(:)) max(Z(:))]);
 		end
 	elseif (~get_Z)
 		z_actual_range = [0 1];		% Dumb, but it is not meant to be used anywhere
