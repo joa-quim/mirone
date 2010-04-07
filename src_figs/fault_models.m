@@ -92,8 +92,8 @@ function radio_nada_CB(hObject, handles)
 
 % ------------------------------------------------------------------------------------------------
 function subfault(handles, localHandles, fname, cmap)
-	% Read in a file in the subfault format
-	% WARNING, the handles is the Mirone handles
+% Read in a file in the subfault format
+% WARNING, the handles is the Mirone handles
 
 	D2R = pi / 180;
 	nCores = size(cmap,1) - 1;
@@ -102,7 +102,8 @@ function subfault(handles, localHandles, fname, cmap)
 	w = min(numeric_data{1}(:,1));		e = max(numeric_data{1}(:,1));
 	s = min(numeric_data{1}(:,2));		n = max(numeric_data{1}(:,2));
 	if (handles.no_file)		% If no_file, create a background
-		hFig = mirone('FileNewBgFrame_CB', handles, [w e s n 1]);   % Create a background
+		mirone('FileNewBgFrame_CB', handles, [w e s n 1])			% Create a background
+		hFig = handles.figure1;
 		figName = get(hFig,'Name');
 		ind = strfind(figName,' @');
 		if (~isempty(ind)),		figName = [fname figName(ind(1):end)];
@@ -197,20 +198,20 @@ function subfault(handles, localHandles, fname, cmap)
 
 % ------------------------------------------------------------------------------------------------
 function evtag(handles, localHandles, fname, cmap)
-	% Read in a file in the subfault format
-	% WARNING, the handles is the Mirone handles
-	% This function differs from 'subfault()' mainly in what respects the decoding of the
-	% squizophrenic header of .fsp files. The other difference is that multi-segment faults
-	% are alowed (it's than that things get real squizo)
-	%
-	% A basic assumption that all segments have the same 'nz'
-	%
-	% With the complicated multi-segment format each model parameter (e.g. slip)
-	% is a cell array {nSeg, nz} where nSeg is the number of segments as deffined
-	% by the format specification (.fsp here) and nz is the number of descretization
-	% stripes along strike and downdip (that is, rows in the fault plane).
-	% Then each cell element is a NX column vector with the parameter's value, where
-	% NX is the segment number of patches along strike.
+% Read in a file in the subfault format
+% WARNING, the handles is the Mirone handles
+% This function differs from 'subfault()' mainly in what respects the decoding of the
+% squizophrenic header of .fsp files. The other difference is that multi-segment faults
+% are alowed (it's than that things get real squizo)
+%
+% A basic assumption that all segments have the same 'nz'
+%
+% With the complicated multi-segment format each model parameter (e.g. slip)
+% is a cell array {nSeg, nz} where nSeg is the number of segments as deffined
+% by the format specification (.fsp here) and nz is the number of descretization
+% stripes along strike and downdip (that is, rows in the fault plane).
+% Then each cell element is a NX column vector with the parameter's value, where
+% NX is the segment number of patches along strike.
 
 	D2R = pi / 180;
 	nCores = size(cmap,1) - 1;
@@ -266,7 +267,8 @@ function evtag(handles, localHandles, fname, cmap)
 		offx = Dx / 6371 / D2R;		offy = Dy / 6371 / D2R;
 		w = w - offx;		e = e + offx;
 		s = s - offy;		n = n + offy;
-		hFig = mirone('FileNewBgFrame_CB', handles, [w e s n 1]);   % Create a background
+		mirone('FileNewBgFrame_CB', handles, [w e s n 1])	% Create a background
+		hFig = handles.figure1;
 		figName = get(hFig,'Name');
 		ind = strfind(figName,' @');
 		if (~isempty(ind)),		figName = [fname figName(ind(1):end)];
@@ -385,7 +387,7 @@ function delAll(obj,event,handles)
 
 % -----------------------------------------------------------------------------------------
 function calldeform(obj,event, handles, opt)
-	% Remember, this handles is the one from Mirone
+% Remember, this handles is the one from Mirone
 	vars = getappdata(handles.axes1,'SlipVars');
 	handles = guidata(handles.figure1);
 	if (strcmp(opt,'okada'))
@@ -396,10 +398,10 @@ function calldeform(obj,event, handles, opt)
 
 % --------------------------------------------------------------------
 function res = insideRect(rect,pt)
-    % Check which elements of the  [x y] (Mx2) PT array are inside the rectangle RECT
-    % RECT = [x_min x_max y_min y_max]
-    % RES is a logical column vector with length = size(PT,1)
-    % NO ERROR TESTING
+% Check which elements of the  [x y] (Mx2) PT array are inside the rectangle RECT
+% RECT = [x_min x_max y_min y_max]
+% RES is a logical column vector with length = size(PT,1)
+% NO ERROR TESTING
     res = ( pt(:,1) >= rect(1) & pt(:,1) <= rect(2) & pt(:,2) >= rect(3) & pt(:,2) <= rect(4) );
 
 % -----------------------------------------------------------------------------
