@@ -234,7 +234,8 @@ if (handles.no_file)		% Start empty but below we'll find the true data region
         region = [xx yy];			% 1 stands for geog but that will be confirmed later
 		handles.geog = aux_funs('guessGeog',region);
     end
-	hMirFig = mirone('FileNewBgFrame_CB', handles, [region handles.geog]);	% Create a background
+	mirone('FileNewBgFrame_CB', handles, [region handles.geog])	% Create a background
+	hMirFig = handles.figure1;
 else							% Reading over an established region
 	XYlim = getappdata(handles.axes1,'ThisImageLims');
 	xx = XYlim(1:2);			yy = XYlim(3:4);
