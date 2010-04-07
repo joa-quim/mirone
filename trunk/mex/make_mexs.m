@@ -22,7 +22,6 @@ patoLIB_GMT = 'c:\progs_cygw\GMTdev\GMT_win\lib\';	% Lib path for GMT
 
 % path for NETCDF bae dir. Sub-directories 'lib' and 'include' must exist with, respectively, libnetcdf.lib and header files
 % I use ftp://ftp.unidata.ucar.edu/pub/netcdf/contrib/win32/netcdf-3.6.2-beta5_pgi_w32bin.zip
-%pato_NETCDF = 'c:\progs_interix\netcdf-3.6.2b5_win\';
 pato_NETCDF = 'C:\progs_cygw\netcdf-3.6.3\';
 
 % path for the HDF4 base dir. Here I use my own compiled libs that have an extra '_mir' in their
@@ -72,9 +71,9 @@ else
 end
 
 % GMT mexs
-str_gmt = {'grdinfo_m' 'grdproject_m' 'grdread_m' 'grdsample_m' ...
-        'grdtrend_m' 'grdwrite_m' 'mapproject_m' 'shoredump' 'surface_m' ...
-        'nearneighbor_m' 'grdfilter_m' 'cpt2cmap' 'grdlandmask_m' 'grdppa_m' 'dimfilter_m'}';
+str_gmt = {'grdinfo_m' 'grdproject_m' 'grdread_m' 'grdsample_m' 'grdtrend_m' ...
+        'grdwrite_m' 'mapproject_m' 'shoredump' 'surface_m' 'nearneighbor_m' ...
+        'grdfilter_m' 'cpt2cmap' 'grdlandmask_m' 'grdppa_m' 'dimfilter_m' 'shake_mex'}';
 
 % GMT MGG supplements mexs (currently only one)
 str_gmt_mgg = {'gmtlist_m'};
@@ -174,7 +173,8 @@ if (strcmp(opt,'all'))			% Compile the whole family
 	eval(cmd)
 
 	% Compile Shape mexs
-	cmd = ['mex mex_shape.c ' include_shape ' ' library_shape ' ' COPT];
+	%cmd = ['mex mex_shape.c ' include_shape ' ' library_shape ' ' COPT];
+	cmd = ['mex mex_shape.c ' include_gdal ' ' library_gdal ' ' COPT];
 	eval(cmd)
 
 	% Compile the edison_wraper
@@ -243,7 +243,8 @@ else							% Compile only one mex
         cmd = ['mex ' [str_gdal_cpp{idx2pp} '.cpp'] ' ' include_gdal ' ' library_gdal ' ' COPT];
 
     elseif (~isempty(idx22))    % Compile Shape mexs
-        cmd = ['mex ' [str_shape{idx22} '.c'] ' ' include_shape ' ' library_shape ' ' COPT];
+        %cmd = ['mex ' [str_shape{idx22} '.c'] ' ' include_shape ' ' library_shape ' ' COPT];
+        cmd = ['mex ' [str_shape{idx22} '.c'] ' ' include_gdal ' ' library_gdal ' ' COPT];
 
     elseif (~isempty(idx3))     % Compile Simple c mexs
         cmd = ['mex ' [str_simple{idx3} '.c'] ' ' COPT];
