@@ -44,7 +44,7 @@ H1 = figure('PaperUnits','centimeters',...
 'IntegerHandle','off',...
 'InvertHardcopy',get(0,'defaultfigureInvertHardcopy'),...
 'MenuBar','none',...
-'Name','Mirone 1.5.2',...
+'Name','Mirone 1.5.3b',...
 'NumberTitle','off',...
 'PaperPositionMode','auto',...
 'PaperSize',[20.98404194812 29.67743169791],...
@@ -231,7 +231,7 @@ if (~IamCompiled)
 end
 
 h = uimenu('Parent',hFL,'Label','Recent Files','Tag','RecentFiles','Sep','on');
-for (i=1:10),    uimenu('Parent',h,'Vis','off','Tag','RecentF');   end
+for (i=1:14),    uimenu('Parent',h,'Vis','off','Tag','RecentF');   end
 
 uimenu('Parent',hFL,'Call','print -dsetup','Label','Print Setup','Sep','on');
 uimenu('Parent',hFL,'Call','mirone(''Transfer_CB'',guidata(gcbo),''print'')','Label','Print...');
@@ -530,6 +530,7 @@ h = uimenu('Parent',hGP,'Label','Elastic deformation');
 uimenu('Parent',h,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''FaultTrace'')','Label','Draw Fault');
 uimenu('Parent',h,'Call','mirone(''DrawImportLine_CB'',guidata(gcbo),''FaultTrace'')','Label','Import Trace Fault');
 uimenu('Parent',h,'Call','fault_models(guidata(gcbo))', 'Label','Import Model Slip','Sep', 'on');
+uimenu('Parent',hGP,'Call','ground_motion(guidata(gcbo))','Label','Ground motions');
 
 h = uimenu('Parent',hGP,'Label','Tsunami Travel Time','Sep','on');
 uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo))','Label','Plot source');
@@ -650,7 +651,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 28 Feb 2010'',''1.5.2'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 07 Apr 2010'',''1.5.3b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
