@@ -59,7 +59,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line move_obj make_arrow
 %#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
-%#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex
+%#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion
 
 %  	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
 	global home_dir;	fsep = filesep;
