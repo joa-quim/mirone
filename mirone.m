@@ -59,7 +59,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line move_obj make_arrow
 %#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
-%#function mat2clip buffer_j PolygonClip trend1d_m akimaspline
+%#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex
 
 %  	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
 	global home_dir;	fsep = filesep;
@@ -118,25 +118,25 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.validGrid = 0;		%
 
 	try							% A file named mirone_pref.mat contains the preferences, read them from it
-		load([handles.path_data 'mirone_pref.mat']);
-		handles.geog = geog;
-		handles.grdMaxSize = grdMaxSize;				% 2^20 = 1 Mb
-		handles.swathRatio = swathRatio;
-		handles.last_directories = directory_list;
-		handles.DefLineThick = str2double(DefLineThick{1}(1));
+		prf =load([handles.path_data 'mirone_pref.mat']);
+		handles.geog = prf.geog;
+		handles.grdMaxSize = prf.grdMaxSize;				% 2^20 = 1 Mb
+		handles.swathRatio = prf.swathRatio;
+		handles.last_directories = prf.directory_list;
+		handles.DefLineThick = str2double(prf.DefLineThick{1}(1));
 		% Decode the line color string into the corresponding char (e.g. k,w, etc...)
-		if (strcmp(DefLineColor{1},'Black')),	handles.DefLineColor = 'k';
-		else									handles.DefLineColor = lower(DefLineColor{1}(1));
+		if (strcmp(prf.DefLineColor{1},'Black')),	handles.DefLineColor = 'k';
+		else										handles.DefLineColor = lower(prf.DefLineColor{1}(1));
 		end
 		% Decode the Measure unities into a char code (e.g. n, k, m, u from {'nautical miles' 'kilometers' 'meters' 'user'})
-		handles.DefineMeasureUnit = DefineMeasureUnit{1}(1);
-		handles.DefineEllipsoide = DefineEllipsoide_params;		% Set the default ellipsoide parameters (a,b,f)
-		handles.flederBurn = flederBurn;
-		handles.flederPlanar = flederPlanar;
-		handles.scale2meanLat = scale2meanLat;
-		for (i=1:numel(FOpenList)),		handles.FOpenList{i} = FOpenList{i};	end
-		handles.whichFleder = whichFleder;
-		if (~moveDoubleClick)				% this info is used by UI_EDIT_POLYGON()
+		handles.DefineMeasureUnit = prf.DefineMeasureUnit{1}(1);
+		handles.DefineEllipsoide = prf.DefineEllipsoide_params;		% Set the default ellipsoide parameters (a,b,f)
+		handles.flederBurn = prf.flederBurn;
+		handles.flederPlanar = prf.flederPlanar;
+		handles.scale2meanLat = prf.scale2meanLat;
+		handles.FOpenList = prf.FOpenList;
+		handles.whichFleder = prf.whichFleder;
+		if (~prf.moveDoubleClick)				% this info is used by UI_EDIT_POLYGON()
 			setappdata(handles.handMir.axes1,'MovPolyg','extend')		% Move lines with a Shift-click drag-n-drop
 		end
 	end
@@ -346,7 +346,7 @@ function erro = gateLoadFile(handles,drv,fname)
 % --------------------------------------------------------------------------------------------------
 function handles = recentFiles(handles, opt)
 	if (~isempty(handles.fileName) && ~exist(handles.fileName,'file')),		return,		end		% For example, subdatasets
-	jump = 0;		N = numel(handles.FOpenList);
+	jump = 0;		N = min(numel(handles.FOpenList), numel(handles.RecentF));
 	if (nargin == 1)		% Update list
 		for (i = 1:N)		% See if new name is already in FOpenList
 			if (strcmpi(handles.fileName, handles.FOpenList{i}))
@@ -1958,7 +1958,7 @@ function ImageAnaglyph_CB(handles)
 	ar = repmat(uint8(0), ny, ana_header.nx);		ag = ar;	l = 0;	r = l;
 	for i=1:ny
 		for j=1:nx
-			iz=fix(alpha * (double(Z(i,j)) - z_min));
+			iz = fix(alpha * (double(Z(i,j)) - z_min));
 			if (j == 1)
 				left(j+iz) = sh(i,j);
 				right(decal+j-iz) = sh(i,j);
@@ -3124,9 +3124,8 @@ function GridToolsSectrum_CB(handles, opt1, opt2)
 % --------------------------------------------------------------------
 function GridToolsSmooth_CB(handles)
 	if (aux_funs('msg_dlg',14,handles)),		return,		end
-	[X,Y,Z,head,m,n] = load_grd(handles);		%  If gmt grid is not in memory, so read it again
-	if isempty(Z),		return,		end			% An error message was already issued
-	if (~isa(Z,'double')),  Z = double(Z);  end	% Make sure Z is of double type
+	[X,Y,Z,head,m,n] = load_grd(handles,'double');
+	if isempty(Z),		return,		end				% An error message was already issued
 	
 	[pp p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));		% Get a good estimate of p
 	prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
@@ -3164,9 +3163,8 @@ function GridToolsSmooth_CB(handles)
 % --------------------------------------------------------------------
 function GridToolsSDG_CB(handles, opt)
 	if (aux_funs('msg_dlg',14,handles)),		return,		end
-	[X,Y,Z,head] = load_grd(handles);			[m,n] = size(Z);
+	[X,Y,Z,head,m,n] = load_grd(handles,'double');
 	if isempty(Z),		return,		end
-	if (~isa(Z,'double')),  Z = double(Z);		end				% Make sure Z is of double type
 	[pp p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));	% Get a good estimate of p
 	prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
 	defAns = {sprintf('%.12f',p_guess{1})};		resp  = inputdlg(prompt,dlg_title,[1 38],defAns);	pause(0.01)
@@ -3248,15 +3246,14 @@ end
 GRDdisplay(handles,X,Y,R,head,'SDG field','SDG field');
 
 % --------------------------------------------------------------------
-function GridToolsSlope_CB(handles, opt)
+function [X,Y,slope,head] = GridToolsSlope_CB(handles, opt)
 % OPT == 'degrees'	Compute a DEM slope in degrees
 % OPT == 'percent'	Compute a DEM slope in percentage
 % OPT == 'aspect'	Compute a DEM aspect in degrees
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
-	[X,Y,Z,head] = load_grd(handles);
+	[X,Y,Z,head] = load_grd(handles,'double');
 	if isempty(Z),		return,		end
 	set(handles.figure1,'pointer','watch')
-	if (~isa(Z,'double')),  	Z = double(Z);  	end
 	
 	D2R = pi/180;	R2D = 180/pi;	tit = ['Slope in ' opt];
 	if (handles.geog)
@@ -3277,7 +3274,7 @@ function GridToolsSlope_CB(handles, opt)
 	elseif ((strcmp(opt,'percent') && ~handles.geog)),		slope = 100 * tan(slope);
 	elseif ((strcmp(opt,'degrees') && ~handles.geog)),		slope = slope * R2D;
 	end
-	GRDdisplay(handles,X,Y,slope,head,tit,tit);
+	if (nargout == 0),	GRDdisplay(handles,X,Y,slope,head,tit,tit);		end
 
 % --------------------------------------------------------------------
 function GridToolsDirDerive_CB(handles, opt)
@@ -3287,9 +3284,8 @@ function GridToolsDirDerive_CB(handles, opt)
 	if isempty(luz),	return,		end
 	azim = (90 - luz.azim) * pi/180;
 
-	[X,Y,Z,head] = load_grd(handles);
+	[X,Y,Z,head] = load_grd(handles,'double');
 	if isempty(Z),		return,		end		% An error message was already issued
-	if (~isa(Z,'double')),		Z = double(Z);		end
 
 	set(handles.figure1,'pointer','watch')
 	doGeog = 'geog';
