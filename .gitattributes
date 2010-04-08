@@ -445,6 +445,7 @@ mex/scaleto8.c -text
 mex/sequencemex.h -text
 mex/set_gmt.c -text
 mex/shake_mex.c -text
+mex/shapefil.h -text
 mex/shoredump.c -text
 mex/sift/LICENSE.ubc.txt -text
 mex/sift/imgfeatures.c -text
