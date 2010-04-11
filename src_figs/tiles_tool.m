@@ -190,8 +190,11 @@ function popup_directory_list_CB(hObject, eventdata, handles, opt)
 
 % -----------------------------------------------------------------------------------------
 function push_change_dir_CB(hObject, event, handles)
-	%cache_dir = uigetdir;        % This guy doesn't let to be compiled
-	cache_dir = uigetfolder_standalone;
+	if (strcmp(computer, 'PCWIN'))
+		cache_dir = uigetfolder_win32('Select a directory', cd);
+	else            % This guy doesn't let to be compiled
+		cache_dir = uigetdir(cd, 'Select a directory');
+	end
 	if ~isempty(cache_dir)
 		popup_directory_list_CB(handles.popup_directory_list, event, handles, cache_dir)
 	end

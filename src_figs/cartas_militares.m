@@ -259,10 +259,10 @@ function popup_directory_list_Callback(hObject, eventdata, handles, opt)
 
 % ----------------------------------------------------------------------------
 function pushbutton_change_dir_Callback(hObject, eventdata, handles)
-	if (ispc)
-		work_dir = uigetfolder_standalone;
+	if (strcmp(computer, 'PCWIN'))
+		work_dir = uigetfolder_win32('Select a directory', cd);
 	else            % This guy doesn't let to be compiled
-		work_dir = uigetdir;
+		work_dir = uigetdir(cd, 'Select a directory');
 	end
 	if (isempty(work_dir)),		return,		end
 	handles.last_directories = [cellstr(work_dir); handles.last_directories];
