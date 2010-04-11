@@ -229,21 +229,21 @@ guidata(handles.figHandle,handles)
 
 % -----------------------------------------------------------------------------------------
 function pushbutton_change_dir_Callback(hObject, eventdata, handles)
-if (~isempty(handles.patchHandles))
-    warndlg('Now is too late to change directory. If you realy want to change dir you have to start again.','Warning')
-    return
-end
-if (ispc)
-    work_dir = uigetfolder_standalone;
-else            % This guy doesn't let to be compiled
-    work_dir = uigetdir;
-end
-if ~isempty(work_dir)
-    handles.last_directories = [cellstr(work_dir); handles.last_directories];
-    set(handles.popup_directory_list,'String',handles.last_directories)
-    guidata(hObject, handles);
-    popup_directory_list_Callback(hObject, eventdata, handles, work_dir)
-end
+	if (~isempty(handles.patchHandles))
+		warndlg('Now is too late to change directory. If you realy want to change dir you have to start again.','Warning')    
+		return
+	end
+	if (strcmp(computer, 'PCWIN'))
+		work_dir = uigetfolder_win32('Select a directory', cd);
+	else            % This guy doesn't let to be compiled
+		work_dir = uigetdir(cd, 'Select a directory');
+	end
+	if ~isempty(work_dir)
+		handles.last_directories = [cellstr(work_dir); handles.last_directories];
+		set(handles.popup_directory_list,'String',handles.last_directories)
+		guidata(hObject, handles);
+		popup_directory_list_Callback(hObject, eventdata, handles, work_dir)
+	end
 
 % -----------------------------------------------------------------------------------------
 function pushbutton_help_Callback(hObject, eventdata, handles)
