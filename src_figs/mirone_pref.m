@@ -302,10 +302,10 @@ function popup_directory_list_Callback(hObject, eventdata, handles)
 % ------------------------------------------------------------------------------------
 function pushbutton_change_dir_Callback(hObject, eventdata, handles)
 	contents = get(handles.popup_directory_list,'String');
-	if (ispc)
-		work_dir = uigetfolder_standalone('Select a directory',contents{get(handles.popup_directory_list,'Value')});
+	if (strcmp(computer, 'PCWIN'))
+		work_dir = uigetfolder_win32('Select a directory', contents{get(handles.popup_directory_list,'Value')});
 	else            % This guy says it cannot be compiled
-		work_dir = uigetdir;
+		work_dir = uigetdir(contents{get(handles.popup_directory_list,'Value')}, 'Select a directory');
 	end
 	
 	if (isempty(work_dir) || isequal(work_dir,0))    return;     end

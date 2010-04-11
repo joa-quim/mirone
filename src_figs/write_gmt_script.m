@@ -615,38 +615,38 @@ pushbutton_uppdate_Callback(handles.pushbutton_uppdate, eventdata, handles)
 % -----------------------------------------------------------------------------------
 function edit_mapHeight_Callback(hObject, eventdata, handles)
 % Set new map height
-str = get(hObject,'String');        h = str2double(str);
-yy = get(handles.hand_rect,'YData');
-if (isnan(h)),     set(hObject,'String',str);      return;     end
-yy(2) = yy(1) + h;      yy(3) = yy(4) + h;
-set(handles.hand_rect,'YData',yy)
-pushbutton_uppdate_Callback(handles.pushbutton_uppdate, eventdata, handles)
+	str = get(hObject,'String');		h = str2double(str);
+	yy = get(handles.hand_rect,'YData');
+	if (isnan(h)),			set(hObject,'String',str);		return,		end
+	yy(2) = yy(1) + h;		yy(3) = yy(4) + h;
+	set(handles.hand_rect,'YData',yy)
+	pushbutton_uppdate_Callback(handles.pushbutton_uppdate, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function popup_directory_list_Callback(hObject, eventdata, handles)
-val = get(hObject,'Value');     str = get(hObject, 'String');
-% Put the selected field on top of the String list.
-tmp = str(val);         str(val) = [];
-new_str = [tmp; str];   set(hObject,'String',new_str,'Value',1); 
+	val = get(hObject,'Value');		str = get(hObject, 'String');
+	% Put the selected field on top of the String list.
+	tmp = str(val);			str(val) = [];
+	new_str = [tmp; str];	set(hObject,'String',new_str,'Value',1); 
 
 % -----------------------------------------------------------------------------------------
 function pushbutton_change_dir_Callback(hObject, eventdata, handles)
-if (ispc)
-    contents = get(handles.popup_directory_list,'String');
-    if (iscell(contents))
-        pato = contents{1};         % Start at default's directory
-    else
-        pato = contents;            % Start at default's directory
-    end
-    work_dir = uigetfolder_standalone('Select scripts folder',pato);
-else            % This guy doesn't let to be compiled
-    work_dir = uigetdir;
-end
-if ~isempty(work_dir)
-    handles.last_directories = [cellstr(work_dir); handles.last_directories];
-    set(handles.popup_directory_list,'String',handles.last_directories)
-    guidata(hObject, handles);
-end
+	if (strcmp(computer, 'PCWIN'))
+		contents = get(handles.popup_directory_list,'String');
+		if (iscell(contents))
+			pato = contents{1};         % Start at default's directory
+		else
+			pato = contents;            % Start at default's directory
+		end
+		work_dir = uigetfolder_win32('Select scripts folder',pato);
+	else			% This guy doesn't let to be compiled
+		work_dir = uigetdir(pato, 'Select scripts folder');
+	end
+	if ~isempty(work_dir)
+		handles.last_directories = [cellstr(work_dir); handles.last_directories];
+		set(handles.popup_directory_list,'String',handles.last_directories)
+		guidata(hObject, handles);
+	end
 
 % -----------------------------------------------------------------------------------
 function edit_scale_Callback(hObject, eventdata, handles)
