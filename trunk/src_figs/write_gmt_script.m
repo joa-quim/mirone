@@ -1038,7 +1038,7 @@ function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X
 	Bx = get(handMir.axes1,'XTick');      d_Bx = diff(Bx);
 	By = get(handMir.axes1,'YTick');      d_By = diff(By);
 	opt_B = ['-B' num2str(d_Bx(1)) '/' num2str(d_By(1)) 'WSen'];
-	clear h_axes Bx By d_Bx d_By;
+	clear Bx By d_Bx d_By;
 % --------------------------------------------------------------------------------------
 
 l = 1;
