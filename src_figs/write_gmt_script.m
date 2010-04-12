@@ -206,11 +206,11 @@ if iscell(directory_list)                               % When exists a dir list
         set(handles.popup_directory_list,'String',directory_list)
         handles.last_directories = directory_list;
     else
-        set(handles.popup_directory_list,'String',pwd)
-        handles.last_directories = cellstr(pwd);
+        set(handles.popup_directory_list,'String',cd)
+        handles.last_directories = cellstr(cd);
     end
 else                                                    % mirone_pref had no dir list
-    handles.last_directories = cellstr(pwd);
+    handles.last_directories = cellstr(cd);
     set(handles.popup_directory_list,'String',handles.last_directories)
 end
 
@@ -1467,7 +1467,7 @@ if (~isempty(ALLpatchHand))
 		script{l} = ' ';              l=l+1;
         script{l} = [comm ' ---- Plot countries. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
         ct_with_pato = getappdata(handMir.figure1,'AtlasResolution');
-		script{l} = [pwd filesep 'country_extract -P' name ' ' ct_with_pato ' -C | ',...
+		script{l} = [cd filesep 'country_extract -P' name ' ' ct_with_pato ' -C | ',...
                 'psxy ' ellips ' -R -J -W0.5p -M -O -K >> ' pb 'ps' pf];    l=l+1;
         ALLpatchHand = setxor(ALLpatchHand, AtlasHand);       % AtlasHand is processed, so remove it from handles list
         clear AtlasHand name name_sc n_cts ct_with_pato
@@ -1692,7 +1692,7 @@ end
 % -------------------------------------------- Write the script ---------------------------------------
 	% First do some eventual cleaning
 	if (~isempty(handMir.grdname) && ~used_grd),         script(id_grd) = [];        end;
-	if (ispc && (used_grd || used_countries) && need_path && ~strcmp(sc,'bat'))
+	if (strncmp(computer,'PC',2) && (used_grd || used_countries) && need_path && ~strcmp(sc,'bat'))
 		tmp = cell(7,1);
 		tmp{1} = [comm 'If you see this message is because you choosed to generate a c-shell'];
 		tmp{2} = [comm 'script in a windows running machine. Notice that I have no means to'];
