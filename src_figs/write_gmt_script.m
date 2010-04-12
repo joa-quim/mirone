@@ -90,30 +90,34 @@ plugedWin = getappdata(mirone_handles.figure1,'dependentFigs');
 plugedWin = [plugedWin hObject];
 setappdata(mirone_handles.figure1,'dependentFigs',plugedWin);
 
-if (mirone_handles.image_type == 1 || mirone_handles.image_type == 3 || mirone_handles.image_type == 4)
-    head = mirone_handles.head;
-    handles.x_min = head(1);    handles.x_max = head(2);
-    handles.y_min = head(3);    handles.y_max = head(4);
-    nx = round((head(2) - head(1)) / head(8));          % May not be exactly correct but is good enough here
-    ny = round((head(4) - head(3)) / head(9));
-elseif (mirone_handles.image_type == 2 || mirone_handles.image_type == 20)     % "trivial" images
-    [ny,nx,nz] = size(get(mirone_handles.hImg,'CData'));
-    zz1 = get(mirone_handles.axes1,'XLim');    zz2 = get(mirone_handles.axes1,'YLim');
-    handles.x_min = zz1(1);     handles.x_max = zz1(2);
-    handles.y_min = zz2(1);     handles.y_max = zz2(2);
-    clear nz zz1 zz2;
+imgXlim = get(mirone_handles.axes1,'XLim');    imgYlim = get(mirone_handles.axes1,'YLim');
+if (mirone_handles.image_type == 2 || mirone_handles.image_type == 20)     % "trivial" images
+	[ny,nx,nz] = size(get(mirone_handles.hImg,'CData'));
+	handles.x_min = imgXlim(1);     handles.x_max = imgXlim(2);
+	handles.y_min = imgYlim(1);     handles.y_max = imgYlim(2);
+else
+	head = mirone_handles.head;
+	if ( diff(imgXlim) < diff(head(1:2))*0.9 )		% Figure is zoomed
+		handles.x_min = imgXlim(1) + head(8)/2;		handles.x_max = imgXlim(2) - head(8)/2;
+		handles.y_min = imgYlim(1) + head(9)/2;		handles.y_max = imgYlim(2) - head(9)/2;
+	else
+		handles.x_min = head(1);    handles.x_max = head(2);
+		handles.y_min = head(3);    handles.y_max = head(4);
+	end
+	nx = round((head(2) - head(1)) / head(8));          % May not be exactly correct but is good enough here
+	ny = round((head(4) - head(3)) / head(9));
 end    
 width  = 15;                    % Default starting width in cm
 fac_15 = nx / width;
 height = round(ny) / fac_15;
 if (height > 27)                % That is, if height + Y0 nearly outside the A4 page
-    while (height > 27)         % Make it approximately fit the page height
-        height = round(height * 0.1);
-        width  = round(width * 0.1);
-    end
+	while (height > 27)         % Make it approximately fit the page height
+		height = round(height * 0.1);
+		width  = round(width * 0.1);
+	end
 end
-handles.opt_R = ['-R' num2str(handles.x_min,'%.9g') '/' num2str(handles.x_max,'%.9g') ...
-        '/' num2str(handles.y_min,'%.9g') '/' num2str(handles.y_max,'%.9g')];
+
+handles.opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 
 handles.mirone_handles = mirone_handles;
 handles.width_or = width;  handles.height_or = height;
@@ -136,7 +140,6 @@ set(handles.edit_mapWidth,'String',num2str(width,'%.2f'))       % Fill the width
 set(handles.edit_mapHeight,'String',num2str(height,'%.2f'))     % Fill the height editbox
 
 % ---------- Draw the grid->image rectangle
-%h = line('XData',rect_x,'YData',rect_y, 'Color','k','LineWidth',.5,'Tag','PlotRect');
 h = patch('XData',rect_x,'YData',rect_y,'FaceColor','w','EdgeColor','k','LineWidth',.5,'Tag','PlotRect');
 
 ui_edit_polygon(h)    % Set edition functions
@@ -176,20 +179,19 @@ handles.all_datums = datums;    % datums is a function in utils
 % ---------- Split the scale from the projection string
 tmp = handles.coord_system_script.projection;
 if (~isempty(tmp))
-	if (length(tmp) == 4 && strcmp(tmp(3),'m'))      % Simple Mercator has the form "-Jm1"
-        tmp = tmp(1:end-1);
-	elseif (length(tmp) == 3 && strcmp(upper(tmp(3)),'X'))  % Linear proj has the form "-JX"
+	if (numel(tmp) == 4 && strcmp(tmp(3),'m'))		% Simple Mercator has the form "-Jm1"
+        handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))];
+	elseif (numel(tmp) == 3 && strcmpi(tmp(3),'X'))	% Linear proj has the form "-JX"
         handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))]; % Save this
-	else                                            % All other should terminate as "-J.../1"
+	else											% All other should terminate as "-J.../1"
         tmp = tmp(1:end-2);
         handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3)) tmp(4:end)];           % Save this
 	end
 else
-    handles.opt_J_no_scale = '-JX10';               % Use this default
+    handles.opt_J_no_scale = '-JX10';				% Use this default
 end
 %opt_J = [tmp(1:2) upper(tmp(3)) tmp(4:end) '/' handles.scale handles.which_unit(1)];
 handles.curr_datum = handles.all_datums{handles.coord_system_script.datum_val,2};   % Save this
-%handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3)) tmp(4:end)];               % And this
 
 
 % ----------- Use the directory list from mirone_pref
@@ -280,82 +282,66 @@ end
 
 % -----------------------------------------------------------------------------------
 function radiobutton_P_Callback(hObject, eventdata, handles)
-% Hint: get(hObject,'Value') returns toggle state of radiobutton_P
-if (get(hObject,'Value'))
-    img_size_x = get(handles.axes1,'YLim');     % Just swap x & y
-    img_size_y = get(handles.axes1,'XLim');
-    set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y);
-    %set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y,'PlotBoxAspectRatio',[1/handles.paper_aspect 1 1]);
-    set(handles.radiobutton_L,'Value',0)
-else
-    set(hObject,'Value',1)
-end
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	img_size_x = get(handles.axes1,'YLim');     % Just swap x & y
+	img_size_y = get(handles.axes1,'XLim');
+	set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y);
+	%set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y,'PlotBoxAspectRatio',[1/handles.paper_aspect 1 1]);
+	set(handles.radiobutton_L,'Value',0)
 
 % -----------------------------------------------------------------------------------
 function radiobutton_L_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    img_size_x = get(handles.axes1,'YLim');     % Just swap x & y
-    img_size_y = get(handles.axes1,'XLim');
-    set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y);
-    %set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y,'PlotBoxAspectRatio',[1 1/handles.paper_aspect 1]);
-    set(handles.radiobutton_P,'Value',0)
-else
-    set(hObject,'Value',1)
-end
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	img_size_x = get(handles.axes1,'YLim');     % Just swap x & y
+	img_size_y = get(handles.axes1,'XLim');
+	set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y);
+	%set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y,'PlotBoxAspectRatio',[1 1/handles.paper_aspect 1]);
+	set(handles.radiobutton_P,'Value',0)
 
 % -----------------------------------------------------------------------------------
 function radiobutton_cm_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    val = get(handles.popup_PaperSize,'Value');
-    set(handles.popup_PaperSize,'String',handles.sizes_cm,'Value',val)
-    if (get(handles.radiobutton_P,'Value'))
-        set(handles.axes1,'XLim',[0 handles.paper_cm(val,1)],'YLim',[0 handles.paper_cm(val,2)])
-    else
-        set(handles.axes1,'XLim',[0 handles.paper_cm(val,2)],'YLim',[0 handles.paper_cm(val,1)])
-    end    
-    conv_units(handles,'cm')
-    set(handles.radiobutton_in,'Value',0)
-    set(handles.radiobutton_pt,'Value',0)
-    handles.which_unit = 'cm';      guidata(hObject,handles);
-else
-    set(hObject,'Value',1)
-end
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	val = get(handles.popup_PaperSize,'Value');
+	set(handles.popup_PaperSize,'String',handles.sizes_cm,'Value',val)
+	if (get(handles.radiobutton_P,'Value'))
+		set(handles.axes1,'XLim',[0 handles.paper_cm(val,1)],'YLim',[0 handles.paper_cm(val,2)])
+	else
+		set(handles.axes1,'XLim',[0 handles.paper_cm(val,2)],'YLim',[0 handles.paper_cm(val,1)])
+	end    
+	conv_units(handles,'cm')
+	set(handles.radiobutton_in,'Value',0)
+	set(handles.radiobutton_pt,'Value',0)
+	handles.which_unit = 'cm';      guidata(hObject,handles);
 
 % -----------------------------------------------------------------------------------
 function radiobutton_in_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    val = get(handles.popup_PaperSize,'Value');
-    set(handles.popup_PaperSize,'String',handles.sizes_in,'Value',val)
-    if (get(handles.radiobutton_P,'Value'))
-        set(handles.axes1,'XLim',[0 handles.paper_in(val,1)],'YLim',[0 handles.paper_in(val,2)])
-    else
-        set(handles.axes1,'XLim',[0 handles.paper_in(val,2)],'YLim',[0 handles.paper_in(val,1)])
-    end    
-    conv_units(handles,'in')
-    set(handles.radiobutton_cm,'Value',0)
-    set(handles.radiobutton_pt,'Value',0)
-    handles.which_unit = 'in';      guidata(hObject,handles);
-else
-    set(hObject,'Value',1)
-end
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	val = get(handles.popup_PaperSize,'Value');
+	set(handles.popup_PaperSize,'String',handles.sizes_in,'Value',val)
+	if (get(handles.radiobutton_P,'Value'))
+		set(handles.axes1,'XLim',[0 handles.paper_in(val,1)],'YLim',[0 handles.paper_in(val,2)])
+	else
+		set(handles.axes1,'XLim',[0 handles.paper_in(val,2)],'YLim',[0 handles.paper_in(val,1)])
+	end
+	conv_units(handles,'in')
+	set(handles.radiobutton_cm,'Value',0)
+	set(handles.radiobutton_pt,'Value',0)
+	handles.which_unit = 'in';      guidata(hObject,handles);
 
 % -----------------------------------------------------------------------------------
 function radiobutton_pt_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    val = get(handles.popup_PaperSize,'Value');
-    set(handles.popup_PaperSize,'String',handles.sizes_pt,'Value',val)
-    if (get(handles.radiobutton_P,'Value'))
-        set(handles.axes1,'XLim',[0 handles.paper_pt(val,1)],'YLim',[0 handles.paper_pt(val,2)])
-    else
-        set(handles.axes1,'XLim',[0 handles.paper_pt(val,2)],'YLim',[0 handles.paper_pt(val,1)])
-    end    
-    conv_units(handles,'pt')
-    set(handles.radiobutton_cm,'Value',0)
-    set(handles.radiobutton_in,'Value',0)
-    handles.which_unit = 'pt';      guidata(hObject,handles);
-else
-    set(hObject,'Value',1)
-end
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	val = get(handles.popup_PaperSize,'Value');
+	set(handles.popup_PaperSize,'String',handles.sizes_pt,'Value',val)
+	if (get(handles.radiobutton_P,'Value'))
+		set(handles.axes1,'XLim',[0 handles.paper_pt(val,1)],'YLim',[0 handles.paper_pt(val,2)])
+	else
+		set(handles.axes1,'XLim',[0 handles.paper_pt(val,2)],'YLim',[0 handles.paper_pt(val,1)])
+	end
+	conv_units(handles,'pt')
+	set(handles.radiobutton_cm,'Value',0)
+	set(handles.radiobutton_in,'Value',0)
+	handles.which_unit = 'pt';      guidata(hObject,handles);
 
 % -----------------------------------------------------------------------------------
 function conv_units(handles,dest)
@@ -422,35 +408,23 @@ end
 
 % -----------------------------------------------------------------------------------
 function radiobutton_setWidth_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_setHeight,'Value',0)
-else
-    set(hObject,'Value',1)
-end
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radiobutton_setHeight,'Value',0)
 
 % -----------------------------------------------------------------------------------
 function radiobutton_setHeight_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_setWidth,'Value',0)
-else
-    set(hObject,'Value',1)
-end
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radiobutton_setWidth,'Value',0)
 
 % -----------------------------------------------------------------------------------
 function radiobutton_180_180_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_0_360,'Value',0)
-else
-    set(hObject,'Value',1)
-end
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radiobutton_0_360,'Value',0)
 
 % -----------------------------------------------------------------------------------
 function radiobutton_0_360_Callback(hObject, eventdata, handles)
-	if (get(hObject,'Value'))
-		set(handles.radiobutton_180_180,'Value',0)
-	else
-		set(hObject,'Value',1)
-	end
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radiobutton_180_180,'Value',0)
 
 % -----------------------------------------------------------------------------------
 function pushbutton_uppdate_Callback(hObject, eventdata, handles)
@@ -490,8 +464,7 @@ set(handles.edit_mapWidth,'String',new_w);
 opt_J = [handles.opt_J_no_scale '/' new_w handles.which_unit(1)];
 in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
 try
-    opt_R = ['-R' num2str(handles.x_min,'%.6f') '/' num2str(handles.x_max,'%.6f') '/' ...
-            num2str(handles.y_min,'%.6f') '/' num2str(handles.y_max,'%.6f')];
+	opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
     out = mapproject_m(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
 catch
     return
@@ -631,13 +604,13 @@ function popup_directory_list_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function pushbutton_change_dir_Callback(hObject, eventdata, handles)
+	contents = get(handles.popup_directory_list,'String');
+	if (iscell(contents))
+		pato = contents{1};         % Start at default's directory
+	else
+		pato = contents;            % Start at default's directory
+	end
 	if (strcmp(computer, 'PCWIN'))
-		contents = get(handles.popup_directory_list,'String');
-		if (iscell(contents))
-			pato = contents{1};         % Start at default's directory
-		else
-			pato = contents;            % Start at default's directory
-		end
 		work_dir = uigetfolder_win32('Select scripts folder',pato);
 	else			% This guy doesn't let to be compiled
 		work_dir = uigetdir(pato, 'Select scripts folder');
@@ -686,8 +659,7 @@ handles.coord_system_script = coord_system_script;
 tmp = coord_system_script.projection;
 if (length(tmp) == 4 && strcmp(tmp(3),'m'))     % Simple Mercator cames in the form "-Jm1"
     tmp = tmp(1:end-1);
-elseif (length(tmp) == 3 && strcmp(tmp(3),'x')) % Linear proj cames in the form "-Jx"
-    tmp = tmp;
+elseif (numel(tmp) == 3 && strcmp(tmp(3),'x')) % Linear proj cames in the form "-Jx"
 else                                            % All other should terminate as "-J.../1"
     tmp = tmp(1:end-2);
 end
@@ -778,34 +750,33 @@ guidata(hObject, handles);
 %-------------------------------------------------------------------------------------
 function pushbutton_OK_Callback(hObject, eventdata, handles)
 % Here we transmit the: -J<...>, paper name, files prefix, X0, Y0 and destination directory
-if (~strcmp(handles.opt_J_no_scale(1:3),'-JX'))
-    opt_J = [handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)];
-else        % Linear projection
-    opt_J = [handles.opt_J_no_scale handles.scale handles.which_unit(1)];
-end
-val = get(handles.popup_PaperSize,'Value');
-list = get(handles.popup_PaperSize,'String');
-str = list{val};        k = strfind(str,' ');
-paper = str(1:k(1)-1);
-d_dir = get(handles.popup_directory_list,'String');
-if (iscell(d_dir)),     d_dir = d_dir{1};    end
-prefix = get(handles.edit_prefix,'String');
+	if (~strcmp(handles.opt_J_no_scale(1:3),'-JX'))
+		opt_J = [handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)];
+	else        % Linear projection
+		opt_J = [handles.opt_J_no_scale handles.scale handles.which_unit(1)];
+	end
+	val = get(handles.popup_PaperSize,'Value');
+	list = get(handles.popup_PaperSize,'String');
+	str = list{val};        k = strfind(str,' ');
+	paper = str(1:k(1)-1);
+	d_dir = get(handles.popup_directory_list,'String');
+	if (iscell(d_dir)),     d_dir = d_dir{1};    end
+	prefix = get(handles.edit_prefix,'String');
 
-X0 = get(handles.edit_X0,'String');     Y0 = get(handles.edit_Y0,'String');
-X0 = ['-X' X0 handles.which_unit(1)];   Y0 = ['-Y' Y0 handles.which_unit(1)];
+	X0 = get(handles.edit_X0,'String');     Y0 = get(handles.edit_Y0,'String');
+	X0 = ['-X' X0 handles.which_unit(1)];   Y0 = ['-Y' Y0 handles.which_unit(1)];
 
-if (get(handles.radiobutton_180_180,'Value'))   % [-180;180] range
-    opt_deg = '--PLOT_DEGREE_FORMAT=ddd:mm:ss';
-else                                            % [0;360] range
-    opt_deg = '--PLOT_DEGREE_FORMAT=+ddd:mm:ss';
-end
+	if (get(handles.radiobutton_180_180,'Value'))   % [-180;180] range
+		opt_deg = '--PLOT_DEGREE_FORMAT=ddd:mm:ss';
+	else                                            % [0;360] range
+		opt_deg = '--PLOT_DEGREE_FORMAT=+ddd:mm:ss';
+	end
 
-%try
     % Before calling the write script routine we have to find if we have any pscoast stuff
     if (isempty(handles.opt_psc))       % Means that the pscoast_options was not used
-        if (~isempty(handles.psc_res))  % Means that we have coastlines and will use the Mirone settings
-            handles.opt_psc = [handles.psc_res ' ' handles.psc_opt_W ' ' handles.psc_type_p ' ' handles.psc_type_r];
-        end
+		if (~isempty(handles.psc_res))  % Means that we have coastlines and will use the Mirone settings
+			handles.opt_psc = [handles.psc_res ' ' handles.psc_opt_W ' ' handles.psc_type_p ' ' handles.psc_type_r];
+		end
     end
     if (get(handles.radiobutton_P,'Value')),    opt_P = ' -P';
     else                                        opt_P = '';
@@ -813,13 +784,10 @@ end
     out_msg = build_write_script(handles, opt_J, d_dir, prefix, paper, X0, Y0, opt_P, opt_deg);
     msg{1} = ['File ' prefix '_mir.' handles.script_type ' successufuly created in:  ' d_dir];
     if (out_msg)
-        msg{2} = [];
-        msg{3} = 'WARNING: Read the important message on the header of the script';
+		msg{2} = [];   
+		msg{3} = 'WARNING: Read the important message on the header of the script';
     end
     msgbox(msg);
-%catch
-    %errordlg(['An unknown error occured while writing the ' handles.script_type ' file'],'Error');
-%end
 
 %-------------------------------------------------------------------------------------
 function [handles,out] = check_coord_system(handles,coord_system,side)
@@ -1024,82 +992,79 @@ function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X
 % This function do most of the hard work in finding the script components. The pscoast stuff is
 % worked out by the "find_psc_stuff" function.
 
-handMir = handles.mirone_handles;
-ALLlineHand = handles.ALLlineHand;
-opt_R = handles.opt_R;		opt_L = handles.opt_L;		opt_U = handles.opt_U;
-sc = handles.script_type;	ellips = handles.curr_datum;
-opt_psc = handles.opt_psc;
-hAlfaPatch = [];			haveAlfa = 0;		% These ones are used to tell if transparency
-nameRGB = [];			% When not empty it means we'll do a screen capture ('image' or to capture transp)
+	handMir = handles.mirone_handles;
+	ALLlineHand = handles.ALLlineHand;
+	opt_R = handles.opt_R;		opt_L = handles.opt_L;		opt_U = handles.opt_U;
+	sc = handles.script_type;	ellips = handles.curr_datum;
+	opt_psc = handles.opt_psc;
+	hAlfaPatch = [];			haveAlfa = 0;		% These ones are used to tell if transparency
+	nameRGB = [];			% When not empty it means we'll do a screen capture ('image' or to capture transp)
 
-if (isempty(opt_psc)),  have_psc = 0;       % We do not have any pscoast commands
-else                    have_psc = 1;       end
+	if (isempty(opt_psc)),  have_psc = 0;       % We do not have any pscoast commands
+	else                    have_psc = 1;
+	end
 
-if (~strcmp(paper,'A4')),   paper_media = paper;
-else                        paper_media = [];
-end
-if (strcmp(sc,'bat'))
-    comm = 'REM ';      pb = '%';   pf = '%';
-else
-    comm = '# ';        pb = '$';   pf = '';
-end
-if (strcmp(ellips,'WGS-84'))     % It is the default, so don't use any
-    ellips = [];
-else
-    ellips = [' --ELLIPSOID=' ellips];
-end
+	if (~strcmp(paper,'A4')),   paper_media = paper;
+	else                        paper_media = [];
+	end
+	if (strcmp(sc,'bat'))
+		comm = 'REM ';      pb = '%';   pf = '%';
+	else
+		comm = '# ';        pb = '$';   pf = '';
+	end
+	if (strcmp(ellips,'WGS-84'))     % It is the default, so don't use any
+		ellips = [];
+	else
+		ellips = [' --ELLIPSOID=' ellips];
+	end
 
-opt_annotsize = '--ANNOT_FONT_SIZE=10p';
+	opt_annotsize = '--ANNOT_FONT_SIZE=10p';
 
 % ------------ Some (maybe) needed vars ------------------------------------------------------------------
-haveSymbol = 0;     used_grd = 0;  out_msg = 0;
-need_path = 0;      used_countries = 0;
-script = cell(16,1);
-if (~isempty(handMir.grdname))
-    [PATH,FNAME,EXT] = fileparts(handMir.grdname);
-    just_grd_name = [FNAME EXT];
-    if (strcmp(PATH,dest_dir)),     need_path = 0;
-    else                            need_path = 1;  end
-    clear PATH FNAME EXT;
-end
-grd_name = handMir.grdname;
+	haveSymbol = 0;     used_grd = 0;  out_msg = 0;
+	need_path = 0;      used_countries = 0;
+	script = cell(16,1);
+	if (~isempty(handMir.grdname))
+		[PATH,FNAME,EXT] = fileparts(handMir.grdname);
+		just_grd_name = [FNAME EXT];
+		if (strcmp(PATH,dest_dir)),		need_path = 0;
+		else							need_path = 1;
+		end
+		clear PATH FNAME EXT;
+	end
+	grd_name = handMir.grdname;
 
 % -------------------- Build -B string -------------------------------------------------
-try
-	h_axes = findobj(handMir.figure1,'Type','Axes');
-	Bx = get(h_axes,'XTick');      d_Bx = diff(Bx);
-	By = get(h_axes,'YTick');      d_By = diff(By);
+	Bx = get(handMir.axes1,'XTick');      d_Bx = diff(Bx);
+	By = get(handMir.axes1,'YTick');      d_By = diff(By);
 	opt_B = ['-B' num2str(d_Bx(1)) '/' num2str(d_By(1)) 'WSen'];
 	clear h_axes Bx By d_Bx d_By;
-catch
-    opt_B = '-B1000000WSen';    % invented value
-end
 % --------------------------------------------------------------------------------------
 
 l = 1;
-if (~strcmp(sc,'bat'))                          % Write a csh script
-    script{l} = '#!/bin/csh -f';                l=l+1;
-	script{l} = comm;                           l=l+1;
+if (~strcmp(sc,'bat'))							% Write a csh script
+    script{l} = '#!/bin/csh -f';				l=l+1;
+	script{l} = comm;							l=l+1;
 	script{l} = [comm 'Coffeeright Mirone Tec'];l=l+1;
-	script{l} = comm;                           l=l+1;
+	script{l} = comm;							l=l+1;
 	script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
-	script{l} = ['set proj = ' opt_J];          l=l+1;      % Map scale
+	script{l} = ['set proj = ' opt_J];			l=l+1;      % Map scale
 	script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
-	script{l} = ['set frm = ' opt_B];           l=l+1;      saveBind = l-1;
+	script{l} = ['set frm = ' opt_B];			l=l+1;      saveBind = l-1;
 	script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
-	script{l} = ['set lim = ' opt_R];           l=l+1;
-	script{l} = comm;                           l=l+1;
+	script{l} = ['set lim = ' opt_R];			l=l+1;
+	script{l} = comm;							l=l+1;
 	script{l} = [comm ' ---- Longitude annotation style. The +ddd:mm:ss form => [0;360] range '];    l=l+1;
 	script{l} = ['set deg_form=' opt_deg];      l=l+1;
 	script{l} = '';                             l=l+1;
     prefix_ddir = [dest_dir filesep prefix];    % Add destination dir to the name prefix
-    if (~isempty(grd_name))
-        if (~need_path)
-    	    script{l} = ['set grd = ' just_grd_name];   id_grd = l; l=l+1;
-        else
-    	    script{l} = ['set grd = ' grd_name];        id_grd = l; l=l+1;
-        end
-    end
+	if (~isempty(grd_name))
+		if (~need_path)
+			script{l} = ['set grd = ' just_grd_name];   id_grd = l; l=l+1;
+		else
+			script{l} = ['set grd = ' grd_name];        id_grd = l; l=l+1;
+		end
+	end
     script{l} = ['set cpt = ' prefix '.cpt']; id_cpt = l;   l=l+1;
 	script{l} = ['set ps = ' prefix '.ps'];     l=l+1;
     if (~isempty(paper_media))
@@ -1107,8 +1072,8 @@ if (~strcmp(sc,'bat'))                          % Write a csh script
         script{l} = ['gmtset PAPER_MEDIA=' paper_media]; l=l+1;
     	script{l} = comm;                       l=l+1;        
     end
-else                                            % Write a dos batch    
-	script{l} = '@echo OFF';                    l=l+1;
+else											% Write a dos batch    
+	script{l} = '@echo OFF';					l=l+1;
 	script{l} = [comm 'Coffeewrite Mirone Tec'];l=l+1;
 	script{l} = comm;                           l=l+1;
 	script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
@@ -1116,29 +1081,29 @@ else                                            % Write a dos batch
 	script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
 	script{l} = ['set frm=' opt_B];             l=l+1;      saveBind = l-1;
 	script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
-	script{l} = ['set lim=' opt_R];             l=l+1;
-	script{l} = comm;                           l=l+1;
+	script{l} = ['set lim=' opt_R];				l=l+1;
+	script{l} = comm;							l=l+1;
 	script{l} = [comm ' ---- Longitude annotation style. The +ddd:mm:ss form => [0;360] range '];    l=l+1;
-	script{l} = ['set deg_form=' opt_deg];      l=l+1;
-	script{l} = '';                             l=l+1;
+	script{l} = ['set deg_form=' opt_deg];		l=l+1;
+	script{l} = '';								l=l+1;
 	script{l} = [comm ' ---- Annotation font size in points'];    l=l+1;
 	script{l} = ['set annot_size=' opt_annotsize];      l=l+1;
 	script{l} = '';                             l=l+1;
     prefix_ddir = [dest_dir filesep prefix];    % Add destination dir to the name prefix
-    if (~isempty(grd_name))
-        if (~need_path)
-	        script{l} = ['set grd=' just_grd_name];     id_grd = l; l=l+1;
-        else
-	        script{l} = ['set grd=' grd_name];          id_grd = l; l=l+1;
-        end
-    end
-    script{l} = ['set cpt=' prefix '.cpt'];     id_cpt = l; l=l+1;
+	if (~isempty(grd_name))
+		if (~need_path)
+			script{l} = ['set grd=' just_grd_name];     id_grd = l; l=l+1;
+		else
+			script{l} = ['set grd=' grd_name];          id_grd = l; l=l+1;
+		end
+	end
+	script{l} = ['set cpt=' prefix '.cpt'];     id_cpt = l; l=l+1;
 	script{l} = ['set ps=' prefix '.ps'];       l=l+1;
-    if (~isempty(paper_media))
+	if (~isempty(paper_media))
     	script{l} = [comm ' ---- We are not using A4'];  l=l+1;
         script{l} = ['gmtset PAPER_MEDIA=' paper_media]; l=l+1;
     	script{l} = comm;                       l=l+1;        
-    end
+	end
 end
 
 % ------------ Start writing GMT commands --------------------------------
@@ -1417,11 +1382,11 @@ if (~isempty(ALLpatchHand))
 			opt_S = ['-Sa' getappdata(handMir.figure1,'MecaMag5') 'c'];
 			format = '%.4f\t%.4f\t%.1f\t%.0f\t%.0f\t%.0f\t%.1f\t%.4f\t%.4f';
 			for (k=1:size(psmeca_line,1))
-                fprintf(fid,format,psmeca_line(k,1:9));
-                if (with_label),	fprintf(fid,'\t%s\n',num2str(psmeca_line(k,10)));
+				fprintf(fid,format,psmeca_line(k,1:9));
+				if (with_label),	fprintf(fid,'\t%s\n',num2str(psmeca_line(k,10)));
 				else				fprintf(fid,'\n');
-                end
-            end
+				end
+			end
         elseif (n_cols == 13 || n_cols == 14)    % CMT convention
             % If beach-bals are not ploted at their origin update the ploting coords columns
             if (~isempty(id_anch))
@@ -1444,7 +1409,7 @@ if (~isempty(ALLpatchHand))
         ALLpatchHand = setxor(ALLpatchHand, focHand);		% focHand is processed, so remove it from handles list
         ALLlineHand  = setxor(ALLlineHand, focHandAnchor);	%       iden
         clear focHand name name_sc psmeca_line with_label n_cols id_anch opt_S opt_C
-    end
+	end
 end
 % -------------------------------------------------------------------------------------------------------
 
@@ -1642,16 +1607,16 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
 				case 'g',       opt_G = {' -G0/255/0'};
 				case 'b',       opt_G = {' -G0/0/255'};
 				otherwise,      opt_G = {''};
-            end
-        elseif (iscell(fcolor))     % Double shit, we have to convert a Mx3 cell matrix into texts
+			end
+		elseif (iscell(fcolor))     % Double shit, we have to convert a Mx3 cell matrix into texts
             tmp = cell2mat(fcolor) * 255;
             opt_G = cell(size(tmp,1),1);
-            for (m = 1:size(tmp,1))
-                opt_G{m} = [' -G' num2str(tmp(1)) '/' num2str(tmp(2)) '/' num2str(tmp(3))];
-            end
-        else
-            opt_G = {''};
-        end
+			for (m = 1:size(tmp,1))
+				opt_G{m} = [' -G' num2str(tmp(1)) '/' num2str(tmp(2)) '/' num2str(tmp(3))];
+			end
+		else
+			opt_G = {''};
+		end
         str = get(ALLtextHand,'String');      angle = get(ALLtextHand,'Rotation');
         if (~iscell(pos))           % Make them cells for author's mental sanity
             pos = num2cell(pos(:),1);   fsize = num2cell(fsize,1);      angle = num2cell(angle,1);
@@ -1661,9 +1626,9 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
 		script{l} = ' ';        l=l+1;
         script{l} = [comm ' ---- Plot text strings'];   l=l+1;    
         for (i=1:n_text)
-            script{l} = ['echo ' num2str(pos{i}(1),'%.5f') ' ' num2str(pos{i}(2),'%.5f') ' ' num2str(fsize{i}) ' ' ...
-                num2str(angle{i}) ' 4 LB ' str{i} ' | pstext' ellips opt_G{i} ' -R -J -O -K >> ' pb 'ps' pf];
-            l=l+1;
+			script{l} = ['echo ' num2str(pos{i}(1),'%.5f') ' ' num2str(pos{i}(2),'%.5f') ' ' num2str(fsize{i}) ' ' ...
+				num2str(angle{i}) ' 4 LB ' str{i} ' | pstext' ellips opt_G{i} ' -R -J -O -K >> ' pb 'ps' pf];
+			l=l+1;
         end
 	end
 end
@@ -1695,7 +1660,7 @@ end
         opt_D = [' -D' sprintf('%.2f%c/%.2f%c/%.2f%c/%.2f%c',mapW+marg,unitC, cbH/2,unitC, cbH,unitC, cbW,unitC)];
 		script{l} = ' ';        l=l+1;
         script{l} = [comm ' ---- Plot colorbar ---'];   l=l+1;
-        script{l} = ['psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];   l=l+1;
+        script{l} = ['psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];
         script{saveBind} = [script{saveBind} 'WSNe'];       % Don't write West anotations
 	end
 
