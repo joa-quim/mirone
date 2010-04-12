@@ -635,11 +635,10 @@ elseif (have_addoffset)
 	if (~isa(values,'int8'))		% Idiot OpenCV doesn't add to int8 arrays
 		cvlib_mex('addS',values, add_offset)
 	else
-		values = imlincombc({values}, [1 add_offset], 'int8');
+		values = int8(cvlib_mex('addS', int16(values), add_offset));
 	end
 end
 	
-%values = values * scale_factor + add_offset;
 
 % -----------------------------------------------------------------------------
 function dump = nc_dump(file_name, varargin )
