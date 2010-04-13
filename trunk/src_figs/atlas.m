@@ -70,8 +70,7 @@ function varargout = atlas(varargin)
 	end
 
 	% It should find a better solution, but for know I have to read from countries.h
-	%file = textread([pwd filesep 'mex' filesep 'countries.h'],'%s','delimiter','\n','whitespace','');
-	file = dataread('file',[pwd filesep 'mex' filesep 'countries.h'],'%s','delimiter','\n','whitespace','');
+	file = dataread('file',[cd filesep 'mex' filesep 'countries.h'],'%s','delimiter','\n','whitespace','');
 	res = findcell('*continent_list',file);
 	tmp = cell(10,1);
 	tmp {1} = '';
@@ -262,7 +261,6 @@ if (handles.CeateBG)    % Find out the limits off all polygons
         min_x = min(min_x0,min_x);          max_x = max(max_x0,max_x);
         min_y = min(min_y0,min_y);          max_y = max(max_y0,max_y);
     end
-    region = [min_x max_x min_y max_y];
     lon = [min_x max_x];
     lat = [min_y max_y];
 %     % Snap to 0.5 degree increments, with a 0.25 buffer
@@ -302,7 +300,7 @@ do_ploting(handles,paises)
 function do_ploting(handles,paises)
 % Plot atlas_export as patches with pre-set colors
 
-huelims = [0 1];    satlims = [.25 .5];     vallims = [1 1];
+% huelims = [0 1];    satlims = [.25 .5];     vallims = [1 1];
 % rand('state',2);    randomvalues = rand(length(ct),1);   randomhues = huelims(1) + randomvalues*diff(huelims);
 % rand('state',2);    randomvalues = rand(length(ct),1);   randomsats = satlims(1) + randomvalues*diff(satlims);
 % rand('state',2);    randomvalues = rand(length(ct),1);   randomvals = vallims(1) + randomvalues*diff(vallims);
@@ -341,7 +339,7 @@ for (k = 1:length(paises.ct))
     id = find(isnan(paises.ct(k).Country(1,:)));
     h = zeros(numel(id),1);
     for (m=1:numel(id))
-        if (m == 1),	ini = 1;
+		if (m == 1),	ini = 1;
 		else			ini = id(m-1)+1;
 		end
         fim = id(m)-1;
@@ -349,7 +347,7 @@ for (k = 1:length(paises.ct))
         yy = paises.ct(k).Country(2,ini:fim);
         
         if (handles.is_projected)        % We need a proj job here
-            [tmp, msg] = geog2projected_pts(handles.handles_fake,[xx; yy]', handles.h_calling_lims);
+            tmp = geog2projected_pts(handles.handles_fake,[xx; yy]', handles.h_calling_lims);
             xx = tmp(:,1);           yy = tmp(:,2);
         end
         
@@ -373,7 +371,7 @@ if (~isempty(handles.plot_fontSize))
         xx = paises.ct(k).Centroide(1);
         yy = paises.ct(k).Centroide(2);
         if (handles.is_projected)        % We need a proj job here
-            [tmp, msg] = geog2projected_pts(handles.handles_fake,[xx yy], handles.h_calling_lims);
+            tmp = geog2projected_pts(handles.handles_fake,[xx yy], handles.h_calling_lims);
             xx = tmp(:,1);           yy = tmp(:,2);
         end
         if (~handles.got_uisetfont)
@@ -413,7 +411,7 @@ delete(handles.figure1)
 % ------------------------------------------------------------------------------
 function proj_str = choose_projection(lon,lat)
 opt_R = ['-R' num2str(lon(1)) '/' num2str(lon(2)) '/' num2str(lat(1)) '/' num2str(lat(2))];
-if isequal(lat,[-90 90]) & diff(lon) >= 360 % entire globe
+if isequal(lat,[-90 90]) && diff(lon) >= 360 % entire globe
     proj_str{1} = '-Rd';     proj_str{2} = '-Jn0/1';     % Robinson
 elseif max(abs(lat)) < 20   % straddles equator, but doesn't extend into extreme latitudes
     proj_str{1} = opt_R;     proj_str{1} = '-Jm/1';     % Mercator;
@@ -467,7 +465,7 @@ if (get(hObject,'Value'))
     set(handles.radiobutton_randColors,'Value',0)
     set(handles.radiobutton_fixedColors,'Value',0)
     handles.colors = -1;
-elseif (~get(handles.radiobutton_randColors) & ~get(handles.radiobutton_fixedColors))
+elseif (~get(handles.radiobutton_randColors) && ~get(handles.radiobutton_fixedColors))
         set(hObject,'Value',1)
 end
 guidata(hObject, handles);
@@ -488,7 +486,7 @@ function figure1_KeyPressFcn(hObject, eventdata)
 	end
 
 % --- Creates and returns a handle to the GUI figure. 
-function atlas_LayoutFcn(h1);
+function atlas_LayoutFcn(h1)
 
 set(h1,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
