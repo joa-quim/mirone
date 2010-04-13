@@ -1,5 +1,7 @@
 /*
- *      Copyright (c) 2004 by J. Luis & P. Wessel
+ * $Author: $Date: $Revision: $ID:
+ *
+ *      Copyright (c) 2004-2010 by J. Luis & P. Wessel
  *      See COPYING file for copying and redistribution conditions.
  *
  *      This program is free software; you can redistribute it and/or modify
@@ -33,9 +35,6 @@
 #define hsv_min_saturation 1.0
 #define hsv_max_value 1.0
 #define hsv_min_value 0.3
-/*#define copysign(x,y) _copysign(x,y)
-If compiling under unix probably the above line should be removed */
-/* In non-Windows this is may not be necessary (or give conflicts) */
 #define Loc_copysign(x,y) ((y) < 0.0 ? -fabs(x) : fabs(x))
 
 #define mn_data(m,n) (ny*(n)+(m))
@@ -49,7 +48,7 @@ void GMT_hsv_to_rgb(int rgb[], double h, double s, double v);
 void GMT_illuminate (double intensity, int rgb[]);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-	int rgb_pt[3], nx, ny, m, n, nm, k1, k2, ndims[2], nsubs, is_single = 0;
+	int rgb_pt[3], nx, ny, m, n, nm, k, nsubs, is_single = 0;
 	char *r_out, *g_out, *b_out;
 	unsigned char *rgb;
 	float  *R_s;
@@ -94,10 +93,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* Create a matrix for the return arrays */
 	rgb = (unsigned char *)mxGetData(prhs[0]);
-	ny = mxGetM(prhs[0]);
-	nx = mxGetN(prhs[0]);
-	nx /= 3;
-	ndims[0] = ny;		ndims[1] = nx;
 	if (is_single)
 		R_s = (float *)mxGetData(prhs[1]);
 	else
@@ -109,21 +104,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	g_out = (char *)mxGetData(plhs[1]);
 	b_out = (char *)mxGetData(plhs[2]);
 	nm = nx * ny;
-	for (m = 0; m < ny; m++){
-		for (n = 0; n < nx; n++){
-			k1 = mn_data(m,n);
-			rgb_pt[0] = (int)rgb[k1];		/* k1 = mnk_data(0,m,n);*/
-			rgb_pt[1] = (int)rgb[nm + k1];		/* nm + k1 = mnk_data(1,m,n) */
-			rgb_pt[2] = (int)rgb[2*nm + k1];	/* 2*nm + k1 = mnk_data(2,m,n) */ 
-			if (is_single)
-				intensity = (double)R_s[k1];
-			else
-				intensity = R_d[k1];
-			GMT_illuminate (intensity, rgb_pt);
-			r_out[k1] = rgb_pt[0];
-			g_out[k1] = rgb_pt[1];
-			b_out[k1] = rgb_pt[2];
-		}
+
+	for (k = 0; k < nx * ny; k++) {
+		rgb_pt[0] = (int)rgb[k];
+		rgb_pt[1] = (int)rgb[k + nm];
+		rgb_pt[2] = (int)rgb[k + 2*nm];
+		if (is_single)
+			intensity = (double)R_s[k];
+		else
+			intensity = R_d[k];
+		if (intensity == 0.0) continue;
+		GMT_illuminate (intensity, rgb_pt);
+		r_out[k] = rgb_pt[0];
+		g_out[k] = rgb_pt[1];
+		b_out[k] = rgb_pt[2];
 	}
 }
 
@@ -136,9 +130,9 @@ void GMT_rgb_to_hsv (int rgb[], double *h, double *s, double *v) {
 	max_v = MAX (MAX (xr, xg), xb);
 	min_v = MIN (MIN (xr, xg), xb);
 	diff = max_v - min_v;
+	*h = 0.0;
 	*v = max_v;
 	*s = (max_v == 0.0) ? 0.0 : diff / max_v;
-	*h = 0.0;
 	if ((*s) == 0.0) return;	/* Hue is undefined */
 	if (xr == max_v)
 		*h = (xg - xb) / diff;
@@ -191,12 +185,9 @@ void GMT_hsv_to_rgb (int rgb[], double h, double s, double v) {
 	}
 }
 
-void GMT_illuminate (double intensity, int rgb[])
-{
+void GMT_illuminate (double intensity, int rgb[]) {
 	double h, s, v, di;
 	
-	/*if (GMT_is_dnan (intensity)) return;*/
-	if (intensity == 0.0) return;
 	if (fabs (intensity) > 1.0) intensity = Loc_copysign (1.0, intensity);
 	
 	GMT_rgb_to_hsv (rgb, &h, &s, &v);
