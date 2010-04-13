@@ -18,22 +18,22 @@ function F = bi_linear(arg1,arg2,arg3,arg4,arg5)
 [nrows,ncols,dumb] = size(arg3);
 mx = numel(arg1);   my = numel(arg2);
 if any([mx my] ~= [ncols nrows]) && ~isequal(size(arg1),size(arg2),size(arg3))
-    error('The lengths of the X and Y vectors must match Z.');
+	error('The lengths of the X and Y vectors must match Z.');
 end
 s = 1 + (arg4-arg1(1))/(arg1(mx)-arg1(1))*(ncols-1);
 t = 1 + (arg5-arg2(1))/(arg2(my)-arg2(1))*(nrows-1);
 
-if ~isequal(size(s),size(t)),
-  error('XI and YI must be the same size.');
+if ~isequal(size(s),size(t))
+	error('XI and YI must be the same size.');
 end
 
 % Check for out of range values of s and set to 1
 sout = find((s<1) | (s>ncols));
-if length(sout)>0, s(sout) = ones(size(sout)); end
+if ~isempty(sout), s(sout) = ones(size(sout)); end
 
 % Check for out of range values of t and set to 1
 tout = find((t<1) | (t>nrows));
-if length(tout)>0, t(tout) = ones(size(tout)); end
+if ~isempty(tout), t(tout) = ones(size(tout)); end
 
 % Matrix element indexing
 ndx = floor(t)+floor(s-1)*nrows;
@@ -41,12 +41,12 @@ ndx = floor(t)+floor(s-1)*nrows;
 % Compute intepolation parameters, check for boundary value.
 if isempty(s), d = s; else d = find(s==ncols); end
 s(:) = (s - floor(s));
-if length(d)>0, s(d) = s(d)+1; ndx(d) = ndx(d)-nrows; end
+if ~isempty(d), s(d) = s(d)+1; ndx(d) = ndx(d)-nrows; end
 
 % Compute intepolation parameters, check for boundary value.
 if isempty(t), d = t; else d = find(t==nrows); end
 t(:) = (t - floor(t));
-if length(d)>0, t(d) = t(d)+1; ndx(d) = ndx(d)-1; end
+if ~isempty(d), t(d) = t(d)+1; ndx(d) = ndx(d)-1; end
 
 % Make sure arg3_? is of double type
 if (~isa(arg3,'double'))
@@ -67,5 +67,5 @@ end
 F = (arg3_1.*(1-t) + arg3_2.*t).*(1-s) + (arg3_3.*(1-t) + arg3_4.*t).*s;
    
 % Now set out of range values to NaN.
-if length(sout)>0, F(sout) = NaN; end
-if length(tout)>0, F(tout) = NaN; end
+if ~isempty(sout), F(sout) = NaN; end
+if ~isempty(tout), F(tout) = NaN; end
