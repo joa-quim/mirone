@@ -574,8 +574,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				x_factor *= sin(azim);
 			}
 		}
-		for (i = 0; i < header.nx; i++, k++) {
-			ij = (j + 2) * mx + i + 2;
+		ij = (j + 2) * mx + 2;
+		for (i = 0; i < header.nx; i++, k++, ij++) {
 			for (n = 0, bad = FALSE; !bad && n < 4; n++) if (mxIsNaN (data[ij+p[n]])) bad = TRUE;
 			if (bad) {	/* One of corners = NaN, skip */
 				data[k] = (float)mxGetNaN();
@@ -793,12 +793,6 @@ double specular(double nx, double ny, double nz, double *s) {
 
 	return (MAX(0, 2 * (s[0]*nx + s[1]*ny + s[2]*nz) * nz - s[2]));
 }
-
-
-
-
-
-
 
 
 void GMT_boundcond_init (struct GMT_EDGEINFO *edgeinfo) {
