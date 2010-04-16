@@ -16,7 +16,8 @@ function fname = write_flederFiles(opt,varargin)
 % NOTE: For every line/point object FM_CMAP and a GEOREF blocks are writen.
 % Though it doesn't hurt much, it is an idiot thing
 
-%	Copyright (c) 2004-2006 by J. Luis
+% $Author: $Date: $Revision: $ID:
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -37,7 +38,7 @@ function fname = write_flederFiles(opt,varargin)
 			[X,Y,Z,head] = load_grd(handles);
 			if (isempty(Z)),	return,		end
 		else
-			% A bit of shiting. Modify the OPT string to build a geoimage obj 
+			% A bit of cheating. Modify the OPT string to build a geoimage obj 
 			if (opt(1) == 'r'),		opt = 'runGeoimg';
 			else					opt = 'writeGeoimg';
 			end
@@ -45,7 +46,7 @@ function fname = write_flederFiles(opt,varargin)
 		end
 
 		% Fish the image
-		img = getImg(handles);
+		[img, img2] = getImg(handles);		% If IMG2 is not empty we need to make a "scene"
 
 		if (strcmp(opt,'writeAll3'))        % Write the 3 files and return
 			str1 = {'*.*', 'All Files (*.*)'};
@@ -72,14 +73,15 @@ function fname = write_flederFiles(opt,varargin)
 		if isempty(EXT),    fname = [fname '.sd'];  end
 		fid = fopen(fname,'wb');
 		if (strcmp(opt(end-2:end),'img'))		% either writeGeoimg or runGeoimg
-			write_geoimg(fid, img, head(1:6))
+			write_geoimg(fid, 'first', img, head(1:6))
+			write_geo(fid,'add',limits)
 		elseif (strcmp(opt,'writePlanar') || handles.flederPlanar)
-			write_main(fid, 'Planar', Z, img, head(1:6));
+			write_main(fid,    'Planar', Z, img, head(1:6), img2);
 		else
-			write_main(fid, 'Spherical', Z, img, head(1:6));
+			write_main(fid, 'Spherical', Z, img, head(1:6), img2);
 		end
 		if (handles.flederBurn ~= 2)       % If not screen capture, see if there are lines & pts to flederize
-			write_lines_or_points(fid,handles.axes1,head(1:6),handles.flederBurn)
+			write_lines_or_points(fid, handles.axes1, head(1:6), handles.flederBurn);
 		end
 		write_eof(fid)						% Write EOF block and close the file
 		set(handles.figure1,'pointer','arrow')
@@ -107,9 +109,9 @@ function fname = write_flederFiles(opt,varargin)
 	end
 
 %----------------------------------------------------------------------------------
-function img = getImg(handles)
-    % Fish the image in a Mirone handles and flip it if necessary
-	% This function is used when only HANDLES was transmited
+function [img, img2] = getImg(handles)
+% Fish the image in a Mirone handles and flip it if necessary
+% This function is used when only HANDLES was transmited
 
 	% The UD flip horror.
 	flipa = false;
@@ -117,43 +119,61 @@ function img = getImg(handles)
 	elseif (strcmp(get(handles.axes1,'Ydir'),'normal') && handles.flederBurn == 2)		flipa = true;
 	end
 
-    if (handles.flederBurn == 2)						% "Burn them all"
-        img = imcapture(handles.axes1,'img',0);			% Do a screen capture
-	 	if (flipa),		img = flipdim(img,1);	end
-   else
-    	img = get(findobj(handles.axes1,'Type','image'),'CData');
+	img2 = [];		% To hold original image in case of drapping when displayed image was resized
+	if (handles.flederBurn == 2)						% "Burn them all"
+		hL = findobj(handles.axes1,'Type','line');		hP = findobj(handles.axes1,'Type','patch');
+		hT = findobj(handles.axes1,'Type','text');
+		if (isempty(hL) && isempty(hP) && isempty(hT))	% No need to SC because image is empty
+			img = get(handles.hImg,'CData');
+			% Since we didn't do the SC we need to recheck the flip condition
+			if ( flipa && strcmp(get(handles.axes1,'Ydir'),'normal') ),		flipa = false;		end
+		else
+			img = imcapture(handles.axes1,'img',0);		% Do a screen capture
+		end
 		if (flipa),		img = flipdim(img,1);	end
-        inplace = false;            % Eventual line burning is not done inplace to not change the Mirone image as well
-    	if (ndims(img) == 2)
-            img = ind2rgb8(img,get(handles.figure1,'Colormap'));
-            inplace = true;         % Save to do line burning inplace because img is already a copy
-	    end
-        if (handles.flederBurn == 1)					% Burn coastlines into img (in case they exist)
-            img = burnLines(handles.figure1,handles.axes1,img,inplace);
-        end
-    end
+	else
+		img = get(handles.hImg,'CData');
+		if (flipa),		img = flipdim(img,1);	end
+		inplace = false;            % Eventual line burning is not done inplace to not change the Mirone image as well
+		if (ndims(img) == 2)
+			img = ind2rgb8(img,get(handles.figure1,'Colormap'));
+			inplace = true;         % Save to do line burning inplace because img is already a copy
+		end
+		if (handles.flederBurn == 1)					% Burn coastlines into img (in case they exist, else do nothing)
+			img = burnLines(handles.figure1, handles.axes1, img, inplace);
+		end
+	end
+
+	% See if we are in a "drapped" case with parent image resized. If yes we'll have to build a textureDTM SD
+	if ( handles.is_draped && ~isequal([size(img,1) size(img,2)],[size(handles.origFig,1) size(handles.origFig,2)]) )
+		img2 = handles.origFig;
+		if (flipa),		img2 = flipdim(img2,1);		end
+		if (ndims(img2) == 2)
+			img2 = ind2rgb8(img2,get(handles.figure1,'Colormap'));
+		end
+	end
 
 %----------------------------------------------------------------------------------
 function write_geo(fid,mode,limits)
-    % Write a GEOREF block
+% Write a GEOREF block
 	if (strcmp(mode,'first'))       % The TDR object starts here
-        fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
+		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
 	end
 	fwrite(fid,[15000 100],'integer*4');     % Tag ID, Data Length
-	fwrite(fid,[0 0 1 1 1 1 (1:30)*0],'integer*1');
+	fwrite(fid,[0 0 1 1 1 1 (1:30)*0],'uchar');
 	fwrite(fid,limits,'real*8');
 	fwrite(fid,(1:10)*0,'integer*4');
 
 %----------------------------------------------------------------------------------
 function write_dtm(fid,mode,Z,limits)
-	% Write a .dtm block
+% Write a .dtm block
 	if (strcmp(mode,'first'))       % The TDR object starts here
-        fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
+		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
 	end
 	[m,n] = size(Z);
-	fwrite(fid,[1000 m*n*2+30],'integer*4');     % Tag ID, Data Length 
-	fwrite(fid,[0 0 1 1 1 2],'integer*1');
-	fwrite(fid,[(1:9)*0 2 n m 3 16],'integer*2');      % ?? nDim(?) nCols nRows ?? BitWidth
+	fwrite(fid,[1000 m*n*2+30],'integer*4');		% Tag ID, Data Length 
+	fwrite(fid,[0 0 1 1 1 2 (1:18)*0],'uchar');
+	fwrite(fid,[2 n m 3 16],'integer*2');			% nDim(?) nCols nRows ?? BitWidth
 	fwrite(fid,[limits(5) limits(6)],'real*8');
 	fwrite(fid,[0 65535],'uint16');
 	Z = flipud( uint16(rot90(scaleto8(Z,16),1)) );
@@ -161,204 +181,313 @@ function write_dtm(fid,mode,Z,limits)
 
 %----------------------------------------------------------------------------------
 function write_shade(fid, mode, img, geoimg)
-    % Write a .shade or a geoimage block
+% Write a .shade or a geoimage block
     if (strcmp(mode,'first'))       % The TDR object starts here
-	    fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
+		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
     end
 
 	if (nargin == 3)		% Non geoimage
-		soma = 34;		nZeros = 10;	bW = [7 32];	nB = 65535;			% Again this is from pure trial
+		soma = 34;		nZeros = 10;	bW = [7 32];	nB = 65535;		% Again this is from pure trial
 	else
-		soma = 28;		nZeros = 7;		bW = [12 8];	nB = 255;			% geoimage object
+		soma = 28;		nZeros = 7;		bW = [12 8];	nB = 255;		% geoimage object
 	end
 	
-    [m,n,k] = size(img);
+	m = size(img,1);		n = size(img,2);
 	fwrite(fid,[1000 m*n*4+soma],'integer*4');		% Tag ID, Data Length
-	fwrite(fid,[0 0 1 1 1 2],'integer*1');
-	fwrite(fid,[(1:9)*0 2 n m bW],'integer*2');      %?? nDim(?) nCols nRows ?? BitWidth
-	fwrite(fid,[(1:nZeros)*0 nB nB],'uint16');
-	img(:,:,4) = uint8(255);                % Tranparency layer
+	fwrite(fid,[0 0 1 1 1 2 (1:18)*0],'uchar');
+	fwrite(fid,[2 n m bW],'integer*2');				% nDim(?) nCols nRows ?? BitWidth
+	fwrite(fid,[(1:nZeros)*0 nB nB],'integer*2');
+	img(:,:,4) = uint8(255);						% Tranparency layer
 	img = permute(img,[4 3 2 1]);
- 	fwrite(fid,img,'uint8');
+	fwrite(fid,img,'uint8');
 
 %----------------------------------------------------------------------------------
-function fid = write_main(fid, tipo, Z, img, limits)
+function write_all3(name_stem, flederPlanar, Z, img, limits)
+% Write three files: .geo, .dtm, .shade
+
+	exts = {'geo' 'dtm' 'shade'};
+	for (k = 1:3)
+		fid = fopen([name_stem '.' exts{k}],'wb');
+		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
+
+		if (k == 1)			% .geo
+			tipo = '';
+			if (flederPlanar),	tipo = 'Planar';	end
+			write_sonardtm_block(fid, tipo)
+			write_geo(fid,'add',limits);		% Write a .geo block
+		elseif (k == 2)		% .dtm
+			write_dtm(fid,'add',Z,limits);		% Write a .dtm object
+		else				%.shade
+			write_shade(fid,'add', img);		% Write a .shade object
+		end
+		write_eof(fid)							% Write EOF block and close the file
+	end
+
+%----------------------------------------------------------------------------------
+function fid = write_main(fid, tipo, Z, img, limits, img2)
 % Write a basic .sd file. That is with a DTM, a SHADE & a GEO blocks
 
 	if (ischar(fid))		% FID is in fact the file name 
 		fid = fopen(fid,'wb');
 	end
 
-	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone ','%%');
-    if (strcmp(tipo,'Planar'))
-	    fwrite(fid,[21 39 0 0 2 0 0 0 0 0 1 1 1 1 (1:20)*0],'integer*1');
-    else
-	    fwrite(fid,[31 39 0 0 0 0 0 0 0 0 1 1 1 1 (1:18)*0],'integer*1');
-    end
-    
-   	write_dtm(fid,'add',Z,limits)
-    write_shade(fid, 'add', img)
-    write_geo(fid,'add',limits)
+	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
+
+	if (nargin == 5 || isempty(img2))		% A SD object
+		write_sonardtm_block(fid, tipo)
+		write_dtm(fid,'add',Z,limits)
+		write_shade(fid, 'add', img)
+		write_geo(fid,'add',limits)
+	elseif (1)								% A textureDTM SD object
+		write_texturedtm_block(fid)
+		%write_geoimg(fid, 'add', img, limits)
+		write_shade(fid, 'add', img, 'geoimg')
+		write_geo(fid,'add',limits)
+		write_dtm(fid,'add',Z,limits)
+		write_shade(fid, 'add', img2)
+		write_geo(fid,'add',limits)
+	else									% A SCENE object
+		write_scene_block(fid)
+		write_node_block(fid, 'root', 'Root Node', 'Unknown')
+		write_geo(fid,'add',limits)
+		write_alignparent_block(fid)
+		write_geo(fid,'add',limits)
+ 		write_node_block(fid, 'dtm', 'Surface', 'test1.sd')
+		write_geo(fid,'add',limits)
+		write_sonardtm_block(fid, tipo)
+		write_dtm(fid,'add',Z,limits)
+		write_shade(fid, 'add', img2)
+		write_geo(fid,'add',limits)
+		write_sonardtm_atb_block(fid)
+ 		write_node_block(fid, 'geoimg', 'Drapped', 'test2.sd')
+		limits(5:6) = [0 1];
+		write_geo(fid,'add',limits)
+		write_geoimg(fid, 'add', img, limits)
+		write_geo(fid,'add',limits)
+		write_geoimg_atb_block(fid)
+	end
 
 %----------------------------------------------------------------------------------
-function write_geoimg(fid, img, limits)
-	% Write a basic image .sd file. That is one with image & a GEO blocks
-
-	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone ','%%');
-    fwrite(fid,[34 41 0 0 0 0 0 0 0 0 1 1 1 1 (1:18)*0],'integer*1');
-    
-    write_shade(fid, 'add', img, 'geoimg')
-    write_geo(fid,'add',limits)
+function write_geoimg(fid, mode, img, limits)
+% Write a basic image .sd file. That is one with image & a GEO blocks
+	if (strcmp(mode,'first'))       % The TDR object starts here
+		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
+	end
+	write_geoimg_block(fid)
+	write_shade(fid, 'add', img, 'geoimg')
 
 %----------------------------------------------------------------------------------
-function write_all3(name_stem, flederPlanar, Z, img, limits)
-% Write three files: .geo, .dtm, .shade
+function write_sonardtm_block(fid, tipo)
+% Write the SD_SONARDTM block
+	if (strcmp(tipo,'Planar'))
+		fwrite(fid,[10005 2],'integer*4');			% Tag ID, Data Length
+	    fwrite(fid,[0 0 1 1 1 1 (1:18)*0 0 0],'uchar');
+	else
+		fwrite(fid,[10015 0],'integer*4');			% Tag ID, Data Length
+		fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
+	end
 
-    exts = {'geo' 'dtm' 'shade'};
-    for (k=1:3)
-        fid = fopen([name_stem '.' exts{k}],'wb');
-		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:     Mirone   ','%%');
-        
-        if (k == 1)         % .geo
-            if (flederPlanar)
-			    fwrite(fid,[21 39 0 0 2 0 0 0 0 0 1 1 1 1 (1:20)*0],'integer*1');
-            else
-			    fwrite(fid,[31 39 0 0 0 0 0 0 0 0 1 1 1 1 (1:18)*0],'integer*1');
-            end
-			%write_flederFiles(exts{k},fid,'add',limits)
-			write_geo(fid,'add',limits);		% Write a .geo block
-        elseif (k == 2)     % .dtm
-			%write_flederFiles(exts{k},fid,'add',Z,limits)
-			write_dtm(fid,'add',Z,limits);		% Write a .dtm object
-        else                %.shade
-			%write_flederFiles(exts{k},fid,'add',handles.figure1,handles.axes1,handles.flederBurn)
-			write_shade(fid,'add', img);		% Write a .shade object
-        end
-		write_eof(fid)						% Write EOF block and close the file
-    end
+%----------------------------------------------------------------------------------
+function write_scene_block(fid)
+% Write the FM_SCENE block
+
+	fwrite(fid,[20002 116],'integer*4');		% Tag ID, Data Length
+	fwrite(fid,[0 0 1 1 1 3 0 0],'uchar');
+	fwrite(fid,(1:9)*0,'integer*4');
+	fwrite(fid,[205 204 204 61 0 64 28 70 0 0 0 0 10 215 35 60 0 36 116 72],'uchar');
+	fwrite(fid,[0 64 156 69 0 64 156 69 0 0 128 63 (1:19)*0 63 215 179 93 191],'uchar');
+	fwrite(fid,[0 0],'integer*4');
+	% Possibly another block, but need to find out
+	fwrite(fid,[215 179 93 63 0 0 0 63 (1:13)*0 64 156 197 0 0 128 63 0 0 72 66 172 38],'uchar');
+	fwrite(fid,[(1:8)*0 1 1 1 1 (1:18)*0],'uchar');
+
+%----------------------------------------------------------------------------------
+function write_node_block(fid, tipo, str1, str2)
+% Write the FM_NODE block
+
+	dl = 180 + numel(str1) + numel(str2);
+	fwrite(fid,[9910 dl],'integer*4');		% Tag ID, Data Length
+	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
+	fwrite(fid,[-1 -1 0 0 0],'integer*4');
+	if (strcmp(tipo,'root'))
+		fwrite(fid,[0 0 128 63 0 0 128 63 0 0 128 63],'uchar');
+		fwrite(fid,[0 0 0 3 1 1 1],'integer*4');
+	elseif (strcmp(tipo, 'dtm'))
+		fwrite(fid,[0 0 128 63 0 0 128 63 205 204 76 62],'uchar');
+		fwrite(fid,[0 0 0 12 0 1 1],'integer*4');
+	elseif (strcmp(tipo, 'geoimg'))
+		fwrite(fid,[0 0 128 63 0 0 128 63 0 0 128 63],'uchar');
+		fwrite(fid,[0 0 0 36 0 1 1],'integer*4');
+	else
+		error('Case unpredicted in write_node_block')
+	end
+	fwrite(fid,numel(str1),'integer*4');	fprintf(fid,str1);
+	fwrite(fid,numel(str2),'integer*4');	fprintf(fid,str2);
+	fwrite(fid,(1:8)*0,'integer*4');
+	fwrite(fid,[0 16256],'integer*2');
+	fwrite(fid,(1:12)*0,'integer*4');
+	fwrite(fid,[188 251 29 66 68 4 38 66 17 17 88 193 239 238 39 193 45 208 176 197 0 0 128 63 0 0 0 0],'uchar');
+
+%----------------------------------------------------------------------------------
+function write_alignparent_block(fid)
+% Write the SD_ALIGNPARENT block
+	fwrite(fid,[9955 4],'integer*4');			% Tag ID, Data Length
+	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
+	fwrite(fid,0,'integer*4');
+
+%----------------------------------------------------------------------------------
+function write_geoimg_block(fid)
+% Write the SD_GEOIMAGE block
+	fwrite(fid,[10530 0],'integer*4');			% Tag ID, Data Length
+	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');    
+
+%----------------------------------------------------------------------------------
+function write_texturedtm_block(fid)
+% Write the SD_TEXTUREDTM block
+	fwrite(fid,[10050 0],'integer*4');			% Tag ID, Data Length
+	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
+
+%----------------------------------------------------------------------------------
+function write_sonardtm_atb_block(fid)
+% Write the SD_SONARDTM_ATB block
+	fwrite(fid,[10007 18],'integer*4');			% Tag ID, Data Length
+	fwrite(fid,[0 0 1 1 1 2 (1:18)*0],'uchar');
+	fwrite(fid,[1 0 255 0 0 0 10 0 0 0 1 (1:7)*0],'uchar');	% First elem solid (1) mesh (0). Third, transparency  
+
+%----------------------------------------------------------------------------------
+function write_geoimg_atb_block(fid)
+% Write the SD_GEOIMAGE_ATB block
+	fwrite(fid,[10531 16],'integer*4');			% Tag ID, Data Length
+	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
+	fwrite(fid,[0 0 0 0],'integer*4');
 
 %----------------------------------------------------------------------------------
 function write_cmap(fid)
-	% Write the FM_CMAP block
-	fwrite(fid,20010,'integer*4');              % ID of FM_CMAP block
-	fwrite(fid,768,'integer*4');                % n of bytes in this block
-	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'integer*1');     % 24 bytes (seams to be an offset)
-	pal = uint8(round(jet(256) * 255));         % Make a colormap
+% Write the FM_CMAP block
+	fwrite(fid,[20010 768],'integer*4');		% ID of FM_CMAP block & n of bytes in this block
+	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');	% 24 bytes (seams to be an offset)
+	pal = uint8(round(jet(256) * 255));			% Make a colormap
 	fwrite(fid,pal','uchar');    
 
 %----------------------------------------------------------------------------------
 function write_eof(fid)
-	% Write the EOF block
- 	fwrite(fid,999999999,'integer*4');
- 	fwrite(fid,[(1:6)*0 1 1 1 1 (1:18)*0],'uchar');
+% Write the EOF block
+	fwrite(fid,[999999999 0],'integer*4');
+	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
 	fclose(fid);
 
 %----------------------------------------------------------------------------------
-function write_lines_or_points(fid,hAxes,limits,burnCoasts)
+function write_lines_or_points(fid, hAxes, limits, burnCoasts)
 % Look for line and/or points Matlab objects and write them as Fledermaus
 % objects. It does so (when it finds them) by calling the corresponding
 % function that writes either lines or points objects in Fleder format
 
-if (nargin < 6),    burnCoasts = 1;     end     % Default is to burn coast lines into image
-ALLlineHand = findobj(hAxes,'Type','line');
-if (~isempty(ALLlineHand))
-    h = findobj(ALLlineHand,'Tag','Earthquakes');		% Search first for earthquakes because they have depths
-    if (~isempty(h))
-        write_pts(fid,h,'add',limits,'Earthquakes')		% earthquakes
-        ALLlineHand = setxor(ALLlineHand, h);			% h is processed, so remove it from handles list
-    end
+if (nargin < 4),    burnCoasts = 1;     end				% Default is to burn coast lines into image
 
-    if (burnCoasts)     % If we had already burned the coastlines remove them from the ALLlineHand list
-        h = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
-        if (~isempty(h)),       ALLlineHand = setxor(ALLlineHand, h);     end
-        h = findobj(ALLlineHand,'Tag','PoliticalBoundaries');
-        if (~isempty(h)),       ALLlineHand = setxor(ALLlineHand, h);     end
-        h = findobj(ALLlineHand,'Tag','Rivers');
-        if (~isempty(h)),       ALLlineHand = setxor(ALLlineHand, h);     end
-    end
-    
-    % See if we have COASTLINES. If yes they are treated separatly (mainly because of Z and also to create an separate object)
-    h = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
-    if (~isempty(h))
-        z_level = 0;        % It will be a nonsense if the underlying grid is not topographic
-        [x,y,z,count] = lines2multiseg(h,z_level);
-        line_thick = get(h(1),'LineWidth');       % Line thickness
-        line_color = get(h(1),'color');           % Line color
-        line_props = [line_thick line_color 0 [1 1 1]];     % 0 means is not a patch and the [1 1 1] is not used
-        write_line(fid,'add',x,y,z,count,limits,line_props)
-        ALLlineHand = setxor(ALLlineHand, h);     % h are processed, so remove them from handles list
-    end
-    
-    % See if we have national borders. If yes they are treated separatly
-    h = findobj(ALLlineHand,'Tag','PoliticalBoundaries');
-    if (~isempty(h))
-        z_level = 0;        % It will be a nonsense if the underying grid is not topographic
-        [x,y,z,count] = lines2multiseg(h,z_level);
-        line_thick = get(h(1),'LineWidth');       % Line thickness
-        line_color = get(h(1),'color');           % Line color
-        line_props = [line_thick line_color 0 [1 1 1]];     % 0 means is not a patch and the [1 1 1] is not used
-        write_line(fid,'add',x,y,z,count,limits,line_props)
-        ALLlineHand = setxor(ALLlineHand, h);     % h are processed, so remove them from handles list
-    end
-    
-    % See if we have RIVERS. If yes they are treated separatly
-    h = findobj(ALLlineHand,'Tag','Rivers');
-    if (~isempty(h))
-        z_level = 0;        % It will be a nonsense if the underying grid is not topographic
-        [x,y,z,count] = lines2multiseg(h,z_level);
-        line_thick = get(h(1),'LineWidth');       % Line thickness
-        line_color = get(h(1),'color');           % Line color
-        line_props = [line_thick line_color 0 [1 1 1]];     % 0 means is not a patch and the [1 1 1] is not used
-        write_line(fid,'add',x,y,z,count,limits,line_props)
-        ALLlineHand = setxor(ALLlineHand, h);     % h are processed, so remove them from handles list
-    end
-    
-    % See if we have CONTOUR lines. If yes we fish their depths
-    h = findobj(ALLlineHand,'Tag','contour');
-    if (~isempty(h))
-        dz = abs(limits(6) - limits(5)) * 0.01;		% I smell a fleder bug here, so add a small cte to z level
-        for (i = 1:length(h))
-            z_level = get(h(i),'UserData');
-			set(h(i),'UserData',z_level + dz)		% <== trick to elevate line by dz, because UD prevails over z_level 
-            [x,y,z,count] = lines2multiseg(h(i),z_level);
-			set(h(i),'UserData',z_level)			% <== reset original level
-            line_thick = get(h(i),'LineWidth');     % Line thickness
-            line_color = get(h(i),'color');         % Line color
-            line_props = [line_thick line_color 0 [1 1 1]];     % 0 means is not a patch and the [1 1 1] is not used
-            write_line(fid,'add',x,y,z,count,limits,line_props)
-        end
-        ALLlineHand = setxor(ALLlineHand, h);       % h are processed, so remove them from handles list
-    end
+ALLlineHand = findobj(hAxes,'Type','line');
+ALLpatchHand = findobj(hAxes,'Type','patch');
+if (isempty(ALLlineHand) && isempty(ALLpatchHand))
+	return
 end
 
 if (~isempty(ALLlineHand))
-    % This section deals with repeated line types. The point is that having many objects makes the
-    % rendering slow. So I assimilate all lines of the same type (same line thickness and color) into
-    % a single multisegment line. This makes the rendering much faster.
-    LineWidth = get(ALLlineHand,'LineWidth');
-    if (iscell(LineWidth)),     LineWidth = cell2mat(LineWidth);    end    
-    LineColor = get(ALLlineHand,'Color');
-    if (iscell(LineColor)),     LineColor = cell2mat(LineColor);    end
-    [tmp,ind] = sortrows([LineWidth LineColor]);
-    hands_sort = ALLlineHand(ind);			% Sort also the handles according to the previous sorting cretirea
-    difs = diff([tmp(1,:); tmp]);			% Repeat first row to account for the decrease 1 resulting from diff
-    [id_row,j] = find(difs ~= 0);			% Find the lines of different type
-    id_row = unique(id_row);				% Get rid of repeated values
-    id_row = [1; id_row];					% Make id_row start at one
-    id_row(end+1) = size(tmp,1);			% Add the last row as well (for the algo)
-    hands = cell(1,numel(id_row)-1);
-    for (i = 1:numel(id_row)-1)
-        hands{i} = hands_sort(id_row(i):id_row(i+1)-1);
-        if (numel(hands{i}) > 1)			% Make sure that the following procedure applyies only to repeated line types
-            line_thick = get(hands{i}(1),'LineWidth');			% Line thickness
-            line_color = get(hands{i}(1),'color');				% Line color
-            line_props = [line_thick line_color 0 1 1 1];		% 0 means is not a patch and the [1 1 1] is not used
-            [x,y,z,count] = lines2multiseg(hands{i},limits(end));
-            write_line(fid,'add',x,y,z,count,limits,line_props)
-            ALLlineHand = setxor(ALLlineHand, hands{i});		% hands{i} are processed, so remove them from handles list
-        end
-    end
-        
+	h = findobj(ALLlineHand,'Tag','Earthquakes');		% Search first for earthquakes because they have depths
+	if (~isempty(h))
+		write_pts(fid,h,'add',limits,'Earthquakes')		% earthquakes
+		ALLlineHand = setxor(ALLlineHand, h);			% h is processed, so remove it from handles list
+	end
+
+	if (burnCoasts)     % If we had already burned the coastlines remove them from the ALLlineHand list
+		h = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
+		if (~isempty(h)),		ALLlineHand = setxor(ALLlineHand, h);	end
+		h = findobj(ALLlineHand,'Tag','PoliticalBoundaries');
+		if (~isempty(h)),		ALLlineHand = setxor(ALLlineHand, h);	end
+		h = findobj(ALLlineHand,'Tag','Rivers');
+		if (~isempty(h)),		ALLlineHand = setxor(ALLlineHand, h);	end
+	end
+    
+	% See if we have COASTLINES. If yes they are treated separatly (mainly because of Z and also to create an separate object)
+	h = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
+	if (~isempty(h))
+		z_level = 0;        % It will be a nonsense if the underlying grid is not topographic
+		[x,y,z,count] = lines2multiseg(h,z_level);
+		line_thick = get(h(1),'LineWidth');       % Line thickness
+		line_color = get(h(1),'color');           % Line color
+		line_props = [line_thick line_color 0 [1 1 1]];     % 0 means is not a patch and the [1 1 1] is not used
+		write_line(fid,'add',x,y,z,count,limits,line_props)
+		ALLlineHand = setxor(ALLlineHand, h);     % h are processed, so remove them from handles list
+	end
+    
+	% See if we have national borders. If yes they are treated separatly
+	h = findobj(ALLlineHand,'Tag','PoliticalBoundaries');
+	if (~isempty(h))
+		z_level = 0;		% It will be a nonsense if the underying grid is not topographic
+		[x,y,z,count] = lines2multiseg(h,z_level);
+		line_thick = get(h(1),'LineWidth');       % Line thickness
+		line_color = get(h(1),'color');           % Line color
+		line_props = [line_thick line_color 0 [1 1 1]];     % 0 means is not a patch and the [1 1 1] is not used
+		write_line(fid,'add',x,y,z,count,limits,line_props)
+		ALLlineHand = setxor(ALLlineHand, h);     % h are processed, so remove them from handles list
+	end
+
+	% See if we have RIVERS. If yes they are treated separatly
+	h = findobj(ALLlineHand,'Tag','Rivers');
+	if (~isempty(h))
+		z_level = 0;		% It will be a nonsense if the underying grid is not topographic
+		[x,y,z,count] = lines2multiseg(h,z_level);
+		line_thick = get(h(1),'LineWidth');       % Line thickness
+		line_color = get(h(1),'color');           % Line color
+		line_props = [line_thick line_color 0 [1 1 1]];     % 0 means is not a patch and the [1 1 1] is not used
+		write_line(fid,'add',x,y,z,count,limits,line_props)
+		ALLlineHand = setxor(ALLlineHand, h);     % h are processed, so remove them from handles list
+	end
+    
+	% See if we have CONTOUR lines. If yes we fish their depths
+	h = findobj(ALLlineHand,'Tag','contour');
+	if (~isempty(h))
+		dz = abs(limits(6) - limits(5)) * 0.01;		% I smell a fleder bug here, so add a small cte to z level
+		for (i = 1:length(h))
+			z_level = get(h(i),'UserData');
+			set(h(i),'UserData',z_level + dz)		% <== trick to elevate line by dz, because UD prevails over z_level 
+			[x,y,z,count] = lines2multiseg(h(i),z_level);
+			set(h(i),'UserData',z_level)			% <== reset original level            
+			line_thick = get(h(i),'LineWidth');		% Line thickness
+			line_color = get(h(i),'color');			% Line color
+			line_props = [line_thick line_color 0 [1 1 1]];     % 0 means is not a patch and the [1 1 1] is not used
+			write_line(fid,'add',x,y,z,count,limits,line_props)
+		end
+		ALLlineHand = setxor(ALLlineHand, h);       % h are processed, so remove them from handles list
+	end
+end
+
+if (~isempty(ALLlineHand))
+	% This section deals with repeated line types. The point is that having many objects makes the
+	% rendering slow. So I assimilate all lines of the same type (same line thickness and color) into
+	% a single multisegment line. This makes the rendering much faster.
+	LineWidth = get(ALLlineHand,'LineWidth');
+	if (iscell(LineWidth)),     LineWidth = cell2mat(LineWidth);    end    
+	LineColor = get(ALLlineHand,'Color');
+	if (iscell(LineColor)),     LineColor = cell2mat(LineColor);    end
+	[tmp,ind] = sortrows([LineWidth LineColor]);
+	hands_sort = ALLlineHand(ind);			% Sort also the handles according to the previous sorting cretirea
+	difs = diff([tmp(1,:); tmp]);			% Repeat first row to account for the decrease 1 resulting from diff
+	id_row = find(difs ~= 0);				% Find the lines of different type
+	id_row = unique(id_row);				% Get rid of repeated values
+	id_row = [1; id_row];					% Make id_row start at one
+	id_row(end+1) = size(tmp,1);			% Add the last row as well (for the algo)
+	hands = cell(1,numel(id_row)-1);
+	for (i = 1:numel(id_row)-1)
+		hands{i} = hands_sort(id_row(i):id_row(i+1)-1);
+		if (numel(hands{i}) > 1)			% Make sure that the following procedure applyies only to repeated line types
+			line_thick = get(hands{i}(1),'LineWidth');			% Line thickness
+			line_color = get(hands{i}(1),'color');				% Line color
+			line_props = [line_thick line_color 0 1 1 1];		% 0 means is not a patch and the [1 1 1] is not used
+			[x,y,z,count] = lines2multiseg(hands{i},limits(end));
+			write_line(fid,'add',x,y,z,count,limits,line_props)
+			ALLlineHand = setxor(ALLlineHand, hands{i});		% hands{i} are processed, so remove them from handles list
+		end
+	end
+
     % OK, now if we still have lines, they must be of different line type
     for (i = 1:numel(ALLlineHand))
         z_level = limits(end);          % Default to z_max (but I have to do something clever)
@@ -369,8 +498,6 @@ if (~isempty(ALLlineHand))
         write_line(fid,'add',x,y,z,count,limits,line_props)        
     end
 end     % end  -> if (~isempty(ALLlineHand))<-
-
-ALLpatchHand = findobj(hAxes,'Type','patch');
 
 if (~isempty(ALLpatchHand))
     z_level = limits(end);          % Default to z_max (but I have to do something clever)
@@ -404,7 +531,7 @@ if (~isempty(ALLpatchHand))
         ALLpatchHand = setxor(ALLpatchHand, telhasHand_d);  % telhasHand_d is processed, so remove it from handles list
     end
     
-    if (~isempty(telhasHand_r))                     % Now the reverse telhas
+    if (~isempty(telhasHand_r))						% Now the reverse telhas
         patch_color = get(telhasHand_r(1),'FaceColor');
         xx = cell(5000,1);  yy = xx;    zz = xx;    % Pre-allocate memory in excess
         count = 1;
@@ -460,58 +587,58 @@ function write_line(fid,mode,x,y,z,np,lim_reg,line_props)
 % LIM_REG   -> is the -R of the map (not of the line, which may be > or <)
 % NP        -> Total number of points in this line (if multisegment NP is still the total number of pts)
 % LINE_PROPS -> vector with line properties [thickness [color] patch [faceColor]], where color = [r g b]
-    ColorBy = 0;                        % 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute
-    code1 = 1;                          % Still don't know what this codes (number of ??)
-    lim_line = lim_reg;                 % MERDOSO (nao e assim se lim_reg < lim_line)
-    l_thick = line_props(1);
-    patch = line_props(5);              % See if we have a polyline or a patch
-    if (patch)
-        l_color = round(line_props(6:8) * 255);
-    else
-        l_color = round(line_props(2:4) * 255);
-    end
+	ColorBy = 0;                        % 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute
+	code1 = 1;                          % Still don't know what this codes (number of ??)
+	lim_line = lim_reg;                 % MERDOSO (nao e assim se lim_reg < lim_line)
+	l_thick = line_props(1);
+	patch = line_props(5);              % See if we have a polyline or a patch
+	if (patch)
+		l_color = round(line_props(6:8) * 255);
+	else
+		l_color = round(line_props(2:4) * 255);
+	end
 
-    if (strcmp(mode,'first'))       % The TDR object starts here
-	    fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
-    end
+	if (strcmp(mode,'first'))       % The TDR object starts here
+		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
+	end
+
+	if (iscell(x)),     n_segments = length(x);
+	else                n_segments = 1;
+	end
     
-    if (iscell(x)),     n_segments = length(x);
-    else                n_segments = 1;
-    end
-    
-    % Make sure x & y are row vectors
-    if (size(x,1) > 1), x = x';     end
-    if (size(y,1) > 1), y = y';     end
-    
-    % In next line the 2 * 6 term is due to the fact that 'lim' is written twice
-    n_byte = 2*6*8 + 3*np*8 + (n_segments-1)*8; % (n_segments-1)*8 accounts for the 'np + 1 zero int*4' for each seg
-    n_byte = n_byte + 5*4 + 8+4 + 2*4;          % 
-    fwrite(fid,[10525 n_byte],'integer*4');     % ID of block SD_LINES3D and n of bytes in this block
-  	fwrite(fid,[0 0 1 1 1 3 (1:18)*0],'integer*1'); % 28 bytes (not counted in n_byte)
-    fwrite(fid,[patch n_segments np 0 0],'integer*4');     % n points and some code
-  	fwrite(fid,ones(1,8)*205,'uchar');          % ??
-   	fwrite(fid,code1,'integer*4');              % ??
+	% Make sure x & y are row vectors
+	if (size(x,1) > 1), x = x';     end
+	if (size(y,1) > 1), y = y';     end
+
+	% In next line the 2 * 6 term is due to the fact that 'lim' is written twice
+	n_byte = 2*6*8 + 3*np*8 + (n_segments-1)*8; % (n_segments-1)*8 accounts for the 'np + 1 zero int*4' for each seg
+	n_byte = n_byte + 5*4 + 8+4 + 2*4;          % 
+	fwrite(fid,[10525 n_byte],'integer*4');     % ID of block SD_LINES3D and n of bytes in this block
+	fwrite(fid,[0 0 1 1 1 3 (1:18)*0],'integer*1'); % 28 bytes (not counted in n_byte)
+	fwrite(fid,[patch n_segments np 0 0],'integer*4');     % n points and some code
+	fwrite(fid,ones(1,8)*205,'uchar');			% ??
+	fwrite(fid,code1,'integer*4');				% ??
 	fwrite(fid,[lim_reg lim_line],'real*8');
 
-    if (iscell(x))
+	if (iscell(x))
 		for (i = 1:n_segments)
-            np_s = numel(x{i});                % Number of points in this segment
-            fwrite(fid,[np_s 0],'integer*4');
+			np_s = numel(x{i});                % Number of points in this segment
+			fwrite(fid,[np_s 0],'integer*4');
 			fwrite(fid,[x{i}; y{i}; z{i}],'real*8');
 		end
-    else
-        fwrite(fid,[np 0],'integer*4');   % n points
+	else
+		fwrite(fid,[np 0],'integer*4');			% n points
 		fwrite(fid,[x; y; z],'real*8');
-    end
-    
-    write_geo(fid,'add',lim_reg)				% Write a GEOREF block
-    write_cmap(fid)								% Write a FM_CMAP block
+	end
 
-    fwrite(fid,[10526 32],'integer*4');         % ID of block SD_LINES3D_ATB and n bytes in this block
- 	fwrite(fid,[0 0 1 1 1 6 (1:18)*0],'integer*1');     % The 6 is a number of version
- 	
- 	fwrite(fid,[l_color(1:3) 255],'uchar');     % Don't know what is the last 255
-    fwrite(fid,[1 1 ColorBy 0 0 1 l_thick],'integer*4'); % First 1 is 'gap', but don't know what are the others
+	write_geo(fid,'add',lim_reg)				% Write a GEOREF block
+	write_cmap(fid)								% Write a FM_CMAP block
+
+	fwrite(fid,[10526 32],'integer*4');         % ID of block SD_LINES3D_ATB and n bytes in this block
+	fwrite(fid,[0 0 1 1 1 6 (1:18)*0],'integer*1');     % The 6 is a number of version
+
+	fwrite(fid,[l_color(1:3) 255],'uchar');     % Don't know what is the last 255
+	fwrite(fid,[1 1 ColorBy 0 0 1 l_thick],'integer*4'); % First 1 is 'gap', but don't know what are the others
 
 %----------------------------------------------------------------------------------
 function write_pts(fid,hand,mode,limits,opt)
@@ -522,11 +649,11 @@ function write_pts(fid,hand,mode,limits,opt)
     if (nargin == 4),   opt = [];   end
     
     symb = 3;               % 0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> cylinder; 5 -> sphere; 6 -> point
-    PointRad = 0.02;                        % Symbol radius
+    %PointRad = 0.02;						% Symbol radius
+    %ColorBy = 0;							% 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute
     LabelSize = 0.502;
-    ColorBy = 0;                            % 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute
-    n_col = 3;                              % N of columns
-    n_groups = length(hand);                % N of different point ensembles
+    n_col = 3;								% N of columns
+    n_groups = length(hand);				% N of different point ensembles
 
     if (strcmp(mode,'first'))       % The TDR object starts here
 	    fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
@@ -568,17 +695,17 @@ function write_pts(fid,hand,mode,limits,opt)
 		fwrite(fid,[0 1 1],'integer*4');
 		cor = uint8(get(hand(i),'MarkerFaceColor')*255);
 		fwrite(fid,cor,'uint8');                    % symbol's color
-    end
+	end
     
 %----------------------------------------------------------------------------------
 function [x,y,z,count] = lines2multiseg(hands,z_level)
-	% Convert a collection of lines whose handles are HANDS into a single multiline (cell array) array.
-	% If HANDS is a scalar, it will check if that line is broken with NaNs. If yes, it will be
-	% converted into a multiseg cell array. So we can call this function safely even when we don't
-	% know exactly what is contained in HANDS. The test of if x,... is a single or multisegment line
-	% are carried out inside the write_line function
-	% Z_LEVEL, if transmited will be used to set the line height, otherwise ZERO will be used.
-	% If lines have Z in UserData AND take precedence over transmited z_level
+% Convert a collection of lines whose handles are HANDS into a single multiline (cell array) array.
+% If HANDS is a scalar, it will check if that line is broken with NaNs. If yes, it will be
+% converted into a multiseg cell array. So we can call this function safely even when we don't
+% know exactly what is contained in HANDS. The test of if x,... is a single or multisegment line
+% are carried out inside the write_line function
+% Z_LEVEL, if transmited will be used to set the line height, otherwise ZERO will be used.
+% If lines have Z in UserData AND take precedence over transmited z_level
 
 	if (nargin == 1),   z_level = 0;    end
 
@@ -602,18 +729,18 @@ function [x,y,z,count] = lines2multiseg(hands,z_level)
 	end
 
 	id_with_nan = false(1,n_lines);
-	count = 0;                          % Counter of the total number of points
+	count = 0;							% Counter of the total number of points
 	for (i = 1:n_lines)
-		if (iscell(x))                  % Multi lines case 
-			if (any(isnan(x{i})))       % See if we have NaNs in this line. If yes we must treat it as a multiseg
-				id_with_nan(i) = 1;     % Yes we have. Mark this handle line to be processed later
-				continue                % Jump this line for the time beeing
+		if (iscell(x))					% Multi lines case 
+			if (any(isnan(x{i})))		% See if we have NaNs in this line. If yes we must treat it as a multiseg
+				id_with_nan(i) = 1;		% Yes we have. Mark this handle line to be processed later
+				continue				% Jump this line for the time beeing
 			end
 			count = count + length(x{i});
-		else                            % Single line, but with possible NaNs
-			if (any(isnan(x)))          % See if we have NaNs in this line. If yes we must treat it as a multiseg
-				id_with_nan = 1;        % Yes we have. Mark this handle line to be processed later
-				continue                % Jump this line for the time beeing
+		else							% Single line, but with possible NaNs
+			if (any(isnan(x)))			% See if we have NaNs in this line. If yes we must treat it as a multiseg
+				id_with_nan = 1;		% Yes we have. Mark this handle line to be processed later
+				continue				% Jump this line for the time beeing
 			end
 			count = count + length(x);
 		end
@@ -658,9 +785,9 @@ function [x,y,z,count] = lines2multiseg(hands,z_level)
 	end
 
 %----------------------------------------------------------------------------------
-function img = burnLines(hFig,hAxes,img,inplace)
-	% Burn the coastlines directly into de IMG image. We do it because also the Fleder
-	% doesn't work as advertized. Lines are awfully draped on surfaces
+function img = burnLines(hFig, hAxes, img, inplace)
+% Burn the coastlines directly into de IMG image. We do it because also the Fleder
+% doesn't work as advertized. Lines are awfully drapped on surfaces
 
 	handMir = guidata(hFig);
 	head = handMir.head;
@@ -674,9 +801,9 @@ function img = burnLines(hFig,hAxes,img,inplace)
 			xy = coast2pix(h{i}, head);
 			line_thick = get(h{i},'LineWidth');       % Line thickness
 			line_color = get(h{i},'color') * 255;     % Line color
-			lt = 8;     % LINE_TYPE -> 8 connectivity (default)
+			lt = 8;				% LINE_TYPE -> 8 connectivity (default)
 			if (line_thick <= 1)
-				lt = 16;        % antialiased line
+				lt = 16;		% antialiased line
 			end
 			if (inplace)
 				cvlib_mex('poly',img,xy,line_color,line_thick,lt)
@@ -694,16 +821,16 @@ function [xy] = coast2pix(hand, lims)
 x = get(hand,'XData');      y = get(hand,'YData');
 x = x(:);                   y = y(:);   % Make sure they are column vectors
 
-if (any(isnan(x)))              % We have NaNs in this line. Treat it as a multiseg
-    id_nan = find(x ~= x);              % Find the NaNs
-    id = find(diff(id_nan) == 1) + 1;   % Account for contiguous NaNs
-    if (~isempty(id))                   % Found contiguous NaNs
-        x(id_nan(id)) = [];
-        y(id_nan(id)) = [];             % Remove them
-        id_nan = find(x ~= x);          % Find the new position of the now non-contiguous NaNs
-    end
-    id_nan = [0; id_nan];               % Used to make it start at one
-    
+if (any(isnan(x)))				% We have NaNs in this line. Treat it as a multiseg
+	id_nan = find(x ~= x);				% Find the NaNs
+	id = find(diff(id_nan) == 1) + 1;	% Account for contiguous NaNs
+	if (~isempty(id))					% Found contiguous NaNs
+		x(id_nan(id)) = [];
+		y(id_nan(id)) = [];				% Remove them
+		id_nan = find(x ~= x);			% Find the new position of the now non-contiguous NaNs
+	end	
+	id_nan = [0; id_nan];				% Used to make it start at one
+
     n_segments = length(id_nan)-1;
     xy = cell(n_segments,1);
     for (k = 1:n_segments)
@@ -712,7 +839,7 @@ if (any(isnan(x)))              % We have NaNs in this line. Treat it as a multi
         xy{k} = [xx yy];
     end
 else
-    xy = [xx yy];
+	xy = [x y];
 end
 
 % -------------------------------------------------------------------------------------
@@ -727,11 +854,11 @@ function pixelx = localAxes2pix(dim, x, axesx)
 
 	xfirst = x(1);      xlast = x(max(size(x)));	
 	if (dim == 1)
-        pixelx = axesx - xfirst + 1;        return;
+		pixelx = axesx - xfirst + 1;        return;
 	end
 	xslope = (dim - 1) / (xlast - xfirst);
-	if ((xslope == 1) & (xfirst == 1))
-        pixelx = axesx;
+	if ((xslope == 1) && (xfirst == 1))
+		pixelx = axesx;
 	else
-        pixelx = xslope * (axesx - xfirst) + 1;
+		pixelx = xslope * (axesx - xfirst) + 1;
 	end
