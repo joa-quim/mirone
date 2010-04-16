@@ -5,6 +5,7 @@ function varargout = mirone(varargin)
 %
 %	mirone('CALLBACK',handles,...) calls the local function named CALLBACK with the given input arguments.
 
+% $Author: $Date: $Revision: $ID:
 %	Copyright (c) 2004-2006 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
@@ -28,8 +29,8 @@ function varargout = mirone(varargin)
 			if (nargout),	varargout{1} = h;		end
 		else
 			gui_Callback = str2func(varargin{1});
-			feval(gui_Callback,varargin{2:end});
-			if (nargout),	varargout{1} = varargin{2}.figure1;		end
+			[varargout{1:nargout}] = feval(gui_Callback,varargin{2:end});
+			%if (nargout),	varargout{1} = varargin{2}.figure1;		end
 		end
 	else
 		h = mirone_OpeningFcn(varargin{:});
@@ -91,7 +92,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.bg_color = [1 1 1]; % Backgoround color used when grid values == NaN
 	handles.which_cont = [];	% To store the contour levels (used to not draw repeated contours)
 	handles.have_nans = 0;		% Used to know if the grids have NaNs
-	handles.is_draped = 0;		% Used to know if the image comes from draping
+	handles.is_draped = false;	% Used to know if the image comes from draping
 	handles.was_int16 = 0;		% Keep track of short int imported grids
 	handles.Nodata_int16 = [];	% To store Nodata of short int grids
 	handles.ForceInsitu = 0;	% Use "insitu" grid importing (transposition)
@@ -176,11 +177,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		elseif ( isa(varargin{1},'uint8') || isa(varargin{1},'int8') || islogical(varargin{1}) )
 			% Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
 			if ( isa(varargin{1},'int8') )		% We cannot represent a int8 image. Do something
-				if ( any(varargin{1}(:) < 0) )	% [-128 127] -> [0 255] 
-					varargin{1} = uint8(imlincombc(varargin(1), [1 128], 'int8'));
-				else
-					varargin{1} = uint8(varargin{1});
-				end
+				varargin{1} = uint8(cvlib_mex('addS', int16(varargin{1}), 128));	% [-128 127] -> [0 255]
 			end
 			% Now deal with the case of a eventual multiband ( > than 3 planes) array
 			if (size(varargin{1},3) > 3),		aux_funs('toBandsList', handles.figure1, varargin{1}, 'multiband array'),	end
@@ -736,7 +733,7 @@ function ImageHistEqualizeGrid_CB(handles, hObject)
 	if strcmp(get(hObject,'checked'),'off')		% Then equalize
 		[X,Y,Z,head] = load_grd(handles);
 		if isempty(Z),		return,		end
-		out = grdutils(Z,'-S');		% Get mean and std
+		out = grdutils(Z,'-S');			% Get mean and std
 		handles.cur_pal = get(handles.figure1, 'Colormap');
 		new_pal = cdf2pal(head(5),head(6),out(1),out(2),handles.cur_pal);
 		aux_funs('colormap_bg',handles,Z,new_pal);
@@ -783,7 +780,7 @@ function PanZoom_CB(handles, hObject, opt)
 	if (strcmp(get(handles.Tesoura,'State'),'on')),		set(handles.Tesoura,'State','off'),		end		% If Scisors were on
 
 	if (strcmp(opt,'zoom'))
-		if strcmp(get(hObject,'State'),'on')
+		if ( strcmp(get(hObject,'State'),'on') )
 			zoom_j('on');
 			if (strcmp(get(handles.Mao,'State'),'on'))
 				set(handles.Mao,'State','off'),		pan('off');
@@ -792,7 +789,7 @@ function PanZoom_CB(handles, hObject, opt)
 			zoom_j('off');
 		end
 	else		% Pan case
-		if strcmp(get(hObject,'State'),'on')
+		if ( strcmp(get(hObject,'State'),'on') )
 			pan('on');
 			if (strcmp(get(handles.Zoom,'State'),'on'))
 				set(handles.Zoom,'State','off'),	zoom_j('off');
@@ -1780,17 +1777,17 @@ function ImageIlluminationModel_CB(handles, opt)
 	luz = shading_params(opt);	pause(0.01)			% Give time to the shading_params window be deleted
 	if (isempty(luz)),	return,		end
 
-	if (luz.illum_model == 1),		ImageIlluminateLambertian(luz, handles, 'grdgrad_class')	% GMT grdgradient classic
-	elseif (luz.illum_model == 2),	ImageIlluminateLambertian(luz, handles, 'grdgrad_lamb')		% GMT grdgradient Lambertian
-	elseif (luz.illum_model == 3),	ImageIlluminateLambertian(luz, handles, 'grdgrad_peuck')	% GMT grdgradient Peucker
-	elseif (luz.illum_model == 4),	ImageIlluminateLambertian(luz, handles, 'lambertian')		% GMT Lambertian illumination
-	elseif (luz.illum_model == 5),	ImageIlluminateGray(luz, handles, 'color')				% ManipRaster color illumination algo
-	elseif (luz.illum_model == 6),	ImageIlluminateGray(luz, handles, 'gray')				% ManipRaster gray illumination algo
-	else							ImageIlluminateFalseColor(luz, handles)					% False color illumination
+	if (luz.illum_model == 1),		ImageIllumLambert(luz, handles, 'grdgrad_class')	% GMT grdgradient classic
+	elseif (luz.illum_model == 2),	ImageIllumLambert(luz, handles, 'grdgrad_lamb')		% GMT grdgradient Lambertian
+	elseif (luz.illum_model == 3),	ImageIllumLambert(luz, handles, 'grdgrad_peuck')	% GMT grdgradient Peucker
+	elseif (luz.illum_model == 4),	ImageIllumLambert(luz, handles, 'lambertian')		% GMT Lambertian illumination
+	elseif (luz.illum_model == 5),	ImageIllumGray(luz, handles, 'color')			% ManipRaster color illumination algo
+	elseif (luz.illum_model == 6),	ImageIllumGray(luz, handles, 'gray')			% ManipRaster gray illumination algo
+	else							ImageIllumFalseColor(luz, handles)				% False color illumination
 	end
 
 % --------------------------------------------------------------------
-function ImageIlluminateLambertian(luz, handles, opt)
+function ImageIllumLambert(luz, handles, opt)
 % OPT ->  Select which of the GMT grdgradient illumination algorithms to use
 % Illuminate a DEM file and turn it into a RGB image
 % For multiple tries I need to use the original image. Otherwise each attempt would illuminate
@@ -1799,17 +1796,18 @@ function ImageIlluminateLambertian(luz, handles, opt)
 
 	[X,Y,Z,head] = load_grd(handles);	% If needed, load gmt grid again
 	if isempty(Z),	return,		end		% An error message was already issued
-	set(handles.figure1,'pointer','watch')
+	set(handles.figure1,'pointer','watch'),		pause(0.01)
 
 	if (handles.firstIllum),	img = get(handles.hImg,'CData');	handles.firstIllum = 0;
-	else						img = handles.origFig;		end
-	if (isempty(img)),			img = get(handles.hImg,'CData');	end			% No copy in memory
+	else						img = handles.origFig;
+	end
 	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	end		% Image is 2D
 
 	if (strcmp(opt,'grdgrad_class'))		% GMT grdgradient classic illumination
 		illumComm = sprintf('-A%.2f',luz.azim);
 		if (handles.geog),	[R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
-		else				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt'); end
+		else				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt');
+		end
 		handles.Illumin_type = 1;
 		if (sigma < 1e-6),		sigma = 1e-6;	end		% We cannot let them be zero on sprintf('%.6f',..) somewhere else
 		if (offset < 1e-6),		offset = 1e-6;	end
@@ -1836,7 +1834,7 @@ function ImageIlluminateLambertian(luz, handles, opt)
 	guidata(handles.figure1, handles);			set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
-function ImageIlluminateGray(luz, handles, color)
+function ImageIllumGray(luz, handles, color)
 % Illuminate a DEM file and turn it into a RGB or gray scale image.	For multiple tryies see note above. 
 	
 	[X,Y,Z,head,m] = load_grd(handles);
@@ -1877,7 +1875,7 @@ function ImageIlluminateGray(luz, handles, color)
 	set(handles.figure1,'pointer','arrow');			guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
-function ImageIlluminateFalseColor(luz, handles)
+function ImageIllumFalseColor(luz, handles)
 % Illuminate a grid from 3 different directions and turn it into a RGB image
 
 	[X,Y,Z,head,m] = load_grd(handles);
@@ -2031,7 +2029,7 @@ function ImageDrape_CB(handles)
 	parent_img = get(handParent.hImg,'CData');
 	y_son = size(son_img,1);			x_son = size(son_img,2);			% Get "son" image dimensions 
 	y_parent = size(parent_img,1);		x_parent = size(parent_img,2);		% Get "son" image dimensions 
-	
+
 	% Find if image needs to be ud fliped
 	if(strcmp(get(handles.axes1,'YDir'),'reverse')),	son_img = flipdim(son_img,1);	end
 
@@ -2045,13 +2043,15 @@ function ImageDrape_CB(handles)
 	son_cm = [];
 	if (ndims(son_img) == 2),		son_cm = get(handles.figure1,'Colormap');	end		% Get "son" color map
 
-	blind_drape = true;
-	if ((handles.image_type ~= 2) && (handParent.image_type ~= 2)),		blind_drape = false;	end
+	blind_drape = false;
+	if (handles.image_type == 2 || handles.image_type == 20 || handParent.image_type == 2 || handParent.image_type == 20)
+		blind_drape = true;
+	end
 	if (blind_drape)		% Drape based solely in images sizes
 		if (y_son ~= y_parent || x_son ~= x_parent)				% Check if "son" and "parent" images have the same size
 			son_img = cvlib_mex('resize',son_img,[y_parent x_parent],'bicubic');
 		end
-	else					% Drape based in images coords - First find the intersection of the 2 regions 
+	else					% Drape based on images coords - First find the intersection of the 2 regions 
 		P1.x = [handles.head(1) handles.head(1) handles.head(2) handles.head(2) handles.head(1)];	P1.hole = 0;
 		P1.y = [handles.head(3) handles.head(4) handles.head(4) handles.head(3) handles.head(3)];
 		P2.x = [handParent.head(1) handParent.head(1) handParent.head(2) handParent.head(2) handParent.head(1)];	P2.hole = 0;
@@ -2060,10 +2060,17 @@ function ImageDrape_CB(handles)
 		rx_min = min(P3.x);			rx_max = max(P3.x);		ry_min = min(P3.y);			ry_max = max(P3.y);
 		rect_crop = [rx_min ry_min rx_max-rx_min ry_max-ry_min];
 
+		% If parent image is of lesser resolution (90% lower) resize it to fit the son_image resolution
+		if ( (handParent.head(8) > handles.head(8)*1.1) || (handParent.head(9) > handles.head(9)*1.1) )
+			x_parent = round(diff(handParent.head(1:2)) / handles.head(8)) + 1;
+			y_parent = round(diff(handParent.head(3:4)) / handles.head(9)) + 1;
+			parent_img = cvlib_mex('resize',parent_img,[y_parent x_parent],'bicubic');
+		end
 		[r_c] = cropimg(handParent.head(1:2),handParent.head(3:4),parent_img,rect_crop,'out_ind');
 		if (diff(r_c(1:2)) <= 0 || diff(r_c(3:4)) <= 0),	return,		end
 		[I,P1.hole] = cropimg(handles.head(1:2),handles.head(3:4),son_img,rect_crop,'out_grid');	% P1.hole to shut up MLint
 		son_img = cvlib_mex('resize',I,[diff(r_c(1:2)) diff(r_c(3:4))]+1,'bicubic');
+
 		% Make sure parent & son are both indexed or true color
 		if (ndims(son_img) == 2 && ndims(parent_img) == 3)
 			son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));
@@ -2088,8 +2095,7 @@ function ImageDrape_CB(handles)
 	if (~isempty(son_cm) && (alfa > 0)),	set(h_f,'Colormap',son_cm);		end		% Set "son" colormap to "parent" figure
 
 	% Signal in the parent image handles that it has a draped image
-	handParent.is_draped = 1;		handParent.Illumin_type = 0;
-	guidata(h_f,handParent)
+	handParent.is_draped = true;		handParent.Illumin_type = 0;	guidata(h_f,handParent)
 
 % --------------------------------------------------------------------
 function ToolsMeasure_CB(handles, opt)
