@@ -896,8 +896,7 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 %	(lines, symbols, etc...). The grids nrow & ncol is the same as the image
 %	number of lines and pixels.
 % OPT1 == 'screen' Does a screen capture that includes all the graphical elements
-%	that may have been drawn (lines, symbols, etc...). On the other hand I still
-%	don't know how to control the number of lines and pixels.
+%	that may have been drawn (lines, symbols, etc...).
 % OPT2 == fname. It is used by the write gmt script routine to capture the image and
 %	write the image as a triplet of gmt grids with name stem = OPT2.
 	if (handles.no_file),	return,		end
@@ -916,13 +915,9 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 	set(handles.figure1,'pointer','watch')
 
 	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-	if isempty(EXT)
-		f_name_r = [PathName FNAME '_r.grd'];		f_name_g = [PathName FNAME '_g.grd' ];
-		f_name_b = [PathName FNAME '_b.grd' ];
-	else
-		f_name_r = [PathName FNAME '_r' EXT];		f_name_g = [PathName FNAME '_g' EXT];
-		f_name_b = [PathName FNAME '_b' EXT];
-	end
+	if isempty(EXT),	EXT = '.grd';		end	
+	f_name_r = [PathName FNAME '_r' EXT];	f_name_g = [PathName FNAME '_g' EXT];
+	f_name_b = [PathName FNAME '_b' EXT];
 
 	if (strcmp(opt1,'image')),			img = get(handles.hImg,'CData');			% Get image
 	elseif (strcmp(opt1,'screen')),		img = snapshot(handles.figure1,'noname');	% Screen capture with resizing option
@@ -1597,12 +1592,11 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 		handles.head(9) = diff(handles.head(3:4)) / size(I,1) + ~handles.head(7);
 	end
 
-	dx = 0;				dy = 0;
-	if (validGrid),		dx = X(2) - X(1);		dy = Y(2) - Y(1);	end
-	if (~validGrid && handles.validGrid),		aux_funs('cleanGRDappdata',handles);	end
-	if (isempty(imSize) && (abs(dx - dy) > 1e-4))		% Check for grid node spacing anisotropy
-		imSize = dx / dy;								% resizetrue will know what to do with this
+	if ( (handles.image_type ~= 2 && handles.image_type ~= 20) && (abs(diff(handles.head(8:9))) > 1e-4) )	% Check anisotropy
+		imSize = handles.head(8) / handles.head(9);		% resizetrue will know what to do with this
 	end
+
+	if (~validGrid && handles.validGrid),		aux_funs('cleanGRDappdata',handles);	end
 	if (size(I,3) > 3),			I(:,:,4:end) = [];		% Make sure I is only MxN or MxNx3
 	elseif (size(I,3) == 2),	I(:,:,2) = [];			% (could be otherwise when input from multiband)
 	end
@@ -1621,7 +1615,9 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 
 	handles.origFig = I;			handles.no_file = 0;
 	handles.Illumin_type = 0;		handles.validGrid = validGrid;	% Signal that gmt grid opps are allowed
-	set(handles.figure1,'Name',[fname sprintf('  @  %d%%',magRatio)])
+	if (~isempty(fname))
+		set(handles.figure1,'Name',[fname sprintf('  @  %d%%',magRatio)])
+	end
 	setappdata(handles.axes1,'ThisImageLims',[get(handles.axes1,'XLim') get(handles.axes1,'YLim')])
 	handles.oldSize = get(handles.figure1,'Pos');		% Save fig size to prevent maximizing
 	handles.origCmap = get(handles.figure1,'ColorMap'); % Save original colormap 
@@ -1677,7 +1673,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	end
 	if (isappdata(handles.axes1,'DatumProjInfo')),		rmappdata(handles.axes1,'DatumProjInfo'),	end
 	% Note that, when it applyies the above are rebuilt with a latter call to grid_info(handles,att,'gdal')
-	
+
 	% Sets the right "Image mode" checkbox on (well, we still miss the BW case)
 	if (ndims(I) == 3),		hThis = handles.ImModRGB;
 	else					hThis = handles.ImMod8cor;
@@ -1692,7 +1688,7 @@ function ToolsMBplaningStart_CB(handles)
 		warndlg('Grid file is bigger than the declared "Grid Max Size". See "File -> Preferences"','Warning');
 		return
 	end
-	
+
 	prompt = {['The current value for the swath-width / water depth ratio is:   --> ' sprintf('%g',handles.swathRatio) '  <--']
 			'If you want to change it, hit "Cancel", and do it in "File -> Preferences"'; ' '
 			'NOTE: this message, once accepted, is shown only once. So, if in the midle'
@@ -2025,8 +2021,8 @@ function ImageDrape_CB(handles)
 		set(handles.ImageDrape,'Enable','off');			% Set the Drape option to it's default value (off)
 		return
 	end
-	handParent = guidata(h_f);		% We need the parent handles
-	parent_img = get(handParent.hImg,'CData');
+	handParent = guidata(h_f);			% We need the parent handles
+	parent_img = get(handParent.hImg,'CData');			parent_was_resized = false;
 	y_son = size(son_img,1);			x_son = size(son_img,2);			% Get "son" image dimensions 
 	y_parent = size(parent_img,1);		x_parent = size(parent_img,2);		% Get "son" image dimensions 
 
@@ -2065,6 +2061,7 @@ function ImageDrape_CB(handles)
 			x_parent = round(diff(handParent.head(1:2)) / handles.head(8)) + 1;
 			y_parent = round(diff(handParent.head(3:4)) / handles.head(9)) + 1;
 			parent_img = cvlib_mex('resize',parent_img,[y_parent x_parent],'bicubic');
+			parent_was_resized = true;
 		end
 		[r_c] = cropimg(handParent.head(1:2),handParent.head(3:4),parent_img,rect_crop,'out_ind');
 		if (diff(r_c(1:2)) <= 0 || diff(r_c(3:4)) <= 0),	return,		end
@@ -2091,9 +2088,18 @@ function ImageDrape_CB(handles)
 		if (ndims(parent_img) == 2),	parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));			end
 		cvlib_mex('addweighted',son_img,(1 - alfa),parent_img,alfa)		% In-place
 	end
-	set(handParent.hImg,'CData',son_img);
-	if (~isempty(son_cm) && (alfa > 0)),	set(h_f,'Colormap',son_cm);		end		% Set "son" colormap to "parent" figure
+	if (~parent_was_resized)
+		set(handParent.hImg,'CData',son_img);
+	else
+		imSize = [];
+		if ( (handles.image_type ~= 2 && handles.image_type ~= 20) && (abs(diff(handles.head(8:9))) > 1e-4) )	% Check aniso
+			imSize = handles.head(8) / handles.head(9);		% resizetrue will know what to do with this
+		end
+		handParent.hImg = image(handParent.head(1:2),handParent.head(3:4),son_img,'Parent',handParent.axes1);
+		resizetrue(handParent,imSize,'xy');
+	end
 
+	if (~isempty(son_cm) && (alfa > 0)),	set(h_f,'Colormap',son_cm);		end		% Set "son" colormap to "parent" figure
 	% Signal in the parent image handles that it has a draped image
 	handParent.is_draped = true;		handParent.Illumin_type = 0;	guidata(h_f,handParent)
 
