@@ -1677,12 +1677,16 @@ end
 		set(hAlfaPatch, 'Vis', 'on')					% Only semi-transparent ones are visible now
 		try
 			refresh(handMir.figure1)		% F... Matlab OpenGL driver has more bugs than a dead rat
-			DAR = get(handMir.axes1, 'DataAspectRatio');
-			if (DAR(2) ~= 1)		% If "scale at mean lat" temporarily set to 1 so that captured image is not squized 
-				set(handMir.axes1, 'DataAspectRatio', [1 1 DAR(3)])
+			if (isempty(ALLlineHand) && isempty(ALLpatchHand) && isempty(ALLtextHand))	% No need to SC because image is clean
+	        	mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB)
+			else
+				DAR = get(handMir.axes1, 'DataAspectRatio');
+				if (DAR(2) ~= 1)		% If "scale at mean lat" temporarily set to 1 so that captured image is not squized 
+					set(handMir.axes1, 'DataAspectRatio', [1 1 DAR(3)])
+				end
+				mirone('File_img2GMT_RGBgrids_CB', handMir, 'fromWS', nameRGB)
+				set(handMir.axes1, 'DataAspectRatio', DAR)
 			end
-        	mirone('File_img2GMT_RGBgrids_CB', handMir, 'fromWS', nameRGB)
-			set(handMir.axes1, 'DataAspectRatio', DAR)
 		end
 		% Make everybody visible again
 		set(ALLlineHand, 'Vis', 'on');		set(ALLpatchHand, 'Vis', 'on');	set(ALLtextHand, 'Vis', 'on')
