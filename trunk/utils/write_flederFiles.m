@@ -131,6 +131,9 @@ function [img, img2] = getImg(handles)
 			img = imcapture(handles.axes1,'img',0);		% Do a screen capture
 		end
 		if (flipa),		img = flipdim(img,1);	end
+		if (ndims(img) == 2)
+			img = ind2rgb8(img,get(handles.figure1,'Colormap'));
+		end
 	else
 		img = get(handles.hImg,'CData');
 		if (flipa),		img = flipdim(img,1);	end
@@ -240,7 +243,6 @@ function fid = write_main(fid, tipo, Z, img, limits, img2)
 		write_geo(fid,'add',limits)
 	elseif (1)								% A textureDTM SD object
 		write_texturedtm_block(fid)
-		%write_geoimg(fid, 'add', img, limits)
 		write_shade(fid, 'add', img, 'geoimg')
 		write_geo(fid,'add',limits)
 		write_dtm(fid,'add',Z,limits)
@@ -297,9 +299,12 @@ function write_scene_block(fid)
 	fwrite(fid,[205 204 204 61 0 64 28 70 0 0 0 0 10 215 35 60 0 36 116 72],'uchar');
 	fwrite(fid,[0 64 156 69 0 64 156 69 0 0 128 63 (1:19)*0 63 215 179 93 191],'uchar');
 	fwrite(fid,[0 0],'integer*4');
-	% Possibly another block, but need to find out
-	fwrite(fid,[215 179 93 63 0 0 0 63 (1:13)*0 64 156 197 0 0 128 63 0 0 72 66 172 38],'uchar');
-	fwrite(fid,[(1:8)*0 1 1 1 1 (1:18)*0],'uchar');
+ 	fwrite(fid,[215 179 93 63 0 0 0 63 (1:13)*0 64 156 197 0 0 128 63 0 0 72 66],'uchar');
+% 	% Possibly another block, but need to find out
+% 	fwrite(fid,[215 179 93 63 0 0 0 63 (1:13)*0 64 156 197 0 0 128 63 0 0 72 66 172 38],'uchar');
+% 	fwrite(fid,[(1:8)*0 1 1 1 1 (1:18)*0],'uchar');
+	fwrite(fid,[9900 0],'integer*4');				% Tag ID, Data Length		-- SD_HIERARCHY
+	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
 
 %----------------------------------------------------------------------------------
 function write_node_block(fid, tipo, str1, str2)
@@ -348,6 +353,13 @@ function write_texturedtm_block(fid)
 	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
 
 %----------------------------------------------------------------------------------
+function write_vimage_block(fid, limits)
+% Write the SD_VIMAGE block
+	fwrite(fid,[10555 48],'integer*4');			% Tag ID, Data Length
+	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
+	fwrite(fid,limits,'real*8');
+
+%----------------------------------------------------------------------------------
 function write_sonardtm_atb_block(fid)
 % Write the SD_SONARDTM_ATB block
 	fwrite(fid,[10007 18],'integer*4');			% Tag ID, Data Length
@@ -360,6 +372,13 @@ function write_geoimg_atb_block(fid)
 	fwrite(fid,[10531 16],'integer*4');			% Tag ID, Data Length
 	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
 	fwrite(fid,[0 0 0 0],'integer*4');
+
+%----------------------------------------------------------------------------------
+function write_vimage_atb_block(fid)
+% Write the SD_VIMAGE_ATB block
+	fwrite(fid,[10556 8],'integer*4');			% Tag ID, Data Length
+	fwrite(fid,[0 0 1 1 1 2 (1:18)*0],'uchar');
+	fwrite(fid,[0 0],'integer*4');
 
 %----------------------------------------------------------------------------------
 function write_cmap(fid)
