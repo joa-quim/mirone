@@ -73,8 +73,8 @@ function fname = write_flederFiles(opt,varargin)
 		if isempty(EXT),    fname = [fname '.sd'];  end
 		fid = fopen(fname,'wb');
 		if (strcmp(opt(end-2:end),'img'))		% either writeGeoimg or runGeoimg
-			write_geoimg(fid, 'first', img, head(1:6))
-			write_geo(fid,'add',limits)
+			write_geoimg(fid, 'first', img)
+			write_geo(fid,'add',head(1:6))
 		elseif (strcmp(opt,'writePlanar') || handles.flederPlanar)
 			write_main(fid,    'Planar', Z, img, head(1:6), img2);
 		else
@@ -264,13 +264,13 @@ function fid = write_main(fid, tipo, Z, img, limits, img2)
  		write_node_block(fid, 'geoimg', 'Drapped', 'test2.sd')
 		limits(5:6) = [0 1];
 		write_geo(fid,'add',limits)
-		write_geoimg(fid, 'add', img, limits)
+		write_geoimg(fid, 'add', img)
 		write_geo(fid,'add',limits)
 		write_geoimg_atb_block(fid)
 	end
 
 %----------------------------------------------------------------------------------
-function write_geoimg(fid, mode, img, limits)
+function write_geoimg(fid, mode, img)
 % Write a basic image .sd file. That is one with image & a GEO blocks
 	if (strcmp(mode,'first'))       % The TDR object starts here
 		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
