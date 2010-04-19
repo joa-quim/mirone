@@ -323,16 +323,18 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
         end
         
 		% This block is meant to deal with Mirone figures. Other cases were not tested recently
-		leave_DAR_alone = false;
 		Stsb = getappdata(h,'CoordsStBar');		% Mirone status bar
-		if (~isempty(Stsb))
-			set(Stsb(2:end), 'Vis', 'off')
-		end
+		if (~isempty(Stsb)),		set(Stsb(2:end), 'Vis', 'off'),		end
 		
 		DAR = get(hAxes, 'DataAspectRatio');
 		
-		if ( abs((size(im,2) / size(im,1)) - (DAR(1) / DAR(2))) < 1e-3 )	% Mirone Figs with cos(lat) active or anyso dx/dy
-			leave_DAR_alone = true;
+% 		leave_DAR_alone = false;
+% 		if ( abs((size(im,2) / size(im,1)) - (DAR(1) / DAR(2))) < 1e-3 )	% Mirone Figs with cos(lat) active or anyso dx/dy
+% 			leave_DAR_alone = true;
+% 		end
+		leave_DAR_alone = true;
+		if (DAR(1) == 1 && DAR(2) < 1)		% Mirone Figs with cos(lat) active
+			leave_DAR_alone = false;
 		end
 		
 		if ( ~isequal(DAR, [1 1 1]) && ~leave_DAR_alone ),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
