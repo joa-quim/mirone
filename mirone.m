@@ -1119,70 +1119,70 @@ function FileOpenNewImage_CB(handles, opt)
 	end
 	handles.fileName = [PathName FileName];
 
-set(handles.figure1,'pointer','watch')
-head_fw = [];			% Used when check for a .*fw registering world file
-[PATH,FNAME,EXT] = fileparts(handles.fileName);
-if (strcmpi(EXT,'.shade'))
-	[fid, msg] = fopen(handles.fileName, 'r');
-	if (fid < 0)
-		set(handles.figure1,'pointer','arrow');		errordlg([handles.fileName ': ' msg],'ERROR'),	return
-	end
-	fseek(fid, 56, 'bof');					% Seek forward to the image data.
-	nm = fread(fid,2,'uint16');				% read n_row & n_col
-	n_row = nm(1);		n_col = nm(2);
-	fseek(fid, 87, 'bof');					% position the pointer at the end of the header
-	nbytes = n_row*n_col*4;					% image is of RGBA type, so it has 4 channels
-	I = fread(fid,nbytes,'*uint8');		fclose(fid);
-	I = reshape(I, [4 n_row n_col]);	I = permute(I, [3 2 1]);
-	I(:,:,1) = flipud(I(:,:,1));		I(:,:,2) = flipud(I(:,:,2));
-	I(:,:,3) = flipud(I(:,:,3));		I(:,:,4) = flipud(I(:,:,4));
-	I = I(:,:,2:4);							% strip alpha off of I
-elseif (strcmpi(EXT,'.raw') || strcmpi(EXT,'.bin'))
-	FileOpenGDALmultiBand_CB(handles, 'RAW', handles.fileName)
-	return		% We are done here. Bye Bye.
-else
-	info_img = imfinfo(handles.fileName);
-	if ( any(strcmpi(EXT,{'.tif' '.tiff'})) && strcmp(info_img.Compression,'LZW'))
-		% If Tiffs are LZW, imread R13 is not able to read them 
-		I = gdalread(handles.fileName);
-	elseif (strcmpi(EXT,'.gif') && handles.IamCompiled)		% Try with GDAL because, ML uses f... java
-		I = gdalread(handles.fileName);
+	set(handles.figure1,'pointer','watch')
+	head_fw = [];			% Used when check for a .*fw registering world file
+	[PATH,FNAME,EXT] = fileparts(handles.fileName);
+	if (strcmpi(EXT,'.shade'))
+		[fid, msg] = fopen(handles.fileName, 'r');
+		if (fid < 0)
+			set(handles.figure1,'pointer','arrow');		errordlg([handles.fileName ': ' msg],'ERROR'),	return
+		end
+		fseek(fid, 56, 'bof');					% Seek forward to the image data.
+		nm = fread(fid,2,'uint16');				% read n_row & n_col
+		n_row = nm(1);		n_col = nm(2);
+		fseek(fid, 87, 'bof');					% position the pointer at the end of the header
+		nbytes = n_row*n_col*4;					% image is of RGBA type, so it has 4 channels
+		I = fread(fid,nbytes,'*uint8');		fclose(fid);
+		I = reshape(I, [4 n_row n_col]);	I = permute(I, [3 2 1]);
+		I(:,:,1) = flipud(I(:,:,1));		I(:,:,2) = flipud(I(:,:,2));
+		I(:,:,3) = flipud(I(:,:,3));		I(:,:,4) = flipud(I(:,:,4));
+		I = I(:,:,2:4);							% strip alpha off of I
+	elseif (strcmpi(EXT,'.raw') || strcmpi(EXT,'.bin'))
+		FileOpenGDALmultiBand_CB(handles, 'RAW', handles.fileName)
+		return		% We are done here. Bye Bye.
 	else
-		try			I = imread(handles.fileName);
-		catch,		errordlg(lasterr,'Error'),		return	% It realy may happen
+		info_img = imfinfo(handles.fileName);
+		if ( any(strcmpi(EXT,{'.tif' '.tiff'})) && strcmp(info_img.Compression,'LZW'))
+			% If Tiffs are LZW, imread R13 is not able to read them 
+			I = gdalread(handles.fileName);
+		elseif (strcmpi(EXT,'.gif') && handles.IamCompiled)		% Try with GDAL because, ML uses f... java
+			I = gdalread(handles.fileName);
+		else
+			try			I = imread(handles.fileName);
+			catch,		errordlg(lasterr,'Error'),		return	% It realy may happen
+			end
+		end
+		[head_fw,err_msg] = tfw_funs('inquire',[size(I,1) size(I,2)],PATH,FNAME,EXT);	% See if we have .*fw file
+		if (~isempty(err_msg))
+			warndlg(['A registering world file was found but the following error occured: ' err_msg],'Warning')
+		end
+
+		if (strcmp(info_img(1).ColorType,'grayscale') || (strcmp(info_img(1).ColorType,'truecolor') && (ndims(I) ~= 3)) )
+			set(handles.figure1,'Colormap',gray(256))
+		elseif (isfield(info_img(1),'ColorTable'))			% Gif images call it 'ColorTable'
+			set(handles.figure1,'Colormap',info_img(1).ColorTable)
+		elseif (isfield(info_img(1),'Colormap') && ~isempty(info_img(1).Colormap))
+			set(handles.figure1,'Colormap',info_img(1).Colormap)
 		end
 	end
-	[head_fw,err_msg] = tfw_funs('inquire',[size(I,1) size(I,2)],PATH,FNAME,EXT);	% See if we have .*fw file
-	if (~isempty(err_msg))
-		warndlg(['A registering world file was found but the following error occured: ' err_msg],'Warning')
-	end
 
-	if (strcmp(info_img(1).ColorType,'grayscale') || (strcmp(info_img(1).ColorType,'truecolor') && (ndims(I) ~= 3)) )
-		set(handles.figure1,'Colormap',gray(256))
-	elseif (isfield(info_img(1),'ColorTable'))			% Gif images call it 'ColorTable'
-		set(handles.figure1,'Colormap',info_img(1).ColorTable)
-	elseif (isfield(info_img(1),'Colormap') && ~isempty(info_img(1).Colormap))
-		set(handles.figure1,'Colormap',info_img(1).Colormap)
+	if (isempty(head_fw))			% Image is not georeferenced
+		handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];	% Fake a grid reg GMT header
+		handles.image_type = 2;		X = [];		Y = [];			ax_dir = 'off';
+	else							% Got and decoded a .*fw file
+		handles.image_type = 3;		handles.head = head_fw;
+		X = handles.head(1:2);		Y = handles.head(3:4);		ax_dir = 'xy';
+		I = flipdim(I,1);
 	end
-end
-
-if (isempty(head_fw))			% Image is not georeferenced
-	handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];	% Fake a grid reg GMT header
-	handles.image_type = 2;		X = [];		Y = [];			ax_dir = 'off';
-else							% Got and decoded a .*fw file
-	handles.image_type = 3;		handles.head = head_fw;
-	X = handles.head(1:2);		Y = handles.head(3:4);		ax_dir = 'xy';
-	I = flipdim(I,1);
-end
-handles = show_image(handles,handles.fileName,X,Y,I,0,ax_dir,0);
-grid_info(handles,handles.fileName,'iminfo');	% Construct a info string
-handles = aux_funs('isProj',handles);			% Check/set about coordinates type
-guidata(handles.figure1,handles)
-if (~isempty(head_fw) && ishandle(handles.Projections))		% Case still unknown to aux_funs('isProj',... 
-	set(handles.Projections,'Enable','on')		% We don't know which but at least it is georeferenced
-	setappdata(handles.figure1,'ProjGMT','')
-end
-recentFiles(handles);		% Insert fileName into "Recent Files" & save handles
+	handles = show_image(handles,handles.fileName,X,Y,I,0,ax_dir,0);
+	grid_info(handles,handles.fileName,'iminfo');	% Construct a info string
+	handles = aux_funs('isProj',handles);			% Check/set about coordinates type
+	guidata(handles.figure1,handles)
+	if (~isempty(head_fw) && ishandle(handles.Projections))		% Case still unknown to aux_funs('isProj',... 
+		set(handles.Projections,'Enable','on')		% We don't know which but at least it is georeferenced
+		setappdata(handles.figure1,'ProjGMT','')
+	end
+	recentFiles(handles);		% Insert fileName into "Recent Files" & save handles
 
 % --------------------------------------------------------------------
 function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
