@@ -2025,9 +2025,15 @@ function ImageDrape_CB(handles)
 	parent_img = get(handParent.hImg,'CData');			parent_was_resized = false;
 	y_son = size(son_img,1);			x_son = size(son_img,2);			% Get "son" image dimensions 
 	y_parent = size(parent_img,1);		x_parent = size(parent_img,2);		% Get "son" image dimensions 
+	transp = [];
 
 	% Find if image needs to be ud fliped
 	if(strcmp(get(handles.axes1,'YDir'),'reverse')),	son_img = flipdim(son_img,1);	end
+
+	% See if son_img comes from a grid with NaNs and if yes make the NaNs transparent
+	if (handles.validGrid && handles.have_nans)
+		[X,Y,Z] = load_grd(handles);		transp = isnan(Z);
+	end
 
 	% See about transparency
 	dlg_title = 'Draping Transparency';		num_lines= [1 38];	defAns = {'0'};
@@ -2043,7 +2049,7 @@ function ImageDrape_CB(handles)
 	if (handles.image_type == 2 || handles.image_type == 20 || handParent.image_type == 2 || handParent.image_type == 20)
 		blind_drape = true;
 	end
-	if (blind_drape)		% Drape based solely in images sizes
+	if (blind_drape)		% Drape based solely on images sizes
 		if (y_son ~= y_parent || x_son ~= x_parent)				% Check if "son" and "parent" images have the same size
 			son_img = cvlib_mex('resize',son_img,[y_parent x_parent],'bicubic');
 		end
@@ -2053,6 +2059,7 @@ function ImageDrape_CB(handles)
 		P2.x = [handParent.head(1) handParent.head(1) handParent.head(2) handParent.head(2) handParent.head(1)];	P2.hole = 0;
 		P2.y = [handParent.head(3) handParent.head(4) handParent.head(4) handParent.head(3) handParent.head(3)];
 		P3 = PolygonClip(P1, P2, 1);				% Intersection of the two rectangles
+		if (isempty(P3)),	warndlg('The two images do not overlap.','Warning'),	return,		end
 		rx_min = min(P3.x);			rx_max = max(P3.x);		ry_min = min(P3.y);			ry_max = max(P3.y);
 		rect_crop = [rx_min ry_min rx_max-rx_min ry_max-ry_min];
 
@@ -2068,6 +2075,17 @@ function ImageDrape_CB(handles)
 		[I,P1.hole] = cropimg(handles.head(1:2),handles.head(3:4),son_img,rect_crop,'out_grid');	% P1.hole to shut up MLint
 		son_img = cvlib_mex('resize',I,[diff(r_c(1:2)) diff(r_c(3:4))]+1,'bicubic');
 
+		if (~isempty(transp))		% Have NaNs, make them transparent but some complications arise from interpolation
+			[I,P1.hole] = cropimg(handles.head(1:2), handles.head(3:4), transp, rect_crop, 'out_grid');
+			transp = cvlib_mex('resize',I,[diff(r_c(1:2)) diff(r_c(3:4))]+1,'bicubic');
+			if (ndims(son_img) == 2)
+				transp = transp | (son_img == 0);		% Combine color & isnan() interpolations, which are not equal (???)
+			else
+				transp = transp | (son_img(:,:,1) == 255);
+				transp = transp | ((son_img(:,:,2) == 255) & (son_img(:,:,3) == 255));
+			end
+		end
+
 		% Make sure parent & son are both indexed or true color
 		if (ndims(son_img) == 2 && ndims(parent_img) == 3)
 			son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));
@@ -2078,6 +2096,12 @@ function ImageDrape_CB(handles)
 			tmp = parent_img(r_c(1):r_c(2),r_c(3):r_c(4),:);
 			cvlib_mex('addweighted',son_img,(1 - alfa),tmp,alfa)	% In-place
 			alfa = 0;	% We don't want to repeat the alpha blending below
+		end
+		if (~isempty(transp))
+			for (k = 1:size(son_img,3))
+				tmp = son_img(:,:,k);			tmp2 = parent_img(r_c(1):r_c(2),r_c(3):r_c(4),k);
+				tmp(transp) = tmp2(transp);		son_img(:,:,k) = tmp;
+			end
 		end
 		parent_img(r_c(1):r_c(2),r_c(3):r_c(4),:) = son_img;
 		son_img = parent_img;		% Do this to be compatible with the blind_drape mode
