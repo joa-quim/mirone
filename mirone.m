@@ -3418,12 +3418,15 @@ function FileSaveFleder_CB(handles, opt)
 	if ( (strcmp(opt,'writeSpherical') || ~handles.flederPlanar) && ~handles.geog)
 		errordlg('Spherical objects are allowed only for geographical grids','Error'),	return
 	end
-
+	
 	fname = write_flederFiles(opt, handles);		pause(0.01);
 	if (isempty(fname)),	return,		end
+	if (fname(end) == 'e'),		comm = [' -scene ' fname ' &'];		% A SCENE file
+	else						comm = [' -data ' fname ' &'];		% A SD file
+	end
 	if (strncmp(opt,'run',3))		% Run the viewer and remove the tmp .sd file
-		if (handles.whichFleder),	fcomm = ['iview4d -data ' fname ' &'];			% Free viewer
-		else						fcomm = ['fledermaus -data ' fname ' &'];		% The real thing
+		if (handles.whichFleder),	fcomm = ['iview4d' comm];			% Free viewer
+		else						fcomm = ['fledermaus' comm];		% The real thing
 		end
 		try
 			if (isunix)				% Stupid linux doesn't react to a non-existant iview4d
