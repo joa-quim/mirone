@@ -71,14 +71,25 @@ function fname = write_flederFiles(opt,varargin)
 		set(handles.figure1,'pointer','watch')
 		[PATH,FNAME,EXT] = fileparts(fname);
 		if isempty(EXT),    fname = [fname '.sd'];  end
-		fid = fopen(fname,'wb');
 		if (strcmp(opt(end-2:end),'img'))		% either writeGeoimg or runGeoimg
+			fid = fopen(fname,'wb');
 			write_geoimg(fid, 'first', img)
 			write_geo(fid,'add',head(1:6))
-		elseif (strcmp(opt,'writePlanar') || handles.flederPlanar)
-			write_main(fid,    'Planar', Z, img, head(1:6), img2);
 		else
-			write_main(fid, 'Spherical', Z, img, head(1:6), img2);
+			if (strcmp(opt,'writePlanar') || handles.flederPlanar)
+				tipo = 'Planar';
+			else
+				tipo = 'Spherical';
+			end
+			vimage = getappdata(handles.axes1,'VIMAGE');
+			if (isempty(vimage))
+				fid = fopen(fname,'wb');
+				write_main(fid, tipo, Z, img, img2, head(1:6));
+			else
+				fname = [fname '.scene'];		% Will have .sd.scene extension but no big deal
+				fid = fopen(fname,'wb');
+				write_scene(fid, tipo, 'vimage', Z, img, img2, head(1:6), vimage)
+			end
 		end
 		if (handles.flederBurn ~= 2)       % If not screen capture, see if there are lines & pts to flederize
 			write_lines_or_points(fid, handles.axes1, head(1:6), handles.flederBurn);
@@ -95,7 +106,7 @@ function fname = write_flederFiles(opt,varargin)
 			write_dtm(varargin{:});     % Write a .dtm object
 		case 'shade'
 			write_shade(varargin{:});   % Write a .shade object
-		case 'main_SD'		% The call must be: write_main(fid, tipo, Z, img, limits)
+		case 'main_SD'		% The call must be: write_main(fid, tipo, Z, img, img2, limits)
 			fid = write_main(varargin{:});		% Write a .sd object made of .geo .dtm & .shade blocks
 			write_eof(fid)						% Write EOF block and close the file
 		case 'all3'			% The call must be: write_all3(name, flederPlanar, Z, img, limits)
@@ -227,7 +238,7 @@ function write_all3(name_stem, flederPlanar, Z, img, limits)
 	end
 
 %----------------------------------------------------------------------------------
-function fid = write_main(fid, tipo, Z, img, limits, img2)
+function fid = write_main(fid, tipo, Z, img, img2, limits)
 % Write a basic .sd file. That is with a DTM, a SHADE & a GEO blocks
 
 	if (ischar(fid))		% FID is in fact the file name 
@@ -270,6 +281,72 @@ function fid = write_main(fid, tipo, Z, img, limits, img2)
 	end
 
 %----------------------------------------------------------------------------------
+function write_scene(fid, tipo, mode, Z, img, img2, limits, struct_vimage)
+% Write a scene (very crude)
+
+%	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
+	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Fledermaus wrote this scene file!','%%');
+
+	write_scene_block(fid)
+	write_node_block(fid, 'root', 'Root Node', 'Unknown')
+	%write_geo(fid,'add',limits)
+	write_geo(fid,'add',[limits(1:4) -10000 limits(end)])
+	write_alignparent_block(fid)
+
+	if (~isempty(Z))
+		write_geo(fid,'add',[limits(1:4) -10000 limits(end)])	% <
+%		write_node_block(fid, 'dtm', 'Surface', 'unknown')
+  		write_node_block(fid, 'dtm', 'test1.sd', 'C:|programs|IVS|bin|test1.sd')
+		write_geo(fid,'add',limits)		% <
+		write_sonardtm_block(fid, tipo)
+		write_dtm(fid,'add',Z,limits)
+		write_shade(fid, 'add', img)
+		write_geo(fid,'add',limits)
+		write_sonardtm_atb_block(fid)
+	end
+
+	if (strcmp(mode,'vimage'))
+		for (k = 1:numel(struct_vimage))
+			hLine = struct_vimage(k).hLine;
+			if (~ishandle(hLine)),		continue,		end			% Line was deleted
+			
+			try
+				info_img = imfinfo(struct_vimage(k).vimage);
+				I = gdalread(struct_vimage(k).vimage,'-U');
+				if (strcmp(info_img(1).ColorType,'grayscale') || (strcmp(info_img(1).ColorType,'truecolor') && (ndims(I) ~= 3)) )
+					I = ind2rgb8(img2,'Colormap',gray(256));
+				elseif (isfield(info_img(1),'ColorTable'))			% Gif images call it 'ColorTable'
+					I = ind2rgb8(img2,'Colormap',info_img(1).ColorTable);
+				elseif (isfield(info_img(1),'Colormap') && ~isempty(info_img(1).Colormap))
+					I = ind2rgb8(img2,'Colormap',info_img(1).Colormap);
+				end
+			catch
+				errordlg(['WriteFleder: Error reading image: ' struct_vimage(k).vimage],'ERROR')
+				continue
+			end
+
+			[pato, fname] = fileparts(struct_vimage(k).vimage);
+ 			write_node_block(fid, 'vimage', fname, 'unknown')
+			X = get(hLine, 'XData');		Y = get(hLine, 'YData');
+			Vlimits = [X(1) Y(1) struct_vimage(k).z_min X(end) Y(end) struct_vimage(k).z_max];
+			write_geo(fid,'add',limits)	% <
+			write_vimage_block(fid, Vlimits)
+			Vlimits = [X(1) X(end) Y(1) Y(end) struct_vimage(k).z_min struct_vimage(k).z_max];
+			write_shade(fid, 'add', I, 'geoimg')
+			write_geo(fid,'add',Vlimits)
+			write_geo(fid,'add',Vlimits)
+			write_vimage_atb_block(fid)
+		end
+	else
+		write_node_block(fid, 'geoimg', 'Drapped', 'unknown')
+		limits(5:6) = [0 1];
+		write_geo(fid,'add',limits)
+		write_geoimg(fid, 'add', img2)
+		write_geo(fid,'add',limits)
+		write_geoimg_atb_block(fid)
+	end
+
+%----------------------------------------------------------------------------------
 function write_geoimg(fid, mode, img)
 % Write a basic image .sd file. That is one with image & a GEO blocks
 	if (strcmp(mode,'first'))       % The TDR object starts here
@@ -296,13 +373,14 @@ function write_scene_block(fid)
 	fwrite(fid,[20002 116],'integer*4');		% Tag ID, Data Length
 	fwrite(fid,[0 0 1 1 1 3 0 0],'uchar');
 	fwrite(fid,(1:9)*0,'integer*4');
-	fwrite(fid,[205 204 204 61 0 64 28 70 0 0 0 0 10 215 35 60 0 36 116 72],'uchar');
-	fwrite(fid,[0 64 156 69 0 64 156 69 0 0 128 63 (1:19)*0 63 215 179 93 191],'uchar');
+% 	fwrite(fid,[205 204 204 61 0 64 28 70 0 0 0 0 10 215 35 60 0 36 116 72],'uchar');
+% 	fwrite(fid,[0 64 156 69 0 64 156 69 0 0 128 63 (1:19)*0 63 215 179 93 191],'uchar');
+	fwrite(fid,[205 204 204 61 0 64 28 70 1 0 1 0 10 215 35 60 0 36 116 72],'uchar');
+	fwrite(fid,[72 127 248 66 0 192 90 69 0 0 128 63 (1:16)*0 202 232 227 62 21 61 101 191],'uchar');
 	fwrite(fid,[0 0],'integer*4');
- 	fwrite(fid,[215 179 93 63 0 0 0 63 (1:13)*0 64 156 197 0 0 128 63 0 0 72 66],'uchar');
-% 	% Possibly another block, but need to find out
-% 	fwrite(fid,[215 179 93 63 0 0 0 63 (1:13)*0 64 156 197 0 0 128 63 0 0 72 66 172 38],'uchar');
-% 	fwrite(fid,[(1:8)*0 1 1 1 1 (1:18)*0],'uchar');
+
+	%  	fwrite(fid,[215 179 93 63 0 0 0 63 (1:13)*0 64 156 197 0 0 128 63 0 0 72 66],'uchar');
+ 	fwrite(fid,[21 61 101 63 202 232 227 62 (1:13)*0 64 156 197 0 0 128 63 0 0 72 66],'uchar');
 	fwrite(fid,[9900 0],'integer*4');				% Tag ID, Data Length		-- SD_HIERARCHY
 	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
 
@@ -313,16 +391,25 @@ function write_node_block(fid, tipo, str1, str2)
 	dl = 180 + numel(str1) + numel(str2);
 	fwrite(fid,[9910 dl],'integer*4');		% Tag ID, Data Length
 	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
-	fwrite(fid,[-1 -1 0 0 0],'integer*4');
+	fwrite(fid,[-1 0 0 0 0],'integer*4');
 	if (strcmp(tipo,'root'))
-		fwrite(fid,[0 0 128 63 0 0 128 63 0 0 128 63],'uchar');
+		%fwrite(fid,[0 0 128 63 0 0 128 63 0 0 128 63],'uchar');		% Non VIMAGE ???
+		fwrite(fid,[24 4 41 66 203 90 225 65 0 0 128 63],'uchar');
 		fwrite(fid,[0 0 0 3 1 1 1],'integer*4');
 	elseif (strcmp(tipo, 'dtm'))
-		fwrite(fid,[0 0 128 63 0 0 128 63 205 204 76 62],'uchar');
-		fwrite(fid,[0 0 0 12 0 1 1],'integer*4');
+		%fwrite(fid,[0 0 128 63 0 0 128 63 205 204 76 62],'uchar');		% Non VIMAGE ???
+		%fwrite(fid,[0 0 0 12 0 1 1],'integer*4');
+		fwrite(fid,[0 0 128 63 0 0 128 63],'uchar');
+		fwrite(fid,[11 234 229 62 0 0 0 128 0 0 0 128 251 10 141 62],'uchar');
+		fwrite(fid,[12 0 1 1],'integer*4');
 	elseif (strcmp(tipo, 'geoimg'))
 		fwrite(fid,[0 0 128 63 0 0 128 63 0 0 128 63],'uchar');
 		fwrite(fid,[0 0 0 36 0 1 1],'integer*4');
+	elseif (strcmp(tipo, 'vimage'))
+		fwrite(fid,[171 170 42 63 0 205],'uchar');
+		fwrite(fid,[204 61 244 106 34 63 0 0],'uchar');		% Somehow it depends on the inserting coods
+		fwrite(fid,[0 128 0 205 76 61 25 42 59 190 41 0 0 0],'uchar');		%	"
+		fwrite(fid,[0 1 1],'integer*4');
 	else
 		error('Case unpredicted in write_node_block')
 	end
