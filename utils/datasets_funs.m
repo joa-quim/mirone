@@ -153,11 +153,13 @@ function DatasetsIsochrons(handles, opt, opt2)
 %
 % If first line in file is of the form '>U_N_I_K', plot a single line NaN separated
 % If first line in file is of the form '>ARROW', plot an arrow field
+% If first line in file is of the form '>VIMAGE', tell Fleder to plot a scene with a VIMAGE
 
 	% Some defaults
 	tol = 0.5;
 	do_project = false;         % We'll estimate below if this holds true
 	got_arrow = false;
+	struc_vimage = [];
 
 	if (nargin >= 2 && isempty(opt))            % Read a ascii multi-segment with info file
 		[FileName,PathName] = put_or_get_file(handles, ...
@@ -283,7 +285,7 @@ for (k = 1:numel(names))		% Main loop over data files
 		n_segments = 1;				% Pretend we have only one segment
 
 	elseif (strncmpi(multi_segs_str{1}, '>ARROW', 6) || got_arrow)		% ARROW field (the got_arrow can came via varargin)
-		if (~got_arrow)		multi_segs_str{1}(2:6) = [];	end			% Rip the ARROW identifier
+		if (~got_arrow),	multi_segs_str{1}(2:6) = [];	end			% Rip the ARROW identifier
 		got_arrow = true;
 		if (n_column < 4)
 			errordlg('Files for arrow plot need 4 columns with the traditial (x,y,u,v)','ERROR'),	return
@@ -294,6 +296,19 @@ for (k = 1:numel(names))		% Main loop over data files
 			numeric_data{i}(:,3:end) = [];
 		end
 		struc_arrow = struct('spacingChanged',[], 'hQuiver', [], 'hAx', handles.axes1);
+
+	elseif (strncmp(multi_segs_str{1}, '>VIMAGE', 7))
+		[z_Vmin, r] = strtok(multi_segs_str{k}(8:end));		z_Vmin = str2double(z_Vmin);
+		[z_Vmax, r] = strtok(r);							z_Vmax = str2double(z_Vmax);
+		vimage = strtok(r);
+		if (isnan(z_Vmin) || isnan(z_Vmax))
+			errordlg('Load VIMAGE error. First 2 fields must contain Z_START & Z_END info.','Error'),	return
+		end
+		if (~ischar(vimage) || ~exist(vimage,'file'))
+			errordlg('Load VIMAGE error. Third field must contain an existing picture file name.','Error'),	return
+		end
+		struc_vimage = struct('z_min', z_Vmin, 'z_max', z_Vmax, 'vimage', vimage);
+
 	end
 
 	for (i = 1:n_segments)
@@ -350,6 +365,20 @@ for (k = 1:numel(names))		% Main loop over data files
 				set(h_isoc(i),'UserData',tmpz');									% So that Fleder can drape this line
 			end	
 			setappdata(h_isoc(i),'LineInfo',multi_segs_str{i})  % To work with the sessions and will likely replace old mechansim
+
+			% Finish the Vertical image section (if it exists obviously)
+			if (~isempty(struc_vimage))
+				vimage = getappdata(handles.axes1,'VIMAGE');
+				if (isempty(vimage))			% First one
+					struc_vimage.hLine = h_isoc(i);
+					setappdata(handles.axes1, 'VIMAGE', struc_vimage)
+				else
+					struc_vimage.hLine = h_isoc(i);
+					vimage(end+1) = struc_vimage;
+					setappdata(handles.axes1, 'VIMAGE', vimage)
+				end
+			end
+	
 		else
 			Fcor = parseG(multi_segs_str{i});
 			if (isempty(Fcor)),      Fcor = 'none';   end
