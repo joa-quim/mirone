@@ -90,31 +90,36 @@ function [v, f] = reduce_qslim(varargin)
 	end
 
 	if (got_handle && ~isempty(base))
-		[faces, verts] = closeSurf(faces, verts, X, Y, nFacets, base, 'base');
+		[faces, verts] = closeSurf(faces, verts, X(:), Y(:), nFacets, base, 'base');
 	elseif (got_handle && ~isempty(thickness))
-		[faces, verts] = closeSurf(faces, verts, X, Y, nFacets, thickness, 'thick');
+		[faces, verts] = closeSurf(faces, verts, X(:), Y(:), nFacets, thickness, 'thick');
 	end
 	
 	numFaces = size(faces,1);
 	if (reduction > 0 && reduction <= 1)
-		reduction = numFaces*reduction;
+		reduction = round(numFaces*reduction);
 	end
 	reduction = min(numFaces+1, reduction);
 
 	% CALL MEX TO DO THE HARD WORK
-	%[v, f] = reducep_s(verts, faces, reduction, verbose);
-	%[f, v] = reducepatch(double(faces), double(verts), reduction, 'fast', 'verbose');
-	f = faces;	v = verts;
+	if (reduction ~= numFaces)			% Tests showed that if (nin == nout), nothing is done
+		[v, f] = reducep_s(verts, faces, reduction, verbose);
+		%[f, v] = reducepatch(double(faces), double(verts), reduction, 'fast', 'verbose');
+		%f = faces;	v = verts;
+	else
+		v = verts;		f = faces;
+	end
 
 	if (~isempty(outFname))
 		if (strcmp(formato,'nc'))
 			if (got_handle),	geog = handles.geog;
 			else				geog = 0;
 			end
-			saveFV_nc(outFname, faces, verts, geog)
+			saveFV_nc(outFname, f, v, geog)
+		elseif (strcmp(formato,'stl') || strcmp(formato,'xyz'))
+			write_mex(v, f, outFname, formato, tipo)
 		else
-% 			saveSTL([outFname 'l'], faces, verts, 'ascii')
-			write_mex(verts, faces, outFname, 'STL', 'BIN')
+			disp('Saving formats other than NC, STL or XYZ are not yet programmed')
 		end
 	end
 
@@ -140,6 +145,8 @@ function [faces, verts, r, verbose, got_handle, outFname, formato, tipo, base, t
 				formato = 'nc';
 			elseif (strcmpi(vargin{j+1},'stl'))
 				formato = 'stl';
+			elseif (strcmpi(vargin{j+1},'xyz'))
+				formato = 'xyz';
 			else
 				msg = 'Unknown output format request';
 				return
@@ -188,8 +195,8 @@ function [faces, verts] = closeSurf(faces, verts, X, Y, nFilled, base, modo)
 	if (strcmp(modo, 'base'))
 		newVerts = [X(:) repmat(Y(1),nCol,1) repmat(base,nCol,1); ...				% To S face
 					repmat(X(end),nRow,1) Y(:) repmat(base,nRow,1); ...				% To E face
-					X(end:-1:1)' repmat(Y(end),nCol,1) repmat(base,nCol,1); ...		% To N face
-					repmat(X(1),nRow,1) Y(end:-1:1)' repmat(base,nRow,1)];			% To W face
+					X(end:-1:1) repmat(Y(end),nCol,1) repmat(base,nCol,1); ...		% To N face
+					repmat(X(1),nRow,1) Y(end:-1:1) repmat(base,nRow,1)];			% To W face
 
 		verts = [verts; newVerts];
 
@@ -257,53 +264,14 @@ function [faces, verts] = closeSurf(faces, verts, X, Y, nFilled, base, modo)
 			faces(kk,1) = n;		faces(kk,2) = n + mn;		faces(kk,3) = n - 1;	kk = kk + 1;
 			faces(kk,1) = n + mn;	faces(kk,2) = n - 1 + mn;	faces(kk,3) = n - 1;	kk = kk + 1;
 		end
-		faces(kk:end,:) = faces(1:nFilled,:);				% Make the lower surface equal to top
-		cvlib_mex('addS', faces(kk:end,:), mn);				% This works with ALL ML versions, and compiled
+
+		% Make the lower surface equal to top
+		tmp = faces(1:nFilled,:);
+		cvlib_mex('addS', tmp, mn);				% This works with ALL ML versions, and compiled
+		faces(kk:end,:) = tmp;
 
 	end
 
-% ----------------------------------------------------------------------------------------------
-function saveSTL(fname, faces, verts, mode)
-
-	pts_ABC = [verts(faces,1) verts(faces,2) verts(faces,3)];
-	nTri  = size(pts_ABC,1) / 3;
-	pts_A = pts_ABC(1:nTri,:);
-	pts_B = pts_ABC(nTri+1:nTri*2,:);
-	pts_C = pts_ABC(nTri*2+1:size(pts_ABC,1),:);
-	vec_BA = pts_B - pts_A;
-	vec_CA = pts_C - pts_A;
-	n = cross(vec_BA, vec_CA);
-	n = n ./ repmat(sqrt(sum(n .^ 2,2)),[1,3]);
-
-	%create the output matrix
-
-	output = zeros(nTri*4,3);
-	for i = 1:nTri
-		output(i*4-3,:) = n(i,:);
-		output(i*4-2,:) = pts_A(i,:);
-		output(i*4-1,:) = pts_B(i,:);
-		output(i*4,:)   = pts_C(i,:);
-	end
-	output=output';
-
-	%write the STL-file
-
-	if strcmp(mode,'ascii')
-		fid = fopen (fname,'wt');
-		fprintf (fid,'solid %s\n', 'Created by Mirone');
-		fprintf (fid, '  facet normal  %.9g %.9g %.9g\n    outer loop\n\tvertex %.9g %.9g %.9g\n\tvertex %.9g %.9g %.9g\n\tvertex %.9g %.9g %.9g\n    endloop\n  endfacet\n',output);   
-		fprintf (fid,'endsolid %s\n', 'surface' );
-	else
-		fid = fopen (fname,'wb+');
-		fwrite(fid,'Created by Mirone','uchar');		% Title
-		fwrite(fid,size(faces1),'int32');				% Number of facets
-        fwrite(fid,n,'float32');
-        fwrite(fid,p1,'float32');
-        fwrite(fid,p2,'float32');
-        fwrite(fid,p3,'float32');
-        fwrite(fid,0,'int16');  % unused
-	end
-	fclose (fid);
 
 % ----------------------------------------------------------------------------------------------
 function saveFV_nc(fname, faces, verts, is_geog)
