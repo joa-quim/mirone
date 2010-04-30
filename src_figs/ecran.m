@@ -1,6 +1,6 @@
 function varargout = ecran(varargin)
 
-%	Copyright (c) 2004-2008 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ function varargout = ecran(varargin)
 	handles.d_path = [handles.home_dir filesep 'data' filesep];
 	load([handles.d_path 'mirone_pref.mat']);
 	try			handles.last_dir = directory_list{1};
-	catch		handles.last_dir = cd;
+	catch,		handles.last_dir = cd;
 	end
 
 	% ---- OK, the interface for this function is a mess. In part due to backward compatibility issues
@@ -81,7 +81,7 @@ function varargout = ecran(varargin)
 	end
 
 	% ------------- Load some icons from mirone_icons.mat
-	load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico');
+	load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico', 'Mline_ico');
 	link_ico = imread([handles.d_path 'link.png']);
 
 	hTB = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
@@ -95,6 +95,7 @@ function varargout = ecran(varargin)
 		uitoggletool('parent',hTB,'Click',@pick_CB, 'cdata',link_ico,'Tooltip', ...
 			'Pick data point in curve and plot it the mirone figure','Sep','on');
 	end
+	uitoggletool('parent',hTB,'Click',@dynSlope_CB, 'cdata', Mline_ico,'Tooltip','Compute slope dynamically', 'Tag', 'DynSlope');
 	uitoggletool('parent',hTB,'Click',@isocs_CB, 'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on');
 	% -----------------------------------------
 
@@ -104,8 +105,6 @@ function varargout = ecran(varargin)
 	handles.dist = [];			% It will contain cumulated distance if input is (x,y,z)
 	handles.hLine = [];			% Handles to the ploted line
 	handles.polyFig = [];		% Handles to the (eventual) figure for trend1d polyfit
-
-	axes(handles.axes1)		% Make it the active one
 
 	% Choose the default ploting mode
 	if isempty(varargin{1})          % When the file will be read latter
@@ -189,9 +188,103 @@ function copyclipbd_CB(obj,eventdata)
 	end
 	mat2clip(data)
 
+% ------------------------------------------------------------------------------------------
+function dynSlope_CB(obj, eventdata)
+% Compute slope over the click and drag region.
+
+	handles = guidata(obj);								mkAnother = false;
+	if (~strcmp(get(obj,'State'),'on'))
+		set(handles.axes2, 'Vis', 'off')
+		set(findobj(handles.axes2,'Type', 'line', 'Tag', 'UnderLine'), 'Vis', 'off')
+		set(findobj(handles.axes1,'Type', 'line', 'Tag', 'FitLine'), 'Vis', 'off')
+		set(findobj(handles.axes2,'Type', 'text', 'Tag','DS'), 'Vis', 'off')
+		set(handles.figure1,'Pointer', 'arrow');		% Could be cross when unsetting the toggle button
+		return
+	else
+		hULine = findobj(handles.axes2,'Type', 'line', 'Tag', 'UnderLine');
+		hFLine = findobj(handles.axes1,'Type', 'line', 'Tag', 'FitLine');
+		hTxt = findobj(handles.axes2,'Type', 'text', 'Tag','DS');
+		if (~isempty(hULine)),		set(hULine, 'Vis', 'on'),		end
+		if (~isempty(hTxt)),		set(hTxt,   'Vis', 'on'),		end
+		if (~isempty(hFLine))
+			set(hFLine, 'Vis', 'on')
+			if ( ~isempty(get(hFLine, 'UserData')) )	mkAnother = true;	end
+		end
+	end
+
+	state = uisuspend_fig(handles.figure1);				% Remember initial figure state
+	set(handles.figure1,'Pointer', 'crosshair');
+	w = waitforbuttonpress;
+	if (w == 0)					% A mouse click
+		if (strcmp(get(handles.figure1, 'Pointer'), 'arrow'))	% This might look idiot (pointer was set 3 lines above)
+			return												% but is actually atrick to catch a not-yet-interrupted
+		end														% waitforbuttonpress (from a 2 consecutive hits on toggbutton)
+		button = get(handles.figure1, 'SelectionType');
+		if (~strcmp(button,'normal')),		set(handles.figure1,'Pointer', 'arrow'),	return,		end		% left-clicks only
+		
+		if (isempty(hULine))
+			hULine = line('XData', [NaN NaN], 'YData', [0.05 0.05], 'Parent', handles.axes2,'Color','k','LineWidth',1,'Tag','UnderLine');
+			hTxt = text(0, -1, 0, 'Dist= Slp=', 'Parent', handles.axes2, 'FontSize',9, 'VerticalAlignment', 'Base', 'Tag','DS');
+		end
+		if (isempty(hFLine))
+			hFLine = line('XData', [], 'YData', [], 'Parent', handles.axes1,'Color','k','LineWidth',2,'Tag','FitLine');
+		elseif (mkAnother)		% Second or above Fit lines
+			hFLine = [hFLine; ...
+				line('XData', [], 'YData', [], 'Parent', handles.axes1,'Color',rand(1,3),'LineWidth',2,'Tag','FitLine')];
+		end
+        dynSlopeFirstButtonDown(handles.figure1, handles.axes1, handles.axes2, handles.hLine, hULine, hFLine, hTxt, state)
+	else
+        set(handles.figure1,'Pointer', 'arrow');
+	end
+
+% ------------------------------------------------------------------------------------------
+function dynSlopeFirstButtonDown(hFig, hAxes1, hAxes2, hLine, hULine, hFLine, hTxt, state)
+	pt = get(hAxes1, 'CurrentPoint');
+	x = get(hLine,'XData');
+	x_lim = get(hAxes1,'XLim');
+	set(hAxes2, 'Vis', 'on','XTick',[], 'YTick',[], 'xlim', x_lim, 'ylim', [-0.01 1])
+
+	[temp,i] = min(abs(x - pt(1,1)));
+	set(hFig,'WindowButtonMotionFcn',{@wbm_dynSlope, x(i), i, hAxes1, hLine, hULine, hFLine, hTxt}, ...
+		'WindowButtonUpFcn',{@wbu_dynSlope, hFLine, state});
+
+function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt)
+	pt = get(hAxes, 'CurrentPoint');
+	X = get(hLine,'XData');       Y = get(hLine,'YData');
+
+	[temp,i] = min(abs(X - pt(1)));
+	if (i < I0)		ii = I0;		I0 = i;		i = ii;		end		% Dragging right to left
+	xx = X(I0:i);		yy = Y(I0:i);		xy = [xx(:) yy(:)];
+	N = numel(xx);
+	if (N > 2)			mb = trend1d_m(xy, '-N2r', '-L');			% Do robust fit
+	elseif (N == 2)		mb = trend1d_m(xy, '-N2', '-L');
+	else				return			% First point. Too soon to do anything
+	end
+	xUnderLine = [x0 xx(end)];
+	set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf('Dist=%g\t  Slp=%.6g', diff(xUnderLine), mb(1)))
+	set(hFLine(end), 'XData', [xx(1) xx(end)], 'YData', [yy(1) (mb(1)*xx(end)+mb(2))],'UserData',mb)
+	set(hULine,'XData', xUnderLine)
+% 	if (diff(xUnderLine) > 5000)
+% 		merda=0;
+% 	end
+
+function wbu_dynSlope(obj,eventdata,h,state)
+    uirestore_fig(state);           % Restore the figure's initial state
+	cmenuHand = uicontextmenu('Parent',state.figureHandle);
+	set(h(end), 'UIContextMenu', cmenuHand);
+ 	uimenu(cmenuHand, 'Label', 'Slope  &  Intercept');
+	uimenu(cmenuHand, 'Label', num2str(get(h(end), 'UserData')));
+	uimenu(cmenuHand, 'Label', 'Delete this line', 'Callback', 'delete(gco)', 'Sep', 'on');
+	ui_edit_polygon(h(end))
+% ------------------------------------------------------------------------------------------
+
 % --------------------------------------------------------------------------------------------------
 function pick_CB(obj,eventdata)
 	handles = guidata(obj);
+	o = findobj('Type','uitoggletool', 'Tag', 'DynSlope');
+	if (strcmp(get(o,'State'),'on'))		% If DynSlope is 'on' turn it off
+		set(o,'State','off'),		dynSlope_CB(o, [])
+	end
 	if (strcmp(get(obj,'State'),'on'))
 		set(handles.figure1,'WindowButtonDownFcn',@add_MarkColor)
 	else
@@ -215,15 +308,15 @@ function add_MarkColor(obj, eventdata)
 	x_lim = get(handles.axes1,'XLim');		y_lim = get(handles.axes1,'YLim');
 	dx = diff(x_lim) / 20;					% Search only betweem +/- 1/10 of x_lim
 	id = (x < (pt(1,1)-dx) | x > (pt(1,1)+dx));
-	x(id) = [];             y(id) = [];     % Clear outside-2*dx points to speed up the search code
+	x(id) = [];				y(id) = [];     % Clear outside-2*dx points to speed up the search code
 	x_off = find(~id);		x_off = x_off(1);	% Get the index of the first non killed x element
 	XScale = diff(x_lim);	YScale = diff(y_lim);
 
 	r = sqrt(((pt(1,1)-x) ./ XScale).^2 + ((pt(1,2)-y) ./ YScale).^2);
 	[temp,i] = min(r);
-	pt_x = x(i);                pt_y = y(i);
+	pt_x = x(i);				pt_y = y(i);
 	
-	xr = get(hM,'XData');       yr = get(hM,'YData');
+	xr = get(hM,'XData');		yr = get(hM,'YData');
 	id = find(xr == pt_x);
 	if (isempty(id))            % New Marker
 		if (~isempty(handles.handMir))
@@ -247,7 +340,7 @@ function add_MarkColor(obj, eventdata)
 		xr(id) = [];            yr(id) = [];
 		set(hM,'XData',xr, 'YData', yr)
 		ud = get(hM,'UserData');
-		try,	delete(ud(id)),		end
+		try		delete(ud(id)),		end
 		ud(id) = [];
 		set(hM,'UserData', ud)
 	end
@@ -288,7 +381,6 @@ function checkbox_geog_Callback(hObject, eventdata, handles)
 function popup_selectPlot_Callback(hObject, eventdata, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	D2R = pi/180;
-	h = findobj(handles.axes1,'Type','line');
 	switch str{val};
 	
 		case 'Distance along profile (data units)'  % Compute the accumulated distance along profile in data units
@@ -374,7 +466,7 @@ switch str{val};
     case 'Distance,Z (data units -> mat file)'				% Save profile in binary data units
 		[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance,Z (Matlab mat file)','put');
 		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-		R = handles.dist';   Z = handles.data(:,3)';      % More one BUG, handles.data(:,3) canot be saved
+		R = handles.dist';   Z = handles.data(:,3)';		% More one BUG, handles.data(:,3) canot be saved
 		save([PathName FileName],'R','Z')
 end
 set(hObject,'Value',1);
@@ -603,7 +695,7 @@ function push_magBar_Callback(hObject, eventdata, handles)
 	faces = [c1 c2 c3 c4];
 
 	cor = repmat([0 0 0; 1 1 1],n_ages-1,1);    cor = [cor; [0 0 0]];
-	hp = patch('Parent',handles.axes2,'Faces',faces,'Vertices',[x y],'FaceVertexCData',cor,'FaceColor','flat');   
+	patch('Parent',handles.axes2,'Faces',faces,'Vertices',[x y],'FaceVertexCData',cor,'FaceColor','flat');   
 	set(handles.figure1,'renderer','Zbuffer')	% The patch command above set it to OpenGL, which is f... bugged
 
 	% Get the index of anomalies that have names. We'll use them to plot those anomaly names
@@ -660,7 +752,7 @@ function [Pxx,w] = psd(xw,Fs)
 	Sxx =(abs(fft(xw)).^2)./N; 
 
 	% Generate the frequency vector in [rad/sample] at which Sxx was computed
-	w = 2.*pi.*(0 : 1./nfft : 1-1./nfft);
+	w = 2.*pi.*(0 : 1/nfft : 1-1/nfft);
 
 	% Compute the Power/freq (PSD), the Power and the frequency at which it is computed
 	w = w(:);
@@ -694,7 +786,7 @@ function figure1_CloseRequestFcn(hObject, eventdata)
 	handles = guidata(hObject);
 	if (isempty(handles)),		delete(gcf),	return,		end
 	if (~isempty(handles.polyFig))
-		try,	delete(handles.polyFig),	end
+		try		delete(handles.polyFig),	end
 	end
 	delete(handles.figure1)
 
@@ -719,6 +811,15 @@ set(h1,'Units','centimeters',...
 axes('Parent',h1,...
 'CameraPosition',[0.5 0.5 9.16025403784439],...
 'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
+'Color',get(0,'defaultaxesColor'),...
+'ColorOrder',get(0,'defaultaxesColorOrder'),...
+'Position',[0.0493218249075216 0.93859649122807 0.939580764488286 0.0584795321637427],...
+'Tag','axes2',...
+'Visible','off');
+
+axes('Parent',h1,...
+'CameraPosition',[0.5 0.5 9.16025403784439],...
+'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
 'NextPlot','Add',...
 'Color',get(0,'defaultaxesColor'),...
 'ColorOrder',get(0,'defaultaxesColorOrder'),...
@@ -726,15 +827,6 @@ axes('Parent',h1,...
 'XColor',get(0,'defaultaxesXColor'),...
 'YColor',get(0,'defaultaxesYColor'),...
 'Tag','axes1');
-
-axes('Parent',h1,...
-'CameraPosition',[0.5 0.5 9.16025403784439],...
-'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
-'Color',get(0,'defaultaxesColor'),...
-'ColorOrder',get(0,'defaultaxesColorOrder'),...
-'Position',[0.0493218249075216 0.93859649122807 0.939580764488286 0.0584795321637427],...
-'Tag','axes2',...
-'Visible','off');
 
 uicontrol('Parent',h1,...
 'Units','normalized',...
@@ -901,7 +993,7 @@ uicontrol('Parent',h1,...
 
 function ecran_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,[],guidata(h1));
 
 %============================================================================
 function varargout = ecran_trend1d(varargin)
@@ -920,27 +1012,23 @@ function varargout = ecran_trend1d(varargin)
 	end
 
 	handles.polyDeg = 1;
-
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 	if (nargout),	varargout{1} = hObject;		end
 
 % --------------------------------------------------------------------
-function edit_polDeg_Callback(hObject, eventdata, handles)
+function edit_polDeg_CB(hObject, handles)
 	xx = abs(fix(str2double(get(hObject,'String'))));
 	if (isnan(xx))
-		set(hObject,'String', handles.polyDeg)
-		return
+		set(hObject,'String', handles.polyDeg),		return
 	end
 	handles.polyDeg = xx;
 	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------
-function push_OK_Callback(hObject, eventdata, handles)
+function push_OK_CB(hObject, handles)
 	opt_N = sprintf('-N%d', handles.polyDeg + 1);
-	if (get(handles.check_robust, 'Val'))
-		opt_N = [opt_N 'r'];
-	end
+	if (get(handles.check_robust, 'Val')),	opt_N = [opt_N 'r'];	end
 	
 	out = trend1d_m(handles.xy, '-Fxm', opt_N);
 	h = line('XData', out(:,1), 'YData', out(:,2), 'Parent', handles.hCallingAx, 'Tag','fitted');
@@ -959,46 +1047,41 @@ function push_OK_Callback(hObject, eventdata, handles)
 % --- Creates and returns a handle to the GUI figure. 
 function ecran_trend1d_LayoutFcn(h1)
 
-set(h1,...
+set(h1, 'Position',[520 755 241 60],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'MenuBar','none',...
 'Name','Fit polynomial',...
 'NumberTitle','off',...
-'Position',[520 755 241 60],...
 'Resize','off',...
 'HandleVisibility','callback',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,...
-'Position',[161 38 75 15],...
+uicontrol('Parent',h1, 'Position',[161 38 75 15],...
 'String','Robust Fit',...
 'Style','checkbox',...
 'TooltipString','Do a robust fit. See trend1d (GMT) manual to further details',...
 'Tag','check_robust');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[111 34 30 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@ecran_trend1d_uicallback,h1,'edit_polDeg_Callback'},...
-'Position',[111 34 30 21],...
+'Callback',{@ecran_trend1d_uicallback,h1,'edit_polDeg_CB'},...
 'String','1',...
 'Style','edit',...
 'TooltipString','"1" means linear trend; "2" a quadratic model, and so on.',...
 'Tag','edit_polDeg');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[10 37 100 15],...
 'HorizontalAlignment','left',...
-'Position',[10 37 100 15],...
 'String','Polynomial degree',...
 'Style','text');
 
-uicontrol('Parent',h1,...
-'Callback',{@ecran_trend1d_uicallback,h1,'push_OK_Callback'},...
+uicontrol('Parent',h1, 'Position',[164 6 66 21],...
+'Callback',{@ecran_trend1d_uicallback,h1,'push_OK_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
-'Position',[164 6 66 21],...
 'String','OK',...
 'Tag','push_OK');
 
 function ecran_trend1d_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
