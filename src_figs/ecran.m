@@ -38,33 +38,25 @@ function varargout = ecran(varargin)
 	if (~n_in),   varargin(1) = {[]};   end
 
 	handles.handMir = [];		handles.show_popups = true;
-	if ( ~isempty(varargin{1}) && isa(varargin{1},'struct') )		% ecran(handles, ...)
+	if ( isa(varargin{1},'struct') )				% ecran(handlesMir, ...)
 		handles.handMir = varargin{1};
-		varargin{1} = 'Image';			% For backward compatibility sake
+		varargin{1} = 'Image';						% For backward compatibility sake
 		handles.work_dir = handles.handMir.work_dir;
-		if (n_in == 3)
+		if (n_in == 3)								% ecran(handlesMir, x, y)
 			varargin{1} = 'reuse';
-		elseif (n_in == 4 && ischar(varargin{4}) )
+		elseif (n_in == 4 && ischar(varargin{4}) )	% ecran(handlesMir, x, y, 'title')
 			varargin{1} = 'reuse';		varargin{5} = varargin{4};		% Figure title
 			varargin{4} = [];			n_in = 5;						% Pretend we had one more argin
 		end
-	elseif ( ~isempty(varargin{1}) && isnumeric(varargin{1}) )		% ecran(x, y, ...)
-		if ( n_in >= 3 && isnumeric(varargin{1}) && isnumeric(varargin{2}) && isnumeric(varargin{3}) )
-			if (n_in == 3)					% All args are numeric
-				varargin{4} = varargin{3};			varargin{3} = varargin{2};
-				varargin{2} = varargin{1};
-			else							% Three numeric and a title
-				varargin{5} = varargin{4};			varargin{4} = varargin{3};
-				varargin{3} = varargin{2};			varargin{2} = varargin{1};
-			end
-			varargin{1} = 'Image';			% For backward compatibility sake
+	elseif ( ~isempty(varargin{1}) )				% ecran('...', x, y, ...)
+		if ( n_in >= 3 && ischar(varargin{1}) )
+			varargin{1} = 'reuse';			% Make sure we use this keyword
 
-		elseif ( n_in >= 2 && isnumeric(varargin{1}) && isnumeric(varargin{2}) )
+		elseif ( n_in >= 2 && isnumeric(varargin{1}) && isnumeric(varargin{2}) ) % ecran(x, y, ...)
 			if (n_in == 2)					% All args are numeric
-				varargin{3} = varargin{2};			varargin{2} = varargin{1};
+				varargin(2:3) = varargin(1:2);
 			else							% Two numeric and a title
-				varargin{4} = varargin{3};			varargin{3} = varargin{2};
-				varargin{2} = varargin{1};
+				varargin(2:4) = varargin(1:3);
 			end
 			varargin{1} = 'reuse';
 		end
@@ -74,10 +66,12 @@ function varargout = ecran(varargin)
 	end
 
 	if (strcmp(varargin{1},'reuse') && n_in < 3)
-		errordlg('Error calling ecran: Minimum arguments are "type",X,Y','Error');      return
+		errordlg('Error calling ecran: Minimum arguments are "type",X,Y','Error')
+		delete(hObject),		return
 	end
 	if ( strcmp(varargin{1},'Image') && n_in < 5 )   
-		errordlg('Error calling ecran: Minimum arguments are "type",X,Y,Z','Error');    return
+		errordlg('Error calling ecran: Minimum arguments are "type",X,Y,Z','Error')
+		delete(hObject),		return
 	end
 
 	% ------------- Load some icons from mirone_icons.mat
@@ -100,16 +94,14 @@ function varargout = ecran(varargin)
 	% -----------------------------------------
 
 	handles.n_plot = 0;         % Counter of the number of lines. Used for line color painting
-
-	handles.ageStart = 0;		handles.ageEnd = nan;
 	handles.dist = [];			% It will contain cumulated distance if input is (x,y,z)
 	handles.hLine = [];			% Handles to the ploted line
 	handles.polyFig = [];		% Handles to the (eventual) figure for trend1d polyfit
+	handles.ageStart = 0;		handles.ageEnd = nan;
 
 	% Choose the default ploting mode
 	if isempty(varargin{1})          % When the file will be read latter
 		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
-		set(hObject,'Name','XY view')
 		handles.show_popups = false;
 	
 	elseif strcmp(varargin{1},'Image')
@@ -122,16 +114,18 @@ function varargout = ecran(varargin)
 		handles.hLine = plot(rd,handles.data(:,3));		axis(handles.axes1,'tight');
 		set(hObject,'Name',varargin{5})
 	
-	elseif strcmp(varargin{1},'reuse')                      % Case of auto-referenced call
+	elseif strcmp(varargin{1},'reuse')					% Case of auto-referenced call
 		varargin(n_in+1:9) = cell(1,9-n_in);			% So that varargin{1:9} allways exists.
 		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
 		handles.data(:,1) = varargin{2};        handles.data(:,2) = varargin{3};
 		if ~isempty(varargin{9}) && strcmp(varargin{9},'semilogy')
-			handles.hLine = semilogy(handles.data(:,1),handles.data(:,2));
-		elseif ~isempty(varargin{9}) && strcmp(varargin{9},'semilogx')
-			handles.hLine = semilogx(handles.data(:,1),handles.data(:,2));
+			set(handles.axes1, 'YScale', 'log')
+			handles.hLine = semilogy(handles.data(:,1),handles.data(:,2), 'Parent', handles.axes1);
+		elseif ~isempty(varargin{9}) && strcmp(varargin{9},'semilogx');
+			set(handles.axes1, 'XScale', 'log')
+			handles.hLine = semilogx(handles.data(:,1),handles.data(:,2), 'Parent', handles.axes1);
 		else
-			handles.hLine = plot(handles.data(:,1),handles.data(:,2));
+			handles.hLine = plot(handles.data(:,1),handles.data(:,2), 'Parent', handles.axes1);
 		end
 		axis(handles.axes1,'tight');
 		
@@ -264,9 +258,6 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt)
 	set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf('Dist=%g\t  Slp=%.6g', diff(xUnderLine), mb(1)))
 	set(hFLine(end), 'XData', [xx(1) xx(end)], 'YData', [yy(1) (mb(1)*xx(end)+mb(2))],'UserData',mb)
 	set(hULine,'XData', xUnderLine)
-% 	if (diff(xUnderLine) > 5000)
-% 		merda=0;
-% 	end
 
 function wbu_dynSlope(obj,eventdata,h,state)
     uirestore_fig(state);           % Restore the figure's initial state
@@ -274,8 +265,17 @@ function wbu_dynSlope(obj,eventdata,h,state)
 	set(h(end), 'UIContextMenu', cmenuHand);
  	uimenu(cmenuHand, 'Label', 'Slope  &  Intercept');
 	uimenu(cmenuHand, 'Label', num2str(get(h(end), 'UserData')));
+	uimenu(cmenuHand, 'Label', 'Recomp Slope/Inter', 'Call', {@recompSI,h(end)}, 'Sep', 'on');
 	uimenu(cmenuHand, 'Label', 'Delete this line', 'Callback', 'delete(gco)', 'Sep', 'on');
 	ui_edit_polygon(h(end))
+
+function recompSI(obj,event,h)
+	x = get(h, 'XData');		y = get(h, 'YData');
+	m =  (y(end) - y(1)) / (x(end) - x(1));			
+	b = y(1) - m * x(1);
+	set(h, 'UserData', [m b]);
+	child = get(get(obj,'Par'), 'Children');
+	set(child(3), 'Label', num2str([m b]))
 % ------------------------------------------------------------------------------------------
 
 % --------------------------------------------------------------------------------------------------
@@ -547,19 +547,19 @@ function AnalysisFFT_AmpSpectrum_Callback(hObject, eventdata, handles)
 	if (isempty(handles.hLine)),	return,		end
 	x = get(handles.hLine,'XData');
 	Fs = 1 / (x(2) - x(1));			% Sampling frequency
-	Fn=Fs/2;						% Nyquist frequency
+	Fn = Fs/2;						% Nyquist frequency
 	x = get(handles.hLine,'YData');
-	NFFT=2.^(ceil(log(length(x))/log(2)));		% Next highest power of 2 greater than or equal to length(x)
-	FFTX=fft(x,NFFT);							% Take fft, padding with zeros, length(FFTX)==NFFT
+	NFFT = 2.^(ceil(log(length(x))/log(2)));	% Next highest power of 2 greater than or equal to length(x)
+	FFTX = fft(x,NFFT);							% Take fft, padding with zeros, length(FFTX)==NFFT
 	NumUniquePts = ceil((NFFT+1)/2);
-	FFTX=FFTX(1:NumUniquePts);					% fft is symmetric, throw away second half
-	MX=abs(FFTX);								% Take magnitude of X
+	FFTX = FFTX(1:NumUniquePts);				% fft is symmetric, throw away second half
+	MX = abs(FFTX);								% Take magnitude of X
 	% Multiply by 2 to take into account the fact that we threw out second half of FFTX above
-	MX=MX*2;				MX(1)=MX(1)/2;		% Account for endpoint uniqueness
-	MX(length(MX))=MX(length(MX))/2;			% We know NFFT is even
+	MX = MX*2;				MX(1) = MX(1)/2;	% Account for endpoint uniqueness
+	MX(length(MX)) = MX(length(MX))/2;			% We know NFFT is even
 	% Scale the FFT so that it is not a function of the length of x.
-	MX=MX/length(x);        f=(0:NumUniquePts-1)*2*Fn/NFFT;
-	ecran('reuse',f,MX,[],'Amplitude Spectrum','frequency',[],'Amplitude Spectrum')
+	MX = MX/length(x);        f = (0:NumUniquePts-1)*2*Fn/NFFT;
+	ecran('reuse',f,MX,[],'Amplitude Spectrum','frequency',[],'Amplitude Spectrum','semilogy')
 
 % --------------------------------------------------------------------
 function AnalysisFFT_PSD_Callback(hObject, eventdata, handles)
@@ -799,7 +799,7 @@ set(h1,'Units','centimeters',...
 'KeyPressFcn',@figure1_KeyPressFcn,...
 'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'MenuBar','none',...
-'Name','ecran',...
+'Name','XY view',...
 'NumberTitle','off',...
 'PaperPosition',[1 2.5 15.625 6.953],...
 'PaperSize',[20.98404194812 29.67743169791],...
