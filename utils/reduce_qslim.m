@@ -105,7 +105,6 @@ function [v, f] = reduce_qslim(varargin)
 	if (reduction ~= numFaces)			% Tests showed that if (nin == nout), nothing is done
 		[v, f] = reducep_s(verts, faces, reduction, verbose);
 		%[f, v] = reducepatch(double(faces), double(verts), reduction, 'fast', 'verbose');
-		%f = faces;	v = verts;
 	else
 		v = verts;		f = faces;
 	end
@@ -201,40 +200,36 @@ function [faces, verts] = closeSurf(faces, verts, X, Y, nFilled, base, modo)
 		verts = [verts; newVerts];
 
 		for (n = 1:nCol-1)			% Fill the South wall
-			faces(kk,1) = (n-1)*nRow+1;	faces(kk,2) = mn + k;		faces(kk,3) = n*nRow+1;
-			kk = kk + 1;
-			faces(kk,1) = mn + k;		faces(kk,2) = mn + k + 1;	faces(kk,3) = n*nRow+1;
-			kk = kk + 1;		k = k + 1;
+			faces(kk,1) = (n-1)*nRow+1;	faces(kk,2) = n*nRow+1;		faces(kk,3) = mn + k;		kk = kk + 1;
+			faces(kk,1) = mn + k;		faces(kk,2) = n*nRow+1;		faces(kk,3) = mn + k + 1;	kk = kk + 1;	
+			k = k + 1;
 		end
 
 		mn_ = (nCol-1)*nRow;	k = k + 1;
 		for (n = 1:nRow-1)			% Fill the East wall
-			faces(kk,1) = mn_ + n;		faces(kk,2) = mn + k;		faces(kk,3) = mn_ + n + 1;
-			kk = kk + 1;
-			faces(kk,1) = mn + k;		faces(kk,2) = mn + k + 1;	faces(kk,3) = mn_ + n + 1;
-			kk = kk + 1;		k = k + 1;			
+			faces(kk,1) = mn_ + n;		faces(kk,2) = mn_ + n + 1;	faces(kk,3) = mn + k;		kk = kk + 1;
+			faces(kk,1) = mn + k;		faces(kk,2) = mn_ + n + 1;	faces(kk,3) = mn + k + 1;	kk = kk + 1;
+			k = k + 1;			
 		end
 
 		k = k + 1;
 		for (n = nCol:-1:2)			% Fill the North wall
-			faces(kk,1) = n*nRow;		faces(kk,2) = mn + k;		faces(kk,3) = (n-1)*nRow;
-			kk = kk + 1;
-			faces(kk,1) = mn + k;		faces(kk,2) = mn + k + 1;	faces(kk,3) = (n-1)*nRow;
-			kk = kk + 1;		k = k + 1;			
+			faces(kk,1) = n*nRow;		faces(kk,2) = (n-1)*nRow;	faces(kk,3) = mn + k;		kk = kk + 1;
+			faces(kk,1) = mn + k;		faces(kk,2) = (n-1)*nRow;	faces(kk,3) = mn + k + 1;	kk = kk + 1;
+			k = k + 1;			
 		end
 
 		k = k + 1;
 		for (n = nRow:-1:2)			% Fill the West wall
-			faces(kk,1) = n;			faces(kk,2) = mn + k;		faces(kk,3) = n - 1;
-			kk = kk + 1;
-			faces(kk,1) =  mn + k;		faces(kk,2) = mn + k + 1;	faces(kk,3) = n - 1;
-			kk = kk + 1;		k = k + 1;			
+			faces(kk,1) = n;			faces(kk,2) = n - 1;		faces(kk,3) = mn + k;		kk = kk + 1;
+			faces(kk,1) =  mn + k;		faces(kk,2) = n - 1;		faces(kk,3) = mn + k + 1;	kk = kk + 1;
+			k = k + 1;			
 		end
 
 		% And now close the base (2 more facets)
-		faces(kk,1) = mn + 1;				faces(kk,2) = mn + 2*nCol + nRow;	faces(kk,3) = mn + nCol;
+		faces(kk,1) = mn + 1;				faces(kk,2) = mn + nCol;	faces(kk,3) = mn + 2*nCol + nRow;
 		kk = kk + 1;
-		faces(kk,1) = mn + 2*nCol + nRow;	faces(kk,2) = mn + nCol + nRow;		faces(kk,3) = mn + nCol;
+		faces(kk,1) = mn + 2*nCol + nRow;	faces(kk,2) = mn + nCol;	faces(kk,3) = mn + nCol + nRow;
 
 	elseif (strcmp(modo, 'thick'))		% Make a constant thickness layer
 
@@ -243,26 +238,26 @@ function [faces, verts] = closeSurf(faces, verts, X, Y, nFilled, base, modo)
 
 		for (n = 1:nCol-1)			% Fill the South wall
 			m1 = (n-1)*nRow+1;		m2 = n*nRow+1;
-			faces(kk,1) = m1;		faces(kk,2) = m1 + mn;		faces(kk,3) = m2;		kk = kk + 1;
-			faces(kk,1) = m1 + mn;	faces(kk,2) = m2 + mn;		faces(kk,3) = m2;		kk = kk + 1;
+			faces(kk,1) = m1;		faces(kk,2) = m2;		faces(kk,3) = m1 + mn;		kk = kk + 1;
+			faces(kk,1) = m1 + mn;	faces(kk,2) = m2;		faces(kk,3) = m2 + mn;		kk = kk + 1;
 		end
 
 		mn_ = (nCol-1)*nRow;
 		for (n = 1:nRow-1)			% Fill the East wall
 			m = mn_ + n;
-			faces(kk,1) = m;		faces(kk,2) = m + mn;		faces(kk,3) = m + 1;	kk = kk + 1;
-			faces(kk,1) = m + mn;	faces(kk,2) = m + 1 + mn;	faces(kk,3) = m + 1;	kk = kk + 1;			
+			faces(kk,1) = m;		faces(kk,2) = m + 1;	faces(kk,3) = m + mn;		kk = kk + 1;
+			faces(kk,1) = m + mn;	faces(kk,2) = m + 1;	faces(kk,3) = m + 1 + mn;	kk = kk + 1;			
 		end
 
 		for (n = nCol:-1:2)			% Fill the North wall
 			m1 = n*nRow;			m2 = (n-1)*nRow;
-			faces(kk,1) = m1;		faces(kk,2) = m1 + mn;		faces(kk,3) = m2;		kk = kk + 1;
-			faces(kk,1) = m1 + mn;	faces(kk,2) = m2 + mn;		faces(kk,3) = m2;		kk = kk + 1;			
+			faces(kk,1) = m1;		faces(kk,2) = m2;		faces(kk,3) = m1 + mn;		kk = kk + 1;
+			faces(kk,1) = m1 + mn;	faces(kk,2) = m2;		faces(kk,3) = m2 + mn;		kk = kk + 1;			
 		end
 
 		for (n = nRow:-1:2)			% Fill the West wall
-			faces(kk,1) = n;		faces(kk,2) = n + mn;		faces(kk,3) = n - 1;	kk = kk + 1;
-			faces(kk,1) = n + mn;	faces(kk,2) = n - 1 + mn;	faces(kk,3) = n - 1;	kk = kk + 1;
+			faces(kk,1) = n;		faces(kk,2) = n - 1;	faces(kk,3) = n + mn;		kk = kk + 1;
+			faces(kk,1) = n + mn;	faces(kk,2) = n - 1;	faces(kk,3) = n - 1 + mn;	kk = kk + 1;
 		end
 
 		% Make the lower surface equal to top
@@ -302,9 +297,7 @@ function saveFV_nc(fname, faces, verts, is_geog)
 		Xname = 'X';				Yname = 'Y';
 	end
 
-	Nctype = 4;			% NC_INT
 	Nctype = 5;			% NC_FLOAT
-	Nctype = 6;			% NC_DOUBLE
 	write_var(fname, Xname, Nctype, 'dimvertices', long_name{1}, units{1})
 	nc_funs('varput', fname, Xname, verts(:,1));
 	write_var(fname, Yname, Nctype, 'dimvertices', long_name{1}, units{1})
