@@ -17,21 +17,24 @@ function varargout = ecran(varargin)
 %#function select_cols
 
 	hObject = figure('Tag','figure1','Visible','off');
+
 	ecran_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	set(hObject,'RendererMode','auto')
 	movegui(hObject,'east');
 
-	global home_dir
-
-	if (~isempty(home_dir)),		handles.home_dir = home_dir;
-	else							handles.home_dir = cd;
+	mir_dirs = getappdata(0,'MIRONE_DIRS');
+	if (isempty(mir_dirs))
+		handles.home_dir = mir_dirs.home_dir;		% Start in values
+		handles.work_dir = mir_dirs.work_dir;
+		handles.last_dir = mir_dirs.last_dir;
+	else
+		handles.home_dir = cd;		handles.work_dir = cd;		handles.last_dir = cd;
 	end
+
 	handles.d_path = [handles.home_dir filesep 'data' filesep];
 	load([handles.d_path 'mirone_pref.mat']);
-	try			handles.last_dir = directory_list{1};
-	catch,		handles.last_dir = cd;
-	end
+	try			handles.last_dir = directory_list{1}; 	end
 
 	% ---- OK, the interface for this function is a mess. In part due to backward compatibility issues
 	n_in = nargin;
@@ -270,6 +273,7 @@ function wbu_dynSlope(obj,eventdata,h,state)
 	ui_edit_polygon(h(end))
 
 function recompSI(obj,event,h)
+% Recompute Slope & Intercept because line might have been edited an update Label
 	x = get(h, 'XData');		y = get(h, 'YData');
 	m =  (y(end) - y(1)) / (x(end) - x(1));			
 	b = y(1) - m * x(1);
