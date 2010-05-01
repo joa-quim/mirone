@@ -1,7 +1,7 @@
 function varargout = fft_stuff(varargin)
 % M-File changed by desGUIDE 
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -84,13 +84,13 @@ function varargout = fft_stuff(varargin)
 	if (grid_in_continue)       % Grid recieved in argument. Fill the listboxes
 		% The easeast way of not leting the user screw things by selecting a nnx and/or nny
 		% lower than nx or ny is to delete the forbiden numbers from the listboxes
-		ind = find(cat(1,nlist{:}) > handles.orig_ncols);
+		ind = cat(1,nlist{:}) > handles.orig_ncols;
 		nlist_t = [{handles.orig_ncols}; nlist(ind)];
 		ind = find(cat(1,nlist_t{:}) == handles.new_nx);        % Find index of new_nx
 		set(handles.listbox_nnx,'String',nlist_t,'Value',ind)
 		set(handles.edit_Ncols,'string',num2str(handles.new_nx))
 		
-		ind = find(cat(1,nlist{:}) > handles.orig_nrows);
+		ind = cat(1,nlist{:}) > handles.orig_nrows;
 		nlist_t = [{handles.orig_nrows}; nlist(ind)];
 		ind = find(cat(1,nlist_t{:}) == handles.new_ny);        % Find index of new_ny
 		set(handles.listbox_nny,'String',nlist_t,'Value',ind)
@@ -207,13 +207,13 @@ handles.new_ny = ns(2);
 
 % The easeast way of not leting the user screw things by selecting a nnx and/or nny lower
 % than nx or ny is to delete the forbiden numbers from the listboxes
-ind = find(cat(1,nlist{:}) > handles.orig_ncols);
+ind = cat(1,nlist{:}) > handles.orig_ncols;
 nlist_t = [{handles.orig_ncols}; nlist(ind)];
 ind = find(cat(1,nlist_t{:}) == handles.new_nx);        % Find index of new_nx
 set(handles.listbox_nnx,'String',nlist_t,'Value',ind)
 set(handles.edit_Ncols,'string',num2str(handles.new_nx))
 
-ind = find(cat(1,nlist{:}) > handles.orig_nrows);
+ind = cat(1,nlist{:}) > handles.orig_nrows;
 nlist_t = [{handles.orig_nrows}; nlist(ind)];
 ind = find(cat(1,nlist_t{:}) == handles.new_ny);        % Find index of new_ny
 set(handles.listbox_nny,'String',nlist_t,'Value',ind)
@@ -221,20 +221,20 @@ set(handles.edit_Nrows,'string',num2str(handles.new_ny))
 
 % Try to guess if grid is in geogs
 if (abs(handles.head_Z1(2)-handles.head_Z1(1)) < 180 || abs(handles.head_Z1(4)-handles.head_Z1(3)) < 170)
-    handles.geog = 1;   % We probably have a geog grid
-    handles.is_meters = 0;     handles.is_km = 0;
-    set(handles.popup_GridCoords,'Value',1)
+	handles.geog = 1;	% We probably have a geog grid
+	handles.is_meters = 0;     handles.is_km = 0;
+	set(handles.popup_GridCoords,'Value',1)
 else
-    dx = handles.head_Z1(2) - handles.head_Z1(1);
-    dy = handles.head_Z1(4) - handles.head_Z1(3);
-    len = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
-    if (len > 1e5)      % If grid's diagonal > 1e5 consider we have meters
-        handles.is_meters = 1;     handles.is_km = 0;   handles.geog = 0;
-        set(handles.popup_GridCoords,'Value',2)
-    else                % km
-        handles.is_meters = 0;     handles.is_km = 1;   handles.geog = 0;
-        set(handles.popup_GridCoords,'Value',3)
-    end
+	dx = handles.head_Z1(2) - handles.head_Z1(1);
+	dy = handles.head_Z1(4) - handles.head_Z1(3);
+	len = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
+	if (len > 1e5)		% If grid's diagonal > 1e5 consider we have meters
+		handles.is_meters = 1;     handles.is_km = 0;   handles.geog = 0;
+		set(handles.popup_GridCoords,'Value',2)
+	else				% km
+		handles.is_meters = 0;     handles.is_km = 1;   handles.geog = 0;
+		set(handles.popup_GridCoords,'Value',3)
+	end
 end
 
 rlat = (handles.head_Z1(4) + handles.head_Z1(3)) / 2;
@@ -256,10 +256,10 @@ guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_Grid2_Callback(hObject, eventdata, handles)
-fname = get(hObject,'String');
-if isempty(fname),    handles.Z2 = [];    return;     end
-% Let the pushbutton_Grid2_Callback do all the work
-fft_stuff('pushbutton_Grid2_Callback',gcbo,[],guidata(gcbo),fname)
+	fname = get(hObject,'String');
+	if isempty(fname),    handles.Z2 = [];    return;     end
+	% Let the pushbutton_Grid2_Callback do all the work
+	fft_stuff('pushbutton_Grid2_Callback',gcbo,[],guidata(gcbo),fname)
 
 % -------------------------------------------------------------------------------------------------
 function pushbutton_Grid2_Callback(hObject, eventdata, handles, opt)
@@ -273,9 +273,9 @@ if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
 		hand = handles;
 	end
 
-    [FileName,PathName] = put_or_get_file(hand,{'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
-    if isequal(FileName,0);     return;     end
-    fname = [PathName FileName];
+	[FileName,PathName] = put_or_get_file(hand,{'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
+	if isequal(FileName,0);     return;     end
+	fname = [PathName FileName];
 end
 
 % Because GMT and Surfer share the .grd extension, find out which kind grid we are dealing with
@@ -284,10 +284,10 @@ if (fid < 0),    errordlg([fname ': ' msg],'ERROR');     return;     end
 ID = fread(fid,4,'*char');
 ID = strread(ID,'%s');      fclose(fid);
 if (strcmp(ID,'DSBB') || strcmp(ID,'DSRB'))
-    fname = [fname '=6'];
+	fname = [fname '=6'];
 elseif strcmp(ID,'DSAA')
-    warndlg('I don''t know and do not intend to learn how to read ASCII Surfer grids.','Warning')
-    return
+	warndlg('I don''t know and do not intend to learn how to read ASCII Surfer grids.','Warning')
+	return
 else        % It must (we hope) be a gmt grid
 end
 [X,Y,handles.Z2,handles.head_Z2] = grdread_m(fname);
@@ -305,9 +305,6 @@ if (~isempty(get(handles.edit_Grid1,'String')))
 end
 set(handles.edit_Grid2,'String',fname)
 guidata(hObject,handles)
-
-% -------------------------------------------------------------------------------------------------
-function checkbox_leaveTrend_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------------------
 function listbox_nnx_Callback(hObject, eventdata, handles)
@@ -344,10 +341,6 @@ function edit_Nrows_Callback(hObject, eventdata, handles)
 		set(hObject,'String',num2str(handles.nrows)),	return
 	end
 	handles.nrows = xx;     guidata(hObject,handles)
-
-% -------------------------------------------------------------------------------------------------
-function edit_UDcont_Callback(hObject, eventdata, handles)
-% Do nothing here. If junk in -> junk out
 
 % -------------------------------------------------------------------------------------------------
 function edit_dirDerivative_Callback(hObject, eventdata, handles)
@@ -425,36 +418,23 @@ function pushbutton_radialPowerAverage_Callback(hObject, eventdata, handles)
 	n_used = 0;
 	for (m=1:ny2)
 		for(n=1:nx2)
-			if (ifreq(m,n) > nk1),  continue;	end % Might happen when doing r spectrum
+			if (ifreq(m,n) > nk1)		continue,		end		% Might happen when doing r spectrum
 			power(ifreq(m,n)) = power(ifreq(m,n)) + Z(m,n);
 			n_used = n_used + 1;
 		end
 	end
-	power(1) = [];				% Remove DC component
+	power(1) = [];						% Remove DC component
 
-	eps_pow = 1 / sqrt(n_used/nk);
 	delta_k = delta_k / (2*pi);			% Write out frequency, not wavenumber
 	powfactor = 1 / (nx2*ny2)^2;
 	power = power * powfactor;
-	eps_pow = eps_pow * power;			% Wrong for admitance
 	freq = (1:nk) * delta_k;
-	%freq = 1 ./ freq;					% Wavelength
 	if (handles.geog),   freq = freq * 1000;     end     % Report frequency in 1/km
 
-	h=figure('NumberTitle','off','Name','Radial average power spectrum',...   
-		'Color',get(0,'factoryUicontrolBackgroundColor'));
-	ud.h_mir_fig = handles.hMirFig;
-	ud.data = [freq; power'; eps_pow'];     % ready for the stupid fwrite
-	set(h,'UserData',ud)
-	uimenu('Label','Save data','callback',{@calSave,h});
-	semilogy(freq,power)
-	if (handles.geog || handles.is_km)
-		xlabel('Frequency (1/km)','FontSize',12)
-	else
-		xlabel('Frequency (1/m)','FontSize',12)
+	if (handles.geog || handles.is_km)		x_label = 'Frequency (1/km)';
+	else									x_label = 'Frequency (1/m)';
 	end
-	ylabel('Log(Power)','FontSize',12)
-	set(handles.figure1,'pointer','arrow')
+	ecran('reuse', freq, power,'','Radial average power spectrum',x_label,'Log(Power)','','semilogy')
 
 % -------------------------------------------------------------------------------
 function calSave(obj,eventdata,h_fig)
@@ -865,7 +845,6 @@ uicontrol('Parent',h1,'Position',[456 192 39 15],'String','# Cols',...
 'Style','text','Tag','text12');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@fft_stuff_uicallback,h1,'edit_UDcont_Callback'},...
 'Position',[127 73 41 21],...
 'Style','edit',...
 'TooltipString','Height of continuation (in meters)',...
@@ -975,9 +954,7 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 uicontrol('Parent',h1,'ForegroundColor',[1 0 0],'Position',[27 109 58 15],...
 'String','CONFIRM','Style','text','Tag','text17');
 
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback,h1,'checkbox_leaveTrend_Callback'},...
-'Position',[50 140 105 15],...
+uicontrol('Parent',h1, 'Position',[50 140 105 15],...
 'String','Remove trend',...
 'Style','checkbox',...
 'TooltipString','If checked remove a plane before transformations',...
