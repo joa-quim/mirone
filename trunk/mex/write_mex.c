@@ -93,9 +93,9 @@ void stl_write_ascii(FILE *fp, float *v, mwSize *f, int nFacet, int nv) {
 
 		fprintf(fp, "\tfacet normal %.9g %.9g %.9g\n", norm[0], norm[1], norm[2]);
 		fprintf(fp, "\t\touter loop\n");
-		fprintf(fp, "\t\t\tvertex %.9g %.9g %.9g\n", Va[0], Va[1], Va[2]);
-		fprintf(fp, "\t\t\tvertex %.9g %.9g %.9g\n", Vb[0], Vb[1], Vb[2]);
-		fprintf(fp, "\t\t\tvertex %.9g %.9g %.9g\n", Vc[0], Vc[1], Vc[2]);
+		fprintf(fp, "\t\t\tvertex %.12g %.12g %.12g\n", Va[0], Va[1], Va[2]);
+		fprintf(fp, "\t\t\tvertex %.12g %.12g %.12g\n", Vb[0], Vb[1], Vb[2]);
+		fprintf(fp, "\t\t\tvertex %.12g %.12g %.12g\n", Vc[0], Vc[1], Vc[2]);
 		fprintf(fp, "\t\tendloop\n");
 		fprintf(fp, "\tendfacet\n");
 	}
