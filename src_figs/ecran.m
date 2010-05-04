@@ -31,6 +31,7 @@ function varargout = ecran(varargin)
 	else
 		handles.home_dir = cd;		handles.work_dir = cd;		handles.last_dir = cd;
 	end
+	handles.hMirFig = [];
 
 	handles.d_path = [handles.home_dir filesep 'data' filesep];
 	load([handles.d_path 'mirone_pref.mat']);
@@ -51,9 +52,13 @@ function varargout = ecran(varargin)
 			varargin{1} = 'reuse';		varargin{5} = varargin{4};		% Figure title
 			varargin{4} = [];			n_in = 5;						% Pretend we had one more argin
 		end
-	elseif ( ~isempty(varargin{1}) )				% ecran('...', x, y, ...)
-		if ( n_in >= 3 && ischar(varargin{1}) )
+	elseif ( ~isempty(varargin{1}) )				% ecran(..., x, y, ...)
+		if ( n_in >= 3 && ischar(varargin{1}) )		% ecran('reuse', x, y, ...)
 			varargin{1} = 'reuse';			% Make sure we use this keyword
+
+		elseif ( n_in >= 3 && ishandle(varargin{1}))% ecran(hMirFig, x, y, ...)
+			handles.hMirFig = varargin{1};
+			varargin{1} = 'reuse';			% 
 
 		elseif ( n_in >= 2 && isnumeric(varargin{1}) && isnumeric(varargin{2}) ) % ecran(x, y, ...)
 			if (n_in == 2)					% All args are numeric
@@ -63,9 +68,6 @@ function varargout = ecran(varargin)
 			end
 			varargin{1} = 'reuse';
 		end
-		handles.work_dir = handles.last_dir;
-	else
-		handles.work_dir = handles.last_dir;
 	end
 
 	if (strcmp(varargin{1},'reuse') && n_in < 3)
@@ -132,10 +134,10 @@ function varargout = ecran(varargin)
 		end
 		axis(handles.axes1,'tight');
 		
-		if ~isempty(varargin{5}),    set(hObject,'Name',varargin{5});	end		% Figure Name
-		if ~isempty(varargin{6}),    xlabel(varargin{6});				end		% XLabel
-		if ~isempty(varargin{7}),    ylabel(varargin{7});				end		% YLabel
-		if ~isempty(varargin{8}),    title(varargin{8});				end		% Title
+		if ~isempty(varargin{5}),    set(hObject,'Name',varargin{5});			end		% Figure Name
+		if ~isempty(varargin{6}),    xlabel(handles.axes1, varargin{6});		end		% XLabel
+		if ~isempty(varargin{7}),    ylabel(handles.axes1, varargin{7});		end		% YLabel
+		if ~isempty(varargin{8}),    title(handles.axes1, varargin{8});			end		% Title
 		handles.show_popups = false;
 	end
 
@@ -211,14 +213,24 @@ function dynSlope_CB(obj, eventdata)
 
 	state = uisuspend_fig(handles.figure1);				% Remember initial figure state
 	set(handles.figure1,'Pointer', 'crosshair');
+
+	SpectorGrant = false;
+	if ( strncmp(get(handles.figure1,'name'), 'Radial average', 14) )	% Estimate depth to magnetic sources
+		SpectorGrant = 1;
+		xl = get(get(handles.axes1, 'XLabel'), 'String');
+		if (strcmp(xl(end-2:end-1), 'km'))		% frequency is in 1/km
+			SpectorGrant = 1000;				% Multiplying factor to get depth in meters
+		end
+	end
+
 	w = waitforbuttonpress;
 	if (w == 0)					% A mouse click
 		if (strcmp(get(handles.figure1, 'Pointer'), 'arrow'))	% This might look idiot (pointer was set 3 lines above)
-			return												% but is actually atrick to catch a not-yet-interrupted
+			return												% but is actually a trick to catch a not-yet-interrupted
 		end														% waitforbuttonpress (from a 2 consecutive hits on toggbutton)
 		button = get(handles.figure1, 'SelectionType');
 		if (~strcmp(button,'normal')),		set(handles.figure1,'Pointer', 'arrow'),	return,		end		% left-clicks only
-		
+
 		if (isempty(hULine))
 			hULine = line('XData', [NaN NaN], 'YData', [0.05 0.05], 'Parent', handles.axes2,'Color','k','LineWidth',1,'Tag','UnderLine');
 			hTxt = text(0, -1, 0, 'Dist= Slp=', 'Parent', handles.axes2, 'FontSize',9, 'VerticalAlignment', 'Base', 'Tag','DS');
@@ -229,58 +241,99 @@ function dynSlope_CB(obj, eventdata)
 			hFLine = [hFLine; ...
 				line('XData', [], 'YData', [], 'Parent', handles.axes1,'Color',rand(1,3),'LineWidth',2,'Tag','FitLine')];
 		end
-        dynSlopeFirstButtonDown(handles.figure1, handles.axes1, handles.axes2, handles.hLine, hULine, hFLine, hTxt, state)
+        dynSlopeFirstButtonDown(handles.figure1, handles.axes1, handles.axes2, handles.hLine, hULine, hFLine, hTxt, SpectorGrant, state)
 	else
         set(handles.figure1,'Pointer', 'arrow');
 	end
 
 % ------------------------------------------------------------------------------------------
-function dynSlopeFirstButtonDown(hFig, hAxes1, hAxes2, hLine, hULine, hFLine, hTxt, state)
+function dynSlopeFirstButtonDown(hFig, hAxes1, hAxes2, hLine, hULine, hFLine, hTxt, SpectorGrant, state)
 	pt = get(hAxes1, 'CurrentPoint');
-	x = get(hLine,'XData');
-	x_lim = get(hAxes1,'XLim');
+	x = get(hLine,'XData');			x_lim = get(hAxes1,'XLim');
 	set(hAxes2, 'Vis', 'on','XTick',[], 'YTick',[], 'xlim', x_lim, 'ylim', [-0.01 1])
 
 	[temp,i] = min(abs(x - pt(1,1)));
-	set(hFig,'WindowButtonMotionFcn',{@wbm_dynSlope, x(i), i, hAxes1, hLine, hULine, hFLine, hTxt}, ...
-		'WindowButtonUpFcn',{@wbu_dynSlope, hFLine, state});
+	set(hFig,'WindowButtonMotionFcn',{@wbm_dynSlope, x(i), i, hAxes1, hLine, hULine, hFLine, hTxt, SpectorGrant}, ...
+		'WindowButtonUpFcn',{@wbu_dynSlope, hFLine, SpectorGrant, state});
 
-function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt)
+function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt, SpectorGrant)
+% The SpectorGrant arg is used when estimating depth to mag sources by the Spector & Grant method
 	pt = get(hAxes, 'CurrentPoint');
 	X = get(hLine,'XData');       Y = get(hLine,'YData');
 
 	[temp,i] = min(abs(X - pt(1)));
-	if (i < I0)		ii = I0;		I0 = i;		i = ii;		end		% Dragging right to left
+	if (i < I0)			ii = I0;			I0 = i;		i = ii;		end		% Dragging right to left
 	xx = X(I0:i);		yy = Y(I0:i);		xy = [xx(:) yy(:)];
 	N = numel(xx);
-	if (N > 2)			mb = trend1d_m(xy, '-N2r', '-L');			% Do robust fit
-	elseif (N == 2)		mb = trend1d_m(xy, '-N2', '-L');
-	else				return			% First point. Too soon to do anything
+	if (N > 2)				mb = trend1d_m(xy, '-N2r', '-L');			% Do robust fit
+	elseif (N == 2)			mb = trend1d_m(xy, '-N2', '-L');
+	else					return			% First point. Too soon to do anything
+	end
+	if (~SpectorGrant)		fstr = 'Dist=%g\t  Slp=%.6g';		denom = 1;
+	else					fstr = 'Dist=%g\t  Depth=%.6g';		denom = -4 * pi / SpectorGrant;
 	end
 	xUnderLine = [x0 xx(end)];
-	set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf('Dist=%g\t  Slp=%.6g', diff(xUnderLine), mb(1)))
+	set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf(fstr, diff(xUnderLine), mb(1) / denom))
 	set(hFLine(end), 'XData', [xx(1) xx(end)], 'YData', [yy(1) (mb(1)*xx(end)+mb(2))],'UserData',mb)
 	set(hULine,'XData', xUnderLine)
 
-function wbu_dynSlope(obj,eventdata,h,state)
+function wbu_dynSlope(obj,eventdata, h, SpectorGrant, state)
     uirestore_fig(state);           % Restore the figure's initial state
 	cmenuHand = uicontextmenu('Parent',state.figureHandle);
 	set(h(end), 'UIContextMenu', cmenuHand);
  	uimenu(cmenuHand, 'Label', 'Slope  &  Intercept');
 	uimenu(cmenuHand, 'Label', num2str(get(h(end), 'UserData')));
-	uimenu(cmenuHand, 'Label', 'Recomp Slope/Inter', 'Call', {@recompSI,h(end)}, 'Sep', 'on');
-	uimenu(cmenuHand, 'Label', 'Delete this line', 'Callback', 'delete(gco)', 'Sep', 'on');
+	if (SpectorGrant)
+		mb = get(h(end), 'UserData');
+		uimenu( cmenuHand, 'Label', ['Depth to sources = ' num2str(-mb(1) / (4*pi) * SpectorGrant)] );
+	end
+	uimenu(cmenuHand, 'Label', 'Recomp Slope/Intercept', 'Call', {@recompSI,h(end),SpectorGrant}, 'Sep', 'on');
+	uimenu(cmenuHand, 'Label', 'Bandpass Filter', 'Call', {@do_bandFilter,h(end), SpectorGrant}, 'Sep', 'on');
+	uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', 'delete(gco)', 'Sep', 'on');
 	ui_edit_polygon(h(end))
+	%obj = findobj('Type', 'uitoggletool', 'Tag', 'DynSlope');
+	%dynSlope_CB(obj, [])
 
-function recompSI(obj,event,h)
-% Recompute Slope & Intercept because line might have been edited an update Label
+function recompSI(obj,event, h, SpectorGrant)
+% Recompute Slope & Intercept because line might have been edited
 	x = get(h, 'XData');		y = get(h, 'YData');
 	m =  (y(end) - y(1)) / (x(end) - x(1));			
 	b = y(1) - m * x(1);
 	set(h, 'UserData', [m b]);
 	child = get(get(obj,'Par'), 'Children');
-	set(child(3), 'Label', num2str([m b]))
-% ------------------------------------------------------------------------------------------
+	for (k = 1:numel(child))
+		if (strfind(get(child(k),'Label'),'Recomp')),	K = k + 1;	break,		end
+	end
+	if (SpectorGrant)
+		set(child(K), 'Label', ['Depth to sources = ' num2str(-m / (4*pi) * SpectorGrant)]);
+	end
+	set(child(K+1), 'Label', num2str([m b]))
+
+function do_bandFilter(obj,event, h, SpectorGrant)
+% Hub function to manage the bandpass filtering
+% "SpectorGrant" is used here to know if we had frequencies in 1/km
+	handles = guidata(obj);
+	if (isempty(handles.hMirFig))
+		errordlg('DO_BANDFILTER: shouldn''t happen.','Error'),	return
+	end
+	if (~ishandle(handles.hMirFig))
+		errordlg('Too late. You killed the figure with the original data.'),	return
+	end
+	warndlg('Not finished. Not working correctly. Not Not.','Warning')
+	
+	if (~SpectorGrant)		SpectorGrant = 1;	end		% Make sure it is not zero
+	out = bandpass(get(h, 'XData') / SpectorGrant);
+	if (isempty(out))	return,		end
+
+	handMir = guidata(handles.hMirFig);			% We need to fish on the original Mir fig
+	[X,Y,in.Z,in.head] = load_grd(handMir);
+	in.geog = handMir.geog;
+	in.hMirFig = handMir.figure1;
+	in.bandpass = out;
+	in.mode = 'bpass';
+	
+	fft_stuff(in)
+% --------------------------------------------------------------------------------------------------
 
 % --------------------------------------------------------------------------------------------------
 function pick_CB(obj,eventdata)
@@ -709,7 +762,7 @@ function push_magBar_Callback(hObject, eventdata, handles)
 	end
 	ages = age_start(ind);
 
-	axes(handles.axes1)		% Put it back as current axes
+	set(handles.figure1,'currentaxes',handles.axes1)	% Put it back as current axes
 	% Since the two axes are touching, axes1 would hide the XTickLabels of axes2.
 	% So the trck is to plot what would have been axes2 XTickLabels as a text in axes1
 	DX1 = diff(get(handles.axes1,'xlim'));
@@ -1087,5 +1140,158 @@ uicontrol('Parent',h1, 'Position',[164 6 66 21],...
 'Tag','push_OK');
 
 function ecran_trend1d_uicallback(hObject, eventdata, h1, callback_name)
+% This function is executed by the callback and than the handles is allways updated.
+	feval(callback_name,hObject,guidata(h1));
+
+%============================================================================
+function varargout = bandpass(varargin)
+% Helper function to select frequencies to do bandpass filtering
+
+	hObject = figure('Tag','figure1','Visible','on');
+	bandpass_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+
+	if (~isempty(varargin))
+		x = varargin{1};			% Frequencies (not wavenumbers) are in 1/m
+		if (x(1) > x(2)),		tmp = x(1);		x(1) = x(2);	x(2) = tmp;		end
+		tr = (x(2) - x(1)) * 0.1;	% 10%
+		LC = max(x(1) - tr/2, 0);			HP = max(x(2) - tr/2, 0);
+		LP = min(x(1) + tr/2, x(2));		HC = x(2) + tr/2;
+		set(handles.edit_LC, 'Str',1/HC),	set(handles.edit_LP, 'Str',1/HP)	% Revert because we are
+		set(handles.edit_HC, 'Str',1/LP),	set(handles.edit_HP, 'Str',1/LC)	% displaying wavelength
+	end
+	
+	handles.output = [];
+	guidata(hObject, handles);
+	
+	% UIWAIT makes yes_or_no wait for user response (see UIRESUME)
+	uiwait(handles.figure1);
+	handles = guidata(hObject);
+	if (nargout),		varargout{1} = handles.output;	end
+	delete(handles.figure1)
+
+% -------------------------------------------------------------------------
+function edit_CB(hObject, handles)
+	x = str2double(get(hObject,'String'));
+	if (isnan(x) || x < 0),		set(hObject,'String',''),	return,		end
+
+% -------------------------------------------------------------------------
+function radio_freq_CB(hObject, handles)
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),	return,		end
+	set(handles.radio_wave,'Val',0)
+
+% -------------------------------------------------------------------------
+function radio_wave_CB(hObject, handles)
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),	return,		end
+	set(handles.radio_freq,'Val',0)
+
+% -------------------------------------------------------------------------
+function pushBP_OK_CB(hObject, handles)
+	LC = str2double(get(handles.edit_LC,'Str'));
+	LP = str2double(get(handles.edit_LP,'Str'));
+	HC = str2double(get(handles.edit_HC,'Str'));
+	HP = str2double(get(handles.edit_HP,'Str'));
+	
+	msg = '';
+	if (LC > LP)		msg = 'Low cut cannot be higher than Low pass';
+	elseif (HC > HP)	msg = 'High cut cannot be higher than High pass';
+	elseif (LP > HC)	msg = 'Low pass cannot be higher than High cut';
+	end
+	if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+	
+	if (get(handles.radio_wave, 'Val'))
+		%handles.output = [LC LP HC HP];
+		handles.output = 1 ./ [HP HC LP LC];	% The input to fft_stuff is frequency
+	end
+	guidata(handles.figure1, handles);
+	uiresume(handles.figure1);
+
+% --- Executes when user attempts to close figure1.
+function BP_CloseRequestFcn(hObject, eventdata)
+	handles = guidata(hObject);
+	uiresume(handles.figure1);			% The GUI is still in UIWAIT
+
+% --- Executes when user attempts to close figure1.
+function BP_KeyPressFcn(hObject, eventdata)
+	handles = guidata(hObject);
+	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+		uiresume(handles.figure1);		% The GUI is still in UIWAIT, us UIRESUME
+	end
+
+% ------------------------------------------------------------------------
+function bandpass_LayoutFcn(h1)
+
+set(h1, 'Position',[520 679 350 121],...
+'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'CloseRequestFcn', {@bandpass_uicallback,h1,'BP_CloseRequestFcn'},...
+'KeyPressFcn',{@bandpass_uicallback,h1,'BP_KeyPressFcn'},...
+'MenuBar','none',...
+'Name','Bandpass',...
+'NumberTitle','off',...
+'Resize','off',...
+'HandleVisibility','callback',...
+'Tag','figure1');
+
+uicontrol('Parent',h1, 'Position',[64 68 101 22],...
+'BackgroundColor',[1 1 1],...
+'Callback',{@bandpass_uicallback,h1,'edit_CB'},...
+'Style','edit',...
+'TooltipString','Low Cut frequency',...
+'Tag','edit_LC');
+
+uicontrol('Parent',h1, 'Position',[10 73 52 14],...
+'FontName','Helvetica', 'HorizontalAlignment','right', 'String','Low cut','Style','text');
+
+uicontrol('Parent',h1, 'Position',[64 38 101 22],...
+'BackgroundColor',[1 1 1],...
+'Callback',{@bandpass_uicallback,h1,'edit_CB'},...
+'Style','edit',...
+'TooltipString','Low Pass frequency',...
+'Tag','edit_LP');
+
+uicontrol('Parent',h1, 'Position',[1 43 60 14],...
+'FontName','Helvetica', 'HorizontalAlignment','right','String','Low pass','Style','text');
+
+uicontrol('Parent',h1, 'Position',[244 68 101 22],...
+'BackgroundColor',[1 1 1],...
+'Callback',{@bandpass_uicallback,h1,'edit_CB'},...
+'Style','edit',...
+'TooltipString','High Cut frequency',...
+'Tag','edit_HC');
+
+uicontrol('Parent',h1, 'Position',[190 73 52 14],...
+'FontName','Helvetica', 'HorizontalAlignment','right','String','High cut','Style','text');
+
+uicontrol('Parent',h1, 'Position',[244 38 101 22],...
+'BackgroundColor',[1 1 1],...
+'Callback',{@bandpass_uicallback,h1,'edit_CB'},...
+'Style','edit',...
+'TooltipString','High Pass frequency',...
+'Tag','edit_HP');
+
+uicontrol('Parent',h1, 'Position',[182 43 60 14],...
+'FontName','Helvetica', 'HorizontalAlignment','right','String','High pass','Style','text');
+
+uicontrol('Parent',h1, 'Position',[64 97 87 23],...
+'Callback',{@bandpass_uicallback,h1,'radio_freq_CB'},...
+'String','Frequency',...
+'Style','radiobutton',...
+'Tag','radio_freq');
+
+uicontrol('Parent',h1, 'Position',[244 97 87 23],...
+'Callback',{@bandpass_uicallback,h1,'radio_wave_CB'},...
+'String','Wavelength',...
+'Style','radiobutton',...
+'Value',1,...
+'Tag','radio_wave');
+
+uicontrol('Parent',h1, 'Position',[264 7 80 21],...
+'Callback',{@bandpass_uicallback,h1,'pushBP_OK_CB'},...
+'FontSize',9,...
+'FontWeight','bold',...
+'String','OK',...
+'Tag','pushBP_OK');
+
+function bandpass_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
 	feval(callback_name,hObject,guidata(h1));
