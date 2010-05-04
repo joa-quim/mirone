@@ -19,7 +19,7 @@ function varargout = fft_stuff(varargin)
 	fft_stuff_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	movegui(hObject,'center')
-	
+
 	handles.hMirFig = [];			% Handle to the calling figure
 	handles.geog = 0;				% Set this as default
 	handles.Z1 = [];
@@ -27,11 +27,20 @@ function varargout = fft_stuff(varargin)
 	grid_in_continue = 0;
 
 	if (~isempty(varargin))         % When called from a Mirone window
-		handles.hMirFig = varargin{1};
-		handles.Z1 = varargin{2};
-		handles.head_Z1 = varargin{3};
-		handles.geog = varargin{4};
-		mode = varargin{5};
+		if (ishandle(varargin{1}))
+			handles.hMirFig = varargin{1};
+			handles.Z1 = varargin{2};
+			handles.head_Z1 = varargin{3};
+			handles.geog = varargin{4};
+			mode = varargin{5};
+		elseif (isa(varargin{1}, 'struct'))			% Currently only used by ECRAN -> Spector & Grant
+			handles.Z1 = varargin{1}.Z;
+			handles.head_Z1 = varargin{1}.head;
+			handles.geog = varargin{1}.geog;
+			mode = varargin{1}.mode;
+			handles.bandpass = varargin{1}.bandpass;	% FREQUENCY in 1/m
+			if (isfield(varargin{1},'hMirFig'))		handles.hMirFig = varargin{1}.hMirFig;		end % MANDATORY
+		end
 		if (strcmp(mode,'Allopts')),	grid_in_continue = 1;	end     % "Slow mode" show all options in this figure
 		[handles.orig_nrows,handles.orig_ncols] = size(handles.Z1);
 		[w,nlist] = mboard([],handles.orig_ncols,handles.orig_nrows,0,0);
@@ -44,11 +53,11 @@ function varargout = fft_stuff(varargin)
 			dy = handles.head_Z1(9) * sclat;
 			handles.scaled_dx = dx;     handles.scaled_dy = dy;
 			handles.is_meters = 0;      handles.is_km = 0;
-		else		% Guess if grid units are meters or km
+		else					% Guess if grid units are meters or km
 			dx = handles.head_Z1(2) - handles.head_Z1(1);
 			dy = handles.head_Z1(4) - handles.head_Z1(3);
 			len = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
-			if (len > 1e5)      % If grid's diagonal > 1e5 consider we have meters
+			if (len > 5e4 || handles.head_Z1(8) > 10)      % If grid's diagonal > 5e4 consider we have meters
 				handles.is_meters = 1;     handles.is_km = 0;   handles.geog = 0;
 			else				% km
 				handles.is_meters = 0;     handles.is_km = 1;   handles.geog = 0;
@@ -61,11 +70,10 @@ function varargout = fft_stuff(varargin)
 			end
 		end
 		if (~grid_in_continue)       % Called in the "quick mode" 
-			if (any( strcmp( mode,{'Power' 'Autocorr' 'Amplitude' 'lpass' 'hpass'} ) ))
+			if (any( strcmp( mode,{'Power' 'Autocorr' 'Amplitude' 'lpass' 'hpass' 'bpass'} ) ))
 				sectrumFun(handles, handles.Z1, handles.head_Z1, mode)
 			end
-			delete(hObject)
-			return
+			delete(hObject),		return
 		end
 	end
 
@@ -140,7 +148,7 @@ function varargout = fft_stuff(varargin)
 		end
 	end
 
-	% Add this figure handle to the carra?as list
+	% Add this figure handle to the carraças list
 	if (~isempty(handles.hMirFig))
 		plugedWin = getappdata(handles.hMirFig,'dependentFigs');
 		plugedWin = [plugedWin hObject];
@@ -394,13 +402,13 @@ function pushbutton_radialPowerAverage_Callback(hObject, eventdata, handles)
 
 	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error'),	return,		end
 
-	nx2 = handles.new_nx;   ny2 = handles.new_ny;
+	nx2 = handles.new_nx;		ny2 = handles.new_ny;
 	delta_kx = 2*pi / (nx2 * handles.scaled_dx);
 	delta_ky = 2*pi / (ny2 * handles.scaled_dy);
 	if (delta_kx < delta_ky)
-		delta_k = delta_kx;    nk = fix(nx2/2);
+		delta_k = delta_kx;		nk = fix(nx2/2);
 	else
-		delta_k = delta_ky;    nk = fix(ny2/2);
+		delta_k = delta_ky;		nk = fix(ny2/2);
 	end
 	r_delta_k = 1 / delta_k;
 	set(handles.figure1,'pointer','watch')
@@ -434,7 +442,13 @@ function pushbutton_radialPowerAverage_Callback(hObject, eventdata, handles)
 	if (handles.geog || handles.is_km)		x_label = 'Frequency (1/km)';
 	else									x_label = 'Frequency (1/m)';
 	end
-	ecran('reuse', freq, power,'','Radial average power spectrum',x_label,'Log(Power)','','semilogy')
+
+	if (~isempty(handles.hMirFig))			arg1 = handles.hMirFig;
+	else									arg1 = 'reuse';
+	end
+
+	set(handles.figure1,'pointer','arrow')
+	ecran(arg1, freq, power,'','Radial average power spectrum',x_label,'Log(Power)','','semilogy')
 
 % -------------------------------------------------------------------------------
 function calSave(obj,eventdata,h_fig)
@@ -498,11 +512,11 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 	if (two_grids)
 		Z2 = mboard(double(Z2),nx,ny,handles.new_nx,handles.new_ny);
 	end
+	m1 = band(1)+1;     m2 = m1 + ny - 1;
+	n1 = band(3)+1;     n2 = n1 + nx - 1;
+
 	if (any(strcmp(opt1,{'Amplitude' 'Power' 'CrossPower'})))   % For these this is more efficient
 		Z = fftshift(fft2(Z));
-		m1 = band(1)+1;     m2 = m1 + ny - 1;
-		n1 = band(3)+1;     n2 = n1 + nx - 1;
-		%Z = ifft2(ifftshift(Z));
 		Z = Z(m1:m2,n1:n2);                 % Remove the padding skirt
 		if (two_grids)
 			Z2 = fftshift(fft2(Z2));        Z2 = Z2(m1:m2,n1:n2);
@@ -519,32 +533,25 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		Z = log10(abs(Z) / (nx*ny) + 1);
 		tmp.name = 'Amplitude spectrum';
 	elseif (strcmp(opt1,'Autocorr'))                    % Autocorrelation
-		Z = fftshift(real(ifft2(abs(fft2(Z)).^2)));
-		m1 = band(1)+1;     m2 = m1 + ny - 1;
-		n1 = band(3)+1;     n2 = n1 + nx - 1;
+		Z = fftshift( single(real(ifft2(abs(fft2(Z)).^2))) );
 		Z = Z(m1:m2,n1:n2);                             % Remove the padding skirt
 		tmp.name = 'Autocorrelation';
 	elseif (strcmp(opt1,'CrossCorrel'))                 % Cross Correlation
 		Z = ifft2(abs(fft2(Z) .* fft2(Z2)));
-		Z = fftshift(real(Z));
-		m1 = band(1)+1;     m2 = m1 + ny - 1;
-		n1 = band(3)+1;     n2 = n1 + nx - 1;
+		Z = fftshift(single(real(Z)));
 		Z = Z(m1:m2,n1:n2);                             % Remove the padding skirt
 		tmp.name = 'Cross Correlation';
 	elseif ( any(strcmp(opt1,{'lpass' 'hpass'})) )		% Filtering
 		handMir = guidata(handles.hMirFig);				% Handles of the space domain figure
 		image_type = handMir.image_type;				% Used by the inverse transform case
-		x = get(handMir.XXXhLine, 'XData');		y = get(handMir.XXXhLine, 'YData');
+		x = get(handMir.XXXhLine, 'XData');			y = get(handMir.XXXhLine, 'YData');
 		hand = guidata(handMir.XXXhLine);				% Handles of the Spectrum figure
 		xy_lims = getappdata(hand.axes1,'ThisImageLims');
 		mask = ifftshift(img_fun('roipoly_j',xy_lims(1:2), xy_lims(3:4), Z, x, y));
 		if (strcmp(opt1,'lpass')),	mask = ~mask;	end
 		Z = fft2(Z);
-		% Do the filtering
-		Z(mask) = 0;
-		Z = real(ifft2(Z));
-		m1 = band(1)+1;     m2 = m1 + ny - 1;
-		n1 = band(3)+1;     n2 = n1 + nx - 1;
+		Z(mask) = 0;		% Do the filtering
+		Z = single(real(ifft2(Z)));
 		Z = Z(m1:m2,n1:n2);                             % Remove the padding skirt
 		tmp.name = [upper(opt1(1))  'pass filtering'];
 	end
@@ -555,22 +562,36 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		delta_kx = 2*pi / (handles.new_nx * handles.scaled_dx);
 		delta_ky = 2*pi / (handles.new_ny * handles.scaled_dy);
 	end
-	if (handles.is_km)      % In km case scaled_dx|dy where in meters
+	if (handles.is_km)      % In km case scaled_dx|dy were in meters
 		delta_kx = delta_kx * 1000;
 		delta_ky = delta_ky * 1000;
 	end
 
-	nx2 = fix(nx/2);		ny2 = fix(ny/2);
-	if (rem(nx,2) == 0),	sft_x = 1;
-	else					sft_x = 0;
-	end
-	if (rem(ny,2) == 0),	sft_y = 1;
-	else					sft_y = 0;
+	nx2 = fix(nx/2);		ny2 = fix(ny/2);	sft_x = 0;		sft_y = 0;
+	if (rem(nx,2) == 0),	sft_x = 1;			end
+	if (rem(ny,2) == 0),	sft_y = 1;			end
+
+	% This is currently only activated by the experimental Spector & Grant Filtering in R.A.S.
+	if ( strcmp(opt1, 'bpass') )	% The bandpass (Do it here because only now that we know the freq vectors)
+		x_lim = [-nx2 (nx2-sft_x)] * delta_kx / (2*pi);		y_lim = [-ny2 (ny2-sft_y)] * delta_ky / (2*pi);
+		bp = handles.bandpass;			% Use a shorter name
+		sqLow = [-bp(1) -bp(1); -bp(1) bp(1); bp(1) bp(1); bp(1) -bp(1); -bp(1) -bp(1)];
+		maskLow = ifftshift(img_fun('roipoly_j',x_lim, y_lim, Z, sqLow(:,1), sqLow(:,2)));
+		sqHigh = [-bp(4) -bp(4); -bp(4) bp(4); bp(4) bp(4); bp(4) -bp(4); -bp(4) -bp(4)];
+		maskHigh = ~ifftshift(img_fun('roipoly_j',x_lim, y_lim, Z, sqHigh(:,1), sqHigh(:,2)));
+		mask = maskLow | maskHigh;		% Combine Low and High cuts
+		clear maskLow maskHigh
+		% Need to add the cos tapper code to LP & HP
+		Z = fft2(Z);
+		Z(mask) = 0;
+		Z = single(real(ifft2(Z)));
+		Z = Z(m1:m2,n1:n2);                             % Remove the padding skirt
+		handMir = guidata(handles.hMirFig);				% Handles of the space domain figure
 	end
 
-	Z = single(Z);
-	if ( ~any(strcmp(opt1,{'lpass' 'hpass'})) )
-		tmp.X = (-nx2:nx2-sft_x).*delta_kx;     tmp.Y = (-ny2:ny2-sft_y).*delta_ky;
+	if (isa(Z, 'double'))	Z = single(Z);		end
+	if ( ~any(strcmp(opt1,{'lpass' 'hpass' 'bpass'})) )
+		tmp.X = (-nx2:nx2-sft_x).*delta_kx;		tmp.Y = (-ny2:ny2-sft_y).*delta_ky;
 		tmp.geog = 0;
 	else
 		tmp.X = getappdata(handMir.figure1,'dem_x');	tmp.Y = getappdata(handMir.figure1,'dem_y');
@@ -594,9 +615,8 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		set(h,'Name','FFT filtered image')
 	end
 
-	if ( ~any(strcmp(opt1,{'lpass' 'hpass'})) )			% FFTs are never geogs
-		handMir = guidata(h);
-		handMir.geog = 0;
+	if ( ~any(strcmp(opt1,{'lpass' 'hpass' 'bpass'})) )	% FFTs are never geogs
+		handMir = guidata(h);		handMir.geog = 0;
 		guidata(handMir.figure1, handMir)
 	end
 	if ( (strcmp(opt1,'Power') || strcmp(opt1,'Amplitude')) )
@@ -605,63 +625,63 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 
 % --------------------------------------------------------------------
 function pushbutton_goUDcont_Callback(hObject, eventdata, handles)
-if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error');    return; end
-zup = str2double(get(handles.edit_UDcont,'String'));
-if (isnan(zup)),     return;     end
-set(handles.figure1,'pointer','watch')
-if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-    handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
-end
-[Z,band,k] = wavenumber_and_mboard(handles);
-Z = fft2(Z) .* exp(-k.*zup);    clear k;
-Z = real(ifft2((Z)));
-[Z,tmp] = unband(handles,Z,band);
-tmp.name = 'U/D Continuation';
-set(handles.figure1,'pointer','arrow')
-mirone(single(Z),tmp);
+	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error');    return; end
+	zup = str2double(get(handles.edit_UDcont,'String'));
+	if (isnan(zup)),     return;     end
+	set(handles.figure1,'pointer','watch')
+	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
+		handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
+	end
+	[Z,band,k] = wavenumber_and_mboard(handles);
+	Z = fft2(Z) .* exp(-k.*zup);    clear k;
+	Z = real(ifft2((Z)));
+	[Z,tmp] = unband(handles,Z,band);
+	tmp.name = 'U/D Continuation';
+	set(handles.figure1,'pointer','arrow')
+	mirone(single(Z),tmp);
 
 % --------------------------------------------------------------------
 function pushbutton_goDerivative_Callback(hObject, eventdata, handles, opt)
 % Compute N-vertical derivative
-if (isempty(handles.Z1)),   errordlg('No grid loaded yet.','Error');    return; end
-if (isempty(opt)),	scale = 1;
-else				scale = 980619.9203;
-end					% Moritz's 1980 IGF value for gravity in mGal at lat = 45 degrees
-n_der = fix(str2double(get(handles.edit_derivative,'String')));
-set(handles.figure1,'pointer','watch')
-if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-	handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
-end
-[Z,band,k] = wavenumber_and_mboard(handles,false,'taper');
-if (scale == 980619.9203),   n_der = 1;  end
-if (n_der > 1),  k = k.^n_der;   end
-Z = fft2(Z) .* k*scale;    Z(1,1) = 0;    clear k;
-Z = real(ifft2((Z)));
-[Z,tmp] = unband(handles,Z,band);
-if (scale == 1),	tmp.name = [num2str(n_der) 'th Vertical Derivative'];
-else				tmp.name = 'Gravity anomaly (mGal)';
-end
-set(handles.figure1,'pointer','arrow')
-mirone(single(Z),tmp);
+	if (isempty(handles.Z1)),   errordlg('No grid loaded yet.','Error');    return; end
+	if (isempty(opt)),	scale = 1;
+	else				scale = 980619.9203;
+	end					% Moritz's 1980 IGF value for gravity in mGal at lat = 45 degrees
+	n_der = fix(str2double(get(handles.edit_derivative,'String')));
+	set(handles.figure1,'pointer','watch')
+	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
+		handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
+	end
+	[Z,band,k] = wavenumber_and_mboard(handles,false,'taper');
+	if (scale == 980619.9203),   n_der = 1;  end
+	if (n_der > 1),  k = k.^n_der;   end
+	Z = fft2(Z) .* k*scale;    Z(1,1) = 0;    clear k;
+	Z = real(ifft2((Z)));
+	[Z,tmp] = unband(handles,Z,band);
+	if (scale == 1),	tmp.name = [num2str(n_der) 'th Vertical Derivative'];
+	else				tmp.name = 'Gravity anomaly (mGal)';
+	end
+	set(handles.figure1,'pointer','arrow')
+	mirone(single(Z),tmp);
 
 % --------------------------------------------------------------------
 function pushbutton_goDirDerivative_Callback(hObject, eventdata, handles)
 % Compute a directional derivative
-if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error');    return; end
-azim = str2double(get(handles.edit_dirDerivative,'String'));
-set(handles.figure1,'pointer','watch')
-if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-    handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
-end
-[Z,band,k] = wavenumber_and_mboard(handles,1);
-fact = (sin(azim*pi/180) * k.x + cos(azim*pi/180) * k.y);   clear k;
-Z = fft2(Z);    Z(1,1) = 0;
-Z = complex(-imag(Z) .* fact, real(Z) .* fact);
-Z = real(ifft2((Z)));
-[Z,tmp] = unband(handles,Z,band);
-tmp.name = [num2str(azim) ' Azimuthal Derivative'];
-set(handles.figure1,'pointer','arrow')
-mirone(single(Z),tmp);
+	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error');    return; end
+	azim = str2double(get(handles.edit_dirDerivative,'String'));
+	set(handles.figure1,'pointer','watch')
+	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
+		handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
+	end
+	[Z,band,k] = wavenumber_and_mboard(handles,1);
+	fact = (sin(azim*pi/180) * k.x + cos(azim*pi/180) * k.y);   clear k;
+	Z = fft2(Z);    Z(1,1) = 0;
+	Z = complex(-imag(Z) .* fact, real(Z) .* fact);
+	Z = real(ifft2((Z)));
+	[Z,tmp] = unband(handles,Z,band);
+	tmp.name = [num2str(azim) ' Azimuthal Derivative'];
+	set(handles.figure1,'pointer','arrow')
+	mirone(single(Z),tmp);
 
 % --------------------------------------------------------------------
 function [Z,band,k] = wavenumber_and_mboard(handles,opt,mode)
@@ -724,15 +744,15 @@ function [Z,hdr] = unband(handles,Z,band)
 
 % --------------------------------------------------------------------
 function popup_GridCoords_Callback(hObject, eventdata, handles)
-xx = get(hObject,'Value');
-if (xx == 1),        handles.geog = 1;       handles.is_meters = 0;  handles.is_km = 0;
-elseif (xx == 2),   handles.is_meters = 1;  handles.is_geog = 0;    handles.is_km = 0;
-elseif (xx == 3)
-    handles.is_km = 1;      handles.is_geog = 0;    handles.is_meters = 0;
-    handles.scaled_dx = handles.scaled_dx * 1000;
-    handles.scaled_dy = handles.scaled_dy * 1000;
-end
-guidata(hObject,handles)
+	xx = get(hObject,'Value');
+	if (xx == 1),		handles.geog = 1;		handles.is_meters = 0;  handles.is_km = 0;
+	elseif (xx == 2)	handles.is_meters = 1;	handles.is_geog = 0;	handles.is_km = 0;
+	elseif (xx == 3)
+		handles.is_km = 1;      handles.is_geog = 0;    handles.is_meters = 0;
+		handles.scaled_dx = handles.scaled_dx * 1000;
+		handles.scaled_dy = handles.scaled_dy * 1000;
+	end
+	guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------------------
 function [sclat,sclon] = scltln(orlat)
@@ -962,8 +982,8 @@ uicontrol('Parent',h1, 'Position',[50 140 105 15],...
 
 function fft_stuff_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,[],guidata(h1));
 
 function fft_stuff_uicallback4(hObject, eventdata, h1, opt, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1),opt);
+	feval(callback_name,hObject,[],guidata(h1),opt);
