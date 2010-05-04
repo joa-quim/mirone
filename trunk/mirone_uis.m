@@ -637,6 +637,8 @@ uimenu('Parent',h,'Callback','srtm_tool(''srtm30'')','Label','SRTM30');
 uimenu('Parent',h2,'Call','mirone(''GridToolsFindHoles_CB'',guidata(gcbo))','Label','Find holes');
 uimenu('Parent',h2,'Call','mirone(''GridToolsSaveAsSRTM_CB'',guidata(gcbo))','Label','Save as SRTM');
 
+% uimenu('Parent',hGT,'Call','mirone(''GridToolsMesher_CB'',guidata(gcbo))','Label','Mesher','Sep','on');
+
 uimenu('Parent',hGT,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''ppa'')',...
 'Label','Extract ridges/valleys','Sep','on');
 
@@ -651,7 +653,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 Apr 2010'',''1.5.3b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 4 May 2010'',''1.5.3b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
