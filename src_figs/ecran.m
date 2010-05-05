@@ -221,6 +221,7 @@ function dynSlope_CB(obj, eventdata)
 		if (strcmp(xl(end-2:end-1), 'km'))		% frequency is in 1/km
 			xFact = 1000;						% Multiplying factor to get depth in meters
 		end
+		xFact = xFact / (2*pi);					% 2Pi because we have x in freq but need wavenumber for SpectorGrant
 	else										% Have to check the various possibilities
 		if (get(handles.checkbox_geog, 'Val'))
 			contents = get(handles.popup_selectPlot, 'Str');
@@ -281,7 +282,7 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt,
 	if (~SpectorGrant)
 		fstr = 'Dist=%g\t  Slope=%.2f';		slp = atan(mb(1) / xFact)*180/pi;	% slope in (maybe) degrees
 	else
-		fstr = 'Dist=%g\t  Depth=%.3f';		slp = abs(mb(1) / (4*pi / xFact));
+		fstr = 'Dist=%g\t  Depth=%.3f';		slp = abs(mb(1) / (4*pi) * xFact);
 	end
 	xUnderLine = [x0 xx(end)];
 	set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf( fstr, diff(xUnderLine), slp ))
@@ -290,15 +291,17 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt,
 
 function wbu_dynSlope(obj,eventdata, h, xFact, SpectorGrant, state)
     uirestore_fig(state);           % Restore the figure's initial state
+	mb_e_slp = get(h(end), 'UserData');
+	if (isempty(mb_e_slp))		return,		end		% Happens when a single click on fig
 	cmenuHand = uicontextmenu('Parent',state.figureHandle);
 	set(h(end), 'UIContextMenu', cmenuHand);
- 	uimenu(cmenuHand, 'Label', 'Slope  &  Intercept');
-	mb_e_slp = get(h(end), 'UserData');
 	if (SpectorGrant)
-		uimenu(cmenuHand, 'Label', sprintf('%.2f   %.9g', mb_e_slp(1), mb_e_slp(2)));	% Slope Intercept
-		uimenu(cmenuHand, 'Label', sprintf('Depth to sources = %.3f', mb_e_slp(3)));
+		uimenu(cmenuHand, 'Label', 'Slope(m/cycle) &  Intercept');
+		uimenu(cmenuHand, 'Label', sprintf('%.2f   %.9g', mb_e_slp(1)/(2*pi), mb_e_slp(2)));	% Slope Intercept
+		uimenu(cmenuHand, 'Label', sprintf('Depth to sources (m) = %.3f', mb_e_slp(3)));
 		uimenu(cmenuHand, 'Label', 'Bandpass Filter', 'Call', {@do_bandFilter,h(end), xFact}, 'Sep', 'on');
 	else
+	 	uimenu(cmenuHand, 'Label', 'Slope  &  Intercept');
 		uimenu(cmenuHand, 'Label', sprintf('%.2f   %.9g', mb_e_slp(3), mb_e_slp(2)));	% Slope(deg?) Intercept
 	end
 	uimenu(cmenuHand, 'Label', 'Recomp Slope/Intercept', 'Call', {@recompSI,h(end), xFact, SpectorGrant}, 'Sep', 'on');
@@ -318,8 +321,8 @@ function recompSI(obj,event, h, xFact, SpectorGrant)
 	end
 	if (SpectorGrant)
 		slp = abs(m / (4*pi) * xFact);
-		set( child(K), 'Label', sprintf('Depth to sources =  %.3f', slp) );		K = K + 1;
-		set(child(K), 'Label', sprintf('%.2f   %.9g', m, b))		% Slope Intercept
+		set( child(K), 'Label', sprintf('Depth to sources (m) =  %.3f', slp) );		K = K + 1;
+		set(child(K), 'Label', sprintf('%.2f   %.9g', m / (2*pi), b))		% Slope Intercept
 	else
 		slp = atan(m / xFact)*180/pi;			% Get the slope in (maybe) degrees
 		set(child(K), 'Label', sprintf('%.2f   %.9g', slp, b))		% Slope(deg?) Intercept
