@@ -57,10 +57,10 @@ function varargout = fft_stuff(varargin)
 			dx = handles.head_Z1(2) - handles.head_Z1(1);
 			dy = handles.head_Z1(4) - handles.head_Z1(3);
 			len = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
-			if (len > 5e4 || handles.head_Z1(8) > 10)      % If grid's diagonal > 5e4 consider we have meters
-				handles.is_meters = 1;     handles.is_km = 0;   handles.geog = 0;
+			if (len > 1e4 || handles.head_Z1(8) > 10)      % If grid's diagonal > 1e4 consider we have meters
+				handles.is_meters = 1;     handles.is_km = 0;
 			else				% km
-				handles.is_meters = 0;     handles.is_km = 1;   handles.geog = 0;
+				handles.is_meters = 0;     handles.is_km = 1;
 			end
 			handles.scaled_dx = handles.head_Z1(8);
 			handles.scaled_dy = handles.head_Z1(9);
@@ -437,10 +437,12 @@ function pushbutton_radialPowerAverage_Callback(hObject, eventdata, handles)
 	powfactor = 1 / (nx2*ny2)^2;
 	power = power * powfactor;
 	freq = (1:nk) * delta_k;
-	if (handles.geog),   freq = freq * 1000;     end     % Report frequency in 1/km
 
-	if (handles.geog || handles.is_km)		x_label = 'Frequency (1/km)';
-	else									x_label = 'Frequency (1/m)';
+	if (handles.geog || handles.is_km)
+		freq = freq * 1000;
+		x_label = 'Frequency (1/km)';	 % Report frequency in 1/km
+	else
+		x_label = 'Frequency (1/m)';
 	end
 
 	if (~isempty(handles.hMirFig))			arg1 = handles.hMirFig;
