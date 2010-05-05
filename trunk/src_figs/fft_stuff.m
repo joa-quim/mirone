@@ -62,6 +62,10 @@ function varargout = fft_stuff(varargin)
 			else				% km
 				handles.is_meters = 0;     handles.is_km = 1;
 			end
+			% It's actually very hard to guess if m or km so I'll set it to meters always
+			% but leave the above lines to remind the case which can only be adressed well
+			% if the grid has header info on X,Y units.
+			handles.is_meters = 1;     handles.is_km = 0;
 			handles.scaled_dx = handles.head_Z1(8);
 			handles.scaled_dy = handles.head_Z1(9);
 			if (handles.is_km)
