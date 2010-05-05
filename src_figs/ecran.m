@@ -108,7 +108,7 @@ function varargout = ecran(varargin)
 	if isempty(varargin{1})          % When the file will be read latter
 		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
 		handles.show_popups = false;
-	
+
 	elseif strcmp(varargin{1},'Image')
 		handles.data(:,1) = varargin{2};    handles.data(:,2) = varargin{3};    handles.data(:,3) = varargin{4};
 		set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
@@ -118,7 +118,7 @@ function varargout = ecran(varargin)
 		handles.dist = rd;				% This one is by default, so save it in case user wants to save it to file
 		handles.hLine = plot(rd,handles.data(:,3));		axis(handles.axes1,'tight');
 		set(hObject,'Name',varargin{5})
-	
+
 	elseif strcmp(varargin{1},'reuse')					% Case of auto-referenced call
 		varargin(n_in+1:9) = cell(1,9-n_in);			% So that varargin{1:9} allways exists.
 		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
@@ -133,11 +133,11 @@ function varargout = ecran(varargin)
 			handles.hLine = plot(handles.data(:,1),handles.data(:,2), 'Parent', handles.axes1);
 		end
 		axis(handles.axes1,'tight');
-		
-		if ~isempty(varargin{5}),    set(hObject,'Name',varargin{5});			end		% Figure Name
-		if ~isempty(varargin{6}),    xlabel(handles.axes1, varargin{6});		end		% XLabel
-		if ~isempty(varargin{7}),    ylabel(handles.axes1, varargin{7});		end		% YLabel
-		if ~isempty(varargin{8}),    title(handles.axes1, varargin{8});			end		% Title
+
+		if ~isempty(varargin{5}),    set(hObject,'Name',varargin{5});		end		% Figure Name
+		if ~isempty(varargin{6}),    xlabel(varargin{6});					end		% XLabel
+		if ~isempty(varargin{7}),    ylabel(varargin{7});					end		% YLabel
+		if ~isempty(varargin{8}),    title(varargin{8});					end		% Title
 		handles.show_popups = false;
 	end
 
@@ -214,12 +214,20 @@ function dynSlope_CB(obj, eventdata)
 	state = uisuspend_fig(handles.figure1);				% Remember initial figure state
 	set(handles.figure1,'Pointer', 'crosshair');
 
-	SpectorGrant = false;
+	SpectorGrant = false;		xFact = 1;
 	if ( strncmp(get(handles.figure1,'name'), 'Radial average', 14) )	% Estimate depth to magnetic sources
-		SpectorGrant = 1;
+		SpectorGrant = true;
 		xl = get(get(handles.axes1, 'XLabel'), 'String');
 		if (strcmp(xl(end-2:end-1), 'km'))		% frequency is in 1/km
-			SpectorGrant = 1000;				% Multiplying factor to get depth in meters
+			xFact = 1000;						% Multiplying factor to get depth in meters
+		end
+	else										% Have to check the various possibilities
+		if (get(handles.checkbox_geog, 'Val'))
+			contents = get(handles.popup_selectPlot, 'Str');
+			km_or_M = contents{(get(handles.popup_selectPlot,'Val'))}(end-1);
+			if ( km_or_M == 'm' )			xFact = 1000;	% km
+			elseif ( km_or_M == 'M' )		xFact = 1852;	% NM
+			end
 		end
 	end
 
@@ -241,22 +249,23 @@ function dynSlope_CB(obj, eventdata)
 			hFLine = [hFLine; ...
 				line('XData', [], 'YData', [], 'Parent', handles.axes1,'Color',rand(1,3),'LineWidth',2,'Tag','FitLine')];
 		end
-        dynSlopeFirstButtonDown(handles.figure1, handles.axes1, handles.axes2, handles.hLine, hULine, hFLine, hTxt, SpectorGrant, state)
+        dynSlopeFirstButtonDown(handles.figure1, handles.axes1, handles.axes2, handles.hLine, hULine,...
+								hFLine, hTxt, xFact, SpectorGrant, state)
 	else
         set(handles.figure1,'Pointer', 'arrow');
 	end
 
 % ------------------------------------------------------------------------------------------
-function dynSlopeFirstButtonDown(hFig, hAxes1, hAxes2, hLine, hULine, hFLine, hTxt, SpectorGrant, state)
+function dynSlopeFirstButtonDown(hFig, hAxes1, hAxes2, hLine, hULine, hFLine, hTxt, xFact, SpectorGrant, state)
 	pt = get(hAxes1, 'CurrentPoint');
 	x = get(hLine,'XData');			x_lim = get(hAxes1,'XLim');
 	set(hAxes2, 'Vis', 'on','XTick',[], 'YTick',[], 'xlim', x_lim, 'ylim', [-0.01 1])
 
 	[temp,i] = min(abs(x - pt(1,1)));
-	set(hFig,'WindowButtonMotionFcn',{@wbm_dynSlope, x(i), i, hAxes1, hLine, hULine, hFLine, hTxt, SpectorGrant}, ...
-		'WindowButtonUpFcn',{@wbu_dynSlope, hFLine, SpectorGrant, state});
+	set(hFig,'WindowButtonMotionFcn',{@wbm_dynSlope, x(i), i, hAxes1, hLine, hULine, hFLine, hTxt, xFact, SpectorGrant}, ...
+		'WindowButtonUpFcn',{@wbu_dynSlope, hFLine, xFact, SpectorGrant, state});
 
-function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt, SpectorGrant)
+function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt, xFact, SpectorGrant)
 % The SpectorGrant arg is used when estimating depth to mag sources by the Spector & Grant method
 	pt = get(hAxes, 'CurrentPoint');
 	X = get(hLine,'XData');       Y = get(hLine,'YData');
@@ -269,47 +278,55 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt,
 	elseif (N == 2)			mb = trend1d_m(xy, '-N2', '-L');
 	else					return			% First point. Too soon to do anything
 	end
-	if (~SpectorGrant)		fstr = 'Dist=%g\t  Slp=%.6g';		denom = 1;
-	else					fstr = 'Dist=%g\t  Depth=%.6g';		denom = -4 * pi / SpectorGrant;
+	if (~SpectorGrant)
+		fstr = 'Dist=%g\t  Slope=%.2f';		slp = atan(mb(1) / xFact)*180/pi;	% slope in (maybe) degrees
+	else
+		fstr = 'Dist=%g\t  Depth=%.3f';		slp = abs(mb(1) / (4*pi / xFact));
 	end
 	xUnderLine = [x0 xx(end)];
-	set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf(fstr, diff(xUnderLine), mb(1) / denom))
-	set(hFLine(end), 'XData', [xx(1) xx(end)], 'YData', [yy(1) (mb(1)*xx(end)+mb(2))],'UserData',mb)
+	set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf( fstr, diff(xUnderLine), slp ))
+	set(hFLine(end), 'XData', [xx(1) xx(end)], 'YData', ([xx(1) xx(end)] * mb(1) + mb(2)), 'UserData', [mb slp])
 	set(hULine,'XData', xUnderLine)
 
-function wbu_dynSlope(obj,eventdata, h, SpectorGrant, state)
+function wbu_dynSlope(obj,eventdata, h, xFact, SpectorGrant, state)
     uirestore_fig(state);           % Restore the figure's initial state
 	cmenuHand = uicontextmenu('Parent',state.figureHandle);
 	set(h(end), 'UIContextMenu', cmenuHand);
  	uimenu(cmenuHand, 'Label', 'Slope  &  Intercept');
-	uimenu(cmenuHand, 'Label', num2str(get(h(end), 'UserData')));
+	mb_e_slp = get(h(end), 'UserData');
 	if (SpectorGrant)
-		mb = get(h(end), 'UserData');
-		uimenu( cmenuHand, 'Label', ['Depth to sources = ' num2str(-mb(1) / (4*pi) * SpectorGrant)] );
+		uimenu(cmenuHand, 'Label', sprintf('%.2f   %.9g', mb_e_slp(1), mb_e_slp(2)));	% Slope Intercept
+		uimenu(cmenuHand, 'Label', sprintf('Depth to sources = %.3f', mb_e_slp(3)));
+		uimenu(cmenuHand, 'Label', 'Bandpass Filter', 'Call', {@do_bandFilter,h(end), xFact}, 'Sep', 'on');
+	else
+		uimenu(cmenuHand, 'Label', sprintf('%.2f   %.9g', mb_e_slp(3), mb_e_slp(2)));	% Slope(deg?) Intercept
 	end
-	uimenu(cmenuHand, 'Label', 'Recomp Slope/Intercept', 'Call', {@recompSI,h(end),SpectorGrant}, 'Sep', 'on');
-	uimenu(cmenuHand, 'Label', 'Bandpass Filter', 'Call', {@do_bandFilter,h(end), SpectorGrant}, 'Sep', 'on');
+	uimenu(cmenuHand, 'Label', 'Recomp Slope/Intercept', 'Call', {@recompSI,h(end), xFact, SpectorGrant}, 'Sep', 'on');
 	uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', 'delete(gco)', 'Sep', 'on');
 	ui_edit_polygon(h(end))
 	%obj = findobj('Type', 'uitoggletool', 'Tag', 'DynSlope');
 	%dynSlope_CB(obj, [])
 
-function recompSI(obj,event, h, SpectorGrant)
+function recompSI(obj,event, h, xFact, SpectorGrant)
 % Recompute Slope & Intercept because line might have been edited
 	x = get(h, 'XData');		y = get(h, 'YData');
 	m =  (y(end) - y(1)) / (x(end) - x(1));			
 	b = y(1) - m * x(1);
-	set(h, 'UserData', [m b]);
 	child = get(get(obj,'Par'), 'Children');
 	for (k = 1:numel(child))
-		if (strfind(get(child(k),'Label'),'Recomp')),	K = k + 1;	break,		end
+		if (strfind(get(child(k),'Label'),'Recomp')),	K = k + 1 + SpectorGrant;	break,		end
 	end
 	if (SpectorGrant)
-		set(child(K), 'Label', ['Depth to sources = ' num2str(-m / (4*pi) * SpectorGrant)]);
+		slp = abs(m / (4*pi) * xFact);
+		set( child(K), 'Label', sprintf('Depth to sources =  %.3f', slp) );		K = K + 1;
+		set(child(K), 'Label', sprintf('%.2f   %.9g', m, b))		% Slope Intercept
+	else
+		slp = atan(m / xFact)*180/pi;			% Get the slope in (maybe) degrees
+		set(child(K), 'Label', sprintf('%.2f   %.9g', slp, b))		% Slope(deg?) Intercept
 	end
-	set(child(K+1), 'Label', num2str([m b]))
+	set(h, 'UserData', [m b slp]);
 
-function do_bandFilter(obj,event, h, SpectorGrant)
+function do_bandFilter(obj,event, h, xFact)
 % Hub function to manage the bandpass filtering
 % "SpectorGrant" is used here to know if we had frequencies in 1/km
 	handles = guidata(obj);
@@ -321,8 +338,7 @@ function do_bandFilter(obj,event, h, SpectorGrant)
 	end
 	warndlg('Not finished. Not working correctly. Not Not.','Warning')
 	
-	if (~SpectorGrant)		SpectorGrant = 1;	end		% Make sure it is not zero
-	out = bandpass(get(h, 'XData') / SpectorGrant);
+	out = bandpass(get(h, 'XData') / xFact);
 	if (isempty(out))	return,		end
 
 	handMir = guidata(handles.hMirFig);			% We need to fish on the original Mir fig
@@ -418,7 +434,7 @@ function isocs_CB(obj,eventdata)
 	end
 
 % -------------------------------------------------------------------------------
-function checkbox_geog_Callback(hObject, eventdata, handles)
+function checkbox_geog_CB(hObject, eventdata, handles)
 	if get(hObject,'Value')
 		set(handles.popup_selectPlot,'String',{'Distance along profile (data units)';
 		'Distance along profile (km)';'Distance along profile (NM)'});
@@ -435,7 +451,7 @@ function checkbox_geog_Callback(hObject, eventdata, handles)
 	end
 
 % ---------------------------------------------------------------------------------
-function popup_selectPlot_Callback(hObject, eventdata, handles)
+function popup_selectPlot_CB(hObject, eventdata, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	D2R = pi/180;
 	switch str{val};
@@ -456,7 +472,7 @@ function popup_selectPlot_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 % ---------------------------------------------------------------------------------
-function popup_selectSave_Callback(hObject, eventdata, handles)
+function popup_selectSave_CB(hObject, eventdata, handles)
 val = get(hObject,'Value');     str = get(hObject, 'String');
 D2R = pi/180;
 deg2km = 111.1949;		deg2nm = 60.04;
@@ -887,7 +903,7 @@ axes('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Units','normalized',...
-'Callback',{@ecran_uicallback,h1,'checkbox_geog_Callback'},...
+'Callback',{@ecran_uicallback,h1,'checkbox_geog_CB'},...
 'Position',[0.0468557336621455 0.03216374269005848 0.2379778051787916 0.049707602339181284],...
 'String','Geographical coordinates',...
 'TooltipString',sprintf(['Check this if your data is in geographical coordinates.\n' ...
@@ -898,7 +914,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Units','normalized',...
 'BackgroundColor',[1 1 1],...
-'Callback',{@ecran_uicallback,h1,'popup_selectPlot_Callback'},...
+'Callback',{@ecran_uicallback,h1,'popup_selectPlot_CB'},...
 'Position',[0.3341553637484587 0.02046783625730994 0.3316892725030826 0.06432748538011696],...
 'String','Distance along profile (data units)', ...
 'Style','popupmenu',...
@@ -909,7 +925,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Units','normalized',...
 'BackgroundColor',[1 1 1],...
-'Callback',{@ecran_uicallback,h1,'popup_selectSave_Callback'},...
+'Callback',{@ecran_uicallback,h1,'popup_selectSave_CB'},...
 'Position',[0.7028360049321825 0.02046783625730994 0.2836004932182491 0.06432748538011696],...
 'String',{  'Save Profile on disk'; 'distance Z (data units -> ascii)'; 'distance Z (data units -> binary)'; 'distance Z (km -> ascii)'; 'distance Z (km -> binary)'; 'distance Z (NM -> ascii)'; 'distance Z (NM -> binary)'; 'X Y Z (data units -> ascii)'; 'X Y Z (data units -> binary)' },...
 'Style','popupmenu',...
