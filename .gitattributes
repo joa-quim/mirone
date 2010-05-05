@@ -478,6 +478,7 @@ mex/vectors.cpp -text
 mex/vectors.h -text
 mex/wave_travel_time.c -text
 mex/write_mex.c -text
+mex/xyzokb_m.c -text
 /mirone.m -text
 /mirone_uis.m -text
 /msvcp71.dll -text
