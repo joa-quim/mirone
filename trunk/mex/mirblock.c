@@ -54,25 +54,34 @@
 #define MIRBLOCK_ALGO_MAX	5
 #define MIRBLOCK_ALGO_SLOPE	6
 #define MIRBLOCK_ALGO_ASPECT	7
-#define MIRBLOCK_N_ALGOS	8
+#define MIRBLOCK_ALGO_RMS	8
+#define MIRBLOCK_ALGO_TREND	9
+#define MIRBLOCK_ALGO_RESIDUE	10
+#define MIRBLOCK_ALGO_RES_RMS	11
+#define MIRBLOCK_ALGO_AGC_FAMP	12
+#define MIRBLOCK_ALGO_AGC_LAMP	13
+#define MIRBLOCK_N_ALGOS	14
 
 typedef void (*PFV) ();		/* PFV declares a pointer to a function returning void */
 
-void TPI(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
-void TRI(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
-void roughness(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
-void average(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
-void block_min(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
-void block_max(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
-void callAlgo(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
-
+void TPI        (int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
+void TRI        (int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
+void roughness  (int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
+void average    (int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
+void block_min  (int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
+void block_max  (int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
+void callAlgo   (int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
 void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
-void load_pstuff (double *pstuff, int n_model, double x, double y, int newx, int newy, int basis);
+void agc_fullAmp(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
+void block_rms  (int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans);
+void load_pstuff(double *pstuff, int n_model, double x, double y, int newx, int newy, int basis);
 void load_gtg_and_gtd (float *data, int nx, int ny, double *xval, double *yval, double *pstuff, double *gtg, double *gtd, int n_model);
 void GMT_gauss (double *a, double *vec, int n_in, int nstore_in, double test, int *ierror, int itriag, int *line, int *isub);
 void GMT_cheb_to_pol (double *c, int n, double a, double b, double *d, double *dd);
 
 PFV MIR_block_funs[MIRBLOCK_N_ALGOS];
+
+static double globalStore[4];
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -86,6 +95,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	float	*zdata, *out;
 	double	*hdr = NULL;
 
+	globalStore[0] = globalStore[1] = globalStore[2] = globalStore[3] = 0;
 	argc = nrhs;
 	for (i = 0; i < nrhs; i++) {		/* Check input to find how many arguments are of type char */
 		if(!mxIsChar(prhs[i])) {
@@ -97,7 +107,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if ( (n_arg_no_char == 2) && mxIsNumeric(prhs[1]) ) {
 		if (mxGetM(prhs[1]) != 1 || mxGetN(prhs[1]) != 9) {
-			mexErrMsgTxt("MIRBLOCK: deader array must be a 1x9 row vector.\n");
+			mexErrMsgTxt("MIRBLOCK: header array must be a 1x9 row vector.\n");
 		}
 		else {
 			hdr = (double *)mxCalloc(10, sizeof(double));
@@ -109,9 +119,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/* get the length of the input string */
 	argv = (char **)mxCalloc(argc, sizeof(char *));
 	argv[0] = "mirblock";
-	for (i = 1; i < argc; i++) {
+	for (i = 1; i < argc; i++)
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char-1]);
-	}
 
 	for (i = 1; !error && i < argc; i++) {
 		if (argv[i][0] == '-') {
@@ -146,7 +155,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	if (n_arg_no_char == 0 || error) {
 		mexPrintf ("mirblock - Compute morphological quantities from DEMs single precision arrays\n\n");
-		mexPrintf ("usage: out = mirblock(input, ['-A<0|...|5>'], [-N<0|1>], [-W<winsize>]\n");
+		mexPrintf ("usage: out = mirblock(input, ['-A<0|...|7>'], [-N<0|1>], [-W<winsize>]\n");
 		
 		mexPrintf ("\t<input> is name of input array (singles only)\n");
 		mexPrintf ("\n\tOPTIONS:\n");
@@ -159,7 +168,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\t   4 -> Minimum\n");
 		mexPrintf ("\t   5 -> Mmaximum\n");
 		mexPrintf ("\t   6 -> Slope\n"); 
-		mexPrintf ("\t   6 -> Aspect\n"); 
+		mexPrintf ("\t   7 -> Aspect\n"); 
+		mexPrintf ("\t   8 -> RMS\n"); 
+		mexPrintf ("\t   9 -> Trend\n"); 
+		mexPrintf ("\t  10 -> Residue\n"); 
+		mexPrintf ("\t  11 -> RMS of Residue\n"); 
+		mexPrintf ("\t  12 -> Automatic Gain Control (Full Amplitude)\n"); 
+		mexPrintf ("\t  13 -> Automatic Gain Control (Local Amplitude)\n"); 
 		mexPrintf ("\t-N Inform if input has NaNs (1) or not (0) thus avoiding wasting time with repeated test.\n");
 		mexPrintf ("\t-W select the rectangular window size [default is 3, which means 3x3].\n");
 		mexErrMsgTxt("\n");
@@ -179,8 +194,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (algo < 0 || algo > MIRBLOCK_N_ALGOS)
 		mexErrMsgTxt("MIRBLOCK -A ERROR: unknown algorithm selection.\n");
 
-	nx = mxGetN (prhs[0]);
-	ny = mxGetM (prhs[0]);
+	nx = mxGetN(prhs[0]);
+	ny = mxGetM(prhs[0]);
 	nm = nx * ny;
 
 	if (!mxIsNumeric(prhs[0]) || ny < 3 || nx < 3)
@@ -201,27 +216,35 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 	}
 
-	MIR_block_funs[MIRBLOCK_ALGO_TRI] = (PFV) TRI;
-	MIR_block_funs[MIRBLOCK_ALGO_TPI] = (PFV) TPI;
-	MIR_block_funs[MIRBLOCK_ALGO_ROUGH] = (PFV) roughness;
-	MIR_block_funs[MIRBLOCK_ALGO_AVG] = (PFV) average;
-	MIR_block_funs[MIRBLOCK_ALGO_MIN] = (PFV) block_min;
-	MIR_block_funs[MIRBLOCK_ALGO_MAX] = (PFV) block_max;
-	MIR_block_funs[MIRBLOCK_ALGO_SLOPE] = (PFV) surface_fit;
-	MIR_block_funs[MIRBLOCK_ALGO_ASPECT] = (PFV) surface_fit;
+	MIR_block_funs[MIRBLOCK_ALGO_TRI]     = (PFV) TRI;
+	MIR_block_funs[MIRBLOCK_ALGO_TPI]     = (PFV) TPI;
+	MIR_block_funs[MIRBLOCK_ALGO_ROUGH]   = (PFV) roughness;
+	MIR_block_funs[MIRBLOCK_ALGO_AVG]     = (PFV) average;
+	MIR_block_funs[MIRBLOCK_ALGO_MIN]     = (PFV) block_min;
+	MIR_block_funs[MIRBLOCK_ALGO_MAX]     = (PFV) block_max;
+	MIR_block_funs[MIRBLOCK_ALGO_SLOPE]   = (PFV) surface_fit;
+	MIR_block_funs[MIRBLOCK_ALGO_ASPECT]  = (PFV) surface_fit;
+	MIR_block_funs[MIRBLOCK_ALGO_TREND]   = (PFV) surface_fit;
+	MIR_block_funs[MIRBLOCK_ALGO_RESIDUE] = (PFV) surface_fit;
+	MIR_block_funs[MIRBLOCK_ALGO_RES_RMS] = (PFV) surface_fit;
+	MIR_block_funs[MIRBLOCK_ALGO_RMS]     = (PFV) block_rms;
+	MIR_block_funs[MIRBLOCK_ALGO_AGC_FAMP]= (PFV) agc_fullAmp;
+	MIR_block_funs[MIRBLOCK_ALGO_AGC_LAMP]= (PFV) surface_fit;
 
 	callAlgo(algo, hdr, zdata, out, n_win, nx, ny, check_nans);
 }
 
 void callAlgo(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans) {
-	int	j, n, m, nHalfWin, n_extra, nWinExtended, nHalfWinExtended, nny;
+	int	j, n, m, nHalfWin, n_extra, nWinExtended, nHalfWinExtended, nny, idSave = -1;
 	float	*pad_cols, *out_cols;
+
+	if (id == MIRBLOCK_ALGO_AGC_LAMP) {id = MIRBLOCK_ALGO_RES_RMS;	idSave = MIRBLOCK_ALGO_AGC_LAMP;}
 
 	MIR_block_funs[id](id, hdr, in, out, n_win, nx, ny, check_nans);
 
 	nHalfWin = n_win / 2;
-	n_extra = nHalfWin - 1;		/* Will be 0 for W=3, 1 for W=5, 2 for W=7, etc ... */
-	nWinExtended = n_win + n_extra;
+	n_extra  = nHalfWin - 1;		/* Will be 0 for W=3, 1 for W=5, 2 for W=7, etc ... */
+	nWinExtended     = n_win + n_extra;
 	nHalfWinExtended = nHalfWin + n_extra;
 	nny = ny + 2 * nHalfWin;
 
@@ -239,7 +262,7 @@ void callAlgo(int id, double *hdr, float *in, float *out, int n_win, int nx, int
 
 	/* Replicate the first/last values of pad_cols into the nHalfWin padding zone */
 	for (n = 0; n < n_win; n++) {
-		for (m = 0; m < nHalfWin; m++) pad_cols[m + n*nny]      = pad_cols[nHalfWin + n*nny];
+		for (m = 0; m < nHalfWin; m++)      pad_cols[m + n*nny] = pad_cols[nHalfWin + n*nny];
 		for (m = ny+nHalfWin; m < nny; m++) pad_cols[m + n*nny] = pad_cols[ny+nHalfWin-1 + n*nny];
 	}
 
@@ -292,13 +315,13 @@ void callAlgo(int id, double *hdr, float *in, float *out, int n_win, int nx, int
 	for (n = ny - nHalfWinExtended - 1, m = 0; n < ny; n++, m++)	/* Copy last (nHalfWin + n_extra + 1) rows */
 		for (j = 0; j < nx; j++)
 			pad_cols[j * nWinExtended + m] = in[j*ny + n];
-	for (n = ny - 2; n >= ny - (nHalfWin + 1); n--, m++)	/* Mirror nHalfWin rows */
+	for (n = ny - 2; n >= ny - (nHalfWin + 1); n--, m++)		/* Mirror nHalfWin rows */
 		for (j = 0; j < nx; j++)
 			pad_cols[j * nWinExtended + m] = in[j*ny + n];
 
 	MIR_block_funs[id](id, hdr, pad_cols, out_cols, n_win, nx, nWinExtended, check_nans);
 
-	for (n = ny - nHalfWin, m = 2*nHalfWin-1; n < ny; n++, m--)		/* Put the result in the last nHalfWin rows */
+	for (n = ny - nHalfWin, m = 2*nHalfWin-1; n < ny; n++, m--)	/* Put the result in the last nHalfWin rows */
 		for (j = nHalfWin; j < nx - nHalfWin; j++)
 			out[j*ny + n] = out_cols[j * nWinExtended + m];
 
@@ -307,12 +330,50 @@ void callAlgo(int id, double *hdr, float *in, float *out, int n_win, int nx, int
 
 	/* Since this bloody thing still f on the corners I give up and replace them by their next diagonal neighbor */
 	for (n = 0; n < nHalfWin; n++) {
-		for (m = 0; m < nHalfWin; m++)       out[m + n*ny] = out[nHalfWin * ny + nHalfWin];	/* First_rows/West */
-		for (m = ny - nHalfWin; m < ny; m++) out[m + n*ny] = out[(nHalfWin+1) * ny - (nHalfWin+1)]; /* Last_rows/West */
+		for (m = 0; m < nHalfWin; m++)					/* First_rows/West */
+			out[m + n*ny] = out[nHalfWin * ny + nHalfWin];
+		for (m = ny - nHalfWin; m < ny; m++)				/* Last_rows/West */
+			out[m + n*ny] = out[(nHalfWin+1) * ny - (nHalfWin+1)];
 	}
 	for (n = nx - nHalfWin; n < nx; n++) {
-		for (m = 0; m < nHalfWin; m++)       out[m + n*ny] = out[(nx - nHalfWin - 1) * ny + nHalfWin];/* First_rows/East */
-		for (m = ny - nHalfWin; m < ny; m++) out[m + n*ny] = out[(nx - nHalfWin) * ny - (nHalfWin+1)];
+		for (m = 0; m < nHalfWin; m++)					/* First_rows/East */
+			out[m + n*ny] = out[(nx - nHalfWin - 1) * ny + nHalfWin];
+		for (m = ny - nHalfWin; m < ny; m++)
+			out[m + n*ny] = out[(nx - nHalfWin) * ny - (nHalfWin+1)];
+	}
+
+	/* ================================================================================================ */
+	/*	In some cases we might still have unfinished work					
+	/* ================================================================================================ */
+	if (id == MIRBLOCK_ALGO_AGC_FAMP) {
+		float fac, rmsMax = (float)globalStore[1];		/* We stored it there in fullAmp() */
+		for (j = 0; j < nx * ny; j++) {
+			if (check_nans && mxIsNaN(out[j])) continue;
+			fac = (float)MIN(rmsMax / out[j], 10.);		/* Limit amplification to 10 */
+			out[j] = in[j] * fac;
+		}
+	}
+	else if (idSave == MIRBLOCK_ALGO_AGC_LAMP) {
+		/* Here the "out" array contains the local RMS of data-local_trend at each point */
+		float	*trend, fac, rmsMax = 0;
+
+		trend = (float *) mxCalloc ((size_t)(nx * ny), sizeof (float));
+		callAlgo(MIRBLOCK_ALGO_TREND, hdr, in, trend, n_win, nx, ny, check_nans);
+
+		for (j = 0; j < nx * ny; j++) {				/* Compute maximum RMS */
+			if (check_nans && mxIsNaN(out[j])) continue;
+			if (out[j] > rmsMax) rmsMax = out[j];
+		}
+
+		for (j = 0; j < nx * ny; j++) {
+			if (check_nans && mxIsNaN(in[j]))
+				continue;
+			else {
+				fac = (float)MIN(rmsMax / out[j], 20.);	/* Limit amplification to 20 */
+				out[j] = (in[j] - trend[j]) * fac + trend[j];
+			}
+		}
+		mxFree((void *)trend);
 	}
 
 }
@@ -387,8 +448,8 @@ void TRI(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, 
 }
 
 void roughness(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans) {
-	/* Computes Roughness defined as the the largest inter-cell difference of a central pixel and its surrounding cell
-	   (Wilson et al 2007, Marine Geodesy 30:3-35). */
+	/* Computes Roughness defined as the the largest inter-cell difference of a central pixel 
+	   and its surrounding cell (Wilson et al 2007, Marine Geodesy 30:3-35). */
 	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off;
 	float	*p, tmp, min, max;
 
@@ -508,11 +569,69 @@ void block_max(int id, double *hdr, float *in, float *out, int n_win, int nx, in
 	}
 }
 
+void agc_fullAmp(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans) {
+	/* Maximum Gain Correction to apply at any position (Full Amplitude) */
+	/* The subtility here is that the algo has to be called 5 times. One for the whole region and 4
+	   others for the boundary conditions. Since the AGC algo comprises two passes we need to wait till
+	   all 5 rounds are done before we can finish the job. We use a global variable to control that. */
+	int	i;
+	float	rmsMax = 0;
+
+	block_rms(id, hdr, in, out, n_win, nx, ny, check_nans);
+
+	for (i = 0; i < nx * ny; i++) {			/* Compute maximum RMS */
+		if (check_nans && mxIsNaN(out[i])) continue;
+		if (out[i] > rmsMax) rmsMax = out[i];
+	}
+
+	globalStore[1] = MAX(rmsMax, globalStore[1]);
+
+}
+
+void block_rms(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans) {
+	/* Computes the RMS of cells inside the rectangular window */
+	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, nNaNs, ngood;
+	float	*p;
+	double	mean = 0, rms;
+
+	nHalfWin = n_win / 2;
+	n_win2   = n_win * n_win;	n_off  = nHalfWin * (ny + 1);
+	n_stop   = nx - nHalfWin;	m_stop = ny - nHalfWin;
+
+	for (n = nHalfWin; n < n_stop; n++) {
+		k = (n - nHalfWin) * ny - 1;			/* Index of window's UL corner */
+		for (m = nHalfWin; m < m_stop; m++) {
+			k++;
+			nm = k + n_off;
+			if (check_nans && mxIsNaN(in[nm])) {out[nm] = in[nm];	continue;}
+			mean = rms = 0.;	nNaNs = 0;
+			for (i = 0; i < n_win; i++) {		/* Loop columns inside window */
+				p = &in[k + i * ny];
+				for (j = 0; j < n_win; j++) {
+					if (check_nans && mxIsNaN(*p))	/* Ignore this value */
+						nNaNs++;
+					else {
+						mean += *p;
+						rms  += (*p) * (*p);
+					}
+					p++;
+				}
+			}
+			ngood = n_win2 - nNaNs;
+			if (ngood == 0) {out[nm] = 0;	continue;}
+			mean /= (double)ngood; 
+			rms /= (double)ngood;
+			out[nm] = (float) (sqrt(rms - mean*mean));
+		}
+	}
+}
+
 void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans) {
-	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, l, n_off, ierror = 0, n_model = 6;
+	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, ij, k, l, n_off, ierror = 0, n_model = 3;
 	int	*line, *isub, n_error = 0;
 	float	*p, aspect;
 	double	zero_test = 1.0e-08, dv, dy, dx, m_per_deg = 1., *co, c[3], *d, *dd;
+	double	trend, mean, rms, *diff;
 	double	*xval;		/* Pointer for array of change of variable:  x[i]  */
 	double	*yval;		/* Pointer for array of change of variable:  y[j]  */
 	double	*gtg;		/* Pointer for array for matrix G'G normal equations  */
@@ -521,12 +640,11 @@ void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, 
 	float	*data;		/* Pointer for array with a copy of 'in' inside 'n_win' */
 
 	nHalfWin = n_win / 2;
-	n_win2  = n_win * n_win;	n_off  = nHalfWin * (ny + 1);
-	n_stop = nx - nHalfWin;		m_stop = ny - nHalfWin;
+	n_win2   = n_win * n_win;	n_off  = nHalfWin * (ny + 1);
+	n_stop   = nx - nHalfWin;	m_stop = ny - nHalfWin;
 	co = (double *)mxMalloc((m_stop - nHalfWin) * sizeof(double));
 
 	if (id == MIRBLOCK_ALGO_SLOPE || id == MIRBLOCK_ALGO_ASPECT) {
-		n_model = 3;
 		if (hdr[9]) {		/* Geog */
 			m_per_deg = 111195.01524;		/* Spherical approx (Authalic radius 6371005.076 m) */
 			for (m = nHalfWin, k = 0; m < m_stop; m++, k++)
@@ -554,10 +672,12 @@ void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, 
 	xval[n_win - 1] = yval[n_win - 1] = 1.;
 
 	/* Work arrays */
-	line = (int *) mxCalloc ((size_t)n_model, sizeof (int));
-	isub = (int *) mxCalloc ((size_t)n_model, sizeof (int));
+	line =  (int *) mxCalloc ((size_t)n_model, sizeof (int));
+	isub =  (int *) mxCalloc ((size_t)n_model, sizeof (int));
 	d  = (double *) mxCalloc ((size_t)n_model, sizeof (double));
 	dd = (double *) mxCalloc ((size_t)n_model, sizeof (double));
+	if (id == MIRBLOCK_ALGO_RES_RMS)
+		diff = (double *) mxCalloc ((size_t)n_win2, sizeof (double));
 
 	for (n = nHalfWin, m = 0; n < n_stop; n++) {		/* Loop through columns */
 		k = (n - nHalfWin) * ny - 1;
@@ -572,12 +692,41 @@ void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, 
 					p++;
 				}
 			}
+
 			load_gtg_and_gtd(data, n_win, n_win, xval, yval, pstuff, gtg, gtd, n_model);
 			GMT_gauss (gtg, gtd, n_model, n_model, zero_test, &ierror, 1, line, isub);
 			if (ierror) n_error++;
-			/* In the following, remember that since we are working by clumns (ML column major)
+			/* In the following, remember that since we are working by columns (ML is column major)
 			   the X & Y are swapped with respect to GMT (i.e. row major) logic */
 			if (n_model == 3) {
+				if (id == MIRBLOCK_ALGO_TREND) {	/* Try these first because no need to cheb_to_pol */
+					out[nm] = (float)gtd[0];	/* gtd[0] = val at window center */
+					continue;
+				}
+				else if (id == MIRBLOCK_ALGO_RESIDUE) {
+					out[nm] = data[n_win2 / 2] - (float)gtd[0];
+					continue;
+				}
+				else if (id == MIRBLOCK_ALGO_RES_RMS) {
+					for (i = ij = 0; i < n_win; i++) {
+						for (j = 0; j < n_win; j++, ij++) {
+							trend  = gtd[0];
+							trend += xval[i] * gtd[2];
+							trend += yval[j] * gtd[1];
+							diff[ij] = data[ij] - trend;
+						}
+					}
+					/* Now compute RMS of diff */
+					mean = rms = 0.;
+					for (ij = 0; ij < n_win2; ij++) {
+						mean += diff[ij];
+						rms  += (diff[ij] * diff[ij]);
+					}
+					mean /= (double)n_win2; 
+					rms  /= (double)n_win2;
+					out[nm] = (float) (sqrt(rms - mean*mean));
+					continue;
+				}
 				c[0] = gtd[0];	c[1] = gtd[2]; 			/* For X we must make a copy */
 				GMT_cheb_to_pol (c, 2, 0, dx * co[l], d, dd);
 				gtd[2] = c[1];
@@ -590,7 +739,7 @@ void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, 
 					out[nm] = aspect;
 				}
 			}
-			else {
+			else {		/* This will (eventually) hold the n_model > 3 cases */
 				/* Not correct. We still need to find out what to do with the cross term */
 				c[0] = gtd[0];	c[1] = gtd[2]; 	c[2] = gtd[4];
 				GMT_cheb_to_pol (c, 3, 0, dx * co[l], d, dd);
@@ -608,9 +757,10 @@ void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, 
 	mxFree((void *) xval);		mxFree((void *) yval);
 	mxFree((void *) gtg);		mxFree((void *) gtd);
 	mxFree((void *) pstuff);	mxFree((void *) data);
-	mxFree ((void *)isub);		mxFree ((void *)line);
+	mxFree((void *)isub);		mxFree ((void *)line);
 	mxFree((void *) d);		mxFree((void *) dd);
-	mxFree ((void *)co);
+	mxFree((void *)co);
+	if (id == MIRBLOCK_ALGO_RES_RMS) mxFree((void *)diff);
 }
 
 void load_pstuff (double *pstuff, int n_model, double x, double y, int newx, int newy, int basis) {
@@ -847,7 +997,7 @@ void GMT_cheb_to_pol (double *c, int n, double a, double b, double *d, double *d
 	/* Convert from Chebyshev coefficients used on a t =  [-1,+1] interval
 	 * to polynomial coefficients on the original x = [a b] interval.
 	 * d & dd are work arrays of the same size as c
-	 * Modified from Numerical Miracles, ...eh Recipes */
+	 * Modified from Numerical Miracles, ...eh Recipes (Paul Wessel) */
  
 	int j, k;
 	double sv, cnst, fac;
