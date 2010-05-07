@@ -50,6 +50,7 @@
  */
 
 #include "mex.h"
+#include "mwsize.h"
 #include <float.h>
 #include <string.h>
 
