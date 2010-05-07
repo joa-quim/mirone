@@ -1,4 +1,5 @@
 #include "mex.h"
+#include "mwsize.h"
 
 void stl_write_ascii(FILE *fp, float *v, mwSize *f, int nFacet, int nv);
 void stl_write_binary(FILE *fp, float *v, mwSize *f, int nFacet, int nv);
