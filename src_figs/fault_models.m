@@ -102,7 +102,7 @@ function subfault(handles, localHandles, fname, cmap)
 	w = min(numeric_data{1}(:,1));		e = max(numeric_data{1}(:,1));
 	s = min(numeric_data{1}(:,2));		n = max(numeric_data{1}(:,2));
 	if (handles.no_file)		% If no_file, create a background
-		mirone('FileNewBgFrame_CB', handles, [w e s n 1])			% Create a background
+		mirone('FileNewBgFrame_CB', handles, [w e s n 1]);			% Create a background
 		hFig = handles.figure1;
 		figName = get(hFig,'Name');
 		ind = strfind(figName,' @');
@@ -115,8 +115,8 @@ function subfault(handles, localHandles, fname, cmap)
 		return
 	end
 
-	ind = strfind(multi_segs_str{1},'=');
-	nSeg = str2double(multi_segs_str{1}(ind+1:end));
+	%ind = strfind(multi_segs_str{1},'=');
+	%nSeg = str2double(multi_segs_str{1}(ind+1:end));
 
 	%Fault_segment =   1 nx(Along-strike)=  30 Dx= 15.00km ny(downdip)=  15 Dy= 12.00km
 	ind = strfind(multi_segs_str{2},'=');
