@@ -57,6 +57,7 @@ function varargout = deform_mansinha(varargin)
 
 	fault_x = get(handles.h_fault,'XData');     fault_y = get(handles.h_fault,'YData');
 	if (handles.n_faults > 1)
+		nvert = zeros(1,handles.n_faults);
 		for (k=1:handles.n_faults),  nvert(k) = size(fault_x{k},2) - 1;  end
 	else
 		nvert = size(fault_x,2) - 1;
@@ -231,16 +232,10 @@ function varargout = deform_mansinha(varargin)
 	if (nargout),   varargout{1} = hObject;     end
 
 % ------------------------------------------------------------------------------------
-function edit_FaultLength_Callback(hObject, eventdata, handles)
-    % Cannot be changed
-
-% ------------------------------------------------------------------------------------
 function handles = edit_FaultWidth_Callback(hObject, eventdata, handles)
-	% Actualize the "FaultWidth" field. EVENTDATA may not be empty
-	if (nargout)
-		xx = eventdata;
-    else
-		xx = str2double(get(hObject,'String'));
+% Actualize the "FaultWidth" field. EVENTDATA may not be empty
+	if (nargout)		xx = eventdata;
+	else				xx = str2double(get(hObject,'String'));
 	end
 	if (xx < 0)         % If user tried to give a negative width
         xx = -xx;       set(hObject,'String',xx)
@@ -284,12 +279,8 @@ function handles = edit_FaultWidth_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
-function edit_FaultStrike_Callback(hObject, eventdata, handles)
-	% Cannot be changed
-
-% ------------------------------------------------------------------------------------
 function edit_FaultDip_Callback(hObject, eventdata, handles)
-	% Actualize the "FaultDip" field
+% Actualize the "FaultDip" field
 	xx = str2double(get(hObject,'String'));
 	top_d = str2double(get(handles.edit_FaultTopDepth,'String'));
 	W = str2double(get(handles.edit_FaultWidth,'String'));
@@ -329,7 +320,7 @@ function edit_FaultDip_Callback(hObject, eventdata, handles)
 
 % ------------------------------------------------------------------------------------
 function edit_FaultDepth_Callback(hObject, eventdata, handles)
-	% Actualize the "FaultTopDepth" field
+% Actualize the "FaultTopDepth" field
 	xx = str2double(get(hObject,'String'));
 	if (xx < 0)         % If user tried to give a negative depth
         xx = -xx;       set(hObject,'String',xx)
@@ -345,7 +336,7 @@ function edit_FaultDepth_Callback(hObject, eventdata, handles)
 
 % ------------------------------------------------------------------------------------
 function edit_FaultTopDepth_Callback(hObject, eventdata, handles)
-	% Actualize the "FaultDepth" field
+% Actualize the "FaultDepth" field
 	xx = str2double(get(hObject,'String'));
 	if (xx < 0)         % If user tried to give a negative depth
         xx = -xx;       set(hObject,'String',xx)
@@ -369,23 +360,27 @@ function popup_segment_Callback(hObject, eventdata, handles)
 	set(handles.edit_FaultStrike,'String',sprintf('%.1f',handles.FaultStrike{fault}(seg)))
 
 	if (isnan(handles.FaultWidth{fault}(seg))),    str = '';
-	else    str = num2str(handles.FaultWidth{fault}(seg));     end
+	else	str = num2str(handles.FaultWidth{fault}(seg));
+	end
 	set(handles.edit_FaultWidth,'String',str)
 
 	set(handles.edit_FaultDip,'String',sprintf('%.1f',handles.FaultDip{fault}(seg)))
 	set(handles.edit_FaultTopDepth,'String',num2str(handles.FaultTopDepth{fault}(seg)))
 
 	if (isnan(handles.FaultDepth{fault}(seg))),    str = '';
-	else    str = num2str(handles.FaultDepth{fault}(seg));     end
+	else	str = num2str(handles.FaultDepth{fault}(seg));
+	end
 	set(handles.edit_FaultDepth,'String',str)
 
 	% Dislocation parameters
 	set(handles.edit_DislocStrike,'String',sprintf('%.1f',handles.DislocStrike{fault}(seg)))
 	if (isnan(handles.DislocSlip{fault}(seg))),    str = '';
-	else    str = num2str(handles.DislocSlip{fault}(seg));     end
+	else	str = num2str(handles.DislocSlip{fault}(seg));
+	end
 	set(handles.edit_DislocSlip,'String',str)
 	if (isnan(handles.DislocRake{fault}(seg))),    str = '';
-	else    str = sprintf('%.1f',handles.DislocRake{fault}(seg));     end
+	else	str = sprintf('%.1f',handles.DislocRake{fault}(seg));
+	end
 	set(handles.edit_DislocRake,'String',str)
 
 % -----------------------------------------------------------------------------------------
@@ -412,7 +407,7 @@ function popup_fault_Callback(hObject, eventdata, handles)
 	set(handles.edit_FaultStrike,'String',sprintf('%.1f',handles.FaultStrike{fault}(seg)))
 
 	if (isnan(handles.FaultWidth{fault}(seg))),    str = '';
-	else    str = num2str(handles.FaultWidth{fault}(seg));
+	else	str = num2str(handles.FaultWidth{fault}(seg));
 	end
 	set(handles.edit_FaultWidth,'String',str)
 
@@ -427,7 +422,7 @@ function popup_fault_Callback(hObject, eventdata, handles)
 	% Dislocation parameters
 	set(handles.edit_DislocStrike,'String',sprintf('%.1f',handles.DislocStrike{fault}(seg)))
 	if (isnan(handles.DislocSlip{fault}(seg))),    str = '';
-	else    str = num2str(handles.DislocSlip{fault}(seg));
+	else	str = num2str(handles.DislocSlip{fault}(seg));
 	end
 	set(handles.edit_DislocSlip,'String',str)
 
@@ -557,25 +552,26 @@ function push_compute_Callback(hObject, eventdata, handles)
 		xinc = xinc * 1e3;    yinc = yinc * 1e3;
 	end
 
-	opt_R = ['-R' sprintf('%.12g/%.12g/%.12g/%.12g',xmin, xmax, ymin, ymax)];
-	opt_I = ['-I' sprintf('%.12g',xinc) '/' sprintf('%.12g',yinc)];
+	opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g',xmin, xmax, ymin, ymax);
+	opt_I = sprintf('-I%.12g/%.12g',xinc, yinc);
 
 	n_seg = sum(handles.nvert);     % Total number of fault segments
 	x = handles.fault_x;            y = handles.fault_y;
 	if (~iscell(x)),                x = {x};    y = {y};    end
 	kk = 1;
-	for (i=1:handles.n_faults)
-		for (k=1:handles.nvert(i))      % Loop over number of segments of this fault
-			if (handles.is_meters)      % Fault's length must be given in km to mansinha_m
+	opt_F = cell(1, sum(handles.nvert) * handles.n_faults);		opt_A = opt_F;		opt_E = opt_F;
+	for (i = 1:handles.n_faults)
+		for (k=1:handles.nvert(i))		% Loop over number of segments of this fault
+			if (handles.is_meters)		% Fault's length must be given in km to mansinha_m
 				handles.FaultLength{i}(k) = handles.FaultLength{i}(k) / 1000;
-			elseif (handles.is_km)      % This is a messy case. -E & -I must also be in meters
+			elseif (handles.is_km)		% This is a messy case. -E & -I must also be in meters
 				x{i}(k) = x{i}(k) * 1e3;    y{i}(k) = y{i}(k) * 1e3;
 			end
 			opt_F{kk} = ['-F' num2str(handles.FaultLength{i}(k)) '/' num2str(handles.FaultWidth{i}(k)) '/' ...
 					num2str(handles.FaultTopDepth{i}(k))];
 			opt_A{kk} = ['-A' num2str(handles.FaultDip{i}(k)) '/' num2str(handles.FaultStrike{i}(k)) '/' ...
 					num2str(handles.DislocRake{i}(k)) '/' num2str(handles.DislocSlip{i}(k))];
-			opt_E{kk} = ['-E' sprintf('%.5f',x{i}(k)) '/' sprintf('%.5f',y{i}(k))];
+			opt_E{kk} = sprintf('-E%.5f/%.5f',x{i}(k), y{i}(k));
 			kk = kk + 1;
 		end
 	end
@@ -585,27 +581,26 @@ function push_compute_Callback(hObject, eventdata, handles)
 	end
 
 	% Compute deformation
-	set(handles.figure1,'pointer','watch')
 	if (n_seg > 1)
 		U = zeros(nrow,ncol);
-		h = waitbar(0,'Computing deformation');
-		for k=1:n_seg
-			waitbar(k/n_seg)
+		aguentabar(0,'title','Computing deformation','CreateCancelBtn')
+		for (k = 1:n_seg)
 			U0 = double(mansinha_m(opt_R, opt_I, opt_A{k}, opt_F{k}, opt_E{k}, opt_M));
 			U = U0 + U;
+			h = aguentabar(k / n_seg);
+			if (isnan(h)),	break,	end
 		end
-	    U = single(U);
-		close(h);    clear U0;
+		if (isnan(h)),	return,		end
+		clear U0;
 	else
 		U = mansinha_m(opt_R, opt_I, opt_A{1}, opt_F{1}, opt_E{1}, opt_M);
 	end
-	set(handles.figure1,'pointer','arrow')
 
-	z_max = double(max(U(:)));     z_min = double(min(U(:)));
+	z_max = max(U(:));		z_min = min(U(:));
 	dx = str2double(get(handles.edit_x_inc,'String'));
 	dy = str2double(get(handles.edit_y_inc,'String'));
     
-    [m,n] = size(U);        hWarn = [];
+    [m,n] = size(U);		hWarn = [];
     if ( (m ~= nrow) || (n ~= ncol) )
         msg{1} = 'Someting went wrong. Output file has not the required size. Maybe a meters<->kilometers bad guess?';
         if (abs(dx - dy) > 1e-5)
@@ -619,6 +614,7 @@ function push_compute_Callback(hObject, eventdata, handles)
 	head.X = linspace(xmin,xmax,ncol);
 	head.Y = linspace(ymin,ymax,nrow);
 
+    U = single(U);
 	mirone(U,head,'Deformation',handles.hCallingFig);
     if (~isempty(hWarn)),   figure(hWarn);      end
 
@@ -640,9 +636,10 @@ function len = LineLength(h,geog)
 			len = [len; sqrt(dx.*dx + dy.*dy)];         % Distance in user unites
 		end
 	else
+		len = cel(1, numel(x));
 		if (geog)
 			D2R = pi/180;    earth_rad = 6371;
-			for (k=1:length(x))
+			for (k=1:numel(x))
 				xx = x{k} * D2R;    yy = y{k} * D2R;
 				lat_i = yy(1:length(yy)-1);   lat_f = yy(2:length(yy));
 				lon_i = xx(1:length(xx)-1);   lon_f = xx(2:length(xx));
@@ -650,7 +647,7 @@ function len = LineLength(h,geog)
 				len{k} = acos(tmp) * earth_rad;         % Distance in km
 			end
 		else
-			for (k=1:length(x))
+			for (k=1:numel(x))
 				xx = x{k};      yy = y{k};
 				dx = diff(xx);  dy = diff(yy);
 				len{k} = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
@@ -988,7 +985,6 @@ set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 uicontrol('Parent',h1,'Position',[10 126 181 131],'Style','frame','Tag','frame1');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@deform_mansinha_uicallback,h1,'edit_FaultLength_Callback'},...
 'Position',[20 213 71 21],...
 'Style','edit',...
 'TooltipString','Fault length (km)',...
@@ -1002,7 +998,6 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Tag','edit_FaultWidth');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@deform_mansinha_uicallback,h1,'edit_FaultStrike_Callback'},...
 'Position',[20 173 71 21],...
 'Style','edit',...
 'TooltipString','Fault strike (degrees)',...
