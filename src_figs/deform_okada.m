@@ -152,9 +152,9 @@ function varargout = deform_okada(varargin)
 			totalM0 = totalM0 + MO;
 		end
 		mag = 2/3*(log10(totalM0) - 9.1);
-		uicontrol('Parent',hObject,'Enable','inactive','FontSize',10,...
-		'HorizontalAlignment','left','Position',[400 190 100 16],...
-		'String',['Tot Mw = ' sprintf('%.1f',mag)],'Style','text');
+		uicontrol('Parent',hObject,'Enable','inactive','FontSize',10,'FontName','Helvetica',...
+		'HorizontalAlignment','left','Position',[400 180 100 16],...
+		'String',sprintf('Tot Mw = %.1f',mag),'Style','text');
 
 	end
 	
@@ -467,7 +467,7 @@ function popup_fault_Callback(hObject, eventdata, handles)
 	set(handles.edit_uz,'String',str)
 
 	if (handles.Mw(fault) > 0)
-		txt = ['Mw Magnitude = ' sprintf('%.1f',handles.Mw(fault))];
+		txt = sprintf('Mw Magnitude = %.1f',handles.Mw(fault));
 		set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
 	else
 		set(handles.h_txt_Mw,'String','Mw Magnitude = ','Position',handles.txt_Mw_pos)
@@ -798,22 +798,24 @@ if (isempty(handles.input_locations))   % If ground positions were not given, co
 
     % Compute deformation
     %U = range_change(x,y,strike,depth,dip,ux,uy,uz,L,W,E,N,s);
-    if (handles.n_faults > 1)           % We have multiple faults
-        U = zeros(nrow,ncol);
-        h = waitbar(0,'Computing deformation');
-        for (i=1:handles.n_faults)
-            waitbar(i/handles.n_faults)
-            U0 = range_change(x{i}(:),y{i}(:),handles.FaultStrike{i}(:),handles.FaultDepth{i}(:),handles.FaultDip{i}(:),...
-                handles.ux{i}(:),handles.uy{i}(:),handles.uz{i}(:),handles.FaultLength{i}(:),handles.FaultWidth{i}(:),...
-                E,N,s,opt_M);
-            U = U0 + U;
-        end
-        close(h);    clear U0;
-    else                                % We have only one fault
-        U = range_change(x{1}(:),y{1}(:),handles.FaultStrike{1}(:),handles.FaultDepth{1}(:),handles.FaultDip{1}(:),...
-            handles.ux{1}(:),handles.uy{1}(:),handles.uz{1}(:),handles.FaultLength{1}(:),handles.FaultWidth{1}(:),...
-            E,N,s,opt_M);
-    end
+	if (handles.n_faults > 1)			% We have multiple faults
+		U = zeros(nrow,ncol);
+		aguentabar(0,'title','Computing deformation','CreateCancelBtn')
+		for (i = 1:handles.n_faults)
+			U0 = range_change(x{i}(:),y{i}(:),handles.FaultStrike{i}(:),handles.FaultDepth{i}(:),handles.FaultDip{i}(:),...
+				handles.ux{i}(:),handles.uy{i}(:),handles.uz{i}(:),handles.FaultLength{i}(:),handles.FaultWidth{i}(:),...
+				E,N,s,opt_M);
+			U = U0 + U;
+			h = aguentabar(i / handles.n_faults);
+			if (isnan(h)),	break,	end
+		end
+		if (isnan(h)),	return,		end
+		clear U0;
+	else								% We have only one fault
+		U = range_change(x{1}(:),y{1}(:),handles.FaultStrike{1}(:),handles.FaultDepth{1}(:),handles.FaultDip{1}(:),...
+			handles.ux{1}(:),handles.uy{1}(:),handles.uz{1}(:),handles.FaultLength{1}(:),handles.FaultWidth{1}(:),...
+			E,N,s,opt_M);
+	end
 
     z_max = max(U(:));     z_min = min(U(:));
     dx = str2double(get(handles.edit_x_inc,'String'));
@@ -841,6 +843,7 @@ if (isempty(handles.input_locations))   % If ground positions were not given, co
     end
 
 	% SHOW WHAT WE HAVE GOT
+	U = single(U);
     if get(handles.radiobutton_deformation,'Value')		% Show deformation 
         mirone(U,head,'Deformation',handles.h_calling_fig);
     else												% Show Interferogram
@@ -943,44 +946,44 @@ function radiobutton_interfero_Callback(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function len = LineLength(h,geog)
-x = get(h,'XData');     y = get(h,'YData');
-D2R = pi/180;	earth_rad = 6371;
-len = [];
-if (~iscell(x))
-	if (geog)
-        x = x * D2R;	y = y * D2R;
-        lat_i = y(1:length(y)-1);   lat_f = y(2:length(y));     clear y;
-        lon_i = x(1:length(x)-1);   lon_f = x(2:length(x));     clear x;
-        tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
-        clear lat_i lat_f lon_i lon_f;
-        len = [len; acos(tmp) * earth_rad];         % Distance in km
+	x = get(h,'XData');		y = get(h,'YData');
+	D2R = pi/180;			earth_rad = 6371;
+	len = [];
+	if (~iscell(x))
+		if (geog)
+			x = x * D2R;	y = y * D2R;
+			lat_i = y(1:numel(y)-1);		lat_f = y(2:numel(y));
+			lon_i = x(1:numel(x)-1);		lon_f = x(2:numel(x));
+			tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
+			len = [len; acos(tmp) * earth_rad];			% Distance in km
+		else
+			dx = diff(x);   dy = diff(y);
+			len = [len; sqrt(dx.*dx + dy.*dy)];			% Distance in user unites
+		end
 	else
-        dx = diff(x);   dy = diff(y);
-        len = [len; sqrt(dx.*dx + dy.*dy)];         % Distance in user unites
+		len = cell(1, numel(x));
+		if (geog)
+			for (k=1:numel(x))
+				xx = x{k} * D2R;	yy = y{k} * D2R;
+				lat_i = yy(1:length(yy)-1);   lat_f = yy(2:length(yy));
+				lon_i = xx(1:length(xx)-1);   lon_f = xx(2:length(xx));
+				tmp   = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
+				len{k}= acos(tmp) * earth_rad;			% Distance in km
+			end
+		else
+			for (k=1:numel(x))
+				xx = x{k};      yy = y{k};
+				dx = diff(xx);  dy = diff(yy);
+				len{k} = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
+			end
+		end
 	end
-else
-	if (geog)
-        for (k=1:length(x))
-            xx = x{k} * D2R;    yy = y{k} * D2R;
-            lat_i = yy(1:length(yy)-1);   lat_f = yy(2:length(yy));
-            lon_i = xx(1:length(xx)-1);   lon_f = xx(2:length(xx));
-            tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
-            len{k} = acos(tmp) * earth_rad;         % Distance in km
-        end
-	else
-        for (k=1:length(x))
-            xx = x{k};      yy = y{k};
-            dx = diff(xx);  dy = diff(yy);
-            len{k} = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
-        end
-	end
-end
 
 % -----------------------------------------------------------------------------------------
 function xy = read_xy(file,n_col,n_head)
-	% build the format string to read the data n_columns
-	xy = [];    format = [];    fid = fopen(file,'r');
-	for (i=1:n_col),    format = [format '%f '];    end
+% build the format string to read the data n_columns
+	fid = fopen(file,'r');
+	format = repmat('%f ',1,n_col);
 	% Jump header lines
 	for (i = 1:n_head),    tline = fgetl(fid);  end
 
@@ -1071,14 +1074,14 @@ function handles = set_all_faults(handles,varargin)
 
 % ------------------------------------------------------------------------------------
 function [handles, mag, M0] = compMag(handles, fault)
-	% Compute Moment magnitude
+% Compute Moment magnitude
 	mu = handles.mu * 1e10;
 	M0 = mu * handles.um_milhao * handles.DislocSlip{fault}(:) .* handles.FaultWidth{fault}(:) .* ...
 		handles.FaultLength{fault}(:);
 	if (length(M0) > 1),    M0 = sum(M0);   end
 	mag = 2/3*(log10(M0) - 9.1);
 	if (~isnan(mag))
-		txt = ['Mw Magnitude = ' sprintf('%.1f',mag)];
+		txt = sprintf('Mw Magnitude = %.1f',mag);
 		set(handles.h_txt_Mw,'String',txt,'Position',handles.txt_Mw_pos + [0 0 30 0])
 		handles.Mw(fault) = mag;
 	end
@@ -1090,7 +1093,7 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 			hp = getappdata(handles.h_fault(i),'PatchHand');
 			try     set(hp,'XData', [], 'YData',[],'Visible','on');     end     % Had to use a try (f.. endless errors)
 		end
-    end
+	end
 	delete(handles.figure1)
 
 % ------------------------------------------------------------------------------------
@@ -1472,7 +1475,7 @@ uicontrol('Parent',h1,...
 'Tag','edit_mu');
 
 uicontrol('Parent',h1,'Enable','inactive','FontSize',10,...
-'HorizontalAlignment','left','Position',[400 170 100 16],...
+'HorizontalAlignment','left','Position',[400 165 100 16],...
 'String','Mw Magnitude =','Style','text','Tag','h_txt_Mw');
 
 uicontrol('Parent',h1,...
