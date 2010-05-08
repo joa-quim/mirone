@@ -392,7 +392,7 @@ function pushbutton_crossCorr_Callback(hObject, eventdata, handles)
 	sectrumFun(handles, handles.Z1, handles.head_Z1, 'CrossCorrel', handles.Z2)
 
 % -------------------------------------------------------------------------------------------------
-function pushbutton_radialPowerAverage_Callback(hObject, eventdata, handles)
+function push_radialPowerAverage_CB(hObject, eventdata, handles)
 % This is modeled on the 1-D case, using the following ideas:
 % In 1-D, we ensemble average over samples of length L = n * dt.
 % This gives n/2 power spectral estimates, at frequencies i/L,
@@ -404,7 +404,7 @@ function pushbutton_radialPowerAverage_Callback(hObject, eventdata, handles)
 % in the other dimension; that is, an approximation of the integral.
 %   ORIGINAL TEXT FROM WALTER SMITH IN GRDFFT
 
-	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error'),	return,		end
+	if (isempty(handles.Z1))	errordlg('No grid loaded yet.','Error'),	return,		end
 
 	nx2 = handles.new_nx;		ny2 = handles.new_ny;
 	delta_kx = 2*pi / (nx2 * handles.scaled_dx);
@@ -416,11 +416,12 @@ function pushbutton_radialPowerAverage_Callback(hObject, eventdata, handles)
 	end
 	r_delta_k = 1 / delta_k;
 	set(handles.figure1,'pointer','watch')
+	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-		handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
+		handles.Z1 = grdtrend_m(handles.Z1, handles.head_Z1, '-D', '-N3');
 	end
 	[Z,band,modk] = wavenumber_and_mboard(handles);
-	ifreq = round(modk*r_delta_k) + 1;     clear modk;
+	ifreq = round(modk * r_delta_k) + 1;     clear modk;
 	Z = fft2(Z);    Z(1,1) = 0;
 	Z = Z.* conj(Z);
 
@@ -440,7 +441,7 @@ function pushbutton_radialPowerAverage_Callback(hObject, eventdata, handles)
 	delta_k = delta_k / (2*pi);			% Write out frequency, not wavenumber
 	powfactor = 1 / (nx2*ny2)^2;
 	power = power * powfactor;
-	freq = (1:nk) * delta_k;
+	freq  = (1:nk) * delta_k;
 
 	if (handles.geog || handles.is_km)
 		freq = freq * 1000;
@@ -480,8 +481,9 @@ function pushbutton_integrate_Callback(hObject, eventdata, handles, opt)
 		scale = 980619.9203;    % Moritz's 1980 IGF value for gravity in mGal at 45 degrees latit
 	end
 	set(handles.figure1,'pointer','watch')
+	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-		handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
+		handles.Z1 = grdtrend_m(handles.Z1,handles.head_Z1,'-D','-N3');
 	end
 	[Z,band,k] = wavenumber_and_mboard(handles);
 	k(1,1) = eps;       % Avoid a devided by zero warning
@@ -507,16 +509,19 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 	two_grids = 0;			image_type = 1;				% Used by the inverse transform case (default case)
 	if (nargin == 5),		two_grids = 1;		end
 	set(handles.figure1,'pointer','watch')
+	if (~isa(Z, 'double'))		Z = double(Z);		end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-		Z = double(grdtrend_m(single(Z),handles.head_Z1,'-D','-N3'));
+		Z = grdtrend_m(Z,handles.head_Z1,'-D','-N3');
 		if (two_grids)
-			Z2 = double(grdtrend_m(single(Z2),handles.head_Z1,'-D','-N3'));
+			if (~isa(Z2, 'double'))		Z2 = double(Z2);		end
+			Z2 = grdtrend_m(Z2,handles.head_Z1,'-D','-N3');
 		end
 	end
 	nx = handles.orig_ncols;        ny = handles.orig_nrows;
-	[Z,band] = mboard(double(Z),nx,ny,handles.new_nx,handles.new_ny);
+	[Z,band] = mboard(Z,nx,ny,handles.new_nx,handles.new_ny);
 	if (two_grids)
-		Z2 = mboard(double(Z2),nx,ny,handles.new_nx,handles.new_ny);
+		if (~isa(Z2, 'double'))		Z2 = double(Z2);		end
+		Z2 = mboard(Z2,nx,ny,handles.new_nx,handles.new_ny);
 	end
 	m1 = band(1)+1;     m2 = m1 + ny - 1;
 	n1 = band(3)+1;     n2 = n1 + nx - 1;
@@ -635,8 +640,9 @@ function pushbutton_goUDcont_Callback(hObject, eventdata, handles)
 	zup = str2double(get(handles.edit_UDcont,'String'));
 	if (isnan(zup)),     return;     end
 	set(handles.figure1,'pointer','watch')
+	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-		handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
+		handles.Z1 = grdtrend_m(handles.Z1,handles.head_Z1,'-D','-N3');
 	end
 	[Z,band,k] = wavenumber_and_mboard(handles);
 	Z = fft2(Z) .* exp(-k.*zup);    clear k;
@@ -655,8 +661,9 @@ function pushbutton_goDerivative_Callback(hObject, eventdata, handles, opt)
 	end					% Moritz's 1980 IGF value for gravity in mGal at lat = 45 degrees
 	n_der = fix(str2double(get(handles.edit_derivative,'String')));
 	set(handles.figure1,'pointer','watch')
+	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-		handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
+		handles.Z1 = grdtrend_m(handles.Z1,handles.head_Z1,'-D','-N3');
 	end
 	[Z,band,k] = wavenumber_and_mboard(handles,false,'taper');
 	if (scale == 980619.9203),   n_der = 1;  end
@@ -676,8 +683,9 @@ function pushbutton_goDirDerivative_Callback(hObject, eventdata, handles)
 	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error');    return; end
 	azim = str2double(get(handles.edit_dirDerivative,'String'));
 	set(handles.figure1,'pointer','watch')
+	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-		handles.Z1 = double(grdtrend_m(single(handles.Z1),handles.head_Z1,'-D','-N3'));
+		handles.Z1 = grdtrend_m(handles.Z1,handles.head_Z1,'-D','-N3');
 	end
 	[Z,band,k] = wavenumber_and_mboard(handles,1);
 	fact = (sin(azim*pi/180) * k.x + cos(azim*pi/180) * k.y);   clear k;
@@ -729,7 +737,8 @@ function [Z,band,k] = wavenumber_and_mboard(handles,opt,mode)
 		k = ifftshift(sqrt(X.^2+Y.^2));      % wavenumber array   (Tivey used fftshift)
 		clear X Y;
 	end
-	[Z,band] = mboard(double(handles.Z1),handles.orig_ncols,handles.orig_nrows,new_nx,new_ny, mode);
+	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
+	[Z,band] = mboard(handles.Z1,handles.orig_ncols,handles.orig_nrows,new_nx,new_ny, mode);
 
 % --------------------------------------------------------------------
 function [Z,hdr] = unband(handles,Z,band)
@@ -898,7 +907,7 @@ uicontrol('Parent',h1,...
 'Tag','pushbutton_crossCorr');
 
 uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback,h1,'pushbutton_radialPowerAverage_Callback'},...
+'Callback',{@fft_stuff_uicallback,h1,'push_radialPowerAverage_CB'},...
 'Position',[360 43 121 21],...
 'String','Radial power average',...
 'Tag','pushbutton_radialPowerAverage');
