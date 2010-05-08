@@ -636,7 +636,7 @@ function len = LineLength(h,geog)
 			len = [len; sqrt(dx.*dx + dy.*dy)];         % Distance in user unites
 		end
 	else
-		len = cel(1, numel(x));
+		len = cell(1, numel(x));
 		if (geog)
 			D2R = pi/180;    earth_rad = 6371;
 			for (k=1:numel(x))
