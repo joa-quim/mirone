@@ -210,7 +210,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 		elseif ( n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')) )
 			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
-			Z = varargin{1};			grd_data_in = 1;
+			Z = varargin{1};			grd_data_in = true;
 			if (~isa(Z,'single')),		Z = single(Z);		end
 			handles.have_nans = grdutils(Z,'-N');
 			if ( numel(varargin) == 2 && isa(varargin{2},'struct') )		% An grid with a header
@@ -225,29 +225,27 @@ function hObject = mirone_OpeningFcn(varargin)
 					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});	% Create a info string
 					aux_funs('appP', handles, tmp.srsWKT)					% We have a WKT proj, store it
 				end
-				clear tmp;
 			else
 				zz = grdutils(Z,'-L');
 				handles.head = [1 size(Z,2) 1 size(Z,1) zz(1) zz(2) 0 1 1];
 				X = 1:size(Z,2);			Y = 1:size(Z,1);
 			end
 		elseif ( n_argin == 4 && isnumeric(varargin{1}) && isa(varargin{2},'struct') && ...
-				strcmp(varargin{3},'Deformation') && ishandle(varargin{4}) )
+				(strcmp(varargin{3},'Deformation') || strcmp(varargin{3},'Interfero')) )
 			% A matrix. Treat it as if it'is a gmt grid. No error testing on the grid head descriptor
 			% Note: this is a special case of the situation above that will be used to identify this figure
 			% as an Okada deformtion data (via its Name). This info is searched by the tsunami modeling option
-			grd_data_in = 1;
-			Z = varargin{1};			tmp = varargin{2};
-			handles.head = tmp.head;	X = tmp.X;	Y = tmp.Y;	clear tmp;
-			setappdata(hObject,'hFigParent',varargin{4});
-			win_name = 'Okada deformation';
-		elseif ( n_argin == 4 && isnumeric(varargin{1}) && isa(varargin{2},'struct') && ...
-				strcmp(varargin{3},'Interfero') && isnumeric(varargin{4}) )
-			% A matrix input containing an interfeogram with cdo == varargin{4}
-			grd_data_interfero = 1;
-			Z = varargin{1};			tmp = varargin{2};		cdo = varargin{4};
-			handles.head = tmp.head;	X = tmp.X;	Y = tmp.Y;	clear tmp;
-			win_name = 'Interferogram';
+			if (~isa(varargin{1},'single')),		varargin{1} = single(varargin{1});		end
+			handles.head = varargin{2}.head;		X = varargin{2}.X;		Y = varargin{2}.Y;
+			Z = varargin{1};
+			handles.have_nans = grdutils(Z,'-N');
+			if (varargin{3}(1) == 'D')
+				grd_data_in = true;					win_name = 'Okada deformation';
+				setappdata(hObject,'hFigParent',varargin{4});
+			else						% A matrix input containing an interfeogram with cdo == varargin{4}
+				grd_data_interfero = true;			win_name = 'Interferogram';
+				cdo = varargin{4};
+			end
 		end
 	end
 
@@ -256,14 +254,15 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles.image_type = 1;		handles.computed_grid = 1;	% Signal that this is a computed grid
 		if ( isempty(pal) ),		pal = jet(256);		end
 		if (grd_data_interfero)			% Interferogram grid
-			load([handles.path_data 'gmt_other_palettes.mat'],'circular');
-			pal = circular;
+			pal = load([handles.path_data 'gmt_other_palettes.mat'],'circular');	pal = pal.circular;
 			zz = uint8(abs(rem(double(Z),cdo)/cdo)*255);
 		else
-			zz = scaleto8(Z);
+			if (handles.have_nans),		zz = scaleto8(Z);
+			else						zz = cvlib_mex('scale8',Z);
+			end
 		end
 		set(handles.figure1,'Colormap',pal)
-		aux_funs('StoreZ',handles,X,Y,Z)	% If grid size is not to big we'll store it
+		aux_funs('StoreZ',handles,X,Y,Z)		% If grid size is not to big we'll store it
 		aux_funs('colormap_bg',handles,Z,pal);
 		handles = show_image(handles,win_name,X,Y,zz,1,'xy',handles.head(7));
 	end
@@ -1554,7 +1553,7 @@ function read_DEMs(handles,fullname,tipo,opt)
 	aux_funs('StoreZ',handles,X,Y,Z)		% If grid size is not to big we'll store it
 	handles.head = head;
 	aux_funs('colormap_bg',handles,Z,jet(256));
-	if (handles.have_nans),		zz = scaleto8(Z);	% Need to update cvlib_mex before we can use this
+	if (handles.have_nans),		zz = scaleto8(Z);
 	else						zz = cvlib_mex('scale8',Z);
 	end
 	handles = show_image(handles,handles.fileName,X,Y,zz,1,'xy',head(7));
@@ -3129,7 +3128,7 @@ function GridToolsSectrum_CB(handles, opt1, opt2)
 			end
 			if (~isempty(Z)),		head = handles.head;	Z = double(Z);		end			% Ghrrrrrr
 		end
-	else									% Use (maybe) a subset grid extracted from a rectangular area
+	else									% Use a (maybe) subset grid extracted from a rectangular area
 		if (strcmp(opt1(2:end),'pass'))		% Very special case (no subset)
 			h = getappdata(handles.figure1, 'ParentFig');
 			if (~ishandle(h))
@@ -3151,7 +3150,7 @@ function GridToolsSectrum_CB(handles, opt1, opt2)
 		end
 	end
 
-	if (quick),		set(handles.figure1,'pointer','watch');		end
+	if (quick),				set(handles.figure1,'pointer','watch');		end
 	if (~isempty(Z)),		fft_stuff(handles.figure1, Z, head, handles.geog, opt1)
 	else					fft_stuff
 	end
@@ -3418,7 +3417,7 @@ function FileSaveFleder_CB(handles, opt)
 	if ( (strcmp(opt,'writeSpherical') || ~handles.flederPlanar) && ~handles.geog)
 		errordlg('Spherical objects are allowed only for geographical grids','Error'),	return
 	end
-	
+
 	fname = write_flederFiles(opt, handles);		pause(0.01);
 	if (isempty(fname)),	return,		end
 	if (fname(end) == 'e'),		comm = [' -scene ' fname ' &'];		% A SCENE file
