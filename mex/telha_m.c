@@ -36,7 +36,7 @@ int spotter_backtrack (double xp[], double yp[], double tp[], int np, struct EUL
 int do_the_filter (double *fm, int n_rows, int n_cols, double half_width, double *mag_intp, int n_f_wts,
 		   int half_n_f_wts, double dt, double t_start, double t_stop, double *f_wt, double *f_in_m);
 int flow_in_meters (double *x, double *y, int n_pts, double *f_in_m);
-int no_sys_mem (char *where, int n);
+void no_sys_mem (char *where, int n);
 int intp_along_seg(int n_seg, double dl);
 double	gaussian_weight (double radius, double half_width);
 double	set_up_filter(double t_i, double t_f, int n_pts, double filter_width,
@@ -526,12 +526,12 @@ int int_perf (double *c, int i_min, int n_flow, int k, int age_flow, int multi_f
 	double x1, y1, x2, y2, *xx, *yy, *m_a, *u, *v, *vm, dx, dy, dr;
 	int	n_f_wts;		/* Number of filter weights  */
 	int	half_n_f_wts;		/* Half the number of filter weights  */
-	double	*mag_intp;		/* Pointer for array of magnetizations */
+	double	*mag_intp = NULL;	/* Pointer for array of magnetizations */
 	double  t_start;		/* x-value of first output point */
 	double  t_stop;			/* x-value of last output point */
 	double	half_width, dt;	
-	double	*f_wt;			/* Pointer for array of filter coefficients  */
-	double	*f_in_m;		/* Pointer for array of flow line in meters */
+	double	*f_wt = NULL;		/* Pointer for array of filter coefficients  */
+	double	*f_in_m = NULL;		/* Pointer for array of flow line in meters */
 	/* Vai ser preciso mais tarde decidir quem sao os xx e yy transmitidos para intp_lin	*/
 
 	for (ll = 0; ll < data[k].np; ll++) {
@@ -617,6 +617,7 @@ int int_perf (double *c, int i_min, int n_flow, int k, int age_flow, int multi_f
 		mxFree ((void *) v);
 		mxFree ((void *) vm);
 	}
+	return (0);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -938,11 +939,11 @@ int	flow_in_meters (double *x, double *y, int n_pts, double *f_in_m) {
 		dx *= (M_PR_DEG * cos (0.5 * (x[i] + x[i-1]) * D2R));
 		f_in_m[i] = f_in_m[i-1] + hypot(dx,dy);
 	}
+	return (0);
 }
 
-int	no_sys_mem (char *where, int n) {	
+void	no_sys_mem (char *where, int n) {	
 		mexPrintf ("Fatal Error: %s could not allocate memory, n = %d\n", where, n);
-		return (0);
 }
 
 int	intp_along_seg(int n_seg, double dl) {
@@ -1017,4 +1018,5 @@ int	intp_along_seg(int n_seg, double dl) {
 		if ((data = (struct DATA *) mxRealloc ((void *)data, (size_t)(n_alloc * sizeof(struct DATA)))) == NULL) {no_sys_mem("telha --> (intp_along_seg)", n_alloc);}
 	}
 	data = p;
+	return (0);
 }
