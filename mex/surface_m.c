@@ -1174,6 +1174,7 @@ int read_data(void) {
 	/*	high_limit = data[kmax].z;	*/
 		mexPrintf ("%s: Warning:  Your upper value is < than max data value.\n", GMT_program);
 	}
+	return (0);
 }
 
 int	iterate(int mode) {
