@@ -194,7 +194,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	inc_set = FALSE, do_grid = FALSE;
 	int	m_var = FALSE, DO = TRUE, exact = TRUE, verbose = FALSE;
 	int 	triangulate = FALSE, raw = FALSE, stl = FALSE;
-	int	i, j, ii, nx, ny, k, kk, ij, ndata_r;
+	int	i, j, ii, nx, ny, k, kk, ij, ndata_r = 0;
 	int	ndata_p, ndata_xyz, ndata_t, nx_p, ny_p, n_vert_max;
 	int	z_th, n_triang, ndata_m, ndata_s, n_swap = 0, nFacet;
 	int	argc = 0, n_arg_no_char = 0;
