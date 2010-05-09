@@ -275,6 +275,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	free ((void *)z_4);
 	mxFree (fileout);
-	GMT_end (argc, argv);
+	GMT_end (argc, &argv);
 	return;
 }
