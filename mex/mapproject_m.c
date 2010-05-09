@@ -66,7 +66,7 @@ void lon_range_adjust (int range, double *lon);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_LONG	i, j, k, n = 0, n_files = 0, unit = 0, n_slash, g_report = 0;
-	GMT_LONG	n_fields, distance = 0, proj_type = 0, save[2], n_lines, two;
+	GMT_LONG	n_fields, distance = 0, proj_type = 0, save[2], n_lines = 0, two;
 	
 	int error = FALSE, inverse = FALSE, suppress = FALSE, one_to_one = FALSE, ECEF_conv = FALSE;
 	int map_center = FALSE, nofile = TRUE, done = FALSE, first = TRUE, datum_conv = FALSE;
