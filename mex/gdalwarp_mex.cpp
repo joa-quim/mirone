@@ -1007,4 +1007,5 @@ int getNK(const mxArray *p, int which) {
 		return(nBands);
 	else
 		mexErrMsgTxt("getNK: Bad dimension number!");
+	return (-1);
 }
