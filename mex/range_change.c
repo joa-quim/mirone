@@ -526,7 +526,7 @@ int form_all_part3(double *partials, double *sx, double *sy, double *patchx, dou
 	double *faultw, double *faultd, double *faultdelta, double *faultstrike, double *faultlambda, 
 	double *faultmu, double *faultu1, double *faultu2, double *faultu3, double *plook, int npts) {
 
-	int i, j, k, l, n, kk;
+	int i, j, k, l, n;
 	double a, d1, vf[9], vm[9], xp, yp, ca1, ca2, faultx, faulty;
 	double sa1, sa2, vf1[9], vf2[9], range, gdism[3], partl[10];
 
@@ -565,7 +565,6 @@ int form_all_part3(double *partials, double *sx, double *sy, double *patchx, dou
 	ca2 = cos((faultstrike[i] - 90.) * D2R);
 	/*     loop over all points */
 	for (j = 1; j <= npts; ++j) {
-		++kk;
 		range = 0.;
 		gdism[0] = gdism[1] = gdism[2] = 0.;
 		/*        FROM HERE DOWN, THE CODE IS THE SAME AS FORM_ALL_PART2.F */
