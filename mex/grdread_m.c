@@ -219,7 +219,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	mxFree (filein);
-	GMT_end (argc, argv);
+	GMT_end (argc, &argv);
 	return;
 }
 
@@ -237,6 +237,7 @@ int troca_insitu(float *a, int n, int m) {
 		if (current > i)
 			f_swap(a[i],a[current]);
         }
+	return (0);
 }
 
 void grd_FLIPLR (float data[], int nx, int ny) {
