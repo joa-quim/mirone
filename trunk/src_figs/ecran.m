@@ -24,7 +24,7 @@ function varargout = ecran(varargin)
 	movegui(hObject,'east');
 
 	mir_dirs = getappdata(0,'MIRONE_DIRS');
-	if (isempty(mir_dirs))
+	if (~isempty(mir_dirs))
 		handles.home_dir = mir_dirs.home_dir;		% Start in values
 		handles.work_dir = mir_dirs.work_dir;
 		handles.last_dir = mir_dirs.last_dir;
