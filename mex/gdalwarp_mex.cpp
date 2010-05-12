@@ -49,6 +49,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	nXYSize;
 	double	adfGeoTransform[6] = {0,1,0,0,0,1}, adfDstGeoTransform[6];
 	char	*pszSRS_WKT = NULL;
+	char	**papszWarpOptions = NULL;
 	GDALDatasetH	hSrcDS, hDstDS;
 	GDALDriverH	hDriver;
 	GDALRasterBandH hBand;
@@ -61,7 +62,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	static int runed_once = FALSE;	/* It will be set to true if reaches end of main */
 
 	const int *dim_array;
-	int	nx, ny, i, j, m, n, c, nBands, registration = 1;
+	int	nx, ny, i, m, n, c, nBands, registration = 1;
 	int	n_dims, typeCLASS, nBytes;
 	char	*pszSrcSRS = NULL, *pszSrcWKT = NULL;
 	char	*pszDstSRS = NULL, *pszDstWKT = NULL;
@@ -81,6 +82,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double	adfExtent[4];
 	double	dfXRes=0.0, dfYRes=0.0;
 	double	dfWarpMemoryLimit = 0.0;
+	double	*pdfDstNodata = NULL; 
 	char	**papszMetadataOptions = NULL;
 	char	*tmp, *txt;
 
@@ -148,6 +150,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (mx_ptr != NULL) {
 			ptr_d = mxGetPr(mx_ptr);
 			dfWarpMemoryLimit = *ptr_d * 1024 * 1024;
+		}
+		/* -------------------------------------------------- */
+
+		/* -------- Have a nodata value order? -------------- */
+		mx_ptr = mxGetField(prhs[1], 0, "nodata");
+		if (mx_ptr != NULL) {
+			pdfDstNodata = mxGetPr(mx_ptr);
 		}
 		/* -------------------------------------------------- */
 
@@ -239,6 +248,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("\t\t't_size' a [width height] vector to set output file size in pixels\n");
 		mexPrintf("\t\t't_res' a [xres yres] vector to set output file resolution (in target georeferenced units)\n");
 		mexPrintf("\t\t'wm' amount of memory (in megabytes) that the warp API is allowed to use for caching\n");
+		mexPrintf("\t\t'nodata' Set nodata values for output bands.\n");
 		mexPrintf("\t\t'ResampleAlg' To set up the algorithm used during warp operation. Options are: \n");
 		mexPrintf("\t\t\t'nearest' Use nearest neighbour resampling (default, fastest algorithm, worst interpolation quality).\n");
 		mexPrintf("\t\t\t'bilinear' Use bilinear resampling.\n");
@@ -398,7 +408,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (pszDstWKT == NULL)
 		oDstSRS.exportToWkt( &pszDstWKT );
 	/* ------------------------------------------------------------------ */
-DEBUGA(-6);
 
 	if ( nGCPCount != 0 ) {
 		if (GDALSetGCPs( hSrcDS, nGCPCount, pasGCPs, "" ) != CE_None)
@@ -415,20 +424,13 @@ DEBUGA(-6);
     		GDALCreateGenImgProjTransformer( hSrcDS, pszSrcWKT, NULL, pszDstWKT, 
 						 nGCPCount == 0 ? FALSE : TRUE, 0, nOrder );
 	CPLAssert( hTransformArg != NULL );
-DEBUGA(-5);
 
 	/* -------------------------------------------------------------------------- */
 	/*      Get approximate output georeferenced bounds and resolution for file
 	/* -------------------------------------------------------------------------- */
 	eErr = GDALSuggestedWarpOutput2( hSrcDS, GDALGenImgProjTransform, hTransformArg, 
                                 adfDstGeoTransform, &nPixels, &nLines, adfExtent, 0 );
-DEBUGA(-4);
-	//if ( nGCPCount != 0 && adfDstGeoTransform[5] < 0 ) adfDstGeoTransform[5] *= -1;
 
-#if debug
-mexPrintf("%g\t%g\t%g\t%g\t%g\t%g\n",adfDstGeoTransform[0],adfDstGeoTransform[1],adfDstGeoTransform[2],
-				adfDstGeoTransform[3], adfDstGeoTransform[4], adfDstGeoTransform[5]);
-#endif
 	dfMinX = adfExtent[0];
 	dfMaxX = adfExtent[2];
 	dfMaxY = adfExtent[3];
@@ -502,7 +504,6 @@ mexPrintf("%g\t%g\t%g\t%g\t%g\t%g\n",adfDstGeoTransform[0],adfDstGeoTransform[1]
 		nPixels = (int) ((dfMaxX - dfMinX + (dfXRes/2.0)) / dfXRes);
 		nLines = nForceHeight;
 	}
-DEBUGA(-6);
 
 	/* --------------------- Create the output --------------------------- */
 	hDstDS = GDALCreate( hDriver, "mem", nPixels, nLines, 
@@ -515,57 +516,89 @@ DEBUGA(-6);
 	GDALSetGeoTransform( hDstDS, adfDstGeoTransform );
 
 	/* --------------------- Setup warp options -------------------------- */
-	GDALWarpOptions *psWarpOptions = GDALCreateWarpOptions();
+	GDALWarpOptions *psWO = GDALCreateWarpOptions();
 
-	psWarpOptions->hSrcDS = hSrcDS;
-	psWarpOptions->hDstDS = hDstDS;
+	psWO->hSrcDS = hSrcDS;
+	psWO->hDstDS = hDstDS;
 
-	psWarpOptions->nBandCount = nBands;
-	psWarpOptions->panSrcBands = (int *) CPLMalloc(psWarpOptions->nBandCount * sizeof(int) );
-	psWarpOptions->panDstBands = (int *) CPLMalloc(psWarpOptions->nBandCount * sizeof(int) );
+	psWO->nBandCount = nBands;
+	psWO->panSrcBands = (int *) CPLMalloc(psWO->nBandCount * sizeof(int) );
+	psWO->panDstBands = (int *) CPLMalloc(psWO->nBandCount * sizeof(int) );
 	for( i = 0; i < nBands; i++ ) {
-		psWarpOptions->panSrcBands[i] = i+1;
-		psWarpOptions->panDstBands[i] = i+1;
+		psWO->panSrcBands[i] = i+1;
+		psWO->panDstBands[i] = i+1;
 	}
 
 	if( dfWarpMemoryLimit != 0.0 )
-		psWarpOptions->dfWarpMemoryLimit = dfWarpMemoryLimit;
+		psWO->dfWarpMemoryLimit = dfWarpMemoryLimit;
 
 	/* --------------------- Setup the Resampling Algo ------------------- */
-	psWarpOptions->eResampleAlg = interpMethod;
+	psWO->eResampleAlg = interpMethod;
+
 
 	/* --------------------- Setup NODATA options ------------------------ */
-	/*if (typeCLASS == GDT_Float32 || typeCLASS == GDT_Float64) {
-		double NaN = mxGetNaN(), nana = -9999;
-		psWarpOptions->padfDstNoDataReal = (double *)CPLMalloc(nBands*sizeof(double));
-		for (i = 0; i < nBands; i++) {
-			psWarpOptions->padfDstNoDataReal[i] = NaN;
-			GDALSetRasterNoDataValue( GDALGetRasterBand(hDstDS, i+1), 
-						psWarpOptions->padfDstNoDataReal[i] );
+	papszWarpOptions = CSLSetNameValue(papszWarpOptions, "INIT_DEST", "NO_DATA" );
+
+	if ( pdfDstNodata == NULL && (typeCLASS == GDT_Float32 || typeCLASS == GDT_Float64) ) {
+		pdfDstNodata = (double *) mxCalloc((size_t)1, sizeof(double));
+		*pdfDstNodata = mxGetNaN();
+	}
+	else if (pdfDstNodata != NULL) {
+#define CLAMP(val,type,minval,maxval) \
+    do { if (val < minval) { val = minval; } \
+    else if (val > maxval) { val = maxval; } \
+    else if (val != (type)val) { val = (type)(val + 0.5); } } \
+    while(0)
+		switch( typeCLASS ) {
+			case GDT_Byte:
+				CLAMP(pdfDstNodata[0], GByte, 0.0, 255.0);
+				break;
+			case GDT_UInt16:
+				CLAMP(pdfDstNodata[0], GInt16, -32768.0, 32767.0);
+				break;
+			case GDT_Int16:
+				CLAMP(pdfDstNodata[0], GUInt16, 0.0, 65535.0);
+				break;
+			case GDT_UInt32:
+				CLAMP(pdfDstNodata[0], GInt32, -2147483648.0, 2147483647.0);
+				break;
+			case GDT_Int32:
+				CLAMP(pdfDstNodata[0], GUInt32, 0.0, 4294967295.0);
+				break;
+			default:
+				break;
 		}
-	}*/
+	}
+
+	psWO->papszWarpOptions = CSLDuplicate(papszWarpOptions);
+
+	if (pdfDstNodata != NULL) {
+		psWO->padfDstNoDataReal = (double *) CPLMalloc(psWO->nBandCount*sizeof(double));
+		psWO->padfDstNoDataImag = (double *) CPLMalloc(psWO->nBandCount*sizeof(double));
+		for (i = 0; i < nBands; i++) {
+                        psWO->padfDstNoDataReal[i] = pdfDstNodata[0];
+                        psWO->padfDstNoDataImag[i] = 0.0;
+			GDALSetRasterNoDataValue( GDALGetRasterBand(hDstDS, i+1), pdfDstNodata[0]);
+		}
+	}
 
 	/* ------------ Establish reprojection transformer ------------------- */
-	psWarpOptions->pTransformerArg = GDALCreateGenImgProjTransformer( hSrcDS, GDALGetProjectionRef(hSrcDS), 
+	psWO->pTransformerArg = GDALCreateGenImgProjTransformer( hSrcDS, GDALGetProjectionRef(hSrcDS), 
 							hDstDS, GDALGetProjectionRef(hDstDS), 
 							nGCPCount == 0 ? FALSE : TRUE, 0.0, nOrder );
-	psWarpOptions->pfnTransformer = GDALGenImgProjTransform;
-DEBUGA(1);
+	psWO->pfnTransformer = GDALGenImgProjTransform;
 
 	/* ----------- Initialize and execute the warp operation ------------- */
 	GDALWarpOperation oOperation;
 
-	oOperation.Initialize( psWarpOptions );
-DEBUGA(2);
+	oOperation.Initialize( psWO );
 	eErr = oOperation.ChunkAndWarpImage( 0, 0, GDALGetRasterXSize( hDstDS ),
 						GDALGetRasterYSize( hDstDS ) );
-DEBUGA(3);
 	CPLAssert( eErr == CE_None );
 
-	GDALDestroyGenImgProjTransformer( psWarpOptions->pTransformerArg );
-	GDALDestroyWarpOptions( psWarpOptions );
+	GDALDestroyGenImgProjTransformer( psWO->pTransformerArg );
+	GDALDestroyWarpOptions( psWO );
 	GDALClose( hSrcDS );
-DEBUGA(4);
 
 	/* ------------ Free memory used to fill the hSrcDS dataset ---------- */
 	switch( typeCLASS ) {
@@ -646,24 +679,22 @@ DEBUGA(4);
 				break;
 		}
 	}
-DEBUGA(5);
 
 	mxFree(tmp);
 	if (nGCPCount) {
-		GDALDeinitGCPs( nGCPCount, pasGCPs );	// makes this mex crash in the next call
+		GDALDeinitGCPs( nGCPCount, pasGCPs );	/* makes this mex crash in the next call - Is it still true??? */
 		mxFree((void *) pasGCPs );
 	}
-DEBUGA(6);
 
 	if (nlhs == 2)
 		plhs[1] = populate_metadata_struct (hDstDS, 1);
-DEBUGA(7);
 
 	runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
 
-	//GDALDestroyDriverManager();
-	//OGRFree(pszDstWKT);
+	/*GDALDestroyDriverManager();
+	OGRFree(pszDstWKT);*/
 	GDALClose( hDstDS );
+	CSLDestroy( papszWarpOptions );
 	if (pszDstWKT && strlen(pszDstWKT) > 1 ) OGRFree(pszDstWKT);	
 	if (pszSrcWKT && strlen(pszSrcWKT) > 1 ) OGRFree(pszSrcWKT);
 }
@@ -746,15 +777,13 @@ mxArray *populate_metadata_struct (GDALDatasetH hDataset, int correct_bounds) {
 	mxArray *overview_struct;
 	mxArray *corner_struct;
 
-	int i,j, overview, band_number;	/* Loop indices */
-	int	n_colors;		/* Number of colors in the eventual Color Table */ 
-	double *dptr;			/* short cut to the mxArray data */
-	double *dptr2;			/*        ""           */
+	int	overview, band_number;	/* Loop indices */
+	double	*dptr;			/* short cut to the mxArray data */
+	double	*dptr2;			/*        ""           */
 
 	GDALDriverH hDriver;		/* This is the driver chosen by the GDAL library to query the dataset. */
 	GDALRasterBandH hBand, overview_hBand;
 
-	char error_msg[500];		/* Construct error and warning messages using this buffer. */
 	int num_overview_fields;	/* Number of metadata items for each overview structure. */
 	int status;			/* success or failure */
 	double 	adfGeoTransform[6];	/* bounds on the dataset */
