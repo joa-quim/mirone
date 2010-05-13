@@ -209,6 +209,7 @@ function write_nc(fname, handles, data, misc, page)
 		case 'uint8'			% NC_CHAR
 			data = grdutils(data,'-C');
 			varstruct.Nctype = 1;		no_val = [];	add_off = 128;
+			handles.head(5:6) = double([min(data(:)) max(data(:))]);		% We dont save handles
 		case 'double'			% NC_DOUBLE
 			varstruct.Nctype = 6;		no_val = nan;
 		otherwise
