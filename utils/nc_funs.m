@@ -632,10 +632,14 @@ if (have_scale && have_addoffset)
 elseif (have_scale)
 	cvlib_mex('CvtScale',values, scale_factor)
 elseif (have_addoffset)
-	if (~isa(values,'int8'))		% Idiot OpenCV doesn't add to int8 arrays
+	if (~isa(values,'int8'))		% OpenCV doesn't add to int8 arrays
 		cvlib_mex('addS',values, add_offset)
 	else
-		values = int8(cvlib_mex('addS', int16(values), add_offset));
+		if (add_offset > 0)			% We take it to mean do [-128 127] => [0 255] conversion
+			values = uint8(cvlib_mex('addS', int16(values), add_offset));
+		else						% Whatever
+			values = int8(cvlib_mex('addS', int16(values), add_offset));
+		end
 	end
 end
 	
@@ -1105,11 +1109,11 @@ end
 
 validate_input_size_vs_netcdf_size(ncid,data,nc_count,count,write_op);
 
-if (try_to_scale)
-	[data, did_scale] = handle_scaling(ncid,varid,data);
+if ( try_to_scale && ~(isa(data,'int8') || isa(data,'uint8')) )
+	[data, did_scale] = handle_scaling(ncid,varid,data);	% Use cvlib_mex so did_scale is always false
 	data = handle_fill_value ( ncid, varid, data );			% WARNING: Operates only in singles or doubles
 	if ( did_scale )					% Dangerous case. Scaling implies toDouble conversion but we may NOT WANT that (J. LUIS)
-		[var_type,status] = mexnc('INQ_VARTYPE',ncid,varid);
+		var_type = mexnc('INQ_VARTYPE',ncid,varid);
 		switch var_type
 			case nc_byte,	    data = int8(data);
 			case nc_char,	    data = uint8(data);
@@ -1307,21 +1311,31 @@ if have_add_offset
 	end
 end
 
+if (add_offset == 0 && scale_factor == 1),		return,		end
+
 [var_type,status] = mexnc('INQ_VARTYPE',ncid,varid);
 if status ~= 0 
     mexnc ( 'close', ncid );
     snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:INQ_VARTYPE', mexnc('STRERROR', status) );
 end
 
-data = (double(data) - add_offset) / scale_factor;
-did_scale = true;
-
-% When scaling to an integer, we should add 0.5 to the data.  Otherwise
-% there is a tiny loss in precision, e.g. 82.7 should round to 83, not .
-switch var_type
-	case { nc_int, nc_short, nc_byte, nc_char }
-		data = round(data);
+if (have_scale_factor && have_add_offset)
+	data = cvlib_mex('CvtScale',data, scale_factor, add_offset);
+elseif (have_scale_factor)
+	data = cvlib_mex('CvtScale',data, scale_factor);
+else
+	data = cvlib_mex('addS',data, add_offset);
 end
+
+% data = (double(data) - add_offset) / scale_factor;
+% did_scale = true;
+% 
+% % When scaling to an integer, we should add 0.5 to the data.  Otherwise
+% % there is a tiny loss in precision, e.g. 82.7 should round to 83, not .
+% switch var_type
+% 	case { nc_int, nc_short, nc_byte, nc_char }
+% 		data = round(data);
+% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function data = handle_fill_value(ncid,varid,data)
@@ -1376,7 +1390,7 @@ switch ( write_op )
         % Since 'put_var' writes all the data, check that the extents match up exactly.  
         if ( numel(data) ~= prod(nc_count) )
 			% Added the following (stupid) test TO LET GO WITH THE UNLIMITED VAR -- J. LUIS
-			[rec_dim, status] = mexnc( 'INQ_UNLIMDIM', ncid );
+			rec_dim = mexnc( 'INQ_UNLIMDIM', ncid );
 			if ( ~(rec_dim == 2 && numel(data) == 1) )
 				mexnc ( 'close', ncid );
 				fmt = 'Total number of input datums was %d, but the netcdf variable size is %d elements.';
