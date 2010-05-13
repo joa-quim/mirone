@@ -13,6 +13,8 @@ function gmt2mgd77_plus(fname, varargin)
 %								total field stored, to which a constant (F_offset) has been subtracted.
 %								If this PV is not provided, an F_offset 40000 is assumed.
 %
+%	'swap'		whatever		Swap bytes of the .gmt file. Precious to recover old files
+%
 %	'meta'		A metadata structure.		Fileds of this structure are:
 %								country			(Default 'Coxichina')
 %								funding			(Default 'WWF')
@@ -30,7 +32,7 @@ function gmt2mgd77_plus(fname, varargin)
 %		jluis@ualg.pt - Universidade do Algarve
 
 	F_offset = 40000;		name_out = [];		meta = [];		is_anom = false;
-	fsep = filesep;
+	fsep = filesep;			opt_Y = ' ';
 
 	for (k = 1:2:numel(varargin))
 		if ( strcmp(varargin{k}, 'name') )
@@ -42,6 +44,8 @@ function gmt2mgd77_plus(fname, varargin)
 			end
 		elseif ( strcmp(varargin{k}, 'meta') )
 			meta = varargin{k+1};
+		elseif ( strcmp(varargin{k}, 'swap') )
+			opt_Y = '-Y';
 		end
 	end
 
@@ -80,7 +84,7 @@ function gmt2mgd77_plus(fname, varargin)
 
 	[PATO, FNAME] = fileparts(fname);
 	if (isempty(PATO)),		fsep = [];	end		% File is in the current directory
-	track = gmtlist_m([PATO fsep FNAME], '-Fsxygmt', '-G');
+	track = gmtlist_m([PATO fsep FNAME], '-Fsxygmt', '-G', opt_Y);
 
 	track.time = track.time + (date2jd(track.year) - date2jd(1970)) * 86400;	% Here we need time in seconds since 1970
 	
