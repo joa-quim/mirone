@@ -251,7 +251,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 			(void) near_a_line (rlon, rlat, xyline, 2, &dist, &xnear, &ynear);
 			dist *= d_scale;
-//dist = (*GMT_distance_func) (rlon, rlat, xnear, ynear);
 
 			r_pga = sqrt (dist*dist + 1.35*1.35);
 			r_pgv = sqrt (dist*dist + 2.54*2.54);
