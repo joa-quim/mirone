@@ -108,6 +108,8 @@ shoredump:
 		$(MEX) $(FLAGS) shoredump.c $(GMT) $(CDF) $(MEXLIB)
 surface_m:	
 		$(MEX) $(FLAGS) surface_m.c $(GMT) $(CDF) $(MEXLIB)
+shake_mex:	
+		$(MEX) $(FLAGS) shake_mex.c $(GMT) $(CDF) $(MEXLIB)
 
 # -- "PROG_withCDFs" netCDF mexs (other than GMT ones)
 
