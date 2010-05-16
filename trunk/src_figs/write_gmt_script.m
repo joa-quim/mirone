@@ -85,7 +85,7 @@ else
     set(hObject,'Name','Write GMT script')
 end
 
-% Add this figure handle to the carra?as list
+% Add this figure handle to the carraças list
 plugedWin = getappdata(mirone_handles.figure1,'dependentFigs');
 plugedWin = [plugedWin hObject];
 setappdata(mirone_handles.figure1,'dependentFigs',plugedWin);
@@ -286,7 +286,6 @@ function radiobutton_P_CB(hObject, eventdata, handles)
 	img_size_x = get(handles.axes1,'YLim');     % Just swap x & y
 	img_size_y = get(handles.axes1,'XLim');
 	set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y);
-	%set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y,'PlotBoxAspectRatio',[1/handles.paper_aspect 1 1]);
 	set(handles.radiobutton_L,'Value',0)
 
 % -----------------------------------------------------------------------------------
@@ -295,7 +294,6 @@ function radiobutton_L_CB(hObject, eventdata, handles)
 	img_size_x = get(handles.axes1,'YLim');     % Just swap x & y
 	img_size_y = get(handles.axes1,'XLim');
 	set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y);
-	%set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y,'PlotBoxAspectRatio',[1 1/handles.paper_aspect 1]);
 	set(handles.radiobutton_P,'Value',0)
 
 % -----------------------------------------------------------------------------------
@@ -519,7 +517,7 @@ end
 % ----------- Compute scale 1:xxxx
 if (~handles.scale_set)     % If user changed scale, don't compute it here
 	xm = (handles.x_min + handles.x_max) / 2;   ym = (handles.y_min + handles.y_max) / 2;
-	opt_R = ['-R' num2str(xm-2) '/' num2str(xm+2) '/' num2str(ym-2) '/' num2str(ym+2)];
+	opt_R = sprintf('-R%f/%f/%f/%f', xm-2, xm+2, ym-2, ym+2);
 	in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
 	opt_J = [handles.opt_J_no_scale '/1'];
 	out = mapproject_m(in,opt_R,'-C','-F',opt_J);
@@ -1606,9 +1604,9 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
 		if (isnumeric(fcolor))
 			fcolor = round(fcolor * 255);
 			if (numel(fcolor) == 1)
-				opt_G = {[' -G' num2str(fcolor)]};
+				opt_G = {sprintf(' -G%d', fcolor)};
 			else
-				opt_G = {[' -G' num2str(fcolor(1)) '/' num2str(fcolor(2)) '/' num2str(fcolor(3))]};
+				opt_G = {sprintf(' -G%d/%d/%d', fcolor(1:3))};
 			end
 		elseif (ischar(fcolor))     % Shit, we have to decode the color letter
 			switch fcolor
@@ -1621,27 +1619,36 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
 				case 'b',       opt_G = {' -G0/0/255'};
 				otherwise,      opt_G = {''};
 			end
-		elseif (iscell(fcolor))     % Double shit, we have to convert a Mx3 cell matrix into texts
+		elseif (iscell(fcolor))			% Double shit, we have to convert a Mx3 cell matrix into texts
             tmp = cell2mat(fcolor) * 255;
             opt_G = cell(size(tmp,1),1);
 			for (m = 1:size(tmp,1))
-				opt_G{m} = [' -G' num2str(tmp(1)) '/' num2str(tmp(2)) '/' num2str(tmp(3))];
+				opt_G{m} = {sprintf(' -G%d/%d/%d', tmp(1:3))};
 			end
 		else
 			opt_G = {''};
 		end
         str = get(ALLtextHand,'String');      angle = get(ALLtextHand,'Rotation');
-        if (~iscell(pos))           % Make them cells for author's mental sanity
-            pos = num2cell(pos(:),1);   fsize = num2cell(fsize,1);      angle = num2cell(angle,1);
-            str = {str};                font = {font};
+        if (~iscell(pos))				% Make them cells for author's mental sanity
+            pos = num2cell(pos(:),1);	fsize = num2cell(fsize,1);		angle = num2cell(angle,1);
+            str = {str};				%font = {font};
         end
         n_text = length(str);
 		script{l} = ' ';        l=l+1;
         script{l} = [comm ' ---- Plot text strings'];   l=l+1;    
-        for (i=1:n_text)
-			script{l} = ['echo ' num2str(pos{i}(1),'%.5f') ' ' num2str(pos{i}(2),'%.5f') ' ' num2str(fsize{i}) ' ' ...
-				num2str(angle{i}) ' 4 LB ' str{i} ' | pstext' ellips opt_G{i} ' -R -J -O -K >> ' pb 'ps' pf];
-			l=l+1;
+        for (i = 1:n_text)
+			frmt = 'echo %.5f %.5f %d %.2f 4 LB %s | pstext %s %s  -R -J -O -K >> %sps%s';
+			script{l} = sprintf(frmt, pos{i}(1), pos{i}(2), fsize{i}, angle{i}, str{i}(1,:), ellips, opt_G{i}, pb, pf);
+			l = l + 1;
+			this_nLines = size(str{i},1);		% How many lines has this text element?
+			if (this_nLines > 1)				% More than one. So try to estimate each line Pos from a simple calculus
+				ext = get(ALLtextHand(i), 'Extent');
+				for (k = 2:this_nLines)
+					yPos = pos{i}(2) - (k - 1) * (ext(4) / this_nLines);
+					script{l} = sprintf(frmt, pos{i}(1), yPos, fsize{i}, angle{i}, str{i}(k,:), ellips, opt_G{i}, pb, pf);
+					l = l + 1;
+				end
+			end
         end
 	end
 end
@@ -1716,7 +1723,7 @@ end
 			tmp{7} = [comm 'the $grd variable with the correct path.'];
 		elseif (~used_grd && used_countries)
 			tmp{7} = [comm 'the paths correctly in the "country_select" command line.'];
-		else            % Both cases
+		else			% Both cases
 			tmp{7} = [comm 'the $grd variable with the correct path. And the same'];
 			tmp{9} = [comm 'for the paths in the "country_select" command line.'];
 		end
