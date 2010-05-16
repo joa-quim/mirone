@@ -45,7 +45,8 @@ SHAPE_LIB = -L/usr/local/lib/ -lshp
 SHAPE_FLAGS = -I/usr/local/include -I/usr/local/include/libshp -I$(MATLAB)/extern/include
 MEXNC_FLAGS = $(NETCDF_INC) -I$(MATLAB)/extern/include
 
-PROG_GMT	= grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m mapproject_m shoredump surface_m nearneighbor_m grdfilter_m cpt2cmap grdlandmask_m grdppa_m gmtlist_m
+PROG_GMT	= grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m mapproject_m shoredump \
+		surface_m nearneighbor_m grdfilter_m cpt2cmap grdlandmask_m grdppa_m gmtlist_m shake_mex
 
 # Non LIB dependent mexs (besides matlab libs, of course)
 PROG_SIMPLE	= test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select \
