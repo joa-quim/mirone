@@ -653,7 +653,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 8 May 2010'',''1.5.3b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 19 May 2010'',''1.5.3b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -734,7 +734,7 @@ function figure1_ResizeFcn(hObj, event)
 function figure1_CloseRequestFcn(hObj, event)
 	handles = guidata(hObj);
 	try		h = getappdata(handles.figure1,'dependentFigs');
-	catch,	delete(handles.figure1),	return
+	catch,	delete(gcf),	return
 	end
 	delete(handles.figure1);		delete(h(ishandle(h)))      % Delete also any eventual 'carraças'
 	FOpenList = handles.FOpenList;	fname = [handles.path_data 'mirone_pref.mat'];
