@@ -60,7 +60,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line move_obj make_arrow
 %#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
-%#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion
+%#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion wms_tool
 
 %  	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
 	global home_dir;	fsep = filesep;
@@ -119,7 +119,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.validGrid = 0;		%
 
 	try							% A file named mirone_pref.mat contains the preferences, read them from it
-		prf =load([handles.path_data 'mirone_pref.mat']);
+		prf = load([handles.path_data 'mirone_pref.mat']);
 		handles.geog = prf.geog;
 		handles.grdMaxSize = prf.grdMaxSize;				% 2^20 = 1 Mb
 		handles.swathRatio = prf.swathRatio;
@@ -158,8 +158,8 @@ function hObject = mirone_OpeningFcn(varargin)
 		end
 	end	
 	handles.work_dir = handles.last_directories{1};
-	handles.last_dir = handles.last_directories{1};		% Initialize last_dir to work_dir
-	setappdata(hObject,'swathRatio',handles.swathRatio);		% I need this for getline_mb
+	handles.last_dir = handles.last_directories{1};			% Initialize last_dir to work_dir
+	setappdata(hObject,'swathRatio',handles.swathRatio);	% I need this for getline_mb
 
 	% Change the MeasureDistance label to the selected (in prefs) unites
 	set(handles.ToolsMeasureDist,'Label',['Distance in ' handles.DefineMeasureUnit])
