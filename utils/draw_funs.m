@@ -280,8 +280,8 @@ if (isempty(h)),	return,		end
 IS_SEISPOLYGON = false;     % Seismicity polygons have special options
 LINE_ISCLOSED = false;		IS_RECTANGLE = false;	IS_PATCH = false;
 % Check to see if we are dealing with a closed polyline
-x = get(h,'XData');   y = get(h,'YData');
-if (isempty(x) || isempty(y)),   return;     end     % Line is totally out of the figure
+x = get(h,'XData');			y = get(h,'YData');
+if (isempty(x) || isempty(y)),		return,		end		% Line is totally out of the figure
 if ( (x(1) == x(end)) && (y(1) == y(end)) )
 	LINE_ISCLOSED = true;
 	if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
@@ -328,7 +328,9 @@ elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the 
 end
 uimenu(cmenuHand, 'Label', label_save, 'Call', {@save_formated,h});
 if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))     % Those are not to allowed to copy
-	uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
+	if (~IS_RECTANGLE)
+		uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
+	end
 	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
 end
 if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength);		end
@@ -336,12 +338,12 @@ if (IS_MBTRACK),		uimenu(cmenuHand, 'Label', 'All tracks length', 'Call', @show_
 if (~IS_SEISPOLYGON && ~IS_RECTANGLE),	uimenu(cmenuHand, 'Label', label_azim, 'Call', @show_lineAzims);	end
 
 if (LINE_ISCLOSED)
-    uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
+	uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
 	if (~IS_RECTANGLE && ~handles.validGrid)
 		uimenu(cmenuHand, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)','Sep','on');
 		if (handles.image_type == 3)
 				uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Call', ...
-				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
+					'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
 		end
 	end
 	if (IS_PATCH && ~IS_SEISPOLYGON)
@@ -371,8 +373,11 @@ if (IS_RECTANGLE)
 	end
 	uimenu(cmenuHand, 'Label', 'Register Image', 'Call', @rectangle_register_img);
 	uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Call', @Transplant_Image);
+	if (handles.geog)
+		uimenu(cmenuHand, 'Label', 'Get image from Web Map Server', 'Call', 'wms_tool(gco)','Sep','on');
+	end
 	if (handles.validGrid)    % Option only available to recognized grids
-		item_tools = uimenu(cmenuHand, 'Label', 'Crop Tools','Separator','on');
+		item_tools = uimenu(cmenuHand, 'Label', 'Crop Tools','Sep','on');
 		uimenu(item_tools, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')');
 		uimenu(item_tools, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')');
 		uimenu(item_tools, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
