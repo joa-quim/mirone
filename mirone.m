@@ -2245,7 +2245,7 @@ function Draw_CB(handles, tipo, smb)
 		if (strcmp(tipo, 'Symbol'))
 			h = line(pt(1,1),pt(1,2),'Marker',smb,'MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',10,'Tag','Symbol');
 		elseif (strcmp(tipo, 'Text'))
-			h = text(pt(1),pt(2),0,'','Editing','on');
+			h = text(pt(1),pt(2),0,'','Editing','on','VerticalAlignment','baseline','Margin',1);
 		end
 		draw_funs(h,['Draw' tipo])		% Set uicontextmenu
 	end
@@ -2397,7 +2397,7 @@ function DrawImportText_CB(handles)
 			[t, r] = strtok(str.name{k});		fz = str2double(t(2:end));		str.name{k} = r;
 			if (isnan(fz)),		fz = 10;		end		% Bad luck or stupid user error
 		end
-		h = text(str.x(k),str.y(k),str.name{k},'FontSize', fz, 'FontName','Book Antiqua','FontWeight','bold');
+		h = text(str.x(k),str.y(k),str.name{k},'FontSize', fz, 'FontName','Book Antiqua','FontWeight','bold','VerticalAlignment','baseline','Margin',1);
 		draw_funs(h,'DrawText')
 	end
 
@@ -3403,6 +3403,23 @@ function GridToolsPadd2Const_CB(handles)
 	head(3) = head(3) - n_pad/2 * head(9);		head(4) = head(4) + n_pad/2 * head(9);
 	X = linspace(head(1),head(2),n+n_pad);		Y = linspace(head(3),head(4),m+n_pad);
 	GRDdisplay(handles,X,Y,Z,head,'Padded Grid','Padded Grid')
+
+% --------------------------------------------------------------------
+% function GridToolsMesher_CB(handles)
+% % 
+%  	[v, f] = reduce_qslim(handles, 0.2, 'name','C:\SVN\mironeWC\triLixo.stl','format','STL','type','binary','close',-10000,'verbose','y');
+% 
+% % 	[v, f] = reduce_qslim(handles, 1, 'close',-5700);
+% 	s.type = 'FV';	s.faces = f;	s.vertices = v;
+% 	%s.track = [256510.83 4547390.15; 267558.43 4547250.09; 282801.33 4547390.15; 292170.81 4547390.15; 312587.90 4547390.15];
+% 	s.hdr = handles.head;
+% 	p = xyzokb_m(s,'-C2700');
+% % 	p = xyzokb_m(s,'-C2700','-V','-R246819.716/318083.733/4513687.54/4575210.41', '-I1454.36769/1922.58966');
+% 	mirone(p)
+% 	return
+% 	fout.faces = f;		fout.vertices = v;
+% 	h=figure; p = patch(fout);
+% 	set(p, 'facecolor', [.5 .5 .5])
 
 % --------------------------------------------------------------------
 function FileSaveFleder_CB(handles, opt)
