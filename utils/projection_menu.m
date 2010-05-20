@@ -1,17 +1,17 @@
 % --------------------------- PROJECTIONS MENU ------------------------------------
-function projectionMenu(hFig, hProj, home_dir)
+function projection_menu(hFig, hProj, home_dir)
     % Creates the Projection Menu from data read from the 'SRSproj_def.txt' file 
 
     fs = filesep;
     fid = fopen([home_dir fs 'data' fs 'SRSproj_def.txt']);
-    if (fid < 0),   return;     end
+    if (fid < 0),	return,		end
 
 	c = (fread(fid,'*char'))';      fclose(fid);
 	menus = strread(c,'%s','delimiter','\n');   clear c fid;
     % Remove eventual empty lines
 	m = numel(menus);    c = false(m,1);
     for (k=1:m)
-        if (isempty(menus{k})),     c(k) = true;    end
+		if (isempty(menus{k})),     c(k) = true;    end
     end
     menus(c) = [];
     
@@ -67,8 +67,8 @@ function projectionMenu(hFig, hProj, home_dir)
 			end
         else
 			projCOMM{k,2} = '-C';    % A must have
-        end
-    end
+		end
+	end
 
     hMain = zeros(1,m);    hSec  = zeros(1,m);
     for (k=1:m)
@@ -103,7 +103,7 @@ function [t,r] = getMenuLabel(s)
         
 % -------------------------------------------------------------------------------
 function s = ripblanks(s)
-    % removes leading and trailing white space from S
+% removes leading and trailing white space from S
 	[r, c] = find(~isspace(s));
     s = s(min(c):max(c));
 
@@ -116,7 +116,7 @@ function setPRJ(obj,nikles, hFig, k, projCOMM)
 %     set(obj,'checked','on');    set(unchk,'checked','off')
     set(projList,'checked','off');
     set(obj,'checked','on')
-    if (strcmp(get(obj,'Label'),'None'))
+	if (strcmp(get(obj,'Label'),'None'))
 		setappdata(hFig,'ProjGMT','')
 		setappdata(hFig,'Proj4','')
 		handles.is_projected = 0;
@@ -126,7 +126,7 @@ function setPRJ(obj,nikles, hFig, k, projCOMM)
 		handles.is_projected = 1;
 	elseif (projCOMM{k}(1) == '-')
 		prj = projCOMM(k,:);
-		% If don't have the third element, remove it because no empties in mapproject
+		% If doesn't have the third element, remove it because no empties in mapproject
 		if (isempty(prj{end})),     prj(end) = [];  end
 		setappdata(hFig,'ProjGMT',prj)
 		setappdata(hFig,'Proj4','')
