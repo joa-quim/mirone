@@ -362,14 +362,14 @@ function pushbutton_DefCoordLeft_Callback(hObject, eventdata, handles)
 		if (handles.which_conv == 1)
 			set(handles.h_text_xLeft,'String','Longitude')
 			set(handles.h_text_yLeft,'String','Latitude')
-        end
+		end
 		set(handles.popup_UnitesLeft,'String',handles.DegreeFormat1,'Value',handles.DegreeFormat1_val_left)
 		handles.is_geog_left = 1;    coord_system_left.is_geog = 1;
 	else
 		if (handles.which_conv == 1)
 			set(handles.h_text_xLeft,'String','East/West')
 			set(handles.h_text_yLeft,'String','North/South')
-        end
+		end
 		set(handles.popup_UnitesLeft,'String',handles.MeasureUnit,'Value',handles.MeasureUnit_val_left)
 		handles.is_geog_left = 0;    coord_system_left.is_geog = 0;
 	end
@@ -456,8 +456,8 @@ function pushbutton_left2right_Callback(hObject, eventdata, handles)
 			[n_row,n_col] = size(handles.fileDataLeft);
 		end
 	elseif (handles.which_conv == 3)
-		msg_err = transform_grid(handles);        % Do the work there and return.
-		if (~isempty(msg_err)),     errordlg(msg_err,'Error');      end
+		msg_err = transform_grid(handles);		% Do the work there and return.
+		if (~isempty(msg_err)),		errordlg(msg_err,'Error'),		end
 		return
 	end
 
@@ -465,7 +465,7 @@ function pushbutton_left2right_Callback(hObject, eventdata, handles)
 		msg_err = 'You need to select BOTH Input and Output coordinate systems.';
 	end
 
-	if (~isempty(msg_err)),   errordlg(msg_err,'Error');  return;   end
+	if (~isempty(msg_err)),   errordlg(msg_err,'Error'),	return,		end
 
 	small = 1;
 	opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g', x_c-small, x_c+small, y_c-small, y_c+small);
@@ -481,7 +481,7 @@ function pushbutton_left2right_Callback(hObject, eventdata, handles)
 		opt_T = ' ';
 	end
 
-	% This is need only in the projection-to-projection case
+	% Need this only in the projection-to-projection case
 	if (handles.datum_val_left == 221 && handles.datum_val_right == 221)
 		is_wgs84 = 1;
 	else	
@@ -624,8 +624,8 @@ function pushbutton_right2left_Callback(hObject, eventdata, handles)
 		yr = get_editValue(handles.edit_yRight);
 		zr = get_editValue(handles.edit_zRight);
 		x_c = xr;		y_c = yr;
-        if (~isempty(zr)),	in = [xr yr zr];
-        else				in = [xr yr];
+		if (~isempty(zr)),	in = [xr yr zr];
+		else				in = [xr yr];
 		end
         if (isempty(xr))
 			msg_err = 'You have to agree that I cannot convert a NOTHING (see the right input X box).';
@@ -634,9 +634,9 @@ function pushbutton_right2left_Callback(hObject, eventdata, handles)
 			msg_err = 'You have to agree that a NOTHING cannot be converted (see the right input Y box).';
         end
 	elseif (handles.which_conv == 2)    % File Conversions
-        if (isempty(handles.fileDataRight))
+		if (isempty(handles.fileDataRight))
 			msg_err = 'For converting a data file I need to know ... the data!';
-        else
+		else
 			if (get(handles.checkbox_ToggleXYRight,'Value'))
 				in = [handles.fileDataRight(:,2) handles.fileDataRight(:,1) handles.fileDataRight(:,3:end)];
 			else
@@ -650,9 +650,11 @@ function pushbutton_right2left_Callback(hObject, eventdata, handles)
 		end
 	elseif (handles.which_conv == 3)
 		msg_err = transform_grid(handles);        % Do the work there and return.
-		if (~isempty(msg_err)),     errordlg(msg_err,'Error');      end
+		if (~isempty(msg_err)),     errordlg(msg_err,'Error'),	end
 		return
 	end
+	
+	if (~isempty(msg_err)),     errordlg(msg_err,'Error'),		end
 
 	small = 1;
 	opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g', x_c-small, x_c+small, y_c-small, y_c+small);
@@ -813,6 +815,10 @@ function msg_err = transform_grid(handles)
 		% Find means used to estimate the "good" opt_R for ...
 		x_c = (x_min + x_max) / 2;   y_c = (y_min + y_max) / 2;
 	end
+	
+	if ( ~handles.by_mirone2grid && isempty(get(handles.edit_gridRight,'String')) )
+		msg_err = 'Need output grid name.';
+	end
 
 	if (strcmp(get(handles.h_txt_info_l,'String'),'Nikles') | strcmp(get(handles.h_txt_info_r,'String'),'Nikles'))
 		msg_err = 'You need to select BOTH Input and Output coordinate systems.';
@@ -879,7 +885,7 @@ function msg_err = transform_grid(handles)
 		opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2));
 
 		% Convert to Geogs
-		[Z,head] = grdproject_m(handles.gridLeft, handles.gridLeftHead, opt_J, opt_R,...
+		Z = grdproject_m(handles.gridLeft, handles.gridLeftHead, opt_J, opt_R,...
 			opt_SF, opt_C, opt_F, opt_A, opt_N, '-I');
 
 		% And now do a direct conversion to the final destination
@@ -928,9 +934,6 @@ function msg_err = transform_grid(handles)
 	if (~handles.by_mirone2grid)
 		tit = 'Grid converted by grdproject';
 		fname = get(handles.edit_gridRight,'String');
-		if (isempty(fname))
-			errordlg('Need output grid name.','ERROR'),		return
-		end
 		% Defaults and srsWKT fishing are set in nc_io
 		misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
 			'title',tit,'history',[],'srsWKT',[], 'strPROJ4',[]);
@@ -940,7 +943,7 @@ function msg_err = transform_grid(handles)
 		zMinMax = grdutils(Z,'-L');
 		tmp.head = [head(1:4) zMinMax(1:2)' head(7:9)];
 		tmp.X = linspace(head(1),head(2),nx);		tmp.Y = linspace(head(3),head(4),ny);
-		tmp.name = 'Projected grid';
+		tmp.name = 'Projected grid';				tmp.ProjGMT = opt_J;
 		mirone(Z,tmp);
 	end
 
@@ -1177,39 +1180,56 @@ if (isempty(coord_system))   % If it doesn't exist, create an empty one
 end
 
 if (~isfield(coord_system,'group_val')),     out.group_val = 1;
-else        out.group_val = coord_system.group_val;    end
+else		out.group_val = coord_system.group_val;
+end
 if (~isfield(coord_system,'system_val')),    out.system_val = 1;
-else        out.system_val = coord_system.system_val;    end
+else        out.system_val = coord_system.system_val;
+end
 if (~isfield(coord_system,'datum_val')),     out.datum_val = 221;   % Default to wgs84
-else        out.datum_val = coord_system.datum_val;    end
+else        out.datum_val = coord_system.datum_val;
+end
 if (~isfield(coord_system,'cilindrical_val')),   out.cilindrical_val = 1;
-else        out.cilindrical_val = coord_system.cilindrical_val;    end
+else        out.cilindrical_val = coord_system.cilindrical_val;
+end
 if (~isfield(coord_system,'azimuthal_val')),     out.azimuthal_val = 1;
-else        out.azimuthal_val = coord_system.azimuthal_val;    end
+else        out.azimuthal_val = coord_system.azimuthal_val;
+end
 if (~isfield(coord_system,'conic_val')),         out.conic_val = 1;
-else        out.conic_val = coord_system.conic_val;    end
+else        out.conic_val = coord_system.conic_val;
+end
 if (~isfield(coord_system,'miscelaneous_val')),  out.miscelaneous_val = 1;
-else        out.miscelaneous_val = coord_system.miscelaneous_val;    end
+else        out.miscelaneous_val = coord_system.miscelaneous_val;
+end
 if (~isfield(coord_system,'ProjName')),          out.ProjName = 'Unknown';
-else        out.ProjName = coord_system.ProjName;    end
+else        out.ProjName = coord_system.ProjName;
+end
 if (~isfield(coord_system,'map_scale_factor')),  out.map_scale_factor = [];
-else        out.map_scale_factor = coord_system.map_scale_factor;    end
+else        out.map_scale_factor = coord_system.map_scale_factor;
+end
 if (~isfield(coord_system,'system_FE_FN')),      out.system_FE_FN = [];
-else        out.system_FE_FN = coord_system.system_FE_FN;    end
+else        out.system_FE_FN = coord_system.system_FE_FN;
+end
 if (~isfield(coord_system,'projection')),        out.projection = [];
-else        out.projection = coord_system.projection;    end
+else        out.projection = coord_system.projection;
+end
 if (~isfield(coord_system,'ProjParameterValue')), out.ProjParameterValue = [];
-else        out.ProjParameterValue = coord_system.ProjParameterValue;    end
+else        out.ProjParameterValue = coord_system.ProjParameterValue;
+end
 if (~isfield(coord_system,'proj_info_txt')),     out.proj_info_txt = 'Nikles';
-else        out.proj_info_txt = coord_system.proj_info_txt;    end
+else		out.proj_info_txt = coord_system.proj_info_txt;
+end
 if (~isfield(coord_system,'MeasureUnit_val')),   out.MeasureUnit_val = 1;
-else        out.MeasureUnit_val = coord_system.MeasureUnit_val;    end
+else        out.MeasureUnit_val = coord_system.MeasureUnit_val;
+end
 if (~isfield(coord_system,'DegreeFormat1_val')),   out.DegreeFormat1_val = 1;
-else        out.DegreeFormat1_val = coord_system.DegreeFormat1_val;    end
+else        out.DegreeFormat1_val = coord_system.DegreeFormat1_val;
+end
 if (~isfield(coord_system,'DegreeFormat2_val')),   out.DegreeFormat2_val = 1;
-else        out.DegreeFormat2_val = coord_system.DegreeFormat2_val;    end
+else        out.DegreeFormat2_val = coord_system.DegreeFormat2_val;
+end
 if (~isfield(coord_system,'is_geog')),   out.is_geog = 1;
-else        out.is_geog = coord_system.is_geog;    end
+else        out.is_geog = coord_system.is_geog;
+end
 
 % This is my solution to cat 2 structures. There must be a clever way.
 hand_cell = struct2cell(handles);       % Convert handles struct to cell
@@ -1218,7 +1238,7 @@ both_cell = [hand_cell; out_cell];      % Cat them
 names_hand = fieldnames(handles);       % Get handles field names
 names_out = fieldnames(out);            % Get coord_system field names
 for (i=1:length(names_out))             % Append the "side" to the coord_system field names
-    names_out{i} = [names_out{i} side];
+	names_out{i} = [names_out{i} side];
 end
 both_names = [names_hand; names_out];   % Cat the handles and the coord_system field names
 handles = cell2struct(both_cell,both_names,1);  % Finaly, rebuild the handles structure.
