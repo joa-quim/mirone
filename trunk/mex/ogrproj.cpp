@@ -38,7 +38,7 @@ void Usage();
 /* Matlab Gateway routine */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	i, j, n_pts, n_fields;
-	double	*in_data, *ptr_d, *x, *y, *z;
+	double	*in_data, *ptr_d, *x = NULL, *y = NULL, *z = NULL;
 	char	*pszSrcSRS = NULL, *pszSrcWKT = NULL;
 	char	*pszDstSRS = NULL, *pszDstWKT = NULL;
 	mxArray	*mx_ptr;
@@ -51,14 +51,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (nrhs == 1 && mxIsChar(prhs[0])) {
 		pszSrcSRS = (char *)mxArrayToString(prhs[0]);
 
-		//pszSrcWKT = SanitizeSRS(pszSrcSRS);
+		/*pszSrcWKT = SanitizeSRS(pszSrcSRS);*/
 
 		if( oSrcSRS.SetFromUserInput( pszSrcSRS ) != OGRERR_NONE )
 			mexErrMsgTxt("OGRPROJ: Translating SRS string failed.");
 
-		if (pszSrcSRS[0] == '+')	// from Proj4 to WKT
+		if (pszSrcSRS[0] == '+')	/* from Proj4 to WKT */
 			oSrcSRS.exportToPrettyWkt( &pszSrcWKT, FALSE );
-		else				// from others to Proj4
+		else				/* from others to Proj4 */
 			oSrcSRS.exportToProj4( &pszSrcWKT );
 
 		if (nlhs == 1)
@@ -95,7 +95,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/* Check that first argument contains at least a mx2 table */
 	n_pts = mxGetM (prhs[0]);
 	n_fields = mxGetN(prhs[0]);
-	if (!mxIsNumeric(prhs[0]) || (n_fields < 2)) {
+	if (!mxIsNumeric(prhs[0]) || (n_fields < 2) || (n_pts == 0)) {
 		mexPrintf("OGRPROJ ERROR: first argument must contain a mx2 (or mx3) table\n");
 		mexErrMsgTxt("               with the x,y (,z) positions to convert.\n");
 	}
@@ -124,7 +124,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	else if (pszDstWKT != NULL)
 		oDstSRS.importFromWkt( &pszDstWKT );
 	else {
-		//oDstSRS = new OGRSpatialReference();
+		/*oDstSRS = new OGRSpatialReference(); */
 		if( oDstSRS.SetFromUserInput( pszDstSRS ) != OGRERR_NONE )
 			mexErrMsgTxt("OGRPROJ: Translating target SRS failed.");
 	}
@@ -185,14 +185,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	if (n_pts > 1) {
-		mxFree(x);	mxFree(y);
+		mxFree((void *)x);	mxFree((void *)y);
 	}
 
 	if (n_fields == 3) {
 		for (j = 0; j < n_pts; j++)
 			ptr_d[j+2*n_pts] = z[j];
 
-		mxFree(z);
+		mxFree((void *)z);
 	}
 }
 
