@@ -1,8 +1,9 @@
-function make_mexs64(opt,opt2)
+function make_mexs64(opt, varargin)
 %  make_mexs -- Make the Mirone-mex supplement directly in Matlab
 %  
 %	OPT  -- one of 'all', 'gmt', 'gdal', 'mexnc', 'simple' or a specifif module name
-%	OPT2 -- '64' or '32' to compile for 64 r 32 bits [default '32']
+%	varargin -- '64' or '32' to compile for 64 r 32 bits [default '32']
+%				and/or compiler options like '-g', '-v', '-c'
 %
 %	A major drawback of this file is that the diverse libraries are very hardcoded
 %	for the names on my computer, and to private names of some .lib files.
@@ -13,9 +14,19 @@ function make_mexs64(opt,opt2)
 if (nargin == 0)
 	opt = 'usage';	% Quite poor message though
 end
+
 mexe = 'mex ';
-if (nargin < 2),	bit = '32';		end
-if (nargin == 2),	bit = opt2;		end
+bit = '32';
+
+if (nargin > 1)			% Used to provide compiler options like '-g' or '-v'
+	for (i = 1:numel(varargin))
+		if ( isnan(str2double(varargin{i})) )		% compiler options like '-g' or '-v'
+			mexe = [mexe ' ' varargin{i} ' '];%#ok
+		else
+			bit = varargin{i};
+		end
+	end
+end
 
 % ------------- Adjust for your own path -----------------------------------------------
 % Include path for GMT. Directory where the several *.h GMT files reside 
