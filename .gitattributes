@@ -280,6 +280,7 @@ lib_mex/parityscan.dll -text
 lib_mex/qhullmx.dll -text
 lib_mex/range_change.dll -text
 lib_mex/read_isf.dll -text
+lib_mex/reducep_s.dll -text
 lib_mex/resampsep.dll -text
 lib_mex/scaleto8.dll -text
 lib_mex/set_gmt.dll -text
