@@ -199,9 +199,9 @@ function hObject = mirone_OpeningFcn(varargin)
 				handles.image_type = 2;			handles.geog = 0;		axis_t = 'off';
 				handles.head = [1 size(varargin{1}, 2) 1 size(varargin{1}, 1) 0 255 0 1 1];		% Fake a grid reg GMT header
 				if (ndims(varargin{1}) == 2),	set(handles.figure1,'Colormap',gray(256));	end
-				pal = getappdata(0,'CropedColormap');					% See if we have a colormap to use here
+				pal = getappdata(0,'CropedColormap');				% See if we have a colormap to use here
 				if (~isempty(pal)),		set(handles.figure1,'Colormap',pal),	rmappdata(0,'CropedColormap'),	end
-				setappdata(hObject,'Croped','yes');						% ???
+				setappdata(hObject,'Croped','yes');					% ???
 			end
 			handles = show_image(handles,win_name,X,Y,varargin{1},0,axis_t,handles.head(7),1);
 			if (~isReferenced),		grid_info(handles,[],'iminfo',varargin{1});			% Create a info string
@@ -224,6 +224,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'srsWKT'))
 					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});	% Create a info string
 					aux_funs('appP', handles, tmp.srsWKT)					% We have a WKT proj, store it
+				%elseif (isfield(tmp,'ProjGMT'))			% From geog_calculator. Has opt_J, but need to decide how to use
 				end
 			else
 				zz = grdutils(Z,'-L');
@@ -299,7 +300,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		set([handles.CoastLineCrude handles.PBCrude handles.RiversCrude], 'Enable','off')
 	end
 
-	guidata(hObject, handles);	limpa(handles);
+	guidata(hObject, handles);
 	tmp.home_dir = home_dir;	tmp.work_dir = handles.work_dir;	tmp.last_dir = handles.last_dir;
 	setappdata(0,'MIRONE_DIRS',tmp);			% To access from places where handles.home_dir is unknown (must precede gateLoadFile())
 	if (~isempty(drv))
