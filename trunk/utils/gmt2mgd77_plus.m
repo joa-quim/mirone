@@ -86,6 +86,11 @@ function gmt2mgd77_plus(fname, varargin)
 	if (isempty(PATO)),		fsep = [];	end		% File is in the current directory
 	track = gmtlist_m([PATO fsep FNAME], '-Fsxygmt', '-G', opt_Y);
 
+	if (isempty(track.time))
+		disp(['File ' FNAME ' is empty'])
+		return
+	end
+
 	track.time = track.time + (date2jd(track.year) - date2jd(1970)) * 86400;	% Here we need time in seconds since 1970
 	
 	att.source_institution = track.agency;
