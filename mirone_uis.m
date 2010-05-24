@@ -350,7 +350,7 @@ uimenu('Parent',hTL,'Call','mk_movie_from_list(guidata(gcbo))', 'Label','Make mo
 h = uimenu('Parent',hTL,'Label','Misc Tools','Sep','on');
 uimenu('Parent',h,'Call','cartas_militares(guidata(gcbo))','Label','Cartas Militares')
 uimenu('Parent',h,'Call','obj_template_detect(gcf)','Label','Object detection','Sep','on');
-uimenu('Parent',h,'Label','entry_vtr','Sep','on');
+uimenu('Parent',h,'Call','vitrinite','Label','Vitrinite','Sep','on');
 
 uimenu('Parent',hTL,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command','Sep','on');
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Line Operations','Tag','lineOP');
@@ -557,8 +557,7 @@ uimenu('Parent',hGP,'Call','geog_calculator(guidata(gcbo))','Label','Geographic 
 uimenu('Parent',hGP,'Call','euler_stuff(gcf)','Label','Euler rotations','Sep','on');
 uimenu('Parent',hGP,'Call','compute_euler(gcf)','Label','Compute Euler pole');
 uimenu('Parent',hGP,'Call','manual_pole_adjust(gcf)','Label','Manual adjust Euler pole');
-
-uimenu('Parent',hGP,'Label','entry_tl');
+uimenu('Parent',hGP,'Call','telhometro(gcf)','Label','Telhometro');
 
 h = uimenu('Parent',hGP,'Label','Seismicity','Sep','on');
 uimenu('Parent',h,'Callback','earthquakes(gcf,''external'');','Label','Epicenters');
@@ -653,7 +652,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 19 May 2010'',''1.5.3b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 24 May 2010'',''1.5.3b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
