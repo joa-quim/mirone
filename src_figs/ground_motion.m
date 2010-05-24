@@ -190,11 +190,22 @@ function [X,Y,vs30,head] = calc_vs30(handles)
 function [X,Y,slope,head] = GetSlope(handles)
 % This 'handles' is the mirone handles
 
-	[X,Y,Z,head] = load_grd(handles,'double');
+	[X,Y,Z,head] = load_grd(handles);
 	
 	D2R = pi/180;
 	if (handles.geog)
-		slope = gradient_geo(Y,X,Z,'slope');
+		near1km = 1 / 120;			% Half a minute arc ~ 1 km
+		if (head(9) < near1km / 2)	% If grid has resolution than ~450 m
+			winSize = round( min(near1km / head(8), near1km / head(9)) );
+			if (rem(winSize, 2) == 0)	winSize = winSize + 1;		end		% Force odd sized window
+			opt_W = sprintf('-W%d', winSize);
+			opt_A = '-A6';			% Slope
+			opt_N = sprintf('-N%d', handles.have_nans);
+			slope = double(mirblock(Z, head, opt_A, opt_N, opt_W, '-G'));
+		else						% Coarser grid (should had a warning message)
+			[X,Y,Z,head] = load_grd(handles,'double');
+			slope = gradient_geo(Y,X,Z,'slope');
+		end
 		slope = tan(slope*D2R);
 	else			% Not used, but maybe one day
 		nz = getnormals(X,Y,Z);			slope = acos(nz);
