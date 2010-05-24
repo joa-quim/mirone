@@ -155,7 +155,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	if (n_arg_no_char == 0 || error) {
 		mexPrintf ("mirblock - Compute morphological quantities from DEMs single precision arrays\n\n");
-		mexPrintf ("usage: out = mirblock(input, ['-A<0|...|7>'], [-N<0|1>], [-W<winsize>]\n");
+		mexPrintf ("usage: out = mirblock(input, ['-A<0|...|13>'], [-N<0|1>], [-W<winsize>], [-G])\n");
 		
 		mexPrintf ("\t<input> is name of input array (singles only)\n");
 		mexPrintf ("\n\tOPTIONS:\n");
@@ -177,6 +177,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\t  13 -> Automatic Gain Control (Local Amplitude)\n"); 
 		mexPrintf ("\t-N Inform if input has NaNs (1) or not (0) thus avoiding wasting time with repeated test.\n");
 		mexPrintf ("\t-W select the rectangular window size [default is 3, which means 3x3].\n");
+		mexPrintf ("\t-G Convert dx,dy in degrees of longitude,latitude into meters (ignored when not needed).\n");
 		mexErrMsgTxt("\n");
 	}
 	
