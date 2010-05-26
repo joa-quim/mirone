@@ -748,13 +748,13 @@ function write_line(fid,mode,x,y,z,np,lim_reg,line_props)
 
 %----------------------------------------------------------------------------------
 function write_pts(fid,hand,mode,limits,opt)
-	% HAND -> handles of the line (points) object
-	% MODE = FIRST or ADD
-	% OPT, when it exists, is = 'Earthquakes'
-	%   TAMBEM NAO SEI O QUE ISTO FAZ SE HOUVER MAIS DE UM CONJUNTO DE PONTOS
+% HAND -> handles of the line (points) object
+% MODE = FIRST or ADD
+% OPT, when it exists, is = 'Earthquakes'
+%   TAMBEM NAO SEI O QUE ISTO FAZ SE HOUVER MAIS DE UM CONJUNTO DE PONTOS
     if (nargin == 4),   opt = [];   end
     
-    symb = 3;               % 0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> cylinder; 5 -> sphere; 6 -> point
+    symb = 3;	% 0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> dyamond; 5 -> cylinder; 6 -> sphere; 7 -> point
     %PointRad = 0.02;						% Symbol radius
     %ColorBy = 0;							% 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute
     LabelSize = 0.502;
@@ -774,6 +774,7 @@ function write_pts(fid,hand,mode,limits,opt)
 			if (size(zz,1) > 1)         % We need them as a row vector for fwrite
 				zz = zz';
 			end
+			symb = 6;					% Use spheres for epicenters
 		else                            % No Mirone code has yet a ZData property, but who knows
 			zz = get(hand(i),'ZData');
 		end
