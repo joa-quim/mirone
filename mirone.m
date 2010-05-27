@@ -30,7 +30,6 @@ function varargout = mirone(varargin)
 		else
 			gui_Callback = str2func(varargin{1});
 			[varargout{1:nargout}] = feval(gui_Callback,varargin{2:end});
-			%if (nargout),	varargout{1} = varargin{2}.figure1;		end
 		end
 	else
 		h = mirone_OpeningFcn(varargin{:});
@@ -224,7 +223,9 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'srsWKT'))
 					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});	% Create a info string
 					aux_funs('appP', handles, tmp.srsWKT)					% We have a WKT proj, store it
-				%elseif (isfield(tmp,'ProjGMT'))			% From geog_calculator. Has opt_J, but need to decide how to use
+				elseif (isfield(tmp,'ProjGMT'))			% From geog_calculator. Has opt_J.
+					projection_menu(handles, tmp.ProjGMT)
+					handles = guidata(hObject);			% Get the updated version changed in the above call
 				end
 			else
 				zz = grdutils(Z,'-L');
