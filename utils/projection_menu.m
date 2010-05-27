@@ -1,41 +1,55 @@
 % --------------------------- PROJECTIONS MENU ------------------------------------
 function projection_menu(hFig, hProj, home_dir)
-    % Creates the Projection Menu from data read from the 'SRSproj_def.txt' file 
+% Creates the Projection Menu from data read from the 'SRSproj_def.txt' file
+%
+%	This functions is called by mirone_uis at each Mirone figure creation time. Than:
+%		hFig		handle of the mirone fig
+%		hProj		handle of "Projections" uimenu
+%		home_dir	Mirone home dir
+%
+%	Alternatively it may be called at a later time but with 2 arguments ONLY. Than
+%		hFig		The Mirone handles
+%		hProj		A GMT -J type projection info (used by grdroject)
 
-    fs = filesep;
-    fid = fopen([home_dir fs 'data' fs 'SRSproj_def.txt']);
-    if (fid < 0),	return,		end
+	if (nargin == 2)
+		setPRJ([],[], hFig, 1, hProj)
+		return
+	end
+
+	fs = filesep;
+	fid = fopen([home_dir fs 'data' fs 'SRSproj_def.txt']);
+	if (fid < 0),	return,		end
 
 	c = (fread(fid,'*char'))';      fclose(fid);
 	menus = strread(c,'%s','delimiter','\n');   clear c fid;
-    % Remove eventual empty lines
+	% Remove eventual empty lines
 	m = numel(menus);    c = false(m,1);
-    for (k=1:m)
+	for (k=1:m)
 		if (isempty(menus{k})),     c(k) = true;    end
-    end
-    menus(c) = [];
-    
-    % Parse the file contents
+	end
+	menus(c) = [];
+
+	% Parse the file contents
 	m = numel(menus);    c = false(m,1);
-    mainMenu = cell(m,1);
-    subMenu = cell(m,1);
-    projStr = cell(m,1);
-    for (k=1:m)
-        [t,r] = getMenuLabel(menus{k});
-        if (t(1) == '#'),  c(k) = true;  continue;   end
-        mainMenu{k} = t;
-        [t,r] = getMenuLabel(r);
-        if (numel(t) == 1),     subMenu{k} = [];    % We don't have a submenu
-        else                    subMenu{k} = t;
-        end
-        if (~strcmp(mainMenu{k},'None')),   projStr{k} = ripblanks(r);      end
-    end
-    mainMenu(c) = [];    subMenu(c) = [];    projStr(c) = [];   % Remove comments lines
+	mainMenu = cell(m,1);
+	subMenu = cell(m,1);
+	projStr = cell(m,1);
+	for (k=1:m)
+		[t,r] = getMenuLabel(menus{k});
+		if (t(1) == '#'),  c(k) = true;  continue;   end
+		mainMenu{k} = t;
+		[t,r] = getMenuLabel(r);
+		if (numel(t) == 1),     subMenu{k} = [];    % We don't have a submenu
+		else                    subMenu{k} = t;
+		end
+		if (~strcmp(mainMenu{k},'None')),   projStr{k} = ripblanks(r);      end
+	end
+	mainMenu(c) = [];    subMenu(c) = [];    projStr(c) = [];   % Remove comments lines
 	m = numel(mainMenu);       % Update counting
 
-    % Detect repeated main menus which occur when we have subMenus
-    primos = true(m,1);
-    for (k=2:m),    primos(k) = ~strcmp(mainMenu{k}, mainMenu{k-1});    end
+	% Detect repeated main menus which occur when we have subMenus
+	primos = true(m,1);
+	for (k=2:m),    primos(k) = ~strcmp(mainMenu{k}, mainMenu{k-1});    end
     
 	% Parse the projStr string and assign it either to a GMT type -J proj or proj4 string
 	projCOMM = cell(m,3);       % 3 for -J -C -T in case of a GMT proj 
@@ -49,12 +63,12 @@ function projection_menu(hFig, hProj, home_dir)
 
 		[t,r] = strtok(projStr{k});
 		if ( strcmp(t(2:3),'Ju') && ~strcmp(t(end-1:end),'/1') )	% Risky but the Ju<zone>/1:1 crashes mapproject_m
-			t = [t '/1'];
+			t = sprintf('%s/1', t);
 		else
 			if ( strcmp(t(end-1:end),'/1') )
-				t = [t ':1'];		% Append scale
+				t = sprintf('%s:1', t);		% Append scale
 			elseif ( ~strcmp(t(end-2:end), '1:1') )
-				t = [t '/1:1'];		% Append scale
+				t = sprintf('%s/1:1', t);	% Append scale
 			end
 		end
 		projCOMM{k,1} = t;
@@ -105,17 +119,24 @@ function [t,r] = getMenuLabel(s)
 function s = ripblanks(s)
 % removes leading and trailing white space from S
 	[r, c] = find(~isspace(s));
-    s = s(min(c):max(c));
+	s = s(min(c):max(c));
 
 % -------------------------------------------------------------------------------
 function setPRJ(obj,nikles, hFig, k, projCOMM)
-    % Set the projection string in Figure's appdata and a checkmark on the selected projection
-	projList = getappdata(hFig,'ProjList');
-	handles = guidata(hFig);
-%     unchk = setxor(obj,projList);
-%     set(obj,'checked','on');    set(unchk,'checked','off')
-    set(projList,'checked','off');
-    set(obj,'checked','on')
+% Set the projection string in Figure's appdata and a checkmark on the selected projection
+
+	if (isempty(obj))		% 'External' call. Probably after a grid reprojected with grdproject
+		if (~isa(projCOMM, 'cell'))		projCOMM = {projCOMM};		end
+		if (numel(projCOMM) == 1)		projCOMM{end+1} = '-C';		end
+		handles = hFig;
+		hFig = handles.figure1;
+	else
+		handles = guidata(hFig);
+		projList = getappdata(hFig,'ProjList');
+	    set(projList,'checked','off');
+		set(obj,'checked','on')
+	end
+
 	if (strcmp(get(obj,'Label'),'None'))
 		setappdata(hFig,'ProjGMT','')
 		setappdata(hFig,'Proj4','')
