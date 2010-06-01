@@ -131,7 +131,7 @@ bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
 	% In that case the above test failed miserably and I don't really know what clever thing to do.
 	% So we do a more dumb test. If first element of last line is a number we re-test again for
 	% headers, but this time will accept only those lines whose first character is '#'
-	if (n_headers == m)
+	if ((n_headers == m) && (m > 0))
 		t = strtok(str{m});
 		if (~isnan(t))
 			n_headers = 0;
