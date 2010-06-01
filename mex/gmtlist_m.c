@@ -581,8 +581,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		n_cruises++;
 
 	}
-	/*GMT_end_for_mex (argc, argv);
-	GMT_end (argc, argv); */
+	/*GMT_end_for_mex (argc, argv); */
+	GMT_end (argc, argv);
 	plhs[0] = gmtlist_struct;
 	
 }
