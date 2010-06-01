@@ -1110,16 +1110,16 @@ end
 validate_input_size_vs_netcdf_size(ncid,data,nc_count,count,write_op);
 
 if ( try_to_scale && ~(isa(data,'int8') || isa(data,'uint8')) )
-	[data, did_scale] = handle_scaling(ncid,varid,data);	% Use cvlib_mex so did_scale is always false
+	[data, did_scale] = handle_scaling(ncid,varid,data);	% Use cvlib_mex
 	data = handle_fill_value ( ncid, varid, data );			% WARNING: Operates only in singles or doubles
-	if ( did_scale )					% Dangerous case. Scaling implies toDouble conversion but we may NOT WANT that (J. LUIS)
+	if ( did_scale )					% Dangerous case. (J. LUIS)
 		var_type = mexnc('INQ_VARTYPE',ncid,varid);
 		switch var_type
-			case nc_byte,	    data = int8(data);
-			case nc_char,	    data = uint8(data);
-			case nc_short,	    data = int16(data);
-			case nc_int,	    data = int32(data);
-			case nc_float,	    data = single(data);
+			case nc_byte,	    if (~isa(data,'int8'))		data = int8(data);		end
+			case nc_char,	    if (~isa(data,'uint8'))		data = uint8(data);		end
+			case nc_short,	    if (~isa(data,'int16'))		data = int16(data);		end
+			case nc_int,	    if (~isa(data,'int32'))		data = int32(data);		end
+			case nc_float,	    if (~isa(data,'single'))	data = single(data);	end
 		end
 	end
 end
@@ -1320,9 +1320,11 @@ if status ~= 0
 end
 
 if (have_scale_factor && have_add_offset)
-	data = cvlib_mex('CvtScale',data, scale_factor, add_offset);
+	data = cvlib_mex('CvtScale',data, 1 / scale_factor, add_offset);
+	did_scale = true;
 elseif (have_scale_factor)
-	data = cvlib_mex('CvtScale',data, scale_factor);
+	data = cvlib_mex('CvtScale',data, 1 / scale_factor);
+	did_scale = true;
 else
 	data = cvlib_mex('addS',data, add_offset);
 end
