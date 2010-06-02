@@ -32,7 +32,7 @@ function gmt2mgd77_plus(fname, varargin)
 %		jluis@ualg.pt - Universidade do Algarve
 
 	F_offset = 40000;		name_out = [];		meta = [];		is_anom = false;
-	fsep = filesep;			opt_Y = ' ';
+	fsep = filesep;			opt_Y = '';
 
 	for (k = 1:2:numel(varargin))
 		if ( strcmp(varargin{k}, 'name') )
@@ -84,7 +84,11 @@ function gmt2mgd77_plus(fname, varargin)
 
 	[PATO, FNAME] = fileparts(fname);
 	if (isempty(PATO)),		fsep = [];	end		% File is in the current directory
-	track = gmtlist_m([PATO fsep FNAME], '-Fsxygmt', '-G', opt_Y);
+	if (isempty(opt_Y))
+		track = gmtlist_m([PATO fsep FNAME], '-Fsxygmt', '-G');
+	else
+		track = gmtlist_m([PATO fsep FNAME], '-Fsxygmt', '-G', opt_Y);
+	end
 
 	if (isempty(track.time))
 		disp(['File ' FNAME ' is empty'])
@@ -252,6 +256,9 @@ function gmt2mgd77_plus(fname, varargin)
 	nc_funs('varput', fname, 'mtf2', -2147483648);
 
 	% ------------- Write Anomaly ----------------------------------------------------------
+	%track.magnetics = track.gravity;
+	%track.gravity = NaN;
+	%is_anom = true;
 	if (is_anom && ~all(isnan(track.magnetics)))
 		write_var(fname, 'mag', 3, 'time', 'Magnetics Residual Field', 'gamma', [], 'Corrected for reference field (see header)', int16(-32768), int16(-32768), 0.1)	
 		nc_funs('varput', fname, 'mag', track.magnetics);
