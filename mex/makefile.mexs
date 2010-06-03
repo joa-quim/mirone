@@ -52,7 +52,7 @@ PROG_GMT	= grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m ma
 PROG_SIMPLE	= test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select \
 		mex_illuminate grdutils read_isf alloc_mex susan set_gmt mxgridtrimesh houghmex trend1d_m \
 		gmtmbgrid_m grdgradient_m grdtrack_m mirblock akimaspline applylutc bwlabel1 bwlabel2 bwlabelnmex \
-		bwboundariesmex cq ditherc imhistc intlutc inv_lwm grayto8 grayto16 grayxform morphmex \
+		bwboundariesmex cq ditherc imhistc intlutc inv__lwm grayto8 grayto16 grayxform morphmex \
 		ordf parityscan resampsep
 
 # netCDF mexs (other than GMT ones)
@@ -187,8 +187,8 @@ imhistc:
 		$(MEX) -I$(MATLAB)/extern/include imhistc.c $(MEXLIB)
 intlutc:
 		$(MEX) -I$(MATLAB)/extern/include intlutc.c $(MEXLIB)
-inv_lwm:
-		$(MEX) -I$(MATLAB)/extern/include inv_lwm.c $(MEXLIB)
+inv__lwm:
+		$(MEX) -I$(MATLAB)/extern/include inv__lwm.c $(MEXLIB)
 ordf:
 		$(MEX) -I$(MATLAB)/extern/include ordf.c $(MEXLIB)
 parityscan:
