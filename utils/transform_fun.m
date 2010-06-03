@@ -725,7 +725,7 @@ tdata.LWMTData = T;
 tdata.ControlPoints = xy;
 tdata.RadiiOfInfluence = radii;
 
-trans = maketform('custom',2,2,[],@inv_lwm,tdata);
+trans = maketform('custom',2,2,[],@inv__lwm,tdata);
 
 %-------------------- Function  ParseInputs -----------------------------
 function [uv, xy, method, options] = cp2tform_ParseInputs(varargin)
