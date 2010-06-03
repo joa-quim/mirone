@@ -718,6 +718,7 @@ utils/info_m.m -text
 utils/int2str_m.m -text
 utils/intmax.m -text
 utils/inv3d.m -text
+utils/inv__lwm.dll -text
 utils/inv_lwm.dll -text
 utils/inv_piecewiselinear.dll -text
 utils/iptcheckinput.dll -text
