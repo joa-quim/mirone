@@ -39,15 +39,21 @@ SET MATLIB=C:\SVN\MAT65_pracompa\extern\lib\win32\microsoft
 SET MATINC=C:\SVN\MAT65_pracompa\extern\include
 SET _MX_COMPAT=
 SET MEX_EXT="dll"
+
 ) ELSE (
+
 IF %WIN64%=="yes" (
 SET MATLIB=C:\PROGRAMS\MATLAB\R2010A\extern\lib\win64\microsoft 
 SET MATINC=C:\PROGRAMS\MATLAB\R2010A\extern\include
 SET _MX_COMPAT=-DMX_COMPAT_32
+SET MEX_EXT="mexw64"
+
 ) ELSE (
+
 SET MATLIB=C:\PROGRAMS\MATLAB\R2009B\extern\lib\win32\microsoft 
 SET MATINC=C:\PROGRAMS\MATLAB\R2009B\extern\include
 SET _MX_COMPAT=-DMX_COMPAT_32
+SET MEX_EXT="mexw32"
 ) )
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) -------------
@@ -111,7 +117,9 @@ SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRE
 SET OPTIMFLAGS=/O2 /Oy- /DNDEBUG 
 SET DEBUGFLAGS=/Z7 
 
-SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:X86 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /incremental:NO
+IF %WIN64%=="yes" SET arc=X64
+IF %WIN64%=="no" SET arc=X86
+SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:%arc% kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /incremental:NO
 
 IF %1==GMT  GOTO GMT
 IF %1==GDAL GOTO GDAL
