@@ -16,9 +16,9 @@
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_LONG	greenwich = 0;
+	GMT_LONG	proj_type = 0;		/* Geographic */
 	int	i, j, k, nx, ny, argc = 0, n_arg_no_char = 0, imeca = 0;
 	int	no[3], do_PGA = FALSE, do_PGV = FALSE, do_INT = FALSE, error = FALSE;
-	int	proj_type = 0;		/* Geographic */
 	
 	char	*line_file = "lixo_line.xy";
 	char	**argv;
