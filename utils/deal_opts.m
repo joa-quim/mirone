@@ -19,7 +19,7 @@ function out = deal_opts(opt, opt2)
 	c = true(1, m);
 
 	for (k = 1:m)
-		if (~strncmp(lines{k},'MIR_',4)),	c(k) = false;	end
+		if (strncmp(lines{k},'MIR_',4)),	c(k) = false;	end
 	end
 	lines(c) = [];		% Delete non-keyword (comment) lines
 
