@@ -278,7 +278,7 @@ function fig_CloseRequestFcn(hObj, event)
 	delete(handles.figure1);		delete(h(ishandle(h)))      % Delete also any eventual 'carra?as'
 
 % --------------------------------------------------------------------
-function import_clickedCB(hObject, eventdata, opt)
+function import_clickedCB(hObject, evt, opt)
 	handles = guidata(hObject);     % get handles
 	if (isempty(opt))
 		[FileName,PathName] = put_or_get_file(handles,{'*.gmt;*.GMT;*.nc', 'gmt files (*.gmt,*.GMT,*.nc)'},'Select gmt File','get');
@@ -289,6 +289,7 @@ function import_clickedCB(hObject, eventdata, opt)
 	end
 
 	[PATH,FNAME,EXT] = fileparts(f_name);
+	if (isempty(PATH))		PATH = cd;		end		% Play safe
 	if (strcmpi(EXT,'.nc'))
 		handles.f_name = [PATH filesep FNAME '.nc'];		handles.is_mgd77 = true;		handles.is_gmt = false;
 		[handles, track] = read_mgd77_plus(handles, f_name);
@@ -523,7 +524,7 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 	track.info = 'Bla Bla';
 
 % --------------------------------------------------------------------
-function save_clickedCB(hObject, eventdata)
+function save_clickedCB(hObject, evt)
 	handles = guidata(hObject);     % get handles
 	if (handles.is_gmt || handles.force_gmt)
 		NODATA(1:3) = -32000;
@@ -658,7 +659,7 @@ function save_clickedCB(hObject, eventdata)
 	set(handles.figure1,'Pointer','arrow')
 
 % --------------------------------------------------------------------
-function add_MarkColor(hObject, eventdata)
+function add_MarkColor(hObject, evt)
 % Add a red Marker over the closest (well, near closest) clicked point.
 	handles = guidata(hObject);     % get handles
 
@@ -805,7 +806,7 @@ function despika(hAx, hLine, n)
 	
 
 % --------------------------------------------------------------------------------------------------
-function info_clickedCB(obj,eventdata)
+function info_clickedCB(obj,evt)
 	handles = guidata(obj);     % get handles
 	if (isempty(handles.info)),		return,		end
 	if (handles.is_gmt)
@@ -823,7 +824,7 @@ function info_clickedCB(obj,eventdata)
 	msgbox(str,'Cruise Info')
 
 % --------------------------------------------------------------------------------------------------
-function rectang_clickedCB(obj,eventdata)
+function rectang_clickedCB(obj,evt)
 	handles = guidata(obj);     % get handles
 	try
 		[p1,p2] = rubberbandbox;
@@ -873,7 +874,7 @@ function rectang_clickedCB(obj,eventdata)
 	end
 
 % --------------------------------------------------------------------------------------------------
-function rectangMove_clickedCB(obj,eventdata)
+function rectangMove_clickedCB(obj,evt)
 	handles = guidata(obj);		% get handles
 	
 	try			[p1,p2] = rubberbandbox(handles.axes2);
@@ -903,7 +904,7 @@ function rectangMove_clickedCB(obj,eventdata)
 	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------------------------------------
-function changeScale_clickedCB(obj,eventdata,opt)
+function changeScale_clickedCB(obj,evt,opt)
 	handles = guidata(obj);		% get handles
 
 	if (strcmp(opt,'inc'))
@@ -938,7 +939,7 @@ function changeScale_clickedCB(obj,eventdata,opt)
 	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------------------------------------
-function outliers_clickedCB(obj,eventdata,opt)
+function outliers_clickedCB(obj,evt,opt)
 % Detect outliers using a spline smooth technique.
 	handles = guidata(obj);					% get handles
 	h = gmtedit_outliersdetect(handles.figure1, handles.axes1, handles.axes2, handles.axes3, ...
@@ -1027,7 +1028,7 @@ function varargout = gmtedit_outliersdetect(varargin)
 	if (nargout),	varargout{1} = hObject;		end
 
 % ----------------------------------------------------------------------------
-function edit_SmoothParam_CB(hObject, eventdata, handles)
+function edit_SmoothParam_CB(hObject, evt, handles)
 	xx = str2double(get(hObject,'String'));
 	if (xx < 0 || xx > 1 || isnan(xx))
 		xx = 1;		set(hObject,'String',xx)
@@ -1036,7 +1037,7 @@ function edit_SmoothParam_CB(hObject, eventdata, handles)
 	guidata(handles.figure1, handles);
 
 % ----------------------------------------------------------------------------
-function edit_thresh_CB(hObject, eventdata, handles)
+function edit_thresh_CB(hObject, evt, handles)
 	xx = str2double(get(hObject,'String'));
 	if (xx < 0 || isnan(xx))
 		xx = 0;		set(hObject,'String',xx)
@@ -1045,25 +1046,25 @@ function edit_thresh_CB(hObject, eventdata, handles)
 	guidata(handles.figure1, handles);
 
 % ----------------------------------------------------------------------------
-function radio_G_CB(hObject, eventdata, handles)
+function radio_G_CB(hObject, evt, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_M handles.radio_T],'Val', 0)
 	handles.id_gmt = 1;		guidata(handles.figure1, handles)
 
 % ----------------------------------------------------------------------------
-function radio_M_CB(hObject, eventdata, handles)
+function radio_M_CB(hObject, evt, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_G handles.radio_T],'Val', 0)
 	handles.id_gmt = 2;		guidata(handles.figure1, handles)
 
 % ----------------------------------------------------------------------------
-function radio_T_CB(hObject, eventdata, handles)
+function radio_T_CB(hObject, evt, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_G handles.radio_M],'Val', 0)
 	handles.id_gmt = 3;		guidata(handles.figure1, handles)
 
 % ----------------------------------------------------------------------------
-function push_Apply_CB(hObject, eventdata, handles)
+function push_Apply_CB(hObject, evt, handles)
 % Detect outliers using a spline smooth technique. Note that the threshold is normaly low
 % because the smoothing is very mild and therefore the residues are small.
 
@@ -1091,13 +1092,13 @@ function push_Apply_CB(hObject, eventdata, handles)
 	set(handles.figure1,'pointer','arrow')
 
 % ----------------------------------------------------------------------------
-function push_applyNreturn_CB(hObject, eventdata, handles)
-	push_Apply_CB(handles.push_Apply, eventdata, handles)
+function push_applyNreturn_CB(hObject, evt, handles)
+	push_Apply_CB(handles.push_Apply, evt, handles)
 	delete(handles.figure1)
 
 % ----------------------------------------------------------------------------
 % ----------------------------------------------------------------------------
-function push_clear_CB(hObject, eventdata, handles)
+function push_clear_CB(hObject, evt, handles)
 % Remove all eventually detected outlaws from current channel
 	if (handles.id_gmt == 1)
 		hM = findobj(handles.hCallingFig,'Type','Line','tag','GravNull');
@@ -1196,7 +1197,7 @@ uicontrol('Parent',h1, 'Position',[147 0 50 21],...
 'TooltipString','Clear detections from current selected channel',...
 'Tag','push_clear');
 
-function outliersdetect_CB(hObject, eventdata, h1, callback_name)
+function outliersdetect_CB(hObject, evt, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
 	feval(callback_name,hObject,[],guidata(h1));
 
@@ -1221,14 +1222,14 @@ function h = gmtedit_track(varargin)
 	set(h,'Visible','on');
 
 % ----------------------------------------------------------------------------
-function edit_gridToInterp_CB(hObject, eventdata, handles)
+function edit_gridToInterp_CB(hObject, evt, handles)
 	fname = get(hObject,'String');
 	if isempty(fname),		return,		end
 	% Let the push_gridToInterp_CB do all the work
 	push_gridToInterp_CB(handles.push_gridToInterp, [], handles, fname)
 
 % ----------------------------------------------------------------------------
-function push_gridToInterp_CB(hObject, eventdata, handles, opt)
+function push_gridToInterp_CB(hObject, evt, handles, opt)
 	if (nargin == 3),		opt = [];		end
 	if (nargin == 4),		fname = opt;	end
 	handles = guidata(hObject);		% Get udated handles
@@ -1245,7 +1246,7 @@ function push_gridToInterp_CB(hObject, eventdata, handles, opt)
 	guidata(handles.figure1, handles)
 
 % ----------------------------------------------------------------------------
-function zz = push_OK_CB(hObject, eventdata, handles)
+function zz = push_OK_CB(hObject, evt, handles)
 % Read the grid and interpolate this track
 	if (isempty(handles.fname)),	return,		end
 	if (~exist(handles.fname,'file'))
@@ -1320,7 +1321,7 @@ uicontrol('Parent',h1, 'Position',[10 62 180 16],...
 'String','Grid to sample along track coords',...
 'Style','text');
 
-function gmtedit_track_uicallback(hObject, eventdata, h1, callback_name)
+function gmtedit_track_uicallback(hObject, evt, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
 	feval(callback_name,hObject,[],guidata(h1));
 
