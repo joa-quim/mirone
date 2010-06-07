@@ -240,22 +240,22 @@ function pushbutton_compute_Callback(hObject, eventdata, handles)
             for (i=1:length(k))     % Loop over grids
                 tok = strtok(com(k(i)+1:end));
                 if (isempty(handles.name_str))
-                    n = [];                 % Here we know that we don't have any pre-loaded grid
+                    n = [];					% Here we know that we don't have any pre-loaded grid
                 else
                     n = strmatch(tok,handles.name_str);     % n ~= [] when grid is already in memory
                 end
             
-                if (isempty(n))             % Grid (must be a GMT grid) needs to be loaded
-                    load_it = 1;            % Flag to signal that grid must be loaded
+                if (isempty(n))				% Grid (must be a GMT grid) needs to be loaded
+                    load_it = 1;			% Flag to signal that grid must be loaded
                     n_load = strmatch(tok,handles.loaded_grid);
                     if (length(n_load) > 1)         % Grid name comes out more than once
                         n_load = n_load(out_g_count);
                         out_g_count = out_g_count + 1;
                     end
-                elseif (length(n) == 1)     % Grid name is not repeated
+                elseif (numel(n) == 1)		% Grid name is not repeated
                     load_it = 0;
-                else                        % Grid name comes out more than once
-                    n = n(in_g_count);
+				else						% Grid name comes out more than once
+                    n = n(1);
                     in_g_count = in_g_count + 1;
                     load_it = 0;
                 end
@@ -286,10 +286,13 @@ function pushbutton_compute_Callback(hObject, eventdata, handles)
             end         % Loop over grids
         
             for (i = 1:length(k))
-                k = strfind(com,'&');               % We need to recompute '&' positions because they change bellow
-                tok = strtok(com(k(i)+1:end));      % Here we get the grid's name
-                kf = k(i) + length(tok);            % Find the position of last char of grid's name
-                com = [com(1:k(i)) 'grid.' char(i+96) ' ' com(kf+1:end)];
+				k = strfind(com,'&');				% We need to recompute '&' positions because they change bellow
+				[tok, r] = strtok(com(k(i)+1:end));	% Here we get the grid's name
+				kf = k(i) + numel(tok);				% Find the position of last char of grid's name
+				if (strncmp(r,' grid ', 6))			% Patch against those names like "Cropped grid"
+					com(kf+1:kf+6) = [];
+				end
+				com = [com(1:k(i)) 'grid.' char(i+96) ' ' com(kf+1:end)];
             end
         end
 	
