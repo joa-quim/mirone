@@ -328,7 +328,7 @@ elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the 
 end
 uimenu(cmenuHand, 'Label', label_save, 'Call', {@save_formated,h});
 if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))     % Those are not to allowed to copy
-	if (~IS_RECTANGLE)
+	if (~LINE_ISCLOSED)
 		uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
 	end
 	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
@@ -352,8 +352,9 @@ if (LINE_ISCLOSED)
 		uimenu(item8, 'Label', 'None', 'Separator','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
 		uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
 	end
-	uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
 end
+
+uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
 
 if ( ~LINE_ISCLOSED && strcmp(opt,'line') && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid) )
 	cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
@@ -447,9 +448,9 @@ if (IS_SEISPOLYGON)                         % Seismicity options
 	uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gco,''OL'')');
 	%uimenu(cmenuHand, 'Label', 'Skell', 'Call', 'esqueleto_tmp(gco)','Sep','on');
 end
-
+	
 % -----------------------------------------------------------------------------------------
-function copy_line_object(obj,eventdata,hFig,hAxes)
+function copy_line_object(obj,evt,hFig,hAxes)
     oldH = gco(hFig);
 	newH = copyobj(oldH,hAxes);
     h = findobj(get(newH,'uicontextmenu'),'label','Save line');
@@ -468,7 +469,7 @@ function copy_line_object(obj,eventdata,hFig,hAxes)
         'WindowButtonDownFcn',{@wbd_MovePolygon,newH,state}, 'Pointer','fleur');
 
 % ---------
-function wbm_MovePolygon(obj,eventdata,h,lim,hAxes)
+function wbm_MovePolygon(obj,evt,h,lim,hAxes)
 	pt = get(hAxes, 'CurrentPoint');
 	if (pt(1,1)<lim(1)) || (pt(1,1)>lim(2)) || (pt(1,2)<lim(3)) || (pt(1,2)>lim(4));   return; end
 	old_pt = getappdata(h,'old_pt');
@@ -485,7 +486,7 @@ function wbd_MovePolygon(obj,eventdata,h,state)
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
-function join_lines(obj,eventdata,hFig)
+function join_lines(obj,evt,hFig)
 % Join lines that are NOT -- SEISPOLYGON, or MBTRACK, or FaultTrace or closed polygons
 
 	hCurrLine = gco;
@@ -791,6 +792,7 @@ function set_gmtfile_uicontext(h,data)
 	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', 'delete(gco)', 'Separator','on');
 	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Call', @save_line);
 	uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Call', {@call_gmtedit,h});
+	%uimenu(cmenuHand, 'Label', 'Try to relocate', 'Call', {@tryRelocate,h});
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
@@ -798,6 +800,40 @@ function set_gmtfile_uicontext(h,data)
 	item_lc = uimenu(cmenuHand, 'Label', 'Color');
 	setLineColor(item_lc,cb_color)
 
+% -----------------------------------------------------------------------------------------
+% function tryRelocate(obj,evt,h)
+% 	% () [] ; , i k
+% 	handles = guidata(obj);
+% 	[X,Y,Z] = load_grd(handles);
+% 	if (isempty(Z))		return,		end
+% 	hg = gmtedit(getappdata(h,'FullName'));
+% 	set(hg, 'Vis','off')								% Hide it
+% 	handGmtedit = guidata(hg);
+% 	y_m = get(handGmtedit.h_mm,'YData');	% Get the Mag values
+% 	delete(hg)
+% 	x = get(h, 'XData');		y = get(h, 'YData');
+% 	new_x = x;					new_y = y;
+% 	dr = 0.005;
+% 	for (j = 1:numel(x))
+% 		if (isnan(x(j)))		continue,		end
+% 		yy_c =  y(j) + [-5:5] * dr;
+% 		xx_c = repmat(x(j), numel(yy_c), 1);
+% 		zc = grdtrack_m(Z, handles.head, [xx_c yy_c'], '-Z', '-Q');
+% 		xx_r =  x(j) + [-5:5] * dr;
+% 		yy_r = repmat(y(j), numel(xx_r), 1);
+% 		zr = grdtrack_m(Z, handles.head, [xx_r' yy_r], '-Z', '-Q');
+% 		dcol = abs(zc - y_m(j));
+% 		drow = abs(zr - y_m(j));
+% 		[this_min_c, n] = min(dcol);
+% 		[this_min_r, m] = min(drow);
+% 		if (this_min_c < this_min_r)
+% 			new_x(j) = x(j);		new_y(j) = yy_c(n);
+% 		else
+% 			new_x(j) = xx_r(m);		new_y(j) = y(j);
+% 		end
+% 	end
+% 	set(h, 'XData', new_x, 'YData', new_y);
+	
 % -----------------------------------------------------------------------------------------
 function call_gmtedit(obj,eventdata,h)
 	pt = get(gca, 'CurrentPoint');
