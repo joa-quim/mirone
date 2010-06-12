@@ -38,9 +38,9 @@ int mxUnshareArray(mxArray *);
 
 /* the gateway function */
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-	double  range8, *z_min, *z_max, *z_8, min8 = DBL_MAX, max8 = -DBL_MAX;
+	double  range8 = 1, *z_min, *z_max, *z_8, min8 = DBL_MAX, max8 = -DBL_MAX;
 	double	*pNodata, *which_scale, *pLimits;
-	float	range, min = FLT_MAX, max = -FLT_MAX, *z_4, new_range, nodata;
+	float	range = 1, min = FLT_MAX, max = -FLT_MAX, *z_4, new_range, nodata;
 	int     nx, ny, i, is_double = 0, is_single = 0, is_int32 = 0, is_int16 = 0;
 	int     is_uint16 = 0, is_int8 = 0, scale_range = 1, *i_4, scale8 = 1, scale16 = 0;
 	int	n_row, n_col, got_nodata = 0, got_limits = 0, add_off = 1;
@@ -75,6 +75,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		n_col = mxGetN (prhs[1]);
 		if (n_col > 1)
 			mexErrMsgTxt("SCALETO8 ERROR: Second argument must be a scalar == 8 or 16.");
+
 		which_scale = mxGetPr(prhs[1]);
 		if (*which_scale == 8) {
 			new_range = 254;		/* scale to uint8 */
@@ -96,6 +97,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 		else
 			mexErrMsgTxt("SCALETO8 ERROR: Second argument must be a scalar == 8 or 16.");
+
 		if (nrhs >= 3) {
 			n_row = mxGetM (prhs[2]);
 			n_col = mxGetN (prhs[2]);
@@ -127,6 +129,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if(nlhs == 2) {
 		if (got_limits)
 			mexErrMsgTxt("SCALETO8 ERROR: No, No! no minmax inside grid bounds.");
+
 		scale_range = 0;	/* Output min/max */
 	}
 
@@ -198,7 +201,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			range8 = new_range / (max - min);
+			if (max != min)
+				range8 = new_range / (max - min);
+
 			if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) { 	/* if z == NaN, out will be = 0 */
 					if (mxIsNaN(z_8[i])) continue;
@@ -232,7 +237,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			range = new_range / (max - min);
+			if (max != min)
+				range = new_range / (max - min);
+
 			if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {	/* if z == NaN, out will be = 0 */
 					if (mxIsNaN(z_4[i])) continue;
@@ -276,7 +283,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			range = new_range / (max - min);
+			if (max != min)
+				range = new_range / (max - min);
+
 			if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_4[i] == nodata) continue;
@@ -320,7 +329,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			range = new_range / (max - min);
+			if (max != min)
+				range = new_range / (max - min);
+
 			if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_2[i] == nodata) continue;
@@ -364,7 +375,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			range = new_range / (max - min);
+			if (max != min)
+				range = new_range / (max - min);
+
 			if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)ui_2[i] == nodata) continue;
@@ -401,7 +414,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			range = new_range / (max - min);
+			if (max != min)
+				range = new_range / (max - min);
+
 			if (min >= 0 && scale8) {	/* There is nothing to scale here */ 
 				for (i = 0; i < nx*ny; i++)
 					out8[i] = (char)i_1[i];
