@@ -1,8 +1,7 @@
 function varargout = ml_clip(varargin)
-% M-File changed by desGUIDE 
-% varargin   command line arguments to ml_clip (see VARARGIN)
+% Do grid cippling based on user selected values.
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
