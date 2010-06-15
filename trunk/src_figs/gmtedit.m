@@ -563,7 +563,9 @@ function save_clickedCB(hObject, evt)
 	else
 		for (k = 1:numel(handles.vars))		% Would be more elegant with a strmatch but this is lighter
 			if ( strcmp(handles.vars{k}, 'faa')   && ~isempty(y_gn) && k == 1 ),		saveGRAV = true;	end
-			if ( strcmp(handles.vars{k}, 'mtf1')  && ~isempty(y_mn) && k == 2 ),		saveMAG = true;		end
+			if ( strcmp(handles.vars{k}, 'mtf1') && k == 2 && (~isempty(y_mn) || ~isempty(handles.h_broken)) )
+				saveMAG = true;
+			end
 			if ( strcmp(handles.vars{k}, 'depth') && ~isempty(y_tn) && k == 3 ),		saveTOPO = true;	end
 		end
 	end
