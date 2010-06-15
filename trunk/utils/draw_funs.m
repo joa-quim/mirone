@@ -792,6 +792,8 @@ function set_gmtfile_uicontext(h,data)
 	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', 'delete(gco)', 'Separator','on');
 	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Call', @save_line);
 	uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Call', {@call_gmtedit,h});
+	uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+	deal_opts('mgg_coe', cmenuHand);
 	%uimenu(cmenuHand, 'Label', 'Try to relocate', 'Call', {@tryRelocate,h});
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
 	setLineWidth(item_lw,cb_LineWidth)
