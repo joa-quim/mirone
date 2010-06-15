@@ -1,5 +1,19 @@
 function varargout = scatter_plot(varargin)
-% M-File changed by desGUIDE 
+% Plot scaled symbols. Scaling info (and optional color info) are provided in file's col 4 (5-7)
+
+%	Copyright (c) 2004-2010 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
     
 	if (isempty(varargin))
 		errordlg('SCATTER PLOT: wrong number of arguments.','Error'),	return
@@ -27,43 +41,43 @@ function varargout = scatter_plot(varargin)
 	yLL = (posParent(2) + posParent(4)/2) - posThis(4) / 2;
 	set(hObject,'Pos',[xLL yLL posThis(3:4)])
 
-    % Load one ico
-    load (['data' filesep 'mirone_icons.mat'],'colorwheel_ico');
-    set(handles.push_color,'CData',colorwheel_ico)
+	% Load one ico
+	load (['data' filesep 'mirone_icons.mat'],'colorwheel_ico');
+	set(handles.push_color,'CData',colorwheel_ico)
 
-    handles.hCallingAxes = handMir.axes1;
-    handles.no_file = handMir.no_file;
-    handles.symbSIZES = [];
-    handles.symbCOR = [];
-    handles.hSymbs = [];
-    handles.symbSYMB = 'o';     % Default symbol
-    handles.lastSymbSize = 7;   % Default symbol size
+	handles.hCallingAxes = handMir.axes1;
+	handles.no_file = handMir.no_file;
+	handles.symbSIZES = [];
+	handles.symbCOR = [];
+	handles.hSymbs = [];
+	handles.symbSYMB = 'o';     % Default symbol
+	handles.lastSymbSize = 7;   % Default symbol size
 
-    [numeric_data,multi_segs_str] = text_read(fname,NaN,NaN);
-    if (~isempty(multi_segs_str))
-        % Do something
-    end
-    nCol = size(numeric_data,2);
+	[numeric_data,multi_segs_str] = text_read(fname,NaN,NaN);
+	if (~isempty(multi_segs_str))
+		% Do something
+	end
+	nCol = size(numeric_data,2);
     
-    if (nCol >= 4)      % 4th column must contain size
-        handles.symbSIZES = numeric_data(:,4);
-        set(handles.popup_symbSize,'Enable','off')
-        set(handles.edit_symbSize,'Enable','off')
-    end
-    
-    if (nCol == 7)      % 5-7 columns must contain RGB color [0 1]
-        cmin = min(min(numeric_data(:,5:7)));
-        cmax = max(max(numeric_data(:,5:7)));
-        if (cmin >= 0 && cmax <= 255)       % Color given in the [0 255] range
-            handles.symbCOR = numeric_data(:,5:7)/255;
-            set(handles.push_color,'Enable','off')
-        elseif (cmin >= 0 && cmax <= 1)     % Color given in the [0 1] range
-            handles.symbCOR = numeric_data(:,5:7);
-            set(handles.push_color,'Enable','off')
-        else
-            warndlg('Color information given is erroneous and will therefore be ignored. It must be either in the [0 1] or [0 255] intervals','Warnerror')
-        end
-    end
+	if (nCol >= 4)      % 4th column must contain size
+		handles.symbSIZES = numeric_data(:,4);
+		set(handles.popup_symbSize,'Enable','off')
+		set(handles.edit_symbSize,'Enable','off')
+	end
+
+	if (nCol == 7)      % 5-7 columns must contain RGB color [0 1]
+		cmin = min(min(numeric_data(:,5:7)));
+		cmax = max(max(numeric_data(:,5:7)));
+		if (cmin >= 0 && cmax <= 255)       % Color given in the [0 255] range
+			handles.symbCOR = numeric_data(:,5:7)/255;
+			set(handles.push_color,'Enable','off')
+		elseif (cmin >= 0 && cmax <= 1)     % Color given in the [0 1] range
+			handles.symbCOR = numeric_data(:,5:7);
+			set(handles.push_color,'Enable','off')
+		else
+			warndlg('Color information given is erroneous and will therefore be ignored. It must be either in the [0 1] or [0 255] intervals','Warnerror')
+		end
+	end
 
 	handles.symbXYZ = numeric_data(:,1:3);
 
@@ -74,9 +88,10 @@ function varargout = scatter_plot(varargin)
 
 	set(hObject,'Visible','on')
 	guidata(hObject, handles);
+	if (nargout),	varargout{1} = 	hObject;	end
 
 % ------------------------------------------------------------------------------------
-function popup_symbol_Callback(hObject, eventdata, handles)
+function popup_symbol_CB(hObject, handles)
 % Select a symbol
 %'plus sign' 'circle' 'asterisk' 'cross' 'square' 'diamond' 'upward triangle'
 %'downward triangle' 'right triangle' 'left triangle' 'five-pointed star' 'six-pointed star'
@@ -85,7 +100,7 @@ function popup_symbol_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
     
 % ------------------------------------------------------------------------------------
-function popup_symbSize_Callback(hObject, eventdata, handles)
+function popup_symbSize_CB(hObject, handles)
 	contents = get(hObject,'String');
 	s = contents{get(hObject,'Value')};
 	ss = str2double(s);         % 2 cases may occur here
@@ -94,7 +109,7 @@ function popup_symbSize_Callback(hObject, eventdata, handles)
 	end
 
 % ------------------------------------------------------------------------------------
-function edit_symbSize_Callback(hObject, eventdata, handles)
+function edit_symbSize_CB(hObject, handles)
     ss = fix(str2double(get(hObject,'String')));
     if (isnan(ss))      % User stupidity
         set(hObject,'String',handles.lastSymbSize)
@@ -116,16 +131,15 @@ function edit_symbSize_Callback(hObject, eventdata, handles)
     guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
-function push_plot_Callback(hObject, eventdata, handles)
+function push_plot_CB(hObject, handles)
 % 
 	if (handles.no_file)        % Start empty but below we'll find the true data region
-        XMin = 1e50;            XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
-        geog = 1;               % Not important. It will be confirmed later
-        XMin = min(handles.symbXYZ(:,1));       XMax = max(handles.symbXYZ(:,1));
-        YMin = min(handles.symbXYZ(:,2));       YMax = max(handles.symbXYZ(:,2));
-        xx = [XMin XMax];           yy = [YMin YMax];
-        region = [xx yy];           % 1 stands for geog but that will be confirmed later
-        mirone('FileNewBgFrame_CB', handles, [region geog])   % Create a background
+		geog = 1;               % Not important. It will be confirmed later
+		XMin = min(handles.symbXYZ(:,1));       XMax = max(handles.symbXYZ(:,1));        
+		YMin = min(handles.symbXYZ(:,2));       YMax = max(handles.symbXYZ(:,2));
+		xx = [XMin XMax];           yy = [YMin YMax];
+		region = [xx yy];           % 1 stands for geog but that will be confirmed later
+		mirone('FileNewBgFrame_CB', handles, [region geog])   % Create a background
 	else                        % Reading over an established region
 		XYlim = getappdata(handles.hCallingAxes,'ThisImageLims');
 		xx = XYlim(1:2);            yy = XYlim(3:4);
@@ -146,13 +160,13 @@ function push_plot_Callback(hObject, eventdata, handles)
 	nPts = numel(x);
 
 	if (handles.no_file)        % We need to compute the data extent in order to set the correct axes limits
-        XMin = min(XMin,min(x));     XMax = max(XMax,max(x));
-        YMin = min(YMin,min(y));     YMax = max(YMax,max(y));
-        region = [XMin XMax YMin YMax];
-        set(handles.hCallingAxes,'XLim',[XMin XMax],'YLim',[YMin YMax])
-        setappdata(handles.hCallingAxes,'ThisImageLims',region)
-        handles.geog = aux_funs('guessGeog',region);
-        guidata(handles.hCallingFig,handles)
+		XMin = min(XMin,min(x));     XMax = max(XMax,max(x));
+		YMin = min(YMin,min(y));     YMax = max(YMax,max(y));
+		region = [XMin XMax YMin YMax];
+		set(handles.hCallingAxes,'XLim',[XMin XMax],'YLim',[YMin YMax])
+		setappdata(handles.hCallingAxes,'ThisImageLims',region)
+		handles.geog = aux_funs('guessGeog',region);
+		guidata(handles.hCallingFig,handles)
 	end
 
 	if (isempty(handles.symbSIZES))     % Symbol sizes was not provided in input
@@ -176,7 +190,7 @@ function push_plot_Callback(hObject, eventdata, handles)
 
 	z = abs(z);			% Currently the Z is only used (and many times badly) to make cylinders in GE
 	h = zeros(1,nPts);
-	for (k=1:nPts)
+	for (k = 1:nPts)
 		h(k) = line('XData',x(k),'YData',y(k),'ZData',z(k),'Parent',handles.hCallingAxes,'Tag','scatter_symbs',...
 			'Marker',handles.symbSYMB,'Color','k','MarkerFaceColor',zC(k,:),'MarkerSize',symbSIZES(k));
 	end
@@ -186,11 +200,11 @@ function push_plot_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1, handles)
 
 % ------------------------------------------------------------------------------------
-function push_delete_Callback(hObject, eventdata, handles)
+function push_delete_CB(hObject, handles)
     delete(handles.hSymbs)
 
 % ------------------------------------------------------------------------------------
-function push_color_Callback(hObject, eventdata, handles)
+function push_color_CB(hObject, handles)
     cmap = color_palettes;
     if (~isempty(cmap))
         set(handles.figure1,'Colormap',cmap)
@@ -207,22 +221,22 @@ function setUIs(handles,h)
     end
     
 % -----------------------------------------------------------------------------------------
-function push_help_Callback(hObject, eventdata, handles)
+function push_help_CB(hObject, handles)
 msg = sprintf(['You landed here because the input file had 3 or more columns.\n' ...
-        'Third column is used to attribute symbol color. That is done by\n' ...
-        'scaling Z values to the current colormap. If ... to be continued\n']);
+		'Third column is used to attribute symbol color. That is done by\n' ...
+		'scaling Z values to the current colormap. If ... to be continued\n']);
 msgbox(msg,'Help')
 
 % -----------------------------------------------------------------------------------------
 function del_all(obj,eventdata,handles,h)
-    % Delete all objects that share the same tag of h
+% Delete all objects that share the same tag of h
     tag = get(h,'Tag');
     hAll = findobj(handles.hCallingAxes,'Tag',tag);
     del_line(obj,eventdata,hAll)
     
 % -----------------------------------------------------------------------------------------
 function del_line(obj,eventdata,h)
-	% Delete symbols but before check if they are in edit mode
+% Delete symbols but before check if they are in edit mode
     for (k=1:numel(h))
 		if (~isempty(getappdata(h(k),'polygon_data')))
             s = getappdata(h(k),'polygon_data');
@@ -240,98 +254,86 @@ function figure1_KeyPressFcn(hObject, eventdata)
 	end
 
 % --- Creates and returns a handle to the GUI figure. 
-function scatter_plot_LayoutFcn(h1);
+function scatter_plot_LayoutFcn(h1)
 
-set(h1,...
+set(h1, 'Position',[520 698 204 101],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','Scatter plot',...
 'NumberTitle','off',...
 'PaperSize',[20.98404194812 29.67743169791],...
-'Position',[520 698 204 101],...
 'Resize','off',...
 'HandleVisibility','callback',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[46 71 121 22],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@scatter_plot_uicallback,h1,'popup_symbol_Callback'},...
-'Position',[46 71 121 22],...
+'Call',{@scatter_plot_uiCB,h1,'popup_symbol_CB'},...
 'String',{  'plus sign'; 'circle'; 'asterisk'; 'cross'; 'square'; 'diamond'; 'upward triangle'; 'downward triangle'; 'right triangle'; 'left triangle'; 'five-pointed star'; 'six-pointed star' },...
 'Style','popupmenu',...
 'TooltipString','Select symbol type',...
 'Value',2,...
 'Tag','popup_symbol');
 
-uicontrol('Parent',h1,...
-'Callback',{@scatter_plot_uicallback,h1,'push_color_Callback'},...
+uicontrol('Parent',h1, 'Position',[174 70 23 23],...
+'Call',{@scatter_plot_uiCB,h1,'push_color_CB'},...
 'FontName','Helvetica',...
-'Position',[174 70 23 23],...
 'TooltipString','Select a new colormap',...
 'Tag','push_color');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[46 39 61 22],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@scatter_plot_uicallback,h1,'popup_symbSize_Callback'},...
-'Position',[46 39 61 22],...
+'Call',{@scatter_plot_uiCB,h1,'popup_symbSize_CB'},...
 'String',{  '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '14'; '18'; '24'; 'other' },...
 'Style','popupmenu',...
 'TooltipString','Select symbols size in points',...
 'Value',4,...
 'Tag','popup_symbSize');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[106 40 41 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@scatter_plot_uicallback,h1,'edit_symbSize_Callback'},...
-'Position',[106 40 41 21],...
+'Call',{@scatter_plot_uiCB,h1,'edit_symbSize_CB'},...
 'String','7',...
 'Style','edit',...
 'TooltipString','Enter new size here if not in list',...
 'Tag','edit_symbSize');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[7 74 38 15],...
 'FontName','Helvetica',...
 'HorizontalAlignment','left',...
-'Position',[7 74 38 15],...
 'String','Symbol',...
-'Style','text',...
-'Tag','text1');
+'Style','text');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[8 42 38 15],...
 'FontName','Helvetica',...
 'HorizontalAlignment','left',...
-'Position',[8 42 38 15],...
 'String','Size',...
-'Style','text',...
-'Tag','text2');
+'Style','text');
 
-uicontrol('Parent',h1,...
-'Callback',{@scatter_plot_uicallback,h1,'push_plot_Callback'},...
+uicontrol('Parent',h1, 'Position',[7 8 81 21],...
+'Call',{@scatter_plot_uiCB,h1,'push_plot_CB'},...
 'FontName','Helvetica',...
-'Position',[7 8 81 21],...
 'String','Plot',...
 'Tag','push_plot');
 
-uicontrol('Parent',h1,...
-'Callback',{@scatter_plot_uicallback,h1,'push_delete_Callback'},...
+uicontrol('Parent',h1, 'Position',[113 8 81 21],...
+'Call',{@scatter_plot_uiCB,h1,'push_delete_CB'},...
 'FontName','Helvetica',...
-'Position',[113 8 81 21],...
 'String','Delete',...
 'TooltipString','Delete all symbols previously (in this session) ploted',...
 'Tag','push_delete');
 
-uicontrol('Parent',h1,...
-'Callback',{@scatter_plot_uicallback,h1,'push_help_Callback'},...
+uicontrol('Parent',h1, 'Position',[174 39 23 23],...
+'Call',{@scatter_plot_uiCB,h1,'push_help_CB'},...
 'FontName','Helvetica',...
 'FontSize',12,...
 'FontWeight','bold',...
 'ForegroundColor',[0 0 1],...
-'Position',[174 39 23 23],...
 'String','?',...
 'TooltipString','Help',...
 'Tag','push_help');
 
-function scatter_plot_uicallback(hObject, eventdata, h1, callback_name)
+function scatter_plot_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+feval(callback_name,hObject,guidata(h1));
