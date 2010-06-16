@@ -260,7 +260,7 @@ function setSHPuictx(h,opt)
 		cb_dotted	= 'set(gco, ''LineStyle'', '':''); refresh';
 		cb_dashdot	= 'set(gco, ''LineStyle'', ''-.''); refresh';
 
-		item = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+		item = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 		uimenu(item, 'Label', 'Other...', 'Call', {@other_LineWidth,h(i)});
 
 		item = uimenu(cmenuHand, 'Label', 'Line Style');
@@ -275,98 +275,98 @@ function setSHPuictx(h,opt)
 % -----------------------------------------------------------------------------------------
 function set_line_uicontext(h,opt)
 % h is a handle to a line object (that can be closed)
-if (isempty(h)),	return,		end
+	if (isempty(h)),	return,		end
 
-IS_SEISPOLYGON = false;     % Seismicity polygons have special options
-LINE_ISCLOSED = false;		IS_RECTANGLE = false;	IS_PATCH = false;
-% Check to see if we are dealing with a closed polyline
-x = get(h,'XData');			y = get(h,'YData');
-if (isempty(x) || isempty(y)),		return,		end		% Line is totally out of the figure
-if ( (x(1) == x(end)) && (y(1) == y(end)) )
-	LINE_ISCLOSED = true;
-	if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
-		IS_RECTANGLE = true;	
-	end  
-	if (strcmp(get(h,'Tag'),'SeismicityPolygon')),  IS_SEISPOLYGON = true;    end
-end
-if (strcmp(get(h,'Type'),'patch')),
-	IS_PATCH = true;
-	if (IS_PATCH && ~LINE_ISCLOSED),	LINE_ISCLOSED = true;	end
-end
-
-handles = guidata(get(h,'Parent'));             % Get Mirone handles
-
-% Check to see if we are dealing with a multibeam track
-cmenuHand = uicontextmenu('Parent',handles.figure1);
-set(h, 'UIContextMenu', cmenuHand);
-switch opt
-	case 'line'
-		label_save = 'Save line';   label_length = 'Line length(s)';   label_azim = 'Line azimuth(s)';
-		IS_LINE = true;		IS_MBTRACK = false;	
-	case 'MBtrack'
-		label_save = 'Save track';   label_length = 'Track length';   label_azim = 'Track azimuth(s)';
-		IS_LINE = false;	IS_MBTRACK = true;
-end
-cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
-cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
-cb_dashed = 'set(gco, ''LineStyle'', ''--''); refresh';
-cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';
-cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
-cb_color = uictx_color(h);      % there are 9 cb_color outputs
-
-if (IS_RECTANGLE)
-	uimenu(cmenuHand, 'Label', 'Delete me', 'Call', {@del_line,h});
-	uimenu(cmenuHand, 'Label', 'Delete inside rect', 'Call', {@del_insideRect,h});
-	ui_edit_polygon(h)
-elseif (IS_LINE)
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h});
-	ui_edit_polygon(h)		% Set edition functions
-elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the bars
-	uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Call', 'save_track_mb(1);');
-	% Old style edit function. New edit is provided by ui_edit_polygon which doesn't work with mbtracks 
-	uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Call', 'edit_track_mb');
-end
-uimenu(cmenuHand, 'Label', label_save, 'Call', {@save_formated,h});
-if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))     % Those are not to allowed to copy
-	if (~LINE_ISCLOSED)
-		uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
+	IS_SEISPOLYGON = false;     % Seismicity polygons have special options
+	LINE_ISCLOSED = false;		IS_RECTANGLE = false;	IS_PATCH = false;
+	% Check to see if we are dealing with a closed polyline
+	x = get(h,'XData');			y = get(h,'YData');
+	if (isempty(x) || isempty(y)),		return,		end		% Line is totally out of the figure
+	if ( (x(1) == x(end)) && (y(1) == y(end)) )
+		LINE_ISCLOSED = true;
+		if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
+			IS_RECTANGLE = true;	
+		end  
+		if (strcmp(get(h,'Tag'),'SeismicityPolygon')),  IS_SEISPOLYGON = true;    end
 	end
-	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
-end
-if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength);		end
-if (IS_MBTRACK),		uimenu(cmenuHand, 'Label', 'All tracks length', 'Call', @show_AllTrackLength);	end
-if (~IS_SEISPOLYGON && ~IS_RECTANGLE),	uimenu(cmenuHand, 'Label', label_azim, 'Call', @show_lineAzims);	end
+	if (strcmp(get(h,'Type'),'patch')),
+		IS_PATCH = true;
+		if (IS_PATCH && ~LINE_ISCLOSED),	LINE_ISCLOSED = true;	end
+	end
 
-if (LINE_ISCLOSED)
-	uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
-	if (~IS_RECTANGLE && ~handles.validGrid)
-		uimenu(cmenuHand, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)','Sep','on');
-		if (handles.image_type == 3)
-				uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Call', ...
-					'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
+	handles = guidata(get(h,'Parent'));             % Get Mirone handles
+
+	% Check to see if we are dealing with a multibeam track
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	set(h, 'UIContextMenu', cmenuHand);
+	switch opt
+		case 'line'
+			label_save = 'Save line';   label_length = 'Line length(s)';   label_azim = 'Line azimuth(s)';
+			IS_LINE = true;		IS_MBTRACK = false;	
+		case 'MBtrack'
+			label_save = 'Save track';   label_length = 'Track length';   label_azim = 'Track azimuth(s)';
+			IS_LINE = false;	IS_MBTRACK = true;
+	end
+	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
+	cb_dashed = 'set(gco, ''LineStyle'', ''--''); refresh';
+	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';
+	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	cb_color = uictx_color(h);      % there are 9 cb_color outputs
+
+	if (IS_RECTANGLE)
+		uimenu(cmenuHand, 'Label', 'Delete me', 'Call', {@del_line,h});
+		uimenu(cmenuHand, 'Label', 'Delete inside rect', 'Call', {@del_insideRect,h});
+		ui_edit_polygon(h)
+	elseif (IS_LINE)
+		uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h});
+		ui_edit_polygon(h)		% Set edition functions
+	elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the bars
+		uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Call', 'save_track_mb(1);');
+		% Old style edit function. New edit is provided by ui_edit_polygon which doesn't work with mbtracks 
+		uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Call', 'edit_track_mb');
+	end
+	uimenu(cmenuHand, 'Label', label_save, 'Call', {@save_formated,h});
+	if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))	% Those are not to allowed to copy
+		if (~LINE_ISCLOSED)
+			uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
+		end
+		uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
+	end
+	if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength);		end
+	if (IS_MBTRACK),		uimenu(cmenuHand, 'Label', 'All tracks length', 'Call', @show_AllTrackLength);	end
+	if (~IS_SEISPOLYGON && ~IS_RECTANGLE),	uimenu(cmenuHand, 'Label', label_azim, 'Call', @show_lineAzims);	end
+
+	if (LINE_ISCLOSED)
+		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
+		if (~IS_RECTANGLE && ~handles.validGrid)
+			uimenu(cmenuHand, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)','Sep','on');
+			if (handles.image_type == 3)
+					uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Call', ...
+						'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
+			end
+		end
+		if (IS_PATCH && ~IS_SEISPOLYGON)
+			item8 = uimenu(cmenuHand, 'Label','Fill Color');
+			setLineColor( item8, uictx_color(h, 'facecolor') )		% there are 9 cb_color outputs
+			uimenu(item8, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
+			uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
 		end
 	end
-	if (IS_PATCH && ~IS_SEISPOLYGON)
-		item8 = uimenu(cmenuHand, 'Label','Fill Color');
-		setLineColor( item8, uictx_color(h, 'facecolor') )		% there are 9 cb_color outputs
-		uimenu(item8, 'Label', 'None', 'Separator','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
-		uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
+
+	uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+
+	if ( ~LINE_ISCLOSED && strcmp(opt,'line') && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid) )
+		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
+		uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack);
+		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))';
+		uimenu(cmenuHand, 'Label', 'Extract profile', 'Call', cbTrack);
 	end
-end
 
-uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
-
-if ( ~LINE_ISCLOSED && strcmp(opt,'line') && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid) )
-	cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
-	uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack);
-	cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))';
-	uimenu(cmenuHand, 'Label', 'Extract profile', 'Call', cbTrack);
-end
-
-if strcmp(opt,'MBtrack'),	uimenu(cmenuHand, 'Label', 'Show track''s Swath Ratio', 'Call', {@show_swhatRatio,h});	end
+	if strcmp(opt,'MBtrack'),	uimenu(cmenuHand, 'Label', 'Show track''s Swath Ratio', 'Call', {@show_swhatRatio,h});	end
 
 if (IS_RECTANGLE)
-	uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Separator','on', 'Call', @rectangle_limits);
+	uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Sep','on', 'Call', @rectangle_limits);
 	uimenu(cmenuHand, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
 	if (handles.image_type == 3 || handles.validGrid)
 		uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Call', ...
@@ -395,7 +395,7 @@ if (IS_RECTANGLE)
 	deal_opts('MGG', cmenuHand);
 end
 
-setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on'), cb_LineWidth)
+setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
 setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
 if (IS_PATCH),		cb_color = uictx_color(h,'EdgeColor');	end      % there are 9 cb_color outputs
 setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
@@ -404,7 +404,7 @@ set_stack_order(cmenuHand)      % Change order in the stackpot
 
 if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
 	if (handles.validGrid && ~IS_RECTANGLE)    % Option only available to recognized grids
-		item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Separator','on');
+		item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
 		uimenu(item_tools2, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
 		uimenu(item_tools2, 'Label', 'Set to const', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
 		uimenu(item_tools2, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
@@ -416,22 +416,22 @@ if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
 		end
 	end
 	if (strcmp(get(h,'Tag'),'EulerTrapezium'))
-		uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Separator','on', 'Call',...
+		uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Sep','on', 'Call',...
 			'calc_bonin_euler_pole(get(gco,''XData''), get(gco,''YData''));' );
 	end
 	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
-	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', cb_roi);
- 	%uimenu(cmenuHand, 'Label', 'Testa patches', 'Separator','on', 'Call', 'patch_options(gco)');
+	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi);
+ 	%uimenu(cmenuHand, 'Label', 'Testa patches', 'Sep','on', 'Call', 'patch_options(gco)');
 end
 
 if (strcmp(get(h,'Tag'),'FaultTrace'))      % For Okada modeling
-	uimenu(cmenuHand, 'Label', 'Okada', 'Separator','on', 'Call', {@okada_model,h,'okada'});    
+	uimenu(cmenuHand, 'Label', 'Okada', 'Sep','on', 'Call', {@okada_model,h,'okada'});    
 	uimenu(cmenuHand, 'Label', 'Mansinha', 'Call', {@okada_model,h,'mansinha'});    
 end
 
 if (IS_SEISPOLYGON)                         % Seismicity options
 	% gco gives the same handle as h 
-	uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,[],gco)', 'Separator','on');
+	uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,[],gco)', 'Sep','on');
 	uimenu(cmenuHand, 'Label', 'Find clusters', 'Call', 'find_clusters(gcf,gco)');
 	itemHist = uimenu(cmenuHand, 'Label','Histograms');
 	uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
@@ -539,69 +539,77 @@ function set_country_uicontext(h)
 		set(h(i), 'UIContextMenu', cmenuHand);   
 		uimenu(cmenuHand, 'Label', 'Save line', 'Call', @save_line);
 		uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
-		cb_LineWidth = uictx_LineWidth(h(i));      % there are 5 cb_LineWidth outputs
-		item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+		item_tools = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
+		uimenu(item_tools, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+		uimenu(item_tools, 'Label', 'Set to const', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
+		uimenu(item_tools, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+		uimenu(item_tools, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
+		cb_LineWidth = uictx_LineWidth(h(i));			% there are 5 cb_LineWidth outputs
+		item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 		uimenu(item_lw, 'Label', '1     pt', 'Call', cb_LineWidth{1});
 		uimenu(item_lw, 'Label', 'Other...', 'Call', cb_LineWidth{5});
-		item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Separator','on');
-		cb_color = uictx_color(h(i),'facecolor');      % there are 9 cb_color outputs
+		item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Sep','on');
+		cb_color = uictx_color(h(i),'facecolor');		% there are 9 cb_color outputs
 		uimenu(item8, 'Label', 'Other...', 'Call', cb_color{9});
 		uimenu(item8, 'Label', 'None', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
 		uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
 		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+		if (handles.validGrid)
+		end
 		if (handles.image_type ~= 20)
-			uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', ...
+			uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', ...
 				'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
 		end
 	end
 
 % -----------------------------------------------------------------------------------------
 function okada_model(obj,eventdata,h,opt)
-if (nargin == 3),   opt = 'okada';     end
-hh = findobj('Tag','FaultTrace');       % Check if we have more than one (multi-segment?)faults
-if (isempty(hh)),   errordlg('This is just a line, NOT a fault trace. Can''t you see the difference?','Error'); return; end
-h_fig = get(0,'CurrentFigure');     handles = guidata(h_fig);
-% Guess minimum length segment that could be due to a bad line drawing
-if (handles.geog)
-    min_len = 0.05;
-else
-    imgLims = getappdata(handles.axes1,'ThisImageLims');
-    if (abs(imgLims(2) - imgLims(1)) < 5000),   min_len = 5;    % Assume that the grid is in km
-    else                                        min_len = 5000; % Assume meters
-    end
-end
-if (numel(hh) > 1)
-	az = cell(1,numel(hh));
-	for k=1:numel(hh)
-		xx = get(hh(k),'XData');    yy = get(hh(k),'YData');
-		dx = diff(xx);  dy = diff(yy);              dr = sqrt(dx.*dx + dy.*dy);
-		ind = find(dr < min_len);
-		if (~isempty(ind) && length(xx) > 2)     % Remove too short segments
-			xx(ind) = [];   yy(ind) = [];
-			set(hh(k),'XData',xx,'YData',yy)
-		end
-		azim = show_lineAzims([],[],hh(k));
-		az{k} = azim.az;
-	end
-	h = hh;
-else
-    xx = get(h,'XData');    yy = get(h,'YData');
-    dx = diff(xx);      dy = diff(yy);          dr = sqrt(dx.*dx + dy.*dy);
-    ind = find(dr < min_len);
-    if (~isempty(ind) && length(xx) > 2)         % Remove too short segments
-        xx(ind) = [];   yy(ind) = [];
-        set(h,'XData',xx,'YData',yy)
-    end
-    azim = show_lineAzims([],[],h);
-    az = azim.az;
-end
+	if (nargin == 3),   opt = 'okada';		end
+	hh = findobj('Tag','FaultTrace');		% Check if we have more than one (multi-segment?)faults
+	if (isempty(hh)),   errordlg('This is just a line, NOT a fault trace. Can''t you see the difference?','Error'); return; end
+	h_fig = get(0,'CurrentFigure');		handles = guidata(h_fig);
 
-if (strcmp(opt,'okada')),           deform_okada(handles,h,az);
-elseif (strcmp(opt,'mansinha')),    deform_mansinha(handles,h,az);
-end
-% Feigl's example
-% u1 = -22;    u2 = 514;     u3 = 0;
-% W = 3.1;    depth = 3.4;    dip = 28;
+	% Guess minimum length segment that could be due to a bad line drawing
+	if (handles.geog)
+		min_len = 0.05;
+	else
+		imgLims = getappdata(handles.axes1,'ThisImageLims');
+		if (abs(imgLims(2) - imgLims(1)) < 5000),   min_len = 5;    % Assume that the grid is in km
+		else                                        min_len = 5000; % Assume meters
+		end
+	end
+	if (numel(hh) > 1)
+		az = cell(1,numel(hh));
+		for k=1:numel(hh)
+			xx = get(hh(k),'XData');    yy = get(hh(k),'YData');
+			dx = diff(xx);  dy = diff(yy);              dr = sqrt(dx.*dx + dy.*dy);
+			ind = find(dr < min_len);
+			if (~isempty(ind) && length(xx) > 2)		% Remove too short segments
+				xx(ind) = [];   yy(ind) = [];
+				set(hh(k),'XData',xx,'YData',yy)
+			end
+			azim = show_lineAzims([],[],hh(k));
+			az{k} = azim.az;
+		end
+		h = hh;
+	else
+		xx = get(h,'XData');    yy = get(h,'YData');
+		dx = diff(xx);			dy = diff(yy);			dr = sqrt(dx.*dx + dy.*dy);
+		ind = find(dr < min_len);
+		if (~isempty(ind) && length(xx) > 2)			% Remove too short segments
+			xx(ind) = [];   yy(ind) = [];
+			set(h,'XData',xx,'YData',yy)
+		end
+		azim = show_lineAzims([],[],h);
+		az = azim.az;
+	end
+
+	if (strcmp(opt,'okada')),			deform_okada(handles,h,az);
+	elseif (strcmp(opt,'mansinha')),	deform_mansinha(handles,h,az);
+	end
+	% Feigl's example
+	% u1 = -22;    u2 = 514;     u3 = 0;
+	% W = 3.1;    depth = 3.4;    dip = 28;
 
 % -----------------------------------------------------------------------------------------
 function set_SRTM_rect_uicontext(h,opt)
@@ -624,13 +632,13 @@ function set_ContourLines_uicontext(h,h_label)
 % h is the handle to the contour value. Each contour is given this uicontext
 	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
-	% cb1     = 'mirone(''DrawEditLine_Callback'',gcbo,[],guidata(gcbo))';
-	ui_edit_polygon(h)            % Set edition functions
-	cb_rac = {@remove_symbolClass,h};   % It will also remove the labels because they have the same tag.
-	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	% cb1     = 'mirone(''DrawEditLine_CB'',gcbo,[],guidata(gcbo))';
+	ui_edit_polygon(h)				% Set edition functions
+	cb_rac = {@remove_symbolClass,h};		% It will also remove the labels because they have the same tag.
+	cb_LineWidth = uictx_LineWidth(h);		% there are 5 cb_LineWidth outputs
 	cb18 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb19 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb20 = 'set(gco, ''LineStyle'', '':''); refresh';   cb21 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	cb_color = uictx_color(h);      % there are 9 cb_color outputs
+	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 
 	uimenu(cmenuHand, 'Label', 'Delete contour', 'Call',{@remove_singleContour,h});
 	uimenu(cmenuHand, 'Label', 'Delete all contours', 'Call', cb_rac);
@@ -638,14 +646,14 @@ function set_ContourLines_uicontext(h,h_label)
 	uimenu(cmenuHand, 'Label', 'Save contour', 'Call', {@save_formated,h});
 	uimenu(cmenuHand, 'Label', 'Contour length', 'Call', {@show_LineLength,[]});
 	uimenu(cmenuHand, 'Label', 'Area under contour', 'Call', @show_Area);
-	item_lw = uimenu(cmenuHand, 'Label', 'Contour Line Width', 'Separator','on');
+	item_lw = uimenu(cmenuHand, 'Label', 'Contour Line Width', 'Sep','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Contour Line Style');
 	setLineStyle(item_ls,{cb18 cb19 cb20 cb21})
 	item_lc = uimenu(cmenuHand, 'Label', 'Contour Line Color');
 	setLineColor(item_lc,cb_color)
 	cb_CLineWidth = uictx_Class_LineWidth(h);           % there are 5 cb_CLineWidth outputs
-	item8 = uimenu(cmenuHand, 'Label', 'All Contours Line Width', 'Separator','on');
+	item8 = uimenu(cmenuHand, 'Label', 'All Contours Line Width', 'Sep','on');
 	uimenu(item8, 'Label', '1       pt', 'Call', cb_CLineWidth{1});
 	uimenu(item8, 'Label', '2       pt', 'Call', cb_CLineWidth{2});
 	uimenu(item8, 'Label', '3       pt', 'Call', cb_CLineWidth{3});
@@ -662,19 +670,19 @@ function set_ContourLines_uicontext(h,h_label)
 
 % -----------------------------------------------------------------------------------------
 function setCoastLineUictx(h)
-	% h is a handle to a line object
+% h is a handle to a line object
 	tag = get(h,'Tag');
-	if (strcmp(tag,'CoastLineNetCDF')),         label = 'Delete coastlines';
-	elseif (strcmp(tag,'PoliticalBoundaries')), label = 'Delete boundaries';
-	elseif (strcmp(tag,'Rivers')),              label = 'Delete rivers';
+	if (strcmp(tag,'CoastLineNetCDF')),			label = 'Delete coastlines';
+	elseif (strcmp(tag,'PoliticalBoundaries')),	label = 'Delete boundaries';
+	elseif (strcmp(tag,'Rivers')),				label = 'Delete rivers';
 	end
 	handles = guidata(h);
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
-	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	cb_LineWidth = uictx_LineWidth(h);		% there are 5 cb_LineWidth outputs
 	cb13 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb14 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb15 = 'set(gco, ''LineStyle'', '':''); refresh';   cb16 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	cb_color = uictx_color(h);              % there are 9 cb_color outputs
+	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 	
 	uimenu(cmenuHand, 'Label', label, 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Edit line (left-click on it)', 'Call', 'edit_line');
@@ -694,13 +702,13 @@ function set_PB_uicontext(h,data)
 for i = 1:7     % Loop over all Plate Boundaries Types
 	h_cur = [];
 	switch i
-		case 1,            h_cur = h.OSR;  data_cur = data.OSR;    % class = 'OSR'
-		case 2,            h_cur = h.OTF;  data_cur = data.OTF;    % class = 'OTF'
-		case 3,            h_cur = h.CRB;  data_cur = data.CRB;    % class = 'CRB'
-		case 4,            h_cur = h.CTF;  data_cur = data.CTF;    % class = 'CTF'
-		case 5,            h_cur = h.CCB;  data_cur = data.CCB;    % class = 'CCB'
-		case 6,            h_cur = h.OCB;  data_cur = data.OCB;    % class = 'OCB'
-		case 7,            h_cur = h.SUB;  data_cur = data.SUB;    % class = 'SUB'
+		case 1,			h_cur = h.OSR;  data_cur = data.OSR;    % class = 'OSR'
+		case 2,			h_cur = h.OTF;  data_cur = data.OTF;    % class = 'OTF'
+		case 3,			h_cur = h.CRB;  data_cur = data.CRB;    % class = 'CRB'
+		case 4,			h_cur = h.CTF;  data_cur = data.CTF;    % class = 'CTF'
+		case 5,			h_cur = h.CCB;  data_cur = data.CCB;    % class = 'CCB'
+		case 6,			h_cur = h.OCB;  data_cur = data.OCB;    % class = 'OCB'
+		case 7,			h_cur = h.SUB;  data_cur = data.SUB;    % class = 'SUB'
 	end
 	if (isempty(h_cur)),	continue,	end
 	cmenuHand = uicontextmenu;
@@ -708,9 +716,9 @@ for i = 1:7     % Loop over all Plate Boundaries Types
 	cb_LineWidth = uictx_Class_LineWidth(h_cur);    % there are 5 cb_PB_LineWidth outputs
 	cb_color = uictx_Class_LineColor(h_cur);        % there are 9 cb_PB_color outputs
 	uimenu(cmenuHand, 'Label', 'Segment info', 'Call', {@PB_All_Info,h_cur,data_cur});
-	uimenu(cmenuHand, 'Label', 'Delete class', 'Call', 'delete(findobj(''Tag'',''PB_All''))', 'Separator','on');
+	uimenu(cmenuHand, 'Label', 'Delete class', 'Call', 'delete(findobj(''Tag'',''PB_All''))', 'Sep','on');
 	uimenu(cmenuHand, 'Label', 'Segment length', 'Call', {@show_LineLength,[]});
-	item3 = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	item3 = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 	uimenu(item3, 'Label', '2       pt', 'Call', cb_LineWidth{2});
 	uimenu(item3, 'Label', '3       pt', 'Call', cb_LineWidth{3});
 	uimenu(item3, 'Label', '4       pt', 'Call', cb_LineWidth{4});
@@ -735,7 +743,7 @@ function set_isochrons_uicontext(h,data)
 	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	if (~all(isempty(cat(2,data{:}))))
 		uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@Isochrons_Info,data});
-		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', {@del_line,h}, 'Separator','on');
+		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', {@del_line,h}, 'Sep','on');
 	else
 		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', {@del_line,h});
 	end
@@ -753,7 +761,7 @@ function set_isochrons_uicontext(h,data)
 	end
 	% If at least one is closed, activate the Area option
 	if (LINE_ISCLOSED),		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);	end
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
 	setLineStyle(item_ls,{cbls1 cbls2 cbls3 cbls4})
@@ -761,7 +769,7 @@ function set_isochrons_uicontext(h,data)
 	setLineColor(item_lc,cb_color)
 	% --------- Now set the class properties
 	cb_ClassColor = uictx_Class_LineColor(h);        % there are 9 cb_color outputs
-	item_Class_lc = uimenu(cmenuHand, 'Label', ['All ' tag ' Color'], 'Separator','on');
+	item_Class_lc = uimenu(cmenuHand, 'Label', ['All ' tag ' Color'], 'Sep','on');
 	setLineColor(item_Class_lc,cb_ClassColor)
 	cb_ClassLineWidth = uictx_Class_LineWidth(h);    % there are 5 cb_ClassLineWidth outputs
 	item_Class_lw = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Width']);
@@ -773,7 +781,7 @@ function set_isochrons_uicontext(h,data)
 	cb_ClassLineStyle = uictx_Class_LineStyle(h);    % there are 4 cb_ClassLineStyle outputs
 	item_Class_lt = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Style']);
 	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
-	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Separator','on', 'Call', 'euler_stuff(gcf,gco)');
+	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Call', 'euler_stuff(gcf,gco)');
 	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
 
 % -----------------------------------------------------------------------------------------
@@ -789,13 +797,13 @@ function set_gmtfile_uicontext(h,data)
 	cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@gmtfile_Info,h,data});
-	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', 'delete(gco)', 'Separator','on');
+	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', 'delete(gco)', 'Sep','on');
 	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Call', @save_line);
 	uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Call', {@call_gmtedit,h});
 	uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
 	deal_opts('mgg_coe', cmenuHand);
 	%uimenu(cmenuHand, 'Label', 'Try to relocate', 'Call', {@tryRelocate,h});
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
 	setLineStyle(item_ls,{cbls1 cbls2 cbls3 cbls4})
@@ -950,7 +958,7 @@ function set_greatCircle_uicontext(h)
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
 	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[],'total'});
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
 	setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dash_dotted})
@@ -980,11 +988,11 @@ function set_circleGeo_uicontext(h)
 	% item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
 	% item_SetCenter1 = uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Call', cb_ChangeCircCenter1);
 	if ~strcmp(tag,'CircleEuler')       % "Just" a regular geographical circle
-        uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', cb_roi);
+        uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi);
 	else
-        uimenu(cmenuHand, 'Label', 'Compute velocity', 'Separator','on', 'Call', {@compute_EulerVel,h});
+        uimenu(cmenuHand, 'Label', 'Compute velocity', 'Sep','on', 'Call', {@compute_EulerVel,h});
 	end
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
@@ -1008,13 +1016,13 @@ function set_circleCart_uicontext(h)
 	uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Call', {@move_circle,h});
 	item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
 	uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Call', {@change_CircCenter1,h});
-	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Separator','on', 'Call', cb_roi);
+	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi);
 	hp = getappdata(handles.figure1, 'ParentFig');
 	if ( ~isempty(hp) && ishandle(hp) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
 		uimenu(cmenuHand, 'Label', 'Low Pass FFT filter', 'Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
 		uimenu(cmenuHand, 'Label', 'High Pass FFT filter','Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
 	end
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
 	setLineWidth(item_lw,cb_LineWidth)
 	item2 = uimenu(cmenuHand, 'Label', 'Line Style');
@@ -1069,7 +1077,7 @@ function set_vector_uicontext(h)
 	setLineColor(item1,cb_color)
 	item2 = uimenu(cmenuHand, 'Label','Fill Color');
 	setLineColor( item2, uictx_color(h, 'facecolor') )
-	uimenu(item2, 'Label', 'None', 'Separator','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
+	uimenu(item2, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
 	uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
 
 % -----------------------------------------------------------------------------------------
@@ -1863,9 +1871,9 @@ end
 
 if separator
 	if (~more_than_one)         % Single symbol
-		uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)', 'Separator','on');
+		uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)', 'Sep','on');
 	else                        % Multiple symbols
-		uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h}, 'Separator','on');
+		uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h}, 'Sep','on');
 	end
 else
 	if (~more_than_one)         % Single symbol
@@ -1881,11 +1889,11 @@ if (~this_not)          % class symbols don't export
     uimenu(cmenuHand, 'Label', 'Export', 'Call', {@export_symbol,h});
     if (strcmp(tag,'Pointpolyline'))    % Allow pure grdtrack interpolation
         cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
-        uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack, 'Separator','on');
+        uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack, 'Sep','on');
     end
 end
 if (seismicity_options)
-    uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,gco)', 'Separator','on');
+    uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,gco)', 'Sep','on');
     uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Call', 'animate_seismicity(gcf,gco)');
     uimenu(cmenuHand, 'Label', 'Draw polygon', 'Call', ...
         'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''SeismicityPolygon'')');
@@ -1904,11 +1912,11 @@ if (seismicity_options)
     uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gcf,''OL'')');
 end
 if (tide_options)
-    uimenu(cmenuHand, 'Label', 'Plot tides', 'Call', {@tidesStuff,h,'plot'}, 'Separator','on');
+    uimenu(cmenuHand, 'Label', 'Plot tides', 'Call', {@tidesStuff,h,'plot'}, 'Sep','on');
     uimenu(cmenuHand, 'Label', 'Station Info', 'Call', {@tidesStuff,h,'info'});
     %uimenu(cmenuHand, 'Label', 'Tide Calendar', 'Call', {@tidesStuff,h,'calendar'});
 end
-itemSymb = uimenu(cmenuHand, 'Label', 'Symbol', 'Separator','on');
+itemSymb = uimenu(cmenuHand, 'Label', 'Symbol', 'Sep','on');
 cb_mark = uictx_setMarker(h,'Marker');              % there are 13 uictx_setMarker outputs
 uimenu(itemSymb, 'Label', 'plus sign', 'Call', cb_mark{1});
 uimenu(itemSymb, 'Label', 'circle', 'Call', cb_mark{2});
@@ -2526,8 +2534,7 @@ transp = get(h_patch,'FaceAlpha');     % Get the previous transparency value
 
 pos=[0.02 0.5 .97 .25];
 S = {@apply_transparency,T,h_patch,handles};
-uicontrol('style','slider','units','normalized','position',pos,...
-    'callback',S,'min',0,'max',1,'Value',transp);
+uicontrol('style','slider','units','normalized','position',pos, 'Call',S,'min',0,'max',1,'Value',transp);
 
 set(F,'Visible','on')
 
@@ -2562,7 +2569,7 @@ function set_telhas_uicontext(h)
 	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
 
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Separator','on');
+	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
 	setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dashdot})
@@ -2572,11 +2579,11 @@ function set_telhas_uicontext(h)
 
 	set_stack_order(cmenuHand)      % Change order in the stackpot
 
-	uimenu(item7, 'Label', 'None', 'Separator','on', 'Call', 'set(gco, ''EdgeColor'', ''none'');refresh');
-	item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Separator','on');
+	uimenu(item7, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''EdgeColor'', ''none'');refresh');
+	item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Sep','on');
 	cb_color = uictx_color(h,'facecolor');      % there are 9 cb_color outputs
 	setLineColor(item8,cb_color)
-	uimenu(item8, 'Label', 'None', 'Separator','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
+	uimenu(item8, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
 	uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
 
 % -----------------------------------------------------------------------------------------
