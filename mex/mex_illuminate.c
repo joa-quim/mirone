@@ -42,6 +42,7 @@
 
 #include <math.h>
 #include "mex.h"
+#include <time.h>
 
 void GMT_rgb_to_hsv(int rgb[], double *h, double *s, double *v);
 void GMT_hsv_to_rgb(int rgb[], double h, double s, double v);
@@ -53,6 +54,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	unsigned char *rgb;
 	float  *R_s;
 	double intensity, *R_d;
+	clock_t tic;
 
 	if (nrhs != 2 || nlhs != 3) {
 		mexPrintf ("usage: [r,g,b] = mex_illuminate(rgb,R);\n");
@@ -61,6 +63,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf (" 	and r,g,b are 2D short int matrices with their color changed\n");
 		return;
 	}
+
+#ifdef MIR_TIMEIT
+	tic = clock();
+#endif
 
 	if (mxIsSingle(prhs[1]))
 		is_single = 1;
@@ -105,7 +111,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	b_out = (char *)mxGetData(plhs[2]);
 	nm = nx * ny;
 
-	for (k = 0; k < nx * ny; k++) {
+	for (k = 0; k < nm; k++) {
 		rgb_pt[0] = (int)rgb[k];
 		rgb_pt[1] = (int)rgb[k + nm];
 		rgb_pt[2] = (int)rgb[k + 2*nm];
@@ -119,6 +125,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		g_out[k] = rgb_pt[1];
 		b_out[k] = rgb_pt[2];
 	}
+
+#ifdef MIR_TIMEIT
+	mexPrintf("MEX_ILLUMINATE: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
+#endif
+
 }
 
 void GMT_rgb_to_hsv (int rgb[], double *h, double *s, double *v) {
