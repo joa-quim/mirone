@@ -33,6 +33,7 @@
 
 #include "mex.h"
 #include "float.h"
+#include <time.h>
 
 int mxUnshareArray(mxArray *);
 
@@ -48,7 +49,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	short int *i_2;
 	unsigned short int *ui_2, *out16;
 	unsigned char *out8;
-  
+	clock_t tic;
+ 
   	/*  check for proper number of arguments */
 	if((nrhs < 1 || nrhs > 3) || (nlhs < 1 || nlhs > 2)) {
 		mexPrintf ("usage: img8  = scaleto8(Z);\n");
@@ -60,6 +62,10 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf (" 	   [z_min,z_max] = scaleto8(Z);\n");
 		return;
 	}
+
+#ifdef MIR_TIMEIT
+	tic = clock();
+#endif
   
 	/*  get the dimensions of the matrix input */
 	ny = mxGetM(prhs[0]);
@@ -438,4 +444,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			*z_min = min;	*z_max = max;
 		}
 	}
+
+#ifdef MIR_TIMEIT
+	mexPrintf("SCALETO8: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
+#endif
+
 }
