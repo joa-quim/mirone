@@ -21,6 +21,10 @@ REM
 REM Author: Joaquim Luis, 09-MAY-2010
 REM --------------------------------------------------------------------------------------
 
+REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
+SET CC=cl
+REM --------------------------------------------------------------------------------------
+
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
 SET R13="yes"
 
@@ -32,6 +36,10 @@ SET MSVC_VER="1600"
 
 REM Options are "dll", "mexw32" (recent ML version scream when they find .dll) or "mexw64" (when WIN64="yes")
 SET MEX_EXT="mexw32"
+
+REM If set some MEXs will print the execution time (in CPU ticks)
+REM SET TIMEIT=-DMIR_TIMEIT
+SET TIMEIT=
 
 REM --- Next allows compiling with the compiler you want against the ML6.5 libs (needed in stand-alone version)
 IF %R13%=="yes" (
@@ -55,9 +63,6 @@ SET MATINC=C:\PROGRAMS\MATLAB\R2009B\extern\include
 SET _MX_COMPAT=-DMX_COMPAT_32
 SET MEX_EXT="mexw32"
 ) )
-
-REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) -------------
-SET CC=cl
 
  
 REM -------------- Set up libraries here -------------------------------------------------
@@ -114,7 +119,7 @@ REM link /out:"test_gmt.mexw32" /dll /export:mexFunction /LIBPATH:"C:\PROGRAMS\M
 REM cl  -DWIN32 /c /Zp8 /GR /W3 /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD /FoC:\TMP\MEX_IF~1\test_gmt.obj -IC:\PROGRAMS\MATLAB\R2009B\extern\include /O2 /Oy- /DNDEBUG -DMX_COMPAT_32 test_gmt.c 
 
 SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD 
-SET OPTIMFLAGS=/O2 /Oy- /DNDEBUG 
+SET OPTIMFLAGS=/Ox /Oy- /DNDEBUG 
 SET DEBUGFLAGS=/Z7 
 
 IF %WIN64%=="yes" SET arc=X64
@@ -132,18 +137,18 @@ for %%G in (test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m r
 	grdgradient_m grdtrack_m spa_mex mirblock write_mex xyzokb_m ind2rgb8 applylutc cq bwlabel1 
 	bwlabel2 imhistc intlutc inv__lwm grayto8 grayto16 ordf parityscan) do ( 
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %%G.c
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj
 )
 
 for %%G in (ditherc PolygonClip) do ( 
 
 IF %%G==ditherc (
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %%G.c invcmap.c  
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c invcmap.c  
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj invcmap.obj )
 
 IF %%G==PolygonClip (
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %%G.c gpc.c  
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c gpc.c  
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj gpc.obj )
 
 )
@@ -151,7 +156,7 @@ link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj gpc.obj )
 REM --------------------- CPPs --------------------------------------------------
 for %%G in (houghmex clipbd_mex akimaspline grayxform resampsep iptcheckinput) do (
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %%G.cpp
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.cpp
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj 
 )
 
@@ -162,15 +167,15 @@ IF %%G==bwlabelnmex (
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj neighborhood.obj unionfind.obj )
 
 IF %%G==bwboundariesmex (
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %%G.cpp boundaries.cpp 
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.cpp boundaries.cpp 
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj boundaries.obj )
 
 IF %%G==imreconstructmex (
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %%G.cpp neighborhood.cpp 
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.cpp neighborhood.cpp 
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj neighborhood.obj )
 
 IF %%G==morphmex (
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %%G.cpp dilate_erode_gray_nonflat.cpp dilate_erode_packed.cpp dilate_erode_binary.cpp neighborhood.cpp vectors.cpp 
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.cpp dilate_erode_gray_nonflat.cpp dilate_erode_packed.cpp dilate_erode_binary.cpp neighborhood.cpp vectors.cpp 
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj dilate_erode_gray_nonflat.obj dilate_erode_packed.obj dilate_erode_binary.obj neighborhood.obj vectors.obj )
 )
 IF %1==simple GOTO END
@@ -181,11 +186,11 @@ REM ---------------------- GMTs ------------------------------------------------
 for %%G in (grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m mapproject_m shoredump 
 	surface_m nearneighbor_m grdfilter_m cpt2cmap grdlandmask_m grdppa_m dimfilter_m shake_mex) do (
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% %OPTIMFLAGS% %_MX_COMPAT% -DDLL_GMT %%G.c
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% /implib:templib.x %%G.obj 
 )
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% %OPTIMFLAGS% %_MX_COMPAT% -DDLL_GMT gmtlist_m.c
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT gmtlist_m.c
 link  /out:"gmtlist_m.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GMT_MGG_LIB% /implib:templib.x gmtlist_m.obj 
 IF %1==GMT GOTO END
 REM ---------------------- END "GMTs" ----------------------------------------------
@@ -194,12 +199,12 @@ REM ---------------------- END "GMTs" ------------------------------------------
 REM ---------------------- GDALs ---------------------------------------------------
 :GDAL
 for %%G in (gdalread gdalwrite mex_shape) do (
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%GDAL_INC% %OPTIMFLAGS% %_MX_COMPAT% %%G.c
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%GDAL_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %GDAL_LIB% /implib:templib.x %%G.obj 
 )
 
 for %%G in (gdalwarp_mex gdaltransform_mex ogrproj) do (
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%GDAL_INC% %OPTIMFLAGS% %_MX_COMPAT% %%G.cpp
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%GDAL_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.cpp
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %GDAL_LIB% /implib:templib.x %%G.obj 
 )
 IF %1==GDAL GOTO END
@@ -214,12 +219,12 @@ IF %1==OCV GOTO END
 
 REM ---------------------- with netCDF ----------------------------------------------
 for %%G in (swan swan_sem_wbar) do (
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %%G.c
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x %%G.obj 
 )
 
 REM ---------------------- MEXNC ----------------------------------------------------
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% -DDLL_NETCDF mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_NETCDF mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c
 link  /out:"mexnc.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x mexgateway.obj netcdf2.obj netcdf3.obj common.obj
 
 
@@ -229,7 +234,7 @@ link  /out:"edison_wrapper_mex.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templ
 
 
 REM ---------------------- Reduce patches --------------------------------------------
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% reducep/reducep_s.cpp reducep/3D.cpp reducep/AdjModel.cpp reducep/AdjPrims.cpp reducep/avars.cpp reducep/decimate.cpp reducep/heap.cpp reducep/Mat4.cpp reducep/ProxGrid.cpp reducep/quadrics.cpp reducep/smf.cpp
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% reducep/reducep_s.cpp reducep/3D.cpp reducep/AdjModel.cpp reducep/AdjPrims.cpp reducep/avars.cpp reducep/decimate.cpp reducep/heap.cpp reducep/Mat4.cpp reducep/ProxGrid.cpp reducep/quadrics.cpp reducep/smf.cpp
 link  /out:"reducep_s.%MEX_EXT%" %LINKFLAGS% /implib:templib.x reducep_s.obj 3D.obj AdjModel.obj AdjPrims.obj avars.obj decimate.obj heap.obj Mat4.obj ProxGrid.obj quadrics.obj smf.obj
 
 :END
