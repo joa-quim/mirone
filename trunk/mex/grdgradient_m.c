@@ -77,6 +77,7 @@
 #include <math.h>
 #include <string.h>
 #include <float.h>
+#include <time.h>
 
 #define GMT_SMALL		1.0e-4	/* Needed when results aren't exactly zero but close */
 
@@ -174,11 +175,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	unsigned char *ui_1, *o_ui1, *pdata_ui1;
 	
 	int	error = FALSE, map_units = FALSE, normalize = FALSE, atan_trans = FALSE, bad, do_direct_deriv = FALSE;
-	int find_directions = FALSE, do_cartesian = FALSE, do_orientations = FALSE, save_slopes = FALSE, add_ninety = FALSE;
-	int lambertian_s = FALSE, peucker = FALSE, lambertian = FALSE;
-	int sigma_set = FALSE, offset_set = FALSE, exp_trans = FALSE, two_azims = FALSE;
-	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
-	int is_uint16 = FALSE, is_uint8 = FALSE;
+	int	find_directions = FALSE, do_cartesian = FALSE, do_orientations = FALSE, save_slopes = FALSE, add_ninety = FALSE;
+	int	lambertian_s = FALSE, peucker = FALSE, lambertian = FALSE;
+	int	sigma_set = FALSE, offset_set = FALSE, exp_trans = FALSE, two_azims = FALSE;
+	int	is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
+	int	is_uint16 = FALSE, is_uint8 = FALSE;
+	clock_t tic;
 	
 	float	*data, *z_4, *pdata_s;
 	double	dx_grid, dy_grid, x_factor, y_factor, dzdx, dzdy, ave_gradient, norm_val = 1.0, sigma = 0.0;
@@ -193,6 +195,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	struct	GRD_HEADER header;
 	struct	GMT_EDGEINFO edgeinfo;
 
+#ifdef MIR_TIMEIT
+	tic = clock();
+#endif
 
 	argc = nrhs;
 	for (i = 0; i < nrhs; i++) {		/* Check input to find how many arguments are of type char */
@@ -774,6 +779,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 
 	}
+
+#ifdef MIR_TIMEIT
+	mexPrintf("GRDGRADIENT_M: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
+#endif
+
 }
 
 double specular(double nx, double ny, double nz, double *s) {
