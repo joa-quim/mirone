@@ -20,6 +20,10 @@ REM
 REM Author: Joaquim Luis, 09-MAY-2010
 REM --------------------------------------------------------------------------------------
 
+REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
+SET CC=icl
+REM --------------------------------------------------------------------------------------
+
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
 SET R13="yes"
 
@@ -31,6 +35,10 @@ SET MSVC_VER="1600"
 
 REM Options are "dll", "mexw32" (recent ML version scream when they find .dll) or "mexw64" (when WIN64="yes")
 SET MEX_EXT="mexw32"
+
+REM If set some MEXs will print the execution time (in CPU ticks)
+REM SET TIMEIT=-DMIR_TIMEIT
+SET TIMEIT=
 
 REM --- Next allows compiling with the compiler you want against the ML6.5 libs (needed in stand-alone version)
 IF %R13%=="yes" (
@@ -52,9 +60,6 @@ SET MATLIB=C:\PROGRAMS\MATLAB\R2009B\extern\lib\win32\microsoft
 SET MATINC=C:\PROGRAMS\MATLAB\R2009B\extern\include
 SET _MX_COMPAT=-DMX_COMPAT_32
 ) )
-
-REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) -------------
-SET CC=cl
 
  
 REM -------------- Set up libraries here -------------------------------------------------
@@ -94,11 +99,11 @@ REM ___________________ STOP EDITING HERE ______________________________________
 
 
 SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD 
-SET OPTIMFLAGS=/O2 /Oy- /DNDEBUG 
+SET OPTIMFLAGS=/Ox /Oy- /DNDEBUG
 
 SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:X86 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /incremental:NO
 
-%CC% -DWIN32 %COMPFLAGS% -I%GDAL_INC% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %1.cpp 
+%CC% -DWIN32 %COMPFLAGS% -I%GDAL_INC% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %1.c
 link  /out:"%1.%MEX_EXT%" %LINKFLAGS% %GDAL_LIB% /implib:templib.x %1.obj
 
 del *.obj *.exp templib.x
