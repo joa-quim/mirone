@@ -383,9 +383,18 @@ function import_clickedCB(hObject, evt, opt)
 	if (~isempty(handles.multi_plot))
 		for (k = 1:size(handles.multi_plot,1))
 			switch handles.multi_plot{k,2}
-				case '1',		line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes1)
-				case '2',		line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes2)
-				case '3',		line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes3)
+				case '1'
+					if (numel(track.distance) == numel(track.multi{k}))
+						line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes1)
+					end
+				case '2'
+					if (numel(track.distance) == numel(track.multi{k}))
+						line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes2)
+					end
+				case '3'
+					if (numel(track.distance) == numel(track.multi{k}))
+						line('XData',track.distance, 'YData',track.multi{k}, 'Parent', handles.axes3)
+					end
 			end
 		end
 	end
