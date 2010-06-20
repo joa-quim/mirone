@@ -551,6 +551,7 @@ uimenu('Parent',hGP,'Call','igrf_options(guidata(gcbo))','Label','IGRF calculato
 uimenu('Parent',hGP,'Call','parker_stuff(''parker_direct'',gcf)','Label','Parker Direct');
 uimenu('Parent',hGP,'Call','parker_stuff(''parker_inverse'',gcf)','Label','Parker Inversion');
 uimenu('Parent',hGP,'Call','parker_stuff(''redPole'',gcf)','Label','Reduction to the Pole');
+uimenu('Parent',hGP,'Call','microlev(gcf)','Label','Microleveling');
 %uimenu('Parent',hGP,'Call','gravfft(gcf)','Label','GravFFT');
 uimenu('Parent',hGP,'Call','plate_calculator','Label','Plate calculator','Sep','on');
 uimenu('Parent',hGP,'Call','geog_calculator(guidata(gcbo))','Label','Geographic calculator');
@@ -652,7 +653,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 24 May 2010'',''1.5.3b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 20 Jun 2010'',''1.5.3b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
