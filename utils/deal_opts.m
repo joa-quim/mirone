@@ -108,7 +108,7 @@ function get_COEs(obj, event, coeFile, coeVar)
 	dZ = Zmax - Zmin; 
 	cmap = jet(32);
 	if (dZ == 0)			% Cte color
-		zC = repmat(cmap(round(size(cmap,1)/2),:),nPts,1);      % Midle color
+		zC = repmat(cmap(round(size(cmap,1)/2),:),numel(x),1);      % Midle color
 	else            
 		zC = round(((COEs - Zmin) / dZ) * (size(cmap,1)-1) + 1);
 		zC = cmap(zC,:);
