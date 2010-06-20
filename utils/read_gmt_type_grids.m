@@ -3,6 +3,9 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 % MISC - which exists only when nc_io was used - is a struct with:
 %		'desc', 'title', 'history', 'srsWKT', 'strPROJ4' fields
 % If it is OPT = 'hdr' outputs info in the struct format, else outputs in the head format
+%
+% The HANDLES fields 'grdname', 'image_type', 'have_nans' and 'computed_grid' are reset
+% and 'was_int16' may or not
 
     infoOnly = 0;
     if (nargin == 3),   infoOnly = 1;    end
@@ -135,7 +138,7 @@ elseif (strcmp(tipo,'ENCOM'))       % Pretend that its a GMT grid
     X = linspace(x_min,x_max,n_cols);       Y = linspace(y_min,y_max,n_rows);
     head = [x_min x_max y_min y_max z_min z_max 0 dx dy];
 elseif (strcmp(tipo,'MAN_ASCII'))
-    h1 = fgetl(fid);    h2 = fgetl(fid);    h3 = fgetl(fid);    h4 = fgetl(fid);    h5 = fgetl(fid);
+    h1 = fgetl(fid);    h2 = fgetl(fid);    fgetl(fid);    fgetl(fid);    fgetl(fid);
     n_rows = str2double(h1(6:10));          n_cols = str2double(h1(16:20));
     y_inc = str2double(h2(6:10));           x_inc = str2double(h2(16:20));
     no_val = str2double(h2(25:31));         azim = str2double(h2(35:40));
