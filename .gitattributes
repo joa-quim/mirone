@@ -682,6 +682,7 @@ utils/ft2tms.m -text
 utils/gcirc.m -text
 utils/gcpTool.m -text
 utils/geog2projected_pts.m -text
+utils/get_MGGtracks.m -text
 utils/get_fnames_ext.m -text
 utils/get_line_hand.m -text
 utils/get_polygon.m -text
