@@ -182,6 +182,10 @@ struct	TREND1D_DATA {
 
 int	GMT_ln_gamma_r(double x, double *lngam);
 int	GMT_comp_double_asc (const void *p_1, const void *p_2);
+int	GMT_jacobi (double *a, int *n, int *m, double *d, double *v, double *b, double *z, int *nrots);
+int	GMT_inc_beta (double a, double b, double x, double *ibeta);
+int     GMT_f_q (double chisq1, int nu1, double chisq2, int nu2, double *prob);
+int	GMT_f_test_new (double chisq1, int nu1, double chisq2, int nu2, double *prob, int iside);
 double	GMT_ln_gamma (double xx);
 double	GMT_cf_beta (double a, double b, double x);
 double	tpvalue (double x, double v);
@@ -218,10 +222,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	void load_gtg_and_gtd(struct TREND1D_DATA *data, int n_data, double *gtg, double *gtd, double *grow, int n_model, int mp, int m_type);
 	void solve_system(double *gtg, double *gtd, double *model, int n_model, int mp, double *lambda, double *v, double *b, double *z, double c_no, int *ir);
 	void	GMT_cheb_to_pol (double c[], int n, double a, double b);
-	int	GMT_jacobi (double *a, int *n, int *m, double *d, double *v, double *b, double *z, int *nrots);
-	int	GMT_inc_beta (double a, double b, double x, double *ibeta);
-	int     GMT_f_q (double chisq1, int nu1, double chisq2, int nu2, double *prob);
-	int	GMT_f_test_new (double chisq1, int nu1, double chisq2, int nu2, double *prob, int iside);
 	int	GMT_sig_f (double chi1, int n1, double chi2, int n2, double level, double *prob);
 	void	*New_Trend1d_Ctrl (), Free_Trend1d_Ctrl (struct TREND1D_CTRL *C);
 
