@@ -12,9 +12,10 @@ REM
 REM Notes: To compile gmtlist_m the file x_system.h must be copyed from GMTROOT\src\x_system to %GMT_INC% (see below)
 REM        To compile mex_shape the file shapefil.h must be copyed from GDALROOT\ogr\ogrsf_frmts\shape to %GDAL_INC%
 REM
-REM Usage: open the command window set up by the compiler of interest (were all vars are already set) and run this from there
-REM	   There is no mechanism to build one program individualy but you can build one of the following four groups:
-REM		simple, GMT, GDAL, OCV
+REM Usage: open the command window set up by the compiler of interest (were all vars are already set)
+REM	   and run this from there.
+REM	   You cannot build one program individualy but you can build one of the following groups:
+REM		simple, swan, edison, reducep, GMT, GDAL, OCV, MEXNC
 REM	   To do it, give the group name as argument to this batch. E.G. compile_mex GMT
 REM
 REM
@@ -22,7 +23,7 @@ REM Author: Joaquim Luis, 09-MAY-2010
 REM --------------------------------------------------------------------------------------
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
-SET CC=cl
+SET CC=icl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
@@ -129,6 +130,10 @@ SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib li
 IF %1==GMT  GOTO GMT
 IF %1==GDAL GOTO GDAL
 IF %1==OCV  GOTO OCV
+IF %1==MEXNC  GOTO MEXNC
+IF %1==swan   GOTO swan
+IF %1==edison GOTO edison
+IF %1==reducep GOTO reducep
 
 REM ------------------ "simple" (no external Libs dependency) ------------------
 :simple
@@ -218,25 +223,32 @@ IF %1==OCV GOTO END
 
 
 REM ---------------------- with netCDF ----------------------------------------------
+:swan
 for %%G in (swan swan_sem_wbar) do (
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x %%G.obj 
 )
+IF %1==swan GOTO END
 
 REM ---------------------- MEXNC ----------------------------------------------------
+:MEXNC
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_NETCDF mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c
 link  /out:"mexnc.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x mexgateway.obj netcdf2.obj netcdf3.obj common.obj
+IF %1==MEXNC GOTO END
 
 
 REM ---------------------- Edison_wrapper -------------------------------------------
+:edison
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% edison/edison_wrapper_mex.cpp edison/segm/ms.cpp edison/segm/msImageProcessor.cpp edison/segm/msSysPrompt.cpp edison/segm/RAList.cpp edison/segm/rlist.cpp edison/edge/BgEdge.cpp edison/edge/BgImage.cpp edison/edge/BgGlobalFc.cpp edison/edge/BgEdgeList.cpp edison/edge/BgEdgeDetect.cpp
 link  /out:"edison_wrapper_mex.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x edison_wrapper_mex.obj Bg*.obj ms*.obj rlist.obj RAList.obj
+IF %1==edison GOTO END
 
 
 REM ---------------------- Reduce patches --------------------------------------------
+:reducep
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% reducep/reducep_s.cpp reducep/3D.cpp reducep/AdjModel.cpp reducep/AdjPrims.cpp reducep/avars.cpp reducep/decimate.cpp reducep/heap.cpp reducep/Mat4.cpp reducep/ProxGrid.cpp reducep/quadrics.cpp reducep/smf.cpp
 link  /out:"reducep_s.%MEX_EXT%" %LINKFLAGS% /implib:templib.x reducep_s.obj 3D.obj AdjModel.obj AdjPrims.obj avars.obj decimate.obj heap.obj Mat4.obj ProxGrid.obj quadrics.obj smf.obj
+IF %1==reducep GOTO END
 
 :END
 del *.obj *.exp templib.x
-
