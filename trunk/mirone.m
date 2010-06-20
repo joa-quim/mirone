@@ -59,7 +59,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line move_obj make_arrow
 %#function edit_track_mb save_track_mb houghmex qhullmx uisuspend_fig uirestore_fig writegif mpgwrite cq helpdlg
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
-%#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion wms_tool
+%#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion wms_tool microlev
 
 %  	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
 	global home_dir;	fsep = filesep;
@@ -406,15 +406,19 @@ function PixMode_CB(hObject, event, hFig, opt)
 % Inside each grid cell, which is a pixel in the screen, display only the grid node value
 	handles = guidata(hFig);
 	if (opt)		% Pixel mode on/off
-		if (strcmp(get(hObject,'Checked'),'off')),		set(hObject,'Checked','on'),	setappdata(hFig,'PixelMode',true)
-		else											set(hObject,'Checked','off'),	setappdata(hFig,'PixelMode',false)
+		if (strcmp(get(hObject,'Checked'),'off'))
+			set(hObject,'Checked','on'),	setappdata(hFig,'PixelMode',true)
+		else
+			set(hObject,'Checked','off'),	setappdata(hFig,'PixelMode',false)
 		end
-		set(handles.RCMode, 'Checked','off'),			setappdata(hFig,'RCMode',false)		% Put the RowColMode to off
+		set(handles.RCMode, 'Checked','off'),		setappdata(hFig,'RCMode',false)		% Put the RowColMode to off
 	else			% Row Col mode on/off
-		if (strcmp(get(hObject,'Checked'),'off')),		set(hObject,'Checked','on'),	setappdata(hFig,'RCMode',true)
-		else											set(hObject,'Checked','off'),	setappdata(hFig,'RCMode',false)
+		if (strcmp(get(hObject,'Checked'),'off'))
+			set(hObject,'Checked','on'),	setappdata(hFig,'RCMode',true)
+		else
+			set(hObject,'Checked','off'),	setappdata(hFig,'RCMode',false)
 		end
-		set(handles.PixMode, 'Checked','off'),			setappdata(hFig,'PixelMode',false)	% Put the PixMode to off
+		set(handles.PixMode, 'Checked','off'),		setappdata(hFig,'PixelMode',false)	% Put the PixMode to off
 	end
 
 % --------------------------------------------------------------------
