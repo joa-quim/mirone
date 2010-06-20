@@ -1,11 +1,19 @@
-function out = deal_opts(opt, opt2)
+function out = deal_opts(opt, opt2, varargin)
 % Function to provide fine (manual) control on some Mirone modules.
 %
 % The mechanism of this function relies on the contents of the "OPTcontrol.txt" control file.
 % That file has keewords that trigger the usage of optional (specialized) features in Mirone.
 %
 % OPT directs to the option of interest (growing number)
-% OPT2 is a uimenu handle for cases where the OPT case needs one
+% OPT2 can be a uimenu handle for cases where the OPT case needs one
+%
+% OPT2 optionally may hold the name of an internal sub-function, in which case that function
+% is called with eventual extra arguments transmited in varargin
+
+	if (nargin >= 2 && ischar(opt2))
+		out = feval(opt2, varargin{:});
+		return
+	end
 
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 	opt_file = [MIRONE_DIRS.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
@@ -128,10 +136,22 @@ function uictxCOE(obj,evt,hAx,h,tipo)
 	
 	
 % -----------------------------------------------------------------------------------------
-function get_MGGtracks(obj, event)
+function tracks = get_MGGtracks(obj, event, x, y)
 % Get a list of MGG tracks that cross the rectangular area enclosed by gco
-	h = gco;
-	x = get(h,'XData');     y = get(h,'YData');
+% OR by the rect defined by the optional input X, Y vars
+%
+% When an output is requested it will hold either a file name containing a list of the tracks
+% or a cell array with the fullpath of each track.
+% In either case, the tracks are not ploted.
+
+	get_tracks_only = false;
+	if (nargin == 2)
+		h = gco;
+		x = get(h,'XData');			y = get(h,'YData');
+	end
+	if (nargout)
+		get_tracks_only = true;		tracks = [];
+	end
 
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 	lim = sprintf('-R%.4f/%.4f/%.4f/%.4f',x(1),x(3),y(1:2));
@@ -150,6 +170,7 @@ function get_MGGtracks(obj, event)
 
 	fid = fopen(tmp_file,'r');	one_file = fgetl(fid);		fclose(fid);
 	if (exist(one_file, 'file') == 2)	% We are probably in the same dir as the data files
+		if (get_tracks_only)	tracks = ['list_' tmp_file];		return,		end
 		mirone('GeophysicsImportGmtFile_CB',guidata(gcbo),['list_' tmp_file]),		return
 	end
 
@@ -191,6 +212,7 @@ function get_MGGtracks(obj, event)
 	if (~any(c))
 		warndlg('Tracks for the selected area exis, but I couldn''t find them. Not even with the help of the MGD77+_paths.txt file.')
 	else
+		if (get_tracks_only)	return,		end		% We already have the "tracks" content
 		mirone('GeophysicsImportGmtFile_CB',guidata(gcbo), tracks)
 	end
 	delete(tmp_file);
