@@ -657,7 +657,6 @@ utils/circ_geo.m -text
 utils/clabel_j.m -text
 utils/conv2anugapts.m -text
 utils/cropimg.m -text
-utils/custom_rect.m -text
 utils/datasets_funs.m -text
 utils/date2jd.m -text
 utils/datums.m -text
@@ -682,7 +681,6 @@ utils/ft2tms.m -text
 utils/gcirc.m -text
 utils/gcpTool.m -text
 utils/geog2projected_pts.m -text
-utils/get_MGGtracks.m -text
 utils/get_fnames_ext.m -text
 utils/get_line_hand.m -text
 utils/get_polygon.m -text
