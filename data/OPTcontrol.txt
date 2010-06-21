@@ -10,7 +10,7 @@
 #MIR_GMTEDIT -Vmtf1,anom_cm4,depth
 #MIR_GMTEDIT -Vvel,mtf1,depth
 #MIR_GMTEDIT -Vlon,lat,vel
-MIR_GMTEDIT -Vvel,mtf1,anom_cm4:mag+3
+#MIR_GMTEDIT -Vvel,mtf1,anom_cm4:mag+3
 
 # Activate MGG (.nc) tracks fishing inside rectangles (set to 0, or comment (#) if not wanted)
 #MIR_MGG 1
