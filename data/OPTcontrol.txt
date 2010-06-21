@@ -4,8 +4,16 @@
 
 # For gmtedit the general usage is:
 # -Vvar1,var2,var3:varI+slotI[/varI+slotI[/varI+slotI]] 
+# Where var1,var2,var3 is the name of any of the variables in the .nc file PLUS 'vel' for velocity
+# The varI+slotI form will plot (add) the varI (again, one of the .nc vars) to the slot I (1:3) axes 
 # Next will put Total field on first axes, CM4 anomaly on second and bathymetry on third
 #MIR_GMTEDIT -Vmtf1,anom_cm4,depth
+#MIR_GMTEDIT -Vvel,mtf1,depth
+#MIR_GMTEDIT -Vlon,lat,vel
+MIR_GMTEDIT -Vvel,mtf1,anom_cm4:mag+3
 
 # Activate MGG (.nc) tracks fishing inside rectangles (set to 0, or comment (#) if not wanted)
-MIR_MGG 1
+#MIR_MGG 1
+
+# Activate the option to display COEs as circles with uicontexts
+#MIR_COEs C:\a1\mgd77\coes.dat anom_cm4
