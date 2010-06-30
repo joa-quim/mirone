@@ -12,10 +12,17 @@ else
 end
 
 w = '';   s = 0;
+run_comm = [str ' > ' text_stdout ' 2> text_stderr'];
+
+if (str(end) == '&')
+	str(end) = [];
+	run_comm = [str ' > ' text_stdout ' 2> text_stderr &'];
+end
+
 if isunix           % UNIX
-    unix([str ' > ' text_stdout ' 2> text_stderr']);
+    unix(run_comm);
 elseif ispc         % Windows
-    dos([str ' > ' text_stdout ' 2> text_stderr']);
+    dos(run_comm);
 else
     errordlg('Unknown platform.','Error');  return;
 end
