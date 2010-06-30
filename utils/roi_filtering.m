@@ -8,12 +8,12 @@ prompt = {'Enter number of filter rows' ,'Enter number of filter cols', 'Maximum
 def = {num2str(5) num2str(5) num2str(10)};
 resp  = inputdlg(prompt,'Median Filtering',[1 30; 1 30; 1 30],def);    pause(0.01)
 if isempty(resp);    set(handles.figure1,'pointer','arrow');    return,		end
-Z_rect = double(Z_rect);      % It has to be with medfilt2 of R13, but I'll hve to change it to R2006b
+Z_rect = double(Z_rect);				% It has to be with medfilt2 of R13, but I'll hve to change it to R2006b
 
 have_local_nans = 0;
-if (handles.have_nans)              % If the grid has NaNs
+if (handles.have_nans)					% If the grid has NaNs
     rect_nans = isnan(Z_rect);
-    if (any(rect_nans(:)))             % Check if we have NaNs inside the Z_rect rectangle
+    if (any(rect_nans(:)))				% Check if we have NaNs inside the Z_rect rectangle
         have_local_nans = 1;
     else
         clear rect_nans;
@@ -90,12 +90,12 @@ function mask_b = mask_border(mask,w)
 % to the inside
 
 	[m,n] = size(mask);
-	mask_b = [repmat(logical(0),m,w) mask(:,1:end-w)];      % shift mask rigth
+	mask_b = [false(m,w) mask(:,1:end-w)];		% shift mask rigth
 	mask_in = mask & mask_b;
-	mask_b = [mask(:,w+1:end) repmat(logical(0),m,w)];      % shift mask left
+	mask_b = [mask(:,w+1:end) false(m,w)];		% shift mask left
 	mask_in = mask_in & mask_b;
-	mask_b = [mask(w+1:end,:); repmat(logical(0),w,n)];      % shift mask up
+	mask_b = [mask(w+1:end,:); false(w,n)];		% shift mask up
 	mask_in = mask_in & mask_b;
-	mask_b = [repmat(logical(0),w,n); mask(1:end-w,:)];      % shift mask down
+	mask_b = [false(w,n); mask(1:end-w,:)];		% shift mask down
 	mask_in = mask_in & mask_b;
 	mask_b = xor(mask_in,mask);
