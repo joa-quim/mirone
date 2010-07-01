@@ -4,7 +4,7 @@ function out = deal_opts(opt, opt2, varargin)
 % The mechanism of this function relies on the contents of the "OPTcontrol.txt" control file.
 % That file has keewords that trigger the usage of optional (specialized) features in Mirone.
 %
-% OPT directs to the option of interest (growing number)
+% OPT directs to the option of interest. It may be a cell array of options.
 % OPT2 can be a uimenu handle for cases where the OPT case needs one
 %
 % OPT2 optionally may hold the name of an internal sub-function, in which case that function
@@ -18,6 +18,7 @@ function out = deal_opts(opt, opt2, varargin)
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 	opt_file = [MIRONE_DIRS.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
 	out = [];
+	hCust = false;
 
 	if ( ~exist(opt_file, 'file') == 2 ),	return,		end
 	fid = fopen(opt_file, 'r');
@@ -32,44 +33,51 @@ function out = deal_opts(opt, opt2, varargin)
 	lines(c) = [];			% Delete non-keyword (comment) lines
 	if (isempty(lines))		return,		end
 
-	switch lower(opt)
-		case 'gmtedit'		% To select what to plot in GMTEDIT slots
-			for (k = 1:numel(lines))
-				if (strncmp(lines{k}(5:end),'GMTEDIT',7))
-					t = strtok(lines{k}(13:end));
-					if ( strcmp(t(1:2), '-V') )		% Here we only check for a -V... and do not check for errors
-						out = t;
-					end
-					break
-				end
-			end
-		case 'mgg'			% To find tracks inside calling rectangle
-			for (k = 1:numel(lines))
-				if (strncmp(lines{k}(5:end),'MGG',3))
-					t = strtok(lines{k}(9:end));
-					if (t == '1'),	out = true;		end
-					break
-				end
-			end
-			%if (out),	custom_rect(opt2),	end		% Create a uimenu associated to a rectangle
-			if (out)
-				c = uimenu(opt2, 'Label', 'Custom','Sep','on');		% Create a uimenu associated to a rectangle
-				uimenu(c, 'Label', 'MGG tracks', 'Call',  @get_MGGtracks);
-			end
+	if (~isa(opt,'cell'))	% Some calls (e.g. MGG & Microleveling) come as cells
+		opt = {opt};
+	end
 
-		case 'mgg_coe'		% To ...
-			for (k = 1:numel(lines))
-				if (strncmp(lines{k}(5:end),'COEs',4))
-					out = lines{k}(10:end);
-					break
-				end
+	for (k = 1:numel(lines))
+		for (n = 1:numel(opt))		% Somtimes one single call holgs multiple choices
+			switch lower(opt{n})
+				case 'gmtedit'		% To select what to plot in GMTEDIT slots
+					if (strncmp(lines{k}(5:end),'GMTEDIT',7))
+						t = strtok(lines{k}(13:end));
+						if ( strcmp(t(1:2), '-V') )		% Here we only check for a -V... and do not check for errors
+							out = t;
+						end
+						break
+					end
+
+				case 'mgg'			% To find tracks inside calling rectangle
+					if (strncmp(lines{k}(5:end),'MGG',3))
+						if (~hCust)				% Create a uimenu associated to a rectangle
+							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
+						end
+						uimenu(hCust, 'Label', 'MGG tracks', 'Call',  @get_MGGtracks);
+						break
+					end
+
+				case 'mgg_coe'		% To ...
+					if (strncmp(lines{k}(5:end),'COEs',4))
+						out = lines{k}(10:end);
+						coeVar = 'mag';			% Default
+						[t, r] = strtok(out);
+						if (~isempty(r))		coeVar = ddewhite(r);	end
+						uimenu(opt2, 'Label', 'Show COEs', 'Call', {@get_COEs, t, coeVar},'Sep','on');
+						break
+					end
+
+				case 'microlev'		% To do microleveling on a rectangular ROI
+					if (strncmp(lines{k}(5:end),'MICRO',5))
+						if (~hCust)				% Create a uimenu associated to a rectangle
+							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
+						end
+						uimenu(hCust, 'Label', 'ROI microleveling', 'Call', 'microlev(gco)');
+						break
+					end
 			end
-			if (out)
-				coeVar = 'mag';			% Default
-				[t, r] = strtok(out);
-				if (~isempty(r))		coeVar = ddewhite(r);	end
-				uimenu(opt2, 'Label', 'Show COEs', 'Call', {@get_COEs, t, coeVar},'Sep','on');
-			end
+		end
 	end
 
 % -----------------------------------------------------------------------------------------
