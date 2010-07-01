@@ -375,7 +375,7 @@ if (IS_RECTANGLE)
 	uimenu(cmenuHand, 'Label', 'Register Image', 'Call', @rectangle_register_img);
 	uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Call', @Transplant_Image);
 	if (handles.geog)
-		uimenu(cmenuHand, 'Label', 'Get image from Web Map Server', 'Call', 'wms_tool(gco)','Sep','on');
+		uimenu(cmenuHand, 'Label', 'Get image from Web Map Server', 'Call', 'wms_tool(gco)');
 	end
 	if (handles.validGrid)    % Option only available to recognized grids
 		item_tools = uimenu(cmenuHand, 'Label', 'Crop Tools','Sep','on');
@@ -392,7 +392,7 @@ if (IS_RECTANGLE)
 		uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
 		uimenu(item_tools, 'Label','Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')');
 	end
-	deal_opts('MGG', cmenuHand);
+	deal_opts({'MGG' 'MICROLEV'}, cmenuHand);
 end
 
 setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
