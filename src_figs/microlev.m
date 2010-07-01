@@ -19,7 +19,15 @@ function varargout = microlev(varargin)
 		errordlg('MICROLEV: input argument must be a Mirone figure handle.','Error'),	return
 	end
 
-	handMir = guidata(varargin{1});
+	if ( strcmp(get(varargin{1},'type'), 'line') )	% The handle is actualy a line (rectangle) handle
+		hMirFig = get(get(varargin{1},'Parent'),'Parent');
+		handMir = guidata(hMirFig);
+		gotROI = true;
+	else
+		hMirFig = varargin{1};
+		handMir = guidata(hMirFig);
+		gotROI = false;
+	end
 
 	if (handMir.no_file)
 		errordlg('You didn''t even load a file. What are you expecting then?','ERROR'),	return
@@ -31,10 +39,11 @@ function varargout = microlev(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	microlev_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	move2side(varargin{1},hObject)
+	move2side(hMirFig,hObject)
 
-	handles.hMirFig = varargin{1};
-	[handles.X, handles.Y, handles.Z, handles.head] = load_grd(handMir);
+	handles.hMirFig = hMirFig;
+	[handles.X, handles.Y, handles.Z, head] = load_grd(handMir);
+	handles.head = head;
 	handles.have_nans = handMir.have_nans;
 	handles.home_dir = handMir.home_dir;
 	handles.work_dir = handMir.work_dir;
@@ -42,15 +51,37 @@ function varargout = microlev(varargin)
 
 	handles.Z_filt = [];
 	handles.cmboMask = [];
+	handles.micro = [];
 	handles.nWin = 3;
 	handles.rmsThresh = 6;
 	handles.lineThick = 2;
 	handles.command{1} = '-Fc';
+	handles.gotROI = gotROI;
 	if (handMir.geog)
 		set(handles.popup_Option_D, 'Val', 2)
 		handles.command{3} = '-D1';
 	else
 		handles.command{3} = '-D0';
+	end
+
+	if (gotROI)
+		pos = get(handles.push_computeSolution, 'Pos');
+		set(handles.push_computeSolution, 'Pos', [pos(1) pos(2)+70 pos(3:4)])	% Move this button a bit up
+		set(handles.push_burnSolution, 'Vis', 'on')
+		handles.hRect = varargin{1};
+		x = get(varargin{1},'XData');		y = get(varargin{1},'YData');
+		rect = [x(1) y(1) (x(3)-x(2)) (y(2)-y(1))];
+		[handles.Z_rect, r_c] = cropimg(head(1:2),head(3:4),handles.Z, rect, 'out_grid');
+		handles.head_orig = head;
+		
+		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
+		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
+		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
+		
+		handles.head = head;		% min/max is wrong
+		handles.X = X;
+		handles.Y = Y;
+		handles.row_col = r_c;
 	end
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
@@ -134,7 +165,11 @@ function push_applyStep1_CB(hObject, handles)
 	opt_D = handles.command{3};
 
 	set(handles.figure1,'pointer','watch')
-	[handles.Z_filt, head] = grdfilter_m(handles.Z,handles.head,opt_F,opt_D);
+	if (~handles.gotROI)
+		[handles.Z_filt, head] = grdfilter_m(handles.Z,handles.head,opt_F,opt_D);
+	else
+		[handles.Z_filt, head] = grdfilter_m(handles.Z_rect,handles.head,opt_F,opt_D);
+	end
 	update_report(handles, 1)		% Update the listbox info
 	set(handles.figure1,'pointer','arrow')
 	guidata(handles.figure1, handles);
@@ -187,7 +222,11 @@ function edit_loadFiltered_CB(hObject, handles)
 function push_applyStep2_CB(hObject, handles)
 % STEP 2. Compute the highpass or residue grid. That is, original - filtered
 
-	handles.Z_resid = cvlib_mex('sub', handles.Z, handles.Z_filt);
+	if (~handles.gotROI)
+		handles.Z_resid = cvlib_mex('sub', handles.Z, handles.Z_filt);
+	else
+		handles.Z_resid = cvlib_mex('sub', handles.Z_rect, handles.Z_filt);
+	end
 	update_report(handles, 2)		% Update the listbox info
 
 	if (get(handles.check_show2,'Val'))
@@ -315,22 +354,26 @@ function push_maskFromLines_CB(hObject, handles)
 		errordlg('You must choose someting to do. Look better to this section optios.','Error')
 		return
 	end
-
-	% Either case we have a use to these, so create them right away
-	tmp.X = [handles.X(1) handles.X(end)];		tmp.Y = [handles.Y(1) handles.Y(end)];
-	tmp.head = handles.head;					tmp.head(5:6) = [0 1];		tmp.name = 'Nikles';
 	
 	[semaforo, pal] = aux_funs('semaforo_red');
 	set(handles.hSemaforo,'CData',semaforo)
 	set(handles.figure1, 'Colormap', pal),		drawnow
 
-	mask = true(size(handles.Z));	% Create a fake base image where to plot the tracks
+	% Either case we have a use to these, so create them right away
+	tmp.X = [handles.X(1) handles.X(end)];		tmp.Y = [handles.Y(1) handles.Y(end)];
+	tmp.head(5:6) = [0 1];						tmp.head = handles.head;	tmp.name = 'Nikles';
+	if (~handles.gotROI)
+		mask = true(size(handles.Z));	% Create a fake base image where to plot the tracks
+	else
+		mask = true(size(handles.Z_rect));
+	end
+
 	hMirFig = mirone(mask,tmp);		set(hMirFig,'Vis', 'off'),		pause(0.01)
 	set(findobj(hMirFig,'type','image'), 'Vis', 'off')
 
 	if (get(handles.check_useMGG, 'Val'))
-		x = [handles.head(1) handles.head(1) handles.head(2)];
-		y = [handles.head(3) handles.head(4) handles.head(4)];
+		x = [tmp.head(1) tmp.head(1) tmp.head(2)];
+		y = [tmp.head(3) tmp.head(4) tmp.head(4)];
 		tracks = deal_opts([], 'get_MGGtracks', [],[],x, y);	% 2 [] because get_MGGtracks is a @fun
 		mirone('GeophysicsImportGmtFile_CB',guidata(hMirFig), tracks)
 	else
@@ -418,6 +461,20 @@ function push_computeSolution_CB(hObject, handles)
 	tmp.head = [handles.head(1:4) zMinMax(1:2)' handles.head(7:9)];
 	tmp.X = handles.X;			tmp.Y = handles.Y;		tmp.name = 'MicroLev grid';
 	mirone(micro, tmp)
+
+	if (handles.gotROI)				% Need to save the solution
+		handles.micro = micro;
+		guidata(handles.figure1, handles)
+	end
+
+% -------------------------------------------------------------------------------------
+function push_burnSolution_CB(hObject, handles)
+% Apply the STEP 5 into the big grid
+	if (isempty(handles.micro))
+		errordlg('You did not finish STEP 5','Error'),		return
+	end
+	handles.Z(handles.row_col(1):handles.row_col(2), handles.row_col(3):handles.row_col(4)) = handles.micro;
+	setappdata(handles.hMirFig,'dem_z', handles.Z);			% Update the main grid (still need Min/Max)
 
 % -------------------------------------------------------------------------------------
 function resp = update_report(handles, n)
@@ -695,7 +752,7 @@ axes('Parent',h1,'Units','pixels','Position',[446 212 14 46],...
 'Visible', 'off', ...
 'Tag','axes1');
 
-uicontrol('Parent',h1,'Position',[238 60 222 21],...
+uicontrol('Parent',h1,'Position',[238 55 222 21],...
 'FontSize',11,...
 'FontWeight','bold',...
 'HorizontalAlignment','left',...
@@ -706,6 +763,12 @@ uicontrol('Parent',h1,'Position',[237 20 221 21],...
 'Call',{@microlev_uiCB,h1,'push_computeSolution_CB'},...
 'String','Apply Mask and compute solution',...
 'Tag','push_computeSolution');
+
+uicontrol('Parent',h1,'Position',[237 20 221 21],...
+'Call',{@microlev_uiCB,h1,'push_burnSolution_CB'},...
+'String','Burn solution in Big GRID',...
+'Vis', 'off',...
+'Tag','push_burnSolution');
 
 uicontrol('Parent',h1,'Position',[145 474 85 16],...
 'FontSize',9,...
