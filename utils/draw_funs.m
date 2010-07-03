@@ -419,8 +419,7 @@ if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
 		uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Sep','on', 'Call',...
 			'calc_bonin_euler_pole(get(gco,''XData''), get(gco,''YData''));' );
 	end
-	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
-	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi);
+	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
  	%uimenu(cmenuHand, 'Label', 'Testa patches', 'Sep','on', 'Call', 'patch_options(gco)');
 end
 
