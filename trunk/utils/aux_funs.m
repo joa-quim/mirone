@@ -133,7 +133,9 @@ set(handles.figure1,'Colormap',pal)
 % ----------------------------------------------------------------------------------
 function out = findFileType(fname)
 % From the extension guess what function should be called to open this file
-	out = [];	[PATH,FNAME,EXT] = fileparts(fname);
+	out = [];	
+	if (isempty(fname))		return,		end
+	[PATH,FNAME,EXT] = fileparts(fname);
 	if ( strcmpi(EXT,'.grd') )
 		out = 'gmt';
 	elseif ( strcmpi(EXT,'.nc') )		% .nc files can have grids, mgd77 files or any other thing
