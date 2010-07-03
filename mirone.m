@@ -546,6 +546,7 @@ if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
 		mirone(flipdim(I,1),tmp);
 	end
 	done = true;				% We are done. BYE BYE.
+
 elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )		% Do the operatio indicated in opt2(11:end) & return
 	curr_opt = opt2(11:end);
 	if (~strcmp(curr_opt,'pure'))			% We will need those for all other options
@@ -572,6 +573,7 @@ elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )		% Do the operatio
 		GridToolsSectrum_CB(guidata(handles.figure1), 'Allopts', to_func)
 	end
 	done = true;				% We are done. BYE BYE.
+
 elseif (strcmp(opt2,'FillGaps'))
 	if ~any(isnan(Z_rect(:)))	% No gaps
 		set(handles.figure1,'pointer','arrow'),		warndlg('Selected area does not have any voids (NaNs)','Warning'),	 return
@@ -600,6 +602,7 @@ elseif (strcmp(opt2,'FillGaps'))
 		end
 		clear X XX Y YY ZZ;
 	end
+
 elseif (strcmp(opt2,'SplineSmooth'))
 	X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
 	Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
@@ -611,8 +614,11 @@ elseif (strcmp(opt2,'SplineSmooth'))
 	if (isempty(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
 	pp = spl_fun('csaps',{Y,X},Z_rect,str2double(resp{1}));
 	Z_rect = spl_fun('fnval',pp,{Y,X});		clear pp;
+	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
+
 elseif (strcmp(opt2,'MedianFilter'))
 	[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, 'rect', 'no');
+
 elseif (strcmp(opt2,'SetConst'))		% Replace grid values inside rect by a cte value
 	resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
 	if (isempty(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
@@ -637,8 +643,6 @@ if (~strcmp(opt2,'MedianFilter'))		% Otherwise, this was already done in roi_fil
 end
 
 if ~isempty(opt2)		% Here we have to update the image in the processed region
-	X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
-	Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 	if (isa(Z,'single')),	zz = grdutils(Z,'-L');		z_min = zz(1);		z_max = zz(2);
 	else					z_min = double(min(Z(:)));	z_max = double(max(Z(:)));
 	end
@@ -653,15 +657,17 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 	if ( handles.Illumin_type == 0)		% Nothing to do in particular
 	elseif ( handles.Illumin_type >= 1 && handles.Illumin_type <= 4 )
 		illumComm = getappdata(handles.figure1,'illumComm');
-		z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now 3D
-		head_tmp = [X(1) X(end) Y(1) Y(end) head(5:9)];
+		z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now RGB
+		%X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
+		%Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
+		%head_tmp = [X(1) X(end) Y(1) Y(end) head(5:9)];
 		if (handles.Illumin_type == 1)
 			opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
-			if (handles.geog),	R = grdgradient_m(Z_rect,head_tmp,'-M',illumComm,opt_N);
-			else				R = grdgradient_m(Z_rect,head_tmp,illumComm,opt_N);
+			if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
+			else				R = grdgradient_m(Z_rect,head,illumComm,opt_N);
 			end
 		else
-			R = grdgradient_m(Z_rect,head_tmp,illumComm);
+			R = grdgradient_m(Z_rect,head,illumComm);
 		end
 		z_int = shading_mat(z_int,R,'no_scale');	% and now it is illuminated
 	else
@@ -678,12 +684,12 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 	set(handles.hImg,'CData',img)
 
 	head(5) = z_min;	head(6) = z_max;
-	handles.computed_grid = 1;		handles.head = head;	handles.origFig = img;
+	handles.computed_grid = 1;		handles.head = head;	%handles.origFig = img;
 	setappdata(handles.figure1,'dem_z',Z);
 end
 
-% Experimental UNDO that works only with the "Median Filter" option
-if strmatch(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst'})
+% UNDO that works only with these cases
+if strmatch(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth'})
 	cmenuHand = get(opt,'UIContextMenu');
 	uimenu(cmenuHand, 'Label', 'Undo', 'Separator','on', 'Callback', {@do_undo,handles.figure1,opt,cmenuHand});
 end
@@ -2450,7 +2456,7 @@ function DrawImportShape_CB(handles, fname)
 			if (any(out))			% It means the polyg BB is at least partially inside
 				h(i) = line('Xdata',single(s(i).X),'Ydata',single(s(i).Y),'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
 			end
-			if (is3D),		set(h(i),'UserData', single(s(i).Z)),	end
+			if (is3D),		set(h(i),'UserData', single(s(i).Z(:)')),	end
 			h((h == 0)) = [];		% Those were jumped because thay were completely outside map limits
 		end
 		if (isempty(h)),	warndlg('No data inside dysplay region','Warning'),		return,		end
@@ -2463,7 +2469,7 @@ function DrawImportShape_CB(handles, fname)
 			if (any(out))					% It means the polyg BB is at least partially inside
 				h(i) = patch('XData',s(i).X,'YData', s(i).Y,'FaceColor','none','EdgeColor',lc,'Parent',handles.axes1,'Tag','SHPpolygon');
 				if ( (numel(t) >= 8) && (t(8) == 'Z') )
-					set(h(i), 'UserData', s(i).Z)			% Fleder can drape it (+ other eventual usages)
+					set(h(i), 'UserData', s(i).Z(:)')		% Fleder can drape it (+ other eventual usages)
 				end
 			end
 			if ((h(i) ~= 0) && nPolygs <= nParanoia)		% With luck, your hardware won't choke to dead with this
@@ -3456,7 +3462,7 @@ function FileSaveFleder_CB(handles, opt)
 				if (resp == 0)
 					errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
 				end
-			elseif (ispc),	dos(fcomm);
+			elseif (ispc)	dos(fcomm)
 			else			errordlg('Unknown platform.','Error'),	return
 			end
 		catch
