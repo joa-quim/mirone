@@ -705,10 +705,10 @@ function g = rgb2cmy(f)
 			end
 		case 'uint8'
 			lut = uint8(255:-1:0);
-			g = uintlutc(f,lut);
+			g = intlutc(f,lut);
 		case 'uint16'
 			lut = uint16(65535:-1:0);
-			g = uintlutc(f,lut);
+			g = intlutc(f,lut);
 		case 'uint32'
 			error('UInt32 is currently not supported image class.')
 		otherwise
