@@ -10,13 +10,13 @@
 #MIR_GMTEDIT -Vmtf1,anom_cm4,depth
 #MIR_GMTEDIT -Vvel,mtf1,depth
 #MIR_GMTEDIT -Vlon,lat,vel
-#MIR_GMTEDIT -Vvel,mtf1,anom_cm4:mag+3
+MIR_GMTEDIT -Vvel,mtf1,anom_cm4:mag+3
 
 # Activate MGG (.nc) tracks fishing inside rectangles (comment (#) if not wanted)
-#MIR_MGG
+MIR_MGG
 
 # Activate ROI Microleveling
-#MIR_MICROLEV
+MIR_MICROLEV
 
 # Activate the option to display COEs as circles with uicontexts
-#MIR_COEs C:\a1\mgd77\coes.dat anom_cm4
+MIR_COEs C:\a1\mgd77\coes.dat anom_cm4
