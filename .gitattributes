@@ -633,7 +633,6 @@ src_figs/world_is_not_round_enough.m -text
 src_figs/write_gmt_script.m -text
 src_figs/yes_or_no.m -text
 /startup.m -text
-/szlibdll_mir.dll -text
 /szlibdll_mir32.dll -text
 /tbb_x32.dll -text
 /uigetfolder_standalone.m -text
