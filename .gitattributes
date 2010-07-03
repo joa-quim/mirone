@@ -516,7 +516,9 @@ mex/write_mex.c -text
 mex/xyzokb_m.c -text
 /mirone.m -text
 /mirone_uis.m -text
+/msvcp100.dll -text
 /msvcp71.dll -text
+/msvcr100.dll -text
 /msvcr71.dll -text
 netcdf3.6.3/include/msc_inttypes.h -text
 netcdf3.6.3/include/msc_stdint.h -text
