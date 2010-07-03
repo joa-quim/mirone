@@ -35,9 +35,7 @@ continents/polos_Cox_b.dat -text
 continents/south_america.dat -text
 /copy_so.sc -text
 /country_extract.exe -text
-/cv100.dll -text
 /cv200.dll -text
-/cxcore100.dll -text
 /cxcore200.dll -text
 data/AKIM2000_poles.dat -text
 data/AKIM2000_polyg.mat -text
@@ -209,9 +207,7 @@ gmt_userdir/coastline.conf -text
 gmt_userdir/gmt.conf -text
 gmt_userdir/us.d -text
 /gunzip.exe -text
-/hd422m.dll -text
 /hd424m_mir.dll -text
-/hm422m.dll -text
 /hm424m_mir.dll -text
 lib_mex/PolygonClip.dll -text
 lib_mex/akimaspline.dll -text
@@ -299,13 +295,11 @@ lib_mex/uigetfolder_win32.dll -text
 lib_mex/uintlutc.dll -text
 lib_mex/wave_travel_time.dll -text
 lib_mex/wgifc.dll -text
-/libcurl.dll -text
 /libcurl_mir.dll -text
 /libecwj2.dll -text
 /libguide40.dll -text
 /libjpeg_mir.dll -text
 /libmmd.dll -text
-/libnetcdf.dll -text
 /libnetcdf_w32.dll -text
 /libsift.dll -text
 /lti_dsdk_dll.dll -text
@@ -634,7 +628,6 @@ src_figs/world_is_not_round_enough.m -text
 src_figs/write_gmt_script.m -text
 src_figs/yes_or_no.m -text
 /startup.m -text
-/szlibdll.dll -text
 /szlibdll_mir.dll -text
 /tbb_x32.dll -text
 /uigetfolder_standalone.m -text
@@ -815,5 +808,4 @@ utils/writegif.m -text
 utils/writekml.m -text
 utils/zoom_j.m -text
 /wget.exe -text
-/zlib1.dll -text
 /zlib1_mir.dll -text
