@@ -534,7 +534,6 @@ netcdf3.6.3/lib/libnetcdf_w32.lib -text
 /opencv_imgproc211.dll -text
 /opencv_objdetect211.dll -text
 /opencv_video211.dll -text
-/proj_mir.dll -text
 /proj_mir32.dll -text
 /psl.dll -text
 /shapelib.dll -text
@@ -815,5 +814,4 @@ utils/writegif.m -text
 utils/writekml.m -text
 utils/zoom_j.m -text
 /wget.exe -text
-/zlib1_mir.dll -text
 /zlib1_mir32.dll -text
