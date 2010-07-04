@@ -1,0 +1,15 @@
+# Example ellipsoids definition file. Each entry must be of the form: 
+# ellipsoid name, major-axis (in m), and flattening (f). Flattening can be
+# given as in examples bellow or as a number resulting from evaluating 1.0/...
+# 
+# To make this file active, rename it to ellipsoids.txt and it will than take
+# precedence over the built in default ellipsoids.
+#
+# WARNING: It's ABSOLUTELY CRUTIAL the use of commas like in the next examples.
+#
+WGS-84 - 1984, 6378137.0, 1.0/298.2572235630
+OSU91A - 1991, 6378136.3, 1.0/298.25722
+International-1924, 6378388.0, 1.0/297.0
+Everest-1830, 6377276.345, 1.0/300.8017
+Sphere - 1980, 6371008.7714, 0.0
+Mars Sphere, 3396000.0, 0.0
