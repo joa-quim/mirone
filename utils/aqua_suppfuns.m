@@ -146,10 +146,14 @@ function coards_sliceShow(handles)
 		if ( ~get(handles.check_globalMinMax, 'Val') ),		minmax = [];		% Use Slice's min/max
 		else							minmax = handles.zMinMaxsGlobal;
 		end
-		if (isa(Z,'uint8') || isa(Z,'int8') && ~isempty(minmax)),	minmax = [];	end	% We don't want to scale a 1 byte array
+		if (isa(Z,'int8') && ~isempty(minmax)),	minmax = [];	end	% We don't want to scale a 1 byte array
 
-		if ( ~isempty(minmax) ),		img = scaleto8(Z, 8, minmax);
-		else							img = scaleto8(Z);
+		if (~isa(Z,'uint8'))
+			if ( ~isempty(minmax) ),		img = scaleto8(Z, 8, minmax);
+			else							img = scaleto8(Z);
+			end
+		else
+			img = Z;
 		end
 
 		if ( get(handles.radio_shade, 'Val') )
