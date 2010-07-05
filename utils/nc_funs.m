@@ -627,6 +627,10 @@ if (have_addoffset)
 	if ( add_offset == 0 ),		have_addoffset = false;		end
 end
 
+if (ndims(values) > 2)			% OpenCV is bugged with 3D grids and sometime we get here a singleton 3D array
+	values = squeeze(values);
+end
+
 if (have_scale && have_addoffset)
 	cvlib_mex('CvtScale',values, scale_factor, add_offset)
 elseif (have_scale)
