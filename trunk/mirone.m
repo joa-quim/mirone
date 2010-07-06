@@ -432,7 +432,8 @@ function ImageCrop_CB(handles, opt, opt2, opt3)
 
 if (handles.no_file),		return,		end
 set(handles.figure1,'pointer','watch')
-first_nans = 0;		pal = [];		mask = [];	done = false;	crop_pol = false;	% Defaults to croping from a rectangle
+first_nans = 0;		pal = [];		mask = [];	crop_pol = false;	% Defaults to croping from a rectangle
+wasROI = false;		done = false;
 if (nargin < 3),	opt2 = [];		end
 if (nargin < 4),	opt3 = [];		end
 if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve many purposes)
@@ -499,6 +500,9 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 				if (isnan(str2double(resp))),	handles.have_nans = 1;	first_nans = 1;		end
 			elseif (strcmp(opt2,'ROI_MedianFilter'))
 				[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask);
+			elseif (strcmp(opt2,'ROI_SplineSmooth'))
+				opt2 = 'SplineSmooth';	% Strip the 'ROI_' part so that we can use the same code as for rectangles
+				wasROI = true;			% Signal the SplineSmooth code below that we need to mask result
 			elseif (strcmp(opt2,'CropaGrid_histo'))
 				Z_rect(~mask) = single(NaN);
 			else
@@ -615,6 +619,9 @@ elseif (strcmp(opt2,'SplineSmooth'))
 	pp = spl_fun('csaps',{Y,X},Z_rect,str2double(resp{1}));
 	Z_rect = spl_fun('fnval',pp,{Y,X});		clear pp;
 	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
+	if (wasROI)				% Apply the mask and smooth over the mask edges
+		Z_rect = smooth_roipoly_edge(head, handles.have_nans, Z, handles.Z_back, Z_rect, r_c, mask, 3);
+	end
 
 elseif (strcmp(opt2,'MedianFilter'))
 	[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, 'rect', 'no');
