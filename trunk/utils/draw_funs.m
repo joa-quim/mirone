@@ -408,6 +408,7 @@ if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
 		uimenu(item_tools2, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
 		uimenu(item_tools2, 'Label', 'Set to const', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
 		uimenu(item_tools2, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+		uimenu(item_tools2, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
 		uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
 		hP = getappdata(handles.figure1, 'ParentFig');
 		if ( ~isempty(hP) && ishandle(hP) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
