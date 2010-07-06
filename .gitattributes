@@ -776,6 +776,7 @@ utils/scribefiglisten_j.m -text
 utils/setAxesDefCoordIn.m -text
 utils/shading_mat.m -text
 utils/shapenc.m -text
+utils/smooth_roipoly_edge.m -text
 utils/spl_fun.m -text
 utils/spl_fun.p -text
 utils/spline_interp.m -text
