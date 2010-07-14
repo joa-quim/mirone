@@ -24,6 +24,8 @@ switch opt(1:3)
 		DatasetsMeteor(varargin{:})
 	case 'Tid'
 		DatasetsTides(varargin{:})
+	case 'Mar'
+		DatasetsMaregOnLine(varargin{:})
 	case 'Cit'
 		DatasetsCities(varargin{:})
 	case 'sca'
@@ -112,11 +114,11 @@ function DatasetsMeteor(handles)
 	[meteor.x meteor.y meteor.name meteor.diameter meteor.dating meteor.exposed meteor.btype] = strread(todos,'%f %f %s %s %s %s %s');
 	fclose(fid);    clear todos
 	[tmp, msg] = geog2projected_pts(handles,[meteor.x meteor.y]);	% If map in geogs, tmp is just a copy of input
-	if (~strncmp(msg,'0',1))        % Coords were projected
-		meteor.x = tmp(:,1);        meteor.y = tmp(:,2);
+	if (~strncmp(msg,'0',1))		% Coords were projected
+		meteor.x = tmp(:,1);		meteor.y = tmp(:,2);
 	end
 
-	% Get rid of Volcanoes that are outside the map limits
+	% Get rid of Events that are outside the map limits
 	[x,y,indx,indy] = aux_funs('in_map_region',handles,meteor.x, meteor.y, 0, []);
 	meteor.name(indx) = [];		meteor.diameter(indx) = [];		meteor.dating(indx) = [];		meteor.exposed(indx) = [];
 	meteor.name(indy) = [];		meteor.diameter(indy) = [];		meteor.dating(indy) = [];		meteor.btype(indx) = [];
@@ -128,8 +130,31 @@ function DatasetsMeteor(handles)
 	draw_funs(h,'volcano',meteor)
 
 % --------------------------------------------------------------------
+function DatasetsMaregOnLine(handles)
+	if (aux_funs('msg_dlg',5,handles))		return,		end    % Test no_file || unknown proj
+	fid = fopen([handles.path_data 'mareg_online.dat'],'r');
+	todos = fread(fid,'*char');
+	[mareg.x mareg.y mareg.name dumb mareg.codeSt dumb mareg.country] = strread(todos,'%f %f %s %s %s %s %s');
+	fclose(fid);    clear todos
+	[tmp, msg] = geog2projected_pts(handles,[mareg.x mareg.y]);	% If map in geogs, tmp is just a copy of input
+	if (~strncmp(msg,'0',1))		% Coords were projected
+		mareg.x = tmp(:,1);			mareg.y = tmp(:,2);
+	end
+
+	% Get rid of Events that are outside the map limits
+	[x,y,indx,indy] = aux_funs('in_map_region', handles, mareg.x, mareg.y, 0, []);
+	mareg.name(indx) = [];		mareg.codeSt(indx) = [];		mareg.country(indx) = [];
+	mareg.name(indy) = [];		mareg.codeSt(indy) = [];		mareg.country(indy) = [];
+	n_evt = numel(x);			h = zeros(1,n_evt);
+	for (i = 1:n_evt)
+		h(i) = line(x(i),y(i),'Marker','h','MarkerFaceColor','r',...
+			'MarkerEdgeColor','k','MarkerSize',10,'Tag','mar_online','Userdata',i);
+	end
+	draw_funs(h,'volcano',mareg)
+
+% --------------------------------------------------------------------
 function DatasetsTides(handles)
-	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
+	if (aux_funs('msg_dlg',5,handles))		return,		end    % Test no_file || unknown proj
 	load([handles.path_data 't_xtide.mat']);
 	[tmp, msg] = geog2projected_pts(handles,[xharm.longitude xharm.latitude]);     % If map in geogs, tmp is just a copy of input
 	if (~strncmp(msg,'0',1))        % Coords were projected
