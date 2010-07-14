@@ -1,5 +1,6 @@
 function varargout = ecran(varargin)
-
+% A specialized plot(x,y) function
+%
 %	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
@@ -79,8 +80,8 @@ function varargout = ecran(varargin)
 		delete(hObject),		return
 	end
 
-	% ------------- Load some icons from mirone_icons.mat
-	load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico', 'Mline_ico');
+	% ------------- Load some icons from mirone_icons.mat -------------------------------------
+	load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico', 'Mline_ico', 'rectang_ico');
 	link_ico = imread([handles.d_path 'link.png']);
 
 	hTB = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
@@ -95,14 +96,17 @@ function varargout = ecran(varargin)
 			'Pick data point in curve and plot it the mirone figure','Sep','on');
 	end
 	uitoggletool('parent',hTB,'Click',@dynSlope_CB, 'cdata', Mline_ico,'Tooltip','Compute slope dynamically', 'Tag', 'DynSlope');
+	uipushtool('parent',hTB,'Click',@rectang_clicked_CB,'cdata',rectang_ico,...
+		'Tooltip','Restrict analysis to X region');
 	uitoggletool('parent',hTB,'Click',@isocs_CB, 'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on');
-	% -----------------------------------------
+	% -------------------------------------------------------------------------------------------
 
 	handles.n_plot = 0;         % Counter of the number of lines. Used for line color painting
 	handles.dist = [];			% It will contain cumulated distance if input is (x,y,z)
 	handles.hLine = [];			% Handles to the ploted line
 	handles.polyFig = [];		% Handles to the (eventual) figure for trend1d polyfit
 	handles.ageStart = 0;		handles.ageEnd = nan;
+	handles.hRect = [];			% Handles to a XLim analysis limiting rectangle
 
 	% Choose the default ploting mode
 	if isempty(varargin{1})          % When the file will be read latter
@@ -437,7 +441,7 @@ function isocs_CB(obj,eventdata)
 	end
 
 % -------------------------------------------------------------------------------
-function checkbox_geog_CB(hObject, eventdata, handles)
+function checkbox_geog_CB(hObject, handles)
 	if get(hObject,'Value')
 		set(handles.popup_selectPlot,'String',{'Distance along profile (data units)';
 		'Distance along profile (km)';'Distance along profile (NM)'});
@@ -454,11 +458,10 @@ function checkbox_geog_CB(hObject, eventdata, handles)
 	end
 
 % ---------------------------------------------------------------------------------
-function popup_selectPlot_CB(hObject, eventdata, handles)
+function popup_selectPlot_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	D2R = pi/180;
 	switch str{val};
-	
 		case 'Distance along profile (data units)'  % Compute the accumulated distance along profile in data units
 			xd = handles.data(:,1);			yd = handles.data(:,2);
 	
@@ -475,7 +478,7 @@ function popup_selectPlot_CB(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 % ---------------------------------------------------------------------------------
-function popup_selectSave_CB(hObject, eventdata, handles)
+function popup_selectSave_CB(hObject, handles)
 val = get(hObject,'Value');     str = get(hObject, 'String');
 D2R = pi/180;
 deg2km = 111.1949;		deg2nm = 60.04;
@@ -548,45 +551,82 @@ end
 set(hObject,'Value',1);
 
 % --------------------------------------------------------------------
-function FileExport_Callback(hObject, eventdata, handles)
+function FileExport_CB(hObject, handles)
 	filemenufcn(handles.figure1,'FileExport')
 
 % --------------------------------------------------------------------
-function FilePrint_Callback(hObject, eventdata, handles)
+function FilePrint_CB(hObject, handles)
 	if (ispc),		print -v
 	else			print
 	end
 
 % --------------------------------------------------------------------
-function FileOpen_Callback(hObject, eventdata, handles)
+function FileOpen_CB(hObject, handles)
 % Read the file and select what columns to plot
 	str1 = {'*.dat;*.DAT;', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select input data','get');
 	if isequal(FileName,0),		return,		end	
 	fname = [PathName FileName];
 
-	data = text_read(fname,NaN);
-	if (isempty(data) || size(data,2) == 1)
-		errordlg('File doesn''t have any recognized nymeric data (Quiting) or one column only.','Error');    return
+	% Section to deal with cases where time is provided in data time char srtrings
+	% In that case first line of file must be of this form (the time format may change)
+	% # DATENUM dd-mm-yyyy HH:MM:SS
+	isDateNum = false;
+	fid = fopen(fname);
+	H1 = fgetl(fid);
+	if (~isempty(H1) && H1(1) == '#')
+		ind = findstr(H1, '# DATENUM');
+		if (~isempty(ind))
+			todos = fread(fid,'*char');
+			fclose(fid);
+			[bin,n_cols,multi_seg,n_headers] = guess_file(fname);
+			if (n_headers > 1)
+				id = strfind(todos(1:(n_headers - 1)*120)',sprintf('\n'));
+				todos = todos(id(n_headers)+1:end);		% Jump the header lines
+			end
+			if (n_cols == 3)
+				[yymmdd hhmm sl] = strread(todos,'%s %s %f');
+				yymmdd = strcat(yymmdd, repmat({char(32)}, size(yymmdd,1),1), hhmm);	%BUG {char(' ')} is ignored
+			else
+				[yymmdd sl] = strread(todos,'%s %f', 'delimiter', '\t');
+			end
+			t = strtok(H1(ind(1)+10:end));
+			if (~isnan(str2double(t)))		% Interpret 't' as a dateform number
+				t = str2double(t);
+			else
+				t = H1(ind(1)+10:end);		% t is date time format string
+			end
+			try
+				serial_date = datenum(yymmdd, t);
+			catch
+				errordlg(lasterr,'Error')
+			end
+			data = [serial_date sl];
+			out = [1 2];					% To simulate the output of select_cols
+			isDateNum = true;
+		end
 	end
 
-	% If msgbox exist we have to move it from behind the main window. So get it's handle
-	hMsgFig = gcf;
-	if (handles.figure1 ~= hMsgFig)
-		figure(hMsgFig);		% If error msgbox exists, bring it forward
-		% Here we have a stupid problem. If don't kill the message window before the
-		% select_cols is called this later wont work. FDS I have no more patiente for this.
-		pause(0.5)
-		try		delete(hMsgFig),		end
-	end
+	if (~isDateNum)				% Means data was not yet read
+		data = text_read(fname,NaN);
+		if (isempty(data) || size(data,2) == 1)
+			errordlg('File doesn''t have any recognized nymeric data (Quiting) or one column only.','Error');
+			return
+		end
 
-% 	if (size(data,2) > 2)			% Not yet mature
-% 		out = select_cols(data,'xyz',fname,1000);
-% 	else
-% 		out = select_cols(data,'xy',fname,1000);
-% 	end
-	out = select_cols(data,'xy',fname,1000);
-	if (isempty(out)),		return,		end
+		% If msgbox exist we have to move it from behind the main window. So get it's handle
+		hMsgFig = gcf;
+		if (handles.figure1 ~= hMsgFig)
+			figure(hMsgFig);		% If error msgbox exists, bring it forward
+			% Here we have a stupid problem. If don't kill the message window before the
+			% select_cols is called this later wont work. FDS I have no more patiente for this.
+			pause(0.5)
+			try		delete(hMsgFig),		end
+		end
+
+		out = select_cols(data,'xy',fname,1000);
+		if (isempty(out)),		return,		end
+	end
 
 	if (numel(out) == 4)			% Not yet in use
 		rd = dist_along_profile( data(:,out(1)), data(:,out(2)) );
@@ -609,24 +649,26 @@ function FileOpen_Callback(hObject, eventdata, handles)
 	end
 	handles.data = [data(:,out(1)) data(:,out(2))];     % NOTE, if handles.n_plot > 1 only last data is saved
 	guidata(hObject, handles);
+	if (isDateNum)
+		add_uictx_CB(handles.hidenCTRL, handles)
+	end
 
 % --------------------------------------------------------------------
-function FileSave_Callback(hObject, eventdata, handles)
+function FileSave_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
 	[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'X,Y (*.dat)';'*.*', 'All Files (*.*)'},'X,Y (ascii)','put', '.dat');
 	if isequal(FileName,0),		return,		end     % User gave up	
-	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
-	double2ascii([PathName FileName],[xx(:) yy(:)],'%f\t%f');
+	[x, y] = get_inside_rect(handles);
+	double2ascii([PathName FileName],[x(:) y(:)],'%f\t%f');
 
 % --------------------------------------------------------------------
-function AnalysisFFT_AmpSpectrum_Callback(hObject, eventdata, handles)
+function AnalysisFFT_AmpSpectrum_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
-	x = get(handles.hLine,'XData');
+	[x, y] = get_inside_rect(handles);
 	Fs = 1 / (x(2) - x(1));			% Sampling frequency
 	Fn = Fs/2;						% Nyquist frequency
-	x = get(handles.hLine,'YData');
-	NFFT = 2.^(ceil(log(length(x))/log(2)));	% Next highest power of 2 greater than or equal to length(x)
-	FFTX = fft(x,NFFT);							% Take fft, padding with zeros, length(FFTX)==NFFT
+	NFFT = 2.^(ceil(log(length(y))/log(2)));	% Next highest power of 2 greater than or equal to length(x)
+	FFTX = fft(y,NFFT);							% Take fft, padding with zeros, length(FFTX)==NFFT
 	NumUniquePts = ceil((NFFT+1)/2);
 	FFTX = FFTX(1:NumUniquePts);				% fft is symmetric, throw away second half
 	MX = abs(FFTX);								% Take magnitude of X
@@ -634,49 +676,77 @@ function AnalysisFFT_AmpSpectrum_Callback(hObject, eventdata, handles)
 	MX = MX*2;				MX(1) = MX(1)/2;	% Account for endpoint uniqueness
 	MX(length(MX)) = MX(length(MX))/2;			% We know NFFT is even
 	% Scale the FFT so that it is not a function of the length of x.
-	MX = MX/length(x);        f = (0:NumUniquePts-1)*2*Fn/NFFT;
-	ecran('reuse',f,MX,[],'Amplitude Spectrum','frequency',[],'Amplitude Spectrum','semilogy')
+	xIsDatenum = getappdata(handles.axes1,'xIsDatenum');
+	fLabel = 'Frequency (1/x_unit)';
+	if (~isempty(xIsDatenum))
+		Fn = Fn / (24 * 60);		fLabel = 'Frequency (1/min)';
+	end
+	MX = MX/length(x);			f = (0:NumUniquePts-1)*2*Fn/NFFT;
+	ecran('reuse',f,MX,[],'Amplitude Spectrum',fLabel,[],'Amplitude Spectrum','semilogy')
 
 % --------------------------------------------------------------------
-function AnalysisFFT_PSD_Callback(hObject, eventdata, handles)
+function AnalysisFFT_PSD_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
-	x = get(handles.hLine,'XData');			Fs = 1 / (x(2) - x(1));		% Sampling frequency
-	x = get(handles.hLine,'YData');
-	[Pxx,w] = psd(x,Fs);
+	[x, y] = get_inside_rect(handles);
+	Fs = 1 / (x(2) - x(1));		% Sampling frequency
+	if (strcmp(get(hObject,'Tag'), 'PSD'))
+		[Pxx,w] = psd(y, Fs);
+	else
+		[Pxx,w] = welch(y, Fs);
+	end
+	%[Pxx,w] = pmtm(y,[]);
+	xIsDatenum = getappdata(handles.axes1,'xIsDatenum');
+	fLabel = 'Frequency (1/x_unit)';
+	if (~isempty(xIsDatenum))
+		w = w / (24 * 60);		fLabel = 'Frequency (1/min)';
+		%w = w /(2*pi) * Fs;
+	end
 	% We want to guarantee that the result is an integer if X is a negative power of 10.
 	% To do so, we force some rounding of precision by adding 300-300.
 	Pxx = (10.*log10(Pxx)+300)-300;    % Compute db
-	ecran('reuse',w,Pxx,[],'Power Spectrum','Frequency (Hz)','Power Spectral Density (dB/Hz)','Periodogram PSD Estimate')
+	ecran('reuse',w,Pxx,[],'Power Spectrum',fLabel,'Power Spectral Density (dB/...)','Periodogram PSD Estimate')
 
 % --------------------------------------------------------------------
-function AnalysisAutocorrelation_Callback(hObject, eventdata, handles)
-	if (isempty(handles.hLine)),	return,		end
-	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
-	c = autocorr(yy);				n = length(yy);
-	ecran('reuse',xx,c(n:end),[],'Normalized Autocorrelation','Lag in user X units')
+function [x, y] = get_inside_rect(handles)
+% Gets the (x,y) data from the plot line and checks if a BB rectangle exists.
+% If yes, clips data inside rectangle.
+	x = get(handles.hLine,'XData');		y = get(handles.hLine,'YData');
+	if (~isempty(handles.hRect) && ishandle(handles.hRect))		% Find the points inside rectangle
+		xRect = get(handles.hRect, 'XData');
+		id = find(x >= xRect(1) & x <= xRect(4));
+		if (isempty(id)),	return,		end		% Nothing inside rect
+		x = x(id);			y = y(id);
+	end
 
 % --------------------------------------------------------------------
-function AnalysisRemoveMean_Callback(hObject, eventdata, handles)
+function AnalysisAutocorrelation_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
-	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
-	ecran('reuse',xx,yy-mean(yy),[],'Mean Removed')
+	[x, y] = get_inside_rect(handles);
+	c = autocorr(y);						n = length(y);
+	ecran('reuse',x,c(n:end),[],'Normalized Autocorrelation','Lag in user X units')
 
 % --------------------------------------------------------------------
-function AnalysisRemoveTrend_Callback(hObject, eventdata, handles)
+function AnalysisRemoveMean_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
-	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
+	[x, y] = get_inside_rect(handles);
+	ecran('reuse',x,y-mean(y),[],'Mean Removed')
+
+% --------------------------------------------------------------------
+function AnalysisRemoveTrend_CB(hObject, handles)
+	if (isempty(handles.hLine)),	return,		end
+	[xx, yy] = get_inside_rect(handles);
 	p = polyfit(xx,yy,1);			y = polyval(p,xx);
 	ecran('reuse',xx,yy-y,[],'Trend Removed')
 
 % --------------------------------------------------------------------
-function AnalysisFitPoly_Callback(hObject, eventdata, handles)
+function AnalysisFitPoly_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
 	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
 	handles.polyFig = ecran_trend1d(handles.axes1, [xx(:) yy(:)]);
 	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------
-function AnalysisSmoothSpline_Callback(hObject, eventdata, handles)
+function AnalysisSmoothSpline_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
 	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
 	[pp,p] = spl_fun('csaps',xx,yy);		% This is just to get csaps's p estimate
@@ -687,23 +757,23 @@ function AnalysisSmoothSpline_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 % --------------------------------------------------------------------
-function Analysis1derivative_Callback(hObject, eventdata, handles)
+function Analysis1derivative_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
-	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
+	[xx, yy] = get_inside_rect(handles);
 	pp = spl_fun('csaps',xx,yy,1);		% Use 1 for not smoothing, just interpolate
 	v = spl_fun('ppual',pp,xx,'l','first');
 	ecran('reuse',xx,v,[],'First derivative')
 
 % --------------------------------------------------------------------
-function Analysis2derivative_Callback(hObject, eventdata, handles)
+function Analysis2derivative_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
-	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
+	[xx, yy] = get_inside_rect(handles);
 	pp = spl_fun('csaps',xx,yy,1);		% Use 1 for not smoothing, just interpolate
 	v = spl_fun('ppual',pp,xx,'l','second');
 	ecran('reuse',xx,v,[],'Second derivative')
 
 % --------------------------------------------------------------------
-function edit_ageStart_Callback(hObject, eventdata, handles)
+function edit_ageStart_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx))
 		set(hObject,'String','')
@@ -715,16 +785,14 @@ function edit_ageStart_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------
-function edit_ageEnd_Callback(hObject, eventdata, handles)
+function edit_ageEnd_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
-	if (isnan(xx))
-		set(hObject,'String','')
-	end
+	if (isnan(xx))		set(hObject,'String',''),	end
 	handles.ageEnd = xx;
 	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------
-function push_magBar_Callback(hObject, eventdata, handles)
+function push_magBar_CB(hObject, handles)
 	if (isnan(handles.ageStart) || isnan(handles.ageEnd))
 		errordlg('Take a second look to what you are asking for. Wrong ages','Error'),		return
 	end
@@ -796,6 +864,82 @@ function push_magBar_Callback(hObject, eventdata, handles)
 	text(x_pos,repmat(y_lim(2),numel(x_pos),1),age_txt(ind),'Parent',handles.axes1, ...
 		'VerticalAlignment','top', 'HorizontalAlignment', ha)
 
+% --------------------------------------------------------------------------------------------------
+function rectang_clicked_CB(obj,evt)
+% Draw a rectangle that can be used to limit analysis (e.g. FFTs) to its XLim
+	handles = guidata(obj);     % get handles
+	try
+		[p1,p2,hLine] = rubberbandbox(handles.axes1);
+		cmenuHand = uicontextmenu('Parent',handles.figure1);
+		set(hLine, 'UIContextMenu', cmenuHand);
+		uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
+	catch		% Don't know why but uisuspend sometimes breaks
+		set(handles.figure1,'Pointer','arrow'),		return
+	end
+	y_lim = get(handles.axes1,'ylim');
+	set(hLine, 'Ydata', [y_lim(1) y_lim(2) y_lim(2) y_lim(1) y_lim(1)])	% Make rect from y_min to y_max
+	ui_edit_polygon(hLine)
+	handles.hRect = hLine;
+	guidata(handles.figure1, handles)
+
+% --------------------------------------------------------------------
+function add_uictx_CB(hObject, handles)
+% Trick function activated by the hiden uictx with 'hidenCTRL' Tag
+	h = findobj(handles.figure1,'Label','Analysis');
+	uimenu('Parent',h, 'Call',{@ecran_uiCB,handles.figure1,'filterButt_CB'},...
+	'Label','Filter (Butterworth)', 'Tag','FiltButter', 'Sep', 'on');
+	% Save original X label in appdata for easear access when we want to change it
+	setappdata(handles.axes1,'XTickOrig',get(handles.axes1,'XTickLabel'))
+	setappdata(handles.axes1,'xIsDatenum',true)		% For FFTs to know how to compute frequency
+
+	datetick('x','keeplimits')		% Make it auto right away
+
+	cmenu_axes = uicontextmenu('Parent',handles.figure1);
+	set(handles.axes1, 'UIContextMenu', cmenu_axes);
+	uimenu(cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'});
+	uimenu(cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
+	uimenu(cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call', {@SetAxesDate,2});
+	uimenu(cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call', {@SetAxesDate,6});
+	uimenu(cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call', {@SetAxesDate,15});
+	uimenu(cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call', {@SetAxesDate,13});
+	uimenu(cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call', @SetAxesDate);
+
+% --------------------------------------------------------------------
+function filterButt_CB(hObject, handles)
+% Normaly this function should only be called when dealing with dl tide data 
+	if (isempty(handles.hLine)),	return,		end
+	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
+	res = filter_butter(xx, yy);
+	h = ecran('reuse',xx,res(:,2),[],'Tide Removed');
+	handNew = guidata(h);
+	% Save original X label in appdata for easear access when we want to change it
+	setappdata(handNew.axes1,'XTickOrig',get(handNew.axes1,'XTickLabel'))
+	setappdata(handNew.axes1,'xIsDatenum',true)		% For FFTs to know how to compute frequency
+
+	datetick('x','keeplimits')		% Make it auto right away
+
+	cmenu_axes = uicontextmenu('Parent',h);
+	set(handNew.axes1, 'UIContextMenu', cmenu_axes);
+	uimenu(cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'});
+	uimenu(cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
+	uimenu(cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call', {@SetAxesDate,2});
+	uimenu(cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call', {@SetAxesDate,6});
+	uimenu(cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call', {@SetAxesDate,15});
+	uimenu(cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call', {@SetAxesDate,13});
+	uimenu(cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call', @SetAxesDate);
+
+% --------------------------------------------------------------------------------------------------
+function handles = SetAxesDate(hObject,event,opt)
+% Set X axes labels when we know for sure X units are datenum days
+	if (nargin == 2)		% Sow the original dd.xxxxx
+		handles = guidata(hObject);
+		set(handles.axes1,'XTickLabel', getappdata(handles.axes1,'XTickOrig'))
+	elseif (ischar(opt))	% Automatic
+		datetick('x')
+	else
+		datetick('x', opt)
+	end
+
 % --------------------------------------------------------------------
 function ac = autocorr(x)
 %AUTOCORR Computes normalized auto-correlation of vector X.
@@ -815,10 +959,12 @@ function ac = autocorr(x)
 	ac = shiftdim(ac,-nshift);
 
 % --------------------------------------------------------------------
-function [Pxx,w] = psd(xw,Fs)
+function [Pxx,w] = psd(xw, Fs, nfft)
 %Power Spectral Density estimate via periodogram method.
 	N = length(xw);     xw = xw(:);
-	nfft  = max(256, 2^nextpow2(N));
+	if (nargin == 2)
+		nfft  = max(256, 2^nextpow2(N));
+	end
 
 	nx = size(xw,2);
 	xw = [xw; zeros(nfft-N,1)];     % pad with zeros (I REALY don't like this)
@@ -834,15 +980,176 @@ function [Pxx,w] = psd(xw,Fs)
 	w = w(:);
 
 	% Generate the spectrum
-	if rem(nfft,2),		select = 1:(nfft+1)/2;		% odd
-	else				select = 1:nfft/2+1;		% even
+	if rem(nfft,2)			% odd
+		select = 1:(nfft+1)/2;
+		Sxx_unscaled = Sxx(select);
+		Sxx = [Sxx_unscaled(1,:); 2*Sxx_unscaled(2:end,:)];  % Only DC is a unique point and doesn't get doubled
+	else					% even
+		select = 1:nfft/2+1;
+		Sxx_unscaled = Sxx(select);
+		Sxx = [Sxx_unscaled(1,:); 2*Sxx_unscaled(2:end-1,:); Sxx_unscaled(end,:)]; % Don't double unique Nyquist point
 	end
-	Sxx_unscaled = Sxx(select);
 	w = w(select);
-	Sxx = [Sxx_unscaled(1); 2*Sxx_unscaled(2:end-1); Sxx_unscaled(end)];
+
+	Pxx = Sxx./Fs;      % Scale by the sampling frequency to obtain the psd
+	w = w.*Fs./(2.*pi); % Scale the frequency vector from rad/sample to Hz
+	
+% --------------------------------------------------------------------------------------
+function [Pxx,w] = welch(x, Fs, varargin)
+%WELCH Welch spectral estimation method.
+% Acklamized version from ML code.
+
+	[x,win,noverlap,k,L,nfft] = welchparse(x,varargin{:});
+
+	LminusOverlap = L-noverlap;
+	xStart = 1:LminusOverlap:k*LminusOverlap;
+	xEnd   = xStart+L-1;
+	Sxx = zeros(nfft,1); 
+	for (i = 1:k)
+		[Sxxk, w] = periodogram(x(xStart(i):xEnd(i)),win, nfft);
+		Sxx  = Sxx + Sxxk;
+	end
+
+	Sxx = Sxx./k;		% Average the sum of the periodograms
+
+	% Generate the spectrum
+	if rem(nfft,2)			% odd
+		select = 1:(nfft+1)/2;
+		Sxx_unscaled = Sxx(select);
+		Sxx = [Sxx_unscaled(1,:); 2*Sxx_unscaled(2:end,:)];  % Only DC is a unique point and doesn't get doubled
+	else					% even
+		select = 1:nfft/2+1;
+		Sxx_unscaled = Sxx(select);
+		Sxx = [Sxx_unscaled(1,:); 2*Sxx_unscaled(2:end-1,:); Sxx_unscaled(end,:)]; % Don't double unique Nyquist point
+	end
+	w = w(select);
 
 	Pxx = Sxx./Fs;      % Scale by the sampling frequency to obtain the psd
 	w = w.*Fs./(2.*pi); % Scale the frequency vector from rad/sample to Hz   
+
+% -----------------------------------------------------------------------------
+function [x,win,noverlap,k,L,nfft] = welchparse(x,varargin)
+% Parse the inputs to the welch function.
+
+	win = [];	noverlap = [];
+	M = numel(x);
+	x = x(:);
+	if (numel(varargin) >= 1)
+		win = varargin{1};
+		if (numel(varargin) >= 2)	noverlap = varargin{2};		end
+	end
+
+	[L,noverlap,win] = segment_info(M,win,noverlap);	% Get the necessary info to segment x.
+
+	nfft = max(256,2^nextpow2(L));
+	k = fix((M-noverlap)./(L-noverlap));				% Compute the number of segments
+
+%-----------------------------------------------------------------------------------------------
+function [L,noverlap,win] = segment_info(M,win,noverlap)
+%SEGMENT_INFO   Determine the information necessary to segment the input data.
+%
+%   Inputs:
+%      M        - An integer containing the length of the data to be segmented
+%      WIN      - A scalar or vector containing the length of the window or the window respectively
+%                 (Note that the length of the window determines the length of the segments)
+%      NOVERLAP - An integer containing the number of samples to overlap (may be empty)
+%
+%   Outputs:
+%      L        - An integer containing the length of the segments
+%      NOVERLAP - An integer containing the number of samples to overlap
+%      WIN      - A vector containing the window to be applied to each section
+%
+%   The key to this function is the following equation:
+%      K = (M-NOVERLAP)/(L-NOVERLAP)
+
+L = [];
+
+if isempty(win)			% Use 8 sections, determine their length
+    if isempty(noverlap)		% Use 50% overlap
+        L = fix(M./4.5);
+        noverlap = fix(0.5.*L);
+    else
+        L = fix((M+7.*noverlap)./8);
+    end
+    win = hamming(L);
+else
+    % Determine the window and its length (equal to the length of the segments)
+    if ~any(size(win) <= 1) || ischar(win),
+		error('welch:invalidWindow','The WINDOW argument must be a vector or a scalar.')
+    elseif (length(win) > 1)	% WIN is a vector
+        L = length(win);
+    elseif length(win) == 1,
+        L = win;
+        win = hamming(win);
+    end
+    if isempty(noverlap)		% Use 50% overlap
+        noverlap = fix(0.5.*L);
+    end
+end
+
+if (L > M)
+    errmsg = 'The length of the segments cannot be greater than the length of the input signal.';
+	error('welch:invalidSegmentLength',errmsg)
+end
+
+if (noverlap >= L)
+    errmsg = 'The number of samples to overlap must be less than the length of the segments.';
+	error('welch:invalidNoverlap',errmsg)
+end
+
+% ----------------------------
+function [P,f] = periodogram(x,win,nfft)
+%   Sxx = PERIODOGRAM(X,WIN,NFFT) where x is a vector returns the
+%   Power Spectrum over the whole Nyquist interval, [0, 2pi).
+%
+%    X           - Signal vector
+%    WIN         - Window
+%    NFFT        - Number of frequency points (FFT)
+
+xin = x .* win;		% Window the data
+
+% Evaluate the window normalization constant.  A 1/N factor has been omitted since it will cancel below.
+U = win' * win;  % compensates for the power of the window.
+
+% Compute the periodogram power spectrum estimate. A 1/N factor has been omitted since it cancels
+Xx = fft(xin,nfft);
+
+% Compute the whole frequency range, e.g., [0,2pi) to avoid round off errors.
+Fs = (2*pi);	
+freq_res = Fs/nfft;
+f = freq_res*(0:nfft-1)';
+
+Nyq = Fs/2;
+half_res = freq_res/2; % half the resolution
+
+% Determine if Npts is odd.
+isNPTSodd = false;
+if rem(nfft,2)		isNPTSodd = true;	end
+
+% Determine half the number of points.
+if (isNPTSodd)	halfNPTS = (nfft+1)/2;  % ODD
+else			halfNPTS = (nfft/2)+1;  % EVEN
+end
+
+if (isNPTSodd)		% Adjust points on either side of Nyquist.
+    f(halfNPTS)   = Nyq - half_res;
+    f(halfNPTS+1) = Nyq + half_res;
+else				% Make sure we hit Nyquist exactly, i.e., pi or Fs/2 
+    f(halfNPTS) = Nyq;
+end
+f(nfft) = Fs-freq_res;
+P = Xx .* conj(Xx) / U;      % Auto spectrum.
+
+%---------------------------------------------------------------------
+function w = hamming(n)
+    % w = (54 - 46*cos(2*pi*(0:m-1)'/(n-1)))/100;
+
+	if ~rem(n,2)	half = n/2;			last = 0;
+	else			half = (n+1)/2;		last = 1;
+	end
+	x = (0:half-1)'/(n-1);
+	w = 0.54 - 0.46 * cos(2*pi*x);
+    w = [w; w(end-last:-1:1)];
 
 % -------------------------------------------------------------------------------------
 function rd = dist_along_profile(x, y)
@@ -885,7 +1192,7 @@ set(h1,'Units','centimeters',...
 'Tag','figure1');
 
 axes('Parent',h1,...
-'CameraPosition',[0.5 0.5 9.16025403784439],...
+'CameraPosition',[0.5 0.5 9.16025404],...
 'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
 'Color',get(0,'defaultaxesColor'),...
 'ColorOrder',get(0,'defaultaxesColorOrder'),...
@@ -894,7 +1201,7 @@ axes('Parent',h1,...
 'Visible','off');
 
 axes('Parent',h1,...
-'CameraPosition',[0.5 0.5 9.16025403784439],...
+'CameraPosition',[0.5 0.5 9.16025404],...
 'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
 'NextPlot','Add',...
 'Color',get(0,'defaultaxesColor'),...
@@ -906,7 +1213,7 @@ axes('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Units','normalized',...
-'Callback',{@ecran_uicallback,h1,'checkbox_geog_CB'},...
+'Call',{@ecran_uiCB,h1,'checkbox_geog_CB'},...
 'Position',[0.0468557336621455 0.03216374269005848 0.2379778051787916 0.049707602339181284],...
 'String','Geographical coordinates',...
 'TooltipString',sprintf(['Check this if your data is in geographical coordinates.\n' ...
@@ -917,7 +1224,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Units','normalized',...
 'BackgroundColor',[1 1 1],...
-'Callback',{@ecran_uicallback,h1,'popup_selectPlot_CB'},...
+'Call',{@ecran_uiCB,h1,'popup_selectPlot_CB'},...
 'Position',[0.3341553637484587 0.02046783625730994 0.3316892725030826 0.06432748538011696],...
 'String','Distance along profile (data units)', ...
 'Style','popupmenu',...
@@ -928,9 +1235,9 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Units','normalized',...
 'BackgroundColor',[1 1 1],...
-'Callback',{@ecran_uicallback,h1,'popup_selectSave_CB'},...
+'Call',{@ecran_uiCB,h1,'popup_selectSave_CB'},...
 'Position',[0.7028360049321825 0.02046783625730994 0.2836004932182491 0.06432748538011696],...
-'String',{  'Save Profile on disk'; 'distance Z (data units -> ascii)'; 'distance Z (data units -> binary)'; 'distance Z (km -> ascii)'; 'distance Z (km -> binary)'; 'distance Z (NM -> ascii)'; 'distance Z (NM -> binary)'; 'X Y Z (data units -> ascii)'; 'X Y Z (data units -> binary)' },...
+'String',{'Save Profile on disk'; 'distance Z (data units -> ascii)'; 'distance Z (data units -> binary)'; 'distance Z (km -> ascii)'; 'distance Z (km -> binary)'; 'distance Z (NM -> ascii)'; 'distance Z (NM -> binary)'; 'X Y Z (data units -> ascii)'; 'X Y Z (data units -> binary)' },...
 'Style','popupmenu',...
 'Value',1,...
 'TooltipString', 'Choose how to save the profile', ...
@@ -939,83 +1246,88 @@ uicontrol('Parent',h1,...
 h10 = uimenu('Parent',h1,'Label','File','Tag','menuFile');
 
 uimenu('Parent',h10,...
-'Callback',{@ecran_uicallback,h1,'FileOpen_Callback'},...
+'Call',{@ecran_uiCB,h1,'FileOpen_CB'},...
 'Label','Open',...
 'Tag','FileOpen');
 
 uimenu('Parent',h10,...
-'Callback',{@ecran_uicallback,h1,'FileSave_Callback'},...
+'Call',{@ecran_uiCB,h1,'FileSave_CB'},...
 'Label','Save',...
 'Tag','FileSave');
 
-uimenu('Parent',h10,'Callback','ecran','Label','New','Separator','on');
+uimenu('Parent',h10,'Call','ecran','Label','New','Separator','on');
 
 uimenu('Parent',h10,...
-'Callback',{@ecran_uicallback,h1,'FileExport_Callback'},...
+'Call',{@ecran_uiCB,h1,'FileExport_CB'},...
 'Label','Export...',...
 'Separator','on');
 
-uimenu('Parent',h10, 'Callback','print -dsetup', 'Label','Print Setup', 'Separator','on');
+uimenu('Parent',h10, 'Call','print -dsetup', 'Label','Print Setup', 'Separator','on');
 
 uimenu('Parent',h10,...
-'Callback',{@ecran_uicallback,h1,'FilePrint_Callback'},...
+'Call',{@ecran_uiCB,h1,'FilePrint_CB'},...
 'Label','Print...',...
 'Tag','FilePrint');
 
 h17 = uimenu('Parent',h1, 'Label','Analysis');
 
 uimenu('Parent',h17,...
-'Callback',{@ecran_uicallback,h1,'AnalysisRemoveMean_Callback'},...
+'Call',{@ecran_uiCB,h1,'AnalysisRemoveMean_CB'},...
 'Label','Remove Mean',...
-'Tag','AnalysisRemoveMean');
+'Tag','RemoveMean');
 
 uimenu('Parent',h17,...
-'Callback',{@ecran_uicallback,h1,'AnalysisRemoveTrend_Callback'},...
+'Call',{@ecran_uiCB,h1,'AnalysisRemoveTrend_CB'},...
 'Label','Remove Trend',...
-'Tag','AnalysisRemoveTrend');
+'Tag','RemoveTrend');
 
 uimenu('Parent',h17,...
-'Callback',{@ecran_uicallback,h1,'AnalysisFitPoly_Callback'},...
+'Call',{@ecran_uiCB,h1,'AnalysisFitPoly_CB'},...
 'Label','Fit polynomial',...
-'Tag','AnalysisFitPoly');
+'Tag','FitPoly');
 
 h20 = uimenu('Parent',h17, 'Label','FFT', 'Separator','on');
 
 uimenu('Parent',h20,...
-'Callback',{@ecran_uicallback,h1,'AnalysisFFT_AmpSpectrum_Callback'},...
+'Call',{@ecran_uiCB,h1,'AnalysisFFT_AmpSpectrum_CB'},...
 'Label','Amplitude Spectrum',...
-'Tag','AnalysisFFT_AmpSpectrum');
+'Tag','AmpSpectrum');
 
 uimenu('Parent',h20,...
-'Callback',{@ecran_uicallback,h1,'AnalysisFFT_PSD_Callback'},...
-'Label','Power Spectrum Density',...
-'Tag','AnalysisFFT_PSD');
+'Call',{@ecran_uiCB,h1,'AnalysisFFT_PSD_CB'},...
+'Label','Power Spectrum Density', 'Tag','PSD');
+
+uimenu('Parent',h20,...
+'Call',{@ecran_uiCB,h1,'AnalysisFFT_PSD_CB'},...
+'Label','PSD (Welch method)', 'Tag','PSDwelch');
 
 uimenu('Parent',h17,...
-'Callback',{@ecran_uicallback,h1,'AnalysisAutocorrelation_Callback'},...
-'Label','Autocorrelation',...
-'Tag','AnalysisAutocorrelation');
+'Call',{@ecran_uiCB,h1,'AnalysisAutocorrelation_CB'},...
+'Label','Autocorrelation', 'Tag','Autocorr');
 
 uimenu('Parent',h17,...
-'Callback',{@ecran_uicallback,h1,'AnalysisSmoothSpline_Callback'},...
+'Call',{@ecran_uiCB,h1,'AnalysisSmoothSpline_CB'},...
 'Label','Smoothing Spline',...
 'Separator','on',...
-'Tag','AnalysisSmoothSpline');
+'Tag','SmoothSpline');
 
 uimenu('Parent',h17,...
-'Callback',{@ecran_uicallback,h1,'Analysis1derivative_Callback'},...
+'Call',{@ecran_uiCB,h1,'Analysis1derivative_CB'},...
 'Label','1 st derivative',...
 'Tag','Analysis1derivative');
 
 uimenu('Parent',h17,...
-'Callback',{@ecran_uicallback,h1,'Analysis2derivative_Callback'},...
+'Call',{@ecran_uiCB,h1,'Analysis2derivative_CB'},...
 'Label','2 nd derivative',...
 'Tag','Analysis2derivative');
+
+% Here we provide a hiden entry to activate functions of interest to tide analysis
+uimenu('Parent',h17,'Call',{@ecran_uiCB,h1,'add_uictx_CB'},'Vis','off','Tag','hidenCTRL');
 
 uicontrol('Parent',h1,...
 'Units','normalized',...
 'BackgroundColor',[1 1 1],...
-'Callback',{@ecran_uicallback,h1,'edit_ageStart_Callback'},...
+'Call',{@ecran_uiCB,h1,'edit_ageStart_CB'},...
 'Position',[0.319358816276202 0.0204678362573099 0.0579531442663379 0.0614035087719298],...
 'String','0',...
 'Style','edit',...
@@ -1027,7 +1339,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Units','normalized',...
 'BackgroundColor',[1 1 1],...
-'Callback',{@ecran_uicallback,h1,'edit_ageEnd_Callback'},...
+'Call',{@ecran_uiCB,h1,'edit_ageEnd_CB'},...
 'Position',[0.498150431565968 0.0233918128654971 0.0579531442663379 0.0614035087719298],...
 'String','',...
 'Style','edit',...
@@ -1037,7 +1349,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Units','normalized',...
-'Callback',{@ecran_uicallback,h1,'push_magBar_Callback'},...
+'Call',{@ecran_uiCB,h1,'push_magBar_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'ListboxTop',0,...
@@ -1061,15 +1373,15 @@ uicontrol('Parent',h1,...
 'Units','normalized',...
 'HorizontalAlignment','right',...
 'ListboxTop',0,...
-'Position',[0.429099876695438 0.0321637426900585 0.0678175092478422 0.043859649122807],...
+'Position',[0.42909987669544 0.03216374269006 0.0678175092478422 0.043859649122807],...
 'String','End age',...
 'Style','text',...
 'Tag','text_ageEnd',...
 'Visible','off');
 
-function ecran_uicallback(hObject, eventdata, h1, callback_name)
+function ecran_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
 
 %============================================================================
 function varargout = ecran_trend1d(varargin)
@@ -1117,7 +1429,7 @@ function push_OK_CB(hObject, handles)
 	set(h, 'UIContextMenu', cmenuHand);
  	uimenu(cmenuHand, 'Label', 'Poly Coefficients');
 	uimenu(cmenuHand, 'Label', num2str(p));
-	uimenu(cmenuHand, 'Label', 'Delete this line', 'Callback', 'delete(gco)', 'Sep', 'on');
+	uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', 'delete(gco)', 'Sep', 'on');
 
 
 % --- Creates and returns a handle to the GUI figure. 
@@ -1140,7 +1452,7 @@ uicontrol('Parent',h1, 'Position',[161 38 75 15],...
 
 uicontrol('Parent',h1, 'Position',[111 34 30 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@ecran_trend1d_uicallback,h1,'edit_polDeg_CB'},...
+'Call',{@ecran_trend1d_uiCB,h1,'edit_polDeg_CB'},...
 'String','1',...
 'Style','edit',...
 'TooltipString','"1" means linear trend; "2" a quadratic model, and so on.',...
@@ -1152,13 +1464,13 @@ uicontrol('Parent',h1, 'Position',[10 37 100 15],...
 'Style','text');
 
 uicontrol('Parent',h1, 'Position',[164 6 66 21],...
-'Callback',{@ecran_trend1d_uicallback,h1,'push_OK_CB'},...
+'Call',{@ecran_trend1d_uiCB,h1,'push_OK_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'String','OK',...
 'Tag','push_OK');
 
-function ecran_trend1d_uicallback(hObject, eventdata, h1, callback_name)
+function ecran_trend1d_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
 	feval(callback_name,hObject,guidata(h1));
 
@@ -1242,8 +1554,8 @@ function bandpass_LayoutFcn(h1)
 
 set(h1, 'Position',[520 679 350 121],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'CloseRequestFcn', {@bandpass_uicallback,h1,'BP_CloseRequestFcn'},...
-'KeyPressFcn',{@bandpass_uicallback,h1,'BP_KeyPressFcn'},...
+'CloseRequestFcn', {@bandpass_uiCB,h1,'BP_CloseRequestFcn'},...
+'KeyPressFcn',{@bandpass_uiCB,h1,'BP_KeyPressFcn'},...
 'MenuBar','none',...
 'Name','Bandpass',...
 'NumberTitle','off',...
@@ -1253,7 +1565,7 @@ set(h1, 'Position',[520 679 350 121],...
 
 uicontrol('Parent',h1, 'Position',[64 68 101 22],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@bandpass_uicallback,h1,'edit_CB'},...
+'Call',{@bandpass_uiCB,h1,'edit_CB'},...
 'Style','edit',...
 'TooltipString','Low Cut frequency',...
 'Tag','edit_LC');
@@ -1263,7 +1575,7 @@ uicontrol('Parent',h1, 'Position',[10 73 52 14],...
 
 uicontrol('Parent',h1, 'Position',[64 38 101 22],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@bandpass_uicallback,h1,'edit_CB'},...
+'Call',{@bandpass_uiCB,h1,'edit_CB'},...
 'Style','edit',...
 'TooltipString','Low Pass frequency',...
 'Tag','edit_LP');
@@ -1273,7 +1585,7 @@ uicontrol('Parent',h1, 'Position',[1 43 60 14],...
 
 uicontrol('Parent',h1, 'Position',[244 68 101 22],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@bandpass_uicallback,h1,'edit_CB'},...
+'Call',{@bandpass_uiCB,h1,'edit_CB'},...
 'Style','edit',...
 'TooltipString','High Cut frequency',...
 'Tag','edit_HC');
@@ -1283,7 +1595,7 @@ uicontrol('Parent',h1, 'Position',[190 73 52 14],...
 
 uicontrol('Parent',h1, 'Position',[244 38 101 22],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@bandpass_uicallback,h1,'edit_CB'},...
+'Call',{@bandpass_uiCB,h1,'edit_CB'},...
 'Style','edit',...
 'TooltipString','High Pass frequency',...
 'Tag','edit_HP');
@@ -1292,25 +1604,25 @@ uicontrol('Parent',h1, 'Position',[182 43 60 14],...
 'FontName','Helvetica', 'HorizontalAlignment','right','String','High pass','Style','text');
 
 uicontrol('Parent',h1, 'Position',[64 97 87 23],...
-'Callback',{@bandpass_uicallback,h1,'radio_freq_CB'},...
+'Call',{@bandpass_uiCB,h1,'radio_freq_CB'},...
 'String','Frequency',...
 'Style','radiobutton',...
 'Tag','radio_freq');
 
 uicontrol('Parent',h1, 'Position',[244 97 87 23],...
-'Callback',{@bandpass_uicallback,h1,'radio_wave_CB'},...
+'Call',{@bandpass_uiCB,h1,'radio_wave_CB'},...
 'String','Wavelength',...
 'Style','radiobutton',...
 'Value',1,...
 'Tag','radio_wave');
 
 uicontrol('Parent',h1, 'Position',[264 7 80 21],...
-'Callback',{@bandpass_uicallback,h1,'pushBP_OK_CB'},...
+'Call',{@bandpass_uiCB,h1,'pushBP_OK_CB'},...
 'FontSize',9,...
 'FontWeight','bold',...
 'String','OK',...
 'Tag','pushBP_OK');
 
-function bandpass_uicallback(hObject, eventdata, h1, callback_name)
+function bandpass_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
 	feval(callback_name,hObject,guidata(h1));
