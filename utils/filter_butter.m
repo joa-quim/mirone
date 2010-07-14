@@ -1,4 +1,4 @@
-function out = filtra_butter(fiche,y)
+function out = filter_butter(fiche,y)
 % Filter to remove tide from tide gauges using a butterworth filter
 %
 % I did this some years ago and I'm not sure why I do what I do, but works pretty well.
