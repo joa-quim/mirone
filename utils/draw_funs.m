@@ -7,7 +7,7 @@ function varargout = draw_funs(hand, varargin)
 %   DATA    contains data currently used in the volcanoes, fogspots and some other option
 %   OUT     Is currently used only as an option to 'ImportLine'. Data is returned rather than ploted
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -1830,23 +1830,27 @@ this_not = 1;       % for class symbols "this_not = 1". Used for not seting some
 seismicity_options = 0;
 tide_options = 0;
 
-if strcmp(tag,'hotspot')		% Then DATA must be a structure containing name & age for each hotspot
+if strcmp(tag,'hotspot')		% DATA must be a structure containing name & age fields
 	uimenu(cmenuHand, 'Label', 'Hotspot info', 'Call', {@hotspot_info,h,data.name,data.age,[]});
 	uimenu(cmenuHand, 'Label', 'Plot name', 'Call', {@hotspot_info,h,data.name,data.age,'text'});
 	separator = 1;
-elseif strcmp(tag,'volcano')    % Then DATA must be a structure containing name, description & dating for each volcano
+elseif strcmp(tag,'volcano')    % DATA must be a structure containing name, description & dating fields
 	uimenu(cmenuHand, 'Label', 'Volcano info', 'Call', {@volcano_info,h,data.name,data.desc,data.dating});
 	separator = 1;
-elseif strcmp(tag,'meteor')		% Then DATA must be a structure containing name, diameter & dating for each impact
+elseif strcmp(tag,'meteor')		% DATA must be a structure containing name, diameter & dating fields
 	uimenu(cmenuHand, 'Label', 'Impact info', 'Call', {@meteor_info,h,data.name,data.diameter,data.dating,data.exposed,data.btype});
 	separator = 1;
-elseif strcmp(tag,'hydro')		% Then DATA must be a cell array with 5 cols contining description of each Vent
+elseif strcmp(tag,'mar_online')	% DATA must be a structure containing name, code station & country fields
+	uimenu(cmenuHand, 'Label', 'Download Mareg (2 days)', 'Call', {@mareg_online,h,data});
+	uimenu(cmenuHand, 'Label', 'Download Mareg (Calendar)', 'Call', {@mareg_online,h,data,'cal'});
+	separator = 1;
+elseif strcmp(tag,'hydro')		% DATA must be a cell array with 5 cols contining description of each Vent
 	uimenu(cmenuHand, 'Label', 'Hydrotermal info', 'Call', {@hydro_info,h,data});
 	separator = 1;	
-elseif strcmp(tag,'ODP')		% Then DATA must be a structure with leg, site, z, & penetration for each site
+elseif strcmp(tag,'ODP')		% DATA must be a structure with leg, site, z, & penetration fields
 	uimenu(cmenuHand, 'Label', 'ODP info', 'Call', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
 	separator = 1;
-elseif strcmp(tag,'DSDP')		% Then DATA must be a structure with leg, site, z, & penetration for each site
+elseif strcmp(tag,'DSDP')		% DATA must be a structure with leg, site, z, & penetration fields
 	uimenu(cmenuHand, 'Label', 'DSDP info', 'Call', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
 	separator = 1;
 elseif strcmp(tag,'City_major') || strcmp(tag,'City_other')
@@ -1911,11 +1915,13 @@ if (seismicity_options)
     uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Call', 'histos_seis(gcf,''BV'')');
     uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gcf,''OL'')');
 end
+
 if (tide_options)
     uimenu(cmenuHand, 'Label', 'Plot tides', 'Call', {@tidesStuff,h,'plot'}, 'Sep','on');
     uimenu(cmenuHand, 'Label', 'Station Info', 'Call', {@tidesStuff,h,'info'});
     %uimenu(cmenuHand, 'Label', 'Tide Calendar', 'Call', {@tidesStuff,h,'calendar'});
 end
+
 itemSymb = uimenu(cmenuHand, 'Label', 'Symbol', 'Sep','on');
 cb_mark = uictx_setMarker(h,'Marker');              % there are 13 uictx_setMarker outputs
 uimenu(itemSymb, 'Label', 'plus sign', 'Call', cb_mark{1});
@@ -2233,12 +2239,54 @@ function tidesStuff(obj,eventdata,h,opt)
 		str{3} = ['Timezone: UTC ' num2str(info.timezone)];
 		str{4} = ['Datum: ' num2str(info.datum)];
 		str{5} = ['Number of constit = ' num2str(length(info.freq))];
-		msgbox(str,'Satation info')
+		msgbox(str,'Station info')
 	% elseif (strcmp(opt,'calendar'))
 	%     date = clock;
 	%     tim = datenum(date(1),date(2),1):1/24:datenum(date(1),date(2),31);
 	%     out = t_xtide(pt(1,1),pt(1,2),tim,'format','times');
 	end
+
+% -----------------------------------------------------------------------------------------
+function mareg_online(obj,eventdata,h, data, opt)
+	i = get(gco,'Userdata');
+	handles = guidata(h(1));
+	dest_fiche = [handles.path_tmp 'lixo.dat'];
+	nome = strrep(data.name{i},'_',' ');		pais = strrep(data.country{i},'_',' ');
+	code = data.codeSt{i};
+	
+	c = clock;
+	date_start = datestr(datenum(c(1:3))-2,31);
+	
+	if (nargin == 4)	% Get last 2 days of records
+		nDays = '2';
+	else
+		prompt = {'Start date (mind the format)' 'number of days'};
+		date_str_tmp = datestr(date_start,'dd-mm-yyyy HH:MM');
+		resp   = inputdlg(prompt,'Select date',[1 30; 1 30],{date_str_tmp '2'});	pause(0.01);
+		if isempty(resp),	return,		end
+		date_str_tmp = resp{1};		nDays = resp{2};
+		date_start = datestr(date_str_tmp,31);
+	end
+	url = ['http://www.ioc-sealevelmonitoring.org/bgraph.php?output=asc&time=' date_start '&period=' nDays '&par=' code];
+	if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+	else			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+	end
+
+	fid = fopen(dest_fiche,'r');
+	todos = fread(fid,'*char');
+	if (numel(todos) < 100)
+		warndlg('This station has no data or a file tranfer error occured.','Warning')
+		fclose(fid);		return
+	end
+	ind = strfind(todos(1:64)',sprintf('\n'));
+	todos = todos(ind(2)+1:end);		% Jump the 2 header lines
+	[yymmdd sl] = strread(todos,'%s %f', 'delimiter', '\t');
+	fclose(fid);    clear todos
+	serial_date = datenum(yymmdd, 31);
+	hf = ecran(handles, serial_date, sl, [nome ' (' pais ')']);
+	h = findobj(hf,'Tag','hidenCTRL');
+	cb = get(h, 'Call');
+	feval(cb{1}, h, [], cb{2}, cb{3})	% Call the ecran_uiCB function
 
 % -----------------------------------------------------------------------------------------
 function meteor_info(obj,eventdata,h, name, diameter, dating, exposed, btype)
