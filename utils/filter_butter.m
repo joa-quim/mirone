@@ -8,7 +8,7 @@ function out = filtra_butter(fiche,y)
 %
 % Joaquim Luis, 8-Jul-2010
 
-	if ( nargin == 1 && ischar(fice))
+	if ( nargin == 1 && ischar(fiche))
 		data = load(fiche);
 	elseif ( nargin == 2 )			% Assume input is x,y
 		data = [fiche(:) y(:)];
