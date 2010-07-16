@@ -45,7 +45,7 @@ function [rlon,rlat] = rot_euler(lon,lat,p_lon,p_lat,omega,units, ecc)
 			end
 			do_geocentric = true;
 		end
-	else
+	elseif (nargin == 7)
 		if (strncmp(units,'rad',3))
 			is_radians = true;
 		end
