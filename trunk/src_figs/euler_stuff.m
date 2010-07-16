@@ -60,9 +60,10 @@ end
 
 % Get the Mirone handles. We need it here
 handlesMir = guidata(handles.h_calling_fig);
+handles.geog = handlesMir.geog;
 if (handlesMir.no_file)
-    errordlg('You didn''t even load a file. What are you expecting then?','Error')
-    delete(hObject);    return
+	errordlg('You didn''t even load a file. What are you expecting then?','Error')
+	delete(hObject);    return
 end
 if (~handles.geog)
 	errordlg('This tool works only with geographical type data','Error')
