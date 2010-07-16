@@ -23,7 +23,7 @@ function varargout = manual_pole_adjust(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	manual_pole_adjust_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'center');
+	move2side(hObject, 'right')
 
 	handles.hCallingFig = varargin{1};
 	handMir = guidata(handles.hCallingFig);
