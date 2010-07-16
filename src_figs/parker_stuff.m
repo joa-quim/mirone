@@ -29,15 +29,6 @@ function varargout = parker_stuff(varargin)
 	handles.data = [];				% Date has no default value
 	no_igrf = false;				% In reduction to the pole we don't need to compute the IGRF
 
-	% first 2 cols from table III of Singleton's paper on fft (NEED to be set right away)
-	nlist = {64,72,75,80,81,90,96,100,108,120,125,128,135,144,150,160,162,180,192,200,...
-		216,225,240,243,250,256,270,288,300,320,324,360,375,384,400,405,432,450,480,...
-		486,500,512,540,576,600,625,640,648,675,720,729,750,768,800,810,864,900,960,...
-		972,1000,1024,1080,1125,1152,1200,1215,1250,1280,1296,1350,1440,1458,1500,...
-		1536,1600,1620,1728,1800,1875}';
-	set(handles.listbox_nnx,'String',nlist)
-	set(handles.listbox_nny,'String',nlist)
-
 	if (~isempty(varargin))
 		if (strcmp(varargin{1},'parker_direct'))
 			h_txt = findobj(hObject,'Tag','text_FieldMag');
@@ -164,7 +155,7 @@ function edit_BatGrid_CB(hObject, handles)
 		handles.Z_bat = [];		return
 	end
 	% Let the push_BatGrid_CB do all the work
-	push_BatGrid_CB(handles.push_BatGrid,[],handles,fname)
+	push_BatGrid_CB(handles.push_BatGrid, handles, fname)
 
 % -------------------------------------------------------------------------------------------------
 function push_BatGrid_CB(hObject, handles, opt)
@@ -174,7 +165,7 @@ function push_BatGrid_CB(hObject, handles, opt)
 
 	if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
 		[FileName,PathName] = put_or_get_file(handles,{ ...
-				'*.grd;*.GRD', 'Grid files (*.grd,*.nc)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
+				'*.grd;*.nc', 'Grid files (*.grd,*.nc)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
 	end
@@ -183,16 +174,16 @@ function push_BatGrid_CB(hObject, handles, opt)
 
 	% See if Source/Mag grid is already loaded and, if yes, if they are compatible
 	if (~isempty(get(handles.edit_SourceGrid,'String')))
-		if ( abs(handles.head_bat(1) - handles.head_src(1)) > 1e-4 || abs(handles.head_bat(2) - handles.head_src(2)) > 1e-4 || ...
-				abs(handles.head_bat(3) - handles.head_src(3)) > 1e-4 || abs(handles.head_bat(4) - handles.head_src(4)) > 1e-4)
-			errordlg('Error: Bathymetry & Source grids do not cover the same region','Error');  return
-		elseif(abs(handles.head_bat(8) - handles.head_src(8)) > 1e-6 || abs(handles.head_bat(9) - handles.head_src(9)) > 1e-6)
-			errordlg('Error: Bathymetry & Source grids do not have the same size.','Error');     return
+		difa_hdrs = abs( diff([handles.head_bat; handles.head_src]) );
+		if ( any(difa_hdrs(1:4) > 1e-4) )
+			errordlg('Error: Bathymetry & Source grids do not cover the same region','Error'),	return
+		elseif ( any(difa_hdrs(8:9) > 1e-6) )
+			errordlg('Error: Bathymetry & Source grids do not have the same size.','Error'),	return
 		end
 	end
 	% Try to guess if bat is in meters. If yes convert to km
 	if (abs(handles.head_bat(6) - handles.head_bat(5)) > 15)
-		grdutils(handles.Z_bat,['-M' num2str(0.001,'%.3f')]);
+		grdutils(handles.Z_bat, sprintf('-M%.3f',0.001));
 		handles.head_bat(5) = handles.head_bat(5) / 1000;
 		handles.head_bat(6) = handles.head_bat(6) / 1000;
 	end
@@ -206,7 +197,7 @@ function edit_SourceGrid_CB(hObject, handles)
 		handles.Z_src = [];    return;
 	end
 	% Let the push_SourceGrid_CB do all the work
-	push_SourceGrid_CB(handles.push_SourceGrid,[],handles,fname)
+	push_SourceGrid_CB(handles.push_SourceGrid, handles, fname)
 
 % -------------------------------------------------------------------------------------------------
 function push_SourceGrid_CB(hObject, handles, opt)
@@ -216,7 +207,7 @@ function push_SourceGrid_CB(hObject, handles, opt)
 
 	if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
 		[FileName,PathName] = put_or_get_file(handles,{ ...
-			'*.grd;*.GRD', 'Grid files (*.grd,*.nc)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
+			'*.grd;*.nc', 'Grid files (*.grd,*.nc)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];	
 	end
@@ -227,11 +218,10 @@ function push_SourceGrid_CB(hObject, handles, opt)
 	
 	% See if Bat grid is already loaded and, if yes, if both grids are compatible
 	if (~isempty(get(handles.edit_BatGrid,'String')))
-		%hds = [handles.head_bat; handles.head_src];
-		if ( abs(handles.head_bat(1) - handles.head_src(1)) > 1e-4 || abs(handles.head_bat(2) - handles.head_src(2)) > 1e-4 || ...
-				abs(handles.head_bat(3) - handles.head_src(3)) > 1e-4 || abs(handles.head_bat(4) - handles.head_src(4)) > 1e-4)
+		difa_hdrs = abs( diff([handles.head_bat; handles.head_src]) );
+		if ( any(difa_hdrs(1:4) > 1e-4) )
 			errordlg('Error: Bathymetry & Source grids do not cover the same region','Error'),	return
-		elseif (abs(handles.head_bat(8) - handles.head_src(8)) > 1e-6 || abs(handles.head_bat(9) - handles.head_src(9)) > 1e-6)
+		elseif ( any(difa_hdrs(8:9) > 1e-6) )
 			errordlg('Error: Bathymetry & Source grids do not have the same size.','Error'),	return
 		end
 	end
@@ -250,15 +240,22 @@ function push_SourceGrid_CB(hObject, handles, opt)
 	end
 
 	% The easeast way of not leting the user screw things by selecting a nnx and/or nny lower
-	% than nx or ny is to delete the forbiden numbers from the listboxes 
-	contents = get(handles.listbox_nny,'String');
-	xx = str2double(contents);
-	ind = (xx > handles.nrows);
-	nlist = num2cell(xx(ind),1);
-	set(handles.listbox_nny,'String',nlist)
-	ind = (xx > handles.ncols);
-	nlist = num2cell(xx(ind),1);
-	set(handles.listbox_nnx,'String',nlist)
+	% than nx or ny is to delete the forbiden numbers from the listboxes	
+	[w,nlist] = mboard([], handles.ncols, handles.nrows, 0, 0);
+	ind = cat(1,nlist{:}) > handles.ncols;
+	nlist_t = [{handles.ncols}; nlist(ind)];
+	ind = find(cat(1,nlist_t{:}) == w(1));        % Find index of new_nx
+	set(handles.listbox_nnx,'String',nlist_t,'Value',ind)
+	set(handles.edit_Ncols,'string',sprintf('%d',w(1)))
+
+	ind = cat(1,nlist{:}) > handles.nrows;
+	nlist_t = [{handles.orig_nrows}; nlist(ind)];
+	ind = find(cat(1,nlist_t{:}) == w(2));        % Find index of new_ny
+	set(handles.listbox_nny,'String',nlist_t,'Value',ind)
+	set(handles.edit_Nrows,'string',sprintf('%d',w(2)))
+	handles.ncols = w(1);
+	handles.nrows = w(2);
+	
 	handles.rlon = (handles.head_src(2) + handles.head_src(1)) / 2;
 	handles.rlat = (handles.head_src(4) + handles.head_src(3)) / 2;
 
@@ -281,8 +278,8 @@ function push_SourceGrid_CB(hObject, handles, opt)
 			wlong = max(handles.edit_Ncols*handles.head_src(8),handles.edit_Nrows*handles.head_src(9));
 		end
 		wlong = max(wlong,150);     % Beter use this as the wlong default 
-		set(handles.edit_wshort,'string',num2str(wshort,'%.1f'))
-		set(handles.edit_wlong,'string',num2str(wlong,'%.0f'))
+		set(handles.edit_wshort,'string',sprintf('%.1f',wshort))
+		set(handles.edit_wlong, 'string',sprintf('%.0f',wlong))
 	end
 	guidata(handles.figure1,handles)
 
@@ -321,8 +318,8 @@ function edit_date_CB(hObject, handles)
 			%out = igrf(handles.rlat, handles.rlon, elev, xx, handles.igrf_coefs, handles.start_stop_epoch);
 			out = igrf_m(handles.rlon, handles.rlat, elev, xx);
 			if (~get(handles.checkbox_CenterDipole,'Value'))
-				set(handles.edit_sdec,'String',num2str(out(6)))
-				set(handles.edit_sdip,'String',num2str(out(7)))
+				set(handles.edit_sdec,'String',sprintf('%.1f',out(6)))
+				set(handles.edit_sdip,'String',sprintf('%.1f',out(7)))
 			end
 		end
 	end
@@ -394,7 +391,7 @@ function edit_sdec_CB(hObject, handles)
 function listbox_nnx_CB(hObject, handles)
 	contents = get(hObject,'String');
 	nnx = str2double(contents{get(hObject,'Value')});
-	set(handles.edit_Ncols,'String',num2str(nnx))
+	set(handles.edit_Ncols,'String',sprintf('%d',nnx))
 	handles.ncols = nnx;
 	guidata(handles.figure1,handles)
 
@@ -402,7 +399,7 @@ function listbox_nnx_CB(hObject, handles)
 function listbox_nny_CB(hObject, handles)
 	contents = get(hObject,'String');
 	nny = str2double(contents{get(hObject,'Value')});
-	set(handles.edit_Nrows,'String',num2str(nny))
+	set(handles.edit_Nrows,'String',sprintf('%d',nny))
 	handles.nrows = nny;
 	guidata(handles.figure1,handles)
 
@@ -410,10 +407,10 @@ function listbox_nny_CB(hObject, handles)
 function edit_Ncols_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isempty(get(hObject,'String')))
-		try		set(hObject,'String',num2str(handles.ncols)),	return,		end
+		try		set(hObject,'String',sprintf('%d',handles.ncols)),	return,		end
 	end
 	if (xx < handles.cols)
-		set(hObject,'String',num2str(handles.ncols)),	return
+		set(hObject,'String',sprintf('%d',handles.ncols)),	return
 	end
 	handles.ncols = xx;     guidata(handles.figure1,handles)
 
@@ -421,10 +418,10 @@ function edit_Ncols_CB(hObject, handles)
 function edit_Nrows_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx))
-		try		set(hObject,'String',num2str(handles.nrows)),	return,		end
+		try		set(hObject,'String',sprintf('%d',handles.nrows)),	return,		end
 	end
 	if (xx < handles.nrows)
-		set(hObject,'String',num2str(handles.nrows)),	return
+		set(hObject,'String',sprintf('%d',handles.nrows)),	return
 	end
 	handles.nrows = xx;     guidata(handles.figure1,handles)
 
