@@ -1,8 +1,7 @@
 function varargout = bg_map(varargin)
-% M-File changed by desGUIDE 
-% varargin   command line arguments to bg_map (see VARARGIN)
+% Helper window to select a basemap image in geogs
 
-%	Copyright (c) 2004-2009 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -23,21 +22,21 @@ function varargout = bg_map(varargin)
 	hObject = figure('Tag','figure1','Visible','off','doublebuffer','on');
 	bg_map_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'center');      % Reposition the window on screen
+	move2side(hObject,'center');
  
 	if (numel(varargin) > 0)
-        handles.f_path = varargin{1};
+		handles.f_path = varargin{1};
 	else
 		lix = getappdata(0);
 		if (isfield(lix,'MIRONE_DIRS'))
-        	handles.f_path = [lix.MIRONE_DIRS.home_dir filesep 'data' filesep];
+			handles.f_path = [lix.MIRONE_DIRS.home_dir filesep 'data' filesep];
 		elseif (exist(['data' filesep 'etopo4_logo.jpg'], 'file') == 2)
 			handles.f_path = ['data' filesep];
 		else
 			errordlg('Don''t know where I am and therefore cannot load image file. By By.','Error')
 			delete(hObject),	return
 		end
-    end
+	end
 
 	logo = imread([handles.f_path 'etopo4_logo.jpg']);
 	image(logo,'Parent',handles.axes1);
@@ -121,11 +120,11 @@ function img = get_img(hFig, hObj, varargin)
 	set(hFig, 'Name', origName)
 
 % ----------------------------------------------------------------------------------------
-function toggle_region_CB(hObject, eventdata, handles)
+function toggle_region_CB(hObject, handles)
 % Select a rectangular sub-region
 	set(handles.hRects,'Visible','off')
 	[p1,p2] = rubberbandbox(handles.axes1);
-	if (p1(2) < 1 || p2(2) < 1)			% Check if rectangle is not completely inside image (it can only get out from top)
+	if (p1(2) < 1 || p2(2) < 1)			% Check if rectangle is not completely inside image
 		set(hObject,'Val', 0)
 		set(handles.hRects,'Visible','on')
 		return
@@ -139,6 +138,10 @@ function toggle_region_CB(hObject, eventdata, handles)
 	pixely = 2700 - round(axes2pix(2700, [-90 90], [s n])) + 1;			% Again the Y origin shit
 	pixely = pixely(2:-1:1);
 	
+	if ( (diff(pixelx(1:2)) < 10) || (diff(pixely(1:2)) < 10) )
+		return
+	end
+
 	opt_r = sprintf('-r%d/%d/%d/%d', pixelx(1:2), pixely(1:2));
 
 	h = patch('XData',[p1(1) p2(1) p2(1) p1(1)],'YData',[p1(2) p1(2) p2(2) p2(2)],'FaceColor','none');
@@ -151,26 +154,26 @@ function toggle_region_CB(hObject, eventdata, handles)
     handles.output = out;   guidata(handles.figure1, handles);  uiresume(handles.figure1);
 
 % ----------------------------------------------------------------------------------------
-function radio_MapTiles_CB(hObject, eventdata, handles)
+function radio_MapTiles_CB(hObject, handles)
 	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
 	set(handles.radio_WorldMap, 'Value', 0);
 	set(handles.figure1,'Name','World Topo Tiles')
 	set(handles.hBigRect,'Visible','off'),		set(handles.hRects,'Visible','on')
 
 % ----------------------------------------------------------------------------------
-function radio_WorldMap_CB(hObject, eventdata, handles)
+function radio_WorldMap_CB(hObject, handles)
 	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
 	set(handles.radio_MapTiles, 'Value', 0);
 	set(handles.figure1,'Name','World Topo')
 	set(handles.hBigRect,'Visible','on'),		set(handles.hRects,'Visible','off')
 
 % ----------------------------------------------------------------------------------------
-function radio_180_CB(hObject, eventdata, handles)
+function radio_180_CB(hObject, handles)
 	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
 	set(handles.radio_360, 'Val', 0)
 
 % ----------------------------------------------------------------------------------------
-function radio_360_CB(hObject, eventdata, handles)
+function radio_360_CB(hObject, handles)
 	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
 	set(handles.radio_180, 'Val', 0)
 
@@ -194,7 +197,7 @@ function figure1_KeyPressFcn(hObject, eventdata)
 	end
 
 % --- Creates and returns a handle to the GUI figure. 
-function bg_map_LayoutFcn(h1);
+function bg_map_LayoutFcn(h1)
 	set(h1,'PaperUnits','centimeters',...
 	'CloseRequestFcn',@figure1_CloseRequestFcn,...
 	'Color',get(0,'factoryUicontrolBackgroundColor'),...
@@ -209,7 +212,7 @@ function bg_map_LayoutFcn(h1);
 axes('Parent',h1,'Units','pixels','Position',[1 1 512 256],'Tag','axes1','Visible','off');
 
 uicontrol('Parent',h1,...
-'Callback',{@bg_map_uicallback,h1,'radio_MapTiles_CB'},...
+'Call',{@bg_map_uiCB,h1,'radio_MapTiles_CB'},...
 'Position',[10 259 110 15],...
 'String','World Map Tiles',...
 'Style','radio',...
@@ -217,14 +220,14 @@ uicontrol('Parent',h1,...
 'Tag','radio_MapTiles');
 
 uicontrol('Parent',h1,...
-'Callback',{@bg_map_uicallback,h1,'radio_WorldMap_CB'},...
+'Call',{@bg_map_uiCB,h1,'radio_WorldMap_CB'},...
 'Position',[128 259 90 15],...
 'String','World Map',...
 'Style','radio',...
 'Tag','radio_WorldMap');
 
 uicontrol('Parent',h1,...
-'Callback',{@bg_map_uicallback,h1,'radio_180_CB'},...
+'Call',{@bg_map_uiCB,h1,'radio_180_CB'},...
 'Position',[350 259 90 15],...
 'String','[-180 180]',...
 'Style','radio',...
@@ -233,7 +236,7 @@ uicontrol('Parent',h1,...
 'Tag','radio_180');
 
 uicontrol('Parent',h1,...
-'Callback',{@bg_map_uicallback,h1,'radio_360_CB'},...
+'Call',{@bg_map_uiCB,h1,'radio_360_CB'},...
 'Position',[440 259 90 15],...
 'String','[0 360]',...
 'Style','radio',...
@@ -241,11 +244,11 @@ uicontrol('Parent',h1,...
 'Tag','radio_360');
 
 uicontrol('Parent',h1, 'Position',[255 259 30 21],...
-'Callback',{@bg_map_uicallback,h1,'toggle_region_CB'},...
+'Call',{@bg_map_uiCB,h1,'toggle_region_CB'},...
 'Style','toggle',...
 'Tooltip','Select a rectangular region with the mouse',...
 'Tag','toggle_region');
 
-function bg_map_uicallback(hObject, eventdata, h1, callback_name)
+function bg_map_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
