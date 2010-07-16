@@ -1,5 +1,4 @@
 function varargout = euler_stuff(varargin)
-% M-File changed by desGUIDE 
 % varargin   command line arguments to euler_stuff (see VARARGIN) 
 
 %	Copyright (c) 2004-2010 by J. Luis
@@ -19,7 +18,7 @@ function varargout = euler_stuff(varargin)
 hObject = figure('Tag','figure1','Visible','off');
 euler_stuff_LayoutFcn(hObject);
 handles = guihandles(hObject);
-movegui(hObject,'west');
+move2side(hObject,'left');
 
 %#function telha_m choosebox
 
