@@ -14,19 +14,18 @@ function varargout = grdsample_mir(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+	if isempty(varargin)
+		errordlg('GRDSAMPLE: wrong number of input arguments.','Error'),	return
+	end
  
 	hObject = figure('Tag','figure1','Visible','off');
 	grdsample_mir_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	move2side(hObject,'right')
 
-	if ~isempty(varargin)
-		handMir  = varargin{1};
-		handles.Z = getappdata(handMir.figure1,'dem_z');
-	else
-        errordlg('GRDSAMPLE: wrong number of arguments.','Error')
-        delete(hObject);    return
-	end
+	handMir  = varargin{1};
+	handles.Z = getappdata(handMir.figure1,'dem_z');
+	move2side(handMir.figure1, hObject,'right')
     
 	if (handMir.no_file)
 		errordlg('GRDSAMPLE: You didn''t even load a file. What are you expecting then?','ERROR')
