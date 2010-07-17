@@ -1,4 +1,4 @@
-function MagBarCode(chron_file)
+function magbarcode(chron_file)
 % Creates an figure with the Geomagnetic Bar code
 %
 % CHRON_FILE is the full name of the isochrons file.
