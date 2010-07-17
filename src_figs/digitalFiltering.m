@@ -530,7 +530,7 @@ set(handles.tblParams, 'userdata',info);
 function edit_imageIn_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname),   return;    end
-	pushbutton_imageIn_CB(gcbo,[],guidata(gcbo),fname)
+	pushbutton_imageIn_CB(gcbo,guidata(gcbo),fname)
 
 % --------------------------------------------------------------------
 function pushbutton_imageIn_CB(hObject, handles, fname)
