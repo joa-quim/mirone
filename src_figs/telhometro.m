@@ -39,13 +39,13 @@ function edit_polesFile_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname)    return;    end
 	% Let the push_readPolesFile_CB do all the work
-	push_readPolesFile_CB(hObject,[],guidata(gcbo),fname)
+	push_readPolesFile_CB(hObject,guidata(gcbo),fname)
 
 % -------------------------------------------------------------------------------------
 function push_readPolesFile_CB(hObject, handles, opt)
 % Get poles file name
-	if (nargin == 4)    fname = opt;
-	else                opt = [];
+	if (nargin == 3)	fname = opt;
+	else				opt = [];
 	end
 
 	if (isempty(opt))           % Otherwise we already know fname from the 4th input argument
@@ -81,8 +81,6 @@ function push_compute_CB(hObject, handles)
 	end
 
 	handMir = guidata(handles.hCallingFig);
-	lt = handMir.DefLineThick;
-	lc = handMir.DefLineColor;
 
 	poles_name = get(handles.edit_polesFile,'String');
 	if (isempty(poles_name))
