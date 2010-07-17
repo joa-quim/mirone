@@ -18,19 +18,18 @@ function varargout = grdtrend_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+	if isempty(varargin)
+		errordlg('GRDTREND: wrong number of arguments.','Error'),	return
+	end
+
 	hObject = figure('Tag','figure1','Visible','off');
 	grdtrend_mir_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'center')
 
-	if ~isempty(varargin)
-		handMir  = varargin{1};
-		handles.Z = getappdata(handMir.figure1,'dem_z');
-		handles.have_nans = handMir.have_nans;
-	else
-        errordlg('GRDTREND: wrong number of arguments.','Error')
-        delete(hObject);    return
-	end
+	handMir  = varargin{1};
+	handles.Z = getappdata(handMir.figure1,'dem_z');
+	handles.have_nans = handMir.have_nans;
+	move2side(handMir.figure1, hObject,'right')
     
 	if (handMir.no_file)
 		errordlg('GRDTREND: You didn''t even load a file. What are you expecting then?','ERROR')
@@ -48,32 +47,9 @@ function varargout = grdtrend_mir(varargin)
 	handles.hMirFig = handMir.figure1;
 	handles.head = handMir.head;
 
-	% Give a Pro look (3D) to the frame boxes 
-	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-	h_f = findobj(hObject,'Style','Frame');
-	for i=1:length(h_f)
-        frame_size = get(h_f(i),'Position');
-        f_bgc = get(h_f(i),'BackgroundColor');
-        usr_d = get(h_f(i),'UserData');
-        if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-            frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-        else
-            frame3D(hObject,frame_size,framecolor,'',usr_d)
-            delete(h_f(i))
-        end
-	end
-
-	% Recopy the text fields on top of previously created frames (uistack is to slow)
-	h_t = handles.text2;
-	for i=1:length(h_t)
-        usr_d = get(h_t(i),'UserData');
-        t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-        bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
-        uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str, ...
-            'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,'UserData',usr_d);
-	end
-	delete(h_t)
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	new_frame3D(hObject, handles.text_what, handles.frame1)
+	%------------- END Pro look (3D) -----------------------------------------------------
 
 	guidata(hObject, handles);
 
@@ -81,7 +57,7 @@ function varargout = grdtrend_mir(varargin)
 	if (nargout),   varargout{1} = hObject;     end
 
 % -------------------------------------------------------------------------------------
-function radiobutton_trend_Callback(hObject, handles)
+function radiobutton_trend_CB(hObject, handles)
 	if (get(hObject,'Value'))
         set(handles.radiobutton_residuals,'Value',0)
         set(handles.radiobutton_weights,'Value',0)
@@ -90,7 +66,7 @@ function radiobutton_trend_Callback(hObject, handles)
 	end
 
 % -------------------------------------------------------------------------------------
-function radiobutton_residuals_Callback(hObject, handles)
+function radiobutton_residuals_CB(hObject, handles)
 	if (get(hObject,'Value'))
 		set(handles.radiobutton_trend,'Value',0)
 		set(handles.radiobutton_weights,'Value',0)
@@ -99,7 +75,7 @@ function radiobutton_residuals_Callback(hObject, handles)
 	end
 
 % -------------------------------------------------------------------------------------
-function radiobutton_weights_Callback(hObject, handles)
+function radiobutton_weights_CB(hObject, handles)
 	if (get(hObject,'Value'))
         set(handles.radiobutton_trend,'Value',0)
         set(handles.radiobutton_residuals,'Value',0)
@@ -109,7 +85,7 @@ function radiobutton_weights_Callback(hObject, handles)
 	end
 
 % -------------------------------------------------------------------------------------
-function pushbutton_Help_Nmodel_Callback(hObject, handles)
+function pushbutton_Help_Nmodel_CB(hObject, handles)
 message = {'The trend surface is defined by:'
     ' '
     'm1  +  m2*x + m3*y + m4*x*y + m5*x*x + m6*y*y + m7*x*x*x + m8*x*x*y + m9*x*y*y + m10*y*y*y'
@@ -120,7 +96,7 @@ message = {'The trend surface is defined by:'
 helpdlg(message,'Help on model parameters');
 
 % -------------------------------------------------------------------------------------
-function pushbutton_OK_Callback(hObject, handles)
+function pushbutton_OK_CB(hObject, handles)
 	% See what to compute
 	if (get(handles.radiobutton_trend,'Value'))
         opt_what = '-T';
@@ -189,13 +165,10 @@ set(h1,...
 'Resize','off',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,...
-'Position',[10 70 271 35],...
-'Style','frame',...
-'Tag','frame1');
+uicontrol('Parent',h1,'Position',[10 70 271 35], 'Style','frame', 'Tag','frame1');
 
 uicontrol('Parent',h1,...
-'Callback',{@grdtrend_mir_uicallback,h1,'radiobutton_trend_Callback'},...
+'Call',{@grdtrend_mir_uiCB,h1,'radiobutton_trend_CB'},...
 'Position',[24 79 60 15],...
 'String','Trend',...
 'Style','radiobutton',...
@@ -203,7 +176,7 @@ uicontrol('Parent',h1,...
 'Tag','radiobutton_trend');
 
 uicontrol('Parent',h1,...
-'Callback',{@grdtrend_mir_uicallback,h1,'radiobutton_residuals_Callback'},...
+'Call',{@grdtrend_mir_uiCB,h1,'radiobutton_residuals_CB'},...
 'Position',[112 79 80 15],...
 'String','Residuals',...
 'Style','radiobutton',...
@@ -211,7 +184,7 @@ uicontrol('Parent',h1,...
 'Tag','radiobutton_residuals');
 
 uicontrol('Parent',h1,...
-'Callback',{@grdtrend_mir_uicallback,h1,'radiobutton_weights_Callback'},...
+'Call',{@grdtrend_mir_uiCB,h1,'radiobutton_weights_CB'},...
 'Position',[205 79 80 15],...
 'String','Weights',...
 'Style','radiobutton',...
@@ -234,7 +207,7 @@ uicontrol('Parent',h1,...
 'Tag','checkbox_RobustFit');
 
 uicontrol('Parent',h1,...
-'Callback',{@grdtrend_mir_uicallback,h1,'pushbutton_Help_Nmodel_Callback'},...
+'Call',{@grdtrend_mir_uiCB,h1,'pushbutton_Help_Nmodel_CB'},...
 'FontWeight','bold',...
 'ForegroundColor',[0 0 1],...
 'Position',[171 18 22 22],...
@@ -246,8 +219,7 @@ uicontrol('Parent',h1,...
 'Position',[11 43 185 15],...
 'HorizontalAlignment','left',...
 'String','Number of model parameters',...
-'Style','text',...
-'Tag','text1');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'Position',[67 2 110 15],...
@@ -258,7 +230,7 @@ uicontrol('Parent',h1,...
 'Tag','check_NaNs');
 
 uicontrol('Parent',h1,...
-'Callback',{@grdtrend_mir_uicallback,h1,'pushbutton_OK_Callback'},...
+'Call',{@grdtrend_mir_uiCB,h1,'pushbutton_OK_CB'},...
 'Position',[214 10 66 21],...
 'String','OK',...
 'Tag','pushbutton_OK');
@@ -268,8 +240,8 @@ uicontrol('Parent',h1,...
 'Position',[20 95 110 17],...
 'String','What to compute',...
 'Style','text',...
-'Tag','text2');
+'Tag','text_what');
 
-function grdtrend_mir_uicallback(hObject, eventdata, h1, callback_name)
+function grdtrend_mir_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
 feval(callback_name,hObject,guidata(h1));
