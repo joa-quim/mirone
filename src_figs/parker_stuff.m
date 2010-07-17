@@ -18,7 +18,7 @@ function varargout = parker_stuff(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	parker_stuff_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'center')
+	move2side(hObject,'center')
 
 	handles.hCallingFig = [];		% Handles to the calling figure
 	handles.geog = 0;				% Set this as default
@@ -127,22 +127,9 @@ function varargout = parker_stuff(varargin)
 	set(handles.push_BatGrid,'CData',Mfopen_ico)
 	set(handles.push_SourceGrid,'CData',Mfopen_ico)
 
-	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-	set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-	h_f = findobj(hObject,'Style','Frame');
-	for i=1:numel(h_f)
-		frame_size = get(h_f(i),'Position');
-		f_bgc = get(h_f(i),'BackgroundColor');
-		usr_d = get(h_f(i),'UserData');
-		if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-			frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-		else
-			frame3D(hObject,frame_size,framecolor,'',usr_d)
-			delete(h_f(i))
-		end
-	end
+	%------------ Give a Pro look (3D) to the frame boxes  --------
+	new_frame3D(hObject, NaN)
+	%------------- END Pro look (3D) ------------------------------
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
@@ -612,9 +599,9 @@ set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Resize','off',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,'Position',[10 11 301 71],'String',{''},'Style','frame','Tag','frame3');
-uicontrol('Parent',h1,'Position',[10 101 381 81],'String',{''},'Style','frame','Tag','frame2');
-uicontrol('Parent',h1,'Position',[10 201 381 91],'String',{''},'Style','frame','Tag','frame1');
+uicontrol('Parent',h1,'Position',[10 11 301 71],'String',{''},'Style','frame');
+uicontrol('Parent',h1,'Position',[10 101 381 81],'String',{''},'Style','frame');
+uicontrol('Parent',h1,'Position',[10 201 381 91],'String',{''},'Style','frame');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Call',{@parker_stuff_uiCB,h1,'edit_BatGrid_CB'},...
