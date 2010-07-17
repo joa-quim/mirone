@@ -1,12 +1,11 @@
 function varargout = plate_calculator(varargin)
-% M-File changed by desGUIDE 
-% varargin   command line arguments to plate_calculator (see VARARGIN) 
+% Calculate plate velocities
 %
 % Changes:
 %       16-Oct-2004 Replaced APKIM2000 by DEOS2K model. However, APKIM2000 functions
 %                   where left in the code for the case they will be needed in future
 
-%	Copyright (c) 2004-2009 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -19,105 +18,75 @@ function varargout = plate_calculator(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
-
-global home_dir
  
-hObject = figure('Tag','figure1','Visible','off');
-plate_calculator_LayoutFcn(hObject);
-handles = guihandles(hObject);
- 
-movegui(hObject,'center')
-% Case when this function was called directly
-if isempty(home_dir),   home_dir = pwd;     end
+	hObject = figure('Tag','figure1','Visible','off');
+	plate_calculator_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'center')
 
-handles.path_data = [home_dir filesep 'data' filesep];
-handles.first_NNR = 1;
-handles.first_PB = 1;
-handles.first_AKIM2000 = 1;
-handles.first_DEOS2K = 1;
-handles.first_REVEL = 1;
-handles.absolute_motion = 0;        % when == 1, it signals an absolute motion model
-handles.abs2rel = 0;                % when == 1, flags that an absolute model was turned relative
+	mir_dirs = getappdata(0,'MIRONE_DIRS');
+	if (~isempty(mir_dirs))
+		handles.home_dir = mir_dirs.home_dir;		% Start in values
+		handles.work_dir = mir_dirs.work_dir;
+		handles.last_dir = mir_dirs.last_dir;
+	else
+		handles.home_dir = cd;		handles.work_dir = cd;		handles.last_dir = cd;
+	end
+	handles.path_data = [handles.home_dir filesep 'data' filesep];
 
-set(handles.checkbox_Abs2Rel,'Visible','off')
+	handles.first_NNR = 1;
+	handles.first_PB = 1;
+	handles.first_AKIM2000 = 1;
+	handles.first_DEOS2K = 1;
+	handles.first_REVEL = 1;
+	handles.absolute_motion = 0;		% when == 1, it signals an absolute motion model
+	handles.abs2rel = 0;				% when == 1, flags that an absolute model was turned relative
 
-% Read the Nuvel-1A poles file as they are the default
-fid = fopen([handles.path_data 'Nuvel1A_poles.dat'],'r');
-[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-fclose(fid);
+	set(handles.checkbox_Abs2Rel,'Visible','off')
 
-% Save the poles parameters in the handles structure
-handles.Nuvel1A_abbrev = abbrev;
-handles.Nuvel1A_name = name;
-handles.Nuvel1A_lat = lat;
-handles.Nuvel1A_lon = lon;
-handles.Nuvel1A_omega = omega;
+	% Read the Nuvel-1A poles file as they are the default
+	fid = fopen([handles.path_data 'Nuvel1A_poles.dat'],'r');
+	[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+	fclose(fid);
 
-% Fill the popupmenus with the Plate's names
-set(handles.popup_FixedPlate,'String',name)
-set(handles.popup_MovingPlate,'String',name)
+	% Save the poles parameters in the handles structure
+	handles.Nuvel1A_abbrev = abbrev;
+	handles.Nuvel1A_name = name;
+	handles.Nuvel1A_lat = lat;
+	handles.Nuvel1A_lon = lon;
+	handles.Nuvel1A_omega = omega;
 
-%set(hObject,'RendererMode','auto')
-set(hObject,'Renderer','painters')
-set(hObject,'doublebuffer','on');
-set(hObject,'Name','Plate Calculator');
-axes(handles.axes1)
+	% Fill the popupmenus with the Plate's names
+	set(handles.popup_FixedPlate,'String',name)
+	set(handles.popup_MovingPlate,'String',name)
 
-set(handles.axes1,'xlim',[-180 180], 'ylim',[-90 90])
-axis xy; 
+	set_Nuvel1Aplate_model(hObject,handles)
+	setappdata(hObject,'current_model','Nuvel1A')
+	handles.Nuvel1A_comb = do_plate_comb('Nuvel1A');
 
-set_Nuvel1Aplate_model(hObject,handles)
-setappdata(hObject,'current_model','Nuvel1A')
-handles.Nuvel1A_comb = do_plate_comb('Nuvel1A');
+	% Need to change the ButtonDownFcn call arguments (I didn't set it directly for a question of generality)
+	h_patch = findobj(hObject,'Type','patch');
+	set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'Nuvel1A'})
 
-% Need to change the ButtonDownFcn call arguments (I didn't set it directly for a question of generality)
-h_patch = findobj(hObject,'Type','patch');
-set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'Nuvel1A'})
+	% Initialize (but out of the map) two symbols for ploting the pole position
+	line(-500,-500,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',7,'Tag','pole_out');
+	line(-500,-500,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in1');
+	line(-500,-500,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
 
-% Initialize (but out of the map) two symbols for ploting the pole position
-line(-500,-500,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',7,'Tag','pole_out');
-line(-500,-500,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in1');
-line(-500,-500,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
+	%----------- Give a Pro look (3D) to the frame box  ---------
+	new_frame3D(hObject, [handles.txt_Abs handles.txt_Rel])
+	%------------- END Pro look (3D) ----------------------------
 
-% Give a Pro look (3D) to the frame boxes 
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')        % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-
-% Recopy the text fields on top of previously created frames (uistack is to slow)
-h_t = findobj(hObject,'Style','Text');
-for i=1:length(h_t)
-    usr_d = get(h_t(i),'UserData');
-    t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-    t_just = get(h_t(i),'HorizontalAlignment');     t_tag = get(h_t(i),'Tag');
-    bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
-    uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str,'HorizontalAlignment',t_just,...
-        'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,'UserData',usr_d, 'Tag',t_tag);
-end
-delete(h_t)
-
-guidata(hObject, handles);
-set(hObject,'Visible','on');
-if (nargout),   varargout{1} = hObject;     end
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),	varargout{1} = hObject;		end
 
 %--------------------------------------------------------------------------------------------------
-function popup_FixedPlate_Callback(hObject, eventdata, handles)
+function popup_FixedPlate_CB(hObject, handles)
 D2R = pi/180;
 ind_fix = get(hObject,'Value');
 ind_mov = get(handles.popup_MovingPlate,'Value');
-model = getappdata(gcf,'current_model');
+model = getappdata(handles.figure1, 'current_model');
 switch model
     case 'Nuvel1A'
         lat2 = handles.Nuvel1A_lat(ind_mov);        lon2 = handles.Nuvel1A_lon(ind_mov);
@@ -173,18 +142,18 @@ if (omega == 0)     % This works as a test for when the same plate is selected a
     return
 end
 
-set(handles.edit_PoleLon,'String',num2str(lon/D2R,'%3.2f'))
-set(handles.edit_PoleLat,'String',num2str(lat/D2R,'%2.2f'))
-set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-pushbutton_Calculate_Callback(hObject,eventdata,handles,'nada')
+set(handles.edit_PoleLon,'String',sprintf('%3.2f',lon/D2R))
+set(handles.edit_PoleLat,'String',sprintf('%2.2f',lat/D2R))
+set(handles.edit_PoleRate,'String',sprintf('%1.4f',omega))
+push_Calculate_CB(hObject,handles,'nada')
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function popup_MovingPlate_Callback(hObject, eventdata, handles)
+function popup_MovingPlate_CB(hObject, handles)
 D2R = pi/180;
 ind_mov = get(hObject,'Value');
 ind_fix = get(handles.popup_FixedPlate,'Value');
-model = getappdata(gcf,'current_model');
+model = getappdata(handles.figure1,'current_model');
 switch model
     case 'Nuvel1A'
         lat2 = handles.Nuvel1A_lat(ind_mov);        lon2 = handles.Nuvel1A_lon(ind_mov);
@@ -243,11 +212,11 @@ end
 set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
 set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
 set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-pushbutton_Calculate_Callback(hObject,eventdata,handles,'nada')
+push_Calculate_CB(hObject,handles,'nada')
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radiobutton_Nuvel1A_Callback(hObject, eventdata, handles)
+function radiobutton_Nuvel1A_CB(hObject, handles)
 if ~get(hObject,'Value')
     set(hObject,'Value',1);    return
 end
@@ -268,7 +237,7 @@ set(handles.popup_FixedPlate,'String',handles.Nuvel1A_name)
 set(handles.popup_MovingPlate,'String',handles.Nuvel1A_name)
 handles.Nuvel1A_comb = do_plate_comb('Nuvel1A');
 
-model = getappdata(gcf,'current_model');
+model = getappdata(handles.figure1,'current_model');
 if ~any(strcmp(model,{'Nuvel1A','Nuvel1A_NNR'}))    % Another plate model was loaded
     set_Nuvel1Aplate_model(hObject,handles)
 end
@@ -279,11 +248,10 @@ set(handles.edit_PoleLat,'String','')
 set(handles.edit_PoleRate,'String','')
 
 % Remove info about the previously calculated velocity results
-h_txtSpeed = findobj('Tag','text_Speed');   h_txtAzim = findobj('Tag','text_Azim');
-set(h_txtSpeed,'String','Speed   = ');      set(h_txtAzim,'String','Azimuth = ')
+set(handles.text_Azim,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
 % Flag in appdata which model is currently loaded
-setappdata(gcf,'current_model','Nuvel1A')
+setappdata(handles.figure1,'current_model','Nuvel1A')
 
 % Need to change the ButtonDownFcn call arguments
 h_patch = findobj('Type','patch');
@@ -291,7 +259,7 @@ set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'Nuvel1A'})
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radiobutton_Nuvel1A_NNR_Callback(hObject, eventdata, handles)
+function radiobutton_Nuvel1A_NNR_CB(hObject, handles)
 if ~get(hObject,'Value')
     set(hObject,'Value',1);    return
 end
@@ -303,7 +271,7 @@ set(handles.radiobutton_DEOS2K,'Value',0)
 set(handles.radiobutton_REVEL,'Value',0)
 set(handles.checkbox_Abs2Rel,'Visible','on')
 
-model = getappdata(gcf,'current_model');
+model = getappdata(handles.figure1,'current_model');
 if ~any(strcmp(model,{'Nuvel1A','Nuvel1A_NNR'}))    % Another plate model was loaded
     set_Nuvel1Aplate_model(hObject,handles)
 end
@@ -371,11 +339,10 @@ else
 end
 
 % Remove info about the previously calculated velocity results
-h_txtSpeed = findobj('Tag','text_Speed');   h_txtAzim = findobj('Tag','text_Azim');
-set(h_txtSpeed,'String','Speed   = ');      set(h_txtAzim,'String','Azimuth = ')
+set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
 % Flag in appdata which model is currently loaded
-setappdata(gcf,'current_model','NNR')
+setappdata(handles.figure1,'current_model','NNR')
 
 % Need to change the ButtonDownFcn call arguments
 h_patch = findobj('Type','patch');
@@ -383,7 +350,7 @@ set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'NNR'})
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radiobutton_PBird_Callback(hObject, eventdata, handles)
+function radiobutton_PBird_CB(hObject, handles)
 if ~get(hObject,'Value')
     set(hObject,'Value',1);    return
 end
@@ -425,11 +392,10 @@ set(handles.edit_PoleLat,'String','')
 set(handles.edit_PoleRate,'String','')
 
 % Remove info about the previously calculated velocity results
-h_txtSpeed = findobj('Tag','text_Speed');   h_txtAzim = findobj('Tag','text_Azim');
-set(h_txtSpeed,'String','Speed   = ');      set(h_txtAzim,'String','Azimuth = ')
+set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
 % Flag in appdata which model is currently loaded
-setappdata(gcf,'current_model','PB')
+setappdata(handles.figure1,'current_model','PB')
 
 % Need to change the ButtonDownFcn call arguments
 h_patch = findobj('Type','patch');
@@ -437,7 +403,7 @@ set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'PB'})
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radiobutton_AKIM2000_Callback(hObject, eventdata, handles)
+function radiobutton_AKIM2000_CB(hObject, handles)
 if ~get(hObject,'Value')
     set(hObject,'Value',1);    return
 end
@@ -449,7 +415,6 @@ set(handles.radiobutton_PBird,'Value',0)
 set(handles.radiobutton_REVEL,'Value',0)
 set(handles.checkbox_Abs2Rel,'Visible','on')
 
-model = getappdata(gcf,'current_model');
 set_AKIM2000plate_model(hObject,handles)
 
 if (handles.first_AKIM2000)      % Load and read poles deffinition
@@ -515,11 +480,10 @@ else
 end
 
 % Remove info about the previously calculated velocity results
-h_txtSpeed = findobj('Tag','text_Speed');   h_txtAzim = findobj('Tag','text_Azim');
-set(h_txtSpeed,'String','Speed   = ');      set(h_txtAzim,'String','Azimuth = ')
+set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
 % Flag in appdata which model is currently loaded
-setappdata(gcf,'current_model','AKIM2000')
+setappdata(handles.figure1,'current_model','AKIM2000')
 
 % Need to change the ButtonDownFcn call arguments
 h_patch = findobj('Type','patch');
@@ -527,7 +491,7 @@ set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'AKIM2000'})
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radiobutton_REVEL_Callback(hObject, eventdata, handles)
+function radiobutton_REVEL_CB(hObject, handles)
 if ~get(hObject,'Value')
     set(hObject,'Value',1);    return
 end
@@ -539,7 +503,6 @@ set(handles.radiobutton_PBird,'Value',0)
 set(handles.radiobutton_DEOS2K,'Value',0)
 set(handles.checkbox_Abs2Rel,'Visible','on')
 
-model = getappdata(gcf,'current_model');
 set_REVELplate_model(hObject,handles)
 
 if (handles.first_REVEL)      % Load and read poles deffinition
@@ -605,11 +568,10 @@ else
 end
 
 % Remove info about the previously calculated velocity results
-h_txtSpeed = findobj('Tag','text_Speed');   h_txtAzim = findobj('Tag','text_Azim');
-set(h_txtSpeed,'String','Speed   = ');      set(h_txtAzim,'String','Azimuth = ')
+set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
 % Flag in appdata which model is currently loaded
-setappdata(gcf,'current_model','REVEL')
+setappdata(handles.figure1,'current_model','REVEL')
 
 % Need to change the ButtonDownFcn call arguments
 h_patch = findobj('Type','patch');
@@ -617,7 +579,7 @@ set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'REVEL'})
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radiobutton_DEOS2K_Callback(hObject, eventdata, handles)
+function radiobutton_DEOS2K_CB(hObject, handles)
 if ~get(hObject,'Value')
     set(hObject,'Value',1);    return
 end
@@ -629,7 +591,6 @@ set(handles.radiobutton_PBird,'Value',0)
 set(handles.radiobutton_REVEL,'Value',0)
 set(handles.checkbox_Abs2Rel,'Visible','on')
 
-model = getappdata(gcf,'current_model');
 set_DEOS2Kplate_model(hObject,handles)
 
 if (handles.first_DEOS2K)      % Load and read poles deffinition
@@ -695,11 +656,10 @@ else
 end
 
 % Remove info about the previously calculated velocity results
-h_txtSpeed = findobj('Tag','text_Speed');   h_txtAzim = findobj('Tag','text_Azim');
-set(h_txtSpeed,'String','Speed   = ');      set(h_txtAzim,'String','Azimuth = ')
+set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
 % Flag in appdata which model is currently loaded
-setappdata(gcf,'current_model','DEOS2K')
+setappdata(handles.figure1,'current_model','DEOS2K')
 
 % Need to change the ButtonDownFcn call arguments
 h_patch = findobj('Type','patch');
@@ -707,30 +667,21 @@ set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'DEOS2K'})
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function edit_PtLon_Callback(hObject, eventdata, handles)
+function edit_PtLon_CB(hObject, handles)
 xx = get(hObject,'String');
 if (isempty(xx) || str2double(xx) < -180 || str2double(xx) > 360)
     set(hObject,'String','0')
 end
 
 %--------------------------------------------------------------------------------------------------
-function edit_PtLat_Callback(hObject, eventdata, handles)
+function edit_PtLat_CB(hObject, handles)
 xx = get(hObject,'String');
 if (isempty(xx) || str2double(xx) < -90 || str2double(xx) > 90)
     set(hObject,'String','0')
 end
 
 %--------------------------------------------------------------------------------------------------
-function edit_PoleLon_Callback(hObject, eventdata, handles)
-
-%--------------------------------------------------------------------------------------------------
-function edit_PoleLat_Callback(hObject, eventdata, handles)
-
-%--------------------------------------------------------------------------------------------------
-function edit_PoleRate_Callback(hObject, eventdata, handles)
-
-%--------------------------------------------------------------------------------------------------
-function pushbutton_Calculate_Callback(hObject, eventdata, handles, opt)
+function push_Calculate_CB(hObject, handles, opt)
 % Calculate the Euler velocity based on the Euler pole read on respective edit boxes.
 
 if (nargin == 3),   opt = [];   end
@@ -787,10 +738,8 @@ delta = acos(x);
 vel = omega*D2R/1e+4 * earth_rad * sin(delta);      % to give velocity in cm/Ma
 
 % Get the position of the text objects that will contain the velocity results
-h_txtSpeed = findobj('Tag','text_Speed');
-h_txtAzim = findobj('Tag','text_Azim');
-set(h_txtSpeed,'String',['Speed   = ' num2str(vel,'%2.2f') '  cm/yr'])
-set(h_txtAzim,'String',['Azimuth = ' num2str(azim,'%3.1f') '  degree (cw from N)'])
+set(handles.text_Speed,'String',['Speed   = ' sprintf('%2.2f',vel) ' cm/yr'])
+set(handles.text_Azim,'String',['Azimuth = ' sprintf('%3.1f',azim) ' degree (cw from N)'])
 
 % -----------------------------------------------------------------------------------------
 function [vel,azim] = compute_velocity(alat,alon,plat,plon,omega)
@@ -819,79 +768,71 @@ if (nargin == 3),   opt = [];   end
 
 D2R = pi/180;
 tag = get(gcbo,'Tag');
-pt = get(gca, 'CurrentPoint');
+pt = get(handles.axes1, 'CurrentPoint');
 set(handles.edit_PtLon,'String',pt(1,1))
 set(handles.edit_PtLat,'String',pt(1,2))
 
 if strcmp(opt,'Nuvel1A')
-    mod_abb = handles.Nuvel1A_abbrev;
-    mod_name = handles.Nuvel1A_name;
-    mod_comb = handles.Nuvel1A_comb;
+	mod_abb = handles.Nuvel1A_abbrev;
+	mod_comb = handles.Nuvel1A_comb;
 elseif strcmp(opt,'NNR')
-    mod_abb = handles.Nuvel1A_NNR_abbrev;
-    mod_name = handles.Nuvel1A_NNR_name;
-    mod_comb = handles.Nuvel1A_NNR_comb;
+	mod_abb = handles.Nuvel1A_NNR_abbrev;
+	mod_comb = handles.Nuvel1A_NNR_comb;
 elseif strcmp(opt,'PB')
-    mod_abb = handles.PB_abbrev;
-    mod_name = handles.PB_name;
-    mod_comb = handles.PB_comb;
+	mod_abb = handles.PB_abbrev;
+	mod_comb = handles.PB_comb;
 elseif strcmp(opt,'AKIM2000')
-    mod_abb = handles.AKIM2000_abbrev;
-    mod_name = handles.AKIM2000_name;
-    mod_comb = handles.AKIM2000_comb;
+	mod_abb = handles.AKIM2000_abbrev;
+	mod_comb = handles.AKIM2000_comb;
 elseif strcmp(opt,'REVEL')
-    mod_abb = handles.REVEL_abbrev;
-    mod_name = handles.REVEL_name;
-    mod_comb = handles.REVEL_comb;
+	mod_abb = handles.REVEL_abbrev;
+	mod_comb = handles.REVEL_comb;
 elseif strcmp(opt,'DEOS2K')
-    mod_abb = handles.DEOS2K_abbrev;
-    mod_name = handles.DEOS2K_name;
-    mod_comb = handles.DEOS2K_comb;
+	mod_abb = handles.DEOS2K_abbrev;
+	mod_comb = handles.DEOS2K_comb;
 end
 
 % Find (and set it on the popup) the moving plate name
 ind = strmatch(tag,mod_abb);
-name = mod_name{ind};
 set(handles.popup_MovingPlate,'Value',ind)
 
 % If it is a absolute motion, call the computing function and return.
-hand1 = guidata(gcf);
-%if (handles.absolute_motion)       % Este cabrao tem esta var errada???? FDP
+handles = guidata(handles.figure1);		% Use updated version (in case something important changed)
 if (hand1.absolute_motion)
-    switch opt
-        case 'NNR'
-            lat = handles.Nuvel1A_NNR_lat(ind);     lon = handles.Nuvel1A_NNR_lon(ind);
-            omega = handles.Nuvel1A_NNR_omega(ind);
-            set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-            set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-            set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-            pushbutton_Calculate_Callback(obj,eventdata,handles,'NNR')
-            return
-        case 'AKIM2000'
-            lat = handles.AKIM2000_lat(ind);     lon = handles.AKIM2000_lon(ind);
-            omega = handles.AKIM2000_omega(ind);
-            set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-            set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-            set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-            pushbutton_Calculate_Callback(obj,eventdata,handles,'AKIM2000')
-            return
-        case 'REVEL'
-            lat = handles.REVEL_lat(ind);     lon = handles.REVEL_lon(ind);
-            omega = handles.REVEL_omega(ind);
-            set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-            set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-            set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-            pushbutton_Calculate_Callback(obj,eventdata,handles,'REVEL')
-            return
-        case 'DEOS2K'
-            lat = handles.DEOS2K_lat(ind);     lon = handles.DEOS2K_lon(ind);
-            omega = handles.DEOS2K_omega(ind);
-            set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-            set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-            set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-            pushbutton_Calculate_Callback(obj,eventdata,handles,'DEOS2K')
-            return
-    end
+	switch opt
+		case 'NNR'
+			lat = handles.Nuvel1A_NNR_lat(ind);     lon = handles.Nuvel1A_NNR_lon(ind);
+			omega = handles.Nuvel1A_NNR_omega(ind);
+			set(handles.edit_PoleLon,'String',sprintf('%3.2f', lon))
+			set(handles.edit_PoleLat,'String',sprintf('%2.2f', lat))
+			set(handles.edit_PoleRate,'String',sprintf('%1.4f', omega))
+			push_Calculate_CB(obj,handles,'NNR')
+			return
+		case 'AKIM2000'
+			lat = handles.AKIM2000_lat(ind);     lon = handles.AKIM2000_lon(ind);
+			omega = handles.AKIM2000_omega(ind);
+			set(handles.edit_PoleLon,'String',sprintf('%3.2f', lon))
+			set(handles.edit_PoleLat,'String',sprintf('%2.2f', lat))
+			set(handles.edit_PoleRate,'String',sprintf('%1.4f', omega))
+			push_Calculate_CB(obj,handles,'AKIM2000')
+			return
+		case 'REVEL'
+			lat = handles.REVEL_lat(ind);     lon = handles.REVEL_lon(ind);
+			omega = handles.REVEL_omega(ind);
+			set(handles.edit_PoleLon,'String',sprintf('%3.2f', lon))
+			set(handles.edit_PoleLat,'String',sprintf('%2.2f', lat))
+			set(handles.edit_PoleRate,'String',sprintf('%1.4f', omega))
+			push_Calculate_CB(obj,handles,'REVEL')
+			return
+		case 'DEOS2K'
+			lat = handles.DEOS2K_lat(ind);     lon = handles.DEOS2K_lon(ind);
+			omega = handles.DEOS2K_omega(ind);
+			set(handles.edit_PoleLon,'String',sprintf('%3.2f', lon))
+			set(handles.edit_PoleLat,'String',sprintf('%2.2f', lat))
+			set(handles.edit_PoleRate,'String',sprintf('%1.4f', omega))
+			push_Calculate_CB(obj,handles,'DEOS2K')
+			return
+	end
 end
 
 % Find (and set it on the popup) the closest plate. This will be assume as the fix plate
@@ -908,7 +849,7 @@ for i=1:length(dash)                % Loop on all neighbour plates
         y = [y{1}; y{2}];
     end
     dist = c_tet*cos((90-y)*D2R) + s_tet*sin((90-y)*D2R).*cos((pt(1,1)-x)*D2R);
-    try,
+    try
         d_min(i) = min(abs(acos(dist)));
     end
 end
@@ -916,13 +857,12 @@ end
 [c,i] = min(d_min);         % i will contain the index to closest plate in "neigh" string
 abb = neigh(dash(i)+1:dash(i)+2);
 ind = strmatch(abb,mod_abb);
-name = mod_name{ind};
 set(handles.popup_FixedPlate,'Value',ind)
 
 % If we reach here, it means we are dealing with a relative motion
 ind_mov = get(handles.popup_MovingPlate,'Value');
 ind_fix = get(handles.popup_FixedPlate,'Value');
-model = getappdata(gcf,'current_model');
+model = getappdata(handles.figure1,'current_model');
 switch model
     case 'Nuvel1A'
         lat2 = handles.Nuvel1A_lat(ind_mov);        lon2 = handles.Nuvel1A_lon(ind_mov);
@@ -965,10 +905,10 @@ if (omega == 0)     % This should not happen, but just in case
     return
 end
 
-set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-pushbutton_Calculate_Callback(obj,eventdata,handles,'nada')
+set(handles.edit_PoleLon,'String',sprintf('%3.2f', lon))
+set(handles.edit_PoleLat,'String',sprintf('%2.2f', lat))
+set(handles.edit_PoleRate,'String',sprintf('%1.4f', omega))
+push_Calculate_CB(obj,handles,'nada')
 
 % -----------------------------------------------------------------------------------------
 function set_Nuvel1Aplate_model(hObject,handles)
@@ -1370,8 +1310,8 @@ switch which
         out(8) = {'SO-AN-AU-NU'};
 end
 
-% --- Executes on button press in pushbutton_Readme.
-function pushbutton_Readme_Callback(hObject, eventdata, handles)
+% --- Executes on button press in push_Readme.
+function push_Readme_CB(hObject, handles)
 message = {'There is not much to say about the program use (specially if you know what'
     'is a plate calculator). You just click arround and watch the results. A'
     'little trial will also show that you can change the point where velocity'
@@ -1445,7 +1385,7 @@ plon = atan2(aWb_y,aWb_x);
 omega = sqrt(aWb_x*aWb_x + aWb_y*aWb_y + aWb_z*aWb_z);
 
 %--------------------------------------------------------------------------------------------------
-function checkbox_Abs2Rel_Callback(hObject, eventdata, handles)
+function checkbox_Abs2Rel_CB(hObject, handles)
 % Use absolute models to compute relative relative motions
 if ~get(hObject,'Value')        % If we turn back to absolute motion
     handles.abs2rel = 0;
@@ -1459,7 +1399,7 @@ if ~get(hObject,'Value')        % If we turn back to absolute motion
 end
 
 D2R = pi/180;
-model = getappdata(gcf,'current_model');
+model = getappdata(handles.figure1,'current_model');
 
 % Fill the fixed plate popupmenus with the current model plate names
 switch model
@@ -1523,35 +1463,27 @@ end
 set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
 set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
 set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-pushbutton_Calculate_Callback(hObject,eventdata,handles,'nada')
+push_Calculate_CB(hObject,handles,'nada')
 
 % --- Creates and returns a handle to the GUI figure. 
 function plate_calculator_LayoutFcn(h1)
 set(h1,'PaperUnits','centimeters',...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'MenuBar','none',...
-'Name','plate_calculator',...
+'Name','Plate Calculator',...
 'NumberTitle','off',...
 'Position',[520 483 709 317],...
 'RendererMode','manual',...
+'doublebuffer','on',...
 'Resize','off',...
-'Tag','figure1',...
-'UserData',[]);
+'Tag','figure1');
 
-uicontrol('Parent',h1,...
-'Position',[101 221 101 81],...
-'Style','frame',...
-'Tag','frame3');
-
-uicontrol('Parent',h1,...
-'Position',[10 221 81 81],...
-'String',{  '' },...
-'Style','frame',...
-'Tag','frame2');
+uicontrol('Parent',h1, 'Position',[101 221 101 81], 'Style','frame');
+uicontrol('Parent',h1, 'Position',[10 221 81 81], 'Style','frame');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@plate_calculator_uicallback,h1,'popup_FixedPlate_Callback'},...
+'Call',{@plate_calculator_uiCB,h1,'popup_FixedPlate_CB'},...
 'Position',[10 173 121 22],...
 'Style','popupmenu',...
 'Value',1,...
@@ -1559,7 +1491,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@plate_calculator_uicallback,h1,'popup_MovingPlate_Callback'},...
+'Call',{@plate_calculator_uiCB,h1,'popup_MovingPlate_CB'},...
 'Position',[150 173 121 22],...
 'Style','popupmenu',...
 'Value',1,...
@@ -1568,18 +1500,16 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Position',[10 195 52 15],...
 'String','Fixed Plate',...
-'Style','text',...
-'Tag','text1');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
 'Position',[150 196 71 15],...
 'String','Moving Plate',...
-'Style','text',...
-'Tag','text2');
+'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@plate_calculator_uicallback,h1,'radiobutton_Nuvel1A_Callback'},...
+'Call',{@plate_calculator_uiCB,h1,'radiobutton_Nuvel1A_CB'},...
 'Position',[14 271 75 15],...
 'String','Nuvel-1A',...
 'Style','radiobutton',...
@@ -1588,34 +1518,34 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@plate_calculator_uicallback,h1,'edit_PtLon_Callback'},...
+'Call',{@plate_calculator_uiCB,h1,'edit_PtLon_CB'},...
 'Position',[10 122 71 21],...
 'Style','edit',...
 'Tag','edit_PtLon');
 
-axes('Parent',h1,...
-'Units','pixels',...
+axes('Parent',h1, 'Units','pixels', 'Position',[300 46 401 260],...
 'Color',get(0,'defaultaxesColor'),...
-'Position',[300 46 401 260],...
+'xlim',[-180 180],...
+'ylim',[-90 90],...
 'Tag','axes1');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@plate_calculator_uicallback,h1,'edit_PtLat_Callback'},...
+'Call',{@plate_calculator_uiCB,h1,'edit_PtLat_CB'},...
 'Position',[110 122 71 21],...
 'Style','edit',...
 'Tag','edit_PtLat');
 
 uicontrol('Parent',h1,...
-'Callback',{@plate_calculator_uicallback,h1,'pushbutton_Calculate_Callback'},...
+'Call',{@plate_calculator_uiCB,h1,'push_Calculate_CB'},...
 'FontSize',9,...
 'FontWeight','bold',...
 'Position',[205 120 66 21],...
 'String','Calculate',...
-'Tag','pushbutton_Calculate');
+'Tag','push_Calculate');
 
 uicontrol('Parent',h1,...
-'Callback',{@plate_calculator_uicallback,h1,'radiobutton_PBird_Callback'},...
+'Call',{@plate_calculator_uiCB,h1,'radiobutton_PBird_CB'},...
 'Position',[14 244 71 15],...
 'String','P. Bird',...
 'Style','radiobutton',...
@@ -1635,7 +1565,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@plate_calculator_uicallback,h1,'edit_PoleLon_Callback'},...
 'Position',[10 73 71 21],...
 'Style','edit',...
 'Tag','edit_PoleLon');
@@ -1643,12 +1572,10 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Position',[10 95 72 15],...
 'String','Pole Longitude',...
-'Style','text',...
-'Tag','text5');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@plate_calculator_uicallback,h1,'edit_PoleLat_Callback'},...
 'Position',[100 73 71 21],...
 'Style','edit',...
 'Tag','edit_PoleLat');
@@ -1656,12 +1583,10 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Position',[100 95 72 15],...
 'String','Pole Latitude',...
-'Style','text',...
-'Tag','text6');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@plate_calculator_uicallback,h1,'edit_PoleRate_Callback'},...
 'Position',[200 73 71 21],...
 'Style','edit',...
 'Tag','edit_PoleRate');
@@ -1669,20 +1594,16 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Position',[200 95 72 15],...
 'String','Rate (deg/Ma)',...
-'Style','text',...
-'Tag','text7');
+'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@plate_calculator_uicallback,h1,'radiobutton_Nuvel1A_NNR_Callback'},...
+'Call',{@plate_calculator_uiCB,h1,'radiobutton_Nuvel1A_NNR_CB'},...
 'Position',[108 274 100 15],...
 'String','Nuvel-1A NNR',...
 'Style','radiobutton',...
 'Tag','radiobutton_Nuvel1A_NNR');
 
-uicontrol('Parent',h1,...
-'Position',[10 5 231 51],...
-'Style','frame',...
-'Tag','frame1');
+uicontrol('Parent',h1, 'Position',[10 5 241 51], 'Style','frame');
 
 uicontrol('Parent',h1,...
 'FontSize',10,...
@@ -1692,57 +1613,53 @@ uicontrol('Parent',h1,...
 'Style','text',...
 'Tag','text_Speed');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[20 11 220 17],...
 'FontSize',10,...
 'HorizontalAlignment','left',...
-'Position',[20 11 211 17],...
 'String','Azimuth =',...
 'Style','text',...
 'Tag','text_Azim');
 
 uicontrol('Parent',h1,...
-'Callback',{@plate_calculator_uicallback,h1,'radiobutton_DEOS2K_Callback'},...
+'Call',{@plate_calculator_uiCB,h1,'radiobutton_DEOS2K_CB'},...
 'Position',[108 254 87 15],...
 'String','DEOS2K',...
 'Style','radiobutton',...
 'Tag','radiobutton_DEOS2K');
 
 uicontrol('Parent',h1,...
-'Callback',{@plate_calculator_uicallback,h1,'radiobutton_REVEL_Callback'},...
+'Call',{@plate_calculator_uiCB,h1,'radiobutton_REVEL_CB'},...
 'Position',[108 235 87 15],...
 'String','REVEL',...
 'Style','radiobutton',...
 'Tag','radiobutton_REVEL');
 
-uicontrol('Parent',h1,...
-'Position',[20 293 51 15],...
+uicontrol('Parent',h1, 'Position',[20 293 51 15],...
 'String','Relative',...
 'Style','text',...
-'Tag','text10');
+'Tag','txt_Rel');
 
-uicontrol('Parent',h1,...
-'Position',[115 293 51 15],...
+uicontrol('Parent',h1, 'Position',[115 293 51 15],...
 'String','Absolute',...
 'Style','text',...
-'Tag','text11');
+'Tag','txt_Abs');
 
 uicontrol('Parent',h1,...
-'Callback',{@plate_calculator_uicallback,h1,'pushbutton_Readme_Callback'},...
+'Call',{@plate_calculator_uiCB,h1,'push_Readme_CB'},...
 'FontSize',9,...
 'FontWeight','demi',...
 'ForegroundColor',[0 0 1],...
 'Position',[210 279 66 21],...
 'String','Readme',...
-'Tag','pushbutton_Readme');
+'Tag','push_Readme');
 
-uicontrol('Parent',h1,...
-'Callback',{@plate_calculator_uicallback,h1,'checkbox_Abs2Rel_Callback'},...
-'Position',[210 232 64 15],...
+uicontrol('Parent',h1, 'Position',[210 232 70 15],...
+'Call',{@plate_calculator_uiCB,h1,'checkbox_Abs2Rel_CB'},...
 'String','Relativize',...
 'Style','checkbox',...
-'TooltipString','Compute relative motion from asolute model',...
+'Tooltip','Compute relative motion from asolute model',...
 'Tag','checkbox_Abs2Rel');
 
-function plate_calculator_uicallback(hObject, eventdata, h1, callback_name)
+function plate_calculator_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
