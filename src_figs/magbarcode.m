@@ -1,9 +1,10 @@
 function MagBarCode(chron_file)
 % Creates an figure with the Geomagnetic Bar code
+%
 % CHRON_FILE is the full name of the isochrons file.
 % If not given, the default file is used
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -17,18 +18,17 @@ function MagBarCode(chron_file)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-global home_dir
+	mir_dirs = getappdata(0,'MIRONE_DIRS');
+	if (~isempty(mir_dirs))
+		d_path = [mir_dirs.home_dir filesep 'data' filesep];
+	else
+		d_path = [cd filesep 'data' filesep];
+	end
 
-if isempty(home_dir)        % Case when this function was called directly
-    d_path = [pwd filesep 'data' filesep];
-else
-    d_path = [home_dir filesep 'data' filesep];
-end
-
-%chron_file = 'D:/m_gmt_so/data/BarCode_Cox_direct.dat';
-if (nargin == 0)
-    chron_file = [d_path 'Cande_Kent_95.dat'];
-end
+	%chron_file = 'D:/m_gmt_so/data/BarCode_Cox_direct.dat';
+	if (nargin == 0)
+		chron_file = [d_path 'Cande_Kent_95.dat'];
+	end
 
 % Define height of the bar code
 tmax = 165;             % Max time (in Ma) represented
@@ -71,14 +71,13 @@ guidata(F, handles);
 
 pos=[0.96 0 .04 1];
 S=['set(gca,''ylim'',[' num2str(tscal-height) ' ' num2str(tscal) ']-get(gcbo,''value''))'];
-h=uicontrol('style','slider','units','normalized','position',pos,...
+uicontrol('style','slider','units','normalized','position',pos,...
     'callback',S,'min',0,'max',tscal-height,'Value',tscal-height);
 
 fid = fopen(chron_file,'r');
 todos = fread(fid,'*char');     [chron age_start age_end age_txt] = strread(todos,'%s %f %f %s');
 fclose(fid);    clear todos
 
-n_chron = length(chron);
 y = barHeight_1M * ([age_start'; age_end'] + dy);
 y = y(:);
 x = [repmat(0.1,length(y),1); repmat(0.4,length(y),1)]*width; 
@@ -327,6 +326,6 @@ listbox_message(num2str(age),n_pico,'rep')
 
 % -----------------------------------------------------------------------------------------
 function wbu_pico(obj,eventdata,handles)
-handles = guidata(handles.figure1);       % We may need to have an updated version of handles
-guidata(handles.figure1,handles)
-set(handles.figure1,'WindowButtonMotionFcn','','WindowButtonUpFcn','')
+	handles = guidata(handles.figure1);       % We may need to have an updated version of handles
+	guidata(handles.figure1,handles)
+	set(handles.figure1,'WindowButtonMotionFcn','','WindowButtonUpFcn','')
