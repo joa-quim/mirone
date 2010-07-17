@@ -1,16 +1,32 @@
 function varargout = escadeirar(varargin)
 % Interface figure to create grids that have constant values in the nodes between contours
 % That is as if they were rice fields on mountain areas.
+%
+%	Copyright (c) 2004-2010 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
+	if isempty(varargin)
+		errordlg('Escadeirar: wrong number of input arguments.','Error'),	return
+	end
 
 	hObject = figure('Tag','figure1','Visible','off');
 	escadeirar_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'east')
 
-	if (numel(varargin) > 0)
-		handMir = varargin{1};
-		handles.head = handMir.head;
-	end
+	handMir = varargin{1};
+	handles.head = handMir.head;
+	move2side(handMir.figure1, hObject, 'right')
 
 	% copy the next fields into this figure handles to be used in
 	% load_grd() as if it was being called with a Mirone handles.
@@ -39,14 +55,14 @@ function varargout = escadeirar(varargin)
 	set(handles.edit_dz,'String', handles.stairDz)
 
 	% -------------- Give a Pro look (3D) to the frame boxes ----------------------- 
-	new_frame3D(hObject,NaN, [handles.frame1 handles.frame2 handles.frame3])
+	new_frame3D(hObject, NaN)
 
 	set(hObject,'Visible','on');
 	guidata(hObject, handles);
 	if (nargout),   varargout{1} = hObject;     end
 
 % -----------------------------------------------------------------------------------------
-function radio_MinMax_Callback(hObject, eventdata, handles)
+function radio_MinMax_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_ML handles.radio_file],'Val',0)
 	set([handles.edit_ML handles.edit_file handles.push_file handles.text_MLcmd handles.text_import],'Enable','off')
@@ -54,7 +70,7 @@ function radio_MinMax_Callback(hObject, eventdata, handles)
 	set([handles.text_min handles.text_dz handles.text_max],'Enable','on')
 
 % -----------------------------------------------------------------------------------------
-function radio_ML_Callback(hObject, eventdata, handles)
+function radio_ML_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_MinMax handles.radio_file],'Val',0)
 	set([handles.edit_min handles.edit_dz handles.edit_max handles.edit_file handles.push_file],'Enable','off')
@@ -62,7 +78,7 @@ function radio_ML_Callback(hObject, eventdata, handles)
 	set([handles.edit_ML handles.text_MLcmd],'Enable','on')
 
 % -----------------------------------------------------------------------------------------
-function radio_file_Callback(hObject, eventdata, handles)
+function radio_file_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_MinMax handles.radio_ML],'Val',0)
 	set([handles.edit_min handles.edit_dz handles.edit_max handles.edit_ML],'Enable','off')
@@ -70,7 +86,7 @@ function radio_file_Callback(hObject, eventdata, handles)
 	set([handles.edit_file handles.push_file handles.text_import],'Enable','on')
 
 % -----------------------------------------------------------------------------------------
-function edit_min_Callback(hObject, eventdata, handles)
+function edit_min_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx)),		set(hObject,'String',handles.stairMin),	return,		end
 	handles.stairs = escadaria(xx, handles.stairMax, handles.stairDz);
@@ -78,7 +94,7 @@ function edit_min_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
-function edit_dz_Callback(hObject, eventdata, handles)
+function edit_dz_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx)),		set(hObject,'String',handles.stairDz),	return,		end
 	handles.stairs = escadaria(handles.stairMin, handles.stairMax, xx);
@@ -86,7 +102,7 @@ function edit_dz_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
-function edit_max_Callback(hObject, eventdata, handles)
+function edit_max_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx)),		set(hObject,'String',handles.stairMax),	return,		end
 	handles.stairs = escadaria(handles.stairMin, xx, handles.stairDz);
@@ -104,7 +120,7 @@ function stairs = escadaria(x0, x1, dx)
 	stairs = [x0 c(1,1:3:end) x1];
 
 % -----------------------------------------------------------------------------------------
-function edit_ML_Callback(hObject, eventdata, handles)
+function edit_ML_CB(hObject, handles)
 
 	cmd = get(hObject,'String');
 	try
@@ -134,12 +150,12 @@ function edit_ML_Callback(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function edit_file_Callback(hObject, eventdata, handles)
+function edit_file_CB(hObject, handles)
 	fname = get(hObject,'String');
-	push_file_Callback([], [], handles, fname)
+	push_file_CB([], [], handles, fname)
 
 % -----------------------------------------------------------------------------------------
-function push_file_Callback(hObject, eventdata, handles, opt)
+function push_file_CB(hObject, handles, opt)
 	if (nargin == 3)        % Direct call
 		handMir = guidata(handles.hMirFig1);		% Get the Mirone handles
 		[FileName,PathName] = put_or_get_file(handMir, ...
@@ -183,7 +199,7 @@ function push_file_Callback(hObject, eventdata, handles, opt)
 	end
 
 % -----------------------------------------------------------------------------------------
-function push_ok_Callback(hObject, eventdata, handles)
+function push_ok_CB(hObject, handles)
 
 	handles.figure1 = handles.hMirFig1;		% it won't hurt if we don't save the handles
 	[X,Y,Z,head] = load_grd(handles);
@@ -200,39 +216,6 @@ function push_ok_Callback(hObject, eventdata, handles)
 	tmp.name = 'Escovinha';
 	mirone(Z, tmp)
 
-% -----------------------------------------------------------------------------------------
-function new_frame3D(hFig,hText,hFrame)
-
-	% Give a Pro look (3D) to the frame boxes 
-	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-	if (nargin < 3)
-		hFrame = findobj(hFig,'Style','Frame');
-	end
-	for (i = 1:numel(hFrame))
-        frame_size = get(hFrame(i),'Position');
-        f_bgc = get(hFrame(i),'BackgroundColor');
-        usr_d = get(hFrame(i),'UserData');
-		frame3D(hFig,frame_size,framecolor,f_bgc,usr_d)
-		delete(hFrame(i))
-	end
-
-	if (isnan(hText)),		return,		end
-
-	% Recopy the text fields on top of previously created frames (uistack is too slow)
-	if (isempty(hText))
-		hText = findobj(hFig,'Style','Text');
-	end
-	for (i = 1:numel(hText))
-        usr_d = get(hText(i),'UserData');
-        t_size = get(hText(i),'Position');   t_str = get(hText(i),'String');    fw = get(hText(i),'FontWeight');
-        fn = get(hText(i),'FontName');	bgc = get (hText(i),'BackgroundColor');   fgc = get (hText(i),'ForegroundColor');
-        uicontrol('Parent',hFig, 'Style','text', 'Position',t_size,'String',t_str, ...
-            'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw, 'FontName',fn, 'UserData',usr_d);
-	end
-	delete(hText)
-
-
 % --- Creates and returns a handle to the GUI figure. 
 function escadeirar_LayoutFcn(h1)
 
@@ -246,12 +229,12 @@ set(h1,...
 'HandleVisibility','callback',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,'Position',[10 35 301 51],'Style','frame','Tag','frame3');
-uicontrol('Parent',h1,'Position',[10 86 301 46],'Style','frame','Tag','frame2');
-uicontrol('Parent',h1,'Position',[10 132 301 48],'Style','frame','Tag','frame1');
+uicontrol('Parent',h1,'Position',[10 35 301 51],'Style','frame');
+uicontrol('Parent',h1,'Position',[10 86 301 46],'Style','frame');
+uicontrol('Parent',h1,'Position',[10 132 301 48],'Style','frame');
 
 uicontrol('Parent',h1,...
-'Callback',{@escadeirar_uicallback,h1,'radio_MinMax_Callback'},...
+'Call',{@escadeirar_uiCB,h1,'radio_MinMax_CB'},...
 'Position',[15 146 20 15],...
 'Style','radiobutton',...
 'Value',1,...
@@ -259,7 +242,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@escadeirar_uicallback,h1,'edit_min_Callback'},...
+'Call',{@escadeirar_uiCB,h1,'edit_min_CB'},...
 'Position',[40 142 81 21],...
 'Style','edit',...
 'TooltipString','Grid minimum',...
@@ -267,7 +250,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@escadeirar_uicallback,h1,'edit_dz_Callback'},...
+'Call',{@escadeirar_uiCB,h1,'edit_dz_CB'},...
 'Position',[140 142 61 21],...
 'Style','edit',...
 'TooltipString','"Stair" height',...
@@ -275,21 +258,21 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@escadeirar_uicallback,h1,'edit_max_Callback'},...
+'Call',{@escadeirar_uiCB,h1,'edit_max_CB'},...
 'Position',[220 142 81 21],...
 'Style','edit',...
 'TooltipString','Grid maximum',...
 'Tag','edit_max');
 
 uicontrol('Parent',h1,...
-'Callback',{@escadeirar_uicallback,h1,'radio_ML_Callback'},...
+'Call',{@escadeirar_uiCB,h1,'radio_ML_CB'},...
 'Position',[15 100 20 15],...
 'Style','radiobutton',...
 'Tag','radio_ML');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@escadeirar_uicallback,h1,'edit_ML_Callback'},...
+'Call',{@escadeirar_uiCB,h1,'edit_ML_CB'},...
 'Enable','off',...
 'Position',[140 97 161 21],...
 'Style','edit',...
@@ -297,14 +280,14 @@ uicontrol('Parent',h1,...
 'Tag','edit_ML');
 
 uicontrol('Parent',h1,...
-'Callback',{@escadeirar_uicallback,h1,'radio_file_Callback'},...
+'Call',{@escadeirar_uiCB,h1,'radio_file_CB'},...
 'Position',[15 49 20 15],...
 'Style','radiobutton',...
 'Tag','radio_file');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@escadeirar_uicallback,h1,'edit_file_Callback'},...
+'Call',{@escadeirar_uiCB,h1,'edit_file_CB'},...
 'Enable','off',...
 'HorizontalAlignment','left',...
 'Position',[40 45 241 21],...
@@ -313,7 +296,7 @@ uicontrol('Parent',h1,...
 'Tag','edit_file');
 
 uicontrol('Parent',h1,...
-'Callback',{@escadeirar_uicallback,h1,'push_file_Callback'},...
+'Call',{@escadeirar_uiCB,h1,'push_file_CB'},...
 'Enable','off',...
 'Position',[281 45 21 21],...
 'Tag','push_file');
@@ -356,14 +339,13 @@ uicontrol('Parent',h1,...
 'Tag','text_import');
 
 uicontrol('Parent',h1,...
-'Callback',{@escadeirar_uicallback,h1,'push_ok_Callback'},...
+'Call',{@escadeirar_uiCB,h1,'push_ok_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'Position',[246 8 66 21],...
 'String','OK',...
 'Tag','push_ok');
 
-
-function escadeirar_uicallback(hObject, eventdata, h1, callback_name)
+function escadeirar_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
