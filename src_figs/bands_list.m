@@ -1,5 +1,19 @@
 function varargout = bands_list(varargin)
-% M-File changed by desGUIDE 
+% Compose a false color image by band selection
+
+%	Copyright (c) 2004-2010 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
 	if (numel(varargin) == 0),		return,		end
  
@@ -38,22 +52,9 @@ function varargout = bands_list(varargin)
 	end   
 	handles.struct_values = {tmp};		% TENHO DE MUDAR ESTE NOME
 
-	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-	h_f = [handles.frame2 handles.frame3];      % The third frame (handles.frame_movel) cannot be killed
-	for i=1:length(h_f)
-		frame_size = get(h_f(i),'Position');
-		f_bgc = get(h_f(i),'BackgroundColor');
-		usr_d = get(h_f(i),'UserData');
-		if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-			frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-		else
-			frame3D(hObject,frame_size,framecolor,'',usr_d)
-			delete(h_f(i))
-		end
-	end
-	%------------- END Pro look (3D) -------------------------------------------------------
+	%------------ Give a Pro look (3D) to the frame boxes  --------
+	new_frame3D(hObject, NaN)
+	%------------- END Pro look (3D) ------------------------------
 
 	% Add this figure handle to the carra?as list
 	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
@@ -67,12 +68,11 @@ function varargout = bands_list(varargin)
 	if (nargout),	varargout{1} = hObject;		end
 
 % ------------------------------------------------------------------------
-function radiobutton_gray_Callback(hObject, eventdata, handles)
+function radiobutton_gray_CB(hObject, handles)
 	if (get(hObject,'Value'))
 		set(handles.radiobutton_RGB,'Value',0)
 		pos = handles.frame_movel_pos;
 		pos = [pos(1) pos(2)+pos(4)/2 pos(3) pos(4)/2];
-		set(handles.frame_movel,'Pos',pos)
 		set(handles.edit_Rband,'Pos',pos+[10 5 -20 -28])
 		set(handles.radiobutton_R,'Visible','off')
 		set(handles.radiobutton_G,'Visible','off')
@@ -85,10 +85,9 @@ function radiobutton_gray_Callback(hObject, eventdata, handles)
 	end
 
 % ------------------------------------------------------------------------
-function radiobutton_RGB_Callback(hObject, eventdata, handles)
+function radiobutton_RGB_CB(hObject, handles)
 	if (get(hObject,'Value'))
 		set(handles.radiobutton_gray,'Value',0)
-		set(handles.frame_movel,'Pos',handles.frame_movel_pos)
 		set(handles.edit_Rband,'Pos',handles.edit_Rband_pos)
 		set(handles.radiobutton_R,'Visible','on')
 		set(handles.radiobutton_G,'Visible','on')
@@ -101,7 +100,7 @@ function radiobutton_RGB_Callback(hObject, eventdata, handles)
 	end
 
 % ------------------------------------------------------------------------
-function radiobutton_R_Callback(hObject, eventdata, handles)
+function radiobutton_R_CB(hObject, handles)
 	if (get(hObject,'Value'))
 		set(handles.radiobutton_G,'Value',0)
 		set(handles.radiobutton_B,'Value',0)
@@ -110,7 +109,7 @@ function radiobutton_R_Callback(hObject, eventdata, handles)
 	end
 
 % ------------------------------------------------------------------------
-function radiobutton_G_Callback(hObject, eventdata, handles)
+function radiobutton_G_CB(hObject, handles)
 	if (get(hObject,'Value'))
 		set(handles.radiobutton_R,'Value',0)
 		set(handles.radiobutton_B,'Value',0)
@@ -119,7 +118,7 @@ function radiobutton_G_Callback(hObject, eventdata, handles)
 	end
 
 % ------------------------------------------------------------------------
-function radiobutton_B_Callback(hObject, eventdata, handles)
+function radiobutton_B_CB(hObject, handles)
 if (get(hObject,'Value'))
     set(handles.radiobutton_R,'Value',0)
     set(handles.radiobutton_G,'Value',0)
@@ -128,7 +127,7 @@ else
 end
 
 % --------------------------------------------------------------------------
-function push_pca_Callback(hObject, eventdata, handles)
+function push_pca_CB(hObject, handles)
 	[m,n,k] = size(handles.image_bands);
 	q = min(k, 6);					% for memory sake only 6 components are computed
 	P = princomp(handles.image_bands, q, true);
@@ -153,7 +152,7 @@ function push_pca_Callback(hObject, eventdata, handles)
 	setappdata(hFig,'BandList',tmp)
 
 % --------------------------------------------------------------------------
-function push_Load_Callback(hObject, eventdata, handles)
+function push_Load_CB(hObject, handles)
 % TENHO QUE TESTAR SE CASO FOR PRECISO LOADAR BANDAS ELAS SEJAM GDALICAS
 
 if (get(handles.radiobutton_RGB,'Value') && ...
@@ -178,14 +177,14 @@ if (get(handles.radiobutton_RGB,'Value'))       % RGB - pure image for sure (is 
         img = handles.image_bands(:,:,b);
     elseif (length(b) == 2)     % Two bands are in memory. Need to load the third
         id = intersect([handles.Rband handles.Gband handles.Bband], b);
-        if (isequal(id,[1 2]) | isequal(id,[2 1]))          % Red & Green in memory
+        if (isequal(id,[1 2]) || isequal(id,[2 1]))          % Red & Green in memory
             img(:,:,1:2) = handles.image_bands(:,:,b);
             img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
-        elseif (isequal(id,[1 3]) | isequal(id,[3 1]))      % Red & Blue in memory
+        elseif (isequal(id,[1 3]) || isequal(id,[3 1]))      % Red & Blue in memory
             img(:,:,1) = handles.image_bands(:,:,b(1));
             img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
             img(:,:,3) = handles.image_bands(:,:,b(2));
-        elseif (isequal(id,[2 3]) | isequal(id,[3 2]))      % Green & Blue in memory
+        elseif (isequal(id,[2 3]) || isequal(id,[3 2]))      % Green & Blue in memory
             img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
             img(:,:,2:3) = handles.image_bands(:,:,b);
         end
@@ -310,7 +309,7 @@ handMir.was_int16 = was_int16;
 guidata(handles.hMirFig,handMir)           % Save those in Mirone handles
 
 % --------------------------------------------------------------------------
-function listbox1_Callback(hObject, eventdata, handles)
+function listbox1_CB(hObject, handles)
 index_struct = get(hObject,'Value');
 struct_names = handles.struct_names;
 struct_values = handles.struct_values;
@@ -362,7 +361,7 @@ if (strcmp(get(handles.figure1, 'SelectionType'), 'open')) % if double click
 	else
 		if (get(handles.radiobutton_gray,'Value'))
 			guidata(hObject, handles);
-			push_Load_Callback(handles.push_Load, [], handles)
+			push_Load_CB(handles.push_Load, [], handles)
 		end
 		return
 	end
@@ -677,18 +676,18 @@ set(h1,...
 'Tag','figure1');
 
 uicontrol('Parent',h1, 'Position',[5 68 260 102], 'Style','frame', 'Tag','frame_movel');
-uicontrol('Parent',h1, 'Position',[5 32 260 32], 'Style','frame', 'Tag','frame3');
-uicontrol('Parent',h1, 'Position',[5 177 260 33], 'Style','frame','Tag','frame2');
+uicontrol('Parent',h1, 'Position',[5 32 260 32], 'Style','frame');
+uicontrol('Parent',h1, 'Position',[5 177 260 33], 'Style','frame');
 
 uicontrol('Parent',h1,...
-'Callback',{@bands_list_uicallback,h1,'radiobutton_gray_Callback'},...
+'Call',{@bands_list_uiCB,h1,'radiobutton_gray_CB'},...
 'Position',[12 185 90 15],...
 'String','Gray Scale',...
 'Style','radiobutton',...
 'Tag','radiobutton_gray');
 
 uicontrol('Parent',h1,...
-'Callback',{@bands_list_uicallback,h1,'radiobutton_RGB_Callback'},...
+'Call',{@bands_list_uiCB,h1,'radiobutton_RGB_CB'},...
 'Position',[102 185 79 15],...
 'String','RGB Color',...
 'Style','radiobutton',...
@@ -696,7 +695,7 @@ uicontrol('Parent',h1,...
 'Tag','radiobutton_RGB');
 
 uicontrol('Parent',h1,...
-'Callback',{@bands_list_uicallback,h1,'push_pca_Callback'},...
+'Call',{@bands_list_uiCB,h1,'push_pca_CB'},...
 'FontName','Helvetica',...
 'Position',[181 182 80 21],...
 'Tooltip', 'Compute Principal Components', ...
@@ -704,7 +703,7 @@ uicontrol('Parent',h1,...
 'Tag','push_pca');
 
 uicontrol('Parent',h1,...
-'Callback',{@bands_list_uicallback,h1,'radiobutton_R_Callback'},...
+'Call',{@bands_list_uiCB,h1,'radiobutton_R_CB'},...
 'Position',[10 142 35 15],...
 'String','R',...
 'Style','radiobutton',...
@@ -712,14 +711,14 @@ uicontrol('Parent',h1,...
 'Tag','radiobutton_R');
 
 uicontrol('Parent',h1,...
-'Callback',{@bands_list_uicallback,h1,'radiobutton_G_Callback'},...
+'Call',{@bands_list_uiCB,h1,'radiobutton_G_CB'},...
 'Position',[10 111 35 15],...
 'String','G',...
 'Style','radiobutton',...
 'Tag','radiobutton_G');
 
 uicontrol('Parent',h1,...
-'Callback',{@bands_list_uicallback,h1,'radiobutton_B_Callback'},...
+'Call',{@bands_list_uiCB,h1,'radiobutton_B_CB'},...
 'Position',[10 82 35 15],...
 'String','B',...
 'Style','radiobutton',...
@@ -760,7 +759,7 @@ uicontrol('Parent',h1,...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@bands_list_uicallback,h1,'push_Load_Callback'},...
+'Call',{@bands_list_uiCB,h1,'push_Load_CB'},...
 'FontName','Helvetica',...
 'Position',[90 5 66 21],...
 'String','Load',...
@@ -768,7 +767,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@bands_list_uicallback,h1,'listbox1_Callback'},...
+'Call',{@bands_list_uiCB,h1,'listbox1_CB'},...
 'Position',[5 219 260 221],...
 'Style','listbox',...
 'Value',1,...
@@ -779,6 +778,6 @@ uicontrol('Parent',h1,'Position',[99 149 80 15],...
 'Tag','text_toGray','Visible','off');
 
 
-function bands_list_uicallback(hObject, eventdata, h1, callback_name)
+function bands_list_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
