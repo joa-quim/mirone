@@ -1,12 +1,26 @@
 function varargout = world_is_not_round_enough(varargin)
 % Helper tool to convert between-to [-180 180] <-> [0 360] longitude ranges
 
+%	Copyright (c) 2004-2010 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 	if (numel(varargin) == 0),		return,		end
  
 	hObject = figure('Tag','figure1','Visible','off');
 	world_is_not_round_enough_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'center')
+	move2side(hObject,'center')
 
 	handMir = varargin{1};
 
@@ -61,7 +75,7 @@ function varargout = world_is_not_round_enough(varargin)
 	if (nargout),	varargout{1} = hObject;		end
 
 % -------------------------------------------------------------------------------------
-function edit_xMin_Callback(hObject, eventdata, handles)
+function edit_xMin_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx) || xx < -180 || xx >= 360)
 		set(hObject,'String', sprintf('%.6f',handles.square(1,1)) )
@@ -84,21 +98,21 @@ function edit_xMin_Callback(hObject, eventdata, handles)
 	set(handles.edit_xMax,'String', sprintf('%.6f',x(3)) )
 
 % -------------------------------------------------------------------------------------
-function push_to360_Callback(hObject, eventdata, handles)
+function push_to360_CB(hObject, handles)
 	rect_x = get(handles.hRectLims, 'xdata');
 	rect_x = rect_x + 180;
 	set(handles.hRectLims, 'XData',rect_x);
-	push_apply_Callback(handles.push_apply, eventdata, handles)
+	push_apply_CB(handles.push_apply, handles)
 
 % -------------------------------------------------------------------------------------
-function push_to180_Callback(hObject, eventdata, handles)
+function push_to180_CB(hObject, handles)
 	rect_x = get(handles.hRectLims, 'xdata');
 	rect_x = rect_x - 180;
 	set(handles.hRectLims, 'XData',rect_x);
-	push_apply_Callback(handles.push_apply, eventdata, handles)
+	push_apply_CB(handles.push_apply, handles)
 
 % -------------------------------------------------------------------------------------
-function push_apply_Callback(hObject, eventdata, handles)
+function push_apply_CB(hObject, handles)
 
 	rect_x = get(handles.hRectLims, 'xdata');
 	eps_x = handles.head(8);
@@ -151,7 +165,7 @@ function Z = to_from_180(handles, handMir, Z, x_min, x_max, dy, eps_x)
 	end
 
 % -----------------------------------------------------------------------------------------
-function moveRect(obj,eventdata, handles, hRect)
+function moveRect(obj,handles, hRect)
 	hFig = handles.figure1;			hAxes = handles.axes1;
 	hXmin = handles.edit_xMin;		hXmax = handles.edit_xMax;
 	state = uisuspend_fig(hFig);            % Remember initial figure state
@@ -198,7 +212,7 @@ set(h1,...
 'MenuBar','none',...
 'Name','The World is not Round Enough',...
 'NumberTitle','off',...
-'Position',[520 430 811 370],...
+'Position',[520 430 811 373],...
 'RendererMode','manual',...
 'Resize','off',...
 'HandleVisibility','callback',...
@@ -233,10 +247,10 @@ set(h5,'Parent',h2,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@world_is_not_round_enough_uicallback,h1,'edit_xMin_Callback'},...
+'Call',{@world_is_not_round_enough_uiCB,h1,'edit_xMin_CB'},...
 'Position',[389 4 91 23],...
 'Style','edit',...
-'TooltipString','You may try entering a West longitude here, but result is indeterminate.',...
+'Tooltip','You may try entering a West longitude here, but result is indeterminate.',...
 'Tag','edit_xMin');
 
 uicontrol('Parent',h1,...
@@ -257,7 +271,7 @@ uicontrol('Parent',h1,...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@world_is_not_round_enough_uicallback,h1,'push_apply_Callback'},...
+'Call',{@world_is_not_round_enough_uiCB,h1,'push_apply_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'Position',[715 3 90 21],...
@@ -268,7 +282,7 @@ if (IAmAMac),	pos = [10 3 125 30];
 else			pos = [10 3 120 26];
 end
 uicontrol('Parent',h1,...
-'Callback',{@world_is_not_round_enough_uicallback,h1,'push_to360_Callback'},...
+'Call',{@world_is_not_round_enough_uiCB,h1,'push_to360_CB'},...
 'FontName','Helvetica',...
 'Position',pos,...
 'String','[-180 180] -> [0 360]',...
@@ -278,13 +292,13 @@ if (IAmAMac),	pos = [161 3 130 30];
 else			pos = [161 3 120 26];
 end
 uicontrol('Parent',h1,...
-'Callback',{@world_is_not_round_enough_uicallback,h1,'push_to180_Callback'},...
+'Call',{@world_is_not_round_enough_uiCB,h1,'push_to180_CB'},...
 'FontName','Helvetica',...
 'Position',pos,...
 'String','[0 360] -> [-180 180]',...
 'Tag','push_to180');
 
 
-function world_is_not_round_enough_uicallback(hObject, eventdata, h1, callback_name)
+function world_is_not_round_enough_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
