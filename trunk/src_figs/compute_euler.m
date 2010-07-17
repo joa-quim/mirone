@@ -1,8 +1,7 @@
 function varargout = compute_euler(varargin)
-% M-File changed by desGUIDE 
-% varargin   command line arguments to compute_euler (see VARARGIN)
+% Helper window to calculate Euler poles
 
-%	Copyright (c) 2004-2009 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -16,96 +15,66 @@ function varargout = compute_euler(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-hObject = figure('Tag','figure1','Visible','off');
-compute_euler_LayoutFcn(hObject);
-handles = guihandles(hObject);
-movegui(hObject,'west')
- 
-% Initialize those
-handles.h_calling_fig = [];
-handles.LonRange = 30;
-handles.LatRange = 30;
-handles.AngRange = 4;
-handles.Nintervals = 20;
-handles.isoca1 = [];
-handles.isoca2 = [];
-handles.pLon_ini = [];
-handles.pLat_ini = [];
-handles.pAng_ini = [];
-handles.do_graphic = 0;
-handles.DP_tol = 0.05;
-handles.path_continent = [pwd filesep 'continents' filesep];
-set(handles.slider_wait,'Max',handles.Nintervals^2)
+	if isempty(varargin)
+        errordlg('COMPUTE EULER: wrong number of input arguments.','Error'),	return
+	end
 
-if (length(varargin) == 1)
-    handles.h_calling_fig = varargin{1};        % This is the Mirone's fig handle
-else
-    errordlg('COMPUTE EULER: wrong number of arguments.','Error')
-    delete(hObject);    return
-end
+	hObject = figure('Tag','figure1','Visible','off');
+	compute_euler_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'right')
 
-handMir = guidata(handles.h_calling_fig);
-if (handMir.no_file)
-    errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
-    delete(hObject);    return
-end
-if (~handMir.geog)
-    errordlg('This operation is currently possible only for geographic type data','ERROR')
-    delete(hObject);    return
-end
+	% Initialize those
+	handles.hCallingFig = [];
+	handles.LonRange = 30;
+	handles.LatRange = 30;
+	handles.AngRange = 4;
+	handles.Nintervals = 20;
+	handles.isoca1 = [];
+	handles.isoca2 = [];
+	handles.pLon_ini = [];
+	handles.pLat_ini = [];
+	handles.pAng_ini = [];
+	handles.do_graphic = 0;
+	handles.DP_tol = 0.05;
+	set(handles.slider_wait,'Max',handles.Nintervals^2)
 
-%--------------- Give a Pro look (3D) to the frame boxes -------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
+	handles.hCallingFig = varargin{1};        % This is the Mirone's fig handle
 
-% Recopy the text fields on top of previously created frames (uistack is to damn slow)
-h_t = [handles.txtSP handles.txtDS handles.txtCS];
-for i=1:length(h_t)
-    usr_d = get(h_t(i),'UserData');
-    t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-    bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
-    t_just = get(h_t(i),'HorizontalAlignment');     t_tag = get (h_t(i),'Tag');
-    uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str,'Tag',t_tag, ...
-        'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,...
-        'UserData',usr_d,'HorizontalAlignment',t_just);
-end
-delete(h_t)
-%------------------- END Pro look (3D) ----------------------------------------------------------
+	handMir = guidata(handles.hCallingFig);
+	if (handMir.no_file)
+		errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
+		delete(hObject);    return
+	end
+	if (~handMir.geog)
+		errordlg('This operation is currently possible only for geographic type data','ERROR')
+		delete(hObject);    return
+	end
+	handles.path_continent = [handMir.home_dir filesep 'continents' filesep];
 
-set(hObject,'Visible','on');
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	new_frame3D(hObject, [handles.txtSP handles.txtDS handles.txtCS])
+	%------------- END Pro look (3D) -----------------------------------------------------
 
-% Choose default command line output for compute_euler_export
-guidata(hObject, handles);
-if (nargout),	varargout{1} = hObject;		end
+	set(hObject,'Visible','on');
+	guidata(hObject, handles);
+	if (nargout),	varargout{1} = hObject;		end
 
 % -------------------------------------------------------------------------------------
-function edit_first_file_Callback(hObject, eventdata, handles)
+function edit_first_file_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname)    return;    end
-	% Let the pushbutton_first_file_Callback do all the work
-	pushbutton_first_file_Callback(hObject,[],guidata(gcbo),fname)
+	% Let the push_first_file_CB do all the work
+	push_first_file_CB(hObject,guidata(gcbo),fname)
 
 % -------------------------------------------------------------------------------------
-function pushbutton_first_file_Callback(hObject, eventdata, handles,opt)
-	if (nargin == 4),	fname = opt;
+function push_first_file_CB(hObject, handles,opt)
+	if (nargin == 3),	fname = opt;
 	else				opt = [];
 	end
 
 	if (isempty(opt))    % Otherwise we already know fname from the 4th input argument
-		handMir = guidata(handles.h_calling_fig);
+		handMir = guidata(handles.hCallingFig);
 		[FileName,PathName] = put_or_get_file(handMir,{'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select file','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
@@ -115,20 +84,20 @@ function pushbutton_first_file_Callback(hObject, eventdata, handles,opt)
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
-function edit_second_file_Callback(hObject, eventdata, handles)
+function edit_second_file_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname),		return;    end
-	% Let the pushbutton_first_file_Callback do all the work
-	pushbutton_second_file_Callback(hObject,[],guidata(gcbo),fname)
+	% Let the push_first_file_CB do all the work
+	push_second_file_CB(hObject,guidata(gcbo),fname)
 
 % -------------------------------------------------------------------------------------
-function pushbutton_second_file_Callback(hObject, eventdata, handles, opt)
-	if (nargin == 4),	fname = opt;
+function push_second_file_CB(hObject, handles, opt)
+	if (nargin == 3),	fname = opt;
 	else				opt = [];
 	end
 
 	if (isempty(opt))    % Otherwise we already know fname from the 4th input argument
-		handMir = guidata(handles.h_calling_fig);
+		handMir = guidata(handles.hCallingFig);
 		[FileName,PathName] = put_or_get_file(handMir,{'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select file','get');
 		if isequal(FileName,0),		return,		end	   
 		fname = [PathName FileName];
@@ -138,22 +107,22 @@ function pushbutton_second_file_Callback(hObject, eventdata, handles, opt)
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
-function edit_pLon_ini_Callback(hObject, eventdata, handles)
+function edit_pLon_ini_CB(hObject, handles)
     handles.pLon_ini = str2double(get(hObject,'String'));
     guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
-function edit_pLat_ini_Callback(hObject, eventdata, handles)
+function edit_pLat_ini_CB(hObject, handles)
     handles.pLat_ini = str2double(get(hObject,'String'));
     guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
-function edit_pAng_ini_Callback(hObject, eventdata, handles)
+function edit_pAng_ini_CB(hObject, handles)
     handles.pAng_ini = str2double(get(hObject,'String'));
     guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
-function pushbutton_polesList_Callback(hObject, eventdata, handles)
+function push_polesList_CB(hObject, handles)
 fid = fopen([handles.path_continent 'lista_polos.dat'],'rt');
 c = fread(fid,'*char').';
 fclose(fid);
@@ -177,12 +146,12 @@ elseif (v == 2)     % Stage poles
 end
 
 % -------------------------------------------------------------------------------------
-function edit_LonRange_Callback(hObject, eventdata, handles)
+function edit_LonRange_CB(hObject, handles)
 	handles.LonRange = str2double(get(hObject,'String'));
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
-function edit_Nintervals_Callback(hObject, eventdata, handles)
+function edit_Nintervals_CB(hObject, handles)
 	if (~get(handles.check_hellinger,'Val'))
 		handles.Nintervals = str2double(get(hObject,'String'));
 		set(handles.slider_wait,'Max',handles.Nintervals^2)
@@ -192,20 +161,20 @@ function edit_Nintervals_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
-function edit_LatRange_Callback(hObject, eventdata, handles)
+function edit_LatRange_CB(hObject, handles)
 	handles.LatRange = str2double(get(hObject,'String'));
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
-function edit_AngRange_Callback(hObject, eventdata, handles)
+function edit_AngRange_CB(hObject, handles)
 	handles.AngRange = str2double(get(hObject,'String'));
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
-function togglebutton_pickLines_Callback(hObject, eventdata, handles)
+function togglebutton_pickLines_CB(hObject, handles)
 if (get(hObject,'Value'))
     % Test if we have potential target lines and their type
-    h_mir_lines = findobj(handles.h_calling_fig,'Type','line');     % Fish all objects of type line in Mirone figure
+    h_mir_lines = findobj(handles.hCallingFig,'Type','line');     % Fish all objects of type line in Mirone figure
     if (isempty(h_mir_lines))                                       % We don't have any lines
         str = ['If you hited this button on purpose, than you deserve the following insult.',...
                 'You #!|"*!%!?~^)--$&.',... 
@@ -221,8 +190,8 @@ if (get(hObject,'Value'))
     
     % The above test is not enough. For exemple, coastlines are not eligible neither,
     % but is very cumbersome to test all the possibilities of pure non-eligible lines.
-    set(handles.h_calling_fig,'pointer','crosshair')
-    h_line = get_polygon(handles.h_calling_fig);          % Get first line handle
+    set(handles.hCallingFig,'pointer','crosshair')
+    h_line = get_polygon(handles.hCallingFig);          % Get first line handle
     if (~isempty(h_line))
         x = get(h_line,'XData');    y = get(h_line,'YData');
         %y = geog2auth(y);                       % Convert to authalic latitudes
@@ -232,7 +201,7 @@ if (get(hObject,'Value'))
         handles.isoca1 = [];
         set(handles.edit_first_file,'String','')
     end
-    h_line = get_polygon(handles.h_calling_fig);          % Get second line handle
+    h_line = get_polygon(handles.hCallingFig);          % Get second line handle
     if (~isempty(h_line))
         x = get(h_line,'XData');    y = get(h_line,'YData');
         %y = geog2auth(y);                       % Convert to authalic latitudes
@@ -242,7 +211,7 @@ if (get(hObject,'Value'))
         handles.isoca2 = [];
         set(handles.edit_second_file,'String','')
     end
-    set(handles.h_calling_fig,'pointer','arrow')
+    set(handles.hCallingFig,'pointer','arrow')
     if (isempty(handles.isoca1) || isempty(handles.isoca2))
         set(hObject,'Value',0)
         handles.do_graphic = 0;
@@ -257,7 +226,7 @@ end
 guidata(hObject, handles);
 
 % -----------------------------------------------------------------------------
-function check_hellinger_Callback(hObject, eventdata, handles)
+function check_hellinger_CB(hObject, handles)
 if (get(hObject,'Value'))
 	set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','off')
 	set(handles.edit_Nintervals,'String', handles.DP_tol)
@@ -273,12 +242,12 @@ else
 end
 
 % -------------------------------------------------------------------------------
-function pushbutton_stop_Callback(hObject, eventdata, handles)
+function push_stop_CB(hObject, handles)
     set(handles.slider_wait,'Value',0)  % We have to do this first
     set(handles.slider_wait,'Max',1)    % This will signal the fit_pEuler function to stop
 
 % -------------------------------------------------------------------------------------
-function pushbutton_compute_Callback(hObject, eventdata, handles)
+function push_compute_CB(hObject, handles)
 % OK. See if we have all the information needed to compute the Euler pole
 
 	set(handles.edit_BFresidue,'String','');		set(handles.edit_InitialResidue,'String','')
@@ -304,7 +273,7 @@ function pushbutton_compute_Callback(hObject, eventdata, handles)
 		set(handles.edit_pAng_fim,'String',pAng)
 		if (handles.do_graphic)     % Create a empty line handle
 			[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),pLon, pLat, pAng);
-			h_line = line('parent',get(handles.h_calling_fig,'CurrentAxes'),'XData',rlon,'YData',rlat, ...
+			h_line = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',rlon,'YData',rlat, ...
 			'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
 			draw_funs(h_line,'isochron',{'Fitted Line'})
 		end
@@ -321,9 +290,9 @@ if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
 end
 if (isempty(n_headers)),     n_headers = NaN;    end
 if (multi_seg)
-    [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers,'>');
+    numeric_data = text_read(fname,NaN,n_headers,'>');
 else
-    [numeric_data,multi_segs_str,headerlines] = text_read(fname,NaN,n_headers);
+    numeric_data = text_read(fname,NaN,n_headers);
 end
 
 % -------------------------------------------------------------------------------
@@ -331,7 +300,7 @@ function calca_pEuler(handles, do_weighted)
 
 	D2R = pi / 180;
 	if (handles.do_graphic)     % Create a empty line handle
-		h_line = line('parent',get(handles.h_calling_fig,'CurrentAxes'),'XData',[],'YData',[], ...
+		h_line = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',[],'YData',[], ...
 			'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
 	end
 
@@ -356,7 +325,7 @@ function calca_pEuler(handles, do_weighted)
 	set(h_line,'XData',rlon,'YData',rlat)
 
 	% Now comes the semi-brute force aproach to compute the pole
-	n = handles.Nintervals;         n1 = round(n/2);    n2 = n - n1;
+	n = handles.Nintervals;
 	dLon = handles.LonRange / 2;
 	dLat = handles.LatRange / 2;
 	dAng = handles.AngRange / 2;
@@ -365,7 +334,7 @@ function calca_pEuler(handles, do_weighted)
 	p_omeg = (handles.pAng_ini + linspace(-dAng,dAng,n)) * D2R;
 	[p_lon,p_lat,p_omega,area_f] = fit_pEuler(handles, p_lon, p_lat, p_omeg,area0, h_line, lengthsRot, do_weighted);
 
-	figure(handles.h_calling_fig)       % Bring the Mirone figure to front
+	figure(handles.hCallingFig)       % Bring the Mirone figure to front
 	draw_funs(h_line,'isochron',{'Fitted Line'})
 
 	if (area_f >= area0)
@@ -377,8 +346,7 @@ function calca_pEuler(handles, do_weighted)
 function [lon_bf,lat_bf,omega_bf,area_f] = fit_pEuler(handles, p_lon, p_lat, p_omeg,area0, h_line, lengthsRot, do_weighted)
 % This is the function that does the real work of computing the best Euler pole
 % that fits the lines "isoca1" "isoca2"
-	lon_bf = [];        lat_bf = [];
-	omega_bf = [];      area_f = [];
+	lon_bf = [];		lat_bf = [];	omega_bf = [];
 	D2R = pi / 180;
 	n = length(p_lon);
 	isoca1 = handles.isoca1 * D2R;      % A maluca
@@ -408,7 +376,6 @@ for (i=1:n)                % Loop over lon
             if (area < area0)
                 area0 = area;
                 i_m = i;    j_m = j;    k_m = k;
-                count_ang = 0;
                 if (handles.do_graphic)
                     set(h_line,'XData',rlon/D2R,'YData',rlat/D2R)
                     pause(0.01)
@@ -545,7 +512,7 @@ function lat = auth2geog(lat0)
 	lat = lat * 180 / pi;  %  Convert back to degrees
      
 % --- Creates and returns a handle to the GUI figure. 
-function compute_euler_LayoutFcn(h1);
+function compute_euler_LayoutFcn(h1)
 set(h1,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'MenuBar','none',...
@@ -555,74 +522,74 @@ set(h1,...
 'Resize','off',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,'Position',[10 49 501 110],'String',{''},'Style','frame','Tag','frame3');
-uicontrol('Parent',h1,'Position',[10 182 501 64],'String',{''},'Style','frame','Tag','frame2');
-uicontrol('Parent',h1,'Position',[10 266 501 101],'String',{''},'Style','frame','Tag','frame1');
+uicontrol('Parent',h1,'Position',[10 49 501 110],'String',{''},'Style','frame');
+uicontrol('Parent',h1,'Position',[10 182 501 64],'String',{''},'Style','frame');
+uicontrol('Parent',h1,'Position',[10 266 501 101],'String',{''},'Style','frame');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_first_file_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'edit_first_file_CB'},...
 'Position',[20 316 211 21],...
 'Style','edit','Tag','edit_first_file');
 
 uicontrol('Parent',h1,...
-'Callback',{@compute_euler_uicallback,h1,'pushbutton_first_file_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'push_first_file_CB'},...
 'FontSize',10,...
 'FontWeight','bold',...
 'Position',[231 316 21 21],...
-'String','...','Tag','pushbutton_first_file');
+'String','...','Tag','push_first_file');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_second_file_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'edit_second_file_CB'},...
 'Position',[267 316 211 21],...
 'Style','edit','Tag','edit_second_file');
 
 uicontrol('Parent',h1,...
-'Callback',{@compute_euler_uicallback,h1,'pushbutton_second_file_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'push_second_file_CB'},...
 'FontSize',10,...
 'FontWeight','bold',...
 'Position',[478 316 21 21],...
-'String','...','Tag','pushbutton_second_file');
+'String','...','Tag','push_second_file');
 
 uicontrol('Parent',h1,...
-'Callback',{@compute_euler_uicallback,h1,'togglebutton_pickLines_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'togglebutton_pickLines_CB'},...
 'Position',[186 279 141 21],...
 'String','Pick lines from Figure',...
 'Style','togglebutton',...
-'TooltipString','Allows you to mouse select the two lines from a Mirone figure',...
+'Tooltip','Allows you to mouse select the two lines from a Mirone figure',...
 'Tag','togglebutton_pickLines');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_pLon_ini_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'edit_pLon_ini_CB'},...
 'Position',[20 201 61 21],...
 'Style','edit',...
-'TooltipString','Start Euler pole Longitude',...
+'Tooltip','Start Euler pole Longitude',...
 'Tag','edit_pLon_ini');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_pLat_ini_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'edit_pLat_ini_CB'},...
 'Position',[110 201 61 21],...
 'Style','edit',...
-'TooltipString','Start Euler pole Latitude',...
+'Tooltip','Start Euler pole Latitude',...
 'Tag','edit_pLat_ini');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_pAng_ini_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'edit_pAng_ini_CB'},...
 'Position',[200 201 61 21],...
 'Style','edit',...
-'TooltipString','Start Euler pole Angle',...
+'Tooltip','Start Euler pole Angle',...
 'Tag','edit_pAng_ini');
 
 uicontrol('Parent',h1,...
-'Callback',{@compute_euler_uicallback,h1,'pushbutton_polesList_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'push_polesList_CB'},...
 'Position',[289 200 121 21],...
 'String','Poles selector',...
-'TooltipString','Select a pole from the default list',...
-'Tag','pushbutton_polesList');
+'Tooltip','Select a pole from the default list',...
+'Tag','push_polesList');
 
 uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
@@ -632,11 +599,11 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_LonRange_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'edit_LonRange_CB'},...
 'Position',[104 125 41 21],...
 'String','30',...
 'Style','edit',...
-'TooltipString','The pole will be searched arround it''s starting longitude +/- half this range',...
+'Tooltip','The pole will be searched arround it''s starting longitude +/- half this range',...
 'Tag','edit_LonRange');
 
 uicontrol('Parent',h1,'Position',[162 118 70 15],'String','N of Intervals','Style','text','Tag','textNint');
@@ -649,29 +616,29 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_LatRange_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'edit_LatRange_CB'},...
 'Position',[104 98 41 21],...
 'String','30',...
 'Style','edit',...
-'TooltipString','The pole will be searched arround it''s starting latitude +/- half this range',...
+'Tooltip','The pole will be searched arround it''s starting latitude +/- half this range',...
 'Tag','edit_LatRange');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_AngRange_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'edit_AngRange_CB'},...
 'Position',[104 70 41 21],...
 'String','4',...
 'Style','edit',...
-'TooltipString','The pole will be searched arround it''s starting angle +/- half this range',...
+'Tooltip','The pole will be searched arround it''s starting angle +/- half this range',...
 'Tag','edit_AngRange');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@compute_euler_uicallback,h1,'edit_Nintervals_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'edit_Nintervals_CB'},...
 'Position',[171 95 41 21],...
 'String','20',...
 'Style','edit',...
-'TooltipString','The range parameters are divided into this number of intervals steps',...
+'Tooltip','The range parameters are divided into this number of intervals steps',...
 'Tag','edit_Nintervals');
 
 uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[21 74 72 15],'String','Angular Range','Style','text');
@@ -689,21 +656,21 @@ uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Position',[352 125 61 21],...
 'Style','edit',...
-'TooltipString','Computed Euler pole Longitude',...
+'Tooltip','Computed Euler pole Longitude',...
 'Tag','edit_pLon_fim');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Position',[352 97 61 21],...
 'Style','edit',...
-'TooltipString','Computed Euler pole Latitude',...
+'Tooltip','Computed Euler pole Latitude',...
 'Tag','edit_pLat_fim');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Position',[352 69 61 21],...
 'Style','edit',...
-'TooltipString','Computed Euler pole Angle',...
+'Tooltip','Computed Euler pole Angle',...
 'Tag','edit_pAng_fim');
 
 uicontrol('Parent',h1,...
@@ -723,21 +690,21 @@ uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[298 73 46 15],'St
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Position',[431 69 61 21],...
-'Style','edit','TooltipString','Residue of the cost function',...
+'Style','edit','Tooltip','Residue of the cost function',...
 'Tag','edit_BFresidue');
 
 uicontrol('Parent',h1,'Position',[433 92 57 15],'String','BF Residue','Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@compute_euler_uicallback,h1,'pushbutton_compute_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'push_compute_CB'},...
 'Position',[435 10 76 21],...
-'String','Compute','Tag','pushbutton_compute');
+'String','Compute','Tag','push_compute');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Position',[430 113 61 21],...
 'Style','edit',...
-'TooltipString','Starting residue (starting pole) of the cost function',...
+'Tooltip','Starting residue (starting pole) of the cost function',...
 'Tag','edit_InitialResidue');
 
 uicontrol('Parent',h1,...
@@ -746,11 +713,11 @@ uicontrol('Parent',h1,...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@compute_euler_uicallback,h1,'check_hellinger_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'check_hellinger_CB'},...
 'Position',[170 58 120 15],...
 'String','Hellinger method',...
 'Style','checkbox',...
-'TooltipString','Use the Hellinger method',...
+'Tooltip','Use the Hellinger method',...
 'Tag','check_hellinger');
 
 uicontrol('Parent',h1,...
@@ -761,10 +728,10 @@ uicontrol('Parent',h1,...
 'Tag','slider_wait');
 
 uicontrol('Parent',h1,...
-'Callback',{@compute_euler_uicallback,h1,'pushbutton_stop_Callback'},...
+'Call',{@compute_euler_uiCB,h1,'push_stop_CB'},...
 'Position',[241 12 37 19],...
-'String','STOP','Tag','pushbutton_stop');
+'String','STOP','Tag','push_stop');
 
-function compute_euler_uicallback(hObject, eventdata, h1, callback_name)
+function compute_euler_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
