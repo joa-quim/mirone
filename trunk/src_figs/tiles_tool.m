@@ -741,7 +741,7 @@ function popup_aerial_CB(hObject, handles)
 	contents = get(hObject,'String');		server = contents{val};
 	set(handles.edit_aerial, 'String', server)
 	handles.aerial_ind = val;
-	edit_aerial_CB(hObject, [], handles, server)
+	edit_aerial_CB(hObject, handles, server)
 
 % -----------------------------------------------------------------------------------------
 function popup_road_CB(hObject, handles)
@@ -750,7 +750,7 @@ function popup_road_CB(hObject, handles)
 	contents = get(hObject,'String');		server = contents{val};
 	set(handles.edit_road, 'String', server)
 	handles.road_ind = val;
-	edit_road_CB(hObject, [], handles, server)
+	edit_road_CB(hObject, handles, server)
 
 % -----------------------------------------------------------------------------------------
 function popup_hybrid_CB(hObject, handles)
@@ -759,7 +759,7 @@ function popup_hybrid_CB(hObject, handles)
 	contents = get(hObject,'String');		server = contents{val};
 	set(handles.edit_hybrid, 'String', server)
 	handles.hybrid_ind = val;
-	edit_hybrid_CB(hObject, [], handles, server)
+	edit_hybrid_CB(hObject, handles, server)
 
 % -----------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
