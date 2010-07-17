@@ -22,7 +22,7 @@ function varargout = geog_calculator(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	geog_calculator_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'east');
+	move2side(hObject,'right');
 
 	handles.x_left = [];        handles.y_left = [];    handles.z_left = [];
 	handles.x_right = [];       handles.y_right = [];   handles.z_right = [];
