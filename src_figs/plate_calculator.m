@@ -798,7 +798,7 @@ set(handles.popup_MovingPlate,'Value',ind)
 
 % If it is a absolute motion, call the computing function and return.
 handles = guidata(handles.figure1);		% Use updated version (in case something important changed)
-if (hand1.absolute_motion)
+if (handles.absolute_motion)
 	switch opt
 		case 'NNR'
 			lat = handles.Nuvel1A_NNR_lat(ind);     lon = handles.Nuvel1A_NNR_lon(ind);
