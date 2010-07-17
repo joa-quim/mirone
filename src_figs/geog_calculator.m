@@ -118,9 +118,10 @@ function varargout = geog_calculator(varargin)
 	handles.all_datums = load_datums;
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-	h_t = [handles.text_CSleft handles.h_text_input handles.h_text_output handles.text_CSright];
-	h_f = findobj(hObject,'Style','frame');
-	new_frame3D(hObject, h_t, h_f)
+	%h_t = [handles.text_CSleft handles.hTxt_in handles.hTxt_out handles.text_CSright];
+	h_t = new_frame3D(hObject, [handles.text_CSleft handles.hTxt_in handles.hTxt_out handles.text_CSright]);
+	handles.hTxt_in = h_t(2);		% We need to ressurect these two
+	handles.hTxt_out = h_t(3);
 	%------------- END Pro look (3D) -----------------------------------------------------
 
 	%----------- Recall previous settings stored in mirone_pref -------------------
@@ -186,8 +187,8 @@ function varargout = geog_calculator(varargin)
 		handles.which_conv = 3;
 	else
 		panel_names = {'interactive','FileConv','GridConv'};
-		set(handles.h_text_input,'Visible','off')
-		set(handles.h_text_output,'Visible','off')
+		set(handles.hTxt_in,'Visible','off')
+		set(handles.hTxt_out,'Visible','off')
 	end
 
 	% tabpanelfcn('makegroups',...) adds new fields to the handles structure,
@@ -221,8 +222,8 @@ switch str
             set(handles.popup_UnitesRight,'String',handles.DegreeFormat1,...
                 'Value',handles.DegreeFormat1_val_right)
         end
-	    set(handles.h_text_input,'Visible','off')
-	    set(handles.h_text_output,'Visible','off')
+	    set(handles.hTxt_in,'Visible','off')
+	    set(handles.hTxt_out,'Visible','off')
     case 'File Conversions'
         set(handles.push_right2left,'Visible','off')
         handles.which_conv = 2;
@@ -234,12 +235,12 @@ switch str
             set(handles.popup_UnitesRight,'String',handles.DegreeFormat2,...
                 'Value',handles.DegreeFormat2_val_right)
         end
-	    set(handles.h_text_input,'Visible','on')
-	    set(handles.h_text_output,'Visible','on')
+	    set(handles.hTxt_in,'Visible','on')
+	    set(handles.hTxt_out,'Visible','on')
     case 'Grid Conversions'
         set(handles.push_right2left,'Visible','off')
-	    set(handles.h_text_input,'Visible','on')
-	    set(handles.h_text_output,'Visible','on')
+	    set(handles.hTxt_in,'Visible','on')
+	    set(handles.hTxt_out,'Visible','on')
         handles.which_conv = 3;
 end
 guidata(hObject, handles);
@@ -1755,7 +1756,7 @@ uicontrol('Parent',h1, 'Position',[36 281 51 15],...
 'ForegroundColor',[0 0 0.627450980392157],...
 'String','Input',...
 'Style','text',...
-'Tag','h_text_input');
+'Tag','hTxt_in');
 
 uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
@@ -1800,7 +1801,7 @@ uicontrol('Parent',h1, 'Position',[360 281 51 15],...
 'ForegroundColor',[0 0 0.627450980392157],...
 'String','Output',...
 'Style','text',...
-'Tag','h_text_output');
+'Tag','hTxt_out');
 
 uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
