@@ -1,9 +1,13 @@
-function new_frame3D(hFig, hText, hFrame)
+function out = new_frame3D(hFig, hText, hFrame)
 % Give a 3D Pro Look to the miserable looking frame uis
 %
 % HTEXT eventualy contains handles to texts that need to be recreated
 %	If HTEXT = [], fish all texts in Fig and recreate them above the 3D frames
 %	If HTEXT = NaN, ignore texts and deal only with frames
+%
+%	new_frame3D(hFig, hText)	fish all frames in Fig
+%
+%	out = new_frame3D(...)	returns the new handles of the recreated text uis
 
 	% Give a Pro look (3D) to the frame boxes 
 	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
@@ -24,6 +28,7 @@ function new_frame3D(hFig, hText, hFrame)
 		hText = findobj(hFig,'Style','Text');
 	end
 	if (isnan(hText)),		hText = [];		end		% So that next loop is not executed
+	hText_new = zeros(1,numel(hText));
 	for (i = 1:numel(hText))
         usr_d = get(hText(i),'UserData');
         t_size = get(hText(i),'Position');		t_str = get(hText(i),'String');
@@ -31,10 +36,11 @@ function new_frame3D(hFig, hText, hFrame)
 		fa = get(hText(i),'FontAngle');
 		fw = get(hText(i),'FontWeight');
         fn = get(hText(i),'FontName');		bgc = get (hText(i),'BackgroundColor');   fgc = get (hText(i),'ForegroundColor');
-        uicontrol('Parent',hFig, 'Style','text', 'Position',t_size,'String',t_str, 'BackgroundColor',bgc, ...
+        hText_new(i) = uicontrol('Parent',hFig, 'Style','text', 'Position',t_size,'String',t_str, 'BackgroundColor',bgc, ...
             'ForegroundColor',fgc, 'FontSize',fs, 'FontAngle',fa, 'FontWeight',fw, 'FontName',fn, 'UserData',usr_d);
 	end
 	delete(hText)
+	if (nargout)	out = hText_new;	end
 
 % ----------------------------------------------------------------------	
 function frame3D(hFig,pos,color,bg_color,usr_dat)
