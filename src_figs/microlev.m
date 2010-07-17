@@ -85,10 +85,7 @@ function varargout = microlev(varargin)
 	end
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-	new_frame3D(hObject, handles.txt_step1, handles.frame1)
-	new_frame3D(hObject, handles.txt_step2, handles.frame2)
-	new_frame3D(hObject, handles.txt_step3, handles.frame3)
-	new_frame3D(hObject, handles.txt_step4, handles.frame4)
+	new_frame3D(hObject, [handles.txt_step1 handles.txt_step2 handles.txt_step3 handles.txt_step4])
 	%------------- END Pro look (3D) -----------------------------------------------------
 
 	% ------------ Create a Semaforo for track lines ops -------------
@@ -504,10 +501,10 @@ set(h1, 'Position',[520 239 470 561],...
 'Resize','off',...
 'HandleVisibility','Call');
 
-uicontrol('Parent',h1,'Position',[10 440 451 111], 'Style','frame','Tag','frame1');
-uicontrol('Parent',h1,'Position',[10 380 451 51],  'Style','frame','Tag','frame2');
-uicontrol('Parent',h1,'Position',[10 270 451 101], 'Style','frame','Tag','frame3');
-uicontrol('Parent',h1,'Position',[10 130 452 131], 'Style','frame','Tag','frame4');
+uicontrol('Parent',h1,'Position',[10 440 451 111], 'Style','frame');
+uicontrol('Parent',h1,'Position',[10 380 451 51],  'Style','frame');
+uicontrol('Parent',h1,'Position',[10 270 451 101], 'Style','frame');
+uicontrol('Parent',h1,'Position',[10 130 452 131], 'Style','frame');
 
 uicontrol('Parent',h1,'Position',[22 501 122 22],...
 'BackgroundColor',[1 1 1],...
