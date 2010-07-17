@@ -152,7 +152,7 @@ function edit_ML_CB(hObject, handles)
 % -----------------------------------------------------------------------------------------
 function edit_file_CB(hObject, handles)
 	fname = get(hObject,'String');
-	push_file_CB([], [], handles, fname)
+	push_file_CB(handles.push_file, handles, fname)
 
 % -----------------------------------------------------------------------------------------
 function push_file_CB(hObject, handles, opt)
