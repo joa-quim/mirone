@@ -224,7 +224,7 @@ helpdlg(message,'Help on input data');
 
 %----------------------------------------------------------------------------------------------
 function edit_InputFile_CB(hObject, handles, opt)
-if (nargin == 4 && ischar(opt))   % OPT is a file name transmited by push_InputFile_CB
+if (nargin == 3 && ischar(opt))   % OPT is a file name transmited by push_InputFile_CB
     xx = opt;
     hObject = handles.edit_InputFile;    % hObject contained the handle to push_InputFile_CB
 else
