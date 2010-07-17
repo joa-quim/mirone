@@ -33,7 +33,6 @@ function varargout = ml_clip(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	ml_clip_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	%movegui(hObject,'north')
 	move2side(handMir.figure1, hObject)
  
 	handles.Z = getappdata(handMir.figure1,'dem_z');
@@ -120,7 +119,7 @@ function push_OK_CB(hObject, handles)
     tmp.head = handles.head;
     tmp.name = 'Clipped grid';
     mirone(handles.Z,tmp);
-	if (get(handles.delFig, 'Val'))
+	if (get(handles.check_delFig, 'Val'))
 		delete(handles.figure1)
 	end
 
@@ -336,4 +335,4 @@ uicontrol('Parent',h1, 'Position',[60 97 150 18],...
 
 function ml_clip_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
