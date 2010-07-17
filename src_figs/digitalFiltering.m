@@ -79,7 +79,7 @@ function varargout = digitalFiltering(varargin)
 %
 %       M-File changed by desGUIDE and manualy edited after
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -96,7 +96,7 @@ function varargout = digitalFiltering(varargin)
 hObject = figure('Tag','figure1','Visible','off');
 digitalFiltering_LayoutFcn(hObject);
 handles = guihandles(hObject);
-movegui(hObject,'northeast')
+move2side(hObject,'right')
 
 % Choose default command line output for digitalFiltering
 handles.output.cancel = 0;      % It will be set to one if the cancel button is hit or the fig is killed
@@ -174,17 +174,19 @@ handles.h_img2 = image(handles.img_orig,'Parent',handles.axes3);
 set(handles.axes3,'PlotBoxAspectRatio',[1 bg_aspect 1],'Visible','off')
 
 if (ischar(y_dir))
-    set(handles.axes2,'YDir',y_dir)
-    set(handles.axes3,'YDir',y_dir)
+	set(handles.axes2,'YDir',y_dir)
+	set(handles.axes3,'YDir',y_dir)
 end
 
 if (~isempty(cmap))         % If we have a colormap, apply it
-    set(hObject,'ColorMap',cmap)
+	set(hObject,'ColorMap',cmap)
 end
 
 % Load the predefined filters
 filter_struct = load_defFilters;
 sz_argin = size(filter_struct,2);
+struct_names = cell(1, sz_argin);
+struct_values = cell(1, sz_argin);
 for I = 1:sz_argin
     struct_names{I} = filter_struct{1, I};  % Structure descriptive name
     struct_values{I} = filter_struct{2, I}; % 
@@ -250,7 +252,7 @@ if (~isempty(handles.h_calling_img) || n_argout > 0)   % If called to operate in
 end
 
 % ------------------------------------------------------------------------
-function listbox1_Callback(hObject, eventdata, handles)
+function listbox1_CB(hObject, handles)
 index_struct = get(hObject,'Value');
 struct_names = handles.struct_names;
 struct_values = handles.struct_values;
@@ -325,11 +327,11 @@ end
 guidata(hObject, handles);
 
 % ------------------------------------------------------------------------
-function cell_array =  indent_cell(cell_array, level)
+function cell_array = indent_cell(cell_array, level)
 
-indent = '       ';             indent_app = [];
-for (k = 1:level+1),            indent_app = [indent_app indent];   end
-for (i=1:length(cell_array)),   cell_array{i} = [indent_app cell_array{i}];     end
+indent = '       ';				indent_app = [];
+for (k = 1:level+1),			indent_app = [indent_app indent];   end
+for (i=1:length(cell_array)),	cell_array{i} = [indent_app cell_array{i}];     end
 
 % ------------------------------------------------------------------------
 function [struct_names, struct_values] = expand_struct(struct_names, struct_values, idx, fields, level, idxP)
@@ -410,7 +412,7 @@ function str1 = remove_indent(str0)
 	end
 
 % --------------------------------------------------------------------
-function listbox_nRows_Callback(hObject, eventdata, handles)
+function listbox_nRows_CB(hObject, handles)
 % Increase/decrease number of rows of matrix filters that allow edition
 
 info = get(handles.tblParams, 'userdata');
@@ -440,7 +442,7 @@ end
 set(handles.tblParams, 'userdata',info);
 
 % --------------------------------------------------------------------
-function listbox_nCols_Callback(hObject, eventdata, handles)
+function listbox_nCols_CB(hObject, handles)
 % Increase/decrease number of columns of matrix filters that allow edition
 
 info = get(handles.tblParams, 'userdata');
@@ -525,56 +527,56 @@ end
 set(handles.tblParams, 'userdata',info);
 
 % --------------------------------------------------------------------
-function edit_imageIn_Callback(hObject, eventdata, handles)
-fname = get(hObject,'String');
-if isempty(fname),   return;    end
-pushbutton_imageIn_Callback(gcbo,[],guidata(gcbo),fname)
+function edit_imageIn_CB(hObject, handles)
+	fname = get(hObject,'String');
+	if isempty(fname),   return;    end
+	pushbutton_imageIn_CB(gcbo,[],guidata(gcbo),fname)
 
 % --------------------------------------------------------------------
-function pushbutton_imageIn_Callback(hObject, eventdata, handles, fname)
-if (nargin == 3),   fname = [];   end
-if (isempty(fname))
-	[FileName,PathName] = put_or_get_file(handles,{ ...
-        '*.jpg', 'JPEG image (*.jpg)'; ...
-        '*.png', 'Portable Network Graphics(*.png)'; ...
-        '*.bmp', 'Windows Bitmap (*.bmp)'; ...
-        '*.hdf', 'Hieralchical Data Format (*.hdf)'; ...
-        '*.gif', 'GIF image (*.gif)'; ...
-        '*.pcx', 'Windows Paintbrush (*.pcx)'; ...
-        '*.ras', 'SUN rasterfile (*.ras)'; ...
-        '*.tif', 'Tagged Image File (*.tif)'; ...
-        '*.xwd', 'X Windows Dump (*.xwd)'; ...
-        '*.*', 'All Files (*.*)'}, ...
-        'Select image format','get');
-	if isequal(FileName,0);     return;     end
-    fname = [PathName FileName];
-	set(handles.edit_imageIn,'String',fname)
-end
-try             % Use a try because if the name was given via edit box it may be wrong
-    [handles.img_orig,cmap] = imread(fname);
-catch
-    errordlg(['Error: -> ' fname ' does not exist or is not a valid image file'],'Error')
-    return
-end
+function pushbutton_imageIn_CB(hObject, handles, fname)
+	if (nargin == 3),   fname = [];   end
+	if (isempty(fname))
+		[FileName,PathName] = put_or_get_file(handles,{ ...
+			'*.jpg', 'JPEG image (*.jpg)'; ...
+			'*.png', 'Portable Network Graphics(*.png)'; ...
+			'*.bmp', 'Windows Bitmap (*.bmp)'; ...
+			'*.hdf', 'Hieralchical Data Format (*.hdf)'; ...
+			'*.gif', 'GIF image (*.gif)'; ...
+			'*.pcx', 'Windows Paintbrush (*.pcx)'; ...
+			'*.ras', 'SUN rasterfile (*.ras)'; ...
+			'*.tif', 'Tagged Image File (*.tif)'; ...
+			'*.xwd', 'X Windows Dump (*.xwd)'; ...
+			'*.*', 'All Files (*.*)'}, ...
+			'Select image format','get');
+		if isequal(FileName,0);     return;     end
+		fname = [PathName FileName];
+		set(handles.edit_imageIn,'String',fname)
+	end
+	try             % Use a try because if the name was given via edit box it may be wrong
+		[handles.img_orig,cmap] = imread(fname);
+	catch
+		errordlg(['Error: -> ' fname ' does not exist or is not a valid image file'],'Error')
+		return
+	end
 
-[m,n,k] = size(handles.img_orig);
-if (k == 1 && isempty(cmap))
-    set(handles.figure1,'Colormap', gray(256));
-elseif (~isempty(cmap))
-    set(handles.figure1,'Colormap', cmap);
-end
+	[m,n,k] = size(handles.img_orig);
+	if (k == 1 && isempty(cmap))
+		set(handles.figure1,'Colormap', gray(256));
+	elseif (~isempty(cmap))
+		set(handles.figure1,'Colormap', cmap);
+	end
 
-% Compute image aspect ratio and set axes 'PlotBoxAspectRatio' to it
-aspect = m / n;
-handles.h_img1 = image(handles.img_orig,'Parent',handles.axes2);
-set(handles.axes2,'PlotBoxAspectRatio',[1 aspect 1],'Visible','off')
-handles.h_img2 = image(handles.img_orig,'Parent',handles.axes3);
-set(handles.axes3,'PlotBoxAspectRatio',[1 aspect 1],'Visible','off')
+	% Compute image aspect ratio and set axes 'PlotBoxAspectRatio' to it
+	aspect = m / n;
+	handles.h_img1 = image(handles.img_orig,'Parent',handles.axes2);
+	set(handles.axes2,'PlotBoxAspectRatio',[1 aspect 1],'Visible','off')
+	handles.h_img2 = image(handles.img_orig,'Parent',handles.axes3);
+	set(handles.axes3,'PlotBoxAspectRatio',[1 aspect 1],'Visible','off')
 
-guidata(handles.figure1,handles)
+	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------
-function [grd,img] = pushbutton_apply_Callback(hObject, eventdata, handles)
+function [grd,img] = pushbutton_apply_CB(hObject, handles)
 	grd = [];
 	info = get(handles.tblParams, 'userdata');
 	f = cell2mat(info.data);				% Fish out the filter coefs
@@ -624,10 +626,6 @@ function b = LocalImfilter(a, h, boundary, flags)
 % Minimalist code necessary to prepare things to the mex
 
 	rank_a = ndims(a);		rank_h = ndims(h);
-	
-	% Pad dimensions with ones if filter and image rank are different
-	size_h = [size(h) ones(1,rank_a-rank_h)];
-	size_a = [size(a) ones(1,rank_h-rank_a)];
 
 	im_size = size(a);
 	%Calculate the number of pad pixels
@@ -647,69 +645,69 @@ function b = LocalImfilter(a, h, boundary, flags)
 	b = imfilter_mex(a,im_size,h,nonzero_h,conn,start,flags);
 
 % ------------------------------------------------------------------------
-function pushbutton_apply_and_return_Callback(hObject, eventdata, handles)
+function pushbutton_apply_and_return_CB(hObject, handles)
 % Apply filter, and return filtered image and grid (if it exists).
 % Notice that this button was made visible only when this option may apply.
-[handles.output.grd, handles.output.img] = pushbutton_apply_Callback(hObject, eventdata, handles);
+	[handles.output.grd, handles.output.img] = pushbutton_apply_CB(hObject, handles);
 
-if (~isempty(handles.h_calling_img))            % Update the caller figure image
-    set(handles.h_calling_img,'CData',handles.output.img)
-end
+	if (~isempty(handles.h_calling_img))            % Update the caller figure image
+		set(handles.h_calling_img,'CData',handles.output.img)
+	end
 
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    guidata(handles.figure1, handles);
-    uiresume(handles.figure1);
-else
-    delete(handles.figure1)
-end
+	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+		% The GUI is still in UIWAIT, us UIRESUME
+		guidata(handles.figure1, handles);
+		uiresume(handles.figure1);
+	else
+		delete(handles.figure1)
+	end
 
 % ------------------------------------------------------------------------
 function h = filts_coef(varargin)
-type = varargin{1};
-siz = (varargin{2}-1)/2;
+	type = varargin{1};
+	siz = (varargin{2}-1)/2;
 
-switch type
-	case 'GaussLowPass'         % Gaussian filter
-		std = varargin{3};
-		[x,y] = meshgrid(-siz(2):siz(2),-siz(1):siz(1));
-		h = exp(-(x.*x + y.*y)/(2*std*std));
-		h(h < eps*max(h(:))) = 0;
-	case 'invDist'              % Inverse distance filter
-		pow = varargin{3};
-		[x,y] = meshgrid(-siz(2):siz(2),-siz(1):siz(1));
-		h = sqrt(x.*x + y.*y);
-		h(siz(1)+1,siz(2)+1) = 1;   % To avoid devide by zero warnings
-		h = 1 ./ (h .^ pow);
-		h(siz(1)+1,siz(2)+1) = 2;   % Central weight
-end
+	switch type
+		case 'GaussLowPass'         % Gaussian filter
+			std = varargin{3};
+			[x,y] = meshgrid(-siz(2):siz(2),-siz(1):siz(1));
+			h = exp(-(x.*x + y.*y)/(2*std*std));
+			h(h < eps*max(h(:))) = 0;
+		case 'invDist'              % Inverse distance filter
+			pow = varargin{3};
+			[x,y] = meshgrid(-siz(2):siz(2),-siz(1):siz(1));
+			h = sqrt(x.*x + y.*y);
+			h(siz(1)+1,siz(2)+1) = 1;   % To avoid devide by zero warnings
+			h = 1 ./ (h .^ pow);
+			h(siz(1)+1,siz(2)+1) = 2;   % Central weight
+	end
 
 % ------------------------------------------------------------------------
-function pushbutton_cancel_Callback(hObject, eventdata, handles)
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    handles.output.cancel = 1;      % User gave up, return nothing
-    set(handles.h_calling_img,'CData',handles.img_orig)     % Reset calling fig original's image
-    guidata(hObject, handles);    uiresume(handles.figure1);
-else
-    % The GUI is no longer waiting, just close it
-    delete(handles.figure1)
-end
+function pushbutton_cancel_CB(hObject, handles)
+	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+		% The GUI is still in UIWAIT, us UIRESUME
+		handles.output.cancel = 1;      % User gave up, return nothing
+		set(handles.h_calling_img,'CData',handles.img_orig)     % Reset calling fig original's image
+		guidata(hObject, handles);    uiresume(handles.figure1);
+	else
+		% The GUI is no longer waiting, just close it
+		delete(handles.figure1)
+	end
 
 % ------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata)
 	handles = guidata(hObject);
-	pushbutton_cancel_Callback(hObject, eventdata, handles)
+	pushbutton_cancel_CB(hObject, handles)
 
 % ------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
 	if isequal(get(hObject,'CurrentKey'),'escape')
 		handles = guidata(hObject);
-		pushbutton_cancel_Callback(hObject, eventdata, handles)
+		pushbutton_cancel_CB(hObject, handles)
 	end
 
 % ------------------------------------------------------------------------
-function pushbutton_saveFiltImg_Callback(hObject, eventdata, handles)
+function pushbutton_saveFiltImg_CB(hObject, handles)
 str1 = {'*.bmp', 'Windows Bitmap (*.bmp)'; ...
 	'*.hdf', 'Hieralchical Data Format (*.hdf)'; ...
 	'*.jpg', 'JPEG image (*.jpg)'; ...
@@ -755,7 +753,7 @@ end
 set(handles.figure1,'pointer','arrow')
 
 % ------------------------------------------------------------------------
-function pushbutton_loadFilter_Callback(hObject, eventdata, handles)
+function pushbutton_loadFilter_CB(hObject, handles)
 % Load a filter from an external file. It must have a .dat extension
 
 str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
@@ -773,12 +771,12 @@ update_table(handles,handles.custom_filt)		% Update the table
 guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
-function radio_filteredImg_Callback(hObject, eventdata, handles)
+function radio_filteredImg_CB(hObject, handles)
 	if ( ~get(hObject,'Val')),	set(hObject,'Val', 1),		return,		end
 	set(handles.radio_enhancedImg, 'Val', 0)
 
 % -----------------------------------------------------------------------------------------
-function radio_enhancedImg_Callback(hObject, eventdata, handles)
+function radio_enhancedImg_CB(hObject, handles)
 	if ( ~get(hObject,'Val')),	set(hObject,'Val', 1),		return,		end
 	set(handles.radio_filteredImg, 'Val', 0)
 
@@ -997,24 +995,24 @@ uicontrol('Parent',h1,'Position',[14 9 227 46],'Style','frame','Tag','frame2');
 
 h3 = uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@digitalFiltering_uicallback,h1,'listbox1_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'listbox1_CB'},...
 'FontSize',9,...
 'Position',[10 69 251 335],...
 'Style','listbox',...
 'Value',1,...
 'Tag','listbox1');
 
-uicontrol('Parent',h1,'FontSize',10,'Position',[31 403 199 16],...
+uicontrol('Parent',h1,'FontSize',10,'Position',[31 404 199 16],...
 'String','Filters','Style','text','FontName','Helvetica');
 
 h6 = uicontextmenu('Parent',h1,...
-'Callback',{@digitalFiltering_uicallback,h1,'plot_select_menu_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'plot_select_menu_CB'},...
 'Tag','plot_select_menu');
 
 set(h3,'uicontextmenu',h6)
 
 uimenu('Parent',h6,...
-'Callback',{@digitalFiltering_uicallback,h1,'plot_selected_menu_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'plot_selected_menu_CB'},...
 'Label','plot selected',...
 'Tag','plot_selected_menu');
 
@@ -1054,7 +1052,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@digitalFiltering_uicallback,h1,'listbox_nRows_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'listbox_nRows_CB'},...
 'Position',[310 219 75 51],...
 'Style','listbox',...
 'Value',1,...
@@ -1062,7 +1060,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@digitalFiltering_uicallback,h1,'listbox_nCols_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'listbox_nCols_CB'},...
 'Position',[466 219 75 51],...
 'Style','listbox',...
 'Value',1,...
@@ -1100,7 +1098,7 @@ axes('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@digitalFiltering_uicallback,h1,'edit_imageIn_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'edit_imageIn_CB'},...
 'HorizontalAlignment','left',...
 'Position',[270 350 251 21],...
 'Style','edit',...
@@ -1108,7 +1106,7 @@ uicontrol('Parent',h1,...
 'Tag','edit_imageIn');
 
 uicontrol('Parent',h1,...
-'Callback',{@digitalFiltering_uicallback,h1,'pushbutton_imageIn_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'pushbutton_imageIn_CB'},...
 'FontSize',12,...
 'FontWeight','bold',...
 'Position',[521 348 20 23],...
@@ -1123,7 +1121,7 @@ uicontrol('Parent',h1,'Position',[636 196 70 15],...
 'String','Filtered Image','Style','text','FontName','Helvetica');
 
 uicontrol('Parent',h1,...
-'Callback',{@digitalFiltering_uicallback,h1,'pushbutton_loadFilter_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'pushbutton_loadFilter_CB'},...
 'Position',[270 289 125 21],...
 'String','Load external filter',...
 'FontName','Helvetica',...
@@ -1131,7 +1129,7 @@ uicontrol('Parent',h1,...
 'Tag','pushbutton_loadFilter');
 
 uicontrol('Parent',h1,...
-'Callback',{@digitalFiltering_uicallback,h1,'pushbutton_saveFiltImg_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'pushbutton_saveFiltImg_CB'},...
 'Position',[415 289 125 21],...
 'String','Save filtered image',...
 'FontName','Helvetica',...
@@ -1146,7 +1144,7 @@ uicontrol('Parent',h1,...
 'Tag','text_loadImage');
 
 uicontrol('Parent',h1,...
-'Callback',{@digitalFiltering_uicallback,h1,'radio_filteredImg_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'radio_filteredImg_CB'},...
 'FontName','Helvetica',...
 'Position',[266 41 135 19],...
 'String','Show filtered image',...
@@ -1156,7 +1154,7 @@ uicontrol('Parent',h1,...
 'Tag','radio_filteredImg');
 
 uicontrol('Parent',h1,...
-'Callback',{@digitalFiltering_uicallback,h1,'radio_enhancedImg_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'radio_enhancedImg_CB'},...
 'FontName','Helvetica',...
 'Position',[403 41 145 19],...
 'String','Show enhanced image',...
@@ -1166,7 +1164,7 @@ uicontrol('Parent',h1,...
 'Tag','radio_enhancedImg');
 
 uicontrol('Parent',h1,...
-'Callback',{@digitalFiltering_uicallback,h1,'pushbutton_apply_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'pushbutton_apply_CB'},...
 'Position',[270 10 50 21],...
 'String','Apply',...
 'FontName','Helvetica',...
@@ -1174,7 +1172,7 @@ uicontrol('Parent',h1,...
 'Tag','pushbutton_apply');
 
 uicontrol('Parent',h1,...
-'Callback',{@digitalFiltering_uicallback,h1,'pushbutton_apply_and_return_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'pushbutton_apply_and_return_CB'},...
 'Position',[350 10 80 21],...
 'String','Apply n return',...
 'FontName','Helvetica',...
@@ -1182,13 +1180,13 @@ uicontrol('Parent',h1,...
 'Tag','pushbutton_apply_and_return');
 
 uicontrol('Parent',h1,...
-'Callback',{@digitalFiltering_uicallback,h1,'pushbutton_cancel_Callback'},...
+'Call',{@digitalFiltering_uiCB,h1,'pushbutton_cancel_CB'},...
 'Position',[481 9 60 21],...
 'String','Cancel',...
 'FontName','Helvetica',...
 'Tooltip','Stop and undo any previous changes',...
 'Tag','pushbutton_cancel');
 
-function digitalFiltering_uicallback(hObject, eventdata, h1, callback_name)
+function digitalFiltering_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
