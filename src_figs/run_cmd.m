@@ -1,23 +1,20 @@
 function varargout = run_cmd(varargin)
+
+	if (isempty(varargin))		return,		end
  
 	hObject = figure('Tag','figure1','Visible','off');
 	run_cmd_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'east')
+	move2side(hObject,'right')
  
-	if (~isempty(varargin))
-		handlesMir = varargin{1};
-		if (handlesMir.no_file)
-			errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
-			delete(hObject);    return
-		end
-		if (handlesMir.image_type == 20)
-			warndlg('This image is just a constant background. Quiting','WarnError')
-			delete(hObject);    return
-		end
-	else
-		delete(hObject)
-		return
+	handlesMir = varargin{1};
+	if (handlesMir.no_file)
+		errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
+		delete(hObject);    return
+	end
+	if (handlesMir.image_type == 20)
+		warndlg('This image is just a constant background. Quiting','WarnError')
+		delete(hObject);    return
 	end
 
 	if (handlesMir.validGrid)
@@ -283,4 +280,4 @@ uicontrol('Parent',h1, 'Position',[10 40 265 16],...
 
 function run_cmd_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
