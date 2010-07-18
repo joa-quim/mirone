@@ -2106,7 +2106,7 @@ function varargout = ecran_trend1d(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	ecran_trend1d_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'center');
+	move2side(hObject,'center');
 
 	handles.hCallingAx = varargin{1};
 	handles.xy = varargin{2};
