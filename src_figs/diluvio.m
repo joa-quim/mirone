@@ -1,38 +1,51 @@
 function varargout = diluvio(varargin)
-% M-File changed by desGUIDE 
+% Simulate the effect of sea-level variation on DEMs 
+
+%	Copyright (c) 2004-2010 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
+	if isempty(varargin)	return,		end
 
 	hObject = figure('Tag','figure1','Visible','off');
 	diluvio_LayoutFcn(hObject);
-	handles = guihandles(hObject);
-     
-	if (numel(varargin) >= 1)
-		handMir = varargin{1};
-		if ( ~(handMir.head(5) < 0 && handMir.head(6) > 0) )
-			warndlg('The grid Z values do not span both above and below zero. Result is undetermined.','Warning')
-		end
-        Z = getappdata(handMir.figure1,'dem_z');
-		if (~isempty(Z))
-			handles.have_nans = handMir.have_nans;
-			handles.z_min = handMir.head(5);
-			handles.z_max = handMir.head(6);
-			handles.z_min_orig = handles.z_min;
-			handles.z_max_orig = handles.z_max;
-   		else
-			warndlg('Grid was not stored in memory. Quiting','Warning')
-			delete(hObject);        return
-		end
-        handles.hAxesMir = handMir.axes1;
-        handles.hImgMir = handMir.hImg;
-        zz = scaleto8(Z,16);
-        set(handles.hImgMir,'CData',zz,'CDataMapping','scaled')
-	else
-        delete(hObject);    return
+	handles = guihandles(hObject);     
+	handMir = varargin{1};
+	move2side(handMir.figure1, hObject, 'right')
+
+	if ( ~(handMir.head(5) < 0 && handMir.head(6) > 0) )
+		warndlg('The grid Z values do not span both above and below zero. Result is undetermined.','Warning')
 	end
+	Z = getappdata(handMir.figure1,'dem_z');
+	if (~isempty(Z))
+		handles.have_nans = handMir.have_nans;
+		handles.z_min = handMir.head(5);
+		handles.z_max = handMir.head(6);
+		handles.z_min_orig = handles.z_min;
+		handles.z_max_orig = handles.z_max;
+	else
+		warndlg('Grid was not stored in memory. Quiting','Warning')
+		delete(hObject);        return
+	end
+	handles.hAxesMir = handMir.axes1;
+	handles.hImgMir = handMir.hImg;
+	zz = scaleto8(Z,16);
+	set(handles.hImgMir,'CData',zz,'CDataMapping','scaled')
 
 	handles.hMirFig = handMir.figure1;
 	cmap_orig = get(handles.hMirFig,'Colormap');
 	dz = handles.z_max - handles.z_min;
-	cmap = interp1(1:size(cmap_orig,1),cmap_orig,linspace(1,size(cmap_orig,1),round(dz)));
+	%cmap = interp1(1:size(cmap_orig,1),cmap_orig,linspace(1,size(cmap_orig,1),round(dz)));
 	handles.cmap = cmap_orig;
 	handles.cmap_original = cmap_orig;
 	set(handles.figure1,'ColorMap',cmap_orig);      I = 1:length(cmap_orig);
@@ -65,15 +78,12 @@ function varargout = diluvio(varargin)
 	set(handles.figure1,'ColorMap',handles.cmap)
 	set(handles.hMirFig,'Colormap',handles.cmap)
 	
-	% Choose default command line output for diluvio
-	handles.output = hObject;
-	guidata(hObject, handles);
-	
+	guidata(hObject, handles);	
 	set(hObject,'Vis','on')
 	if (nargout),	varargout{1} = hObject;		end
 
 % -----------------------------------------------------------------------------------
-function slider_zeroLevel_Callback(hObject, eventdata, handles)
+function slider_zeroLevel_CB(hObject, handles)
 	val = get(hObject,'Value');
 	val_cor = round((val - handles.z_min) / (handles.z_max - handles.z_min) * size(handles.cmap,1));
 	handles.cmap = [repmat([0 0 1],val_cor,1); handles.cmap_original(val_cor+1:end,:)];
@@ -83,30 +93,27 @@ function slider_zeroLevel_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------
-function edit_zMin_Callback(hObject, eventdata, handles)
+function edit_zMin_CB(hObject, handles)
     xx = str2double(get(hObject,'String'));
     if (isnan(xx)),     set(hObject,'String','0');  end
 
 % -----------------------------------------------------------------------------------
-function edit_zMax_Callback(hObject, eventdata, handles)
+function edit_zMax_CB(hObject, handles)
     xx = str2double(get(hObject,'String'));
     if (isnan(xx)),     set(hObject,'String','50');  end
 
 % -----------------------------------------------------------------------------------
-function edit_zStep_Callback(hObject, eventdata, handles)
+function edit_zStep_CB(hObject, handles)
     xx = str2double(get(hObject,'String'));
     if (isnan(xx)),     set(hObject,'String','1');  end
 
 % -----------------------------------------------------------------------------------
-function edit_frameInterval_Callback(hObject, eventdata, handles)
+function edit_frameInterval_CB(hObject, handles)
     xx = str2double(get(hObject,'String'));
     if (isnan(xx)),     set(hObject,'String','1');  end
 
 % -----------------------------------------------------------------------------------
-function checkbox_movie_Callback(hObject, eventdata, handles)
-
-% -----------------------------------------------------------------------------------
-function pushbutton_run_Callback(hObject, eventdata, handles)
+function push_run_CB(hObject, handles)
     zMin = round(str2double(get(handles.edit_zMin,'String')));
     zMax = round(str2double(get(handles.edit_zMax,'String')));
     dt = str2double(get(handles.edit_frameInterval,'String'));
@@ -140,7 +147,6 @@ set(h1,...
 'MenuBar','none',...
 'Name','NOE Deluge',...
 'NumberTitle','off',...
-'PaperSize',[20.98404194812 29.67743169791],...
 'Position',[520 456 141 344],...
 'RendererMode','manual',...
 'Resize','off',...
@@ -160,7 +166,7 @@ axes('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@diluvio_uicallback,h1,'slider_zeroLevel_Callback'},...
+'Call',{@diluvio_uiCB,h1,'slider_zeroLevel_CB'},...
 'Position',[7 29 15 311],...
 'Style','slider',...
 'SliderStep',[0.001 0.05],...
@@ -177,7 +183,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@diluvio_uicallback,h1,'edit_zMin_Callback'},...
+'Call',{@diluvio_uiCB,h1,'edit_zMin_CB'},...
 'Position',[84 281 30 21],...
 'String','0',...
 'Style','edit',...
@@ -186,7 +192,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@diluvio_uicallback,h1,'edit_zMax_Callback'},...
+'Call',{@diluvio_uiCB,h1,'edit_zMax_CB'},...
 'Position',[84 230 30 21],...
 'String','50',...
 'Style','edit',...
@@ -195,7 +201,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@diluvio_uicallback,h1,'edit_zStep_Callback'},...
+'Call',{@diluvio_uiCB,h1,'edit_zStep_CB'},...
 'Position',[85 179 30 21],...
 'String','1',...
 'Style','edit',...
@@ -204,7 +210,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@diluvio_uicallback,h1,'edit_frameInterval_Callback'},...
+'Call',{@diluvio_uiCB,h1,'edit_frameInterval_CB'},...
 'Position',[85 129 30 21],...
 'String','1',...
 'Style','edit',...
@@ -212,7 +218,6 @@ uicontrol('Parent',h1,...
 'Tag','edit_frameInterval');
 
 uicontrol('Parent',h1,...
-'Callback',{@diluvio_uicallback,h1,'checkbox_movie_Callback'},...
 'Enable','off',...
 'Position',[81 42 48 15],...
 'String','Movie',...
@@ -243,12 +248,12 @@ uicontrol('Parent',h1,...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@diluvio_uicallback,h1,'pushbutton_run_Callback'},...
+'Call',{@diluvio_uiCB,h1,'push_run_CB'},...
 'Position',[81 74 40 21],...
 'String','Run',...
 'TooltipString','Run the Noe deluge',...
-'Tag','pushbutton_run');
+'Tag','push_run');
 
-function diluvio_uicallback(hObject, eventdata, h1, callback_name)
+function diluvio_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
