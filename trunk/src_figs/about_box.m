@@ -1,8 +1,7 @@
 function varargout = about_box(varargin)
-% M-File changed by desGUIDE  
-% varargin   command line arguments to about_box (see VARARGIN)
+% Display the "About" thing
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -43,12 +42,10 @@ function varargout = about_box(varargin)
 	
 	set(hObject,'Visible','on');
 	guidata(hObject,handles)
-	
-	% Choose default command line output for about_box
 	if (nargout),    varargout{1} = hObject;    end
 
 % -------------------------------------------------------------------
-function pushbutton_OK_Callback(hObject, eventdata, handles)
+function pushbutton_OK_CB(hObject, handles)
 	delete(handles.figure1);
 
 % --- Executes on key press over figure1 with no controls selected.
@@ -114,10 +111,10 @@ uicontrol('Parent',h1, 'Position',[10 16 201 15],...
 'Style','text','Tag','text_prog');
 
 uicontrol('Parent',h1, 'Position',[216 11 46 21],...
-'Callback',{@about_box_uicallback,h1,'pushbutton_OK_Callback'},...
+'Call',{@about_box_uiCB,h1,'pushbutton_OK_CB'},...
 'String','OK',...
 'Tag','pushbutton_OK');
 
-function about_box_uicallback(hObject, eventdata, h1, callback_name)
+function about_box_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
