@@ -1,8 +1,7 @@
 function varargout = rally_plater(varargin)
-% M-File changed by desGUIDE 
-% varargin   command line arguments to rally_plater (see VARARGIN)
+% Display plate motions
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -16,152 +15,119 @@ function varargout = rally_plater(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-hObject = figure('Tag','figure1','Visible','off');
-rally_plater_LayoutFcn(hObject);
-handles = guihandles(hObject);
-movegui(handles.figure1,'north')
+	hObject = figure('Tag','figure1','Visible','off');
+	rally_plater_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'center')
 
-%#function choosebox
+	% Import icons
+	load([pwd filesep 'data' filesep 'mirone_icons.mat'],'zoom_ico','Mfnew_ico','refresh_ico','color_ico','help_ico','Mplay_ico');
 
-% Import icons
-load([pwd filesep 'data' filesep 'mirone_icons.mat'],'zoom_ico','Mfnew_ico','refresh_ico','color_ico','help_ico','Mplay_ico');
+	h_toolbar = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
+		'Interruptible','on','Tag','FigureToolBar','Visible','on');
+	uipushtool('parent',h_toolbar,'Click',@LoadFile_clickedcallback,'cdata',Mfnew_ico,'Tooltip','Load file');
+	uitoggletool('parent',h_toolbar,'Click',@zoom_clickedcallback,'Tag','zoom','cdata',zoom_ico,'Tooltip','Zoom');
+	uipushtool('parent',h_toolbar,'Click',@newColors_clickedcallback,'cdata',color_ico,...
+		'Tooltip','Don''t like these colors. Try others');
+	uipushtool('parent',h_toolbar,'Click',@animate_clickedcallback,'cdata',Mplay_ico,'Sep','on','Tooltip','Run Animation');
+	uipushtool('parent',h_toolbar,'Click',@reset_clickedcallback,'cdata',refresh_ico,'Tooltip','Reset');
+	uipushtool('parent',h_toolbar,'Click',@help_clickedcallback,'Tooltip','Help','cdata',help_ico,'Sep','on');
 
-h_toolbar = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
-   'Interruptible','on','Tag','FigureToolBar','Visible','on');
-uipushtool('parent',h_toolbar,'Click',@LoadFile_clickedcallback, ...
-   'cdata',Mfnew_ico,'TooltipString','Load file');
-uitoggletool('parent',h_toolbar,'Click',@zoom_clickedcallback,'Tag','zoom',...
-   'cdata',zoom_ico,'TooltipString','Zoom');
-uipushtool('parent',h_toolbar,'Click',@newColors_clickedcallback,'cdata',color_ico,...
-    'TooltipString','Don''t like these colors. Try others');
-uipushtool('parent',h_toolbar,'Click',@animate_clickedcallback,'cdata',Mplay_ico,'Separator','on',...
-    'TooltipString','Run Animation');
-uipushtool('parent',h_toolbar,'Click',@reset_clickedcallback,'cdata',refresh_ico,'TooltipString','Reset');
-uipushtool('parent',h_toolbar,'Click',@help_clickedcallback,'TooltipString','Help','cdata',help_ico,'Separator','on');
+	handles.path_continent = [pwd filesep 'continents' filesep];
+	handles.h_calling_fig = [];
 
-handles.path_continent = [pwd filesep 'continents' filesep];
-handles.h_calling_fig = [];
+	n_bodies = 10;					% This is the number of current default "travelling bodies"
+	c_map = rand(n_bodies,3);
+	handles.plates_color = c_map;
 
-n_bodies = 10;                          % This is the number of current default "travelling bodies"
-c_map = rand(n_bodies,3);
-handles.plates_color = c_map;
+	% Load default plates
+	h_iberia = read_plate_bodies(handles,'iberia.dat',c_map(1,:),'default','single_seg','Iberia');
+	h_africa = read_plate_bodies(handles,'africa.dat',c_map(2,:),'default','whatever','Africa');
+	h_eurasia = read_plate_bodies(handles,'eu_dp.dat',c_map(3,:),'default','whatever','Eurasia');
+	h_Namerica = read_plate_bodies(handles,'na_dp.dat',c_map(4,:),'default','whatever','NorthAmerica');
+	h_Samerica = read_plate_bodies(handles,'south_america.dat',c_map(5,:),'default','single_seg','SouthAmerica');
+	h_antartida = read_plate_bodies(handles,'antartica.dat',c_map(6,:),'default','single_seg','Antartica');
+	h_arabia = read_plate_bodies(handles,'arabia_dp.dat',c_map(7,:),'default','single_seg','Arabia');
+	h_australia = read_plate_bodies(handles,'australia.dat',c_map(8,:),'default','single_seg','Australia');
+	h_greenland = read_plate_bodies(handles,'greenland.dat',c_map(9,:),'default','single_seg','Greenland');
+	h_india = read_plate_bodies(handles,'india_dp.dat',c_map(10,:),'default','single_seg','India');
 
-% Load default plates
-h_iberia = read_plate_bodies(handles,'iberia.dat',c_map(1,:),'default','single_seg','Iberia');
-h_africa = read_plate_bodies(handles,'africa.dat',c_map(2,:),'default','whatever','Africa');
-h_eurasia = read_plate_bodies(handles,'eu_dp.dat',c_map(3,:),'default','whatever','Eurasia');
-h_Namerica = read_plate_bodies(handles,'na_dp.dat',c_map(4,:),'default','whatever','NorthAmerica');
-h_Samerica = read_plate_bodies(handles,'south_america.dat',c_map(5,:),'default','single_seg','SouthAmerica');
-h_antartida = read_plate_bodies(handles,'antartica.dat',c_map(6,:),'default','single_seg','Antartica');
-h_arabia = read_plate_bodies(handles,'arabia_dp.dat',c_map(7,:),'default','single_seg','Arabia');
-h_australia = read_plate_bodies(handles,'australia.dat',c_map(8,:),'default','single_seg','Australia');
-h_greenland = read_plate_bodies(handles,'greenland.dat',c_map(9,:),'default','single_seg','Greenland');
-h_india = read_plate_bodies(handles,'india_dp.dat',c_map(10,:),'default','single_seg','India');
+	set(handles.listbox_stages,'String',{'africa2nam_double.stg'; 'eurasia2nam_double.stg'; 'iberia2nam_double.stg'});
 
-set(handles.listbox_stages,'String',{'africa2nam_double.stg'; 'eurasia2nam_double.stg'; 'iberia2nam_double.stg'});
+	str_stgs{1} = [handles.path_continent 'africa2nam_double.stg'];
+	str_stgs{2} = [handles.path_continent 'eurasia2nam_double.stg'];
+	str_stgs{3} = [handles.path_continent 'iberia2nam_double.stg'];
 
-str_stgs{1} = [handles.path_continent 'africa2nam_double.stg'];
-str_stgs{2} = [handles.path_continent 'eurasia2nam_double.stg'];
-str_stgs{3} = [handles.path_continent 'iberia2nam_double.stg'];
+	handles.def_tags = {'Iberia' 'Africa' 'Eurasia' 'NorthAmerica' 'SouthAmerica' 'Antartica' 'Arabia' 'Australia' 'Greenland' 'India'};
 
-handles.def_tags = {'Iberia' 'Africa' 'Eurasia' 'NorthAmerica' 'SouthAmerica' 'Antartica' 'Arabia' 'Australia' 'Greenland' 'India'};
+	handles.stgs_path{1} = handles.path_continent;
+	handles.stgs_path{2} = handles.path_continent;
+	handles.stgs_path{3} = handles.path_continent;
 
-handles.stgs_path{1} = handles.path_continent;
-handles.stgs_path{2} = handles.path_continent;
-handles.stgs_path{3} = handles.path_continent;
+	stg2plate(handles,h_iberia,str_stgs,3)			% Iberia
+	stg2plate(handles,h_africa,str_stgs,1)			% Africa
+	stg2plate(handles,h_eurasia,str_stgs,2)			% Eurasia (less Iberia)
+	stg2plate(handles,h_Namerica,str_stgs,0,1)		% Initialize with no associated poles
+	stg2plate(handles,h_Samerica,str_stgs,0,1)		%       "
+	stg2plate(handles,h_antartida,str_stgs,0,1)		%       "
+	stg2plate(handles,h_arabia,str_stgs,0,1)		%       "
+	stg2plate(handles,h_australia,str_stgs,0,1)		%       "
+	stg2plate(handles,h_greenland,str_stgs,0,1)		%       "
+	stg2plate(handles,h_india,str_stgs,0,1)			%       "
 
-stg2plate(handles,h_iberia,str_stgs,3)          % Iberia
-stg2plate(handles,h_africa,str_stgs,1)          % Africa
-stg2plate(handles,h_eurasia,str_stgs,2)         % Eurasia (less Iberia)
-stg2plate(handles,h_Namerica,str_stgs,0,1)      % Initialize with no associated poles
-stg2plate(handles,h_Samerica,str_stgs,0,1)      %       "
-stg2plate(handles,h_antartida,str_stgs,0,1)     %       "
-stg2plate(handles,h_arabia,str_stgs,0,1)        %       "
-stg2plate(handles,h_australia,str_stgs,0,1)     %       "
-stg2plate(handles,h_greenland,str_stgs,0,1)     %       "
-stg2plate(handles,h_india,str_stgs,0,1)         %       "
+	handles.plates{1} = h_iberia;
+	handles.plates{2} = h_africa;
+	handles.plates{3} = h_eurasia;
+	handles.plates{4} = h_Namerica;
+	handles.plates{5} = h_Samerica;
+	handles.plates{6} = h_antartida;
+	handles.plates{7} = h_arabia;
+	handles.plates{8} = h_australia;
+	handles.plates{9} = h_greenland;
+	handles.plates{10} = h_india;
 
+	% Make a copy of the default plates and set them invisible
+	handles.plates_bak{1} = copyobj(h_iberia,handles.axes1);    set(handles.plates_bak{1},'Visible','off');
+	handles.plates_bak{2} = copyobj(h_africa,handles.axes1);    set(handles.plates_bak{2},'Visible','off');
+	handles.plates_bak{3} = copyobj(h_eurasia,handles.axes1);   set(handles.plates_bak{3},'Visible','off');
+	handles.plates_bak{4} = copyobj(h_Namerica,handles.axes1);  set(handles.plates_bak{4},'Visible','off');
+	handles.plates_bak{5} = copyobj(h_Samerica,handles.axes1);  set(handles.plates_bak{5},'Visible','off');
+	handles.plates_bak{6} = copyobj(h_antartida,handles.axes1); set(handles.plates_bak{6},'Visible','off');
+	handles.plates_bak{7} = copyobj(h_arabia,handles.axes1);    set(handles.plates_bak{7},'Visible','off');
+	handles.plates_bak{8} = copyobj(h_australia,handles.axes1); set(handles.plates_bak{8},'Visible','off');
+	handles.plates_bak{9} = copyobj(h_greenland,handles.axes1); set(handles.plates_bak{9},'Visible','off');
+	handles.plates_bak{10} = copyobj(h_india,handles.axes1);    set(handles.plates_bak{10},'Visible','off');
+	handles.moved_body = zeros(100,1);
 
-handles.plates{1} = h_iberia;
-handles.plates{2} = h_africa;
-handles.plates{3} = h_eurasia;
-handles.plates{4} = h_Namerica;
-handles.plates{5} = h_Samerica;
-handles.plates{6} = h_antartida;
-handles.plates{7} = h_arabia;
-handles.plates{8} = h_australia;
-handles.plates{9} = h_greenland;
-handles.plates{10} = h_india;
+	% Create a circle for use in the Orthographic projection
+	handles.h_circ = line(cos(linspace(1,2*pi,180)),sin(linspace(1,2*pi,180)), 'Color', [0 0 0], 'Visible', 'off');
 
-% Make a copy of the default plates and set them invisible
-handles.plates_bak{1} = copyobj(h_iberia,handles.axes1);    set(handles.plates_bak{1},'Visible','off');
-handles.plates_bak{2} = copyobj(h_africa,handles.axes1);    set(handles.plates_bak{2},'Visible','off');
-handles.plates_bak{3} = copyobj(h_eurasia,handles.axes1);   set(handles.plates_bak{3},'Visible','off');
-handles.plates_bak{4} = copyobj(h_Namerica,handles.axes1);  set(handles.plates_bak{4},'Visible','off');
-handles.plates_bak{5} = copyobj(h_Samerica,handles.axes1);  set(handles.plates_bak{5},'Visible','off');
-handles.plates_bak{6} = copyobj(h_antartida,handles.axes1); set(handles.plates_bak{6},'Visible','off');
-handles.plates_bak{7} = copyobj(h_arabia,handles.axes1);    set(handles.plates_bak{7},'Visible','off');
-handles.plates_bak{8} = copyobj(h_australia,handles.axes1); set(handles.plates_bak{8},'Visible','off');
-handles.plates_bak{9} = copyobj(h_greenland,handles.axes1); set(handles.plates_bak{9},'Visible','off');
-handles.plates_bak{10} = copyobj(h_india,handles.axes1);    set(handles.plates_bak{10},'Visible','off');
-handles.moved_body = zeros(100,1);
+	set(handles.edit_ageSlider,'String','150')
+	set(handles.slider_age,'Max',150)
 
-% Create a circle for use in the Orthographic projection
-handles.h_circ = line(cos(linspace(1,2*pi,180)),sin(linspace(1,2*pi,180)), 'Color', [0 0 0], 'Visible', 'off');
+	if (~isempty(handles.h_calling_fig))					% If we know the handle to the calling fig
+		cfig_handles = guidata(handles.h_calling_fig);		% get handles of the calling fig    
+		handles.last_dir = cfig_handles.last_dir;
+		handles.home_dir = cfig_handles.home_dir;
+		handles.work_dir = cfig_handles.work_dir;
+	else
+		handles.home_dir = cd;
+		handles.last_dir = cd;
+		handles.work_dir = cd;
+	end
 
-set(handles.edit_ageSlider,'String','150')
-set(handles.slider_age,'Max',150)
+	%------------ Give a Pro look (3D) to the frame boxes  --------
+	new_frame3D(hObject, [handles.txt_Pc handles.txt_Prj])
+	%------------- END Pro look (3D) ------------------------------
 
-if (~isempty(handles.h_calling_fig))                    % If we know the handle to the calling fig
-    cfig_handles = guidata(handles.h_calling_fig);      % get handles of the calling fig
-    handles.last_dir = cfig_handles.last_dir;
-    handles.home_dir = cfig_handles.home_dir;
-    handles.work_dir = cfig_handles.work_dir;
-else
-    handles.home_dir = cd;
-    handles.last_dir = cd;
-    handles.work_dir = cd;
-end
+	% Those were destroid above. We must fish their handles again
+	handles.text_projOrigLon = findobj(handles.figure1,'Tag','text_projOrigLon');
+	handles.text_projOrigLat = findobj(handles.figure1,'Tag','text_projOrigLat');
+	handles.text_projOrigPitch = findobj(handles.figure1,'Tag','text_projOrigPitch');
 
-%--------------- Give a Pro look (3D) to the frame boxes -------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-
-% Recopy the text fields on top of previously created frames (uistack is to damn slow)
-h_t = findobj(hObject,'Style','Text');
-for i=1:length(h_t)
-    usr_d = get(h_t(i),'UserData');
-    t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-    bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
-    t_just = get(h_t(i),'HorizontalAlignment');     t_tag = get (h_t(i),'Tag');
-    uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str,'Tag',t_tag, ...
-        'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,...
-        'UserData',usr_d,'HorizontalAlignment',t_just);
-end
-delete(h_t)
-%------------------- END Pro look (3D) ----------------------------------------------------------
-
-% Those were destroid above. We must fish their handles again
-handles.text_projOrigLon = findobj(handles.figure1,'Tag','text_projOrigLon');
-handles.text_projOrigLat = findobj(handles.figure1,'Tag','text_projOrigLat');
-handles.text_projOrigPitch = findobj(handles.figure1,'Tag','text_projOrigPitch');
-
-guidata(hObject, handles);
-set(hObject,'Visible','on');
-if (nargout),	varargout{1} = hObject;		end
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),	varargout{1} = hObject;		end
 
 % -----------------------------------------------------------------------------------------
 function stg2plate(handles,h_plate,str_stgs,n_pole,opt)
@@ -176,7 +142,7 @@ if (nargin == 4)    opt = 0;   end
 cmenuHand = uicontextmenu;
 set(h_plate, 'UIContextMenu', cmenuHand);
 
-uimenu(cmenuHand, 'Label', 'Freeze this plate','Tag','FreezePlate','Callback',{@freeze_plate,h_plate});
+uimenu(cmenuHand, 'Label', 'Freeze this plate','Tag','FreezePlate','Call',{@freeze_plate,h_plate});
 
 if (opt)            % Just initialize
     label = 'Poles --> None set';
@@ -190,19 +156,19 @@ other_stg = uimenu(cmenuHand, 'Label', 'Other Poles', 'Tag', 'OtherPoles');
 for (k=1:length(str_stgs))
     [PATH,FNAME,EXT] = fileparts(str_stgs{k});
     name_stg = [FNAME EXT];
-    uimenu(other_stg,'Label',name_stg,'Callback',{@set_stg,h_plate,str_stgs{k},opt})
+    uimenu(other_stg,'Label',name_stg,'Call',{@set_stg,h_plate,str_stgs{k},opt})
 end
 
 % Set the delete uicontext
 tag = get(h_plate,'Tag');
 if (iscell(tag))    tag = tag{1};   end
 uimenu(cmenuHand,'Label',['Delete this ' tag ' element'],'Tag','DeleteSingle','Separator','on',...
-    'Callback',{@delete_element,h_plate,0});
+    'Call',{@delete_element,h_plate,0});
 uimenu(cmenuHand,'Label',['Delete all ' tag ' family'],'Tag','DeleteAll',...
-    'Callback',{@delete_element,h_plate,1});
+    'Call',{@delete_element,h_plate,1});
 
 % set the "change color" uicontext
-uimenu(cmenuHand,'Label',['Change ' tag ' color'],'Separator','on','Callback',@change_color);
+uimenu(cmenuHand,'Label',['Change ' tag ' color'],'Separator','on','Call',@change_color);
 
 if (opt)            % Signal that this plate has no associated poles
     set(h_plate,'UserData',0)
@@ -371,7 +337,7 @@ if length(c) > 1            % That is, if a color was selected
         set(h_line,'Color',c);
     end
     refresh;
-else,   return, end
+end
 
 % -----------------------------------------------------------------------------------------
 function [h_plate,out_tag] = read_plate_bodies(handles,plate_body,c_map,opt1,opt2,opt3)
@@ -391,7 +357,7 @@ if (strcmp(opt1,'default'))
         plate = text_read([handles.path_continent plate_body]);
         h_plate = patch(plate(:,1),plate(:,2),c_map,'FaceAlpha',0.5,'Tag',opt3);
     else    % Multiseg plate
-		[plate,multi_segs_str,headerlines] = text_read([handles.path_continent plate_body],NaN,NaN,'>');
+		plate = text_read([handles.path_continent plate_body],NaN,NaN,'>');
 		n_segments = length(plate);
 		for (k=1:n_segments)
             h_plate(k) = patch(plate{k}(:,1),plate{k}(:,2),c_map,'FaceAlpha',0.5,'Tag',opt3);
@@ -399,13 +365,12 @@ if (strcmp(opt1,'default'))
     end
 else
     [bin,n_column,multi_seg,n_headers] = guess_file(fname);
-    if isempty(bin) & isempty(n_column) & isempty(multi_seg) & isempty(n_headers)
+    if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
         errordlg(['Error reading file ' fname],'Error');    return
     end
     if (n_column < 2)
         errordlg('File error. Your file doesn''t have at least 2 columns','Error'); return
     end
-    if (isempty(n_headers))     n_headers = NaN;    end
     if (multi_seg)
         [h_plate,multi_segs_str,headerlines,hdr_txt] = text_read(fname,NaN,NaN,'>');
     else
@@ -443,11 +408,11 @@ try
 	end
 catch
     errordlg(['The file ' poles_file 'is not a properly formated Stage poles file.'],'Error');
-    poles = [];     p_name = [''];
+    poles = [];     p_name = '';
     return
 end
 
-p_name = [''];
+p_name = '';
 if (~isempty(ix))           % There are header lines in the file
     [t,r]=strtok(hdr{1}(2:end));
     if (isempty(r))         % Only one word. We interpret this as the plate's name
@@ -526,13 +491,14 @@ for (j = j_dir)                                 % For each time increment
         x{m}(length(x{m})+1) = NaN;     y{m}(length(y{m})+1) = NaN;    % Needed for processing multiple patches.
         id{m} = find(isnan(x{m}));
 	
-        for (i = 1:length(id{m}) )              % Cycle through and display each element
-            if (i == 1)     ini{m}(i) = 1;
-            else            ini{m}(i) = id{m}(i-1)+1;    end
-            fim{m}(i) = id{m}(i)-1;
-            try                                 % This is crutial when working on proj coords
-                set(handles.plates{m}(i),'XData',x{m}(ini{m}(i):fim{m}(i)),'YData',y{m}(ini{m}(i):fim{m}(i)))
-            end
+		for (i = 1:length(id{m}) )              % Cycle through and display each element
+			if (i == 1)		ini{m}(i) = 1;
+			else			ini{m}(i) = id{m}(i-1)+1;
+			end
+			fim{m}(i) = id{m}(i)-1;
+			try                                 % This is crutial when working on proj coords
+				set(handles.plates{m}(i),'XData',x{m}(ini{m}(i):fim{m}(i)),'YData',y{m}(ini{m}(i):fim{m}(i)))
+			end
 		end
 	end
 	pause(frm_step);
@@ -558,16 +524,15 @@ if (get(handles.radiobutton_projOrtho,'Value'))
     return
 end
 
-n = find(handles.moved_body);                   % Get the number of moved bodies (it is a vector)
-if (isempty(n))     return;     end             % Nothing moved yet (the guy is plaing with the buttons)
-h = handles.moved_body(n);                      % Get all bodies that where moved
-for (k=1:length(n))                             % Loop over moved bodies
-    for (m=1:length(handles.plates{n(k)}))      % Loop over each element of the outer loop moved body
+n = find(handles.moved_body);					% Get the number of moved bodies (it is a vector)
+if (isempty(n))		return,		end				% Nothing moved yet (the guy is plaing with the buttons)
+for (k = 1:length(n))							% Loop over moved bodies
+    for (m = 1:length(handles.plates{n(k)}))	% Loop over each element of the outer loop moved body
         set(handles.plates{n(k)}(m),'XData',get(handles.plates_bak{n(k)}(m),'XData'), ...
             'YData',get(handles.plates_bak{n(k)}(m),'YData'));
     end
 end
-handles.moved_body = zeros(100,1);              % Reset to bodies_moved = 0
+handles.moved_body = zeros(100,1);				% Reset to bodies_moved = 0
 guidata(handles.figure1,handles);
 
 % --------------------------------------------------------------------------------------------------
@@ -600,12 +565,12 @@ str = sprintf(['This tool is a mix between a Plate reconstruction demo and.\n'..
 helpdlg(str,'Help')
 
 % --------------------------------------------------------------------
-function listbox_stages_Callback(hObject, eventdata, handles)
+function listbox_stages_CB(hObject, handles)
 % Hints: contents = get(hObject,'String') returns listbox_stages contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from listbox_stages
 
 % --------------------------------------------------------------------
-function pushbutton_loadStages_Callback(hObject, eventdata, handles)
+function push_loadStages_CB(hObject, handles)
 % Get poles file name
 
 	if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))			% If we know it and it exists
@@ -641,18 +606,18 @@ hA = findobj(handles.figure1,'Tag','OtherPoles');
 for (k=1:length(hA))                    % Loop over uimenus of activated plates
     hC = sort(get(hA(k),'Children'));
     for (m=1:length(hC))                % Loop over uimenus offering alternative stage poles
-        cb = get(hC(m),'Callback');
+        cb = get(hC(m),'Call');
         cb{3} = [handles.stgs_path{m} str_stgs{m}];
-        set(hC(m),'Label',str_stgs{m},'Callback',cb)
+        set(hC(m),'Label',str_stgs{m},'Call',cb)
     end
     % But we still need to add another uimenu to account for the newly imported stage poles
-    uimenu(hA(k),'Label',str_stgs{end},'Callback',{@set_stg,cb{2},[handles.stgs_path{end} str_stgs{end}],1})
+    uimenu(hA(k),'Label',str_stgs{end},'Call',{@set_stg,cb{2},[handles.stgs_path{end} str_stgs{end}],1})
 end
 
 guidata(hObject,handles)
 
 % --------------------------------------------------------------------
-function pushbutton_makeStages_Callback(hObject, eventdata, handles)
+function push_makeStages_CB(hObject, handles)
 % 
 fid = fopen([handles.path_continent 'lista_polos.dat'],'rt');
 c = fread(fid,'*char').';
@@ -677,13 +642,13 @@ elseif (v == 2)     % Stage poles
 end
 
 % --------------------------------------------------------------------
-function edit_ageStart_Callback(hObject, eventdata, handles)
+function edit_ageStart_CB(hObject, handles)
 
 % --------------------------------------------------------------------
-function edit_ageStop_Callback(hObject, eventdata, handles)
+function edit_ageStop_CB(hObject, handles)
 
 % --------------------------------------------------------------------
-function edit_ageStep_Callback(hObject, eventdata, handles)
+function edit_ageStep_CB(hObject, handles)
 
 % --------------------------------------------------------------------
 function LoadFile_clickedcallback(obj, eventdata)
@@ -699,8 +664,6 @@ function LoadFile_clickedcallback(obj, eventdata)
     [FileName,PathName] = put_or_get_file(hand,{ ...
 			'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select input xy file name','get');
     if isequal(FileName,0),		return,		end
-	fname = [PathName FileName];
-
 
 	[xy,tag] = read_plate_bodies([PathName FileName]);
 	if (isempty(tag))
@@ -763,10 +726,7 @@ end
 guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
-function edit_frameInterval_Callback(hObject, eventdata, handles)
-
-% --------------------------------------------------------------------
-function slider_age_Callback(hObject, eventdata, handles)
+function slider_age_CB(hObject, handles)
 % Reconstruct to a particular age determined by the slider value
 
 do_proj = get(handles.radiobutton_projOrtho,'Value');
@@ -829,7 +789,7 @@ for (m = 1:length(out))                     % Loop over the number of moved plat
     x{m}(length(x{m})+1) = NaN;     y{m}(length(y{m})+1) = NaN;    % Needed for processing multiple patches.
     id{m} = find(isnan(x{m}));
 
-    for (i = 1:length(id{m}) )              % Cycle through and display each element
+	for (i = 1:length(id{m}) )              % Cycle through and display each element
         if (i == 1)     ini{m}(i) = 1;
         else            ini{m}(i) = id{m}(i-1)+1;    end
         fim{m}(i) = id{m}(i)-1;
@@ -855,7 +815,7 @@ while ~isempty(id)
 end	
 
 % --------------------------------------------------------------------
-function edit_ageSlider_Callback(hObject, eventdata, handles)
+function edit_ageSlider_CB(hObject, handles)
 val = str2double(get(hObject,'String'));
 if (val > get(handles.slider_age,'Max'))
     set(handles.slider_age,'Max',val)
@@ -863,7 +823,7 @@ end
 set(handles.slider_age,'Value',val)
 
 % Call the slider callback to do the rest of the work
-slider_age_Callback(handles.slider_age, [], handles)
+slider_age_CB(handles.slider_age, [], handles)
 
 % --------------------------------------------------------------------
 function [x,y] = orthographic(lon, lat, origin)
@@ -892,7 +852,6 @@ y = sin(rng) .* cos(azim);
 %--------------------------------------------------------------------------------------------------
 function [lon1,lat1] = rotate(lon,lat,orig)
 %ROTATE  Rotate data for specified orig and orientation (angles are in radians)
-%  Copyright 1996-2003 The MathWorks, Inc.
 
 rot1 = [cos(orig(2)) sin(orig(2))  0        % Rotation matrix about x axis
        -sin(orig(2)) cos(orig(2))  0
@@ -919,14 +878,14 @@ lon = atan2(sin(lon*(1 - 1e-6)),cos(lon*(1 - 1e-6)));
 %  Compute the new x,y,z point in cartesian space
 xyz = ( rot * ([cos(lat).*cos(lon) cos(lat).*sin(lon) sin(lat)]') )';% We want column vectors
 
-epsilon = 1.0e-8;
-indx = find(abs(xyz(:,1)) <= epsilon & abs(xyz(:,2)) <= epsilon);   % Be careful with x & y nearely 0 in atan2
-if ~isempty(indx);   x(indx) = 0;  y(indx) = 0;   end
+% epsilon = 1.0e-8;
+% indx = find(abs(xyz(:,1)) <= epsilon & abs(xyz(:,2)) <= epsilon);   % Be careful with x & y nearely 0 in atan2
+% if ~isempty(indx);   x(indx) = 0;  y(indx) = 0;   end
 
 [lon1, lat1] = cart2sph(xyz(:,1),xyz(:,2),xyz(:,3));  % Transform to spherical coordinates
 
 % --------------------------------------------------------------------
-function radiobutton_projLinear_Callback(hObject, eventdata, handles)
+function radiobutton_projLinear_CB(hObject, handles)
 
 if (get(hObject,'Value'))
     set(handles.axes1,'xlim',[-180 180], 'ylim',[-90 90],'XtickMode','auto', 'YtickMode','auto')
@@ -950,7 +909,7 @@ set(handles.edit_ageSlider,'String','0')
 set(handles.slider_age,'Value',0)
 
 % --------------------------------------------------------------------
-function radiobutton_projOrtho_Callback(hObject, eventdata, handles)
+function radiobutton_projOrtho_CB(hObject, handles)
 
 if (get(hObject,'Value'))
     set(handles.axes1,'xlim',[-1 1], 'ylim',[-1 1],'DataAspectRatio',[1 1 1],'Xtick',[],'Ytick',[])
@@ -974,17 +933,17 @@ set(handles.edit_ageSlider,'String','0')
 set(handles.slider_age,'Value',0)
 
 % --------------------------------------------------------------------
-function slider_projOrigLon_Callback(hObject, eventdata, handles)
+function slider_projOrigLon_CB(hObject, handles)
 set(handles.text_projOrigLon,'String',['Lon ' num2str(get(hObject,'Value'))])
 swap_proj(handles)      % In this case there is no projection swapping, only origin updating
 
 % --------------------------------------------------------------------
-function slider_projOrigLat_Callback(hObject, eventdata, handles)
+function slider_projOrigLat_CB(hObject, handles)
 set(handles.text_projOrigLat,'String',['Lat ' num2str(get(hObject,'Value'))])
 swap_proj(handles)      % In this case there is no projection swapping, only origin updating
 
 % --------------------------------------------------------------------
-function slider_projOrigPitch_Callback(hObject, eventdata, handles)
+function slider_projOrigPitch_CB(hObject, handles)
 set(handles.text_projOrigPitch,'String',['Pitch ' num2str(get(hObject,'Value'))])
 swap_proj(handles)      % In this case there is no projection swapping, only origin updating
 
@@ -1013,7 +972,7 @@ else
 end
 
 % --------------------------------------------------------------------
-function radiobutton_animForward_Callback(hObject, eventdata, handles)
+function radiobutton_animForward_CB(hObject, handles)
 % Just make sure that only one of this radiobuttons pair is on. The animation
 % callback will check the status of it and decide on the reconstruction direction.
 if (get(hObject,'Value'))
@@ -1023,7 +982,7 @@ else
 end
 
 % --------------------------------------------------------------------
-function radiobutton_animBackward_Callback(hObject, eventdata, handles)
+function radiobutton_animBackward_CB(hObject, handles)
 if (get(hObject,'Value'))
     set(handles.radiobutton_animForward,'Value',0)
 else
@@ -1058,143 +1017,128 @@ axes('Parent',h1,...
 'YLimMode','manual',...
 'Tag','axes1');
 
-uicontrol('Parent',h1,...
-'Position',[390 8 271 101],...
-'Style','frame',...
-'Tag','frame2');
+uicontrol('Parent',h1, 'Position',[390 8 271 101], 'Style','frame');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@rally_plater_uicallback,h1,'listbox_stages_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'listbox_stages_CB'},...
 'Position',[10 8 221 100],...
 'Style','listbox',...
-'TooltipString','List of currently available satge poles',...
+'Tooltip','List of currently available satge poles',...
 'Value',1,...
 'Tag','listbox_stages');
 
 uicontrol('Parent',h1,...
-'Callback',{@rally_plater_uicallback,h1,'pushbutton_loadStages_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'push_loadStages_CB'},...
 'Position',[240 53 111 21],...
 'String','Load stage poles',...
-'TooltipString','Load a file with your own stage poles',...
-'Tag','pushbutton_loadStages');
+'Tooltip','Load a file with your own stage poles',...
+'Tag','push_loadStages');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@rally_plater_uicallback,h1,'edit_ageStart_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'edit_ageStart_CB'},...
 'Position',[700 9 47 21],...
 'String','0',...
 'Style','edit',...
-'TooltipString','Time of animation start (Ma)',...
+'Tooltip','Time of animation start (Ma)',...
 'Tag','edit_ageStart');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@rally_plater_uicallback,h1,'edit_ageStop_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'edit_ageStop_CB'},...
 'Position',[824 8 47 21],...
 'String','150',...
 'Style','edit',...
-'TooltipString','Time of animation stop (Ma)',...
+'Tooltip','Time of animation stop (Ma)',...
 'Tag','edit_ageStop');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@rally_plater_uicallback,h1,'edit_ageStep_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'edit_ageStep_CB'},...
 'Position',[764 8 47 21],...
 'String','5',...
 'Style','edit',...
-'TooltipString','Animation step (Ma)',...
+'Tooltip','Animation step (Ma)',...
 'Tag','edit_ageStep');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@rally_plater_uicallback,h1,'edit_frameInterval_Callback'},...
 'Position',[900 9 47 21],...
 'String','0.5',...
 'Style','edit',...
-'TooltipString','Frame interval (seconds)',...
+'Tooltip','Frame interval (seconds)',...
 'Tag','edit_frameInterval');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.899999976158142 0.899999976158142 0.899999976158142],...
-'Callback',{@rally_plater_uicallback,h1,'slider_age_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'slider_age_CB'},...
 'Position',[700 85 201 16],...
 'Style','slider',...
-'TooltipString','Slide to select a certain age of reconstruction',...
+'Tooltip','Slide to select a certain age of reconstruction',...
 'Tag','slider_age');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@rally_plater_uicallback,h1,'edit_ageSlider_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'edit_ageSlider_CB'},...
 'Position',[900 83 47 22],...
 'Style','edit',...
-'TooltipString','Age of reconstruction (Ma)',...
+'Tooltip','Age of reconstruction (Ma)',...
 'Tag','edit_ageSlider');
 
-uicontrol('Parent',h1,...
-'Position',[703 32 41 15],...
-'String','T start','Style','text',...
-'Tag','text1');
+uicontrol('Parent',h1, 'Position',[703 32 41 15],...
+'String','T start','Style','text');
 
-uicontrol('Parent',h1,...
-'Position',[767 31 41 15],...
+uicontrol('Parent',h1, 'Position',[767 31 41 15],...
 'String','T step',...
-'Style','text','Tag','text2');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'Position',[826 32 41 15],...
 'String','T end',...
-'Style','text',...
-'Tag','text3');
+'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@rally_plater_uicallback,h1,'pushbutton_makeStages_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'push_makeStages_CB'},...
 'Position',[240 13 111 21],...
 'String','Make stage poles',...
-'TooltipString','Create stage poles from a finite rotation poles list',...
-'Tag','pushbutton_makeStages');
+'Tooltip','Create stage poles from a finite rotation poles list',...
+'Tag','push_makeStages');
 
-uicontrol('Parent',h1,...
-'Position',[902 32 41 15],...
+uicontrol('Parent',h1, 'Position',[902 32 41 15],...
 'String','Delay',...
-'Style','text',...
-'Tag','text4');
+'Style','text');
 
-uicontrol('Parent',h1,...
-'Position',[902 105 41 15],...
+uicontrol('Parent',h1, 'Position',[902 105 41 15],...
 'String','Time',...
-'Style','text',...
-'Tag','text5');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.899999976158142 0.899999976158142 0.899999976158142],...
-'Callback',{@rally_plater_uicallback,h1,'slider_projOrigLon_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'slider_projOrigLon_CB'},...
 'Max',180,...
 'Min',-180,...
 'Position',[500 76 101 14],...
-'String',{  '' },...
 'Style','slider',...
 'SliderStep',[0.00277777777777778 0.0138888888888889],...
 'Tag','slider_projOrigLon');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.899999976158142 0.899999976158142 0.899999976158142],...
-'Callback',{@rally_plater_uicallback,h1,'slider_projOrigLat_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'slider_projOrigLat_CB'},...
 'Max',90,...
 'Min',-90,...
 'Position',[500 48 101 14],...
-'String',{  '' },...
 'Style','slider',...
 'SliderStep',[0.00555555555555556 0.0277777777777778],...
 'Tag','slider_projOrigLat');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.899999976158142 0.899999976158142 0.899999976158142],...
-'Callback',{@rally_plater_uicallback,h1,'slider_projOrigPitch_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'slider_projOrigPitch_CB'},...
 'Max',90,...
 'Min',-90,...
 'Position',[500 21 101 14],...
-'String',{  '' },...
 'Style','slider',...
 'SliderStep',[0.00555555555555556 0.0277777777777778],...
 'Tag','slider_projOrigPitch');
@@ -1221,7 +1165,7 @@ uicontrol('Parent',h1,...
 'Tag','text_projOrigPitch');
 
 uicontrol('Parent',h1,...
-'Callback',{@rally_plater_uicallback,h1,'radiobutton_projLinear_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'radiobutton_projLinear_CB'},...
 'Position',[400 64 79 15],...
 'String','Linear',...
 'Style','radiobutton',...
@@ -1229,33 +1173,33 @@ uicontrol('Parent',h1,...
 'Tag','radiobutton_projLinear');
 
 uicontrol('Parent',h1,...
-'Callback',{@rally_plater_uicallback,h1,'radiobutton_projOrtho_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'radiobutton_projOrtho_CB'},...
 'Position',[400 34 96 15],...
 'String','Orthographic',...
 'Style','radiobutton',...
 'Tag','radiobutton_projOrtho');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[517 100 111 17],...
 'FontSize',10,...
-'Position',[517 100 111 17],...
 'String','Projection center',...
+'Tag', 'txt_Pc',...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@rally_plater_uicallback,h1,'radiobutton_animForward_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'radiobutton_animForward_CB'},...
 'Position',[700 53 79 15],...
 'String','Forward',...
 'Style','radiobutton',...
-'TooltipString','Animations run from past to present',...
+'Tooltip','Animations run from past to present',...
 'Value',1,...
 'Tag','radiobutton_animForward');
 
 uicontrol('Parent',h1,...
-'Callback',{@rally_plater_uicallback,h1,'radiobutton_animBackward_Callback'},...
+'Call',{@rally_plater_uiCB,h1,'radiobutton_animBackward_CB'},...
 'Position',[810 53 79 15],...
 'String','Backward',...
 'Style','radiobutton',...
-'TooltipString','Animations run from present to past',...
+'Tooltip','Animations run from present to past',...
 'Tag','radiobutton_animBackward');
 
 uicontrol('Parent',h1,...
@@ -1264,12 +1208,12 @@ uicontrol('Parent',h1,...
 'String','Stage Poles',...
 'Style','text');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[409 99 71 17],...
 'FontSize',10,...
-'Position',[409 99 71 17],...
 'String','Projection',...
+'Tag','txt_Prj',...
 'Style','text');
 
-function rally_plater_uicallback(hObject, eventdata, h1, callback_name)
+function rally_plater_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
