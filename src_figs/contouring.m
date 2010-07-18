@@ -1,8 +1,7 @@
 function varargout = contouring(varargin)
-% M-File changed by desGUIDE  
-% varargin   command line arguments to contouring (see VARARGIN)
+% Front end to contour selection
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -16,10 +15,11 @@ function varargout = contouring(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+	if isempty(varargin)		return,		end
+
 	hObject = figure('Tag','figure1','Visible','off','HandleVisibility', 'off');
 	contouring_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'east')
 
 	handles.Zmin = [];
 	handles.Zmax = [];
@@ -28,51 +28,24 @@ function varargout = contouring(varargin)
 	handles.Zsingle = [];
 	handles.selected_val = [];
 
-	if ~isempty(varargin)
-		handles.hCallingFig = varargin{1};
-		handles.head = varargin{2};
-		old_cont = varargin{3};
-		handles.Xmin = handles.head(1);    handles.Xmax = handles.head(2);
-		handles.Ymin = handles.head(3);    handles.Ymax = handles.head(4);
-		handles.Zmin = handles.head(5);    handles.Zmax = handles.head(6);
-		set(handles.edit_Zmin,'String',num2str(handles.Zmin))
-		set(handles.edit_Zmax,'String',num2str(handles.Zmax))
-	else
-		delete(hObject);    return
-	end
+	handles.hCallingFig = varargin{1};
+	handles.head = varargin{2};
+	old_cont = varargin{3};
+	handles.Xmin = handles.head(1);    handles.Xmax = handles.head(2);
+	handles.Ymin = handles.head(3);    handles.Ymax = handles.head(4);
+	handles.Zmin = handles.head(5);    handles.Zmax = handles.head(6);
+	set(handles.edit_Zmin,'String',num2str(handles.Zmin))
+	set(handles.edit_Zmax,'String',num2str(handles.Zmax))
+	move2side(handles.hCallingFig, hObject, 'right')
 
 	if (~isempty(old_cont))
 		list = num2cell(old_cont(:));
 		set(handles.listbox_ElevValues,'String',list)
 	end
 
-%------------------ Give a Pro look (3D) to the frame boxes --------------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-
-% Recopy the text fields on top of previously created frames (uistack is to slow)
-h_t = findobj(hObject,'Style','Text');
-for i=1:length(h_t)
-    usr_d = get(h_t(i),'UserData');
-    t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-    bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
-    uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str, ...
-        'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,'UserData',usr_d);
-end
-delete(h_t)
-%---------------------------------------------------------------------------------------
+	%------------ Give a Pro look (3D) to the frame boxes  --------
+	new_frame3D(hObject, handles.txt_CE)
+	%------------- END Pro look (3D) ------------------------------
 
 	% Add this figure handle to the carra?as list
 	plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
@@ -86,7 +59,7 @@ delete(h_t)
 	if (nargout),   varargout{1} = hObject;     end
 
 %-------------------------------------------------------------------------------
-function pushbutton_GuessIntervals_Callback(hObject, eventdata, handles)
+function push_GuessIntervals_CB(hObject, handles)
 % I don't know how contourc guesses the contours but I can make it work for me
 % The trick isto generate a small grid with z ranging from min to max of the
 % original grid and ask for the contours.
@@ -98,14 +71,14 @@ function pushbutton_GuessIntervals_Callback(hObject, eventdata, handles)
 	i = 1;  k = 1;
 	while(i < limit)
 		z_level(k) = c(1,i);    npoints = c(2,i);
-		i = i+npoints+1;
+		i = i + npoints + 1;
 		k = k + 1;
 	end
 	list = num2cell(z_level');
 	set(handles.listbox_ElevValues,'String',list)
 
 %-------------------------------------------------------------------------------
-function edit_ElevStep_Callback(hObject, eventdata, handles)
+function edit_ElevStep_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if ( isempty(xx) || isnan(xx))
 		set(hObject,'String','');
@@ -116,7 +89,7 @@ function edit_ElevStep_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------
-function edit_StartElev_Callback(hObject, eventdata, handles)
+function edit_StartElev_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if ( isempty(xx) || isnan(xx))
 		set(hObject,'String','');
@@ -127,7 +100,7 @@ function edit_StartElev_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------
-function edit_SingleElev_Callback(hObject, eventdata, handles)
+function edit_SingleElev_CB(hObject, handles)
 xx = str2double(get(hObject,'String'));
 if ( isempty(xx) || isnan(xx))
     set(hObject,'String','');
@@ -138,7 +111,7 @@ end
 guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------
-function pushbutton_Add_Callback(hObject, eventdata, handles)
+function push_Add_CB(hObject, handles)
 	if (isempty(handles.Zsingle)),   return;    end
 	list = get(handles.listbox_ElevValues,'String');
 	list{end+1} = get(handles.edit_SingleElev,'String');
@@ -150,7 +123,7 @@ function pushbutton_Add_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------
-function pushbutton_GenerateIntervals_Callback(hObject, eventdata, handles)
+function push_GenerateIntervals_CB(hObject, handles)
 if (~isempty(handles.Zstart) && ~isempty(handles.Zinc))
     list = num2cell((handles.Zstart:handles.Zinc:handles.Zmax)');
     set(handles.listbox_ElevValues,'String',list)
@@ -159,12 +132,12 @@ else
 end
 
 %-------------------------------------------------------------------------------
-function listbox_ElevValues_Callback(hObject, eventdata, handles)
+function listbox_ElevValues_CB(hObject, handles)
 	handles.selected_val = get(hObject,'Value');
 	guidata(handles.figure1, handles);
 
 %-------------------------------------------------------------------------------
-function pushbutton_DeleteSelected_Callback(hObject, eventdata, handles)
+function push_DeleteSelected_CB(hObject, handles)
 	if (isempty(handles.selected_val)),		return,		end
 	list = get(handles.listbox_ElevValues,'String');
 	if (isempty(list)),		return,		end
@@ -189,7 +162,7 @@ function pushbutton_DeleteSelected_Callback(hObject, eventdata, handles)
 	end
 
 %-------------------------------------------------------------------------------
-function pushbutton_DeleteAll_Callback(hObject, eventdata, handles)
+function push_DeleteAll_CB(hObject, handles)
 	set(handles.listbox_ElevValues,'String','')
 	handles.selected_val = [];
 	guidata(handles.figure1, handles)
@@ -200,7 +173,7 @@ function pushbutton_DeleteAll_Callback(hObject, eventdata, handles)
 	guidata(handMir.figure1, handMir)
 
 %-------------------------------------------------------------------------------
-function pushbutton_Apply_Callback(hObject, eventdata, handles)
+function push_Apply_CB(hObject, handles)
 	list = get(handles.listbox_ElevValues,'String');
 	if (isempty(list)),  return,	end
 	list = str2num(char(list{:}));
@@ -258,18 +231,16 @@ uicontrol('Parent',h1, 'Position',[142 272 23 15], 'String','Max:', 'Style','tex
 uicontrol('Parent',h1, 'Position',[21 236 90 17],...
 'String','Plot Labels',...
 'Style','checkbox',...
-'TooltipString','Plot master contour lines',...
+'Tooltip','Plot master contour lines',...
 'Value',1,...
 'Tag','check_plotLabels');
 
 uicontrol('Parent',h1, 'Position',[20 206 241 21],...
-'Callback',{@contouring_uicallback,h1,'pushbutton_GuessIntervals_Callback'},...
+'Call',{@contouring_uiCB,h1,'push_GuessIntervals_CB'},...
 'String','Add Common Charting Intervals',...
-'Tag','pushbutton_GuessIntervals');
+'Tag','push_GuessIntervals');
 
-uicontrol('Parent',h1, 'Units','pixels', 'Position',[20 48 241 141],...
-'Style','frame',...
-'Tag','frame1');
+uicontrol('Parent',h1, 'Units','pixels', 'Position',[20 48 241 141], 'Style','frame');
 
 uicontrol('Parent',h1, 'Position',[30 145 75 15],...
 'HorizontalAlignment','left',...
@@ -288,69 +259,70 @@ uicontrol('Parent',h1, 'Position',[30 89 80 15],...
 
 uicontrol('Parent',h1, 'Position',[120 85 131 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@contouring_uicallback,h1,'edit_ElevStep_Callback'},...
+'Call',{@contouring_uiCB,h1,'edit_ElevStep_CB'},...
 'Style','edit',...
 'Tag','edit_ElevStep');
 
 uicontrol('Parent',h1, 'Position',[120 114 131 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@contouring_uicallback,h1,'edit_StartElev_Callback'},...
+'Call',{@contouring_uiCB,h1,'edit_StartElev_CB'},...
 'Style','edit',...
 'Tag','edit_StartElev');
 
 uicontrol('Parent',h1, 'Position',[120 143 71 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@contouring_uicallback,h1,'edit_SingleElev_Callback'},...
+'Call',{@contouring_uiCB,h1,'edit_SingleElev_CB'},...
 'Style','edit',...
 'Tag','edit_SingleElev');
 
 uicontrol('Parent',h1, 'Position',[30 55 221 21],...
-'Callback',{@contouring_uicallback,h1,'pushbutton_GenerateIntervals_Callback'},...
+'Call',{@contouring_uiCB,h1,'push_GenerateIntervals_CB'},...
 'String','Generate Elevation Intervals',...
-'Tag','pushbutton_GenerateIntervals');
+'Tag','push_GenerateIntervals');
+
 uicontrol('Parent',h1, 'Position',[200 142 51 21],...
-'Callback',{@contouring_uicallback,h1,'pushbutton_Add_Callback'},...
+'Call',{@contouring_uiCB,h1,'push_Add_CB'},...
 'String','Add',...
-'Tag','pushbutton_Add');
+'Tag','push_Add');
 
 uicontrol('Parent',h1, 'Position',[31 177 105 18],...
 'String','Custom Elevations',...
 'Style','text',...
-'Tag','text6');
+'Tag','txt_CE');
 
 uicontrol('Parent',h1, 'Position',[290 108 145 180],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@contouring_uicallback,h1,'listbox_ElevValues_Callback'},...
+'Call',{@contouring_uiCB,h1,'listbox_ElevValues_CB'},...
 'Max',2,...
 'Style','listbox',...
 'Value',1,...
 'Tag','listbox_ElevValues');
 
 uicontrol('Parent',h1, 'Position',[290 76 140 21],...
-'Callback',{@contouring_uicallback,h1,'pushbutton_DeleteSelected_Callback'},...
+'Call',{@contouring_uiCB,h1,'push_DeleteSelected_CB'},...
 'String','Delete Selected Values',...
-'Tag','pushbutton_DeleteSelected');
+'Tag','push_DeleteSelected');
 
 uicontrol('Parent',h1, 'Position',[290 47 140 21],...
-'Callback',{@contouring_uicallback,h1,'pushbutton_DeleteAll_Callback'},...
+'Call',{@contouring_uiCB,h1,'push_DeleteAll_CB'},...
 'String','Delete All Values',...
-'Tag','pushbutton_DeleteAll');
+'Tag','push_DeleteAll');
 
-uicontrol('Parent',h1, 'Position',[300 293 150 15],...
+uicontrol('Parent',h1, 'Position',[295 293 144 15],...
 'HorizontalAlignment','left',...
 'String','Elevation Values in Range',...
 'Style','text');
 
 uicontrol('Parent',h1, 'Position',[363 6 80 21],...
-'Callback',{@contouring_uicallback,h1,'pushbutton_Apply_Callback'},...
+'Call',{@contouring_uiCB,h1,'push_Apply_CB'},...
 'String','Apply',...
-'Tag','pushbutton_Apply');
+'Tag','push_Apply');
 
 uicontrol('Parent',h1, 'Position',[20 294 90 15],...
 'HorizontalAlignment','left',...
 'String','Elevation Range:',...
 'Style','text');
 
-function contouring_uicallback(hObject, eventdata, h1, callback_name)
+function contouring_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
