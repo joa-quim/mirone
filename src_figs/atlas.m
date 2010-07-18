@@ -20,7 +20,7 @@ function varargout = atlas(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	atlas_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'center');
+	move2side(hObject,'center');
 
     handMir = varargin{1};
     if ( ~handMir.no_file && (~handMir.is_projected && ~handMir.geog) )
