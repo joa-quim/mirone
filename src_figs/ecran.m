@@ -22,7 +22,7 @@ function varargout = ecran(varargin)
 	ecran_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	set(hObject,'RendererMode','auto')
-	movegui(hObject,'east');
+	move2side(hObject,'right');
 
 	mir_dirs = getappdata(0,'MIRONE_DIRS');
 	if (~isempty(mir_dirs))
