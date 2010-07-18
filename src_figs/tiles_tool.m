@@ -196,7 +196,7 @@ function push_change_dir_CB(hObject, handles)
 		cache_dir = uigetdir(cd, 'Select a directory');
 	end
 	if ~isempty(cache_dir)
-		popup_directory_list_CB(handles.popup_directory_list, event, handles, cache_dir)
+		popup_directory_list_CB(handles.popup_directory_list, handles, cache_dir)
 	end
 
 % -----------------------------------------------------------------------------------------
