@@ -1,8 +1,7 @@
 function varargout = color_palettes(varargin)
-% M-File changed by desGUIDE 
-% varargin   command line arguments to color_palettes
+% Helper window to select/modify a color palette
 
-%	Copyright (c) 2004-2009 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -19,7 +18,7 @@ function varargout = color_palettes(varargin)
 hObject = figure('Tag','figure1','Visible','off');
 color_palettes_LayoutFcn(hObject);
 handles = guihandles(hObject);
-movegui(hObject,'center')
+move2side(hObject,'center')
 
 handles.z_min = [];     handles.z_max = [];     handles.z_min_orig = [];    handles.z_max_orig = [];	cmap = [];
 handles.have_nans = 0;	handles.hCallingFig = [];	later_ReadPalette = false;
@@ -121,7 +120,7 @@ set(handles.listbox1,'String',pals);
 %------------- END Pro look (3D) -------------------------------------------------------
 
 if (later_ReadPalette)		% When pallete filename was transmited in input
-	cmap = FileReadPalette_Callback([], [], handles, [], varargin{1});
+	cmap = FileReadPalette_CB([], [], handles, [], varargin{1});
 end
 
 % Show the current colormap in axes
@@ -163,7 +162,7 @@ if (nargout)
 end
 
 % -----------------------------------------------------------------------------------
-function listbox1_Callback(hObject, eventdata, handles)
+function listbox1_CB(hObject, eventdata, handles)
 	contents = get(hObject,'String');		pal = contents{get(hObject,'Value')};
 	old_thematic = handles.thematic;
 	handles.thematic = false;
@@ -460,7 +459,7 @@ end
 
 % -----------------------------------------------------------------------------------
 % --- Executes on slider movement.
-function slider_Bottom_Callback(hObject, eventdata, handles)
+function slider_Bottom_CB(hObject, eventdata, handles)
 val = round(get(hObject,'Value'));
 
 if ~isempty(handles.pal_top)        % The other slider has been activated
@@ -490,7 +489,7 @@ change_cmap(handles,cmap)
 
 % -----------------------------------------------------------------------------------
 % --- Executes on slider movement.
-function slider_Top_Callback(hObject, eventdata, handles)
+function slider_Top_CB(hObject, eventdata, handles)
 	val = round(get(hObject,'Value'));
 
 	if ~isempty(handles.pal_bot)        % The other slider has been activated
@@ -626,7 +625,7 @@ function new_cmap = makeCmapBat(z_min, z_max, hinge, cmap)
 	new_cmap = [new_cmap_l; new_cmap_u];
 
 % --------------------------------------------------------------------
-function FileSavePalette_Callback(hObject, eventdata, handles, opt)
+function FileSavePalette_CB(hObject, eventdata, handles, opt)
 % OPT == [] writes the current cmap as a descrete GMT palette, but with 256 colors (in fact, a continuous cpt)
 % OPT == 'master_disc' writes the current cmap as a descrete GMT palette with 16 colors
 % OPT == 'master_cont' writes the current cmap as a continuous GMT palette with 16 colors
@@ -694,7 +693,7 @@ for (i=1:pal_len+5),   fprintf(fid,'%s\n',tmp{i});     end
 fclose(fid);
 
 % --------------------------------------------------------------------
-function OptionsDiscretizePalette_Callback(hObject, eventdata, handles, opt)
+function OptionsDiscretizePalette_CB(hObject, eventdata, handles, opt)
 	if (nargin == 3),   opt = '16';     end
 	n_color = str2double(opt);
 	pal = get(handles.figure1,'Colormap');
@@ -716,11 +715,11 @@ function OptionsDiscretizePalette_Callback(hObject, eventdata, handles, opt)
 	set(handles.listbox1,'Value',1)     % Now we have a new "Current cmap"
 
 % --------------------------------------------------------------------
-function FileExit_Callback(hObject, eventdata, handles)
+function FileExit_CB(hObject, eventdata, handles)
     figure1_CloseRequestFcn(handles.figure1, [])
 
 % --------------------------------------------------------------------
-function OptionsApply_Callback(hObject, eventdata, handles)
+function OptionsApply_CB(hObject, eventdata, handles)
 	if ~isempty(handles.hCallingFig)
 		cmap = get(handles.figure1,'Colormap');
 		if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
@@ -735,7 +734,7 @@ function OptionsApply_Callback(hObject, eventdata, handles)
 	end
 
 % --------------------------------------------------------------------
-function OptionsAutoApply_Callback(hObject, eventdata, handles)
+function OptionsAutoApply_CB(hObject, eventdata, handles)
 	if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
 		set(handles.OptionsAutoApply,'checked','off')
 	else
@@ -749,7 +748,7 @@ function OptionsAutoApply_Callback(hObject, eventdata, handles)
 	end
 
 % --------------------------------------------------------------------
-function cmap = FileReadPalette_Callback(hObject, eventdata, handles, opt, opt2)
+function cmap = FileReadPalette_CB(hObject, eventdata, handles, opt, opt2)
 	if (nargin == 3),   opt = [];	end
 	if (nargin < 5),	opt2 = [];	end
 	if (isempty(opt2))
@@ -785,40 +784,40 @@ function cmap = FileReadPalette_Callback(hObject, eventdata, handles, opt, opt2)
 	change_cmap(handles, cmap);
 
 % --------------------------------------------------------------------
-function push_retColorMap_Callback(hObject, eventdata, handles)
+function push_retColorMap_CB(hObject, eventdata, handles)
     handles.killed = false;
     guidata(hObject, handles);    uiresume(handles.figure1);
 
 % --------------------------------------------------------------------
-function radio_ML_Callback(hObject, eventdata, handles)
+function radio_ML_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set([handles.radio_GMT handles.radio_MR handles.radio_CAR handles.radio_GIMP handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
 	set(handles.listbox1,'String',[pals(1) handles.palsML],'Value',1)
 
 % --------------------------------------------------------------------
-function radio_GMT_Callback(hObject, eventdata, handles)
+function radio_GMT_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set([handles.radio_ML handles.radio_MR handles.radio_CAR handles.radio_GIMP handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
 	set(handles.listbox1,'String',[pals(1) handles.palsGMT],'Value',1)
 
 % --------------------------------------------------------------------
-function radio_MR_Callback(hObject, eventdata, handles)
+function radio_MR_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set([handles.radio_ML handles.radio_GMT handles.radio_CAR handles.radio_GIMP handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
 	set(handles.listbox1,'String',[pals(1) handles.palsA],'Value',1)
 
 % --------------------------------------------------------------------
-function radio_CAR_Callback(hObject, eventdata, handles)
+function radio_CAR_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set([handles.radio_ML handles.radio_GMT handles.radio_MR handles.radio_GIMP handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
 	set(handles.listbox1,'String',[pals(1) handles.palsCAR],'Value',1)
 
 % --------------------------------------------------------------------
-function radio_GIMP_Callback(hObject, eventdata, handles)
+function radio_GIMP_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set([handles.radio_ML handles.radio_GMT handles.radio_MR handles.radio_CAR handles.radio_T],'Value', 0)
 	pals = get(handles.listbox1,'String');
@@ -929,7 +928,7 @@ function wbu_pico(obj,eventdata,handles)
 	set(handles.figure1,'WindowButtonMotionFcn','','WindowButtonUpFcn','')
 
 % --------------------------------------------------------------------
-function Help_Callback(hObject, eventdata, handles)
+function Help_CB(hObject, eventdata, handles)
 msg = sprintf(['All visible features are so obvious that they don''t need any help.\n' ...
         'There are, however, hiden and very powerful ones:\n\n' ...
         'Double clicking over the colorbar to insert color markers. Drag these\n' ...
@@ -944,7 +943,7 @@ msg = sprintf(['All visible features are so obvious that they don''t need any he
 msgbox(msg,'Help')
 
 % --------------------------------------------------------------------
-function edit_Zmin_Callback(hObject, eventdata, handles)
+function edit_Zmin_CB(hObject, eventdata, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx)),     set(hObject,'String',num2str(handles.z_min));   return; end
 	handles.z_min = xx;
@@ -952,7 +951,7 @@ function edit_Zmin_Callback(hObject, eventdata, handles)
 	change_cmap(handles,get(handles.figure1,'Colormap'))
 
 % --------------------------------------------------------------------
-function edit_Zmax_Callback(hObject, eventdata, handles)
+function edit_Zmax_CB(hObject, eventdata, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx)),     set(hObject,'String',num2str(handles.z_max));   return; end
 	handles.z_max = xx;
@@ -1251,7 +1250,7 @@ uicontrol('Parent',h1, 'Position',[5 8 285 207], 'Style','frame', 'Tag','frame_b
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@color_palettes_uicallback,h1,'listbox1_Callback'},...
+'Call',{@color_palettes_uicallback,h1,'listbox1_CB'},...
 'HorizontalAlignment','left',...
 'Position',[12 14 271 161],...
 'String','Color Tables',...
@@ -1261,7 +1260,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1, 'Position',[12 274 271 16],...
 'BackgroundColor',[0.9 0.9 0.9],...
-'Callback',{@color_palettes_uicallback,h1,'slider_Bottom_Callback'},...
+'Call',{@color_palettes_uicallback,h1,'slider_Bottom_CB'},...
 'Style','slider',...
 'Tag','slider_Bottom');
 
@@ -1282,7 +1281,7 @@ axes('Parent',h1, 'Units','pixels',...
 
 uicontrol('Parent',h1, 'Position',[12 241 271 16],...
 'BackgroundColor',[0.9 0.9 0.9],...
-'Callback',{@color_palettes_uicallback,h1,'slider_Top_Callback'},...
+'Call',{@color_palettes_uicallback,h1,'slider_Top_CB'},...
 'Style','slider',...
 'Tag','slider_Top');
 
@@ -1293,98 +1292,98 @@ h14 = uimenu('Parent',h1,'Label','File','Tag','VoidFile');
 h15 = uimenu('Parent',h14,'Label','Read GMT palette','Tag','VoidFileReadPalette');
 
 uimenu('Parent',h15,...
-'Callback',{@color_palettes_uicallback4,h1,[],'FileReadPalette_Callback'},...
+'Call',{@color_palettes_uicallback4,h1,[],'FileReadPalette_CB'},...
 'Label','As master','Tag','FileReadPalette_Master');
 
 uimenu('Parent',h15,...
-'Callback',{@color_palettes_uicallback4,h1,'z_levels','FileReadPalette_Callback'},...
+'Call',{@color_palettes_uicallback4,h1,'z_levels','FileReadPalette_CB'},...
 'Label','Use Z levels','Tag','FileReadPalette_Zlevels');
 
 h18 = uimenu('Parent',h14,'Label','Save as GMT palette');
 
 uimenu('Parent',h18,...
-'Callback',{@color_palettes_uicallback4,h1,[],'FileSavePalette_Callback'},...
+'Call',{@color_palettes_uicallback4,h1,[],'FileSavePalette_CB'},...
 'Label','Grid limits with 256 colors',...
 'Tag','FileSavePaletteGrid');
 
 uimenu('Parent',h18,...
-'Callback',{@color_palettes_uicallback4,h1,'master_disc','FileSavePalette_Callback'},...
+'Call',{@color_palettes_uicallback4,h1,'master_disc','FileSavePalette_CB'},...
 'Label','descrete master cpt (16 colors) ',...
 'Tag','FileSavePaletteMasterDisc');
 
 uimenu('Parent',h18,...
-'Callback',{@color_palettes_uicallback4,h1,'master_cont','FileSavePalette_Callback'},...
+'Call',{@color_palettes_uicallback4,h1,'master_cont','FileSavePalette_CB'},...
 'Label','continuous master cpt (16 colors) ',...
 'Tag','FileSavePaletteMasterCont');
 
 uimenu('Parent',h14,...
-'Callback',{@color_palettes_uicallback,h1,'FileExit_Callback'},...
+'Call',{@color_palettes_uicallback,h1,'FileExit_CB'},...
 'Label','Exit','Separator','on','Tag','FileExit');
 
 h23 = uimenu('Parent',h1,'Label','Options');
 
 uimenu('Parent',h23,...
-'Callback',{@color_palettes_uicallback,h1,'OptionsApply_Callback'},...
+'Call',{@color_palettes_uicallback,h1,'OptionsApply_CB'},...
 'Label','Apply','Tag','OptionsApply');
 
 uimenu('Parent',h23,...
-'Callback',{@color_palettes_uicallback,h1,'OptionsAutoApply_Callback'},...
+'Call',{@color_palettes_uicallback,h1,'OptionsAutoApply_CB'},...
 'Checked','on','Label','Auto Apply','Tag','OptionsAutoApply');
 
 h26 = uimenu('Parent',h23,'Label','Discretize Palette','Separator','on');
 
 uimenu('Parent',h26,...
-'Callback',{@color_palettes_uicallback4,h1,'8','OptionsDiscretizePalette_Callback'},...
+'Call',{@color_palettes_uicallback4,h1,'8','OptionsDiscretizePalette_CB'},...
 'Label','8 colors', 'Tag','OptionsDiscretizePalette8');
 
 uimenu('Parent',h26,...
-'Callback',{@color_palettes_uicallback4,h1,'16','OptionsDiscretizePalette_Callback'},...
+'Call',{@color_palettes_uicallback4,h1,'16','OptionsDiscretizePalette_CB'},...
 'Label','16 colors', 'Tag','OptionsDiscretizePalette16');
 
 uimenu('Parent',h26,...
-'Callback',{@color_palettes_uicallback4,h1,'32','OptionsDiscretizePalette_Callback'},...
+'Call',{@color_palettes_uicallback4,h1,'32','OptionsDiscretizePalette_CB'},...
 'Label','32 colors', 'Tag','OptionsDiscretizePalette32');
 
 uimenu('Parent',h26,...
-'Callback',{@color_palettes_uicallback4,h1,'64','OptionsDiscretizePalette_Callback'},...
+'Call',{@color_palettes_uicallback4,h1,'64','OptionsDiscretizePalette_CB'},...
 'Label','64 colors', 'Tag','OptionsDiscretizePalette64');
 
-uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_ML_Callback'},...
+uicontrol('Parent',h1, 'Call',{@color_palettes_uicallback,h1,'radio_ML_CB'},...
 'Position',[12 196 45 15], 'String','ML', 'Style','radiobutton', 'Tag','radio_ML','Val',1);
 
-uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_GMT_Callback'},...
+uicontrol('Parent',h1, 'Call',{@color_palettes_uicallback,h1,'radio_GMT_CB'},...
 'Position',[70 196 55 15], 'String','GMT', 'Style','radiobutton', 'Tag','radio_GMT');
 
-uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_MR_Callback'},...
+uicontrol('Parent',h1, 'Call',{@color_palettes_uicallback,h1,'radio_MR_CB'},...
 'Position',[133 196 45 15], 'String','MR', 'Style','radiobutton', 'Tag','radio_MR');
 
-uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_CAR_Callback'},...
+uicontrol('Parent',h1, 'Call',{@color_palettes_uicallback,h1,'radio_CAR_CB'},...
 'Position',[12 176 55 15],'String','CAR', 'Style','radiobutton', 'Tag','radio_CAR');
 
-uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_GIMP_Callback'},...
+uicontrol('Parent',h1, 'Call',{@color_palettes_uicallback,h1,'radio_GIMP_CB'},...
 'Position',[70 176 60 15],'String','GIMP', 'Style','radiobutton','Tag','radio_GIMP');
 
-uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'radio_T_CB'},...
+uicontrol('Parent',h1, 'Call',{@color_palettes_uicallback,h1,'radio_T_CB'},...
 'Position',[133 176 80 15], 'String','Thematic', 'Style','radiobutton', 'Tag','radio_T');
 
-uicontrol('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'check_logIt_CB'},...
+uicontrol('Parent',h1, 'Call',{@color_palettes_uicallback,h1,'check_logIt_CB'},...
 'ToolTip','Take a natural logarithm (ln()) of the current color palette', ...
 'Position',[210 186 85 15],'String','Logaritmize', 'Style','checkbox','Tag','check_logIt');
 
-uimenu('Parent',h1, 'Callback',{@color_palettes_uicallback,h1,'Help_Callback'}, 'Label','Help', 'Tag','Help');
+uimenu('Parent',h1, 'Call',{@color_palettes_uicallback,h1,'Help_CB'}, 'Label','Help', 'Tag','Help');
 
 uicontrol('Parent',h1, 'Position',[50 357 80 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@color_palettes_uicallback,h1,'edit_Zmin_Callback'},...
+'Call',{@color_palettes_uicallback,h1,'edit_Zmin_CB'},...
 'Style','edit',...
-'TooltipString','Use a different value to set a fixed color minimum',...
+'Tooltip','Use a different value to set a fixed color minimum',...
 'Tag','edit_Zmin');
 
 uicontrol('Parent',h1, 'Position',[200 357 80 21],...
 'BackgroundColor',[1 1 1],...
-'Callback',{@color_palettes_uicallback,h1,'edit_Zmax_Callback'},...
+'Call',{@color_palettes_uicallback,h1,'edit_Zmax_CB'},...
 'Style','edit',...
-'TooltipString','Use a different value to set a fixed color miximum',...
+'Tooltip','Use a different value to set a fixed color miximum',...
 'Tag','edit_Zmax');
 
 uicontrol('Parent',h1,'Position',[160 359 40 15],'String','Max Z','Style','text','Tag','text_MaxZ');
@@ -1395,7 +1394,7 @@ uicontrol('Parent',h1, 'Position',[100 333 85 16], 'Visible','off', ...
 'Style','text', 'Tag','h_txt_cZ');
 
 uicontrol('Parent',h1, 'Position',[10 356 201 23],...
-'Callback',{@color_palettes_uicallback,h1,'push_retColorMap_Callback'},...
+'Call',{@color_palettes_uicallback,h1,'push_retColorMap_CB'},...
 'FontName','Helvetica','FontSize',9,...
 'String','Finish and return the Color Map',...
 'Visible','off',...
