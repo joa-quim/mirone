@@ -1,8 +1,7 @@
 function varargout = coordinate_system(varargin)
-% M-File changed by desGUIDE 
-% varargin   command line arguments to coordinate_system (see VARARGIN)
+% Helper window to select a projection string for GMT's -J
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -19,7 +18,7 @@ function varargout = coordinate_system(varargin)
 hObject = figure('Tag','figure1','Visible','off');
 coordinate_system_LayoutFcn(hObject);
 handles = guihandles(hObject);
-movegui(hObject,'center');
+move2side(hObject,'center');
 
 % Declare the currently existing groups
 if (length(varargin) == 3)
@@ -129,104 +128,82 @@ switch handles.proj_groups{varargin{1}.group_val}           % Set apropriate sys
         handles.proj_name = 'Linear Projection';
 end
 
-% If old projection parameters exist, apply them
-try
-	erro = varargin{1}.ProjParameterValue;     erro = 0;
-catch
-	erro = 1;
-end
-if (~erro && ~isempty(varargin{1}.ProjParameterValue))
-    n_params = length(fieldnames(varargin{1}.ProjParameterValue));
-    set_enable(handles, n_params);
-    for (i=1:n_params)
-        switch i
-            case 1
-                handles.nParameters = 1;
-                str_par = strtok(varargin{1}.ProjParameterValue.p1,'/');
-                set(handles.edit_ProjParameterValue_1,'String',str_par)
-                handles.projection{2} = varargin{1}.ProjParameterValue.p1;
-            case 2
-                handles.nParameters = 2;
-                str_par = strtok(varargin{1}.ProjParameterValue.p2,'/');
-                set(handles.edit_ProjParameterValue_2,'String',str_par)
-                handles.projection{3} = varargin{1}.ProjParameterValue.p2;
-            case 3
-                handles.nParameters = 3;
-                str_par = strtok(varargin{1}.ProjParameterValue.p3,'/');
-                set(handles.edit_ProjParameterValue_3,'String',str_par)
-                handles.projection{4} = varargin{1}.ProjParameterValue.p3;
-            case 4
-                handles.nParameters = 4;
-                str_par = strtok(varargin{1}.ProjParameterValue.p4,'/');
-                set(handles.edit_ProjParameterValue_4,'String',str_par)
-                handles.projection{5} = varargin{1}.ProjParameterValue.p4;
-        end
-    end
-else
-    guidata(hObject, handles);
-    set_enable(handles, 0); 
-end
+	% If old projection parameters exist, apply them
+	try
+		erro = varargin{1}.ProjParameterValue;     erro = 0;
+	catch
+		erro = 1;
+	end
+	if (~erro && ~isempty(varargin{1}.ProjParameterValue))
+		n_params = length(fieldnames(varargin{1}.ProjParameterValue));
+		set_enable(handles, n_params);
+		for (i=1:n_params)
+			switch i
+				case 1
+					handles.nParameters = 1;
+					str_par = strtok(varargin{1}.ProjParameterValue.p1,'/');
+					set(handles.edit_ProjParameterValue_1,'String',str_par)
+					handles.projection{2} = varargin{1}.ProjParameterValue.p1;
+				case 2
+					handles.nParameters = 2;
+					str_par = strtok(varargin{1}.ProjParameterValue.p2,'/');
+					set(handles.edit_ProjParameterValue_2,'String',str_par)
+					handles.projection{3} = varargin{1}.ProjParameterValue.p2;
+				case 3
+					handles.nParameters = 3;
+					str_par = strtok(varargin{1}.ProjParameterValue.p3,'/');
+					set(handles.edit_ProjParameterValue_3,'String',str_par)
+					handles.projection{4} = varargin{1}.ProjParameterValue.p3;
+				case 4
+					handles.nParameters = 4;
+					str_par = strtok(varargin{1}.ProjParameterValue.p4,'/');
+					set(handles.edit_ProjParameterValue_4,'String',str_par)
+					handles.projection{5} = varargin{1}.ProjParameterValue.p4;
+			end
+		end
+	else
+		guidata(hObject, handles);
+		set_enable(handles, 0); 
+	end
 
-% Not very elegant but it will have to do until a better solution is found
-if (strcmp(handles.proj_groups{varargin{1}.group_val},'Portuguese Mess'))
-    set_enable(handles, 0);
-end
+	% Not very elegant but it will have to do until a better solution is found
+	if (strcmp(handles.proj_groups{varargin{1}.group_val},'Portuguese Mess'))
+		set_enable(handles, 0);
+	end
 
-% If an old projection string was transmited
-if (isempty(varargin{1}.projection))
-    for (i=1:5),    handles.projection{i} = [];     end
-end
+	% If an old projection string was transmited
+	if (isempty(varargin{1}.projection))
+		for (i=1:5),    handles.projection{i} = [];     end
+	end
 
-% Make sure projection name has something
-if (isempty(handles.proj_name))
-    handles.proj_name = 'FDS Sei la';
-end
+	% Make sure projection name has something
+	if (isempty(handles.proj_name))
+		handles.proj_name = 'FDS Sei la';
+	end
 
-%--------------- Give a Pro look (3D) to the frame boxes (no Texts) -------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-%------------------- END Pro look (3D) ----------------------------------------------------------
+	%------------ Give a Pro look (3D) to the frame boxes  --------
+	new_frame3D(hObject, NaN)
+	%------------- END Pro look (3D) ------------------------------
 
-%------------ Write info text about datum parameters -------------------
-num = varargin{1}.datum_val;
-info.DX = varargin{2}{num,4};       info.DY = varargin{2}{num,5};
-info.DZ = varargin{2}{num,6};       info.ellipsoide = varargin{2}{num,2};
-datum_info(handles, info)
+	%------------ Write info text about datum parameters -------------------
+	num = varargin{1}.datum_val;
+	info.DX = varargin{2}{num,4};		info.DY = varargin{2}{num,5};
+	info.DZ = varargin{2}{num,6};		info.ellipsoide = varargin{2}{num,2};
+	datum_info(handles, info)
 
-% Choose default command line output for coordinate_system_export
-handles.output = hObject;
-guidata(hObject, handles);
+	% Choose default command line output for coordinate_system_export
+	handles.output = hObject;
+	guidata(hObject, handles);
 
-set(hObject,'Visible','on');
-% UIWAIT makes coordinate_system_export wait for user response (see UIRESUME)
-uiwait(handles.figure1);
+	set(hObject,'Visible','on');
+	% UIWAIT makes coordinate_system_export wait for user response (see UIRESUME)
+	uiwait(handles.figure1);
 
-handles = guidata(hObject);
-out = coordinate_system_OutputFcn(hObject, [], handles);
-varargout{1} = out;
-
-% -------- Outputs from this function are returned to the command line. ---------
-function varargout = coordinate_system_OutputFcn(hObject, eventdata, handles)
-% hObject    handle to figure
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-% The figure can be deleted now
-delete(handles.figure1);
+	handles = guidata(hObject);
+	varargout{1} = handles.output;
 
 %-------------------------------------------------------------------------------------
-function popup_Group_Callback(hObject, eventdata, handles)
+function popup_Group_CB(hObject, handles)
 contents = get(hObject,'String');   val = get(hObject,'Value');   group = contents{val};
 switch group
     case 'Longitude / Latitude'
@@ -273,7 +250,7 @@ handles.group_val = val;
 guidata(hObject,handles)
 
 %-------------------------------------------------------------------------------------
-function popup_System_Callback(hObject, eventdata, handles)
+function popup_System_CB(hObject, handles)
 contents = get(hObject,'String');   n_value = get(hObject,'Value');
 if (iscell(contents))
     system = contents{n_value};
@@ -309,7 +286,7 @@ end
 guidata(hObject,handles)
 
 %-------------------------------------------------------------------------------------
-function popup_Datum_Callback(hObject, eventdata, handles)
+function popup_Datum_CB(hObject, handles)
 	% Only updates the info text about datum parameters
 	val = get(hObject,'Value');
 	info.DX = handles.all_datums{val,4};       info.DY = handles.all_datums{val,5};
@@ -317,7 +294,7 @@ function popup_Datum_Callback(hObject, eventdata, handles)
 	datum_info(handles, info)
 
 %-------------------------------------------------------------------------------------
-function popup_CilindricalProjections_Callback(hObject, eventdata, handles)
+function popup_CilindricalProjections_CB(hObject, handles)
 % This function only sets the apropiate -J and opens the parameters boxes. The OK button reads them
 val = get(hObject,'Value');     str = get(hObject, 'String');
 switch str{val};
@@ -379,7 +356,7 @@ handles.proj_name = str{val};
 guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
-function popup_AzimuthalProjections_Callback(hObject, eventdata, handles)
+function popup_AzimuthalProjections_CB(hObject, handles)
 val = get(hObject,'Value');     str = get(hObject, 'String');
 switch str{val};
     case 'AZIMUTHAL'                  % Reset parameter names to void 
@@ -410,7 +387,7 @@ handles.proj_name = str{val};
 guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
-function popup_ConicalProjections_Callback(hObject, eventdata, handles)
+function popup_ConicalProjections_CB(hObject, handles)
 val = get(hObject,'Value');     str = get(hObject, 'String');
 switch str{val};
 	case 'CONIC'                  % Reset parameter names to void 
@@ -432,7 +409,7 @@ handles.proj_name = str{val};
 guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
-function popup_MiscelaneousProjections_Callback(hObject, eventdata, handles)
+function popup_MiscelaneousProjections_CB(hObject, handles)
 val = get(hObject,'Value');     str = get(hObject, 'String');
 switch str{val};
     case 'MISCELLANEOUS'                  % Reset parameter names to void
@@ -474,7 +451,7 @@ handles.proj_name = str{val};
 guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
-function edit_ProjParameterValue_1_Callback(hObject, eventdata, handles)
+function edit_ProjParameterValue_1_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx) || isempty(xx)),  set(hObject, 'String', '');  return;    end    % Just a stupid user error
 	xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
@@ -489,7 +466,7 @@ function edit_ProjParameterValue_1_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
-function edit_ProjParameterValue_2_Callback(hObject, eventdata, handles)
+function edit_ProjParameterValue_2_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx) || isempty(xx)),  set(hObject, 'String', '');  return;    end    % Just a stupid user error
 	xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
@@ -504,7 +481,7 @@ function edit_ProjParameterValue_2_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
-function edit_ProjParameterValue_3_Callback(hObject, eventdata, handles)
+function edit_ProjParameterValue_3_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx) || isempty(xx)),  set(hObject, 'String', '');  return;    end    % Just a stupid user error
 	xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
@@ -519,7 +496,7 @@ function edit_ProjParameterValue_3_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
-function edit_ProjParameterValue_4_Callback(hObject, eventdata, handles)
+function edit_ProjParameterValue_4_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx) || isempty(xx)),  set(hObject, 'String', '');  return;    end    % Just a stupid user error
 	xx = get(hObject,'String');     val = test_dms(xx);     x = 0;
@@ -533,7 +510,7 @@ function edit_ProjParameterValue_4_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
-function pushbutton_OK_Callback(hObject, eventdata, handles)
+function pushbutton_OK_CB(hObject, handles)
 if (isempty(handles.nParameters))
 	errordlg('You did not select anything. So what are you expecting?','Chico Clever');    return
 end
@@ -826,12 +803,12 @@ set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Resize','off',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,'Position',[10 78 251 139],'Style','frame','Tag','frame3');
-uicontrol('Parent',h1,'Enable','inactive','Position',[270 78 251 139],'Style','frame','Tag','frame2');
+uicontrol('Parent',h1,'Position',[10 78 251 139],'Style','frame');
+uicontrol('Parent',h1,'Position',[270 78 251 139],'Style','frame');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@coordinate_system_uicallback,h1,'popup_Group_Callback'},...
+'Call',{@coordinate_system_uiCB,h1,'popup_Group_CB'},...
 'Position',[51 186 201 22],...
 'String',{'Longitude / Latitude'; 'Universal Transversal Mercator'; 'World Projections'; 'All GMT Projections'; 'Portuguese Mess' },...
 'Style','popupmenu',...
@@ -846,7 +823,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@coordinate_system_uicallback,h1,'popup_System_Callback'},...
+'Call',{@coordinate_system_uiCB,h1,'popup_System_CB'},...
 'Position',[51 155 201 22],...
 'Style','popupmenu',...
 'Value',1,...
@@ -860,7 +837,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@coordinate_system_uicallback,h1,'popup_Datum_Callback'},...
+'Call',{@coordinate_system_uiCB,h1,'popup_Datum_CB'},...
 'Position',[51 47 321 22],...
 'Style','popupmenu',...
 'Value',1,...
@@ -874,7 +851,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@coordinate_system_uicallback,h1,'popup_CilindricalProjections_Callback'},...
+'Call',{@coordinate_system_uiCB,h1,'popup_CilindricalProjections_CB'},...
 'Position',[280 186 231 22],...
 'String',{'CYLINDRICAL'; 'Cassini Cylindrical'; 'Miller Cylindrical'; 'Mercator - Greenwich and Equator as origin'; ...
 	'Mercator - Give meridian and standard parallel'; 'Oblique Mercator - point & azimuth'; 'Oblique Mercator - two points';...
@@ -886,7 +863,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@coordinate_system_uicallback,h1,'popup_AzimuthalProjections_Callback'},...
+'Call',{@coordinate_system_uiCB,h1,'popup_AzimuthalProjections_CB'},...
 'Position',[280 155 231 22],...
 'String',{  'AZIMUTHAL'; 'Lambert Azimuthal Equal-Area'; 'Azimuthal Equidistant'; 'Gnomonic'; 'Orthographic'; 'Stereographic Equal-Angle' },...
 'Style','popupmenu',...
@@ -895,7 +872,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@coordinate_system_uicallback,h1,'popup_ConicalProjections_Callback'},...
+'Call',{@coordinate_system_uiCB,h1,'popup_ConicalProjections_CB'},...
 'Position',[280 126 231 22],...
 'String',{  'CONIC'; 'Albers Conic Equal-Area'; 'Equidistant Conic'; 'Lambert Conic Conformal' },...
 'Style','popupmenu',...
@@ -904,7 +881,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@coordinate_system_uicallback,h1,'popup_MiscelaneousProjections_Callback'},...
+'Call',{@coordinate_system_uiCB,h1,'popup_MiscelaneousProjections_CB'},...
 'Position',[280 95 231 22],...
 'String',{  'MISCELLANEOUS'; 'Hammer'; 'Sinusoidal'; 'Eckert IV'; 'Eckert VI'; 'Robinson'; 'Winkel Tripel'; 'Van der Grinten'; 'Mollweide' },...
 'Style','popupmenu',...
@@ -913,7 +890,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@coordinate_system_uicallback,h1,'edit_ProjParameterValue_1_Callback'},...
+'Call',{@coordinate_system_uiCB,h1,'edit_ProjParameterValue_1_CB'},...
 'HorizontalAlignment','center',...
 'Position',[20 115 111 21],...
 'Style','edit',...
@@ -927,14 +904,14 @@ uicontrol('Parent',h1,...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@coordinate_system_uicallback,h1,'pushbutton_OK_Callback'},...
+'Call',{@coordinate_system_uiCB,h1,'pushbutton_OK_CB'},...
 'Position',[450 6 66 21],...
 'String','OK',...
 'Tag','pushbutton_OK');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@coordinate_system_uicallback,h1,'edit_ProjParameterValue_2_Callback'},...
+'Call',{@coordinate_system_uiCB,h1,'edit_ProjParameterValue_2_CB'},...
 'HorizontalAlignment','center',...
 'Position',[140 115 111 21],...
 'Style','edit',...
@@ -943,7 +920,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@coordinate_system_uicallback,h1,'edit_ProjParameterValue_3_Callback'},...
+'Call',{@coordinate_system_uiCB,h1,'edit_ProjParameterValue_3_CB'},...
 'HorizontalAlignment','center',...
 'Position',[20 90 111 21],...
 'Style','edit',...
@@ -952,7 +929,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@coordinate_system_uicallback,h1,'edit_ProjParameterValue_4_Callback'},...
+'Call',{@coordinate_system_uiCB,h1,'edit_ProjParameterValue_4_CB'},...
 'HorizontalAlignment','center',...
 'Position',[140 90 111 21],...
 'Style','edit',...
@@ -968,6 +945,6 @@ uicontrol('Parent',h1,...
 'Style','text',...
 'Tag','datum_desc');
 
-function coordinate_system_uicallback(hObject, eventdata, h1, callback_name)
+function coordinate_system_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
