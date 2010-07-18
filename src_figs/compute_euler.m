@@ -380,8 +380,8 @@ for (i=1:n)                % Loop over lon
                     set(h_line,'XData',rlon/D2R,'YData',rlat/D2R)
                     pause(0.01)
                 end
-                set(handles.edit_pLon_fim,'String',sprintf('%.2f', p_lon(i) / D2R))
-                set(handles.edit_pLat_fim,'String',sprintf('%.2f', p_lat(j) / D2R))
+                set(handles.edit_pLon_fim,'String',sprintf('%.3f', p_lon(i) / D2R))
+                set(handles.edit_pLat_fim,'String',sprintf('%.3f', p_lat(j) / D2R))
                 set(handles.edit_pAng_fim,'String',sprintf('%.3f', p_omeg(k) / D2R))
                 set(handles.edit_BFresidue,'String',sprintf('%.3f', area))
             end
