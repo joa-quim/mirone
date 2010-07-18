@@ -6,7 +6,7 @@ function varargout = mirone(varargin)
 %	mirone('CALLBACK',handles,...) calls the local function named CALLBACK with the given input arguments.
 
 % $Author: $Date: $Revision: $ID:
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -973,8 +973,8 @@ function FileSaveENCOMgrid_CB(handles)
 
 	set(handles.figure1,'pointer','watch')
 	fid = fopen(f_name,'wb');
-	ID = ['Model Vision Grid' repmat(' ',1,80-17)];		fwrite(fid,ID,'80*char');	% Fk stupid ML obliged me to do this
-	ID = ['Mirone Grid (Title unknown here)' repmat(' ',1,80-32)];		fwrite(fid,ID,'80*char');
+	ID = ['Model Vision Grid' repmat(' ',1,80-17)];		fwrite(fid,ID,'80*char');
+	ID = ['Mirone_Grid' repmat(' ',1,80-11)];			fwrite(fid,ID,'80*char');
 	fwrite(fid,'  NO_REF','char');
 	fwrite(fid,'GRIDFPT ZNIL','char');
 	fwrite(fid,single(-2e16),'float32');
@@ -2018,6 +2018,7 @@ function ImageLink_CB(handles, opt)
 		if (isempty(getappdata(hFigs(k), 'IAmAMirone'))),	IAmAMir(k) = false;		end
 	end
 	hFigs = hFigs(IAmAMir);									% Retain only the Mirone figures
+	if (isempty(hFigs))		return,		end
 	nomes = get(hFigs,'name');
 	if (~isa(nomes,'cell')),	nomes = {nomes};	end
 	for (k = 1:numel(hFigs))
@@ -3002,11 +3003,12 @@ function GeophysicsSwanPlotStations_CB(handles)
 % --------------------------------------------------------------------
 function GRDdisplay(handles,X,Y,Z,head,tit,name)
 % Show matrix Z in a new window.
+	if (numel(Z) < 4)		set(handles.figure1,'pointer','arrow'),		return,		end
 	if (nargin < 7),	name = [];  end
 	if (isa(Z,'double')),		Z = single(Z);		end
 	zz = grdutils(Z,'-L');		head(5:6) = double(zz(1:2));
 	tmp.head = head;	tmp.X = X;		tmp.Y = Y;		tmp.name = name;
-	mirone(Z,tmp);		set(handles.figure1,'pointer','arrow');
+	mirone(Z,tmp);		set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
