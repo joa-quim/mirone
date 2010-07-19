@@ -38,8 +38,6 @@ function [selection,value] = choosebox(varargin)
 %                   as text above the base list box.  Defaults to {}.
 %   'SelectString'  string matrix or cell array of strings which appears
 %                   as text above the selection list box. Defaults to {}.
-%   'OKString'      string for the OK button; defaults to 'OK'.
-%   'CancelString'  string for the Cancel button; defaults to 'Cancel'.
 %   'uh'            uicontrol button height, in pixels; default = 18.
 %   'fus'           frame/uicontrol spacing, in pixels; default = 8.
 %   'ffs'           frame/figure spacing, in pixels; default = 8.
@@ -92,11 +90,9 @@ arrow=[...
      0     1     1     1     1     1     1     0     1     1     1     1     1     1     1     1     0
      0     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     0
      0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0];
-for i=1:3
-   rarrow(:,:,i)=arrow;
-   larrow(:,:,i)=fliplr(arrow);
-end
-clear arrow;
+
+rarrow = repmat(arrow, [1 1 3]);
+larrow = repmat(fliplr(arrow), [1 1 3]);
 
 figname = '';
 smode = 2;   % (multiple)
@@ -106,7 +102,6 @@ selectstring={};
 liststring = [];
 listsize = [160 300];
 initialvalue = [];
-okstring = 'Ok';
 cancelstring = 'Cancel';
 fus = 8;
 ffs = 8;
@@ -118,7 +113,7 @@ if mod(length(varargin),2) ~= 0
     error('Arguments to LISTDLG must come param/value in pairs.')
 end
 for i=1:2:length(varargin)
-    switch lower(varargin{i})
+	switch lower(varargin{i})
         case 'name'
             figname = varargin{i+1};
         case 'promptstring'
@@ -151,22 +146,19 @@ for i=1:2:length(varargin)
             fus = varargin{i+1};
         case 'ffs'
             ffs = varargin{i+1};
-        case 'okstring'
-            okstring = varargin{i+1};
         case 'cancelstring'
             cancelstring = varargin{i+1};
         case 'multiple_finite'
             multiple_finite = varargin{i+1};
         otherwise
             error(['Unknown parameter name passed to LISTDLG.  Name was ' varargin{i}])
-        end
+	end
 end
 
-if isstr(promptstring)      promptstring = cellstr(promptstring);   end
-if isstr(selectstring)      selectstring = cellstr(selectstring);   end
-if isempty(initialvalue)    initialvalue = 1;                       end
-if isempty(liststring)      error('ListString parameter is required.')
-end
+if ischar(promptstring)		promptstring = cellstr(promptstring);	end
+if ischar(selectstring)		selectstring = cellstr(selectstring);	end
+if isempty(initialvalue)	initialvalue = 1;						end
+if isempty(liststring)		error('ListString parameter is required.'),	end
 
 ex = get(0,'defaultuicontrolfontsize')*1.7;  % height extent per line of uicontrol text (approx)
 
@@ -181,7 +173,7 @@ fig = figure('name',figname, 'resize','off', 'numbertitle','off', 'visible','off
 ad.fromstring = cellstr(liststring);
 ad.tostring = '';
 %ad.pos_left=[1:size(ad.fromstring,2)]';
-ad.pos_left = [1:length(ad.fromstring)]';
+ad.pos_left = (1:length(ad.fromstring))';
 ad.pos_right = [];
 ad.value = 0;
 ad.cmode = cmode;
@@ -190,12 +182,12 @@ ad.multiple_finite = multiple_finite;
 setappdata(0,'ListDialogAppData',ad)
 
 load([pwd filesep 'data' filesep 'mirone_icons.mat'],'Mfopen_ico','um_ico','dois_ico','help_ico',...
-    'refrescaBA_ico','refrescaAB_ico','earthNorth_ico','earthSouth_ico','mais_ico');
+	'refrescaBA_ico','refrescaAB_ico','earthNorth_ico','earthSouth_ico','mais_ico');
 
 h_toolbar = uitoolbar('parent',fig, 'BusyAction','queue','HandleVisibility','on',...
-   'Interruptible','on','Tag','FigureToolBar','Visible','on');
+	'Interruptible','on','Tag','FigureToolBar','Visible','on');
 uipushtool('parent',h_toolbar,'Click',@import_clickedcallback,'Tag','import',...
-   'cdata',Mfopen_ico,'TooltipString','Open finite poles file');
+	'cdata',Mfopen_ico,'TooltipString','Open finite poles file');
 uitoggletool('parent',h_toolbar,'cdata',dois_ico,'Tag','HalfAngle','Click',{@toggle_clickedcallback1,h_toolbar},...
     'TooltipString','Compute half angle stage poles','State','on');
 uitoggletool('parent',h_toolbar,'cdata',um_ico,'Tag','FullAngle','Click',{@toggle_clickedcallback1,h_toolbar},...
@@ -217,281 +209,284 @@ uicontrol('style','frame', 'position',[1 1 fp([3 4])])
 uicontrol('style','frame', 'position',[ffs ffs 2*fus+listsize(1) 2*fus+uh])
 uicontrol('style','frame', 'position',[ffs+2*fus+50+listsize(1) ffs 2*fus+listsize(1) 2*fus+uh])
 uicontrol('style','frame', 'position',[ffs ffs+3*fus+uh 2*fus+listsize(1) ...
-                    listsize(2)+3*fus+ex*length(promptstring)+(uh+fus)*(smode==2)])
+		listsize(2)+3*fus+ex*length(promptstring)+(uh+fus)*(smode==2)])
 uicontrol('style','frame', 'position',[ffs+2*fus+50+listsize(1) ffs+3*fus+uh 2*fus+listsize(1) ...
-                    listsize(2)+3*fus+ex*length(promptstring)+(uh+fus)*(smode==2)])
+		listsize(2)+3*fus+ex*length(promptstring)+(uh+fus)*(smode==2)])
 
-if length(promptstring)>0
-    prompt_text = uicontrol('style','text','string',promptstring,...
-                            'horizontalalignment','left','units','pixels',...
-                            'position',[ffs+fus fp(4)-(ffs+fus+ex*length(promptstring)) ...
-                            listsize(1) ex*length(promptstring)]);
+if ~isempty(promptstring)
+		uicontrol('style','text','string',promptstring,...
+			'horizontalalignment','left','units','pixels',...
+			'position',[ffs+fus fp(4)-(ffs+fus+ex*length(promptstring)) ...
+			listsize(1) ex*length(promptstring)]);
 end
-if length(selectstring)>0
-    select_text = uicontrol('style','text','string',selectstring,...
-                            'horizontalalignment','left','units','pixels',...
-                            'position',[ffs+3*fus+listsize(1)+50 fp(4)-(ffs+fus+ex*length(promptstring)) ...
-                            listsize(1) ex*length(selectstring)]);
+if ~isempty(selectstring)
+	uicontrol('style','text','string',selectstring,...
+			'horizontalalignment','left','units','pixels',...
+			'position',[ffs+3*fus+listsize(1)+50 fp(4)-(ffs+fus+ex*length(promptstring)) ...
+			listsize(1) ex*length(selectstring)]);
 end
 
 btn_wid = listsize(1);
 btn_wid2 = listsize(1)/2;
 
-leftbox = uicontrol('style','listbox',...
-                    'position',[ffs+fus ffs+uh+4*fus listsize(1) listsize(2)+25],...
-                    'string',ad.fromstring,...
-                    'backgroundcolor','w',...
-                    'max',2,...
-                    'tag','leftbox',...
-                    'value',initialvalue, ...
-                    'callback',{@doFromboxClick});
+uicontrol('style','listbox',...
+		'position',[ffs+fus ffs+uh+4*fus listsize(1) listsize(2)+25],...
+		'string',ad.fromstring,...
+		'backgroundcolor','w',...
+		'max',2,...
+		'tag','leftbox',...
+		'value',initialvalue, ...
+		'callback',{@doFromboxClick});
          
-rightbox = uicontrol('style','listbox',...
-                    'position',[ffs+3*fus+listsize(1)+50 ffs+uh+4*fus listsize(1) listsize(2)+25],...
-                    'string',ad.tostring,...
-                    'backgroundcolor','w',...
-                    'max',2,...
-                    'tag','rightbox',...
-                    'value',[], ...
-                    'callback',{@doToboxClick});
+uicontrol('style','listbox',...
+		'position',[ffs+3*fus+listsize(1)+50 ffs+uh+4*fus listsize(1) listsize(2)+25],...
+		'string',ad.tostring,...
+		'backgroundcolor','w',...
+		'max',2,...
+		'Tag','rightbox',...
+		'value',[], ...
+		'callback',{@doToboxClick});
 
-ok_btn = uicontrol('style','pushbutton',...
-                   'string',cancelstring,...
-                   'position',[ffs+fus ffs+fus btn_wid uh],...
-                   'callback',{@doCancel});
+uicontrol('style','pushbutton',...
+		'string',cancelstring,...
+		'position',[ffs+fus ffs+fus btn_wid uh],...
+		'callback',{@doCancel});
 
-cancel_btn = uicontrol('style','pushbutton',...
-                       'string','Finite Pole',...
-                       'position',[ffs+3*fus+btn_wid+50 ffs+fus btn_wid2 uh],...
-                       'callback',{@doFinite});
+uicontrol('style','pushbutton',...
+		'string','Finite Pole',...
+		'position',[ffs+3*fus+btn_wid+50 ffs+fus btn_wid2 uh],...
+		'callback',{@doFinite});
 
-toright_btn = uicontrol('style','pushbutton',...
-                       'position',[ffs+2*fus+10+listsize(1) ffs+uh+4*fus+(smode==2)*(fus+uh)+listsize(2)/2-25 30 30],...
-                       'cdata',rarrow,'callback',{@doRight});
+uicontrol('style','pushbutton',...
+		'position',[ffs+2*fus+10+listsize(1) ffs+uh+4*fus+(smode==2)*(fus+uh)+listsize(2)/2-25 30 30],...
+		'cdata',rarrow,'callback',{@doRight});
 
-toleft_btn = uicontrol('style','pushbutton',...
-                       'position',[ffs+2*fus+10+listsize(1) ffs+uh+4*fus+(smode==2)*(fus+uh)+listsize(2)/2+25 30 30],...
-                       'cdata',larrow,'callback',{@doLeft});
+uicontrol('style','pushbutton',...
+		'position',[ffs+2*fus+10+listsize(1) ffs+uh+4*fus+(smode==2)*(fus+uh)+listsize(2)/2+25 30 30],...
+		'cdata',larrow,'callback',{@doLeft});
 
-stage_btn = uicontrol('style','pushbutton',...
-                       'string','Compute Stage Poles',...
-                       'position',[ffs+3*fus+3*btn_wid2+50 ffs+fus btn_wid2 uh],...
-                       'callback',{@doStagePoles});
+uicontrol('style','pushbutton',...
+		'string','Compute Stage Poles',...
+		'position',[ffs+3*fus+3*btn_wid2+50 ffs+fus btn_wid2 uh],...
+		'callback',{@doStagePoles});
 
 try
-    set(fig, 'visible','on');
-    uiwait(fig);
+	set(fig, 'visible','on');
+	uiwait(fig);
 catch
-    if ishandle(fig)
-        delete(fig)
-    end
+	if ishandle(fig)	delete(fig),	end
 end
 
-if (isappdata(0,'ListDialogAppData') == 1)      % Selected Finite pole
+if (isappdata(0,'ListDialogAppData') == 1)		% Selected Finite pole
     ad = getappdata(0,'ListDialogAppData');
     switch ad.value
         case 0
             selection = [];
         case 1
-            selection = ad.pos_right;            % In fact it contains the finite pole [lon lat omega]
+            selection = ad.pos_right;		% In fact it contains the finite pole [lon lat omega]
         case 2
-            selection = ad.pos_right;            % In fact it contains the stage poles name
+            selection = ad.pos_right;		% In fact it contains the stage poles name
         case 3
-            selection = ad.pos_right;            % In fact it contains finite poles (with ages)
+            selection = ad.pos_right;		% In fact it contains finite poles (with ages)
     end
     value = ad.value;
     rmappdata(0,'ListDialogAppData')
 else
-    % figure was deleted
-    selection = [];
-    value = 0;
+	% figure was deleted
+	selection = [];
+	value = 0;
 end
 
 % --------------------------------------------------------------------
 function import_clickedcallback(hObject, eventdata)
-[FileName,PathName] = uigetfile({'*.dat;*.DAT', 'poles files (*.dat,*.DAT)'},'Select finite poles File');
-pause(0.01)
-if isequal(FileName,0);     return;     end
-ad = getappdata(0,'ListDialogAppData');
+	[FileName,PathName] = uigetfile({'*.dat;*.DAT', 'poles files (*.dat,*.DAT)'},'Select finite poles File');
+	pause(0.01)
+	if isequal(FileName,0);     return;     end
+	ad = getappdata(0,'ListDialogAppData');
 
-% Read the file
-fid = fopen([PathName FileName],'rt');
-c = fread(fid,'*char').';
-fclose(fid);
-s = strread(c,'%s','delimiter','\n');
+	% Read the file
+	fid = fopen([PathName FileName],'rt');
+	c = fread(fid,'*char').';
+	fclose(fid);
+	s = strread(c,'%s','delimiter','\n');
 
-ad.fromstring = cellstr(s);
-h_left = findobj(ad.hFig,'Tag','leftbox');
-set(findobj(ad.hFig,'Tag','leftbox'),'String',ad.fromstring);
-set(findobj(ad.hFig,'Tag','rightbox'),'String','');
-ad.tostring = '';
-setappdata(0,'ListDialogAppData',ad)
+	ad.fromstring = cellstr(s);
+	set(findobj(ad.hFig,'Tag','leftbox'),'String',ad.fromstring);
+	set(findobj(ad.hFig,'Tag','rightbox'),'String','');
+	ad.tostring = '';
+	setappdata(0,'ListDialogAppData',ad)
 
 % --------------------------------------------------------------------
 function toggle_clickedcallback1(obj, eventdata, h_toolbar)
 % Make sure that when one of the two uitoggletools is 'on' the other is 'off'
 % First fish the two uitoggletool handles
-h2 = findobj(h_toolbar,'Tag','HalfAngle');
-h1 = findobj(h_toolbar,'Tag','FullAngle');
-% Now, find out which one of the above is the 'obj' (its one of them)
-if (h1 == obj)      h_that = h2;
-else                h_that = h1;
-end
+	h2 = findobj(h_toolbar,'Tag','HalfAngle');
+	h1 = findobj(h_toolbar,'Tag','FullAngle');
+	% Now, find out which one of the above is the 'obj' (its one of them)
+	if (h1 == obj)      h_that = h2;
+	else                h_that = h1;
+	end
 
-state = get(obj,'State');
-if (strcmp(state,'on'))     set(h_that,'State','off');
-else                        set(h_that,'State','on');
-end
+	state = get(obj,'State');
+	if (strcmp(state,'on'))		set(h_that,'State','off');
+	else						set(h_that,'State','on');
+	end
 
 % --------------------------------------------------------------------
 function toggle_clickedcallback2(obj, eventdata, h_toolbar)
 % Make sure that when one of the two uitoggletools is 'on' the other is 'off'
 % First fish the two uitoggletool handles
-h1 = findobj(h_toolbar,'Tag','directStages');
-h2 = findobj(h_toolbar,'Tag','inverseStages');
-% Now, find out which one of the above is the 'obj' (its one of them)
-if (h1 == obj)      h_that = h2;
-else                h_that = h1;
-end
+	h1 = findobj(h_toolbar,'Tag','directStages');
+	h2 = findobj(h_toolbar,'Tag','inverseStages');
+	% Now, find out which one of the above is the 'obj' (its one of them)
+	if (h1 == obj)      h_that = h2;
+	else                h_that = h1;
+	end
 
-state = get(obj,'State');
-if (strcmp(state,'on'))     set(h_that,'State','off');
-else                        set(h_that,'State','on');
-end
+	state = get(obj,'State');
+	if (strcmp(state,'on'))		set(h_that,'State','off');
+	else						set(h_that,'State','on');
+	end
 
 % --------------------------------------------------------------------
 function toggle_clickedcallback3(obj, eventdata, h_toolbar)
 % Make sure that when one of the three uitoggletools is 'on' the others are 'off'
 % First fish the two uitoggletool handles
-h1 = findobj(h_toolbar,'Tag','earthNorth');
-h2 = findobj(h_toolbar,'Tag','earthSouth');
-h3 = findobj(h_toolbar,'Tag','positive');
-% Now, find out which one of the above is the 'obj' (its one of them)
-if (obj == h1)
-    h_that = [h2 h3];
-elseif (obj == h2)
-    h_that = [h1 h3];
-else
-    h_that = [h1 h2];
-end
+	h1 = findobj(h_toolbar,'Tag','earthNorth');
+	h2 = findobj(h_toolbar,'Tag','earthSouth');
+	h3 = findobj(h_toolbar,'Tag','positive');
+	% Now, find out which one of the above is the 'obj' (its one of them)
+	if (obj == h1)
+		h_that = [h2 h3];
+	elseif (obj == h2)
+		h_that = [h1 h3];
+	else
+		h_that = [h1 h2];
+	end
 
-state = get(obj,'State');
-if (strcmp(state,'on'))
-    set(h_that,'State','off')
-else
-    set(obj,'State','on')       % Clicked on the 'on' state. So keep it like that
-end
+	state = get(obj,'State');
+	if (strcmp(state,'on'))
+		set(h_that,'State','off')
+	else
+		set(obj,'State','on')       % Clicked on the 'on' state. So keep it like that
+	end
 
 % --------------------------------------------------------------------------------------------------
 function help_clickedcallback(obj,eventdata)
 str = sprintf(['This tool allows you to compute stage poles from a list of finite rotation\n'...
-        'poles. Alternatively, you can select only one finite pole from the list\n\n'...
-        'By default an example list of finite rotations is loaded, but you can load\n'...
-        'your own. The icons with "1" and "2" select if the full angle stage poles\n'...
-        'are computed ("1") - useful for plate reconstructions, half angles ("2") -\n'...
-        'useful for use in flow line drawing on a single plate.\n\n'...
-        'The B<-A and A->B icons choose the fixed plate of the rotation. The point\n'...
-        'is that the stage poles depend on which plate is used as reference (fixed\n',...
-        'plate). We use the notation B_ROT_A to designate a finite rotation of\n',...
-        'plate A with respect to plate B. Selecting the first option (B<-A) outputs\n',...
-        'stages poles to be used for reconstructions on plate A, and vice-versa for\n',...
-        'the second option (A->B).\n\n',...
-	    'Single or multiple poles can be transferred from a base list to the\n'...
-	    'selection list using an arrow-button. Single poles also can be transferred by double-clicking']);
+		'poles. Alternatively, you can select only one finite pole from the list\n\n'...
+		'By default an example list of finite rotations is loaded, but you can load\n'...
+		'your own. The icons with "1" and "2" select if the full angle stage poles\n'...
+		'are computed ("1") - useful for plate reconstructions, half angles ("2") -\n'...
+		'useful for use in flow line drawing on a single plate.\n\n'...
+		'The B<-A and A->B icons choose the fixed plate of the rotation. The point\n'...
+		'is that the stage poles depend on which plate is used as reference (fixed\n',...
+		'plate). We use the notation B_ROT_A to designate a finite rotation of\n',...
+		'plate A with respect to plate B. Selecting the first option (B<-A) outputs\n',...
+		'stages poles to be used for reconstructions on plate A, and vice-versa for\n',...
+		'the second option (A->B).\n\n',...
+		'Single or multiple poles can be transferred from a base list to the\n'...
+		'selection list using an arrow-button. Single poles also can be transferred by double-clicking']);
 helpdlg(str,'Help')
 
 %-----------------------------------------------------------------------------------
 function doOK(varargin)
-ad = getappdata(0,'ListDialogAppData');
-ad.value = 1;
-setappdata(0,'ListDialogAppData',ad)
-delete(gcbf);
+	ad = getappdata(0,'ListDialogAppData');
+	ad.value = 1;
+	setappdata(0,'ListDialogAppData',ad)
+	delete(gcbf);
 
 %-----------------------------------------------------------------------------------
 function doCancel(varargin)
-ad.value = 0;
-ad.pos_right = [];
-setappdata(0,'ListDialogAppData',ad)
-delete(gcbf);
+	ad.value = 0;
+	ad.pos_right = [];
+	setappdata(0,'ListDialogAppData',ad)
+	delete(gcbf);
 
 %-----------------------------------------------------------------------------------
 function doFinite(varargin)
-rightbox = findobj('Tag','rightbox');
-selection = get(rightbox,'String');
-if (isempty(selection))     return;     end     % If it's empty do nothing
-ad = getappdata(0,'ListDialogAppData');
-if (~ad.multiple_finite)                    % Return only one pole (the first one)
-    ad.value = 1;
-    [tok,rem] = strtok(selection{1});       finite(1) = str2double(tok);
-    [tok,rem] = strtok(rem);                finite(2) = str2double(tok);
-    [tok,rem] = strtok(rem);                finite(3) = str2double(tok);
-else                                        % Return all selected poles (including its ages)
-    ad.value = 3;
-    finite = zeros(length(selection),4);
-    for (i = 1:length(selection))
-        [tok,rem] = strtok(selection{i});   finite(i,1) = str2double(tok);
-        [tok,rem] = strtok(rem);            finite(i,2) = str2double(tok);
-        [tok,rem] = strtok(rem);            finite(i,3) = str2double(tok);
-        [tok,rem] = strtok(rem);            finite(i,4) = str2double(tok);
-    end
-end
-ad.pos_right = finite;
-setappdata(0,'ListDialogAppData',ad)
-delete(gcbf);
+	rightbox = findobj('Tag','rightbox');
+	selection = get(rightbox,'String');
+	if (isempty(selection))     return;     end     % If it's empty do nothing
+	ad = getappdata(0,'ListDialogAppData');
+	if (~ad.multiple_finite)					% Return only one pole (the first one)
+		ad.value = 1;
+		[tok,rem] = strtok(selection{1});		finite(1) = str2double(tok);
+		[tok,rem] = strtok(rem);				finite(2) = str2double(tok);
+		tok = strtok(rem);						finite(3) = str2double(tok);
+	else										% Return all selected poles (including its ages)
+		ad.value = 3;
+		finite = zeros(length(selection),4);
+		for (i = 1:length(selection))
+			[tok,rem] = strtok(selection{i});	finite(i,1) = str2double(tok);
+			[tok,rem] = strtok(rem);			finite(i,2) = str2double(tok);
+			[tok,rem] = strtok(rem);			finite(i,3) = str2double(tok);
+			tok = strtok(rem);					finite(i,4) = str2double(tok);
+		end
+	end
+	ad.pos_right = finite;
+	setappdata(0,'ListDialogAppData',ad)
+	delete(gcbf);
 
 %-----------------------------------------------------------------------------------
 function doStagePoles(varargin)
-ad = getappdata(0,'ListDialogAppData');
-rightbox = findobj(ad.hFig,'Tag','rightbox');
-selection = get(rightbox,'String');
-h1 = findobj(ad.hFig,'Tag','HalfAngle');
-h2 = findobj(ad.hFig,'Tag','inverseStages');
-h3 = findobj(ad.hFig,'Tag','earthNorth');
-if (strcmp(get(h1,'State'),'on'))           % See if full or half poles are requested
-    half = 2;
-else
-    half = 1;
-end
-if (strcmp(get(h2,'State'),'on'))           % See which stages are requested
-    half = -half;
-end
+	ad = getappdata(0,'ListDialogAppData');
+	rightbox = findobj(ad.hFig,'Tag','rightbox');
+	selection = get(rightbox,'String');
+	h1 = findobj(ad.hFig,'Tag','HalfAngle');
+	h2 = findobj(ad.hFig,'Tag','inverseStages');
+	h3 = findobj(ad.hFig,'Tag','earthNorth');
+	if (strcmp(get(h1,'State'),'on'))			% See if full or half poles are requested
+		half = 2;
+	else
+		half = 1;
+	end
+	if (strcmp(get(h2,'State'),'on'))			% See which stages are requested
+		half = -half;
+	end
 
-side = 1;                                   % Default to poles on the northern hemisphere
-if (strcmp(get(h3,'State'),'off'))          % See how to report the poles
-    h4 = findobj(ad.hFig,'Tag','earthSouth');
-    if (strcmp(get(h4,'State'),'on'))       % Place poles on the southern hemisphere
-        side = -1;
-    else                                    % Positive poles wanted
-        side = 0;
-    end
-end
+	side = 1;									% Default to poles on the northern hemisphere
+	if (strcmp(get(h3,'State'),'off'))			% See how to report the poles
+		h4 = findobj(ad.hFig,'Tag','earthSouth');
+		if (strcmp(get(h4,'State'),'on'))		% Place poles on the southern hemisphere
+			side = -1;
+		else									% Positive poles wanted
+			side = 0;
+		end
+	end
 
-if (~isempty(selection))
-    n = length(selection);
-    finite = zeros(n,4);
-    for (k=1:n)             % Extract pole parameters from the cell array
-        [tok,rem] = strtok(selection{k});       finite(k,1) = str2double(tok);
-        [tok,rem] = strtok(rem);                finite(k,2) = str2double(tok);
-        [tok,rem] = strtok(rem);                finite(k,3) = str2double(tok);
-        [tok,rem] = strtok(rem);                finite(k,4) = str2double(tok);
-    end
-    finite = sortrows(finite,4);                % To make sure they go from youngest to oldest
-    stages = finite2stages(finite,half,side);   % Compute the Stage poles
-    str1 = {'*.dat;*.stg', 'Data file (*.dat,*.stg)';'*.*', 'All Files (*.*)'};
-    [FileName,PathName] = uiputfile(str1,'Stage poles file name');
-    if isequal(FileName,0);     return;     end
+	if (isempty(selection)),		return,		end
+
+	n = length(selection);
+	finite = zeros(n,4);
+	for (k=1:n)					% Extract pole parameters from the cell array
+		[tok,rem] = strtok(selection{k});		finite(k,1) = str2double(tok);
+		[tok,rem] = strtok(rem);				finite(k,2) = str2double(tok);
+		[tok,rem] = strtok(rem);				finite(k,3) = str2double(tok);
+		tok = strtok(rem);						finite(k,4) = str2double(tok);
+	end
+	finite = sortrows(finite,4);				% To make sure they go from youngest to oldest
+
+	% Convert latitudes to geocentric
+	ecc = 0.0818191908426215;					% WGS84
+	D2R = pi / 180;
+	finite(:,2) = atan2( (1-ecc^2)*sin(finite(:,2)*D2R), cos(finite(:,2)*D2R) ) / D2R;
+
+	stages = finite2stages(finite,half,side);	% Compute the Stage poles
+	str1 = {'*.dat;*.stg', 'Data file (*.dat,*.stg)';'*.*', 'All Files (*.*)'};
+	[FileName,PathName] = uiputfile(str1,'Stage poles file name');
+	if isequal(FileName,0)		return,		end
 	% Open and write to ASCII file
-	if ispc;        fid = fopen([PathName FileName],'wt');
-	elseif isunix;  fid = fopen([PathName FileName],'w');
-	else    errordlg('Unknown platform.','Error');
+	if (ispc)			fid = fopen([PathName FileName],'wt');
+	elseif (isunix)		fid = fopen([PathName FileName],'w');
+	else				errordlg('Unknown platform.','Error');
 	end
 	fprintf(fid,'#longitude\tlatitude\ttstart(Ma)\ttend(Ma)\tangle(deg)\n');
 	fprintf(fid,'%9.5f\t%9.5f\t%8.4f\t%8.4f\t%7.4f\n', stages');
-    fclose(fid);
-    ad.value = 2;
-    ad.pos_right = [PathName FileName];
-    setappdata(0,'ListDialogAppData',ad)
-end
+	fclose(fid);
+	ad.value = 2;
+	ad.pos_right = [PathName FileName];
+	setappdata(0,'ListDialogAppData',ad)
 
 %-----------------------------------------------------------------------------------
 function doWriteStages(stages)
@@ -512,32 +507,28 @@ function doWriteStages(stages)
 %-----------------------------------------------------------------------------------
 function doFromboxClick(varargin)
 % if this is a doubleclick, doOK
-if strcmp(get(gcbf,'SelectionType'),'open')
-    doRight;
-end
+	if strcmp(get(gcbf,'SelectionType'),'open')    doRight;		end
 
 %-----------------------------------------------------------------------------------
 function doToboxClick(varargin)
 % if this is a doubleclick, doOK
-if strcmp(get(gcbf,'SelectionType'),'open')
-    doLeft;
-end
+	if strcmp(get(gcbf,'SelectionType'),'open')		doLeft;		end
 
 %-----------------------------------------------------------------------------------
 function doRight(varargin)
-ad = getappdata(0,'ListDialogAppData');
-leftbox = findobj(ad.hFig,'Tag','leftbox');
-rightbox = findobj(ad.hFig,'Tag','rightbox');
-selection=get(leftbox,'Value');
-ad.pos_right=[ad.pos_right;ad.pos_left(selection)];
-ad.tostring=[ad.tostring; ad.fromstring(selection)];
-if ad.cmode==1 % remove selected items
-    ad.pos_left(selection)=[];
-    ad.fromstring(selection)=[];
-end
-setappdata(0,'ListDialogAppData',ad)
-set(leftbox,'String',ad.fromstring,'Value',[]);
-set(rightbox,'String',ad.tostring,'Value',[]);
+	ad = getappdata(0,'ListDialogAppData');
+	leftbox = findobj(ad.hFig,'Tag','leftbox');
+	rightbox = findobj(ad.hFig,'Tag','rightbox');
+	selection=get(leftbox,'Value');
+	ad.pos_right=[ad.pos_right;ad.pos_left(selection)];
+	ad.tostring=[ad.tostring; ad.fromstring(selection)];
+	if (ad.cmode == 1)			% remove selected items
+		ad.pos_left(selection)=[];
+		ad.fromstring(selection)=[];
+	end
+	setappdata(0,'ListDialogAppData',ad)
+	set(leftbox,'String',ad.fromstring,'Value',[]);
+	set(rightbox,'String',ad.tostring,'Value',[]);
 
 %-----------------------------------------------------------------------------------
 function doLeft(varargin)
@@ -548,7 +539,7 @@ selection = get(rightbox,'Value');
 if (ad.cmode == 1)      % if selected items had been removed
     % Sort in the items from right hand side again
     for i=1:length(selection)
-        next_item=min(find(ad.pos_left>ad.pos_right(selection(i))));
+        next_item = min( find(ad.pos_left > ad.pos_right(selection(i))) );
         if isempty(next_item)   % Inserting item is last one
             ad.pos_left(end+1)=ad.pos_right(selection(i));
             ad.fromstring(end+1)=ad.tostring(selection(i));
@@ -567,6 +558,7 @@ setappdata(0,'ListDialogAppData',ad)
 set(leftbox,'String',ad.fromstring,'Value',[]);
 set(rightbox,'String',ad.tostring,'Value',[]);
 
+% ---------------------------------------------------------------------------------------
 function stages = finite2stages(lon, lat, omega, t_start, half, side)
 % Convert finite rotations to backwards stage rotations for backtracking
 % LON, LAT, OMEGA & T_START are the finite rotation Euler pole parameters and age of pole
@@ -598,23 +590,21 @@ elseif (n_args == 1 || n_args == 3)
     t_start = lon(:,4);     omega = lon(:,3);
     lat = lon(:,2);         lon = lon(:,1);
 end
-global D2R;
 
-D2R = pi / 180;
 t_old = 0;
 R_young = eye(3);
 elon = zeros(1,length(lon));    elat = elon;    ew = elon;  t_stop = elon;
 for i = 1:length(lon)
 	R_old = make_rot_matrix (lon(i), lat(i), omega(i)/ abs(half));     % Get rotation matrix from pole and angle
-    if (half > 0)                                           % the stages come in the reference b_STAGE_a
-        R_stage = R_old * R_young;                          % This is R_stage = R_old * R_young^t
+    if (half > 0)											% the stages come in the reference b_STAGE_a
+        R_stage = R_old * R_young;							% This is R_stage = R_old * R_young^t
         R_stage = R_stage';
-    else                                                    % the stages come in the reference a_STAGE_b
-        R_stage = R_young * R_old;                          % This is R_stage = R_young^t * R_old
+	else													% the stages come in the reference a_STAGE_b
+        R_stage = R_young * R_old;							% This is R_stage = R_young^t * R_old
     end
-	[elon(i) elat(i) ew(i)] = matrix_to_pole(R_stage,side); % Get rotation parameters from matrix
-	if (elon(i) > 180), elon(i) = elon(i) - 360;     end    % Adjust lon
-    R_young = R_old';                                       % Sets R_young = transpose (R_old) for next round
+	[elon(i) elat(i) ew(i)] = matrix_to_pole(R_stage,side);	% Get rotation parameters from matrix
+	if (elon(i) > 180), elon(i) = elon(i) - 360;     end	% Adjust lon
+    R_young = R_old';										% Sets R_young = transpose (R_old) for next round
 	t_stop(i) = t_old;
 	t_old = t_start(i);
 end
@@ -628,52 +618,52 @@ function R = make_rot_matrix (lonp, latp, w)
 % w		angular rotation in degrees
 % R		the rotation matrix
 
-global D2R;
-[E0,E1,E2] = sph2cart(lonp*D2R,latp*D2R,1);
+	D2R = pi / 180;
+	[E0,E1,E2] = sph2cart(lonp*D2R,latp*D2R,1);
 
-sin_w = sin(w * D2R);
-cos_w = cos(w * D2R);
-c = 1 - cos_w;
+	sin_w = sin(w * D2R);
+	cos_w = cos(w * D2R);
+	c = 1 - cos_w;
 
-E_x = E0 * sin_w;
-E_y = E1 * sin_w;
-E_z = E2 * sin_w;
-E_12c = E0 * E1 * c;
-E_13c = E0 * E2 * c;
-E_23c = E1 * E2 * c;
+	E_x = E0 * sin_w;
+	E_y = E1 * sin_w;
+	E_z = E2 * sin_w;
+	E_12c = E0 * E1 * c;
+	E_13c = E0 * E2 * c;
+	E_23c = E1 * E2 * c;
 
-R(1,1) = E0 * E0 * c + cos_w;
-R(1,2) = E_12c - E_z;
-R(1,3) = E_13c + E_y;
+	R(1,1) = E0 * E0 * c + cos_w;
+	R(1,2) = E_12c - E_z;
+	R(1,3) = E_13c + E_y;
 
-R(2,1) = E_12c + E_z;
-R(2,2) = E1 * E1 * c + cos_w;
-R(2,3) = E_23c - E_x;
+	R(2,1) = E_12c + E_z;
+	R(2,2) = E1 * E1 * c + cos_w;
+	R(2,3) = E_23c - E_x;
 
-R(3,1) = E_13c - E_y;
-R(3,2) = E_23c + E_x;
-R(3,3) = E2 * E2 * c + cos_w;
+	R(3,1) = E_13c - E_y;
+	R(3,2) = E_23c + E_x;
+	R(3,3) = E2 * E2 * c + cos_w;
 
 % --------------------------------------------------------
 function [plon,plat,w] = matrix_to_pole (T,side)
-global D2R;
-R2D = 1 / D2R;
-T13_m_T31 = T(1,3) - T(3,1);
-T32_m_T23 = T(3,2) - T(2,3);
-T21_m_T12 = T(2,1) - T(1,2);
-H = T32_m_T23 * T32_m_T23 + T13_m_T31 * T13_m_T31;
-L = sqrt (H + T21_m_T12 * T21_m_T12);
-H = sqrt (H);
-tr = T(1,1) + T(2,2) + T(3,3);
 
-plon = atan2(T13_m_T31, T32_m_T23) * R2D;
-%if (plon < 0)     plon = plon + 360;  end
-plat = atan2(T21_m_T12, H) * R2D;
-w = atan2(L, (tr - 1)) * R2D;
+	R2D = 10 / pi;
+	T13_m_T31 = T(1,3) - T(3,1);
+	T32_m_T23 = T(3,2) - T(2,3);
+	T21_m_T12 = T(2,1) - T(1,2);
+	H = T32_m_T23 * T32_m_T23 + T13_m_T31 * T13_m_T31;
+	L = sqrt (H + T21_m_T12 * T21_m_T12);
+	H = sqrt (H);
+	tr = T(1,1) + T(2,2) + T(3,3);
 
-if ((side == 1 && plat < 0) || (side == -1 && plat > 0))
-	plat = -plat;
-	plon = plon + 180;
-	if (plon > 360),    plon = plon - 360;  end
-	w = -w;
-end
+	plon = atan2(T13_m_T31, T32_m_T23) * R2D;
+	%if (plon < 0)     plon = plon + 360;  end
+	plat = atan2(T21_m_T12, H) * R2D;
+	w = atan2(L, (tr - 1)) * R2D;
+
+	if ((side == 1 && plat < 0) || (side == -1 && plat > 0))
+		plat = -plat;
+		plon = plon + 180;
+		if (plon > 360),    plon = plon - 360;  end
+		w = -w;
+	end
