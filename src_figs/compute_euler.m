@@ -191,20 +191,20 @@ if (get(hObject,'Value'))
     % The above test is not enough. For exemple, coastlines are not eligible neither,
     % but is very cumbersome to test all the possibilities of pure non-eligible lines.
     set(handles.hCallingFig,'pointer','crosshair')
-    h_line = get_polygon(handles.hCallingFig);          % Get first line handle
+    h_line = get_polygon(handles.hCallingFig);		% Get first line handle
     if (~isempty(h_line))
-        x = get(h_line,'XData');    y = get(h_line,'YData');
-        %y = geog2auth(y);                       % Convert to authalic latitudes
+        x = get(h_line,'XData');		y = get(h_line,'YData');
+        %y = geog2auth(y);							% Convert to authalic latitudes
         handles.isoca1 = [x(:) y(:)];
         set(handles.edit_first_file,'String','Got left line','FontAngle','italic')
     else
         handles.isoca1 = [];
         set(handles.edit_first_file,'String','')
     end
-    h_line = get_polygon(handles.hCallingFig);          % Get second line handle
+    h_line = get_polygon(handles.hCallingFig);		% Get second line handle
     if (~isempty(h_line))
-        x = get(h_line,'XData');    y = get(h_line,'YData');
-        %y = geog2auth(y);                       % Convert to authalic latitudes
+        x = get(h_line,'XData');		y = get(h_line,'YData');
+        %y = geog2auth(y);							% Convert to authalic latitudes
         handles.isoca2 = [x(:) y(:)];
         set(handles.edit_second_file,'String','Got right line','FontAngle','italic')
     else
@@ -272,7 +272,7 @@ function push_compute_CB(hObject, handles)
 		set(handles.edit_pLon_fim,'String',pLon);			set(handles.edit_pLat_fim,'String',pLat)
 		set(handles.edit_pAng_fim,'String',pAng)
 		if (handles.do_graphic)     % Create a empty line handle
-			[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),pLon, pLat, pAng);
+			[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),pLon, pLat, pAng,-1);
 			h_line = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',rlon,'YData',rlat, ...
 			'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
 			draw_funs(h_line,'isochron',{'Fitted Line'})
@@ -309,7 +309,7 @@ function calca_pEuler(handles, do_weighted)
 	yd = diff( handles.isoca1(:,2) * D2R * 6371 );
 	lengthsRot = sqrt(xd.*xd + yd.*yd);
 
-	[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini);
+	[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini,-1);
 	[dist1, segLen] = distmin(handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, rlon*D2R, rlat*D2R, lengthsRot, 1e20, do_weighted);
 	sum1 = weightedSum(dist1, segLen, do_weighted);
 
@@ -366,7 +366,7 @@ for (i=1:n)                % Loop over lon
         end
         set(handles.slider_wait,'Value',ij);     pause(0.01);   % Otherwise the slider risks to not be updated
         for (k=1:n)        % Loop over omega
-            [rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians');
+            [rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians',-1);
             [dist1, segLen] = distmin(isoca2(:,1), isoca2(:,2), rlon,rlat, lengthsRot, area0, do_weighted);
 			sum1 = weightedSum(dist1, segLen, do_weighted);
             [dist2, segLen] = distmin(rlon,rlat, isoca2(:,1), isoca2(:,2), lengthsRot, area0, do_weighted);
