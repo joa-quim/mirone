@@ -40,19 +40,23 @@ function [rlon,rlat] = rot_euler(lon,lat,p_lon,p_lat,omega,units, ecc)
 			end
 		else
 			ecc = units;	% Excentricity
+			do_geocentric = true;
 			if (ecc < 0)
 				ecc = 0.0818191908426215;	% WGS84
+			elseif (ecc == 0)
+				do_geocentric = false;		% No need to go for a useless conversion 
 			end
-			do_geocentric = true;
 		end
 	elseif (nargin == 7)
 		if (strncmp(units,'rad',3))
 			is_radians = true;
 		end
+		do_geocentric = true;
 		if (ecc < 0)
 			ecc = 0.0818191908426215;		% WGS84
+		elseif (ecc == 0)
+			do_geocentric = false;			% No need to go for a useless conversion 
 		end
-		do_geocentric = true;
 	end
 
 	D2R = pi/180;			R2D = 180 / pi;
@@ -64,6 +68,7 @@ function [rlon,rlat] = rot_euler(lon,lat,p_lon,p_lat,omega,units, ecc)
 
 	if (do_geocentric)		% Convert to geocentric latitudes
 		lat = atan2( (1-ecc^2)*sin(lat), cos(lat) );
+		%p_lat = atan2( (1-ecc^2)*sin(p_lat), cos(p_lat) );
 	end
 
 	p_sin_lat = sin(p_lat);			p_cos_lat = cos(p_lat);
