@@ -193,7 +193,7 @@ if (get(hObject,'Value'))
         % Create a empty line handle that will hold the rotated line
         handles.hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',[],'YData',[], ...
             'LineStyle','-.','LineWidth',2);
-		if (get(handles.check_geocentric, 'Val'))
+		if (get(handles.check_geodetic, 'Val'))
 	        handles.hLine_g = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',[],'YData',[], ...
 		        'LineStyle',':','LineWidth',2, 'Color','r');
 		end
@@ -210,18 +210,17 @@ guidata(hObject, handles);
 
 % --------------------------------------------------------------------------
 function apply_rot(handles)
-	[rlon,rlat] = rot_euler(handles.line_x, handles.line_y, handles.p_lon, handles.p_lat, handles.p_omega);
+	[rlon,rlat] = rot_euler(handles.line_x, handles.line_y, handles.p_lon, handles.p_lat, handles.p_omega, -1);
 	if (handles.geog == 2)
 		ind = (rlon < 0);
 		rlon(ind) = rlon(ind) + 360;
 	end
-	%try		% Use a 'try' because line may have been killed
 	if (ishandle(handles.hLine))	% Caution because line may have been deleted
 		set(handles.hLine,'XData',rlon,'YData',rlat)
 	end
 	if (ishandle(handles.hLine_g))	% Compare with the geocentric latitude solution
-		if (get(handles.check_geocentric, 'Val'))
-			[rlon_g,rlat_g] = rot_euler(handles.line_x,handles.line_y,handles.p_lon,handles.p_lat,handles.p_omega, -1);
+		if (get(handles.check_geodetic, 'Val'))
+			[rlon_g,rlat_g] = rot_euler(handles.line_x,handles.line_y,handles.p_lon,handles.p_lat,handles.p_omega);
 			if (handles.geog == 2)
 				rlon_g(ind) = rlon_g(ind) + 360;
 			end
@@ -344,10 +343,10 @@ uicontrol('Parent',h1, 'Position',[10 107 121 21],...
 'Tag','toggle_pickLine');
 
 uicontrol('Parent',h1, 'Position',[150 108 120 21],...
-'String','Geocentric',...
-'Tooltip',sprintf('Plot a second line with the geocentric latitude solution\nWarnig: MUST BE CHECKED BEFORE PICK LINE'),...
+'String','Geodetic',...
+'Tooltip',sprintf('Plot a second line with the geodetic latitude solution\nWarnig: MUST BE CHECKED BEFORE PICK LINE'),...
 'Style','checkbox',...
-'Tag','check_geocentric');
+'Tag','check_geodetic');
 
 uicontrol('Parent',h1, 'Position',[520 107 121 21],...
 'Callback',{@manual_pole_adjust_uiCB,h1,'push_polesList_CB'},...
