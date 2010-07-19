@@ -80,7 +80,7 @@ function push_first_file_CB(hObject, handles,opt)
 		fname = [PathName FileName];
 	end
 	handles.isoca1 = le_fiche(fname);      % A maluca
-	handles.isoca1(:,2) = geog2auth(handles.isoca1(:,2));   % Convert to authalic lats
+	%handles.isoca1(:,2) = geog2auth(handles.isoca1(:,2));   % Convert to authalic lats
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ function push_second_file_CB(hObject, handles, opt)
 		fname = [PathName FileName];
 	end
 	handles.isoca2 = le_fiche(fname);      % The fixed line
-	handles.isoca2(:,2) = geog2auth(handles.isoca2(:,2));   % Convert to authalic lats
+	%handles.isoca2(:,2) = geog2auth(handles.isoca2(:,2));   % Convert to authalic lats
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
