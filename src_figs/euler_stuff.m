@@ -15,70 +15,67 @@ function varargout = euler_stuff(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-hObject = figure('Tag','figure1','Visible','off');
-euler_stuff_LayoutFcn(hObject);
-handles = guihandles(hObject);
-move2side(hObject,'left');
+	if (isempty(varargin))
+		errordlg('EULER_STUFF: wrong number of input arguments.','Error'),	return
+	end
 
-%#function telha_m choosebox
+	hObject = figure('Tag','figure1','Visible','off');
+	euler_stuff_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'left');
 
-handles.h_line_orig = [];
-handles.hLineSelected = [];
-handles.p_lon = [];
-handles.p_lat = [];
-handles.p_omega = [];
-handles.edit_pole1Lon = [];
-handles.edit_pole1Lat = [];
-handles.edit_pole1Ang = [];
-handles.edit_pole2Lon = [];
-handles.edit_pole2Lat = [];
-handles.edit_pole2Ang = [];
-handles.ages = [];
-handles.do_interp = 0;          % Used to decide which 'compute' function to use
-handles.finite_poles = [];      % Used to store a collection of finite poles (issued by choosebox)
+	handles.h_line_orig = [];
+	handles.hLineSelected = [];
+	handles.p_lon = [];
+	handles.p_lat = [];
+	handles.p_omega = [];
+	handles.edit_pole1Lon = [];
+	handles.edit_pole1Lat = [];
+	handles.edit_pole1Ang = [];
+	handles.edit_pole2Lon = [];
+	handles.edit_pole2Lat = [];
+	handles.edit_pole2Ang = [];
+	handles.ages = [];
+	handles.do_interp = 0;          % Used to decide which 'compute' function to use
+	handles.finite_poles = [];      % Used to store a collection of finite poles (issued by choosebox)
 
-if (~isempty(varargin))
-    handles.h_calling_fig = varargin{1};
-    handles.mironeAxes = get(varargin{1},'CurrentAxes');
-    if (length(varargin) == 2)          % Called with the line handle in argument
-        c = get(varargin{2},'Color');
-        t = get(varargin{2},'LineWidth');
-        h = copyobj(varargin{2},handles.mironeAxes);
-        rmappdata(h,'polygon_data')     % Remove the parent's ui_edit_polygon appdata
-        ui_edit_polygon(h)              % And set a new one
-        set(h,'LineWidth',t+1,'Color',1-c)
-        uistack_j(h,'bottom')
-        handles.h_line_orig = h;
-        handles.hLineSelected = varargin{2};
-        set(handles.text_activeLine,'String','GOT A LINE TO WORK WITH','ForegroundColor',[0 0.8 0])
-    end
-else
-    errordlg('EULER_STUFF: wrong number of arguments.','Error')
-    delete(hObject);    return
-end
+	handles.hCallingFig = varargin{1};
+	handles.mironeAxes = get(varargin{1},'CurrentAxes');
+	if (length(varargin) == 2)          % Called with the line handle in argument
+		c = get(varargin{2},'Color');
+		t = get(varargin{2},'LineWidth');
+		h = copyobj(varargin{2},handles.mironeAxes);
+		rmappdata(h,'polygon_data')     % Remove the parent's ui_edit_polygon appdata
+		ui_edit_polygon(h)              % And set a new one
+		set(h,'LineWidth',t+1,'Color',1-c)
+		uistack_j(h,'bottom')
+		handles.h_line_orig = h;
+		handles.hLineSelected = varargin{2};
+		set(handles.text_activeLine,'String','GOT A LINE TO WORK WITH','ForegroundColor',[0 0.8 0])
+	end
 
-% Get the Mirone handles. We need it here
-handlesMir = guidata(handles.h_calling_fig);
-handles.geog = handlesMir.geog;
-if (handlesMir.no_file)
-	errordlg('You didn''t even load a file. What are you expecting then?','Error')
-	delete(hObject);    return
-end
-if (~handles.geog)
-	errordlg('This tool works only with geographical type data','Error')
-	delete(hObject);    return
-end
+	% Get the Mirone handles. We need it here
+	handlesMir = guidata(handles.hCallingFig);
+	handles.geog = handlesMir.geog;
+	if (handlesMir.no_file)
+		errordlg('You didn''t even load a file. What are you expecting then?','Error')
+		delete(hObject);    return
+	end
+	if (~handles.geog)
+		errordlg('This tool works only with geographical type data','Error')
+		delete(hObject);    return
+	end
 
-plugedWin = getappdata(handles.h_calling_fig,'dependentFigs');
-plugedWin = [plugedWin hObject];            % Add this figure handle to the carra?as list
-setappdata(handles.h_calling_fig,'dependentFigs',plugedWin);
+	plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
+	plugedWin = [plugedWin hObject];		% Add this figure handle to the carra?as list
+	setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
 
-handles.path_data = handlesMir.path_data;
-handles.path_continent = [handlesMir.home_dir filesep 'continents' filesep];
-handles.geog = handlesMir.geog;
-handles.last_dir = handlesMir.last_dir;
-handles.work_dir = handlesMir.work_dir;
-handles.home_dir = handlesMir.home_dir;
+	handles.path_data = handlesMir.path_data;
+	handles.path_continent = [handlesMir.home_dir filesep 'continents' filesep];
+	handles.geog = handlesMir.geog;
+	handles.last_dir = handlesMir.last_dir;
+	handles.work_dir = handlesMir.work_dir;
+	handles.home_dir = handlesMir.home_dir;
 
 % This is the tag that all tab push buttons share.  If you have multiple
 % sets of tab push buttons, each group should have unique tag.
@@ -99,9 +96,7 @@ panel_names = {'DoRotations','AddPoles','InterpPoles'};
 % are used by the tabpanefcn when tab_group_handler is called.
 handles = tabpanelfcn('make_groups',group_name, panel_names, handles, 1);
 
-% Choose default command line output for euler_stuff_export
 guidata(hObject, handles);
-
 set(hObject,'Visible','on');
 if (nargout),	varargout{1} = hObject;		end
 
@@ -116,19 +111,23 @@ function tab_group_ButtonDownFcn(hObject, handles)
 handles = tabpanelfcn('tab_group_handler',hObject, handles, get(hObject, 'Tag'));
 % Since this tab uses mostly existing uis, just make the visible here
 if (strcmp(get(hObject,'UserData'),'InterpPoles'))
-    set(handles.h_Stg_txt,'Visible','on','String','Finite rotation poles file')
-    set(handles.edit_polesFile,'Visible','on')
-    set(handles.push_readPolesFile,'Visible','on')
-    set(handles.text1,'Visible','on')
-    set(handles.edit_agesFile,'Visible','on')
-    set(handles.push_ReadAgesFile,'Visible','on')
-    set(handles.listbox_ages,'Visible','on')
-    set(handles.push_polesList,'Visible','on')
-    set(handles.push_compute,'Visible','on')
-    handles.do_interp = 1;          % Redirect the 'compute' function
+	set(handles.h_Stg_txt,'Visible','on','String','Finite rotation poles file')
+	set(handles.edit_polesFile,'Visible','on')
+	set(handles.push_readPolesFile,'Visible','on')
+	set(handles.txt_AgeF,'Visible','on')
+	set(handles.check_geodetic,'Visible','on')
+	set(handles.edit_agesFile,'Visible','on')
+	set(handles.push_ReadAgesFile,'Visible','on')
+	set(handles.listbox_ages,'Visible','on')
+	set(handles.push_polesList,'Visible','on')
+	set(handles.push_compute,'Visible','on')
+	handles.do_interp = 1;			% Redirect the 'compute' function
 else
-    handles.do_interp = 0;
-    set(handles.h_Stg_txt,'String','Stage poles file')
+	handles.do_interp = 0;
+	set(handles.h_Stg_txt,'String','Stage poles file')
+	if (strcmp(get(hObject,'UserData'),'AddPoles'))
+		set(handles.check_geodetic,'Visible','on')
+	end
 end
 guidata(hObject, handles);
 
@@ -227,176 +226,186 @@ guidata(hObject, handles);
 % -------------------------------------------------------------------------------------
 function push_compute_CB(hObject, handles)
 
-if (handles.do_interp == 1)     % Compute interpolated poles instead
-    cumpute_interp(handles)
-    return
-end
+	if (handles.do_interp == 1)     % Compute interpolated poles instead
+		cumpute_interp(handles),	return
+	end
 
-if (isempty(handles.h_line_orig))
-    errordlg('Will you be so kind to let me know what line/point should I rotate?','Unknown target')
-    return
-end
-
-if (get(handles.checkbox_singleRotation,'Value'))
-    % Do the rotation using the pole parameters entered in the GUI and return
-	if (isempty(handles.p_lon) || isempty(handles.p_lat) || isempty(handles.p_omega))
+	if (isempty(handles.h_line_orig))
+		errordlg('Will you be so kind to let me know what line/point should I rotate?','Unknown target')
 		return
 	end
-	units = 'deg';		% Set units = -1; to use geocentric lats in rot_euler
-    for (i=1:numel(handles.h_line_orig))
-        lon = get(handles.h_line_orig(i),'XData');
-        lat = get(handles.h_line_orig(i),'YData');
-        [rlon,rlat] = rot_euler(lon,lat,handles.p_lon,handles.p_lat,handles.p_omega, units);
-		if (handles.geog == 2)
-			ind = (rlon < 0);
-			rlon(ind) = rlon(ind) + 360;
+
+	if (get(handles.check_singleRotation,'Value'))
+		% Do the rotation using the pole parameters entered in the GUI and return
+		if (isempty(handles.p_lon) || isempty(handles.p_lat) || isempty(handles.p_omega))
+			return
 		end
-        axes(handles.mironeAxes)       % Make the Mirone axes the CurrentAxes
-        if (length(rlon) == 1)          % Single point rotation
-            smb = get(handles.hLineSelected(i),'Marker');
-            smb_fc = get(handles.hLineSelected(i),'MarkerFaceColor');
-            smb_ec = get(handles.hLineSelected(i),'MarkerEdgeColor');
-            smb_s = get(handles.hLineSelected(i),'MarkerSize');
-            smb_t = get(handles.hLineSelected(i),'Linewidth');
-            set(handles.h_line_orig(i),'XData',rlon,'YData',rlat,'Marker',smb,'MarkerFaceColor',smb_fc,...
-                'MarkerEdgeColor',smb_ec,'MarkerSize',smb_s,'Linewidth',smb_t,'Tag','Rotated Line','Userdata',1);
-        else
-            lt = get(handles.hLineSelected(i),'LineWidth');
-            lc = get(handles.hLineSelected(i),'Color');
-            set(handles.h_line_orig(i),'XData',rlon,'YData',rlat,'Linewidth',lt,'Color',lc,'Tag','Rotated Line','Userdata',1);
-        end
-        line_info = {['Ang = ' num2str(handles.p_omega)]};
-        draw_funs(handles.h_line_orig(i),'isochron',line_info)
-    end
-    handles.h_line_orig = [];       handles.hLineSelected = [];
-    guidata(handles.figure1,handles)
-    set(handles.text_activeLine,'String','NO ACTIVE LINE','ForegroundColor',[1 0 0])
-    return
-end
-
-if (isempty(handles.ages))
-    errordlg('I need to know the ages at which to compute the rotations','Error');    return
-end
-
-poles_name = get(handles.edit_polesFile,'String');
-if (isempty(poles_name))
-    errordlg('No stage poles provided','Error');    return
-end
-
-axes(handles.mironeAxes)       % Make the Mirone axes the CurrentAxes
-opt_E = ['-E' poles_name];
-opt_I = ' ';
-if (get(handles.checkbox_revertRot,'Value'))
-    opt_I = '-I';
-end
-
-for (i=1:numel(handles.h_line_orig))
-	x = get(handles.h_line_orig(i),'XData');       y = get(handles.h_line_orig(i),'YData');
-	linha = [x(:) y(:)];
-	[out,n_data,n_seg,n_flow] = telha_m(linha, handles.ages, '-P', opt_E, opt_I);
-    lt = get(handles.hLineSelected(i),'LineWidth');
-    lc = get(handles.hLineSelected(i),'Color');
-	if (length(linha) == 2)     % Only one point. Flow line mode
-        aa = isnan(out(:,1));
-        out = out(~aa,1:2);
-        h_line = line('XData',out(:,1),'YData',out(:,2),'Linewidth',lt,'Color',lc,'Tag','Flow Line','Userdata',1);
-        stg = get(handles.edit_polesFile,'String');
-        [PATH,FNAME,EXT] = fileparts(stg);
-        line_info = {['Stage file: ' FNAME EXT]};
-	else
-		h_line = zeros(n_flow,1);
-		for (k=1:n_flow)              % For each time increment
-            [x,y] = get_time_slice(out,n_data,n_seg,k);
-            h_line(k) = line('XData',x,'YData',y,'Linewidth',lt,'Color',lc,'Tag','Rotated Line','Userdata',k);
+		do_geocentric = true;
+		if (get(handles.check_geodetic, 'Val'))		do_geocentric = false;		end
+		for (i=1:numel(handles.h_line_orig))
+			lon = get(handles.h_line_orig(i),'XData');
+			lat = get(handles.h_line_orig(i),'YData');
+			if (do_geocentric)
+				[rlon,rlat] = rot_euler(lon,lat,handles.p_lon,handles.p_lat,handles.p_omega, -1);
+			else							% Use geodetic lats
+				[rlon,rlat] = rot_euler(lon,lat,handles.p_lon,handles.p_lat,handles.p_omega);
+			end
+			if (handles.geog == 2)
+				ind = (rlon < 0);
+				rlon(ind) = rlon(ind) + 360;
+			end
+			if (length(rlon) == 1)			% Single point rotation
+				smb = get(handles.hLineSelected(i),'Marker');
+				smb_fc = get(handles.hLineSelected(i),'MarkerFaceColor');
+				smb_ec = get(handles.hLineSelected(i),'MarkerEdgeColor');
+				smb_s = get(handles.hLineSelected(i),'MarkerSize');
+				smb_t = get(handles.hLineSelected(i),'Linewidth');
+				set(handles.h_line_orig(i),'XData',rlon,'YData',rlat,'Marker',smb,'MarkerFaceColor',smb_fc,...
+					'MarkerEdgeColor',smb_ec,'MarkerSize',smb_s,'Linewidth',smb_t,'Tag','Rotated Line','Userdata',1);
+			else
+				lt = get(handles.hLineSelected(i),'LineWidth');
+				lc = get(handles.hLineSelected(i),'Color');
+				set(handles.h_line_orig(i),'XData',rlon,'YData',rlat,'Linewidth',lt,'Color',lc,'Tag','Rotated Line','Userdata',1);
+			end
+			line_info = {['Ang = ' num2str(handles.p_omega)]};
+			draw_funs(handles.h_line_orig(i),'isochron',line_info)
 		end
-        line_info = get(handles.listbox_ages,'String');
+		figure(handles.hCallingFig)		% Bring the Mirone figure forward
+		handles.h_line_orig = [];       handles.hLineSelected = [];
+		guidata(handles.figure1,handles)
+		set(handles.text_activeLine,'String','NO ACTIVE LINE','ForegroundColor',[1 0 0])
+		return
 	end
-	draw_funs(h_line,'isochron',line_info)
-end
 
-set(handles.text_activeLine,'String','NO ACTIVE LINE','ForegroundColor',[1 0 0])
-delete(handles.h_line_orig)
-handles.h_line_orig = [];       handles.hLineSelected = [];
-guidata(handles.figure1,handles)
+	if (isempty(handles.ages))
+		errordlg('I need to know the ages at which to compute the rotations','Error');    return
+	end
+
+	poles_name = get(handles.edit_polesFile,'String');
+	if (isempty(poles_name))
+		errordlg('No stage poles provided','Error');    return
+	end
+
+	figure(handles.hCallingFig)		% Bring the Mirone figure forward
+	opt_E = ['-E' poles_name];
+	opt_I = ' ';
+	if (get(handles.check_revertRot,'Value'))
+		opt_I = '-I';
+	end
+
+	for (i=1:numel(handles.h_line_orig))
+		x = get(handles.h_line_orig(i),'XData');       y = get(handles.h_line_orig(i),'YData');
+		linha = [x(:) y(:)];
+		[out,n_data,n_seg,n_flow] = telha_m(linha, handles.ages, '-P', opt_E, opt_I);
+		lt = get(handles.hLineSelected(i),'LineWidth');
+		lc = get(handles.hLineSelected(i),'Color');
+		if (length(linha) == 2)     % Only one point. Flow line mode
+			aa = isnan(out(:,1));
+			out = out(~aa,1:2);
+			h_line = line('XData',out(:,1),'YData',out(:,2),'Linewidth',lt,'Color',lc,'Tag','Flow Line','Userdata',1);
+			stg = get(handles.edit_polesFile,'String');
+			[PATH,FNAME,EXT] = fileparts(stg);
+			line_info = {['Stage file: ' FNAME EXT]};
+		else
+			h_line = zeros(n_flow,1);
+			for (k=1:n_flow)              % For each time increment
+				[x,y] = get_time_slice(out,n_data,n_seg,k);
+				h_line(k) = line('XData',x,'YData',y,'Linewidth',lt,'Color',lc,'Tag','Rotated Line','Userdata',k);
+			end
+			line_info = get(handles.listbox_ages,'String');
+		end
+		draw_funs(h_line,'isochron',line_info)
+	end
+
+	set(handles.text_activeLine,'String','NO ACTIVE LINE','ForegroundColor',[1 0 0])
+	delete(handles.h_line_orig)
+	handles.h_line_orig = [];       handles.hLineSelected = [];
+	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function cumpute_interp(handles)
 % Compute interpolated poles.
 % This function is far from optimized, but it's not supposed to be applyied to long series either
 
-if (isempty(handles.ages))
-    errordlg('I need to know the ages at which to interpolate the poles','Error');    return
-end
-
-if ( strcmp(get(handles.edit_polesFile,'String'),'In memory poles') )
-    poles = handles.finite_poles;
-else
-	poles_name = get(handles.edit_polesFile,'String');
-	if (isempty(poles_name))
-        errordlg('No poles file provided','Error');    return
+	if (isempty(handles.ages))
+		errordlg('I need to know the ages at which to interpolate the poles','Error');    return
 	end
-    poles = read_poles(poles_name);
-    if (isempty(poles))      return;     end         % Bad poles file
-end
 
-if (size(poles,2) ~= 4)
-    errordlg('The poles matrix MUST have 4 columns.','Error');    return
-end
-poles = sortrows(poles,4);          % To make sure they go from youngest to oldest
+	if ( strcmp(get(handles.edit_polesFile,'String'),'In memory poles') )
+		poles = handles.finite_poles;
+	else
+		poles_name = get(handles.edit_polesFile,'String');
+		if (isempty(poles_name))
+			errordlg('No poles file provided','Error');    return
+		end
+		poles = read_poles(poles_name);
+		if (isempty(poles))      return;     end         % Bad poles file
+	end
 
-ages = handles.ages;
-n_ages = length(ages);
-pol = zeros(n_ages,4);
-n_new_finite = 0;
-id = find(ages <= poles(1,4));      % Find ages <= first pole (different case)
-if (~isempty(id))
-    n_new_finite = length(id);      % Count number of interpolations of the first finite pole
-    for (i = 1:n_new_finite)
-        pol(i,:) = [poles(1,1:2) poles(1,3)*ages(i)/poles(1,4) ages(i)];
-    end
-    clear id;
-end
+	if (size(poles,2) ~= 4)
+		errordlg('The poles matrix MUST have 4 columns.','Error');    return
+	end
+	poles = sortrows(poles,4);			% To make sure they go from youngest to oldest
 
-id = (ages > poles(end,4));         % Find ages > last pole (they cannot be computed - no extrapolation)
-if (~isempty(id))
-    ages(id) = [];                  % This will only apply if we have extrapolation ages
-    pol(id,:) = [];
-    n_ages = length(ages);
-end
+	ages = handles.ages;
+	n_ages = length(ages);
+	pol = zeros(n_ages,4);
+	n_new_finite = 0;
+	id = find(ages <= poles(1,4));		% Find ages <= first pole (different case)
+	if (~isempty(id))
+		n_new_finite = length(id);		% Count number of interpolations of the first finite pole
+		for (i = 1:n_new_finite)
+			pol(i,:) = [poles(1,1:2) poles(1,3)*ages(i)/poles(1,4) ages(i)];
+		end
+		clear id;
+	end
 
-for (i = n_new_finite+1:n_ages)
-    id = find(ages(i) > poles(:,4));
-    id = id(end);                   % We can only have one value and it's the last one that counts
-    if (~isempty(id))
-        t0 = poles(id,4);        t1 = poles(id+1,4);
-        stg = finite2stages([poles(id,:); poles(id+1,:)], 1, 0);    % Compute the stage pole between t0 & t1
-        frac = (poles(id+1,4) - ages(i)) / (poles(id+1,4) - poles(id,4));
-        [pol(i,1) pol(i,2) pol(i,3)] = add_poles(poles(id+1,1),poles(id+1,2),poles(id+1,3),stg(1,1),stg(1,2), frac*stg(1,5));
-        pol(i,4) = ages(i);                 % Give it its age
-    else
-        errordlg(['Error: age = ' num2str(ages(i)) ' does not fit inside poles ages interval'],'Error')
-        return
-    end
-end
+	id = (ages > poles(end,4));			% Find ages > last pole (they cannot be computed - no extrapolation)
+	if (~isempty(id))
+		ages(id) = [];					% This will only apply if we have extrapolation ages
+		pol(id,:) = [];
+		n_ages = length(ages);
+	end
 
-% Now the interpolated poles are on the antipodes (don't know why), so revert that
-pol(n_new_finite+1:end,2:3) = -pol(n_new_finite+1:end,2:3);     % Change latitude & angle sign
-pol(n_new_finite+1:end,1) = pol(n_new_finite+1:end,1) + 180;
-id = pol(:,1) > 360;
-pol(id,1) = pol(id,1) - 360;
+	if (~get(handles.check_geodetic, 'Val'))		% Convert to geocentric latitudes
+		ecc = 0.0818191908426215;		% WGS84
+		D2R = pi / 180;
+		poles(:,2) = atan2( (1-ecc^2)*sin(poles(:,2)*D2R), cos(poles(:,2)*D2R) ) / D2R;
+	end
 
-[FileName,PathName] = put_or_get_file(handles, ...
-	{'*.dat;*.stg', 'Data file (*.dat,*.stg)';'*.*', 'All Files (*.*)'},'Interp poles file','put','.dat');
-if isequal(FileName,0),		return,		end
+	for (i = n_new_finite+1:n_ages)
+		id = find(ages(i) > poles(:,4));
+		id = id(end);                   % We can only have one value and it's the last one that counts
+		if (~isempty(id))
+			%t0 = poles(id,4);        t1 = poles(id+1,4);
+			stg = finite2stages([poles(id,:); poles(id+1,:)], 1, 0);    % Compute the stage pole between t0 & t1
+			frac = (poles(id+1,4) - ages(i)) / (poles(id+1,4) - poles(id,4));
+			[pol(i,1) pol(i,2) pol(i,3)] = add_poles(poles(id+1,1),poles(id+1,2),poles(id+1,3),stg(1,1),stg(1,2), frac*stg(1,5));
+			pol(i,4) = ages(i);                 % Give it its age
+		else
+			errordlg(['Error: age = ' num2str(ages(i)) ' does not fit inside poles ages interval'],'Error')
+			return
+		end
+	end
 
-% Open and write to ASCII file
-if ispc;        fid = fopen([PathName FileName],'wt');
-elseif isunix;  fid = fopen([PathName FileName],'w');
-else			errordlg('Unknown platform.','Error');
-end
-fprintf(fid,'#longitude\tlatitude\tangle(deg)\tage(Ma)\n');
-fprintf(fid,'%9.5f\t%9.5f\t%7.4f\t%8.4f\n', pol');
-fclose(fid);
+	% Now the interpolated poles are on the antipodes (don't know why), so revert that
+	pol(n_new_finite+1:end,2:3) = -pol(n_new_finite+1:end,2:3);     % Change latitude & angle sign
+	pol(n_new_finite+1:end,1) = pol(n_new_finite+1:end,1) + 180;
+	id = pol(:,1) > 360;
+	pol(id,1) = pol(id,1) - 360;
+
+	[FileName,PathName] = put_or_get_file(handles, ...
+		{'*.dat;*.stg', 'Data file (*.dat,*.stg)';'*.*', 'All Files (*.*)'},'Interp poles file','put','.dat');
+	if isequal(FileName,0),		return,		end
+
+	% Open and write to ASCII file
+	if (ispc)			fid = fopen([PathName FileName],'wt');
+	elseif (isunix)		fid = fopen([PathName FileName],'w');
+	else				errordlg('Unknown platform.','Error');
+	end
+	fprintf(fid,'#longitude\tlatitude\tangle(deg)\tage(Ma)\n');
+	fprintf(fid,'%9.5f\t%9.5f\t%7.4f\t%8.4f\n', pol');
+	fclose(fid);
 
 % --------------------------------------------------------------------
 function [x,y] = get_time_slice(data,n_data,n_seg,n,first)
@@ -442,16 +451,16 @@ function edit_poleAngle_CB(hObject, handles)
 	guidata(hObject,handles)
 
 % --------------------------------------------------------------------
-function checkbox_singleRotation_CB(hObject, handles)
-if (get(hObject,'Value'))
-    set(handles.edit_poleLon,'Enable','on')
-    set(handles.edit_poleLat,'Enable','on')
-    set(handles.edit_poleAngle,'Enable','on')
-else
-    set(handles.edit_poleLon,'Enable','off')
-    set(handles.edit_poleLat,'Enable','off')
-    set(handles.edit_poleAngle,'Enable','off')
-end
+function check_singleRotation_CB(hObject, handles)
+	if (get(hObject,'Value'))
+		set(handles.edit_poleLon,'Enable','on')
+		set(handles.edit_poleLat,'Enable','on')
+		set(handles.edit_poleAngle,'Enable','on')
+	else
+		set(handles.edit_poleLon,'Enable','off')
+		set(handles.edit_poleLat,'Enable','off')
+		set(handles.edit_poleAngle,'Enable','off')
+	end
 
 % --------------------------------------------------------------------
 function push_polesList_CB(hObject, handles)
@@ -494,7 +503,7 @@ function tab_group_CB(hObject, handles)
 % -----------------------------------------------------------------------------------
 function push_pickLine_CB(hObject, handles)
     % Test if we have potential target lines and their type
-    h_mir_lines = findobj(handles.h_calling_fig,'Type','line');     % Fish all objects of type line in Mirone figure
+    h_mir_lines = findobj(handles.hCallingFig,'Type','line');     % Fish all objects of type line in Mirone figure
     if (isempty(h_mir_lines))                                       % We don't have any lines
         str = ['If you hited this button on purpose, than you deserve the following insult.',...
                 'You #!|"*!%!?~^)--$&.',... 
@@ -502,14 +511,14 @@ function push_pickLine_CB(hObject, handles)
         errordlg(str,'Chico Clever');     return;
     end
     
-    set(handles.h_calling_fig,'pointer','crosshair')
-    h_line = get_polygon(handles.h_calling_fig,'multi');        % Get the line handle
+    set(handles.hCallingFig,'pointer','crosshair')
+    h_line = get_polygon(handles.hCallingFig,'multi');        % Get the line handle
 	if (numel(h_line) > 1)
 		h_line = unique(h_line);
 	end
     tf = ismember(h_line,handles.hLineSelected);        % Check that the line was not already selected
     if (tf)     % Repeated line
-        set(handles.h_calling_fig,'pointer','arrow');   figure(handles.figure1);   return;
+        set(handles.hCallingFig,'pointer','arrow');   figure(handles.figure1);   return;
     end
     for (k = 1:numel(h_line))
         c = get(h_line(k),'Color');
@@ -523,7 +532,7 @@ function push_pickLine_CB(hObject, handles)
         % Make a copy of the selected handles to be used in props recovering
         handles.hLineSelected = [handles.hLineSelected; h_line(k)];
     end
-    set(handles.h_calling_fig,'pointer','arrow')
+    set(handles.hCallingFig,'pointer','arrow')
     figure(handles.figure1)                 % Bring this figure to front again
 
 	nl = numel(handles.h_line_orig);
@@ -537,9 +546,9 @@ function push_pickLine_CB(hObject, handles)
 % -----------------------------------------------------------------------------------
 function push_rectSelect_CB(hObject, handles)
     % Test if we have potential target lines and their type
-    h_mir_lines = findobj(handles.h_calling_fig,'Type','line');     % Fish all objects of type line in Mirone figure
+    h_mir_lines = findobj(handles.hCallingFig,'Type','line');     % Fish all objects of type line in Mirone figure
     if (isempty(h_mir_lines)),      return;     end                 % We don't have any lines
-    figure(handles.h_calling_fig)
+    figure(handles.hCallingFig)
     [p1,p2,hl] = rubberbandbox;
     delete(hl)
     figure(handles.figure1)         % Bring this figure fowrward again
@@ -571,110 +580,116 @@ function push_rectSelect_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function edit_pole1Lon_CB(hObject, handles)
-handles.edit_pole1Lon = str2double(get(hObject,'String'));
-if (isnan(handles.edit_pole1Lon))   set(hObject,'String','');   return;     end
-guidata(hObject, handles);
-if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
-[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-    handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
-set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
-set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
-set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
+	handles.edit_pole1Lon = str2double(get(hObject,'String'));
+	if (isnan(handles.edit_pole1Lon))   set(hObject,'String','');   return;     end
+	guidata(hObject, handles);
+	if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
+	geocentric = -double(~get(handles.check_geodetic,'Val'));
+	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
+		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang, geocentric);
+	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
+	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
+	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
 
 % -----------------------------------------------------------------------------------
 function edit_pole1Lat_CB(hObject, handles)
-handles.edit_pole1Lat = str2double(get(hObject,'String'));
-if (isnan(handles.edit_pole1Lat))   set(hObject,'String','');   return;     end
-guidata(hObject, handles);
-if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
-[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-    handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
-set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
-set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
-set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
+	handles.edit_pole1Lat = str2double(get(hObject,'String'));
+	if (isnan(handles.edit_pole1Lat))   set(hObject,'String','');   return;     end
+	guidata(hObject, handles);
+	if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
+	geocentric = -double(~get(handles.check_geodetic,'Val'));
+	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
+		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang, geocentric);
+	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
+	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
+	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
 
 % -----------------------------------------------------------------------------------
 function edit_pole1Ang_CB(hObject, handles)
-handles.edit_pole1Ang = str2double(get(hObject,'String'));
-if (isnan(handles.edit_pole1Ang))   set(hObject,'String','');   return;     end
-guidata(hObject, handles);
-if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
-[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-    handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
-set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
-set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
-set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
+	handles.edit_pole1Ang = str2double(get(hObject,'String'));
+	if (isnan(handles.edit_pole1Ang))   set(hObject,'String','');   return;     end
+	guidata(hObject, handles);
+	if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
+	geocentric = -double(~get(handles.check_geodetic,'Val'));
+	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
+		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang, geocentric);
+	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
+	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
+	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
 
 % -----------------------------------------------------------------------------------
 function edit_pole2Lon_CB(hObject, handles)
-handles.edit_pole2Lon = str2double(get(hObject,'String'));
-if (isnan(handles.edit_pole2Lon))   set(hObject,'String','');   return;     end
-guidata(hObject, handles);
-if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
-[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-    handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
-set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
-set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
-set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
+	handles.edit_pole2Lon = str2double(get(hObject,'String'));
+	if (isnan(handles.edit_pole2Lon))   set(hObject,'String','');   return;     end
+	guidata(hObject, handles);
+	if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
+	geocentric = -double(~get(handles.check_geodetic,'Val'));
+	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
+		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang, geocentric);
+	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
+	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
+	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
 
 % -----------------------------------------------------------------------------------
 function edit_pole2Lat_CB(hObject, handles)
-handles.edit_pole2Lat = str2double(get(hObject,'String'));
-if (isnan(handles.edit_pole2Lat)),	set(hObject,'String','');   return;     end
-guidata(hObject, handles);
-if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
-[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-    handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
-set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
-set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
-set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
+	handles.edit_pole2Lat = str2double(get(hObject,'String'));
+	if (isnan(handles.edit_pole2Lat)),	set(hObject,'String','');   return;     end
+	guidata(hObject, handles);
+	if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
+	geocentric = -double(~get(handles.check_geodetic,'Val'));
+	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
+		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang, geocentric);
+	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
+	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
+	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
 
 % -----------------------------------------------------------------------------------
 function edit_pole2Ang_CB(hObject, handles)
-handles.edit_pole2Ang = str2double(get(hObject,'String'));
-if (isnan(handles.edit_pole2Ang)),	set(hObject,'String','');   return;     end
-guidata(hObject, handles);
-if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
-[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-    handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
-set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
-set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
-set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
+	handles.edit_pole2Ang = str2double(get(hObject,'String'));
+	if (isnan(handles.edit_pole2Ang)),	set(hObject,'String','');   return;     end
+	guidata(hObject, handles);
+	if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
+	geocentric = -double(~get(handles.check_geodetic,'Val'));
+	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
+		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang, geocentric);
+	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
+	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
+	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
 
 % -----------------------------------------------------------------------------------
 function yeap = got_them_all(handles)
 % Check if we have all the 6 parameters (2 poles x 3 params each)
 % If at least one of them is empty returns YEAP = 0;
 
-yeap = 1;
-if ( isempty(handles.edit_pole1Lon) || isempty(handles.edit_pole1Lat) || isempty(handles.edit_pole1Ang) || ...
-        isempty(handles.edit_pole2Lon) || isempty(handles.edit_pole2Lat) || isempty(handles.edit_pole2Ang) )
-    yeap = 0;
-end
+	yeap = 1;
+	if ( isempty(handles.edit_pole1Lon) || isempty(handles.edit_pole1Lat) || isempty(handles.edit_pole1Ang) || ...
+			isempty(handles.edit_pole2Lon) || isempty(handles.edit_pole2Lat) || isempty(handles.edit_pole2Ang) )
+		yeap = 0;
+	end
 
 % -----------------------------------------------------------------------------------------
 function poles = read_poles(poles_file)
 % Read a poles file (with ages also) and store it in a cell array
 
-fid = fopen(poles_file,'r');
-c = fread(fid,'*char').';
-fclose(fid);
-s = strread(c,'%s','delimiter','\n');
-ix = strmatch('#',s);
+	fid = fopen(poles_file,'r');
+	c = fread(fid,'*char').';
+	fclose(fid);
+	s = strread(c,'%s','delimiter','\n');
+	ix = strmatch('#',s);
 
-hdr = s(ix);
-n_hdr = length(hdr);
-n_poles = length(s)-n_hdr;
-poles = zeros(n_poles,4);
-try
-	for (i = 1:n_poles)
-         tmp = sscanf(s{i+n_hdr}','%f',4);
-         poles(i,1:4) = tmp';
+	hdr = s(ix);
+	n_hdr = length(hdr);
+	n_poles = length(s)-n_hdr;
+	poles = zeros(n_poles,4);
+	try
+		for (i = 1:n_poles)
+			tmp = sscanf(s{i+n_hdr}','%f',4);
+			poles(i,1:4) = tmp';
+		end
+	catch
+		errordlg(['The file ' poles_file 'is not a properly formated Stage poles file.'],'Error');
+		poles = [];
 	end
-catch
-    errordlg(['The file ' poles_file 'is not a properly formated Stage poles file.'],'Error');
-    poles = [];
-end
 
 % -----------------------------------------------------------------------------------
 function stages = finite2stages(lon, lat, omega, t_start, half, side)
@@ -700,7 +715,7 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side)
 
 n_args = nargin;
 if (~(n_args == 1 || n_args == 3 || n_args == 6))
-    error('Wrong number of arguments')
+	error('Wrong number of arguments')
 elseif (n_args == 1 || n_args == 3)
     if (n_args == 3),       half = lat;     side = omega;
     else                    half = 2;       side = 1;    % Default to half angles & North hemisphere poles
@@ -877,10 +892,10 @@ uicontrol('Parent',h1, 'Position',[230 145 21 21],...
 'Tag','push_ReadAgesFile',...
 'UserData','DoRotations');
 
-uicontrol('Parent',h1, 'Position',[20 171 51 15],...
+uicontrol('Parent',h1, 'Position',[20 167 51 15],...
 'String','Age file',...
 'Style','text',...
-'Tag','text1',...
+'Tag','txt_AgeF',...
 'UserData','DoRotations');
 
 uicontrol('Parent',h1, 'Position',[20 250 131 15],...
@@ -902,11 +917,18 @@ uicontrol('Parent',h1, 'Position',[385 27 66 21],...
 'Tag','push_compute',...
 'UserData','DoRotations');
 
-uicontrol('Parent',h1, 'Position',[20 202 160 15],...
+uicontrol('Parent',h1, 'Position',[20 204 160 15],...
 'String','Revert sense of rotation',...
 'Style','checkbox',...
 'TooltipString','Revert the sense of rotation defined by the stages poles',...
-'Tag','checkbox_revertRot',...
+'Tag','check_revertRot',...
+'UserData','DoRotations');
+
+uicontrol('Parent',h1, 'Position',[20 187 96 15],...
+'String','Geodetic Lats',...
+'Tooltip',sprintf('Do rotations with geodetic latitudes (default is geocentric)\nWarnig: MUST BE CHECKED BEFORE PICK LINE'),...
+'Style','checkbox',...
+'Tag','check_geodetic',...
 'UserData','DoRotations');
 
 uicontrol('Parent',h1, 'Position',[280 109 131 21],...
@@ -959,12 +981,11 @@ uicontrol('Parent',h1, 'Position',[404 251 41 15],...
 'Style','text',...
 'UserData','DoRotations');
 
-uicontrol('Parent',h1,...
-'Callback',{@euler_stuff_uiCB,h1,'checkbox_singleRotation_CB'},...
-'Position',[280 202 110 15],...
+uicontrol('Parent',h1, 'Position',[280 204 110 15],...
+'Callback',{@euler_stuff_uiCB,h1,'check_singleRotation_CB'},...
 'String','Use this Pole',...
 'Style','checkbox',...
-'Tag','checkbox_singleRotation',...
+'Tag','check_singleRotation',...
 'UserData','DoRotations');
 
 uicontrol('Parent',h1,...
