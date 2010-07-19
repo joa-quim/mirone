@@ -46,7 +46,7 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, DP_tol)
 	end
 	flags_w(end) = numel(ind) - 1;
 
-	[r_lon,r_lat] = rot_euler(isow_dp(:,2),isow_dp(:,1), along, alat, rho);		% Rotate DP moving isoc
+	[r_lon,r_lat] = rot_euler(isow_dp(:,2),isow_dp(:,1), along, alat, rho, -1);		% Rotate DP moving isoc
 	ndata = size(isoe,1);
 	n_pts_dp = size(isow_dp,1);
 	flags_e = zeros(ndata,1);
