@@ -18,7 +18,7 @@ function varargout = fft_stuff(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	fft_stuff_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'center')
+	move2side(hObject,'right')
 
 	handles.hMirFig = [];			% Handle to the calling figure
 	handles.geog = 0;				% Set this as default
@@ -100,13 +100,13 @@ function varargout = fft_stuff(varargin)
 		nlist_t = [{handles.orig_ncols}; nlist(ind)];
 		ind = find(cat(1,nlist_t{:}) == handles.new_nx);        % Find index of new_nx
 		set(handles.listbox_nnx,'String',nlist_t,'Value',ind)
-		set(handles.edit_Ncols,'string',num2str(handles.new_nx))
+		set(handles.edit_Ncols,'string',sprintf('%d',handles.new_nx))
 		
 		ind = cat(1,nlist{:}) > handles.orig_nrows;
 		nlist_t = [{handles.orig_nrows}; nlist(ind)];
 		ind = find(cat(1,nlist_t{:}) == handles.new_ny);        % Find index of new_ny
 		set(handles.listbox_nny,'String',nlist_t,'Value',ind)
-		set(handles.edit_Nrows,'string',num2str(handles.new_ny))
+		set(handles.edit_Nrows,'string',sprintf('%d',handles.new_ny))
 		
 		handles.X = linspace(handles.head_Z1(1),handles.head_Z1(2),handles.orig_ncols);
 		handles.Y = linspace(handles.head_Z1(3),handles.head_Z1(4),handles.orig_nrows);
@@ -115,8 +115,8 @@ function varargout = fft_stuff(varargin)
 
 	% Import icons
 	load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
-	set(handles.pushbutton_Grid2,'CData',Mfopen_ico)
-	set(handles.pushbutton_Grid1,'CData',Mfopen_ico)
+	set(handles.push_Grid2,'CData',Mfopen_ico)
+	set(handles.push_Grid1,'CData',Mfopen_ico)
 	clear Mfopen_ico;
 
 	% Set upt some useful tooltips
@@ -164,215 +164,188 @@ function varargout = fft_stuff(varargin)
 	if (nargout),	varargout{1} = hObject;		end
 
 % -------------------------------------------------------------------------------------------------
-function edit_Grid1_Callback(hObject, eventdata, handles)
+function edit_Grid1_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname),   handles.Z1 = [];    return;     end
-	% Let the pushbutton_Grid1_Callback do all the work
-	fft_stuff('pushbutton_Grid1_Callback',gcbo,[],guidata(gcbo),fname)
+	% Let the push_Grid1_CB do all the work
+	push_Grid1_CB(handles.push_Grid1, handles, fname)
 
 % -------------------------------------------------------------------------------------------------
-function pushbutton_Grid1_Callback(hObject, eventdata, handles,opt)
-if (nargin == 3),    opt = [];    end
-if (nargin == 4),    fname = opt;    end
-
-if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
-	[FileName,PathName] = put_or_get_file(handles, ...
-		{'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
-	if isequal(FileName,0),		return,		end
-	fname = [PathName FileName];
-end
-
-% Because GMT and Surfer share the .grd extension, find out which kind grid we are dealing with
-[fid, msg] = fopen(fname, 'r');
-if fid < 0
-    errordlg([PathName FileName ': ' msg],'ERROR'); return
-end
-ID = fread(fid,4,'*char');
-ID = strread(ID,'%s');
-if (strcmp(ID,'DSBB') || strcmp(ID,'DSRB'))
-    fname = [fname '=6'];
-elseif strcmp(ID,'DSAA')
-    warndlg('I don''t know and do not intend to learn how to read ASCII Surfer grids.','Warning')
-    return
-else        % It must (we hope) be a gmt grid
-end
-[handles.X,handles.Y,handles.Z1,handles.head_Z1] = grdread_m(fname);
-if (grdutils(handles.Z1,'-N'))
-    errordlg('This grid has NaNs. That is not allowed in FFTs','Error');    return;
-end
-
-% See if Grid2 is already loaded and, if yes, if both grids are compatible
-if (~isempty(get(handles.edit_Grid2,'String')))
-    if ( abs(handles.head_Z1(1) - handles.head_Z1(1)) > 1e-4 || abs(handles.head_Z1(2) - handles.head_Z1(2)) > 1e-4 ||...
-            abs(handles.head_Z1(3) - handles.head_Z1(3)) > 1e-4 || abs(handles.head_Z1(4) - handles.head_Z1(4)) > 1e-4)
-        errordlg('Error: Grid1 & Grid2 do not cover the same region','Error');  return
-    elseif(abs(handles.head_Z1(8) - handles.head_Z1(8)) > 1e-6 || abs(handles.head_Z1(9) - handles.head_Z1(9)) > 1e-6)
-        errordlg('Error: Grid1 & Grid2 do not have the same size.','Error');     return
-    end
-end
-[handles.orig_nrows,handles.orig_ncols] = size(handles.Z1);
-set(handles.edit_Grid1,'String',fname)
-
-[ns,nlist] = mboard([],handles.orig_ncols,handles.orig_nrows,0,0);
-handles.new_nx = ns(1);
-handles.new_ny = ns(2);
-
-% The easeast way of not leting the user screw things by selecting a nnx and/or nny lower
-% than nx or ny is to delete the forbiden numbers from the listboxes
-ind = cat(1,nlist{:}) > handles.orig_ncols;
-nlist_t = [{handles.orig_ncols}; nlist(ind)];
-ind = find(cat(1,nlist_t{:}) == handles.new_nx);        % Find index of new_nx
-set(handles.listbox_nnx,'String',nlist_t,'Value',ind)
-set(handles.edit_Ncols,'string',num2str(handles.new_nx))
-
-ind = cat(1,nlist{:}) > handles.orig_nrows;
-nlist_t = [{handles.orig_nrows}; nlist(ind)];
-ind = find(cat(1,nlist_t{:}) == handles.new_ny);        % Find index of new_ny
-set(handles.listbox_nny,'String',nlist_t,'Value',ind)
-set(handles.edit_Nrows,'string',num2str(handles.new_ny))
-
-% Try to guess if grid is in geogs
-if (abs(handles.head_Z1(2)-handles.head_Z1(1)) < 180 || abs(handles.head_Z1(4)-handles.head_Z1(3)) < 170)
-	handles.geog = 1;	% We probably have a geog grid
-	handles.is_meters = 0;     handles.is_km = 0;
-	set(handles.popup_GridCoords,'Value',1)
-else
-	dx = handles.head_Z1(2) - handles.head_Z1(1);
-	dy = handles.head_Z1(4) - handles.head_Z1(3);
-	len = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
-	if (len > 1e5)		% If grid's diagonal > 1e5 consider we have meters
-		handles.is_meters = 1;     handles.is_km = 0;   handles.geog = 0;
-		set(handles.popup_GridCoords,'Value',2)
-	else				% km
-		handles.is_meters = 0;     handles.is_km = 1;   handles.geog = 0;
-		set(handles.popup_GridCoords,'Value',3)
+function push_Grid1_CB(hObject, handles, opt)
+	if (nargin == 3)	fname = opt;
+	else				opt = [];
 	end
-end
 
-rlat = (handles.head_Z1(4) + handles.head_Z1(3)) / 2;
+	if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
+		[FileName,PathName] = put_or_get_file(handles, ...
+			{'*.grd;*.nc', 'Grid files (*.grd,*.nc)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
+		if isequal(FileName,0),		return,		end
+		fname = [PathName FileName];
+	end
 
-if (handles.geog)
-    [sclat,sclon] = scltln(rlat);
-    dx = handles.head_Z1(8) * sclon;
-    dy = handles.head_Z1(9) * sclat;
-    handles.scaled_dx = dx;     handles.scaled_dy = dy;
-else
-    handles.scaled_dx = handles.head_Z1(8);
-    handles.scaled_dy = handles.head_Z1(9);
-    if (handles.is_km)
-        handles.scaled_dx = handles.scaled_dx * 1000;
-        handles.scaled_dy = handles.scaled_dy * 1000;
-    end
-end
-guidata(hObject,handles)
+	[handles, handles.X, handles.Y, handles.Z1, handles.head_Z1] = read_gmt_type_grids(handles,fname);
+
+	if (grdutils(handles.Z1,'-N'))
+		errordlg('This grid has NaNs. That is not allowed in FFTs','Error');    return;
+	end
+
+	% See if Grid2 is already loaded and, if yes, if both grids are compatible
+	if (~isempty(get(handles.edit_Grid2,'String')))
+		difa_hdrs = abs( diff([handles.head_Z1; handles.head_Z2]) );
+		if ( any(difa_hdrs(1:4) > 1e-4) )
+			errordlg('Error: Grid1 & Grid2 do not cover the same region','Error'),	return
+		elseif ( any(difa_hdrs(8:9) > 1e-6) )
+			errordlg('Error: Grid1 & Grid2 do not have the same size.','Error'),	return
+		end
+	end
+	[handles.orig_nrows,handles.orig_ncols] = size(handles.Z1);
+	set(handles.edit_Grid1,'String',fname)
+
+	[ns,nlist] = mboard([],handles.orig_ncols,handles.orig_nrows,0,0);
+	handles.new_nx = ns(1);
+	handles.new_ny = ns(2);
+
+	% The easeast way of not leting the user screw things by selecting a nnx and/or nny lower
+	% than nx or ny is to delete the forbiden numbers from the listboxes
+	ind = cat(1,nlist{:}) > handles.orig_ncols;
+	nlist_t = [{handles.orig_ncols}; nlist(ind)];
+	ind = find(cat(1,nlist_t{:}) == handles.new_nx);        % Find index of new_nx
+	set(handles.listbox_nnx,'String',nlist_t,'Value',ind)
+	set(handles.edit_Ncols,'string',sprintf('%d',handles.new_nx))
+
+	ind = cat(1,nlist{:}) > handles.orig_nrows;
+	nlist_t = [{handles.orig_nrows}; nlist(ind)];
+	ind = find(cat(1,nlist_t{:}) == handles.new_ny);        % Find index of new_ny
+	set(handles.listbox_nny,'String',nlist_t,'Value',ind)
+	set(handles.edit_Nrows,'string',sprintf('%d',handles.new_ny))
+
+	% Try to guess if grid is in geogs
+	if (abs(handles.head_Z1(2)-handles.head_Z1(1)) < 180 || abs(handles.head_Z1(4)-handles.head_Z1(3)) < 170)
+		handles.geog = 1;	% We probably have a geog grid
+		handles.is_meters = 0;     handles.is_km = 0;
+		set(handles.popup_GridCoords,'Value',1)
+	else
+		dx = handles.head_Z1(2) - handles.head_Z1(1);
+		dy = handles.head_Z1(4) - handles.head_Z1(3);
+		len = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
+		if (len > 1e5)		% If grid's diagonal > 1e5 consider we have meters
+			handles.is_meters = 1;     handles.is_km = 0;   handles.geog = 0;
+			set(handles.popup_GridCoords,'Value',2)
+		else				% km
+			handles.is_meters = 0;     handles.is_km = 1;   handles.geog = 0;
+			set(handles.popup_GridCoords,'Value',3)
+		end
+	end
+
+	rlat = (handles.head_Z1(4) + handles.head_Z1(3)) / 2;
+
+	if (handles.geog)
+		[sclat,sclon] = scltln(rlat);
+		dx = handles.head_Z1(8) * sclon;
+		dy = handles.head_Z1(9) * sclat;
+		handles.scaled_dx = dx;     handles.scaled_dy = dy;
+	else
+		handles.scaled_dx = handles.head_Z1(8);
+		handles.scaled_dy = handles.head_Z1(9);
+		if (handles.is_km)
+			handles.scaled_dx = handles.scaled_dx * 1000;
+			handles.scaled_dy = handles.scaled_dy * 1000;
+		end
+	end
+	guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------------------
-function edit_Grid2_Callback(hObject, eventdata, handles)
+function edit_Grid2_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname),    handles.Z2 = [];    return;     end
-	% Let the pushbutton_Grid2_Callback do all the work
-	fft_stuff('pushbutton_Grid2_Callback',gcbo,[],guidata(gcbo),fname)
+	% Let the push_Grid2_CB do all the work
+	push_Grid2_CB(handles.push_Grid2, handles, fname)
 
 % -------------------------------------------------------------------------------------------------
-function pushbutton_Grid2_Callback(hObject, eventdata, handles, opt)
-if (nargin == 3),    opt = [];       end
-if (nargin == 4),    fname = opt;    end
-
-if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
-	if (~isempty(handles.hMirFig) && ishandle(handles.hMirFig))		% If we know the handle to the calling fig
-		hand = guidata(handles.hMirFig);      % get handles of the calling fig
-	else
-		hand = handles;
+function push_Grid2_CB(hObject, handles, opt)
+	if (nargin == 3)	fname = opt;
+	else				opt = [];
 	end
 
-	[FileName,PathName] = put_or_get_file(hand,{'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
-	if isequal(FileName,0);     return;     end
-	fname = [PathName FileName];
-end
+	if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
+		[FileName,PathName] = put_or_get_file(handles,{...
+			'*.grd;*.nc', 'Grid files (*.grd,*.nc)';'*.*', 'All Files (*.*)'},'Select GMT grid','get');
+		if isequal(FileName,0),		return,		end
+		fname = [PathName FileName];
+	end
 
-% Because GMT and Surfer share the .grd extension, find out which kind grid we are dealing with
-[fid, msg] = fopen(fname, 'r');
-if (fid < 0),    errordlg([fname ': ' msg],'ERROR');     return;     end
-ID = fread(fid,4,'*char');
-ID = strread(ID,'%s');      fclose(fid);
-if (strcmp(ID,'DSBB') || strcmp(ID,'DSRB'))
-	fname = [fname '=6'];
-elseif strcmp(ID,'DSAA')
-	warndlg('I don''t know and do not intend to learn how to read ASCII Surfer grids.','Warning')
-	return
-else        % It must (we hope) be a gmt grid
-end
-[X,Y,handles.Z2,handles.head_Z2] = grdread_m(fname);
-if (grdutils(handles.Z2,'-N'))
-    errordlg('This grid has NaNs. That is not allowed in FFTs','Error');    return;
-end
-% See if Grid1 grid is already loaded and, if yes, if they are compatible
-if (~isempty(get(handles.edit_Grid1,'String')))
-    if ( abs(handles.head_Z2(1) - handles.head_Z2(1)) > 1e-4 || abs(handles.head_Z2(2) - handles.head_Z2(2)) > 1e-4 ||...
-            abs(handles.head_Z2(3) - handles.head_Z2(3)) > 1e-4 || abs(handles.head_Z2(4) - handles.head_Z2(4)) > 1e-4)
-        errordlg('Error: Grid1 & Grid2 do not cover the same region','Error');  return
-    elseif(abs(handles.head_Z2(8) - handles.head_Z2(8)) > 1e-6 || abs(handles.head_Z2(9) - handles.head_Z2(9)) > 1e-6)
-        errordlg('Error: Grid1 & Grid2 do not have the same size.','Error');     return
-    end
-end
-set(handles.edit_Grid2,'String',fname)
-guidata(hObject,handles)
+	[handles, X, Y, handles.Z2, handles.head_Z2] = read_gmt_type_grids(handles,fname);
+
+	if (grdutils(handles.Z2,'-N'))
+		errordlg('This grid has NaNs. That is not allowed in FFTs','Error'),	return;
+	end
+	% See if Grid1 grid is already loaded and, if yes, if they are compatible
+	if (~isempty(get(handles.edit_Grid1,'String')))
+		difa_hdrs = abs( diff([handles.head_Z1; handles.head_Z2]) );
+		if ( any(difa_hdrs(1:4) > 1e-4) )
+			errordlg('Error: Grid1 & Grid2 do not cover the same region','Error'),	return
+		elseif ( any(difa_hdrs(8:9) > 1e-6) )
+			errordlg('Error: Grid1 & Grid2 do not have the same size.','Error'),	return
+		end
+	end
+	set(handles.edit_Grid2,'String',fname)
+	guidata(handles.figure1, handles)
 
 % -------------------------------------------------------------------------------------------------
-function listbox_nnx_Callback(hObject, eventdata, handles)
+function listbox_nnx_CB(hObject, handles)
 	contents = get(hObject,'String');
 	nnx = str2double(contents{get(hObject,'Value')});
-	set(handles.edit_Ncols,'String',num2str(nnx))
+	set(handles.edit_Ncols,'String',sprintf('%d',nnx))
 	handles.new_nx = nnx;     guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------------------
-function listbox_nny_Callback(hObject, eventdata, handles)
+function listbox_nny_CB(hObject, handles)
 	contents = get(hObject,'String');
 	nny = str2double(contents{get(hObject,'Value')});
-	set(handles.edit_Nrows,'String',num2str(nny))
+	set(handles.edit_Nrows,'String',sprintf('%d',nny))
 	handles.new_ny = nny;     guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------------------
-function edit_Ncols_Callback(hObject, eventdata, handles)
+function edit_Ncols_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isempty(get(hObject,'String')))
-		try    set(hObject,'String',num2str(handles.ncols)),	return,		end
+		try    set(hObject,'String',sprintf('%d',handles.ncols)),	return,		end
 	end
 	if (xx < handles.cols)   
-		set(hObject,'String',num2str(handles.ncols));    return;
+		set(hObject,'String',sprintf('%d',handles.ncols));    return;
 	end
 	handles.ncols = xx;     guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------------------
-function edit_Nrows_Callback(hObject, eventdata, handles)
+function edit_Nrows_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx))
-		try    set(hObject,'String',num2str(handles.nrows)),	return,		end
+		try    set(hObject,'String',sprintf('%d',handles.nrows)),	return,		end
 	end
 	if (xx < handles.nrows)
-		set(hObject,'String',num2str(handles.nrows)),	return
+		set(hObject,'String',sprintf('%d',handles.nrows)),	return
 	end
 	handles.nrows = xx;     guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------------------
-function edit_dirDerivative_Callback(hObject, eventdata, handles)
+function edit_dirDerivative_CB(hObject, handles)
 	azim = str2double(get(hObject,'String'));
 	if (isnan(azim)),   set(hObject,'String','0');  end
 
 % -------------------------------------------------------------------------------------------------
-function edit_derivative_Callback(hObject, eventdata, handles)
+function edit_derivative_CB(hObject, handles)
 	n_der = str2double(get(hObject,'String'));
 	if (isnan(n_der)),		set(hObject,'String','1'),		end
 
 % -------------------------------------------------------------------------------------------------
-function pushbutton_powerSpectrum_Callback(hObject, eventdata, handles)
+function push_powerSpectrum_CB(hObject, handles)
 	if (isempty(handles.Z1))   
 		errordlg('No grid loaded. Rebooting ...','Error');  return
 	end
 	sectrumFun(handles, handles.Z1, handles.head_Z1, 'Power')
 
 % --------------------------------------------------------------------
-function pushbutton_crossSpectra_Callback(hObject, eventdata, handles)
+function push_crossSpectra_CB(hObject, handles)
 	if (isempty(handles.Z1) || isempty(handles.Z2))
 		errordlg('"Cross" means one grid against the other. You got the idea?','Error');
 		return
@@ -380,11 +353,11 @@ function pushbutton_crossSpectra_Callback(hObject, eventdata, handles)
 	sectrumFun(handles, handles.Z1, handles.head_Z1, 'CrossPower', handles.Z2)
 
 % -------------------------------------------------------------------------------------------------
-function pushbutton_autoCorr_Callback(hObject, eventdata, handles)
+function push_autoCorr_CB(hObject, handles)
 	sectrumFun(handles, handles.Z1, handles.head_Z1, 'Autocorr')
 
 % -------------------------------------------------------------------------------------------------
-function pushbutton_crossCorr_Callback(hObject, eventdata, handles)
+function push_crossCorr_CB(hObject, handles)
 	if (isempty(handles.Z1) || isempty(handles.Z2))
 		errordlg('"Cross" means one grid against the other. You got the idea?','Error');
 		return
@@ -392,7 +365,7 @@ function pushbutton_crossCorr_Callback(hObject, eventdata, handles)
 	sectrumFun(handles, handles.Z1, handles.head_Z1, 'CrossCorrel', handles.Z2)
 
 % -------------------------------------------------------------------------------------------------
-function push_radialPowerAverage_CB(hObject, eventdata, handles)
+function push_radialPowerAverage_CB(hObject, handles)
 % This is modeled on the 1-D case, using the following ideas:
 % In 1-D, we ensemble average over samples of length L = n * dt.
 % This gives n/2 power spectral estimates, at frequencies i/L,
@@ -473,7 +446,7 @@ function calSave(obj,eventdata,h_fig)
 	fclose(fid);
 
 % -------------------------------------------------------------------------------------------------
-function pushbutton_integrate_Callback(hObject, eventdata, handles, opt)
+function push_integrate_CB(hObject, handles, opt)
 	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error'),	return,		end
 	if (isempty(opt))
 		scale = 1;
@@ -635,7 +608,7 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 	end
 
 % --------------------------------------------------------------------
-function pushbutton_goUDcont_Callback(hObject, eventdata, handles)
+function push_goUDcont_CB(hObject, handles)
 	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error');    return; end
 	zup = str2double(get(handles.edit_UDcont,'String'));
 	if (isnan(zup)),     return;     end
@@ -653,7 +626,7 @@ function pushbutton_goUDcont_Callback(hObject, eventdata, handles)
 	mirone(single(Z),tmp);
 
 % --------------------------------------------------------------------
-function pushbutton_goDerivative_Callback(hObject, eventdata, handles, opt)
+function push_goDerivative_CB(hObject, handles, opt)
 % Compute N-vertical derivative
 	if (isempty(handles.Z1)),   errordlg('No grid loaded yet.','Error');    return; end
 	if (isempty(opt)),	scale = 1;
@@ -666,21 +639,39 @@ function pushbutton_goDerivative_Callback(hObject, eventdata, handles, opt)
 		handles.Z1 = grdtrend_m(handles.Z1,handles.head_Z1,'-D','-N3');
 	end
 	[Z,band,k] = wavenumber_and_mboard(handles,false,'taper');
-	if (scale == 980619.9203),   n_der = 1;  end
+	if (scale == 980619.9203)	n_der = 1;		end
 	if (n_der > 1),  k = k.^n_der;   end
-	Z = fft2(Z) .* k*scale;    Z(1,1) = 0;    clear k;
+	Z = fft2(Z) .* k * scale;	Z(1,1) = 0;		clear k;
 	Z = real(ifft2((Z)));
 	[Z,tmp] = unband(handles,Z,band);
-	if (scale == 1),	tmp.name = [num2str(n_der) 'th Vertical Derivative'];
+	if (scale == 1),	tmp.name = sprintf('%dth Vertical Derivative',n_der);
 	else				tmp.name = 'Gravity anomaly (mGal)';
 	end
 	set(handles.figure1,'pointer','arrow')
 	mirone(single(Z),tmp);
 
 % --------------------------------------------------------------------
-function pushbutton_goDirDerivative_Callback(hObject, eventdata, handles)
+function push_AnalyticSig_CB(hObject, handles)
+% Compute the 3D Analytic Signal
+	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error'),	return,	end
+	[Z,band,k] = wavenumber_and_mboard(handles,1);
+	Z1 = fft2(Z);	Z1(1,1) = 0;				clear Z;
+	dTdx = complex(-imag(Z1) .* k.x, real(Z1) .* k.x);
+	dTdx = real(ifft2((dTdx))) .^2;
+	dTdy = complex(-imag(Z1) .* k.y, real(Z1) .* k.y);
+	dTdy = real(ifft2((dTdy))) .^2 + dTdx;		clear dTdx;
+	k = sqrt(k.x .^ 2 + k.y .^ 2);
+	dTdz = real(ifft2((Z1 .* k))) .^2 + dTdy;	clear Z1 dTdy k;
+	dTdz = sqrt(dTdz);
+	[Z,tmp] = unband(handles,dTdz,band);		clear dTdz;
+	tmp.name = '3D Analytic Signal';
+	set(handles.figure1,'pointer','arrow')
+	mirone(single(Z),tmp);
+
+% --------------------------------------------------------------------
+function push_goDirDerivative_CB(hObject, handles)
 % Compute a directional derivative
-	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error');    return; end
+	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error'),	return,	end
 	azim = str2double(get(handles.edit_dirDerivative,'String'));
 	set(handles.figure1,'pointer','watch')
 	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
@@ -689,7 +680,7 @@ function pushbutton_goDirDerivative_Callback(hObject, eventdata, handles)
 	end
 	[Z,band,k] = wavenumber_and_mboard(handles,1);
 	fact = (sin(azim*pi/180) * k.x + cos(azim*pi/180) * k.y);   clear k;
-	Z = fft2(Z);    Z(1,1) = 0;
+	Z = fft2(Z);	Z(1,1) = 0;
 	Z = complex(-imag(Z) .* fact, real(Z) .* fact);
 	Z = real(ifft2((Z)));
 	[Z,tmp] = unband(handles,Z,band);
@@ -701,7 +692,7 @@ function pushbutton_goDirDerivative_Callback(hObject, eventdata, handles)
 function [Z,band,k] = wavenumber_and_mboard(handles,opt,mode)
 % Compute the wavenumber array and call mboard
 % Z is the expanded array (to handles.new_nx & handles.new_ny)
-% BAND is the second output od mboard
+% BAND is the second output of mboard
 % K is the wavenumber array
 % If opt = 1 K will be instead a structure with KX & KY fields
 % MODE is either 'taper' (the default) or 'mirror'
@@ -726,10 +717,10 @@ function [Z,band,k] = wavenumber_and_mboard(handles,opt,mode)
 	%nx2 = handles.new_nx/2;     ny2 = handles.new_ny/2;    % Tivey way -> but and if n is odd?
 	dkx = 2*pi / (new_nx * handles.scaled_dx);
 	dky = 2*pi / (new_ny * handles.scaled_dy);
-	%kx = (-nx2:nx2-1).*dkx;     ky = (-ny2:ny2-1).*dky;    % Tivey way
-	kx = (-nx2:nx2-sft_x).*dkx;  ky = (-ny2:ny2-sft_y).*dky;
-	%X = ones(size(ky))'*kx;     Y = ky'*ones(size(kx));
-	X = repmat(kx,length(ky),1);    Y = repmat(ky',1,length(kx));
+	%kx = (-nx2:nx2-1).*dkx;		ky = (-ny2:ny2-1).*dky;    % Tivey way
+	kx = (-nx2:nx2-sft_x).*dkx;		ky = (-ny2:ny2-sft_y).*dky;
+	%X = ones(size(ky))'*kx;		Y = ky'*ones(size(kx));
+	X = repmat(kx,length(ky),1);	Y = repmat(ky',1,length(kx));
 	if (opt)
 		k.x = ifftshift(X);     clear X;
 		k.y = ifftshift(Y);     clear Y;
@@ -758,7 +749,7 @@ function [Z,hdr] = unband(handles,Z,band)
 	hdr.head(5) = min(min(Z));		hdr.head(6) = max(max(Z));
 
 % --------------------------------------------------------------------
-function popup_GridCoords_Callback(hObject, eventdata, handles)
+function popup_GridCoords_CB(hObject, handles)
 	xx = get(hObject,'Value');
 	if (xx == 1),		handles.geog = 1;		handles.is_meters = 0;  handles.is_km = 0;
 	elseif (xx == 2)	handles.is_meters = 1;	handles.is_geog = 0;	handles.is_km = 0;
@@ -819,65 +810,60 @@ uicontrol('Parent',h1,'Position',[330 139 231 79],'String',{''},'Style','frame',
 uicontrol('Parent',h1,'Position',[10 139 301 79],'String',{''},'Style','frame','Tag','frame1');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@fft_stuff_uicallback,h1,'edit_Grid1_Callback'},...
+'Call',{@fft_stuff_uiCB,h1,'edit_Grid1_CB'},...
 'HorizontalAlignment','left',...
 'Position',[50 187 231 22],...
 'Style','edit',...
 'TooltipString','Enter grid 1',...
 'Tag','edit_Grid1');
 
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback4,h1,[],'pushbutton_Grid1_Callback'},...
-'Position',[278 185 23 23],...
-'Tag','pushbutton_Grid1');
+uicontrol('Parent',h1, 'Position',[278 185 23 23],...
+'Call',{@fft_stuff_uiCB,h1,'push_Grid1_CB'},...
+'Tag','push_Grid1');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@fft_stuff_uicallback,h1,'edit_Grid2_Callback'},...
+'Call',{@fft_stuff_uiCB,h1,'edit_Grid2_CB'},...
 'HorizontalAlignment','left',...
 'Position',[50 157 231 22],...
 'Style','edit',...
 'TooltipString','Enter grid 2 (ONLY USED IN "CROSS" OPERATIONS)',...
 'Tag','edit_Grid2');
 
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback4,h1,[],'pushbutton_Grid2_Callback'},...
-'Position',[278 155 23 23],...
-'Tag','pushbutton_Grid2');
+uicontrol('Parent',h1, 'Position',[278 155 23 23],...
+'Call',{@fft_stuff_uiCB,h1,'push_Grid2_CB'},...
+'Tag','push_Grid2');
 
 uicontrol('Parent',h1,'HorizontalAlignment','left',...
-'Position',[17 160 31 15],'String','Grid2','Style','text','Tag','text1');
+'Position',[17 160 31 15],'String','Grid2','Style','text');
 
 uicontrol('Parent',h1,'HorizontalAlignment','left',...
 'Position',[18 188 26 16],'String','Grid1','Style','text','Tag','text_FieldMag');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@fft_stuff_uicallback,h1,'listbox_nny_Callback'},...
+'Call',{@fft_stuff_uiCB,h1,'listbox_nny_CB'},...
 'Position',[390 147 51 60],'Style','listbox','Value',1,'Tag','listbox_nny');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@fft_stuff_uicallback,h1,'listbox_nnx_Callback'},...
+'Call',{@fft_stuff_uiCB,h1,'listbox_nnx_CB'},...
 'Position',[498 150 51 60],'Style','listbox','Value',1,'Tag','listbox_nnx');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@fft_stuff_uicallback,h1,'edit_Nrows_Callback'},...
+'Call',{@fft_stuff_uiCB,h1,'edit_Nrows_CB'},...
 'Position',[350 168 41 21],...
 'Style','edit',...
 'TooltipString','Number of grid rows',...
 'Tag','edit_Nrows');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@fft_stuff_uicallback,h1,'edit_Ncols_Callback'},...
+'Call',{@fft_stuff_uiCB,h1,'edit_Ncols_CB'},...
 'Position',[456 168 41 21],...
 'Style','edit',...
 'TooltipString','Number of grid columns',...
 'Tag','edit_Ncols');
 
-uicontrol('Parent',h1,'Position',[351 192 39 15],'String','# Rows',...
-'Style','text','Tag','text11');
-
-uicontrol('Parent',h1,'Position',[456 192 39 15],'String','# Cols',...
-'Style','text','Tag','text12');
+uicontrol('Parent',h1,'Position',[351 192 39 15],'String','# Rows', 'Style','text');
+uicontrol('Parent',h1,'Position',[456 192 39 15],'String','# Cols', 'Style','text');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Position',[127 73 41 21],...
@@ -888,32 +874,8 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 uicontrol('Parent',h1,'HorizontalAlignment','right','Position',[-5 75 130 17],...
 'String','Up/Down Continuation','Style','text','HorizontalAlignment','right');
 
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback,h1,'pushbutton_powerSpectrum_Callback'},...
-'Position',[240 109 101 21],...
-'String','Power Spectrum',...
-'Tag','pushbutton_powerSpectrum');
-
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback,h1,'pushbutton_autoCorr_Callback'},...
-'Position',[240 76 101 21],...
-'String','Auto Correlation',...
-'Tag','pushbutton_autoCorr');
-
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback,h1,'pushbutton_crossCorr_Callback'},...
-'Position',[360 76 121 21],...
-'String','Cross Correlation',...
-'Tag','pushbutton_crossCorr');
-
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback,h1,'push_radialPowerAverage_CB'},...
-'Position',[360 43 121 21],...
-'String','Radial power average',...
-'Tag','pushbutton_radialPowerAverage');
-
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@fft_stuff_uicallback,h1,'edit_derivative_Callback'},...
+'Call',{@fft_stuff_uiCB,h1,'edit_derivative_CB'},...
 'Position',[127 43 41 21],...
 'String','1',...
 'Style','edit',...
@@ -924,7 +886,7 @@ uicontrol('Parent',h1,'HorizontalAlignment','right','Position',[10 43 115 19],..
 'String','Derivative (N-order)','Style','text', 'HorizontalAlignment','right');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@fft_stuff_uicallback,h1,'edit_dirDerivative_Callback'},...
+'Call',{@fft_stuff_uiCB,h1,'edit_dirDerivative_CB'},...
 'Position',[127 13 41 21],...
 'String','0',...
 'Style','edit',...
@@ -934,71 +896,89 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 uicontrol('Parent',h1,'HorizontalAlignment','right','Position',[0 13 125 19],...
 'String','Directional derivative','Style','text','HorizontalAlignment','right');
 
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback4,h1,[],'pushbutton_integrate_Callback'},...
-'Position',[240 43 101 21],...
+uicontrol('Parent',h1, 'Position',[168 73 31 21],...
+'Call',{@fft_stuff_uiCB,h1,'push_goUDcont_CB'},...
+'String','Go',...
+'Tag','push_goUDcont');
+
+uicontrol('Parent',h1, 'Position',[168 43 31 21],...
+'Call',{@fft_stuff_uiCB3,h1,[],'push_goDerivative_CB'},...
+'String','Go',...
+'Tag','push_goDerivative');
+
+uicontrol('Parent',h1, 'Position',[168 13 31 21],...
+'Call',{@fft_stuff_uiCB,h1,'push_goDirDerivative_CB'},...
+'String','Go',...
+'Tooltip','Azimuth of directional derivative CCW from north',...
+'Tag','push_goDirDerivative');
+
+uicontrol('Parent',h1, 'Position',[220 109 101 21],...
+'Call',{@fft_stuff_uiCB,h1,'push_powerSpectrum_CB'},...
+'String','Power Spectrum',...
+'Tag','push_powerSpectrum');
+
+uicontrol('Parent',h1, 'Position',[220 76 101 21],...
+'Call',{@fft_stuff_uiCB,h1,'push_autoCorr_CB'},...
+'String','Auto Correlation',...
+'Tag','push_autoCorr');
+
+uicontrol('Parent',h1, 'Position',[220 43 101 21],...
+'Call',{@fft_stuff_uiCB3,h1,[],'push_integrate_CB'},...
 'String','Integrate',...
-'Tag','pushbutton_integrate');
+'Tag','push_integrate');
 
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback4,h1,'FAA2Geoid','pushbutton_integrate_Callback'},...
-'Position',[240 10 101 21],...
+uicontrol('Parent',h1, 'Position',[220 10 101 21],...
+'Call',{@fft_stuff_uiCB3,h1,'FAA2Geoid','push_integrate_CB'},...
 'String','FAA2Geoid',...
-'Tag','pushbutton_faa2geoid');
+'Tag','push_faa2geoid');
 
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback4,h1,'Geoid2FAA','pushbutton_goDerivative_Callback'},...
-'Position',[360 10 121 21],...
-'String','Geoid2FAA',...
-'Tag','pushbutton_geoid2faa');
-
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback,h1,'pushbutton_goUDcont_Callback'},...
-'Position',[168 73 31 21],...
-'String','Go',...
-'Tag','pushbutton_goUDcont');
-
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback4,h1,[],'pushbutton_goDerivative_Callback'},...
-'Position',[168 43 31 21],...
-'String','Go',...
-'Tag','pushbutton_goDerivative');
-
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback,h1,'pushbutton_goDirDerivative_Callback'},...
-'Position',[168 13 31 21],...
-'String','Go',...
-'TooltipString','Azimuth of directional derivative CCW from north',...
-'Tag','pushbutton_goDirDerivative');
-
-uicontrol('Parent',h1,...
-'Callback',{@fft_stuff_uicallback,h1,'pushbutton_crossSpectra_Callback'},...
-'Position',[360 109 121 21],...
+uicontrol('Parent',h1, 'Position',[340 109 121 21],...
+'Call',{@fft_stuff_uiCB,h1,'push_crossSpectra_CB'},...
 'String','Cross Spectra',...
-'Tag','pushbutton_crossSpectra');
+'Tag','push_crossSpectra');
+
+uicontrol('Parent',h1, 'Position',[340 76 121 21],...
+'Call',{@fft_stuff_uiCB,h1,'push_crossCorr_CB'},...
+'String','Cross Correlation',...
+'Tag','push_crossCorr');
+
+uicontrol('Parent',h1, 'Position',[340 43 121 21],...
+'Call',{@fft_stuff_uiCB,h1,'push_radialPowerAverage_CB'},...
+'String','Radial power average',...
+'Tag','push_radialPowerAverage');
+
+uicontrol('Parent',h1, 'Position',[340 10 121 21],...
+'Call',{@fft_stuff_uiCB3,h1,'Geoid2FAA','push_goDerivative_CB'},...
+'String','Geoid2FAA',...
+'Tag','push_geoid2faa');
+
+uicontrol('Parent',h1, 'Position',[470 109 100 21],...
+'Call',{@fft_stuff_uiCB,h1,'push_AnalyticSig_CB'},...
+'String','Analytic Signal',...
+'Tag','push_AnalyticSig');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@fft_stuff_uicallback,h1,'popup_GridCoords_Callback'},...
+'Call',{@fft_stuff_uiCB,h1,'popup_GridCoords_CB'},...
 'Position',[86 106 82 22],...
 'String',{'Geogs'; 'Meters'; 'Kilometers'},...
 'Style','popupmenu',...
-'TooltipString','GRID COORDINATES: IT IS YOUR RESPONSABILITY THAT THIS IS CORRECT',...
+'Tooltip','GRID COORDINATES: IT IS YOUR RESPONSABILITY THAT THIS IS CORRECT',...
 'Value',1,...
 'Tag','popup_GridCoords');
 
 uicontrol('Parent',h1,'ForegroundColor',[1 0 0],'Position',[27 109 58 15],...
-'String','CONFIRM','Style','text','Tag','text17');
+'String','CONFIRM','Style','text');
 
 uicontrol('Parent',h1, 'Position',[50 140 105 15],...
 'String','Remove trend',...
 'Style','checkbox',...
-'TooltipString','If checked remove a plane before transformations',...
+'Tooltip','If checked remove a plane before transformations',...
 'Tag','checkbox_leaveTrend');
 
-function fft_stuff_uicallback(hObject, eventdata, h1, callback_name)
+function fft_stuff_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
 
-function fft_stuff_uicallback4(hObject, eventdata, h1, opt, callback_name)
+function fft_stuff_uiCB3(hObject, eventdata, h1, opt, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,[],guidata(h1),opt);
+	feval(callback_name,hObject,guidata(h1),opt);
