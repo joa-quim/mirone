@@ -294,13 +294,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	ndata = 0;	n_seg = 0;	np_in_seg = 0;
 
 	if (data_in_input) {	/* Data was transmited as arguments. */
-		double ecc2_1 = (1 - 0.0818191908426215 * 0.0818191908426215);	/* Parameter for WGS84 */
 		data = (struct DATA *) mxCalloc ((size_t) np_in, sizeof(struct DATA));
 		for (i = 0; i < np_in; i++) {
 			if (!mxIsNaN (tmp[i])) {
 				data[ndata].x = tmp[i];
 				/* Convert to geocentrics */
-				data[ndata].y = atan2( ecc2_1 * sin(tmp[i+np_in]*D2R), cos(tmp[i+np_in])*D2R) ) / D2R;
+				data[ndata].y = atan2( ecc2_1 * sin(tmp[i+np_in]*D2R), cos(tmp[i+np_in]*D2R) ) / D2R;
 				ndata++;
 				np_in_seg++;
 			}
