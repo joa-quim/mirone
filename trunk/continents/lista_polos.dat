@@ -1,31 +1,31 @@
   0.0    0.0     0.0     0.0  !ACO-NAM Iberia-North America
--37.50   7.000  -1.59    3.85 !ACO-NAM An3  J. Luis et al. 1984
--33.10  27.500  -5.54    5.69 !ACO-NAM An3A J. Luis et al. 1984
--35.10  17.800  -3.79    7.01 !ACO-NAM An4  J. Luis et al. 1984
--32.20  21.700  -6.20    8.69 !ACO-NAM An4A J. Luis et al. 1984
--37.00   2.200  -3.79   10.10 !ACO-NAM An5  J. Luis et al. 1984
+-37.50   7.0    -1.59    3.85 !ACO-NAM An3  J. Luis et al. 1984
+-33.10  27.5    -5.54    5.69 !ACO-NAM An3A J. Luis et al. 1984
+-35.10  17.8    -3.79    7.01 !ACO-NAM An4  J. Luis et al. 1984
+-32.20  21.7    -6.20    8.69 !ACO-NAM An4A J. Luis et al. 1984
+-37.00   2.2    -3.79   10.10 !ACO-NAM An5  J. Luis et al. 1984
 135.8   62.4     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
 
-139.87   62.78   2.34   10.33 !NAM<-EUR An5  J. Luis & Miranda Global
-140.52   53.03   2.26   10.33 !NAM<-EUR An5  J. Luis & Miranda Sul da CG
-140.04   61.88   4.56   19.55 !NAM<-IBE An6  J. Luis & Miranda Global
-140.12   56.64   4.48   19.55 !NAM<-IBE An6  J. Luis & Miranda Sul da CG
-139.25   61.87   7.24   33.25 !NAM<-IBE An13 J. Luis & Miranda Global
-125.25   71.27   7.51   33.25 !NAM<-IBE An13 J. Luis & Miranda Iberico
-117.22   77.18   9.43   39.13 !NAM<-IBE An18 J. Luis & Miranda
-111.20   76.67   10.31   43.14 !NAM<-IBE An20 J. Luis & Miranda
-113.54   78.28   11.50   47.06 !NAM<-IBE An21 J. Luis & Miranda
-126.73   72.14   11.49   49.37 !NAM<-IBE An22 J. Luis & Miranda
-124.72   72.20   12.11   51.30 !NAM<-IBE An23 J. Luis & Miranda
-124.68   73.23   12.93   52.79 !NAM<-IBE An24 J. Luis & Miranda
-133.00   68.87   13.83   56.14 !NAM<-IBE An25 J. Luis & Miranda
-133.08   69.77   14.40   57.70 !NAM<-IBE An26 J. Luis & Miranda
-136.90   66.16   15.17   63.09 !NAM<-IBE An28 J. Luis & Miranda
-135.28   70.90   16.09   64.30 !NAM<-IBE An29 J. Luis & Miranda
-135.65   69.70   16.51   67.02 !NAM<-IBE An30 J. Luis & Miranda
-132.63   77.31   18.48   72.25 !NAM<-IBE An32 J. Luis & Miranda
-116.00   85.46   22.11   78.00 !NAM<-IBE An33 J. Luis & Miranda
-119.58   85.79   23.18   81.00 !NAM<-IBE An33r J. Luis & Miranda
+139.87  62.78    2.34   10.33 !NAM<-EUR An5  J. Luis & Miranda Global
+140.52  53.03    2.26   10.33 !NAM<-EUR An5  J. Luis & Miranda Sul da CG
+140.04  61.88    4.56   19.55 !NAM<-IBE An6  J. Luis & Miranda Global
+140.12  56.64    4.48   19.55 !NAM<-IBE An6  J. Luis & Miranda Sul da CG
+139.25  61.87    7.24   33.25 !NAM<-IBE An13 J. Luis & Miranda Global
+125.25  71.27    7.51   33.25 !NAM<-IBE An13 J. Luis & Miranda Iberico
+117.22  77.18    9.43   39.13 !NAM<-IBE An18 J. Luis & Miranda
+111.20  76.67   10.31   43.14 !NAM<-IBE An20 J. Luis & Miranda
+113.54  78.28   11.50   47.06 !NAM<-IBE An21 J. Luis & Miranda
+126.73  72.14   11.49   49.37 !NAM<-IBE An22 J. Luis & Miranda
+124.72  72.20   12.11   51.30 !NAM<-IBE An23 J. Luis & Miranda
+124.68  73.23   12.93   52.79 !NAM<-IBE An24 J. Luis & Miranda
+133.00  68.87   13.83   56.14 !NAM<-IBE An25 J. Luis & Miranda
+133.08  69.77   14.40   57.70 !NAM<-IBE An26 J. Luis & Miranda
+136.90  66.16   15.17   63.09 !NAM<-IBE An28 J. Luis & Miranda
+135.28  70.90   16.09   64.30 !NAM<-IBE An29 J. Luis & Miranda
+135.65  69.70   16.51   67.02 !NAM<-IBE An30 J. Luis & Miranda
+132.63  77.31   18.48   72.25 !NAM<-IBE An32 J. Luis & Miranda
+116.00  85.46   22.11   78.00 !NAM<-IBE An33 J. Luis & Miranda
+119.58  85.79   23.18   81.00 !NAM<-IBE An33r J. Luis & Miranda
 
   0.0    0.0     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
 133.84  64.57   -2.39    9.8  !NAM<-IBE An5 Klitgord & Schouten 1986
@@ -60,13 +60,13 @@
 -12.82  65.72  -66.32  175.0  !NAM<-IBE Srivastava & Verhoef 1992
   0.0    0.00    0.0     0.0  !Afr<-IBE Iberia-Africa (Afr fixed)
 -20.61  21.03    0.0     0.0  !Afr<-IBE An0 Nuvel
--17.78  21.10   1.11   10.10  !Afr<-IBE An5 Fecho
--18.84  27.56   3.28   19.55  !Afr<-IBE An6 Fecho
--20.17  30.02   4.74   33.25  !Afr<-IBE An13 Fecho
--20.81  30.04   5.05   39.13  !Afr<-IBE An18 Fecho
--20.53  32.12   7.10   47.06  !Afr<-IBE An21 Fecho
--22.12  33.15   8.64   56.14  !Afr<-IBE An25 Fecho
--20.62  32.81   9.35   67.02  !Afr<-IBE An30 Fecho
+-17.78  21.10    1.11   10.10 !Afr<-IBE An5 Fecho
+-18.84  27.56    3.28   19.55 !Afr<-IBE An6 Fecho
+-20.17  30.02    4.74   33.25 !Afr<-IBE An13 Fecho
+-20.81  30.04    5.05   39.13 !Afr<-IBE An18 Fecho
+-20.53  32.12    7.10   47.06 !Afr<-IBE An21 Fecho
+-22.12  33.15    8.64   56.14 !Afr<-IBE An25 Fecho
+-20.62  32.81    9.35   67.02 !Afr<-IBE An30 Fecho
  38.8   78.8     0.0     0.0  !NAM<-NWA North America-Africa (NAm fixed)
  53.1   80.1    -0.48   1.86  !NAM<-NWA C2 S&P - idades deles
  67.7   77.7    -0.92   3.85  !NAM<-NWA C3 S&P
@@ -142,14 +142,14 @@
 -18.40  66.10  -59.79  139.9  !NAM<-NWA AnM16 Klitgord & Schouten 1986
 -18.10  66.50  -61.92  147.6  !NAM<-NWA AnM21 Klitgord & Schouten 1986
 -16.0   67.15  -64.70  154.4  !NAM<-NWA AnM25 Klitgord & Schouten 1986
- 0.28 75.46 -12.17 39.13   !NAM<-NWA An18 Klit & Sch 1986 INTERP
--2.68 74.94 -13.77 43.13   !NAM<-NWA An20 Klit & Sch 1986 INTERP
--3.96 76.28 -16.01 49.37   !NAM<-NWA An22 Klit & Sch 1986 INTERP
--3.15 77.61 -16.58 51.30   !NAM<-NWA An23 Klit & Sch 1986 INTERP
--2.45 78.58 -17.03 52.79   !NAM<-NWA An24 Klit & Sch 1986 INTERP
--0.52 80.91 -18.49 57.70   !NAM<-NWA An26 Klit & Sch 1986 INTERP
--0.58 81.94 -20.00 63.09   !NAM<-NWA An28 Klit & Sch 1986 INTERP
--0.60 82.15 -20.34 64.30   !NAM<-NWA An29 Klit & Sch 1986 INTERP
+ 0.28   75.46  -12.17  39.13  !NAM<-NWA An18 Klit & Sch 1986 INTERP
+-2.68   74.94  -13.77  43.13  !NAM<-NWA An20 Klit & Sch 1986 INTERP
+-3.96   76.28  -16.01  49.37  !NAM<-NWA An22 Klit & Sch 1986 INTERP
+-3.15   77.61  -16.58  51.30  !NAM<-NWA An23 Klit & Sch 1986 INTERP
+-2.45   78.58  -17.03  52.79  !NAM<-NWA An24 Klit & Sch 1986 INTERP
+-0.52   80.91  -18.49  57.70  !NAM<-NWA An26 Klit & Sch 1986 INTERP
+-0.58   81.94  -20.00  63.09  !NAM<-NWA An28 Klit & Sch 1986 INTERP
+-0.60   82.15  -20.34  64.30  !NAM<-NWA An29 Klit & Sch 1986 INTERP
 -12.34  66.97  -74.57  175.0  !NAM<-NWA East Coast Mag. Anom Klitgord & Schouten 1986
 -11.4   66.90  -77.50  180.0  !NAM<-NWA Dunbar & Sawyer 1989
 -11.4   66.90  -77.50  245.0  !NAM<-NWA Dunbar & Sawyer 1989
