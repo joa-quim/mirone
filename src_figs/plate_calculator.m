@@ -216,15 +216,15 @@ push_Calculate_CB(hObject,handles,'nada')
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radiobutton_Nuvel1A_CB(hObject, handles)
+function radio_Nuvel1A_CB(hObject, handles)
 if ~get(hObject,'Value')
     set(hObject,'Value',1);    return
 end
 
-set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
-set(handles.radiobutton_PBird,'Value',0)
-set(handles.radiobutton_DEOS2K,'Value',0)
-set(handles.radiobutton_REVEL,'Value',0)
+set(handles.radio_Nuvel1A_NNR,'Value',0)
+set(handles.radio_PBird,'Value',0)
+set(handles.radio_DEOS2K,'Value',0)
+set(handles.radio_REVEL,'Value',0)
 set(handles.checkbox_Abs2Rel,'Visible','off')
 
 set(handles.popup_FixedPlate,'Enable','on')
@@ -259,35 +259,35 @@ set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'Nuvel1A'})
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radiobutton_Nuvel1A_NNR_CB(hObject, handles)
+function radio_Nuvel1A_NNR_CB(hObject, handles)
 if ~get(hObject,'Value')
-    set(hObject,'Value',1);    return
+	set(hObject,'Value',1);    return
 end
 
 D2R = pi/180;
-set(handles.radiobutton_Nuvel1A,'Value',0)
-set(handles.radiobutton_PBird,'Value',0)
-set(handles.radiobutton_DEOS2K,'Value',0)
-set(handles.radiobutton_REVEL,'Value',0)
+set(handles.radio_Nuvel1A,'Value',0)
+set(handles.radio_PBird,'Value',0)
+set(handles.radio_DEOS2K,'Value',0)
+set(handles.radio_REVEL,'Value',0)
 set(handles.checkbox_Abs2Rel,'Visible','on')
 
 model = getappdata(handles.figure1,'current_model');
 if ~any(strcmp(model,{'Nuvel1A','Nuvel1A_NNR'}))    % Another plate model was loaded
-    set_Nuvel1Aplate_model(hObject,handles)
+	set_Nuvel1Aplate_model(hObject,handles)
 end
 
 if (handles.first_NNR)      % Load and read poles deffinition
-    fid = fopen([handles.path_data 'Nuvel1A_NNR_poles.dat'],'r');
-    [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-    fclose(fid);
-    % Save the poles parameters in the handles structure
-    handles.Nuvel1A_NNR_abbrev = abbrev;
-    handles.Nuvel1A_NNR_name = name;
-    handles.Nuvel1A_NNR_lat = lat;
-    handles.Nuvel1A_NNR_lon = lon;
-    handles.Nuvel1A_NNR_omega = omega;
-    handles.Nuvel1A_NNR_comb = do_plate_comb('Nuvel1A_NNR');
-    handles.first_NNR = 0;
+	fid = fopen([handles.path_data 'Nuvel1A_NNR_poles.dat'],'r');
+	[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+	fclose(fid);
+	% Save the poles parameters in the handles structure
+	handles.Nuvel1A_NNR_abbrev = abbrev;
+	handles.Nuvel1A_NNR_name = name;
+	handles.Nuvel1A_NNR_lat = lat;
+	handles.Nuvel1A_NNR_lon = lon;
+	handles.Nuvel1A_NNR_omega = omega;
+	handles.Nuvel1A_NNR_comb = do_plate_comb('Nuvel1A_NNR');
+	handles.first_NNR = 0;
 end
 
 % Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
@@ -319,23 +319,23 @@ end
 
 % Actualize the pole edit boxes fields and plot the pole
 if (omega ~= 0)         % That is, if the pole exists
-    set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-    set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-    set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
+	set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
+	set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
+	set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
 
-    tmp = lon;
-    if (tmp > 180),     tmp = tmp - 360; end
-    line(tmp,lat,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k',...
-        'MarkerSize',7,'Tag','pole_out');
-    tmp = lon+180;
-    if (tmp > 180),     tmp = tmp - 360;   end
-    line(tmp,-lat,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k',...
-        'MarkerSize',8,'Tag','pole_in1');
-    line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
+	tmp = lon;
+	if (tmp > 180),     tmp = tmp - 360; end
+	line(tmp,lat,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k',...
+		'MarkerSize',7,'Tag','pole_out');
+	tmp = lon+180;
+	if (tmp > 180),     tmp = tmp - 360;   end
+	line(tmp,-lat,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k',...
+		'MarkerSize',8,'Tag','pole_in1');
+	line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
 else
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
+	set(handles.edit_PoleLon,'String','')
+	set(handles.edit_PoleLat,'String','')
+	set(handles.edit_PoleRate,'String','')
 end
 
 % Remove info about the previously calculated velocity results
@@ -350,15 +350,15 @@ set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'NNR'})
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radiobutton_PBird_CB(hObject, handles)
+function radio_PBird_CB(hObject, handles)
 if ~get(hObject,'Value')
     set(hObject,'Value',1);    return
 end
 
-set(handles.radiobutton_Nuvel1A,'Value',0)
-set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
-set(handles.radiobutton_DEOS2K,'Value',0)
-set(handles.radiobutton_REVEL,'Value',0)
+set(handles.radio_Nuvel1A,'Value',0)
+set(handles.radio_Nuvel1A_NNR,'Value',0)
+set(handles.radio_DEOS2K,'Value',0)
+set(handles.radio_REVEL,'Value',0)
 set(handles.checkbox_Abs2Rel,'Visible','off')
 
 set(handles.popup_FixedPlate,'Enable','on')
@@ -403,16 +403,16 @@ set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'PB'})
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radiobutton_AKIM2000_CB(hObject, handles)
+function radio_AKIM2000_CB(hObject, handles)
 if ~get(hObject,'Value')
     set(hObject,'Value',1);    return
 end
 
 D2R = pi/180;
-set(handles.radiobutton_Nuvel1A,'Value',0)
-set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
-set(handles.radiobutton_PBird,'Value',0)
-set(handles.radiobutton_REVEL,'Value',0)
+set(handles.radio_Nuvel1A,'Value',0)
+set(handles.radio_Nuvel1A_NNR,'Value',0)
+set(handles.radio_PBird,'Value',0)
+set(handles.radio_REVEL,'Value',0)
 set(handles.checkbox_Abs2Rel,'Visible','on')
 
 set_AKIM2000plate_model(hObject,handles)
@@ -491,16 +491,16 @@ set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'AKIM2000'})
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radiobutton_REVEL_CB(hObject, handles)
+function radio_REVEL_CB(hObject, handles)
 if ~get(hObject,'Value')
     set(hObject,'Value',1);    return
 end
 
 D2R = pi/180;
-set(handles.radiobutton_Nuvel1A,'Value',0)
-set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
-set(handles.radiobutton_PBird,'Value',0)
-set(handles.radiobutton_DEOS2K,'Value',0)
+set(handles.radio_Nuvel1A,'Value',0)
+set(handles.radio_Nuvel1A_NNR,'Value',0)
+set(handles.radio_PBird,'Value',0)
+set(handles.radio_DEOS2K,'Value',0)
 set(handles.checkbox_Abs2Rel,'Visible','on')
 
 set_REVELplate_model(hObject,handles)
@@ -579,16 +579,16 @@ set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'REVEL'})
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radiobutton_DEOS2K_CB(hObject, handles)
+function radio_DEOS2K_CB(hObject, handles)
 if ~get(hObject,'Value')
     set(hObject,'Value',1);    return
 end
 
 D2R = pi/180;
-set(handles.radiobutton_Nuvel1A,'Value',0)
-set(handles.radiobutton_Nuvel1A_NNR,'Value',0)
-set(handles.radiobutton_PBird,'Value',0)
-set(handles.radiobutton_REVEL,'Value',0)
+set(handles.radio_Nuvel1A,'Value',0)
+set(handles.radio_Nuvel1A_NNR,'Value',0)
+set(handles.radio_PBird,'Value',0)
+set(handles.radio_REVEL,'Value',0)
 set(handles.checkbox_Abs2Rel,'Visible','on')
 
 set_DEOS2Kplate_model(hObject,handles)
@@ -668,95 +668,97 @@ guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function edit_PtLon_CB(hObject, handles)
-xx = get(hObject,'String');
-if (isempty(xx) || str2double(xx) < -180 || str2double(xx) > 360)
-    set(hObject,'String','0')
-end
+	xx = get(hObject,'String');
+	if (isempty(xx) || str2double(xx) < -180 || str2double(xx) > 360)
+		set(hObject,'String','0')
+	end
 
 %--------------------------------------------------------------------------------------------------
 function edit_PtLat_CB(hObject, handles)
-xx = get(hObject,'String');
-if (isempty(xx) || str2double(xx) < -90 || str2double(xx) > 90)
-    set(hObject,'String','0')
-end
+	xx = get(hObject,'String');
+	if (isempty(xx) || str2double(xx) < -90 || str2double(xx) > 90)
+		set(hObject,'String','0')
+	end
 
 %--------------------------------------------------------------------------------------------------
 function push_Calculate_CB(hObject, handles, opt)
 % Calculate the Euler velocity based on the Euler pole read on respective edit boxes.
 
-if (nargin == 3),   opt = [];   end
-D2R = pi/180;
-earth_rad = 6371e3;    % Earth radius in km
+	if (nargin == 3),   opt = [];   end
+	D2R = pi/180;
+	earth_rad = 6371e3;    % Earth radius in km
 
-plon = str2double(get(handles.edit_PoleLon,'String'))*D2R;
-plat = str2double(get(handles.edit_PoleLat,'String'))*D2R;
-omega = str2double(get(handles.edit_PoleRate,'String'));
-if isnan(plon) || isnan(plat) || isnan(omega)
-    errordlg('Euler Pole parameters are wrong.','Error');
-    return
-end
+	plon = str2double(get(handles.edit_PoleLon,'String'))*D2R;
+	plat = str2double(get(handles.edit_PoleLat,'String'))*D2R;
+	omega = str2double(get(handles.edit_PoleRate,'String'));
+	if isnan(plon) || isnan(plat) || isnan(omega)
+		errordlg('Euler Pole parameters are wrong.','Error');
+		return
+	end
 
-% Plot the pole using the arrow extremities analogy
-% A brief note. I tryed to have these markers drawn only once and than changing theyr position
-% using set. However, no matter how many times I used uistack, after deleting the patches and
-% drawing new ones (following a model change), the markers never sohwn up again. So, the drastic
-% solution is to delete them and star over again (that is, drawing new ones).
-h_pole_out = findobj('Tag','pole_out');     h_pole_in1 = findobj('Tag','pole_in1');
-h_pole_in2 = findobj('Tag','pole_in2');
-delete(h_pole_out);     delete(h_pole_in1);     delete(h_pole_in2);
-tmp = plon;
-if (tmp > pi),     tmp = tmp - 2*pi; end
-line(tmp/D2R,plat/D2R,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',7,'Tag','pole_out');
-tmp = plon+pi;
-if (tmp > pi),     tmp = tmp - 2*pi;   end
-line(tmp/D2R,-plat/D2R,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in1');
-line(tmp/D2R,-plat/D2R,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
+	% Plot the pole using the arrow extremities analogy
+	% A brief note. I tried to have these markers drawn only once and than changing their position
+	% using set. However, no matter how many times I used uistack, after deleting the patches and
+	% drawing new ones (following a model change), the markers never sohwn up again. So, the drastic
+	% solution is to delete them and star over again (that is, drawing new ones).
+	h_pole_out = findobj('Tag','pole_out');     h_pole_in1 = findobj('Tag','pole_in1');
+	h_pole_in2 = findobj('Tag','pole_in2');
+	delete(h_pole_out);     delete(h_pole_in1);     delete(h_pole_in2);
+	tmp = plon;
+	if (tmp > pi),		tmp = tmp - 2*pi;	end
+	line(tmp/D2R,plat/D2R,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',7,'Tag','pole_out');
+	tmp = plon+pi;
+	if (tmp > pi),		tmp = tmp - 2*pi;	end
+	line(tmp/D2R,-plat/D2R,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in1');
+	line(tmp/D2R,-plat/D2R,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
 
-% Get interest point coordinates
-alon = str2double(get(handles.edit_PtLon,'String'))*D2R;
-alat = str2double(get(handles.edit_PtLat,'String'))*D2R;
-if isnan(alon) || isnan(alat)
-    if isempty(opt)         % User hit "Calculate" but no point where calculate is provided
-        errordlg('Calculate velocity where?','Chico Clever');
-    end
-    return
-end
+	% Get interest point coordinates
+	alon = str2double(get(handles.edit_PtLon,'String'))*D2R;
+	alat = str2double(get(handles.edit_PtLat,'String'))*D2R;
+	if isnan(alon) || isnan(alat)
+		if isempty(opt)         % User hit "Calculate" but no point where calculate is provided
+			errordlg('Calculate velocity where?','Chico Clever');
+		end
+		return
+	end
+ 	ecc = 0.0818191908426215;		% WGS84
+ 	alat = atan2( (1-ecc^2)*sin(alat), cos(alat) );			% Convert to geocentric
 
-x = cos(plat)*sin(plon)*sin(alat) - cos(alat)*sin(alon)*sin(plat);    % East vel
-y = cos(alat)*cos(alon)*sin(plat) - cos(plat)*cos(plon)*sin(alat);    % North vel
-z = cos(plat)*cos(alat)*sin(alon-plon);
-vlon = -sin(alon)*x + cos(alon)*y;
-vlat = -sin(alat)*cos(alon)*x-sin(alat)*sin(alon)*y + cos(alat)*z;
-azim = 90 - atan2(vlat,vlon) / D2R;
+	x = cos(plat)*sin(plon)*sin(alat) - cos(alat)*sin(alon)*sin(plat);    % East vel
+	y = cos(alat)*cos(alon)*sin(plat) - cos(plat)*cos(plon)*sin(alat);    % North vel
+	z = cos(plat)*cos(alat)*sin(alon-plon);
+	vlon = -sin(alon)*x + cos(alon)*y;
+	vlat = -sin(alat)*cos(alon)*x-sin(alat)*sin(alon)*y + cos(alat)*z;
+	azim = 90 - atan2(vlat,vlon) / D2R;
 
-if (azim < 0)       % Give allways the result in the 0-360 range
-    azim = azim + 360;
-end
+	if (azim < 0)       % Give allways the result in the 0-360 range
+		azim = azim + 360;
+	end
 
-x = sin(alat)*sin(plat) + cos(alat)*cos(plat)*cos(plon-alon);
-delta = acos(x);
-vel = omega*D2R/1e+4 * earth_rad * sin(delta);      % to give velocity in cm/Ma
+	x = sin(alat)*sin(plat) + cos(alat)*cos(plat)*cos(plon-alon);
+	delta = acos(x);
+	vel = omega*D2R/1e+4 * earth_rad * sin(delta);		% to give velocity in cm/Ma
 
-% Get the position of the text objects that will contain the velocity results
-set(handles.text_Speed,'String',['Speed   = ' sprintf('%2.2f',vel) ' cm/yr'])
-set(handles.text_Azim,'String',['Azimuth = ' sprintf('%3.1f',azim) ' degree (cw from N)'])
+	% Get the position of the text objects that will contain the velocity results
+	set(handles.text_Speed,'String',['Speed   = ' sprintf('%2.2f',vel) ' cm/yr'])
+	set(handles.text_Azim,'String',['Azimuth = ' sprintf('%3.1f',azim) ' degree (cw from N)'])
 
 % -----------------------------------------------------------------------------------------
 function [vel,azim] = compute_velocity(alat,alon,plat,plon,omega)
 % alat & alon are the point coords. plat, plon & omega are the pole parameters
-D2R = pi/180;
-earth_rad = 6371e3;    % Earth radius in km
+	D2R = pi/180;
+	earth_rad = 6371e3;    % Earth radius in km
 
-x = cos(plat)*sin(plon)*sin(alat) - cos(alat)*sin(alon)*sin(plat);    % East vel
-y = cos(alat)*cos(alon)*sin(plat) - cos(plat)*cos(plon)*sin(alat);    % North vel
-z = cos(plat)*cos(alat)*sin(alon-plon);
-vlon = -sin(alon)*x + cos(alon)*y;
-vlat = -sin(alat)*cos(alon)*x-sin(alat)*sin(alon)*y + cos(alat)*z;
-azim = 90 - atan2(vlat,vlon) / D2R;
+	x = cos(plat)*sin(plon)*sin(alat) - cos(alat)*sin(alon)*sin(plat);    % East vel
+	y = cos(alat)*cos(alon)*sin(plat) - cos(plat)*cos(plon)*sin(alat);    % North vel
+	z = cos(plat)*cos(alat)*sin(alon-plon);
+	vlon = -sin(alon)*x + cos(alon)*y;
+	vlat = -sin(alat)*cos(alon)*x-sin(alat)*sin(alon)*y + cos(alat)*z;
+	azim = 90 - atan2(vlat,vlon) / D2R;
 
-x = sin(alat)*sin(plat) + cos(alat)*cos(plat)*cos(plon-alon);
-delta = acos(x);
-vel = omega*D2R/1e+4 * earth_rad * sin(delta);      % to give velocity in cm/Ma
+	x = sin(alat)*sin(plat) + cos(alat)*cos(plat)*cos(plon-alon);
+	delta = acos(x);
+	vel = omega*D2R/1e+4 * earth_rad * sin(delta);      % to give velocity in cm/Ma
 
 
 % -----------------------------------------------------------------------------------------
@@ -1313,38 +1315,38 @@ end
 % --- Executes on button press in push_Readme.
 function push_Readme_CB(hObject, handles)
 message = {'There is not much to say about the program use (specially if you know what'
-    'is a plate calculator). You just click arround and watch the results. A'
-    'little trial will also show that you can change the point where velocity'
-    'is beeing computed, which plates (in the relative motion mode, or what'
-    'plate in the absolute motion mode) are  used, or even the rotation pole'
-    'itself. The black dot that shows on the map indicates the position of the'
-    'current Euler pole when seen from outside the Earth. The cross inside a'
-    'circle represents the position where the pole enters in Earth.'
-    ' '
-    'However, regarding the DEOS2K and the REVEL models a couple of issues'
-    'must be adressed. This program works by finding the plate currently'
-    'clicked and than either computing the the velocity if it is an absolute'
-    'motion, or by finding first the nearest neighbour plate (if it is a'
-    'relative motion), compute the relative motion Euler pole and finally'
-    'compute the velocity vector. It happens that for all of this to work, we'
-    'must know the plate borders for each model and the guessing of the'
-    'currently clicked plate must be correct. Regarding the first, those plate'
-    'borders were not available to me, so I had to improvise using the Nuvel1A'
-    'and Peter Bird''s plate models. That means that not all model poles are'
-    'selectable through a mouse click. And that is also why some areas show up'
-    'as white regions (particularly in the REVEL model that was based on P.'
-    'Bird''s plate model). If you realy want to calculate velocities in one of'
-    'these areas, manualy enter the point coordinates, select the desired plate'
-    'in the popupmenu and hit "Calculate".'
-    ' '
-    'Concearning the correct guessing of the clicked plate, you may find that'
-    'the program does sometimes fail (when small plated are clicked). Well,'
-    'that''s not at all my fault. Complain to the Mathworks Inc for its still'
-    'somewhat buggy product.'
-    ' '
-    'The "Relativize" checkbox appears when any of the absolute models is'
-    'active. When checked, the absolute model is used to compute relative'
-    'motion (poles) from the guessed (or selected) neighbour plates.'};
+	'is a plate calculator). You just click arround and watch the results. A'
+	'little trial will also show that you can change the point where velocity'
+	'is beeing computed, which plates (in the relative motion mode, or what'
+	'plate in the absolute motion mode) are  used, or even the rotation pole'
+	'itself. The black dot that shows on the map indicates the position of the'
+	'current Euler pole when seen from outside the Earth. The cross inside a'
+	'circle represents the position where the pole enters in Earth.'
+	' '
+	'However, regarding the DEOS2K and the REVEL models a couple of issues'
+	'must be adressed. This program works by finding the plate currently'
+	'clicked and than either computing the the velocity if it is an absolute'
+	'motion, or by finding first the nearest neighbour plate (if it is a'
+	'relative motion), compute the relative motion Euler pole and finally'
+	'compute the velocity vector. It happens that for all of this to work, we'
+	'must know the plate borders for each model and the guessing of the'
+	'currently clicked plate must be correct. Regarding the first, those plate'
+	'borders were not available to me, so I had to improvise using the Nuvel1A'
+	'and Peter Bird''s plate models. That means that not all model poles are'
+	'selectable through a mouse click. And that is also why some areas show up'
+	'as white regions (particularly in the REVEL model that was based on P.'
+	'Bird''s plate model). If you realy want to calculate velocities in one of'
+	'these areas, manualy enter the point coordinates, select the desired plate'
+	'in the popupmenu and hit "Calculate".'
+	' '
+	'Concearning the correct guessing of the clicked plate, you may find that'
+	'the program does sometimes fail (when small plated are clicked). Well,'
+	'that''s not at all my fault. Complain to the Mathworks Inc for its still'
+	'somewhat buggy product.'
+	' '
+	'The "Relativize" checkbox appears when any of the absolute models is'
+	'active. When checked, the absolute model is used to compute relative'
+	'motion (poles) from the guessed (or selected) neighbour plates.'};
 helpdlg(message,'Help on Plate Calculator');
 
 %--------------------------------------------------------------------------------------------------
@@ -1361,28 +1363,28 @@ function [plon,plat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2)
 % Note that from the poles list we know pWa (= -aWp) and pWb. So:
 % aWb = -pWa + pWb
 %
-D2R = pi/180;
-if(lon1 == lon2 && lat1 == lat2)     % The two poles are equal
-    plon = 0;   plat = 0;   omega = 0;
-    return
-end
+	D2R = pi/180;
+	if(lon1 == lon2 && lat1 == lat2)     % The two poles are equal
+		plon = 0;   plat = 0;   omega = 0;
+		return
+	end
 
-pWa_x = omega1 * cos(lat1*D2R) * cos(lon1*D2R);
-pWa_y = omega1 * cos(lat1*D2R) * sin(lon1*D2R);
-pWa_z = omega1 * sin(lat1*D2R);
+	pWa_x = omega1 * cos(lat1*D2R) * cos(lon1*D2R);
+	pWa_y = omega1 * cos(lat1*D2R) * sin(lon1*D2R);
+	pWa_z = omega1 * sin(lat1*D2R);
 
-pWb_x = omega2 * cos(lat2*D2R) * cos(lon2*D2R);
-pWb_y = omega2 * cos(lat2*D2R) * sin(lon2*D2R);
-pWb_z = omega2 * sin(lat2*D2R);
+	pWb_x = omega2 * cos(lat2*D2R) * cos(lon2*D2R);
+	pWb_y = omega2 * cos(lat2*D2R) * sin(lon2*D2R);
+	pWb_z = omega2 * sin(lat2*D2R);
 
-aWb_x = -pWa_x + pWb_x;
-aWb_y = -pWa_y + pWb_y;
-aWb_z = -pWa_z + pWb_z;
+	aWb_x = -pWa_x + pWb_x;
+	aWb_y = -pWa_y + pWb_y;
+	aWb_z = -pWa_z + pWb_z;
 
-% Convert cartesian pole coordinates back to spherical coordinates
-plat = atan(aWb_z/sqrt(aWb_x*aWb_x + aWb_y*aWb_y));
-plon = atan2(aWb_y,aWb_x);
-omega = sqrt(aWb_x*aWb_x + aWb_y*aWb_y + aWb_z*aWb_z);
+	% Convert cartesian pole coordinates back to spherical coordinates
+	plat = atan(aWb_z/sqrt(aWb_x*aWb_x + aWb_y*aWb_y));
+	plon = atan2(aWb_y,aWb_x);
+	omega = sqrt(aWb_x*aWb_x + aWb_y*aWb_y + aWb_z*aWb_z);
 
 %--------------------------------------------------------------------------------------------------
 function checkbox_Abs2Rel_CB(hObject, handles)
@@ -1509,12 +1511,12 @@ uicontrol('Parent',h1,...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Call',{@plate_calculator_uiCB,h1,'radiobutton_Nuvel1A_CB'},...
+'Call',{@plate_calculator_uiCB,h1,'radio_Nuvel1A_CB'},...
 'Position',[14 271 75 15],...
 'String','Nuvel-1A',...
 'Style','radiobutton',...
 'Value',1,...
-'Tag','radiobutton_Nuvel1A');
+'Tag','radio_Nuvel1A');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -1545,11 +1547,11 @@ uicontrol('Parent',h1,...
 'Tag','push_Calculate');
 
 uicontrol('Parent',h1,...
-'Call',{@plate_calculator_uiCB,h1,'radiobutton_PBird_CB'},...
+'Call',{@plate_calculator_uiCB,h1,'radio_PBird_CB'},...
 'Position',[14 244 71 15],...
 'String','P. Bird',...
 'Style','radiobutton',...
-'Tag','radiobutton_PBird');
+'Tag','radio_PBird');
 
 uicontrol('Parent',h1,...
 'Position',[10 144 72 15],...
@@ -1597,11 +1599,11 @@ uicontrol('Parent',h1,...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Call',{@plate_calculator_uiCB,h1,'radiobutton_Nuvel1A_NNR_CB'},...
+'Call',{@plate_calculator_uiCB,h1,'radio_Nuvel1A_NNR_CB'},...
 'Position',[108 274 100 15],...
 'String','Nuvel-1A NNR',...
 'Style','radiobutton',...
-'Tag','radiobutton_Nuvel1A_NNR');
+'Tag','radio_Nuvel1A_NNR');
 
 uicontrol('Parent',h1, 'Position',[10 5 241 51], 'Style','frame');
 
@@ -1621,18 +1623,18 @@ uicontrol('Parent',h1, 'Position',[20 11 220 17],...
 'Tag','text_Azim');
 
 uicontrol('Parent',h1,...
-'Call',{@plate_calculator_uiCB,h1,'radiobutton_DEOS2K_CB'},...
+'Call',{@plate_calculator_uiCB,h1,'radio_DEOS2K_CB'},...
 'Position',[108 254 87 15],...
 'String','DEOS2K',...
 'Style','radiobutton',...
-'Tag','radiobutton_DEOS2K');
+'Tag','radio_DEOS2K');
 
 uicontrol('Parent',h1,...
-'Call',{@plate_calculator_uiCB,h1,'radiobutton_REVEL_CB'},...
+'Call',{@plate_calculator_uiCB,h1,'radio_REVEL_CB'},...
 'Position',[108 235 87 15],...
 'String','REVEL',...
 'Style','radiobutton',...
-'Tag','radiobutton_REVEL');
+'Tag','radio_REVEL');
 
 uicontrol('Parent',h1, 'Position',[20 293 51 15],...
 'String','Relative',...
