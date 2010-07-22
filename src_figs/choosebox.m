@@ -72,24 +72,32 @@ function [selection,value] = choosebox(varargin)
 %     return
 % end
 
+	mir_dirs = getappdata(0,'MIRONE_DIRS');
+	if (~isempty(mir_dirs))
+		ad.home_dir = mir_dirs.home_dir;		% Start in values
+	else
+		ad.home_dir = cd;
+	end
+	%d_path = [ad.home_dir filesep 'data' filesep];
+
 arrow=[...
-     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0
-     0     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     0
-     0     1     1     1     1     1     1     0     1     1     1     1     1     1     1     1     0
-     0     1     1     1     1     1     1     0     0     1     1     1     1     1     1     1     0
-     0     1     1     1     1     1     1     0     0     0     1     1     1     1     1     1     0
-     0     1     1     1     1     1     1     0     0     0     0     1     1     1     1     1     0
-     0     1     1     0     0     0     0     0     0     0     0     0     1     1     1     1     0
-     0     1     1     0     0     0     0     0     0     0     0     0     0     1     1     1     0
-     0     1     1     0     0     0     0     0     0     0     0     0     0     0     1     1     0
-     0     1     1     0     0     0     0     0     0     0     0     0     0     1     1     1     0
-     0     1     1     0     0     0     0     0     0     0     0     0     1     1     1     1     0
-     0     1     1     1     1     1     1     0     0     0     0     1     1     1     1     1     0
-     0     1     1     1     1     1     1     0     0     0     1     1     1     1     1     1     0
-     0     1     1     1     1     1     1     0     0     1     1     1     1     1     1     1     0
-     0     1     1     1     1     1     1     0     1     1     1     1     1     1     1     1     0
-     0     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     0
-     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0];
+	 0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0
+	 0     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     0
+	 0     1     1     1     1     1     1     0     1     1     1     1     1     1     1     1     0
+	 0     1     1     1     1     1     1     0     0     1     1     1     1     1     1     1     0
+	 0     1     1     1     1     1     1     0     0     0     1     1     1     1     1     1     0
+	 0     1     1     1     1     1     1     0     0     0     0     1     1     1     1     1     0
+	 0     1     1     0     0     0     0     0     0     0     0     0     1     1     1     1     0
+	 0     1     1     0     0     0     0     0     0     0     0     0     0     1     1     1     0
+	 0     1     1     0     0     0     0     0     0     0     0     0     0     0     1     1     0
+	 0     1     1     0     0     0     0     0     0     0     0     0     0     1     1     1     0
+	 0     1     1     0     0     0     0     0     0     0     0     0     1     1     1     1     0
+	 0     1     1     1     1     1     1     0     0     0     0     1     1     1     1     1     0
+	 0     1     1     1     1     1     1     0     0     0     1     1     1     1     1     1     0
+	 0     1     1     1     1     1     1     0     0     1     1     1     1     1     1     1     0
+	 0     1     1     1     1     1     1     0     1     1     1     1     1     1     1     1     0
+	 0     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     0
+	 0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0];
 
 rarrow = repmat(arrow, [1 1 3]);
 larrow = repmat(fliplr(arrow), [1 1 3]);
@@ -181,7 +189,7 @@ ad.hFig = fig;
 ad.multiple_finite = multiple_finite;
 setappdata(0,'ListDialogAppData',ad)
 
-load([pwd filesep 'data' filesep 'mirone_icons.mat'],'Mfopen_ico','um_ico','dois_ico','help_ico',...
+load([ad.home_dir filesep 'data' filesep 'mirone_icons.mat'],'Mfopen_ico','um_ico','dois_ico','help_ico',...
 	'refrescaBA_ico','refrescaAB_ico','earthNorth_ico','earthSouth_ico','mais_ico');
 
 h_toolbar = uitoolbar('parent',fig, 'BusyAction','queue','HandleVisibility','on',...
@@ -189,21 +197,20 @@ h_toolbar = uitoolbar('parent',fig, 'BusyAction','queue','HandleVisibility','on'
 uipushtool('parent',h_toolbar,'Click',@import_clickedcallback,'Tag','import',...
 	'cdata',Mfopen_ico,'TooltipString','Open finite poles file');
 uitoggletool('parent',h_toolbar,'cdata',dois_ico,'Tag','HalfAngle','Click',{@toggle_clickedcallback1,h_toolbar},...
-    'TooltipString','Compute half angle stage poles','State','on');
+	'Tooltip','Compute half angle stage poles','State','on');
 uitoggletool('parent',h_toolbar,'cdata',um_ico,'Tag','FullAngle','Click',{@toggle_clickedcallback1,h_toolbar},...
-    'TooltipString','Compute full angle stage poles');
+	'Tooltip','Compute full angle stage poles');
 uitoggletool('parent',h_toolbar,'cdata',refrescaBA_ico,'Tag','directStages','Click',{@toggle_clickedcallback2,h_toolbar},...
-    'TooltipString','b_ROT_a (rotations are with respect to the fixed plate B)','State','on','Separator','on');
+	'Tooltip','b_ROT_a (rotations are with respect to the fixed plate B)','State','on','Sep','on');
 uitoggletool('parent',h_toolbar,'cdata',refrescaAB_ico,'Tag','inverseStages','Click',{@toggle_clickedcallback2,h_toolbar},...
-    'TooltipString','a_ROT_b (rotations are with respect to the fixed plate A)');
+	'Tooltip','a_ROT_b (rotations are with respect to the fixed plate A)');
 uitoggletool('parent',h_toolbar,'cdata',mais_ico,'Tag','positive','Click',{@toggle_clickedcallback3,h_toolbar},...
-    'TooltipString','Reports positive rotation angles','State','on','Separator','on');
+	'Tooltip','Reports positive rotation angles','State','on','Sep','on');
 uitoggletool('parent',h_toolbar,'cdata',earthNorth_ico,'Tag','earthNorth','Click',{@toggle_clickedcallback3,h_toolbar},...
-    'TooltipString','Place all output poles in the northern hemisphere');
+	'Tooltip','Place all output poles in the northern hemisphere');
 uitoggletool('parent',h_toolbar,'cdata',earthSouth_ico,'Tag','earthSouth','Click',{@toggle_clickedcallback3,h_toolbar},...
-    'TooltipString','Place all output poles in the southern hemisphere');
-uipushtool('parent',h_toolbar,'Click',@help_clickedcallback,'Tag','help','TooltipString','Help',...
-    'cdata',help_ico,'Separator','on');
+	'Tooltip','Place all output poles in the southern hemisphere');
+uipushtool('parent',h_toolbar,'Click',@help_clickedcallback,'Tag','help','Tooltip','Help', 'cdata',help_ico,'Sep','on');
 
 uicontrol('style','frame', 'position',[1 1 fp([3 4])])
 uicontrol('style','frame', 'position',[ffs ffs 2*fus+listsize(1) 2*fus+uh])
@@ -234,7 +241,8 @@ uicontrol('style','listbox',...
 		'string',ad.fromstring,...
 		'backgroundcolor','w',...
 		'max',2,...
-		'tag','leftbox',...
+		'FontName', 'FixedWidth',...
+		'Tag','leftbox',...
 		'value',initialvalue, ...
 		'callback',{@doFromboxClick});
          
@@ -243,6 +251,7 @@ uicontrol('style','listbox',...
 		'string',ad.tostring,...
 		'backgroundcolor','w',...
 		'max',2,...
+		'FontName', 'FixedWidth',...
 		'Tag','rightbox',...
 		'value',[], ...
 		'callback',{@doToboxClick});
@@ -299,10 +308,13 @@ end
 
 % --------------------------------------------------------------------
 function import_clickedcallback(hObject, eventdata)
+	ad = getappdata(0,'ListDialogAppData');
+	aqui = cd;
+	try		cd([ad.home_dir filesep 'continents']),		end
 	[FileName,PathName] = uigetfile({'*.dat;*.DAT', 'poles files (*.dat,*.DAT)'},'Select finite poles File');
 	pause(0.01)
+	cd(aqui)
 	if isequal(FileName,0);     return;     end
-	ad = getappdata(0,'ListDialogAppData');
 
 	% Read the file
 	fid = fopen([PathName FileName],'rt');
@@ -310,7 +322,8 @@ function import_clickedcallback(hObject, eventdata)
 	fclose(fid);
 	s = strread(c,'%s','delimiter','\n');
 
-	ad.fromstring = cellstr(s);
+	%ad.fromstring = cellstr(s);
+	ad.fromstring = s;
 	set(findobj(ad.hFig,'Tag','leftbox'),'String',ad.fromstring);
 	set(findobj(ad.hFig,'Tag','rightbox'),'String','');
 	ad.tostring = '';
