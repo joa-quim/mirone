@@ -21,6 +21,8 @@
  *			  Changed the default time scale for that of Cand & Kent 95
  *			  The old Cand scale was renamed isoc_o
  *          	 01/07/08 Killed all the globals
+ *
+ *          	 22/07/10 Convert latitudes to geocentric -> rotations -> back to geodetics
  */
 
 #include "telha.h"
@@ -72,6 +74,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double	dl = 0.05;		/* Delta resolution in degrees for along segment interpolation */
 	double	ddeg = 0.005;		/* Delta resolution in degrees for flow interpolation */
 	double	age_lin_start, age_lin_stop, age_lin_inc, *first_mag;
+	double	ecc2_1 = (1 - 0.0818191908426215 * 0.0818191908426215);	/* Parameter for convertion to geocentrics in WGS84 */
 	char	line[MAXCHAR], *newseg = ">";
 	char	*euler_file = NULL;	/* Name pointer for file with stage poles */
 	char	*t_scale = NULL;	/* Name pointer for file with time scale */
@@ -291,11 +294,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	ndata = 0;	n_seg = 0;	np_in_seg = 0;
 
 	if (data_in_input) {	/* Data was transmited as arguments. */
+		double ecc2_1 = (1 - 0.0818191908426215 * 0.0818191908426215);	/* Parameter for WGS84 */
 		data = (struct DATA *) mxCalloc ((size_t) np_in, sizeof(struct DATA));
 		for (i = 0; i < np_in; i++) {
 			if (!mxIsNaN (tmp[i])) {
 				data[ndata].x = tmp[i];
-				data[ndata].y = tmp[i+np_in];
+				/* Convert to geocentrics */
+				data[ndata].y = atan2( ecc2_1 * sin(tmp[i+np_in]*D2R), cos(tmp[i+np_in])*D2R) ) / D2R;
 				ndata++;
 				np_in_seg++;
 			}
@@ -425,8 +430,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	for (jj = 0; jj < n_isoc && isoc_scale[jj].age <= upper_age; jj++) n_flow++;
 	n_flow -= i_min;
 
-/*mexPrintf("jj = %d isoc_scale = %f uper_age = %f\n", jj, isoc_scale[jj].age, upper_age);*/
-/*mexPrintf("isoc_scale = %f n_flow = %d i_min = %d\n", isoc_scale[jj].age, n_flow, i_min);*/
 	/* NOTE. Since from the above loop jj is allways < n_isoc, but it also is incremented one
 	   too much before the condition fails, we can safely do the following. The intention is that
 	   we can have also the portion of the last brick between isoc_scale[jj-1].age and upper_age */
@@ -452,7 +455,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				lat = data[i].y * D2R;
 				age = isoc_scale[j].age;
 				n_chunk = spotter_backtrack (&lon, &lat, &age, 1, p, n_stages, 0);
-				lon *= R2D;	lat *= R2D;
+				lon *= R2D;
+				lat = atan2( sin(lat), ecc2_1 * cos(lat) ) * R2D;	/* Convert back to geodetics */
 				if (fabs(lon / 180.) > 1) lon -= 360.;
 				c[ii++] = lon;	c[ii++] = lat;
 			}
@@ -503,14 +507,16 @@ int read_time_scale (FILE *fp_ts, struct ISOC_SCALE *isoc_scale) {
 
        	n_alloc = SMALL_CHUNK;
 
-	if ((isoc_scale = (struct ISOC_SCALE *) mxCalloc ((size_t) n_alloc, sizeof(struct ISOC_SCALE)) ) == NULL) {no_sys_mem("telha --> (read_isoc_scale)", n_alloc);}
+	if ((isoc_scale = (struct ISOC_SCALE *) mxCalloc ((size_t) n_alloc, sizeof(struct ISOC_SCALE)) ) == NULL) 
+			{no_sys_mem("telha --> (read_isoc_scale)", n_alloc);}
 
 	while (fgets (line, 512, fp_ts)) { 
 		if(sscanf (line, "%lg %lg", &in[0], &in[1]) !=2)
 			mexPrintf ("ERROR deciphering line %d of isoc_scale file\n", ndata+1);
                	if (ndata == n_alloc) {
                        	n_alloc += SMALL_CHUNK;
-			if ((isoc_scale = (struct ISOC_SCALE *) mxRealloc ((void *)isoc_scale, (size_t)(n_alloc * sizeof(struct ISOC_SCALE)))) == NULL) {no_sys_mem("telha --> (read_isoc_scale)", n_alloc);}
+			if ((isoc_scale = (struct ISOC_SCALE *) mxRealloc ((void *)isoc_scale, (size_t)(n_alloc * sizeof(struct ISOC_SCALE)))) == NULL) 
+				{no_sys_mem("telha --> (read_isoc_scale)", n_alloc);}
                	}
 		isoc_scale[ndata].age = in[0];
 		isoc_scale[ndata].mag = in[1];
@@ -535,9 +541,12 @@ int int_perf (double *c, int i_min, int n_flow, int k, int age_flow, int multi_f
 	/* Vai ser preciso mais tarde decidir quem sao os xx e yy transmitidos para intp_lin	*/
 
 	for (ll = 0; ll < data[k].np; ll++) {
-		if ((xx = (double *) mxCalloc ((size_t)(2*n_flow), sizeof(double)) ) == NULL) {no_sys_mem("telha --> int_perf (xx)", 2*n_flow);} 
-		if ((yy = (double *) mxCalloc ((size_t)(2*n_flow), sizeof(double)) ) == NULL) {no_sys_mem("telha --> int_perf (yy)", 2*n_flow);} 
-		if ((m_a = (double *) mxCalloc ((size_t)(2*n_flow), sizeof(double)) ) == NULL) {no_sys_mem("telha --> int_perf (m_a)", 2*n_flow);} 
+		if ((xx = (double *) mxCalloc ((size_t)(2*n_flow), sizeof(double)) ) == NULL) 
+			{no_sys_mem("telha --> int_perf (xx)", 2*n_flow);} 
+		if ((yy = (double *) mxCalloc ((size_t)(2*n_flow), sizeof(double)) ) == NULL) 
+			{no_sys_mem("telha --> int_perf (yy)", 2*n_flow);} 
+		if ((m_a = (double *) mxCalloc ((size_t)(2*n_flow), sizeof(double)) ) == NULL) 
+			{no_sys_mem("telha --> int_perf (m_a)", 2*n_flow);} 
 		i = i_min;
 		for (l = 0; l < n_flow; l++, i++) {
 			x1 = c[(l+ll*n_flow)*2]; y1 = c[(l+ll*n_flow)*2+1];
@@ -559,9 +568,12 @@ int int_perf (double *c, int i_min, int n_flow, int k, int age_flow, int multi_f
 		dr = (fabs(dx) > fabs(dy)) ? dx : dy;
 		go_x = (fabs(dx) > fabs(dy)) ? 1 : 0;
 		n_pts = (int)fabs(dr / ddeg) + 1;
-		if ((u = (double *) mxCalloc ((size_t)(n_pts+1), sizeof(double)) ) == NULL) {no_sys_mem("telha --> int_perf (u)", n_pts);}
-		if ((v= (double *) mxCalloc ((size_t)(n_pts+1), sizeof(double)) ) == NULL) {no_sys_mem("telha --> int_perf (vy)", n_pts);} 
-		if ((vm= (double *) mxCalloc ((size_t)(n_pts+1), sizeof(double)) ) == NULL) {no_sys_mem("telha --> int_perf (vm)", n_pts);} 
+		if ((u = (double *) mxCalloc ((size_t)(n_pts+1), sizeof(double)) ) == NULL) 
+			{no_sys_mem("telha --> int_perf (u)", n_pts);}
+		if ((v= (double *) mxCalloc ((size_t)(n_pts+1), sizeof(double)) ) == NULL) 
+			{no_sys_mem("telha --> int_perf (vy)", n_pts);} 
+		if ((vm= (double *) mxCalloc ((size_t)(n_pts+1), sizeof(double)) ) == NULL) 
+			{no_sys_mem("telha --> int_perf (vm)", n_pts);} 
 
 		if (go_x) {
 			sign = (dx > 0.) ? 1 : -1;
@@ -592,8 +604,10 @@ int int_perf (double *c, int i_min, int n_flow, int k, int age_flow, int multi_f
 		}
 		else {
 
-			if ((f_in_m = (double *) mxCalloc ((size_t)(n_pts+1), sizeof(double))) == NULL) {no_sys_mem("telha --> int_perf (f_in_m)", n_pts+1);} 
-			if ((mag_intp = (double *) mxCalloc ((size_t)(n_pts+1), sizeof(double))) == NULL) {no_sys_mem("telha --> int_perf (mag_intp)", n_pts+1);} 
+			if ((f_in_m = (double *) mxCalloc ((size_t)(n_pts+1), sizeof(double))) == NULL) 
+			{no_sys_mem("telha --> int_perf (f_in_m)", n_pts+1);} 
+			if ((mag_intp = (double *) mxCalloc ((size_t)(n_pts+1), sizeof(double))) == NULL) 
+			{no_sys_mem("telha --> int_perf (mag_intp)", n_pts+1);} 
 			/* Now covert to distance in m from begining of flow line */
 			flow_in_meters (u, v, n_pts, f_in_m);	/* output in pointer f_in_m */
 			/*half_width = set_up_filter(f_in_m[0], f_in_m[n_pts-1], n_pts, filter_width);*/
@@ -952,7 +966,8 @@ int	intp_along_seg(int n_seg, double dl) {
 	double *xx, *yy, *u, *v, dx, dy, dr;
 	struct DATA *p;
 
-	if ((p = (struct DATA *)mxCalloc ((size_t)n_alloc, sizeof(struct DATA))) == NULL) {no_sys_mem("telha --> (intp_along_seg)", n_alloc);}
+	if ((p = (struct DATA *)mxCalloc ((size_t)n_alloc, sizeof(struct DATA))) == NULL) 
+			{no_sys_mem("telha --> (intp_along_seg)", n_alloc);}
 
 	for (i = m = 0; i < n_seg; i++) {	/* Loop over segments */
 		xx = (double *) mxCalloc ((size_t)(data[i].np), sizeof(double));
@@ -1015,7 +1030,8 @@ int	intp_along_seg(int n_seg, double dl) {
 	}
 	size_data = sizeof data / sizeof (struct DATA);
 	if (size_data < n_alloc) { /* sizeof p could be > sizeof data */
-		if ((data = (struct DATA *) mxRealloc ((void *)data, (size_t)(n_alloc * sizeof(struct DATA)))) == NULL) {no_sys_mem("telha --> (intp_along_seg)", n_alloc);}
+		if ((data = (struct DATA *) mxRealloc ((void *)data, (size_t)(n_alloc * sizeof(struct DATA)))) == NULL) 
+			{no_sys_mem("telha --> (intp_along_seg)", n_alloc);}
 	}
 	data = p;
 	return (0);
