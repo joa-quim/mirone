@@ -78,9 +78,8 @@ function [selection,value] = choosebox(varargin)
 	else
 		ad.home_dir = cd;
 	end
-	%d_path = [ad.home_dir filesep 'data' filesep];
 
-arrow=[...
+arrow = [...
 	 0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0
 	 0     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     0
 	 0     1     1     1     1     1     1     0     1     1     1     1     1     1     1     1     0
@@ -106,7 +105,7 @@ figname = '';
 smode = 2;   % (multiple)
 cmode = 1;   % remove from left hand side
 promptstring = {};
-selectstring={};
+selectstring = {};
 liststring = [];
 listsize = [160 300];
 initialvalue = [];
@@ -116,11 +115,10 @@ ffs = 8;
 uh = 18;
 multiple_finite = 0;
 
-if mod(length(varargin),2) ~= 0
-    % input args have not com in pairs, woe is me
+if (mod(length(varargin),2) ~= 0)	% input args have not com in pairs
     error('Arguments to LISTDLG must come param/value in pairs.')
 end
-for i=1:2:length(varargin)
+for (i = 1:2:numel(varargin))
 	switch lower(varargin{i})
         case 'name'
             figname = varargin{i+1};
@@ -130,17 +128,13 @@ for i=1:2:length(varargin)
             selectstring = varargin{i+1};
         case 'selectionmode'
             switch lower(varargin{i+1})
-                case 'single'
-                    smode = 1;
-                case 'multiple'
-                    smode = 2;
+                case 'single',		smode = 1;
+                case 'multiple',	smode = 2;
             end
         case 'choosemode'
             switch lower(varargin{i+1})
-                case 'pick'
-                    cmode = 1;
-                case 'copy'
-                    cmode = 2;
+                case 'pick',		cmode = 1;
+                case 'copy',		cmode = 2;
             end
         case 'listsize'
             listsize = varargin{i+1};
@@ -180,7 +174,6 @@ fig = figure('name',figname, 'resize','off', 'numbertitle','off', 'visible','off
 
 ad.fromstring = cellstr(liststring);
 ad.tostring = '';
-%ad.pos_left=[1:size(ad.fromstring,2)]';
 ad.pos_left = (1:length(ad.fromstring))';
 ad.pos_right = [];
 ad.value = 0;
@@ -322,11 +315,11 @@ function import_clickedcallback(hObject, eventdata)
 	fclose(fid);
 	s = strread(c,'%s','delimiter','\n');
 
-	%ad.fromstring = cellstr(s);
 	ad.fromstring = s;
 	set(findobj(ad.hFig,'Tag','leftbox'),'String',ad.fromstring);
 	set(findobj(ad.hFig,'Tag','rightbox'),'String','');
 	ad.tostring = '';
+	ad.pos_left = (1:numel(ad.fromstring))';
 	setappdata(0,'ListDialogAppData',ad)
 
 % --------------------------------------------------------------------
@@ -530,14 +523,14 @@ function doToboxClick(varargin)
 %-----------------------------------------------------------------------------------
 function doRight(varargin)
 	ad = getappdata(0,'ListDialogAppData');
-	leftbox = findobj(ad.hFig,'Tag','leftbox');
-	rightbox = findobj(ad.hFig,'Tag','rightbox');
-	selection=get(leftbox,'Value');
-	ad.pos_right=[ad.pos_right;ad.pos_left(selection)];
-	ad.tostring=[ad.tostring; ad.fromstring(selection)];
+	leftbox   = findobj(ad.hFig,'Tag','leftbox');
+	rightbox  = findobj(ad.hFig,'Tag','rightbox');
+	selection = get(leftbox,'Value');
+	ad.pos_right = [ad.pos_right; ad.pos_left(selection)];
+	ad.tostring = [ad.tostring; ad.fromstring(selection)];
 	if (ad.cmode == 1)			% remove selected items
-		ad.pos_left(selection)=[];
-		ad.fromstring(selection)=[];
+		ad.pos_left(selection) = [];
+		ad.fromstring(selection) = [];
 	end
 	setappdata(0,'ListDialogAppData',ad)
 	set(leftbox,'String',ad.fromstring,'Value',[]);
