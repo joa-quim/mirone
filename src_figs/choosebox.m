@@ -498,7 +498,7 @@ function doStagePoles(varargin)
 	fprintf(fid,'%9.5f\t%9.5f\t%8.4f\t%8.4f\t%7.4f\n', stages');
 	fclose(fid);
 	ad.value = 2;
-	ad.pos_right = [PathName FileName];
+	%ad.pos_right = [PathName FileName];
 	setappdata(0,'ListDialogAppData',ad)
 
 %-----------------------------------------------------------------------------------
@@ -660,7 +660,7 @@ function R = make_rot_matrix (lonp, latp, w)
 % --------------------------------------------------------
 function [plon,plat,w] = matrix_to_pole (T,side)
 
-	R2D = 10 / pi;
+	R2D = 180 / pi;
 	T13_m_T31 = T(1,3) - T(3,1);
 	T32_m_T23 = T(3,2) - T(2,3);
 	T21_m_T12 = T(2,1) - T(1,2);
