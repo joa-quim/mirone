@@ -1,6 +1,6 @@
 function varargout = find_clusters(varargin)
 
-%	Copyright (c) 2004-2008 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -14,19 +14,15 @@ function varargout = find_clusters(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-	if (isempty(varargin))
-        return
-	end
+	if (isempty(varargin))		return,		end
 
 	hObject = figure('Tag','figure1','Visible','off');
 	find_clusters_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'west');
+	move2side(hObject,'right');
 
 	handles.mirone_fig = varargin{1};
 	handles.h_polyg = varargin{2};
-
-	handles_mir = guidata(handles.mirone_fig);       % Get the Mirone handles structure
 
 	handles.h_events = findobj(handles.mirone_fig,'Tag','Earthquakes');
 	if (isempty(handles.h_events))      % Should issue an error message
@@ -48,22 +44,22 @@ function varargout = find_clusters(varargin)
 	if (nargout),   varargout{1} = hObject;     end
 
 %--------------------------------------------------------------------------
-function edit_dt_Callback(hObject, eventdata, handles)
+function edit_dt_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx)),      set(hObject,'String','3');      end
 
 %--------------------------------------------------------------------------
-function edit_nEvents_Callback(hObject, eventdata, handles)
+function edit_nEvents_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx)),     set(hObject,'String','30');      end
 
 %--------------------------------------------------------------------------
-function edit_maxSTD_Callback(hObject, eventdata, handles)
+function edit_maxSTD_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx)),      set(hObject,'String','1.5');      end
 
 %--------------------------------------------------------------------------
-function radiobutton_bigEvent_Callback(hObject, eventdata, handles)
+function radiobutton_bigEvent_CB(hObject, handles)
 	if (get(hObject,'Value'))
         set(handles.radiobutton_swarmCenter,'Value',0)
 	else
@@ -71,7 +67,7 @@ function radiobutton_bigEvent_Callback(hObject, eventdata, handles)
 	end
 
 %--------------------------------------------------------------------------
-function radiobutton_swarmCenter_Callback(hObject, eventdata, handles)
+function radiobutton_swarmCenter_CB(hObject, handles)
 	if (get(hObject,'Value'))
         set(handles.radiobutton_bigEvent,'Value',0)
 	else
@@ -79,7 +75,7 @@ function radiobutton_swarmCenter_Callback(hObject, eventdata, handles)
 	end
 
 %--------------------------------------------------------------------------
-function pushbutton_compute_Callback_(hObject, eventdata, handles)
+function pushbutton_compute_CB_(hObject, handles)
 	events_time = getFromAppdata(handles.h_events,'SeismicityTime');
 	events_mag = getFromAppdata(handles.h_events,'SeismicityMag');
 	events_dep = getFromAppdata(handles.h_events,'SeismicityDepth');
@@ -105,10 +101,10 @@ function pushbutton_compute_Callback_(hObject, eventdata, handles)
 	if ( (length(dt) - jumps(end)) >= nEvents)  % Check that we are not loosing one last cluster
         ju = [ju; jumps(end); length(events_time)+2];
 	end
-	n_clust = length(ju) / 2;               % Divide by 2 because ju contains the begining AND end of each swarm
+	n_clust = length(ju) / 2;				% Divide by 2 because ju contains the begining AND end of each swarm
 
 	set(handles.text_nFound,'String',['Found ' num2str(n_clust) ' potential clusters'],'Visible','on')
-	if (~n_clust)                           % No clusters found
+	if (n_clust == 0)						% No clusters found
         set(handles.popup_nSwarm,'String',' ','Value',1);
         handles.clusters = [];
         return
@@ -147,7 +143,7 @@ function pushbutton_compute_Callback_(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------
-function pushbutton_compute_Callback(hObject, eventdata, handles)
+function pushbutton_compute_CB(hObject, handles)
 	events_time = getFromAppdata(handles.h_events,'SeismicityTime');
 	events_mag = getFromAppdata(handles.h_events,'SeismicityMag');
 	events_dep = getFromAppdata(handles.h_events,'SeismicityDepth');
@@ -196,10 +192,10 @@ function pushbutton_compute_Callback(hObject, eventdata, handles)
 
 %--------------------------------------------------------------------------
 function [clusters,times,mags,depths] = swarms(handles,x,y,events_time,events_mag,events_dep,gap,nEvents,std_max,mode,first)
-	% MODE = 'center'  rejects points that are further than STD_MAX from the geographical mean of each cluster
-	% MODE = 'bigest'  rejects points that are further than STD_MAX from the location of the bigest event of each cluster
-	% FIRST = 1 Use allways this when calling this function. Internally, FIRST is set to 0 and recursively use 
-	%           this function to refine the clusters determination.
+% MODE = 'center'  rejects points that are further than STD_MAX from the geographical mean of each cluster
+% MODE = 'bigest'  rejects points that are further than STD_MAX from the location of the bigest event of each cluster
+% FIRST = 1 Use allways this when calling this function. Internally, FIRST is set to 0 and recursively use 
+%           this function to refine the clusters determination.
 
 	if (first)                              % At first time call we are not sure that data is already sorted
         [events_time,ind] = sort(events_time);
@@ -220,13 +216,13 @@ function [clusters,times,mags,depths] = swarms(handles,x,y,events_time,events_ma
 	end
 	n_clust = length(ju) / 2;               % Divide by 2 because ju contains the begining AND end of each swarm
 
-	if (~n_clust)                           % No clusters found
+	if (n_clust == 0)						% No clusters found
         clusters = [];  times = [];     mags = [];  depths = [];
         return
 	end
 
-	if (first)                              % Need to order also those vars according to index of sorting events_time
-        x = x(ind)';     y = y(ind)';       % transpose because x & y come from a get(...,XData) and are row vectors
+	if (first)								% Need to order also those vars according to index of sorting events_time
+        x = x(ind)';     y = y(ind)';		% transpose because x & y come from a get(...,XData) and are row vectors
         events_mag = events_mag(ind);
         events_dep = events_dep(ind);
 	end
@@ -292,7 +288,7 @@ function [clusters,times,mags,depths] = swarms(handles,x,y,events_time,events_ma
 	end
 
 %--------------------------------------------------------------------------
-function radiobutton_separate_Callback(hObject, eventdata, handles)
+function radiobutton_separate_CB(hObject, handles)
 	if (get(hObject,'Value'))
         set(handles.radiobutton_same,'Value',0)
 	else
@@ -300,7 +296,7 @@ function radiobutton_separate_Callback(hObject, eventdata, handles)
 	end
 
 %--------------------------------------------------------------------------
-function radiobutton_same_Callback(hObject, eventdata, handles)
+function radiobutton_same_CB(hObject, handles)
 	if (get(hObject,'Value'))
         set(handles.radiobutton_separate,'Value',0)
 	else
@@ -308,7 +304,7 @@ function radiobutton_same_Callback(hObject, eventdata, handles)
 	end
 
 %--------------------------------------------------------------------------
-function pushbutton_plot_Callback(hObject, eventdata, handles)
+function pushbutton_plot_CB(hObject, handles)
 
 	if (isempty(handles.clusters))
         warndlg('No, I won''t plot. The reason why should be pretty obvious.','Warning')
@@ -319,7 +315,7 @@ function pushbutton_plot_Callback(hObject, eventdata, handles)
         h_mir = new_mir(handles.mirone_fig, handles.h_polyg, handles);
         set(h_mir,'Name','All swarms')
         hold on;
-        for (k=1:length(handles.clusters))
+		for (k=1:length(handles.clusters))
             h_quakes = plot(handles.clusters{k}(:,1),handles.clusters{k}(:,2),'kp','Marker','o', ...
                 'MarkerFaceColor',rand(1,3),'MarkerEdgeColor','k','MarkerSize',5,'Tag','Earthquakes');
             setappdata(h_quakes,'SeismicityTime',handles.times{k});     % Save events time
@@ -329,7 +325,8 @@ function pushbutton_plot_Callback(hObject, eventdata, handles)
 		end
         hold off;
 	else            % Plot one swarm per figure
-        for (k=1:length(handles.clusters))
+		h_mir = zeros(1, numel(handles.clusters));
+        for (k = 1:numel(handles.clusters))
             h_mir(k) = new_mir(handles.mirone_fig, handles.h_polyg, handles);
             set(h_mir(k),'Name',[num2str(k) 'th  swarm (' num2str(length(handles.clusters{k})) ')'])
             hold on;
@@ -360,7 +357,7 @@ function h_mir = new_mir(h_mirone_fig, h_polyg, handles)
 	figure(h_mir)               % Make it the current figure (crutial)
 
 %--------------------------------------------------------------------------
-function popup_nSwarm_Callback(hObject, eventdata, handles)
+function popup_nSwarm_CB(hObject, handles)
 	val = get(hObject,'Value');
 	if (val == 1),   return;     end;    % First in list is empty
 	contents = get(hObject,'String');
@@ -385,7 +382,7 @@ function popup_nSwarm_Callback(hObject, eventdata, handles)
 	draw_funs(h_quakes,'Earthquakes',[])
 
 %--------------------------------------------------------------------------
-function pushbutton_save_Callback(hObject, eventdata, handles)
+function pushbutton_save_CB(hObject, handles)
 
 	if (isempty(handles.clusters))
         warndlg('No, I won''t save. The reason why should be pretty obvious.','Warning')
@@ -442,7 +439,6 @@ function [std_dist, dist] = std_geo(lon,lat,method,center)
         method = 'quadratic';
         do_mean = 1;
 	elseif (nins == 3)
-        do_mean = 1;
         if (ischar(method) && isempty(strmatch(method,{'linear' 'quadratic'})) )
             error('STD_GEO: Unrecognized method string');
         elseif (isnumeric(method) && isempty(method))
@@ -494,7 +490,7 @@ function [lon_mean,lat_mean] = mean_geog(lon,lat)
 
 	%  Compute the centroid by summing all cartesian data.
 	[x,y,z] = sph2cart(lon,lat,ones(size(lat)));
-	[lon_mean,lat_mean,radius] = cart2sph(sum(x),sum(y),sum(z));
+	[lon_mean,lat_mean] = cart2sph(sum(x),sum(y),sum(z));
 
 	% Set longitude in [-pi; pi] range
 	lon_mean = pi*((abs(lon_mean)/pi) - 2*ceil(((abs(lon_mean)/pi)-1)/2)) .* sign(lon_mean);
@@ -511,7 +507,7 @@ function out = getFromAppdata(hand,tag)
 	end
 
 % --- Creates and returns a handle to the GUI figure. 
-function find_clusters_LayoutFcn(h1);
+function find_clusters_LayoutFcn(h1)
 
 set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
@@ -523,66 +519,66 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Renderer',get(0,'defaultfigureRenderer'),...
 'RendererMode','manual',...
 'Resize','off',...
-'HandleVisibility','callback',...
+'HandleVisibility','Call',...
 'Tag','figure1');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@find_clusters_uicallback,h1,'edit_dt_Callback'},...
+'Call',{@main_uiCB,h1,'edit_dt_CB'},...
 'Position',[21 154 47 21],...
 'String','3',...
 'Style','edit',...
-'TooltipString','Events separated more than this number of days do not belong to the same cluster',...
+'Tooltip','Events separated more than this number of days do not belong to the same cluster',...
 'Tag','edit_dt');
 
 uicontrol('Parent',h1,'Position',[15 180 65 15],'String','Max time gap','Style','text','Tag','text1');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@find_clusters_uicallback,h1,'edit_nEvents_Callback'},...
+'Call',{@main_uiCB,h1,'edit_nEvents_CB'},...
 'Position',[131 154 47 21],...
 'String','30',...
 'Style','edit',...
-'TooltipString','A swarm must contain at least this number of events',...
+'Tooltip','A swarm must contain at least this number of events',...
 'Tag','edit_nEvents');
 
 uicontrol('Parent',h1,'Position',[125 180 65 15],'String','Min events','Style','text','Tag','text2');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@find_clusters_uicallback,h1,'edit_maxSTD_Callback'},...
+'Call',{@main_uiCB,h1,'edit_maxSTD_CB'},...
 'Position',[241 154 47 21],...
 'String','1.5',...
 'Style','edit',...
-'TooltipString','Events distant more than this standard deviation do not belong to the same cluster',...
+'Tooltip','Events distant more than this standard deviation do not belong to the same cluster',...
 'Tag','edit_maxSTD');
 
 uicontrol('Parent',h1,'Position',[235 180 57 15],'String','Max STD','Style','text','Tag','text3');
 
 uicontrol('Parent',h1,...
-'Callback',{@find_clusters_uicallback,h1,'radiobutton_bigEvent_Callback'},...
+'Call',{@main_uiCB,h1,'radiobutton_bigEvent_CB'},...
 'Position',[10 130 116 15],...
 'String','Center at mainshock',...
 'Style','radiobutton',...
-'TooltipString','Reject events that distant more than Max STD from the main shock position',...
+'Tooltip','Reject events that distant more than Max STD from the main shock position',...
 'Tag','radiobutton_bigEvent');
 
 uicontrol('Parent',h1,...
-'Callback',{@find_clusters_uicallback,h1,'radiobutton_swarmCenter_Callback'},...
+'Call',{@main_uiCB,h1,'radiobutton_swarmCenter_CB'},...
 'Position',[137 130 87 15],...
 'String','Swarm center',...
 'Style','radiobutton',...
-'TooltipString','Reject events that distant more than Max STD from the swarm center',...
+'Tooltip','Reject events that distant more than Max STD from the swarm center',...
 'Value',1,'Tag','radiobutton_swarmCenter');
 
 uicontrol('Parent',h1,'Position',[250 130 111 15],...
 'String','Clip at mainshock',...
 'Style','checkbox',...
-'TooltipString','Reject events occuring before the main shock',...
+'Tooltip','Reject events occuring before the main shock',...
 'Tag','checkbox_mainShock');
 
 uicontrol('Parent',h1,...
-'Callback',{@find_clusters_uicallback,h1,'pushbutton_compute_Callback'},...
+'Call',{@main_uiCB,h1,'pushbutton_compute_CB'},...
 'Position',[321 152 66 23],'String','Compute','Tag','pushbutton_compute');
 
 uicontrol('Parent',h1,'FontSize',10,...
@@ -591,45 +587,45 @@ uicontrol('Parent',h1,'FontSize',10,...
 'Style','text','Tag','text_nFound','Visible','off');
 
 uicontrol('Parent',h1,...
-'Callback',{@find_clusters_uicallback,h1,'radiobutton_separate_Callback'},...
+'Call',{@main_uiCB,h1,'radiobutton_separate_CB'},...
 'Position',[10 73 184 15],...
 'String','Plot swarms in separate windows',...
 'Style','radiobutton',...
 'Value',1,'Tag','radiobutton_separate');
 
 uicontrol('Parent',h1,...
-'Callback',{@find_clusters_uicallback,h1,'radiobutton_same_Callback'},...
+'Call',{@main_uiCB,h1,'radiobutton_same_CB'},...
 'Position',[10 43 192 15],...
 'String','Plot all swarms in the same window',...
 'Style','radiobutton',...
-'TooltipString','Will use different colors to distinguish swarms',...
+'Tooltip','Will use different colors to distinguish swarms',...
 'Tag','radiobutton_same');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@find_clusters_uicallback,h1,'popup_nSwarm_Callback'},...
+'Call',{@main_uiCB,h1,'popup_nSwarm_CB'},...
 'Position',[220 46 91 22],...
 'Style','popupmenu',...
 'String',{' '},...
-'TooltipString','Plot one candidate swarm',...
+'Tooltip','Plot one candidate swarm',...
 'Value',1,'Tag','popup_nSwarm');
 
 uicontrol('Parent',h1,...
-'Callback',{@find_clusters_uicallback,h1,'pushbutton_plot_Callback'},...
+'Call',{@main_uiCB,h1,'pushbutton_plot_CB'},...
 'Position',[320 56 66 23],...
 'String','Plot',...
-'TooltipString','Plot the swarms in separate windows',...
+'Tooltip','Plot the swarms in separate windows',...
 'Tag','pushbutton_plot');
 
 uicontrol('Parent',h1,...
-'Callback',{@find_clusters_uicallback,h1,'pushbutton_save_Callback'},...
+'Call',{@main_uiCB,h1,'pushbutton_save_CB'},...
 'Position',[320 15 66 23],...
 'String','Save',...
-'TooltipString','Save the the swarms as a multisegment file',...
+'Tooltip','Save the the swarms as a multisegment file',...
 'Tag','pushbutton_save');
 
 uicontrol('Parent',h1,'Position',[220 70 81 15],'String','Select swarm','Style','text','Tag','text9');
 
-function find_clusters_uicallback(hObject, eventdata, h1, callback_name)
+function main_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
