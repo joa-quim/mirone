@@ -20,7 +20,7 @@ function varargout = image_adjust(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	image_adjust_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	move2sde(hObject,'right')
+	move2side(hObject,'right')
 
 	handles.h_mirone_fig = varargin{1};
 	handMir = guidata(handles.h_mirone_fig);	% Get Mirone handles
