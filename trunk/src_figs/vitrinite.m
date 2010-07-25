@@ -1,29 +1,39 @@
 function varargout = vitrinite(varargin)
-% M-File changed by desGUIDE 
-% hObject    handle to figure
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to vitrinite_export (see VARARGIN)
+% Helper window to assist carbons Age guessing blaqck magic
+
+%	Copyright (c) 2004-2010 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
 hObject = figure('Tag','figure1','Visible','off');
 vitrinite_LayoutFcn(hObject);
 handles = guihandles(hObject);
-movegui(handles.figure1,'north')
+move2side(handles.figure1,'center')
 
 handles.home_dir = cd;
 handles.last_dir = cd;
 
 % Import icons
-load (['data' filesep 'mirone_icons.mat'],'Mfopen_ico','zoom_ico');
+load(['data' filesep 'mirone_icons.mat'],'Mfopen_ico','zoom_ico');
 
 h_toolbar = uitoolbar('parent',handles.figure1, 'BusyAction','queue','HandleVisibility','on',...
    'Interruptible','on','Tag','FigureToolBar','Visible','on');
-uipushtool('parent',h_toolbar,'Click',@clicked_loadMarkersImg_Callback, ...
+uipushtool('parent',h_toolbar,'Click',@clicked_loadMarkersImg_CB, ...
    'cdata',Mfopen_ico,'TooltipString','Open Marker images');
-uipushtool('parent',h_toolbar,'Click',@clicked_loadSampleImg_Callback, ...
+uipushtool('parent',h_toolbar,'Click',@clicked_loadSampleImg_CB, ...
    'cdata',Mfopen_ico,'TooltipString','Open Sample image','Sep','on');
 uitoggletool('parent',h_toolbar,'Click','zoom', ...
    'cdata',zoom_ico,'TooltipString','Zooming on/off','Sep','on');
-
 
 handles.hImgMarker = [];
 handles.hImgSample = [];
@@ -39,7 +49,7 @@ set(hObject,'Visible','on');
 if (nargout),	varargout{1} = hObject;		end
 
 % --------------------------------------------------------------------
-function clicked_loadMarkersImg_Callback(hObject, eventdata)
+function clicked_loadMarkersImg_CB(hObject, eventdata)
 	handles = guidata(hObject);
 	str = { '*.jpg', 'JPEG image (*.jpg)'; ...
 			'*.png', 'Portable Network Graphics(*.png)'; ...
@@ -120,7 +130,7 @@ function clicked_loadMarkersImg_Callback(hObject, eventdata)
 	guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
-function clicked_loadSampleImg_Callback(hObject, eventdata)
+function clicked_loadSampleImg_CB(hObject, eventdata)
 	handles = guidata(hObject);
 	str = { '*.jpg', 'JPEG image (*.jpg)'; ...
 			'*.png', 'Portable Network Graphics(*.png)'; ...
@@ -164,16 +174,16 @@ function clicked_loadSampleImg_Callback(hObject, eventdata)
 	
 	handles.is_projected = 0;
     if (~handles.IamCallibrated)
-	    if (handles.countMark >= 1 && ~handles.haveStatusBar)
-            createStatusBar(handles);            handles.haveStatusBar = 1;
-        end
+		if (handles.countMark >= 1 && ~handles.haveStatusBar)
+			createStatusBar(handles);            handles.haveStatusBar = 1;
+		end
     else        % A previous callibrated image already exists. Need to callibrate this one
-       pushbutton_callibrate_Callback(handles.pushbutton_callibrate, [], handles) 
+       push_callibrate_CB(handles.push_callibrate, [], handles) 
     end
 	guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
-function popup_markersImgs_Callback(hObject, eventdata, handles)
+function popup_markersImgs_CB(hObject, eventdata, handles)
 	if (handles.countMark < 2),    return;     end      % Too soon
 	set(handles.edit_reflectance,'String',handles.reflectance{get(hObject,'Value')})
 	resetImg(handles,get(hObject,'Value'))
@@ -185,7 +195,7 @@ function resetImg(handles, number)
 	set(handles.axes2,'PlotBoxAspectRatio',handles.imgAspect{number})    
 
 % --------------------------------------------------------------------
-function pushbutton_callibrate_Callback(hObject, eventdata, handles)
+function push_callibrate_CB(hObject, eventdata, handles)
     % 
     if (isempty(handles.hImgSample))
         errordlg('Calibrate what? Your eyes? Load the sample image.','ERROR');return
@@ -198,8 +208,6 @@ function pushbutton_callibrate_Callback(hObject, eventdata, handles)
     Y = sort(cell2mat(handles.reflectance));          % Marker reflectance values
 %     x = [0.0 x];                                  % Don't let extrapolation pass to negative values
 %     Y = [0.15 Y];
-    x = x;
-    Y = Y;
     Y_bak = Y;
     
     yi = single(interp1(x,Y,0:255,'linear','extrap'));
@@ -209,7 +217,7 @@ function pushbutton_callibrate_Callback(hObject, eventdata, handles)
     head = [1 X(end) 1 Y(end) 0 255 0 1 1];
     setappdata(handles.figure1,'dem_z',Z);  setappdata(handles.figure1,'dem_x',X);
     setappdata(handles.figure1,'dem_y',Y);
-    set(handles.pushbutton_getAvgReflec,'Enable','on')
+    set(handles.push_getAvgReflec,'Enable','on')
     handles.IamCallibrated = 1;
     handles.callibCurv = yi;                % Save the callibration curve
     
@@ -231,7 +239,7 @@ function pushbutton_callibrate_Callback(hObject, eventdata, handles)
     guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function pushbutton_getTiePoint_Callback(hObject, eventdata, handles)
+function push_getTiePoint_CB(hObject, eventdata, handles)
 	% Get a tie point from the current Marker image
 	[x,y,but]  = ginput_pointer(1,'crosshair');
 	if (but ~= 1),   return;     end
@@ -249,7 +257,7 @@ function pushbutton_getTiePoint_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 %--------------------------------------------------------------------------
-function pushbutton_getAvgReflec_Callback(hObject, eventdata, handles)
+function push_getAvgReflec_CB(hObject, eventdata, handles)
 	% Get the average reflectance of the clicked shape
 	if (~handles.IamCallibrated)
 		errordlg('You need to callibrate the sample image first.','ERROR'); return
@@ -267,10 +275,10 @@ function pushbutton_getAvgReflec_Callback(hObject, eventdata, handles)
 
 	% Set a uicontext with the "Deleting" option
 	cmenuHand = uicontextmenu;      set(hText, 'UIContextMenu', cmenuHand);
-	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 
 %--------------------------------------------------------------------------
-function edit_reflectance_Callback(hObject, eventdata, handles)
+function edit_reflectance_CB(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of edit_reflectance as text
 %        str2double(get(hObject,'String')) returns contents of edit_reflectance as a double
 
@@ -332,7 +340,7 @@ set(h1,...
 'Renderer',get(0,'defaultfigureRenderer'),...
 'RendererMode','manual',...
 'Resize','off',...
-'HandleVisibility','callback',...
+'HandleVisibility','Call',...
 'Tag','figure1');
 
 h2 = axes('Parent',h1,...
@@ -371,7 +379,7 @@ set(h8,'Parent',h7,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@vitrinite_uicallback,h1,'popup_markersImgs_Callback'},...
+'Call',{@main_uiCB,h1,'popup_markersImgs_CB'},...
 'Position',[10 134 241 22],...
 'Style','popupmenu',...
 'String',{''},...
@@ -380,30 +388,30 @@ uicontrol('Parent',h1,...
 'Tag','popup_markersImgs');
 
 uicontrol('Parent',h1,...
-'Callback',{@vitrinite_uicallback,h1,'pushbutton_callibrate_Callback'},...
+'Call',{@main_uiCB,h1,'push_callibrate_CB'},...
 'FontSize',9,...
 'Position',[520 132 91 23],...
 'String','Calibrate',...
-'Tag','pushbutton_callibrate');
+'Tag','push_callibrate');
 
 uicontrol('Parent',h1,...
-'Callback',{@vitrinite_uicallback,h1,'pushbutton_getTiePoint_Callback'},...
+'Call',{@main_uiCB,h1,'push_getTiePoint_CB'},...
 'FontSize',9,...
 'Position',[410 132 91 23],...
 'String','Get Tie Point',...
-'Tag','pushbutton_getTiePoint');
+'Tag','push_getTiePoint');
 
 uicontrol('Parent',h1,...
-'Callback',{@vitrinite_uicallback,h1,'pushbutton_getAvgReflec_Callback'},...
+'Call',{@main_uiCB,h1,'push_getAvgReflec_CB'},...
 'Enable','inactive',...
 'FontSize',9,...
 'Position',[634 132 137 24],...
 'String','Get average reflectance',...
-'Tag','pushbutton_getAvgReflec');
+'Tag','push_getAvgReflec');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@vitrinite_uicallback,h1,'edit_reflectance_Callback'},...
+'Call',{@main_uiCB,h1,'edit_reflectance_CB'},...
 'Position',[308 134 71 21],...
 'Style','edit',...
 'TooltipString','Reflectance of current marker.',...
@@ -431,7 +439,6 @@ h18 = axes('Parent',h1,...
 'YLimMode','manual',...
 'HandleVisibility','off',...
 'Tag','axes3');
-
 
 h19 = get(h18,'title');
 
@@ -468,6 +475,6 @@ uicontrol('Parent',h1,...
 'String','Sample Image',...
 'Style','text');
 
-function vitrinite_uicallback(hObject, eventdata, h1, callback_name)
+function main_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
