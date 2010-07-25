@@ -16,19 +16,13 @@ function varargout = draw_scale(varargin)
 % --------------------------------------------------------------------
  
 hObject = figure('Tag','figure1','Visible','off');
+draw_scale_LayoutFcn(hObject);
 handles = guihandles(hObject);
-guidata(hObject, handles);
-draw_scale_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
+movegui(hObject,'right')
  
 handles.command = cell(20,1);
 handles.command{5} = '-L';
 
-% Reposition the window on screen
-movegui(hObject,'northwest')
-
-% Choose default command line output for draw_scale_export
-handles.output = hObject;
 guidata(hObject, handles);
 
 set(hObject,'Visible','on');
@@ -36,26 +30,15 @@ set(hObject,'Visible','on');
 uiwait(handles.figure1);
 
 handles = guidata(hObject);
-out = draw_scale_OutputFcn(hObject, [], handles);
-varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = draw_scale_OutputFcn(hObject, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% handles    structure with handles and user data (see GUIDATA)
-
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-% The figure can be deleted now
+if (nargout),	varargout{1} = hObject;		end
 delete(handles.figure1);
 
 function mutual_exclude(off)
-set(off,'Value',0)
+	set(off,'Value',0)
 
 function clear_editBox(clean)
 % Just clean what might be inside an edit box
-set(clean, 'String', '')
+	set(clean, 'String', '')
 
 function edit_XposLongitude_CB(hObject, handles)
 xx = get(hObject,'String');
