@@ -18,7 +18,7 @@ function varargout = implanting_img(varargin)
 hObject = figure('Tag','figure1','Visible','off');
 implanting_img_LayoutFcn(hObject);
 handles = guihandles(hObject);
-movegui(hObject,'center');
+move2side(hObject,'center');
 
 set(hObject,'Name','Transplant Image')
 handles.IPcmap = [];        % Initialize implanting image colormap to empty
@@ -85,7 +85,7 @@ varargout{1} = handles.output;
 delete(handles.figure1);
 
 % ---------------------------------------------------------------------------------------
-function pushbutton_loadInplantImg_Callback(hObject, eventdata, handles)
+function pushbutton_loadInplantImg_CB(hObject, handles)
 handles.home_dir = cd;		% Only to be able to call put_or_get_file
 handles.last_dir = cd;		handles.work_dir = cd;
 
@@ -101,7 +101,6 @@ handles.last_dir = cd;		handles.work_dir = cd;
     '*.*', 'All Files (*.*)'}, ...
     'Select Image to Transplant','get');
 if isequal(FileName,0)		return,		end
-[PATH,FNAME,EXT] = fileparts([PathName FileName]);
 [I,handles.IPcmap] = imread([PathName FileName]);
 handles.IPimg = I;          [m,n,k] = size(I);  handles.IPsize = [m n k];
 axes(handles.axes_ip);      image(I);           axis off;
@@ -118,7 +117,7 @@ r_c = cropimg(handles.xlim, handles.ylim, get(handles.h_BGimg,'CData'), ...
 handles.r_c = r_c;
 
 % Find out if implanting rectangle requires enlarging or shrinking the implanting image
-new_IPheight = r_c(2)-r_c(1)+1;     new_IPwidth = r_c(4)-r_c(3)+1;
+%new_IPheight = r_c(2)-r_c(1)+1;     new_IPwidth = r_c(4)-r_c(3)+1;
 % if (new_IPheight > m | new_IPwidth > n)         % enlange the implanting image
     set(handles.radiobutton_resizeIPimg,'Value',1)
     set(handles.radiobutton_resizeBGimgSize,'Value',0)
@@ -140,20 +139,20 @@ new_IPheight = r_c(2)-r_c(1)+1;     new_IPwidth = r_c(4)-r_c(3)+1;
 guidata(hObject, handles);
 
 % ---------------------------------------------------------------------------------------
-function radiobutton_resizeIPimg_Callback(hObject, eventdata, handles)
+function radiobutton_resizeIPimg_CB(hObject, handles)
 set(hObject,'Value',1);                         set(handles.radiobutton_resizeBGimgSize,'Value',0)
 set(handles.h_txtBgImgSize,'Visible','off');    set(handles.h_BGsize,'Visible','off')
 handles.resizeIP = 1;    handles.resizeBG = 0;  guidata(hObject, handles);
 
 % ---------------------------------------------------------------------------------------
-function radiobutton_resizeBGimgSize_Callback(hObject, eventdata, handles)
+function radiobutton_resizeBGimgSize_CB(hObject, handles)
 set(hObject,'Value',1);                         set(handles.radiobutton_resizeIPimg,'Value',0)
 set(handles.h_BGsize,'String',[num2str(handles.BGsize(1)) ' x ' num2str((handles.BGsize(2)))])
 set(handles.h_txtBgImgSize,'Visible','on');     set(handles.h_BGsize,'Visible','on')
 handles.resizeIP = 0;    handles.resizeBG = 1;  guidata(hObject, handles);
 
 % ---------------------------------------------------------------------------------------
-function pushbutton_InplantThisImg_Callback(hObject, eventdata, handles)
+function pushbutton_InplantThisImg_CB(hObject, handles)
 if (get(handles.radiobutton_resizeBGimgSize,'Value'))
     warndlg('Sorry, this is not yet working','Warning')
     set(handles.radiobutton_resizeBGimgSize,'Value',0)
@@ -223,13 +222,13 @@ axes('Parent',h1,'Units','pixels',...
 'Tag','axes_ip');
 
 uicontrol('Parent',h1,...
-'Callback',{@implanting_img_uicallback,h1,'pushbutton_InplantThisImg_Callback'},...
+'Call',{@main_uiCB,h1,'pushbutton_InplantThisImg_CB'},...
 'Position',[280 110 111 23],...
 'String','Implant this image',...
 'Tag','pushbutton_InplantThisImg');
 
 uicontrol('Parent',h1,...
-'Callback',{@implanting_img_uicallback,h1,'radiobutton_resizeIPimg_Callback'},...
+'Call',{@main_uiCB,h1,'radiobutton_resizeIPimg_CB'},...
 'FontSize',9,...
 'Position',[10 60 316 16],...
 'String','Resize implanting image to background image density',...
@@ -238,7 +237,7 @@ uicontrol('Parent',h1,...
 'Tag','radiobutton_resizeIPimg');
 
 uicontrol('Parent',h1,...
-'Callback',{@implanting_img_uicallback,h1,'radiobutton_resizeBGimgSize_Callback'},...
+'Call',{@main_uiCB,h1,'radiobutton_resizeBGimgSize_CB'},...
 'FontSize',9,...
 'Position',[10 40 316 16],...
 'String','Resize background image to implanting image density',...
@@ -260,11 +259,11 @@ uicontrol('Parent',h1,'FontSize',9,...
 'Tag','h_BGsize');
 
 uicontrol('Parent',h1,...
-'Callback',{@implanting_img_uicallback,h1,'pushbutton_loadInplantImg_Callback'},...
+'Call',{@main_uiCB,h1,'pushbutton_loadInplantImg_CB'},...
 'Position',[280 87 111 23],...
 'String','Load Image to implant',...
 'Tag','pushbutton_loadInplantImg');
 
-function implanting_img_uicallback(hObject, eventdata, h1, callback_name)
+function main_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
