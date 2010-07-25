@@ -4,9 +4,8 @@ function varargout = snapshot(varargin)
 %   snapshot(H) operates on the image contents of the UNIQUE image in Figure whose handle is H
 %   snapshot(H,'whatever') as above but captures image and frame.
 %
-% M-File changed by desGUIDE 
-%
-%	Copyright (c) 2004-2009 by J. Luis
+
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -19,48 +18,47 @@ function varargout = snapshot(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+	if (isempty(varargin))
+	    errordlg('SNAPSHOT: wrong number of input arguments.','Error'),		return
+	end
  
-hObject = figure('Tag','figure1','Visible','off');
-snapshot_LayoutFcn(hObject);
-handles = guihandles(hObject);
-movegui(hObject,'north')
+	hObject = figure('Tag','figure1','Visible','off');
+	snapshot_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'center')
 
-if (~isempty(varargin))
-    handles.hCallingFig = varargin{1};
-    handlesMir = guidata(handles.hCallingFig);
-else
-    errordlg('SNAPSHOT: wrong number of arguments.','Error')
-    delete(hObject);    return
-end
+	handles.hCallingFig = varargin{1};
+	handlesMir = guidata(handles.hCallingFig);
 
-if (handlesMir.no_file)
-    errordlg('You didn''t even load a file. What are you expecting then?','Error')
-    delete(hObject);    return
-end
+	if (handlesMir.no_file)
+		errordlg('You didn''t even load a file. What are you expecting then?','Error')
+		delete(hObject);    return
+	end
 
-handles.imgOnly = 1;            % Flag that indicates pure image capture
-handles.noname = false;
-if (numel(varargin) > 1 && strcmp(varargin{2},'frame'))
-    handles.imgOnly = 0;        % OK, so we will have a image + frame capture
-elseif (numel(varargin) > 1 && strcmp(varargin{2},'noname'))
-    handles.noname = true;
-elseif (numel(varargin) > 1 && strcmp(varargin{2},'img'))
-    % Already the default
-end
+	handles.imgOnly = 1;            % Flag that indicates pure image capture
+	handles.noname = false;
+	if (numel(varargin) > 1 && strcmp(varargin{2},'frame'))
+		handles.imgOnly = 0;        % OK, so we will have a image + frame capture
+	elseif (numel(varargin) > 1 && strcmp(varargin{2},'noname'))
+		handles.noname = true;
+	elseif (numel(varargin) > 1 && strcmp(varargin{2},'img'))
+		% Already the default
+	end
 
-% Add this figure handle to the carra?as list
-plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
-plugedWin = [plugedWin hObject];
-setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
+	% Add this figure handle to the carra?as list
+	plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
 
-% -------------- Find if we have any graphical objects ploted
-ls = findobj(handles.hCallingFig,'Type','line');
-ps = findobj(handles.hCallingFig,'Type','patch');
-ts = findobj(handles.hCallingFig,'Type','text');
-handles.imgIsClean = 0;
-if (isempty(ls) && isempty(ps) && isempty(ts))
-    handles.imgIsClean = 1;     % We won't need to screen capture if resolution is one-to-one
-end
+	% -------------- Find if we have any graphical objects ploted
+	ls = findobj(handles.hCallingFig,'Type','line');
+	ps = findobj(handles.hCallingFig,'Type','patch');
+	ts = findobj(handles.hCallingFig,'Type','text');
+	handles.imgIsClean = 0;
+	if (isempty(ls) && isempty(ps) && isempty(ts))
+		handles.imgIsClean = 1;     % We won't need to screen capture if resolution is one-to-one
+	end
 
 % -------------- Fill the format popup list
 str1 = {'JPEG image (*.jpg)'; ...
@@ -127,7 +125,7 @@ handles.txtThisSize = ['(' sprintf('%d',nRows) 'x' sprintf('%d',nCols) ') ' spri
 if (~handles.noname)
 	fname = get(handlesMir.figure1,'Name');
     fname = strrep(fname,' ','_');
-	[pato,fname,ext] = fileparts(fname);
+	[pato,fname] = fileparts(fname);
 	if (islogical(get(handlesMir.hImg,'CData')) && handles.imgOnly)   % Best proposition when we have a logical (mask) image
         fname = [handlesMir.work_dir filesep fname '.png'];
         set(handles.popup_fileType,'Val',2)
@@ -193,7 +191,7 @@ function sliderRange(handles,magnification,val)
 	end
 
 % -----------------------------------------------------------------------------
-function edit_fname_CB(hObject, eventdata, handles)
+function edit_fname_CB(hObject, handles)
     fname = get(hObject,'String');
     [pato,fname,ext] = fileparts(fname);
     if (~strmatch(lower(ext),handles.exts))
@@ -202,7 +200,7 @@ function edit_fname_CB(hObject, eventdata, handles)
     end
 
 % -----------------------------------------------------------------------------
-function push_outFile_CB(hObject, eventdata, handles)
+function push_outFile_CB(hObject, handles)
     contents = get(handles.popup_fileType,'String');
     val = get(handles.popup_fileType,'Val');    
     str = {handles.exts{val} contents{val}};
@@ -218,7 +216,7 @@ function push_outFile_CB(hObject, eventdata, handles)
     set(handles.edit_fname,'String',[PathName FileName])
 
 % -----------------------------------------------------------------------------
-function popup_fileType_CB(hObject, eventdata, handles)
+function popup_fileType_CB(hObject, handles)
     ext = handles.exts{get(hObject,'Value')};
     fname = get(handles.edit_fname,'String');
     fname = stripExt(fname);
@@ -262,7 +260,7 @@ function popup_fileType_CB(hObject, eventdata, handles)
     guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------
-function slider_mag_CB(hObject, eventdata, handles)
+function slider_mag_CB(hObject, handles)
     % Callback to control the image magnetization factor slider
     mag = get(hObject,'Value');
     set(handles.edit_mag,'String',mag);
@@ -287,7 +285,7 @@ function slider_mag_CB(hObject, eventdata, handles)
     guidata(handles.figure1,handles)
     
 % -----------------------------------------------------------------------------
-function checkbox_origSize_CB(hObject, eventdata, handles)
+function checkbox_origSize_CB(hObject, handles)
     % When checked, image size reflects the original size, which cannot be changed.
 	if (get(hObject,'Val'))
         set(handles.edit_imgSize,'String',handles.txtOrigSize)
@@ -300,13 +298,13 @@ function checkbox_origSize_CB(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------
-function slider_quality_CB(hObject, eventdata, handles)
+function slider_quality_CB(hObject, handles)
     handles.quality = round(get(hObject,'Value') * 100);
     set(handles.text_qualityLev,'String',[sprintf('%d',handles.quality) ' %']);
     guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------
-function push_save_CB(hObject, eventdata, handles)
+function push_save_CB(hObject, handles)
     try
         im = get(handles.hImg,'CData');
     catch
@@ -402,7 +400,7 @@ function push_save_CB(hObject, eventdata, handles)
     delete(handles.figure1)
 
 % -----------------------------------------------------------------------------
-function push_cancel_CB(hObject, eventdata, handles)
+function push_cancel_CB(hObject, handles)
     figure1_CloseRequestFcn(hObject, [])
 
 % -----------------------------------------------------------------------------
@@ -439,19 +437,19 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Position',[520 625 427 175],...
 'RendererMode','manual',...
 'Resize','off',...
-'HandleVisibility','callback',...
+'HandleVisibility','Call',...
 'Tag','figure1');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@snapshot_uicallback,h1,'edit_fname_CB'},...
+'Call',{@main_uiCB,h1,'edit_fname_CB'},...
 'HorizontalAlignment','left',...
 'Position',[70 150 331 20],...
 'Style','edit',...
 'Tag','edit_fname');
 
 uicontrol('Parent',h1,...
-'Callback',{@snapshot_uicallback,h1,'push_outFile_CB'},...
+'Call',{@main_uiCB,h1,'push_outFile_CB'},...
 'FontSize',12,...
 'FontWeight','bold',...
 'Position',[400 149 24 21],...
@@ -505,7 +503,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@snapshot_uicallback,h1,'popup_fileType_CB'},...
+'Call',{@main_uiCB,h1,'popup_fileType_CB'},...
 'Position',[70 125 201 20],...
 'Style','popupmenu',...
 'Value',1,...
@@ -513,7 +511,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.9 0.9 0.9],...
-'Callback',{@snapshot_uicallback,h1,'slider_mag_CB'},...
+'Call',{@main_uiCB,h1,'slider_mag_CB'},...
 'Max',20,'Min',1,...
 'Position',[108 77 163 14],...
 'Style','slider',...
@@ -521,7 +519,7 @@ uicontrol('Parent',h1,...
 'Tag','slider_mag');
 
 uicontrol('Parent',h1,...
-'Callback',{@snapshot_uicallback,h1,'checkbox_origSize_CB'},...
+'Call',{@main_uiCB,h1,'checkbox_origSize_CB'},...
 'Position',[10 54 190 15],...
 'String','Preserve Image original size',...
 'Style','checkbox',...
@@ -530,7 +528,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.9 0.9 0.9],...
-'Callback',{@snapshot_uicallback,h1,'slider_quality_CB'},...
+'Call',{@main_uiCB,h1,'slider_quality_CB'},...
 'Position',[51 32 261 14],...
 'Style','slider',...
 'TooltipString','Higher numbers mean higher quality, and larger file size',...
@@ -544,13 +542,13 @@ uicontrol('Parent',h1,...
 'Tag','text_qualityLev');
 
 uicontrol('Parent',h1,...
-'Callback',{@snapshot_uicallback,h1,'push_save_CB'},...
+'Call',{@main_uiCB,h1,'push_save_CB'},...
 'Position',[230 5 91 21],...
 'String','Save',...
 'Tag','push_save');
 
 uicontrol('Parent',h1,...
-'Callback',{@snapshot_uicallback,h1,'push_cancel_CB'},...
+'Call',{@main_uiCB,h1,'push_cancel_CB'},...
 'Position',[332 5 91 21],...
 'String','Cancel',...
 'Tag','push_cancel');
@@ -562,6 +560,6 @@ uicontrol('Parent',h1,...
 'Style','text',...
 'Tag','text_Quality');
 
-function snapshot_uicallback(hObject, eventdata, h1, callback_name)
+function main_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
