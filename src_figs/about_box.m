@@ -18,7 +18,7 @@ function varargout = about_box(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	about_box_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(hObject,'northeast')
+	move2side(hObject,'center')
 
     handMir = varargin{1};
 
@@ -45,15 +45,15 @@ function varargout = about_box(varargin)
 	if (nargout),    varargout{1} = hObject;    end
 
 % -------------------------------------------------------------------
-function pushbutton_OK_CB(hObject, handles)
+function push_OK_CB(hObject, handles)
 	delete(handles.figure1);
 
 % --- Executes on key press over figure1 with no controls selected.
 function figure1_KeyPressFcn(hObject, eventdata)
 % Check for "escape"
-handles = guidata(hObject);
 if isequal(get(hObject,'CurrentKey'),'escape')
-    delete(handles.figure1);
+	handles = guidata(hObject);
+	delete(handles.figure1)
 end
 
 % --- Creates and returns a handle to the GUI figure. 
@@ -71,7 +71,7 @@ set(h1,...
 
 uicontrol('Parent',h1,'Position',[13 99 241 30],...
 'Max',10,...
-'String',{  'M-GMT is a MATLAB GUI to the Generic Mapping'; 'Tools (GMT) software'; '' },...
+'String',{'M-GMT is a MATLAB GUI to the Generic Mapping'; 'Tools (GMT) software'; '' },...
 'Style','text',...
 'Tag','text_ProgName');
 
@@ -111,9 +111,9 @@ uicontrol('Parent',h1, 'Position',[10 16 201 15],...
 'Style','text','Tag','text_prog');
 
 uicontrol('Parent',h1, 'Position',[216 11 46 21],...
-'Call',{@about_box_uiCB,h1,'pushbutton_OK_CB'},...
+'Call',{@about_box_uiCB,h1,'push_OK_CB'},...
 'String','OK',...
-'Tag','pushbutton_OK');
+'Tag','push_OK');
 
 function about_box_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
