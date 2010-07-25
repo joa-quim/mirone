@@ -1,8 +1,7 @@
 function varargout = paint_option(varargin)
-% M-File changed by desGUIDE 
-% varargin   command line arguments to paint_option (see VARARGIN)
+% command line arguments to paint_option
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -17,10 +16,9 @@ function varargout = paint_option(varargin)
 % --------------------------------------------------------------------
  
 hObject = figure('Tag','figure1','Visible','off');
+paint_option_LayoutFcn(hObject);
 handles = guihandles(hObject);
-guidata(hObject, handles);
-paint_option_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
+move2side(hObject,'right');
 
 handles.patternFile = varargin{1};
 
@@ -50,38 +48,13 @@ handles.command = cell(45,1);
 a(:,:,1) = color_wheel(10,0);     % 21x21
 a(:,:,2) = color_wheel(10,1);
 a(:,:,3) = color_wheel(10,2);
-set(handles.pushbutton_OptionG_CustomColor,'CData',a)
-set(handles.pushbutton_OptionG_FgCustomColor,'CData',a)
-set(handles.pushbutton_OptionG_BgCustomColor,'CData',a)
+set(handles.push_OptionG_CustomColor,'CData',a)
+set(handles.push_OptionG_FgCustomColor,'CData',a)
+set(handles.push_OptionG_BgCustomColor,'CData',a)
 
-% Give a Pro look (3D) to the frame boxes 
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-movegui(hObject,'northeast');                      % Reposition the window on screen
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-
-% Recopy the text fields on top of previously created frames (uistack is to slow)
-h_t = findobj(hObject,'Style','Text');
-for i=1:length(h_t)
-    usr_d = get(h_t(i),'UserData');
-    t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-    bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');tag=get(h_t(i),'Tag');
-    uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str, ...
-        'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,'UserData',usr_d,'Tag',tag);
-end
-delete(h_t)
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	new_frame3D(hObject, findobj(hObject,'Style','Text'))
+	%------------- END Pro look (3D) -----------------------------------------------------
 
 % Choose default command line output for paint_option_export
 handles.output = hObject;
@@ -92,30 +65,21 @@ set(hObject,'Visible','on');
 uiwait(handles.figure1);
 
 handles = guidata(hObject);
-out = paint_option_OutputFcn(hObject, [], handles);
-varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = paint_option_OutputFcn(hObject, eventdata, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% handles    structure with handles and user data (see GUIDATA)
-% Get default command line output from handles structure
 varargout{1} = handles.output;
-% The figure can be deleted now
 delete(handles.figure1);
 
 function C = color_wheel(n,i)     % It will eventualy become that
-r = 0:n;  r = [r (n-1):-1:0]'/n;
-theta = (pi+i*2*pi/3)*(-n:n)/n;
-X = r*cos(theta);
-C = (X + 1) / 2;
+	r = 0:n;  r = [r (n-1):-1:0]'/n;
+	theta = (pi+i*2*pi/3)*(-n:n)/n;
+	X = r*cos(theta);
+	C = (X + 1) / 2;
 
 % --------------------------------------------------------------------------------------------
-function popup_Option_G_Callback(hObject, eventdata, handles)
+function popup_Option_G_CB(hObject, handles)
 val = get(hObject,'Value');     str = get(hObject, 'String');
 switch str{val};
     case 'Paint'
-		handles.command{20} = ['-G'];   handles.command{21} = [''];
+		handles.command{20} = '-G';   handles.command{21} = '';
 		set(handles.edit_OptionG_gray,'Enable','on','Backgroundcolor',handles.gray)
 		set(handles.edit_OptionG_R,'Enable','on','Backgroundcolor',handles.red)
 		set(handles.edit_OptionG_G,'Enable','on','Backgroundcolor',handles.green)
@@ -129,15 +93,15 @@ switch str{val};
 		set(handles.checkbox_OptionG_BitReverse,'Enable','on')
 		set(handles.edit_OptionG_dpi,'Enable','on','Backgroundcolor',[1 1 1])
 		set(handles.listbox_OptionG_Patterns,'Enable','on')
-		set(handles.pushbutton_OptionG_CustomColor,'Enable','on')
-		set(handles.pushbutton_OptionG_ViewPatterns,'Enable','on')
-		set(handles.pushbutton_OptionG_LoadRasFile,'Enable','on')
-		set(handles.pushbutton_OptionG_FgCustomColor,'Enable','on')
-		set(handles.pushbutton_OptionG_BgCustomColor,'Enable','on')
+		set(handles.push_OptionG_CustomColor,'Enable','on')
+		set(handles.push_OptionG_ViewPatterns,'Enable','on')
+		set(handles.push_OptionG_LoadRasFile,'Enable','on')
+		set(handles.push_OptionG_FgCustomColor,'Enable','on')
+		set(handles.push_OptionG_BgCustomColor,'Enable','on')
 		set(handles.checkbox_TransparentFg,'Enable','on')
 		set(handles.checkbox_TransparentBg,'Enable','on')    
     case 'Clip'
-		handles.command{20} = ['-G'];   handles.command{21} = ['c'];
+		handles.command{20} = '-G';   handles.command{21} = 'c';
 		set(handles.edit_OptionG_gray,'Enable','off','Backgroundcolor',handles.ColorDes)
 		set(handles.edit_OptionG_R,'Enable','off','Backgroundcolor',handles.ColorDes)
 		set(handles.edit_OptionG_G,'Enable','off','Backgroundcolor',handles.ColorDes)
@@ -151,11 +115,11 @@ switch str{val};
 		set(handles.checkbox_OptionG_BitReverse,'Enable','off')
 		set(handles.edit_OptionG_dpi,'Enable','off','Backgroundcolor',handles.ColorDes)
 		set(handles.listbox_OptionG_Patterns,'Enable','off')
-		set(handles.pushbutton_OptionG_CustomColor,'Enable','off')
-		set(handles.pushbutton_OptionG_ViewPatterns,'Enable','off')
-		set(handles.pushbutton_OptionG_LoadRasFile,'Enable','off')
-		set(handles.pushbutton_OptionG_FgCustomColor,'Enable','off')
-		set(handles.pushbutton_OptionG_BgCustomColor,'Enable','off')
+		set(handles.push_OptionG_CustomColor,'Enable','off')
+		set(handles.push_OptionG_ViewPatterns,'Enable','off')
+		set(handles.push_OptionG_LoadRasFile,'Enable','off')
+		set(handles.push_OptionG_FgCustomColor,'Enable','off')
+		set(handles.push_OptionG_BgCustomColor,'Enable','off')
 		set(handles.checkbox_TransparentFg,'Value',0);
 		set(handles.checkbox_TransparentBg,'Value',0)
 		set(handles.checkbox_OptionG_BitReverse,'Value',0)
@@ -173,7 +137,7 @@ switch str{val};
 		clear_editBox(handles.edit_OptionG_Foreground_G)
 		clear_editBox(handles.edit_OptionG_Foreground_B)
 		for i = 22:42   handles.command{i} = '';    end
-    end
+end
 set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
 guidata(hObject, handles);
 
@@ -182,15 +146,15 @@ function clear_editBox(clean)
 set(clean, 'String', '')
 
 % --------------------------------------------------------------------------------------------
-function edit_OptionG_gray_Callback(hObject, eventdata, handles)
+function edit_OptionG_gray_CB(hObject, handles)
 xx = get(hObject,'String');
 if str2double(xx) > 255 errordlg('Gray value must be in the range 0-255','Error');
-    set(handles.edit_OptionG_gray, 'String', '?');     xx = [''];   end
-handles.command{22} = [xx];     handles.command{21} = [''];
-handles.command{20} = ['-G'];    set(handles.popup_Option_G, 'Value',2)
-for i = 23:42   handles.command{i} = [''];  end
-togglebutton_ClearFg_Callback(hObject, eventdata, handles)
-togglebutton_ClearBg_Callback(hObject, eventdata, handles)
+    set(handles.edit_OptionG_gray, 'String', '?');     xx = '';   end
+handles.command{22} = xx;     handles.command{21} = '';
+handles.command{20} = '-G';    set(handles.popup_Option_G, 'Value',2)
+for i = 23:42   handles.command{i} = '';  end
+togglebutton_ClearFg_CB(hObject, handles)
+togglebutton_ClearBg_CB(hObject, handles)
 set(handles.edit_OptionG_R, 'String', '');  set(handles.edit_OptionG_G, 'String', '');
 set(handles.edit_OptionG_B, 'String', '');
 set(handles.edit_OptionG_dpi, 'String', '');    set(handles.listbox_OptionG_Patterns, 'Value',1)
@@ -198,67 +162,65 @@ set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
 guidata(hObject, handles);
 
 % --------------------------------------------------------------------------------------------
-function edit_OptionG_R_Callback(hObject, eventdata, handles)
-% Hints: get(hObject,'String') returns contents of edit_OptionG_R as text
-%        str2double(get(hObject,'String')) returns contents of edit_OptionG_R as a double
-xx = get(hObject,'String');
-if str2double(xx) > 255 errordlg('Red value must be in the range 0-255','Error');
-    set(handles.edit_OptionG_R, 'String', '?');     xx = [''];   end
-handles.command{22} = [xx];
-handles.command{20} = ['-G'];    set(handles.popup_Option_G, 'Value',2)
-handles.command{23} = ['/'];    handles.command{25} = ['/'];
-if isempty(get(handles.edit_OptionG_G,'String')) set(handles.edit_OptionG_G, 'String', '?'); end
-if isempty(get(handles.edit_OptionG_B,'String')) set(handles.edit_OptionG_B, 'String', '?'); end
-set(handles.edit_OptionG_gray, 'String', '');
-if findstr(xx, '?')
-    xx= strrep(xx,'?','');    handles.command{22} = [xx];    set(handles.edit_OptionG_R, 'String', xx);
-end
-set(handles.edit_OptionG_dpi, 'String', '');    set(handles.listbox_OptionG_Patterns, 'Value',1)
-set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
-guidata(hObject, handles);
+function edit_OptionG_R_CB(hObject, handles)
+	xx = get(hObject,'String');
+	if str2double(xx) > 255 errordlg('Red value must be in the range 0-255','Error');
+		set(handles.edit_OptionG_R, 'String', '?');     xx = '';   end
+	handles.command{22} = xx;
+	handles.command{20} = '-G';    set(handles.popup_Option_G, 'Value',2)
+	handles.command{23} = '/';    handles.command{25} = '/';
+	if isempty(get(handles.edit_OptionG_G,'String')) set(handles.edit_OptionG_G, 'String', '?'); end
+	if isempty(get(handles.edit_OptionG_B,'String')) set(handles.edit_OptionG_B, 'String', '?'); end
+	set(handles.edit_OptionG_gray, 'String', '');
+	if findstr(xx, '?')
+		xx= strrep(xx,'?','');    handles.command{22} = xx;    set(handles.edit_OptionG_R, 'String', xx);
+	end
+	set(handles.edit_OptionG_dpi, 'String', '');    set(handles.listbox_OptionG_Patterns, 'Value',1)
+	set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
+	guidata(hObject, handles);
 
 % --------------------------------------------------------------------------------------------
-function edit_OptionG_G_Callback(hObject, eventdata, handles)
+function edit_OptionG_G_CB(hObject, handles)
 xx = get(hObject,'String');
 if str2double(xx) > 255 errordlg('Green value must be in the range 0-255','Error');
-    set(handles.edit_OptionG_G, 'String', '?');     xx = [''];   end
-handles.command{24} = [xx];     set(handles.popup_Option_G, 'Value',2)
-handles.command{23} = ['/'];    handles.command{25} = ['/'];
+    set(handles.edit_OptionG_G, 'String', '?');     xx = '';   end
+handles.command{24} = xx;     set(handles.popup_Option_G, 'Value',2)
+handles.command{23} = '/';    handles.command{25} = '/';
 if isempty(get(handles.edit_OptionG_R,'String')) set(handles.edit_OptionG_R, 'String', '?'); end
 if isempty(get(handles.edit_OptionG_B,'String')) set(handles.edit_OptionG_B, 'String', '?'); end
 set(handles.edit_OptionG_gray, 'String', '');
 if findstr(xx, '?')
-    xx= strrep(xx,'?','');    handles.command{24} = [xx];    set(handles.edit_OptionG_G, 'String', xx);
+    xx= strrep(xx,'?','');    handles.command{24} = xx;    set(handles.edit_OptionG_G, 'String', xx);
 end
 set(handles.edit_OptionG_dpi, 'String', '');    set(handles.listbox_OptionG_Patterns, 'Value',1)
 set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
 guidata(hObject, handles);
 
 % --------------------------------------------------------------------------------------------
-function edit_OptionG_B_Callback(hObject, eventdata, handles)
+function edit_OptionG_B_CB(hObject, handles)
 xx = get(hObject,'String');
 if str2double(xx) > 255 errordlg('Blue value must be in the range 0-255','Error');
-    set(handles.edit_OptionG_B, 'String', '?');     xx = [''];   end
-handles.command{26} = [xx];     set(handles.popup_Option_G, 'Value',2)
-handles.command{23} = ['/'];    handles.command{25} = ['/'];
+    set(handles.edit_OptionG_B, 'String', '?');     xx = '';   end
+handles.command{26} = xx;     set(handles.popup_Option_G, 'Value',2)
+handles.command{23} = '/';    handles.command{25} = '/';
 if isempty(get(handles.edit_OptionG_R,'String')) set(handles.edit_OptionG_R, 'String', '?'); end
 if isempty(get(handles.edit_OptionG_G,'String')) set(handles.edit_OptionG_G, 'String', '?'); end
 set(handles.edit_OptionG_gray, 'String', '');
 if findstr(xx, '?')
-    xx= strrep(xx,'?','');    handles.command{26} = [xx];    set(handles.edit_OptionG_B, 'String', xx);
+    xx= strrep(xx,'?','');    handles.command{26} = xx;    set(handles.edit_OptionG_B, 'String', xx);
 end
 set(handles.edit_OptionG_dpi, 'String', '');    set(handles.listbox_OptionG_Patterns, 'Value',1)
 set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
 guidata(hObject, handles);
 
-function pushbutton_OptionG_CustomColor_Callback(hObject, eventdata, handles)
-handles.command{20} = ['-G'];    handles.command{21} = [''];
+function push_OptionG_CustomColor_CB(hObject, handles)
+handles.command{20} = '-G';    handles.command{21} = '';
 set(handles.popup_Option_G, 'Value',2)
 c = uisetcolor;
 if length(c) > 1            % That is, if a color was selected
     c(1) = round(c(1)*255);     c(2) = round(c(2)*255);     c(3) = round(c(3)*255);
     handles.command{22} = num2str(c(1)); handles.command{24} = num2str(c(2)); handles.command{26} = num2str(c(3));
-    handles.command{23} = ['/'];    handles.command{25} = ['/'];
+    handles.command{23} = '/';    handles.command{25} = '/';
     set(handles.edit_OptionG_R, 'String', num2str(c(1)));
     set(handles.edit_OptionG_G, 'String', num2str(c(2)));
     set(handles.edit_OptionG_B, 'String', num2str(c(3)));
@@ -279,7 +241,7 @@ if length(c) > 1            % That is, if a color was selected
 end
 
 % --------------------------------------------------------------------------------------------
-function edit_OptionG_dpi_Callback(hObject, eventdata, handles)
+function edit_OptionG_dpi_CB(hObject, handles)
 xx = get(hObject,'String');
 if isnan(str2double(xx))
     errordlg('DPI resolution must be a valid number','Error');
@@ -288,11 +250,11 @@ if isnan(str2double(xx))
 end
 
 if ~isempty(xx)
-    handles.command{20} = ['-G'];    handles.command{21} = ['p'];    set(handles.popup_Option_G, 'Value',2)
+    handles.command{20} = '-G';    handles.command{21} = 'p';    set(handles.popup_Option_G, 'Value',2)
     set(handles.edit_OptionG_R, 'String', '');  set(handles.edit_OptionG_G, 'String', '');
     set(handles.edit_OptionG_B, 'String', '');  set(handles.edit_OptionG_gray, 'String', '');
-    for i = 22:26   handles.command{i} = [''];  end
-    handles.command{27} = [xx];     handles.command{28} = ['/'];
+    for i = 22:26   handles.command{i} = '';  end
+    handles.command{27} = xx;     handles.command{28} = '/';
     set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
     if get(handles.listbox_OptionG_Patterns, 'Value') ~= 1  % Keep the selected pattern
         handles.command{29} = num2str(get(hObject,'Value')-1);
@@ -300,7 +262,7 @@ if ~isempty(xx)
         set(handles.listbox_OptionG_Patterns, 'Value',2)    % Set the first as the default pattern
         handles.command{29} = '1';
     end
-    listbox_OptionG_Patterns_Callback(handles.listbox_OptionG_Patterns, eventdata, handles)
+    listbox_OptionG_Patterns_CB(handles.listbox_OptionG_Patterns, handles)
     set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
     guidata(hObject, handles);
 else        % In case a previous value in the dpi box is removed
@@ -321,12 +283,12 @@ else        % In case a previous value in the dpi box is removed
 end
 
 % --------------------------------------------------------------------------------------------
-function listbox_OptionG_Patterns_Callback(hObject, eventdata, handles)
+function listbox_OptionG_Patterns_CB(hObject, handles)
 val = get(hObject,'Value');     handles.command{29} = num2str(val-1);
 set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
 guidata(hObject, handles);
     
-function pushbutton_OptionG_LoadRasFile_Callback(hObject, eventdata, handles)
+function push_OptionG_LoadRasFile_CB(hObject, handles)
 if ~isempty(get(handles.edit_OptionG_dpi,'String'))
     [FileName,PathName] = uigetfile('*.ras','Select a Sun raster file');
     if ~isequal(FileName,0)
@@ -339,10 +301,10 @@ else
     msgbox('Must select pattern resolution dpi first.','Warning')
 end
 
-function checkbox_OptionG_BitReverse_Callback(hObject, eventdata, handles)
+function checkbox_OptionG_BitReverse_CB(hObject, handles)
 % Hint: get(hObject,'Value') returns toggle state of checkbox_OptionG_BitReverse
 if ~isempty(get(handles.edit_OptionG_dpi,'String'))
-    if get(hObject,'Value') handles.command{21} = ['P']; else handles.command{21} = ['p']; end
+    if get(hObject,'Value') handles.command{21} = 'P'; else handles.command{21} = 'p'; end
     set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
     guidata(hObject, handles);
 else
@@ -350,17 +312,17 @@ else
 end
 
 % --------------------------------------------------------------------------------------------
-function edit_OptionG_Foreground_R_Callback(hObject, eventdata, handles)
+function edit_OptionG_Foreground_R_CB(hObject, handles)
 if ~isempty(get(handles.edit_OptionG_dpi,'String'))
     xx = get(hObject,'String');
     if str2double(xx) > 255 errordlg('Red value must be in the range 0-255','Error');
-        set(handles.edit_OptionG_Foreground_R, 'String', '?');     xx = [''];   end
-    handles.command{30} = [':'];    handles.command{31} = ['F'];   handles.command{32} = [xx];
-    handles.command{33} = ['/'];    handles.command{35} = ['/'];
+        set(handles.edit_OptionG_Foreground_R, 'String', '?');     xx = '';   end
+    handles.command{30} = ':';    handles.command{31} = 'F';   handles.command{32} = xx;
+    handles.command{33} = '/';    handles.command{35} = '/';
     if isempty(get(handles.edit_OptionG_Foreground_G,'String')) set(handles.edit_OptionG_Foreground_G, 'String', '?'); end
     if isempty(get(handles.edit_OptionG_Foreground_B,'String')) set(handles.edit_OptionG_Foreground_B, 'String', '?'); end
     if findstr(xx, '?')
-        xx= strrep(xx,'?','');    handles.command{32} = [xx];    set(handles.edit_OptionG_Foreground_R, 'String', xx);
+        xx= strrep(xx,'?','');    handles.command{32} = xx;    set(handles.edit_OptionG_Foreground_R, 'String', xx);
     end
     set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
     guidata(hObject, handles);
@@ -369,17 +331,17 @@ else
 end
 
 % --------------------------------------------------------------------------------------------
-function edit_OptionG_Foreground_G_Callback(hObject, eventdata, handles)
+function edit_OptionG_Foreground_G_CB(hObject, handles)
 if ~isempty(get(handles.edit_OptionG_dpi,'String'))
     xx = get(hObject,'String');
     if str2double(xx) > 255 errordlg('Green value must be in the range 0-255','Error');
-        set(handles.edit_OptionG_Foreground_G, 'String', '?');     xx = [''];   end
-    handles.command{30} = [':'];    handles.command{31} = ['F'];   handles.command{34} = [xx];
-    handles.command{33} = ['/'];    handles.command{35} = ['/'];
+        set(handles.edit_OptionG_Foreground_G, 'String', '?');     xx = '';   end
+    handles.command{30} = ':';    handles.command{31} = 'F';   handles.command{34} = xx;
+    handles.command{33} = '/';    handles.command{35} = '/';
     if isempty(get(handles.edit_OptionG_Foreground_R,'String')) set(handles.edit_OptionG_Foreground_R, 'String', '?'); end
     if isempty(get(handles.edit_OptionG_Foreground_B,'String')) set(handles.edit_OptionG_Foreground_B, 'String', '?'); end
     if findstr(xx, '?')
-        xx= strrep(xx,'?','');    handles.command{34} = [xx];    set(handles.edit_OptionG_Foreground_G, 'String', xx);
+        xx= strrep(xx,'?','');    handles.command{34} = xx;    set(handles.edit_OptionG_Foreground_G, 'String', xx);
     end
     set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
     guidata(hObject, handles);
@@ -388,17 +350,17 @@ else
 end
 
 % --------------------------------------------------------------------------------------------
-function edit_OptionG_Foreground_B_Callback(hObject, eventdata, handles)
+function edit_OptionG_Foreground_B_CB(hObject, handles)
 if ~isempty(get(handles.edit_OptionG_dpi,'String'))
     xx = get(hObject,'String');
     if str2double(xx) > 255 errordlg('Green value must be in the range 0-255','Error');
-        set(handles.edit_OptionG_Foreground_B, 'String', '?');     xx = [''];   end
-    handles.command{30} = [':'];    handles.command{31} = ['F'];   handles.command{36} = [xx];
-    handles.command{33} = ['/'];    handles.command{35} = ['/'];
+        set(handles.edit_OptionG_Foreground_B, 'String', '?');     xx = '';   end
+    handles.command{30} = ':';    handles.command{31} = 'F';   handles.command{36} = xx;
+    handles.command{33} = '/';    handles.command{35} = '/';
     if isempty(get(handles.edit_OptionG_Foreground_R,'String')) set(handles.edit_OptionG_Foreground_R, 'String', '?'); end
     if isempty(get(handles.edit_OptionG_Foreground_G,'String')) set(handles.edit_OptionG_Foreground_G, 'String', '?'); end
     if findstr(xx, '?')
-        xx= strrep(xx,'?','');    handles.command{36} = [xx];    set(handles.edit_OptionG_Foreground_B, 'String', xx);
+        xx= strrep(xx,'?','');    handles.command{36} = xx;    set(handles.edit_OptionG_Foreground_B, 'String', xx);
     end
     set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
     guidata(hObject, handles);
@@ -406,15 +368,15 @@ else
     clear_editBox(handles.edit_OptionG_Foreground_B)
 end
 
-function pushbutton_OptionG_FgCustomColor_Callback(hObject, eventdata, handles)
+function push_OptionG_FgCustomColor_CB(hObject, handles)
 if ~isempty(get(handles.edit_OptionG_dpi,'String'))
     c = uisetcolor;
     if length(c) > 1
-        handles.command{30} = [':'];    handles.command{31} = ['F'];
+        handles.command{30} = ':';    handles.command{31} = 'F';
         c(1) = round(c(1)*255);     c(2) = round(c(2)*255);     c(3) = round(c(3)*255);
         handles.command{32} = num2str(c(1)); handles.command{34} = num2str(c(2));
         handles.command{36} = num2str(c(3));
-        handles.command{33} = ['/'];    handles.command{35} = ['/'];
+        handles.command{33} = '/';    handles.command{35} = '/';
         set(handles.edit_OptionG_Foreground_R, 'String', num2str(c(1)));
         set(handles.edit_OptionG_Foreground_G, 'String', num2str(c(2)));
         set(handles.edit_OptionG_Foreground_B, 'String', num2str(c(3)));
@@ -424,17 +386,17 @@ if ~isempty(get(handles.edit_OptionG_dpi,'String'))
 end
 
 % --------------------------------------------------------------------------------------------
-function edit_OptionG_Background_R_Callback(hObject, eventdata, handles)
+function edit_OptionG_Background_R_CB(hObject, handles)
 if ~isempty(get(handles.edit_OptionG_dpi,'String'))
     xx = get(hObject,'String');
     if str2double(xx) > 255 errordlg('Red value must be in the range 0-255','Error');
-        set(handles.edit_OptionG_Background_R, 'String', '?');     xx = [''];   end
-    handles.command{37} = ['B'];   handles.command{38} = [xx];
-    handles.command{39} = ['/'];    handles.command{41} = ['/'];
+        set(handles.edit_OptionG_Background_R, 'String', '?');     xx = '';   end
+    handles.command{37} = 'B';   handles.command{38} = xx;
+    handles.command{39} = '/';    handles.command{41} = '/';
     if isempty(get(handles.edit_OptionG_Background_G,'String')) set(handles.edit_OptionG_Background_G, 'String', '?'); end
     if isempty(get(handles.edit_OptionG_Background_B,'String')) set(handles.edit_OptionG_Background_B, 'String', '?'); end
     if findstr(xx, '?')
-    xx= strrep(xx,'?','');    handles.command{38} = [xx];    set(handles.edit_OptionG_Background_R, 'String', xx);
+    xx= strrep(xx,'?','');    handles.command{38} = xx;    set(handles.edit_OptionG_Background_R, 'String', xx);
     end
     set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
     guidata(hObject, handles);
@@ -443,17 +405,17 @@ else
 end
 
 % --------------------------------------------------------------------------------------------
-function edit_OptionG_Background_G_Callback(hObject, eventdata, handles)
+function edit_OptionG_Background_G_CB(hObject, handles)
 if ~isempty(get(handles.edit_OptionG_dpi,'String'))
     xx = get(hObject,'String');
     if str2double(xx) > 255 errordlg('Green value must be in the range 0-255','Error');
-        set(handles.edit_OptionG_Background_G, 'String', '?');     xx = [''];   end
-    handles.command{37} = ['B'];   handles.command{40} = [xx];
-    handles.command{39} = ['/'];    handles.command{41} = ['/'];
+        set(handles.edit_OptionG_Background_G, 'String', '?');     xx = '';   end
+    handles.command{37} = 'B';   handles.command{40} = xx;
+    handles.command{39} = '/';    handles.command{41} = '/';
     if isempty(get(handles.edit_OptionG_Background_R,'String')) set(handles.edit_OptionG_Background_R, 'String', '?'); end
     if isempty(get(handles.edit_OptionG_Background_B,'String')) set(handles.edit_OptionG_Background_B, 'String', '?'); end
     if findstr(xx, '?')
-        xx= strrep(xx,'?','');    handles.command{40} = [xx];    set(handles.edit_OptionG_Background_G, 'String', xx);
+        xx= strrep(xx,'?','');    handles.command{40} = xx;    set(handles.edit_OptionG_Background_G, 'String', xx);
     end
     set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
     guidata(hObject, handles);
@@ -462,17 +424,17 @@ else
 end
 
 % --------------------------------------------------------------------------------------------
-function edit_OptionG_Background_B_Callback(hObject, eventdata, handles)
+function edit_OptionG_Background_B_CB(hObject, handles)
 if ~isempty(get(handles.edit_OptionG_dpi,'String'))
     xx = get(hObject,'String');
     if str2double(xx) > 255 errordlg('Red value must be in the range 0-255','Error');
-        set(handles.edit_OptionG_Background_R, 'String', '?');     xx = [''];   end
-    handles.command{37} = ['B'];   handles.command{42} = [xx];
-    handles.command{39} = ['/'];    handles.command{41} = ['/'];
+        set(handles.edit_OptionG_Background_R, 'String', '?');     xx = '';   end
+    handles.command{37} = 'B';   handles.command{42} = xx;
+    handles.command{39} = '/';    handles.command{41} = '/';
     if isempty(get(handles.edit_OptionG_Background_R,'String')) set(handles.edit_OptionG_Background_R, 'String', '?'); end
     if isempty(get(handles.edit_OptionG_Background_G,'String')) set(handles.edit_OptionG_Background_G, 'String', '?'); end
     if findstr(xx, '?')
-        xx= strrep(xx,'?','');    handles.command{42} = [xx];    set(handles.edit_OptionG_Background_B, 'String', xx);
+        xx= strrep(xx,'?','');    handles.command{42} = xx;    set(handles.edit_OptionG_Background_B, 'String', xx);
     end
     set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
     guidata(hObject, handles);
@@ -480,14 +442,14 @@ else
     clear_editBox(handles.edit_OptionG_Background_B)
 end
 
-function pushbutton_OptionG_BgCustomColor_Callback(hObject, eventdata, handles)
+function push_OptionG_BgCustomColor_CB(hObject, handles)
 if ~isempty(get(handles.edit_OptionG_dpi,'String'))
     c = uisetcolor;
     if length(c) > 1
-        handles.command{30} = [':'];    handles.command{37} = ['B'];
+        handles.command{30} = ':';    handles.command{37} = 'B';
         c(1) = round(c(1)*255);     c(2) = round(c(2)*255);     c(3) = round(c(3)*255);
         handles.command{38} = num2str(c(1)); handles.command{40} = num2str(c(2)); handles.command{42} = num2str(c(3));
-        handles.command{39} = ['/'];    handles.command{41} = ['/'];
+        handles.command{39} = '/';    handles.command{41} = '/';
         set(handles.edit_OptionG_Background_R, 'String', num2str(c(1)));
         set(handles.edit_OptionG_Background_G, 'String', num2str(c(2)));
         set(handles.edit_OptionG_Background_B, 'String', num2str(c(3)));
@@ -496,12 +458,12 @@ if ~isempty(get(handles.edit_OptionG_dpi,'String'))
     end
 end
 
-% --- Executes on button press in pushbutton_OptionG_ViewPatterns.
-function pushbutton_OptionG_ViewPatterns_Callback(hObject, eventdata, handles)
+% --- Executes on button press in push_OptionG_ViewPatterns.
+function push_OptionG_ViewPatterns_CB(hObject, handles)
 	%display_patterns
 	mirone(handles.patternFile)
 
-function togglebutton_ClearFg_Callback(hObject, eventdata, handles)
+function togglebutton_ClearFg_CB(hObject, handles)
 	for i = 31:36   handles.command{i} = '';    end
 	if isempty(handles.command{37}) handles.command{30} = '';    end
 	set(handles.edit_OptionG_Foreground_R, 'String', '');
@@ -510,14 +472,14 @@ function togglebutton_ClearFg_Callback(hObject, eventdata, handles)
 	set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);  set(hObject,'Value',0)
 	guidata(hObject, handles);
 
-function checkbox_TransparentFg_Callback(hObject, eventdata, handles)
+function checkbox_TransparentFg_CB(hObject, handles)
 if ~isempty(get(handles.edit_OptionG_dpi,'String'))
     if get(hObject,'Value')
         set(handles.edit_OptionG_Foreground_R, 'String', '');
         set(handles.edit_OptionG_Foreground_G, 'String', '');
         set(handles.edit_OptionG_Foreground_B, 'String', '');
         for i = 32:36   handles.command{i} = '';    end
-        handles.command{30} = [':'];    handles.command{31} = ['F'];    handles.command{32} = ['-'];
+        handles.command{30} = ':';    handles.command{31} = 'F';    handles.command{32} = '-';
     end
     set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
     guidata(hObject, handles);
@@ -525,14 +487,14 @@ else
     set(hObject,'Value',0)
 end
 
-function checkbox_TransparentBg_Callback(hObject, eventdata, handles)
+function checkbox_TransparentBg_CB(hObject, handles)
 if ~isempty(get(handles.edit_OptionG_dpi,'String'))
     if get(hObject,'Value')
         set(handles.edit_OptionG_Background_R, 'String', '');
         set(handles.edit_OptionG_Background_G, 'String', '');
         set(handles.edit_OptionG_Background_B, 'String', '');
         for i = 38:42   handles.command{i} = '';    end
-        handles.command{30} = [':'];    handles.command{37} = ['B'];    handles.command{38} = ['-'];
+        handles.command{30} = ':';    handles.command{37} = 'B';    handles.command{38} = '-';
     end
     set(handles.edit_ShowCommand, 'String', [handles.command{21:end}]);
     guidata(hObject, handles);
@@ -540,7 +502,7 @@ else
     set(hObject,'Value',0)
 end
 
-function togglebutton_ClearBg_Callback(hObject, eventdata, handles)
+function togglebutton_ClearBg_CB(hObject, handles)
 	for i = 37:42   handles.command{i} = '';    end
 	if isempty(handles.command{31}) handles.command{30} = '';    end
 	set(handles.edit_OptionG_Background_R, 'String', '');
@@ -550,7 +512,7 @@ function togglebutton_ClearBg_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 % --------------------------------------------------------------------------------------------
-function pushbutton_HelpFillColor_Callback(hObject, eventdata, handles)
+function push_HelpFillColor_CB(hObject, handles)
 message = {'Specify a gray shade (0-255) or a color (r/g/b in the 0-255 range). The'
     'second form also allows us to use a predefined bit-image pattern (but see'
     'the help box bellow). Instead of color selecting, you can also chose'
@@ -559,7 +521,7 @@ message = {'Specify a gray shade (0-255) or a color (r/g/b in the 0-255 range). 
     'almost enough to explain the meaning of each option.'};
 helpdlg(message,'Help on area color fill option');
 
-function pushbutton_HelpFillPattern_Callback(hObject, eventdata, handles)
+function push_HelpFillPattern_CB(hObject, handles)
 message = {'Instead of a color you can select here to fill the area with a pattern.'
     'In that case you must first select the pattern resolution in dpi (in first'
     'box), than choose a pattern number (default is first one on the list)'
@@ -588,19 +550,19 @@ message = {'Instead of a color you can select here to fill the area with a patte
     'not solve the problem!'};
 helpdlg(message,'Help on area pattern fill option');
 
-function pushbutton_Cancel_Callback(hObject, eventdata, handles)
+function push_Cancel_CB(hObject, handles)
 	handles.output = '';        % User gave up, return nothing
 	guidata(hObject, handles);
 	uiresume(handles.figure1);
 
-function pushbutton_OK_Callback(hObject, eventdata, handles)
+function push_OK_CB(hObject, handles)
 	handles.output = get(handles.edit_ShowCommand, 'String');
 	guidata(hObject,handles);
 	uiresume(handles.figure1);
 
 % --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-% Hint: delete(hObject) closes the figure
+function figure1_CloseRequestFcn(hObject, evt)
+handles = guidata(hObject);
 if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
     % The GUI is still in UIWAIT, us UIRESUME
     handles.output = '';        % User gave up, return nothing
@@ -614,8 +576,9 @@ else
 end
 
 % --- Executes on key press over figure1 with no controls selected.
-function figure1_KeyPressFcn(hObject, eventdata, handles)
+function figure1_KeyPressFcn(hObject, evt)
 % Check for "escape"
+handles = guidata(hObject);
 if isequal(get(hObject,'CurrentKey'),'escape')
     handles.output = '';    % User said no by hitting escape
     guidata(hObject, handles);
@@ -624,12 +587,12 @@ end
 
 
 % --- Creates and returns a handle to the GUI figure. 
-function paint_option_LayoutFcn(h1,handles);
+function paint_option_LayoutFcn(h1)
 set(h1,...
 'PaperUnits','centimeters',...
-'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
+'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'KeyPressFcn',{@figure1_KeyPressFcn,handles},...
+'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','paint_option',...
 'NumberTitle','off',...
@@ -652,211 +615,211 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'popup_Option_G_Callback'},...
+'Call',{@main_uiCB,h1,'popup_Option_G_CB'},...
 'Position',[20 175 72 19],...
 'String',{  ''; 'Paint'; 'Clip' },...
 'Style','popupmenu',...
-'TooltipString','Select painting or clipping',...
+'Tooltip','Select painting or clipping',...
 'Value',1,...
 'Tag','popup_Option_G');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'edit_OptionG_gray_Callback'},...
+'Call',{@main_uiCB,h1,'edit_OptionG_gray_CB'},...
 'HorizontalAlignment','left',...
 'Position',[110 174 30 19],...
 'Style','edit',...
-'TooltipString','Gray shade component (0-255)',...
+'Tooltip','Gray shade component (0-255)',...
 'Tag','edit_OptionG_gray');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'edit_OptionG_R_Callback'},...
+'Call',{@main_uiCB,h1,'edit_OptionG_R_CB'},...
 'HorizontalAlignment','left',...
 'Position',[160 174 30 19],...
 'Style','edit',...
-'TooltipString','Red component (0-255)',...
+'Tooltip','Red component (0-255)',...
 'Tag','edit_OptionG_R');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'edit_OptionG_G_Callback'},...
+'Call',{@main_uiCB,h1,'edit_OptionG_G_CB'},...
 'HorizontalAlignment','left',...
 'Position',[190 174 30 19],...
 'Style','edit',...
-'TooltipString','Green component (0-255)',...
+'Tooltip','Green component (0-255)',...
 'Tag','edit_OptionG_G');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'edit_OptionG_B_Callback'},...
+'Call',{@main_uiCB,h1,'edit_OptionG_B_CB'},...
 'HorizontalAlignment','left',...
 'Position',[220 174 30 19],...
 'Style','edit',...
-'TooltipString','Blue component (0-255)',...
+'Tooltip','Blue component (0-255)',...
 'Tag','edit_OptionG_B');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'pushbutton_OptionG_CustomColor_Callback'},...
+'Call',{@main_uiCB,h1,'push_OptionG_CustomColor_CB'},...
 'Position',[261 174 20 19],...
-'TooltipString','Interactive color selection',...
-'Tag','pushbutton_OptionG_CustomColor');
+'Tooltip','Interactive color selection',...
+'Tag','push_OptionG_CustomColor');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'pushbutton_HelpFillColor_Callback'},...
+'Call',{@main_uiCB,h1,'push_HelpFillColor_CB'},...
 'FontWeight','bold',...
 'ForegroundColor',[0 0 1],...
 'Position',[321 172 21 23],...
 'String','?',...
-'TooltipString','Help on collor painting or clipping',...
-'Tag','pushbutton_HelpFillColor');
+'Tooltip','Help on collor painting or clipping',...
+'Tag','push_HelpFillColor');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'edit_OptionG_dpi_Callback'},...
+'Call',{@main_uiCB,h1,'edit_OptionG_dpi_CB'},...
 'HorizontalAlignment','left',...
 'Position',[20 106 30 19],...
 'Style','edit',...
-'TooltipString','Set pattern resolution in dpi',...
+'Tooltip','Set pattern resolution in dpi',...
 'Tag','edit_OptionG_dpi');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'listbox_OptionG_Patterns_Callback'},...
+'Call',{@main_uiCB,h1,'listbox_OptionG_Patterns_CB'},...
 'Position',[53 106 41 19],...
 'String',{  ''; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9'; '10'; '11'; '12'; '13'; '14'; '15'; '16'; '17'; '18'; '19'; '20'; '21'; '22'; '23'; '24'; '25'; '26'; '27'; '28'; '29'; '30'; '31'; '32'; '33'; '34'; '35'; '36'; '37'; '38'; '39'; '40'; '41'; '42'; '43'; '44'; '45'; '46'; '47'; '48'; '49'; '50'; '51'; '52'; '53'; '54'; '55'; '56'; '57'; '58'; '59'; '60'; '61'; '62'; '63'; '64'; '65'; '66'; '67'; '68'; '69'; '70'; '71'; '72'; '73'; '74'; '75'; '76'; '77'; '78'; '79'; '80'; '81'; '82'; '83'; '84'; '85'; '86'; '87'; '88'; '89'; '90' },...
 'Style','listbox',...
-'TooltipString','Select one of the pre-deffined 90 patterns',...
+'Tooltip','Select one of the pre-deffined 90 patterns',...
 'Value',1,...
 'Tag','listbox_OptionG_Patterns');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'pushbutton_OptionG_ViewPatterns_Callback'},...
+'Call',{@main_uiCB,h1,'push_OptionG_ViewPatterns_CB'},...
 'Position',[105 106 71 20],...
 'String','View Patterns',...
-'Tag','pushbutton_OptionG_ViewPatterns');
+'Tag','push_OptionG_ViewPatterns');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'pushbutton_OptionG_LoadRasFile_Callback'},...
+'Call',{@main_uiCB,h1,'push_OptionG_LoadRasFile_CB'},...
 'Position',[180 106 66 20],...
 'String','Sun Ras file',...
-'TooltipString','Load a Sun raster file that will be used as a pattern',...
-'Tag','pushbutton_OptionG_LoadRasFile');
+'Tooltip','Load a Sun raster file that will be used as a pattern',...
+'Tag','push_OptionG_LoadRasFile');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'checkbox_OptionG_BitReverse_Callback'},...
+'Call',{@main_uiCB,h1,'checkbox_OptionG_BitReverse_CB'},...
 'Position',[258 109 71 15],...
 'String','Bit reverse',...
 'Style','checkbox',...
-'TooltipString','Toggle black pixels to white and vice-versa',...
+'Tooltip','Toggle black pixels to white and vice-versa',...
 'Tag','checkbox_OptionG_BitReverse');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'edit_OptionG_Foreground_R_Callback'},...
+'Call',{@main_uiCB,h1,'edit_OptionG_Foreground_R_CB'},...
 'HorizontalAlignment','left',...
 'Position',[20 79 30 19],...
 'Style','edit',...
-'TooltipString','Red component (0-255)',...
+'Tooltip','Red component (0-255)',...
 'Tag','edit_OptionG_Foreground_R');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'edit_OptionG_Foreground_G_Callback'},...
+'Call',{@main_uiCB,h1,'edit_OptionG_Foreground_G_CB'},...
 'HorizontalAlignment','left',...
 'Position',[50 79 30 19],...
 'Style','edit',...
-'TooltipString','Green component (0-255)',...
+'Tooltip','Green component (0-255)',...
 'Tag','edit_OptionG_Foreground_G');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'edit_OptionG_Foreground_B_Callback'},...
+'Call',{@main_uiCB,h1,'edit_OptionG_Foreground_B_CB'},...
 'HorizontalAlignment','left',...
 'Position',[80 79 30 19],...
 'Style','edit',...
-'TooltipString','Blue component (0-255)',...
+'Tooltip','Blue component (0-255)',...
 'Tag','edit_OptionG_Foreground_B');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'pushbutton_OptionG_FgCustomColor_Callback'},...
+'Call',{@main_uiCB,h1,'push_OptionG_FgCustomColor_CB'},...
 'Position',[120 79 20 19],...
-'TooltipString','Foreground interactive color selection',...
-'Tag','pushbutton_OptionG_FgCustomColor');
+'Tooltip','Foreground interactive color selection',...
+'Tag','push_OptionG_FgCustomColor');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'edit_OptionG_Background_R_Callback'},...
+'Call',{@main_uiCB,h1,'edit_OptionG_Background_R_CB'},...
 'HorizontalAlignment','left',...
 'Position',[181 79 30 19],...
 'Style','edit',...
-'TooltipString','Red component (0-255)',...
+'Tooltip','Red component (0-255)',...
 'Tag','edit_OptionG_Background_R');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'edit_OptionG_Background_G_Callback'},...
+'Call',{@main_uiCB,h1,'edit_OptionG_Background_G_CB'},...
 'HorizontalAlignment','left',...
 'Position',[211 79 30 19],...
 'Style','edit',...
-'TooltipString','Green component (0-255)',...
+'Tooltip','Green component (0-255)',...
 'Tag','edit_OptionG_Background_G');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@paint_option_uicallback,h1,'edit_OptionG_Background_B_Callback'},...
+'Call',{@main_uiCB,h1,'edit_OptionG_Background_B_CB'},...
 'HorizontalAlignment','left',...
 'Position',[241 79 30 19],...
 'Style','edit',...
-'TooltipString','Blue component (0-255)',...
+'Tooltip','Blue component (0-255)',...
 'Tag','edit_OptionG_Background_B');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'pushbutton_OptionG_BgCustomColor_Callback'},...
+'Call',{@main_uiCB,h1,'push_OptionG_BgCustomColor_CB'},...
 'Position',[281 79 20 19],...
-'TooltipString','Background interactive color selection',...
-'Tag','pushbutton_OptionG_BgCustomColor');
+'Tooltip','Background interactive color selection',...
+'Tag','push_OptionG_BgCustomColor');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'checkbox_TransparentFg_Callback'},...
+'Call',{@main_uiCB,h1,'checkbox_TransparentFg_CB'},...
 'Position',[20 53 79 15],...
 'String','Transparent',...
 'Style','checkbox',...
-'TooltipString','Make Foreground pattern transparent',...
+'Tooltip','Make Foreground pattern transparent',...
 'Tag','checkbox_TransparentFg');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'togglebutton_ClearFg_Callback'},...
+'Call',{@main_uiCB,h1,'togglebutton_ClearFg_CB'},...
 'Position',[111 52 30 20],...
 'String','Clear',...
 'Style','togglebutton',...
-'TooltipString','Remove color in Foreground pattern',...
+'Tooltip','Remove color in Foreground pattern',...
 'Tag','togglebutton_ClearFg');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'checkbox_TransparentBg_Callback'},...
+'Call',{@main_uiCB,h1,'checkbox_TransparentBg_CB'},...
 'Position',[181 53 79 15],...
 'String','Transparent',...
 'Style','checkbox',...
-'TooltipString','Make Background pattern transparent',...
+'Tooltip','Make Background pattern transparent',...
 'Tag','checkbox_TransparentBg');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'togglebutton_ClearBg_Callback'},...
+'Call',{@main_uiCB,h1,'togglebutton_ClearBg_CB'},...
 'Position',[272 52 30 20],...
 'String','Clear',...
 'Style','togglebutton',...
-'TooltipString','Remove color in Background pattern',...
+'Tooltip','Remove color in Background pattern',...
 'Tag','togglebutton_ClearBg');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'pushbutton_HelpFillPattern_Callback'},...
+'Call',{@main_uiCB,h1,'push_HelpFillPattern_CB'},...
 'FontWeight','bold',...
 'ForegroundColor',[0 0 1],...
 'Position',[323 64 21 37],...
 'String','?',...
-'TooltipString','Help on pattern fill',...
-'Tag','pushbutton_HelpFillPattern');
+'Tooltip','Help on pattern fill',...
+'Tag','push_HelpFillPattern');
 
 uicontrol('Parent',h1,...
 'Enable','inactive',...
@@ -869,29 +832,28 @@ uicontrol('Parent',h1,...
 'Enable','inactive',...
 'Position',[112 137 131 15],...
 'String','OR Fill area with a pattern',...
-'Style','text',...
-'Tag','text7');
+'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'pushbutton_OK_Callback'},...
+'Call',{@main_uiCB,h1,'push_OK_CB'},...
 'Position',[364 45 66 23],...
 'String','OK',...
-'Tag','pushbutton_OK');
+'Tag','push_OK');
 
 uicontrol('Parent',h1,...
-'Callback',{@paint_option_uicallback,h1,'pushbutton_Cancel_Callback'},...
+'Call',{@main_uiCB,h1,'push_Cancel_CB'},...
 'Position',[364 75 66 23],...
 'String','Cancel',...
-'Tag','pushbutton_Cancel');
+'Tag','push_Cancel');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'HorizontalAlignment','left',...
 'Position',[10 9 421 23.4],...
 'Style','edit',...
-'TooltipString','Show GMT command corresponding to selected options',...
+'Tooltip','Show GMT command corresponding to selected options',...
 'Tag','edit_ShowCommand');
 
-function paint_option_uicallback(hObject, eventdata, h1, callback_name)
+function main_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
