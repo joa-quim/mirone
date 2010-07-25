@@ -1,148 +1,122 @@
 function varargout = image_adjust(varargin)
-% M-File changed by desGUIDE 
-% hObject    handle to figure
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to image_adjust (see VARARGIN)
- 
-hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-image_adjust_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
-movegui(hObject,'east')
+% command line arguments to image_adjust
 
-if (length(varargin) > 0)
-    handles.h_mirone_fig = varargin{1};
-    handMir = guidata(handles.h_mirone_fig);    % Get Mirone handles
-    handles.OriginalImage = handMir.origFig;    % Get Mirone original Image
-    if (isempty(handMir.origFig))
-        errordlg('ERROR: Mirone original image is not stored in memory. Increase "Grid max size".','Error')
-        delete(hObject);    return
-    end
-    handles.hMironeAxes = findobj(handles.h_mirone_fig,'Type','axes');
-    handles.h_mirone_img = findobj(handles.h_mirone_fig,'Type','image');
-    img = get(handles.h_mirone_img,'CData');
-    if (isempty(img))
-        errordlg('C''mon load a file first. It''s logic, isn''t it?','Error')
-        delete(hObject);    return
-    elseif (ndims(img) > 2)
-        errordlg('ERROR: This tool doesn''t work with RGB images.','Error')
-        delete(hObject);    return
-    end
-    %set(handles.h_mirone_img,'CDataMapping','scaled')
-    handles.OriginalImage_low  = double(min(min(img))) / 255;  % E SE NAO UINT8?
-    handles.OriginalImage_high = double(max(max(img))) / 255;
-    handles.frameAx1_pos = get(handles.frame_ax1,'pos');
-    handles.frameAx2_pos = get(handles.frame_ax2,'pos');
-else
-    delete(hObject);    return
-end
+%	Copyright (c) 2004-2010 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
-% determines how to scale original image so that it fits in the defined preview area.
-% Constraining dimension in "image panel"
-[m,n] = size(img);
-frameImageConstr = min(handles.frameAx1_pos(3),handles.frameAx1_pos(4));
-dImage = ceil(sqrt(m^2 + n^2)) + 5;     %Length of Image diagonal in pixels
-                                        % +5 added to allow for some panel border effects
-reductionFactor = (frameImageConstr/dImage);
-handles.previewImage = img_fun('imresize',img,reductionFactor);
+	if (isempty(varargin))		return,		end
 
-% Put the image in the right axes
-set(handles.figure1,'ColorMap',get(handles.h_mirone_fig,'ColorMap'))
-[m,n] = size(handles.previewImage);
-bg_aspect = m / n;
-handles.hPreviewImage = image(handles.previewImage,'Parent',handles.axes1);
-set(handles.axes1,'PlotBoxAspectRatio',[1 bg_aspect 1],'Visible','off')
-set(handles.axes1,'YDir',get(handles.hMironeAxes,'Ydir'))
-handles.hAdjustedImage = image(handles.previewImage,'Parent',handles.axes2);
-set(handles.axes2,'PlotBoxAspectRatio',[1 bg_aspect 1],'Visible','off')
-set(handles.axes2,'YDir',get(handles.hMironeAxes,'Ydir'))
+	hObject = figure('Tag','figure1','Visible','off');
+	image_adjust_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2sde(hObject,'right')
 
-% Compute and plot the histograms
-% axes(handles.axes3);        localImhist(img,handles);
-% axes(handles.axes4);        localImhist(img,handles);
-set(hObject,'CurrentAxes',handles.axes3);        localImhist(img,handles);
-set(hObject,'CurrentAxes',handles.axes4);        localImhist(img,handles);
+	handles.h_mirone_fig = varargin{1};
+	handMir = guidata(handles.h_mirone_fig);	% Get Mirone handles
+	handles.OriginalImage = handMir.origFig;	% Get Mirone original Image
+	if (isempty(handMir.origFig))
+		errordlg('ERROR: Mirone original image is not stored in memory. Increase "Grid max size".','Error')
+		delete(hObject);    return
+	end
+	handles.hMironeAxes = findobj(handles.h_mirone_fig,'Type','axes');
+	handles.h_mirone_img = findobj(handles.h_mirone_fig,'Type','image');
+	img = get(handles.h_mirone_img,'CData');
+	if (isempty(img))
+		errordlg('C''mon load a file first. It''s logic, isn''t it?','Error')
+		delete(hObject);    return
+	elseif (ndims(img) > 2)
+		errordlg('ERROR: This tool doesn''t work with RGB images.','Error')
+		delete(hObject);    return
+	end
+	%set(handles.h_mirone_img,'CDataMapping','scaled')
+	handles.OriginalImage_low  = double(min(min(img))) / 255;  % E SE NAO UINT8?
+	handles.OriginalImage_high = double(max(max(img))) / 255;
+	handles.frameAx1_pos = get(handles.frame_ax1,'pos');
+	handles.frameAx2_pos = get(handles.frame_ax2,'pos');
 
-% Line object for intensity transform of Histogram Eq Operation.
-Std.Interruptible = 'off';
-Std.BusyAction = 'queue';
-handles.hT = line(Std, 'Xdata',0:(1/255):1,'YData',0:(1/255):1,...
+	% determines how to scale original image so that it fits in the defined preview area.
+	% Constraining dimension in "image panel"
+	[m,n] = size(img);
+	frameImageConstr = min(handles.frameAx1_pos(3),handles.frameAx1_pos(4));
+	dImage = ceil(sqrt(m^2 + n^2)) + 5;     %Length of Image diagonal in pixels
+											% +5 added to allow for some panel border effects
+	reductionFactor = (frameImageConstr/dImage);
+	handles.previewImage = img_fun('imresize',img,reductionFactor);
+
+	% Put the image in the right axes
+	set(handles.figure1,'ColorMap',get(handles.h_mirone_fig,'ColorMap'))
+	[m,n] = size(handles.previewImage);
+	bg_aspect = m / n;
+	handles.hPreviewImage = image(handles.previewImage,'Parent',handles.axes1);
+	set(handles.axes1,'PlotBoxAspectRatio',[1 bg_aspect 1],'Visible','off')
+	set(handles.axes1,'YDir',get(handles.hMironeAxes,'Ydir'))
+	handles.hAdjustedImage = image(handles.previewImage,'Parent',handles.axes2);
+	set(handles.axes2,'PlotBoxAspectRatio',[1 bg_aspect 1],'Visible','off')
+	set(handles.axes2,'YDir',get(handles.hMironeAxes,'Ydir'))
+
+	% Compute and plot the histograms
+	% axes(handles.axes3);        localImhist(img,handles);
+	% axes(handles.axes4);        localImhist(img,handles);
+	set(hObject,'CurrentAxes',handles.axes3);        localImhist(img,handles);
+	set(hObject,'CurrentAxes',handles.axes4);        localImhist(img,handles);
+
+	% Line object for intensity transform of Histogram Eq Operation.
+	Std.Interruptible = 'off';
+	Std.BusyAction = 'queue';
+	handles.hT = line(Std, 'Xdata',0:(1/255):1,'YData',0:(1/255):1,...
    'Parent',handles.axes5, 'Visible','off', 'Color', [0 0 1]);
 
-% Shit the axes so it thinks the display range is [0 255]
-set(handles.axes5,'XTick',[0 100 200]/255,'YTick',[0 100 200]/255)
-set(handles.axes5,'XTickLabel',['  0'; '100'; '200'],'YTickLabel',['  0'; '100'; '200'])
+	% Shit the axes so it thinks the display range is [0 255]
+	set(handles.axes5,'XTick',[0 100 200]/255,'YTick',[0 100 200]/255)
+	set(handles.axes5,'XTickLabel',['  0'; '100'; '200'],'YTickLabel',['  0'; '100'; '200'])
 
-handles.Computer = computer;
+	handles.Computer = computer;
 
-% Line objects for Intensity Adjustment
-CtlEraseMode = 'xor';
-handles.hAdjLineCtl = line(Std, 'Tag', 'linectl', 'Parent', handles.axes5, ...
-   'ButtonDownFcn', {@BtnDown,handles,1}, 'Xdata',[0 .15 .85 1], ...
-   'Ydata', [.15 .15 .85 .85], 'EraseMode', CtlEraseMode, 'Color', [0 0 1]);
-handles.hAdjTopCtl = line(Std, 'Tag','topctl', 'Parent', handles.axes5, ...
-   'ButtonDownFcn', {@BtnDown,handles,2}, 'LineStyle', 'none', ...
-   'Xdata',.85, 'Ydata', .85, 'Marker', 'square', 'MarkerFaceCol', [.8 0 0], ...
-   'EraseMode', CtlEraseMode, 'Color', [0 0 0]);
-handles.hAdjGammaCtl = line(Std, 'Tag', 'gammactl', 'Parent', handles.axes5, ...
-   'ButtonDownFcn', {@BtnDown,handles,3}, 'LineStyle', 'none', ...
-   'Xdata',.5, 'Ydata', .5, 'Marker', 'o', 'MarkerFaceCol', [1 1 0], ...
-   'EraseMode', CtlEraseMode, 'Color', [0 0 0]);
-handles.hAdjBotCtl = line(Std, 'Tag', 'botctl', 'Parent', handles.axes5, ...
-   'ButtonDownFcn', {@BtnDown,handles,4}, 'LineStyle', 'none', ...
-   'Xdata',.15, 'Ydata', .15, 'Marker', 'square', 'MarkerFaceCol', [0 1 0], ...
-   'EraseMode', CtlEraseMode, 'Color', [0 0 0]);
+	% Line objects for Intensity Adjustment
+	CtlEraseMode = 'xor';
+	handles.hAdjLineCtl = line(Std, 'Tag', 'linectl', 'Parent', handles.axes5, ...
+		'ButtonDownFcn', {@BtnDown,handles,1}, 'Xdata',[0 .15 .85 1], ...
+		'Ydata', [.15 .15 .85 .85], 'EraseMode', CtlEraseMode, 'Color', [0 0 1]);
+	handles.hAdjTopCtl = line(Std, 'Tag','topctl', 'Parent', handles.axes5, ...
+		'ButtonDownFcn', {@BtnDown,handles,2}, 'LineStyle', 'none', ...
+		'Xdata',.85, 'Ydata', .85, 'Marker', 'square', 'MarkerFaceCol', [.8 0 0], ...
+		'EraseMode', CtlEraseMode, 'Color', [0 0 0]);
+	handles.hAdjGammaCtl = line(Std, 'Tag', 'gammactl', 'Parent', handles.axes5, ...
+		'ButtonDownFcn', {@BtnDown,handles,3}, 'LineStyle', 'none', ...
+		'Xdata',.5, 'Ydata', .5, 'Marker', 'o', 'MarkerFaceCol', [1 1 0], ...
+		'EraseMode', CtlEraseMode, 'Color', [0 0 0]);
+	handles.hAdjBotCtl = line(Std, 'Tag', 'botctl', 'Parent', handles.axes5, ...
+		'ButtonDownFcn', {@BtnDown,handles,4}, 'LineStyle', 'none', ...
+		'Xdata',.15, 'Ydata', .15, 'Marker', 'square', 'MarkerFaceCol', [0 1 0], ...
+		'EraseMode', CtlEraseMode, 'Color', [0 0 0]);
 
-handles = InitializeAdjustmentTool(handles);
+	handles = InitializeAdjustmentTool(handles);
 
-%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-%------------- END Pro look (3D) -------------------------------------------------------
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	new_frame3D(hObject, NaN)
+	%------------- END Pro look (3D) -----------------------------------------------------
 
-% Choose default command line output for image_adjust
-handles.output = hObject;
-guidata(hObject, handles);
-
-% UIWAIT makes image_adjust wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),	varargout{1} = hObject;		end
 
 % ----------------------------------------------------------------------------
-set(hObject,'Visible','on');
-% NOTE: If you make uiwait active you have also to uncomment the next three lines
-% handles = guidata(hObject);
-% out = image_adjust_OutputFcn(hObject, [], handles);
-% varargout{1} = out;
-
-% % --- Outputs from this function are returned to the command line.
-% function varargout = image_adjust_OutputFcn(hObject, eventdata, handles)
-% % varargout  cell array for returning output args (see VARARGOUT);
-% % hObject    handle to figure
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% % Get default command line output from handles structure
-% varargout{1} = handles.output;
+function popup_operations_Callback(hObject, handles)
+	UpdateOperations(handles)
 
 % ----------------------------------------------------------------------------
-function popup_operations_Callback(hObject, eventdata, handles)
-UpdateOperations(handles)
-
-% ----------------------------------------------------------------------------
-function edit_gamma_Callback(hObject, eventdata, handles)
+function edit_gamma_Callback(hObject, handles)
 gamma = str2double(get(hObject, 'String'));
 if (isempty(gamma) || gamma(1) < 0)
     set(hObject,'String','1')
@@ -156,7 +130,7 @@ else
 end
 
 % ----------------------------------------------------------------------------
-function push_Brighten_Callback(hObject, eventdata, handles)
+function push_Brighten_Callback(hObject, handles)
 low = handles.LowHiBotTop(1);       high = handles.LowHiBotTop(2);
 bot = handles.LowHiBotTop(3);       top = handles.LowHiBotTop(4);
 change = .1;
@@ -173,7 +147,7 @@ guidata(handles.figure1,handles)
 DoAdjust(handles);
 
 % ----------------------------------------------------------------------------
-function push_Darken_Callback(hObject, eventdata, handles)
+function push_Darken_Callback(hObject, handles)
 low = handles.LowHiBotTop(1);        high = handles.LowHiBotTop(2);
 bot = handles.LowHiBotTop(3);        top = handles.LowHiBotTop(4);
 change = .1;
@@ -190,7 +164,7 @@ guidata(handles.figure1,handles)
 DoAdjust(handles);
 
 % ----------------------------------------------------------------------------
-function push_incrContrast_Callback(hObject, eventdata, handles)
+function push_incrContrast_Callback(hObject, handles)
 high = get(handles.hAdjTopCtl, 'Xdata');    low = get(handles.hAdjBotCtl, 'Xdata');
 top = get(handles.hAdjTopCtl, 'Ydata');     bot = get(handles.hAdjBotCtl, 'Ydata');
 change = .1*(high-low);
@@ -199,7 +173,7 @@ BtnMotion([],[],handles,5, low, high, bot, top);      % Redraw
 DoAdjust(handles);
 
 % ----------------------------------------------------------------------------
-function push_decrContrast_Callback(hObject, eventdata, handles)
+function push_decrContrast_Callback(hObject, handles)
 high = get(handles.hAdjTopCtl, 'Xdata');    low = get(handles.hAdjBotCtl, 'Xdata');
 top = get(handles.hAdjTopCtl, 'Ydata');     bot = get(handles.hAdjBotCtl, 'Ydata');
 change = .1*(high-low);
@@ -208,7 +182,7 @@ BtnMotion([],[],handles,5, low, high, bot, top);      % Redraw
 DoAdjust(handles);
 
 % ----------------------------------------------------------------------------
-function push_decrGamma_Callback(hObject, eventdata, handles)
+function push_decrGamma_Callback(hObject, handles)
 handles.Gamma = handles.Gamma * 0.8;
 set(handles.edit_gamma, 'String', num2str(handles.Gamma)); %drawnow
 guidata(handles.figure1,handles)
@@ -216,7 +190,7 @@ BtnMotion([],[],handles,5);  % Redraw
 DoAdjust(handles);
 
 % ----------------------------------------------------------------------------
-function push_incrGamma_Callback(hObject, eventdata, handles)
+function push_incrGamma_Callback(hObject, handles)
 handles.Gamma = handles.Gamma * 1.2;
 set(handles.edit_gamma, 'String', num2str(handles.Gamma)); %drawnow
 guidata(handles.figure1,handles)
@@ -305,7 +279,7 @@ set(handles.edit_gamma, 'String', 1.0);
 set(handles.hAdjLineCtl,'Xdata',[0 low high 1],'Ydata',[0 0 1 1]);
 set(handles.hAdjTopCtl,'Xdata',high, 'Ydata', 1);
 set(handles.hAdjBotCtl,'Xdata',low, 'Ydata', 0);
-set(handles.hAdjGammaCtl,'Xdata',[(high+low)/2], 'Ydata', 0.5);
+set(handles.hAdjGammaCtl,'Xdata',(high+low)/2, 'Ydata', 0.5);
 handles.LowHiBotTop = [low high 0 1];  % Actual Low,high,bot,top
 guidata(handles.figure1,handles)
 
@@ -440,9 +414,9 @@ end
 % Now just draw the lines
 if (abs(handles.Gamma-1) < .01)      % if Gamma is close to 1, don't worry
    set(handles.hAdjLineCtl,'Xdata',[0 low high 1], 'Ydata',[bot bot top top]);
-   set(handles.hAdjBotCtl,'Xdata',[low], 'Ydata', [bot]);
-   set(handles.hAdjTopCtl,'Xdata',[high], 'Ydata', [top]);
-   set(handles.hAdjGammaCtl,'Xdata',[(high+low)/2], 'Ydata', [(bot+top)/2]);
+   set(handles.hAdjBotCtl,'Xdata',low, 'Ydata', bot);
+   set(handles.hAdjTopCtl,'Xdata',high, 'Ydata', top);
+   set(handles.hAdjGammaCtl,'Xdata',(high+low)/2, 'Ydata', (bot+top)/2);
 else
    axpos = get(handles.axes5, 'Position');
    xres = 2/axpos(3);
@@ -452,8 +426,8 @@ else
    curveY = curveY*(top-bot) + bot;
    curveY(end) = top;   % This is needed because of the line marked above - HG Bug?
    set(handles.hAdjLineCtl, 'Xdata',[0 (curveX) 1], 'Ydata',[bot (curveY) top]);
-   set(handles.hAdjBotCtl,'Xdata',[low],'Ydata',[bot]);
-   set(handles.hAdjTopCtl,'Xdata',[high],'Ydata', [top]);
+   set(handles.hAdjBotCtl,'Xdata',low,'Ydata',bot);
+   set(handles.hAdjTopCtl,'Xdata',high,'Ydata', top);
    npts = length(curveX);
    if (rem(npts,2) == 0)
       set(handles.hAdjGammaCtl,...
@@ -613,7 +587,7 @@ setptr(handles.figure1, 'arrow');
 
 
 % --- Creates and returns a handle to the GUI figure. 
-function image_adjust_LayoutFcn(h1,handles);
+function image_adjust_LayoutFcn(h1)
 
 set(h1,...
 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
@@ -625,17 +599,10 @@ set(h1,...
 'Resize','off',...
 'Tag','figure1');
 
-axes('Parent',h1,'Units','pixels',...
-'Position',[10 200 161 151],'Tag','axes1');
-
-axes('Parent',h1,'Units','pixels',...
-'Position',[180 200 161 151],'Tag','axes2');
-
-axes('Parent',h1,'Units','pixels',...
-'Position',[10 20 151 141],'Tag','axes3');
-
-axes('Parent',h1,'Units','pixels',...
-'Position',[180 20 151 141],'Tag','axes4');
+axes('Parent',h1,'Units','pixels','Position',[10 200 161 151],'Tag','axes1');
+axes('Parent',h1,'Units','pixels','Position',[180 200 161 151],'Tag','axes2');
+axes('Parent',h1,'Units','pixels','Position',[10 20 151 141],'Tag','axes3');
+axes('Parent',h1,'Units','pixels','Position',[180 20 151 141],'Tag','axes4');
 
 uicontrol('Parent',h1,'FontName','Helvetica','FontSize',9,...
 'Position',[370 344 144 16],...
@@ -648,44 +615,44 @@ axes('Parent',h1,'Units','pixels',...
 uicontrol('Parent',h1,'Position',[340 20 181 141],'Style','frame','Tag','frame1');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@image_adjust_uicallback,h1,'popup_operations_Callback'},...
+'Call',{@main_uiCB,h1,'popup_operations_Callback'},...
 'Position',[350 128 161 22],...
 'String',{'Intensity adjustment'; 'Histogram Equalization'; 'Adaptative Histogram Eq'},...
 'Style','popupmenu','Value',1,'Tag','popup_operations');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@image_adjust_uicallback,h1,'edit_gamma_Callback'},...
+'Call',{@main_uiCB,h1,'edit_gamma_Callback'},...
 'HorizontalAlignment','right',...
 'Position',[451 165 49 21],...
 'String','1','Style','edit','Tag','edit_gamma');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_adjust_uicallback,h1,'push_Brighten_Callback'},...
+'Call',{@main_uiCB,h1,'push_Brighten_Callback'},...
 'Position',[350 88 75 19],...
 'String','+ Brightness','Tag','push_Brighten');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_adjust_uicallback,h1,'push_Darken_Callback'},...
+'Call',{@main_uiCB,h1,'push_Darken_Callback'},...
 'Position',[437 88 75 19],...
 'String','- Brightness','Tag','push_Darken');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_adjust_uicallback,h1,'push_incrContrast_Callback'},...
+'Call',{@main_uiCB,h1,'push_incrContrast_Callback'},...
 'Position',[350 61 75 19],...
 'String','+ Contrast','Tag','push_incrContrast');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_adjust_uicallback,h1,'push_decrContrast_Callback'},...
+'Call',{@main_uiCB,h1,'push_decrContrast_Callback'},...
 'Position',[437 61 75 19],...
 'String','- Contrast','Tag','push_decrContrast');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_adjust_uicallback,h1,'push_incrGamma_Callback'},...
+'Call',{@main_uiCB,h1,'push_incrGamma_Callback'},...
 'Position',[350 31 75 19],...
 'String','+ Gamma','Tag','push_incrGamma');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_adjust_uicallback,h1,'push_decrGamma_Callback'},...
+'Call',{@main_uiCB,h1,'push_decrGamma_Callback'},...
 'Position',[437 31 75 19],...
 'String','- Gamma','Tag','push_decrGamma');
 
@@ -706,6 +673,6 @@ uicontrol('Parent',h1,'Position',[10 200 161 151],...
 uicontrol('Parent',h1,'Position',[180 200 161 151],...
 'Style','frame','Tag','frame_ax2');
 
-function image_adjust_uicallback(hObject, eventdata, h1, callback_name)
+function main_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
