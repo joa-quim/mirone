@@ -135,22 +135,9 @@ function varargout = fft_stuff(varargin)
 	set(handles.listbox_nnx,'TooltipString',str)
 	set(handles.listbox_nny,'TooltipString',str)
 
-	% Give a Pro look (3D) to the frame boxes 
-	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-	set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-	h_f = findobj(hObject,'Style','Frame');
-	for i=1:length(h_f)
-		frame_size = get(h_f(i),'Position');
-		f_bgc = get(h_f(i),'BackgroundColor');
-		usr_d = get(h_f(i),'UserData');
-		if (abs(f_bgc(1)-bgcolor(1)) > 0.01),		% When the frame's background color is not the default's
-			frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-		else
-			frame3D(hObject,frame_size,framecolor,'',usr_d)
-			delete(h_f(i))
-		end
-	end
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	new_frame3D(hObject, NaN)
+	%------------- END Pro look (3D) -----------------------------------------------------
 
 	% Add this figure handle to the carraças list
 	if (~isempty(handles.hMirFig))
@@ -806,8 +793,8 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Resize','off',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,'Position',[330 139 231 79],'String',{''},'Style','frame','Tag','frame2');
-uicontrol('Parent',h1,'Position',[10 139 301 79],'String',{''},'Style','frame','Tag','frame1');
+uicontrol('Parent',h1,'Position',[330 139 231 79],'String',{''},'Style','frame');
+uicontrol('Parent',h1,'Position',[10 139 301 79],'String',{''},'Style','frame');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Call',{@fft_stuff_uiCB,h1,'edit_Grid1_CB'},...
