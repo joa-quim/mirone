@@ -66,7 +66,7 @@ set(handles.edit_LineColor_R, 'String', [handles.command{7}]);
 set(handles.edit_LineColor_G, 'String', handles.command{9});
 set(handles.edit_LineColor_B, 'String', handles.command{11});
 set(handles.edit_ShowCommand, 'String', [handles.command{4:end}]);
-pushbutton_Example_CB(hObject, [], handles)
+pushbutton_Example_CB(hObject, handles)
 
 a(:,:,1) = color_wheel(10,0);     % 21x21
 a(:,:,2) = color_wheel(10,1);
