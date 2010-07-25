@@ -1,11 +1,7 @@
 function varargout = image_enhance(varargin)
-% M-File changed by desGUIDE 
-% hObject    handle to figure
-% varargin   command line arguments to image_enhance_export (see VARARGIN) 
-
 %   IMCONTRAST(H) creates an Adjust Contrast tool associated with the image
 %   specified by the handle H. H may be an image, axes, or figure handle.
-
+%
 %   The Adjust Contrast tool presents a scaled histogram of pixel values
 %   (overly represented pixel values are truncated for clarity). Dragging on the
 %   left red bar in the histogram display changes the minimum value. The minimum
@@ -21,14 +17,26 @@ function varargout = image_enhance(varargin)
 %   automatically updates the other values and the image.
 %
 
+%	Copyright (c) 2004-2010 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
+if (isempty(varargin))	return,		end
+
 hObject = figure('Tag','figure1','Visible','off');
 image_enhance_LayoutFcn(hObject);
 handles = guihandles(hObject);
-movegui(hObject,'east')
-
-if (isempty(varargin))
-    delete(hObject);    return
-end
+move2side(hObject,'right')
 
 handles.new_pointer = [NaN	NaN	NaN	NaN	NaN	NaN	NaN	2	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN; ...
         NaN	NaN	NaN	NaN	NaN	NaN	2	1	2	NaN	NaN	NaN	NaN	NaN	NaN	NaN; ...
@@ -74,7 +82,7 @@ elseif (ndims(img) == 2)
     all_childs = get(hObject,'Children');
     set(hObject,'pos',[pos_fig(1:3) new_height])
     for i = 1:length(all_childs)
-        set(all_childs(i),'pos',[get(all_childs(i),'pos')]+[0 -(pos_fig(4) - new_height) 0 0])
+        set(all_childs(i),'pos',get(all_childs(i),'pos')+[0 -(pos_fig(4) - new_height) 0 0])
     end
     set(handles.axes2,'Visible','off')
     pos_a1 = get(handles.axes1,'pos');      % Get new axe1 position to be used as reference
@@ -90,37 +98,9 @@ else
     delete(hObject);    return
 end
 
-movegui(hObject,'east')
-
-%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-% Recopy the text fields on top of previously created frames (uistack is to slow)
-h_t = [handles.text_dataRange handles.text_window handles.text_scaleRange];
-for i=1:length(h_t)
-    usr_d = get(h_t(i),'UserData');
-    t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-    bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
-    t_just = get(h_t(i),'HorizontalAlignment');     t_tag = get (h_t(i),'Tag');
-    uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str,'Tag',t_tag,...
-        'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,...
-        'UserData',usr_d,'HorizontalAlignment',t_just);
-end
-delete(h_t)
-%------------- END Pro look (3D) -------------------------------------------------------
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	new_frame3D(hObject, [handles.text_dataRange handles.text_window handles.text_scaleRange])
+	%------------- END Pro look (3D) -----------------------------------------------------
 
 handles.imgClass = class(img);
 handles.satistic(1) = {' '};
@@ -155,83 +135,83 @@ guidata(hObject, handles);
 set(hObject,'Visible','on');
 
 % --------------------------------------------------------------------------
-function edit_minWindow_Callback(hObject, eventdata, handles)
+function edit_minWindow_CB(hObject, handles)
 x_min = str2double(get(hObject,'String'));
 x_max = str2double(get(handles.edit_maxWindow,'String'));
 if (isnan(x_min) || x_min < 0 || x_min > x_max),   set(hObject,'String','');    return;  end
 updateAll(handles,[x_min x_max],'final')
 
 % --------------------------------------------------------------------------
-function edit_maxWindow_Callback(hObject, eventdata, handles)
-x_max = str2double(get(hObject,'String'));
-x_min = str2double(get(handles.edit_minWindow,'String'));
-if (isnan(x_max) || x_min > x_max),   set(hObject,'String',''); return;  end
-updateAll(handles,[x_min x_max],'final')
+function edit_maxWindow_CB(hObject, handles)
+	x_max = str2double(get(hObject,'String'));
+	x_min = str2double(get(handles.edit_minWindow,'String'));
+	if (isnan(x_max) || x_min > x_max),   set(hObject,'String',''); return;  end
+	updateAll(handles,[x_min x_max],'final')
 
 % --------------------------------------------------------------------------
-function edit_widthWindow_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx < 1),   set(hObject,'String',''); return;  end
-updateAll(handles,[xx xx],'width')
+function edit_widthWindow_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 1),   set(hObject,'String',''); return;  end
+	updateAll(handles,[xx xx],'width')
 
 % --------------------------------------------------------------------------
-function edit_centerWindow_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx < 1),   set(hObject,'String',''); return;  end
-updateAll(handles,[xx xx],'center')
+function edit_centerWindow_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 1),   set(hObject,'String',''); return;  end
+	updateAll(handles,[xx xx],'center')
 
 % --------------------------------------------------------------------------
-function edit_percentOutliersR_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx < 0 || xx > 100),   set(hObject,'String','2');  end
+function edit_percentOutliersR_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 0 || xx > 100),   set(hObject,'String','2');  end
 
 % --------------------------------------------------------------------------
-function edit_percentOutliersG_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx < 0 || xx > 100),   set(hObject,'String','2');  end
+function edit_percentOutliersG_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 0 || xx > 100),   set(hObject,'String','2');  end
 
 % --------------------------------------------------------------------------
-function edit_percentOutliersB_Callback(hObject, eventdata, handles)
-xx = str2double(get(hObject,'String'));
-if (isnan(xx) || xx < 0 || xx > 100),   set(hObject,'String','2');  end
+function edit_percentOutliersB_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 0 || xx > 100),   set(hObject,'String','2');  end
 
 % --------------------------------------------------------------------------
-function radiobutton_matchRange_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_delOutliers,'Value',0)
-else
-    set(hObject,'Value',1)
-end
+function radio_matchRange_CB(hObject, handles)
+	if (get(hObject,'Value'))
+		set(handles.radio_delOutliers,'Value',0)
+	else
+		set(hObject,'Value',1)
+	end
 
 % --------------------------------------------------------------------------
-function radiobutton_delOutliers_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_matchRange,'Value',0)
-else
-    set(hObject,'Value',1)
-end
+function radio_delOutliers_CB(hObject, handles)
+	if (get(hObject,'Value'))
+		set(handles.radio_matchRange,'Value',0)
+	else
+		set(hObject,'Value',1)
+	end
 
 % --------------------------------------------------------------------------
-function radio_R_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value')),  swap_radios(handles,1)
-else                        set(hObject, 'Value',1)
-end
+function radio_R_CB(hObject, handles)
+	if (get(hObject,'Value')),	swap_radios(handles,1)
+	else						set(hObject, 'Value',1)
+	end
 
 % --------------------------------------------------------------------------
-function radio_G_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value')),  swap_radios(handles,2)
-else                        set(hObject, 'Value',1)
-end
+function radio_G_CB(hObject, handles)
+	if (get(hObject,'Value')),	swap_radios(handles,2)
+	else						set(hObject, 'Value',1)
+	end
 
 % --------------------------------------------------------------------------
-function radio_B_Callback(hObject, eventdata, handles)
-if (get(hObject,'Value')),  swap_radios(handles,3)
-else                        set(hObject, 'Value',1)
-end
+function radio_B_CB(hObject, handles)
+	if (get(hObject,'Value')),	swap_radios(handles,3)
+	else						set(hObject, 'Value',1)
+	end
 
 % --------------------------------------------------------------------------
-function push_applyRange_Callback(hObject, eventdata, handles)
-if (get(handles.radiobutton_delOutliers,'Value'))
+function push_applyRange_CB(hObject, handles)
+if (get(handles.radio_delOutliers,'Value'))
     if (~handles.isRGB)
     	outlierPct = str2double(get(handles.edit_percentOutliersR,'String')) / 100;
     	newClim = localStretchlim(handles.orig_img, outlierPct / 2);
@@ -265,7 +245,7 @@ else                            % Use pre-stored data range
 end
 
 % --------------------------------------------------------------------------
-function push_contStrectch_Callback(hObject, eventdata, handles)
+function push_contStrectch_CB(hObject, handles)
 limsR = get(handles.patch(1),'XData');
 if (handles.isRGB)
     limsG = get(handles.patch(2),'XData');
@@ -280,7 +260,7 @@ set(handles.h_mirone_img, 'Cdata', img)
 set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------------
-function push_decorrStrectch_Callback(hObject, eventdata, handles)
+function push_decorrStrectch_CB(hObject, handles)
 set(handles.figure1,'pointer','watch')
 tol = str2double(get(handles.edit_percentOutliersR,'String')) / 100 / 2;
 img = img_fun('decorrstretch',handles.orig_img, 'Tol', tol);
@@ -288,7 +268,7 @@ set(handles.h_mirone_img, 'Cdata', img)
 set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------------
-function push_scaterPlot_Callback(hObject, eventdata, handles)
+function push_scaterPlot_CB(hObject, handles)
 [m,n,k] = size(handles.orig_img);
 if (m*n > 256*256)      % For scater plots we don't need all points (If they are many)
     fac = min(256/m,256/n);
@@ -573,35 +553,35 @@ if (x < handles.min_max{handles.currAxes}(1)-0.4 || x > handles.min_max{handles.
 set(h,'XData',[x x]);
 % OK, now adapt the patch accordingly
 switch n
-    case 1              % Update the left side
-        x = (xp(1) + xp(4)) / 2;
-        new_patch_lims = [round(pt(1,1)) round(pt(1,1)) xp(3) xp(4)];
-        set(handles.h_vert_lines{handles.currAxes}(2),'XData',[x x])    % Update central line
-        set(handles.edit_minWindow,'String',round(pt(1,1)))
-        set(handles.edit_widthWindow,'String',round(xp(4)-pt(1,1)))
-        handles.minWindow(handles.currAxes) = round(pt(1,1));
-        handles.widthWindow(handles.currAxes) = round(xp(4)-pt(1,1));
-    case 2              % Update both left and right sides
-        dx = xp(4) - xp(1);
-        xp(1) = max(handles.min_max{handles.currAxes}(1),pt(1,1)-dx/2);
-        xp(4) = min(handles.min_max{handles.currAxes}(2),pt(1,1)+dx/2);
-        new_patch_lims = [xp(1) xp(1) xp(4) xp(4)];
-        set(handles.h_vert_lines{handles.currAxes}(1),'XData',[xp(1) xp(1)])    % Update left line
-        set(handles.h_vert_lines{handles.currAxes}(3),'XData',[xp(4) xp(4)])    % Update right line
-        set(handles.edit_minWindow,'String',round(xp(1)))
-        set(handles.edit_maxWindow,'String',round(xp(4)))
-        set(handles.edit_widthWindow,'String',round(xp(4)-xp(1)))
-        handles.minWindow(handles.currAxes) = round(xp(1));
-        handles.maxWindow(handles.currAxes) = round(xp(4));
-        handles.widthWindow(handles.currAxes) = round(xp(4)-xp(1));
-    case 3              % Update the right side
-        x = (xp(1) + xp(4)) / 2;
-        new_patch_lims = [xp(1) xp(2) round(pt(1,1)) round(pt(1,1))];
-        set(handles.h_vert_lines{handles.currAxes}(2),'XData',[x x])    % Update central line
-        set(handles.edit_maxWindow,'String',round(pt(1,1)))
-        set(handles.edit_widthWindow,'String',round(pt(1,1)-xp(1)))
-        handles.maxWindow(handles.currAxes) = round(pt(1,1));
-        handles.widthWindow(handles.currAxes) = round(pt(1,1)-xp(1));
+	case 1              % Update the left side
+		x = (xp(1) + xp(4)) / 2;
+		new_patch_lims = [round(pt(1,1)) round(pt(1,1)) xp(3) xp(4)];
+		set(handles.h_vert_lines{handles.currAxes}(2),'XData',[x x])    % Update central line
+		set(handles.edit_minWindow,'String',round(pt(1,1)))
+		set(handles.edit_widthWindow,'String',round(xp(4)-pt(1,1)))
+		handles.minWindow(handles.currAxes) = round(pt(1,1));
+		handles.widthWindow(handles.currAxes) = round(xp(4)-pt(1,1));
+	case 2              % Update both left and right sides
+		dx = xp(4) - xp(1);
+		xp(1) = max(handles.min_max{handles.currAxes}(1),pt(1,1)-dx/2);
+		xp(4) = min(handles.min_max{handles.currAxes}(2),pt(1,1)+dx/2);
+		new_patch_lims = [xp(1) xp(1) xp(4) xp(4)];
+		set(handles.h_vert_lines{handles.currAxes}(1),'XData',[xp(1) xp(1)])    % Update left line
+		set(handles.h_vert_lines{handles.currAxes}(3),'XData',[xp(4) xp(4)])    % Update right line
+		set(handles.edit_minWindow,'String',round(xp(1)))
+		set(handles.edit_maxWindow,'String',round(xp(4)))
+		set(handles.edit_widthWindow,'String',round(xp(4)-xp(1)))
+		handles.minWindow(handles.currAxes) = round(xp(1));
+		handles.maxWindow(handles.currAxes) = round(xp(4));
+		handles.widthWindow(handles.currAxes) = round(xp(4)-xp(1));
+	case 3              % Update the right side
+		x = (xp(1) + xp(4)) / 2;
+		new_patch_lims = [xp(1) xp(2) round(pt(1,1)) round(pt(1,1))];
+		set(handles.h_vert_lines{handles.currAxes}(2),'XData',[x x])    % Update central line
+		set(handles.edit_maxWindow,'String',round(pt(1,1)))
+		set(handles.edit_widthWindow,'String',round(pt(1,1)-xp(1)))
+		handles.maxWindow(handles.currAxes) = round(pt(1,1));
+		handles.widthWindow(handles.currAxes) = round(pt(1,1)-xp(1));
 end
 
 handles.centerWindow(handles.currAxes) = round(x);
@@ -667,10 +647,10 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Tag','figure1');
 
 uicontrol('Parent',h1, 'Position',[5 29 526 391], 'Style','frame', 'Tag','frame_axes');
-uicontrol('Parent',h1, 'Position',[5 422 526 116], 'Style','frame', 'Tag','frame_top');
-uicontrol('Parent',h1, 'Position',[360 432 161 85], 'Style','frame', 'Tag','frame3');
-uicontrol('Parent',h1, 'Position',[129 462 222 55], 'Style','frame', 'Tag','frame2');
-uicontrol('Parent',h1, 'Position',[10 462 111 55], 'Style','frame', 'Tag','frame1');
+uicontrol('Parent',h1, 'Position',[5 422 526 116], 'Style','frame');
+uicontrol('Parent',h1, 'Position',[360 432 161 85], 'Style','frame');
+uicontrol('Parent',h1, 'Position',[129 462 222 55], 'Style','frame');
+uicontrol('Parent',h1, 'Position',[10 462 111 55], 'Style','frame');
 
 uicontrol('Parent',h1, 'BackgroundColor',[0.753 0.753 0.753],...
 'Enable','inactive', 'HorizontalAlignment','center',...
@@ -687,7 +667,7 @@ uicontrol('Parent',h1, 'HorizontalAlignment','right',...
 'Position',[5 472 60 15], 'String','Maximum:', 'Style','text');
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
-'Callback',{@image_enhance_uicallback,h1,'edit_minWindow_Callback'},...
+'Call',{@main_uiCB,h1,'edit_minWindow_CB'},...
 'HorizontalAlignment','center', 'Position',[186 489 47 21],...
 'Style','edit', 'Tag','edit_minWindow');
 
@@ -695,7 +675,7 @@ uicontrol('Parent',h1, 'HorizontalAlignment','right',...
 'Position',[135 491 50 15], 'String','Minimum:', 'Style','text');
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
-'Callback',{@image_enhance_uicallback,h1,'edit_maxWindow_Callback'},...
+'Call',{@main_uiCB,h1,'edit_maxWindow_CB'},...
 'HorizontalAlignment','center','Position',[186 467 47 21],...
 'Style','edit', 'Tag','edit_maxWindow');
 
@@ -703,7 +683,7 @@ uicontrol('Parent',h1, 'HorizontalAlignment','right',...
 'Position',[130 472 55 15], 'String','Maximum:', 'Style','text');
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
-'Callback',{@image_enhance_uicallback,h1,'edit_widthWindow_Callback'},...
+'Call',{@main_uiCB,h1,'edit_widthWindow_CB'},...
 'HorizontalAlignment','center','Position',[294 488 47 21],...
 'Style','edit', 'Tag','edit_widthWindow');
 
@@ -711,7 +691,7 @@ uicontrol('Parent',h1, 'HorizontalAlignment','right',...
 'Position',[258 490 35 15], 'String','Width:', 'Style','text');
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
-'Callback',{@image_enhance_uicallback,h1,'edit_centerWindow_Callback'},...
+'Call',{@main_uiCB,h1,'edit_centerWindow_CB'},...
 'HorizontalAlignment','center','Position',[294 466 47 21],...
 'Style','edit', 'Tag','edit_centerWindow');
 
@@ -719,24 +699,24 @@ uicontrol('Parent',h1, 'HorizontalAlignment','right',...
 'Position',[252 469 40 15], 'String','Center:', 'Style','text');
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
-'Callback',{@image_enhance_uicallback,h1,'edit_percentOutliersR_Callback'},...
+'Call',{@main_uiCB,h1,'edit_percentOutliersR_CB'},...
 'Position',[474 470 25 18],'String','2', 'Style','edit',...
-'TooltipString','Specifies the fraction of the image (or R band) to saturate at low and high intensities.',...
+'Tooltip','Specifies the fraction of the image (or R band) to saturate at low and high intensities.',...
 'Tag','edit_percentOutliersR');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_enhance_uicallback,h1,'radiobutton_matchRange_Callback'},...
+'Call',{@main_uiCB,h1,'radio_matchRange_CB'},...
 'Position',[367 486 130 17],'String','Match Data Range',...
 'Style','radiobutton',...
-'TooltipString','Try this it see what it does',...
-'Value',1, 'Tag','radiobutton_matchRange');
+'Tooltip','Try this it see what it does',...
+'Value',1, 'Tag','radio_matchRange');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_enhance_uicallback,h1,'radiobutton_delOutliers_Callback'},...
+'Call',{@main_uiCB,h1,'radio_delOutliers_CB'},...
 'Position',[367 465 107 17],'String','Eliminate outliers',...
 'Style','radiobutton',...
-'TooltipString','Eleminates % outliers as selected in the right side boxe(s)',...
-'Tag','radiobutton_delOutliers');
+'Tooltip','Eleminates % outliers as selected in the right side boxe(s)',...
+'Tag','radio_delOutliers');
 
 uicontrol('Parent',h1, 'HorizontalAlignment','left',...
 'Position',[502 470 10 15],'String','%', 'Style','text');
@@ -748,7 +728,7 @@ uicontrol('Parent',h1, 'Position',[153 509 50 15],...
 'String','Window', 'Style','text', 'Tag','text_window');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_enhance_uicallback,h1,'push_applyRange_Callback'},...
+'Call',{@main_uiCB,h1,'push_applyRange_CB'},...
 'FontName','Helvetica', 'FontSize',9,...
 'Position',[369 438 80 21],...
 'String','Apply', 'Tag','push_applyRange');
@@ -765,7 +745,7 @@ uicontrol('Parent',h1, 'HorizontalAlignment','left','Position',[6 7 221 15],...
 
 uicontrol('Parent',h1, 'HorizontalAlignment','left',...
 'Position',[398 7 132 15], 'Style','text',...
-'TooltipString','Statistics of the selected histogram portion',...
+'Tooltip','Statistics of the selected histogram portion',...
 'Tag','text_stat');
 
 axes('Parent',h1, 'Units','pixels',...
@@ -775,54 +755,54 @@ axes('Parent',h1, 'Units','pixels',...
 'Color',[0.9 1 1], 'Position',[50 54 431 115], 'Tag','axes3');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_enhance_uicallback,h1,'push_contStrectch_Callback'},...
+'Call',{@main_uiCB,h1,'push_contStrectch_CB'},...
 'FontName','Helvetica', 'FontSize',9,'Position',[16 432 110 20],...
 'String','Contrast Stretch',...
-'TooltipString','Increase the image contrast  with parameters deduced from the "colored" histograms portion',...
+'Tooltip','Increase the image contrast  with parameters deduced from the "colored" histograms portion',...
 'Tag','push_contStrectch');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_enhance_uicallback,h1,'push_decorrStrectch_Callback'},...
+'Call',{@main_uiCB,h1,'push_decorrStrectch_CB'},...
 'FontName','Helvetica', 'FontSize',9,'Position',[132 432 130 20],...
 'String','Decorrelation Stretch',...
-'TooltipString','Do a decorrelation stretch using as tolerance the value of the R band outliers percentage',...
+'Tooltip','Do a decorrelation stretch using as tolerance the value of the R band outliers percentage',...
 'Tag','push_decorrStrectch');
 
 uicontrol('Parent',h1, 'BackgroundColor',[0 1 0],...
-'Callback',{@image_enhance_uicallback,h1,'edit_percentOutliersG_Callback'},...
+'Call',{@main_uiCB,h1,'edit_percentOutliersG_CB'},...
 'Position',[474 453 25 18], 'String','2', 'Style','edit',...
-'TooltipString','Specifies the fraction of the Green band to saturate at low and high intensities.',...
+'Tooltip','Specifies the fraction of the Green band to saturate at low and high intensities.',...
 'Tag','edit_percentOutliersG');
 
 uicontrol('Parent',h1, 'BackgroundColor',[0 0 1],...
-'Callback',{@image_enhance_uicallback,h1,'edit_percentOutliersB_Callback'},...
+'Call',{@main_uiCB,h1,'edit_percentOutliersB_CB'},...
 'Position',[474 436 25 18], 'String','2', 'Style','edit',...
-'TooltipString','Specifies the fraction of the Blue band to saturate at low and high intensities.',...
+'Tooltip','Specifies the fraction of the Blue band to saturate at low and high intensities.',...
 'Tag','edit_percentOutliersB');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_enhance_uicallback,h1,'radio_R_Callback'},...
+'Call',{@main_uiCB,h1,'radio_R_CB'},...
 'FontName','Helvetica','Position',[489 336 35 15],...
 'String','R','Style','radiobutton','Value',1,'Tag','radio_R');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_enhance_uicallback,h1,'radio_G_Callback'},...
+'Call',{@main_uiCB,h1,'radio_G_CB'},...
 'FontName','Helvetica','Position',[489 223 35 15],...
 'String','G','Style','radiobutton','Tag','radio_G');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_enhance_uicallback,h1,'radio_B_Callback'},...
+'Call',{@main_uiCB,h1,'radio_B_CB'},...
 'FontName','Helvetica','Position',[489 105 35 15],...
 'String','B','Style','radiobutton','Tag','radio_B');
 
 uicontrol('Parent',h1,...
-'Callback',{@image_enhance_uicallback,h1,'push_scaterPlot_Callback'},...
+'Call',{@main_uiCB,h1,'push_scaterPlot_CB'},...
 'FontName','Helvetica', 'FontSize',9,...
 'Position',[268 432 80 20],...
 'String','ScaterPlot',...
-'TooltipString','Sow a scater plot of the 3 bands',...
+'Tooltip','Sow a scater plot of the 3 bands',...
 'Tag','push_scaterPlot');
 
-function image_enhance_uicallback(hObject, eventdata, h1, callback_name)
+function main_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
