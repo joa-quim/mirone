@@ -67,15 +67,7 @@ set(hObject,'Visible','on');
 uiwait(handles.figure1);
 
 handles = guidata(hObject);
-out = nearneighbor_options_OutputFcn(hObject, [], handles);
-varargout{1} = out;
-
-% --- Outputs from this function are returned to the command line.
-function varargout = nearneighbor_options_OutputFcn(hObject, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% Get default command line output from handles structure
 varargout{1} = handles.output;
-% The figure can be deleted now
 delete(handles.figure1);
 
 function edit_EmptyNodes_CB(hObject, handles)
