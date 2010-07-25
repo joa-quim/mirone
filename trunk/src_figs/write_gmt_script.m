@@ -1,8 +1,7 @@
 function varargout = write_gmt_script(varargin)
-% M-File changed by desGUIDE 
-% varargin   command line arguments to write_gmt_script (see VARARGIN)
+% Helper window to generate a GMT script that reproduces the Mirone's figure contents
 
-%	Copyright (c) 2004-2009 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -16,12 +15,10 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-%# mex
-
 hObject = figure('Tag','figure1','Visible','off');
 write_gmt_script_LayoutFcn(hObject);
 handles = guihandles(hObject);
-movegui(hObject,'center');
+move2side(hObject,'center');
 
 sizes_cm = {'A0 (83.96 118.82 cm)'; 'A1 (59.41 83.96 cm)'; 'A2 (41.98 59.41 cm)'; 'A3 (29.70 41.98 cm)'
     'A4 (20.99 29.70 cm)'; 'A5 (14.85 20.99 cm)'; 'A6 (10.48 14.85 cm)'; 'A7 (7.41 10.48 cm)'
@@ -64,197 +61,183 @@ paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85
     9.85 13.92; 6.96 9.85; 9.0 12.0; 12.0 18.0; 18.0 24.0; 24.0 36.0; 36.0 48.0; 8.5 13.0; 5.5 8.5; ...
     7.5 10.0; 8.5 11.0; 8.5 14.0; 11.0 17.0; 17.0 11.0];
 
-set(handles.popup_PaperSize,'String',sizes_cm,'Value',5)
+	set(handles.popup_PaperSize,'String',sizes_cm,'Value',5)
 
-handles.sizes_cm = sizes_cm;    handles.paper_cm = paper_cm;
-handles.sizes_pt = sizes_pt;    handles.paper_pt = paper_pt;
-handles.sizes_in = sizes_in;    handles.paper_in = paper_in;
-handles.opt_L = [];             handles.opt_U = [];
-handles.opt_psc = [];           % To eventualy hold several of the pscoast options
-handles.scale_set = 0;          % To signal that user changed scale
+	handles.sizes_cm = sizes_cm;    handles.paper_cm = paper_cm;
+	handles.sizes_pt = sizes_pt;    handles.paper_pt = paper_pt;
+	handles.sizes_in = sizes_in;    handles.paper_in = paper_in;
+	handles.opt_L = [];             handles.opt_U = [];
+	handles.opt_psc = [];			% To eventualy hold several of the pscoast options
+	handles.scale_set = 0;			% To signal that user changed scale
 
-mirone_handles = varargin{1};
-if (mirone_handles.no_file)     % Stupid call with nothing loaded on the Mirone window
-    delete(hObject);    return
-end
-handles.script_type = varargin{2};
-if (strcmp(handles.script_type,'bat'))
-    set(hObject,'Name','Write GMT batch')
-    set(handles.push_OK,'String','Write batch')
-else
-    set(hObject,'Name','Write GMT script')
-end
-
-% Add this figure handle to the carraças list
-plugedWin = getappdata(mirone_handles.figure1,'dependentFigs');
-plugedWin = [plugedWin hObject];
-setappdata(mirone_handles.figure1,'dependentFigs',plugedWin);
-
-imgXlim = get(mirone_handles.axes1,'XLim');    imgYlim = get(mirone_handles.axes1,'YLim');
-if (mirone_handles.image_type == 2 || mirone_handles.image_type == 20)     % "trivial" images
-	[ny,nx,nz] = size(get(mirone_handles.hImg,'CData'));
-	handles.x_min = imgXlim(1);     handles.x_max = imgXlim(2);
-	handles.y_min = imgYlim(1);     handles.y_max = imgYlim(2);
-else
-	head = mirone_handles.head;
-	if ( diff(imgXlim) < diff(head(1:2))*0.9 )		% Figure is zoomed
-		handles.x_min = imgXlim(1) + head(8)/2;		handles.x_max = imgXlim(2) - head(8)/2;
-		handles.y_min = imgYlim(1) + head(9)/2;		handles.y_max = imgYlim(2) - head(9)/2;
+	mirone_handles = varargin{1};
+	if (mirone_handles.no_file)     % Stupid call with nothing loaded on the Mirone window
+		delete(hObject);    return
+	end
+	handles.script_type = varargin{2};
+	if (strcmp(handles.script_type,'bat'))
+		set(hObject,'Name','Write GMT batch')
+		set(handles.push_OK,'String','Write batch')
 	else
-		handles.x_min = head(1);    handles.x_max = head(2);
-		handles.y_min = head(3);    handles.y_max = head(4);
+		set(hObject,'Name','Write GMT script')
 	end
-	nx = round((head(2) - head(1)) / head(8));          % May not be exactly correct but is good enough here
-	ny = round((head(4) - head(3)) / head(9));
-end    
-width  = 15;                    % Default starting width in cm
-fac_15 = nx / width;
-height = round(ny) / fac_15;
-if (height > 27)                % That is, if height + Y0 nearly outside the A4 page
-	while (height > 27)         % Make it approximately fit the page height
-		height = round(height * 0.1);
-		width  = round(width * 0.1);
+
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(mirone_handles.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(mirone_handles.figure1,'dependentFigs',plugedWin);
+
+	imgXlim = get(mirone_handles.axes1,'XLim');    imgYlim = get(mirone_handles.axes1,'YLim');
+	if (mirone_handles.image_type == 2 || mirone_handles.image_type == 20)     % "trivial" images
+		[ny,nx,nz] = size(get(mirone_handles.hImg,'CData'));
+		handles.x_min = imgXlim(1);     handles.x_max = imgXlim(2);
+		handles.y_min = imgYlim(1);     handles.y_max = imgYlim(2);
+	else
+		head = mirone_handles.head;
+		if ( diff(imgXlim) < diff(head(1:2))*0.9 )		% Figure is zoomed
+			handles.x_min = imgXlim(1) + head(8)/2;		handles.x_max = imgXlim(2) - head(8)/2;
+			handles.y_min = imgYlim(1) + head(9)/2;		handles.y_max = imgYlim(2) - head(9)/2;
+		else
+			handles.x_min = head(1);    handles.x_max = head(2);
+			handles.y_min = head(3);    handles.y_max = head(4);
+		end
+		nx = round((head(2) - head(1)) / head(8));		% May not be exactly correct but is good enough here
+		ny = round((head(4) - head(3)) / head(9));
+	end    
+	width  = 15;					% Default starting width in cm
+	fac_15 = nx / width;
+	height = round(ny) / fac_15;
+	if (height > 27)				% That is, if height + Y0 nearly outside the A4 page
+		while (height > 27)			% Make it approximately fit the page height
+			height = round(height * 0.1);
+			width  = round(width * 0.1);
+		end
 	end
-end
 
-handles.opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
+	handles.opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 
-handles.mirone_handles = mirone_handles;
-handles.width_or = width;  handles.height_or = height;
-handles.scale = width;
-handles.which_unit = 'cm';
-handles.d_path = mirone_handles.path_data;
+	handles.mirone_handles = mirone_handles;
+	handles.width_or = width;  handles.height_or = height;
+	handles.scale = width;
+	handles.which_unit = 'cm';
+	handles.d_path = mirone_handles.path_data;
 
-% Compute image aspect ratio and set axes 'PlotBoxAspectRatio' to it
-handles.paper = [paper_cm(5,1) paper_cm(5,2)];         % Set to A4 (x,y)
-handles.paper_aspect = handles.paper(2)/handles.paper(1);
-% set(handles.axes1,'XLim',[0 handles.paper(1)],'YLim',[0 handles.paper(2)], ...
-%         'PlotBoxAspectRatio',[1 handles.paper_aspect 1]);
-set(handles.axes1,'XLim',[0 handles.paper(1)],'YLim',[0 handles.paper(2)], 'DataAspectRatio',[1 1 1]);
-X0 = 2.5;               Y0 = 2.5;       % This is the GMT default's plot origin in cm
-rect_x = [X0 X0 X0+width X0+width X0];
-rect_y = [Y0 Y0+height Y0+height Y0 Y0];
-handles.rect_x = rect_x;   handles.rect_y = rect_y;
-handles.scale = num2str(width,'%.2g');
-set(handles.edit_mapWidth,'String',num2str(width,'%.2f'))       % Fill the width editbox
-set(handles.edit_mapHeight,'String',num2str(height,'%.2f'))     % Fill the height editbox
+	% Compute image aspect ratio and set axes 'PlotBoxAspectRatio' to it
+	handles.paper = [paper_cm(5,1) paper_cm(5,2)];         % Set to A4 (x,y)
+	handles.paper_aspect = handles.paper(2)/handles.paper(1);
+	% set(handles.axes1,'XLim',[0 handles.paper(1)],'YLim',[0 handles.paper(2)], ...
+	%         'PlotBoxAspectRatio',[1 handles.paper_aspect 1]);
+	set(handles.axes1,'XLim',[0 handles.paper(1)],'YLim',[0 handles.paper(2)], 'DataAspectRatio',[1 1 1]);
+	X0 = 2.5;				Y0 = 2.5;		% This is the GMT default's plot origin in cm
+	rect_x = [X0 X0 X0+width X0+width X0];
+	rect_y = [Y0 Y0+height Y0+height Y0 Y0];
+	handles.rect_x = rect_x;   handles.rect_y = rect_y;
+	handles.scale = sprintf('%.2g', width);
+	set(handles.edit_mapWidth,'String',sprintf('%.2f', width))		% Fill the width editbox
+	set(handles.edit_mapHeight,'String',sprintf('%.2f',height))		% Fill the height editbox
 
-% ---------- Draw the grid->image rectangle
-h = patch('XData',rect_x,'YData',rect_y,'FaceColor','w','EdgeColor','k','LineWidth',.5,'Tag','PlotRect');
+	% ---------- Draw the grid->image rectangle
+	h = patch('XData',rect_x,'YData',rect_y,'FaceColor','w','EdgeColor','k','LineWidth',.5,'Tag','PlotRect');
 
-ui_edit_polygon(h)    % Set edition functions
+	ui_edit_polygon(h)					% Set edition functions
 
-handles.hand_rect = h;      % Save the rectangle hand
-handles.hand_frame_proj = [];
+	handles.hand_rect = h;				% Save the rectangle hand
+	handles.hand_frame_proj = [];
 
-coord_system_script = [];
-directory_list = [];
-load([handles.d_path 'mirone_pref.mat']);
-% Check that the coord_system structure has no errors. If it has, load the default value.
-% The result is used to update the handles structure.
-[handles,handles.coord_system_script] = check_coord_system(handles,coord_system_script,'_script');
+	coord_system_script = [];
+	directory_list = [];
+	load([handles.d_path 'mirone_pref.mat']);
+	% Check that the coord_system structure has no errors. If it has, load the default value.
+	% The result is used to update the handles structure.
+	[handles,handles.coord_system_script] = check_coord_system(handles,coord_system_script,'_script');
 
-handles.all_ellipsoides = DefineEllipsoide;     % This is already in mirone_prefs
+	handles.all_ellipsoides = DefineEllipsoide;		% This is already in mirone_prefs
 
-%----------- Recall previous settings stored in mirone_pref -------------------
-handles.h_txt_info = findobj(hObject,'Tag','text_ProjDescription');
-handles.txt_info_pos = get(handles.h_txt_info,'Position');
-if (~mirone_handles.geog && iscell(handles.proj_info_txt_script))     % Need to do this because grid is not geog
-    if (length(handles.proj_info_txt_script) == 5),     handles.proj_info_txt_script(3) = [];   end
-    k = strfind(handles.proj_info_txt_script{1},'->');
-    handles.proj_info_txt_script{1} = handles.proj_info_txt_script{1}(1:k+1);
-    k = strfind(handles.proj_info_txt_script{2},'->');
-    handles.proj_info_txt_script{2} = [handles.proj_info_txt_script{2}(1:k+2) '   Linear'];
-    % Also remove the Ellipsoid info
-    k = strfind(handles.proj_info_txt_script{end-1},'->');
-    handles.proj_info_txt_script{end-1} = [handles.proj_info_txt_script{end-1}(1:k+2) '   NA'];
-    % Change the -J... to -JX...
-    k = strfind(handles.proj_info_txt_script{end},'-J');
-    handles.proj_info_txt_script{end} = [handles.proj_info_txt_script{end}(1:k+2) 'X' width handles.which_unit(1)];
-    handles.coord_system_script.projection = ['-JX' width handles.which_unit(1)];
-end
-set(handles.h_txt_info,'String',handles.proj_info_txt_script,'Position',handles.txt_info_pos)
-handles.all_datums = datums;    % datums is a function in utils
-
-% ---------- Split the scale from the projection string
-tmp = handles.coord_system_script.projection;
-if (~isempty(tmp))
-	if (numel(tmp) == 4 && strcmp(tmp(3),'m'))		% Simple Mercator has the form "-Jm1"
-        handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))];
-	elseif (numel(tmp) == 3 && strcmpi(tmp(3),'X'))	% Linear proj has the form "-JX"
-        handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))]; % Save this
-	else											% All other should terminate as "-J.../1"
-        tmp = tmp(1:end-2);
-        handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3)) tmp(4:end)];           % Save this
+	%----------- Recall previous settings stored in mirone_pref -------------------
+	handles.h_txt_info = findobj(hObject,'Tag','text_ProjDescription');
+	handles.txt_info_pos = get(handles.h_txt_info,'Position');
+	if (~mirone_handles.geog && iscell(handles.proj_info_txt_script))     % Need to do this because grid is not geog
+		if (length(handles.proj_info_txt_script) == 5),     handles.proj_info_txt_script(3) = [];   end
+		k = strfind(handles.proj_info_txt_script{1},'->');
+		handles.proj_info_txt_script{1} = handles.proj_info_txt_script{1}(1:k+1);
+		k = strfind(handles.proj_info_txt_script{2},'->');
+		handles.proj_info_txt_script{2} = [handles.proj_info_txt_script{2}(1:k+2) '   Linear'];
+		% Also remove the Ellipsoid info
+		k = strfind(handles.proj_info_txt_script{end-1},'->');
+		handles.proj_info_txt_script{end-1} = [handles.proj_info_txt_script{end-1}(1:k+2) '   NA'];
+		% Change the -J... to -JX...
+		k = strfind(handles.proj_info_txt_script{end},'-J');
+		handles.proj_info_txt_script{end} = [handles.proj_info_txt_script{end}(1:k+2) 'X' width handles.which_unit(1)];
+		handles.coord_system_script.projection = ['-JX' width handles.which_unit(1)];
 	end
-else
-    handles.opt_J_no_scale = '-JX10';				% Use this default
-end
-%opt_J = [tmp(1:2) upper(tmp(3)) tmp(4:end) '/' handles.scale handles.which_unit(1)];
-handles.curr_datum = handles.all_datums{handles.coord_system_script.datum_val,2};   % Save this
+	set(handles.h_txt_info,'String',handles.proj_info_txt_script,'Position',handles.txt_info_pos)
+	handles.all_datums = datums;    % datums is a function in utils
 
+	% ---------- Split the scale from the projection string
+	tmp = handles.coord_system_script.projection;
+	if (~isempty(tmp))
+		if (numel(tmp) == 4 && strcmp(tmp(3),'m'))		% Simple Mercator has the form "-Jm1"
+			handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))];
+		elseif (numel(tmp) == 3 && strcmpi(tmp(3),'X'))	% Linear proj has the form "-JX"
+			handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))]; % Save this
+		else											% All other should terminate as "-J.../1"
+			tmp = tmp(1:end-2);
+			handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3)) tmp(4:end)];           % Save this
+		end
+	else
+		handles.opt_J_no_scale = '-JX10';				% Use this default
+	end
+	%opt_J = [tmp(1:2) upper(tmp(3)) tmp(4:end) '/' handles.scale handles.which_unit(1)];
+	handles.curr_datum = handles.all_datums{handles.coord_system_script.datum_val,2};   % Save this
 
-% ----------- Use the directory list from mirone_pref
-j = false(1,numel(directory_list));                     % vector for eventual cleaning non-existing dirs
+	% ----------- Use the directory list from mirone_pref
+	j = false(1,numel(directory_list));					% vector for eventual cleaning non-existing dirs
 
-if iscell(directory_list)                               % When exists a dir list in mirone_pref
-    for i = 1:length(directory_list)
-        if ~exist(directory_list{i},'dir'),   j(i) = 1;   end
-    end
-    directory_list(j) = [];                             % clean eventual non-existing directories
-    if ~isempty(directory_list)                         % If there is one left
-        set(handles.popup_directory_list,'String',directory_list)
-        handles.last_directories = directory_list;
-    else
-        set(handles.popup_directory_list,'String',cd)
-        handles.last_directories = cellstr(cd);
-    end
-else                                                    % mirone_pref had no dir list
-    handles.last_directories = cellstr(cd);
-    set(handles.popup_directory_list,'String',handles.last_directories)
-end
+	if iscell(directory_list)							% When exists a dir list in mirone_pref
+		for i = 1:length(directory_list)
+			if ~exist(directory_list{i},'dir'),   j(i) = 1;   end
+		end
+		directory_list(j) = [];							% clean eventual non-existing directories
+		if ~isempty(directory_list)						% If there is one left
+			set(handles.popup_directory_list,'String',directory_list)
+			handles.last_directories = directory_list;
+		else
+			set(handles.popup_directory_list,'String',cd)
+			handles.last_directories = cellstr(cd);
+		end
+	else												% mirone_pref had no dir list
+		handles.last_directories = cellstr(cd);
+		set(handles.popup_directory_list,'String',handles.last_directories)
+	end
 
-% --------- Set prefix name based on month and day numbers
-prefix = clock;
-prefix = ['mir' sprintf('%d',prefix(3)) '-' sprintf('%d',prefix(2))];
-set(handles.edit_prefix,'String',prefix)
+	% --------- Set prefix name based on month and day numbers
+	prefix = clock;
+	prefix = ['mir' sprintf('%d',prefix(3)) '-' sprintf('%d',prefix(2))];
+	set(handles.edit_prefix,'String',prefix)
 
-if (~mirone_handles.geog)   % Non geogs don't use scale bars
-    set(handles.togglebutton_Option_L,'Visible','off')
-    set(findobj(hObject,'Style','text','Tag','text_MapScale'), 'Visible','off');
-end
+	if (~mirone_handles.geog)   % Non geogs don't use scale bars
+		set(handles.togglebutton_Option_L,'Visible','off')
+		set(findobj(hObject,'Style','text','Tag','text_MapScale'), 'Visible','off');
+	end
 
-% ---------- See if we have pscoast stuff
-ALLlineHand = findobj(get(mirone_handles.axes1,'Child'),'Type','line');
-handles.psc_res = [];   handles.psc_opt_W = [];     handles.psc_type_p = [];    handles.psc_type_r  = [];
-if (~isempty(findobj(ALLlineHand,'Tag','CoastLineNetCDF')) || ~isempty(findobj(ALLlineHand,'Tag','Rivers')) ...
-        || ~isempty(findobj(ALLlineHand,'Tag','PoliticalBoundaries')) )
-	[handles.ALLlineHand, handles.psc_res, handles.psc_opt_W, handles.psc_type_p, handles.psc_type_r] = ...
-        find_psc_stuff(ALLlineHand);
-else
-    set(handles.push_coastLines,'Visible', 'off')
-    handles.ALLlineHand = ALLlineHand;
-end;    clear ALLlineHand;
+	% ---------- See if we have pscoast stuff
+	ALLlineHand = findobj(get(mirone_handles.axes1,'Child'),'Type','line');
+	handles.psc_res = [];   handles.psc_opt_W = [];     handles.psc_type_p = [];    handles.psc_type_r  = [];
+	if (~isempty(findobj(ALLlineHand,'Tag','CoastLineNetCDF')) || ~isempty(findobj(ALLlineHand,'Tag','Rivers')) ...
+			|| ~isempty(findobj(ALLlineHand,'Tag','PoliticalBoundaries')) )
+		[handles.ALLlineHand, handles.psc_res, handles.psc_opt_W, handles.psc_type_p, handles.psc_type_r] = ...
+			find_psc_stuff(ALLlineHand);
+	else
+		set(handles.push_coastLines,'Visible', 'off')
+		handles.ALLlineHand = ALLlineHand;
+	end
+	clear ALLlineHand;
 
-%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-% ------------ END Pro look (3D) -------------------------------------------------------
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	new_frame3D(hObject, NaN)
+	%------------- END Pro look (3D) -----------------------------------------------------
 
-% ------------ Apply inherited projection
+	% ------------ Apply inherited projection
 	guidata(hObject, handles);
 	pushbutton_uppdate_CB(handles.pushbutton_uppdate, [], handles)
 	handles = guidata(hObject);     % Recover in "this handles" the changes donne in pushbutton_uppdate
@@ -264,7 +247,7 @@ end
 	if (nargout),   varargout{1} = hObject;     end
 
 % -----------------------------------------------------------------------------------
-function popup_PaperSize_CB(hObject, eventdata, handles)
+function popup_PaperSize_CB(hObject, handles)
 val = get(hObject,'Value');
 switch handles.which_unit
     case 'cm'
@@ -274,71 +257,71 @@ switch handles.which_unit
     case 'pt'
         lims = handles.paper_pt(val,1:2);
 end
-if (get(handles.radiobutton_P,'Value'))
+if (get(handles.radio_P,'Value'))
     set(handles.axes1,'XLim',[0 lims(1)],'YLim',[0 lims(2)]);
 else
     set(handles.axes1,'XLim',[0 lims(2)],'YLim',[0 lims(1)]);
 end
 
 % -----------------------------------------------------------------------------------
-function radiobutton_P_CB(hObject, eventdata, handles)
+function radio_P_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	img_size_x = get(handles.axes1,'YLim');     % Just swap x & y
 	img_size_y = get(handles.axes1,'XLim');
 	set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y);
-	set(handles.radiobutton_L,'Value',0)
+	set(handles.radio_L,'Value',0)
 
 % -----------------------------------------------------------------------------------
-function radiobutton_L_CB(hObject, eventdata, handles)
+function radio_L_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	img_size_x = get(handles.axes1,'YLim');     % Just swap x & y
 	img_size_y = get(handles.axes1,'XLim');
 	set(handles.axes1,'XLim',img_size_x,'YLim',img_size_y);
-	set(handles.radiobutton_P,'Value',0)
+	set(handles.radio_P,'Value',0)
 
 % -----------------------------------------------------------------------------------
-function radiobutton_cm_CB(hObject, eventdata, handles)
+function radio_cm_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	val = get(handles.popup_PaperSize,'Value');
 	set(handles.popup_PaperSize,'String',handles.sizes_cm,'Value',val)
-	if (get(handles.radiobutton_P,'Value'))
+	if (get(handles.radio_P,'Value'))
 		set(handles.axes1,'XLim',[0 handles.paper_cm(val,1)],'YLim',[0 handles.paper_cm(val,2)])
 	else
 		set(handles.axes1,'XLim',[0 handles.paper_cm(val,2)],'YLim',[0 handles.paper_cm(val,1)])
 	end    
 	conv_units(handles,'cm')
-	set(handles.radiobutton_in,'Value',0)
-	set(handles.radiobutton_pt,'Value',0)
+	set(handles.radio_in,'Value',0)
+	set(handles.radio_pt,'Value',0)
 	handles.which_unit = 'cm';      guidata(hObject,handles);
 
 % -----------------------------------------------------------------------------------
-function radiobutton_in_CB(hObject, eventdata, handles)
+function radio_in_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	val = get(handles.popup_PaperSize,'Value');
 	set(handles.popup_PaperSize,'String',handles.sizes_in,'Value',val)
-	if (get(handles.radiobutton_P,'Value'))
+	if (get(handles.radio_P,'Value'))
 		set(handles.axes1,'XLim',[0 handles.paper_in(val,1)],'YLim',[0 handles.paper_in(val,2)])
 	else
 		set(handles.axes1,'XLim',[0 handles.paper_in(val,2)],'YLim',[0 handles.paper_in(val,1)])
 	end
 	conv_units(handles,'in')
-	set(handles.radiobutton_cm,'Value',0)
-	set(handles.radiobutton_pt,'Value',0)
+	set(handles.radio_cm,'Value',0)
+	set(handles.radio_pt,'Value',0)
 	handles.which_unit = 'in';      guidata(hObject,handles);
 
 % -----------------------------------------------------------------------------------
-function radiobutton_pt_Callback(hObject, eventdata, handles)
+function radio_pt_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	val = get(handles.popup_PaperSize,'Value');
 	set(handles.popup_PaperSize,'String',handles.sizes_pt,'Value',val)
-	if (get(handles.radiobutton_P,'Value'))
+	if (get(handles.radio_P,'Value'))
 		set(handles.axes1,'XLim',[0 handles.paper_pt(val,1)],'YLim',[0 handles.paper_pt(val,2)])
 	else
 		set(handles.axes1,'XLim',[0 handles.paper_pt(val,2)],'YLim',[0 handles.paper_pt(val,1)])
 	end
 	conv_units(handles,'pt')
-	set(handles.radiobutton_cm,'Value',0)
-	set(handles.radiobutton_in,'Value',0)
+	set(handles.radio_cm,'Value',0)
+	set(handles.radio_in,'Value',0)
 	handles.which_unit = 'pt';      guidata(hObject,handles);
 
 % -----------------------------------------------------------------------------------
@@ -405,27 +388,27 @@ try
 end
 
 % -----------------------------------------------------------------------------------
-function radiobutton_setWidth_Callback(hObject, eventdata, handles)
+function radio_setWidth_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
-	set(handles.radiobutton_setHeight,'Value',0)
+	set(handles.radio_setHeight,'Value',0)
 
 % -----------------------------------------------------------------------------------
-function radiobutton_setHeight_Callback(hObject, eventdata, handles)
+function radio_setHeight_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
-	set(handles.radiobutton_setWidth,'Value',0)
+	set(handles.radio_setWidth,'Value',0)
 
 % -----------------------------------------------------------------------------------
-function radiobutton_180_180_Callback(hObject, eventdata, handles)
+function radio_180_180_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
-	set(handles.radiobutton_0_360,'Value',0)
+	set(handles.radio_0_360,'Value',0)
 
 % -----------------------------------------------------------------------------------
-function radiobutton_0_360_Callback(hObject, eventdata, handles)
+function radio_0_360_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
-	set(handles.radiobutton_180_180,'Value',0)
+	set(handles.radio_180_180,'Value',0)
 
 % -----------------------------------------------------------------------------------
-function pushbutton_uppdate_CB(hObject, eventdata, handles)
+function pushbutton_uppdate_CB(hObject, handles)
 xx = get(handles.hand_rect,'XData');
 yy = get(handles.hand_rect,'YData');
 set(handles.edit_X0,'String',num2str(xx(1),'%.1f'));
@@ -436,9 +419,9 @@ if (strcmp(handles.opt_J_no_scale(1:3),'-JX'))      % Linear proj has a differen
 	scale_y = (yy(2) - yy(1)) / handles.height_or;
 	new_y = handles.height_or * scale_x;
 	new_x = handles.width_or * scale_y;
-	if (get(handles.radiobutton_setWidth,'Value'))
+	if (get(handles.radio_setWidth,'Value'))
         yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);
-	elseif (get(handles.radiobutton_setHeight,'Value'))
+	elseif (get(handles.radio_setHeight,'Value'))
         xx(3) = new_x + xx(2);      xx(4) = new_x + xx(1);
 	else
         yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);  % It will become "True" scale
@@ -477,9 +460,9 @@ end
 new_x = max(out(:,1)) - min(out(:,1));
 new_y = max(out(:,2)) - min(out(:,2));
 
-if (get(handles.radiobutton_setWidth,'Value'))
+if (get(handles.radio_setWidth,'Value'))
     yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);
-elseif (get(handles.radiobutton_setHeight,'Value'))
+elseif (get(handles.radio_setHeight,'Value'))
     xx(3) = new_x + xx(2);      xx(4) = new_x + xx(1);
 else
     yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);  % It will become "True" scale
@@ -551,7 +534,7 @@ end
 guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
-function edit_X0_Callback(hObject, eventdata, handles)
+function edit_X0_CB(hObject, handles)
 % Set new x origin
 	str = get(hObject,'String');        x0 = str2double(str);
 	xx = get(handles.hand_rect,'XData');
@@ -562,7 +545,7 @@ function edit_X0_Callback(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------------
-function edit_Y0_Callback(hObject, eventdata, handles)
+function edit_Y0_CB(hObject, handles)
 % Set new y origin
 	str = get(hObject,'String');        y0 = str2double(str);
 	yy = get(handles.hand_rect,'YData');
@@ -573,34 +556,34 @@ function edit_Y0_Callback(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------------
-function edit_mapWidth_Callback(hObject, eventdata, handles)
-	% Set new map width
+function edit_mapWidth_CB(hObject, handles)
+% Set new map width
 	str = get(hObject,'String');        w = str2double(str);
 	xx = get(handles.hand_rect,'XData');
 	if (isnan(w)),     set(hObject,'String',str);      return;     end
 	xx(3) = xx(2) + w;      xx(4) = xx(1) + w;
 	set(handles.hand_rect,'XData',xx)
-	pushbutton_uppdate_CB(handles.pushbutton_uppdate, eventdata, handles)
+	pushbutton_uppdate_CB(handles.pushbutton_uppdate, handles)
 
 % -----------------------------------------------------------------------------------
-function edit_mapHeight_Callback(hObject, eventdata, handles)
+function edit_mapHeight_CB(hObject, handles)
 % Set new map height
 	str = get(hObject,'String');		h = str2double(str);
 	yy = get(handles.hand_rect,'YData');
 	if (isnan(h)),			set(hObject,'String',str);		return,		end
 	yy(2) = yy(1) + h;		yy(3) = yy(4) + h;
 	set(handles.hand_rect,'YData',yy)
-	pushbutton_uppdate_CB(handles.pushbutton_uppdate, eventdata, handles)
+	pushbutton_uppdate_CB(handles.pushbutton_uppdate, handles)
 
 % -----------------------------------------------------------------------------------------
-function popup_directory_list_CB(hObject, eventdata, handles)
+function popup_directory_list_CB(hObject, handles)
 	val = get(hObject,'Value');		str = get(hObject, 'String');
 	% Put the selected field on top of the String list.
 	tmp = str(val);			str(val) = [];
 	new_str = [tmp; str];	set(hObject,'String',new_str,'Value',1); 
 
 % -----------------------------------------------------------------------------------------
-function pushbutton_change_dir_CB(hObject, eventdata, handles)
+function pushbutton_change_dir_CB(hObject, handles)
 	contents = get(handles.popup_directory_list,'String');
 	if (iscell(contents))
 		pato = contents{1};         % Start at default's directory
@@ -619,7 +602,7 @@ function pushbutton_change_dir_CB(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------------
-function edit_scale_Callback(hObject, eventdata, handles)
+function edit_scale_CB(hObject, handles)
 	str = get(hObject,'String');
 	xx = get(handles.hand_rect,'XData');		yy = get(handles.hand_rect,'YData');
 	opt_J = [handles.opt_J_no_scale '/' str];	opt_J(3) = lower(opt_J(3));
@@ -636,10 +619,10 @@ function edit_scale_Callback(hObject, eventdata, handles)
 	set(handles.hand_rect,'XData',xx,'YData',yy)
 	handles.scale_set = 1;
 	guidata(hObject, handles);
-	pushbutton_uppdate_CB(handles.pushbutton_uppdate, eventdata, handles)
+	pushbutton_uppdate_CB(handles.pushbutton_uppdate, handles)
 
 % -----------------------------------------------------------------------------------
-function pushbutton_mapProjections_CB(hObject, eventdata, handles)
+function pushbutton_mapProjections_CB(hObject, handles)
 if (~handles.mirone_handles.geog)
     msg = ['I will tell you a secret. A map projection is an operation where GEOGRAPHIC ' ...
             'coordinates (representing a nearly spherical surface) are transformed into ' ...
@@ -684,42 +667,42 @@ coord_system_script.proj_info_pos = pos;
 
 save(fname,'coord_system_script','-append');      % Update mirone_pref
 guidata(hObject,handles)
-pushbutton_uppdate_CB(handles.pushbutton_uppdate, eventdata, handles)
+pushbutton_uppdate_CB(handles.pushbutton_uppdate, handles)
 
 % ----------------------------------------------------------------------------------------
-function togglebutton_Option_L_Callback(hObject, eventdata, handles)
+function togglebutton_Option_L_CB(hObject, handles)
 if (get(hObject,'Value'))
     xx = draw_scale;
     if (~isempty(xx))
-        set(handles.checkbox_removeOptionL,'Visible','on','Value',0)
+        set(handles.check_removeOptionL,'Visible','on','Value',0)
         handles.opt_L = [' ' xx];
     else
         set(hObject,'Value',0)
     end
 else
     handles.opt_L = [];
-    set(handles.checkbox_removeOptionL,'Visible','off')
+    set(handles.check_removeOptionL,'Visible','off')
 end
 guidata(hObject, handles);
 
 % ----------------------------------------------------------------------------------------
-function togglebutton_Option_U_Callback(hObject, eventdata, handles)
+function togglebutton_Option_U_CB(hObject, handles)
 if (get(hObject,'Value'))
     xx = time_stamp;
     if (~isempty(xx))
-        set(handles.checkbox_removeOptionU,'Visible','on','Value',0)
+        set(handles.check_removeOptionU,'Visible','on','Value',0)
         handles.opt_U = [' ' xx];
     else
         set(hObject,'Value',0)
     end
 else
     handles.opt_U = [];
-    set(handles.checkbox_removeOptionU,'Visible','off')
+    set(handles.check_removeOptionU,'Visible','off')
 end
 guidata(hObject, handles);
 
 % ----------------------------------------------------------------------------------------
-function checkbox_removeOptionL_CB(hObject, eventdata, handles)
+function check_removeOptionL_CB(hObject, handles)
 if (get(hObject,'Value'))
     set(handles.togglebutton_Option_L,'Value',0)    % Reset the associated togglebutton to off
     set(hObject,'Visible','off')                    % Hide this button
@@ -728,7 +711,7 @@ if (get(hObject,'Value'))
 end
 
 % -----------------------------------------------------------------------------------------
-function checkbox_removeOptionU_CB(hObject, eventdata, handles)
+function check_removeOptionU_CB(hObject, handles)
 if (get(hObject,'Value'))
     set(handles.togglebutton_Option_U,'Value',0)    % Reset the associated togglebutton to off
     set(hObject,'Visible','off')                    % Hide this button
@@ -737,14 +720,14 @@ if (get(hObject,'Value'))
 end
 
 % -----------------------------------------------------------------------------------
-function push_coastLines_CB(hObject, eventdata, handles)
+function push_coastLines_CB(hObject, handles)
 handles.opt_psc = pscoast_options_Mir(handles.mirone_handles, handles.psc_res, handles.psc_opt_W, ...
     handles.psc_type_p, handles.psc_type_r);
     % Testar se ha -N e -I repetidas
 guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
-function push_OK_CB(hObject, eventdata, handles)
+function push_OK_CB(hObject, handles)
 % Here we transmit the: -J<...>, paper name, files prefix, X0, Y0 and destination directory
 	if (~strcmp(handles.opt_J_no_scale(1:3),'-JX'))
 		opt_J = [handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)];
@@ -762,7 +745,7 @@ function push_OK_CB(hObject, eventdata, handles)
 	X0 = get(handles.edit_X0,'String');     Y0 = get(handles.edit_Y0,'String');
 	X0 = ['-X' X0 handles.which_unit(1)];   Y0 = ['-Y' Y0 handles.which_unit(1)];
 
-	if (get(handles.radiobutton_180_180,'Value'))   % [-180;180] range
+	if (get(handles.radio_180_180,'Value'))   % [-180;180] range
 		opt_deg = '--PLOT_DEGREE_FORMAT=ddd:mm:ss';
 	else                                            % [0;360] range
 		opt_deg = '--PLOT_DEGREE_FORMAT=+ddd:mm:ss';
@@ -774,7 +757,7 @@ function push_OK_CB(hObject, eventdata, handles)
 			handles.opt_psc = [handles.psc_res ' ' handles.psc_opt_W ' ' handles.psc_type_p ' ' handles.psc_type_r];
 		end
     end
-    if (get(handles.radiobutton_P,'Value')),    opt_P = ' -P';
+    if (get(handles.radio_P,'Value')),    opt_P = ' -P';
     else                                        opt_P = '';
     end
     out_msg = build_write_script(handles, opt_J, d_dir, prefix, paper, X0, Y0, opt_P, opt_deg);
@@ -1953,14 +1936,14 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'RendererMode','manual',...
 'DoubleBuffer','on',...
 'Resize','off',...
-'HandleVisibility','callback',...
+'HandleVisibility','Call',...
 'Tag','figure1');
 
 uicontrol('Parent',h1,'Position',[30 9 205 121],'Style','frame','Tag','frame1');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@write_gmt_script_uicallback,h1,'popup_PaperSize_CB'},...
+'Call',{@main_uiCB,h1,'popup_PaperSize_CB'},...
 'Position',[40 98 181 22],...
 'String','A4 595 842',...
 'Style','popupmenu',...
@@ -1968,12 +1951,12 @@ uicontrol('Parent',h1,...
 'Tag','popup_PaperSize');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_P_CB'},...
+'Call',{@main_uiCB,h1,'radio_P_CB'},...
 'Position',[40 42 71 15],...
 'String','Portrait',...
 'Style','radiobutton',...
 'Value',1,...
-'Tag','radiobutton_P');
+'Tag','radio_P');
 
 axes('Parent',h1,...
 'Units','pixels',...
@@ -1988,111 +1971,111 @@ axes('Parent',h1,...
 'Tag','axes1');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_L_CB'},...
+'Call',{@main_uiCB,h1,'radio_L_CB'},...
 'Position',[40 18 85 15],...
 'String','Landscape',...
 'Style','radiobutton',...
-'Tag','radiobutton_L');
+'Tag','radio_L');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_setWidth_Callback'},...
+'Call',{@main_uiCB,h1,'radio_setWidth_CB'},...
 'Position',[135 42 100 15],...
 'String','Set map width',...
 'Style','radiobutton',...
-'TooltipString','Check this to force Map width = rectangle width',...
+'Tooltip','Check this to force Map width = rectangle width',...
 'Value',1,...
-'Tag','radiobutton_setWidth');
+'Tag','radio_setWidth');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_setHeight_Callback'},...
+'Call',{@main_uiCB,h1,'radio_setHeight_CB'},...
 'Position',[135 18 105 15],...
 'String','Set map height',...
 'Style','radiobutton',...
-'TooltipString','Check this to force Map height = rectangle height',...
-'Tag','radiobutton_setHeight');
+'Tooltip','Check this to force Map height = rectangle height',...
+'Tag','radio_setHeight');
 
 uicontrol('Parent',h1, ...
-'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_180_180_Callback'},...
+'Call',{@main_uiCB,h1,'radio_180_180_CB'},...
 'Position',[340 150 95 15],...
 'String','[-180 180]', 'Style','radiobutton',...
-'TooltipString','Plot longitudes in the [-180;180] range',...
+'Tooltip','Plot longitudes in the [-180;180] range',...
 'Value',1,...
-'Tag','radiobutton_180_180');
+'Tag','radio_180_180');
 
 uicontrol('Parent',h1, ...
-'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_0_360_Callback'},...
+'Call',{@main_uiCB,h1,'radio_0_360_CB'},...
 'Position',[340 130 95 15],...
 'String','[0 360]', 'Style','radiobutton',...
-'TooltipString','Plot longitudes in the [0;360] range',...
-'Tag','radiobutton_0_360');
+'Tooltip','Plot longitudes in the [0;360] range',...
+'Tag','radio_0_360');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'pushbutton_uppdate_CB'},...
+'Call',{@main_uiCB,h1,'pushbutton_uppdate_CB'},...
 'Position',[340 60 68 33],...
 'String','Update', 'FontWeight','bold',...
-'TooltipString','Update the rectangle size to allowed dimensions according to projection and side constraints',...
+'Tooltip','Update the rectangle size to allowed dimensions according to projection and side constraints',...
 'Tag','pushbutton_uppdate');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@write_gmt_script_uicallback,h1,'edit_X0_Callback'},...
+'Call',{@main_uiCB,h1,'edit_X0_CB'},...
 'Position',[480 89 61 21],...
 'String','2.5',...
 'Style','edit',...
-'TooltipString','Plot X origin',...
+'Tooltip','Plot X origin',...
 'Tag','edit_X0');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@write_gmt_script_uicallback,h1,'edit_Y0_Callback'},...
+'Call',{@main_uiCB,h1,'edit_Y0_CB'},...
 'Position',[480 59 61 21],...
 'String','2.5',...
 'Style','edit',...
-'TooltipString','Plot Y origin',...
+'Tooltip','Plot Y origin',...
 'Tag','edit_Y0');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@write_gmt_script_uicallback,h1,'edit_mapWidth_Callback'},...
+'Call',{@main_uiCB,h1,'edit_mapWidth_CB'},...
 'Position',[480 149 60 21],...
 'Style','edit',...
-'TooltipString','Map width',...
+'Tooltip','Map width',...
 'Tag','edit_mapWidth');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'pushbutton_mapProjections_CB'},...
+'Call',{@main_uiCB,h1,'pushbutton_mapProjections_CB'},...
 'Position',[400 367 95 21],...
 'String','Map projection',...
-'TooltipString','Select/Change the map projection',...
+'Tooltip','Select/Change the map projection',...
 'Tag','pushbutton_mapProjections');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_cm_CB'},...
+'Call',{@main_uiCB,h1,'radio_cm_CB'},...
 'Position',[40 75 40 15],...
 'String','cm',...
 'Style','radiobutton',...
-'TooltipString','Show paper size in centimeters',...
+'Tooltip','Show paper size in centimeters',...
 'Value',1,...
-'Tag','radiobutton_cm');
+'Tag','radio_cm');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_in_CB'},...
+'Call',{@main_uiCB,h1,'radio_in_CB'},...
 'Position',[116 75 40 15],...
 'String','in',...
 'Style','radiobutton',...
-'TooltipString','Show paper size in inches',...
-'Tag','radiobutton_in');
+'Tooltip','Show paper size in inches',...
+'Tag','radio_in');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'radiobutton_pt_Callback'},...
+'Call',{@main_uiCB,h1,'radio_pt_CB'},...
 'Position',[179 75 40 15],...
 'String','pt',...
 'Style','radiobutton',...
-'TooltipString','Show paper size in points',...
-'Tag','radiobutton_pt');
+'Tooltip','Show paper size in points',...
+'Tag','radio_pt');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'push_OK_CB'},...
+'Call',{@main_uiCB,h1,'push_OK_CB'},...
 'FontSize',9,...
 'FontWeight','bold',...
 'Position',[460 8 82 21],...
@@ -2101,26 +2084,26 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@write_gmt_script_uicallback,h1,'edit_mapHeight_Callback'},...
+'Call',{@main_uiCB,h1,'edit_mapHeight_CB'},...
 'Position',[480 119 60 21],...
 'Style','edit',...
-'TooltipString','Map height',...
+'Tooltip','Map height',...
 'Tag','edit_mapHeight');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@write_gmt_script_uicallback,h1,'edit_scale_Callback'},...
+'Call',{@main_uiCB,h1,'edit_scale_CB'},...
 'Position',[410 179 131 21],...
 'Style','edit',...
-'TooltipString','Aproximate map scale',...
+'Tooltip','Aproximate map scale',...
 'Tag','edit_scale');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@write_gmt_script_uicallback,h1,'popup_directory_list_CB'},...
+'Call',{@main_uiCB,h1,'popup_directory_list_CB'},...
 'Position',[330 240 191 22],...
 'Style','popupmenu',...
-'TooltipString','Save script and files in this directory',...
+'Tooltip','Save script and files in this directory',...
 'Value',1,...
 'Tag','popup_directory_list');
 
@@ -2128,23 +2111,23 @@ uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Position',[430 209 111 21],...
 'Style','edit',...
-'TooltipString','Script and files name prefix',...
+'Tooltip','Script and files name prefix',...
 'Tag','edit_prefix');
 
 uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[426 152 51 15],...
-'String','Map width','Style','text','Tag','text2');
+'String','Map width','Style','text');
 
 uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[426 122 53 15],...
-'String','Map height','Style','text','Tag','text3');
+'String','Map height','Style','text');
 
 uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[426 92 41 15],...
-'String','X origin','Style','text','Tag','text4');
+'String','X origin','Style','text');
 
 uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[426 62 41 15],...
-'String','Y origin','Style','text','Tag','text5');
+'String','Y origin','Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'pushbutton_change_dir_CB'},...
+'Call',{@main_uiCB,h1,'pushbutton_change_dir_CB'},...
 'FontWeight','bold','Position',[520 241 21 21],...
 'String','...',...
 'Tag','pushbutton_change_dir');
@@ -2158,10 +2141,10 @@ uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[331 182 76 15],..
 'String','Map scale (apr)','Style','text','Tag','text8');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'togglebutton_Option_L_Callback'},...
+'Call',{@main_uiCB,h1,'togglebutton_Option_L_CB'},...
 'Position',[260 95 66 34],...
 'Style','togglebutton',...
-'TooltipString','Call a window to draw a map scale bar',...
+'Tooltip','Call a window to draw a map scale bar',...
 'SelectionHighlight','off',...
 'Tag','togglebutton_Option_L');
 
@@ -2172,10 +2155,10 @@ uicontrol('Parent',h1,'Enable','inactive','HorizontalAlignment','left',...
 'Tag','text_MapScale');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'togglebutton_Option_U_Callback'},...
+'Call',{@main_uiCB,h1,'togglebutton_Option_U_CB'},...
 'Position',[260 26 66 34],...
 'Style','togglebutton',...
-'TooltipString','Call a window to draw a Time Stamp',...
+'Tooltip','Call a window to draw a Time Stamp',...
 'SelectionHighlight','off',...
 'Tag','togglebutton_Option_U');
 
@@ -2184,25 +2167,25 @@ uicontrol('Parent',h1,'Enable','inactive','HorizontalAlignment','left',...
 'Style','text','Tag','text11');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'checkbox_removeOptionL_CB'},...
+'Call',{@main_uiCB,h1,'check_removeOptionL_CB'},...
 'Position',[265 30 66 15],...
 'String','Remove',...
 'Style','checkbox',...
-'TooltipString','Remove the scale bar',...
-'Tag','checkbox_removeOptionL',...
+'Tooltip','Remove the scale bar',...
+'Tag','check_removeOptionL',...
 'Visible','off');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'checkbox_removeOptionU_CB'},...
+'Call',{@main_uiCB,h1,'check_removeOptionU_CB'},...
 'Position',[260 10 66 15],...
 'String','Remove',...
 'Style','checkbox',...
-'TooltipString','Remove the Time Stamp',...
-'Tag','checkbox_removeOptionU',...
+'Tooltip','Remove the Time Stamp',...
+'Tag','check_removeOptionU',...
 'Visible','off');
 
 uicontrol('Parent',h1,...
-'Callback',{@write_gmt_script_uicallback,h1,'push_coastLines_CB'},...
+'Call',{@main_uiCB,h1,'push_coastLines_CB'},...
 'Position',[360 408 181 23],...
 'String','Apply finer control to coast lines',...
 'Tag','push_coastLines');
@@ -2214,6 +2197,6 @@ uicontrol('Parent',h1,...
 'Style','text',...
 'Tag','text_ProjDescription');
 
-function write_gmt_script_uicallback(hObject, eventdata, h1, callback_name)
+function main_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
