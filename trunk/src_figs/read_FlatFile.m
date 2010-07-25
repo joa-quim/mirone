@@ -1,9 +1,7 @@
 function varargout = read_FlatFile(varargin)
-% M-File changed by desGUIDE 
-% hObject    handle to figure
-% handles    structure with handles and user data (see GUIDATA)
+% Helper window to read a flat naked true raw file
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -17,165 +15,129 @@ function varargout = read_FlatFile(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-hObject = figure('Tag','figure1','Visible','off');
-handles = guihandles(hObject);
-guidata(hObject, handles);
-read_FlatFile_LayoutFcn(hObject,handles);
-handles = guihandles(hObject);
- 
-movegui(hObject,'center')
-handles.interleave = '';
+	hObject = figure('Tag','figure1','Visible','off');
+	read_FlatFile_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'center')
 
-if (length(varargin) > 0)
-    handles.fname = varargin{1}{1};
-    [pathname,fname,ext] = fileparts(handles.fname);
-    set(hObject,'Name',['Read Flat File (' fname '.' ext ')'])
-end
+	handles.interleave = '';
 
-tip = sprintf('%s\n%s\n%s','Specifies that the bands within the file are stored',...
-        'in Band Sequential (BSQ) format. Landsat files',...
-        'are normally supplied in this format.');
-set(handles.radiobutton_BSQ,'TooltipString',tip)
-tip = sprintf('%s\n%s\n%s\n%s','Specifies that the bands within the file are stored',...
-        'in Band Interleaved by Line (BIL) format. This means',...
-        'that each line of pixels is stored one band after the',...
-        'next within the file.');
-set(handles.radiobutton_BIL,'TooltipString',tip)
-tip = sprintf('%s\n%s\n%s','Specifies that the bands within the file are stored',...
-        'in Band Interleaved by Pixel (BIP) format. Landsat',...
-        'MSS files are occasionally supplied in this format.');
-set(handles.radiobutton_BIP,'TooltipString',tip)
+	if (~isempty(varargin))
+		handles.fname = varargin{1}{1};
+		[pathname,fname,ext] = fileparts(handles.fname);
+		set(hObject,'Name',['Read Flat File (' fname '.' ext ')'])
+	end
 
+	tip = sprintf('%s\n%s\n%s','Specifies that the bands within the file are stored',...
+			'in Band Sequential (BSQ) format. Landsat files',...
+			'are normally supplied in this format.');
+	set(handles.radiobutton_BSQ,'TooltipString',tip)
+	tip = sprintf('%s\n%s\n%s\n%s','Specifies that the bands within the file are stored',...
+			'in Band Interleaved by Line (BIL) format. This means',...
+			'that each line of pixels is stored one band after the',...
+			'next within the file.');
+	set(handles.radiobutton_BIL,'TooltipString',tip)
+	tip = sprintf('%s\n%s\n%s','Specifies that the bands within the file are stored',...
+			'in Band Interleaved by Pixel (BIP) format. Landsat',...
+			'MSS files are occasionally supplied in this format.');
+	set(handles.radiobutton_BIP,'TooltipString',tip)
 
-%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-% Recopy the text fields on top of previously created frames (uistack is to slow)
-h_t = [handles.text_pixelForm handles.text_interleaveForm handles.text_optional];
-for i=1:length(h_t)
-    usr_d = get(h_t(i),'UserData');
-    t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-    bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
-    t_just = get(h_t(i),'HorizontalAlignment');     t_tag = get (h_t(i),'Tag');
-    uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str,'Tag',t_tag,...
-        'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,...
-        'UserData',usr_d,'HorizontalAlignment',t_just,'FontName','Helvetica');
-end
-delete(h_t)
-%------------- END Pro look (3D) -------------------------------------------------------
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	new_frame3D(hObject, [handles.text_pixelForm handles.text_interleaveForm handles.text_optional])
+	%------------- END Pro look (3D) -----------------------------------------------------
 
-% Choose default command line output for read_FlatFile_export
-handles.output = cell(3,1);
-guidata(hObject, handles);
+	% Choose default command line output for read_FlatFile_export
+	handles.output = cell(3,1);
+	guidata(hObject, handles);
 
-set(hObject,'Visible','on');
-% UIWAIT makes read_FlatFile_export wait for user response (see UIRESUME)
-uiwait(handles.figure1);
+	set(hObject,'Visible','on');
+	% UIWAIT makes read_FlatFile_export wait for user response (see UIRESUME)
+	uiwait(handles.figure1);
 
-handles = guidata(hObject);
-varargout = handles.output;
-delete(handles.figure1)
+	handles = guidata(hObject);
+	varargout = handles.output;
+	delete(handles.figure1)
 
 % ------------------------------------------------------------------------------------------
-function edit_nHeadeBytes_Callback(hObject, eventdata, handles)
-hdr = str2double(get(hObject,'String'));
-if (isnan(hdr) || hdr < 0),    set(hObject,'String','0');   end
+function edit_nHeadeBytes_CB(hObject, handles)
+	hdr = str2double(get(hObject,'String'));
+	if (isnan(hdr) || hdr < 0),    set(hObject,'String','0');   end
 
 % ------------------------------------------------------------------------------------------
-function edit_pixelsPerLine_Callback(hObject, eventdata, handles)
-n = str2double(get(hObject,'String'));
-if (isnan(n) || n < 0),     set(hObject,'String','')
-else                        set(handles.edit_Xlast,'String',get(hObject,'String'))
-end
+function edit_pixelsPerLine_CB(hObject, handles)
+	n = str2double(get(hObject,'String'));
+	if (isnan(n) || n < 0),		set(hObject,'String','')
+	else						set(handles.edit_Xlast,'String',get(hObject,'String'))
+	end
 
 % ------------------------------------------------------------------------------------------
-function edit_nLines_Callback(hObject, eventdata, handles)
+function edit_nLines_CB(hObject, handles)
 n = str2double(get(hObject,'String'));
 if (isnan(n) || n < 0),     set(hObject,'String','')
 else                        set(handles.edit_Ylast,'String',get(hObject,'String'))
 end
 
 % ------------------------------------------------------------------------------------------
-function edit_nBands_Callback(hObject, eventdata, handles)
+function edit_nBands_CB(hObject, handles)
 n = str2double(get(hObject,'String'));
 if (isnan(n) || n < 0),     set(hObject,'String','1')
 else                        set(handles.edit_lastBand,'String',get(hObject,'String'))
 end
 
 % ------------------------------------------------------------------------------------------
-function edit_firstBand_Callback(hObject, eventdata, handles)
+function edit_firstBand_CB(hObject, handles)
 n = str2double(get(hObject,'String'));
 if (isnan(n) || n < 0 || n > str2double(get(handles.edit_lastBand,'String')))
     set(hObject,'String','1')
 end
 
 % ------------------------------------------------------------------------------------------
-function edit_lastBand_Callback(hObject, eventdata, handles)
+function edit_lastBand_CB(hObject, handles)
 n = str2double(get(hObject,'String'));
 if (isnan(n) || n < 0 || n > str2double(get(handles.edit_nBands,'String')))
     set(hObject,'String',get(handles.edit_nBands,'String'))
 end
 
 % ------------------------------------------------------------------------------------------
-function edit_Xfirst_Callback(hObject, eventdata, handles)
+function edit_Xfirst_CB(hObject, handles)
 n = str2double(get(hObject,'String'));
 if (isnan(n) || n < 0 || n >= str2double(get(handles.edit_pixelsPerLine,'String')))
     set(hObject,'String','1')
 end
 
 % ------------------------------------------------------------------------------------------
-function edit_Xlast_Callback(hObject, eventdata, handles)
+function edit_Xlast_CB(hObject, handles)
 n = str2double(get(hObject,'String'));
 if (isnan(n) || n < 0 || n >= str2double(get(handles.edit_pixelsPerLine,'String')))
     set(hObject,'String',get(handles.edit_pixelsPerLine,'String'))
 end
 
 % ------------------------------------------------------------------------------------------
-function edit_Xsample_Callback(hObject, eventdata, handles)
+function edit_Xsample_CB(hObject, handles)
 x = str2double(get(hObject,'String'));
 if (isnan(x) || x < 0),    set(hObject,'String','1');   end
 
 % ------------------------------------------------------------------------------------------
-function edit_Yfirst_Callback(hObject, eventdata, handles)
+function edit_Yfirst_CB(hObject, handles)
 n = str2double(get(hObject,'String'));
 if (isnan(n) || n < 0 || n >= str2double(get(handles.edit_nLines,'String')))
     set(hObject,'String','1')
 end
 
 % ------------------------------------------------------------------------------------------
-function edit_Ylast_Callback(hObject, eventdata, handles)
+function edit_Ylast_CB(hObject, handles)
 n = str2double(get(hObject,'String'));
 if (isnan(n) || n < 0 || n >= str2double(get(handles.edit_nLines,'String')))
     set(hObject,'String',get(handles.edit_nLines,'String'))
 end
 
 % ------------------------------------------------------------------------------------------
-function edit_Ysample_Callback(hObject, eventdata, handles)
+function edit_Ysample_CB(hObject, handles)
 x = str2double(get(hObject,'String'));
 if (isnan(x) || x < 0),    set(hObject,'String','1');   end
 
 % ------------------------------------------------------------------------------------------
-function popup_dataType_Callback(hObject, eventdata, handles)
-% Nothing to do here
-
-% ------------------------------------------------------------------------------------------
-function checkbox_swapBytes_Callback(hObject, eventdata, handles)
-
-% ------------------------------------------------------------------------------------------
-function radiobutton_BSQ_Callback(hObject, eventdata, handles)
+function radiobutton_BSQ_CB(hObject, handles)
 % Hint: get(hObject,'Value') returns toggle state of radiobutton_BSQ
 if (get(hObject,'Value'))
     set(handles.radiobutton_BIL,'Value',0)
@@ -187,7 +149,7 @@ else
 end
 
 % ------------------------------------------------------------------------------------------
-function radiobutton_BIL_Callback(hObject, eventdata, handles)
+function radiobutton_BIL_CB(hObject, handles)
 if (get(hObject,'Value'))
     set(handles.radiobutton_BSQ,'Value',0)
     set(handles.radiobutton_BIP,'Value',0)
@@ -198,7 +160,7 @@ else
 end
 
 % ------------------------------------------------------------------------------------------
-function radiobutton_BIP_Callback(hObject, eventdata, handles)
+function radiobutton_BIP_CB(hObject, handles)
 if (get(hObject,'Value'))
     set(handles.radiobutton_BSQ,'Value',0)
     set(handles.radiobutton_BIL,'Value',0)
@@ -209,7 +171,7 @@ else
 end
 
 % ------------------------------------------------------------------------------------------
-function pushbutton_OK_Callback(hObject, eventdata, handles)
+function push_OK_CB(hObject, handles)
 
 % Get the skip header bytes
 hdr = str2double(get(handles.edit_nHeadeBytes,'String'));
@@ -338,25 +300,24 @@ handles.output{3} = third_out;
 guidata(hObject, handles);    uiresume(handles.figure1);
 
 % ------------------------------------------------------------------------------------------
-function pushbutton_cancel_Callback(hObject, eventdata, handles)
+function push_cancel_CB(hObject, handles)
 if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
     % The GUI is still in UIWAIT, us UIRESUME
-    %handles.output = [];      % User gave up, return nothing
     guidata(handles.figure1, handles);    uiresume(handles.figure1);
 else    % The GUI is no longer waiting, just close it
     delete(handles.figure1)
 end
 
 % ------------------------------------------------------------------------------------------
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-pushbutton_cancel_Callback(hObject, eventdata, handles)
-
+function figure1_CloseRequestFcn(hObject, evt)
+	handles = guidata(hObject);
+	push_cancel_CB(hObject, handles)
 
 % ----------- Creates and returns a handle to the GUI figure. 
-function read_FlatFile_LayoutFcn(h1,handles);
+function read_FlatFile_LayoutFcn(h1)
 
 set(h1,...
-'CloseRequestFcn',{@figure1_CloseRequestFcn,handles},...
+'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'MenuBar','none',...
 'Name','Read Flat File',...
@@ -365,86 +326,84 @@ set(h1,...
 'Resize','off',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,'Position',[225 5 191 41],'Style','frame','Tag','frame4');
-uicontrol('Parent',h1,'Position',[341 65 157 111],'Style','frame','Tag','frame3');
-uicontrol('Parent',h1,'Position',[5 65 330 111],'Style','frame','Tag','frame2');
-uicontrol('Parent',h1,'Position',[5 5 211 41],'Style','frame','Tag','frame1');
+uicontrol('Parent',h1,'Position',[225 5 191 41],'Style','frame');
+uicontrol('Parent',h1,'Position',[341 65 157 111],'Style','frame');
+uicontrol('Parent',h1,'Position',[5 65 330 111],'Style','frame');
+uicontrol('Parent',h1,'Position',[5 5 211 41],'Style','frame');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'edit_nHeadeBytes_Callback'},...
+'Call',{@main_uiCB,h1,'edit_nHeadeBytes_CB'},...
 'Position',[124 134 51 21],'String','0','Style','edit',...
 'TooltipString','Skip this number of bytes (that is skip the header)',...
 'Tag','edit_nHeadeBytes');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'edit_pixelsPerLine_Callback'},...
+'Call',{@main_uiCB,h1,'edit_pixelsPerLine_CB'},...
 'Position',[124 104 51 21],'Style','edit',...
 'TooltipString','Number of columns in the dataset',...
 'Tag','edit_pixelsPerLine');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'edit_nLines_Callback'},...
+'Call',{@main_uiCB,h1,'edit_nLines_CB'},...
 'Position',[124 74 51 21],'Style','edit',...
 'TooltipString','Number of rows in the dataset',...
 'Tag','edit_nLines');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'edit_nBands_Callback'},...
+'Call',{@main_uiCB,h1,'edit_nBands_CB'},...
 'Position',[292 134 31 21],'String','1','Style','edit',...
 'TooltipString','Number of bands in the dataset',...
 'Tag','edit_nBands');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'edit_firstBand_Callback'},...
+'Call',{@main_uiCB,h1,'edit_firstBand_CB'},...
 'Position',[292 104 31 21],'String','1','Style','edit',...
 'TooltipString','First band to load from the dataset',...
 'Tag','edit_firstBand');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'edit_lastBand_Callback'},...
+'Call',{@main_uiCB,h1,'edit_lastBand_CB'},...
 'Position',[292 74 31 21],'String','1','Style','edit',...
 'TooltipString','Last band to load from the dataset',...
 'Tag','edit_lastBand');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'popup_dataType_Callback'},...
 'FontName','Helvetica','Position',[11 12 101 22],...
-'String',{'  8-bit unsigned'; '16-bit unsigned'; '16-bit signed'; '32-bit unsigned'; '32-bit signed'; '32-bit float' },...
+'String',{'8-bit unsigned'; '16-bit unsigned'; '16-bit signed'; '32-bit unsigned'; '32-bit signed'; '32-bit float'},...
 'Style','popupmenu',...
 'TooltipString','If you don''t know what this is, you better study a little',...
 'Value',1,'Tag','popup_dataType');
 
 uicontrol('Parent',h1,...
-'Callback',{@read_FlatFile_uicallback,h1,'checkbox_swapBytes_Callback'},...
 'FontName','Helvetica','Position',[127 16 77 15],'String','Swap bytes',...
 'Style','checkbox',...
 'TooltipString','Swap byte order (default is Little endian. eg. Intel order)',...
 'Tag','checkbox_swapBytes');
 
 uicontrol('Parent',h1,...
-'Callback',{@read_FlatFile_uicallback,h1,'radiobutton_BSQ_Callback'},...
+'Call',{@main_uiCB,h1,'radiobutton_BSQ_CB'},...
 'FontName','Helvetica','Position',[234 17 41 15],'String','BSQ',...
 'Style','radiobutton','Tag','radiobutton_BSQ');
 
 uicontrol('Parent',h1,...
-'Callback',{@read_FlatFile_uicallback,h1,'radiobutton_BIL_Callback'},...
+'Call',{@main_uiCB,h1,'radiobutton_BIL_CB'},...
 'FontName','Helvetica','Position',[307 17 41 15],'String','BIL',...
 'Style','radiobutton','Tag','radiobutton_BIL');
 
 uicontrol('Parent',h1,...
-'Callback',{@read_FlatFile_uicallback,h1,'radiobutton_BIP_Callback'},...
+'Call',{@main_uiCB,h1,'radiobutton_BIP_CB'},...
 'FontName','Helvetica','Position',[372 17 41 15],'String','BIP',...
 'Style','radiobutton','Tag','radiobutton_BIP');
 
 uicontrol('Parent',h1,...
-'Callback',{@read_FlatFile_uicallback,h1,'pushbutton_OK_Callback'},...
+'Call',{@main_uiCB,h1,'push_OK_CB'},...
 'FontName','Helvetica','FontSize',9,'Position',[434 6 65 23],...
-'String','OK','Tag','pushbutton_OK');
+'String','OK','Tag','push_OK');
 
 uicontrol('Parent',h1,...
-'Callback',{@read_FlatFile_uicallback,h1,'pushbutton_cancel_Callback'},...
+'Call',{@main_uiCB,h1,'push_cancel_CB'},...
 'FontName','Helvetica','FontSize',9,'Position',[434 35 65 23],...
-'String','Cancel','Tag','pushbutton_cancel');
+'String','Cancel','Tag','push_cancel');
 
 uicontrol('Parent',h1,'FontName','Helvetica','HorizontalAlignment','left',...
 'Position',[17 137 105 15],'String','Header length (bytes)','Style','text','Tag','text1');
@@ -472,33 +431,33 @@ uicontrol('Parent',h1,'FontName','Helvetica','FontSize',9,...
 'Style','text','Tag','text_interleaveForm');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'edit_Xfirst_Callback'},...
+'Call',{@main_uiCB,h1,'edit_Xfirst_CB'},...
 'Position',[387 134 41 21],'String','1','Style','edit',...
 'TooltipString','Start column index','Tag','edit_Xfirst');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'edit_Xlast_Callback'},...
+'Call',{@main_uiCB,h1,'edit_Xlast_CB'},...
 'Position',[387 104 41 21],'Style','edit',...
 'TooltipString','Last column index','Tag','edit_Xlast');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'edit_Xsample_Callback'},...
+'Call',{@main_uiCB,h1,'edit_Xsample_CB'},...
 'Position',[387 74 41 21],'String','1','Style','edit',...
 'TooltipString','Increment in columns (e.g. 2 = read every other column)',...
 'Tag','edit_Xsample');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'edit_Yfirst_Callback'},...
+'Call',{@main_uiCB,h1,'edit_Yfirst_CB'},...
 'Position',[447 134 41 21],'String','1','Style','edit',...
 'TooltipString','Start row index','Tag','edit_Yfirst');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'edit_Ylast_Callback'},...
+'Call',{@main_uiCB,h1,'edit_Ylast_CB'},...
 'Position',[447 104 41 21],'Style','edit',...
 'TooltipString','Last row index','Tag','edit_Ylast');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@read_FlatFile_uicallback,h1,'edit_Ysample_Callback'},...
+'Call',{@main_uiCB,h1,'edit_Ysample_CB'},...
 'Position',[447 74 41 21],'String','1','Style','edit',...
 'TooltipString','Increment in rows (e.g. 2 = read every other row)',...
 'Tag','edit_Ysample');
@@ -535,6 +494,6 @@ uicontrol('Parent',h1,'FontName','Helvetica',...
 'String','Please enter the following information',...
 'Style','text','Tag','text_header');
 
-function read_FlatFile_uicallback(hObject, eventdata, h1, callback_name)
+function main_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
