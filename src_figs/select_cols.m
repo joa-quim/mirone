@@ -38,32 +38,32 @@ function out = select_cols(varargin)
 demo = 0;
 if (nargin == 0)        % Demo mode
     cols = 5;   rows = 1;   demo = 1;   fname = 'demo';
-    text_nl = num2cell([1:1000]');
+    text_nl = num2cell((1:1000)');
     text = [text_nl text_nl text_nl text_nl text_nl];
     str_nc = {'A','B','C','D','E'};
 end
 
-if (nargin > 0 & isnumeric(varargin{1}))
+if (nargin > 0 && isnumeric(varargin{1}))
     data_in = varargin{1};
     [rows,cols] = size(data_in);
-elseif (nargin == 1 & ~isnumeric(varargin{1}))       % Should we issue an error message?
+elseif (nargin == 1 && ~isnumeric(varargin{1}))       % Should we issue an error message?
     out = [];   return
 end
     
-if (nargin > 1 & isstr(varargin{2}) & length(varargin{2}) < 5)
-    if (strcmp(lower(varargin{2}),'igrf'))
+if (nargin > 1 && ischar(varargin{2}) && length(varargin{2}) < 5)
+    if (strcmpi(varargin{2},'igrf'))
         igrf_mode = 1;  generic_mode = 0;   xy_mode = 0;    xyz_mode = 0;
-    elseif (strcmp(lower(varargin{2}),'xy'))
+    elseif (strcmpi(varargin{2},'xy'))
         igrf_mode = 0;  generic_mode = 1;   xy_mode = 1;    xyz_mode = 0;
-    elseif (strcmp(lower(varargin{2}),'xyz'))
+    elseif (strcmpi(varargin{2},'xyz'))
         igrf_mode = 0;  generic_mode = 1;   xyz_mode = 1;   xy_mode = 0;
     end
 else        % Default to 'xy' mode
     igrf_mode = 0;  generic_mode = 1;   xy_mode = 1;        xyz_mode = 0;
 end
 
-if (nargin > 2 & isstr(varargin{3}))    fname = varargin{3};
-else                                    fname = [];
+if (nargin > 2 && ischar(varargin{3}))	fname = varargin{3};
+else									fname = [];
 end
 
 if (nargin > 3)
@@ -88,7 +88,7 @@ list_slider_w = 20;     % Listbox slider width got by trial & error (in my compu
 list_h = fig_size(4) - 23;   % 23 = trial & error
 
 if (~demo)      % Otherwise necessary variables were already set
-	text_nl = num2cell([1:use_rows]);
+	text_nl = num2cell(1:use_rows);
 	text = num2cell(data_in(1:use_rows,:));
 	tmp = char(65:65+cols-1);   tmp(end+1) = '#';
 	str_nc = cellstr(tmp(:))';  clear tmp;
@@ -126,13 +126,14 @@ if (igrf_mode)
     i_field = find(min_mat > 25000 & max_mat < 80000);			% Search for the Total field col (relatively trustful)
     i_date = find(min_mat > 1900 & max_mat < 2020);				% Search for the date col (quite trustful)
     i_alt = find(min_mat > -10 & max_mat < 1500);				% Search for altitude (km) col (loosy guess)
-    if (length(i_alt) == 1 & (i_alt == 1 | i_alt == 2))			% Altitude values may be confused with lon/lat
+    if (length(i_alt) == 1 && (i_alt == 1 || i_alt == 2))		% Altitude values may be confused with lon/lat
         i_alt = [];
     elseif (length(i_alt) == 2)
-        if ((i_alt(1) == 1 & i_alt(2) == 2) | (i_alt(1) == 2 & i_alt(2) == 1))   i_alt = [];
-        elseif ((i_alt(1) == 1 | i_alt(1) == 2))   i_alt = i_alt(2);             end
+		if ((i_alt(1) == 1 && i_alt(2) == 2) || (i_alt(1) == 2 && i_alt(2) == 1))   i_alt = [];
+		elseif ((i_alt(1) == 1 || i_alt(1) == 2))   i_alt = i_alt(2);
+		end
     elseif (length(i_alt) == 3)
-        if ((i_alt(1) == 1 & i_alt(2) == 2) | (i_alt(1) == 2 & i_alt(2) == 1))   i_alt = i_alt(3); end
+        if ((i_alt(1) == 1 && i_alt(2) == 2) || (i_alt(1) == 2 && i_alt(2) == 1))   i_alt = i_alt(3); end
     end
     % Now if any of the above is empty, we'll assume that the corresponding info was not provided
     n_rec_cols = 2;     emp_field = 1;  emp_date = 1;   emp_alt = 1;
@@ -268,7 +269,7 @@ if ( (pos(1) + pos(3)) > screen(3) )
 		'callback',cb_slider,'min',0,'max',slider_pos(3));
 end
 
-movegui(h_fig,'west');
+move2side(h_fig,'left');
 set(h_fig,'Visible','on');
 uiwait;
 but = gco;
