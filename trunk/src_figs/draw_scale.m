@@ -18,7 +18,7 @@ function varargout = draw_scale(varargin)
 hObject = figure('Tag','figure1','Visible','off');
 draw_scale_LayoutFcn(hObject);
 handles = guihandles(hObject);
-movegui(hObject,'right')
+move2side(hObject,'right')
  
 handles.command = cell(20,1);
 handles.command{5} = '-L';
