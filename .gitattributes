@@ -35,6 +35,7 @@ continents/polos_Cox.stg -text
 continents/polos_Cox_b.dat -text
 continents/south_america.dat -text
 continents/torsvik08_tab1.dat -text
+continents/torsvik08_tab3.dat -text
 /copy_so.sc -text
 /country_extract.exe -text
 /cv200.dll -text
