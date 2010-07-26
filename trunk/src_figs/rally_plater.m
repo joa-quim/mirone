@@ -34,79 +34,99 @@ function varargout = rally_plater(varargin)
 	uipushtool('parent',h_toolbar,'Click',@help_clickedcallback,'Tooltip','Help','cdata',help_ico,'Sep','on');
 
 	handles.path_continent = [pwd filesep 'continents' filesep];
-	handles.h_calling_fig = [];
+	handles.hCallingFig = [];
 
-	n_bodies = 10;					% This is the number of current default "travelling bodies"
+	n_bodies = 11;					% This is the number of current default "travelling bodies"
 	c_map = rand(n_bodies,3);
 	handles.plates_color = c_map;
 
 	% Load default plates
-	h_iberia = read_plate_bodies(handles,'iberia.dat',c_map(1,:),'default','single_seg','Iberia');
-	h_africa = read_plate_bodies(handles,'africa.dat',c_map(2,:),'default','whatever','Africa');
-	h_eurasia = read_plate_bodies(handles,'eu_dp.dat',c_map(3,:),'default','whatever','Eurasia');
-	h_Namerica = read_plate_bodies(handles,'na_dp.dat',c_map(4,:),'default','whatever','NorthAmerica');
-	h_Samerica = read_plate_bodies(handles,'south_america.dat',c_map(5,:),'default','single_seg','SouthAmerica');
-	h_antartida = read_plate_bodies(handles,'antartica.dat',c_map(6,:),'default','single_seg','Antartica');
-	h_arabia = read_plate_bodies(handles,'arabia_dp.dat',c_map(7,:),'default','single_seg','Arabia');
-	h_australia = read_plate_bodies(handles,'australia.dat',c_map(8,:),'default','single_seg','Australia');
-	h_greenland = read_plate_bodies(handles,'greenland.dat',c_map(9,:),'default','single_seg','Greenland');
-	h_india = read_plate_bodies(handles,'india_dp.dat',c_map(10,:),'default','single_seg','India');
-
-	set(handles.listbox_stages,'String',{'africa2nam_double.stg'; 'eurasia2nam_double.stg'; 'iberia2nam_double.stg'});
-
-	str_stgs{1} = [handles.path_continent 'africa2nam_double.stg'];
-	str_stgs{2} = [handles.path_continent 'eurasia2nam_double.stg'];
-	str_stgs{3} = [handles.path_continent 'iberia2nam_double.stg'];
+	h_africa = read_plate_bodies(handles,'africa.dat',c_map(1,:),'default','single_seg','Africa');
+	h_antartida = read_plate_bodies(handles,'antartica.dat',c_map(2,:),'default','single_seg','Antartica');
+	h_arabia = read_plate_bodies(handles,'arabia_dp.dat',c_map(3,:),'default','single_seg','Arabia');
+	h_australia = read_plate_bodies(handles,'australia.dat',c_map(4,:),'default','single_seg','Australia');
+	h_eurasia = read_plate_bodies(handles,'eu_dp.dat',c_map(5,:),'default','whatever','Eurasia');
+	h_greenland = read_plate_bodies(handles,'greenland.dat',c_map(6,:),'default','single_seg','Greenland');
+	h_iberia = read_plate_bodies(handles,'iberia.dat',c_map(7,:),'default','single_seg','Iberia');
+	h_india = read_plate_bodies(handles,'india_dp.dat',c_map(8,:),'default','single_seg','India');
+	h_madagascar = read_plate_bodies(handles,'madagascar.dat',c_map(9,:),'default','single_seg','Madagascar');
+	h_Namerica = read_plate_bodies(handles,'na_dp.dat',c_map(10,:),'default','whatever','NorthAmerica');
+	h_Samerica = read_plate_bodies(handles,'south_america.dat',c_map(11,:),'default','single_seg','SouthAmerica');
 
 	handles.def_tags = {'Iberia' 'Africa' 'Eurasia' 'NorthAmerica' 'SouthAmerica' 'Antartica' 'Arabia' 'Australia' 'Greenland' 'India'};
 
-	handles.stgs_path{1} = handles.path_continent;
-	handles.stgs_path{2} = handles.path_continent;
-	handles.stgs_path{3} = handles.path_continent;
+	%set(handles.listbox_stages,'String',{'africa2nam_double.stg'; 'eurasia2nam_double.stg'; 'iberia2nam_double.stg'});
 
-	stg2plate(handles,h_iberia,str_stgs,3)			% Iberia
-	stg2plate(handles,h_africa,str_stgs,1)			% Africa
-	stg2plate(handles,h_eurasia,str_stgs,2)			% Eurasia (less Iberia)
-	stg2plate(handles,h_Namerica,str_stgs,0,1)		% Initialize with no associated poles
-	stg2plate(handles,h_Samerica,str_stgs,0,1)		%       "
-	stg2plate(handles,h_antartida,str_stgs,0,1)		%       "
-	stg2plate(handles,h_arabia,str_stgs,0,1)		%       "
-	stg2plate(handles,h_australia,str_stgs,0,1)		%       "
-	stg2plate(handles,h_greenland,str_stgs,0,1)		%       "
-	stg2plate(handles,h_india,str_stgs,0,1)			%       "
+	set(handles.listbox_stages,'String',{'AUS_torsvik.stg'; 'EANT_torsvik.stg'; 'EUR_torsvik.stg'; 
+										'GRE_torsvik.stg'; 'IBE_Saf.stg'; 'IND_torsvik.stg';
+										'MAD_torsvik.stg'; 'NAM_torsvik.stg'; 'SAC_torsvik.stg';
+										'africa2nam_double.stg'; 'eurasia2nam_double.stg'; 'iberia2nam_double.stg'});
 
-	handles.plates{1} = h_iberia;
-	handles.plates{2} = h_africa;
-	handles.plates{3} = h_eurasia;
-	handles.plates{4} = h_Namerica;
-	handles.plates{5} = h_Samerica;
-	handles.plates{6} = h_antartida;
-	handles.plates{7} = h_arabia;
-	handles.plates{8} = h_australia;
-	handles.plates{9} = h_greenland;
-	handles.plates{10} = h_india;
+	str_stgs{1} = [handles.path_continent 'EANT_torsvik.stg'];
+	str_stgs{2} = [handles.path_continent 'AUS_torsvik.stg'];
+	str_stgs{3} = [handles.path_continent 'EUR_torsvik.stg'];
+	str_stgs{4} = [handles.path_continent 'GRE_torsvik.stg'];
+	str_stgs{5} = [handles.path_continent 'IBE_Saf.stg'];
+	str_stgs{6} = [handles.path_continent 'IND_torsvik.stg'];
+	str_stgs{7} = [handles.path_continent 'MAD_torsvik.stg'];
+	str_stgs{8} = [handles.path_continent 'NAM_torsvik.stg'];
+	str_stgs{9} = [handles.path_continent 'SAC_torsvik.stg'];
+	str_stgs{10} = [handles.path_continent 'africa2nam_double.stg'];
+	str_stgs{11} = [handles.path_continent 'eurasia2nam_double.stg'];
+	str_stgs{12} = [handles.path_continent 'iberia2nam_double.stg'];
+
+	nDefPoles = numel(str_stgs);
+	handles.stgs_path = cell(1, nDefPoles);
+	for (k = 1:nDefPoles)
+		handles.stgs_path{k} = handles.path_continent;
+	end
+
+	stg2plate(handles,h_africa,str_stgs,0,1)		% Initialize with no associated poles
+	stg2plate(handles,h_antartida,str_stgs,1,0)		% 
+	stg2plate(handles,h_arabia,str_stgs,0,1)		% Initialize with no associated poles
+	stg2plate(handles,h_australia,str_stgs,2,0)		% 
+	stg2plate(handles,h_eurasia,str_stgs,3,0)		% Eurasia
+	stg2plate(handles,h_greenland,str_stgs,4,0)		% 
+	stg2plate(handles,h_iberia,str_stgs,5,0)		% Iberia
+	stg2plate(handles,h_india,str_stgs,6,0)			% 
+	stg2plate(handles,h_madagascar,str_stgs,7,0)	% 
+	stg2plate(handles,h_Namerica,str_stgs,8,0)		% 
+	stg2plate(handles,h_Samerica,str_stgs,9,0)		% 
+
+	handles.plates{1} = h_africa;
+	handles.plates{2} = h_antartida;
+	handles.plates{3} = h_arabia;
+	handles.plates{4} = h_australia;
+	handles.plates{5} = h_eurasia;
+	handles.plates{6} = h_greenland;
+	handles.plates{7} = h_iberia;
+	handles.plates{8} = h_india;
+	handles.plates{9} = h_madagascar;
+	handles.plates{10} = h_Namerica;
+	handles.plates{11} = h_Samerica;
 
 	% Make a copy of the default plates and set them invisible
-	handles.plates_bak{1} = copyobj(h_iberia,handles.axes1);    set(handles.plates_bak{1},'Visible','off');
-	handles.plates_bak{2} = copyobj(h_africa,handles.axes1);    set(handles.plates_bak{2},'Visible','off');
-	handles.plates_bak{3} = copyobj(h_eurasia,handles.axes1);   set(handles.plates_bak{3},'Visible','off');
-	handles.plates_bak{4} = copyobj(h_Namerica,handles.axes1);  set(handles.plates_bak{4},'Visible','off');
-	handles.plates_bak{5} = copyobj(h_Samerica,handles.axes1);  set(handles.plates_bak{5},'Visible','off');
-	handles.plates_bak{6} = copyobj(h_antartida,handles.axes1); set(handles.plates_bak{6},'Visible','off');
-	handles.plates_bak{7} = copyobj(h_arabia,handles.axes1);    set(handles.plates_bak{7},'Visible','off');
-	handles.plates_bak{8} = copyobj(h_australia,handles.axes1); set(handles.plates_bak{8},'Visible','off');
-	handles.plates_bak{9} = copyobj(h_greenland,handles.axes1); set(handles.plates_bak{9},'Visible','off');
-	handles.plates_bak{10} = copyobj(h_india,handles.axes1);    set(handles.plates_bak{10},'Visible','off');
+	handles.plates_bak{1} = copyobj(h_africa,handles.axes1);	set(handles.plates_bak{1},'Visible','off');
+	handles.plates_bak{2} = copyobj(h_antartida,handles.axes1);	set(handles.plates_bak{2},'Visible','off');
+	handles.plates_bak{3} = copyobj(h_arabia,handles.axes1);	set(handles.plates_bak{3},'Visible','off');
+	handles.plates_bak{4} = copyobj(h_australia,handles.axes1);	set(handles.plates_bak{4},'Visible','off');
+	handles.plates_bak{5} = copyobj(h_eurasia,handles.axes1);	set(handles.plates_bak{5},'Visible','off');
+	handles.plates_bak{6} = copyobj(h_greenland,handles.axes1);	set(handles.plates_bak{6},'Visible','off');
+	handles.plates_bak{7} = copyobj(h_iberia,handles.axes1);	set(handles.plates_bak{7},'Visible','off');
+	handles.plates_bak{8} = copyobj(h_india,handles.axes1);		set(handles.plates_bak{8},'Visible','off');
+	handles.plates_bak{9} = copyobj(h_madagascar,handles.axes1);set(handles.plates_bak{9},'Visible','off');
+	handles.plates_bak{10} = copyobj(h_Namerica,handles.axes1);	set(handles.plates_bak{10},'Visible','off');
+	handles.plates_bak{11} = copyobj(h_Samerica,handles.axes1);	set(handles.plates_bak{11},'Visible','off');
 	handles.moved_body = zeros(100,1);
 
 	% Create a circle for use in the Orthographic projection
-	handles.h_circ = line(cos(linspace(1,2*pi,180)),sin(linspace(1,2*pi,180)), 'Color', [0 0 0], 'Visible', 'off');
+	handles.h_circ = line(cos(linspace(1,2*pi,180)),sin(linspace(1,2*pi,180)), 'Color', [0 0 0], 'Vis', 'off','LineWidth',2);
 
-	set(handles.edit_ageSlider,'String','150')
-	set(handles.slider_age,'Max',150)
+	set(handles.edit_ageSlider,'String','200')
+	set(handles.slider_age,'Max',200)
 
-	if (~isempty(handles.h_calling_fig))					% If we know the handle to the calling fig
-		cfig_handles = guidata(handles.h_calling_fig);		% get handles of the calling fig    
+	if (~isempty(handles.hCallingFig))						% If we know the handle to the calling fig
+		cfig_handles = guidata(handles.hCallingFig);		% get handles of the calling fig    
 		handles.last_dir = cfig_handles.last_dir;
 		handles.home_dir = cfig_handles.home_dir;
 		handles.work_dir = cfig_handles.work_dir;
@@ -120,11 +140,6 @@ function varargout = rally_plater(varargin)
 	new_frame3D(hObject, [handles.txt_Pc handles.txt_Prj])
 	%------------- END Pro look (3D) ------------------------------
 
-	% Those were destroid above. We must fish their handles again
-	handles.text_projOrigLon = findobj(handles.figure1,'Tag','text_projOrigLon');
-	handles.text_projOrigLat = findobj(handles.figure1,'Tag','text_projOrigLat');
-	handles.text_projOrigPitch = findobj(handles.figure1,'Tag','text_projOrigPitch');
-
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 	if (nargout),	varargout{1} = hObject;		end
@@ -137,44 +152,43 @@ function stg2plate(handles,h_plate,str_stgs,n_pole,opt)
 % N_POLE   -> position on the STR_STGS cell of the plate's default stage poles
 % OPT      -> If == 1, Just initialize the uimenus, but do not associate a pole to the plate
 
-if (nargin == 4)    opt = 0;   end
+	if (nargin == 4)    opt = 0;   end
 
-cmenuHand = uicontextmenu;
-set(h_plate, 'UIContextMenu', cmenuHand);
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	set(h_plate, 'UIContextMenu', cmenuHand);
 
-uimenu(cmenuHand, 'Label', 'Freeze this plate','Tag','FreezePlate','Call',{@freeze_plate,h_plate});
+	uimenu(cmenuHand, 'Label', 'Freeze this plate','Tag','FreezePlate','Call',{@freeze_plate,h_plate});
 
-if (opt)            % Just initialize
-    label = 'Poles --> None set';
-else                % Called with a stage pole to set
-    [PATH,FNAME,EXT] = fileparts(str_stgs{n_pole});
-    label = ['Poles --> ' FNAME EXT];
-end
+	if (opt)            % Just initialize
+		label = 'Poles --> None set';
+	else                % Called with a stage pole to set
+		[PATH,FNAME,EXT] = fileparts(str_stgs{n_pole});
+		label = ['Poles --> ' FNAME EXT];
+	end
 
-uimenu(cmenuHand, 'Label', label,'Tag','ActiveStg','Separator','on');
-other_stg = uimenu(cmenuHand, 'Label', 'Other Poles', 'Tag', 'OtherPoles');
-for (k=1:length(str_stgs))
-    [PATH,FNAME,EXT] = fileparts(str_stgs{k});
-    name_stg = [FNAME EXT];
-    uimenu(other_stg,'Label',name_stg,'Call',{@set_stg,h_plate,str_stgs{k},opt})
-end
+	uimenu(cmenuHand, 'Label', label,'Tag','ActiveStg','Separator','on');
+	other_stg = uimenu(cmenuHand, 'Label', 'Other Poles', 'Tag', 'OtherPoles');
+	for (k = 1:numel(str_stgs))
+		[PATH,FNAME,EXT] = fileparts(str_stgs{k});
+		name_stg = [FNAME EXT];
+		uimenu(other_stg,'Label',name_stg,'Call',{@set_stg,h_plate,str_stgs{k},opt})
+	end
 
-% Set the delete uicontext
-tag = get(h_plate,'Tag');
-if (iscell(tag))    tag = tag{1};   end
-uimenu(cmenuHand,'Label',['Delete this ' tag ' element'],'Tag','DeleteSingle','Separator','on',...
-    'Call',{@delete_element,h_plate,0});
-uimenu(cmenuHand,'Label',['Delete all ' tag ' family'],'Tag','DeleteAll',...
-    'Call',{@delete_element,h_plate,1});
+	% Set the delete uicontext
+	tag = get(h_plate,'Tag');
+	if (iscell(tag))    tag = tag{1};   end
+	uimenu(cmenuHand,'Label',['Delete this ' tag ' element'],'Tag','DeleteSingle','Sep','on',...
+		'Call',{@delete_element,h_plate,0});
+	uimenu(cmenuHand,'Label',['Delete all ' tag ' family'],'Tag','DeleteAll','Call',{@delete_element,h_plate,1});
 
-% set the "change color" uicontext
-uimenu(cmenuHand,'Label',['Change ' tag ' color'],'Separator','on','Call',@change_color);
+	% set the "change color" uicontext
+	uimenu(cmenuHand,'Label',['Change ' tag ' color'],'Separator','on','Call',@change_color);
 
-if (opt)            % Signal that this plate has no associated poles
-    set(h_plate,'UserData',0)
-else                % Set the default (to this plate) stage poles
-    set(h_plate,'UserData',str_stgs{n_pole})
-end
+	if (opt)            % Signal that this plate has no associated poles
+		set(h_plate,'UserData',0)
+	else                % Set the default (to this plate) stage poles
+		set(h_plate,'UserData',str_stgs{n_pole})
+	end
 
 % -----------------------------------------------------------------------------------------
 function set_stg(obj,eventdata,patchHand,poles_file,opt)
@@ -424,11 +438,11 @@ end
 
 % --------------------------------------------------------------------------------------------------
 function zoom_clickedcallback(obj,eventdata)
-if (strcmp(get(obj,'State'),'on'))
-    zoom_j('on')
-else
-    zoom_j('off')
-end
+	if (strcmp(get(obj,'State'),'on'))
+		zoom_j('on')
+	else
+		zoom_j('off')
+	end
 
 % --------------------------------------------------------------------
 function animate_clickedcallback(obj, eventdata)
@@ -515,9 +529,9 @@ guidata(handles.figure1,handles);
 
 % --------------------------------------------------------------------
 function [x,y] = get_time_slice(data,n_data,n_seg,n,first)
-i1 = (n-1)*(n_data + n_seg) + 2;
-i2 = i1 + n_data - 1 + n_seg - 1;
-x = data(i1:i2,1);    y = data(i1:i2,2);
+	i1 = (n-1)*(n_data + n_seg) + 2;
+	i2 = i1 + n_data - 1 + n_seg - 1;
+	x = data(i1:i2,1);		y = data(i1:i2,2);
 
 % --------------------------------------------------------------------
 function reset_clickedcallback(hObject, eventdata)
@@ -546,7 +560,7 @@ guidata(handles.figure1,handles);
 function help_clickedcallback(obj,eventdata)
 str = sprintf(['This tool is a mix between a Plate reconstruction demo and.\n'...
     'something you can use to do real work.\n\n'...
-    'There several available tools on the web that do plate reconstructions\n'...
+    'There are several available tools on the web that do plate reconstructions\n'...
     'but this one has a big advantage. It is ready to work when you start it,\n'...
     'and is stupidly easy to use\n\n'...
     'I wont go for the trouble to explain what the buttons do. They self\n'...
@@ -558,7 +572,7 @@ str = sprintf(['This tool is a mix between a Plate reconstruction demo and.\n'..
     'program, but you can look at them at the "continents" directory of\n'...
     'Mirone''s installation. To create new stage poles files from finite\n'...
     'rotations poles hit the "Make stage poles" and follow instructions there.\n\n'...
-    'The plates files are simple ascii files with two columns: LON & Lat\n'...
+    'The plates files are simple ascii files with two columns: LON & LAT\n'...
     'Now, those files may be multisegments, with character ">" serving as\n'...
     'separator. The individual segments may be closed (equal first and last\n'...
     'point). If they are closed, the contour is filled, otherwise they are\n'...
@@ -575,6 +589,13 @@ helpdlg(str,'Help')
 function listbox_stages_CB(hObject, handles)
 % Hints: contents = get(hObject,'String') returns listbox_stages contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from listbox_stages
+
+% --------------------------------------------------------------------
+function push_unSet_CB(hObject, handles)
+% Unlink all plates to their associated poles
+	for (k = 1:numel(handles.plates))
+		set(handles.plates{k},'UserData',0)
+	end
 
 % --------------------------------------------------------------------
 function push_loadStages_CB(hObject, handles)
@@ -625,23 +646,17 @@ function push_makeStages_CB(hObject, handles)
 	fclose(fid);
 	s = strread(c,'%s','delimiter','\n');
 
-	[s,v] = choosebox('Name','One Euler list',...
-					'PromptString','List of poles:',...
-					'SelectString','Selected poles:',...
-					'ListSize',[380 300],'ListString',s);
+	choosebox('Name','One Euler list',...
+				'PromptString','List of poles:',...
+				'SelectString','Selected poles:',...
+				'ListSize',[380 300],'ListString',s);
 
 % --------------------------------------------------------------------
 function LoadFile_clickedcallback(obj, eventdata)
 % Get the external file and draw it. All closed polygons are drawn as patches
 
 	handles = guidata(obj);
-	if (~isempty(handles.h_calling_fig) && ishandle(handles.h_calling_fig))			% If we know it and it exists
-        hand = guidata(handles.h_calling_fig);		% get handles of the calling fig
-	else
-        hand = handles;
-	end
-
-    [FileName,PathName] = put_or_get_file(hand,{ ...
+    [FileName,PathName] = put_or_get_file(handles,{ ...
 			'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select input xy file name','get');
     if isequal(FileName,0),		return,		end
 
@@ -902,18 +917,18 @@ function radio_proj_CB(hObject, handles)
 
 % --------------------------------------------------------------------
 function slider_projOrigLon_CB(hObject, handles)
-set(handles.text_projOrigLon,'String',['Lon ' num2str(get(hObject,'Value'))])
-swap_proj(handles)      % In this case there is no projection swapping, only origin updating
+	set(handles.text_projOrigLon,'String',['Lon ' num2str(get(hObject,'Value'))])
+	swap_proj(handles)		% In this case there is no projection swapping, only origin updating
 
 % --------------------------------------------------------------------
 function slider_projOrigLat_CB(hObject, handles)
-set(handles.text_projOrigLat,'String',['Lat ' num2str(get(hObject,'Value'))])
-swap_proj(handles)      % In this case there is no projection swapping, only origin updating
+	set(handles.text_projOrigLat,'String',['Lat ' num2str(get(hObject,'Value'))])
+	swap_proj(handles)		% In this case there is no projection swapping, only origin updating
 
 % --------------------------------------------------------------------
 function slider_projOrigPitch_CB(hObject, handles)
-set(handles.text_projOrigPitch,'String',['Pitch ' num2str(get(hObject,'Value'))])
-swap_proj(handles)      % In this case there is no projection swapping, only origin updating
+	set(handles.text_projOrigPitch,'String',['Pitch ' num2str(get(hObject,'Value'))])
+	swap_proj(handles)		% In this case there is no projection swapping, only origin updating
 
 % --------------------------------------------------------------------
 function swap_proj(handles)
@@ -921,8 +936,8 @@ function swap_proj(handles)
 if (get(handles.radio_projOrtho,'Value'))
     orig = [get(handles.slider_projOrigLat,'Value') get(handles.slider_projOrigLon,'Value') ...
             get(handles.slider_projOrigPitch,'Value')];
-    for (k=1:length(handles.plates_bak))
-        for (l=1:length(handles.plates_bak{k}))
+    for (k = 1:numel(handles.plates_bak))
+        for (l = 1:numel(handles.plates_bak{k}))
             x = get(handles.plates_bak{k}(l),'XData');
             y = get(handles.plates_bak{k}(l),'YData');
             [x,y] = orthographic(x, y, orig);
@@ -930,8 +945,8 @@ if (get(handles.radio_projOrtho,'Value'))
         end
     end
 else
-    for (k=1:length(handles.plates_bak))
-        for (l=1:length(handles.plates_bak{k}))
+    for (k = 1:numel(handles.plates_bak))
+        for (l = 1:numel(handles.plates_bak{k}))
             x = get(handles.plates_bak{k}(l),'XData');
             y = get(handles.plates_bak{k}(l),'YData');
             set(handles.plates{k}(l),'XData',x,'YData',y)
@@ -987,18 +1002,22 @@ axes('Parent',h1,...
 
 uicontrol('Parent',h1, 'Position',[390 8 271 101], 'Style','frame');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[10 8 221 100],...
 'BackgroundColor',[1 1 1],...
 'Call',{@main_uiCB,h1,'listbox_stages_CB'},...
-'Position',[10 8 221 100],...
 'Style','listbox',...
 'Tooltip','List of currently available satge poles',...
 'Value',1,...
 'Tag','listbox_stages');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[140 108 90 21],...
+'Call',{@main_uiCB,h1,'push_unSet_CB'},...
+'String','Unset All',...
+'Tooltip','Unlink all plates of their currently set poles',...
+'Tag','push_unSet');
+
+uicontrol('Parent',h1, 'Position',[240 53 111 21],...
 'Call',{@main_uiCB,h1,'push_loadStages_CB'},...
-'Position',[240 53 111 21],...
 'String','Load stage poles',...
 'Tooltip','Load a file with your own stage poles',...
 'Tag','push_loadStages');
@@ -1012,7 +1031,7 @@ uicontrol('Parent',h1, 'Position',[700 9 47 21],...
 
 uicontrol('Parent',h1, 'Position',[824 8 47 21],...
 'BackgroundColor',[1 1 1],...
-'String','150',...
+'String','200',...
 'Style','edit',...
 'Tooltip','Time of animation stop (Ma)',...
 'Tag','edit_ageStop');
