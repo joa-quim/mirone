@@ -115,7 +115,6 @@ if (strcmp(get(hObject,'UserData'),'InterpPoles'))
 	set(handles.edit_polesFile,'Visible','on')
 	set(handles.push_readPolesFile,'Visible','on')
 	set(handles.txt_AgeF,'Visible','on')
-	set(handles.check_geodetic,'Visible','on')
 	set(handles.edit_agesFile,'Visible','on')
 	set(handles.push_ReadAgesFile,'Visible','on')
 	set(handles.listbox_ages,'Visible','on')
@@ -125,9 +124,6 @@ if (strcmp(get(hObject,'UserData'),'InterpPoles'))
 else
 	handles.do_interp = 0;
 	set(handles.h_Stg_txt,'String','Stage poles file')
-	if (strcmp(get(hObject,'UserData'),'AddPoles'))
-		set(handles.check_geodetic,'Visible','on')
-	end
 end
 guidata(hObject, handles);
 
@@ -367,12 +363,6 @@ function cumpute_interp(handles)
 		n_ages = length(ages);
 	end
 
-	if (~get(handles.check_geodetic, 'Val'))		% Convert to geocentric latitudes
-		ecc = 0.0818191908426215;		% WGS84
-		D2R = pi / 180;
-		poles(:,2) = atan2( (1-ecc^2)*sin(poles(:,2)*D2R), cos(poles(:,2)*D2R) ) / D2R;
-	end
-
 	for (i = n_new_finite+1:n_ages)
 		id = find(ages(i) > poles(:,4));
 		id = id(end);                   % We can only have one value and it's the last one that counts
@@ -584,9 +574,8 @@ function edit_pole1Lon_CB(hObject, handles)
 	if (isnan(handles.edit_pole1Lon))   set(hObject,'String','');   return;     end
 	guidata(hObject, handles);
 	if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
-	geocentric = -double(~get(handles.check_geodetic,'Val'));
 	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang, geocentric);
+		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
@@ -597,9 +586,8 @@ function edit_pole1Lat_CB(hObject, handles)
 	if (isnan(handles.edit_pole1Lat))   set(hObject,'String','');   return;     end
 	guidata(hObject, handles);
 	if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
-	geocentric = -double(~get(handles.check_geodetic,'Val'));
 	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang, geocentric);
+		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
@@ -610,9 +598,8 @@ function edit_pole1Ang_CB(hObject, handles)
 	if (isnan(handles.edit_pole1Ang))   set(hObject,'String','');   return;     end
 	guidata(hObject, handles);
 	if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
-	geocentric = -double(~get(handles.check_geodetic,'Val'));
 	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang, geocentric);
+		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
@@ -623,9 +610,8 @@ function edit_pole2Lon_CB(hObject, handles)
 	if (isnan(handles.edit_pole2Lon))   set(hObject,'String','');   return;     end
 	guidata(hObject, handles);
 	if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
-	geocentric = -double(~get(handles.check_geodetic,'Val'));
 	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang, geocentric);
+		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
@@ -636,9 +622,8 @@ function edit_pole2Lat_CB(hObject, handles)
 	if (isnan(handles.edit_pole2Lat)),	set(hObject,'String','');   return;     end
 	guidata(hObject, handles);
 	if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
-	geocentric = -double(~get(handles.check_geodetic,'Val'));
 	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang, geocentric);
+		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
@@ -649,9 +634,8 @@ function edit_pole2Ang_CB(hObject, handles)
 	if (isnan(handles.edit_pole2Ang)),	set(hObject,'String','');   return;     end
 	guidata(hObject, handles);
 	if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
-	geocentric = -double(~get(handles.check_geodetic,'Val'));
 	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang, geocentric);
+		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
