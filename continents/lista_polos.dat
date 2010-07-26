@@ -58,6 +58,10 @@
 -13.11  68.57  -53.64  131.3  !NAM<-IBE AnM10 Srivastava et al. 1990
 -12.93  66.90  -60.45  154.4  !NAM<-IBE AnM25 Srivastava et al. 1990
 -12.82  65.72  -66.32  175.0  !NAM<-IBE Srivastava & Verhoef 1992
+168.36 -71.71   46.30  120.4  !NAM<-IBE Rowley & Lottes 1988
+171.49 -73.59   52.57  150.0  !NAM<-IBE Rowley & Lottes 1988
+171.49 -73.59   52.57  200.0  !NAM<-IBE Rowley & Lottes 1988
+
   0.0    0.00    0.0     0.0  !Afr<-IBE Iberia-Africa (Afr fixed)
 -20.61  21.03    0.0     0.0  !Afr<-IBE An0 Nuvel
 -17.78  21.10    1.11   10.10 !Afr<-IBE An5 Fecho
