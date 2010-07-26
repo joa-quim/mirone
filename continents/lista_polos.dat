@@ -6,26 +6,26 @@
 -37.00   2.2    -3.79   10.10 !ACO-NAM An5  J. Luis et al. 1984
 135.8   62.4     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
 
-139.87  62.78    2.34   10.33 !NAM<-EUR An5  J. Luis & Miranda Global
-140.52  53.03    2.26   10.33 !NAM<-EUR An5  J. Luis & Miranda Sul da CG
-140.04  61.88    4.56   19.55 !NAM<-IBE An6  J. Luis & Miranda Global
-140.12  56.64    4.48   19.55 !NAM<-IBE An6  J. Luis & Miranda Sul da CG
-139.25  61.87    7.24   33.25 !NAM<-IBE An13 J. Luis & Miranda Global
-125.25  71.27    7.51   33.25 !NAM<-IBE An13 J. Luis & Miranda Iberico
-117.22  77.18    9.43   39.13 !NAM<-IBE An18 J. Luis & Miranda
-111.20  76.67   10.31   43.14 !NAM<-IBE An20 J. Luis & Miranda
-113.54  78.28   11.50   47.06 !NAM<-IBE An21 J. Luis & Miranda
-126.73  72.14   11.49   49.37 !NAM<-IBE An22 J. Luis & Miranda
-124.72  72.20   12.11   51.30 !NAM<-IBE An23 J. Luis & Miranda
-124.68  73.23   12.93   52.79 !NAM<-IBE An24 J. Luis & Miranda
-133.00  68.87   13.83   56.14 !NAM<-IBE An25 J. Luis & Miranda
-133.08  69.77   14.40   57.70 !NAM<-IBE An26 J. Luis & Miranda
-136.90  66.16   15.17   63.09 !NAM<-IBE An28 J. Luis & Miranda
-135.28  70.90   16.09   64.30 !NAM<-IBE An29 J. Luis & Miranda
-135.65  69.70   16.51   67.02 !NAM<-IBE An30 J. Luis & Miranda
-132.63  77.31   18.48   72.25 !NAM<-IBE An32 J. Luis & Miranda
-116.00  85.46   22.11   78.00 !NAM<-IBE An33 J. Luis & Miranda
-119.58  85.79   23.18   81.00 !NAM<-IBE An33r J. Luis & Miranda
+139.87  62.78   -2.34   10.33 !NAM<-EUR An5  J. Luis & Miranda Global
+140.52  53.03   -2.26   10.33 !NAM<-EUR An5  J. Luis & Miranda Sul da CG
+140.04  61.88   -4.56   19.55 !NAM<-IBE An6  J. Luis & Miranda Global
+140.12  56.64   -4.48   19.55 !NAM<-IBE An6  J. Luis & Miranda Sul da CG
+139.25  61.87   -7.24   33.25 !NAM<-IBE An13 J. Luis & Miranda Global
+124.99  71.27   -7.51   33.25 !NAM<-IBE An13 J. Luis & Miranda Iberico
+117.22  77.18   -9.43   39.13 !NAM<-IBE An18 J. Luis & Miranda
+113.70  76.01  -10.23   43.14 !NAM<-IBE An20 J. Luis & Miranda
+112.09  78.68  -11.57   47.06 !NAM<-IBE An21 J. Luis & Miranda
+126.60  72.01  -11.51   49.37 !NAM<-IBE An22 J. Luis & Miranda
+124.59  72.60  -12.15   51.30 !NAM<-IBE An23 J. Luis & Miranda
+124.68  73.23  -12.93   52.79 !NAM<-IBE An24 J. Luis & Miranda
+133.40  68.48  -13.79   56.14 !NAM<-IBE An25 J. Luis & Miranda
+133.74  70.17  -14.44   57.70 !NAM<-IBE An26 J. Luis & Miranda
+137.30  66.82  -15.24   63.09 !NAM<-IBE An28 J. Luis & Miranda
+135.28  70.90  -16.09   64.30 !NAM<-IBE An29 J. Luis & Miranda
+135.65  69.70  -16.51   67.02 !NAM<-IBE An30 J. Luis & Miranda
+132.63  77.31  -18.48   72.25 !NAM<-IBE An32 J. Luis & Miranda
+118.50  85.33  -22.05   78.00 !NAM<-IBE An33 J. Luis & Miranda
+119.98  85.92  -23.22   81.00 !NAM<-IBE An33r J. Luis & Miranda
 
   0.0    0.0     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
 133.84  64.57   -2.39    9.8  !NAM<-IBE An5 Klitgord & Schouten 1986
