@@ -3,8 +3,10 @@
 /autopano.exe -text
 continents/AUS_torsvik.stg -text
 continents/EANT_torsvik.stg -text
+continents/EUR_ABS_hybrid.stg -text
 continents/EUR_torsvik.stg -text
 continents/GRE_torsvik.stg -text
+continents/IBE_ABS_hybrid.stg -text
 continents/IBE_Saf.stg -text
 continents/IND_torsvik.stg -text
 continents/MAD_torsvik.stg -text
@@ -14,6 +16,7 @@ continents/africa.dat -text
 continents/africa2nam.stg -text
 continents/africa2nam_double.stg -text
 continents/africa2nam_half.stg -text
+continents/africa_ABS_hybrid.stg -text
 continents/antartica.dat -text
 continents/arabia.dat -text
 continents/arabia_dp.dat -text
