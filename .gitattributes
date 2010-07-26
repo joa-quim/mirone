@@ -1,6 +1,14 @@
 * text=auto !eol
 /ICSharpCode.SharpZipLib.dll -text
 /autopano.exe -text
+continents/AUS_torsvik.stg -text
+continents/EANT_torsvik.stg -text
+continents/EUR_torsvik.stg -text
+continents/GRE_torsvik.stg -text
+continents/IND_torsvik.stg -text
+continents/MAD_torsvik.stg -text
+continents/NAM_torsvik.stg -text
+continents/SAC_torsvik.stg -text
 continents/africa.dat -text
 continents/africa2nam.stg -text
 continents/africa2nam_double.stg -text
