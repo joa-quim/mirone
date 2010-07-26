@@ -33,7 +33,7 @@ function [lon_s,lat_s,ang_s] = add_poles(lon1, lat1, ang1, lon2, lat2, ang2, ecc
 		end
 	end
 
-	D2R = pi / 180;
+	D2R = pi / 180;			R2D = 180 / pi;
 	lon1 = lon1 * D2R;		lat1 = lat1 * D2R;		ang1 = ang1 * D2R;
 	lon2 = lon2 * D2R;		lat2 = lat2 * D2R;		ang2 = ang2 * D2R;
 
@@ -77,14 +77,17 @@ function [lon_s,lat_s,ang_s] = add_poles(lon1, lat1, ang1, lon2, lat2, ang2, ecc
 	T = r2 * r1;
 
 	% Compute the Euler pole whose rotation matrix is T
-	lon_s = atan2( (T(1,3) - T(3,1)), (T(3,2) - T(2,3)) ) / D2R;		% Lon
+	lon_s = atan2( (T(1,3) - T(3,1)), (T(3,2) - T(2,3)) ) * R2D;		% Lon
 	tmp = sqrt( (T(3,2)-T(2,3))^2 + (T(1,3)-T(3,1))^2 + (T(2,1)-T(1,2))^2);
-	lat_s = asin( (T(2,1) - T(1,2)) / tmp) / D2R;						% Lat
-	ang_s = atan(tmp / (T(1,1)+T(2,2)+T(3,3) -1 )) / D2R;
+	lat_s = asin( (T(2,1) - T(1,2)) / tmp);								% Lat
+
+	if (do_geocentric)		% Convert back to geodetic latitudes
+		lat_s = atan2( sin(lat_s), (1-ecc^2)*cos(lat_s) ) * R2D;
+	else
+		lat_s = lat_s * R2D;
+	end
+	
+	ang_s = atan(tmp / (T(1,1)+T(2,2)+T(3,3) -1 )) * R2D;
 
 	% Make sure that 0 <= ang_s <= 180
 	if (ang_s < 0),     ang_s = ang_s + 180;    end
-		
-	if (do_geocentric)		% Convert back to geodetic latitudes
-		lat_s = atan2( sin(lat_s), (1-ecc^2)*cos(lat_s) );
-	end
