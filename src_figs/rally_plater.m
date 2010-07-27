@@ -598,6 +598,30 @@ function push_unSet_CB(hObject, handles)
 	end
 
 % --------------------------------------------------------------------
+function push_setABS_CB(hObject, handles)
+% Load the "absolute" poles
+	str_stgs{1} = [handles.path_continent 'SAfr_ABS_hybrid.stg'];
+	str_stgs{2} = [handles.path_continent 'EANT_ABS_hybrid.stg'];
+	str_stgs{3} = 0;			% Arabia. We don't currently have poles for it
+	str_stgs{4} = [handles.path_continent 'AUS_ABS_hybrid.stg'];
+	str_stgs{5} = [handles.path_continent 'EUR_ABS_hybrid.stg'];
+	str_stgs{6} = [handles.path_continent 'GRE_ABS_hybrid.stg'];
+	str_stgs{7} = [handles.path_continent 'IBE_ABS_hybrid.stg'];
+	str_stgs{8} = [handles.path_continent 'IND_ABS_hybrid.stg'];
+	str_stgs{9} = [handles.path_continent 'MAD_ABS_hybrid.stg'];
+	str_stgs{10} = [handles.path_continent 'NAM_ABS_hybrid.stg'];
+	str_stgs{11} = [handles.path_continent 'SAC_ABS_hybrid.stg'];
+	
+	for (k = 1:numel(handles.plates))
+		set(handles.plates{k},'UserData',str_stgs{k})
+	end
+	
+	str = {'SAfr_ABS_hybrid.stg'; 'EANT_ABS_hybrid.stg'; 'AUS_ABS_hybrid.stg'; 'EUR_ABS_hybrid.stg';
+		'GRE_ABS_hybrid.stg'; 'IBE_ABS_hybrid.stg'; 'IND_ABS_hybrid.stg'; 'MAD_ABS_hybrid.stg';
+		'NAM_ABS_hybrid.stg'; 'SAC_ABS_hybrid.stg'};
+	set(handles.listbox_stages, 'Str', str)
+
+% --------------------------------------------------------------------
 function push_loadStages_CB(hObject, handles)
 % Get poles file name
 
@@ -1010,11 +1034,17 @@ uicontrol('Parent',h1, 'Position',[10 8 221 100],...
 'Value',1,...
 'Tag','listbox_stages');
 
-uicontrol('Parent',h1, 'Position',[140 108 90 21],...
+uicontrol('Parent',h1, 'Position',[10 108 80 21],...
 'Call',{@main_uiCB,h1,'push_unSet_CB'},...
 'String','Unset All',...
 'Tooltip','Unlink all plates of their currently set poles',...
 'Tag','push_unSet');
+
+uicontrol('Parent',h1, 'Position',[140 108 80 21],...
+'Call',{@main_uiCB,h1,'push_setABS_CB'},...
+'String','Set ABS',...
+'Tooltip','Load the Absolute plate models',...
+'Tag','push_setABS');
 
 uicontrol('Parent',h1, 'Position',[240 53 111 21],...
 'Call',{@main_uiCB,h1,'push_loadStages_CB'},...
