@@ -1,3 +1,4 @@
+# Poles for absolute motion in the Torsvik et al. 2008 Hybrid reference frame
 #longitude	latitude	tstart(Ma)	tend(Ma)	angle(deg)
 178.37092	-15.59858	250.0000	245.0000	 1.7693
 161.27062	-19.64079	245.0000	240.0000	 4.8605
