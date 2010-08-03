@@ -862,13 +862,13 @@ function [x,y,z,count] = lines2multiseg(hands,z_level)
 		for (i = 1:numel(id_where))
 			xt = get(hands(id_where(i)),'XData');
 			yt = get(hands(id_where(i)),'YData');
-			if (got_Z),		zt = z;		end			% <== New solution to account for Z in UserData
+			zt = z;
 			id_nan = find(xt ~= xt);    % Find the NaNs
 			id = find(diff(id_nan) == 1) + 1;   % Account for contiguous NaNs
 			if (~isempty(id))           % Found contiguous NaNs
 				xt(id_nan(id)) = [];
 				yt(id_nan(id)) = [];    % Remove them
-				if (got_Z),		zt(id_nan(id)) = [];		end			% <== Idem
+				zt(id_nan(id)) = [];
 				id_nan = find(xt ~= xt);% Find the new position of the now non-contiguous NaNs
 			end
 			id_nan = [0 id_nan];        % Used to make it start at one        
