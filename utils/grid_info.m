@@ -14,48 +14,57 @@ end
 if (handles.no_file),     return;      end
 %ud = get(handles.figure1,'UserData');           % Retrieve Image info 
 if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived from a GMT grdfile
-	info1 = grdinfo_m(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
-	X = getappdata(handles.figure1,'dem_x');    Y = getappdata(handles.figure1,'dem_y');
-	Z = getappdata(handles.figure1,'dem_z');    % We want the Z for statistics (might not be in argin)
-	if (~isempty(Z))
-		info2 = grdutils(Z,'-H');               % info2 is a vector with [z_min z_max i_zmin i_zmax n_nans mean std]
-		info2(3:4) = info2(3:4) + 1;            % Info from grdutils is zero based
-	else
-		info2 = zeros(7,1);     X = [0 1];      Y = [0 1];  % Just to no error hang bellow
+	Z = getappdata(handles.figure1,'dem_z');	% We want the Z for statistics (might not be in argin)
+	if (isempty(Z))
+		warndlg('Grid too big to be in memory so I cannot report info','Warning')
+		return
 	end
+	nx = size(Z,2);		ny = size(Z,1);
+	try
+		info1 = grdinfo_m(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
+	catch
+		info1.Title = 'Unknown';	info1.Command = ' ';	info1.Remark = ' ';
+		info1.X_info(4) = nx;		info1.Y_info(4) = ny;
+		info1.Scale = [1 0 -1];
+		info1.Registration = 'Registration:  grid (guessed)';
+	end
+	info2 = grdutils(Z,'-H');				% info2 is a vector with [z_min z_max i_zmin i_zmax n_nans mean std]
+	info2(3:4) = info2(3:4) + 1;			% Info from grdutils is zero based
+
 	w{1} = ['Title: ' info1.Title];
 	w{2} = ['Command: ' info1.Command];
 	w{3} = ['Remark: ' info1.Remark];
 	w{4} = info1.Registration;
-	w{5} = ['grdfile format: #' num2str(info1.Scale(3))];
+	w{5} = ['grdfile format: #' sprintf('%d',info1.Scale(3))];
 	txt1 = sprintf('%.8g',handles.head(1));		% x_min
 	txt2 = sprintf('%.8g',handles.head(2));		% x_max
 	txt3 = sprintf('%.8g',handles.head(8));		% x_inc
-	w{6} = ['x_min: ' txt1 '  x_max: ' txt2 '  x_inc: ' txt3 '  nx: ' num2str(info1.X_info(4))];
+	w{6} = ['x_min: ' txt1 '  x_max: ' txt2 '  x_inc: ' txt3 '  nx: ' sprintf('%d',info1.X_info(4))];
 	txt1 = sprintf('%.8g',handles.head(3));		% y_min
 	txt2 = sprintf('%.8g',handles.head(4));		% y_max
 	txt3 = sprintf('%.8g',handles.head(9));		% y_inc
-	w{7} = ['y_min: ' txt1 '  y_max: ' txt2 '  y_inc: ' txt3 '  ny: ' num2str(info1.Y_info(4))];
-	txt1 = sprintf('%.8g',info2(1));            % z_min
+	w{7} = ['y_min: ' txt1 '  y_max: ' txt2 '  y_inc: ' txt3 '  ny: ' sprintf('%d',info1.Y_info(4))];
+	txt1 = sprintf('%.8g',info2(1));			% z_min
 	txt2 = sprintf('%.8g',info2(2));			% z_max
 
-	if (handles.head(7)),   half = 0.5;
-	else                    half = 0;       end
-	x_min = handles.head(1) + (fix(info2(3) / numel(Y)) + half) * handles.head(8);    % x of z_min
-	x_max = handles.head(1) + (fix(info2(4) / numel(Y)) + half) * handles.head(8);    % x of z_max
-	y_min = handles.head(3) + (rem(info2(3)-1, numel(Y)) + half) * handles.head(9);   % y of z_min
-	y_max = handles.head(3) + (rem(info2(4)-1, numel(Y)) + half) * handles.head(9);   % y of z_max
+	if (handles.head(7))	half = 0.5;
+	else					half = 0;
+	end
+	x_min = handles.head(1) + (fix(info2(3) / ny) + half) * handles.head(8);    % x of z_min
+	x_max = handles.head(1) + (fix(info2(4) / ny) + half) * handles.head(8);    % x of z_max
+	y_min = handles.head(3) + (rem(info2(3)-1, ny) + half) * handles.head(9);   % y of z_min
+	y_max = handles.head(3) + (rem(info2(4)-1, ny) + half) * handles.head(9);   % y of z_max
 	txt_x1 = sprintf('%.8g',x_min);
 	txt_x2 = sprintf('%.8g',x_max);
 	txt_y1 = sprintf('%.8g',y_min);
 	txt_y2 = sprintf('%.8g',y_max);
 
-	w{8} = ['z_min: ' txt1 ' at x = ' txt_x1 ' y = ' txt_y1]; 
-	w{9} = ['z_max: ' txt2 ' at x = ' txt_x2 ' y = ' txt_y2];
+	w{8} = ['z_min: ' txt1 '   at x = ' txt_x1 '   y = ' txt_y1]; 
+	w{9} = ['z_max: ' txt2 '   at x = ' txt_x2 '   y = ' txt_y2];
 
-	w{10} = ['scale factor: ' num2str(info1.Scale(1)) ' add_offset: ' num2str(info1.Scale(2))];
+	w{10} = ['scale factor: ' num2str(info1.Scale(1)) '        add_offset: ' num2str(info1.Scale(2))];
 	if (~isequal(info2,0))
-		w{11} = sprintf('mean: %.8g  stdev: %.8g',info2(6), info2(7));
+		w{11} = sprintf('mean: %.8g    stdev: %.8g',info2(6), info2(7));
 	else
 		w{11} = 'WARNING: GRID WAS NOT IN MEMORY SO SOME INFO MIGHT NO BE ENTIRELY CORRECT.';
 	end
