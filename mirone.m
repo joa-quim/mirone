@@ -324,13 +324,13 @@ function erro = gateLoadFile(handles,drv,fname)
 % Gateway function to load a recognized file type using its name
 	erro = 0;
 	switch drv
-		case 'gmt',			read_DEMs(handles,{[],fname},'GMT_relatives')
+		case 'gmt',			loadGRID(handles, fname, 'GMT_relatives')
 		case 'generic',		FileOpenNewImage_CB(handles, fname);
 		case 'geotif',		FileOpenGeoTIFF_CB(handles, 'nikles', fname);
 		case 'ecw',			FileOpenGeoTIFF_CB(handles, 'ecw', fname);		% A particular case (includes jp2)
 		case 'multiband',	FileOpenGDALmultiBand_CB(handles, 'AVHRR', fname);
 		case 'envherd',		FileOpen_ENVI_Erdas_CB(handles, [], fname);
-		case 'mola',		FileOpenMOLA_CB(handles, fname);
+		case 'mola',		loadGRID(handles, fname, 'MOLA');
 		case 'mat',			FileOpenSession_CB(handles, fname)
 		case 'cpt',			color_palettes(fname);
 		case 'dat',			datasets_funs('Isochrons',handles,fname);
@@ -1064,57 +1064,34 @@ function FileOpen_ENVI_Erdas_CB(handles, opt, opt2)
 		PathName = [];		FileName = opt2;
 	end
 
-	if (handles.ForceInsitu),	opt_I = '-I';	% Use only in desperate cases.
-	else						opt_I = ' ';
-	end
-	handles.was_int16 = 0;		% To make sure that it wasnt left = 1 from a previous use.
 	handles.fileName = [PathName FileName];
 
 	att = gdalread(handles.fileName,'-M','-C');
-	if ((att.RasterXSize * att.RasterYSize * 4) > handles.grdMaxSize)
-		if ( strcmp(yes_or_no('title','Warning'),'Yes')),	return,		end		% Advise accepted
+	if (~strcmp(att.Band(1).DataType,'Byte'))			% We have a "grid"
+		loadGRID(handles, handles.fileName, 'guess', att);		return
 	end
+	
 	if (~isempty(att.GeoTransform)),	handles.image_type = 3;		opt_U = '-U';
 	else								handles.image_type = 2;		opt_U = ' ';
 	end
 
 	set(handles.figure1,'pointer','watch')
-	if (strcmp(att.Band(1).DataType,'Byte') || ~isempty(att.Band(1).ColorMap))	% We have a raster image
-		opt_S = ' ';
-		if (~strcmp(att.Band(1).DataType,'Byte')),		opt_S = '-S';	end
-		zz = gdalread(handles.fileName, opt_U, opt_S);
-		handles.head = att.GMT_hdr;
-		if (size(zz,3) > 3)
-			if (max(zz(:)) == 1),	zz = logical(zz);	handles.head(6) = 1;	end	% att.Metadata fails to detect NBITS
-			FileOpenGDALmultiBand_CB(handles, 'multiband', zz, att)
-			recentFiles(guidata(handles.figure1));	% Insert fileName into "Recent Files" & save handles
-			return
-		end
-		X = handles.head(1:2);			Y = handles.head(3:4);
-		pal = gray(256);
-		if ( strcmp(att.ColorInterp,'Palette') && ~isempty(att.Band(1).ColorMap) )
-			pal = att.Band(1).ColorMap.CMap(:,1:3);
-		end
-		validGrid = 0;								% Signal that grid opps are not allowed
-		set(handles.figure1,'Colormap',pal)
-	else
-		Z = gdalread(handles.fileName, opt_U, '-C', opt_I);
-		if (isa(Z,'int16')),	handles.was_int16 = 1;		end
-		Z = single(Z);			handles.head = att.GMT_hdr;
-		if (~isempty(att.Band(1).NoDataValue)),		Z(Z <= single(att.Band(1).NoDataValue)) = NaN;		end
-		handles.have_nans = grdutils(Z,'-N');
-		if (handles.have_nans),		zz = scaleto8(Z);
-		else						zz = cvlib_mex('scale8',Z);
-		end
-		[m,n] = size(Z);
-		X = linspace(handles.head(1),handles.head(2),n);	Y = linspace(handles.head(3),handles.head(4),m);	% Need this for image
-		aux_funs('StoreZ',handles,X,Y,Z)		% If grid size is not to big we'll store it
-		validGrid = 1;							% Signal that grid opps are allowed
-		aux_funs('colormap_bg',handles,Z,jet(256));
-		handles.image_type = 4;
+	zz = gdalread(handles.fileName, opt_U);
+	handles.head = att.GMT_hdr;
+	if (size(zz,3) > 3)
+		if (max(zz(:)) == 1),	zz = logical(zz);	handles.head(6) = 1;	end	% att.Metadata fails to detect NBITS
+		FileOpenGDALmultiBand_CB(handles, 'multiband', zz, att)
+		recentFiles(guidata(handles.figure1));	% Insert fileName into "Recent Files" & save handles
+		return
 	end
+	X = handles.head(1:2);			Y = handles.head(3:4);
+	pal = gray(256);
+	if ( strcmp(att.ColorInterp,'Palette') && ~isempty(att.Band(1).ColorMap) )
+		pal = att.Band(1).ColorMap.CMap(:,1:3);
+	end
+	set(handles.figure1,'Colormap',pal)
 
-	handles = show_image(handles,handles.fileName,X,Y,zz,validGrid,'xy',1);
+	handles = show_image(handles,handles.fileName,X,Y,zz,0,'xy',1);
 	grid_info(handles,att,'gdal')			% Construct a info message
 	handles = aux_funs('isProj',handles);	% Check about coordinates type
 	handles = setAxesDefCoordIn(handles,1);	% Sets the value of the axes uicontextmenu that selects whether project or not
@@ -1291,7 +1268,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 			otherwise,			str1 = {'', 'Don''t know (*.*)'};		% Used with the "Try Luck" option
 		end
 		str1(2,1:2) = {'*.*', 'All Files (*.*)'};
-		[FileName,PathName] = put_or_get_file(handles,str1,['Select ' tipo ' file'],'get');
+		[FileName,PathName,handles] = put_or_get_file(handles,str1,['Select ' tipo ' file'],'get');
 		if isequal(FileName,0),		return,		end
 	else				% Filename was transmited in input
 		PathName = [];	FileName = opt;
@@ -1326,22 +1303,6 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	set(handles.figure1,'pointer','watch')
 
 	if (att.RasterCount == 0)			% Should never happen given the piece of code above, but ...
-% 		if (~isempty( strfind(att.Metadata{2}, 'Level-3 Binned Data') ))	% TRY this
-% 			info = hdf_funs('hdfinfo', handles.fileName);
-% 			str = cell(11,1);
-% 			for (k = 1:11)
-% 				str{k} = info.Vgroup.Vdata(k+2).Name;
-% 			end
-% 			[s,ok] = listdlg('PromptString',{'MODIS Level-3 Binned' 'select one variable:'}, 'ListSize', [200 min((size(str,1)*20 + 50), 180)], ...
-% 				'Name','MODIS L3 Binn Selection', 'SelectionMode','single', 'ListString',str);	pause(0.01)
-% 			if (~ok),	return,		end					% Uset hit "Cancel"
-% 			att.subDsName = str{s};						% Another non-standard
-% 			att.Band(1).DataType = 'L3Bin';				% Needed to cheat a test inside read_DEMs
-% 			att.hdfinfo = info;							% We'll need to access this info inside empilhador
-% 			fullname{1} = PathName;		fullname{2} = FileName;
-% 			read_DEMs(handles, fullname, 'JP2_DEM', att);
-% 			return
-% 		end
 		errordlg('Probably a multi-container file. Could not read it since its says that it has no raster bands.','ERROR')
 		return
 	elseif (att.RasterCount > 3)		% Since it is a multiband file, try luck there
@@ -1349,8 +1310,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	end
 
 	if (~strcmp(att.Band(1).DataType,'Byte'))			% JPK2, for example, may contain DTMs
-		fullname{1} = PathName;		fullname{2} = FileName;
-		read_DEMs(handles,fullname,'JP2_DEM', att);		return
+		loadGRID(handles,handles.fileName,'guess', att);		return
 	end
 
 	if (strncmp(att.DriverShortName, 'HDF4', 4))
@@ -1425,8 +1385,8 @@ function FileOpenDEM_CB(handles, opt)
 		case 'ArcBinary',		str1 = {'*.adf;*.ADF', 'Arc/Info grid (*.adf,*.ADF)'; '*.*', 'All Files (*.*)'};
 		case 'DTED',			str1 = {'*.dt0;*.DT0;*.dt1;*.DT1', 'DTED (*.dt0,*.DT0,*.dt1,*.DT1)'; '*.*', 'All Files (*.*)'};
 		case 'GTOPO30',			str1 = {'*.dem;*.DEM', 'GTOPO30 DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
-		case 'GeoTiff_DEM',		str1 = {'*.tif;*.TIF;*.tiff;*.TIFF', 'GeoTiff DEM(*.tif,*.tiff,*.TIF,*.TIFF)'; '*.*', 'All Files (*.*)'};
 		case 'GXF',				str1 = {'*.gxf;*.GXF', 'Geosoft GXF (*.gxf,*.GXF)'; '*.*', 'All Files (*.*)'};
+		case 'MOLA',			str1 = {'*.img;*.IMG', 'MOLA DEM (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
 		case 'SDTS',			str1 = {'*catd.ddf;*CATD.DDF', 'USGS SDTS DEM (*catd.ddf,*CATD.DDF)'; '*.*', 'All Files (*.*)'};
 		case 'SRTM30',			str1 = {'*.srtm;*.SRTM;*.srtm.gz', 'SRTM30 DEM (*.srtm,*.SRTM,*.srtm.gz)'; '*.*', 'All Files (*.*)'};
 		case {'SRTM1' 'SRTM3'},	str1 = {'*.hgt;*.HGT;*.hgt.zip', [opt ' DEM (*.hgt,*.HGT,*.hgt.zip)']; '*.*', 'All Files (*.*)'};
@@ -1434,148 +1394,36 @@ function FileOpenDEM_CB(handles, opt)
 		otherwise
 			errordlg(['OOPs, where did this ' opt ' code came in?'],'Error'),	return
 	end
-	[FileName,PathName] = put_or_get_file(handles,str1,['Select ' opt ' File'],'get');
+	[FileName,PathName,handles] = put_or_get_file(handles,str1,['Select ' opt ' File'],'get');
 	if isequal(FileName,0),		return,		end
 	fullname{1} = PathName;		fullname{2} = FileName;
-	read_DEMs(handles,fullname,tipo)
+	loadGRID(handles,fullname,tipo)
 
 % --------------------------------------------------------------------
-function FileOpenMOLA_CB(handles, FileName)
-	if (nargin == 1) 
-		str1 = {'*.img;*.IMG', 'MOLA DEM (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
-		[FileName,PathName] = put_or_get_file(handles,str1,'Select MOLA DEM File','get');
-		if isequal(FileName,0),		return,		end
-	else
-		PathName = [];		% To not error below
-	end
-	
-	type = 'MOLA';
-	[PATH,FNAME] = fileparts([PathName FileName]);
-	fname = [PATH filesep FNAME '.lbl'];
-	fp = fopen(fname,'rt');
-	if (fp < 0)
-		errordlg(['ERROR: Could not find format descriptive file: ' fname],'Error'),	return
-	end
-	s = strread(fread(fp,'*char').','%s','delimiter','\n');		fclose(fp);
-
-	LINES = findcell('LINES', s);
-	[t,r] = strtok(s{LINES.cn},'=');				n_lines = str2double(r(3:end));		% N_rows
-
-	LINE_SAMPLES = findcell('LINE_SAMPLES', s);
-	[t,r] = strtok(s{LINE_SAMPLES.cn},'=');			n_samples = str2double(r(3:end));	% N_cols
-
-% 	SAMPLE_BITS = findcell('SAMPLE_BITS', s);
-% 	[t,r] = strtok(s{SAMPLE_BITS.cn},'=');			sn_bits = str2double(r(3:end));
-
-	MR = findcell('MAP_RESOLUTION', s);
-	[t,r] = strtok(s{MR.cn},'=');			res = str2double(strtok(strtok(r,'=')));
-
-	ML = findcell('MAXIMUM_LATITUDE', s);
-	ind = strfind(s{ML.cn},'=');			ULat = str2double(strtok(s{ML.cn}(ind+2:end)));
-
-	ML = findcell('MINIMUM_LATITUDE', s);
-	ind = strfind(s{ML.cn},'=');			LLat = str2double(strtok(s{ML.cn}(ind+2:end)));
-
-	WL = findcell('WESTERNMOST_LONGITUDE', s);
-	ind = strfind(s{WL.cn},'=');			WLon = str2double(strtok(s{WL.cn}(ind+2:end)));
-
-	EL = findcell('EASTERNMOST_LONGITUDE', s);
-	ind = strfind(s{EL.cn},'=');			ELon = str2double(strtok(s{EL.cn}(ind+2:end)));
-
-	limits = [WLon ELon LLat ULat] + [1 -1 1 -1] / res / 2;
-
-	fullname{1} = PathName;		fullname{2} = FileName;
-	read_DEMs(handles,fullname,type,[limits n_samples n_lines 1/res])
-
-% --------------------------------------------------------------------
-function read_DEMs(handles,fullname,tipo,opt)
+function loadGRID(handles,fullname,tipo,opt)
 % This function loads grid files that may contain DEMs or other grid (not images) types
-% OPT is used when reading MOLA files, OPT = [x_min x_max y_min y_max n_cols n_rows grid_inc]
-
-	opt_I = ' ';	srsWKT = [];	att = [];		% If a file is read by gdal, this won't be empty at the end of this function
+% TIPO	-> 'GMT'		read grids using the read_gmt_type_grids() function
+%		   'MOLA_lbl'	To read Mars MOLA .img with a .lbl header file (cannot be compressed)
+%		   'MOLA'		To read Mars MOLA .img with a .lbl header file *OR* a V3 PDS .img
+%		   'whatever'	Let GDAL guess what to do (it means, any string)
+% OPT	-> the "att" attributes structure got from att = gdalread(fname,'-M',...)
+ 	
+	if (nargin == 3)	opt = ' ';	end
 	set(handles.figure1,'pointer','watch')
-	handles.fileName = [fullname{1} fullname{2}];	% To store any input grid/image file name
-	if (handles.ForceInsitu),	opt_I = '-I';		end	% Use only in desperate cases.
-	handles.was_int16 = 0;			% To make sure that it wasnt left = 1 from a previous use.
+	[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, opt);
+	if (isempty(Z))		set(handles.figure1,'pointer','arrow'),		return,		end
 
-	if (strncmp(tipo,'GMT_',4))		% GMT_relatives - Reading is done by the read_gmt_type_grids function
-		[handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,handles.fileName);
-		if (isempty(X)),	set(handles.figure1,'pointer','arrow'),		return,		end
-		if (~isempty(misc) && ~isempty(misc.srsWKT) ),		srsWKT = misc.srsWKT;	end
-	elseif ( strncmp(tipo,'SR',2) || strcmp(tipo,'MOLA') )		% STRM30|3|1
-		name_uncomp = [];	tipo1 = tipo;
-		if (strcmp(tipo,'MOLA'))	% Must inform write_ESRI_hdr what to write
-			tipo1 = [opt(1) opt(4) opt(5) opt(6) opt(7) opt(7) -99999];
-		end
-		[name_hdr,comp_type] = write_ESRI_hdr(handles.fileName,tipo1);
-		if (~isempty(comp_type))
-			fname = decompress(handles.fileName,'warn');	% Named with compression ext removed
-			name_uncomp = fname;		% Here we need a copy of the decompressed file name for removing
-			if (isempty(fname)),	return,		end			% Error message already issued.
-		else
-			fname = handles.fileName;
-		end
+	if (~isempty(att) && ~isempty(att.GCPvalues))					% Save GCPs so that we can plot them and warp the image
+		setappdata(handles.figure1,'GCPregImage',att.GCPvalues)
+		setappdata(handles.figure1,'fnameGCP',handles.fileName)		% Save this to know when GCPs are to be removed
+	end																% from appdata. That is donne in show_image()
 
-		[Z,att] = gdalread(fname,'-U','-C',opt_I);
-		handles.image_type = 1;		handles.computed_grid = 1;	handles.geog = 1;
-		handles.was_int16 = 1;		handles.grdname = [];		handles.Nodata_int16 = att.Band(1).NoDataValue;
-		delete(name_hdr);
-		if (~isempty(name_uncomp)),		delete(name_uncomp);	end
-	elseif (strcmp(tipo,'USGS_DEM') || strcmp(tipo,'GTOPO30') || strcmp(tipo,'DTED') || strcmp(tipo,'SDTS') || ...
-			strncmp(tipo,'GeoTiff_DEM',3) || strncmp(tipo,'Arc',3) || strcmp(tipo,'GXF') || strcmp(tipo,'JP2_DEM'))
-		if (nargin == 4 && isa(opt,'struct')),		att = opt;			% From FileOpenGeoTIFF_CB
-		else		att = gdalread(handles.fileName,'-M','-C');
-		end
-		if ((att.RasterXSize * att.RasterYSize * 4) > handles.grdMaxSize)
-			if ( strcmp(yes_or_no('title','Warning'),'Yes')),	return,		end		% Advise accepted
-		end
-		if (strcmp(att.Band(1).DataType,'Int16')),		handles.was_int16 = 1;	end
-
-		if (~strncmp(att.DriverShortName, 'HDF4', 4))
-			Z = gdalread(att.Name, '-U', opt_I);
-		elseif (strcmp(att.Band(1).DataType,'L3Bin'))
-			[Z, handles.have_nans, att] = empilhador('getZ', handles.fileName, att, false, false, false, 1, 0, []);
-		else								% HDF files need a special care. Search for an offset and scale factor, etc...
-			[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
-			[Z, handles.have_nans, att] = empilhador('getZ', handles.fileName, att, is_modis, is_linear, is_log, slope, intercept, base);
-			handles.fileName = att.fname;	% We'll need better but for now this ensures that no subdataset name is taken as the whole.
-			if (~isa(Z,'int16')),		handles.was_int16 = 0;		end
-		end
-		handles.image_type = 4;		handles.Nodata_int16 = att.Band(1).NoDataValue;
-	end
-
-	if (~isa(Z,'single')),		Z = single(Z);		end
-
-	if (~strncmp(tipo,'GMT_',4))
-		if ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
-			ind = (Z == single(att.Band(1).NoDataValue));
-			if (any(ind(:)))
-				Z(ind) = NaN;		handles.have_nans = 1;
-			end
-			clear ind;
-		end
-		% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
-		if ( isequal((att.Corners.LR - att.Corners.UL),[att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
-			att.GMT_hdr(1:4) = [1 att.RasterXSize 1 att.RasterYSize];
-		end
-		head = att.GMT_hdr;
-		if (isequal(head(5:6),[0 0]) || any(isnan(head(5:6))))		% It can happen with GeoTiff_DEM
-			zz = grdutils(Z,'-L');			head(5:6) = [zz(1) zz(2)];		att.GMT_hdr(5:6) = head(5:6);
-		end
-		X = linspace(head(1),head(2),size(Z,2));	Y = linspace(head(3),head(4),size(Z,1));	% Need this for image
-		if (~isempty(att.GCPvalues))					% Save GCPs so that we can plot them and warp the image
-			setappdata(handles.figure1,'GCPregImage',att.GCPvalues)
-			setappdata(handles.figure1,'fnameGCP',handles.fileName)		% Save this to know when GCPs are to be removed
-		end																% from appdata. That is donne in show_image()
-	end
-
-	aux_funs('StoreZ',handles,X,Y,Z)		% If grid size is not to big we'll store it
-	handles.head = head;
+	aux_funs('StoreZ',handles,X,Y,Z)				% If grid size is not to big we'll store it
 	aux_funs('colormap_bg',handles,Z,jet(256));
 	if (handles.have_nans),		zz = scaleto8(Z);
 	else						zz = cvlib_mex('scale8',Z);
 	end
-	handles = show_image(handles,handles.fileName,X,Y,zz,1,'xy',head(7));
+	handles = show_image(handles,handles.fileName,X,Y,zz,1,'xy',handles.head(7));
 	if (isappdata(handles.axes1,'InfoMsg')),	rmappdata(handles.axes1,'InfoMsg'),		end
 	if (~isempty(att))
 		grid_info(handles,att,'gdal');				% Construct a info message and save proj (if ...)
@@ -3471,7 +3319,7 @@ function FileSaveFleder_CB(handles, opt)
 				if (resp == 0)
 					errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
 				end
-			elseif (ispc)	dos(fcomm)
+			elseif (ispc)	dos(fcomm);
 			else			errordlg('Unknown platform.','Error'),	return
 			end
 		catch
@@ -3631,8 +3479,8 @@ function RotateTool_CB(handles, opt)
 % --------------------------------------------------------------------
 function TransferB_CB(handles, opt)
 	if (strcmp(opt,'guessType'))
-		str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif;*.mat;*.cpt;*.hdf', ...
-				'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif,*.mat,*.cpt,*.hdf)'; '*.*', 'All Files (*.*)'};
+		str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif;*.mat;*.cpt;*.hdf;*.img', ...
+				'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif,*.mat,*.cpt,*.hdf,*.img)'; '*.*', 'All Files (*.*)'};
 		[FileName,PathName,handles] = put_or_get_file(handles,str,'Select file','get');
 		if (isequal(FileName,0)),	return,		end				% User gave up
 		drv = aux_funs('findFileType',[PathName FileName]);
