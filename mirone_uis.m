@@ -162,8 +162,7 @@ uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''UNKNOWN
 h = uimenu('Parent',h2,'Label','Digital Elevation','Sep','on');
 uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''DTED'')','Label','DTED');
 uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''GTOPO30'')','Label','GTOPO30');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''GeoTiff_DEM'')','Label','GeoTIFF DEM');
-uimenu('Parent',h,'Call','mirone(''FileOpenMOLA_CB'',guidata(gcbo))','Label','MOLA DEM');
+uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''MOLA'')','Label','MOLA DEM');
 uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM1'')','Label','SRTM 1 arcsec');
 uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM3'')','Label','SRTM 3 arcsec');
 uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM30'')','Label','SRTM30');
@@ -654,7 +653,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 14 Jul 2010'',''1.5.4b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 11 Aug 2010'',''1.5.4b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
