@@ -1,4 +1,4 @@
-%--------------------------------------------------------------------------------
+function varargout = findcell(k,c,varargin)
 % [cixn,cixo] = findcell(key,ca,'-opt')
 % cix         = findcell(key,ca,'-opt')
 %
@@ -69,15 +69,11 @@
 % modified:
 %	us	14-Mar-2003 20:40:37	/ TMW
 
-%--------------------------------------------------------------------------------
-function varargout = findcell(k,c,varargin)
-% check input/output
 if	nargout
 	varargout = cell(nargout,1);
 end
 if	nargin < 2 || isempty(k) || isempty(c)
-    %help(mfilename);
-    return;
+    error('Wrong number of input args')
 end
 [p,k,c] = chk_input(k,c);
 if (p.res), return;     end
@@ -91,8 +87,7 @@ c=c(:);
 cs=length(c);
 cl=length([c{:}]);
 
-if (p.cflg)
-    % ... do NOT search across <cell>s
+if (p.cflg)			% ... do NOT search across <cell>s
 	if (ischar(k) && all(p.isc))
 		k=double(k);
 		inn=cellfun('length',c)';
@@ -107,11 +102,10 @@ if (p.cflg)
 		in=cellfun('length',c)';
 		c=[c{:}];
 	else
-		disp(sprintf('findcell> unexpected error'));
-		return;
+		fprintf('findcell> unexpected error');
+		return
 	end
-else
-    % ...	do search across <cell>s
+else				% ...	do search across <cell>s
 	in=cellfun('length',c)';
 	c=[c{:}];
 end
@@ -134,7 +128,7 @@ end
 % prepare output
 if (isempty(mat))
 	%disp('findcell> key not found');
-	return;
+	return
 end
 if (nargout == 1)
 	if	p.pflg
@@ -150,7 +144,7 @@ if (nargout == 1)
 		varargout{1}=mat(:,1);
 		varargout{2}=mat(:,2);
 	else	% no output requested
-		disp(sprintf('cell nr:offset %8d %8d\n',mat.'));
+		fprintf('cell nr:offset %8d %8d\n',mat.');
 end
 
 %--------------------------------------------------------------------------------
@@ -158,35 +152,35 @@ function [p,k,c] = chk_input(k,c)
 % must do extensive checking ...
 p.res=0;
 p.key=k;
-p.cs=prod(size(c));
+p.cs=numel(c);
 p.cl=length(c);
 if	p.cs ~= p.cl
 	txt=sprintf('%d/',size(c));
-	disp(sprintf('findcell> input must be a ROW or COL array of cells [%s]',txt(1:end-1)))
+	fprintf('findcell> input must be a ROW or COL array of cells [%s]',txt(1:end-1))
 	p.res=1;
-	return;
+	return
 end
 if	~iscell(c)
-	disp(sprintf('findcell> input must be a CELL array [%s]',class(c)));
+	fprintf('findcell> input must be a CELL array [%s]',class(c));
 	p.res=2;
-	return;
+	return
 end
 p.isc=cellfun('isclass',c,'char');
 p.isn=cellfun('isclass',c,'double');
 if	sum(p.isc) ~= p.cs && sum(p.isn) ~= p.cs
-	disp(sprintf('findcell> input contains invalid or mixed classes'));
+	fprintf('findcell> input contains invalid or mixed classes');
 	p.res=3;
-	return;
+	return
 end
 if	any(isnan(k))
-	disp(sprintf('findcell> numeric key must NOT include <NaN>s'));
+	fprintf('findcell> numeric key must NOT include <NaN>s');
 	p.res=4;
-	return;
+	return
 end
 if	ischar(k) && all(p.isn)
 	p.res=5;
-	disp(sprintf('findcell> input mismatch: key(char) / cells(double)'));
-	return;
+	fprintf('findcell> input mismatch: key(char) / cells(double)');
+	return
 end
 if	isnumeric(k) && all(p.isc)
 	k=char(k);
