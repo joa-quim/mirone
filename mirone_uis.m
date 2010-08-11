@@ -140,37 +140,37 @@ end
 
 h2 = uimenu('Parent',hFL,'Label','Open Grid/Image','Sep','on','Tag','OpenGI');
 uimenu('Parent',h2,'Call','mirone(''FileOpenNewImage_CB'',guidata(gcbo));','Label','Images -> Generic Formats');
-uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''GMT'')','Label','GMT Grid','Sep','on');
-uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''Surfer'')','Label','Surfer 6/7 grid');
-uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''ENCOM'')','Label','Encom grid');
-uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''MANI'')','Label','Mani grid');
-uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''ArcAscii'')','Label','Arc/Info ASCII Grid','Sep','on');
-uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''ArcBinary'')','Label','Arc/Info Binary Grid');
-uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''bsb'')','Label','BSB Nautical Chart Format');
-uimenu('Parent',h2,'Call','mirone(''FileOpen_ENVI_Erdas_CB'',guidata(gcbo),''ENVI'')','Label','ENVI Raster');
-uimenu('Parent',h2,'Call','mirone(''FileOpen_ENVI_Erdas_CB'',guidata(gcbo),''ERDAS'')','Label','Erdas (.img)');
-uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''bil'')','Label','ESRI BIL');
-uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''GXF'')','Label','Geosoft GXF');
-uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''geotiff'')','Label','GeoTIFF');
-uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''ecw'')','Label','ECW');
-uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''sid'')','Label','MrSID');
-uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''jp2'')','Label','JPEG2000');
-uimenu('Parent',h2,'Call','mirone(''FileOpenGDALmultiBand_CB'',guidata(gcbo),''ENVISAT'')','Label','ENVISAT','Sep','on');
-uimenu('Parent',h2,'Call','mirone(''FileOpenGDALmultiBand_CB'',guidata(gcbo),''AVHRR'')','Label','AVHRR');
-uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''UNKNOWN'')','Label','Try Luck with GDAL');
+uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''GMT'');','Label','GMT Grid','Sep','on');
+uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''Surfer'');','Label','Surfer 6/7 grid');
+uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''ENCOM'');','Label','Encom grid');
+uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''MANI'');','Label','Mani grid');
+uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''ArcAscii'');','Label','Arc/Info ASCII Grid','Sep','on');
+uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''ArcBinary'');','Label','Arc/Info Binary Grid');
+uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''bsb'');','Label','BSB Nautical Chart Format');
+uimenu('Parent',h2,'Call','mirone(''FileOpen_ENVI_Erdas_CB'',guidata(gcbo),''ENVI'');','Label','ENVI Raster');
+uimenu('Parent',h2,'Call','mirone(''FileOpen_ENVI_Erdas_CB'',guidata(gcbo),''ERDAS'');','Label','Erdas (.img)');
+uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''bil'');','Label','ESRI BIL');
+uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''GXF'');','Label','Geosoft GXF');
+uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''geotiff'');','Label','GeoTIFF');
+uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''ecw'');','Label','ECW');
+uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''sid'');','Label','MrSID');
+uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''jp2'');','Label','JPEG2000');
+uimenu('Parent',h2,'Call','mirone(''FileOpenGDALmultiBand_CB'',guidata(gcbo),''ENVISAT'');','Label','ENVISAT','Sep','on');
+uimenu('Parent',h2,'Call','mirone(''FileOpenGDALmultiBand_CB'',guidata(gcbo),''AVHRR'');','Label','AVHRR');
+uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''UNKNOWN'');','Label','Try Luck with GDAL');
 
 h = uimenu('Parent',h2,'Label','Digital Elevation','Sep','on');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''DTED'')','Label','DTED');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''GTOPO30'')','Label','GTOPO30');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''MOLA'')','Label','MOLA DEM');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM1'')','Label','SRTM 1 arcsec');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM3'')','Label','SRTM 3 arcsec');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM30'')','Label','SRTM30');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''USGS_DEM'')','Label','USGS DEM');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SDTS'')','Label','USGS SDTS DEM');
+uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''DTED'');','Label','DTED');
+uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''GTOPO30'');','Label','GTOPO30');
+uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''MOLA'');','Label','MOLA DEM');
+uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM1'');','Label','SRTM 1 arcsec');
+uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM3'');','Label','SRTM 3 arcsec');
+uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM30'');','Label','SRTM30');
+uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''USGS_DEM'');','Label','USGS DEM');
+uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SDTS'');','Label','USGS SDTS DEM');
 
 uimenu('Parent',hFL,'Callback','overview(guidata(gcbo))','Label','Open Overview Tool');
-uimenu('Parent',hFL,'Call','mirone(''FileOpenSession_CB'',guidata(gcbo))','Label','Open Session');
+uimenu('Parent',hFL,'Call','mirone(''FileOpenSession_CB'',guidata(gcbo));','Label','Open Session');
 
 % ----------------------- Save Images section
 h = uimenu('Parent',hFL,'Label','Save Image As...','Sep','on');
