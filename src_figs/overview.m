@@ -6,7 +6,7 @@ function varargout = overview(varargin)
 % large grids may be previewed, but the quality of
 % the preview will may degrade with grid size.
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -30,157 +30,119 @@ end
 
 % --- Executes just before overview is made visible.
 function hObject = overview_OpeningFcn(varargin)
-hObject = overview_LayoutFcn;
-handles = guihandles(hObject);
-move2side(hObject,'center');
+	hObject = overview_LayoutFcn;
+	handles = guihandles(hObject);
+	move2side(hObject,'center');
 
-if (~isempty(varargin))
-	handles.hMirFig = varargin{1}.figure1;
-    handles.ForceInsitu = varargin{1}.ForceInsitu;
-    handles.home_dir = varargin{1}.home_dir;
-    handles.last_dir = varargin{1}.last_dir;
-    handles.work_dir = varargin{1}.work_dir;
-else
-	% Default values for those
-	handles.hMirFig = [];
-	handles.home_dir = cd;
-	handles.last_dir = cd;
-	handles.work_dir = cd;
-	handles.ForceInsitu = 0;
-end
+	if (~isempty(varargin))
+		handles.ForceInsitu = varargin{1}.ForceInsitu;
+		handles.home_dir = varargin{1}.home_dir;
+		handles.last_dir = varargin{1}.last_dir;
+		handles.work_dir = varargin{1}.work_dir;
+		handles.grdMaxSize = varargin{1}.grdMaxSize;
+	else
+		% Default values for those
+		handles.home_dir = cd;
+		handles.last_dir = cd;
+		handles.work_dir = cd;
+		handles.ForceInsitu = 0;
+		handles.grdMaxSize = 1e15;
+	end
 
-handles.path_tmp = [handles.home_dir filesep 'tmp' filesep];
-handles.hImg = [];
-handles.name_uncomp = [];
-handles.was_int16 = 0;
-handles.Nodata_int16 = [];
+	handles.path_tmp = [handles.home_dir filesep 'tmp' filesep];
+	handles.hImg = [];
+	handles.name_uncomp = [];
+	handles.was_int16 = 0;
+	handles.Nodata_int16 = [];
 
-load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','boreas_ico','help_ico','zoom_ico');
+	load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','boreas_ico','help_ico','zoom_ico');
 
-h_toolbar = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
-	'Interruptible','on','Tag','FigureToolBar','Visible','on');
-uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang','cdata',rectang_ico,...
-	'Tooltip','Draw Rectangle','Sep','on');
-uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','Tooltip','Grid Info','cdata',info_ico);
-uipushtool('parent',h_toolbar,'Click',@all_clickedCB,'Tooltip','Swallow entire grid','cdata',boreas_ico);
-uitoggletool('parent',h_toolbar,'Click',@zoom_clickedCB,'Tag','zoom','Tooltip','Zoom','cdata',zoom_ico);
-uipushtool('parent',h_toolbar,'Click',@help_clickedCB,'Tag','help','Tooltip','Help','cdata',help_ico);
+	h_toolbar = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
+		'Interruptible','on','Tag','FigureToolBar','Visible','on');
+	uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang','cdata',rectang_ico,...
+		'Tooltip','Draw Rectangle','Sep','on');
+	uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','Tooltip','Grid Info','cdata',info_ico);
+	uipushtool('parent',h_toolbar,'Click',@all_clickedCB,'Tooltip','Swallow entire grid','cdata',boreas_ico);
+	uitoggletool('parent',h_toolbar,'Click',@zoom_clickedCB,'Tag','zoom','Tooltip','Zoom','cdata',zoom_ico);
+	uipushtool('parent',h_toolbar,'Click',@help_clickedCB,'Tag','help','Tooltip','Help','cdata',help_ico);
 
-logo = gdalread(['data' filesep 'logo.png']);
-image('parent',handles.axes1,'CData',flipdim(logo,1));
-%set(handles.axes1,'YDir','reverse');
+	logo = gdalread(['data' filesep 'logo.png']);
+	image('parent',handles.axes1,'CData',flipdim(logo,1));
 
-set(hObject,'Visible','on','HandleVisibility','callback');
-
-% Choose default command line output for overview
-handles.output = hObject;
-guidata(hObject, handles);
+	set(hObject,'Visible','on','HandleVisibility','callback');
+	guidata(hObject, handles);
 
 % --------------------------------------------------------------------------------------------------
 function rectang_clickedCB(obj,eventdata)
-handles = guidata(obj);     % get handles
-if (isempty(handles.hImg))      return;     end
+	handles = guidata(obj);     % get handles
+	if (isempty(handles.hImg))		return,		end
 try
-    hl = findobj(handles.figure1,'Type','patch');
-    if (~isempty(hl))       return;     end     % We already have a rectangle so don't need another.
-    [p1,p2,hl] = rubberbandbox;
-    % Round rectangle coords to the nearest node
-    p1(1) = round((p1(1) - handles.head_orig(1)) / handles.head_orig(8)) * handles.head_orig(8) + handles.head_orig(1);
-    p2(1) = round((p2(1) - handles.head_orig(1)) / handles.head_orig(8)) * handles.head_orig(8) + handles.head_orig(1);
-    p1(2) = round((p1(2) - handles.head_orig(3)) / handles.head_orig(9)) * handles.head_orig(9) + handles.head_orig(3);
-    p2(2) = round((p2(2) - handles.head_orig(3)) / handles.head_orig(9)) * handles.head_orig(9) + handles.head_orig(3);
-    delete(hl);     % Given that we cannot change a line into a patch, the easy way is to delete and reborn it
-    hl = patch('XData',[p1(1) p1(1) p2(1) p2(1) p1(1)],'YData',[p1(2) p2(2) p2(2) p1(2) p1(2)],...
-        'FaceColor','none','EdgeColor','k','LineWidth',1);
+	hl = findobj(handles.figure1,'Type','patch');
+	if (~isempty(hl))		return,		end     % We already have a rectangle so don't need another.
+	[p1,p2,hl] = rubberbandbox;
+	% Round rectangle coords to the nearest node
+	p1(1) = round((p1(1) - handles.head_orig(1)) / handles.head_orig(8)) * handles.head_orig(8) + handles.head_orig(1);
+	p2(1) = round((p2(1) - handles.head_orig(1)) / handles.head_orig(8)) * handles.head_orig(8) + handles.head_orig(1);
+	p1(2) = round((p1(2) - handles.head_orig(3)) / handles.head_orig(9)) * handles.head_orig(9) + handles.head_orig(3);
+	p2(2) = round((p2(2) - handles.head_orig(3)) / handles.head_orig(9)) * handles.head_orig(9) + handles.head_orig(3);
+	delete(hl);     % Given that we cannot change a line into a patch, the easy way is to delete and reborn it
+	hl = patch('XData',[p1(1) p1(1) p2(1) p2(1) p1(1)],'YData',[p1(2) p2(2) p2(2) p1(2) p1(2)],...
+		'FaceColor','none','EdgeColor','k','LineWidth',1);
 
-    cmenuHand = uicontextmenu;
-    set(hl, 'UIContextMenu', cmenuHand);
-    uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
-    ui_edit_polygon(hl)    % Set edition functions
-    uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Separator','on', 'Callback', {@rectangle_limits,hl});
-    uimenu(cmenuHand, 'Label', 'Crop Grid', 'Callback', {@CropaGrid,hl});
+	cmenuHand = uicontextmenu;
+	set(hl, 'UIContextMenu', cmenuHand);
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	ui_edit_polygon(hl)    % Set edition functions
+	uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Separator','on', 'Callback', {@rectangle_limits,hl});
+	uimenu(cmenuHand, 'Label', 'Crop Grid', 'Callback', {@CropaGrid,hl});
 catch       % Don't know why but uisuspend sometimes breaks
-    set(handles.figure1,'Pointer','arrow');
+	set(handles.figure1,'Pointer','arrow');
 end
 
 % --------------------------------------------------------------------------------------------------
 function info_clickedCB(obj,eventdata)
-handles = guidata(obj);     % get handles
-if (isempty(handles.hImg))      return;     end
-if (handles.image_type == 1)
-    info_m(['grdinfo ' handles.fname]);
-elseif (handles.image_type == 2)
-    w{1} = ['   Xmin:  ' num2str(handles.head(1)) '    Xmax: ' num2str(handles.head(2))];
-    w{2} = ['   Ymin:  ' num2str(handles.head(3)) '    Ymax: ' num2str(handles.head(4))];
-    w{3} = ['   Zmin:  ' num2str(handles.head(5)) '    Zmax: ' num2str(handles.head(6))];
-    w{4} = ['   Xinc:  ' num2str(handles.head(8)) '    Yinc: ' num2str(handles.head(9))];
-    one_or_zero = ~(handles.head(7) == 1);      % To give correct nx,ny with either grid or pixel registration
-    nx = round((handles.head(2) - handles.head(1))/handles.head(8) + one_or_zero);
-    ny = round((handles.head(4) - handles.head(3))/abs(handles.head(9)) + one_or_zero);
-    w{5} = ['   nx:  ' num2str(nx) '    ny: ' num2str(ny)];
-    msgbox(w,'Image Info');
-else
-%     w{1} = handles.Hdr.Driver;
-%     w{2} = ['Width:  ' num2str(handles.Hdr.Dim_nx) '    Height:  ' num2str(handles.Hdr.Dim_ny)];
-%     w{3} = ['Projection:  ' handles.Hdr.projection];
-%     w{4} = ['Datum:  ' handles.Hdr.datum];
-%     w{5} = ['Ellipsoide:  ' handles.Hdr.ellipsoid];
-%     w{6} = ['Pizel Size:  (' num2str(handles.Hdr.pixel_x) ',' num2str(handles.Hdr.pixel_y) ')'];
-%     w{7} = 'Projected corner coordinates';
-%     w{8} = ['   Xmin:  ' num2str(handles.Hdr.LL_prj_xmin) '    Xmax: ' num2str(handles.Hdr.UR_prj_xmax)];
-%     w{9} = ['   Ymin:  ' num2str(handles.Hdr.LL_prj_ymin) '    Ymax: ' num2str(handles.Hdr.UR_prj_ymax)];
-%     if ~isempty(handles.Hdr.UL_geo_xmin)
-%         w{10} = 'Geographical corner coordinates';
-%         w{11} = ['   Xmin:  ' num2str(handles.Hdr.LL_geo_xmin) '    Xmax: ' num2str(handles.Hdr.LR_geo_xmax)];
-%         w{12} = ['   Ymin:  ' num2str(handles.Hdr.LL_geo_ymin) '    Ymax: ' num2str(handles.Hdr.UR_geo_ymax)];
-%     end
-%     try,        w{13} = ['Zmin:  ' handles.Hdr.Zmin '   Zmax: ' handles.Hdr.Zmax];    end
-%     w{14} = ['Color Type:  ' handles.Hdr.Cmap];
-%     w{15} = [];
-%     [PATH,FNAME,EXT] = fileparts(handles.fname);
-%     
-%     w{16} = ['NOTE: The file "' handles.path_tmp FNAME '.info" contains more detailed information about this Image'];
+	handles = guidata(obj);     % get handles
+	if (isempty(handles.hImg))		return,		end
 	w = getappdata(handles.axes1,'InfoMsg');
 	if (~isempty(w))
-	    msgbox(w,'Image Info');
+		msgbox(w,'Image Info');
 	else
-	    msgbox('Hoops, I lost the info','Error');
+		msgbox('Hoops, I lost the info','Error');
 	end
-end
 
 % --------------------------------------------------------------------------------------------------
 function help_clickedCB(obj,eventdata)
 str = sprintf(['This tool is meant to be used on very large grids.\n'...
-    'The selected grid is sub-sampled, during the\n'...
-    'reading stage, in order to obtain an overview of\n'...
-    'about 200 rows/columns. This way, arbitrarily\n'...
-    'large grids may be previewed, but the quality of\n'...
-    'the preview will degrade with grid size.\n\n'...
-    'Click on the rectangle icon to draw a rectangle\n'...
-    'on the image. Double clicking the rectangle lets\n'...
-    'you edit it. A precise control of the rect size is\n'...
-    'available by a right-click and selecting "rectangle\n'...
-    '-limits". Selecting "Crop Grid" extracts the region\n'...
-    'inside the rectangle at the grid''s full resolution.']);
+	'The selected grid is sub-sampled, during the\n'...
+	'reading stage, in order to obtain an overview of\n'...
+	'about 200 rows/columns. This way, arbitrarily\n'...
+	'large grids may be previewed, but the quality of\n'...
+	'the preview will degrade with grid size.\n\n'...
+	'Click on the rectangle icon to draw a rectangle\n'...
+	'on the image. Double clicking the rectangle lets\n'...
+	'you edit it. A precise control of the rect size is\n'...
+	'available by a right-click and selecting "rectangle\n'...
+	'-limits". Selecting "Crop Grid" extracts the region\n'...
+	'inside the rectangle at the grid''s full resolution.']);
 helpdlg(str,'Help')
 
 % --------------------------------------------------------------------------------------------------
 function all_clickedCB(obj,eventdata)
-handles = guidata(obj);     % get handles
-if (isempty(handles.hImg))      return;     end
-CropaGrid(obj,eventdata,[],'all')
+	handles = guidata(obj);			% get handles
+	if (isempty(handles.hImg))		return,		end
+	CropaGrid(obj,eventdata,[],'all')
 
 % --------------------------------------------------------------------------------------------------
 function zoom_clickedCB(obj,eventdata)
-handles = guidata(obj);     % get handles
-if (isempty(handles.hImg))
-    set(obj,'State','off');    return;
-end
-if strcmp(get(obj,'State'),'on')
-    zoom_j('on');
-else
-    zoom_j('off');
-end
+	handles = guidata(obj);     % get handles
+	if (isempty(handles.hImg))
+		set(obj,'State','off');    return
+	end
+	if strcmp(get(obj,'State'),'on')
+		zoom_j('on');
+	else
+		zoom_j('off');
+	end
 
 % -----------------------------------------------------------------------------------------
 function rectangle_limits(obj,eventdata,h)
@@ -202,462 +164,123 @@ function rectangle_limits(obj,eventdata,h)
 	set(h, 'XData', [x_min,x_min,x_max,x_max,x_min], 'YData', [y_min,y_max,y_max,y_min,y_min]);
 
 % --------------------------------------------------------------------
-function FileOpenArcGrid_CB(hObject, eventdata, handles, opt)
-if (strcmp(opt,'ascii'))
-    str1 = {'*.grd;*.GRD', 'Arc/Info grid (*.grd,*.GRD)'; '*.*', 'All Files (*.*)'};
-    str2 = 'Select Arc/Info ASCII grid File';
-    handles.type = 'ArcAscii';
-else        % Binary
-    str1 = {'*.adf;*.ADF', 'Arc/Info grid (*.adf,*.ADF)'; '*.*', 'All Files (*.*)'};
-    str2 = 'Select Arc/Info Binary grid File';
-    handles.type = 'ArcBinary';
-end
-
-[FileName,PathName] = put_or_get_file(handles,str1,str2,'get');
-if isequal(FileName,0);     return;     end
-fname = [PathName FileName];
-att =  gdalread(fname,'-M','-C');
-m = att.RasterXSize;            n = att.RasterYSize;
-handles.head = att.GMT_hdr;     handles.head_orig = handles.head;
-
-% % The following serves only for storing file infos
-% str = ['gdalinfo ' fname];
-% [s,w] = mat_lyies(str,[handles.path_tmp FileName '.info']);     % FileName may retain the comp ext
-% if ~(isequal(s,0))                  % An error has occured
-%     msg = ['Error getting file info (gdalinfo).', sprintf('\n\n'), 'Error message was:', sprintf('\n'), w];
-%     h = errordlg(msg,'Error');    movegui(h,'north');     return
-% end
-% set(handles.figure1,'pointer','watch')
-% file_info = dataread('file',[handles.path_tmp FileName '.info'],'%s','delimiter','\n','whitespace','');
-% Hdr = read_gdal_info(file_info);
-% Hdr.LL_prj_xmin = num2str(att.Corners.LL(1));   Hdr.LL_prj_ymin = num2str(att.Corners.LL(2));
-% Hdr.UR_prj_xmax = num2str(att.Corners.UR(1));   Hdr.UR_prj_ymax = num2str(att.Corners.UR(2));
-% Hdr.Zmin = num2str(handles.head(5));            Hdr.Zmax = num2str(handles.head(6));
-
-jump = min(round(m / 200), round(n / 200));
-opt_P = ['-P' num2str(jump)];
-Z =  gdalread(fname,'-U','-S',opt_P);      [m,n] = size(Z);
-X = linspace(handles.head(1),handles.head(2),n);
-Y = linspace(handles.head(3),handles.head(4),m);
-colormap(handles.axes1,jet(256));       handles.hImg = image(X,Y,Z);
-set(handles.axes1,'YDir','normal')
-Resize1(handles.axes1, handles.hImg)
-handles.fname = fname;
-handles.image_type = 4;
-% handles.Hdr = Hdr;
-grid_info(handles,att,'gdal');				% Construct a info message and save proj (if ...)
-set(handles.figure1,'pointer','arrow')
-guidata(hObject,handles)
-
-% --------------------------------------------------------------------
-function FileOpenGMTgrid_CB(hObject, eventdata, handles)
-% Read a GMT grid and convert it into an indexed image
-str1 = {'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'};
-[FileName,PathName] = put_or_get_file(handles,str1,'Select GMT grid','get');
-if isequal(FileName,0);     return;     end
-fname = [PathName FileName];
-
-% Because GMT and Encom share the .grd extension, find out which kind grid we are dealing with
-[fid, msg] = fopen(fname, 'r');
-if (fid < 0)    errordlg([PathName FileName ': ' msg],'ERROR'); return
-end
-ID = fread(fid,4,'*char');      ID = strread(ID,'%s');      fclose(fid);
-if strcmp(ID,'Mode')        % Model Vision Grid
-    warndlg('Reading ENCOM grids is not supported here.','Warning')
-    return
-end
-
-set(handles.figure1,'pointer','watch')
-head = grdinfo_m(fname,'silent');       % Use grdinfo because gdal gives wrong info on GMT grids
-if (head(7))                            % Convert to grid registration
-        head(1) = head(1) + head(8) / 2;        head(2) = head(2) - head(8) / 2;
-        head(3) = head(3) + head(9) / 2;        head(4) = head(4) - head(9) / 2;
-        head(7) = 0;
-end
-att =  gdalread(fname,'-M','-C');
-is_coards = false;
-if (att.RasterCount == 0)       % A GMT new format or a generic netcdf grid. Try luck.
-    try
-        ds = att.Subdatasets{1};
-        ind = strfind(ds, '=');
-        if (isempty(ind))
-            errordlg('Whoops. Could not find a subdataset description. Quiting.','ERROR');  return
-        end
-        fname = ds(ind+1:end);
-        att =  gdalread(fname,'-M','-C');
-        is_coards = true;
-    catch
-        set(handles.figure1,'pointer','arrow')
-        w{1} = 'Sorry. Something screw up with this NETCDF (new GMT version grid?) file';
-        w{2} = lasterr;
-        errordlg(w,'ERROR');        return
-    end
-end
-m = att.RasterXSize;            n = att.RasterYSize;
-% handles.head = att.GMT_hdr;
-% handles.head(8) = head(8);              % Correct the wrong x_inc/y_inc info given by gdal
-% handles.head(9) = head(9);
-
-handles.head = head;
-handles.head_orig = handles.head;
-jump = min(round(m / 200), round(n / 200));
-opt_P = ['-P' num2str(jump)];
-if (~is_coards)
-    Z =  gdalread(fname,'-U','-S',opt_P);
-else    % In this case GDAL seams incapable of determine band's min/max and therefore no scaling
-    Z =  gdalread(fname,'-U',opt_P);
-    Z = scaleto8(Z);
-end
-[m,n] = size(Z);
-X = linspace(handles.head(1),handles.head(2),n);
-Y = linspace(handles.head(3),handles.head(4),m);
-colormap(handles.axes1,jet(256));       handles.hImg = image(X,Y,Z);
-set(handles.axes1,'YDir','normal')
-Resize1(handles.axes1, handles.hImg)
-handles.fname = fname;                  handles.type = 'GMT';
-handles.image_type = 1;
-set(handles.figure1,'pointer','arrow')
-guidata(hObject,handles)
-
-% --------------------------------------------------------------------
-function FileOpen_DEM_CB(hObject, eventdata, handles, opt)
+function FileOpen_DEM_CB(hObject, handles, opt)
 % Files of the following formats are read (well directed) here
-opt_C = ' ';
-switch opt
-    case 'DTED'
-        str1 = {'*.dt0;*.DT0;*.dt1;*.DT1', 'DTED (*.dt0,*.DT0,*.dt1,*.DT1)'; '*.*', 'All Files (*.*)'};
-        handles.type = 'DTED';
-    case 'ESRI_hdr'
-	    str1 = {'*.bil;*.BIL;', 'ESRI BIL (*.bil,*.BIL)'; '*.*', 'All Files (*.*)'};
-        handles.type = 'ESRI_hdr';
-    case 'GTOPO30'
-        str1 = {'*.dem;*.DEM', 'GTOPO30 DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
-        handles.type = 'GTOPO30';
-    case 'GeoTiff_DEM'
-        str1 = {'*.tif;*.TIF;*.tiff;*.TIFF', 'GeoTiff DEM(*.tif,*.tiff,*.TIF,*.TIFF)'; '*.*', 'All Files (*.*)'};
-        handles.type = 'GeoTiff_DEM';
-    case 'USGS_DEM'
-        str1 = {'*.dem;*.DEM', 'USGS DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
-        handles.type = 'USGS_DEM';      opt_C = '-C';
-    case 'SDTS'
-        str1 = {'*catd.ddf;*CATD.DDF', 'USGS SDTS DEM (*catd.ddf,*CATD.DDF)'; '*.*', 'All Files (*.*)'};
-        handles.type = 'SDTS';          opt_C = '-C';
-    case 'GXF'
-        str1 = {'*.gxf;*.GXF', 'Geosoft GXF (*.gxf,*.GXF)'; '*.*', 'All Files (*.*)'};
-        handles.type = 'GXF';
-    otherwise
-        return
-end
-str2 = ['Select ' opt ' File'];
-[FileName,PathName] = put_or_get_file(handles,str1,str2,'get');
-if isequal(FileName,0);     return;     end
-fname = [PathName FileName];
+	switch opt
+		case 'netCDF'
+			str1 = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)';'*.*', 'All Files (*.*)'};
+		case 'ArcBinary'
+			str1 = {'*.adf;*.ADF', 'Arc/Info grid (*.adf,*.ADF)'; '*.*', 'All Files (*.*)'};
+		case 'DTED'
+			str1 = {'*.dt0;*.DT0;*.dt1;*.DT1', 'DTED (*.dt0,*.DT0,*.dt1,*.DT1)'; '*.*', 'All Files (*.*)'};
+		case 'ESRI_hdr'
+			str1 = {'*.bil;*.BIL;', 'ESRI BIL (*.bil,*.BIL)'; '*.*', 'All Files (*.*)'};
+		case (strcmp(opt,'ENVI'))
+			str1 = {'*.img;*.IMG', 'ENVI (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
+		case (strcmp(opt,'ERDAS'))
+			str1 = {'*.img;*.IMG', 'Erdas (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
+		case 'GTOPO30'
+			str1 = {'*.dem;*.DEM', 'GTOPO30 DEM (*.dem,*.DEM)'; '*.*', 'All Files (*.*)'};
+		case 'SRTM30'
+			str1 = {'*.srtm;*.SRTM;*.srtm.gz', 'SRTM30 DEM (*.srtm,*.SRTM,*.srtm.gz)'; '*.*', 'All Files (*.*)'};
+		case 'GeoTiff_DEM'
+			str1 = {'*.tif;*.TIF;*.tiff;*.TIFF', 'GeoTiff DEM(*.tif,*.tiff,*.TIF,*.TIFF)'; '*.*', 'All Files (*.*)'};
+		case {'MOLA_lbl' 'MOLA'}
+			str1 = {'*.img;*.IMG', 'MOLA DEM (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
+		case 'SDTS'
+			str1 = {'*catd.ddf;*CATD.DDF', 'USGS SDTS DEM (*catd.ddf,*CATD.DDF)'; '*.*', 'All Files (*.*)'};
+		otherwise
+			str1 = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.hdf', ...
+					'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.hdf)'; '*.*', 'All Files (*.*)'};
+			opt = '';
+	end
 
-att =  gdalread(fname,'-M','-C');
-m = att.RasterXSize;            n = att.RasterYSize;
-handles.head = att.GMT_hdr;     handles.head_orig = handles.head;
+	handles.name_uncomp = [];
+	str2 = ['Select ' opt ' File'];
+	[FileName,PathName,handles] = put_or_get_file(handles,str1,str2,'get');
+	if isequal(FileName,0)		return,		end	
+	fname = [PathName FileName];
+	fname_t = fname;
+	[PATH,FNAME,EXT] = fileparts(fname);
 
-% % The following serves only for storing file infos
-% str = ['gdalinfo ' fname];
-% [s,w] = mat_lyies(str,[handles.path_tmp FileName '.info']);     % FileName may retain the comp ext
-% if ~(isequal(s,0))                  % An error has occured
-%     msg = ['Error getting file info (gdalinfo).', sprintf('\n\n'), 'Error message was:', sprintf('\n'), w];
-%     h = errordlg(msg,'Error');    movegui(h,'north');     return
-% end
-% set(handles.figure1,'pointer','watch')
-% file_info = dataread('file',[handles.path_tmp FileName '.info'],'%s','delimiter','\n','whitespace','');
-% Hdr = read_gdal_info(file_info);
-% Hdr.LL_prj_xmin = num2str(att.Corners.LL(1));   Hdr.LL_prj_ymin = num2str(att.Corners.LL(2));
-% Hdr.UR_prj_xmax = num2str(att.Corners.UR(1));   Hdr.UR_prj_ymax = num2str(att.Corners.UR(2));
-% Hdr.Zmin = num2str(handles.head(5));            Hdr.Zmax = num2str(handles.head(6));
+	if (strcmp(opt, 'SRTM30'))
+		[name_hdr,comp_type] = write_ESRI_hdr(fname,'SRTM30');
+		if (~isempty(comp_type))
+			fname_t = decompress(fname,'warn');			% Name with compression ext removed
+			if (isempty(fname_t))		return,		end	% Error message already issued.
+			fname = fname_t;
+			handles.name_uncomp = fname;				% We need a copy of the decompressed file name for removing
+		end
+	elseif (strcmpi(EXT,'.zip'))
+		fname_t = ['/vsizip/' PathName FileName filesep FileName(1:end-4)];
+	elseif (strcmpi(EXT,'.gz'))
+		fname_t = ['/vsigzip/' PathName FileName];
+	end
+	
+	if (strcmp(opt, 'MOLA_lbl'))		% This means that a .img MOLA file with a .lbl cannot be cmpressed
+		fname = [PATH filesep FNAME '.lbl'];
+		if (~exist(fname, 'file'))
+			errordlg(['ERROR: Could not find format descriptive file: ' fname],'Error'),	return
+		end
+		fname_t = fname;
+	end
 
-jump = min(round(m / 200), round(n / 200));
-opt_P = sprintf('-P%d',jump);
-opt_S = '-S';
-if (strcmp(att.Band(1).DataType,'Byte')),	opt_S = ' ';	end
-Z =  gdalread(fname,'-U',opt_S,opt_P);      [m,n] = size(Z);
-X = linspace(handles.head(1),handles.head(2),n);
-Y = linspace(handles.head(3),handles.head(4),m);
-colormap(handles.axes1,jet(256));           handles.hImg = image(X,Y,Z);
-set(handles.axes1,'YDir','normal')
-Resize1(handles.axes1, handles.hImg)
-handles.fname = fname;
-handles.image_type = 4;
-% handles.Hdr = Hdr;
-grid_info(handles,att,'gdal');				% Construct a info message and save proj (if ...)
-set(handles.figure1,'pointer','arrow')
-guidata(hObject,handles)
+	att =  gdalread(fname_t,'-M','-C');		% Use fname_t because fle may be /vsizip | /vsigzip
+	opt_P = sprintf('-P%d',min(round(att.RasterXSize / 200), round(att.RasterYSize / 200)));
 
-% --------------------------------------------------------------------
-function FileOpenSRTM_CB(hObject, eventdata, handles, opt)
-if (nargin == 3)    opt = 'SRTM3';   end
-if (strcmp(opt,'SRTM30'))
-	str1 = {'*.srtm;*.SRTM;*.srtm.gz', 'SRTM30 DEM (*.srtm,*.SRTM,*.srtm.gz)'; '*.*', 'All Files (*.*)'};
-else
-	str1 = {'*.hgt;*.HGT;*.hgt.zip', [opt ' DEM (*.hgt,*.HGT,*.hgt.zip)']; '*.*', 'All Files (*.*)'};
-end
-[FileName,PathName] = put_or_get_file(handles,str1,'Select SRTM DEM File','get');
-if isequal(FileName,0);     return;     end
+	[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fname, 'OVR', opt_P);
+	if (~strcmp(att.Band(1).DataType,'Byte'))
+		if (~isa(Z,'single')),		Z = single(Z);		end
+		if ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
+			% Do this because some formats (e.g MOLA PDS v3) are so dumb that they declare a NoDataValue
+			% and than don't use it !!!!!!
+			if (att.Band(1).NoDataValue < 0)
+				ind = (Z <= single(att.Band(1).NoDataValue));
+			else
+				ind = (Z >= single(att.Band(1).NoDataValue));
+			end
+			if (any(ind(:)))
+				Z(ind) = NaN;		handles.have_nans = 1;
+			end
+		end
+		Z = scaleto8(Z);
+	end
+	handles.head_orig = handles.head;
 
-fname = [PathName FileName];
-tipo = opt;     handles.type = opt;
-name_uncomp = [];
-
-[name_hdr,comp_type] = write_ESRI_hdr(fname,tipo);
-if (~isempty(comp_type))
-    fname = decompress(fname,'warn');           % Name with compression ext removed
-    name_uncomp = fname;        % Here we need a copy of the decompressed file name for removing
-    if (isempty(fname))   return;     end;      % Error message already issued.
-end        
-
-set(handles.figure1,'pointer','watch')
-att =  gdalread(fname,'-M','-C');
-m = att.RasterXSize;            n = att.RasterYSize;
-handles.head = att.GMT_hdr;     handles.head_orig = handles.head;
-
-jump = min(round(m / 200), round(n / 200));
-opt_P = ['-P' num2str(jump)];
-Z =  gdalread(fname,'-U','-S',opt_P,'-C');      [m,n] = size(Z);
-X = linspace(handles.head(1),handles.head(2),n);
-Y = linspace(handles.head(3),handles.head(4),m);
-colormap(handles.axes1,jet(256));           handles.hImg = image(X,Y,Z);
-set(handles.axes1,'YDir','normal')
-Resize1(handles.axes1, handles.hImg)
-handles.fname = fname;
-handles.image_type = 2;             % Flags that info is minimal
-handles.name_uncomp = name_uncomp;  % If not empty this will signal read_DEMs to use the uncompressed file
-handles.name_hdr = name_hdr;
-set(handles.figure1,'pointer','arrow')
-
-guidata(hObject,handles)
-
-% --------------------------------------------------------------------
-function FileOpenMOLA_CB(hObject, eventdata, handles)
-str1 = {'*.img;*.IMG', 'MOLA DEM (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
-[FileName,PathName] = put_or_get_file(handles,str1,'Select MOLA DEM File','get');
-if isequal(FileName,0);     return;     end
-
-handles.type = 'MOLA';
-name_uncomp = [];
-
-[PATH,FNAME] = fileparts([PathName FileName]);
-fname = [PATH filesep FNAME '.lbl'];
-fp = fopen(fname,'rt');
-if (fp < 0)
-    errordlg(['ERROR: Could not find format descriptive file: ' fname],'Error');  return
-end
-s = strread(fread(fp,'*char').','%s','delimiter','\n');
-
-LINES = findcell('LINES', s);
-if (isempty(LINES))   error = 1;  end
-[t,r] = strtok(s{LINES.cn},'=');                n_lines = str2num(r(3:end));
-
-LINE_SAMPLES = findcell('LINE_SAMPLES', s);
-if (isempty(LINE_SAMPLES))   error = 1;  end
-[t,r] = strtok(s{LINE_SAMPLES.cn},'=');         n_samples = str2num(r(3:end));
-
-SAMPLE_BITS = findcell('SAMPLE_BITS', s);
-if (isempty(SAMPLE_BITS))   error = 1;  end
-[t,r] = strtok(s{SAMPLE_BITS.cn},'=');          n_bits = str2num(r(3:end));
-
-CENTER_LATITUDE = findcell('CENTER_LATITUDE', s);
-if (isempty(CENTER_LATITUDE))   error = 1;  end
-[t,r] = strtok(s{CENTER_LATITUDE.cn},'=');      lat0 = str2num(strtok(strtok(r,'=')));
-
-CENTER_LONGITUDE = findcell('CENTER_LONGITUDE', s);
-if (isempty(CENTER_LONGITUDE))   error = 1;  end
-[t,r] = strtok(s{CENTER_LONGITUDE.cn},'=');     lon0 = str2num(strtok(strtok(r,'=')));
-
-LINE_FIRST_PIXEL = findcell('LINE_FIRST_PIXEL', s);
-if (isempty(LINE_FIRST_PIXEL))   error = 1;  end
-[t,r] = strtok(s{LINE_FIRST_PIXEL.cn},'=');     line_first_pix = str2num(r(3:end));
-
-LINE_LAST_PIXEL = findcell('LINE_LAST_PIXEL', s);
-if (isempty(LINE_LAST_PIXEL))   error = 1;  end
-[t,r] = strtok(s{LINE_LAST_PIXEL.cn},'=');      line_last_pix = str2num(r(3:end));
-
-SAMPLE_FIRST_PIXEL = findcell('SAMPLE_FIRST_PIXEL', s);
-if (isempty(SAMPLE_FIRST_PIXEL))   error = 1;  end
-[t,r] = strtok(s{SAMPLE_FIRST_PIXEL.cn},'=');   sample_first_pix = str2num(r(3:end));
-
-SAMPLE_LAST_PIXEL = findcell('SAMPLE_LAST_PIXEL', s);
-if (isempty(SAMPLE_LAST_PIXEL))   error = 1;  end
-[t,r] = strtok(s{SAMPLE_LAST_PIXEL.cn},'=');    sample_last_pix = str2num(r(3:end));
-
-MAP_RESOLUTION = findcell('MAP_RESOLUTION', s);
-if (isempty(MAP_RESOLUTION))   error = 1;  end
-[t,r] = strtok(s{MAP_RESOLUTION.cn},'=');       res = str2num(strtok(strtok(r,'=')));
-
-LINE_PROJECTION_OFFSET = findcell('LINE_PROJECTION_OFFSET', s);
-if (isempty(LINE_PROJECTION_OFFSET))   error = 1;  end
-[t,r] = strtok(s{LINE_PROJECTION_OFFSET.cn},'=');	line_off = str2num(r(3:end));
-
-SAMPLE_PROJECTION_OFFSET = findcell('SAMPLE_PROJECTION_OFFSET', s);
-if (isempty(SAMPLE_PROJECTION_OFFSET))   error = 1;  end
-[t,r] = strtok(s{SAMPLE_PROJECTION_OFFSET.cn},'=');	sample_off = str2num(r(3:end));
-
-limits = [(sample_first_pix - sample_off)/res+lon0 (sample_last_pix - sample_off)/res+lon0 ...
-    (line_first_pix - line_off)/res+lat0 (line_last_pix - line_off)/res+lat0];
-
-fname = [PathName FileName];
-
-opt = [limits n_samples n_lines 1/res];			% Must inform write_ESRI_hdr what to write
-tipo = [opt(1) opt(4) opt(5) opt(6) opt(7) opt(7) -99999];
-
-[name_hdr,comp_type] = write_ESRI_hdr(fname,tipo);
-if (~isempty(comp_type))
-    fname = decompress(fname,'warn');			% Name with compression ext removed
-    name_uncomp = fname;						% Here we need a copy of the decompressed file name for removing
-    if (isempty(fname))		return,		end		% Error message already issued.
-end
-
-set(handles.figure1,'pointer','watch')
-att =  gdalread(fname,'-M','-C');
-m = att.RasterXSize;            n = att.RasterYSize;
-handles.head = att.GMT_hdr;     handles.head_orig = handles.head;
-
-jump = min(round(m / 200), round(n / 200));
-opt_P = sprintf('-P%d', jump);
-Z =  gdalread(fname,'-U','-S',opt_P);      [m,n] = size(Z);
-X = linspace(handles.head(1),handles.head(2),n);
-Y = linspace(handles.head(3),handles.head(4),m);
-colormap(handles.axes1,jet(256));           handles.hImg = image(X,Y,Z);
-set(handles.axes1,'YDir','normal')
-Resize1(handles.axes1, handles.hImg)
-handles.fname = fname;
-handles.image_type = 2;				% Flags that info is minimal
-handles.name_uncomp = name_uncomp;	% If not empty this will signal read_DEMs to use the uncompressed file
-handles.name_hdr = name_hdr;
-set(handles.figure1,'pointer','arrow')
-guidata(hObject,handles)
-
-% --------------------------------------------------------------------
-function FileOpen_ENVI_Erdas_CB(hObject, eventdata, handles, opt)
-% This function reads both ENVI or Erdas files. Furthermore, based on the file byte
-% type it guesses if we are dealing with a typical grid file (in which case it is
-% treated like a native gmt grid) or a raster image file.
-
-if (strcmp(opt,'ENVI'))
-    str1 = {'*.img;*.IMG', 'ENVI (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
-    str2 = 'Select ENVI file';
-    handles.type = 'ENVI';
-elseif (strcmp(opt,'Erdas'))
-    str1 = {'*.img;*.IMG', 'Erdas (*.img,*.IMG)'; '*.*', 'All Files (*.*)'};
-    str2 = 'Select Erdas file';
-    handles.type = 'Erdas';
-else		% Stupid error
-    return
-end
-if (handles.ForceInsitu)    opt_I = '-I';   % Use only in desperate cases.
-else                        opt_I = ' ';
-end
-handles.was_int16 = 0;  % To make sure that it wasnt left = 1 from a previous use.
-
-[FileName,PathName] = put_or_get_file(handles,str1,str2,'get');
-if isequal(FileName,0);     return;     end
-fname = [PathName FileName];
-
-set(handles.figure1,'pointer','watch')
-att =  gdalread(fname,'-M','-C');
-m = att.RasterXSize;            n = att.RasterYSize;
-handles.head = att.GMT_hdr;     handles.head_orig = handles.head;
-
-jump = min(round(m / 200), round(n / 200));
-opt_P = sprintf('-P%d',jump);
-opt_S = '-S';
-if (strcmp(att.Band(1).DataType,'Byte')),	opt_S = ' ';	end
-Z =  gdalread(fname,'-U',opt_S,opt_P);      [m,n] = size(Z);
-X = linspace(handles.head(1),handles.head(2),n);
-Y = linspace(handles.head(3),handles.head(4),m);
-colormap(handles.axes1,jet(256));           handles.hImg = image(X,Y,Z);
-set(handles.axes1,'YDir','normal')
-Resize1(handles.axes1, handles.hImg)
-handles.fname = fname;
-handles.image_type = 4;
-grid_info(handles,att,'gdal');				% Construct a info message and save proj (if ...)
-set(handles.figure1,'pointer','watch')
-guidata(hObject,handles)
+	handles.hImg = image(X,Y,Z);
+	set(handles.axes1,'YDir','normal')
+	Resize1(handles.axes1, handles.hImg)
+	handles.fname = fname;
+	grid_info(handles,att,'gdal');				% Construct a info message and save proj (if ...)
+	set(handles.figure1,'pointer','arrow')
+	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
 function CropaGrid(obj,eventdata,h,opt)
 % Select the region to be extracted from grid.
 % If a fourth argument (OPT) is transmited, then the entire grid is read in
-handles = guidata(obj);     % get handles
+	handles = guidata(obj);     % get handles
 
-if (nargin == 3)
-	x = get(h,'XData');     y = get(h,'YData');
-	if (min(x) < handles.head_orig(1) || max(x) > handles.head_orig(2) || ...
-            min(y) < handles.head_orig(3) || max(y) > handles.head_orig(4))
-        errordlg('Selected region is partially outside the grid domain','Error')
-        return
+	if (nargin == 3)
+		x = get(h,'XData');		y = get(h,'YData');
+		if (min(x) < handles.head_orig(1) || max(x) > handles.head_orig(2) || ...
+				min(y) < handles.head_orig(3) || max(y) > handles.head_orig(4))
+			errordlg('Selected region is partially outside the grid domain','Error')
+			return
+		end
+		opt_R = sprintf('-R%.15f/%.15f/%.15f/%.15f', x(1),x(4),y(1),y(2));
+	else
+		opt_R = ' ';
 	end
-	opt_R = ['-R' num2str(x(1),'%.15f') '/' num2str(x(4),'%.15f') '/' num2str(y(1),'%.15f') '/' num2str(y(2),'%.15f')];
-else
-    opt_R = ' ';
-end
 
-[Z,head] = read_DEMs(handles,opt_R);
+	[Z, X, Y, srsWKT, handles] = read_grid(handles, handles.fname, 'OVR', opt_R);
 
-tmp.head = head;                        [m,n] = size(Z);
-tmp.X = linspace(head(1),head(2),n);    tmp.Y = linspace(head(3),head(4),m);
-tmp.name = 'Subsample from Overview';
-tmp.was_int16 = handles.was_int16;
-tmp.Nodata_int16 = handles.Nodata_int16;
-mirone(Z,tmp);
-
-% --------------------------------------------------------------------
-function [Z,head,Hdr] = read_DEMs(handles,opt_R)
-% This function loads grid files that are may contain DEMs or other grid (not images) types
-% OPT is used when reading MOLA files, OPT = [x_min x_max y_min y_max n_cols n_rows grid_inc]
-
-Hdr = [];
-fname = handles.fname;
-tipo = handles.type;
-
-set(handles.figure1,'pointer','watch')
-if (handles.ForceInsitu)    opt_I = '-I';		% Use only in desperate cases.
-else                        opt_I = ' ';
-end
-handles.was_int16 = 0;      % To make sure that it wasnt left = 1 from a previous use.
-if (strcmp(tipo,'GMT'))
-    [Z,att] =  gdalread(fname,'-U',opt_I,opt_R,'-C');   Z = single(Z);
-    head = att.GMT_hdr;
-    % Need to recompute x_inc/y_inc due to a Gdal bug (Not in new versions, but it doesn't harm)
-    head(8) = (head(2) - head(1)) / (size(Z,2) - ~head(7));
-    head(9) = (head(4) - head(3)) / (size(Z,1) - ~head(7));
-    
-    if (strcmp(att.Band.DataType,'Int16'))
-        handles.was_int16 = 1;
-        handles.Nodata_int16 = att.Band.NoDataValue;
-    end
-elseif ( strcmp(tipo,'SRTM30') || strcmp(tipo,'SRTM3') || strcmp(tipo,'SRTM1') || strcmp(tipo,'MOLA') )    
-    name_uncomp = [];
-    if (~isempty(handles.name_uncomp))      % That is, if file was compressed
-        fname = handles.name_uncomp;
-        name_uncomp = handles.name_uncomp;
-    end
-
-    [Z,att] =  gdalread(fname,'-U','-C',opt_I,opt_R);   Z = single(Z);
-    Z(Z <= single(att.Band.NoDataValue)) = NaN;
-    head = att.GMT_hdr;
-    handles.was_int16 = 1;      handles.Nodata_int16 = att.Band.NoDataValue;
-elseif ( strcmp(tipo,'USGS_DEM') || strcmp(tipo,'GTOPO30') || strcmp(tipo,'DTED') || strcmp(tipo,'SDTS') || ...
-        strcmp(tipo,'GeoTiff_DEM') || strcmp(tipo,'ArcAscii')  || strcmp(tipo,'ArcBinary') || ...
-        strcmp(tipo,'GXF') || strcmp(tipo,'ENVI') || strcmp(tipo,'Erdas') || strcmp(tipo,'ESRI_hdr'))
-    
-    [Z,att] =  gdalread(fname,'-U','-C',opt_I,opt_R);   Z = single(Z);
-    head = att.GMT_hdr;
-    if (~isempty(att.Band.NoDataValue))   Z(Z <= single(att.Band.NoDataValue)) = NaN;    end
-    
-    if (strcmp(att.Band.DataType,'Int16'))
-        handles.was_int16 = 1;
-        handles.Nodata_int16 = att.Band.NoDataValue;
-    end
-end
-
-handles.head = head;
-set(handles.figure1,'pointer','arrow')
-guidata(handles.figure1,handles)
+	tmp.head = handles.head;	tmp.X = X;		tmp.Y = Y;
+	if (~isempty(srsWKT))		tmp.srsWKT = srsWKT;	end
+	tmp.name = 'Subregion from Overview';
+	tmp.was_int16 = handles.was_int16;
+	tmp.Nodata_int16 = handles.Nodata_int16;
+	mirone(Z,tmp);
 
 %--------------------------------------------
 function Resize1(axHandle, imHandle)
@@ -717,9 +340,6 @@ minFigHeight = 128;
 % What are the gutter sizes?
 figPos = get(figHandle, 'Position');
 gutterLeft = max(axPos(1) - 1, 0);
-gutterRight = max(figPos(3) - (axPos(1) + axPos(3)) + 1, 0);
-gutterBottom = max(axPos(2) - 1, 0);
-gutterTop = max(figPos(4) - (axPos(2) + axPos(4)) + 1, 0);
 
 scale = 100;    done = 0;
 defAxesPos = get(0,'DefaultAxesPosition');
@@ -784,36 +404,34 @@ figPos(2) = screenHeight - figPos(4) - 75;
 set(figHandle, 'Position', figPos);     set(axHandle, 'Position', axPos);
 
 % Restore the units
-drawnow;  % necessary to work around HG bug   -SLE
+drawnow;		% necessary to work around HG bug   -SLE
 set(figHandle, 'Units', figUnits);
 set(axHandle, 'Units', axUnits);
 set(0, 'Units', rootUnits);
 
 % --------------------------------------------------------------------
-function figure1_DeleteFcn(hObject, eventdata, handles)
+function figure1_DeleteFcn(hObject, eventdata)
 % Before deleting the fig see if there was files left to remove
 % (files that resulted from the uncompression)
-try         % This bloody stupid sometimes (and it's realy when it pleases) doesn't know handles
+	handles = guidata(hObject);
 	if (~isempty(handles.name_uncomp))
-        try
-            delete(handles.name_uncomp);    delete(handles.name_hdr);
-        end
+		try
+			delete(handles.name_uncomp);
+		end
 	end
-end
-delete(hObject)
+	delete(hObject)
 
 % --------------------------------------------------------------------
-function figure1_KeyPressFcn(hObject, eventdata, handles)
+function figure1_KeyPressFcn(hObject, eventdata)
 if isequal(get(hObject,'CurrentKey'),'escape')
     % Before deleting the fig see if there was files left to remove
     % (files that resulted from the uncompression)
-    try         % This bloody stupid sometimes (and it's realy when it pleases) doesn't know handles
-		if (~isempty(handles.name_uncomp))
-            try
-                delete(handles.name_uncomp);    delete(handles.name_hdr);
-            end
+	handles = guidata(hObject);
+	if (~isempty(handles.name_uncomp))
+		try
+			delete(handles.name_uncomp);
 		end
-    end
+	end
 	delete(hObject)
 end
 
@@ -825,14 +443,15 @@ h1 = figure('Position',[520 560 244 240],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'DoubleBuffer','on',...
 'IntegerHandle','off',...
-'KeyPressFcn','overview(''figure1_KeyPressFcn'',gcbo,[],guidata(gcbo))',...
+'KeyPressFcn',@figure1_KeyPressFcn,...
+'DeleteFcn',@figure1_DeleteFcn,...
 'MenuBar','none',...
-'Name','overview',...
+'Name','Overview',...
 'NumberTitle','off',...
 'Renderer',get(0,'defaultfigureRenderer'),...
 'RendererMode','manual',...
 'Resize','off',...
-'DeleteFcn','overview(''figure1_DeleteFcn'',gcbo,[],guidata(gcbo))',...
+'Colormap',jet(256),...
 'Visible','off',...
 'Tag','figure1');
 
@@ -861,74 +480,47 @@ set(h5,'Parent',h2,...
 'HandleVisibility','off',...
 'Visible','off');
 
-h7 = uimenu('Parent',h1,'Label','File Open','Tag','FileOpen');
+h7 = uimenu('Parent',h1,'Label','File Open');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpenGMTgrid_CB'',gcbo,[],guidata(gcbo))',...
-'Label','GMT grid',...
-'Tag','FileOpenGMTgrid');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''netCDF'')',...
+'Label','netCDF (GMT) grid');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpenArcGrid_CB'',gcbo,[],guidata(gcbo),''binary'')',...
-'Label','Arc/Info Binary Grid',...
-'Tag','FileOpenArcGrid');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''ArcBinary'')',...
+'Label','Arc/Info Binary grid');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpenArcGrid_CB'',gcbo,[],guidata(gcbo),''ascii'')',...
-'Label','Arc/Info Ascii Grid',...
-'Tag','FileOpenArcGrid');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''DTED'')', 'Label','DTED');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpen_DEM_CB'',gcbo,[],guidata(gcbo),''DTED'')',...
-'Label','DTED',...
-'Tag','FileOpen_DEM');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''ENVI'')', 'Label','ENVI');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpen_DEM_CB'',gcbo,[],guidata(gcbo),''ESRI_hdr'')',...
-'Label','ESRI BIL',...
-'Tag','FileOpen_DEM');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''ERDAS'')', 'Label','ERDAS');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpen_DEM_CB'',gcbo,[],guidata(gcbo),''GTOPO30'')',...
-'Label','GTOPO30',...
-'Tag','FileOpen_DEM');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''ESRI_hdr'')', 'Label','ESRI BIL');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpen_DEM_CB'',gcbo,[],guidata(gcbo),''GeoTiff_DEM'')',...
-'Label','GeoTiff DEM',...
-'Tag','FileOpen_DEM');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''GTOPO30'')', 'Label','GTOPO30');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpen_DEM_CB'',gcbo,[],guidata(gcbo),''GXF'')',...
-'Label','GXF',...
-'Tag','FileOpen_DEM');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''GeoTiff_DEM'')', 'Label','GeoTiff DEM');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpenMOLA_CB'',gcbo,[],guidata(gcbo))',...
-'Label','MOLA DEM',...
-'Tag','FileOpenMOLA');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''MOLA_lbl'')', 'Label','MOLA (+ .lbl)');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpen_DEM_CB'',gcbo,[],guidata(gcbo),''SDTS'')',...
-'Label','SDTS',...
-'Tag','FileOpen_DEM');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''MOLA'')', 'Label','MOLA (v3 PDS)');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpenSRTM_CB'',gcbo,[],guidata(gcbo),''SRTM1'')',...
-'Label','SRTM 1 arc sec',...
-'Tag','FileOpenSRTM');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''SDTS'')', 'Label','SDTS');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpenSRTM_CB'',gcbo,[],guidata(gcbo),''SRTM3'')',...
-'Label','SRTM 3 arc sec',...
-'Tag','FileOpenSRTM');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''SRTM30'')', 'Label','SRTM30');
 
 uimenu('Parent',h7,...
-'Callback','overview(''FileOpenSRTM_CB'',gcbo,[],guidata(gcbo),''SRTM30'')',...
-'Label','SRTM30',...
-'Tag','FileOpenSRTM');
-
-uimenu('Parent',h7,...
-'Callback','overview(''FileOpen_DEM_CB'',gcbo,[],guidata(gcbo),''USGS_DEM'')',...
-'Label','USGS DEM',...
-'Tag','FileOpen_DEM');
+'Callback','overview(''FileOpen_DEM_CB'',gcbo,guidata(gcbo),''Other'')',...
+'Sep','on',...
+'Label','Others');
