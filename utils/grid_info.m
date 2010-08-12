@@ -1,5 +1,19 @@
 function grid_info(handles,X,Y,hdr)
-%#function grdinfo_m
+% Report info of grid/image currently displayed in Mirone
+
+%	Copyright (c) 2004-2010 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
 if (nargin == 3 && strcmp(Y,'gdal'))			% Just extract the relevant info from the attribute struct
 	att2Hdr(handles,X);			return
@@ -71,7 +85,7 @@ if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived 
 	if (info2(5))       % We have NaNs, report them also
 		w{12} = ['nodes set to NaN: ' sprintf('%d',info2(5))];
 	end
-	msgbox(w,'Grid Info');
+	message_win('create',w, 'figname','Grid Info');
 elseif (handles.computed_grid)  % Computed array
 	w{1} = '    INTERNALY COMPUTED GRID';   w{2} = ' ';
 	w{3} = ['   Xmin:  ' num2str(handles.head(1)) '    Xmax: ' num2str(handles.head(2))];
@@ -82,17 +96,15 @@ elseif (handles.computed_grid)  % Computed array
 	nx = round((handles.head(2) - handles.head(1))/handles.head(8) + one_or_zero);
 	ny = round((handles.head(4) - handles.head(3))/abs(handles.head(9)) + one_or_zero);
 	w{7} = ['   nx:  ' num2str(nx) '    ny: ' num2str(ny)];
-	msgbox(w,'Grid Info');
+	message_win('create',w, 'figname','Grid Info');
 else
     InfoMsg = getappdata(handles.axes1,'InfoMsg');
     if (~isempty(InfoMsg))
 		meta = getappdata(handles.hImg,'meta');
-		if (~isempty(meta))						% If we have metadata use the window message to display everything
+		if (~isempty(meta))
 			InfoMsg = [InfoMsg; {' '; ' '}; meta];
-			message_win('create',InfoMsg,'position','east');
-		else
-			msgbox(InfoMsg,'Image Info');
 		end
+		message_win('create',InfoMsg, 'figname', 'Grid Info');
     else
 		msgbox('Info missing or nothing to info about?','???')
     end
