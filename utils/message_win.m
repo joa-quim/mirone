@@ -15,6 +15,13 @@ function handFig = message_win(option, texto, varargin)
 % 				'fontsize',		9
 % 				'fontname',		'Helvetica'
 % 				'position',		a position key as accepted by move2side (e.g, 'right')
+%				'button'		'yes' creates a button that will plot the Grid's Min/Max
+%								locations on the figure that called message_win.
+%								But for that the necessary info must have been stored in this figure's
+%								'UserData'. That is the responsability of the calling function.
+%							Example:
+%								ud.hAxe = handles.axes1;	ud.p1 = [xx_min yy_min];	
+%								ud.p2 = [xx_max yy_max];	set(hMsg, 'UserData', ud)
 
 %	Copyright (c) 2004-2010 by J. Luis
 %
@@ -42,19 +49,28 @@ if (~isa(texto,'cell')),		texto = cellstr(texto);	end
 
 switch option
 	case 'create'
-		[figpos, figName, posTxt, movepos, bgcolor, fwcolor, fWeight, fSize, fName] = parse_inputs(texto, varargin{:});
+		[figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, add_button] = parse_inputs(texto, varargin{:});
 		if (isempty(movepos))			% Reposition figure on screen
 			figpos = getnicelocation(figpos, 'pixels');
 		end
 		hFig = figure('MenuBar','none', 'Name',figName, 'HandleVisibility', 'off', ...
-				'Visible','off', 'Unit','pix', 'Position',figpos,...
+				'Vis','on', 'Unit','pix', 'Pos',figpos,...
 				'Color',bgcolor, 'NumberTitle','off', 'DoubleBuffer','on', 'Tag',tagFig);
 		hTxt = uicontrol('Parent',hFig, 'Style','text', ...
-				'Unit','pix', 'Position', posTxt, ...
+				'Unit','pix', 'Pos', posTxt, ...
 				'HorizontalAlignment','left',...
-				'FontWeight',fWeight, 'FontSize',fSize, 'FontName',fName,...
+				'FontWeight',Font.Weight, 'FontSize',Font.Size, 'FontName',Font.Name,...
 				'BackgroundColor',bgcolor, 'ForegroundColor',fwcolor, ...
 				'Tag',tagTxt);
+		if (add_button)
+			posBut = [(figpos(3)/2 - 40) 4 80 21];
+			hBut = uicontrol('Parent',hFig, 'Style','pushbutton', ...
+				'Unit','pix', 'Position', posBut, ...
+				'Str', 'Plot min/max', ...
+				'Call', @plotMiMa, ...
+				'Tag','plotaMiMa');
+		end
+
 		if (~isempty(movepos))			% Reposition figure on screen
 			move2side(hFig, movepos)
 		end
@@ -62,16 +78,22 @@ switch option
 		set(hTxt, 'String',texto)
 		extent = get(hTxt,'Extent');
 		if (isempty(extent)),	extent = zeros(1,4);	end		% Protection against empty texts
-		
+
 		% See if we should shrink the figure horizontally
 		if ( extent(3) < 1 )					% Yes
 			set([hFig,hTxt], 'unit', 'pix')
 			extent_pix = get(hTxt,'Extent');
-			set(hFig, 'Pos', [figpos(1:2) extent_pix(3)+20 figpos(4)])
+			figpos(3) = extent_pix(3)+20;
+			figpos = getnicelocation(figpos, 'pixels');			% Reposition again
+			set(hFig, 'Pos', figpos)
+			if (add_button)						% We need to recenter the button too
+				posBut(1) = (figpos(3)/2 - 40);
+				set(hBut, 'Pos', posBut)
+			end
 			set([hFig,hTxt], 'unit', 'norm')
 		end
 
-		if ( extent(4) > 1 )					% Text too big to fit in?
+		if ( extent(4) > 1 || add_button)		% Text too big to fit in?
 			if (figpos(4) > 500)				% Yes, add a slider to the figure
 				posTxt = get(hTxt,'Position');
 				set_slider(hFig, hTxt, posTxt, ceil(extent(4)))
@@ -80,10 +102,11 @@ switch option
 				set([hFig,hTxt], 'unit', 'pix')
 				figpos = get(hFig, 'Pos');
 				extent = get(hTxt,'Extent');
-				figpos(4) = round(extent(4)+10);	% New fig height
-				figpos = getnicelocation(figpos, 'pixels');		% Reposition again
+				if (add_button)		extent(4) = extent(4) + 30;		end	% Need to take button size into account
+				figpos(4) = round(extent(4)+10);						% New fig height
+				figpos = getnicelocation(figpos, 'pixels');				% Reposition again
 				set(hFig, 'Pos', figpos)
-				set(hTxt, 'Pos', [posTxt(1:3) extent(4)])	% Update text position after figure resizing
+				set(hTxt, 'Pos', [posTxt(1:3) extent(4)])				% Update text position after fig resizing
 				set([hFig,hTxt], 'unit', 'norm')
 			end
 		end
@@ -117,7 +140,7 @@ switch option
 end
 
 % ------------------------------------------------------------------------------------	
-function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, fWeight, fSize, fName] = parse_inputs(texto, varargin)
+function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, add_button] = parse_inputs(texto, varargin)
 % Parse inputs and compute also fig and text sizes
 
 	if ( rem(numel(varargin), 2) )
@@ -125,7 +148,11 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, fWeight, fSize, fN
 	end
 	% Assign defaults
 	win_width = 0;		win_height = 0;		movepos = [];	fwcolor = 'k';	bgcolor = [.95 .95 .95];
-	fWeight = 'demi';	fSize = 9;			fName = 'Helvetica';	figName = 'Message window';
+	add_button = false;
+	figName = 'Message window';
+	Font.Size = 9;
+	Font.Weight = 'demi';
+	Font.Name = 'Helvetica';
 	
 	for (k = 1:numel(varargin))
 		if ( ischar(varargin{k}) )
@@ -136,9 +163,10 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, fWeight, fSize, fN
 				case 'position',	movepos = varargin{k+1};
 				case 'bgcolor',		bgcolor = varargin{k+1};
 				case 'fwcolor',		bgcolor = varargin{k+1};
-				case 'fontweight',	fWeight = varargin{k+1};
-				case 'fontsize',	fSize = varargin{k+1};
-				case 'fontname',	fName = varargin{k+1};
+				case 'fontweight',	Font.Weight = varargin{k+1};
+				case 'fontsize',	Font.Size = varargin{k+1};
+				case 'fontname',	Font.Name = varargin{k+1};
+				case 'button',		add_button = true;
 			end
 		end
 	end
@@ -164,34 +192,35 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, fWeight, fSize, fN
 	% Calculate text position in figure
 	bord  = 10;
  	posTxt = [bord bord/5 win_width-2*bord win_height-2*bord/5];
+	
+	if (add_button),	figpos(4) = figpos(4) + 30;		end
 
 % ------------------------------------------------------------------------------------	
-function figure_size = getnicelocation(figure_size, figure_units)
-% adjust the specified figure position to fig nicely over GCBF
-% or into the upper 3rd of the screen
-%  Copyright 1999-2006 The MathWorks, Inc.
+function figSize = getnicelocation(figSize, figUnits)
+% adjust the figure position to fit nicely over GCBF or into the upper 3rd of the screen
+%  Mofified from Matlab's getnicedialoglocation function
 
-	parentHandle = gcbf;
+	hFigParent = gcbf;
 	propName = 'Position';
-	if isempty(parentHandle)
-		parentHandle = 0;
+	if (isempty(hFigParent))
+		hFigParent = 0;
 		propName = 'ScreenSize';
 	end
 
-	old_u = get(parentHandle,'Units');
-	set(parentHandle,'Units',figure_units);
-	container_size=get(parentHandle,propName);
-	set(parentHandle,'Units',old_u);
+	old_u = get(hFigParent,'Units');
+	set(hFigParent,'Units',figUnits);
+	container_size = get(hFigParent,propName);
+	set(hFigParent,'Units',old_u);
 
-	figure_size(1) = container_size(1)  + 1/2*(container_size(3) - figure_size(3));
-	figure_size(2) = container_size(2)  + 2/3*(container_size(4) - figure_size(4));
+	figSize(1) = container_size(1)  + 1/2*(container_size(3) - figSize(3));
+	figSize(2) = container_size(2)  + 2/3*(container_size(4) - figSize(4));
 
 % ------------------------------------------------------------------------------------	
 function set_slider(hFig, hTxt, posTxt, scal)
 	pos = [0.97 0 .03 1];
 	cb_slide_step = {@slide_step, hTxt, posTxt};
-	uicontrol(hFig,'style','slider','units','normalized','position',pos,...
-        'callback',cb_slide_step,'min',0,'max',scal,'Value',scal);
+	uicontrol(hFig,'style','slider','unit','normalized','position',pos,...
+        'call',cb_slide_step,'min',0,'max',scal,'Value',scal);
 
 % ------------------------------------------------------------------------------------	
 function slide_step(obj,event, h, pos)
@@ -206,3 +235,26 @@ function hFig = findmsgwin(tagFig)
 	set(0,'ShowHiddenHandles','on');
 	hFig = findobj(get(0,'Children'),'flat', 'tag',tagFig);
 	set(0,'ShowHiddenHandles',showBak);
+
+% --------------------------------------------------------------------
+function plotMiMa(obj,evt)
+% Plot the min/max locations on the figure that called message_win.
+% But for that the necessary info must have been stored in this figure's
+% 'UserData'. That is responsability of the calling function.
+
+	ud = get(get(obj,'Parent'),'UserData');
+	if (isempty(ud))
+		errordlg('The UserData container is empty, so I don''t know where Min/Max are.','Error')
+		return
+	end
+	if (~ishandle(ud.hAxe))
+		errordlg('Invalid Parent axes handle. Did you kill that Window?','Error')
+		return
+	end
+	h1 = line('XData',ud.p1(1),'YData',ud.p1(2),'parent',ud.hAxe, ...
+		'Marker','p','MarkerFaceColor','r','MarkerEdgeColor','y','MarkerSize',10,'Tag','Symbol');
+	h2 = line('XData',ud.p2(1),'YData',ud.p2(2),'parent',ud.hAxe, ...
+		'Marker','p','MarkerFaceColor','b','MarkerEdgeColor','y','MarkerSize',10,'Tag','Symbol');
+
+	draw_funs(h1,'DrawSymbol')
+	draw_funs(h2,'DrawSymbol')
