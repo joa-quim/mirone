@@ -45,7 +45,6 @@ else            % geocentric dipole hypothesis assumed
     sdip = 0;    sdec = 0;    pflag = 0;
 end  
 % parameters defined
-i = sqrt(-1);
 D2R = pi/180;  % conversion radians to degrees
 mu = 100;      % conversion factor to nT
 
@@ -56,43 +55,42 @@ nterms = 8;    tol = 0.1;
 figdmsg = wfindobj('figure','tag','Wdmsgfig');
 %figdmsg = findobj(get(0,'Children'),'flat','tag','Wdmsgfig');
 if (isempty(figdmsg))
-    try,    message_win('create','     3D MAGNETIC FIELD FORWARD MODEL');    pause(0.001)
+    try		message_win('create','     3D MAGNETIC FIELD FORWARD MODEL');    pause(0.001)
     catch,  fprintf('     3D MAGNETIC FIELD FORWARD MODEL\n');  end
 else
-    try,    message_win('add','     3D MAGNETIC FIELD FORWARD MODEL');
+    try		message_win('add','     3D MAGNETIC FIELD FORWARD MODEL');
     catch,  fprintf('     3D MAGNETIC FIELD FORWARD MODEL\n');  end
 end
 
-try,    message_win('add','       Constant thickness layer');
+try	message_win('add','       Constant thickness layer');
 catch,  fprintf('       Constant thickness layer\n');   end
-try,    message_win('add',' M.A.Tivey      Version: May, 2004');
+try		message_win('add',' M.A.Tivey      Version: May, 2004');
 catch,  fprintf(' M.A.Tivey      Version: May, 2004\n');    end
-try,    message_win('add',sprintf(' Zobs = %12.5f\n Rlat = %12.4f\t Rlon = %12.4f',zobs,rlat,rlon));
+try		message_win('add',sprintf(' Zobs = %12.5f\n Rlat = %12.4f\t Rlon = %12.4f',zobs,rlat,rlon));
 catch,  fprintf(' Zobs= %12.5f\n Rlat = %12.4f\t Rlon = %12.4f\n',zobs,rlat,rlon);    end
-try,    message_win('add',sprintf(' Yr = %12.4f',yr));
+try		message_win('add',sprintf(' Yr = %12.4f',yr));
 catch,  fprintf(' Yr = %12.4f\n',yr);   end
-try,    message_win('add',sprintf(' Thick = %12.4f',thick));
+try		message_win('add',sprintf(' Thick = %12.4f',thick));
 catch,  fprintf(' Thick = %12.4f\n',thick); end
-try,    message_win('add',sprintf(' Slin,Sdec,Sdip = %12.6f %12.6f %12.6f',slin,sdec,sdip));
+try		message_win('add',sprintf(' Slin,Sdec,Sdip = %12.6f %12.6f %12.6f',slin,sdec,sdip));
 catch,  fprintf(' Slin,Sdec,Sdip = %12.6f %12.6f %12.6f\n',slin,sdec,sdip); end
-try,    message_win('add',sprintf(' Nterms,Tol %6.0f %10.5f',nterms,tol));
+try		message_win('add',sprintf(' Nterms,Tol %6.0f %10.5f',nterms,tol));
 catch,  fprintf(' Nterms,Tol %6.0f %10.5f \n',nterms,tol);  end
 [ny,nx] = size(m3d);
-try,    message_win('add',sprintf(' Number of points in map are : %6.0f x%6.0f',nx,ny));
+try		message_win('add',sprintf(' Number of points in map are : %6.0f x%6.0f',nx,ny));
 catch,  fprintf(' Number of points in map are : %6.0f x%6.0f\n',nx,ny); end
-try,    message_win('add',sprintf(' Spacing of points : %10.4f X %10.4f',dx,dy));
+try		message_win('add',sprintf(' Spacing of points : %10.4f X %10.4f',dx,dy));
 catch,  fprintf(' Spacing of points : %10.4f X %10.4f \n',dx,dy);   end
 
 %y = igrf(rlat, rlon, zobs, yr, 'igrf_1945_2005.dat');
 y = igrf_m(rlon, rlat, zobs, yr);
 
 % compute skewness parameter
-bx = y(3);      by = y(4);      bz = y(5);      bh = y(2);
 decl1 = y(6);   incl1 = y(7);   clear y;
-if abs(sdec) > 0. | abs(sdip) > 0.
-    [theta,ampfac] = nskew(yr,rlat,rlon,zobs,slin,sdec,sdip);
+if (abs(sdec) > 0. || abs(sdip) > 0.)
+    %[theta,ampfac] = nskew(yr,rlat,rlon,zobs,slin,sdec,sdip);
 else
-    [theta,ampfac] = nskew(yr,rlat,rlon,zobs,slin);
+    %[theta,ampfac] = nskew(yr,rlat,rlon,zobs,slin);
     sdip = atan2( 2.*sin(rlat*D2R),cos(rlat*D2R) )/D2R;
     sdec = 0;
 end
@@ -131,23 +129,23 @@ const = 2*pi*mu;
 
 % shift zero level of bathy
 hmax = max(max(h));     hmin = min(min(h));
-try,    message_win('add',sprintf(' %10.3f %10.3f = MIN, MAX OBSERVED BATHY',hmin,hmax));
+try		message_win('add',sprintf(' %10.3f %10.3f = MIN, MAX OBSERVED BATHY',hmin,hmax));
 catch,  fprintf(' %10.3f %10.3f = MIN, MAX OBSERVED BATHY\n',hmin,hmax);    end
 shift = max(max(h));
 hwiggl = abs(hmax-hmin)/2;
 zup = zobs-shift;
-try,    message_win('add',sprintf(' SHIFT ZERO OF BATHY WILL BE %8.3f',shift));
+try		message_win('add',sprintf(' SHIFT ZERO OF BATHY WILL BE %8.3f',shift));
 catch,  fprintf(' SHIFT ZERO OF BATHY WILL BE %8.3f\n',shift);  end
-try,    message_win('add',' THIS IS OPTIMUM FOR INVERSION');
+try		message_win('add',' THIS IS OPTIMUM FOR INVERSION');
 catch,  fprintf(' THIS IS OPTIMUM FOR INVERSION.\n');   end
-try,    message_win('add',sprintf(' NOTE OBSERVATIONS ARE %8.3f KM ABOVE BATHY',zup));
+try		message_win('add',sprintf(' NOTE OBSERVATIONS ARE %8.3f KM ABOVE BATHY',zup));
 catch,  fprintf(' NOTE OBSERVATIONS ARE %8.3f KM ABOVE BATHY\n',zup);   end
-try,    message_win('add',sprintf('ZOBS=%8.3f\t ZUP=%8.3f',zobs,zup));
+try		message_win('add',sprintf('ZOBS=%8.3f\t ZUP=%8.3f',zobs,zup));
 catch,  fprintf('ZOBS=%8.3f ZUP=%8.3f\n',zobs,zup); end
 zup = zup+hwiggl;     
-try,    message_win('add',sprintf('%8.3f = HWIGGL, DISTANCE TO MID-LINE OF BATHY',hwiggl));
+try		message_win('add',sprintf('%8.3f = HWIGGL, DISTANCE TO MID-LINE OF BATHY',hwiggl));
 catch,  fprintf('%8.3f = HWIGGL, DISTANCE TO MID-LINE OF BATHY\n',hwiggl);  end
-try,    message_win('add',' THIS IS OPTIMUM ZERO LEVEL FOR FORWARD PROBLEM');
+try		message_win('add',' THIS IS OPTIMUM ZERO LEVEL FOR FORWARD PROBLEM');
 catch,  fprintf(' THIS IS OPTIMUM ZERO LEVEL FOR FORWARD PROBLEM\n');   end
 h = h-shift;
 h = h+hwiggl;
@@ -159,13 +157,14 @@ msum1 = eterm.*MH;
 last = 0;
 %first = max(abs(msum1));        % NOT USED ?
 for n=1:nterms,
-    MH = (fft2(m3d.*h.^n));
-    msum = eterm.*((k.^n)./factorial(n)).*MH+msum1;
-    errmax = max(max(abs(real(msum))));
-    try,    message_win('add',sprintf(' AT TERM  %6.0f\t\tMAXIMUM PERTURBATION TO SUM %12.6e',n,errmax-last));
-    catch,  fprintf(' AT TERM  %6.0f\t\t MAXIMUM PERTURBATION TO SUM %12.6e\n',n,errmax-last);  end
-    last = errmax;
-    msum1 = msum;
+	MH = (fft2(m3d.*h.^n));
+	msum = eterm.*((k.^n)./factorial(n)).*MH+msum1;
+	errmax = max(max(abs(real(msum))));
+	try		message_win('add',sprintf(' AT TERM  %6.0f\t\tMAXIMUM PERTURBATION TO SUM %12.6e',n,errmax-last));
+	catch,  fprintf(' AT TERM  %6.0f\t\t MAXIMUM PERTURBATION TO SUM %12.6e\n',n,errmax-last)
+	end
+	last = errmax;
+	msum1 = msum;
 end
 clear MH eterm msum1;
 alap = 1 - exp(-k.*thick);  % do thickness term
@@ -173,7 +172,7 @@ f3d = real(ifft2((const.*msum.*alap.*O)));
 
 
 % --------------------------------------------------------------------------
-function [theta,ampfac]=nskew(yr,rlat,rlon,zobs,slin,sdec,sdip)
+function [theta,ampfac] = nskew(yr,rlat,rlon,zobs,slin,sdec,sdip)
 
 % NSKEW  Compute skewness parameter and amplitude factor
 %  following Schouten (1971)
@@ -201,41 +200,31 @@ D2R=pi/180;
 % get unit vectors
 %y = igrf(rlat, rlon, zobs, yr, 'igrf_1945_2005.dat');
 y = igrf_m(rlon, rlat, zobs, yr);
-bx = y(3);      by = y(4);      bz = y(5);      bh = y(2);
 decl1 = y(6);   incl1 = y(7);   clear y;
 
 % compute skewness parameter
 % If a window for verbose exists
 figdmsg = wfindobj('figure','tag','Wdmsgfig');
 if (isempty(figdmsg))
-    try,    message_win('create',' EARTH''S MAGNETIC FIELD DIRECTION:');    pause(0.001)
-    catch,  fprintf(' EARTH''S MAGNETIC FIELD DIRECTION:\n');  end
+	message_win('create',' EARTH''S MAGNETIC FIELD DIRECTION:');    pause(0.001)
 else
-    try,    message_win('add',' EARTH''S MAGNETIC FIELD DIRECTION:');
-    catch,  fprintf(' EARTH''S MAGNETIC FIELD DIRECTION:\n');  end
+	message_win('add',' EARTH''S MAGNETIC FIELD DIRECTION:');
 end
-try,    message_win('add',sprintf(' %10.3f = MAGNETIC DECLINATION ( STRIKE, CW FROM N )',decl1));
-catch,  fprintf(' %10.3f = MAGNETIC DECLINATION ( STRIKE, CW FROM N )\n',decl1);    end
-try,    message_win('add',sprintf(' %10.4f = MAGNETIC INCLINATION ( DIP, POS DOWN )',incl1));
-catch,  fprintf(' %10.4f = MAGNETIC INCLINATION ( DIP, POS DOWN )\n',incl1);    end
+message_win('add',sprintf(' %10.3f = MAGNETIC DECLINATION ( STRIKE, CW FROM N )',decl1));
+message_win('add',sprintf(' %10.4f = MAGNETIC INCLINATION ( DIP, POS DOWN )',incl1));
 if (nargin > 5)
-    %  NOTE FOR GEOCENTRIC DIPOLE TAN(INC)=2*TAN(LAT)
-    try,    message_win('add',' NON-GEOCENTRIC MAGNETIZATION VECTOR SPECIFIED:');
-    catch,  fprintf(' NON-GEOCENTRIC MAGNETIZATION VECTOR SPECIFIED:\n');   end
-    try,    message_win('add',sprintf(' %10.4f = DESIRED MAGNETIZATION DECLINATION (+CW FROM N)',sdec));
-    catch,  fprintf(' %10.4f = DESIRED MAGNETIZATION DECLINATION (+CW FROM N)\n',sdec); end
-    try,    message_win('add',sprintf(' %10.4f = DESIRED MAGNETIZATION INCLINATION (+DN)', sdip));
-    catch,  fprintf(' %10.4f = DESIRED MAGNETIZATION INCLINATION (+DN)\n', sdip);   end
+	%  NOTE FOR GEOCENTRIC DIPOLE TAN(INC)=2*TAN(LAT)
+	message_win('add',' NON-GEOCENTRIC MAGNETIZATION VECTOR SPECIFIED:');
+	message_win('add',sprintf(' %10.4f = DESIRED MAGNETIZATION DECLINATION (+CW FROM N)',sdec));
+	message_win('add',sprintf(' %10.4f = DESIRED MAGNETIZATION INCLINATION (+DN)', sdip));
 else %
-    sdip = atan2( 2.*sin(rlat*D2R),cos(rlat*D2R) )/D2R;
-    sdec = 0;
-    try,    message_win('add',' GEOCENTRIC MAGNETIZATION VECTOR SPECIFIED:');
-    catch,  fprintf(' GEOCENTRIC MAGNETIZATION VECTOR SPECIFIED:\n');   end
-    try,    message_win('add',sprintf(' %10.4f = GEOCENTRIC DIPOLE INCLINATION',sdip));
-    catch,  fprintf(' %10.4f = GEOCENTRIC DIPOLE INCLINATION \n',sdip); end
-    try,    message_win('add',sprintf(' %10.3f = GEOCENTRIC DECLINATION ASSUMED\n',sdec));
-    catch,  fprintf(' %10.3f = GEOCENTRIC DECLINATION ASSUMED\n',sdec); end
+	sdip = atan2( 2.*sin(rlat*D2R),cos(rlat*D2R) )/D2R;
+	sdec = 0;
+	message_win('add',' GEOCENTRIC MAGNETIZATION VECTOR SPECIFIED:');
+	message_win('add',sprintf(' %10.4f = GEOCENTRIC DIPOLE INCLINATION',sdip));
+	message_win('add',sprintf(' %10.3f = GEOCENTRIC DECLINATION ASSUMED\n',sdec));
 end
+
 % compute phase and amplitude factors
 ra1 = incl1*D2R;    rb1 = (decl1-slin)*D2R;
 ra2 = sdip*D2R;     rb2 = (sdec-slin)*D2R;
@@ -252,9 +241,7 @@ hatb(1) = cos(incl1*D2R)*sin((decl1-slin)*D2R);
 hatb(2) = cos(incl1*D2R)*cos((decl1-slin)*D2R);
 hatb(3) = -sin(incl1*D2R);
 %
-try,    message_win('add',sprintf('  %10.6f %10.6f %10.6f = MAGNETIZATION UNIT VECTOR',hatm(1),hatm(2),hatm(3)));
-catch,  fprintf('  %10.6f %10.6f %10.6f = MAGNETIZATION UNIT VECTOR\n',hatm(1),hatm(2),hatm(3));    end
-try,    message_win('add',sprintf('  %10.6f %10.6f %10.6f = AMBIENT FIELD UNIT VECTOR',hatb(1),hatb(2),hatb(3)));
-catch,  fprintf('  %10.6f %10.6f %10.6f = AMBIENT FIELD UNIT VECTOR\n',hatb(1),hatb(2),hatb(3));    end
-try,    message_win('add','  COMPONENTS ARE (X,Y,Z=ALONG, ACROSS PROFILE, AND UP');
-catch,  fprintf('  COMPONENTS ARE (X,Y,Z=ALONG, ACROSS PROFILE, AND UP\n\n');   end
+message_win('add',sprintf('  %10.6f %10.6f %10.6f = MAGNETIZATION UNIT VECTOR',hatm(1),hatm(2),hatm(3)));
+message_win('add',sprintf('  %10.6f %10.6f %10.6f = AMBIENT FIELD UNIT VECTOR',hatb(1),hatb(2),hatb(3)));
+message_win('add','  COMPONENTS ARE (X,Y,Z=ALONG, ACROSS PROFILE, AND UP');
+
