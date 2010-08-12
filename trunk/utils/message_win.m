@@ -1,4 +1,4 @@
-function hFig = message_win(option, texto, varargin)
+function handFig = message_win(option, texto, varargin)
 %MESSAGE_WIN  Message function.
 %
 %   Usage:  message_win('create','Some text')   for the first call
@@ -42,28 +42,23 @@ if (~isa(texto,'cell')),		texto = cellstr(texto);	end
 
 switch option
 	case 'create'
-		if isempty(hFig)
-			[figpos, figName, posTxt, movepos, bgcolor, fwcolor, fWeight, fSize, fName] = parse_inputs(texto, varargin{:});
-			if (isempty(movepos))			% Reposition figure on screen
-				figpos = getnicelocation(figpos, 'pixels');
-			end
-			hFig = figure('MenuBar','none', 'Name',figName, 'HandleVisibility', 'off', ...
-					'Visible','off', 'Unit','pix', 'Position',figpos,...
-					'Color',bgcolor, 'NumberTitle','off', 'DoubleBuffer','on', 'Tag',tagFig);
-			hTxt = uicontrol('Parent',hFig, 'Style','text', ...
-					'Unit','pix', 'Position', posTxt, ...
-					'HorizontalAlignment','left',...
-					'FontWeight',fWeight, 'FontSize',fSize, 'FontName',fName,...
-					'BackgroundColor',bgcolor, 'ForegroundColor',fwcolor, ...
-					'Tag',tagTxt);
-			if (~isempty(movepos))			% Reposition figure on screen
-				move2side(hFig, movepos)
-			end
-			set([hFig,hTxt],'units','norm');
-		else		% User said 'create' but figure already exists
-			hTxt = findobj(hFig,'Tag',tagTxt);
-			figure(hFig);
+		[figpos, figName, posTxt, movepos, bgcolor, fwcolor, fWeight, fSize, fName] = parse_inputs(texto, varargin{:});
+		if (isempty(movepos))			% Reposition figure on screen
+			figpos = getnicelocation(figpos, 'pixels');
 		end
+		hFig = figure('MenuBar','none', 'Name',figName, 'HandleVisibility', 'off', ...
+				'Visible','off', 'Unit','pix', 'Position',figpos,...
+				'Color',bgcolor, 'NumberTitle','off', 'DoubleBuffer','on', 'Tag',tagFig);
+		hTxt = uicontrol('Parent',hFig, 'Style','text', ...
+				'Unit','pix', 'Position', posTxt, ...
+				'HorizontalAlignment','left',...
+				'FontWeight',fWeight, 'FontSize',fSize, 'FontName',fName,...
+				'BackgroundColor',bgcolor, 'ForegroundColor',fwcolor, ...
+				'Tag',tagTxt);
+		if (~isempty(movepos))			% Reposition figure on screen
+			move2side(hFig, movepos)
+		end
+		set([hFig,hTxt],'units','norm');
 		set(hTxt, 'String',texto)
 		extent = get(hTxt,'Extent');
 		if (isempty(extent)),	extent = zeros(1,4);	end		% Protection against empty texts
@@ -85,15 +80,16 @@ switch option
 				set([hFig,hTxt], 'unit', 'pix')
 				figpos = get(hFig, 'Pos');
 				extent = get(hTxt,'Extent');
-				figpos(4) = round(extent(4));	% New fig height
+				figpos(4) = round(extent(4)+10);	% New fig height
 				figpos = getnicelocation(figpos, 'pixels');		% Reposition again
 				set(hFig, 'Pos', figpos)
-				set(hTxt, 'Pos', [posTxt(1:3) extent(4)-5])	% Update text position after figure resizing
+				set(hTxt, 'Pos', [posTxt(1:3) extent(4)])	% Update text position after figure resizing
 				set([hFig,hTxt], 'unit', 'norm')
 			end
 		end
 
 		set(hFig, 'Vis', 'on')
+		if (nargout)	handFig = hFig;		end
 
     case 'add'
 		hTxt = findobj(hFig,'Style','Text');
@@ -114,6 +110,7 @@ switch option
 			slid_val = scal - (extent(4) - 1);
 			set(hSlider,'Value',slid_val)
 		end
+		if (nargout)	handFig = hFig;		end
 
     case 'close'
 		delete(hFig);
