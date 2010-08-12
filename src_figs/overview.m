@@ -105,9 +105,9 @@ function info_clickedCB(obj,eventdata)
 	if (isempty(handles.hImg))		return,		end
 	w = getappdata(handles.axes1,'InfoMsg');
 	if (~isempty(w))
-		msgbox(w,'Image Info');
+		message_win('create',w, 'figname','Image Info');
 	else
-		msgbox('Hoops, I lost the info','Error');
+		message_win('create','Hoops, I lost the info', 'figname','Error');
 	end
 
 % --------------------------------------------------------------------------------------------------
@@ -124,7 +124,7 @@ str = sprintf(['This tool is meant to be used on very large grids.\n'...
 	'available by a right-click and selecting "rectangle\n'...
 	'-limits". Selecting "Crop Grid" extracts the region\n'...
 	'inside the rectangle at the grid''s full resolution.']);
-helpdlg(str,'Help')
+message_win('create',str, 'figname','Help')
 
 % --------------------------------------------------------------------------------------------------
 function all_clickedCB(obj,eventdata)
