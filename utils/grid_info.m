@@ -25,9 +25,9 @@ elseif (nargin == 4 && strcmp(Y,'referenced'))	% Used when referenced img/grid w
 	ref2Hdr(handles,X,hdr);		return
 end
 
-if (handles.no_file),     return;      end
-%ud = get(handles.figure1,'UserData');           % Retrieve Image info 
-if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived from a GMT grdfile
+if (handles.no_file)	return,		end
+ 
+if (handles.image_type == 1)					% Image derived from a GMT grdfile
 	Z = getappdata(handles.figure1,'dem_z');	% We want the Z for statistics (might not be in argin)
 	if (isempty(Z))
 		warndlg('Grid too big to be in memory so I cannot report info','Warning')
@@ -35,13 +35,21 @@ if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived 
 	end
 	nx = size(Z,2);		ny = size(Z,1);
 	try
-		info1 = grdinfo_m(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
+		if (~handles.computed_grid)
+			info1 = grdinfo_m(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
+		end
+		erro = false;
 	catch
-		info1.Title = 'Unknown';	info1.Command = ' ';	info1.Remark = ' ';
+		erro = true;
+	end
+
+	if (handles.computed_grid || erro)
+		info1.Title = 'Unknown';	info1.Command = ' ';	info1.Remark = 'INTERNALY COMPUTED GRID';
 		info1.X_info(4) = nx;		info1.Y_info(4) = ny;
 		info1.Scale = [1 0 -1];
 		info1.Registration = 'Registration:  grid (guessed)';
 	end
+
 	info2 = grdutils(Z,'-H');				% info2 is a vector with [z_min z_max i_zmin i_zmax n_nans mean std]
 	info2(3:4) = info2(3:4) + 1;			% Info from grdutils is zero based
 
@@ -64,14 +72,14 @@ if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived 
 	if (handles.head(7))	half = 0.5;
 	else					half = 0;
 	end
-	x_min = handles.head(1) + (fix(info2(3) / ny) + half) * handles.head(8);    % x of z_min
-	x_max = handles.head(1) + (fix(info2(4) / ny) + half) * handles.head(8);    % x of z_max
-	y_min = handles.head(3) + (rem(info2(3)-1, ny) + half) * handles.head(9);   % y of z_min
-	y_max = handles.head(3) + (rem(info2(4)-1, ny) + half) * handles.head(9);   % y of z_max
-	txt_x1 = sprintf('%.8g',x_min);
-	txt_x2 = sprintf('%.8g',x_max);
-	txt_y1 = sprintf('%.8g',y_min);
-	txt_y2 = sprintf('%.8g',y_max);
+	xx_min = handles.head(1) + (fix(info2(3) / ny) + half) * handles.head(8);    % x of z_min
+	xx_max = handles.head(1) + (fix(info2(4) / ny) + half) * handles.head(8);    % x of z_max
+	yy_min = handles.head(3) + (rem(info2(3)-1, ny) + half) * handles.head(9);   % y of z_min
+	yy_max = handles.head(3) + (rem(info2(4)-1, ny) + half) * handles.head(9);   % y of z_max
+	txt_x1 = sprintf('%.8g',xx_min);
+	txt_x2 = sprintf('%.8g',xx_max);
+	txt_y1 = sprintf('%.8g',yy_min);
+	txt_y2 = sprintf('%.8g',yy_max);
 
 	w{8} = ['z_min: ' txt1 '   at x = ' txt_x1 '   y = ' txt_y1]; 
 	w{9} = ['z_max: ' txt2 '   at x = ' txt_x2 '   y = ' txt_y2];
@@ -85,18 +93,11 @@ if (handles.image_type == 1 && ~handles.computed_grid)          % Image derived 
 	if (info2(5))       % We have NaNs, report them also
 		w{12} = ['nodes set to NaN: ' sprintf('%d',info2(5))];
 	end
-	message_win('create',w, 'figname','Grid Info');
-elseif (handles.computed_grid)  % Computed array
-	w{1} = '    INTERNALY COMPUTED GRID';   w{2} = ' ';
-	w{3} = ['   Xmin:  ' num2str(handles.head(1)) '    Xmax: ' num2str(handles.head(2))];
-	w{4} = ['   Ymin:  ' num2str(handles.head(3)) '    Ymax: ' num2str(handles.head(4))];
-	w{5} = ['   Zmin:  ' num2str(handles.head(5)) '    Zmax: ' num2str(handles.head(6))];
-	w{6} = ['   Xinc:  ' num2str(handles.head(8)) '    Yinc: ' num2str(handles.head(9))];
-	one_or_zero = ~(handles.head(7) == 1);      % To give correct nx,ny with either grid or pixel registration
-	nx = round((handles.head(2) - handles.head(1))/handles.head(8) + one_or_zero);
-	ny = round((handles.head(4) - handles.head(3))/abs(handles.head(9)) + one_or_zero);
-	w{7} = ['   nx:  ' num2str(nx) '    ny: ' num2str(ny)];
-	message_win('create',w, 'figname','Grid Info');
+	hMsg = message_win('create',w, 'figname','Grid Info', 'button','yes');
+	
+	% Give message_win the info needed to plot the grid's min/Max
+	ud.hAxe = handles.axes1;	ud.p1 = [xx_min yy_min];	ud.p2 = [xx_max yy_max];
+	set(hMsg, 'UserData', ud)
 else
     InfoMsg = getappdata(handles.axes1,'InfoMsg');
     if (~isempty(InfoMsg))
@@ -104,11 +105,16 @@ else
 		if (~isempty(meta))
 			InfoMsg = [InfoMsg; {' '; ' '}; meta];
 		end
-		message_win('create',InfoMsg, 'figname', 'Grid Info');
+		hMsg = message_win('create',InfoMsg, 'figname', 'Grid Info');
     else
-		msgbox('Info missing or nothing to info about?','???')
+		hMsg = msgbox('Info missing or nothing to info about?','???');
     end
 end
+
+% Add the Message figure handle to the carraças list
+plugedWin = getappdata(handles.figure1,'dependentFigs');
+plugedWin = [plugedWin hMsg];
+setappdata(handles.figure1,'dependentFigs',plugedWin);
 
 % --------------------------------------------------------------------
 function att2Hdr(handles,att)
