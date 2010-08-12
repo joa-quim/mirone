@@ -13,6 +13,20 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 % OPT		-> -R<...> or -P<...> options of gdalread OR the "att" attributes structure
 %				got from att = gdalread(fname,'-M',...). This argument is optional
 
+%	Copyright (c) 2004-2010 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 	if (nargin == 3)	opt = ' ';	end
 	opt_I = ' ';	srsWKT = [];	att = [];	Z = [];		X = [];		Y = [];
 	if (isa(fullname, 'cell') && numel(fullname) == 2 )
