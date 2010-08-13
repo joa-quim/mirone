@@ -1,7 +1,8 @@
 function handFig = message_win(option, texto, varargin)
 %MESSAGE_WIN  Message function.
 %
-%   Usage:  message_win('create','Some text')   for the first call
+%   Usage:  message_win('create','Some text')	For the first call
+%			message_win('Some text')			For the first call (but VARARGIN mus be empty)
 %           message_win('add','More text')      for subsequent calls. When the window message
 %                                               is full of text a slider will be added.
 %			message_win(...,varargin)			Where varargin contains PN/PV pairs. Valid PN are:
@@ -40,6 +41,9 @@ function handFig = message_win(option, texto, varargin)
 tagFig = 'Wdmsgfig';
 tagTxt = 'textTag';
 
+if (nargin == 1)
+	texto = option;		option = 'create';
+end
 hFig = findmsgwin(tagFig);
 if ( isempty(hFig) && strcmp(option, 'add') )
 	option = 'create';
@@ -49,12 +53,12 @@ if (~isa(texto,'cell')),		texto = cellstr(texto);	end
 
 switch option
 	case 'create'
-		[figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, add_button] = parse_inputs(texto, varargin{:});
+		[figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH] = parse_inputs(texto, varargin{:});
 		if (isempty(movepos))			% Reposition figure on screen
 			figpos = getnicelocation(figpos, 'pixels');
 		end
 		hFig = figure('MenuBar','none', 'Name',figName, 'HandleVisibility', 'off', ...
-				'Vis','on', 'Unit','pix', 'Pos',figpos,...
+				'Vis','off', 'Unit','pix', 'Pos',figpos,...
 				'Color',bgcolor, 'NumberTitle','off', 'DoubleBuffer','on', 'Tag',tagFig);
 		hTxt = uicontrol('Parent',hFig, 'Style','text', ...
 				'Unit','pix', 'Pos', posTxt, ...
@@ -62,7 +66,7 @@ switch option
 				'FontWeight',Font.Weight, 'FontSize',Font.Size, 'FontName',Font.Name,...
 				'BackgroundColor',bgcolor, 'ForegroundColor',fwcolor, ...
 				'Tag',tagTxt);
-		if (add_button)
+		if (addButt)
 			posBut = [(figpos(3)/2 - 40) 4 80 21];
 			hBut = uicontrol('Parent',hFig, 'Style','pushbutton', ...
 				'Unit','pix', 'Position', posBut, ...
@@ -86,15 +90,15 @@ switch option
 			figpos(3) = extent_pix(3)+20;
 			figpos = getnicelocation(figpos, 'pixels');			% Reposition again
 			set(hFig, 'Pos', figpos)
-			if (add_button)						% We need to recenter the button too
+			if (addButt)						% We need to recenter the button too
 				posBut(1) = (figpos(3)/2 - 40);
 				set(hBut, 'Pos', posBut)
 			end
 			set([hFig,hTxt], 'unit', 'norm')
 		end
 
-		if ( extent(4) > 1 || add_button)		% Text too big to fit in?
-			if (figpos(4) > 500)				% Yes, add a slider to the figure
+		if ( extent(4) > 1 || addButt)		% Text too big to fit in?
+			if (figpos(4) == winMaxH)		% Yes, add a slider to the figure
 				posTxt = get(hTxt,'Position');
 				set_slider(hFig, hTxt, posTxt, ceil(extent(4)))
 			else
@@ -102,7 +106,7 @@ switch option
 				set([hFig,hTxt], 'unit', 'pix')
 				figpos = get(hFig, 'Pos');
 				extent = get(hTxt,'Extent');
-				if (add_button)		extent(4) = extent(4) + 30;		end	% Need to take button size into account
+				if (addButt)		extent(4) = extent(4) + 30;		end	% Need to take button size into account
 				figpos(4) = round(extent(4)+10);						% New fig height
 				figpos = getnicelocation(figpos, 'pixels');				% Reposition again
 				set(hFig, 'Pos', figpos)
@@ -123,7 +127,7 @@ switch option
 		extent = get(hTxt,'Extent');
 		
 		if (extent(4) > 1 && isempty(hSlider))		% Text to big to fit. Add a slider to the figure
-			set_slider(hFig, hTxt, posTxt, ceil(extent(4)))
+			set_slider(hFig, hTxt, posTxt, (extent(4)))
 		elseif (extent(4) > 1)						% Slider already exists; scroll it down
 			scal = get(hSlider, 'Max');
 			if (scal < extent(4))
@@ -140,7 +144,7 @@ switch option
 end
 
 % ------------------------------------------------------------------------------------	
-function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, add_button] = parse_inputs(texto, varargin)
+function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH] = parse_inputs(texto, varargin)
 % Parse inputs and compute also fig and text sizes
 
 	if ( rem(numel(varargin), 2) )
@@ -148,7 +152,7 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, add_button] 
 	end
 	% Assign defaults
 	win_width = 0;		win_height = 0;		movepos = [];	fwcolor = 'k';	bgcolor = [.95 .95 .95];
-	add_button = false;
+	addButt = false;
 	figName = 'Message window';
 	Font.Size = 9;
 	Font.Weight = 'demi';
@@ -166,11 +170,12 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, add_button] 
 				case 'fontweight',	Font.Weight = varargin{k+1};
 				case 'fontsize',	Font.Size = varargin{k+1};
 				case 'fontname',	Font.Name = varargin{k+1};
-				case 'button',		add_button = true;
+				case 'button',		addButt = true;
 			end
 		end
 	end
 
+	screensize = get(0,'ScreenSize');
 	if (~win_width)
 		defFigPos = get(0,'DefaultfigurePosition');
 		win_width = defFigPos(3);
@@ -178,14 +183,16 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, add_button] 
 	if (~win_height)
 		numLines = size(texto, 1);
 		win_height = numLines * 15;
-		win_height = min(win_height, 500);
+		winMaxH = round(screensize(4)*.9);		% Max win height is 90% of screen height
+		win_height = min(win_height, winMaxH);
+	else
+		winMaxH = win_height;
 	end
 	if (~isempty(movepos) && ~ischar(movepos))
 		error('msgwin:parse_input','POSITIOIN Property must be a char string')
 	end
 	
 	% Calculate figure size
-	screensize = get(0,'ScreenSize');
 	figpos = [screensize(3)-5-win_width 40 win_width win_height];
 	if (screensize(4) < 800),	figpos(2) = 20;		end
 
@@ -193,7 +200,7 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, add_button] 
 	bord  = 10;
  	posTxt = [bord bord/5 win_width-2*bord win_height-2*bord/5];
 	
-	if (add_button),	figpos(4) = figpos(4) + 30;		end
+	if (addButt),	figpos(4) = figpos(4) + 30;		end
 
 % ------------------------------------------------------------------------------------	
 function figSize = getnicelocation(figSize, figUnits)
@@ -217,15 +224,16 @@ function figSize = getnicelocation(figSize, figUnits)
 
 % ------------------------------------------------------------------------------------	
 function set_slider(hFig, hTxt, posTxt, scal)
-	pos = [0.97 0 .03 1];
+	pos = [0.96 0 .04 1];
+	if (scal > 1)	scal = scal - 1;	end
 	cb_slide_step = {@slide_step, hTxt, posTxt};
-	uicontrol(hFig,'style','slider','unit','normalized','position',pos,...
+	uicontrol(hFig,'style','slider','unit','normalized','pos',pos,...
         'call',cb_slide_step,'min',0,'max',scal,'Value',scal);
 
 % ------------------------------------------------------------------------------------	
 function slide_step(obj,event, h, pos)
 	maxVal = get(obj, 'Max');
-	new_pos = [pos(1) pos(2) pos(3) maxVal-get(obj,'value')+1.05];
+	new_pos = [pos(1:3) maxVal-get(obj,'value')+1];
 	set(h,'Position',new_pos)
 
 % ------------------------------------------------------------------------------------	
