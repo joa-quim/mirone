@@ -239,7 +239,7 @@ paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85
 
 	% ------------ Apply inherited projection
 	guidata(hObject, handles);
-	pushbutton_uppdate_CB(handles.pushbutton_uppdate, [], handles)
+	pushbutton_uppdate_CB(handles.pushbutton_uppdate, handles)
 	handles = guidata(hObject);     % Recover in "this handles" the changes donne in pushbutton_uppdate
 
 	guidata(hObject, handles);
@@ -1168,7 +1168,7 @@ else    % We don't have a grid, so we need to fish the image and save it as R,G,
 end
 
 % ------------ If we have used a GMT grid file build the GMT palette -----------------------
-if (used_grd)
+if (used_grd || strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on') )
     tmp = cell(261,1);
     pal = get(handMir.figure1,'colormap');
     %Z = getappdata(handMir.figure1,'dem_z');
@@ -1660,7 +1660,7 @@ end
             marg = marg / 2.54 * 72;    cbW = cbW / 2.54 * 72;
         end
 		YTick = get(axHandle,'YTick');		bInt = YTick(2) - YTick(1);		% To use in -B option
-        opt_D = [' -D' sprintf('%.2f%c/%.2f%c/%.2f%c/%.2f%c',mapW+marg,unitC, cbH/2,unitC, cbH,unitC, cbW,unitC)];
+        opt_D = sprintf(' -D%.2f%c/%.2f%c/%.2f%c/%.2f%c',mapW+marg,unitC, cbH/2,unitC, cbH,unitC, cbW,unitC);
 		script{l} = ' ';        l=l+1;
         script{l} = [comm ' ---- Plot colorbar ---'];   l=l+1;
         script{l} = ['psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];
@@ -1689,7 +1689,7 @@ end
 		% Make everybody visible again
 		set(ALLlineHand, 'Vis', 'on');		set(ALLpatchHand, 'Vis', 'on');	set(ALLtextHand, 'Vis', 'on')
 	end
-	
+
 % -----------------------------------------------------------------------------------------------------
 % -------------------------------------------- Write the script ---------------------------------------
 	% First do some eventual cleaning
@@ -1783,7 +1783,7 @@ function [LineStyle_num,LineStyle_gmt] = lineStyle2num(LineStyle)
 
 % --------------------------------------------------------------------
 function script = write_group_symb(prefix,prefix_ddir,comm,pb,pf,ellips,symbols,n,script)
-	% Write a group symbol to file, and uppdate the "script"
+% Write a group symbol to file, and uppdate the "script"
 	l = length(script) + 1;
 	for i=1:length(n)
 		name = [prefix_ddir '_symb_' num2str(i) '.dat'];
@@ -1803,7 +1803,7 @@ function script = write_group_symb(prefix,prefix_ddir,comm,pb,pf,ellips,symbols,
 
 % --------------------------------------------------------------------------------
 function [ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand)
-	% Find patches which have a level of transparency > 0.05
+% Find patches which have a level of transparency > 0.05
 	ind = false(1,numel(ALLpatchHand));
 	for (k = 1:numel(ALLpatchHand))
 		if (get(ALLpatchHand(k),'FaceAlpha') < 0.95)		% Patch has transparency
