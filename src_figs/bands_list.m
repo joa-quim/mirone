@@ -361,7 +361,7 @@ if (strcmp(get(handles.figure1, 'SelectionType'), 'open')) % if double click
 	else
 		if (get(handles.radiobutton_gray,'Value'))
 			guidata(hObject, handles);
-			push_Load_CB(handles.push_Load, [], handles)
+			push_Load_CB(handles.push_Load, handles)
 		end
 		return
 	end
@@ -466,7 +466,7 @@ function str1 = remove_indent(str0)
     
 % ------------------------------------------------------------------------
 function handles = order_bands(handles,idx)
-	% Put selected band (pointed by idx) on the box corresponding to active radiobutton
+% Put selected band (pointed by idx) on the box corresponding to active radiobutton
 
 	n_band = handles.band_desc{idx,2};
 	if (get(handles.radiobutton_RGB,'Value'))
