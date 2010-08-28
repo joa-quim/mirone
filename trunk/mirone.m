@@ -344,15 +344,15 @@ function erro = gateLoadFile(handles,drv,fname)
 % --------------------------------------------------------------------------------------------------
 function handles = recentFiles(handles, opt)
 	if (~isempty(handles.fileName) && ~exist(handles.fileName,'file')),		return,		end		% For example, subdatasets
-	jump = 0;		N = min(numel(handles.FOpenList), numel(handles.RecentF));
-	if (nargin == 1)		% Update list
+	jump = false;		N = min(numel(handles.FOpenList), numel(handles.RecentF));
+	if (nargin == 1 && ~isempty(handles.fileName))		% Update list
 		for (i = 1:N)		% See if new name is already in FOpenList
 			if (strcmpi(handles.fileName, handles.FOpenList{i}))
 				for (k = i:-1:2)	% Yes, it is. So move it to the top
 					handles.FOpenList{k} = handles.FOpenList{k-1};
 				end
 				handles.FOpenList{1} = handles.fileName;
-				jump = 1;	break
+				jump = true;	break
 			end
 		end
 		if (~jump)				% We got a new name
@@ -362,6 +362,7 @@ function handles = recentFiles(handles, opt)
 			handles.FOpenList{1} = handles.fileName;
 		end
 	end
+	if (isempty(handles.fileName))	jump = true;	end
 	if ( ~jump && (nargin == 1 || (nargin == 2 && ~isempty(opt))) )		% Save only if it worth it
 		FOpenList = handles.FOpenList;		fname = [handles.path_data 'mirone_pref.mat'];
 		if (~handles.version7),		save(fname,'FOpenList','-append')	% Update the list for "Recent files"
@@ -789,6 +790,8 @@ function ImageSegment_CB(handles, hObject)
 		h = mirone(rgbIm);		set(h,'Name','Color segmented')
 	else
 		tmp = struct('X',handles.head(1:2), 'Y',handles.head(3:4), 'name','Color segmented', 'geog',handles.geog, 'head',handles.head);
+		strWKT = getappdata(handles.figure1,'ProjWKT');
+		if (~isempty(strWKT))	tmp.srsWKT = strWKT;	end
 		mirone(rgbIm, tmp)
 	end
 
@@ -1209,16 +1212,22 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		[att.RasterYSize, att.RasterXSize, n_bands] = size(I);
 		bands_inMemory = 1:n_bands;			% Make it a vector
 		reader = {cmd1; cmd2};
-		handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];		% Fake GMT header
+		handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];	% Fake GMT header
 		handles.image_type = 2;		handles.geog = 0;
 	elseif (strcmp(opt,'ENVISAT') || strcmp(opt,'AVHRR'))
 		bands_inMemory = 10;				% AD-HOC
 		opt_B = sprintf('-B1-%d', bands_inMemory);
 		[I,att] = gdalread(fname,'-S', opt_B,'-C');
 		n_bands = att.RasterCount;
-		bands_inMemory = 1:min(n_bands,bands_inMemory);				% Make it a vector
+		bands_inMemory = 1:min(n_bands,bands_inMemory);			% Make it a vector
 		handles.head = att.GMT_hdr;
 		handles.image_type = 2;		handles.geog = 0;
+		if (~isempty(att.ProjectionRef))							% Georeferenced image
+			X = handles.head(1:2);		Y = handles.head(3:4);
+			handles.head(8) = diff(X) / (size(I,2) - 1);		handles.head(9) = diff(Y) / (size(I,1) - 1);
+			ax_dir = 'xy';				handles.image_type = 3;
+			att.GMT_hdr(8:9) = handles.head(8:9);				% Update the attrib struct
+		end
 		if (~isempty(att.GCPvalues))	% Save GCPs so that we can plot them and warp the image
 			setappdata(handles.figure1,'GCPregImage',att.GCPvalues)
 			setappdata(handles.figure1,'fnameGCP',fname)	% Save this to know when GCPs are to be removed
