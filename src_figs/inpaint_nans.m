@@ -127,7 +127,7 @@ function push_OK_CB(hObject, handles)
 		opt_I = ' ';
 	end
 
-	aguentabar(0,'title','Tapa buracos (Filling holes)','CreateCancelBtn')
+	h = aguentabar(0,'title','Tapa buracos (Filling holes)','CreateCancelBtn');
 
 	if (get(handles.radio_paintSmall,'Val'))
 		pad = 4;		n_buracos = numel(B);
@@ -193,6 +193,8 @@ function push_OK_CB(hObject, handles)
 		end
 
 	end
+
+	if (ishandle(h))	delete(h),		end
 
 	zz = grdutils(Z,'-L');		z_min = zz(1);		z_max = zz(2);
 
