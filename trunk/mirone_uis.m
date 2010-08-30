@@ -94,7 +94,7 @@ uitoggletool('parent',hTB,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''pa
 uitoggletool('parent',hTB,'Click','draw_funs(gcbo,''deleteObj'')', 'Tag','Tesoura','cdata',cut_ico,'Tooltip','Delete objects');
 uipushtool('parent',hTB,'Click','color_palettes(guidata(gcbo))', ...
 	'Tag','ColorPal','cdata',color_ico,'Tooltip','Color Palettes');
-hVG(2) = uipushtool('parent',hTB,'Click','mirone(''ImageIlluminationModel_CB'',guidata(gcbo),''grdgradient_A'')', ...
+hVG(2) = uipushtool('parent',hTB,'Click','mirone(''ImageIllumModel_CB'',guidata(gcbo),''grdgradient_A'')', ...
 	'Tag','Shading','cdata',shade2_ico,'Tooltip','Shaded illumination','Sep','on');
 hVG(3) = uipushtool('parent',hTB,'Click','mirone(''ImageAnaglyph_CB'',guidata(gcbo))', ...
 	'Tag','Anaglyph','cdata',anaglyph_ico,'Tooltip','Anaglyph');
@@ -256,23 +256,24 @@ hVG(kv) = uimenu('Parent',hIM,'Call','mirone(''ImageHistEqualizeGrid_CB'',guidat
 'Label','Histogram Equalization (grid)','Tag','ImgHistGrd');		kv = kv + 1;
 
 h = uimenu('Parent',hIM,'Label','Illuminate','Tag','Illuminate');	hVG(kv) = h;	kv = kv + 1;
-uimenu('Parent',h,'Call','mirone(''ImageIlluminationModel_CB'',guidata(gcbo),''grdgradient_A'')','Label','GMT grdgradient');
-uimenu('Parent',h,'Call','mirone(''ImageIlluminationModel_CB'',guidata(gcbo),''falseColor'')','Label','False color');
+uimenu('Parent',h,'Call','mirone(''ImageIllumModel_CB'',guidata(gcbo),''grdgradient_A'')','Label','GMT grdgradient');
+uimenu('Parent',h,'Call','mirone(''ImageIllumModel_CB'',guidata(gcbo),''falseColor'')','Label','False color');
 uimenu('Parent',h,'Call','mirone(''ImageAnaglyph_CB'',guidata(gcbo))','Label','Anaglyph');
 
 uimenu('Parent',hIM,'Call','mirone(''ImageLink_CB'',guidata(gcbo))','Label','Link Displays...','Sep','on');
-uimenu('Parent',hIM,'Call','mirone(''ImageDrape_CB'',guidata(gcbo))','Label','Drape','Tag','ImageDrape','Enable','off');
+uimenu('Parent',hIM,'Call','mirone(''ImageDrape_CB'',guidata(gcbo))','Label','Drape','Tag','ImageDrape','Vis','off');
+uimenu('Parent',hIM,'Call','mirone(''ImageRetroShade_CB'',guidata(gcbo))','Label','Retro-Illuminate','Tag','RetroShade','Vis','off');
 h = uimenu('Parent',hIM,'Label','Limits (Map or Image)');
 uimenu('Parent',h,'Call','mirone(''ImageMapLimits_CB'',guidata(gcbo), ''img'')','Label','Image (data) Limits');
 uimenu('Parent',h,'Call','mirone(''ImageMapLimits_CB'',guidata(gcbo), ''map'')','Label','Map (display) Limits');
 
-h = uimenu('Parent',hIM,'Label','Edge detect (Canny)','Sep','on');
-uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''Vec'')','Label','Vector');
-uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''Ras'')','Label','Raster');
-
-h = uimenu('Parent',hIM,'Label','Edge detect (SUSAN)');
-uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''SUSvec'')','Label','Vector');
-uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''SUSras'')','Label','Raster');
+h = uimenu('Parent',hIM,'Label','Edge detect','Sep','on');
+h2 = uimenu('Parent',h,'Label','Canny');
+uimenu('Parent',h2,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''Vec'')','Label','Vector');
+uimenu('Parent',h2,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''Ras'')','Label','Raster');
+h2 = uimenu('Parent',h,'Label','SUSAN');
+uimenu('Parent',h2,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''SUSvec'')','Label','Vector');
+uimenu('Parent',h2,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''SUSras'')','Label','Raster');
 
 h = uimenu('Parent',hIM,'Label','Features detection');
 uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''Lines'')','Label','Lines');
@@ -653,7 +654,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 26 Aug 2010'',''1.5.4b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 30 Aug 2010'',''1.5.4b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -661,7 +662,7 @@ uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 26 
 	handles.IamCompiled = IamCompiled;		% If == 1 than we know that we are dealing with a compiled (V3) version
 	if (version7),  set(H1,'Pos',[pos(1:3) 1]);    end     % Adjust for the > R13 bugginess
 	handles.RecentF = handles.RecentF(end:-1:1);  % Inverse creation order so that newest files show on top of the list
-	handles.noVGlist = hVG;					% List of ui handles that will show when "not valid grid"
+	handles.noVGlist = hVG;					% List of ui handles that will not show when "not valid grid"
 	movegui(H1,'north');					% Reposition the window on screen
 	set(H1,'Visible','on');
 
