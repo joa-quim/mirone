@@ -39,6 +39,7 @@ function varargout = plate_calculator(varargin)
 	handles.first_AKIM2000 = 1;
 	handles.first_DEOS2K = 1;
 	handles.first_REVEL = 1;
+	handles.first_MORVEL = 1;
 	handles.absolute_motion = 0;		% when == 1, it signals an absolute motion model
 	handles.abs2rel = 0;				% when == 1, flags that an absolute model was turned relative
 
@@ -57,8 +58,7 @@ function varargout = plate_calculator(varargin)
 	handles.Nuvel1A_omega = omega;
 
 	% Fill the popupmenus with the Plate's names
-	set(handles.popup_FixedPlate,'String',name)
-	set(handles.popup_MovingPlate,'String',name)
+	set([handles.popup_FixedPlate handles.popup_MovingPlate],'String',name)
 
 	set_Nuvel1Aplate_model(hObject,handles)
 	setappdata(hObject,'current_model','Nuvel1A')
@@ -82,194 +82,143 @@ function varargout = plate_calculator(varargin)
 	if (nargout),	varargout{1} = hObject;		end
 
 %--------------------------------------------------------------------------------------------------
-function popup_FixedPlate_CB(hObject, handles)
-D2R = pi/180;
-ind_fix = get(hObject,'Value');
-ind_mov = get(handles.popup_MovingPlate,'Value');
-model = getappdata(handles.figure1, 'current_model');
-switch model
-    case 'Nuvel1A'
-        lat2 = handles.Nuvel1A_lat(ind_mov);        lon2 = handles.Nuvel1A_lon(ind_mov);
-        omega2 = handles.Nuvel1A_omega(ind_mov);    handles.abb_mov = handles.Nuvel1A_abbrev{ind_mov};
-    case 'NNR'
-        lat2 = handles.Nuvel1A_NNR_lat(ind_mov);     lon2 = handles.Nuvel1A_NNR_lon(ind_mov);
-        omega2 = handles.Nuvel1A_NNR_omega(ind_mov); handles.abb_mov = handles.Nuvel1A_NNR_abbrev{ind_mov};
-    case 'PB'
-        lat2 = handles.PB_lat(ind_mov);             lon2 = handles.PB_lon(ind_mov);
-        omega2 = handles.PB_omega(ind_mov);         handles.abb_mov = handles.PB_abbrev{ind_mov};
-    case 'AKIM2000'
-        lat2 = handles.AKIM2000_lat(ind_mov);       lon2 = handles.AKIM2000_lon(ind_mov);
-        omega2 = handles.AKIM2000_omega(ind_mov);   handles.abb_mov = handles.AKIM2000_abbrev{ind_mov};
-    case 'REVEL'
-        lat2 = handles.REVEL_lat(ind_mov);          lon2 = handles.REVEL_lon(ind_mov);
-        omega2 = handles.REVEL_omega(ind_mov);      handles.abb_mov = handles.REVEL_abbrev{ind_mov};
-    case 'DEOS2K'
-        lat2 = handles.DEOS2K_lat(ind_mov);         lon2 = handles.DEOS2K_lon(ind_mov);
-        omega2 = handles.DEOS2K_omega(ind_mov);     handles.abb_mov = handles.DEOS2K_abbrev{ind_mov};
-end
+function popup_PickPlate_CB(hObject, handles, qual)
+	D2R = pi/180;
+	if (strcmp(qual, 'fixed'))
+		ind_fix = get(hObject,'Value');
+		ind_mov = get(handles.popup_MovingPlate,'Value');
+	else
+		ind_mov = get(hObject,'Value');
+		ind_fix = get(handles.popup_FixedPlate,'Value');
+	end
+	model = getappdata(handles.figure1, 'current_model');
 
-if ~(handles.absolute_motion)       % That is, if relative motion
-    switch model
-        case 'Nuvel1A'
-            lat1 = handles.Nuvel1A_lat(ind_fix);        lon1 = handles.Nuvel1A_lon(ind_fix);
-            omega1 = handles.Nuvel1A_omega(ind_fix);    handles.abb_fix = handles.Nuvel1A_abbrev{ind_fix};
-        case 'NNR'
-            lat1 = handles.Nuvel1A_NNR_lat(ind_fix);     lon1 = handles.Nuvel1A_NNR_lon(ind_fix);
-            omega1 = handles.Nuvel1A_NNR_omega(ind_fix); handles.abb_fix = handles.Nuvel1A_NNR_abbrev{ind_fix};
-        case 'PB'
-            lat1 = handles.PB_lat(ind_fix);             lon1 = handles.PB_lon(ind_fix);
-            omega1 = handles.PB_omega(ind_fix);         handles.abb_fix = handles.PB_abbrev{ind_fix};
-        case 'AKIM2000'
-            lat1 = handles.AKIM2000_lat(ind_fix);       lon1 = handles.AKIM2000_lon(ind_fix);
-            omega1 = handles.AKIM2000_omega(ind_fix);   handles.abb_fix = handles.AKIM2000_abbrev{ind_fix};       
-        case 'REVEL'
-            lat1 = handles.REVEL_lat(ind_fix);          lon1 = handles.REVEL_lon(ind_fix);
-            omega1 = handles.REVEL_omega(ind_fix);      handles.abb_fix = handles.REVEL_abbrev{ind_fix};
-        case 'DEOS2K'
-            lat1 = handles.DEOS2K_lat(ind_fix);         lon1 = handles.DEOS2K_lon(ind_fix);
-            omega1 = handles.DEOS2K_omega(ind_fix);     handles.abb_fix = handles.DEOS2K_abbrev{ind_fix};       
-    end
-    [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
-else                                % Absolute motion
-    lon = lon2;     lat = lat2;     omega = omega2;
-    handles.abb_fix = 'absolute';
-end
+	switch model
+		case 'Nuvel1A'
+			lat2 = handles.Nuvel1A_lat(ind_mov);		lon2 = handles.Nuvel1A_lon(ind_mov);
+			omega2 = handles.Nuvel1A_omega(ind_mov);	handles.abb_mov = handles.Nuvel1A_abbrev{ind_mov};
+		case 'NNR'
+			lat2 = handles.Nuvel1A_NNR_lat(ind_mov);	lon2 = handles.Nuvel1A_NNR_lon(ind_mov);
+			omega2 = handles.Nuvel1A_NNR_omega(ind_mov);handles.abb_mov = handles.Nuvel1A_NNR_abbrev{ind_mov};
+		case 'PB'
+			lat2 = handles.PB_lat(ind_mov);				lon2 = handles.PB_lon(ind_mov);
+			omega2 = handles.PB_omega(ind_mov);			handles.abb_mov = handles.PB_abbrev{ind_mov};
+		case 'AKIM2000'
+			lat2 = handles.AKIM2000_lat(ind_mov);		lon2 = handles.AKIM2000_lon(ind_mov);
+			omega2 = handles.AKIM2000_omega(ind_mov);	handles.abb_mov = handles.AKIM2000_abbrev{ind_mov};
+		case 'REVEL'
+			lat2 = handles.REVEL_lat(ind_mov);			lon2 = handles.REVEL_lon(ind_mov);
+			omega2 = handles.REVEL_omega(ind_mov);		handles.abb_mov = handles.REVEL_abbrev{ind_mov};
+		case 'DEOS2K'
+			lat2 = handles.DEOS2K_lat(ind_mov);			lon2 = handles.DEOS2K_lon(ind_mov);
+			omega2 = handles.DEOS2K_omega(ind_mov);		handles.abb_mov = handles.DEOS2K_abbrev{ind_mov};
+		case 'MORVEL'
+			lat2 = handles.MORVEL_lat(ind_mov);			lon2 = handles.MORVEL_lon(ind_mov);
+			omega2 = handles.MORVEL_omega(ind_mov);		handles.abb_mov = handles.MORVEL_abbrev{ind_mov};
+	end
 
-if (omega == 0)     % This works as a test for when the same plate is selected as Fixed and Moving
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
-    return
-end
+	if ~(handles.absolute_motion)       % That is, if relative motion
+		switch model
+			case 'Nuvel1A'
+				lat1 = handles.Nuvel1A_lat(ind_fix);		lon1 = handles.Nuvel1A_lon(ind_fix);
+				omega1 = handles.Nuvel1A_omega(ind_fix);	handles.abb_fix = handles.Nuvel1A_abbrev{ind_fix};
+			case 'NNR'
+				lat1 = handles.Nuvel1A_NNR_lat(ind_fix);	lon1 = handles.Nuvel1A_NNR_lon(ind_fix);
+				omega1 = handles.Nuvel1A_NNR_omega(ind_fix);handles.abb_fix = handles.Nuvel1A_NNR_abbrev{ind_fix};
+			case 'PB'
+				lat1 = handles.PB_lat(ind_fix);				lon1 = handles.PB_lon(ind_fix);
+				omega1 = handles.PB_omega(ind_fix);			handles.abb_fix = handles.PB_abbrev{ind_fix};
+			case 'AKIM2000'
+				lat1 = handles.AKIM2000_lat(ind_fix);		lon1 = handles.AKIM2000_lon(ind_fix);
+				omega1 = handles.AKIM2000_omega(ind_fix);	handles.abb_fix = handles.AKIM2000_abbrev{ind_fix};       
+			case 'REVEL'
+				lat1 = handles.REVEL_lat(ind_fix);			lon1 = handles.REVEL_lon(ind_fix);
+				omega1 = handles.REVEL_omega(ind_fix);		handles.abb_fix = handles.REVEL_abbrev{ind_fix};
+			case 'DEOS2K'
+				lat1 = handles.DEOS2K_lat(ind_fix);			lon1 = handles.DEOS2K_lon(ind_fix);
+				omega1 = handles.DEOS2K_omega(ind_fix);		handles.abb_fix = handles.DEOS2K_abbrev{ind_fix};       
+			case 'MORVEL'
+				lat1 = handles.MORVEL_lat(ind_fix);			lon1 = handles.MORVEL_lon(ind_fix);
+				omega1 = handles.MORVEL_omega(ind_fix);		handles.abb_fix = handles.MORVEL_abbrev{ind_fix};
+		end
+		[lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
+	else                                % Absolute motion
+		lon = lon2;     lat = lat2;     omega = omega2;
+		handles.abb_fix = 'absolute';
+	end
 
-set(handles.edit_PoleLon,'String',sprintf('%3.2f',lon/D2R))
-set(handles.edit_PoleLat,'String',sprintf('%2.2f',lat/D2R))
-set(handles.edit_PoleRate,'String',sprintf('%1.4f',omega))
-push_Calculate_CB(hObject,handles,'nada')
-guidata(hObject, handles);
+	if (omega == 0)     % This works as a test for when the same plate is selected as Fixed and Moving
+		set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
+		return
+	end
 
-%--------------------------------------------------------------------------------------------------
-function popup_MovingPlate_CB(hObject, handles)
-D2R = pi/180;
-ind_mov = get(hObject,'Value');
-ind_fix = get(handles.popup_FixedPlate,'Value');
-model = getappdata(handles.figure1,'current_model');
-switch model
-    case 'Nuvel1A'
-        lat2 = handles.Nuvel1A_lat(ind_mov);        lon2 = handles.Nuvel1A_lon(ind_mov);
-        omega2 = handles.Nuvel1A_omega(ind_mov);    handles.abb_mov = handles.Nuvel1A_abbrev{ind_mov};
-    case 'NNR'
-        lat2 = handles.Nuvel1A_NNR_lat(ind_mov);     lon2 = handles.Nuvel1A_NNR_lon(ind_mov);
-        omega2 = handles.Nuvel1A_NNR_omega(ind_mov); handles.abb_mov = handles.Nuvel1A_NNR_abbrev{ind_mov};
-    case 'PB'
-        lat2 = handles.PB_lat(ind_mov);             lon2 = handles.PB_lon(ind_mov);
-        omega2 = handles.PB_omega(ind_mov);         handles.abb_mov = handles.PB_abbrev{ind_mov};
-    case 'AKIM2000'
-        lat2 = handles.AKIM2000_lat(ind_mov);       lon2 = handles.AKIM2000_lon(ind_mov);
-        omega2 = handles.AKIM2000_omega(ind_mov);   handles.abb_mov = handles.AKIM2000_abbrev{ind_mov};        
-    case 'REVEL'
-        lat2 = handles.REVEL_lat(ind_mov);          lon2 = handles.REVEL_lon(ind_mov);
-        omega2 = handles.REVEL_omega(ind_mov);      handles.abb_mov = handles.REVEL_abbrev{ind_mov};
-    case 'DEOS2K'
-        lat2 = handles.DEOS2K_lat(ind_mov);         lon2 = handles.DEOS2K_lon(ind_mov);
-        omega2 = handles.DEOS2K_omega(ind_mov);     handles.abb_mov = handles.DEOS2K_abbrev{ind_mov};        
-end
-if ~(handles.absolute_motion)       % That is, if relative motion
-    switch model
-        case 'Nuvel1A'
-            lat1 = handles.Nuvel1A_lat(ind_fix);        lon1 = handles.Nuvel1A_lon(ind_fix);
-            omega1 = handles.Nuvel1A_omega(ind_fix);    handles.abb_fix = handles.Nuvel1A_abbrev{ind_fix};
-        case 'NNR'
-            lat1 = handles.Nuvel1A_NNR_lat(ind_fix);     lon1 = handles.Nuvel1A_NNR_lon(ind_fix);
-            omega1 = handles.Nuvel1A_NNR_omega(ind_fix); handles.abb_fix = handles.Nuvel1A_NNR_abbrev{ind_fix};
-        case 'PB'
-            lat1 = handles.PB_lat(ind_fix);             lon1 = handles.PB_lon(ind_fix);
-            omega1 = handles.PB_omega(ind_fix);         handles.abb_fix = handles.PB_abbrev{ind_fix};
-        case 'AKIM2000'
-            lat1 = handles.AKIM2000_lat(ind_fix);       lon1 = handles.AKIM2000_lon(ind_fix);
-            omega1 = handles.AKIM2000_omega(ind_fix);   handles.abb_fix = handles.AKIM2000_abbrev{ind_fix};        
-        case 'REVEL'
-            lat1 = handles.REVEL_lat(ind_fix);          lon1 = handles.REVEL_lon(ind_fix);
-            omega1 = handles.REVEL_omega(ind_fix);      handles.abb_fix = handles.REVEL_abbrev{ind_fix};
-        case 'DEOS2K'
-            lat1 = handles.DEOS2K_lat(ind_fix);         lon1 = handles.DEOS2K_lon(ind_fix);
-            omega1 = handles.DEOS2K_omega(ind_fix);     handles.abb_fix = handles.DEOS2K_abbrev{ind_fix};        
-    end
-    [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
-    lon = lon/D2R;     lat = lat/D2R;
-else
-    lon = lon2;     lat = lat2;     omega = omega2;
-    handles.abb_fix = 'absolute';
-end
-
-if (omega == 0)     % This works as a test for when the same plate is selected as Fixed and Moving
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
-    return
-end
-
-set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
-push_Calculate_CB(hObject,handles,'nada')
-guidata(hObject, handles);
+	set(handles.edit_PoleLon,'String',sprintf('%3.2f',lon/D2R))
+	set(handles.edit_PoleLat,'String',sprintf('%2.2f',lat/D2R))
+	set(handles.edit_PoleRate,'String',sprintf('%1.4f',omega))
+	push_Calculate_CB(hObject,handles,'nada')
+	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
-function radio_Nuvel1A_CB(hObject, handles)
-if ~get(hObject,'Value')
-    set(hObject,'Value',1);    return
-end
+function radio_Nuvel1A_CB(hObject, handles, tipo)
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
-set(handles.radio_Nuvel1A_NNR,'Value',0)
-set(handles.radio_PBird,'Value',0)
-set(handles.radio_DEOS2K,'Value',0)
-set(handles.radio_REVEL,'Value',0)
-set(handles.checkbox_Abs2Rel,'Visible','off')
+	if (nargin == 2)	tipo = 'Nuvel1A';	end
+	set([handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_DEOS2K handles.radio_REVEL],'Value',0)
+	set(handles.checkbox_Abs2Rel,'Visible','off')
 
-set(handles.popup_FixedPlate,'Enable','on')
-handles.absolute_motion = 0;            % The Nuvel1A is a relative motion model
+	set(handles.popup_FixedPlate,'Enable','on')
+	handles.absolute_motion = 0;				% The Nuvel1A is a relative motion model
+
+	if (handles.first_REVEL && tipo(1) == 'M')	% Load and read poles deffinition
+		fid = fopen([handles.path_data 'MORVEL_poles.dat'],'r');
+		[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+		fclose(fid);
+		% Save the poles parameters in the handles structure
+		handles.MORVEL_abbrev = abbrev;
+		handles.MORVEL_name = name;
+		handles.MORVEL_lat = lat;
+		handles.MORVEL_lon = lon;
+		handles.MORVEL_omega = omega;
+		handles.MORVEL_comb = do_plate_comb('Nuvel1A');
+		handles.first_REVEL = 0;
+	end
 
 % Fill the popupmenus with the Plate's names
-set(handles.popup_FixedPlate,'Value',1)
-set(handles.popup_MovingPlate,'Value',1)
-set(handles.popup_FixedPlate,'String',handles.Nuvel1A_name)
-set(handles.popup_MovingPlate,'String',handles.Nuvel1A_name)
-handles.Nuvel1A_comb = do_plate_comb('Nuvel1A');
+set([handles.popup_FixedPlate handles.popup_MovingPlate],'Value',1)
+if (tipo(1) == 'N')
+	set([handles.popup_FixedPlate handles.popup_MovingPlate],'String',handles.Nuvel1A_name)
+	handles.Nuvel1A_comb = do_plate_comb('Nuvel1A');
+else
+	set([handles.popup_FixedPlate handles.popup_MovingPlate],'String',handles.MORVEL_name)
+	handles.Nuvel1A_comb = do_plate_comb('Nuvel1A');	% Will change one day
+end
 
 model = getappdata(handles.figure1,'current_model');
-if ~any(strcmp(model,{'Nuvel1A','Nuvel1A_NNR'}))    % Another plate model was loaded
+if ~any(strcmp(model,{'Nuvel1A','Nuvel1A_NNR', 'MORVEL'}))    % Another plate model was loaded
     set_Nuvel1Aplate_model(hObject,handles)
 end
 
 % Clear the pole edit boxes fields
-set(handles.edit_PoleLon,'String','')
-set(handles.edit_PoleLat,'String','')
-set(handles.edit_PoleRate,'String','')
+set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
 
 % Remove info about the previously calculated velocity results
-set(handles.text_Azim,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
+set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
 % Flag in appdata which model is currently loaded
-setappdata(handles.figure1,'current_model','Nuvel1A')
+setappdata(handles.figure1,'current_model',tipo)
 
 % Need to change the ButtonDownFcn call arguments
 h_patch = findobj('Type','patch');
-set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'Nuvel1A'})
+set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,tipo})
 guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radio_Nuvel1A_NNR_CB(hObject, handles)
-if ~get(hObject,'Value')
-	set(hObject,'Value',1);    return
-end
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
-D2R = pi/180;
-set(handles.radio_Nuvel1A,'Value',0)
-set(handles.radio_PBird,'Value',0)
-set(handles.radio_DEOS2K,'Value',0)
-set(handles.radio_REVEL,'Value',0)
-set(handles.checkbox_Abs2Rel,'Visible','on')
+	D2R = pi/180;
+	set([handles.radio_Nuvel1A handles.radio_PBird handles.radio_DEOS2K handles.radio_REVEL],'Value',0)
+	set(handles.checkbox_Abs2Rel,'Visible','on')
 
 model = getappdata(handles.figure1,'current_model');
 if ~any(strcmp(model,{'Nuvel1A','Nuvel1A_NNR'}))    % Another plate model was loaded
@@ -333,9 +282,7 @@ if (omega ~= 0)         % That is, if the pole exists
 		'MarkerSize',8,'Tag','pole_in1');
 	line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
 else
-	set(handles.edit_PoleLon,'String','')
-	set(handles.edit_PoleLat,'String','')
-	set(handles.edit_PoleRate,'String','')
+	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
 end
 
 % Remove info about the previously calculated velocity results
@@ -351,18 +298,13 @@ guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radio_PBird_CB(hObject, handles)
-if ~get(hObject,'Value')
-    set(hObject,'Value',1);    return
-end
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
-set(handles.radio_Nuvel1A,'Value',0)
-set(handles.radio_Nuvel1A_NNR,'Value',0)
-set(handles.radio_DEOS2K,'Value',0)
-set(handles.radio_REVEL,'Value',0)
-set(handles.checkbox_Abs2Rel,'Visible','off')
+	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_DEOS2K handles.radio_REVEL],'Value',0)
+	set(handles.checkbox_Abs2Rel,'Visible','off')
 
-set(handles.popup_FixedPlate,'Enable','on')
-handles.absolute_motion = 0;            % The PB is a relative motion model
+	set(handles.popup_FixedPlate,'Enable','on')
+	handles.absolute_motion = 0;            % The PB is a relative motion model
 
 if (handles.first_PB)      % Load and read poles deffinition
     fid = fopen([handles.path_data 'PB_poles.dat'],'r');
@@ -387,9 +329,7 @@ set(handles.popup_MovingPlate,'String',handles.PB_name)
 set_PBplate_model(hObject,handles)
 
 % Clear the pole edit boxes fields
-set(handles.edit_PoleLon,'String','')
-set(handles.edit_PoleLat,'String','')
-set(handles.edit_PoleRate,'String','')
+set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
 
 % Remove info about the previously calculated velocity results
 set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
@@ -404,18 +344,13 @@ guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radio_AKIM2000_CB(hObject, handles)
-if ~get(hObject,'Value')
-    set(hObject,'Value',1);    return
-end
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
-D2R = pi/180;
-set(handles.radio_Nuvel1A,'Value',0)
-set(handles.radio_Nuvel1A_NNR,'Value',0)
-set(handles.radio_PBird,'Value',0)
-set(handles.radio_REVEL,'Value',0)
-set(handles.checkbox_Abs2Rel,'Visible','on')
+	D2R = pi/180;
+	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_REVEL],'Value',0)
+	set(handles.checkbox_Abs2Rel,'Visible','on')
 
-set_AKIM2000plate_model(hObject,handles)
+	set_AKIM2000plate_model(hObject,handles)
 
 if (handles.first_AKIM2000)      % Load and read poles deffinition
     fid = fopen([handles.path_data 'AKIM2000_poles.dat'],'r');
@@ -474,9 +409,7 @@ if (omega ~= 0)         % That is, if the pole exists
         'MarkerSize',8,'Tag','pole_in1');
     line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
 else
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
+	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
 end
 
 % Remove info about the previously calculated velocity results
@@ -492,18 +425,13 @@ guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radio_REVEL_CB(hObject, handles)
-if ~get(hObject,'Value')
-    set(hObject,'Value',1);    return
-end
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
-D2R = pi/180;
-set(handles.radio_Nuvel1A,'Value',0)
-set(handles.radio_Nuvel1A_NNR,'Value',0)
-set(handles.radio_PBird,'Value',0)
-set(handles.radio_DEOS2K,'Value',0)
-set(handles.checkbox_Abs2Rel,'Visible','on')
+	D2R = pi/180;
+	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_DEOS2K],'Value',0)
+	set(handles.checkbox_Abs2Rel,'Visible','on')
 
-set_REVELplate_model(hObject,handles)
+	set_REVELplate_model(hObject,handles)
 
 if (handles.first_REVEL)      % Load and read poles deffinition
     fid = fopen([handles.path_data 'REVEL_poles.dat'],'r');
@@ -562,9 +490,7 @@ if (omega ~= 0)         % That is, if the pole exists
         'MarkerSize',8,'Tag','pole_in1');
     line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
 else
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
+	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
 end
 
 % Remove info about the previously calculated velocity results
@@ -580,18 +506,13 @@ guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radio_DEOS2K_CB(hObject, handles)
-if ~get(hObject,'Value')
-    set(hObject,'Value',1);    return
-end
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
-D2R = pi/180;
-set(handles.radio_Nuvel1A,'Value',0)
-set(handles.radio_Nuvel1A_NNR,'Value',0)
-set(handles.radio_PBird,'Value',0)
-set(handles.radio_REVEL,'Value',0)
-set(handles.checkbox_Abs2Rel,'Visible','on')
+	D2R = pi/180;
+	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_REVEL],'Value',0)
+	set(handles.checkbox_Abs2Rel,'Visible','on')
 
-set_DEOS2Kplate_model(hObject,handles)
+	set_DEOS2Kplate_model(hObject,handles)
 
 if (handles.first_DEOS2K)      % Load and read poles deffinition
     fid = fopen([handles.path_data 'DEOS2K_poles.dat'],'r');
@@ -650,9 +571,7 @@ if (omega ~= 0)         % That is, if the pole exists
         'MarkerSize',8,'Tag','pole_in1');
     line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
 else
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
+	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
 end
 
 % Remove info about the previously calculated velocity results
@@ -792,6 +711,9 @@ elseif strcmp(opt,'REVEL')
 elseif strcmp(opt,'DEOS2K')
 	mod_abb = handles.DEOS2K_abbrev;
 	mod_comb = handles.DEOS2K_comb;
+elseif strcmp(opt,'MORVEL')
+	mod_abb = handles.MORVEL_abbrev;
+	mod_comb = handles.MORVEL_comb;
 end
 
 % Find (and set it on the popup) the moving plate name
@@ -866,45 +788,48 @@ ind_mov = get(handles.popup_MovingPlate,'Value');
 ind_fix = get(handles.popup_FixedPlate,'Value');
 model = getappdata(handles.figure1,'current_model');
 switch model
-    case 'Nuvel1A'
-        lat2 = handles.Nuvel1A_lat(ind_mov);        lon2 = handles.Nuvel1A_lon(ind_mov);
-        omega2 = handles.Nuvel1A_omega(ind_mov);    handles.abb_mov = handles.Nuvel1A_abbrev{ind_mov};
-        lat1 = handles.Nuvel1A_lat(ind_fix);        lon1 = handles.Nuvel1A_lon(ind_fix);
-        omega1 = handles.Nuvel1A_omega(ind_fix);    handles.abb_fix = handles.Nuvel1A_abbrev{ind_fix};
-    case 'NNR'
-        lat2 = handles.Nuvel1A_NNR_lat(ind_mov);     lon2 = handles.Nuvel1A_NNR_lon(ind_mov);
-        omega2 = handles.Nuvel1A_NNR_omega(ind_mov); handles.abb_mov = handles.Nuvel1A_NNR_abbrev{ind_mov};
-        lat1 = handles.Nuvel1A_NNR_lat(ind_fix);     lon1 = handles.Nuvel1A_NNR_lon(ind_fix);
-        omega1 = handles.Nuvel1A_NNR_omega(ind_fix); handles.abb_fix = handles.Nuvel1A_NNR_abbrev{ind_fix};
-    case 'PB'
-        lat2 = handles.PB_lat(ind_mov);             lon2 = handles.PB_lon(ind_mov);
-        omega2 = handles.PB_omega(ind_mov);         handles.abb_mov = handles.PB_abbrev{ind_mov};
-        lat1 = handles.PB_lat(ind_fix);             lon1 = handles.PB_lon(ind_fix);
-        omega1 = handles.PB_omega(ind_fix);         handles.abb_fix = handles.PB_abbrev{ind_fix};
-    case 'AKIM2000'
-        lat2 = handles.AKIM2000_lat(ind_mov);       lon2 = handles.AKIM2000_lon(ind_mov);
-        omega2 = handles.AKIM2000_omega(ind_mov);   handles.abb_mov = handles.AKIM2000_abbrev{ind_mov};        
-        lat1 = handles.AKIM2000_lat(ind_fix);       lon1 = handles.AKIM2000_lon(ind_fix);
-        omega1 = handles.AKIM2000_omega(ind_fix);   handles.abb_fix = handles.AKIM2000_abbrev{ind_fix};        
-    case 'REVEL'
-        lat2 = handles.REVEL_lat(ind_mov);          lon2 = handles.REVEL_lon(ind_mov);
-        omega2 = handles.REVEL_omega(ind_mov);      handles.abb_mov = handles.REVEL_abbrev{ind_mov};
-        lat1 = handles.REVEL_lat(ind_fix);          lon1 = handles.REVEL_lon(ind_fix);
-        omega1 = handles.REVEL_omega(ind_fix);      handles.abb_fix = handles.REVEL_abbrev{ind_fix};
-    case 'DEOS2K'
-        lat2 = handles.DEOS2K_lat(ind_mov);         lon2 = handles.DEOS2K_lon(ind_mov);
-        omega2 = handles.DEOS2K_omega(ind_mov);     handles.abb_mov = handles.DEOS2K_abbrev{ind_mov};        
-        lat1 = handles.DEOS2K_lat(ind_fix);         lon1 = handles.DEOS2K_lon(ind_fix);
-        omega1 = handles.DEOS2K_omega(ind_fix);     handles.abb_fix = handles.DEOS2K_abbrev{ind_fix};        
+	case 'Nuvel1A'
+		lat2 = handles.Nuvel1A_lat(ind_mov);		lon2 = handles.Nuvel1A_lon(ind_mov);
+		omega2 = handles.Nuvel1A_omega(ind_mov);	handles.abb_mov = handles.Nuvel1A_abbrev{ind_mov};
+		lat1 = handles.Nuvel1A_lat(ind_fix);		lon1 = handles.Nuvel1A_lon(ind_fix);
+		omega1 = handles.Nuvel1A_omega(ind_fix);	handles.abb_fix = handles.Nuvel1A_abbrev{ind_fix};
+	case 'NNR'
+		lat2 = handles.Nuvel1A_NNR_lat(ind_mov);	lon2 = handles.Nuvel1A_NNR_lon(ind_mov);
+		omega2 = handles.Nuvel1A_NNR_omega(ind_mov);handles.abb_mov = handles.Nuvel1A_NNR_abbrev{ind_mov};
+		lat1 = handles.Nuvel1A_NNR_lat(ind_fix);	lon1 = handles.Nuvel1A_NNR_lon(ind_fix);
+		omega1 = handles.Nuvel1A_NNR_omega(ind_fix);handles.abb_fix = handles.Nuvel1A_NNR_abbrev{ind_fix};
+	case 'PB'
+		lat2 = handles.PB_lat(ind_mov);				lon2 = handles.PB_lon(ind_mov);
+		omega2 = handles.PB_omega(ind_mov);			handles.abb_mov = handles.PB_abbrev{ind_mov};
+		lat1 = handles.PB_lat(ind_fix);				lon1 = handles.PB_lon(ind_fix);
+		omega1 = handles.PB_omega(ind_fix);			handles.abb_fix = handles.PB_abbrev{ind_fix};
+	case 'AKIM2000'
+		lat2 = handles.AKIM2000_lat(ind_mov);		lon2 = handles.AKIM2000_lon(ind_mov);
+		omega2 = handles.AKIM2000_omega(ind_mov);	handles.abb_mov = handles.AKIM2000_abbrev{ind_mov};        
+		lat1 = handles.AKIM2000_lat(ind_fix);		lon1 = handles.AKIM2000_lon(ind_fix);
+		omega1 = handles.AKIM2000_omega(ind_fix);	handles.abb_fix = handles.AKIM2000_abbrev{ind_fix};        
+	case 'REVEL'
+		lat2 = handles.REVEL_lat(ind_mov);			lon2 = handles.REVEL_lon(ind_mov);
+		omega2 = handles.REVEL_omega(ind_mov);		handles.abb_mov = handles.REVEL_abbrev{ind_mov};
+		lat1 = handles.REVEL_lat(ind_fix);			lon1 = handles.REVEL_lon(ind_fix);
+		omega1 = handles.REVEL_omega(ind_fix);		handles.abb_fix = handles.REVEL_abbrev{ind_fix};
+	case 'DEOS2K'
+		lat2 = handles.DEOS2K_lat(ind_mov);			lon2 = handles.DEOS2K_lon(ind_mov);
+		omega2 = handles.DEOS2K_omega(ind_mov);		handles.abb_mov = handles.DEOS2K_abbrev{ind_mov};        
+		lat1 = handles.DEOS2K_lat(ind_fix);			lon1 = handles.DEOS2K_lon(ind_fix);
+		omega1 = handles.DEOS2K_omega(ind_fix);		handles.abb_fix = handles.DEOS2K_abbrev{ind_fix};        
+	case 'MORVEL'
+		lat2 = handles.MORVEL_lat(ind_mov);			lon2 = handles.MORVEL_lon(ind_mov);
+		omega2 = handles.MORVEL_omega(ind_mov);		handles.abb_mov = handles.MORVEL_abbrev{ind_mov};
+		lat1 = handles.MORVEL_lat(ind_fix);			lon1 = handles.MORVEL_lon(ind_fix);
+		omega1 = handles.MORVEL_omega(ind_fix);		handles.abb_fix = handles.MORVEL_abbrev{ind_fix};
 end
 [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
 lon = lon/D2R;     lat = lat/D2R;
 
 if (omega == 0)     % This should not happen, but just in case
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
-    return
+	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
+	return
 end
 
 set(handles.edit_PoleLon,'String',sprintf('%3.2f', lon))
@@ -1183,133 +1108,133 @@ function out = do_plate_comb(which)
 % These function creates strings describing the neighbour plates to the first 
 % plate abbreviation in the char string.
 switch which
-    case 'Nuvel1A'
-        out(1) = {'AF-AN-AR-EU-NA-SA'};%-AN-AR-AS-AT-EU-NA-SA-SO
-        out(2) = {'AN-AF-AU-NZ-PA'};
-        out(3) = {'AR-AF-EU-IN'};
-        out(4) = {'AU-AF-AN-EU-IN-PA'};
-        out(5) = {'CA-CO-NA-NZ-SA'};
-        out(6) = {'CO-CA-NA-NZ-PA'};
-        out(7) = {'EU-AF-AR-AU-IN-NA-PA-PS'};
-        out(8) = {'IN-AF-AU-AR-EU'};
-        out(9) = {'JF-NA-PA'};
-        out(10) = {'NA-AF-CA-CO-EU-JF-PA-SA'};
-        out(11) = {'NZ-AN-CA-CO-PA-SA'};
-        out(12) = {'PA-AN-AU-CO-EU-JF-NA-NZ-PS'};
-        out(13) = {'PS-AU-EU-PA'};
-        out(14) = {'SA-AF-AN-CA-NA-NZ'};
-    case 'Nuvel1A_NNR'
-        out(1) = {'AF-AN-AR-EU-NA-SA'};
-        out(2) = {'AN-AF-AU-NZ-PA-SC'};
-        out(3) = {'AR-AF-EU-IN'};
-        out(4) = {'AU-AF-AN-EU-IN-PA'};
-        out(5) = {'CA-CO-NA-NZ-SA'};
-        out(6) = {'CO-CA-NA-NZ-PA'};
-        out(7) = {'EU-AF-AR-AU-IN-NA-PA-PS'};
-        out(8) = {'IN-AF-AU-AR-EU'};
-        out(9) = {'JF-NA-PA'};
-        out(10) = {'NA-AF-CA-CO-EU-JF-PA-SA'};
-        out(11) = {'NZ-AN-CA-CO-PA-SA'};
-        out(12) = {'PA-AN-AU-CO-EU-JF-NA-NZ-PS'};
-        out(13) = {'PS-AU-EU-PA'};
-        out(14) = {'SA-AF-AN-CA-NA-NZ-SC'};
-        out(15) = {'RI-'};
-        out(16) = {'SC-AN-SA'};
-    case 'AKIM2000'
-        out(1) = {'AF-AN-AR-EU-NA-SA-SO'};
-        out(2) = {'AN-AF-AU-NZ-PA'};
-        out(3) = {'AR-AF-EU'};
-        out(4) = {'AU-AF-AN-EU-PA'};
-        out(5) = {'CA-NA-NZ-SA'};
-        out(6) = {'EU-AF-AR-AU-NA-PA'};
-        out(7) = {'NA-AF-CA-EU-PA-SA'};
-        out(8) = {'NZ-AN-CA-PA-SA'};
-        out(9) = {'PA-AN-AU-EU-NA-NZ'};
-        out(10) = {'SA-AF-AN-CA-NA-NZ'};
-        out(11) = {'AS-'};
-        out(12) = {'SO-AF-AN-AU-AR'};
-    case 'PB'
-        out(1) = {'AF-AN-AR-AS-AT-EU-NA-SA-SO'};
-        out(2) = {'AM-EU-OK-ON-PS-YA'};
-        out(3) = {'AN-AF-AU-JZ-NZ-PA-SA-SC-SL-SO-SW'};
-        out(4) = {'AP-NZ-SA'};
-        out(5) = {'AR-AF-AT-EU-IN-SO'};
-        out(6) = {'AS-AF-AT-EU'};
-        out(7) = {'AT-AF-AR-AS-EU'};
-        out(8) = {'AU-AN-BH-BR-BS-BU-CR-FT-IN-KE-MO-NH-NI-PA-SO-SU-TI-TO-WL'};
-        out(9) = {'BH-AU-BS-CL-MO-MS-PS-SU'};
-        out(10) = {'BR-AU-CR-NH-PA'};
-        out(11) = {'BS-AU-BH-MS-SU-TI'};
-        out(12) = {'BU-AU-EU-IN-SU'};
-        out(13) = {'CA-CO-NA-ND-PM-SA'};
-        out(14) = {'CL-BH-NB-PA-PS-WL'};
-        out(15) = {'CO-CA-GP-NA-NZ-PA-PM-RI'};
-        out(16) = {'CR-AU-BR-NH'};
-        out(17) = {'EA-NZ-PA'};
-        out(18) = {'EU-AF-AM-AR-AS-AT-BU-IN-NA-OK-SU-YA'};
-        out(19) = {'FT-AU-NI-PA'};
-        out(20) = {'GP-CO-NZ-PA'};
-        out(21) = {'IN-AR-AU-BU-EU-SO'};
-        out(22) = {'JF-NA-PA'};
-        out(23) = {'JZ-AN-NZ-PA'};
-        out(24) = {'KE-AU-PA-TO'};
-        out(25) = {'MA-PA-PS'};
-        out(26) = {'MN-NB-SB'};
-        out(27) = {'MO-AU-BH-WL'};
-        out(28) = {'MS-BH-BS-SU'};
-        out(29) = {'NA-AF-CA-CO-EU-JF-OK-PA-RI-SA'};
-        out(30) = {'NB-CL-MN-PA-SB-SS-WL'};
-        out(31) = {'ND-CA-NZ-PM-SA'};
-        out(32) = {'NH-AU-BR-CR-PA'};
-        out(33) = {'NI-AU-FT-PA-TO'};
-        out(34) = {'NZ-AN-AP-CO-EA-GP-JZ-ND-PA-PM-SA'};
-        out(35) = {'OK-AM-EU-NA-PA-PS'};
-        out(36) = {'ON-AM-PS-YA'};
-        out(37) = {'PA-AN-AU-BR-CL-CO-EA-FT-GP-JF-JZ-KE-MA-NA-NB-NH-NI-NZ-OK-PS-RI-TO-WL'};
-        out(38) = {'PM-CA-CO-ND-NZ'};
-        out(39) = {'PS-AM-BH-CL-MA-OK-ON-PA-SU-YA'};
-        out(40) = {'RI-CO-NA-PA'};
-        out(41) = {'SA-AF-AN-AP-CA-NA-ND-NZ-SC-SW'};
-        out(42) = {'SB-MN-NB-SS-WL'};
-        out(43) = {'SC-AN-SA-SL-SW'};
-        out(44) = {'SL-AN-SC'};
-        out(45) = {'SO-AF-AN-AR-AU-IN'};
-        out(46) = {'SS-NB-SB-WL'};
-        out(47) = {'SU-AU-BH-BS-BU-EU-MS-PS-TI'};
-        out(48) = {'SW-AN-SA-SC'};
-        out(49) = {'TI-AU-BS-SU'};
-        out(50) = {'TO-AU-KE-NI-PA'};
-        out(51) = {'WL-AU-CL-MO-NB-PA-SB-SS'};
-        out(52) = {'YA-AM-EU-ON-PS'};
-    case 'REVEL'
-        out(1) = {'AM-EU-OK-PS'};
-        out(2) = {'AN-AU-NU-NZ-PA-SA-SO'};
-        out(3) = {'AR-AT-EU-IN-NU-SO'};
-        out(4) = {'AT-AR-EU-NU'};
-        out(5) = {'AU-AN-IN-PA-SO-SU'};
-        out(6) = {'CA-NA-SA'};
-        out(7) = {'CS-'};
-        out(8) = {'EU-AM-AR-AT-IN-NA-NU-OK-SU'};
-        out(9) = {'IN-AR-AU-NU-EU-SO'};
-        out(10) = {'NA-CA-EU-NU-OK-PA-SA'};
-        out(11) = {'NU-AN-AR-AT-EU-NA-SA-SO'};
-        out(12) = {'NZ-AN-PA-SA'};
-        out(13) = {'OK-AM-EU-NA-PA-PS'};
-        out(14) = {'PA-AN-AU-NA-NZ-OK-PS'};
-        out(15) = {'PS-AM-OK-PA-SU'};
-        out(16) = {'SA-AN-CA-NA-NU-NZ'};
-        out(17) = {'SO-AN-AR-AU-IN-NU'};
-        out(18) = {'SR-'};
-        out(19) = {'SU-AU-EU-PS'};
-    case 'DEOS2K'
-        out(1) = {'AN-AU-PA-SA-NU-SO'};
-        out(2) = {'AU-AN-EU-PA-SO'};
-        out(3) = {'EU-AU-NA-NU-PA-SO'};
-        out(4) = {'NA-EU-PA-NU-SA'};
-        out(5) = {'NU-AN-EU-NA-SA-SO'};
-        out(6) = {'PA-AN-AU-EU-NA'};
-        out(7) = {'SA-AN-NA-NU'};
-        out(8) = {'SO-AN-AU-NU'};
+	case 'Nuvel1A'
+		out(1) = {'AF-AN-AR-EU-NA-SA'};%-AN-AR-AS-AT-EU-NA-SA-SO
+		out(2) = {'AN-AF-AU-NZ-PA'};
+		out(3) = {'AR-AF-EU-IN'};
+		out(4) = {'AU-AF-AN-EU-IN-PA'};
+		out(5) = {'CA-CO-NA-NZ-SA'};
+		out(6) = {'CO-CA-NA-NZ-PA'};
+		out(7) = {'EU-AF-AR-AU-IN-NA-PA-PS'};
+		out(8) = {'IN-AF-AU-AR-EU'};
+		out(9) = {'JF-NA-PA'};
+		out(10) = {'NA-AF-CA-CO-EU-JF-PA-SA'};
+		out(11) = {'NZ-AN-CA-CO-PA-SA'};
+		out(12) = {'PA-AN-AU-CO-EU-JF-NA-NZ-PS'};
+		out(13) = {'PS-AU-EU-PA'};
+		out(14) = {'SA-AF-AN-CA-NA-NZ'};
+	case 'Nuvel1A_NNR'
+		out(1) = {'AF-AN-AR-EU-NA-SA'};
+		out(2) = {'AN-AF-AU-NZ-PA-SC'};
+		out(3) = {'AR-AF-EU-IN'};
+		out(4) = {'AU-AF-AN-EU-IN-PA'};
+		out(5) = {'CA-CO-NA-NZ-SA'};
+		out(6) = {'CO-CA-NA-NZ-PA'};
+		out(7) = {'EU-AF-AR-AU-IN-NA-PA-PS'};
+		out(8) = {'IN-AF-AU-AR-EU'};
+		out(9) = {'JF-NA-PA'};
+		out(10) = {'NA-AF-CA-CO-EU-JF-PA-SA'};
+		out(11) = {'NZ-AN-CA-CO-PA-SA'};
+		out(12) = {'PA-AN-AU-CO-EU-JF-NA-NZ-PS'};
+		out(13) = {'PS-AU-EU-PA'};
+		out(14) = {'SA-AF-AN-CA-NA-NZ-SC'};
+		out(15) = {'RI-'};
+		out(16) = {'SC-AN-SA'};
+	case 'AKIM2000'
+		out(1) = {'AF-AN-AR-EU-NA-SA-SO'};
+		out(2) = {'AN-AF-AU-NZ-PA'};
+		out(3) = {'AR-AF-EU'};
+		out(4) = {'AU-AF-AN-EU-PA'};
+		out(5) = {'CA-NA-NZ-SA'};
+		out(6) = {'EU-AF-AR-AU-NA-PA'};
+		out(7) = {'NA-AF-CA-EU-PA-SA'};
+		out(8) = {'NZ-AN-CA-PA-SA'};
+		out(9) = {'PA-AN-AU-EU-NA-NZ'};
+		out(10) = {'SA-AF-AN-CA-NA-NZ'};
+		out(11) = {'AS-'};
+		out(12) = {'SO-AF-AN-AU-AR'};
+	case 'PB'
+		out(1) = {'AF-AN-AR-AS-AT-EU-NA-SA-SO'};
+		out(2) = {'AM-EU-OK-ON-PS-YA'};
+		out(3) = {'AN-AF-AU-JZ-NZ-PA-SA-SC-SL-SO-SW'};
+		out(4) = {'AP-NZ-SA'};
+		out(5) = {'AR-AF-AT-EU-IN-SO'};
+		out(6) = {'AS-AF-AT-EU'};
+		out(7) = {'AT-AF-AR-AS-EU'};
+		out(8) = {'AU-AN-BH-BR-BS-BU-CR-FT-IN-KE-MO-NH-NI-PA-SO-SU-TI-TO-WL'};
+		out(9) = {'BH-AU-BS-CL-MO-MS-PS-SU'};
+		out(10) = {'BR-AU-CR-NH-PA'};
+		out(11) = {'BS-AU-BH-MS-SU-TI'};
+		out(12) = {'BU-AU-EU-IN-SU'};
+		out(13) = {'CA-CO-NA-ND-PM-SA'};
+		out(14) = {'CL-BH-NB-PA-PS-WL'};
+		out(15) = {'CO-CA-GP-NA-NZ-PA-PM-RI'};
+		out(16) = {'CR-AU-BR-NH'};
+		out(17) = {'EA-NZ-PA'};
+		out(18) = {'EU-AF-AM-AR-AS-AT-BU-IN-NA-OK-SU-YA'};
+		out(19) = {'FT-AU-NI-PA'};
+		out(20) = {'GP-CO-NZ-PA'};
+		out(21) = {'IN-AR-AU-BU-EU-SO'};
+		out(22) = {'JF-NA-PA'};
+		out(23) = {'JZ-AN-NZ-PA'};
+		out(24) = {'KE-AU-PA-TO'};
+		out(25) = {'MA-PA-PS'};
+		out(26) = {'MN-NB-SB'};
+		out(27) = {'MO-AU-BH-WL'};
+		out(28) = {'MS-BH-BS-SU'};
+		out(29) = {'NA-AF-CA-CO-EU-JF-OK-PA-RI-SA'};
+		out(30) = {'NB-CL-MN-PA-SB-SS-WL'};
+		out(31) = {'ND-CA-NZ-PM-SA'};
+		out(32) = {'NH-AU-BR-CR-PA'};
+		out(33) = {'NI-AU-FT-PA-TO'};
+		out(34) = {'NZ-AN-AP-CO-EA-GP-JZ-ND-PA-PM-SA'};
+		out(35) = {'OK-AM-EU-NA-PA-PS'};
+		out(36) = {'ON-AM-PS-YA'};
+		out(37) = {'PA-AN-AU-BR-CL-CO-EA-FT-GP-JF-JZ-KE-MA-NA-NB-NH-NI-NZ-OK-PS-RI-TO-WL'};
+		out(38) = {'PM-CA-CO-ND-NZ'};
+		out(39) = {'PS-AM-BH-CL-MA-OK-ON-PA-SU-YA'};
+		out(40) = {'RI-CO-NA-PA'};
+		out(41) = {'SA-AF-AN-AP-CA-NA-ND-NZ-SC-SW'};
+		out(42) = {'SB-MN-NB-SS-WL'};
+		out(43) = {'SC-AN-SA-SL-SW'};
+		out(44) = {'SL-AN-SC'};
+		out(45) = {'SO-AF-AN-AR-AU-IN'};
+		out(46) = {'SS-NB-SB-WL'};
+		out(47) = {'SU-AU-BH-BS-BU-EU-MS-PS-TI'};
+		out(48) = {'SW-AN-SA-SC'};
+		out(49) = {'TI-AU-BS-SU'};
+		out(50) = {'TO-AU-KE-NI-PA'};
+		out(51) = {'WL-AU-CL-MO-NB-PA-SB-SS'};
+		out(52) = {'YA-AM-EU-ON-PS'};
+	case 'REVEL'
+		out(1) = {'AM-EU-OK-PS'};
+		out(2) = {'AN-AU-NU-NZ-PA-SA-SO'};
+		out(3) = {'AR-AT-EU-IN-NU-SO'};
+		out(4) = {'AT-AR-EU-NU'};
+		out(5) = {'AU-AN-IN-PA-SO-SU'};
+		out(6) = {'CA-NA-SA'};
+		out(7) = {'CS-'};
+		out(8) = {'EU-AM-AR-AT-IN-NA-NU-OK-SU'};
+		out(9) = {'IN-AR-AU-NU-EU-SO'};
+		out(10) = {'NA-CA-EU-NU-OK-PA-SA'};
+		out(11) = {'NU-AN-AR-AT-EU-NA-SA-SO'};
+		out(12) = {'NZ-AN-PA-SA'};
+		out(13) = {'OK-AM-EU-NA-PA-PS'};
+		out(14) = {'PA-AN-AU-NA-NZ-OK-PS'};
+		out(15) = {'PS-AM-OK-PA-SU'};
+		out(16) = {'SA-AN-CA-NA-NU-NZ'};
+		out(17) = {'SO-AN-AR-AU-IN-NU'};
+		out(18) = {'SR-'};
+		out(19) = {'SU-AU-EU-PS'};
+	case 'DEOS2K'
+		out(1) = {'AN-AU-PA-SA-NU-SO'};
+		out(2) = {'AU-AN-EU-PA-SO'};
+		out(3) = {'EU-AU-NA-NU-PA-SO'};
+		out(4) = {'NA-EU-PA-NU-SA'};
+		out(5) = {'NU-AN-EU-NA-SA-SO'};
+		out(6) = {'PA-AN-AU-EU-NA'};
+		out(7) = {'SA-AN-NA-NU'};
+		out(8) = {'SO-AN-AU-NU'};
 end
 
 % --- Executes on button press in push_Readme.
@@ -1340,14 +1265,14 @@ message = {'There is not much to say about the program use (specially if you kno
 	'in the popupmenu and hit "Calculate".'
 	' '
 	'Concearning the correct guessing of the clicked plate, you may find that'
-	'the program does sometimes fail (when small plated are clicked). Well,'
+	'the program does sometimes fail (when small plates are clicked). Well,'
 	'that''s not at all my fault. Complain to the Mathworks Inc for its still'
 	'somewhat buggy product.'
 	' '
 	'The "Relativize" checkbox appears when any of the absolute models is'
 	'active. When checked, the absolute model is used to compute relative'
 	'motion (poles) from the guessed (or selected) neighbour plates.'};
-helpdlg(message,'Help on Plate Calculator');
+message_win('create',message,'figname','Help on Plate Calculator');
 
 %--------------------------------------------------------------------------------------------------
 function [plon,plat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2)
@@ -1390,14 +1315,12 @@ function [plon,plat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2)
 function checkbox_Abs2Rel_CB(hObject, handles)
 % Use absolute models to compute relative relative motions
 if ~get(hObject,'Value')        % If we turn back to absolute motion
-    handles.abs2rel = 0;
-    handles.absolute_motion = 1;
-    set(handles.popup_FixedPlate,'Enable','off')
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
-    guidata(hObject, handles);
-    return
+	handles.abs2rel = 0;
+	handles.absolute_motion = 1;
+	set(handles.popup_FixedPlate,'Enable','off')
+	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
+	guidata(hObject, handles);
+	return
 end
 
 D2R = pi/180;
@@ -1405,14 +1328,14 @@ model = getappdata(handles.figure1,'current_model');
 
 % Fill the fixed plate popupmenus with the current model plate names
 switch model
-    case 'NNR'
-        set(handles.popup_FixedPlate,'String',handles.Nuvel1A_NNR_name)
-    case 'AKIM2000'
-        set(handles.popup_FixedPlate,'String',handles.AKIM2000_name)
-    case 'REVEL'
-        set(handles.popup_FixedPlate,'String',handles.REVEL_name)
-    case 'DEOS2K'
-        set(handles.popup_FixedPlate,'String',handles.DEOS2K_name)
+	case 'NNR'
+		set(handles.popup_FixedPlate,'String',handles.Nuvel1A_NNR_name)
+	case 'AKIM2000'
+		set(handles.popup_FixedPlate,'String',handles.AKIM2000_name)
+	case 'REVEL'
+		set(handles.popup_FixedPlate,'String',handles.REVEL_name)
+	case 'DEOS2K'
+		set(handles.popup_FixedPlate,'String',handles.DEOS2K_name)
 end
 set(handles.popup_FixedPlate,'Value',1)
 
@@ -1424,18 +1347,18 @@ set(handles.popup_FixedPlate,'Enable','on')
 guidata(hObject, handles);
 
 switch model
-    case 'NNR'
-        lat2 = handles.Nuvel1A_NNR_lat(ind_mov);     lon2 = handles.Nuvel1A_NNR_lon(ind_mov);
-        omega2 = handles.Nuvel1A_NNR_omega(ind_mov); handles.abb_mov = handles.Nuvel1A_NNR_abbrev{ind_mov};
-    case 'AKIM2000'
-        lat2 = handles.AKIM2000_lat(ind_mov);       lon2 = handles.AKIM2000_lon(ind_mov);
-        omega2 = handles.AKIM2000_omega(ind_mov);   handles.abb_mov = handles.AKIM2000_abbrev{ind_mov};        
-    case 'REVEL'
-        lat2 = handles.REVEL_lat(ind_mov);          lon2 = handles.REVEL_lon(ind_mov);
-        omega2 = handles.REVEL_omega(ind_mov);      handles.abb_mov = handles.REVEL_abbrev{ind_mov};
-    case 'DEOS2K'
-        lat2 = handles.DEOS2K_lat(ind_mov);         lon2 = handles.DEOS2K_lon(ind_mov);
-        omega2 = handles.DEOS2K_omega(ind_mov);     handles.abb_mov = handles.DEOS2K_abbrev{ind_mov};        
+	case 'NNR'
+		lat2 = handles.Nuvel1A_NNR_lat(ind_mov);     lon2 = handles.Nuvel1A_NNR_lon(ind_mov);
+		omega2 = handles.Nuvel1A_NNR_omega(ind_mov); handles.abb_mov = handles.Nuvel1A_NNR_abbrev{ind_mov};
+	case 'AKIM2000'
+		lat2 = handles.AKIM2000_lat(ind_mov);       lon2 = handles.AKIM2000_lon(ind_mov);
+		omega2 = handles.AKIM2000_omega(ind_mov);   handles.abb_mov = handles.AKIM2000_abbrev{ind_mov};        
+	case 'REVEL'
+		lat2 = handles.REVEL_lat(ind_mov);          lon2 = handles.REVEL_lon(ind_mov);
+		omega2 = handles.REVEL_omega(ind_mov);      handles.abb_mov = handles.REVEL_abbrev{ind_mov};
+	case 'DEOS2K'
+		lat2 = handles.DEOS2K_lat(ind_mov);         lon2 = handles.DEOS2K_lon(ind_mov);
+		omega2 = handles.DEOS2K_omega(ind_mov);     handles.abb_mov = handles.DEOS2K_abbrev{ind_mov};        
 end
 
 switch model
@@ -1456,9 +1379,7 @@ end
 lon = lon/D2R;     lat = lat/D2R;
 
 if (omega == 0)     % This works as a test for when the same plate is selected as Fixed and Moving
-    set(handles.edit_PoleLon,'String','')
-    set(handles.edit_PoleLat,'String','')
-    set(handles.edit_PoleRate,'String','')
+	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
     return
 end
 
@@ -1483,45 +1404,46 @@ set(h1,'PaperUnits','centimeters',...
 uicontrol('Parent',h1, 'Position',[101 221 101 81], 'Style','frame');
 uicontrol('Parent',h1, 'Position',[10 221 81 81], 'Style','frame');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[10 173 121 22],...
 'BackgroundColor',[1 1 1],...
-'Call',{@plate_calculator_uiCB,h1,'popup_FixedPlate_CB'},...
-'Position',[10 173 121 22],...
+'Call',{@plate_calculator_uiCB,h1,'popup_PickPlate_CB', 'fixed'},...
 'Style','popupmenu',...
 'Value',1,...
 'Tag','popup_FixedPlate');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[150 173 121 22],...
 'BackgroundColor',[1 1 1],...
-'Call',{@plate_calculator_uiCB,h1,'popup_MovingPlate_CB'},...
-'Position',[150 173 121 22],...
+'Call',{@plate_calculator_uiCB,h1,'popup_PickPlate_CB', 'mobile'},...
 'Style','popupmenu',...
 'Value',1,...
 'Tag','popup_MovingPlate');
 
-uicontrol('Parent',h1,...
-'Position',[10 195 52 15],...
+uicontrol('Parent',h1, 'Position',[10 195 52 15],...
 'String','Fixed Plate',...
 'Style','text');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[150 196 71 15],...
 'HorizontalAlignment','left',...
-'Position',[150 196 71 15],...
 'String','Moving Plate',...
 'Style','text');
 
-uicontrol('Parent',h1,...
-'Call',{@plate_calculator_uiCB,h1,'radio_Nuvel1A_CB'},...
-'Position',[14 271 75 15],...
+uicontrol('Parent',h1, 'Position',[14 271 75 15],...
+'Call',{@plate_calculator_uiCB,h1,'radio_Nuvel1A_CB','Nuvel1A'},...
 'String','Nuvel-1A',...
 'Style','radiobutton',...
 'Value',1,...
 'Tag','radio_Nuvel1A');
 
-uicontrol('Parent',h1,...
+% uicontrol('Parent',h1, 'Position',[14 231 75 15],...
+% 'Call',{@plate_calculator_uiCB,h1,'radio_Nuvel1A_CB','MORVEL'},...
+% 'String','MORVEL',...
+% 'Style','radiobutton',...
+% 'Value',0,...
+% 'Tag','radio_MORVEL');
+
+uicontrol('Parent',h1, 'Position',[10 122 71 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@plate_calculator_uiCB,h1,'edit_PtLon_CB'},...
-'Position',[10 122 71 21],...
 'Style','edit',...
 'Tag','edit_PtLon');
 
@@ -1531,86 +1453,73 @@ axes('Parent',h1, 'Units','pixels', 'Position',[300 46 401 260],...
 'ylim',[-90 90],...
 'Tag','axes1');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[110 122 71 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@plate_calculator_uiCB,h1,'edit_PtLat_CB'},...
-'Position',[110 122 71 21],...
 'Style','edit',...
 'Tag','edit_PtLat');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[205 120 66 21],...
 'Call',{@plate_calculator_uiCB,h1,'push_Calculate_CB'},...
 'FontSize',9,...
 'FontWeight','bold',...
-'Position',[205 120 66 21],...
 'String','Calculate',...
 'Tag','push_Calculate');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[14 244 71 15],...
 'Call',{@plate_calculator_uiCB,h1,'radio_PBird_CB'},...
-'Position',[14 244 71 15],...
 'String','P. Bird',...
 'Style','radiobutton',...
 'Tag','radio_PBird');
 
-uicontrol('Parent',h1,...
-'Position',[10 144 72 15],...
+uicontrol('Parent',h1, 'Position',[10 144 72 15],...
 'String','Lon (-180:180)',...
 'Style','text',...
 'Tag','text3');
 
-uicontrol('Parent',h1,...
-'Position',[110 143 72 15],...
+uicontrol('Parent',h1, 'Position',[110 143 72 15],...
 'String','Lat (-90:90)',...
 'Style','text',...
 'Tag','text4');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[10 73 71 21],...
 'BackgroundColor',[1 1 1],...
-'Position',[10 73 71 21],...
 'Style','edit',...
 'Tag','edit_PoleLon');
 
-uicontrol('Parent',h1,...
-'Position',[10 95 72 15],...
+uicontrol('Parent',h1, 'Position',[10 95 72 15],...
 'String','Pole Longitude',...
 'Style','text');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[100 73 71 21],...
 'BackgroundColor',[1 1 1],...
-'Position',[100 73 71 21],...
 'Style','edit',...
 'Tag','edit_PoleLat');
 
-uicontrol('Parent',h1,...
-'Position',[100 95 72 15],...
+uicontrol('Parent',h1, 'Position',[100 95 72 15],...
 'String','Pole Latitude',...
 'Style','text');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[200 73 71 21],...
 'BackgroundColor',[1 1 1],...
-'Position',[200 73 71 21],...
 'Style','edit',...
 'Tag','edit_PoleRate');
 
-uicontrol('Parent',h1,...
-'Position',[200 95 72 15],...
+uicontrol('Parent',h1, 'Position',[200 95 72 15],...
 'String','Rate (deg/Ma)',...
 'Style','text');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[108 274 100 15],...
 'Call',{@plate_calculator_uiCB,h1,'radio_Nuvel1A_NNR_CB'},...
-'Position',[108 274 100 15],...
 'String','Nuvel-1A NNR',...
 'Style','radiobutton',...
 'Tag','radio_Nuvel1A_NNR');
 
 uicontrol('Parent',h1, 'Position',[10 5 241 51], 'Style','frame');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[20 34 160 17],...
 'FontSize',10,...
 'HorizontalAlignment','left',...
-'Position',[20 34 160 17],...
 'String','Speed  =',...
 'Style','text',...
 'Tag','text_Speed');
@@ -1622,16 +1531,14 @@ uicontrol('Parent',h1, 'Position',[20 11 220 17],...
 'Style','text',...
 'Tag','text_Azim');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[108 254 87 15],...
 'Call',{@plate_calculator_uiCB,h1,'radio_DEOS2K_CB'},...
-'Position',[108 254 87 15],...
 'String','DEOS2K',...
 'Style','radiobutton',...
 'Tag','radio_DEOS2K');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[108 235 87 15],...
 'Call',{@plate_calculator_uiCB,h1,'radio_REVEL_CB'},...
-'Position',[108 235 87 15],...
 'String','REVEL',...
 'Style','radiobutton',...
 'Tag','radio_REVEL');
@@ -1646,12 +1553,11 @@ uicontrol('Parent',h1, 'Position',[115 293 51 15],...
 'Style','text',...
 'Tag','txt_Abs');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[210 279 66 21],...
 'Call',{@plate_calculator_uiCB,h1,'push_Readme_CB'},...
 'FontSize',9,...
 'FontWeight','demi',...
 'ForegroundColor',[0 0 1],...
-'Position',[210 279 66 21],...
 'String','Readme',...
 'Tag','push_Readme');
 
@@ -1662,6 +1568,10 @@ uicontrol('Parent',h1, 'Position',[210 232 70 15],...
 'Tooltip','Compute relative motion from asolute model',...
 'Tag','checkbox_Abs2Rel');
 
-function plate_calculator_uiCB(hObject, eventdata, h1, callback_name)
+function plate_calculator_uiCB(hObject, eventdata, h1, callback_name, opt)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,guidata(h1));
+	if (nargin == 4)
+		feval(callback_name,hObject,guidata(h1));
+	else
+		feval(callback_name,hObject,guidata(h1),opt);
+	end
