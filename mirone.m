@@ -1641,24 +1641,25 @@ function ToolsMBplaningImport_CB(handles)
 	handles.hMBplot = h_line(1);	guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
-function ImageIlluminationModel_CB(handles, opt)
+function varargout = ImageIllumModel_CB(handles, opt)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	if (nargin == 1),	opt = 'grdgradient_A';	end
 
 	luz = shading_params(opt);	pause(0.01)			% Give time to the shading_params window be deleted
 	if (isempty(luz)),	return,		end
 
-	if (luz.illum_model == 1),		ImageIllumLambert(luz, handles, 'grdgrad_class')	% GMT grdgradient classic
-	elseif (luz.illum_model == 2),	ImageIllumLambert(luz, handles, 'grdgrad_lamb')		% GMT grdgradient Lambertian
-	elseif (luz.illum_model == 3),	ImageIllumLambert(luz, handles, 'grdgrad_peuck')	% GMT grdgradient Peucker
-	elseif (luz.illum_model == 4),	ImageIllumLambert(luz, handles, 'lambertian')		% GMT Lambertian illumination
-	elseif (luz.illum_model == 5),	ImageIllumGray(luz, handles, 'color')			% ManipRaster color illumination algo
-	elseif (luz.illum_model == 6),	ImageIllumGray(luz, handles, 'gray')			% ManipRaster gray illumination algo
-	else							ImageIllumFalseColor(luz, handles)				% False color illumination
+	if (luz.illum_model == 1),		[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'grdgrad_class');	% GMT grdgradient classic
+	elseif (luz.illum_model == 2),	[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'grdgrad_lamb');	% GMT grdgradient Lambertian
+	elseif (luz.illum_model == 3),	[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'grdgrad_peuck');	% GMT grdgradient Peucker
+	elseif (luz.illum_model == 4),	[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'lambertian');		% GMT Lambertian
+	elseif (luz.illum_model == 5),	ImageIllumGray(luz, handles, 'color')			% ManipRaster color algo
+	elseif (luz.illum_model == 6),	ImageIllumGray(luz, handles, 'gray')			% ManipRaster gray  algo
+	else							ImageIllumFalseColor(luz, handles)				% False color
 	end
+	if (luz.illum_model > 4 && nargout)		varargout{1} = [];		end				% No reflectances here
 
 % --------------------------------------------------------------------
-function ImageIllumLambert(luz, handles, opt)
+function Reft = ImageIllumLambert(luz, handles, opt)
 % OPT ->  Select which of the GMT grdgradient illumination algorithms to use
 % Illuminate a DEM file and turn it into a RGB image
 % For multiple tries I need to use the original image. Otherwise each attempt would illuminate
@@ -1668,11 +1669,6 @@ function ImageIllumLambert(luz, handles, opt)
 	[X,Y,Z,head] = load_grd(handles);	% If needed, load gmt grid again
 	if isempty(Z),	return,		end		% An error message was already issued
 	set(handles.figure1,'pointer','watch'),		pause(0.01)
-
-	if (handles.firstIllum),	img = get(handles.hImg,'CData');	handles.firstIllum = 0;
-	else						img = handles.origFig;
-	end
-	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	end		% Image is 2D
 
 	if (strcmp(opt,'grdgrad_class'))		% GMT grdgradient classic illumination
 		illumComm = sprintf('-A%.2f',luz.azim);
@@ -1696,10 +1692,21 @@ function ImageIllumLambert(luz, handles, opt)
 		R = grdgradient_m(Z,head,illumComm);
 		handles.Illumin_type = 4;
 	end
+	setappdata(handles.figure1,'illumComm',illumComm);		% Save these for ROI op & write_gmt_script
+	setappdata(handles.figure1,'Luz',luz);					% Save these for ROI operations
+
+	if (nargout)	% Send the reflectance back to caller and sto here
+		Reft = R;	guidata(handles.figure1, handles);
+		set(handles.figure1,'pointer','arrow')
+		return
+	end
+
+	if (handles.firstIllum),	img = get(handles.hImg,'CData');	handles.firstIllum = 0;
+	else						img = handles.origFig;
+	end
+	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	end
 	img = shading_mat(img,R,'no_scale');
 	
-	setappdata(handles.figure1,'illumComm',illumComm);		% Save these for region op & write_gmt_script
-	setappdata(handles.figure1,'Luz',luz);		% Save these for region operations
 	set(handles.hImg,'CData',img)
 	aux_funs('togCheck',handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
 	guidata(handles.figure1, handles);			set(handles.figure1,'pointer','arrow')
@@ -1888,19 +1895,54 @@ function ImageLink_CB(handles, opt)
 	setappdata(linkedFig,'LinkedTo',handles.figure1)
 
 % --------------------------------------------------------------------
+function ImageRetroShade_CB(handles)
+% Illuminate current figure with the reflectance calculated from parent figure
+	if (handles.no_file),	return,		end
+	h_f = getappdata(handles.figure1,'hFigParent');		% Get the parent figure handle
+	if (~ishandle(h_f))
+		msgbox('Parent window no longer exists (you kiled it). Exiting.','Warning');		return
+	end
+	handParent = guidata(h_f);				% Get the parent handles
+	[rect, rect_crop] = aux_funs('rectangle_and', handles.head, handParent.head);	% Get the intersection zone
+	if (isempty(rect))	warndlg('The two images do not overlap.','Warning'),	return,		end
+	R = ImageIllumModel_CB(handParent);	% Get parent Reflectance array
+	if (isempty(R))		warndlg('Illumination models >= 5 don''t work here.','Warning'),	return,		end
+	[R, r_c] = cropimg(handParent.head(1:2),handParent.head(3:4),R,rect_crop,'out_grid');
+
+	% If parent image is of different resolution, resize it to fit the son_image resolution
+	if ( abs(handParent.head(8) - handles.head(8)) > 1e-8 || abs(handParent.head(9) - handles.head(9)) > 1e-8 )
+		nx_parent = round(rect_crop(3) / handles.head(8)) + 1;
+		ny_parent = round(rect_crop(4) / handles.head(9)) + 1;
+		R = cvlib_mex('resize',R,[ny_parent nx_parent],'bicubic');
+	end
+	
+	img = get(handles.hImg,'CData');
+	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	end
+	m = size(img,1);			n = size(img,2);
+	if (~isequal(size(R), [m n]))			% Happens when parent doesn't completely overlaps son image
+		[img2, r_c] = cropimg(handles.head(1:2),handles.head(3:4),img,rect_crop,'out_grid');
+		img2 = shading_mat(img2,R,'no_scale');
+		img(r_c(1):r_c(2), r_c(3):r_c(4), :) = img2;
+	else
+		img = shading_mat(img,R,'no_scale');
+	end
+	
+	set(handles.hImg,'CData',img)
+	aux_funs('togCheck',handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
+	set(handles.figure1,'pointer','arrow')
+
+% --------------------------------------------------------------------
 function ImageDrape_CB(handles)
 	if (handles.no_file),	return,		end
 	son_img = get(handles.hImg,'CData');				% Get "son" image
 	h_f = getappdata(handles.figure1,'hFigParent');		% Get the parent figure handle
 	if (~ishandle(h_f))
-		msgbox('Parent window no longer exists (you kiled it). Exiting.','Warning');
-		set(handles.ImageDrape,'Enable','off');			% Set the Drape option to it's default value (off)
-		return
+		msgbox('Parent window no longer exists (you kiled it). Exiting.','Warning');		return
 	end
 	handParent = guidata(h_f);			% We need the parent handles
 	parent_img = get(handParent.hImg,'CData');			parent_was_resized = false;
 	y_son = size(son_img,1);			x_son = size(son_img,2);			% Get "son" image dimensions 
-	y_parent = size(parent_img,1);		x_parent = size(parent_img,2);		% Get "son" image dimensions 
+	y_parent = size(parent_img,1);		x_parent = size(parent_img,2);		% Get "parent" image dimensions 
 	transp = [];
 
 	% Find if image needs to be ud fliped
@@ -2143,7 +2185,6 @@ function DrawClosedPolygon_CB(handles, opt)
 	% The following is a necessary pach agains two big stupidities.
 	% First is from the user that double-clicked on the polyline icon
 	% Second is from Matlab that doesn't lets us test a double-click on a uipushtool
-	%if ( ~isempty(getappdata(handles.figure1, 'fromGL')) ),		return,		end
 	if ( strcmp(get(handles.figure1,'Pointer'), 'crosshair') ),		return,		end
 
 	if ( isempty(opt) || any(strcmp(opt,{'from_ROI' 'EulerTrapezium' 'SeismicityPolygon'})) )
@@ -2861,7 +2902,7 @@ function GeophysicsSwanPlotStations_CB(handles)
 function GRDdisplay(handles,X,Y,Z,head,tit,name)
 % Show matrix Z in a new window.
 	if (numel(Z) < 4)		set(handles.figure1,'pointer','arrow'),		return,		end
-	if (nargin < 7),	name = [];  end
+	if (nargin < 7),		name = [];  end
 	if (isa(Z,'double')),		Z = single(Z);		end
 	zz = grdutils(Z,'-L');		head(5:6) = double(zz(1:2));
 	tmp.head = head;	tmp.X = X;		tmp.Y = Y;		tmp.name = name;
@@ -3504,8 +3545,11 @@ function TransferB_CB(handles, opt)
 	elseif (strcmp(opt,'NewEmpty'))
 		h = mirone;		
 		newHand = guidata(h);		newHand.last_dir = handles.last_dir;	guidata(h, newHand)
-		setappdata(h,'hFigParent',handles.figure1);				% Save the Parent fig handles in this new figure
-		set(findobj(h,'Tag','ImageDrape'),'Enable','on')		% Set the Drape option to 'on' in the New window 
+		setappdata(h,'hFigParent',handles.figure1);		% Save the Parent fig handles in this new figure
+		set(newHand.ImageDrape,'Vis','on')				% Set the Drape option to 'on' in the New window
+		if (handles.validGrid)
+			set(newHand.RetroShade,'Vis','on')			% Set the Retro-Illum option to 'on' in the New window
+		end
 	
 	elseif (strcmp(opt,'scale'))				% Apply a scale factor
 		resp = inputdlg({'Enter scale factor'},'Rescale grid',[1 30],{'-1'});	pause(0.01)
