@@ -99,6 +99,26 @@ function [x,y,indx,indy] = in_map_region(handles,x,y,tol,map_lims)
 	axes(handles.axes1)     % This is for the GCP mode be able to plot on the Master Image
 
 % --------------------------------------------------------------------
+function [rect,rect_crop] = rectangle_and(head1,head2)
+%   Given two handles.head vectors, compute the intersection rectangle of the two regions
+%	RECT id a 5x2 matrix with rectangle coords X in first col and Y in second
+%	RECT_CROP is a row vector with [Xll Yll DX DY] (Xll -> lower left point)
+	P1.x = [head1(1) head1(1) head1(2) head1(2) head1(1)];	P1.hole = 0;
+	P1.y = [head1(3) head1(4) head1(4) head1(3) head1(3)];
+	P2.x = [head2(1) head2(1) head2(2) head2(2) head2(1)];	P2.hole = 0;
+	P2.y = [head2(3) head2(4) head2(4) head2(3) head2(3)];
+	P3 = PolygonClip(P1, P2, 1);				% Intersection of the two rectangles
+	if (~isempty(P3))
+		x_min = min(P3.x);		x_max = max(P3.x);		y_min = min(P3.y);		y_max = max(P3.y);
+		rect = [x_min y_min; x_min y_max; x_max y_max; x_max y_min; x_min y_min];
+		if (nargout == 2)
+			rect_crop = [x_min y_min x_max-x_min y_max-y_min];
+		end
+	else
+		rect = [];		rect_crop = [];
+	end
+
+% --------------------------------------------------------------------
 function colormap_bg(handles,Z,pal)
 % Insert the background color in the palette for arrays that have NaNs
 % [m,n] = size(Z);    dbl_size = m*n*8;
