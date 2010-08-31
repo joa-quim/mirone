@@ -34,12 +34,12 @@ function varargout = plate_calculator(varargin)
 	end
 	handles.path_data = [handles.home_dir filesep 'data' filesep];
 
-	handles.first_NNR = 1;
-	handles.first_PB = 1;
-	handles.first_AKIM2000 = 1;
-	handles.first_DEOS2K = 1;
-	handles.first_REVEL = 1;
-	handles.first_MORVEL = 1;
+	handles.first_NNR = true;
+	handles.first_PB = true;
+	handles.first_AKIM2000 = true;
+	handles.first_DEOS2K = true;
+	handles.first_REVEL = true;
+	handles.first_MORVEL = true;
 	handles.absolute_motion = 0;		% when == 1, it signals an absolute motion model
 	handles.abs2rel = 0;				% when == 1, flags that an absolute model was turned relative
 
@@ -169,7 +169,7 @@ function radio_Nuvel1A_CB(hObject, handles, tipo)
 	set(handles.popup_FixedPlate,'Enable','on')
 	handles.absolute_motion = 0;				% The Nuvel1A is a relative motion model
 
-	if (handles.first_REVEL && tipo(1) == 'M')	% Load and read poles deffinition
+	if (handles.first_MORVEL && tipo(1) == 'M')	% Load and read poles deffinition
 		fid = fopen([handles.path_data 'MORVEL_poles.dat'],'r');
 		[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
 		fclose(fid);
@@ -180,7 +180,7 @@ function radio_Nuvel1A_CB(hObject, handles, tipo)
 		handles.MORVEL_lon = lon;
 		handles.MORVEL_omega = omega;
 		handles.MORVEL_comb = do_plate_comb('Nuvel1A');
-		handles.first_REVEL = 0;
+		handles.first_MORVEL = 0;
 	end
 
 % Fill the popupmenus with the Plate's names
@@ -240,8 +240,7 @@ if (handles.first_NNR)      % Load and read poles deffinition
 end
 
 % Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
-set(handles.popup_MovingPlate,'Value',1)
-set(handles.popup_MovingPlate,'String',handles.Nuvel1A_NNR_name)
+set(handles.popup_MovingPlate,'Value',1,'String',handles.Nuvel1A_NNR_name)
 
 if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
     set(handles.popup_FixedPlate,'Value',1)
@@ -321,10 +320,8 @@ if (handles.first_PB)      % Load and read poles deffinition
 end
 
 % Fill the popupmenus with the Plate's names
-set(handles.popup_FixedPlate,'Value',1)
-set(handles.popup_MovingPlate,'Value',1)
-set(handles.popup_FixedPlate,'String',handles.PB_name)
-set(handles.popup_MovingPlate,'String',handles.PB_name)
+set([handles.popup_FixedPlate handles.popup_MovingPlate],'Value',1)
+set([handles.popup_FixedPlate handles.popup_MovingPlate],'String',handles.PB_name)
 
 set_PBplate_model(hObject,handles)
 
@@ -367,8 +364,7 @@ if (handles.first_AKIM2000)      % Load and read poles deffinition
 end
 
 % Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
-set(handles.popup_MovingPlate,'Value',1)
-set(handles.popup_MovingPlate,'String',handles.AKIM2000_name)
+set(handles.popup_MovingPlate,'Value',1,'String',handles.AKIM2000_name)
 
 if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
     set(handles.popup_FixedPlate,'Value',1)
@@ -448,8 +444,7 @@ if (handles.first_REVEL)      % Load and read poles deffinition
 end
 
 % Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
-set(handles.popup_MovingPlate,'Value',1)
-set(handles.popup_MovingPlate,'String',handles.REVEL_name)
+set(handles.popup_MovingPlate,'Value',1,'String',handles.REVEL_name)
 
 if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
     set(handles.popup_FixedPlate,'Value',1)
@@ -529,8 +524,7 @@ if (handles.first_DEOS2K)      % Load and read poles deffinition
 end
 
 % Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
-set(handles.popup_MovingPlate,'Value',1)
-set(handles.popup_MovingPlate,'String',handles.DEOS2K_name)
+set(handles.popup_MovingPlate,'Value',1,'String',handles.DEOS2K_name)
 
 if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
     set(handles.popup_FixedPlate,'Value',1)
