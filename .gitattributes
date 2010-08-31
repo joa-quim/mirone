@@ -70,6 +70,7 @@ data/GMT_patterns.jpg -text
 data/HydroVents.mat -text
 data/MIRONE.GIF -text
 data/MIRONE.tif -text
+data/MORVEL_poles.dat -text
 data/Nuvel1A_NNR_poles.dat -text
 data/Nuvel1A_poles.dat -text
 data/OPTcontrol.txt -text
