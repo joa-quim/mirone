@@ -601,7 +601,11 @@ if (~isempty(ALLlineHand))
         line_thick = get(ALLlineHand(i),'LineWidth');		% Line thickness
         line_color = get(ALLlineHand(i),'color');			% Line color
         line_props = [line_thick line_color 0 1 1 1];		% 0 means is not a patch and the [1 1 1] is not used
-        write_line(fid,'add',x,y,z,count,limits,line_props)        
+		if ( ~strcmp(get(ALLlineHand(i), 'LineStyle'), 'none') )
+			write_line(fid,'add',x,y,z,count,limits,line_props)
+		else
+			write_pts(fid,ALLlineHand(i),'add',limits)
+		end
     end
 end     % end  -> if (~isempty(ALLlineHand))<-
 
@@ -749,7 +753,7 @@ function write_line(fid,mode,x,y,z,np,lim_reg,line_props)
 %----------------------------------------------------------------------------------
 function write_pts(fid,hand,mode,limits,opt)
 % HAND -> handles of the line (points) object
-% MODE = FIRST or ADD
+% MODE = FIRST or ADD. Where FIRST indicates that the TDR object starts to created here.
 % OPT, when it exists, is = 'Earthquakes'
 %   TAMBEM NAO SEI O QUE ISTO FAZ SE HOUVER MAIS DE UM CONJUNTO DE PONTOS
     if (nargin == 4),   opt = [];   end
