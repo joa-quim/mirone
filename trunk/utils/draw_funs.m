@@ -146,7 +146,7 @@ switch opt
 					end	
 					set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
 				case 'AsPoint'
-					lineHand = plot(tmpx,tmpy,'ko','MarkerEdgeColor','w','MarkerFaceColor','k', ...
+					lineHand = plot(tmpx,tmpy,'ko','MarkerEdgeColor','k','MarkerFaceColor','k', ...
 						'MarkerSize',4,'Tag','Pointpolyline');
 					set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu (tag is very important)
 					if (~isempty(tmpz)),	set(lineHand,'UserData',tmpz'),		end	
