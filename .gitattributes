@@ -285,6 +285,7 @@ lib_mex/intlutc.dll -text
 lib_mex/inv_lwm.dll -text
 lib_mex/inv_piecewiselinear.dll -text
 lib_mex/iptcheckinput.dll -text
+lib_mex/lasreader_mex.dll -text
 lib_mex/libmwqhull.dll -text
 lib_mex/mansinha_m.dll -text
 lib_mex/mapproject_m.dll -text
