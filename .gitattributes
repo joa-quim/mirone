@@ -328,6 +328,7 @@ lib_mex/wgifc.dll -text
 /libguide40.dll -text
 /libjpeg_mir.dll -text
 /libjpeg_mir32.dll -text
+/liblas_m.dll -text
 /libmmd.dll -text
 /libnetcdf_w32.dll -text
 /libsift.dll -text
