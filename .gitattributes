@@ -431,6 +431,7 @@ mex/iptutil.c -text
 mex/iptutil.h -text
 mex/iptutil_cpp.h -text
 mex/isf_head.h -text
+mex/lasreader_mex.c -text
 mex/make_mexs.m -text
 mex/make_mexs64.m -text
 mex/makefile.mexs -text
