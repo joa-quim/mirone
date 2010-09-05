@@ -48,7 +48,7 @@ function fname = write_flederFiles(opt,varargin)
 		% Fish the image
 		[img, img2] = getImg(handles);		% If IMG2 is not empty we need to make a "scene"
 
-		if (strcmp(opt,'writeAll3'))        % Write the 3 files and return
+		if (strcmp(opt,'writeAll3'))		% Write the 3 files and return
 			str1 = {'*.*', 'All Files (*.*)'};
 			[FileName,PathName] = put_or_get_file(handles,str1,'Name stem for the 3 (.geo, .dtm, .shade) IVS files','put');
 			if isequal(FileName,0),		return,		end
@@ -73,8 +73,12 @@ function fname = write_flederFiles(opt,varargin)
 		if isempty(EXT),    fname = [fname '.sd'];  end
 		if (strcmp(opt(end-2:end),'img'))		% either writeGeoimg or runGeoimg
 			fid = fopen(fname,'wb');
-			write_geoimg(fid, 'first', img)
-			write_geo(fid,'add',head(1:6))
+			if (~isempty(img))
+				write_geoimg(fid, 'first', img)
+				write_geo(fid,'add',head(1:6))
+			else								% Initiate the TDR
+				fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
+			end
 		else
 			if (strcmp(opt,'writePlanar') || handles.flederPlanar)
 				tipo = 'Planar';
@@ -91,7 +95,7 @@ function fname = write_flederFiles(opt,varargin)
 				write_scene(fid, tipo, 'vimage', Z, img, img2, head(1:6), vimage)
 			end
 		end
-		if (handles.flederBurn ~= 2)       % If not screen capture, see if there are lines & pts to flederize
+		if (handles.flederBurn ~= 2)		% If not screen capture, see if there are lines & pts to flederize
 			write_lines_or_points(fid, handles.axes1, head(1:6), handles.flederBurn);
 		end
 		write_eof(fid)						% Write EOF block and close the file
@@ -117,12 +121,17 @@ function fname = write_flederFiles(opt,varargin)
 			write_line(varargin{:});    % Write line objects
 		case 'points'
 			write_pts(varargin{:});     % Write point objects
+			write_eof(varargin{1})		% Write EOF block and close the file
 	end
 
 %----------------------------------------------------------------------------------
 function [img, img2] = getImg(handles)
 % Fish the image in a Mirone handles and flip it if necessary
 % This function is used when only HANDLES was transmited
+
+	if (handles.image_type == 20 && handles.flederBurn ~= 2)		% We don't have any bg image
+		img = [];		img2 = [];		return
+	end
 
 	% The UD flip horror.
 	flipa = false;
@@ -758,54 +767,78 @@ function write_pts(fid,hand,mode,limits,opt)
 %   TAMBEM NAO SEI O QUE ISTO FAZ SE HOUVER MAIS DE UM CONJUNTO DE PONTOS
     if (nargin == 4),   opt = [];   end
     
-    symb = 3;	% 0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> dyamond; 5 -> cylinder; 6 -> sphere; 7 -> point
-    %PointRad = 0.02;						% Symbol radius
-    %ColorBy = 0;							% 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute
+    symb = 7;	% 0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> dyamond; 5 -> cylinder; 6 -> sphere; 7 -> point
+    PointRad = 0.02;						% Symbol radius
+    ColorBy = 1;							% 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute
     LabelSize = 0.502;
     n_col = 3;								% N of columns
-    n_groups = length(hand);				% N of different point ensembles
+	if (~isa(hand,'cell') && ~ishandle(hand(1)))	% We need cells in this case
+		hand = {hand};
+	end
+    n_groups = numel(hand);					% N of different point ensembles
 
-    if (strcmp(mode,'first'))       % The TDR object starts here
+    if (strcmpi(mode,'first'))				% The TDR object starts here
 	    fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
     end
     
 	for (i = 1:n_groups)
-		xx = get(hand(i),'XData');      yy = get(hand(i),'YData');
-		np = length(xx);                % Number of points in this segment
-		PointRad = get(hand(i),'MarkerSize') / 72 * 2.54 / 7;   % Symbol size. The 7 is an ad-hoc corr factor
+		if (ishandle(hand(i)))
+			xx = get(hand(i),'XData');	yy = get(hand(i),'YData');
+			PointRad = get(hand(i),'MarkerSize') / 72 * 2.54 / 7;   % Symbol size. The 7 is an ad-hoc corr factor
+		else
+			[m n] = size(hand{i});		% We must allow for column or row vectors in input
+			if (m > n)		xx = hand{i}(:,1)';		yy = hand{i}(:,2)';
+			else			xx = hand{i}(1,:);		yy = hand{i}(2,:);
+			end
+		end
 		if (strcmp(opt,'Earthquakes'))  % Test those first because they have a z
 			zz = -double(getappdata(hand(i),'SeismicityDepth')) * 100;    % zz is now in meters positive up
 			if (size(zz,1) > 1)         % We need them as a row vector for fwrite
 				zz = zz';
 			end
 			symb = 6;					% Use spheres for epicenters
-		else                            % No Mirone code has yet a ZData property, but who knows
-			zz = get(hand(i),'ZData');
+		else
+			if (ishandle(hand(i)))
+				zz = get(hand(i),'ZData');
+				if (isempty(zz))	zz = get(hand(i),'UserData');	end		% Try this too
+			else
+				if (min(m,n) == 3)	% Have Z
+					if (m > n)		zz = hand{i}(:,3)';
+					else			zz = hand{i}(3,:);
+					end
+				end
+			end
 		end
 
-		if (isempty(zz))                % We need to have a z. Obviously it has to be 0
+		np = numel(xx);					% Number of points in this segment
+		if (isempty(zz))				% We need to have a z. Obviously it has to be 0
 			zz = repmat(limits(6),1,np);
-		else                            % Since we have a z, we need to update limits
+		else							% Since we have a z, we need to update limits
 			limits(5) = min(zz);        limits(6) = max(zz);
 		end
 
-		fwrite(fid,10520,'integer*4');      % 10520 is the SD_POINT3D code
-		fwrite(fid,np*3*8+64,'integer*4');  % data length
-		fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'integer*1');     % ?? o ultimo 1 parece dizer pontos
-		fwrite(fid,[np n_col 0 0],'integer*4');         % Number of points
-		fwrite(fid,limits,'real*8');
+		fwrite(fid,10520,'integer*4');		% 10520 is the SD_POINT3D code
+		%fwrite(fid,np*3*8+64,'integer*4');	% data length
+		fwrite(fid,np*3*8+20,'integer*4');	% data length
+		fwrite(fid,[0 0 1 1 1 2 (1:18)*0],'integer*1');
+		fwrite(fid,[np n_col 0 0 1],'integer*4');	% Number of points
+		%fwrite(fid,limits,'real*8');
 		fwrite(fid,[xx; yy; zz;],'real*8');
 
 		write_geo(fid,'add',limits)					% Write a GEOREF block
 	    write_cmap(fid)								% Write a FM_CMAP block
 
-		fwrite(fid,[10521 35],'integer*4');         % 10520 is the SD_POINT3D_ATB code, 35 -> Data Length
+		fwrite(fid,[10521 35],'integer*4');			% 10520 is the SD_POINT3D_ATB code, 35 -> Data Length
 		fwrite(fid,[0 0 1 1 1 5 (1:18)*0],'integer*1');
-		fwrite(fid,[1 0 symb],'integer*4');
+		fwrite(fid,[1 ColorBy symb],'integer*4');
 		fwrite(fid,[PointRad LabelSize],'real*4');
 		fwrite(fid,[0 1 1],'integer*4');
-		cor = uint8(get(hand(i),'MarkerFaceColor')*255);
-		fwrite(fid,cor,'uint8');                    % symbol's color
+		if (ishandle(hand(i)))
+			cor = uint8(get(hand(i),'MarkerFaceColor')*255);
+		else
+			cor = [255 255 255];	% ??
+		end
+		fwrite(fid,cor,'uint8');					% symbol's color
 	end
     
 %----------------------------------------------------------------------------------
