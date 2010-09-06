@@ -331,7 +331,7 @@ function out = parse_before_go(handles)
 		out{1} = ['-C' str(val,:)];			%Option -C
 	end
 	if (get(handles.check_clipIntens, 'Val'))
-		xx = round(abs(str2double(get(edit_clipIntens,'String'))));
+		xx = round(abs(str2double(get(handles.edit_clipIntens,'String'))));
 		if (isnan(xx))
 			warndlg('Trash or empty in the Intensity edit box. Ignoring this request','Warning')
 		else
