@@ -1,4 +1,4 @@
-function fname = write_flederFiles(opt,varargin)
+function filename = write_flederFiles(opt,varargin)
 % 'flederize' Matlab graphical objects.
 %
 % Depending of the OPT value, this function builds either:
@@ -124,6 +124,8 @@ function fname = write_flederFiles(opt,varargin)
 			write_pts(varargin{:});     % Write point objects
 			write_eof(varargin{1})		% Write EOF block and close the file
 	end
+
+	if (nargout)	filename = fname;	end		% Otherwise the compiled version would silently error
 
 %----------------------------------------------------------------------------------
 function [img, img2] = getImg(handles)
