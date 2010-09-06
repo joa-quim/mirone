@@ -9,7 +9,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
 %#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
-%#function obj_template_detect floodfill meca_studio inpaint_nans
+%#function obj_template_detect floodfill meca_studio inpaint_nans read_las
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -370,6 +370,7 @@ uimenu('Parent',hDR,'Call','mirone(''DrawImportLine_CB'',guidata(gcbo),''AsArrow
 uimenu('Parent',hDR,'Call','mirone(''Transfer_CB'',guidata(gcbo),''scatter'')','Label','Import scaled symbols');
 uimenu('Parent',hDR,'Call','mirone(''DrawImportText_CB'',guidata(gcbo))','Label','Import text');
 uimenu('Parent',hDR,'Call','mirone(''DrawImportShape_CB'',guidata(gcbo))','Label','Import shape file');
+uimenu('Parent',hDR,'Call','read_las(guidata(gcbo))','Label','Import LAS file');
 
 h = uimenu('Parent',hDR,'Label','Draw circle','Sep','on');
 uimenu('Parent',h,'Call','mirone(''DrawGeogCircle_CB'',guidata(gcbo))','Label','Geographical circle');
@@ -654,7 +655,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 30 Aug 2010'',''1.5.4b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 6 Sep 2010'',''1.5.4b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
