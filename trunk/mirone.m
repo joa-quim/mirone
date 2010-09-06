@@ -77,7 +77,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.nTrack = 0;			% Counter of the number of MB tracks imported
 	handles.origFig = [];		% To store the original image copy
 	handles.fileName = [];		% To store any input grid/image file name
-	handles.image_type = 0;		% Image type. 1->grd; 2-> trivial (jpg,png,bmp,etc...); 3->GeoTIFF; 4->DEMs; 5->
+	handles.image_type = 0;		% Image type. 1->grd; 2-> trivial (jpg,png,bmp,etc...); 3->GeoTIFF; 4->DEMs; 20-> white bg
 	handles.computed_grid = 0;	% However, matrices with a gmt header will have this == 1, so that they can be saved
 	handles.no_file = 1;		% 0 means a grid is loaded and 1 that it is not (to test when icons can be pushed)
 	handles.geog = 1;			% By default grids are assumed to be in geographical coordinates
@@ -335,6 +335,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'cpt',			color_palettes(fname);
 		case 'dat',			datasets_funs('Isochrons',handles,fname);
 		case 'shp',			DrawImportShape_CB(handles,fname);
+		case 'las',			read_las(handles, fname);
 		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles,fname);
 		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);		% It means "I don't know"
 		otherwise,			erro = 1;
@@ -842,7 +843,7 @@ function zoom_state(handles, state)
 	end
 
 % --------------------------------------------------------------------
-function handles = FileNewBgFrame_CB(handles, region, imSize, figTitle)
+function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 % Create a empty window with a frame selected in bg_region
 % However, if REGION was transmited, it is assumed to have [x_min x_max y_min y_max is_geog]
 % IMSIZE may either be the image size or the Figure title
@@ -869,6 +870,7 @@ function handles = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 	if (nargin == 3 && isa(imSize,'char')),		figTitle = imSize;	imSize = [];	end
 	handles = show_image(handles,figTitle,X,Y,Z,0,'xy',0,imSize);
 	aux_funs('isProj',handles);			% Check about coordinates type
+	if (nargout)	hand = handles;		end
 
 % --------------------------------------------------------------------
 function FileSaveGMTgrid_CB(handles, opt)
