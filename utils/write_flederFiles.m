@@ -120,6 +120,7 @@ function fname = write_flederFiles(opt,varargin)
 		case 'line'
 			write_line(varargin{:});    % Write line objects
 		case 'points'
+			if (ischar(varargin{1}))	varargin{1} = fopen(varargin{1},'wb');	end		% Was file name
 			write_pts(varargin{:});     % Write point objects
 			write_eof(varargin{1})		% Write EOF block and close the file
 	end
