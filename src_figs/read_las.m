@@ -277,11 +277,7 @@ function push_FLEDERfile_CB(hObject, handles)
 function edit_FLEDERfile_CB(hObject, handles, fname)
 	if (nargin == 2),	fname = [];		end
 
-	out = parse_before_go(handles);
-	if (~isempty(out))		xyz = lasreader_mex(handles.fname, out{:});
-	else					xyz = lasreader_mex(handles.fname);
-	end
-
+	xyz = get_data(handles);
 	if (isempty(xyz))
 		warndlg('No data points with current selection','Warning'),		return
 	end
@@ -289,13 +285,17 @@ function edit_FLEDERfile_CB(hObject, handles, fname)
 	if (isempty(fname))		fname = get(hObject, 'Str');
 	else					set(hObject, 'Str', fname)
 	end
-	write_flederFiles('points', fname, xyz, 'first', handles.bbox);	% It also closes file
+	write_flederFiles('points', fname, xyz, 'first', handles.bbox);
 
 % -------------------------------------------------------------------------------------------------
 function push_goFleder_CB(hObject, handles)
 % ...
 	fname = [handles.home_dir filesep 'tmp' filesep 'lixo.sd'];
-	edit_FLEDERfile_CB(handles.edit_FLEDERfile, handles, fname)
+	xyz = get_data(handles);
+	if (isempty(xyz))
+		warndlg('No data points with current selection','Warning'),		return
+	end
+	write_flederFiles('points', fname, xyz, 'first', handles.bbox);
 	
 	if (isempty(handles.whichFleder))	handles.whichFleder = 1;	end
 	comm = [' -data ' fname ' &'];
@@ -317,6 +317,14 @@ function push_goFleder_CB(hObject, handles)
 
 	pause(1)
 	builtin('delete',fname);
+
+% -------------------------------------------------------------------------------------------------
+function xyz = get_data(handles)
+% Get the data points from file taking into account possible filter settings
+	out = parse_before_go(handles);
+	if (~isempty(out))		xyz = lasreader_mex(handles.fname, out{:});
+	else					xyz = lasreader_mex(handles.fname);
+	end
 
 % ---------------------------------------------------------------------------------------
 function out = parse_before_go(handles)
