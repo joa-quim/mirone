@@ -289,8 +289,8 @@ function edit_FLEDERfile_CB(hObject, handles, fname)
 	if (isempty(fname))		fname = get(hObject, 'Str');
 	else					set(hObject, 'Str', fname)
 	end
-	fid = fopen(fname,'wb');
-	write_flederFiles('points', fid, xyz, 'first', handles.bbox);	% It also closes file
+	%fid = fopen(fname,'wb');
+	write_flederFiles('points', fname, xyz, 'first', handles.bbox);	% It also closes file
 
 % -------------------------------------------------------------------------------------------------
 function push_goFleder_CB(hObject, handles)
@@ -298,26 +298,24 @@ function push_goFleder_CB(hObject, handles)
 	fname = [handles.home_dir filesep 'tmp' filesep 'lixo.sd'];
 	edit_FLEDERfile_CB(handles.edit_FLEDERfile, handles, fname)
 	
+	if (isempty(handles.whichFleder))	handles.whichFleder = 1;	end
 	comm = [' -data ' fname ' &'];
-	if (~isempty(handles.whichFleder))
-		if (handles.whichFleder),	fcomm = ['iview4d' comm];			% Free viewer
-		else						fcomm = ['fledermaus' comm];		% The real thing
-		end
-		try
-			if (isunix)				% Stupid linux doesn't react to a non-existant iview4d
-				resp = unix(fcomm);
-				if (resp == 0)
-					errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
-				end
-			elseif (ispc)	dos(fcomm);
-			else			errordlg('Unknown platform.','Error'),	return
-			end
-		catch
-			errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
-		end
-	else
-		dos(['iview4d -data ' fname ' &']);		% Try luck with this
+	if (handles.whichFleder),	fcomm = ['iview4d' comm];			% Free viewer
+	else						fcomm = ['fledermaus' comm];		% The real thing
 	end
+	try
+		if (isunix)				% Stupid linux doesn't react to a non-existant iview4d
+			resp = unix(fcomm);
+			if (resp == 0)
+				errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
+			end
+		elseif (ispc)	dos(fcomm);
+		else			errordlg('Unknown platform.','Error'),	return
+		end
+	catch
+		errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
+	end
+
 	pause(1)
 	builtin('delete',fname);
 
