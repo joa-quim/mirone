@@ -24,6 +24,7 @@ function varargout = read_las(varargin)
 	handles.fname   = [];
 	handles.bbox    = [];
 	handles.classes = [];
+	handles.IDs     = [];
 	handles.xMinTouched = false;		% Used to know if we must send in -R option to mex
 	handles.xMaxTouched = false;
 	handles.yMinTouched = false;
@@ -73,6 +74,12 @@ function varargout = read_las(varargin)
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 	new_frame3D(hObject, [handles.text_color handles.text_clip])
 	%------------- END Pro look (3D) -----------------------------------------------------
+	
+	% ------------ Create a Semaforo -----------------------------------------------------
+	[semaforo, pal] = aux_funs('semaforo_green');
+	handles.hSemaforo = image(semaforo,'Parent', handles.axes1);
+	set(handles.axes1, 'XTick',[], 'YTick', [])
+	set(handles.figure1, 'Colormap', pal),		drawnow
 
 	% Add this figure handle to the carraças list
 	if (~isempty(handles.hMirFig))
@@ -120,10 +127,12 @@ function edit_LASfile_CB(hObject, handles, fname)
 % -------------------------------------------------------------------------------------------------
 function push_getClass_CB(hObject, handles)
 	if (isempty(handles.classes) && ~isempty(handles.fname))
+		semaforo_toggle(handles, 'red')
 		handles.classes = lasreader_mex(handles.fname,'-S');
 		set(handles.listbox1, 'Str', {handles.classTypes{handles.classes}})		% Info
 		set(handles.popup_class, 'Str', handles.classes)		% For the case they will be wanted later
 		guidata(handles.figure1, handles);
+		semaforo_toggle(handles, 'green')
 	end
 
 % -------------------------------------------------------------------------------------------------
@@ -140,6 +149,14 @@ function radio_colorIntens_CB(hObject, handles)
 function radio_colorClass_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_colorDepth handles.radio_colorIntens handles.radio_colorReturn handles.radio_colorID],'Val',0)
+	if (isempty(handles.classes) && ~isempty(handles.fname))	% We will need this info later
+		semaforo_toggle(handles, 'red')
+		handles.classes = lasreader_mex(handles.fname,'-S');
+		set(handles.listbox1, 'Str', {handles.classTypes{handles.classes}})		% Info
+		set(handles.popup_class, 'Str', handles.classes)		% For the case they will be wanted later
+		guidata(handles.figure1, handles);
+		semaforo_toggle(handles, 'green')
+	end
 
 % -------------------------------------------------------------------------------------------------
 function radio_colorReturn_CB(hObject, handles)
@@ -150,15 +167,23 @@ function radio_colorReturn_CB(hObject, handles)
 function radio_colorID_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_colorDepth handles.radio_colorIntens handles.radio_colorClass handles.radio_colorReturn],'Val',0)
+	if (isempty(handles.IDs) && ~isempty(handles.fname))	% We will need this info later
+		semaforo_toggle(handles, 'red')
+		handles.IDs = lasreader_mex(handles.fname,'-D');
+		guidata(handles.figure1, handles);
+		semaforo_toggle(handles, 'green')
+	end
 
 % -------------------------------------------------------------------------------------------------
 function check_clipClass_CB(hObject, handles)
 	if (get(hObject,'Value'))		% We need to test several cases
 		if (isempty(handles.fname))		set(hObject,'Val',0),	return,		end		% No file yet
 		if (isempty(handles.classes))	% Don't know them yet, time to do it
+			semaforo_toggle(handles, 'red')
 			handles.classes = lasreader_mex(handles.fname,'-S');
 			set(handles.listbox1, 'Str', {handles.classtypes{handles.classes}})		% Info
 			guidata(handles.figure1, handles);
+			semaforo_toggle(handles, 'green')
 		end
 		set(handles.popup_class, 'Str', handles.classes, 'Enable','on') 
 	else
@@ -246,11 +271,8 @@ function edit_BINfile_CB(hObject, handles, fname)
 	else					set(hObject, 'Str', fname)
 	end
 
-	out = parse_before_go(handles);
-	if (~isempty(out))		xyz = lasreader_mex(handles.fname, out{:});
-	else					xyz = lasreader_mex(handles.fname);
-	end
-
+	semaforo_toggle(handles, 'red')
+	xyz = get_data(handles);
 	if (isempty(xyz))
 		warndlg('No data points with current selection','Warning'),		return
 	end
@@ -258,8 +280,16 @@ function edit_BINfile_CB(hObject, handles, fname)
 	frmt = 'real*4';
 	if (get(handles.check_double, 'Val'))		frmt = 'real*8';	end
 	fid = fopen(fname, 'wb');
-	fwrite(fid,xyz,frmt);
+	if (~isa(xyz,'cell'))
+		fwrite(fid,xyz,frmt);
+	else							% Write a multisegment file
+		for (k = 1:numel(xyz))
+			fwrite(fid,[NaN NaN NaN],frmt);
+			fwrite(fid,xyz{k},frmt);
+		end
+	end
 	fclose(fid);
+	semaforo_toggle(handles, 'green')
 
 % -------------------------------------------------------------------------------------------------
 function push_grdTool_CB(hObject, handles)
@@ -277,6 +307,7 @@ function push_FLEDERfile_CB(hObject, handles)
 function edit_FLEDERfile_CB(hObject, handles, fname)
 	if (nargin == 2),	fname = [];		end
 
+	semaforo_toggle(handles, 'red')
 	xyz = get_data(handles);
 	if (isempty(xyz))
 		warndlg('No data points with current selection','Warning'),		return
@@ -286,16 +317,20 @@ function edit_FLEDERfile_CB(hObject, handles, fname)
 	else					set(hObject, 'Str', fname)
 	end
 	write_flederFiles('points', fname, xyz, 'first', handles.bbox);
+	semaforo_toggle(handles, 'green')
 
 % -------------------------------------------------------------------------------------------------
 function push_goFleder_CB(hObject, handles)
-% ...
+% Create one Fleder file in ...$mirone/tmp and call Fleder on it.
+
 	fname = [handles.home_dir filesep 'tmp' filesep 'lixo.sd'];
+	semaforo_toggle(handles, 'red')
 	xyz = get_data(handles);
 	if (isempty(xyz))
 		warndlg('No data points with current selection','Warning'),		return
 	end
-	write_flederFiles('points', fname, xyz, 'first', handles.bbox);
+	write_flederFiles('points', fname, xyz, 'first', handles.bbox);		pause(0.1)
+	semaforo_toggle(handles, 'green')
 	
 	if (isempty(handles.whichFleder))	handles.whichFleder = 1;	end
 	comm = [' -data ' fname ' &'];
@@ -321,16 +356,48 @@ function push_goFleder_CB(hObject, handles)
 % -------------------------------------------------------------------------------------------------
 function xyz = get_data(handles)
 % Get the data points from file taking into account possible filter settings
-	out = parse_before_go(handles);
-	if (~isempty(out))		xyz = lasreader_mex(handles.fname, out{:});
-	else					xyz = lasreader_mex(handles.fname);
+
+	[out, colorBy] = parse_before_go(handles);
+	if (~colorBy.do)			% Simpler case. No data spliting
+		if (~isempty(out))		xyz = lasreader_mex(handles.fname, out{:});
+		else					xyz = lasreader_mex(handles.fname);
+		end
+	elseif (colorBy.do && colorBy.split)
+		% Here we have to deal with a convoluted logic as we'll allow Clip options as well
+		if (colorBy.class)
+			xyz = cell(1, numel(handles.classes));
+			for (k = 1:numel(handles.classes))
+				opt_C = sprintf('-C%d', handles.classes(k));
+				if (~isempty(out) && out{1}(2) == 'C')		% Ghrr, already had one -C request.
+					out(1) = [];
+				end
+				if (~isempty(out))							% Case with Clippings too
+					xyz{k} = lasreader_mex(handles.fname, opt_C, out{:});
+				else
+					xyz{k} = lasreader_mex(handles.fname, opt_C);
+				end
+			end
+		elseif (colorBy.ID)
+			xyz = cell(1, numel(handles.IDs));
+			for (k = 1:numel(handles.IDs))
+				opt_D = sprintf('-D%d', handles.IDs(k));
+				if (~isempty(out) && out{end}(2) == 'D')	% Ghrr, already had one -D request.
+					out(end) = [];
+				end
+				if (~isempty(out))							% Case with Clippings too
+					xyz{k} = lasreader_mex(handles.fname, opt_D, out{:});
+				else
+					xyz{k} = lasreader_mex(handles.fname, opt_D);
+				end
+			end
+		end
 	end
 
 % ---------------------------------------------------------------------------------------
-function out = parse_before_go(handles)
+function [out, colorBy] = parse_before_go(handles)
 % Parse all possible constraints 
 
-	out = [];
+	out = [];	colorBy.do = false;		colorBy.split = false;
 	if (get(handles.check_clipClass, 'Val'))
 		str = get(handles.popup_class, 'Str');		val = get(handles.popup_class,'Val');
 		out{1} = ['-C' str(val,:)];			%Option -C
@@ -340,13 +407,13 @@ function out = parse_before_go(handles)
 		if (isnan(xx))
 			warndlg('Trash or empty in the Intensity edit box. Ignoring this request','Warning')
 		else
-			out{2} = sprintf('-I%d', xx);	%Option -I
+			out{end+1} = sprintf('-I%d', xx);	%Option -I
 		end
 	end
 	if (get(handles.check_clipReturns, 'Val'))
 		n = get(handles.popup_returns,'Val');
 		if (n == 2)		n = 10;		end			% Last return is coded 10
-		out{3} = sprintf('-C%d',n);			%Option -N
+		out{end+1} = sprintf('-C%d',n);			%Option -N
 	end
 
 	if (any([handles.xMinTouched handles.xMaxTouched handles.yMinTouched		% Before we go for -R
@@ -355,13 +422,42 @@ function out = parse_before_go(handles)
 		y1 = str2double(get(handles.edit_y_min,'Str'));		y2 = str2double(get(handles.edit_y_max,'Str'));
 		z1 = str2double(get(handles.edit_z_min,'Str'));		z2 = str2double(get(handles.edit_z_max,'Str'));
 		if ( any(abs( [x1 x2 y1 y2] - handles.bbox(1:4) ) > 1e-6) &&  all(abs([z1 z2] - handles.bbox(5:6)) < 1e-4) )
-			out{4} = sprintf('-R%.8f/%.8f/%.8f/%.8f',x1, x2, y1, y2);		% A 2D -R option
+			out{end+1} = sprintf('-R%.8f/%.8f/%.8f/%.8f',x1, x2, y1, y2);		% A 2D -R option
 		elseif ( any(abs( [x1 x2 y1 y2 z1 z2 ] - handles.bbox ) > 1e-6) )
-			out{4} = sprintf('-R%.8f/%.8f/%.8f/%.8f/%.8f/%.8f',x1, x2, y1, y2, z1, z2);	% The 3D -R option
+			out{end+1} = sprintf('-R%.8f/%.8f/%.8f/%.8f/%.8f/%.8f',x1, x2, y1, y2, z1, z2);	% The 3D -R option
 		end
 	end
 
-% ------------------------------------------------------------
+	if (get(handles.check_clipID, 'Val'))
+		xx = round(abs(str2double(get(handles.edit_clipID,'String'))));
+		if (isnan(xx))
+			warndlg('Trash or empty in the Source ID edit box. Ignoring this request','Warning')
+		else
+			out{end+1} = sprintf('-D%d', xx);	%Option -D
+		end
+	end
+
+	if (get(handles.radio_colorClass, 'Val'))
+		colorBy.do = true;		colorBy.split = true;
+		colorBy.class = true;	colorBy.ID = false;
+	elseif (get(handles.radio_colorID, 'Val'))
+		colorBy.do = true;		colorBy.split = true;
+		colorBy.ID = true;		colorBy.class = false;
+	end
+
+% ---------------------------------------------------------------------------------------
+function semaforo_toggle(handles, cor)
+% Toggle semaforo light between red and green
+
+	if (cor(1) == 'r')
+		[semaforo, pal] = aux_funs('semaforo_red');
+	else
+		[semaforo, pal] = aux_funs('semaforo_green');
+	end
+	set(handles.hSemaforo,'CData',semaforo)
+	set(handles.figure1, 'Colormap', pal),		drawnow
+
+% ---------------------------------------------------------------------------------------
 function read_las_LayoutFcn(h1)
 
 set(h1, 'Color',get(0,'factoryUicontrolBackgroundColor'),...
@@ -374,8 +470,11 @@ set(h1, 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'Tag','figure1',...
 'Visible','on');
 
-uicontrol('Parent',h1, 'Position',[10 124 401 122],'Style','frame','Tag','frame1');
-uicontrol('Parent',h1, 'Position',[270 258 141 111],'Style','frame','Tag','frame2');
+uicontrol('Parent',h1, 'Position',[10 124 401 122],'Style','frame');
+uicontrol('Parent',h1, 'Position',[270 258 141 111],'Style','frame');
+
+axes('Parent',h1,'Units','pixels','Position',[375 65 14 46],...
+'XTick', [], 'YTick', [], 'Visible', 'off', 'Tag','axes1');
 
 uicontrol('Parent',h1, 'Position',[10 382 31 15],...
 'HorizontalAlignment','left',...
@@ -420,6 +519,7 @@ uicontrol('Parent',h1, 'Position',[281 340 70 21],...
 uicontrol('Parent',h1, 'Position',[281 320 70 23],...
 'Call',{@read_las_uiCB,h1,'radio_colorIntens_CB'},...
 'String','Intensity',...
+'Enable','off',...
 'Style','radiobutton',...
 'Tag','radio_colorIntens');
 
@@ -432,6 +532,7 @@ uicontrol('Parent',h1, 'Position',[281 300 90 23],...
 uicontrol('Parent',h1, 'Position',[281 280 80 23],...
 'Call',{@read_las_uiCB,h1,'radio_colorReturn_CB'},...
 'String','Returns',...
+'Enable','off',...
 'Style','radiobutton',...
 'Tag','radio_colorReturn');
 
