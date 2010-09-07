@@ -25,12 +25,13 @@
 void print_header(LASHeaderH header, int bSkipVLR);
 void plain_xyz(mxArray *plhs[], LASReaderH reader, LASHeaderH header);
 void get_classification_list ( mxArray *plhs[],  LASReaderH reader);
+void  get_ID_list ( mxArray *plhs[],  LASReaderH reader);
 double ddmmss_to_degree (char *text);
 
 
 void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-	int	verbose = FALSE, got_R = FALSE, scanC = FALSE, get_BB_only = FALSE;
-	int	i, argc = 0, n_arg_no_char = 0, classif = 0, intens = 0, nRet = 0;
+	int	verbose = FALSE, got_R = FALSE, scanC = FALSE, scanD = FALSE, get_BB_only = FALSE;
+	int	i, argc = 0, n_arg_no_char = 0, classif = 0, intens = 0, nRet = 0, srcID = 0;
 	unsigned int nPoints;
 	char	**argv, *fname = NULL, *parse_string = "xyz";
 	double	*bbox, west, east, south, north, z_min = -1001, z_max, angle = 0;
@@ -39,29 +40,34 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	LASPointH p = NULL;
  
 	if (nrhs == 0) {
-		mexPrintf ("usage: [xyz, bbox] = lasreader_mex ('filename', '[-A<ang>]', '[-C<class>]',\n");
-		mexPrintf ("       [-I<intens>]', '[-N<return>]', '[-R<x_min/x_max/y_min/y_max[/z_min/z_max]>]');\n");
+		mexPrintf ("usage: [xyz, bbox] = lasreader_mex ('filename', ['-A<ang>'], ['-C<class>'], ['-D<id>']\n");
+		mexPrintf ("       [-I<intens>]', ['-N<return>'], ['-R<x_min/x_max/y_min/y_max[/z_min/z_max]>']);\n");
     		mexPrintf ("  OR\n");
-		mexPrintf ("       [classifications, bbox] = lasreader_mex ('filename', '-S'),\n\n");
+		mexPrintf ("       [class, bbox] = lasreader_mex ('filename', '-S'),\n\n");
+    		mexPrintf ("  OR\n");
+		mexPrintf ("       [IDs, bbox] = lasreader_mex ('filename', '-D'),\n\n");
     		mexPrintf ("  OR\n");
 		mexPrintf ("       bbox = lasreader_mex ('filename', '-B'),\n\n");
 
     		mexPrintf ("First case usage:\n");
     		mexPrintf ("where xyz is 3xN array with the XYZ point coordinates:\n");
     		mexPrintf ("and bbox is a 1x6 vector with [xmin xmax ymin ymax zmin zmax]\n");
-    		mexPrintf ("       -A<ang> Clip out points with scan angle > ang\n");
-    		mexPrintf ("       -C<class> Retain only points with classification = class\n");
-    		mexPrintf ("       -I<intens> Clip out points with intensity < intens\n");
-    		mexPrintf ("       -N<return> Select first return (-N1) or last return (-N10)\n");
-    		mexPrintf ("       -R<x_min/x_max/y_min/y_max> - Clip to bounding box.\n");
-    		mexPrintf ("         Optionaly add z_min/z_max to make a 3D bounding box.\n\n");
-    		mexPrintf ("       -V Prints header contents info on ML shell.\n");
+    		mexPrintf ("  -A<ang> Clip out points with scan angle > ang\n");
+    		mexPrintf ("  -C<class> Retain only points with classification = class\n");
+    		mexPrintf ("  -D<id> Retain only points with Source IDs = id (DO NOT CONFUSE WITH -D)\n");
+    		mexPrintf ("  -D Scan file for a list of Source IDs (see below) (DO NOT CONFUSE WITH -D<id>).\n");
+    		mexPrintf ("  -I<intens> Clip out points with intensity < intens\n");
+    		mexPrintf ("  -N<return> Select first return (-N1) or last return (-N10)\n");
+    		mexPrintf ("  -R<x_min/x_max/y_min/y_max> - Clip to bounding box.\n");
+    		mexPrintf ("    Optionaly add z_min/z_max to make a 3D bounding box.\n\n");
+    		mexPrintf ("  -S Scan file for a list of Classifications (see below).\n");
+    		mexPrintf ("  -V Prints header contents info on ML shell.\n");
 
-    		mexPrintf ("Second case:\n");
-    		mexPrintf ("classifications is a 1xN vector with a list of different classificatins\n");
+    		mexPrintf ("Second/Third cases:\n");
+    		mexPrintf ("class|ID is a 1xN vector with a list of different classificatins|IDs\n");
     		mexPrintf ("present in file. No other data (except optional BBox) is return here.\n");
 
-    		mexPrintf ("Third case:\n");
+    		mexPrintf ("Fourth case:\n");
     		mexPrintf ("\tReturns only the bonding box 1x6 vector.\n");
 		return;
 	}
@@ -100,6 +106,12 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'C':
 					classif = atoi(&argv[i][2]);
 					break;
+				case 'D':
+					if (argv[i][2])
+						srcID = atoi(&argv[i][2]);
+					else
+						scanD = TRUE;
+					break;
 				case 'I':
 					intens = atoi(&argv[i][2]);
 					break;
@@ -123,10 +135,16 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 
 	reader = LASReader_Create(fname);
-	if (!reader) mexErrMsgTxt("Error! Unable to read file!");
+	if (!reader) mexErrMsgTxt("LASREADER Error! Unable to read file!");
 
 	header = LASReader_GetHeader(reader);
-	if (!header) mexErrMsgTxt("Unable to fetch header for file");
+	if (!header) mexErrMsgTxt("LASREADER: Unable to fetch header for file");
+
+	if (get_BB_only && (scanC || scanD) )
+		mexPrintf("LASREADER WARNING: option -B takes precedence over -C or -D\n");
+
+	else if (scanC && scanD)
+		mexPrintf("LASREADER WARNING: option -C takes precedence over -D\n");
 
 	if (get_BB_only) {
 		plhs[0] = mxCreateDoubleMatrix(1, 6, mxREAL);
@@ -139,15 +157,18 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (verbose) print_header(header, FALSE);
 
-	if (!scanC) {
-		if ((got_R + nRet + intens + classif + angle) == 0)
+	if (!(scanC || scanD)) {
+		if ((got_R + nRet + intens + classif + angle + srcID) == 0)
 			plain_xyz(plhs, reader, header);
 		else
-			conditional_xyz(plhs, reader, header, angle, classif, intens,
-					nRet, got_R, west, east, south, north, z_min, z_max);
+			conditional_xyz(plhs, reader, header, angle, classif, intens, nRet,
+					srcID, got_R, west, east, south, north, z_min, z_max);
 	}
-	else 		/* Scan file for a list of different classifications */
+	else if (scanC)		/* Scan file for a list of different classifications */
 		get_classification_list ( plhs, reader);
+
+	else if (scanD)		/* Scan file for a list of different Source IDs */
+		get_ID_list ( plhs, reader);
 
 	if (nlhs == 2) {
 		plhs[1] = mxCreateDoubleMatrix(1, 6, mxREAL);
@@ -192,7 +213,7 @@ void plain_xyz(mxArray *plhs[], LASReaderH reader, LASHeaderH header) {
 
 /* ---------------------------------------------------------------------------------- */
 int  conditional_xyz ( mxArray *plhs[], LASReaderH reader, LASHeaderH header,
-		double ang, int classif, int intens, int nRet, int got_R,
+		double ang, int classif, int intens, int nRet, int srcID, int got_R,
 		double west, double east, double south, double north, double z_min, double z_max) {
 	/* Get the XYZ triplets that escape excluding clausules */
 
@@ -221,6 +242,7 @@ int  conditional_xyz ( mxArray *plhs[], LASReaderH reader, LASHeaderH header,
 		}
         
 		if (classif && LASPoint_GetClassification(p) != classif) goto fim;
+		if (srcID && LASPoint_GetPointSourceId(p) != srcID) goto fim;
 		if (intens && LASPoint_GetIntensity(p) < intens) goto fim;
 		if (last_only && LASPoint_GetReturnNumber(p) != LASPoint_GetNumberOfReturns(p)) goto fim;
 		if (first_only && LASPoint_GetReturnNumber(p) != 1) goto fim;
@@ -243,6 +265,7 @@ int  conditional_xyz ( mxArray *plhs[], LASReaderH reader, LASHeaderH header,
 fim:
 		p = LASReader_GetNextPoint(reader);
 	}
+
 	if (n) {
 		n--;
 			
@@ -295,6 +318,43 @@ void  get_classification_list ( mxArray *plhs[],  LASReaderH reader) {
 	plhs[0] = mxCreateDoubleMatrix(1, (nClass + 1), mxREAL);
 	memcpy(mxGetPr(plhs[0]), class_list, (nClass + 1) * sizeof(double));
 	mxFree((void *) class_list);
+}
+
+/* ---------------------------------------------------------------------------------- */
+void  get_ID_list ( mxArray *plhs[],  LASReaderH reader) {
+	/* Scan the LAS file for Source ID and create a vector list of the different ones */
+	double	this_ID, last_ID = -1;	/* Use doubles because they are few and makes life easier in ML */
+	double	*ID_list = NULL;	
+	int	nID = 0, onList, i;
+	LASPointH p = LASReader_GetNextPoint(reader);
+
+	ID_list = (double *)mxMalloc(4096 * sizeof(double));	/* 4096 should be enough no? */
+	ID_list[0] = 0;
+
+	while (p) {
+		if (!LASPoint_IsValid(p)) {
+			p = LASReader_GetNextPoint(reader);
+			continue;
+		}
+
+		this_ID = LASPoint_GetPointSourceId(p);
+		if ( this_ID != last_ID) { 
+			onList = FALSE;
+			for (i = 0; i < nID; i++) {	/* Check if we have a new classification index */
+				if (this_ID == ID_list[i]) onList = TRUE;
+			}
+			if (!onList) {		/* Got a new classification. Store it */
+				ID_list[nID++] = this_ID;
+				last_ID = this_ID;
+			}
+		}
+
+		p = LASReader_GetNextPoint(reader);
+	}
+
+	plhs[0] = mxCreateDoubleMatrix(1, nID, mxREAL);
+	memcpy(mxGetPr(plhs[0]), ID_list, nID * sizeof(double));
+	mxFree((void *) ID_list);
 }
 
 /* ---------------------------------------------------------------------------------- */
