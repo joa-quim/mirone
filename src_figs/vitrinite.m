@@ -275,14 +275,19 @@ function push_getAvgReflec_CB(hObject, handles)
 	params.Point = [x y];    params.Tolerance = 5;    params.Connect = 8;
 	hAx = get(handles.figure1,'CurrentAxes');
 	img = get(findobj(hAx,'Type','Image'),'CData');                   % Get the image
+	if (ndims(img) == 2)	dumb = repmat(img,[1 1 3]);
+	else					dumb = img;
+	end
 
-	[dumb,mask] = cvlib_mex('floodfill',img,params);
+	[dumb,mask] = cvlib_mex('floodfill',dumb,params);
+	clear dumb;
+
 	avgPix = round(mean2(img(mask)));
 	avgReflect = double(handles.callibCurv(avgPix));
 	hText = text(x,y,sprintf('%.2f',avgReflect),'Fontsize',8,'Parent',hAx,'HorizontalAlignment','center');
 
 	% Set a uicontext with the "Deleting" option
-	cmenuHand = uicontextmenu;      set(hText, 'UIContextMenu', cmenuHand);
+	cmenuHand = uicontextmenu;		set(hText, 'UIContextMenu', cmenuHand);
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 
 %--------------------------------------------------------------------------
