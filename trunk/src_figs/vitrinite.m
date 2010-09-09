@@ -258,7 +258,7 @@ function push_getTiePoint_CB(hObject, handles)
 	tiePoint = round(mean2(img(mask)));
 	whichMarker = get(handles.popup_markersImgs,'Value');   % We need to know which tie point is this
 	handles.tiePoints{whichMarker} = tiePoint;
-	handles.sigma{whichMarker} = std2(img(mask));
+	handles.sigma{whichMarker} = std(double(img(mask)));
 	handles.countTiePoints = handles.countTiePoints + 1;
 	guidata(handles.figure1,handles)
 
