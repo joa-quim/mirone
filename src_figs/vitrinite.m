@@ -1,5 +1,5 @@
 function varargout = vitrinite(varargin)
-% Helper window to assist carbons Age guessing blaqck magic
+% Helper window to assist carbons Age guessing black magic
 
 %	Copyright (c) 2004-2010 by J. Luis
 %
@@ -15,38 +15,44 @@ function varargout = vitrinite(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-hObject = figure('Tag','figure1','Visible','off');
-vitrinite_LayoutFcn(hObject);
-handles = guihandles(hObject);
-move2side(handles.figure1,'center')
+	hObject = figure('Tag','figure1','Visible','off');
+	vitrinite_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(handles.figure1,'center')
 
-handles.home_dir = cd;
-handles.last_dir = cd;
+	mir_dirs = getappdata(0,'MIRONE_DIRS');
+	if (~isempty(mir_dirs))
+		handles.home_dir = mir_dirs.home_dir;		% Start in values
+		handles.work_dir = mir_dirs.work_dir;
+		handles.last_dir = mir_dirs.last_dir;
+	else
+		handles.home_dir = cd;		handles.work_dir = cd;		handles.last_dir = cd;
+	end
 
-% Import icons
-load(['data' filesep 'mirone_icons.mat'],'Mfopen_ico','zoom_ico');
+	% Import icons
+	load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'Mfopen_ico','zoom_ico');
 
-h_toolbar = uitoolbar('parent',handles.figure1, 'BusyAction','queue','HandleVisibility','on',...
-   'Interruptible','on','Tag','FigureToolBar','Visible','on');
-uipushtool('parent',h_toolbar,'Click',@clicked_loadMarkersImg_CB, ...
-   'cdata',Mfopen_ico,'TooltipString','Open Marker images');
-uipushtool('parent',h_toolbar,'Click',@clicked_loadSampleImg_CB, ...
-   'cdata',Mfopen_ico,'TooltipString','Open Sample image','Sep','on');
-uitoggletool('parent',h_toolbar,'Click','zoom', ...
-   'cdata',zoom_ico,'TooltipString','Zooming on/off','Sep','on');
+	hTB = uitoolbar('parent',handles.figure1, 'BusyAction','queue','HandleVisibility','on',...
+	   'Interruptible','on','Tag','FigureToolBar','Visible','on');
+	uipushtool('parent',hTB,'Click',@clicked_loadMarkersImg_CB, ...
+	   'cdata',Mfopen_ico,'Tooltip','Open Marker images');
+	uipushtool('parent',hTB,'Click',@clicked_loadSampleImg_CB, ...
+	   'cdata',Mfopen_ico,'Tooltip','Open Sample image','Sep','on');
+	uitoggletool('parent',hTB,'Click','zoom', ...
+	   'cdata',zoom_ico,'Tooltip','Zooming on/off','Sep','on');
 
-handles.hImgMarker = [];
-handles.hImgSample = [];
-handles.countMark = 0;         % Counter of number of loaded image markers
-handles.tiePoints = [];
-handles.countTiePoints = 0;
-handles.haveStatusBar = 0;
-handles.IamCallibrated = 0;
-handles.geog = 0;
+	handles.hImgMarker = [];
+	handles.hImgSample = [];
+	handles.countMark = 0;         % Counter of number of loaded image markers
+	handles.tiePoints = [];
+	handles.countTiePoints = 0;
+	handles.haveStatusBar = 0;
+	handles.IamCallibrated = 0;
+	handles.geog = 0;
 
-guidata(hObject, handles);
-set(hObject,'Visible','on');
-if (nargout),	varargout{1} = hObject;		end
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),	varargout{1} = hObject;		end
 
 % --------------------------------------------------------------------
 function clicked_loadMarkersImg_CB(hObject, eventdata)
@@ -183,64 +189,64 @@ function clicked_loadSampleImg_CB(hObject, eventdata)
 	guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
-function popup_markersImgs_CB(hObject, eventdata, handles)
-	if (handles.countMark < 2),    return;     end      % Too soon
+function popup_markersImgs_CB(hObject, handles)
+	if (handles.countMark < 2)		return,		end      % Too soon
 	set(handles.edit_reflectance,'String',handles.reflectance{get(hObject,'Value')})
 	resetImg(handles,get(hObject,'Value'))
 
 % --------------------------------------------------------------------
 function resetImg(handles, number)
-    % Update image merker accordingly to what was selected in the popup
+% Update image merker accordingly to what was selected in the popup
 	set(handles.hImgMarker,'CData',handles.ImgMarker{number})
 	set(handles.axes2,'PlotBoxAspectRatio',handles.imgAspect{number})    
 
 % --------------------------------------------------------------------
-function push_callibrate_CB(hObject, eventdata, handles)
-    % 
-    if (isempty(handles.hImgSample))
-        errordlg('Calibrate what? Your eyes? Load the sample image.','ERROR');return
-    end
-    if (handles.countTiePoints < 2)                   % Not yet possible to calibrate
-        errordlg('No I won''t. I need at least two tie points to do that.','ERROR');return
-    end
-    
-    x = sort(cell2mat(handles.tiePoints));            % Marker pixel values
-    Y = sort(cell2mat(handles.reflectance));          % Marker reflectance values
-%     x = [0.0 x];                                  % Don't let extrapolation pass to negative values
-%     Y = [0.15 Y];
-    Y_bak = Y;
-    
-    yi = single(interp1(x,Y,0:255,'linear','extrap'));
-    Z = yi(handles.ImgSample);
-    X = 1:size(handles.ImgSample,2);
-    Y = 1:size(handles.ImgSample,1);
-    head = [1 X(end) 1 Y(end) 0 255 0 1 1];
-    setappdata(handles.figure1,'dem_z',Z);  setappdata(handles.figure1,'dem_x',X);
-    setappdata(handles.figure1,'dem_y',Y);
-    set(handles.push_getAvgReflec,'Enable','on')
-    handles.IamCallibrated = 1;
-    handles.callibCurv = yi;                % Save the callibration curve
-    
-    % Display the callibration curve
-    try             % Use a try because on the first time they don't yet exist
-        delete(handles.callLine)
-        delete(handles.callPts)
-        %delete(handles.errorEnvelop)
-    end
-%     x = double(x);      yi = double(yi);
-%     y1 = [Y_bak+[0, yi(round( cat(2,handles.sigma{:}) ))]];
-%     y2 = [Y_bak-[0, yi(round( cat(2,handles.sigma{:}) ))]];
-%     y = [y1 y2(end:-1:1)];
-%     handles.errorEnvelop = patch('XData',[x x(end:-1:1)],'YData', y,'FaceColor',[.9 .9 .9],'Parent',handles.axes3);
-    handles.callLine = line('XData',0:255,'YData',yi,'Parent',handles.axes3);
-    handles.callPts = line('XData',x,'YData',Y_bak,'Parent',handles.axes3,'LineStyle','none',...
-        'Marker','o','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',7);
+function push_callibrate_CB(hObject, handles)
+% ... 
+	if (isempty(handles.hImgSample))
+		errordlg('Calibrate what? Your eyes? Load the sample image.','ERROR');return
+	end
+	if (handles.countTiePoints < 2)					% Not yet possible to calibrate
+		errordlg('No I won''t. I need at least two tie points to do that.','ERROR');return
+	end
 
-    guidata(handles.figure1,handles)
+	x = sort(cell2mat(handles.tiePoints));			% Marker pixel values
+	Y = sort(cell2mat(handles.reflectance));		% Marker reflectance values
+	%     x = [0.0 x];									% Don't let extrapolation pass to negative values
+	%     Y = [0.15 Y];
+	Y_bak = Y;
+
+	yi = single(interp1(x,Y,0:255,'linear','extrap'));
+	Z = yi(handles.ImgSample);
+	X = 1:size(handles.ImgSample,2);
+	Y = 1:size(handles.ImgSample,1);
+	head = [1 X(end) 1 Y(end) 0 255 0 1 1];
+	setappdata(handles.figure1,'dem_z',Z);  setappdata(handles.figure1,'dem_x',X);
+	setappdata(handles.figure1,'dem_y',Y);
+	set(handles.push_getAvgReflec,'Enable','on')
+	handles.IamCallibrated = 1;
+	handles.callibCurv = yi;                % Save the callibration curve
+
+	% Display the callibration curve
+	try             % Use a try because on the first time they don't yet exist
+		delete(handles.callLine)
+		delete(handles.callPts)
+		%delete(handles.errorEnvelop)
+	end
+	%     x = double(x);      yi = double(yi);
+	%     y1 = [Y_bak+[0, yi(round( cat(2,handles.sigma{:}) ))]];
+	%     y2 = [Y_bak-[0, yi(round( cat(2,handles.sigma{:}) ))]];
+	%     y = [y1 y2(end:-1:1)];
+	%     handles.errorEnvelop = patch('XData',[x x(end:-1:1)],'YData', y,'FaceColor',[.9 .9 .9],'Parent',handles.axes3);
+	handles.callLine = line('XData',0:255,'YData',yi,'Parent',handles.axes3);
+	handles.callPts = line('XData',x,'YData',Y_bak,'Parent',handles.axes3,'LineStyle','none',...
+		'Marker','o','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',7);
+
+	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function push_getTiePoint_CB(hObject, eventdata, handles)
-	% Get a tie point from the current Marker image
+function push_getTiePoint_CB(hObject, handles)
+% Get a tie point from the current Marker image
 	[x,y,but]  = ginput_pointer(1,'crosshair');
 	if (but ~= 1),   return;     end
 	params.Point = [x y];    params.Tolerance = 10;    params.Connect = 4;
@@ -257,8 +263,8 @@ function push_getTiePoint_CB(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 %--------------------------------------------------------------------------
-function push_getAvgReflec_CB(hObject, eventdata, handles)
-	% Get the average reflectance of the clicked shape
+function push_getAvgReflec_CB(hObject, handles)
+% Get the average reflectance of the clicked shape
 	if (~handles.IamCallibrated)
 		errordlg('You need to callibrate the sample image first.','ERROR'); return
 	end
@@ -278,13 +284,12 @@ function push_getAvgReflec_CB(hObject, eventdata, handles)
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 
 %--------------------------------------------------------------------------
-function edit_reflectance_CB(hObject, eventdata, handles)
-% Hints: get(hObject,'String') returns contents of edit_reflectance as text
-%        str2double(get(hObject,'String')) returns contents of edit_reflectance as a double
+function edit_reflectance_CB(hObject, handles)
+% Will have code when we let enter the reflectance value here
 
 %--------------------------------------------------------------------------
 function createStatusBar(handles)
-	% simulates a box at the bottom of the figure
+% simulates a box at the bottom of the figure
 	figPos = get(handles.figure1,'Pos');
 	H = 22;
 	sbPos(1) = 1;               sbPos(2) = 2;
@@ -299,9 +304,9 @@ function createStatusBar(handles)
 
 %--------------------------------------------------------------------------
 function hFrame = createframe(ah,fieldPos,H)
-	% Creates a virtual panel surrounding the field starting at fieldPos(1) and
-	% ending end fieldPos(2) pixels. ah is the sb's handle (axes).
-	% It returns a handle array designating the frame.
+% Creates a virtual panel surrounding the field starting at fieldPos(1) and
+% ending end fieldPos(2) pixels. ah is the sb's handle (axes).
+% It returns a handle array designating the frame.
 	
 	from = fieldPos(1);     to = fieldPos(2);
 	% col = rgb2hsv(get(fh,'Color'));       % fh was the figure's handle
@@ -318,12 +323,12 @@ function hFrame = createframe(ah,fieldPos,H)
 
 % -------------------------------------------------------------------------------------
 function y = mean2(x)
-	%MEAN2 Compute mean of matrix elements.
+%MEAN2 Compute mean of matrix elements.
 	y = sum(x(:)) / numel(x);
 
 % -------------------------------------------------------------------------------------
 function y = median2(x)
-	%MEDIAN2 Compute median of matrix elements.
+%MEDIAN2 Compute median of matrix elements.
 	y = median(x(:));
 
 
@@ -337,10 +342,9 @@ set(h1,...
 'Name','Vitrinite',...
 'NumberTitle','off',...
 'Position',[520 268 780 532],...
-'Renderer',get(0,'defaultfigureRenderer'),...
 'RendererMode','manual',...
 'Resize','off',...
-'HandleVisibility','Call',...
+'HandleVisibility','Callback',...
 'Tag','figure1');
 
 h2 = axes('Parent',h1,...
