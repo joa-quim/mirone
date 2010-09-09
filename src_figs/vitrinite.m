@@ -212,7 +212,7 @@ function push_callibrate_CB(hObject, handles)
 
 	x = sort(cell2mat(handles.tiePoints));			% Marker pixel values
 	Y = sort(cell2mat(handles.reflectance));		% Marker reflectance values
-	%     x = [0.0 x];									% Don't let extrapolation pass to negative values
+	%     x = [0.0 x];								% Don't let extrapolation pass to negative values
 	%     Y = [0.15 Y];
 	Y_bak = Y;
 
@@ -249,16 +249,18 @@ function push_getTiePoint_CB(hObject, handles)
 % Get a tie point from the current Marker image
 	[x,y,but]  = ginput_pointer(1,'crosshair');
 	if (but ~= 1),   return;     end
-	params.Point = [x y];    params.Tolerance = 10;    params.Connect = 4;
+	params.Point = [x y];	params.Tolerance = 10;		params.Connect = 4;
 
-	img = get(handles.hImgMarker,'CData');                   % Get the image
-	[dumb,mask] = cvlib_mex('floodfill',img,params);
+	img = get(handles.hImgMarker,'CData');					% Get the image
+	dumb = repmat(img,[1 1 3]);				% Because something strange in cvlib_mex for gray case.
+	[dumb,mask] = cvlib_mex('floodfill',dumb,params);
+	clear dumb;
 
 	% TESTAR SE TENHO REFLECTANCE PARA ESTE PONTO
 	tiePoint = round(mean2(img(mask)));
-	whichMarker = get(handles.popup_markersImgs,'Value');   % We need to know which tie point is this
+	whichMarker = get(handles.popup_markersImgs,'Value');	% We need to know which tie point is this
 	handles.tiePoints{whichMarker} = tiePoint;
-	handles.sigma{whichMarker} = std(double(img(mask)));
+	%	handles.sigma{whichMarker} = std(double(img(mask)));
 	handles.countTiePoints = handles.countTiePoints + 1;
 	guidata(handles.figure1,handles)
 
