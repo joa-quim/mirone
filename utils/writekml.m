@@ -1,7 +1,21 @@
 function writekml(handles,Z,fname)
 % Write a GoogleEarth kml file that will allow displaing the current image in GE
 
-	if (handles.no_file),   return;     end
+%	Copyright (c) 2004-2010 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
+	if (handles.no_file)	return,		end
 	if (nargin <= 2)
 		if (nargin == 1)			% Only HANDLES was transmited (called via clicked callback)
 			Z = [];                 % Z will be of use to know if need transparency
@@ -61,7 +75,8 @@ function writekml(handles,Z,fname)
 		fprintf(fid,'\t%s\n','<GroundOverlay>');
 		fprintf(fid,'\t\t%s\n','<name>Mirone Base Image</name>');
 		fprintf(fid,'\t\t%s\n','<Icon>');
-		fprintf(fid,'\t\t\t%s%s%s\n','<href>',fname_img,'</href>');
+		[pato,nome,ext]=fileparts(fname_img);
+		fprintf(fid,'\t\t\t%s%s%s\n','<href>',[nome ext],'</href>');
 		fprintf(fid,'\t\t%s\n','</Icon>');
 		fprintf(fid,'\t\t%s\n','<altitudeMode>clampToGround</altitudeMode>');
 		fprintf(fid,'\t\t%s\n','<LatLonBox>');
@@ -72,7 +87,7 @@ function writekml(handles,Z,fname)
 		fprintf(fid,'\t\t%s\n','</LatLonBox>');
 		fprintf(fid,'\t%s\n','</GroundOverlay>');
     end
-        
+
     % Start fishing other candidate elements
     ALLpatchHand = findobj(handles.axes1,'Type','patch');
 
@@ -108,13 +123,6 @@ function writekml(handles,Z,fname)
     % FISH ON THE LINES FAMILY (MANY P. DE CRIANCINHAS)
     ALLlineHand = findobj(handles.axes1,'Type','line');
     if (~isempty(ALLlineHand))
-%         % Make sure we don't pass any pscoast stuff (very big and does not realy belong here)
-%         h = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
-%         if (~isempty(h)),		ALLlineHand = setxor(ALLlineHand, h);     end
-%         h = findobj(ALLlineHand,'Tag','PoliticalBoundaries');
-%         if (~isempty(h)),		ALLlineHand = setxor(ALLlineHand, h);     end
-%         h = findobj(ALLlineHand,'Tag','Rivers');
-%         if (~isempty(h)),		ALLlineHand = setxor(ALLlineHand, h);     end
 
         % EARTHQUAKES
         h = findobj(ALLlineHand,'Tag','Earthquakes');       % Search first for earthquakes because ...
@@ -214,7 +222,7 @@ function writekml(handles,Z,fname)
 		end
 
         % Search for plain points as Markers (that is, line with no line - just symbols on vertices)
-        h = findobj(ALLlineHand,'Tag','Symbol');
+        h = [findobj(ALLlineHand,'Tag','Symbol') findobj(ALLlineHand,'Tag','Pointpolyline')];
         if (~isempty(h))
 			symbol.Marker = get(h,'Marker');
 			zz = get(h,'MarkerSize');
@@ -230,7 +238,7 @@ function writekml(handles,Z,fname)
 			load (['data' filesep 'mirone_icons.mat'],'star_logic','triangle_logic','losangle_logic',...
 				'pentagon_logic','hexagon_logic','circle_logic');
 			fprintf(fid,'\t%s\n','<Folder>');
-			for (k=1:numel(symbol.Marker))
+			for (k = 1:numel(symbol.Marker))
                 cmap = [0 0 0; symbol.FillColor{k}];
                 fname_img = [handles.path_tmp sprintf('ico_%d.png',k)];
                 switch symbol.Marker(k)
