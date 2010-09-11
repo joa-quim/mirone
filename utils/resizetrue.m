@@ -149,6 +149,9 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	rootUnits = get(0, 'Units');			set(0, 'Units', 'pixels');
 	screenSize = get(0, 'ScreenSize');      screenWidth = screenSize(3)-4;    screenHeight = screenSize(4);
 	
+	figPos = get(figHandle, 'Position');
+	minFigWidth = max(figPos(3), 581);		minFigHeight = 128;      % don't try to display a figure smaller than this.
+	
 	% For small images, compute the minimum side as 60% of largest of the screen dimensions
 	% Except in the case of croped images, where 512 is enough for the pushbuttons (if the croped
 	% image aspect ratio permits so)
@@ -218,14 +221,11 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	% assume figure decorations are ?? pixels (!!)
 	figBottomBorder = 30;       figTopBorder = 80;
 	figTopBorder = figTopBorder + tenSizeY;
-	
-	minFigWidth = 581;      minFigHeight = 128;      % don't try to display a figure smaller than this.
     
     sldT = 0;
     if (withSliders),       sldT = 7;      end      % Slider thickness
 
 	% What are the gutter sizes?
-	figPos = get(figHandle, 'Position');
 	gutterLeft = max(axPos(1) - 1, 0);
 	nonzeroGutters = (gutterLeft > 0);
 
