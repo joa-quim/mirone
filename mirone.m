@@ -278,7 +278,22 @@ function hObject = mirone_OpeningFcn(varargin)
 		setenv('DYLD_LIBRARY_PATH',[DYLD ':' cd])
 		setappdata(0,'have_DYLD',true)			% Signal to do this only once
 	end
-	if (IAmAMac),	set(hObject,'DockControls','off'),	end
+	if (IAmAMac)		% F. TMW just cannot make things work decently on Macs. Labels are bigger than reserved space
+		set(handles.File,  'Label', ['<HTML><FONT size="3">' get(handles.File, 'Label') '</Font></html>'])
+		set(handles.Image, 'Label', ['<HTML><FONT size="3">' get(handles.Image, 'Label') '</Font></html>'])
+		set(handles.Tools, 'Label', ['<HTML><FONT size="3">' get(handles.Tools, 'Label') '</Font></html>'])
+		set(handles.Draw,  'Label', ['<HTML><FONT size="3">' get(handles.Draw, 'Label') '</Font></html>'])
+		set(handles.Geography, 'Label', ['<HTML><FONT size="3">' get(handles.Geography, 'Label') '</Font></html>'])
+		set(handles.Plates,'Label', ['<HTML><FONT size="3">' get(handles.Plates, 'Label') '</Font></html>'])
+		set(handles.MagGrav,  'Label', ['<HTML><FONT size="3">' get(handles.MagGrav, 'Label') '</Font></html>'])
+		set(handles.Seismology, 'Label', ['<HTML><FONT size="3">' get(handles.Seismology, 'Label') '</Font></html>'])
+		set(handles.Tsunamis, 'Label', ['<HTML><FONT size="3">' get(handles.Tsunamis, 'Label') '</Font></html>'])
+		set(handles.GMT, 'Label', ['<HTML><FONT size="3">' get(handles.GMT, 'Label') '</Font></html>'])
+		set(handles.GridTools, 'Label', ['<HTML><FONT size="3">' get(handles.GridTools, 'Label') '</Font></html>'])
+		set(handles.Projections, 'Label', ['<HTML><FONT size="3">' get(handles.Projections, 'Label') '</Font></html>'])
+		set(handles.Help, 'Label', ['<HTML><FONT size="3">' get(handles.Help, 'Label') '</Font></html>'])
+		set(hObject,'DockControls','off')
+	end
 
 	%Find out which gmt version is beeing used. 
 	info = getappdata(0,'gmt_version');		% See if the info is already there.
@@ -334,7 +349,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'mola',		loadGRID(handles, fname, 'MOLA');
 		case 'mat',			FileOpenSession_CB(handles, fname)
 		case 'cpt',			color_palettes(fname);
-		case 'dat',			datasets_funs('Isochrons',handles,fname);
+		case 'dat',			load_xyz(handles,fname);
 		case 'shp',			DrawImportShape_CB(handles,fname);
 		case 'las',			read_las(handles, fname);
 		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles,fname);
@@ -1543,10 +1558,10 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 			end
 			tmp = {['+ ' 'RGB']; I; tmp1; tmp2; ''; 1:3; [size(I,1) size(I,2) 3]; 'Mirone'};
 			setappdata(handles.figure1,'BandList',tmp)
-			set(findobj(handles.figure1,'Label','Load Bands'),'Enable','on')
+			set(findobj(handles.figure1,'Label','Load Bands'),'Vis','on')
 		elseif (ndims(I) == 2)		% Remove it so it won't try to operate on indexed images
 			if (isappdata(handles.figure1,'BandList')),		rmappdata(handles.figure1,'BandList'),	end
-			set(findobj(handles.figure1,'Label','Load Bands'),'Enable','off')
+			set(findobj(handles.figure1,'Label','Load Bands'),'Vis','off')
 		end
 	end
 	if (isappdata(handles.axes1,'DatumProjInfo')),		rmappdata(handles.axes1,'DatumProjInfo'),	end
@@ -1609,7 +1624,7 @@ function ToolsMBplaningImport_CB(handles)
 	[FileName,PathName] = put_or_get_file(handles,{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)'},'Select input xy file name','get');
 	if isequal(FileName,0),		return,		end
 	
-	out = draw_funs([PathName FileName],'ImportLine');
+	out = load_xyz(handles,[PathName FileName]);
 	prompt	= {'Enter swath-width / water depth ratio'};
 	resp	= inputdlg(prompt,'Multi-beam planing input',[1 38],{'3'});	pause(0.01);
 	if isempty(resp),	return,		end
@@ -2134,7 +2149,8 @@ function DrawLine_CB(handles, opt)
 			str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 			[FileName,PathName] = put_or_get_file(handles,str1,'Select input GCP file name','get');
 			if (isequal(FileName,0)),		return,		end
-			xy = draw_funs([PathName FileName], 'ImportLine');
+			%xy = draw_funs([PathName FileName], 'ImportLine');
+			xy = load_xyz(handles,[PathName FileName]);
 			xp = xy(:,1);				yp = xy(:,2);
 			setappdata(handles.figure1,'GCPregImage',xy)
 			setappdata(handles.figure1,'fnameGCP',FileName)	% To know when GCPs must be removed from appdata (in show_image)
@@ -2266,16 +2282,6 @@ function DrawGeogCircle_CB(handles, opt)
 		draw_funs(h_circ,'SessionRestoreCircle')	% Give uicontext
 	end
 	zoom_state(handles,'maybe_on');
-
-% --------------------------------------------------------------------
-function DrawImportLine_CB(handles, opt)
-% OPT is a string with either "AsLine", "AsPoint", "AsArrow", "AsMaregraph", or "FaultTrace"
-	if (strcmp(opt,'AsArrow'))	datasets_funs('Isochrons', handles, [],'arrows'),	return,		end
-	if (handles.no_file),	return,		end
-	str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-	[FileName,PathName] = put_or_get_file(handles,str1,'Select input xy file name','get');
-	if isequal(FileName,0),		return,		end
-	draw_funs([PathName FileName],'ImportLine',opt)
 
 % --------------------------------------------------------------------
 function DrawImportText_CB(handles)
@@ -3549,9 +3555,11 @@ function TransferB_CB(handles, opt)
 		h = mirone;		
 		newHand = guidata(h);		newHand.last_dir = handles.last_dir;	guidata(h, newHand)
 		setappdata(h,'hFigParent',handles.figure1);		% Save the Parent fig handles in this new figure
-		set(newHand.ImageDrape,'Vis','on')				% Set the Drape option to 'on' in the New window
+		if (~handles.no_file)					% Set the Drape option to 'on' in the New window
+			set(newHand.ImageDrape,'Vis','on')
+		end
 		if (handles.validGrid)
-			set(newHand.RetroShade,'Vis','on')			% Set the Retro-Illum option to 'on' in the New window
+			set(newHand.RetroShade,'Vis','on')	% Set the Retro-Illum option to 'on' in the New window
 		end
 	
 	elseif (strcmp(opt,'scale'))				% Apply a scale factor
