@@ -1,7 +1,19 @@
 function varargout = classificationfig(varargin)
-%   Perform image classification, supervised an unsupervised, using kmeans
+%   Perform image classification, supervised an unsupervised, using k-means
+
+%	Copyright (c) 2004-2010 by J. Luis
 %
-% M-File changed by desGUIDE 
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
  
 	hObject = figure('Tag','figure1','Visible','off');
 	classificationfig_LayoutFcn(hObject);
@@ -83,7 +95,7 @@ function varargout = classificationfig(varargin)
 	if (nargout),   varargout{1} = handles.output;  end
 
 % ----------------------------------------------------------------------------
-function radio_supervised_Callback(hObject, eventdata, handles)
+function radio_supervised_Callback(hObject, handles)
 	if (get(hObject,'Val'))
 		set(handles.radio_unsupervised,'Val',0)
 		set(handles.edit_nClasses,'Enable','off')
@@ -94,7 +106,7 @@ function radio_supervised_Callback(hObject, eventdata, handles)
 	end
 
 % ----------------------------------------------------------------------------
-function radio_unsupervised_Callback(hObject, eventdata, handles)
+function radio_unsupervised_Callback(hObject, handles)
     if (get(hObject,'Val'))
         set(handles.radio_supervised,'Val',0)
         set(handles.edit_nClasses,'Enable','on')
@@ -105,7 +117,7 @@ function radio_unsupervised_Callback(hObject, eventdata, handles)
     end
 
 % ----------------------------------------------------------------------------
-function edit_nClasses_Callback(hObject, eventdata, handles)
+function edit_nClasses_Callback(hObject, handles)
     xx = str2double(get(hObject,'String'));
     if (isnan(xx)),     set(hObject,'String',3);    return;     end
     handles.nClasses = round(xx);
@@ -116,7 +128,7 @@ function edit_nClasses_Callback(hObject, eventdata, handles)
     guidata(handles.figure1,handles)
 
 % ----------------------------------------------------------------------------
-function toggle_clickDefine_Callback(hObject, eventdata, handles)
+function toggle_clickDefine_Callback(hObject, handles)
     figure(handles.hCallingFig)         % Bring the figure containing image forward
 
     h = findobj(handles.hCallingAxes,'Type','line','Tag','ClassifyPoly');
@@ -131,11 +143,11 @@ function toggle_clickDefine_Callback(hObject, eventdata, handles)
   
     cmenuHand = uicontextmenu('Parent',handles.hCallingFig);
     set(h, 'UIContextMenu', cmenuHand);
-    uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+    uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
     ui_edit_polygon(h)
 
 % -------------------------------------------------------------------------------------
-function push_compute_Callback(hObject, eventdata, handles)
+function push_compute_Callback(hObject, handles)
 %
 	if (handles.supervised)
 		h = findobj(handles.hCallingAxes,'Type','line','Tag','ClassifyPoly');
@@ -220,22 +232,22 @@ function push_compute_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1, handles)
     
 % -------------------------------------------------------------------------
-function radio_asColor_Callback(hObject, eventdata, handles)
+function radio_asColor_Callback(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set(handles.radio_asMask,'Val',0)
 
 % -------------------------------------------------------------------------
-function radio_asMask_Callback(hObject, eventdata, handles)
+function radio_asMask_Callback(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set(handles.radio_asColor,'Val',0)
 
 % -------------------------------------------------------------------------
-function listbox_classes_Callback(hObject, eventdata, handles)
+function listbox_classes_Callback(hObject, handles)
 	handles.selectedClasses = get(hObject,'Value') - 1;		% -1 because first class is 0
 	guidata(handles.figure1, handles)
 
 % -------------------------------------------------------------------------
-function push_getClass_Callback(hObject, eventdata, handles)
+function push_getClass_Callback(hObject, handles)
 	if (~ishandle(handles.hImg))
 		errordlg('You said bye bye to the original image and now ask to get someting out of it! Funny isn''t it?','Error'), return
 	end
@@ -267,18 +279,18 @@ function push_getClass_Callback(hObject, eventdata, handles)
 	end
 
 	if (handles.image_type == 2 || handles.image_type == 20)
-        h = mirone(img);
-        set(h,'Name','Class Mask')
-    else
-        tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
+		h = mirone(img);
+		set(h,'Name','Class Mask')
+	else
+		tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
 		if (islogical(img)),        tmp.name = 'Class Mask';
 		else						tmp.name = 'Class Image';
 		end
-        h = mirone(img,tmp);
-    end
+		mirone(img,tmp)
+	end
 
 % -------------------------------------------------------------------------------------
-function push_bgColor_Callback(hObject, eventdata, handles)
+function push_bgColor_Callback(hObject, handles)
     c = uisetcolor;
     if (isempty(c)),	return,		end
 	handles.bg_color = uint8(round(c*255));
@@ -286,7 +298,7 @@ function push_bgColor_Callback(hObject, eventdata, handles)
     guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function edit_nNeighbors_Callback(hObject, eventdata, handles)
+function edit_nNeighbors_Callback(hObject, handles)
     xx = str2double(get(hObject,'String'));
     if (isnan(xx)),		set(hObject,'String',3),	return,		end
     handles.nNeighbors = round(abs(xx));
@@ -320,7 +332,7 @@ function pixelx = localAxes2pix(dim, x, axesx)
         pixelx = axesx - xfirst + 1;        return;
 	end
 	xslope = (dim - 1) / (xlast - xfirst);
-	if ((xslope == 1) & (xfirst == 1))
+	if ((xslope == 1) && (xfirst == 1))
         pixelx = axesx;
 	else
         pixelx = xslope * (axesx - xfirst) + 1;
@@ -347,12 +359,12 @@ OldCentres = Centres;
 if (nargin < 4),   MaxIters = 100;  end
 boing = 0;
 
-[R,C]=size(Data);
+R = size(Data,1);
 
 DataSq = repmat(sum(Data.^2,2),1,k);	%sum squared data - save re-calculating repeatedly later
 %Do we need DataSq? It's constant, and we're minimsing things...
 
-hWait = waitbar(0,'Please wait ...','CreateCancelBtn','delete(gcf)');
+aguentabar(0,'title','Please wait ...','CreateCancelBtn')
 for i = 1:MaxIters
 	Dist = DataSq + repmat(sum((Centres.^2)',1),R,1) - 2.*(Data*(Centres'));   %i.e. d^2 = (x-c)^2 = x^2 + c^2 -2xc
 	[D,Centre] = min(Dist,[],2);		%label of nearest centre for each point
@@ -367,17 +379,17 @@ for i = 1:MaxIters
 	Change = sum(sum(abs(OldCentres-Centres)));
 	if (Change < 1e-8),		break,		end		%Have we converged yet?
 	OldCentres=Centres;
-	waitbar(i/MaxIters)
-	if (~ishandle(hWait)),        % The Cancel button was hit and the waitbar destroyed
-		boing = 1;  break
+	hWait = aguentabar(i/MaxIters);
+	if (isnan(hWait))		% The Cancel button was hit and the aguentabar destroyed
+		boing = 1;
+		break
 	end
 end
 clear D Centre DataSq
 
-if (~boing)             % Normal termination
-    delete(hWait)
+if (~boing)					% Normal termination
     [FinalDistance,Classes] = min(Dist,[],2);		%label points one last time
-else                    % Aborted
+else						% Aborted
     Classes = [];   Centres = [];   FinalDistance = [];
 end
 
@@ -410,7 +422,7 @@ set(h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@classificationfig_uicallback,h1,'edit_nClasses_Callback'},...
+'Call',{@classificationfig_uicallback,h1,'edit_nClasses_Callback'},...
 'Enable','off',...
 'Position',[164 158 31 21],...
 'String','3',...
@@ -419,7 +431,7 @@ uicontrol('Parent',h1,...
 'Tag','edit_nClasses');
 
 uicontrol('Parent',h1,...
-'Callback',{@classificationfig_uicallback,h1,'toggle_clickDefine_Callback'},...
+'Call',{@classificationfig_uicallback,h1,'toggle_clickDefine_Callback'},...
 'FontName','Helvetica',...
 'Position',[11 159 76 21],...
 'String','click-define',...
@@ -436,7 +448,7 @@ uicontrol('Parent',h1,...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Callback',{@classificationfig_uicallback,h1,'push_compute_Callback'},...
+'Call',{@classificationfig_uicallback,h1,'push_compute_Callback'},...
 'FontName','Helvetica',...
 'FontSize',10,...
 'Position',[113 126 80 21],...
@@ -445,7 +457,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@classificationfig_uicallback,h1,'edit_nNeighbors_Callback'},...
+'Call',{@classificationfig_uicallback,h1,'edit_nNeighbors_Callback'},...
 'Position',[62 128 31 21],...
 'String','3',...
 'Style','edit',...
@@ -460,7 +472,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,'Position',[102 154 109 3],'Style','frame','Tag','frame2');
 
 uicontrol('Parent',h1,...
-'Callback',{@classificationfig_uicallback,h1,'radio_supervised_Callback'},...
+'Call',{@classificationfig_uicallback,h1,'radio_supervised_Callback'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'Position',[10 186 85 16],...
@@ -471,7 +483,7 @@ uicontrol('Parent',h1,...
 'Tag','radio_supervised');
 
 uicontrol('Parent',h1,...
-'Callback',{@classificationfig_uicallback,h1,'radio_unsupervised_Callback'},...
+'Call',{@classificationfig_uicallback,h1,'radio_unsupervised_Callback'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'Position',[109 186 98 16],...
@@ -483,7 +495,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,'Position',[0 107 211 3],'Style','frame','Tag','frame_isolate');
 
 uicontrol('Parent',h1,...
-'Callback',{@classificationfig_uicallback,h1,'push_getClass_Callback'},...
+'Call',{@classificationfig_uicallback,h1,'push_getClass_Callback'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'Position',[66 2 140 21],...
@@ -493,7 +505,7 @@ uicontrol('Parent',h1,...
 'Tag','push_getClass');
 
 uicontrol('Parent',h1,...
-'Callback',{@classificationfig_uicallback,h1,'push_bgColor_Callback'},...
+'Call',{@classificationfig_uicallback,h1,'push_bgColor_Callback'},...
 'FontName','Helvetica',...
 'FontSize',8,...
 'Position',[156 69 50 21],...
@@ -501,7 +513,7 @@ uicontrol('Parent',h1,...
 'Tag','push_bgColor');
 
 uicontrol('Parent',h1,...
-'Callback',{@classificationfig_uicallback,h1,'radio_asColor_Callback'},...
+'Call',{@classificationfig_uicallback,h1,'radio_asColor_Callback'},...
 'Position',[80 47 110 15],...
 'String','Isolate as color',...
 'Style','radiobutton',...
@@ -510,7 +522,7 @@ uicontrol('Parent',h1,...
 'Tag','radio_asColor');
 
 uicontrol('Parent',h1,...
-'Callback',{@classificationfig_uicallback,h1,'radio_asMask_Callback'},...
+'Call',{@classificationfig_uicallback,h1,'radio_asMask_Callback'},...
 'Position',[80 28 110 15],...
 'String','Isolate as mask',...
 'Style','radiobutton',...
@@ -533,7 +545,7 @@ uicontrol('Parent',h1,'FontName','Helvetica',...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@classificationfig_uicallback,h1,'listbox_classes_Callback'},...
+'Call',{@classificationfig_uicallback,h1,'listbox_classes_Callback'},...
 'Position',[4 3 50 85],...
 'Style','listbox',...
 'TooltipString','Select one or more classes to islolate.',...
@@ -542,4 +554,4 @@ uicontrol('Parent',h1,...
 
 function classificationfig_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,guidata(h1));
