@@ -1,7 +1,7 @@
 function varargout = line_operations(varargin)
 % Wraper figure to perform vectorial operations on line/patch objects
-%
-%	Copyright (c) 2004-2008 by J. Luis
+
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@ function varargout = line_operations(varargin)
 % --------------------------------------------------------------------
 	
 	if (isempty(varargin)),		return,		end
+	if (~isfield(varargin{1}, 'head'))	return,		end		% Call from an empty fig
 	
 	floating = false;
  
