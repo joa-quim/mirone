@@ -364,9 +364,9 @@ uimenu('Parent',hDR,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''spline'')','L
 uimenu('Parent',hDR,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''freehand'')','Label','Freehand draw');
 uimenu('Parent',hDR,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),[])','Label','Draw closed polygon');
 uimenu('Parent',hDR,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''EulerTrapezium'')','Label','Draw Euler trapezium');
-uimenu('Parent',hDR,'Call','mirone(''DrawImportLine_CB'',guidata(gcbo),''AsLine'')','Label','Import line','Sep','on');
-uimenu('Parent',hDR,'Call','mirone(''DrawImportLine_CB'',guidata(gcbo),''AsPoint'')','Label','Import points');
-uimenu('Parent',hDR,'Call','mirone(''DrawImportLine_CB'',guidata(gcbo),''AsArrow'')','Label','Import Arrow field');
+uimenu('Parent',hDR,'Call','load_xyz(guidata(gcbo), [], ''AsLine'')','Label','Import line','Sep','on');
+uimenu('Parent',hDR,'Call','load_xyz(guidata(gcbo), [], ''AsPoint'')','Label','Import points');
+uimenu('Parent',hDR,'Call','load_xyz(guidata(gcbo), [], ''AsArrow'')','Label','Import Arrow field');
 uimenu('Parent',hDR,'Call','mirone(''Transfer_CB'',guidata(gcbo),''scatter'')','Label','Import scaled symbols');
 uimenu('Parent',hDR,'Call','mirone(''DrawImportText_CB'',guidata(gcbo))','Label','Import text');
 uimenu('Parent',hDR,'Call','mirone(''DrawImportShape_CB'',guidata(gcbo))','Label','Import shape file');
@@ -504,7 +504,8 @@ uimenu('Parent',h,'Call','datasets_funs(''Rivers'',guidata(gcbo),''i'',''f'')','
 
 uimenu('Parent',hDS,'Call','earthquakes(gcf);','Label','Global seismicity','Sep','on');
 uimenu('Parent',hDS,'Call','datasets_funs(''Hotspots'',guidata(gcbo))','Label','Hotspot locations');
-uimenu('Parent',hDS,'Call','datasets_funs(''Isochrons'',guidata(gcbo))','Label','Magnetic isochrons');
+%uimenu('Parent',hDS,'Call','datasets_funs(''Isochrons'',guidata(gcbo))','Label','Magnetic isochrons');
+uimenu('Parent',hDS,'Call','load_xyz(guidata(gcbo), ''nikles'', ''Isochrons'')','Label','Magnetic isochrons');
 uimenu('Parent',hDS,'Call','datasets_funs(''Volcanoes'',guidata(gcbo))','Label','Volcanoes');
 uimenu('Parent',hDS,'Call','datasets_funs(''Meteorite'',guidata(gcbo))','Label','Meteorite impacts');
 uimenu('Parent',hDS,'Call','datasets_funs(''Hydrothermal'',guidata(gcbo))','Label','Hydrothermal sites');
@@ -530,7 +531,7 @@ uimenu('Parent',hDS,'Call','datasets_funs(''Isochrons'',guidata(gcbo),[])','Labe
 hGP = uimenu('Parent',H1,'Label','Geophysics','Tag','Geophysics');
 h = uimenu('Parent',hGP,'Label','Elastic deformation');
 uimenu('Parent',h,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''FaultTrace'')','Label','Draw Fault');
-uimenu('Parent',h,'Call','mirone(''DrawImportLine_CB'',guidata(gcbo),''FaultTrace'')','Label','Import Trace Fault');
+uimenu('Parent',h,'Call','load_xyz(guidata(gcbo), [], ''FaultTrace'')','Label','Import Trace Fault');
 uimenu('Parent',h,'Call','fault_models(guidata(gcbo))', 'Label','Import Model Slip','Sep', 'on');
 uimenu('Parent',hGP,'Call','ground_motion(guidata(gcbo))','Label','Ground motions');
 
@@ -541,7 +542,7 @@ uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo),''compute'')','Label','
 
 h = uimenu('Parent',hGP,'Label','Swan');
 uimenu('Parent',h,'Call','tsu_funs(''SwanCompute'',guidata(gcbo))','Label','Compute');
-uimenu('Parent',h,'Call','mirone(''DrawImportLine_CB'',guidata(gcbo),''AsMaregraph'')','Label','Import Stations','Sep','on');
+uimenu('Parent',h,'Call','load_xyz(guidata(gcbo), [], ''AsMaregraph'')','Label','Import Stations','Sep','on');
 uimenu('Parent',h,'Call','mirone(''GeophysicsSwanPlotStations_CB'',guidata(gcbo))','Label','Plot Stations');
 uimenu('Parent',h,'Call','tsu_funs(''SwanGridBorder'',guidata(gcbo))','Label','Stations on grid borders');
 
@@ -655,7 +656,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 6 Sep 2010'',''1.5.4b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 12 Sep 2010'',''1.5.4b'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
