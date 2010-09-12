@@ -234,9 +234,9 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 
 			indx = false;			% Default to no need for map clipping
+			do_patch = false;		% Default to line objct
 			difes = [numeric_data{i}(1,1)-numeric_data{i}(end,1) numeric_data{i}(1,2)-numeric_data{i}(end,2)];
 			if (any(abs(difes) > 1e-4))		% Not a closed polygon
-				is_closed = false;
 				if (handles.no_file)
 					tmpx = numeric_data{i}(:,1);	tmpy = numeric_data{i}(:,2);
 				else
@@ -245,7 +245,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				end
 			else
 				tmpx = numeric_data{i}(:,1);		tmpy = numeric_data{i}(:,2);
-				is_closed = true;
+				if (~orig_no_mseg)		do_patch = true;		end
 			end
 			if (isempty(tmpx)),     n_clear(i) = true;     continue,		end     % Store indexes for clearing vanished segments info
 			if ( numel(numeric_data{i}(1,:)) >= 3 )		% If we have a Z column
@@ -257,7 +257,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(lThick)),	lThick = handles.DefLineThick;	end		% IF not provided, use default
 			if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
 
-			if (~is_closed || got_arrow)				% Line plottings
+			if (~do_patch || got_arrow)				% Line plottings
 				% See if we need to wrap arround the earth roundness discontinuity. Using 0.5 degrees from border. 
 				if (handles.geog == 1 && ~do_project && (XMin < -179.5 || XMax > 179.5) )
 						[tmpy, tmpx] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax],'wrap');
@@ -271,7 +271,6 @@ function varargout = load_xyz(handles, opt, opt2)
 						case {'AsLine' 'Isochrons'}
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,...
 									'Color',cor,'Tag',tag,'Userdata',n_isoc);
-							%draw_funs(hLine(i),'line_uicontext')		% Set lines's uicontextmenu
 						case 'AsPoint'
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1, 'LineStyle','none', 'Marker','o',...
 								'MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',4,'Tag','Pointpolyline');
@@ -316,7 +315,7 @@ function varargout = load_xyz(handles, opt, opt2)
 					end
 				end
 
-			else							% Closed line
+			else							% Closed line (parch)
 				Fcor = parseG(multi_segs_str{i});
 				if (isempty(Fcor)),      Fcor = 'none';   end
 				hPat = patch('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,'EdgeColor',cor,'FaceColor',Fcor);
