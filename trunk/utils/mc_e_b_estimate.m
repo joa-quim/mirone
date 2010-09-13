@@ -30,7 +30,7 @@ fs10 = 10;
 % this initiates a call back, where selt =  ca, and we go directly
 % to the calculations, skipping the input menu
 
-if (selt == 'in')
+if (strcmp(selt, 'in'))
     ud.nBstSample = 100;    ud.fMccorr = 0;     % Default values
     
     ud.nPar = figure('Name','Mc Input Parameter','NumberTitle','off', 'MenuBar','none','units','points', ...
@@ -50,7 +50,7 @@ if (selt == 'in')
         'String',num2str(ud.fMccorr),...
         'CallBack',{@edit_mcCorr,ud});
 
-    %% Buttons
+    % Buttons
     ud.bBst_button = uicontrol('Style','checkbox', 'string','Uncertianty by boostrapping',...
         'Units','normalized','Position',[.027 .468 .453 .087]);
 
@@ -162,7 +162,6 @@ if (selt == 'ca')           % build figure for plot
     end
 
     % calculate limits of line to plot for b value line
-    %%
     % For ZMAP
     magco = fMc;
     index_low = find(xt3 < magco+.05 & xt3 > magco-.05);
@@ -330,7 +329,6 @@ j2 = min(find(dat(:,2) == min(dat(:,2)) ));
 
 Mc = dat(j,1); 
 magco = Mc; 
-prf = 100 - dat(j2,2); 
 if (isempty(magco))
     magco = NaN;    prf = 100 -min(dat(:,2));
 end
@@ -348,13 +346,12 @@ IM = i;         %starting magnitude (hypothetical Mc)
 inc = 0.1;      %magnitude increment
 
 % log10(N)=A-B*M
-M=[IM:inc:15];
+M=IM:inc:15;
 N=10.^(log10(TN)-B*(M-IM));
 aval=(log10(TN)-B*(0-IM));
 N=round(N);
 
 new = repmat(NaN,TN,1);
-ct1=1;
 
 ct1  = min(find(N == 0)) - 1;
 if isempty(ct1) == 1 ; ct1 = length(N); end
@@ -362,8 +359,6 @@ if isempty(ct1) == 1 ; ct1 = length(N); end
 ctM=M(ct1);
 count=0;
 ct=0;
-swt=0;
-sc=0;
 for (I=IM:inc:ctM)
    ct=ct+1;
    if I~=ctM;
@@ -377,10 +372,10 @@ for (I=IM:inc:ctM)
    end
 end
 
-PM=M(1:ct);
-PN=log10(N(1:ct));
+PM = M(1:ct);
+%PN = log10(N(1:ct));
 N = N(1:ct); 
-le = length(events_mag(l));
+%le = length(events_mag(l));
 [bval,xt2] = histo_m('hist',events_mag(l),PM);
 b3 = fliplr(cumsum(fliplr(bval)));    % N for M >= (counted backwards)
 res = sum(abs(b3 - N))/sum(b3)*100; 
@@ -702,7 +697,7 @@ if (isempty(fMc)),   fMc = NaN;  end                     % Check fMc
 if (~isnan(fMc)),    fMc = fMc + fMcCorrection;  end     % Apply correction
 
 %--------------------------------------------------------------------------------
-function [fMc] = calc_McMaxCurvature(mCatalog);
+function [fMc] = calc_McMaxCurvature(mCatalog)
 % Determines the magnitude of completeness at the point of maximum
 %   curvature of the frequency magnitude distribution
 %
@@ -723,7 +718,6 @@ try         % Get maximum and minimum magnitudes of the catalog
     nNumberMagnitudes = round(fMaxMagnitude*10) + 1;       % Number of magnitudes units
   
     % Create a histogram over magnitudes
-    vHist = zeros(1, nNumberMagnitudes);
     [vHist, vMagBins] = hist(mCatalog, (fMinMagnitude:0.1:fMaxMagnitude));
   
     % Get the points with highest number of events -> maximum curvature  
@@ -893,7 +887,7 @@ if nargin == 4, nSample = 100; disp('Default Minimum number of events: 50, Boots
 if (nargin > 5),     disp('Too many arguments!'), return; end;
 
 % Initialize
-fMc = nan;  fBvalue = nan;  mBvalue = [];   mBvalue_bst = [];   mBave = []; mMcBA = [];
+mBvalue = [];   mBvalue_bst = [];   mBave = []; mMcBA = [];
 
 % Set fix values
 fMinMag = min(mCatalog);
@@ -903,53 +897,53 @@ fMaxMag = max(mCatalog);
 mMag_bstsamp = bootrsp(mCatalog,nSample);
 
 % Calculate b-with magnitude
-hWaitbar1 = waitbar(0,'Bootstrapping...','Name','Bootstaping');
-for (fMag=fMinMag:fBinning:fMaxMag)
-    for nSamp=1:nSample
-        mCatalog = mMag_bstsamp(:,nSamp);
-        % Select magnitude range
-        vSel = (mCatalog >= fMag-0.05);
-        mCat = mCatalog(vSel);
-        % Check for minimum number of events
-        if (length(mCat) >= nMinNumberEvents)
-            try
-                [fMeanMag, fBValue, fStdDev, fAValue] =  calc_bmemag(mCat, fBinning);
-                mBvalue_bst = [mBvalue_bst; fBValue fStdDev fAValue fMag];
-            catch
-                mBvalue_bst = [mBvalue_bst; nan nan nan fMag];
-            end;
-        else
-            mBvalue_bst = [mBvalue_bst; nan nan nan fMag];
-        end; % END of IF
-    end; % END of FOR nSamp
+hWaitbar1 = aguentabar('title','Bootstaping ...');
+for (fMag = fMinMag:fBinning:fMaxMag)
+	for (nSamp = 1:nSample)
+		mCatalog = mMag_bstsamp(:,nSamp);
+		% Select magnitude range
+		vSel = (mCatalog >= fMag-0.05);
+		mCat = mCatalog(vSel);
+		% Check for minimum number of events
+		if (length(mCat) >= nMinNumberEvents)
+			try
+				[fMeanMag, fBValue, fStdDev, fAValue] =  calc_bmemag(mCat, fBinning);
+				mBvalue_bst = [mBvalue_bst; fBValue fStdDev fAValue fMag];
+			catch
+				mBvalue_bst = [mBvalue_bst; nan nan nan fMag];
+			end;
+		else
+			mBvalue_bst = [mBvalue_bst; nan nan nan fMag];
+		end		% END of IF
+	end			% END of FOR nSamp
 
-    % Check for Nan and create output for [16 84]-percentile
-    vSel = isnan(mBvalue_bst(:,1));
-    mBvalue_bst_tmp = mBvalue_bst(~vSel,:);
-    if (~isempty(mBvalue_bst_tmp(:,1)) && length(mBvalue_bst_tmp(:,1)) > 1)
-        vSigma = prctile(mBvalue_bst_tmp(:,1),[16 84]);
-    elseif (~isempty(mBvalue_bst_tmp(:,1)) && length(mBvalue_bst_tmp(:,1)) == 1)
-        vSigma = prctile(mBvalue_bst_tmp(:,1),[16 84]);
-        vSigma = vSigma';
-    else
-        vSigma = [nan nan];
-    end;
-    % Calculate 2nd moment
-    if (~isempty(mBvalue_bst_tmp(:,1)))
-        fStdBst = calc_StdDev(mBvalue_bst_tmp(:,1));
-    else
-        fStdBst = nan;
-    end
-    
-    try             % mBvalue: b std_bolt(b) a Mc 16-perc 18-perc std(b_2nd moment)
-        mBvalue = [mBvalue; nanmean(mBvalue_bst) vSigma fStdBst];
-    catch
-        mBvalue = [mBvalue; nan nan nan nan nan nan nan];
-    end;
-    mBvalue_bst =[];
-    waitbar(fMag/fMaxMag)
+	% Check for Nan and create output for [16 84]-percentile
+	vSel = isnan(mBvalue_bst(:,1));
+	mBvalue_bst_tmp = mBvalue_bst(~vSel,:);
+	if (~isempty(mBvalue_bst_tmp(:,1)) && length(mBvalue_bst_tmp(:,1)) > 1)
+		vSigma = prctile(mBvalue_bst_tmp(:,1),[16 84]);
+	elseif (~isempty(mBvalue_bst_tmp(:,1)) && length(mBvalue_bst_tmp(:,1)) == 1)
+		vSigma = prctile(mBvalue_bst_tmp(:,1),[16 84]);
+		vSigma = vSigma';
+	else
+		vSigma = [nan nan];
+	end;
+	% Calculate 2nd moment
+	if (~isempty(mBvalue_bst_tmp(:,1)))
+		fStdBst = calc_StdDev(mBvalue_bst_tmp(:,1));
+	else
+		fStdBst = nan;
+	end
+
+	try             % mBvalue: b std_bolt(b) a Mc 16-perc 18-perc std(b_2nd moment)
+		mBvalue = [mBvalue; nanmean(mBvalue_bst) vSigma fStdBst];
+	catch
+		mBvalue = [mBvalue; nan nan nan nan nan nan nan];
+	end;
+	mBvalue_bst =[];
+	aguentabar(fMag/fMaxMag)
 end     % END of FOR fMag
-close(hWaitbar1)
+if (ishandle(hWaitbar1))	close(hWaitbar1),	end
 
 % Use bootstrap percentiles to decide for Mc 
 for (nStep = 1:(length(mBvalue(:,1))-nWindowSize))
