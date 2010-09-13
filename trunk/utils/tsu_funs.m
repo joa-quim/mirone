@@ -24,7 +24,7 @@ function TTT(handles,opt)
 		str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)'};
 		[FileName,PathName] = put_or_get_file(handles,str1,'Select input xy_time file name','get');
 		if isequal(FileName,0),		return,		end
-		out = draw_funs([PathName FileName],'ImportLine');
+		out = load_xyz(handles,[PathName FileName]);
 		if (size(out,2) ~= 3)
 			errordlg('Wrong choice. For using this option the file MUST have 3 columns (position and time).','Error'); return
 		end
@@ -52,19 +52,21 @@ function TTT(handles,opt)
 			tt = wave_travel_time(double(Z)+0,h_info,[xx yy],handles.geog);     % Adding 0 is important (pointers, mex, etc)
 			tit = 'Tsunami Travel Times';
 		else                    % Find ray tracing solution
-			h = waitbar(0,'Hold on your camels: computing solution');
-			xx = get(h_src,'XData');    yy = get(h_src,'YData');    tempo = get(h_src,'UserData');
+			aguentabar('title','Hold on your camels: computing solution')
+			xx = get(h_src,'XData');
+			yy = get(h_src,'YData');
+			tempo = get(h_src,'UserData');
 			if (numel(xx) ~= numel(tempo))				% Some(s) station(s) has been killed
 				[c,ia,ib] = setxor(xx(:),xy_t(:,1));	% Find which
 				tempo(ib) = [];							% Remove the corresponding times
 			end
 			tmp = 0;
-			for (i = 1:length(xx))
+			for (i = 1:numel(xx))
 				tt = wave_travel_time(double(Z)+0,h_info,[xx(i) yy(i)],handles.geog);     % 0 because of pointers, mex, etc
 				tmp = tmp + (tt - tempo(i)) .^2;
-				waitbar(i/length(xx))
+				aguentabar(i/numel(xx))
 			end
-			tt = sqrt(tmp/size(xy_t,1));	tit = 'Ray tracing solution';	close(h);	clear tmp;
+			tt = sqrt(tmp/size(xy_t,1));	tit = 'Ray tracing solution';	clear tmp;
 		end
 		head(5) = min(min(tt));    head(6) = max(max(tt));
 		tmp.X = X;		tmp.Y = Y;		tmp.head = head;	tmp.name = tit;
@@ -243,7 +245,6 @@ function SwanCompute(handles)
 					opt_s, opt_R, opt_J, opt_e);
         end
 	end
-	pause(0.01);        % Give time to waitbar window to die
 	if (isfield(out,'opt_m')),   do_movie(handles,tmovie,'swan');   end
 
 % --------------------------------------------------------------------
@@ -529,7 +530,6 @@ function Tsun2Compute(handles, opt)
 			feval(tsun2_hand,Z_bat, head_bat, extra_args2,opt_N,opt_G,opt_I,opt_F);
         end
 	end
-	pause(0.01);        % Give time to waitbar window to die
 
 	if (isfield(out,'opt_m')),   do_movie(handles,tmovie,'tsun2');   end
 
@@ -546,7 +546,7 @@ function do_movie(handles,tmovie,opt)
 	if (n_crop),    Z0 = double(Z0(n_crop+1:m-n_crop, n_crop+1:n-n_crop));
 	else            Z0 = double(Z0);
 	end
-	h = waitbar(0,'Wait again (computing movie)');
+	h = aguentabar('title','Wait again (computing movie)');
 
 	cmap = flipud(hot(256));
 	cmap(1,:) = [0 0 0.8];      cmap(2,:) = [0 0 0.8];
@@ -565,7 +565,8 @@ function do_movie(handles,tmovie,opt)
 		Z = tmovie(:,:,1);
 		tmovie(:,:,1) = [];      % Free this page (we don't need it anymore)
 		if (n_crop),    Z = double(Z(n_crop+1:m-n_crop, n_crop+1:n-n_crop));
-		else            Z = double(Z);    end
+		else            Z = double(Z);
+		end
 		z_max = max(max(Z));  z_min = min(min(Z));
 		head(5) = z_min;      head(6) = z_max;
 		R = grdgradient_m(Z,head,opt_E);
@@ -576,16 +577,18 @@ function do_movie(handles,tmovie,opt)
 
 		dif_z = abs(Z - Z0);    idx = (dif_z > 0.05);
 		if (n_crop),    img = repmat(uint8(0),m-2*n_crop,n-2*n_crop);
-		else            img = repmat(uint8(0),m,n);     end
+		else            img = repmat(uint8(0),m,n);
+		end
 		img(~idx) = uint8(round( (Z(~idx) / z_max)*254 + 1 ));
 		img(idx) = 1;
 		idx = (Z == 0);    img(idx) = 1;
 
 		img = ind2rgb8(img,cmap);   img = shading_mat(img,R);
 		M(i) = im2frame(img);
-		waitbar(i/k);               i = i + 1;
+		aguentabar(i/k);
+		i = i + 1;
 	end
-	close(h)
+	if (ishandle(h))	close(h),	end		% In case it was not close inside the loop
 
 	str1 = {'*.avi;*.AVI', 'avi files (*.avi,*.AVI)';'*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select movie name','put');
@@ -597,11 +600,11 @@ function do_movie(handles,tmovie,opt)
 % -----------------------------------------------------------------------------------------
 function res = check_IsRectangle(h)
 % Check if h is a handle to a rectangle.
-x = get(h,'XData');   y = get(h,'YData');
-if ~( (x(1) == x(end)) && (y(1) == y(end)) && length(x) == 5 && ...
-        (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
-    res = false;
-else
-    res = true;
-end
+	x = get(h,'XData');   y = get(h,'YData');
+	if ~( (x(1) == x(end)) && (y(1) == y(end)) && length(x) == 5 && ...
+			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
+		res = false;
+	else
+		res = true;
+	end
 	
