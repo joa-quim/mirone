@@ -5,7 +5,6 @@ function varargout = draw_funs(hand, varargin)
 %   HAND    contains the handle to the graphical object
 %   OPT     is a string for choosing what action to perform
 %   DATA    contains data currently used in the volcanoes, fogspots and some other option
-%   OUT     Is currently used only as an option to 'ImportLine'. Data is returned rather than ploted
 
 %	Copyright (c) 2004-2010 by J. Luis
 %
@@ -22,10 +21,9 @@ function varargout = draw_funs(hand, varargin)
 % --------------------------------------------------------------------
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
-if (numel(varargin) == 1)
-	opt = varargin{1};		% function name to evaluate (new) or keeword to select one (old form)
-else
-	opt = varargin{1};		data = varargin{2};
+opt = varargin{1};		% function name to evaluate (new) or keeword to select one (old form)
+if (numel(varargin) > 1)
+	data = varargin{2};
 	if (isempty(data))		% We need this for backward compatibility
 		varargin(2) = [];
 	end
@@ -39,8 +37,7 @@ switch opt
 	case 'MBbarUictx',				set_bar_uicontext(hand)
 	case 'CoastLineUictx',			setCoastLineUictx(hand)
 	case 'deleteObj',				deleteObj(hand);
-	case 'DrawCircleEulerPole'
-		draw_circleEulerPole(data(1),data(2));  
+	case 'DrawCircleEulerPole',		draw_circleEulerPole(data(1),data(2));  
 	case 'SessionRestoreCircle'			% Called by "FileOpenSession" or "DrawGeogCircle_CB"
 		set_circleGeo_uicontext(hand)
 	case 'SessionRestoreCircleCart'		% Called by "FileOpenSession" or "DrawGeogCircle_CB"
@@ -59,111 +56,7 @@ switch opt
 		uimenu(cmenuHand, 'Label', 'Rotate text', 'Call', @rotate_text);
 		uimenu(cmenuHand, 'Label', 'Export text', 'Call', @export_text);
 		set(hand, 'ButtonDownFcn', 'move_obj(1)')
-	case 'DrawSymbol'
-		set_symbol_uicontext(hand)
-    case 'ImportLine'				% read AND plot the line
-		fname = hand;
-		hFig = get(0,'CurrentFigure');
-		[bin,n_column,multi_seg,n_headers] = guess_file(fname);
-		% If msgbox exist we have to move it from behind the main window. So get it's handle
-		hMsgFig = get(0,'CurrentFigure');
-		if (hFig ~= hMsgFig),       figure(hMsgFig);   end   % If msgbox exists, bring it forward
-		% If error in reading file
-		if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
-			errordlg(['Error reading file ' fname],'Error');    return
-		end
-		if (bin ~= 0)   % NOT ASCII
-			errordlg('Sorry, reading binary files is not yet programed','Error');   return
-		end
-		if (n_column < 2)
-			errordlg('File error. Your file doesn''t have at least 2 columns','Error'); return
-		end
-		if (isempty(n_headers)),    n_headers = NaN;    end
-		if (multi_seg)
-			numeric_data = text_read(fname,NaN,n_headers,'>');
-		else
-			numeric_data = text_read(fname,NaN,n_headers);
-		end
-
-		% Project if we need
-		handles = guidata(hFig);
-		if (handles.is_projected && handles.defCoordsIn > 0)
-			try
-				if (iscell(numeric_data))
-					for i=1:numel(numeric_data)
-						numeric_data{i}  = geog2projected_pts(handles,numeric_data{i});
-					end
-					if (any( isinf(numeric_data{1}(1:min(20,size(numeric_data{1},1)))) ))
-						warndlg('Your data was probably already projected. Right-click on the axes frame and uncheck the ''Load files in Geogs'' ','Warning')
-					end
-				else
-					numeric_data = geog2projected_pts(handles,numeric_data);
-					if (any( isinf(numeric_data(1:min(20,size(numeric_data,1)))) ))
-						warndlg('Your data was probably already projected. Right-click on the axes frame and uncheck the ''Load files in Geogs'' ','Warning')
-					end
-				end
-            catch
-				errordlg(lasterr,'ERROR');    return
-			end
-		end
-
-		% If OUT is requested there is nothing left to be done here  
-		if (nargout),		[varargout{1:nargout}] = numeric_data;		return,		end
-
-		if (hFig ~= hMsgFig);       figure(hFig);   end     % gain access to the drawing figure
-		tol = 0.5;					% Used to get rid of points that are outside the map limits
-		if (iscell(numeric_data)),		n_segments = length(numeric_data);
-		else							n_segments = 1;
-		end
-		XYlim = getappdata(handles.axes1,'ThisImageLims');
-		xx = XYlim(1:2);				yy = XYlim(3:4);
-		lt = handles.DefLineThick;		lc = handles.DefLineColor;
-		min_max = [NaN NaN];
-		if (handles.validGrid),			min_max = handles.head(5:6);	end		% To be used in testing if we store eventual ZData
-		hold on
-		for (i = 1:n_segments)
-			tmpz = [];
-			if (~handles.validGrid),	tmpz = [];		end			% If not in a grid we don't care of Z's anyway
-			if (iscell(numeric_data))
-				tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
-				if (n_column >= 3),				tmpz = numeric_data{i}(:,3);	end
-			else
-				tmpx = numeric_data(:,1);       tmpy = numeric_data(:,2);
-				if (n_column >= 3),				tmpz = numeric_data(:,3);		end
-			end
-			ind = find(tmpx < xx(1)-tol | tmpx > xx(2)+tol);
-			tmpx(ind) = [];         tmpy(ind) = [];
-			if (~isempty(tmpz)),	tmpz(ind) = [];		end
-			ind = find(tmpy < yy(1)-tol | tmpy > yy(2)+tol);
-			tmpx(ind) = [];         tmpy(ind) = [];    
-			if (~isempty(tmpz)),	tmpz(ind) = [];		end
-			switch data
-				case 'AsLine'
-					% The following Tag is very important to tell from MB tracks, which have Tags = MBtrack#
-					lineHand = line('XData',tmpx,'YData',tmpy,'parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','polyline');
-					if (~isempty(tmpz) && (tmpz(1) >= min_max(1) && tmpz(1) <= min_max(2)))	% Crude test to keep only if inside Z range
-						set(lineHand,'UserData',tmpz');										% So that Fleder can drape this line
-					end	
-					set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
-				case 'AsPoint'
-					lineHand = plot(tmpx,tmpy,'ko','MarkerEdgeColor','k','MarkerFaceColor','k', ...
-						'MarkerSize',4,'Tag','Pointpolyline');
-					set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu (tag is very important)
-					if (~isempty(tmpz)),	set(lineHand,'UserData',tmpz'),		end	
-				case 'AsMaregraph'
-					lineHand = plot(tmpx,tmpy,'Marker','o','MarkerFaceColor','y',...
-						'MarkerEdgeColor','k','MarkerSize',10,'Tag','Maregraph');
-					set_symbol_uicontext(lineHand)          % Set marker's uicontextmenu					
-				case 'FaultTrace'
-					lineHand = plot(tmpx,tmpy,'Color',lc,'LineWidth',lt,'Tag','FaultTrace');
-					set_line_uicontext(lineHand,'line')     % Set lines's uicontextmenu
-					% Create empty patches that will contain the surface projection of the fault plane
-					hp = zeros(1, numel(tmpx)-1);
-					for (k=1:numel(tmpx)-1),	hp(k) = patch('XData', [], 'YData',[]);    end
-					setappdata(lineHand,'PatchHand',hp);
-			end
-		end
-		hold off
+	case 'DrawSymbol',			set_symbol_uicontext(hand)
 	case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation', 'Meteor', 'Hydro'}
 		set_symbol_uicontext(hand,data)
 	case 'PlateBoundPB',		set_PB_uicontext(hand,data)
@@ -186,7 +79,7 @@ switch opt
 		end
 end
 % Now short-cuted:
-% 'DrawVector', 'MagBarCode' 'Ctrl_v' 'DrawGreatCircle' 'DrawCartesianCircle'
+% 'DrawVector', 'MagBarCode' 'Ctrl_v' 'DrawGreatCircle' 'DrawCartesianCircle' 'loc_quiver'
 
 % -----------------------------------------------------------------------------------------
 function Ctrl_v(h)
@@ -527,6 +420,116 @@ function [x, y, was_closed] = join2lines(hLines)
 		x = [x1 x2(end:-1:2)];		y = [y1 y2(end:-1:2)];
 	end
 % -----------------------------------------------------------------------------------------
+
+% --------------------------------------------------------------------
+function hh = loc_quiver(struc,varargin)
+%QUIVER Quiver plot.
+%   QUIVER(Struc,X,Y,U,V) plots velocity vectors as arrows with components (u,v)
+%   at the points (x,y).  The matrices X,Y,U,V must all be the same size
+%   and contain corresponding position and velocity components (X and Y
+%   can also be vectors to specify a uniform grid).  QUIVER automatically
+%   scales the arrows to fit within the grid.
+%
+%   QUIVER(Struc,X,Y,U,V,S) automatically scales the arrows to fit within the grid and
+%   then stretches them by S. Use  S=0 to plot the arrows without the automatic scaling.
+%
+%	STRUC structure with this members
+%		hQuiver - handles of a previously created arrow field (Default is [] )
+%		spacingChanged - If different from zero previous arrows are deleted and reconstructed
+%				  with the new input in varargin, but the handles remain valid (Default == 0). 
+%		hAx - axes handle of the current figure. If empty a new fig is created
+%		color - Optional field containing the line color. If absent, plot black lines.
+%	To use the above default values, give and empty STRUC.
+%
+%   H = QUIVER(...) returns a vector of line handles.
+
+	% Arrow head parameters
+	alpha = 0.33;		% Size of arrow head relative to the length of the vector
+	beta = 0.33;		% Width of the base of the arrow head relative to the length
+	autoscale = 1;		% Autoscale if ~= 0 then scale by this.
+	subsample = 1;		% Plot one every other grid node vector
+
+	if (isempty(struc))
+		hQuiver = [];		spacingChanged = [];		hAx = gca;		lc = 'k';
+	else
+		hQuiver = struc.hQuiver;		spacingChanged = struc.spacingChanged;		hAx = struc.hAx;
+		try		lc = struc.color;
+		catch,	lc = 'k';
+		end
+	end
+
+	nin = nargin - 1;
+
+	% Check numeric input arguments
+	if (nin < 4)					% quiver(u,v) or quiver(u,v,s)
+		[msg,x,y,u,v] = xyzchk(varargin{1:2});
+	else
+		[msg,x,y,u,v] = xyzchk(varargin{1:4});
+	end
+	if ~isempty(msg), error(msg); end
+
+	if (nin == 5)		% quiver(x,y,u,v,s)
+		autoscale = varargin{nin};
+	elseif  (nin == 6)
+		autoscale = varargin{nin-1};
+		subsample = abs(round(varargin{nin}));
+	end
+
+	% Scalar expand u,v
+	if (numel(u) == 1),     u = u(ones(size(x))); end
+	if (numel(v) == 1),     v = v(ones(size(u))); end
+
+	if (subsample > 1)
+		x = x(1:subsample:end,1:subsample:end);		y = y(1:subsample:end,1:subsample:end);
+		u = u(1:subsample:end,1:subsample:end);		v = v(1:subsample:end,1:subsample:end);
+	end
+
+	if (autoscale)
+		% Base autoscale value on average spacing in the x and y directions.
+		% Estimate number of points in each direction as either the size of the
+		% input arrays or the effective square spacing if x and y are vectors.
+		if min(size(x))==1, n=sqrt(numel(x)); m=n; else [m,n]=size(x); end
+		delx = diff([min(x(:)) max(x(:))])/n;
+		dely = diff([min(y(:)) max(y(:))])/m;
+		del = delx.^2 + dely.^2;
+		if (del > 0)
+			len = (u.^2 + v.^2)/del;
+			maxlen = sqrt(max(len(:)));
+		else
+			maxlen = 0;
+		end
+		
+		if maxlen > 0
+			autoscale = autoscale*0.9 / maxlen;
+		else
+			autoscale = autoscale*0.9;
+		end
+		u = u*autoscale; v = v*autoscale;
+	end
+
+	% Make velocity vectors
+	x = x(:).';		y = y(:).';
+	u = u(:).';		v = v(:).';
+	uu = [x; x+u; repmat(NaN,size(u))];
+	vv = [y; y+v; repmat(NaN,size(u))];
+	% Make arrow heads
+	hu = [x+u-alpha*(u+beta*(v+eps)); x+u; x+u-alpha*(u-beta*(v+eps)); repmat(NaN,size(u))];
+	hv = [y+v-alpha*(v-beta*(u+eps)); y+v; y+v-alpha*(v+beta*(u+eps)); repmat(NaN,size(v))];
+
+	if (spacingChanged)
+		try		delete(hQuiver),	hQuiver = [];	end		% Remove previous arrow field
+	end
+
+	if ( isempty(hQuiver) || ~ishandle(hQuiver(1)) )		% No arrows yet.
+		h1 = line('XData',uu(:), 'YData',vv(:), 'Parent',hAx, 'Color',lc);
+		h2 = line('XData',hu(:), 'YData',hv(:), 'Parent',hAx, 'Color',lc);
+		if (nargout > 0),	hh = [h1;h2];	end
+	else
+		% We have the arrows and only want to change them
+		set(hQuiver(1),'XData',uu(:), 'YData',vv(:))
+		set(hQuiver(2),'XData',hu(:), 'YData',hv(:))
+		if (nargout > 0),	hh = [hQuiver(1); hQuiver(2)];	end
+	end
 
 % -----------------------------------------------------------------------------------------
 function set_country_uicontext(h)
