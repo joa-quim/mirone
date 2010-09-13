@@ -213,7 +213,7 @@ function out = msg_dlg(in,handles)
 % Cast a window with a pre-deffined message
 out = {0};    msg = [];     h = [];
 if (handles.no_file)
-	msg = 'You didn''t even load a file. What are you expecting then?';    out = {1};
+	msg = 'This option requires that you load a file first to serve as background map.';    out = {1};
 	msgbox(msg,'Error'),	return
 end
 switch in
