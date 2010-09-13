@@ -4,6 +4,9 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Multi-segs files accept -G, -W & -S GMT type options.
 %	It does also deal with the case of ploting the isochrons.dat
 %
+%	HANDLES	->	Should be the Mirone handles. However, when this function is used with output
+%				HANDLES can be just a simple structure with the field 'no_file' = false
+%
 %	Optional
 %		OPT can be either [] in which case the fiename will be asked here or contain the filename
 %		OPT2 can take several values 'arrows' to read a x,y,u,v file
@@ -45,12 +48,12 @@ function varargout = load_xyz(handles, opt, opt2)
 	% ---------------------------------------------------------------------
 
 	% ------------------- Parse inputs ------------------------------------
-	if (nargin >= 2 && isempty(opt))            % Read a ascii multi-segment with info file
+	if (nargin >= 2 && isempty(opt))            % Read a ascii file
 		[FileName, PathName] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
-	elseif (nargin >= 2)		% Read a ascii multi-segment file of which we already know the name (drag N'drop)
+	elseif (nargin >= 2)		% Read a ascii file of which we already know the name (drag N'drop)
 		fname = opt;
 		PathName = fileparts(fname);			% We need the 'PathName' below
 	end
@@ -142,9 +145,6 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 		XMin = XYlim(1);			XMax = XYlim(2);		% In case we need this names below for line trimming
 	end
-
-	min_max = [Inf -Inf];			% We will need something here when data file has 3 columns
-	if (handles.validGrid),			min_max = handles.head(5:6);	end		% To be used in testing if we store eventual ZData
 
 	% --------------------------- Main loop over data files ------------------------------
 	for (k = 1:numel(names))
@@ -289,15 +289,13 @@ function varargout = load_xyz(handles, opt, opt2)
 					end
 				else
 					struc_arrow.color = cor;
-					hQuiver = loc_quiver(struc_arrow, tmpx, tmpy, UV{i}(:,1), UV{i}(:,2));
+					hQuiver = draw_funs([], 'loc_quiver', struc_arrow, tmpx, tmpy, UV{i}(:,1), UV{i}(:,2));
 					set(hQuiver,'Tag','Seta','Userdata',n_isoc)
 					setappdata(hQuiver(1),'MyHead',hQuiver(2))		% Store the arrows heads handle
 					hLine(i) = hQuiver(1);
 				end
 
-				if (~isempty(tmpz) && (tmpz(1) >= min_max(1) && tmpz(1) <= min_max(2)))	% Crude test to keep only if inside Z range
-					set(hLine(i),'ZData',tmpz');									% So that Fleder can drape this line
-				end
+				if (~isempty(tmpz))		set(hLine(i),'ZData',tmpz');	end
 				if (~orig_no_mseg)
 					setappdata(hLine(i),'LineInfo',multi_segs_str{i})  % To work with the sessions and will likely replace old mechansim
 				end
@@ -319,8 +317,8 @@ function varargout = load_xyz(handles, opt, opt2)
 				Fcor = parseG(multi_segs_str{i});
 				if (isempty(Fcor)),      Fcor = 'none';   end
 				hPat = patch('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,'EdgeColor',cor,'FaceColor',Fcor);
-				if (~isempty(tmpz) && (tmpz(1) >= min_max(1) && tmpz(1) <= min_max(2)))	% Crude test to keep only if inside Z range
-					set(hPat,'UserData',tmpz');											% So that Fleder can drape this patch
+				if (~isempty(tmpz))
+					set(hPat,'UserData',tmpz');
 				end	
 				draw_funs(hPat,'line_uicontext')
 				n_clear(i) = true;			% Must delete this header info because it only applyies to lines, not patches
@@ -411,114 +409,4 @@ function [thick, cor, str2] = parseW(str)
 		end
 		% Notice that we cannot have -W100 represent a color because it would have been interpret above as a line thickness
 		if (any(isnan(cor))),   cor = [];   end
-	end
-
-% --------------------------------------------------------------------
-function hh = loc_quiver(struc,varargin)
-%QUIVER Quiver plot.
-%   QUIVER(Struc,X,Y,U,V) plots velocity vectors as arrows with components (u,v)
-%   at the points (x,y).  The matrices X,Y,U,V must all be the same size
-%   and contain corresponding position and velocity components (X and Y
-%   can also be vectors to specify a uniform grid).  QUIVER automatically
-%   scales the arrows to fit within the grid.
-%
-%   QUIVER(Struc,X,Y,U,V,S) automatically scales the arrows to fit within the grid and
-%   then stretches them by S. Use  S=0 to plot the arrows without the automatic scaling.
-%
-%	STRUC structure with this members
-%		hQuiver - handles of a previously created arrow field (Default is [] )
-%		spacingChanged - If different from zero previous arrows are deleted and reconstructed
-%				  with the new input in varargin, but the handles remain valid (Default == 0). 
-%		hAx - axes handle od current figure. If empty a new fig is created
-%		color - Optional field containing the line color. If absent, plot black lines.
-%	To use the above default values, give and empty STRUC.
-%
-%   H = QUIVER(...) returns a vector of line handles.
-
-	% Arrow head parameters
-	alpha = 0.33;		% Size of arrow head relative to the length of the vector
-	beta = 0.33;		% Width of the base of the arrow head relative to the length
-	autoscale = 1;		% Autoscale if ~= 0 then scale by this.
-	subsample = 1;		% Plot one every other grid node vector
-
-	if (isempty(struc))
-		hQuiver = [];		spacingChanged = [];		hAx = gca;		lc = 'k';
-	else
-		hQuiver = struc.hQuiver;		spacingChanged = struc.spacingChanged;		hAx = struc.hAx;
-		try		lc = struc.color;
-		catch,	lc = 'k';
-		end
-	end
-
-	nin = nargin - 1;
-
-	% Check numeric input arguments
-	if (nin < 4)					% quiver(u,v) or quiver(u,v,s)
-		[msg,x,y,u,v] = xyzchk(varargin{1:2});
-	else
-		[msg,x,y,u,v] = xyzchk(varargin{1:4});
-	end
-	if ~isempty(msg), error(msg); end
-
-	if (nin == 5)		% quiver(x,y,u,v,s)
-		autoscale = varargin{nin};
-	elseif  (nin == 6)
-		autoscale = varargin{nin-1};
-		subsample = abs(round(varargin{nin}));
-	end
-
-	% Scalar expand u,v
-	if (numel(u) == 1),     u = u(ones(size(x))); end
-	if (numel(v) == 1),     v = v(ones(size(u))); end
-
-	if (subsample > 1)
-		x = x(1:subsample:end,1:subsample:end);		y = y(1:subsample:end,1:subsample:end);
-		u = u(1:subsample:end,1:subsample:end);		v = v(1:subsample:end,1:subsample:end);
-	end
-
-	if (autoscale)
-		% Base autoscale value on average spacing in the x and y directions.
-		% Estimate number of points in each direction as either the size of the
-		% input arrays or the effective square spacing if x and y are vectors.
-		if min(size(x))==1, n=sqrt(numel(x)); m=n; else [m,n]=size(x); end
-		delx = diff([min(x(:)) max(x(:))])/n;
-		dely = diff([min(y(:)) max(y(:))])/m;
-		del = delx.^2 + dely.^2;
-		if (del > 0)
-			len = (u.^2 + v.^2)/del;
-			maxlen = sqrt(max(len(:)));
-		else
-			maxlen = 0;
-		end
-		
-		if maxlen > 0
-			autoscale = autoscale*0.9 / maxlen;
-		else
-			autoscale = autoscale*0.9;
-		end
-		u = u*autoscale; v = v*autoscale;
-	end
-
-	% Make velocity vectors
-	x = x(:).';		y = y(:).';
-	u = u(:).';		v = v(:).';
-	uu = [x; x+u; repmat(NaN,size(u))];
-	vv = [y; y+v; repmat(NaN,size(u))];
-	% Make arrow heads
-	hu = [x+u-alpha*(u+beta*(v+eps)); x+u; x+u-alpha*(u-beta*(v+eps)); repmat(NaN,size(u))];
-	hv = [y+v-alpha*(v-beta*(u+eps)); y+v; y+v-alpha*(v+beta*(u+eps)); repmat(NaN,size(v))];
-
-	if (spacingChanged)
-		try		delete(hQuiver),	hQuiver = [];	end		% Remove previous arrow field
-	end
-
-	if ( isempty(hQuiver) || ~ishandle(hQuiver(1)) )		% No arrows yet.
-		h1 = line('XData',uu(:), 'YData',vv(:), 'Parent',hAx, 'Color',lc);
-		h2 = line('XData',hu(:), 'YData',hv(:), 'Parent',hAx, 'Color',lc);
-		if (nargout > 0),	hh = [h1;h2];	end
-	else
-		% We have the arrows and only want to change them
-		set(hQuiver(1),'XData',uu(:), 'YData',vv(:))
-		set(hQuiver(2),'XData',hu(:), 'YData',hv(:))
-		if (nargout > 0),	hh = [hQuiver(1); hQuiver(2)];	end
 	end
