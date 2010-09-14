@@ -42,7 +42,7 @@ function varargout = euler_poles_selector(varargin)
 	handles.abb_mov = [];
 	handles.abb_fix = [];
 
-    set(handles.checkbox_Abs2Rel,'Visible','off')
+    set(handles.check_Abs2Rel,'Visible','off')
 
 	% Read the Nuvel-1A poles file as they are the default
 	fid = fopen([handles.path_data 'Nuvel1A_poles.dat'],'r');
@@ -145,8 +145,11 @@ function popup_PickPlate_CB(hObject, handles, qual)
 		return
 	end
 
-	set(handles.edit_PoleLon,'String',num2str(lon/D2R,'%3.2f'))
-	set(handles.edit_PoleLat,'String',num2str(lat/D2R,'%2.2f'))
+	if ~(handles.absolute_motion)		% They were computed and are still in radians
+		lon = lon / D2R;		lat = lat / D2R;
+	end
+	set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
+	set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
 	set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
 
 	guidata(handles.figure1, handles);
@@ -156,7 +159,7 @@ function radio_Nuvel1A_CB(hObject, handles, tipo)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
 	set([handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_DEOS2K handles.radio_REVEL],'Value',0)
-	set(handles.checkbox_Abs2Rel,'Visible','off')
+	set(handles.check_Abs2Rel,'Visible','off')
 
 	set(handles.popup_FixedPlate,'Enable','on')
 	handles.absolute_motion = 0;            % The Nuvel1A is a relative motion model
@@ -196,7 +199,7 @@ function radio_Nuvel1A_NNR_CB(hObject, handles)
 
 	D2R = pi/180;
 	set([handles.radio_Nuvel1A handles.radio_PBird handles.radio_DEOS2K handles.radio_REVEL handles.radio_MORVEL],'Val',0)
-	set(handles.checkbox_Abs2Rel,'Visible','on')
+	set(handles.check_Abs2Rel,'Visible','on')
 
 	if (handles.first_NNR)      % Load and read poles deffinition
         fid = fopen([handles.path_data 'Nuvel1A_NNR_poles.dat'],'r');
@@ -255,7 +258,7 @@ function radio_PBird_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
 	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_DEOS2K handles.radio_REVEL handles.radio_MORVEL],'Val',0)
-	set(handles.checkbox_Abs2Rel,'Visible','off')
+	set(handles.check_Abs2Rel,'Visible','off')
 
 	set(handles.popup_FixedPlate,'Enable','on')
 	handles.absolute_motion = 0;            % The PB is a relative motion model
@@ -292,7 +295,7 @@ function radio_AKIM2000_CB(hObject, handles)
 
 	D2R = pi/180;
 	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_REVEL handles.radio_MORVEL],'Val',0)
-	set(handles.checkbox_Abs2Rel,'Visible','on')
+	set(handles.check_Abs2Rel,'Visible','on')
 
 	if (handles.first_AKIM2000)      % Load and read poles deffinition
         fid = fopen([handles.path_data 'AKIM2000_poles.dat'],'r');
@@ -351,7 +354,7 @@ function radio_REVEL_CB(hObject, handles)
 
 	D2R = pi/180;
 	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_DEOS2K handles.radio_MORVEL],'Val',0)
-	set(handles.checkbox_Abs2Rel,'Visible','on')
+	set(handles.check_Abs2Rel,'Visible','on')
 
 	if (handles.first_REVEL)      % Load and read poles deffinition
         fid = fopen([handles.path_data 'REVEL_poles.dat'],'r');
@@ -412,7 +415,7 @@ function radio_DEOS2K_CB(hObject, handles)
 
 	D2R = pi/180;
 	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_REVEL handles.radio_MORVEL],'Val',0)
-	set(handles.checkbox_Abs2Rel,'Visible','on')
+	set(handles.check_Abs2Rel,'Visible','on')
 
 	if (handles.first_DEOS2K)      % Load and read poles deffinition
         fid = fopen([handles.path_data 'DEOS2K_poles.dat'],'r');
@@ -473,7 +476,7 @@ function push_OK_CB(hObject, handles, opt)
 	omega = str2double(get(handles.edit_PoleRate,'String'));
 	
 	if (isempty(lon) || isempty(lat) || isempty(omega))  % I any of these is empty insult
-        errordlg('OK what? And if you select something meaningful first?','Error')
+        errordlg('OK what? It would work better if you select something meaningful first.','Error')
         return
 	else            % Valid choice, so fill also the plate(s) abbreviation string
         plates = [handles.abb_fix '-' handles.abb_mov];
@@ -481,6 +484,11 @@ function push_OK_CB(hObject, handles, opt)
 	
 	model = getappdata(handles.figure1,'current_model');
 	out.lon = lon;      out.lat = lat;      out.omega = omega;      out.plates = plates;    out.model = model;
+	if (strcmp(get(handles.check_Abs2Rel,'Vis'), 'on') && ~get(handles.check_Abs2Rel,'Val') )
+		out.absolute = true;		% Inform if model is absolute or relative.
+	else
+		out.absolute = false;
+	end
 	handles.output = out;
 	guidata(handles.figure1,handles);
 	uiresume(handles.figure1);
@@ -565,7 +573,7 @@ function figure1_KeyPressFcn(hObject, evt)
 	end
 
 %--------------------------------------------------------------------------------------------------
-function checkbox_Abs2Rel_CB(hObject, handles)
+function check_Abs2Rel_CB(hObject, handles)
 % Use absolute models to compute relative relative motions
 if ~get(hObject,'Value')        % If we turn back to absolute motion
 	handles.abs2rel = 0;
@@ -773,12 +781,12 @@ uicontrol('Parent',h1, 'Position',[206 11 66 23],...
 'String','Cancel',...
 'Tag','push_Cancel');
 
-uicontrol('Parent',h1, 'Position',[210 156 64 15],...
-'Call',{@main_uiCB,h1,'checkbox_Abs2Rel_CB'},...
+uicontrol('Parent',h1, 'Position',[208 156 70 15],...
+'Call',{@main_uiCB,h1,'check_Abs2Rel_CB'},...
 'String','Relativize',...
 'Style','checkbox',...
 'TooltipString','Compute relative motion from asolute model',...
-'Tag','checkbox_Abs2Rel');
+'Tag','check_Abs2Rel');
 
 function main_uiCB(hObject, eventdata, h1, callback_name, opt)
 % This function is executed by the callback and than the handles is allways updated.
