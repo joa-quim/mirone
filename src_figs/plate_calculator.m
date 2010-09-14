@@ -152,8 +152,11 @@ function popup_PickPlate_CB(hObject, handles, qual)
 		return
 	end
 
-	set(handles.edit_PoleLon,'String',sprintf('%3.2f',lon/D2R))
-	set(handles.edit_PoleLat,'String',sprintf('%2.2f',lat/D2R))
+	if ~(handles.absolute_motion)		% They were computed and are still in radians
+		lon = lon / D2R;		lat = lat / D2R;
+	end
+	set(handles.edit_PoleLon,'String',sprintf('%3.2f',lon))
+	set(handles.edit_PoleLat,'String',sprintf('%2.2f',lat))
 	set(handles.edit_PoleRate,'String',sprintf('%1.4f',omega))
 	push_Calculate_CB(hObject,handles,'nada')
 	guidata(hObject, handles);
