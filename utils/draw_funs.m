@@ -172,6 +172,7 @@ function set_line_uicontext(h,opt)
 
 	IS_SEISPOLYGON = false;     % Seismicity polygons have special options
 	LINE_ISCLOSED = false;		IS_RECTANGLE = false;	IS_PATCH = false;
+	IS_ARROW = false;
 	% Check to see if we are dealing with a closed polyline
 	x = get(h,'XData');			y = get(h,'YData');
 	if (isempty(x) || isempty(y)),		return,		end		% Line is totally out of the figure
@@ -195,7 +196,8 @@ function set_line_uicontext(h,opt)
 	switch opt
 		case 'line'
 			label_save = 'Save line';   label_length = 'Line length(s)';   label_azim = 'Line azimuth(s)';
-			IS_LINE = true;		IS_MBTRACK = false;	
+			IS_LINE = true;		IS_MBTRACK = false;
+			if ( strcmp(get(h,'Tag'),'Seta') )		IS_ARROW = true;	end
 		case 'MBtrack'
 			label_save = 'Save track';   label_length = 'Track length';   label_azim = 'Track azimuth(s)';
 			IS_LINE = false;	IS_MBTRACK = true;
@@ -221,13 +223,13 @@ function set_line_uicontext(h,opt)
 	end
 	uimenu(cmenuHand, 'Label', label_save, 'Call', {@save_formated,h});
 	if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))	% Those are not to allowed to copy
-		if (~LINE_ISCLOSED)
+		if (~LINE_ISCLOSED && ~IS_ARROW)
 			uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
 		end
 		uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
 	end
-	if (~IS_SEISPOLYGON),	uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength);		end
-	if (IS_MBTRACK),		uimenu(cmenuHand, 'Label', 'All tracks length', 'Call', @show_AllTrackLength);	end
+	if (~IS_SEISPOLYGON&& ~IS_ARROW),	uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength);		end
+	if (IS_MBTRACK),			uimenu(cmenuHand, 'Label', 'All tracks length', 'Call', @show_AllTrackLength);	end
 	if (~IS_SEISPOLYGON && ~IS_RECTANGLE),	uimenu(cmenuHand, 'Label', label_azim, 'Call', @show_lineAzims);	end
 
 	if (LINE_ISCLOSED)
@@ -383,6 +385,7 @@ function join_lines(obj,evt,hFig)
 
 	hCurrLine = gco;
 	hLines = get_polygon(hFig,'multi');		% Get the line handles
+	if (isempty(hLines))	return,		end
 	hLines = setxor(hLines, hCurrLine);
 	if (numel(hLines) == 0),	return,		end		% Nothing to join
 	for (k = 1:numel(hLines))
@@ -992,7 +995,7 @@ function set_circleGeo_uicontext(h)
 	if ~strcmp(tag,'CircleEuler')       % "Just" a regular geographical circle
         uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi);
 	else
-        uimenu(cmenuHand, 'Label', 'Compute velocity', 'Sep','on', 'Call', {@compute_EulerVel,h});
+        uimenu(cmenuHand, 'Label', 'Compute velocity', 'Sep','on', 'Call', {@report_EulerVel,h});
 	end
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
@@ -1033,31 +1036,16 @@ function set_circleCart_uicontext(h)
 	setLineColor(item3,cb_color)
 
 % -----------------------------------------------------------------------------------------
-function compute_EulerVel(obj,eventdata,h)
-% alat & alon are the point coords. plat, plon & omega are the pole parameters
-	D2R = pi/180;
-	earth_rad = 6371e3;    % Earth radius in km
+function report_EulerVel(obj,eventdata,h)
+% Report the volocity and azimuth of a movement around an Euler Pole
+
 	s = get(h,'Userdata');
-	plat = s.clat*D2R;      plon = s.clon*D2R;      omega = s.omega;
-	alat = s.rlat*D2R;      alon = s.rlon*D2R;
-
-	x = cos(plat)*sin(plon)*sin(alat) - cos(alat)*sin(alon)*sin(plat);    % East vel
-	y = cos(alat)*cos(alon)*sin(plat) - cos(plat)*cos(plon)*sin(alat);    % North vel
-	z = cos(plat)*cos(alat)*sin(alon-plon);
-	vlon = -sin(alon)*x + cos(alon)*y;
-	vlat = -sin(alat)*cos(alon)*x-sin(alat)*sin(alon)*y + cos(alat)*z;
-	azim = 90 - atan2(vlat,vlon) / D2R;
-
-	if (azim < 0),		azim = azim + 360;		end		% Give allways the result in the 0-360 range
-
-	x = sin(alat)*sin(plat) + cos(alat)*cos(plat)*cos(plon-alon);
-	delta = acos(x);
-	vel = omega*D2R/1e+4 * earth_rad * sin(delta);      % to give velocity in cm/Ma
+	[vel, azim] = compute_EulerVel(s.rlat,s.rlon,s.clat,s.clon,s.omega);
 
 	msg = ['Pole name:  ', s.plates, sprintf('\n'), ...
 			'Pole lon = ', sprintf('%3.3f',s.clon), sprintf('\n'), ...
 			'Pole lat = ', sprintf('%2.3f',s.clat), sprintf('\n'), ...
-			'Pole rate = ', sprintf('%.3f',omega), sprintf('\n'), ...
+			'Pole rate = ', sprintf('%.3f',s.omega), sprintf('\n'), ...
 			'At point: ',sprintf('\n'), ...
 			'Lon = ', sprintf('%3.3f',s.rlon), sprintf('\n'), ...
 			'Lat = ', sprintf('%2.3f',s.rlat), sprintf('\n'), ...
@@ -1066,8 +1054,37 @@ function compute_EulerVel(obj,eventdata,h)
 	msgbox(msg,'Euler velocity')
 
 % -----------------------------------------------------------------------------------------
+function [vel, azim] = compute_EulerVel(alat,alon,plat,plon,omega, opt)
+% alat & alon are the point coords. plat, plon & omega are the pole parameters (All in degrees)
+% OPT, if given (anything will do), selects output as X,Y velocity components
+
+	D2R = pi/180;
+	earth_rad = 6371e3;    % Earth radius in km
+	plat = plat*D2R;      plon = plon*D2R;      omega = omega*D2R;
+	alat = alat*D2R;      alon = alon*D2R;
+
+	x = cos(plat).*sin(plon).*sin(alat) - cos(alat).*sin(alon).*sin(plat);    % East vel
+	y = cos(alat).*cos(alon).*sin(plat) - cos(plat).*cos(plon).*sin(alat);    % North vel
+	z = cos(plat).*cos(alat).*sin(alon-plon);
+	vlon = -sin(alon).*x + cos(alon).*y;
+	vlat = -sin(alat).*cos(alon).*x-sin(alat).*sin(alon).*y + cos(alat).*z;
+	azim = 90 - atan2(vlat,vlon) / D2R;
+
+	if (azim < 0),		azim = azim + 360;		end		% Give allways the result in the 0-360 range
+
+	x = sin(alat).*sin(plat) + cos(alat).*cos(plat).*cos(plon-alon);
+	delta = acos(x);
+	vel = omega/1e+4 * earth_rad .* sin(delta);			% to give velocity in cm/Ma
+	
+	if (nargin == 6)
+		azim = azim * D2R;			% Put it back in radians
+		vel = vel .* cos(azim);		% X
+		azim = vel .* sin(azim);	% Y
+	end
+
+% -----------------------------------------------------------------------------------------
 function set_vector_uicontext(h)
-	% h is a handle to a vector object
+% h is a handle to a vector object
 	h = h(1);
 	handles = guidata(h);	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
