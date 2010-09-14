@@ -41,7 +41,7 @@ function hObject = mirone_OpeningFcn(varargin)
 % PRAGMA SECTION (It's far far from clear when files must be declared here)
 %#function uigetfolder_standalone mapproject_m grdproject_m coordinate_system gmtmbgrid_m gmtedit
 %#function nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m grdtrack_m grdtrend_m 
-%#function grdutils scaleto8 waitbar bpass3d inv3d rtp3d syn3d igrf_m surface_m
+%#function grdutils scaleto8 bpass3d inv3d rtp3d syn3d igrf_m surface_m
 %#function range_change swan tsun2 mansinha_m deform_mansinha deform_okada dim_funs
 %----- These are for image
 %#function grayto8 grayto16 grayxform imfilter_mex imhistc imlincombc parityscan intlutc ordf
@@ -2149,7 +2149,6 @@ function DrawLine_CB(handles, opt)
 			str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 			[FileName,PathName] = put_or_get_file(handles,str1,'Select input GCP file name','get');
 			if (isequal(FileName,0)),		return,		end
-			%xy = draw_funs([PathName FileName], 'ImportLine');
 			xy = load_xyz(handles,[PathName FileName]);
 			xp = xy(:,1);				yp = xy(:,2);
 			setappdata(handles.figure1,'GCPregImage',xy)
@@ -2245,24 +2244,38 @@ function DrawEulerPoleCircle_CB(handles)
 	
 	out = euler_poles_selector(handles.home_dir);			% The output is a struct with fields: lon lat omega plates model
 	if isempty(out),	return,		end % User gave up
-	lon = out.lon;		lat = out.lat;
-	h_circ = uicirclegeo(lon,lat);
-	set(h_circ,'Tag','CircleEuler')		% This is used by draw_funs to allow velocity computations
-	if ~isempty(out)
-		s = get(h_circ,'Userdata');
-		s.omega = out.omega;
-		if ~isempty(out.plates)			% Just in case
-			if isempty(strmatch('absolute',out.plates))		% A relative plate model
-				s.plates = [out.plates '  -- Model = ' out.model];
-			else											% An absolute plate model
-				s.plates = [out.plates(end-1:end) ' -- Model = ' out.model ' (Absolute)'];
+	plon = out.lon;		plat = out.lat;
+	if (~out.absolute)
+		h_circ = uicirclegeo(plon,plat);
+		set(h_circ,'Tag','CircleEuler')		% This is used by draw_funs to allow velocity computations
+		if ~isempty(out)
+			s = get(h_circ,'Userdata');
+			s.omega = out.omega;
+			if ~isempty(out.plates)			% Just in case
+				if isempty(strmatch('absolute',out.plates))		% A relative plate model
+					s.plates = [out.plates '  -- Model = ' out.model];
+				else											% An absolute plate model
+					s.plates = [out.plates(end-1:end) ' -- Model = ' out.model ' (Absolute)'];
+				end
+			else
+				s.plates = 'I''m lost';
 			end
-		else
-			s.plates = 'I''m lost';
+			set(h_circ,'Userdata',s)
 		end
-		set(h_circ,'Userdata',s)
+		draw_funs(h_circ,'SessionRestoreCircle')
+	else
+		pt = ginput_pointer(1,'crosshair');
+		if (isempty(pt)),	return,		end
+		lon = pt(1);		lat = pt(2);
+		[Vx, Vy] = draw_funs([], 'compute_EulerVel', lat, lon, plat, plon, out.omega, 'Nikles');
+		struc_arrow = struct('spacingChanged',[], 'hQuiver', [], 'hAx', handles.axes1);
+		hQuiver = draw_funs([], 'loc_quiver', struc_arrow, lon, lat, Vx, Vy);
+		x = get(hQuiver,'XData');		y = get(hQuiver,'YData');
+		set(hQuiver(1),'XData',[x{1} x{2}], 'YData',[y{1} y{2}])	% Merge the header with the "trunk"
+		delete(hQuiver(2));		hQuiver(2) = [];
+		set(hQuiver,'Tag','Seta','Userdata',1)
+		draw_funs(hQuiver,'line_uicontext')
 	end
-	draw_funs(h_circ,'SessionRestoreCircle')
 	zoom_state(handles,'maybe_on');
 
 % --------------------------------------------------------------------
