@@ -328,7 +328,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 		% In case of Lines (and Isocs) uicontexts have not been set yet. Do it now.
 		ind = isnan(hLine);    hLine(ind) = [];      % Clear unused rows in hLine (due to over-dimensioning)
-		if ( ~isempty(hLine) && (strcmp(line_type, 'AsLine') || strcmp(line_type, 'Isochrons')) )
+		if ( ~isempty(hLine) && (strcmp(line_type, 'AsLine') || strcmp(line_type, 'Isochrons' || got_arrow)) )
 			if (orig_no_mseg)
 				draw_funs(hLine,'line_uicontext')		% Here hLine is actually only a scalar
 			else
