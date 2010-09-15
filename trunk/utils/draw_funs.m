@@ -442,6 +442,7 @@ function hh = loc_quiver(struc,varargin)
 %				  with the new input in varargin, but the handles remain valid (Default == 0). 
 %		hAx - axes handle of the current figure. If empty a new fig is created
 %		color - Optional field containing the line color. If absent, plot black lines.
+%		thick - Optional field containing the line thickness. If absent, thick = 1.
 %	To use the above default values, give and empty STRUC.
 %
 %   H = QUIVER(...) returns a vector of line handles.
@@ -453,11 +454,14 @@ function hh = loc_quiver(struc,varargin)
 	subsample = 1;		% Plot one every other grid node vector
 
 	if (isempty(struc))
-		hQuiver = [];		spacingChanged = [];		hAx = gca;		lc = 'k';
+		hQuiver = [];		spacingChanged = [];		hAx = gca;		lc = 'k';	lThick = 1;
 	else
 		hQuiver = struc.hQuiver;		spacingChanged = struc.spacingChanged;		hAx = struc.hAx;
-		try		lc = struc.color;
-		catch,	lc = 'k';
+		if (isfield(struc, 'color'))	lc = struc.color;
+		else							lc = 'k';
+		end
+		if (isfield(struc, 'thick'))	lThick = struc.thick;
+		else							lThick = 1;
 		end
 	end
 
@@ -524,8 +528,8 @@ function hh = loc_quiver(struc,varargin)
 	end
 
 	if ( isempty(hQuiver) || ~ishandle(hQuiver(1)) )		% No arrows yet.
-		h1 = line('XData',uu(:), 'YData',vv(:), 'Parent',hAx, 'Color',lc);
-		h2 = line('XData',hu(:), 'YData',hv(:), 'Parent',hAx, 'Color',lc);
+		h1 = line('XData',uu(:), 'YData',vv(:), 'Parent',hAx, 'Color',lc,'Linewidth',lThick);
+		h2 = line('XData',hu(:), 'YData',hv(:), 'Parent',hAx, 'Color',lc,'Linewidth',lThick);
 		if (nargout > 0),	hh = [h1;h2];	end
 	else
 		% We have the arrows and only want to change them
