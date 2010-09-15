@@ -37,7 +37,7 @@ end
 % --------------------------------------------------------------------
 function DatasetsHotspots(handles)
 % Read hotspot.dat which has 4 columns (lon lat name age)
-	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
+	if (aux_funs('msg_dlg',50,handles))			return,		end    % If no_file create one. Else test unknown proj
 	fid = fopen([handles.path_data 'hotspots.dat'],'r');
 	fgetl(fid);						% Jump the header line
 	todos = fread(fid,'*char');     fclose(fid);
@@ -62,7 +62,7 @@ function DatasetsHotspots(handles)
 % --------------------------------------------------------------------
 function DatasetsVolcanoes(handles)
 % Read volcanoes.dat which has 6 columns (lat lon name ...)
-	if (aux_funs('msg_dlg',5,handles)),		return,		end			% Test no_file || unknown proj
+	if (aux_funs('msg_dlg',50,handles)),		return,		end		% If no_file create one. Else test unknown proj
 	fid = fopen([handles.path_data 'volcanoes.dat'],'r');
 	todos = fread(fid,'*char');
 	[volc.y volc.x volc.name region volc.desc volc.dating] = strread(todos,'%f %f %s %s %s %s');
@@ -86,7 +86,7 @@ function DatasetsVolcanoes(handles)
 % --------------------------------------------------------------------
 function DatasetsHydrotermal(handles)
 % Read HydroVents.mat which has 7 columns (lat lon name diameter age exposed type)
-	if (aux_funs('msg_dlg',5,handles)),		return,		end			% Test no_file || unknown proj
+	if (aux_funs('msg_dlg',50,handles)),		return,		end			% If no_file create one. Else test unknown proj
 	load([handles.path_data 'HydroVents.mat']);
     [tmp, msg] = geog2projected_pts(handles,pos);	% If map in geogs, tmp is just a copy of input
 	if (~strncmp(msg,'0',1))        % Coords were projected
@@ -106,7 +106,7 @@ function DatasetsHydrotermal(handles)
 % --------------------------------------------------------------------
 function DatasetsITRF(handles)
 % Read itrf2008.dat which has 7 columns (lat lon name diameter age exposed type)
-	if (aux_funs('msg_dlg',5,handles)),		return,		end			% Test no_file || unknown proj
+	if (aux_funs('msg_dlg',50,handles)),		return,		end			% If no_file create one. Else test unknown proj
 	fid = fopen([handles.path_data 'itrf2008.dat'],'r');
 	todos = fread(fid,'*char');
 	[itrf.x itrf.y z.z itrf.Vx itrf.Vy itrf.Vz itrf.stName itrf.stCode z.lix] = strread(todos,'%f %f %f %f %f %f %s %s %s');
@@ -128,7 +128,7 @@ function DatasetsITRF(handles)
 % --------------------------------------------------------------------
 function DatasetsMeteor(handles)
 % Read meteoritos.dat which has 7 columns (lat lon name diameter age exposed type)
-	if (aux_funs('msg_dlg',5,handles)),		return,		end			% Test no_file || unknown proj
+	if (aux_funs('msg_dlg',50,handles)),		return,		end			% If no_file create one. Else test unknown proj
 	fid = fopen([handles.path_data 'meteoritos.dat'],'r');
 	todos = fread(fid,'*char');
 	[meteor.x meteor.y meteor.name meteor.diameter meteor.dating meteor.exposed meteor.btype] = strread(todos,'%f %f %s %s %s %s %s');
@@ -151,7 +151,7 @@ function DatasetsMeteor(handles)
 
 % --------------------------------------------------------------------
 function DatasetsMaregOnLine(handles)
-	if (aux_funs('msg_dlg',5,handles))		return,		end    % Test no_file || unknown proj
+	if (aux_funs('msg_dlg',50,handles))			return,		end    % If no_file create one. Else test unknown proj
 	fid = fopen([handles.path_data 'mareg_online.dat'],'r');
 	todos = fread(fid,'*char');
 	[mareg.x mareg.y mareg.name dumb mareg.codeSt dumb mareg.country] = strread(todos,'%f %f %s %s %s %s %s');
@@ -174,7 +174,7 @@ function DatasetsMaregOnLine(handles)
 
 % --------------------------------------------------------------------
 function DatasetsTides(handles)
-	if (aux_funs('msg_dlg',5,handles))		return,		end    % Test no_file || unknown proj
+	if (aux_funs('msg_dlg',50,handles))		return,		end    % If no_file create one. Else test unknown proj
 	load([handles.path_data 't_xtide.mat']);
 	[tmp, msg] = geog2projected_pts(handles,[xharm.longitude xharm.latitude]);     % If map in geogs, tmp is just a copy of input
 	if (~strncmp(msg,'0',1))        % Coords were projected
@@ -255,7 +255,7 @@ function [thick, cor, str2] = parseW(str)
 % --------------------------------------------------------------------
 function DatasetsPlateBound_PB_All(handles)
 % Read and plot the modified (by me) Peter Bird's Plate Boundaries (nice shit they are)
-	if (aux_funs('msg_dlg',5,handles)),		return,		end    % Test no_file || unknown proj
+	if (aux_funs('msg_dlg',50,handles)),		return,		end    % If no_file create one. Else test unknown proj
 	set(handles.figure1,'pointer','watch')
 	load([handles.path_data 'PB_boundaries.mat'])
 
@@ -567,7 +567,7 @@ function Rivers(handles, type, res)
 
 % --------------------------------------------------------------------
 function DatasetsCities(handles,opt)
-	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
+	if (aux_funs('msg_dlg',50,handles))		return,		end    % If no_file create one. Else test unknown proj
 	if strcmp(opt,'major')
         fid = fopen([handles.path_data 'wcity_major.dat'],'r');
         tag = 'City_major';
@@ -607,7 +607,7 @@ function DatasetsCities(handles,opt)
 
 % --------------------------------------------------------------------
 function DatasetsODP_DSDP(handles,opt)
-	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
+	if (aux_funs('msg_dlg',50,handles))		return,		end    % If no_file create one. Else test unknown proj
 	set(handles.figure1,'pointer','watch')
 	fid = fopen([handles.path_data 'DSDP_ODP.dat'],'r');
 	todos = fread(fid,'*char');
