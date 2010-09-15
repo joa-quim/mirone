@@ -520,36 +520,36 @@ end
 
 % -----------------------------------------------------------------------------------------
 function bdn_srtm30Tile(obj,eventdata,handles)
-tag = get(gcbo,'Tag');
-handles = guidata(handles.figHandle);       % We may need to have an updated version of handles
-xx = strmatch(tag, {handles.srtm30_files});   xz = [];
-if (isempty(xx))        % Try to see if we a gziped version
-    xz = strmatch(tag, {handles.srtm30_compfiles});
-end
-if (isempty(xz))        % Try yet to see if we a ziped version
-    xz = strmatch(tag, {handles.srtm30_compfiles});
-end
+	tag = get(gcbo,'Tag');
+	handles = guidata(handles.figHandle);       % We may need to have an updated version of handles
+	xx = strmatch(tag, handles.srtm30_files);   xz = [];
+	if (isempty(xx))        % Try to see if we have a gziped version
+		xz = strmatch(tag, handles.srtm30_compfiles);
+	end
+	if (isempty(xz))        % Try again to see if we have a ziped version
+		xz = strmatch(tag, handles.srtm30_compfiles);
+	end
 
-stat = get(gcbo,'UserData');
-if ~stat        % If not selected
-    if (isempty(xx) && isempty(xz))      % File not found
-        set(gcbo,'FaceColor','r','FaceAlpha',0.5,'UserData',1)
-        str = ['The file ' tag ' does not exist in the current directory'];
-        set(handles.warnHandle,'String',str,'Visible','on')
-        pause(1)
-        set(handles.warnHandle,'Visible','off')        
-        set(gcbo,'FaceColor','none','UserData',0)
-    else        % Found file
-        h_ones = findobj(handles.figure1,'Type','patch','UserData',1);
-        h = setxor(gcbo,h_ones);
-        if (~isempty(h))    % De-select the other selected patch because we don't do mosaic with SRTM30
-            set(h,'FaceColor','none','UserData',0)
-        end
-        set(gcbo,'FaceColor','g','FaceAlpha',0.7,'UserData',1)
-    end
-else
-    set(gcbo,'FaceColor','none','UserData',0)
-end
+	stat = get(gcbo,'UserData');
+	if ~stat        % If not selected
+		if (isempty(xx) && isempty(xz))      % File not found
+			set(gcbo,'FaceColor','r','FaceAlpha',0.5,'UserData',1)
+			str = ['The file ' tag ' does not exist in the current directory'];
+			set(handles.warnHandle,'String',str,'Visible','on')
+			pause(1)
+			set(handles.warnHandle,'Visible','off')        
+			set(gcbo,'FaceColor','none','UserData',0)
+		else        % Found file
+			h_ones = findobj(handles.figure1,'Type','patch','UserData',1);
+			h = setxor(gcbo,h_ones);
+			if (~isempty(h))    % De-select the other selected patch because we don't do mosaic with SRTM30
+				set(h,'FaceColor','none','UserData',0)
+			end
+			set(gcbo,'FaceColor','g','FaceAlpha',0.7,'UserData',1)
+		end
+	else
+		set(gcbo,'FaceColor','none','UserData',0)
+	end
 
 % -----------------------------------------------------------------------------------------
 function read_srtm30(handles)
@@ -562,11 +562,11 @@ if (isempty(fname))		return,		end			% No file selected
 name_hdr = write_ESRI_hdr([handles.files_dir filesep fname],'SRTM30');
 
 del_file = 0;
-ii = strmatch(fname, {handles.srtm30_files});
+ii = strmatch(fname, handles.srtm30_files);
 if ~isempty(ii)
     full_name = [handles.files_dir filesep fname];
 else                % Compressed file
-    ii = strmatch(fname, {handles.srtm30_compfiles});
+    ii = strmatch(fname, handles.srtm30_compfiles);
     if ~isempty(ii) % Got a compressed file. Uncompress it to the current dir
         full_name = [handles.files_dir filesep fname handles.srtm30_exts{ii}];
         full_name = decompress(full_name, 'warn');
@@ -605,40 +605,40 @@ function [files,comp_files,comp_ext] = get_fnames_ext(pato, ext)
 % COMP_EXT is a cell arrays of chars with the extensions corresponding to COMP_FILES.
 % An example is the search for files terminating in *.dat or *.dat.zip (EXT = {'dat' 'zip'})
 
-comp_files =[];     comp_ext = [];
-if (~(strcmp(pato(end),'\') || strcmp(pato(end),'/')))
-    pato(end+1) = filesep;
-else
-    pato(end) = filesep;
-end
-if (iscell(ext))
-    ext1 = ext{1};
-	ext2 = cell(1,numel(ext)-1);
-    for (k = 2:length(ext))
-        ext2{k-1} = ext{k};
-    end
-else
-    ext1 = ext;    ext2 = [];
-end
-
-tmp = dir([pato filesep '*.' ext1]);
-files = {tmp(:).name}';
-
-if (~isempty(ext2))         % That is, if we have one or more compression types (e.g. 'zip' 'gz')
-    comp_files = [];		comp_ext = [];
-	for (k=1:numel(ext2))  % Loop over compression types
-        tmp = dir([pato filesep '*.' ext1 '.' ext2{k}]);
-        tmp = {tmp(:).name}';
-        tmp1 = [];
-        for m=1:length(tmp) % Loop over compressed files
-            [PATH,FNAME,EXT] = fileparts(tmp{m});
-            tmp{m} = [PATH,FNAME];
-            tmp1{m} = EXT;  % Save File last extension as well
-        end
-        comp_files = [comp_files; tmp];
-        comp_ext = [comp_ext; tmp1'];
+	comp_files =[];     comp_ext = [];
+	if (~(strcmp(pato(end),'\') || strcmp(pato(end),'/')))
+		pato(end+1) = filesep;
+	else
+		pato(end) = filesep;
 	end
-end
+	if (iscell(ext))
+		ext1 = ext{1};
+		ext2 = cell(1,numel(ext)-1);
+		for (k = 2:length(ext))
+			ext2{k-1} = ext{k};
+		end
+	else
+		ext1 = ext;    ext2 = [];
+	end
+
+	tmp = dir([pato filesep '*.' ext1]);
+	files = {tmp(:).name}';
+
+	if (~isempty(ext2))         % That is, if we have one or more compression types (e.g. 'zip' 'gz')
+		comp_files = [];		comp_ext = [];
+		for (k=1:numel(ext2))  % Loop over compression types
+			tmp = dir([pato filesep '*.' ext1 '.' ext2{k}]);
+			tmp = {tmp(:).name}';
+			tmp1 = [];
+			for m=1:length(tmp) % Loop over compressed files
+				[PATH,FNAME,EXT] = fileparts(tmp{m});
+				tmp{m} = [PATH,FNAME];
+				tmp1{m} = EXT;  % Save File last extension as well
+			end
+			comp_files = [comp_files; tmp];
+			comp_ext = [comp_ext; tmp1'];
+		end
+	end
 
 % --- Creates and returns a handle to the GUI figure. 
 function srtm_tool_LayoutFcn(h1)
