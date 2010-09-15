@@ -211,35 +211,52 @@ function out = findFileType(fname)
 % --------------------------------------------------------------------
 function out = msg_dlg(in,handles)
 % Cast a window with a pre-deffined message
-out = {0};    msg = [];     h = [];
-if (handles.no_file)
-	msg = 'This option requires that you load a file first to serve as background map.';    out = {1};
-	msgbox(msg,'Error'),	return
-end
-switch in
-    case 1
-        if (~handles.geog)
-            msg = 'This operation is currently possible only for geographic type data';
-            out = {1};
-        end
-    case 14
-        if (~handles.validGrid)
-            msg = 'This operation is deffined only for images derived from float (eg DEMs) grids';
-            out = {1};
-        end
-    case 5
-        if (~handles.is_projected && ~handles.geog)
-            msg = 'This operation is only possible for geographic data OR when the Map Projection is known';
-            out = {1};            
-        end
-end
-if (~isempty(msg))
-	h = msgbox(msg,'Error');
-end
-axes(handles.axes1)     % This is for the GCP mode be able to plot on the Master Image
-if (~isempty(h))        % Bring the figure forward because it was hiden by the previous command
-	figure(h)
-end
+% Alternatively, if IN == 50 and handles.no_file = true, create a Global background image and return no error
+
+	out = {0};    msg = [];     h = [];		maybe_create = false;
+	if (in == 50)
+		maybe_create = true;
+		in = 5;					% So that the old case '5' below work as before
+	end
+	if (handles.no_file)
+		if (maybe_create)		% Create a Global bg image
+			img = gdalread([handles.home_dir filesep 'data' filesep 'etopo4.jpg'], '-U');
+			x_inc = 360 / (size(img,2)-1);			y_inc = 180 / (size(img,1)-1);
+			handles.geog = 1;			handles.image_type = 3;
+			handles.head = [-180 180 -90 90 0 255 0 x_inc y_inc];
+			mirone('show_image', handles,'Base image',[-180 180],[-90 90],img,0,'xy',1,1);	% Is also saves handles
+			drawnow
+			return
+		else
+			msg = 'This option requires that you load a file first to serve as background map.';    out = {1};
+			msgbox(msg,'Error')
+			return
+		end
+	end
+	switch in
+		case 1
+			if (~handles.geog)
+				msg = 'This operation is currently possible only for geographic type data';
+				out = {1};
+			end
+		case 14
+			if (~handles.validGrid)
+				msg = 'This operation is deffined only for images derived from float (eg DEMs) grids';
+				out = {1};
+			end
+		case 5
+			if (~handles.is_projected && ~handles.geog)
+				msg = 'This operation is only possible for geographic data OR when the Map Projection is known';
+				out = {1};            
+			end
+	end
+	if (~isempty(msg))
+		h = msgbox(msg,'Error');
+	end
+	axes(handles.axes1)     % This is for the GCP mode be able to plot on the Master Image
+	if (~isempty(h))        % Bring the figure forward because it was hiden by the previous command
+		figure(h)
+	end
 
 % ----------------------------------------------------------------------------------
 function handles = isProj(handles, opt)
