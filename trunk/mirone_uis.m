@@ -13,11 +13,12 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
-		%dumb=evalin('base','who');
 		h = which('mirone');
-		IamCompiled = 0;
+		figW = 661;
+		IamCompiled = false;
 	catch
-		IamCompiled = 1;
+		figW = 720;				% Compiled version needs to be longer (TMW doesn't know compatibility)
+		IamCompiled = true;
 	end
 
 	% Import icons and fetch home_dir if compiled and called by extension association
@@ -34,7 +35,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
         end
 	end
 
-pos = [520 758 581 21];     % R13 honest figure dimension
+pos = [520 758 figW 21];     % R13 honest figure dimension
 H1 = figure('PaperUnits','centimeters',...
 'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'ResizeFcn',@figure1_ResizeFcn,...
@@ -42,9 +43,8 @@ H1 = figure('PaperUnits','centimeters',...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'DoubleBuffer','on',...
 'IntegerHandle','off',...
-'InvertHardcopy',get(0,'defaultfigureInvertHardcopy'),...
 'MenuBar','none',...
-'Name','Mirone 1.5.4',...
+'Name','Mirone 2.0.0',...
 'NumberTitle','off',...
 'PaperPositionMode','auto',...
 'PaperSize',[20.98404194812 29.67743169791],...
@@ -71,7 +71,7 @@ uipushtool('parent',hTB,'Click','mirone(''TransferB_CB'',guidata(gcbo),''NewEmpt
 uipushtool('parent',hTB,'Click','mirone(''TransferB_CB'',guidata(gcbo),''guessType'')', ...
 	'Tag','ImportKnownTypes','cdata',Mfopen_ico,'Tooltip','Load recognized file types');
 hVG(1) = uipushtool('parent',hTB,'Click','mirone(''FileSaveGMTgrid_CB'',guidata(gcbo))', ...
-	'Tag','SaveGMTgrid','cdata',Mfsave_ico,'Tooltip','Save GMT grid');
+	'Tag','SaveGMTgrid','cdata',Mfsave_ico,'Tooltip','Save netCDF GMT grid');
 uipushtool('parent',hTB,'Click','mirone_pref(guidata(gcbo))', ...
 	'Tag','Preferences','cdata',tools_ico,'Tooltip','Preferences');
 uipushtool('parent',hTB,'Click','mirone(''Transfer_CB'',guidata(gcbo),''print'')', ...
@@ -92,8 +92,7 @@ uitoggletool('parent',hTB,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''zo
 	'Tag','Zoom','cdata',zoom_ico,'Tooltip','Zooming on/off','Sep','on');
 uitoggletool('parent',hTB,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''pan'')', 'Tag','Mao','cdata',mao,'Tooltip','Pan');
 uitoggletool('parent',hTB,'Click','draw_funs(gcbo,''deleteObj'')', 'Tag','Tesoura','cdata',cut_ico,'Tooltip','Delete objects');
-uipushtool('parent',hTB,'Click','color_palettes(guidata(gcbo))', ...
-	'Tag','ColorPal','cdata',color_ico,'Tooltip','Color Palettes');
+uipushtool('parent',hTB,'Click','color_palettes(guidata(gcbo))', 'Tag','ColorPal','cdata',color_ico,'Tooltip','Color Palettes');
 hVG(2) = uipushtool('parent',hTB,'Click','mirone(''ImageIllumModel_CB'',guidata(gcbo),''grdgradient_A'')', ...
 	'Tag','Shading','cdata',shade2_ico,'Tooltip','Shaded illumination','Sep','on');
 hVG(3) = uipushtool('parent',hTB,'Click','mirone(''ImageAnaglyph_CB'',guidata(gcbo))', ...
@@ -122,21 +121,18 @@ uimenu(itemFS, 'Label', '10 pt', 'Call', 'set(gca, ''FontSize'', 10)');
 uimenu(cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid', 'Separator','on');
 uimenu(cmenu_axes, 'Label', 'Row-Col mode on/off', 'Tag','RCMode', 'Separator','on');
 uimenu(cmenu_axes, 'Label', 'Pixel mode on/off', 'Tag','PixMode');
-% Those ones are manipulated in setAxesDefCoordIn()
+% --- Those ones are manipulated in setAxesDefCoordIn()
 uimenu(cmenu_axes, 'Label', 'Load in projected coords', 'Checked','on', 'Vis','off','Tag','hAxMenuLF');
 uimenu(cmenu_axes, 'Label', 'Display projected coords', 'Vis','off','Tag','hAxMenuDM');
 
+%% ------------------------ File ----------------------------------------
 hFL = uimenu('Parent',H1,'Label','File','Tag','File');
 uimenu('Parent',hFL,'Call','mirone_pref(guidata(gcbo))','Label','Preferences');
-uimenu('Parent',hFL,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''NewEmpty'')','Label','New empty window','Sep','on');
+uimenu('Parent',hFL,'Call','mirone(''TransferB_CB'',guidata(gcbo),''NewEmpty'')','Label','New empty window','Sep','on');
 
 h = uimenu('Parent',hFL,'Label','Background window');
-uimenu('Parent',h,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''BgMap'')','Label','Map');
-uimenu('Parent',h,'Callback','mirone(''FileNewBgFrame_CB'', guidata(gcbo))','Label','Frame');
-
-if (~IamCompiled)
-    uimenu('Parent',hFL,'Label','Open a 2D array .mat file','Call','InOut2WS(guidata(gcbo),''loadmat'')');
-end
+uimenu('Parent',h,'Call','mirone(''TransferB_CB'',guidata(gcbo),''BgMap'')','Label','Map');
+uimenu('Parent',h,'Call','mirone(''FileNewBgFrame_CB'', guidata(gcbo))','Label','Frame');
 
 h2 = uimenu('Parent',hFL,'Label','Open Grid/Image','Sep','on','Tag','OpenGI');
 uimenu('Parent',h2,'Call','mirone(''FileOpenNewImage_CB'',guidata(gcbo));','Label','Images -> Generic Formats');
@@ -169,8 +165,17 @@ uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM30'');',
 uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''USGS_DEM'');','Label','USGS DEM');
 uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SDTS'');','Label','USGS SDTS DEM');
 
-uimenu('Parent',hFL,'Callback','overview(guidata(gcbo))','Label','Open Overview Tool');
+uimenu('Parent',hFL,'Call','overview(guidata(gcbo))','Label','Open Overview Tool');
 uimenu('Parent',hFL,'Call','mirone(''FileOpenSession_CB'',guidata(gcbo));','Label','Open Session');
+
+h = uimenu('Parent',hFL,'Label','Open xy(z)','Sep','on');
+uimenu('Parent',h,'Call','load_xyz(guidata(gcbo), [], ''AsLine'')','Label','Import line');
+uimenu('Parent',h,'Call','load_xyz(guidata(gcbo), [], ''AsPoint'')','Label','Import points');
+uimenu('Parent',h,'Call','load_xyz(guidata(gcbo), [], ''AsArrow'')','Label','Import Arrow field');
+uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''scatter'')','Label','Import scaled symbols');
+uimenu('Parent',h,'Call','mirone(''DrawImportText_CB'',guidata(gcbo))','Label','Import text');
+uimenu('Parent',h,'Call','mirone(''DrawImportShape_CB'',guidata(gcbo))','Label','Import shape file');
+uimenu('Parent',h,'Call','read_las(guidata(gcbo))','Label','Import LAS file');
 
 % ----------------------- Save Images section
 h = uimenu('Parent',hFL,'Label','Save Image As...','Sep','on');
@@ -223,10 +228,11 @@ hVG(kv) = uimenu('Parent',h,'Call','mirone(''FileSaveFleder_CB'',guidata(gcbo),'
 uimenu('Parent',hFL,'Call','mirone(''FileSaveSession_CB'',guidata(gcbo))','Label','Save Session');
 
 if (~IamCompiled)
-    uimenu('Parent',hFL,'Label','Grid/Image -> Workspace','Sep','on','Call','InOut2WS(guidata(gcbo),''direct'')');
-    hVG(kv) = uimenu('Parent',hFL,'Label','Workspace -> Grid','Call','InOut2WS(guidata(gcbo),''GRID_inverse'')');	kv = kv + 1;
-    uimenu('Parent',hFL,'Label','Workspace -> Image','Call','InOut2WS(guidata(gcbo),''IMG_inverse'')');
-    uimenu('Parent',hFL,'Label','Clear Workspace','Call','InOut2WS(guidata(gcbo),''clear'')');
+	h = uimenu('Parent',hFL,'Label','Workspace','Sep','on');
+    uimenu('Parent',h,'Label','Grid/Image -> Workspace','Call','InOut2WS(guidata(gcbo),''direct'')');
+    hVG(kv) = uimenu('Parent',h,'Label','Workspace -> Grid','Call','InOut2WS(guidata(gcbo),''GRID_inverse'')');	kv = kv + 1;
+    uimenu('Parent',h,'Label','Workspace -> Image','Call','InOut2WS(guidata(gcbo),''IMG_inverse'')');
+    uimenu('Parent',h,'Label','Clear Workspace','Call','InOut2WS(guidata(gcbo),''clear'')');
 end
 
 h = uimenu('Parent',hFL,'Label','Recent Files','Tag','RecentFiles','Sep','on');
@@ -235,7 +241,7 @@ for (i=1:14),    uimenu('Parent',h,'Vis','off','Tag','RecentF');   end
 uimenu('Parent',hFL,'Call','print -dsetup','Label','Print Setup','Sep','on');
 uimenu('Parent',hFL,'Call','mirone(''Transfer_CB'',guidata(gcbo),''print'')','Label','Print...');
 
-% --------------------------- IMAGE MENU ------------------------------------
+%% --------------------------- IMAGE ------------------------------------
 hIM = uimenu('Parent',H1,'Label','Image','Tag','Image');
 
 h = uimenu('Parent',hIM,'Label','Color Palettes');
@@ -250,10 +256,7 @@ uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''flipUD'')','Lab
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''flipLR'')','Label','Flip Left-Right');
 
 uimenu('Parent',hIM,'Call','mirone(''ImageResetOrigImg_CB'',guidata(gcbo))','Label','Restore Original Image','Tag','ImRestore');
-uimenu('Parent',hIM,'Call','mirone(''ImageHistEqualize_CB'',guidata(gcbo),gcbo)','Label','Histogram Equalization (image)','Tag','ImgHist');
-
-hVG(kv) = uimenu('Parent',hIM,'Call','mirone(''ImageHistEqualizeGrid_CB'',guidata(gcbo),gcbo)',...
-'Label','Histogram Equalization (grid)','Tag','ImgHistGrd');		kv = kv + 1;
+uimenu('Parent',hIM,'Call','mirone(''ImageHistEqualize_CB'',guidata(gcbo),gcbo)','Label','Histogram Equalization','Tag','ImgHist');
 
 h = uimenu('Parent',hIM,'Label','Illuminate','Tag','Illuminate');	hVG(kv) = h;	kv = kv + 1;
 uimenu('Parent',h,'Call','mirone(''ImageIllumModel_CB'',guidata(gcbo),''grdgradient_A'')','Label','GMT grdgradient');
@@ -306,21 +309,24 @@ uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''STD'');','Label','STD (3x3
 uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''Min'');','Label','Min (3x3)');
 uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''Max'');','Label','Max (3x3)');
 uimenu('Parent',h,'Call','filter_funs(guidata(gcbo),''range'');','Label','Range (3x3)');
+uimenu('Parent',hIM,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''image'')','Label','Digital Filtering Tool');
 uimenu('Parent',hIM,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Allopts'')','Label','FFT Spectrum');
 
-uimenu('Parent',hIM,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''image'')','Label','Digital Filtering Tool','Sep','on');
-uimenu('Parent',hIM,'Call','image_enhance(gcf)','Label','Image Enhance (1 - Indexed and RGB)');
-uimenu('Parent',hIM,'Call','image_adjust(gcf)','Label', 'Image Enhance (2 - Indexed only)');
-uimenu('Parent',hIM,'Call','ice_m(gcf,''space'',''rgb'')','Label','Image Color Editor (Indexed and RGB)');
-uimenu('Parent',hIM,'Call','aux_funs(''togCheck'',gcbo)','Label','Activate Image-to-Image/Map GCP Tool','Tag','GCPtool','Sep','on');
-uimenu('Parent',hIM,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPpline'')','Label','Register Image (Draw GCPoints)');
-uimenu('Parent',hIM,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPimport'')','Label','Register Image (Import GCPoints)');
-uimenu('Parent',hIM,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPmemory'')',...
-	'Tag','GCPmemory','Label','Register Image (Plot in memory GCPs)','Visible','off');  % To GDAL imported file with GCPs
-uimenu('Parent',hIM,'Callback','bands_list(gcf)','Label','Load Bands','Sep','on');
-%uimenu('Parent',hIM,'Callback','grid_calculator(gcf)','Label','Bands Arithmetic');
+h = uimenu('Parent',hIM,'Label','Image Enhance','Sep','on');
+uimenu('Parent',h,'Call','image_enhance(gcf)','Label','1 - Indexed and RGB');
+uimenu('Parent',h,'Call','image_adjust(gcf)','Label', '2 - Indexed only');
+uimenu('Parent',h,'Call','ice_m(gcf,''space'',''rgb'')','Label','Image Color Editor (Indexed and RGB)');
 
-% --------------------------- TOOLS MENU ------------------------------------
+h = uimenu('Parent',hIM,'Label','Register Image','Sep','on');
+uimenu('Parent',h,'Call','aux_funs(''togCheck'',gcbo)','Label','Activate Image-to-Image/Map GCP Tool','Tag','GCPtool');
+uimenu('Parent',h,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPpline'')','Label','Draw GCPoints');
+uimenu('Parent',h,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPimport'')','Label','Import GCPoints');
+uimenu('Parent',h,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''GCPmemory'')',...
+	'Tag','GCPmemory','Label','Plot in memory GCPs','Vis','off');  % To GDAL imported file with GCPs
+uimenu('Parent',hIM,'Call','bands_list(gcf)','Label','Load Bands','Sep','on');
+%uimenu('Parent',hIM,'Call','grid_calculator(gcf)','Label','Bands Arithmetic');
+
+%% --------------------------- TOOLS ------------------------------------
 hTL = uimenu('Parent',H1,'Label','Tools','Tag','Tools');
 h = uimenu('Parent',hTL,'Label','Extract Profile');
 uimenu('Parent',h,'Call','mirone(''ExtractProfile_CB'',guidata(gcbo))','Label','Static');
@@ -336,10 +342,7 @@ h = uimenu('Parent',hTL,'Label','Multi-beam planing','Tag','MBplan','Sep','on');
 uimenu('Parent',h,'Call','mirone(''ToolsMBplaningStart_CB'',guidata(gcbo))','Label','Start track');
 uimenu('Parent',h,'Call','mirone(''ToolsMBplaningImport_CB'',guidata(gcbo))','Label','Import track');
 
-uimenu('Parent',hTL,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''from_ROI'')','Label','Region-Of-Interest','Sep','on');
 uimenu('Parent',hTL,'Call','ecran','Label','X,Y grapher','Sep','on');
-hVG(kv) = uimenu('Parent',hTL,'Call','gmtedit','Label','gmtedit');	kv = kv + 1;
-uimenu('Parent',hTL,'Call','rally_plater','Label','Rally Plater');
 uimenu('Parent',hTL,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
 uimenu('Parent',hTL,'Call','empilhador(guidata(gcbo))','Label','Empilhador');
 uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
@@ -357,25 +360,16 @@ uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Line Operat
 % uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
 % uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
 
-% --------------------------- DRAW MENU ------------------------------------
+%% --------------------------- DRAW ------------------------------------
 hDR = uimenu('Parent',H1,'Label','Draw','Tag','Draw');
 uimenu('Parent',hDR,'Call','mirone(''DrawLine_CB'',guidata(gcbo))','Label','Draw line','Tag','ctrLine', 'Accelerator','l');
 uimenu('Parent',hDR,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''spline'')','Label','Draw interpolating spline');
 uimenu('Parent',hDR,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''freehand'')','Label','Freehand draw');
 uimenu('Parent',hDR,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),[])','Label','Draw closed polygon');
-uimenu('Parent',hDR,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''EulerTrapezium'')','Label','Draw Euler trapezium');
-uimenu('Parent',hDR,'Call','load_xyz(guidata(gcbo), [], ''AsLine'')','Label','Import line','Sep','on');
-uimenu('Parent',hDR,'Call','load_xyz(guidata(gcbo), [], ''AsPoint'')','Label','Import points');
-uimenu('Parent',hDR,'Call','load_xyz(guidata(gcbo), [], ''AsArrow'')','Label','Import Arrow field');
-uimenu('Parent',hDR,'Call','mirone(''Transfer_CB'',guidata(gcbo),''scatter'')','Label','Import scaled symbols');
-uimenu('Parent',hDR,'Call','mirone(''DrawImportText_CB'',guidata(gcbo))','Label','Import text');
-uimenu('Parent',hDR,'Call','mirone(''DrawImportShape_CB'',guidata(gcbo))','Label','Import shape file');
-uimenu('Parent',hDR,'Call','read_las(guidata(gcbo))','Label','Import LAS file');
 
 h = uimenu('Parent',hDR,'Label','Draw circle','Sep','on');
 uimenu('Parent',h,'Call','mirone(''DrawGeogCircle_CB'',guidata(gcbo))','Label','Geographical circle');
 uimenu('Parent',h,'Call','mirone(''DrawGeogCircle_CB'',guidata(gcbo),''gcirc'')','Label','Great circle arc');
-uimenu('Parent',h,'Call','mirone(''DrawEulerPoleCircle_CB'',guidata(gcbo))','Label','Circle about an Euler pole');
 uimenu('Parent',h,'Call','mirone(''DrawGeogCircle_CB'',guidata(gcbo),''cartCirc'')','Label','Cartesian circle');
 uimenu('Parent',hDR,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''rectangle'')','Label','Draw rectangle');
 uimenu('Parent',hDR,'Call','mirone(''Draw_CB'',guidata(gcbo),''Vector'')','Label','Draw vector');
@@ -388,15 +382,15 @@ uimenu('Parent',h,'Call','mirone(''Draw_CB'',guidata(gcbo),''Symbol'',''p'')','L
 uimenu('Parent',h,'Call','mirone(''Draw_CB'',guidata(gcbo),''Symbol'',''x'')','Label','Cross');
 
 uimenu('Parent',hDR,'Call','mirone(''Draw_CB'',guidata(gcbo),''Text'')','Label','Insert text');
-hVG(kv) = uimenu('Parent',hDR,'Callback','mirone(''DrawContours_CB'',guidata(gcbo))',...
+hVG(kv) = uimenu('Parent',hDR,'Call','mirone(''DrawContours_CB'',guidata(gcbo))',...
 'Label','Contours (automatic)','Sep','on','Tag','Contours_a');		kv = kv + 1;
 
 hVG(kv) = uimenu('Parent',hDR,...
 'Call','mirone(''DrawContours_CB'',guidata(gcbo),''gui'')','Label','Contours','Tag','Contours_i');	kv = kv + 1;
 
-% --------------------------- DATASETS MENU ------------------------------------
-hDS = uimenu('Parent',H1,'Label','Datasets','Tag','Datasets');
-h = uimenu('Parent',hDS,'Label','Draw coastline','Tag','VoidDatasetsCoastLine');
+%% --------------------------- Geography ---------------------------------
+hDS = uimenu('Parent',H1,'Label','Geography','Tag','Geography');
+h = uimenu('Parent',hDS,'Label','Plot coastline','Tag','VoidDatasetsCoastLine');
 
 uimenu('Parent',h,'Call','datasets_funs(''CoastLines'',guidata(gcbo),''c'')','Label','Crude resolution','Tag','CoastLineCrude');
 uimenu('Parent',h,'Call','datasets_funs(''CoastLines'',guidata(gcbo),''l'')','Label','Low resolution','Tag','CoastLineLow');
@@ -404,7 +398,7 @@ uimenu('Parent',h,'Call','datasets_funs(''CoastLines'',guidata(gcbo),''i'')','La
 uimenu('Parent',h,'Call','datasets_funs(''CoastLines'',guidata(gcbo),''h'')','Label','High resolution','Tag','CoastLineHigh');
 uimenu('Parent',h,'Call','datasets_funs(''CoastLines'',guidata(gcbo),''f'')','Label','Full resolution','Tag','CoastLineFull');
 
-h2 = uimenu('Parent',hDS,'Label','Draw political boundaries','Tag','VoidDatasetsPB');
+h2 = uimenu('Parent',hDS,'Label','Plot political boundaries','Tag','VoidDatasetsPB');
 h = uimenu('Parent',h2,'Label','National boundaries');
 
 uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''1'',''c'')','Label','Crude resolution','Tag','PBCrude');
@@ -429,7 +423,7 @@ uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''a'',''i'')
 uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''a'',''h'')','Label','High resolution','Tag','PBHigh');
 uimenu('Parent',h,'Call','datasets_funs(''Political'',guidata(gcbo),''a'',''f'')','Label','Full resolution','Tag','PBFull');
 
-h2 = uimenu('Parent',hDS,'Label','Draw rivers','Tag','VoidDatasetsRivers');
+h2 = uimenu('Parent',hDS,'Label','Plot rivers','Tag','VoidDatasetsRivers');
 h = uimenu('Parent',h2,'Label','Permanent major rivers');
 
 uimenu('Parent',h,'Call','datasets_funs(''Rivers'',guidata(gcbo),''1'',''c'')','Label','Crude resolution','Tag','RiversCrude');
@@ -502,9 +496,8 @@ uimenu('Parent',h,'Call','datasets_funs(''Rivers'',guidata(gcbo),''i'',''i'')','
 uimenu('Parent',h,'Call','datasets_funs(''Rivers'',guidata(gcbo),''i'',''h'')','Label','High resolution','Tag','RiversHigh');
 uimenu('Parent',h,'Call','datasets_funs(''Rivers'',guidata(gcbo),''i'',''f'')','Label','Full resolution','Tag','RiversFull');
 
-uimenu('Parent',hDS,'Call','earthquakes(gcf);','Label','Global seismicity','Sep','on');
+uimenu('Parent',hDS,'Call','earthquakes(gcf);','Label','Global seismicity (1990-2009)','Sep','on');
 uimenu('Parent',hDS,'Call','datasets_funs(''Hotspots'',guidata(gcbo))','Label','Hotspot locations');
-%uimenu('Parent',hDS,'Call','datasets_funs(''Isochrons'',guidata(gcbo))','Label','Magnetic isochrons');
 uimenu('Parent',hDS,'Call','load_xyz(guidata(gcbo), ''nikles'', ''Isochrons'')','Label','Magnetic isochrons');
 uimenu('Parent',hDS,'Call','datasets_funs(''Volcanoes'',guidata(gcbo))','Label','Volcanoes');
 uimenu('Parent',hDS,'Call','datasets_funs(''Meteorite'',guidata(gcbo))','Label','Meteorite impacts');
@@ -523,57 +516,88 @@ uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''ODP'')','Label',
 uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''IODP'')','Label','IODP');
 uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''ALL'')','Label','DSDP+ODP+IODP');
 
-uimenu('Parent',hDS,'Call','magbarcode','Label','Mgnetic Bar Code');
 uimenu('Parent',hDS,'Call','atlas(guidata(gcbo))','Label','Atlas','Tag','Atlas','Sep','on');
-uimenu('Parent',hDS,'Call','datasets_funs(''Isochrons'',guidata(gcbo),[])','Label','External db','Sep','on');
 % uimenu('Parent',hDS,'Call','datasets_funs(''GTiles'', guidata(gcbo))','Label','GTiles Map','Sep','on');
 
-% --------------------------- GEOPHYSICS MENU ------------------------------------
-hGP = uimenu('Parent',H1,'Label','Geophysics','Tag','Geophysics');
-h = uimenu('Parent',hGP,'Label','Elastic deformation');
+%% --------------------------- Plates -------------------------------------
+hP = uimenu('Parent',H1,'Label','Plates','Tag','Plates');
+uimenu('Parent',hP,'Call','plate_calculator','Label','Plate calculater');
+uimenu('Parent',hP,'Call','euler_stuff(gcf)','Label','Euler rotations');
+uimenu('Parent',hP,'Call','compute_euler(gcf)','Label','Compute Euler pole');
+uimenu('Parent',hP,'Call','manual_pole_adjust(gcf)','Label','Manual adjust Euler pole');
+uimenu('Parent',hP,'Call','mirone(''DrawEulerPoleCircle_CB'',guidata(gcbo))','Label','Draw Circle about Euler pole');
+uimenu('Parent',hP,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''EulerTrapezium'')','Label','Draw Euler trapezium');
+%uimenu('Parent',hP,'Call','datasets_funs(''ITRF'',guidata(gcbo))','Label','Plot ITRF2008 velocities');
+uimenu('Parent',hP,'Call','datasets_funs(''Plate'',guidata(gcbo))','Label','Plot Plate boundaries');
+uimenu('Parent',hP,'Call','rally_plater','Label','Rally Plater','Sep','on');
+
+%% --------------------------- Mag/Grav -----------------------------------
+hMG = uimenu('Parent',H1,'Label','Mag/Grav','Tag','MagGrav');
+
+uimenu('Parent',hMG,'Call','igrf_options(guidata(gcbo))','Label','IGRF calculator');
+uimenu('Parent',hMG,'Call','parker_stuff(''parker_direct'',gcf)','Label','Parker Direct');
+uimenu('Parent',hMG,'Call','parker_stuff(''parker_inverse'',gcf)','Label','Parker Inversion');
+uimenu('Parent',hMG,'Call','parker_stuff(''redPole'',gcf)','Label','Reduction to the Pole');
+uimenu('Parent',hMG,'Call','microlev(gcf)','Label','Microleveling (anomaly grid)');
+%uimenu('Parent',hMG,'Call','gravfft(gcf)','Label','GravFFT');
+uimenu('Parent',hMG,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Allopts'')','Label','FFT tool');
+uimenu('Parent',hMG,'Call','telhometro(gcf)','Label',' Vine-Mathiews Carpet');
+uimenu('Parent',hMG,'Call','magbarcode','Label','Magnetic Bar Code','Sep','on');
+
+h = uimenu('Parent',hMG,'Label','Import *.gmt/*.nc files(s)','Sep','on');
+uimenu('Parent',h,'Call','mirone(''GeophysicsImportGmtFile_CB'',guidata(gcbo),''single'')','Label','Single *.gmt/*.nc file');
+uimenu('Parent',h,'Call','mirone(''GeophysicsImportGmtFile_CB'',guidata(gcbo),''list'')','Label','List of files');
+hVG(kv) = uimenu('Parent',hMG,'Call','gmtedit','Label','gmtedit');	kv = kv + 1;
+
+%% --------------------------- Seismology -------------------------------
+hS = uimenu('Parent',H1,'Label','Seismology','Tag','Seismology');
+
+uimenu('Parent',hS,'Call','earthquakes(gcf,''external'');','Label','Epicenters');
+uimenu('Parent',hS,'Call','focal_meca(gcf)','Label','Focal mechanisms');
+uimenu('Parent',hS,'Call','meca_studio','Label','Focal Mechanisms demo');
+uimenu('Parent',hS,'Call','earthquakes(gcf);','Label','Global seismicity (1990-2009)');
+uimenu('Parent',hS,'Call','ground_motion(guidata(gcbo))','Label','Ground motions');
+h = uimenu('Parent',hS,'Label','Elastic deformation','Sep','on');
 uimenu('Parent',h,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''FaultTrace'')','Label','Draw Fault');
 uimenu('Parent',h,'Call','load_xyz(guidata(gcbo), [], ''FaultTrace'')','Label','Import Trace Fault');
-uimenu('Parent',h,'Call','fault_models(guidata(gcbo))', 'Label','Import Model Slip','Sep', 'on');
-uimenu('Parent',hGP,'Call','ground_motion(guidata(gcbo))','Label','Ground motions');
+uimenu('Parent',h,'Call','fault_models(guidata(gcbo))', 'Label','Import Model Slip');
 
-h = uimenu('Parent',hGP,'Label','Tsunami Travel Time','Sep','on');
+%% --------------------------- Tsunamis -------------------------------
+hT = uimenu('Parent',H1,'Label','Tsunamis','Tag','Tsunamis');		hVG(kv) = hT;		kv = kv + 1;
+
+h = uimenu('Parent',hT,'Label','Tsunami Travel Time','Sep','on');
 uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo))','Label','Plot source');
 uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo),''load'')','Label','Import maregrphs and time');
 uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo),''compute'')','Label','Compute','Sep','on');
 
-h = uimenu('Parent',hGP,'Label','Swan');
+h = uimenu('Parent',hT,'Label','Swan');
 uimenu('Parent',h,'Call','tsu_funs(''SwanCompute'',guidata(gcbo))','Label','Compute');
 uimenu('Parent',h,'Call','load_xyz(guidata(gcbo), [], ''AsMaregraph'')','Label','Import Stations','Sep','on');
 uimenu('Parent',h,'Call','mirone(''GeophysicsSwanPlotStations_CB'',guidata(gcbo))','Label','Plot Stations');
 uimenu('Parent',h,'Call','tsu_funs(''SwanGridBorder'',guidata(gcbo))','Label','Stations on grid borders');
 
-h = uimenu('Parent',hGP,'Label','Tsun2');
+h = uimenu('Parent',hT,'Label','Tsun2');
 uimenu('Parent',h,'Call','tsu_funs(''Tsun2'',guidata(gcbo),''compute'')','Label','Compute');
 uimenu('Parent',h,'Call','tsu_funs(''Tsun2'',guidata(gcbo),''write_params'')', 'Label','Write params file');
 
-uimenu('Parent',hGP,'Call','igrf_options(guidata(gcbo))','Label','IGRF calculator','Sep','on');
-uimenu('Parent',hGP,'Call','parker_stuff(''parker_direct'',gcf)','Label','Parker Direct');
-uimenu('Parent',hGP,'Call','parker_stuff(''parker_inverse'',gcf)','Label','Parker Inversion');
-uimenu('Parent',hGP,'Call','parker_stuff(''redPole'',gcf)','Label','Reduction to the Pole');
-uimenu('Parent',hGP,'Call','microlev(gcf)','Label','Microleveling');
-%uimenu('Parent',hGP,'Call','gravfft(gcf)','Label','GravFFT');
-uimenu('Parent',hGP,'Call','plate_calculator','Label','Plate calculator','Sep','on');
-uimenu('Parent',hGP,'Call','geog_calculator(guidata(gcbo))','Label','Geographic calculator');
-uimenu('Parent',hGP,'Call','euler_stuff(gcf)','Label','Euler rotations','Sep','on');
-uimenu('Parent',hGP,'Call','compute_euler(gcf)','Label','Compute Euler pole');
-uimenu('Parent',hGP,'Call','manual_pole_adjust(gcf)','Label','Manual adjust Euler pole');
-uimenu('Parent',hGP,'Call','telhometro(gcf)','Label','Telhometro');
+uimenu('Parent',hT,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
 
-h = uimenu('Parent',hGP,'Label','Seismicity','Sep','on');
-uimenu('Parent',h,'Callback','earthquakes(gcf,''external'');','Label','Epicenters');
-uimenu('Parent',h,'Callback','focal_meca(gcf)','Label','Focal mechanisms');
-uimenu('Parent',hGP,'Call','meca_studio','Label','Focal Mechanisms demo');
+%% --------------------------- GMT ----------------------------------------
+hGMT = uimenu('Parent',H1,'Label','GMT','Tag','GMT');		hVG(kv) = hGMT;		kv = kv + 1;
 
-h = uimenu('Parent',hGP,'Label','Import *.gmt/*.nc files(s)','Sep','on');
-uimenu('Parent',h,'Call','mirone(''GeophysicsImportGmtFile_CB'',guidata(gcbo),''single'')','Label','Single *.gmt/*.nc file');
-uimenu('Parent',h,'Call','mirone(''GeophysicsImportGmtFile_CB'',guidata(gcbo),''list'')','Label','List of files');
+uimenu('Parent',hGMT,'Call','grdfilter_mir(guidata(gcbo))','Label','grdfilter');
+%uimenu('Parent',hGMT,'Call','regional_residual(guidata(gcbo))','Label','Regional-Residual');
+uimenu('Parent',hGMT,'Call','grdgradient_mir(guidata(gcbo))','Label','grdgradient');
+uimenu('Parent',hGMT,'Call','grdsample_mir(guidata(gcbo))','Label','grdsample');
+uimenu('Parent',hGMT,'Call','grdtrend_mir(guidata(gcbo))','Label','grdtrend');
+uimenu('Parent',hGMT,'Call','grdlandmask_win(guidata(gcbo))','Label','grdlandmask');
+uimenu('Parent',hGMT,'Call','geog_calculator(guidata(gcbo))','Label','grd|map project');
 
-% --------------------------- GRID TOOLS MENU ------------------------------------
+h = uimenu('Parent',hGMT,'Label','Interpolate');
+uimenu('Parent',h,'Call','griding_mir(gcf,''surface'');', 'Label','Minimum curvature');
+uimenu('Parent',h,'Call','griding_mir(gcf,''nearneighbor'');', 'Label','Near neighbor');
+
+%% --------------------------- GRID TOOLS --------------------------------
 hGT = uimenu('Parent',H1,'Label','Grid Tools','Tag','GridTools');		hVG(kv) = hGT;
 
 sep = 'off';
@@ -581,14 +605,10 @@ if (~IamCompiled)
     uimenu('Parent',hGT,'Call','grid_calculator(gcf)','Label','grid calculator');	sep = 'on';
 end
 
-uimenu('Parent',hGT,'Call','grdfilter_mir(guidata(gcbo))','Label','grdfilter','Sep',sep);
-%uimenu('Parent',hGT,'Call','regional_residual(guidata(gcbo))','Label','Regional-Residual');
-uimenu('Parent',hGT,'Call','grdgradient_mir(guidata(gcbo))','Label','grdgradient');
-uimenu('Parent',hGT,'Call','grdsample_mir(guidata(gcbo))','Label','grdsample');
-uimenu('Parent',hGT,'Call','grdtrend_mir(guidata(gcbo))','Label','grdtrend');
-uimenu('Parent',hGT,'Call','grdlandmask_win(guidata(gcbo))','Label','grdlandmask');
-uimenu('Parent',hGT,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','grdproject');
-uimenu('Parent',hGT,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''grid'')','Label','Digital filtering Tool','Sep','on');
+h = uimenu('Parent',hGT,'Label','Contours','Sep',sep);
+uimenu('Parent',h,'Call','mirone(''DrawContours_CB'',guidata(gcbo))','Label','Automatic','Tag','Contours_a');
+uimenu('Parent',h,'Call','mirone(''DrawContours_CB'',guidata(gcbo),''gui'')','Label','Contour Tool','Tag','Contours_i');
+
 uimenu('Parent',hGT,'Call','ml_clip(guidata(gcbo))','Label','Clip Grid');
 uimenu('Parent',hGT,'Call','mirone(''ImageCrop_CB'',guidata(gcbo),[],''CropaGrid'')','Label','Crop Grid');
 uimenu('Parent',hGT,'Call','mirone(''RotateTool_CB'',guidata(gcbo),''grid'')','Label','Rotate Grid');
@@ -596,13 +616,12 @@ uimenu('Parent',hGT,'Call','mirone(''GridToolsHistogram_CB'',guidata(gcbo))','La
 uimenu('Parent',hGT,'Call','mirone(''GridToolsGridMask_CB'',guidata(gcbo))','Label','Write Mask', 'Tag','haveNaNs');
 uimenu('Parent',hGT,'Call','inpaint_nans(guidata(gcbo))','Label','Inpaint NaNs', 'Tag','haveNaNs');
 uimenu('Parent',hGT,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-grd'')','Label','Morphology');
+uimenu('Parent',hGT,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''grid'')','Label','Digital filtering Tool');
 
 h = uimenu('Parent',hGT,'Label','Hammer grid','Sep','on');
 uimenu('Parent',h,'Call','escadeirar(guidata(gcbo))','Label','Rice-field Grid');
 uimenu('Parent',h,'Call','mirone(''TransferB_CB'',guidata(gcbo),''scale'')','Label','Rescale');
 uimenu('Parent',h,'Call','mirone(''GridToolsPadd2Const_CB'',guidata(gcbo))','Label','Padd to zero');
-
-uimenu('Parent',hGT,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Allopts'')','Label','FFT tool','Sep','on');
 
 h = uimenu('Parent',hGT,'Label','Spectrum');
 uimenu('Parent',h,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Amplitude'')','Label','Amplitude spectrum');
@@ -628,50 +647,49 @@ uimenu('Parent',h,'Call','mirone(''GridToolsDirDerive_CB'',guidata(gcbo),''secon
 uimenu('Parent',h2,'Call','mirone(''TransferB_CB'',guidata(gcbo),''Multiscale'')','Label','Multi-scale Analysis');
 
 h = uimenu('Parent',hGT,'Label','Interpolate','Sep','on');
-uimenu('Parent',h,'Callback','griding_mir(gcf,''surface'');', 'Label','Minimum curvature');
-uimenu('Parent',h,'Callback','griding_mir(gcf,''nearneighbor'');', 'Label','Near neighbor');
+uimenu('Parent',h,'Call','griding_mir(gcf,''surface'');', 'Label','Minimum curvature');
+uimenu('Parent',h,'Call','griding_mir(gcf,''nearneighbor'');', 'Label','Near neighbor');
 
 h2 = uimenu('Parent',hGT,'Label','SRTM tools','Sep','on');
 
 h = uimenu('Parent',h2,'Label','SRTM mosaic');
-uimenu('Parent',h,'Callback','srtm_tool','Label','SRTM 3sec');
-uimenu('Parent',h,'Callback','srtm_tool(''srtm1'')','Label','SRTM 1sec');
-uimenu('Parent',h,'Callback','srtm_tool(''srtm30'')','Label','SRTM30');
+uimenu('Parent',h,'Call','srtm_tool','Label','SRTM 3sec');
+uimenu('Parent',h,'Call','srtm_tool(''srtm1'')','Label','SRTM 1sec');
+uimenu('Parent',h,'Call','srtm_tool(''srtm30'')','Label','SRTM30');
 
 uimenu('Parent',h2,'Call','mirone(''GridToolsFindHoles_CB'',guidata(gcbo))','Label','Find holes');
 uimenu('Parent',h2,'Call','mirone(''GridToolsSaveAsSRTM_CB'',guidata(gcbo))','Label','Save as SRTM');
 
 %uimenu('Parent',hGT,'Call','mirone(''GridToolsMesher_CB'',guidata(gcbo))','Label','Mesher','Sep','on');
-
 uimenu('Parent',hGT,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''ppa'')',...
 'Label','Extract ridges/valleys','Sep','on');
 
-% --------------------------- PROJECTIONS MENU -----------------------------
+%% --------------------------- PROJECTIONS -----------------------------
 h = uimenu('Parent',H1,'Label','Projections','Tag','Projections');
 projection_menu(H1, h, home_dir);
 uimenu('Parent',h,'Label','-- REPROJECT --','HitTest','off','Sep','on');
 uimenu('Parent',h,'Call','gdal_project(guidata(gcbo))','Label','GDAL project');
 uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','GMT project');
 
-% --------------------------- HELP MENU ------------------------------------
+%% --------------------------- HELP ------------------------------------
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 Sep 2010'',''1.5.4'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 15 Sep 2010'',''2.0.0b'')','Label','About','Sep','on');
 
-% --------------------------- Build HANDLES and finish things here
+%% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
 	handles.version7 = version7;			% If == 1 => R14 or latter
 	handles.IamCompiled = IamCompiled;		% If == 1 than we know that we are dealing with a compiled (V3) version
 	if (version7),  set(H1,'Pos',[pos(1:3) 1]);    end     % Adjust for the > R13 bugginess
 	handles.RecentF = handles.RecentF(end:-1:1);  % Inverse creation order so that newest files show on top of the list
 	handles.noVGlist = hVG;					% List of ui handles that will not show when "not valid grid"
-	handles.mirVersion = [1 5 4];			% Something like [major minor revision]
+	handles.mirVersion = [2 0 0];			% Something like [major minor revision]
 	movegui(H1,'north');					% Reposition the window on screen
 	set(H1,'Visible','on');
 
 % --------------------------------------------------------------------------------------------------
-% We need this function also when the pixval_stsbar got stucked
+% We need this function also when the pixval_stsbar get stucked
 function refresca(obj,eventdata)
 	hFig = get(0,'CurrentFigure');
     set(hFig,'Pointer','arrow');
