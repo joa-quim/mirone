@@ -611,11 +611,14 @@ function DatasetsODP_DSDP(handles,opt)
 	set(handles.figure1,'pointer','watch')
 	fid = fopen([handles.path_data 'DSDP_ODP.dat'],'r');
 	todos = fread(fid,'*char');
-	[ODP.x ODP.y zz ODP.leg ODP.site ODP.z ODP.penetration] = strread(todos,'%f %f %s %s %s %s %s');
+	%[ODP.x ODP.y zz ODP.leg ODP.site ODP.z ODP.penetration] = strread(todos,'%f %f %s %s %s %s %s');
+	[ODP.x ODP.y ODP.leg ODP.site ODP.z ODP.penetration] = strread(todos,'%f %f %d %s %d %d');
 	fclose(fid);    clear todos zz
+	% Stupid memory wast with the bloody doubles paranoia
+	ODP.leg = int16(ODP.leg);		ODP.z = int16(ODP.z);		ODP.penetration = int16(ODP.penetration);
     [tmp, msg] = geog2projected_pts(handles,[ODP.x ODP.y]);   % If map in geogs, tmp is just a copy of input
-    if (~strncmp(msg,'0',1))        % Coords were projected
-        ODP.x = tmp(:,1);      ODP.y = tmp(:,2);
+    if (~strncmp(msg,'0',1))		% Coords were projected
+        ODP.x = tmp(:,1);		ODP.y = tmp(:,2);
     end
 
 	% Get rid of Sites that are outside the map limits
@@ -629,53 +632,70 @@ function DatasetsODP_DSDP(handles,opt)
         msgbox('Warning: There are no sites inside this area.','Warning');    return;
 	end
 	
-	% Find where in file is the separation of DSDP from ODP legs
-	ind = find(str2double(ODP.leg) >= 100);
-	if ~isempty(ind),   ind = ind(1);   end
-	if (strcmp(opt,'ODP'))      % If only ODP sites were asked remove DSDP from data structure
-        ODP.x(1:ind-1) = [];    ODP.y(1:ind-1) = [];    ODP.z(1:ind-1) = [];
-        ODP.leg(1:ind-1) = [];  ODP.site(1:ind-1) = []; ODP.penetration(1:ind-1) = [];
-	elseif (strcmp(opt,'DSDP'))
-        ODP.x(ind:end) = [];    ODP.y(ind:end) = [];    ODP.z(ind:end) = [];
-        ODP.leg(ind:end) = [];  ODP.site(ind:end) = []; ODP.penetration(ind:end) = [];
+	% Find where in file is the separation of DSDP, ODP & IODP legs
+	ind = [];
+	if (strcmp(opt,'DSDP'))		% If only ODP sites were asked remove DSDP from data structure
+		ind = (ODP.leg < 100);
+		cor = 'g';
+	elseif (strcmp(opt,'ODP'))
+		ind = (ODP.leg >= 100 & ODP.leg < 301);
+		cor = 'y';
+	elseif (strcmp(opt,'IODP'))
+		ind = (ODP.leg > 300);
+		cor = 'r';
+	else						% All of them
+		ind_t = find(ODP.leg < 100);
+		ind1 = [1 ind_t(end)];
+		ind_t = find(ODP.leg >= 100 & ODP.leg < 301);
+		ind2 = [ind_t(1) ind_t(end)];
+		ind_t = find(ODP.leg > 300);
+		ind3 = [ind_t(1) ind_t(end)];
 	end
 
-	n_sites = length(ODP.x);    h_sites = zeros(n_sites,1);
-	if (strcmp(opt,'DSDP'))
-        if (n_sites == 0)           % If there are no sites, give a warning and exit
-            set(handles.figure1,'pointer','arrow');
-            msgbox('Warning: There are no DSDP sites inside this area.','Warning');    return;
-        end
-        for i = 1:n_sites
-            h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','g',...
-                'MarkerEdgeColor','k','MarkerSize',8,'Tag','DSDP','Userdata',i);
-        end
-        draw_funs(h_sites,'ODP',ODP)
-	elseif (strcmp(opt,'ODP'))
-        if (n_sites == 0)           % If there are no sites, give a warning and exit
-            set(handles.figure1,'pointer','arrow');
-            msgbox('Warning: There are no ODP sites inside this area.','Warning');    return;
-        end
-        for i = 1:n_sites
-            h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','r',...
-                'MarkerEdgeColor','k','MarkerSize',8,'Tag','ODP','Userdata',i);
-        end
-        draw_funs(h_sites,'ODP',ODP)
-	else
-        h_sites = zeros(length(1:ind-1),1);
-        for i = 1:ind-1
-            h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','g',...
-                'MarkerEdgeColor','k','MarkerSize',8,'Tag','DSDP','Userdata',i);
-        end
-        draw_funs(h_sites,'ODP',ODP)
-        h_sites = zeros(length(ind:n_sites),1);
-        for (i = 1:length(ind:n_sites))
-            j = i + ind - 1;
-            h_sites(i) = line('XData',ODP.x(j),'YData',ODP.y(j),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','r',...
-                'MarkerEdgeColor','k','MarkerSize',8,'Tag','ODP','Userdata',j);
-        end
-        draw_funs(h_sites,'ODP',ODP)
+	if (~isempty(ind))				% Used when not ALL of them
+		ODP.x = ODP.x(ind);			ODP.y = ODP.y(ind);				ODP.z = ODP.z(ind);
+		ODP.leg = ODP.leg(ind);		ODP.site = ODP.site(ind);		ODP.penetration = ODP.penetration(ind);
 	end
+
+	n_sites = numel(ODP.x);			h_sites = zeros(n_sites,1);
+	if (n_sites == 0)				% If there are no sites, give a warning and exit
+		set(handles.figure1,'pointer','arrow');
+		msgbox(['Warning: There are no ' opt ' sites inside this area.'],'Warning'),		return
+	end
+	
+	if (strcmp(opt,'DSDP') || strcmp(opt,'ODP') || strcmp(opt,'IODP'))		% Plot only one of them
+        for (i = 1:n_sites)
+            h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor',cor,...
+                'MarkerEdgeColor','k','MarkerSize',7,'Tag',opt,'Userdata',i);
+        end
+        draw_funs(h_sites,'ODP',ODP)
+
+	else											% Plot them all
+		N1 = diff(ind1) + 1;			h_sites = zeros(N1,1);
+        for (i = 1:N1)
+            h_sites(i) = line('XData',ODP.x(i),'YData',ODP.y(i),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','g',...
+                'MarkerEdgeColor','k','MarkerSize',7,'Tag','DSDP','Userdata',i);
+        end
+        draw_funs(h_sites,'ODP',ODP)
+
+		N2 = diff(ind2) + 1;			h_sites = zeros(N2,1);
+        for (i = 1:N2)
+			j = i + N1;
+            h_sites(i) = line('XData',ODP.x(j),'YData',ODP.y(j),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','y',...
+                'MarkerEdgeColor','k','MarkerSize',7,'Tag','ODP','Userdata',j);
+        end
+        draw_funs(h_sites,'ODP',ODP)
+
+		N3 = diff(ind3) + 1;			h_sites = zeros(N3,1);
+        for (i = 1:N3)
+			j = i + N1+N2;
+            h_sites(i) = line('XData',ODP.x(j),'YData',ODP.y(j),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','r',...
+                'MarkerEdgeColor','k','MarkerSize',7,'Tag','IODP','Userdata',j);
+        end
+        draw_funs(h_sites,'ODP',ODP)
+
+	end
+
 	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
