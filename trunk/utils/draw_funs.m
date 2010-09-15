@@ -1840,6 +1840,7 @@ function set_symbol_uicontext(h,data)
 % symbols, points and of "volcano", "hotspot" & "ODP" class symbols. 
 if (isempty(h)),	return,		end
 tag = get(h,'Tag');
+if (isa(tag, 'cell'))	tag = tag{1};	end
 if (numel(h) == 1 && length(get(h,'Xdata')) > 1)
 	more_than_one = 1;		% Flags that h points to a multi-vertice object
 else
@@ -1870,11 +1871,8 @@ elseif strcmp(tag,'mar_online')	% DATA must be a structure containing name, code
 elseif strcmp(tag,'hydro')		% DATA must be a cell array with 5 cols contining description of each Vent
 	uimenu(cmenuHand, 'Label', 'Hydrotermal info', 'Call', {@hydro_info,h,data});
 	separator = 1;	
-elseif strcmp(tag,'ODP')		% DATA must be a structure with leg, site, z, & penetration fields
-	uimenu(cmenuHand, 'Label', 'ODP info', 'Call', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
-	separator = 1;
-elseif strcmp(tag,'DSDP')		% DATA must be a structure with leg, site, z, & penetration fields
-	uimenu(cmenuHand, 'Label', 'DSDP info', 'Call', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
+elseif ( strcmp(tag,'DSDP') || strcmp(tag,'ODP') || strcmp(tag,'IODP') )	% DATA is a struct with leg, site, z & penetration fields
+	uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
 	separator = 1;
 elseif strcmp(tag,'City_major') || strcmp(tag,'City_other')
 	this_not = 1;
@@ -1920,29 +1918,29 @@ if (~this_not)          % class symbols don't export
     end
 end
 if (seismicity_options)
-    uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,gco)', 'Sep','on');
-    uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Call', 'animate_seismicity(gcf,gco)');
-    uimenu(cmenuHand, 'Label', 'Draw polygon', 'Call', ...
-        'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''SeismicityPolygon'')');
-    itemHist = uimenu(cmenuHand, 'Label','Histograms');
-    uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
-    uimenu(itemHist, 'Label', 'Cumulative number', 'Call', 'histos_seis(gco,''CH'')');
-    uimenu(itemHist, 'Label', 'Cumulative moment', 'Call', 'histos_seis(gco,''CM'')');
-    uimenu(itemHist, 'Label', 'Magnitude', 'Call', 'histos_seis(gco,''MH'')');
-    uimenu(itemHist, 'Label', 'Time', 'Call', 'histos_seis(gco,''TH'')');
-    uimenu(itemHist, 'Label', 'Display in Table', 'Call', 'histos_seis(gcf,''HT'')','Sep','on');
-    %uimenu(itemHist, 'Label', 'Hour of day', 'Call', 'histos_seis(gco,''HM'')');
-    itemTime = uimenu(cmenuHand, 'Label','Time series');
-    uimenu(itemTime, 'Label', 'Time magnitude', 'Call', 'histos_seis(gco,''TM'')');
-    uimenu(itemTime, 'Label', 'Time depth', 'Call', 'histos_seis(gco,''TD'')');
-    uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Call', 'histos_seis(gcf,''BV'')');
-    uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gcf,''OL'')');
+	uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,gco)', 'Sep','on');
+	uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Call', 'animate_seismicity(gcf,gco)');
+	uimenu(cmenuHand, 'Label', 'Draw polygon', 'Call', ...
+		'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''SeismicityPolygon'')');
+	itemHist = uimenu(cmenuHand, 'Label','Histograms');
+	uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
+	uimenu(itemHist, 'Label', 'Cumulative number', 'Call', 'histos_seis(gco,''CH'')');
+	uimenu(itemHist, 'Label', 'Cumulative moment', 'Call', 'histos_seis(gco,''CM'')');
+	uimenu(itemHist, 'Label', 'Magnitude', 'Call', 'histos_seis(gco,''MH'')');
+	uimenu(itemHist, 'Label', 'Time', 'Call', 'histos_seis(gco,''TH'')');
+	uimenu(itemHist, 'Label', 'Display in Table', 'Call', 'histos_seis(gcf,''HT'')','Sep','on');
+	%uimenu(itemHist, 'Label', 'Hour of day', 'Call', 'histos_seis(gco,''HM'')');
+	itemTime = uimenu(cmenuHand, 'Label','Time series');
+	uimenu(itemTime, 'Label', 'Time magnitude', 'Call', 'histos_seis(gco,''TM'')');
+	uimenu(itemTime, 'Label', 'Time depth', 'Call', 'histos_seis(gco,''TD'')');
+	uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Call', 'histos_seis(gcf,''BV'')');
+	uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gcf,''OL'')');
 end
 
 if (tide_options)
-    uimenu(cmenuHand, 'Label', 'Plot tides', 'Call', {@tidesStuff,h,'plot'}, 'Sep','on');
-    uimenu(cmenuHand, 'Label', 'Station Info', 'Call', {@tidesStuff,h,'info'});
-    %uimenu(cmenuHand, 'Label', 'Tide Calendar', 'Call', {@tidesStuff,h,'calendar'});
+	uimenu(cmenuHand, 'Label', 'Plot tides', 'Call', {@tidesStuff,h,'plot'}, 'Sep','on');
+	uimenu(cmenuHand, 'Label', 'Station Info', 'Call', {@tidesStuff,h,'info'});
+	%uimenu(cmenuHand, 'Label', 'Tide Calendar', 'Call', {@tidesStuff,h,'calendar'});
 end
 
 itemSymb = uimenu(cmenuHand, 'Label', 'Symbol', 'Sep','on');
@@ -2339,8 +2337,8 @@ function volcano_info(obj,eventdata, h, name, desc, dating)
 function ODP_info(obj,eventdata,h,leg,site,z,penetration)
 	i = get(gco,'Userdata');
 	tag = get(h,'Tag');     tag = tag{1};
-	msgbox( sprintf([[tag ' Leg:    '] leg{i} '\n' [tag ' Site:    '] site{i} '\n' ...
-			'Depth:      ' z{i} '\n' 'Hole penetration: ' penetration{i}] ),'ODP info')
+	msgbox( sprintf([[tag ' Leg:    '] '%d\n' [tag ' Site:    '] site{i} '\n' ...
+			'Depth:        %d\n' 'Hole penetration: %d'], leg(i), z(i), penetration(i) ),'ODP info')
 
 % -----------------------------------------------------------------------------------------
 function Isochrons_Info(obj,eventdata,data)
