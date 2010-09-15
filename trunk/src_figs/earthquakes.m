@@ -26,7 +26,7 @@ function varargout = earthquakes(varargin)
     handles.hMirFig = varargin{1};
     handMir = guidata(handles.hMirFig);
 	if (handMir.no_file)
-        errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
+        errordlg('This option requires that you load a file first to serve as a background map.','ERROR')
         delete(hObject);    return
 	end
 	move2side(handMir.figure1, hObject,'right')
