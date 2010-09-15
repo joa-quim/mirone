@@ -90,7 +90,7 @@ function varargout = earthquakes(varargin)
 
 	if (handles.use_default_file)
 		% Read the Mirone's default earthquakes file
-		fid = fopen([handles.path_data 'quakes90-03.dat'],'r');
+		fid = fopen([handles.path_data 'quakes.dat'],'r');
 		todos = fread(fid,'*char');
 		[year mo day lat lon depth mag] = strread(todos,'%d %d %d %f %f %f %f');
 		fclose(fid);    clear todos
