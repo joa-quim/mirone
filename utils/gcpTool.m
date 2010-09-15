@@ -17,20 +17,19 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-	delete(handles.NewFigure);      delete(handles.ImportKnownTypes)
-	delete(handles.SaveGMTgrid);    delete(handles.Preferences)
-	delete(handles.Print);          delete(handles.DrawText)
-	delete(handles.DrawGeogCirc);   delete(handles.DrawLine)
-	delete(handles.DrawRect);       delete(handles.DrawPolyg)
-	delete(handles.DrawArrow);      set(handles.Tesoura,'Enable','off') % cannot kill coze test in PanZoom
-	delete(handles.ColorPal);       delete(handles.Shading);
-	delete(handles.Anaglyph);       delete(handles.toGE)
-	delete(handles.MBplaning);      delete(handles.FlederPlanar);
-	delete(handles.ImageInfo);      delete(handles.Refresh);
-	delete(handles.Image);          delete(handles.Tools)
-	delete(handles.Draw);           delete(handles.Geophysics)
-	delete(handles.Help);           delete(handles.GridTools)
-	%delete(handles.TerrainMod);
+	if (handles.mirVersion(1) >= 2)
+		delete([handles.Image handles.Tools handles.Draw handles.Plates handles.MagGrav ...
+			handles.Seismology handles.Tsunamis handles.GMT handles.GridTools handles.Help])
+	else						% Older organization 
+		delete([handles.Image handles.Tools handles.Draw handles.Geophysics handles.GridTools handles.Help])
+	end
+
+	delete([handles.NewFigure handles.ImportKnownTypes handles.SaveGMTgrid handles.Preferences ...
+		handles.Print handles.DrawText handles.DrawGeogCirc handles.DrawLine handles.DrawRect ...
+		handles.DrawPolyg handles.DrawArrow handles.ColorPal handles.Shading handles.Anaglyph ...
+		handles.toGE handles.MBplaning handles.FlederPlanar handles.ImageInfo handles.Refresh])
+
+	set(handles.Tesoura,'Vis','off')		% cannot kill coze test in PanZoom
 	if (ishandle(handles.Projections)),     delete(handles.Projections);   end
 
 	% ------------- Cleverer deletion of unwanted uicontrols
@@ -38,7 +37,11 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 	h2 = setxor(h1,handles.OpenGI);
 	delete(h2)
 
-	h2 = get(handles.Datasets,'Children');
+	if (handles.mirVersion(1) >= 2)
+		h2 = get(handles.Geography,'Children');
+	else
+		h2 = get(handles.Datasets,'Children');
+	end
 	h21 = handles.VoidDatasetsCoastLine;
 	h22 = handles.VoidDatasetsPB;
 	h23 = handles.VoidDatasetsRivers;
@@ -47,7 +50,7 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 	% -------------
 
 	% Import icons
-	load ([pwd filesep 'data' filesep 'mirone_icons.mat']);
+	load ([handles.path_data 'mirone_icons.mat']);
 	h_toolbar = handles.FigureToolBar;
 	uitoggletool('parent',h_toolbar,'Click',@InsertPoint_CB, ...  
 		'Tag','singlePoint','cdata',point_ico,'TooltipString','Insert point','Separator','on');
