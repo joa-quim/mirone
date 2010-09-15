@@ -44,7 +44,7 @@ H1 = figure('PaperUnits','centimeters',...
 'IntegerHandle','off',...
 'InvertHardcopy',get(0,'defaultfigureInvertHardcopy'),...
 'MenuBar','none',...
-'Name','Mirone 1.5.4b',...
+'Name','Mirone 1.5.4',...
 'NumberTitle','off',...
 'PaperPositionMode','auto',...
 'PaperSize',[20.98404194812 29.67743169791],...
@@ -517,10 +517,11 @@ h = uimenu('Parent',hDS,'Label','Cities');
 uimenu('Parent',h,'Call','datasets_funs(''Cities'',guidata(gcbo),''major'')','Label','Major cities');
 uimenu('Parent',h,'Call','datasets_funs(''Cities'',guidata(gcbo),''other'')','Label','Other cities');
 
-h = uimenu('Parent',hDS,'Label','ODP/DSDP sites');
-uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''ODP'')','Label','ODP');
+h = uimenu('Parent',hDS,'Label','DSDP/ODP/IODP sites');
 uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''DSDP'')','Label','DSDP');
-uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''ODP_DSDP'')','Label','ODP and DSDP');
+uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''ODP'')','Label','ODP');
+uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''IODP'')','Label','IODP');
+uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''ALL'')','Label','DSDP+ODP+IODP');
 
 uimenu('Parent',hDS,'Call','magbarcode','Label','Mgnetic Bar Code');
 uimenu('Parent',hDS,'Call','atlas(guidata(gcbo))','Label','Atlas','Tag','Atlas','Sep','on');
@@ -656,7 +657,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 15 Sep 2010'',''1.5.4b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 Sep 2010'',''1.5.4'')','Label','About','Sep','on');
 
 % --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
