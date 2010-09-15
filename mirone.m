@@ -1514,7 +1514,8 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	setappdata(handles.axes1,'ThisImageLims',[get(handles.axes1,'XLim') get(handles.axes1,'YLim')])
 	handles.oldSize = get(handles.figure1,'Pos');		% Save fig size to prevent maximizing
 	handles.origCmap = get(handles.figure1,'ColorMap'); % Save original colormap 
-	set(handles.ImgHist,'checked','off');		set(handles.ImgHistGrd,'checked','off');
+	set(handles.ImgHist,'checked','off')
+	if (handles.mirVersion(1) < 2)		set(handles.ImgHistGrd,'checked','off'),	end
 	% Make an extra copy of those to use in "restore" because they may be changed by 'bands_list()'
 	handles.validGrid_orig = validGrid;			handles.was_int16_orig = handles.was_int16;
 	handles.computed_grid_orig = handles.computed_grid;
@@ -1529,7 +1530,11 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	st = {'off' 'on'};
 	set(handles.Projections,'Vis', st{(handles.image_type ~= 2) + 1})
 	set(handles.noVGlist(6:end),'Vis', st{validGrid + 1}),		set(handles.noVGlist(1:5),'Ena', st{validGrid + 1})
-	set([handles.Datasets handles.Geophysics],'Vis', st{(handles.image_type ~= 2) + 1})
+	if (handles.mirVersion(1) < 2)		% To work with pre 2.0 version (will eventually be removed)
+		set([handles.Datasets handles.Geophysics],'Vis', st{(handles.image_type ~= 2) + 1})
+	else
+		set([handles.Geography handles.MagGrav handles.Seismology handles.Plates],'Vis', st{(handles.image_type ~= 2) + 1})
+	end
 	set(handles.noAxes,'Vis', st{~strcmp(axis_t,'off') + 1})
 	set(handles.toGE,'Enable', st{min(handles.geog,1) + 1})
 	set(findobj(handles.Projections,'Label','GMT project'), 'Vis', st{validGrid + 1})
