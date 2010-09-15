@@ -8,8 +8,6 @@ switch opt(1:3)
 		PoliticalBound(varargin{:})
 	case 'Riv'
 		Rivers(varargin{:})
-	case 'Iso'
-		DatasetsIsochrons(varargin{:})
 	case 'Pla'
 		DatasetsPlateBound_PB_All(varargin{:})
 	case 'ODP'
@@ -30,10 +28,10 @@ switch opt(1:3)
 		DatasetsCities(varargin{:})
 	case 'sca'
 		scaledSymbols(varargin{:})
+	case 'ITR'
+		DatasetsITRF(varargin{:})
 	case 'GTi'
 		GTilesMap(varargin{:})
-	case 'Vec'
-		loc_quiver(varargin{1},varargin{2:end});
 end
 
 % --------------------------------------------------------------------
@@ -106,6 +104,28 @@ function DatasetsHydrotermal(handles)
 	draw_funs(h,'Hydro',desc)
 
 % --------------------------------------------------------------------
+function DatasetsITRF(handles)
+% Read itrf2008.dat which has 7 columns (lat lon name diameter age exposed type)
+	if (aux_funs('msg_dlg',5,handles)),		return,		end			% Test no_file || unknown proj
+	fid = fopen([handles.path_data 'itrf2008.dat'],'r');
+	todos = fread(fid,'*char');
+	[itrf.x itrf.y z.z itrf.Vx itrf.Vy itrf.Vz itrf.stName itrf.stCode z.lix] = strread(todos,'%f %f %f %f %f %f %s %s %s');
+	fclose(fid);    clear todos
+	[tmp, msg] = geog2projected_pts(handles,[itrf.x itrf.y]);	% If map in geogs, tmp is just a copy of input
+	if (~strncmp(msg,'0',1))		% Coords were projected
+		itrf.x = tmp(:,1);			itrf.y = tmp(:,2);
+	end
+
+	% Get rid of Stations that are outside the map limits
+	[x, y, indx, indy] = aux_funs('in_map_region',handles, itrf.x, itrf.y, 0, []);
+	itrf.Vx(indx) = [];		itrf.Vy(indx) = [];		itrf.Vz(indx) = [];		itrf.stName(indx) = [];		itrf.stCode(indx) = [];
+	itrf.Vx(indy) = [];		itrf.Vy(indy) = [];		itrf.Vz(indy) = [];		itrf.stName(indy) = [];		itrf.stCode(indy) = [];
+	struc = struct('spacingChanged',[], 'hQuiver', [], 'hAx', handles.axes1, 'color', handles.DefLineColor, 'thick', handles.DefLineThick);
+	hQuiver = draw_funs([], 'loc_quiver', struc, x, y, itrf.Vx, itrf.Vy);
+	setappdata(hQuiver(1),'MyHead',hQuiver(2))		% Store the arrows heads handle
+	%draw_funs(hQuiver,'ITRF',itrf)
+
+% --------------------------------------------------------------------
 function DatasetsMeteor(handles)
 % Read meteoritos.dat which has 7 columns (lat lon name diameter age exposed type)
 	if (aux_funs('msg_dlg',5,handles)),		return,		end			% Test no_file || unknown proj
@@ -165,271 +185,6 @@ function DatasetsTides(handles)
 	h_tides = line(x,y,'Marker','^','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',6,...
 		'LineStyle','none','Tag','TideStation');
 	draw_funs(h_tides,'TideStation',[])
-
-% --------------------------------------------------------------------
-function DatasetsIsochrons(handles, opt, opt2)
-% Read multisegment isochrons.dat which has 3 columns (lat lon id)
-% OR read a generic ascii file that can be, or not, a multiseg file
-% Multi-segs files accept -G, -W & -S GMT type options.
-%
-%	Optional
-%		OPT can be either [] in which case the fiename will be asked here or contain the filename
-%		OPT2, curently only used for arrow fields, can take the value 'arrows' to read a x,y,u,v file
-%
-% If first line in file is of the form '>U_N_I_K', plot a single line NaN separated
-% If first line in file is of the form '>ARROW', plot an arrow field
-% If first line in file is of the form '>VIMAGE', tell Fleder to plot a scene with a VIMAGE
-
-	% Some defaults
-	tol = 0.5;
-	do_project = false;         % We'll estimate below if this holds true
-	got_arrow = false;
-	struc_vimage = [];
-
-	if (nargin >= 2 && isempty(opt))            % Read a ascii multi-segment with info file
-		[FileName,PathName] = put_or_get_file(handles, ...
-			{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
-		if isequal(FileName,0),		return,		end
-		tag = 'Unnamed';		fname = [PathName FileName];
-	elseif (nargin >= 2)		% Read a ascii multi-segment file of which we already know the name (drag N'drop)
-		tag = 'DragNdroped';	fname = opt;
-		PathName = fileparts(fname);			% We need the 'PathName' below
-	else
-		tag = 'isochron';		fname = [handles.path_data 'isochrons.dat'];
-	end
-	if (nargin == 3)
-		switch opt2
-			case 'arrows',		got_arrow = true;		% Currently, the only case dealt
-		end
-	end
-
-%	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
-% 	cmenuHand = get(h, 'UIContextMenu');
-% 	setappdata(handles.figure1, 'cmenuHand', cmenuHand)
-% 	cmenuHand = uicontextmenu('Parent',handles.figure1);
-% 	set(h, 'UIContextMenu', cmenuHand);
-% 	%uimenu(cmenuHand, 'Label', 'Set all UIcontexts', 'Call', {@resetUIctx,h,handles.axes1});
-% 	uimenu(cmenuHand, 'Label', 'Set all UIcontexts', 'Call', 'hand=guidata(gco); set(gco, ''UIContextMenu'', getappdata(hand.axes1, ''cmenuHand''))' );
-% 
-% function resetUIctx(obj,evt,h,hAxes)
-% 	cmenuHand = getappdata(hAxes, 'cmenuHand');
-% 	set(h, 'UIContextMenu', cmenuHand)
-
-%set(handles.figure1,'pointer','watch')
-[bin,n_column, multi_seg] = guess_file(fname);
-if (n_column == 1 && multi_seg == 0)        % Take it as a file names list
-    fid = fopen(fname);
-    c = fread(fid,'*char')';	fclose(fid);
-    names = strread(c,'%s','delimiter','\n');   clear c fid;
-else
-	names = {fname};
-end
-
-if (handles.no_file)		% Start empty but below we'll find the true data region
-	if (ischar(handles.DefLineColor) && handles.DefLineColor(1) == 'w')
-		handles.DefLineColor = 'k';		% To not plot a white line over a white background
-	end
-    XMin = 1e50;			XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
-    if (nargin == 1)		% We know it's geog (Global Isochrons)
-		xx = [-180 180];    yy = [-90 90];
-		if (handles.geog == 2),		xx = [0 360];	end
-		region = [xx yy];
-    else                    % We need to compute the file extents.
-		for (k = 1:numel(names))
-            fname = names{k};
-            j = strfind(fname,filesep);
-            if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well 
-            [numeric_data, multi_segs_str] = text_read(fname,NaN,NaN,'>');
-			if (~isa(numeric_data,'cell'))			% File was not multi-segment.
-				numeric_data = {numeric_data};
-				multi_segs_str = {'> No info provided'};
-			end
-			for i=1:length(numeric_data)
-				tmpx = numeric_data{i}(:,1);	tmpy = numeric_data{i}(:,2);
-				XMin = min(XMin,min(tmpx));		XMax = max(XMax,max(tmpx));
-				YMin = min(YMin,min(tmpy));		YMax = max(YMax,max(tmpy));
-			end
-		end
-		dx = XMax - XMin;			dy = YMax - YMin;
-		if (dx == 0 || dy == 0)
-			errordlg('File is has only one point or all XXs are equal or all YYs are equal','Error')
-			return
-		end
-		XMin = XMin - dx / 100;		XMax = XMax + dx / 100;		% Give an extra 1% padding margin
-		YMin = YMin - dy / 100;		YMax = YMax + dy / 100;
-        xx = [XMin XMax];			yy = [YMin YMax];
-        region = [xx yy];			% 1 stands for geog but that will be confirmed later
-		handles.geog = aux_funs('guessGeog',region);
-    end
-	mirone('FileNewBgFrame_CB', handles, [region handles.geog])	% Create a background
-	hMirFig = handles.figure1;
-else							% Reading over an established region
-	XYlim = getappdata(handles.axes1,'ThisImageLims');
-	xx = XYlim(1:2);			yy = XYlim(3:4);
-	if (handles.is_projected && (nargin == 1 || handles.defCoordsIn > 0) )
-		do_project = true;
-	end
-	XMin = XYlim(1);			XMax = XYlim(2);		% In case we need this names below for line trimming
-end
-
-min_max = [Inf -Inf];			% We will need something here when data file has 3 columns
-if (handles.validGrid),			min_max = handles.head(5:6);	end		% To be used in testing if we store eventual ZData
-
-for (k = 1:numel(names))		% Main loop over data files
-	fname = names{k};
-	if (handles.no_file && k == 1)			% Rename figure with draged file name
-		[pato,barName] = fileparts(fname);
-		old_name = get(hMirFig,'Name');		ind = strfind(old_name, '@');
-		set(hMirFig,'Name',[barName old_name(ind-1:end)])
-	end
-	j = strfind(fname,filesep);
-	if (isempty(j)),    fname = [PathName fname];   end			% It was just the filename. Need to add path as well
-	if (~handles.no_file)					% Otherwise we already read it
-		[numeric_data, multi_segs_str] = text_read(fname,NaN,NaN,'>');
-	end
-	if (~isa(numeric_data,'cell'))			% File was not multi-segment. Now pretend it was but with no info
-		numeric_data = {numeric_data};
-		multi_segs_str = {'> No info provided'};
-	end
-	n_isoc = 0;     n_segments = length(numeric_data);
-	h_isoc = ones(n_segments,1)*NaN;							% This is the maximum we can have
-	n_clear = false(n_segments,1);
-
-	% Test if conversion into a single, NaN separated, line its wanted 
-	if (strncmp(multi_segs_str{1}, '>U_N_I_K', 8))
-		for (i = 1:n_segments-1)
-			numeric_data{i} = [numeric_data{i}(:,1:2); nan nan];
-		end
-		numeric_data{1} = cat(1,numeric_data{:});
-		% Rip the U_N_I_K identifier
-		if (numel(multi_segs_str{1}) > 8)			% We may have line type specifications
-			multi_segs_str{1} = ['> ' multi_segs_str{1}(9:end)];
-		else
-			multi_segs_str{1} = '> ';
-		end
-		n_segments = 1;				% Pretend we have only one segment
-
-	elseif (strncmpi(multi_segs_str{1}, '>ARROW', 6) || got_arrow)		% ARROW field (the got_arrow can came via varargin)
-		if (~got_arrow),	multi_segs_str{1}(2:6) = [];	end			% Rip the ARROW identifier
-		got_arrow = true;
-		if (n_column < 4)
-			errordlg('Files for arrow plot need 4 columns with the traditial (x,y,u,v)','ERROR'),	return
-		end
-		UV = cell(n_segments,1);
-		for (i = 1:n_segments)		% Split the XY & UV columns to be compatible with the other options
-			UV{i} = numeric_data{i}(:,3:4);
-			numeric_data{i}(:,3:end) = [];
-		end
-		struc_arrow = struct('spacingChanged',[], 'hQuiver', [], 'hAx', handles.axes1);
-
-	elseif (strncmp(multi_segs_str{1}, '>VIMAGE', 7))
-		[z_Vmin, r] = strtok(multi_segs_str{k}(8:end));		z_Vmin = str2double(z_Vmin);
-		[z_Vmax, r] = strtok(r);							z_Vmax = str2double(z_Vmax);
-		vimage = strtok(r);
-		if (isnan(z_Vmin) || isnan(z_Vmax))
-			errordlg('Load VIMAGE error. First 2 fields must contain Z_START & Z_END info.','Error'),	return
-		end
-		if (~ischar(vimage) || ~exist(vimage,'file'))
-			errordlg('Load VIMAGE error. Third field must contain an existing picture file name.','Error'),	return
-		end
-		struc_vimage = struct('z_min', z_Vmin, 'z_max', z_Vmax, 'vimage', vimage);
-
-	end
-
-	for (i = 1:n_segments)
-		tmpz = [];
-		if (~handles.validGrid),	tmpz = [];		end			% If not in a grid we don't care of Z's anyway
-		if (do_project)         % We need to project
-			numeric_data{i} = geog2projected_pts(handles,numeric_data{i});
-		end
-		difes = [numeric_data{i}(1,1)-numeric_data{i}(end,1) numeric_data{i}(1,2)-numeric_data{i}(end,2)];
-		if (any(abs(difes) > 1e-4))
-			is_closed = false;
-			% Not a closed polygon, so get rid of points that are outside the map limits
-			[tmpx,tmpy,indx,indy] = aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
-		else
-			tmpx = numeric_data{i}(:,1);       tmpy = numeric_data{i}(:,2);
-			is_closed = true;
-			indx = false;			% No need for map clipping
-		end
-		if (isempty(tmpx)),     n_clear(i) = true;     continue,		end     % Store indexes for clearing vanished segments info
-		if ( numel(numeric_data{i}(1,:)) >=3 )		% If we have a Z column
-			tmpz = numeric_data{i}(:,3);
-			if (indx),		tmpz(indx) = [];	tmpz(indy) = [];	end		% If needed, clip outside map data			
-		end
-
-		if (handles.no_file)        % We need to compute the data extent in order to set the correct axes limits
-			XMin = min(XMin,min(tmpx));		XMax = max(XMax,max(tmpx));
-			YMin = min(YMin,min(tmpy));		YMax = max(YMax,max(tmpy));
-		end
-		
-		[thick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(min(2,numel(multi_segs_str{i})):end)); % First time, we can chop the '>' char
-		if (isempty(thick)),	thick = handles.DefLineThick;	end		% IF not provided, use default
-		if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
-
-		if (~is_closed || got_arrow)				% Line plottings
-			% See if we need to wrap arround the earth roundness discontinuity. Using 0.5 degrees from border. 
-			if (handles.geog == 1 && ~do_project && (XMin < -179.5 || XMax > 179.5) )
-					[tmpy, tmpx] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax],'wrap');
-			elseif (handles.geog == 2 && ~do_project && (XMin < 0.5 || XMax > 359.5) )
-					[tmpy, tmpx] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax],'wrap');
-			end
-			
-			n_isoc = n_isoc + 1;
-			if (~got_arrow)
-				h_isoc(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',thick,...
-					'Color',cor,'Tag',tag,'Userdata',n_isoc);
-			else
-				struc_arrow.color = cor;
-				hQuiver = loc_quiver(struc_arrow, tmpx, tmpy, UV{i}(:,1), UV{i}(:,2));
-				set(hQuiver,'Tag','Seta','Userdata',n_isoc)
-				setappdata(hQuiver(1),'MyHead',hQuiver(2))		% Store the arrows heads handle
-				h_isoc(i) = hQuiver(1);
-			end
-			if (~isempty(tmpz) && (tmpz(1) >= min_max(1) && tmpz(1) <= min_max(2)))	% Crude test to keep only if inside Z range
-				set(h_isoc(i),'UserData',tmpz');									% So that Fleder can drape this line
-			end	
-			setappdata(h_isoc(i),'LineInfo',multi_segs_str{i})  % To work with the sessions and will likely replace old mechansim
-
-			% Finish the Vertical image section (if it exists obviously)
-			if (~isempty(struc_vimage))
-				vimage = getappdata(handles.axes1,'VIMAGE');
-				if (isempty(vimage))			% First one
-					struc_vimage.hLine = h_isoc(i);
-					setappdata(handles.axes1, 'VIMAGE', struc_vimage)
-				else
-					struc_vimage.hLine = h_isoc(i);
-					vimage(end+1) = struc_vimage;
-					setappdata(handles.axes1, 'VIMAGE', vimage)
-				end
-			end
-	
-		else
-			Fcor = parseG(multi_segs_str{i});
-			if (isempty(Fcor)),      Fcor = 'none';   end
-			hPat = patch('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',thick,'EdgeColor',cor,'FaceColor',Fcor);
-			if (~isempty(tmpz) && (tmpz(1) >= min_max(1) && tmpz(1) <= min_max(2)))	% Crude test to keep only if inside Z range
-				set(hPat,'UserData',tmpz');											% So that Fleder can drape this patch
-			end	
-			draw_funs(hPat,'line_uicontext')
-			n_clear(i) = true;			% Must delete this header info because it only applyies to lines, not patches
-		end
-	end
-	multi_segs_str(n_clear) = [];	% Clear the unused info
-
-	ind = isnan(h_isoc);    h_isoc(ind) = [];      % Clear unused rows in h_isoc (due to over-dimensioning)
-	if (~isempty(h_isoc)),  draw_funs(h_isoc,'isochron',multi_segs_str);    end
-end
-set(handles.figure1,'pointer','arrow')
-
-if (handles.no_file)				% We have a kind of inf Lims. Adjust for current values
-	region = [XMin XMax YMin YMax];
-	set(handles.axes1,'XLim',[XMin XMax],'YLim',[YMin YMax])
-	setappdata(handles.axes1,'ThisImageLims',region)
-	handles = guidata(handles.figure1);			% Tricky, but we need the new version, which was changed in show_image
-	handles.geog = aux_funs('guessGeog',region);
-	guidata(handles.figure1,handles)
-end
 
 % --------------------------------------------------------------------
 function [cor, str2] = parseG(str)
@@ -1161,112 +916,3 @@ function [tag,str2] = parseT(str)
 		tag = strT(3:end);
 	end
 
-% --------------------------------------------------------------------
-function hh = loc_quiver(struc,varargin)
-%QUIVER Quiver plot.
-%   QUIVER(Struc,X,Y,U,V) plots velocity vectors as arrows with components (u,v)
-%   at the points (x,y).  The matrices X,Y,U,V must all be the same size
-%   and contain corresponding position and velocity components (X and Y
-%   can also be vectors to specify a uniform grid).  QUIVER automatically
-%   scales the arrows to fit within the grid.
-%
-%   QUIVER(Struc,X,Y,U,V,S) automatically scales the arrows to fit within the grid and
-%   then stretches them by S. Use  S=0 to plot the arrows without the automatic scaling.
-%
-%	STRUC structure with this members
-%		hQuiver - handles of a previously created arrow field (Default is [] )
-%		spacingChanged - If different from zero previous arrows are deleted and reconstructed
-%				  with the new input in varargin, but the handles remain valid (Default == 0). 
-%		hAx - axes handle od current figure. If empty a new fig is created
-%		color - Optional field containing the line color. If absent, plot black lines.
-%	To use the above default values, give and empty STRUC.
-%
-%   H = QUIVER(...) returns a vector of line handles.
-
-	% Arrow head parameters
-	alpha = 0.33;		% Size of arrow head relative to the length of the vector
-	beta = 0.33;		% Width of the base of the arrow head relative to the length
-	autoscale = 1;		% Autoscale if ~= 0 then scale by this.
-	subsample = 1;		% Plot one every other grid node vector
-
-	if (isempty(struc))
-		hQuiver = [];		spacingChanged = [];		hAx = gca;		lc = 'k';
-	else
-		hQuiver = struc.hQuiver;		spacingChanged = struc.spacingChanged;		hAx = struc.hAx;
-		try		lc = struc.color;
-		catch,	lc = 'k';
-		end
-	end
-
-	nin = nargin - 1;
-
-	% Check numeric input arguments
-	if (nin < 4)					% quiver(u,v) or quiver(u,v,s)
-		[msg,x,y,u,v] = xyzchk(varargin{1:2});
-	else
-		[msg,x,y,u,v] = xyzchk(varargin{1:4});
-	end
-	if ~isempty(msg), error(msg); end
-
-	if (nin == 5)		% quiver(x,y,u,v,s)
-		autoscale = varargin{nin};
-	elseif  (nin == 6)
-		autoscale = varargin{nin-1};
-		subsample = abs(round(varargin{nin}));
-	end
-
-	% Scalar expand u,v
-	if (numel(u) == 1),     u = u(ones(size(x))); end
-	if (numel(v) == 1),     v = v(ones(size(u))); end
-
-	if (subsample > 1)
-		x = x(1:subsample:end,1:subsample:end);		y = y(1:subsample:end,1:subsample:end);
-		u = u(1:subsample:end,1:subsample:end);		v = v(1:subsample:end,1:subsample:end);
-	end
-
-	if (autoscale)
-		% Base autoscale value on average spacing in the x and y directions.
-		% Estimate number of points in each direction as either the size of the
-		% input arrays or the effective square spacing if x and y are vectors.
-		if min(size(x))==1, n=sqrt(numel(x)); m=n; else [m,n]=size(x); end
-		delx = diff([min(x(:)) max(x(:))])/n;
-		dely = diff([min(y(:)) max(y(:))])/m;
-		del = delx.^2 + dely.^2;
-		if (del > 0)
-			len = (u.^2 + v.^2)/del;
-			maxlen = sqrt(max(len(:)));
-		else
-			maxlen = 0;
-		end
-		
-		if maxlen > 0
-			autoscale = autoscale*0.9 / maxlen;
-		else
-			autoscale = autoscale*0.9;
-		end
-		u = u*autoscale; v = v*autoscale;
-	end
-
-	% Make velocity vectors
-	x = x(:).';		y = y(:).';
-	u = u(:).';		v = v(:).';
-	uu = [x; x+u; repmat(NaN,size(u))];
-	vv = [y; y+v; repmat(NaN,size(u))];
-	% Make arrow heads
-	hu = [x+u-alpha*(u+beta*(v+eps)); x+u; x+u-alpha*(u-beta*(v+eps)); repmat(NaN,size(u))];
-	hv = [y+v-alpha*(v-beta*(u+eps)); y+v; y+v-alpha*(v+beta*(u+eps)); repmat(NaN,size(v))];
-
-	if (spacingChanged)
-		try		delete(hQuiver),	hQuiver = [];	end		% Remove previous arrow field
-	end
-
-	if ( isempty(hQuiver) || ~ishandle(hQuiver(1)) )		% No arrows yet.
-		h1 = line('XData',uu(:), 'YData',vv(:), 'Parent',hAx, 'Color',lc);
-		h2 = line('XData',hu(:), 'YData',hv(:), 'Parent',hAx, 'Color',lc);
-		if (nargout > 0),	hh = [h1;h2];	end
-	else
-		% We have the arrows and only want to change them
-		set(hQuiver(1),'XData',uu(:), 'YData',vv(:))
-		set(hQuiver(2),'XData',hu(:), 'YData',hv(:))
-		if (nargout > 0),	hh = [hQuiver(1); hQuiver(2)];	end
-	end
