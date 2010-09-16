@@ -1,5 +1,6 @@
-function [name_hdr,comp_type] = write_ESRI_hdr(full_name, opt)
+function [name_hdr,comp_type] = write_esri_hdr(full_name, opt)
 % Write an ESRI .hdr header companion of the raw file FULL_NAME
+%
 % OPT contains the type of file we will deal with
 %   Predefined values are 'SRTM30' or 'SRTM1'
 %   Optionaly it may have [lon_min lat_max n_cols n_rows x_inc y_inc nodata_value]
@@ -10,7 +11,7 @@ function [name_hdr,comp_type] = write_ESRI_hdr(full_name, opt)
 % It also tests if file is zip or gzip compressed. In case it is, the
 % compression type is returned in COMP_TYPE. Otherwise it is empty.
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -54,8 +55,8 @@ elseif (strcmpi(EXT,'.gz'))
 end
 
 if (~isempty(comp_type))     % File is compressed. Need to remove the true extension
-    [pato,name_copy,EXT] = fileparts(name_copy);
-    [pato,fname,EXT] = fileparts(fname);
+    [pato,name_copy] = fileparts(name_copy);
+    [pato,fname] = fileparts(fname);
 end
 
 lon_sng = 0;    lat_sng = 0;
