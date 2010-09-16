@@ -262,7 +262,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(tmpx)),     n_clear(i) = true;     continue,		end     % Store indexes for clearing vanished segments info
 			if ( numel(numeric_data{i}(1,:)) >= 3 )		% If we have a Z column
 				tmpz = numeric_data{i}(:,3);
-				if (indx),		tmpz(indx) = [];	tmpz(indy) = [];	end		% If needed, clip outside map data			
+				if (~isempty(indx) || ~isempty(indy))	tmpz(indx) = [];	tmpz(indy) = [];	end	% If needed, clip outside map data			
 			end
 
 			[lThick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(min(2,numel(multi_segs_str{i})):end)); % First time, we can chop the '>' char
@@ -340,7 +340,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 		% In case of Lines (and Isocs) uicontexts have not been set yet. Do it now.
 		ind = isnan(hLine);    hLine(ind) = [];      % Clear unused rows in hLine (due to over-dimensioning)
-		if ( ~isempty(hLine) && (strcmp(line_type, 'AsLine') || strcmp(line_type, 'Isochrons' || got_arrow)) )
+		if ( ~isempty(hLine) && (strcmp(line_type, 'AsLine') || strcmp(line_type, 'Isochrons') || got_arrow) )
 			if (orig_no_mseg)
 				draw_funs(hLine,'line_uicontext')		% Here hLine is actually only a scalar
 			else
