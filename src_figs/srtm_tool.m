@@ -559,7 +559,7 @@ h = findobj(handles.figure1,'Type','patch','UserData',1);   % Get selected tile
 fname = get(h,'Tag');							% Get it's name
 if (isempty(fname))		return,		end			% No file selected
 
-name_hdr = write_ESRI_hdr([handles.files_dir filesep fname],'SRTM30');
+name_hdr = write_esri_hdr([handles.files_dir filesep fname],'SRTM30');
 
 del_file = 0;
 ii = strmatch(fname, handles.srtm30_files);
