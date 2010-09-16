@@ -2338,7 +2338,8 @@ function ODP_info(obj,eventdata,h,leg,site,z,penetration)
 	i = get(gco,'Userdata');
 	tag = get(h,'Tag');     tag = tag{1};
 	msgbox( sprintf([[tag ' Leg:    '] '%d\n' [tag ' Site:    '] site{i} '\n' ...
-			'Depth:        %d\n' 'Hole penetration: %d'], leg(i), z(i), penetration(i) ),'ODP info')
+			'Depth:        %d\n' 'Hole penetration: %d'], ...
+			double(leg(i)), double(z(i)), double(penetration(i)) ),'ODP info')
 
 % -----------------------------------------------------------------------------------------
 function Isochrons_Info(obj,eventdata,data)
