@@ -530,7 +530,7 @@ uimenu('Parent',hP,'Call','compute_euler(gcf)','Label','Compute Euler pole');
 uimenu('Parent',hP,'Call','manual_pole_adjust(gcf)','Label','Manual adjust Euler pole');
 uimenu('Parent',hP,'Call','mirone(''DrawEulerPoleCircle_CB'',guidata(gcbo))','Label','Draw Circle about Euler pole');
 uimenu('Parent',hP,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''EulerTrapezium'')','Label','Draw Euler trapezium');
-%uimenu('Parent',hP,'Call','datasets_funs(''ITRF'',guidata(gcbo))','Label','Plot ITRF2008 velocities');
+uimenu('Parent',hP,'Call','datasets_funs(''ITRF'',guidata(gcbo))','Label','Plot ITRF2008 velocities');
 uimenu('Parent',hP,'Call','datasets_funs(''Plate'',guidata(gcbo))','Label','Plot Plate boundaries');
 uimenu('Parent',hP,'Call','rally_plater','Label','Rally Plater','Sep','on');
 
@@ -670,7 +670,8 @@ uimenu('Parent',hGT,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''ppa'')
 %% --------------------------- PROJECTIONS -----------------------------
 h = uimenu('Parent',H1,'Label','Projections','Tag','Projections');
 projection_menu(H1, h, home_dir);
-uimenu('Parent',h,'Label','-- REPROJECT --','HitTest','off','Sep','on');
+uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo))','Label','Geographic Computator','Sep','on');
+uimenu('Parent',h,'Label','  -- REPROJECT --','Enable','off','Sep','on');
 uimenu('Parent',h,'Call','gdal_project(guidata(gcbo))','Label','GDAL project');
 uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','GMT project');
 
