@@ -21,6 +21,9 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 		IamCompiled = true;
 	end
 
+	IAmAMac = strncmp(computer,'MAC',3);
+	if (IAmAMac)	figW = 720;		end		% On Macs buttons have different sizes 
+
 	% Import icons and fetch home_dir if compiled and called by extension association
 	% Here is what will happen. When called by windows extension association the 'home_dir'
 	% will contain the path of the file and not of the Mirone installation, and it will fail.
@@ -681,6 +684,7 @@ uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 15 
 	handles = guihandles(H1);
 	handles.version7 = version7;			% If == 1 => R14 or latter
 	handles.IamCompiled = IamCompiled;		% If == 1 than we know that we are dealing with a compiled (V3) version
+	handles.IAmAMac = IAmAMac;
 	if (version7),  set(H1,'Pos',[pos(1:3) 1]);    end     % Adjust for the > R13 bugginess
 	handles.RecentF = handles.RecentF(end:-1:1);  % Inverse creation order so that newest files show on top of the list
 	handles.noVGlist = hVG;					% List of ui handles that will not show when "not valid grid"
