@@ -611,9 +611,8 @@ function DatasetsODP_DSDP(handles,opt)
 	set(handles.figure1,'pointer','watch')
 	fid = fopen([handles.path_data 'DSDP_ODP.dat'],'r');
 	todos = fread(fid,'*char');
-	%[ODP.x ODP.y zz ODP.leg ODP.site ODP.z ODP.penetration] = strread(todos,'%f %f %s %s %s %s %s');
 	[ODP.x ODP.y ODP.leg ODP.site ODP.z ODP.penetration] = strread(todos,'%f %f %d %s %d %d');
-	fclose(fid);    clear todos zz
+	fclose(fid);    clear todos
 	% Stupid memory wast with the bloody doubles paranoia
 	ODP.leg = int16(ODP.leg);		ODP.z = int16(ODP.z);		ODP.penetration = int16(ODP.penetration);
     [tmp, msg] = geog2projected_pts(handles,[ODP.x ODP.y]);   % If map in geogs, tmp is just a copy of input
