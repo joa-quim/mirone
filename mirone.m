@@ -270,15 +270,16 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles = show_image(handles,win_name,X,Y,zz,1,'xy',handles.head(7));
 	end
 
-	IAmAMac = strncmp(computer,'MAC',3);
-	setappdata(0,'IAmAMac',IAmAMac)
-	if (IAmAMac && isempty(getappdata(0,'have_DYLD')))	% Deal with Mac OS X blindness
-		%set_gmt(['DYLD_LIBRARY_PATH=' cd ':'],'DYLD_LIBRARY_PATH')		% Prepend current dir to DYLD_LIBRARY_PATH
-		DYLD = getenv('DYLD_LIBRARY_PATH');		% Available only on > R14?? versions 
-		setenv('DYLD_LIBRARY_PATH',[DYLD ':' cd])
-		setappdata(0,'have_DYLD',true)			% Signal to do this only once
-	end
-	if (IAmAMac)		% F. TMW just cannot make things work decently on Macs. Labels are bigger than reserved space
+	handles.IAmAMac = strncmp(computer,'MAC',3);
+	setappdata(0,'IAmAMac',handles.IAmAMac)
+	if (handles.IAmAMac)
+		if (isempty(getappdata(0,'have_DYLD')))		% Deal with MacOSX blindness
+			%set_gmt(['DYLD_LIBRARY_PATH=' cd ':'],'DYLD_LIBRARY_PATH')		% Prepend current dir to DYLD_LIBRARY_PATH
+			DYLD = getenv('DYLD_LIBRARY_PATH');		% Available only on > R14?? versions 
+			setenv('DYLD_LIBRARY_PATH',[DYLD ':' cd])
+			setappdata(0,'have_DYLD',true)			% Signal to do this only once
+		end
+		% F. TMW just cannot make things work decently on Macs. Labels are bigger than reserved space
 		set(handles.File,  'Label', ['<HTML><FONT size="3">' get(handles.File, 'Label') '</Font></html>'])
 		set(handles.Image, 'Label', ['<HTML><FONT size="3">' get(handles.Image, 'Label') '</Font></html>'])
 		set(handles.Tools, 'Label', ['<HTML><FONT size="3">' get(handles.Tools, 'Label') '</Font></html>'])
