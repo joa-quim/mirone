@@ -204,7 +204,7 @@ function FileOpen_DEM_CB(hObject, handles, opt)
 	[PATH,FNAME,EXT] = fileparts(fname);
 
 	if (strcmp(opt, 'SRTM30'))
-		[name_hdr,comp_type] = write_ESRI_hdr(fname,'SRTM30');
+		[name_hdr,comp_type] = write_esri_hdr(fname,'SRTM30');
 		if (~isempty(comp_type))
 			fname_t = decompress(fname,'warn');			% Name with compression ext removed
 			if (isempty(fname_t))		return,		end	% Error message already issued.
