@@ -245,14 +245,14 @@ function varargout = load_xyz(handles, opt, opt2)
 				end
 			end
 
-			indx = false;			% Default to no need for map clipping
-			do_patch = false;		% Default to line objct
+			indx = false;	indy = false;			% Default to no need for map clipping
+			do_patch = false;						% Default to line objct
 			difes = [numeric_data{i}(1,1)-numeric_data{i}(end,1) numeric_data{i}(1,2)-numeric_data{i}(end,2)];
-			if (any(abs(difes) > 1e-4))		% Not a closed polygon
+			if (any(abs(difes) > 1e-4))				% Not a closed polygon
 				if (handles.no_file)
 					tmpx = numeric_data{i}(:,1);	tmpy = numeric_data{i}(:,2);
 				else
-					[tmpx,tmpy,indx,indy] = ...			% Get rid of points that are outside the map limits
+					[tmpx,tmpy,indx,indy] = ...		% Get rid of points that are outside the map limits
 						aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
 				end
 			else
