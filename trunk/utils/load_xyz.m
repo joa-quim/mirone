@@ -21,7 +21,7 @@ function varargout = load_xyz(handles, opt, opt2)
 % If first line in file is of the form '>U_N_I_K', plot a single line NaN separated
 % If first line in file is of the form '>ARROW', plot an arrow field
 % If first line in file is of the form '>VIMAGE', tell Fleder to plot a scene with a VIMAGE
-
+% If first line in file is of the form '>-:', swap 1st and 2nd columns (assumed as (y,x) -> (x,y))
 %	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
@@ -125,6 +125,11 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 		end
 
+		if ( multi_seg && strncmp(multi_segs_str{1},'>-:',3) )		% See if we need to swap x<->y
+			tmp = XMin;		XMin = YMin;	YMin = tmp;				% Need to swap min/max
+			tmp = XMax;		XMax = YMax;	YMax = tmp;
+		end
+
 		dx = XMax - XMin;			dy = YMax - YMin;
 		if (dx == 0 || dy == 0)
 			errordlg('File is has only one point or all XXs are equal or all YYs are equal','Error')
@@ -225,6 +230,15 @@ function varargout = load_xyz(handles, opt, opt2)
 				errordlg('Load VIMAGE error. Third field must contain an existing picture file name.','Error'),	return
 			end
 			struc_vimage = struct('z_min', z_Vmin, 'z_max', z_Vmax, 'vimage', vimage);
+
+		elseif (strncmp(multi_segs_str{1}, '>-:', 3))					% File has y,x instead of x,y
+			multi_segs_str{1}(2:3) = [];								% Rip the swap -: identifier
+			for (i = 1:n_segments)				% Swapp 1st and 2th columns. Do differently would be very complex
+				tmp = numeric_data{i}(:,1);
+				numeric_data{i}(:,1) = numeric_data{i}(:,2);
+				numeric_data{i}(:,2) = tmp;
+			end
+			clear tmp
 
 		end
 
