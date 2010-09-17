@@ -134,7 +134,7 @@ function push_readFile_CB(hObject, handles)
 	end
 
 	% Get file name
-	[FileName,PathName] = put_or_get_file(handles, str1,'Select focal file', 'get');
+	[FileName,PathName,handles] = put_or_get_file(handles, str1,'Select focal file', 'get');
 	if isequal(FileName,0),		return,		end
 	fname = [PathName,FileName];
 	handles.date = [];			% Allways reset
@@ -523,15 +523,22 @@ function [data, mantiss_exp, eventDate, error] = readHarvardCMT(fname)
 	mantiss_exp = zeros(nEvents, 2);
 	eventDate = cell(nEvents,1);
 	
-	for (k = 1:nEvents)
-		n = (k - 1) * 3 + 1;		% To read the data line numbers correctly
-		[data(k,2) data(k,1) data(k,3)] = strread(todos{n}(28:47),'%f %f %f');		% lat lon dep
-		eventDate{k} = [todos{n}(15:15) todos{n}(10:13) todos{n}(6:9)];		% day/month/year is the civilized way of displaying dates
-		mantiss_exp(k,2) = str2double(todos{n+1}(1:2)) - 7;					% -7 because I want SI units
-		[data(k,4) data(k,5) data(k,6) data(k,7) data(k,8) data(k,9)] = strread(todos{n+2}(58:80),'%f %f %f %f %f %f');		% str1 dip1 rake1 str2 dip2 rake2
-		mantiss_exp(k,1) = str2double(todos{n+2}(52:56));					% M0 mantissa
-		M0  = mantiss_exp(k,1) * 10.0^mantiss_exp(k,2);
-		data(k,10) = 2/3 * (log10(M0) - 9.1);			% Mw
+	try									% This try will slow down the parsing but fileshit happens (alot)
+		for (k = 1:nEvents)
+			n = (k - 1) * 3 + 1;		% To read the data line numbers correctly
+			[data(k,2) data(k,1) data(k,3)] = strread(todos{n}(28:47),'%f %f %f');		% lat lon dep
+			eventDate{k} = [todos{n}(15:15) todos{n}(10:13) todos{n}(6:9)];		% day/month/year is the civilized way of displaying dates
+			mantiss_exp(k,2) = str2double(todos{n+1}(1:2)) - 7;					% -7 because I want SI units
+			[data(k,4) data(k,5) data(k,6) data(k,7) data(k,8) data(k,9)] = strread(todos{n+2}(58:80),'%f %f %f %f %f %f');		% str1 dip1 rake1 str2 dip2 rake2
+			mantiss_exp(k,1) = str2double(todos{n+2}(52:56));					% M0 mantissa
+			M0  = mantiss_exp(k,1) * 10.0^mantiss_exp(k,2);
+			data(k,10) = 2/3 * (log10(M0) - 9.1);			% Mw
+		end
+	catch
+		warndlg(['Your file seams to have a badly formed record at line number = ' sprintf('%d',n+(k-1)*2) ' Stop reading there'],'Warning');
+		data(k:nEvents,:) = [];
+		mantiss_exp(k:nEvents,:) = [];
+		eventDate(k:nEvents) = [];
 	end
 
 % ----------------------------------------------------------------------------------
