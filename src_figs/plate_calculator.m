@@ -167,6 +167,9 @@ function radio_Nuvel1A_CB(hObject, handles, tipo)
 
 	if (nargin == 2)	tipo = 'Nuvel1A';	end
 	set([handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_DEOS2K handles.radio_REVEL],'Value',0)
+	if (tipo(1) == 'N')		set(handles.radio_MORVEL,'Value',0)
+	else					set(handles.radio_Nuvel1A,'Value',0)
+	end
 	set(handles.checkbox_Abs2Rel,'Visible','off')
 
 	set(handles.popup_FixedPlate,'Enable','on')
@@ -182,38 +185,41 @@ function radio_Nuvel1A_CB(hObject, handles, tipo)
 		handles.MORVEL_lat = lat;
 		handles.MORVEL_lon = lon;
 		handles.MORVEL_omega = omega;
-		handles.MORVEL_comb = do_plate_comb('Nuvel1A');
+		handles.MORVEL_comb = do_plate_comb('MORVEL');			% Based on PB because is the closest one
 		handles.first_MORVEL = 0;
+		setappdata(handles.figure1,'current_model','MORVEL')	% Need because Nuvel1A could be still active
 	end
 
-% Fill the popupmenus with the Plate's names
-set([handles.popup_FixedPlate handles.popup_MovingPlate],'Value',1)
-if (tipo(1) == 'N')
-	set([handles.popup_FixedPlate handles.popup_MovingPlate],'String',handles.Nuvel1A_name)
-	handles.Nuvel1A_comb = do_plate_comb('Nuvel1A');
-else
-	set([handles.popup_FixedPlate handles.popup_MovingPlate],'String',handles.MORVEL_name)
-	handles.Nuvel1A_comb = do_plate_comb('Nuvel1A');	% Will change one day
-end
+	% Fill the popupmenus with the Plate's names
+	set([handles.popup_FixedPlate handles.popup_MovingPlate],'Value',1)
+	if (tipo(1) == 'N')
+		set([handles.popup_FixedPlate handles.popup_MovingPlate],'String',handles.Nuvel1A_name)
+		handles.Nuvel1A_comb = do_plate_comb('Nuvel1A');
+	else
+		set([handles.popup_FixedPlate handles.popup_MovingPlate],'String',handles.MORVEL_name)
+		handles.MORVEL_comb = do_plate_comb('MORVEL');			% Need change when we build the MORVEL boundaries
+	end
 
-model = getappdata(handles.figure1,'current_model');
-if ~any(strcmp(model,{'Nuvel1A','Nuvel1A_NNR', 'MORVEL'}))    % Another plate model was loaded
-    set_Nuvel1Aplate_model(hObject,handles)
-end
+	model = getappdata(handles.figure1,'current_model');
+	if (strcmp(model,{'Nuvel1A','Nuvel1A_NNR'}))
+		set_Nuvel1Aplate_model(hObject,handles)
+	else													% MORVEL
+		set_PBplate_model(hObject,handles)					% Not mistake
+	end
 
-% Clear the pole edit boxes fields
-set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
+	% Clear the pole edit boxes fields
+	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
 
-% Remove info about the previously calculated velocity results
-set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
+	% Remove info about the previously calculated velocity results
+	set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
-% Flag in appdata which model is currently loaded
-setappdata(handles.figure1,'current_model',tipo)
+	% Flag in appdata which model is currently loaded
+	setappdata(handles.figure1,'current_model',tipo)
 
-% Need to change the ButtonDownFcn call arguments
-h_patch = findobj('Type','patch');
-set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,tipo})
-guidata(hObject, handles);
+	% Need to change the ButtonDownFcn call arguments
+	h_patch = findobj('Type','patch');
+	set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,tipo})
+	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radio_Nuvel1A_NNR_CB(hObject, handles)
@@ -223,10 +229,10 @@ function radio_Nuvel1A_NNR_CB(hObject, handles)
 	set([handles.radio_Nuvel1A handles.radio_PBird handles.radio_DEOS2K handles.radio_REVEL],'Value',0)
 	set(handles.checkbox_Abs2Rel,'Visible','on')
 
-model = getappdata(handles.figure1,'current_model');
-if ~any(strcmp(model,{'Nuvel1A','Nuvel1A_NNR'}))    % Another plate model was loaded
-	set_Nuvel1Aplate_model(hObject,handles)
-end
+	model = getappdata(handles.figure1,'current_model');
+	if ~any(strcmp(model,{'Nuvel1A','Nuvel1A_NNR'}))    % Another plate model was loaded
+		set_Nuvel1Aplate_model(hObject,handles)
+	end
 
 if (handles.first_NNR)      % Load and read poles deffinition
 	fid = fopen([handles.path_data 'Nuvel1A_NNR_poles.dat'],'r');
@@ -302,45 +308,46 @@ guidata(hObject, handles);
 function radio_PBird_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
-	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_DEOS2K handles.radio_REVEL],'Value',0)
+	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_MORVEL ...
+		handles.radio_DEOS2K handles.radio_REVEL],'Value',0)
 	set(handles.checkbox_Abs2Rel,'Visible','off')
 
 	set(handles.popup_FixedPlate,'Enable','on')
 	handles.absolute_motion = 0;            % The PB is a relative motion model
 
-if (handles.first_PB)      % Load and read poles deffinition
-    fid = fopen([handles.path_data 'PB_poles.dat'],'r');
-    [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-    fclose(fid);
-    % Save the poles parameters in the handles structure
-    handles.PB_abbrev = abbrev;
-    handles.PB_name = name;
-    handles.PB_lat = lat;
-    handles.PB_lon = lon;
-    handles.PB_omega = omega;
-    handles.PB_comb = do_plate_comb('PB');
-    handles.first_PB = 0;
-end
+	if (handles.first_PB)      % Load and read poles deffinition
+		fid = fopen([handles.path_data 'PB_poles.dat'],'r');
+		[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+		fclose(fid);
+		% Save the poles parameters in the handles structure
+		handles.PB_abbrev = abbrev;
+		handles.PB_name = name;
+		handles.PB_lat = lat;
+		handles.PB_lon = lon;
+		handles.PB_omega = omega;
+		handles.PB_comb = do_plate_comb('PB');
+		handles.first_PB = 0;
+	end
 
-% Fill the popupmenus with the Plate's names
-set([handles.popup_FixedPlate handles.popup_MovingPlate],'Value',1)
-set([handles.popup_FixedPlate handles.popup_MovingPlate],'String',handles.PB_name)
+	% Fill the popupmenus with the Plate's names
+	set([handles.popup_FixedPlate handles.popup_MovingPlate],'Value',1)
+	set([handles.popup_FixedPlate handles.popup_MovingPlate],'String',handles.PB_name)
 
-set_PBplate_model(hObject,handles)
+	set_PBplate_model(hObject,handles)
 
-% Clear the pole edit boxes fields
-set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
+	% Clear the pole edit boxes fields
+	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
 
-% Remove info about the previously calculated velocity results
-set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
+	% Remove info about the previously calculated velocity results
+	set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
-% Flag in appdata which model is currently loaded
-setappdata(handles.figure1,'current_model','PB')
+	% Flag in appdata which model is currently loaded
+	setappdata(handles.figure1,'current_model','PB')
 
-% Need to change the ButtonDownFcn call arguments
-h_patch = findobj('Type','patch');
-set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'PB'})
-guidata(hObject, handles);
+	% Need to change the ButtonDownFcn call arguments
+	h_patch = findobj('Type','patch');
+	set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'PB'})
+	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radio_AKIM2000_CB(hObject, handles)
@@ -427,160 +434,162 @@ function radio_REVEL_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
 	D2R = pi/180;
-	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_DEOS2K],'Value',0)
+	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird ...
+		handles.radio_MORVEL handles.radio_DEOS2K],'Value',0)
 	set(handles.checkbox_Abs2Rel,'Visible','on')
 
 	set_REVELplate_model(hObject,handles)
 
-if (handles.first_REVEL)      % Load and read poles deffinition
-    fid = fopen([handles.path_data 'REVEL_poles.dat'],'r');
-    [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-    fclose(fid);
-    % Save the poles parameters in the handles structure
-    handles.REVEL_abbrev = abbrev;
-    handles.REVEL_name = name;
-    handles.REVEL_lat = lat;
-    handles.REVEL_lon = lon;
-    handles.REVEL_omega = omega;
-    handles.REVEL_comb = do_plate_comb('REVEL');
-    handles.first_REVEL = 0;
-end
+	if (handles.first_REVEL)      % Load and read poles deffinition
+		fid = fopen([handles.path_data 'REVEL_poles.dat'],'r');
+		[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+		fclose(fid);
+		% Save the poles parameters in the handles structure
+		handles.REVEL_abbrev = abbrev;
+		handles.REVEL_name = name;
+		handles.REVEL_lat = lat;
+		handles.REVEL_lon = lon;
+		handles.REVEL_omega = omega;
+		handles.REVEL_comb = do_plate_comb('REVEL');
+		handles.first_REVEL = 0;
+	end
 
-% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
-set(handles.popup_MovingPlate,'Value',1,'String',handles.REVEL_name)
+	% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
+	set(handles.popup_MovingPlate,'Value',1,'String',handles.REVEL_name)
 
-if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
-    set(handles.popup_FixedPlate,'Value',1)
-    set(handles.popup_FixedPlate,'String',handles.REVEL_name)
-    set(handles.popup_FixedPlate,'Enable','on')
-    lon1 = handles.REVEL_lon(1);      lat1 = handles.REVEL_lat(1);
-    omega1 = handles.REVEL_omega(1);
-    ind = get(handles.popup_MovingPlate,'Value');
-    lon2 = handles.REVEL_lon(ind);    lat2 = handles.REVEL_lat(ind);
-    omega2 = handles.REVEL_omega(ind);
-    [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
-    lon = lon/D2R;     lat = lat/D2R;
-else                                        % On the original absolute motion mode
-    handles.absolute_motion = 1;
-    set(handles.popup_FixedPlate,'Enable','off')
-    lon = handles.REVEL_lon(1);       lat = handles.REVEL_lat(1);
-    omega = handles.REVEL_omega(1);
-end
+	if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
+		set(handles.popup_FixedPlate,'Value',1)
+		set(handles.popup_FixedPlate,'String',handles.REVEL_name)
+		set(handles.popup_FixedPlate,'Enable','on')
+		lon1 = handles.REVEL_lon(1);      lat1 = handles.REVEL_lat(1);
+		omega1 = handles.REVEL_omega(1);
+		ind = get(handles.popup_MovingPlate,'Value');
+		lon2 = handles.REVEL_lon(ind);    lat2 = handles.REVEL_lat(ind);
+		omega2 = handles.REVEL_omega(ind);
+		[lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
+		lon = lon/D2R;     lat = lat/D2R;
+	else                                        % On the original absolute motion mode
+		handles.absolute_motion = 1;
+		set(handles.popup_FixedPlate,'Enable','off')
+		lon = handles.REVEL_lon(1);       lat = handles.REVEL_lat(1);
+		omega = handles.REVEL_omega(1);
+	end
 
-try         % Delete any existing pole representation
-    delete(findobj('Tag','pole_out'));     delete(findobj('Tag','pole_in1'));
-    delete(findobj('Tag','pole_in2'));
-end
+	try         % Delete any existing pole representation
+		delete(findobj('Tag','pole_out'));     delete(findobj('Tag','pole_in1'));
+		delete(findobj('Tag','pole_in2'));
+	end
 
-% Actualize the pole edit boxes fields and plot the pole
-if (omega ~= 0)         % That is, if the pole exists
-    set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-    set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-    set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
+	% Actualize the pole edit boxes fields and plot the pole
+	if (omega ~= 0)         % That is, if the pole exists
+		set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
+		set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
+		set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
 
-    tmp = lon;
-    if (tmp > 180),     tmp = tmp - 360; end
-    line(tmp,lat,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k',...
-        'MarkerSize',7,'Tag','pole_out');
-    tmp = lon+180;
-    if (tmp > 180),     tmp = tmp - 360;   end
-    line(tmp,-lat,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k',...
-        'MarkerSize',8,'Tag','pole_in1');
-    line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
-else
-	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
-end
+		tmp = lon;
+		if (tmp > 180),     tmp = tmp - 360; end
+		line(tmp,lat,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k',...
+			'MarkerSize',7,'Tag','pole_out');
+		tmp = lon+180;
+		if (tmp > 180),     tmp = tmp - 360;   end
+		line(tmp,-lat,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k',...
+			'MarkerSize',8,'Tag','pole_in1');
+		line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
+	else
+		set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
+	end
 
-% Remove info about the previously calculated velocity results
-set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
+	% Remove info about the previously calculated velocity results
+	set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
-% Flag in appdata which model is currently loaded
-setappdata(handles.figure1,'current_model','REVEL')
+	% Flag in appdata which model is currently loaded
+	setappdata(handles.figure1,'current_model','REVEL')
 
-% Need to change the ButtonDownFcn call arguments
-h_patch = findobj('Type','patch');
-set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'REVEL'})
-guidata(hObject, handles);
+	% Need to change the ButtonDownFcn call arguments
+	h_patch = findobj('Type','patch');
+	set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'REVEL'})
+	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radio_DEOS2K_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
 	D2R = pi/180;
-	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_REVEL],'Value',0)
+	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird ...
+		handles.radio_MORVEL handles.radio_REVEL],'Value',0)
 	set(handles.checkbox_Abs2Rel,'Visible','on')
 
 	set_DEOS2Kplate_model(hObject,handles)
 
-if (handles.first_DEOS2K)      % Load and read poles deffinition
-    fid = fopen([handles.path_data 'DEOS2K_poles.dat'],'r');
-    [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-    fclose(fid);
-    % Save the poles parameters in the handles structure
-    handles.DEOS2K_abbrev = abbrev;
-    handles.DEOS2K_name = name;
-    handles.DEOS2K_lat = lat;
-    handles.DEOS2K_lon = lon;
-    handles.DEOS2K_omega = omega;
-    handles.DEOS2K_comb = do_plate_comb('DEOS2K');
-    handles.first_DEOS2K = 0;
-end
+	if (handles.first_DEOS2K)      % Load and read poles deffinition
+		fid = fopen([handles.path_data 'DEOS2K_poles.dat'],'r');
+		[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+		fclose(fid);
+		% Save the poles parameters in the handles structure
+		handles.DEOS2K_abbrev = abbrev;
+		handles.DEOS2K_name = name;
+		handles.DEOS2K_lat = lat;
+		handles.DEOS2K_lon = lon;
+		handles.DEOS2K_omega = omega;
+		handles.DEOS2K_comb = do_plate_comb('DEOS2K');
+		handles.first_DEOS2K = 0;
+	end
 
-% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
-set(handles.popup_MovingPlate,'Value',1,'String',handles.DEOS2K_name)
+	% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
+	set(handles.popup_MovingPlate,'Value',1,'String',handles.DEOS2K_name)
 
-if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
-    set(handles.popup_FixedPlate,'Value',1)
-    set(handles.popup_FixedPlate,'String',handles.DEOS2K_name)
-    set(handles.popup_FixedPlate,'Enable','on')
-    lon1 = handles.DEOS2K_lon(1);      lat1 = handles.DEOS2K_lat(1);
-    omega1 = handles.DEOS2K_omega(1);
-    ind = get(handles.popup_MovingPlate,'Value');
-    lon2 = handles.DEOS2K_lon(ind);    lat2 = handles.DEOS2K_lat(ind);
-    omega2 = handles.DEOS2K_omega(ind);
-    [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
-    lon = lon/D2R;     lat = lat/D2R;
-else                                        % On the original absolute motion mode
-    handles.absolute_motion = 1;
-    set(handles.popup_FixedPlate,'Enable','off')
-    lon = handles.DEOS2K_lon(1);       lat = handles.DEOS2K_lat(1);
-    omega = handles.DEOS2K_omega(1);
-end
+	if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
+		set(handles.popup_FixedPlate,'Value',1)
+		set(handles.popup_FixedPlate,'String',handles.DEOS2K_name)
+		set(handles.popup_FixedPlate,'Enable','on')
+		lon1 = handles.DEOS2K_lon(1);      lat1 = handles.DEOS2K_lat(1);
+		omega1 = handles.DEOS2K_omega(1);
+		ind = get(handles.popup_MovingPlate,'Value');
+		lon2 = handles.DEOS2K_lon(ind);    lat2 = handles.DEOS2K_lat(ind);
+		omega2 = handles.DEOS2K_omega(ind);
+		[lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
+		lon = lon/D2R;     lat = lat/D2R;
+	else                                        % On the original absolute motion mode
+		handles.absolute_motion = 1;
+		set(handles.popup_FixedPlate,'Enable','off')
+		lon = handles.DEOS2K_lon(1);       lat = handles.DEOS2K_lat(1);
+		omega = handles.DEOS2K_omega(1);
+	end
 
-try         % Delete any existing pole representation
-    delete(findobj('Tag','pole_out'));     delete(findobj('Tag','pole_in1'));
-    delete(findobj('Tag','pole_in2'));
-end
+	try         % Delete any existing pole representation
+		delete(findobj('Tag','pole_out'));     delete(findobj('Tag','pole_in1'));
+		delete(findobj('Tag','pole_in2'));
+	end
 
-% Actualize the pole edit boxes fields and plot the pole
-if (omega ~= 0)         % That is, if the pole exists
-    set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-    set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-    set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
+	% Actualize the pole edit boxes fields and plot the pole
+	if (omega ~= 0)         % That is, if the pole exists
+		set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
+		set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
+		set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
 
-    tmp = lon;
-    if (tmp > 180),     tmp = tmp - 360; end
-    line(tmp,lat,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k',...
-        'MarkerSize',7,'Tag','pole_out');
-    tmp = lon+180;
-    if (tmp > 180),     tmp = tmp - 360;   end
-    line(tmp,-lat,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k',...
-        'MarkerSize',8,'Tag','pole_in1');
-    line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
-else
-	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
-end
+		tmp = lon;
+		if (tmp > 180),     tmp = tmp - 360; end
+		line(tmp,lat,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k',...
+			'MarkerSize',7,'Tag','pole_out');
+		tmp = lon+180;
+		if (tmp > 180),     tmp = tmp - 360;   end
+		line(tmp,-lat,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k',...
+			'MarkerSize',8,'Tag','pole_in1');
+		line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
+	else
+		set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
+	end
 
-% Remove info about the previously calculated velocity results
-set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
+	% Remove info about the previously calculated velocity results
+	set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
-% Flag in appdata which model is currently loaded
-setappdata(handles.figure1,'current_model','DEOS2K')
+	% Flag in appdata which model is currently loaded
+	setappdata(handles.figure1,'current_model','DEOS2K')
 
-% Need to change the ButtonDownFcn call arguments
-h_patch = findobj('Type','patch');
-set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'DEOS2K'})
-guidata(hObject, handles);
+	% Need to change the ButtonDownFcn call arguments
+	h_patch = findobj('Type','patch');
+	set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'DEOS2K'})
+	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function edit_PtLon_CB(hObject, handles)
@@ -709,12 +718,22 @@ elseif strcmp(opt,'DEOS2K')
 	mod_abb = handles.DEOS2K_abbrev;
 	mod_comb = handles.DEOS2K_comb;
 elseif strcmp(opt,'MORVEL')
+	if (strcmp(tag, 'AF'))		tag = 'NB';		end
 	mod_abb = handles.MORVEL_abbrev;
 	mod_comb = handles.MORVEL_comb;
 end
 
 % Find (and set it on the popup) the moving plate name
 ind = strmatch(tag,mod_abb);
+
+if (isempty(ind))
+	msg = {'Sorry, I don''t know a pole for this place.' ...
+		'You will have to enter parameters manualy'};
+	h(1) = text(-170,0,msg,'FontSize',15, 'FontName','bold');
+	pause(3)
+	delete(h);
+	return
+end
 set(handles.popup_MovingPlate,'Value',ind)
 
 % If it is a absolute motion, call the computing function and return.
@@ -757,15 +776,16 @@ if (handles.absolute_motion)
 end
 
 % Find (and set it on the popup) the closest plate. This will be assume as the fix plate
-neigh = mod_comb{ind}(3:end);       % It starts at 3 because the first 2 have the abbrev of the moving plate
+neigh = mod_comb{ind}(3:end);			% It starts at 3 because the first 2 have the abbrev of the moving plate
 dash = strfind(neigh,'-');
-c_tet = cos((90-pt(1,2))*D2R);      % cosinus of current point co-lat
-s_tet = sin((90-pt(1,2))*D2R);      % sinus of current point co-lat
-for i=1:length(dash)                % Loop on all neighbour plates
+c_tet = cos((90-pt(1,2))*D2R);			% cosinus of current point co-lat
+s_tet = sin((90-pt(1,2))*D2R);			% sinus of current point co-lat
+d_min = zeros(1,numel(dash));
+for (i = 1:numel(dash))					% Loop on all neighbour plates
     abb = neigh(dash(i)+1:dash(i)+2);
-    h_pol = findobj('Tag',abb);
-    x = get(h_pol,'XData');    y = get(h_pol,'YData');
-    if (iscell(x))              % This occurs when a polygon wsa splited in two (Date-line jump)
+    h_pol = findobj(handles.axes1,'Tag',abb);
+    x = get(h_pol,'XData');			y = get(h_pol,'YData');
+    if (iscell(x))						% This occurs when a polygon wsa splited in two (Date-line jump)
         x = [x{1}; x{2}];
         y = [y{1}; y{2}];
     end
@@ -816,10 +836,18 @@ switch model
 		lat1 = handles.DEOS2K_lat(ind_fix);			lon1 = handles.DEOS2K_lon(ind_fix);
 		omega1 = handles.DEOS2K_omega(ind_fix);		handles.abb_fix = handles.DEOS2K_abbrev{ind_fix};        
 	case 'MORVEL'
-		lat2 = handles.MORVEL_lat(ind_mov);			lon2 = handles.MORVEL_lon(ind_mov);
-		omega2 = handles.MORVEL_omega(ind_mov);		handles.abb_mov = handles.MORVEL_abbrev{ind_mov};
-		lat1 = handles.MORVEL_lat(ind_fix);			lon1 = handles.MORVEL_lon(ind_fix);
-		omega1 = handles.MORVEL_omega(ind_fix);		handles.abb_fix = handles.MORVEL_abbrev{ind_fix};
+		try
+			lat2 = handles.MORVEL_lat(ind_mov);		lon2 = handles.MORVEL_lon(ind_mov);
+			omega2 = handles.MORVEL_omega(ind_mov);	handles.abb_mov = handles.MORVEL_abbrev{ind_mov};
+			lat1 = handles.MORVEL_lat(ind_fix);		lon1 = handles.MORVEL_lon(ind_fix);
+			omega1 = handles.MORVEL_omega(ind_fix);	handles.abb_fix = handles.MORVEL_abbrev{ind_fix};
+		catch
+			msg = {'Sorry, I don''t know a pole for this place.' ...
+					'You will have to enter parameters manualy'};
+			h = text(-170,0,msg,'FontSize',15, 'FontName','bold');
+			pause(2),		delete(h);
+			return
+		end
 end
 [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
 lon = lon/D2R;     lat = lat/D2R;
@@ -853,11 +881,11 @@ end
 % polygon file). A more clever solution was followed in subsequent models (e.g. PB model), where
 % those need points were added inside the program code.
 
-ind=find(North_Am(:,1)>180);
+ind = (North_Am(:,1) > 180);
 North_Am(ind,1) = North_Am(ind,1) - 360;
 patch(North_Am(:,1),North_Am(:,2),'b','FaceAlpha',0.5,'Tag','NA','ButtonDownFcn',{@bdn_plate,handles})
 
-ind=find(Antarctic(:,1)>180);
+ind = (Antarctic(:,1) > 180);
 Antarctic(ind,1) = Antarctic(ind,1) - 360;
 patch(Antarctic(:,1),Antarctic(:,2),'y','FaceAlpha',0.5,'Tag','AN','ButtonDownFcn',{@bdn_plate,handles})
 
@@ -868,22 +896,22 @@ patch(Scotia(:,1)-360,Scotia(:,2),'g','FaceAlpha',0.5,'Tag','SA','ButtonDownFcn'
 patch(Caribbe(:,1)-360,Caribbe(:,2),'m','FaceAlpha',0.5,'Tag','CA','ButtonDownFcn',{@bdn_plate,handles})
 
 % Those cross the "Date-line" and need special care
-ind=find(Australia(:,1)<=180);
+ind = (Australia(:,1) <= 180);
 patch(Australia(ind,1),Australia(ind,2),'b','FaceAlpha',0.5,'Tag','AU','ButtonDownFcn',{@bdn_plate,handles})
-ind=find(Australia(:,1)>180);
+ind = (Australia(:,1) > 180);
 patch(Australia(ind,1)-360,Australia(ind,2),'b','FaceAlpha',0.5,'Tag','AU','ButtonDownFcn',{@bdn_plate,handles})
 
-ind=find(Africa(:,1)>180);
+ind = (Africa(:,1) > 180);
 Africa(ind,1) = Africa(ind,1) - 360;
 patch(Africa(:,1),Africa(:,2),'r','FaceAlpha',0.5,'Tag','AF','ButtonDownFcn',{@bdn_plate,handles})
 
-ind=find(Eurasia(:,1)>180);
+ind = (Eurasia(:,1) > 180);
 Eurasia(ind,1) = Eurasia(ind,1) - 360;
 patch(Eurasia(:,1),Eurasia(:,2),'g','FaceAlpha',0.5,'Tag','EU','ButtonDownFcn',{@bdn_plate,handles})
 
-ind=find(Pacific(:,1)<=180);
+ind = (Pacific(:,1) <= 180);
 patch(Pacific(ind,1),Pacific(ind,2),'m','FaceAlpha',0.5,'Tag','PA','ButtonDownFcn',{@bdn_plate,handles})
-ind=find(Pacific(:,1)>180);
+ind = (Pacific(:,1) > 180);
 patch(Pacific(ind,1)-360,Pacific(ind,2),'m','FaceAlpha',0.5,'Tag','PA','ButtonDownFcn',{@bdn_plate,handles})
 
 % These come here because there seams to exist problems with their neighbouring patches.
@@ -912,14 +940,14 @@ patch(Antarctic(:,1),Antarctic(:,2),'y','FaceAlpha',0.5,'Tag','AN','ButtonDownFc
 North_Am = [-179.999 90; North_Am; 179.999 90];
 patch(North_Am(:,1),North_Am(:,2),'b','FaceAlpha',0.5,'Tag','NA','ButtonDownFcn',{@bdn_plate,handles})
 
-ind=find(Australia(:,1)<=180 & Australia(:,1)>=0);
+ind = (Australia(:,1) <= 180 & Australia(:,1) >= 0);
 patch(Australia(ind,1),Australia(ind,2),'b','FaceAlpha',0.5,'Tag','AU','ButtonDownFcn',{@bdn_plate,handles})
-ind=find(Australia(:,1)>-180 & Australia(:,1)<0);
+ind = (Australia(:,1) > -180 & Australia(:,1) < 0);
 patch(Australia(ind,1),Australia(ind,2),'b','FaceAlpha',0.5,'Tag','AU','ButtonDownFcn',{@bdn_plate,handles})
 
-ind=find(Pacific(:,1)<=180 & Pacific(:,1)>=0);
+ind = (Pacific(:,1) <= 180 & Pacific(:,1) >= 0);
 patch(Pacific(ind,1),Pacific(ind,2),'m','FaceAlpha',0.5,'Tag','PA','ButtonDownFcn',{@bdn_plate,handles})
-ind=find(Pacific(:,1)>-180 & Pacific(:,1)<0);
+ind = (Pacific(:,1) > -180 & Pacific(:,1) < 0);
 patch(Pacific(ind,1),Pacific(ind,2),'m','FaceAlpha',0.5,'Tag','PA','ButtonDownFcn',{@bdn_plate,handles})
 
 patch(Africa(:,1),Africa(:,2),'r','FaceAlpha',0.5,'Tag','AF','ButtonDownFcn',{@bdn_plate,handles})
@@ -974,16 +1002,16 @@ patch(Sandwich(:,1),Sandwich(:,2),'r','FaceAlpha',0.5,'Tag','SW','ButtonDownFcn'
 patch(Timor(:,1),Timor(:,2),'g','FaceAlpha',0.5,'Tag','TI','ButtonDownFcn',{@bdn_plate,handles})
 patch(Tonga(:,1),Tonga(:,2),'g','FaceAlpha',0.5,'Tag','TO','ButtonDownFcn',{@bdn_plate,handles})
 patch(Woodlark(:,1),Woodlark(:,2),'r','FaceAlpha',0.5,'Tag','WL','ButtonDownFcn',{@bdn_plate,handles})
-patch(Yangtze(:,1),Yangtze(:,2),'b','FaceAlpha',0.5,'Tag','YA','ButtonDownFcn',{@bdn_plate,handles})
+patch(Yangtze(:,1),Yangtze(:,2),'b','FaceAlpha',0.5,'Tag','YZ','ButtonDownFcn',{@bdn_plate,handles})
 
-ind=find(Balmoral_Reef(:,1)<=180 & Balmoral_Reef(:,1)>0);
+ind = (Balmoral_Reef(:,1) <= 180 & Balmoral_Reef(:,1) > 0);
 patch(Balmoral_Reef(ind,1),Balmoral_Reef(ind,2),'c','FaceAlpha',0.5,'Tag','BR','ButtonDownFcn',{@bdn_plate,handles})
-ind=find(Balmoral_Reef(:,1)>-180 & Balmoral_Reef(:,1)<0);
+ind = (Balmoral_Reef(:,1) > -180 & Balmoral_Reef(:,1) < 0);
 patch(Balmoral_Reef(ind,1),Balmoral_Reef(ind,2),'c','FaceAlpha',0.5,'Tag','BR','ButtonDownFcn',{@bdn_plate,handles})
 
-ind=find(Kermadec(:,1)<=180 & Kermadec(:,1)>=0);
+ind = (Kermadec(:,1) <= 180 & Kermadec(:,1) >= 0);
 patch(Kermadec(ind,1),Kermadec(ind,2),'r','FaceAlpha',0.5,'Tag','KE','ButtonDownFcn',{@bdn_plate,handles})
-ind=find(Kermadec(:,1)>-180 & Kermadec(:,1)<0);
+ind = (Kermadec(:,1) > -180 & Kermadec(:,1) < 0);
 patch(Kermadec(ind,1),Kermadec(ind,2),'r','FaceAlpha',0.5,'Tag','KE','ButtonDownFcn',{@bdn_plate,handles})
 
 % -----------------------------------------------------------------------------------------
@@ -1042,14 +1070,14 @@ patch(Antarctic(:,1),Antarctic(:,2),'y','FaceAlpha',0.5,'Tag','AN','ButtonDownFc
 North_Am = [-179.999 90; North_Am; 179.999 90];
 patch(North_Am(:,1),North_Am(:,2),'b','FaceAlpha',0.5,'Tag','NA','ButtonDownFcn',{@bdn_plate,handles})
 
-ind=find(Australia(:,1)<=180 & Australia(:,1)>=0);
+ind = (Australia(:,1) <= 180 & Australia(:,1) >= 0);
 patch(Australia(ind,1),Australia(ind,2),'b','FaceAlpha',0.5,'Tag','AU','ButtonDownFcn',{@bdn_plate,handles})
-ind=find(Australia(:,1)>-180 & Australia(:,1)<0);
+ind = (Australia(:,1) > -180 & Australia(:,1) < 0);
 patch(Australia(ind,1),Australia(ind,2),'b','FaceAlpha',0.5,'Tag','AU','ButtonDownFcn',{@bdn_plate,handles})
 
-ind=find(Pacific(:,1)<=180 & Pacific(:,1)>=0);
+ind = (Pacific(:,1) <= 180 & Pacific(:,1) >= 0);
 patch(Pacific(ind,1),Pacific(ind,2),'m','FaceAlpha',0.5,'Tag','PA','ButtonDownFcn',{@bdn_plate,handles})
-ind=find(Pacific(:,1)>-180 & Pacific(:,1)<0);
+ind = (Pacific(:,1) > -180 & Pacific(:,1) < 0);
 patch(Pacific(ind,1),Pacific(ind,2),'m','FaceAlpha',0.5,'Tag','PA','ButtonDownFcn',{@bdn_plate,handles})
 
 patch(Nubia(:,1),Nubia(:,2),'r','FaceAlpha',0.5,'Tag','NU','ButtonDownFcn',{@bdn_plate,handles})
@@ -1069,36 +1097,36 @@ patch(Sunda(:,1),Sunda(:,2),'y','FaceAlpha',0.5,'Tag','SU','ButtonDownFcn',{@bdn
 % -----------------------------------------------------------------------------------------
 function set_DEOS2Kplate_model(hObject,handles)
 % Draw the DEOS2K model plates (as patches)
-load([handles.path_data 'REVEL_polyg.mat'])     % use REVEL polygons because I don't know beter
+	load([handles.path_data 'REVEL_polyg.mat'])     % use REVEL polygons because I don't know beter
 
-% Find and kill the patches of "other" plate model.
-h_patch = findobj('Type','patch');
-delete(h_patch)
+	% Find and kill the patches of "other" plate model.
+	h_patch = findobj('Type','patch');
+	delete(h_patch)
 
-North_Am = [-179.999 90; North_Am; 179.999 90];
-patch(North_Am(:,1),North_Am(:,2),'b','FaceAlpha',0.5,'Tag','NA','ButtonDownFcn',{@bdn_plate,handles})
+	North_Am = [-179.999 90; North_Am; 179.999 90];
+	patch(North_Am(:,1),North_Am(:,2),'b','FaceAlpha',0.5,'Tag','NA','ButtonDownFcn',{@bdn_plate,handles})
 
-Antarctic = [179.999 -90; Antarctic; -179.999 -90];
-patch(Antarctic(:,1),Antarctic(:,2),'y','FaceAlpha',0.5,'Tag','AN','ButtonDownFcn',{@bdn_plate,handles})
+	Antarctic = [179.999 -90; Antarctic; -179.999 -90];
+	patch(Antarctic(:,1),Antarctic(:,2),'y','FaceAlpha',0.5,'Tag','AN','ButtonDownFcn',{@bdn_plate,handles})
 
-patch(Nubia(:,1),Nubia(:,2),'r','FaceAlpha',0.5,'Tag','NU','ButtonDownFcn',{@bdn_plate,handles})
-patch(Somalia(:,1),Somalia(:,2),'m','FaceAlpha',0.5,'Tag','SO','ButtonDownFcn',{@bdn_plate,handles})
-patch(South_Am(:,1)-360,South_Am(:,2),'g','FaceAlpha',0.5,'Tag','SA','ButtonDownFcn',{@bdn_plate,handles});
+	patch(Nubia(:,1),Nubia(:,2),'r','FaceAlpha',0.5,'Tag','NU','ButtonDownFcn',{@bdn_plate,handles})
+	patch(Somalia(:,1),Somalia(:,2),'m','FaceAlpha',0.5,'Tag','SO','ButtonDownFcn',{@bdn_plate,handles})
+	patch(South_Am(:,1)-360,South_Am(:,2),'g','FaceAlpha',0.5,'Tag','SA','ButtonDownFcn',{@bdn_plate,handles});
 
-ind=find(Eurasia(:,1)>180);
-Eurasia(ind,1) = Eurasia(ind,1) - 360;
-patch(Eurasia(:,1),Eurasia(:,2),'g','FaceAlpha',0.5,'Tag','EU','ButtonDownFcn',{@bdn_plate,handles})
+	ind = (Eurasia(:,1) > 180);
+	Eurasia(ind,1) = Eurasia(ind,1) - 360;
+	patch(Eurasia(:,1),Eurasia(:,2),'g','FaceAlpha',0.5,'Tag','EU','ButtonDownFcn',{@bdn_plate,handles})
 
-% These cross the "Date-line" and need special care
-ind=find(Pacific(:,1)<=180 & Pacific(:,1)>=0);
-patch(Pacific(ind,1),Pacific(ind,2),'m','FaceAlpha',0.5,'Tag','PA','ButtonDownFcn',{@bdn_plate,handles})
-ind=find(Pacific(:,1)>-180 & Pacific(:,1)<0);
-patch(Pacific(ind,1),Pacific(ind,2),'m','FaceAlpha',0.5,'Tag','PA','ButtonDownFcn',{@bdn_plate,handles})
+	% These cross the "Date-line" and need special care
+	ind = (Pacific(:,1) <= 180 & Pacific(:,1) >= 0);
+	patch(Pacific(ind,1),Pacific(ind,2),'m','FaceAlpha',0.5,'Tag','PA','ButtonDownFcn',{@bdn_plate,handles})
+	ind = (Pacific(:,1) > -180 & Pacific(:,1) <0 );
+	patch(Pacific(ind,1),Pacific(ind,2),'m','FaceAlpha',0.5,'Tag','PA','ButtonDownFcn',{@bdn_plate,handles})
 
-ind=find(Australia(:,1)<=180 & Australia(:,1)>=0);
-patch(Australia(ind,1),Australia(ind,2),'b','FaceAlpha',0.5,'Tag','AU','ButtonDownFcn',{@bdn_plate,handles})
-ind=find(Australia(:,1)>-180 & Australia(:,1)<0);
-patch(Australia(ind,1),Australia(ind,2),'b','FaceAlpha',0.5,'Tag','AU','ButtonDownFcn',{@bdn_plate,handles})
+	ind = (Australia(:,1) <= 180 & Australia(:,1) >= 0);
+	patch(Australia(ind,1),Australia(ind,2),'b','FaceAlpha',0.5,'Tag','AU','ButtonDownFcn',{@bdn_plate,handles})
+	ind = (Australia(:,1) > -180 & Australia(:,1) < 0);
+	patch(Australia(ind,1),Australia(ind,2),'b','FaceAlpha',0.5,'Tag','AU','ButtonDownFcn',{@bdn_plate,handles})
 
 % -----------------------------------------------------------------------------------------
 function out = do_plate_comb(which)
@@ -1137,6 +1165,32 @@ switch which
 		out(14) = {'SA-AF-AN-CA-NA-NZ-SC'};
 		out(15) = {'RI-'};
 		out(16) = {'SC-AN-SA'};
+	case 'MORVEL'					% FAKE THING BASED ON PB MODEL (TEMPORARY)
+		out(1) = {'AM-EU-PS-YZ'};
+		out(2) = {'AN-NB-AU-JZ-NZ-PA-SA-SC-SO-SW'};
+		out(3) = {'AR-NB-EU-IN-SO'};
+		out(4) = {'AU-AN-IN-PA-SO-SU'};
+		out(5) = {'CA-CO-NA-SA'};
+		out(6) = {'CO-CA-NA-NZ-PA-RI'};
+		out(7) = {'CP-'};		% We still don't have this
+		out(8) = {'EU-NB-AM-AR-IN-NA-SU-YZ'};
+		out(9) = {'IN-AR-AU-EU-SO'};
+		out(10) = {'JF-NA-PA'};
+		out(11) = {'LW-'};		% We still don't have this
+		out(12) = {'MQ-'};		% We still don't have this
+		out(13) = {'NA-NB-CA-CO-EU-JF-PA-RI-SA'};
+		out(14) = {'NB-AN-AR-EU-NA-SA-SO'};
+		out(15) = {'NZ-AN-CO-JZ-PA-SA'};
+		out(16) = {'PA-AN-AU-CO-JF-JZ-NA-NZ-PS-RI'};
+		out(17) = {'PS-AM-PA-SU-YZ'};
+		out(18) = {'RI-CO-NA-PA'};
+		out(19) = {'SA-NB-AN-AP-CA-NA-NZ-SC-SW'};
+		out(20) = {'SC-AN-SA-SW'};
+		out(21) = {'SO-NB-AN-AR-AU-IN'};
+		out(22) = {'SR-'};		% We still don't have this
+		out(23) = {'SU-AU-EU-PS'};
+		out(24) = {'SW-AN-SA-SC'};
+		out(25) = {'YZ-AM-EU-PS'};
 	case 'AKIM2000'
 		out(1) = {'AF-AN-AR-EU-NA-SA-SO'};
 		out(2) = {'AN-AF-AU-NZ-PA'};
@@ -1151,14 +1205,14 @@ switch which
 		out(11) = {'AS-'};
 		out(12) = {'SO-AF-AN-AU-AR'};
 	case 'PB'
-		out(1) = {'AF-AN-AR-AS-AT-EU-NA-SA-SO'};
-		out(2) = {'AM-EU-OK-ON-PS-YA'};
-		out(3) = {'AN-AF-AU-JZ-NZ-PA-SA-SC-SL-SO-SW'};
+		out(1) = {'AF-AN-AR-AS-AT-EU-NA-SA-SM'};
+		out(2) = {'AM-EU-OK-ON-PS-YZ'};
+		out(3) = {'AN-AF-AU-JZ-NZ-PA-SA-SC-SL-SM-SW'};
 		out(4) = {'AP-NZ-SA'};
-		out(5) = {'AR-AF-AT-EU-IN-SO'};
+		out(5) = {'AR-AF-AT-EU-IN-SM'};
 		out(6) = {'AS-AF-AT-EU'};
 		out(7) = {'AT-AF-AR-AS-EU'};
-		out(8) = {'AU-AN-BH-BR-BS-BU-CR-FT-IN-KE-MO-NH-NI-PA-SO-SU-TI-TO-WL'};
+		out(8) = {'AU-AN-BH-BR-BS-BU-CR-FT-IN-KE-MO-NH-NI-PA-SM-SU-TI-TO-WL'};
 		out(9) = {'BH-AU-BS-CL-MO-MS-PS-SU'};
 		out(10) = {'BR-AU-CR-NH-PA'};
 		out(11) = {'BS-AU-BH-MS-SU-TI'};
@@ -1168,10 +1222,10 @@ switch which
 		out(15) = {'CO-CA-GP-NA-NZ-PA-PM-RI'};
 		out(16) = {'CR-AU-BR-NH'};
 		out(17) = {'EA-NZ-PA'};
-		out(18) = {'EU-AF-AM-AR-AS-AT-BU-IN-NA-OK-SU-YA'};
+		out(18) = {'EU-AF-AM-AR-AS-AT-BU-IN-NA-OK-SU-YZ'};
 		out(19) = {'FT-AU-NI-PA'};
 		out(20) = {'GP-CO-NZ-PA'};
-		out(21) = {'IN-AR-AU-BU-EU-SO'};
+		out(21) = {'IN-AR-AU-BU-EU-SM'};
 		out(22) = {'JF-NA-PA'};
 		out(23) = {'JZ-AN-NZ-PA'};
 		out(24) = {'KE-AU-PA-TO'};
@@ -1186,23 +1240,23 @@ switch which
 		out(33) = {'NI-AU-FT-PA-TO'};
 		out(34) = {'NZ-AN-AP-CO-EA-GP-JZ-ND-PA-PM-SA'};
 		out(35) = {'OK-AM-EU-NA-PA-PS'};
-		out(36) = {'ON-AM-PS-YA'};
+		out(36) = {'ON-AM-PS-YZ'};
 		out(37) = {'PA-AN-AU-BR-CL-CO-EA-FT-GP-JF-JZ-KE-MA-NA-NB-NH-NI-NZ-OK-PS-RI-TO-WL'};
 		out(38) = {'PM-CA-CO-ND-NZ'};
-		out(39) = {'PS-AM-BH-CL-MA-OK-ON-PA-SU-YA'};
+		out(39) = {'PS-AM-BH-CL-MA-OK-ON-PA-SU-YZ'};
 		out(40) = {'RI-CO-NA-PA'};
 		out(41) = {'SA-AF-AN-AP-CA-NA-ND-NZ-SC-SW'};
 		out(42) = {'SB-MN-NB-SS-WL'};
 		out(43) = {'SC-AN-SA-SL-SW'};
 		out(44) = {'SL-AN-SC'};
-		out(45) = {'SO-AF-AN-AR-AU-IN'};
+		out(45) = {'SM-AF-AN-AR-AU-IN'};
 		out(46) = {'SS-NB-SB-WL'};
 		out(47) = {'SU-AU-BH-BS-BU-EU-MS-PS-TI'};
 		out(48) = {'SW-AN-SA-SC'};
 		out(49) = {'TI-AU-BS-SU'};
 		out(50) = {'TO-AU-KE-NI-PA'};
 		out(51) = {'WL-AU-CL-MO-NB-PA-SB-SS'};
-		out(52) = {'YA-AM-EU-ON-PS'};
+		out(52) = {'YZ-AM-EU-ON-PS'};
 	case 'REVEL'
 		out(1) = {'AM-EU-OK-PS'};
 		out(2) = {'AN-AU-NU-NZ-PA-SA-SO'};
@@ -1424,19 +1478,19 @@ uicontrol('Parent',h1, 'Position',[150 196 71 15],...
 'String','Moving Plate',...
 'Style','text');
 
-uicontrol('Parent',h1, 'Position',[14 271 75 15],...
+uicontrol('Parent',h1, 'Position',[14 274 75 15],...
 'Call',{@plate_calculator_uiCB,h1,'radio_Nuvel1A_CB','Nuvel1A'},...
 'String','Nuvel-1A',...
 'Style','radiobutton',...
 'Value',1,...
 'Tag','radio_Nuvel1A');
 
-% uicontrol('Parent',h1, 'Position',[14 231 75 15],...
-% 'Call',{@plate_calculator_uiCB,h1,'radio_Nuvel1A_CB','MORVEL'},...
-% 'String','MORVEL',...
-% 'Style','radiobutton',...
-% 'Value',0,...
-% 'Tag','radio_MORVEL');
+uicontrol('Parent',h1, 'Position',[14 254 75 15],...
+'Call',{@plate_calculator_uiCB,h1,'radio_Nuvel1A_CB','MORVEL'},...
+'String','MORVEL',...
+'Style','radiobutton',...
+'Value',0,...
+'Tag','radio_MORVEL');
 
 uicontrol('Parent',h1, 'Position',[10 122 71 21],...
 'BackgroundColor',[1 1 1],...
@@ -1463,7 +1517,7 @@ uicontrol('Parent',h1, 'Position',[205 120 66 21],...
 'String','Calculate',...
 'Tag','push_Calculate');
 
-uicontrol('Parent',h1, 'Position',[14 244 71 15],...
+uicontrol('Parent',h1, 'Position',[14 235 71 15],...
 'Call',{@plate_calculator_uiCB,h1,'radio_PBird_CB'},...
 'String','P. Bird',...
 'Style','radiobutton',...
