@@ -55,7 +55,7 @@ if ~isnumeric(lat) || ~isnumeric(lon)
 end
 
 %  Input dimension tests
-if any([min(size(lat)) min(size(lon))] ~= 1) | any([ndims(lat) ndims(lon)] > 2)
+if any([min(size(lat)) min(size(lon))] ~= 1) || any([ndims(lat) ndims(lon)] > 2)
 	error('Latitude and longitude inputs must a vector')
 elseif ~isequal(size(lat),size(lon))
 	error('Inconsistent dimensions on lat and lon input')
@@ -106,7 +106,7 @@ function [xv,yv] = polycut(xp1,yp1)
 
 if (nargin < 2),	error('Incorrect number of input arguments.'),	end
 
-if isempty(xp1) & isempty(yp1)
+if isempty(xp1) && isempty(yp1)
 	xv = [];	yv = [];
 	return
 end
@@ -134,14 +134,14 @@ for n=1:length(xp1)
 	end
 	icont = 1;  ihole = 2:length(nanindx);
 
-	if length(ihole)==0
+	if isempty(ihole)
 
 		x = [];  y = [];
 		for k=1:length(polystruc)
 			x = [x; nan; polystruc(k).x];  y = [y; nan; polystruc(k).y];
 		end
 		x(1) = [];  y(1) = [];
-		if all(isnan(x)) & all(isnan(y))
+		if all(isnan(x)) && all(isnan(y))
 			x = [];  y = [];
 		end
 
@@ -154,7 +154,7 @@ for n=1:length(xp1)
 % repeat for each succesive polygon
 		polynum = icont;
 		for k=1:Np-1
-			pvec(find(pvec==polynum(k))) = [];
+			pvec(pvec==polynum(k)) = [];
 			x1 = polystruc(polynum(k)).x;  y1 = polystruc(polynum(k)).y;
 			for m=1:length(pvec)
 				x2 = polystruc(pvec(m)).x;  y2 = polystruc(pvec(m)).y;
@@ -279,13 +279,14 @@ function [xc,yc,xh,yh,nanindx] = extractpoly(xp,yp)
 	end
 
 % ---------------------------------------------------------------------
-function [lat,lon] = trimwrap(lat0,lon0,latlim,lonlim, opt)
+function [lat,lon,Z] = trimwrap(lat0,lon0,latlim,lonlim, Z0, opt)
 %  [lat,lon] = TRIMWRAP(lat0,lon0,latlim,lonlim) trims a line map
 %  to a region specified by latlim and lonlim.  Latlim and lonlim
 %  are two element vectors, defining the latitude and longitude limits
 %  respectively.  The inputs lat0 and lon0 must be vectors.
 %  [lat,lon] = TRIMWRAP(lat0,lon0,latlim,lonlim, opt) wraps lines
 %  at a 2PI discontinuity. NaN are inserted at each discontinuity point.
+%  [lat,lon,Z] = TRIMWRAP(lat0,lon0,latlim,lonlim, Z0, opt) apply trim or wrap to Z0 too (can be empty)
 
 if nargin < 4;   error('Incorrect number of arguments');   end
 
@@ -299,7 +300,17 @@ if ~isequal(size(lat0),size(lon0))
 end
 
 trim = true;
-if (nargin == 5),	trim = false;		end		% Wrap arround the world
+if ( (nargin == 5 && ischar(Z0)) || (nargin == 6) )
+	trim = false;
+	if (nargin == 5)	Z0 = [];	end			% Input Z0 did its job, now we make it indicate that no Z in input
+end
+if (~isempty(Z0) && nargout == 2)				% Idiot choice. Z0 was transmitted, but Z not required on output.
+	Z0 = [];
+end
+if (isempty(Z0) && nargout == 3)				% Here it's licit because Z0 doesn't need to be known in advance.
+	Z = [];
+end
+%if (nargin == 5),	trim = false;		end		% Wrap arround the world
 
 %  Ensure column vectors on input
 if (size(lat0,2) > 1)
@@ -331,26 +342,37 @@ end
 
 if (~isempty(indx) && trim)				% Trim
 	lat = lat0;             lon = lon0;
+	if (~isempty(Z0))		Z = Z0;		end
 	lat(indx) = NaN;        lon(indx) = NaN;	
+	if (~isempty(Z0))		Z(indx) = NaN;		end
 	nanloc = isnan(lat);	[r,c] = size(nanloc);
 	nanloc = find(nanloc(1:r-1,:) & nanloc(2:r,:));
 	lat(nanloc) = [];  lon(nanloc) = [];
+	if (~isempty(Z0))		Z(nanloc) = [];		end
 elseif (~isempty(indx) && ~trim)		% Wrap
 	nanloc = find(indx);
 	% Create vectors with the total number of points
 	lon = zeros(numel(lon0)+numel(nanloc),1);		lat = zeros(numel(lon0)+numel(nanloc),1);
+	if (~isempty(Z0))		Z = lat;	end
 	nanloc = [1; nanloc];
 
 	for (k = 1:numel(nanloc)-1)
 		off = (k-1);
 		lon( nanloc(k)+off:nanloc(k+1)-1+off ) = lon0( nanloc(k):nanloc(k+1)-1 );		lon(nanloc(k+1)+off) = NaN;
 		lat( nanloc(k)+off:nanloc(k+1)-1+off ) = lat0( nanloc(k):nanloc(k+1)-1 );		lat(nanloc(k+1)+off) = NaN;
+		if (~isempty(Z0))
+			Z( nanloc(k)+off:nanloc(k+1)-1+off ) = Z0( nanloc(k):nanloc(k+1)-1 );		Z(nanloc(k+1)+off) = NaN;
+		end
 	end
 	% Copy the oints since last NaN till end of arrays
 	lon( nanloc(end)+1+off:numel(lon) ) = lon0( nanloc(end):numel(lon0) );
 	lat( nanloc(end)+1+off:numel(lon) ) = lat0( nanloc(end):numel(lat0) );
+	if (~isempty(Z0))
+		Z( nanloc(end)+1+off:numel(lon) ) = Z0( nanloc(end):numel(Z0) );
+	end
 else
 	lat = lat0;             lon = lon0;
+	if (~isempty(Z0))		Z = Z0;		end
 end
 
 % ---------------------------------------------------------------------
