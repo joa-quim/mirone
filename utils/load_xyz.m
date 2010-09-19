@@ -18,10 +18,13 @@ function varargout = load_xyz(handles, opt, opt2)
 %							Attention, this option needs that OPT is not empty
 %			If not given defaults to 'AsLine'
 %
-% If first line in file is of the form '>U_N_I_K', plot a single line NaN separated
-% If first line in file is of the form '>ARROW', plot an arrow field
-% If first line in file is of the form '>VIMAGE', tell Fleder to plot a scene with a VIMAGE
-% If first line in file is of the form '>-:', swap 1st and 2nd columns (assumed as (y,x) -> (x,y))
+% If first line in file is of the form
+%		'>U_N_I_K'	plot a single line NaN separated
+%		'>ARROW'	plot an arrow field
+%		'>VIMAGE'	tell Fleder to plot a scene with a VIMAGE
+%		'>-:'		swap 1st and 2nd columns (assumed as (y,x) -> (x,y))
+%		'>CLOSE'	plot patches instead of lines (idependently of pline being closed or not)
+
 %	Copyright (c) 2004-2010 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
@@ -189,8 +192,9 @@ function varargout = load_xyz(handles, opt, opt2)
 			orig_no_mseg = true;
 		end
 		n_isoc = 0;     n_segments = length(numeric_data);
-		hLine = ones(n_segments,1)*NaN;							% This is the maximum we can have
+		hLine = ones(n_segments,1)*NaN;			% This is the maximum we can have
 		n_clear = false(n_segments,1);
+		do_patch = false;						% Default to line object
 
 		% Test if conversion into a single, NaN separated, line its wanted 
 		if (strncmp(multi_segs_str{1}, '>U_N_I_K', 8))
@@ -240,6 +244,10 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 			clear tmp
 
+		elseif (strncmp(multi_segs_str{1}, '>CLOSE', 6))				% Closed or not, plot a patch
+			multi_segs_str{1}(2:6) = [];								% Rip the swap CLOSE identifier
+			do_patch = true;
+
 		end
 
 		% If OUT is requested there is nothing left to be done here  
@@ -260,7 +268,6 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 
 			indx = false;	indy = false;			% Default to no need for map clipping
-			do_patch = false;						% Default to line objct
 			difes = [numeric_data{i}(1,1)-numeric_data{i}(end,1) numeric_data{i}(1,2)-numeric_data{i}(end,2)];
 			if (any(abs(difes) > 1e-4))				% Not a closed polygon
 				if (handles.no_file)
@@ -271,7 +278,6 @@ function varargout = load_xyz(handles, opt, opt2)
 				end
 			else
 				tmpx = numeric_data{i}(:,1);		tmpy = numeric_data{i}(:,2);
-				if (~orig_no_mseg)		do_patch = true;		end
 			end
 			if (isempty(tmpx)),     n_clear(i) = true;     continue,		end     % Store indexes for clearing vanished segments info
 			if ( numel(numeric_data{i}(1,:)) >= 3 )		% If we have a Z column
