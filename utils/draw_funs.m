@@ -43,7 +43,7 @@ switch opt
 	case 'SessionRestoreCircleCart'		% Called by "FileOpenSession" or "DrawGeogCircle_CB"
 		set_circleCart_uicontext(hand)
 	case 'DrawText'
-		cmenuHand = uicontextmenu;
+		cmenuHand = uicontextmenu('parent',ancestor_m(hand,'figure'));
 		set(hand, 'UIContextMenu', cmenuHand);
 		cb_color = uictx_color(hand);	% there are 9 cb_color outputs
 		uimenu(cmenuHand, 'Label', 'Change Font', 'Call', @text_FontSize);
