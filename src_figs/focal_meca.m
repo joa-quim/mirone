@@ -370,9 +370,8 @@ y_lim = get(handles.mironeAxes,'YLim');
 handles.size_fac = (y_lim(2) - y_lim(1)) / (pos(4) - pos(2)) * 0.4;  % Scale facor
 Mag5 = get(handles.edit_Mag5,'String');			% Size (cm) of a mag 5 event
 handles.Mag5 = str2double(Mag5);
-setappdata(handles.hMirFig,'MecaMag5',Mag5)	% For eventual use in 'write_script'
+setappdata(handles.hMirFig,'MecaMag5',Mag5)		% For eventual use in 'write_script'
 n_meca = size(handles.data(:,1),1);
-axes(handles.mironeAxes)
 h_pat = zeros(n_meca,3);
 plot_text = get(handles.checkbox_plotDate,'Value');
 for (k=1:n_meca)
@@ -392,19 +391,19 @@ for (k=1:n_meca)
     dy = d(:,2) + handles.plot_pos(k,2);
     h_pat(k,3) = line('Parent',handles.mironeAxes,'XData',[handles.data(k,1) handles.plot_pos(k,1)], ...
         'YData',[handles.data(k,2) handles.plot_pos(k,2)], 'Linestyle','-', 'Marker','o', ...
-        'MarkerSize',6, 'MarkerFaceColor','k', 'Tag','FocalMecaAnchor');
+        'MarkerSize',3, 'MarkerFaceColor','k', 'Tag','FocalMecaAnchor');
     if (~do_depSlices)      % Paint all compressive quadrants with black
-        h_pat(k,1) = patch(cx,cy, [0 0 0],'Tag','FocalMeca');
+        h_pat(k,1) = patch('XData',cx,'YData',cy, 'Parent',handles.mironeAxes, 'FaceColor',[0 0 0],'Tag','FocalMeca');
     else
         cor = find_color(handles.data(k,3), cor_str);
-        h_pat(k,1) = patch(cx,cy, cor,'Tag','FocalMeca');
+        h_pat(k,1) = patch('XData',cx, 'YData',cy, 'Parent',handles.mironeAxes, 'FaceColor', cor,'Tag','FocalMeca');
     end
-    h_pat(k,2) = patch(dx,dy, [1 1 1],'Tag','FocalMeca');
+    h_pat(k,2) = patch('XData',dx, 'YData',dy, 'Parent',handles.mironeAxes, 'FaceColor',[1 1 1], 'Tag','FocalMeca');
 	ht = [];
-	if (plot_text)          % Plot event text identifier (normaly its date)
+	if (~plot_text)          % Plot event text identifier (normaly its date)
 		offset = handles.size_fac * mag / 5 * (handles.Mag5 + 0.2);  % text offset regarding the beach ball (2 mm) 
-		ht = text(handles.plot_pos(k,1),handles.plot_pos(k,2)+offset,handles.date{k},'HorizontalAlignment', ...
-				'Center','VerticalAlignment','Bottom','FontSize',8,'Tag','TextMeca');
+		ht = text('Pos',[handles.plot_pos(k,1),handles.plot_pos(k,2)+offset],'Str',handles.date{k},'Parent',handles.mironeAxes, ...
+			'HorizontalAlignment','Center', 'VerticalAlignment','Bottom', 'FontSize',8, 'Tag','TextMeca');
 		draw_funs(ht,'DrawText');
 	end
 		
@@ -418,13 +417,13 @@ for (k=1:n_meca)
 	
 	lim_x = [handles.plot_pos(k,1) handles.plot_pos(k,1) handles.plot_pos(k,1) handles.plot_pos(k,1)] + [-1 -1 1 1]*dim;
 	lim_y = [handles.plot_pos(k,2) handles.plot_pos(k,2) handles.plot_pos(k,2) handles.plot_pos(k,2)] + [-1 1 1 -1]*dim;
-	setappdata(h_pat(k,1),'Limits',[lim_x(:) lim_y(:)]);            % For using in the uiedit
-	setappdata(h_pat(k,2),'Limits',[lim_x(:) lim_y(:)]);            % For using in the uiedit
-	set_uicontext(h_pat(k,1));    set_uicontext(h_pat(k,2));
+	setappdata(h_pat(k,1),'Limits',[lim_x(:) lim_y(:)]);			% For using in the uiedit
+	setappdata(h_pat(k,2),'Limits',[lim_x(:) lim_y(:)]);			% For using in the uiedit
+	set_uicontext(h_pat(k,1), handles.hMirFig);		set_uicontext(h_pat(k,2), handles.hMirFig);
 end
-hand = guidata(handles.hMirFig);     % Get the Mirone's handles structure
-hand.have_focal = handles.Mag5;         % Signal that we have focal mechanisms and store the Mag5 size symbol
-guidata(handles.hMirFig,hand)        % Save the updated Mirone handles
+hand = guidata(handles.hMirFig);		% Get the Mirone's handles structure
+hand.have_focal = handles.Mag5;			% Signal that we have focal mechanisms and store the Mag5 size symbol
+guidata(handles.hMirFig,hand)
 
 % -------------------------------------------------------------------------------------
 function cor = find_color(z, id)
@@ -461,9 +460,9 @@ function [numeric_data,n_column,error] = read_file(fname)
 	if (hFig ~= hMsgFig);       figure(hFig);   end     % gain access to the drawing figure
 
 % -------------------------------------------------------------------------------------
-function set_uicontext(h)
-	% Set uicontexts to the Meca patches
-	cmenuHand = uicontextmenu;
+function set_uicontext(h, hMirFig)
+% Set uicontexts to the Meca patches
+	cmenuHand = uicontextmenu('Parent',hMirFig);
 	set(h, 'UIContextMenu', cmenuHand);
 	uimenu(cmenuHand, 'Label', 'Delete this', 'Call', {@del_Meca,h,'this'});
 	uimenu(cmenuHand, 'Label', 'Delete all', 'Call', {@del_Meca,h,'all'});
@@ -472,7 +471,7 @@ function set_uicontext(h)
 
 % -------------------------------------------------------------------------------------
 function del_Meca(obj,eventdata,h,opt)
-	% Delete one or all focal mechanisms
+% Delete one or all focal mechanisms
 	if (strcmp(opt,'this'))
 		delete(getappdata(h,'other_hand'))
 		delete(h)
