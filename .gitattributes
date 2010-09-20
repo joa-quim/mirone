@@ -155,6 +155,7 @@ data/logo.png -text
 data/logo_etopo2.jpg -text
 data/m_coasts.mat -text
 data/mapa_descobrimentos.jpg -text
+data/mareg_online.dat -text
 data/meteoritos.dat -text
 data/mirone.ico -text
 data/mirone_icons.mat -text
