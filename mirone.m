@@ -1670,7 +1670,10 @@ function varargout = ImageIllumModel_CB(handles, opt)
 	if (nargin == 1),	opt = 'grdgradient_A';	end
 
 	luz = shading_params(opt);	pause(0.01)			% Give time to the shading_params window be deleted
-	if (isempty(luz)),	return,		end
+	if (isempty(luz))
+		if (nargout)	varargout{1} = [];		end
+		return
+	end
 
 	if (luz.illum_model == 1),		[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'grdgrad_class');	% GMT grdgradient classic
 	elseif (luz.illum_model == 2),	[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'grdgrad_lamb');	% GMT grdgradient Lambertian
