@@ -2300,6 +2300,10 @@ function mareg_online(obj,eventdata,h, data, opt)
 		fclose(fid);		return
 	end
 	ind = strfind(todos(1:64)',sprintf('\n'));
+	if (numel(ind) == 1)
+		warndlg('Sorry, but the downloaded file is not organized in the standard way. Quiting.','Warning')
+		return
+	end
 	todos = todos(ind(2)+1:end);		% Jump the 2 header lines
 	[yymmdd sl] = strread(todos,'%s %f', 'delimiter', '\t');
 	fclose(fid);    clear todos
