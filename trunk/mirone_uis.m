@@ -544,7 +544,7 @@ uimenu('Parent',hMG,'Call','parker_stuff(''redPole'',gcf)','Label','Reduction to
 uimenu('Parent',hMG,'Call','microlev(gcf)','Label','Microleveling (anomaly grid)');
 %uimenu('Parent',hMG,'Call','gravfft(gcf)','Label','GravFFT');
 uimenu('Parent',hMG,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Allopts'')','Label','FFT tool');
-uimenu('Parent',hMG,'Call','telhometro(gcf)','Label',' Vine-Mathiews Carpet');
+uimenu('Parent',hMG,'Call','telhometro(gcf)','Label','Vine-Mathiews Carpet');
 uimenu('Parent',hMG,'Call','magbarcode','Label','Magnetic Bar Code','Sep','on');
 
 h = uimenu('Parent',hMG,'Label','Import *.gmt/*.nc files(s)','Sep','on');
@@ -555,7 +555,7 @@ hVG(kv) = uimenu('Parent',hMG,'Call','gmtedit','Label','gmtedit');	kv = kv + 1;
 %% --------------------------- Seismology -------------------------------
 hS = uimenu('Parent',H1,'Label','Seismology','Tag','Seismology');
 
-uimenu('Parent',hS,'Call','earthquakes(gcf,''external'');','Label','Epicenters');
+uimenu('Parent',hS,'Call','earthquakes(gcf,''external'');','Label','Seismicity');
 uimenu('Parent',hS,'Call','focal_meca(gcf)','Label','Focal mechanisms');
 uimenu('Parent',hS,'Call','meca_studio','Label','Focal Mechanisms demo');
 uimenu('Parent',hS,'Call','earthquakes(gcf);','Label','Global seismicity (1990-2009)');
@@ -624,7 +624,7 @@ uimenu('Parent',hGT,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''grid'')','
 h = uimenu('Parent',hGT,'Label','Hammer grid','Sep','on');
 uimenu('Parent',h,'Call','escadeirar(guidata(gcbo))','Label','Rice-field Grid');
 uimenu('Parent',h,'Call','mirone(''TransferB_CB'',guidata(gcbo),''scale'')','Label','Rescale');
-uimenu('Parent',h,'Call','mirone(''GridToolsPadd2Const_CB'',guidata(gcbo))','Label','Padd to zero');
+uimenu('Parent',h,'Call','mirone(''GridToolsPadd2Const_CB'',guidata(gcbo))','Label','Pad to zero');
 
 h = uimenu('Parent',hGT,'Label','Spectrum');
 uimenu('Parent',h,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Amplitude'')','Label','Amplitude spectrum');
@@ -677,9 +677,9 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 
 %% --------------------------- HELP ------------------------------------
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
-uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v1.4.0)');
+uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v2.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 15 Sep 2010'',''2.0.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 23 Sep 2010'',''2.0.0'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
