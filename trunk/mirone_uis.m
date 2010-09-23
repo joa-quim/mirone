@@ -22,7 +22,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	end
 
 	IAmAMac = strncmp(computer,'MAC',3);
-	if (IAmAMac)	figW = 720;		end		% On Macs buttons have different sizes 
+	if (IAmAMac)	figW = 800;		end		% On Macs buttons have different sizes 
 
 	% Import icons and fetch home_dir if compiled and called by extension association
 	% Here is what will happen. When called by windows extension association the 'home_dir'
