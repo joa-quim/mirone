@@ -286,9 +286,10 @@ function handles = isProj(handles, opt)
 	h1 = findobj(handles.Projections,'Label','-- REPROJECT --');
 	h2 = findobj(handles.Projections,'Label','GDAL project');
 	h3 = findobj(handles.Projections,'Label','GMT project');
+	h4 = findobj(handles.Projections,'Label','Geographic Computator');
 	if (~prjStr)
 		set(child,'Enable','off')
-		set([h1 h2 h3],'Enable','on')		% These are always on
+		set([h1 h2 h3 h4],'Enable','on')		% These are always on
 	end
 
 	if (handles.is_projected)       % When read a gdal referenced file we need to set this right away
