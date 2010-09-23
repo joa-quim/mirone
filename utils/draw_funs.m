@@ -548,11 +548,13 @@ function set_country_uicontext(h)
 		set(h(i), 'UIContextMenu', cmenuHand);   
 		uimenu(cmenuHand, 'Label', 'Save line', 'Call', @save_line);
 		uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
-		item_tools = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
-		uimenu(item_tools, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
-		uimenu(item_tools, 'Label', 'Set to const', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
-		uimenu(item_tools, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
-		uimenu(item_tools, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
+		if (handles.validGrid)
+			item_ct = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
+			uimenu(item_ct, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+			uimenu(item_ct, 'Label', 'Set to const', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
+			uimenu(item_ct, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+			uimenu(item_ct, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
+		end
 		cb_LineWidth = uictx_LineWidth(h(i));			% there are 5 cb_LineWidth outputs
 		item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 		uimenu(item_lw, 'Label', '1     pt', 'Call', cb_LineWidth{1});
