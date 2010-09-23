@@ -886,6 +886,7 @@ function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 	if (nargin <= 2),		imSize = [];		figTitle = 'Mirone Base Map';		end
 	if (nargin == 3 && isa(imSize,'char')),		figTitle = imSize;	imSize = [];	end
 	handles = show_image(handles,figTitle,X,Y,Z,0,'xy',0,imSize);
+	drawnow			% Otherwise, the damn Java makes a black window until all posterior elements are plotted
 	aux_funs('isProj',handles);			% Check about coordinates type
 	if (nargout)	hand = handles;		end
 
@@ -2388,35 +2389,41 @@ function DrawImportShape_CB(handles, fname)
 		if (t(end) == 'Z')	is3D = true;	end
 		if (t(1) == 'P')	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
 		for i = 1:nPolygs
-			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) s(i).BoundingBox(2,2); ...
-				s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
-			if (any(out))			% It means the polyg BB is at least partially inside
+			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) ...
+				s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
+			if (any(out))				% It means the polyg BB is at least partially inside
 				h(i) = line('Xdata',single(s(i).X),'Ydata',single(s(i).Y),'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
 			end
 			if (is3D),		set(h(i),'UserData', single(s(i).Z(:)')),	end
-			h((h == 0)) = [];		% Those were jumped because thay were completely outside map limits
 		end
-		if (isempty(h)),	warndlg('No data inside dysplay region','Warning'),		return,		end
-		draw_funs(h,'setSHPuictx')			% Set lines's uicontextmenu
+		h((h == 0)) = [];			% Those were jumped because thay were completely outside map limits
+		if (isempty(h)),	warndlg('No data inside display region','Warning'),		return,		end
+		draw_funs(h,'setSHPuictx')		% Set lines's uicontextmenu
 	elseif (strncmp(t,'Polygon',7))
-		nParanoia = 1000;					% The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
-		for i = 1:nPolygs
-			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) s(i).BoundingBox(2,2); ...
-					s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
-			if (any(out))					% It means the polyg BB is at least partially inside
+		nParanoia = 1000;				% The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
+		for (i = 1:nPolygs)
+			XMin = s(i).BoundingBox(1,1);		XMax = s(i).BoundingBox(1,2);
+			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1:2,1)'; s(i).BoundingBox(1,1) ...
+				s(i).BoundingBox(2,2); s(i).BoundingBox(1:2,2)'; s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
+			if (any(out))				% It means the polyg BB is at least partially inside
+				% Make sure it knows that the Earth is round
+				if (handles.geog == 1 && (XMin < -179.5 || XMax > 179.5) )
+					[s(i).Y, s(i).X] = map_funs('trimwrap', s(i).Y, s(i).X, [-90 90], [XMin XMax], 'wrap');
+				elseif (handles.geog == 2 && (XMin < 0.5 || XMax > 359.5) )
+					[s(i).Y, s(i).X] = map_funs('trimwrap', s(i).Y, s(i).X, [-90 90], [XMin XMax], 'wrap');
+				end
 				h(i) = patch('XData',s(i).X,'YData', s(i).Y,'FaceColor','none','EdgeColor',lc,'Parent',handles.axes1,'Tag','SHPpolygon');
-				if ( (numel(t) >= 8) && (t(8) == 'Z') )
+				if ( (numel(t) >= 8) && (t(8) == 'Z') )		% IT'S IGNORING THE EARTH-IS-ROUND? TEST
 					set(h(i), 'UserData', s(i).Z(:)')		% Fleder can drape it (+ other eventual usages)
 				end
-			end
-			if ((h(i) ~= 0) && nPolygs <= nParanoia)		% With luck, your hardware won't choke to dead with this
-				draw_funs(h(i),'line_uicontext')
+				% With luck, your hardware won't choke to dead with this
+				if (nPolygs <= nParanoia)	draw_funs(h(i),'line_uicontext'),	end
 			end
 		end
-		if (nPolygs > nParanoia)				% nParanoia is an arbitrary number that practice will show dependency
-			h((h == 0)) = [];					% Those were jumped because they were completely outside map limits
-			if (isempty(h)),	warndlg('No data inside dysplay region','Warning'),		return,		end
-			draw_funs(h,'country_patch')		% mostly on hardware, for I don't beleave ML will ever behave decently.
+		h((h == 0)) = [];					% Those were jumped because thay were completely outside map limits
+		if (isempty(h)),	warndlg('No data inside display region','Warning'),		return,		end
+		if (nPolygs > nParanoia)			% nParanoia is an arbitrary number that practice will show dependency
+			draw_funs(h,'country_patch')	% mostly on hardware, for I don't beleave ML will ever behave decently.
 		end
 	end
 
