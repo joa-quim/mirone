@@ -23,14 +23,14 @@ REM Author: Joaquim Luis, 09-MAY-2010
 REM --------------------------------------------------------------------------------------
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
-SET CC=cl
+SET CC=icl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
 SET R13="no"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
-SET WIN64="yes"
+SET WIN64="no"
 
 REM The MSVC version. I use this var to select libraries also compiled with this compiler
 SET MSVC_VER="1600"
@@ -44,7 +44,7 @@ SET TIMEIT=
 
 REM
 REM Set to "yes" if you want to build a debug version
-SET DEBUG="yes"
+SET DEBUG="no"
 REM
 SET LDEBUG=
 IF %DEBUG%=="yes" SET LDEBUG=/debug
@@ -93,6 +93,7 @@ SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt_mgg.lib
 SET GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
 SET CV_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\cv210.lib
 SET CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\cxcore210.lib
+SET LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\bin\lib\liblas_i.lib
 
 ) ELSE (
 
@@ -103,6 +104,7 @@ SET GDAL_LIB=c:\programs\GDALtrunk\gdal\lib\gdal_i.lib
 REM I haven't build yet (and maybe I won't) 2.1 libs with VC7.1
 SET CV_LIB=C:\programs\OpenCV_SVN\lib\cv200.lib
 SET CXCORE_LIB=C:\programs\OpenCV_SVN\lib\cxcore200.lib
+SET LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\bin\lib\liblas_i.lib
 ) )
 
 SET NETCDF_INC=C:\progs_cygw\netcdf-3.6.3\include
@@ -111,6 +113,7 @@ SET GMT_INC=c:\progs_cygw\GMTdev\GMT5\include
 SET GMT_INC2=C:\progs_cygw\GMTdev\GMT5\src\mex
 SET GDAL_INC=c:\programs\GDALtrunk\gdal\compileds\VC10_32\include
 SET OCV_INC=C:\programs\OpenCV_SVN\compileds\VC10_32\include\opencv
+SET LAS_INC=-IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas\capi -IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas
 REM ----------------------------------------------------------------------------
 
 REM ____________________________________________________________________________
@@ -125,7 +128,7 @@ IF %WIN64%=="yes" SET arc=X64
 IF %WIN64%=="no" SET arc=X86
 SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:%arc% kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /incremental:NO %LDEBUG% 
 
-%CC% -DWIN32 %COMPFLAGS% -I%GMT_INC% -I%GDAL_INC% -I%NETCDF_INC% -I%OCV_INC% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %1.c
-link  /out:"%1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% /implib:templib.x %1.obj
+%CC% -DWIN32 %COMPFLAGS% -I%GMT_INC% -I%GDAL_INC% -I%NETCDF_INC% -I%OCV_INC% -I%MATINC% %LAS_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %1.c
+link  /out:"%1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% /implib:templib.x %1.obj
 
 del *.obj *.exp templib.x
