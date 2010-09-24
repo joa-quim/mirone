@@ -15,7 +15,7 @@ REM
 REM Usage: open the command window set up by the compiler of interest (were all vars are already set)
 REM	   and run this from there.
 REM	   You cannot build one program individualy but you can build one of the following groups:
-REM		simple, swan, edison, reducep, GMT, GDAL, OCV, MEXNC
+REM		simple, swan, edison, reducep, GMT, GDAL, OCV, MEXNC, lasreader_mex
 REM	   To do it, give the group name as argument to this batch. E.G. compile_mex GMT
 REM
 REM
@@ -27,7 +27,7 @@ SET CC=icl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="yes"
+SET R13="no"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
 SET WIN64="no"
@@ -68,40 +68,43 @@ SET MEX_EXT="mexw32"
  
 REM -------------- Set up libraries here -------------------------------------------------
 IF %WIN64%=="yes" (
-SET NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_64\lib\libnetcdf.lib
-SET GMT_LIB=c:\progs_cygw\GMTdev\GMT_win64\lib\gmt.lib
+SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_64\lib\libnetcdf.lib
+SET     GMT_LIB=c:\progs_cygw\GMTdev\GMT_win64\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win64\lib\gmt_mgg.lib
-SET GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_64\lib\gdal_i.lib
-SET CV_LIB=
-SET CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_core211.lib
-SET CVIMG_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_imgproc211.lib
+SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_64\lib\gdal_i.lib
+SET      CV_LIB=
+SET  CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_core211.lib
+SET   CVIMG_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_imgproc211.lib
 SET CVCALIB_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_calib3d211.lib
-SET CVOBJ_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_objdetect211.lib
+SET   CVOBJ_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_objdetect211.lib
 SET CVVIDEO_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_video211.lib
+SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_64\liblas_i.lib
 
 ) ELSE (
 
 IF %MSVC_VER%=="1600" (
-SET NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_32\lib\libnetcdf.lib
-SET GMT_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt.lib
+SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_32\lib\libnetcdf.lib
+SET     GMT_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt_mgg.lib
-SET GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
-SET CV_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\cv.lib
-SET CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_core211.lib
-SET CVIMG_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_imgproc211.lib
+SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
+SET      CV_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\cv.lib
+SET  CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_core211.lib
+SET   CVIMG_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_imgproc211.lib
 SET CVCALIB_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_calib3d211.lib
-SET CVOBJ_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_objdetect211.lib
+SET   CVOBJ_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_objdetect211.lib
 SET CVVIDEO_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_video211.lib
+SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\Intel11_32\liblas_i.lib
 
 ) ELSE (
 
-SET NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\lib\libnetcdf_w32.lib
-SET GMT_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt.lib
+SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\lib\libnetcdf_w32.lib
+SET     GMT_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt_mgg.lib
-SET GDAL_LIB=c:\programs\GDALtrunk\gdal\lib\gdal_i.lib
-REM I haven't build yet (and mayne I won't) 2.1 libs with VC7.1
-SET CV_LIB=C:\programs\OpenCV_SVN\lib\cv200.lib
-SET CXCORE_LIB=C:\programs\OpenCV_SVN\lib\cxcore200.lib
+SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\lib\gdal_i.lib
+REM I haven't build yet (and maybe I won't) 2.1 libs with VC7.1
+SET      CV_LIB=C:\programs\OpenCV_SVN\lib\cv200.lib
+SET  CXCORE_LIB=C:\programs\OpenCV_SVN\lib\cxcore200.lib
+SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\Intel11_32\liblas_i.lib
 ) )
 
 SET NETCDF_INC=C:\progs_cygw\netcdf-3.6.3\include
@@ -109,6 +112,7 @@ SET GMT_INC=c:\progs_cygw\GMTdev\GMT\include
 SET GDAL_INC=c:\programs\GDALtrunk\gdal\compileds\VC10_32\include
 SET CV_INC=C:\programs\OpenCV_SVN\include\opencv
 SET INCLUDE=%INCLUDE%;C:\programs\OpenCV_SVN\modules\core\include;C:\programs\OpenCV_SVN\modules\imgproc\include;C:\programs\OpenCV_SVN\modules\features2d\include;C:\programs\OpenCV_SVN\modules\calib3d\include;C:\programs\OpenCV_SVN\modules\objdetect\include;C:\programs\OpenCV_SVN\modules\video\include
+SET LAS_INC=-IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas\capi -IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas
 REM ----------------------------------------------------------------------------
 
 REM ____________________________________________________________________________
@@ -249,6 +253,14 @@ REM ---------------------- Reduce patches --------------------------------------
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% reducep/reducep_s.cpp reducep/3D.cpp reducep/AdjModel.cpp reducep/AdjPrims.cpp reducep/avars.cpp reducep/decimate.cpp reducep/heap.cpp reducep/Mat4.cpp reducep/ProxGrid.cpp reducep/quadrics.cpp reducep/smf.cpp
 link  /out:"reducep_s.%MEX_EXT%" %LINKFLAGS% /implib:templib.x reducep_s.obj 3D.obj AdjModel.obj AdjPrims.obj avars.obj decimate.obj heap.obj Mat4.obj ProxGrid.obj quadrics.obj smf.obj
 IF %1==reducep GOTO END
+
+
+REM ---------------------- libLAS (lasreader) ----------------------------------------
+:lasreader
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %LAS_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% lasreader_mex.c
+link  /out:"%1.%MEX_EXT%" %LINKFLAGS% %LAS_LIB% /implib:templib.x lasreader_mex.obj
+IF %1==lasreader GOTO END
+
 
 :END
 del *.obj *.exp templib.x
