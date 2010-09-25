@@ -270,6 +270,7 @@ function edit_BINfile_CB(hObject, handles, fname)
 	if (isempty(fname))		fname = get(hObject, 'Str');
 	else					set(hObject, 'Str', fname)
 	end
+% 	fname = [fname '.vtk'];
 
 	semaforo_toggle(handles, 'red')
 	xyz = get_data(handles);
@@ -281,6 +282,11 @@ function edit_BINfile_CB(hObject, handles, fname)
 	if (get(handles.check_double, 'Val'))		frmt = 'real*8';	end
 	fid = fopen(fname, 'wb');
 	if (~isa(xyz,'cell'))
+% 		fprintf(fid, '# vtk DataFile Version 2.0\n');
+% 		fprintf(fid, 'converted from A B\n');
+% 		fprintf(fid, 'BINARY\n');
+% 		fprintf(fid,'DATASET POLYDATA\n');
+% 		fprintf(fid,sprintf('POINTS %d float\n', length(xyz)));
 		fwrite(fid,xyz,frmt);
 	else							% Write a multisegment file
 		for (k = 1:numel(xyz))
