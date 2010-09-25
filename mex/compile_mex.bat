@@ -23,14 +23,14 @@ REM Author: Joaquim Luis, 09-MAY-2010
 REM --------------------------------------------------------------------------------------
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
-SET CC=icl
+SET CC=cl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
 SET R13="no"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
-SET WIN64="no"
+SET WIN64="yes"
 
 REM The MSVC version. I use this var to select libraries also compiled with this compiler
 SET MSVC_VER="1600"
@@ -138,6 +138,7 @@ IF %1==MEXNC  GOTO MEXNC
 IF %1==swan   GOTO swan
 IF %1==edison GOTO edison
 IF %1==reducep GOTO reducep
+IF %1==lasreader GOTO lasreader
 
 REM ------------------ "simple" (no external Libs dependency) ------------------
 :simple
@@ -258,7 +259,7 @@ IF %1==reducep GOTO END
 REM ---------------------- libLAS (lasreader) ----------------------------------------
 :lasreader
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %LAS_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% lasreader_mex.c
-link  /out:"%1.%MEX_EXT%" %LINKFLAGS% %LAS_LIB% /implib:templib.x lasreader_mex.obj
+link  /out:"lasreader_mex.%MEX_EXT%" %LINKFLAGS% %LAS_LIB% /implib:templib.x lasreader_mex.obj
 IF %1==lasreader GOTO END
 
 
