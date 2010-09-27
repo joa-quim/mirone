@@ -16,7 +16,7 @@ function varargout = line_operations(varargin)
 % --------------------------------------------------------------------
 	
 	if (isempty(varargin)),		return,		end
-	if (~isfield(varargin{1}, 'head'))	return,		end		% Call from an empty fig
+	if (~isfield(varargin{1}, 'head')),		return,		end		% Call from an empty fig
 	
 	floating = false;
  
@@ -28,8 +28,8 @@ function varargout = line_operations(varargin)
 		if ( strcmp(get(varargin{1}.lineOP,'checked'), 'off') && isempty(hLineOP) )		% First time use
 			old_unit = get(hMirAxes,'units');	set(hMirAxes,'units','pixels')
 			pos = get(hMirAxes,'pos');			set(hMirAxes,'units',old_unit)
-			hObject = figure('Tag','figure1','Visible','off');
-			h = line_operations_LayoutFcn(hObject,hMirFig, pos(1),-2);
+			hObject = figure('Tag','figure1','MenuBar','none','Visible','off');
+			h = line_operations_LayoutFcn(hObject,hMirFig, pos,-2);
 			handles = guihandles(hObject);
 			handles.edit_cmd		= h(1);
 			handles.push_pickLine	= h(2);
@@ -38,10 +38,9 @@ function varargout = line_operations(varargin)
 			handles.push_semaforo	= h(5);
 			handles.figure1			= hObject;
 			set(varargin{1}.lineOP,'checked', 'on')
-			setappdata(hMirFig, 'hLineOP', ...			% Save those for an eventual next time use
-				[hObject handles.edit_cmd handles.push_pickLine handles.popup_cmds handles.push_apply handles.push_semaforo])
+			setappdata(hMirFig, 'hLineOP', [hObject h])			% Save for an eventual future use
 
-		elseif ( strcmp(get(varargin{1}.lineOP,'checked'), 'off') && ~isempty(hLineOP) )		% Reuse
+		elseif ( strcmp(get(varargin{1}.lineOP,'checked'), 'off') && ~isempty(hLineOP) )	% Reuse
 			handles.figure1			= hLineOP(1);
 			handles.edit_cmd		= hLineOP(2);
 			handles.push_pickLine	= hLineOP(3);
@@ -141,7 +140,7 @@ function varargout = line_operations(varargin)
 	if (nargout),	varargout{1} = hObject;		end
 
 % --------------------------------------------------------------------------------------------------
-function push_pickLine_Callback(hObject, eventdata, handles)    
+function push_pickLine_CB(hObject, handles)    
     set(handles.hMirFig,'pointer','crosshair')
     hLine = get_polygon(handles.hMirFig,'multi');        % Get the line handle
 	if (numel(hLine) >= 1)
@@ -158,7 +157,7 @@ function push_pickLine_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------------------------------------
-function popup_cmds_Callback(hObject, eventdata, handles)
+function popup_cmds_CB(hObject, handles)
 	str = get(hObject,'String');	val = get(hObject,'Val');
 	set(hObject, 'Tooltip', handles.ttips{val})
 	if (val == 1)
@@ -168,7 +167,7 @@ function popup_cmds_Callback(hObject, eventdata, handles)
 	end
 
 % --------------------------------------------------------------------------------------------------
-function push_apply_Callback(hObject, eventdata, handles)
+function push_apply_CB(hObject, handles)
 	cmd = get(handles.edit_cmd,'String');
 	if (isempty(cmd))
 		errordlg('Fiu Fiu!! Apply WHAT????','ERROR'),	return
@@ -500,61 +499,69 @@ function [out, msg] = validate_args(qual, str, np)
 
 % --------------------------------------------------------------------------------------------------
 % --- Creates and returns a handle to the GUI figure. 
-function h = line_operations_LayoutFcn(h1, hMirFig, x_off, y_off)
+function h = line_operations_LayoutFcn(h1, hMirFig, axPos, y_off)
 	if (nargin == 4)
-		ofset = [x_off y_off 0 0];
+		ofset = [axPos(1) y_off 0 0];
 		h2 = hMirFig;
+		floating = false;
 	else
 		ofset = [0 0 0 0];
 		h2 = h1;
+		floating = true;
 	end
 	
-set(h1,...
+set(h1, 'Position',[520 729 470 48],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'MenuBar','none',...
 'Name','Line operations',...
 'NumberTitle','off',...
-'Position',[520 729 470 48],...
-'RendererMode','manual',...
 'Resize','off',...
-'HandleVisibility','callback',...
+'HandleVisibility','Call',...
 'Tag','figure1');
 
-h(1) = uicontrol('Parent',h2, 'Position',[3 2 465 25] + ofset,...
+W = 465;	xOff = 3;
+if (~floating)
+	Wf = min(axPos(3),W+60);		% Frame width
+	xOff = (axPos(3) - Wf) / 2;
+	h = zeros(1,6);
+	h(6) = uicontrol('Parent',h2, 'Position',[xOff 2 Wf axPos(2)] + ofset,'Style', 'frame');
+	xOff = xOff + (Wf - W) / 2;		% X offset for the buttons so they are centered in the frame
+end
+
+h(1) = uicontrol('Parent',h2, 'Position',[xOff 2 W 24] + ofset,...
 'BackgroundColor',[1 1 1],...
 'HorizontalAlignment','left',...
 'Style','edit',...
 'Tag','edit_cmd');
 
-h(2) = uicontrol('Parent',h2, 'Position',[3 26 91 21] + ofset,...
-'Callback',{@lop_CB,h1,'push_pickLine_Callback'},...
+h(2) = uicontrol('Parent',h2, 'Position',[xOff 26 91 21] + ofset,...
+'Call',{@lop_CB,h1,'push_pickLine_CB'},...
 'FontName','Helvetica', 'FontSize',9,...
 'String','Get line(s)',...
 'TooltipString','Have 0 lines to play with',...
 'Tag','push_pickLine');
 
-h(3) = uicontrol('Parent',h2, 'Position',[140 28 201 21] + ofset,...
+h(3) = uicontrol('Parent',h2, 'Position',[140+xOff 26 201 21] + ofset,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@lop_CB,h1,'popup_cmds_Callback'},...
+'Call',{@lop_CB,h1,'popup_cmds_CB'},...
 'FontName','Helvetica',...
 'Style','popupmenu',...
 'TooltipString','See list of possible operations and slect template if wished',...
 'Value',1,...
 'Tag','popup_cmds');
 
-h(4) = uicontrol('Parent',h2, 'Position',[377 26 91 21] + ofset,...
-'Callback',{@lop_CB,h1,'push_apply_Callback'},...
+h(4) = uicontrol('Parent',h2, 'Position',[375+xOff 26 91 21] + ofset,...
+'Call',{@lop_CB,h1,'push_apply_CB'},...
 'FontName','Helvetica', 'FontSize',9,...
 'String','Apply',...
 'Tag','push_apply');
 
-h(5) = uicontrol('Parent',h2, 'Position',[101 31 12 12] + ofset,...
+h(5) = uicontrol('Parent',h2, 'Position',[101+xOff 30 14 14] + ofset,...
 'BackgroundColor',[1 0 0],...
 'Enable','inactive',...
 'FontName','Helvetica', 'FontSize',9,...
 'TooltipString','Color informs if we have line(s) to work with.',...
 'Tag','push_semaforo');
 
-function lop_CB(hObject, eventdata, h1, callback_name)
-% This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+function lop_CB(hObject, eventdata, h1, Call_name)
+% This function is executed by the Call and than the handles is allways updated.
+	feval(Call_name,hObject,guidata(h1));
