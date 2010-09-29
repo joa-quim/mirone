@@ -176,7 +176,7 @@ function click_source_CB(hObject, evt)
 function popup_directory_list_CB(hObject, handles, opt)
 % OPT, used by push_change_dir, is char array
 
-	if (nargin == 3)    opt = [];   end
+	if (nargin == 2)    opt = [];   end
 	if ( ~isempty(opt) )				% Add a new entry to the cache dir list. Otherwise, just normal popup functioning.
 		contents = get(hObject, 'String');
 		if ( numel(contents) == 1 ),	rest = [];
