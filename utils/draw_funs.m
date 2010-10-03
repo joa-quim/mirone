@@ -958,17 +958,18 @@ function cb = uictx_Class_LineStyle(h)
 
 % -----------------------------------------------------------------------------------------
 function set_greatCircle_uicontext(h)
-	% h is a handle to a great circle arc (in geog coords) object
+% h is a handle to a great circle arc (in geog coords) object
 	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
-	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	cb_LineWidth = uictx_LineWidth(h);		% there are 5 cb_LineWidth outputs
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	cb_color = uictx_color(h);      % there are 9 cb_color outputs
+	cb_color = uictx_color(h);		% there are 9 cb_color outputs
 	
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
 	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[],'total'});
+	uimenu(cmenuHand, 'Label', 'Line azimuth','Call', @show_lineAzims)
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
@@ -988,16 +989,11 @@ function set_circleGeo_uicontext(h)
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	cb_color = uictx_color(h);      % there are 9 cb_color outputs
-	% cb_MoveCircle        = {@move_circle,h};
-	% cb_ChangeCircCenter1 = {@change_CircCenter1,h};
 	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
 	
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save circle', 'Call', {@save_formated,h});
 	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[]});
-	% item_MoveCenter = uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Call', cb_MoveCircle);
-	% item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
-	% item_SetCenter1 = uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Call', cb_ChangeCircCenter1);
 	if ~strcmp(tag,'CircleEuler')       % "Just" a regular geographical circle
         uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi);
 	else
@@ -1189,7 +1185,7 @@ function ll = show_LineLength(obj, eventdata, h, opt)
 		errordlg('Unknown case in show_LineLength()','error'),	return
 	end
 
-msg = [];
+	msg = [];
 
 % Contour lines for example have NaNs and not at the same x,y positions (???)
 ix = isnan(x);      x(ix) = [];     y(ix) = [];
@@ -1279,12 +1275,14 @@ function azim = show_lineAzims(obj,eventdata,h)
 			x = get(h,'XData');    y = get(h,'YData');			
 			handles = guidata(h);
 		end
-	elseif (nargin == 2 || isempty(h) || length(h) > 1)
+	elseif (nargin == 2 || isempty(h) || numel(h) > 1)
 		h = gco;  
+		az = getappdata(h, 'Azim');
+		if (~isempty(az))		% Report azim of great-circle arc and return
+			msgbox(['Azimuth = ' sprintf('%.2f', az)],'Azimuth'),	return
+		end
 		x = get(h,'XData');    y = get(h,'YData');
 		handles = guidata(h);
-	else
-		handles = guidata(get(0,'CurrentFigure'));
 	end
 	
 	if (handles.geog)
@@ -1432,7 +1430,7 @@ function wbd_vector(obj,eventdata,h,state)
 
 % -----------------------------------------------------------------------------------------
 function h_gcirc = DrawGreatCircle
-    hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
+    hFig = get(0,'CurrentFigure');		handles = guidata(hFig);
     h_gcirc = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick);
 	state = uisuspend_fig(hFig);		% Remember initial figure state
 	set(hFig,'Pointer', 'crosshair');	% to avoid the compiler BUG
@@ -1453,21 +1451,22 @@ function wbm_gcircle(obj,eventdata,first_pt,h,hFig,hAxes)
 	pt = get(hAxes, 'CurrentPoint');
 	[x,y] = gcirc(first_pt(1),first_pt(2),pt(1,1),pt(1,2));
 	% Find the eventual Date line discontinuity and insert a NaN on it
-	% ind = find(abs(diff(x)) > 100);   % 100 is good enough
+	% ind = find(abs(diff(x)) > 100);		% 100 is good enough
 	% if (~isempty(ind))
 	%     if (length(ind) == 2)
 	%         x = [x(1:ind(1)) NaN x(ind(1)+1:ind(2)) NaN x(ind(2)+1:end)];
 	%         y = [y(1:ind(1)) NaN y(ind(1)+1:ind(2)) NaN y(ind(2)+1:end)];
 	%     elseif (length(ind) == 1)
-	%         x = [x(1:ind) NaN x(ind+1:end)];   y = [y(1:ind) NaN y(ind+1:end)];
+	%         x = [x(1:ind) NaN x(ind+1:end)];		y = [y(1:ind) NaN y(ind+1:end)];
 	%     end
 	% end
-	set(h, 'XData', x, 'YData', y,'Userdata',[first_pt [x y]]);
+	set(h, 'XData', x, 'YData', y);
 %---------------
 function wbd_gcircle(obj,eventdata,h,state)
-	lons_lats = get(h,'UserData');    setappdata(h,'LonLatRad',lons_lats)   % save this in appdata
-	set(h,'Tag','GreatCircle')
-	uirestore_fig(state);           % Restore the figure's initial state
+	x = get(h, 'XData');			y = get(h, 'YData');
+	az = azimuth_geo(y(1), x(1), y(end), x(end));
+	setappdata(h,'Azim',az);		set(h,'Tag','GreatCircle')
+	uirestore_fig(state);			% Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -1478,8 +1477,8 @@ function h_circ = DrawCartesianCircle
 	hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
 	h_circ = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick);
 	%set(hFig,'WindowButtonDownFcn',{@circFirstButtonDown,h_circ}, 'Pointer', 'crosshair');
-	state = uisuspend_fig(hFig);     % Remember initial figure state
-	set(hFig,'Pointer', 'crosshair'); % to avoid the compiler BUG
+	state = uisuspend_fig(hFig);		% Remember initial figure state
+	set(hFig,'Pointer', 'crosshair');	% to avoid the compiler BUG
 	w = waitforbuttonpress;
 	if w == 0       % A mouse click
         circFirstButtonDown(h_circ,state)
@@ -1490,7 +1489,6 @@ function h_circ = DrawCartesianCircle
 	end
 
 %---------------
-%function circFirstButtonDown(obj,eventdata,h)      % For non compiled version
 function circFirstButtonDown(h,state)
     x = linspace(-pi,pi,360);
 	setappdata(h,'X',cos(x));       setappdata(h,'Y',sin(x))    % Save unit circle coords
@@ -1510,10 +1508,10 @@ function wbm_circle(obj,eventdata,center,h,hAxes)
 
 %---------------
 function wbd_circle(obj,eventdata,h,state)
-	lon_lat_rad = get(h,'UserData');    setappdata(h,'LonLatRad',lon_lat_rad)   % save this in appdata
+	lon_lat_rad = get(h,'UserData');	setappdata(h,'LonLatRad',lon_lat_rad)   % save this in appdata
 	set(h,'Tag','circleCart')
-    rmappdata(h,'X');           rmappdata(h,'Y');
-	uirestore_fig(state);           % Restore the figure's initial state
+    rmappdata(h,'X');			rmappdata(h,'Y');
+	uirestore_fig(state);		% Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -1535,28 +1533,28 @@ function h_circ = draw_circleEulerPole(lon,lat)
 % -----------------------------------------------------------------------------------------
 function move_circle(obj,eventdata,h)
 % ONLY FOR CARTESIAN CIRCLES.
-	hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
-	state = uisuspend_fig(hFig);      % Remember initial figure state
-	np = numel(get(h,'XData'));     x = linspace(-pi,pi,np);
-	setappdata(h,'X',cos(x));       setappdata(h,'Y',sin(x))    % Save unit circle coords
+	hFig = get(0,'CurrentFigure');		hAxes = get(hFig,'CurrentAxes');
+	state = uisuspend_fig(hFig);		% Remember initial figure state
+	np = numel(get(h,'XData'));			x = linspace(-pi,pi,np);
+	setappdata(h,'X',cos(x));			setappdata(h,'Y',sin(x))	% Save unit circle coords
 	center = getappdata(h,'LonLatRad');
 	set(hFig,'WindowButtonMotionFcn',{@wbm_MoveCircle,h,center,hAxes},...   
 		'WindowButtonDownFcn',{@wbd_MoveCircle,h,state,hAxes},'Pointer', 'crosshair');
 
 function wbm_MoveCircle(obj,eventdata,h,center,hAxes)
 	pt = get(hAxes, 'CurrentPoint');
-	x = getappdata(h,'X');          y = getappdata(h,'Y');
-	x = pt(1,1) + center(3)*x;      y = pt(1,2) + center(3)*y;
+	x = getappdata(h,'X');				y = getappdata(h,'Y');
+	x = pt(1,1) + center(3)*x;			y = pt(1,2) + center(3)*y;
 	set(h, 'XData', x, 'YData', y,'Userdata',[pt(1,1) pt(1,2) center(3)]);
 
 function wbd_MoveCircle(obj,eventdata,h,state,hAxes)
 	% check if x,y is inside of axis
-	pt = get(hAxes, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
-	x_lim = get(hAxes,'xlim');        y_lim = get(hAxes,'ylim');
+	pt = get(hAxes, 'CurrentPoint');	x = pt(1,1);	y = pt(1,2);
+	x_lim = get(hAxes,'xlim');			y_lim = get(hAxes,'ylim');
 	if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
 	lon_lat_rad = get(h,'UserData');    setappdata(h,'LonLatRad',lon_lat_rad)   % save this in appdata
-    rmappdata(h,'X');           rmappdata(h,'Y');
-	uirestore_fig(state);           % Restore the figure's initial state
+    rmappdata(h,'X');				rmappdata(h,'Y');
+	uirestore_fig(state);			% Restore the figure's initial state
 
 % -----------------------------------------------------------------------------------------
 function change_CircCenter1(obj,eventdata,h)
