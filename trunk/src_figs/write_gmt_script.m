@@ -1638,33 +1638,33 @@ end
 
 % ------------- Search for colorbar -------------------------------------------
 	if (strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on'))
-        if (strcmp(get(handMir.PalAt,'Check'),'on')),	axHandle = get(handMir.PalAt,'UserData');
-        else											axHandle = get(handMir.PalIn,'UserData');
-        end
-        
-		axUnits = get(axHandle, 'Units');       set(axHandle, 'Units', 'pixels');
-        posCB = get(axHandle,'pos');            set(axHandle, 'Units', axUnits);
-		axUnits = get(handMir.axes1, 'Units');  set(handMir.axes1, 'Units', 'pixels');
-        posAx = get(handMir.axes1,'pos');       set(handMir.axes1, 'Units', axUnits);
-        
-        mapW = str2double(get(handles.edit_mapWidth,'String'));
-        mapH = str2double(get(handles.edit_mapHeight,'String'));
-        cbH = posCB(4) / posAx(4) * mapH;       % Estimate the colorbar height like this
-        marg = 0.3;     cbW = 0.5;    % Margin between Image and colorbar (in cm) and colorbar width
-        unitC = handles.which_unit(1);
+		if (strcmp(get(handMir.PalAt,'Check'),'on')),	axHandle = get(handMir.PalAt,'UserData');
+		else											axHandle = get(handMir.PalIn,'UserData');
+		end
 
-        if (handles.which_unit(1) == 'i')
-            marg = marg / 2.54;         cbW = cbW / 2.54;
-        end
-        if (handles.which_unit(1) == 'p')
-            marg = marg / 2.54 * 72;    cbW = cbW / 2.54 * 72;
-        end
-		YTick = get(axHandle,'YTick');		bInt = YTick(2) - YTick(1);		% To use in -B option
-        opt_D = sprintf(' -D%.2f%c/%.2f%c/%.2f%c/%.2f%c',mapW+marg,unitC, cbH/2,unitC, cbH,unitC, cbW,unitC);
+		axUnits = get(axHandle(1), 'Units');		set(axHandle(1), 'Units', 'pixels');
+		posCB = get(axHandle(1),'pos');				set(axHandle(1), 'Units', axUnits);
+		axUnits = get(handMir.axes1, 'Units');		set(handMir.axes1, 'Units', 'pixels');
+		posAx = get(handMir.axes1,'pos');			set(handMir.axes1, 'Units', axUnits);
+
+		mapW = str2double(get(handles.edit_mapWidth,'String'));
+		mapH = str2double(get(handles.edit_mapHeight,'String'));
+		cbH = posCB(4) / posAx(4) * mapH;       % Estimate the colorbar height like this
+		marg = 0.3;     cbW = 0.5;    % Margin between Image and colorbar (in cm) and colorbar width
+		unitC = handles.which_unit(1);
+
+		if (handles.which_unit(1) == 'i')
+			marg = marg / 2.54;			cbW = cbW / 2.54;
+		end
+		if (handles.which_unit(1) == 'p')
+			marg = marg / 2.54 * 72;	cbW = cbW / 2.54 * 72;
+		end
+		YTick = get(axHandle(1),'YTick');		bInt = YTick(2) - YTick(1);		% To use in -B option
+		opt_D = sprintf(' -D%.2f%c/%.2f%c/%.2f%c/%.2f%c',mapW+marg,unitC, cbH/2,unitC, cbH,unitC, cbW,unitC);
 		script{l} = ' ';        l=l+1;
-        script{l} = [comm ' ---- Plot colorbar ---'];   l=l+1;
-        script{l} = ['psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];
-        script{saveBind} = [script{saveBind} 'WSNe'];       % Don't write West anotations
+		script{l} = [comm ' ---- Plot colorbar ---'];   l=l+1;
+		script{l} = ['psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];
+		script{saveBind} = [script{saveBind} 'WSNe'];       % Don't write West anotations
 	end
 
 % -----------------------------------------------------------------------------------------------------
