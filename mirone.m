@@ -137,8 +137,8 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles.scale2meanLat = prf.scale2meanLat;
 		handles.FOpenList = prf.FOpenList;
 		handles.whichFleder = prf.whichFleder;
-		if (~prf.moveDoubleClick)				% this info is used by UI_EDIT_POLYGON()
-			setappdata(handles.handMir.axes1,'MovPolyg','extend')		% Move lines with a Shift-click drag-n-drop
+		if (~prf.moveDoubleClick)							% this info is used by UI_EDIT_POLYGON()
+			setappdata(handles.axes1,'MovPolyg','extend')	% Move lines with a Shift-click drag-n-drop
 		end
 	end
 	
