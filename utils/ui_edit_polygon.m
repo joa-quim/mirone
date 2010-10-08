@@ -156,8 +156,10 @@ function polygonui(varargin)
 
 	switch s.controls
 		case 'on'
-			delete(s.h_vert);        s.h_vert = [];		s.vert_index = [];		% delete vertice markers
-			try delete(s.h_current_marker); s.h_current_marker = []; end
+			delete(s.h_vert);		s.h_vert = [];		s.vert_index = [];		% delete vertice markers
+			try
+				delete(s.h_current_marker);		s.h_current_marker = [];
+			end
 			s.controls = 'off';
 			set(s.h_pol,'buttondownfcn',@polygonui);
 			set(s.h_fig,'KeyPressFcn',s.KeyPress_orig)
@@ -171,10 +173,10 @@ function polygonui(varargin)
 			setappdata(s.h_fig,'epActivHand',s.h_pol)
 
 			s.controls = 'on';
-			x = get(s.h_pol,'XData');
-			y = get(s.h_pol,'YData');
-			s.h_vert = line('xdata',x,'ydata',y,'Parent',s.h_ax, 'Marker','s','color','r', 'MarkerFaceColor','none', ...
-							'linestyle','none','MarkerSize',5,'buttondownfcn',{@edit_polygon,s.h_pol});
+			% I have to set ZData because if line is 3D the 'buttondownfcn' would not work otherwise (F. ML bugs)
+			s.h_vert = line('xdata',get(s.h_pol,'XData'),'ydata',get(s.h_pol,'YData'),'zdata',get(s.h_pol,'ZData'), ...
+						'Parent',s.h_ax, 'Marker','s','color','r', 'MarkerFaceColor','none', ...
+						'linestyle','none','MarkerSize',5,'buttondownfcn',{@edit_polygon,s.h_pol});
 			set(s.h_pol,'buttondownfcn',{@move_polygon,s.h_pol});
 			set(s.h_fig,'KeyPressFcn',{@KeyPress_local, s.h_pol})
 			setappdata(s.h_pol,'polygon_data',s)
@@ -197,7 +199,7 @@ function edit_polygon(obj,eventdata,h)
 	% Find out which vertex is beeing edited
 	x = get(s.h_pol,'XData');   y = get(s.h_pol,'YData');
 	dif_x = x - current_pt(1,1);    dif_y = y - current_pt(1,2);
-	dist = sqrt(dif_x.^2 + dif_y.^2);
+	dist = (dif_x.^2 + dif_y.^2);
 	[B,IX] = sort(dist);    s.vert_index = IX(1);
 	s.save_x = x(s.vert_index);   s.save_y = y(s.vert_index);   % needed in the "i"nsert option
 	if isempty(s.h_current_marker)		% If the black marker doesn't exist, creat it
@@ -330,50 +332,59 @@ function KeyPress_local(obj,eventdata,h)
 if (~ishandle(h)),		return,		end
 s = getappdata(h,'polygon_data');
 key = get(s.h_fig, 'CurrentCharacter');
+z = get(s.h_pol,'ZData');
 
 switch key
     case {'r', 'R', '-'}				% delete vertex
 		if (isempty(s.h_current_marker)),	return,		end
 		x = get(s.h_pol,'XData');           x(s.vert_index) = [];
 		y = get(s.h_pol,'YData');           y(s.vert_index) = [];
+		if (~isempty(z)),	z(s.vert_index) = [];	end
 		delete(s.h_current_marker);         s.h_current_marker = [];
 		s.vert_index = [];
-		set([s.h_pol s.h_vert],'XData',x,'YData',y);	% Update data
+		set([s.h_pol s.h_vert],'XData',x,'YData',y,'ZData',z);		% Update data
                        
 	case {'i', 'I', '+'}				% insert vertex
 		pt = get(s.h_ax, 'CurrentPoint');
-		x = get(s.h_pol,'XData');   x=x(:)';
-		y = get(s.h_pol,'YData');   y=y(:)';
+		x = get(s.h_pol,'XData');		y = get(s.h_pol,'YData');
+		if (size(x,2) > 1),		x=x(:)';	y=y(:)';	z=z(:)';	end
 		if (isempty(s.vert_index))			% No current vertex selected
-			[x, y] = insert_pt(x, y, [pt(1,1) pt(1,2)]);		% Make a good guess of the insertion point
-		else								% Add new point after selected vertex (kept for backword compatibility)
+			[x, y, z] = insert_pt(x, y, z, [pt(1) pt(1,2)]);		% Make a good guess of the insertion point
+		else								% Add new point after selected vertex (kept for backward compatibility)
 			x = [x(1:s.vert_index) pt(1,1) x(s.vert_index+1:end)];
 			y = [y(1:s.vert_index) pt(1,2) y(s.vert_index+1:end)];
+			if (~isempty(z))
+				n = s.vert_index;
+				z = [z(1:n) inter_Z(x(n-1:n), y(n-1:n), z(n-1:n), pt) z(n+1:end)];
+			end
 			s.vert_index = s.vert_index+1;
 			set(s.h_current_marker,'XData',pt(1,1),'YData',pt(1,2));
 		end
-		set([s.h_pol s.h_vert],'XData',x,'YData',y);
+		set([s.h_pol s.h_vert],'XData',x,'YData',y,'ZData',z);
 
 	case {'b', 'B'}				% break line
 		if (isempty(s.vert_index)),		return,		end		% No reference vertice selected
 		if (s.is_patch) || isempty(s.h_current_marker),		return,		end		% Patches don't break & marker needed
-		x = get(s.h_pol,'XData');    
-		y = get(s.h_pol,'YData');                
+		x = get(s.h_pol,'XData');	y = get(s.h_pol,'YData');                
 		x1 = x(1:s.vert_index);     x2 = x(s.vert_index:end);
 		y1 = y(1:s.vert_index);     y2 = y(s.vert_index:end);
 
-		if (numel(x1) == 1 || numel(x2) == 1)         % We don't break at extremities
-			return
-		end
+		if (numel(x1) == 1 || numel(x2) == 1),		return,		end         % We don't break at extremities
+
 		set([s.h_pol s.h_vert],'XData',x1,'YData',y1);
+		if (~isempty(z))
+			z1 = z(1:s.vert_index);     z2 = z(s.vert_index:end);
+			set([s.h_pol s.h_vert],'ZData',z1);
+		end
 
 		% Now make the a new segment from rest of the original (but without markers)
 		lc = get(s.h_pol,'Color');			ls = get(s.h_pol,'LineStyle');
 		lw = get(s.h_pol,'LineWidth');		lT = get(s.h_pol,'Tag');
 		ud = get(s.h_pol,'UserData');
 		% create a new line handle
-		tmp = line('XData',x2,'YData',y2,'LineWidth',lw,'Color',lc,'LineStyle',ls, 'UserData',ud);
-		if (~isempty(lT)),		set(tmp,'Tag', lT),		end
+		tmp = line('XData',x2,'YData',y2,'Parent',s.h_ax,'LineWidth',lw,'Color',lc,'LineStyle',ls, 'UserData',ud);
+		if (~isempty(z)),		set(tmp, 'ZData',z2),	end
+		if (~isempty(lT)),		set(tmp, 'Tag', lT),	end
 		set(tmp,'uicontextmenu',get(s.h_pol,'uicontextmenu'))   % Copy the uicontextmenu
 		ui_edit_polygon(tmp)
 		s.is_closed = 0;            % Its not closed anymore
@@ -382,28 +393,33 @@ switch key
 	case {'c', 'C'}					% close line
 		if (s.is_patch || s.is_closed),		return,		end		% Don't close what is already closed
 		x = get(s.h_pol,'XData');
-		if (length(x) <= 2),	return,		end   % don't close a line with less than 2 vertex 
+		if (length(x) <= 2),	return,		end			% don't close a line with less than 2 vertex 
 		y = get(s.h_pol,'YData');
 		set(s.h_pol,'XData',[x x(1)],'YData',[y y(1)]);
+		if (~isempty(z)),	set(s.h_pol,'ZData',[z z(1)]),		end
 		s.is_closed = 1;
 
 	case {'e', 'E'}					% edit (extend) line with getline_j
-		delete(s.h_vert);        s.h_vert = [];		s.vert_index = [];		% delete vertice markers
-		try delete(s.h_current_marker); s.h_current_marker = []; end
+		delete(s.h_vert);        s.h_vert = [];		s.vert_index = [];		% delete vertex markers
+		try		delete(s.h_current_marker);		s.h_current_marker = [];	end
 		s.controls = 'off';
 		set(s.h_pol,'buttondownfcn',@polygonui);
 		set(s.h_fig,'KeyPressFcn',s.KeyPress_orig)
 		setappdata(s.h_fig,'epActivHand',0)
 		setappdata(s.h_pol,'polygon_data',s)		% Play safe
+		if (~isempty(z)),	set(s.h_pol,'ZData',[]),	end		% getline_j doesn't handle 3D lines
+		n1 = numel(z);
 		[x,y] = getline_j(s.h_pol);
+		n2 = numel(x);
 		set(s.h_pol, 'XData',x, 'YData',y);
+		if (~isempty(z)),	set(s.h_pol,'ZData',[z repmat(z(end),1,n2-n1)]);	end		% Reset the Zs
 		return
 
 	case {'p', 'P'}					% close line -> patch
 		% Don't close what is already closed or line with less than 2 vertices
-		if (s.is_patch || s.is_closed || length(get(s.h_pol,'XData')) <= 2);  return;     end	
-		p = patch(get(s.h_pol,'xData'),get(s.h_pol,'yData'),1,'parent',s.h_ax);
-		%p = patch(get(s.h_pol,'xData'),get(s.h_pol,'yData'),1,'Facecolor','none','parent',s.h_ax);
+		if (s.is_patch || s.is_closed || numel(get(s.h_pol,'XData')) <= 2);  return;     end	
+		p = patch(get(s.h_pol,'XData'),get(s.h_pol,'YData'),1,'parent',s.h_ax);
+		if (~isempty(z)),	set(p,'ZData',z),		end
 		s_old = getappdata(s.h_pol,'polygon_data');
 		s_old.h_pol = p;							% Need to update for the correct handle
 		s.is_patch = 1;
@@ -440,32 +456,34 @@ function state = uisuspend_safe(h_fig)
 % In consequence, uisuspend breaks on the "get(uistate.children,..."
 % complaining on "too many inputs"
 
-KPs = get(h_fig,'KeyPressFcn');
-if (iscell(KPs))
-	set(h_fig,'KeyPressFcn',KPs{1})         % Temporarly forget the line/patch handle
-else
-	try
-		set(h_fig,'KeyPressFcn',KPs(1))     % Temporarly forget the line/patch handle
+	KPs = get(h_fig,'KeyPressFcn');
+	if (iscell(KPs))
+		set(h_fig,'KeyPressFcn',KPs{1})         % Temporarly forget the line/patch handle
+	else
+		try
+			set(h_fig,'KeyPressFcn',KPs(1))     % Temporarly forget the line/patch handle
+		end
 	end
-end
 
-state = uisuspend_fig(h_fig);         % Remember initial figure state
-state.KeyPressFcn = KPs;            % Set to its true value for use in uirestore
+	state = uisuspend_fig(h_fig);         % Remember initial figure state
+	state.KeyPressFcn = KPs;            % Set to its true value for use in uirestore
 
 %--------------------------------------------------
-function [x, y] = insert_pt(x, y, pt)
+function [x, y, z] = insert_pt(x, y, z, pt)
 % Guess where to insert he new point. The idea is to insert the new point
 % between the closest and the next closest points with respect to the current point
 
-	r = sqrt(((pt(1) - x)).^2 + ((pt(2) - y) ).^2);
-	[temp,i] = min(r);
+	r = (((pt(1) - x)).^2 + ((pt(2) - y) ).^2);
+	[r_min,i] = min(r);
 	
 	if (i == 1)						% Near beginning of line ambiguity
 		a = sqrt( (x(2) - x(1))^2 + (y(2) - y(1))^2 );		% distance from 1rst to 2nth points
 		hypot_pitag = sqrt( a^2 + r(i)^2 );
-		if ( r(i+1) > hypot_pitag )		% Current point is closer to first point. Add the new one before it
-			x = [pt(1) x];			y = [pt(2) y];
+		if ( r(i+1) > hypot_pitag )	% Current point is closer to first point. Add the new one before it
+			if (~isempty(z)),	z = [z(1) z];	end			% Do not extrapolate (!?)
+			x = [pt(1) x];		y = [pt(2) y];
 		else						% Current point lyies between the first two points
+			if (~isempty(z)),	z = [z(1) inter_Z(x(1:2), y(1:2), z(1:2), pt) z(2)];	end
 			x = [x(1) pt(1) x(2:end)];		y = [y(1) pt(2) y(2:end)];
 		end
 		
@@ -473,8 +491,10 @@ function [x, y] = insert_pt(x, y, pt)
 		a = sqrt( (x(end) - x(end-1))^2 + (y(end) - y(end-1))^2 );		% distance between the two last points
 		hypot_pitag = sqrt( a^2 + r(i)^2 );
 		if ( r(i) > hypot_pitag )		% Current point is closer to the end point. Add the new one after it
+			if (~isempty(z)),	z = [z z(1)];		end			% Do not extrapolate (!?)
 			x = [x pt(1)];		y = [y pt(2)];
 		else						% New point is between the two last points
+			if (~isempty(z)),	z = [z(1:i-1) inter_Z(x(i-1:i), y(i-1:i), z(i-1:i), pt) z(end)];	end
 			x = [x(1:i-1) pt(1) x(end)];
 			y = [y(1:i-1) pt(2) y(end)];	
 		end
@@ -482,10 +502,28 @@ function [x, y] = insert_pt(x, y, pt)
 		a = sqrt( (x(i) - x(i-1))^2 + (y(i) - y(i-1))^2 );		% distance between current and before points
 		hypot_pitag = sqrt( a^2 + r(i)^2 );
 		if ( r(i-1) < hypot_pitag )		% Insert point is in the interval [previous_point closest_point]
+			if (~isempty(z)),	z = [z(1:i-1) inter_Z(x(i-1:i), y(i-1:i), z(i-1:i), pt) z(i:end)];	end
 			x = [x(1:i-1) pt(1) x(i:end)];
 			y = [y(1:i-1) pt(2) y(i:end)];			
 		else						% Insert point is in the interval [closest_point next_point]
+			if (~isempty(z)),	z = [z(1:i) inter_Z(x(i:i+1), y(i:i+1), z(i:i+1), pt) z(i+1:end)];	end
 			x = [x(1:i) pt(1) x(i+1:end)];
 			y = [y(1:i) pt(2) y(i+1:end)];
 		end
 	end
+
+%--------------------------------------------------
+function z = inter_Z(x, y, z, pt)
+% Do a crude estimate of the Z value by linear interpolation both in Z and horizontally
+	ri = (pt(1) - x(1))^2 + (pt(2) - y(1))^2;
+	r = (x(2) - x(1))^2 + (y(2) - y(1))^2;
+	z = z(1) + (z(2)-z(1)) * ri / r;
+
+
+
+
+
+
+
+
+
