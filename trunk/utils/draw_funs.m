@@ -98,6 +98,8 @@ function Ctrl_v(h)
 			'LineStyle',get(hLine,'LineStyle'), 'EdgeColor',get(hLine,'EdgeColor'), 'FaceColor',get(hLine,'FaceColor'), ...
 			 'FaceAlpha',get(hLine,'FaceAlpha'), 'Tag',get(hLine,'Tag') );
 	end
+	z = get(hLine, 'zdata');
+	if (~isempty(z)),		set(h, 'ZData', z);		end
 	set_line_uicontext(h,'line')		% Set lines's uicontextmenu
 
 % % -----------------------------------------------------------------------------------------
