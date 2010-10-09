@@ -51,11 +51,12 @@ function matstr = mat2clip(matrix,n)
 	[nrows, ncols] = size(matrix);
 
 	if (nargin < 2),	n = 15;		end
-	form = sprintf('%%.%df',n);
+	form = sprintf('%%.%df%%c',n);
 
-	% now guess how big string will need to be 
-	% covers (tab) between columns, the decimal point and the CR-LF
-	spaceRequired = nrows * ((n+1) * ncols + 2) - ncols;
+	% now make an estimate on how big string will need to be 
+	% covers (tab) between columns, the decimal point and the unknown number of integer chars
+	n_int_chars = numel(sprintf('%d',fix(matrix(1,:))));	% Estimate number of integer characters
+	spaceRequired = nrows * ((n+n_int_chars+2) * ncols + 2);
 
 	string = '';
 	string(1,spaceRequired) = char(0);
@@ -81,9 +82,9 @@ function matstr = mat2clip(matrix,n)
 					pos = pos + 5;
 				end
 			else
-				tempStr = sprintf(form,matrix(i,j));
-				len = numel(tempStr);
-				string(pos:pos+len) = [tempStr TAB];
+				tempStr = sprintf(form,matrix(i,j),TAB);
+				len = numel(tempStr)-1;
+				string(pos:pos+len) = tempStr;
 				pos = pos+len+1;
 			end
 		end
