@@ -3,6 +3,7 @@
 #define Loc_copysign(x,y) ((y) < 0.0 ? -fabs(x) : fabs(x))
 
 #include "mex.h"
+#include "mwsize.h"
 #include "isf_head.h"
 
 float select_mag(int mag_c, float *mags, char **mag_t);
@@ -18,7 +19,7 @@ double ddmmss_to_degree (char *text);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	FILE *fp;
+	FILE	*fp;
 	int	i, in, mag_c = 0, event_c, got_event = FALSE, event_end, idx_min_rms;
 	int	out_meca = FALSE, export_aki = FALSE, export_cmt = FALSE, export_tensor = FALSE;
 	int	got_region = FALSE, error = FALSE;
@@ -27,13 +28,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	float	stime,sdobs,lat,lon,depth,smaj,smin,sdepth,mindist,maxdist;
 	float	mag, magerr;
 	float	*rms, *lats, *lons, *depths, *mags;
-	double	west = 0.0, east = 0.0, south = 0.0, north = 0.0, *pdata_i8, *out_d;
+	double	west = 0.0, east = 0.0, south = 0.0, north = 0.0, *out_d, *ptr_lix;
 	char	timfix,epifix,depfix,antype,loctype,magind;
 	char	*etype, *author, *origid, *magtype, line[ISF_LINE_LEN];
 	char	**mag_t, evid[ISF_LINE_LEN], region[ISF_LINE_LEN];
 	char	**argv;
-	int	argc = 0, n_arg_no_char = 0, np_d = 0, np_i = 0, dims[2];
-	int	n_alloc = 40000, n_alloc_small_d = 2200, n_alloc_small_i = 600;
+	int	argc = 0, n_arg_no_char = 0, npts = 0, np_d = 0, np_i = 0;
+	int	n_alloc = 40000, n_alloc_small = 2000;
 	short int *pdata_i2, *out_i;
 	
 	/* Moment tensor variables */
@@ -46,23 +47,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char	f_type[6], f_plane[6];
 	/* */
 
-	etype   = (char *)malloc(ISF_ETYPE_LEN);
-	author  = (char *)malloc(ISF_AUTHOR_LEN);
-	origid  = (char *)malloc(ISF_ORIGID_LEN);
-	magtype = (char *)malloc(ISF_MAGTYPE_LEN);
-	mags = (float *)calloc((size_t)(100), sizeof(float *));
-	rms = (float *)calloc((size_t)(100), sizeof(float *));
-	lats = (float *)calloc((size_t)(100), sizeof(float *));
-	lons = (float *)calloc((size_t)(100), sizeof(float *));
-	depths = (float *)calloc((size_t)(100), sizeof(float *));
-	years = (int *)calloc((size_t)(100), sizeof(int *));
-	months = (int *)calloc((size_t)(100), sizeof(int *));
-	days = (int *)calloc((size_t)(100), sizeof(int *));
-	hours = (int *)calloc((size_t)(100), sizeof(int *));
-	minutes = (int *)calloc((size_t)(100), sizeof(int *));
-	mag_t = (char **)calloc((size_t)(100), sizeof(char *));
+	etype   = (char *)mxMalloc(ISF_ETYPE_LEN);
+	author  = (char *)mxMalloc(ISF_AUTHOR_LEN);
+	origid  = (char *)mxMalloc(ISF_ORIGID_LEN);
+	magtype = (char *)mxMalloc(ISF_MAGTYPE_LEN);
+	mags = (float *)mxCalloc((mwSize)(100), sizeof(float *));
+	rms = (float *)mxCalloc((mwSize)(100), sizeof(float *));
+	lats = (float *)mxCalloc((mwSize)(100), sizeof(float *));
+	lons = (float *)mxCalloc((mwSize)(100), sizeof(float *));
+	depths = (float *)mxCalloc((mwSize)(100), sizeof(float *));
+	years = (int *)mxCalloc((mwSize)(100), sizeof(int *));
+	months = (int *)mxCalloc((mwSize)(100), sizeof(int *));
+	days = (int *)mxCalloc((mwSize)(100), sizeof(int *));
+	hours = (int *)mxCalloc((mwSize)(100), sizeof(int *));
+	minutes = (int *)mxCalloc((mwSize)(100), sizeof(int *));
+	mag_t = (char **)mxCalloc((mwSize)(100), sizeof(char *));
 	for (i = 0; i < 100; i++)
-		mag_t[i] = (char *)calloc(BUFSIZ, sizeof(char));
+		mag_t[i] = (char *)mxCalloc(BUFSIZ, sizeof(char));
 
 	argc = nrhs;
 	for (i = 0; i < nrhs; i++) {		/* Check input to find how many arguments are of type char */
@@ -137,13 +138,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	if (nlhs < 2) {
-		mexPrintf ("ERROR: Need to specify two outputs;\n");
-		return;
+		mexErrMsgTxt ("ERROR: Need to specify two outputs;\n");
 	}
 
 	if (out_meca) {
-		out_d = mxCalloc(n_alloc_small_d, sizeof (double));
-		out_i = mxCalloc(n_alloc_small_i, sizeof (short int));
+		out_d = (double *)mxMalloc((mwSize)(n_alloc_small * 11 * sizeof (double)));
+		out_i = (short int *)mxMalloc((mwSize)(n_alloc_small * 3 * sizeof (short int)));
 		event_end = FALSE;
 		tensor_end = FALSE;
 		while (fgets (line, ISF_LINE_LEN, fp) != NULL) {
@@ -233,15 +233,14 @@ L1:
 				out_d[np_d++] = (double)scale_factor;
 				/*out_d[np_d++] = (double)mag;*/
 				out_i[np_i++] = (short)yyyy;	out_i[np_i++] = (short)mm;	out_i[np_i++] = (short)dd;
+				npts++;
 
-				if (n_alloc_small_d <= (np_d + 12)) {
-					n_alloc_small_d += 2200;
-					if ((out_d = mxRealloc(out_d, n_alloc_small_d * sizeof(double))) == 0)
+				if (npts >= n_alloc_small) {
+					n_alloc_small += 2000;
+					if ((out_d = (double *)mxRealloc((void *)out_d, (mwSize)(n_alloc_small * 11 * sizeof(double)))) == 0)
 						mexErrMsgTxt("READ_ISF ERROR: Could not reallocate memory\n");
-				}
-				if (n_alloc_small_i <= (np_i + 4)) {
-					n_alloc_small_i += 600;
-					if ((out_i = mxRealloc(out_i, n_alloc_small_i * sizeof(short int))) == 0)
+
+					if ((out_i = (short int *)mxRealloc((void *)out_i, (mwSize)(n_alloc_small * 3 * sizeof(short int)))) == 0)
 						mexErrMsgTxt("READ_ISF ERROR: Could not reallocate memory\n");
 				}
 
@@ -251,14 +250,17 @@ L1:
 				mag_c = 0;
 			}
 		}
+
+		out_d = (double *)mxRealloc((void *)out_d, (mwSize)(npts * 11 * sizeof(double)));
+		out_i = (short int *)mxRealloc((void *)out_i, (mwSize)(npts * 3 * sizeof(short int)));
 	}
 	else {		/* Just the event data (no focal mechanism) */
-		out_d = mxCalloc(n_alloc, sizeof (double));
-		out_i = mxCalloc(n_alloc, sizeof (short int));
+		out_d = (double *)mxMalloc((mwSize)(n_alloc * 4 * sizeof (double)));
+		out_i = (short int *)mxMalloc((mwSize)(n_alloc * 4 * sizeof (short int)));
 		event_end = TRUE;
 		while (fgets (line, ISF_LINE_LEN, fp) != NULL) {
 			if (!read_event_id(line, evid, region)) continue;
-			if(!read_origin_head(line)) {
+			if (!read_origin_head(line)) {
 				event_c = read_event_data(fp,line,&yyyy,&mm,&dd,&hh,&mi,&ss,&msec,&timfix,&stime,&sdobs,
 						&lat,&lon,&epifix,&smaj,&smin,&strike,&depth,&depfix,&sdepth,&ndef,
 						&nsta,&gap,&mindist,&maxdist,&antype,&loctype,etype,author,origid,
@@ -269,7 +271,7 @@ L1:
 				mag_c = read_mags(fp,line,magtype,&magind,&mag,&magerr,&nsta,author,origid,mag_t,mags);
 				event_end = TRUE;
 			}
-			if(got_event && event_end) {
+			if (got_event && event_end) {
 				/* Select the event detection that has the minimum RMS */
 				lon = lons[idx_min_rms];
 				lat = lats[idx_min_rms];
@@ -299,41 +301,53 @@ L1:
 				out_d[np_d++] = (double)mag;
 				out_i[np_i++] = (short)yyyy;	out_i[np_i++] = (short)mm;	out_i[np_i++] = (short)dd;
 				out_i[np_i++] = (short)hh;
-				if (n_alloc <= (np_d + 6)) {
-					n_alloc += 20000;
-					if ((out_d = mxRealloc(out_d, n_alloc * sizeof(double))) == 0)
+				npts++;
+
+				if (npts >= n_alloc) {
+					n_alloc += 10000;
+					if ((out_d = (double *)mxRealloc((void *)out_d, (mwSize)(n_alloc * 4 * sizeof(double)))) == 0)
 						mexErrMsgTxt("READ_ISF ERROR: Could not reallocate memory\n");
-					if ((out_i = mxRealloc(out_i, n_alloc * sizeof(short int))) == 0)
+					if ((out_i = (short int *)mxRealloc((void *)out_i, (mwSize)(n_alloc * 4 * sizeof(short int)))) == 0)
 						mexErrMsgTxt("READ_ISF ERROR: Could not reallocate memory\n");
 				}
+
 				got_event = FALSE;
 				event_end = FALSE;
 				mag_c = 0;
 			}
 		}
+
+		out_d = (double *)mxRealloc((void *)out_d, (mwSize)(npts * 4 * sizeof(double)));
+		out_i = (short int *)mxRealloc((void *)out_i, (mwSize)(npts * 4 * sizeof(short int)));
 	}
 	fclose(fp);
 
-	/* Populate the output arrays */
+	/* Populate the output arrays. USE TRICK SO SAVE UNNECESSARY MEMORY COPY */
 	if (!out_meca) {	/* Output seismicity */
-		plhs[0] = mxCreateDoubleMatrix (4, np_d/4, mxREAL);
-		dims[0] = 4;		dims[1] = np_i/4;
+		plhs[0] = mxCreateDoubleMatrix(4, 1, mxREAL);
+		plhs[1] = mxCreateNumericMatrix(4, 1, mxINT16_CLASS, mxREAL);
 	}
 	else {			/* Output focal mechanisms */
-		plhs[0] = mxCreateDoubleMatrix (11, np_d/11, mxREAL);
-		dims[0] = 3;		dims[1] = np_i/3;
+		plhs[0] = mxCreateDoubleMatrix(11, 1, mxREAL);
+		plhs[1] = mxCreateNumericMatrix(3, 1, mxINT16_CLASS, mxREAL);
 	}
-	plhs[1] = mxCreateNumericArray (2,dims,mxINT16_CLASS,mxREAL);
-	pdata_i8 = mxGetPr(plhs[0]);
-	pdata_i2 = mxGetData(plhs[1]);
-	memcpy(pdata_i8, out_d, np_d * 8);
-	memcpy(pdata_i2, out_i, np_i * 2);
 
-	free((void *)etype);	free((void *)author);	free((void *)origid);
-	free((void *)magtype);	free((void *)mag_t);	free((void *)mags);
-	free((void *)rms);	free((void *)lats);	free((void *)lons);
-	free((void *)depths);	free((void *)years);	free((void *)months);
-	free((void *)days);	free((void *)hours);	free((void *)minutes);
+	/* Put the data in plhs by pointers replacement */
+	ptr_lix = mxGetPr(plhs[0]);
+	mxFree((void *)ptr_lix);
+	mxSetPr(plhs[0], out_d);
+	mxSetN(plhs[0], (mwSize)npts);
+
+	pdata_i2 = (short int *)mxGetData(plhs[1]);
+	mxFree((void *)pdata_i2);
+	mxSetData(plhs[1], out_i);
+	mxSetN(plhs[1], (mwSize)npts);
+
+	mxFree((void *)etype);	mxFree((void *)author);	mxFree((void *)origid);
+	mxFree((void *)rms);	mxFree((void *)lats);	mxFree((void *)lons);
+	mxFree((void *)depths);	mxFree((void *)years);	mxFree((void *)months);
+	mxFree((void *)days);	mxFree((void *)hours);	mxFree((void *)minutes);
+	mxFree((void *)magtype);mxFree((void *)mag_t);	mxFree((void *)mags);
 }
 
 int read_event_data(FILE *fp, char *line, int *yyyy, int *mm, int *dd, int *hh, int *mi, 
