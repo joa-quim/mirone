@@ -545,6 +545,7 @@ uimenu('Parent',hMG,'Call','microlev(gcf)','Label','Microleveling (anomaly grid)
 %uimenu('Parent',hMG,'Call','gravfft(gcf)','Label','GravFFT');
 uimenu('Parent',hMG,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Allopts'')','Label','FFT tool');
 uimenu('Parent',hMG,'Call','telhometro(gcf)','Label','Vine-Mathiews Carpet');
+uimenu('Parent',hMG,'Call','load_xyz(guidata(gcbo), ''nikles'', ''Isochrons'')','Label','Magnetic isochrons');
 uimenu('Parent',hMG,'Call','magbarcode','Label','Magnetic Bar Code','Sep','on');
 
 h = uimenu('Parent',hMG,'Label','Import *.gmt/*.nc files(s)','Sep','on');
@@ -558,6 +559,7 @@ hS = uimenu('Parent',H1,'Label','Seismology','Tag','Seismology');
 uimenu('Parent',hS,'Call','earthquakes(gcf,''external'');','Label','Seismicity');
 uimenu('Parent',hS,'Call','focal_meca(gcf)','Label','Focal mechanisms');
 uimenu('Parent',hS,'Call','meca_studio','Label','Focal Mechanisms demo');
+uimenu('Parent',hS,'Call','globalcmt(gcf)','Label','CMT Catalog (Web download)');
 uimenu('Parent',hS,'Call','earthquakes(gcf);','Label','Global seismicity (1990-2009)');
 uimenu('Parent',hS,'Call','ground_motion(guidata(gcbo))','Label','Ground motions');
 h = uimenu('Parent',hS,'Label','Elastic deformation','Sep','on');
@@ -679,7 +681,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v2.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 9 Oct 2010'',''2.0.1b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 13 Oct 2010'',''2.0.1b'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
