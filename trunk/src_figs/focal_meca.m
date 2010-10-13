@@ -16,23 +16,58 @@ function varargout = focal_meca(varargin)
 % --------------------------------------------------------------------
 
 	if (isempty(varargin))
-		errordlg('FOCAL MECA: wrong number of arguments.','Error')
-		return
+		errordlg('FOCAL MECA: wrong number of arguments.','Error'),		return
 	end
 
-	hObject = figure('Tag','figure1','Visible','off');
-	focal_meca_LayoutFcn(hObject);
+	hObject = findMe('FocMecWin');		% This figure is singleton
+	IamNew = false;						% When figure already existes
+
+	if (isempty(hObject))				% Does not exist. Create one
+		hObject = figure('Tag','FocMecWin','Visible','off');
+		focal_meca_LayoutFcn(hObject);
+		IamNew = true;					% Tell below code that this Fig is new
+	end
 	handles = guihandles(hObject);
 
 	handles.hMirFig = varargin{1};
 	handMir = guidata(handles.hMirFig);
 	handles.no_file = handMir.no_file;
-        
+	handles.data = [];
+	handles.date = [];
+
+	if (nargin > 1)
+		if (handles.no_file)			% Need to create a background image
+			w = varargin{4}(1);			e = varargin{4}(2);
+			s = varargin{4}(3);			n = varargin{4}(4);
+			pixelx = round(axes2pix(5400, [-180 180], [w e]));				% Convert to the correct indices of big image 
+			pixely = 2700 - round(axes2pix(2700, [-90 90], [s n])) + 1;		% Again the Y origin shit
+			pixely = pixely(2:-1:1);
+			opt_r = sprintf('-r%d/%d/%d/%d', pixelx(1:2), pixely(1:2));
+			img = gdalread([handMir.home_dir filesep 'data' filesep 'etopo4.jpg'], opt_r, '-U');
+
+			x_inc = (e - w) / (size(img,2)-1);		y_inc = (n - s) / (size(img,1)-1);
+			handMir.head = [w e s n 0 255 0 x_inc y_inc];
+			mirone('show_image', handMir,'Base image',[w e],[s n],img,0,'xy',1,1);	% Is also saves handles
+			handMir = guidata(handMir.figure1);					% Get updated version
+			handMir.geog = 1;		handles.image_type = 3;		% Here we know this for sure
+		end
+
+		set(handles.edit_MagMin, 'Str', sprintf('%.1f', min(varargin{2}(:,7))))
+		set(handles.edit_MagMax, 'Str', sprintf('%.1f', max(varargin{2}(:,7))))
+		set(handles.edit_DepthMin, 'Str', sprintf('%.1f', min(varargin{2}(:,3))))
+		set(handles.edit_DepthMax, 'Str', sprintf('%.1f', max(varargin{2}(:,3))))
+		set(handles.listbox_readFilter,'Enable','off')
+		set(handles.push_readFile,'Enable','off')
+		set(handles.check_plotDate,'Enable','on')
+		
+		handles.data = varargin{2};
+		handles.date = varargin{3};
+	end
+
     if (~handMir.no_file && ~handMir.is_projected && ~handMir.geog)
         errordlg('This operation is only possible for geographic data OR when the Map Projection is known','ERROR')
         delete(hObject);    return
     end
-	move2side(handMir.figure1, hObject,'right');
 
 	handles.home_dir = handMir.home_dir;
 	handles.last_dir = handMir.last_dir;
@@ -46,28 +81,38 @@ function varargout = focal_meca(varargin)
 	zz = get(handles.mironeAxes,'YLim');
 	handles.y_min = zz(1);    handles.y_max = zz(2);
 
-	handles.date = [];
-	
-	% Import icons
-	f_data = [handMir.home_dir filesep 'data' filesep];
-	load([f_data 'mirone_icons.mat'],'Mfopen_ico');
-	set(handles.push_readFile,'CData',Mfopen_ico)
-	clear Mfopen_ico;
-	
-	% Fill the listbox fields with the currently available reading filters
-	%str = {'lon,lat,dep,strike,dip,rake,mag,[lon0,lat0,title]'; 'ISF formated catalog (ascii)';};
-	str = {'ISF formated catalog (ascii)';
-			'Aki & Richard''s convention file';
-			'Harvards''s CMT convention file';
-			'Harvards''s CMT .ndk file'};
-	set(handles.listbox_readFilter,'String',str);
-	set(handles.checkbox_plotDate,'Enable','off')
+	if (IamNew)
+		move2side(handMir.figure1, hObject,'right');
 
-    handles_fake.figure1 = handles.hMirFig;              % Create a fake handles only for
-    handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
-    handles_fake.geog = handMir.geog;
-    handles.handles_fake = handles_fake;
-    
+		% Import icons
+		f_data = [handMir.home_dir filesep 'data' filesep];
+		load([f_data 'mirone_icons.mat'],'Mfopen_ico');
+		set(handles.push_readFile,'CData',Mfopen_ico)
+		clear Mfopen_ico;
+
+		% Fill the listbox fields with the currently available reading filters
+		%str = {'lon,lat,dep,strike,dip,rake,mag,[lon0,lat0,title]'; 'ISF formated catalog (ascii)';};
+		str = {'ISF formated catalog (ascii)';
+				'Aki & Richard''s convention file';
+				'Harvards''s CMT convention file';
+				'Harvards''s CMT .ndk file'};
+		set(handles.listbox_readFilter,'String',str);
+
+		handles_fake.figure1 = handles.hMirFig;				% Create a fake handles only for
+		handles_fake.axes1 = handles.mironeAxes;			% geog2projected_pts() satisfaction
+		handles_fake.geog = handMir.geog;
+		handles.handles_fake = handles_fake;
+
+		%------------ Give a Pro look (3D) to the frame boxes  --------
+		new_frame3D(hObject, NaN)
+		%------------- END Pro look (3D) ------------------------------
+
+		% Add this figure handle to the carraças list
+		plugedWin = getappdata(handMir.figure1,'dependentFigs');
+		plugedWin = [plugedWin hObject];
+		setappdata(handMir.figure1,'dependentFigs',plugedWin);
+	end
+
     % See what about projection 
     if (handles.is_projected && handles.defCoordsIn > 0)        % We need a proj job here
         tmp = [handles.x_min handles.y_min; handles.x_max handles.y_max];
@@ -77,15 +122,6 @@ function varargout = focal_meca(varargin)
         y_min = tmp(1,2);           y_max = tmp(2,2);
         handles.lims_geogs = [x_min x_max y_min y_max];     % We'll need this if reading an external file
     end
-
-	%------------ Give a Pro look (3D) to the frame boxes  --------
-	new_frame3D(hObject, NaN)
-	%------------- END Pro look (3D) ------------------------------
-
-	% Add this figure handle to the carraças list
-	plugedWin = getappdata(handMir.figure1,'dependentFigs');
-	plugedWin = [plugedWin hObject];
-	setappdata(handMir.figure1,'dependentFigs',plugedWin);
 
 	set(hObject,'Visible','on');
 	if (nargout),	varargout{1} = hObject;		end
@@ -140,7 +176,7 @@ function push_readFile_CB(hObject, handles)
 	handles.date = [];			% Allways reset
 
 	try
-        set(handles.figure1,'Pointer','watch')
+        set(handles.FocMecWin,'Pointer','watch')
 		if (strcmp(filtro,'aki') || strcmp(filtro,'cmt'))      % Aki & Richard or CMT file
             [numeric_data,n_column,error] = read_file(fname);
             if (error),		return,		end
@@ -206,7 +242,7 @@ function push_readFile_CB(hObject, handles)
             [out_d,out_i] = read_isf(fname,opt_R,'-M');            
 			if (isempty(out_d))		% Nothing inside region
 				warndlg('Nope. No mechanisms in this file/region','Warning')
-				set(handles.figure1,'Pointer','arrow')
+				set(handles.FocMecWin,'Pointer','arrow')
 				return
 			end
 
@@ -227,7 +263,7 @@ function push_readFile_CB(hObject, handles)
 				handles.date{k} = sprintf('%d/%d/%d',double(out_i(3,k)), double(out_i(2,k)), double(out_i(1,k)));
             end
             clear out_i;
-            set(handles.checkbox_plotDate,'Enable','on')
+            set(handles.check_plotDate,'Enable','on')
 			
         elseif (strcmp(filtro,'ndk'))				% CMT .ndk formated catalog
 			[handles.data, handles.mantiss_exp, handles.date, error] = readHarvardCMT(fname);
@@ -238,7 +274,7 @@ function push_readFile_CB(hObject, handles)
 				mirone('FileNewBgFrame_CB', handMir, region + [-1 1 -1 1 0]*.1);		% Create a background
 			end
 			handles.plot_pos = handles.data(:,1:2);
-			set(handles.checkbox_plotDate,'Enable','on')
+			set(handles.check_plotDate,'Enable','on')
 
 		end
 
@@ -254,9 +290,9 @@ function push_readFile_CB(hObject, handles)
 		set(handles.edit_DepthMin,'String',num2str(floor(handles.usr_DepthMin)))
 		set(handles.edit_DepthMax,'String',num2str(ceil(handles.usr_DepthMax)))
 		guidata(hObject,handles)
-		set(handles.figure1,'Pointer','arrow')
+		set(handles.FocMecWin,'Pointer','arrow')
 	catch   % In case of error, set the pointer back to "normal" 
-		set(handles.figure1,'Pointer','arrow')
+		set(handles.FocMecWin,'Pointer','arrow')
 		w{1} = 'An error occured while reading file. Check that it has the apropriate format.';
 		w{2} = '';
 		w{3} = ['The error message was: ' lasterr];
@@ -292,7 +328,7 @@ function edit_DepthMax_CB(hObject, handles)
 	if (isnan(xx) || xx > 900),		set(hObject,'String','900');end
 
 % -------------------------------------------------------------------------------------
-function checkbox_depSlices_CB(hObject, handles)
+function check_depSlices_CB(hObject, handles)
 	if (get(hObject,'Value'))
 		set(handles.popup_dep0_33,'Enable','on');       set(handles.popup_dep33_70,'Enable','on')
 		set(handles.popup_dep70_150,'Enable','on');     set(handles.popup_dep150_300,'Enable','on')
@@ -309,21 +345,28 @@ function push_OK_CB(hObject, handles)
 	MagMax = str2double(get(handles.edit_MagMax,'String'));
 	DepthMin = str2double(get(handles.edit_DepthMin,'String'));
 	DepthMax = str2double(get(handles.edit_DepthMax,'String'));
-	item = get(handles.listbox_readFilter,'Value');             % Get the reading filter number
+	if (strcmp( get(handles.listbox_readFilter,'Enable'), 'off' ))	% Data was transmitted in input
+		item = 2;
+		handles.got_userFile = true;
+		handles.plot_pos = handles.data(:,1:2);
+	else
+		item = get(handles.listbox_readFilter,'Value');			% Get the reading filter number
+	end
+
 	switch item
         case 1,		filtro = 'isf';
         case 2,		filtro = 'aki';
         case 3,		filtro = 'cmt';
         case 4,		filtro = 'ndk';
 	end
-	
+
 	if (isnan(MagMin)),			MagMin = 1;         end
 	if (isnan(MagMax)),			MagMax = 10;        end
 	if (isnan(DepthMin)),		DepthMin = 0;       end
 	if (isnan(DepthMax)),		DepthMax = 900;     end
 
 	if (~handles.got_userFile)
-        errordlg('Plot What? Your christmas ballons?','Chico Clever');  return;
+		errordlg('Plot What? Your christmas ballons?','Chico Clever'),	return
 	end
 
 	% Retain only the requested interval
@@ -333,7 +376,7 @@ function push_OK_CB(hObject, handles)
 	if (strcmp(filtro,'aki'))
 		ind2 = (handles.data(:,7) < MagMin | handles.data(:,7) > MagMax);
 	else							% ISF catalog, CMT, CMT .ndk 
-		handles.mantiss_exp(ind1,:) = [];   % This risked to heve been left behind
+		handles.mantiss_exp(ind1,:) = [];	% This risked to heve been left behind
 		ind2 = (handles.data(:,10) < MagMin | handles.data(:,10) > MagMax);
 		handles.mantiss_exp(ind2,:) = [];
 	end
@@ -344,7 +387,7 @@ function push_OK_CB(hObject, handles)
         warndlg('There were no events left.','Warning');  return;
 	end
 
-	if (get(handles.checkbox_depSlices,'Value'))    % We have a depth slice request
+	if (get(handles.check_depSlices,'Value'))    % We have a depth slice request
 		do_depSlices = 1;
 		contents = get(handles.popup_dep0_33,'String');     cor_str{1} = contents{get(handles.popup_dep0_33,'Value')};
 		contents = get(handles.popup_dep33_70,'String');    cor_str{2} = contents{get(handles.popup_dep33_70,'Value')};
@@ -363,17 +406,18 @@ function push_OK_CB(hObject, handles)
 		[handles.plot_pos] = geog2projected_pts(handles.handles_fake,handles.plot_pos, lims);
     end
 
-% ------------ OK, now we are ready to plot the mechanisms
-oldunit = get(handles.mironeAxes,'Units');		set(handles.mironeAxes,'Units','centimeters')
-pos = get(handles.mironeAxes,'Position');		set(handles.mironeAxes,'Units',oldunit)
-y_lim = get(handles.mironeAxes,'YLim');
-handles.size_fac = (y_lim(2) - y_lim(1)) / (pos(4) - pos(2)) * 0.4;  % Scale facor
-Mag5 = get(handles.edit_Mag5,'String');			% Size (cm) of a mag 5 event
-handles.Mag5 = str2double(Mag5);
-setappdata(handles.hMirFig,'MecaMag5',Mag5)		% For eventual use in 'write_script'
-n_meca = size(handles.data(:,1),1);
-h_pat = zeros(n_meca,3);
-plot_text = get(handles.checkbox_plotDate,'Value');
+	% ------------ OK, now we are ready to plot the mechanisms
+	oldunit = get(handles.mironeAxes,'Units');		set(handles.mironeAxes,'Units','centimeters')
+	pos = get(handles.mironeAxes,'Position');		set(handles.mironeAxes,'Units',oldunit)
+	y_lim = get(handles.mironeAxes,'YLim');
+	handles.size_fac = (y_lim(2) - y_lim(1)) / (pos(4) - pos(2)) * 0.4;  % Scale facor
+	Mag5 = get(handles.edit_Mag5,'String');			% Size (cm) of a mag 5 event
+	handles.Mag5 = str2double(Mag5);
+	setappdata(handles.hMirFig,'MecaMag5',Mag5)		% For eventual use in 'write_script'
+	n_meca = size(handles.data(:,1),1);
+	h_pat = zeros(n_meca,3);
+	plot_text = get(handles.check_plotDate,'Value');
+
 for (k=1:n_meca)
 	if (strcmp(filtro,'aki'))
         [c,d] = patch_meca(handles.data(k,4), handles.data(k,5), handles.data(k,6));
@@ -392,7 +436,7 @@ for (k=1:n_meca)
     h_pat(k,3) = line('Parent',handles.mironeAxes,'XData',[handles.data(k,1) handles.plot_pos(k,1)], ...
         'YData',[handles.data(k,2) handles.plot_pos(k,2)], 'Linestyle','-', 'Marker','o', ...
         'MarkerSize',3, 'MarkerFaceColor','k', 'Tag','FocalMecaAnchor');
-    if (~do_depSlices)      % Paint all compressive quadrants with black
+    if (~do_depSlices)				% Paint all compressive quadrants with black
         h_pat(k,1) = patch('XData',cx,'YData',cy, 'Parent',handles.mironeAxes, 'FaceColor',[0 0 0],'Tag','FocalMeca');
     else
         cor = find_color(handles.data(k,3), cor_str);
@@ -400,8 +444,8 @@ for (k=1:n_meca)
     end
     h_pat(k,2) = patch('XData',dx, 'YData',dy, 'Parent',handles.mironeAxes, 'FaceColor',[1 1 1], 'Tag','FocalMeca');
 	ht = [];
-	if (~plot_text)          % Plot event text identifier (normaly its date)
-		offset = handles.size_fac * mag / 5 * (handles.Mag5 + 0.2);  % text offset regarding the beach ball (2 mm) 
+	if (plot_text)					% Plot event text identifier (normaly its date)
+		offset = handles.size_fac * mag / 5 * (handles.Mag5 + 0.2);		% text offset regarding the beach ball (2 mm) 
 		ht = text('Pos',[handles.plot_pos(k,1),handles.plot_pos(k,2)+offset],'Str',handles.date{k},'Parent',handles.mironeAxes, ...
 			'HorizontalAlignment','Center', 'VerticalAlignment','Bottom', 'FontSize',8, 'Tag','TextMeca');
 		draw_funs(ht,'DrawText');
@@ -540,6 +584,14 @@ function [data, mantiss_exp, eventDate, error] = readHarvardCMT(fname)
 		eventDate(k:nEvents) = [];
 	end
 
+% ------------------------------------------------------------------------------------	
+function hFig = findMe(tagFig)
+% H = findMe('tagFig') returns the fig handle of the figure whose tag is 'tagFig'
+	showBak = get(0,'ShowHiddenHandles');
+	set(0,'ShowHiddenHandles','on');
+	hFig = findobj(get(0,'Children'),'flat', 'tag',tagFig);
+	set(0,'ShowHiddenHandles',showBak);
+
 % ----------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
 	if isequal(get(hObject,'CurrentKey'),'escape')
@@ -557,8 +609,7 @@ set(h1,...
 'Name','Focal mechanisms',...
 'NumberTitle','off',...
 'Position',[520 445 390 355],...
-'Resize','off',...
-'Tag','figure1');
+'Resize','off');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -617,12 +668,12 @@ uicontrol('Parent',h1,...
 'Tooltip','The beach balls will be scaled to this value',...
 'Tag','edit_Mag5');
 
-uicontrol('Parent',h1,...
-'Position',[69 208 115 15],...
+uicontrol('Parent',h1, 'Position',[69 208 115 15],...
 'String','Plot event date',...
 'Style','checkbox',...
 'Tooltip','Plot time information',...
-'Tag','checkbox_plotDate');
+'Enable','off',...
+'Tag','check_plotDate');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -642,12 +693,12 @@ uicontrol('Parent',h1,...
 'Tag','edit_DepthMax');
 
 uicontrol('Parent',h1,...
-'Call',{@focal_meca_uiCB,h1,'checkbox_depSlices_CB'},...
+'Call',{@focal_meca_uiCB,h1,'check_depSlices_CB'},...
 'Position',[19 110 230 15],...
 'String','Use different colors for depth intervals',...
 'Style','checkbox',...
 'Tooltip','Destinguish the epicenter depths by color',...
-'Tag','checkbox_depSlices');
+'Tag','check_depSlices');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
