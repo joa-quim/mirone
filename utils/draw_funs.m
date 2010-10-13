@@ -272,6 +272,7 @@ if (IS_RECTANGLE)
 	uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Call', @Transplant_Image);
 	if (handles.geog)
 		uimenu(cmenuHand, 'Label', 'Get image from Web Map Server', 'Call', 'wms_tool(gco)');
+		uimenu(cmenuHand, 'Label', 'CMT Catalog (Web download)', 'Call', 'globalcmt(gcf,gco)');
 	end
 	if (handles.validGrid)    % Option only available to recognized grids
 		item_tools = uimenu(cmenuHand, 'Label', 'Crop Tools','Sep','on');
