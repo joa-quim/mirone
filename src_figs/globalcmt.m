@@ -107,22 +107,27 @@ function edit_MagMwMin_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------
 function edit_MagMwMax_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
 	if (isnan(xx) || xx < 0 || xx > 10),	set(hObject,'String','10'),	end
 
 % -------------------------------------------------------------------------------------
 function edit_MagMsMin_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
 	if (isnan(xx) || xx < 0 || xx > 10),	set(hObject,'String','0'),	end
 
 % -------------------------------------------------------------------------------------
 function edit_MagMsMax_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
 	if (isnan(xx) || xx < 0 || xx > 10),	set(hObject,'String','10'),	end
 
 % -------------------------------------------------------------------------------------
 function edit_MagMbMin_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
 	if (isnan(xx) || xx < 0 || xx > 10),	set(hObject,'String','0'),	end
 
 % -------------------------------------------------------------------------------------
 function edit_MagMbMax_CB(hObject, handles)
+	xx = str2double(get(hObject,'String'));
 	if (isnan(xx) || xx < 0 || xx > 10),	set(hObject,'String','10'),	end
 
 % -------------------------------------------------------------------------------------
