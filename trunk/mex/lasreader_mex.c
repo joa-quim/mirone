@@ -1,5 +1,5 @@
 /*
- * $Id$
+ * $Id: $
  *      Coffeeright (c) 2002-2010 by J. Luis
  *
  *      This program is free software; you can redistribute it and/or modify
