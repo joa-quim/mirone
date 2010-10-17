@@ -106,7 +106,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	nBufXSize, nBufYSize, jump = 0, *whichBands = NULL, *nVector, *mVector;
 	int	n_commas, n_dash, nX, nY;
 	int	nXSize = 0, nYSize = 0;
-	char	*tmp, *outByte;
+	char	*tmp, *outByte, *p;
 	static int runed_once = FALSE;	/* It will be set to true if reaches end of main */
 	float	*tmpF32, *outF32;
 	double	dfNoData, range, aux, adfMinMax[2];
@@ -156,6 +156,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'C':
 					correct_bounds = TRUE;
 					break;
+				case 'c':
+					p = &argv[i][2];
+					if ((p = strchr(p, '/')) == NULL) {
+						mexPrintf("Error using option -c. It must be on the form -c<key>/value\n");
+					}
+					else {
+						*p = '\0';	*p++;
+						CPLSetConfigOption( &argv[i][2], p ); 
+						mexPrintf("key = %s\tval = %s\n",&argv[i][2], p);
+					}
+					break;
 				case 'F':
 					pixel_reg = TRUE;
 					break;
@@ -193,11 +204,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (error || nrhs < 1 || nlhs > 2) {
-		mexPrintf ("usage(s): z = gdalread('filename','[-C]','[-F]','[-I[size]]','[-M]','[-Rw/e/s/n]','[-S]','[-U]);\n");
-		mexPrintf (" 	  [z,attrib] = gdalread('filename','[-C]','[-F]','[-I[size]]',[-L],'[-Rw/e/s/n]','[-M]','[-S]','[-U]);\n");
-		mexPrintf (" 	  attrib     = gdalread('','-M');\n\n");
+		mexPrintf ("usage(s): z = gdalread('filename',['-C'],['-F'],['-I[size]'],['-Rw/e/s/n']);\n");
+		mexPrintf ("                       ['-S'],['-U'], ['-c<key>/<value>']);\n");
+		mexPrintf (" 	 [z,attrib] = gdalread('filename', ...);\n");
+		mexPrintf (" 	 attrib     = gdalread('','-M');\n\n");
 		mexPrintf ("\t   attrib is a structure with metadata.\n");
 		mexPrintf ("\t-C correct the grid bounds reported by GDAL (it thinks that all grids are pixel registered)\n");
+		mexPrintf ("\t-c Sets the named configuration keyword to the given value. Some common configuration\n");
+		mexPrintf ("\t   keywords are GDAL_CACHEMAX (memory used internally for caching in megabytes) and\n");
+		mexPrintf ("\t   GDAL_DATA (path of the GDAL 'data' directory)\n");
 		mexPrintf ("\t-F force pixel registration in attrib.GMT_hdr\n");
 		mexPrintf ("\t-I force importing via the 'insitu' transposition (about 10 times slower)\n");
 		mexPrintf ("\t-L flip the grid LeftRight (For the time being, ignored if -U).\n");
