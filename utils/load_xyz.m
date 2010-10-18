@@ -251,7 +251,10 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 
 		% If OUT is requested there is nothing left to be done here  
-		if (nargout),		[varargout{1:nargout}] = numeric_data;		return,		end
+		if (nargout)
+			if (orig_no_mseg),		numeric_data = numeric_data{1};		end
+			[varargout{1:nargout}] = numeric_data;		return
+		end
 
 		drawnow
 		for (i = 1:n_segments)
