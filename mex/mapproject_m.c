@@ -66,7 +66,7 @@ void lon_range_adjust (int range, double *lon);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_LONG	i, j, k, n = 0, n_files = 0, unit = 0, n_slash, g_report = 0;
-	GMT_LONG	n_fields, distance = 0, proj_type = 0, save[2], n_lines = 0, two;
+	GMT_LONG	n_fields, distance = 0, proj_type = 0, save[2], two;
 	
 	int error = FALSE, inverse = FALSE, suppress = FALSE, one_to_one = FALSE, ECEF_conv = FALSE;
 	int map_center = FALSE, nofile = TRUE, done = FALSE, first = TRUE, datum_conv = FALSE;
@@ -78,7 +78,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double *in, *out, fwd_scale, inv_scale, xtmp, ytmp;
 	double x_in_min, x_in_max, y_in_min, y_in_max, inch_to_unit, unit_to_inch;
 	double x_out_min, x_out_max, y_out_min, y_out_max, u_scale, d_scale;
-	double false_easting = 0.0, false_northing = 0.0;
+	double xnear, ynear, false_easting = 0.0, false_northing = 0.0;
 	
 	char line_file[BUFSIZ], unit_name[80], scale_unit_name[80];
 	char txt_a[32], txt_b[32], c;
@@ -88,7 +88,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	struct GMT_DATUM T_from;
 	struct GMT_DATUM T_to;
 
-	int	argc = 0, n_arg_no_char = 0, n_pts, range = -1;
+	int	argc = 0, n_arg_no_char = 0, n_pts, range = -1, n_comp_here = 1;
 	char	**argv;
 	double	*in_m, *out_m, *pdata;
 	mxArray *cell_array_ptr;
@@ -351,7 +351,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		error++;
 	}
 
-	if (error) return;
+	if (error) mexErrMsgTxt ("\n");
 
 	if (nlhs == 0)
 		mexErrMsgTxt("MAPPROJECT ERROR: Must provide an output.\n");
@@ -490,11 +490,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		x0 = xtmp;
 		y0 = ytmp;
 	}
-	
-	if ((out_m = mxCalloc(n_pts * (n_fields+1), sizeof (double))) == 0) {
-		mexPrintf("MAPPROJECT ERROR: Could not allocate memory\n");
-		return;
-	}
+
+	n_comp_here = (do_line_dist) ? 3 : 1;	/* Number of vars computed here and to be output */
+
+	if ((out_m = mxCalloc(n_pts * (n_fields+n_comp_here), sizeof (double))) == 0)
+		mexErrMsgTxt("MAPPROJECT ERROR: Could not allocate memory\n");
 
 	for (i = 0; i < n_pts; i++) {
 		
@@ -558,7 +558,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 			}
 
-			if (!out) out = mxCalloc (n_fields+1, sizeof (double));
+			if (!out) out = mxCalloc (n_fields+n_comp_here, sizeof (double));
 			if (!in) in = mxCalloc (n_fields, sizeof (double));
 			for (k = 0; k < n_fields; k++)		/* copy the ith line to a temporary var*/
 				in[k] = in_m[i+k*n_pts];
@@ -570,6 +570,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 			else if (ECEF_conv) {
 				GMT_ECEF_forward (in, out);
+			}
+			else if (do_line_dist && proj_type != 2) {	/* Do nothing below as we are not using "out" */
 			}
 			else {
 				if (double_whammy) {	/* Apply datum shift first */
@@ -627,9 +629,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 				else if (do_line_dist) {	/* Compute closest distance to line */
 					if (proj_type == 2)	/* Using projected coordinates */
-						(void *) near_a_line (out[0], out[1], xyline, n_lines, TRUE, &d);
+						(void *) near_a_line (out[0], out[1], xyline, 2, &d, &xnear, &ynear);
 					else			/* Using input coordinates */
-						(void *) near_a_line (in[0], in[1], xyline, n_lines, TRUE, &d);
+						(void *) near_a_line (in[0], in[1], xyline, 2, &d, &xnear, &ynear);
 					d *= d_scale;
 				}
 				else {	/* Azimuths */
@@ -637,8 +639,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 
 				/* Simply copy other columns and output */
-				for (k = 0; k < n_fields; k++) out_m[k*n_pts+i] = in_m[k];
+				for (k = 0; k < n_fields; k++) out_m[k*n_pts+i] = in[k];
 				out_m[n_fields*n_pts+i] = d;
+				if (do_line_dist) { 
+					out_m[(n_fields+1)*n_pts+i] = xnear;
+					out_m[(n_fields+2)*n_pts+i] = ynear;
+				}
 			}
 			else {
 				/* Simply copy other columns and output */
@@ -653,7 +659,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_end (argc, argv);
 
 	if (geodetic_calc)
-		k = n_fields + 1;
+		k = n_fields + n_comp_here;
 	else
 		k = n_fields;
 	plhs[0] = mxCreateDoubleMatrix (n_pts,k, mxREAL);
