@@ -172,7 +172,8 @@ function set_line_uicontext(h,opt)
 % h is a handle to a line object (that can be closed)
 	if (isempty(h)),	return,		end
 
-	IS_SEISPOLYGON = false;     % Seismicity polygons have special options
+	IS_SEISPOLYGON = false;		% Seismicity Polygons have special options
+	IS_SEISMICLINE = false;		% Seismicity Lines have special options
 	LINE_ISCLOSED = false;		IS_RECTANGLE = false;	IS_PATCH = false;
 	IS_ARROW = false;
 	% Check to see if we are dealing with a closed polyline
@@ -183,11 +184,13 @@ function set_line_uicontext(h,opt)
 		if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 			IS_RECTANGLE = true;	
 		end  
-		if (strcmp(get(h,'Tag'),'SeismicityPolygon')),  IS_SEISPOLYGON = true;    end
+		if (strcmp(get(h,'Tag'),'SeismicPolyg')),	IS_SEISPOLYGON = true;	end
 	end
 	if (strcmp(get(h,'Type'),'patch')),
 		IS_PATCH = true;
 		if (IS_PATCH && ~LINE_ISCLOSED),	LINE_ISCLOSED = true;	end
+	elseif (strcmp(get(h,'Tag'),'SeismicLine'))
+		IS_SEISMICLINE = true;
 	end
 
 	handles = guidata(get(h,'Parent'));             % Get Mirone handles
@@ -230,7 +233,7 @@ function set_line_uicontext(h,opt)
 		end
 		uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
 	end
-	if (~IS_SEISPOLYGON&& ~IS_ARROW),	uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength);		end
+	if (~IS_SEISPOLYGON && ~IS_ARROW),	uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength);		end
 	if (IS_MBTRACK),			uimenu(cmenuHand, 'Label', 'All tracks length', 'Call', @show_AllTrackLength);	end
 	if (~IS_SEISPOLYGON && ~IS_RECTANGLE),	uimenu(cmenuHand, 'Label', label_azim, 'Call', @show_lineAzims);	end
 
@@ -344,7 +347,69 @@ if (IS_SEISPOLYGON)                         % Seismicity options
 	uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Call', 'histos_seis(gco,''BV'')');
 	uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gco,''OL'')');
 	%uimenu(cmenuHand, 'Label', 'Skell', 'Call', 'esqueleto_tmp(gco)','Sep','on');
+elseif (IS_SEISMICLINE)
+	uimenu(cmenuHand, 'Label', 'Set buffer zone', 'Call', {@seismic_line,h,'buf'}, 'Sep','on');
+	uimenu(cmenuHand, 'Label', 'Project seismicity', 'Call', {@seismic_line,h,'proj'}, 'Enable','off');
 end
+
+% -----------------------------------------------------------------------------------------
+function seismic_line(obj,evt,hL,opt)
+% Plot seismicity projected along a polyline and enclosed inside a buffer zone of that pline
+	handles = guidata(hL);
+	hP = get(hL, 'UserData');	% handle to the buffer zone (if not exist, will be created later)
+	if (opt(1) == 'b')		% Create or expand a buffer zone
+		resp = inputdlg('Width of buffer zone (deg)','Buffer width',[1 30],{'0.5'});
+		if isempty(resp),	return,		end
+		[y, x] = buffer_j(get(hL, 'ydata'), get(hL, 'xdata'), str2double(resp{1}), 'out', 13, 1);
+		if (isempty(x)),	return,		end
+		if (isempty(hP) || ~ishandle(hP))
+			hP = patch('XData',x, 'YData',y, 'Parent',handles.axes1, 'EdgeColor',handles.DefLineColor, ...
+				'FaceColor','none', 'LineWidth',handles.DefLineThick+1, 'Tag','SeismicBuffer');
+			uistack_j(hP,'bottom'),		draw_funs(hP,'line_uicontext')
+			set(hL, 'UserData', hP)			% Save it there to ease its later retrival
+		else
+			set(hP,'XData',x, 'YData',y)	% Buffer already existed, just resize it
+		end
+		h = findobj(get(obj,'Parent'),'Label','Project seismicity');
+		set(h, 'Enable','on')
+	else					% Project seismicity along the seismic line
+		if (isempty(hP) || ~ishandle(hP))
+			errordlg('Buffer zone is vanished, so what do you want me to do? Bye.','Error'),	return
+		end
+		hS = findobj(handles.axes1,'Tag','Earthquakes');
+		if (isempty(hS))
+			errordlg('Project what? The seismicity is gone. Bye Bye.','Chico Clever'),	return
+		end
+
+		x = get(hS,'XData');	y = get(hS,'YData');
+		IN = inpolygon(x,y, get(hP,'XData'),get(hP,'YData'));	% Find events inside the buffer zone
+		x = x(IN);				y = y(IN);
+		if (isempty(x))
+			errordlg('Cou Cou. There are no seisms inside this zone. Bye Bye.','Chico Clever'),	return
+		end
+		
+		xL = get(hL, 'xdata');	yL = get(hL, 'ydata');
+		f_name = [handles.path_tmp 'lixo.dat'];
+		double2ascii(f_name,[xL(:) yL(:)],'%f\t%f');		% Save as file so we can use it mapproject
+		out = mapproject_m([x(:) y(:)], ['-L' f_name]);
+        evt_time = (getappdata(hS,'SeismicityTime'))';		% Get events time
+		evt_time = evt_time(IN);
+
+		% Sort along dimension that has larger extent
+		if ( abs(xL(end) - xL(1)) > abs(yL(end) - yL(1)) )
+			[x, ind] = sort(out(:,4));		y = out(ind,5);
+		else
+			[y, ind] = sort(out(:,5));		x = out(ind,4);
+		end
+
+		x = (x*111.1949) .* cos(y*pi/180);	y = y * 111.1949;	% Convert to km	
+		xd = diff(x);		yd = diff(y);	clear x y
+		tmp = sqrt(xd.*xd + yd.*yd);		clear xd yd
+		rd = [0; cumsum(tmp(:))];			clear tmp
+		figure;		plot(evt_time(ind), rd, '.')
+		%evt_mag  = (double(getappdata(hS,'SeismicityMag')) / 10)';
+		%evt_dep  = (double(getappdata(hS,'SeismicityDepth')) / 10)';
+	end
 	
 % -----------------------------------------------------------------------------------------
 function copy_line_object(obj,evt,hFig,hAxes)
@@ -1844,7 +1909,7 @@ function set_symbol_uicontext(h,data)
 if (isempty(h)),	return,		end
 tag = get(h,'Tag');
 if (isa(tag, 'cell'))	tag = tag{1};	end
-if (numel(h) == 1 && length(get(h,'Xdata')) > 1)
+if (numel(h) == 1 && length(get(h,'XData')) > 1)
 	more_than_one = 1;		% Flags that h points to a multi-vertice object
 else
 	more_than_one = 0;
@@ -1924,7 +1989,9 @@ if (seismicity_options)
 	uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,gco)', 'Sep','on');
 	uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Call', 'animate_seismicity(gcf,gco)');
 	uimenu(cmenuHand, 'Label', 'Draw polygon', 'Call', ...
-		'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''SeismicityPolygon'')');
+		'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''SeismicPolyg'')');
+	uimenu(cmenuHand, 'Label', 'Draw seismic line', 'Call', ...
+		'mirone(''DrawLine_CB'',guidata(gcbo),''SeismicLine'')');
 	itemHist = uimenu(cmenuHand, 'Label','Histograms');
 	uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
 	uimenu(itemHist, 'Label', 'Cumulative number', 'Call', 'histos_seis(gco,''CH'')');
@@ -2023,14 +2090,13 @@ if (~isempty(labelType))
 			xx = [x_str.dd ':' x_str.mm ':' x_str.ss];
 			yy = [y_str.dd ':' y_str.mm ':' y_str.ss];
 		otherwise
-			xx = num2str(xx);    yy = num2str(yy);
+			xx = sprintf('%.9g',xx);		yy = sprintf('%.9g',yy);
 	end
 else   
-	xx = num2str(xx);    yy = num2str(yy);
+	xx = sprintf('%.9g',xx);		sprintf('%.9g',yy);
 end
 
 prompt = {'Enter new lon (or x)' ,'Enter new lat (or y)'};
-%resp  = inputdlg(prompt,'Move symbol',[1 30; 1 30],{num2str(xx) num2str(yy)});
 resp  = inputdlg(prompt,'Move symbol',[1 30; 1 30],{xx yy});
 if isempty(resp);    return;     end
 
