@@ -120,6 +120,9 @@ data/gdal_data/epsg.wkt -text
 data/gdal_data/esri_extra.wkt -text
 data/gdal_data/gcs.csv -text
 data/gdal_data/gdal_datum.csv -text
+data/gdal_data/gt_datum.csv -text
+data/gdal_data/gt_ellips.csv -text
+data/gdal_data/header.dxf -text
 data/gdal_data/naming_system.csv -text
 data/gdal_data/pcs.csv -text
 data/gdal_data/prime_meridian.csv -text
@@ -135,8 +138,11 @@ data/gdal_data/s57objectclasses_iw.csv -text
 data/gdal_data/seed_2d.dgn -text
 data/gdal_data/seed_3d.dgn -text
 data/gdal_data/stateplane.csv -text
+data/gdal_data/trailer.dxf -text
 data/gdal_data/unit_of_measure.csv -text
 data/gdal_data/version_history.csv -text
+data/gdal_data/vertcs.csv -text
+data/gdal_data/vertcs.override.csv -text
 data/ghost.gif -text
 data/gimp256.mat -text
 data/gmt_other_palettes.mat -text
