@@ -23,14 +23,14 @@ REM Author: Joaquim Luis, 09-MAY-2010
 REM --------------------------------------------------------------------------------------
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
-SET CC=cl
+SET CC=icl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
 SET R13="no"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
-SET WIN64="yes"
+SET WIN64="no"
 
 REM The MSVC version. I use this var to select libraries also compiled with this compiler
 SET MSVC_VER="1600"
@@ -41,6 +41,13 @@ SET MEX_EXT="mexw32"
 REM If set some MEXs will print the execution time (in CPU ticks)
 REM SET TIMEIT=-DMIR_TIMEIT
 SET TIMEIT=
+
+REM
+REM Set to "yes" if you want to build a debug version
+SET DEBUG="no"
+REM
+SET LDEBUG=
+IF %DEBUG%=="yes" SET LDEBUG=/debug
 
 REM --- Next allows compiling with the compiler you want against the ML6.5 libs (needed in stand-alone version)
 IF %R13%=="yes" (
@@ -124,12 +131,12 @@ REM link /out:"test_gmt.mexw32" /dll /export:mexFunction /LIBPATH:"C:\PROGRAMS\M
 REM cl  -DWIN32 /c /Zp8 /GR /W3 /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD /FoC:\TMP\MEX_IF~1\test_gmt.obj -IC:\PROGRAMS\MATLAB\R2009B\extern\include /O2 /Oy- /DNDEBUG -DMX_COMPAT_32 test_gmt.c 
 
 SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD 
-SET OPTIMFLAGS=/Ox /Oy- /DNDEBUG 
-SET DEBUGFLAGS=/Z7 
+IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /Oy- /DNDEBUG
+IF %DEBUG%=="yes" SET OPTIMFLAGS=/Z7
 
 IF %WIN64%=="yes" SET arc=X64
 IF %WIN64%=="no" SET arc=X86
-SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:%arc% kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /incremental:NO
+SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:%arc% kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /incremental:NO %LDEBUG%
 
 IF %1==GMT  GOTO GMT
 IF %1==GDAL GOTO GDAL
