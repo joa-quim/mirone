@@ -17,33 +17,33 @@ function histos_seis(h_polyg,opt)
 h_mir_fig = gcf;
 h_events = findobj(h_mir_fig,'Tag','Earthquakes');
 if (any(strcmp( opt,{'GR' 'CM' 'MH' 'TM' 'HT'}) ))
-    events_mag = double(getFromAppdata(h_events,'SeismicityMag')) / 10;
-    if (isempty(events_mag)),       return;     end
+	events_mag = double(getFromAppdata(h_events,'SeismicityMag')) / 10;
+	if (isempty(events_mag)),		return,		end
 else
-    events_time = getFromAppdata(h_events,'SeismicityTime');
-    if (isempty(events_time)),       return;     end
+	events_time = getFromAppdata(h_events,'SeismicityTime');
+	if (isempty(events_time)),		return,		end
 end
-tag = get(h_polyg,'tag');       IN = [];
+tag = get(h_polyg,'tag');		IN = [];
 set(h_mir_fig,'pointer','watch')
-if (strcmp(tag,'SeismicityPolygon'))                % Case of a closed polygon
-    x = get(h_events,'XData');      y = get(h_events,'YData');
-    if (iscell(x))
-        x = cat(2,x{:});        y = cat(2,y{:});
-    end
-    IN = inpolygon(x,y,get(h_polyg,'XData'),get(h_polyg,'YData'));
+if (strcmp(tag,'SeismicPolyg'))			% Case of a closed polygon
+	x = get(h_events,'XData');		y = get(h_events,'YData');
+	if (iscell(x))
+		x = cat(2,x{:});			y = cat(2,y{:});
+	end
+	IN = inpolygon(x,y,get(h_polyg,'XData'),get(h_polyg,'YData'));
 end
 
-if (~strcmp(opt,'BV') && ~strcmp(opt,'OL'))          % The 'BV' option creates its own window
-    h_fig = figure('NumberTitle','off','Visible','off','Color',get(0,'factoryUicontrolBackgroundColor'));
+if (~strcmp(opt,'BV') && ~strcmp(opt,'OL'))			% The 'BV' option creates its own window
+	h_fig = figure('NumberTitle','off','Visible','off','Color',get(0,'factoryUicontrolBackgroundColor'));
 end
 
-if (strcmp(opt,'GR'))           % Gutt & Richter
+if (strcmp(opt,'GR'))			% Gutt & Richter
     if (~isempty(IN)),      events_mag(~IN) = [];   end         % INpolygon option was used
-    minmag = min(events_mag);       maxmag = ceil(10*max(events_mag))/10;
-    if (minmag > 100)           % Hydrofone SL magnitude
-        X = minmag:1:maxmag;
-    else
-        X = minmag:0.1:maxmag;
+    minmag = min(events_mag);	maxmag = ceil(10*max(events_mag))/10;
+    if (minmag > 100)			% Hydrofone SL magnitude
+		X = minmag:1:maxmag;
+	else
+		X = minmag:0.1:maxmag;
     end
     N = histo_m('hist',events_mag,X);
     N = cumsum(N(length(N):-1:1));    % N for M >= (counted backwards)
