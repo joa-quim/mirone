@@ -2131,8 +2131,8 @@ function DrawLine_CB(handles, opt)
 	if (handles.no_file),	return,		end
 	if (nargin == 1),		opt = [];	end
 	% The following is a necessary patch against two big stupidities.
-	% First is from the user that double-clicked on the line icon
-	% Second is from Matlab that doesn't lets us test a double-click on a uipushtool
+	% First one is from the user that double-clicked on the line icon
+	% Second is from Matlab that doesn't let us test a double-click on a uipushtool
 	if ( ~isempty(getappdata(handles.figure1, 'fromGL')) ),		return,		end
 	zoom_state(handles,'maybe_off');
 
@@ -2170,6 +2170,8 @@ function DrawLine_CB(handles, opt)
 		else					register_img(handles,h)
 		end
 		return
+	elseif (strcmp(opt,'SeismicLine'))
+		h = line('XData', xp, 'YData', yp,'Color','y','LineWidth',5,'Tag','SeismicLine');
 	else
 		if (xp(1) == xp(end) && yp(1) == yp(end))	% If line was close by hiting 'c'
 			h = patch('XData',xp,'YData',yp,'FaceColor','none','EdgeColor',handles.DefLineColor,...
@@ -2183,6 +2185,7 @@ function DrawLine_CB(handles, opt)
 
 % --------------------------------------------------------------------
 function Draw_CB(handles, tipo, smb)
+% Draw text, arrows & symbols
 	if (handles.no_file),	return,		end
 	zoom_state(handles,'maybe_off');
 	if (strcmp(tipo, 'Vector'))
@@ -2202,7 +2205,7 @@ function Draw_CB(handles, tipo, smb)
 function DrawClosedPolygon_CB(handles, opt)
 % OPT = [] Draw a closed polygon and exit
 % OPT = 'EulerTrapezium' Draw a trapezium (only 4 sides => 5 pts). Used to fast compute an Euler pole
-% OPT = 'SeismicityPolygon' Draw a closed polygon to which special seismicity opts will be added.
+% OPT = 'SeismicPolyg' Draw a closed polygon to which special seismicity opts will be added.
 % OPT = 'from_ROI' Draw a closed polygon and call the ROI operations window
 % OPT = 'rectangle' Draw a rectangle
 % OPT = h (where h is a line handle) Calls the ROI operations window to operate on the polygon
@@ -2215,15 +2218,15 @@ function DrawClosedPolygon_CB(handles, opt)
 	% Second is from Matlab that doesn't lets us test a double-click on a uipushtool
 	if ( strcmp(get(handles.figure1,'Pointer'), 'crosshair') ),		return,		end
 
-	if ( isempty(opt) || any(strcmp(opt,{'from_ROI' 'EulerTrapezium' 'SeismicityPolygon'})) )
+	if ( isempty(opt) || any(strcmp(opt,{'from_ROI' 'EulerTrapezium' 'SeismicPolyg'})) )
 		zoom_state(handles,'maybe_off');
 		[xp,yp] = getline_j(handles.figure1,'closed');		n_nodes = length(xp);
 		if (n_nodes < 4),	return,		end			% 4 because a straight line has 3 vertex (last one repeats)
 		if (strcmp(opt,'EulerTrapezium') && n_nodes ~= 5)
 			errordlg('OK, I won''t insult you this time. Just RTFM or don''t use this option','Error'),		return
 		end
-		if (strcmp(opt,'EulerTrapezium')),  tag = 'EulerTrapezium';
-		elseif (strcmp(opt,'SeismicityPolygon')),  tag = 'SeismicityPolygon';
+		if (strcmp(opt,'EulerTrapezium')),  tag = opt;
+		elseif (strcmp(opt,'SeismicPolyg')),  tag = opt;
 		else								tag = 'Closedpolygon';
 		end
 		zoom_state(handles,'maybe_on');
@@ -2232,7 +2235,8 @@ function DrawClosedPolygon_CB(handles, opt)
 		h = patch('XData',xp,'YData',yp,'FaceColor','none','EdgeColor',handles.DefLineColor,...
 			'LineWidth',handles.DefLineThick,'Tag',tag);
 		draw_funs(h,'line_uicontext')		% Set lines's uicontextmenu
-		if (isempty(opt) || any(strcmp(tag,{'EulerTrapezium' 'SeismicityPolygon'}))),	return,		end		% We are done in this mode (just draw a closed polygon)
+		% We are done in this mode (just draw a closed polygon)
+		if (isempty(opt) || any(strcmp(tag,{'EulerTrapezium' 'SeismicPolyg'}))),	return,		end
 		% If we come here it's because ROI operations were chosen
 		roi_image_operations(handles.axes1,[xp(:),yp(:)])
 	elseif (strcmp(opt,'from_uicontext'))
@@ -3688,7 +3692,9 @@ elseif (strcmp(opt,'Ctrl-c'))
 
 elseif (strcmp(opt,'Ctrl-v'))
 	h = getappdata(0, 'CtrlCHandle');	% Get what's in this root's appdata
-	if (isempty(h) || ~ishandle(h(1)) || h(end) == handles.figure1),	return,		end
+	if (isempty(h) || ~ishandle(h(1)) || h(end) == handles.figure1)
+		set(handles.figure1,'pointer','arrow'),		return
+	end
 	draw_funs(h(1), 'Ctrl_v', [], [h(1) handles.axes1])		% Complicated due to transitional form of draw_funs
 
 elseif (strncmp(opt,'flip',4))		% LR or UP image flipage. OPT = flipLR or flipUD
