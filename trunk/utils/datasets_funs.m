@@ -768,20 +768,20 @@ for (k = 1:numel(names))
 
 		if (i == 1)
 			[thick, corW, multi_segs_str{i}] = parseW(multi_segs_str{i});   % Search EdgeColor and thickness
-			if (isempty(thick)),    thick = 0.5;    end     % IF not provided, use default
-			if (isempty(corW)),     corW = 'k';     end     %           "
+			if (isempty(thick)),    thick = 0.5;    end		% IF not provided, use default
+			if (isempty(corW)),     corW = 'k';     end		%           "
 			[corFill, multi_segs_str{i}] = parseG(multi_segs_str{i});       % Search Fill color
 			[symbol, dim, multi_segs_str{i}] = parseS(multi_segs_str{i});   % Search Symbols
-			tag = parseT(multi_segs_str{i});                % See if we have a tag
+			tag = parseT(multi_segs_str{i});				% See if we have a tag
 		else
-			found = parseIqual(multi_segs_str{i});      % First see if symbol is the same
-			if (~found)                                 % No, it isn't. So get the new one
+			found = parseIqual(multi_segs_str{i});		% First see if symbol is the same
+			if (~found)									% No, it isn't. So get the new one
 				[thick, corW, multi_segs_str{i}] = parseW(multi_segs_str{i});
 				if (isempty(thick)),    thick = 0.5;    end
 				if (isempty(corW)),     corW = 'k';     end
 				[corFill, multi_segs_str{i}] = parseG(multi_segs_str{i});
 				[symbol, dim, multi_segs_str{i}] = parseS(multi_segs_str{i});
-				tag = parseT(multi_segs_str{i});        % See if we have a tag
+				tag = parseT(multi_segs_str{i});		% See if we have a tag
 			end
 		end
 
@@ -799,7 +799,10 @@ for (k = 1:numel(names))
 					'Marker',symbol,'Color',corW,'MarkerFaceColor',corFill,'MarkerSize',dim,'LineStyle','none');
 			end
 		end
-		setUIs(handles, h)
+		if ( numel(multi_segs_str{i}) > 2),		hdr_seg = multi_segs_str{i}(3:end);
+		else									hdr_seg = [];
+		end
+		setUIs(handles, h, hdr_seg)
 	end
 end
 
@@ -858,12 +861,16 @@ function GTilesMap(handles)
 % 	end
 
 % ------------------------------------------------------------------------------------
-function setUIs(handles,h)
+function setUIs(handles, h, hdr)
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	for (k = 1:numel(h))
-		set(h(k), 'UIContextMenu', cmenuHand);
-		uimenu(cmenuHand, 'Label', 'Delete this', 'Callback', {@del_line,h});
-		uimenu(cmenuHand, 'Label', 'Delete all', 'Callback', {@del_all,handles,h});
+		set(h(k), 'UIContextMenu', cmenuHand)
+		if (~isempty(hdr))
+			set(h,'UserData',hdr)
+			uimenu(cmenuHand, 'Label', 'Info', 'Call', 'msgbox( get(gco,''UserData''),''Symbol info'' )')
+		end
+		uimenu(cmenuHand, 'Label', 'Delete this', 'Call', {@del_line,h})
+		uimenu(cmenuHand, 'Label', 'Delete all', 'Call', {@del_all,handles,h})
 		ui_edit_polygon(h(k))
 	end
 
