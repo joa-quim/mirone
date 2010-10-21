@@ -79,7 +79,7 @@ switch opt
 		end
 end
 % Now short-cuted:
-% 'DrawVector', 'MagBarCode' 'Ctrl_v' 'DrawGreatCircle' 'DrawCartesianCircle' 'loc_quiver'
+% 'DrawVector', 'magbarcode' 'Ctrl_v' 'DrawGreatCircle' 'DrawCartesianCircle' 'loc_quiver'
 
 % -----------------------------------------------------------------------------------------
 function Ctrl_v(h)
