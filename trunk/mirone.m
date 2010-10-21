@@ -53,7 +53,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %----- These is for write_gmt_script
 %#function draw_scale time_stamp pscoast_options_Mir paint_option w_option
 %----- Those are ..., the hell with explanations for what I don't realy understand. They are needed, that's all.
-%#function gmtlist_m country_select read_isf choosebox MagBarCode listbox_message add_poles animate_seismicity
+%#function gmtlist_m country_select read_isf choosebox magbarcode listbox_message add_poles animate_seismicity
 %#function get_polygon rot_euler datums telha_m find_clusters fft_stuff select_cols uistack_j smoothing_param
 %#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j iptchecknargin
 %#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line move_obj make_arrow
@@ -3745,7 +3745,7 @@ elseif (strcmp(opt,'scatter'))
 	n_cols = getappdata(handles.figure1,'callScatterWin');		% return here to pass control to scatter_plot()
 	if (n_cols >= 3)		% Came back from datasets_funs() without doing anything
 		scatter_plot(handles,[PathName,FileName]);
-	else
+	elseif (n_cols == 1 || n_cols == 2)
 		errordlg('File must contain at least three columns OR ''>...'' multi-seg info.','Error')
 	end
 
