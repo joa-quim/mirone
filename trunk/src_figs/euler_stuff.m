@@ -405,7 +405,7 @@ function [x,y] = get_time_slice(data,n_data,n_seg,n,first)
 
 % --------------------------------------------------------------------
 function push_callMagBarCode_CB(hObject, handles)
-	MagBarCode([handles.path_data 'Cande_Kent_95.dat'])
+	magbarcode([handles.path_data 'Cande_Kent_95.dat'])
 
 % --------------------------------------------------------------------
 function edit_poleLon_CB(hObject, handles)
