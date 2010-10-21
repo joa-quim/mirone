@@ -179,7 +179,7 @@ function set_telhas_uis(h)
 
 % --------------------------------------------------------------------
 function push_callMagBarCode_CB(hObject, handles)
-	MagBarCode([handles.path_data 'Cande_Kent_95.dat'])
+	magbarcode([handles.path_data 'Cande_Kent_95.dat'])
 
 % --------------------------------------------------------------------
 function push_polesList_CB(hObject, handles)
