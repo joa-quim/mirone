@@ -407,8 +407,10 @@ function seismic_line(obj,evt,hL,opt)
 		tmp = sqrt(xd.*xd + yd.*yd);		clear xd yd
 		rd = [0; cumsum(tmp(:))];			clear tmp
 		figure;		plot(evt_time(ind), rd, '.')
+		evt_dep = (double(getappdata(hS,'SeismicityDepth')) / 10)';
+		evt_dep = evt_dep(IN);
+		figure;		plot(rd, evt_dep(ind), '.')
 		%evt_mag  = (double(getappdata(hS,'SeismicityMag')) / 10)';
-		%evt_dep  = (double(getappdata(hS,'SeismicityDepth')) / 10)';
 	end
 	
 % -----------------------------------------------------------------------------------------
