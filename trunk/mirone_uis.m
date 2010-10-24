@@ -73,6 +73,8 @@ uipushtool('parent',hTB,'Click','mirone(''TransferB_CB'',guidata(gcbo),''NewEmpt
 	'Tag','NewFigure','cdata',Mfnew_ico,'Tooltip','Open New figure');
 uipushtool('parent',hTB,'Click','mirone(''TransferB_CB'',guidata(gcbo),''guessType'')', ...
 	'Tag','ImportKnownTypes','cdata',Mfopen_ico,'Tooltip','Load recognized file types');
+uipushtool('parent',hTB,'Click','mirone(''TransferB_CB'',guidata(gcbo),''BgMap'')', ...
+	'Tag','LoadBGMap','cdata',ladrilhos,'Tooltip','Base Map');
 hVG(1) = uipushtool('parent',hTB,'Click','mirone(''FileSaveGMTgrid_CB'',guidata(gcbo))', ...
 	'Tag','SaveGMTgrid','cdata',Mfsave_ico,'Tooltip','Save netCDF GMT grid');
 uipushtool('parent',hTB,'Click','mirone_pref(guidata(gcbo))', ...
@@ -681,7 +683,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v2.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 21 Oct 2010'',''2.0.1b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 25 Oct 2010'',''2.0.1b'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
