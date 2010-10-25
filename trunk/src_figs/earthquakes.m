@@ -404,7 +404,7 @@ function push_externalFile_CB(hObject, handles)
 	end
 
 	% Get file name
-	[FileName,PathName] = put_or_get_file(handles, str1,'Select earhquakes file', 'get');
+	[FileName,PathName,handles] = put_or_get_file(handles, str1,'Select earhquakes file', 'get');
 	if isequal(FileName,0),		return,		end
 	fname = [PathName,FileName];
 
