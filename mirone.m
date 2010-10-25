@@ -2375,9 +2375,7 @@ function DrawImportShape_CB(handles, fname)
 	[PathName, fnamePRJ] = fileparts(fname);
 	if ( exist([PathName filesep fnamePRJ '.prj'], 'file') )
 		fid = fopen([PathName filesep fnamePRJ '.prj']);
-		theProj = fread(fid,inf,'*char');		fclose(fid);
-		if (double(theProj(end) == 10)),		theProj(end) = [];	end		% Remove '\n' character
-		theProj = theProj';
+		theProj = fread(fid,inf,'*char')';		fclose(fid);
 	end
 
 	region = [s(1).BoundingBox(1,1:2) s(1).BoundingBox(2,1:2)];
