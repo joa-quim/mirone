@@ -480,11 +480,11 @@ function write_vimage_atb_block(fid)
 	fwrite(fid,[0 0],'integer*4');
 
 %----------------------------------------------------------------------------------
-function write_cmap(fid)
+function write_cmap(fid, pal)
 % Write the FM_CMAP block
+	if (nargin == 1),	pal = uint8(round(jet(256) * 255));		end		% default colormap
 	fwrite(fid,[20010 768],'integer*4');		% ID of FM_CMAP block & n of bytes in this block
 	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');	% 24 bytes (seams to be an offset)
-	pal = uint8(round(jet(256) * 255));			% Make a colormap
 	fwrite(fid,pal','uchar');    
 
 %----------------------------------------------------------------------------------
@@ -767,7 +767,7 @@ function write_pts(fid,hand,mode,limits,opt)
 % HAND -> handles of the line (points) object
 % MODE = FIRST or ADD. Where FIRST indicates that the TDR object starts to created here.
 % OPT, when it exists, is = 'Earthquakes'
-%   TAMBEM NAO SEI O QUE ISTO FAZ SE HOUVER MAIS DE UM CONJUNTO DE PONTOS
+
     if (nargin == 4),   opt = [];   end
     
     symb = 7;	% 0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> dyamond; 5 -> cylinder; 6 -> sphere; 7 -> point
@@ -778,13 +778,14 @@ function write_pts(fid,hand,mode,limits,opt)
 	if (~isa(hand,'cell') && ~ishandle(hand(1)))	% We need cells in this case
 		hand = {hand};
 	end
-    n_groups = numel(hand);					% N of different point ensembles
+	n_groups = numel(hand);					% N of different point ensembles
 
-    if (strcmpi(mode,'first'))				% The TDR object starts here
-	    fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
-    end
-    
+	if (strcmpi(mode,'first'))				% The TDR object starts here
+		fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
+	end
+
 	for (i = 1:n_groups)
+		this_CB = ColorBy;					% Earthquakes are colored by symbol color, others by color scale
 		if (ishandle(hand(i)))
 			xx = get(hand(i),'XData');	yy = get(hand(i),'YData');
 			PointRad = get(hand(i),'MarkerSize') / 72 * 2.54 / 7;   % Symbol size. The 7 is an ad-hoc corr factor
@@ -799,7 +800,7 @@ function write_pts(fid,hand,mode,limits,opt)
 			if (size(zz,1) > 1)         % We need them as a row vector for fwrite
 				zz = zz';
 			end
-			symb = 6;					% Use spheres for epicenters
+			this_CB = 0;	symb = 6;	% Use spheres for epicenters and color by symbol (solid)
 		else
 			if (ishandle(hand(i)))
 				zz = get(hand(i),'ZData');
@@ -829,11 +830,11 @@ function write_pts(fid,hand,mode,limits,opt)
 		fwrite(fid,[xx; yy; zz;],'real*8');
 
 		write_geo(fid,'add',limits)					% Write a GEOREF block
-	    write_cmap(fid)								% Write a FM_CMAP block
+		if (this_CB > 0),	write_cmap(fid),	end	% Write a FM_CMAP block (no need if color is solid)
 
 		fwrite(fid,[10521 35],'integer*4');			% 10520 is the SD_POINT3D_ATB code, 35 -> Data Length
 		fwrite(fid,[0 0 1 1 1 5 (1:18)*0],'integer*1');
-		fwrite(fid,[1 ColorBy symb],'integer*4');
+		fwrite(fid,[1 this_CB symb],'integer*4');
 		fwrite(fid,[PointRad LabelSize],'real*4');
 		fwrite(fid,[0 1 1],'integer*4');
 		if (ishandle(hand(i)))
