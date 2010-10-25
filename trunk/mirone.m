@@ -2371,19 +2371,47 @@ function DrawImportShape_CB(handles, fname)
 		errordlg(['Sorry. Dealing with this type of data: ' t ' is not (yet?) supported'],'WarnError'),	return
 	end
 
-	lt = handles.DefLineThick;		lc = handles.DefLineColor;
+	theProj = [];		do_project = false;		no_file = handles.no_file;
+	[PathName, fnamePRJ] = fileparts(fname);
+	if ( exist([PathName filesep fnamePRJ '.prj'], 'file') )
+		fid = fopen([PathName filesep fnamePRJ '.prj']);
+		theProj = fread(fid,inf,'*char');		fclose(fid);
+		if (double(theProj(end) == 10)),		theProj(end) = [];	end		% Remove '\n' character
+		theProj = theProj';
+	end
+
 	region = [s(1).BoundingBox(1,1:2) s(1).BoundingBox(2,1:2)];
 	is_geog = aux_funs('guessGeog',region(1:4));
 
-	if (~handles.no_file && handles.geog && ~is_geog)
-		errordlg('Error. Your background image is in geographics but the shape file is not','ERROR'),	return
-	elseif (~handles.no_file && handles.geog == 0 && is_geog && ~isempty(handles.hImg))
-		warndlg('WARNING: Your background image is not in geographics but the shape file seams to be. Probable mistake','Warning')
+	% If we have a file already need to know about coords compat
+	if (~handles.no_file)
+		if (~isempty(theProj) && handles.geog && ~is_geog)
+			projStruc.SrcProjWKT = theProj;		do_project = true;		% Inverse projection
+		elseif (~isempty(theProj) && ~handles.geog && is_geog)
+			projStruc.DstProjWKT = theProj;		do_project = true;		% Projection is from geogs to projWKT
+		elseif (~isempty(theProj) && ~handles.geog && ~is_geog)
+			projStruc.SrcProjWKT = theProj;
+			prjInfoStruc = aux_funs('getFigProjInfo',handles);
+			projStruc.DstProjWKT = prjInfoStruc.projWKT;				% If it doesn't exist, BUM
+			do_project = true;
+		elseif (isempty(theProj) && handles.geog && ~is_geog)
+			errordlg('Your background image is in geographics but the shape file has unknown coords.','ERROR'),	return	
+		end
+		if (do_project)
+			tmp = [s.BoundingBox];		tmp = tmp(1:2,:)';
+			tmp = ogrproj(tmp, projStruc);		% Reproject all BB right away
+			for (k = 1:numel(s))
+				k2 = 2*k;		k1 = k2 - 1;
+				s(k).BoundingBox(1,1:2) = tmp(k1:k2,1);
+				s(k).BoundingBox(2,1:2) = tmp(k1:k2,2);
+			end
+		end
 	else
 		handles.geog = is_geog;		guidata(handles.figure1, handles);
 	end
 
 	% If we have nothing opened create a background region
+	lt = handles.DefLineThick;		lc = handles.DefLineColor;
 	if (handles.no_file),	handles = FileNewBgFrame_CB(handles, [region handles.geog]);	lc = 'k';	end
 
 	nPolygs = length(s);	h = zeros(nPolygs,1);
@@ -2396,11 +2424,12 @@ function DrawImportShape_CB(handles, fname)
 			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) ...
 				s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
 			if (any(out))				% It means the polyg BB is at least partially inside
+				if (do_project),	ogrproj(s(i).X, s(i).Y, projStruc);		end		% Project into basemap coords
 				h(i) = line('Xdata',single(s(i).X),'Ydata',single(s(i).Y),'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
 			end
 			if (is3D),		set(h(i),'UserData', single(s(i).Z(:)')),	end
 		end
-		h((h == 0)) = [];			% Those were jumped because thay were completely outside map limits
+		h((h == 0)) = [];				% Those were jumped because thay were completely outside map limits
 		if (isempty(h)),	warndlg('No data inside display region','Warning'),		return,		end
 		draw_funs(h,'setSHPuictx')		% Set lines's uicontextmenu
 	elseif (strncmp(t,'Polygon',7))
@@ -2411,6 +2440,7 @@ function DrawImportShape_CB(handles, fname)
 				s(i).BoundingBox(2,2); s(i).BoundingBox(1:2,2)'; s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
 			if (any(out))				% It means the polyg BB is at least partially inside
 				% Make sure it knows that the Earth is round
+				if (do_project),	ogrproj(s(i).X, s(i).Y, projStruc);		end		% Project into basemap coords
 				if (handles.geog == 1 && (XMin < -179.5 || XMax > 179.5) )
 					[s(i).Y, s(i).X] = map_funs('trimwrap', s(i).Y, s(i).X, [-90 90], [XMin XMax], 'wrap');
 				elseif (handles.geog == 2 && (XMin < 0.5 || XMax > 359.5) )
@@ -2431,17 +2461,12 @@ function DrawImportShape_CB(handles, fname)
 		end
 	end
 
-	[PathName, fnamePRJ] = fileparts(fname);
-	if ( exist([PathName filesep fnamePRJ '.prj'], 'file') )
-		fid = fopen([PathName filesep fnamePRJ '.prj']);
-		c = fread(fid,inf,'*char');		fclose(fid);
-		if (double(c(end) == 10)),		c(end) = [];	end		% Remove '\n' character
-		prj = c';
-		aux_funs('appP', handles, prj)				% If we have a WKT proj store it
-		handles = aux_funs('isProj',handles);		% Check about coordinates type
+	if (no_file && ~isempty(theProj))			% We need to finish this matter
+		aux_funs('appP', handles, theProj)		% If we have a WKT proj store it
+		handles = aux_funs('isProj',handles);	% Check about coordinates type
 		handles = setAxesDefCoordIn(handles,1);
 	end
-	recentFiles(handles);							% Insert fileName into "Recent Files" & save handles
+	recentFiles(handles);						% Insert fileName into "Recent Files" & save handles
 
 % --------------------------------------------------------------------
 function GeophysicsImportGmtFile_CB(handles, opt)
