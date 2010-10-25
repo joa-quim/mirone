@@ -3606,7 +3606,7 @@ function TransferB_CB(handles, opt)
 		if isempty(out),	return,		end		% User gave up loading the fig tille
 		handles.geog = 1;				handles.image_type = 3;		handles.head = out.head;
 		show_image(handles,out.imgName,out.X,out.Y,out.img,0,'xy',1,1);
-	
+
 	elseif (strcmp(opt,'NewEmpty'))
 		h = mirone;		
 		newHand = guidata(h);		newHand.last_dir = handles.last_dir;	guidata(h, newHand)
@@ -3617,7 +3617,7 @@ function TransferB_CB(handles, opt)
 		if (handles.validGrid)
 			set(newHand.RetroShade,'Vis','on')	% Set the Retro-Illum option to 'on' in the New window
 		end
-	
+
 	elseif (strcmp(opt,'scale'))				% Apply a scale factor
 		resp = inputdlg({'Enter scale factor'},'Rescale grid',[1 30],{'-1'});	pause(0.01)
 		if (isempty(resp)),	return,		end
@@ -3627,11 +3627,14 @@ function TransferB_CB(handles, opt)
 		if isempty(Z),		return,		end		% An error message was already issued
 		Z = cvlib_mex('CvtScale',Z, scal);
 		head = [handles.head(1:4) handles.head(5:6)*scal handles.head(7:end)];
+		if (handles.head(5) > handles.head(6))	% Happens when we change sign
+			tmp = handles.head(5);	handles.head(5) = handles.head(6);	handles.head(6) = tmp;
+		end
 		tmp = struct('X',X, 'Y',Y, 'head',head, 'geog',handles.geog, 'name','Scaled grid');
 		projWKT = getappdata(handles.figure1,'ProjWKT');
 		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
 		mirone(Z, tmp)
-	
+
 	elseif (strncmp(opt,'Multiscale',5))					% 
 		[X,Y,Z] = load_grd(handles);			% load the grid array here
 		if isempty(Z),		return,		end
