@@ -18,7 +18,7 @@ function [latc,lonc] = circ_geo(lat,lon,rng,azim,np)
 
 	%  Allow for multiple circles starting from the same point
 	if (numel(lat) == 1 && numel(lon) == 1 && numel(rng) > 1)
-        lat = lat(ones(size(rng)));   lon = lon(ones(size(rng)));
+		lat = lat(ones(size(rng)));		lon = lon(ones(size(rng)));
 	end
 
 	if (isempty(az))
@@ -52,12 +52,12 @@ function [latc,lonc] = circ_geo(lat,lon,rng,azim,np)
 
 	%  Ensure correct azimuths at either pole.
 	epsilon = 1e-07;     % Set tolerance
-	ind = find(lat >= pi/2-epsilon);    az(ind) = pi;    % starting at north pole
-	ind = find(lat <= epsilon-pi/2);    az(ind) = 0;     % starting at south pole
+	ind = (lat >= pi/2-epsilon);		az(ind) = pi;    % starting at north pole
+	ind = (lat <= epsilon-pi/2);		az(ind) = 0;     % starting at south pole
 
-	temp1  = sin(lat).*cos(rng);        temp2  = cos(lat).*sin(rng).*cos(az);
+	temp1  = sin(lat).*cos(rng);		temp2  = cos(lat).*sin(rng).*cos(az);
 	latc   = asin(temp1+temp2);
-	temp1  = sin(rng).*sin(az);         temp2  = cos(lat).*cos(rng);
+	temp1  = sin(rng).*sin(az);			temp2  = cos(lat).*cos(rng);
 	temp3  = sin(lat).*sin(rng).*cos(az);
 	lonc   = lon + atan2(temp1,temp2-temp3);
 
