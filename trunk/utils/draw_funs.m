@@ -972,10 +972,8 @@ function other_Class_LineWidth(obj,eventdata,h,opt)
 	if ~isempty(opt)   
 		set(h,'LineWidth',opt);        refresh;
 	else
-		prompt = {'Enter new line width (pt)'};     dlg_title = 'Line width';
-		num_lines= [1 30];
-		resp  = inputdlg(prompt,dlg_title,num_lines);
-		if isempty(resp);    return;     end
+		resp  = inputdlg({'Enter new line width (pt)'}, 'Line width', [1 30]);
+		if isempty(resp),		return,		end
 		set(h,'LineWidth',str2double(resp));        refresh
 	end
 % -----------------------------------------------------------------------------------------
@@ -1022,7 +1020,7 @@ function cb = uictx_Class_LineStyle(h)
 	function other_Class_LineStyle(obj,eventdata,h,opt)
 	% If individual Lines were previously removed (by "Remove Line") h has invalid
 	% handles, so make sure all handles are valid
-	h=h(ishandle(h));
+	h = h(ishandle(h));
 	set(h,'LineStyle',opt);        refresh;
 % -----------------------------------------------------------------------------------------
 
@@ -1031,21 +1029,16 @@ function set_greatCircle_uicontext(h)
 % h is a handle to a great circle arc (in geog coords) object
 	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
-	cb_LineWidth = uictx_LineWidth(h);		% there are 5 cb_LineWidth outputs
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	cb_color = uictx_color(h);		% there are 9 cb_color outputs
 	
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
 	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[],'total'});
 	uimenu(cmenuHand, 'Label', 'Line azimuth','Call', @show_lineAzims)
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
-	setLineWidth(item_lw,cb_LineWidth)
-	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-	setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dash_dotted})
-	item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
-	setLineColor(item_lc,cb_color)
+	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), uictx_LineWidth(h))
+	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'),{cb_solid cb_dashed cb_dotted cb_dash_dotted})
+	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), uictx_color(h))
 
 % -----------------------------------------------------------------------------------------
 function set_circleGeo_uicontext(h)
@@ -1058,24 +1051,45 @@ function set_circleGeo_uicontext(h)
 	set(h, 'UIContextMenu', cmenuHand);
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	cb_color = uictx_color(h);      % there are 9 cb_color outputs
 	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
 	
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
-	uimenu(cmenuHand, 'Label', 'Save circle', 'Call', {@save_formated,h});
-	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[]});
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)')
+	uimenu(cmenuHand, 'Label', 'Save circle', 'Call', {@save_formated,h})
+	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[]})
 	if ~strcmp(tag,'CircleEuler')       % "Just" a regular geographical circle
-        uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi);
+        uimenu(cmenuHand, 'Label', 'Make me Donut', 'Sep','on', 'Call', {@donutify, h(1), 'geog'})
+        uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi)
 	else
-        uimenu(cmenuHand, 'Label', 'Compute velocity', 'Sep','on', 'Call', {@report_EulerVel,h});
+        uimenu(cmenuHand, 'Label', 'Compute velocity', 'Sep','on', 'Call', {@report_EulerVel,h})
 	end
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
-	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
-	setLineWidth(item_lw,cb_LineWidth)
-	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-	setLineStyle(item_ls,{cb_solid cb_dashed cb_dotted cb_dash_dotted})
-	item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
-	setLineColor(item_lc,cb_color)
+	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), uictx_LineWidth(h))
+	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dash_dotted})
+	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), uictx_color(h))
+
+% -----------------------------------------------------------------------------------------
+function donutify(obj, evt, h, opt)
+% Make a donut out of a circle (well, actually 2 circles). To be used on radial averages
+	LLR = getappdata(h,'LonLatRad');
+	prompt = {['Inner circle radius (< ' sprintf('%.8g)', LLR(3))]};
+	rad  = str2double(inputdlg(prompt, 'Donut inner Rad', [1 35],{'0.0'}));
+	if (isnan(rad) || rad >= LLR(3)),	return,		end
+	handles = guidata(h);		LS = get(h, 'LineStyle');	LW = get(h, 'LineWidth');	cC = get(h, 'color');
+	x = get(h, 'XData');		y = get(h, 'YData');
+	if (opt(1) == 'g')
+		[latc, lonc] = circ_geo(LLR(2), LLR(1), rad, []);
+		if (handles.geog == 2),		lonc = lonc + 360;		end		% Longitudes in the [0 360] interval
+	else
+		% ... Cartesian
+	end
+	latc = latc(end:-1:1);	lonc = lonc(end:-1:1);		% Revert order as it will be in the inner side
+	x = [x lonc x(1)];		y = [y latc y(1)];
+	hP = patch('XData',x, 'YData',y, 'Parent',handles.axes1, 'LineWidth',LW, 'FaceColor','none',...
+		'EdgeColor',cC, 'LineStyle',LS, 'Tag', 'Donut');
+	set(hP,  'UserData', [LLR rad 1])			% Store circle's center, outer, inner radius and geogacity
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	set(hP, 'UIContextMenu', cmenuHand);
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)')
+	uimenu(cmenuHand, 'Label', 'Radial average', 'Call', 'grid_profiler(gcf, gco)', 'Sep', 'on')
 
 % -----------------------------------------------------------------------------------------
 function set_circleCart_uicontext(h)
@@ -1084,28 +1098,22 @@ function set_circleCart_uicontext(h)
 	set(h, 'UIContextMenu', cmenuHand);
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	cb_color = uictx_color(h);      % there are 9 cb_color outputs
 	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
 	
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save circle', 'Call', {@save_formated,h});
 	uimenu(cmenuHand, 'Label', 'Circle perimeter', 'Call', {@show_LineLength,[]});
 	uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Call', {@move_circle,h});
-	item_SetCenter0 = uimenu(cmenuHand, 'Label', 'Change');
-	uimenu(item_SetCenter0, 'Label', 'By coordinates', 'Call', {@change_CircCenter1,h});
+	uimenu(uimenu(cmenuHand, 'Label', 'Change'), 'Label', 'By coordinates', 'Call', {@change_CircCenter1,h});
 	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi);
 	hp = getappdata(handles.figure1, 'ParentFig');
 	if ( ~isempty(hp) && ishandle(hp) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
 		uimenu(cmenuHand, 'Label', 'Low Pass FFT filter', 'Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
 		uimenu(cmenuHand, 'Label', 'High Pass FFT filter','Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
 	end
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
-	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
-	setLineWidth(item_lw,cb_LineWidth)
-	item2 = uimenu(cmenuHand, 'Label', 'Line Style');
-	setLineStyle(item2,{cb_solid cb_dashed cb_dotted cb_dash_dotted})
-	item3 = uimenu(cmenuHand, 'Label', 'Line Color');
-	setLineColor(item3,cb_color)
+	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), uictx_LineWidth(h))
+	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dash_dotted})
+	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), uictx_color(h))
 
 % -----------------------------------------------------------------------------------------
 function report_EulerVel(obj,eventdata,h)
@@ -1306,8 +1314,8 @@ else
 		msgbox(msg,'Line(s) length')
 	elseif (nargout == 0 && ~isempty(opt))
 		msgbox(['Total length = ' sprintf('%.5f',total_len) ' map units'],'Line length')
-	else        % The same question as in the geog case
-		ll.len = total_len;   ll.type = 'cart';
+	else		% The same question as in the geog case
+		ll.len = total_len;		ll.type = 'cart';
 	end
 end
 
@@ -1446,10 +1454,8 @@ function cb = uictx_LineWidth(h)
 	cb{5} = {@other_LineWidth,h};
 
 function other_LineWidth(obj,eventdata,h)
-	prompt = {'Enter new line width (pt)'};     dlg_title = 'Line width';
-	num_lines= [1 30];
-	resp  = inputdlg(prompt,dlg_title,num_lines);
-	if isempty(resp);    return;     end
+	resp  = inputdlg({'Enter new line width (pt)'}, 'Line width', [1 30]);
+	if isempty(resp),	return,		end
 	set(h,'LineWidth',str2double(resp));        refresh
 % -----------------------------------------------------------------------------------------
 
@@ -1631,13 +1637,13 @@ function change_CircCenter1(obj,eventdata,h)
 % Change the Circle's center by asking it's coordinates
 % ONLY FOR CARTESIAN CIRCLES.
 	lon_lat_rad = getappdata(h,'LonLatRad');
-	prompt = {'Enter new lon (or x)' ,'Enter new lat (or y)', 'Enter new radius'};     dlg_title = 'Change circle';
+	prompt = {'Enter new lon (or x)' ,'Enter new lat (or y)', 'Enter new radius'};
 	num_lines= [1 30; 1 30; 1 30];
 	def = {num2str(lon_lat_rad(1)) num2str(lon_lat_rad(2)) num2str(lon_lat_rad(3))};
-	resp  = inputdlg(prompt,dlg_title,num_lines,def);
-	if isempty(resp);    return;     end
-	np = numel(get(h,'XData'));     x = linspace(-pi,pi,np);
-	y = sin(x);                     x = cos(x);    % unit circle coords
+	resp  = inputdlg(prompt, 'Change circle', num_lines, def);
+	if isempty(resp),		return,		end
+	np = numel(get(h,'XData'));		x = linspace(-pi,pi,np);
+	y = sin(x);						x = cos(x);			% unit circle coords
 	x = str2double(resp{1}) + str2double(resp{3}) * x;
 	y = str2double(resp{2}) + str2double(resp{3}) * y;
 	set(h, 'XData', x, 'YData', y);
@@ -1666,10 +1672,10 @@ function rectangle_register_img(obj,event)
 	rect_x = get(h,'XData');   rect_y = get(h,'YData');		% Get rectangle limits
 
 	region = bg_region('empty');
-	if isempty(region),    return;  end     % User gave up
-	x_min = region(1);      x_max = region(2);
-	y_min = region(3);      y_max = region(4);
-	handles.geog = aux_funs('guessGeog',region(1:4));		% Trast more in the test here
+	if isempty(region),		return,		end		% User gave up
+	x_min = region(1);		x_max = region(2);
+	y_min = region(3);		y_max = region(4);
+	handles.geog = aux_funs('guessGeog',region(1:4));		% Trust more in the test here
 	ax = handles.axes1;
 
 	x(1) = rect_x(1);     x(2) = rect_x(2);     x(3) = rect_x(3);
@@ -1872,9 +1878,7 @@ function wbd_txt(obj,eventdata,h,state,hAxes)
 
 % -----------------------------------------------------------------------------------------
 function rotate_text(obj,eventdata)
-	prompt = {'Enter angle of rotation'};     dlg_title = '';
-	num_lines= [1 30];
-	resp  = inputdlg(prompt,dlg_title,num_lines);
+	resp  = inputdlg({'Enter angle of rotation'}, '', [1 30]);
 	if isempty(resp),	return,		end
 	set(gco,'Rotation',str2double(resp))
 	refresh
@@ -2100,9 +2104,9 @@ end
 
 prompt = {'Enter new lon (or x)' ,'Enter new lat (or y)'};
 resp  = inputdlg(prompt,'Move symbol',[1 30; 1 30],{xx yy});
-if isempty(resp);    return;     end
+if isempty(resp),		return,		end
 
-val_x = test_dms(resp{1});           % See if coords were given in dd:mm or dd:mm:ss format
+val_x = test_dms(resp{1});			% See if coords were given in dd:mm or dd:mm:ss format
 val_y = test_dms(resp{2});
 x = 0;     y = 0;
 for (k = 1:length(val_x)),  x = x + sign(str2double(val_x{1}))*abs(str2double(val_x{k})) / (60^(k-1));    end
@@ -2142,10 +2146,8 @@ function remove_one_from_many(obj,eventdata,h)
 
 % -----------------------------------------------------------------------------------------
 function other_SymbSize(obj,eventdata,h)
-	prompt = {'Enter new size (pt)'};     dlg_title = 'Symbol Size';
-	num_lines= [1 30];
-	resp  = inputdlg(prompt,dlg_title,num_lines);
-	if isempty(resp);    return;     end
+	resp  = inputdlg({'Enter new size (pt)'}, 'Symbol Size', [1 30]);
+	if isempty(resp),		return,		end
 	set(h,'MarkerSize',str2double(resp));        refresh
 
 % -----------------------------------------------------------------------------------------
