@@ -564,7 +564,7 @@ function FilePrint_CB(hObject, handles)
 function FileOpen_CB(hObject, handles)
 % Read the file and select what columns to plot
 	str1 = {'*.dat;*.DAT;', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-	[FileName,PathName] = put_or_get_file(handles,str1,'Select input data','get');
+	[FileName, PathName, handles] = put_or_get_file(handles,str1,'Select input data','get');
 	if isequal(FileName,0),		return,		end	
 	fname = [PathName FileName];
 
@@ -596,14 +596,14 @@ function FileOpen_CB(hObject, handles)
 			else
 				t = H1(ind(1)+10:end);		% t is date time format string
 			end
-			try
-				serial_date = datenum(yymmdd, t);
-			catch
-				errordlg(lasterr,'Error')
+			try			serial_date = datenum(yymmdd, t);
+			catch,		errordlg(lasterr,'Error')
 			end
 			data = [serial_date sl];
 			out = [1 2];					% To simulate the output of select_cols
 			isDateNum = true;
+		else
+			fclose(fid);
 		end
 	end
 
@@ -639,10 +639,8 @@ function FileOpen_CB(hObject, handles)
 	handles.n_plot = handles.n_plot + 1;
 	if (handles.n_plot > 1)
 		c_order = get(handles.axes1,'ColorOrder');
-		if (handles.n_plot <= 7)
-			nc = handles.n_plot;
-		else
-			nc = rem(handles.n_plot,7);     % recycle through the default colors
+		if (handles.n_plot <= 7),		nc = handles.n_plot;
+		else							nc = rem(handles.n_plot,7);     % recycle through the default colors
 		end
 		cor = c_order(nc,:);
 		set(handles.hLine,'Color',cor)
