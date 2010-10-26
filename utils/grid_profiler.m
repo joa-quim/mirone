@@ -5,10 +5,34 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 % DO_DYNAMIC true|false 	If true do dynamic profiling
 
 	handles = guidata(hFig);
+	if (nargin == 2 && ishandle(xp))	% Normally, a call from "Radial Average"
+		ud = get(xp, 'UserData');
+		try						% Use a try to find if the handle is from a donutified circle
+			rad_out = ud(3);	rad_in = ud(4);
+			% ###################### DO THE RADIAL AVERAGE AND LEAVE $$$$$$$$$$$$$$$
+			profile = do_radialAverage(hFig, ud(1), ud(2), rad_in, rad_out, ud(5));
+			[pato,name,ext] = fileparts(get(handles.figure1,'Name'));
+			ext = strtok(ext);		% Remove the "@ ??%" part
+			%ecran(handles, profile(:,1),profile(:,2),['Radial average from ' name ext])
+			x1 = profile(:,1);		y1 = profile(:,2)+profile(:,3);		y2 = profile(:,2)-profile(:,3);
+			ecran(handles, [x1;x1(end:-1:1);NaN; x1],[y1;y2(end:-1:1);NaN;profile(:,2)],['Radial average (+/- STD) ' name ext])
+			return
+			% ####################################$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+		catch
+			if (strcmp(get(xp,'Tag'), 'Donut'))
+				errordlg(['Radial average trouble: ' lasterr],'Error'),		return
+			end
+		end
+		% Reach here when not dealing with a donutified circle. So keep going.
+		yp = get(xp, 'YData');	xp = get(xp, 'XData');
+		point_int = false;		do_dynamic = false;		do_stack = false;
+	elseif (nargin == 5)
+		do_stack = false;
+	end
+
 	[X,Y,Z,head] = load_grd(handles,'silent');
-	if (getappdata(handles.figure1,'PixelMode')),	do_stack = false;	end		% Case no programed
+	if (getappdata(handles.figure1,'PixelMode')),	do_stack = false;	end		% Case not programed
 	
-	if (nargin == 5),	do_stack = false;	end
 	if (~point_int)         % Profile interp
 		[xx, yy] = make_track(xp, yp, handles.head(8), handles.head(9), do_stack);
 	else					% Interpolation at line vertex
@@ -90,6 +114,43 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 			if (r_max == 0),	r_max = 1;	end		% To not set a [0 0] xlim
 			set(hDynProfAx,'xlim', [0 r_max])
 		end
+	end
+
+% -------------------------------------------------------------------------------------
+function profile = do_radialAverage(hFig, clon, clat, rad_in, rad_out, geog)
+% ...
+	handles = guidata(hFig);
+	[X,Y,Z,head] = load_grd(handles,'silent');
+	if (geog)
+		dr = (head(8) + head(9)) / 2;		% Don't really know what's the best so I'll use the plain mean
+		profile = zeros( round((rad_out - rad_in)/dr)+2,3);		% pre-allocate for the result
+		done = false;		k = 1;
+		rad = rad_in;		% Start with inner radius
+		while (~done)
+			% Aproximate number of 'dr' chunks in this perimeter = round(2*pi*rad*D2R*R / (dr*D2R*R))
+			n_pts = round(2*pi*rad / dr);		% n points for this circle. Variable with perimeter
+			if (rad > 0)
+				[latc, lonc] = circ_geo(clat, clon, rad, [], n_pts);
+			else
+				latc = clat;	lonc = clon;
+				if (handles.geog == 2),		lonc = lonc - 360;	end		% To be consistent with above cases.
+				n_pts = 1;
+			end
+			if (handles.geog == 2),		lonc = lonc + 360;		end		% Longitudes in the [0 360] interval
+			zz = grdtrack_m(Z,head,[lonc(:) latc(:)],'-Z')';
+			profile(k,1) = rad;
+			profile(k,2) = sum(zz) / n_pts;
+			profile(k,3) = std(zz);
+			rad = rad + dr;
+			done = (rad > rad_out);
+			if (done && (rad - rad_out) < (dr / 2))		% Condition to also do the outer circle radius
+				rad = rad_out;		done = false;
+			end
+			k = k + 1;
+		end
+		profile(k-1:end,:) = [];			% Removed unused
+	else
+		% ... cartesian
 	end
 
 % -------------------------------------------------------------------------------------
