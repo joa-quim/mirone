@@ -6,7 +6,7 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 
 	handles = guidata(hFig);
 	if (nargin == 2 && ishandle(xp))	% Normally, a call from "Radial Average"
-		ud = get(xp, 'UserData');
+		ud = getappdata(xp, 'donut');
 		try						% Use a try to find if the handle is from a donutified circle
 			rad_out = ud(3);	rad_in = ud(4);
 			% ###################### DO THE RADIAL AVERAGE AND LEAVE $$$$$$$$$$$$$$$
@@ -121,37 +121,38 @@ function profile = do_radialAverage(hFig, clon, clat, rad_in, rad_out, geog)
 % ...
 	handles = guidata(hFig);
 	[X,Y,Z,head] = load_grd(handles,'silent');
-	if (geog)
-		dr = (head(8) + head(9)) / 2;		% Don't really know what's the best so I'll use the plain mean
-		profile = zeros( round((rad_out - rad_in)/dr)+2,3);		% pre-allocate for the result
-		done = false;		k = 1;
-		rad = rad_in;		% Start with inner radius
-		while (~done)
-			% Aproximate number of 'dr' chunks in this perimeter = round(2*pi*rad*D2R*R / (dr*D2R*R))
-			n_pts = round(2*pi*rad / dr);		% n points for this circle. Variable with perimeter
-			if (rad > 0)
+	dr = (head(8) + head(9)) / 2;		% Don't really know what's the best so I'll use the plain mean
+	profile = zeros( round((rad_out - rad_in)/dr)+2,3);		% pre-allocate for the result
+	done = false;		k = 1;
+	rad = rad_in;		% Start with inner radius
+	while (~done)
+		% Aproximate number of 'dr' chunks in this perimeter = round(2*pi*rad*D2R*R / (dr*D2R*R))
+		n_pts = round(2*pi*rad / dr);		% n points for this circle. Variable with perimeter
+		if (rad > 0)
+			if (geog)
 				[latc, lonc] = circ_geo(clat, clon, rad, [], n_pts);
-			else
-				latc = clat;	lonc = clon;
-				if (handles.geog == 2),		lonc = lonc - 360;	end		% To be consistent with above cases.
-				n_pts = 1;
+			else	% Cartesian
+				xx = linspace(-pi,pi,n_pts);	yy = sin(xx);		xx = cos(xx);
+				lonc = clon + rad * xx;			latc = clat + rad * yy;
 			end
-			if (handles.geog == 2),		lonc = lonc + 360;		end		% Longitudes in the [0 360] interval
-			zz = grdtrack_m(Z,head,[lonc(:) latc(:)],'-Z')';
-			profile(k,1) = rad;
-			profile(k,2) = sum(zz) / n_pts;
-			profile(k,3) = std(zz);
-			rad = rad + dr;
-			done = (rad > rad_out);
-			if (done && (rad - rad_out) < (dr / 2))		% Condition to also do the outer circle radius
-				rad = rad_out;		done = false;
-			end
-			k = k + 1;
+		else
+			latc = clat;	lonc = clon;
+			if (handles.geog == 2),		lonc = lonc - 360;	end		% To be consistent with above cases.
+			n_pts = 1;
 		end
-		profile(k-1:end,:) = [];			% Removed unused
-	else
-		% ... cartesian
+		if (handles.geog == 2),		lonc = lonc + 360;		end		% Longitudes in the [0 360] interval
+		zz = grdtrack_m(Z,head,[lonc(:) latc(:)],'-Z')';
+		profile(k,1) = rad;
+		profile(k,2) = sum(zz) / n_pts;
+		profile(k,3) = std(zz);
+		rad = rad + dr;
+		done = (rad > rad_out);
+		if (done && (rad - rad_out) < (dr / 2))		% Condition to also do the outer circle radius
+			rad = rad_out;		done = false;
+		end
+		k = k + 1;
 	end
+	profile(k-1:end,:) = [];			% Removed unused
 
 % -------------------------------------------------------------------------------------
 function rd = dist_along_profile(x, y)
