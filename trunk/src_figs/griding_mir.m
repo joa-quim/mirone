@@ -145,20 +145,20 @@ guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
 function edit_nHeaders_CB(hObject, handles)
-xx = get(hObject,'String');
-if isnan(str2double(xx))
-    errordlg([xx ' is not a valid number'],'Error');    return
-end
-if ~isempty(xx) && str2double(xx) ~= 0
-    handles.command{42} = xx;
-elseif str2double(xx) == 0
-    handles.command{42} = '';
-    set(hObject,'String','1')
-else
-    handles.command{42} = '';
-    set(hObject,'String','1')
-end
-guidata(hObject,handles)
+	xx = get(hObject,'String');
+	if isnan(str2double(xx))
+		errordlg([xx ' is not a valid number'],'Error');    return
+	end
+	if ~isempty(xx) && str2double(xx) ~= 0
+		handles.command{42} = xx;
+	elseif str2double(xx) == 0
+		handles.command{42} = '';
+		set(hObject,'String','1')
+	else
+		handles.command{42} = '';
+		set(hObject,'String','1')
+	end
+	guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
 function popup_binInput_CB(hObject, handles)
@@ -220,7 +220,7 @@ message = {'Input file has Header record(s). Number of header records can be cha
            'determining the actual number of columns in the file. You should therefore'
            'pass that information to GMT via the ascii/binary popup menu and its side'
            'box, where the actual number of data columns can be introduced.'};
-helpdlg(message,'Help on input data');
+message_win('create',message,'figname','Help on input data');
 
 %----------------------------------------------------------------------------------------------
 function edit_InputFile_CB(hObject, handles, opt)
@@ -418,7 +418,7 @@ message = {'Min and Max, of "X Direction" and "Y Direction" specify the Region o
     'is grid registration. Read Appendix B of GMT Cookbook to learn the'
     'differences between grid and pixel registrations. This option is only'
     'available with "Nearneighbor" and "Delauny Triangulation" interpolators.'};
-helpdlg(message,'Help on Grid Line Geometry');
+message_win('create',message,'figname','Help on Grid Line Geometry');
 
 % -----------------------------------------------------------------------------------
 function edit_S1_Neighbor_CB(hObject, handles)
@@ -455,7 +455,7 @@ message = {'Sets the search radius in same units as the grid spacing. Use the'
            'Selecting kilometers implies that grid limits and spacing are in degrees.'
            'Use uppercase Kilometers if distances should be calculated using great'
            'circles [kilometrs uses flat Earth].'};
-helpdlg(message,'Help -S option');
+message_win('create',message,'figname','Help -S option');
 
 % -----------------------------------------------------------------------------------
 function popup_GridMethod_CB(hObject, handles)
@@ -541,10 +541,8 @@ function push_OK_CB(hObject, handles)
 	if (handles.IamCompiled),	opt_e = '-e';
 	else						opt_e = '';
 	end
-	out{3} = opt_R;
-	out{4} = opt_I;
+	out{3} = opt_R;			out{4} = opt_I;
 
-	% Call Mirone that will either draw or save the newly computed grid
 	set(handles.figure1,'Name','COMPUTING')
 	switch handles.type
 		case 'surface'
@@ -557,79 +555,83 @@ function push_OK_CB(hObject, handles)
 			tit = 'nearneighbor interpolation';
 			set(handles.figure1,'Name','Nearneighbor')
 	end
-	[ny,nx] = size(Z);
+	if (isnan(head(5))),	head(5) = min(min(Z));		end	% It happens and needs to be investigated
+	if (isnan(head(6))),	head(6) = max(max(Z));		end
+	[ny,nx] = size(Z);		clear tmp
 	X = linspace(head(1),head(2),nx);       Y = linspace(head(3),head(4),ny);
-	tmp.head = [head(1) head(2) head(3) head(4) head(5) head(6) 0 head(8) head(9)];
-	tmp.X = X;    tmp.Y = Y;    tmp.name = tit;
+	tmp.head = head;	tmp.X = X;		tmp.Y = Y;		tmp.name = tit;
 	mirone(Z,tmp);
 
 % --------------------------------------------------------------------
 function Menu_Help_CB(hObject, handles)
 switch handles.command{1};    
-    case 'surface '
-        message = {'surface reads randomly-spaced (x,y,z) triples from a file and'
-        'produces a binary grdfile of gridded values z(x,y) by solving:'
-        '               (1 - T) * L (L (z)) + T * L (z) = 0'
-        'where T is a tension factor between 0 and 1, and L indicates the'
-        'Laplacian operator. T = 0 gives the "minimum curvature" solution'
-        'which is equivalent to SuperMISP and the ISM packages. Minimum'
-        'curvature can cause undesired oscillations and false local maxima or'
-        'minima (See Smith and Wessel, 1990), and you may wish to use T > 0'
-        'to suppress these effects. Experience suggests T ~ 0.25 usually'
-        'looks good for potential field data and T should be larger'
-        '(T ~ 0.35) for steep topography data. T = 1 gives a harmonic'
-        'surface (no maxima or minima are possible except at control data'
-        'points). It is recommended that'' the user pre-process the data'
-        'with blockmean, blockmedian, or blockmode to avoid spatial aliasing'
-        'and eliminate redundant data. You may impose lower and/or upper'
-        'bounds on the solution. These may be entered in the form of a fixed'
-        'value, a grdfile with values, or simply be the minimum/maximum'
-        'input data values.'};
-        helpdlg(message,'Help on surface');        
-    case 'triangulate '
-        message = {'triangulate reads one or more ASCII [or binary] files'
-        'containing x,y[,z] and performs Delauney triangulation, i.e., it find how'
-        'the points should be connected to give the most equilateral triangulation'
-        'possible. If a map projection is chosen then it is applied before the'
-        'triangulation is calculated. By default, the output is triplets of point'
-        'id numbers that make up each triangle and is written to standard output.'
-        'The id numbers refer to the points position in the input file. As an'
-        'option, you may choose to create a multiple segment file that can be piped'
-        'through psxy to draw the triangulation network. If -G -I -R are set a grid'
-        'will be calculated based on the surface defined by the planar triangles.'
-        'The actual algorithm used in the triangulations is either that of Watson'
-        '[1982] [Default] or Shewchuk [1996] (if installed). This choice is made'
-        'during the GMT installation.'};
-        helpdlg(message,'Help on triangulate');        
-    case 'nearneighbor '
-        message = {'nearneighbor reads arbitrarily located (x,y,z[,w]) triples [quadruplets]'
-        'from standard input [or xyzfile(s)] and uses a nearest neighbor algorithm'
-        'to assign an average value to each node that have one or more points'
-        'within a radius centered on the node. The average value is computed'
-        'as a weighted mean of the nearest point from each sector inside the'
-        'search radius. The weighting function used is w(r) = 1.0 / (1 + d ^ 2),'
-        'where d = 3 * r / search_radius and r is distance from the node. This'
-        'weight is modulated by the observation points'' weights [if supplied].'};
-        helpdlg(message,'Help on nearneighbor');
+	case 'surface '
+		message = {'surface reads randomly-spaced (x,y,z) triples from a file and'
+		'produces a binary grdfile of gridded values z(x,y) by solving:'
+		'               (1 - T) * L (L (z)) + T * L (z) = 0'
+		'where T is a tension factor between 0 and 1, and L indicates the'
+		'Laplacian operator. T = 0 gives the "minimum curvature" solution'
+		'which is equivalent to SuperMISP and the ISM packages. Minimum'
+		'curvature can cause undesired oscillations and false local maxima or'
+		'minima (See Smith and Wessel, 1990), and you may wish to use T > 0'
+		'to suppress these effects. Experience suggests T ~ 0.25 usually'
+		'looks good for potential field data and T should be larger'
+		'(T ~ 0.35) for steep topography data. T = 1 gives a harmonic'
+		'surface (no maxima or minima are possible except at control data'
+		'points). It is recommended that'' the user pre-process the data'
+		'with blockmean, blockmedian, or blockmode to avoid spatial aliasing'
+		'and eliminate redundant data. You may impose lower and/or upper'
+		'bounds on the solution. These may be entered in the form of a fixed'
+		'value, a grdfile with values, or simply be the minimum/maximum'
+		'input data values.'};
+		message_win('create',message,'figname','Help on surface');        
+	case 'triangulate '
+		message = {'triangulate reads one or more ASCII [or binary] files'
+		'containing x,y[,z] and performs Delauney triangulation, i.e., it find how'
+		'the points should be connected to give the most equilateral triangulation'
+		'possible. If a map projection is chosen then it is applied before the'
+		'triangulation is calculated. By default, the output is triplets of point'
+		'id numbers that make up each triangle and is written to standard output.'
+		'The id numbers refer to the points position in the input file. As an'
+		'option, you may choose to create a multiple segment file that can be piped'
+		'through psxy to draw the triangulation network. If -G -I -R are set a grid'
+		'will be calculated based on the surface defined by the planar triangles.'
+		'The actual algorithm used in the triangulations is either that of Watson'
+		'[1982] [Default] or Shewchuk [1996] (if installed). This choice is made'
+		'during the GMT installation.'};
+		message_win('create',message,'figname','Help on triangulate');        
+	case 'nearneighbor '
+		message = {'nearneighbor reads arbitrarily located (x,y,z[,w]) triples [quadruplets]'
+		'from standard input [or xyzfile(s)] and uses a nearest neighbor algorithm'
+		'to assign an average value to each node that have one or more points'
+		'within a radius centered on the node. The average value is computed'
+		'as a weighted mean of the nearest point from each sector inside the'
+		'search radius. The weighting function used is w(r) = 1.0 / (1 + d ^ 2),'
+		'where d = 3 * r / search_radius and r is distance from the node. This'
+		'weight is modulated by the observation points'' weights [if supplied].'};
+		message_win('create',message,'figname','Help on nearneighbor');        
 end
 
 % -----------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
 % Check for "escape"
-handles = guidata(hObject);
-if isequal(get(hObject,'CurrentKey'),'escape')
-	delete(handles.figure1)
-end
+	handles = guidata(hObject);
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		delete(handles.figure1)
+	end
 
 % --------------------------------------------------------------------
 function about_window_CB(hObject, handles)
-if (strcmp(handles.command{1},'surface '))
-    about_box('surface_Last_modified__12_July_2008');
-elseif (strcmp(handles.command{1},'triangulate '))
-    about_box('triangulate_Last_modified_at_12_July_2008');
-else
-    about_box('nearneighbor_Last_modified_at_12_July_2008');
-end
+	if (~isempty(handles.hMirFig))
+		handMir = guidata(handles.hMirFig);
+		if (strcmp(handles.command{1},'surface '))
+			about_box(handMir, 'surface Last modified 27 Oct 2010', '2.0.1');
+		elseif (strcmp(handles.command{1},'triangulate '))
+			about_box(handMir, 'triangulate Last modified 27 Oct 2010', '2.0.1');
+		else
+			about_box(handMir, 'nearneighbor Last modified 27 Oct 2010', '2.0.1');
+		end
+	end
 
 % --- Creates and returns a handle to the GUI figure. 
 function griding_mir_LayoutFcn(h1)
