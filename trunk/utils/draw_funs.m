@@ -1057,10 +1057,10 @@ function set_circleGeo_uicontext(h)
 	uimenu(cmenuHand, 'Label', 'Save circle', 'Call', {@save_formated,h})
 	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[]})
 	if ~strcmp(tag,'CircleEuler')       % "Just" a regular geographical circle
-        uimenu(cmenuHand, 'Label', 'Make me Donut', 'Sep','on', 'Call', {@donutify, h(1), 'geog'})
-        uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi)
+		uimenu(cmenuHand, 'Label', 'Make me Donut', 'Sep','on', 'Call', {@donutify, h(1), 'geog'})
+		uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi)
 	else
-        uimenu(cmenuHand, 'Label', 'Compute velocity', 'Sep','on', 'Call', {@report_EulerVel,h})
+		uimenu(cmenuHand, 'Label', 'Compute velocity', 'Sep','on', 'Call', {@report_EulerVel,h})
 	end
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), uictx_LineWidth(h))
 	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dash_dotted})
@@ -1070,22 +1070,25 @@ function set_circleGeo_uicontext(h)
 function donutify(obj, evt, h, opt)
 % Make a donut out of a circle (well, actually 2 circles). To be used on radial averages
 	LLR = getappdata(h,'LonLatRad');
-	prompt = {['Inner circle radius (< ' sprintf('%.8g)', LLR(3))]};
-	rad  = str2double(inputdlg(prompt, 'Donut inner Rad', [1 35],{'0.0'}));
+	prompt = {['Inner circle radius (< ' sprintf('%.6g)', LLR(3))]};
+	rad  = abs( str2double(inputdlg(prompt, 'Donut inner Rad', [1 35],{'0.0'})) );
 	if (isnan(rad) || rad >= LLR(3)),	return,		end
 	handles = guidata(h);		LS = get(h, 'LineStyle');	LW = get(h, 'LineWidth');	cC = get(h, 'color');
 	x = get(h, 'XData');		y = get(h, 'YData');
 	if (opt(1) == 'g')
 		[latc, lonc] = circ_geo(LLR(2), LLR(1), rad, []);
 		if (handles.geog == 2),		lonc = lonc + 360;		end		% Longitudes in the [0 360] interval
-	else
-		% ... Cartesian
+		tipo = 1;
+	else		% Cartesian
+		xx = linspace(-pi,pi,360);		yy = sin(xx);		xx = cos(xx);
+		lonc = LLR(1) + rad * xx;		latc = LLR(2) + rad * yy;
+		tipo = 0;
 	end
 	latc = latc(end:-1:1);	lonc = lonc(end:-1:1);		% Revert order as it will be in the inner side
 	x = [x lonc x(1)];		y = [y latc y(1)];
 	hP = patch('XData',x, 'YData',y, 'Parent',handles.axes1, 'LineWidth',LW, 'FaceColor','none',...
 		'EdgeColor',cC, 'LineStyle',LS, 'Tag', 'Donut');
-	set(hP,  'UserData', [LLR rad 1])			% Store circle's center, outer, inner radius and geogacity
+	setappdata(hP,  'donut', [LLR rad tipo])			% Store circle's center, outer, inner radius and geogacity
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(hP, 'UIContextMenu', cmenuHand);
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)')
@@ -1105,6 +1108,7 @@ function set_circleCart_uicontext(h)
 	uimenu(cmenuHand, 'Label', 'Circle perimeter', 'Call', {@show_LineLength,[]});
 	uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Call', {@move_circle,h});
 	uimenu(uimenu(cmenuHand, 'Label', 'Change'), 'Label', 'By coordinates', 'Call', {@change_CircCenter1,h});
+	uimenu(cmenuHand, 'Label', 'Make me Donut', 'Sep','on', 'Call', {@donutify, h(1), 'cart'})
 	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi);
 	hp = getappdata(handles.figure1, 'ParentFig');
 	if ( ~isempty(hp) && ishandle(hp) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
@@ -1587,6 +1591,7 @@ function wbd_circle(obj,eventdata,h,state)
 	lon_lat_rad = get(h,'UserData');	setappdata(h,'LonLatRad',lon_lat_rad)   % save this in appdata
 	set(h,'Tag','circleCart')
     rmappdata(h,'X');			rmappdata(h,'Y');
+	%set(h,'UserData',[])		% Clean UserData so that it doesn't risk to crash write_fleder
 	uirestore_fig(state);		% Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
 
@@ -1621,14 +1626,15 @@ function wbm_MoveCircle(obj,eventdata,h,center,hAxes)
 	pt = get(hAxes, 'CurrentPoint');
 	x = getappdata(h,'X');				y = getappdata(h,'Y');
 	x = pt(1,1) + center(3)*x;			y = pt(1,2) + center(3)*y;
-	set(h, 'XData', x, 'YData', y,'Userdata',[pt(1,1) pt(1,2) center(3)]);
+	set(h, 'XData', x, 'YData', y, 'Userdata',[pt(1,1) pt(1,2) center(3)]);
 
 function wbd_MoveCircle(obj,eventdata,h,state,hAxes)
 	% check if x,y is inside of axis
 	pt = get(hAxes, 'CurrentPoint');	x = pt(1,1);	y = pt(1,2);
 	x_lim = get(hAxes,'xlim');			y_lim = get(hAxes,'ylim');
-	if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
-	lon_lat_rad = get(h,'UserData');    setappdata(h,'LonLatRad',lon_lat_rad)   % save this in appdata
+	if (x < x_lim(1)) || (x > x_lim(2)) || (y < y_lim(1)) || (y > y_lim(2)),	return,	end
+	lon_lat_rad = get(h,'UserData');	setappdata(h,'LonLatRad',lon_lat_rad)	% save this in appdata
+	set(h,'UserData',[])			% Clean UserData so that it doesn't risk to crash write_fleder
     rmappdata(h,'X');				rmappdata(h,'Y');
 	uirestore_fig(state);			% Restore the figure's initial state
 
