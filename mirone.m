@@ -1024,7 +1024,7 @@ function ExtractProfile_CB(handles, opt)
 
 	[X,Y,Z] = load_grd(handles,'silent');
 	if (isempty(Z) && handles.validGrid)			% Grid not in memory error
-		errordlg('Grid was not on memory. Increase "Grid max size" and start over again.','ERROR'); return
+		return
 	elseif (isempty(Z) && ndims(get(handles.hImg,'CData')) == 2)
 		%Z = get(handles.hImg,'CData');
 		%img_lims = getappdata(handles.axes1,'ThisImageLims');	% Get limits and correct them for the pix reg problem
@@ -2390,6 +2390,11 @@ function DrawImportShape_CB(handles, fname)
 		elseif (~isempty(theProj) && ~handles.geog && ~is_geog)
 			projStruc.SrcProjWKT = theProj;
 			prjInfoStruc = aux_funs('getFigProjInfo',handles);
+			if (isempty(prjInfoStruc.projWKT) && ~isempty(prjInfoStruc.proj4))	% Give it one more chance
+				prjInfoStruc.projWKT = ogrproj(prjInfoStruc.proj4);
+			elseif (isempty(prjInfoStruc.projWKT) && ~isempty(prjInfoStruc.projGMT))
+				errordlg('Sorry but it''s still not possible to convert between GMT and proj4 strings','Error'),	return
+			end
 			projStruc.DstProjWKT = prjInfoStruc.projWKT;				% If it doesn't exist, BUM
 			do_project = true;
 		elseif (isempty(theProj) && handles.geog && ~is_geog)
@@ -2419,9 +2424,8 @@ function DrawImportShape_CB(handles, fname)
 		if (t(end) == 'Z')	is3D = true;	end
 		if (t(1) == 'P')	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
 		for i = 1:nPolygs
-			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1,1) s(i).BoundingBox(2,1); s(i).BoundingBox(1,1) ...
-				s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,2); s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
-			if (any(out))				% It means the polyg BB is at least partially inside
+			reco = aux_funs('rectangle_and', imgLims, [s(i).BoundingBox(1,1:2) s(i).BoundingBox(2,1:2)]);
+			if (~isempty(reco))			% It means the polyg BB is at least partially inside
 				if (do_project),	ogrproj(s(i).X, s(i).Y, projStruc);		end		% Project into basemap coords
 				h(i) = line('Xdata',single(s(i).X),'Ydata',single(s(i).Y),'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
 			end
@@ -2434,9 +2438,8 @@ function DrawImportShape_CB(handles, fname)
 		nParanoia = 1000;				% The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
 		for (i = 1:nPolygs)
 			XMin = s(i).BoundingBox(1,1);		XMax = s(i).BoundingBox(1,2);
-			out = aux_funs('insideRect',imgLims,[s(i).BoundingBox(1:2,1)'; s(i).BoundingBox(1,1) ...
-				s(i).BoundingBox(2,2); s(i).BoundingBox(1:2,2)'; s(i).BoundingBox(1,2) s(i).BoundingBox(2,1)]);
-			if (any(out))				% It means the polyg BB is at least partially inside
+			reco = aux_funs('rectangle_and', imgLims, [XMin XMax s(i).BoundingBox(2,1) s(i).BoundingBox(2,2)]);
+			if (~isempty(reco))				% It means the polyg BB is at least partially inside
 				% Make sure it knows that the Earth is round
 				if (do_project),	ogrproj(s(i).X, s(i).Y, projStruc);		end		% Project into basemap coords
 				if (handles.geog == 1 && (XMin < -179.5 || XMax > 179.5) )
@@ -2648,8 +2651,6 @@ function FileOpenSession_CB(handles, fname)
 		handles.origCmap = img_pal;
 	end
 
-% The "illumComm" variable only exists after version 0.97 and should be ~= [] only with grids
-try
 	if (~isempty(illumComm) && flagIllum)
 		[X,Y,Z,head] = load_grd(handles,'silent');
 		handles.Illumin_type = illumType;
@@ -2664,129 +2665,128 @@ try
 		zz = shading_mat(zz,R,'no_scale');		set(handles.hImg,'CData',zz)		% and now it is illuminated
 		setappdata(handles.figure1,'illumComm',illumComm)		% Save the 'illumComm' in this new fig
 	end
-end
 
-if (haveMBtrack)				% case of MB tracks
-	for i=1:length(MBtrack)
-		h_line = line('Xdata',MBtrack(i).x,'Ydata',MBtrack(i).y,'Parent',handles.axes1,'LineWidth',MBtrack(i).LineWidth,...
-			'color',MBtrack(i).color,'Tag',MBtrack(i).tag, 'LineStyle',MBtrack(i).LineStyle);
-		setappdata(h_line,'swathRatio',MBtrack(i).swathRatio)
-		draw_funs(h_line,'MBtrackUictx')		% Set track's uicontextmenu
+	if (haveMBtrack)				% case of MB tracks
+		for (i = 1:length(MBtrack))
+			h_line = line('Xdata',MBtrack(i).x,'Ydata',MBtrack(i).y,'Parent',handles.axes1,'LineWidth',MBtrack(i).LineWidth,...
+				'color',MBtrack(i).color,'Tag',MBtrack(i).tag, 'LineStyle',MBtrack(i).LineStyle);
+			setappdata(h_line,'swathRatio',MBtrack(i).swathRatio)
+			draw_funs(h_line,'MBtrackUictx')		% Set track's uicontextmenu
+		end
+		for (i = 1:length(MBbar))	% now their's bars
+			h_bar = line('Xdata',MBbar(i).x,'Ydata',MBbar(i).y,'Parent',handles.axes1,'LineWidth',MBbar(i).LineWidth,...
+				'color',MBbar(i).color,'Tag',MBbar(i).tag,'UserData',MBbar(i).n_vert, 'LineStyle',MBbar(i).LineStyle);
+			draw_funs(h_bar,'MBbarUictx')			% Set track bar's uicontextmenu
+		end
+		handles.hMBplot = h_line;
 	end
-	for i=1:length(MBbar)		% now their's bars
-		h_bar = line('Xdata',MBbar(i).x,'Ydata',MBbar(i).y,'Parent',handles.axes1,'LineWidth',MBbar(i).LineWidth,...
-			'color',MBbar(i).color,'Tag',MBbar(i).tag,'UserData',MBbar(i).n_vert, 'LineStyle',MBbar(i).LineStyle);
-		draw_funs(h_bar,'MBbarUictx')			% Set track bar's uicontextmenu
-	end
-	handles.hMBplot = h_line;
-end
-if (haveCircleGeo)				% case of Geographic circles
-	for i=1:length(CircleGeo)
-		h_circ = line('Xdata',CircleGeo(i).x,'Ydata',CircleGeo(i).y,'Parent',handles.axes1,'LineWidth',CircleGeo(i).LineWidth,...
-			'color',CircleGeo(i).color,'Tag',CircleGeo(i).tag, 'LineStyle',CircleGeo(i).LineStyle);
-		setappdata(h_circ,'LonLatRad',CircleGeo(i).lon_lat_rad);
-		CircleGeo(i).ud.hcirc = h_circ;					CircleGeo(i).ud.parent = handles.axes1;
-		CircleGeo(i).ud.h_fig = handles.figure1;		CircleGeo(i).ud.h_axes = handles.axes1;
-		set(h_circ,'UserData',CircleGeo(i).ud,'buttondownfcn','uicirclegeo(''circlemousedown'')')
-		draw_funs(h_circ,'SessionRestoreCircle')		% Set circle's uicontextmenu
-	end
-end
-if (haveCircleCart)				% case of Cartesian circles
-	for i=1:length(CircleCart)
-		h_circ = line('Xdata',CircleCart(i).x,'Ydata',CircleCart(i).y,'Parent',handles.axes1,'LineWidth',CircleCart(i).LineWidth,...
-			'color',CircleCart(i).color,'Tag',CircleCart(i).tag, 'LineStyle',CircleCart(i).LineStyle);
-		setappdata(h_circ,'LonLatRad',CircleCart(i).lon_lat_rad);
-		x = linspace(-pi,pi,360);
-		setappdata(h_circ,'X',cos(x));		setappdata(h_circ,'Y',sin(x))	% Save unit circle coords
-		CircleCart(i).ud.hcirc = h_circ;
-		CircleCart(i).ud.parent = handles.axes1;
-		draw_funs(h_circ,'SessionRestoreCircleCart')		% Set circle's uicontextmenu
-	end
-end
-if (havePline)					% case of polylines
-	for i=1:length(Pline)
-		h_line = line('Xdata',Pline(i).x,'Ydata',Pline(i).y,'Parent',handles.axes1,'LineWidth',Pline(i).LineWidth,...
-			'color',Pline(i).color,'Tag',Pline(i).tag, 'LineStyle',Pline(i).LineStyle);
-		if (isfield(Pline(i),'LineInfo') && ~isempty(Pline(i).LineInfo))
-			setappdata(h_line,'LineInfo',Pline(i).LineInfo)
-			set(h_line,'UserData',1)
-			draw_funs(h_line,'isochron',{Pline(i).LineInfo})
-		else
-			draw_funs(h_line,'line_uicontext')		% Set lines's uicontextmenu
+	if (haveCircleGeo)				% case of Geographic circles
+		for (i = 1:length(CircleGeo))
+			h_circ = line('Xdata',CircleGeo(i).x,'Ydata',CircleGeo(i).y,'Parent',handles.axes1,'LineWidth',CircleGeo(i).LineWidth,...
+				'color',CircleGeo(i).color,'Tag',CircleGeo(i).tag, 'LineStyle',CircleGeo(i).LineStyle);
+			setappdata(h_circ,'LonLatRad',CircleGeo(i).lon_lat_rad);
+			CircleGeo(i).ud.hcirc = h_circ;					CircleGeo(i).ud.parent = handles.axes1;
+			CircleGeo(i).ud.h_fig = handles.figure1;		CircleGeo(i).ud.h_axes = handles.axes1;
+			set(h_circ,'UserData',CircleGeo(i).ud,'buttondownfcn','uicirclegeo(''circlemousedown'')')
+			draw_funs(h_circ,'SessionRestoreCircle')		% Set circle's uicontextmenu
 		end
 	end
-end
-if (havePlineAsPoints)			% case of polylines as points (markers) only
-	for i=1:length(PlineAsPoints)
-		h_line_pt = line('Xdata',PlineAsPoints(i).x, 'Ydata',PlineAsPoints(i).y,'Parent',handles.axes1, 'LineStyle','none', ...
-			'Marker',PlineAsPoints(i).Marker, 'MarkerSize',PlineAsPoints(i).Size, ...
-			'MarkerFaceColor',PlineAsPoints(i).FillColor, ...
-			'MarkerEdgeColor',PlineAsPoints(i).EdgeColor, 'Tag',PlineAsPoints(i).tag);
-		draw_funs(h_line_pt,'DrawSymbol')		% Set marker's uicontextmenu (tag is very important)
+	if (haveCircleCart)				% case of Cartesian circles
+		for (i = 1:length(CircleCart))
+			h_circ = line('Xdata',CircleCart(i).x,'Ydata',CircleCart(i).y,'Parent',handles.axes1,'LineWidth',CircleCart(i).LineWidth,...
+				'color',CircleCart(i).color,'Tag',CircleCart(i).tag, 'LineStyle',CircleCart(i).LineStyle);
+			setappdata(h_circ,'LonLatRad',CircleCart(i).lon_lat_rad);
+			x = linspace(-pi,pi,360);
+			setappdata(h_circ,'X',cos(x));		setappdata(h_circ,'Y',sin(x))	% Save unit circle coords
+			CircleCart(i).ud.hcirc = h_circ;
+			CircleCart(i).ud.parent = handles.axes1;
+			draw_funs(h_circ,'SessionRestoreCircleCart')		% Set circle's uicontextmenu
+		end
 	end
-end
-if (haveSymbol)					% case of Symbols (line Markers)
-	for i=1:length(Symbol)
-		h_symb = line('Xdata',Symbol(i).x,'Ydata',Symbol(i).y,'Parent',handles.axes1,'Marker',Symbol(i).Marker,'MarkerSize',...
-			Symbol(i).Size,'MarkerFaceColor',Symbol(i).FillColor, 'MarkerEdgeColor',Symbol(i).EdgeColor, 'Tag',Symbol(i).tag);
-		draw_funs(h_symb,'DrawSymbol')			% Set symbol's uicontextmenu
-	end
-end
-if (haveText)					% case of text strings
-	if (~exist('Texto','var') && exist('Text','var')),		Texto= Text;	end		% Compatibility issue  
-	for i=1:length(Texto)
-		if (isempty(Texto(i).str)),		continue,	end
-		h_text = text(Texto(i).pos(1),Texto(i).pos(2),Texto(i).pos(3), Texto(i).str,...
-			'Parent',handles.axes1, 'Rotation',Texto(i).angle,...
-			'FontAngle',Texto(i).FontAngle, 'Tag',Texto(i).Tag, 'FontWeight',Texto(i).FontWeight,...
-			'color',Texto(i).color, 'FontName',Texto(i).FontName, 'FontSize',Texto(i).FontSize);
-		if (isfield(Texto(i),'VerticalAlignment')),		set(h_text,'VerticalAlignment',Texto(i).VerticalAlignment),			end
-		if (isfield(Texto(i),'HorizontalAlignment')),	set(h_text,'HorizontalAlignment',Texto(i).HorizontalAlignment),		end
-		draw_funs(h_text,'DrawText')		% Set texts's uicontextmenu
-	end
-end
-if (exist('havePatches','var') && havePatches)		% case of patchs - NOTE, the Tags are currently lost 
-	for (i=1:length(Patches))
-		try					% We never know with those guys, so it's better to play safe
-			is_telha = 0;
-			if (strcmp(Patches(i).tag,'tapete_R') || strcmp(Patches(i).tag,'tapete'))
-				Patches(i).x = reshape(Patches(i).x,4,length(Patches(i).x)/4);
-				Patches(i).y = reshape(Patches(i).y,4,length(Patches(i).y)/4);
-				is_telha = 1;
-			end
-% 			if (Patches(i).FaceColor(1) == 1),		Patches(i).tag = 'tapete';
-%			else									Patches(i).tag = 'tapete_R';
-%			end
-			h_patch = patch('XData',Patches(i).x, 'YData',Patches(i).y, 'Parent',handles.axes1,'LineWidth',Patches(i).LineWidth,...
-				'EdgeColor',Patches(i).EdgeColor, 'FaceColor',Patches(i).FaceColor,...
-				'LineStyle',Patches(i).LineStyle, 'Tag', Patches(i).tag);
-			if (is_telha)
-				set(h_patch,'UserData',Patches(i).ud)
-				draw_funs(h_patch,'telhas_patch')		% Set telhas's uicontextmenu
+	if (havePline)					% case of polylines
+		for (i = 1:length(Pline))
+			h_line = line('Xdata',Pline(i).x,'Ydata',Pline(i).y,'Parent',handles.axes1,'LineWidth',Pline(i).LineWidth,...
+				'color',Pline(i).color,'Tag',Pline(i).tag, 'LineStyle',Pline(i).LineStyle);
+			if (isfield(Pline(i),'LineInfo') && ~isempty(Pline(i).LineInfo))
+				setappdata(h_line,'LineInfo',Pline(i).LineInfo)
+				set(h_line,'UserData',1)
+				draw_funs(h_line,'isochron',{Pline(i).LineInfo})
 			else
-				draw_funs(h_patch,'line_uicontext')		% Set patch's uicontextmenu
+				draw_funs(h_line,'line_uicontext')		% Set lines's uicontextmenu
 			end
 		end
 	end
-end
-try
-	if (haveCoasts),	datasets_funs('CoastLines', handles,coastUD);  end
-	if (havePolitic)
-		if (iscell(politicUD)),		politicUD = politicUD{1};	end
-		datasets_funs('Political',handles,politicUD(2),politicUD(1));
+	if (havePlineAsPoints)			% case of polylines as points (markers) only
+		for i=1:length(PlineAsPoints)
+			h_line_pt = line('Xdata',PlineAsPoints(i).x, 'Ydata',PlineAsPoints(i).y,'Parent',handles.axes1, 'LineStyle','none', ...
+				'Marker',PlineAsPoints(i).Marker, 'MarkerSize',PlineAsPoints(i).Size, ...
+				'MarkerFaceColor',PlineAsPoints(i).FillColor, ...
+				'MarkerEdgeColor',PlineAsPoints(i).EdgeColor, 'Tag',PlineAsPoints(i).tag);
+			draw_funs(h_line_pt,'DrawSymbol')		% Set marker's uicontextmenu (tag is very important)
+		end
 	end
-	if (haveRivers)
-		if (iscell(riversUD)),		riversUD = riversUD{1};		end
-		datasets_funs('Rivers', handles,riversUD(2),riversUD(1));
+	if (haveSymbol)					% case of Symbols (line Markers)
+		for i=1:length(Symbol)
+			h_symb = line('Xdata',Symbol(i).x,'Ydata',Symbol(i).y,'Parent',handles.axes1,'Marker',Symbol(i).Marker,'MarkerSize',...
+				Symbol(i).Size,'MarkerFaceColor',Symbol(i).FillColor, 'MarkerEdgeColor',Symbol(i).EdgeColor, 'Tag',Symbol(i).tag);
+			draw_funs(h_symb,'DrawSymbol')			% Set symbol's uicontextmenu
+		end
 	end
-end
-guidata(handles.figure1, handles);
-handles.fileName = [PathName FileName];		% TRICK. To be used only in the next call to recentFiles()
-handles = recentFiles(handles);				% Insert session into "Recent Files" & NOT NOT NOT save handles
-set(handles.figure1,'pointer','arrow','Name',[PathName FileName])
-if (tala == 0 && ~isempty(grd_name))		% Only now to not mess with the "current figure"
-	warndlg(['The file ' grd_name ' doesn''t exists on the directory it was when the session was saved. Put it back there.'],'Warning')
-end
+	if (haveText)					% case of text strings
+		if (~exist('Texto','var') && exist('Text','var')),		Texto= Text;	end		% Compatibility issue  
+		for i=1:length(Texto)
+			if (isempty(Texto(i).str)),		continue,	end
+			h_text = text(Texto(i).pos(1),Texto(i).pos(2),Texto(i).pos(3), Texto(i).str,...
+				'Parent',handles.axes1, 'Rotation',Texto(i).angle,...
+				'FontAngle',Texto(i).FontAngle, 'Tag',Texto(i).Tag, 'FontWeight',Texto(i).FontWeight,...
+				'color',Texto(i).color, 'FontName',Texto(i).FontName, 'FontSize',Texto(i).FontSize);
+			if (isfield(Texto(i),'VerticalAlignment')),		set(h_text,'VerticalAlignment',Texto(i).VerticalAlignment),			end
+			if (isfield(Texto(i),'HorizontalAlignment')),	set(h_text,'HorizontalAlignment',Texto(i).HorizontalAlignment),		end
+			draw_funs(h_text,'DrawText')		% Set texts's uicontextmenu
+		end
+	end
+	if (exist('havePatches','var') && havePatches)		% case of patchs - NOTE, the Tags are currently lost 
+		for (i = 1:length(Patches))
+			try					% We never know with those guys, so it's better to play safe
+				is_telha = 0;
+				if (strcmp(Patches(i).tag,'tapete_R') || strcmp(Patches(i).tag,'tapete'))
+					Patches(i).x = reshape(Patches(i).x,4,length(Patches(i).x)/4);
+					Patches(i).y = reshape(Patches(i).y,4,length(Patches(i).y)/4);
+					is_telha = 1;
+				end
+% 				if (Patches(i).FaceColor(1) == 1),		Patches(i).tag = 'tapete';
+% 				else									Patches(i).tag = 'tapete_R';
+% 				end
+				h_patch = patch('XData',Patches(i).x, 'YData',Patches(i).y, 'Parent',handles.axes1,'LineWidth',Patches(i).LineWidth,...
+					'EdgeColor',Patches(i).EdgeColor, 'FaceColor',Patches(i).FaceColor,...
+					'LineStyle',Patches(i).LineStyle, 'Tag', Patches(i).tag);
+				if (is_telha)
+					set(h_patch,'UserData',Patches(i).ud)
+					draw_funs(h_patch,'telhas_patch')		% Set telhas's uicontextmenu
+				else
+					draw_funs(h_patch,'line_uicontext')		% Set patch's uicontextmenu
+				end
+			end
+		end
+	end
+	try
+		if (haveCoasts),	datasets_funs('CoastLines', handles,coastUD);  end
+		if (havePolitic)
+			if (iscell(politicUD)),		politicUD = politicUD{1};	end
+			datasets_funs('Political',handles,politicUD(2),politicUD(1));
+		end
+		if (haveRivers)
+			if (iscell(riversUD)),		riversUD = riversUD{1};		end
+			datasets_funs('Rivers', handles,riversUD(2),riversUD(1));
+		end
+	end
+	guidata(handles.figure1, handles);
+	handles.fileName = [PathName FileName];		% TRICK. To be used only in the next call to recentFiles()
+	handles = recentFiles(handles);				% Insert session into "Recent Files" & NOT NOT NOT save handles
+	set(handles.figure1,'pointer','arrow','Name',[PathName FileName])
+	if (tala == 0 && ~isempty(grd_name))		% Only now to not mess with the "current figure"
+		warndlg(['The file ' grd_name ' doesn''t exists on the directory it was when the session was saved. Put it back there.'],'Warning')
+	end
 
 % ------------------------------------------------------------------------------------------------
 function FileSaveSession_CB(handles)
