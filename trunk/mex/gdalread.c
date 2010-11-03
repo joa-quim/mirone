@@ -827,6 +827,8 @@ void grd_FLIPUD_F32(float data[], int nx, int ny) {
  *                When passed back to MATLAB, one can set pixels with this value to NaN.
  *            MinMax:
  *                [min max] vector (one per band) with the band's MinMax. If not known [NaN NaN]
+ *            ScaleOffset:
+ *                [scale_factor offset] vector (one per band) with the band's Scale_factor Offset. If not known [1 0]
  *            ColorMap:
  *                A Mx3 double array with the colormap, or empty if it does not exists
  *
@@ -882,7 +884,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	mxArray *mxGDALRasterYSize;
 	mxArray *mxCorners;
 	mxArray *mxGMT_header;
-	mxArray *mxCMap, *toMinMax;
+	mxArray *mxCMap, *toMinMax, *toScaleOff;
 
 	/* These will be matlab structures that hold the metadata.
 	 * "metadata_struct" actually encompasses "band_struct",
@@ -895,7 +897,8 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 
 	int	i,j, overview, band_number;	/* Loop indices */
 	int	n_colors;		/* Number of colors in the eventual Color Table */ 
-	double	*dptr, *dptr2, *dptrMM;	/* short cut to the mxArray data */
+	double	*dptr, *dptr2, *dptrMM,	/* short cut to the mxArray data */
+		*dptrSO;
 
 	GDALDriverH hDriver;		/* This is the driver chosen by the GDAL library to query the dataset. */
 	GDALDatasetH hDataset;		/* pointer structure used to query the gdal file. */
@@ -923,7 +926,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	int	gdal_type;		/* Datatype of the bands. */
 	double	nan, tmpdble;		/* NaN & temporary value */
 	double	xy_c[2], xy_geo[4][2];	/* Corner coordinates in the local coords system and geogs (if it exists) */
-	int	dims[2];
+	int	dims[2], bSuccess;
 	int	bGotMin, bGotMax;	/* To know if driver transmited Min/Max */
 	double	adfMinMax[2];		/* Dataset Min Max */
 
@@ -1109,14 +1112,15 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* ------------------------------------------------------------------------- */
 	/* Get the metadata for each band. */
 	/* ------------------------------------------------------------------------- */
-	num_band_fields = 7;
+	num_band_fields = 8;
 	band_fieldnames[0] = strdup ( "XSize" );
 	band_fieldnames[1] = strdup ( "YSize" );
 	band_fieldnames[2] = strdup ( "Overview" );
 	band_fieldnames[3] = strdup ( "NoDataValue" );
 	band_fieldnames[4] = strdup ( "MinMax" );
-	band_fieldnames[5] = strdup ( "DataType" );
-	band_fieldnames[6] = strdup ( "ColorMap" );
+	band_fieldnames[5] = strdup ( "ScaleOffset" );
+	band_fieldnames[6] = strdup ( "DataType" );
+	band_fieldnames[7] = strdup ( "ColorMap" );
 	band_struct = mxCreateStructMatrix ( raster_count, 1, num_band_fields, (const char **)band_fieldnames );
 
 	num_overview_fields = 2;
@@ -1124,7 +1128,11 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	overview_fieldnames[1] = strdup ( "YSize" );
 	colormap_fieldnames[0] = strdup ( "CMap" );
 	nan = mxGetNaN();
-	for ( band_number = 0; band_number < raster_count; ++band_number ) {	/* Loop over bands */
+
+	/* ==================================================================== */
+	/*      Loop over bands.                                                */
+	/* ==================================================================== */
+	for ( band_number = 0; band_number < raster_count; ++band_number ) {
 
 		hBand = GDALGetRasterBand( hDataset, band_number+1 );
 
@@ -1161,6 +1169,18 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		}
 		mxSetField ( band_struct, band_number, "MinMax", toMinMax );
 
+		/* Get band's Scale/Offset. If the band does not have them use the neutral 1/0 values */
+		toScaleOff = mxCreateNumericMatrix(1, 2, mxDOUBLE_CLASS, mxREAL);	/* To hold band's min/max */
+		dptrSO = mxGetPr(toScaleOff);
+		if (GDALGetRasterScale( hBand, &bSuccess ) != 1 || GDALGetRasterOffset( hBand, &bSuccess ) != 0) {
+			dptrSO[0] = GDALGetRasterScale ( hBand, &bSuccess );
+			dptrSO[1] = GDALGetRasterOffset( hBand, &bSuccess );
+		}
+		else {
+			dptrSO[0] = 1.0;
+			dptrSO[1] = 0.0;
+		}
+		mxSetField ( band_struct, band_number, "ScaleOffset", toScaleOff );
 
 		num_overviews = GDALGetOverviewCount( hBand );	/* Can have multiple overviews per band. */
 		if ( num_overviews > 0 ) {
