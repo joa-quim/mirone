@@ -84,7 +84,9 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 			fname = att.fname;				% We'll need better but for now this ensures that no subdataset name is taken as the whole.
 			if (~isa(Z,'int16')),		handles.was_int16 = 0;		end
 		end
-		handles.image_type = 4;		handles.Nodata_int16 = att.Band(1).NoDataValue;
+		[Z, did_scale] = handle_scaling(Z, att);	% See if we need to apply a scale/offset
+		if (~did_scale),	handles.Nodata_int16 = att.Band(1).NoDataValue;		end
+		handles.image_type = 4;
 		srsWKT = att.ProjectionRef;
 	end
 	handles.fileName = fname;
@@ -117,3 +119,32 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 	end
 	
 	handles.head = head;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [data, did_scale] = handle_scaling(data, att)
+%	If there is a scale factor and/or  add_offset attribute, convert the data
+%	to single precision and apply the scaling. 
+
+	have_scale_factor = false;			have_add_offset = false;	did_scale = false;
+	if ( att.Band(1).ScaleOffset(1) ~= 1 )
+		have_scale_factor = true;
+		scale_factor = att.Band(1).ScaleOffset(1);
+	end
+	if ( att.Band(1).ScaleOffset(2) ~= 0 )
+		have_add_offset = true;
+		add_offset = att.Band(1).ScaleOffset(2);
+	end
+
+	% Return early if we don't have either one.
+	if ~(have_scale_factor || have_add_offset),		return,		end
+
+	if (~isa(data,'single')),		data = single(data);	end
+
+	did_scale = true;
+	if (have_scale_factor && have_add_offset)
+		data = cvlib_mex('CvtScale',data, 1 / scale_factor, add_offset);
+	elseif (have_scale_factor)
+		data = cvlib_mex('CvtScale',data, 1 / scale_factor);
+	else
+		data = cvlib_mex('addS',data, add_offset);
+	end
