@@ -142,9 +142,9 @@ function [data, did_scale] = handle_scaling(data, att)
 
 	did_scale = true;
 	if (have_scale_factor && have_add_offset)
-		data = cvlib_mex('CvtScale',data, 1 / scale_factor, add_offset);
+		data = cvlib_mex('CvtScale',data, scale_factor, add_offset);
 	elseif (have_scale_factor)
-		data = cvlib_mex('CvtScale',data, 1 / scale_factor);
+		data = cvlib_mex('CvtScale',data, scale_factor);
 	else
 		data = cvlib_mex('addS',data, add_offset);
 	end
