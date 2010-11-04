@@ -2353,19 +2353,22 @@ function mareg_online(obj,eventdata,h, data, opt)
 	dest_fiche = [handles.path_tmp 'lixo.dat'];
 	nome = strrep(data.name{i},'_',' ');		pais = strrep(data.country{i},'_',' ');
 	code = data.codeSt{i};
-	
+
 	c = clock;
-	date_start = datestr(datenum(c(1:3))-2,31);
-	
+	ds_num = datevecmx(datenummx(c(1:6))-2);
+	date_start = sprintf('%04d-%02d-%02d %02d:%02d:%02d', [ds_num(1:5) fix(ds_num(6))]);	% BUG
+
 	if (nargin == 4)	% Get last 2 days of records
 		nDays = '2';
 	else
 		prompt = {'Start date (mind the format)' 'number of days'};
-		date_str_tmp = datestr(date_start,'dd-mm-yyyy HH:MM');
+		date_str_tmp = sprintf('%02d-%02d-%04d %02d:%02d', [c(3:-1:1) c(4:5)]);
 		resp   = inputdlg(prompt,'Select date',[1 30; 1 30],{date_str_tmp '2'});	pause(0.01);
 		if isempty(resp),	return,		end
-		date_str_tmp = resp{1};		nDays = resp{2};
-		date_start = datestr(date_str_tmp,31);
+		nDays = resp{2};
+		t = sscanf(resp{1}, '%02d-%02d-%04d %02d:%02d');	t = t(:)';
+		t = datevecmx(datenummx([t(3:-1:1) t(4:5) 0]) - str2double(nDays));
+		date_start = sprintf('%04d-%02d-%02d %02d:%02d:00', t(1:5));
 	end
 	url = ['http://www.ioc-sealevelmonitoring.org/bgraph.php?output=asc&time=' date_start '&period=' nDays '&par=' code];
 	if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
@@ -2386,7 +2389,12 @@ function mareg_online(obj,eventdata,h, data, opt)
 	todos = todos(ind(2)+1:end);		% Jump the 2 header lines
 	[yymmdd sl] = strread(todos,'%s %f', 'delimiter', '\t');
 	fclose(fid);    clear todos
-	serial_date = datenum(yymmdd, 31);
+	m = numel(yymmdd);		y = zeros(m,6);
+	for (k = 1:m)
+		t = sscanf(yymmdd{k}, '%04d-%02d-%02d %02d:%02d');		t = t(:)';
+		y(k,1:5) = t;
+	end
+	serial_date = datenummx(y);
 	hf = ecran(handles, serial_date, sl, [nome ' (' pais ')']);
 	h = findobj(hf,'Tag','hidenCTRL');
 	cb = get(h, 'Call');
