@@ -3434,7 +3434,10 @@ function FileSaveFleder_CB(handles, opt)
 				if (resp == 0)
 					errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
 				end
-			elseif (ispc)	dos(fcomm);
+			elseif (ispc)
+				s = dos(fcomm);
+				% Try again with the 'iview3d'
+				if (s == 0 && handles.whichFleder),		fcomm(6) = '3';		dos(fcomm);		end
 			else			errordlg('Unknown platform.','Error'),	return
 			end
 		catch
