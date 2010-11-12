@@ -461,7 +461,7 @@ function [data, pos, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3
 		error('SHAPENC:readFile',['Error reading file ' fname])
 	end
 
-	if (bin ~= 0)   % NOT ASCII
+	if (isa(bin,'struct') || bin ~= 0)   % NOT ASCII
 		
 		if (inbin)				% Inside info tells us that input file is a plain binary.
 			switch inbin(end-1)
