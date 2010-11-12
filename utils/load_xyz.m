@@ -60,6 +60,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	line_type = 'AsLine';
 	tag = 'polyline';
 	struc_vimage = [];
+	is_bin = false;				% To flag binary files
 	% ---------------------------------------------------------------------
 
 	% ------------------- Parse inputs ------------------------------------
@@ -85,10 +86,19 @@ function varargout = load_xyz(handles, opt, opt2)
 
 	[bin, n_column, multi_seg, n_headers] = guess_file(fname);
 	if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
-		errordlg(['Error reading file ' fname],'Error');    return
+		errordlg(['Error reading file ' fname],'Error'),	return
 	end
-	if (bin ~= 0)   % NOT ASCII
-		errordlg('Sorry, reading binary files is not yet programed','Error');   return
+	if (isa(bin,'struct') || bin ~= 0)				% ---****** BINARY FILE *******---
+		if (isa(bin,'struct'))
+			bin = guess_bin(bin.nCols, bin.type);	% Ask user to confirm/modify guessing
+		else
+			bin = guess_bin(false);					% Ask user what's in file
+		end
+		if (isempty(bin))		% User quit
+			varargout = {};		return
+		end
+		n_column = bin.nCols;
+		multi_seg = 0;		n_headers = 0;		is_bin = true;
 	end
 
 	if (n_column == 1 && multi_seg == 0)			% Take it as a file names list
@@ -112,8 +122,11 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(n_headers)),    n_headers = NaN;    end
 			if (multi_seg)
 				[numeric_data, multi_segs_str] = text_read(fname,NaN,n_headers,'>');
-			else
+			elseif (~is_bin)
 				numeric_data = text_read(fname,NaN,n_headers);
+			else				% Try luck with a binary file
+				fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);		fclose(fid);
+				numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
 			end
 
 			if (~isa(numeric_data,'cell'))			% File was not multi-segment.
@@ -181,8 +194,11 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(n_headers)),    n_headers = NaN;    end
 			if (multi_seg)
 				[numeric_data, multi_segs_str] = text_read(fname,NaN,n_headers,'>');
-			else
+			elseif (~is_bin)
 				numeric_data = text_read(fname,NaN,n_headers);
+			else				% Try luck with a binary file
+				fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);		fclose(fid);
+				numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
 			end
 		end
 
