@@ -1,6 +1,19 @@
 function varargout = guess_bin(varargin)
 % Helper window to confirm/modify the guessing job of guess_file about binary files
 %
+% Usage:
+%	out = guess_bin(n_columns, data_type);
+%		n_columns		Guessed number of columns
+%		data_type		Guessed data type ('single' 'double' 'int' 'short int')
+%
+%	out = guess_bin(0);
+%		Offer the default options of n_columns = 2 & data_type = 'single'
+%
+%	Output is a structure with
+%		out.nCols		number of columns
+%		out.type		Data type
+%	OR
+%		out = [] if user hit cancel
 
 %	Copyright (c) 2004-2010 by J. Luis
 %
@@ -49,7 +62,7 @@ function varargout = guess_bin(varargin)
 
 	handles = guidata(hObject);
 	if (~isempty(handles.output))
-		out.nCols = get(handles.popup_nCols,'Val');
+		out.nCols = get(handles.popup_nCols,'Val') + 1;
 		types = {'single' 'double' 'int' 'short'};
 		out.type = types{get(handles.popup_type,'Val')};
 		varargout{1} = out;
@@ -59,11 +72,11 @@ function varargout = guess_bin(varargin)
 	delete(handles.figure1);
 
 % ---------------------------------------------------------------------
-function push_OK_CB(hObject, eventdata, handles)
+function push_OK_CB(hObject, handles)
 	uiresume(handles.figure1);
 
 % ---------------------------------------------------------------------
-function push_Cancel_CB(hObject, eventdata, handles)
+function push_Cancel_CB(hObject, handles)
 	handles.output = [];        % User gave up, return nothing
 	guidata(hObject, handles);  uiresume(handles.figure1);
 
