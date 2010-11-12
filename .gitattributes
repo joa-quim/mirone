@@ -604,6 +604,7 @@ src_figs/grdtrend_mir.m -text
 src_figs/grid_calculator.m -text
 src_figs/griding_mir.m -text
 src_figs/ground_motion.m -text
+src_figs/guess_bin.m -text
 src_figs/ice_m.m -text
 src_figs/igrf_options.m -text
 src_figs/image_adjust.m -text
