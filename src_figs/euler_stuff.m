@@ -165,59 +165,59 @@ function edit_agesFile_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function push_ReadAgesFile_CB(hObject, handles, opt)
 % Read a file with ages where to compute the rotations
-if (nargin == 3),	fname = opt;
-else				opt = [];
-end
+	if (nargin == 3),	fname = opt;
+	else				opt = [];
+	end
 
-if (isempty(opt))           % Otherwise we already know fname from the 4th input argument
-	str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
-	[FileName,PathName] = put_or_get_file(handles,str1,'Select ages file','get');
-	if isequal(FileName,0),		return;    end
-	fname = [PathName,FileName];
-end
+	if (isempty(opt))           % Otherwise we already know fname from the 4th input argument
+		str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
+		[FileName,PathName,handles] = put_or_get_file(handles,str1,'Select ages file','get');
+		if isequal(FileName,0),		return,		end
+		fname = [PathName,FileName];
+	end
 
-hFig = gcf;
-[bin,n_column,multi_seg,n_headers] = guess_file(fname);
-% If msgbox exist we have to move it from behind the main window. So get it's handle
-hMsgFig = gcf;
-if (hFig ~= hMsgFig)        uistack(hMsgFig,'top');   end   % If msgbox exists, bring it forward
-% If error in reading file
-if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
-    errordlg(['Error reading file ' fname],'Error');    return
-end
-if (multi_seg ~= 0)   % multisegments are not spported
-    errordlg('Multisegment files are not supported here.','Error');   return
-end
-if (bin == 0)   % ASCII
-    fid = fopen(fname);
-    todos = fread(fid,'*char');
-    if (n_column == 1)
-        handles.ages = strread(todos,'%f');
-        handles.age_label = '';
-    elseif (n_column == 2)
-        [handles.ages handles.age_label] = strread(todos,'%f %s');
-    else
-        errordlg('Ages file can only have one OR two columns (IF 2 column: first column contains chron name)','Error')
-        return
-    end
-    fclose(fid);
-else        % BINARY
-    errordlg('Sorry, binary files is not yet suported','Error');   return
-end
+	hFig = gcf;
+	[bin,n_column,multi_seg,n_headers] = guess_file(fname);
+	% If msgbox exist we have to move it from behind the main window. So get it's handle
+	hMsgFig = gcf;
+	if (hFig ~= hMsgFig)        uistack(hMsgFig,'top');   end   % If msgbox exists, bring it forward
+	% If error in reading file
+	if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
+		errordlg(['Error reading file ' fname],'Error');    return
+	end
+	if (multi_seg ~= 0)   % multisegments are not spported
+		errordlg('Multisegment files are not supported here.','Error'),	return
+	end
+	if (isa(bin,'struct') || bin ~= 0)
+		errordlg('Sorry, binary files is not yet suported','Error'),	return
+	end
 
-if (~isempty(handles.age_label))    % We have labeled ages
-    s1 = num2str(handles.ages);
-    str = cell(size(handles.ages,1),1);
-    for (k=1:size(handles.ages,1))
-        str{k} = [handles.age_label{k} '    ' s1(k,1:end)];
-    end
-else
-    str = {num2str(handles.ages)};
-end
-set(handles.listbox_ages,'String',str)
+	fid = fopen(fname);
+	todos = fread(fid,'*char');
+	if (n_column == 1)
+		handles.ages = strread(todos,'%f');
+		handles.age_label = '';
+	elseif (n_column == 2)
+		[handles.ages handles.age_label] = strread(todos,'%f %s');
+	else
+		errordlg('Ages file can only have one OR two columns (IF 2 column: first column contains chron name)','Error')
+		return
+	end
+	fclose(fid);
 
-set(handles.edit_agesFile,'String',fname)
-guidata(hObject, handles);
+	if (~isempty(handles.age_label))    % We have labeled ages
+		s1 = num2str(handles.ages);
+		str = cell(size(handles.ages,1),1);
+		for (k=1:size(handles.ages,1))
+			str{k} = [handles.age_label{k} '    ' s1(k,1:end)];
+		end
+	else
+		str = {num2str(handles.ages)};
+	end
+	set(handles.listbox_ages,'String',str)
+
+	set(handles.edit_agesFile,'String',fname)
+	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function push_compute_CB(hObject, handles)
