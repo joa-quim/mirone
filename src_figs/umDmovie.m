@@ -314,7 +314,7 @@ function push_profile_CB(hObject, handles, opt)
     if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
         errordlg(['Error reading file ' fname],'Error');    return
     end
-    if (bin ~= 0)   % NOT ASCII
+    if (isa(bin,'struct') || bin ~= 0)   % NOT ASCII
         errordlg('Sorry, reading binary files is not allowed','Error');   return
     end
     if (n_column < 2)

@@ -490,7 +490,7 @@ function [numeric_data,n_column,error] = read_file(fname)
 	if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
 		errordlg(['Error reading file ' fname],'Error');
 		error = 1;  return
-	elseif (bin)			% BINARY
+	elseif (isa(bin,'struct') || bin ~= 0)
 		errordlg('Sorry, reading binary files is not programed','Error');
 		error = 1;  return
 	end

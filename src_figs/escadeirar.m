@@ -172,7 +172,7 @@ function push_file_CB(hObject, handles, opt)
 	[bin,n_column,multi_seg,n_headers] = guess_file(fname);
 	% If error in reading file
 	if ( isempty(bin) ),	errordlg(['Error reading file ' fname],'Error'),	return,		end
-	if (bin ~= 0),			errordlg('Sorry, reading binary files is not programed','Error'),	return,		end
+	if (isa(bin,'struct') || bin ~= 0),		errordlg('Sorry, reading binary files is not programed','Error'),	return,	end
 	if (n_column < 1),		errordlg('This file has nothing usefull','Error'),	return,	end
 
 	[PATH,FNAME,EXT] = fileparts(fname);
