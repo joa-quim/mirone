@@ -7,8 +7,8 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 % OPT1, if given, will be MAXCHARS
 % OPT2, if given, will be nl_max
 
-% Error testing
-bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
+	% Error testing
+	bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
 	n_args = nargin;
 	if (~n_args)
 		errordlg('function guess_file: must give an input file name','File Error')
@@ -31,7 +31,7 @@ bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
 		return
 	end
 
-% ----------------------------------------------------------------------------------------
+	% ----------------------------------------------------------------------------------------
 	fid = fopen(fiche);
 	[str,count] = fread(fid,MAXCHARS,'*char');
 	fclose(fid);
@@ -39,7 +39,8 @@ bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
 	
 	A = double(str);
 	if (any(A > 126 & A < 192))    % Binary files have bytes with values greater than 126 (but so is the ç char)
-        bin = 1;
+		bin = guess_in_bin(fiche);
+        %bin = 1;
         return
 	end
 	clear A;
@@ -142,3 +143,62 @@ bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
 			end
 		end
 	end
+
+% ----------------------------------------------------------------------------------------
+function guessed = guess_in_bin(fiche)
+% ...
+
+	fid = fopen(fiche);
+	out = fread(fid,24,'*single');	out = reshape(out,2,12)';
+	if ( (abs(out(1,1)) < 1e10) && (abs(out(1,2)) < 1e10) )
+		rel = abs(std(double(out)) ./ out(1,:));
+		if (all(rel < 0.1 ))
+			guessed.nCols = 2;		guessed.type = 'single';
+			fclose(fid);			return
+		end
+	elseif ( isnan(out(1,1)) && out(1,2) && ~isnan(out(2,1)) )
+		guessed.nCols = 2;			guessed.type = 'single';
+		fclose(fid);				return
+	end
+	
+	frewind(fid);
+	out = fread(fid,24,'*double');	out = reshape(out,2,12)';
+	if ( (abs(out(1,1)) < 1e10) && (abs(out(1,2)) < 1e10) )
+		rel = abs(std(double(out)) ./ out(1,:));
+		if (all(rel < 0.1 ))
+			guessed.nCols = 2;		guessed.type = 'double';
+			fclose(fid);			return
+		end
+	elseif ( isnan(out(1,1)) && out(1,2) && ~isnan(out(2,1)) )
+		guessed.nCols = 2;			guessed.type = 'double';
+		fclose(fid);				return
+	end
+
+	frewind(fid);
+	out = fread(fid,36,'*single');	out = reshape(out,3,12)';
+	if ( (abs(out(1,1)) < 1e10) && (abs(out(1,2)) < 1e10) && (abs(out(1,3)) < 1e10) )
+		rel = abs(std(double(out)) ./ out(1,:));
+		if (all(rel < 0.1 ))
+			guessed.nCols = 3;		guessed.type = 'single';
+			fclose(fid);			return
+		end
+	elseif ( isnan(out(1,1)) && out(1,2) && isnan(out(1,3)) )
+		guessed.nCols = 3;			guessed.type = 'single';
+		fclose(fid);				return
+	end
+
+	frewind(fid);
+	out = fread(fid,36,'*double');	out = reshape(out,3,12)';
+	if ( (abs(out(1,1)) < 1e10) && (abs(out(1,2)) < 1e10) && (abs(out(1,3)) < 1e10) )
+		rel = abs(std(double(out)) ./ out(1,:));
+		if (all(rel < 0.1 ))
+			guessed.nCols = 3;		guessed.type = 'double';
+			fclose(fid);			return
+		end
+	elseif ( isnan(out(1,1)) && out(1,2) && isnan(out(1,3)) )
+		guessed.nCols = 3;			guessed.type = 'double';
+		fclose(fid);				return
+	end
+
+	guessed = true;				% TRUE to mean that it's binary anyway though we didn't guess its organization
+	fclose(fid);
