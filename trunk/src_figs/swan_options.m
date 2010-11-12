@@ -462,7 +462,7 @@ function [handles, msg] = getMaregsPos(handles, fname)
 	if multi_seg ~= 0   % multisegments are not spported
 		msg = 'Multisegment files are yet not supported.';   return
 	end
-	if (bin ~= 0)
+	if (isa(bin,'struct') || bin ~= 0)
 		msg = 'Sorry, reading binary files is not programed';   return
 	end
     if (n_column < 2)

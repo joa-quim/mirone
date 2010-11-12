@@ -606,79 +606,79 @@ function pushbutton_Help_H_CB(hObject, eventdata, handles)
 
 % ------------------------------------------------------------------------------------
 function edit_InputFile_CB(hObject, eventdata, handles)
-fname = get(hObject,'String');
-if isempty(fname),  handles.input_locations = [];   return;   end
-hFig = gcf;
-[bin,n_column,multi_seg,n_headers] = guess_file(fname);
-% If msgbox exist we have to move it from behind the main window. So get it's handle
-hMsgFig = gcf;
-if (hFig ~= hMsgFig),       figure(hMsgFig);   end   % If msgbox exists, bring it forward
-% If error in reading file
-if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
-    errordlg(['Error reading file ' fname],'Error');    return
-end
-if multi_seg ~= 0   % multisegments are not spported
-    errordlg('Multisegment files are yet not supported.','Error');   return
-end
-if (bin == 0)   % ASCII
-    if n_column < 2
-        errordlg('File error. Your file doesn''t have at least 2 columns','Error'); return
-    end
-    handles.input_locations = read_xy(fname,n_column,n_headers);
-    if (hFig ~= hMsgFig);       figure(hFig);   end     % gain access to the drawing figure
-    nr = size(handles.input_locations,1);
-    if (nr == 0)
-        errordlg('Your file is empty.','Chico Clever');   return
-    end
-    if (n_headers > 0)      % We have headers in file (ai!, ai!)
-        set(handles.checkbox_Option_H,'Value',1)
-        set(handles.edit_nHeaders,'String',num2str(n_headers))
-    end
-else        % BINARY
-    errordlg('Sorry, reading binary files is not yet programed','Error');   return
-end
-guidata(hObject,handles)
+	fname = get(hObject,'String');
+	if isempty(fname),  handles.input_locations = [];   return,		end
+	hFig = gcf;
+	[bin,n_column,multi_seg,n_headers] = guess_file(fname);
+	% If msgbox exist we have to move it from behind the main window. So get it's handle
+	hMsgFig = gcf;
+	if (hFig ~= hMsgFig),       figure(hMsgFig);   end   % If msgbox exists, bring it forward
+	% If error in reading file
+	if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
+		errordlg(['Error reading file ' fname],'Error');    return
+	end
+	if multi_seg ~= 0   % multisegments are not spported
+		errordlg('Multisegment files are yet not supported.','Error');   return
+	end
+	if (isa(bin,'struct') || bin ~= 0)
+		errordlg('Sorry, reading binary files is not yet allowed','Error');   return
+	end
+
+	if n_column < 2
+		errordlg('File error. Your file doesn''t have at least 2 columns','Error'); return
+	end
+	handles.input_locations = read_xy(fname,n_column,n_headers);
+	if (hFig ~= hMsgFig);       figure(hFig);   end     % gain access to the drawing figure
+	nr = size(handles.input_locations,1);
+	if (nr == 0)
+		errordlg('Your file is empty.','Chico Clever');   return
+	end
+	if (n_headers > 0)      % We have headers in file (ai!, ai!)
+		set(handles.checkbox_Option_H,'Value',1)
+		set(handles.edit_nHeaders,'String',num2str(n_headers))
+	end
+	guidata(hObject,handles)
 
 % ------------------------------------------------------------------------------------
 function pushbutton_InputFile_CB(hObject, eventdata, handles)
 
-handMir = guidata(handles.h_calling_fig);		% get handles of the calling fig
-[FileName,PathName] = put_or_get_file(handMir, ...
-	{'*.dat;*.DAT;*.xy', 'Maregraph location (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraphs position','get');
-if isequal(FileName,0),		return,		end
-fname = [PathName FileName];
+	handMir = guidata(handles.h_calling_fig);		% get handles of the calling fig
+	[FileName,PathName] = put_or_get_file(handMir, ...
+		{'*.dat;*.DAT;*.xy', 'Maregraph location (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraphs position','get');
+	if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
 
-hFig = gcf;
-[bin,n_column,multi_seg,n_headers] = guess_file(fname);
-% If msgbox exist we have to move it from behind the main window. So get it's handle
-hMsgFig = gcf;
-if (hFig ~= hMsgFig),       figure(hMsgFig);   end   % If msgbox exists, bring it forward
-% If error in reading file
-if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
-    errordlg(['Error reading file ' fname],'Error');    return
-end
-if multi_seg ~= 0   % multisegments are not spported
-    errordlg('Multisegment files are yet not supported.','Error');   return
-end
-if (bin == 0)   % ASCII
-    if (n_column < 2)
-        errordlg('File error. Your file doesn''t have at least 2 columns','Error'); return
-    end
-    handles.input_locations = read_xy(fname,n_column,n_headers);
-    if (hFig ~= hMsgFig);       figure(hFig);   end     % gain access to the drawing figure
-    nr = size(handles.input_locations,1);
-    if (nr == 0)
-        errordlg('Your file is empty.','Chico Clever');   return
-    end
-    if (n_headers > 0)      % We have headers in file (ai!, ai!)
-        set(handles.checkbox_Option_H,'Value',1)
-        set(handles.edit_nHeaders,'String',num2str(n_headers))
-    end
-else        % BINARY
-    errordlg('Sorry, reading binary files is not yet programed','Error');   return
-end
-set(handles.edit_InputFile,'String',fname)
-guidata(hObject,handles)
+	hFig = gcf;
+	[bin,n_column,multi_seg,n_headers] = guess_file(fname);
+	% If msgbox exist we have to move it from behind the main window. So get it's handle
+	hMsgFig = gcf;
+	if (hFig ~= hMsgFig),       figure(hMsgFig);   end   % If msgbox exists, bring it forward
+	% If error in reading file
+	if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
+		errordlg(['Error reading file ' fname],'Error');    return
+	end
+	if multi_seg ~= 0   % multisegments are not spported
+		errordlg('Multisegment files are yet not supported.','Error');   return
+	end
+	if (isa(bin,'struct') || bin ~= 0)
+		errordlg('Sorry, reading binary files is not yet allowed','Error');   return
+	end
+
+	if (n_column < 2)
+		errordlg('File error. Your file doesn''t have at least 2 columns','Error'); return
+	end
+	handles.input_locations = read_xy(fname,n_column,n_headers);
+	if (hFig ~= hMsgFig);       figure(hFig);   end     % gain access to the drawing figure
+	nr = size(handles.input_locations,1);
+	if (nr == 0)
+		errordlg('Your file is empty.','Chico Clever');   return
+	end
+	if (n_headers > 0)      % We have headers in file (ai!, ai!)
+		set(handles.checkbox_Option_H,'Value',1)
+		set(handles.edit_nHeaders,'String',num2str(n_headers))
+	end
+	set(handles.edit_InputFile,'String',fname)
+	guidata(hObject,handles)
 
 % ------------------------------------------------------------------------------------
 function edit_sx_CB(hObject, eventdata, handles)
