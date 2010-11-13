@@ -9,7 +9,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
 %#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
-%#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt
+%#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
