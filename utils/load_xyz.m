@@ -135,9 +135,8 @@ function varargout = load_xyz(handles, opt, opt2)
 				orig_no_mseg = true;
 			end
 			for i=1:length(numeric_data)
-				tmpx = numeric_data{i}(:,1);	tmpy = numeric_data{i}(:,2);
-				XMin = min(XMin,min(tmpx));		XMax = max(XMax,max(tmpx));
-				YMin = min(YMin,min(tmpy));		YMax = max(YMax,max(tmpy));
+				XMin = min(XMin,double(min(numeric_data{i}(:,1))));		XMax = max(XMax,double(max(numeric_data{i}(:,1))));
+				YMin = min(YMin,double(min(numeric_data{i}(:,2))));		YMax = max(YMax,double(max(numeric_data{i}(:,2))));
 			end
 		end
 
@@ -287,7 +286,8 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 
 			indx = false;	indy = false;			% Default to no need for map clipping
-			difes = [numeric_data{i}(1,1)-numeric_data{i}(end,1) numeric_data{i}(1,2)-numeric_data{i}(end,2)];
+			difes = [( double(numeric_data{i}(1,1)) - double(numeric_data{i}(end,1)) ) ...	% Remember R13
+				( double(numeric_data{i}(1,2)) - double(numeric_data{i}(end,2)) )];
 			if (any(abs(difes) > 1e-4))				% Not a closed polygon
 				if (handles.no_file)
 					tmpx = numeric_data{i}(:,1);	tmpy = numeric_data{i}(:,2);
