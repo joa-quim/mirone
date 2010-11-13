@@ -26,10 +26,9 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 
 	delete([handles.NewFigure handles.ImportKnownTypes handles.LoadBGMap handles.SaveGMTgrid handles.Preferences ...
 		handles.Print handles.DrawText handles.DrawGeogCirc handles.DrawLine handles.DrawRect ...
-		handles.DrawPolyg handles.DrawArrow handles.ColorPal handles.Shading handles.Anaglyph ...
+		handles.DrawPolyg handles.DrawArrow handles.Tesoura handles.ColorPal handles.Shading handles.Anaglyph ...
 		handles.toGE handles.MBplaning handles.FlederPlanar handles.ImageInfo handles.Refresh])
 
-	set(handles.Tesoura,'Vis','off')		% cannot kill coze test in PanZoom
 	if (ishandle(handles.Projections)),     delete(handles.Projections);   end
 
 	% ------------- Cleverer deletion of unwanted uicontrols
@@ -60,6 +59,7 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 		'cdata',R_ico,'TooltipString','Register','Separator','on');
 	uipushtool('parent',h_toolbar,'Click',@registerSIFT_CB,...   
 		'cdata',cerejas,'TooltipString','Automatic Registration','Separator','on');
+	uitoggletool('parent',h_toolbar, 'Tag','Tesoura','Vis','off');	% We need this because it's tested in PanZoom
 
 	handles.origFig = [];		% We don't need the image copy anymore
 
