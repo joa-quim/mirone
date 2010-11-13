@@ -156,7 +156,7 @@ function guessed = guess_in_bin(fiche)
 			guessed.nCols = 2;		guessed.type = 'single';
 			fclose(fid);			return
 		end
-	elseif ( isnan(out(1,1)) && out(1,2) && ~isnan(out(2,1)) )
+	elseif ( isnan(out(1,1)) && isnan(out(1,2)) && ~isnan(out(2,1)) )
 		guessed.nCols = 2;			guessed.type = 'single';
 		fclose(fid);				return
 	end
@@ -169,7 +169,7 @@ function guessed = guess_in_bin(fiche)
 			guessed.nCols = 2;		guessed.type = 'double';
 			fclose(fid);			return
 		end
-	elseif ( isnan(out(1,1)) && out(1,2) && ~isnan(out(2,1)) )
+	elseif ( isnan(out(1,1)) && isnan(out(1,2)) && ~isnan(out(2,1)) )
 		guessed.nCols = 2;			guessed.type = 'double';
 		fclose(fid);				return
 	end
@@ -182,7 +182,7 @@ function guessed = guess_in_bin(fiche)
 			guessed.nCols = 3;		guessed.type = 'single';
 			fclose(fid);			return
 		end
-	elseif ( isnan(out(1,1)) && out(1,2) && isnan(out(1,3)) )
+	elseif ( isnan(out(1,1)) && isnan(out(1,2)) && isnan(out(1,3)) )
 		guessed.nCols = 3;			guessed.type = 'single';
 		fclose(fid);				return
 	end
@@ -195,7 +195,7 @@ function guessed = guess_in_bin(fiche)
 			guessed.nCols = 3;		guessed.type = 'double';
 			fclose(fid);			return
 		end
-	elseif ( isnan(out(1,1)) && out(1,2) && isnan(out(1,3)) )
+	elseif ( isnan(out(1,1)) && isnan(out(1,2)) && isnan(out(1,3)) )
 		guessed.nCols = 3;			guessed.type = 'double';
 		fclose(fid);				return
 	end
