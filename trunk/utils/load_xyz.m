@@ -65,7 +65,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 	% ------------------- Parse inputs ------------------------------------
 	if (nargin >= 2 && isempty(opt))            % Read a ascii file
-		[FileName, PathName, handles] = put_or_get_file(handles, ...
+		[FileName, PathName] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
