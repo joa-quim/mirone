@@ -149,9 +149,9 @@ function guessed = guess_in_bin(fiche)
 % ...
 
 	fid = fopen(fiche);
-	out = fread(fid,24,'*single');	out = reshape(out,2,12)';
+	out = fread(fid,24,'single');	out = reshape(out,2,12)';
 	if ( (abs(out(1,1)) < 1e10) && (abs(out(1,2)) < 1e10) )
-		rel = abs(std(double(out)) ./ out(1,:));
+		rel = abs(std(out) ./ out(1,:));
 		if (all(rel < 0.1 ))
 			guessed.nCols = 2;		guessed.type = 'single';
 			fclose(fid);			return
@@ -162,9 +162,9 @@ function guessed = guess_in_bin(fiche)
 	end
 	
 	frewind(fid);
-	out = fread(fid,24,'*double');	out = reshape(out,2,12)';
+	out = fread(fid,24,'double');	out = reshape(out,2,12)';
 	if ( (abs(out(1,1)) < 1e10) && (abs(out(1,2)) < 1e10) )
-		rel = abs(std(double(out)) ./ out(1,:));
+		rel = abs(std(out) ./ out(1,:));
 		if (all(rel < 0.1 ))
 			guessed.nCols = 2;		guessed.type = 'double';
 			fclose(fid);			return
@@ -175,9 +175,9 @@ function guessed = guess_in_bin(fiche)
 	end
 
 	frewind(fid);
-	out = fread(fid,36,'*single');	out = reshape(out,3,12)';
+	out = fread(fid,36,'single');	out = reshape(out,3,12)';
 	if ( (abs(out(1,1)) < 1e10) && (abs(out(1,2)) < 1e10) && (abs(out(1,3)) < 1e10) )
-		rel = abs(std(double(out)) ./ out(1,:));
+		rel = abs(std(out) ./ out(1,:));
 		if (all(rel < 0.1 ))
 			guessed.nCols = 3;		guessed.type = 'single';
 			fclose(fid);			return
@@ -188,9 +188,9 @@ function guessed = guess_in_bin(fiche)
 	end
 
 	frewind(fid);
-	out = fread(fid,36,'*double');	out = reshape(out,3,12)';
+	out = fread(fid,36,'double');	out = reshape(out,3,12)';
 	if ( (abs(out(1,1)) < 1e10) && (abs(out(1,2)) < 1e10) && (abs(out(1,3)) < 1e10) )
-		rel = abs(std(double(out)) ./ out(1,:));
+		rel = abs(std(out) ./ out(1,:));
 		if (all(rel < 0.1 ))
 			guessed.nCols = 3;		guessed.type = 'double';
 			fclose(fid);			return
