@@ -188,7 +188,7 @@ function out = findFileType(fname)
 			out = 'envherd';
 		end
 	elseif ( any(strcmpi(EXT,'.cpt')) ),		out = 'cpt';
-	elseif ( any(strcmpi(EXT,{'.dat' '.xy'}))),	out = 'dat';
+	elseif ( any(strcmpi(EXT,{'.dat' '.xy' '.b'}))),	out = 'dat';
 	elseif ( any(strcmpi(EXT,'.shp')) ),		out = 'shp';
 	elseif ( any(strcmpi(EXT,'.las')) ),		out = 'las';
 	elseif ( any(strcmpi(EXT,'.gmt')) )			% In future we'll have to test if MGG or ogr2ogr (e.g. multiseg) file
