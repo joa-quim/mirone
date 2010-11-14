@@ -65,7 +65,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 	% ------------------- Parse inputs ------------------------------------
 	if (nargin >= 2 && isempty(opt))            % Read a ascii file
-		[FileName, PathName] = put_or_get_file(handles, ...
+		[FileName, PathName, handles] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
@@ -392,9 +392,9 @@ function varargout = load_xyz(handles, opt, opt2)
 	set(handles.figure1,'pointer','arrow')
 
 	if (handles.no_file)		% Be very carefull, do not trust on the 'geog' estimate donne in show_image (too soon)
-		geog = handles.geog;	handles = guidata(handles.figure1);
-		handles.geog = geog;	guidata(handles.figure1,handles)
+		geog = handles.geog;	handles = guidata(handles.figure1);		handles.geog = geog;
 	end
+	guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
 function [cor, str2] = parseG(str)
