@@ -178,7 +178,7 @@ function guessed = guess_in_bin(fiche)
 	out = fread(fid,36,'single');	out = reshape(out,3,12)';
 	if ( (abs(out(1,1)) < 1e10) && (abs(out(1,2)) < 1e10) && (abs(out(1,3)) < 1e10) )
 		rel = abs(std(out) ./ out(1,:));
-		if (all(rel < 0.1 ))
+		if (all(rel(1:2) < 0.1 & rel(3) < 0.5))	% Relax condition on 3rth column because data can be more disperse
 			guessed.nCols = 3;		guessed.type = 'single';
 			fclose(fid);			return
 		end
@@ -191,7 +191,7 @@ function guessed = guess_in_bin(fiche)
 	out = fread(fid,36,'double');	out = reshape(out,3,12)';
 	if ( (abs(out(1,1)) < 1e10) && (abs(out(1,2)) < 1e10) && (abs(out(1,3)) < 1e10) )
 		rel = abs(std(out) ./ out(1,:));
-		if (all(rel < 0.1 ))
+		if (all(rel(1:2) < 0.1 & rel(3) < 0.5))	% Relax condition on 3rth column
 			guessed.nCols = 3;		guessed.type = 'double';
 			fclose(fid);			return
 		end
