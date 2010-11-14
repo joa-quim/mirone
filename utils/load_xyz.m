@@ -85,8 +85,8 @@ function varargout = load_xyz(handles, opt, opt2)
 	% ---------------------------------------------------------------------
 
 	[bin, n_column, multi_seg, n_headers] = guess_file(fname);
-	if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
-		errordlg(['Error reading file ' fname],'Error'),	return
+	if (isempty(bin))
+		errordlg(['Error reading file (probaby empty)' fname],'Error'),	return
 	end
 	if (isa(bin,'struct') || bin ~= 0)				% ---****** BINARY FILE *******---
 		if (isa(bin,'struct'))
