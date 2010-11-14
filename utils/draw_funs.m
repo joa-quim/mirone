@@ -842,16 +842,12 @@ function set_isochrons_uicontext(h,data)
 	end
 	% If at least one is closed, activate the Area option
 	if (LINE_ISCLOSED),		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);	end
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
-	setLineWidth(item_lw,cb_LineWidth)
-	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-	setLineStyle(item_ls,{cbls1 cbls2 cbls3 cbls4})
-	item_lc = uimenu(cmenuHand, 'Label', 'Color');
-	setLineColor(item_lc,cb_color)
+	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
+	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cbls1 cbls2 cbls3 cbls4})
+	setLineColor(uimenu(cmenuHand, 'Label', 'Color'), cb_color)
 	% --------- Now set the class properties
 	cb_ClassColor = uictx_Class_LineColor(h);        % there are 9 cb_color outputs
-	item_Class_lc = uimenu(cmenuHand, 'Label', ['All ' tag ' Color'], 'Sep','on');
-	setLineColor(item_Class_lc,cb_ClassColor)
+	setLineColor(uimenu(cmenuHand, 'Label', ['All ' tag ' Color'], 'Sep','on'), cb_ClassColor)
 	cb_ClassLineWidth = uictx_Class_LineWidth(h);    % there are 5 cb_ClassLineWidth outputs
 	item_Class_lw = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Width']);
 	uimenu(item_Class_lw, 'Label', '1       pt', 'Call', cb_ClassLineWidth{1});
