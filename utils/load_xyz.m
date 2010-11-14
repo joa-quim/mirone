@@ -324,7 +324,7 @@ function varargout = load_xyz(handles, opt, opt2)
 									'Color',cor,'Tag',tag,'Userdata',n_isoc);
 						case 'AsPoint'
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1, 'LineStyle','none', 'Marker','o',...
-								'MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',4,'Tag','Pointpolyline');
+								'MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',2,'Tag','Pointpolyline');
 							draw_funs(hLine(i),'DrawSymbol')			% Set marker's uicontextmenu (tag is very important)
 						case 'AsMaregraph'
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1, 'LineStyle','none', 'Marker','o',...
