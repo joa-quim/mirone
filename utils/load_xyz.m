@@ -103,6 +103,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 			n_column = bin.nCols;
 			multi_seg = 0;		n_headers = 0;		is_bin = true;
+			if (nargin < 3),	line_type = 'AsPoint';	end		% If not explicitly set line_type
 		end
 
 	else
