@@ -2,7 +2,8 @@ function shapenc(fname, data, varargin)
 % Create netCDF shape type files
 %
 % FNAME -> Name of the netCDF output file
-% DATA  -> Mx2, or Mx3, or filename of a Mx2, Mx3 table, or a shapefile, or a cell of Mx2, Mx3 data
+% DATA  -> Mx2, or Mx3, or filename of a Mx2, Mx3 table, or a shapefile, or a cell of Mx2, Mx3 data,
+%			or a cell array of filenames
 % shapenc(..., 'outer', polyg)	where POLYG is a polygon embracing the DATA data
 % shapenc(..., 'inner', polyg)	where POLYG is a polygon representing a hole in the DATA
 %								Several polygons/holes are allowed but if > 1 they must be in a cell array
@@ -27,6 +28,15 @@ function shapenc(fname, data, varargin)
 % data, data, cell	<== Um poly externo e varios internos
 % cell				<== Cada celula tem um molho
 % cell, cell		<== Cada celula tem um molho e cada molho tem 0 ou 1 poly externo
+%
+%	Example of a single point group with an outer polygon only and reading from a binary file
+%	shapenc('acores_mepc_2.nc','swarm2.b','-b','s3','geog',1,'outer','poly2.dat','desc','Small ensemble isolated from main dataset')
+%
+%	Create a file with a point group, one outer polygon and many inner polygons whose names are stored in the cell array 'inners'
+%	shapenc('acores_mepc_1.nc','swarm1.b','-b','s3','geog',1,'outer','poly1.dat','inner',inners,'desc','EMEPC bathymetry')
+%
+%	To append the contents of swarm2.b to the larger file (tey are related) just run it with larger file's name
+%	shapenc('acores_mepc_1.nc','swarm2.b','-b','s3','geog',1,'outer','poly2.dat')
 
 	% ------------------ Parsing and defaults settings------------------ --------------
 	if (nargin < 2),	error('SHAPENC:error', 'Please, minimum 2 arguments -- FNAME & DATA'),	end
@@ -103,14 +113,15 @@ function shapenc(fname, data, varargin)
 	elseif (isa(inner_polygs,'cell'))	% Hmm, must see if it is a cell of fnames to load
 		if (ischar(inner_polygs{1}))	% Yep, so they seam
 			try
-				%inner_polygs = cell(1, numel(inner_polygs));
 				for (k = 1:numel(inner_polygs))
-					inner_polygs{k} = readFile(inner_polygs{k}, nMaxChunks);
+					inner_polygs{k} = readFile(inner_polygs{k}, nMaxChunks);%#ok
 				end
 			catch
 				error( sprintf('SHAPENC:screw_reading %d element of cellular INNER_POLYGS \n%s', k, lasterr) )
 			end
 		end
+	else
+		%error('SHAPENC:reading INNER_POLYGS ')
 	end
 
 	if (conv2multiseg && isa(data,'cell'))		% When user wants a single multisegment poly...
@@ -132,7 +143,7 @@ function shapenc(fname, data, varargin)
 	% -------------------------- END PARSING & DEFAULT SETTINGS -------------------------
 
 	% ------------------ Guessing based on number of columns ----------------------------
-	% Point_2D and Point_2D are guessed (if not provided earlier) here
+	% Point_2D and Point_3D are guessed (if not provided earlier) here
 	% All other cases must be explicitly declared
 	if (~(is_polygon_2D || is_polygon_3D || is_polyline_2D || is_polyline_3D) )
 		if (is_Pts_cell)
@@ -449,7 +460,7 @@ function Nctype = getDataType(data)
 % ----------------------------------------------------------------------------------------------
 function [data, pos, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3D, is_point_2D] = ...
 		readFile(fname, nMaxChunks, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3D, is_point_2D, inbin)
-% Try to read from a file (if ASCII or from a shapefile is binary)
+% Try to read from a file (if ASCII or from a shapefile if binary)
 % The POS output variable (when not empty) contains the positions of the multiseg separators (NaNs)
 % when DATA was packed into a single multisegment array.
 %
@@ -457,11 +468,11 @@ function [data, pos, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3
 
 	pos = [];
 	[bin,n_column,multi_seg,n_headers] = guess_file(fname);
-	if ( isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers) )
+	if ( isempty(bin) )
 		error('SHAPENC:readFile',['Error reading file ' fname])
 	end
 
-	if (isa(bin,'struct') || bin ~= 0)   % NOT ASCII
+	if (isa(bin,'struct') || bin ~= 0)			% NOT ASCII
 		
 		if (inbin)				% Inside info tells us that input file is a plain binary.
 			switch inbin(end-1)
@@ -544,6 +555,7 @@ function [data, pos, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3
 	if (n_column < 2)
 		error('SHAPENC:readFile','File error. The file doesn''t have at least 2 columns')
 	end
+
 	if (isempty(n_headers)),    n_headers = NaN;    end
 	if (multi_seg)
 		data = text_read(fname,NaN,n_headers,'>');
