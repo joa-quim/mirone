@@ -117,6 +117,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		for (k = 1:out_nc.n_PolyOUT)		% Order will be for each swarm OUT + its INs
 			numeric_data{kk} = [out_nc.Poly(k).OUT.lon out_nc.Poly(k).OUT.lat];
 			for ( n = 1:numel(out_nc.Poly(k).IN) )
+				if (isempty(out_nc.Poly(k).IN(n).lon)),		continue,	end
 				kk = kk + 1;
 				numeric_data{kk} = [out_nc.Poly(k).IN(n).lon out_nc.Poly(k).IN(n).lat];
 			end
@@ -125,6 +126,8 @@ function varargout = load_xyz(handles, opt, opt2)
 		if (numel(numeric_data) > 1)
 			multi_seg = true;
 			multi_segs_str = repmat({'> Nikles '},numel(numeric_data),1);
+		else
+			multi_segs_str = {'> Nikles '};
 		end
 	end
 
@@ -559,6 +562,11 @@ function out = read_shapenc(fname)
 				out.Poly(n).IN.lon = [];	% This OUTer polygon has no holes (INners)
 				out.Poly(n).IN.lat = [];	% Signal that so it will be easier to parse
 			end
+		end
+	else
+		for (k = 1:n_PolyOUT)				% So that we don't have any Poly.OUT without at
+			out.Poly(k).IN.lon = [];		% least one corresponding Poly.IN, even if empty
+			out.Poly(k).IN.lat = [];
 		end
 	end
 
