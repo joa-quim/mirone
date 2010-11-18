@@ -158,6 +158,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				else				% Try luck with a binary file
 					fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);		fclose(fid);
 					numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
+					if (bin.twoD && (bin.nCols > 2)),	numeric_data(:,3:end) = [];		end % Retain only X,Y 
 				end
 			end
 
@@ -231,6 +232,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				else				% Try luck with a binary file
 					fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);		fclose(fid);
 					numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
+					if (bin.twoD && (bin.nCols > 2)),	numeric_data(:,3:end) = [];		end % Retain only X,Y
 				end
 			end
 		end
