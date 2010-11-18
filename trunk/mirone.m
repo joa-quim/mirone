@@ -350,8 +350,9 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'mola',		loadGRID(handles, fname, 'MOLA');
 		case 'mat',			FileOpenSession_CB(handles, fname)
 		case 'cpt',			color_palettes(fname);
-		case 'dat',			load_xyz(handles,fname);
-		case 'shp',			DrawImportShape_CB(handles,fname);
+		case 'dat',			load_xyz(handles, fname);
+		case 'ncshape',		load_xyz(handles, fname, drv);
+		case 'shp',			DrawImportShape_CB(handles, fname);
 		case 'las',			read_las(handles, fname);
 		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles,fname);
 		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);		% It means "I don't know"
