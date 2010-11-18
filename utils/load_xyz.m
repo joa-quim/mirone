@@ -56,6 +56,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	do_project = false;         % We'll estimate below if this holds true
 	got_arrow = false;
 	got_isoc  = false;
+	got_nc = false;				% Flag to signal if a shapenc type file comes in
 	orig_no_mseg = false;		% Flag to know if original file had multiseg strings to store
 	line_type = 'AsLine';
 	tag = 'polyline';
@@ -75,6 +76,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	end
 	if (nargin == 3)
 		if (strcmp(opt2, 'AsArrow'))		got_arrow = true;		% This case does not care about 'line_type'
+		elseif (strcmp(opt2, 'ncshape'))	got_nc = true;			%
 		else								line_type = opt2;
 		end
 		if (strncmpi(line_type,'isochron',4))
@@ -84,21 +86,46 @@ function varargout = load_xyz(handles, opt, opt2)
 	end
 	% ---------------------------------------------------------------------
 
-	[bin, n_column, multi_seg, n_headers] = guess_file(fname);
-	if (isempty(bin))
-		errordlg(['Error reading file (probaby empty)' fname],'Error'),	return
-	end
-	if (isa(bin,'struct') || bin ~= 0)				% ---****** BINARY FILE *******---
-		if (isa(bin,'struct'))
-			bin = guess_bin(bin.nCols, bin.type);	% Ask user to confirm/modify guessing
-		else
-			bin = guess_bin(false);					% Ask user what's in file
+	if (~got_nc)			% Most common cases
+
+		[bin, n_column, multi_seg, n_headers] = guess_file(fname);
+		if (isempty(bin))
+			errordlg(['Error reading file (probaby empty)' fname],'Error'),	return
 		end
-		if (isempty(bin))		% User quit
-			varargout = {};		return
+		if (isa(bin,'struct') || bin ~= 0)				% ---****** BINARY FILE *******---
+			if (isa(bin,'struct'))
+				bin = guess_bin(bin.nCols, bin.type);	% Ask user to confirm/modify guessing
+			else
+				bin = guess_bin(false);					% Ask user what's in file
+			end
+			if (isempty(bin))		% User quit
+				varargout = {};		return
+			end
+			n_column = bin.nCols;
+			multi_seg = 0;		n_headers = 0;		is_bin = true;
 		end
-		n_column = bin.nCols;
-		multi_seg = 0;		n_headers = 0;		is_bin = true;
+
+	else
+		out_nc = read_shapenc(fname);
+		n_column = 2;		% ???
+		bin = false;		multi_seg = 0;		n_headers = 0;
+		if ( (out_nc.n_PolyOUT + out_nc.n_PolyIN) == 0 )
+			warndlg('Warning, no polygons to plot in this shapenc file. Bye','Warning'),	return
+		end
+		numeric_data = cell(out_nc.n_PolyOUT + out_nc.n_PolyIN,1);
+		kk = 1;
+		for (k = 1:out_nc.n_PolyOUT)		% Order will be for each swarm OUT + its INs
+			numeric_data{kk} = [out_nc.Poly(k).OUT.lon out_nc.Poly(k).OUT.lat];
+			for ( n = 1:numel(out_nc.Poly(k).IN) )
+				kk = kk + 1;
+				numeric_data{kk} = [out_nc.Poly(k).IN(n).lon out_nc.Poly(k).IN(n).lat];
+			end
+			kk = kk + 1;
+		end
+		if (numel(numeric_data) > 1)
+			multi_seg = true;
+			multi_segs_str = repmat({'> Nikles '},numel(numeric_data),1);
+		end
 	end
 
 	if (n_column == 1 && multi_seg == 0)			% Take it as a file names list
@@ -120,13 +147,15 @@ function varargout = load_xyz(handles, opt, opt2)
 			j = strfind(fname,filesep);
 			if (isempty(j)),    fname = sprintf('%s%s',PathName, fname);   end		% Need to add path as well 
 			if (isempty(n_headers)),    n_headers = NaN;    end
-			if (multi_seg)
-				[numeric_data, multi_segs_str] = text_read(fname,NaN,n_headers,'>');
-			elseif (~is_bin)
-				numeric_data = text_read(fname,NaN,n_headers);
-			else				% Try luck with a binary file
-				fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);		fclose(fid);
-				numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
+			if (~got_nc)			% Otherwise data was read already
+				if (multi_seg)
+					[numeric_data, multi_segs_str] = text_read(fname,NaN,n_headers,'>');
+				elseif (~is_bin)
+					numeric_data = text_read(fname,NaN,n_headers);
+				else				% Try luck with a binary file
+					fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);		fclose(fid);
+					numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
+				end
 			end
 
 			if (~isa(numeric_data,'cell'))			% File was not multi-segment.
@@ -134,7 +163,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				multi_segs_str = {'> Nikles '};		% Need something (>= 8 chars) to not error further down
 				orig_no_mseg = true;
 			end
-			for i=1:length(numeric_data)
+			for (i = 1:length(numeric_data))
 				XMin = min(XMin,double(min(numeric_data{i}(:,1))));		XMax = max(XMax,double(max(numeric_data{i}(:,1))));
 				YMin = min(YMin,double(min(numeric_data{i}(:,2))));		YMax = max(YMax,double(max(numeric_data{i}(:,2))));
 			end
@@ -191,13 +220,15 @@ function varargout = load_xyz(handles, opt, opt2)
 			j = strfind(fname,filesep);
 			if (isempty(j)),    fname = sprintf('%s%s',PathName, fname);   end		% Need to add path as well 
 			if (isempty(n_headers)),    n_headers = NaN;    end
-			if (multi_seg)
-				[numeric_data, multi_segs_str] = text_read(fname,NaN,n_headers,'>');
-			elseif (~is_bin)
-				numeric_data = text_read(fname,NaN,n_headers);
-			else				% Try luck with a binary file
-				fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);		fclose(fid);
-				numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
+			if (~got_nc)			% Otherwise data was read already
+				if (multi_seg)
+					[numeric_data, multi_segs_str] = text_read(fname,NaN,n_headers,'>');
+				elseif (~is_bin)
+					numeric_data = text_read(fname,NaN,n_headers);
+				else				% Try luck with a binary file
+					fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);		fclose(fid);
+					numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
+				end
 			end
 		end
 
@@ -461,3 +492,91 @@ function [thick, cor, str2] = parseW(str)
 		% Notice that we cannot have -W100 represent a color because it would have been interpret above as a line thickness
 		if (any(isnan(cor))),   cor = [];   end
 	end
+
+% --------------------------------------------------------------------------------
+function out = read_shapenc(fname)
+% Read from a shapenc type file FNAME
+% OUT is a structure with fields:
+%	n_swarms			number of data groups (so to speak)
+%	type				Geometry Type like in shapefiles e.g. 'PointZ'
+%	BB					The 2D BoundingBox
+%	n_PolyOUT			Total number of Outer polygons
+%	n_PolyIN			Total number of Inner polygons (irrespective of their parents)
+%	Poly(n).OUT.lon		N struct array where N is the number of outer polygons (MAX = n_swarms)
+%	Poly(n).OUT.lat				"
+%
+% If N above > 0 for each Outer polygon we can have M Inner polygons, as in
+%	out.Poly(n).IN(i).lon		Where i = 1:M
+%	out.Poly(n).IN(i).lat
+
+	s = nc_funs('info',fname);
+	ind = strcmp({s.Attribute.Name},'Number_of_main_ensembles');
+	out.n_swarms = s.Attribute(ind).Value;
+
+	ind = strcmp({s.Attribute.Name},'SHAPENC_type');
+	out.type = s.Attribute(ind).Value;
+
+	ind = strcmp({s.Attribute.Name},'BoundingBox');
+	out.BB = s.Attribute(ind).Value;
+
+	out.n_PolyOUT = 0;		out.n_PolyIN = 0;		% They will be updated later
+
+	% Find the outer polygons
+	ind = find(strncmp({s.Dataset.Name},'lonPolyOUT',10));
+	n_PolyOUT = numel(ind);
+	if (n_PolyOUT)
+		out.Poly(n_PolyOUT).OUT.lon = [];		out.Poly(n_PolyOUT).OUT.lat = [];
+		for (k = 1:n_PolyOUT)
+			out.Poly(k).OUT.lon = nc_funs('varget', fname, s.Dataset(ind(k)).Name);
+			out.Poly(k).OUT.lat = nc_funs('varget', fname, s.Dataset(ind(k)+1).Name);
+		end
+	end
+	
+	% Find the inner polygons (if any)
+	ind = find(strncmp({s.Dataset.Name},'lonPolyIN',9));
+	n_PolyIN = numel(ind);		% Total number of Inner polygons
+	if (n_PolyIN)
+		% We need to find which of the swarms those internal polygons belong to.
+		tmp = zeros(2,n_PolyIN);
+		for (k = 1:n_PolyIN)					% Do a first round to find out what is where
+			str = s.Dataset(ind(k)).Name(11:end);
+			tmp(:,k) = sscanf(str,'%d_%d');		% First row holds the swarm number and second row the polyg number
+		end
+		[b, m_first, m_last] = local_unique(tmp(1,:));
+		n_PolyIN_groups = numel(b);
+		nPolys_in_group = tmp(2,m_last);
+		for (k = 1:n_PolyIN_groups)				% Loop over number of groups that have Inner polygons
+			n = find( b(k) == 1:n_PolyOUT );
+			if (~isempty(n))				% This group has Inner polygs
+				out.Poly(n).IN(nPolys_in_group(k)).lon = [];	% Pre-allocate
+				out.Poly(n).IN(nPolys_in_group(k)).lat = [];
+				start = ind(m_first(k))-2;		% minus 2 because of the 2*i below
+				for (i = 1:nPolys_in_group(k))
+					out.Poly(n).IN(i).lon = nc_funs('varget', fname, s.Dataset(2*i+start).Name);
+					out.Poly(n).IN(i).lat = nc_funs('varget', fname, s.Dataset(2*i+1+start).Name);
+				end
+			else
+				out.Poly(n).IN.lon = [];	% This OUTer polygon has no holes (INners)
+				out.Poly(n).IN.lat = [];	% Signal that so it will be easier to parse
+			end
+		end
+	end
+
+	out.n_PolyOUT = n_PolyOUT;
+	out.n_PolyIN  = n_PolyIN;
+
+% ------------------------------------------------------------------
+function [b, ndx_first, ndx_last] = local_unique(a)
+% Striped version of unique that outputs 'first' and 'last'
+	numelA = numel(a);
+	a = a(:);
+	[b, ndx] = sort(a);
+	db = diff(b);
+	d_last = (db ~= 0);
+	d_first = d_last;
+
+	d_last(numelA,1) = true;		% Final element is always a member of unique list.
+	d_first = [true; d_first];		% First element is always a member of unique list.
+	b = b(d_last);					% Create unique list by indexing into sorted list.
+	ndx_last  = ndx(d_last);
+	ndx_first = ndx(d_first);
