@@ -161,8 +161,9 @@ function out = findFileType(fname)
 	elseif ( strcmpi(EXT,'.nc') )		% .nc files can have grids, mgd77 files or any other thing
 		s = nc_funs('info',fname);
 		try
-			if ( any(strcmp({s.Dimension.Name}, 'id_dim')) ),	out = 'mgg_gmt';
-			else		out = 'gmt';
+			if     ( any(strcmp({s.Dimension.Name}, 'id_dim')) ),			out = 'mgg_gmt';
+			elseif ( any(strcmp({s.Attribute.Name}, 'SHAPENC_type')) ),		out = 'ncshape';
+			else	out = 'gmt';
 			end
 		catch
 			out = 'dono';
