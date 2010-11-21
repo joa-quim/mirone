@@ -59,7 +59,7 @@ end
 threeD = IsThreeD(gca);
 
 if nargin == 1,
-    h = plus_labels(threeD,cs);
+    h = plus_labels(threeD, cs);
 else
     if ~isempty(varargin{1}(1)) && ishandle(varargin{1}(1)) && ...
         (strcmp(get(varargin{1}(1),'type'),'line') || strcmp(get(varargin{1}(1),'type'),'patch')),
@@ -69,10 +69,7 @@ else
     end
 end
 
-if nargout>0, hh = h; end
-if ~ishold, 
-    if threeD, view(3), else view(2), end
-end
+if (nargout > 0),	hh = h;		end
 
 %--------------------------------------------------------------
 function H = inline_labels(CS,h,varargin)
@@ -102,12 +99,12 @@ lab_int=72*2;  % label interval (points)
 
 for k=find(inargs==0),
     if strncmpi(varargin{k},'lab',3),
-        inargs([k k+1])=1;
+        inargs([k k+1])= 1;
         lab_int=varargin{k+1};
     end
 end
 
-varargin(find(inargs))=[]; 
+varargin(inargs)=[]; 
 
 if strcmp(get(h(1),'type'),'patch') && ~strcmp(get(h(1),'facecolor'),'none'),
     isfilled = 1;
@@ -115,10 +112,10 @@ else
     isfilled = 0;
 end
 
-%% EF 4/97
+% EF 4/97
 if (strcmp(get(axHand, 'XDir'), 'reverse')), XDir = -1; else XDir = 1; end
 if (strcmp(get(axHand, 'YDir'), 'reverse')), YDir = -1; else YDir = 1; end
-%%
+%
 
 % Compute scaling to make sure printed output looks OK. We have to go via
 % the figure's 'paperposition', rather than the the absolute units of the
@@ -127,12 +124,12 @@ if (strcmp(get(axHand, 'YDir'), 'reverse')), YDir = -1; else YDir = 1; end
 % 'normalized'.
 
 UN=get(axHand,'units');
-if (UN(1:3)=='nor'),
+if (strcmp(UN(1:3),'nor'))
     UN=get(figHand,'paperunits');
     set(figHand,'paperunits','points');
     PA=get(figHand,'paperposition');
     set(figHand,'paperunits',UN);
-    PA=PA.*[get(axHand,'position')];
+    PA=PA.*(get(axHand,'position'));
 else
     set(axHand,'units','points');
     PA=get(axHand,'pos');
@@ -141,7 +138,7 @@ end
 
 % Find beginning of all lines
 
-lCS=size(CS,2);
+lCS = size(CS,2);
 
 if ~isempty(get(axHand,'children')),
     XL=get(axHand,'xlim');    YL=get(axHand,'ylim');
@@ -150,7 +147,7 @@ else
     k=1;
     XL=[Inf -Inf];
     YL=[Inf -Inf];
-    while (k<lCS),
+    while (k < lCS),
         x=CS(1,k+(1:CS(2,k)));
         y=CS(2,k+(1:CS(2,k)));
         XL=[ min([XL(1),x]) max([XL(2),x]) ];
@@ -175,10 +172,9 @@ labels = getlabels(CS);
 % Get the size of the label
 set(H1,'string',repmat('9',1,size(labels,2)),'visible','on',varargin{:})
 EX=get(H1,'extent'); set(H1,'visible','off')
-len_lab=EX(3)/2;
 
-ii=1; k = 0;
-while (ii<lCS),
+ii = 1;		k = 0;
+while (ii < lCS)
   k = k+1;
 
   if ~isfilled && k>length(h), error('Not enough contour handles.'); end
@@ -207,10 +203,10 @@ while (ii<lCS),
   len_contour = max(0,d(l)-3*len_lab);
   slop = (len_contour - floor(len_contour/lab_int)*lab_int);
   start = 1.5*len_lab + max(len_lab,slop)*rands(1); % Randomize start
-  psn=[start:lab_int:d(l)-1.5*len_lab];
+  psn = start:lab_int:d(l)-1.5*len_lab;
   lp=size(psn,2);
   
-  if (lp>0) & isfinite(lvl)  && (isempty(v) | any(abs(lvl-v)/max(eps+abs(v)) < .00001)),
+  if ( (lp > 0) && isfinite(lvl)  && (isempty(v) || any(abs(lvl-v)/max(eps+abs(v)) < .00001)) )
  
     Ic=sum( d(ones(1,lp),:)' < psn(ones(1,l),:),1 );
     Il=sum( d(ones(1,lp),:)' <= psn(ones(1,l),:)-len_lab,1 );
@@ -301,15 +297,15 @@ while (ii<lCS),
       % Here's where we assume the order of the h(k).  
       %
   
-      z = get(h(k),'zdata');
+      z = get(h(k),'ZData');
       if ~isfilled, % Only modify lines or patches if unfilled
         set(h(k),'xdata',[xf(If) NaN],'ydata',[yf(If) NaN])
   
         % Handle contour3 case (z won't be empty).
         if ~isempty(z), 
-          set(h(k),'zdata',[]) % Work around for bug in face generation
+          set(h(k),'ZData',[]) % Work around for bug in face generation
           % Set z to a constant while preserving the location of NaN's
-          set(h(k),'zdata',z(1)+0*get(h(k),'xdata'))
+          set(h(k),'ZData',z(1)+0*get(h(k),'xdata'))
         end
   
         if strcmp(get(h(k),'type'),'patch')
@@ -317,17 +313,17 @@ while (ii<lCS),
         end
       end
   
-      H_tmp = [];
-      for jj=1:lp,
+	  H_tmp = zeros(lp,1);
+      for (jj = 1:lp)
         % Handle contour3 case (z won't be empty).
         if ~isempty(z),
-          H_tmp = [H_tmp; text(xc(jj),yc(jj),z(1),lab,'rotation',trot(jj), ...
+          H_tmp(jj) = text(xc(jj),yc(jj),z(1),lab,'rotation',trot(jj), ...
                'verticalAlignment','middle','horizontalAlignment','center',...
-               'clipping','on','userdata',lvl,varargin{:})];
+               'clipping','on','userdata',lvl,varargin{:});
         else
-          H_tmp = [H_tmp; text(xc(jj),yc(jj),lab,'rotation',trot(jj), ...
+          H_tmp(jj) = text(xc(jj),yc(jj),lab,'rotation',trot(jj), ...
                'verticalAlignment','middle','horizontalAlignment','center',...
-               'clipping','on','userdata',lvl,varargin{:})];       
+               'clipping','on','userdata',lvl,varargin{:});       
         end
       end
       H = [H; H_tmp];
@@ -347,9 +343,9 @@ while (ii<lCS),
       % Handle contour3 case (z won't be empty).
       z = get(h(k),'zdata');
       if ~isempty(z), 
-        set(h(k),'zdata',[]) % Work around for bug in face generation
+        set(h(k),'ZData',[]) % Work around for bug in face generation
         % Set z to a constant while preserving the location of NaN's
-        set(h(k),'zdata',z(1)+0*get(h(k),'xdata'))
+        set(h(k),'ZData',z(1)+0*get(h(k),'xdata'))
       end
       if strcmp(get(h(k),'type'),'patch')
          set(h(k),'cdata',lvl+[0*x nan])
@@ -358,10 +354,10 @@ while (ii<lCS),
   end;
   
   ii=ii+1+CS(2,ii);
-end;
+end
   
 % delete dummy string
-delete(H1);
+delete(H1)
 %-------------------------------------------------------
 
 %-------------------------------------------------------
@@ -373,7 +369,6 @@ function h = plus_labels(threeD,cs,varargin)
 %    RP - 14/5/97
 %    Clay M. Thompson 6-7-96
 %    Charles R. Denham, MathWorks, 1988, 1989, 1990.
-cax = gca;
 choice = 0;
 
 if nargin > 2
@@ -386,7 +381,7 @@ end
 
 % Find range of levels.
 k = 1; i = 1;
-while k <= ncs
+while (k <= ncs)
    levels(i) = cs(1,k);
    i = i + 1;
    k = k + cs(2,k) + 1;
@@ -404,7 +399,7 @@ while (1)       % Select a labeling point randomly.
 	c = cs(1, k); n = cs(2, k);
 	if choice
         f = find(abs(c-v)/max(eps+abs(v)) < .00001);
-        okay = length(f) > 0;
+        okay = ~isempty(f);
 	else
         okay = 1;
 	end
@@ -439,7 +434,7 @@ while (1)       % Select a labeling point randomly.
              'horizontalalignment', 'left','erasemode','none', ...
              'clipping','on','userdata',c,varargin{:});
       if threeD, 
-        set(hl,'zdata',c);
+        set(hl,'ZData',c);
         set(ht,'position',[xx yy c]);
       end
       h = [h;hl];
@@ -462,10 +457,10 @@ labels = num2str(v');
 function threeD = IsThreeD(cax)
 %ISTHREED  True for a contour3 plot
 hp = findobj(cax,'type','patch');
-if isempty(hp), hp = findobj(gca,'type','line'); end
+if isempty(hp), hp = findobj(cax,'type','line'); end
 if ~isempty(hp),
   % Assume a contour3 plot if z data not empty
-  threeD = ~isempty(get(hp(1),'zdata'));
+  threeD = ~isempty(get(hp(1),'ZData'));
 else
   threeD = 0;
 end
@@ -476,7 +471,7 @@ function r = rands(n)
 %   R = RANDS(N) is the same as calling RAND(INP) except
 %   that the state of the random number generator is unaffected.
 
-Currstate=rand('state');
+Currstate = rand('state');
 rand('state',sum(100*clock));
 r = rand(n);
 rand('state',Currstate); % resets to original state.
