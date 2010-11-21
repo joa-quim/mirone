@@ -804,6 +804,7 @@ function write_pts(fid,hand,mode,limits,opt)
 		else
 			if (ishandle(hand(i)))
 				zz = get(hand(i),'ZData');
+				if (isempty(zz))	zz = getappdata(hand(i),'ZData');	end		% Try this too
 				if (isempty(zz))	zz = get(hand(i),'UserData');	end		% Try this too
 			else
 				if (min(m,n) == 3)	% Have Z
