@@ -98,7 +98,7 @@ function writekml(handles,Z,fname)
         for (i = 1:nPatch)                     % Do one by one.
 			x = get(ALLpatchHand(i),'XData');
 			if (isempty(x)),    continue;       end
-			y = get(ALLpatchHand(i),'YData');       z = get(ALLpatchHand(i),'ZData');
+			y = get(ALLpatchHand(i),'YData');       z = getappdata(ALLpatchHand(i),'ZData');
 
 			corA = get(ALLpatchHand(i),'FaceAlpha');
 			if (ischar(corA)),  corA = 0;
@@ -161,7 +161,7 @@ function writekml(handles,Z,fname)
 
 			fprintf(fid,'\t%s\n','<Folder>');
 			for (i = 1:numel(h))
-				x = get(h(i),'XData');       y = get(h(i),'YData');     z = get(h(i),'ZData');
+				x = get(h(i),'XData');       y = get(h(i),'YData');     z = getappdata(h(i),'ZData');
 				ss = get(h(i),'MarkerSize');
 				symb_size = ss / 72 * 2.54;				% Symbol size in cm
 				dy = symb_size * escala;
@@ -273,7 +273,7 @@ function writekml(handles,Z,fname)
         % If we still have 'line' elements, ... proceed
 		for (i = 1:numel(ALLlineHand))
             x = get(ALLlineHand(i),'XData');        y = get(ALLlineHand(i),'YData');
-            z = get(ALLlineHand(i),'ZData');
+            z = getappdata(ALLlineHand(i),'ZData');
             line_thick = get(ALLlineHand(i),'LineWidth');   % Line thickness
             line_color = get(ALLlineHand(i),'color');       % Line color
             line_color = [255 round(line_color(end:-1:1)*255)];   % first is transparency (none here)

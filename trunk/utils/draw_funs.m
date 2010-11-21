@@ -99,7 +99,8 @@ function Ctrl_v(h)
 			 'FaceAlpha',get(hLine,'FaceAlpha'), 'Tag',get(hLine,'Tag') );
 	end
 	z = get(hLine, 'zdata');
-	if (~isempty(z)),		set(h, 'ZData', z);		end
+	if (isempty(z)),		z = getappdata(hLine,'ZData');	end
+	if (~isempty(z)),		setappdata(h, 'ZData', z);		end
 	set_line_uicontext(h,'line')		% Set lines's uicontextmenu
 
 % % -----------------------------------------------------------------------------------------

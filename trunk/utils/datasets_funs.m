@@ -790,8 +790,9 @@ for (k = 1:numel(names))
 			z = numeric_data{i}(:,3);
 			z(indx) = [];       z(indy) = [];
 			for kk=1:numel(tmpx)
-				h(kk) = line('XData',tmpx,'YData',tmpy,'ZData',z,'Parent',handles.axes1,'LineWidth',thick,'Tag',tag,...
+				h(kk) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'LineWidth',thick,'Tag',tag,...
 					'Marker',symbol,'Color',corW,'MarkerFaceColor',corFill,'MarkerSize',dim,'LineStyle','none');
+				setappdata(h(kk),'ZData',z)
 			end
 		else
 			for kk=1:numel(tmpx)

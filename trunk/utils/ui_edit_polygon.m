@@ -174,9 +174,10 @@ function polygonui(varargin)
 
 			s.controls = 'on';
 			% I have to set ZData because if line is 3D the 'buttondownfcn' would not work otherwise (F. ML bugs)
-			s.h_vert = line('xdata',get(s.h_pol,'XData'),'ydata',get(s.h_pol,'YData'),'zdata',get(s.h_pol,'ZData'), ...
+			s.h_vert = line('xdata',get(s.h_pol,'XData'),'ydata',get(s.h_pol,'YData'), ...
 						'Parent',s.h_ax, 'Marker','s','color','r', 'MarkerFaceColor','none', ...
 						'linestyle','none','MarkerSize',5,'buttondownfcn',{@edit_polygon,s.h_pol});
+			%setappdata(s.h_vert,'ZData',getappdata(s.h_pol,'ZData'))
 			set(s.h_pol,'buttondownfcn',{@move_polygon,s.h_pol});
 			set(s.h_fig,'KeyPressFcn',{@KeyPress_local, s.h_pol})
 			setappdata(s.h_pol,'polygon_data',s)
@@ -332,7 +333,7 @@ function KeyPress_local(obj,eventdata,h)
 if (~ishandle(h)),		return,		end
 s = getappdata(h,'polygon_data');
 key = get(s.h_fig, 'CurrentCharacter');
-z = get(s.h_pol,'ZData');
+z = getappdata(s.h_pol,'ZData');
 
 switch key
     case {'r', 'R', '-'}				% delete vertex
@@ -342,7 +343,11 @@ switch key
 		if (~isempty(z)),	z(s.vert_index) = [];	end
 		delete(s.h_current_marker);         s.h_current_marker = [];
 		s.vert_index = [];
-		set([s.h_pol s.h_vert],'XData',x,'YData',y,'ZData',z);		% Update data
+		set([s.h_pol s.h_vert],'XData',x,'YData',y)		% Update data
+		if (~isempty(z))
+			setappdata(s.h_pol,'ZData',z)
+			setappdata(s.h_vert,'ZData',z)
+		end
                        
 	case {'i', 'I', '+'}				% insert vertex
 		pt = get(s.h_ax, 'CurrentPoint');
@@ -360,7 +365,11 @@ switch key
 			s.vert_index = s.vert_index+1;
 			set(s.h_current_marker,'XData',pt(1,1),'YData',pt(1,2));
 		end
-		set([s.h_pol s.h_vert],'XData',x,'YData',y,'ZData',z);
+		set([s.h_pol s.h_vert],'XData',x,'YData',y)
+		if (~isempty(z))
+			setappdata(s.h_pol,'ZData',z)
+			setappdata(s.h_vert,'ZData',z)
+		end
 
 	case {'b', 'B'}				% break line
 		if (isempty(s.vert_index)),		return,		end		% No reference vertice selected
@@ -374,7 +383,8 @@ switch key
 		set([s.h_pol s.h_vert],'XData',x1,'YData',y1);
 		if (~isempty(z))
 			z1 = z(1:s.vert_index);     z2 = z(s.vert_index:end);
-			set([s.h_pol s.h_vert],'ZData',z1);
+			setappdata(s.h_pol,'ZData',z1)
+			setappdata(s.h_vert,'ZData',z1)
 		end
 
 		% Now make the a new segment from rest of the original (but without markers)
@@ -383,7 +393,7 @@ switch key
 		ud = get(s.h_pol,'UserData');
 		% create a new line handle
 		tmp = line('XData',x2,'YData',y2,'Parent',s.h_ax,'LineWidth',lw,'Color',lc,'LineStyle',ls, 'UserData',ud);
-		if (~isempty(z)),		set(tmp, 'ZData',z2),	end
+		if (~isempty(z)),		setappdata(tmp, 'ZData',z2),	end
 		if (~isempty(lT)),		set(tmp, 'Tag', lT),	end
 		set(tmp,'uicontextmenu',get(s.h_pol,'uicontextmenu'))   % Copy the uicontextmenu
 		ui_edit_polygon(tmp)
@@ -396,7 +406,7 @@ switch key
 		if (length(x) <= 2),	return,		end			% don't close a line with less than 2 vertex 
 		y = get(s.h_pol,'YData');
 		set(s.h_pol,'XData',[x x(1)],'YData',[y y(1)]);
-		if (~isempty(z)),	set(s.h_pol,'ZData',[z z(1)]),		end
+		if (~isempty(z)),	setappdata(s.h_pol,'ZData',[z z(1)]),		end
 		s.is_closed = 1;
 
 	case {'e', 'E'}					% edit (extend) line with getline_j
@@ -407,19 +417,19 @@ switch key
 		set(s.h_fig,'KeyPressFcn',s.KeyPress_orig)
 		setappdata(s.h_fig,'epActivHand',0)
 		setappdata(s.h_pol,'polygon_data',s)		% Play safe
-		if (~isempty(z)),	set(s.h_pol,'ZData',[]),	end		% getline_j doesn't handle 3D lines
+		if (~isempty(z)),	setappdata(s.h_pol,'ZData',[]),	end		% getline_j doesn't handle 3D lines
 		n1 = numel(z);
 		[x,y] = getline_j(s.h_pol);
 		n2 = numel(x);
 		set(s.h_pol, 'XData',x, 'YData',y);
-		if (~isempty(z)),	set(s.h_pol,'ZData',[z repmat(z(end),1,n2-n1)]);	end		% Reset the Zs
+		if (~isempty(z)),	setappdata(s.h_pol,'ZData',[z repmat(z(end),1,n2-n1)]);	end		% Reset the Zs
 		return
 
 	case {'p', 'P'}					% close line -> patch
 		% Don't close what is already closed or line with less than 2 vertices
 		if (s.is_patch || s.is_closed || numel(get(s.h_pol,'XData')) <= 2);  return;     end	
 		p = patch(get(s.h_pol,'XData'),get(s.h_pol,'YData'),1,'parent',s.h_ax);
-		if (~isempty(z)),	set(p,'ZData',z),		end
+		if (~isempty(z)),	setappdata(p,'ZData',z),		end
 		s_old = getappdata(s.h_pol,'polygon_data');
 		s_old.h_pol = p;							% Need to update for the correct handle
 		s.is_patch = 1;
