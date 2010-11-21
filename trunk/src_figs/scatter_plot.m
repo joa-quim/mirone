@@ -191,8 +191,9 @@ function push_plot_CB(hObject, handles)
 	z = abs(z);			% Currently the Z is only used (and many times badly) to make cylinders in GE
 	h = zeros(1,nPts);
 	for (k = 1:nPts)
-		h(k) = line('XData',x(k),'YData',y(k),'ZData',z(k),'Parent',handles.hCallingAxes,'Tag','scatter_symbs',...
+		h(k) = line('XData',x(k),'YData',y(k),'Parent',handles.hCallingAxes,'Tag','scatter_symbs',...
 			'Marker',handles.symbSYMB,'Color','k','MarkerFaceColor',zC(k,:),'MarkerSize',symbSIZES(k));
+		setappdata(h(k),'ZData',z(k)) 
 	end
 	setUIs(handles,h)
 
