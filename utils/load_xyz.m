@@ -383,7 +383,7 @@ function varargout = load_xyz(handles, opt, opt2)
 					hLine(i) = hQuiver(1);
 				end
 
-				if (~isempty(tmpz))		set(hLine(i),'ZData',tmpz');	end
+				if (~isempty(tmpz))		setappdata(hLine(i),'ZData',tmpz');	end
 				if (~orig_no_mseg)
 					setappdata(hLine(i),'LineInfo',multi_segs_str{i})  % To work with the sessions and will likely replace old mechansim
 				end
