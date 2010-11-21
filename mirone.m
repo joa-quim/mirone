@@ -3713,7 +3713,7 @@ elseif (strcmp(opt,'copyclip'))		% Img and frame capture to ClipBoard
 elseif (strcmp(opt,'Ctrl-c'))
 	h_active = getappdata(handles.figure1,'epActivHand');
 	if (h_active)					% We have a line or patch in edit mode. Copy it
-		x = get(h_active,'xdata');		y = get(h_active,'ydata');		z = get(h_active,'zdata');
+		x = get(h_active,'xdata');		y = get(h_active,'ydata');		z = getappdata(h_active,'ZData');
 		if (isempty(z)),		mat2clip([x(:) y(:)],8)
 		else					mat2clip([x(:) y(:) z(:)],8)
 		end
