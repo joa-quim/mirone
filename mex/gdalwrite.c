@@ -250,8 +250,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* Use LZW compression with GeoTiff driver */
 	if (!strcmp(pszFormat,"GTiff")) {
-		papszOptions = CSLAddString( papszOptions, "COMPRESS=LZW" ); 
-		/*papszOptions = CSLAddString( papszOptions, "INTERLEAVE=PIXEL" ); */
+		papszOptions = CSLAddString( papszOptions, "COMPRESS=DEFLATE" ); 
+		papszOptions = CSLAddString( papszOptions, "TILED=YES" ); 
+		/*papszOptions = CSLAddString( papszOptions, "INTERLEAVE=BAND" ); */
 	}
 
 	if (metaString)
