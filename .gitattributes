@@ -354,6 +354,7 @@ mex/country_extract.c -text
 mex/country_select.c -text
 mex/cpt2cmap.c -text
 mex/cq.c -text
+mex/cubicspline.cpp -text
 mex/cvcolor_mex.c -text
 mex/cvlib_mex.c -text
 mex/dilate_erode_binary.cpp -text
