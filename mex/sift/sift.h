@@ -19,6 +19,10 @@ that accompanied this distribution.
 #ifndef SIFT_H
 #define SIFT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "cxcore.h"
 
 /**
@@ -152,5 +156,9 @@ pixel values in the range [0, 1]
 extern int _sift_features( IplImage* img, struct feature** feat, int intvls,
 			  double sigma, double contr_thr, int curv_thr,
 			  int img_dbl, int descr_width, int descr_hist_bins );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
