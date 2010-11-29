@@ -23,14 +23,14 @@ REM Author: Joaquim Luis, 09-MAY-2010
 REM --------------------------------------------------------------------------------------
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
-SET CC=icl
+SET CC=cl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
 SET R13="no"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
-SET WIN64="no"
+SET WIN64="yes"
 
 REM The MSVC version. I use this var to select libraries also compiled with this compiler
 SET MSVC_VER="1600"
@@ -59,8 +59,8 @@ SET MEX_EXT="dll"
 ) ELSE (
 
 IF %WIN64%=="yes" (
-SET MATLIB=C:\PROGRAMS\MATLAB\R2010A\extern\lib\win64\microsoft 
-SET MATINC=C:\PROGRAMS\MATLAB\R2010A\extern\include
+SET MATLIB=C:\PROGRAMS\MATLAB\R2010B\extern\lib\win64\microsoft 
+SET MATINC=C:\PROGRAMS\MATLAB\R2010B\extern\include
 SET _MX_COMPAT=-DMX_COMPAT_32
 SET MEX_EXT="mexw64"
 
@@ -118,8 +118,16 @@ SET NETCDF_INC=C:\progs_cygw\netcdf-3.6.3\include
 SET GMT_INC=c:\progs_cygw\GMTdev\GMT\include
 SET GDAL_INC=c:\programs\GDALtrunk\gdal\compileds\VC10_32\include
 SET CV_INC=C:\programs\OpenCV_SVN\include\opencv
-SET INCLUDE=%INCLUDE%;C:\programs\OpenCV_SVN\modules\core\include;C:\programs\OpenCV_SVN\modules\imgproc\include;C:\programs\OpenCV_SVN\modules\features2d\include;C:\programs\OpenCV_SVN\modules\calib3d\include;C:\programs\OpenCV_SVN\modules\objdetect\include;C:\programs\OpenCV_SVN\modules\video\include
 SET LAS_INC=-IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas\capi -IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas
+
+SET CVI_1=-IC:\programs\OpenCV_SVN\modules\core\include
+SET CVI_2=-IC:\programs\OpenCV_SVN\modules\imgproc\include
+SET CVI_3=-IC:\programs\OpenCV_SVN\modules\features2d\include
+SET CVI_4=-IC:\programs\OpenCV_SVN\modules\calib3d\include
+SET CVI_5=-IC:\programs\OpenCV_SVN\modules\objdetect\include
+SET CVI_6=-IC:\programs\OpenCV_SVN\modules\video\include
+SET CVI_7=-IC:\programs\OpenCV_SVN\modules\legacy\include
+SET CVI_8=-IC:\programs\OpenCV_SVN\modules\flann\include
 REM ----------------------------------------------------------------------------
 
 REM ____________________________________________________________________________
@@ -229,7 +237,7 @@ REM ---------------------- END "GDALs" -----------------------------------------
 
 REM ---------------------- OpenCV ---------------------------------------------------
 :OCV
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%CV_INC% %OPTIMFLAGS% %_MX_COMPAT% cvlib_mex.c sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c 
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%CV_INC% %CVI_1% %CVI_2% %CVI_3% %CVI_4% %CVI_5% %CVI_6% %CVI_7% %CVI_8% %OPTIMFLAGS% %_MX_COMPAT% cvlib_mex.cpp sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c 
 link  /out:"cvlib_mex.%MEX_EXT%" %LINKFLAGS% %CV_LIB% %CXCORE_LIB% %CVIMG_LIB% %CVCALIB_LIB% %CVOBJ_LIB% %CVVIDEO_LIB% /implib:templib.x cvlib_mex.obj sift.obj imgfeatures.obj kdtree.obj minpq.obj 
 IF %1==OCV GOTO END
 
