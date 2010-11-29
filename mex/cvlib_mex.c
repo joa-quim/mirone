@@ -2180,19 +2180,19 @@ void Jthreshold(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexErrMsgTxt("Threshold returns one (and one only) output");
 
 	if (n_in >= 3) {
-		ptr_d = mxGetData(prhs[4]);	adaptive_method = (int)ptr_d[0];
+		ptr_d = mxGetPr(prhs[4]);	adaptive_method = (int)ptr_d[0];
 		if (adaptive_method == 1)
 			adaptive_method = CV_ADAPTIVE_THRESH_GAUSSIAN_C;
 	}
 	if (n_in >= 4) {
-		ptr_d = mxGetData(prhs[3]);	block_size = (int)ptr_d[0];
+		ptr_d = mxGetPr(prhs[3]);	block_size = (int)ptr_d[0];
 		if (block_size < 3) {
 			mexPrintf("Threshold: block_size argument %d is nonsensic. Reseting to 3\n", block_size);
 			block_size = 3;
 		}
 	}
 	if (n_in >= 5) {
-		ptr_d = mxGetData(prhs[4]);	param1 = (double)ptr_d[0];
+		ptr_d = mxGetPr(prhs[4]);	param1 = (double)ptr_d[0];
 	}
 	/* -------------------- End of parsing input ------------------------------------- */
 
