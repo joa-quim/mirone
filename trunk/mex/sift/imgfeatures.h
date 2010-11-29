@@ -9,6 +9,10 @@ Copyright (C) 2006  Rob Hess <hess@eecs.oregonstate.edu>
 #ifndef IMGFEATURES_H
 #define IMGFEATURES_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "cxcore.h"
 
 /* absolute value */
@@ -119,5 +123,8 @@ Calculates the squared Euclidian distance between two feature descriptors.
 */
 extern double descr_dist_sq( struct feature* f1, struct feature* f2 );
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

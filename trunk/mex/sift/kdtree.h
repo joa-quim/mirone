@@ -18,6 +18,10 @@ Copyright (C) 2006  Rob Hess <hess@eecs.oregonstate.edu>
 #ifndef KDTREE_H
 #define KDTREE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "cxcore.h"
 
 
@@ -101,5 +105,9 @@ De-allocates memory held by a kd tree
 */
 extern void kdtree_release( struct kd_node* kd_root );
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
