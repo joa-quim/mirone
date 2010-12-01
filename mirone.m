@@ -3717,12 +3717,12 @@ elseif (strcmp(opt,'Ctrl-c'))
 		if (isempty(z)),		mat2clip([x(:) y(:)],8)
 		else					mat2clip([x(:) y(:) z(:)],8)
 		end
-		setappdata(0, 'CtrlCHandle', [h_active handles.figure1])	% Put a handle copy on root's appdata
+		setappdata(0, 'CtrlCHandle', [h_active handles.axes1])	% Put a handle copy on root's appdata
 	end
 
 elseif (strcmp(opt,'Ctrl-v'))
 	h = getappdata(0, 'CtrlCHandle');	% Get what's in this root's appdata
-	if (isempty(h) || ~ishandle(h(1)) || h(end) == handles.figure1)
+	if (isempty(h) || ~ishandle(h(1)))
 		set(handles.figure1,'pointer','arrow'),		return
 	end
 	draw_funs(h(1), 'Ctrl_v', [], [h(1) handles.axes1])		% Complicated due to transitional form of draw_funs
