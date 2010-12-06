@@ -281,19 +281,19 @@ function push_compute_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------
 function numeric_data = le_fiche(fname)
-[bin,n_column,multi_seg,n_headers] = guess_file(fname);
-% If error in reading file
-if isempty(bin) && isempty(n_column) && isempty(multi_seg) && isempty(n_headers)
-    errordlg(['Error reading file ' fname],'Error');
-    numeric_data = [];
-    return
-end
-if (isempty(n_headers)),     n_headers = NaN;    end
-if (multi_seg)
-    numeric_data = text_read(fname,NaN,n_headers,'>');
-else
-    numeric_data = text_read(fname,NaN,n_headers);
-end
+	[bin,n_column,multi_seg,n_headers] = guess_file(fname);
+	% If error in reading file
+	if (isempty(bin))
+		errordlg(['Error reading file ' fname],'Error');
+		numeric_data = [];
+		return
+	end
+	if (isempty(n_headers)),     n_headers = NaN;    end
+	if (multi_seg)
+		numeric_data = text_read(fname,NaN,n_headers,'>');
+	else
+		numeric_data = text_read(fname,NaN,n_headers);
+	end
 
 % -------------------------------------------------------------------------------
 function calca_pEuler(handles, do_weighted)
@@ -400,23 +400,23 @@ function [dist, segLen] = distmin(lon, lat, r_lon, r_lat, lengthsRot, lastResidu
 % Angles are already in radians
 	r_lon = r_lon .* cos(r_lat) * 6371;		% VERY strange. This should improve the fit
 	lon = lon .* cos(lat) * 6371;			% But, on the contrary, it degrades it ??
-	r_lon = r_lon(:)';      r_lat = r_lat(:)' * 6371;      % Make sure they are row vectors
+	r_lon = r_lon(:)';		r_lat = r_lat(:)' * 6371;      % Make sure they are row vectors
 	lat = lat * 6371;
-	eps1 = 1e-1;            eps2 = eps1 * eps1;
-	n_pt = numel(lon);      n_pt_rot = numel(r_lon);
+	%eps1 = 1e-1;			eps2 = eps1 * eps1;
+	n_pt = numel(lon);		n_pt_rot = numel(r_lon);
 	dist = zeros(n_pt,1);
 	segLen = ones(n_pt,1);
 	outliners = false(n_pt,1);      % To remove vertex where lines do not intersect
 
 	chunks = round([(n_pt * 0.25) (n_pt / 2) (n_pt * 0.75) (n_pt * 0.9) (n_pt+1)]);	% Checkpoints where current res is checked against min res
 	for (k = 1:n_pt)				% Loop over vertices of fixed isoc
-		Dsts = sqrt((lon(k)-r_lon).^2 + (lat(k)-r_lat).^2);   
+		Dsts = sqrt((lon(k)-r_lon).^2 + (lat(k)-r_lat).^2);
 		[D,ind] = min(Dsts);
-		if (ind == 1 || ind == n_pt_rot && n_pt > 4)    % This point is outside the lines intersection. Flag it to die.
+		if (ind == 1 || ind == n_pt_rot || ind >= n_pt && n_pt > 4)		% This point is outside the lines intersection. Flag it to die.
 			outliners(k) = true;						% Actually we waste all points that are closest to the rotated line end points
 			continue
 		end
-		
+
 		P  = [lon(k) lat(k)];
 		%d = abs(det([Q2-Q1,P-Q1]))/norm(Q2-Q1); % for col. vectors
 		Q1 = [r_lon(ind-1) r_lat(ind-1)];		Q2 = [r_lon(ind) r_lat(ind)];
@@ -465,7 +465,7 @@ function [dist, segLen] = distmin(lon, lat, r_lon, r_lat, lengthsRot, lastResidu
 	end
 
 	dist(outliners) = [];		% Delete points not belonging to the lines intersection zone
-	segLen(outliners) = [];		%   and the same for the weights
+	segLen(outliners) = [];		% and the same for the weights
 	if (isempty(dist)),     dist = 0;   segLen = 1;		end     % Don't let it go empty
 
 % --------------------------------------------------------------------------------
