@@ -50,12 +50,12 @@ cp -f ${lib_loc}/libnetcdf${linus_sufix}.4${mac_sufix} .
 ln -s -f libnetcdf${linus_sufix}.4 libnetcdf${linus_sufix}${mac_sufix}
 
 # ---------- Proj4 libs ----------------------------
-cp -f ${lib_loc}/libproj${linus_sufix}.0.6.6${mac_sufix} .
-ln -s -f libproj${linus_sufix}.0.6.6 libproj${linus_sufix}${mac_sufix}
+#cp -f ${lib_loc}/libproj${linus_sufix}.0.6.6${mac_sufix} .
+#ln -s -f libproj${linus_sufix}.0.6.6 libproj${linus_sufix}${mac_sufix}
 
 # ---------- Shapefile libs ------------------------
-cp -f ${lib_loc}/libshp${linus_sufix}.1.2.10${mac_sufix} .
-ln -s -f libshp${linus_sufix}.1.2.10 libshp${linus_sufix}${mac_sufix}
+#cp -f ${lib_loc}/libshp${linus_sufix}.1.2.10${mac_sufix} .
+#ln -s -f libshp${linus_sufix}.1.2.10 libshp${linus_sufix}${mac_sufix}
 
 # ---------- GMT libs ------------------------------
 cp -f ${gmt_loc}/libgmt${linus_sufix}.4${mac_sufix} .
