@@ -29,7 +29,9 @@ function varargout = compute_euler(varargin)
 	handles.LonRange = 30;
 	handles.LatRange = 30;
 	handles.AngRange = 4;
-	handles.Nintervals = 20;
+	handles.nInt_lon = 21;
+	handles.nInt_lat = 21;
+	handles.nInt_ang = 21;
 	handles.isoca1 = [];
 	handles.isoca2 = [];
 	handles.pLon_ini = [];
@@ -37,7 +39,8 @@ function varargout = compute_euler(varargin)
 	handles.pAng_ini = [];
 	handles.do_graphic = 0;
 	handles.DP_tol = 0.05;
-	set(handles.slider_wait,'Max',handles.Nintervals^2)
+	handles.residGrdName = [];
+	set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)
 
 	handles.hCallingFig = varargin{1};        % This is the Mirone's fig handle
 
@@ -63,9 +66,9 @@ function varargout = compute_euler(varargin)
 % -------------------------------------------------------------------------------------
 function edit_first_file_CB(hObject, handles)
 	fname = get(hObject,'String');
-	if isempty(fname)    return;    end
+	if isempty(fname),		return,		end
 	% Let the push_first_file_CB do all the work
-	push_first_file_CB(hObject,guidata(gcbo),fname)
+	push_first_file_CB(hObject,handles,fname)
 
 % -------------------------------------------------------------------------------------
 function push_first_file_CB(hObject, handles,opt)
@@ -86,9 +89,9 @@ function push_first_file_CB(hObject, handles,opt)
 % -------------------------------------------------------------------------------------
 function edit_second_file_CB(hObject, handles)
 	fname = get(hObject,'String');
-	if isempty(fname),		return;    end
+	if isempty(fname),		return,		end
 	% Let the push_first_file_CB do all the work
-	push_second_file_CB(hObject,guidata(gcbo),fname)
+	push_second_file_CB(hObject,handles,fname)
 
 % -------------------------------------------------------------------------------------
 function push_second_file_CB(hObject, handles, opt)
@@ -151,12 +154,18 @@ function edit_LonRange_CB(hObject, handles)
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
-function edit_Nintervals_CB(hObject, handles)
+function edit_nInt_CB(hObject, handles)
 	if (~get(handles.check_hellinger,'Val'))
-		handles.Nintervals = str2double(get(hObject,'String'));
-		set(handles.slider_wait,'Max',handles.Nintervals^2)
+		nInt = abs(sscanf(get(hObject,'Str'),'%d'));	% We want an odd number
+		if (~rem(nInt,2)),		nInt = nInt + 1;	end
+		tag = get(hObject,'Tag');
+		if (strcmp(tag(end-2:end),'lon')),			handles.nInt_lon = nInt;
+		elseif (strcmp(tag(end-2:end),'lat')),		handles.nInt_lat = nInt;
+		else										handles.nInt_ang = nInt;
+		end
+		set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)
 	else
-		handles.DP_tol = str2double(get(hObject,'String'));
+		handles.DP_tol = str2double(get(hObject,'Str'));
 	end
 	guidata(hObject, handles);
 
@@ -171,7 +180,7 @@ function edit_AngRange_CB(hObject, handles)
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
-function togglebutton_pickLines_CB(hObject, handles)
+function toggle_pickLines_CB(hObject, handles)
 if (get(hObject,'Value'))
     % Test if we have potential target lines and their type
     h_mir_lines = findobj(handles.hCallingFig,'Type','line');     % Fish all objects of type line in Mirone figure
@@ -229,17 +238,65 @@ guidata(hObject, handles);
 function check_hellinger_CB(hObject, handles)
 if (get(hObject,'Value'))
 	set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','off')
-	set(handles.edit_Nintervals,'String', handles.DP_tol)
+	set([handles.edit_nInt_lat handles.edit_nInt_ang],'Vis','off')
+	set(handles.edit_nInt_lon,'String', handles.DP_tol)
 	set(handles.textNint,'String','DP tolerance')
-	set(handles.edit_Nintervals,'Tooltip', sprintf(['Tolerance used to break up the isochron into\n' ...
+	set(handles.edit_nInt_lon,'Tooltip', sprintf(['Tolerance used to break up the isochron into\n' ...
 			'linear chunks (the Heillinger segments).\n' ...
 			'The units of the tolerance are degrees\n', ...
 			'of arc on the surface of a sphere']))
 else
 	set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','on')
-	set(handles.textNint,'String','N of Intervals')
-	set(handles.edit_Nintervals,'String', 20,'Tooltip','The range parameters are divided into this number of intervals steps')
+	set([handles.edit_nInt_lat handles.edit_nInt_ang],'Vis','on')
+	set(handles.textNint,'String','N Intervals')
+	set(handles.edit_nInt_lon,'Str', handles.nInt_lon,'Tooltip','The range parameters are divided into this number of intervals steps')
 end
+
+% -----------------------------------------------------------------------------
+function edit_err_file_CB(hObject, handles)
+	fname = get(hObject,'String');
+	if isempty(fname)
+		set([handles.radio_netcd handles.radio_VTK],'Val',0)
+		handles.residGrdName = [];
+		guidata(handles.figure1, handles);
+		return
+	end
+	% Let the push_err_file_CB do all the work
+	push_err_file_CB(hObject, handles, fname)
+
+% -----------------------------------------------------------------------------
+function push_err_file_CB(hObject, handles, opt)
+	if (nargin == 3),	fname = opt;
+	else				opt = [];
+	end
+
+	if (isempty(opt))    % Otherwise we already know fname from the 3th input argument
+		handMir = guidata(handles.hCallingFig);
+		[FileName,PathName] = put_or_get_file(handMir,{'*.nc;*.grd;*.vtk', 'Error file (*.nc,*.grd,*.vtk)';'*.*', 'All Files (*.*)'},'Select file','get');
+		if isequal(FileName,0),		return,		end
+		fname = [PathName FileName];
+	end
+	ind = strfind(fname,'.');
+	if (~isempty(ind))			% Make a guess based on extension
+		ext = fname(ind(end)+1:end);
+		if (strcmpi(ext,'nc') || strcmpi(ext,'grd'))
+			set(handles.radio_netcdf,'Val',1),		set(handles.radio_VTK,'Val',0)
+		elseif (strcmpi(ext,'vtk'))
+			set(handles.radio_VTK,'Val',1),			set(handles.radio_netcdf,'Val',0)
+		end
+	end
+	handles.residGrdName = fname;
+	guidata(handles.figure1, handles);
+
+% -----------------------------------------------------------------------------
+function radio_netcdf_CB(hObject, handles)
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radio_VTK, 'Val',0)
+
+% -----------------------------------------------------------------------------
+function radio_VTK_CB(hObject, handles)
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radio_netcdf, 'Val',0)
 
 % -------------------------------------------------------------------------------
 function push_stop_CB(hObject, handles)
@@ -307,17 +364,17 @@ function calca_pEuler(handles, do_weighted)
 	% Compute distances between vertices of the moving isoc
 	xd = diff( (handles.isoca1(:,1) .* cos(handles.isoca1(:,2) * D2R) ) * D2R * 6371 );
 	yd = diff( handles.isoca1(:,2) * D2R * 6371 );
-	lengthsRot = sqrt(xd.*xd + yd.*yd);
+	lengthsRot1 = sqrt(xd.*xd + yd.*yd);
 
 	[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini,-1);
-	[dist1, segLen] = distmin(handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, rlon*D2R, rlat*D2R, lengthsRot, 1e20, do_weighted);
+	[dist1, segLen] = distmin(handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, rlon*D2R, rlat*D2R, lengthsRot1, 1e20, do_weighted);
 	sum1 = weightedSum(dist1, segLen, do_weighted);
 
 	xd = diff( (handles.isoca2(:,1) .* cos(handles.isoca2(:,2) * D2R) ) * D2R * 6371 );
 	yd = diff( handles.isoca2(:,2) * D2R * 6371 );
-	lengthsRot = sqrt(xd.*xd + yd.*yd);
+	lengthsRot2 = sqrt(xd.*xd + yd.*yd);
 	
-	[dist2, segLen] = distmin(rlon*D2R, rlat*D2R, handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, lengthsRot, 1e20, do_weighted);
+	[dist2, segLen] = distmin(rlon*D2R, rlat*D2R, handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, lengthsRot2, 1e20, do_weighted);
 	sum2 = weightedSum(dist2, segLen, do_weighted);
 	area0 = (sum1 + sum2) / 2;
 
@@ -325,79 +382,151 @@ function calca_pEuler(handles, do_weighted)
 	set(h_line,'XData',rlon,'YData',rlat)
 
 	% Now comes the semi-brute force aproach to compute the pole
-	n = handles.Nintervals;
 	dLon = handles.LonRange / 2;
 	dLat = handles.LatRange / 2;
 	dAng = handles.AngRange / 2;
-	p_lon = (handles.pLon_ini + linspace(-dLon,dLon,n)) * D2R;
-	p_lat = (handles.pLat_ini + linspace(-dLat,dLat,n)) * D2R;
-	p_omeg = (handles.pAng_ini + linspace(-dAng,dAng,n)) * D2R;
-	[p_lon,p_lat,p_omega,area_f] = fit_pEuler(handles, p_lon, p_lat, p_omeg,area0, h_line, lengthsRot, do_weighted);
+	p_lon = (handles.pLon_ini + linspace(-dLon,dLon, handles.nInt_lon)) * D2R;
+	p_lat = (handles.pLat_ini + linspace(-dLat,dLat, handles.nInt_lat)) * D2R;
+	p_omeg = (handles.pAng_ini + linspace(-dAng,dAng,handles.nInt_ang)) * D2R;
+	% Sanitize p_lat so that it does not go out of N/S poles
+	ind = ( (p_lat > pi/2) | (p_lat < -pi/2) );
+	p_lat(ind) = [];
 
-	figure(handles.hCallingFig)       % Bring the Mirone figure to front
+	[polLon,polLat,polAng,area_f,resid] = ...
+		fit_pEuler(handles, p_lon, p_lat, p_omeg, area0, h_line, lengthsRot1, lengthsRot2, do_weighted);
+
 	draw_funs(h_line,'isochron',{'Fitted Line'})
 
-	if (area_f >= area0)
-		msgbox(['I am quite good, but this time I couldn''t find a better pole than the one ',...
-				'you gave me (Ah! probably it was me who computed it in a previous re-incarnation)'],'Report')
+	if (~isempty(resid))
+		if (get(handles.radio_netcdf,'Val'))
+			write_netcdf(handles, p_lon/D2R, p_lat/D2R, p_omeg/D2R, resid)
+		else
+			write_vtk(handles, p_lon/D2R, p_lat/D2R, p_omeg/D2R, resid)
+		end
+	end
+	figure(handles.hCallingFig)			% Bring the Mirone figure to front
+
+% -----------------------------------------------------------------------------------------
+function write_netcdf(handles, lon, lat, ang, resid)
+% Write the 3D matrix in netCDF
+
+	nz = numel(ang);
+
+	% No problem in changig handles here as it will live only locally to this function
+	handles.head = [lon(1) lon(end) lat(1) lat(end) 0 0 0 diff(lon(1:2)) diff(lat(1:2))];
+	handles.geog = 1;		handles.was_int16 = false;
+	Z = resid(:,:,1);
+	handles.head(5:6) = [min(Z(:)) max(Z(:))];			Z = single(Z);
+	%nc_io(handles.residGrdName,sprintf('w%d/angle',nz), handles, reshape(Z,[1 size(Z)]))
+	nc_io(handles.residGrdName, sprintf('w-%s/angle',ang(1)), handles, reshape(Z,[1 size(Z)]))
+	for (k = 2:nz)
+		Z = resid(:,:,k);
+		handles.head(5:6) = [min(Z(:)) max(Z(:))];		Z = single(Z);
+		%nc_io(handles.residGrdName, sprintf('w%d', k-1), handles, Z)
+		nc_io(handles.residGrdName, sprintf('w%d\\%s', k-1, ang(k)), handles, Z)
 	end
 
+% -----------------------------------------------------------------------------------------
+function write_vtk(handles, lon, lat, ang, resid)
+% Write in the VTK format
+
+	nx = numel(lon);	ny = numel(lat);	nz = numel(ang);
+	fid = fopen(handles.residGrdName, 'wb','b');
+	fprintf(fid, '# vtk DataFile Version 2.0\n');
+	fprintf(fid, 'converted from A B\n');
+	fprintf(fid, 'BINARY\n');
+	fprintf(fid, 'DATASET RECTILINEAR_GRID\n');
+	fprintf(fid, 'DIMENSIONS %d %d %d\n', nx, ny, nz);
+	fprintf(fid, 'X_COORDINATES %d float\n', nx);
+	fwrite(fid, lon, 'real*4');
+	fprintf(fid, 'Y_COORDINATES %d float\n', ny);
+	fwrite(fid, lat, 'real*4');
+	fprintf(fid, 'Z_COORDINATES %d float\n', nz);
+	fwrite(fid, ang, 'real*4');
+	fprintf(fid, 'POINT_DATA %d\n', nx * ny * nz);
+	fprintf(fid, 'SCALARS dono float 1\n');
+	fprintf(fid, 'LOOKUP_TABLE default\n');
+
+	for (k = 1:nz)
+		Z = single(resid(:,:,k))';
+		fwrite(fid, Z(:), 'real*4');
+	end
+	fclose(fid);
+
 % -------------------------------------------------------------------------------
-function [lon_bf,lat_bf,omega_bf,area_f] = fit_pEuler(handles, p_lon, p_lat, p_omeg,area0, h_line, lengthsRot, do_weighted)
+function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
+		fit_pEuler(handles, p_lon, p_lat, p_omeg, area0, h_line, lengthsRot1,  lengthsRot2, do_weighted)
 % This is the function that does the real work of computing the best Euler pole
 % that fits the lines "isoca1" "isoca2"
 	lon_bf = [];		lat_bf = [];	omega_bf = [];
 	D2R = pi / 180;
-	n = length(p_lon);
-	isoca1 = handles.isoca1 * D2R;      % A maluca
-	isoca2 = handles.isoca2 * D2R;      % A fixa
+	nLon = numel(p_lon);	nLat = numel(p_lat);	nAng = numel(p_omeg);
+	isoca1 = handles.isoca1 * D2R;		% A maluca
+	isoca2 = handles.isoca2 * D2R;		% A fixa
 
-i_m = 1;    j_m = 1;    k_m = 1;    ij = 0;
-for (i=1:n)                % Loop over lon
-    if (get(handles.slider_wait,'Max') == 1)			% The STOP button was pushed. So, stop
-        set(handles.slider_wait,'Max',handles.Nintervals^2)     % Reset it for the next run
-        area_f = 0;     return
-    end
-    for (j=1:n)            % Loop over lat
-        ij = ij + 1;
-        if (get(handles.slider_wait,'Max') == 1)		% The STOP button was pushed. So, stop
-            set(handles.slider_wait,'Max',handles.Nintervals^2)     % Reset it for the next run
-            area_f = 0;     return
-        end
-        set(handles.slider_wait,'Value',ij);     pause(0.01);   % Otherwise the slider risks to not be updated
-        for (k=1:n)        % Loop over omega
-            [rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians',-1);
-            [dist1, segLen] = distmin(isoca2(:,1), isoca2(:,2), rlon,rlat, lengthsRot, area0, do_weighted);
-			sum1 = weightedSum(dist1, segLen, do_weighted);
-            [dist2, segLen] = distmin(rlon,rlat, isoca2(:,1), isoca2(:,2), lengthsRot, area0, do_weighted);
-			sum2 = weightedSum(dist2, segLen, do_weighted);
+	if (~isempty(handles.residGrdName))	% Store all residues in a 3D array
+		save_resid = true;		resid = zeros(nLat,nLon,nAng) * NaN;	testResidue = 1e20;
+	else
+		save_resid = false;		resid = [];		testResidue = area0;
+	end
 
-            area = (sum1 + sum2) / 2;
-            if (area < area0)
-                area0 = area;
-                i_m = i;    j_m = j;    k_m = k;
-                if (handles.do_graphic)
-                    set(h_line,'XData',rlon/D2R,'YData',rlat/D2R)
-                    pause(0.01)
-                end
-                set(handles.edit_pLon_fim,'String',sprintf('%.3f', p_lon(i) / D2R))
-                set(handles.edit_pLat_fim,'String',sprintf('%.3f', p_lat(j) / D2R))
-                set(handles.edit_pAng_fim,'String',sprintf('%.3f', p_omeg(k) / D2R))
-                set(handles.edit_BFresidue,'String',sprintf('%.3f', area))
-            end
-        end
-    end
-end
+	i_m = 1;	j_m = 1;	k_m = 1;	ij = 0;
+	for (i = 1:nLon)			% Loop over lon
+		if (get(handles.slider_wait,'Max') == 1)			% The STOP button was pushed. So, stop
+			set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)     % Reset it for the next run
+			area_f = -1;		resid = [];
+			return
+		end
+		for (j = 1:nLat)		% Loop over lat
+			ij = ij + 1;
+			if (get(handles.slider_wait,'Max') == 1)		% The STOP button was pushed. So, stop
+				set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)     % Reset it for the next run
+				area_f = -1;	resid = [];
+				return
+			end
+			set(handles.slider_wait,'Value',ij);     pause(0.01);   % Otherwise the slider risks to not be updated
+			for (k = 1:nAng)	% Loop over omega
+				[rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians',-1);
+				[dist1, segLen] = distmin(isoca2(:,1), isoca2(:,2), rlon,rlat, lengthsRot1, testResidue, do_weighted);
+				sum1 = weightedSum(dist1, segLen, do_weighted);
+				[dist2, segLen] = distmin(rlon,rlat, isoca2(:,1), isoca2(:,2), lengthsRot2, testResidue, do_weighted);
+				sum2 = weightedSum(dist2, segLen, do_weighted);
 
-set(handles.slider_wait,'Value',0)      % Reset it for the next run
-lon_bf = p_lon(i_m) / D2R;
-lat_bf = p_lat(j_m) / D2R;
-omega_bf = p_omeg(k_m) / D2R;
-area_f = area0;
+				area = (sum1 + sum2) / 2;
+				if (area < area0)
+					area0 = area;
+					i_m = i;	j_m = j;	k_m = k;
+					if (handles.do_graphic)
+						set(h_line,'XData',rlon/D2R,'YData',rlat/D2R)
+						pause(0.01)
+					end
+					set(handles.edit_pLon_fim,'String',sprintf('%.3f', p_lon(i) / D2R))
+					set(handles.edit_pLat_fim,'String',sprintf('%.3f', p_lat(j) / D2R))
+					set(handles.edit_pAng_fim,'String',sprintf('%.3f', p_omeg(k) / D2R))
+					set(handles.edit_BFresidue,'String',sprintf('%.3f', area))
+				end
+
+				if (save_resid),	resid(j, i, k) = area;		end
+
+			end
+		end
+	end
+
+	set(handles.slider_wait,'Value',0)      % Reset it for the next run
+	lon_bf = p_lon(i_m) / D2R;
+	lat_bf = p_lat(j_m) / D2R;
+	omega_bf = p_omeg(k_m) / D2R;
+	area_f = area0;
 
 % -------------------------------------------------------------------------------
 function [dist, segLen] = distmin(lon, lat, r_lon, r_lat, lengthsRot, lastResidue, do_weighted)
-% Angles are already in radians
+% Compute the shortest distance between each point in (lon,lat) and the polyline (r_lon,r_lat)
+% SEGLEN holds the segment length of polyline (r_lon,r_lat) corresponding to elements of DIST
+% At each quater of the total number of points in (lon.lat) we check if the current residue is
+% already larger than last better residue. If yes, we stop since for sure this rotation is worst.
+% The above test is short-circuited (not carried out) when saving the residues to a grid.
+% Angles are already in radians.
+
 	r_lon = r_lon .* cos(r_lat) * 6371;		% VERY strange. This should improve the fit
 	lon = lon .* cos(lat) * 6371;			% But, on the contrary, it degrades it ??
 	r_lon = r_lon(:)';		r_lat = r_lat(:)' * 6371;      % Make sure they are row vectors
@@ -410,8 +539,8 @@ function [dist, segLen] = distmin(lon, lat, r_lon, r_lat, lengthsRot, lastResidu
 
 	chunks = round([(n_pt * 0.25) (n_pt / 2) (n_pt * 0.75) (n_pt * 0.9) (n_pt+1)]);	% Checkpoints where current res is checked against min res
 	for (k = 1:n_pt)				% Loop over vertices of fixed isoc
-		Dsts = sqrt((lon(k)-r_lon).^2 + (lat(k)-r_lat).^2);
-		[D,ind] = min(Dsts);
+		Dsts = sqrt((lon(k)-r_lon).^2 + (lat(k)-r_lat).^2);		% distances from pt k in (lon,lat) to all pts in (r_lon,r_lat)
+		[D,ind] = min(Dsts);		% Compute the min dist from pt k to vertex of line and its location
 		if (ind == 1 || ind == n_pt_rot || ind >= n_pt && n_pt > 4)		% This point is outside the lines intersection. Flag it to die.
 			outliners(k) = true;						% Actually we waste all points that are closest to the rotated line end points
 			continue
@@ -423,12 +552,12 @@ function [dist, segLen] = distmin(lon, lat, r_lon, r_lat, lengthsRot, lastResidu
 		D1 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1); % for row vectors.
 		Q1 = [r_lon(ind) r_lat(ind)];			Q2 = [r_lon(ind+1) r_lat(ind+1)];
 		D2 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
-		[dist(k),i] = min([D1 D2]);
-		if (i == 1),		segLen(k) = lengthsRot(ind-1);
+		[dist(k),i] = min([D1 D2]);				% Store shortest dist from point k to polyline (r_lon,r_lat)
+		if (i == 1),		segLen(k) = lengthsRot(ind-1);	% Store the segment length that is closest to pt k
 		else				segLen(k) = lengthsRot(ind);
 		end
 
-		if (k == chunks(1))			% At 25, 50, and 75% of the points check if residue is already larger than minimum
+		if ( lastResidue < 1e20 && (k == chunks(1)) )	% At 25, 50, and 75% of the points check if residue is already larger than minimum
 			res = weightedSum(dist, segLen, do_weighted);
 			if (res > lastResidue)
 				chunks = chunks(2:end);
@@ -470,7 +599,7 @@ function [dist, segLen] = distmin(lon, lat, r_lon, r_lat, lengthsRot, lastResidu
 
 % --------------------------------------------------------------------------------
 function soma = weightedSum(dists, segLen, do_weighted)
-% Convert the segment lengths along an isochron into a seres of weights
+% Convert the segment lengths along an isochron into a series of weights
 % Lengths < 50 km weight 1. In the [50 80] interval weight 0.25. Longer weight zero
 	if (do_weighted)
 		weights = ones(numel(segLen), 1);
@@ -513,224 +642,231 @@ function lat = auth2geog(lat0)
      
 % --- Creates and returns a handle to the GUI figure. 
 function compute_euler_LayoutFcn(h1)
-set(h1,...
+set(h1, 'Pos',[520 379 520 421],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'MenuBar','none',...
 'Name','Compute Euler pole',...
 'NumberTitle','off',...
-'Position',[520 427 522 373],...
 'Resize','off',...
-'Tag','figure1');
+'Tag','figure1')
 
-uicontrol('Parent',h1,'Position',[10 49 501 110],'String',{''},'Style','frame');
-uicontrol('Parent',h1,'Position',[10 182 501 64],'String',{''},'Style','frame');
-uicontrol('Parent',h1,'Position',[10 266 501 101],'String',{''},'Style','frame');
+uicontrol('Parent',h1,'Pos',[10 50 501 157],'String',{''},'Style','frame')
+uicontrol('Parent',h1,'Pos',[10 230 501 64],'String',{''},'Style','frame');
+uicontrol('Parent',h1,'Pos',[10 313 501 101],'String',{''},'Style','frame');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[20 363 211 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@compute_euler_uiCB,h1,'edit_first_file_CB'},...
-'Position',[20 316 211 21],...
 'Style','edit','Tag','edit_first_file');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[231 363 21 21],...
 'Call',{@compute_euler_uiCB,h1,'push_first_file_CB'},...
 'FontSize',10,...
 'FontWeight','bold',...
-'Position',[231 316 21 21],...
 'String','...','Tag','push_first_file');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[267 363 211 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@compute_euler_uiCB,h1,'edit_second_file_CB'},...
-'Position',[267 316 211 21],...
 'Style','edit','Tag','edit_second_file');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[478 363 21 21],...
 'Call',{@compute_euler_uiCB,h1,'push_second_file_CB'},...
 'FontSize',10,...
 'FontWeight','bold',...
-'Position',[478 316 21 21],...
 'String','...','Tag','push_second_file');
 
-uicontrol('Parent',h1,...
-'Call',{@compute_euler_uiCB,h1,'togglebutton_pickLines_CB'},...
-'Position',[186 279 141 21],...
+uicontrol('Parent',h1, 'Pos',[186 326 141 21],...
+'Call',{@compute_euler_uiCB,h1,'toggle_pickLines_CB'},...
 'String','Pick lines from Figure',...
 'Style','togglebutton',...
 'Tooltip','Allows you to mouse select the two lines from a Mirone figure',...
-'Tag','togglebutton_pickLines');
+'Tag','toggle_pickLines');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[20 249 61 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@compute_euler_uiCB,h1,'edit_pLon_ini_CB'},...
-'Position',[20 201 61 21],...
 'Style','edit',...
 'Tooltip','Start Euler pole Longitude',...
 'Tag','edit_pLon_ini');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[110 249 61 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@compute_euler_uiCB,h1,'edit_pLat_ini_CB'},...
-'Position',[110 201 61 21],...
 'Style','edit',...
 'Tooltip','Start Euler pole Latitude',...
 'Tag','edit_pLat_ini');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[200 249 61 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@compute_euler_uiCB,h1,'edit_pAng_ini_CB'},...
-'Position',[200 201 61 21],...
 'Style','edit',...
 'Tooltip','Start Euler pole Angle',...
 'Tag','edit_pAng_ini');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[289 248 121 21],...
 'Call',{@compute_euler_uiCB,h1,'push_polesList_CB'},...
-'Position',[289 200 121 21],...
 'String','Poles selector',...
 'Tooltip','Select a pole from the default list',...
 'Tag','push_polesList');
 
-uicontrol('Parent',h1,...
-'HorizontalAlignment','left',...
-'Position',[20 128 90 16],...
-'String','Longitude Range',...
-'Style','text');
+uicontrol('Parent',h1, 'Pos',[20 168 84 16],'HorizontalAlignment','left','Str','Longitude Range','Style','text');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[104 165 41 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@compute_euler_uiCB,h1,'edit_LonRange_CB'},...
-'Position',[104 125 41 21],...
 'String','30',...
 'Style','edit',...
 'Tooltip','The pole will be searched arround it''s starting longitude +/- half this range',...
 'Tag','edit_LonRange');
 
-uicontrol('Parent',h1,'Position',[162 118 70 15],'String','N of Intervals','Style','text','Tag','textNint');
+uicontrol('Parent',h1, 'Pos',[158 186 60 15],'String','N Intervals','Style','text','Tag','textNint');
+uicontrol('Parent',h1, 'Pos',[20 139 75 18],'HorizontalAlignment','left','Str','Latitude Range','Style','text');
 
-uicontrol('Parent',h1,...
-'HorizontalAlignment','left',...
-'Position',[22 99 80 18],...
-'String','Latitude Range',...
-'Style','text');
-
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[104 138 41 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@compute_euler_uiCB,h1,'edit_LatRange_CB'},...
-'Position',[104 98 41 21],...
 'String','30',...
 'Style','edit',...
 'Tooltip','The pole will be searched arround it''s starting latitude +/- half this range',...
 'Tag','edit_LatRange');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[104 110 41 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@compute_euler_uiCB,h1,'edit_AngRange_CB'},...
-'Position',[104 70 41 21],...
 'String','4',...
 'Style','edit',...
 'Tooltip','The pole will be searched arround it''s starting angle +/- half this range',...
 'Tag','edit_AngRange');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[171 165 35 21],...
 'BackgroundColor',[1 1 1],...
-'Call',{@compute_euler_uiCB,h1,'edit_Nintervals_CB'},...
-'Position',[171 95 41 21],...
-'String','20',...
+'Call',{@compute_euler_uiCB,h1,'edit_nInt_CB'},...
+'String','21',...
 'Style','edit',...
 'Tooltip','The range parameters are divided into this number of intervals steps',...
-'Tag','edit_Nintervals');
+'Tag','edit_nInt_lon');
 
-uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[21 74 72 15],'String','Angular Range','Style','text');
-uicontrol('Parent',h1,'FontSize',10,'FontWeight','bold','Position',[136 282 41 16],'String','OR','Style','text');
-uicontrol('Parent',h1,'FontSize',10,'Position',[97 339 81 16],'String','First Line','Style','text');
-uicontrol('Parent',h1,'FontSize',10,'Position',[348 339 81 16],'String','Second Line','Style','text');
-uicontrol('Parent',h1,'FontSize',10,'Position',[248 237 154 16],'String','Starting Pole Section','Style','text','Tag','txtSP');
-uicontrol('Parent',h1,'FontSize',10,'Position',[247 357 113 16],'String','Data Section','Style','text','Tag','txtDS');
-uicontrol('Parent',h1,'Position',[24 225 51 15],'String','Longitude','Style','text');
-uicontrol('Parent',h1,'Position',[116 225 51 15],'String','Latitude','Style','text');
-uicontrol('Parent',h1,'Position',[205 225 51 15],'String','Angle','Style','text');
-uicontrol('Parent',h1,'FontSize',10,'Position',[248 150 122 16],'String','Compute Section','Style','text','Tag','txtCS');
-
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[171 138 35 21],...
 'BackgroundColor',[1 1 1],...
-'Position',[352 125 61 21],...
+'Call',{@compute_euler_uiCB,h1,'edit_nInt_CB'},...
+'String','21',...
+'Style','edit',...
+'Tooltip','The range parameters are divided into this number of intervals steps',...
+'Tag','edit_nInt_lat');
+
+uicontrol('Parent',h1, 'Pos',[171 110 35 21],...
+'BackgroundColor',[1 1 1],...
+'Call',{@compute_euler_uiCB,h1,'edit_nInt_CB'},...
+'String','21',...
+'Style','edit',...
+'Tooltip','The range parameters are divided into this number of intervals steps',...
+'Tag','edit_nInt_ang');
+
+uicontrol('Parent',h1,'Pos',[20  114 72  15],'HorizontalAlignment','left','Str','Angular Range','Style','text');
+uicontrol('Parent',h1,'Pos',[136 329 41  16],'FontSize',10,'FontWeight','bold','String','OR','Style','text');
+uicontrol('Parent',h1,'Pos',[97  386 81  16],'FontSize',10,'String','First Line','Style','text');
+uicontrol('Parent',h1,'Pos',[348 386 81  16],'FontSize',10,'String','Second Line','Style','text');
+uicontrol('Parent',h1,'Pos',[248 286 154 16],'FontSize',10,'String','Starting Pole Section','Style','text','Tag','txtSP');
+uicontrol('Parent',h1,'Pos',[247 405 113 16],'FontSize',10,'String','Data Section','Style','text','Tag','txtDS');
+uicontrol('Parent',h1,'Pos',[24  273 51  15],'String','Longitude','Style','text');
+uicontrol('Parent',h1,'Pos',[116 273 51  15],'String','Latitude','Style','text');
+uicontrol('Parent',h1,'Pos',[205 273 51  15],'String','Angle','Style','text');
+uicontrol('Parent',h1,'Pos',[248 199 122 16],'FontSize',10,'Str','Compute Section','Style','text','Tag','txtCS');
+
+uicontrol('Parent',h1, 'Pos',[352 173 61 21],...
+'BackgroundColor',[1 1 1],...
 'Style','edit',...
 'Tooltip','Computed Euler pole Longitude',...
 'Tag','edit_pLon_fim');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[352 145 61 21],...
 'BackgroundColor',[1 1 1],...
-'Position',[352 97 61 21],...
 'Style','edit',...
 'Tooltip','Computed Euler pole Latitude',...
 'Tag','edit_pLat_fim');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[352 117 61 21],...
 'BackgroundColor',[1 1 1],...
-'Position',[352 69 61 21],...
 'Style','edit',...
 'Tooltip','Computed Euler pole Angle',...
 'Tag','edit_pAng_fim');
 
-uicontrol('Parent',h1,...
-'HorizontalAlignment','left',...
-'Position',[298 128 51 15],...
-'String','Longitude',...
-'Style','text');
+uicontrol('Parent',h1,'Pos',[298 176 51 15],'HorizontalAlignment','left','String','Longitude','Style','text');
+uicontrol('Parent',h1,'Pos',[298 147 47 17],'HorizontalAlignment','left','String','Latitude','Style','text');
+uicontrol('Parent',h1,'Pos',[298 121 46 15],'HorizontalAlignment','left','String','Angle','Style','text');
 
-uicontrol('Parent',h1,...
-'HorizontalAlignment','left',...
-'Position',[298 99 47 17],...
-'String','Latitude',...
-'Style','text');
-
-uicontrol('Parent',h1,'HorizontalAlignment','left','Position',[298 73 46 15],'String','Angle','Style','text');
-
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1,'Pos',[431 117 61 21],...
 'BackgroundColor',[1 1 1],...
-'Position',[431 69 61 21],...
 'Style','edit','Tooltip','Residue of the cost function',...
 'Tag','edit_BFresidue');
 
-uicontrol('Parent',h1,'Position',[433 92 57 15],'String','BF Residue','Style','text');
+uicontrol('Parent',h1,'Pos',[433 140 57 15],'String','BF Residue','Style','text');
 
-uicontrol('Parent',h1,...
-'Call',{@compute_euler_uiCB,h1,'push_compute_CB'},...
-'Position',[435 10 76 21],...
-'String','Compute','Tag','push_compute');
-
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[430 161 61 21],...
 'BackgroundColor',[1 1 1],...
-'Position',[430 113 61 21],...
 'Style','edit',...
 'Tooltip','Starting residue (starting pole) of the cost function',...
 'Tag','edit_InitialResidue');
 
-uicontrol('Parent',h1,...
-'Position',[432 136 60 15],...
-'String','St Residue',...
-'Style','text');
+uicontrol('Parent',h1, 'Pos',[432 184 60 15],'String','St Residue','Style','text');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[20 90 110 15],...
 'Call',{@compute_euler_uiCB,h1,'check_hellinger_CB'},...
-'Position',[170 58 120 15],...
 'String','Hellinger method',...
 'Style','checkbox',...
 'Tooltip','Use the Hellinger method',...
 'Tag','check_hellinger');
 
-uicontrol('Parent',h1,...
+
+uicontrol('Parent',h1, 'Pos',[170 61 225 21],...
+'BackgroundColor',[1 1 1],...
+'Call',{@compute_euler_uiCB,h1,'edit_err_file_CB'},...
+'String','',...
+'Style','edit',...
+'HorizontalAlignment','left',...
+'Tooltip','Name of residues grid. Leave blank if not wanted',...
+'Tag','edit_err_file');
+
+uicontrol('Parent',h1, 'Pos',[394 61 21 21],...
+'Call',{@compute_euler_uiCB,h1,'push_err_file_CB'},...
+'FontSize',10,...
+'FontWeight','bold',...
+'String','...',...
+'Tag','push_err_file')
+
+uicontrol('Parent',h1, 'Pos',[220 84 155 18],...
+'FontSize',10,...
+'String','Residues grid (optional)',...
+'Style','text')
+
+uicontrol('Parent',h1, 'Pos',[431 79 75 21],...
+'Call',{@compute_euler_uiCB,h1,'radio_netcdf_CB'},...
+'String','3d netCDF',...
+'Style','radiobutton',...
+'Tooltip','Save residues grid as a 3D netCDF file',...
+'Tag','radio_netcdf')
+
+uicontrol('Parent',h1, 'Pos',[431 58 60 21],...
+'Call',{@compute_euler_uiCB,h1,'radio_VTK_CB'},...
+'String','3d VTK',...
+'Style','radiobutton',...
+'Tooltip','Save residues grid as a 3D VTK file',...
+'Tag','radio_VTK')
+
+uicontrol('Parent',h1, 'Pos',[10 14 231 16],...
 'BackgroundColor',[0.9 0.9 0.9],...
 'Enable','inactive',...
-'Position',[10 14 231 16],...
 'Style','slider',...
 'Tag','slider_wait');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[241 12 37 19],...
 'Call',{@compute_euler_uiCB,h1,'push_stop_CB'},...
-'Position',[241 12 37 19],...
 'String','STOP','Tag','push_stop');
+
+uicontrol('Parent',h1,'Pos',[435 10 76 21],...
+'Call',{@compute_euler_uiCB,h1,'push_compute_CB'},...
+'String','Compute','Tag','push_compute');
 
 function compute_euler_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
