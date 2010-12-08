@@ -4,6 +4,9 @@
 #	make -f makefile.mexs
 #	Use with GMT 4.5
 #
+# To compile the mex_shape whithout the shapelib but using GDAL it's necessary to copy
+#  ...gdal\ogr\ogrsf_frmts\shape\shapefil.h   to  ...\gdal\include 
+#
 
 GMTSRCDIR = /Users/j/programs/GMT/src/
 include $(GMTSRCDIR)config.mk
@@ -233,7 +236,7 @@ cvlib_mex:
 
 # ------------------------- SHAPELIB progs ---------------------------------
 mex_shape:	
-		$(MEX) $(SHAPE_FLAGS) mex_shape.c $(SHAPE_LIB) $(MEXLIB)
+		$(MEX) $(GDAL_FLAGS) mex_shape.c $(GDAL_LIB) $(MEXLIB)
 
 # ------------------------- EDISON prog ------------------------------------
 edison_:
