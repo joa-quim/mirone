@@ -54,6 +54,7 @@ function varargout = compute_euler(varargin)
 		delete(hObject);    return
 	end
 	handles.path_continent = [handMir.home_dir filesep 'continents' filesep];
+	handles.IamCompiled = handMir.IamCompiled;		% Need to know due to crazy issue of nc_funs
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 	new_frame3D(hObject, [handles.txtSP handles.txtDS handles.txtCS])
@@ -285,6 +286,7 @@ function push_err_file_CB(hObject, handles, opt)
 			set(handles.radio_VTK,'Val',1),			set(handles.radio_netcdf,'Val',0)
 		end
 	end
+	set(handles.edit_err_file,'Str',fname);
 	handles.residGrdName = fname;
 	guidata(handles.figure1, handles);
 
@@ -417,13 +419,20 @@ function write_netcdf(handles, lon, lat, ang, resid)
 	handles.geog = 1;		handles.was_int16 = false;
 	Z = resid(:,:,1);
 	handles.head(5:6) = [min(Z(:)) max(Z(:))];			Z = single(Z);
-	%nc_io(handles.residGrdName,sprintf('w%d/angle',nz), handles, reshape(Z,[1 size(Z)]))
-	nc_io(handles.residGrdName, sprintf('w-%s/angle',ang(1)), handles, reshape(Z,[1 size(Z)]))
+	if (~handles.IamCompiled)
+		nc_io(handles.residGrdName, sprintf('w-%s/angle',ang(1)), handles, reshape(Z,[1 size(Z)]))
+	else
+		handles.levelVec = ang;
+		nc_io(handles.residGrdName,sprintf('w%d/angle',nz), handles, reshape(Z,[1 size(Z)]))
+	end
 	for (k = 2:nz)
 		Z = resid(:,:,k);
 		handles.head(5:6) = [min(Z(:)) max(Z(:))];		Z = single(Z);
-		%nc_io(handles.residGrdName, sprintf('w%d', k-1), handles, Z)
-		nc_io(handles.residGrdName, sprintf('w%d\\%s', k-1, ang(k)), handles, Z)
+		if (~handles.IamCompiled)
+			nc_io(handles.residGrdName, sprintf('w%d\\%s', k-1, ang(k)), handles, Z)
+		else
+			nc_io(handles.residGrdName, sprintf('w%d', k-1), handles, Z)
+		end
 	end
 
 % -----------------------------------------------------------------------------------------
