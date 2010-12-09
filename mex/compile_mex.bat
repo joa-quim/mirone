@@ -146,15 +146,17 @@ IF %WIN64%=="yes" SET arc=X64
 IF %WIN64%=="no" SET arc=X86
 SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:%arc% kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /incremental:NO %LDEBUG%
 
+IF "%1" == ""  GOTO todos
 IF %1==GMT  GOTO GMT
 IF %1==GDAL GOTO GDAL
-IF %1==OCV  GOTO OCV
+IF %1=OCV  GOTO OCV
 IF %1==MEXNC  GOTO MEXNC
 IF %1==swan   GOTO swan
 IF %1==edison GOTO edison
 IF %1==reducep GOTO reducep
 IF %1==lasreader GOTO lasreader
 
+:todos
 REM ------------------ "simple" (no external Libs dependency) ------------------
 :simple
 for %%G in (test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select 
@@ -203,7 +205,7 @@ IF %%G==morphmex (
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.cpp dilate_erode_gray_nonflat.cpp dilate_erode_packed.cpp dilate_erode_binary.cpp neighborhood.cpp vectors.cpp 
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj dilate_erode_gray_nonflat.obj dilate_erode_packed.obj dilate_erode_binary.obj neighborhood.obj vectors.obj )
 )
-IF %1==simple GOTO END
+IF "%1"=="simple" GOTO END
 REM ---------------------- END "simple" --------------------------------------------
 
 REM ---------------------- GMTs ----------------------------------------------------
@@ -217,7 +219,7 @@ link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% /implib:templib.x 
 
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT gmtlist_m.c
 link  /out:"gmtlist_m.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GMT_MGG_LIB% /implib:templib.x gmtlist_m.obj 
-IF %1==GMT GOTO END
+IF "%1"=="GMT" GOTO END
 REM ---------------------- END "GMTs" ----------------------------------------------
 
 
@@ -232,14 +234,14 @@ for %%G in (gdalwarp_mex gdaltransform_mex ogrproj) do (
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%GDAL_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.cpp
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %GDAL_LIB% /implib:templib.x %%G.obj 
 )
-IF %1==GDAL GOTO END
+IF "%1"=="GDAL" GOTO END
 REM ---------------------- END "GDALs" ----------------------------------------------
 
 REM ---------------------- OpenCV ---------------------------------------------------
 :OCV
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%CV_INC% %CVI_1% %CVI_2% %CVI_3% %CVI_4% %CVI_5% %CVI_6% %CVI_7% %CVI_8% %OPTIMFLAGS% %_MX_COMPAT% cvlib_mex.cpp sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c 
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%CV_INC% %CVI_1% %CVI_2% %CVI_3% %CVI_4% %CVI_5% %CVI_6% %CVI_7% %CVI_8% %OPTIMFLAGS% %_MX_COMPAT% cvlib_mex.c sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c 
 link  /out:"cvlib_mex.%MEX_EXT%" %LINKFLAGS% %CV_LIB% %CXCORE_LIB% %CVIMG_LIB% %CVCALIB_LIB% %CVOBJ_LIB% %CVVIDEO_LIB% /implib:templib.x cvlib_mex.obj sift.obj imgfeatures.obj kdtree.obj minpq.obj 
-IF %1==OCV GOTO END
+IF "%1"=="OCV" GOTO END
 
 
 REM ---------------------- with netCDF ----------------------------------------------
@@ -248,34 +250,34 @@ for %%G in (swan swan_sem_wbar) do (
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x %%G.obj 
 )
-IF %1==swan GOTO END
+IF "%1"=="swan" GOTO END
 
 REM ---------------------- MEXNC ----------------------------------------------------
 :MEXNC
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_NETCDF mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c
 link  /out:"mexnc.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x mexgateway.obj netcdf2.obj netcdf3.obj common.obj
-IF %1==MEXNC GOTO END
+IF "%1"=="MEXNC" GOTO END
 
 
 REM ---------------------- Edison_wrapper -------------------------------------------
 :edison
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% edison/edison_wrapper_mex.cpp edison/segm/ms.cpp edison/segm/msImageProcessor.cpp edison/segm/msSysPrompt.cpp edison/segm/RAList.cpp edison/segm/rlist.cpp edison/edge/BgEdge.cpp edison/edge/BgImage.cpp edison/edge/BgGlobalFc.cpp edison/edge/BgEdgeList.cpp edison/edge/BgEdgeDetect.cpp
 link  /out:"edison_wrapper_mex.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x edison_wrapper_mex.obj Bg*.obj ms*.obj rlist.obj RAList.obj
-IF %1==edison GOTO END
+IF "%1"=="edison" GOTO END
 
 
 REM ---------------------- Reduce patches --------------------------------------------
 :reducep
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% reducep/reducep_s.cpp reducep/3D.cpp reducep/AdjModel.cpp reducep/AdjPrims.cpp reducep/avars.cpp reducep/decimate.cpp reducep/heap.cpp reducep/Mat4.cpp reducep/ProxGrid.cpp reducep/quadrics.cpp reducep/smf.cpp
 link  /out:"reducep_s.%MEX_EXT%" %LINKFLAGS% /implib:templib.x reducep_s.obj 3D.obj AdjModel.obj AdjPrims.obj avars.obj decimate.obj heap.obj Mat4.obj ProxGrid.obj quadrics.obj smf.obj
-IF %1==reducep GOTO END
+IF "%1"=="reducep" GOTO END
 
 
 REM ---------------------- libLAS (lasreader) ----------------------------------------
 :lasreader
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %LAS_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% lasreader_mex.c
 link  /out:"lasreader_mex.%MEX_EXT%" %LINKFLAGS% %LAS_LIB% /implib:templib.x lasreader_mex.obj
-IF %1==lasreader GOTO END
+IF "%1"=="lasreader" GOTO END
 
 
 :END
