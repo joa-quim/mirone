@@ -273,7 +273,7 @@ function push_err_file_CB(hObject, handles, opt)
 
 	if (isempty(opt))    % Otherwise we already know fname from the 3th input argument
 		handMir = guidata(handles.hCallingFig);
-		[FileName,PathName] = put_or_get_file(handMir,{'*.nc;*.grd;*.vtk', 'Error file (*.nc,*.grd,*.vtk)';'*.*', 'All Files (*.*)'},'Select file','get');
+		[FileName,PathName] = put_or_get_file(handMir,{'*.nc;*.grd;*.vtk', 'Error file (*.nc,*.grd,*.vtk)';'*.*', 'All Files (*.*)'},'Select file','put');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
 	end
@@ -390,9 +390,14 @@ function calca_pEuler(handles, do_weighted)
 	p_lon = (handles.pLon_ini + linspace(-dLon,dLon, handles.nInt_lon)) * D2R;
 	p_lat = (handles.pLat_ini + linspace(-dLat,dLat, handles.nInt_lat)) * D2R;
 	p_omeg = (handles.pAng_ini + linspace(-dAng,dAng,handles.nInt_ang)) * D2R;
+
 	% Sanitize p_lat so that it does not go out of N/S poles
 	ind = ( (p_lat > pi/2) | (p_lat < -pi/2) );
-	p_lat(ind) = [];
+	if (any(ind))
+		p_lat(ind) = [];
+		handles.nInt_lat = numel(p_lat);
+		set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)
+	end
 
 	[polLon,polLat,polAng,area_f,resid] = ...
 		fit_pEuler(handles, p_lon, p_lat, p_omeg, area0, h_line, lengthsRot1, lengthsRot2, do_weighted);
@@ -406,7 +411,6 @@ function calca_pEuler(handles, do_weighted)
 			write_vtk(handles, p_lon/D2R, p_lat/D2R, p_omeg/D2R, resid)
 		end
 	end
-	figure(handles.hCallingFig)			% Bring the Mirone figure to front
 
 % -----------------------------------------------------------------------------------------
 function write_netcdf(handles, lon, lat, ang, resid)
