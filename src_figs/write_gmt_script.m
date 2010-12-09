@@ -1621,7 +1621,10 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
         script{l} = [comm ' ---- Plot text strings'];   l=l+1;    
         for (i = 1:n_text)
 			frmt = 'echo %.5f %.5f %d %.2f 4 LB %s | pstext %s %s  -R -J -O -K >> %sps%s';
-			script{l} = sprintf(frmt, pos{i}(1), pos{i}(2), fsize{i}, angle{i}, str{i}(1,:), ellips, opt_G{i}, pb, pf);
+			% Quick and dirty patch for when opt_G is a cell of cells and it than crash below on sprintf
+			texto = opt_G{i};
+			if (isa(texto,'cell')),		texto = texto{1};	end
+			script{l} = sprintf(frmt, pos{i}(1), pos{i}(2), fsize{i}, angle{i}, str{i}(1,:), ellips, texto, pb, pf);
 			l = l + 1;
 			this_nLines = size(str{i},1);		% How many lines has this text element?
 			if (this_nLines > 1)				% More than one. So try to estimate each line Pos from a simple calculus
