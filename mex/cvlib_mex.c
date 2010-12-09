@@ -1398,7 +1398,11 @@ void JhaarDetect(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 	/* Do Face Detection */
 	faces = cvHaarDetectObjects( src_img, cascade, storage,
 					scale_factor, min_neighbors, 0, /*CV_HAAR_DO_CANNY_PRUNING*/
+#if CV_MAJOR_VERSION >= 2 && CV_MINOR_VERSION >= 2  
+					cvSize(min_size, min_size), cvSize(0, 0) );
+#else
 					cvSize(min_size, min_size) );
+#endif
 
 	cvReleaseImageHeader( &src_img );
 	mxDestroyArray(ptr_in);
