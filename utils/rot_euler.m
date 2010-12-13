@@ -74,7 +74,6 @@ function [rlon,rlat] = rot_euler(lon,lat,p_lon,p_lat,omega,units, ecc)
 	p_sin_lat = sin(p_lat);			p_cos_lat = cos(p_lat);
 	s_lat = sin(lat);				c_lat = cos(lat);
 	s_lon = sin(lon - p_lon);		c_lon = cos(lon - p_lon);
-	clear lon lat;
 	cc = c_lat .* c_lon;
 
 	tlon = atan2(c_lat .* s_lon, p_sin_lat * cc - p_cos_lat * s_lat);
