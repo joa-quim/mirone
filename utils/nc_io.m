@@ -160,8 +160,10 @@ function write_nc(fname, handles, data, misc, page)
 	% ----------------------------------------------------------------
 	
 	% See if we have them in appdata
-	if ( isempty(misc.srsWKT) ),		misc.srsWKT = getappdata(handles.figure1,'ProjWKT');	end
-	if ( isempty(misc.strPROJ4) ),		misc.strPROJ4 = getappdata(handles.figure1,'Proj4');	end
+	try			% Wrap with a try because we want to be able to use this fun even when no figure1
+		if ( isempty(misc.srsWKT) ),		misc.srsWKT = getappdata(handles.figure1,'ProjWKT');	end
+		if ( isempty(misc.strPROJ4) ),		misc.strPROJ4 = getappdata(handles.figure1,'Proj4');	end
+	end
 
 	% Create the coordinates vectors
 	nx = round(diff(handles.head(1:2)) / handles.head(8) + ~handles.head(7));
