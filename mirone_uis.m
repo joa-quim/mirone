@@ -14,7 +14,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	% The following test will tell us if we are using the compiled or the ML version
 	try
 		h = which('mirone');
-		figW = 661;
+		figW = 671;
 		IamCompiled = false;
 	catch
 		figW = 720;				% Compiled version needs to be longer (TMW doesn't know compatibility)
@@ -62,8 +62,13 @@ setappdata(H1,'PixelMode',0)            % Default
 
 % Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
 version7 = version;
-if (double(version7(1)) > 54),      version7 = 1;
-else                                version7 = 0;
+if (double(version7(1)) > 54),      version7 = true;
+else                                version7 = false;
+end
+
+if (version7)
+	PV = {'DockControls','off'};
+	set(H1,PV{:});		% Do it this way to cheat the compiler
 end
 
 hVG = zeros(1,17);		kv = 5;		% hVG will contain the handles of "not valid grid" uis to hide when they are not usable
@@ -683,7 +688,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v2.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 18 Nov 2010'',''2.0.1b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 14 Dec 2010'',''2.0.1b'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
