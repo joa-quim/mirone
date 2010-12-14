@@ -513,6 +513,10 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 
 	ecc = 0.0818191908426215;	% WGS84
 
+	if (~isGUI)
+		strAdv = fprintf('\n%000\t Lons rots out of %d', nLon);		% For the Text progressbar		
+	end
+
 	i_m = 1;	j_m = 1;	k_m = 1;	ij = 0;
 	for (i = 1:nLon)			% Loop over n lon intervals
 		if (isGUI && get(handles.slider_wait,'Max') == 1)			% The STOP button was pushed. So, stop
@@ -576,7 +580,11 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 
 			end
 		end
-		if (~isGUI),	fprintf('%d\t Lons rots out of %d\r', i, nLon),	end
+		if (~isGUI)			% Make a Text progressbar
+			fprintf(repmat('\b',1,numel(strAdv)))		% Come back to the begining of line
+			strAdv = sprintf('%0.3d\t Lons rots out of %d', i, nLon);
+			fprintf(strAdv)
+		end
 	end
 
 	if (isGUI),		set(handles.slider_wait,'Value',0),		end      % Reset it for the next run
@@ -606,25 +614,37 @@ function [dist, segLen] = distmin(lon, lat, r_lon, r_lat, lengthsRot, lastResidu
 
 	chunks = round([(n_pt * 0.25) (n_pt / 2) (n_pt * 0.75) (n_pt * 0.9) (n_pt+1)]);	% Checkpoints where current res is checked against min res
 	for (k = 1:n_pt)				% Loop over vertices of fixed isoc
-		Dsts = sqrt((lon(k)-r_lon).^2 + (lat(k)-r_lat).^2);		% distances from pt k in (lon,lat) to all pts in (r_lon,r_lat)
+		Dsts = ((lon(k)-r_lon).^2 + (lat(k)-r_lat).^2);		% distances^2 from pt k in (lon,lat) to all pts in (r_lon,r_lat)
 		[D,ind] = min(Dsts);		% Compute the min dist from pt k to vertex of line and its location
-		if (ind == 1 || ind == n_pt_rot || ind >= n_pt && n_pt > 4)		% This point is outside the lines intersection. Flag it to die.
+		if (ind == 1 || ind == n_pt_rot && n_pt > 4)		% This point is outside the lines intersection. Flag it to die.
 			outliners(k) = true;						% Actually we waste all points that are closest to the rotated line end points
 			continue
 		end
 
- 		P  = [lon(k) lat(k)];
-		%d = abs(det([Q2-Q1,P-Q1]))/norm(Q2-Q1); % for col. vectors
-		Q1 = [r_lon(ind-1) r_lat(ind-1)];		Q2 = [r_lon(ind) r_lat(ind)];
-		D1 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1); % for row vectors.
-		Q1 = [r_lon(ind) r_lat(ind)];			Q2 = [r_lon(ind+1) r_lat(ind+1)];
-		D2 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
+%  		P  = [lon(k) lat(k)];
+% 		Q1 = [r_lon(ind-1) r_lat(ind-1)];		Q2 = [r_lon(ind) r_lat(ind)];
+% 		D1 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1); % for row vectors.
+% 		Q1 = [r_lon(ind) r_lat(ind)];			Q2 = [r_lon(ind+1) r_lat(ind+1)];
+% 		D2 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
 
-		[dist(k),i] = min([D1 D2]);				% Store shortest dist from point k to polyline (r_lon,r_lat)
-		if (i == 1),		segLen(k) = lengthsRot(ind-1);	% Store the segment length that is closest to pt k
-		else				segLen(k) = lengthsRot(ind);
+		% This is the same as above but runs at least twice fast
+ 		r_lon_t = r_lon(ind-1:ind+1);
+ 		r_lat_t = r_lat(ind-1:ind+1);
+ 		Q1(1) = r_lon_t(1);			Q1(2) = r_lat_t(1);
+		Q2(1) = r_lon_t(2);			Q2(2) = r_lat_t(2);
+		DQ(1) = Q2(1) - Q1(1);		DQ(2) = Q2(2) - Q1(2);
+		D1 = abs(DQ(1)*(lat(k)-Q1(2)) - DQ(2)*(lon(k)-Q1(1))) / sqrt(DQ(1)*DQ(1) + DQ(2)*DQ(2));
+ 		Q1(1) = r_lon_t(2);			Q1(2) = r_lat_t(2);
+		Q2(1) = r_lon_t(3);			Q2(2) = r_lat_t(3);
+		DQ(1) = Q2(1) - Q1(1);		DQ(2) = Q2(2) - Q1(2);
+		D2 = abs(DQ(1)*(lat(k)-Q1(2)) - DQ(2)*(lon(k)-Q1(1))) / sqrt(DQ(1)*DQ(1) + DQ(2)*DQ(2));
+
+		if (D1 < D2)				% Store shortest dist from point k to polyline (r_lon,r_lat)
+			dist(k) = D1;	segLen(k) = lengthsRot(ind-1);	% Store the segment length that is closest to pt k
+		else
+			dist(k) = D2;	segLen(k) = lengthsRot(ind);
 		end
-
+		
 		if ( lastResidue < 1e20 && (k == chunks(1)) )	% At 25, 50, and 75% of the points check if residue is already larger than minimum
 			res = weightedSum(dist, segLen, do_weighted);
 			if (res > lastResidue)
