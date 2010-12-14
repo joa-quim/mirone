@@ -15,8 +15,28 @@ function varargout = compute_euler(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-	if isempty(varargin)
+	if ( numel(varargin) < 1 || (numel(varargin) >= 2 && numel(varargin) <= 4) )
         errordlg('COMPUTE EULER: wrong number of input arguments.','Error'),	return
+	elseif (ishandle(varargin{1}))
+		isGUI = true;
+	else
+		isGUI = false;
+	end
+
+	if (~isGUI)			% Command line running. Doesn't create a figure.
+		[handles, msg] = parse_noGUI(varargin{:});
+		if (~isempty(msg) && msg(1) == 'E'),	error(msg);
+		elseif (~isempty(msg)),					disp(msg),		return
+		end
+
+		handles.isoca1 = le_fiche(varargin{1});
+		handles.isoca2 = le_fiche(varargin{2});
+		handles.pLon_ini = varargin{3};
+		handles.pLat_ini = varargin{4};
+		handles.pAng_ini = varargin{5};
+		[pLon, pLat, pAng, resid] = calca_pEuler(handles, true, false);
+		if (nargout),	varargout{1} = [pLon, pLat, pAng, resid];	end
+		return
 	end
 
 	hObject = figure('Tag','figure1','Visible','off');
@@ -37,7 +57,7 @@ function varargout = compute_euler(varargin)
 	handles.pLon_ini = [];
 	handles.pLat_ini = [];
 	handles.pAng_ini = [];
-	handles.do_graphic = 0;
+	handles.do_graphic = false;
 	handles.DP_tol = 0.05;
 	handles.residGrdName = [];
 	set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)
@@ -224,9 +244,9 @@ if (get(hObject,'Value'))
     set(handles.hCallingFig,'pointer','arrow')
     if (isempty(handles.isoca1) || isempty(handles.isoca2))
         set(hObject,'Value',0)
-        handles.do_graphic = 0;
+        handles.do_graphic = false;
     else
-        handles.do_graphic = 1;
+        handles.do_graphic = true;
     end
     set(hObject,'Value',0)
     figure(handles.figure1)         % Bring this figure to front again
@@ -325,7 +345,7 @@ function push_compute_CB(hObject, handles)
 
 	if (~get(handles.check_hellinger,'Val'))		% Our method
 		do_weighted = true;
-		calca_pEuler(handles, do_weighted)
+		calca_pEuler(handles, do_weighted, true);
 	else											% Try with Hellinger's (pfiu)
 		[pLon,pLat,pAng] = hellinger(handles.pLon_ini,handles.pLat_ini,handles.pAng_ini, handles.isoca1, handles.isoca2, handles.DP_tol);
 		set(handles.edit_pLon_fim,'String',pLon);			set(handles.edit_pLat_fim,'String',pLat)
@@ -355,33 +375,37 @@ function numeric_data = le_fiche(fname)
 	end
 
 % -------------------------------------------------------------------------------
-function calca_pEuler(handles, do_weighted)
+function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, isGUI)
 
 	D2R = pi / 180;
 	if (handles.do_graphic)     % Create a empty line handle
 		h_line = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',[],'YData',[], ...
 			'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
+	else
+		h_line = [];
 	end
 
 	% Compute distances between vertices of the moving isoc
 	xd = diff( (handles.isoca1(:,1) .* cos(handles.isoca1(:,2) * D2R) ) * D2R * 6371 );
 	yd = diff( handles.isoca1(:,2) * D2R * 6371 );
-	lengthsRot1 = sqrt(xd.*xd + yd.*yd);
+	lenRot1 = sqrt(xd.*xd + yd.*yd);
 
 	[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini,-1);
-	[dist1, segLen] = distmin(handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, rlon*D2R, rlat*D2R, lengthsRot1, 1e20, do_weighted);
+	[dist1, segLen] = distmin(handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, rlon*D2R, rlat*D2R, lenRot1, 1e20, do_weighted);
 	sum1 = weightedSum(dist1, segLen, do_weighted);
 
 	xd = diff( (handles.isoca2(:,1) .* cos(handles.isoca2(:,2) * D2R) ) * D2R * 6371 );
 	yd = diff( handles.isoca2(:,2) * D2R * 6371 );
-	lengthsRot2 = sqrt(xd.*xd + yd.*yd);
-	
-	[dist2, segLen] = distmin(rlon*D2R, rlat*D2R, handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, lengthsRot2, 1e20, do_weighted);
+	lenRot2 = sqrt(xd.*xd + yd.*yd);
+
+	[dist2, segLen] = distmin(rlon*D2R, rlat*D2R, handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, lenRot2, 1e20, do_weighted);
 	sum2 = weightedSum(dist2, segLen, do_weighted);
 	area0 = (sum1 + sum2) / 2;
 
-	set(handles.edit_InitialResidue,'String',sprintf('%.3f', area0));    pause(0.01)
-	set(h_line,'XData',rlon,'YData',rlat)
+	if (handles.do_graphic)
+		set(handles.edit_InitialResidue,'String',sprintf('%.3f', area0));    pause(0.01)
+		set(h_line,'XData',rlon,'YData',rlat)
+	end
 
 	% Now comes the semi-brute force aproach to compute the pole
 	dLon = handles.LonRange / 2;
@@ -396,20 +420,24 @@ function calca_pEuler(handles, do_weighted)
 	if (any(ind))
 		p_lat(ind) = [];
 		handles.nInt_lat = numel(p_lat);
-		set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)
+		if (handles.do_graphic)
+			set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)
+		end
 	end
 
-	[polLon,polLat,polAng,area_f,resid] = ...
-		fit_pEuler(handles, p_lon, p_lat, p_omeg, area0, h_line, lengthsRot1, lengthsRot2, do_weighted);
+	[polLon, polLat, polAng, area_f, resid] = ...
+		fit_pEuler(handles, p_lon, p_lat, p_omeg, area0, h_line, lenRot1, lenRot2, do_weighted, isGUI);
 
-	draw_funs(h_line,'isochron',{'Fitted Line'})
+	if (handles.do_graphic),	draw_funs(h_line,'isochron',{'Fitted Line'}),	end
 
-	if (~isempty(resid))
+	if (~isempty(resid) && isGUI)
 		if (get(handles.radio_netcdf,'Val'))
 			write_netcdf(handles, p_lon/D2R, p_lat/D2R, p_omeg/D2R, resid)
 		else
 			write_vtk(handles, p_lon/D2R, p_lat/D2R, p_omeg/D2R, resid)
 		end
+	elseif (~isempty(resid))	% Command line runn.
+		write_netcdf(handles, p_lon/D2R, p_lat/D2R, p_omeg/D2R, resid)
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -468,7 +496,7 @@ function write_vtk(handles, lon, lat, ang, resid)
 
 % -------------------------------------------------------------------------------
 function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
-		fit_pEuler(handles, p_lon, p_lat, p_omeg, area0, h_line, lengthsRot1,  lengthsRot2, do_weighted)
+		fit_pEuler(handles, p_lon, p_lat, p_omeg, area0, h_line, lenRot1,  lenRot2, do_weighted, isGUI)
 % This is the function that does the real work of computing the best Euler pole
 % that fits the lines "isoca1" "isoca2"
 	lon_bf = [];		lat_bf = [];	omega_bf = [];
@@ -483,26 +511,49 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 		save_resid = false;		resid = [];		testResidue = area0;
 	end
 
+	ecc = 0.0818191908426215;	% WGS84
+
 	i_m = 1;	j_m = 1;	k_m = 1;	ij = 0;
-	for (i = 1:nLon)			% Loop over lon
-		if (get(handles.slider_wait,'Max') == 1)			% The STOP button was pushed. So, stop
+	for (i = 1:nLon)			% Loop over n lon intervals
+		if (isGUI && get(handles.slider_wait,'Max') == 1)			% The STOP button was pushed. So, stop
 			set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)     % Reset it for the next run
 			area_f = -1;		resid = [];
 			return
 		end
-		for (j = 1:nLat)		% Loop over lat
+		for (j = 1:nLat)		% Loop over n lat intervals
 			ij = ij + 1;
-			if (get(handles.slider_wait,'Max') == 1)		% The STOP button was pushed. So, stop
+			if (isGUI && get(handles.slider_wait,'Max') == 1)		% The STOP button was pushed. So, stop
 				set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)     % Reset it for the next run
 				area_f = -1;	resid = [];
 				return
 			end
-			set(handles.slider_wait,'Value',ij);     pause(0.01);   % Otherwise the slider risks to not be updated
-			for (k = 1:nAng)	% Loop over omega
-				[rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians',-1);
-				[dist1, segLen] = distmin(isoca2(:,1), isoca2(:,2), rlon,rlat, lengthsRot1, testResidue, do_weighted);
+			if (isGUI),		set(handles.slider_wait,'Value',ij);     pause(0.01);   end	% Otherwise slider may stall
+			for (k = 1:nAng)	% Loop over n omega intervals
+				%[rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians',-1);
+                
+                lat = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );
+				p_sin_lat = sin(p_lat(j));				p_cos_lat = cos(p_lat(j));
+				s_lat = sin(lat);						c_lat = cos(lat);
+				s_lon = sin(isoca1(:,1) - p_lon(i));	c_lon = cos(isoca1(:,1) - p_lon(i));
+				cc = c_lat .* c_lon;
+			
+				tlon = atan2(c_lat .* s_lon, p_sin_lat * cc - p_cos_lat * s_lat);
+				s_lat = p_sin_lat * s_lat + p_cos_lat * cc;
+				c_lat = sqrt(1 - s_lat .* s_lat);
+			
+				s_lon = sin(tlon + p_omeg(k));		c_lon = cos(tlon + p_omeg(k));
+				cc = c_lat .* c_lon;
+			
+				rlat = asin(p_sin_lat * s_lat - p_cos_lat * cc);
+				rlon = p_lon(i) + atan2(c_lat .* s_lon, p_sin_lat * cc + p_cos_lat * s_lat);
+			
+				rlat = atan2( sin(rlat), (1-ecc^2)*cos(rlat) );
+				ind = (rlon > pi);					rlon(ind) = rlon(ind) - 2*pi;
+
+				
+				[dist1, segLen] = distmin(isoca2(:,1), isoca2(:,2), rlon,rlat, lenRot1, testResidue, do_weighted);
 				sum1 = weightedSum(dist1, segLen, do_weighted);
-				[dist2, segLen] = distmin(rlon,rlat, isoca2(:,1), isoca2(:,2), lengthsRot2, testResidue, do_weighted);
+				[dist2, segLen] = distmin(rlon,rlat, isoca2(:,1), isoca2(:,2), lenRot2, testResidue, do_weighted);
 				sum2 = weightedSum(dist2, segLen, do_weighted);
 
 				area = (sum1 + sum2) / 2;
@@ -513,19 +564,22 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 						set(h_line,'XData',rlon/D2R,'YData',rlat/D2R)
 						pause(0.01)
 					end
-					set(handles.edit_pLon_fim,'String',sprintf('%.3f', p_lon(i) / D2R))
-					set(handles.edit_pLat_fim,'String',sprintf('%.3f', p_lat(j) / D2R))
-					set(handles.edit_pAng_fim,'String',sprintf('%.3f', p_omeg(k) / D2R))
-					set(handles.edit_BFresidue,'String',sprintf('%.3f', area))
+					if (isGUI)
+						set(handles.edit_pLon_fim,'String',sprintf('%.3f', p_lon(i) / D2R))
+						set(handles.edit_pLat_fim,'String',sprintf('%.3f', p_lat(j) / D2R))
+						set(handles.edit_pAng_fim,'String',sprintf('%.3f', p_omeg(k) / D2R))
+						set(handles.edit_BFresidue,'String',sprintf('%.3f', area))
+					end
 				end
 
 				if (save_resid),	resid(j, i, k) = area;		end
 
 			end
 		end
+		if (~isGUI),	fprintf('%d\t Lons rots out of %d\r', i, nLon),	end
 	end
 
-	set(handles.slider_wait,'Value',0)      % Reset it for the next run
+	if (isGUI),		set(handles.slider_wait,'Value',0),		end      % Reset it for the next run
 	lon_bf = p_lon(i_m) / D2R;
 	lat_bf = p_lat(j_m) / D2R;
 	omega_bf = p_omeg(k_m) / D2R;
@@ -559,12 +613,13 @@ function [dist, segLen] = distmin(lon, lat, r_lon, r_lat, lengthsRot, lastResidu
 			continue
 		end
 
-		P  = [lon(k) lat(k)];
+ 		P  = [lon(k) lat(k)];
 		%d = abs(det([Q2-Q1,P-Q1]))/norm(Q2-Q1); % for col. vectors
 		Q1 = [r_lon(ind-1) r_lat(ind-1)];		Q2 = [r_lon(ind) r_lat(ind)];
 		D1 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1); % for row vectors.
 		Q1 = [r_lon(ind) r_lat(ind)];			Q2 = [r_lon(ind+1) r_lat(ind+1)];
 		D2 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
+
 		[dist(k),i] = min([D1 D2]);				% Store shortest dist from point k to polyline (r_lon,r_lat)
 		if (i == 1),		segLen(k) = lengthsRot(ind-1);	% Store the segment length that is closest to pt k
 		else				segLen(k) = lengthsRot(ind);
@@ -652,6 +707,69 @@ function lat = auth2geog(lat0)
 
 	lat = lat0 + f1*sin(2*lat0) + f2*sin(4*lat0) + f3*sin(6*lat0);
 	lat = lat * 180 / pi;  %  Convert back to degrees
+
+% ---------------------------------------------------------------------------------
+function [handles, msg] = parse_noGUI(varargin)
+%	
+	handles.LonRange = 30;
+	handles.LatRange = 30;
+	handles.AngRange = 4;
+	handles.nInt_lon = 21;
+	handles.nInt_lat = 21;
+	handles.nInt_ang = 21;
+	handles.do_graphic = false;
+	handles.residGrdName = [];
+	handles.IamCompiled = false;	% Até ver
+	msg = [];	verbose = false;
+
+	if (numel(varargin) < 6),	return,		end		% No option provided. Just use the defaults
+
+	for (k = 6:numel(varargin))
+		switch (varargin{k}(2))
+			case 'H'
+				msg = '[-DLonRange/LatRange/AngRange] [-ILonInt/LatInt/AngInt or -Iint] [-Eresid_fname] [-V]';
+				return
+			case 'D'
+				ind = strfind(varargin{k},'/');
+				if (numel(ind) ~= 2)
+					msg = 'Error usin option -D [-DLonRange/LatRange/AngRange]';		return
+				end
+				handles.LonRange = sscanf(varargin{k}(3:ind(1)-1), '%f');
+				handles.LatRange = sscanf(varargin{k}(ind(1)+1:ind(2)-1), '%f');
+				handles.AngRange = sscanf(varargin{k}(ind(2)+1:end), '%f');
+
+			case 'I'
+				ind = strfind(varargin{k},'/');
+				if (~isempty(ind) && numel(ind) ~= 2)
+					msg = 'Error usin option -I: -ILonInt/LatInt/AngInt or -Iint';		return
+				end
+				if (isempty(ind))
+					handles.nInt_lon = sscanf(varargin{k}(3:ind(1)-1), '%f');
+					handles.nInt_lat = handles.nInt_lon;	handles.nInt_ang = handles.nInt_lon;
+					if (~rem(handles.nInt_lon,2)),			handles.nInt_lon = handles.nInt_lon + 1;	end
+					if (~rem(handles.nInt_lat,2)),			handles.nInt_lat = handles.nInt_lat + 1;	end
+					if (~rem(handles.nInt_ang,2)),			handles.nInt_ang = handles.nInt_ang + 1;	end
+				else
+					handles.nInt_lon = sscanf(varargin{k}(3:ind(1)-1), '%f');
+					handles.nInt_lat = sscanf(varargin{k}(ind(1)+1:ind(2)-1), '%f');
+					handles.nInt_ang = sscanf(varargin{k}(ind(2)+1:end), '%f');					
+				end
+				
+			case 'E'
+				handles.residGrdName = varargin{k}(3:end);
+
+			case 'V'
+				verbose = true;
+		end
+	end
+
+	if (verbose)
+		fprintf('LonRange = %d\tLatRange = %d\tAngRange = %d\n', handles.LonRange,handles.LatRange,handles.AngRange);
+		fprintf('LonInt = %d\tLatInt = %d\tAngInt = %d\n', handles.nInt_lon,handles.nInt_lat,handles.nInt_ang);
+		if (~isempty(handles.residGrdName))
+			fprintf('Save residues to file: %s\n', handles.residGrdName);
+		end
+	end
      
 % --- Creates and returns a handle to the GUI figure. 
 function compute_euler_LayoutFcn(h1)
