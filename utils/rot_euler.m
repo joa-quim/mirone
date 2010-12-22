@@ -90,7 +90,8 @@ function [rlon,rlat] = rot_euler(lon,lat,p_lon,p_lat,omega,units, ecc)
 		rlat = atan2( sin(rlat), (1-ecc^2)*cos(rlat) );
 	end
 
-	ind = (rlon > pi);				rlon(ind) = rlon(ind) - 2*pi;
+	ind = (rlon > pi);
+	if(any(ind)),	rlon(ind) = rlon(ind) - 2*pi;	end
 	if (~is_radians)				% User wants angles in degrees
 		rlon = rlon * R2D;			rlat = rlat * R2D;
 	end
