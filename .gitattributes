@@ -362,6 +362,7 @@ mex/dilate_erode_gray_nonflat.cpp -text
 mex/dilate_erode_gray_nonflat.h -text
 mex/dilate_erode_packed.cpp -text
 mex/dilate_linear.h -text
+mex/distmin.c -text
 mex/ditherc.c -text
 mex/edison/compile_edison_wrapper.m -text
 mex/edison/edge/BgDefaults.h -text
