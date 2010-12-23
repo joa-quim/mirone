@@ -30,11 +30,19 @@ function varargout = compute_euler(varargin)
 		end
 
 		handles.isoca1 = le_fiche(varargin{1});
-		handles.isoca2 = le_fiche(varargin{2});
 		handles.pLon_ini = varargin{3};
 		handles.pLat_ini = varargin{4};
 		handles.pAng_ini = varargin{5};
-		[pLon, pLat, pAng, resid] = calca_pEuler(handles, true, false);
+		if ( isempty(handles.noise) )			% "Regular" mode
+			handles.isoca2 = le_fiche(varargin{2});
+			[pLon, pLat, pAng, resid] = calca_pEuler(handles, true, false);
+		else
+			[rlon, rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini,-1);
+			%alea = (-1 + 2 * rand(numel(rlon), 2)) * handles.noise;
+			alea = randn(numel(rlon), 2) * handles.noise;
+			handles.isoca2 = [(rlon + (alea(:, 1)))	(rlat + (alea(:, 2)))];
+			[pLon, pLat, pAng, resid] = calca_pEuler(handles, true, false);
+		end
 		if (nargout),	varargout{1} = [pLon, pLat, pAng, resid];	end
 		return
 	end
@@ -475,8 +483,7 @@ function write_vtk(handles, lon, lat, ang, resid)
 	fid = fopen(handles.residGrdName, 'wb','b');
 	fprintf(fid, '# vtk DataFile Version 2.0\n');
 	fprintf(fid, 'converted from A B\n');
-	fprintf(fid, 'BINARY\n');
-	fprintf(fid, 'DATASET RECTILINEAR_GRID\n');
+	fprintf(fid, 'BINARY\nDATASET RECTILINEAR_GRID\n');
 	fprintf(fid, 'DIMENSIONS %d %d %d\n', nx, ny, nz);
 	fprintf(fid, 'X_COORDINATES %d float\n', nx);
 	fwrite(fid, lon, 'real*4');
@@ -485,11 +492,10 @@ function write_vtk(handles, lon, lat, ang, resid)
 	fprintf(fid, 'Z_COORDINATES %d float\n', nz);
 	fwrite(fid, ang, 'real*4');
 	fprintf(fid, 'POINT_DATA %d\n', nx * ny * nz);
-	fprintf(fid, 'SCALARS dono float 1\n');
-	fprintf(fid, 'LOOKUP_TABLE default\n');
+	fprintf(fid, 'SCALARS dono float 1\nLOOKUP_TABLE default\n');
 
 	for (k = 1:nz)
-		Z = single(resid(:,:,k))';
+		Z = single(resid(:,:,k));
 		fwrite(fid, Z(:), 'real*4');
 	end
 	fclose(fid);
@@ -518,13 +524,13 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 	end
 
 	i_m = 1;	j_m = 1;	k_m = 1;	ij = 0;
-	for (i = 1:nLon)			% Loop over n lon intervals
+	for i = 1:nLon			% Loop over n lon intervals
 		if (isGUI && get(handles.slider_wait,'Max') == 1)			% The STOP button was pushed. So, stop
 			set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)     % Reset it for the next run
 			area_f = -1;		resid = [];
 			return
 		end
-		for (j = 1:nLat)		% Loop over n lat intervals
+		for j = 1:nLat		% Loop over n lat intervals
 			ij = ij + 1;
 			if (isGUI && get(handles.slider_wait,'Max') == 1)		% The STOP button was pushed. So, stop
 				set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)     % Reset it for the next run
@@ -532,29 +538,29 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 				return
 			end
 			if (isGUI),		set(handles.slider_wait,'Value',ij);     pause(0.01);   end	% Otherwise slider may stall
-			for (k = 1:nAng)	% Loop over n omega intervals
+			for k = 1:nAng	% Loop over n omega intervals
 				%[rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians',-1);
-                
+
                 lat = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );
 				p_sin_lat = sin(p_lat(j));				p_cos_lat = cos(p_lat(j));
 				s_lat = sin(lat);						c_lat = cos(lat);
 				s_lon = sin(isoca1(:,1) - p_lon(i));	c_lon = cos(isoca1(:,1) - p_lon(i));
 				cc = c_lat .* c_lon;
-			
+
 				tlon = atan2(c_lat .* s_lon, p_sin_lat * cc - p_cos_lat * s_lat);
 				s_lat = p_sin_lat * s_lat + p_cos_lat * cc;
 				c_lat = sqrt(1 - s_lat .* s_lat);
-			
+
 				s_lon = sin(tlon + p_omeg(k));		c_lon = cos(tlon + p_omeg(k));
 				cc = c_lat .* c_lon;
-			
+
 				rlat = asin(p_sin_lat * s_lat - p_cos_lat * cc);
 				rlon = p_lon(i) + atan2(c_lat .* s_lon, p_sin_lat * cc + p_cos_lat * s_lat);
-			
-				rlat = atan2( sin(rlat), (1-ecc^2)*cos(rlat) );
-				ind = (rlon > pi);					rlon(ind) = rlon(ind) - 2*pi;
 
-				
+				rlat = atan2( sin(rlat), (1-ecc^2)*cos(rlat) );
+				ind = (rlon > pi);					
+				if (any(ind)),		rlon(ind) = rlon(ind) - 2*pi;	end
+
 				[dist1, segLen] = distmin(isoca2(:,1), isoca2(:,2), rlon,rlat, lenRot1, testResidue, do_weighted);
 				sum1 = weightedSum(dist1, segLen, do_weighted);
 				[dist2, segLen] = distmin(rlon,rlat, isoca2(:,1), isoca2(:,2), lenRot2, testResidue, do_weighted);
@@ -594,7 +600,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 	area_f = area0;
 
 % -------------------------------------------------------------------------------
-function [dist, segLen] = distmin(lon, lat, r_lon, r_lat, lengthsRot, lastResidue, do_weighted)
+function [dist, segLen] = distmin_(lon, lat, r_lon, r_lat, lengthsRot, lastResidue, do_weighted)
 % Compute the shortest distance between each point in (lon,lat) and the polyline (r_lon,r_lat)
 % SEGLEN holds the segment length of polyline (r_lon,r_lat) corresponding to elements of DIST
 % At each quater of the total number of points in (lon.lat) we check if the current residue is
@@ -689,6 +695,8 @@ function [dist, segLen] = distmin(lon, lat, r_lon, r_lat, lengthsRot, lastResidu
 function soma = weightedSum(dists, segLen, do_weighted)
 % Convert the segment lengths along an isochron into a series of weights
 % Lengths < 50 km weight 1. In the [50 80] interval weight 0.25. Longer weight zero
+	ind = (dists ~= 0);
+	dists = dists(ind);		segLen = segLen(ind);
 	if (do_weighted)
 		weights = ones(numel(segLen), 1);
 		ind = (segLen > 50 & segLen < 80);
@@ -739,6 +747,7 @@ function [handles, msg] = parse_noGUI(varargin)
 	handles.nInt_ang = 21;
 	handles.do_graphic = false;
 	handles.residGrdName = [];
+	handles.noise = [];
 	handles.IamCompiled = false;	% Até ver
 	msg = [];	verbose = false;
 
@@ -764,7 +773,7 @@ function [handles, msg] = parse_noGUI(varargin)
 					msg = 'Error usin option -I: -ILonInt/LatInt/AngInt or -Iint';		return
 				end
 				if (isempty(ind))
-					handles.nInt_lon = sscanf(varargin{k}(3:ind(1)-1), '%f');
+					handles.nInt_lon = sscanf(varargin{k}(3:end), '%f');
 					handles.nInt_lat = handles.nInt_lon;	handles.nInt_ang = handles.nInt_lon;
 					if (~rem(handles.nInt_lon,2)),			handles.nInt_lon = handles.nInt_lon + 1;	end
 					if (~rem(handles.nInt_lat,2)),			handles.nInt_lat = handles.nInt_lat + 1;	end
@@ -774,7 +783,10 @@ function [handles, msg] = parse_noGUI(varargin)
 					handles.nInt_lat = sscanf(varargin{k}(ind(1)+1:ind(2)-1), '%f');
 					handles.nInt_ang = sscanf(varargin{k}(ind(2)+1:end), '%f');					
 				end
-				
+
+			case 'N'
+				handles.noise = sscanf(varargin{k}(3:end), '%f');
+
 			case 'E'
 				handles.residGrdName = varargin{k}(3:end);
 
