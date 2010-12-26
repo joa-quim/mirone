@@ -14,6 +14,9 @@
 
 #include "mex.h"
 #include <math.h>
+/*#ifdef _OPENMP
+#include <omp.h>
+#endif*/
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -22,36 +25,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	i, k, n_pt, n_pt_rot, ind;
 	double	min, Dsts, tmp1, tmp2, Q1[2], Q2[2], DQ[2], D1, D2;
 	double	*dist, *segLen, *lon, *lat, *r_lon, *r_lat, *lengthsRot;
-	double	*lon0, *lat0, *r_lon0, *r_lat0;
 
-	lon0 = mxGetPr(prhs[0]); 
-	lat0 = mxGetPr(prhs[1]); 
-	r_lon0 = mxGetPr(prhs[2]); 
-	r_lat0 = mxGetPr(prhs[3]); 
+	lon = mxGetPr(prhs[0]); 
+	lat = mxGetPr(prhs[1]); 
+	r_lon = mxGetPr(prhs[2]); 
+	r_lat = mxGetPr(prhs[3]); 
 	lengthsRot = mxGetPr(prhs[4]); 
 
 	n_pt = mxGetNumberOfElements(prhs[0]);
 	n_pt_rot = mxGetNumberOfElements(prhs[2]);
-
-	lon = (double *)mxMalloc(n_pt * sizeof(double));
-	lat = (double *)mxMalloc(n_pt * sizeof(double));
-	r_lon = (double *)mxMalloc(n_pt_rot * sizeof(double));
-	r_lat = (double *)mxMalloc(n_pt_rot * sizeof(double));
-
-	for (i = 0; i < n_pt; ++i) {
-		lon[i] = lon0[i] * cos(lat0[i]) * 6371;
-		lat[i] = lat0[i] * 6371;
-	}
-	for (i = 0; i < n_pt_rot; ++i) {
-		r_lon[i] = r_lon0[i] * cos(r_lat0[i]) * 6371;
-		r_lat[i] = r_lat0[i] * 6371;
-	}
 
 	plhs[0] = mxCreateDoubleMatrix (n_pt,1, mxREAL);
 	dist = mxGetPr(plhs[0]);
 	plhs[1] = mxCreateDoubleMatrix (n_pt,1, mxREAL);
 	segLen = mxGetPr(plhs[1]);
 
+/*#pragma omp parallel for*/
 	for (k = 0; k < n_pt; ++k) {
 		min = 1e20;	ind = -1;
 		for (i = 0; i < n_pt_rot; ++i) {
@@ -83,5 +72,39 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 	}
 
-	mxFree(lon); 	mxFree(lat); 	mxFree(r_lon); 	mxFree(r_lat); 
+	if (nlhs == 3) {	/* Compute a weighted sum of dist */
+		double peso, pesos, *soma;
+
+		plhs[2] = mxCreateDoubleMatrix (1,1, mxREAL);
+		soma = mxGetPr(plhs[2]);
+
+		for (k = 0; k < n_pt; ++k) {
+			if (dist[k] == 0) continue;	/* Pts outside the fixed line */
+
+			if (segLen[k] <= 50)
+				peso = 1;
+			else if (segLen[k] > 50 && segLen[k] < 80)
+				peso = 0.25;
+			else
+				peso = 0;
+
+			*soma += dist[k] * peso;
+			pesos += peso;
+		}
+		*soma /= pesos;
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
