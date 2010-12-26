@@ -29,12 +29,16 @@ function varargout = compute_euler(varargin)
 		elseif (~isempty(msg)),					disp(msg),		return
 		end
 
-		handles.isoca1 = le_fiche(varargin{1});
+		if (ischar(varargin{1})),		handles.isoca1 = le_fiche(varargin{1});
+		else							handles.isoca1 = varargin{1};
+		end
 		handles.pLon_ini = varargin{3};
 		handles.pLat_ini = varargin{4};
 		handles.pAng_ini = varargin{5};
 		if ( isempty(handles.noise) )			% "Regular" mode
-			handles.isoca2 = le_fiche(varargin{2});
+			if (ischar(varargin{2})),		handles.isoca2 = le_fiche(varargin{2});
+			else							handles.isoca2 = varargin{2};
+			end
 			[pLon, pLat, pAng, resid] = calca_pEuler(handles, true, false);
 		else
 			[rlon, rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini,-1);
@@ -394,19 +398,22 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	end
 
 	% Compute distances between vertices of the moving isoc
-	xd = diff( (handles.isoca1(:,1) .* cos(handles.isoca1(:,2) * D2R) ) * D2R * 6371 );
-	yd = diff( handles.isoca1(:,2) * D2R * 6371 );
+	X = handles.isoca1(:,1) .* cos(handles.isoca1(:,2)*D2R) * D2R * 6371;
+	Y = handles.isoca1(:,2) * D2R * 6371;
+	xd = diff( X );			yd = diff( Y );
 	lenRot1 = sqrt(xd.*xd + yd.*yd);
 
-	[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini,-1);
-	[dist1, segLen] = distmin(handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, rlon*D2R, rlat*D2R, lenRot1, 1e20, do_weighted);
+ 	[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini,-1);
+	X_rot = rlon .* cos(rlat*D2R) * D2R * 6371;		Y_rot = rlat * D2R * 6371;
+ 	[dist1, segLen] = distmin(X, Y, X_rot, Y_rot, lenRot1, 1e20, do_weighted);
 	sum1 = weightedSum(dist1, segLen, do_weighted);
 
-	xd = diff( (handles.isoca2(:,1) .* cos(handles.isoca2(:,2) * D2R) ) * D2R * 6371 );
-	yd = diff( handles.isoca2(:,2) * D2R * 6371 );
+ 	X = handles.isoca2(:,1) .* cos(handles.isoca2(:,2) * D2R) * D2R * 6371;
+ 	Y = handles.isoca2(:,2) * D2R * 6371;
+	xd = diff( X );			yd = diff( Y );
 	lenRot2 = sqrt(xd.*xd + yd.*yd);
 
-	[dist2, segLen] = distmin(rlon*D2R, rlat*D2R, handles.isoca2(:,1)*D2R, handles.isoca2(:,2)*D2R, lenRot2, 1e20, do_weighted);
+ 	[dist2, segLen] = distmin(X_rot, Y_rot, X, Y, lenRot2, 1e20, do_weighted);
 	sum2 = weightedSum(dist2, segLen, do_weighted);
 	area0 = (sum1 + sum2) / 2;
 
@@ -522,7 +529,11 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 	if (~isGUI)
 		strAdv = fprintf('\n%000\t Lons rots out of %d', nLon);		% For the Text progressbar		
 	end
+	
+	lat = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );
+	s_lat = sin(lat);			c_lat = cos(lat);
 
+	X = isoca2(:,1) .* cos(isoca2(:,2)) * 6371;		Y = isoca2(:,2) * 6371;
 	i_m = 1;	j_m = 1;	k_m = 1;	ij = 0;
 	for i = 1:nLon			% Loop over n lon intervals
 		if (isGUI && get(handles.slider_wait,'Max') == 1)			% The STOP button was pushed. So, stop
@@ -530,6 +541,8 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 			area_f = -1;		resid = [];
 			return
 		end
+		s_lon = sin(isoca1(:,1) - p_lon(i));	c_lon = cos(isoca1(:,1) - p_lon(i));
+		cc = c_lat .* c_lon;
 		for j = 1:nLat		% Loop over n lat intervals
 			ij = ij + 1;
 			if (isGUI && get(handles.slider_wait,'Max') == 1)		% The STOP button was pushed. So, stop
@@ -537,34 +550,39 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 				area_f = -1;	resid = [];
 				return
 			end
+			p_sin_lat = sin(p_lat(j));			p_cos_lat = cos(p_lat(j));
+			tlon = atan2(c_lat .* s_lon, p_sin_lat * cc - p_cos_lat * s_lat);
+			s_lat_ = p_sin_lat * s_lat + p_cos_lat * cc;
+			c_lat_ = sqrt(1 - s_lat_ .* s_lat_);
 			if (isGUI),		set(handles.slider_wait,'Value',ij);     pause(0.01);   end	% Otherwise slider may stall
 			for k = 1:nAng	% Loop over n omega intervals
 				%[rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians',-1);
 
-                lat = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );
-				p_sin_lat = sin(p_lat(j));				p_cos_lat = cos(p_lat(j));
-				s_lat = sin(lat);						c_lat = cos(lat);
-				s_lon = sin(isoca1(:,1) - p_lon(i));	c_lon = cos(isoca1(:,1) - p_lon(i));
-				cc = c_lat .* c_lon;
+                %lat = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );
+				%s_lat = sin(lat);						c_lat = cos(lat);
+				%s_lon = sin(isoca1(:,1) - p_lon(i));	c_lon = cos(isoca1(:,1) - p_lon(i));
+				%cc = c_lat .* c_lon;
+				%p_sin_lat = sin(p_lat(j));				p_cos_lat = cos(p_lat(j));
 
-				tlon = atan2(c_lat .* s_lon, p_sin_lat * cc - p_cos_lat * s_lat);
-				s_lat = p_sin_lat * s_lat + p_cos_lat * cc;
-				c_lat = sqrt(1 - s_lat .* s_lat);
+				%tlon = atan2(c_lat .* s_lon, p_sin_lat * cc - p_cos_lat * s_lat);
+				%s_lat_ = p_sin_lat * s_lat + p_cos_lat * cc;
+				%c_lat_ = sqrt(1 - s_lat_ .* s_lat_);
 
-				s_lon = sin(tlon + p_omeg(k));		c_lon = cos(tlon + p_omeg(k));
-				cc = c_lat .* c_lon;
+				s_lon_ = sin(tlon + p_omeg(k));			c_lon_ = cos(tlon + p_omeg(k));
+				cc_ = c_lat_ .* c_lon_;
 
-				rlat = asin(p_sin_lat * s_lat - p_cos_lat * cc);
-				rlon = p_lon(i) + atan2(c_lat .* s_lon, p_sin_lat * cc + p_cos_lat * s_lat);
+				rlat = asin(p_sin_lat * s_lat_ - p_cos_lat * cc_);
+				rlon = p_lon(i) + atan2(c_lat_ .* s_lon_, p_sin_lat * cc_ + p_cos_lat * s_lat_);
 
 				rlat = atan2( sin(rlat), (1-ecc^2)*cos(rlat) );
 				ind = (rlon > pi);					
 				if (any(ind)),		rlon(ind) = rlon(ind) - 2*pi;	end
 
-				[dist1, segLen] = distmin(isoca2(:,1), isoca2(:,2), rlon,rlat, lenRot1, testResidue, do_weighted);
-				sum1 = weightedSum(dist1, segLen, do_weighted);
-				[dist2, segLen] = distmin(rlon,rlat, isoca2(:,1), isoca2(:,2), lenRot2, testResidue, do_weighted);
-				sum2 = weightedSum(dist2, segLen, do_weighted);
+				X_rot = rlon .* cos(rlat) * 6371;		Y_rot = rlat * 6371;
+				[dist1, segLen, sum1] = distmin(X, Y, X_rot, Y_rot, lenRot1, testResidue, do_weighted);
+				%sum1 = weightedSum(dist1, segLen, do_weighted);
+				[dist2, segLen, sum2] = distmin(X_rot, Y_rot, X, Y, lenRot2, testResidue, do_weighted);
+				%sum2 = weightedSum(dist2, segLen, do_weighted);
 
 				area = (sum1 + sum2) / 2;
 				if (area < area0)
@@ -593,6 +611,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 		end
 	end
 
+	if (~isGUI),	fprintf('\n');		end
 	if (isGUI),		set(handles.slider_wait,'Value',0),		end      % Reset it for the next run
 	lon_bf = p_lon(i_m) / D2R;
 	lat_bf = p_lat(j_m) / D2R;
@@ -607,11 +626,9 @@ function [dist, segLen] = distmin_(lon, lat, r_lon, r_lat, lengthsRot, lastResid
 % already larger than last better residue. If yes, we stop since for sure this rotation is worst.
 % The above test is short-circuited (not carried out) when saving the residues to a grid.
 % Angles are already in radians.
-
-	r_lon = r_lon .* cos(r_lat) * 6371;		% VERY strange. This should improve the fit
-	lon = lon .* cos(lat) * 6371;			% But, on the contrary, it degrades it ??
-	r_lon = r_lon(:)';		r_lat = r_lat(:)' * 6371;      % Make sure they are row vectors
-	lat = lat * 6371;
+	
+	r_lon = r_lon(:)';		r_lat = r_lat(:)';      % Make sure they are row vectors
+	
 	%eps1 = 1e-1;			eps2 = eps1 * eps1;
 	n_pt = numel(lon);		n_pt_rot = numel(r_lon);
 	dist = zeros(n_pt,1);
