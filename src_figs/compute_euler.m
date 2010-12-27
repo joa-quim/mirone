@@ -398,23 +398,21 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	end
 
 	% Compute distances between vertices of the moving isoc
-	X = handles.isoca1(:,1) .* cos(handles.isoca1(:,2)*D2R) * D2R * 6371;
-	Y = handles.isoca1(:,2) * D2R * 6371;
+	X = handles.isoca2(:,1) .* cos(handles.isoca2(:,2)*D2R) * D2R * 6371;
+	Y = handles.isoca2(:,2) * D2R * 6371;
 	xd = diff( X );			yd = diff( Y );
 	lenRot1 = sqrt(xd.*xd + yd.*yd);
 
  	[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini,-1);
 	X_rot = rlon .* cos(rlat*D2R) * D2R * 6371;		Y_rot = rlat * D2R * 6371;
- 	[dist1, segLen] = distmin(X, Y, X_rot, Y_rot, lenRot1, 1e20, do_weighted);
-	sum1 = weightedSum(dist1, segLen, do_weighted);
+ 	[dist1, segLen, sum1] = distmin(X, Y, X_rot, Y_rot, lenRot1, 1e20, do_weighted);
+	%sum1 = weightedSum(dist1, segLen, do_weighted);
 
- 	X = handles.isoca2(:,1) .* cos(handles.isoca2(:,2) * D2R) * D2R * 6371;
- 	Y = handles.isoca2(:,2) * D2R * 6371;
-	xd = diff( X );			yd = diff( Y );
+	xd = diff( X_rot );			yd = diff( Y_rot );
 	lenRot2 = sqrt(xd.*xd + yd.*yd);
 
- 	[dist2, segLen] = distmin(X_rot, Y_rot, X, Y, lenRot2, 1e20, do_weighted);
-	sum2 = weightedSum(dist2, segLen, do_weighted);
+ 	[dist2, segLen, sum2] = distmin(X_rot, Y_rot, X, Y, lenRot2, 1e20, do_weighted);
+	%sum2 = weightedSum(dist2, segLen, do_weighted);
 	area0 = (sum1 + sum2) / 2;
 
 	if (handles.do_graphic)
