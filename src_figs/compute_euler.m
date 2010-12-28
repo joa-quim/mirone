@@ -39,6 +39,14 @@ function varargout = compute_euler(varargin)
 			if (ischar(varargin{2})),		handles.isoca2 = le_fiche(varargin{2});
 			else							handles.isoca2 = varargin{2};
 			end
+			% The distmin MEX algo relies on the assumption that both lines have vertex growing in
+			% the same sense. That is, Lat is increasing or decreasing for both (we test only Lat)
+			Dlat1 = handles.isoca1(end,2) - handles.isoca1(1,2);
+			Dlat2 = handles.isoca2(end,2) - handles.isoca2(1,2);
+			if ( sign(Dlat1) ~= sign(Dlat2) )		% Lines have oposite orientation. Reverse one of them.
+				handles.isoca2 = handles.isoca2(end:-1:1,:);
+			end
+
 			[pLon, pLat, pAng, resid] = calca_pEuler(handles, true, false);
 		else
 			[rlon, rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini,-1);
@@ -353,6 +361,14 @@ function push_compute_CB(hObject, handles)
 		errordlg(['I need a first guess of the Euler pole you are seeking for.' ...
 			'Pay attention to the "Starting Pole Section"'],'Error')
 		return
+	end
+
+	% The distmin MEX algo relies on the assumption that both lines have vertex growing in
+	% the same sense. That is, Lat is increasing or decreasing for both (we test only Lat)
+	Dlat1 = handles.isoca1(end,2) - handles.isoca1(1,2);
+	Dlat2 = handles.isoca2(end,2) - handles.isoca2(1,2);
+	if ( sign(Dlat1) ~= sign(Dlat2) )		% Lines have oposite orientation. Reverse one of them.
+		handles.isoca2 = handles.isoca2(end:-1:1,:);
 	end
 
 	if (~get(handles.check_hellinger,'Val'))		% Our method
