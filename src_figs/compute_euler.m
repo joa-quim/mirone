@@ -80,7 +80,7 @@ function varargout = compute_euler(varargin)
 	handles.do_graphic = false;
 	handles.DP_tol = 0.05;
 	handles.residGrdName = [];
-	set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)
+	set(handles.slider_wait,'Max',handles.nInt_lon)
 
 	handles.hCallingFig = varargin{1};        % This is the Mirone's fig handle
 
@@ -204,7 +204,7 @@ function edit_nInt_CB(hObject, handles)
 		elseif (strcmp(tag(end-2:end),'lat')),		handles.nInt_lat = nInt;
 		else										handles.nInt_ang = nInt;
 		end
-		set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)
+		set(handles.slider_wait,'Max',handles.nInt_lon)
 	else
 		handles.DP_tol = str2double(get(hObject,'Str'));
 	end
@@ -450,7 +450,7 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 		p_lat(ind) = [];
 		handles.nInt_lat = numel(p_lat);
 		if (handles.do_graphic)
-			set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)
+			set(handles.slider_wait,'Max',handles.nInt_lon)
 		end
 	end
 
@@ -548,19 +548,18 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 	s_lat = sin(lat);			c_lat = cos(lat);
 
 	X = isoca2(:,1) .* cos(isoca2(:,2)) * 6371;		Y = isoca2(:,2) * 6371;
-	i_m = 1;	j_m = 1;	k_m = 1;	ij = 0;
+	i_m = 1;	j_m = 1;	k_m = 1;
 	for i = 1:nLon			% Loop over n lon intervals
 		if (isGUI && get(handles.slider_wait,'Max') == 1)			% The STOP button was pushed. So, stop
-			set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)     % Reset it for the next run
+			set(handles.slider_wait,'Max',handles.nInt_lon)			% Reset it for the next run
 			area_f = -1;		resid = [];
 			return
 		end
 		s_lon = sin(isoca1(:,1) - p_lon(i));	c_lon = cos(isoca1(:,1) - p_lon(i));
 		cc = c_lat .* c_lon;
 		for j = 1:nLat		% Loop over n lat intervals
-			ij = ij + 1;
 			if (isGUI && get(handles.slider_wait,'Max') == 1)		% The STOP button was pushed. So, stop
-				set(handles.slider_wait,'Max',handles.nInt_lon * handles.nInt_lat)     % Reset it for the next run
+				set(handles.slider_wait,'Max',handles.nInt_lon)		% Reset it for the next run
 				area_f = -1;	resid = [];
 				return
 			end
@@ -568,7 +567,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 			tlon = atan2(c_lat .* s_lon, p_sin_lat * cc - p_cos_lat * s_lat);
 			s_lat_ = p_sin_lat * s_lat + p_cos_lat * cc;
 			c_lat_ = sqrt(1 - s_lat_ .* s_lat_);
-			if (isGUI),		set(handles.slider_wait,'Value',ij);     pause(0.01);   end	% Otherwise slider may stall
+			if (isGUI),		set(handles.slider_wait,'Value',i),		pause(0.01);	end	% Otherwise slider may stall
 			for k = 1:nAng	% Loop over n omega intervals
 				%[rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians',-1);
 
