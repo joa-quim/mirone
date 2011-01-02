@@ -67,10 +67,10 @@ function varargout = compute_euler(varargin)
 	% Initialize those
 	handles.hCallingFig = [];
 	handles.LonRange = 30;
-	handles.LatRange = 30;
-	handles.AngRange = 4;
-	handles.nInt_lon = 21;
-	handles.nInt_lat = 21;
+	handles.LatRange = 20;
+	handles.AngRange = 1;
+	handles.nInt_lon = 61;
+	handles.nInt_lat = 41;
 	handles.nInt_ang = 21;
 	handles.isoca1 = [];
 	handles.isoca2 = [];
@@ -80,6 +80,7 @@ function varargout = compute_euler(varargin)
 	handles.do_graphic = false;
 	handles.DP_tol = 0.05;
 	handles.residGrdName = [];
+	handles.is_spheric = true;
 	set(handles.slider_wait,'Max',handles.nInt_lon)
 
 	handles.hCallingFig = varargin{1};        % This is the Mirone's fig handle
@@ -405,30 +406,37 @@ function numeric_data = le_fiche(fname)
 % -------------------------------------------------------------------------------
 function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, isGUI)
 
-	D2R = pi / 180;
+	D2R = pi / 180;		h_line = [];
+	ecc = 0.0818191908426215;	% WGS84
 	if (handles.do_graphic)     % Create a empty line handle
 		h_line = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',[],'YData',[], ...
 			'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
-	else
-		h_line = [];
 	end
+	
+	isoca1 = handles.isoca1 * D2R;		% A maluca
+	isoca2 = handles.isoca2 * D2R;		% A fixa
+	isoca1(:,2) = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );	% Lat da isoca1 geocentrica
+	isoca2(:,2) = atan2( (1-ecc^2)*sin(isoca2(:,2)), cos(isoca2(:,2)) );	% Lat da isoca2 geocentrica
 
 	% Compute distances between vertices of the moving isoc
-	X = handles.isoca2(:,1) .* cos(handles.isoca2(:,2)*D2R) * D2R * 6371;
-	Y = handles.isoca2(:,2) * D2R * 6371;
+	X = isoca2(:,1) .* cos(isoca2(:,2)) * 6371;
+	Y = isoca2(:,2) * 6371;
 	xd = diff( X );			yd = diff( Y );
-	lenRot1 = sqrt(xd.*xd + yd.*yd);
-
- 	[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),handles.pLon_ini,handles.pLat_ini,handles.pAng_ini,-1);
-	X_rot = rlon .* cos(rlat*D2R) * D2R * 6371;		Y_rot = rlat * D2R * 6371;
- 	[dist1, segLen, sum1] = distmin(X, Y, X_rot, Y_rot, lenRot1, 1e20, do_weighted);
-	%sum1 = weightedSum(dist1, segLen, do_weighted);
-
-	xd = diff( X_rot );			yd = diff( Y_rot );
 	lenRot2 = sqrt(xd.*xd + yd.*yd);
 
- 	[dist2, segLen, sum2] = distmin(X_rot, Y_rot, X, Y, lenRot2, 1e20, do_weighted);
-	%sum2 = weightedSum(dist2, segLen, do_weighted);
+ 	[rlon,rlat] = rot_euler(isoca1(:,1), isoca1(:,2),handles.pLon_ini*D2R,handles.pLat_ini*D2R,handles.pAng_ini*D2R,'rad',0);
+	X_rot = rlon .* cos(rlat) * 6371;		Y_rot = rlat * 6371;
+	xd = diff( X_rot );			yd = diff( Y_rot );
+	lenRot1 = sqrt(xd.*xd + yd.*yd);
+
+	if (handles.is_spheric)
+	 	[dist1, segLen1, sum1] = distmin(isoca2(:,1), isoca2(:,2), rlon, rlat, lenRot1, do_weighted, 1e20);
+	 	[dist2, segLen2, sum2] = distmin(rlon, rlat, isoca2(:,1), isoca2(:,2), lenRot2, do_weighted, 1e20);
+	else
+		[dist1, segLen1, sum1] = distmin(X, Y, X_rot, Y_rot, lenRot1, do_weighted, 1e20);
+		[dist2, segLen2, sum2] = distmin(X_rot, Y_rot, X, Y, lenRot2, do_weighted, 1e20);
+	end
+	%sum22 = weightedSum(dist2, segLen2, do_weighted);
 	area0 = (sum1 + sum2) / 2;
 
 	if (handles.do_graphic)
@@ -440,9 +448,21 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	dLon = handles.LonRange / 2;
 	dLat = handles.LatRange / 2;
 	dAng = handles.AngRange / 2;
-	p_lon = (handles.pLon_ini + linspace(-dLon,dLon, handles.nInt_lon)) * D2R;
-	p_lat = (handles.pLat_ini + linspace(-dLat,dLat, handles.nInt_lat)) * D2R;
-	p_omeg = (handles.pAng_ini + linspace(-dAng,dAng,handles.nInt_ang)) * D2R;
+	if (handles.nInt_lon > 1)
+		p_lon = (handles.pLon_ini + linspace(-dLon,dLon, handles.nInt_lon)) * D2R;
+	else
+		p_lon = handles.pLon_ini * D2R;
+	end
+	if (handles.nInt_lat > 1)
+		p_lat = (handles.pLat_ini + linspace(-dLat,dLat, handles.nInt_lat)) * D2R;
+	else
+		p_lat = handles.pLat_ini * D2R;
+	end
+	if (handles.nInt_ang > 1)
+		p_omeg = (handles.pAng_ini + linspace(-dAng,dAng,handles.nInt_ang)) * D2R;
+	else
+		p_omeg = handles.pAng_ini * D2R;
+	end
 
 	% Sanitize p_lat so that it does not go out of N/S poles
 	ind = ( (p_lat > pi/2) | (p_lat < -pi/2) );
@@ -469,58 +489,6 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 		write_netcdf(handles, p_lon/D2R, p_lat/D2R, p_omeg/D2R, resid)
 	end
 
-% -----------------------------------------------------------------------------------------
-function write_netcdf(handles, lon, lat, ang, resid)
-% Write the 3D matrix in netCDF
-
-	nz = numel(ang);
-
-	% No problem in changig handles here as it will live only locally to this function
-	handles.head = [lon(1) lon(end) lat(1) lat(end) 0 0 0 diff(lon(1:2)) diff(lat(1:2))];
-	handles.geog = 1;		handles.was_int16 = false;
-	Z = resid(:,:,1);
-	handles.head(5:6) = [min(Z(:)) max(Z(:))];			Z = single(Z);
-	if (~handles.IamCompiled)
-		nc_io(handles.residGrdName, sprintf('w-%s/angle',ang(1)), handles, reshape(Z,[1 size(Z)]))
-	else
-		handles.levelVec = ang;
-		nc_io(handles.residGrdName,sprintf('w%d/angle',nz), handles, reshape(Z,[1 size(Z)]))
-	end
-	for (k = 2:nz)
-		Z = resid(:,:,k);
-		handles.head(5:6) = [min(Z(:)) max(Z(:))];		Z = single(Z);
-		if (~handles.IamCompiled)
-			nc_io(handles.residGrdName, sprintf('w%d\\%s', k-1, ang(k)), handles, Z)
-		else
-			nc_io(handles.residGrdName, sprintf('w%d', k-1), handles, Z)
-		end
-	end
-
-% -----------------------------------------------------------------------------------------
-function write_vtk(handles, lon, lat, ang, resid)
-% Write in the VTK format
-
-	nx = numel(lon);	ny = numel(lat);	nz = numel(ang);
-	fid = fopen(handles.residGrdName, 'wb','b');
-	fprintf(fid, '# vtk DataFile Version 2.0\n');
-	fprintf(fid, 'converted from A B\n');
-	fprintf(fid, 'BINARY\nDATASET RECTILINEAR_GRID\n');
-	fprintf(fid, 'DIMENSIONS %d %d %d\n', nx, ny, nz);
-	fprintf(fid, 'X_COORDINATES %d float\n', nx);
-	fwrite(fid, lon, 'real*4');
-	fprintf(fid, 'Y_COORDINATES %d float\n', ny);
-	fwrite(fid, lat, 'real*4');
-	fprintf(fid, 'Z_COORDINATES %d float\n', nz);
-	fwrite(fid, ang, 'real*4');
-	fprintf(fid, 'POINT_DATA %d\n', nx * ny * nz);
-	fprintf(fid, 'SCALARS dono float 1\nLOOKUP_TABLE default\n');
-
-	for (k = 1:nz)
-		Z = single(resid(:,:,k));
-		fwrite(fid, Z(:), 'real*4');
-	end
-	fclose(fid);
-
 % -------------------------------------------------------------------------------
 function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 		fit_pEuler(handles, p_lon, p_lat, p_omeg, area0, h_line, lenRot1,  lenRot2, do_weighted, isGUI)
@@ -528,6 +496,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 % that fits the lines "isoca1" "isoca2"
 	lon_bf = [];		lat_bf = [];	omega_bf = [];
 	D2R = pi / 180;
+	ecc = 0.0818191908426215;			% WGS84
 	nLon = numel(p_lon);	nLat = numel(p_lat);	nAng = numel(p_omeg);
 	isoca1 = handles.isoca1 * D2R;		% A maluca
 	isoca2 = handles.isoca2 * D2R;		% A fixa
@@ -538,14 +507,13 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 		save_resid = false;		resid = [];		testResidue = area0;
 	end
 
-	ecc = 0.0818191908426215;	% WGS84
-
 	if (~isGUI)
 		strAdv = fprintf('\n%000\t Lons rots out of %d', nLon);		% For the Text progressbar		
 	end
-	
-	lat = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );
+
+	lat = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );	% Lat da isoca1 geocentrica
 	s_lat = sin(lat);			c_lat = cos(lat);
+	isoca2(:,2) = atan2( (1-ecc^2)*sin(isoca2(:,2)), cos(isoca2(:,2)) );	% Lat da isoca2 geocentrica
 
 	X = isoca2(:,1) .* cos(isoca2(:,2)) * 6371;		Y = isoca2(:,2) * 6371;
 	i_m = 1;	j_m = 1;	k_m = 1;
@@ -587,21 +555,25 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 				rlat = asin(p_sin_lat * s_lat_ - p_cos_lat * cc_);
 				rlon = p_lon(i) + atan2(c_lat_ .* s_lon_, p_sin_lat * cc_ + p_cos_lat * s_lat_);
 
-				rlat = atan2( sin(rlat), (1-ecc^2)*cos(rlat) );
+				%rlat = atan2( sin(rlat), (1-ecc^2)*cos(rlat) );		% Convert back to geodetic latitudes
 				ind = (rlon > pi);					
 				if (any(ind)),		rlon(ind) = rlon(ind) - 2*pi;	end
 
-				X_rot = rlon .* cos(rlat) * 6371;		Y_rot = rlat * 6371;
-				[dist1, segLen, sum1] = distmin(X, Y, X_rot, Y_rot, lenRot1, testResidue, do_weighted);
-				%sum1 = weightedSum(dist1, segLen, do_weighted);
-				[dist2, segLen, sum2] = distmin(X_rot, Y_rot, X, Y, lenRot2, testResidue, do_weighted);
-				%sum2 = weightedSum(dist2, segLen, do_weighted);
+				if (handles.is_spheric)
+					[dist1, segLen1, sum1] = distmin(isoca2(:,1), isoca2(:,2), rlon, rlat, lenRot1, do_weighted, 1e20);
+					[dist2, segLen2, sum2] = distmin(rlon, rlat, isoca2(:,1), isoca2(:,2), lenRot2, do_weighted, 1e20);
+				else
+					X_rot = rlon .* cos(rlat) * 6371;		Y_rot = rlat * 6371;
+					[dist1, segLen1, sum1] = distmin(X, Y, X_rot, Y_rot, lenRot1, do_weighted, testResidue);
+					[dist2, segLen2, sum2] = distmin(X_rot, Y_rot, X, Y, lenRot2, do_weighted, testResidue);
+				end
 
 				area = (sum1 + sum2) / 2;
 				if (area < area0)
 					area0 = area;
 					i_m = i;	j_m = j;	k_m = k;
 					if (handles.do_graphic)
+						rlat = atan2( sin(rlat), (1-ecc^2)*cos(rlat) );		% Convert back to geodetic latitudes
 						set(h_line,'XData',rlon/D2R,'YData',rlat/D2R)
 						pause(0.01)
 					end
@@ -612,7 +584,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 						set(handles.edit_BFresidue,'String',sprintf('%.3f', area))
 					end
 				end
-
+				
 				if (save_resid),	resid(j, i, k) = area;		end
 
 			end
@@ -632,7 +604,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 	area_f = area0;
 
 % -------------------------------------------------------------------------------
-function [dist, segLen] = distmin_(lon, lat, r_lon, r_lat, lengthsRot, lastResidue, do_weighted)
+function [dist, segLen] = distmin_(lon, lat, r_lon, r_lat, lengthsRot, do_weighted, lastResidue)
 % Compute the shortest distance between each point in (lon,lat) and the polyline (r_lon,r_lat)
 % SEGLEN holds the segment length of polyline (r_lon,r_lat) corresponding to elements of DIST
 % At each quater of the total number of points in (lon.lat) we check if the current residue is
@@ -737,6 +709,57 @@ function soma = weightedSum(dists, segLen, do_weighted)
 		soma = sum( dists ) / numel(dists);
 	end
 
+% -----------------------------------------------------------------------------------------
+function write_netcdf(handles, lon, lat, ang, resid)
+% Write the 3D matrix in netCDF
+
+	nz = numel(ang);
+
+	% No problem in changig handles here as it will live only locally to this function
+	handles.head = [lon(1) lon(end) lat(1) lat(end) 0 0 0 diff(lon(1:2)) diff(lat(1:2))];
+	handles.geog = 1;		handles.was_int16 = false;
+	Z = resid(:,:,1);
+	handles.head(5:6) = [min(Z(:)) max(Z(:))];			Z = single(Z);
+	if (~handles.IamCompiled)
+		nc_io(handles.residGrdName, sprintf('w-%s/angle',ang(1)), handles, reshape(Z,[1 size(Z)]))
+	else
+		handles.levelVec = ang;
+		nc_io(handles.residGrdName,sprintf('w%d/angle',nz), handles, reshape(Z,[1 size(Z)]))
+	end
+	for (k = 2:nz)
+		Z = resid(:,:,k);
+		handles.head(5:6) = [min(Z(:)) max(Z(:))];		Z = single(Z);
+		if (~handles.IamCompiled)
+			nc_io(handles.residGrdName, sprintf('w%d\\%s', k-1, ang(k)), handles, Z)
+		else
+			nc_io(handles.residGrdName, sprintf('w%d', k-1), handles, Z)
+		end
+	end
+
+% -----------------------------------------------------------------------------------------
+function write_vtk(handles, lon, lat, ang, resid)
+% Write in the VTK format
+
+	nx = numel(lon);	ny = numel(lat);	nz = numel(ang);
+	fid = fopen(handles.residGrdName, 'wb','b');
+	fprintf(fid, '# vtk DataFile Version 2.0\n');
+	fprintf(fid, 'converted from A B\n');
+	fprintf(fid, 'BINARY\nDATASET RECTILINEAR_GRID\n');
+	fprintf(fid, 'DIMENSIONS %d %d %d\n', nx, ny, nz);
+	fprintf(fid, 'X_COORDINATES %d float\n', nx);
+	fwrite(fid, lon, 'real*4');
+	fprintf(fid, 'Y_COORDINATES %d float\n', ny);
+	fwrite(fid, lat, 'real*4');
+	fprintf(fid, 'Z_COORDINATES %d float\n', nz);
+	fwrite(fid, ang, 'real*4');
+	fprintf(fid, 'POINT_DATA %d\n', nx * ny * nz);
+	fprintf(fid, 'SCALARS dono float 1\nLOOKUP_TABLE default\n');
+
+	for (k = 1:nz)
+		Z = single(resid(:,:,k));
+		fwrite(fid, Z(:), 'real*4');
+	end
+	fclose(fid);
 
 % --------------------------------------------------------------------------------
 function lat = geog2auth(lat0)
@@ -770,12 +793,13 @@ function lat = auth2geog(lat0)
 function [handles, msg] = parse_noGUI(varargin)
 %	
 	handles.LonRange = 30;
-	handles.LatRange = 30;
-	handles.AngRange = 4;
-	handles.nInt_lon = 21;
-	handles.nInt_lat = 21;
+	handles.LatRange = 20;
+	handles.AngRange = 1;
+	handles.nInt_lon = 61;
+	handles.nInt_lat = 41;
 	handles.nInt_ang = 21;
 	handles.do_graphic = false;
+	handles.is_spheric = true;
 	handles.residGrdName = [];
 	handles.noise = [];
 	handles.IamCompiled = false;	% Até ver
@@ -786,8 +810,10 @@ function [handles, msg] = parse_noGUI(varargin)
 	for (k = 6:numel(varargin))
 		switch (varargin{k}(2))
 			case 'H'
-				msg = '[-DLonRange/LatRange/AngRange] [-ILonInt/LatInt/AngInt or -Iint] [-Eresid_fname] [-V]';
+				msg = '[-DLonRange/LatRange/AngRange] [-ILonInt/LatInt/AngInt or -Iint] [-Eresid_fname] [-C] [-V]';
 				return
+			case 'C'
+				handles.is_spheric = false;
 			case 'D'
 				ind = strfind(varargin{k},'/');
 				if (numel(ind) ~= 2)
@@ -919,7 +945,7 @@ uicontrol('Parent',h1, 'Pos',[20 139 75 18],'HorizontalAlignment','left','Str','
 uicontrol('Parent',h1, 'Pos',[104 138 41 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@compute_euler_uiCB,h1,'edit_LatRange_CB'},...
-'String','30',...
+'String','20',...
 'Style','edit',...
 'Tooltip','The pole will be searched arround it''s starting latitude +/- half this range',...
 'Tag','edit_LatRange');
@@ -927,7 +953,7 @@ uicontrol('Parent',h1, 'Pos',[104 138 41 21],...
 uicontrol('Parent',h1, 'Pos',[104 110 41 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@compute_euler_uiCB,h1,'edit_AngRange_CB'},...
-'String','4',...
+'String','1',...
 'Style','edit',...
 'Tooltip','The pole will be searched arround it''s starting angle +/- half this range',...
 'Tag','edit_AngRange');
@@ -935,7 +961,7 @@ uicontrol('Parent',h1, 'Pos',[104 110 41 21],...
 uicontrol('Parent',h1, 'Pos',[171 165 35 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@compute_euler_uiCB,h1,'edit_nInt_CB'},...
-'String','21',...
+'String','61',...
 'Style','edit',...
 'Tooltip','The range parameters are divided into this number of intervals steps',...
 'Tag','edit_nInt_lon');
@@ -943,7 +969,7 @@ uicontrol('Parent',h1, 'Pos',[171 165 35 21],...
 uicontrol('Parent',h1, 'Pos',[171 138 35 21],...
 'BackgroundColor',[1 1 1],...
 'Call',{@compute_euler_uiCB,h1,'edit_nInt_CB'},...
-'String','21',...
+'String','41',...
 'Style','edit',...
 'Tooltip','The range parameters are divided into this number of intervals steps',...
 'Tag','edit_nInt_lat');
