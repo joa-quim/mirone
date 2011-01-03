@@ -72,7 +72,7 @@ double GMT_dot3v (double *a, double *b);
 double GMT_distance(double x0, double y0, double x1, double y1);
 int GMT_great_circle_intersection (double A[], double B[], double C[], double X[], double *CX_dist);
 double GMT_great_circle_dist (double lon1, double lat1, double lon2, double lat2);
-double GMT_great_circle_dist_cos (double lon1, double lat1, double lon2, double lat2);
+double GMT_great_circle_dist2 (double cosa, double sina, double lon1, double lon2, double lat2);
 void sincos (double a, double *s, double *c);
 void dists_sph  (double *lon, double *lat, double *r_lon, double *r_lat, double *lengthsRot, 
 		int n_pt, int n_pt_rot, double *dist, double *segLen);
@@ -144,6 +144,7 @@ void dists_sph (double *lon, double *lat, double *r_lon, double *r_lat, double *
 
 /*#pragma omp parallel for*/
 	for (k = 0; k < n_pt; ++k) {		/* Loop over fixed line vertices */
+		if (ind >= n_pt_rot) ind = 0;	/* Reset this counter */
 		if (GMT_near_a_line_spherical (lon[k], lat[k], r_lon, r_lat, n_pt_rot, ind, 3, &dist_min, &x_near, &y_near)) {
 			ind = (int)(x_near);
 			dist[k] = dist_min;	segLen[k] = lengthsRot[ind];
@@ -190,8 +191,8 @@ void dists_cart (double *lon, double *lat, double *r_lon, double *r_lat, double 
 
 int GMT_near_a_line_spherical (double lon, double lat, double *line_lon, double *line_lat, int n_pt, int row_s,
 				int return_mindist, double *dist_min, double *x_near, double *y_near) {
-	int row, j0, ind, ind_s, ind_e, row_e;
-	double d, A[3], B[3], C[3], X[3], xlon, xlat, cx_dist, cos_dist, dist_AB, fraction, DX, DY, coslat;
+	int row, j0, ind, ind_s, ind_e, row_e, kk;
+	double d, A[3], B[3], C[3], X[3], xlon, xlat, cx_dist, cos_dist, dist_AB, fraction, DX, DY, coslat, sinlat;
 
 	/* MODIFIED VERSION (OPTIMIZED FOR SPEED UNDER LOCAL CONSTRAINTS) OF THE GMT ORIGINAL FUNCTION */
 
@@ -208,7 +209,7 @@ int GMT_near_a_line_spherical (double lon, double lat, double *line_lon, double 
 	*y_near = 0;		/* Not used when return_mindist == 3 */
 
 	/* Make a first, very crude and quick scan using Cartesian dists to find the closest pt to line */
-	coslat = cos(lat);
+	coslat = cos(lat);	sinlat = sin(lat);
 	for (row = row_s; row < n_pt; row++) {	/* loop over nodes on current line */
 		DY = (lat-line_lat[row]);	DX = (lon-line_lon[row]) * coslat;
 		d = DX*DX + DY*DY;
@@ -222,10 +223,10 @@ int GMT_near_a_line_spherical (double lon, double lat, double *line_lon, double 
 
 	/*for (row = 0; row < n_pt; row++) {*/	/* loop over nodes on current line */
 	for (row = row_s; row < row_e; row++) {		/* loop over nodes on current line */
-		d = GMT_distance (lon, lat, line_lon[row], line_lat[row]);	/* Distance between our point and row'th node on seg'th line */
+		d = GMT_great_circle_dist2 (coslat, sinlat, lon, line_lon[row], line_lat[row]);	/* Distance between our pt and row'th node on seg'th line */
 		if (d < (*dist_min)) {			/* Update minimum distance */
 			*dist_min = d;
-			if (return_mindist == 3) *x_near = (double)row;		/* Also update pt of nearest point on the line */
+			if (return_mindist == 3) *x_near = (double)row;		/* Also update pt of nearest pt on the line */
 			else if (return_mindist == 2) *x_near = line_lon[row], *y_near = line_lat[row];	/* Also update (x,y) of nearest pt on the line */
 		}
 	}
@@ -251,15 +252,15 @@ int GMT_near_a_line_spherical (double lon, double lat, double *line_lon, double 
 		if (GMT_great_circle_intersection (A, B, C, X, &cx_dist)) continue;	/* X not between A and B */
 		/* Get lon, lat of X, calculate distance, and update min_dist if needed */
 		GMT_cart_to_geo (&xlat, &xlon, X, FALSE);
-		d = GMT_distance (xlon, xlat, lon, lat);	/* Distance between our point and closest perpendicular point on seg'th line */
+		d = GMT_great_circle_dist2 (coslat, sinlat, lon, xlon, xlat);	/* Distance between our point and closest perpendicular point on seg'th line */
 		if (d < (*dist_min)) {			/* Update minimum distance */
 			*dist_min = d;
 			if (return_mindist == 2) 	/* Also update (x,y) of nearest point on the line */
 				{*x_near = xlon; *y_near = xlat;}
 			else if (return_mindist == 3) {	/* Also update pt of nearest point on the line */
 				j0 = row - 1;
-				dist_AB = GMT_distance (line_lon[j0], line_lat[j0], line_lon[row], line_lat[row]);
-				fraction = (dist_AB > 0.0) ? GMT_distance (line_lon[j0], line_lat[j0], xlon, xlat) / dist_AB : 0.0;
+				dist_AB = GMT_great_circle_dist (line_lon[j0], line_lat[j0], line_lon[row], line_lat[row]);
+				fraction = (dist_AB > 0.0) ? GMT_great_circle_dist (line_lon[j0], line_lat[j0], xlon, xlat) / dist_AB : 0.0;
 				*x_near = (double)j0 + fraction;
 			}
 		}
@@ -376,22 +377,25 @@ double GMT_distance(double x0, double y0, double x1, double y1) {
 
 double GMT_great_circle_dist (double lon1, double lat1, double lon2, double lat2) {
 	/* great circle distance on a sphere in degrees */
+	double cosa, cosb, sina, sinb, cos_c;
 
-	double cos_c = GMT_great_circle_dist_cos (lon1, lat1, lon2, lat2);
-	return (acos (cos_c));
-}
-
-double GMT_great_circle_dist_cos (double lon1, double lat1, double lon2, double lat2) {
-	/* great circle distance on a sphere in cos (angle) */
-
-	double cosa, cosb, sina, sinb;
-
-	if (lat1==lat2 && lon1==lon2) return (1.0);
+	if (lat1==lat2 && lon1==lon2) return (1.0 * KMRAD);
 
 	sincos (lat1, &sina, &cosa);
 	sincos (lat2, &sinb, &cosb);
 
-	return (sina*sinb + cosa*cosb*cos(lon1-lon2));
+	cos_c = sina*sinb + cosa*cosb*cos(lon1-lon2);
+	return (acos (cos_c) * KMRAD);
+}
+
+double GMT_great_circle_dist2 (double cosa, double sina, double lon1, double lon2, double lat2) {
+	/* great circle distance on a sphere. The difference is that sincos(lat1) are transmiited  */
+	double cosb, sinb, cos_c;
+
+	sincos (lat2, &sinb, &cosb);
+
+	cos_c = sina*sinb + cosa*cosb*cos(lon1-lon2);
+	return (acos (cos_c) * KMRAD);
 }
 
 void sincos (double a, double *s, double *c) {
