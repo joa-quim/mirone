@@ -430,14 +430,16 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	lenRot1 = sqrt(xd.*xd + yd.*yd);
 
 	if (handles.is_spheric)
-	 	[dist1, segLen1, sum1] = distmin(isoca2(:,1), isoca2(:,2), rlon, rlat, lenRot1, do_weighted, 1e20);
-	 	[dist2, segLen2, sum2] = distmin(rlon, rlat, isoca2(:,1), isoca2(:,2), lenRot2, do_weighted, 1e20);
+	 	area0 = distmin(isoca2(:,1), isoca2(:,2), lenRot2, rlon, rlat, lenRot1);
+		%[dist1, segLen1, sum1] = distmin_o(isoca2(:,1), isoca2(:,2), rlon, rlat, lenRot1, do_weighted, 1e20);
+		%[dist2, segLen2, sum2] = distmin_o(rlon, rlat, isoca2(:,1), isoca2(:,2), lenRot2, do_weighted, 1e20);
+		%area0 = (sum1 + sum2) / 2;
 	else
 		[dist1, segLen1, sum1] = distmin(X, Y, X_rot, Y_rot, lenRot1, do_weighted, 1e20);
 		[dist2, segLen2, sum2] = distmin(X_rot, Y_rot, X, Y, lenRot2, do_weighted, 1e20);
+		area0 = (sum1 + sum2) / 2;
 	end
 	%sum22 = weightedSum(dist2, segLen2, do_weighted);
-	area0 = (sum1 + sum2) / 2;
 
 	if (handles.do_graphic)
 		set(handles.edit_InitialResidue,'String',sprintf('%.3f', area0));    pause(0.01)
@@ -560,15 +562,17 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 				if (any(ind)),		rlon(ind) = rlon(ind) - 2*pi;	end
 
 				if (handles.is_spheric)
-					[dist1, segLen1, sum1] = distmin(isoca2(:,1), isoca2(:,2), rlon, rlat, lenRot1, do_weighted, 1e20);
-					[dist2, segLen2, sum2] = distmin(rlon, rlat, isoca2(:,1), isoca2(:,2), lenRot2, do_weighted, 1e20);
+				 	area = distmin(isoca2(:,1), isoca2(:,2), lenRot2, rlon, rlat, lenRot1);
+					%[dist1, segLen1, sum1] = distmin_o(isoca2(:,1), isoca2(:,2), rlon, rlat, lenRot1, do_weighted, 1e20);
+					%[dist2, segLen2, sum2] = distmin_o(rlon, rlat, isoca2(:,1), isoca2(:,2), lenRot2, do_weighted, 1e20);
+					%area = (sum1 + sum2) / 2;
 				else
 					X_rot = rlon .* cos(rlat) * 6371;		Y_rot = rlat * 6371;
 					[dist1, segLen1, sum1] = distmin(X, Y, X_rot, Y_rot, lenRot1, do_weighted, testResidue);
 					[dist2, segLen2, sum2] = distmin(X_rot, Y_rot, X, Y, lenRot2, do_weighted, testResidue);
+					area = (sum1 + sum2) / 2;
 				end
 
-				area = (sum1 + sum2) / 2;
 				if (area < area0)
 					area0 = area;
 					i_m = i;	j_m = j;	k_m = k;
