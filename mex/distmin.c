@@ -16,9 +16,6 @@
 
 #include "mex.h"
 #include <math.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #ifndef MIN
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))	/* min and max value macros */
@@ -74,8 +71,7 @@ int GMT_great_circle_intersection (double A[], double B[], double C[], double X[
 double GMT_great_circle_dist (double lon1, double lat1, double lon2, double lat2);
 double GMT_great_circle_dist2 (double cosa, double sina, double lon1, double lon2, double lat2);
 void sincos (double a, double *s, double *c);
-void dists_sph  (double *lon, double *lat, double *r_lon, double *r_lat, double *lengthsRot, 
-		int n_pt, int n_pt_rot, double *dist, double *segLen);
+double dists_sph (double *lon, double *lat, int n_pt, double *r_lon, double *r_lat, double *lengthsRot, int n_pt_rot);
 void dists_cart (double *lon, double *lat, double *r_lon, double *r_lat, double *lengthsRot, 
 		int n_pt, int n_pt_rot, double *dist, double *segLen);
 double weighted_sum (double *dist, double *segLen, int n_pt);
@@ -85,35 +81,31 @@ double weighted_sum (double *dist, double *segLen, int n_pt);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	n_pt, n_pt_rot;
-	double	*dist, *segLen, *lon, *lat, *r_lon, *r_lat, *lengthsRot, *soma, tmp;
+	double	*dist=NULL, *segLen=NULL, *lon, *lat, *r_lon, *r_lat, *lengths, *lengthsRot, *soma = NULL, tmp;
 
 	lon = mxGetPr(prhs[0]); 
 	lat = mxGetPr(prhs[1]); 
-	r_lon = mxGetPr(prhs[2]); 
-	r_lat = mxGetPr(prhs[3]); 
-	lengthsRot = mxGetPr(prhs[4]); 
+	lengths = mxGetPr(prhs[2]); 
+	r_lon = mxGetPr(prhs[3]); 
+	r_lat = mxGetPr(prhs[4]); 
+	lengthsRot = mxGetPr(prhs[5]); 
 
 	n_pt = mxGetNumberOfElements(prhs[0]);
-	n_pt_rot = mxGetNumberOfElements(prhs[2]);
-
-	plhs[0] = mxCreateDoubleMatrix (n_pt,1, mxREAL);
-	dist = mxGetPr(plhs[0]);
-	plhs[1] = mxCreateDoubleMatrix (n_pt,1, mxREAL);
-	segLen = mxGetPr(plhs[1]);
+	n_pt_rot = mxGetNumberOfElements(prhs[3]);
 
 	/* Heuristic to find if data came in radians or in km (* 6371) */
 	tmp = MAX (MAX (MAX (fabs(lat[0]), fabs(lat[(int)(n_pt/3)])), fabs(lat[(int)(n_pt*2/3)])), fabs(lat[n_pt-1]));
 
+	plhs[0] = mxCreateDoubleMatrix (1,1, mxREAL);
+	soma = mxGetPr(plhs[0]);
+
 	if (tmp > 10)
 		dists_cart (lon, lat, r_lon, r_lat, lengthsRot, n_pt, n_pt_rot, dist, segLen);
-	else
-		dists_sph  (lon, lat, r_lon, r_lat, lengthsRot, n_pt, n_pt_rot, dist, segLen);
-
-	if (nlhs == 3) {	/* Compute a weighted sum of dist */
-		plhs[2] = mxCreateDoubleMatrix (1,1, mxREAL);
-		soma = mxGetPr(plhs[2]);
-		*soma = weighted_sum (dist, segLen, n_pt);
+	else {
+		*soma = dists_sph (lon, lat, n_pt, r_lon, r_lat, lengthsRot, n_pt_rot);
+		*soma += dists_sph (r_lon, r_lat, n_pt_rot, lon, lat, lengths, n_pt);
 	}
+	*soma /= 2;
 }
 
 double weighted_sum (double *dist, double *segLen, int n_pt) {
@@ -137,19 +129,29 @@ double weighted_sum (double *dist, double *segLen, int n_pt) {
 	return(soma);
 }
 
-void dists_sph (double *lon, double *lat, double *r_lon, double *r_lat, double *lengthsRot, 
-		int n_pt, int n_pt_rot, double *dist, double *segLen) {
+double dists_sph (double *lon, double *lat, int n_pt, double *r_lon, double *r_lat, double *lengthsRot, int n_pt_rot) {
 	int k, ind = 0;
-	double	x_near, y_near, dist_min;
+	double	x_near, y_near, dist_min, peso, pesos = 0, soma = 0;
 
-/*#pragma omp parallel for*/
 	for (k = 0; k < n_pt; ++k) {		/* Loop over fixed line vertices */
 		if (ind >= n_pt_rot) ind = 0;	/* Reset this counter */
 		if (GMT_near_a_line_spherical (lon[k], lat[k], r_lon, r_lat, n_pt_rot, ind, 3, &dist_min, &x_near, &y_near)) {
+
 			ind = (int)(x_near);
-			dist[k] = dist_min;	segLen[k] = lengthsRot[ind];
+
+			if (lengthsRot[ind] <= 50)
+				peso = 1;
+			else if (lengthsRot[ind] > 50 && lengthsRot[ind] < 80)
+				peso = 0.25;
+			else
+				peso = 0;
+
+			soma += dist_min * peso;
+			pesos += peso;
 		}
 	}
+	soma /= pesos;
+	return (soma);
 }
 
 void dists_cart (double *lon, double *lat, double *r_lon, double *r_lat, double *lengthsRot, 
@@ -191,8 +193,8 @@ void dists_cart (double *lon, double *lat, double *r_lon, double *r_lat, double 
 
 int GMT_near_a_line_spherical (double lon, double lat, double *line_lon, double *line_lat, int n_pt, int row_s,
 				int return_mindist, double *dist_min, double *x_near, double *y_near) {
-	int row, j0, ind, ind_s, ind_e, row_e, kk;
-	double d, A[3], B[3], C[3], X[3], xlon, xlat, cx_dist, cos_dist, dist_AB, fraction, DX, DY, coslat, sinlat;
+	int row, j0, ind, ind_s, ind_e, row_e;
+	double d, A[3], B[3], C[3], X[3], xlon, xlat, cx_dist, dist_AB, fraction, DX, DY, coslat, sinlat;
 
 	/* MODIFIED VERSION (OPTIMIZED FOR SPEED UNDER LOCAL CONSTRAINTS) OF THE GMT ORIGINAL FUNCTION */
 
@@ -216,6 +218,7 @@ int GMT_near_a_line_spherical (double lon, double lat, double *line_lon, double 
 		if (d < (*dist_min)) {
 			*dist_min = d;
 			ind = row;
+			if (return_mindist == 3) *x_near = (double)row;
 		}
 	}
 	*dist_min = 1e30;
