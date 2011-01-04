@@ -442,7 +442,7 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	%sum22 = weightedSum(dist2, segLen2, do_weighted);
 
 	if (handles.do_graphic)
-		set(handles.edit_InitialResidue,'String',sprintf('%.3f', area0));    pause(0.01)
+		set(handles.edit_InitialResidue,'String',sprintf('%.4f', area0));    pause(0.01)
 		set(h_line,'XData',rlon,'YData',rlat)
 	end
 
@@ -585,7 +585,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 						set(handles.edit_pLon_fim,'String',sprintf('%.3f', p_lon(i) / D2R))
 						set(handles.edit_pLat_fim,'String',sprintf('%.3f', p_lat(j) / D2R))
 						set(handles.edit_pAng_fim,'String',sprintf('%.3f', p_omeg(k) / D2R))
-						set(handles.edit_BFresidue,'String',sprintf('%.3f', area))
+						set(handles.edit_BFresidue,'String',sprintf('%.4f', area))
 					end
 				end
 				
