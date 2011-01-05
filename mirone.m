@@ -124,7 +124,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles.grdMaxSize = prf.grdMaxSize;				% 2^20 = 1 Mb
 		handles.swathRatio = prf.swathRatio;
 		handles.last_directories = prf.directory_list;
-		handles.DefLineThick = str2double(prf.DefLineThick{1}(1));
+		handles.DefLineThick = sscanf(prf.DefLineThick{1}(1),'%f');
 		% Decode the line color string into the corresponding char (e.g. k,w, etc...)
 		if (strcmp(prf.DefLineColor{1},'Black')),	handles.DefLineColor = 'k';
 		else										handles.DefLineColor = lower(prf.DefLineColor{1}(1));
@@ -504,20 +504,20 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			if (strcmp(opt2,'CropaGrid_pure'))
 				resp = inputdlg({'Enter outside polygon value'},'Choose out value',[1 30],{sprintf('%.4f',z_min)});	pause(0.01)
 				if isempty(resp),	set(handles.figure1,'pointer','arrow'),		return,		end
-				if (~isreal(str2double(resp))),		resp = NaN;		end			% A 'i' or a 'j' in resp would have caused this
 			elseif (strcmp(opt2,'ROI_SetConst'))	% Set the polygon interiour to cte
 				resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
 				if isempty(resp),	set(handles.figure1,'pointer','arrow'),		return,		end
-				if (~isreal(str2double(resp))),		resp = NaN;		end			% A 'i' or a 'j' in resp would have caused this
 			end
 			mask = img_fun('roipoly_j',x_lim,y_lim,double(Z_rect),x,y);
+			resp = sscanf(resp{1},'%f');
+			if (isempty(resp)),		resp = NaN;		end
 			if (strcmp(opt2,'CropaGrid_pure'))
-				Z_rect(~mask) = single(str2double(resp));
+				Z_rect(~mask) = single(resp);
 			elseif (strcmp(opt2,'ROI_SetConst'))
-				Z_rect(mask) = single(str2double(resp));	% Set the mask values to const
+				Z_rect(mask) = single(resp);				% Set the mask values to const
 				handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
 				Z(r_c(1):r_c(2),r_c(3):r_c(4)) = Z_rect;
-				if (isnan(str2double(resp))),	handles.have_nans = 1;	first_nans = 1;		end
+				if (isnan(resp)),		handles.have_nans = 1;	first_nans = 1;		end
 			elseif (strcmp(opt2,'ROI_MedianFilter'))
 				[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask);
 			elseif (strcmp(opt2,'ROI_SplineSmooth'))
@@ -635,8 +635,9 @@ elseif (strcmp(opt2,'SplineSmooth'))
 	prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
 	defAns = {sprintf('%.12f',p_guess{1})};		resp = inputdlg(prompt,dlg_title,[1 38],defAns);
 	pause(0.01)
+	resp = sscanf(resp{1},'%f');
 	if (isempty(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
-	pp = spl_fun('csaps',{Y,X},Z_rect,str2double(resp{1}));
+	pp = spl_fun('csaps',{Y,X},Z_rect,resp);
 	Z_rect = spl_fun('fnval',pp,{Y,X});		clear pp;
 	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
 	if (wasROI)				% Apply the mask and smooth over the mask edges
@@ -1645,7 +1646,7 @@ function ToolsMBplaningImport_CB(handles)
 		else				xy = out(:,1:2);	end
 		z = abs(bi_linear(getappdata(handles.figure1,'dem_x'),getappdata(handles.figure1,'dem_y'),...
 			getappdata(handles.figure1,'dem_z'),xy(:,1),xy(:,2)));
-		rad = abs(z) * (str2double(resp{1})/2) / 111194.9; % meters -> degrees
+		rad = abs(z) * (sscanf(resp{1},'%f')/2) / 111194.9; % meters -> degrees
 		handles.nTrack = handles.nTrack + 1;	% count the number of imported tracks
 		% make tags strings to tracks and track's Bars
 		tagL = ['MBtrack' sprintf('%d',handles.nTrack)];	tagB = ['swath_w' sprintf('%d',handles.nTrack)];
@@ -1985,8 +1986,8 @@ function ImageDrape_CB(handles)
 	% See about transparency
 	dlg_title = 'Draping Transparency';		num_lines= [1 38];	defAns = {'0'};
 	resp = inputdlg('Use Transparency (0-1)?',dlg_title,num_lines,defAns);		pause(0.01);
-	alfa = str2double(resp{1});
-	if (alfa > 1),						alfa = 1;	end
+	alfa = sscanf(resp{1},'%f');
+	if (isempty(alfa) || alfa > 1),		alfa = 1;	end
 	if (alfa < 0.01 || isnan(alfa)),	alfa = 0;	end
 
 	son_cm = [];
@@ -2317,7 +2318,7 @@ function DrawImportText_CB(handles)
 	str1 = {'*.txt;*.TXT;*.dat;*.DAT', 'Text file (*.txt,*.TXT,*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select input text file name','get');
 	if isequal(FileName,0),		return,		end
-	
+
 	fid = fopen([PathName,FileName],'r');
 	todos = fread(fid,'*char');		fclose(fid);
 	todos = strread(todos','%s','delimiter','\n');
@@ -2325,7 +2326,7 @@ function DrawImportText_CB(handles)
 	str.x(n_lines) = 0;		str.y(n_lines) = 0;		str.name = cell(n_lines,1);		foul = false(n_lines,1);
 	for (k = 1:n_lines)
 		try
-			txt = strrep(todos{k},char(9),' ');		% Get reed of eventual tab characters which print as squares
+			txt = strrep(todos{k},char(9),' ');		% Get rid of eventual tab characters which print as squares
 			[t, r] = strtok(txt);			str.x(k) = str2double(t);
 			[t, r] = strtok(r);				str.y(k) = str2double(t);
 			str.name{k} = r(2:end);
@@ -2650,6 +2651,13 @@ function FileOpenSession_CB(handles, fname)
 		set(handles.figure1,'Colormap',img_pal);
 		handles = guidata(handles.figure1);				% Get the updated version
 		handles.origCmap = img_pal;
+	end
+
+	if ( ~exist('illumComm','var') )
+		illumComm = '';		flagIllum = false;
+	elseif ( ~exist('illumType','var') )
+		illumType = 1;		% Test only one case where this might be otherwise
+		if ( numel(strfind(illumComm,'/')) == 5 ),		illumType = 4;		end		% Lambertian
 	end
 
 	if (~isempty(illumComm) && flagIllum)
@@ -3177,7 +3185,7 @@ function GridToolsSmooth_CB(handles)
 		Z = spl_fun('fnval',pp,{Y,X});		clear pp;
 	end
 
-	tit = ['Spline smoothed grid. p parameter used = ' str2double(resp{1})];
+	tit = ['Spline smoothed grid. p parameter used = ' sscanf(resp{1},'%f')];
 	GRDdisplay(handles,X,Y,Z,head,tit,'Spline smoothed grid');
 
 % --------------------------------------------------------------------
@@ -3438,7 +3446,7 @@ function FileSaveFleder_CB(handles, opt)
 			elseif (ispc)
 				s = dos(fcomm);
 				% Try again with the 'iview3d'
-				if (s == 0 && handles.whichFleder),		fcomm(6) = '3';		dos(fcomm);		end
+				if (~s && handles.whichFleder),		fcomm(6) = '3';		dos(fcomm);		end
 			else			errordlg('Unknown platform.','Error'),	return
 			end
 		catch
@@ -3625,8 +3633,8 @@ function TransferB_CB(handles, opt)
 	elseif (strcmp(opt,'scale'))				% Apply a scale factor
 		resp = inputdlg({'Enter scale factor'},'Rescale grid',[1 30],{'-1'});	pause(0.01)
 		if (isempty(resp)),	return,		end
-		scal = str2double(resp);
-		if (isnan(scal)),	return,		end
+		scal = sscanf(resp,'%f');
+		if (isempty(scal)),	return,		end
 		[X,Y,Z] = load_grd(handles);			% load the grid array here
 		if isempty(Z),		return,		end		% An error message was already issued
 		Z = cvlib_mex('CvtScale',Z, scal);
@@ -3687,8 +3695,8 @@ elseif (strcmp(opt,'toRGB'))
 elseif (strcmp(opt,'8-bit'))
 	if (ndims(img) ~= 3),	set(handles.figure1,'pointer','arrow'),		return,		end		% Nothing to do
 	resp  = inputdlg({'Number of colors (2-256)'},'Color quantization',[1 30],{'256'});	pause(0.01)
-	nColors = round(abs(str2double(resp)));
-	if (isnan(nColors)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	nColors = round(abs(sscanf(resp,'%f')));
+	if (isempty(nColors)),	set(handles.figure1,'pointer','arrow'),		return,		end
 	[img, map] = img_fun( 'rgb2ind', img, max(2, min(nColors, 256)) );	% Ensure we are in the [2-256] int
 	set(handles.hImg,'CData', img),			set(handles.figure1,'ColorMap',map)
 	aux_funs('togCheck', handles.ImMod8cor, [handles.ImMod8gray handles.ImModBW handles.ImModRGB])
