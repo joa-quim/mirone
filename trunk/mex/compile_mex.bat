@@ -32,6 +32,8 @@ SET R13="no"
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
 SET WIN64="yes"
 
+IF %R13%=="yes" SET WIN64="no"
+
 REM The MSVC version. I use this var to select libraries also compiled with this compiler
 SET MSVC_VER="1600"
 
@@ -162,7 +164,7 @@ REM ------------------ "simple" (no external Libs dependency) ------------------
 for %%G in (test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select 
 	mex_illuminate grdutils read_isf alloc_mex susan set_gmt mxgridtrimesh trend1d_m gmtmbgrid_m 
 	grdgradient_m grdtrack_m spa_mex mirblock write_mex xyzokb_m ind2rgb8 applylutc cq bwlabel1 
-	bwlabel2 imhistc intlutc inv__lwm grayto8 grayto16 ordf parityscan) do ( 
+	bwlabel2 imhistc intlutc inv__lwm grayto8 grayto16 ordf parityscan distmin) do ( 
 
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj
