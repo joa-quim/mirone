@@ -1,9 +1,9 @@
 function [H1,handles,home_dir] = mirone_uis(home_dir)
 % --- Creates and returns a handle to the GUI MIRONE figure. 
 %#function pan resetplotview igrf_options rally_plater plate_calculator ecran snapshot
-%#function about_box parker_stuff plate_calculator euler_stuff grid_calculator tableGUI
+%#function about_box parker_stuff euler_stuff grid_calculator tableGUI
 %#function datasets_funs earthquakes manual_pole_adjust compute_euler focal_meca srtm_tool atlas
-%#function image_enhance image_adjust datasets_funs write_gmt_script vitrinite telhometro mpaint
+%#function image_enhance image_adjust write_gmt_script vitrinite telhometro mpaint
 %#function imcapture filter_funs overview imageresize classificationfig tfw_funs mirone_pref
 %#function griding_mir grdfilter_mir grdsample_mir grdtrend_mir grdgradient_mir ml_clip show_palette 
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
@@ -688,7 +688,7 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v2.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 14 Dec 2010'',''2.0.1b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 06 Jan 2011'',''2.0.1b'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
