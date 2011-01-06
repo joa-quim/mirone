@@ -2653,11 +2653,14 @@ function FileOpenSession_CB(handles, fname)
 		handles.origCmap = img_pal;
 	end
 
-	if ( ~exist('illumComm','var') )
-		illumComm = '';		flagIllum = false;
-	elseif ( ~exist('illumType','var') )
-		illumType = 1;		% Test only one case where this might be otherwise
+	% Have to use a try-catch because of the f. compiler bugs ("exist" won't work)
+	try			illumComm;
+	catch,		illumComm = '';		flagIllum = false;
+	end
+	try			illumType;
+	catch
 		if ( numel(strfind(illumComm,'/')) == 5 ),		illumType = 4;		end		% Lambertian
+		illumType = 1;		% Test only one case where this might be otherwise
 	end
 
 	if (~isempty(illumComm) && flagIllum)
@@ -2742,7 +2745,10 @@ function FileOpenSession_CB(handles, fname)
 		end
 	end
 	if (haveText)					% case of text strings
-		if (~exist('Texto','var') && exist('Text','var')),		Texto= Text;	end		% Compatibility issue  
+		try		Texto;				% Compatibility issue (Use a try because of compiler bugs)
+		catch
+			try	Texto = Text;	end
+		end
 		for i=1:length(Texto)
 			if (isempty(Texto(i).str)),		continue,	end
 			h_text = text(Texto(i).pos(1),Texto(i).pos(2),Texto(i).pos(3), Texto(i).str,...
@@ -2754,7 +2760,10 @@ function FileOpenSession_CB(handles, fname)
 			draw_funs(h_text,'DrawText')		% Set texts's uicontextmenu
 		end
 	end
-	if (exist('havePatches','var') && havePatches)		% case of patchs - NOTE, the Tags are currently lost 
+	try		havePatches;		% 'Try' because compiler BUGs
+	catch,	havePatches = false;
+	end
+	if (havePatches)			% case of patchs - NOTE, the Tags are currently lost 
 		for (i = 1:length(Patches))
 			try					% We never know with those guys, so it's better to play safe
 				is_telha = 0;
