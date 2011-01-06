@@ -81,7 +81,7 @@ PROG_SIMPLE	= test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m
 		mex_illuminate grdutils read_isf ind2rgb8 alloc_mex susan set_gmt mxgridtrimesh houghmex trend1d_m \
 		PolygonClip gmtmbgrid_m grdgradient_m grdtrack_m mirblock akimaspline applylutc bwlabel1 bwlabel2 \
 		bwlabelnmex bwboundariesmex cq ditherc imhistc intlutc inv__lwm grayto8 grayto16 grayxform morphmex \
-		ordf parityscan resampsep imreconstructmex
+		ordf parityscan resampsep imreconstructmex distmin
 
 # netCDF mexs (other than GMT ones)
 PROG_withCDF	= swan
@@ -233,6 +233,8 @@ resampsep:
 		$(MEX) -I$(MATLAB)/extern/include resampsep.cpp $(MEXLIB)
 iptcheckinput:
 		$(MEX) -I$(MATLAB)/extern/include iptcheckinput.cpp $(MEXLIB)
+distmin:
+		$(MEX) -I$(MATLAB)/extern/include distmin.c $(MEXLIB)
 
 #imfilter_mex:
 
