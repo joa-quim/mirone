@@ -134,7 +134,8 @@ double dists_sph (double *lon, double *lat, int n_pt, double *r_lon, double *r_l
 	double	x_near, y_near, dist_min, peso, pesos = 0, soma = 0;
 
 	for (k = 0; k < n_pt; ++k) {		/* Loop over fixed line vertices */
-		if (ind >= n_pt_rot) ind = 0;	/* Reset this counter */
+		if (ind < 0 || ind >= n_pt_rot) ind = 0;	/* Reset this counter */
+		x_near = 0;			/* Should not be need but: despair solution to try to avoid a random crash */
 		if (GMT_near_a_line_spherical (lon[k], lat[k], r_lon, r_lat, n_pt_rot, ind, 3, &dist_min, &x_near, &y_near)) {
 
 			ind = (int)(x_near);
