@@ -1593,7 +1593,7 @@ function wbd_circle(obj,eventdata,h,state)
 	lon_lat_rad = get(h,'UserData');	setappdata(h,'LonLatRad',lon_lat_rad)   % save this in appdata
 	set(h,'Tag','circleCart')
     rmappdata(h,'X');			rmappdata(h,'Y');
-	%set(h,'UserData',[])		% Clean UserData so that it doesn't risk to crash write_fleder
+	set(h,'UserData',[])		% Clean UserData so that it doesn't risk to crash write_fleder
 	uirestore_fig(state);		% Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
 
