@@ -2,7 +2,8 @@ function  varargout = histo_m(opt,varargin)
 % This hacked hist functions work also with single y
 switch opt
     case 'hist'
-        [varargout{1} varargout{2}] = hist(varargin{:});
+        %[varargout{1} varargout{2}] = hist(varargin{:});
+		[varargout{1:nargout}] = hist(varargin{:});
     case 'bar'
         [varargout{1}] = bar(varargin{:});
 end
@@ -47,9 +48,9 @@ end
 if min(size(y))==1, y = y(:); end
 
 if (~got_min_max)
-    miny = min(min(y));
-    maxy = max(max(y));
-    if (~isa(miny,'double')),   miny = double(miny);    maxy = double(maxy);    end
+	miny = min(y(:));
+	maxy = max(y(:));
+	if (~isa(miny,'double')),   miny = double(miny);    maxy = double(maxy);    end
 end
 if (length(x) == 1)
 	  if (miny == maxy)
@@ -78,7 +79,8 @@ nn(end-1,:) = nn(end-1,:)+nn(end,:);
 nn = nn(2:end-1,:);
 
 if (nargout == 0)
-    bar(x,nn,'hist');
+	bar(x,nn,'hist');
+	set (gca, 'xlim',[miny maxy])
 else
     if min(size(y))==1, % Return row vectors if possible.
         no = nn';   xo = x;
@@ -124,11 +126,11 @@ function xo = bar(varargin)
 [msg,x,y,xx,yy,linetype,plottype,barwidth,equal] = makebars(varargin{:});
 if ~isempty(msg), error(msg); end
 
-state = uisuspend_fig(gcf);               % Remember initial figure state
-h_img = findobj(gcf, 'type', 'image');  % To be used if a Mirone figure is the gcf
+state = uisuspend_fig(gcf);				% Remember initial figure state
+h_img = findobj(gcf, 'type', 'image');	% To be used if a Mirone figure is the gcf
 if (~isempty(h_img))
     cax = newplot(h_img);
-else                                    % Used with a new or still empty figure 
+else									% Used with a new or still empty figure 
     cax = gca;
 end
 next = lower(get(cax,'NextPlot'));
@@ -204,7 +206,7 @@ function [msg,x,y,xx,yy,linetype,plottype,barwidth,arg8] = makebars(varargin)
 %   $Revision: 1.22 $  $Date: 2002/06/05 20:05:15 $
 
 % Initialize everything
-x = []; y=[]; xx=[]; yy=[]; linetype=[]; plottype=[]; barwidth=[]; arg8 = [];
+x = []; y=[]; xx=[]; yy=[]; arg8 = [];
 
 barwidth = .8; % Normalized width of bar.
 groupwidth = .8; % Normalized width of groups.
@@ -218,7 +220,7 @@ if strcmp(varargin{nin},'3'),
 	nin = nin-1; 
 	plottype = 2; % Detached plot default
 else
-	threeD = 0; 
+	threeD = 0;
 	plottype = 0; % Grouped plot default
 end
 
@@ -345,11 +347,9 @@ if threeD,
     if plottype~=0, % Stacked or detached
        delta = dy * groupwidth;
        t = t - delta/2;
-       x = ones(1,m);
     else % Grouped
        delta = dy * groupwidth / m ;
        t = t - delta/2*m + (ones(n,1)*(0:m-1)).*delta;
-       x = 1:m;
     end
     if plottype==2, x = 1:m; else x = ones(1,m); end
   end     
@@ -431,7 +431,7 @@ else
       if (ishist~=-1), dt = delta/2*m; end
     end
   end
-  if (length(dt)>0), t = t - dt; end
+  if (~isempty(dt)), t = t - dt; end
 
   xx(1:5:nn,:) = t;
   xx(2:5:nn,:) = t + (1-barwidth)/2.*delta;
