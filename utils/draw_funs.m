@@ -385,31 +385,36 @@ function seismic_line(obj,evt,hL,opt)
 		IN = inpolygon(x,y, get(hP,'XData'),get(hP,'YData'));	% Find events inside the buffer zone
 		x = x(IN);				y = y(IN);
 		if (isempty(x))
-			errordlg('Cou Cou. There are no seisms inside this zone. Bye Bye.','Chico Clever'),	return
+			errordlg('Cou Cou!! There are no seisms inside this zone. Bye Bye.','Chico Clever'),	return
 		end
-		
-		xL = get(hL, 'xdata');	yL = get(hL, 'ydata');
-		f_name = [handles.path_tmp 'lixo.dat'];
-		double2ascii(f_name,[xL(:) yL(:)],'%f\t%f');		% Save as file so we can use it mapproject
-		out = mapproject_m([x(:) y(:)], ['-L' f_name]);
+
         evt_time = (getappdata(hS,'SeismicityTime'))';		% Get events time
 		evt_time = evt_time(IN);
-
-		% Sort along dimension that has larger extent
-		if ( abs(xL(end) - xL(1)) > abs(yL(end) - yL(1)) )
-			[x, ind] = sort(out(:,4));		y = out(ind,5);
-		else
-			[y, ind] = sort(out(:,5));		x = out(ind,4);
-		end
-
-		x = (x*111.1949) .* cos(y*pi/180);	y = y * 111.1949;	% Convert to km	
-		xd = diff(x);		yd = diff(y);	clear x y
-		tmp = sqrt(xd.*xd + yd.*yd);		clear xd yd
-		rd = [0; cumsum(tmp(:))];			clear tmp
-		figure;		plot(evt_time(ind), rd, '.')
 		evt_dep = (double(getappdata(hS,'SeismicityDepth')) / 10)';
 		evt_dep = evt_dep(IN);
-		figure;		plot(rd, evt_dep(ind), '.')
+
+		xL = get(hL, 'xdata');	yL = get(hL, 'ydata');
+
+	    lat_i = yL(1:end-1);	lat_f = yL(2:end);
+		lon_i = xL(1:end-1);	lon_f = xL(2:end);
+		lineSegDist = vdist(lat_i,lon_i,lat_f,lon_f,handles.DefineEllipsoide([1 3])) / 1000;
+		lineSegDist(isnan(lineSegDist)) = 0;				% Exact repeated points generate NaNs in solution
+		lineSegDistAcum = [0; cumsum(lineSegDist(:))];
+		lineSegDist(end+1) = 0;		lineSegDist = lineSegDist(:);	% Extend to ease the algo below
+
+		f_name = [handles.path_tmp 'lixo.dat'];
+		double2ascii(f_name,[xL(:) yL(:)],'%f\t%f');		% Save as file so we can use it mapproject
+		ptFrac = mapproject_m([x(:) y(:)], ['-L' f_name '+']);	% Project and get fractional points along the line
+		ptFrac = ptFrac(:,5) + 1;								% +1 because mapproject is 0 based
+		intSeg = fix(ptFrac);
+		rd = lineSegDistAcum(intSeg) + (ptFrac - intSeg) .* lineSegDist(intSeg);
+		[rd, ind] = sort(rd);
+
+		evt_time = evt_time(ind);	evt_dep = evt_dep(ind);
+		figure;
+		h = subplot(2,2,1);		plot(rd, evt_time, '.'),	set(h,'ylim',[min(evt_time) max(evt_time)],'xlim',[rd(1) rd(end)]);
+		h = subplot(2,2,2);		plot(rd, evt_dep, '.'),		set(h,'ylim',[min(evt_dep) max(evt_dep)+0.01],'xlim',[rd(1) rd(end)]);
+		subplot(2,2,3);			histo_m('hist', rd, 0:25:rd(end), [0 rd(end)]);
 		%evt_mag  = (double(getappdata(hS,'SeismicityMag')) / 10)';
 	end
 	
@@ -1275,8 +1280,8 @@ function ll = show_LineLength(obj, eventdata, h, opt)
 ix = isnan(x);      x(ix) = [];     y(ix) = [];
 iy = isnan(y);      x(iy) = [];     y(iy) = [];
 if (handles.geog)
-    lat_i = y(1:length(y)-1);   lat_f = y(2:length(y));     clear y;
-    lon_i = x(1:length(x)-1);   lon_f = x(2:length(x));     clear x;
+    lat_i = y(1:end-1);   lat_f = y(2:end);     clear y;
+    lon_i = x(1:end-1);   lon_f = x(2:end);     clear x;
 	tmp = vdist(lat_i,lon_i,lat_f,lon_f,handles.DefineEllipsoide([1 3]));
     
     switch handles.DefineMeasureUnit
