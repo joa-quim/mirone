@@ -139,13 +139,13 @@ alpha = 0*lat1;
 sigma = 0*lat1;
 cos2sigmam = 0*lat1;
 C = 0*lat1;
-warninggiven = logical(0);
+warninggiven = false;
 while any(notdone)  % force at least one execution
     %disp(['lambda(21752) = ' num2str(lambda(21752),20)]);
     itercount = itercount+1;
     if itercount > 50
         if ~warninggiven
-            warning(['Essentially antipodal points encountered. Precision may be reduced slightly.']);
+            warning('Essentially antipodal points encountered. Precision may be reduced slightly.');
         end
         lambda(notdone) = pi;
         break
@@ -171,8 +171,8 @@ while any(notdone)  % force at least one execution
     % correct for convergence failure in the case of essentially antipodal
     % points
     if any(lambda(notdone) > pi)
-		warning(['Essentially antipodal points encountered. Precision may be reduced slightly.']);
-		warninggiven = logical(1);
+		warning('Essentially antipodal points encountered. Precision may be reduced slightly.');
+		warninggiven = true;
 		lambdaold(lambda>pi) = pi;
 		lambda(lambda>pi) = pi;
     end
