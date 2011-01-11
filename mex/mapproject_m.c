@@ -66,7 +66,7 @@ void lon_range_adjust (int range, double *lon);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_LONG	i, j, k, n = 0, n_files = 0, unit = 0, n_slash, g_report = 0;
-	GMT_LONG	n_fields, distance = 0, proj_type = 0, save[2], two;
+	GMT_LONG	n_fields, distance = 0, proj_type = 0, save[2], two, line_mode = 2;
 	
 	int error = FALSE, inverse = FALSE, suppress = FALSE, one_to_one = FALSE, ECEF_conv = FALSE;
 	int map_center = FALSE, nofile = TRUE, done = FALSE, first = TRUE, datum_conv = FALSE;
@@ -227,7 +227,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					break;
 				case 'L':
 	 				strcpy (line_file, &argv[i][2]);
-					k = strlen (line_file) - 2;
+					k = strlen (line_file) - 1;
+					if (line_file[k] == '+') {	/* Flag to get point number instead of coordinates at nearest point on line */
+						line_mode = 3;
+						line_file[k] = '\0';
+						k--;
+					}
+					k--;
 					if (line_file[k] == '/' && strchr ("ekmndcC", line_file[k+1])) {
 						error += GMT_get_dist_scale (line_file[k+1], &d_scale, &proj_type, &distance_func);
 						line_file[k] = 0;
@@ -629,9 +635,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 				else if (do_line_dist) {	/* Compute closest distance to line */
 					if (proj_type == 2)	/* Using projected coordinates */
-						(void *) near_a_line (out[0], out[1], xyline, 2, &d, &xnear, &ynear);
+						(void *) near_a_line (out[0], out[1], xyline, line_mode, &d, &xnear, &ynear);
 					else			/* Using input coordinates */
-						(void *) near_a_line (in[0], in[1], xyline, 2, &d, &xnear, &ynear);
+						(void *) near_a_line (in[0], in[1], xyline, line_mode, &d, &xnear, &ynear);
 					d *= d_scale;
 				}
 				else {	/* Azimuths */
