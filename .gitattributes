@@ -1,4 +1,5 @@
 * text=auto !eol
+/cfitsio_w32.dll -text
 continents/AUS_ABS_hybrid.stg -text
 continents/AUS_torsvik.stg -text
 continents/EANT_ABS_hybrid.stg -text
@@ -328,6 +329,7 @@ lib_mex/wave_travel_time.dll -text
 lib_mex/wgifc.dll -text
 /libcurl_mir32.dll -text
 /libecwj2_mir32.dll -text
+/libexpat_w32.dll -text
 /libjpeg_mir32.dll -text
 /liblas_m.dll -text
 /libmmd.dll -text
@@ -848,4 +850,5 @@ utils/writegif.m -text
 utils/writekml.m -text
 utils/zoom_j.m -text
 /wget.exe -text
+/xerces-c_3_1_w32.dll -text
 /zlib1_mir32.dll -text
