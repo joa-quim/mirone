@@ -1,6 +1,19 @@
 function varargout = floodfill(varargin)
-% 
-%	Coffeeright (c) 2004-2008 by J. Luis
+% ...
+
+%	Copyright (c) 2004-2011 by J. Luis
+%
+%	This program is free software; you can redistribute it and/or modify
+%	it under the terms of the GNU General Public License as published by
+%	the Free Software Foundation; version 2 of the License.
+%
+%	This program is distributed in the hope that it will be useful,
+%	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%	GNU General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
 	if (isempty(varargin))
 		errordlg('FLOODFILL: wrong number of arguments.','Error'),	return
@@ -209,94 +222,94 @@ function wbm_circ(obj,eventdata,handles,lineThick,lineType)
 
 % -------------------
 function wbd_paint(obj,eventdata,hCallFig,state)
-    uirestore_fig(state);           % Restore the figure's initial state
+	uirestore_fig(state);		% Restore the figure's initial state
 
 % --------------------------------------------------------------------
 function pipeta_clickedcallback(hObject, eventdata)
-    % Pick one color from image and make it the default painting one
-    handles = guidata(hObject);     % get handles
-    figure(handles.hCallingFig)
-    pal = get(handles.hCallingFig,'Colormap');
-    set(handles.hCallingFig,'Pointer', 'custom','PointerShapeCData',getPointer('pipeta'),'PointerShapeHotSpot',[15 1])
-    w = waitforbuttonpress;
-    if (w == 0)       % A mouse click
-        pt = get(handles.hCallingAxes, 'CurrentPoint');
-        [c,r] = getpixcoords(handles,pt(1,1),pt(1,2));
-        c = round(c);       r = round(r);
-        if (~insideRect(handles,c,r))
-            set(handles.hCallingFig,'Pointer', 'arrow');            return;
-        end
-        img = get(handles.hImage,'CData');
-        if (ndims(img) == 2)            % Here we have to permanently change the image type to RGB
-            img = ind2rgb8(img,get(handles.hCallingFig,'ColorMap'));
-            handles.origFig = img;      % Update the copy of the original image
-            set(handles.hImage,'CData', img); 
-        end
-        fillColor = double(img(r,c,:));
-        handles.fillColor = reshape(fillColor,1,numel(fillColor));
-        set(handles.toggle_currColor,'BackgroundColor',handles.fillColor / 255)
-        set(handles.hCallingFig,'Pointer', 'arrow');
-        guidata(handles.figure1,handles)
-    end
+% Pick one color from image and make it the default painting one
+	handles = guidata(hObject);     % get handles
+	figure(handles.hCallingFig)
+	pal = get(handles.hCallingFig,'Colormap');
+	set(handles.hCallingFig,'Pointer', 'custom','PointerShapeCData',getPointer('pipeta'),'PointerShapeHotSpot',[15 1])
+	w = waitforbuttonpress;
+	if (w == 0)       % A mouse click
+		pt = get(handles.hCallingAxes, 'CurrentPoint');
+		[c,r] = getpixcoords(handles,pt(1,1),pt(1,2));
+		c = round(c);       r = round(r);
+		if (~insideRect(handles,c,r))
+			set(handles.hCallingFig,'Pointer', 'arrow');            return;
+		end
+		img = get(handles.hImage,'CData');
+		if (ndims(img) == 2)            % Here we have to permanently change the image type to RGB
+			img = ind2rgb8(img,get(handles.hCallingFig,'ColorMap'));
+			handles.origFig = img;      % Update the copy of the original image
+			set(handles.hImage,'CData', img); 
+		end
+		fillColor = double(img(r,c,:));
+		handles.fillColor = reshape(fillColor,1,numel(fillColor));
+		set(handles.toggle_currColor,'BackgroundColor',handles.fillColor / 255)
+		set(handles.hCallingFig,'Pointer', 'arrow');
+		guidata(handles.figure1,handles)
+	end
     
 % -------------------------------------------------------------------------------------
 function flood_clickedcallback(hObject, eventdata)
-    handles = guidata(hObject);     % get handles
-    figure(handles.hCallingFig)
-    set(handles.hCallingFig,'Pointer', 'custom','PointerShapeCData',getPointer('bucket'),'PointerShapeHotSpot',[16 15])
-    [params,but] = prepareParams(handles,getPointer('bucket'),[16 15]);
-    if (isempty(params) || but ~= 1 || ~insideRect(handles,params.Point(1),params.Point(2)))
-        set(handles.hCallingFig,'Pointer', 'arrow');        return;
-    end
-    while (but == 1)
-        img = get(handles.hImage,'CData');
-        if (ndims(img) == 2)            % Here we have to permanently change the image type to RGB
-            img = ind2rgb8(img,get(handles.hCallingFig,'ColorMap'));
-            handles.origFig = img;      % Update the copy of the original image
-            guidata(handles.figure1,handles)
-        end
-        img = cvlib_mex('floodfill',img,params);
-        set(handles.hImage,'CData', img); 
-        [x,y,but] = ginput_pointer(1,getPointer('bucket'),[16 15]);  % Get next point
-        [x,y] = getpixcoords(handles,x,y);
-        params.Point = [x y];
-    end
-    set(handles.hCallingFig,'Pointer', 'arrow')
+	handles = guidata(hObject);     % get handles
+	figure(handles.hCallingFig)
+	set(handles.hCallingFig,'Pointer', 'custom','PointerShapeCData',getPointer('bucket'),'PointerShapeHotSpot',[16 15])
+	[params,but] = prepareParams(handles,getPointer('bucket'),[16 15]);
+	if (isempty(params) || but ~= 1 || ~insideRect(handles,params.Point(1),params.Point(2)))
+		set(handles.hCallingFig,'Pointer', 'arrow');        return;
+	end
+	while (but == 1)
+		img = get(handles.hImage,'CData');
+		if (ndims(img) == 2)            % Here we have to permanently change the image type to RGB
+			img = ind2rgb8(img,get(handles.hCallingFig,'ColorMap'));
+			handles.origFig = img;      % Update the copy of the original image
+			guidata(handles.figure1,handles)
+		end
+		img = cvlib_mex('floodfill',img,params);
+		set(handles.hImage,'CData', img); 
+		[x,y,but] = ginput_pointer(1,getPointer('bucket'),[16 15]);  % Get next point
+		[x,y] = getpixcoords(handles,x,y);
+		params.Point = [x y];
+	end
+	set(handles.hCallingFig,'Pointer', 'arrow')
 
 % --------------------------------------------------------------------
 function shape_clickedcallback(hObject, eventdata, opt)
-    handles = guidata(hObject);     % get handles
-    state = uisuspend_fig(handles.hCallingFig);        % Remember initial figure state
-    set(handles.hCallingFig,'Pointer', 'crosshair')
-    figure(handles.hCallingFig)
-    
-    w = waitforbuttonpress;
-    if (w == 0),    ShapeFirstButtonDown(handles,state,opt)       % A mouse click
-    else            set(handles.hCallingFig,'Pointer', 'arrow');
-    end
+	handles = guidata(hObject);     % get handles
+	state = uisuspend_fig(handles.hCallingFig);        % Remember initial figure state
+	set(handles.hCallingFig,'Pointer', 'crosshair')
+	figure(handles.hCallingFig)
+
+	w = waitforbuttonpress;
+	if (w == 0),	ShapeFirstButtonDown(handles,state,opt)       % A mouse click
+	else			set(handles.hCallingFig,'Pointer', 'arrow');
+	end
 
 % -------------------
 function ShapeFirstButtonDown(handles,state,opt)
-    handles = guidata(handles.figure1);     % Update handles
-    lineType = 8;       % Default to 8 connectivity
-    if (get(handles.checkbox_AA,'Value')),      lineType = 16;      end
-    pt = get(handles.hCallingAxes, 'CurrentPoint');
-    [x,y] = getpixcoords(handles,pt(1,1),pt(1,2));
-    x = round(x);    y = round(y);
-    if (~insideRect(handles,x,y)),  set(handles.hCallingFig,'Pointer', 'arrow');    return;     end
-    img = get(handles.hImage,'CData');
-    lineThick = handles.lineWidth;
-    if (get(handles.checkbox_filled,'Value'))
-        lineThick = -lineThick;
-    end
-    if (strcmp(opt,'circ'))
-        set(handles.hCallingFig,'WindowButtonMotionFcn',{@wbm_circle,handles,[x y],img,lineThick,lineType})
-    elseif (strcmp(opt,'rect'))
-        set(handles.hCallingFig,'WindowButtonMotionFcn',{@wbm_rectangle,handles,[x y],img,lineThick,lineType})
-    elseif (strcmp(opt,'ellipse'))
-        set(handles.hCallingFig,'WindowButtonMotionFcn',{@wbm_ellipse,handles,[x y],img,lineThick,lineType})
-    end
-    set(handles.hCallingFig,'WindowButtonDownFcn',{@wbd_paint,handles.hCallingFig,state})
+	handles = guidata(handles.figure1);     % Update handles
+	lineType = 8;       % Default to 8 connectivity
+	if (get(handles.checkbox_AA,'Value')),      lineType = 16;      end
+	pt = get(handles.hCallingAxes, 'CurrentPoint');
+	[x,y] = getpixcoords(handles,pt(1,1),pt(1,2));
+	x = round(x);    y = round(y);
+	if (~insideRect(handles,x,y)),  set(handles.hCallingFig,'Pointer', 'arrow');    return;     end
+	img = get(handles.hImage,'CData');
+	lineThick = handles.lineWidth;
+	if (get(handles.checkbox_filled,'Value'))
+		lineThick = -lineThick;
+	end
+	if (strcmp(opt,'circ'))
+		set(handles.hCallingFig,'WindowButtonMotionFcn',{@wbm_circle,handles,[x y],img,lineThick,lineType})
+	elseif (strcmp(opt,'rect'))
+		set(handles.hCallingFig,'WindowButtonMotionFcn',{@wbm_rectangle,handles,[x y],img,lineThick,lineType})
+	elseif (strcmp(opt,'ellipse'))
+		set(handles.hCallingFig,'WindowButtonMotionFcn',{@wbm_ellipse,handles,[x y],img,lineThick,lineType})
+	end
+	set(handles.hCallingFig,'WindowButtonDownFcn',{@wbd_paint,handles.hCallingFig,state})
     
 % -------------------
 function wbm_circle(obj,eventdata,handles,first_pt,IMG,lineThick,lineType)
@@ -365,7 +378,7 @@ function wbm_rectangle(obj,eventdata,handles,first_pt,IMG,lineThick,lineType)
     set(handles.hImage,'CData',IMG);
 
 % -------------------------------------------------------------------------------------
-function slider_tolerance_Callback(hObject, eventdata, handles)
+function slider_tolerance_CB(hObject, eventdata, handles)
     handles.tol = round(get(hObject,'Value'));
     set(handles.text_tol,'String',['Tolerance = ' num2str(handles.tol)])
     guidata(handles.figure1,handles)
@@ -376,38 +389,38 @@ function [params,but] = prepareParams(handles, opt, opt2)
 % OPT, if provided and contains a 16x16 array, is taken as a pointer
 % OPT2, if provided, must be a 2 element vector with 'PointerShapeHotSpot'
 % BUT returns which button has been pressed.
-    if (nargin == 1),   opt = [];   opt2 = [];   end
-    if (nargin == 2),   opt2 = [];  end
-    if (~handles.randColor)        % That is, Cte color
-        if (~isempty(handles.fillColor))
-            params.FillColor = handles.fillColor;
-        else
-            errordlg('I don''t have yet a filling color. You must select one first.','Error')
-            params = [];        return
-        end
-    end
-    figure(handles.hCallingFig)         % Bring the figure containing image forward
-    but = 1;                            % Initialize to a left click
-    poin = 'crosshair';
-    if (numel(opt) == 256),        poin = opt;    end
-    [x,y,but]  = ginput_pointer(1,poin,opt2);
-    [x,y] = getpixcoords(handles,x,y);
-    params.Point = [x y];
-    params.Tolerance = handles.tol;
-    params.Connect = handles.connect;
+	if (nargin == 1),   opt = [];   opt2 = [];   end
+	if (nargin == 2),   opt2 = [];  end
+	if (~handles.randColor)        % That is, Cte color
+		if (~isempty(handles.fillColor))
+			params.FillColor = handles.fillColor;
+		else
+			errordlg('I don''t have yet a filling color. You must select one first.','Error')
+			params = [];        return
+		end
+	end
+	figure(handles.hCallingFig)         % Bring the figure containing image forward
+	but = 1;                            % Initialize to a left click
+	poin = 'crosshair';
+	if (numel(opt) == 256),        poin = opt;    end
+	[x,y,but]  = ginput_pointer(1,poin,opt2);
+	[x,y] = getpixcoords(handles,x,y);
+	params.Point = [x y];
+	params.Tolerance = handles.tol;
+	params.Connect = handles.connect;
 
 % -------------------------------------------------------------------------------------
 function [x,y] = getpixcoords(handles,x,y)
 % Convert x,y to pixel coordinates (they are not when the image has other coordinates)
-    if (handles.head(7))                % Image is pixel registered
-        X = [handles.head(1) handles.head(2)] + [handles.head(8) -handles.head(8)]/2;
-        Y = [handles.head(3) handles.head(4)] + [handles.head(9) -handles.head(9)]/2;
-    else                                % Image is grid registered
-        X = [handles.head(1) handles.head(2)];
-        Y = [handles.head(3) handles.head(4)];
-    end
-    x = localAxes2pix(handles.imgSize(2),X,x);
-    y = localAxes2pix(handles.imgSize(1),Y,y);
+	if (handles.head(7))                % Image is pixel registered
+		X = [handles.head(1) handles.head(2)] + [handles.head(8) -handles.head(8)]/2;
+		Y = [handles.head(3) handles.head(4)] + [handles.head(9) -handles.head(9)]/2;
+	else                                % Image is grid registered
+		X = [handles.head(1) handles.head(2)];
+		Y = [handles.head(3) handles.head(4)];
+	end
+	x = localAxes2pix(handles.imgSize(2),X,x);
+	y = localAxes2pix(handles.imgSize(1),Y,y);
 
 % --------------------------------------------------------------------
 function res = insideRect(handles,x,y)
@@ -416,40 +429,40 @@ function res = insideRect(handles,x,y)
 	res = ( x >= 1 && x <= handles.imgSize(2) && y >= 1 && y <= handles.imgSize(1) );
 
 % -------------------------------------------------------------------------------------
-function radio_randColor_Callback(hObject, eventdata, handles)
+function radio_randColor_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
 	set(handles.radio_cteColor,'Value',0)
 	handles.randColor = 1;
 	set(findobj(handles.figure1,'Style','toggle'),'Enable','Inactive')
-	set(handles.pushbutton_moreColors,'Enable','Inactive')
+	set(handles.push_moreColors,'Enable','Inactive')
 	set(handles.toggle_currColor,'BackgroundColor','w')
 	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function radio_cteColor_Callback(hObject, eventdata, handles)
+function radio_cteColor_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
 	set(handles.radio_randColor,'Value',0)
 	handles.randColor = 0;
 	set(findobj(handles.figure1,'Style','toggle'),'Enable','on');
-	set(handles.pushbutton_moreColors,'Enable','on')
+	set(handles.push_moreColors,'Enable','on')
 	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function radio_fourConn_Callback(hObject, eventdata, handles)
+function radio_fourConn_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
 	set(handles.radio_eightConn,'Value',0)
 	handles.connect = 4;
 	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function radio_eightConn_Callback(hObject, eventdata, handles)
+function radio_eightConn_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
 	set(handles.radio_fourConn,'Value',0)
 	handles.connect = 8;
 	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function toggle00_Callback(hObject, eventdata, handles)
+function toggle00_CB(hObject, eventdata, handles)
 % All color toggle end up here
 	toggleColors(hObject,handles)
 
@@ -469,7 +482,7 @@ function toggleColors(hCurr,handles)
     guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function pushbutton_moreColors_Callback(hObject, eventdata, handles)
+function push_moreColors_CB(hObject, eventdata, handles)
     c = uisetcolor;
     if (length(c) > 1)          % That is, if a color was selected
         handles.fillColor = round(c*255);
@@ -484,12 +497,12 @@ function pushbutton_moreColors_Callback(hObject, eventdata, handles)
     end
 
 % -------------------------------------------------------------------------------------
-function pushbutton_pickSingle_Callback(hObject, eventdata, handles)
-    [params,but] = prepareParams(handles);
-    if (isempty(params) || but ~= 1),   return;     end
-    img = get(handles.hImage,'CData');              % Get the image
+function push_pickSingle_CB(hObject, eventdata, handles)
+	[params,but] = prepareParams(handles);
+	if (isempty(params) || but ~= 1),   return;     end
+	img = get(handles.hImage,'CData');              % Get the image
 	if (~get(handles.check_mahal,'Val'))
-    	[dumb,mask] = cvlib_mex('floodfill',img,params);
+		[dumb,mask] = cvlib_mex('floodfill',img,params);
 		clear dumb		% Humm, shouldn't we take care of this inside cvlib_mex?
 	else
 		r = round(params.Point(2));	c = round(params.Point(1));
@@ -501,25 +514,25 @@ function pushbutton_pickSingle_Callback(hObject, eventdata, handles)
 		T = handles.tol;
 		mask = colorseg(img, T, m, C);
 	end
-    if (get(handles.checkbox_useDilation,'Value'))
-        mask  = img_fun('bwmorph',mask,'dilate');
-    end
-    if (handles.colorSegment)
-        if (ndims(img) == 3)
-            mask = repmat(mask,[1 1 3]);
-        end
-        img(~mask) = handles.bg_color;
-        if (handles.image_type == 2 || handles.image_type == 20)
-            h = mirone(img);
-            set(h,'ColorMap',get(handles.hCallingFig,'ColorMap'),'Name','Color segmentation')
-        else
-            tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
-            tmp.name = 'Color segmentation';
-            mirone(img,tmp);
-        end
-    else
-        digitize(handles,mask)
-    end
+	if (get(handles.checkbox_useDilation,'Value'))
+		mask  = img_fun('bwmorph',mask,'dilate');
+	end
+	if (handles.colorSegment)
+		if (ndims(img) == 3)
+			mask = repmat(mask,[1 1 3]);
+		end
+		img(~mask) = handles.bg_color;
+		if (handles.image_type == 2 || handles.image_type == 20)
+			h = mirone(img);
+			set(h,'ColorMap',get(handles.hCallingFig,'ColorMap'),'Name','Color segmentation')
+		else
+			tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
+			tmp.name = 'Color segmentation';
+			mirone(img,tmp);
+		end
+	else
+		digitize(handles, mask)
+	end
 
 % -------------------------------------------------------------------------------------
 function digitize(handles,img)
@@ -542,14 +555,14 @@ function digitize(handles,img)
 		y_min = y_min + y_inc/2;
 	end
 
-    if (handles.single_poly)                    % Draw a single polygon
+	if (handles.single_poly)                    % Draw a single polygon
 		% Add NaNs to the end of each polygon
-        nElem = zeros(length(B)+1,1);
+		nElem = zeros(length(B)+1,1);
 		for k = 1:length(B)
 			B{k}(end+1,1:2) = [NaN NaN];
 			nElem(k+1) = size(B{k},1);
-        end
-        soma = cumsum(nElem);
+		end
+		soma = cumsum(nElem);
 
 		x = zeros(soma(end),1);     y = x;
 		for k = 1:length(B)
@@ -557,155 +570,154 @@ function digitize(handles,img)
 			x(soma(k)+1:soma(k+1)) = (B{k}(:,2)-1) * x_inc + x_min;
 		end
 
-        h_edge = line(x, y,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor, ...
-                'Tag','shape_detected','Userdata',handles.udCount);
+		h_edge = line(x, y,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor, ...
+				'Tag','shape_detected','Userdata',handles.udCount);
 
-		multi_segs_str = cell(length(h_edge),1);    % Just create a set of empty info strings
+		multi_segs_str = cell(length(h_edge),1);	% Just create a set of empty info strings
 		draw_funs(h_edge,'isochron',multi_segs_str);
-        handles.udCount = handles.udCount + 1;
-	else                                        % Draw separate polygons
+		handles.udCount = handles.udCount + 1;
+	else											% Draw separate polygons
 		for k = 1:length(B)
-            x = (B{k}(:,2)-1) * x_inc + x_min;
-            y = (B{k}(:,1)-1) * y_inc + y_min;
+			x = (B{k}(:,2)-1) * x_inc + x_min;
+			y = (B{k}(:,1)-1) * y_inc + y_min;
 
-            h_edge = line(x, y,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor, ...
-                    'Tag','shape_detected');
-			draw_funs(h_edge,'line_uicontext')      % Set lines's uicontextmenu
-		end    
+			h_edge = line(x, y,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor, ...
+					'Tag','shape_detected');
+			draw_funs(h_edge,'line_uicontext')		% Set lines's uicontextmenu
+		end
 	end
 	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function pushbutton_pickMultiple_Callback(hObject, eventdata, handles)
+function push_pickMultiple_CB(hObject, eventdata, handles)
 % I left the code that deals with processing in Lab & HSV color models but removed
 % those options from the GUI. This is for the case that I change my mind and decide
 % to reintroduce it. For the time beeing, RGB seams to work better.
-    [params,but] = prepareParams(handles);
-    if (isempty(params) || but ~= 1),   return;     end
-    img = get(handles.hImage,'CData');              % Get the image
-    nColors = 0;
-    mask = false([size(img,1) size(img,2)]);        % Initialize the mask
-    while (but == 1)
-        nColors = nColors + 1;
-        [dumb,mask(:,:,nColors)] = cvlib_mex('floodfill',img,params);
-        [x,y,but] = ginput_pointer(1,'crosshair');  % Get next point
-        [x,y] = getpixcoords(handles,x,y);
-        params.Point = [x y];
-    end
-        
-    if (~isempty(handles.colorModel))
-        if (ndims(img) == 2)
-            img = ind2rgb8(img,get(handles.hCallingFig,'ColorMap'));
-        end
-        img = cvlib_mex('color',img,['rgb2' handles.colorModel]);
-    end
-            
-    if (isempty(handles.colorModel) && ndims(img) == 3)        % That is, RGB model
-        a = img(:,:,1);
-        b = img(:,:,2);
-        c = img(:,:,3);
-        cm = zeros(nColors, 6);
-        for count = 1:nColors
-            cm(count,1) = mean2(a(mask(:,:,count)));
-            %cm(count,1) = a(round(params.Point(2)),round(params.Point(1)));
-            cm(count,1:2) = [max(cm(count,1) - handles.tol, 0) min(cm(count,1) + handles.tol, 255)];
-            cm(count,3) = mean2(b(mask(:,:,count)));
-            %cm(count,3) = b(round(params.Point(2)),round(params.Point(1)));
-            cm(count,3:4) = [max(cm(count,3) - handles.tol, 0) min(cm(count,3) + handles.tol, 255)];
-            cm(count,5) = mean2(c(mask(:,:,count)));
-            %cm(count,5) = c(round(params.Point(2)),round(params.Point(1)));
-            cm(count,5:6) = [max(cm(count,5) - handles.tol, 0) min(cm(count,5) + handles.tol, 255)];
-            tmp = (a >= cm(count,1) & a <= cm(count,2) & b >= cm(count,3) & b <= cm(count,4) & ...
-                c >= cm(count,5) & c <= cm(count,6));
-            tmp  = img_fun('bwmorph',tmp,'clean');      % Get rid of isolated pixels
-            if (get(handles.checkbox_useDilation,'Value'))
-                tmp  = img_fun('bwmorph',tmp,'dilate');
-                %tmp  = cvlib_mex('dilate',tmp);
-                %tmp  = cvlib_mex('morphologyex',tmp,'close');
-            end
-            if (handles.colorSegment)           % Do color segmentation. One figure for each color
-                tmp = repmat(tmp,[1 1 3]);
-                img(~tmp) = handles.bg_color;
-                if (handles.IAmAMirone)
-                    if (handles.image_type == 2 || handles.image_type == 20)
-                        h = mirone(img);
-                        set(h,'Name','Color segmentation')
-                    else
-                        tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
-                        tmp.name = ['Color segmentation n? ' num2str(1)];
-                        mirone(img,tmp);
-                    end
-                else
-        	        figure; image(img);
-                end
-            else                                % Create contours from mask
-                digitize(handles,tmp)
-            end
-        end
-    elseif (isempty(handles.colorModel) && ndims(img) == 2)        % That is, indexed image & RGB model
-        cm = zeros(nColors, 2);
-        for count = 1:nColors
-            cm(count,1) = mean2(img(mask(:,:,count)));
-            %cm(count,1) = img(round(params.Point(2)),round(params.Point(1)));
-            cm(count,1:2) = [max(cm(count,1) - handles.tol, 0) min(cm(count,1) + handles.tol, 255)];
-            tmp = (img >= cm(count,1) & img <= cm(count,2));
-            tmp  = img_fun('bwmorph',tmp,'clean');      % Get rid of isolated pixels
-            if (get(handles.checkbox_useDilation,'Value'))
-                tmp  = img_fun('bwmorph',tmp,'dilate');
-            end
-            if (handles.colorSegment)           % Do color segmentation. One figure for each color
-                img(~tmp) = handles.bg_color;
-                if (handles.IAmAMirone)
-                    if (handles.image_type == 2 || handles.image_type == 20)
-                        h = mirone(img);
-                        set(h,'ColorMap',get(handles.hCallingFig,'ColorMap'),'Name','Color segmentation')
-                    else
-                        tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
-                        tmp.name = ['Color segmentation n? ' num2str(1)];
-                        tmp.cmap = get(handles.hCallingFig,'ColorMap');
-                        mirone(img,tmp);
-                    end
-                else
-        	        h = figure;     image(img);
-                    set(h,'ColorMap',get(handles.hCallingFig,'ColorMap'),'Name','Color segmentation')
-                end
-            else								% Create contours from mask
-                digitize(handles,tmp)
-            end
-        end
-    else										% Either YCrCb or Lab model were used
-        a = img(:,:,2);
-        b = img(:,:,3);
-        cm = zeros(nColors, 4);
-        for count = 1:nColors
-            cm(count,1) = min(min(a(mask(:,:,count))));
-            cm(count,2) = max(max(a(mask(:,:,count))));
-            cm(count,3) = min(min(b(mask(:,:,count))));
-            cm(count,4) = max(max(b(mask(:,:,count))));
-            tmp = (a >= cm(count,1) & a <= cm(count,2) & b >= cm(count,3) & b <= cm(count,4));
-            %tmp = bwareaopen(tmp,20,4);
-            if (handles.colorSegment)           % Do color segmentation. One figure for each color
-                tmp = repmat(tmp,[1 1 3]);
-                img(~tmp) = handles.bg_color;
-                if (handles.IAmAMirone)
-                    if (handles.image_type == 2 || handles.image_type == 20)
-                        mirone(img);
-                    else
-                        tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
-                        tmp.name = ['Color segmentation n? ' num2str(1)];
-                        mirone(img,tmp);
-                    end
-                else
-        	        figure; image(img);
-                end
-            else                                % Create contours from mask
-                digitize(handles,tmp)
-            end
-        end    
-    end
-    
+	[params, but] = prepareParams(handles);
+	if (isempty(params) || but ~= 1),   return;     end
+	img = get(handles.hImage,'CData');              % Get the image
+	nColors = 0;
+	mask = false([size(img,1) size(img,2)]);        % Initialize the mask
+	while (but == 1)
+		nColors = nColors + 1;
+		[dumb,mask(:,:,nColors)] = cvlib_mex('floodfill',img,params);
+		[x,y,but] = ginput_pointer(1,'crosshair');  % Get next point
+		[x,y] = getpixcoords(handles,x,y);
+		params.Point = [x y];
+	end
+
+	if (~isempty(handles.colorModel))
+		if (ndims(img) == 2)
+			img = ind2rgb8(img,get(handles.hCallingFig,'ColorMap'));
+		end
+		img = cvlib_mex('color',img,['rgb2' handles.colorModel]);
+	end
+
+	if (isempty(handles.colorModel) && ndims(img) == 3)        % That is, RGB model
+		a = img(:,:,1);		b = img(:,:,2);		c = img(:,:,3);
+		cm = zeros(nColors, 6);
+		im_out = repmat(uint8(handles.bg_color), size(img));
+		for count = 1:nColors
+			cm(count,1) = mean2(a(mask(:,:,count)));
+			cm(count,1:2) = [max(cm(count,1) - handles.tol, 0) min(cm(count,1) + handles.tol, 255)];
+			cm(count,3) = mean2(b(mask(:,:,count)));
+			cm(count,3:4) = [max(cm(count,3) - handles.tol, 0) min(cm(count,3) + handles.tol, 255)];
+			cm(count,5) = mean2(c(mask(:,:,count)));
+			cm(count,5:6) = [max(cm(count,5) - handles.tol, 0) min(cm(count,5) + handles.tol, 255)];
+			tmp = (a >= cm(count,1) & a <= cm(count,2) & b >= cm(count,3) & b <= cm(count,4) & ...
+				c >= cm(count,5) & c <= cm(count,6));
+			tmp  = img_fun('bwmorph',tmp,'clean');      % Get rid of isolated pixels
+			if (get(handles.checkbox_useDilation,'Value'))
+				tmp  = img_fun('bwmorph',tmp,'dilate');
+				%tmp  = cvlib_mex('dilate',tmp);
+				%tmp  = cvlib_mex('morphologyex',tmp,'close');
+			end
+			if (handles.colorSegment)			% Do color segmentation. One figure for each color
+				t = im_out(:,:,1);		t(tmp) = a(tmp);	im_out(:,:,1) = t;
+				t = im_out(:,:,2);		t(tmp) = b(tmp);	im_out(:,:,2) = t;
+				t = im_out(:,:,3);		t(tmp) = c(tmp);	im_out(:,:,3) = t;
+			else								% Create contours from mask
+				digitize(handles, tmp)
+			end
+		end
+		if (handles.colorSegment && handles.IAmAMirone)
+			if (handles.image_type == 2 || handles.image_type == 20)
+				h = mirone(im_out);
+				set(h,'Name','Color segmentation')
+			else
+				hdr.X = handles.head(1:2);  hdr.Y = handles.head(3:4);  hdr.head = handles.head;
+				hdr.name = sprintf('Color segmentation n? %d', count);
+				mirone(im_out,hdr);
+			end
+		elseif (handles.colorSegment)
+			figure;		image(im_out);
+		end
+
+	elseif (isempty(handles.colorModel) && ndims(img) == 2)        % That is, indexed image & RGB model
+		cm = zeros(nColors, 2);
+		im_out = repmat(uint8(handles.bg_color), size(img));
+		for count = 1:nColors
+			cm(count,1) = mean2(img(mask(:,:,count)));
+			cm(count,1:2) = [max(cm(count,1) - handles.tol, 0) min(cm(count,1) + handles.tol, 255)];
+			tmp = (img >= cm(count,1) & img <= cm(count,2));
+			tmp  = img_fun('bwmorph',tmp,'clean');      % Get rid of isolated pixels
+			if (get(handles.checkbox_useDilation,'Value'))
+				tmp  = img_fun('bwmorph',tmp,'dilate');
+			end
+			if (handles.colorSegment)			% Do color segmentation. One figure for each color
+				im_out(tmp) = img(tmp);
+			else								% Create contours from mask
+				digitize(handles, tmp)
+			end
+		end
+		if (handles.colorSegment && handles.IAmAMirone)
+			if (handles.image_type == 2 || handles.image_type == 20)
+				h = mirone(im_out);
+				set(h,'ColorMap',get(handles.hCallingFig,'ColorMap'),'Name','Color segmentation')
+			else
+				hdr.X = handles.head(1:2);  hdr.Y = handles.head(3:4);  hdr.head = handles.head;
+				hdr.name = sprintf('Color segmentation n? %d', count);
+				hdr.cmap = get(handles.hCallingFig,'ColorMap');
+				mirone(im_out, hdr);
+			end
+		elseif (handles.colorSegment)
+			h = figure;     image(im_out);
+			set(h,'ColorMap',get(handles.hCallingFig,'ColorMap'),'Name','Color segmentation')
+		end
+
+	else										% Either YCrCb or Lab model were used
+		a = img(:,:,2);
+		b = img(:,:,3);
+		cm = zeros(nColors, 4);
+		for count = 1:nColors
+			cm(count,1) = min(min(a(mask(:,:,count))));
+			cm(count,2) = max(max(a(mask(:,:,count))));
+			cm(count,3) = min(min(b(mask(:,:,count))));
+			cm(count,4) = max(max(b(mask(:,:,count))));
+			tmp = (a >= cm(count,1) & a <= cm(count,2) & b >= cm(count,3) & b <= cm(count,4));
+			%tmp = bwareaopen(tmp,20,4);
+			if (handles.colorSegment)           % Do color segmentation. One figure for each color
+				tmp = repmat(tmp,[1 1 3]);
+				img(~tmp) = handles.bg_color;
+				if (handles.IAmAMirone)
+					if (handles.image_type == 2 || handles.image_type == 20)
+						mirone(img);
+					else
+						tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
+						tmp.name = sprintf('Color segmentation n? %d', count);
+						mirone(img,tmp);
+					end
+				else
+					figure;		image(img);
+				end
+			else                                % Create contours from mask
+				digitize(handles,tmp)
+			end
+		end    
+	end
+
 % -------------------------------------------------------------------------------------
-% function radio_YCrCb_Callback(hObject, eventdata, handles)
+% function radio_YCrCb_CB(hObject, eventdata, handles)
 %     if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
 %     set(handles.radio_Lab,'Value',0)
 %     set(handles.radio_RGB,'Value',0)
@@ -713,7 +725,7 @@ function pushbutton_pickMultiple_Callback(hObject, eventdata, handles)
 %     guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-% function radio_Lab_Callback(hObject, eventdata, handles)
+% function radio_Lab_CB(hObject, eventdata, handles)
 %     if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
 %     set(handles.radio_YCrCb,'Value',0)
 %     set(handles.radio_RGB,'Value',0)
@@ -721,7 +733,7 @@ function pushbutton_pickMultiple_Callback(hObject, eventdata, handles)
 %     guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-% function radio_RGB_Callback(hObject, eventdata, handles)
+% function radio_RGB_CB(hObject, eventdata, handles)
 %     % This the only one know (it seams to do better than the others)
 %     if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
 %     set(handles.radio_YCrCb,'Value',0)
@@ -730,7 +742,7 @@ function pushbutton_pickMultiple_Callback(hObject, eventdata, handles)
 %     guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function radio_colorSegment_Callback(hObject, eventdata, handles)
+function radio_colorSegment_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set(handles.radio_digitize,'Value',0)
 	handles.colorSegment = 1;
@@ -739,7 +751,7 @@ function radio_colorSegment_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function radio_digitize_Callback(hObject, eventdata, handles)
+function radio_digitize_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set(handles.radio_colorSegment,'Value',0)
 	handles.colorSegment = 0;
@@ -748,14 +760,14 @@ function radio_digitize_Callback(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function edit_minPts_Callback(hObject, eventdata, handles)
+function edit_minPts_CB(hObject, eventdata, handles)
 	xx = round( str2double(get(hObject,'String')) );
 	if (isnan(xx)),     set(hObject,'String','50');     return;     end
 	handles.minPts = xx;
 	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function push_restoreImg_Callback(hObject, eventdata, handles)
+function push_restoreImg_CB(hObject, eventdata, handles)
     set(handles.hImage,'CData',handles.origFig)
 
 % -------------------------------------------------------------------------------------
@@ -773,7 +785,7 @@ function pixelx = localAxes2pix(dim, x, axesx)
         pixelx = axesx - xfirst + 1;        return;
 	end
 	xslope = (dim - 1) / (xlast - xfirst);
-	if ((xslope == 1) & (xfirst == 1))
+	if ((xslope == 1) && (xfirst == 1))
         pixelx = axesx;
 	else
         pixelx = xslope * (axesx - xfirst) + 1;
@@ -785,19 +797,19 @@ function y = mean2(x)
 	y = sum(x(:)) / numel(x);
 
 % -------------------------------------------------------------------------------------
-function listbox_lineWidth_Callback(hObject, eventdata, handles)
+function listbox_lineWidth_CB(hObject, eventdata, handles)
     handles.lineWidth = get(hObject,'Value');
     guidata(handles.figure1, handles);
 
 % -------------------------------------------------------------------------------------
-function radio_square_Callback(hObject, eventdata, handles)
+function radio_square_CB(hObject, eventdata, handles)
     if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
     handles.elemSquare = 1;
     set(handles.radio_round,'Value',0)
     guidata(handles.figure1, handles);
 
 % -------------------------------------------------------------------------------------
-function radio_round_Callback(hObject, eventdata, handles)
+function radio_round_CB(hObject, eventdata, handles)
     if (~get(hObject,'Value')),      set(hObject,'Value',1);   return;     end
     handles.elemSquare = 0;
     set(handles.radio_square,'Value',0)
@@ -805,8 +817,8 @@ function radio_round_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------------------
 function check_mahal_CB(hObject, eventdata, handles)
-	if (get(hObject,'Value')),		set(handles.pushbutton_pickMultiple,'Enable', 'off')
-	else							set(handles.pushbutton_pickMultiple,'Enable', 'on')
+	if (get(hObject,'Value')),		set(handles.push_pickMultiple,'Enable', 'off')
+	else							set(handles.push_pickMultiple,'Enable', 'on')
 	end
 
 % ---------------------------------------------------------------------
@@ -988,7 +1000,7 @@ uicontrol('Parent',h1,'Position',[4 30 177 110],'Style','frame');
 uicontrol('Parent',h1,'Position',[4 209 177 153],'Style','frame');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Callback',{@floodfill_uicallback,h1,'slider_tolerance_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'slider_tolerance_CB'},...
 'Max',255,...
 'Position',[4 171 176 16],...
 'Style','slider',...
@@ -997,14 +1009,14 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Tag','slider_tolerance');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodfill_uicallback,h1,'pushbutton_pickSingle_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'push_pickSingle_CB'},...
 'Position',[12 105 160 21],...
 'String','Pick single shape',...
 'TooltipString','Pick up the body''s shape with the selected color',...
-'Tag','pushbutton_pickSingle');
+'Tag','push_pickSingle');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodfill_uicallback,h1,'radio_fourConn_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'radio_fourConn_CB'},...
 'Position',[12 277 70 15],...
 'String','4 conn',...
 'Style','radiobutton',...
@@ -1013,7 +1025,7 @@ uicontrol('Parent',h1,...
 'Tag','radio_fourConn');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodfill_uicallback,h1,'radio_eightConn_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'radio_eightConn_CB'},...
 'Position',[80 277 90 15],...
 'String','8 connectivity',...
 'Style','radiobutton',...
@@ -1021,35 +1033,35 @@ uicontrol('Parent',h1,...
 'Tag','radio_eightConn');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 0.501960784313725 0.501960784313725],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[13 315 15 15],...
 'Style','togglebutton',...
 'Value',1);
 
 uicontrol('Parent',h1,'BackgroundColor',[1 0 0],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[29 315 15 15],...
 'Style','togglebutton',...
 'Value',1);
 
 uicontrol('Parent',h1,'BackgroundColor',[0.501960784313725 0.250980392156863 0.250980392156863],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[45 315 15 15],...
 'Style','togglebutton',...
 'Value',1);
 
 uicontrol('Parent',h1,'BackgroundColor',[0.250980392156863 0 0],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[61 315 15 15],...
 'Style','togglebutton',...
 'Value',1);
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 0.501960784313725],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[77 315 15 15],...
 'Style','togglebutton',...
@@ -1057,7 +1069,7 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 0.501960784313725],...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 0.501960784313725 0],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[93 315 15 15],...
 'Style','togglebutton',...
@@ -1065,7 +1077,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.501960784313725 0.501960784313725 0],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[109 315 15 15],...
 'Style','togglebutton',...
@@ -1073,7 +1085,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0 1 0],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[125 315 15 15],...
 'Style','togglebutton',...
@@ -1081,7 +1093,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0 0.501960784313725 0],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[13 299 15 15],...
 'Style','togglebutton',...
@@ -1089,7 +1101,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0 0.501960784313725 0.501960784313725],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[29 299 15 15],...
 'Style','togglebutton',...
@@ -1097,7 +1109,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.501960784313725 0.501960784313725 0.501960784313725],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[45 299 15 15],...
 'Style','togglebutton',...
@@ -1105,7 +1117,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0 0 1],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[61 299 15 15],...
 'Style','togglebutton',...
@@ -1113,7 +1125,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0 1 1],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[77 299 15 15],...
 'Style','togglebutton',...
@@ -1121,7 +1133,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 0.501960784313725 0.752941176470588],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[93 299 15 15],...
 'Style','togglebutton',...
@@ -1129,7 +1141,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.250980392156863 0 0.501960784313725],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[109 299 15 15],...
 'Style','togglebutton',...
@@ -1137,7 +1149,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@floodfill_uicallback,h1,'toggle00_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'toggle00_CB'},...
 'Enable','inactive',...
 'Position',[125 299 15 15],...
 'Style','togglebutton',...
@@ -1150,7 +1162,7 @@ uicontrol('Parent',h1,...
 'Style','text','Tag','text_Paint');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodfill_uicallback,h1,'radio_randColor_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'radio_randColor_CB'},...
 'Position',[12 339 110 15],...
 'String','Random colors',...
 'Style','radiobutton',...
@@ -1159,7 +1171,7 @@ uicontrol('Parent',h1,...
 'Tag','radio_randColor');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodfill_uicallback,h1,'radio_cteColor_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'radio_cteColor_CB'},...
 'Position',[115 339 65 15],...
 'String','Cte color',...
 'Style','radiobutton',...
@@ -1167,12 +1179,12 @@ uicontrol('Parent',h1,...
 'Tag','radio_cteColor');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodfill_uicallback,h1,'pushbutton_moreColors_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'push_moreColors_CB'},...
 'Enable','inactive',...
 'Position',[143 314 30 19],...
 'String','More',...
 'TooltipString','Chose other color',...
-'Tag','pushbutton_moreColors');
+'Tag','push_moreColors');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -1185,14 +1197,14 @@ uicontrol('Parent',h1,...
 'Tag','toggle_currColor');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodfill_uicallback,h1,'pushbutton_pickMultiple_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'push_pickMultiple_CB'},...
 'Position',[12 77 160 21],...
 'String','Pick multiple shapes',...
 'TooltipString','Find out all bounding polygons that share the selected color',...
-'Tag','pushbutton_pickMultiple');
+'Tag','push_pickMultiple');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodfill_uicallback,h1,'radio_colorSegment_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'radio_colorSegment_CB'},...
 'Position',[12 55 140 15],...
 'String','Color segmentation',...
 'Style','radiobutton',...
@@ -1201,7 +1213,7 @@ uicontrol('Parent',h1,...
 'Tag','radio_colorSegment');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodfill_uicallback,h1,'radio_digitize_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'radio_digitize_CB'},...
 'Position',[12 35 65 15],...
 'String','Digitize',...
 'Style','radiobutton',...
@@ -1210,7 +1222,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@floodfill_uicallback,h1,'edit_minPts_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'edit_minPts_CB'},...
 'Position',[140 35 33 20],...
 'String','50',...
 'Style','edit',...
@@ -1231,7 +1243,7 @@ uicontrol('Parent',h1,...
 'Style','text','Tag','text_tol');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodfill_uicallback,h1,'push_restoreImg_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'push_restoreImg_CB'},...
 'Position',[37 4 111 21],'String','Restore image',...
 'Tag','push_restoreImg');
 
@@ -1252,7 +1264,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Callback',{@floodfill_uicallback,h1,'listbox_lineWidth_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'listbox_lineWidth_CB'},...
 'Position',[10 238 40 32],'String',{'LineThickness'},...
 'Style','listbox',...
 'TooltipString','Line thickness in pixels',...
@@ -1260,7 +1272,7 @@ uicontrol('Parent',h1,...
 'Tag','listbox_lineWidth');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodfill_uicallback,h1,'radio_square_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'radio_square_CB'},...
 'Position',[80 255 95 15],'String','Square element',...
 'Style','radiobutton',...
 'TooltipString','Use square elements in line drawings',...
@@ -1268,7 +1280,7 @@ uicontrol('Parent',h1,...
 'Tag','radio_square');
 
 uicontrol('Parent',h1,...
-'Callback',{@floodfill_uicallback,h1,'radio_round_Callback'},...
+'Callback',{@floodfill_uicallback,h1,'radio_round_CB'},...
 'Position',[80 235 91 15],...
 'String','Round element',...
 'Style','radiobutton',...
@@ -1292,4 +1304,4 @@ uicontrol('Parent',h1,'FontSize',9,...
 
 function floodfill_uicallback(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,[],guidata(h1));
