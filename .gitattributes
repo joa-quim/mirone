@@ -201,7 +201,6 @@ data/wcity.dat -text
 data/wcity_major.dat -text
 doc/MironeMan.chm -text
 /gdal.dll -text
-/gdal17.dll -text
 /gdal_ECW_JP2ECW.dll -text
 /gdal_translate.exe -text
 /gdalinfo.exe -text
