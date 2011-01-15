@@ -827,9 +827,9 @@ function write_pts(fid,hand,mode,limits,opt)
 		fwrite(fid,np*3*8+20,'integer*4');	% data length
 		fwrite(fid,[0 0 1 1 1 2 (1:18)*0],'integer*1');
 		fwrite(fid,[np n_col 0 0 1],'integer*4');	% Number of points
-		%fwrite(fid,limits,'real*8');
 		fwrite(fid,[xx; yy; zz;],'real*8');
 
+		limits(1:4) = [min(xx) max(xx) min(yy) max(yy)];	% Required by Fleder7 (???)
 		write_geo(fid,'add',limits)					% Write a GEOREF block
 		if (this_CB > 0),	write_cmap(fid),	end	% Write a FM_CMAP block (no need if color is solid)
 
