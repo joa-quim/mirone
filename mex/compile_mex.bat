@@ -23,14 +23,24 @@ REM Author: Joaquim Luis, 09-MAY-2010
 REM --------------------------------------------------------------------------------------
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
-SET CC=cl
+SET CC=icl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="no"
+SET R13="yes"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
-SET WIN64="yes"
+SET WIN64="no"
+
+REM Set to "yes" if you want to build a debug version
+SET DEBUG="no"
+REM
+SET LDEBUG=
+IF %DEBUG%=="yes" SET LDEBUG=/debug
+
+REM If set some MEXs will print the execution time (in CPU ticks)
+REM SET TIMEIT=-DMIR_TIMEIT
+SET TIMEIT=
 
 IF %R13%=="yes" SET WIN64="no"
 
@@ -39,17 +49,6 @@ SET MSVC_VER="1600"
 
 REM Options are "dll", "mexw32" (recent ML version scream when they find .dll) or "mexw64" (when WIN64="yes")
 SET MEX_EXT="mexw32"
-
-REM If set some MEXs will print the execution time (in CPU ticks)
-REM SET TIMEIT=-DMIR_TIMEIT
-SET TIMEIT=
-
-REM
-REM Set to "yes" if you want to build a debug version
-SET DEBUG="no"
-REM
-SET LDEBUG=
-IF %DEBUG%=="yes" SET LDEBUG=/debug
 
 REM --- Next allows compiling with the compiler you want against the ML6.5 libs (needed in stand-alone version)
 IF %R13%=="yes" (
@@ -68,8 +67,8 @@ SET MEX_EXT="mexw64"
 
 ) ELSE (
 
-SET MATLIB=C:\PROGRAMS\MATLAB\R2009B\extern\lib\win32\microsoft 
-SET MATINC=C:\PROGRAMS\MATLAB\R2009B\extern\include
+SET MATLIB=C:\PROGRAMS\MATLAB32\R2010B\extern\lib\win32\microsoft 
+SET MATINC=C:\PROGRAMS\MATLAB32\R2010B\extern\include
 SET _MX_COMPAT=-DMX_COMPAT_32
 SET MEX_EXT="mexw32"
 ) )
@@ -96,7 +95,7 @@ SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_32\lib\libnetcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
-SET      CV_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\cv.lib
+SET      CV_LIB=
 SET  CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_core211.lib
 SET   CVIMG_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_imgproc211.lib
 SET CVCALIB_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_calib3d211.lib
@@ -151,7 +150,7 @@ SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib li
 IF "%1" == ""  GOTO todos
 IF %1==GMT  GOTO GMT
 IF %1==GDAL GOTO GDAL
-IF %1=OCV  GOTO OCV
+IF %1==OCV  GOTO OCV
 IF %1==MEXNC  GOTO MEXNC
 IF %1==swan   GOTO swan
 IF %1==edison GOTO edison
