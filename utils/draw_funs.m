@@ -382,15 +382,31 @@ function seismic_line(obj,evt,hL,opt)
 		end
 
 		x = get(hS,'XData');	y = get(hS,'YData');
+		if (isa(x,'cell'))		% We don't want cells going into inpolygon
+			x = [x{:}];			y = [y{:}];
+		end
 		IN = inpolygon(x,y, get(hP,'XData'),get(hP,'YData'));	% Find events inside the buffer zone
 		x = x(IN);				y = y(IN);
 		if (isempty(x))
 			errordlg('Cou Cou!! There are no seisms inside this zone. Bye Bye.','Chico Clever'),	return
 		end
 
-        evt_time = (getappdata(hS,'SeismicityTime'))';		% Get events time
+		if (numel(hS) == 1)		% Must split between single and multiple (layered) sources
+			evt_time = (getappdata(hS,'SeismicityTime'))';		% Get events time
+			evt_dep = (double(getappdata(hS,'SeismicityDepth')) / 10)';
+		else
+			evt_time = zeros(numel(IN),1);		evt_dep = zeros(numel(IN),1);
+			k0 = 1;
+			for (k = 1:numel(hS))
+				t = getappdata(hS(k),'SeismicityTime');
+				k1 = k0 + numel(t) - 1;
+				evt_time(k0:k1) = t(:);
+				t = double(getappdata(hS(k),'SeismicityDepth')) / 10;
+				evt_dep(k0:k1) = t(:);
+				k0 = k1 + 1;
+			end
+		end
 		evt_time = evt_time(IN);
-		evt_dep = (double(getappdata(hS,'SeismicityDepth')) / 10)';
 		evt_dep = evt_dep(IN);
 
 		xL = get(hL, 'xdata');	yL = get(hL, 'ydata');
@@ -415,7 +431,6 @@ function seismic_line(obj,evt,hL,opt)
 		h = subplot(2,2,1);		plot(rd, evt_time, '.'),	set(h,'ylim',[min(evt_time) max(evt_time)],'xlim',[rd(1) rd(end)]);
 		h = subplot(2,2,2);		plot(rd, evt_dep, '.'),		set(h,'ylim',[min(evt_dep) max(evt_dep)+0.01],'xlim',[rd(1) rd(end)]);
 		subplot(2,2,3);			histo_m('hist', rd, 0:25:rd(end), [0 rd(end)]);
-		%evt_mag  = (double(getappdata(hS,'SeismicityMag')) / 10)';
 	end
 	
 % -----------------------------------------------------------------------------------------
@@ -873,7 +888,7 @@ function set_isochrons_uicontext(h,data)
 	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
 
 % -----------------------------------------------------------------------------------------
-function set_gmtfile_uicontext(h,data)
+function set_gmtfile_uicontext(h, data)
 % h is a handle to the line of a gmtfile
 	tag = get(h,'Tag');
 	if (iscell(tag)),   tag = tag{1};   end
@@ -888,15 +903,13 @@ function set_gmtfile_uicontext(h,data)
 	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', 'delete(gco)', 'Sep','on');
 	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Call', @save_line);
 	uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Call', {@call_gmtedit,h});
+% 	uimenu(cmenuHand, 'Label', 'Extract Mag Chunk', 'Call', {@call_gmtedit,h,'nikles'});
 	uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
 	deal_opts('mgg_coe', cmenuHand);
 	%uimenu(cmenuHand, 'Label', 'Try to relocate', 'Call', {@tryRelocate,h});
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
-	setLineWidth(item_lw,cb_LineWidth)
-	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
-	setLineStyle(item_ls,{cbls1 cbls2 cbls3 cbls4})
-	item_lc = uimenu(cmenuHand, 'Label', 'Color');
-	setLineColor(item_lc,cb_color)
+	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
+	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cbls1 cbls2 cbls3 cbls4})
+	setLineColor(uimenu(cmenuHand, 'Label', 'Color'), cb_color)
 
 % -----------------------------------------------------------------------------------------
 % function tryRelocate(obj,evt,h)
@@ -931,9 +944,13 @@ function set_gmtfile_uicontext(h,data)
 % 		end
 % 	end
 % 	set(h, 'XData', new_x, 'YData', new_y);
-	
+
 % -----------------------------------------------------------------------------------------
-function call_gmtedit(obj,eventdata,h)
+function call_gmtedit(obj, evt, h, opt)
+% 	if (nargin == 4)		% Call helper window to extract a chunk of the mag anom profile
+% 		show_mag_mgd(get(0,'CurrentFig'), h)
+% 		return
+% 	end
 	pt = get(gca, 'CurrentPoint');
 	vars = getappdata(h,'VarsName');		opt_V = '  ';	% To be ignored opt_V needs to have at least 2 chars
 	if (~isempty(vars))
@@ -947,20 +964,20 @@ function cb = uictx_setMarker(h,prop)
 % Set uicontext colors in a PB object class hose handles are contained in h
 % PROP is either "Marker" or "MarkerSize". OPT is either the symbol or it's size
 	if (strcmp(prop,'Marker'))
-		cb{1} = {@other_Marker,h,prop,'+'};       cb{2} = {@other_Marker,h,prop,'o'};
-		cb{3} = {@other_Marker,h,prop,'*'};       cb{4} = {@other_Marker,h,prop,'.'};
-		cb{5} = {@other_Marker,h,prop,'x'};       cb{6} = {@other_Marker,h,prop,'s'};
-		cb{7} = {@other_Marker,h,prop,'d'};       cb{8} = {@other_Marker,h,prop,'^'};
-		cb{9} = {@other_Marker,h,prop,'v'};       cb{10} = {@other_Marker,h,prop,'>'};
-		cb{11} = {@other_Marker,h,prop,'<'};       cb{12} = {@other_Marker,h,prop,'p'};
+		cb{1} = {@other_Marker,h,prop,'+'};		cb{2} = {@other_Marker,h,prop,'o'};
+		cb{3} = {@other_Marker,h,prop,'*'};		cb{4} = {@other_Marker,h,prop,'.'};
+		cb{5} = {@other_Marker,h,prop,'x'};		cb{6} = {@other_Marker,h,prop,'s'};
+		cb{7} = {@other_Marker,h,prop,'d'};		cb{8} = {@other_Marker,h,prop,'^'};
+		cb{9} = {@other_Marker,h,prop,'v'};		cb{10} = {@other_Marker,h,prop,'>'};
+		cb{11} = {@other_Marker,h,prop,'<'};	cb{12} = {@other_Marker,h,prop,'p'};
 		cb{13} = {@other_Marker,h,prop,'h'};
 	elseif (strcmp(prop,'MarkerSize'))
-		cb{1} = {@other_Marker,h,prop,7};       cb{2} = {@other_Marker,h,prop,8};
-		cb{3} = {@other_Marker,h,prop,9};       cb{4} = {@other_Marker,h,prop,10};
-		cb{5} = {@other_Marker,h,prop,12};      cb{6} = {@other_Marker,h,prop,14};
-		cb{7} = {@other_Marker,h,prop,16};      cb{8} = {@other_SymbSize,h};
+		cb{1} = {@other_Marker,h,prop,7};		cb{2} = {@other_Marker,h,prop,8};
+		cb{3} = {@other_Marker,h,prop,9};		cb{4} = {@other_Marker,h,prop,10};
+		cb{5} = {@other_Marker,h,prop,12};		cb{6} = {@other_Marker,h,prop,14};
+		cb{7} = {@other_Marker,h,prop,16};		cb{8} = {@other_SymbSize,h};
 	end
-	
+
 	function other_Marker(obj,eventdata,h,prop,opt)
 	set(h,prop,opt);    refresh
 % -----------------------------------------------------------------------------------------
@@ -968,8 +985,8 @@ function cb = uictx_setMarker(h,prop)
 % -----------------------------------------------------------------------------------------
 function cb = uictx_Class_LineWidth(h)
 % Set uicontext LineWidths in a PB object class hose handles are contained in h
-	cb{1} = {@other_Class_LineWidth,h,1};      cb{2} = {@other_Class_LineWidth,h,2};
-	cb{3} = {@other_Class_LineWidth,h,3};      cb{4} = {@other_Class_LineWidth,h,4};
+	cb{1} = {@other_Class_LineWidth,h,1};		cb{2} = {@other_Class_LineWidth,h,2};
+	cb{3} = {@other_Class_LineWidth,h,3};		cb{4} = {@other_Class_LineWidth,h,4};
 	cb{5} = {@other_Class_LineWidth,h,[]};
 
 function other_Class_LineWidth(obj,eventdata,h,opt)
