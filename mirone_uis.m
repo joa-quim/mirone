@@ -690,7 +690,7 @@ h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v2.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
 if (IamCompiled)
-	uimenu('Parent',h, 'Call', 'eval(''dumpmemmex'')','Label','Print RAM fragmentation','Sep','on')
+	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''dump'')','Label','Print RAM fragmentation','Sep','on')
 end
 uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 Jan 2011'',''2.0.1b'')','Label','About','Sep','on');
 
