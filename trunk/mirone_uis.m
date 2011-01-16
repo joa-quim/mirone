@@ -175,6 +175,7 @@ uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM30'');',
 uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''USGS_DEM'');','Label','USGS DEM');
 uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SDTS'');','Label','USGS SDTS DEM');
 
+% uimenu('Parent',hFL,'Call','mirone(''TransferB_CB'',guidata(gcbo),''url'')','Label','Get Image from URL');
 uimenu('Parent',hFL,'Call','overview(guidata(gcbo))','Label','Open Overview Tool');
 uimenu('Parent',hFL,'Call','mirone(''FileOpenSession_CB'',guidata(gcbo));','Label','Open Session');
 
@@ -688,7 +689,10 @@ uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v2.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 06 Jan 2011'',''2.0.1b'')','Label','About','Sep','on');
+if (IamCompiled)
+	uimenu('Parent',h, 'Call', 'eval(''dumpmemmex'')','Label','Print RAM fragmentation','Sep','on')
+end
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 Jan 2011'',''2.0.1b'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
