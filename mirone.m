@@ -3674,6 +3674,9 @@ function TransferB_CB(handles, opt)
 		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
 		mirone(Z, tmp)
 
+ 	elseif (strcmp(opt,'dump'))
+		dumpmemmex
+
 % 	elseif (strcmp(opt,'url'))
 % 		resp = inputdlg({'URL of image:'},'Where is the image?',[1 40]);
 % 		if (isempty(resp)),		return,		end
