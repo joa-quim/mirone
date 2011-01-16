@@ -2618,7 +2618,7 @@ function FileOpenSession_CB(handles, fname)
 	tala = (~isempty(grd_name) && exist(grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
 	if (~tala && ~isempty(grd_name))						% Give user a 2nd chance to tell where the grid is
 		[PathName FileName EXT] = fileparts(grd_name);
-		resp = inputdlg({'Full name (with path) of missing grid:'},'Whre is the grid?',1,{['.....' filesep FileName EXT]});
+		resp = inputdlg({'Full name (with path) of missing grid:'},'Where is the grid?',1,{['.....' filesep FileName EXT]});
 		if (~isempty(resp))
 			grd_name = resp{1};
 			tala = exist(grd_name,'file');
@@ -2654,10 +2654,10 @@ function FileOpenSession_CB(handles, fname)
 	end
 
 	% Have to use a try-catch because of the f. compiler bugs ("exist" won't work)
-	try			illumComm;
+	try,		illumComm;
 	catch,		illumComm = '';		flagIllum = false;
 	end
-	try			illumType;
+	try,		illumType;
 	catch
 		if ( numel(strfind(illumComm,'/')) == 5 ),		illumType = 4;		end		% Lambertian
 		illumType = 1;		% Test only one case where this might be otherwise
@@ -2745,7 +2745,7 @@ function FileOpenSession_CB(handles, fname)
 		end
 	end
 	if (haveText)					% case of text strings
-		try		Texto;				% Compatibility issue (Use a try because of compiler bugs)
+		try,	Texto;				% Compatibility issue (Use a try because of compiler bugs)
 		catch
 			try	Texto = Text;	end
 		end
@@ -2760,7 +2760,7 @@ function FileOpenSession_CB(handles, fname)
 			draw_funs(h_text,'DrawText')		% Set texts's uicontextmenu
 		end
 	end
-	try		havePatches;		% 'Try' because compiler BUGs
+	try,	havePatches;		% 'Try' because compiler BUGs
 	catch,	havePatches = false;
 	end
 	if (havePatches)			% case of patchs - NOTE, the Tags are currently lost 
@@ -3462,7 +3462,7 @@ function FileSaveFleder_CB(handles, opt)
 			errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
 		end
 		pause(1)
-		builtin('delete',fname);
+		%builtin('delete',fname);
 	end
 
 % --------------------------------------------------------------------
@@ -3673,6 +3673,13 @@ function TransferB_CB(handles, opt)
 		projWKT = getappdata(handles.figure1,'ProjWKT');
 		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
 		mirone(Z, tmp)
+
+% 	elseif (strcmp(opt,'url'))
+% 		resp = inputdlg({'URL of image:'},'Where is the image?',[1 40]);
+% 		if (isempty(resp)),		return,		end
+% 		img = gdalread(resp{1});
+% 		mirone(img)
+
 	end
 
 % --------------------------------------------------------------------
