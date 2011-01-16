@@ -176,9 +176,8 @@ function out = findFileType(fname)
 		out = 'ecw';
 	elseif ( any(strcmpi(EXT,'.mat')) )
 		load(fname,'grd_name')
-		if (exist(grd_name,'file') == 2)			% The mat file is a Session file
-			out = 'mat';
-		end
+		% The mat file is a Session file if it has a var named grd_name (empty or not). Use try because dumb compiler
+		try,	isempty(grd_name);		out = 'mat';	end
 	elseif ( any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17'})) )
 		out = 'multiband';
 	elseif ( any(strcmpi(EXT,'.img')) )
