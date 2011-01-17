@@ -2747,7 +2747,8 @@ function FileOpenSession_CB(handles, fname)
 	if (haveText)					% case of text strings
 		try,	Texto;				% Compatibility issue (Use a try because of compiler bugs)
 		catch
-			try	Texto = Text;	end
+			% Do it this way because compiled version canot tel 'Text' from 'text'
+			t = load([PathName FileName],'Text');	Texto = t.Text;
 		end
 		for i=1:length(Texto)
 			if (isempty(Texto(i).str)),		continue,	end
