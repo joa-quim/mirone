@@ -393,9 +393,10 @@ function seismic_line(obj,evt,hL,opt)
 
 		if (numel(hS) == 1)		% Must split between single and multiple (layered) sources
 			evt_time = (getappdata(hS,'SeismicityTime'))';		% Get events time
-			evt_dep = (double(getappdata(hS,'SeismicityDepth')) / 10)';
+			evt_dep  = (double(getappdata(hS,'SeismicityDepth')) / 10)';
+			evt_mag  = (double(getappdata(hS,'SeismicityMag')) / 10)';
 		else
-			evt_time = zeros(numel(IN),1);		evt_dep = zeros(numel(IN),1);
+			evt_time = zeros(numel(IN),1);		evt_dep = zeros(numel(IN),1);		evt_mag = zeros(numel(IN),1);
 			k0 = 1;
 			for (k = 1:numel(hS))
 				t = getappdata(hS(k),'SeismicityTime');
@@ -403,11 +404,14 @@ function seismic_line(obj,evt,hL,opt)
 				evt_time(k0:k1) = t(:);
 				t = double(getappdata(hS(k),'SeismicityDepth')) / 10;
 				evt_dep(k0:k1) = t(:);
+				t = double(getappdata(hS(k),'SeismicityMag')) / 10;
+				evt_mag(k0:k1) = t(:);
 				k0 = k1 + 1;
 			end
 		end
 		evt_time = evt_time(IN);
 		evt_dep = evt_dep(IN);
+		evt_mag = evt_mag(IN);
 
 		xL = get(hL, 'xdata');	yL = get(hL, 'ydata');
 
@@ -431,6 +435,7 @@ function seismic_line(obj,evt,hL,opt)
 		h = subplot(2,2,1);		plot(rd, evt_time, '.'),	set(h,'ylim',[min(evt_time) max(evt_time)],'xlim',[rd(1) rd(end)]);
 		h = subplot(2,2,2);		plot(rd, evt_dep, '.'),		set(h,'ylim',[min(evt_dep) max(evt_dep)+0.01],'xlim',[rd(1) rd(end)]);
 		subplot(2,2,3);			histo_m('hist', rd, 0:25:rd(end), [0 rd(end)]);
+		h = subplot(2,2,4);		plot(rd, evt_mag, '.'),		set(h,'ylim',[min(evt_mag) max(evt_mag)],'xlim',[rd(1) rd(end)]);
 	end
 	
 % -----------------------------------------------------------------------------------------
