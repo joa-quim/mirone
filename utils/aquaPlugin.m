@@ -194,6 +194,9 @@ function out = zonal(handles, dlat, integ_lon, do_trends, have_polygon, fname, f
 % ----------------------------------------------------------------------
 function calcGrad(handles, sub_set)
 % Calcula o gradiente de um fiche ja com as medias anuais por ajuste de um recta (Loada o fiche todo na memoria)
+% SUB_SET -> A two columns row vec with number of the offset of years where analysis start and stop.
+%			For example [3 1] Starts analysis on forth year and stops on the before last year.
+%			[0 0] Means using the all dataset.
 
 	get_profiles_in_polygon = true;			% Save all profiles (along third dim) located inside the polygonal area
 
