@@ -724,6 +724,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 				theVar = theVar ./ sqrt( 9.8 * D );
 				indVar = 10;
 			end
+
 		case 'Absolute Mo'			% Absolute Momentum (VxD)
 			x = nc_funs('varget', handles.fname, 'xmomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			y = nc_funs('varget', handles.fname, 'ymomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
@@ -733,15 +734,18 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 				U = x;		V = y;
 			end
 			indVar = 5;
+
 		case 'Elevation'			% Elevation
 			theVar = nc_funs('varget', handles.fname, 'elevation')';
 			indVar = 7;
+
 		case 'Water Depth'			% Water Depth
 			stage = nc_funs('varget', handles.fname, 'stage', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			elevation = nc_funs('varget', handles.fname, 'elevation')';
 			if (~isa(stage, 'double')),		stage = double(stage);		elevation = double(elevation);		end
 			theVar = (stage - elevation);
 			indVar = 6;
+
 		case 'Max Water'			% Maximum water height (we need to compute it)
 			aguentabar(0, 'title','Computing max water height ...', 'CreateCancelBtn');
 			theVar = zeros(1, handles.number_of_points);
@@ -757,6 +761,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 				if ( isnan(h) ),	break,	end
 			end
 			indVar = 8;
+
 		case 'Max Depth'			% Maximum water depth (we need to compute it)
 			aguentabar(0, 'title','Computing max water depth ...', 'CreateCancelBtn');
 			theVar = zeros(1, handles.number_of_points);
@@ -773,6 +778,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 				if ( isnan(h) ),	break,	end
 			end
 			indVar = 9;
+
 		case {'Velocity He' 'Specific En' 'Total Energ' 'Taylor-V (D' 'Hazard-RVD '}
 			% V^2 / (2g) || Stage + V^2 / (2g) || D + V^2 / (2g) || D*(1+V+V^2) || D * (1 + V^2) || D * V^2
 			x = nc_funs('varget', handles.fname, 'xmomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
@@ -809,7 +815,10 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 				theVar = theVar ./ D;			% = (DV)^2/D = DV^2
 				indVar = 16;
 			end
-			theVar(ind_0) = 0; 
+			theVar(ind_0) = 0;
+
+		case 'Shear Stress'						% ....
+			
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -3281,7 +3290,7 @@ uicontrol('Parent',h1, 'Position',[131 279 190 22],...
 'BackgroundColor',[1 1 1],...
 'Call',{@aquamoto_uiCB,h1,'popup_derivedVar_CB'},...
 'Enable','off',...
-'String',{  'Absolute Velocity (V)'; 'Absolute Momentum (VxD)'; 'Water Depth'; 'Topography'; 'Froude Number'; 'Velocity Head (V^2 / (2g))' },...
+'String',{  'Absolute Velocity (V)'; 'Absolute Momentum (VxD)'; 'Water Depth'; 'Topography'; 'Froude Number'; 'Velocity Head (V^2 / (2g))'; 'Shear Stress'},...
 'Style','popupmenu',...
 'Value',1,...
 'Tag','popup_derivedVar',...
