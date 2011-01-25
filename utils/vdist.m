@@ -178,12 +178,15 @@ while any(notdone)  % force at least one execution
     end
     notdone = abs(lambda-lambdaold) > 1e-12;
 end
-u2 = cos(alpha).^2.*(a^2-b^2)/b^2;
-A = 1+u2./16384.*(4096+u2.*(-768+u2.*(320-175.*u2)));
-B = u2./1024.*(256+u2.*(-128+u2.*(74-47.*u2)));
-deltasigma = B.*sin(sigma).*(cos2sigmam+B./4.*(cos(sigma).*(-1+2.*...
-	cos2sigmam.^2)-B./6.*cos2sigmam.*(-3+4.*sin(sigma).^2).*(-3 + 4 * cos2sigmam.^2)));
-varargout{1} = reshape(b.*A.*(sigma-deltasigma),keepsize);
+	u2 = cos(alpha).^2.*(a^2-b^2)/b^2;
+	A = 1+u2./16384.*(4096+u2.*(-768+u2.*(320-175.*u2)));
+	B = u2./1024.*(256+u2.*(-128+u2.*(74-47.*u2)));
+	deltasigma = B.*sin(sigma).*(cos2sigmam+B./4.*(cos(sigma).*(-1+2.*...
+		cos2sigmam.^2)-B./6.*cos2sigmam.*(-3+4.*sin(sigma).^2).*(-3 + 4 * cos2sigmam.^2)));
+	varargout{1} = reshape(b.*A.*(sigma-deltasigma),keepsize);
+	ind = isnan(varargout{1});
+	if (any(ind)),		varargout{1}(ind) = 0;		end
+
 if nargout > 1
 	% From point #1 to point #2
 	% correct sign of lambda for azimuth calcs:
