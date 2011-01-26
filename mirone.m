@@ -2186,7 +2186,7 @@ function DrawLine_CB(handles, opt)
 	zoom_state(handles,'maybe_on')
 
 % --------------------------------------------------------------------
-function Draw_CB(handles, tipo, smb)
+function hand = Draw_CB(handles, tipo, smb)
 % Draw text, arrows & symbols
 	if (handles.no_file),	return,		end
 	zoom_state(handles,'maybe_off');
@@ -2200,6 +2200,7 @@ function Draw_CB(handles, tipo, smb)
 			h = text(pt(1),pt(2),0,'','Editing','on','VerticalAlignment','baseline','Margin',1);
 		end
 		draw_funs(h,['Draw' tipo])		% Set uicontextmenu
+		if (nargout),	hand = h;	end
 	end
 	zoom_state(handles,'maybe_on');
 
