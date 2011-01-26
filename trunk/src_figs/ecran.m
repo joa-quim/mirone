@@ -1,7 +1,7 @@
 function varargout = ecran(varargin)
 % A specialized plot(x,y) function
 %
-%	Copyright (c) 2004-2010 by J. Luis
+%	Copyright (c) 2004-2011 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -43,10 +43,15 @@ function varargout = ecran(varargin)
 	if (~n_in),   varargin(1) = {[]};   end
 
 	handles.handMir = [];		handles.show_popups = true;
+	handles.ellipsoide = [];	handles.geog = [];
+	handles.measureUnit = [];
 	if ( isa(varargin{1},'struct') )				% ecran(handlesMir, ...)
 		handles.handMir = varargin{1};
 		varargin{1} = 'Image';						% For backward compatibility sake
 		handles.work_dir = handles.handMir.work_dir;
+		handles.ellipsoide = handles.handMir.DefineEllipsoide;
+		handles.geog = handles.handMir.geog;
+		handles.measureUnit = handles.handMir.DefineMeasureUnit;
 		if (n_in == 3)								% ecran(handlesMir, x, y)
 			varargin{1} = 'reuse';
 		elseif (n_in == 4 && ischar(varargin{4}) )	% ecran(handlesMir, x, y, 'title')
@@ -105,12 +110,12 @@ function varargout = ecran(varargin)
 	handles.dist = [];			% It will contain cumulated distance if input is (x,y,z)
 	handles.hLine = [];			% Handles to the ploted line
 	handles.polyFig = [];		% Handles to the (eventual) figure for trend1d polyfit
-	handles.ageStart = 0;		handles.ageEnd = nan;
 	handles.hRect = [];			% Handles to a XLim analysis limiting rectangle
+	handles.ageStart = 0;		handles.ageEnd = nan;
 
 	% Choose the default ploting mode
 	if isempty(varargin{1})          % When the file will be read latter
-		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
+		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
 		handles.show_popups = false;
 
 	elseif strcmp(varargin{1},'Image')
@@ -118,14 +123,22 @@ function varargout = ecran(varargin)
 		set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
 			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
 			'Distance,Z (data units -> mat file)'});
-		rd = dist_along_profile(handles.data(:,1), handles.data(:,2));
+		rd = get_distances(handles.data(:,1), handles.data(:,2), handles.geog, handles.measureUnit, handles.ellipsoide);
 		handles.dist = rd;				% This one is by default, so save it in case user wants to save it to file
 		handles.hLine = plot(rd,handles.data(:,3));		axis(handles.axes1,'tight');
+		if (handles.geog)				% Update uicontrol values too
+			set(handles.check_geog,'Val',1)
+			check_geog_CB(handles.check_geog, handles)
+			if (handles.measureUnit == 'k'),		set(handles.popup_selectPlot,'Val',2)
+			elseif (handles.measureUnit == 'n'),	set(handles.popup_selectPlot,'Val',3)
+			elseif (handles.measureUnit == 'm'),	set(handles.popup_selectPlot,'Val',4)
+			end
+		end
 		set(hObject,'Name',varargin{5})
 
 	elseif strcmp(varargin{1},'reuse')					% Case of auto-referenced call
 		varargin(n_in+1:9) = cell(1,9-n_in);			% So that varargin{1:9} allways exists.
-		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
+		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
 		handles.data(:,1) = varargin{2};        handles.data(:,2) = varargin{3};
 		if ~isempty(varargin{9}) && strcmp(varargin{9},'semilogy')
 			set(handles.axes1, 'YScale', 'log')
@@ -227,7 +240,7 @@ function dynSlope_CB(obj, eventdata)
 		end
 		xFact = xFact / (2*pi);					% 2Pi because we have x in freq but need wavenumber for SpectorGrant
 	else										% Have to check the various possibilities
-		if (get(handles.checkbox_geog, 'Val'))
+		if (get(handles.check_geog, 'Val'))
 			contents = get(handles.popup_selectPlot, 'Str');
 			km_or_M = contents{(get(handles.popup_selectPlot,'Val'))}(end-1);
 			if ( km_or_M == 'm' )			xFact = 1000;	% km
@@ -359,36 +372,38 @@ function do_bandFilter(obj,event, h, xFact)
 % --------------------------------------------------------------------------------------------------
 
 % --------------------------------------------------------------------------------------------------
-function pick_CB(obj,eventdata)
+function pick_CB(obj, eventdata)
 	handles = guidata(obj);
 	o = findobj('Type','uitoggletool', 'Tag', 'DynSlope');
 	if (strcmp(get(o,'State'),'on'))		% If DynSlope is 'on' turn it off
 		set(o,'State','off'),		dynSlope_CB(o, [])
 	end
 	if (strcmp(get(obj,'State'),'on'))
-		set(handles.figure1,'WindowButtonDownFcn',@add_MarkColor)
+		set(handles.figure1,'WindowButtonDownFcn',{@add_MarkColor,obj}, 'pointer','crosshair')
 	else
-		set(handles.figure1,'WindowButtonDownFcn','')	
+		set(handles.figure1,'WindowButtonDownFcn','','pointer','arrow')	
 	end
 
 % --------------------------------------------------------------------
-function add_MarkColor(obj, eventdata)
+function add_MarkColor(obj, evt, h)
 % Add a red Marker over the closest (well, near closest) clicked point.
 
-	handles = guidata(obj);     % get handles
-
+	handles = guidata(obj);			% get handles
 	button = get(handles.figure1, 'SelectionType');
-	if (~strcmp(button,'normal')),		return,		end     % Accept only left-clicks
+	if (~strcmp(button,'normal'))		% If not left-click, stop.
+		set(h, 'State', 'off')
+		set(handles.figure1,'WindowButtonDownFcn','','pointer','arrow')
+		return
+	end
 
 	pt = get(handles.axes1, 'CurrentPoint');
-
     hM = findobj(handles.figure1,'Type','Line','tag','marker');
 	x = handles.dist;			y = handles.data(:,3);
 
 	x_lim = get(handles.axes1,'XLim');		y_lim = get(handles.axes1,'YLim');
 	dx = diff(x_lim) / 20;					% Search only betweem +/- 1/10 of x_lim
 	id = (x < (pt(1,1)-dx) | x > (pt(1,1)+dx));
-	x(id) = [];				y(id) = [];     % Clear outside-2*dx points to speed up the search code
+	x(id) = [];				y(id) = [];		% Clear outside-2*dx points to speed up the search code
 	x_off = find(~id);		x_off = x_off(1);	% Get the index of the first non killed x element
 	XScale = diff(x_lim);	YScale = diff(y_lim);
 
@@ -429,22 +444,22 @@ function add_MarkColor(obj, eventdata)
 function isocs_CB(obj,eventdata)
 	handles = guidata(obj);
 	if (strcmp(get(obj,'State'),'on'))
-		set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')
+		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')
 		set([handles.edit_ageStart handles.edit_ageEnd handles.push_magBar handles.text_ageStart ...
 				handles.text_ageEnd], 'Visible','on')
 	else
 		if (handles.show_popups)		% Make next fellows visible only when apropriate
-			set([handles.checkbox_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','on')
+			set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','on')
 		end
 		set([handles.edit_ageStart handles.edit_ageEnd handles.push_magBar handles.text_ageStart ...
 				handles.text_ageEnd], 'Visible','off')
 	end
 
 % -------------------------------------------------------------------------------
-function checkbox_geog_CB(hObject, handles)
+function check_geog_CB(hObject, handles)
 	if get(hObject,'Value')
 		set(handles.popup_selectPlot,'String',{'Distance along profile (data units)';
-		'Distance along profile (km)';'Distance along profile (NM)'});
+			'Distance along profile (km)';'Distance along profile (NM)'; 'Distance along profile (m)'});
 		set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
 			'Distance,Z (data units -> binary)';'Distance,Z (km -> ascii)';'Distance,Z (km -> binary)';
 			'Distance,Z (NM -> ascii)';'Distance,Z (NM -> binary)';
@@ -460,95 +475,88 @@ function checkbox_geog_CB(hObject, handles)
 % ---------------------------------------------------------------------------------
 function popup_selectPlot_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
-	D2R = pi/180;
+	geog = true;
 	switch str{val};
 		case 'Distance along profile (data units)'  % Compute the accumulated distance along profile in data units
-			xd = handles.data(:,1);			yd = handles.data(:,2);
-	
-		case 'Distance along profile (km)'           % Compute the accumulated distance along profile in km
-            deg2km = 111.1949;
-			xd = (handles.data(:,1)*deg2km) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2km;
-	
-		case 'Distance along profile (NM)'            % Compute the accumulated distance along profile in Nmiles
-            deg2nm = 60.04;
-			xd = (handles.data(:,1)*deg2nm) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2nm;
+			units = 'u';	geog = false;
+
+		case 'Distance along profile (km)'			% Compute the accumulated distance along profile in km
+			units = 'km';
+
+		case 'Distance along profile (m)'			% Compute the accumulated distance along profile in m
+			units = 'm';
+
+		case 'Distance along profile (NM)'			% Compute the accumulated distance along profile in Nmiles
+			units = 'nm';
 	end
-	rd = dist_along_profile(xd, yd);
-	set(handles.hLine,'XData',rd);				axis tight;
+	rd = get_distances(handles.data(:,1), handles.data(:,2), geog, units, handles.ellipsoide);
+	set(handles.hLine,'XData',rd);			axis tight;
 	guidata(hObject, handles);
 
 % ---------------------------------------------------------------------------------
 function popup_selectSave_CB(hObject, handles)
-val = get(hObject,'Value');     str = get(hObject, 'String');
-D2R = pi/180;
-deg2km = 111.1949;		deg2nm = 60.04;
-switch str{val};
-    case 'Save Profile on disk'                    %
-    case 'Distance,Z (data units -> ascii)'                    % Save profile in ascii data units
-		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance,Z (ascii)','put','.dat');
-		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-		double2ascii([PathName FileName],[handles.dist handles.data(:,3)],'%f\t%f');
-    case 'Distance,Z (data units -> binary)'                    % Save profile in binary data units
-		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance,Z (binary float)','put');
-		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-		fid = fopen([PathName FileName],'wb');
-		fwrite(fid,[handles.dist handles.data(:,3)]','float');  fclose(fid);
-    case 'Distance,Z (km -> ascii)'                    % Save profile in ascii (km Z) 
-		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (km),Z (ascii)','put','.dat');
-		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-		xd = (handles.data(:,1)*deg2km) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2km;
-		rd = dist_along_profile(xd, yd);
-		double2ascii([PathName FileName],[rd handles.data(:,3)],'%f\t%f')
-    case 'Distance,Z (km -> binary)'                    % Save profile in binary (km Z) 
-		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (km),Z (binary float)','put');
-		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-		xd = (handles.data(:,1)*deg2km) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2km;
-		rd = dist_along_profile(xd, yd);
-		fid = fopen([PathName FileName],'wb');
-		fwrite(fid,[rd handles.data(:,3)]','float');  fclose(fid);
-    case 'Distance,Z (NM -> ascii)'                    % Save profile in ascii (NM Z) 
-		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (m),Z (ascii)','put','.dat');
-		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-		xd = (handles.data(:,1)*deg2nm) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2nm;
-		rd = dist_along_profile(xd, yd);
-        double2ascii([PathName FileName],[rd handles.data(:,3)],'%f\t%f')
-    case 'Distance,Z (NM -> binary)'                    % Save profile in binary (NM Z) 
-		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (m),Z (binary float)','put');
-		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-		xd = (handles.data(:,1)*deg2nm) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2nm;
-		rd = dist_along_profile(xd, yd);
-		fid = fopen([PathName FileName],'wb');
-		fwrite(fid,[rd handles.data(:,3)]','float');  fclose(fid);
-    case 'X,Y,Z (data units -> ascii)'						% Save profile in ascii (km Z) 
-		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'x,y,z (*.dat)';'*.*', 'All Files (*.*)'},'X,Y,Z (ascii)','put','.dat');
-		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-		double2ascii([PathName FileName],[handles.data(:,1) handles.data(:,2) handles.data(:,3)],'%f\t%f\t%f')
-    case 'X,Y,Z (data units -> binary)'						% Save profile in binary (km Z) 
-		[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'x,y,z (*.dat)';'*.*', 'All Files (*.*)'},'X,Y,Z (binary float)','put');
-		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-		fid = fopen([PathName FileName],'wb');
-		fwrite(fid,[handles.data(:,1) handles.data(:,2) handles.data(:,3)]','float');  fclose(fid);
-    case 'Distance,Z (NM -> mat file)'						% Save profile in mat file (m Z) 
-		[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance (m),Z (Matlab mat file)','put');
-		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-		xd = (handles.data(:,1)*deg2nm) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2nm;
-		rd = dist_along_profile(xd, yd);
-		R = rd;		Z = handles.data(:,3);					% More one BUG, handles.data(:,3) canot be saved
-		save([PathName FileName],'R','Z')
-    case 'Distance,Z (km -> mat file)'						% Save profile in mat file (km Z)
-		[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance (km),Z (Matlab mat file)','put');
-		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-		xd = (handles.data(:,1)*deg2km) .* cos(handles.data(:,2)*D2R);		yd = handles.data(:,2) * deg2km;
-		rd = dist_along_profile(xd, yd);
-		R = rd;		Z = handles.data(:,3);
-		save([PathName FileName],'R','Z')
-    case 'Distance,Z (data units -> mat file)'				% Save profile in binary data units
-		[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance,Z (Matlab mat file)','put');
-		if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-		R = handles.dist';   Z = handles.data(:,3)';		% More one BUG, handles.data(:,3) canot be saved
-		save([PathName FileName],'R','Z')
-end
-set(hObject,'Value',1);
+	val = get(hObject,'Value');     str = get(hObject, 'String');
+	switch str{val};
+		case 'Save Profile on disk'                    %
+		case 'Distance,Z (data units -> ascii)'                    % Save profile in ascii data units
+			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance,Z (ascii)','put','.dat');
+			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+			double2ascii([PathName FileName],[handles.dist handles.data(:,3)],'%f\t%f');
+		case 'Distance,Z (data units -> binary)'                    % Save profile in binary data units
+			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance,Z (binary float)','put');
+			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+			fid = fopen([PathName FileName],'wb');
+			fwrite(fid,[handles.dist handles.data(:,3)]','float');  fclose(fid);
+		case 'Distance,Z (km -> ascii)'                    % Save profile in ascii (km Z) 
+			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (km),Z (ascii)','put','.dat');
+			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'k', handles.ellipsoide);
+			double2ascii([PathName FileName],[rd handles.data(:,3)],'%f\t%f')
+		case 'Distance,Z (km -> binary)'                    % Save profile in binary (km Z) 
+			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (km),Z (binary float)','put');
+			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'k', handles.ellipsoide);
+			fid = fopen([PathName FileName],'wb');
+			fwrite(fid,[rd handles.data(:,3)]','float');  fclose(fid);
+		case 'Distance,Z (NM -> ascii)'                    % Save profile in ascii (NM Z) 
+			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (m),Z (ascii)','put','.dat');
+			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'n', handles.ellipsoide);
+			double2ascii([PathName FileName],[rd handles.data(:,3)],'%f\t%f')
+		case 'Distance,Z (NM -> binary)'                    % Save profile in binary (NM Z) 
+			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (m),Z (binary float)','put');
+			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'n', handles.ellipsoide);
+			fid = fopen([PathName FileName],'wb');
+			fwrite(fid,[rd handles.data(:,3)]','float');  fclose(fid);
+		case 'X,Y,Z (data units -> ascii)'						% Save profile in ascii (km Z) 
+			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'x,y,z (*.dat)';'*.*', 'All Files (*.*)'},'X,Y,Z (ascii)','put','.dat');
+			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+			double2ascii([PathName FileName],[handles.data(:,1) handles.data(:,2) handles.data(:,3)],'%f\t%f\t%f')
+		case 'X,Y,Z (data units -> binary)'						% Save profile in binary (km Z) 
+			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'x,y,z (*.dat)';'*.*', 'All Files (*.*)'},'X,Y,Z (binary float)','put');
+			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+			fid = fopen([PathName FileName],'wb');
+			fwrite(fid,[handles.data(:,1) handles.data(:,2) handles.data(:,3)]','float');  fclose(fid);
+		case 'Distance,Z (NM -> mat file)'						% Save profile in mat file (m Z) 
+			[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance (m),Z (Matlab mat file)','put');
+			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'n', handles.ellipsoide);
+			Z = handles.data(:,3);								% More BUGs, handles.data(:,3) canot be saved
+			save([PathName FileName],'rd','Z')
+		case 'Distance,Z (km -> mat file)'						% Save profile in mat file (km Z)
+			[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance (km),Z (Matlab mat file)','put');
+			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'k', handles.ellipsoide);
+			Z = handles.data(:,3);
+			save([PathName FileName],'rd','Z')
+		case 'Distance,Z (data units -> mat file)'				% Save profile in binary data units
+			[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance,Z (Matlab mat file)','put');
+			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
+			R = handles.dist';   Z = handles.data(:,3)';		% More one BUG, handles.data(:,3) canot be saved
+			save([PathName FileName],'R','Z')
+	end
+	set(hObject,'Value',1);
 
 % --------------------------------------------------------------------
 function FileExport_CB(hObject, handles)
@@ -629,7 +637,7 @@ function FileOpen_CB(hObject, handles)
 	end
 
 	if (numel(out) == 4)			% Not yet in use
-		rd = dist_along_profile( data(:,out(1)), data(:,out(2)) );
+		rd = get_distances(data(:,out(1)), data(:,out(2)), false, 'n', handles.ellipsoide);	% NO GEOG: SHOULD TEST
 		handles.dist = rd;				% Save it in case user wants to save it to file
 		handles.hLine = line('Parent',handles.axes1,'XData',rd, 'YData',data(:,out(3)));
 	else
@@ -795,7 +803,8 @@ function push_magBar_CB(hObject, handles)
 		errordlg('Take a second look to what you are asking for. Wrong ages','Error'),		return
 	end
 
-	set(handles.axes2, 'Vis', 'on','XTick',[], 'YTick',[])
+	%set(handles.axes2, 'Vis', 'on','XTick',[], 'YTick',[])
+	set(handles.axes2, 'Vis', 'on', 'YTick',[])
 
 	reverse_XDir = false;		% If first age > last age, we'll revert the sense of the X axis
 	if ( handles.ageStart >= handles.ageEnd )
@@ -826,7 +835,6 @@ function push_magBar_CB(hObject, handles)
 
 	x = [age_start'; age_end'];
 	x = x(:);
-	set(handles.axes2, 'xlim', [age_start(1) age_end(end)])
 	y = [zeros(numel(x),1); ones(numel(x),1)]; 
 	x = [x; x(end:-1:1)];
 
@@ -837,7 +845,8 @@ function push_magBar_CB(hObject, handles)
 	faces = [c1 c2 c3 c4];
 
 	cor = repmat([0 0 0; 1 1 1],n_ages-1,1);    cor = [cor; [0 0 0]];
-	patch('Parent',handles.axes2,'Faces',faces,'Vertices',[x y],'FaceVertexCData',cor,'FaceColor','flat');   
+	set(handles.axes2, 'xlim', [age_start(1) age_end(end)])
+	patch('Parent',handles.axes2,'Faces',faces,'Vertices',[x y],'FaceVertexCData',cor,'FaceColor','flat');
 	set(handles.figure1,'renderer','Zbuffer')	% The patch command above set it to OpenGL, which is f... bugged
 
 	% Get the index of anomalies that have names. We'll use them to plot those anomaly names
@@ -849,18 +858,18 @@ function push_magBar_CB(hObject, handles)
 
 	set(handles.figure1,'currentaxes',handles.axes1)	% Put it back as current axes
 	% Since the two axes are touching, axes1 would hide the XTickLabels of axes2.
-	% So the trck is to plot what would have been axes2 XTickLabels as a text in axes1
+	% So the trick is to plot what would have been axes2 XTickLabels as a text in axes1
 	DX1 = diff(get(handles.axes1,'xlim'));
 	y_lim = get(handles.axes1,'ylim');
 	DX2 = age_end(end) - age_start(1);
 	x_pos = (ages - x(1)) * DX1 / DX2;
 	ha = 'Left';
 	if (reverse_XDir)
-		x_pos = (age_end(end) - x(1)) * DX1 / DX2 - x_pos;
-		ha = 'Right';
+		x_pos = (age_end(end) - x(1)) * DX1 / DX2 - x_pos;		ha = 'Right';
 	end
 	text(x_pos,repmat(y_lim(2),numel(x_pos),1),age_txt(ind),'Parent',handles.axes1, ...
-		'VerticalAlignment','top', 'HorizontalAlignment', ha)
+		'VerticalAlignment','top', 'HorizontalAlignment', ha, 'Tag','chroneName')
+	set(handles.axes2,'UserData',ages)		% We may want to use these from other places
 
 % --------------------------------------------------------------------------------------------------
 function rectang_clicked_CB(obj,evt)
@@ -1060,40 +1069,40 @@ function [L,noverlap,win] = segment_info(M,win,noverlap)
 %   The key to this function is the following equation:
 %      K = (M-NOVERLAP)/(L-NOVERLAP)
 
-L = [];
+	L = [];
 
-if isempty(win)			% Use 8 sections, determine their length
-    if isempty(noverlap)		% Use 50% overlap
-        L = fix(M./4.5);
-        noverlap = fix(0.5.*L);
-    else
-        L = fix((M+7.*noverlap)./8);
-    end
-    win = hamming(L);
-else
-    % Determine the window and its length (equal to the length of the segments)
-    if ~any(size(win) <= 1) || ischar(win),
-		error('welch:invalidWindow','The WINDOW argument must be a vector or a scalar.')
-    elseif (length(win) > 1)	% WIN is a vector
-        L = length(win);
-    elseif length(win) == 1,
-        L = win;
-        win = hamming(win);
-    end
-    if isempty(noverlap)		% Use 50% overlap
-        noverlap = fix(0.5.*L);
-    end
-end
+	if isempty(win)			% Use 8 sections, determine their length
+		if isempty(noverlap)		% Use 50% overlap
+			L = fix(M./4.5);
+			noverlap = fix(0.5.*L);
+		else
+			L = fix((M+7.*noverlap)./8);
+		end
+		win = hamming(L);
+	else
+		% Determine the window and its length (equal to the length of the segments)
+		if ~any(size(win) <= 1) || ischar(win),
+			error('welch:invalidWindow','The WINDOW argument must be a vector or a scalar.')
+		elseif (length(win) > 1)	% WIN is a vector
+			L = length(win);
+		elseif length(win) == 1,
+			L = win;
+			win = hamming(win);
+		end
+		if isempty(noverlap)		% Use 50% overlap
+			noverlap = fix(0.5.*L);
+		end
+	end
 
-if (L > M)
-    errmsg = 'The length of the segments cannot be greater than the length of the input signal.';
-	error('welch:invalidSegmentLength',errmsg)
-end
+	if (L > M)
+		errmsg = 'The length of the segments cannot be greater than the length of the input signal.';
+		error('welch:invalidSegmentLength',errmsg)
+	end
 
-if (noverlap >= L)
-    errmsg = 'The number of samples to overlap must be less than the length of the segments.';
-	error('welch:invalidNoverlap',errmsg)
-end
+	if (noverlap >= L)
+		errmsg = 'The number of samples to overlap must be less than the length of the segments.';
+		error('welch:invalidNoverlap',errmsg)
+	end
 
 % ----------------------------
 function [P,f] = periodogram(x,win,nfft)
@@ -1104,43 +1113,43 @@ function [P,f] = periodogram(x,win,nfft)
 %    WIN         - Window
 %    NFFT        - Number of frequency points (FFT)
 
-xin = x .* win;		% Window the data
+	xin = x .* win;		% Window the data
 
-% Evaluate the window normalization constant.  A 1/N factor has been omitted since it will cancel below.
-U = win' * win;  % compensates for the power of the window.
+	% Evaluate the window normalization constant.  A 1/N factor has been omitted since it will cancel below.
+	U = win' * win;  % compensates for the power of the window.
 
-% Compute the periodogram power spectrum estimate. A 1/N factor has been omitted since it cancels
-Xx = fft(xin,nfft);
+	% Compute the periodogram power spectrum estimate. A 1/N factor has been omitted since it cancels
+	Xx = fft(xin,nfft);
 
-% Compute the whole frequency range, e.g., [0,2pi) to avoid round off errors.
-Fs = (2*pi);	
-freq_res = Fs/nfft;
-f = freq_res*(0:nfft-1)';
+	% Compute the whole frequency range, e.g., [0,2pi) to avoid round off errors.
+	Fs = (2*pi);	
+	freq_res = Fs/nfft;
+	f = freq_res*(0:nfft-1)';
 
-Nyq = Fs/2;
-half_res = freq_res/2; % half the resolution
+	Nyq = Fs/2;
+	half_res = freq_res/2; % half the resolution
 
-% Determine if Npts is odd.
-isNPTSodd = false;
-if rem(nfft,2)		isNPTSodd = true;	end
+	% Determine if Npts is odd.
+	isNPTSodd = false;
+	if rem(nfft,2)		isNPTSodd = true;	end
 
-% Determine half the number of points.
-if (isNPTSodd)	halfNPTS = (nfft+1)/2;  % ODD
-else			halfNPTS = (nfft/2)+1;  % EVEN
-end
+	% Determine half the number of points.
+	if (isNPTSodd)	halfNPTS = (nfft+1)/2;  % ODD
+	else			halfNPTS = (nfft/2)+1;  % EVEN
+	end
 
-if (isNPTSodd)		% Adjust points on either side of Nyquist.
-    f(halfNPTS)   = Nyq - half_res;
-    f(halfNPTS+1) = Nyq + half_res;
-else				% Make sure we hit Nyquist exactly, i.e., pi or Fs/2 
-    f(halfNPTS) = Nyq;
-end
-f(nfft) = Fs-freq_res;
-P = Xx .* conj(Xx) / U;      % Auto spectrum.
+	if (isNPTSodd)		% Adjust points on either side of Nyquist.
+		f(halfNPTS)   = Nyq - half_res;
+		f(halfNPTS+1) = Nyq + half_res;
+	else				% Make sure we hit Nyquist exactly, i.e., pi or Fs/2 
+		f(halfNPTS) = Nyq;
+	end
+	f(nfft) = Fs-freq_res;
+	P = Xx .* conj(Xx) / U;      % Auto spectrum.
 
 %---------------------------------------------------------------------
 function w = hamming(n)
-    % w = (54 - 46*cos(2*pi*(0:m-1)'/(n-1)))/100;
+% w = (54 - 46*cos(2*pi*(0:m-1)'/(n-1)))/100;
 
 	if ~rem(n,2)	half = n/2;			last = 0;
 	else			half = (n+1)/2;		last = 1;
@@ -1149,11 +1158,35 @@ function w = hamming(n)
 	w = 0.54 - 0.46 * cos(2*pi*x);
     w = [w; w(end-last:-1:1)];
 
-% -------------------------------------------------------------------------------------
-function rd = dist_along_profile(x, y)
-	xd = diff(x);		yd = diff(y);
-	tmp = sqrt(xd.*xd + yd.*yd);
-	rd = [0; cumsum(tmp(:))];
+% ---------------------------------------------------------------------------------
+function rd = get_distances(x, y, geog, units, ellipsoide)
+% Compute acumulated distances along profile
+	% Play safe with NaNs
+	ix = isnan(x);
+	if (any(ix)),		x(ix) = [];     y(ix) = [];		end
+	iy = isnan(y);
+	if (any(iy)),		x(iy) = [];     y(iy) = [];		end
+	if (isempty(geog) || isempty(units) || units(1) == 'u'),	geog = false;	end
+	if (geog)
+		lat_i = y(1:end-1);   lat_f = y(2:end);
+		lon_i = x(1:end-1);   lon_f = x(2:end);
+		if (~isempty(ellipsoide))
+			tmp = vdist(lat_i,lon_i,lat_f,lon_f, ellipsoide);
+		else
+			tmp = vdist(lat_i,lon_i,lat_f,lon_f);
+		end
+
+		switch units(1)
+			case 'n',		scale = 1852;		% Nautical miles
+			case 'k',		scale = 1000;		% Kilometers
+			case 'm',		scale = 1;			% Meters
+		end
+		rd = [0; cumsum(tmp(:))] / scale;
+	else
+		xd = diff(x);		yd = diff(y);
+		tmp = sqrt(xd.*xd + yd.*yd);
+		rd = [0; cumsum(tmp(:))];
+	end
 
 % -------------------------------------------------------------------------------------
 function out = filter_butter(fiche,y)
@@ -1348,23 +1381,23 @@ end
 function z = buttzeros(btype,n,Wn,Bw,analog)
 % This internal function returns more exact zeros.
 % Wn input is two element band edge vector
-if analog
-    % for lowpass and bandpass, don't include zeros at +Inf or -Inf
-    switch btype
-        case 1,     z = zeros(0,1);  % lowpass
-        case 2,     z = zeros(n,1);  % bandpass
-        case 3,     z = zeros(n,1);  % highpass
-        case 4,     z = j*Wn*((-1).^(0:2*n-1)');  % bandstop
-    end
-else
-    Wn = 2*atan2(Wn,4);
-    switch btype
-        case 1,     z = -ones(n,1);                 % lowpass
-        case 2,     z = [ones(n,1); -ones(n,1)];    % bandpass
-        case 3,     z = ones(n,1);                  % highpass
-        case 4,     z = exp(j*Wn*( (-1).^(0:2*n-1)' )); % bandstop
-    end
-end
+	if analog
+		% for lowpass and bandpass, don't include zeros at +Inf or -Inf
+		switch btype
+			case 1,     z = zeros(0,1);  % lowpass
+			case 2,     z = zeros(n,1);  % bandpass
+			case 3,     z = zeros(n,1);  % highpass
+			case 4,     z = j*Wn*((-1).^(0:2*n-1)');  % bandstop
+		end
+	else
+		Wn = 2*atan2(Wn,4);
+		switch btype
+			case 1,     z = -ones(n,1);                 % lowpass
+			case 2,     z = [ones(n,1); -ones(n,1)];    % bandpass
+			case 3,     z = ones(n,1);                  % highpass
+			case 4,     z = exp(j*Wn*( (-1).^(0:2*n-1)' )); % bandstop
+		end
+	end
 
 % ------------------------------------------------------------------------------
 function [btype,analog,errStr] = iirchk(Wn,varargin)
@@ -1485,12 +1518,12 @@ function [z,p,k] = buttap(n)
 %   $Revision: 1.6 $  $Date: 2002/03/28 17:27:09 $
 
 % Poles are on the unit circle in the left-half plane.
-z = [];
-p = exp(i*(pi*(1:2:n-1)/(2*n) + pi/2));
-p = [p; conj(p)];
-p = p(:);
-if (rem(n,2) == 1),   p = [p; -1];  end     % n is odd
-k = real(prod(-p));
+	z = [];
+	p = exp(i*(pi*(1:2:n-1)/(2*n) + pi/2));
+	p = [p; conj(p)];
+	p = p(:);
+	if (rem(n,2) == 1),   p = [p; -1];  end     % n is odd
+	k = real(prod(-p));
 
 % ------------------------------------------------------------------------------
 function [at,bt,ct,dt] = lp2lp(a,b,c,d,wo)
@@ -1544,39 +1577,35 @@ function [at,bt,ct,dt] = lp2bp(a,b,c,d,wo,bw)
 %   Copyright 1988-2002 The MathWorks, Inc.
 %   $Revision: 1.7 $  $Date: 2002/03/28 17:28:42 $
 
-if nargin == 4		% Transfer function case
-    % handle column vector inputs: convert to rows
-    if size(a,2) == 1
-        a = a(:).';
-    end
-    if size(b,2) == 1
-        b = b(:).';
-    end
-    % Transform to state-space
-    wo = c;
-    bw = d;
-    [a,b,c,d] = tf2ss(a,b);
-end
+	if nargin == 4		% Transfer function case
+		% handle column vector inputs: convert to rows
+		if (size(a,2) == 1),	a = a(:).';		end
+		if (size(b,2) == 1),	b = b(:).';		end
+		% Transform to state-space
+		wo = c;
+		bw = d;
+		[a,b,c,d] = tf2ss(a,b);
+	end
 
-error(abcdchk(a,b,c,d));
-[ma,nb] = size(b);
-[mc,ma] = size(c);
+	error(abcdchk(a,b,c,d));
+	[ma,nb] = size(b);
+	[mc,ma] = size(c);
 
-% Transform lowpass to bandpass
-q = wo/bw;
-at = wo*[a/q eye(ma); -eye(ma) zeros(ma)];
-bt = wo*[b/q; zeros(ma,nb)];
-ct = [c zeros(mc,ma)];
-dt = d;
+	% Transform lowpass to bandpass
+	q = wo/bw;
+	at = wo*[a/q eye(ma); -eye(ma) zeros(ma)];
+	bt = wo*[b/q; zeros(ma,nb)];
+	ct = [c zeros(mc,ma)];
+	dt = d;
 
-if nargin == 4		% Transfer function case
-    % Transform back to transfer function
-    [z,k] = tzero(at,bt,ct,dt);
-    num = k * poly(z);
-    den = poly(at);
-    at = num;
-    bt = den;
-end
+	if nargin == 4		% Transfer function case
+		% Transform back to transfer function
+		[z,k] = tzero(at,bt,ct,dt);
+		num = k * poly(z);
+		den = poly(at);
+		at = num;
+		bt = den;
+	end
 
 % ------------------------------------------------------------------------------
 function [at,bt,ct,dt] = lp2hp(a,b,c,d,wo)
@@ -1593,37 +1622,37 @@ function [at,bt,ct,dt] = lp2hp(a,b,c,d,wo)
 %   Copyright 1988-2002 The MathWorks, Inc.
 %   $Revision: 1.7 $  $Date: 2002/03/28 17:28:44 $
 
-if nargin == 3		% Transfer function case
-        % handle column vector inputs: convert to rows
-        if size(a,2) == 1
-            a = a(:).';
-        end
-        if size(b,2) == 1
-            b = b(:).';
-        end
-	% Transform to state-space
-	wo = c;
-	[a,b,c,d] = tf2ss(a,b);
-end
+	if nargin == 3		% Transfer function case
+			% handle column vector inputs: convert to rows
+			if size(a,2) == 1
+				a = a(:).';
+			end
+			if size(b,2) == 1
+				b = b(:).';
+			end
+		% Transform to state-space
+		wo = c;
+		[a,b,c,d] = tf2ss(a,b);
+	end
 
-error(abcdchk(a,b,c,d));
-% [ma,nb] = size(b);
-% [mc,ma] = size(c);
+	error(abcdchk(a,b,c,d));
+	% [ma,nb] = size(b);
+	% [mc,ma] = size(c);
 
-% Transform lowpass to highpass
-at =  wo*inv(a);
-bt = -wo*(a\b);
-ct = c/a;
-dt = d - c/a*b;
+	% Transform lowpass to highpass
+	at =  wo*inv(a);
+	bt = -wo*(a\b);
+	ct = c/a;
+	dt = d - c/a*b;
 
-if nargin == 3		% Transfer function case
-    % Transform back to transfer function
-    [z,k] = tzero(at,bt,ct,dt);
-    num = k * poly(z);
-    den = poly(at);
-    at = num;
-    bt = den;
-end
+	if nargin == 3		% Transfer function case
+		% Transform back to transfer function
+		[z,k] = tzero(at,bt,ct,dt);
+		num = k * poly(z);
+		den = poly(at);
+		at = num;
+		bt = den;
+	end
 
 % ------------------------------------------------------------------------------
 function [at,bt,ct,dt] = lp2bs(a,b,c,d,wo,bw)
@@ -1638,39 +1667,39 @@ function [at,bt,ct,dt] = lp2bs(a,b,c,d,wo,bw)
 %   Copyright 1988-2002 The MathWorks, Inc.
 %   $Revision: 1.7 $  $Date: 2002/03/28 17:28:43 $
 
-if nargin == 4		% Transfer function case
-        % handle column vector inputs: convert to rows
-        if size(a,2) == 1
-            a = a(:).';
-        end
-        if size(b,2) == 1
-            b = b(:).';
-        end
-	% Transform to state-space
-	wo = c;
-	bw = d;
-	[a,b,c,d] = tf2ss(a,b);
-end
+	if nargin == 4		% Transfer function case
+			% handle column vector inputs: convert to rows
+			if size(a,2) == 1
+				a = a(:).';
+			end
+			if size(b,2) == 1
+				b = b(:).';
+			end
+		% Transform to state-space
+		wo = c;
+		bw = d;
+		[a,b,c,d] = tf2ss(a,b);
+	end
 
-error(abcdchk(a,b,c,d));
-[ma,nb] = size(b);
-[mc,ma] = size(c);
+	error(abcdchk(a,b,c,d));
+	[ma,nb] = size(b);
+	[mc,ma] = size(c);
 
-% Transform lowpass to bandstop
-q = wo/bw;
-at =  [wo/q*inv(a) wo*eye(ma); -wo*eye(ma) zeros(ma)];
-bt = -[wo/q*(a\b); zeros(ma,nb)];
-ct = [c/a zeros(mc,ma)];
-dt = d - c/a*b;
+	% Transform lowpass to bandstop
+	q = wo/bw;
+	at =  [wo/q*inv(a) wo*eye(ma); -wo*eye(ma) zeros(ma)];
+	bt = -[wo/q*(a\b); zeros(ma,nb)];
+	ct = [c/a zeros(mc,ma)];
+	dt = d - c/a*b;
 
-if nargin == 4		% Transfer function case
-    % Transform back to transfer function
-    [z,k] = tzero(at,bt,ct,dt);
-    num = k * poly(z);
-    den = poly(at);
-    at = num;
-    bt = den;
-end
+	if nargin == 4		% Transfer function case
+		% Transform back to transfer function
+		[z,k] = tzero(at,bt,ct,dt);
+		num = k * poly(z);
+		den = poly(at);
+		at = num;
+		bt = den;
+	end
 
 % ------------------------------------------------------------------------------
 function [zd, pd, kd, dd] = bilinear(z, p, k, fs, fp, fp1)
@@ -1899,7 +1928,6 @@ set(h1,'Units','centimeters',...
 'NumberTitle','off',...
 'PaperPosition',[1 2.5 15.625 6.953],...
 'PaperSize',[20.98404194812 29.67743169791],...
-'PaperType',get(0,'defaultfigurePaperType'),...
 'Position',[13.72 12.08 21.44 9.04],...
 'RendererMode','manual',...
 'Tag','figure1');
@@ -1926,13 +1954,13 @@ axes('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Units','normalized',...
-'Call',{@ecran_uiCB,h1,'checkbox_geog_CB'},...
+'Call',{@ecran_uiCB,h1,'check_geog_CB'},...
 'Position',[0.0468557336621455 0.03216374269005848 0.2379778051787916 0.049707602339181284],...
 'String','Geographical coordinates',...
 'TooltipString',sprintf(['Check this if your data is in geographical coordinates.\n' ...
 			'You will than be able to see and save the profile in km (or m) vs z.']),...
 'Style','checkbox',...
-'Tag','checkbox_geog');
+'Tag','check_geog');
 
 uicontrol('Parent',h1,...
 'Units','normalized',...
