@@ -602,6 +602,10 @@ function push_showSlice_CB(hObject, eventdata, handles)
 		V = double( mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) V(:)],x,y) );
 		s.hAx = handles.handMir.axes1;		s.hQuiver = handles.hQuiver;	s.spacingChanged = handles.spacingChanged;
 		handles.hQuiver = loc_quiver(s, x, y, U, V, handles.vecScale);
+		set(handles.hQuiver(1), 'UserData', single([x(:)' y(:)' U(:)' V(:)']))		% Store for eventual future file saving
+		cmenuHand = uicontextmenu('Parent',handles.handMir.figure1);
+		set(handles.hQuiver(1), 'UIContextMenu', cmenuHand);		set(handles.hQuiver(2), 'UIContextMenu', cmenuHand);
+		uimenu(cmenuHand, 'Label', 'Save arrows', 'Call', {@save_arrows, handles.hQuiver(1)});
 		if (handles.spacingChanged),	handles.spacingChanged = false;		end		% Worked once, reset it
 	elseif (~isempty(handles.hQuiver))			% If we had plotted vectors, delete them
 		delete(handles.hQuiver),			handles.hQuiver = [];
@@ -2136,7 +2140,19 @@ function push_interpolate_CB(hObject, eventdata, handles)
 	t = handles.time(layerInc);		% Layers's times
 	fprintf(fid,['%.2f\t' repmat('%f\t',[1,ncols]) '\n'], [t(:) double(Z)]');
 	fclose(fid);
+
+% -----------------------------------------------------------------------------------------
+function save_arrows(hObject, evt, hQuiver)
+% Save the arrow field on file
+	handles = guidata(hObject);
+	str1 = {'*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select Symbol File name','put','.dat');
+	if isequal(FileName,0),		return,		end
+	f_name = [PathName FileName];
 	
+	vecs = double(get(hQuiver, 'UserData'));
+	double2ascii(f_name, vecs, '%.6f\t%.6f\t.6f\t%.6f');
+
 % -----------------------------------------------------------------------------------------
 function push_plugFun_CB(hObject, eventdata, handles)
 % THIS IS A SPECIAL CALLBACK THAT CALLS A FUNCTION NAMED 'aquaPlugin' THAT MAY RESIDE
