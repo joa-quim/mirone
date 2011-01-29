@@ -106,6 +106,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	nBufXSize, nBufYSize, jump = 0, *whichBands = NULL, *nVector, *mVector;
 	int	n_commas, n_dash, nX, nY;
 	int	nXSize = 0, nYSize = 0;
+	int	bGotMin, bGotMax;	/* To know if driver transmited Min/Max */
 	char	*tmp, *outByte, *p;
 	static int runed_once = FALSE;	/* It will be set to true if reaches end of main */
 	float	*tmpF32, *outF32;
@@ -448,8 +449,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         	dfNoData = GDALGetRasterNoDataValue(hBand, &bGotNodata);
 		/* If we didn't computed it yet, its time to do it now */
 		if (got_R) ComputeRasterMinMax(tmp, hBand, adfMinMax, nXSize, nYSize, z_min, z_max);
-		if (nBands > 1 && scale_range)	/* got_R && scale_range && nBands > 1 Should never be true */
-			GDALComputeRasterMinMax(hBand, TRUE, adfMinMax);
+		if (nBands > 1 && scale_range) {	/* got_R && scale_range && nBands > 1 Should never be true */
+			adfMinMax[0] = GDALGetRasterMinimum( hBand, &bGotMin );
+			adfMinMax[1] = GDALGetRasterMaximum( hBand, &bGotMax );
+			if( !(bGotMin && bGotMax) )
+				GDALComputeRasterMinMax(hBand, FALSE, adfMinMax);
+		}
 
 		/* In the "Preview" mode those guys bellow are different and what we need is the BufSize */
 		if (jump) {
@@ -466,7 +471,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					range = adfMinMax[1] - adfMinMax[0];
 					for (m = 0; m < nYSize; m++) for (n = 0; n < nXSize; n++) {
 						if (bGotNodata) {
-							if (tmp[mVector[m]+n] > (GByte)dfNoData) {
+							if (tmp[mVector[m]+n] != (GByte)dfNoData) {
 								aux = tmp[mVector[m]+n];
 								aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
 							}
@@ -496,7 +501,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					range = adfMinMax[1] - adfMinMax[0];
 					for (m = 0; m < nYSize; m++) for (n = 0; n < nXSize; n++) {
 						if (bGotNodata) {
-							if (tmpI16[mVector[m]+n] > (GInt16)dfNoData) {
+							if (tmpI16[mVector[m]+n] != (GInt16)dfNoData) {
 								aux = tmpI16[mVector[m]+n];
 								aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
 							}
@@ -526,7 +531,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					range = adfMinMax[1] - adfMinMax[0];
 					for (m = 0; m < nYSize; m++) for (n = 0; n < nXSize; n++) {
 						if (bGotNodata) {
-							if (tmpUI16[mVector[m]+n] > (GUInt16)dfNoData) {
+							if (tmpUI16[mVector[m]+n] != (GUInt16)dfNoData) {
 								aux = tmpUI16[mVector[m]+n];
 								aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
 							}
@@ -556,7 +561,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					range = adfMinMax[1] - adfMinMax[0];
 					for (m = 0; m < nYSize; m++) for (n = 0; n < nXSize; n++) {
 						if (bGotNodata) {
-							if (tmpI32[mVector[m]+n] > (GInt32)dfNoData) {
+							if (tmpI32[mVector[m]+n] != (GInt32)dfNoData) {
 								aux = (float)tmpI32[mVector[m]+n];
 								aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
 							}
@@ -581,7 +586,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					range = adfMinMax[1] - adfMinMax[0];
 					for (m = 0; m < nYSize; m++) for (n = 0; n < nXSize; n++) {
 						if (bGotNodata) {
-							if (tmpUI32[mVector[m]+n] > (GUInt32)dfNoData) {
+							if (tmpUI32[mVector[m]+n] != (GUInt32)dfNoData) {
 								aux = (float)tmpUI32[mVector[m]+n];
 								aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
 							}
