@@ -440,6 +440,10 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			write_vtk(fid, grd_out, Z);
 			continue
 		end
+		
+		if ( isa(Z,'int8') && (min(Z(:)) >= 0) )
+			grdutils(Z,'-c');								% Shift by -128 so it goes well with the uint8 add_off elsewere
+		end
 
 		if (isa(Z,'single'))
 			zz = grdutils(Z,'-L');		handles.head(5:6) = [zz(1) zz(2)];
