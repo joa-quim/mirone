@@ -34,6 +34,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE, is_uint8 = FALSE;
 	int is_uint16 = FALSE, report_nans = FALSE, only_report_nans = FALSE, do_cast = FALSE;
 	int i_min = 0, i_max = 0, do_min_max_loc = FALSE, report_min_max_loc_nan_mean_std = FALSE;
+	int do_shift_int8 = FALSE, insitu = FALSE, is_int8 = FALSE; 
 	char	**argv;
 	float	*zdata, fact;
 	double	*z, min_limit = FLT_MAX, max_limit = -FLT_MAX, mean = 0., sd = 0., rms = 0., tmp;
@@ -67,6 +68,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					break;
 				case 'C':
 					do_cast = TRUE;
+					break;
+				case 'c':
+					do_shift_int8 = TRUE;
+					if (nlhs == 0) insitu = TRUE;	/* Only allowed case */
 					break;
 				case 'H':
 					do_min_max_loc = TRUE;
@@ -109,6 +114,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\t   ---------------------------------\n");
 		mexPrintf ("\t-A constant adds constant to array.\n");
 		mexPrintf ("\t-C casts array uint8 to int8 and subtracts 128. That is [0 255] to [-128 127].\n");
+		mexPrintf ("\t-c Shift int8 arrays by -128. That is [0 .. 0 127] to [-128 127].\n");
+		mexPrintf ("\t   Without output do operation insitu.\n");
 		mexPrintf ("\t-L Compute min and max. Apend + (-L+) to check also for NaNs\n");
 		mexPrintf ("\t-H outputs [z_min z_max i_zmin i_zmax firstNaNind mean std]\n");
 		mexPrintf ("\t-M factor multiplies array by factor.\n");
@@ -117,7 +124,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexErrMsgTxt("\n");
 	}
 	
-	if (nlhs == 0 && !(ADD + MUL)) {
+	if (nlhs == 0 && !(ADD + MUL) && !insitu) {
 		mexPrintf("GRDUTILS ERROR: Must provide an output.\n");
 		return;
 	}
@@ -142,6 +149,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	else if (mxIsUint8(prhs[0])) {
 		is_uint8 = TRUE;
 	}
+	else if (mxIsInt8(prhs[0])) {
+		is_int8 = TRUE;
+	}
 	else {
 		mexPrintf("GRDUTILS ERROR: Unknown input data type.\n");
 		mexErrMsgTxt("Valid type is: single, int, short or unsigned short and uint8\n");
@@ -163,6 +173,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		data8 = (char *)(mxGetData(plhs[0]));
 		for (i = 0; i < nxy; i++)
 			data8[i] = (char)(Udata8[i] - 128);
+		return;
+	}
+	else if (do_shift_int8 && is_int8) {	/* Shift int8 from [0 127] to [0 127] - 128 */
+		char	*data8_in, *data8_out;
+		data8_in = (char *)(mxGetData(prhs[0]));
+
+		if (!insitu) {
+			plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[0]),
+				mxGetDimensions(prhs[0]), mxINT8_CLASS, mxREAL);
+			data8_out = (char *)(mxGetData(plhs[0]));
+
+			for (i = 0; i < nxy; i++)
+				data8_out[i] = data8_in[i] - 128;
+		}
+		else
+			for (i = 0; i < nxy; i++) data8_in[i] -= 128;
+
 		return;
 	}
 	else {
