@@ -97,10 +97,8 @@ function write_nc(fname, handles, data, misc, page)
 		is3D = true;
 	elseif (nargin == 5 && isa(page,'cell'))	% 'append' layer mode. Work and return
 		if (is_unlimited)
-			if (numel(page) == 2)
-				level = page{2};
-			else
-				level = page{1};
+			if (numel(page) == 2),		level = page{2};
+			else						level = page{1};
 			end
 			nc_funs('varput', fname, levelName, level, page{1}, 1 );	% The UNLIMITED var value
 		end
@@ -207,12 +205,19 @@ function write_nc(fname, handles, data, misc, page)
 		case 'int32'			% NC_INT
 			varstruct.Nctype = 4;		no_val = -2147483648;
 		case 'int8'				% NC_BYTE
-			varstruct.Nctype = 1;		no_val = [];	add_off = 128;
+			varstruct.Nctype = 1;		no_val = [];
+			if ( min(data(:)) < 0 ),	add_off = 128;	end		% Apply the offset trick only when needed
 		case 'uint8'			% NC_CHAR
-			data = grdutils(data,'-C');
+			if ( (ndims(data) == 3) && (size(data,1) == 1) )
+				thisSize = size(data);
+				data = grdutils(squeeze(data),'-C');
+				data = reshape(data, thisSize);
+			else
+				data = grdutils(data,'-C');
+			end
 			varstruct.Nctype = 1;		no_val = [];	add_off = 128;
 			handles.head(5:6) = double([min(data(:)) max(data(:))]);		% We dont save handles
-		case 'double'			% NC_DOUBLE
+		case 'double'			% NC_DOUBL
 			varstruct.Nctype = 6;		no_val = nan;
 		otherwise
 			error('NC_IO:write_nc', ['Unsuported data type: ' class(data)])
