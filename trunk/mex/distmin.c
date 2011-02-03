@@ -16,6 +16,7 @@
 
 #include "mex.h"
 #include <math.h>
+#include <string.h>
 
 #ifndef MIN
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))	/* min and max value macros */
