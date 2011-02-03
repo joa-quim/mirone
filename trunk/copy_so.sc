@@ -31,6 +31,15 @@ ln -s -f libopencv_objdetect${linus_sufix}.2.2.0${mac_sufix} libopencv_objdetect
 cp -f ${lib_loc}/libopencv_video${linus_sufix}.2.2.0${mac_sufix} .
 ln -s -f libopencv_video${linus_sufix}.2.2.0${mac_sufix} libopencv_video${linus_sufix}${mac_sufix}
 
+cp -f ${lib_loc}/libopencv_highgui${linus_sufix}.2.2.0${mac_sufix} .
+ln -s -f libopencv_highgui${linus_sufix}.2.2.0${mac_sufix} libopencv_highgui${linus_sufix}${mac_sufix}
+
+cp -f ${lib_loc}/libopencv_features2d${linus_sufix}.2.2.0${mac_sufix} .
+ln -s -f libopencv_features2d${linus_sufix}.2.2.0${mac_sufix} libopencv_features2d${linus_sufix}${mac_sufix}
+
+cp -f ${lib_loc}/libopencv_flann${linus_sufix}.2.2.0${mac_sufix} .
+ln -s -f libopencv_flann${linus_sufix}.2.2.0${mac_sufix} libopencv_flann${linus_sufix}${mac_sufix}
+
 # ---------- ?? libs ------------------------------
 #cp -f /usr/lib/libexpat${linus_sufix}.1.5.2${mac_sufix} .
 #ln -s -f libexpat${linus_sufix}.1.0.0${mac_sufix} libexpat${linus_sufix}.1${mac_sufix}
@@ -40,16 +49,16 @@ cp -f ${lib_loc}/libgdal${linus_sufix}.1${mac_sufix} .
 ln -s -f libgdal${linus_sufix}.1${mac_sufix} libgdal${linus_sufix}${mac_sufix}
 
 cp -f ${lib_loc}/libNCSCnet${linus_sufix}.0.0.0${mac_sufix} .
-ln -s -f libNCSCnet${linus_sufix}.0.0.0${mac_sufix} libNCSCnet${linus_sufix}.0${mac_sufix}
+ln -s -f libNCSCnet${linus_sufix}.0.0.0${mac_sufix} libNCSCnet${linus_sufix}${mac_sufix}
 
 cp -f ${lib_loc}/libNCSEcw${linus_sufix}.0.0.0${mac_sufix} .
-ln -s -f libNCSEcw${linus_sufix}.0.0.0${mac_sufix} libNCSEcw${linus_sufix}.0${mac_sufix}
+ln -s -f libNCSEcw${linus_sufix}.0.0.0${mac_sufix} libNCSEcw${linus_sufix}${mac_sufix}
 
 cp -f ${lib_loc}/libNCSEcwC${linus_sufix}.0.0.0${mac_sufix} .
-ln -s -f libNCSEcwC${linus_sufix}.0.0.0${mac_sufix} libNCSEcwC${linus_sufix}.0${mac_sufix}
+ln -s -f libNCSEcwC${linus_sufix}.0.0.0${mac_sufix} libNCSEcwC${linus_sufix}${mac_sufix}
 
 cp -f ${lib_loc}/libNCSUtil${linus_sufix}.0.0.0${mac_sufix} .
-ln -s -f libNCSUtil${linus_sufix}.0.0.0${mac_sufix} libNCSUtil${linus_sufix}.0${mac_sufix}
+ln -s -f libNCSUtil${linus_sufix}.0.0.0${mac_sufix} libNCSUtil${linus_sufix}${mac_sufix}
 
 cp -f /usr/local/bin/gdalinfo .
 cp -f /usr/local/bin/gdal_translate .
