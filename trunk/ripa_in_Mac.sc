@@ -52,10 +52,26 @@ install_name_tool -change /usr/local/lib/libopencv_highgui.2.2.dylib	libopencv_h
 install_name_tool -change /usr/local/lib/libopencv_features2d.2.2.dylib	libopencv_features2d.dylib	libopencv_calib3d.dylib
 install_name_tool -change /usr/local/lib/libopencv_flann.2.2.dylib		libopencv_flann.dylib		libopencv_calib3d.dylib
 
-install_name_tool -id libopencv_video.dylib	libopencv_video.2.2.0.dylib
+install_name_tool -id libopencv_video.dylib		libopencv_video.2.2.0.dylib
 install_name_tool -change /usr/local/lib/libopencv_video.2.2.dylib		libopencv_video.dylib		libopencv_video.dylib
 install_name_tool -change /usr/local/lib/libopencv_core.2.2.dylib		libopencv_core.dylib		libopencv_video.dylib
 install_name_tool -change /usr/local/lib/libopencv_imgproc.2.2.dylib	libopencv_imgproc.dylib		libopencv_video.dylib
+
+install_name_tool -id libopencv_highgui.dylib	libopencv_highgui.2.2.0.dylib
+install_name_tool -change /usr/local/lib/libopencv_highgui.2.2.dylib	libopencv_highgui.dylib		libopencv_highgui.dylib
+install_name_tool -change /usr/local/lib/libopencv_core.2.2.dylib		libopencv_core.dylib		libopencv_highgui.dylib
+install_name_tool -change /usr/local/lib/libopencv_imgproc.2.2.dylib	libopencv_imgproc.dylib		libopencv_highgui.dylib
+
+install_name_tool -id libopencv_features2d.dylib	libopencv_features2d.2.2.0.dylib
+install_name_tool -change /usr/local/lib/libopencv_features2d.2.2.dylib	libopencv_features2d.dylib	libopencv_features2d.dylib
+install_name_tool -change /usr/local/lib/libopencv_core.2.2.dylib		libopencv_core.dylib		libopencv_features2d.dylib
+install_name_tool -change /usr/local/lib/libopencv_imgproc.2.2.dylib	libopencv_imgproc.dylib		libopencv_features2d.dylib
+install_name_tool -change /usr/local/lib/libopencv_highgui.2.2.dylib	libopencv_highgui.dylib		libopencv_features2d.dylib
+install_name_tool -change /usr/local/lib/libopencv_flann.2.2.dylib		libopencv_flann.dylib		libopencv_features2d.dylib
+
+install_name_tool -id libopencv_flann.dylib			libopencv_flann.2.2.0.dylib
+install_name_tool -change /usr/local/lib/libopencv_flann.2.2.dylib		libopencv_flann.dylib		libopencv_flann.dylib
+install_name_tool -change /usr/local/lib/libopencv_core.2.2.dylib		libopencv_core.dylib		libopencv_flann.dylib
 
 #install_name_tool -id libsz.2.dylib libsz.2.0.0.dylib
 #install_name_tool -id libz.1.dylib libz.1.dylib
