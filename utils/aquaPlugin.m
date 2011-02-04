@@ -443,6 +443,7 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 				if (track_filled && counter <= 12)					% Write updated quality file (The 'splina' case has counters >> 12)
 					mn = (m - 1)*12 + counter - 1;					% This will work only for entire years (not seasons)
 					Z_flags(ind0 & ~ind) = flag;					% Promote interpolated pixels to quality 'flag'
+					grdutils(Z_flags,'-c');							% Shift by -128 so it goes well with the uint8 add_off elsewere
 					if (mn == 0),		nc_io(fname3, sprintf('w%d/time',n_anos*numel(months)), handles, reshape(Z_flags,[1 size(Z_flags)]))
 					else				nc_io(fname3, sprintf('w%d', mn), handles, Z_flags)
 					end
