@@ -78,18 +78,14 @@ long int        mr[BOX_SIZE][BOX_SIZE][BOX_SIZE];
 long int        mg[BOX_SIZE][BOX_SIZE][BOX_SIZE];
 long int        mb[BOX_SIZE][BOX_SIZE][BOX_SIZE];
 
-void InitBoxes(void)
-{
+void InitBoxes(void) {
     int j;
     int m;
     int n;
     
-    for (j = 0; j < BOX_SIZE; j++)
-    {
-        for (m = 0; m < BOX_SIZE; m++)
-        {
-            for (n = 0; n < BOX_SIZE; n++)
-            {
+    for (j = 0; j < BOX_SIZE; j++) {
+        for (m = 0; m < BOX_SIZE; m++) {
+            for (n = 0; n < BOX_SIZE; n++) {
                 m2[j][m][n] = 0.0;
                 wt[j][m][n] = 0;
                 mr[j][m][n] = 0;
@@ -101,11 +97,9 @@ void InitBoxes(void)
 }
 
 /* build 3-D color histogram of counts, r/g/b, c^2 */
-void
-Hist3d(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
+void Hist3d(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
        long int *vwt, long int *vmr, long int *vmg, long int *vmb, float *m2,
-       uint16_T *Qadd)
-{
+       uint16_T *Qadd) {
     int ind;
     int r;
     int g;
@@ -117,12 +111,9 @@ Hist3d(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
     long int i;
                 
     for(i=0; i<256; ++i) 
-    {
         table[i]=i*i;
-    }
     
-    for(i=0; i<num_pixels; ++i)
-    {
+    for(i=0; i<num_pixels; ++i) {
         r = Ir[i]; 
         g = Ig[i]; 
         b = Ib[i];
@@ -153,9 +144,7 @@ Hist3d(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
  */
 
 /* compute cumulative moments. */
-void
-M3d(long int *vwt, long int *vmr, long int *vmg, long int *vmb, float *m2) 
-{
+void M3d(long int *vwt, long int *vmr, long int *vmg, long int *vmb, float *m2) {
     uint16_T ind1;
     uint16_T ind2;
     uint8_T i;
@@ -173,10 +162,8 @@ M3d(long int *vwt, long int *vmr, long int *vmg, long int *vmb, float *m2)
     float line2;
     float area2[BOX_SIZE];
 
-    for(r=1; r<BOX_SIZE; ++r)
-    {
-        for(i=0; i<BOX_SIZE; ++i) 
-        {
+    for(r=1; r<BOX_SIZE; ++r) {
+        for(i=0; i<BOX_SIZE; ++i) {
             area2[i] = 0.0;
             area[i] = 0;
             area_r[i] = 0;
@@ -184,15 +171,13 @@ M3d(long int *vwt, long int *vmr, long int *vmg, long int *vmb, float *m2)
             area_b[i] = 0;
         }
         
-        for(g=1; g<=32; ++g)
-        {
+        for(g=1; g<=32; ++g) {
             line2 = 0.0;
             line = 0;
             line_r = 0;
             line_g = 0;
             line_b = 0;
-            for(b=1; b<=32; ++b)
-            {
+            for(b=1; b<=32; ++b) {
                 ind1 = (r<<10) + (r<<6) + r + (g<<5) + g + b; /* [r][g][b] */
                 line += vwt[ind1];
                 line_r += vmr[ind1]; 
@@ -216,8 +201,7 @@ M3d(long int *vwt, long int *vmr, long int *vmg, long int *vmb, float *m2)
 }
 
 /* Compute sum over a box of any given statistic */
-long int Vol(struct box *cube, long int mmt[BOX_SIZE][BOX_SIZE][BOX_SIZE]) 
-{
+long int Vol(struct box *cube, long int mmt[BOX_SIZE][BOX_SIZE][BOX_SIZE]) {
     return( mmt[cube->r1][cube->g1][cube->b1] 
             -mmt[cube->r1][cube->g1][cube->b0]
             -mmt[cube->r1][cube->g0][cube->b1]
@@ -236,11 +220,8 @@ long int Vol(struct box *cube, long int mmt[BOX_SIZE][BOX_SIZE][BOX_SIZE])
 
 /* Compute part of Vol(cube, mmt) that doesn't depend on r1, g1, or b1 */
 /* (depending on dir) */
-long int Bottom(struct box *cube, uint8_T dir, 
-                long int mmt[BOX_SIZE][BOX_SIZE][BOX_SIZE])
-{
-    switch(dir)
-    {
+long int Bottom(struct box *cube, uint8_T dir, long int mmt[BOX_SIZE][BOX_SIZE][BOX_SIZE]) {
+    switch(dir) {
     case RED:
         return( -mmt[cube->r0][cube->g1][cube->b1]
                 +mmt[cube->r0][cube->g1][cube->b0]
@@ -266,11 +247,8 @@ long int Bottom(struct box *cube, uint8_T dir,
 
 /* Compute remainder of Vol(cube, mmt), substituting pos for */
 /* r1, g1, or b1 (depending on dir) */
-long int Top(struct box *cube, uint8_T dir, int pos, 
-             long int mmt[BOX_SIZE][BOX_SIZE][BOX_SIZE])
-{
-    switch(dir)
-    {
+long int Top(struct box *cube, uint8_T dir, int pos, long int mmt[BOX_SIZE][BOX_SIZE][BOX_SIZE]) {
+    switch(dir) {
     case RED:
         return( mmt[pos][cube->g1][cube->b1] 
                 -mmt[pos][cube->g1][cube->b0]
@@ -296,8 +274,7 @@ long int Top(struct box *cube, uint8_T dir, int pos,
 
 /* Compute the weighted variance of a box */
 /* NB: as with the raw statistics, this is really the variance * NumPixels */
-float Var(struct box *cube)
-{
+float Var(struct box *cube) {
     float dr;
     float dg;
     float db;
@@ -329,9 +306,7 @@ float Var(struct box *cube)
 
 
 float Maximize(struct box *cube, uint8_T dir, int first, int last, int *cut,
-               long int whole_r, long int whole_g, long int whole_b, 
-               long int whole_w)
-{
+               long int whole_r, long int whole_g, long int whole_b, long int whole_w) {
     long int half_r;
     long int half_g;
     long int half_b;
@@ -350,21 +325,18 @@ float Maximize(struct box *cube, uint8_T dir, int first, int last, int *cut,
     base_w = Bottom(cube, dir, wt);
     max = 0.0;
     *cut = -1;
-    for(i=first; i<last; ++i)
-    {
+    for(i=first; i<last; ++i) {
         half_r = base_r + Top(cube, dir, i, mr);
         half_g = base_g + Top(cube, dir, i, mg);
         half_b = base_b + Top(cube, dir, i, mb);
         half_w = base_w + Top(cube, dir, i, wt);
         /* now half_x is sum over lower half of box, if split at i */
-        if (half_w == 0) 
-        {      
+        if (half_w == 0) {      
             /* subbox could be empty of pixels! */
             /* never split into an empty box */
             continue;             
         } 
-        else
-        {
+        else {
             temp = ((float)half_r*half_r + (float)half_g*half_g +
                     (float)half_b*half_b)/half_w;
         }
@@ -373,20 +345,16 @@ float Maximize(struct box *cube, uint8_T dir, int first, int last, int *cut,
         half_g = whole_g - half_g;
         half_b = whole_b - half_b;
         half_w = whole_w - half_w;
-        if (half_w == 0) 
-        {      
+        if (half_w == 0) {      
             /* subbox could be empty of pixels! */
             /* never split into an empty box */
             continue;             
         } 
-        else
-        {
-            temp += ((float)half_r*half_r + (float)half_g*half_g +
-                     (float)half_b*half_b)/half_w;
+        else {
+            temp += ((float)half_r*half_r + (float)half_g*half_g + (float)half_b*half_b)/half_w;
         }
 
-        if (temp > max) 
-        {
+        if (temp > max) {
             max=temp; 
             *cut=i;
         }
@@ -395,9 +363,7 @@ float Maximize(struct box *cube, uint8_T dir, int first, int last, int *cut,
     return(max);
 }
 
-int
-Cut(struct box *set1, struct box *set2)
-{
+int Cut(struct box *set1, struct box *set2) {
     uint8_T dir;
     int cutr;
     int cutg;
@@ -422,31 +388,23 @@ Cut(struct box *set1, struct box *set2)
     maxb = Maximize(set1, BLUE, set1->b0+1, set1->b1, &cutb,
                     whole_r, whole_g, whole_b, whole_w);
 
-    if( (maxr>=maxg)&&(maxr>=maxb) ) 
-    {
+    if( (maxr>=maxg)&&(maxr>=maxb) ) {
         dir = RED;
         if (cutr < 0) 
-        {
             return 0; /* can't split the box */
-        }
     }
-    else
-    {
-        if( (maxg>=maxr)&&(maxg>=maxb) ) {
+    else {
+        if( (maxg>=maxr)&&(maxg>=maxb) )
             dir = GREEN;
-        }
         else
-        {
             dir = BLUE; 
-        }
     }
 
     set2->r1 = set1->r1;
     set2->g1 = set1->g1;
     set2->b1 = set1->b1;
 
-    switch (dir)
-    {
+    switch (dir) {
     case RED:
         set2->r0 = set1->r1 = cutr;
         set2->g0 = set1->g0;
@@ -473,18 +431,14 @@ Cut(struct box *set1, struct box *set2)
 }
 
 
-Mark(struct box *cube, int label, uint8_T *tag)
-{
+Mark(struct box *cube, int label, uint8_T *tag) {
     int r;
     int g;
     int b;
 
-    for(r=cube->r0+1; r<=cube->r1; ++r)
-    {
-        for(g=cube->g0+1; g<=cube->g1; ++g)
-        {
-            for(b=cube->b0+1; b<=cube->b1; ++b)
-            {
+    for(r=cube->r0+1; r<=cube->r1; ++r) {
+        for(g=cube->g0+1; g<=cube->g1; ++g) {
+            for(b=cube->b0+1; b<=cube->b1; ++b) {
                 tag[(r<<10) + (r<<6) + r + (g<<5) + g + b] = label;
             }
         }
@@ -494,11 +448,9 @@ Mark(struct box *cube, int label, uint8_T *tag)
     
 
 
-int
-quantize_color(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels, 
+int quantize_color(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels, 
                uint8_T *lut_r, uint8_T *lut_g, uint8_T *lut_b, int num_colors, 
-               uint16_T *Qadd, bool compute_output_image)
-{
+               uint16_T *Qadd, bool compute_output_image) {
     struct box *cube;
     uint8_T *tag;
     int next;
@@ -522,29 +474,24 @@ quantize_color(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
     cube[0].r0 = cube[0].g0 = cube[0].b0 = 0;
     cube[0].r1 = cube[0].g1 = cube[0].b1 = 32;
     next = 0;
-    for(i=1; i<num_colors; ++i)
-    {
-        if (Cut(&cube[next], &cube[i])) 
-        {
+    for(i=1; i<num_colors; ++i) {
+        if (Cut(&cube[next], &cube[i])) {
             /* volume test ensures we won't try to cut one-cell box */
             vv[next] = (cube[next].vol>1) ? Var(&cube[next]) : 0.0F;
             vv[i] = (cube[i].vol>1) ? Var(&cube[i]) : 0.0F;
         } 
-        else 
-        {
+        else {
             vv[next] = 0.0;   /* don't try to split this box again */
             i--;              /* didn't create box i */
         }
         next = 0; 
         temp = vv[0];
-        for(k=1; k<=i; ++k) 
-        {
+        for(k=1; k<=i; ++k) {
             if (vv[k] > temp) {
                 temp = vv[k]; next = k;
             } 
         }
-        if (temp <= 0.0) 
-        {
+        if (temp <= 0.0) {
             num_colors = i+1;
             /* Only got num_colors boxes */
             break;
@@ -553,29 +500,23 @@ quantize_color(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
 
     tag = (uint8_T *) mxMalloc(BOX_SIZE*BOX_SIZE*BOX_SIZE * sizeof(*tag));
 
-    for(k=0; k<num_colors; ++k)
-    {
+    for(k=0; k<num_colors; ++k) {
         Mark(&cube[k], k, tag);
         weight = Vol(&cube[k], wt);
-        if (weight) 
-        {
+        if (weight) {
             lut_r[k] = (uint8_T) (Vol(&cube[k], mr) / weight);
             lut_g[k] = (uint8_T) (Vol(&cube[k], mg) / weight);
             lut_b[k] = (uint8_T) (Vol(&cube[k], mb) / weight);
         }
-        else
-        {
+        else {
             /* bogus box */
             lut_r[k] = lut_g[k] = lut_b[k] = 0;               
         }
     }
 
-    if (compute_output_image)
-    {
+    if (compute_output_image) {
         for (i=0; i<num_pixels; ++i) 
-        { 
             Qadd[i] = tag[Qadd[i]]; 
-        }
     }
 
     mxFree(tag);
@@ -585,57 +526,39 @@ quantize_color(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
     return(num_colors);
 }
 
-int
-check_inputs(int nrhs, const mxArray *prhs[])
-{
+int check_inputs(int nrhs, const mxArray *prhs[]) {
     const int *size;
     int num_colors;
 
     if (nrhs != 2)
-    {
         mexErrMsgTxt("2 input arguments required.");
-    }
     
     if (! mxIsUint8(prhs[0]))
-    {
         mexErrMsgTxt("First input must be a uint8 array.");
-    }
     
     if (mxGetNumberOfDimensions(prhs[0]) != 3)
-    {
         mexErrMsgTxt("First input must be a 3-D uint8 array.");
-    }
     
     size = mxGetDimensions(prhs[0]);
     if (size[2] != 3)
-    {
         mexErrMsgTxt("First input must be M-by-N-by-3.");
-    }
     
-    if (! mxIsDouble(prhs[1]) ||
-        (mxGetNumberOfDimensions(prhs[1]) != 2) ||
-        (mxGetM(prhs[1]) != 1) ||
-        (mxGetN(prhs[1]) != 1))
+    if (! mxIsDouble(prhs[1]) || (mxGetNumberOfDimensions(prhs[1]) != 2) ||
+        (mxGetM(prhs[1]) != 1) || (mxGetN(prhs[1]) != 1))
     {
         mexErrMsgTxt("Second argument must be a double scalar.");
     }
 
     num_colors = (int) mxGetScalar(prhs[1]);
     if (num_colors < 0)
-    {
         mexErrMsgTxt("NUM_COLORS cannot be negative.");
-    }
     if (num_colors > MAXCOLORS)
-    {
         mexErrMsgTxt("Too many colors specified.");
-    }
     
     return(num_colors);
 }
 
-void
-mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
-{
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     const int *size;
     int num_pixels;
     uint8_T *image_bytes_red;
@@ -684,8 +607,7 @@ mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     map_red = map_bytes;
     map_green = map_bytes + num_colors;
     map_blue = map_bytes + 2*num_colors;
-    for (k = 0; k < num_colors; k++)
-    {
+    for (k = 0; k < num_colors; k++) {
         map_red[k] = lut_red[k];
         map_green[k] = lut_green[k];
         map_blue[k] = lut_blue[k];
@@ -695,21 +617,15 @@ mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(lut_green);
     mxFree(lut_blue);
 
-    if (nlhs > 1)
-    {
-        if (num_colors > 256)
-        {
+    if (nlhs > 1) {
+        if (num_colors > 256) {
             plhs[1] = out_image;
         }
-        else
-        {
-            out_image_8 = mxCreateNumericMatrix(size[0], size[1],
-                                                mxUINT8_CLASS, mxREAL);
+        else {
+            out_image_8 = mxCreateNumericMatrix(size[0], size[1], mxUINT8_CLASS, mxREAL);
             out_pr_8 = (uint8_T *) mxGetData(out_image_8);
             for (k = 0; k < size[0]*size[1]; k++)
-            {
                 out_pr_8[k] = (uint8_T) out_pr[k];
-            }
             
             mxDestroyArray(out_image);
             
@@ -717,14 +633,5 @@ mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
     }
     else
-    {
         mxDestroyArray(out_image);
-    }
 }
-
-    
-
-        
-    
-                                
-    
