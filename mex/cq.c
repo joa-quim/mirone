@@ -1,3 +1,5 @@
+/* Copyright 2001-2008 The MathWorks, Inc. */
+
 /*
  * CQ - MEX-file for variance minimization color quantization.
  *
@@ -18,7 +20,7 @@
  *    http://www.csd.uwo.ca/~wu/index.html
  *    http://www.csd.uwo.ca/~wu/cq.c
  *
- * $Revision: 1.3 $
+ * $Revision: 1.1.6.2 $
  *
  */
 
@@ -44,10 +46,9 @@ additional documentation and a cure to a previous bug.
 Free to distribute, comments and suggestions are appreciated.
 **********************************************************************/ 
 
-static char rcsid[] = "$Id: cq.c,v 1.3 2001/01/24 14:28:59 eddins Exp $";
-
 #include <math.h>
 #include "mex.h"
+#include "mwsize.h"
 
 #define MAXCOLORS  65536
 
@@ -97,8 +98,8 @@ void InitBoxes(void) {
 }
 
 /* build 3-D color histogram of counts, r/g/b, c^2 */
-void Hist3d(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
-       long int *vwt, long int *vmr, long int *vmg, long int *vmb, float *m2,
+void Hist3d(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, mwSize num_pixels,
+       long int *vwt, long int *vmr, long int *vmg, long int *vmb, float *m2_local,
        uint16_T *Qadd) {
     int ind;
     int r;
@@ -108,10 +109,10 @@ void Hist3d(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
     int ing;
     int inb;
     int table[256];
-    long int i;
+    mwSize i;
                 
     for(i=0; i<256; ++i) 
-        table[i]=i*i;
+        table[i]= (int) (i*i);
     
     for(i=0; i<num_pixels; ++i) {
         r = Ir[i]; 
@@ -126,7 +127,7 @@ void Hist3d(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
         vmr[ind] += r;
         vmg[ind] += g;
         vmb[ind] += b;
-        m2[ind] += (float)(table[r]+table[g]+table[b]);
+        m2_local[ind] += (float)(table[r]+table[g]+table[b]);
     }
 
 }
@@ -144,7 +145,7 @@ void Hist3d(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
  */
 
 /* compute cumulative moments. */
-void M3d(long int *vwt, long int *vmr, long int *vmg, long int *vmb, float *m2) {
+void M3d(long int *vwt, long int *vmr, long int *vmg, long int *vmb, float *m2_local) {
     uint16_T ind1;
     uint16_T ind2;
     uint8_T i;
@@ -183,7 +184,7 @@ void M3d(long int *vwt, long int *vmr, long int *vmg, long int *vmb, float *m2) 
                 line_r += vmr[ind1]; 
                 line_g += vmg[ind1]; 
                 line_b += vmb[ind1];
-                line2 += m2[ind1];
+                line2 += m2_local[ind1];
                 area[b] += line;
                 area_r[b] += line_r;
                 area_g[b] += line_g;
@@ -194,7 +195,7 @@ void M3d(long int *vwt, long int *vmr, long int *vmg, long int *vmb, float *m2) 
                 vmr[ind1] = vmr[ind2] + area_r[b];
                 vmg[ind1] = vmg[ind2] + area_g[b];
                 vmb[ind1] = vmb[ind2] + area_b[b];
-                m2[ind1] = m2[ind2] + area2[b];
+                m2_local[ind1] = m2_local[ind2] + area2[b];
             }
         }
     }
@@ -227,21 +228,20 @@ long int Bottom(struct box *cube, uint8_T dir, long int mmt[BOX_SIZE][BOX_SIZE][
                 +mmt[cube->r0][cube->g1][cube->b0]
                 +mmt[cube->r0][cube->g0][cube->b1]
                 -mmt[cube->r0][cube->g0][cube->b0] );
-        break;
     case GREEN:
         return( -mmt[cube->r1][cube->g0][cube->b1]
                 +mmt[cube->r1][cube->g0][cube->b0]
                 +mmt[cube->r0][cube->g0][cube->b1]
                 -mmt[cube->r0][cube->g0][cube->b0] );
-        break;
     case BLUE:
         return( -mmt[cube->r1][cube->g1][cube->b0]
                 +mmt[cube->r1][cube->g0][cube->b0]
                 +mmt[cube->r0][cube->g1][cube->b0]
                 -mmt[cube->r0][cube->g0][cube->b0] );
-        break;
     default:
-        mexErrMsgTxt("Internal error: unrecognized value for dir.");
+        mexErrMsgIdAndTxt("MATLAB:cq:internalBadDirValue",
+                          "Internal error: unrecognized value for dir.");
+        return(0);
     }
 }
 
@@ -254,21 +254,20 @@ long int Top(struct box *cube, uint8_T dir, int pos, long int mmt[BOX_SIZE][BOX_
                 -mmt[pos][cube->g1][cube->b0]
                 -mmt[pos][cube->g0][cube->b1]
                 +mmt[pos][cube->g0][cube->b0] );
-        break;
     case GREEN:
         return( mmt[cube->r1][pos][cube->b1] 
                 -mmt[cube->r1][pos][cube->b0]
                 -mmt[cube->r0][pos][cube->b1]
                 +mmt[cube->r0][pos][cube->b0] );
-        break;
     case BLUE:
         return( mmt[cube->r1][cube->g1][pos]
                 -mmt[cube->r1][cube->g0][pos]
                 -mmt[cube->r0][cube->g1][pos]
                    +mmt[cube->r0][cube->g0][pos] );
-        break;
     default:
-        mexErrMsgTxt("Internal error: unrecognized value for dir.");
+        mexErrMsgIdAndTxt("MATLAB:cq:internalBadDirValue",
+                          "Internal error: unrecognized value for dir.");
+        return(0);
     }
 }
 
@@ -336,10 +335,8 @@ float Maximize(struct box *cube, uint8_T dir, int first, int last, int *cut,
             /* never split into an empty box */
             continue;             
         } 
-        else {
-            temp = ((float)half_r*half_r + (float)half_g*half_g +
-                    (float)half_b*half_b)/half_w;
-        }
+        else
+            temp = ((float)half_r*half_r + (float)half_g*half_g + (float)half_b*half_b)/half_w;
 
         half_r = whole_r - half_r;
         half_g = whole_g - half_g;
@@ -350,9 +347,8 @@ float Maximize(struct box *cube, uint8_T dir, int first, int last, int *cut,
             /* never split into an empty box */
             continue;             
         } 
-        else {
+        else
             temp += ((float)half_r*half_r + (float)half_g*half_g + (float)half_b*half_b)/half_w;
-        }
 
         if (temp > max) {
             max=temp; 
@@ -394,8 +390,9 @@ int Cut(struct box *set1, struct box *set2) {
             return 0; /* can't split the box */
     }
     else {
-        if( (maxg>=maxr)&&(maxg>=maxb) )
+        if( (maxg>=maxr)&&(maxg>=maxb) ) {
             dir = GREEN;
+        }
         else
             dir = BLUE; 
     }
@@ -421,7 +418,8 @@ int Cut(struct box *set1, struct box *set2) {
         set2->g0 = set1->g0;
         break;
     default:
-        mexErrMsgTxt("Internal error: unrecognized value for dir.");
+        mexErrMsgIdAndTxt("MATLAB:cq:internalBadDirValue",
+                          "Internal error: unrecognized value for dir.");
     }
 
     set1->vol=(set1->r1-set1->r0)*(set1->g1-set1->g0)*(set1->b1-set1->b0);
@@ -431,32 +429,28 @@ int Cut(struct box *set1, struct box *set2) {
 }
 
 
-Mark(struct box *cube, int label, uint8_T *tag) {
+void Mark(struct box *cube, mwSize label, uint16_T *tag) {
     int r;
     int g;
     int b;
 
     for(r=cube->r0+1; r<=cube->r1; ++r) {
         for(g=cube->g0+1; g<=cube->g1; ++g) {
-            for(b=cube->b0+1; b<=cube->b1; ++b) {
-                tag[(r<<10) + (r<<6) + r + (g<<5) + g + b] = label;
-            }
+            for(b=cube->b0+1; b<=cube->b1; ++b)
+                tag[(r<<10) + (r<<6) + r + (g<<5) + g + b] = (uint16_T) label;
         }
     }
 }
 
-    
-
-
-int quantize_color(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels, 
-               uint8_T *lut_r, uint8_T *lut_g, uint8_T *lut_b, int num_colors, 
+mwSize quantize_color(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, mwSize num_pixels, 
+               uint8_T *lut_r, uint8_T *lut_g, uint8_T *lut_b, mwSize num_colors, 
                uint16_T *Qadd, bool compute_output_image) {
     struct box *cube;
-    uint8_T *tag;
-    int next;
-    long int i;
+    uint16_T *tag;
+    mwSize next;
+    mwSize i;
     long int weight;
-    int k;
+    mwSize k;
     float *vv;
     float temp;
 
@@ -488,7 +482,8 @@ int quantize_color(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
         temp = vv[0];
         for(k=1; k<=i; ++k) {
             if (vv[k] > temp) {
-                temp = vv[k]; next = k;
+                temp = vv[k]; 
+                next = k;
             } 
         }
         if (temp <= 0.0) {
@@ -498,7 +493,7 @@ int quantize_color(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
         }
     }
 
-    tag = (uint8_T *) mxMalloc(BOX_SIZE*BOX_SIZE*BOX_SIZE * sizeof(*tag));
+    tag = (uint16_T *) mxMalloc(BOX_SIZE*BOX_SIZE*BOX_SIZE * sizeof(*tag));
 
     for(k=0; k<num_colors; ++k) {
         Mark(&cube[k], k, tag);
@@ -508,10 +503,9 @@ int quantize_color(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
             lut_g[k] = (uint8_T) (Vol(&cube[k], mg) / weight);
             lut_b[k] = (uint8_T) (Vol(&cube[k], mb) / weight);
         }
-        else {
+        else
             /* bogus box */
             lut_r[k] = lut_g[k] = lut_b[k] = 0;               
-        }
     }
 
     if (compute_output_image) {
@@ -526,41 +520,51 @@ int quantize_color(uint8_T *Ir, uint8_T *Ig, uint8_T *Ib, int num_pixels,
     return(num_colors);
 }
 
-int check_inputs(int nrhs, const mxArray *prhs[]) {
-    const int *size;
-    int num_colors;
+mwSize check_inputs(int nrhs, const mxArray *prhs[]) {
+    const mwSize *size;
+    mwSize num_colors;
 
-    if (nrhs != 2)
-        mexErrMsgTxt("2 input arguments required.");
+    if (nrhs != 2) {
+        mexErrMsgIdAndTxt("MATLAB:cq:twoInputsRequired",
+                          "2 input arguments required.");
+    }
     
     if (! mxIsUint8(prhs[0]))
-        mexErrMsgTxt("First input must be a uint8 array.");
+        mexErrMsgIdAndTxt("MATLAB:cq:firstInputMustBeUint8",
+                          "First input must be a uint8 array.");
     
     if (mxGetNumberOfDimensions(prhs[0]) != 3)
-        mexErrMsgTxt("First input must be a 3-D uint8 array.");
+        mexErrMsgIdAndTxt("MATLAB:cq:firstInputMustBe3DUint8",
+                          "First input must be a 3-D uint8 array.");
     
     size = mxGetDimensions(prhs[0]);
     if (size[2] != 3)
-        mexErrMsgTxt("First input must be M-by-N-by-3.");
+        mexErrMsgIdAndTxt("MATLAB:cq:firstInputMustBeMbyNby3",
+                          "First input must be M-by-N-by-3.");
     
     if (! mxIsDouble(prhs[1]) || (mxGetNumberOfDimensions(prhs[1]) != 2) ||
         (mxGetM(prhs[1]) != 1) || (mxGetN(prhs[1]) != 1))
     {
-        mexErrMsgTxt("Second argument must be a double scalar.");
+        mexErrMsgIdAndTxt("MATLAB:cq:secondArgMustBeDoubleScalar",
+                          "Second argument must be a double scalar.");
     }
 
-    num_colors = (int) mxGetScalar(prhs[1]);
-    if (num_colors < 0)
-        mexErrMsgTxt("NUM_COLORS cannot be negative.");
+    if (mxGetScalar(prhs[1]) < 0.0)
+        mexErrMsgIdAndTxt("MATLAB:cq:numColorsMustBeNonNegative",
+                          "NUM_COLORS cannot be negative.");
+
+    num_colors = (mwSize) mxGetScalar(prhs[1]);
+
     if (num_colors > MAXCOLORS)
-        mexErrMsgTxt("Too many colors specified.");
+        mexErrMsgIdAndTxt("MATLAB:cq:tooManyColors",
+                          "Too many colors specified.");
     
     return(num_colors);
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-    const int *size;
-    int num_pixels;
+    const mwSize *size;
+    mwSize num_pixels;
     uint8_T *image_bytes_red;
     uint8_T *image_bytes_green;
     uint8_T *image_bytes_blue;
@@ -571,12 +575,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     mxArray *out_image_8;
     uint16_T *out_pr;
     uint8_T *out_pr_8;
-    int num_colors;
+    mwSize num_colors;
     uint8_T *map_bytes;
     uint8_T *map_red;
     uint8_T *map_green;
     uint8_T *map_blue;
-    int k;
+    mwSize k;
     bool compute_output_image;
 
     num_colors = check_inputs(nrhs, prhs);
@@ -618,9 +622,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     mxFree(lut_blue);
 
     if (nlhs > 1) {
-        if (num_colors > 256) {
+        if (num_colors > 256)
             plhs[1] = out_image;
-        }
         else {
             out_image_8 = mxCreateNumericMatrix(size[0], size[1], mxUINT8_CLASS, mxREAL);
             out_pr_8 = (uint8_T *) mxGetData(out_image_8);
