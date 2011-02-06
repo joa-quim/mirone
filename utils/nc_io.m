@@ -302,7 +302,6 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 
 	if (~z_id),		error('NC_IO:read_nc', 'Didn''t find any (at least) 2D variable.'),		end
 
-	ndims = numel(s.Dataset(z_id).Size);	% z number of dimensions
 	dims = s.Dataset(z_id).Dimension;		% Variable names of dimensions z variable - ORDER IS CRUTIAL
 
 	% --------------------- Fish in the attribs of the Z var --------------------
@@ -314,10 +313,6 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	dataNames = {s.Dataset.Name};			% example: {'x' 'y' 'z'}; Order may change
 	ind = strcmp(attribNames,'actual_range');		z_actual_range = [];
 	if (any(ind)),	z_actual_range = s.Dataset(z_id).Attribute(ind).Value;	end
-	ind = strcmp(attribNames,'scale_factor');		scale_factor = 1;
-	if (any(ind)),	scale_factor = s.Dataset(z_id).Attribute(ind).Value;	end
-	ind = strcmp(attribNames,'add_offset');			add_offset = 0;
-	if (any(ind)),	add_offset = s.Dataset(z_id).Attribute(ind).Value;		end
 	% GDAL and ESRI put the eventual georeferencing on the layer
 	srsWKT = [];		strPROJ4 = [];
 	ind = strcmp(attribNames,'grid_mapping');
@@ -343,7 +338,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	x_id = find(ind);
 	ind = strcmp(dataNames, dims{end-1});
 	y_id = find(ind);
-	
+
 	x_actual_range = [];		y_actual_range = [];
 	if ( ~isempty(x_id) )
 		% ------------------ Get the X & Y ranges ------------------------------------
@@ -365,10 +360,8 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	% ----------------------------------------------------------------------------
 	
 	% --------------------- Fish the Global attributes ---------------------------
-	if (~isempty(s.Attribute))
-		attribNames = {s.Attribute.Name};
-	else
-		attribNames = [];
+	if (~isempty(s.Attribute)),		attribNames = {s.Attribute.Name};
+	else							attribNames = [];
 	end
 	ind = strcmp(attribNames,'node_offset');
 	if (any(ind)),	node_offset = s.Attribute(ind).Value;
@@ -413,6 +406,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 
 	if (Y(2) < Y(1))
 		Y = Y(end:-1:1);		Z = flipud(Z);
+		if (~isempty(y_actual_range)),		y_actual_range = y_actual_range(2:-1:1);	end
 	end
 
 	if (~isempty(x_actual_range)),		head(1:2) = x_actual_range;
