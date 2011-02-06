@@ -1,7 +1,7 @@
 function varargout = line_operations(varargin)
 % Wraper figure to perform vectorial operations on line/patch objects
 
-%	Copyright (c) 2004-2010 by J. Luis
+%	Copyright (c) 2004-2011 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -70,6 +70,7 @@ function varargout = line_operations(varargin)
 	handles.lc = varargin{1}.DefLineColor;
 	handles.geog = varargin{1}.geog;
 	handles.head = varargin{1}.head;
+	handles.path_tmp = varargin{1}.path_tmp;
 	IamCompiled = varargin{1}.IamCompiled;
 
 	if (floating)
@@ -78,12 +79,12 @@ function varargout = line_operations(varargin)
 	end
 
 	handles.known_ops = {'buffer'; 'polysimplify'; 'bspline'; 'cspline'; 'polyunion'; 'polyintersect'; ...
-			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'hand2Workspace'};
+			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'hand2Workspace'; 'toRidge'};
 	handles.hLine = [];
 	set(handles.popup_cmds,'Tooltip', 'Select one operation from this list')
 	set(handles.popup_cmds,'String', {'Possible commands'; 'buffer DIST'; 'polysimplify TOL'; 'bspline'; ...
 			'cspline N RES'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; 'line2patch'; ...
-			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'hand2Workspace'} )
+			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'hand2Workspace'; 'toRidge 5'} )
 
 	handles.ttips = cell(numel(handles.known_ops));
 	handles.ttips{1} = 'Select one operation from this list';
@@ -128,6 +129,9 @@ function varargout = line_operations(varargin)
 								'is carried on those N + 1 lines, which are averaged (stacked) in the end.']);
 	handles.ttips{13} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
 								'Use this if you want to gain access to all handle properties.']);
+	handles.ttips{14} = sprintf(['Calculate a new line with vertex siting on top of nearby ridges.\n' ...
+								'The parameter N (5) is used to search for ridges only +/- cells\n' ...
+								'away from current vertex. If not prived, defaults to 5']);
 
 	if (IamCompiled),	handles.known_ops(12) = [];	handles.ttips(13) = [];	end		% regretably
 
@@ -153,7 +157,6 @@ function push_pickLine_CB(hObject, handles)
 	set(hObject,'Tooltip', ['Have ' sprintf('%d',numel(hLine)) ' lines to play with'])
 
     set(handles.hMirFig,'pointer','arrow')
-    %figure(handles.figure1)                 % Bring this figure to front again
 	guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------------------------------------
@@ -174,7 +177,7 @@ function push_apply_CB(hObject, handles)
 	end
 
 	[t, r] = strtok(cmd);
-	ind = strmatch(t, handles.known_ops);
+	ind = find(strcmp(t, handles.known_ops));
 	if (isempty(ind))
 		% Here (will come) a function call which tries to adress the general command issue
 		return
@@ -370,6 +373,43 @@ function push_apply_CB(hObject, handles)
 
 		case 'hand2Workspace'
 			assignin('base','lineHandles',handles.hLine);
+			
+		case 'toRidge'
+			hanMir = guidata(handles.hMirFig);
+			[out, msg] = validate_args(handles.known_ops{ind}, r, hanMir);
+			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
+			N = out(1);
+			[X,Y,Z,head] = load_grd(hanMir);
+			if (isempty(Z))		return,		end
+			x = get(handles.hLine(1), 'xdata');		y = get(handles.hLine(1), 'ydata');
+			dx = N * head(8);			dy = N * head(9);
+			f_name = [handles.path_tmp 'lixo.dat'];		% Temp file
+			xR = x * NaN;				yR = y * NaN;
+			hR = line('XData',xR, 'YData',yR, 'Parent',handles.hMirAxes,'Linewidth', ...
+				get(handles.hLine(1),'Linewidth')+1, 'Color',(1 - get(handles.hLine(1),'Color')));
+			draw_funs(hR,'line_uicontext')	% Set edition functions
+			for (k = 1:numel(x))		% Loop over vertex to find its closest position on the Ridge
+				xRec = [max(head(1), x(k)-dx) min(head(2), x(k)+dx)];
+				yRec = [max(head(3), y(k)-dy) min(head(4), y(k)+dy)];
+				rect = [xRec(1) xRec(1) xRec(2) xRec(2) xRec(1); yRec(1) yRec(2) yRec(2) yRec(1) yRec(1)];
+				% Get a small grid arround the current point
+				[X,Y,Z,hdr] = mirone('ImageCrop_CB', hanMir, rect, 'CropaGrid_pure');
+				out = grdppa_m(Z, hdr);
+				if ( ~all(isnan(out(1,:))) )
+					double2ascii(f_name,out','%f\t%f');					% Save as file so we can use it mapproject
+					pt = mapproject_m([x(k) y(k)], ['-L' f_name]);		% Project and get points along the line
+				else
+					pt = [0 0 Inf];		% Make it fall into the next 'else' case
+				end
+				if ( ~isinf(pt(3)) )
+					xR(k) = pt(4);		yR(k) = pt(5);
+				else
+					xR(k) = x(k);		yR(k) = y(k);
+				end
+				set(hR, 'XData', xR, 'YData', yR)
+			end
+			clear mapproject_m			% Because of the memory leaks
+			set(hanMir.figure1,'pointer','arrow')
 	end
 	
 % --------------------------------------------------------------------------------------------------
@@ -495,6 +535,21 @@ function [out, msg] = validate_args(qual, str, np)
 				[t, r] = strtok(r);		n = n + 1;
 			end
 			out = {str(ind1+1:ind3-1); str(ind3+1:ind2-1); n};
+
+		case 'toRidge'
+			if (~np.validGrid)
+				msg = 'This operation is only possible with grids. Not images';		return
+			end
+			N = strtok(str);
+			if (isempty(N)),	N = '5';		end		% Default value
+			out = round(abs( str2double(N) ));
+			if (isnan(out))
+				if (N(1) == 'N')
+					msg = 'The argument "N" is no to be taken literaly. It must contain the number of grid cell arround vertex';
+				else
+					msg = 'the N argument is nonsense';
+				end
+			end
 	end
 
 % --------------------------------------------------------------------------------------------------
