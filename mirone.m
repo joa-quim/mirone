@@ -442,13 +442,16 @@ function PixMode_CB(hObject, event, hFig, opt)
 	end
 
 % --------------------------------------------------------------------
-function ImageCrop_CB(handles, opt, opt2, opt3)
+function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 % OPT is either a handle to a line that may be a rectangle/polygon, OR, if empty
 %	calls rubberbandbox to do a interactive croping (called by "Crop Grid")
 % OPT2 is a string to direct this function to different operations that
 %	apply to the grid and update the image.
 % OPT3 contains the interpolation method when OPT2 == 'FillGaps' ('cubic', 'linear' or 'sea')
 % Note: I won't make the "Drape" option active in the cropped window
+%
+% VARARGOUT -> If used will hold the result of this function instead of creating a new Fig
+%				(Currently only implemented in 'CropaGrid_pure' case)
 
 if (handles.no_file),		return,		end
 set(handles.figure1,'pointer','watch')
@@ -456,8 +459,15 @@ first_nans = 0;		pal = [];		mask = [];	crop_pol = false;	% Defaults to croping f
 wasROI = false;		done = false;
 if (nargin < 3),	opt2 = [];		end
 if (nargin < 4),	opt3 = [];		end
+
 if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve many purposes)
-	x = get(opt,'XData');	y = get(opt,'YData');
+	if ( (numel(opt) == 1) && ishandle(opt) )
+		x = get(opt,'XData');	y = get(opt,'YData');
+	else
+		if (size(opt,2) > 2),	x = opt(1,:);	y = opt(2,:);		% Row vectors
+		else					x = opt(:,1)';	y = opt(:,2)';		% Were col vectors, make them row for consistency
+		end
+	end
 	if ~( (x(1) == x(end)) && (y(1) == y(end)) && length(x) == 5 && ...
 			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 		xp(1) = min(x);		xp(2) = max(x);
@@ -584,8 +594,12 @@ elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )		% Do the operatio
 		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
 		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
-		tit = 'Grid cuted by Mirone';		% Have to change this to reflect the old title
-		GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped grid')
+		if (~nargout)						% Create a new Fig
+			tit = 'Grid cuted by Mirone';	% Have to change this to reflect the old title
+			GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped grid')
+		else								% Send back the cropped grid to whom asked for it. 
+			varargout = {X,Y,Z_rect,head};	% Is not going to be easy to document this
+		end
 	elseif (strcmp(curr_opt,'histo'))		% HISTO means compute histogram inside the selected rect area
 		GridToolsHistogram_CB(guidata(handles.figure1), to_func);
 	elseif (strcmp(curr_opt,'power'))		% POWER means compute log10 power spectrum
@@ -715,7 +729,7 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 end
 
 % UNDO that works only with these cases
-if strmatch(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth'})
+if any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth'}))
 	cmenuHand = get(opt,'UIContextMenu');
 	uimenu(cmenuHand, 'Label', 'Undo', 'Separator','on', 'Callback', {@do_undo,handles.figure1,opt,cmenuHand});
 end
