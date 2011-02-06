@@ -79,12 +79,12 @@ function varargout = line_operations(varargin)
 	end
 
 	handles.known_ops = {'buffer'; 'polysimplify'; 'bspline'; 'cspline'; 'polyunion'; 'polyintersect'; ...
-			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'hand2Workspace'; 'toRidge'};
+			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'toRidge'; 'hand2Workspace'};
 	handles.hLine = [];
 	set(handles.popup_cmds,'Tooltip', 'Select one operation from this list')
 	set(handles.popup_cmds,'String', {'Possible commands'; 'buffer DIST'; 'polysimplify TOL'; 'bspline'; ...
 			'cspline N RES'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; 'line2patch'; ...
-			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'hand2Workspace'; 'toRidge 5'} )
+			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'toRidge 5'; 'hand2Workspace'} )
 
 	handles.ttips = cell(numel(handles.known_ops));
 	handles.ttips{1} = 'Select one operation from this list';
