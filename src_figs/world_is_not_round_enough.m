@@ -101,6 +101,7 @@ function edit_xMin_CB(hObject, handles)
 function push_to360_CB(hObject, handles)
 	rect_x = get(handles.hRectLims, 'xdata');
 	rect_x = rect_x + 180;
+	if (rect_x(4) > 360),	return,		end
 	set(handles.hRectLims, 'XData',rect_x);
 	push_apply_CB(handles.push_apply, handles)
 
@@ -108,6 +109,7 @@ function push_to360_CB(hObject, handles)
 function push_to180_CB(hObject, handles)
 	rect_x = get(handles.hRectLims, 'xdata');
 	rect_x = rect_x - 180;
+	if (rect_x(1) < -180),	return,		end
 	set(handles.hRectLims, 'XData',rect_x);
 	push_apply_CB(handles.push_apply, handles)
 
@@ -149,23 +151,25 @@ function push_apply_CB(hObject, handles)
 	guidata(handles.hMirFig, handMir)
 
 	set(handles.hMirImg,'CData', Z, 'XData', X);
+	set(handles.edit_xMin,'Str', X(1))
+	set(handles.edit_xMax,'Str', X(end))
 	setappdata(handles.hMirAxes,'ThisImageLims',[get(handles.hMirAxes,'XLim') get(handles.hMirAxes,'YLim')])
 
 % -----------------------------------------------------------------------------------------
 function Z = to_from_180(handles, handMir, Z, x_min, x_max, dy, eps_x)
 
-	if ( x_max > 0 && (abs(x_min - 180) < eps_x) )			% 360 -> 180
+	if ( x_min >= 0 && (abs(x_max - 360) < eps_x) )			% 360 -> 180
 		[Z_rect,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z,[x_min handles.square(1,2) 180 dy],'out_grid');
 		Z = [Z_rect Z(:, 1:(size(Z,2)-size(Z_rect,2)), :)];
 		handMir.geog = 1;		guidata(handMir.figure1,handMir);
-	elseif ( x_min < 180 && (abs(x_max - 360) < eps_x) )	% 180 -> 360
-		[Z_rect,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z,[x_min handles.square(1,2) 180-x_min dy],'out_grid');
-		Z = [Z_rect Z(:, 1:(size(Z,2)-size(Z_rect,2)), :)];
+	elseif ( x_min < 180 && (abs(x_max - 180) < eps_x) )	% 180 -> 360
+		[Z_rect,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z,[x_min handles.square(1,2) 180 dy],'out_grid');
+		Z = [Z(:, (size(Z,2)-size(Z_rect,2)):end, :) Z_rect];
 		handMir.geog = 2;		guidata(handMir.figure1,handMir);
 	end
 
 % -----------------------------------------------------------------------------------------
-function moveRect(obj,handles, hRect)
+function moveRect(obj, evt, handles, hRect)
 	hFig = handles.figure1;			hAxes = handles.axes1;
 	hXmin = handles.edit_xMin;		hXmax = handles.edit_xMax;
 	state = uisuspend_fig(hFig);            % Remember initial figure state
@@ -247,7 +251,7 @@ set(h5,'Parent',h2,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@world_is_not_round_enough_uiCB,h1,'edit_xMin_CB'},...
+'Call',{@world_NRE_uiCB,h1,'edit_xMin_CB'},...
 'Position',[389 4 91 23],...
 'Style','edit',...
 'Tooltip','You may try entering a West longitude here, but result is indeterminate.',...
@@ -271,7 +275,7 @@ uicontrol('Parent',h1,...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Call',{@world_is_not_round_enough_uiCB,h1,'push_apply_CB'},...
+'Call',{@world_NRE_uiCB,h1,'push_apply_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
 'Position',[715 3 90 21],...
@@ -282,7 +286,7 @@ if (IAmAMac),	pos = [10 3 125 30];
 else			pos = [10 3 120 26];
 end
 uicontrol('Parent',h1,...
-'Call',{@world_is_not_round_enough_uiCB,h1,'push_to360_CB'},...
+'Call',{@world_NRE_uiCB,h1,'push_to360_CB'},...
 'FontName','Helvetica',...
 'Position',pos,...
 'String','[-180 180] -> [0 360]',...
@@ -292,13 +296,13 @@ if (IAmAMac),	pos = [161 3 130 30];
 else			pos = [161 3 120 26];
 end
 uicontrol('Parent',h1,...
-'Call',{@world_is_not_round_enough_uiCB,h1,'push_to180_CB'},...
+'Call',{@world_NRE_uiCB,h1,'push_to180_CB'},...
 'FontName','Helvetica',...
 'Position',pos,...
 'String','[0 360] -> [-180 180]',...
 'Tag','push_to180');
 
 
-function world_is_not_round_enough_uiCB(hObject, eventdata, h1, callback_name)
+function world_NRE_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
 	feval(callback_name,hObject,guidata(h1));
