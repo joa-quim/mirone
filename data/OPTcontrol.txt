@@ -13,10 +13,21 @@
 #MIR_GMTEDIT -Vvel,mtf1,anom_cm4:mag+3
 
 # Activate MGG (.nc) tracks fishing inside rectangles (comment (#) if not wanted)
-#MIR_MGG
+MIR_MGG
 
 # Activate ROI Microleveling
-#MIR_MICROLEV
+MIR_MICROLEV
 
 # Activate the option to display COEs as circles with uicontexts
-#MIR_COEs C:\a1\mgd77\coes.dat anom_cm4
+MIR_COEs C:\a1\mgd77\coes.dat anom_cm4
+
+# Mag synthetic profiles params
+MIR_MAGPROF DEC 0.0
+MIR_MAGPROF INC 90.0
+MIR_MAGPROF SPEED 2.4
+MIR_MAGPROF SPREADIR 97.0
+MIR_MAGPROF CONTAMIN 1.0
+#MIR_MAGPROF BAT C:\a1\mgd77\coes.dat
+MIR_MAGPROF ISOC 3.04_1.5
+MIR_MAGPROF ISOC 4.66_1.5
+MIR_MAGPROF ISOC 6.17_1.5
