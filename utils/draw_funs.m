@@ -168,7 +168,7 @@ function setSHPuictx(h,opt)
 	end
 
 % -----------------------------------------------------------------------------------------
-function set_line_uicontext(h,opt)
+function set_line_uicontext(h, opt)
 % h is a handle to a line object (that can be closed)
 	if (isempty(h)),	return,		end
 
@@ -794,12 +794,10 @@ function setCoastLineUictx(h)
 	uimenu(cmenuHand, 'Label', 'Edit line (left-click on it)', 'Call', 'edit_line');
 	uimenu(cmenuHand, 'Label', 'Save coastline', 'Call', {@save_formated,h});
 	
-	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
-	setLineWidth(item_lw,cb_LineWidth)
+	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
 	setLineStyle(item_ls,{cb13 cb14 cb15 cb16})
-	item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
-	setLineColor(item_lc,cb_color)
+	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
 
 % -----------------------------------------------------------------------------------------
 function set_PB_uicontext(h,data)
@@ -908,7 +906,7 @@ function set_gmtfile_uicontext(h, data)
 	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', 'delete(gco)', 'Sep','on');
 	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Call', @save_line);
 	uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Call', {@call_gmtedit,h});
-% 	uimenu(cmenuHand, 'Label', 'Extract Mag Chunk', 'Call', {@call_gmtedit,h,'nikles'});
+ 	%uimenu(cmenuHand, 'Label', 'Extract Mag Chunk', 'Call', {@call_gmtedit,h,'nikles'});
 	uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
 	deal_opts('mgg_coe', cmenuHand);
 	%uimenu(cmenuHand, 'Label', 'Try to relocate', 'Call', {@tryRelocate,h});
@@ -918,7 +916,6 @@ function set_gmtfile_uicontext(h, data)
 
 % -----------------------------------------------------------------------------------------
 % function tryRelocate(obj,evt,h)
-% 	% () [] ; , i k
 % 	handles = guidata(obj);
 % 	[X,Y,Z] = load_grd(handles);
 % 	if (isempty(Z))		return,		end
@@ -951,18 +948,18 @@ function set_gmtfile_uicontext(h, data)
 % 	set(h, 'XData', new_x, 'YData', new_y);
 
 % -----------------------------------------------------------------------------------------
-function call_gmtedit(obj, evt, h, opt)
+% function call_gmtedit(obj, evt, h, opt)
 % 	if (nargin == 4)		% Call helper window to extract a chunk of the mag anom profile
-% 		show_mag_mgd(get(0,'CurrentFig'), h)
+% 		mag_synthetic(get(0,'CurrentFig'), h)
 % 		return
 % 	end
-	pt = get(gca, 'CurrentPoint');
-	vars = getappdata(h,'VarsName');		opt_V = '  ';	% To be ignored opt_V needs to have at least 2 chars
-	if (~isempty(vars))
-		opt_V = ['-V' vars{1} ','  vars{2} ',' vars{3}];	% Need to encode the Vars info in a single string
-		if (strcmp(opt_V,'-V,,')),		opt_V = '  ';	end	% When vars is actually a 3 empties cell
-	end
-	gmtedit(getappdata(h,'FullName'), sprintf('-P%.6f/%.6f',pt(1,1:2)), opt_V );
+% 	pt = get(gca, 'CurrentPoint');
+% 	vars = getappdata(h,'VarsName');		opt_V = '  ';	% To be ignored opt_V needs to have at least 2 chars
+% 	if (~isempty(vars))
+% 		opt_V = ['-V' vars{1} ','  vars{2} ',' vars{3}];	% Need to encode the Vars info in a single string
+% 		if (strcmp(opt_V,'-V,,')),		opt_V = '  ';	end	% When vars is actually a 3 empties cell
+% 	end
+% 	gmtedit(getappdata(h,'FullName'), sprintf('-P%.6f/%.6f',pt(1,1:2)), opt_V );
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_setMarker(h,prop)
@@ -1002,7 +999,8 @@ function other_Class_LineWidth(obj,eventdata,h,opt)
 		set(h,'LineWidth',opt);        refresh;
 	else
 		resp  = inputdlg({'Enter new line width (pt)'}, 'Line width', [1 30]);
-		if isempty(resp),		return,		end
+		resp = str2double(resp);
+		if isnan(resp),		return,		end
 		set(h,'LineWidth',str2double(resp));        refresh
 	end
 % -----------------------------------------------------------------------------------------
@@ -1204,9 +1202,7 @@ function set_vector_uicontext(h)
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
 	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1, handles.axes1});
-	item1 = uimenu(cmenuHand, 'Label', 'Line Color','Sep','on');
-	cb_color = uictx_color(h,'EdgeColor');					% there are 9 cb_color outputs
-	setLineColor(item1,cb_color)
+	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color','Sep','on'), uictx_color(h,'EdgeColor'))
 	item2 = uimenu(cmenuHand, 'Label','Fill Color');
 	setLineColor( item2, uictx_color(h, 'facecolor') )
 	uimenu(item2, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
@@ -2079,12 +2075,8 @@ uimenu(itemSize, 'Label', '12     pt', 'Call', cb_markSize{5});
 uimenu(itemSize, 'Label', '14     pt', 'Call', cb_markSize{6});
 uimenu(itemSize, 'Label', '16     pt', 'Call', cb_markSize{7});
 uimenu(itemSize, 'Label', 'other...', 'Call', cb_markSize{8});
-cb_color = uictx_Class_LineColor(h,'MarkerFaceColor');              % there are 9 cb_PB_color outputs
-itemFColor = uimenu(cmenuHand, 'Label', 'Fill Color');
-setLineColor(itemFColor,cb_color)
-cb_color = uictx_Class_LineColor(h,'MarkerEdgeColor');              % there are 9 cb_PB_color outputs
-itemEColor = uimenu(cmenuHand, 'Label', 'Edge Color');
-setLineColor(itemEColor,cb_color)
+setLineColor(uimenu(cmenuHand, 'Label', 'Fill Color'), uictx_Class_LineColor(h,'MarkerFaceColor'))
+setLineColor(uimenu(cmenuHand, 'Label', 'Edge Color'), uictx_Class_LineColor(h,'MarkerEdgeColor'))
 
 % -----------------------------------------------------------------------------------------
 function change_SymbPos(obj,eventdata,h)
