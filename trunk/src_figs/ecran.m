@@ -15,8 +15,6 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-%#function select_cols
-
 	hObject = figure('Tag','figure1','Visible','off');
 
 	ecran_LayoutFcn(hObject);
@@ -112,6 +110,10 @@ function varargout = ecran(varargin)
 	handles.polyFig = [];		% Handles to the (eventual) figure for trend1d polyfit
 	handles.hRect = [];			% Handles to a XLim analysis limiting rectangle
 	handles.ageStart = 0;		handles.ageEnd = nan;
+	handles.syntPar = [];		% To hold synthetic mag profile creation parameters
+	handles.hAgeMarker = [];	% Isochron anchor point
+	handles.hAgeLine_fit = [];	% Float chunk line used to CORR fit to find ideal isochron pick
+	handles.hLineChunk_fit = [];% Anchor point, now a vert line, moved to new fit pos
 
 	% Choose the default ploting mode
 	if isempty(varargin{1})          % When the file will be read latter
@@ -444,15 +446,15 @@ function add_MarkColor(obj, evt, h)
 function isocs_CB(obj,eventdata)
 	handles = guidata(obj);
 	if (strcmp(get(obj,'State'),'on'))
-		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')
-		set([handles.edit_ageStart handles.edit_ageEnd handles.push_magBar handles.text_ageStart ...
-				handles.text_ageEnd], 'Visible','on')
+		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Vis','off')
+		set([handles.edit_startAge handles.edit_ageEnd handles.push_magBar handles.text_startAge ...
+			handles.text_endAge], 'Vis','on')
 	else
 		if (handles.show_popups)		% Make next fellows visible only when apropriate
-			set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','on')
+			set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Vis','on')
 		end
-		set([handles.edit_ageStart handles.edit_ageEnd handles.push_magBar handles.text_ageStart ...
-				handles.text_ageEnd], 'Visible','off')
+		set([handles.edit_startAge handles.edit_ageEnd handles.push_magBar handles.text_startAge ...
+			handles.check_zeroAge handles.text_endAge handles.push_syntheticRTP], 'Vis','off')
 	end
 
 % -------------------------------------------------------------------------------
@@ -779,7 +781,7 @@ function Analysis2derivative_CB(hObject, handles)
 	ecran('reuse',xx,v,[],'Second derivative')
 
 % --------------------------------------------------------------------
-function edit_ageStart_CB(hObject, handles)
+function edit_startAge_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx))
 		set(hObject,'String','')
@@ -847,6 +849,7 @@ function push_magBar_CB(hObject, handles)
 	cor = repmat([0 0 0; 1 1 1],n_ages-1,1);    cor = [cor; [0 0 0]];
 	set(handles.axes2, 'xlim', [age_start(1) age_end(end)])
 	patch('Parent',handles.axes2,'Faces',faces,'Vertices',[x y],'FaceVertexCData',cor,'FaceColor','flat');
+	set(handles.axes2, 'YTick',[])
 	set(handles.figure1,'renderer','Zbuffer')	% The patch command above set it to OpenGL, which is f... bugged
 
 	% Get the index of anomalies that have names. We'll use them to plot those anomaly names
@@ -870,6 +873,171 @@ function push_magBar_CB(hObject, handles)
 	text(x_pos,repmat(y_lim(2),numel(x_pos),1),age_txt(ind),'Parent',handles.axes1, ...
 		'VerticalAlignment','top', 'HorizontalAlignment', ha, 'Tag','chroneName')
 	set(handles.axes2,'UserData',ages)		% We may want to use these from other places
+	
+	set(handles.push_syntheticRTP, 'Vis','on')	% Now this may be set to visible
+
+% ---------------------------------------------------------------------
+function push_syntheticRTP_CB(hObject, handles)
+% Compute a synthetic profile RTPed
+	speed =  handles.dist(end) / (handles.ageEnd - handles.ageStart) / 10000 * 2;	% Full rate in cm / yr
+	dir_profile = azimuth_geo(handles.data(1,2), handles.data(1,1), handles.data(end,2), handles.data(end,1));
+	batFile = [];		dxypa = [];		contamin = 1;		syntPar = handles.syntPar;
+
+	% See if the  case the OPTcontrol.txt file has relevan info for this run
+	opt_file = [handles.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
+	if ( exist(opt_file, 'file') == 2 )
+		fid = fopen(opt_file, 'r');
+		c = (fread(fid,'*char'))';      fclose(fid);
+		lines = strread(c,'%s','delimiter','\n');   clear c fid;
+		m = numel(lines);		kk = 2;
+		for (k = 1:m)
+			if (~strncmp(lines{k},'MIR_MAGPROF',7)),	continue,	end
+			if (numel(lines{k}) <= 14),	continue,	end		% The minimum it takes to have a -? switch
+			[t, r] = strtok(lines{k}(13:end));
+			switch t
+				case 'DEC',			handles.syntPar.dec = str2double(r);
+				case 'INC',			handles.syntPar.inc = str2double(r);
+				case 'SPEED',		handles.syntPar.speed = str2double(r);
+				case 'SPREADIR',	handles.syntPar.dir_spread = str2double(r);
+				case 'CONTAMIN',	contamin = str2double(r);
+				case 'BAT',			batFile = r;
+				case 'ISOC'
+					ind = strfind(r, '_');
+					if (~isempty(ind))
+						handles.syntPar.ageMarkers{kk} = r(1:ind-1);
+						handles.syntPar.agePad(kk) = str2double(r(ind+1:end));
+					else
+						handles.syntPar.ageMarkers{kk} = r;
+						handles.syntPar.agePad(kk) = 1.5;		% Default (and possibly too short for old isocs) value
+					end
+					kk = kk + 1;
+			end
+		end
+		handles.syntPar.dir_profile = dir_profile;
+		set( handles.popup_ageFit,'Vis','on','Str',handles.syntPar.ageMarkers )
+		set( handles.edit_ageFit, 'Vis', 'off')		% We don't use this in this case.
+		if (contamin <= 1 && contamin >= 0.5)
+			set(handles.slider_filter,'Val', contamin)
+		else
+			contamin = 1;				% Case user screwed up
+		end
+		syntPar = true;					% Signal that got Params from file
+	end
+
+	if (isempty(syntPar))				% First time use in this session
+		handles.syntPar.dec = 0;				handles.syntPar.inc = 90;
+		handles.syntPar.speed = speed;
+		handles.syntPar.dir_spread = dir_profile;
+		handles.syntPar.dir_profile = dir_profile;
+		set(handles.edit_ageFit, 'Vis','on')
+	end
+	set([handles.push_ageFit handles.slider_filter], 'Vis','on')
+
+	if (~isempty(batFile))				% Try to extract the bathym profile by grid interpolation
+		[handles, X, Y, Z, head] = read_gmt_type_grids(handles, batFile);
+		if (~isempty(Z))
+			Z = abs( grdtrack_m(Z,head,handles.data(:,1:2),'-Z') );
+			dxypa = [handles.dist/1000 handles.data(:,1:2) Z(:) handles.data(:,3)];
+		end
+	end
+	if (isempty(dxypa))
+		dxypa = [handles.dist/1000 handles.data(:,1:2) ones(size(handles.data,1),1)*2.5 handles.data(:,3)];
+	end
+
+	[anom handles.age_line] = magmodel(dxypa, handles.syntPar.dec, handles.syntPar.inc, ...
+			handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, contamin);
+	handles.hSynthetic = line('XData', handles.dist, 'YData', anom, 'Parent', handles.axes1, 'Color', 'r');
+	
+	guidata(handles.figure1, handles)
+
+% ---------------------------------------------------------------------
+function slider_filter_CB(hObject, handles)
+% Filter the synthetic mag profile by using the conatmination factor
+	contamin = get(hObject, 'Val');
+	anom = magmodel([handles.dist/1000 handles.data], handles.syntPar.dec, handles.syntPar.inc, ...
+		handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, contamin);
+	set(handles.hSynthetic, 'YData', anom);
+
+% ---------------------------------------------------------------------
+function popup_ageFit_CB(hObject, handles)
+% ...
+	str = get(hObject,'str');		val = get(hObject,'Val');
+	if (val == 1),		return,		end			% First entry is empty
+	xx = str2double( str{val} );
+
+	[mimi,ind] = min(abs(handles.age_line - xx));
+	x = get(handles.hSynthetic, 'XData');		y = get(handles.hSynthetic, 'YData');
+	y_age_on_line = y(ind);						x_age_on_line = x(ind);
+	if (isempty(handles.hAgeMarker))
+		handles.hAgeMarker = line('XData',x_age_on_line, 'YData',y_age_on_line, 'Parent',handles.axes1, ...
+			'Marker','p','MarkerFaceColor','r','MarkerEdgeColor','k','MarkerSize',11);
+		guidata(handles.figure1, handles)
+	else
+		set(handles.hAgeMarker, 'XData',x_age_on_line, 'YData',y_age_on_line)
+	end
+	set(handles.hAgeMarker,'UserData', ind)		% Store this index for later reference
+
+% ---------------------------------------------------------------------
+function edit_ageFit_CB(hObject, handles)
+% Put/update a marker on the synthetic line corresponding to age enered here
+
+	xx = abs(str2double(get(handles.edit_ageFit,'String')));
+	if (isnan(xx)),		set(hObject,'Str',''),	return,		end
+
+	[mimi,ind] = min(abs(handles.age_line - xx));
+	x = get(handles.hSynthetic, 'XData');		y = get(handles.hSynthetic, 'YData');
+	y_age_on_line = y(ind);						x_age_on_line = x(ind);
+	if (isempty(handles.hAgeMarker))
+		handles.hAgeMarker = line('XData',x_age_on_line, 'YData',y_age_on_line, 'Parent',handles.axes1, ...
+			'Marker','p','MarkerFaceColor','r','MarkerEdgeColor','k','MarkerSize',11);
+		guidata(handles.figure1, handles)
+	else
+		set(handles.hAgeMarker, 'XData',x_age_on_line, 'YData',y_age_on_line)
+	end
+	set(handles.hAgeMarker,'UserData', ind)		% Store this index for later reference
+
+% ---------------------------------------------------------------------
+function push_ageFit_CB(hObject, handles)
+% Take the age entered in edit_ageFit, find that point in synthetic and
+% find its best fit on the measured profile by correlation.
+	if (strcmp(get(handles.popup_ageFit,'Vis'), 'on'))
+		str = get(handles.popup_ageFit,'str');		val = get(handles.popup_ageFit,'Val');
+		if (val == 1),		return,		end			% First entry is empty
+		xx = str2double( str{val} );
+	else
+		xx = abs(str2double(get(handles.edit_ageFit,'String')));
+		if (isnan(xx))
+			errordlg('Pelease, fit what? Your anniversary? How many Ma?', 'error'),		return
+		end
+	end
+
+	% Get a chunk of synthetic data centered on age marker.
+	[mimi,ind_a] = min(abs(handles.age_line - (xx - 1.5)));
+	[mimi,ind_b] = min(abs(handles.age_line - (xx + 1.5)));
+	y = get(handles.hSynthetic, 'YData');		y = y(ind_a:ind_b);
+	x = get(handles.hSynthetic, 'XData');
+
+	w = conv(y(end:-1:1), handles.data(:,3), 'same');	% Revert Y because we want CORR, not CONV
+	[mimi,ind] = max(w);						% Estimate the fit position by max of cross-correlation
+	x = x(ind:(ind+numel(y)-1));				% Get new abssissae after the result of the CORR fit
+
+	% Create or update the line chunk that shows new pos after CORR fit
+	if (isempty(handles.hLineChunk_fit))
+		handles.hLineChunk_fit = line('XData',x, 'YData', y, 'Parent', handles.axes1, 'LineStyle', '--');
+	else
+		set(handles.hLineChunk_fit, 'XData',x, 'YData',y)
+	end
+
+	% Create or move the age marker as well
+	ind_ageMarker = get(handles.hAgeMarker,'UserData');
+	delta_shift = ind_ageMarker - ind_a + 1;		% Age marker must be shifted by this after corr-fit
+	xx = [x(delta_shift) x(delta_shift)];		yy = get(handles.axes1,'ylim');
+	if (isempty(handles.hAgeLine_fit))
+		handles.hAgeLine_fit = line('XData',xx, 'YData',yy, 'Parent',handles.axes1, 'LineStyle', '--');
+	else
+		set(handles.hAgeLine_fit, 'XData',xx, 'YData',yy)
+	end
+	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------------------------------------
 function rectang_clicked_CB(obj,evt)
@@ -1898,6 +2066,308 @@ function y = filtfilt(b,a,x)
     if (m == 1),    y = y.';    end   % convert back to row if necessary
 
 % ------------------------------------------------------------------------------
+function [anoma, age_line] = magmodel(dxypa, chtdec, chtinc, speed, dir_spread, dir_profil, contam)
+% This function is in large part taken from the MAGMOD program
+% Intention is to clean it more or eventually re-write it (for example it doesn't account
+% for possibly different Remanent & Inducted maags).
+
+	if (nargin == 6),	contam = 1;		end
+	if (size(dxypa,2) == 4)		% If depth not provided, default to const = 2.5 km
+		dxypa = [dxypa(:,1:3) ones(size(dxypa,1),1)*2.5 dxypa(:,4)];
+	end
+
+	levelobs = 0;	aimaaxe = 18;		aimanta = 4;	pas_x = 1;
+	psubsi = 0.35;		% Coefficient of thermal subsidence equation
+	subsi = 1;			% PORQUÊ????
+	profond = 0;		% PORQUÊ????
+	thickness = 0.5;
+	stat_x = dxypa(:,1);
+	txouv = speed * 10;		% From full rate in cm/year to rate in km/Ma 
+
+	mir_dirs = getappdata(0,'MIRONE_DIRS');
+	if (~isempty(mir_dirs))
+		chron_file = [mir_dirs.home_dir filesep 'data' filesep 'Cande_Kent_95.dat'];
+	else
+		chron_file = [cd filesep 'data' filesep 'Cande_Kent_95.dat'];
+	end
+
+	fid = fopen(chron_file,'r');
+	todos = fread(fid,'*char');
+	[chron age_start age_end age_txt] = strread(todos,'%s %f %f %s');
+	fclose(fid);    clear todos
+	BA = zeros(numel(age_start)*2,2);
+	BA(1:2:end-1,1) = age_start;	BA(2:2:end,1) = age_end;
+	BA(1:2:end-1,2) = age_end;
+	BA(2:2:end-2,2) = age_start(2:end);
+	BA(end,:) = [];
+	
+	debut_bloc = 1;
+	fin_bloc = size(BA,1);
+
+	if (nargin == 0)
+		Ficp = fopen ('C:\j\artigos\review\cg_modmag\publicado\swir.dxypa');
+		MX = (fscanf(Ficp,'%f',[5,inf]))';
+		fclose(Ficp);
+		MXS = sortrows(MX,1);
+	else
+		MXS = dxypa;
+	end
+	distfic = MXS(:,1);
+	proffic = MXS(:,4);
+	ind = isnan(proffic);
+	if ( any(ind) )			% Many files have gaps in bathymetry. Reinvent it
+		proffic(ind) = interp1(distfic(~ind),proffic(~ind),distfic(ind));
+	end
+	Nficprof = numel(distfic);
+	
+	% Number of points
+	nb_stat_mod = numel(stat_x);
+
+	% Depth of the points where the magnetic anomaly will be compute
+	stat_z = zeros(nb_stat_mod,1)+levelobs;
+
+	% Calculation of the position of the magnetized bodies
+
+	% Determination of the age limits of normal and inverse polarity bodies and
+	% of their respecting magnetization
+
+	nb_struct = (fin_bloc*2)-1;
+
+	blocag = zeros(nb_struct,2);
+	aimbloc = zeros(nb_struct,1);
+	blocag(debut_bloc:fin_bloc-1,1) = -BA(fin_bloc:-1:debut_bloc+1,2);
+	blocag(debut_bloc:fin_bloc-1,2) = -BA(fin_bloc:-1:debut_bloc+1,1);
+	blocag(fin_bloc,:) = [-BA(1,2) BA(1,2)];
+	blocag(fin_bloc+1:nb_struct,:) = BA(debut_bloc+1:fin_bloc,:);
+	aimbloc(fin_bloc,1) = aimaaxe;
+	aimbloc(fin_bloc-2:-2:1,1) = aimanta;
+	aimbloc(fin_bloc+2:2:nb_struct,1) = aimanta;
+	aimbloc(fin_bloc-1:-2:1,1) = aimanta*(-1.);
+	aimbloc(fin_bloc+1:2:nb_struct,1) = aimanta*(-1.);
+
+	% Initialisation of magnetized bodies position in km
+	polygon_x = zeros(4,nb_struct);
+
+	% Calculation of magnetized bodies position in km
+	polygon_x(1,:) = blocag(:,1)' * txouv(1) / 2;
+	polygon_x(2,:) = blocag(:,2)' * txouv(1) / 2;
+	polygon_x(3,:) = polygon_x(2,:);
+	polygon_x(4,:) = polygon_x(1,:);
+
+	% Before calculation of the magnetic anomaly, the spreading direction has
+	% to be less than 90° away from the profile direction in order to be plot
+	% in the right sense of distance. To do this we first calculate the obliquity
+	% between the direction of the profile and the spreading direction.
+
+	obliquity = dir_profil - dir_spread;
+	if (abs(obliquity) > 90)
+		temp1 = mod(obliquity,90);
+		temp2 = mod(obliquity,-90);
+		if (abs(temp1) <= abs(temp2)),		obliquity = temp1;
+		else								obliquity = temp2;
+		end
+		dir_spread = dir_profil - obliquity;
+	end
+
+	% Calculation of the magnetized bodies depth
+	if (subsi == 1),	cosubsi = psubsi;
+	else				cosubsi = 0.0;
+	end
+	polygon_z = zeros(4,nb_struct);
+	if profond ~= 0.0
+		polygon_z(1,:) = profond + cosubsi*sqrt(abs(blocag(:,1)'));
+		polygon_z(2,:) = profond + cosubsi*sqrt(abs(blocag(:,2)'));
+		polygon_z(3,:) = polygon_z(2,:) + thickness;
+		polygon_z(4,:) = polygon_z(1,:) + thickness;
+		if cosubsi ~= 0.0
+			indbmil = polygon_x(1,:) < 0 & polygon_x(2,:) > 0;
+			shift = profond - polygon_z(1,indbmil);
+			polygon_z(:,:) = polygon_z(:,:) + shift;
+		end
+	else
+		PolX = cell(1,nb_struct);
+		PolZ = cell(1,nb_struct);
+		if  (obliquity ~= 0)
+			polygon_x = polygon_x / cos (obliquity * pi / 180);
+		end
+		lignm11 = find(polygon_x(1,:) < distfic(1));
+		if ~isempty(lignm11)
+			maxlignm11 = max(lignm11);
+			if polygon_x(1,maxlignm11) < 0
+				polygon_z(1,lignm11(:)) = proffic(1) + cosubsi*sqrt(blocag(maxlignm11,1)-blocag(lignm11(:),1)');
+			else
+				polygon_z(1,lignm11(:)) = proffic(1);
+			end
+			polygon_z(4,lignm11(:)) = polygon_z(1,lignm11(:)) + thickness;
+		end
+		lignm12 = find(polygon_x(2,:) < distfic(1));
+		if ~isempty(lignm12)
+			maxlignm12 = max(lignm12);
+			if polygon_x(2,maxlignm12) < 0
+				polygon_z(2,lignm12(:)) = proffic(1) + cosubsi*sqrt(blocag(maxlignm12,2)-blocag(lignm12(:),2)');
+			else
+				polygon_z(2,lignm12(:)) = proffic(1);
+			end
+			polygon_z(3,lignm12(:)) = polygon_z(2,lignm12(:)) + thickness;
+		else
+			maxlignm12=0;
+		end
+
+		lignm21 = find(polygon_x(1,:) >= distfic(Nficprof));
+		if ~isempty(lignm21)
+			minlignm21 = min(lignm21);
+			if (polygon_x(1,minlignm21) > 0)
+				polygon_z(1,lignm21(:)) = proffic(Nficprof) + cosubsi*sqrt(blocag(lignm21(:),1)' - blocag(minlignm21,1));	
+			else
+				polygon_z(1,lignm21(:)) = proffic(Nficprof);
+			end
+			polygon_z(4,lignm21(:)) = polygon_z(1,lignm21(:)) + thickness;
+		else
+			minlignm21=nb_struct+1;
+		end
+		lignm22 = find(polygon_x(2,:) >= distfic(Nficprof));
+		if ~isempty(lignm22)
+			minlignm22 = min(lignm22);
+			if polygon_x(2,minlignm22) > 0
+				polygon_z(2,lignm22(:)) = proffic(Nficprof) + cosubsi*sqrt(blocag(lignm22(:),2)' - blocag(minlignm22,2));	
+			else
+				polygon_z(2,lignm22(:)) = proffic(Nficprof);
+			end
+			polygon_z(3,lignm22(:)) = polygon_z(2,lignm22(:)) + thickness;
+		end
+
+		lignm31  = find(polygon_x(1,:) >= distfic(1) & polygon_x(1,:) < distfic(Nficprof));
+		if ~isempty(lignm31)
+			polygon_z(1,lignm31(:)) = interp1(distfic,proffic,polygon_x(1,lignm31(:)));
+			polygon_z(4,lignm31(:)) = polygon_z(1,lignm31(:)) + thickness;
+		end
+		lignm32  = find(polygon_x(2,:) >= distfic(1) & polygon_x(2,:) < distfic(Nficprof));
+		if ~isempty(lignm32)
+			polygon_z(2,lignm32(:)) = interp1(distfic,proffic,polygon_x(2,lignm32(:)));
+			polygon_z(3,lignm32(:)) = polygon_z(2,lignm32(:)) + thickness;
+		end
+	end
+
+	PolXX = cell(1,nb_struct);
+    PolZZ = cell(1,nb_struct);
+
+	for i=1:nb_struct
+		PolX(1,i)  = {polygon_x(:,i)};
+		PolXX(1,i) = {[polygon_x(:,i);polygon_x(1,i)]};
+		PolZ(1,i)  = {polygon_z(:,i)};
+		PolZZ(1,i) = {[polygon_z(:,i);polygon_z(1,i)]};
+	end
+	if profond==0
+		for i=maxlignm12+1:minlignm21-1
+			ptdist=find(distfic > polygon_x(1,i)+0.00001 & distfic < polygon_x(2,i)-0.00001);
+			if ~isempty(ptdist)
+				tempox1 = distfic(ptdist(:),1);
+				tempoz1 = proffic(ptdist(:),1);
+				tempox2 = flipud(tempox1);
+				tempoz2 = flipud(tempoz1+thickness);
+				tempox3 = [polygon_x(1,i);tempox1;polygon_x(2,i);polygon_x(3,i);tempox2;polygon_x(4,i)];
+				tempoz3 = [polygon_z(1,i);tempoz1;polygon_z(2,i);polygon_z(3,i);tempoz2;polygon_z(4,i)];
+				PolX(1,i)={tempox3};
+				PolXX(1,i)={[tempox3;polygon_x(1,i)]};
+				PolZ(1,i)={tempoz3};
+				PolZZ(1,i)={[tempoz3;polygon_z(1,i)]};
+			end
+		end
+	end
+
+	% Re-positionning of the magnetized bodies if the contamination coefficient is different from 1
+
+	if contam ~= 1
+		for i=1:nb_struct
+			PolXX{1,i}=PolXX{1,i} * contam;
+		end
+		stat_x(:,1) = stat_x(:,1) * contam;
+	end
+
+	% Calculation of the magnetic anomaly created by the magnetized bodies
+
+	anoma = calcmag(nb_struct,chtinc,chtdec,dir_spread,aimbloc,stat_x,stat_z,nb_stat_mod,PolXX,PolZZ);
+
+	if (nargout == 2)						% Calculate the ages. Note that this will be RELATIVE
+		age_line = distfic / txouv * 2;		% to the age of ofirst point in ptofile (r = 0)
+	end
+
+% ---------------------------------------------------------------------
+function anoma = calcmag(nb_struct,chtinc,chtdec,dir_spread,aimbloc,stat_x,stat_z,nb_stat_mod,PolXX,PolZZ)
+% Calculation of the magnetic anomaly created by magnetized bodies
+
+	D2R = pi / 180;
+	aiminc(1:nb_struct,1) = chtinc;
+	aimdir(1:nb_struct,1) = chtdec;
+    dir_anomag = dir_spread+90;
+
+	c1 = sin(chtinc*D2R);    
+	c2 = cos(chtinc*D2R)*cos(dir_spread*D2R - chtdec*D2R);
+
+	d1 = sin(aiminc*D2R);
+	d2 = cos(aiminc*D2R).*cos((dir_anomag-90)*D2R - aimdir*D2R);
+	d3 = 200.*aimbloc;
+
+	anomax = 0;		anomaz = 0;
+
+	for ik = 1:nb_struct
+		nbpoints = length(PolXX{1,ik});
+		[amx,amz] = fcalcmagpt(nbpoints,stat_x,stat_z,nb_stat_mod,PolXX{1,ik},PolZZ{1,ik},d1(ik),d2(ik),d3(ik));
+		anomax = anomax + amx;
+		anomaz = anomaz + amz;
+	end
+
+	anoma  = c2*anomax + c1*anomaz;
+
+% --------------------------------------------------------------------
+function [amxx,amzz] = fcalcmagpt(nbps,stax,staz,nbsta,polxxm,polzzm,dd1,dd2,dd3)
+% Function to calculate the magnetized anomaly created
+% by each point of a magnetized body
+
+	matstax = repmat(stax,1,nbps-1);
+	matstaz = repmat(staz,1,nbps-1);
+	matpolxx = repmat(polxxm',nbsta,1);
+	matpolzz = repmat(polzzm',nbsta,1);
+
+	x1 = matpolxx(:,1:(nbps-1)) - matstax(:,1:(nbps-1));
+	z1 = matpolzz(:,1:(nbps-1)) - matstaz(:,1:(nbps-1));
+	x2 = matpolxx(:,2:nbps) - matstax(:,1:(nbps-1));
+	z2 = matpolzz(:,2:nbps) - matstaz(:,1:(nbps-1));
+
+	indx1 = find(x1==0);
+	if (~isempty(indx1)),		x1(indx1) = 1e-11;		end
+	indz1 = find(z1==0);
+	if (~isempty(indz1)),		z1(indz1) = 1e-11;		end
+	indx2 = find(x2==0);
+	if (~isempty(indx2)),		x2(indx2) = 1e-11;		end
+	indz2 = find(z2==0);
+	if (~isempty(indz2)),		z2(indz2) = 1e-11;		end
+
+	th1 = atan2(z1,x1);
+	th2 = atan2(z2,x2);
+	t12 = th1-th2;
+	z21=z2-z1;
+	x21=x2-x1;
+	xz12=x1.*z2-x2.*z1;
+	r21s=x21.*x21+z21.*z21;
+	r1s = x1.^2+z1.^2;
+	r2s = x2.^2+z2.^2;
+	rln = 0.5*log(r2s./r1s);
+
+	p=(xz12./r21s).*((x1.*x21-z1.*z21)./r1s-(x2.*x21-z2.*z21)./r2s);
+	q=(xz12./r21s).*((x1.*z21+z1.*x21)./r1s-(x2.*z21+z2.*x21)./r2s);
+
+	f1 = (t12.*z21-rln.*x21)./r21s;
+	f2 = (t12.*x21 + rln.*z21)./r21s;
+
+	dxx = p + z21.*f1;
+	dxz = q - x21.*f1;
+	dzz = -p + x21.*f2;
+	dzx = q - z21.*f2;
+
+	amxx = dd3*(dd1*sum(dxz,2)+dd2*sum(dxx,2));
+	amzz = dd3*(dd1*sum(dzz,2)+dd2*sum(dzx,2));
+% ------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
@@ -1915,58 +2385,50 @@ function figure1_CloseRequestFcn(hObject, eventdata)
 	end
 	delete(handles.figure1)
 
+
 % --- Creates and returns a handle to the GUI figure. 
 function ecran_LayoutFcn(h1)
 
-set(h1,'Units','centimeters',...
-'PaperUnits',get(0,'defaultfigurePaperUnits'),...
+set(h1, 'Position',[500 400 814 389],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'KeyPressFcn',@figure1_KeyPressFcn,...
 'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'MenuBar','none',...
 'Name','XY view',...
 'NumberTitle','off',...
-'PaperPosition',[1 2.5 15.625 6.953],...
-'PaperSize',[20.98404194812 29.67743169791],...
-'Position',[13.72 12.08 21.44 9.04],...
+'PaperUnits','normalized',...
+'PaperPosition',[0.0119243429653489 0.0842781102631165 0.381578974891164 0.20226746463148],...
 'RendererMode','manual',...
 'Tag','figure1');
 
 axes('Parent',h1,...
 'CameraPosition',[0.5 0.5 9.16025404],...
 'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
-'Color',get(0,'defaultaxesColor'),...
-'ColorOrder',get(0,'defaultaxesColorOrder'),...
-'Position',[0.0493218249075216 0.93859649122807 0.939580764488286 0.0584795321637427],...
+'Units','pixels', 'Position',[40 369 771 21],...
 'Tag','axes2',...
 'Visible','off');
+%'Position',[0.04791154791154791 0.9460154241645242 0.947174447174447 0.05398457583547558],...
 
 axes('Parent',h1,...
 'CameraPosition',[0.5 0.5 9.16025404],...
 'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
 'NextPlot','Add',...
-'Color',get(0,'defaultaxesColor'),...
-'ColorOrder',get(0,'defaultaxesColorOrder'),...
-'Position',[0.0493218249075216 0.14619883040935672 0.939580764488286 0.7923976608187134],...
-'XColor',get(0,'defaultaxesXColor'),...
-'YColor',get(0,'defaultaxesYColor'),...
+'Units','pixels', 'Position',[40 48 771 321],...
 'Tag','axes1');
+%'Position',[0.04791154791154791 0.12082262210796911 0.947174447174447 0.8251928020565552],...
 
 uicontrol('Parent',h1,...
-'Units','normalized',...
 'Call',{@ecran_uiCB,h1,'check_geog_CB'},...
-'Position',[0.0468557336621455 0.03216374269005848 0.2379778051787916 0.049707602339181284],...
+'Position',[40 6 161 23],...
 'String','Geographical coordinates',...
 'TooltipString',sprintf(['Check this if your data is in geographical coordinates.\n' ...
 			'You will than be able to see and save the profile in km (or m) vs z.']),...
 'Style','checkbox',...
 'Tag','check_geog');
 
-uicontrol('Parent',h1,...
-'Units','normalized',...
+uicontrol('Parent',h1, 'Position',[279 6 261 23],...
 'BackgroundColor',[1 1 1],...
 'Call',{@ecran_uiCB,h1,'popup_selectPlot_CB'},...
-'Position',[0.3341553637484587 0.02046783625730994 0.3316892725030826 0.06432748538011696],...
 'String','Distance along profile (data units)', ...
 'Style','popupmenu',...
 'Value',1,...
@@ -1974,10 +2436,9 @@ uicontrol('Parent',h1,...
 'Tag','popup_selectPlot');
 
 uicontrol('Parent',h1,...
-'Units','normalized',...
 'BackgroundColor',[1 1 1],...
 'Call',{@ecran_uiCB,h1,'popup_selectSave_CB'},...
-'Position',[0.7028360049321825 0.02046783625730994 0.2836004932182491 0.06432748538011696],...
+'Position',[570 6 241 23],...
 'String',{'Save Profile on disk'; 'distance Z (data units -> ascii)'; 'distance Z (data units -> binary)'; 'distance Z (km -> ascii)'; 'distance Z (km -> binary)'; 'distance Z (NM -> ascii)'; 'distance Z (NM -> binary)'; 'X Y Z (data units -> ascii)'; 'X Y Z (data units -> binary)' },...
 'Style','popupmenu',...
 'Value',1,...
@@ -2065,60 +2526,93 @@ uimenu('Parent',h17,...
 % Here we provide a hiden entry to activate functions of interest to tide analysis
 uimenu('Parent',h17,'Call',{@ecran_uiCB,h1,'add_uictx_CB'},'Vis','off','Tag','hidenCTRL');
 
-uicontrol('Parent',h1,...
-'Units','normalized',...
+uicontrol('Parent',h1, 'Position',[85 8 51 22],...
 'BackgroundColor',[1 1 1],...
-'Call',{@ecran_uiCB,h1,'edit_ageStart_CB'},...
-'Position',[0.319358816276202 0.0204678362573099 0.0579531442663379 0.0614035087719298],...
-'String','0',...
+'Call',{@ecran_uiCB,h1,'edit_startAge_CB'},...
+'String','',...
 'Style','edit',...
 'Tooltip', sprintf(['Age at which we start ploting the bars. If older than "End age"\n' ...
 	'the bar code is plotted reversed. That is, from older to younger ages']),...
-'Tag','edit_ageStart',...
+'Tag','edit_startAge',...
 'Visible','off');
 
-uicontrol('Parent',h1,...
-'Units','normalized',...
+uicontrol('Parent',h1, 'Position',[192 8 75 23],...
+'String','Zero age?',...
+'Tooltip','Start and end ages passes through zero',...
+'Style','checkbox',...
+'Tag','check_zeroAge',...
+'Vis','off');
+
+uicontrol('Parent',h1, 'Position',[291 8 51 22],...
 'BackgroundColor',[1 1 1],...
 'Call',{@ecran_uiCB,h1,'edit_ageEnd_CB'},...
-'Position',[0.498150431565968 0.0233918128654971 0.0579531442663379 0.0614035087719298],...
 'String','',...
 'Style','edit',...
 'Tooltip', 'Age at which we stop ploting the bars.',...
 'Tag','edit_ageEnd',...
-'Visible','off');
+'Vis','off');
 
-uicontrol('Parent',h1,...
-'Units','normalized',...
+uicontrol('Parent',h1, 'Position',[372 8 101 21],...
 'Call',{@ecran_uiCB,h1,'push_magBar_CB'},...
-'FontName','Helvetica',...
-'FontSize',9,...
-'ListboxTop',0,...
-'Position',[0.589395807644883 0.0204678362573099 0.129469790382244 0.0672514619883041],...
 'String','Create Mag Bar',...
-'TooltipString','Create a magnetic code bar on top of figure',...
+'Tooltip','Create a magnetic code bar on top of figure',...
 'Tag','push_magBar',...
-'Visible','off');
+'Vis','off');
 
-uicontrol('Parent',h1,...
-'Units','normalized',...
+uicontrol('Parent',h1, 'Position',[31 13 52 14],...
 'HorizontalAlignment','right',...
-'ListboxTop',0,...
-'Position',[0.250308261405672 0.0321637426900585 0.0678175092478422 0.043859649122807],...
 'String','Start age',...
-'Style','text',...
-'Tag','text_ageStart',...
-'Visible','off');
+'Style','text', ...
+'Tag','text_startAge', ...
+'Vis','off');
 
-uicontrol('Parent',h1,...
-'Units','normalized',...
+uicontrol('Parent',h1, 'Position',[236 13 52 14],...
 'HorizontalAlignment','right',...
-'ListboxTop',0,...
-'Position',[0.42909987669544 0.03216374269006 0.0678175092478422 0.043859649122807],...
 'String','End age',...
-'Style','text',...
-'Tag','text_ageEnd',...
-'Visible','off');
+'Style','text', ...
+'Tag','text_endAge', ...
+'Vis','off');
+
+uicontrol('Parent',h1, 'Position',[491 8 91 21],...
+'Call',{@ecran_uiCB,h1,'push_syntheticRTP_CB'},...
+'String','Synthetic RTP',...
+'Tooltip','Create a synthetic profile reduced to the Pole',...
+'Tag','push_syntheticRTP', ...
+'Vis','off');
+
+uicontrol('Parent',h1, 'Position',[596 9 121 17],...
+'BackgroundColor',[0.9 0.9 0.9],...
+'Call',{@ecran_uiCB,h1,'slider_filter_CB'},...
+'Style','slider',...
+'Min',0.5,...
+'Max',1.0,...
+'Val',1.0,...
+'Tag','slider_filter',...
+'Vis','off');
+
+uicontrol('Parent',h1, 'Position',[725 9 55 20],...
+'BackgroundColor',[1 1 1],...
+'Call',{@ecran_uiCB,h1,'popup_ageFit_CB'},...
+'String','', ...
+'Style','popupmenu',...
+'Value',1,...
+'Tag','popup_ageFit',...
+'Vis','off');
+
+uicontrol('Parent',h1, 'Position',[729 8 51 22],...
+'BackgroundColor',[1 1 1],...
+'Call',{@ecran_uiCB,h1,'edit_ageFit_CB'},...
+'String','',...
+'Style','edit',...
+'Tooltip', 'Fit synthetic curve at this age by correlation to measured profile.',...
+'Tag','edit_ageFit',...
+'Vis','off');
+
+uicontrol('Parent',h1, 'Position',[780 8 23 21],...
+'Call',{@ecran_uiCB,h1,'push_ageFit_CB'},...
+'String','Fit',...
+'Tag','push_ageFit',...
+'Vis','off');
 
 function ecran_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
@@ -2259,6 +2753,7 @@ function radio_wave_CB(hObject, handles)
 
 % -------------------------------------------------------------------------
 function pushBP_OK_CB(hObject, handles)
+% Band Pass
 	LC = str2double(get(handles.edit_LC,'Str'));
 	LP = str2double(get(handles.edit_LP,'Str'));
 	HC = str2double(get(handles.edit_HC,'Str'));
