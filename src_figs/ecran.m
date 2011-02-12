@@ -114,6 +114,7 @@ function varargout = ecran(varargin)
 	handles.hAgeMarker = [];	% Isochron anchor point
 	handles.hAgeLine_fit = [];	% Float chunk line used to CORR fit to find ideal isochron pick
 	handles.hLineChunk_fit = [];% Anchor point, now a vert line, moved to new fit pos
+	handles.batTrack = [];		% To hold the bat interpolated profile
 
 	% Choose the default ploting mode
 	if isempty(varargin{1})          % When the file will be read latter
@@ -127,7 +128,8 @@ function varargout = ecran(varargin)
 			'Distance,Z (data units -> mat file)'});
 		rd = get_distances(handles.data(:,1), handles.data(:,2), handles.geog, handles.measureUnit, handles.ellipsoide);
 		handles.dist = rd;				% This one is by default, so save it in case user wants to save it to file
-		handles.hLine = plot(rd,handles.data(:,3));		axis(handles.axes1,'tight');
+		handles.hLine = line('XData',rd,'YData',handles.data(:,3), 'Parent', handles.axes1, 'Color','b');
+		axis(handles.axes1,'tight');
 		if (handles.geog)				% Update uicontrol values too
 			set(handles.check_geog,'Val',1)
 			check_geog_CB(handles.check_geog, handles)
@@ -889,7 +891,7 @@ function push_syntheticRTP_CB(hObject, handles)
 		fid = fopen(opt_file, 'r');
 		c = (fread(fid,'*char'))';      fclose(fid);
 		lines = strread(c,'%s','delimiter','\n');   clear c fid;
-		m = numel(lines);		kk = 2;
+		m = numel(lines);		kk = 2;		% kk starts at 2 because first line in popup is empty
 		for (k = 1:m)
 			if (~strncmp(lines{k},'MIR_MAGPROF',7)),	continue,	end
 			if (numel(lines{k}) <= 14),	continue,	end		% The minimum it takes to have a -? switch
@@ -900,7 +902,13 @@ function push_syntheticRTP_CB(hObject, handles)
 				case 'SPEED',		handles.syntPar.speed = str2double(r);
 				case 'SPREADIR',	handles.syntPar.dir_spread = str2double(r);
 				case 'CONTAMIN',	contamin = str2double(r);
-				case 'BAT',			batFile = r;
+				case 'BAT'
+					batFile = ddewhite(r);
+					if (exist(batFile,'file') ~= 2)
+						errordlg(['Bathymetry grid ' r ' does not exist. Ignoring bat request'],'Error')
+						batFile = [];
+					end
+					
 				case 'ISOC'
 					ind = strfind(r, '_');
 					if (~isempty(ind))
@@ -929,19 +937,25 @@ function push_syntheticRTP_CB(hObject, handles)
 		handles.syntPar.speed = speed;
 		handles.syntPar.dir_spread = dir_profile;
 		handles.syntPar.dir_profile = dir_profile;
+		handles.syntPar.agePad = 2.0;	% Probably too short for older isochrons
 		set(handles.edit_ageFit, 'Vis','on')
 	end
 	set([handles.push_ageFit handles.slider_filter], 'Vis','on')
 
 	if (~isempty(batFile))				% Try to extract the bathym profile by grid interpolation
-		[handles, X, Y, Z, head] = read_gmt_type_grids(handles, batFile);
-		if (~isempty(Z))
-			Z = abs( grdtrack_m(Z,head,handles.data(:,1:2),'-Z') );
-			dxypa = [handles.dist/1000 handles.data(:,1:2) Z(:) handles.data(:,3)];
+		if (isempty(handles.batTrack))	% Do grid interpolation only once
+			[handles, X, Y, Z, head] = read_gmt_type_grids(handles, batFile);
+			if (~isempty(Z))
+				Z = abs( grdtrack_m(Z,head,handles.data(:,1:2),'-Z') ) / 1000;	% Need Z in km
+				dxypa = [handles.dist/1000 handles.data(:,1:2) Z(:) handles.data(:,3)];
+				handles.batTrack = Z;
+			end
 		end
 	end
-	if (isempty(dxypa))
+	if (isempty(dxypa) && isempty(handles.batTrack))
 		dxypa = [handles.dist/1000 handles.data(:,1:2) ones(size(handles.data,1),1)*2.5 handles.data(:,3)];
+	elseif (isempty(dxypa) && ~isempty(handles.batTrack))
+		dxypa = [handles.dist/1000 handles.data(:,1:2) handles.batTrack(:) handles.data(:,3)];
 	end
 
 	[anom handles.age_line] = magmodel(dxypa, handles.syntPar.dec, handles.syntPar.inc, ...
@@ -1004,22 +1018,27 @@ function push_ageFit_CB(hObject, handles)
 		str = get(handles.popup_ageFit,'str');		val = get(handles.popup_ageFit,'Val');
 		if (val == 1),		return,		end			% First entry is empty
 		xx = str2double( str{val} );
+		agePad = handles.syntPar.agePad(val);
 	else
 		xx = abs(str2double(get(handles.edit_ageFit,'String')));
 		if (isnan(xx))
 			errordlg('Pelease, fit what? Your anniversary? How many Ma?', 'error'),		return
 		end
+		agePad = handles.syntPar.agePad;
 	end
 
 	% Get a chunk of synthetic data centered on age marker.
-	[mimi,ind_a] = min(abs(handles.age_line - (xx - 1.5)));
-	[mimi,ind_b] = min(abs(handles.age_line - (xx + 1.5)));
+	[mimi,ind_a] = min(abs(handles.age_line - (xx - agePad)));
+	[mimi,ind_b] = min(abs(handles.age_line - (xx + agePad)));
 	y = get(handles.hSynthetic, 'YData');		y = y(ind_a:ind_b);
-	x = get(handles.hSynthetic, 'XData');
+	y_ano = handles.data(ind_a:ind_b, 3);		% Get the corresponding chunk of the measured anomaly
 
-	w = conv(y(end:-1:1), handles.data(:,3), 'same');	% Revert Y because we want CORR, not CONV
+	w = conv(y(end:-1:1)-mean(y), y_ano-mean(y_ano));	% Revert Y because we want CORR, not CONV
 	[mimi,ind] = max(w);						% Estimate the fit position by max of cross-correlation
-	x = x(ind:(ind+numel(y)-1));				% Get new abssissae after the result of the CORR fit
+	x = get(handles.hSynthetic, 'XData');
+	zero_lag = numel(y);
+	shift = (ind - zero_lag);
+	x = x(ind_a+shift:ind_b+shift);				% Get new abssissae after the result of the CORR fit
 
 	% Create or update the line chunk that shows new pos after CORR fit
 	if (isempty(handles.hLineChunk_fit))
@@ -1030,7 +1049,7 @@ function push_ageFit_CB(hObject, handles)
 
 	% Create or move the age marker as well
 	ind_ageMarker = get(handles.hAgeMarker,'UserData');
-	delta_shift = ind_ageMarker - ind_a + 1;		% Age marker must be shifted by this after corr-fit
+	delta_shift = ind_ageMarker - ind_a + 1;	% Age marker must be shifted by this after corr-fit
 	xx = [x(delta_shift) x(delta_shift)];		yy = get(handles.axes1,'ylim');
 	if (isempty(handles.hAgeLine_fit))
 		handles.hAgeLine_fit = line('XData',xx, 'YData',yy, 'Parent',handles.axes1, 'LineStyle', '--');
