@@ -807,7 +807,6 @@ function push_magBar_CB(hObject, handles)
 		errordlg('Take a second look to what you are asking for. Wrong ages','Error'),		return
 	end
 
-	%set(handles.axes2, 'Vis', 'on','XTick',[], 'YTick',[])
 	set(handles.axes2, 'Vis', 'on', 'YTick',[])
 
 	reverse_XDir = false;		% If first age > last age, we'll revert the sense of the X axis
@@ -851,7 +850,6 @@ function push_magBar_CB(hObject, handles)
 	cor = repmat([0 0 0; 1 1 1],n_ages-1,1);    cor = [cor; [0 0 0]];
 	set(handles.axes2, 'xlim', [age_start(1) age_end(end)])
 	patch('Parent',handles.axes2,'Faces',faces,'Vertices',[x y],'FaceVertexCData',cor,'FaceColor','flat');
-	set(handles.axes2, 'YTick',[])
 	set(handles.figure1,'renderer','Zbuffer')	% The patch command above set it to OpenGL, which is f... bugged
 
 	% Get the index of anomalies that have names. We'll use them to plot those anomaly names
@@ -874,9 +872,9 @@ function push_magBar_CB(hObject, handles)
 	end
 	text(x_pos,repmat(y_lim(2),numel(x_pos),1),age_txt(ind),'Parent',handles.axes1, ...
 		'VerticalAlignment','top', 'HorizontalAlignment', ha, 'Tag','chroneName')
-	set(handles.axes2,'UserData',ages)		% We may want to use these from other places
+	set(handles.axes2, 'YTick',[],'UserData',ages)		% We may want to use these from other places
 	
-	set(handles.push_syntheticRTP, 'Vis','on')	% Now this may be set to visible
+	set(handles.push_syntheticRTP, 'Vis','on')			% Now this may be set to visible
 
 % ---------------------------------------------------------------------
 function push_syntheticRTP_CB(hObject, handles)
@@ -960,7 +958,12 @@ function push_syntheticRTP_CB(hObject, handles)
 
 	[anom handles.age_line] = magmodel(dxypa, handles.syntPar.dec, handles.syntPar.inc, ...
 			handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, contamin);
-	handles.hSynthetic = line('XData', handles.dist, 'YData', anom, 'Parent', handles.axes1, 'Color', 'r');
+
+	if ( strncmp(get(handles.axes2,'XDir'),'normal', 3) )
+		handles.hSynthetic = line('XData', handles.dist, 'YData', anom, 'Parent', handles.axes1, 'Color', 'r');
+	else
+		handles.hSynthetic = line('XData', handles.dist(end:-1:1), 'YData', anom, 'Parent', handles.axes1, 'Color', 'r');
+	end
 	
 	guidata(handles.figure1, handles)
 
@@ -1030,8 +1033,17 @@ function push_ageFit_CB(hObject, handles)
 	% Get a chunk of synthetic data centered on age marker.
 	[mimi,ind_a] = min(abs(handles.age_line - (xx - agePad)));
 	[mimi,ind_b] = min(abs(handles.age_line - (xx + agePad)));
-	y = get(handles.hSynthetic, 'YData');		y = y(ind_a:ind_b);
 	y_ano = handles.data(ind_a:ind_b, 3);		% Get the corresponding chunk of the measured anomaly
+	y = get(handles.hSynthetic, 'YData');		y = y(ind_a:ind_b);
+% 	if ( ~strncmp(get(handles.axes2,'XDir'),'direct', 3) )
+% 		y = y(end:-1:1);
+% 		y = y(ind_a:ind_b);
+% 		ind_a = numel(handles.age_line) - ind_a + 1;
+% 		ind_b = numel(handles.age_line) - ind_b + 1;
+% 		t = ind_a;	ind_a = ind_b;	ind_b = t;
+% 	else
+% 		y = y(ind_a:ind_b);
+% 	end
 
 	w = conv(y(end:-1:1)-mean(y), y_ano-mean(y_ano));	% Revert Y because we want CORR, not CONV
 	[mimi,ind] = max(w);						% Estimate the fit position by max of cross-correlation
