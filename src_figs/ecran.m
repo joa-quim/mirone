@@ -423,7 +423,7 @@ function add_MarkColor(obj, evt, h)
 			% We need to add x_off since "i" counts only inside the +/- 1/10 of x_lim centered on current point
 			mir_pt_x = handles.data(i+x_off-1,1);	mir_pt_y = handles.data(i+x_off-1,2);
 			h = line(mir_pt_x, mir_pt_y,'Parent',handles.handMir.axes1,'Marker','o','MarkerFaceColor','k', ...
-				'MarkerSize',6,'LineStyle','none', 'Tag','picked');
+				'MarkerSize',6,'LineStyle','none', 'Tag','Symbol');
 			draw_funs(h,'DrawSymbol')		% Set uicontexts
 		end
 
