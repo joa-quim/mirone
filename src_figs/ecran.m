@@ -940,20 +940,26 @@ function push_syntheticRTP_CB(hObject, handles)
 	end
 	set([handles.push_ageFit handles.slider_filter], 'Vis','on')
 
+	switch handles.measureUnit(1)			% Compute scale factor that always give distances in km
+		case 'n',		scale_x = 1852;		% Nautical miles
+		case 'k',		scale_x = 1;		% Kilometers
+		case 'm',		scale_x = 1000;		% Meters
+	end
+
 	if (~isempty(batFile))				% Try to extract the bathym profile by grid interpolation
 		if (isempty(handles.batTrack))	% Do grid interpolation only once
 			[handles, X, Y, Z, head] = read_gmt_type_grids(handles, batFile);
 			if (~isempty(Z))
 				Z = abs( grdtrack_m(Z,head,handles.data(:,1:2),'-Z') ) / 1000;	% Need Z in km
-				dxypa = [handles.dist/1000 handles.data(:,1:2) Z(:) handles.data(:,3)];
+				dxypa = [handles.dist/scale_x handles.data(:,1:2) Z(:) handles.data(:,3)];
 				handles.batTrack = Z;
 			end
 		end
 	end
 	if (isempty(dxypa) && isempty(handles.batTrack))
-		dxypa = [handles.dist/1000 handles.data(:,1:2) ones(size(handles.data,1),1)*2.5 handles.data(:,3)];
+		dxypa = [handles.dist/scale_x handles.data(:,1:2) ones(size(handles.data,1),1)*2.5 handles.data(:,3)];
 	elseif (isempty(dxypa) && ~isempty(handles.batTrack))
-		dxypa = [handles.dist/1000 handles.data(:,1:2) handles.batTrack(:) handles.data(:,3)];
+		dxypa = [handles.dist/scale_x handles.data(:,1:2) handles.batTrack(:) handles.data(:,3)];
 	end
 
 	[anom handles.age_line] = magmodel(dxypa, handles.syntPar.dec, handles.syntPar.inc, ...
@@ -1029,8 +1035,8 @@ function push_ageFit_CB(hObject, handles)
 		end
 		agePad = handles.syntPar.agePad;
 	end
-	
-	x = get(handles.hSynthetic, 'XData')';		y = get(handles.hSynthetic, 'YData')';
+
+	x = get(handles.hSynthetic, 'XData')';			y = get(handles.hSynthetic, 'YData')';
 	y_ano = handles.data(:,3);
 	if ( strncmp(get(handles.axes2,'XDir'),'normal', 3) )
 		age_line = handles.age_line;
