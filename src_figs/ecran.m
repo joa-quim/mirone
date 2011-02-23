@@ -1029,27 +1029,38 @@ function push_ageFit_CB(hObject, handles)
 		end
 		agePad = handles.syntPar.agePad;
 	end
+	
+	x = get(handles.hSynthetic, 'XData')';		y = get(handles.hSynthetic, 'YData')';
+	y_ano = handles.data(:,3);
+	if ( strncmp(get(handles.axes2,'XDir'),'normal', 3) )
+		age_line = handles.age_line;
+	else
+		age_line = handles.age_line(end:-1:1);		% When profile was drawn from Old to New some of the vectors
+		x = x(end:-1:1);							% are reversed (age for instance) which makes a bit of a mess
+		y = y(end:-1:1);
+	end
 
 	% Get a chunk of synthetic data centered on age marker.
-	[mimi,ind_a] = min(abs(handles.age_line - (xx - agePad)));
-	[mimi,ind_b] = min(abs(handles.age_line - (xx + agePad)));
-	y_ano = handles.data(ind_a:ind_b, 3);		% Get the corresponding chunk of the measured anomaly
-	y = get(handles.hSynthetic, 'YData');		y = y(ind_a:ind_b);
-% 	if ( ~strncmp(get(handles.axes2,'XDir'),'direct', 3) )
-% 		y = y(end:-1:1);
-% 		y = y(ind_a:ind_b);
-% 		ind_a = numel(handles.age_line) - ind_a + 1;
-% 		ind_b = numel(handles.age_line) - ind_b + 1;
-% 		t = ind_a;	ind_a = ind_b;	ind_b = t;
-% 	else
-% 		y = y(ind_a:ind_b);
-% 	end
+	[mimi,ind_a] = min(abs(age_line - (xx - agePad)));
+	[mimi,ind_b] = min(abs(age_line - (xx + agePad)));
+	ind_a = max(1, ind_a);		ind_b = min(numel(age_line), ind_b);	% Make sure we are not outside of limits
+	if ( ~strncmp(get(handles.axes2,'XDir'),'normal', 3) )
+		t = ind_a;	ind_a = ind_b;	ind_b = t;
+	end
+	y = y(ind_a:ind_b);
+	y_ano = y_ano(ind_a:ind_b);					% Get the corresponding chunk of the measured anomaly
 
-	w = conv(y(end:-1:1)-mean(y), y_ano-mean(y_ano));	% Revert Y because we want CORR, not CONV
+	% Normalize and remove mean
+	yn = (y - min(y)) / (max(y)-min(y));			yn = yn - mean(yn);
+	y_ano = (y_ano-min(y_ano)) / (max(y_ano)-min(y_ano));	y_ano = y_ano - mean(y_ano);
+	w = conv(yn(end:-1:1), y_ano);				% Revert Y because we want CORR, not CONV
 	[mimi,ind] = max(w);						% Estimate the fit position by max of cross-correlation
-	x = get(handles.hSynthetic, 'XData');
 	zero_lag = numel(y);
 	shift = (ind - zero_lag);
+	if (ind_a+shift < 1)
+		warndlg('Guess work by convolution failed (index out of bounds). Try increase the isochron pad limits','Warning')
+		return
+	end
 	x = x(ind_a+shift:ind_b+shift);				% Get new abssissae after the result of the CORR fit
 
 	% Create or update the line chunk that shows new pos after CORR fit
@@ -1061,6 +1072,9 @@ function push_ageFit_CB(hObject, handles)
 
 	% Create or move the age marker as well
 	ind_ageMarker = get(handles.hAgeMarker,'UserData');
+	if ( ~strncmp(get(handles.axes2,'XDir'),'normal', 3) )	% The time axis is reversed (grows from right to left)
+		ind_ageMarker = numel(age_line) - ind_ageMarker + 1;
+	end
 	delta_shift = ind_ageMarker - ind_a + 1;	% Age marker must be shifted by this after corr-fit
 	xx = [x(delta_shift) x(delta_shift)];		yy = get(handles.axes1,'ylim');
 	if (isempty(handles.hAgeLine_fit))
