@@ -21,7 +21,7 @@ function aquaPlugin(handles)
 			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
 			};
 
-	qual = casos{5};		% <== Active selection
+	qual = casos{4};		% <== Active selection
 
 	switch qual
 		case 'zonal'				% CASE 1
@@ -30,7 +30,7 @@ function aquaPlugin(handles)
  			have_polygon = true;
 			trends = true;			% If true compute the trends (per stripe) of the zonal integration
 			fname = 'plataforma_poly.dat';		% If this name is uncorrect, another will be asked
-			fnam2 = 'plataforma_offset_poly.dat';		% If it exists, compute difference of zonal integrations
+			%fnam2 = 'plataforma_offset_poly.dat';		% If it exists, compute difference of zonal integrations
 			fnam2 = 'poly_largo.dat';	%fnam2= [];
 			zonal(handles, dlat, integ_lon, trends, have_polygon, fname, fnam2)
 		case 'tvar'					% CASE 2
@@ -42,15 +42,15 @@ function aquaPlugin(handles)
 			calc_yearMean(handles, ano)
 		case 'yearMeanFlag'			% CASE 4
 			ano = 1:12;				% Compute yearly (ano = 1:12) or seasonal means (ano = start_month:end_month)
-			fname  = 'C:\a1\terra_qual.nc';
-			fname  = 'C:\a1\pathfinder\qual_82_08.nc';
+			%fname  = 'C:\a1\terra_qual.nc';
+			fname  = 'C:\a1\pathfinder\qual_82_09.nc';
 			quality = 6;			% Retain only values of quality >= this (or <= abs(this) when MODIS)
 			pintAnoes = true;		% If true instruct to fill holes <= nCells
 			nCells = 200;			% Holes (bad data) smaller than this are filled by interpolation
 			%splina = true;
 			splina = [14 30];		% Fill missing monthly data by a spline interpolation taken over two years (and clipp to limits)
 			% Where to save track of filled holes. Ignored if pintAnoes = false OR fname3 = []
-			fname3 = 'C:\a1\pathfinder\qual7_85_07_Interp200_Q6.nc';
+			%fname3 = 'C:\a1\pathfinder\qual7_85_07_Interp200_Q6.nc';
 			fname3 = [];
 			calc_yearMean(handles, ano, fname, quality, pintAnoes, nCells, fname3, splina)
 		case 'polygAVG'				% CASE 5
@@ -358,21 +358,21 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 			errordlg('Buhhuu!! quality flags and the-to-be-flagged-file have not the same size. By','Error'),		return
 		end
 		do_flags = true;
-		
+
 		if (nargin == 3),		flag = 7;		end			% If not provided, defaults to best quality
 	end
-	
+
 	if (flag > 0),		growing_flag = true;				% Pathfinder style (higher the best) quality flag
 	else				growing_flag = false;	flag = -flag;	% MODIS style (lower the best) quality flag
 	end
 
 	if (nargin < 8),		splina = false;		end
-	
+
 	% The following limits are used to clipp unreasonable temperatures computed during the spline interpolation
 	% When no time (spline) interpolation is used, they simply ignored
 	if (numel(splina) == 2)
 		regionalMIN = splina(1);		regionalMAX = splina(2);
-		splina = true;			% Make it logig again for use in IF tests
+		splina = true;					% Make it logic again for use in IF tests
 	else
 		regionalMIN = 0;				regionalMAX = 32;
 	end
@@ -387,7 +387,9 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 	n_anos = handles.number_of_timesteps / 12;
 
 	h = aguentabar(0,'title','Computing annual means.','CreateCancelBtn');
-	Tmed = zeros([rows, cols]);			% Temp media para cada um dos anos
+	if (~splina)
+		Tmed = zeros([rows, cols]);		% Temp media para cada um dos anos
+	end
 	in_break = false;					% Inner loop cancel option
 	last_processed_month = 0;		already_processed = 0;
 	warning off MATLAB:divideByZero
@@ -466,7 +468,7 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 
 		else						% Fill missing month data by interpolation based on non-NaN data
 			hh = aguentabar(eps,'title','Splining it.');	drawnow
-			if (isnan(hh)),		in_break = true;	break,		end		% Over time loop said: break
+			if (isnan(hh)),		break,		end			% Over time loop said: break
 			n_meses = numel(this_months);
 
 			if (m == 1),	first_wanted_month = months(1);				% First year in the stack
@@ -485,23 +487,22 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 					elseif (~any(ind))		% They are all NaNs -- Almost sure a land pixel
 						continue
 					elseif ( numel(ind(ind)) >= round(numel(this_months)/2 + 1) )
-					%elseif ( numel(ind(ind)) >= (fix(numel(months)/2) + n_pad_months - 0) )
 						x = this_months(ind);			y0 = y(ind);
-						%yy = gmtmbgrid_m(x(:), zeros(numel(x),1)+2, y0(:), '-I1', sprintf('-R%d/%d/0/4', x(1), x(end)), '-Mz', '-W-2', '-T100');
-						%yy = yy(3,:);
-						try
-							if ((m == 1 || m == n_anos))
-% 								yy = interp1(x, y0, this_months, 'spline', nan);
- 								yy = akimaspline(x, y0, this_months);
-% 								yy = spline1d(this_months, x, y0, [], [], 0.0);
-							else
-% 								yy = spline(x, y0, this_months);
-								yy = akimaspline(x, y0, this_months);
-% 								yy = spline1d(this_months, x, y0, [], [], 0.0);
+ 						yy = akimaspline(x, y0, this_months);
+						y(first_wanted_month:last_wanted_month) = yy(first_wanted_month:last_wanted_month);
+						if (~ind(1) || ~ind(end))			% Cases when where we would have extrapolations
+							if (~ind(1))
+								ki = 1;
+								while (~ind(ki)),	ki = ki + 1;	end
+								y(1:ki) = NaN;				% Reset extraped values to NaN
 							end
-							y(first_wanted_month:last_wanted_month)= yy(first_wanted_month:last_wanted_month);
-							ZtoSpline(j,i,1:n_meses) = single(y);
+							if (~ind(end))
+								kf = numel(ind);
+								while (~ind(kf)),	kf = kf - 1;	end
+								y(kf:numel(ind)) = NaN;		% Reset extraped values to NaN
+							end
 						end
+						ZtoSpline(j,i,1:n_meses) = single(y);
 					end
 				end
 				hh = aguentabar(i/(cols+1));	drawnow
@@ -512,28 +513,30 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 
 			% Now we can finaly compute the season mean
 			tmp = ZtoSpline(:,:,first_wanted_month);
-% 			tmp(tmp < regionalMIN | tmp > regionalMAX) = NaN;
-% 			ind = isnan(tmp);
-% 			contanoes = zeros(rows, cols);
-% 			contanoes = contanoes + ~ind;
+			tmp(tmp < regionalMIN | tmp > regionalMAX) = NaN;
+			ind = isnan(tmp);
+			contanoes = repmat(single(zeros(1, cols)), [rows 1]);
+			contanoes = contanoes + ~ind;
+			tmp(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
 			for (n = (first_wanted_month+1):last_wanted_month)
-% 				tmp2 = ZtoSpline(:,:,n);
-% 				tmp2(tmp2 < regionalMIN | tmp2 > regionalMAX) = NaN;
-% 				ind = isnan(tmp2);
-% 				contanoes = contanoes + ~ind;
-% 				cvlib_mex('add',tmp,tmp2);
-				cvlib_mex('add',tmp,ZtoSpline(:,:,n));
+				tmp2 = ZtoSpline(:,:,n);
+				tmp2(tmp2 < regionalMIN | tmp2 > regionalMAX) = NaN;
+				ind = isnan(tmp2);
+				tmp2(ind) = 0;
+				contanoes = contanoes + ~ind;
+				cvlib_mex('add',tmp,tmp2);
 			end
-			%tmp = single(double(tmp) ./ contanoes);
-			cvlib_mex('CvtScale', tmp, 1/numel(months));
-		end				% End interpolate along time
+			cvlib_mex('div', tmp, contanoes);
+		end							% End interpolate along time
+		
+		tmp(tmp == 0) = NaN;		% Reset the NaNs
 
 		if (in_break),		break,		end		% Fckng no gotos paranoia obliges to this recursive break
 
 % 		% Clip obvious bad data based on cheap meadian statistics
 % 		aguentabar(0.5,'title','Filtering obvious bad data based on cheap statistics.');	drawnow
-% 		medianas = grdfilter_m(tmp,[1 size(tmp,2) 1 size(tmp,1) 0 50 0 1 1],'-D0','-Fm11');
-% 		difa = cvlib_mex('absDiff',tmp,medianas);
+% 		medianas = grdfilter_m(tmp,[1 size(tmp,2) 1 size(tmp,1) 0 50 0 1 1], '-D0', '-Fm11');
+% 		difa = cvlib_mex('absDiff', tmp, medianas);
 % 		tmp(difa > 0.75) = NaN;					% 0.75 is probably still too permissive
 
 		% Write this layer to file
