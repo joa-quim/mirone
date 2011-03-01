@@ -7,6 +7,10 @@
 //#include <iostream.h>		// Had to comment this on VC7.1 Must check if it's really needed on VC6.0
 
 #include "mex.h"
+//#ifdef _OPENMP
+//#include <omp.h>
+//#endif
+
 #undef malloc
 #undef realloc
 #undef free
@@ -219,8 +223,9 @@ akima_interpolator<InputIterator>::akima_interpolator(const long N, InputIterato
 	
 	// now calcualte the coefficients for the n-1 cubic polynomials
 	for (i=0; i < n-1; i++) {		
-	  	c[i] =(3*m[i]-2*b[i]-b[i+1]) / (x[i+1]-x[i]);
- 		d[i] =(b[i]+b[i+1]-2*m[i]) / ((x[i+1]-x[i]) * (x[i+1]-x[i]));
+		double t = x[i+1]-x[i];
+	  	c[i] =(3*m[i]-2*b[i]-b[i+1]) / t;
+ 		d[i] =(b[i]+b[i+1]-2*m[i]) / (t * t);
 	}
 	
 	m -= 2;
@@ -278,51 +283,61 @@ double akima_interpolator<InputIterator>::eval(const double u) const {
 void mexFunction(int nlhs, mxArray  *plhs[], int nrhs, const mxArray  *prhs[]) {       
 
 	if (nrhs < 3) {
-		mexErrMsgTxt("Akima interpolation : YY = AKIMA(X,Y,XX)");
-		return;
+		mexPrintf("Akima interpolation : YY = AKIMA(X,Y,XX)");
+		mexPrintf("or (insitu YY) : AKIMA(X,Y,XX, YY)");
+		if (nrhs >= 1)
+			mexErrMsgTxt("\n");
+		else
+			return;
 	}
 	
 	/* handle matrix I/O */
 	
 	const double *x = (double *)mxGetPr(prhs[0]);
-	const long Nx = mxGetM(prhs[0])*mxGetN(prhs[0]); 	
+	const long Nx = mxGetM(prhs[0]) * mxGetN(prhs[0]); 	
 	
 	const double *y = (double *)mxGetPr(prhs[1]);
-	const long Ny = mxGetM(prhs[1])*mxGetN(prhs[1]); 		
+	const long Ny = mxGetM(prhs[1]) * mxGetN(prhs[1]); 		
 	
 	const double *xx = (double *)mxGetPr(prhs[2]);
-	const long Nxx = mxGetM(prhs[2])*mxGetN(prhs[2]); 		
-	
-	if (Nx < 2) {
-		mexErrMsgTxt("There should be at least two data points.");
-		return;
-	}
-	
-	if (Ny != Nx) {
-		mexErrMsgTxt("Abscissa and ordinate vector should be of the same length.");
-		return;
-	}
-	
-	if (mxGetM(prhs[2]) == 1)	// If row vector in - row vector out
-		plhs[0] = mxCreateDoubleMatrix(1, Nxx, mxREAL);      
-	else
-		plhs[0] = mxCreateDoubleMatrix(Nxx, 1, mxREAL);      
+	const long Nxx = mxGetM(prhs[2]) * mxGetN(prhs[2]); 		
 
-	double *const out = (double *) mxGetPr(plhs[0]);   
+	double *out;
+	
+	if (Nx < 2)
+		mexErrMsgTxt("There should be at least two data points.");
+	
+	if (Ny != Nx)
+		mexErrMsgTxt("Abscissa and ordinate vector should be of the same length.");
+
+	if (nrhs == 3) {	
+		if (mxGetM(prhs[2]) == 1)	// If row vector in - row vector out
+			plhs[0] = mxCreateDoubleMatrix(1, Nxx, mxREAL);      
+		else
+			plhs[0] = mxCreateDoubleMatrix(Nxx, 1, mxREAL);      
+
+		out = (double *) mxGetPr(plhs[0]);   
+	}
+	else {		// Using vector transmitted in input (in multiple calls avoids repeated memory alloc requests)
+		const long Nyy = mxGetM(prhs[3]) * mxGetN(prhs[3]); 		
+		if (Nyy != Nxx)
+			mexErrMsgTxt("Abscissa and ordinate vectors (XX & YY) should be of the same length.");
+
+		out = (double *) mxGetPr(prhs[3]);   
+	}
 
  	akima_interpolator<const double*> akima(Nx, (const double*) x, (const double*) y);
 		
-	if (akima.geterr() == 1) {
+	if (akima.geterr() == 1)
 		mexErrMsgTxt("Need more input data points");
-		return;
-	} else if (akima.geterr() == 2) {
+	else if (akima.geterr() == 2)
 		mexErrMsgTxt("Data point must be given with ascending x values");
-		return;		
-	} else if (akima.geterr()) {
+	else if (akima.geterr())
 		mexErrMsgTxt("Error computing Akima coefficients");
-		return;		
-	}
 
+//#ifdef _OPENMP
+//#pragma omp parallel for
+//#endif
 	for (long i = 0; i < Nxx; i++)
 		out[i] = akima.eval(xx[i]);	
 }
