@@ -35,8 +35,8 @@ function aquaPlugin(handles)
 			zonal(handles, dlat, integ_lon, trends, have_polygon, fname, fnam2)
 		case 'tvar'					% CASE 2
 			sub_set = [3 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
-			%sub_set = [0 0];
-			calcGrad(handles, sub_set) 
+			slope = true;			% TRUE to compute slope of linear fit, FALSE to compute p parameter
+			calcGrad(handles, sub_set, slope) 
 		case 'yearMean'				% CASE 3
 			ano = 1:12;				% Compute yearly means
 			calc_yearMean(handles, ano)
@@ -48,16 +48,18 @@ function aquaPlugin(handles)
 			pintAnoes = true;		% If true instruct to fill holes <= nCells
 			nCells = 200;			% Holes (bad data) smaller than this are filled by interpolation
 			%splina = true;
-			splina = [14 30];		% Fill missing monthly data by a spline interpolation taken over two years (and clipp to limits)
+			splina = [12 30];		% Fill missing monthly data by a spline interpolation taken over two years (and clipp to limits)
 			% Where to save track of filled holes. Ignored if pintAnoes = false OR fname3 = []
 			%fname3 = 'C:\a1\pathfinder\qual7_85_07_Interp200_Q6.nc';
 			fname3 = [];
-			calc_yearMean(handles, ano, fname, quality, pintAnoes, nCells, fname3, splina)
+			% If not empty, it must contain the name of a Lon,Lat file with locations where to output time series
+			chkPts_file = 'C:\a1\pathfinder\chkPts.dat';
+			calc_yearMean(handles, ano, fname, quality, pintAnoes, nCells, fname3, splina, chkPts_file)
 		case 'polygAVG'				% CASE 5
 			calc_polygAVG(handles)
 		case 'flagsStats'			% CASE 6
 			ano = 1:12;				% Compute yearly stats
-			opt = '';				% Make the counting on a per month basis
+			%opt = '';				% Make the counting on a per month basis
 			opt = 'per_year';		% Make the counting on a per year basis
 			calc_flagsStats(handles, ano, 7, opt)
 		case 'pass_by_count'		% CASE 7
@@ -192,13 +194,15 @@ function out = zonal(handles, dlat, integ_lon, do_trends, have_polygon, fname, f
 	end
 	
 % ----------------------------------------------------------------------
-function calcGrad(handles, sub_set)
+function calcGrad(handles, sub_set, slope)
 % Calcula o gradiente de um fiche ja com as medias anuais por ajuste de um recta (Loada o fiche todo na memoria)
 % SUB_SET -> A two columns row vec with number of the offset of years where analysis start and stop.
 %			For example [3 1] Starts analysis on forth year and stops on the before last year.
 %			[0 0] Means using the all dataset.
+%
+% SLOPE		Logical indicating if compute slope of linear fit (TRUE) or the p parameter (FALSE)
 
-	get_profiles_in_polygon = true;			% Save all profiles (along third dim) located inside the polygonal area
+	get_profiles_in_polygon = false;			% Save all profiles (along third dim) located inside the polygonal area
 
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
@@ -289,11 +293,14 @@ function calcGrad(handles, sub_set)
 			if (numel(y) < n_anos/2),		continue,	end			% Completely ad-hoc test
  			%p = polyfit(x(~ind),y,1);
 			%z=[xvalues(1:4);ones(1,4)]'\yvalues';
- 			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
-			if (p(1) < -0.5 || p(1) > 1),	continue,	end		% Another ad-hoc (CLIPPING)
-			Tvar(m,n) = p(4);
-%			p = trend1d_m([x(~ind) y],'-L','-N2r');
-% 			Tvar(m,n) = p(1);
+			if (slope)		% Compute sople of linear fit
+				p = trend1d_m([x(~ind) y],'-L','-N2r');
+				Tvar(m,n) = p(1);
+			else			% Compute p parameter
+	 			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
+				if (p(1) < -0.5 || p(1) > 1),	continue,	end		% Another ad-hoc (CLIPPING)
+				Tvar(m,n) = p(4);
+			end
 		end
 		h = aguentabar(m/rows);
 		if (isnan(h)),	break,	end
@@ -311,7 +318,7 @@ function calcGrad(handles, sub_set)
 	mirone(Tvar, tmp)
 
 % ------------------------------------------------------------------------------
-function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3, splina)
+function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3, splina, chkPts_file)
 % Calcula media anuais a partir de dados mensais
 % MONTHS 	is a vector with the months uppon which the mean is to be computed
 %		example: 	months = 1:12		==> Computes yearly mean
@@ -320,26 +327,35 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 % OPTIONS:
 % FNAME2 	name of a netCDF file with quality flags. Obviously this file must be of
 % 			the same size as the series under analysis.
+%
 % FLAG		Threshold quality value. Only values of quality >= FLAG will be taken into account
 %			NOTE: For MODIS use negative FLAG. Than, values are retained if quality <= abs(FLAG)
+%
 % PINTANOES	Logical that if true instruct to fill holes <= NCELLS
+%
 % FNAME3 	Optional name of a netCDF file where interpolated nodes will be set to FLAG
 %			and the others retain their FNAME2 value. This corresponds to the promotion
 %			of interpolated nodes to quality FLAG. Only used if PINTANOES == TRUE
+%
 % SPLINA	Logical that if true instruct to spline interpolate the missing monthly values
 %			before computing the yearly mean. This option acumulates with that of PINTANOES
+%
+% CHKPTS_FILE	(Optional)
+%			Name of a file with Lon,Lat locations where to output the entire time series.
+%			Output name file is constructed from the input name and appended '_tseries'.
+%			Fitst column has the month number, even columns the original data and odd columns
+%			the data with the holes (NaNs) interpolated with an Akima spline function.
 
 	txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
 	[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
 	if isequal(FileName,0),		return,		end
 	grd_out = [PathName FileName];
 
+	do_flags = false;		track_filled = false;		do_saveSeries = false;
 	[z_id, s, rows, cols] = get_ncInfos(handles);
-	do_flags = false;
-	track_filled = false;
 
 	if (nargin == 1),		months = 1:12;		end		% Default to yearly means
-	if (nargin >= 7 && ~isempty(fname3)),		track_filled = true;	end		% Qeep track of interpolated nodes
+	if (nargin >= 7 && ~isempty(fname3)),		track_filled = true;	end		% Keep track of interpolated nodes
 
 	if (nargin > 2)			% We have a quality-flag ghost file to check
 		s_flags = nc_funs('info',fname2);
@@ -368,15 +384,37 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 
 	if (nargin < 8),		splina = false;		end
 
-	% The following limits are used to clipp unreasonable temperatures computed during the spline interpolation
-	% When no time (spline) interpolation is used, they simply ignored
+	% -------------- Test if output time series at locations provided in the CHKPTS_FILE --------------------
+	if (nargin == 9 && ~isempty(chkPts_file))
+		if (exist(chkPts_file,'file') == 2)
+			pts_pos = text_read(chkPts_file);
+			indTimeSeries = zeros(size(pts_pos,1), 2);
+			for (k = 1:size(pts_pos,1))
+				indTimeSeries(k,1) = round( (pts_pos(k,1) - handles.head(1)) / handles.head(8) ) + 1;
+				indTimeSeries(k,2) = round( (pts_pos(k,2) - handles.head(3)) / handles.head(9) ) + 1;
+			end
+			%timeSeries = zeros(s.Dataset(3).Size, k);		% Total number of layers
+			timeSeries = [(1:s.Dataset(3).Size)' zeros(s.Dataset(3).Size, 2*k)];	% Total N of layers + N of check pts
+			indTSCurr_o = 1;		indTSCurr_s = 1;
+	
+			if ( rem(size(timeSeries,1), 12) ~= 0 )
+				warndlg('Output time series works only with complete years of monthly data. Ignoring request','Warning')
+			else
+				do_saveSeries = true;
+			end
+		end
+	end
+	% --------------------------------------------------------------------------------------------------------
+
+	% The following limits are used to clip unreasonable temperatures computed during the spline interpolation
+	% When no time (spline) interpolation is used, they are simply ignored
 	if (numel(splina) == 2)
 		regionalMIN = splina(1);		regionalMAX = splina(2);
 		splina = true;					% Make it logic again for use in IF tests
 	else
 		regionalMIN = 0;				regionalMAX = 32;
 	end
-	
+
 	if (splina)
 		n_pad_months = 7;		% Example: if months = 7:9 interpolation domain is 7-n_pad_months-1:9+n_pad_months
 		total_months = numel(months) + 2*n_pad_months;
@@ -386,15 +424,16 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
 	n_anos = handles.number_of_timesteps / 12;
 
-	h = aguentabar(0,'title','Computing annual means.','CreateCancelBtn');
+	aguentabar(0,'title','Computing annual means.','CreateCancelBtn');
 	if (~splina)
-		Tmed = zeros([rows, cols]);		% Temp media para cada um dos anos
+		Tmed = zeros(rows, cols);		% Temp media para cada um dos anos
 	end
 	in_break = false;					% Inner loop cancel option
 	last_processed_month = 0;		already_processed = 0;
 	warning off MATLAB:divideByZero
 
 	for (m = 1:n_anos)
+
 		if (splina)
 			if (m == 1)
 				past_months = max(1,months(1)-n_pad_months) - 1;
@@ -407,20 +446,20 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 				this_months = past_months+1 : past_months+(numel(months)+2*n_pad_months);
 			end
 		else
-			this_months = months;				past_months = (m - 1)*12;
+			this_months = (m - 1) * 12 + months;
 			contanoes = zeros(rows, cols);
 		end
 
 		counter = 0;
 		for (n = this_months)
 			counter = counter + 1;
-			if (m == 1)
+			if (m == 1)						% First year
 				Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [n-1 0 0], [1 rows cols]);
 			else
 				if (n <= last_processed_month && splina)
 					already_processed = already_processed + 1;
 					offset = 1;
-					if (m == 2),	offset = min(1, months(1)-n_pad_months);		end		% Because for the 1st year the series may be shorter
+					if (m == 2),	offset = min(1, months(1)-n_pad_months);	end		% Because for the 1st year the series may be shorter
 					offset = total_months - (last_processed_month - n) + offset - 1;
 					ZtoSpline(:,:,already_processed) = ZtoSpline(:,:,offset);
 				else
@@ -455,18 +494,18 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 			if (~splina)				% Do not interpolate along time (months)
 				Z(ind) = 0;				% Transmutate the Anoes
 				contanoes = contanoes + ~ind;
-				Tmed(:,:) = Tmed(:,:) + double(Z);
+				cvlib_mex('add', Tmed, double(Z));
 			else						% Pack this year into a 3D temporary variable, to be processed later.
  				if (~already_processed),	ZtoSpline(:,:,counter) = Z;		end
 			end
-		end			% End loop over months
+		end								% End loop over months
 		last_processed_month = this_months(end);
 
-		if (~splina)				% Do not interpolate along time. Compute averages with all non NaNs
-			Tmed(:,:) = Tmed(:,:) ./ contanoes;
-			tmp = single(Tmed(:,:));
+		if (~splina)					% Do not interpolate along time. Compute averages with all non NaNs
+			cvlib_mex('div', Tmed, contanoes);			% The mean for current year
+			tmp = single(Tmed);
 
-		else						% Fill missing month data by interpolation based on non-NaN data
+		else							% Fill missing month data by interpolation based on non-NaN data
 			hh = aguentabar(eps,'title','Splining it.');	drawnow
 			if (isnan(hh)),		break,		end			% Over time loop said: break
 			n_meses = numel(this_months);
@@ -476,19 +515,29 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 			end
 			last_wanted_month = first_wanted_month + numel(months) - 1;
 			
+			yy = zeros(1, n_meses)';				% A kind of pre-allocation to be used by the akimaspline MEX
+
+			% ----------- Test if we are saving time series in array for later saving ----------------------
+			if (do_saveSeries)
+				[timeSeries, indTSCurr_o] = getTimeSeries(ZtoSpline, timeSeries, indTimeSeries, indTSCurr_o, ...
+											true, first_wanted_month, last_wanted_month);
+			end
+			% ----------------------------------------------------------------------------------------------
+
 			for (i = 1:cols)
 				for (j = 1:rows)
 					if (already_processed),		break,	end
 					y = double( squeeze( ZtoSpline(j,i,1:n_meses) ) );
 					ind = ~isnan(y);
-					% If have NaNs inside the months of interest and the overall series has enough points, interp in the missing positions
+					% If have NaNs inside months of interest and the overall series has enough points, interp in the missing positions
 					if ( all( ind(first_wanted_month:last_wanted_month) ) )		% We have them all, so nothing to interp
 						ZtoSpline(j,i,1:n_meses) = single(y);
 					elseif (~any(ind))		% They are all NaNs -- Almost sure a land pixel
 						continue
-					elseif ( numel(ind(ind)) >= round(numel(this_months)/2 + 1) )
+					elseif ( numel(ind(~ind)) <= round( (numel(this_months) - (n_pad_months * (m ~= 1)) ) / 2) )
+						% At least > 1/2 number of valid pts not counting first n_pad_months that were already interpolated
 						x = this_months(ind);			y0 = y(ind);
- 						yy = akimaspline(x, y0, this_months);
+ 						akimaspline(x, y0, this_months, yy);
 						y(first_wanted_month:last_wanted_month) = yy(first_wanted_month:last_wanted_month);
 						if (~ind(1) || ~ind(end))			% Cases when where we would have extrapolations
 							if (~ind(1))
@@ -503,13 +552,22 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 							end
 						end
 						ZtoSpline(j,i,1:n_meses) = single(y);
+					else									% Less than half valid points. We'll make them be all NaNs
+						ZtoSpline(j,i,1:n_meses) = y * NaN;
 					end
 				end
 				hh = aguentabar(i/(cols+1));	drawnow
 				if (isnan(hh)),		in_break = true;	break,		end		% Over time loop said: break (comment: FCK ML SHIT)
-			end				% end loops over this 2D layer
+			end				% End loops over this 2D layer
 
-			if (in_break),		break,		end		% Fck no gotos paranoia obliges to this recursive break
+			if (in_break),		break,		end			% Fck no gotos paranoia obliges to this recursive break
+
+			% ----------- Test if we are saving time series in array for later saving ----------------------
+			if (do_saveSeries)
+				[timeSeries, indTSCurr_s] = getTimeSeries(ZtoSpline, timeSeries, indTimeSeries, indTSCurr_s, ...
+											false, first_wanted_month, last_wanted_month);
+			end
+			% ----------------------------------------------------------------------------------------------
 
 			% Now we can finaly compute the season mean
 			tmp = ZtoSpline(:,:,first_wanted_month);
@@ -526,9 +584,9 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 				contanoes = contanoes + ~ind;
 				cvlib_mex('add',tmp,tmp2);
 			end
-			cvlib_mex('div', tmp, contanoes);
+			cvlib_mex('div', tmp, contanoes);			% The mean
 		end							% End interpolate along time
-		
+
 		tmp(tmp == 0) = NaN;		% Reset the NaNs
 
 		if (in_break),		break,		end		% Fckng no gotos paranoia obliges to this recursive break
@@ -547,8 +605,34 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 		h = aguentabar(m/n_anos,'title','Computing annual means.');	drawnow
 		if (isnan(h)),	break,	end
 
-		if (~splina),	Tmed = Tmed * 0;	end			% Reset it to zeros
+		if (~splina),	cvlib_mex('mul', Tmed, 0.0);	end			% Reset it to zeros
 	end
+
+	if (do_saveSeries)			% Save the time series file. The name is build from that of locations file
+		[pato, fname, ext] = fileparts(chkPts_file);
+		fname = [fname '_tseries' ext];
+		if (~isempty(pato)),	fname = [pato filesep fname];	end
+		double2ascii( fname, timeSeries, ['%d' repmat('\t%.4f',[1 size(timeSeries,2)-1])] );
+	end
+
+% ----------------------------------------------------------------------
+function [tSeries, indTSCurr] = getTimeSeries(ZtoSpline, tSeries, indTS, indTSCurr, orig, first_month, last_month)
+% Fill the TSERIES array with the original as well as the spline interpolated time series.
+% This is intended mostly to provide a way to check the goodness (or nt) of the interp mechanism
+%
+% ZtoSpline The 3D array with yearly (+- pad months) time series -- before (orig = true) and after splining
+% tSeries	a Mx(2*n+1) array to store the original data (even columns) and the spline interpolated (odd coluns)
+% indTS		array indices of where to extract the time series (a Mx2 array)
+% indTSCurr Start index to write on the tSeries vector. Needs to be incremented by 12 at the end of this function
+% orig		Logical meaning that if true we are writting original series or, otherwise interpolated, where NANs, values
+
+	if (orig),		iStart = 2;			% Remember that first column is always the time
+	else			iStart = 3;
+	end
+	for (k = 1:size(indTS,1))	% Loop over number of check points
+		tSeries(indTSCurr:(indTSCurr+11), iStart + 2*(k-1)) = ZtoSpline(indTS(k,2), indTS(k,1), first_month:last_month);
+	end
+	indTSCurr = indTSCurr + 12;			% Remember, this works only for yearly means from month data
 
 % ----------------------------------------------------------------------
 function pass_by_count(handles, count, fname2)
