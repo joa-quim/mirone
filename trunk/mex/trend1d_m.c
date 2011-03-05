@@ -189,6 +189,7 @@ int	GMT_f_test_new (double chisq1, int nu1, double chisq2, int nu2, double *prob
 double	GMT_ln_gamma (double xx);
 double	GMT_cf_beta (double a, double b, double x);
 double	tpvalue (double x, double v);
+void	GMT_cheb_to_pol (double c[], int n, double a, double b);
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -221,7 +222,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	void move_model_a_to_b(double *model_a, double *model_b, int n_model, double *chisq_a, double *chisq_b);
 	void load_gtg_and_gtd(struct TREND1D_DATA *data, int n_data, double *gtg, double *gtd, double *grow, int n_model, int mp, int m_type);
 	void solve_system(double *gtg, double *gtd, double *model, int n_model, int mp, double *lambda, double *v, double *b, double *z, double c_no, int *ir);
-	void	GMT_cheb_to_pol (double c[], int n, double a, double b);
 	int	GMT_sig_f (double chi1, int n1, double chi2, int n2, double level, double *prob);
 	void	*New_Trend1d_Ctrl (), Free_Trend1d_Ctrl (struct TREND1D_CTRL *C);
 
@@ -567,9 +567,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 	}
 	else {
-		plhs[0] = mxCreateDoubleMatrix (n_data, n_outputs, mxREAL);
-		pdata = mxGetPr(plhs[0]);
-		write_output(data, n_data, Ctrl->F.col, n_outputs, pdata);
+		if (Ctrl->F.active) {
+			plhs[0] = mxCreateDoubleMatrix (n_data, n_outputs, mxREAL);
+			pdata = mxGetPr(plhs[0]);
+			write_output(data, n_data, Ctrl->F.col, n_outputs, pdata);
+			if (nlhs == 2) {
+				double *pdata_c;
+				GMT_cheb_to_pol (c_model, n_model, xmin, xmax);
+				plhs[1] = mxCreateDoubleMatrix (1, n_model, mxREAL);
+				pdata_c = mxGetPr(plhs[1]);
+				for (i = 0, j = n_model-1; i < n_model; i++, j--)
+					pdata_c[i] = c_model[j];	/* Output from higher to lower order */
+			}
+		}
+		else {
+			double *pdata_c;
+			GMT_cheb_to_pol (c_model, n_model, xmin, xmax);
+			plhs[0] = mxCreateDoubleMatrix (1, n_model, mxREAL);
+			pdata_c = mxGetPr(plhs[1]);
+			for (i = 0, j = n_model-1; i < n_model; i++, j--)
+				pdata_c[i] = c_model[j];
+		}
 	}
 
 	free_the_memory(gtg, v, gtd, lambda, workb, workz, c_model, o_model, w_model, data, work);
