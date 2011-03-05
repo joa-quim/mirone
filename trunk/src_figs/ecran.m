@@ -1549,7 +1549,6 @@ else	% nargout <= 3
 		den = poly(a);
 		num = buttnum(btype,n,Wn,Bw,analog,den);
 		% num = poly(a-b*c)+(d-1)*den;
-
 	end
 end
 
@@ -1562,17 +1561,17 @@ if analog
     switch btype
     case 1  % lowpass
         b = [zeros(1,n) n^(-n)];
-        b = real( b*polyval(den,-j*0)/polyval(b,-j*0) );
+        b = real( b*polyval(den,-1i*0)/polyval(b,-1i*0) );
     case 2  % bandpass
         b = [zeros(1,n) Bw^n zeros(1,n)];
-        b = real( b*polyval(den,-j*Wn)/polyval(b,-j*Wn) );
+        b = real( b*polyval(den,-1i*Wn)/polyval(b,-1i*Wn) );
     case 3  % highpass
         b = [1 zeros(1,n)];
         b = real( b*den(1)/b(1) );
     case 4  % bandstop
-        r = j*Wn*((-1).^(0:2*n-1)');
+        r = 1i*Wn*((-1).^(0:2*n-1)');
         b = poly(r);
-        b = real( b*polyval(den,-j*0)/polyval(b,-j*0) );
+        b = real( b*polyval(den,-1i*0)/polyval(b,-1i*0) );
     end
 else
     Wn = 2*atan2(Wn,4);
@@ -1587,12 +1586,12 @@ else
         r = ones(n,1);
         w = pi;
     case 4  % bandstop
-        r = exp(j*Wn*( (-1).^(0:2*n-1)' ));
+        r = exp(1i*Wn*( (-1).^(0:2*n-1)' ));
         w = 0;
     end
     b = poly(r);
     % now normalize so |H(w)| == 1:
-    kern = exp(-j*w*(0:length(b)-1));
+    kern = exp(-1i*w*(0:length(b)-1));
     b = real(b*(kern*den(:))/(kern*b(:)));
 end
 
@@ -1606,7 +1605,7 @@ function z = buttzeros(btype,n,Wn,Bw,analog)
 			case 1,     z = zeros(0,1);  % lowpass
 			case 2,     z = zeros(n,1);  % bandpass
 			case 3,     z = zeros(n,1);  % highpass
-			case 4,     z = j*Wn*((-1).^(0:2*n-1)');  % bandstop
+			case 4,     z = 1i*Wn*((-1).^(0:2*n-1)');  % bandstop
 		end
 	else
 		Wn = 2*atan2(Wn,4);
@@ -1614,7 +1613,7 @@ function z = buttzeros(btype,n,Wn,Bw,analog)
 			case 1,     z = -ones(n,1);                 % lowpass
 			case 2,     z = [ones(n,1); -ones(n,1)];    % bandpass
 			case 3,     z = ones(n,1);                  % highpass
-			case 4,     z = exp(j*Wn*( (-1).^(0:2*n-1)' )); % bandstop
+			case 4,     z = exp(1i*Wn*( (-1).^(0:2*n-1)' )); % bandstop
 		end
 	end
 
@@ -1738,7 +1737,7 @@ function [z,p,k] = buttap(n)
 
 % Poles are on the unit circle in the left-half plane.
 	z = [];
-	p = exp(i*(pi*(1:2:n-1)/(2*n) + pi/2));
+	p = exp(1i*(pi*(1:2:n-1)/(2*n) + pi/2));
 	p = [p; conj(p)];
 	p = p(:);
 	if (rem(n,2) == 1),   p = [p; -1];  end     % n is odd
@@ -1842,13 +1841,13 @@ function [at,bt,ct,dt] = lp2hp(a,b,c,d,wo)
 %   $Revision: 1.7 $  $Date: 2002/03/28 17:28:44 $
 
 	if nargin == 3		% Transfer function case
-			% handle column vector inputs: convert to rows
-			if size(a,2) == 1
-				a = a(:).';
-			end
-			if size(b,2) == 1
-				b = b(:).';
-			end
+		% handle column vector inputs: convert to rows
+		if size(a,2) == 1
+			a = a(:).';
+		end
+		if size(b,2) == 1
+			b = b(:).';
+		end
 		% Transform to state-space
 		wo = c;
 		[a,b,c,d] = tf2ss(a,b);
@@ -1887,13 +1886,13 @@ function [at,bt,ct,dt] = lp2bs(a,b,c,d,wo,bw)
 %   $Revision: 1.7 $  $Date: 2002/03/28 17:28:43 $
 
 	if nargin == 4		% Transfer function case
-			% handle column vector inputs: convert to rows
-			if size(a,2) == 1
-				a = a(:).';
-			end
-			if size(b,2) == 1
-				b = b(:).';
-			end
+		% handle column vector inputs: convert to rows
+		if size(a,2) == 1
+			a = a(:).';
+		end
+		if size(b,2) == 1
+			b = b(:).';
+		end
 		% Transform to state-space
 		wo = c;
 		bw = d;
@@ -1965,7 +1964,7 @@ if (nd == 1 && nn < 2) && nargout ~= 4	% In zero-pole-gain form
 	else
 		fs = 2*fs;
 	end
-	z = z(finite(z));	 % Strip infinities from zeros
+	z = z(isfinite(z));	 % Strip infinities from zeros
 	pd = (1+p/fs)./(1-p/fs); % Do bilinear transformation
 	zd = (1+z/fs)./(1-z/fs);
 % real(kd) or just kd?
@@ -2127,7 +2126,7 @@ function [anoma, age_line] = magmodel(dxypa, chtdec, chtinc, speed, dir_spread, 
 		dxypa = [dxypa(:,1:3) ones(size(dxypa,1),1)*2.5 dxypa(:,4)];
 	end
 
-	levelobs = 0;	aimaaxe = 18;		aimanta = 4;	pas_x = 1;
+	levelobs = 0;	aimaaxe = 18;		aimanta = 4;
 	psubsi = 0.35;		% Coefficient of thermal subsidence equation
 	subsi = 1;			% PORQUÊ????
 	profond = 0;		% PORQUÊ????
