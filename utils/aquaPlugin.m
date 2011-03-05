@@ -21,7 +21,7 @@ function aquaPlugin(handles)
 			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
 			};
 
-	qual = casos{4};		% <== Active selection
+	qual = casos{2};		% <== Active selection
 
 	switch qual
 		case 'zonal'				% CASE 1
@@ -34,8 +34,8 @@ function aquaPlugin(handles)
 			fnam2 = 'poly_largo.dat';	%fnam2= [];
 			zonal(handles, dlat, integ_lon, trends, have_polygon, fname, fnam2)
 		case 'tvar'					% CASE 2
-			sub_set = [3 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
-			slope = true;			% TRUE to compute slope of linear fit, FALSE to compute p parameter
+			sub_set = [1 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
+			slope = true;			% TRUE to compute slope of linear fit, FALSE to compute p-value parameter
 			calcGrad(handles, sub_set, slope) 
 		case 'yearMean'				% CASE 3
 			ano = 1:12;				% Compute yearly means
@@ -45,16 +45,16 @@ function aquaPlugin(handles)
 			%fname  = 'C:\a1\terra_qual.nc';
 			fname  = 'C:\a1\pathfinder\qual_82_09.nc';
 			quality = 6;			% Retain only values of quality >= this (or <= abs(this) when MODIS)
-			pintAnoes = true;		% If true instruct to fill holes <= nCells
 			nCells = 200;			% Holes (bad data) smaller than this are filled by interpolation
-			%splina = true;
-			splina = [12 30];		% Fill missing monthly data by a spline interpolation taken over two years (and clipp to limits)
 			% Where to save track of filled holes. Ignored if pintAnoes = false OR fname3 = []
 			%fname3 = 'C:\a1\pathfinder\qual7_85_07_Interp200_Q6.nc';
 			fname3 = [];
+			%splina = true;
+			splina = [12 30];		% Fill missing monthly data by a spline interpolation taken over two years (out limits set to NaN)
+			tipoStat = 2;			% 0, Compute MEAN, 1 compute MINimum and 2 compute MAXimum of the ANO period
 			% If not empty, it must contain the name of a Lon,Lat file with locations where to output time series
 			chkPts_file = 'C:\a1\pathfinder\chkPts.dat';
-			calc_yearMean(handles, ano, fname, quality, pintAnoes, nCells, fname3, splina, chkPts_file)
+			calc_yearMean(handles, ano, fname, quality, nCells, fname3, splina, tipoStat, chkPts_file)
 		case 'polygAVG'				% CASE 5
 			calc_polygAVG(handles)
 		case 'flagsStats'			% CASE 6
@@ -295,6 +295,7 @@ function calcGrad(handles, sub_set, slope)
 			%z=[xvalues(1:4);ones(1,4)]'\yvalues';
 			if (slope)		% Compute sople of linear fit
 				p = trend1d_m([x(~ind) y],'-L','-N2r');
+				%[model, p] = trend1d_m([x(~ind) y],'-Fm','-N3r');	% To get the acceleration (coeff of x^2)
 				Tvar(m,n) = p(1);
 			else			% Compute p parameter
 	 			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
@@ -318,7 +319,7 @@ function calcGrad(handles, sub_set, slope)
 	mirone(Tvar, tmp)
 
 % ------------------------------------------------------------------------------
-function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3, splina, chkPts_file)
+function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, tipoStat, chkPts_file)
 % Calcula media anuais a partir de dados mensais
 % MONTHS 	is a vector with the months uppon which the mean is to be computed
 %		example: 	months = 1:12		==> Computes yearly mean
@@ -331,7 +332,8 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 % FLAG		Threshold quality value. Only values of quality >= FLAG will be taken into account
 %			NOTE: For MODIS use negative FLAG. Than, values are retained if quality <= abs(FLAG)
 %
-% PINTANOES	Logical that if true instruct to fill holes <= NCELLS
+% NCELLS	Holes (bad data) groups smaller than this are filled by interpolation. 
+%			For example if NCELL = 200 groups of equal or less than a total of 200 will be filled.
 %
 % FNAME3 	Optional name of a netCDF file where interpolated nodes will be set to FLAG
 %			and the others retain their FNAME2 value. This corresponds to the promotion
@@ -339,6 +341,9 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 %
 % SPLINA	Logical that if true instruct to spline interpolate the missing monthly values
 %			before computing the yearly mean. This option acumulates with that of PINTANOES
+%
+% TIPOSTAT	Variable to control what statistic to compute.
+%			0 Compute MEAN of MONTHS period. 1 Compute MINimum and 2 compute MAXimum
 %
 % CHKPTS_FILE	(Optional)
 %			Name of a file with Lon,Lat locations where to output the entire time series.
@@ -352,10 +357,11 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 	grd_out = [PathName FileName];
 
 	do_flags = false;		track_filled = false;		do_saveSeries = false;
+	pintAnoes = (nCells > 0);
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
 	if (nargin == 1),		months = 1:12;		end		% Default to yearly means
-	if (nargin >= 7 && ~isempty(fname3)),		track_filled = true;	end		% Keep track of interpolated nodes
+	if (nargin >= 6 && ~isempty(fname3)),		track_filled = true;	end		% Keep track of interpolated nodes
 
 	if (nargin > 2)			% We have a quality-flag ghost file to check
 		s_flags = nc_funs('info',fname2);
@@ -381,8 +387,6 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 	if (flag > 0),		growing_flag = true;				% Pathfinder style (higher the best) quality flag
 	else				growing_flag = false;	flag = -flag;	% MODIS style (lower the best) quality flag
 	end
-
-	if (nargin < 8),		splina = false;		end
 
 	% -------------- Test if output time series at locations provided in the CHKPTS_FILE --------------------
 	if (nargin == 9 && ~isempty(chkPts_file))
@@ -553,7 +557,7 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 						end
 						ZtoSpline(j,i,1:n_meses) = single(y);
 					else									% Less than half valid points. We'll make them be all NaNs
-						ZtoSpline(j,i,1:n_meses) = y * NaN;
+						if (~tipoStat),	 ZtoSpline(j,i,1:n_meses) = y * NaN;	end		% For MIN & MAX we want to retain data
 					end
 				end
 				hh = aguentabar(i/(cols+1));	drawnow
@@ -569,22 +573,24 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 			end
 			% ----------------------------------------------------------------------------------------------
 
-			% Now we can finaly compute the season mean
-			tmp = ZtoSpline(:,:,first_wanted_month);
-			tmp(tmp < regionalMIN | tmp > regionalMAX) = NaN;
-			ind = isnan(tmp);
-			contanoes = repmat(single(zeros(1, cols)), [rows 1]);
-			contanoes = contanoes + ~ind;
-			tmp(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
-			for (n = (first_wanted_month+1):last_wanted_month)
-				tmp2 = ZtoSpline(:,:,n);
-				tmp2(tmp2 < regionalMIN | tmp2 > regionalMAX) = NaN;
-				ind = isnan(tmp2);
-				tmp2(ind) = 0;
-				contanoes = contanoes + ~ind;
-				cvlib_mex('add',tmp,tmp2);
-			end
-			cvlib_mex('div', tmp, contanoes);			% The mean
+			% Now we can finaly compute the season MEAN or MIN or MAX
+			tmp = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, regionalMIN, regionalMAX, tipoStat);
+
+% 			tmp = ZtoSpline(:,:,first_wanted_month);
+% 			tmp(tmp < regionalMIN | tmp > regionalMAX) = NaN;
+% 			ind = isnan(tmp);
+% 			contanoes = repmat(single(zeros(1, cols)), [rows 1]);
+% 			contanoes = contanoes + ~ind;
+% 			tmp(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
+% 			for (n = (first_wanted_month+1):last_wanted_month)
+% 				tmp2 = ZtoSpline(:,:,n);
+% 				tmp2(tmp2 < regionalMIN | tmp2 > regionalMAX) = NaN;
+% 				ind = isnan(tmp2);
+% 				tmp2(ind) = 0;
+% 				contanoes = contanoes + ~ind;
+% 				cvlib_mex('add',tmp,tmp2);
+% 			end
+% 			cvlib_mex('div', tmp, contanoes);			% The mean
 		end							% End interpolate along time
 
 		tmp(tmp == 0) = NaN;		% Reset the NaNs
@@ -613,6 +619,33 @@ function calc_yearMean(handles, months, fname2, flag, pintAnoes, nCells, fname3,
 		fname = [fname '_tseries' ext];
 		if (~isempty(pato)),	fname = [pato filesep fname];	end
 		double2ascii( fname, timeSeries, ['%d' repmat('\t%.4f',[1 size(timeSeries,2)-1])] );
+	end
+
+% ----------------------------------------------------------------------
+function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, regionalMIN, regionalMAX, tipo)
+% Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 1) or MAX of the perioded selected
+% by the first_wanted_month:last_wanted_month vector. Normaly a year but can be a season as well.
+
+	if (tipo == 0)				% Compute the MEAN of the considered period
+		out = ZtoSpline(:,:,first_wanted_month);
+		out(out < regionalMIN | out > regionalMAX) = NaN;
+		ind = isnan(out);
+		contanoes = alloc_mex(rows, cols, 'single');
+		contanoes = contanoes + ~ind;
+		out(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
+		for (n = (first_wanted_month+1):last_wanted_month)
+			tmp = ZtoSpline(:,:,n);
+			tmp(tmp < regionalMIN | tmp2 > regionalMAX) = NaN;
+			ind = isnan(tmp);
+			tmp(ind) = 0;
+			contanoes = contanoes + ~ind;
+			cvlib_mex('add',out,tmp);
+		end
+		cvlib_mex('div', out, contanoes);			% The mean
+	elseif (tipo == 1)			% Minimum of the selected period
+		out = min( ZtoSpline(:,:,first_wanted_month:last_wanted_month),[],3);
+	else						% Maximum
+		out = max( ZtoSpline(:,:,first_wanted_month:last_wanted_month),[],3);
 	end
 
 % ----------------------------------------------------------------------
