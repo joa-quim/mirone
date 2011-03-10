@@ -115,6 +115,8 @@ function varargout = ecran(varargin)
 	handles.hAgeLine_fit = [];	% Float chunk line used to CORR fit to find ideal isochron pick
 	handles.hLineChunk_fit = [];% Anchor point, now a vert line, moved to new fit pos
 	handles.batTrack = [];		% To hold the bat interpolated profile
+	handles.hSynthetic = [];	% To hold the mag synthetic profile
+	handles.pinned = [];		% To hold coords of guessed magnetic isochrons
 
 	% Choose the default ploting mode
 	if isempty(varargin{1})          % When the file will be read latter
@@ -882,8 +884,9 @@ function push_syntheticRTP_CB(hObject, handles)
 	speed =  handles.dist(end) / (handles.ageEnd - handles.ageStart) / 10000 * 2;	% Full rate in cm / yr
 	dir_profile = azimuth_geo(handles.data(1,2), handles.data(1,1), handles.data(end,2), handles.data(end,1));
 	batFile = [];		dxypa = [];		contamin = 1;		syntPar = handles.syntPar;
+	handles.syntPar.ageStretch = 0;		% If needed, tt will expanded further down
 
-	% See if the  case the OPTcontrol.txt file has relevan info for this run
+	% See if the  case the OPTcontrol.txt file has relevant info for this run
 	opt_file = [handles.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
 	if ( exist(opt_file, 'file') == 2 )
 		fid = fopen(opt_file, 'r');
@@ -900,18 +903,24 @@ function push_syntheticRTP_CB(hObject, handles)
 				case 'SPEED',		handles.syntPar.speed = str2double(r);
 				case 'SPREADIR',	handles.syntPar.dir_spread = str2double(r);
 				case 'CONTAMIN',	contamin = str2double(r);
-				case 'BAT'
+				case 'BAT'			% Get file name of a grid with bathymetry that will be interpolated at track pos
 					batFile = ddewhite(r);
 					if (exist(batFile,'file') ~= 2)
 						errordlg(['Bathymetry grid ' r ' does not exist. Ignoring bat request'],'Error')
 						batFile = [];
 					end
 					
-				case 'ISOC'
+				case 'ISOC'			% The list of isochrons (by its age) that will be tentatively fit
 					ind = strfind(r, '_');
 					if (~isempty(ind))
-						handles.syntPar.ageMarkers{kk} = r(1:ind-1);
-						handles.syntPar.agePad(kk) = str2double(r(ind+1:end));
+						if (numel(ind) == 2)
+							handles.syntPar.ageStretch(kk) = fix(str2double(r(ind(2)+1:end)));	% Used to expand/shrink in corr
+							r(ind(2):end) = [];		% Wipe it out so the "...agePad(kk)" assignement works for any 'ind'
+						else
+							handles.syntPar.ageStretch(kk) = 0;
+						end
+						handles.syntPar.ageMarkers{kk} = r(1:ind(1)-1);
+						handles.syntPar.agePad(kk) = str2double(r(ind(1)+1:end));
 					else
 						handles.syntPar.ageMarkers{kk} = r;
 						handles.syntPar.agePad(kk) = 1.5;		% Default (and possibly too short for old isocs) value
@@ -927,15 +936,18 @@ function push_syntheticRTP_CB(hObject, handles)
 		else
 			contamin = 1;				% Case user screwed up
 		end
+		if (kk == 2)					% No MIR_MAGPROF info in OPTcontrol.txt but we need an not [] ageStretch field
+			handles.syntPar.ageStretch = zeros(1,2);
+		end
 		syntPar = true;					% Signal that got Params from file
 	end
 
-	if (isempty(syntPar))				% First time use in this session
+	if (isempty(syntPar))				% First time use in this session and no OPTcontrol.txt info
 		handles.syntPar.dec = 0;				handles.syntPar.inc = 90;
 		handles.syntPar.speed = speed;
 		handles.syntPar.dir_spread = dir_profile;
 		handles.syntPar.dir_profile = dir_profile;
-		handles.syntPar.agePad = 2.0;	% Probably too short for older isochrons
+		handles.syntPar.agePad = 1.5;		% Probably too short for older isochrons
 		set(handles.edit_ageFit, 'Vis','on')
 	end
 	set([handles.push_ageFit handles.slider_filter], 'Vis','on')
@@ -965,10 +977,18 @@ function push_syntheticRTP_CB(hObject, handles)
 	[anom handles.age_line] = magmodel(dxypa, handles.syntPar.dec, handles.syntPar.inc, ...
 			handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, contamin);
 
-	if ( strncmp(get(handles.axes2,'XDir'),'normal', 3) )
-		handles.hSynthetic = line('XData', handles.dist, 'YData', anom, 'Parent', handles.axes1, 'Color', 'r');
+	if (isempty(handles.hSynthetic))
+		if ( strncmp(get(handles.axes2,'XDir'),'normal', 3) )
+			handles.hSynthetic = line('XData', handles.dist, 'YData', anom, 'Parent', handles.axes1, 'Color', 'r');
+		else
+			handles.hSynthetic = line('XData', handles.dist(end:-1:1), 'YData', anom, 'Parent', handles.axes1, 'Color', 'r');
+		end
 	else
-		handles.hSynthetic = line('XData', handles.dist(end:-1:1), 'YData', anom, 'Parent', handles.axes1, 'Color', 'r');
+		if ( strncmp(get(handles.axes2,'XDir'),'normal', 3) )
+			set(handles.hSynthetic, 'XData', handles.dist, 'YData', anom)
+		else
+			set(handles.hSynthetic, 'XData', handles.dist(end:-1:1), 'YData', anom)
+		end
 	end
 	
 	guidata(handles.figure1, handles)
@@ -1023,17 +1043,19 @@ function edit_ageFit_CB(hObject, handles)
 function push_ageFit_CB(hObject, handles)
 % Take the age entered in edit_ageFit, find that point in synthetic and
 % find its best fit on the measured profile by correlation.
-	if (strcmp(get(handles.popup_ageFit,'Vis'), 'on'))
+	if (strcmp(get(handles.popup_ageFit,'Vis'), 'on'))		% We have a group of ages (isocs) to fit
 		str = get(handles.popup_ageFit,'str');		val = get(handles.popup_ageFit,'Val');
 		if (val == 1),		return,		end			% First entry is empty
 		xx = str2double( str{val} );
 		agePad = handles.syntPar.agePad(val);
-	else
+		ageStretch = handles.syntPar.ageStretch(val);
+	else											% Fit only one isoc whose age was set by the edit box
 		xx = abs(str2double(get(handles.edit_ageFit,'String')));
 		if (isnan(xx))
 			errordlg('Pelease, fit what? Your anniversary? How many Ma?', 'error'),		return
 		end
 		agePad = handles.syntPar.agePad;
+		ageStretch = 0;								% No OPTcontrol.txt info, no stretch.
 	end
 
 	x = get(handles.hSynthetic, 'XData')';			y = get(handles.hSynthetic, 'YData')';
@@ -1057,12 +1079,9 @@ function push_ageFit_CB(hObject, handles)
 	y_ano = y_ano(ind_a:ind_b);					% Get the corresponding chunk of the measured anomaly
 
 	% Normalize and remove mean
-	yn = (y - min(y)) / (max(y)-min(y));			yn = yn - mean(yn);
-	y_ano = (y_ano-min(y_ano)) / (max(y_ano)-min(y_ano));	y_ano = y_ano - mean(y_ano);
-	w = conv(yn(end:-1:1), y_ano);				% Revert Y because we want CORR, not CONV
-	[mimi,ind] = max(w);						% Estimate the fit position by max of cross-correlation
-	zero_lag = numel(y);
-	shift = (ind - zero_lag);
+	y_ano = (y_ano-min(y_ano)) / (max(y_ano)-min(y_ano));	y_ano = y_ano(:) - mean(y_ano);
+	yn = (y - min(y)) / (max(y)-min(y));		yn = yn(:) - mean(yn);		% Synthetic
+	shift = sanitize_shift(yn, y_ano, ageStretch);
 	if (ind_a+shift < 1)
 		warndlg('Guess work by convolution failed (index out of bounds). Try increase the isochron pad limits','Warning')
 		return
@@ -1085,9 +1104,78 @@ function push_ageFit_CB(hObject, handles)
 	xx = [x(delta_shift) x(delta_shift)];		yy = get(handles.axes1,'ylim');
 	if (isempty(handles.hAgeLine_fit))
 		handles.hAgeLine_fit = line('XData',xx, 'YData',yy, 'Parent',handles.axes1, 'LineStyle', '--');
+		cmenuHand = uicontextmenu('Parent',handles.figure1);
+		set(handles.hAgeLine_fit, 'UIContextMenu', cmenuHand)
+		uimenu(cmenuHand, 'Label', 'Pin-point me', 'Call', {@pinpointLine, handles.hAgeLine_fit});
 	else
 		set(handles.hAgeLine_fit, 'XData',xx, 'YData',yy)
 	end
+	guidata(handles.figure1, handles)
+
+% --------------------------------------------------------------------------------------------------
+function shift = sanitize_shift(y_synt, y_ano, percent)
+% Find index of maximum correlation between the Y_SYNT & Y_ANO series
+% Y_SYNT	Synthetic anomaly
+% Y_ANO		Measured anomaly (same size as Y_SYNT)
+% PERCENT	Percentage of expand/shrink. This value is applied from 1:PERCENT to deform
+%			the Y_SYNT before doing the cross correlation. At the end retain max correlation
+% SHIFT		Index of Y_SYNT at which we obtain the maximum correlation beteen Y_SYNT & Y_ANO
+
+	if (percent == 0),		percent = 1;	end
+	%percent = 40;
+	y_synt = y_synt(end:-1:1);		% Revert because we want CORR, not CONV, in the call to conv2
+	n_pts = numel(y_synt);
+	if (rem(n_pts, 2))			% n_pts is Odd
+		x_half = ceil(n_pts / 2);		x = -(x_half-1):(x_half-1);
+	else
+		x_half = n_pts / 2;				x = -(x_half-1):x_half;
+	end
+
+	mimi = zeros(1, percent);		ind_ = zeros(1, percent);		x = x(:);
+	for (k = 1:percent)				% Expand the synthetic curve up to PERC percent
+		xi = x * (1 - (k-1)*1e-2);
+		yi = interp1(x, y_synt, xi);
+		w = conv2(yi, y_ano, 'full');
+		[mimi(k),ind_(k)] = max(w);
+	end
+	[max_expand, ind] = max(mimi);
+	bak = ind_(ind);
+
+	for (k = 1:percent)				% Now Shrink
+		xi = x * (1 + (k-1)*1e-2);
+		yi = interp1(x, y_synt, xi, 'linear', 0);		% Use extrap value = 0 and use this knowledge later
+		n = 1;
+		while (yi(n) == 0),		yi(n) = y_synt(1);		n = n + 1;	end		% Replace zeros by first val (Crude but ...)
+		n = numel(yi);
+		while (yi(n) == 0),		yi(n) = y_synt(end);	n = n - 1;	end		% Replace zeros by last val
+		w = conv2(yi, y_ano, 'full');
+		[mimi(k),ind_(k)] = max(w);
+	end
+	[max_shrink, ind] = max(mimi);
+
+	% Pick the maximum of the correlations and its index between expanding and shrinking
+	if (max_expand > max_shrink),	lag = bak;
+	else							lag = ind_(ind);
+	end
+
+	shift = (lag - n_pts);
+
+% --------------------------------------------------------------------------------------------------
+function pinpointLine(obj, evt, h)
+% Pin-point a hAgeLine_fit line and change its width and color.
+% This type of line will be used as a boundary that some other isochrons guessings cannot cross
+	handles = guidata(h);
+	set(h, 'LineWidth',3, 'Color', [0.7 0.7 0.7], 'Tag', 'pinned')
+	ui = get(get(h, 'UIContextMenu'),'Children');
+	set(ui, 'Label', 'Delete me', 'Call', 'delete(gco)')
+	x = get(h, 'XData');
+	if (isempty(handles.pinned))
+		handles.pinned = x(1);
+	else
+		b = sort([handles.pinned x(1)]);		db = diff(b);	d = (db ~= 0);
+		handles.pinned = b(d);			% This and the above line are the very guts of unique
+	end
+	handles.hAgeLine_fit = [];			% So that nex time a new hAgeLine_fit line will be created.
 	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------------------------------------
