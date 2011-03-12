@@ -1,6 +1,21 @@
 function varargout = aquamoto(varargin)
 % A general purpose 3D grid/image file viewer, specialy taylored for tsunami (ANUGA) files
+
+%	Copyright (c) 2004-2011 by J. Luis
 %
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 % For compiling one need to include the aqua_suppfuns.m file. Useless to do the same with
 % aquaPlugin.m before I write a GUI interface to its functions.
 
@@ -1237,8 +1252,8 @@ function radio_avi_CB(hObject, eventdata, handles)
     
 % -----------------------------------------------------------------------------------------
 function radio_mpg_CB(hObject, eventdata, handles)
-    if (get(hObject,'Value')),      set([handles.radio_avi handles.radio_gif],'Value',0)
-    else                            set(hObject,'Value',1)
+    if (get(hObject,'Value')),		set([handles.radio_avi handles.radio_gif],'Value',0)
+	else							set(hObject,'Value',1)
     end
     mname = get(handles.edit_movieName,'String');
     if (~isempty(mname))
@@ -1248,14 +1263,14 @@ function radio_mpg_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function checkbox_dither_CB(hObject, eventdata, handles)
-	if (get(hObject,'Value')),      handles.dither = 'dither';
-	else                            handles.dither = 'nodither';
+	if (get(hObject,'Value')),		handles.dither = 'dither';
+	else							handles.dither = 'nodither';
 	end
 	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
 function edit_fps_CB(hObject, eventdata, handles)
-	% Frames per second
+% Frames per second
 	fps = round(str2double(get(hObject,'String')));
 	if (isnan(fps))
 		set(hObject,'String',num2str(handles.fps)),		return
@@ -1264,14 +1279,6 @@ function edit_fps_CB(hObject, eventdata, handles)
 	handles.fps = fps;
 	handles.dt = 1/fps;
 	guidata(handles.figure1,handles)
-
-% -----------------------------------------------------------------------------------------
-function edit_imgHeight_CB(hObject, eventdata, handles)
-% Nothing
-
-% -----------------------------------------------------------------------------------------
-function edit_imgWidth_CB(hObject, eventdata, handles)
-% Nothing
 
 % -----------------------------------------------------------------------------------------
 function popup_resize_CB(hObject, eventdata, handles)
@@ -1350,14 +1357,14 @@ function edit_multiLayerInc_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function radio_multiLayer_CB(hObject, eventdata, handles)
-	% Movie selection button. Make movie from a netCDF file(s)
+% Movie selection button. Make movie from a netCDF file(s)
 	if ( ~get(hObject, 'Val') ),		set(hObject, 'Val', 1),		return,		end
 	set(handles.radio_timeGridsList, 'Val', 0)
 	set(handles.edit_multiLayerInc, 'Enable', 'on')
 
 % -----------------------------------------------------------------------------------------
 function radio_timeGridsList_CB(hObject, eventdata, handles)
-	% Movie selection button. Make movie from a list of files
+% Movie selection button. Make movie from a list of files
 	if ( ~get(hObject, 'Val') ),		set(hObject, 'Val', 1),		return,		end
 	set(handles.radio_multiLayer, 'Val', 0)
 	set(handles.edit_multiLayerInc, 'Enable', 'off')
@@ -1370,6 +1377,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 	is_avi = get(handles.radio_avi,'Value');
 	is_mpg = get(handles.radio_mpg,'Value');
 	is_montage = false;
+	do_logo = true;				% Insert a logo image but it needs to be manually positioned in fig
 	if (nargin == 4)
 		is_montage = true;		is_gif = false;		is_avi = false;		is_mpg = false;
 	end
@@ -1433,20 +1441,20 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 	if (isempty(handles.Z_bat))
 		errordlg('Noooo! Where is the bathymetry file? Do you think I''m bruxo?','ERROR');  return
 	end
-    
-    % 'surface elevation' and 'water depth' grids are treated diferently
-    is_surfElev = (get(handles.popup_surfType,'Val') == 1);
-    
-    geog = guessGeog(handles.head_bat(1:4));    % Guess if grids are geogs
-    
-    if (isempty(handles.Z_water))			% We don't have a testing grid
-        if (isempty(handles.nameList))		% Neither water list nor single water grid
-            errordlg('Where is the water to make the WaterWorld movie?','ERROR'),	return
-        end
-        [handles,X,Y,Z_water,handles.head_water] = read_gmt_type_grids(handles,handles.nameList{1});
-    end
-    
-    % See if we need (and can) to reinterpolate the bat to go along with the water grids
+
+	% 'surface elevation' and 'water depth' grids are treated diferently
+	is_surfElev = (get(handles.popup_surfType,'Val') == 1);
+
+	geog = guessGeog(handles.head_bat(1:4));	% Guess if grids are geogs
+
+	if (isempty(handles.Z_water))				% We don't have a testing grid
+		if (isempty(handles.nameList))			% Neither water list nor single water grid
+			errordlg('Where is the water to make the WaterWorld movie?','ERROR'),	return
+		end
+		[handles,X,Y,Z_water,handles.head_water] = read_gmt_type_grids(handles,handles.nameList{1});
+	end
+
+	% See if we need to (and can) reinterpolate the bat to go along with the water grids
 	if (~handles.reinterpolated_bat && (any(handles.head_water(1:4) - handles.head_bat(1:4)) || ...
 			( ~isequal( size(handles.Z_bat), size(handles.Z_water)) && ~isequal( size(handles.Z_bat), size(Z_water))) ) )
 
@@ -1487,7 +1495,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 		imgWater = shading_mat(imgWater,R,'no_scale');    	clear R;
 
 		% ------ Compute indices of Land
-		if (is_surfElev),   indLand = get_landInd(handles.Z_bat, handles.Z_water);		% Surface height (not water depth)
+		if (is_surfElev),	indLand = (handles.Z_bat >= 0);		% Surface height (not water depth)
 		else				indLand = (handles.Z_water == 0);
 		end
 		imgWater = mixe_images(handles, imgBat, imgWater, indLand, alfa);
@@ -1523,12 +1531,16 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 			heads = handles.gridHeaders;
 		end
 
-% 		logo = flipdim( imread('c:\tmp\cafe_cima.jpg'), 1);
+ 		if (do_logo),	logo = flipdim( imread('C:\SVN\mironeWC\data\mirone.tif'), 1);	end
+
 		if ( ~handles.useLandPhoto )		% Otherwise the bar is either hiden by the Mirone window, or screws the transparency  
 			aguentabar(0,'title','Please wait ... I''m flooding','createcancelbtn');
 		end
+		
+		% ------------ Compute indices of Land
+		if (is_surfElev),		indLand = (handles.Z_bat >= 0);		end		% Surface height (not water depth)
 
-		M = [];
+		M = struct('cdata',[], 'colormap',[]);
 		for (i = 1:nGrids)
 			if ( ~handles.useLandPhoto )
 				hAguenta = aguentabar(i / nGrids);			% Show visualy the processing advance
@@ -1541,16 +1553,16 @@ function push_OK_CB(hObject, eventdata, handles, opt)
         	imgWater = shading_mat(imgWater,R,'no_scale');
 
 			% ------------ Compute indices of Land
-			if (is_surfElev),		indLand = get_landInd(handles.Z_bat, Z);	% Surface height (not water depth)
-			else					indLand = (Z == 0);
-			end
+			if (~is_surfElev),		indLand = (Z == 0);		end		% Water depth
 			imgWater = mixe_images(handles, imgBat, imgWater, indLand, alfa);
 			if (~isempty(handles.strTimes))
 				cvlib_mex('text',imgWater,handles.strTimes{i},[10 30]);
 			end
 
+			if (do_logo)
+				imgWater(30:29+size(logo,1),670:669+size(logo,2),:) = logo;
+			end
 			if (handles.flederize)
-				%imgWater(20:19+size(logo,1),30:29+size(logo,2),:) = logo;
 				flederize(handles.nameList{i}, i, Z, imgWater, indLand, [handles.head_water(1:4) minWater maxWater])
 			end
 
@@ -1632,7 +1644,7 @@ function [minWater, maxWater, heads] = push_checkGlobalMM_CB(hObject, eventdata,
 
 % -----------------------------------------------------------------------------------------
 function [minWater, maxWater, heads] = get_globalMinMax(handles)
-	% Run trough all water level grids and find the ensemble Min/Max
+% Run trough all water level grids and find the ensemble Min/Max
 	minWater = 1000;        maxWater = -1000;
 	nGrids = numel(handles.nameList);
 	heads = cell(nGrids,1);
@@ -1644,23 +1656,23 @@ function [minWater, maxWater, heads] = get_globalMinMax(handles)
 
 % -----------------------------------------------------------------------------------------
 function edit_globalWaterMax_CB(hObject, eventdata, handles)
-	% User can change the ensemble limits, but we must keep track of that
+% User can change the ensemble limits, but we must keep track of that
 	xx = str2double(get(hObject,'String'));
 	if (~isnan(xx))
 		handles.maxWater = xx;
 		handles.minWater = str2double(get(handles.edit_globalWaterMin,'String'));
-		handles.usrMM = 1;          % Flag that user has changed the ensemble Min|Max
+		handles.usrMM = 1;			% Flag that user has changed the ensemble Min|Max
 		guidata(handles.figure1,handles)
 	end
 
 % -----------------------------------------------------------------------------------------
 function edit_globalWaterMin_CB(hObject, eventdata, handles)
-	% User can change the ensemble limits, but we must keep track of that
+% User can change the ensemble limits, but we must keep track of that
 	xx = str2double(get(hObject,'String'));
 	if (~isnan(xx))
 		handles.minWater = xx;
 		handles.maxWater = str2double(get(handles.edit_globalWaterMax,'String'));
-		handles.usrMM = 1;          % Flag that user has changed the ensemble Min|Max
+		handles.usrMM = 1;			% Flag that user has changed the ensemble Min|Max
 		guidata(handles.figure1,handles)
 	end
 
@@ -2190,13 +2202,13 @@ function [theVar, U, V, indVar, indWater, theVarName] = get_swwVar(handles)
 
 % -----------------------------------------------------------------------------------------
 function geog = guessGeog(lims)
-    % Make a good guess if LIMS are geographic
+   % Make a good guess if LIMS are geographic
     geog = double( ( (lims(1) >= -180 && lims(2) <= 180) || (lims(1) >= 0 && lims(2) <= 360) )...
         && (lims(3) >= -90 && lims(4) <= 90) );
 	
 % -----------------------------------------------------------------------------------------
 function flederize(fname,n, Z, imgWater, indLand, limits)
-	% Write a .sd fleder file with z_max smashed to (?) times min water height
+% Write a .sd fleder file with z_max smashed to (?) times min water height
 	pato = fileparts(fname);
 	%fname = [pato filesep name '.sd'];
 	fname = [pato filesep sprintf('z_%.2d.sd',n)];
@@ -2282,11 +2294,11 @@ function hh = loc_quiver(struc_in,varargin)
 	% Make velocity vectors
 	x = x(:).';		y = y(:).';
 	u = u(:).';		v = v(:).';
-	uu = [x; x+u; repmat(NaN,size(u))];
-	vv = [y; y+v; repmat(NaN,size(u))];
+	uu = [x; x+u; ones(size(u))*NaN];
+	vv = [y; y+v; ones(size(u))*NaN];
 	% Make arrow heads
-	hu = [x+u-alpha*(u+beta*(v+eps)); x+u; x+u-alpha*(u-beta*(v+eps)); repmat(NaN,size(u))];
-	hv = [y+v-alpha*(v-beta*(u+eps)); y+v; y+v-alpha*(v+beta*(u+eps)); repmat(NaN,size(v))];
+	hu = [x+u-alpha*(u+beta*(v+eps)); x+u; x+u-alpha*(u-beta*(v+eps)); ones(size(u))*NaN];
+	hv = [y+v-alpha*(v-beta*(u+eps)); y+v; y+v-alpha*(v+beta*(u+eps)); ones(size(v))*NaN];
 
 	if (struc_in.spacingChanged)
 		try		delete(struc_in.hQuiver),	struc_in.hQuiver = [];	end		% Remove previous arrow field
@@ -2982,7 +2994,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@aquamoto_uiCB,h1,'edit_imgHeight_CB'},...
 'Enable','off',...
 'Position',[463 180 40 20],...
 'String','300',...
@@ -2993,7 +3004,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1, 'Position',[551 182 40 20],...
 'BackgroundColor',[1 1 1],...
-'Call',{@aquamoto_uiCB,h1,'edit_imgWidth_CB'},...
 'Enable','off',...
 'String','600',...
 'Style','edit',...
@@ -3509,7 +3519,7 @@ uicontrol('Parent',h1, 'Position',[30 72 100 21],...
 'Tag','push_runIn',...
 'UserData','anuga');
 
-uicontrol('Parent',h1, 'Position',[370 503 82 17],...
+uicontrol('Parent',h1, 'Position',[370 503 85 17],...
 'Call',{@aquamoto_uiCB,h1,'radio_noShade_CB'},...
 'FontName','Helvetica',...
 'FontSize',9,...
