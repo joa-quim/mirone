@@ -1,16 +1,17 @@
 function varargout = world_is_not_round_enough(varargin)
 % Helper tool to convert between-to [-180 180] <-> [0 360] longitude ranges
 
-%	Copyright (c) 2004-2010 by J. Luis
+%	Copyright (c) 2004-2011 by J. Luis
 %
-%	This program is free software; you can redistribute it and/or modify
-%	it under the terms of the GNU General Public License as published by
-%	the Free Software Foundation; version 2 of the License.
-%
-%	This program is distributed in the hope that it will be useful,
-%	but WITHOUT ANY WARRANTY; without even the implied warranty of
-%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%	GNU General Public License for more details.
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
@@ -46,7 +47,7 @@ function varargout = world_is_not_round_enough(varargin)
 		str = sprintf(['This button is blocked because the map is not global\n' ...
 						'That is, it does not cover 360 degrees of longitude\n' ...
 						'You can still click and drag the rectangle and try luck.']);
-		set([handles.push_to360 handles.push_to180],'Enable','inactive','Tooltip', str)
+		set([handles.push_to360 handles.push_to180],'Enable','off','Tooltip', str)
 	else
 		set(handles.push_to360,'Tooltip', 'Convert map longitudes from [-180 180] to [0 360].')
 		set(handles.push_to180,'Tooltip', 'Convert map longitudes from [0 360] to [-180 180].')
@@ -119,7 +120,7 @@ function push_apply_CB(hObject, handles)
 	rect_x = get(handles.hRectLims, 'xdata');
 	eps_x = handles.head(8);
 	XYlim = getappdata(handles.hMirAxes,'ThisImageLims');
-	if ( (abs(rect_x(1) - XYlim(1)) < eps_x) && (abs(rect_x(2) - XYlim(2)) < eps_x) )		% Nothing changed, so by by
+	if ( (abs(rect_x(1) - XYlim(1)) < eps_x) && (abs(rect_x(3) - XYlim(2)) < eps_x) )		% Nothing changed, so by by
 		return
 	end
 
