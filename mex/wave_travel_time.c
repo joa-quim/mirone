@@ -7,14 +7,12 @@
 /*
  * Author:      Joaquim Luis
  * Date:        18-Feb-2003
- * Updated:	
+ * Updated:	12-Mar-2011	
  *
  * */
 
-#include <float.h>
-#include <math.h>
-#include <string.h>
 #include "mex.h"
+#include <float.h>
 
 /* Macro definition ij_data(i,j) finds the array index to an element
         containing the real data(i,j) in the padded complex array:  */
@@ -34,6 +32,8 @@
 #define	FALSE		0
 #define	TRUE		1
 
+#define EARTH_RAD	6371008.7714	/* GRS-80 sphere */
+#define	D_to_M = 2.0 * M_PI * EARTH_RAD / 360.0;        /* GRS-80 sphere m/degree */
 
 struct HEADER {
 	int nx;				/* Number of columns */
@@ -47,19 +47,14 @@ struct HEADER {
 };
 struct HEADER h;
 
-int	geo = TRUE;
-int     *rim, *rim1, *rim2, *rim8, *rim16, nx, ny, ndatac, i_data_start, j_data_start;
-double	*z_8, *t_time;
-double	earth_rad = 6371008.7714;	/* GRS-80 sphere */
-double	g = 9.806199203;	/* Moritz's 1980 IGF value for gravity at 45 degrees latitude */
-double	d_to_m = 2.0 * M_PI * 6371008.7714 / 360.0;        /* GRS-80 sphere m/degree */
+int     *rim, *rim1, *rim2, *rim8, *rim16, nx, ny;	/* Still uglly but will stay till a future revision */
 
-int	find_rim_points (int i0, int j0, int k);
+int	find_rim_points (double *Z, int i0, int j0, int k);
 int	check_in (int i, int j);
 void	n_to_ij (int n, int *i, int *j);
-void	set_tt_8 (int i0, int j0, int cp, int geo, int *rim0, int k);
-void	set_tt_16 (int i0, int j0, int cp, int geo, int *rim0, int k);
-void	do_travel_time (int i_s, int j_s, double t0, int max_range);
+void	set_tt_8 (double *Z, double *TT, int i0, int j0, int cp, int geo, int *rim0, int k, int ndatac);
+void	set_tt_16 (double *Z, double *TT, int i0, int j0, int cp, int geo, int *rim0, int k, int ndatac);
+void	do_travel_time (double *Z, double *TT, int i_s, int j_s, double t0, int max_range, int ndatac, int geo);
 void	bat_to_speed(double *z_8, int ndatac);
 double	arc_dist (int i0, int j0, int ic, int jc, int geo);
 
@@ -68,11 +63,13 @@ double	arc_dist (int i0, int j0, int ic, int jc, int geo);
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	int	error = FALSE, stop = FALSE, fill_voids = TRUE;
-	int	fonte = FALSE, hours = FALSE, wall = FALSE;
-	int	i, i2, j, k, n, i_source, j_source, ic, jc, bytes_to_copy;
+	int	fonte = FALSE, hours = FALSE, wall = FALSE, geo = TRUE;
+	int	i, i2, j, k, n, i_source, j_source, ic, jc, is_double = 0, is_single = 0;
+	int	ndatac;
+	double	*Z, *z_8, *TT;
 	double	lon_source, lat_source, tmp = DBL_MAX, *pdata, *geog;
 	double	west = 0.0, east = 0.0, south = 0.0, north = 0.0, x_inc, y_inc, m_NaN, *head, *t_loc;
-	float	k_or_m = 1.;
+	float	*z_4, *tout, k_or_m = 1;
 
 	if (nlhs != 1 || nrhs == 0) {
 		mexPrintf ("wave_travel_time - Compute the tsunami travel time (ATTENTION z positive up)\n");
@@ -80,12 +77,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("where: Z contains a bathymetric array (in Matlab orientation) with z in meters positive up\n");
 		mexPrintf ("       h_info is a vector with [x_min,x_max,y_min,y_max,x_inc,y_inc]\n");
 		mexPrintf ("       t_loc  is a vector with [source_lon,source_lat]\n");
-		mexPrintf ("       geog = 1 if input array is in geogs, or = 0 if it is in crtesian coordinates\n");
-		mexPrintf ("NOTE: array cannot have NaNs\n");
+		mexPrintf ("       geog >= 1 if input array is in geogs, or = 0 if it is in crtesian coordinates\n");
+		mexPrintf ("NOTE1: Input Z can be single or double and Out tt is single\n");
+		mexPrintf ("NOTE2: Input Z array cannot have NaNs\n");
 		return;
 	}
 
-	z_8 = mxGetPr(prhs[0]);	/* senao z_8 erro */
+	if (mxIsDouble(prhs[0])) {
+		z_8 = mxGetPr(prhs[0]);
+		is_double = 1;
+	}
+	else if (mxIsSingle(prhs[0])) {
+		z_4 = (float *)mxGetData(prhs[0]);
+		is_single = 1;
+	}
+	else {
+		mexPrintf("WAVE_TRAVEL_TIME ERROR: Invalid input data type.\n");
+		mexErrMsgTxt("Valid types are double or single.\n");
+	}
 	nx = mxGetN (prhs[0]);
 	ny = mxGetM (prhs[0]);
 	head  = mxGetPr(prhs[1]);		/* Get header info */
@@ -100,16 +109,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	lon_source = t_loc[0];
 	lat_source = t_loc[1];
 	geog = mxGetPr(prhs[3]);	/* Is the grid in geogs? If yes convert from degrees to meters. */
-	if (*geog == 1)
-		geo = TRUE;
-	else
+	if (*geog == 0)
 		geo = FALSE;
 
 	m_NaN = mxGetNaN();
 
 	ndatac = nx * ny;
 
-	t_time = mxCalloc (nx*ny, sizeof (double));
+	Z = mxCalloc (nx*ny, sizeof (double));
+	TT = mxCalloc (nx*ny, sizeof (double));
 	rim = (int *) mxCalloc (2*(nx+ny), sizeof(int));
 	rim1 = (int *) mxCalloc (2*(nx+ny), sizeof(int));
 	rim2 = (int *) mxCalloc (8, sizeof(int));
@@ -117,74 +125,75 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	rim16 = (int *) mxCalloc (16, sizeof(int));
 
 	/* Transpose from Matlab orientation to gmt grd orientation */
-	/* Note: I'll use t_time as a temporary variable for not having to alloc an
-	   extra array. I have to do what comes next because the original code was
-	   written for gmt grids. Maybe one day I'll change to a cleaner programing */
-	for (i = 0, i2 = ny - 1; i < ny; i++, i2--)
-	for (j = 0; j < nx; j++) t_time[i2*nx+j] = z_8[j*ny+i];
+	/* I have to do what comes next because the original code was written
+	   for gmt grids. Maybe one day I'll change to a cleaner programing */
+	if (is_double) {
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--)
+			for (j = 0; j < nx; j++) Z[i2*nx+j] = z_8[j*ny+i];
+	}
+	else {
+		for (i = 0, i2 = ny - 1; i < ny; i++, i2--)
+			for (j = 0; j < nx; j++) Z[i2*nx+j] = z_4[j*ny+i];
+	}
 
-	for (j = 0; j < ndatac; j++) z_8[j] = t_time[j];	/* Copy back to z_8 */
-
-	for (j = 0; j < ndatac; j++) t_time[j] = 1000000;	/* Initialize t_time */
+	for (j = 0; j < ndatac; j++) TT[j] = 1000000;	/* Initialize TT */
 
 
 	/* Compute the velocity field from the bathymetry file (and store it on the same variable) */
-	bat_to_speed(z_8,ndatac);
+	bat_to_speed(Z, ndatac);
 
 	i_source = irint((lon_source - west) / x_inc);
 	j_source = irint((north - lat_source) / y_inc);
 
 	/* Now the hard work. Compute the wave travel time */
-	do_travel_time(i_source, j_source, 0, 0);
+	do_travel_time(Z, TT, i_source, j_source, 0, 0, ndatac, geo);
 
 	if (fill_voids) {
 		for (i = 1; i < ndatac; i++) {	/* Search for voids moving W to E */
 			n_to_ij(i, &ic, &jc);
 			wall = (((float)ic / (float)nx) - ic / nx == 0.) ? 1: 0;
-			if ((t_time[i] == 1000000 && t_time[i-1] != 1000000) && z_8[i] > 0 && !wall)
-				do_travel_time (ic, jc, t_time[i-1], 10);
+			if ((TT[i] == 1000000 && TT[i-1] != 1000000) && Z[i] > 0 && !wall)
+				do_travel_time (Z, TT, ic, jc, TT[i-1], 10, ndatac, geo);
 		}
 		for (i = 0, k = ndatac; i < ndatac - nx + 1; k--, i++) { /* Search for voids moving S to N */
 			n_to_ij(k, &ic, &jc);
 			wall = (((float)ic / (float)ny) - ic / ny == 0.) ? 1: 0;
-			if ((t_time[k-nx] == 1000000 && t_time[k] != 1000000) && z_8[k] > 0 && !wall)
-				do_travel_time (ic, jc, t_time[k], 10);
+			if ((TT[k-nx] == 1000000 && TT[k] != 1000000) && Z[k] > 0 && !wall)
+				do_travel_time (Z, TT, ic, jc, TT[k], 10, ndatac, geo);
 		}
 		for (i = 0, k = ndatac, n = 1; i < ndatac - nx + 1; k--, i++, n++) { /* Search for voids moving N to S */
 		}
 	}
 
 	for (j = 0; j < ndatac; j++) {
-		if (t_time[j] >= 1000000) t_time[j] = m_NaN;
-		else t_time[j] /= 3600;		/* output is in hours */
+		if (TT[j] >= 1000000) TT[j] = m_NaN;
+		else TT[j] /= 3600;		/* output is in hours */
 	}
 
-	/* Transpose from gmt grd orientation to Matlab orientation */
-	for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) z_8[j*ny+ny-i-1] = t_time[i*nx+j];
-
-	/*strcpy (h.title, "Wave travel times");
-	strcpy (h.z_units, "seconds");
-	sprintf (h.remark, "Travel times for a point source wave\0");*/
+	mxFree(Z);
+	mxFree(rim);	mxFree(rim1);	mxFree(rim2);	mxFree(rim8);	mxFree(rim16);
 
 	/* Create and populate matrix for the return array */
-	plhs[0] = mxCreateDoubleMatrix (ny,nx, mxREAL);
-	pdata = mxGetPr(plhs[0]);
-	bytes_to_copy = ny*nx * mxGetElementSize(plhs[0]);
-	memcpy(pdata, z_8, bytes_to_copy);
-	mxFree(t_time);
+	plhs[0] = mxCreateNumericMatrix (ny,nx,mxSINGLE_CLASS,mxREAL);
+	tout = (float *)mxGetData(plhs[0]);
+	/* Transpose from gmt grd orientation to Matlab orientation */
+	for (i = 0; i < ny; i++) for (j = 0; j < nx; j++) tout[j*ny+ny-i-1] = TT[i*nx+j];
+
+	mxFree(TT);
 }
 
 
-void	bat_to_speed(double *z_8, int ndatac) {
+void	bat_to_speed(double *Z, int ndatac) {
 	int	j;
+	double	g = 9.806199203;	/* Moritz's 1980 IGF value for gravity at 45 degrees latitude */
 
 	for (j = 0; j < ndatac; j++) {
-		if (z_8[j] < 0)	 z_8[j] = sqrt(fabs(z_8[j]) * g);
-		else		 z_8[j] = 0.0;
+		if (Z[j] < 0)	 Z[j] = sqrt(fabs(Z[j]) * g);
+		else		 Z[j] = 0.0;
 	}
 }
 
-void	do_travel_time (int i_source, int j_source, double t0, int max_range) {
+void	do_travel_time (double *Z, double *TT, int i_source, int j_source, double t0, int max_range, int ndatac, int geo) {
 
 	/* t0 != 0 when a recursive use of this funtion is used to fill voids left by the first call
 	   In this case, max_range is taken into acount and means the maximum number of grid nodes
@@ -198,7 +207,7 @@ void	do_travel_time (int i_source, int j_source, double t0, int max_range) {
 	int first = TRUE;
 
 	i0 = i_source;	j0 = j_source;
-	t_time[ij_data(i0,j0)] = t0; 
+	TT[ij_data(i0,j0)] = t0; 
 	i_e = h.nx - (i0 + 1);	/* (i0 + 1) because i0 starts counting from 0 */
 	i_w = h.nx - i_e - 1;
 	j_n = (j0 + 1);		/* Idem for j0 */
@@ -210,32 +219,32 @@ void	do_travel_time (int i_source, int j_source, double t0, int max_range) {
 	if (t0 > 0.01) nl_max = max_range;
 	for (k = 1; k < nl_max; k++) {
 		/* Find the points of the first rim, 1 grid node away from current point */
-		np_rim1 = find_rim_points (i0, j0, k);	/* find the rim points k nodes way from tsun origin */
+		np_rim1 = find_rim_points (Z, i0, j0, k);	/* find the rim points k nodes way from tsun origin */
 		for (j = 0; j < np_rim1; j++) rim[j] = rim1[j];
 		if (first) {
-			for (l = 0; l < np_rim1; l++) set_tt_8 (i0, j0, l, geo, rim1, k);
+			for (l = 0; l < np_rim1; l++) set_tt_8 (Z, TT, i0, j0, l, geo, rim1, k, ndatac);
 		}
 		first = FALSE;
 
-		for (l = 0; l < np_rim1; l++) {		/* Circulate the rim k points */
-			n_to_ij(rim[l], &i0, &j0);	/* Make each rim k point the current point */
+		for (l = 0; l < np_rim1; l++) {			/* Circulate the rim k points */
+			n_to_ij(rim[l], &i0, &j0);		/* Make each rim k point the current point */
 			if (i0 == 0 || i0 >= h.nx-1 || j0 == 0 || j0 >= h.ny-1) continue; 
-			np_rim8 = find_rim_points (i0, j0, 1);	/* find an extra rim8 arround each rim k point */
+			np_rim8 = find_rim_points (Z, i0, j0, 1);		/* find an extra rim8 arround each rim k point */
 			for (j = 0; j < np_rim8; j++) rim8[j] = rim1[j];	/* Save rim8 vector */
-			np_rim16 = find_rim_points (i0, j0, 2);	/* find an rim16 arround each rim8 point */
+			np_rim16 = find_rim_points (Z, i0, j0, 2);		/* find an rim16 arround each rim8 point */
 			for (j = 0; j < np_rim16; j++) rim16[j] = rim1[j];	/* Save rim16 vector */
-			for (j = 0; j < np_rim8; j++) {		/* Circulate arround the local rim8 points */
-				set_tt_8 (i0, j0, j, geo, rim8, k); 
+			for (j = 0; j < np_rim8; j++) {				/* Circulate arround the local rim8 points */
+				set_tt_8 (Z, TT, i0, j0, j, geo, rim8, k, ndatac); 
 			}
-			for (j = 0; j < np_rim16; j++) {	/* Circulate arround the local rim16 points */
-				set_tt_16 (i0, j0, j, geo, rim16, k); 
+			for (j = 0; j < np_rim16; j++) {			/* Circulate arround the local rim16 points */
+				set_tt_16 (Z, TT, i0, j0, j, geo, rim16, k, ndatac); 
 			}
 		}
 		i0 = i_source;	j0 = j_source;
 	}
 }
 
-void	set_tt_16 (int i0, int j0, int cp, int geo, int *rim0, int k) {
+void	set_tt_16 (double *Z, double *TT, int i0, int j0, int cp, int geo, int *rim0, int k, int ndatac) {
 	/* Compute the travel time at one of the 16 nearneighbors from the current point
 	   If that point has already a time estimate, choose the minimum of the two */
 	int ic, jc;
@@ -243,17 +252,16 @@ void	set_tt_16 (int i0, int j0, int cp, int geo, int *rim0, int k) {
 
 	n_to_ij(rim0[cp], &ic, &jc);	/* compute (i,j) from index n of the matrix in vector form */
 	if (ic*jc > ndatac || ic*jc < 0) 
-		fprintf(stderr, "WARNING: Trouble no set_tt_16 cp=%d rim16[cp]=%d ic=%d jc=%d\n",cp,rim16[cp],ic,jc);
-	if (z_8[ij_data(ic,jc)] > 0) {	/* Point is not on land */
-		v_mean = (z_8[ij_data(ic,jc)] + z_8[ij_data(i0,j0)]) / 2;
-		/*v_mean = (2*(z_8[ij_data(ic,jc)]*z_8[ij_data(i0,j0)])) / (z_8[ij_data(ic,jc)] + z_8[ij_data(i0,j0)]); */
+		mexPrintf("WARNING: Trouble no set_tt_16 cp=%d rim16[cp]=%d ic=%d jc=%d\n",cp,rim16[cp],ic,jc);
+	if (Z[ij_data(ic,jc)] > 0) {	/* Point is not on land */
+		v_mean = (Z[ij_data(ic,jc)] + Z[ij_data(i0,j0)]) / 2;
 		ds = arc_dist (i0,j0,ic,jc,geo);
 		tmp = ds / v_mean;
-		t_time[ij_data(ic,jc)] = MIN((t_time[ij_data(i0,j0)] + tmp), t_time[ij_data(ic,jc)]);
+		TT[ij_data(ic,jc)] = MIN((TT[ij_data(i0,j0)] + tmp), TT[ij_data(ic,jc)]);
 	}
 }
 
-void	set_tt_8 (int i0, int j0, int cp, int geo, int *rim0, int k) {
+void	set_tt_8 (double *Z, double *TT, int i0, int j0, int cp, int geo, int *rim0, int k, int ndatac) {
 	/* Compute the travel time at one of the 8 nearneighbors from the current point
 	   If that point already has an estimate time, choose the minimum of the two */
 	int ic, jc;
@@ -262,12 +270,11 @@ void	set_tt_8 (int i0, int j0, int cp, int geo, int *rim0, int k) {
 	n_to_ij(rim0[cp], &ic, &jc);	/* compute (i,j) from index n of the matrix in vector form */
 	if (ic*jc > ndatac || ic*jc < 0) 
 		mexPrintf("WARNING: Trouble no set_tt_8 cp=%d rim1[cp]=%d ic=%d jc=%d\n",cp,rim1[cp],ic,jc);
-	if (z_8[ij_data(ic,jc)] > 0) {	/* Point is not on land */
-		v_mean = (z_8[ij_data(ic,jc)] + z_8[ij_data(i0,j0)]) / 2;
-		/*v_mean = (2*(z_8[ij_data(ic,jc)]*z_8[ij_data(i0,j0)])) / (z_8[ij_data(ic,jc)] + z_8[ij_data(i0,j0)]); */
+	if (Z[ij_data(ic,jc)] > 0) {	/* Point is not on land */
+		v_mean = (Z[ij_data(ic,jc)] + Z[ij_data(i0,j0)]) / 2;
 		ds = arc_dist (i0,j0,ic,jc,geo);
 		tmp = ds / v_mean;
-		t_time[ij_data(ic,jc)] = MIN((t_time[ij_data(i0,j0)] + tmp), t_time[ij_data(ic,jc)]);
+		TT[ij_data(ic,jc)] = MIN((TT[ij_data(i0,j0)] + tmp), TT[ij_data(ic,jc)]);
 	}
 }
 
@@ -277,7 +284,7 @@ int	check_in (int i, int j) {
 	return (in);
 }
 
-int	find_rim_points (int i0, int j0, int k) {
+int	find_rim_points (double *Z, int i0, int j0, int k) {
 	int n = 0, ic_min, ic_max, jc_min, jc_max, in_ll, in_ul, in_ur, in_lr, i, in;
 
 	ic_min = i0 - k;	ic_max = i0 + k;
@@ -288,31 +295,31 @@ int	find_rim_points (int i0, int j0, int k) {
 	in_lr = check_in (ic_max, jc_min);
 	if (in_ll && in_ur) { /* ainda estao todos dentro da grelha */
 		for (i = ic_min; i <= ic_max; i++) 	/* north face */
-			if (z_8[ij_data(i,jc_max)] > 0) rim1[n++] = ij_data(i,jc_max);
+			if (Z[ij_data(i,jc_max)] > 0) rim1[n++] = ij_data(i,jc_max);
 		for (i = jc_min; i <= jc_max - 1; i++) 	/* east face */
-			if (z_8[ij_data(ic_max,i)] > 0) rim1[n++] = ij_data(ic_max,i);
+			if (Z[ij_data(ic_max,i)] > 0) rim1[n++] = ij_data(ic_max,i);
 		for (i = ic_min; i <= ic_max - 1; i++) 	/* south face */
-			if (z_8[ij_data(i,jc_min)] > 0) rim1[n++] = ij_data(i,jc_min);
+			if (Z[ij_data(i,jc_min)] > 0) rim1[n++] = ij_data(i,jc_min);
 		for (i = jc_min + 1; i <= jc_max - 1; i++) 	/* west face */
-			if (z_8[ij_data(ic_min,i)] > 0) rim1[n++] = ij_data(ic_min,i);
+			if (Z[ij_data(ic_min,i)] > 0) rim1[n++] = ij_data(ic_min,i);
 		return (n);
 	}
-	else { /* saiu, usar forca bruta */
+	else { 			/* saiu, usar forca bruta */
 		for (i = ic_min; i <= ic_max; i++) { 		/* chech along the north face */
 			in = check_in (i, jc_max); 
-			if (in && z_8[ij_data(i,jc_max)] > 0) rim1[n++] = ij_data(i,jc_max);
+			if (in && Z[ij_data(i,jc_max)] > 0) rim1[n++] = ij_data(i,jc_max);
 		}
 		for (i = jc_min; i <= jc_max - 1; i++) { 	/* chech along the east face */
 			in = check_in (ic_max, i); 
-			if (in && z_8[ij_data(ic_max,i)] > 0) rim1[n++] = ij_data(ic_max,i);
+			if (in && Z[ij_data(ic_max,i)] > 0) rim1[n++] = ij_data(ic_max,i);
 		}
 		for (i = ic_min; i <= ic_max - 1; i++) { 	/* check along the south face */
 			in = check_in (i, jc_min); 
-			if (in && z_8[ij_data(i,jc_min)] > 0) rim1[n++] = ij_data(i,jc_min);
+			if (in && Z[ij_data(i,jc_min)] > 0) rim1[n++] = ij_data(i,jc_min);
 		}
 		for (i = jc_min + 1; i <= jc_max - 1; i++) { 	/* check along the west face */
 			in = check_in (ic_min, i); 
-			if (in && z_8[ij_data(ic_min,i)] > 0) rim1[n++] = ij_data(ic_min,i);
+			if (in && Z[ij_data(ic_min,i)] > 0) rim1[n++] = ij_data(ic_min,i);
 		}
 		return (n);
 	}
@@ -327,7 +334,7 @@ double	arc_dist (int i0, int j0, int ic, int jc, int geo) {
 	lat1 = h.y_min + j0 * h.y_inc;		lat2 = h.y_min + jc * h.y_inc;
 	if (geo) {
 		tmp = sin(lat1*D2R) * sin(lat2*D2R) + cos(lat1*D2R) * cos(lat2*D2R) * cos((lon2 - lon1)*D2R);
-		ds = fabs (earth_rad * acos(tmp));
+		ds = fabs (EARTH_RAD * acos(tmp));
 	}
 	else
 		ds = sqrt((lon1-lon2)*(lon1-lon2) + (lat1-lat2)*(lat1-lat2));
