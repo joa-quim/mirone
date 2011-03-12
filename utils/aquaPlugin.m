@@ -3,7 +3,22 @@ function aquaPlugin(handles)
 % to solve particular problems taking advantage from the fact that a LOT of information
 % about the netCDF files is accessible here. There are no instructions/manual but you
 % can learn by studing the functions on aquamoto.m file or the (not so clean) working
-% examples below. 
+% examples below.
+
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
 	if ( isempty(handles.fname) )
 		errordlg('Hey Lou. What about a walk on the Wild Side? Maybe you''ll find a little file there that you can use here!','Chico clever')
@@ -576,21 +591,6 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			% Now we can finaly compute the season MEAN or MIN or MAX
 			tmp = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, regionalMIN, regionalMAX, tipoStat);
 
-% 			tmp = ZtoSpline(:,:,first_wanted_month);
-% 			tmp(tmp < regionalMIN | tmp > regionalMAX) = NaN;
-% 			ind = isnan(tmp);
-% 			contanoes = repmat(single(zeros(1, cols)), [rows 1]);
-% 			contanoes = contanoes + ~ind;
-% 			tmp(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
-% 			for (n = (first_wanted_month+1):last_wanted_month)
-% 				tmp2 = ZtoSpline(:,:,n);
-% 				tmp2(tmp2 < regionalMIN | tmp2 > regionalMAX) = NaN;
-% 				ind = isnan(tmp2);
-% 				tmp2(ind) = 0;
-% 				contanoes = contanoes + ~ind;
-% 				cvlib_mex('add',tmp,tmp2);
-% 			end
-% 			cvlib_mex('div', tmp, contanoes);			% The mean
 		end							% End interpolate along time
 
 		tmp(tmp == 0) = NaN;		% Reset the NaNs
@@ -623,19 +623,19 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 
 % ----------------------------------------------------------------------
 function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, regionalMIN, regionalMAX, tipo)
-% Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 1) or MAX of the perioded selected
+% Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 1) or MAX of the period selected
 % by the first_wanted_month:last_wanted_month vector. Normaly a year but can be a season as well.
 
 	if (tipo == 0)				% Compute the MEAN of the considered period
 		out = ZtoSpline(:,:,first_wanted_month);
 		out(out < regionalMIN | out > regionalMAX) = NaN;
 		ind = isnan(out);
-		contanoes = alloc_mex(rows, cols, 'single');
+		contanoes = alloc_mex(size(ind,1), size(ind,3), 'single');
 		contanoes = contanoes + ~ind;
 		out(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
 		for (n = (first_wanted_month+1):last_wanted_month)
 			tmp = ZtoSpline(:,:,n);
-			tmp(tmp < regionalMIN | tmp2 > regionalMAX) = NaN;
+			tmp(tmp < regionalMIN | tmp > regionalMAX) = NaN;
 			ind = isnan(tmp);
 			tmp(ind) = 0;
 			contanoes = contanoes + ~ind;
