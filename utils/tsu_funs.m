@@ -13,13 +13,13 @@ function tsu_funs(opt,varargin)
 	
 % --------------------------------------------------------------------
 function TTT(handles,opt)
-	if (aux_funs('msg_dlg',14,handles));     return;      end
+	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	if (nargin == 1),   opt = [];   end
-	if isempty(opt)     % Plot the source
+	if isempty(opt)							% Plot the source
 		pt = ginput_pointer(1,'crosshair');
 		h = line('XData',pt(1,1),'YData',pt(1,2), 'Parent',handles.axes1,'Marker','o', ...
 			'MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',10,'Tag','TTT');
-		draw_funs(h,'DrawSymbol')            % Set symbol's uicontextmenu
+		draw_funs(h,'DrawSymbol')			% Set symbol's uicontextmenu
 	elseif (strcmp(opt,'load'))
 		str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)'};
 		[FileName,PathName] = put_or_get_file(handles,str1,'Select input xy_time file name','get');
@@ -31,16 +31,16 @@ function TTT(handles,opt)
 		h = line('XData',out(:,1),'YData',out(:,2), 'Parent',handles.axes1, 'Marker','o', ...
 			'MarkerFaceColor','y','linestyle','none', 'MarkerEdgeColor','k','MarkerSize',10,'Tag','TTT','UserData',out(:,3));
 		setappdata(h,'TTTimes',out)
-		draw_funs(h,'DrawSymbol')            % Set symbol's uicontextmenu    
-	else                % Compute
+		draw_funs(h,'DrawSymbol')			% Set symbol's uicontextmenu    
+	else					% Compute
 		h_src = findobj(handles.axes1,'Type','line','Tag','TTT');
 		if (isempty(h_src)),    errordlg('Yes I compute, but ... WHAT?','Error'),	return,		end
 		if (numel(h_src) > 1)
 			errordlg('More than one source found. This is not allowed neither in single source or Ray tracing modes. Be modest.','Error');     return
 		end
 		xy_t = getappdata(h_src,'TTTimes');				% See if we have anything in appdata
-		if (isempty(xy_t)),     single_src = 1;			% Single source mode
-		else                    single_src = 0;			% Ray tracing mode
+		if (isempty(xy_t)),		single_src = 1;			% Single source mode
+		else					single_src = 0;			% Ray tracing mode
 		end
 		[X,Y,Z,head] = load_grd(handles);
 		if isempty(Z),   return,	end					% An error message was already issued
@@ -49,7 +49,7 @@ function TTT(handles,opt)
 		set(handles.figure1,'pointer','watch');
 		if (single_src)         % Single source mode
 			xx = get(h_src,'XData');    yy = get(h_src,'YData');
-			tt = wave_travel_time(double(Z)+0,h_info,[xx yy],handles.geog);     % Adding 0 is important (pointers, mex, etc)
+			tt = wave_travel_time(Z,h_info,[xx yy],handles.geog);
 			tit = 'Tsunami Travel Times';
 		else                    % Find ray tracing solution
 			aguentabar('title','Hold on your camels: computing solution')
@@ -62,7 +62,7 @@ function TTT(handles,opt)
 			end
 			tmp = 0;
 			for (i = 1:numel(xx))
-				tt = wave_travel_time(double(Z)+0,h_info,[xx(i) yy(i)],handles.geog);     % 0 because of pointers, mex, etc
+				tt = double(wave_travel_time(Z, h_info, [xx(i) yy(i)], handles.geog));	% Ghrrr
 				tmp = tmp + (tt - tempo(i)) .^2;
 				aguentabar(i/numel(xx))
 			end
@@ -71,7 +71,7 @@ function TTT(handles,opt)
 		head(5) = min(min(tt));    head(6) = max(max(tt));
 		tmp.X = X;		tmp.Y = Y;		tmp.head = head;	tmp.name = tit;
 		set(handles.figure1,'pointer','arrow');
-		mirone(single(tt), tmp);
+		mirone(tt, tmp);
 	end
 
 % --------------------------------------------------------------------
@@ -128,7 +128,7 @@ function SwanCompute(handles)
 		if ( numel(Z_bat) ~= numel(Z_src) )
 			errordlg('Bathymetry and deformation grids have not the same size.','Error'),   return;
 		end
-        bat_and_deform = 1;
+		bat_and_deform = 1;
 	end
 
 	% See if we have maregraphs (if they exist, that is interpreted as a computation request)
