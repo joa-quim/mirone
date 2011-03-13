@@ -6,8 +6,21 @@ function inc = ivan_the_terrible(dx,n,mod,one_or_zero)
 % If MODE == 2, N now contains the candidate INC. The new INC is computed by a very simple algorithm
 % (see below) that, on the contrary of a previous one (supposadly clever but very slow), works prety well.
 % ONE_OR_ZERO is a scalar with either 1 (grid registration) or 0 (pixel registration)
+
+%	Copyright (c) 2004-2011 by J. Luis
 %
-% J. Luis   8/11/02
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
 if (nargin < 3)
     errordlg('function ivan_the_terrible called with a wrong number of arguments','Error')
