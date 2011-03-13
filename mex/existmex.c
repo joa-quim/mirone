@@ -1,3 +1,21 @@
+/*--------------------------------------------------------------------
+ *	$Id:$
+ *
+ *	Copyright (c) 2004-2011 by J. Luis
+ *
+ * 	This program is part of Mirone and is free software; you can redistribute
+ * 	it and/or modify it under the terms of the GNU Lesser General Public
+ * 	License as published by the Free Software Foundation; either
+ * 	version 2.1 of the License, or any later version.
+ * 
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 	Lesser General Public License for more details.
+ *
+ *	Contact info: w3.ualg.pt/~jluis/mirone
+ *--------------------------------------------------------------------*/
+
 /*=================================================================
  * existmex.c
  *
@@ -5,7 +23,6 @@
  * codes, wich is not the case with exist(variable,'var') since it is, 
  * guess what, yes BUGGED. It always returns 0
  *
- *      Coffeeright (c) 2002-2007 by J. Luis
  *================================================================*/
 
 #include "mex.h"
