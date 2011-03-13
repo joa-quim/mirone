@@ -15,9 +15,20 @@ function tooltipwrap(hObject,texto,nCols)
 %               'little boring tooltip window that doesn''t leave me alone']
 %           tooltipwrap(hui,txt,15)
 
-%   AUTHOR
-%       Joaquim Luis    02-July-2006
-%       w3.ualg.pt/~jluis/mirone
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
 % Error check
 msg = [];

@@ -5,6 +5,22 @@ function [comp,dilat] = patch_meca(str1,dip1,rake1,str2,dip2,rake2)
 % given, they will be computed from the parameters of the first nodal plane.
 % COMP  -> Nx2 (x,y) var in the range [-1 1] with the compressive quadrants
 % DILAT -> Nx2 (x,y) var in the range [-1 1] with the dilatation quadrants
+
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 np = 45;
 D2R = pi/180;
 TWO_PI = 2 * pi;
