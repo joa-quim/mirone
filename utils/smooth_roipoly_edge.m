@@ -12,6 +12,21 @@ function Z_filt = smooth_roipoly_edge(head, have_local_nans, Z, Z_rect, Z_filt, 
 % mask		The mask as calculated by poipoly_j
 % thick		The thickness of the smooth transitional zone in number of grid cells
 
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 	if (nargin == 7)	thick = 3;		end
 
 	mask_b = mask_border(mask,thick);		mask_b = mask_b(:);
