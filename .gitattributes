@@ -340,6 +340,7 @@ mex/PolygonClip.c -text
 mex/akimaspline.cpp -text
 mex/alloc_mex.c -text
 mex/applylutc.c -text
+mex/avi.cpp -text
 mex/boundaries.cpp -text
 mex/boundaries.h -text
 mex/bwboundariesmex.cpp -text
