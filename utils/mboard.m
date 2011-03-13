@@ -11,6 +11,21 @@ function [w, to_restore] = mboard(w,nx,ny,nnx,nny,mode)
 % IF MBOARD([],NX,NY,0,0) compute only the good NNX = NX * 1.2 & NNY = NY * 1.2 and return
 % them in W. TO_RESTORE will contain "nlist". Note that there are no error testing. 
 
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 if (nargin == 5),    mode = 'taper';     end
 if (nargin == 3),    mode = 'mirror';     end
 
