@@ -1,9 +1,9 @@
 function roi_image_operations(action, varargin)
 %ROI_IMAGE_OPERATIONS Region-of-interest processing.
 %
-
+%
 %   This function has bits of code from ROIDEMO and was modified to work to MIRONE  
-
+%
 %   Function Subroutines:
 %   InitializeWIN - Set up controls and Images.
 %
