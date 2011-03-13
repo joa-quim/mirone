@@ -107,7 +107,21 @@ function  varargout = url2image(opt, varargin)
 %
 %   AUTHOR
 %       Joaquim Luis (jluis@ualg.pt)   01-Feb-2008
+
+%	Copyright (c) 2004-2011 by J. Luis
 %
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
 	quadkey = {'0' '1'; '2' '3'};				% Default to Virtual Earth
 	prefix = 'http://a0.ortho.tiles.virtualearth.net/tiles/a';
