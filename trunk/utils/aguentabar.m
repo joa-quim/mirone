@@ -45,6 +45,21 @@ function stopBar =  aguentabar(varargin)
 %
 % 	05-Jan-2008		Joaquim Luis (jluis@ualg.pt)
 
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 	% Parse inputs
 	n_argin = nargin;
 	fractiondone = 0;		haveCancel = 0;			titulo = [];		% Default values
@@ -52,11 +67,11 @@ function stopBar =  aguentabar(varargin)
 		for ( i = 1:numel(varargin) )
 			if ( isnumeric(varargin{i}) )
 				fractiondone = varargin{i};
-			elseif ( strncmp(lower(varargin{i}), 'title',5) )
+			elseif ( strncmpi(varargin{i}, 'title',5) )
 				try		titulo = varargin{i+1};				% In case title string was not provided
-				catch	titulo = '';
+				catch,	titulo = '';
 				end
-			elseif ( strncmp(lower(varargin{i}), 'createcancelbtn',7) )
+			elseif ( strncmpi(varargin{i}, 'createcancelbtn',7) )
 				haveCancel = 1;
 			end
 		end
