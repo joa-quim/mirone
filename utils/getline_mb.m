@@ -13,16 +13,17 @@ function [x,y,trackHand,barHand] = getline_mb(varargin)
 %        getline_mb('NextButtonDown')
 %        getline_mb('ButtonMotion')
 
-%	Copyright (c) 2004-2006 by J. Luis
+%	Copyright (c) 2004-2011 by J. Luis
 %
-%	This program is free software; you can redistribute it and/or modify
-%	it under the terms of the GNU General Public License as published by
-%	the Free Software Foundation; version 2 of the License.
-%
-%	This program is distributed in the hope that it will be useful,
-%	but WITHOUT ANY WARRANTY; without even the implied warranty of
-%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%	GNU General Public License for more details.
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
@@ -95,7 +96,8 @@ set(gcbf, 'UserData', ud);
 % in try-catch so we'll have a chance to clean up after ourselves.
 errCatch = 0;
 try         waitfor(ud.GETLINE_H1, 'UserData', 'Completed');
-catch     errCatch = 1;   end
+catch,		errCatch = 1;
+end
 
 % After the waitfor, if GETLINE_H1 is still valid and its UserData is 'Completed', then the user
 % completed the drag.  If not, the user interrupted the action somehow, perhaps by a Ctrl-C in the
@@ -112,8 +114,9 @@ else
     if ~isempty(ud_tmp)         % This is basicly an error testing. It happens (for example)
         ud = ud_tmp;            % when the user right-clicks on the first line point.
     end                         % Which stops the line drawing imediatly.
-    try    x = ud.GETLINE_X(:);    y = ud.GETLINE_Y(:);
-    catch   x = [];                 y = [];     end
+	try		x = ud.GETLINE_X(:);    y = ud.GETLINE_Y(:);
+	catch,	x = [];                 y = [];
+	end
     % If no points were selected, return rectangular empties.
     % This makes it easier to handle degenerate cases in functions that call getline_mb.
     if (isempty(x));        x = zeros(0,1);    end
@@ -275,25 +278,25 @@ set(gcbf, 'UserData', ud);
 % Subfunction ButtonMotion
 %-------------------------------------------------
 function ButtonMotion
-ud = get(gcbf, 'UserData');
-[newx, newy] = getcurpt_eu(ud.GETLINE_AX);
-x = [ud.GETLINE_X newx];    y = [ud.GETLINE_Y newy];
-set([ud.GETLINE_H1 ud.GETLINE_H2], 'XData', x, 'YData', y);
+	ud = get(gcbf, 'UserData');
+	[newx, newy] = getcurpt_eu(ud.GETLINE_AX);
+	x = [ud.GETLINE_X newx];    y = [ud.GETLINE_Y newy];
+	set([ud.GETLINE_H1 ud.GETLINE_H2], 'XData', x, 'YData', y);
 
 %---------------------------------------------------
 % Subfunction CleanUp
 %--------------------------------------------------
 function CleanUp(xlimmode,ylimmode)
-set(gca,'xlimmode',xlimmode);   set(gca,'ylimmode',ylimmode);
+	set(gca,'xlimmode',xlimmode);   set(gca,'ylimmode',ylimmode);
 
 %---------------------------------------------------
 % Subfunction getcurpt_eu
 %--------------------------------------------------
 function [x,y,z] = getcurpt_eu(axHandle)
 %GETCURPT Get current point.
-pt = get(axHandle, 'CurrentPoint');
-x = pt(1,1);    y = pt(1,2);
-if nargout == 3
-    X = getappdata(gcf,'dem_x');    Y = getappdata(gcf,'dem_y');
-    Z = getappdata(gcf,'dem_z');    z = abs(bi_linear(X,Y,Z,x,y));
-end
+	pt = get(axHandle, 'CurrentPoint');
+	x = pt(1,1);    y = pt(1,2);
+	if nargout == 3
+		X = getappdata(gcf,'dem_x');    Y = getappdata(gcf,'dem_y');
+		Z = getappdata(gcf,'dem_z');    z = abs(bi_linear(X,Y,Z,x,y));
+	end

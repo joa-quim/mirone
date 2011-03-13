@@ -1,29 +1,44 @@
 function [xy_prj, msg, opt_R] = geog2projected_pts(handles,xy,lims,pad)
-    % project a 2 column array in geogs to the projection currently stored in 'ProjWKT' or 'ProjGMT'
-    %
-    % XY , a [lon lat] 2 column array.
-    % LIMS, if present & not empty,  must be a [x_min x_max y_min y_max] OR [x_min x_max y_min y_max whatever] vector. 
-    %       Normally, the image four corners coords.
-    %   The second case (a 5 elements vec) is used to select Inverse projection (e.g to Geogs)
-    %   when the reprojection is done with GDAL.
-    %   LIMS contents are realy only used when PAD is not zero 
-    %
-    % PAD is a scalar with its value in projected coords. It is used as a 'skirt' boundary buffer
-    % Note: to remove pts outside the LIMS rectangle one have to provide a PAD ~= 0
-    %
-    % In case we have both a 'ProjGMT' & 'ProjWKT' the later prevails since
-    % it is supposed to correctly describe the data projection.
-    % If none proj string is found, XY_PRJ = XY since nothing was done
-    %
-    % On output OPT_R is a -R GMT option string which will be a crude estimation
-    % in case of a mapproject conversion (that story of -Rg). We need this OPT_R to
-    % use in calls to shoredump_m.
-    % In case of 'projGMT' if OPT_R is asked than XY_PRJ == []
-    %
-    % A further note on HANDLES. While one normally just send in the Mirone handles, that doesn't always
-    % work or is not practical when calling this fun from outside Mirone. In those cases, like for example
-    % the earthquakes() GUI, is enough that this handles is a structure with just handles.figure1 &
-    % handles.axes1 which are the handles of the Figure and its Axes
+% project a 2 column array in geogs to the projection currently stored in 'ProjWKT' or 'ProjGMT'
+%
+% XY , a [lon lat] 2 column array.
+% LIMS, if present & not empty,  must be a [x_min x_max y_min y_max] OR [x_min x_max y_min y_max whatever] vector. 
+%       Normally, the image four corners coords.
+%   The second case (a 5 elements vec) is used to select Inverse projection (e.g to Geogs)
+%   when the reprojection is done with GDAL.
+%   LIMS contents are realy only used when PAD is not zero 
+%
+% PAD is a scalar with its value in projected coords. It is used as a 'skirt' boundary buffer
+% Note: to remove pts outside the LIMS rectangle one have to provide a PAD ~= 0
+%
+% In case we have both a 'ProjGMT' & 'ProjWKT' the later prevails since
+% it is supposed to correctly describe the data projection.
+% If none proj string is found, XY_PRJ = XY since nothing was done
+%
+% On output OPT_R is a -R GMT option string which will be a crude estimation
+% in case of a mapproject conversion (that story of -Rg). We need this OPT_R to
+% use in calls to shoredump_m.
+% In case of 'projGMT' if OPT_R is asked than XY_PRJ == []
+%
+% A further note on HANDLES. While one normally just send in the Mirone handles, that doesn't always
+% work or is not practical when calling this fun from outside Mirone. In those cases, like for example
+% the earthquakes() GUI, is enough that this handles is a structure with just handles.figure1 &
+% handles.axes1 which are the handles of the Figure and its Axes
+
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
     msg = '';       xy_prj = [];    opt_R = [];
 	if (isempty(xy)),	return,		end

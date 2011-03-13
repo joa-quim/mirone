@@ -15,7 +15,7 @@ function [nxout,nyout,nzout] = getnormals(x,y,z,s)
 %   the grid size in memory, this one "only" takes 7 times. A number of useless operations
 %   where also removed, resulting in a much faster routine.
 %
-%   Joaquim Luis
+%	Coffeeright (c) 2004-2011 by J. Luis
 
 [m,n] = size(z);
 if any([m n]<3), error('Z must be at least 3-by-3.'); end
@@ -79,14 +79,14 @@ end
 function y = ffilter(b,x)
 %see FILTER2 for help (I did this for striping unnecessry code and reducing the .exe version size).
 
-stencil = rot90(b,2);
-[ms,ns] = size(stencil);
+	stencil = rot90(b,2);
+	[ms,ns] = size(stencil);
 
-% 1-D filter
-if (ms == 1)
-  y = conv2(1,stencil,x,'same');
-elseif (ns == 1)
-  y = conv2(stencil,1,x,'same');
-else
-    error('The filter must be 1-D')
-end
+	% 1-D filter
+	if (ms == 1)
+	  y = conv2(1,stencil,x,'same');
+	elseif (ns == 1)
+	  y = conv2(stencil,1,x,'same');
+	else
+		error('The filter must be 1-D')
+	end

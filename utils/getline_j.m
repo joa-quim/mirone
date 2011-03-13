@@ -21,8 +21,21 @@ function varargout = getline_j(varargin)
 
 %   Havily hacked version of getline that, contrary to the original, let be compiled.
 %   Also the right-click button was reprogramed. Now it removes the previously selected point.
+
+%	Copyright (c) 2004-2011 by J. Luis
 %
-%   Joaquim Luis
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
 ud.GETLINE_ISCLOSED = false;
 ud.GETLINE_FREEHAND = false;
@@ -52,7 +65,6 @@ if (length(varargin) < 1)
 	end
 else
     if (~ishandle(varargin{1}))
-        varargout{1} = [];      varargout{2} = [];
         error('First argument is not a valid handle');
     end
     switch get(varargin{1}, 'Type')
@@ -79,7 +91,6 @@ else
 			set(varargin{1}, 'XData',[], 'YData',[])		% Don't need those duplicated
 			extend_line = true;
         otherwise
-            varargout{1} = [];      varargout{2} = [];
             error('First argument should be a figure, axes or line handle');
     end
 end
