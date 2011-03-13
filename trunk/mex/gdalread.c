@@ -1,17 +1,21 @@
-/*
- *      Coffeeright (c) 2002-2003 by J. Luis
+/*--------------------------------------------------------------------
+ *	$Id:$
  *
- *      This program is free software; you can redistribute it and/or modify
- *      it under the terms of the GNU General Public License as published by
- *      the Free Software Foundation; version 2 of the License.
+ *	Copyright (c) 2004-2011 by J. Luis
  *
- *      This program is distributed in the hope that it will be useful,
- *      but WITHOUT ANY WARRANTY; without even the implied warranty of
- *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *      GNU General Public License for more details.
+ * 	This program is part of Mirone and is free software; you can redistribute
+ * 	it and/or modify it under the terms of the GNU Lesser General Public
+ * 	License as published by the Free Software Foundation; either
+ * 	version 2.1 of the License, or any later version.
+ * 
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 	Lesser General Public License for more details.
  *
- *      Contact info: w3.ualg.pt/~jluis
+ *	Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
+
 /* Program:	gdalread.c
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
