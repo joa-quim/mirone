@@ -6,6 +6,21 @@ function [plon,plat,omega] = calc_bonin_euler_pole (xx,yy,x2,y2)
 %   lines defined by xx,yy and x2,y2. NOTE first and second line must be given in the same order.
 % If no output is requested the pole is written on the command line
 
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 	plon = NaN;     plat = NaN;     omega = NaN;
 	if (nargin == 4)
 		% No testing that xx, yy, & x2, y2 are inded the coords of two lines
