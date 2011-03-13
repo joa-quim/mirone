@@ -1,7 +1,7 @@
 @echo off
 REM --------------------------------------------------------------------------------------
 REM
-REM	$Id:
+REM	$Id:$
 REM
 REM This is a compile batch that builds all MEXs whose source code is distributed in Mirone
 REM A major difficulty in using this comes from the fact that several external libraries are needed.
@@ -24,19 +24,18 @@ REM ----------------------------------------------------------------------------
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
 SET CC=icl
-REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
 SET R13="no"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
-SET WIN64="yes"
+SET WIN64="no"
 
 REM Set to "yes" if you want to build a debug version
 SET DEBUG="no"
-REM
-SET LDEBUG=
-IF %DEBUG%=="yes" SET LDEBUG=/debug
+
+REM --------- Most of times changes STOP here (but you may need to setup things bellow) --
+REM --------------------------------------------------------------------------------------
 
 REM If set some MEXs will print the execution time (in CPU ticks)
 REM SET TIMEIT=-DMIR_TIMEIT
@@ -47,28 +46,25 @@ IF %R13%=="yes" SET WIN64="no"
 REM The MSVC version. I use this var to select libraries also compiled with this compiler
 SET MSVC_VER="1600"
 
-REM Options are "dll", "mexw32" (recent ML version scream when they find .dll) or "mexw64" (when WIN64="yes")
-SET MEX_EXT="mexw32"
-
 REM --- Next allows compiling with the compiler you want against the ML6.5 libs (needed in stand-alone version)
 IF %R13%=="yes" (
-SET MATLIB=C:\SVN\MAT65_pracompa\extern\lib\win32\microsoft
-SET MATINC=C:\SVN\MAT65_pracompa\extern\include
+SET MATLIB=C:\SVN\pracompila\MAT65\lib\win32\microsoft
+SET MATINC=C:\SVN\pracompila\MAT65\include
 SET _MX_COMPAT=
 SET MEX_EXT="dll"
 
 ) ELSE (
 
 IF %WIN64%=="yes" (
-SET MATLIB=C:\PROGRAMS\MATLAB\R2010B\extern\lib\win64\microsoft 
-SET MATINC=C:\PROGRAMS\MATLAB\R2010B\extern\include
+SET MATLIB=C:\SVN\pracompila\ML2010a_w64\lib\win64\microsoft 
+SET MATINC=C:\SVN\pracompila\ML2010a_w64\include
 SET _MX_COMPAT=-DMX_COMPAT_32
 SET MEX_EXT="mexw64"
 
 ) ELSE (
 
-SET MATLIB=C:\PROGRAMS\MATLAB32\R2010B\extern\lib\win32\microsoft 
-SET MATINC=C:\PROGRAMS\MATLAB32\R2010B\extern\include
+SET MATLIB=C:\SVN\pracompila\ML2009b_w32\lib\win32\microsoft 
+SET MATINC=C:\SVN\pracompila\ML2009b_w32\include
 SET _MX_COMPAT=-DMX_COMPAT_32
 SET MEX_EXT="mexw32"
 ) )
@@ -134,13 +130,15 @@ REM ----------------------------------------------------------------------------
 REM ____________________________________________________________________________
 REM ___________________ STOP EDITING HERE ______________________________________
 
+SET LDEBUG=
+IF %DEBUG%=="yes" SET LDEBUG=/debug
 
 REM link /out:"test_gmt.mexw32" /dll /export:mexFunction /LIBPATH:"C:\PROGRAMS\MATLAB\R2009B\extern\lib\win32\microsoft" libmx.lib libmex.lib libmat.lib /MACHINE:X86 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /incremental:NO /implib:"C:\TMP\MEX_IF~1\templib.x" /MAP:"test_gmt.mexw32.map"  @C:\TMP\MEX_IF~1\MEX_TMP.RSP   
 
 REM cl  -DWIN32 /c /Zp8 /GR /W3 /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD /FoC:\TMP\MEX_IF~1\test_gmt.obj -IC:\PROGRAMS\MATLAB\R2009B\extern\include /O2 /Oy- /DNDEBUG -DMX_COMPAT_32 test_gmt.c 
 
 SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD 
-IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /Oy- /DNDEBUG
+IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /DNDEBUG
 IF %DEBUG%=="yes" SET OPTIMFLAGS=/Z7
 
 IF %WIN64%=="yes" SET arc=X64
@@ -207,7 +205,7 @@ IF %%G==morphmex (
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj dilate_erode_gray_nonflat.obj dilate_erode_packed.obj dilate_erode_binary.obj neighborhood.obj vectors.obj )
 
 IF %%G==avi (
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c avi.cpp  
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.cpp
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% Vfw32.lib /implib:templib.x %%G.obj avi.obj )
 
 )
@@ -217,7 +215,7 @@ REM ---------------------- END "simple" ----------------------------------------
 REM ---------------------- GMTs ----------------------------------------------------
 :GMT
 for %%G in (grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m mapproject_m shoredump 
-	surface_m nearneighbor_m grdfilter_m cpt2cmap grdlandmask_m grdppa_m dimfilter_m shake_mex) do (
+	surface_m nearneighbor_m grdfilter_m cpt2cmap grdlandmask_m grdppa_m shake_mex) do (
 
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% /implib:templib.x %%G.obj 
