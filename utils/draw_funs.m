@@ -6,16 +6,17 @@ function varargout = draw_funs(hand, varargin)
 %   OPT     is a string for choosing what action to perform
 %   DATA    contains data currently used in the volcanoes, fogspots and some other option
 
-%	Copyright (c) 2004-2010 by J. Luis
+%	Copyright (c) 2004-2011 by J. Luis
 %
-%	This program is free software; you can redistribute it and/or modify
-%	it under the terms of the GNU General Public License as published by
-%	the Free Software Foundation; version 2 of the License.
-%
-%	This program is distributed in the hope that it will be useful,
-%	but WITHOUT ANY WARRANTY; without even the implied warranty of
-%	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%	GNU General Public License for more details.
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
@@ -437,7 +438,7 @@ function seismic_line(obj,evt,hL,opt)
 		subplot(2,2,3);			histo_m('hist', rd, 0:25:rd(end), [0 rd(end)]);
 		h = subplot(2,2,4);		plot(rd, evt_mag, '.'),		set(h,'ylim',[min(evt_mag) max(evt_mag)],'xlim',[rd(1) rd(end)]);
 	end
-	
+
 % -----------------------------------------------------------------------------------------
 function copy_line_object(obj,evt,hFig,hAxes)
     oldH = gco(hFig);
@@ -612,11 +613,11 @@ function hh = loc_quiver(struc,varargin)
 	% Make velocity vectors
 	x = x(:).';		y = y(:).';
 	u = u(:).';		v = v(:).';
-	uu = [x; x+u; repmat(NaN,size(u))];
-	vv = [y; y+v; repmat(NaN,size(u))];
+	uu = [x; x+u; ones(size(u))*NaN];
+	vv = [y; y+v; ones(size(u))*NaN];
 	% Make arrow heads
-	hu = [x+u-alpha*(u+beta*(v+eps)); x+u; x+u-alpha*(u-beta*(v+eps)); repmat(NaN,size(u))];
-	hv = [y+v-alpha*(v-beta*(u+eps)); y+v; y+v-alpha*(v+beta*(u+eps)); repmat(NaN,size(v))];
+	hu = [x+u-alpha*(u+beta*(v+eps)); x+u; x+u-alpha*(u-beta*(v+eps)); ones(size(u))*NaN];
+	hv = [y+v-alpha*(v-beta*(u+eps)); y+v; y+v-alpha*(v+beta*(u+eps)); ones(size(v))*NaN];
 
 	if (spacingChanged)
 		try		delete(hQuiver),	hQuiver = [];	end		% Remove previous arrow field
@@ -948,18 +949,18 @@ function set_gmtfile_uicontext(h, data)
 % 	set(h, 'XData', new_x, 'YData', new_y);
 
 % -----------------------------------------------------------------------------------------
-% function call_gmtedit(obj, evt, h, opt)
-% 	if (nargin == 4)		% Call helper window to extract a chunk of the mag anom profile
-% 		mag_synthetic(get(0,'CurrentFig'), h)
-% 		return
-% 	end
-% 	pt = get(gca, 'CurrentPoint');
-% 	vars = getappdata(h,'VarsName');		opt_V = '  ';	% To be ignored opt_V needs to have at least 2 chars
-% 	if (~isempty(vars))
-% 		opt_V = ['-V' vars{1} ','  vars{2} ',' vars{3}];	% Need to encode the Vars info in a single string
-% 		if (strcmp(opt_V,'-V,,')),		opt_V = '  ';	end	% When vars is actually a 3 empties cell
-% 	end
-% 	gmtedit(getappdata(h,'FullName'), sprintf('-P%.6f/%.6f',pt(1,1:2)), opt_V );
+function call_gmtedit(obj, evt, h, opt)
+	if (nargin == 4)		% Call helper window to extract a chunk of the mag anom profile
+		mag_synthetic(get(0,'CurrentFig'), h)
+		return
+	end
+	pt = get(gca, 'CurrentPoint');
+	vars = getappdata(h,'VarsName');		opt_V = '  ';	% To be ignored opt_V needs to have at least 2 chars
+	if (~isempty(vars))
+		opt_V = ['-V' vars{1} ','  vars{2} ',' vars{3}];	% Need to encode the Vars info in a single string
+		if (strcmp(opt_V,'-V,,')),		opt_V = '  ';	end	% When vars is actually a 3 empties cell
+	end
+	gmtedit(getappdata(h,'FullName'), sprintf('-P%.6f/%.6f',pt(1,1:2)), opt_V );
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_setMarker(h,prop)
@@ -1292,65 +1293,65 @@ function ll = show_LineLength(obj, eventdata, h, opt)
 		errordlg('Unknown case in show_LineLength()','error'),	return
 	end
 
-	msg = [];
+	% Contour lines for example have NaNs and not at the same x,y positions (???)
+	ix = isnan(x);      x(ix) = [];     y(ix) = [];
+	iy = isnan(y);      x(iy) = [];     y(iy) = [];
+	if (handles.geog)
+		lat_i = y(1:end-1);   lat_f = y(2:end);     clear y;
+		lon_i = x(1:end-1);   lon_f = x(2:end);     clear x;
+		tmp = vdist(lat_i,lon_i,lat_f,lon_f,handles.DefineEllipsoide([1 3]));
 
-% Contour lines for example have NaNs and not at the same x,y positions (???)
-ix = isnan(x);      x(ix) = [];     y(ix) = [];
-iy = isnan(y);      x(iy) = [];     y(iy) = [];
-if (handles.geog)
-    lat_i = y(1:end-1);   lat_f = y(2:end);     clear y;
-    lon_i = x(1:end-1);   lon_f = x(2:end);     clear x;
-	tmp = vdist(lat_i,lon_i,lat_f,lon_f,handles.DefineEllipsoide([1 3]));
-    
-    switch handles.DefineMeasureUnit
-        case 'n'        % Nautical miles
-            scale = 1852;   str_unit = ' NM';
-        case 'k'        % Kilometers
-            scale = 1000;   str_unit = ' kilometers';
-        case {'m','u'}  % Meters or user unites
-            scale = 1;   str_unit = ' meters(?)';
-    end
-    total_len = sum(tmp) / scale;
-	if (nargout == 0 && isempty(opt))
-		len_i = tmp / scale;
-		if (numel(tmp) <= 20)
-			for i = 1:numel(tmp)
-				msg = [msg; {['Length' sprintf('%d',i) '  =  ' sprintf('%.5f',len_i(i)) str_unit]}];
-			end
-            msg = [msg; {['Total length = ' sprintf('%.5f',total_len) str_unit]}];
-		else
-			msg = {['Total length = ' sprintf('%.5f',total_len) str_unit]};
+		switch handles.DefineMeasureUnit
+			case 'n'        % Nautical miles
+				scale = 1852;   str_unit = ' NM';
+			case 'k'        % Kilometers
+				scale = 1000;   str_unit = ' kilometers';
+			case {'m','u'}  % Meters or user unites
+				scale = 1;   str_unit = ' meters(?)';
 		end
-        msgbox(msg,'Line(s) length')
-	elseif (nargout == 0 && ~isempty(opt))
-		msgbox(['Total length = ' sprintf('%.5f',total_len) str_unit],'Line length')
-	else        % Should we also out output also the partial lengths?
-		ll.len = total_len;   ll.type = 'geog';
-	end
-else
-	dx = diff(x);   dy = diff(y);
-	total_len = sum(sqrt(dx.*dx + dy.*dy));
-	if (nargout == 0 && isempty(opt))
-		len_i = sqrt(dx.^2 + dy.^2);
-		if (numel(dx) <= 200)
-			for i = 1:numel(dx)
-				msg = [msg; {['Length' sprintf('%d',i) '  =  ' sprintf('%.5f',len_i(i)) ' map units']}];
+		total_len = sum(tmp) / scale;
+		if (nargout == 0 && isempty(opt))
+			len_i = tmp / scale;
+			if (numel(tmp) <= 20)
+				msg = cell(1, numel(tmp) + 1);
+				for i = 1:numel(tmp)
+					msg{i} = [sprintf('Length%d',i) '  =  ' sprintf('%.5f',len_i(i)) str_unit];
+				end
+				msg{i+1} = sprintf('Total length = %.5f %s',total_len, str_unit);
+			else
+				msg = {sprintf('Total length = %.5f %s',total_len, str_unit)};
 			end
-			msg = [msg; {['Total length = ' sprintf('%.5f',total_len) ' map units']}];
-		else
-			msg = {['Total length = ' sprintf('%.5f',total_len) ' map units']};
+			msgbox(msg,'Line(s) length')
+		elseif (nargout == 0 && ~isempty(opt))
+			msgbox(sprintf('Total length = %.5f %s',total_len, str_unit),'Line length')
+		else        % Should we also out output also the partial lengths?
+			ll.len = total_len;   ll.type = 'geog';
 		end
-		msgbox(msg,'Line(s) length')
-	elseif (nargout == 0 && ~isempty(opt))
-		msgbox(['Total length = ' sprintf('%.5f',total_len) ' map units'],'Line length')
-	else		% The same question as in the geog case
-		ll.len = total_len;		ll.type = 'cart';
+	else
+		dx = diff(x);   dy = diff(y);
+		total_len = sum(sqrt(dx.*dx + dy.*dy));
+		if (nargout == 0 && isempty(opt))
+			len_i = sqrt(dx.^2 + dy.^2);
+			if (numel(dx) <= 200)
+				msg = cell(1, numel(dx) + 1);
+				for i = 1:numel(dx)
+					msg{i} = [sprintf('Length%d',i) '  =  ' sprintf('%.5f',len_i(i)) ' map units'];
+				end
+				msg{i+1} = sprintf('Total length = %.5f  map units',total_len);
+			else
+				msg = {sprintf('Total length = %.5f  map units',total_len)};
+			end
+			msgbox(msg,'Line(s) length')
+		elseif (nargout == 0 && ~isempty(opt))
+			msgbox([sprintf('Total length = %.5f',total_len) ' map units'],'Line length')
+		else		% The same question as in the geog case
+			ll.len = total_len;		ll.type = 'cart';
+		end
 	end
-end
 
 % -----------------------------------------------------------------------------------------
 function show_AllTrackLength(obj,eventdata)
-	% Compute the length of all MB tracks present in the figure
+% Compute the length of all MB tracks present in the figure
 	ALLlineHand = findobj(get(gca,'Child'),'Type','line');
 	len = 0;
 	for i = 1:length(ALLlineHand)
@@ -1361,7 +1362,7 @@ function show_AllTrackLength(obj,eventdata)
 		end
 	end
 	if (len > 0)
-        msgbox(['Total tracks length = ' sprintf('%g',len) ' NM'])
+        msgbox(sprintf('Total tracks length = %g NM',len))
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -1386,7 +1387,7 @@ function azim = show_lineAzims(obj,eventdata,h)
 		h = gco;  
 		az = getappdata(h, 'Azim');
 		if (~isempty(az))		% Report azim of great-circle arc and return
-			msgbox(['Azimuth = ' sprintf('%.2f', az)],'Azimuth'),	return
+			msgbox(sprintf('Azimuth = %.2f', az),'Azimuth'),	return
 		end
 		x = get(h,'XData');    y = get(h,'YData');
 		handles = guidata(h);
@@ -1415,7 +1416,7 @@ function azim = show_lineAzims(obj,eventdata,h)
 			msg{end+1} = '';
 			id = (az > 270);    az(id) = az(id) - 360;
 			az_mean = mean(az);
-			msg{end+1} = ['Mean azimuth = ' sprintf('%.1f',az_mean) '  degrees'];
+			msg{end+1} = sprintf('Mean azimuth = %.1f  degrees',az_mean);
 			msgbox(msg,'Line(s) Azimuth')
 		else
 			ecran(handles, x(2:end), y(2:end), az, 'Polyline azimuths (deg)')
@@ -1777,31 +1778,30 @@ function rectangle_register_img(obj,event)
 
 % -----------------------------------------------------------------------------------------
 function trans = AffineTransform(uv,xy)
-	% For an affine transformation:
-	%                     [ A D 0 ]
-	% [u v 1] = [x y 1] * [ B E 0 ]
-	%                     [ C F 1 ]
-	% There are 6 unknowns: A,B,C,D,E,F
-	% Another way to write this is:
-	%                   [ A D ]
-	% [u v] = [x y 1] * [ B E ]
-	%                   [ C F ]
-	% Rewriting the above matrix equation:
-	% U = X * T, where T = reshape([A B C D E F],3,2)
-	%
-	% With 3 or more correspondence points we can solve for T,
-	% T = X\U which gives us the first 2 columns of T, and
-	% we know the third column must be [0 0 1]'.
+% For an affine transformation:
+%                     [ A D 0 ]
+% [u v 1] = [x y 1] * [ B E 0 ]
+%                     [ C F 1 ]
+% There are 6 unknowns: A,B,C,D,E,F
+% Another way to write this is:
+%                   [ A D ]
+% [u v] = [x y 1] * [ B E ]
+%                   [ C F ]
+% Rewriting the above matrix equation:
+% U = X * T, where T = reshape([A B C D E F],3,2)
+%
+% With 3 or more correspondence points we can solve for T,
+% T = X\U which gives us the first 2 columns of T, and
+% we know the third column must be [0 0 1]'.
 
 	K = 3;      M = size(xy,1);     X = [xy ones(M,1)];
-	U = uv;         % just solve for the first two columns of T
+	U = uv;		% just solve for the first two columns of T
 
 	% We know that X * T = U
 	if rank(X) >= K
 		Tinv = X \ U;
 	else
-		msg = 'At least %d non-collinear points needed to infer %s transform.';
-		errordlg(sprintf(msg,K,'affine'),'Error');
+		errordlg('At least 3 non-collinear points needed to infer affine transform.','Error');
 	end
 
 	Tinv(:,3) = [0 0 1]';       % add third column
@@ -1818,14 +1818,14 @@ function Transplant_Image(obj,eventdata)
 h = gco;
 hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
 out = implanting_img(findobj(hFig,'Type','image'),h,get(hAxes,'xlim'),get(hAxes,'ylim'));
-if isempty(out),   return;      end
-h_img = findobj(get(hFig,'Children'),'Type','image');     % Get background image handle
+if isempty(out),	return,		end
+h_img = findobj(get(hFig,'Children'),'Type','image');		% Get background image handle
 zz = get(h_img,'CData');
 
 % Find if Implanting image needs to be ud fliped
 if(strcmp(get(hAxes,'XDir'),'normal') && strcmp(get(hAxes,'YDir'),'reverse'))
-        flip = 0;
-else    flip = 1;
+		flip = 0;
+else	flip = 1;
 end
 
 [nl_ip,nc_ip,n_planes_ip] = size(out.ip_img);       % Get dimensions of implanting image
@@ -1834,25 +1834,25 @@ if (n_planes_ip == 3),  indexed_ip = 0;     else   indexed_ip = 1;     end
 if (n_planes_bg == 3),  indexed_bg = 0;     else   indexed_bg = 1;     end
 
 if (out.resizeIP)
-    % We have to interpolate the Ip image to fit exactly with the rectangle dimensions.
-    %nl_new = linspace(1,nl_ip,(out.r_c(2)-out.r_c(1)+1));
-    %nc_new = linspace(1,nc_ip,(out.r_c(4)-out.r_c(3)+1));
-    %[X,Y] = meshgrid(nc_new,nl_new);
-    head = [1 nc_ip 1 nl_ip 0 255 0 1 1];
-    opt_N = ['-N' num2str(out.r_c(4)-out.r_c(3)+1) '/' num2str(out.r_c(2)-out.r_c(1)+1)]; % option for grdsample
-    if (~indexed_ip)                                % Implanting image is of RGB type
-        for (i = 1:3)
+	% We have to interpolate the Ip image to fit exactly with the rectangle dimensions.
+	%nl_new = linspace(1,nl_ip,(out.r_c(2)-out.r_c(1)+1));
+	%nc_new = linspace(1,nc_ip,(out.r_c(4)-out.r_c(3)+1));
+	%[X,Y] = meshgrid(nc_new,nl_new);
+	head = [1 nc_ip 1 nl_ip 0 255 0 1 1];
+	opt_N = ['-N' num2str(out.r_c(4)-out.r_c(3)+1) '/' num2str(out.r_c(2)-out.r_c(1)+1)]; % option for grdsample
+	if (~indexed_ip)                                % Implanting image is of RGB type
+		for (i = 1:3)
 			%ZI(:,:,i) = interp2(double(out.ip_img(:,:,i)),X,Y,'*cubic');
 			ZI(:,:,i) = grdsample_m(single(out.ip_img(:,:,i)),head,opt_N);
-        end
-    else
-        if isempty(out.ip_cmap)
-            errordlg('Implanting image has no colormap. Don''t know what to do.','Sorry');  return
-        end
-        %ZI = interp2(double(out.ip_img),X,Y,'*cubic');
-        ZI = grdsample_m(single(out.ip_img),head,opt_N);
-    end
-    if (flip),   ZI = flipdim(ZI,1);    end
+		end
+	else
+		if isempty(out.ip_cmap)
+			errordlg('Implanting image has no colormap. Don''t know what to do.','Sorry');  return
+		end
+		%ZI = interp2(double(out.ip_img),X,Y,'*cubic');
+		ZI = grdsample_m(single(out.ip_img),head,opt_N);
+	end
+	if (flip),   ZI = flipdim(ZI,1);    end
 elseif (out.resizeIP == 10) % So pra nao funcionar (da erro na penultima linha)
     %nl_new = linspace(1,nl_bg,(out.bg_size_updated(1)));
     %nc_new = linspace(1,nc_bg,(out.bg_size_updated(2)));
@@ -1870,10 +1870,10 @@ elseif (out.resizeIP == 10) % So pra nao funcionar (da erro na penultima linha)
 end
 
 if (indexed_ip && ~indexed_bg)				% Implanting indexed image on a RGB bg image
-	I = ind2rgb8(out.ip_img,out.ip_cmap);	% Transform implanting image to RGB
+	%I = ind2rgb8(out.ip_img,out.ip_cmap);	% Transform implanting image to RGB
 elseif (indexed_ip && indexed_bg)			% Shit, both ip & bg images are indexed. We have to RGB them
 	zz = ind2rgb8(zz,colormap);
-	I = ind2rgb8(out.ip_img,out.ip_cmap);
+	%I = ind2rgb8(out.ip_img,out.ip_cmap);
 elseif (~indexed_ip && ~indexed_bg)			% Nice, nothing to do
 elseif (~indexed_ip && indexed_bg)			% Implanting RGB image on a indexed bg image.
 	zz = ind2rgb8(zz,colormap);				% Transform bg image to RGB
@@ -1899,7 +1899,7 @@ function wbm_txt(obj,eventdata,h,hAxes)
 	pos = get(h,'Position');    pos(1) = pt(1,1);   pos(2) = pt(1,2);   set(h,'Position',pos);
 	refresh
 function wbd_txt(obj,eventdata,h,state,hAxes)
-	% check if x,y is inside of axis
+% check if x,y is inside of axis
 	pt = get(hAxes, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
 	x_lim = get(hAxes,'xlim');      y_lim = get(hAxes,'ylim');
 	if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
@@ -2182,13 +2182,13 @@ function res = check_IsRectangle(h)
 % Check if h is a handle to a rectangle. This is used to verify if a rectangle has
 % not been deformed (edited). We need it because some options are only available
 % to operate with rectangles (e.g. Crop, Transplant Image, etc...)
-x = get(h,'XData');   y = get(h,'YData');
-if ~( (x(1) == x(end)) && (y(1) == y(end)) && length(x) == 5 && ...
-        (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
-    res = 0;
-else
-    res = 1;
-end
+	x = get(h,'XData');   y = get(h,'YData');
+	if ~( (x(1) == x(end)) && (y(1) == y(end)) && length(x) == 5 && ...
+			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
+		res = 0;
+	else
+		res = 1;
+	end
 
 % -----------------------------------------------------------------------------------------
 function remove_symbolClass(obj,eventdata,h)
@@ -2322,7 +2322,7 @@ function doSave_formated(xx, yy, opt_z)
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_SymbColor(h,prop)
-	% Set uicontext colors in object hose handle is gco (or h for "other color")
+% Set uicontext colors in object hose handle is gco (or h for "other color")
 	cb{1} = ['set(gco, ''' prop ''', ''k'');refresh'];  cb{2} = ['set(gco, ''' prop ''', ''w'');refresh'];
 	cb{3} = ['set(gco, ''' prop ''', ''r'');refresh'];  cb{4} = ['set(gco, ''' prop ''', ''g'');refresh'];
 	cb{5} = ['set(gco, ''' prop ''', ''b'');refresh'];  cb{6} = ['set(gco, ''' prop ''', ''y'');refresh'];
@@ -2333,8 +2333,6 @@ function other_SymbColor(obj,eventdata,h,prop)
 	c = uisetcolor;
 	if length(c) > 1            % That is, if a color was selected
         set(h,prop,c)
-    else
-        return
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -2480,47 +2478,47 @@ function gmtfile_Info(obj,eventdata,h,data)
 
 % -----------------------------------------------------------------------------------------
 function PB_All_Info(obj,eventdata,h,data)
-i = get(gco,'Userdata');
-txt_id = [];    txt_class = [];
-switch char(data(i).pb_id)
-	case {'EU-NA','NA-EU'},         txt_id = 'Eurasia-North America';
-	case {'AF-NA','NA-AF'},         txt_id = 'Africa-North America';
-	case 'EU-AF',                   txt_id = 'Eurasia-Africa';
-	case {'AF-AN','AN-AF'},         txt_id = 'Africa-Antartica';
-end
+	i = get(gco,'Userdata');
+	txt_id = [];    txt_class = [];
+	switch char(data(i).pb_id)
+		case {'EU-NA','NA-EU'},         txt_id = 'Eurasia-North America';
+		case {'AF-NA','NA-AF'},         txt_id = 'Africa-North America';
+		case 'EU-AF',                   txt_id = 'Eurasia-Africa';
+		case {'AF-AN','AN-AF'},         txt_id = 'Africa-Antartica';
+	end
 
-switch char(data(i).class)      % Make Type-of-Boundary text
-	case 'OTF',        txt_class = 'Oceanic Transform Fault';
-	case 'OSF',        txt_class = 'Oceanic Spreadin Ridge';
-	case 'CRB',        txt_class = 'Continental Rift Boundary';
-	case 'CTF',        txt_class = 'Continental Transform Fault';
-	case 'CCB',        txt_class = 'Continental Convergent Boundary';
-	case 'OCB',        txt_class = 'Oceanic Convergent Boundary';
-	case 'SUB',        txt_class = 'Subduction Zone';
-end
+	switch char(data(i).class)      % Make Type-of-Boundary text
+		case 'OTF',		txt_class = 'Oceanic Transform Fault';
+		case 'OSF',		txt_class = 'Oceanic Spreadin Ridge';
+		case 'CRB',		txt_class = 'Continental Rift Boundary';
+		case 'CTF',		txt_class = 'Continental Transform Fault';
+		case 'CCB',		txt_class = 'Continental Convergent Boundary';
+		case 'OCB',		txt_class = 'Oceanic Convergent Boundary';
+		case 'SUB',		txt_class = 'Subduction Zone';
+	end
 
-if isempty(txt_id),     txt_id = char(data(i).pb_id);   end      % If id was not decoded, print id
-if isempty(txt_class),  txt_class = char(data(i).class);   end   % Shouldn't happen, but just in case
+	if isempty(txt_id),		txt_id = char(data(i).pb_id);		end		% If id was not decoded, print id
+	if isempty(txt_class),	txt_class = char(data(i).class);	end		% Shouldn't happen, but just in case
 
-msgbox( sprintf(['Plate pairs:           ' txt_id '\n' 'Boundary Type:    ' txt_class '\n' ...
-        'Speed (mm/a):       ' sprintf('%g',data(i).vel) '\n' ...
-        'Speed Azimuth:      ' sprintf('%g',data(i).azim_vel)] ),'Segment info')
+	msgbox( sprintf(['Plate pairs:           ' txt_id '\n' 'Boundary Type:    ' txt_class '\n' ...
+			'Speed (mm/a):       ' sprintf('%g',data(i).vel) '\n' ...
+			'Speed Azimuth:      ' sprintf('%g',data(i).azim_vel)] ),'Segment info')
 
 % -----------------------------------------------------------------------------------------
 function deleteObj(hTesoura)
 % hTesoura is the handle to the 'Tesoura' uitoggletool
 % Build the scisors pointer (this was done with the help of an image file)
 	pointer = ones(16)*NaN;
-	pointer(2,7) = 1;       pointer(2,11) = 1;      pointer(3,7) = 1;       pointer(3,11) = 1;
-	pointer(4,7) = 1;       pointer(4,11) = 1;      pointer(5,7) = 1;       pointer(5,8) = 1;
-	pointer(5,10) = 1;      pointer(5,11) = 1;      pointer(6,8) = 1;       pointer(6,10) = 1;
-	pointer(7,8) = 1;       pointer(7,9) = 1;       pointer(7,10) = 1;      pointer(8,9) = 1;
-	pointer(9,8) = 1;       pointer(9,9) = 1;       pointer(9,10) = 1;      pointer(10,8) = 1;
-	pointer(10,10) = 1;     pointer(10,11) = 1;     pointer(10,12) = 1;     pointer(11,6) = 1;
-	pointer(11,7) = 1;      pointer(11,8) = 1;      pointer(11,10) = 1;     pointer(11,13) = 1;
-	pointer(12,5) = 1;      pointer(12,8) = 1;      pointer(12,10) = 1;     pointer(12,13) = 1;
-	pointer(13,5) = 1;      pointer(13,8) = 1;      pointer(13,10) = 1;     pointer(13,13) = 1;
-	pointer(14,5) = 1;      pointer(14,8) = 1;      pointer(14,11) = 1;     pointer(14,12) = 1;
+	pointer(2,7) = 1;		pointer(2,11) = 1;		pointer(3,7) = 1;		pointer(3,11) = 1;
+	pointer(4,7) = 1;		pointer(4,11) = 1;		pointer(5,7) = 1;		pointer(5,8) = 1;
+	pointer(5,10) = 1;		pointer(5,11) = 1;		pointer(6,8) = 1;		pointer(6,10) = 1;
+	pointer(7,8) = 1;		pointer(7,9) = 1;		pointer(7,10) = 1;		pointer(8,9) = 1;
+	pointer(9,8) = 1;		pointer(9,9) = 1;		pointer(9,10) = 1;		pointer(10,8) = 1;
+	pointer(10,10) = 1;		pointer(10,11) = 1;		pointer(10,12) = 1;		pointer(11,6) = 1;
+	pointer(11,7) = 1;		pointer(11,8) = 1;		pointer(11,10) = 1;		pointer(11,13) = 1;
+	pointer(12,5) = 1;		pointer(12,8) = 1;		pointer(12,10) = 1;		pointer(12,13) = 1;
+	pointer(13,5) = 1;		pointer(13,8) = 1;		pointer(13,10) = 1;		pointer(13,13) = 1;
+	pointer(14,5) = 1;		pointer(14,8) = 1;		pointer(14,11) = 1;		pointer(14,12) = 1;
 	pointer(15,6:7) = 1;
     
     hFig = get(get(hTesoura,'Parent'),'Parent');
@@ -2529,32 +2527,32 @@ function deleteObj(hTesoura)
         'WindowButtonDownFcn',{@wbd_delObj,hFig,hTesoura,state})
     
 function wbd_delObj(obj,event,hFig,hTesoura,state)
-    stype = get(hFig,'selectiontype');
-    if (stype(1) == 'a')                    % A right click ('alt'), end killing
-        uirestore_fig(state)
-    	set(hTesoura,'State','off')         % Set the Toggle button state to depressed
-        return
-    end
-    h = gco;
-    obj_type = get(h,'Type');
-    if (strcmp(obj_type,'line') || strcmp(obj_type,'text') || strcmp(obj_type,'patch'))
-        del_line([],[],h);
-    end
-    if (strcmp(obj_type,'text'))
-        refresh;    % because of the text elements bug
-    end
+	stype = get(hFig,'selectiontype');
+	if (stype(1) == 'a')                    % A right click ('alt'), end killing
+		uirestore_fig(state)
+		set(hTesoura,'State','off')         % Set the Toggle button state to depressed
+		return
+	end
+	h = gco;
+	obj_type = get(h,'Type');
+	if (strcmp(obj_type,'line') || strcmp(obj_type,'text') || strcmp(obj_type,'patch'))
+		del_line([],[],h);
+	end
+	if (strcmp(obj_type,'text'))
+		refresh;    % because of the text elements bug
+	end
 
 % -----------------------------------------------------------------------------------------
 function del_line(obj,eventdata,h)
 % Delete a line (or patch or text obj) but before check if it's in edit mode
-h = gco;    % I have to do this otherwise copied objects will have their del fun applyed to parent handle
-if (~isempty(getappdata(h,'polygon_data')))
-    s = getappdata(h,'polygon_data');
-    if strcmpi(s.controls,'on')     % Object is in edit mode, so this
-        ui_edit_polygon(h)          % call will force out of edit mode
-    end
-end
-delete(h);
+	h = gco;    % I have to do this otherwise copied objects will have their del fun applyed to parent handle
+	if (~isempty(getappdata(h,'polygon_data')))
+		s = getappdata(h,'polygon_data');
+		if strcmpi(s.controls,'on')     % Object is in edit mode, so this
+			ui_edit_polygon(h)          % call will force out of edit mode
+		end
+	end
+	delete(h);
 
 % -----------------------------------------------------------------------------------------
 function del_insideRect(obj,eventdata,h)
@@ -2566,7 +2564,7 @@ function del_insideRect(obj,eventdata,h)
 	end
 	set(h, 'HandleVis','off')           % Make the rectangle handle invisible
 	hAxes = get(h,'Parent');
-	
+
 	hLines = findobj(hAxes,'Type','line');     % Fish all objects of type line in Mirone figure
 	hPatch = findobj(hAxes,'Type','patch');
 	hText = findobj(hAxes,'Type','text');
@@ -2652,13 +2650,13 @@ end
 
 % -----------------------------------------------------------------------------------------
 function sout = ddewhite(s)
-	%DDEWHITE Double dewhite. Strip both leading and trailing whitespace.
-	%
-	%   DDEWHITE(S) removes leading and trailing white space and any null characters
-	%   from the string S.  A null character is one that has an absolute value of 0.
-	
-	%   Author:      Peter J. Acklam
-	%   Time-stamp:  2002-03-03 13:45:06 +0100
+%DDEWHITE Double dewhite. Strip both leading and trailing whitespace.
+%
+%   DDEWHITE(S) removes leading and trailing white space and any null characters
+%   from the string S.  A null character is one that has an absolute value of 0.
+
+%   Author:      Peter J. Acklam
+%   Time-stamp:  2002-03-03 13:45:06 +0100
 	
 	error(nargchk(1, 1, nargin));
 	if ~ischar(s),   error('DDWHITE ERROR: Input must be a string (char array).');     end
