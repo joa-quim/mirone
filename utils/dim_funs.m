@@ -11,17 +11,32 @@ function  dim_funs(opt, varargin)
 % otherwise it cannot be lower/higher than the original value. That is, for example, if
 % handles.x_min_or = 10;  x_min cannot be < 10. This is used for example in grdsample, where
 % sampled grid cannot have larger limits than the original.
-	
-switch opt
-    case 'xMin',	edit_x_min(varargin{:})
-    case 'xMax',	edit_x_max(varargin{:})
-    case 'yMin',	edit_y_min(varargin{:})
-    case 'yMax',	edit_y_max(varargin{:})
-    case 'xInc',	edit_x_inc(varargin{:})
-    case 'yInc',	edit_y_inc(varargin{:})
-    case 'nRows',	edit_Nrows(varargin{:})
-    case 'nCols',	edit_Ncols(varargin{:})
-end
+
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
+	switch opt
+		case 'xMin',	edit_x_min(varargin{:})
+		case 'xMax',	edit_x_max(varargin{:})
+		case 'yMin',	edit_y_min(varargin{:})
+		case 'yMax',	edit_y_max(varargin{:})
+		case 'xInc',	edit_x_inc(varargin{:})
+		case 'yInc',	edit_y_inc(varargin{:})
+		case 'nRows',	edit_Nrows(varargin{:})
+		case 'nCols',	edit_Ncols(varargin{:})
+	end
 
 % --------------------------------------------------------------------------------------
 function edit_x_min(hObject, handles)

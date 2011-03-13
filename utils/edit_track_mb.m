@@ -17,9 +17,20 @@ function edit_track_mb(varargin)
 %        edit_track_mb('NextButtonDown')
 %        edit_track_mb('ButtonMotion')
 
-%   Copyright 1993-2002 The MathWorks, Inc.
+%	Copyright (c) 2004-2011 by J. Luis
 %
-%   Hacked version of getline that, contrary to the original, let be compiled
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
 xlimorigmode = get(gca,'xlimmode');     ylimorigmode = get(gca,'ylimmode');
 set(gca,'xlimmode','manual');           set(gca,'ylimmode','manual');
@@ -60,8 +71,8 @@ setappdata(gcbf,'haveUserdata',1);  % Notify other eventual functions that may b
 % We're ready; wait for the user to do the drag. Wrap the call to waitfor
 % in try-catch so we'll have a chance to clean up after ourselves.
 errCatch = 0;
-try         waitfor(ud.GETLINE_H1, 'UserData', 'Completed');
-catch     errCatch = 1;   end
+try			waitfor(ud.GETLINE_H1, 'UserData', 'Completed');
+catch,		errCatch = 1;   end
 
 % After the waitfor, if GETLINE_H1 is still valid and its UserData is 'Completed', then the user
 % completed the drag.  If not, the user interrupted the action somehow, perhaps by a Ctrl-C in the
@@ -89,9 +100,9 @@ CleanUp(xlimorigmode,ylimorigmode);
 switch errStatus
 case 'ok'      % Return the answer
 case 'trap'    % An error was trapped during the waitfor
-    x = [];     y = [];
+    %x = [];     y = [];
 case 'unknown'  % User did something to cause the polyline selection to terminate abnormally.
-    x = [];     y = [];
+    %x = [];     y = [];
 end
 
 set(gcbf,'Userdata',[])     % Don't need this Userdata anymore, so better remove it
@@ -197,7 +208,7 @@ else
         set(ud.GETLINE_H1, 'UserData', 'Completed');
     else
         x = get(ud.lineHandle,'XData');   y = get(ud.lineHandle,'YData');
-        if length(ud.lineHandle) > 0
+        if ~isempty(ud.lineHandle)
             % Find out which polyline vertice is closest to "current_pt".
             dif_x = x - current_pt(1,1);    dif_y = y - current_pt(1,2);
             dist = sqrt(dif_x.^2 + dif_y.^2);
@@ -206,7 +217,7 @@ else
         end
         % I'll use a try statement to prevent an eventual error in get_trackHandle
         % This happens when a regular line (not a MB track) was clicked
-        try, set(ud.h_circ(ud.vert_index),'Visible','off');     end;
+        try		set(ud.h_circ(ud.vert_index),'Visible','off'),		end
         set(ud.GETLINE_FIG, 'WindowButtonMotionFcn', 'edit_track_mb(''ButtonMotion'');', ...
             'WindowButtonDownFcn', 'edit_track_mb(''NextButtonDown'');');
     end
@@ -346,19 +357,20 @@ for i = 1:length(h_lines)
         tmp1(i) = 0;     tmp2(i) = h_lines(i);     % get the bar (or circle) handles
     end
 end
-h_lines = h_lines(find(tmp1 ~= 0));         % get only the tracks handles
-ALLbarHandles = tmp2(find(tmp2 ~= 0));      % get the handles to ALL bar handles (e.g. all bars of all tracks)
+h_lines = h_lines(tmp1 ~= 0);			% get only the tracks handles
+ALLbarHandles = tmp2(tmp2 ~= 0);		% get the handles to ALL bar handles (e.g. all bars of all tracks)
 
 key=0;      ii=[];     first = 1;  button = 1;    lineHandle = [];     barHandles = [];
 while key==0
-    if (first),     x = pt(1,1);    y = pt(1,2);    first = 0;
-    else,           [x,y,button] = ginput_pointer(1,'crosshair');     end
+	if (first),		x = pt(1,1);    y = pt(1,2);    first = 0;
+	else			[x,y,button] = ginput_pointer(1,'crosshair');
+	end
     if button~=1, lineHandle=[];    return;     end
     for i=1:length(h_lines)
         ii=[ii,i];
     end
     hh=h_lines(ii);
-    if length(hh) > 0
+    if ~isempty(hh)
         if any(hh == gco), lineHandle=gco;  key=1;         end
     else
         warndlg('Sorry, there are no tracks to be edited!','Warning!')
