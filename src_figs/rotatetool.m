@@ -63,11 +63,21 @@ function varargout = rotatetool(varargin)
 %       that function. However, it has extended functionalities and was re-writen using R13
 %       syntax. Which means that it can be compiled with the V3.x compiler.
 %
+
+%	Copyright (c) 2004-2011 by J. Luis
 %
-%   AUTHOR
-%       Joaquim Luis    11-Mars-2006
-%       This file will be part of Mirone's next version
-%       w3.ualg.pt/~jluis/mirone
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
  
 hObject = figure('Tag','figure1','Visible','off');
 rotatetool_LayoutFcn(hObject);
