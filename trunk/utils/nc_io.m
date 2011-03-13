@@ -29,9 +29,20 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %				If absent, a default one with (1:N) is created. This information may be transmited 
 %				only on the last call	(for the cases of only than all values of that vector are known)
 
-%	AUTHOR
-%		Joaquim Luis  - 15-October-2007
-%		jluis@ualg.pt - Universidade do Algarve
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 	
 	if ( nargin == 4 && ~isempty(data) )
 		misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...

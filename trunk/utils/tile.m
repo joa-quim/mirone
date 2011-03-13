@@ -17,8 +17,24 @@ function [chunk_s,chunk] = tile(m,height,skirt)
 %        199   302              3   102
 %        299   402              3   104
 
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 if (nargin == 1),       height = 200;     skirt = 2;
-elseif (nargin == 2),   skirt = 2;      end
+elseif (nargin == 2),   skirt = 2;
+end
 
 chunk_s(1,1) = 1;                                  % First index is allways one
 tmp = 1:height:m;  tmp(2:end) = tmp(2:end) - 1;

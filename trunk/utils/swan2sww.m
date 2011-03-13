@@ -1,4 +1,4 @@
-function swans2sww(fname, fname_sww)
+function swan2sww(fname, fname_sww)
 % Create a .sww netCDF file from the files listed on the listfile FNAME
 %
 % FNAME_SWW, output name of the .sww netCDF file.
@@ -22,11 +22,21 @@ function swans2sww(fname, fname_sww)
 % resides on the same directory as the grids that will be accessed. Otherwise, gridnames must
 % be preceded by their full path.
 
-%	AUTHOR
-%		Joaquim Luis  - 25-October-2007
-%		jluis@ualg.pt - Universidade do Algarve
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
-	Nctype = 6;
 	f_sep = filesep;
 	if (nargin ~= 2),
 		error('swans2sww: wrong number of arguments. I want 2')

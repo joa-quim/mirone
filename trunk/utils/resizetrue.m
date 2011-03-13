@@ -5,7 +5,20 @@ function varargout = resizetrue(handles, opt, axis_t)
 %   This function is based on Matlab's TRUESIZE, but havily hacked to take into account
 %   the left and bottom margins containing (if they exist) Xlabel & Ylabel, etc...
 
-%   Coffeeright 2002-2007 J. Luis 
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
 	% If we already have a colorbar, remove it
 	if (strcmp(get(handles.PalIn,'Check'),'on'))

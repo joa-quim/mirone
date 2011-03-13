@@ -3,6 +3,21 @@ function varargout = tfw_funs(opt,varargin)
 % File extension is used to search for .tfw .jgw .pgw or .gfw
 % for registration files to, respectively, .tif|tiff .jpg|jpeg .png .gif 
 
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
     switch opt(1)
         case 'w'
             write_tfw(varargin{:})
@@ -21,10 +36,10 @@ function write_tfw(handles,fname)
 		name = get(handles.figure1,'Name');
 		[pato, fname, EXT] = fileparts(name);
 		EXT = strtok(EXT);		% Remove the "@ ??%" part
-		if (strcmp(lower(EXT),'jpg')),      fname = [fname '.jgw'];
-		elseif (strcmp(lower(EXT),'png'))   fname = [fname '.pgw'];
-		elseif (strcmp(lower(EXT),'gif'))   fname = [fname '.gfw'];
-		else                                fname = [fname '.tfw'];
+		if (strcmpi(EXT,'jpg')),		fname = [fname '.jgw'];
+		elseif (strcmpi(EXT,'png'))		fname = [fname '.pgw'];
+		elseif (strcmpi(EXT,'gif'))		fname = [fname '.gfw'];
+		else							fname = [fname '.tfw'];
 		end
 
 		if (~isempty(pato)),	handles.work_dir = pato;	end
@@ -85,8 +100,8 @@ function [head,msg] = inquire_tfw(imgSize,pato,name,ext)
 	end
 
 	fs = filesep;
-	if (isempty(fw_ext) || exist([pato fs name fw_ext]) ~= 2)   % world file?
-		if (exist([pato fs name '.wld']) ~= 2),		return,		end		% Definitely no. bye bye
+	if (isempty(fw_ext) || ~exist([pato fs name fw_ext],'file'))			% world file?
+		if (~exist([pato fs name '.wld'],'file')),		return,		end		% Definitely no. bye bye
 		fw_ext = '.wld';
 	end
     

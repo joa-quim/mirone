@@ -4,6 +4,21 @@ function register_img(handles,h,GCPs)
 % H is the handle of a line or patch object
 % GCPs is a Mx4 matrix with the source and target GCP coordinates (normally given by GDAL)
 
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 if (nargin < 2)
     errordlg('REGISTER_IMG: wrong number of arguments (must be at least two)','ERROR')
     return
