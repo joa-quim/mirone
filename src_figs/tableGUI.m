@@ -102,7 +102,21 @@ function out = tableGUI(varargin)
 %       (martin.furlan@iskra-ae.com)
 %
 %       13-Mar-2007 - Added option to control the RowNames width.
+
+%	Copyright (c) 2004-2011 by J. Luis
 %
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
 hand.NumRows = 12;          hand.NumCol = 6;
 hand.MAX_ROWS = 10;         hand.left_marg = 10;
