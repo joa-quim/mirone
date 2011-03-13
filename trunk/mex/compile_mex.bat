@@ -27,10 +27,10 @@ SET CC=icl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="yes"
+SET R13="no"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
-SET WIN64="no"
+SET WIN64="yes"
 
 REM Set to "yes" if you want to build a debug version
 SET DEBUG="no"
@@ -92,8 +92,8 @@ SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_64\liblas_i.lib
 
 IF %MSVC_VER%=="1600" (
 SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_32\lib\libnetcdf.lib
-SET     GMT_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt.lib
-SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt_mgg.lib
+SET     GMT_LIB=c:\progs_cygw\GMTdev\GMT_win32\lib\gmt.lib
+SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win32\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
 SET      CV_LIB=
 SET  CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_core211.lib
@@ -106,8 +106,8 @@ SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\Intel11_32\liblas_i.
 ) ELSE (
 
 SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\lib\libnetcdf_w32.lib
-SET     GMT_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt.lib
-SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt_mgg.lib
+SET     GMT_LIB=c:\progs_cygw\GMTdev\GMT_win32\lib\gmt.lib
+SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win32\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\lib\gdal_i.lib
 REM I haven't build yet (and maybe I won't) 2.1 libs with VC7.1
 SET      CV_LIB=C:\programs\OpenCV_SVN\lib\cv200.lib
@@ -188,7 +188,7 @@ for %%G in (houghmex clipbd_mex akimaspline grayxform resampsep iptcheckinput) d
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj 
 )
 
-for %%G in (bwlabelnmex bwboundariesmex imreconstructmex morphmex) do (
+for %%G in (bwlabelnmex bwboundariesmex imreconstructmex morphmex avi) do (
 
 IF %%G==bwlabelnmex (
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %%G.cpp neighborhood.cpp unionfind.c
@@ -205,6 +205,11 @@ link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj neighborhood.ob
 IF %%G==morphmex (
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.cpp dilate_erode_gray_nonflat.cpp dilate_erode_packed.cpp dilate_erode_binary.cpp neighborhood.cpp vectors.cpp 
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj dilate_erode_gray_nonflat.obj dilate_erode_packed.obj dilate_erode_binary.obj neighborhood.obj vectors.obj )
+
+IF %%G==avi (
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c avi.cpp  
+link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% Vfw32.lib /implib:templib.x %%G.obj avi.obj )
+
 )
 IF "%1"=="simple" GOTO END
 REM ---------------------- END "simple" --------------------------------------------
