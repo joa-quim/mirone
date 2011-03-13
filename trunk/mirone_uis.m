@@ -1,5 +1,21 @@
 function [H1,handles,home_dir] = mirone_uis(home_dir)
-% --- Creates and returns a handle to the GUI MIRONE figure. 
+% Creates and returns a handle to the GUI MIRONE figure.
+%
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 %#function pan resetplotview igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI
 %#function datasets_funs earthquakes manual_pole_adjust compute_euler focal_meca srtm_tool atlas
@@ -47,7 +63,7 @@ H1 = figure('PaperUnits','centimeters',...
 'DoubleBuffer','on',...
 'IntegerHandle','off',...
 'MenuBar','none',...
-'Name','Mirone 2.0.1b',...
+'Name','Mirone 2.1.0',...
 'NumberTitle','off',...
 'PaperPositionMode','auto',...
 'PaperSize',[20.98404194812 29.67743169791],...
@@ -692,7 +708,7 @@ uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','o
 if (IamCompiled)
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''dump'')','Label','Print RAM fragmentation','Sep','on')
 end
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 06 Feb 2011'',''2.0.1b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 12 Mar 2011'',''2.1.0'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
