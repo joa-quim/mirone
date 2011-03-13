@@ -5,6 +5,21 @@ function [s,w] = mat_lyies(str,opt)
 % OPT is an optional text string with the file name that will hold the output
 % to stdout. This file will not be deleted upon exit.
 
+%	Copyright (c) 2004-2011 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 if nargin == 2
     text_stdout = opt;
 else
