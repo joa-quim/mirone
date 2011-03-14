@@ -31,6 +31,7 @@
 
 #include "mex.h"
 #include <float.h>
+#include <math.h>	/* No f.. idea why it must be included to compile on OSX */
 
 /* Macro definition ij_data(i,j) finds the array index to an element
         containing the real data(i,j) in the padded complex array:  */
