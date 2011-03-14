@@ -284,12 +284,12 @@ function push_SourceGrid_CB(hObject, handles)
 function edit_SwanParams_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname),  return,		end
-	push_paramsFile_CB(handles.push_paramsFile, [], handles, fname)
+	push_paramsFile_CB(handles.push_paramsFile, handles, fname)
 
 % -----------------------------------------------------------------------------------------
 function push_paramsFile_CB(hObject, handles, opt)
 
-	if ( nargin == 3 )
+	if ( nargin == 2 )
 		[FileName,PathName] = put_or_get_file(handles,{'*.par', 'Params file (*.par)';'*.*', 'All Files (*.*)'},'Select parameter file','get');
 		if ( isequal(FileName,0) ),		return,		end
 		fname = [PathName FileName];
