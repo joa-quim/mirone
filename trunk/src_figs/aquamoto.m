@@ -1377,7 +1377,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 	is_avi = get(handles.radio_avi,'Value');
 	is_mpg = get(handles.radio_mpg,'Value');
 	is_montage = false;
-	do_logo = true;				% Insert a logo image but it needs to be manually positioned in fig
+	do_logo = false;				% Insert a logo image but it needs to be manually positioned in fig
 	if (nargin == 4)
 		is_montage = true;		is_gif = false;		is_avi = false;		is_mpg = false;
 	end
