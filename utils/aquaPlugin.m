@@ -49,26 +49,26 @@ function aquaPlugin(handles)
 			fnam2 = 'poly_largo.dat';	%fnam2= [];
 			zonal(handles, dlat, integ_lon, trends, have_polygon, fname, fnam2)
 		case 'tvar'					% CASE 2
-			sub_set = [1 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
 			slope = true;			% TRUE to compute slope of linear fit, FALSE to compute p-value parameter
-			calcGrad(handles, sub_set, slope) 
+			sub_set = [1 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
+			calcGrad(handles, slope, sub_set) 
 		case 'yearMean'				% CASE 3
 			ano = 1:12;				% Compute yearly means
 			calc_yearMean(handles, ano)
 		case 'yearMeanFlag'			% CASE 4
 			ano = 1:12;				% Compute yearly (ano = 1:12) or seasonal means (ano = start_month:end_month)
-			%fname  = 'C:\a1\terra_qual.nc';
-			fname  = 'C:\a1\pathfinder\qual_82_09.nc';
-			quality = 6;			% Retain only values of quality >= this (or <= abs(this) when MODIS)
+			fname  = 'C:\a1\qualMODIS-TERRA.nc';
+			%fname  = 'C:\a1\pathfinder\qual_82_09.nc';
+			quality = 0;			% Retain only values of quality >= this (or <= abs(this) when MODIS)
 			nCells = 200;			% Holes (bad data) smaller than this are filled by interpolation
 			% Where to save track of filled holes. Ignored if pintAnoes = false OR fname3 = []
 			%fname3 = 'C:\a1\pathfinder\qual7_85_07_Interp200_Q6.nc';
 			fname3 = [];
 			%splina = true;
 			splina = [12 30];		% Fill missing monthly data by a spline interpolation taken over two years (out limits set to NaN)
-			tipoStat = 2;			% 0, Compute MEAN, 1 compute MINimum and 2 compute MAXimum of the ANO period
+			tipoStat = 0;			% 0, Compute MEAN, 1 compute MINimum and 2 compute MAXimum of the ANO period
 			% If not empty, it must contain the name of a Lon,Lat file with locations where to output time series
-			chkPts_file = 'C:\a1\pathfinder\chkPts.dat';
+			chkPts_file = [];	%chkPts_file = 'C:\a1\pathfinder\chkPts.dat';
 			calc_yearMean(handles, ano, fname, quality, nCells, fname3, splina, tipoStat, chkPts_file)
 		case 'polygAVG'				% CASE 5
 			calc_polygAVG(handles)
@@ -209,13 +209,13 @@ function out = zonal(handles, dlat, integ_lon, do_trends, have_polygon, fname, f
 	end
 	
 % ----------------------------------------------------------------------
-function calcGrad(handles, sub_set, slope)
+function calcGrad(handles, slope, sub_set)
 % Calcula o gradiente de um fiche ja com as medias anuais por ajuste de um recta (Loada o fiche todo na memoria)
+% SLOPE		Logical indicating if compute slope of linear fit (TRUE) or the p parameter (FALSE)
+%
 % SUB_SET -> A two columns row vec with number of the offset of years where analysis start and stop.
 %			For example [3 1] Starts analysis on forth year and stops on the before last year.
 %			[0 0] Means using the all dataset.
-%
-% SLOPE		Logical indicating if compute slope of linear fit (TRUE) or the p parameter (FALSE)
 
 	get_profiles_in_polygon = false;			% Save all profiles (along third dim) located inside the polygonal area
 
@@ -223,7 +223,7 @@ function calcGrad(handles, sub_set, slope)
 
 	n_anos = handles.number_of_timesteps;
 
-    if (nargin == 2 && (numel(sub_set) == 2))
+    if (nargin == 3 && (numel(sub_set) == 2))
 		jump_anos = sub_set(1);		stop_before_end_anos = sub_set(2);
     else
 		jump_anos = 0;				stop_before_end_anos = 0;
