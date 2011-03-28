@@ -177,7 +177,7 @@ function push_OK_CB(hObject, handles)
         x_min = handles.x_min;    x_max = handles.x_max;
         y_min = handles.y_min;    y_max = handles.y_max;
         if (~n_set)     % Only limits had changed, but we need also to return the -N option
-            out.opt_N = ['-N' get(handles.edit_Ncols,'String') '/' get(handles.edit_Nrows,'String')];
+            opt_N = ['-N' get(handles.edit_Ncols,'String') '/' get(handles.edit_Nrows,'String')];
             n_set = 1;
         end
 	end
