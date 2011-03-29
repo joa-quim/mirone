@@ -220,14 +220,14 @@ function push_rightPar_CB(hObject, handles)
 function push_compute_CB(hObject, handles)
 	com = get(handles.edit_command,'String');
 	if (isempty(com))
-        oname = get(handles.figure1,'Name');
-        set(handles.figure1,'Name','Don''t be IDIOT');    pause(1)
-        set(handles.figure1,'Name',oname)
-        return;
+		oname = get(handles.figure1,'Name');
+		set(handles.figure1,'Name','Don''t be FOOL'),		pause(1)
+		set(handles.figure1,'Name',oname)
+		return
 	end
 
 	if (~isempty(handles.BL))       % We are dealing with Bands arithmetics
-        bandArithm(handles, com);   return
+		bandArithm(handles, com);   return
 	end
 
 	% Those start at 2 because they are meant to be used only when grid names apear repeatedly
@@ -237,56 +237,56 @@ function push_compute_CB(hObject, handles)
 	k = strfind(com,'&');
 
 	try                             % Wrap it here to report any possible error
-        if (~isempty(k))            % We have grids
-            for (i=1:length(k))     % Loop over grids
-                tok = strtok(com(k(i)+1:end));
-                if (isempty(handles.name_str))
-                    n = [];					% Here we know that we don't have any pre-loaded grid
-                else
-                    n = strmatch(tok,handles.name_str);     % n ~= [] when grid is already in memory
-                end
-            
-                if (isempty(n))				% Grid (must be a GMT grid) needs to be loaded
-                    load_it = 1;			% Flag to signal that grid must be loaded
-                    n_load = strmatch(tok,handles.loaded_grid);
-                    if (length(n_load) > 1)         % Grid name comes out more than once
-                        n_load = n_load(out_g_count);
-                        out_g_count = out_g_count + 1;
-                    end
-                elseif (numel(n) == 1)		% Grid name is not repeated
-                    load_it = 0;
+		if (~isempty(k))            % We have grids
+			for (i=1:length(k))     % Loop over grids
+				tok = strtok(com(k(i)+1:end));
+				if (isempty(handles.name_str))
+					n = [];					% Here we know that we don't have any pre-loaded grid
+				else
+					n = strmatch(tok,handles.name_str);     % n ~= [] when grid is already in memory
+				end
+
+				if (isempty(n))				% Grid (must be a GMT grid) needs to be loaded
+					load_it = 1;			% Flag to signal that grid must be loaded
+					n_load = strmatch(tok,handles.loaded_grid);
+					if (length(n_load) > 1)         % Grid name comes out more than once
+						n_load = n_load(out_g_count);
+						out_g_count = out_g_count + 1;
+					end
+				elseif (numel(n) == 1)		% Grid name is not repeated
+					load_it = 0;
 				else						% Grid name comes out more than once
-                    n = n(1);
-                    in_g_count = in_g_count + 1;
-                    load_it = 0;
-                end
-            
-                if (~load_it)   hand_fig = guidata(handles.h_figs(n));  end
-            
-                if (i == 1)
-                    if (load_it)
-                        [tmp.X,tmp.Y,grid_t,tmp.head] = grdread_m([handles.grid_patos{n_load} tok]);
-                        grid_t = double(grid_t);      % grdread_m allways outpus singles
-                    else
-                        grid_t = double(getappdata(hand_fig.figure1,'dem_z'));
-                        tmp.X = getappdata(hand_fig.figure1,'dem_x');
-                        tmp.Y = getappdata(hand_fig.figure1,'dem_y');
-                        tmp.head = hand_fig.head;
-                    end
-                    grid.(char(i+96)) = grid_t;
-                else
-                    if (load_it)
-                        [X,Y,grid_t] = grdread_m([handles.grid_patos{n_load} tok],'single');
-                        grid_t = double(grid_t);      % grdread_m allways outpus singles
-                    else
-                        grid_t = double(getappdata(hand_fig.figure1,'dem_z'));
-                    end
-                    grid.(char(i+96)) = grid_t;
-                end
-            
-            end         % Loop over grids
-        
-            for (i = 1:length(k))
+					n = n(1);
+					in_g_count = in_g_count + 1;
+					load_it = 0;
+				end
+
+				if (~load_it)   hand_fig = guidata(handles.h_figs(n));  end
+
+				if (i == 1)
+					if (load_it)
+						[tmp.X,tmp.Y,grid_t,tmp.head] = grdread_m([handles.grid_patos{n_load} tok]);
+						grid_t = double(grid_t);      % grdread_m allways outpus singles
+					else
+						grid_t = double(getappdata(hand_fig.figure1,'dem_z'));
+						tmp.X = getappdata(hand_fig.figure1,'dem_x');
+						tmp.Y = getappdata(hand_fig.figure1,'dem_y');
+						tmp.head = hand_fig.head;
+					end
+					grid.(char(i+96)) = grid_t;
+				else
+					if (load_it)
+						[X,Y,grid_t] = grdread_m([handles.grid_patos{n_load} tok],'single');
+						grid_t = double(grid_t);      % grdread_m allways outpus singles
+					else
+						grid_t = double(getappdata(hand_fig.figure1,'dem_z'));
+					end
+					grid.(char(i+96)) = grid_t;
+				end
+
+			end         % Loop over grids
+
+			for (i = 1:length(k))
 				k = strfind(com,'&');				% We need to recompute '&' positions because they change bellow
 				[tok, r] = strtok(com(k(i)+1:end));	% Here we get the grid's name
 				kf = k(i) + numel(tok);				% Find the position of last char of grid's name
@@ -294,43 +294,44 @@ function push_compute_CB(hObject, handles)
 					com(kf+1:kf+6) = [];
 				end
 				com = [com(1:k(i)) 'grid.' char(i+96) ' ' com(kf+1:end)];
-            end
-        end
-	
-        com = strrep(com,'&','');                   % Remove the '&' characters
+			end
+		end
+
+		com = strrep(com,'&','');                   % Remove the '&' characters
 		com = strrep(com,'e - ','e-');				% base 10 numbers cannot have those spaces
 		com = strrep(com,'e + ','e+');
-    
-        try             % Try first assuming that we are working from within matlab
-            try			resp = eval(com);						% See if the Matlab mode worked
-            catch,		errordlg(lasterr,'Error'),	return		% Shit, it didn't
-            end
-        catch           % No, we are in standalone mode -- DOESN'T WORK EITHER
-            %resp = mexeval(com,['errordlg(lasterr,''Error'')']);
-        end
-    
-        if (~isempty(k))                  % We had grids in input
-            tmp.name = 'Computed grid';
-            mirone(single(resp),tmp);
-        elseif (numel(resp) > 1)   % 'resp' is a array. Construct a fake grid
-            [m,n] = size(resp);
-            resp = single(resp);
-            tmp.X = 1:n;        tmp.Y = 1:m;
-            [zzz] = grdutils(resp,'-L');  z_min = zzz(1);     z_max = zzz(2);
-            tmp.head = [1 n 1 m z_min z_max 0 1 1];
-            tmp.name = 'Computed array';
-            mirone(resp,tmp);
-        else                % Computations that do not involve grids
-            txt = sprintf('%.10f',resp);
-            while (txt(end) == '0')     % Remove trailing zeros
-                txt(end) = [];
-            end
-            set(handles.edit_command,'String',txt)
-        end
+
+		try             % Try first assuming that we are working from within matlab
+			try			resp = eval(com);						% See if the Matlab mode worked
+			catch,		errordlg(lasterr,'Error'),	return		% Shit, it didn't
+			end
+		catch           % No, we are in standalone mode -- DOESN'T WORK EITHER
+			%resp = mexeval(com,['errordlg(lasterr,''Error'')']);
+		end
+
+		if (~isempty(k))					% We had grids in input
+			tmp.head(5:6) = [min(resp(:)) max(resp(:))];
+			tmp.name = 'Computed grid';
+			mirone(single(resp),tmp);
+		elseif (numel(resp) > 1)			% 'resp' is a array. Construct a fake grid
+			[m,n] = size(resp);
+			resp = single(resp);
+			tmp.X = 1:n;        tmp.Y = 1:m;
+			[zzz] = grdutils(resp,'-L');  z_min = zzz(1);     z_max = zzz(2);
+			tmp.head = [1 n 1 m z_min z_max 0 1 1];
+			tmp.name = 'Computed array';
+			mirone(resp,tmp);
+		else                % Computations that do not involve grids
+			txt = sprintf('%.10f',resp);
+			while (txt(end) == '0')     % Remove trailing zeros
+				txt(end) = [];
+			end
+			set(handles.edit_command,'String',txt)
+		end
 	catch
-        errordlg(lasterr,'Error')
+		errordlg(lasterr,'Error')
 	end
-    
+
 % ------------------------------------------------------------------------
 function bandArithm(handles, com)
 
@@ -340,44 +341,44 @@ function bandArithm(handles, com)
 	try                             % Wrap it here to report any possible error
 		if (~isempty(k))            % We have grids
 			N = zeros(1, numel(k));
-            for (i = 1:numel(k))	% Loop over bands
-                tok = strtok(com(k(i)+1:end));
-                n = strmatch(tok,handles.name_str);     % n ~= [] when it is in memory                
-                grid.(char(n+96)) = double(handles.BL(:,:,n));
-                N(i) = n;
-            end
-		
-            for (i = 1:length(k))
-                tok = strtok(com(k(i)+1:end));      % Here we get the band's name
-                kf = k(i) + length(tok);            % Find the position of last char of band's name
-                com = [com(1:k(i)) 'grid.' char(N(i)+96) ' ' com(kf+1:end)];
-            end
+			for (i = 1:numel(k))	% Loop over bands
+				tok = strtok(com(k(i)+1:end));
+				n = strmatch(tok,handles.name_str);     % n ~= [] when it is in memory                
+				grid.(char(n+96)) = double(handles.BL(:,:,n));
+				N(i) = n;
+			end
+
+			for (i = 1:length(k))
+				tok = strtok(com(k(i)+1:end));      % Here we get the band's name
+				kf = k(i) + length(tok);            % Find the position of last char of band's name
+				com = [com(1:k(i)) 'grid.' char(N(i)+96) ' ' com(kf+1:end)];
+			end
 		end
-		
+
 		com = strrep(com,'&','');                   % Remove the '&' characters
-		
+
 		try			resp = eval(com);                       % See if the Matlab mode worked
 		catch,		errordlg(lasterr,'Error');  return      % Shit, it didn't
 		end
-		
+
 		if (numel(resp) > 1)   % 'resp' is a array. Construct a fake grid
-            if (max(resp(:)) <= 1),      resp = single(resp * 255);      end
-            [m,n] = size(resp);
-            tmp.X = 1:n;        tmp.Y = 1:m;
-            [zzz] = grdutils(resp,'-L');  z_min = zzz(1);     z_max = zzz(2);
-            tmp.head = [1 n 1 m z_min z_max 0 1 1];
-            tmp.name = 'Computed Band';
-            resp = uint8(resp);
-            mirone(resp,tmp);
+			if (max(resp(:)) <= 1),      resp = single(resp * 255);      end
+			[m,n] = size(resp);
+			tmp.X = 1:n;        tmp.Y = 1:m;
+			[zzz] = grdutils(resp,'-L');  z_min = zzz(1);     z_max = zzz(2);
+			tmp.head = [1 n 1 m z_min z_max 0 1 1];
+			tmp.name = 'Computed Band';
+			resp = uint8(resp);
+			mirone(resp,tmp);
 		else                % Computations that do not involve grids
-            txt = sprintf('%.10f',resp);
-            while (txt(end) == '0')     % Remove trailing zeros
-                txt(end) = [];
-            end
-            set(handles.edit_command,'String',txt)
+			txt = sprintf('%.10f',resp);
+			while (txt(end) == '0')     % Remove trailing zeros
+				txt(end) = [];
+			end
+			set(handles.edit_command,'String',txt)
 		end
 	catch
-        errordlg(lasterr,'Error')
+		errordlg(lasterr,'Error')
 	end
 
 % ------------------------------------------------------------------------
