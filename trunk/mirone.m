@@ -883,23 +883,29 @@ function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 		region = bg_region;		% region contains [x_min x_max y_min y_max is_geog]
 		if isempty(region),		return,		end		% User gave up
 	end
+	if (nargin <= 2),		imSize = [];		figTitle = 'Mirone Base Map';		end
+	if (nargin == 3 && isa(imSize,'char')),		figTitle = imSize;	imSize = [];	end
 
 	if ( any(isnan(region(1:4))) )
 		errordlg('The requested region limts is undeterminated (it has NaNs)','Error'),		return
 	end
 	X = region(1:2);	Y = region(3:4);		handles.head = [X Y 0 255 0];
-	scrsz = get(0,'ScreenSize');		% Get screen size
-	aspect = diff(Y) / diff(X);
-	nx = round(scrsz(3)*.75);	ny = round(nx * aspect);
-	if (ny > scrsz(4) - 30)
-		ny = scrsz(4) - 30;		nx = round(ny / aspect);
+	if ( isempty(imSize) || numel(imSize) ~= 2 )
+		scrsz = get(0,'ScreenSize');		% Get screen size
+		aspect = diff(Y) / diff(X);
+		nx = round(scrsz(3)*.75);	ny = round(nx * aspect);
+		if (ny > scrsz(4) - 30)
+			ny = scrsz(4) - 30;		nx = round(ny / aspect);
+		end
+	else
+		nx = imSize(1);			ny = imSize(2);
 	end
 	handles.head(8) = diff(X) / (nx - 1);	handles.head(9) = diff(Y) / (ny - 1);
 	Z = repmat(uint8(255),ny,nx);
 	pal = repmat(handles.bg_color,256,1);	set(handles.figure1,'Colormap',pal);
 	handles.image_type = 20;
-	if (nargin <= 2),		imSize = [];		figTitle = 'Mirone Base Map';		end
-	if (nargin == 3 && isa(imSize,'char')),		figTitle = imSize;	imSize = [];	end
+% 	if (nargin <= 2),		imSize = [];		figTitle = 'Mirone Base Map';		end
+% 	if (nargin == 3 && isa(imSize,'char')),		figTitle = imSize;	imSize = [];	end
 	handles = show_image(handles,figTitle,X,Y,Z,0,'xy',0,imSize);
 	drawnow			% Otherwise, the damn Java makes a black window until all posterior elements are plotted
 	aux_funs('isProj',handles);			% Check about coordinates type
@@ -3110,6 +3116,8 @@ function GridToolsHistogram_CB(handles, opt)
 	h = mirone;							% Create a new Mirone figure
 	mirone('FileNewBgFrame_CB', guidata(h), [xout(1) xout(end) 0 max(n) 0], [600 600],'Grid Histogram');
 	histo_m('bar',xout,n,'hist');
+	hand2 = guidata(h);
+	set(hand2.axes1, 'XLim',[xout(1) xout(end)], 'YLim', [0 max(n)])	% Have to because histo_m had screwed them
 	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
