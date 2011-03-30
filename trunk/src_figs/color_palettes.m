@@ -16,160 +16,165 @@ function varargout = color_palettes(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-hObject = figure('Tag','figure1','Visible','off');
-color_palettes_LayoutFcn(hObject);
-handles = guihandles(hObject);
-move2side(hObject,'center')
+	hObject = figure('Tag','figure1','Visible','off');
+	color_palettes_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'center')
 
-handles.z_min = [];     handles.z_max = [];     handles.z_min_orig = [];    handles.z_max_orig = [];	cmap = [];
-handles.have_nans = 0;	handles.hCallingFig = [];	later_ReadPalette = false;
+	handles.z_min = [];     handles.z_max = [];     handles.z_min_orig = [];    handles.z_max_orig = [];	cmap = [];
+	handles.have_nans = 0;	handles.hCallingFig = [];	later_ReadPalette = false;
 
-if (nargin == 1 && isstruct(varargin{1}))
-	handMir = varargin{1};
-	if (~handMir.no_file)			% We have something on the Mirone window
-		if (ndims(get(handMir.hImg,'CData')) == 3)
-			warndlg('True color images do not use color palettes. So you cannot change it.','Warning');
-			delete(hObject);		return
+	if (nargin == 1 && isstruct(varargin{1}))
+		handMir = varargin{1};
+		if (~handMir.no_file)			% We have something on the Mirone window
+			if (ndims(get(handMir.hImg,'CData')) == 3)
+				warndlg('True color images do not use color palettes. So you cannot change it.','Warning');
+				delete(hObject);		return
+			end
+			handles.hCallingFig = handMir.figure1;
+			Z = getappdata(handMir.figure1,'dem_z');
+			if (~isempty(Z))
+				handles.have_nans = handMir.have_nans;
+				handles.z_min = handMir.head(5);			handles.z_max = handMir.head(6);
+				handles.z_min_orig = handMir.head(5);		handles.z_max_orig = handMir.head(6);
+				set(handles.edit_Zmin,'String',handles.z_min_orig)
+				set(handles.edit_Zmax,'String',handles.z_max_orig)
+			end
+		else
+			set(handles.OptionsAutoApply,'checked','off','Enable','off')	% Prevent trying to update an unexisting fig cmap
+			set(handles.OptionsApply,'Enable','off')
+			set(handles.FileSavePaletteGrid','Vis','off')	% It makes no sense here
+			set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
 		end
-		handles.hCallingFig = handMir.figure1;
-		Z = getappdata(handMir.figure1,'dem_z');
-		if (~isempty(Z))
-			handles.have_nans = handMir.have_nans;
-			handles.z_min = handMir.head(5);			handles.z_max = handMir.head(6);
-			handles.z_min_orig = handMir.head(5);		handles.z_max_orig = handMir.head(6);
-			set(handles.edit_Zmin,'String',handles.z_min_orig)
-			set(handles.edit_Zmax,'String',handles.z_max_orig)
-		end
-	else
+		handles.home_dir = handMir.home_dir;
+		handles.work_dir = handMir.work_dir;
+		handles.last_dir = handMir.last_dir;
+		% Add this figure handle to the carra?as list
+		plugedWin = getappdata(handMir.figure1,'dependentFigs');
+		plugedWin = [plugedWin hObject];
+		setappdata(handMir.figure1,'dependentFigs',plugedWin);
+	elseif (nargin == 1 && ischar(varargin{1}))
+		later_ReadPalette = true;
 		set(handles.OptionsAutoApply,'checked','off','Enable','off')	% Prevent trying to update an unexisting figure cmap
 		set(handles.OptionsApply,'Enable','off')
 		set(handles.FileSavePaletteGrid','Vis','off')	% It makes no sense here
 		set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
+		handles.home_dir = cd;
+		handles.work_dir = cd;		handles.last_dir = cd;	% To not compromize put_or_get_file
 	end
-	handles.home_dir = handMir.home_dir;
-	handles.work_dir = handMir.work_dir;
-	handles.last_dir = handMir.last_dir;
-	% Add this figure handle to the carra?as list
-	plugedWin = getappdata(handMir.figure1,'dependentFigs');
-	plugedWin = [plugedWin hObject];
-	setappdata(handMir.figure1,'dependentFigs',plugedWin);
-elseif (nargin == 1 && ischar(varargin{1}))
-	later_ReadPalette = true;
-	set(handles.OptionsAutoApply,'checked','off','Enable','off')	% Prevent trying to update an unexisting figure cmap
-	set(handles.OptionsApply,'Enable','off')
-	set(handles.FileSavePaletteGrid','Vis','off')	% It makes no sense here
-	set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
-	handles.home_dir = cd;
-	handles.work_dir = cd;		handles.last_dir = cd;	% To not compromize put_or_get_file
-end
-handles.d_path = [handles.home_dir filesep 'data' filesep];
+	handles.d_path = [handles.home_dir filesep 'data' filesep];
 
-handles.pal_top = [];			% will contain new colormaps as changed by the the sliders
-handles.pal_bot = [];
-handles.bg_color = [1 1 1];
-handles.z_intervals = [];
-handles.thematic = false;		% Some thematic pals will use a pre-set handles.z_intervals
-handles.hinge = false;			% Thematic pals may have a hinge point
-handles.txt_cZ_pos = get(handles.h_txt_cZ,'Position');
+	handles.pal_top = [];			% will contain new colormaps as changed by the the sliders
+	handles.pal_bot = [];
+	handles.bg_color = [1 1 1];
+	handles.z_intervals = [];
+	handles.thematic = false;		% Some thematic pals will use a pre-set handles.z_intervals
+	handles.hinge = false;			% Thematic pals may have a hinge point
+	handles.check_custom_pal = true;% Check once the OPTcontrol.txt file for custom CPTs to apear in 'Thematic'
+	handles.custom_thematic_name = [];% Will contain eventual CPT names
+	handles.txt_cZ_pos = get(handles.h_txt_cZ,'Position');
 
-% Generate lists of available color palettes
-palsML = {'ML -- autumn' 'ML -- bone' 'ML -- colorcube' 'ML -- cool' 'ML -- copper' ...
-	'ML -- flag' 'ML -- gray' 'ML -- hot' 'ML -- hsv' 'ML -- jet' 'ML -- lines' 'ML -- pink' ...
-	'ML -- prism' 'ML -- summer' 'ML -- winter' 'ML -- vivid'};
-handles.palsGMT = {'GMT -- drywet' 'GMT -- gebco' 'GMT -- globe' 'GMT -- rainbow' ...
-	'GMT -- haxby' 'GMT -- no_green' 'GMT -- ocean' 'GMT -- polar' 'GMT -- red2green' ...
-	'GMT -- sealand' 'GMT -- seis' 'GMT -- split' 'GMT -- topo' 'GMT -- wysiwyg' ...
-	'DEM_screen' 'DEM_print' 'DEM_poster'};
-handles.palsA = {'mag' 'ArcEnCiel' 'circular' 'ChromaDepth' 'Mer' 'MetalChaud' 'Paysage' 'RougeVert' ...
-	'Sbm' 'Sismique' 'Terre' 'Terre_Mer' 'Tubulare' 'Tubulare_inv' 'atlas' 'bvr_180' 'bvr_90' ...
-	'bvr_clair' 'bvr_sombre' 'pente_90' 'rainbow_hist'};
-handles.palsCAR = {'CAR -- Blue' 'CAR -- Carnation' 'CAR -- Cyan' 'CAR -- Desert' 'CAR -- Earth' 'CAR -- Green' ...
-	'CAR -- HotMetal' 'CAR -- Jelly' 'CAR -- Magenta' 'CAR -- MorningGlory' 'CAR -- Mustard' ...
-	'CAR -- Ocean' 'CAR -- OceanLight' 'CAR -- Olive' 'CAR -- Oysters' 'CAR -- Pumpkin' 'CAR -- Red' ...
-	'CAR -- Rose' 'CAR -- Saturn' 'CAR -- Seafloor' 'CAR -- Space' 'CAR -- SuperNova' ...
-	'CAR -- Topographic' 'CAR -- TrackLine' 'CAR -- Yellow' 'CAR -- colors10'};
-handles.palsGIMP = {'Abstract_1' 'Abstract_2' 'Abstract_3' 'Aneurism' 'Blinds' 'Browns' 'Brushed_Aluminium' ...
-	'Burning_Paper' 'Burning_Transparency' 'Caribbean_Blues' 'CD' 'CD_Half' 'Cold_Steel' ...
-	'Deep_Sea' 'Flare_Glow_Angular_1' 'Flare_Glow_Radial_2' 'Flare_Radial_102' 'Flare_Radial_103' ...
-	'Flare_Rays_Size_1' 'Four_bars' 'Full_saturation_spectrum_CCW' 'Full_saturation_spectrum_CW' ...
-	'Golden' 'Greens' 'Horizon_1' 'Incandescent' 'Land_1' 'Land_and_Sea' 'Metallic_Something' ...
-	'Nauseating_Headache' 'Pastels' 'Pastel_Rainbow' 'Purples' 'Radial_Eyeball_Blue' ...
-	'Radial_Eyeball_Brown' 'Radial_Eyeball_Green' 'Radial_Rainbow_Hoop' 'Rounded_edge' ...
-	'Shadows_1' 'Shadows_2' 'Shadows_3' 'Skyline' 'Skyline_polluted' 'Sunrise' ...
-	'Tropical_Colors' 'Wood_1' 'Wood_2' 'Yellow_Contrast' 'Yellow_Orange'};
-handles.palsT = {'Mag - anomaly' 'SeaLand (m)' 'Bathymetry (m)' 'Topography (m)'};
+	% Generate lists of available color palettes
+	palsML = {'ML -- autumn' 'ML -- bone' 'ML -- colorcube' 'ML -- cool' 'ML -- copper' ...
+		'ML -- flag' 'ML -- gray' 'ML -- hot' 'ML -- hsv' 'ML -- jet' 'ML -- lines' 'ML -- pink' ...
+		'ML -- prism' 'ML -- summer' 'ML -- winter' 'ML -- vivid'};
+	handles.palsGMT = {'GMT -- drywet' 'GMT -- gebco' 'GMT -- globe' 'GMT -- rainbow' ...
+		'GMT -- haxby' 'GMT -- no_green' 'GMT -- ocean' 'GMT -- polar' 'GMT -- red2green' ...
+		'GMT -- sealand' 'GMT -- seis' 'GMT -- split' 'GMT -- topo' 'GMT -- wysiwyg' ...
+		'DEM_screen' 'DEM_print' 'DEM_poster'};
+	handles.palsA = {'mag' 'ArcEnCiel' 'circular' 'ChromaDepth' 'Mer' 'MetalChaud' 'Paysage' 'RougeVert' ...
+		'Sbm' 'Sismique' 'Terre' 'Terre_Mer' 'Tubulare' 'Tubulare_inv' 'atlas' 'bvr_180' 'bvr_90' ...
+		'bvr_clair' 'bvr_sombre' 'pente_90' 'rainbow_hist'};
+	handles.palsCAR = {'CAR -- Blue' 'CAR -- Carnation' 'CAR -- Cyan' 'CAR -- Desert' 'CAR -- Earth' 'CAR -- Green' ...
+		'CAR -- HotMetal' 'CAR -- Jelly' 'CAR -- Magenta' 'CAR -- MorningGlory' 'CAR -- Mustard' ...
+		'CAR -- Ocean' 'CAR -- OceanLight' 'CAR -- Olive' 'CAR -- Oysters' 'CAR -- Pumpkin' 'CAR -- Red' ...
+		'CAR -- Rose' 'CAR -- Saturn' 'CAR -- Seafloor' 'CAR -- Space' 'CAR -- SuperNova' ...
+		'CAR -- Topographic' 'CAR -- TrackLine' 'CAR -- Yellow' 'CAR -- colors10'};
+	handles.palsGIMP = {'Abstract_1' 'Abstract_2' 'Abstract_3' 'Aneurism' 'Blinds' 'Browns' 'Brushed_Aluminium' ...
+		'Burning_Paper' 'Burning_Transparency' 'Caribbean_Blues' 'CD' 'CD_Half' 'Cold_Steel' ...
+		'Deep_Sea' 'Flare_Glow_Angular_1' 'Flare_Glow_Radial_2' 'Flare_Radial_102' 'Flare_Radial_103' ...
+		'Flare_Rays_Size_1' 'Four_bars' 'Full_saturation_spectrum_CCW' 'Full_saturation_spectrum_CW' ...
+		'Golden' 'Greens' 'Horizon_1' 'Incandescent' 'Land_1' 'Land_and_Sea' 'Metallic_Something' ...
+		'Nauseating_Headache' 'Pastels' 'Pastel_Rainbow' 'Purples' 'Radial_Eyeball_Blue' ...
+		'Radial_Eyeball_Brown' 'Radial_Eyeball_Green' 'Radial_Rainbow_Hoop' 'Rounded_edge' ...
+		'Shadows_1' 'Shadows_2' 'Shadows_3' 'Skyline' 'Skyline_polluted' 'Sunrise' ...
+		'Tropical_Colors' 'Wood_1' 'Wood_2' 'Yellow_Contrast' 'Yellow_Orange'};
+	handles.palsT = {'Mag - anomaly' 'SeaLand (m)' 'Bathymetry (m)' 'Topography (m)'};
 
-handles.palsML = palsML;
-pals = [{'Current'} palsML];
-set(handles.listbox1,'String',pals);
+	handles.palsML = palsML;
+	pals = [{'Current'} palsML];
+	set(handles.listbox1,'String',pals);
 
-%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-% This stupid doesn't allow a frame in the background of an axes. I tried
-% everything but the axes is allways behind the frame. So the trick will be to
-% change it's size here (it was to small in guide) and let frame3D do the job.
-	posf_b = get(handles.frame_bot,'Position');
-	posf_t = get(handles.frame_top,'Position');
-	set(handles.frame_top,'Position',[posf_t(1) posf_t(2) posf_b(3) posf_t(4)]);
-	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-	h_f = [handles.frame_top handles.frame_bot];
-	for i=1:numel(h_f)
-		frame_size = get(h_f(i),'Position');
-		frame3D(hObject,frame_size,framecolor,'',[])
-		delete(h_f(i))
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	% This stupid doesn't allow a frame in the background of an axes. I tried
+	% everything but the axes is allways behind the frame. So the trick will be to
+	% change it's size here (it was to small in guide) and let frame3D do the job.
+		posf_b = get(handles.frame_bot,'Position');
+		posf_t = get(handles.frame_top,'Position');
+		set(handles.frame_top,'Position',[posf_t(1) posf_t(2) posf_b(3) posf_t(4)]);
+		bgcolor = get(0,'DefaultUicontrolBackgroundColor');
+		framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
+		h_f = [handles.frame_top handles.frame_bot];
+		for i=1:numel(h_f)
+			frame_size = get(h_f(i),'Position');
+			frame3D(hObject,frame_size,framecolor,'',[])
+			delete(h_f(i))
+		end
+	%------------- END Pro look (3D) -------------------------------------------------------
+
+	if (later_ReadPalette)		% When pallete filename was transmited in input
+		cmap = FileReadPalette_CB([], [], handles, [], varargin{1});
 	end
-%------------- END Pro look (3D) -------------------------------------------------------
 
-if (later_ReadPalette)		% When pallete filename was transmited in input
-	cmap = FileReadPalette_CB([], [], handles, [], varargin{1});
-end
-
-% Show the current colormap in axes
-if (isempty(cmap))
-	if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
-		cmap = get(handles.hCallingFig,'Colormap');
-	else
-		cmap = colormap(jet(256));
+	% Show the current colormap in axes
+	if (isempty(cmap))
+		if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
+			cmap = get(handles.hCallingFig,'Colormap');
+		else
+			cmap = colormap(jet(256));
+		end
 	end
-end
 
-handles.cmap = cmap;
-handles.cmap_original = cmap;
-colormap(cmap);      I = 1:length(cmap);
-h_img = image(I,'CDataMapping','direct');   set(gca,'YTick',[],'XTick',[]);
-set(h_img,'ButtonDownFcn',{@bdn_pal,handles})
+	handles.cmap = cmap;
+	handles.cmap_original = cmap;
+	colormap(cmap);      I = 1:length(cmap);
+	h_img = image(I,'CDataMapping','direct');   set(gca,'YTick',[],'XTick',[]);
+	set(h_img,'ButtonDownFcn',{@bdn_pal,handles})
 
-set(handles.slider_Top,'max',length(cmap),'min',1,'value',length(cmap))
-set(handles.slider_Bottom,'max',length(cmap),'min',1,'value',1)
-handles.no_slider = 1;
+	set(handles.slider_Top,'max',length(cmap),'min',1,'value',length(cmap))
+	set(handles.slider_Bottom,'max',length(cmap),'min',1,'value',1)
+	handles.no_slider = 1;
 
-% Choose default command line output for color_palettes_export
-handles.output = hObject;
-guidata(hObject, handles);
-set(hObject,'Visible','on');
+	% Choose default command line output for color_palettes_export
+	handles.output = hObject;
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
 
-% UIWAIT makes color_palettes_export wait for user response (see UIRESUME)
-if (nargout)
-    set(handles.push_retColorMap,'Visible','on')
-    set(handles.edit_Zmax,'Visible','off')      % The other on the row are already hiden by the pushbutton
-    uiwait(handles.figure1);
-    handles = guidata(handles.figure1);     % Get updated version
-    if (handles.killed)				% Don't try to output eventual non-existing variables
-        varargout{1} = [];
-    else
-        varargout{1} = get(handles.figure1,'Colormap');
-    end
-    delete(handles.figure1);		% The figure can be deleted now
-end
+	% UIWAIT makes color_palettes_export wait for user response (see UIRESUME)
+	if (nargout)
+		set(handles.push_retColorMap,'Visible','on')
+		set(handles.edit_Zmax,'Visible','off')      % The other on the row are already hiden by the pushbutton
+		uiwait(handles.figure1);
+		handles = guidata(handles.figure1);     % Get updated version
+		if (handles.killed)				% Don't try to output eventual non-existing variables
+			varargout{1} = [];
+		else
+			varargout{1} = get(handles.figure1,'Colormap');
+		end
+		delete(handles.figure1);		% The figure can be deleted now
+	end
 
 % -----------------------------------------------------------------------------------
 function listbox1_CB(hObject, eventdata, handles)
 	contents = get(hObject,'String');		pal = contents{get(hObject,'Value')};
-	old_thematic = handles.thematic;
 	handles.thematic = false;
-	handles.hinge = false;
 	if (numel(pal) > 8 && strcmp(pal(1:8),'Imported'))
 		pal = pal(1:8);
+	end
+
+	if (get(handles.radio_T, 'Val'))	% Thematic CPTs are treated in a separate function
+		thematic_pal(handles, pal)
+		return
 	end
 
 switch pal
@@ -177,7 +182,6 @@ switch pal
 		pal = handles.cmap_original;
 	case 'Imported'
 		pal = handles.imported_cmap;
-		handles.thematic = old_thematic;
 	case 'ML -- autumn',		pal = autumn(256);
 	case 'ML -- bone',			pal = bone(256);
 	case 'ML -- colorcube',		pal = colorcube(256);
@@ -233,32 +237,6 @@ switch pal
         load([handles.d_path 'gmt_other_palettes.mat'],'DEM_poster');	pal = DEM_poster;
 	case 'mag'
         load([handles.d_path 'gmt_other_palettes.mat'],'mag');			pal = mag;
-	case 'Mag - anomaly'
-		load([handles.d_path 'gmt_other_palettes.mat'],'mag');			pal = mag;
-		handles.z_intervals = [-800 -600 -500 -400 -300 -200 -100 -50 50 100 200 300 400 500 600;
-								-600 -500 -400 -300 -200 -100 -50 50 100 200 300 400 500 600 800]';
-		handles.thematic = true;
-	case 'Chlorophyll'				% Not visible (results of this are lousy and I need to find why)
-		load([handles.d_path 'gmt_other_palettes.mat'],'rainbow_hist');	pal = rainbow_hist;
-		y = (10).^ [-2 + (0:269-2)*(2 + 2)/(floor(269)-1), 2];		% The same as y = logspace(-2, 2, 269);
-		handles.z_intervals = [0 y(1:254); y(1:255)]';
-		handles.thematic = true;
-	case 'SeaLand (m)'				% The "y" case is not used (needs to finish/find a clever algo)
-        load([handles.d_path 'gmt_other_palettes.mat'],'Terre_Mer');	pal = Terre_Mer;
-		y = [linspace(-7000,-1,146) linspace(0,5500,108) 6000]';
-		handles.z_intervals = [y(1:end-1) y(2:end)];
-		handles.thematic = true;
-		handles.hinge = 147;
-	case 'Bathymetry (m)'			% The "y" case is not used (needs to finish/find a clever algo)
-		load([handles.d_path 'caris256.mat'],'Earth');					pal = Earth/255;
-		y = [(-6000:1000:-3000) (-2500:500:-500) (-400:100:-100) -50 0]';
-		handles.z_intervals = [y(1:end-1) y(2:end)];
-		handles.thematic = true;
-	case 'Topography (m)'			% The "y" case is not used (needs to finish/find a clever algo)
-		load([handles.d_path 'caris256.mat'],'Topographic');			pal = Topographic/255;
-		handles.z_intervals = [0 50 100 200 500 (1000:1000:5000); 50 100 200 500 (1000:1000:6000)]';
-		handles.thematic = true;
-		handles.hinge = 1;
 	case 'ArcEnCiel'
 		load([handles.d_path 'gmt_other_palettes.mat'],'ArcEnCiel');	pal = ArcEnCiel;
 	case 'circular'
@@ -451,7 +429,61 @@ switch pal
 		load([handles.d_path 'gimp256.mat'],'Yellow_Orange');			pal = Yellow_Orange/255;
 end
 
-% Search eventual color markers and delete them
+	% Search eventual color markers and delete them
+	hp = findobj(handles.axes1,'Tag','Picos');
+	if (~isempty(hp)),		delete(hp);		end
+	handles.no_slider = 1;
+	guidata(handles.figure1, handles);
+	change_cmap(handles,pal);
+
+% -----------------------------------------------------------------------------------
+function thematic_pal(handles, pal)
+% Deal with the 'Thematic' color tables that may include some imported via OPTcontrol.txt
+
+	handles.thematic = true;
+	handles.hinge = false;
+	if (numel(pal) > 8 && strcmp(pal(1:8),'Imported'))
+		pal = pal(1:8);
+	end
+	
+	if ( strncmp(pal, 'Current', 3) )
+		pal = handles.cmap_original;
+	elseif ( strncmp(pal, 'Imported', 3) )
+		pal = handles.imported_cmap;
+		handles.thematic = false;
+	elseif ( strncmp(pal, 'Mag - anomaly', 3) )
+		load([handles.d_path 'gmt_other_palettes.mat'],'mag');			pal = mag;
+		handles.z_intervals = [-800 -600 -500 -400 -300 -200 -100 -50 50 100 200 300 400 500 600;
+								-600 -500 -400 -300 -200 -100 -50 50 100 200 300 400 500 600 800]';
+	elseif ( strncmp(pal, 'Chlorophyll', 3) )			% Not visible (results of this are lousy and I need to find why)
+		load([handles.d_path 'gmt_other_palettes.mat'],'rainbow_hist');	pal = rainbow_hist;
+		y = (10).^ [-2 + (0:269-2)*(2 + 2)/(floor(269)-1), 2];		% The same as y = logspace(-2, 2, 269);
+		handles.z_intervals = [0 y(1:254); y(1:255)]';
+	elseif ( strncmp(pal, 'SeaLand (m)', 3) )			% The "y" case is not used (needs to finish/find a clever algo)
+		load([handles.d_path 'gmt_other_palettes.mat'],'Terre_Mer');	pal = Terre_Mer;
+		y = [linspace(-7000,-1,146) linspace(0,5500,108) 6000]';
+		handles.z_intervals = [y(1:end-1) y(2:end)];
+		handles.hinge = 147;
+	elseif ( strncmp(pal, 'Bathymetry (m)', 3) )		% The "y" case is not used (needs to finish/find a clever algo)
+		load([handles.d_path 'caris256.mat'],'Earth');					pal = Earth/255;
+		y = [(-6000:1000:-3000) (-2500:500:-500) (-400:100:-100) -50 0]';
+		handles.z_intervals = [y(1:end-1) y(2:end)];
+	elseif ( strncmp(pal, 'Topography (m)', 3) )
+		load([handles.d_path 'caris256.mat'],'Topographic');			pal = Topographic/255;
+		handles.z_intervals = [0 50 100 200 500 (1000:1000:5000); 50 100 200 500 (1000:1000:6000)]';
+		handles.hinge = 1;
+	else
+		for (k = 1:numel(handles.custom_thematic_name))		% Won't be executed if custom_thematic_name is empty
+			switch pal
+				case handles.custom_thematic_name{k}
+					pal = handles.custom_thematic_pal{k,1};
+					handles.z_intervals = handles.custom_thematic_pal{k,2};
+					continue
+			end
+		end
+	end
+
+	% Search eventual color markers and delete them
 	hp = findobj(handles.axes1,'Tag','Picos');
 	if (~isempty(hp)),		delete(hp);		end
 	handles.no_slider = 1;
@@ -461,32 +493,32 @@ end
 % -----------------------------------------------------------------------------------
 % --- Executes on slider movement.
 function slider_Bottom_CB(hObject, eventdata, handles)
-val = round(get(hObject,'Value'));
+	val = round(get(hObject,'Value'));
 
-if ~isempty(handles.pal_top)        % The other slider has been activated
-    val_t = round(get(handles.slider_Top,'Value'));
-    cmap = handles.pal_top;         % Make a copy of the full current colormap
-else
-    cmap = handles.cmap;            % Make a copy of the full current colormap
-    val_t = length(handles.cmap);
-end
+	if ~isempty(handles.pal_top)        % The other slider has been activated
+		val_t = round(get(handles.slider_Top,'Value'));
+		cmap = handles.pal_top;         % Make a copy of the full current colormap
+	else
+		cmap = handles.cmap;            % Make a copy of the full current colormap
+		val_t = length(handles.cmap);
+	end
 
-for i = 1:val,		cmap(i,:) = handles.cmap(1,:);		end
-%yi = interp1(handles.cmap,linspace(1,length(cmap),length(cmap)-round(val)));
-%cmap(round(val)+1:end,:) = yi(:,:);
-if (val < val_t)
-    yi = interp1(handles.cmap,linspace(1,length(cmap),val_t-val+1));
-    cmap(val:val_t,:) = yi(:,:);
-elseif (val > val_t)
-    yi = interp1(handles.cmap,linspace(1,length(cmap),val-val_t+1));
-    yi(1:end,:) = yi(end:-1:1,:);       % Invert the colormap
-    cmap(val_t:val,:) = yi(:,:);
-    for i = val:length(cmap),   cmap(i,:) = handles.cmap(1,:);   end
-    for i = 1:val_t,            cmap(i,:) = handles.cmap(end,:); end
-end
+	for i = 1:val,		cmap(i,:) = handles.cmap(1,:);		end
+	%yi = interp1(handles.cmap,linspace(1,length(cmap),length(cmap)-round(val)));
+	%cmap(round(val)+1:end,:) = yi(:,:);
+	if (val < val_t)
+		yi = interp1(handles.cmap,linspace(1,length(cmap),val_t-val+1));
+		cmap(val:val_t,:) = yi(:,:);
+	elseif (val > val_t)
+		yi = interp1(handles.cmap,linspace(1,length(cmap),val-val_t+1));
+		yi(1:end,:) = yi(end:-1:1,:);       % Invert the colormap
+		cmap(val_t:val,:) = yi(:,:);
+		for i = val:length(cmap),   cmap(i,:) = handles.cmap(1,:);   end
+		for i = 1:val_t,            cmap(i,:) = handles.cmap(end,:); end
+	end
 
-handles.pal_bot = cmap;     handles.no_slider = 0;      guidata(hObject, handles);
-change_cmap(handles,cmap)
+	handles.pal_bot = cmap;     handles.no_slider = 0;      guidata(hObject, handles);
+	change_cmap(handles,cmap)
 
 % -----------------------------------------------------------------------------------
 % --- Executes on slider movement.
@@ -656,6 +688,7 @@ else        % current cmap as a descrete GMT palette, but with 256 colors
     z_min = handles.z_min;
 end
 
+tmp = cell(1, max(pal_len+4, 19));
 tmp{1} = '# Color palette exported by Mirone';
 tmp{2} = '# COLOR_MODEL = RGB';
 if (isempty(opt) || strcmp(opt,'master_disc'))   % Current cmap or descrete GMT master palette with 16 colors
@@ -830,6 +863,39 @@ function radio_T_CB(hObject, eventdata, handles)
 	set([handles.radio_ML handles.radio_GMT  handles.radio_MR handles.radio_CAR handles.radio_GIMP],'Value', 0)
 	pals = get(handles.listbox1,'String');
 	set(handles.listbox1,'String',[pals(1) handles.palsT],'Value',1)
+	drawnow,	pause(0.1)				% Do not wait until the rest of the function finish executing
+
+	if (handles.check_custom_pal)		% Do this only the first time this button is checked
+		opt_file = [handles.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
+		if ( exist(opt_file, 'file') == 2 )
+			fid = fopen(opt_file, 'r');
+			c = (fread(fid,'*char'))';      fclose(fid);
+			lines = strread(c,'%s','delimiter','\n');   clear c fid;
+			m = numel(lines);		kk = 0;	kkk = 0;
+			for (k = 1:m)
+				if (~strncmp(lines{k},'MIR_CPT',7)),	continue,	end
+				[t, r] = strtok(lines{k}(9:end));
+				try
+					handles.custom_thematic_name{kk+1} = ddewhite(t);
+					[cmap, z_int] = cpt2cmap(['-C' ddewhite(r)]);
+					handles.custom_thematic_pal{kk+1,1} = cmap;		handles.custom_thematic_pal{kk+1,2} = z_int;
+					kk = kk + 1;
+				catch
+					kkk = kkk + 1;
+				end
+			end
+		end
+		if (kkk)
+			warndlg(['Waring: ' sprintf('%d ',kkk) 'custom CPT files in OPTcontrol.txt failed to load'], 'Warning')
+		end
+		if (kk)			% We got new CPTs. Add them to the list
+			contents = [get(handles.listbox1,'Str'); handles.custom_thematic_name];
+			set(handles.listbox1,'Str', contents)
+		end
+
+		handles.check_custom_pal = false;		% Do not try the above again
+		guidata(handles.figure1, handles)
+	end
 
 % --------------------------------------------------------------------
 function check_logIt_CB(hObject, eventdata, handles)
