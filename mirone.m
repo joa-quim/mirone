@@ -2645,8 +2645,10 @@ function FileOpenSession_CB(handles, fname)
 			tala = exist(grd_name,'file');
 			if (~tala)
 				warndlg('The name provided doesn''t exist either. Give up trying to help you.','Warning')
-				grd_name = [];
+				grd_name = [];		% In this case we need this as empty
 			end
+		else
+			grd_name = [];			% In this case we need this as empty
 		end
 	end
 	if (isempty(grd_name) || tala == 0)
