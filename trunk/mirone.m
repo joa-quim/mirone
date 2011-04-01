@@ -2645,6 +2645,7 @@ function FileOpenSession_CB(handles, fname)
 			tala = exist(grd_name,'file');
 			if (~tala)
 				warndlg('The name provided doesn''t exist either. Give up trying to help you.','Warning')
+				grd_name = [];
 			end
 		end
 	end
@@ -2684,7 +2685,7 @@ function FileOpenSession_CB(handles, fname)
 		illumType = 1;		% Test only one case where this might be otherwise
 	end
 
-	if (~isempty(illumComm) && flagIllum)
+	if (~isempty(grd_name) && ~isempty(illumComm) && flagIllum)
 		[X,Y,Z,head] = load_grd(handles,'silent');
 		handles.Illumin_type = illumType;
 		if (handles.Illumin_type == 1)
