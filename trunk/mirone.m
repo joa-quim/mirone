@@ -515,12 +515,13 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			if (strcmp(opt2,'CropaGrid_pure'))
 				resp = inputdlg({'Enter outside polygon value'},'Choose out value',[1 30],{sprintf('%.4f',z_min)});	pause(0.01)
 				if isempty(resp),	set(handles.figure1,'pointer','arrow'),		return,		end
+				resp = str2double(resp{1});
 			elseif (strcmp(opt2,'ROI_SetConst'))	% Set the polygon interiour to cte
 				resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
 				if isempty(resp),	set(handles.figure1,'pointer','arrow'),		return,		end
+				resp = str2double(resp{1});
 			end
 			mask = img_fun('roipoly_j',x_lim,y_lim,double(Z_rect),x,y);
-			resp = str2double(resp{1});
 			if (strcmp(opt2,'CropaGrid_pure'))
 				Z_rect(~mask) = single(resp);
 			elseif (strcmp(opt2,'ROI_SetConst'))
