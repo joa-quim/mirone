@@ -3671,7 +3671,7 @@ function TransferB_CB(handles, opt)
 
 	elseif (strcmp(opt,'scale'))				% Apply a scale factor
 		resp = inputdlg({'Enter scale factor'},'Rescale grid',[1 30],{'-1'});	pause(0.01)
-		scal = abs( str2double(resp{1}) );
+		scal = str2double(resp{1});
 		if (isnan(scal)),	return,		end
 		[X,Y,Z] = load_grd(handles);			% load the grid array here
 		if isempty(Z),		return,		end		% An error message was already issued
