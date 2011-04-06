@@ -41,6 +41,7 @@
 #include "mex.h"
 #include <float.h>
 #include <math.h>
+#include <time.h>
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -56,6 +57,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char	**argv;
 	float	*zdata, fact;
 	double	*z, min_limit = FLT_MAX, max_limit = -FLT_MAX, mean = 0., sd = 0., rms = 0., tmp;
+	clock_t tic;
 
 	argc = nrhs;
 	for (i = 0; i < nrhs; i++) {		/* Check input to find how many arguments are of type char */
@@ -141,6 +143,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\t-S Compute mean and standard deviation.\n");
 		mexErrMsgTxt("\n");
 	}
+
+#ifdef MIR_TIMEIT
+	tic = clock();
+#endif
 	
 	if (nlhs == 0 && !(ADD + MUL) && !insitu) {
 		mexPrintf("GRDUTILS ERROR: Must provide an output.\n");
@@ -283,6 +289,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			z[0] = min_limit;	z[1] = max_limit;
 			z[2] = (double)i_min;	z[3] = (double)i_max;
 			z[4] = (double)nfound;	z[5] = mean;	z[6] = sd;
+#ifdef MIR_TIMEIT
+	mexPrintf("GRDUTILS: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
+#endif
 			return;
 		}
 
@@ -296,5 +305,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			z[1] = sd;
 		}
 	}
+
+#ifdef MIR_TIMEIT
+	mexPrintf("GRDUTILS: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
+#endif
+
 }
 
