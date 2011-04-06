@@ -43,6 +43,9 @@
 #include <math.h>
 #include <time.h>
 
+/* For floats ONLY */
+#define ISNAN_F(x) (((*(int32_T *)&(x) & 0x7f800000L) == 0x7f800000L) && \
+                    ((*(int32_T *)&(x) & 0x007fffffL) != 0x00000000L))
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
 
@@ -125,7 +128,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	if (n_arg_no_char == 0 || error) {
 		mexPrintf ("grdutils - Do some usefull things on arrays that are in single precision\n\n");
-		mexPrintf ("usage: [out] = grdutils(infile, ['-A<const>'], ['-L[+]'], [-H], [-M<fact>], [-S], [-C]\n");
+		mexPrintf ("usage: [out] = grdutils(infile, ['-A<const>'], [-C], ['-L[+]'], [-H], [-M<fact>], [-N], [-S], [-c]\n");
 		
 		mexPrintf ("\t<out> is a two line vector with [min,max] or [mean,std] if -L OR -S\n");
 		mexPrintf ("\t Do not use <out> with -A or -M because infile is a pointer and no copy of it is made here\n");
@@ -226,7 +229,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (only_report_nans) {
 		/* Loop over the file and find if we have NaNs. Stop at first NaN occurence. */
 		for (i = 0; i < nxy; i++) {
-			if (mxIsNaN(zdata[i])) {
+			if (ISNAN_F(zdata[i])) {
 				nfound = i + 1;		/* + 1 becuse ML is 1 based */
 				break;
 			}
@@ -240,7 +243,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	for (i = 0; i < nxy; i++) {
 		tmp = (double)zdata[i];
-		if (!mxIsNaN(tmp)) {
+		if (!ISNAN_F(zdata[i])) {
 			if (do_min_max) {
 				if (tmp < min_limit) min_limit = tmp;
 				if (tmp > max_limit) max_limit = tmp;
