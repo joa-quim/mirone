@@ -1225,6 +1225,24 @@ function FileOpenNewImage_CB(handles, opt)
 	recentFiles(handles);		% Insert fileName into "Recent Files" & save handles
 
 % --------------------------------------------------------------------
+function FileOpenWebImage_CB(handles, fname)
+% ...
+	if (nargin == 1)
+		resp = inputdlg({'Enter Image URL'},'Get Image from Web',[1 120]);
+		if (isempty(resp)),		return,		end
+		fname = resp{1};
+	end
+	[I,att] = gdalread(fname);
+	if (isempty(I))
+		errordlg('Sorry, but failed to fetch image from the ether. A Proxy problem?', 'Error'),		return
+	end
+	handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];	% Fake a grid reg GMT header
+	handles.image_type = 2;		X = [];		Y = [];			ax_dir = 'off';
+	handles = show_image(handles,fname,X,Y,I,0,ax_dir,0);
+	handles = aux_funs('isProj',handles);			% Check/set about coordinates type
+	guidata(handles.figure1,handles)
+
+% --------------------------------------------------------------------
 function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 % Read GDAL files that may be multiband
 % OPT2, if present, MUST contain either the full file name OR a multiband array. Currently used to load RAW images
