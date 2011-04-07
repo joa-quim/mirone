@@ -1697,8 +1697,10 @@ function rectangle_limits(obj,eventdata)
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
-function rectangle_register_img(obj,event)
+function rectangle_register_img(obj, event)
 % Prompt user for rectangle corner coordinates and use them to register the image
+	do_flip = false;
+
 	h = gco;
 	handles = guidata(get(h,'Parent'));
 	rect_x = get(h,'XData');   rect_y = get(h,'YData');		% Get rectangle limits
@@ -1715,20 +1717,22 @@ function rectangle_register_img(obj,event)
 	img = get(handles.hImg,'CData');
 	% Transform the ractangle limits into row-col limits
 	limits = getappdata(handles.axes1,'ThisImageLims');
+	limits(1:2) = limits(1:2) + [0.5 -0.5]*handles.head(8);	% Use the grid registration limits.
+	limits(3:4) = limits(3:4) + [0.5 -0.5]*handles.head(9);
 	r_c = cropimg(limits(1:2), limits(3:4), img, [x(1) y(1) (x(3)-x(2)) (y(2)-y(1))], 'out_precise');
 	% Find if we are dealing with a image with origin at upper left (i.e. with y positive down)
 	if(strcmp(get(ax,'YDir'),'reverse'))
 		img = flipdim(img,1);
 		% We have to invert the row count to account for the new origin in lower left corner
+		imgHeight = size(img,1);
 		tmp = r_c(1);
-		r_c(1) = size(img,1) - r_c(2) + 1;
-		r_c(2) = size(img,1) - tmp + 1;
+		r_c(1) = imgHeight - r_c(2) + 1;
+		r_c(2) = imgHeight - tmp + 1;
+		do_flip = true;
 	end
 	% Compute and apply the affine transformation
 	base  = [x_min y_min; x_min y_max; x_max y_max; x_max y_min];
 	input = [r_c(3) r_c(1); r_c(3) r_c(2); r_c(4) r_c(2); r_c(4) r_c(1)];
-	% tform = cp2tform(input,base,'affine');
-	% [new_xlim,new_ylim] = tformfwd(tform,[1 size(img,2)],[1 size(img,1)]);
 
 	trans = AffineTransform(input,base);
 	x_pt = [1; size(img,2)];    y_pt = [1; size(img,1)];    % For more X points, change accordingly
@@ -1736,8 +1740,18 @@ function rectangle_register_img(obj,event)
 	U1 = X1 * trans;
 	new_xlim = U1(:,1)';        new_ylim = U1(:,2)';
 
-	% Rebuild the image with the new limits. After many atempts I found that
-	% kill and redraw is the safer way.
+	% Get coords of all line objects and recreate them later. Have to do it before deleting hImg
+	ALLlineHand = findobj(handles.axes1,'Type','line');
+	line_x = cell(1, numel(ALLlineHand));			line_y = cell(1, numel(ALLlineHand));
+	for (k = 1:numel(ALLlineHand))
+		x = get(ALLlineHand(k), 'XData');			y = get(ALLlineHand(k), 'YData');
+		if (do_flip),		y = imgHeight - y + 1;	end
+		X1 = [x(:) y(:) ones(numel(x),1)];
+		U1 = X1 * trans;					% Reproject them
+		line_x{k} = U1(:,1);	line_y{k} = U1(:,2);
+	end
+
+	% Rebuild the image with the new limits. After many atempts I found that kill and redraw is the safer way.
 	m = size(img,1);		n = size(img,2);
 	[new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
 	delete(handles.hImg);
@@ -1751,8 +1765,9 @@ function rectangle_register_img(obj,event)
 
 	% Redraw the rectangle that meanwhile has gone to the ether togheter with gca.
 	lt = handles.DefLineThick;				lc = handles.DefLineColor;
-	x = [x_min x_min x_max x_max x_min];	y = [y_min y_max y_max y_min y_min];
-	h = line('XData',x,'YData',y,'Color',lc,'LineWidth',lt,'Parent',handles.axes1);
+	for (k = 1:numel(ALLlineHand))
+		ALLlineHand(k) = line('XData',line_x{k},'YData',line_y{k},'Color',lc,'LineWidth',lt,'Parent',handles.axes1);
+	end
 	if (handles.image_type == 2)					% Lets pretend that we have a GeoTIFF image
 		handles.image_type = 3;
 		Hdr.LL_prj_xmin = new_xlim(1);		Hdr.LR_prj_xmax = new_xlim(2);
@@ -1764,17 +1779,19 @@ function rectangle_register_img(obj,event)
 	y_inc = (new_ylim(2)-new_ylim(1)) / (size(img,1) - 1);
 	handles.head(8:9) = [x_inc y_inc];   
 
-	handles.fileName = [];			% Not loadable in session
+	handles.fileName = [];							% Not loadable in session
 	if (handles.validGrid)
 		new_xlim = linspace(new_xlim(1),new_xlim(2),size(img,2));		new_ylim = linspace(new_ylim(1),new_ylim(2),size(img,1));
 		setappdata(handles.figure1,'dem_x',new_xlim);  	setappdata(handles.figure1,'dem_y',new_ylim);
 	end
 
 	if (handles.geog)
-		mirone('SetAxesNumericType',handles,[])          % Set axes uicontextmenus
+		mirone('SetAxesNumericType',handles,[])		% Set axes uicontextmenus
 	end
 	guidata(handles.figure1, handles);
-	draw_funs(h,'line_uicontext')       % Set lines's uicontextmenu
+	for (k = 1:numel(ALLlineHand))
+		draw_funs(ALLlineHand(k),'line_uicontext')	% Set lines's uicontextmenu
+	end
 
 % -----------------------------------------------------------------------------------------
 function trans = AffineTransform(uv,xy)
