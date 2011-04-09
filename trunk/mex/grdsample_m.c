@@ -263,9 +263,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (area_set) {
-		if (grd_b.y_min < grd_a.y_min || grd_b.y_max > grd_a.y_max)
+		if ((grd_b.y_min + grd_b.y_inc) < grd_a.y_min || (grd_b.y_max - grd_b.y_inc) > grd_a.y_max)
 			mexErrMsgTxt ("GRDSAMPLE:  Selected region exceeds the boundaries of the grdfile!\n");
-		else if (!edgeinfo.nxp && (grd_b.x_min < grd_a.x_min || grd_b.x_max > grd_a.x_max))
+		else if (!edgeinfo.nxp && ((grd_b.x_min + grd_b.x_inc) < grd_a.x_min || (grd_b.x_max - grd_b.x_inc) > grd_a.x_max))
 			mexErrMsgTxt ("GRDSAMPLE:  Selected region exceeds the boundaries of the grdfile!\n");
 	}
 	
