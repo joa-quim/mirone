@@ -49,12 +49,17 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
 
+/* For floats ONLY */
+#define ISNAN_F(x) (((*(int32_T *)&(x) & 0x7f800000L) == 0x7f800000L) && \
+                    ((*(int32_T *)&(x) & 0x007fffffL) != 0x00000000L))
+
 #include "mex.h"
 #include "float.h"
 #include <time.h>
 
 int mxUnshareArray(mxArray *);
 
+/* --------------------------------------------------------------------------- */
 /* the gateway function */
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double  range8 = 1, *z_min, *z_max, *z_8, min8 = DBL_MAX, max8 = -DBL_MAX;
@@ -248,14 +253,14 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	else if (is_single) {
 		if (!got_limits) {
 			for (i = 0; i < nx*ny; i++) {
-				if (mxIsNaN(z_4[i])) continue;
+				if (ISNAN_F(z_4[i])) continue;
 				min = MIN(min,z_4[i]);
 				max = MAX(max,z_4[i]);
 			}
 		}
 		else {			/* Replace outside limits values by min | max */
 			for (i = 0; i < nx*ny; i++) {
-				if (mxIsNaN(z_4[i])) continue;
+				if (ISNAN_F(z_4[i])) continue;
 				if (z_4[i] < min) z_4[i] = min;
 				else if (z_4[i] > max) z_4[i] = max;
 			}
@@ -266,13 +271,13 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 			if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {	/* if z == NaN, out will be = 0 */
-					if (mxIsNaN(z_4[i])) continue;
+					if (ISNAN_F(z_4[i])) continue;
 					out8[i] = (char)(((z_4[i] - min) * range) + add_off);
 				}
 			} 
 			else if (scale16) {	/* Scale to uint16 */
 				for (i = 0; i < nx*ny; i++) {
-					if (mxIsNaN(z_4[i])) continue;
+					if (ISNAN_F(z_4[i])) continue;
 					out16[i] = (unsigned short int)(((z_4[i] - min) * range) + add_off);
 				} 
 			} 
