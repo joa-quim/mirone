@@ -136,7 +136,8 @@ function writekml(handles,Z,fname)
 				fprintf(fid,'\t%s\n','</NetworkLink>');
 				ploted_PBs = true;
 			end
-			load (['data' filesep 'mirone_icons.mat'],'circle_logic');
+			%load (['data' filesep 'mirone_icons.mat'],'circle_logic');
+			load ([handles.path_data filesep 'mirone_icons.mat'],'circle_logic');
 			img = uint8(circle_logic);
 			n_groups = length(h);                           % N of different point ensembles
 			for (i = 1:n_groups)
@@ -238,7 +239,7 @@ function writekml(handles,Z,fname)
 			end
 			symbol.Marker = char(symbol.Marker);
 			symbol.Marker = symbol.Marker(:,1);
-			load (['data' filesep 'mirone_icons.mat'],'star_logic','triangle_logic','losangle_logic',...
+			load ([handles.path_data filesep 'mirone_icons.mat'],'star_logic','triangle_logic','losangle_logic',...
 				'pentagon_logic','hexagon_logic','circle_logic');
 			fprintf(fid,'\t%s\n','<Folder>');
 			for (k = 1:numel(symbol.Marker))
