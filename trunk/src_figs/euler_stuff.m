@@ -1,5 +1,5 @@
 function varargout = euler_stuff(varargin)
-% command line arguments to euler_stuff 
+% command line arguments to euler_stuff (Euler rotations)
 
 %	Copyright (c) 2004-2011 by J. Luis
 %
@@ -455,119 +455,116 @@ function check_singleRotation_CB(hObject, handles)
 
 % --------------------------------------------------------------------
 function push_polesList_CB(hObject, handles)
-fid = fopen([handles.path_continent 'lista_polos.dat'],'rt');
-c = fread(fid,'*char').';
-fclose(fid);
-s = strread(c,'%s','delimiter','\n');
+	fid = fopen([handles.path_continent 'lista_polos.dat'],'rt');
+	c = fread(fid,'*char').';
+	fclose(fid);
+	s = strread(c,'%s','delimiter','\n');
 
-multiple_str = 'multiple_finite';
-if (handles.do_interp)      multiple_val = 1;
-else                        multiple_val = 0;
-end
+	multiple_str = 'multiple_finite';
+	if (handles.do_interp)      multiple_val = 1;
+	else                        multiple_val = 0;
+	end
 
-[s,v] = choosebox('Name','One Euler list',...
-                    'PromptString','List of poles:',...
-                    'SelectString','Selected poles:',...
-                    'ListSize',[380 300],...
-                    multiple_str,multiple_val,...
-                    'ListString',s);
+	[s,v] = choosebox('Name','One Euler list',...
+						'PromptString','List of poles:',...
+						'SelectString','Selected poles:',...
+						'ListSize',[380 300],...
+						multiple_str,multiple_val,...
+						'ListString',s);
 
-if (v == 1)         % Finite pole (one only)
-    handles.p_lon = s(1);
-    handles.p_lat = s(2);
-    handles.p_omega = s(3);
-    set(handles.edit_poleLon, 'String', num2str(s(1)))
-    set(handles.edit_poleLat, 'String', num2str(s(2)))
-    set(handles.edit_poleAngle, 'String', num2str(s(3)))
-    guidata(hObject,handles)
-elseif (v == 2)     % Stage poles
-    set(handles.edit_polesFile,'String',s)
-elseif (v == 3)     % Multiple finite poles (with ages)
-    set(handles.edit_polesFile,'String','In memory poles')
-    handles.finite_poles = s;
-    guidata(hObject,handles)
-end
-
-% -----------------------------------------------------------------------------------
-function tab_group_CB(hObject, handles)
+	if (v == 1)         % Finite pole (one only)
+		handles.p_lon = s(1);
+		handles.p_lat = s(2);
+		handles.p_omega = s(3);
+		set(handles.edit_poleLon, 'String', num2str(s(1)))
+		set(handles.edit_poleLat, 'String', num2str(s(2)))
+		set(handles.edit_poleAngle, 'String', num2str(s(3)))
+		guidata(hObject,handles)
+	elseif (v == 2)     % Stage poles
+		set(handles.edit_polesFile,'String',s)
+	elseif (v == 3)     % Multiple finite poles (with ages)
+		set(handles.edit_polesFile,'String','In memory poles')
+		handles.finite_poles = s;
+		guidata(hObject,handles)
+	end
 
 % -----------------------------------------------------------------------------------
 function push_pickLine_CB(hObject, handles)
-    % Test if we have potential target lines and their type
-    h_mir_lines = findobj(handles.hCallingFig,'Type','line');     % Fish all objects of type line in Mirone figure
-    if (isempty(h_mir_lines))                                       % We don't have any lines
-        str = ['If you hited this button on purpose, than you deserve the following insult.',...
-                'You #!|"*!%!?~^)--$&.',... 
-                'THERE ARE NO LINES IN THAT FIGURE.'];
-        errordlg(str,'Chico Clever');     return;
-    end
-    
-    set(handles.hCallingFig,'pointer','crosshair')
-    h_line = get_polygon(handles.hCallingFig,'multi');        % Get the line handle
+% Test if we have potential target lines and their type
+	h_mir_lines = findobj(handles.hCallingFig,'Type','line');		% Fish all objects of type line in Mirone figure
+	if (isempty(h_mir_lines))										% We don't have any lines
+		str = ['If you hited this button on purpose, than you deserve the following insult.',...
+				'You #!|"*!%!?~^)--$&.',... 
+				'THERE ARE NO LINES IN THAT FIGURE.'];
+		errordlg(str,'Chico Clever');     return;
+	end
+
+	set(handles.hCallingFig,'pointer','crosshair')
+	h_line = get_polygon(handles.hCallingFig,'multi');		% Get the line handle
 	if (numel(h_line) > 1)
 		h_line = unique(h_line);
 	end
-    tf = ismember(h_line,handles.hLineSelected);        % Check that the line was not already selected
-    if (tf)     % Repeated line
-        set(handles.hCallingFig,'pointer','arrow');   figure(handles.figure1);   return;
-    end
-    for (k = 1:numel(h_line))
-        c = get(h_line(k),'Color');
-        t = get(h_line(k),'LineWidth');
-        h = copyobj(h_line(k),handles.mironeAxes);
-        rmappdata(h,'polygon_data')     % Remove the parent's ui_edit_polygon appdata
-        ui_edit_polygon(h)              % And set a new one
-        set(h,'LineWidth',t+2,'Color',1-c)
-        uistack_j(h,'bottom')
-        handles.h_line_orig = [handles.h_line_orig; h];
-        % Make a copy of the selected handles to be used in props recovering
-        handles.hLineSelected = [handles.hLineSelected; h_line(k)];
-    end
-    set(handles.hCallingFig,'pointer','arrow')
-    figure(handles.figure1)                 % Bring this figure to front again
+	tf = ismember(h_line,handles.hLineSelected);			% Check that the line was not already selected
+	if (tf)			% Repeated line
+		set(handles.hCallingFig,'pointer','arrow');   figure(handles.figure1);   return;
+	end
+	for (k = 1:numel(h_line))
+		c = get(h_line(k),'Color');
+		t = get(h_line(k),'LineWidth');
+		h = copyobj(h_line(k),handles.mironeAxes);
+		rmappdata(h,'polygon_data')			% Remove the parent's ui_edit_polygon appdata
+		ui_edit_polygon(h)					% And set a new one
+		set(h,'LineWidth',t+2,'Color',1-c)
+		uistack_j(h,'bottom')
+		handles.h_line_orig = [handles.h_line_orig; h];
+		% Make a copy of the selected handles to be used in props recovering
+		handles.hLineSelected = [handles.hLineSelected; h_line(k)];
+	end
+	set(handles.hCallingFig,'pointer','arrow')
+	figure(handles.figure1)					% Bring this figure to front again
 
 	nl = numel(handles.h_line_orig);
 	if (nl)
-        set(handles.text_activeLine,'String',['GOT ' num2str(nl) ' LINE(S) TO WORK WITH'],'ForegroundColor',[0 0.8 0])
+		set(handles.text_activeLine,'String',['GOT ' num2str(nl) ' LINE(S) TO WORK WITH'],'ForegroundColor',[0 0.8 0])
 	else
-        set(handles.text_activeLine,'String','NO ACTIVE LINE','ForegroundColor',[1 0 0])
+		set(handles.text_activeLine,'String','NO ACTIVE LINE','ForegroundColor',[1 0 0])
 	end
 	guidata(hObject, handles);
 
 % -----------------------------------------------------------------------------------
 function push_rectSelect_CB(hObject, handles)
-    % Test if we have potential target lines and their type
-    h_mir_lines = findobj(handles.hCallingFig,'Type','line');     % Fish all objects of type line in Mirone figure
-    if (isempty(h_mir_lines)),      return;     end                 % We don't have any lines
-    figure(handles.hCallingFig)
-    [p1,p2,hl] = rubberbandbox;
-    delete(hl)
-    figure(handles.figure1)         % Bring this figure fowrward again
-    h = zeros(numel(h_mir_lines),1);
-    hc = h;
-    for (i=1:numel(h_mir_lines))    % Loop over lines to find out which cross the rectangle
-        x = get(h_mir_lines(i),'XData');
-        y = get(h_mir_lines(i),'YData');
-        if ( any( (x >= p1(1) & x <= p2(1)) & (y >= p1(2) & y <= p2(2)) ) )
-            tf = ismember(h_mir_lines(i),handles.hLineSelected);    % Check that the line was not already selected
-            if (tf),    continue;     end                           % Repeated line
-            c = get(h_mir_lines(i),'Color');
-            t = get(h_mir_lines(i),'LineWidth');
-            h(i) = copyobj(h_mir_lines(i),handles.mironeAxes);
-            rmappdata(h(i),'polygon_data')     % Remove the parent's ui_edit_polygon appdata
-            ui_edit_polygon(h(i))              % And set a new one
-            set(h(i),'LineWidth',t+2,'Color',1-c)
-            uistack_j(h(i),'bottom')
-            hc(i) = h_mir_lines(i);         % Make a copy of the selected handles to be used in props recovering
-        end
-    end
-    h(h == 0) = [];     hc(hc == 0) = [];
-    if (~isempty(h))
-        handles.h_line_orig = [handles.h_line_orig; h];        % This is a bad name
-        handles.hLineSelected = [handles.hLineSelected; hc];
-        guidata(handles.figure1,handles)
-    end
-    set(handles.text_activeLine,'String',['GOT ' num2str(numel(h)) ' LINE(S) TO WORK WITH'],'ForegroundColor',[0 0.8 0])
+% Test if we have potential target lines and their type
+	h_mir_lines = findobj(handles.hCallingFig,'Type','line');     % Fish all objects of type line in Mirone figure
+	if (isempty(h_mir_lines)),      return;     end                 % We don't have any lines
+	figure(handles.hCallingFig)
+	[p1,p2,hl] = rubberbandbox;
+	delete(hl)
+	figure(handles.figure1)         % Bring this figure fowrward again
+	h = zeros(numel(h_mir_lines),1);
+	hc = h;
+	for (i=1:numel(h_mir_lines))    % Loop over lines to find out which cross the rectangle
+		x = get(h_mir_lines(i),'XData');
+		y = get(h_mir_lines(i),'YData');
+		if ( any( (x >= p1(1) & x <= p2(1)) & (y >= p1(2) & y <= p2(2)) ) )
+			tf = ismember(h_mir_lines(i),handles.hLineSelected);    % Check that the line was not already selected
+			if (tf),    continue;     end                           % Repeated line
+			c = get(h_mir_lines(i),'Color');
+			t = get(h_mir_lines(i),'LineWidth');
+			h(i) = copyobj(h_mir_lines(i),handles.mironeAxes);
+			rmappdata(h(i),'polygon_data')     % Remove the parent's ui_edit_polygon appdata
+			ui_edit_polygon(h(i))              % And set a new one
+			set(h(i),'LineWidth',t+2,'Color',1-c)
+			uistack_j(h(i),'bottom')
+			hc(i) = h_mir_lines(i);         % Make a copy of the selected handles to be used in props recovering
+		end
+	end
+	h(h == 0) = [];     hc(hc == 0) = [];
+	if (~isempty(h))
+		handles.h_line_orig = [handles.h_line_orig; h];        % This is a bad name
+		handles.hLineSelected = [handles.hLineSelected; hc];
+		guidata(handles.figure1,handles)
+	end
+	set(handles.text_activeLine,'String',['GOT ' num2str(numel(h)) ' LINE(S) TO WORK WITH'],'ForegroundColor',[0 0.8 0])
 
 % -----------------------------------------------------------------------------------
 function edit_pole1Lon_CB(hObject, handles)
@@ -817,7 +814,6 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Tag','figure1');
 
 uicontrol('Parent',h1, 'Position',[102 310 91 21],...
-'Callback',{@euler_stuff_uiCB,h1,'tab_group_CB'},...
 'Enable','inactive',...
 'String','Add poles',...
 'ButtonDownFcn',{@euler_stuff_uiCB,h1,'tab_group_ButtonDownFcn'},...
@@ -825,7 +821,6 @@ uicontrol('Parent',h1, 'Position',[102 310 91 21],...
 'UserData','AddPoles');
 
 uicontrol('Parent',h1, 'Position',[10 310 91 21],...
-'Callback',{@euler_stuff_uiCB,h1,'tab_group_CB'},...
 'Enable','inactive',...
 'String','Do Rotations',...
 'ButtonDownFcn',{@euler_stuff_uiCB,h1,'tab_group_ButtonDownFcn'},...
@@ -833,7 +828,6 @@ uicontrol('Parent',h1, 'Position',[10 310 91 21],...
 'UserData','DoRotations');
 
 uicontrol('Parent',h1, 'Position',[194 310 100 21],...
-'Callback',{@euler_stuff_uiCB,h1,'tab_group_CB'},...
 'Enable','inactive',...
 'String','Interpolate poles',...
 'ButtonDownFcn',{@euler_stuff_uiCB,h1,'tab_group_ButtonDownFcn'},...
