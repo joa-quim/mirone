@@ -36,7 +36,7 @@ function varargout = compute_euler(varargin)
 		handles.pLon_ini = varargin{3};
 		handles.pLat_ini = varargin{4};
 		handles.pAng_ini = varargin{5};
-		if ( isempty(handles.noise) )			% "Regular" mode
+		if ( isempty(handles.noise) )		% "Regular" mode
 			if (ischar(varargin{2})),		handles.isoca2 = le_fiche(varargin{2});
 			else							handles.isoca2 = varargin{2};
 			end
@@ -95,6 +95,7 @@ function varargout = compute_euler(varargin)
 		errordlg('This operation is currently possible only for geographic type data','ERROR')
 		delete(hObject);    return
 	end
+	handles.home_dir = handMir.home_dir;
 	handles.path_continent = [handMir.home_dir filesep 'continents' filesep];
 	handles.IamCompiled = handMir.IamCompiled;		% Need to know due to crazy issue of nc_funs
 
@@ -347,6 +348,34 @@ function push_stop_CB(hObject, handles)
     set(handles.slider_wait,'Value',0)  % We have to do this first
     set(handles.slider_wait,'Max',1)    % This will signal the fit_pEuler function to stop
 
+% -------------------------------------------------------------------------------
+function out = outward_displacement_treta(handles)
+% See if the OPTcontrol.txt file has an outward displacement file entry
+	opt_file = [handles.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
+	out = [];
+	if ( exist(opt_file, 'file') == 2 )
+		fid = fopen(opt_file, 'r');
+		c = (fread(fid,'*char'))';      fclose(fid);
+		lines = strread(c,'%s','delimiter','\n');   clear c fid;
+		m = numel(lines);
+		odFile = [];
+		for (k = 1:m)
+			if (~strncmp(lines{k},'MIR_OD',6)),	continue,	end
+			odFile = ddewhite(lines{k}(8:end));
+			if (exist(odFile,'file') ~= 2)
+				errordlg(['Outward displacement file ' odFile ' does not exist. Ignoring OD request'],'Error')
+				odFile = [];
+			end
+			break
+		end
+		if (~isempty(odFile))
+			out = text_read(odFile);
+			if (isempty(out) || size(out,2) == 1)
+				errordlg(['File ' odFile ' doesn''t have any recognized nymeric data, or one column only.'],'Error');
+			end
+		end
+	end
+
 % -------------------------------------------------------------------------------------
 function push_compute_CB(hObject, handles)
 % OK. See if we have all the information needed to compute the Euler pole
@@ -365,6 +394,9 @@ function push_compute_CB(hObject, handles)
 		return
 	end
 
+	% Check if we have an Outward Displacement request placed in OPTcontrol.txt. If not 'out' is []
+	OD = outward_displacement_treta(handles);	
+
 	% The distmin MEX algo relies on the assumption that both lines have vertex growing in
 	% the same sense. That is, Lat is increasing or decreasing for both (we test only Lat)
 	Dlat1 = handles.isoca1(end,2) - handles.isoca1(1,2);
@@ -375,7 +407,7 @@ function push_compute_CB(hObject, handles)
 
 	if (~get(handles.check_hellinger,'Val'))		% Our method
 		do_weighted = true;
-		calca_pEuler(handles, do_weighted, true);
+		calca_pEuler(handles, do_weighted, true, OD);
 	else											% Try with Hellinger's (pfiu)
 		[pLon,pLat,pAng] = hellinger(handles.pLon_ini,handles.pLat_ini,handles.pAng_ini, handles.isoca1, handles.isoca2, handles.DP_tol);
 		set(handles.edit_pLon_fim,'String',pLon);			set(handles.edit_pLat_fim,'String',pLat)
@@ -405,7 +437,7 @@ function numeric_data = le_fiche(fname)
 	end
 
 % -------------------------------------------------------------------------------
-function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, isGUI)
+function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, isGUI, OD)
 
 	D2R = pi / 180;		h_line = [];
 	ecc = 0.0818191908426215;	% WGS84
@@ -413,9 +445,43 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 		h_line = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',[],'YData',[], ...
 			'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
 	end
-	
+
 	isoca1 = handles.isoca1 * D2R;		% A maluca
 	isoca2 = handles.isoca2 * D2R;		% A fixa
+
+	% Check if we have an Outward Displacement (in)correction request
+	if (nargin == 4 && ~isempty(OD))	% If yes OD has ods in km
+		R2D = 180 / pi;
+	 	[rlon1,rlat1] = rot_euler(isoca1(:,1), isoca1(:,2),handles.pLon_ini*D2R,handles.pLat_ini*D2R,handles.pAng_ini*D2R,'rad',-1);
+	 	[rlon2,rlat2] = rot_euler(isoca2(:,1), isoca2(:,2),handles.pLon_ini*D2R,handles.pLat_ini*D2R,-handles.pAng_ini*D2R,'rad',-1);
+		shifts_1 = interp1(OD(:,1)*D2R, OD(:,2), rlat1, 'linear', 0);		% Shifts in km
+		shifts_2 = interp1(OD(:,1)*D2R, OD(:,2), rlat2, 'linear', 0);
+
+		isoca1 = isoca1 * R2D;			isoca2 = isoca2 * R2D;
+		rlat1  = rlat1 * R2D;			rlon1  = rlon1 * R2D;
+		rlat2  = rlat2 * R2D;			rlon2  = rlon2 * R2D;
+		[s,a12] = vdist(isoca1(:,2),isoca1(:,1),rlat1,rlon1);	% coords must be in degrees here
+		for (k = 1:numel(rlon1))
+			[rlat1(k), rlon1(k)] = vreckon(rlat1(k), rlon1(k), shifts_1(k)*1000, a12(k), 1);
+		end
+		[s,a12] = vdist(isoca2(:,2),isoca2(:,1),rlat2,rlon2);
+		for (k = 1:numel(rlon2))
+			[rlat2(k), rlon2(k)] = vreckon(rlat2(k), rlon2(k), shifts_2(k)*1000, a12(k), 1);
+		end
+
+		isoca1 = isoca1 * D2R;			isoca2 = isoca2 * D2R;	% Put them back in radians
+		rlat1  = rlat1 * D2R;			rlon1  = rlon1 * D2R;
+		rlat2  = rlat2 * D2R;			rlon2  = rlon2 * D2R;
+		% Now invert rotations to get the "original" corrected positions
+	 	[isoca1(:,1),isoca1(:,2)] = rot_euler(rlon1, rlat1, handles.pLon_ini*D2R,handles.pLat_ini*D2R,-handles.pAng_ini*D2R,'rad',-1);
+	 	[isoca2(:,1),isoca2(:,2)] = rot_euler(rlon2, rlat2, handles.pLon_ini*D2R,handles.pLat_ini*D2R,handles.pAng_ini*D2R,'rad',-1);
+
+% 		h1=line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',isoca1(:,1)/D2R,'YData',isoca1(:,2)/D2R,'Color','r');
+% 		h2=line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',isoca2(:,1)/D2R,'YData',isoca2(:,2)/D2R,'Color','y');
+% 		draw_funs(h1,'isochron',{'Fitted Line'})
+% 		draw_funs(h2,'isochron',{'Fitted Line'})
+	end
+	
 	isoca1(:,2) = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );	% Lat da isoca1 geocentrica
 	isoca2(:,2) = atan2( (1-ecc^2)*sin(isoca2(:,2)), cos(isoca2(:,2)) );	% Lat da isoca2 geocentrica
 
@@ -478,7 +544,7 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	end
 
 	[polLon, polLat, polAng, area_f, resid] = ...
-		fit_pEuler(handles, p_lon, p_lat, p_omeg, area0, h_line, lenRot1, lenRot2, do_weighted, isGUI);
+		fit_pEuler(handles, isoca1, isoca2, p_lon, p_lat, p_omeg, area0, h_line, lenRot1, lenRot2, do_weighted, isGUI);
 
 	if (handles.do_graphic),	draw_funs(h_line,'isochron',{'Fitted Line'}),	end
 
@@ -494,15 +560,15 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 
 % -------------------------------------------------------------------------------
 function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
-		fit_pEuler(handles, p_lon, p_lat, p_omeg, area0, h_line, lenRot1,  lenRot2, do_weighted, isGUI)
+		fit_pEuler(handles, isoca1, isoca2, p_lon, p_lat, p_omeg, area0, h_line, lenRot1,  lenRot2, do_weighted, isGUI)
 % This is the function that does the real work of computing the best Euler pole
 % that fits the lines "isoca1" "isoca2"
+% ISOCA1 -> A maluca	- Normally they are already converted to geocentrics
+% ISOCA2 -> Fix one
 	lon_bf = [];		lat_bf = [];	omega_bf = [];
 	D2R = pi / 180;
 	ecc = 0.0818191908426215;			% WGS84
 	nLon = numel(p_lon);	nLat = numel(p_lat);	nAng = numel(p_omeg);
-	isoca1 = handles.isoca1 * D2R;		% A maluca
-	isoca2 = handles.isoca2 * D2R;		% A fixa
 
 	if (~isempty(handles.residGrdName))	% Store all residues in a 3D array
 		save_resid = true;		resid = zeros(nLat,nLon,nAng) * NaN;	testResidue = 1e20;
@@ -514,9 +580,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 		strAdv = fprintf('\n%000\t Lons rots out of %d', nLon);		% For the Text progressbar		
 	end
 
-	lat = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );	% Lat da isoca1 geocentrica
-	s_lat = sin(lat);			c_lat = cos(lat);
-	isoca2(:,2) = atan2( (1-ecc^2)*sin(isoca2(:,2)), cos(isoca2(:,2)) );	% Lat da isoca2 geocentrica
+	s_lat = sin(isoca1(:,2));			c_lat = cos(isoca1(:,2));
 
 	X = isoca2(:,1) .* cos(isoca2(:,2)) * 6371;		Y = isoca2(:,2) * 6371;
 	i_m = 1;	j_m = 1;	k_m = 1;
