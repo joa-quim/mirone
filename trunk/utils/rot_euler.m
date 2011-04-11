@@ -13,6 +13,7 @@ function [rlon,rlat] = rot_euler(lon,lat,p_lon,p_lat,omega,units, ecc)
 %	(..., units) UNITS	-> Numeric value. The numeric value contain the first exccentricity
 %	(...,units, ecc)	-> Units selects either 'radians' or 'degrees' as above
 %	If ECC = -1, use the default value for the WGS84 datum
+%	If ECC = 0,  Do not convert to geocentrics
 %
 %   Based on code extracted from GMT
 
