@@ -12,6 +12,7 @@ function [out1,out2] = uicirclegeo(varargin)
 %  The distance units (kilometers, miles, nautical miles, radians) can be modified
 %  using the appropriate pop-up menus.
 %
+%  UICIRCLEGEO(clon, clat, hAxes)	hAxes is optional. If not given defaults to gca
 %  h = UICIRCLEGEO(...) returns the handles of the circles drawn.
 %
 %  [lat,lon] = UICIRCLEGEO(...) returns the latitude and longitude
@@ -32,72 +33,78 @@ function [out1,out2] = uicirclegeo(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-know_center = 0;
+	know_center = 0;
 
-if nargin == 1 && ischar(varargin{1})         % GUI callbacks
-    circleui(varargin{:});
-    return
-elseif (nargin == 2 && isnumeric(varargin{1}) && isnumeric(varargin{2}))  % Circle center in input
-    know_center = 1;
-end
+	if nargin == 1 && ischar(varargin{1})         % GUI callbacks
+		circleui(varargin{:});
+		return
+	elseif (nargin >= 2 && isnumeric(varargin{1}) && isnumeric(varargin{2}))  % Circle center in input
+		know_center = 1;
+	end
 
-s.h_fig = gcf;      s.h_axes = gca;
-state = uisuspend_fig(s.h_fig);   % Remember initial figure state
+	if ( nargin == 3 && ishandle(varargin{3}) && strcmp(get(varargin{3},'type'), 'axes') )
+		s.h_axes = varargin{3};
+		s.h_fig = get(s.h_axes, 'Parent');
+	else
+		s.h_fig = gcf;		s.h_axes = gca;
+	end
 
-%  Plot the circles
-set(s.h_fig,'Pointer', 'crosshair');
-w = waitforbuttonpress;
-if w == 0       % A mouse click
-    if ~know_center
-        h_circ = circFirstButtonDown;
-    else        % Center was transmited in input
-        h_circ = circFirstButtonDown(varargin{1},varargin{2});
-    end
-else
-    set(s.h_fig,'Pointer', 'arrow');
-    out1 = [];    return
-end
+	state = uisuspend_fig(s.h_fig);   % Remember initial figure state
 
-% I have to use a waitfor to give time to operate (that is, select a circle) inside the
-% the functions called by circFirstButtonDown. I don't understand why, bu if I don't
-% do this, we are just kicked out of the program whithout having time to do anything.
-try
-    waitfor(h_circ, 'Tag', 'Completed');
-    uirestore_fig(state);         % Restore the figure's initial state
-end
+	%  Plot the circles
+	set(s.h_fig,'Pointer', 'crosshair');
+	w = waitforbuttonpress;
+	if w == 0			% A mouse click
+		if ~know_center
+			h_circ = circFirstButtonDown;
+		else			% Center was transmited in input
+			h_circ = circFirstButtonDown(varargin{1},varargin{2});
+		end
+	else
+		set(s.h_fig,'Pointer', 'arrow');
+		out1 = [];    return
+	end
 
-lon_lat_rad = getappdata(h_circ,'LonLatRad');
+	% I have to use a waitfor to give time to operate (that is, select a circle) inside the
+	% the functions called by circFirstButtonDown. I don't understand why, bu if I don't
+	% do this, we are just kicked out of the program whithout having time to do anything.
+	try
+		waitfor(h_circ, 'Tag', 'Completed');
+		uirestore_fig(state);         % Restore the figure's initial state
+	end
 
-%  Get the circle definition.
-lat1 = lon_lat_rad(2);      lon1 = lon_lat_rad(1);
-xx = getappdata(h_circ,'FirstEndPoint');        % Retrieve the circle's first end point
-lon2 = xx(1);       lat2 = xx(2);
-rad = geo2dist([lon1 lon2],[lat1 lat2],'deg');
-az = azimuth_geo(lat1,lon1,lat2,lon2);
-rmappdata(h_circ,'FirstEndPoint')
+	lon_lat_rad = getappdata(h_circ,'LonLatRad');
 
-%  Set the correct structures
-s.npts = 180;       % Use 180 points by default
-s.clat = lat1;      s.clon = lon1;
-s.rlat = lat2;      s.rlon = lon2;
-s.rad = rad;        s.az = az;
-s.controls = 'off';
-s.hcontrol = [];    s.hcenter = [];
-s.hcirc = h_circ;   s.hend = [];
-s.parent = get(s.hcirc,'parent');	
-s.num = rand;
-s.omega = [];       % Used when the circle is about an Euler pole
-s.plates = [];      %                   ''
-set(h_circ,'userdata',s,'buttondownfcn','uicirclegeo(''circlemousedown'')');
-set(h_circ,'Tag','circleGeo')
+	%  Get the circle definition.
+	lat1 = lon_lat_rad(2);      lon1 = lon_lat_rad(1);
+	xx = getappdata(h_circ,'FirstEndPoint');        % Retrieve the circle's first end point
+	lon2 = xx(1);       lat2 = xx(2);
+	rad = geo2dist([lon1 lon2],[lat1 lat2],'deg');
+	az = azimuth_geo(lat1,lon1,lat2,lon2);
+	rmappdata(h_circ,'FirstEndPoint')
 
-%  Set output arguments
-if nargout == 1
-    out1 = h_circ;
-elseif nargout == 2
-    out1 = get(h_circ,'XData');
-    out2 = get(h_circ,'YData');
-end
+	%  Set the correct structures
+	s.npts = 180;       % Use 180 points by default
+	s.clat = lat1;      s.clon = lon1;
+	s.rlat = lat2;      s.rlon = lon2;
+	s.rad = rad;        s.az = az;
+	s.controls = 'off';
+	s.hcontrol = [];    s.hcenter = [];
+	s.hcirc = h_circ;   s.hend = [];
+	s.parent = get(s.hcirc,'parent');	
+	s.num = rand;
+	s.omega = [];       % Used when the circle is about an Euler pole
+	s.plates = [];      %                   ''
+	set(h_circ,'userdata',s,'buttondownfcn','uicirclegeo(''circlemousedown'')');
+	set(h_circ,'Tag','circleGeo')
+
+	%  Set output arguments
+	if nargout == 1
+		out1 = h_circ;
+	elseif nargout == 2
+		out1 = get(h_circ,'XData');
+		out2 = get(h_circ,'YData');
+	end
 
 %---------------------------------------------------------------------------------------------------
 function h = circFirstButtonDown(lon,lat)
