@@ -2474,8 +2474,11 @@ function Isochrons_Info(obj,eventdata,data)
 	if (isstruct(i))    % This happens when h is ui_edit_polygon(ed)
 		i = i.old_ud;
 	end
-	tag = data{i};
-	msgbox( sprintf(tag),'This line info')
+	if (~isempty(i))
+		msgbox( sprintf(data{i}),'This line info')
+	else
+		msgbox( 'Could not find reference to this object','This line info')
+	end
 
 % -----------------------------------------------------------------------------------------
 function gmtfile_Info(obj,eventdata,h,data)
