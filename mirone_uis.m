@@ -25,7 +25,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
 %#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
-%#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin
+%#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin demets_od
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -549,9 +549,10 @@ uimenu('Parent',hDS,'Call','atlas(guidata(gcbo))','Label','Atlas','Tag','Atlas',
 
 %% --------------------------- Plates -------------------------------------
 hP = uimenu('Parent',H1,'Label','Plates','Tag','Plates');
-uimenu('Parent',hP,'Call','plate_calculator','Label','Plate calculater');
+uimenu('Parent',hP,'Call','plate_calculator','Label','Plate calculator');
 uimenu('Parent',hP,'Call','euler_stuff(gcf)','Label','Euler rotations');
 uimenu('Parent',hP,'Call','compute_euler(gcf)','Label','Compute Euler pole');
+uimenu('Parent',hP,'Call','demets_od(gcf)','Label','Apply (isoc) Outward Displacement');
 uimenu('Parent',hP,'Call','manual_pole_adjust(gcf)','Label','Manual adjust Euler pole');
 uimenu('Parent',hP,'Call','mirone(''DrawEulerPoleCircle_CB'',guidata(gcbo))','Label','Draw Circle about Euler pole');
 uimenu('Parent',hP,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''EulerTrapezium'')','Label','Draw Euler trapezium');
@@ -709,7 +710,7 @@ uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','o
 if (IamCompiled)
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''dump'')','Label','Print RAM fragmentation','Sep','on')
 end
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 11 Abr 2011'',''2.1.1'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 13 Abr 2011'',''2.1.1'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
