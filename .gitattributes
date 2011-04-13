@@ -586,6 +586,7 @@ src_figs/contouring.m -text
 src_figs/coordinate_system.m -text
 src_figs/deform_mansinha.m -text
 src_figs/deform_okada.m -text
+src_figs/demets_od.m -text
 src_figs/digitalFiltering.m -text
 src_figs/diluvio.m -text
 src_figs/draw_scale.m -text
