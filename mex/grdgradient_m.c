@@ -113,6 +113,10 @@
 #define EQ_RAD 6371.0087714
 #define M_PR_DEG (EQ_RAD * 1000 * M_PI / 180.0)
 
+/* For floats ONLY */
+#define ISNAN_F(x) (((*(int32_T *)&(x) & 0x7f800000L) == 0x7f800000L) && \
+                    ((*(int32_T *)&(x) & 0x007fffffL) != 0x00000000L))
+
 struct GRD_HEADER {
 /* Do not change the first three items. They are copied verbatim to the native grid header */
 	int nx;				/* Number of columns */
@@ -581,7 +585,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 		ij = (j + 2) * mx + 2;
 		for (i = 0; i < header.nx; i++, k++, ij++) {
-			for (n = 0, bad = FALSE; !bad && n < 4; n++) if (mxIsNaN (data[ij+p[n]])) bad = TRUE;
+			for (n = 0, bad = FALSE; !bad && n < 4; n++) if (ISNAN_F (data[ij+p[n]])) bad = TRUE;
 			if (bad) {	/* One of corners = NaN, skip */
 				data[k] = (float)mxGetNaN();
 				continue;
@@ -644,7 +648,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (lambertian || lambertian_s || peucker) {	/* data must be scaled to the [-1,1] interval, but we'll do it into [-.95, .95] to not get too bright */
 		scale = (float)(1. / (r_max - r_min));
 		for (k = 0; k < nm; k++) {
-			if (mxIsNaN (data[k])) continue;
+			if (ISNAN_F (data[k])) continue;
 			data[k] = (-1. + 2. * ((data[k] - r_min) * scale)) * 0.95;
 		}
 	}
@@ -663,24 +667,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 				else {
 					denom = 0.0;
-					for (k = 0; k < nm; k++) if (!mxIsNaN (data[k])) denom += pow(data[k] - ave_gradient, 2.0);
+					for (k = 0; k < nm; k++) if (!ISNAN_F (data[k])) denom += pow(data[k] - ave_gradient, 2.0);
 					denom = sqrt( (n_used - 1) / denom);
 					sigma = 1.0 / denom;
 				}
 				rpi = 2.0 * norm_val / M_PI;
-				for (k = 0; k < nm; k++) if (!mxIsNaN (data[k])) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
+				for (k = 0; k < nm; k++) if (!ISNAN_F (data[k])) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
 				header.z_max = rpi * atan((max_gradient - ave_gradient)*denom);
 				header.z_min = rpi * atan((min_gradient - ave_gradient)*denom);
 			}
 			else if (exp_trans) {
 				if (!sigma_set) {
 					sigma = 0.0;
-					for (k = 0; k < nm; k++) if (!mxIsNaN (data[k])) sigma += fabs((double)data[k]);
+					for (k = 0; k < nm; k++) if (!ISNAN_F (data[k])) sigma += fabs((double)data[k]);
 					sigma = M_SQRT2 * sigma / n_used;
 				}
 				denom = M_SQRT2 / sigma;
 				for (k = 0; k < nm; k++) {
-					if (mxIsNaN (data[k])) continue;
+					if (ISNAN_F (data[k])) continue;
 					if (data[k] < ave_gradient) {
 						data[k] = (float)(-norm_val * (1.0 - exp((data[k] - ave_gradient)*denom)));
 					}
@@ -698,7 +702,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				else {
 					denom = norm_val / (ave_gradient - min_gradient);
 				}
-				for (k = 0; k < nm; k++) if (!mxIsNaN (data[k])) data[k] = (float)((data[k] - ave_gradient) * denom);
+				for (k = 0; k < nm; k++) if (!ISNAN_F (data[k])) data[k] = (float)((data[k] - ave_gradient) * denom);
 				header.z_max = (max_gradient - ave_gradient) * denom;
 				header.z_min = (min_gradient - ave_gradient) * denom;
 			}
@@ -978,9 +982,9 @@ int GMT_boundcond_set (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo, int 
 	if (h->node_offset == 0) {
 		if (edgeinfo->gn) {
 			bok = 0;
-			if (mxIsNaN (a[jn + iw])) {
+			if (ISNAN_F (a[jn + iw])) {
 				for (i = iw+1; i <= ie; i++) {
-					if (!mxIsNaN (a[jn + i])) bok++;
+					if (!ISNAN_F (a[jn + i])) bok++;
 				}
 			}
 			else {
@@ -993,9 +997,9 @@ int GMT_boundcond_set (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo, int 
 
 		if (edgeinfo->gs) {
 			bok = 0;
-			if (mxIsNaN (a[js + iw])) {
+			if (ISNAN_F (a[js + iw])) {
 				for (i = iw+1; i <= ie; i++)
-					if (!mxIsNaN (a[js + i])) bok++;
+					if (!ISNAN_F (a[js + i])) bok++;
 			}
 			else {
 				for (i = iw+1; i <= ie; i++)
