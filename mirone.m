@@ -261,9 +261,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			pal = load([handles.path_data 'gmt_other_palettes.mat'],'circular');	pal = pal.circular;
 			zz = uint8(abs(rem(double(Z),cdo)/cdo)*255);
 		else
-			if (handles.have_nans),		zz = scaleto8(Z);
-			else						zz = cvlib_mex('scale8',Z);
-			end
+			zz = scaleto8(Z);
 		end
 		set(handles.figure1,'Colormap',pal)
 		aux_funs('StoreZ',handles,X,Y,Z)		% If grid size is not to big we'll store it
@@ -1476,7 +1474,7 @@ function loadGRID(handles,fullname,tipo,opt)
 %		   'MOLA'		To read Mars MOLA .img with a .lbl header file *OR* a V3 PDS .img
 %		   'whatever'	Let GDAL guess what to do (it means, any string)
 % OPT	-> the "att" attributes structure got from att = gdalread(fname,'-M',...)
- 	
+ 
 	if (nargin == 3)	opt = ' ';	end
 	set(handles.figure1,'pointer','watch')
 	[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, opt);
@@ -1489,9 +1487,7 @@ function loadGRID(handles,fullname,tipo,opt)
 
 	aux_funs('StoreZ',handles,X,Y,Z)				% If grid size is not to big we'll store it
 	aux_funs('colormap_bg',handles,Z,jet(256));
-	if (handles.have_nans),		zz = scaleto8(Z);
-	else						zz = cvlib_mex('scale8',Z);
-	end
+	zz = scaleto8(Z);
 	handles = show_image(handles,handles.fileName,X,Y,zz,1,'xy',handles.head(7));
 	if (isappdata(handles.axes1,'InfoMsg')),	rmappdata(handles.axes1,'InfoMsg'),		end
 	if (~isempty(att))
@@ -1764,7 +1760,7 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 	setappdata(handles.figure1,'illumComm',illumComm);		% Save these for ROI op & write_gmt_script
 	setappdata(handles.figure1,'Luz',luz);					% Save these for ROI operations
 
-	if (nargout)	% Send the reflectance back to caller and sto here
+	if (nargout)	% Send the reflectance back to caller and stop here
 		Reft = R;	guidata(handles.figure1, handles);
 		set(handles.figure1,'pointer','arrow')
 		return
@@ -2302,22 +2298,20 @@ function DrawEulerPoleCircle_CB(handles)
 	if isempty(out),	return,		end % User gave up
 	plon = out.lon;		plat = out.lat;
 	if (~out.absolute)
-		h_circ = uicirclegeo(plon,plat);
+		h_circ = uicirclegeo(plon, plat, handles.axes1);
 		set(h_circ,'Tag','CircleEuler')		% This is used by draw_funs to allow velocity computations
-		if ~isempty(out)
-			s = get(h_circ,'Userdata');
-			s.omega = out.omega;
-			if ~isempty(out.plates)			% Just in case
-				if isempty(strmatch('absolute',out.plates))		% A relative plate model
-					s.plates = [out.plates '  -- Model = ' out.model];
-				else											% An absolute plate model
-					s.plates = [out.plates(end-1:end) ' -- Model = ' out.model ' (Absolute)'];
-				end
-			else
-				s.plates = 'I''m lost';
+		s = get(h_circ,'Userdata');
+		s.omega = out.omega;
+		if ~isempty(out.plates)			% Just in case
+			if isempty(strmatch('absolute',out.plates))		% A relative plate model
+				s.plates = [out.plates '  -- Model = ' out.model];
+			else											% An absolute plate model
+				s.plates = [out.plates(end-1:end) ' -- Model = ' out.model ' (Absolute)'];
 			end
-			set(h_circ,'Userdata',s)
+		else
+			s.plates = 'I''m lost';
 		end
+		set(h_circ,'Userdata',s)
 		draw_funs(h_circ,'SessionRestoreCircle')
 	else
 		pt = ginput_pointer(1,'crosshair');
