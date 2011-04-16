@@ -427,7 +427,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	hTransformArg = 
     		GDALCreateGenImgProjTransformer( hSrcDS, pszSrcWKT, NULL, pszDstWKT, 
 						 nGCPCount == 0 ? FALSE : TRUE, 0, nOrder );
-	CPLAssert( hTransformArg != NULL );
+	if( hTransformArg == NULL )
+		mexErrMsgTxt("GDALTRANSFORM: Generating transformer failed.");
 
 	/* -------------------------------------------------------------------------- */
 	/*      Get approximate output georeferenced bounds and resolution for file
