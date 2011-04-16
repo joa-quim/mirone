@@ -1,10 +1,11 @@
-function [latc,lonc] = circ_geo(lat,lon,rng,azim,np)
+function [latc,lonc] = circ_geo(lat, lon, rng, azim, np, noforce_pipi)
 % Small circle defined by its center, range and azimuth
 % circ_geo(lat,lon,rng,azim,np)
 % azim and np are optional arguments. "azim" is a one or two-column vector. 
 % For single column, returns the arc between 0 and azim. For two columns, returns
 % the arc between azim(1) and azim(2).
 % "np" specifies the number of output points [default = 180].
+% NOFORCE_PIPI		If TRUE angles are not truncated into the [-pi pi] interval (default)
 % All angles are in degrees.
 
 %	Copyright (c) 2004-2011 by J. Luis
@@ -22,14 +23,17 @@ function [latc,lonc] = circ_geo(lat,lon,rng,azim,np)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-	D2R = pi/180;   npts  = 180;       az    = [];
-	if (nargin < 3)
+	D2R = pi/180;   npts  = 180;       az    = [];		n_args = nargin;
+	if (n_args < 3)
 		errordlg('Error calling circ_geo. Must give at least 3 arguments','Error')
-	elseif (nargin == 4)
-		az = azim;
-	elseif (nargin == 5)
+	elseif (n_args == 4)
+		az = azim;					noforce_pipi = false;
+	elseif (n_args == 5)
+		az = azim;    npts = np;	noforce_pipi = false;
+	else
 		az = azim;    npts = np;
 	end
+	force_pipi = ~noforce_pipi;		% I'm fed up of tests on negations of negations to know if true
 
 	%  Allow for multiple circles starting from the same point
 	if (numel(lat) == 1 && numel(lon) == 1 && numel(rng) > 1)
@@ -76,8 +80,18 @@ function [latc,lonc] = circ_geo(lat,lon,rng,azim,np)
 	temp3  = sin(lat).*sin(rng).*cos(az);
 	lonc   = lon + atan2(temp1,temp2-temp3);
 
-	% Truncate angles into the [-pi pi] range
-	lonc = pi*((abs(lonc)/pi) - 2*ceil(((abs(lonc)/pi)-1)/2)) .* sign(lonc);
+	if (force_pipi)		% Truncate angles into the [-pi pi] range
+		%lonc = pi*((abs(lonc)/pi) - 2*ceil(((abs(lonc)/pi)-1)/2)) .* sign(lonc);
+		ind = (lonc > pi);
+		if (any(ind)),		lonc(ind) = lonc(ind) - 2*pi;	end
+		ind = (lonc < -pi);
+		if (any(ind)),		lonc(ind) = lonc(ind) + 2*pi;	end
+	else				% Truncate angles into the [0 2pi] range
+		ind = (lonc > 2*pi);
+		if (any(ind)),		lonc(ind) = lonc(ind) - 2*pi;	end
+		ind = (lonc < 0);
+		if (any(ind)),		lonc(ind) = lonc(ind) + 2*pi;	end
+	end
 
 	%  Convert back to degrees
 	latc = latc / D2R;      lonc = lonc / D2R;
