@@ -187,6 +187,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	clock_t tic;
 	
 	float	*data, *z_4, *pdata_s;
+	float	nan = mxGetNaN();
 	double	dx_grid, dy_grid, x_factor, y_factor, dzdx, dzdy, ave_gradient, norm_val = 1.0, sigma = 0.0;
 	double	azim, denom, max_gradient = 0.0, min_gradient = 0.0, rpi, m_pr_degree, lat, azim2;
 	double	x_factor2, y_factor2, dzdx2, dzdy2, dzds1, dzds2, offset;
@@ -227,6 +228,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			
 				/* Supplemental parameters */
 			
+				case 'a':	/* NaN value. Use 1 to not change the illuminated NaNs color */
+					sscanf(&argv[i][2], "%f", &nan);
+					break;
 				case 'A':
 					do_direct_deriv = TRUE;
 					j = sscanf(&argv[i][2], "%lf/%lf", &azim, &azim2);
@@ -344,7 +348,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				default:
 					error = TRUE;
 					break;
-					
 			}
 		}
 	}
@@ -352,7 +355,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (argc == 1 || error) {
 		mexPrintf ("grdgradient - Compute directional gradients from grdfiles\n\n");
 		mexPrintf ( "usage: R = grdgradient_m(infile,head,'[-A<azim>[/<azim2>]]', '[-D[a][o][n]]', '[-L<flag>]',\n");
-		mexPrintf ( "'[-M]', '[-N[t_or_e][<amp>[/<sigma>[/<offset>]]]]', '[-S]')\n\n");
+		mexPrintf ( "'[-M]', '[-N[t_or_e][<amp>[/<sigma>[/<offset>]]]]', '[-S]', '[-a<nan_val>]')\n\n");
 		mexPrintf ("\t<infile> is name of input array\n");
 		mexPrintf ("\t<head> is array header descriptor of the form\n");
 		mexPrintf ("\t [x_min x_max y_min y_max z_min zmax 0 x_inc y_inc]\n");
@@ -389,6 +392,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ( "\t  -Nt<amp>/<sigma>[/<offset>] or -Ne<amp>/<sigma>[/<offset>] sets sigma\n");
 		mexPrintf ( "\t     (and offset) for transform. [sigma, offset estimated from data]\n");
 		mexPrintf ( "\t-S output |grad z| instead of directional derivatives; requires -D\n");
+		mexPrintf ( "\t-a NaN value. Use 1 to not change the illuminated NaNs color [default is NaN]\n");
 		return;
 	}
 
@@ -587,7 +591,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		for (i = 0; i < header.nx; i++, k++, ij++) {
 			for (n = 0, bad = FALSE; !bad && n < 4; n++) if (ISNAN_F (data[ij+p[n]])) bad = TRUE;
 			if (bad) {	/* One of corners = NaN, skip */
-				data[k] = (float)mxGetNaN();
+				data[k] = nan;
 				continue;
 			}
 			
