@@ -125,8 +125,7 @@ function wbm_circle(obj, eventdata, hAxes, center, h, lim, lon_type)
 	pt = get(hAxes, 'CurrentPoint');
 	if (pt(1,1) < lim(1)) || (pt(1,1) > lim(2)) || (pt(1,2) < lim(3)) || (pt(1,2) > lim(4)),	return,	end
 	rad = geo2dist([pt(1,1) center(1)],[pt(1,2) center(2)],'deg');
-	[latc,lonc] = circ_geo(center(2),center(1),rad,[],180);
-	if (lon_type == 2),		lonc = lonc + 360;		end		% Longitudes in the [0 360] interval
+	[latc,lonc] = circ_geo(center(2), center(1), rad, [], 180, lon_type == 2);
 	% Find the eventual Date line discontinuity and insert a NaN on it
 	ind = find(abs(diff(lonc)) > 100);   % 100 is good enough
 	if (~isempty(ind))
@@ -161,9 +160,8 @@ function move_circle(obj,eventdata,h)
 % ---------
 function wbm_MoveCircle(obj,eventdata,h,center,hcenter,hend,s,lim, lon_type)
 	pt = get(s.h_axes, 'CurrentPoint');
-	if (pt(1,1)<lim(1)) || (pt(1,1)>lim(2)) || (pt(1,2)<lim(3)) || (pt(1,2)>lim(4));   return; end
-	[latc,lonc] = circ_geo(pt(1,2),pt(1,1),center(3),[],s.npts);
-	if (lon_type == 2),		lonc = lonc + 360;		end		% Longitudes in the [0 360] interval
+	if (pt(1,1)<lim(1)) || (pt(1,1)>lim(2)) || (pt(1,2)<lim(3)) || (pt(1,2)>lim(4)),	return,		end
+	[latc,lonc] = circ_geo(pt(1,2), pt(1,1), center(3), [], s.npts, lon_type == 2);
 	% Find the eventual date line discontinuity and insert a NaN on it
 	ind = find(abs(diff(lonc)) > 100);   % 100 is good enough
 	if (~isempty(ind))
@@ -176,8 +174,7 @@ function wbm_MoveCircle(obj,eventdata,h,center,hcenter,hend,s,lim, lon_type)
 	end
 	set(h, 'XData', lonc, 'YData', latc);
 	set(hcenter,'XData',pt(1,1), 'YData', pt(1,2))				% Move the circle's center marker
-	[s.rlat,s.rlon] = circ_geo(pt(1,2),pt(1,1),s.rad,s.az,1);	% Compute new end point
-	if (lon_type == 2),		s.rlon = s.rlon + 360;		end		% Longitudes in the [0 360] interval
+	[s.rlat,s.rlon] = circ_geo(pt(1,2),pt(1,1),s.rad,s.az,1, lon_type == 2);	% Compute new end point
 	set(hend,'XData',s.rlon, 'YData', s.rlat)					% Move the circle's end marker
 	
 	% update data in controls window if it exists
@@ -227,8 +224,7 @@ function wbm_ResizeCircle(obj,eventdata,h,center,hend,lim, lon_type)
 	s.rad = rad;                                            % The radius is stored in degrees
 	s.rlon = pt(1,1);
 	s.rlat = pt(1,2);
-	[latc,lonc] = circ_geo(center(2),center(1),rad,[],s.npts);
-	if (lon_type == 2),		lonc = lonc + 360;		end		% Longitudes in the [0 360] interval
+	[latc,lonc] = circ_geo(center(2),center(1),rad,[],s.npts, lon_type == 2);
 	% Find the eventual date line discontinuity and insert a NaN on it
 	ind = find(abs(diff(lonc)) > 100);   % 100 is good enough
 	if (~isempty(ind))
@@ -274,10 +270,10 @@ function wbu_ResizeCircle(obj,eventdata,h,hcenter,hend,state)
 %---------------------------------------------------------------------------------------------------
 function circleui(action)
 
-this_obj = gcbo;
+this_obj = gcbo;		this_gco = gco;
 switch action
 	case 'createcontrols'			% create GUI controls
-		s = get(gco,'userdata');
+		s = get(this_gco,'userdata');
 		h = figure('units','char','pos',[20 5 36.4 16.8],...
 			'numbertitle','off','name','Small Circles','tag','sccontrol',...
 			'resize','off','HandleVisibility','Call','Menubar','none');
@@ -325,7 +321,6 @@ switch action
 						'string',popstr,'tag','units','fontsize',9,...
 						'fontweight','bold',...
 						'Call','uicirclegeo(''changeunits'')');
-		set(gca,'visible','off')
 		% update userdata
 		s.hcontrol = h;
 		s.parent = get(s.hcirc,'parent');	
@@ -480,9 +475,9 @@ switch action
 		if ishandle(s.hcirc),	set(s.hcirc,'userdata',s),	end	
 	case 'circlemousedown'              % mouse down on circle
 		stype = get(gcf,'selectiontype');
-		s = get(gco,'userdata');
-		s.parent = get(gco,'parent');	
-		switch stype % shift-click to toggle control points
+		s = get(this_gco,'userdata');
+		s.parent = get(this_gco,'parent');	
+		switch stype		% shift-click to toggle control points
 			case 'open'
 					switch s.controls
 						case 'on'
@@ -496,17 +491,17 @@ switch action
 							delete(s.hcenter);      s.hcenter = [];     % delete center
 							delete(s.hend);         s.hend = [];        % delete end
 							s.controls = 'off';
-							set(gco,'userdata',s)
+							set(this_gco,'userdata',s)
 						case 'off'
 							s.controls = 'on';
-							hcirc = gco;
+							hcirc = this_gco;
 							hcent = line(s.clon,s.clat,'Marker','p','markerfacecolor','r','MarkerEdgeColor','k',...
 									'MarkerSize',8,'userdata',s,'buttondownfcn',{@move_circle,hcirc});
 							hend = line(s.rlon,s.rlat,'Marker','o','markerfacecolor','r','markerfacecolor','r',...
 									'MarkerEdgeColor','k','userdata',s,'buttondownfcn',{@resize_circle,hcirc});
 							s.hcenter = hcent;
 							s.hend = hend;
-							set(gco,'userdata',s)
+							set(this_gco,'userdata',s)
 							% display the control window
 							uicirclegeo('createcontrols')
 							% turn off handle visibility
