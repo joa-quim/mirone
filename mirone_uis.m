@@ -710,7 +710,7 @@ uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','o
 if (IamCompiled)
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''dump'')','Label','Print RAM fragmentation','Sep','on')
 end
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 13 Abr 2011'',''2.1.1'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 Abr 2011'',''2.1.1'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
