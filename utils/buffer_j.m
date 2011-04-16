@@ -160,14 +160,14 @@ function [xb, yb] = buffer(x, y, dist, npts, direction, geog)
 	xb = [];	yb = [];
 	perim = [0 360];
 	range = dist;
- 	[y_circ, x_circ] = feval(fhandle_circ, y, x, range, perim, npts);
+ 	[y_circ, x_circ] = feval(fhandle_circ, y, x, range, perim, npts, geog == 2);
 	
 	% Rectangles around each edge
 	[dumb, az] = feval( fhandle_azim, y(1:end-1), x(1:end-1), y(2:end), x(2:end) );
-	[latbl1,lonbl1] = feval( fhandle_circ, y(1:end-1), x(1:end-1), range, az-90, 1);
-	[latbr1,lonbr1] = feval( fhandle_circ, y(1:end-1), x(1:end-1), range, az+90, 1);
-	[latbl2,lonbl2] = feval( fhandle_circ, y(2:end),   x(2:end),   range, az-90, 1);
-	[latbr2,lonbr2] = feval( fhandle_circ, y(2:end),   x(2:end),   range, az+90, 1);
+	[latbl1,lonbl1] = feval( fhandle_circ, y(1:end-1), x(1:end-1), range, az-90, 1, geog == 2);
+	[latbr1,lonbr1] = feval( fhandle_circ, y(1:end-1), x(1:end-1), range, az+90, 1, geog == 2);
+	[latbl2,lonbl2] = feval( fhandle_circ, y(2:end),   x(2:end),   range, az-90, 1, geog == 2);
+	[latbr2,lonbr2] = feval( fhandle_circ, y(2:end),   x(2:end),   range, az+90, 1, geog == 2);
 
 	y_rect = [latbl1 latbl2 latbr2 latbr1 latbl1]';
 	x_rect = [lonbl1 lonbl2 lonbr2 lonbr1 lonbl1]';
