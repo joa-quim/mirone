@@ -77,7 +77,7 @@ function varargout = resizetrue(handles, opt, axis_t)
 		set(axHandle,'Visible','on');
 	end
 
-	Resize1(axHandle, imHandle, imSize, opt, handles.withSliders);
+	Resize1(axHandle, imHandle, imSize, opt, handles.withSliders, handles.oldSize(2,:));
 	% Change DAR only if the 'DAR' variable itself has changed
 	%set(axHandle, 'DataAspectRatio', DAR);
 	if (~isequal(DAR, [1 1 1])),	set(axHandle, 'DataAspectRatio', DAR);		end
@@ -131,7 +131,7 @@ end
 %--------------------------------------------
 % Subfunction Resize1
 %--------------------------------------------
-function Resize1(axHandle, imHandle, imSize, opt, withSliders)
+function Resize1(axHandle, imHandle, imSize, opt, withSliders, firstFigSize)
 % Resize figure containing a single axes object with a single image.
 
 	figHandle = get(axHandle, 'Parent');
@@ -145,8 +145,8 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 		imageHeight = imSize(1);
 	end
 
-	if (length(opt) > 12 && strcmp(opt(1:11),'adjust_size'))   % We have an anisotropic dx/dy. OPT is of the form adjust_size_[aniso]
-		aniso = str2double(opt(13:end));
+	if (strncmp(opt,'adjust_size_',12))			% We have an anisotropic dx/dy. OPT is of the form adjust_size_[aniso]
+		aniso = sscanf(opt(13:end),'%f');
 		if (aniso == 0),	aniso = 1;		end				% Troublematic SeaWiFS files had made this happen
 		if (aniso > 1)
 			imageWidth  = imageWidth * aniso;
@@ -162,8 +162,7 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	rootUnits = get(0, 'Units');			set(0, 'Units', 'pixels');
 	screenSize = get(0, 'ScreenSize');      screenWidth = screenSize(3)-4;    screenHeight = screenSize(4);
 	
-	figPos = get(figHandle, 'Position');
-	minFigWidth = max(figPos(3), 581);		minFigHeight = 128;      % don't try to display a figure smaller than this.
+	minFigWidth = max(firstFigSize(3), 581);	minFigHeight = 128;      % don't try to display a figure smaller than this.
 	
 	% For small images, compute the minimum side as 60% of largest of the screen dimensions
 	% Except in the case of croped images, where 512 is enough for the pushbuttons (if the croped
@@ -279,7 +278,6 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	topMarg = 0;
 	if (~tenSizeY),     topMarg = 5;    end					% To account for Ylabels exceeding image height
 	axVisible = strcmp(get(axHandle,'Visible'),'on');
-% 	if strcmp(get(axHandle,'Visible'),'off')				% No Labels, give only a 20 pixels margin to account for Status bar
 	if (~axVisible)				% No Labels, give only a 20 pixels margin to account for Status bar
 		x_margin = 0;   y_margin = stsbr_height;
 		topMarg  = 0;
@@ -296,6 +294,7 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders)
 	end
 	newFigHeight = max(newFigHeight, minFigHeight) + y_margin + topMarg;
 
+	figPos = get(figHandle, 'Position');
 	figPos(1) = max(1, figPos(1) - floor((newFigWidth  - figPos(3))/2));
 	figPos(2) = max(1, figPos(2) - floor((newFigHeight - figPos(4))/2));
 	figPos(3) = newFigWidth;
