@@ -703,11 +703,11 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 		%head_tmp = [X(1) X(end) Y(1) Y(end) head(5:9)];
 		if (handles.Illumin_type == 1)
 			opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
-			if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
-			else				R = grdgradient_m(Z_rect,head,illumComm,opt_N);
+			if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N,'-a1');
+			else				R = grdgradient_m(Z_rect,head,illumComm,opt_N,'-a1');
 			end
 		else
-			R = grdgradient_m(Z_rect,head,illumComm);
+			R = grdgradient_m(Z_rect,head,illumComm, '-a1');
 		end
 		z_int = shading_mat(z_int,R,'no_scale');	% and now it is illuminated
 	else
@@ -1230,7 +1230,7 @@ function FileOpenWebImage_CB(handles, fname)
 		if (isempty(resp)),		return,		end
 		fname = resp{1};
 	end
-	[I,att] = gdalread(fname);
+	I = gdalread(fname);
 	if (isempty(I))
 		errordlg('Sorry, but failed to fetch image from the ether. A Proxy problem?', 'Error'),		return
 	end
@@ -1737,8 +1737,8 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 
 	if (strcmp(opt,'grdgrad_class'))		% GMT grdgradient classic illumination
 		illumComm = sprintf('-A%.2f',luz.azim);
-		if (handles.geog),	[R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
-		else				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt');
+		if (handles.geog),	[R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt', '-a1');
+		else				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt', '-a1');
 		end
 		handles.Illumin_type = 1;
 		if (sigma < 1e-6),		sigma = 1e-6;	end		% We cannot let them be zero on sprintf('%.6f',..) somewhere else
@@ -1746,15 +1746,15 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 		handles.grad_offset = offset;	handles.grad_sigma = sigma;
 	elseif (strcmp(opt,'grdgrad_lamb'))		% GMT grdgradient lambertian illumination
 		illumComm = sprintf('-Es%.2f/%.2f',luz.azim, luz.elev);
-		R = grdgradient_m(Z,head,illumComm);
+		R = grdgradient_m(Z,head,illumComm ,'-a1');
 		handles.Illumin_type = 2;
 	elseif (strcmp(opt,'grdgrad_peuck'))	% GMT grdgradient Peucker illumination
 		illumComm = '-Ep';
-		R = grdgradient_m(Z,head,illumComm);
+		R = grdgradient_m(Z,head,illumComm, '-a1');
 		handles.Illumin_type = 3;
 	elseif (strcmp(opt,'lambertian'))		% GMT Lambertian lighting illumination
 		illumComm = sprintf('-E%g/%g/%g/%g/%g/%g',luz.azim,luz.elev,luz.ambient,luz.diffuse,luz.specular,luz.shine);
-		R = grdgradient_m(Z,head,illumComm);
+		R = grdgradient_m(Z,head,illumComm, '-a1');
 		handles.Illumin_type = 4;
 	end
 	setappdata(handles.figure1,'illumComm',illumComm);		% Save these for ROI op & write_gmt_script
@@ -2704,11 +2704,11 @@ function FileOpenSession_CB(handles, fname)
 		[X,Y,Z,head] = load_grd(handles,'silent');
 		handles.Illumin_type = illumType;
 		if (handles.Illumin_type == 1)
-			if (handles.geog),	R = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
-			else				R = grdgradient_m(Z,head,illumComm,'-Nt');
+			if (handles.geog),	R = grdgradient_m(Z,head,'-M',illumComm,'-Nt','-a1');
+			else				R = grdgradient_m(Z,head,illumComm,'-Nt','-a1');
 			end
 		else
-			R = grdgradient_m(Z,head,illumComm);
+			R = grdgradient_m(Z,head,illumComm,'-a1');
 		end
 		zz = ind2rgb8(get(handles.hImg,'CData'),get(handles.figure1,'ColorMap'));
 		zz = shading_mat(zz,R,'no_scale');		set(handles.hImg,'CData',zz)		% and now it is illuminated
@@ -3718,12 +3718,6 @@ function TransferB_CB(handles, opt)
 
  	elseif (strcmp(opt,'dump'))
 		dumpmemmex
-
-% 	elseif (strcmp(opt,'url'))
-% 		resp = inputdlg({'URL of image:'},'Where is the image?',[1 40]);
-% 		if (isempty(resp)),		return,		end
-% 		img = gdalread(resp{1});
-% 		mirone(img)
 
 	end
 
