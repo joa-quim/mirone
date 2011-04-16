@@ -215,7 +215,11 @@ function do_register(handles,input,base)
 		hdr.ULx = 0;		hdr.ULy = 0;
 		hdr.Xinc = 1;		hdr.Yinc = 1;
 		hdr.ResampleAlg = interpola;
-		[img,att] = gdalwarp_mex(flipdim(img,1),hdr);
+		try
+			[img,att] = gdalwarp_mex(flipdim(img,1),hdr);
+		catch
+		    errordlg(lasterr,'Error'),	return
+		end
 		tmp.head  = att.GMT_hdr;
 		tmp.X = tmp.head(1:2);		tmp.Y = tmp.head(3:4);
 	else
