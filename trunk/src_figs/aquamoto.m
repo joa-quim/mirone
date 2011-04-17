@@ -317,16 +317,16 @@ function edit_swwName_CB(hObject, eventdata, handles)
 function push_swwName_CB(hObject, eventdata, handles, opt)
 % This function does quite some work. It reads and extract relevant info from the netCDF file
 
-    if (nargin == 3)        % Direct call
-		[FileName,PathName] = put_or_get_file(handles, ...
+	if (nargin == 3)		% Direct call
+		[FileName, PathName, handles] = put_or_get_file(handles, ...
 			{'*.sww;*.SWW;*.nc;*.NC', 'Data files (*.sww,*.SWW,*.nc,*.NC)';'*.*', 'All Files (*.*)'},'sww file','get');
 		if isequal(FileName,0),		return,		end
 		
-	else        % File name on input
-        [PathName,FNAME,EXT] = fileparts(opt);
-        if (~isempty(PathName)),	PathName = [PathName filesep];	end		% To be coherent with the 'if' branch
-        FileName = [FNAME EXT];
-    end
+	else					% File name on input
+		[PathName,FNAME,EXT] = fileparts(opt);
+		if (~isempty(PathName)),	PathName = [PathName filesep];	end		% To be coherent with the 'if' branch
+		FileName = [FNAME EXT];
+	end
 	pause(0.01);	handles.fname = [PathName FileName];
 
 	if (exist(handles.fname, 'file') ~= 2)
@@ -334,7 +334,7 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 		handles.fname = [];
 		return
 	end
-    set(handles.edit_swwName,'String',handles.fname)
+	set(handles.edit_swwName,'String',handles.fname)
 
 	% ----------------- this make sense when one are reloading a(nother) file ----------
 	handles.sliceNumber = 0;
@@ -626,11 +626,11 @@ function push_showSlice_CB(hObject, eventdata, handles)
 		delete(handles.hQuiver),			handles.hQuiver = [];
 	end
 
-    guidata(handles.figure1,handles)
+	guidata(handles.figure1,handles)
 
 	% Save also the updated header in Mirone handles
 	handles.handMir.head = handles.head;
-    guidata(handles.handMir.figure1,handles.handMir)
+	guidata(handles.handMir.figure1,handles.handMir)
 
 % -----------------------------------------------------------------------------------------
 function push_runIn_CB(hObject, eventdata, handles)
@@ -938,26 +938,26 @@ function imgWater = mixe_images(handles, imgBat, imgWater, ind, alfa)
 % Mixes land and water images simulating transparency.
 % It also resizes the image if the scale factor is ~= 1
     
-    try
-        if (alfa > 0.01)    % Only if transparency is greater than 1%
-            cvlib_mex('addweighted',imgWater,(1 - alfa),imgBat,alfa);     % In-place
-        end
-        
-        tmpW = imgWater(:,:,1);     tmpB = imgBat(:,:,1);           % R
-        tmpW(ind) = tmpB(ind);      imgWater(:,:,1) = tmpW;
-        
-        tmpW = imgWater(:,:,2);     tmpB = imgBat(:,:,2);           % G
-        tmpW(ind) = tmpB(ind);      imgWater(:,:,2) = tmpW;
-        
-        tmpW = imgWater(:,:,3);     tmpB = imgBat(:,:,3);           % B
-        tmpW(ind) = tmpB(ind);      imgWater(:,:,3) = tmpW;
+	try
+		if (alfa > 0.01)    % Only if transparency is greater than 1%
+			cvlib_mex('addweighted',imgWater,(1 - alfa),imgBat,alfa);     % In-place
+		end
+
+		tmpW = imgWater(:,:,1);     tmpB = imgBat(:,:,1);           % R
+		tmpW(ind) = tmpB(ind);      imgWater(:,:,1) = tmpW;
+
+		tmpW = imgWater(:,:,2);     tmpB = imgBat(:,:,2);           % G
+		tmpW(ind) = tmpB(ind);      imgWater(:,:,2) = tmpW;
+
+		tmpW = imgWater(:,:,3);     tmpB = imgBat(:,:,3);           % B
+		tmpW(ind) = tmpB(ind);      imgWater(:,:,3) = tmpW;
 
 		if (handles.scaleFactor ~= 1)
 			imgWater = cvlib_mex('resize',imgWater,handles.scaleFactor);
 		end
-    catch
-        errordlg(['Aquamoto:mixe_images ' lasterr],'Error')
-    end
+	catch
+		errordlg(['Aquamoto:mixe_images ' lasterr],'Error')
+	end
 
 % -----------------------------------------------------------------------------------------
 function new_cmap = makeCmapBat(handles, head, cmap, orig)
@@ -1186,8 +1186,8 @@ function push_palette_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function check_resetCmaps_CB(hObject, eventdata, handles)
-    % Reset to the default cmaps and make this ui invisible
-    if (get(hObject,'Value'))
+% Reset to the default cmaps and make this ui invisible
+	if (get(hObject,'Value'))
 		if ( ~isempty(handles.head_bat) )		head = handles.head_bat;	% ---> DESENRASQUE DA TRETA
 		else									head = handles.head;
 		end
@@ -1196,7 +1196,7 @@ function check_resetCmaps_CB(hObject, eventdata, handles)
 		handles.imgBat = [];			% Force recomputing on next call
 		set(hObject, 'Val',0, 'Enable','off')
 		guidata(handles.figure1,handles)
-    end
+	end
 
 % -----------------------------------------------------------------------------------------
 function radio_noShade_CB(hObject, eventdata, handles)
@@ -1230,36 +1230,36 @@ function push_apply_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function radio_gif_CB(hObject, eventdata, handles)
-    if (get(hObject,'Value')),      set([handles.radio_avi handles.radio_mpg],'Value',0)
-    else                            set(hObject,'Value',1)
-    end
-    mname = get(handles.edit_movieName,'String');
-    if (~isempty(mname))
-        mname = [handles.moviePato handles.movieName '.gif'];
-        set(handles.edit_movieName,'String',mname)
-    end
+	if (get(hObject,'Value')),      set([handles.radio_avi handles.radio_mpg],'Value',0)
+	else                            set(hObject,'Value',1)
+	end
+	mname = get(handles.edit_movieName,'String');
+	if (~isempty(mname))
+		mname = [handles.moviePato handles.movieName '.gif'];
+		set(handles.edit_movieName,'String',mname)
+	end
 
 % -----------------------------------------------------------------------------------------
 function radio_avi_CB(hObject, eventdata, handles)
-    if (get(hObject,'Value')),      set([handles.radio_gif handles.radio_mpg],'Value',0)
-    else                            set(hObject,'Value',1)
-    end
-    mname = get(handles.edit_movieName,'String');
-    if (~isempty(mname))
-        mname = [handles.moviePato handles.movieName '.avi'];
-        set(handles.edit_movieName,'String',mname)
-    end
+	if (get(hObject,'Value')),      set([handles.radio_gif handles.radio_mpg],'Value',0)
+	else                            set(hObject,'Value',1)
+	end
+	mname = get(handles.edit_movieName,'String');
+	if (~isempty(mname))
+		mname = [handles.moviePato handles.movieName '.avi'];
+		set(handles.edit_movieName,'String',mname)
+	end
     
 % -----------------------------------------------------------------------------------------
 function radio_mpg_CB(hObject, eventdata, handles)
-    if (get(hObject,'Value')),		set([handles.radio_avi handles.radio_gif],'Value',0)
+	if (get(hObject,'Value')),		set([handles.radio_avi handles.radio_gif],'Value',0)
 	else							set(hObject,'Value',1)
-    end
-    mname = get(handles.edit_movieName,'String');
-    if (~isempty(mname))
-        mname = [handles.moviePato handles.movieName '.mpg'];
-        set(handles.edit_movieName,'String',mname)
-    end
+	end
+	mname = get(handles.edit_movieName,'String');
+	if (~isempty(mname))
+		mname = [handles.moviePato handles.movieName '.mpg'];
+		set(handles.edit_movieName,'String',mname)
+	end
 
 % -----------------------------------------------------------------------------------------
 function checkbox_dither_CB(hObject, eventdata, handles)
@@ -1549,8 +1549,8 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 
 			[handles,X,Y,Z] = read_gmt_type_grids(handles,handles.nameList{i});
 			imgWater = ind2rgb8(scaleto8(Z,8,[minWater maxWater]), handles.cmapWater);	% Would change Z if min/max were not global
-        	R = grdgradient_m(Z,heads{i},handles.waterIllumComm);
-        	imgWater = shading_mat(imgWater,R,'no_scale');
+			R = grdgradient_m(Z,heads{i},handles.waterIllumComm);
+			imgWater = shading_mat(imgWater,R,'no_scale');
 
 			% ------------ Compute indices of Land
 			if (~is_surfElev),		indLand = (Z == 0);		end		% Water depth
@@ -1604,23 +1604,23 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 function [M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M, map)
 % Auxiliary function to write movie frames
 	if (nargin == 7),	map = [];	end
-    if ( (ndims(img) == 3) && (is_gif || is_mpg) )
-        [img,map] = img_fun('rgb2ind',img,256,handles.dither);
-    end
-    img = flipdim(img,1);			% The stupid UL origin
-    
-    if (is_gif)
-        mname = [handles.moviePato handles.movieName '.gif'];
-        if (i == 1)
+	if ( (ndims(img) == 3) && (is_gif || is_mpg) )
+		[img,map] = img_fun('rgb2ind',img,256,handles.dither);
+	end
+	img = flipdim(img,1);			% The stupid UL origin
+
+	if (is_gif)
+		mname = [handles.moviePato handles.movieName '.gif'];
+		if (i == 1)
 			writegif(img,map,mname,'loopcount',Inf)
-        else
+		else
 			writegif(img,map,mname,'WriteMode','append','DelayTime',handles.dt)
-        end
-    elseif (is_avi)			% AVI
-        M(i) = im2frame(img);
-    else					% MPEG
-        M(i) = im2frame(img,map);
-    end
+		end
+	elseif (is_avi)			% AVI
+		M(i) = im2frame(img);
+	else					% MPEG
+		M(i) = im2frame(img,map);
+	end
 
 % -----------------------------------------------------------------------------------------
 function slider_transparency_CB(hObject, eventdata, handles)
@@ -1678,9 +1678,9 @@ function edit_globalWaterMin_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function edit_landPhoto_CB(hObject, eventdata, handles)
-    fname = get(hObject,'String');
+	fname = get(hObject,'String');
 	if ( ~isempty(fname) )
-    	push_landPhoto_CB([], [], handles, fname)
+		push_landPhoto_CB([], [], handles, fname)
 	else					% Reset
 		handles.geoPhoto = [];
 		handles.useLandPhoto = false;
@@ -1819,12 +1819,12 @@ function ButtonDown(obj,eventdata,h_all,handles)
 	x_lim = get(gca,'xlim');      y_lim = get(gca,'ylim');
 	% check if x,y is inside of axis
 	if ~((pt(1,1)>=x_lim(1)) && (pt(1,1)<=x_lim(2)) && (pt(1,2)>=y_lim(1)) && (pt(1,2)<=y_lim(2)))    % outside axis limits
-        return
+		return
 	end
 	if any(h_all == gco)
-        h = h_all(h_all == gco);    % When more than one line handle exists, find only the selected one
-        set(handles.figure1,'WindowButtonMotionFcn',{@ButtonMotion,h,handles},'WindowButtonUpFcn',{@ButtonUp,h_all,handles},...
-            'Pointer', 'crosshair');
+		h = h_all(h_all == gco);    % When more than one line handle exists, find only the selected one
+		set(handles.figure1,'WindowButtonMotionFcn',{@ButtonMotion,h,handles},'WindowButtonUpFcn',{@ButtonUp,h_all,handles},...
+			'Pointer', 'crosshair');
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -1833,26 +1833,26 @@ function ButtonMotion(obj,eventdata,h,handles)
 	pt = get(gca, 'CurrentPoint');
 	if strcmp(selectionType, 'normal')      % right-cick
 		xx = get(h,'XData');		yy = get(h,'YData');
-        theta = cart2pol(pt(1,1)-xx(1),pt(1,2)-yy(1));
-        radius = get(h,'Userdata');
-        x2 = xx(1) + radius * cos(theta);      y2 = yy(1) + radius * sin(theta);
-        if strcmp(get(h,'Tag'),'Elev') && (theta >= 0 && theta <= pi/2)   % Elevation line
-            set(h,'XData',[xx(1) x2],'YData',[yy(1) y2]);
-            set(handles.edit_elev,'String',sprintf('%.0f',theta *180/pi) )
-        elseif ~strcmp(get(h,'Tag'),'Elev')     % Azimuth line(s)
-            set(h,'XData',[xx(1) x2],'YData',[yy(1) y2]);
-            % NOTE to if I ever want to reuse this code. Normally ang_2pi should be = pi/2 - (pi*.....)
-            % for the normal y origin at bottm left corner. However, due to the stupid habit of using y=0
-            % at top left corner when dealing with images, to get an azimuth angle we have to do like following. 
-	
-            % truncate angles into [-pi pi] range
-            ang_2pi = pi/2 + ( pi*((abs(theta)/pi) - 2*ceil(((abs(theta)/pi)-1)/2)) * sign(theta) );
-            epsilon = -1e-7;        %  Allow points near zero to remain there
-            indx = find(ang_2pi < epsilon);
-            %  Shift the points in the [-pi 0] range to [pi 2pi] range
-            if ~isempty(indx);  ang_2pi(indx) = ang_2pi(indx) + 2*pi;  end;
-            set(handles.edit_azim,'String',sprintf('%.0f',ang_2pi *180/pi) )
-        end
+		theta = cart2pol(pt(1,1)-xx(1),pt(1,2)-yy(1));
+		radius = get(h,'Userdata');
+		x2 = xx(1) + radius * cos(theta);      y2 = yy(1) + radius * sin(theta);
+		if strcmp(get(h,'Tag'),'Elev') && (theta >= 0 && theta <= pi/2)   % Elevation line
+			set(h,'XData',[xx(1) x2],'YData',[yy(1) y2]);
+			set(handles.edit_elev,'String',sprintf('%.0f',theta *180/pi) )
+		elseif ~strcmp(get(h,'Tag'),'Elev')     % Azimuth line(s)
+			set(h,'XData',[xx(1) x2],'YData',[yy(1) y2]);
+			% NOTE to if I ever want to reuse this code. Normally ang_2pi should be = pi/2 - (pi*.....)
+			% for the normal y origin at bottm left corner. However, due to the stupid habit of using y=0
+			% at top left corner when dealing with images, to get an azimuth angle we have to do like following. 
+
+			% truncate angles into [-pi pi] range
+			ang_2pi = pi/2 + ( pi*((abs(theta)/pi) - 2*ceil(((abs(theta)/pi)-1)/2)) * sign(theta) );
+			epsilon = -1e-7;        %  Allow points near zero to remain there
+			indx = find(ang_2pi < epsilon);
+			%  Shift the points in the [-pi 0] range to [pi 2pi] range
+			if ~isempty(indx);  ang_2pi(indx) = ang_2pi(indx) + 2*pi;  end;
+			set(handles.edit_azim,'String',sprintf('%.0f',ang_2pi *180/pi) )
+		end
 	end
 
 % -----------------------------------------------------------------------------------------
