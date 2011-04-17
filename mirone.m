@@ -3719,6 +3719,9 @@ function TransferB_CB(handles, opt)
  	elseif (strcmp(opt,'dump'))
 		dumpmemmex
 
+ 	elseif (strcmp(opt,'fract'))	% Fractal surf. Have to do it here because otherwise stupid compiler doesn't do its job
+		gen_UMF2d;
+
 	end
 
 % --------------------------------------------------------------------
