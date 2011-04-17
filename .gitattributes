@@ -725,6 +725,7 @@ utils/frame3D.m -text
 utils/ft2tms.m -text
 utils/gcirc.m -text
 utils/gcpTool.m -text
+utils/gen_UMF2d.m -text
 utils/geog2projected_pts.m -text
 utils/get_fnames_ext.m -text
 utils/get_line_hand.m -text
