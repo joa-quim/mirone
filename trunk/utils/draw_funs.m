@@ -907,7 +907,7 @@ function set_gmtfile_uicontext(h, data)
 	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', 'delete(gco)', 'Sep','on');
 	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Call', @save_line);
 	uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Call', {@call_gmtedit,h});
- 	%uimenu(cmenuHand, 'Label', 'Extract Mag Chunk', 'Call', {@call_gmtedit,h,'nikles'});
+ 	uimenu(cmenuHand, 'Label', 'Extract Mag Chunk', 'Call', {@call_gmtedit,h,'nikles'});
 	uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
 	deal_opts('mgg_coe', cmenuHand);
 	%uimenu(cmenuHand, 'Label', 'Try to relocate', 'Call', {@tryRelocate,h});
@@ -951,7 +951,12 @@ function set_gmtfile_uicontext(h, data)
 % -----------------------------------------------------------------------------------------
 function call_gmtedit(obj, evt, h, opt)
 	if (nargin == 4)		% Call helper window to extract a chunk of the mag anom profile
-		mag_synthetic(get(0,'CurrentFig'), h)
+		hFig = get(get(h,'Parent'),'Parent');
+		[xp,yp] = getline_j(hFig);
+		if (numel(xp) < 2),		return,		end
+		hGL = line('XData', xp, 'YData', yp,'Color','y','Parent',get(h,'Parent'),'LineWidth',3,'Tag','polyline');
+		guidelineAzim = azimuth_geo(yp(1), xp(1), yp(end), xp(end));
+		mag_synthetic(hFig, h, hGL, guidelineAzim)
 		return
 	end
 	pt = get(gca, 'CurrentPoint');
