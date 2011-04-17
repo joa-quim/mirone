@@ -26,7 +26,6 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
 %#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin demets_od
-%#function gen_UMF2d
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -649,7 +648,7 @@ uimenu('Parent',hGT,'Call','mirone(''GridToolsGridMask_CB'',guidata(gcbo))','Lab
 uimenu('Parent',hGT,'Call','inpaint_nans(guidata(gcbo))','Label','Inpaint NaNs', 'Tag','haveNaNs');
 uimenu('Parent',hGT,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-grd'')','Label','Morphology');
 uimenu('Parent',hGT,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''grid'')','Label','Digital filtering Tool');
-uimenu('Parent',hGT,'Call','gen_UMF2d','Label','Fractal field');
+uimenu('Parent',hGT,'Call','mirone(''TransferB_CB'',guidata(gcbo),''fract'')','Label','Fractal field');
 
 h = uimenu('Parent',hGT,'Label','Hammer grid','Sep','on');
 uimenu('Parent',h,'Call','escadeirar(guidata(gcbo))','Label','Rice-field Grid');
