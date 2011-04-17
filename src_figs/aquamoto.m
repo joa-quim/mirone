@@ -2329,38 +2329,28 @@ function changecolor(obj,evt,hPatch)
 function timestr = sec2timestr(sec)
 % Convert a time measurement from seconds into a human readable string.
 
-% Convert seconds to other units
-d = floor(sec/86400);		sec = sec - d*86400;		% Days and remaing seconds
-h = floor(sec/3600);		sec = sec - h*3600;			% Hours and remaing seconds
-m = floor(sec/60);			sec = sec - m*60;			% Minutes and remaing seconds
-s = floor(sec);				% Seconds
+	% Convert seconds to other units
+	d = floor(sec/86400);		sec = sec - d*86400;		% Days and remaing seconds
+	h = floor(sec/3600);		sec = sec - h*3600;			% Hours and remaing seconds
+	m = floor(sec/60);			sec = sec - m*60;			% Minutes and remaing seconds
+	s = floor(sec);				% Seconds
 
-% Create time string
-if d > 0
-	timestr = sprintf('%d day, %.1f hr', d, (h+m/60));
-elseif h > 0
-	timestr = sprintf('%d hr, %d min',h, m);
-elseif m > 0
-    if m > 9
-		timestr = sprintf('%d min',m);
-    else
-		timestr = sprintf('%d min, %d sec',m,s);
-    end
-else
-	timestr = sprintf('%d sec',s);
-end
-
-% ----------------------------------------------------------------------------------
-function closeBar(obj, evt, hFig)
-% Signal, using data stored in UserData, that next time 'aguentabar' is called
-% it is to return a code to the calling program indicating a STOP request.
-	resp = questdlg('Do you want to stop this process (in the next call)?', 'Stop process', 'Yes','No','Yes');
-	if strcmp(resp,'Yes')
-		ud = get(hFig, 'UserData');
-		ud(14) = true;
-		set(hFig, 'UserData', ud)
+	% Create time string
+	if (d > 0)
+		timestr = sprintf('%d day, %.1f hr', d, (h+m/60));
+	elseif (h > 0)
+		timestr = sprintf('%d hr, %d min',h, m);
+	elseif (m > 0)
+		if (m > 9),		timestr = sprintf('%d min',m);
+		else			timestr = sprintf('%d min, %d sec',m,s);
+		end
+	else
+		timestr = sprintf('%d sec',s);
 	end
 
+% ----- Insert those other guys here --------------
+
+%--------------------------------------------------
 
 % --- Creates and returns a handle to the GUI figure. 
 function aquamoto_LayoutFcn(h1)
