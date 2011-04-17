@@ -106,8 +106,8 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.flederBurn = 1;		% When build a fleder obj burn eventual coastlines
 	handles.flederPlanar = 1;	% Default to planar flder objs (but mirone_pref knows better)
 	handles.whichFleder = 1;	% whichFleder = 1 for the free iview4d or 0 for the true thing (fledermaus)
-	handles.oldSize = get(hObject,'Pos');
-	if (handles.oldSize(4) == 0),	handles.oldSize(4) = 1;		end
+	handles.oldSize = [get(hObject,'Pos'); get(hObject,'Pos')];		% Duplicate so that we store ORIGINAL size
+	if (handles.oldSize(1,4) == 0),	handles.oldSize(1,4) = 1;		end
 	handles.is_projected = 0;	% To keep track if coords are projected or not
 	handles.defCoordsIn = 0;	% To use when Load files and have to decide if we need to project
 								% 0 -> don't know; -1 -> Coords are already projected; 1 -> geog coords needing project
@@ -1550,8 +1550,8 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 		set(handles.figure1,'Name',[fname sprintf('  @  %d%%',magRatio)])
 	end
 	setappdata(handles.axes1,'ThisImageLims',[get(handles.axes1,'XLim') get(handles.axes1,'YLim')])
-	handles.oldSize = get(handles.figure1,'Pos');		% Save fig size to prevent maximizing
-	handles.origCmap = get(handles.figure1,'ColorMap'); % Save original colormap 
+	handles.oldSize(1,:) = get(handles.figure1,'Pos');		% Save fig size to prevent maximizing
+	handles.origCmap = get(handles.figure1,'ColorMap');		% Save original colormap 
 	set(handles.ImgHist,'checked','off')
 	if (handles.mirVersion(1) < 2)		set(handles.ImgHistGrd,'checked','off'),	end
 	% Make an extra copy of those to use in "restore" because they may be changed by 'bands_list()'
