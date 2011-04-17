@@ -26,6 +26,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
 %#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin demets_od
+%#function gen_UMF2d
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -648,6 +649,7 @@ uimenu('Parent',hGT,'Call','mirone(''GridToolsGridMask_CB'',guidata(gcbo))','Lab
 uimenu('Parent',hGT,'Call','inpaint_nans(guidata(gcbo))','Label','Inpaint NaNs', 'Tag','haveNaNs');
 uimenu('Parent',hGT,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-grd'')','Label','Morphology');
 uimenu('Parent',hGT,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''grid'')','Label','Digital filtering Tool');
+uimenu('Parent',hGT,'Call','gen_UMF2d','Label','Fractal field');
 
 h = uimenu('Parent',hGT,'Label','Hammer grid','Sep','on');
 uimenu('Parent',h,'Call','escadeirar(guidata(gcbo))','Label','Rice-field Grid');
@@ -710,7 +712,7 @@ uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','o
 if (IamCompiled)
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''dump'')','Label','Print RAM fragmentation','Sep','on')
 end
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 Abr 2011'',''2.1.1'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 17 Abr 2011'',''2.1.1'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -775,8 +777,8 @@ function figure1_ResizeFcn(hObj, event)
 	handles = guidata(hObj);
 	if (isempty(handles)),      return,     end
 	screen = get(0,'ScreenSize');	    pos = get(handles.figure1,'Pos');
-	if ( isequal(screen(3), pos(3)) && handles.oldSize(4) > 20)			% Do not allow figure miximizing
-		set(handles.figure1,'Pos',handles.oldSize)
+	if ( isequal(screen(3), pos(3)) && handles.oldSize(1,4) > 20)			% Do not allow figure miximizing
+		set(handles.figure1,'Pos',handles.oldSize(1,:))
 	else
 		hSliders = getappdata(handles.axes1,'SliderAxes');
 		if (~isempty(hSliders))		% Reposition the vertical slider so that its always out of image
@@ -785,7 +787,7 @@ function figure1_ResizeFcn(hObj, event)
 			set(hSliders(2), 'Pos',[axPos(1)+axPos(3)+1 axPos(2) sldT axPos(4)+1])
 			set(handles.axes1, 'Units', oldUnit);
 		end
-		handles.oldSize = pos;          guidata(handles.figure1,handles)
+		handles.oldSize(1,:) = pos;		guidata(handles.figure1,handles)
 	end
 
 % -----------------------------------------------------------------------------
