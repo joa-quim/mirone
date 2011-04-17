@@ -36,7 +36,17 @@ function aquaPlugin(handles)
 			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
 			};
 
-	qual = casos{2};		% <== Active selection
+	qual = casos{2};			% <== Active by MANUAL selection. May be override by next section
+
+	internal_master = true;	% To know if flow control is determined by the contents of an external file.
+	if (nargin == 2)			% Go figure out if we have a controlling script
+		out = script_control(handles);
+		if (~isempty(out))
+			[t, r] = strtok(out{1});	% Fish only the case selected in the control file.
+			qual = str2double(r);		% The rest will be applied blindly. If it screws, screws
+			internal_master = false;
+		end
+	end
 
 	switch qual
 		case 'zonal'				% CASE 1
@@ -47,23 +57,36 @@ function aquaPlugin(handles)
 			fname = 'plataforma_poly.dat';		% If this name is uncorrect, another will be asked
 			%fnam2 = 'plataforma_offset_poly.dat';		% If it exists, compute difference of zonal integrations
 			fnam2 = 'poly_largo.dat';	%fnam2= [];
-			zonal(handles, dlat, integ_lon, trends, have_polygon, fname, fnam2)
+			if (internal_master)
+				zonal(handles, dlat, integ_lon, trends, have_polygon, fname, fnam2)
+			else
+				zonal(handles, out{:})
+			end
 		case 'tvar'					% CASE 2
 			slope = true;			% TRUE to compute slope of linear fit, FALSE to compute p-value parameter
-			sub_set = [1 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
-			calcGrad(handles, slope, sub_set) 
+			sub_set = [0 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
+			fname  = 'C:\a1\pathfinder\qual_82_09.nc';	% If not empty check againts this file
+			quality = 6;			% Retain only values of quality >= this (or <= abs(this) when MODIS). Ingored if fname = []
+			splina = false;			% Fill missing monthly data by a spline interpolation. Ignored if fname = [].
+			scale = 12;				% Scale rate of change by this value (useful when input data has monthly values).
+			if (internal_master)
+				calcGrad(handles, slope, sub_set, fname, quality, splina, scale)
+			else
+				calcGrad(handles, out{:})
+			end
 		case 'yearMean'				% CASE 3
 			ano = 1:12;				% Compute yearly means
-			calc_yearMean(handles, ano)
+			if (internal_master),	calc_yearMean(handles, ano)
+			else					calc_yearMean(handles, out{:})
+			end
 		case 'yearMeanFlag'			% CASE 4
 			ano = 1:12;				% Compute yearly (ano = 1:12) or seasonal means (ano = start_month:end_month)
-			fname  = 'C:\a1\qualMODIS-TERRA.nc';
+			fname  = 'C:\a1\MODIS\algas\Algas_qual_nsst_TERRA_00_10.nc';
 			%fname  = 'C:\a1\pathfinder\qual_82_09.nc';
 			quality = 0;			% Retain only values of quality >= this (or <= abs(this) when MODIS)
 			nCells = 200;			% Holes (bad data) smaller than this are filled by interpolation
-			% Where to save track of filled holes. Ignored if pintAnoes = false OR fname3 = []
-			%fname3 = 'C:\a1\pathfinder\qual7_85_07_Interp200_Q6.nc';
-			fname3 = [];
+			% Where to save track of filled holes. Ignored if nCells = 0 OR fname3 = []
+			fname3 = [];	%'C:\a1\pathfinder\qual7_85_07_Interp200_Q6.nc';
 			%splina = true;
 			splina = [12 30];		% Fill missing monthly data by a spline interpolation taken over two years (out limits set to NaN)
 			tipoStat = 0;			% 0, Compute MEAN, 1 compute MINimum and 2 compute MAXimum of the ANO period
@@ -76,14 +99,23 @@ function aquaPlugin(handles)
 			ano = 1:12;				% Compute yearly stats
 			%opt = '';				% Make the counting on a per month basis
 			opt = 'per_year';		% Make the counting on a per year basis
-			calc_flagsStats(handles, ano, 7, opt)
+			if (internal_master),	calc_flagsStats(handles, ano, 7, opt)
+			else					calc_flagsStats(handles, out{:})
+			end
 		case 'pass_by_count'		% CASE 7
 			count = 11;
 			fname = 'C:\a1\pathfinder\countPerYear_flag7_Interp200.nc';
-			pass_by_count(handles, count, fname)
+			if (internal_master),	pass_by_count(handles, count, fname)
+			else					pass_by_count(handles, out{:})
+			end
 		case 'do_math'				% CASE 8
-			opt = 'sum';			% Sum all layers (only operation for the time beeing)
-			do_math(handles, opt)
+			opt = 'diffstd';		% Sum all layers
+			%do_math(handles, opt, 'C:\a1\MODIS\mediaAnual_AQUA_NSST_Interp200_Q0.nc', [0 0], [0 0])
+			if (internal_master)
+				do_math(handles, opt, 'C:\a1\MODIS\mediaAnual_TERRA_NSST_Interp200_Q0.nc', [19 0], [1 1])
+			else
+				do_math(handles, out{:})
+			end
 		case 'conv2vtk'				% CASE 9
 			write_vtk(handles)
 	end
@@ -95,7 +127,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, have_polygon, fname, f
 % INTEG_LON 	If true, integration is done along longitude
 % DO_TRENDS		If false compute zonal integrations. Otherwise compute trends of the zonal integrations (per DLAT)
 % HAVE_POLYGON	If true limit the analisys to the are delimited by the polygon stored in file FNAME 
-% FNAME2		Optional polygon file. If it points to a vald file. This function is called twice and results are subtracted
+% FNAME2		Optional polygon file. If it points to a valid file. This function is called twice and results are subtracted
 
 	if (have_polygon)
 		if (exist(fname,'file') ~= 2)
@@ -209,32 +241,75 @@ function out = zonal(handles, dlat, integ_lon, do_trends, have_polygon, fname, f
 	end
 	
 % ----------------------------------------------------------------------
-function calcGrad(handles, slope, sub_set)
-% Calcula o gradiente de um fiche ja com as medias anuais por ajuste de um recta (Loada o fiche todo na memoria)
+function calcGrad(handles, slope, sub_set, fnameflag, quality, splina, scale)
+% Compute the rate of change of a file by fitting a LS straight line. The file can be the one of
+% already computed yearly means, in which case last three input arguments do not apply.
+% OR the full time series. In this case optional checking against quality flags and spline
+% interpolation can be done using info transmitted via the last three args.
+%
+% NOTE: THIS IS A HIGHLY MEMORY CONSUMPTION ROUTINE AS ALL DATA IS LOADED IN MEMORY
+%
 % SLOPE		Logical indicating if compute slope of linear fit (TRUE) or the p parameter (FALSE)
 %
 % SUB_SET -> A two columns row vec with number of the offset of years where analysis start and stop.
 %			For example [3 1] Starts analysis on forth year and stops on the before last year.
 %			[0 0] Means using the all dataset.
+%
+% OPTIONS:
+% FNAMEFLAG	name of a netCDF file with quality flags. Obviously this file must be of
+% 			the same size as the series under analysis.
+%
+% QUALITY	Threshold quality value. Only values of quality >= FLAG will be taken into account
+%			NOTE: For MODIS use negative FLAG. Than, values are retained if quality <= abs(FLAG)
+%
+% SPLINA	Logical that if true instruct to spline interpolate the missing monthly values
+%			before computing the rate of change.
+%
+% SCALE		Scale the final rate by this value. The idea of all this is that input data
+%			can have monthly means and we want to compute time rate of change per year.
+%			In this case use SCALE = 12.
 
+	do_flags = false;		% Will be set to true if we do a checking against a quality flgas file
 	get_profiles_in_polygon = false;			% Save all profiles (along third dim) located inside the polygonal area
-
+	n_anos = handles.number_of_timesteps;
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
-	n_anos = handles.number_of_timesteps;
-
-    if (nargin == 3 && (numel(sub_set) == 2))
+	if (nargin >= 3 && (numel(sub_set) == 2))
 		jump_anos = sub_set(1);		stop_before_end_anos = sub_set(2);
-    else
+	else
 		jump_anos = 0;				stop_before_end_anos = 0;
-    end
+	end
 
-	n_anos = n_anos - (jump_anos + stop_before_end_anos);
+	n_anos = n_anos - (jump_anos + stop_before_end_anos);	% Number of layers to be used in this run
 
-	Tmed = zeros([rows, cols, n_anos]);		% Temp media para cada um dos anos
+	if (nargin >= 4 && ~isempty(fnameflag))
+		[s_flags, z_id_flags, msg] = checkFlags_compat(fnameflag, handles.number_of_timesteps, rows, cols);
+		if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+ 		%flags = nc_funs('varget', fnameflag, s_flags.Dataset(z_id_flags).Name, [jump_anos 0 0], [n_anos rows cols]);
+		flags = alloc_mex(rows, cols, n_anos, 'uint8');
+		for (m = 1:n_anos)
+			flags(:,:,m) = nc_funs('varget', fnameflag, s_flags.Dataset(z_id_flags).Name, [(m - 1 + jump_anos) 0 0], [1 rows cols]);
+		end
+		do_flags = true;
+		if (nargin == 4)			% Default to Pathfinder max quality
+			quality = 7;	splina = false;		scale = 1;
+		elseif (nargin == 5)
+			splina = false;		scale = 1;
+		elseif (nargin == 6),	scale = 1;
+		end
+		if (quality > 0 ),	growing_flag = true;		% PATHFINDER flags
+		else				growing_flag = false;		% MODIS flags
+		end
+	else
+		splina = false;		scale = 1;
+	end
+
+	Tmed = alloc_mex(rows, cols, n_anos, 'single');
 	for (m = 1:n_anos)
  		Tmed(:,:,m) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [(m - 1 + jump_anos) 0 0], [1 rows cols]);
 	end
+% 	Tmed = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [jump_anos 0 0], [n_anos rows cols]);
+% 	Tmed = permute(Tmed, [2 3 1]);
 
 	% ---- save profiles of points, located inside polygon of Mirone fig, as a multi-segment file
 	if (get_profiles_in_polygon)
@@ -265,16 +340,17 @@ function calcGrad(handles, slope, sub_set)
 		col_vec = col_min:col_max;
 		x = (0:n_anos-1)';
 		k = 1;
+		stack = cell(1, 3);		% Obviously not enough but will shut up MLint
 		for (n = col_vec)
 			IN = inpolygon(repmat(n, numel(row_vec), 1), row_vec, B{1}(:,2), B{1}(:,1));		% See if ...
 			this_row = 1;
 			for (m = row_vec)
 				if (~IN(this_row)),		continue,	end				% This pixel is outside polygon POI
 				this_row = this_row + 1;
-				y = squeeze(Tmed(m,n,:));
+				y = double( squeeze(Tmed(m,n,:)) );
 				ind = isnan(y);
 				y(ind) = [];
-				if (numel(y) < n_anos/2),		continue,	end			% Completely ad-hoc test
+				if (numel(y) < n_anos/2),		continue,	end		% Completely ad-hoc test
 				p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
 				stack{k,1} = [x(~ind)+1 y];	% x,temp
 				stack{k,2} = p(1);			% Slope
@@ -298,14 +374,45 @@ function calcGrad(handles, slope, sub_set)
 
 	aguentabar(0,'title','Compute the Time rate','CreateCancelBtn')
 
-	Tvar = zeros(rows,cols) * NaN;
+	Tvar = zeros(rows, cols) * NaN;
 	x = (0:n_anos-1)';
+	if (splina),	yy = (0:n_anos-1)';		end
 	for (m = 1:rows)
 		for (n = 1:cols)
-			y = squeeze(Tmed(m,n,:));
+			y = double( squeeze(Tmed(m,n,:)) );
+			if (do_flags)
+				this_flag = squeeze(flags(m,n,:));
+				if (growing_flag),		y(this_flag < quality) = NaN;	% Pathfinder style (higher the best) quality flag
+				else					y(this_flag > quality) = NaN;	% MODIS style (lower the best) quality flag
+				end
+			end
 			ind = isnan(y);
 			y(ind) = [];
-			if (numel(y) < n_anos/2),		continue,	end			% Completely ad-hoc test
+			if (numel(y) < n_anos * 0.66),		continue,	end			% Completely ad-hoc test (it also jumps land cells)
+
+			if (splina)
+				if ( ~all(ind) )		% Otherwise we have them all and so nothing to interp
+					akimaspline(x(~ind), y, x, yy);
+					y = yy;										
+					if (ind(1) || ind(end))				% Cases when where we would have extrapolations
+						if (ind(1))
+							ki = 1;
+							while (ind(ki)),	ki = ki + 1;	end
+							y(1:ki) = NaN;				% Reset extraped values to NaN
+						end
+						if (ind(end))
+							kf = numel(ind);
+							while (ind(kf)),	kf = kf - 1;	end
+							y(kf:numel(ind)) = NaN;		% Reset extraped values to NaN
+						end
+						ind = isnan(y);					% Get new nan indices again
+						y(ind) = [];
+					else
+						ind = false(n_anos,1);			% Pretend no NaNs for the rest of the code below
+					end
+				end
+			end
+
  			%p = polyfit(x(~ind),y,1);
 			%z=[xvalues(1:4);ones(1,4)]'\yvalues';
 			if (slope)		% Compute sople of linear fit
@@ -324,6 +431,7 @@ function calcGrad(handles, slope, sub_set)
 	if (isnan(h)),	return,		end
 
 	clear Tmed
+	if (scale ~= 1),		cvlib_mex('CvtScale', Tvar, double(scale),0);		end
 	Tvar = single(Tvar);
 	
 	tmp.head = handles.head;
@@ -334,7 +442,7 @@ function calcGrad(handles, slope, sub_set)
 	mirone(Tvar, tmp)
 
 % ------------------------------------------------------------------------------
-function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, tipoStat, chkPts_file)
+function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, tipoStat, chkPts_file, grd_out)
 % Calcula media anuais a partir de dados mensais
 % MONTHS 	is a vector with the months uppon which the mean is to be computed
 %		example: 	months = 1:12		==> Computes yearly mean
@@ -365,46 +473,23 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 %			Output name file is constructed from the input name and appended '_tseries'.
 %			Fitst column has the month number, even columns the original data and odd columns
 %			the data with the holes (NaNs) interpolated with an Akima spline function.
-
-	txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
-	[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
-	if isequal(FileName,0),		return,		end
-	grd_out = [PathName FileName];
+%
+% GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
 
 	do_flags = false;		track_filled = false;		do_saveSeries = false;
-	pintAnoes = (nCells > 0);
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
-	if (nargin == 1),		months = 1:12;		end		% Default to yearly means
 	if (nargin >= 6 && ~isempty(fname3)),		track_filled = true;	end		% Keep track of interpolated nodes
 
-	if (nargin > 2)			% We have a quality-flag ghost file to check
-		s_flags = nc_funs('info',fname2);
-		[X,Y,Z,head,misc] = nc_io(fname2,'R');
-		z_id_flags = misc.z_id;
-		if ~(numel(head) == 9 && isfield(misc,'z_id'))
-			errordlg(['Blheak!! ' fname2 ' is is not a file with presumably with quality flags. By'],'Error'),	return
-		end
-		if (numel(misc.z_dim) <= 2)
-			errordlg(['Ghrrr!! The ' fname2 ' is is not a 3D file. By'],'Error'),		return
-		end
-		if (misc.z_dim(1) < handles.number_of_timesteps)
-			errordlg('Buhhuu!! The quality flags file has less "planes" than the-to-be-flagged-file. By','Error'),	return
-		end
-		if (~isequal([rows cols], [s_flags.Dataset(z_id_flags).Size(end-1) s_flags.Dataset(z_id_flags).Size(end)]))
-			errordlg('Buhhuu!! quality flags and the-to-be-flagged-file have not the same size. By','Error'),		return
-		end
+	if (nargin >= 3)			% We have a quality-flag ghost file to check
+		[s_flags, z_id_flags, msg] = checkFlags_compat(fname2, handles.number_of_timesteps, rows, cols);
+		if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+		if (nargin == 3),	nCells = 0;		flag = 7;	end			% If not provided, defaults to best quality
 		do_flags = true;
-
-		if (nargin == 3),		flag = 7;		end			% If not provided, defaults to best quality
-	end
-
-	if (flag > 0),		growing_flag = true;				% Pathfinder style (higher the best) quality flag
-	else				growing_flag = false;	flag = -flag;	% MODIS style (lower the best) quality flag
 	end
 
 	% -------------- Test if output time series at locations provided in the CHKPTS_FILE --------------------
-	if (nargin == 9 && ~isempty(chkPts_file))
+	if (nargin >= 9 && ~isempty(chkPts_file))
 		if (exist(chkPts_file,'file') == 2)
 			pts_pos = text_read(chkPts_file);
 			indTimeSeries = zeros(size(pts_pos,1), 2);
@@ -423,7 +508,21 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			end
 		end
 	end
-	% --------------------------------------------------------------------------------------------------------
+	if (nargin < 10)	% Notew: old and simple CASE 3 in main cannot send here the output name 
+		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
+		[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
+		if isequal(FileName,0),		return,		end
+		grd_out = [PathName FileName];
+	end
+
+	% -------------------------------------------------------------------------------------------------------
+	% -------------------------------------- END PARSING SECTION --------------------------------------------
+	% -------------------------------------------------------------------------------------------------------
+
+	if (flag > 0),		growing_flag = true;				% Pathfinder style (higher the best) quality flag
+	else				growing_flag = false;	flag = -flag;	% MODIS style (lower the best) quality flag
+	end
+	pintAnoes = (nCells > 0);
 
 	% The following limits are used to clip unreasonable temperatures computed during the spline interpolation
 	% When no time (spline) interpolation is used, they are simply ignored
@@ -651,7 +750,7 @@ function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, r
 % ----------------------------------------------------------------------
 function [tSeries, indTSCurr] = getTimeSeries(ZtoSpline, tSeries, indTS, indTSCurr, orig, first_month, last_month)
 % Fill the TSERIES array with the original as well as the spline interpolated time series.
-% This is intended mostly to provide a way to check the goodness (or nt) of the interp mechanism
+% This is intended mostly to provide a way to check the goodness (or not) of the interp mechanism
 %
 % ZtoSpline The 3D array with yearly (+- pad months) time series -- before (orig = true) and after splining
 % tSeries	a Mx(2*n+1) array to store the original data (even columns) and the spline interpolated (odd coluns)
@@ -987,39 +1086,90 @@ function calc_flagsStats(handles, months, flag, opt)
 	end
 
 % ----------------------------------------------------------------------
-function do_math(handles, opt)
+function do_math(handles, opt, fname2, subSet1, subSet2)
 % Perform some basic agebraic operations on 3D planes
 %
 % OPT = 'sum'	=> add all layers
 
-	s = handles.nc_info;				% Retrieve the .nc info struct
-	rows = s.Dataset(handles.netcdf_z_id).Size(end-1);
-	cols = s.Dataset(handles.netcdf_z_id).Size(end);
+	grid1 = [];		grid2 = [];
+	s1 = handles.nc_info;				% Retrieve the .nc info struct
+	rows1 = s1.Dataset(handles.netcdf_z_id).Size(end-1);
+	cols1 = s1.Dataset(handles.netcdf_z_id).Size(end);
 	nLayers = handles.number_of_timesteps;
 
 	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
 
 	if (strcmp(opt, 'sum'))
-		soma = nc_funs('varget', handles.fname, s.Dataset(handles.netcdf_z_id).Name, [0 0 0], [1 rows cols]);
-		is_int8 = isa(soma, 'int8');		is_uint8 = isa(soma, 'uint8');
-		if (is_int8 || is_uint8),		soma = int16(soma);		end			% To avoid ovelflows
+		grid1 = nc_funs('varget', handles.fname, s1.Dataset(handles.netcdf_z_id).Name, [0 0 0], [1 rows1 cols1]);
+		is_int8 = isa(grid1, 'int8');		is_uint8 = isa(grid1, 'uint8');
+		if (is_int8 || is_uint8),			grid1 = int16(grid1);		end		% To avoid ovelflows
 		for (m = 2:nLayers)
-			Z = nc_funs('varget', handles.fname, s.Dataset(handles.netcdf_z_id).Name, [m-1 0 0], [1 rows cols]);
-			if (is_int8 || is_uint8),		Z = int16(Z);		end			% To avoid ovelflows
-			cvlib_mex('add',soma, Z);
+			Z = nc_funs('varget', handles.fname, s1.Dataset(handles.netcdf_z_id).Name, [m-1 0 0], [1 rows1 cols1]);
+			if (is_int8 || is_uint8),		Z = int16(Z);			end			% To avoid ovelflows
+			cvlib_mex('add',grid1, Z);
 		end
+		figName1 = 'Stack Sum';
+	elseif (strcmpi(opt, 'diffstd'))
+		s2 = nc_funs('info', fname2);
+		[X1,Y1,Z,head1] = nc_io(handles.fname, 'R');
+		[X2,Y2,Z,head2,misc2] = nc_io(fname2,'R');
+		rows2 = s2.Dataset(misc2.z_id).Size(end-1);
+		cols2 = s2.Dataset(misc2.z_id).Size(end);
+		nLayers2 = misc2.z_dim(1);
+		n1 = max(1,subSet1(1)+1):(nLayers  - subSet1(2));	% Use these steps of file 1
+		n2 = max(1,subSet2(1)+1):(nLayers2 - subSet2(2));	% Use these steps of file 2
+		nSteps = min(numel(n1), numel(n2));					% Minimum number of steps that satisfies both files
+		grid1 = alloc_mex(rows1, cols1, 'single');
+		aguentabar(0,'title','Computing means and STDs')
+		for (k = 0:nSteps-1)								% OK, now first compute meam of (A - B)
+			tmp = nc_funs('varget', handles.fname, s2.Dataset(handles.netcdf_z_id).Name, [subSet1(1)+k 0 0], [1 rows1 cols1]);
+			z2 = nc_funs('varget', fname2, s2.Dataset(misc2.z_id).Name, [subSet2(1)+k 0 0], [1 rows2 cols2]);
+			z2 = make_compatible(z2, head2, head1);
+			cvlib_mex('sub', tmp, z2);
+			cvlib_mex('add', grid1, tmp);
+			aguentabar((k+1)/(2*nSteps));
+		end
+		cvlib_mex('CvtScale', grid1, 1/nSteps, 0);			% Divide by N --- MEAN of (A- B)
+		grid2 = alloc_mex(rows1, cols1, 'single');
+		for (k = 0:nSteps-1)								% And now the STD
+			tmp = nc_funs('varget', handles.fname, s1.Dataset(handles.netcdf_z_id).Name, [subSet1(1)+k 0 0], [1 rows1 cols1]);
+			z2 = nc_funs('varget', fname2, s2.Dataset(misc2.z_id).Name, [subSet2(1)+k 0 0], [1 rows2 cols2]);
+			z2 = make_compatible(z2, head2, head1);
+			cvlib_mex('sub', tmp, z2);
+			cvlib_mex('sub', tmp, grid1);					% Subtract mean
+			cvlib_mex('mul', tmp, tmp);						% Square
+			cvlib_mex('add', grid2, tmp);
+			aguentabar(k/nSteps + 0.5);
+		end
+		cvlib_mex('CvtScale', grid2, 1/nSteps, 0);			% Divide by N
+		cvlib_mex('pow', grid2, 0.5);						% sqrt --- STD of (A - B)
+		aguentabar(1);
+		clear tmp z2
+		figName1 = 'Mean of differences';
+		figName2 = 'STD of differences';
 	end
-	
+
 	tmp.head = handles.head;
-	if (isa(soma,'single'))
-		zz = grdutils(soma,'-L');  tmp.head(5:6) = [zz(1) zz(2)];		% Singles & NaNs = BUGs in R13
+	if (isa(grid1,'single'))
+		zz = grdutils(grid1,'-L');  tmp.head(5:6) = [zz(1) zz(2)];		% Singles & NaNs = BUGs in R13
 	else
-		tmp.head(5:6) = [double(min(soma(:))) double(max(soma(:)))];
+		tmp.head(5:6) = [double(min(grid1(:))) double(max(grid1(:)))];
 	end
-	tmp.X = linspace(tmp.head(1),tmp.head(2),cols);
-	tmp.Y = linspace(tmp.head(3),tmp.head(4),rows);
-	tmp.name = 'Computed grid';
-	mirone(soma, tmp)
+	tmp.X = linspace(tmp.head(1),tmp.head(2),cols1);
+	tmp.Y = linspace(tmp.head(3),tmp.head(4),rows1);
+	tmp.name = figName1;
+	mirone(grid1, tmp)
+	if (~isempty(grid2))
+		tmp.head(5:6) = [double(min(grid2(:))) double(max(grid2(:)))];
+		tmp.name = figName2;		mirone(grid2, tmp)
+	end
+
+% -----------------------------------------------------------------------------------------
+function Z2 = make_compatible(Z2, head2, head1)
+% Reinterpolate Z2 grid to be compatible in terms of -R and resolution with HEAD1 params
+	opt_I = sprintf('-I%.8f/%.8f', head1(8:9));
+	opt_R = sprintf('-R%.8f/%.8f/%.8f/%.8f', head1(1:4));
+	Z2 = grdsample_m(Z2, head2, opt_R, opt_I, '-Q', '-Lg');
 
 % -----------------------------------------------------------------------------------------
 function fid = write_vtk(handles)
@@ -1067,3 +1217,57 @@ function [z_id, s, rows, cols] = get_ncInfos(handles)
 	s = handles.nc_info;			% Retrieve the .nc info struct
 	rows = s.Dataset(z_id).Size(end-1);
 	cols = s.Dataset(z_id).Size(end);
+		
+% ----------------------------------------------------------------------
+function [s_flags, z_id_flags, msg] = checkFlags_compat(fname, number_of_timesteps, rows, cols)
+% Check that the quality flags file FNAME is compatible with the other 3 input params
+	msg = [];
+	s_flags = nc_funs('info',fname);
+	[X,Y,Z,head,misc] = nc_io(fname,'R');
+	z_id_flags = misc.z_id;
+	if ~(numel(head) == 9 && isfield(misc,'z_id'))
+		msg = ['Blheak!! ' fname ' is is not a file with presumably with quality flags. By'];	return
+	end
+	if (numel(misc.z_dim) <= 2)
+		msg = ['Ghrrr!! The ' fname ' is is not a 3D file. By'];		return
+	end
+	if (misc.z_dim(1) < number_of_timesteps)
+		msg = 'Buhhuu!! The quality flags file has less "planes" than the-to-be-flagged-file. By';	return
+	end
+	if (~isequal([rows cols], [s_flags.Dataset(z_id_flags).Size(end-1) s_flags.Dataset(z_id_flags).Size(end)]))
+		msg = 'Buhhuu!! quality flags and the-to-be-flagged-file have not the same size. By';
+	end
+
+% -------------------------------------------------------------------------------
+function out = script_control(handles)
+% See if the OPTcontrol.txt file has an entry pointing to a file with parameters to run the aquaPlugin
+% If it has, read and parse that file.
+	opt_file = [handles.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
+	out = [];
+	if ( exist(opt_file, 'file') == 2 )
+		fid = fopen(opt_file, 'r');
+		c = (fread(fid,'*char'))';      fclose(fid);
+		lines = strread(c,'%s','delimiter','\n');   clear c fid;
+		m = numel(lines);
+		fname = [];
+		for (k = 1:m)
+			if (~strncmp(lines{k},'MIR_AQUAPLUG',7)),	continue,	end
+			fname = ddewhite(lines{k}(13:end));
+			if (exist(fname,'file') ~= 2)
+				errordlg(['Script file for aquaPlugin ' fname ' does not exist. Ignoring request'],'Error')
+				fname = [];
+			end
+			break
+		end
+		if (~isempty(fname))
+			fid = fopen(fname, 'r');
+			c = (fread(fid,'*char'))';      fclose(fid);
+			out = strread(c,'%s','delimiter','\n');   clear c fid;
+			ind = true(1,numel(out));
+			for (k = 1:numel(out))
+				if (out{k}(1) == '#' || out{k}(1) == '%'),	continue,	end		% Jump comments
+				ind(k) = false;
+			end
+			out(ind) = [];		% Remove the comment lines (if any)
+		end
+	end
