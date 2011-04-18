@@ -404,8 +404,8 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 		end
 	else
 		misc.z_id = z_id;		% Return the z_id so that we don't have to repeat the fishing process
-		misc.z_dim = z_dim;
 	end
+	misc.z_dim = z_dim;			% Use this if calling code needs to know number of layers
 	nx = z_dim(end);		ny = z_dim(end-1);
 
 	if (~isempty(x_id)),	X = double(nc_funs('varget', fname, s.Dataset(x_id).Name));
