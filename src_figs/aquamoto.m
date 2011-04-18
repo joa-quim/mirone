@@ -35,7 +35,6 @@ function varargout = aquamoto(varargin)
 		handles.last_dir = handMir.last_dir;
 		handles.work_dir = handMir.work_dir;
         d_path = handMir.path_data;
-		handles.IamCompiled = handMir.IamCompiled;
 	else
 		if (numel(varargin) >= 1)		% File name in input
 			if ( exist(varargin{1}, 'file') == 2 )
@@ -53,7 +52,6 @@ function varargout = aquamoto(varargin)
 		handles.last_dir = handles.home_dir;
 		handles.work_dir = handles.home_dir;
         d_path = [handles.home_dir filesep 'data' filesep];
-		handles.IamCompiled = false;	% <======= NEEDS REVISION NEEDS REVISION NEEDS REVISION
 	end
 
 	% -------------- Import/set icons --------------------------------------------
@@ -212,9 +210,11 @@ function varargout = aquamoto(varargin)
 		set(hhs(k), 'Pos', hhsPos)
 	end
 	
-	% Move the Plug button
+	% Move the Plug buttons
 	hhsPos = get(handles.push_plugFun, 'Pos');		hhsPos = hhsPos - [0 260 0 0];
 	set(handles.push_plugFun, 'Pos', hhsPos)
+	hhsPos = get(handles.check_plugFun, 'Pos');		hhsPos = hhsPos - [0 140 0 0];
+	set(handles.check_plugFun, 'Pos', hhsPos)
 
 	% ---------------- Transited from tsunamovie --------------------------------------------
 	handles.dither = 'nodither';% Default
@@ -3472,6 +3472,13 @@ uicontrol('Parent',h1, 'Position',[140 450 121 81],...
 'String','Run Plugin function',...
 'TooltipString','Execute the external ''aquaPlugin'' function ',...
 'Tag','push_plugFun',...
+'UserData','plug');
+
+uicontrol('Parent',h1, 'Position',[140 450 131 21],...
+'String','Seek OPTcontrol.txt',...
+'Style','checkbox',...
+'TooltipString','Scan the OPTcontrol.txt file for a "Control script" file',...
+'Tag','check_plugFun',...
 'UserData','plug');
 
 function aquamoto_uiCB(hObject, eventdata, h1, callback_name)
