@@ -48,7 +48,7 @@ function aquaPlugin(handles, auto)
 	qual = casos{4};			% <== Active by MANUAL selection. May be override by next section
 
 	n_args = nargin;
-	if (handles.IamCompiled)		% TEMP CODE FOR TESTING STANDALONE VERSION
+	if (get(handles.check_plugFun, 'Val'))	% This way, the stand alone version can work too
 		n_args = 2;		auto = true;
 	end
 
