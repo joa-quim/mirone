@@ -1,9 +1,17 @@
-function aquaPlugin(handles)
+function aquaPlugin(handles, auto)
 % Plugin function that is called by Aquamoto. Use this function to write custom code
 % to solve particular problems taking advantage from the fact that a LOT of information
 % about the netCDF files is accessible here. There are no instructions/manual but you
 % can learn by studing the functions on aquamoto.m file or the (not so clean) working
 % examples below.
+%
+% OPTIONS
+%
+% AUTO	If logical and TRUE search the OPTcontrol.txt file for the MIR_AQUAPLUG key that
+%		should point into a file name of a control script.
+%		If it is a string, that it is interpreted as the name of the control script.
+%		A "control script" is a file with the EXACT arguments to select and run one of
+%		main functions here as pointed by the CASOS cell array below.
 
 %	Copyright (c) 2004-2011 by J. Luis
 %
@@ -24,6 +32,7 @@ function aquaPlugin(handles)
 		errordlg('Hey Lou. What about a walk on the Wild Side? Maybe you''ll find a little file there that you can use here!','Chico clever')
 		return
 	end
+	internal_master = true;		% To know if flow control is determined by the contents of an external file (def NO).
 
 	casos = {'zonal' ...			% 1 - Compute zonal means
 			'tvar' ...				% 2 - Compute the Temp time rate of a file with annual means by fit of a straight line (Load entire file in memory)
@@ -36,15 +45,21 @@ function aquaPlugin(handles)
 			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
 			};
 
-	qual = casos{2};			% <== Active by MANUAL selection. May be override by next section
+	qual = casos{4};			% <== Active by MANUAL selection. May be override by next section
 
-	internal_master = true;	% To know if flow control is determined by the contents of an external file.
-	if (nargin == 2)			% Go figure out if we have a controlling script
-		out = script_control(handles);
+	n_args = nargin;
+	if (handles.IamCompiled)		% TEMP CODE FOR TESTING STANDALONE VERSION
+		n_args = 2;		auto = true;
+	end
+
+	if (n_args == 2)				% Go figure out if we have a controlling script
+		out = script_control(handles, auto);
 		if (~isempty(out))
-			[t, r] = strtok(out{1});	% Fish only the case selected in the control file.
-			qual = str2double(r);		% The rest will be applied blindly. If it screws, screws
+			qual = casos{out{1}};	% The rest will be applied blindly. If it screws, screws
 			internal_master = false;
+		else
+			errordlg('You directed AQUAPLUGIN to work on script mode but OPTcontrol.txt misses necessary info','Error')
+			return
 		end
 	end
 
@@ -60,24 +75,24 @@ function aquaPlugin(handles)
 			if (internal_master)
 				zonal(handles, dlat, integ_lon, trends, have_polygon, fname, fnam2)
 			else
-				zonal(handles, out{:})
+				zonal(handles, out{2:end})
 			end
 		case 'tvar'					% CASE 2
 			slope = true;			% TRUE to compute slope of linear fit, FALSE to compute p-value parameter
 			sub_set = [0 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
-			fname  = 'C:\a1\pathfinder\qual_82_09.nc';	% If not empty check againts this file
+			fname  = 'C:\a1\pathfinder\qual_82_09.nc';	% If not empty check againts this file (For monthly data)
 			quality = 6;			% Retain only values of quality >= this (or <= abs(this) when MODIS). Ingored if fname = []
 			splina = false;			% Fill missing monthly data by a spline interpolation. Ignored if fname = [].
 			scale = 12;				% Scale rate of change by this value (useful when input data has monthly values).
 			if (internal_master)
 				calcGrad(handles, slope, sub_set, fname, quality, splina, scale)
 			else
-				calcGrad(handles, out{:})
+				calcGrad(handles, out{2:end})
 			end
 		case 'yearMean'				% CASE 3
 			ano = 1:12;				% Compute yearly means
 			if (internal_master),	calc_yearMean(handles, ano)
-			else					calc_yearMean(handles, out{:})
+			else					calc_yearMean(handles, out{2:end})
 			end
 		case 'yearMeanFlag'			% CASE 4
 			ano = 1:12;				% Compute yearly (ano = 1:12) or seasonal means (ano = start_month:end_month)
@@ -92,7 +107,11 @@ function aquaPlugin(handles)
 			tipoStat = 0;			% 0, Compute MEAN, 1 compute MINimum and 2 compute MAXimum of the ANO period
 			% If not empty, it must contain the name of a Lon,Lat file with locations where to output time series
 			chkPts_file = [];	%chkPts_file = 'C:\a1\pathfinder\chkPts.dat';
-			calc_yearMean(handles, ano, fname, quality, nCells, fname3, splina, tipoStat, chkPts_file)
+			if (internal_master)
+				calc_yearMean(handles, ano, fname, quality, nCells, fname3, splina, tipoStat, chkPts_file)
+			else
+				calc_yearMean(handles, out{2:end})
+			end
 		case 'polygAVG'				% CASE 5
 			calc_polygAVG(handles)
 		case 'flagsStats'			% CASE 6
@@ -100,13 +119,13 @@ function aquaPlugin(handles)
 			%opt = '';				% Make the counting on a per month basis
 			opt = 'per_year';		% Make the counting on a per year basis
 			if (internal_master),	calc_flagsStats(handles, ano, 7, opt)
-			else					calc_flagsStats(handles, out{:})
+			else					calc_flagsStats(handles, out{2:end})
 			end
 		case 'pass_by_count'		% CASE 7
 			count = 11;
 			fname = 'C:\a1\pathfinder\countPerYear_flag7_Interp200.nc';
 			if (internal_master),	pass_by_count(handles, count, fname)
-			else					pass_by_count(handles, out{:})
+			else					pass_by_count(handles, out{2:end})
 			end
 		case 'do_math'				% CASE 8
 			opt = 'diffstd';		% Sum all layers
@@ -114,7 +133,7 @@ function aquaPlugin(handles)
 			if (internal_master)
 				do_math(handles, opt, 'C:\a1\MODIS\mediaAnual_TERRA_NSST_Interp200_Q0.nc', [19 0], [1 1])
 			else
-				do_math(handles, out{:})
+				do_math(handles, out{2:end})
 			end
 		case 'conv2vtk'				% CASE 9
 			write_vtk(handles)
@@ -241,7 +260,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, have_polygon, fname, f
 	end
 	
 % ----------------------------------------------------------------------
-function calcGrad(handles, slope, sub_set, fnameflag, quality, splina, scale)
+function calcGrad(handles, slope, sub_set, fnameflag, quality, splina, scale, grd_out)
 % Compute the rate of change of a file by fitting a LS straight line. The file can be the one of
 % already computed yearly means, in which case last three input arguments do not apply.
 % OR the full time series. In this case optional checking against quality flags and spline
@@ -268,6 +287,8 @@ function calcGrad(handles, slope, sub_set, fnameflag, quality, splina, scale)
 % SCALE		Scale the final rate by this value. The idea of all this is that input data
 %			can have monthly means and we want to compute time rate of change per year.
 %			In this case use SCALE = 12.
+%
+% GRD_OUT	Name of the netCDF file where to store the result. If not provided, open Mirone Fig.
 
 	do_flags = false;		% Will be set to true if we do a checking against a quality flgas file
 	get_profiles_in_polygon = false;			% Save all profiles (along third dim) located inside the polygonal area
@@ -303,6 +324,7 @@ function calcGrad(handles, slope, sub_set, fnameflag, quality, splina, scale)
 	else
 		splina = false;		scale = 1;
 	end
+	if (nargin < 8),	grd_out = [];	end
 
 	Tmed = alloc_mex(rows, cols, n_anos, 'single');
 	for (m = 1:n_anos)
@@ -436,10 +458,17 @@ function calcGrad(handles, slope, sub_set, fnameflag, quality, splina, scale)
 	
 	tmp.head = handles.head;
 	zz = grdutils(Tvar,'-L');  tmp.head(5:6) = [zz(1) zz(2)];
-	tmp.X = linspace(tmp.head(1),tmp.head(2),cols);
-	tmp.Y = linspace(tmp.head(3),tmp.head(4),rows);
-	tmp.name = 'Time gradient (deg/year)';
-	mirone(Tvar, tmp)
+	if (isempty(grd_out))	% Show result in a Mirone figure
+		tmp.X = linspace(tmp.head(1),tmp.head(2),cols);
+		tmp.Y = linspace(tmp.head(3),tmp.head(4),rows);
+		tmp.name = 'Time gradient (deg/year)';
+		mirone(Tvar, tmp)
+	else					% Got output name from input arg
+		handles.was_int16 = false;
+		handles.computed_grid = true;
+		handles.geog = 1;
+		nc_io(grd_out, 'w', handles, Tvar)
+	end
 
 % ------------------------------------------------------------------------------
 function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, tipoStat, chkPts_file, grd_out)
@@ -508,7 +537,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			end
 		end
 	end
-	if (nargin < 10)	% Notew: old and simple CASE 3 in main cannot send here the output name 
+	if (nargin < 10)	% Note: old and simple CASE 3 in main cannot send here the output name 
 		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
 		[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
 		if isequal(FileName,0),		return,		end
@@ -1239,35 +1268,58 @@ function [s_flags, z_id_flags, msg] = checkFlags_compat(fname, number_of_timeste
 	end
 
 % -------------------------------------------------------------------------------
-function out = script_control(handles)
+function out = script_control(handles, auto)
 % See if the OPTcontrol.txt file has an entry pointing to a file with parameters to run the aquaPlugin
 % If it has, read and parse that file.
-	opt_file = [handles.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
-	out = [];
-	if ( exist(opt_file, 'file') == 2 )
+%
+% AUTO	If it's a char, than interpret it as the control script file name directly
+%		Any other type tells the program to search the name in OPTcontrol.txt
+
+	if (~ischar(auto))
+		opt_file = [handles.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
+		out = [];
+		if ( exist(opt_file, 'file') ~= 2 ),	return,		end
+
 		fid = fopen(opt_file, 'r');
 		c = (fread(fid,'*char'))';      fclose(fid);
 		lines = strread(c,'%s','delimiter','\n');   clear c fid;
-		m = numel(lines);
 		fname = [];
-		for (k = 1:m)
+		for (k = 1:numel(lines))
 			if (~strncmp(lines{k},'MIR_AQUAPLUG',7)),	continue,	end
 			fname = ddewhite(lines{k}(13:end));
 			if (exist(fname,'file') ~= 2)
 				errordlg(['Script file for aquaPlugin ' fname ' does not exist. Ignoring request'],'Error')
-				fname = [];
+				return
 			end
-			break
 		end
-		if (~isempty(fname))
-			fid = fopen(fname, 'r');
-			c = (fread(fid,'*char'))';      fclose(fid);
-			out = strread(c,'%s','delimiter','\n');   clear c fid;
-			ind = true(1,numel(out));
-			for (k = 1:numel(out))
-				if (out{k}(1) == '#' || out{k}(1) == '%'),	continue,	end		% Jump comments
-				ind(k) = false;
+	else
+		fname = auto;
+	end
+
+	if (isempty(fname)),	return,		end		% OPTcontrol has not a MIR_AQUAPLUG key. Something will screw 
+
+	try				% Wrap it in a try-catch so we have a chance to figure out the reason of eventual error
+		fid = fopen(fname, 'r');
+		c = (fread(fid,'*char'))';      fclose(fid);
+		out = strread(c,'%s','delimiter','\n');   clear c fid;
+		ind = true(1,numel(out));
+		for (k = 1:numel(out))
+			if (isempty(out{k}) || out{k}(1) == '#'),	continue,	end		% Jump comments
+			ind(k) = false;
+		end
+		out(ind) = [];		% Remove the comment lines (if any)
+
+		[t, r] = strtok(out{1});	% Fish the case selected in the control file.
+		out{1} = str2double(r);
+		for (k = 2:numel(out))
+			if (strncmpi(out{k},'char',4))	% If we have a string argument, use it as it is
+				[t, r] = strtok(out{k});
+				out{k} = ddewhite(r);
+			else
+				out{k} = eval(out{k});		% Numeric arguments must be 'evaled'
 			end
-			out(ind) = [];		% Remove the comment lines (if any)
 		end
+	catch
+		errordlg(lasterr, 'Errror')
+		out = [];
 	end
