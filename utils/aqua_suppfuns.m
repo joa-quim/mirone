@@ -48,7 +48,7 @@ function init_header_params(handles,X,Y,head,misc)
 		if (~isempty(id))
 			handles.time = double(nc_funs('varget', handles.fname, s.Dataset(id).Name));
 		else
-			handles.time = [1:handles.number_of_timesteps];
+			handles.time = 1:handles.number_of_timesteps;
 		end
 		slMax = handles.number_of_timesteps;
 	else
