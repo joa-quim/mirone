@@ -23,12 +23,13 @@ function varargout = aquamoto(varargin)
 	aquamoto_LayoutFcn(hObject);
 	handles = guihandles(hObject);
  
-	got_a_file_to_start = [];		run_aquaPlugin = false;
+	got_a_file_to_start = [];		run_aquaPlugin = false;		handles.hMirFig = [];
 	if ( numel(varargin) > 0 && ~ischar(varargin{1}) )	% Expects Mirone handles as first arg
 		handMir = varargin{1};
 		if (numel(varargin) == 2)
 			if ( exist(varargin{2}, 'file') == 2 )		% Optional file with an aquaPlugin control script
 				got_a_file_to_start = varargin{2};
+				handles.hMirFig = handMir.hMirFig;		% This fig already has first layer
 			end
 		end
 		handles.home_dir = handMir.home_dir;
@@ -72,14 +73,12 @@ function varargout = aquamoto(varargin)
 	set(handles.push_palette,'CData',color_ico)
 	clear Mfopen_ico Marrow_ico um_ico dois_ico color_ico;
 
-	handles.handMir = [];
-	handles.fname = [];
-	handles.sliceNumber = 0;
-	handles.one_or_zero = 1;
+	handles.handMir = [];		handles.fname = [];
+	handles.sliceNumber = 0;	handles.one_or_zero = 1;
 	handles.first = true;
 	handles.volumes = [];		handles.illumComm = [];
 	handles.dms_xinc = 0;		handles.dms_yinc = 0;
-	handles.hQuiver = [];		handles.hMirFig = [];
+	handles.hQuiver = [];
 	handles.geoPhoto = [];		handles.indMaxWater = [];
 	handles.runinPoly = [];		handles.xyData = [];
 	handles.head_bat = [];
