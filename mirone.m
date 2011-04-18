@@ -118,6 +118,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.FOpenList = cell(numel(handles.RecentF),1);
 	handles.withSliders = true; % Set Zoom sliders
 	handles.validGrid = 0;		%
+	handles.nLayers = 1;		% If > 1 after reading a netCDF file call aquamoto
 
 	try							% A file named mirone_pref.mat contains the preferences, read them from it
 		prf = load([handles.path_data 'mirone_pref.mat']);
@@ -1503,6 +1504,10 @@ function loadGRID(handles,fullname,tipo,opt)
 	end
 	handles = aux_funs('isProj',handles);		% Check about coordinates type
 	recentFiles(handles);						% Insert fileName into "Recent Files" & save handles
+	if (handles.nLayers > 1)
+		handles.hMirFig = handles.figure1;		% Informs aquamoto of current fig handle but do not save it
+		aquamoto(handles, fullname)
+	end
 
 % _________________________________________________________________________________________________
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
