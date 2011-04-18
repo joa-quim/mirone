@@ -23,17 +23,37 @@ function varargout = aquamoto(varargin)
 	aquamoto_LayoutFcn(hObject);
 	handles = guihandles(hObject);
  
-	if (numel(varargin) > 0)
+	got_a_file_to_start = [];		run_aquaPlugin = false;
+	if ( numel(varargin) > 0 && ~ischar(varargin{1}) )	% Expects Mirone handles as first arg
 		handMir = varargin{1};
+		if (numel(varargin) == 2)
+			if ( exist(varargin{2}, 'file') == 2 )		% Optional file with an aquaPlugin control script
+				got_a_file_to_start = varargin{2};
+			end
+		end
 		handles.home_dir = handMir.home_dir;
 		handles.last_dir = handMir.last_dir;
 		handles.work_dir = handMir.work_dir;
         d_path = handMir.path_data;
+		handles.IamCompiled = handMir.IamCompiled;
 	else
+		if (numel(varargin) >= 1)		% File name in input
+			if ( exist(varargin{1}, 'file') == 2 )
+				got_a_file_to_start = varargin{1};
+			end
+			if (numel(varargin) == 2)		% Run aquaPlugin after loading input file
+				if (ischar(varargin{2}))
+					run_aquaPlugin = varargin{2};	% Name of the control script
+				else
+					run_aquaPlugin = true;			% Search the control script in OPTcontrol.txt
+				end
+			end
+		end
 		handles.home_dir = cd;
 		handles.last_dir = handles.home_dir;
 		handles.work_dir = handles.home_dir;
-        d_path = [pwd filesep 'data' filesep];
+        d_path = [handles.home_dir filesep 'data' filesep];
+		handles.IamCompiled = false;	% <======= NEEDS REVISION NEEDS REVISION NEEDS REVISION
 	end
 
 	% -------------- Import/set icons --------------------------------------------
@@ -125,8 +145,8 @@ function varargout = aquamoto(varargin)
 	figPos = get(hObject, 'Pos');
 	figPos(3:4) = [391 430];
 	set(hObject, 'Pos', figPos)
-	movegui(hObject,'east')
-	
+	move2side(hObject,'right');
+
 	% ------------------ TABPANEL SECTION ----------------------------------------
 	% For a total unknown reason the folowing line (less the 'Parent') in tabpanelfcn would cause
 	% the creation of a new figure. So I do here, where without the 'Parent', would have the same effect ???? 
@@ -261,8 +281,16 @@ function varargout = aquamoto(varargin)
 	set(handles.toggle_1,'Value',1)         % Start it in a pressed state
 	set(hObject,'WindowButtonDownFcn',{@ButtonDown,h_line,handles});
 
-	% This will cause a silent error but it also load the mex file in memory so it will be fast on "first" use
-	try		mexnc('open', 'lixoxo', 0 );	end
+	% If we got a file in input
+	if (~isempty(got_a_file_to_start))
+		push_swwName_CB(handles.push_swwName, [], handles, got_a_file_to_start)
+		handles = guidata(handles.figure1);		% Get updated handles
+		% And now, if asked for, run the aquaPlugin
+		if (run_aquaPlugin),	aquaPlugin(handles, run_aquaPlugin),	end
+	else
+		% This will cause a silent error but it also load the mex file in memory so it will be fast on "first" use
+		try		mexnc('open', 'lixoxo', 0 );	end
+	end
 
 	guidata(hObject, handles);
 	if (nargout),   varargout{1} = hObject;     end
@@ -2168,7 +2196,7 @@ function save_arrows(hObject, evt, hQuiver)
 % -----------------------------------------------------------------------------------------
 function push_plugFun_CB(hObject, eventdata, handles)
 % THIS IS A SPECIAL CALLBACK THAT CALLS A FUNCTION NAMED 'aquaPlugin' THAT MAY RESIDE
-% ANYWHERE IN THE PATH WORLD. IT'S UP TO THE USER DIFFINE ITS CONTENTS.
+% ANYWHERE IN THE PATH WORLD. IT'S UP TO THE USER TO DIFFINE ITS CONTENTS.
 	aquaPlugin(handles)		% That's all it should be needed
 
 % -----------------------------------------------------------------------------------------
