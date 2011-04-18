@@ -1,0 +1,3631 @@
+International Seismological Centre
+On-Line Bulletin 
+
+The American Geophysical Union has added the ISC to the list of data centres 
+that can be included in reference lists of AGU journals. The ISC may be cited as 
+both the institutional author of the Bulletin and the source from which the data 
+can be retrieved. A citation should show how the data were retrieved and, if 
+they are from a short time span, the Bulletin issues in which the data were 
+originally published. The format of these references can be seen at http://www.isc.ac.uk/doc/cite/index.html 
+
+Make a map! 
+
+Please note; Data on or after 2005/06/01 has not been reviewed by the ISC
+
+DATA_TYPE EVENT IMS1.0
+ISC Comprehensive Bulletin
+Event  9247632 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/01 02:34:02.20   0.56  0.10  38.4650  -28.4010   2.5   2.0  57   5.1   5.1    7    4 131   0.04   0.05     ke SVSA       7964643
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.3          SVSA       7964643
+ML     0.6          SVSA       7964643
+
+Event  9247633 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/01 08:42:28.90   0.97  0.20  38.1190  -26.1180   8.7   1.2  43   4.8   4.0   38   26 165   0.35   1.85     ke SVSA       7964644
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       7964644
+ML     2.4          SVSA       7964644
+
+Event  9247652 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/02 03:32:49.70   0.88  0.20  37.5940  -25.2580   3.6   3.4  79   5.7   6.5   16   13 170   0.17   0.61     ke SVSA       7964645
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.0          SVSA       7964645
+ML     1.9          SVSA       7964645
+
+Event  9247653 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/02 03:50:29.10   0.62  0.10  37.7810  -25.4350   1.2   0.9  33   2.1   1.0   17   11  91   0.01   0.17     ke SVSA       7964646
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964646
+ML     1.6          SVSA       7964646
+
+Event  9247654 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/02 08:30:12.20   0.84  0.20  37.5670  -25.2940   3.5   1.4  73   0.0   5.5   19   13 159   0.18   0.59     ke SVSA       7964647
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.0          SVSA       7964647
+ML     2.1          SVSA       7964647
+
+Event  9247655 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/02 15:52:27.80   0.66  0.20  37.7630  -25.4040   1.3   1.2  29   1.8   1.2    9    6 122   0.01   0.10     ke SVSA       7964648
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964648
+ML     0.9          SVSA       7964648
+
+Event  9247656 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/02 18:50:23.30   0.69  0.20  38.6660  -28.9750   6.8   5.3  41   5.0f         8    4 332   0.22   0.57     ke SVSA       7964649
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       7964649
+ML     2.1          SVSA       7964649
+
+Event  9247658 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/02 23:20:35.70   0.65  0.10  37.7840  -25.4450   1.0   0.7  55   1.6   0.9   14   10  61   0.01   0.11     ke SVSA       7964650
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       7964650
+ML     1.2          SVSA       7964650
+
+Event  9247672 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/03 09:44:29.70   0.39  0.10  38.7750  -29.1520   5.2   3.3  43   5.0f         8    4 335   0.38   0.71     ke SVSA       7964651
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       7964651
+ML     1.9          SVSA       7964651
+
+Event  9247673 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/03 16:46:21.10   1.19  0.20  38.6630  -29.0490   9.3   6.5  43   3.1   4.7   17   11 331   0.21   0.75     ke SVSA       7964652
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.2          SVSA       7964652
+ML     2.2          SVSA       7964652
+
+Event  9247674 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/03 17:49:50.40   0.70  0.20  38.7280  -28.9790   7.4   4.1  60   2.9   4.5   10    6 327   0.24   0.57     ke SVSA       7964653
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       7964653
+ML     1.8          SVSA       7964653
+
+Event  9247675 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/03 18:54:01.80   1.37  0.30  38.7310  -29.0030  10.6   6.6  59   3.2   6.9   17   11 319   0.22   0.72     ke SVSA       7964654
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.1          SVSA       7964654
+ML     2.1          SVSA       7964654
+
+Event  9247676 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/03 20:28:19.50   0.79  0.20  37.7660  -25.4580   3.5   2.6  68   4.6   4.4    8    5 142   0.02   0.09     ke SVSA       7964655
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964655
+ML     0.8          SVSA       7964655
+
+Event  9247692 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/04 00:09:39.40   0.77  0.20  38.7020  -28.9630   8.3   4.2  56   0.0f        10    6 316   0.18   0.56     ke SVSA       7964656
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       7964656
+ML     1.8          SVSA       7964656
+
+Event  9247693 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/04 09:38:35.00   0.32  0.10  37.8620  -25.7910   1.2   1.1 118   3.4   2.6    7    4 129   0.02   0.05     ke SVSA       7964657
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       7964657
+
+Event  9247694 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/04 21:15:06.00   0.93  0.20  38.7540  -29.0540  14.7   4.7  78   1.7   9.9   13    9 323   0.26   0.76     ke SVSA       7964658
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.1          SVSA       7964658
+ML     1.5          SVSA       7964658
+
+Event  9247713 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/05 20:12:21.50   0.72  0.20  37.7740  -25.4740   1.1   1.0  62   1.0   1.6   15   10 103   0.01   0.14     ke SVSA       7964660
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.8          SVSA       7964660
+ML     0.8          SVSA       7964660
+
+Event  9247714 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/05 20:44:59.10   0.65  0.20  37.7680  -25.4640   1.0   0.9  75   1.0   1.9   12    8 111   0.02   0.15     ke SVSA       7964661
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       7964661
+ML     0.8          SVSA       7964661
+
+Event  9247732 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/06 00:13:14.90   0.86  0.20  38.5780  -28.5690   2.6   2.5  42   6.1   5.2   13    7 148   0.07   0.38     ke SVSA       7964662
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.5          SVSA       7964662
+ML     1.2          SVSA       7964662
+
+Event  9247733 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/06 05:43:17.60   0.35  0.10  38.3320  -27.0150   4.6   1.9  76  10.0f        10    6 336   0.36   0.46     ke SVSA       7964663
+
+Magnitude  Err Nsta Author      OrigID
+ML     1.9          SVSA       7964663
+
+Event  9247734 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/06 07:13:15.70   0.51  0.10  37.7840  -25.4350   1.0   0.6  52   2.2   2.0   23   15 131   0.01   0.30     ke SVSA       7964664
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.1          SVSA       7964664
+ML     2.3          SVSA       7964664
+
+Event  9247735 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/06 21:22:12.40   1.04  0.20  38.0720  -26.3090  20.3   1.2  40   0.5   4.6   35   21 187   0.45   1.03     ke SVSA       7964665
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.4          SVSA       7964665
+ML     2.1          SVSA       7964665
+
+Event  9247736 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/06 21:53:21.40   1.10  0.20  38.0410  -26.2290   5.9   0.9  33   0.0   3.2   47   31 153   0.38   2.03     ke SVSA       7964666
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       7964666
+ML     2.4          SVSA       7964666
+
+Event  9247752 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/07 03:19:21.90   0.84  0.20  37.7770  -25.4510   2.7   1.4  67   2.3   5.3    8    6  97   0.02   0.08     ke SVSA       7964667
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964667
+ML     0.3          SVSA       7964667
+
+Event  9247753 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/07 05:15:10.90   0.69  0.10  37.7460  -25.5130   1.7   1.3  22   3.2   5.5   10    8 160   0.03   0.11     ke SVSA       7964668
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       7964668
+ML     0.3          SVSA       7964668
+
+Event  9247754 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/07 08:36:35.20   0.84  0.20  38.7500  -28.9360  13.0   3.4  91   0.8  10.7   14    8 306   0.20   0.67     ke SVSA       7964669
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       7964669
+ML     1.6          SVSA       7964669
+
+Event  9247755 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/07 10:07:57.50   0.32  0.10  37.7830  -25.4410   1.1   1.1  59   2.8   2.3    7    5 134   0.01   0.08     ke SVSA       7964670
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.9          SVSA       7964670
+ML     0.2          SVSA       7964670
+
+Event  9247772 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/08 01:35:25.90   0.64  0.10  37.7650  -25.3240   2.4   1.4 141   1.5   1.5   11    8 165   0.03   0.15     ke SVSA       7964671
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964671
+ML     0.8          SVSA       7964671
+
+Event  9247773 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/08 03:42:53.90   0.47  0.10  38.7430  -27.3270   2.9   1.9  98   4.5   3.1    8    4 256   0.02   0.14     ke SVSA       7964672
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       7964672
+ML     1.0          SVSA       7964672
+
+Event  9247774 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/08 10:56:43.60   0.58  0.10  37.7860  -25.4410   2.1   2.1  12   3.1   4.3    7    5 141   0.01   0.07     ke SVSA       7964673
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964673
+ML     0.6          SVSA       7964673
+
+Event  9247775 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/08 15:01:43.80   0.93  0.20  38.6010  -26.9780   7.9   7.1  75   7.8   3.7    9    6 329   0.14   0.30     ke SVSA       7964675
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       7964675
+ML     1.4          SVSA       7964675
+
+Event  9247792 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/09 00:04:28.80   0.39  0.10  37.7590  -25.3660   2.4   1.8  63   8.5   2.5   10    7 203   0.02   0.10     ke SVSA       7964678
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       7964678
+ML     1.0          SVSA       7964678
+
+Event  9247793 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/09 05:14:35.50   0.82  0.10  38.7670  -27.2250   3.1   3.0 175   6.4   5.8    8    6 199   0.02   0.12     ke SVSA       7964679
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.6          SVSA       7964679
+ML     0.8          SVSA       7964679
+
+Event  9247812 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/10 06:35:40.80   0.62  0.10  37.7860  -25.4360   1.5   0.9  55   3.1   2.5   14    9 164   0.01   0.09     ke SVSA       7964680
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       7964680
+ML     1.2          SVSA       7964680
+
+Event  9247813 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/10 13:28:17.10   1.04  0.20  38.1370  -26.6500   3.7   0.9  35   0.0   2.7   60   36 152   0.67   1.69     ke SVSA       7964681
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.4          SVSA       7964681
+ML     3.2          SVSA       7964681
+
+Event  9247814 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/10 13:34:33.60   1.15  0.20  38.6710  -28.5440   3.4   2.9 162   4.6   8.7   14   11 187   0.13   0.54     ke SVSA       7964682
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       7964682
+ML     1.6          SVSA       7964682
+
+Event  9247815 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/10 15:01:07.50   1.11  0.30  37.5220  -24.7020  10.9   3.6  83   3.7  10.1   41   27 266   0.53   3.11     ke SVSA       7964683
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.2          SVSA       7964683
+ML     3.4          SVSA       7964683
+
+Event  9247816 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/10 18:10:03.80   0.67  0.20  38.2110  -25.9620   6.6   1.6  51   4.7   4.1   10    8 196   0.36   1.03     ke SVSA       7964684
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.3          SVSA       7964684
+ML     1.9          SVSA       7964684
+
+Event  9247832 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/11 08:33:31.60   0.29  0.10  37.9790  -25.9960   4.6   2.5  34  11.0   1.6   11    8 339   0.19   0.48     ke SVSA       7964685
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       7964685
+ML     1.5          SVSA       7964685
+
+Event  9247833 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/11 08:46:31.30   0.89  0.20  38.1340  -26.6070  24.3   1.8  43   0.0   7.5   12    9 204   0.69   0.81     ke SVSA       7964686
+
+Magnitude  Err Nsta Author      OrigID
+ML     2.0          SVSA       7964686
+
+Event  9247834 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/11 12:24:36.80   0.80  0.20  37.7690  -25.4320   2.5   1.3  87   2.2   1.5    8    6 118   0.02   0.06     ke SVSA       7964687
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.9          SVSA       7964687
+ML     0.4          SVSA       7964687
+
+Event  9247835 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/11 12:24:58.80   0.92  0.20  37.7610  -25.4510   2.6   1.5  89   2.1   1.4    8    6  80   0.02   0.06     ke SVSA       7964688
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       7964688
+ML     0.5          SVSA       7964688
+
+Event  9247853 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/12 13:38:12.40   0.64  0.20  38.5750  -28.5400   3.6   3.0  30  17.4   6.4   10    5 144   0.12   0.36     ke SVSA       7964690
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.6          SVSA       7964690
+ML     1.3          SVSA       7964690
+
+Event  9247854 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/12 20:03:08.70   1.20  0.20  38.6060  -29.2550   7.7   5.8  67   0.5   6.2   32   22 320   0.36   1.70     ke SVSA       7964691
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.2          SVSA       7964691
+ML     2.5          SVSA       7964691
+
+Event  9247873 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/13 12:38:10.60   0.62  0.10  37.7750  -25.4940   2.2   1.5 175   1.6   2.1    9    7 140   0.01   0.04     ke SVSA       7964692
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.9          SVSA       7964692
+ML     0.4          SVSA       7964692
+
+Event  9247874 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/13 17:12:19.00   0.79  0.20  38.7800  -28.9400   9.8   5.0  59   3.4   7.4    8    4 319   0.24   0.54     ke SVSA       7964693
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       7964693
+ML     1.9          SVSA       7964693
+
+Event  9247875 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/13 17:44:26.60   0.57  0.10  37.7870  -25.4420   1.5   1.5  58   2.9   2.6   12    9 145   0.01   0.08     ke SVSA       7964694
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964694
+ML     0.6          SVSA       7964694
+
+Event  9247876 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/13 20:58:16.70   0.80  0.20  38.6640  -28.5180   2.5   1.7 166  19.2   5.3   29   17 179   0.15   0.58     ke SVSA       7964695
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       7964695
+ML     2.3          SVSA       7964695
+
+Event  9247892 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/14 01:07:09.90   0.58  0.20  37.7750  -25.3710   3.6   1.7  14   5.8   4.1    8    5 154   0.02   0.09     ke SVSA       7964696
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       7964696
+ML     1.0          SVSA       7964696
+
+Event  9247894 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/14 08:04:22.80   1.06  0.20  38.7260  -29.0610   7.1   4.4  55   4.1   3.9   24   14 306   0.25   0.89     ke SVSA       7964697
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.3          SVSA       7964697
+ML     2.2          SVSA       7964697
+
+Event  9247895 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/14 11:59:28.10   1.12  0.30  38.0260  -26.4540   5.4   2.5  33   6.8   5.3   42   31 174   0.54   1.86     ke SVSA       7964698
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       7964698
+ML     2.4          SVSA       7964698
+
+Event  9247896 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/14 17:58:45.80   0.97  0.20  40.7560  -29.1820   8.2   4.6  88   5.0f        23   15 331   1.90   2.60     ke SVSA       7964702
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.8          SVSA       7964702
+ML     3.1          SVSA       7964702
+
+Event  9247897 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/14 18:46:35.50   0.64  0.10  38.7030  -29.1800  12.9   5.4  46   0.0   7.8   11    7 339   0.38   0.87     ke SVSA       7964705
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       7964705
+ML     2.0          SVSA       7964705
+
+Event  9247898 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/14 18:49:26.90   1.12  0.20  38.7800  -28.9870   8.9   5.1  65   5.3   4.7   19   11 313   0.25   0.72     ke SVSA       7964706
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       7964706
+ML     2.2          SVSA       7964706
+
+Event  9247899 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/14 20:59:59.20   0.39  0.10  38.7310  -27.3850   3.1   1.5  83   0.3   2.2    9    6 322   0.05   0.24     ke SVSA       7964707
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       7964707
+ML     1.4          SVSA       7964707
+
+Event  9247900 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/14 22:05:24.00   0.77  0.20  38.2530  -26.3080  13.0   2.0  47   0.0   4.8   18   15 172   0.55   0.94     ke SVSA       7964708
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.2          SVSA       7964708
+ML     1.8          SVSA       7964708
+
+Event  9247912 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/15 07:27:49.40   0.76  0.20  37.7890  -25.4440   1.9   1.3  39   4.2   3.5   12    9 140   0.00   0.08     ke SVSA       7964709
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964709
+ML     0.5          SVSA       7964709
+
+Event  9247913 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/15 15:52:33.10   0.55  0.10  37.7630  -25.3470   1.6   1.0 166   1.9   1.1    9    8 126   0.02   0.11     ke SVSA       7964710
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       7964710
+ML     0.6          SVSA       7964710
+
+Event  9247914 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/15 17:56:56.20   0.56  0.10  37.6790  -25.2400   3.6   2.7 126   9.7   6.1   15   11 300   0.11   0.26     ke SVSA       7964711
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       7964711
+ML     1.3          SVSA       7964711
+
+Event  9247957 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/16 02:04:44.00   0.57  0.10  37.6470  -25.2460   4.0   3.1 168   7.1   3.3   11    8 305   0.13   0.27     ke SVSA       7964712
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       7964712
+ML     0.9          SVSA       7964712
+
+Event  9247958 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/16 04:18:11.90   0.68  0.20  37.5740  -25.0810   5.2   1.2  63   4.2   2.6   23   17 215   0.26   0.64     ke SVSA       7964713
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.2          SVSA       7964713
+ML     1.6          SVSA       7964713
+
+Event  9247962 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/16 13:38:58.60   0.73  0.20  38.6230  -28.5260   3.1   2.9  46  16.1  11.2    9    6 154   0.12   0.24     ke SVSA       7964714
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       7964714
+ML     1.5          SVSA       7964714
+
+Event  9247964 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/16 17:53:47.50   0.57  0.10  37.7590  -25.4130   1.1   0.8 178   2.6   2.2   18   11 129   0.02   0.11     ke SVSA       7964715
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964715
+ML     1.2          SVSA       7964715
+
+Event  9247965 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/16 17:58:13.60   0.40  0.10  37.7720  -25.4260   2.8   0.7  89   0.0   0.8    6    4 261   0.03   0.06     ke SVSA       7964716
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.8          SVSA       7964716
+ML     0.5          SVSA       7964716
+
+Event  9247967 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/16 23:42:40.80   0.70  0.20  37.7690  -25.4140   1.0   0.8 180   1.5   1.0   17   11 101   0.01   0.11     ke SVSA       7964717
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964717
+ML     0.8          SVSA       7964717
+
+Event  9247975 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/17 03:42:28.50   0.89  0.20  38.7120  -28.8880   8.7   5.8  43  11.4   6.7   13    7 298   0.15   0.66     ke SVSA       7964718
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       7964718
+ML     1.8          SVSA       7964718
+
+Event  9247978 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/17 15:05:50.00   1.04  0.20  38.8040  -29.2940  25.9   5.2  40  10.8   8.5   15    9 336   0.45   1.04     ke SVSA       7964719
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       7964719
+ML     2.1          SVSA       7964719
+
+Event  9247981 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/17 23:16:55.20   0.94  0.20  37.9680  -26.0780   6.5   1.0  39   6.8   2.8   40   24 168   0.24   1.26     ke SVSA       7964720
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       7964720
+ML     2.4          SVSA       7964720
+
+Event  9247992 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/18 15:38:37.40   0.92  0.20  38.7870  -29.1830  15.1   6.3  62   0.0   7.3   12    8 336   0.41   0.78     ke SVSA       7964721
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.2          SVSA       7964721
+ML     2.1          SVSA       7964721
+
+Event  9247993 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/18 17:58:19.80   0.53  0.10  37.7610  -25.4030   1.4   1.2   2   2.0   0.8    7    4 128   0.01   0.05     ke SVSA       7964722
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.8          SVSA       7964722
+ML     0.1          SVSA       7964722
+
+Event  9248013 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/19 13:54:58.80   0.55  0.10  37.7910  -25.4330   1.0   0.9  42   2.9   2.1   17   12 110   0.01   0.17     ke SVSA       7964723
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       7964723
+ML     1.4          SVSA       7964723
+
+Event  9248033 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/20 17:45:15.50   0.52  0.10  37.7980  -25.4630   1.5   1.1  52   4.7   1.2   15    9 132   0.01   0.10     ke SVSA       7964725
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964725
+ML     0.9          SVSA       7964725
+
+Event  9248052 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/21 00:35:13.50   0.39  0.10  37.7430  -25.3240   3.0   2.0 134   9.0   4.8    6    4 231   0.02   0.10     ke SVSA       7964726
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       7964726
+ML     0.8          SVSA       7964726
+
+Event  9248053 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/21 10:37:31.40   0.41  0.10  37.7790  -25.4390   0.7   0.5  60   2.2   1.1   10    7 130   0.02   0.08     ke SVSA       7964727
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964727
+ML     0.7          SVSA       7964727
+
+Event  9248054 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/21 11:18:03.50   0.55  0.10  37.7750  -25.3430   4.4   1.8 172   5.7   7.0    8    5 155   0.03   0.11     ke SVSA       7964728
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964728
+ML     0.8          SVSA       7964728
+
+Event  9248055 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/21 14:13:58.10   0.35  0.10  37.7790  -25.3930   6.0   1.6  76   6.4   4.3    6    4 287   0.04   0.07     ke SVSA       7964730
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964730
+ML     0.5          SVSA       7964730
+
+Event  9248056 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/21 18:56:52.50   0.65  0.20  37.7780  -25.3420   1.8   1.0 126   4.2   1.4   15    9 111   0.04   0.16     ke SVSA       7964731
+
+Magnitude  Err Nsta Author      OrigID
+ML     0.9          SVSA       7964731
+
+Event  9248057 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/21 18:57:05.50   0.59  0.10  37.7790  -25.3360   2.1   1.0 157   1.8   2.1   10    8 118   0.04   0.12     ke SVSA       7964732
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       7964732
+ML     0.6          SVSA       7964732
+
+Event  9248058 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/21 20:13:40.40   0.94  0.20  38.6260  -28.6290   4.7   3.7  65  13.2   6.2   12    8 159   0.06   0.42     ke SVSA       7964733
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.5          SVSA       7964733
+ML     1.4          SVSA       7964733
+
+Event  9248060 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/21 21:12:11.90   1.04  0.20  38.6510  -28.5830   3.7   2.5  55   5.0   4.6   24   13 179   0.10   0.42     ke SVSA       7964734
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       7964734
+ML     1.7          SVSA       7964734
+
+Event  9248061 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/21 22:28:06.60   0.48  0.10  37.7680  -25.3400   1.7   1.4 144   7.7   3.0   12    9 132   0.03   0.16     ke SVSA       7964735
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       7964735
+ML     0.8          SVSA       7964735
+
+Event  9248062 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/21 23:41:11.80   0.73  0.20  37.7760  -25.3440   1.5   1.4 143   3.2   2.7   14   10 113   0.03   0.16     ke SVSA       7964736
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       7964736
+ML     0.9          SVSA       7964736
+
+Event  9248072 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/22 00:13:37.30   0.82  0.20  38.8660  -28.8620   8.5   3.9  81   2.4   7.3   12    6 297   0.27   0.50     ke SVSA       7964737
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.1          SVSA       7964737
+ML     1.8          SVSA       7964737
+
+Event  9248073 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/22 00:52:15.40   0.56  0.10  37.7800  -25.3490   2.8   1.9 164   7.1   4.8    9    7 101   0.04   0.11     ke SVSA       7964738
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       7964738
+ML     0.7          SVSA       7964738
+
+Event  9248075 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/22 04:37:19.70   0.27  0.10  37.7650  -25.3390   1.3   0.8 125   7.4   2.3    8    4 139   0.02   0.07     ke SVSA       7964739
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       7964739
+ML     0.7          SVSA       7964739
+
+Event  9248076 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/22 07:32:17.60   0.49  0.10  37.7850  -25.4420   1.2   0.5  59   1.9   0.7   12    9 134   0.01   0.08     ke SVSA       7964740
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964740
+ML     0.7          SVSA       7964740
+
+Event  9248077 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/22 09:27:01.70   0.56  0.10  37.7680  -25.3330   2.2   1.5 124   5.0   1.5    9    7 144   0.03   0.12     ke SVSA       7964741
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       7964741
+ML     0.6          SVSA       7964741
+
+Event  9248078 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/22 19:08:20.40   0.75  0.20  38.6810  -29.2330  10.9   5.3  39   0.3   6.3   10    7 339   0.35   0.77     ke SVSA       7964742
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       7964742
+ML     2.1          SVSA       7964742
+
+Event  9248092 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/23 07:16:44.00   0.66  0.10  37.7620  -25.4070   1.0   0.9 157   1.1   1.3   10    8 122   0.01   0.10     ke SVSA       7964743
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       7964743
+ML     0.6          SVSA       7964743
+
+Event  9248093 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/23 10:52:49.00   0.47  0.10  38.7250  -27.3930   3.7   3.0  83   0.0f         6    3 325   0.05   0.12     ke SVSA       7964744
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       7964744
+ML     1.3          SVSA       7964744
+
+Event  9248094 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/23 14:33:20.90   0.44  0.10  37.7600  -25.3360   1.8   1.3 139   8.6   2.9   11    6 157   0.02   0.09     ke SVSA       7964745
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964745
+ML     1.0          SVSA       7964745
+
+Event  9248112 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/24 21:12:36.50   0.48  0.10  38.6560  -28.6170   3.9   2.9  79  15.1   6.6    9    5 189   0.07   0.30     ke SVSA       7964746
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       7964746
+ML     1.7          SVSA       7964746
+
+Event  9248113 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/24 21:54:29.80   0.92  0.20  38.1150  -26.4180  18.3   0.9  41   0.0   4.8   28   23 190   0.54   0.96     ke SVSA       7964747
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.4          SVSA       7964747
+ML     2.5          SVSA       7964747
+
+Event  9248114 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/24 22:54:18.80   0.90  0.20  38.7650  -29.2350  14.9   5.3  50   0.0   8.0   10    7 335   0.39   0.81     ke SVSA       7964748
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.3          SVSA       7964748
+ML     2.3          SVSA       7964748
+
+Event  9248115 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/24 23:35:44.40   0.65  0.10  37.7440  -25.4010   3.5   2.9 141   6.8   4.2    8    6 165   0.02   0.06     ke SVSA       7964749
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964749
+ML     1.0          SVSA       7964749
+
+Event  9248133 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/25 09:45:56.10   0.50  0.10  37.7480  -25.4440   0.9   0.8  35   4.2   1.1   18   11 103   0.00   0.23     ke SVSA       7964750
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       7964750
+ML     1.4          SVSA       7964750
+
+Event  9248152 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/26 02:38:13.80   0.44  0.10  38.7640  -28.9150   6.3   1.9  97   1.1   6.7   11    6 302   0.20   0.59     ke SVSA       7964751
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       7964751
+ML     1.9          SVSA       7964751
+
+Event  9248153 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/26 03:03:41.20   0.82  0.20  38.7100  -29.1680  10.8   6.2  43   8.5   5.1   12    8 336   0.32   0.75     ke SVSA       7964752
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       7964752
+ML     2.2          SVSA       7964752
+
+Event  9248154 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/26 11:46:46.10   0.98  0.30  38.9570  -28.5220   7.5   2.4 118  10.0f        10    6 232   0.32   0.46     ke SVSA       7964753
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.3          SVSA       7964753
+ML     2.2          SVSA       7964753
+
+Event  9248172 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/27 01:40:01.90   0.58  0.10  37.7810  -25.4310   1.1   1.0  67   4.0   2.2   17   10  98   0.02   0.10     ke SVSA       7964754
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       7964754
+ML     1.4          SVSA       7964754
+
+Event  9248174 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/27 04:53:37.90   0.63  0.10  38.7310  -27.2090   1.9   1.5 172   4.6   5.8    9    6 102   0.05   0.10     ke SVSA       7964755
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964755
+ML     0.7          SVSA       7964755
+
+Event  9248175 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/27 04:57:28.80   0.63  0.10  38.7340  -27.2110   2.5   1.9 174   7.6   5.7    8    6 107   0.04   0.10     ke SVSA       7964756
+
+Magnitude  Err Nsta Author      OrigID
+ML     0.9          SVSA       7964756
+
+Event  9248176 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/27 14:08:16.80   0.70  0.20  37.7490  -25.3750   3.3   2.1 154   6.2   3.5   10    6 156   0.02   0.10     ke SVSA       7964757
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.9          SVSA       7964757
+ML     0.9          SVSA       7964757
+
+Event  9248177 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/27 14:08:27.90   0.89  0.20  37.7540  -25.3760   2.3   2.1 163   4.5   4.2    9    7 133   0.02   0.09     ke SVSA       7964758
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964758
+ML     1.0          SVSA       7964758
+
+Event  9248192 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/28 03:18:33.20   0.99  0.20  38.5840  -28.5730   6.7   3.3  49  13.8  10.4   13    8 128   0.07   0.38     ke SVSA       7964759
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.6          SVSA       7964759
+ML     1.5          SVSA       7964759
+
+Event  9248193 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/28 04:14:57.20   0.47  0.20  37.8490  -25.7900   1.9   1.3  89   2.7   3.9    8    5 104   0.01   0.13     ke SVSA       7964760
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.8          SVSA       7964760
+
+Event  9248194 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/28 16:32:22.70   0.39  0.10  38.6030  -28.5640   5.5   2.1  44  13.9   8.2    7    5 142   0.09   0.27     ke SVSA       7964761
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.4          SVSA       7964761
+ML     1.0          SVSA       7964761
+
+Event  9248195 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/28 16:41:15.50   0.86  0.20  38.7530  -27.2390   3.1   2.3 177   7.3   5.0   12    6 134   0.01   0.13     ke SVSA       7964762
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964762
+ML     1.2          SVSA       7964762
+
+Event  9248196 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/28 19:52:50.50   1.05  0.30  41.0070  -29.5570  17.1   5.1  69   0.0f        36   30 337   2.26   4.61     ke SVSA       7964763
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.6          SVSA       7964763
+ML     3.2          SVSA       7964763
+
+Event  9248197 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/28 19:58:09.40   0.48  0.10  38.8090  -27.3910   7.6   7.2  55   8.7  10.1    8    6 314   0.10   0.26     ke SVSA       7964764
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       7964764
+ML     1.0          SVSA       7964764
+
+Event  9248212 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/29 01:18:04.70   0.99  0.20  38.7470  -27.2320   2.3   2.2 134   1.7   4.6   10    6 124   0.02   0.12     ke SVSA       7964765
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964765
+ML     1.1          SVSA       7964765
+
+Event  9248213 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/29 12:06:46.40   0.84  0.20  38.7480  -27.2380   3.2   2.4 175   8.0   4.4   13    7 119   0.02   0.13     ke SVSA       7964766
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       7964766
+ML     2.0          SVSA       7964766
+
+Event  9248214 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/29 15:36:39.90   0.59  0.10  37.7690  -25.4190   0.8   0.6  30   1.0   1.1   16   11  97   0.02   0.11     ke SVSA       7964767
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964767
+ML     1.1          SVSA       7964767
+
+Event  9248215 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/29 16:11:27.80   1.20  0.20  38.6280  -29.1990  10.3   4.8  72   5.5  11.1   32   24 318   0.32   1.65     ke SVSA       7964768
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       7964768
+ML     2.7          SVSA       7964768
+
+Event  9248216 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/29 17:09:58.30   0.79  0.20  37.7810  -25.4110   1.0   1.0  33   1.4   1.4   13   10 103   0.02   0.10     ke SVSA       7964769
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       7964769
+ML     0.9          SVSA       7964769
+
+Event  9248217 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/29 20:19:14.70   1.06  0.20  38.7010  -27.3250   5.8   4.2  80   8.9   5.2   14    7 242   0.02   0.19     ke SVSA       7964770
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       7964770
+ML     2.1          SVSA       7964770
+
+Event  9248232 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/30 02:52:21.00   0.81  0.20  37.5980  -25.0600   6.7   2.5  57  11.8   4.9   17   14 221   0.26   0.65     ke SVSA       7964771
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.0          SVSA       7964771
+ML     1.7          SVSA       7964771
+
+Event  9248233 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/30 07:10:56.20   1.02  0.20  39.1220  -28.4210   4.0   2.9 164   5.5   4.6   30   18 253   0.29   0.76     ke SVSA       7964773
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       7964773
+ML     2.3          SVSA       7964773
+
+Event  9248234 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/30 08:21:10.10   0.56  0.10  37.7820  -25.4550   2.5   1.7  82   3.9   4.6    6    4 146   0.01   0.05     ke SVSA       7964774
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       7964774
+ML     0.4          SVSA       7964774
+
+Event  9248235 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/30 15:05:41.70   0.81  0.20  37.5570  -25.2020   5.2   1.6  65   5.2   3.6   21   15 184   0.22   0.56     ke SVSA       7964775
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.0          SVSA       7964775
+ML     1.8          SVSA       7964775
+
+Event  9248236 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/30 22:24:21.50   1.00  0.20  38.6710  -27.0980   9.4   2.4 132   1.4   3.6    9    6 255   0.04   0.18     ke SVSA       7964777
+
+Magnitude  Err Nsta Author      OrigID
+ML     1.0          SVSA       7964777
+
+Event  9248237 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/30 23:10:27.90   0.79  0.20  37.7730  -25.3740   1.6   1.1 173   1.3   1.1   21   13  93   0.01   0.22     ke SVSA       7964778
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       7964778
+ML     1.4          SVSA       7964778
+
+Event  9248252 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 01:13:04.50   0.78  0.20  37.7850  -25.3450   3.4   3.1 161   5.0   4.5   13   10 102   0.04   0.16     ke SVSA       7964779
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964779
+ML     1.2          SVSA       7964779
+
+Event  9248253 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 02:03:29.80   0.66  0.20  37.7680  -25.3780   1.1   1.0 155   4.2   1.4   22   13 103   0.01   0.22     ke SVSA       7964780
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       7964780
+ML     1.4          SVSA       7964780
+
+Event  9248254 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 02:05:55.40   0.50  0.10  37.7680  -25.3520   1.6   1.2 177   0.8   2.3    9   10 108   0.03   0.15     ke SVSA       7964781
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964781
+ML     0.4          SVSA       7964781
+
+Event  9248255 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 02:06:34.10   0.79  0.20  37.7530  -25.3850   2.3   1.3   7   4.5   1.9   14   11 139   0.02   0.13     ke SVSA       7964782
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964782
+ML     0.5          SVSA       7964782
+
+Event  9248256 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 02:10:36.50   0.68  0.10  37.7670  -25.3770   2.1   1.1 168   5.0   1.5   13   12 104   0.01   0.13     ke SVSA       7964783
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964783
+ML     0.7          SVSA       7964783
+
+Event  9248258 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 02:26:03.40   0.76  0.10  37.7660  -25.3640   3.1   2.6 147   8.1   4.2   10    9  91   0.02   0.10     ke SVSA       7964784
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       7964784
+ML     0.7          SVSA       7964784
+
+Event  9248259 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 03:07:05.30   0.53  0.10  37.7720  -25.3750   1.9   1.2 169   2.5   2.7   10    9 149   0.01   0.14     ke SVSA       7964785
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.9          SVSA       7964785
+ML     0.1          SVSA       7964785
+
+Event  9248260 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 03:29:45.30   0.99  0.20  38.9480  -29.0710  14.1   2.9  95   1.5   9.0   24   16 292   0.42   0.95     ke SVSA       7964787
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       7964787
+ML     2.2          SVSA       7964787
+
+Event  9248262 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 03:39:49.90   0.63  0.10  37.7860  -25.3260   7.5   4.2  38   6.8   5.5    8    6 292   0.05   0.12     ke SVSA       7964788
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       7964788
+ML     0.6          SVSA       7964788
+
+Event  9248263 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 03:55:25.00   0.69  0.20  37.7710  -25.3770   1.4   1.1 173   4.3   1.6   18   13  96   0.01   0.22     ke SVSA       7964789
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       7964789
+ML     0.8          SVSA       7964789
+
+Event  9248264 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 03:56:04.20   0.76  0.20  37.7740  -25.3800   1.5   1.1 170   2.1   0.9   25   13  95   0.01   0.21     ke SVSA       7964790
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       7964790
+ML     1.6          SVSA       7964790
+
+Event  9248265 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 04:05:05.40   0.87  0.20  37.7720  -25.3760   1.7   1.4  10   3.5   2.9   16   12  92   0.01   0.13     ke SVSA       7964791
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       7964791
+ML     0.6          SVSA       7964791
+
+Event  9248266 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 05:51:25.40   0.62  0.20  37.7700  -25.3770   1.0   0.9 171   3.8   2.1   24   13  98   0.01   0.22     ke SVSA       7964792
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       7964792
+ML     1.6          SVSA       7964792
+
+Event  9248269 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 07:10:22.00   0.47  0.10  37.7610  -25.3750   1.1   0.7 171   4.3   1.2   16   11 114   0.02   0.14     ke SVSA       7964793
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       7964793
+ML     0.8          SVSA       7964793
+
+Event  9248274 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 18:03:44.70   0.85  0.20  39.2840  -29.0510  20.3   7.4  74  10.0f         6    5 333   0.71   0.93     ke SVSA       7964794
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.4          SVSA       7964794
+ML     2.2          SVSA       7964794
+
+Event  9248276 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 20:06:07.30   0.60  0.10  37.7840  -25.3850   2.2   1.7  10   5.8   3.5   10    7 169   0.02   0.09     ke SVSA       7964795
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       7964795
+ML     0.4          SVSA       7964795
+
+Event  9248279 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/01/31 21:48:08.60   0.63  0.10  37.7540  -25.3780   1.8   1.0 173   4.5   1.3   17   11 133   0.02   0.13     ke SVSA       7964796
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       7964796
+ML     0.8          SVSA       7964796
+
+Event  9444629 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/01 03:24:26.60   0.74  0.20  38.4620  -28.4140   3.8   3.2  44   6.7   5.4    8    4 151   0.04   0.06     ke SVSA       8141998
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.5          SVSA       8141998
+ML     0.9          SVSA       8141998
+
+Event  9444638 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/01 08:40:47.00   1.05  0.30  38.7780  -29.1200   6.5   3.5  61   3.1   6.3   44   33 304   0.32   3.66     ke SVSA       8141999
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.2          SVSA       8141999
+ML     3.2          SVSA       8141999
+
+Event  9444645 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/01 12:18:21.80   0.91  0.20  39.0550  -29.4380   7.1   5.0  55   0.0f        20   14 322   0.71   1.25     ke SVSA       8142000
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.5          SVSA       8142000
+ML     2.8          SVSA       8142000
+
+Event  9444653 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/01 19:57:39.80   1.27  0.30  36.8520  -24.3250   6.5   4.1  49   5.0f        58   39 323   0.61   3.94     ke SVSA       8142001
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.7          SVSA       8142001
+ML     3.6          SVSA       8142001
+
+Event  9444670 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/02 01:26:15.50   1.11  0.20  37.7750  -25.4550   1.8   1.2  74   1.2   2.5   14    9  79   0.02   0.09     ke SVSA       8142002
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142002
+ML     0.7          SVSA       8142002
+
+Event  9444674 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/02 03:34:37.00   1.04  0.20  39.1150  -29.5140  15.8   8.6  50   5.0f        11    9 341   0.80   1.21     ke SVSA       8142003
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.3          SVSA       8142003
+ML     2.3          SVSA       8142003
+
+Event  9444686 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/02 09:17:30.20   0.73  0.20  36.9230  -24.3850   5.6   4.3  89   0.0f        13    8 318   0.55   1.22     ke SVSA       8142004
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.4          SVSA       8142004
+ML     2.3          SVSA       8142004
+
+Event  9444705 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/02 15:10:51.20   0.51  0.10  38.8370  -28.9850  14.0   2.8  91   0.0  12.2    8    4 322   0.30   0.59     ke SVSA       8142005
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.2          SVSA       8142005
+ML     1.8          SVSA       8142005
+
+Event  9444738 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/03 07:54:16.40   0.40  0.10  37.7630  -25.3570   1.1   0.7 139   4.8   0.8   16   10 101   0.02   0.15     ke SVSA       8142006
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142006
+ML     1.1          SVSA       8142006
+
+Event  9444756 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/03 18:59:24.30   0.93  0.30  39.0250  -29.4950   6.7   4.8  46   0.0f        27   15 320   0.70   1.28     ke SVSA       8142007
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.4          SVSA       8142007
+ML     2.8          SVSA       8142007
+
+Event  9444771 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/04 02:57:46.70   0.82  0.20  38.1060  -26.2620   8.4   1.3  42   7.1   4.2   34   22 167   0.43   1.45     ke SVSA       8142008
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.2          SVSA       8142008
+ML     2.4          SVSA       8142008
+
+Event  9227727 Northern Mid-Atlantic Ridge
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/04 03:33:19.00         0.10  35.2410  -35.9730f                 10.0f              1                          IGIL       7979685
+2007/02/04 03:33:20.00         2.60  35.2800  -35.9300                  27.0              19                          BJI        8316922
+2007/02/04 03:33:17.30   1.25        35.3670  -35.9710   8.3   4.2 138  10.0        123                               MOS        8521917
+
+Magnitude  Err Nsta Author      OrigID
+MS     5.0          IGIL       7979685
+Ms     5.5          BJI        8316922
+Msz    5.2          BJI        8316922
+mB     5.7          BJI        8316922
+mb     5.3          BJI        8316922
+MS     4.8       45 MOS        8521917
+mb     5.0       61 MOS        8521917
+
+Event  9268534 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/04 03:33:49.70               38.6730  -34.1580                  33.0f              1                          NAO        7973218
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.7          NAO        7973218
+
+Event  9444811 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/04 19:07:13.20   0.87  0.20  37.8940  -26.0870  13.3   6.5  18  10.6   3.2   17   12 346   0.23   0.56     ke SVSA       8142010
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8142010
+ML     1.5          SVSA       8142010
+
+Event  9444815 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/04 22:21:27.70   0.90  0.20  38.2150  -26.7000  14.4   1.1  46   0.0   5.2   25   19 197   0.58   1.15     ke SVSA       8142012
+
+Magnitude  Err Nsta Author      OrigID
+ML     2.1          SVSA       8142012
+
+Event  9444821 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/04 23:35:18.60   0.93  0.20  38.9360  -29.0610  12.8   4.4  91   0.0   8.3   15   11 327   0.42   0.82     ke SVSA       8142013
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.1          SVSA       8142013
+ML     2.0          SVSA       8142013
+
+Event  9444836 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/05 04:55:08.50   0.53  0.10  38.2000  -26.6150  14.1   2.8  45  10.8   9.2   11    8 194   0.63   0.76     ke SVSA       8142014
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.2          SVSA       8142014
+ML     2.1          SVSA       8142014
+
+Event  9227768 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/05 23:21:43.64   5.57  0.56  38.6629  -25.7416  81.7  48.8 165   0.0f        15      337  13.40  16.92     uk MDD        7938796
+2007/02/05 23:21:43.30   1.33  0.30  37.9470  -26.3090   4.5   2.2  27   5.4   4.5   73   43 154   0.41   2.05     ke SVSA       8142015
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.3 0.1    6 MDD        7938796
+MD     3.2          SVSA       8142015
+ML     3.3          SVSA       8142015
+
+Event  9444874 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/06 02:14:24.50   0.83  0.20  37.7130  -25.4460   3.9   2.6 170   6.0   4.1   10    8 222   0.03   0.17     ke SVSA       8142016
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8142016
+ML     0.7          SVSA       8142016
+
+Event  9444912 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/07 04:06:38.50   0.72  0.10  37.7830  -25.4530   1.3   0.9  67   1.0   2.0    9    8  81   0.01   0.07     ke SVSA       8142017
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.9          SVSA       8142017
+ML     0.8          SVSA       8142017
+
+Event  9444925 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/07 11:38:59.30   0.67  0.10  37.7500  -25.3500   2.4   1.7 155   6.3   3.3   12   10 136   0.01   0.14     ke SVSA       8142018
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       8142018
+ML     1.3          SVSA       8142018
+
+Event  9444928 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/07 12:12:09.80   0.39  0.10  37.7600  -25.3460   1.8   1.1 148   5.8   2.1   11    9 131   0.02   0.14     ke SVSA       8142019
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8142019
+ML     1.0          SVSA       8142019
+
+Event  9444929 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/07 13:02:44.10   0.77  0.20  37.7800  -25.4510   3.1   1.9 101   3.9   6.3    7    5 124   0.01   0.06     ke SVSA       8142020
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8142020
+ML     0.7          SVSA       8142020
+
+Event  9444934 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/07 17:31:23.20   0.54  0.10  38.5890  -28.7870  13.7   3.3  65  13.1   7.5    6    3 304   0.07   0.14     ke SVSA       8142021
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.3          SVSA       8142021
+ML     1.7          SVSA       8142021
+
+Event  9445008 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/09 18:32:50.30   0.70  0.20  37.7680  -25.4270   1.2   0.7 133   0.0   1.2   13    9  91   0.02   0.12     ke SVSA       8142022
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8142022
+ML     1.0          SVSA       8142022
+
+Event  9227889 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/09 19:33:50.50         0.10  37.5200  -32.7200                  30.0               5                          BJI        8317014
+2007/02/09 19:33:49.90   0.58        37.6070  -31.8690  19.4   8.7 137  10.0         33                               MOS        8522051
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.9          BJI        8317014
+mb     4.8       18 MOS        8522051
+
+Event  9445009 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/09 20:39:10.30   0.71  0.20  37.7960  -25.4460   1.6   1.3  48   3.4   3.0   14   10 169   0.00   0.11     ke SVSA       8142023
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       8142023
+ML     1.0          SVSA       8142023
+
+Event  9445010 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/09 21:07:16.30   0.54  0.10  37.7540  -25.4060   1.7   1.4  27   5.4   1.0   13    8 141   0.02   0.11     ke SVSA       8142024
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8142024
+ML     1.1          SVSA       8142024
+
+Event  9445011 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/09 21:24:42.90   0.29  0.10  38.9700  -28.1290   3.1   2.3  96   8.5   7.0    7    4 325   0.10   0.27     ke SVSA       8142025
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8142025
+ML     2.2          SVSA       8142025
+
+Event  9445012 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/09 21:31:56.20   0.37  0.10  38.9980  -28.1270   4.4   3.6  48   9.3   7.0    9    6 322   0.08   0.61     ke SVSA       8142026
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8142026
+ML     1.8          SVSA       8142026
+
+Event  9445013 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/09 21:36:28.10   0.48  0.10  38.9580  -28.1340   3.7   2.4 113   0.4   3.0    9    6 327   0.11   0.52     ke SVSA       8142027
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.8          SVSA       8142027
+ML     2.7          SVSA       8142027
+
+Event  9445014 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/09 21:42:14.00   0.50  0.10  38.9890  -28.1070   8.3   4.5  56  11.2   9.0    6    3 317   0.07   0.12     ke SVSA       8142028
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       8142028
+ML     1.9          SVSA       8142028
+
+Event  9445015 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/09 21:43:14.60   0.45  0.10  38.9570  -28.1110   4.8   3.5  91   8.0   1.9    7    4 324   0.10   0.15     ke SVSA       8142029
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142029
+ML     2.3          SVSA       8142029
+
+Event  9445016 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/09 23:13:32.10   0.34  0.10  38.9840  -28.1470   5.8   3.8  53  14.1   8.2    7    4 328   0.10   0.15     ke SVSA       8142030
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       8142030
+ML     2.1          SVSA       8142030
+
+Event  9445017 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/09 23:53:16.60   0.29  0.10  38.9690  -28.1300   5.0   2.7  54   7.7   8.9    7    4 326   0.10   0.15     ke SVSA       8142031
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.9          SVSA       8142031
+ML     1.9          SVSA       8142031
+
+Event  9445028 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/10 02:22:43.10   0.89  0.20  37.7930  -25.4090   3.2   2.3 111   6.0   4.8   10    7 120   0.03   0.08     ke SVSA       8142032
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8142032
+ML     0.9          SVSA       8142032
+
+Event  9445029 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/10 03:13:09.50   0.67  0.10  37.7780  -25.4350   2.7   1.9  62   3.8   4.3    9    7 140   0.02   0.07     ke SVSA       8142033
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       8142033
+ML     0.6          SVSA       8142033
+
+Event  9445030 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/10 05:03:36.60   0.91  0.20  37.7750  -25.4390   1.4   1.0  62   1.1   2.0   17   13 102   0.02   0.24     ke SVSA       8142034
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       8142034
+ML     1.1          SVSA       8142034
+
+Event  9445031 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/10 12:55:42.30   0.70  0.20  37.4990  -24.7000  12.7   1.8  79   1.9   9.2   23   18 266   0.54   0.95     ke SVSA       8142035
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.5          SVSA       8142035
+ML     2.7          SVSA       8142035
+
+Event  9445032 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/10 22:00:48.40   0.32  0.10  39.0050  -28.1190   6.3   3.4  57  13.4   5.3    6    3 319   0.08   0.12     ke SVSA       8142036
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8142036
+ML     1.8          SVSA       8142036
+
+Event  9445033 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/10 22:01:10.60   0.74  0.10  39.0160  -28.1010   7.0   5.7 118  12.9  10.5    9    6 211   0.06   0.62     ke SVSA       8142037
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       8142037
+ML     2.0          SVSA       8142037
+
+Event  9445034 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/10 22:14:52.60   0.33  0.10  38.9790  -28.1370   3.8   3.4  49   9.4   8.0    7    4 326   0.11   0.30     ke SVSA       8142038
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142038
+ML     1.8          SVSA       8142038
+
+Event  9419702 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/11 03:53:02.70   0.58  0.10  37.7660  -25.4320   1.3   1.2  50   5.2   1.4   18   12  85   0.02   0.17     ke SVSA       8142039
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       8142039
+ML     1.5          SVSA       8142039
+
+Event  9419706 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/11 10:58:57.10   0.69  0.20  38.9500  -28.1630   7.7   1.7 108   5.0f         7    4 215   0.14   0.27     ke SVSA       8142040
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8142040
+ML     1.5          SVSA       8142040
+
+Event  9419718 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/12 00:16:01.50   0.51  0.10  37.8010  -25.4810   1.3   1.2  37   4.5   1.2   12    9 125   0.02   0.12     ke SVSA       8142041
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       8142041
+ML     0.8          SVSA       8142041
+
+Event  9228026 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/13 21:15:45.90         2.00  36.1000  -34.1000                  10.0              16                          BJI        8317099
+2007/02/13 21:15:50.40   0.88        36.2850  -34.1440  10.2   5.9 136  33.0         79                               MOS        8522893
+
+Magnitude  Err Nsta Author      OrigID
+Ms     4.8          BJI        8317099
+Msz    4.4          BJI        8317099
+mB     5.6          BJI        8317099
+mb     4.9          BJI        8317099
+mb     4.8       31 MOS        8522893
+
+Event  9268726 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/13 21:16:43.70               41.4150  -30.2280                  33.0f              1                          NAO        7973315
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.1          NAO        7973315
+
+Event  9248357 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/14 02:41:56.00         2.30  36.1000  -34.1000                  10.0              16                          BJI        8317111
+2007/02/14 02:42:00.30   0.81        36.1840  -34.0880  11.9   6.2  47  33.0         67                               MOS        8522900
+
+Magnitude  Err Nsta Author      OrigID
+Ms     5.2          BJI        8317111
+Msz    4.8          BJI        8317111
+mB     5.5          BJI        8317111
+mb     4.8          BJI        8317111
+mb     4.7       28 MOS        8522900
+
+Event  9268735 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/14 02:42:28.00               39.0800  -32.5550                  33.0f              1                          NAO        7973319
+
+Magnitude  Err Nsta Author      OrigID
+mb     3.8          NAO        7973319
+
+Event  9419764 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/14 05:26:09.80   0.73  0.10  38.8310  -27.2220   4.7   1.8 160   0.9   2.7    9    6 282   0.07   0.16     ke SVSA       8142043
+
+Magnitude  Err Nsta Author      OrigID
+ML     1.5          SVSA       8142043
+
+Event  9419769 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/14 13:47:15.00   0.65  0.20  37.5260  -24.7620  15.8   2.2  76   1.3  11.3   13   10 260   0.48   0.75     ke SVSA       8142044
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.3          SVSA       8142044
+ML     2.2          SVSA       8142044
+
+Event  9419775 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/14 23:40:54.20   0.86  0.20  37.6360  -25.0860   8.7   6.0  34  10.0f        12    9 332   0.21   0.39     ke SVSA       8142045
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       8142045
+ML     1.6          SVSA       8142045
+
+Event  9419779 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/15 01:48:51.00   1.17  0.30  38.6530  -28.5860   3.2   2.7 165   5.9   8.1   16   10 181   0.09   0.39     ke SVSA       8142046
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       8142046
+ML     2.0          SVSA       8142046
+
+Event  9419781 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/15 02:40:36.40   0.39  0.10  37.7660  -25.4230   0.8   0.7  25   2.6   2.6   11    9 121   0.02   0.10     ke SVSA       8142047
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.8          SVSA       8142047
+ML     0.7          SVSA       8142047
+
+Event  9419810 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/16 05:38:49.60   0.79  0.20  37.7790  -25.4300   3.7   2.8 115   6.1   6.3    7    5 158   0.02   0.06     ke SVSA       8142048
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       8142048
+ML     0.7          SVSA       8142048
+
+Event  9419820 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/16 20:00:41.40   0.71  0.20  37.7660  -25.4670   6.5   3.7 104   4.5   7.1    8    6 163   0.01   0.15     ke SVSA       8142049
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8142049
+ML     0.8          SVSA       8142049
+
+Event  9419838 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/17 01:43:04.50   0.65  0.10  37.8070  -25.4510   4.2   2.2  56   5.4   2.1    9    7 224   0.01   0.08     ke SVSA       8142050
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       8142050
+ML     0.7          SVSA       8142050
+
+Event  9419840 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/17 04:14:16.10   0.76  0.20  37.9730  -26.1330  11.4   5.0  27  11.8   2.8   22   16 342   0.28   0.70     ke SVSA       8142051
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.2          SVSA       8142051
+ML     1.9          SVSA       8142051
+
+Event  9419842 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/17 05:59:24.80   0.88  0.20  37.7750  -25.4880   1.1   1.0  38   1.1   1.3   17   10  93   0.00   0.13     ke SVSA       8142052
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       8142052
+ML     1.0          SVSA       8142052
+
+Event  9419845 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/17 12:20:38.30   0.76  0.20  38.6860  -27.0660   8.1   4.8  57   0.0f         7    4 321   0.13   0.21     ke SVSA       8142053
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.8          SVSA       8142053
+ML     1.8          SVSA       8142053
+
+Event  9419846 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/17 13:13:10.40   0.64  0.10  37.8020  -25.4730   2.4   1.7  13   5.4   1.7   11    8 107   0.01   0.07     ke SVSA       8142054
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       8142054
+ML     0.8          SVSA       8142054
+
+Event  9419847 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/17 14:13:37.60   0.31  0.10  38.9790  -28.1060   2.1   1.1  96   1.6   1.6    7    4 318   0.08   0.13     ke SVSA       8142055
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8142055
+ML     1.4          SVSA       8142055
+
+Event  9419848 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/17 14:17:58.50   0.51  0.10  37.7700  -25.4410   1.8   0.6  74   2.1   0.9    8    5 103   0.02   0.05     ke SVSA       8142056
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       8142056
+ML     0.5          SVSA       8142056
+
+Event  9419854 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/17 23:37:27.40   0.92  0.20  37.5540  -25.0090   8.7   1.9  66   4.4   4.8   17   13 226   0.31   0.67     ke SVSA       8142057
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.1          SVSA       8142057
+ML     2.0          SVSA       8142057
+
+Event  9419878 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/19 00:52:47.30   0.45  0.10  38.4470  -28.4080   2.5   2.0   8   5.5   3.2    6    4 183   0.03   0.06     ke SVSA       8142058
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.5          SVSA       8142058
+ML     1.1          SVSA       8142058
+
+Event  9419900 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/20 08:59:44.80   0.47  0.10  37.7550  -25.3440   1.6   1.1 148   6.2   2.3   17   11 152   0.01   0.16     ke SVSA       8142061
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8142061
+ML     1.2          SVSA       8142061
+
+Event  9419901 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/20 10:51:03.50   1.34  0.20  38.1070  -26.2620   8.1   1.4  36   1.4   3.9   46   36 160   0.43   1.98     ke SVSA       8142062
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.1          SVSA       8142062
+ML     3.3          SVSA       8142062
+
+Event  9419902 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/20 11:38:10.30   0.48  0.10  37.7670  -25.3090   4.2   1.5 139   7.7   3.4    9    7 184   0.03   0.14     ke SVSA       8142063
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8142063
+ML     1.2          SVSA       8142063
+
+Event  9419905 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/20 17:49:53.30   0.46  0.10  38.7290  -28.5680   4.4   1.7 149  12.1   8.4    8    5 226   0.14   0.25     ke SVSA       8142064
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.3          SVSA       8142064
+ML     1.4          SVSA       8142064
+
+Event  9419907 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/20 21:30:30.60   0.67  0.20  37.7620  -25.3570   2.7   2.7 124   6.6   5.3    9    6 102   0.02   0.11     ke SVSA       8142065
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       8142065
+ML     0.8          SVSA       8142065
+
+Event  9419918 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/21 02:58:38.40   0.65  0.20  37.7900  -25.4610   1.7   1.5  44   6.9   3.3   16   10  83   0.01   0.12     ke SVSA       8142066
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       8142066
+ML     1.5          SVSA       8142066
+
+Event  9419980 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/22 02:03:48.40   0.84  0.20  37.9850  -25.8330   6.0   5.0  27   5.3   4.4   18   15 309   0.11   0.45     ke SVSA       8142067
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142067
+ML     1.7          SVSA       8142067
+
+Event  9420027 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/22 23:22:50.10   0.93  0.20  38.4750  -28.4050   2.6   2.2  54   2.3   8.5    8    4 113   0.03   0.05     ke SVSA       8142068
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       8142068
+ML     1.2          SVSA       8142068
+
+Event  9420080 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 04:07:04.00   0.78  0.20  37.7690  -25.3990   2.4   1.9  22   5.4   3.3   10    8 131   0.00   0.10     ke SVSA       8142070
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.8          SVSA       8142070
+ML     0.8          SVSA       8142070
+
+Event  9420081 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 04:07:14.20   1.08  0.30  37.7580  -25.4000   3.8   2.2  10   5.2   3.2    8    7 132   0.01   0.10     ke SVSA       8142071
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.9          SVSA       8142071
+ML     0.6          SVSA       8142071
+
+Event  9420084 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 05:58:35.50   0.56  0.10  37.7550  -25.3930   1.3   1.1 176   5.8   2.0   21   12 139   0.01   0.20     ke SVSA       8142072
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       8142072
+ML     1.7          SVSA       8142072
+
+Event  9420085 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 06:10:43.30   0.43  0.10  37.7600  -25.3510   1.7   1.2 162   6.6   2.4   12    9 117   0.02   0.11     ke SVSA       8142073
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8142073
+ML     1.0          SVSA       8142073
+
+Event  9420090 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 14:29:48.30   0.77  0.20  37.5540  -25.2270   4.9   3.3 126   5.0f        17   15 311   0.21   0.56     ke SVSA       8142074
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       8142074
+ML     1.5          SVSA       8142074
+
+Event  9420091 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 14:33:11.50   0.55  0.10  37.5730  -25.2070   7.4   5.1   8   7.6  21.0    8    6 321   0.21   0.30     ke SVSA       8142075
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       8142075
+ML     1.4          SVSA       8142075
+
+Event  9420092 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 16:40:24.70   0.67  0.10  37.7410  -25.3840   3.0   2.1   3   8.4   3.5   13    9 174   0.02   0.11     ke SVSA       8142076
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142076
+ML     1.1          SVSA       8142076
+
+Event  9420095 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 19:08:40.40   0.99  0.20  37.5820  -25.2710   2.9   1.7  71   0.0   3.2   40   25 166   0.17   2.88     ke SVSA       8142077
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       8142077
+ML     3.1          SVSA       8142077
+
+Event  9420097 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 19:11:48.30   0.62  0.10  37.6260  -25.2150   3.1   2.1 127   4.0   3.6   19   14 311   0.16   0.49     ke SVSA       8142078
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.0          SVSA       8142078
+ML     1.4          SVSA       8142078
+
+Event  9420098 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 19:21:12.50   0.43  0.10  37.5670  -25.2150   4.3   3.1  57   6.8   2.7    9    7 321   0.21   0.33     ke SVSA       8142079
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142079
+ML     1.4          SVSA       8142079
+
+Event  9420099 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 19:34:36.50   0.53  0.10  37.5550  -25.2250   3.0   3.0 146   3.6   3.2   15   12 311   0.21   0.54     ke SVSA       8142080
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142080
+ML     1.5          SVSA       8142080
+
+Event  9420100 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 19:38:27.40   0.72  0.20  37.5750  -25.2240   4.5   4.4  68  11.0   3.5   18   15 311   0.20   0.55     ke SVSA       8142081
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142081
+ML     1.3          SVSA       8142081
+
+Event  9420103 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 21:35:46.10   0.70  0.20  37.5380  -25.2500   4.4   4.3  61   5.2   5.7   11    8 311   0.22   0.39     ke SVSA       8142082
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8142082
+ML     1.2          SVSA       8142082
+
+Event  9420104 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 21:51:45.20   0.49  0.10  37.5610  -25.2330   5.1   2.4 122   0.2   6.0   16   13 309   0.21   0.53     ke SVSA       8142083
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       8142083
+ML     1.1          SVSA       8142083
+
+Event  9420106 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/24 23:03:42.50   0.79  0.10  38.7430  -27.2560   5.7   3.2 116   3.0   8.5    7    4 204   0.02   0.09     ke SVSA       8142084
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       8142084
+ML     1.0          SVSA       8142084
+
+Event  9420118 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 00:28:52.00   0.70  0.20  37.5660  -25.2490   3.9   3.8  32   5.5   5.4   12    9 309   0.20   0.38     ke SVSA       8142085
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142085
+ML     1.2          SVSA       8142085
+
+Event  9420121 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 00:40:22.30   0.68  0.20  37.5670  -25.2340   4.5   4.0  61   5.8   2.9   20   17 309   0.20   0.58     ke SVSA       8142086
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142086
+ML     1.3          SVSA       8142086
+
+Event  9420122 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 01:18:32.10   0.82  0.20  37.5480  -25.2320   2.7   2.4  74   2.5   4.3   24   19 175   0.22   0.56     ke SVSA       8142087
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       8142087
+ML     1.6          SVSA       8142087
+
+Event  9420126 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 04:04:44.70   0.87  0.20  37.6030  -25.2380   3.9   1.8  53   4.8   3.6   34   19 177   0.17   0.62     ke SVSA       8142088
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.4          SVSA       8142088
+ML     2.3          SVSA       8142088
+
+Event  9420128 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 04:12:06.50   0.89  0.20  37.5630  -25.2770   6.5   5.5  54   6.4   5.4   11    8 305   0.19   0.44     ke SVSA       8142089
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142089
+ML     1.3          SVSA       8142089
+
+Event  9420132 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 06:23:04.40   0.99  0.20  37.5450  -25.2090   8.6   6.4  32   5.8   6.6   11    9 316   0.23   0.49     ke SVSA       8142090
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8142090
+ML     1.1          SVSA       8142090
+
+Event  9420133 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 06:41:42.40   0.63  0.20  37.5860  -25.2570   2.7   1.9  58   0.2   3.6   18   16 170   0.17   0.60     ke SVSA       8142091
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       8142091
+ML     1.5          SVSA       8142091
+
+Event  9420134 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 06:51:38.10   0.69  0.20  37.5710  -25.2640   4.8   3.9  35   4.4   3.5   13   10 306   0.19   0.46     ke SVSA       8142092
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.8          SVSA       8142092
+ML     1.3          SVSA       8142092
+
+Event  9420135 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 06:54:45.00   1.28  0.30  37.5580  -25.2210  11.0   9.7  66   5.8   8.1   11   10 315   0.21   0.48     ke SVSA       8142093
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       8142093
+ML     1.1          SVSA       8142093
+
+Event  9420136 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 07:16:56.00   0.57  0.20  37.6230  -25.2530   4.4   3.3 130  10.0f         8    6 305   0.14   0.42     ke SVSA       8142094
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.8          SVSA       8142094
+ML     1.2          SVSA       8142094
+
+Event  9420138 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 08:21:01.90   1.08  0.20  37.6080  -25.2460   6.6   2.8  53   6.4   4.6   19   17 175   0.16   0.62     ke SVSA       8142095
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142095
+ML     1.3          SVSA       8142095
+
+Event  9420139 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 08:22:43.30   0.79  0.20  37.5940  -25.2590   3.0   2.3  48   3.3   3.9   23   17 170   0.17   0.61     ke SVSA       8142096
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.3          SVSA       8142096
+ML     1.7          SVSA       8142096
+
+Event  9420140 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 08:34:50.90   0.87  0.20  37.8170  -25.4660   3.1   2.2  16   5.9   4.0   16   10 201   0.00   0.15     ke SVSA       8142097
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8142097
+ML     1.2          SVSA       8142097
+
+Event  9420143 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 10:57:07.50   0.68  0.20  37.5850  -25.2530   2.9   1.9  63   0.0   3.5   20   16 171   0.18   0.60     ke SVSA       8142098
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.8          SVSA       8142098
+ML     1.4          SVSA       8142098
+
+Event  9420144 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 11:23:43.20   0.43  0.10  37.5550  -25.2390   4.2   2.9  58   6.9   2.9   10    7 320   0.21   0.33     ke SVSA       8142099
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8142099
+ML     1.1          SVSA       8142099
+
+Event  9420145 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 12:04:14.70   0.38  0.10  37.8150  -25.3410   2.5   1.2  69   4.9   1.3    6    4 292   0.06   0.12     ke SVSA       8142100
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       8142100
+ML     0.8          SVSA       8142100
+
+Event  9420146 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 13:56:18.90   0.95  0.20  37.5460  -25.2180   4.6   3.7  66   2.0   7.2   20   17 178   0.22   0.57     ke SVSA       8142101
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       8142101
+ML     1.4          SVSA       8142101
+
+Event  9420153 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 15:57:10.40   0.77  0.20  37.5920  -25.2500   3.1   2.5  58   0.1   4.3   17   15 173   0.17   0.61     ke SVSA       8142103
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       8142103
+ML     1.3          SVSA       8142103
+
+Event  9420156 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 16:53:03.00   0.33  0.10  37.5420  -25.2370   3.9   1.9 135   0.9   5.4   13   10 313   0.22   0.50     ke SVSA       8142104
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8142104
+ML     1.6          SVSA       8142104
+
+Event  9420157 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 18:26:41.50   0.82  0.20  37.7480  -25.3980   2.8   2.1   2   5.3   1.8   11    8 155   0.02   0.10     ke SVSA       8142105
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       8142105
+ML     0.8          SVSA       8142105
+
+Event  9420159 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 18:59:14.70   0.89  0.20  37.5680  -25.2470   4.4   4.2  42   4.7   4.7   20   14 307   0.19   0.50     ke SVSA       8142106
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       8142106
+ML     1.6          SVSA       8142106
+
+Event  9420160 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/25 19:05:30.50   0.77  0.20  37.5980  -25.2320   3.0   3.0  62   0.8   5.9   19   16 178   0.17   0.61     ke SVSA       8142107
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.8          SVSA       8142107
+ML     1.4          SVSA       8142107
+
+Event  9420198 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/26 00:27:54.10   0.76  0.20  37.7650  -25.3530   3.2   1.4 151   5.2   1.7   16   10 109   0.02   0.13     ke SVSA       8142108
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8142108
+ML     0.9          SVSA       8142108
+
+Event  9420208 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/26 21:48:52.30   0.74  0.20  37.5890  -25.2460   3.1   1.5  73   1.1   4.4   24   17 174   0.18   0.60     ke SVSA       8142109
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.8          SVSA       8142109
+ML     2.0          SVSA       8142109
+
+Event  9420224 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/27 16:03:18.00   0.41  0.10  37.8010  -25.5350   3.5   1.5   4   9.4   2.8   10    6 145   0.02   0.16     ke SVSA       8142110
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8142110
+ML     0.8          SVSA       8142110
+
+Event  9420242 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/28 12:58:31.20   0.78  0.20  38.7370  -28.4640   4.3   3.5 141   2.5  11.3   11    9 225   0.17   0.48     ke SVSA       8142111
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       8142111
+ML     1.6          SVSA       8142111
+
+Event  9420244 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/28 17:09:55.30   1.01  0.30  39.3830  -29.8060   7.3   3.8  63   0.0f        43   31 327   1.12   4.42     ke SVSA       8142112
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.5          SVSA       8142112
+ML     3.3          SVSA       8142112
+
+Event  9420253 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/02/28 22:04:29.10   1.46  0.30  39.3100  -29.9890  19.9   6.2  48   5.0f        22   17 335   1.18   3.57     ke SVSA       8142113
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.6          SVSA       8142113
+ML     3.2          SVSA       8142113
+
+Event  9527355 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/01 00:29:00.60   0.89  0.20  38.7510  -27.3220  12.7   4.1 144  12.1   6.8    8    5 254   0.03   0.13     ke SVSA       8205764
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       8205764
+ML     1.1          SVSA       8205764
+
+Event  9527369 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/01 12:02:46.60   0.71  0.20  37.7790  -25.4470   2.3   1.6  95   3.0   5.1    7    5 106   0.01   0.06     ke SVSA       8205765
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8205765
+ML     0.8          SVSA       8205765
+
+Event  9527387 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/01 23:00:48.00   0.74  0.20  37.6560  -24.8480   7.0   2.2  60   8.4   3.9   18   14 259   0.36   0.78     ke SVSA       8205766
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.2          SVSA       8205766
+ML     2.0          SVSA       8205766
+
+Event  9527425 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/02 22:15:40.60   0.82  0.20  37.6360  -25.2850   4.1   3.6 180   6.4   3.5   19   16 293   0.12   0.47     ke SVSA       8205770
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       8205770
+ML     1.4          SVSA       8205770
+
+Event  9527452 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/03 19:51:52.60   0.64  0.20  37.6320  -25.4570   2.9   2.1 166   7.9   1.4   20   12 270   0.10   0.23     ke SVSA       8205771
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8205771
+ML     1.6          SVSA       8205771
+
+Event  9391763 Northern Mid-Atlantic Ridge
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/04 11:26:39.10               35.7430  -35.8170                  33.0f              1                          NAO        8106685
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.7          NAO        8106685
+
+Event  9527496 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/04 14:56:21.10   0.96  0.20  38.0770  -26.3070  20.9   1.7  40   3.9   8.1   26   23 187   0.45   1.46     ke SVSA       8205773
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.3          SVSA       8205773
+ML     2.3          SVSA       8205773
+
+Event  9527500 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/04 18:07:33.50   1.05  0.20  38.6200  -29.2420  11.5  10.4 157   0.7   7.3   14   12 337   0.35   0.90     ke SVSA       8205774
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.2          SVSA       8205774
+ML     2.1          SVSA       8205774
+
+Event  9527567 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/06 16:45:23.10   0.44  0.10  37.5880  -25.1590   3.3   2.4  80   6.4   2.0   11    7 325   0.22   0.36     ke SVSA       8205778
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8205778
+ML     1.4          SVSA       8205778
+
+Event  9527572 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/06 21:39:02.40   0.37  0.10  37.7800  -25.4310   0.8   0.7  64   4.7   1.6   14   10  96   0.02   0.10     ke SVSA       8205779
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8205779
+ML     1.0          SVSA       8205779
+
+Event  9527599 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/07 03:25:15.90   0.91  0.20  38.1470  -26.2270  10.3   0.9  42   2.8   4.7   35   23 171   0.43   1.03     ke SVSA       8205780
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.6          SVSA       8205780
+ML     2.1          SVSA       8205780
+
+Event  9527604 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/07 12:34:41.50   1.51  0.30  38.7060  -27.3460  12.1  11.9  82   8.8  10.5    8    5 312   0.02   0.18     ke SVSA       8205781
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8205781
+ML     1.6          SVSA       8205781
+
+Event  9527646 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/08 06:54:10.30   0.57  0.10  37.7690  -25.3460   1.6   0.9 136   4.9   1.1   16   11 119   0.03   0.16     ke SVSA       8205782
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8205782
+ML     0.7          SVSA       8205782
+
+Event  9527647 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/08 06:54:51.10   0.54  0.10  37.7650  -25.3510   1.5   1.2 155   5.6   2.6   18   11 113   0.02   0.15     ke SVSA       8205783
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8205783
+ML     1.3          SVSA       8205783
+
+Event  9527648 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/08 06:57:42.70   0.45  0.10  37.7540  -25.3440   1.5   1.1 149   6.0   2.2   17   11 153   0.01   0.16     ke SVSA       8205784
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8205784
+ML     0.9          SVSA       8205784
+
+Event  9527668 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/08 15:20:08.80   0.60  0.10  38.7620  -29.1350  15.2   4.1  58   1.2   9.3    7    4 335   0.36   0.69     ke SVSA       8205786
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.2          SVSA       8205786
+ML     2.1          SVSA       8205786
+
+Event  9527702 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/09 03:28:26.20   0.99  0.20  37.9380  -26.4210   5.3   2.1  35   7.3   4.7   37   27 160   0.49   1.92     ke SVSA       8205787
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       8205787
+ML     2.3          SVSA       8205787
+
+Event  9527740 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/10 03:51:30.80   0.86  0.20  38.2500  -26.1770   7.4   1.1  45   2.7   4.7   30   21 177   0.48   1.53     ke SVSA       8205788
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.1          SVSA       8205788
+ML     1.9          SVSA       8205788
+
+Event  9527744 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/10 05:58:00.00   0.92  0.20  38.7130  -25.8770   8.0   1.6  49  10.0f        27   21 240   0.84   1.10     ke SVSA       8205789
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.1          SVSA       8205789
+ML     2.2          SVSA       8205789
+
+Event  9527753 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/10 10:16:33.60   0.46  0.10  37.7750  -25.4570   0.7   0.6  30   2.1   0.7   18   11  61   0.02   0.14     ke SVSA       8205790
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8205790
+ML     1.3          SVSA       8205790
+
+Event  9527762 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/10 19:24:40.10   1.04  0.30  38.6670  -28.5930   4.0   2.7 163   5.1   8.3   13   10 193   0.09   0.43     ke SVSA       8205791
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       8205791
+ML     1.4          SVSA       8205791
+
+Event  9527766 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/10 23:54:27.20   0.41  0.10  38.7200  -27.3950   3.6   3.2  80   3.1   6.8    8    5 327   0.05   0.19     ke SVSA       8205792
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8205792
+ML     1.5          SVSA       8205792
+
+Event  9527782 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 05:19:15.20   0.99  0.20  38.1560  -26.2010  12.8   2.3  42   6.0   7.7   22   19 167   0.42   1.01     ke SVSA       8205793
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.2          SVSA       8205793
+ML     1.9          SVSA       8205793
+
+Event  9527788 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 08:18:31.30   1.26  0.30  38.4780  -28.5680   5.7   1.9  27   7.5   2.8   22   13 196   0.07   0.41     ke SVSA       8205794
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       8205794
+ML     1.8          SVSA       8205794
+
+Event  9527797 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 14:10:57.60   0.94  0.20  38.7110  -29.1200   8.0   2.8  68   0.0   6.5   47   32 311   0.28   3.11     ke SVSA       8205795
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.2          SVSA       8205795
+ML     2.8          SVSA       8205795
+
+Event  9527798 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 14:13:16.30   0.85  0.20  38.7550  -29.1430  11.5   4.1  69   0.0   8.3   13    9 313   0.37   0.90     ke SVSA       8205796
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.1          SVSA       8205796
+ML     2.1          SVSA       8205796
+
+Event  9527799 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 14:25:55.70   1.00  0.20  38.3870  -28.6020   6.6   2.3  24   7.5   2.9   14    9 264   0.14   0.43     ke SVSA       8205797
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.5          SVSA       8205797
+ML     1.5          SVSA       8205797
+
+Event  9527801 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 16:15:49.10   0.97  0.20  38.6930  -29.2090  11.0   7.4  50   0.0   6.4   15   10 337   0.40   0.88     ke SVSA       8205798
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.1          SVSA       8205798
+ML     2.1          SVSA       8205798
+
+Event  9527806 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 18:55:17.40   1.23  0.20  38.6440  -29.2340   7.7   5.1  69   0.0   5.9   50   33 318   0.35   3.22     ke SVSA       8205799
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.4          SVSA       8205799
+ML     2.9          SVSA       8205799
+
+Event  9527808 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 19:39:13.10   0.91  0.20  38.3840  -28.6080   6.0   2.0  27  12.5   2.8   18   12 255   0.14   0.48     ke SVSA       8205800
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       8205800
+ML     1.8          SVSA       8205800
+
+Event  9527810 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 20:01:08.30   0.52  0.10  37.7540  -25.3820   1.7   1.2 160   5.0   0.8   22   14 137   0.02   0.33     ke SVSA       8205801
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       8205801
+ML     2.2          SVSA       8205801
+
+Event  9527812 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 20:24:37.30   0.89  0.20  37.7530  -25.3820   2.5   1.7 170   5.3   1.2   22   12 139   0.02   0.21     ke SVSA       8205802
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8205802
+ML     1.6          SVSA       8205802
+
+Event  9527813 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 20:38:57.70   0.70  0.20  37.7510  -25.3730   2.3   1.8 160   6.3   2.9   17   11 138   0.02   0.14     ke SVSA       8205803
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       8205803
+ML     1.5          SVSA       8205803
+
+Event  9527814 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 20:43:14.60   0.43  0.10  37.7550  -25.3880   1.6   1.3 164   5.0   0.9   12    9 136   0.01   0.11     ke SVSA       8205804
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       8205804
+ML     1.2          SVSA       8205804
+
+Event  9527818 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 21:30:16.80   0.89  0.20  37.7530  -25.3690   2.5   2.1 163   6.0   3.5   18   11 126   0.02   0.14     ke SVSA       8205805
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8205805
+ML     1.5          SVSA       8205805
+
+Event  9527819 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 21:30:37.20   0.75  0.20  37.7480  -25.3760   2.4   1.5 160   6.2   3.3   20   12 152   0.02   0.22     ke SVSA       8205824
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.8          SVSA       8205824
+ML     2.0          SVSA       8205824
+
+Event  9527820 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 21:52:10.50   0.69  0.20  37.7600  -25.3870   2.3   1.8  32   5.6   3.1   11    9 123   0.01   0.11     ke SVSA       8205825
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       8205825
+ML     1.3          SVSA       8205825
+
+Event  9527821 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 22:48:26.70   0.68  0.20  37.7620  -25.3880   2.2   1.8 172   5.4   1.0   14   11 121   0.01   0.13     ke SVSA       8205826
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8205826
+ML     1.5          SVSA       8205826
+
+Event  9527824 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/11 23:53:02.50   0.55  0.10  37.7440  -25.3830   1.9   1.6   9   6.0   2.4   16   11 165   0.02   0.13     ke SVSA       8205827
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       8205827
+ML     1.1          SVSA       8205827
+
+Event  9527834 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/12 00:09:41.80   0.86  0.20  39.1460  -28.5820   5.2   3.4 142  10.0f        19   13 268   0.45   0.79     ke SVSA       8205828
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.1          SVSA       8205828
+ML     2.2          SVSA       8205828
+
+Event  9527837 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/12 02:26:45.20   1.24  0.30  38.4630  -28.5730   7.4   2.1  31   7.7   3.5   18   11 219   0.08   0.41     ke SVSA       8205829
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       8205829
+ML     1.5          SVSA       8205829
+
+Event  9527838 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/12 03:04:23.10   0.90  0.20  37.1420  -24.6650   5.4   2.7  86   5.0f        34   29 284   0.35   3.52     ke SVSA       8205830
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.2          SVSA       8205830
+ML     3.3          SVSA       8205830
+
+Event  9527839 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/12 03:08:09.60   0.30  0.10  37.8080  -25.4820   3.0   1.5  88  11.2   2.3    7    6 164   0.01   0.08     ke SVSA       8205831
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8205831
+ML     1.0          SVSA       8205831
+
+Event  9527840 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/12 03:08:40.80   0.69  0.10  37.8040  -25.4640   6.7   3.2  86  10.4   5.1    7    6 150   0.01   0.07     ke SVSA       8205832
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       8205832
+ML     0.8          SVSA       8205832
+
+Event  9527845 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/12 06:58:02.20   0.79  0.20  37.7640  -25.3940   2.2   1.5  34   1.7   1.6   10    7 119   0.00   0.08     ke SVSA       8205833
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.6          SVSA       8205833
+ML     0.4          SVSA       8205833
+
+Event  9527850 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/12 14:27:57.20   0.73  0.10  37.7730  -25.4690   2.7   1.4  87   4.0   5.8    9    6  90   0.01   0.06     ke SVSA       8205834
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       8205834
+ML     0.4          SVSA       8205834
+
+Event  9527853 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/12 16:11:29.50   0.67  0.10  38.6390  -28.4850   2.3   1.7 178  11.8   9.7   11    8 160   0.15   0.31     ke SVSA       8205835
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.4          SVSA       8205835
+ML     1.7          SVSA       8205835
+
+Event  9527860 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/12 20:31:23.90   0.75  0.20  37.7590  -25.4120   2.7   2.2 178   5.4   3.3   10    8 130   0.01   0.11     ke SVSA       8205836
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.6          SVSA       8205836
+ML     0.7          SVSA       8205836
+
+Event  9527863 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/12 23:28:05.60   0.55  0.20  37.6750  -25.0340   4.9   2.4  29   4.9   2.2   25   14 332   0.22   0.61     ke SVSA       8205837
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       8205837
+ML     1.6          SVSA       8205837
+
+Event  9527875 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/13 01:13:17.00   0.54  0.10  38.7690  -28.6260   4.8   3.0 146   2.7   8.7    9    9 256   0.15   0.53     ke SVSA       8205838
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       8205838
+ML     1.3          SVSA       8205838
+
+Event  9527876 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/13 01:52:31.50   0.92  0.10  38.6150  -28.5540   3.9   2.5  57   7.6   5.1   16   12 149   0.10   0.44     ke SVSA       8205839
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.5          SVSA       8205839
+ML     1.5          SVSA       8205839
+
+Event  9527877 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/13 01:55:07.80   0.66  0.10  38.6040  -28.5590   7.8   2.4  38  13.7   6.8   13   11 142   0.09   0.37     ke SVSA       8205844
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       8205844
+ML     1.3          SVSA       8205844
+
+Event  9527895 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/13 15:16:00.80   1.02  0.20  38.5450  -28.5170   3.9   3.7  19  12.6   8.8   10    7 134   0.08   0.27     ke SVSA       8205846
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       8205846
+ML     1.1          SVSA       8205846
+
+Event  9527897 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/13 21:55:47.70   0.80  0.20  37.7680  -25.4380   1.7   1.0  86   1.4   3.1    9    7 105   0.02   0.09     ke SVSA       8205847
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8205847
+ML     0.5          SVSA       8205847
+
+Event  9527915 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/14 01:27:15.00   1.27  0.30  38.5970  -28.6910   4.0   2.3  71   0.0   6.3   13    7  85   0.02   0.47     ke SVSA       8205848
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       8205848
+ML     1.3          SVSA       8205848
+
+Event  9527928 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/14 16:23:21.90   0.63  0.10  37.7610  -25.4290   1.7   1.7 141   4.2   3.6    8    6 101   0.02   0.06     ke SVSA       8205849
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8205849
+ML     0.9          SVSA       8205849
+
+Event  9527932 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/14 19:47:51.10   0.44  0.10  37.7760  -25.4520   4.1   1.6  83   3.6   4.1    7    5 146   0.02   0.05     ke SVSA       8205850
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.0          SVSA       8205850
+ML     0.3          SVSA       8205850
+
+Event  9527933 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/14 20:00:41.70   0.48  0.10  37.7780  -25.4360   3.2   1.5  81   3.2   3.3    7    5 212   0.02   0.06     ke SVSA       8205864
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       8205864
+ML     0.3          SVSA       8205864
+
+Event  9527936 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/14 20:17:42.50   0.81  0.20  37.8000  -25.4380   5.6   3.5  55   4.4   5.1    7    5 280   0.01   0.06     ke SVSA       8205865
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.5          SVSA       8205865
+ML     0.5          SVSA       8205865
+
+Event  9527938 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/14 21:01:20.60   1.05  0.20  38.7580  -29.0330  12.8   5.2  80   2.0   9.4   16   10 320   0.25   0.75     ke SVSA       8205866
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       8205866
+ML     1.6          SVSA       8205866
+
+Event  9527958 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/15 02:17:27.30   0.72  0.20  38.0380  -26.0450   6.3   1.4  43   0.9   3.5   22   16 169   0.25   1.13     ke SVSA       8205867
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.4          SVSA       8205867
+ML     1.8          SVSA       8205867
+
+Event  9527960 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/15 04:01:30.10   1.00  0.20  38.2620  -26.1320   9.9   1.6  47   0.6   4.7   25   20 181   0.47   1.04     ke SVSA       8205868
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.1          SVSA       8205868
+ML     1.7          SVSA       8205868
+
+Event  9527972 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/15 13:30:02.50   0.48  0.10  37.7710  -25.4520   5.5   0.8 131   0.0   4.7    6    4 115   0.02   0.08     ke SVSA       8205869
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.8          SVSA       8205869
+ML     0.3          SVSA       8205869
+
+Event  9527973 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/15 13:56:33.90   0.74  0.10  38.5380  -27.7730   6.9   6.7  62  11.7   4.4   10    8 322   0.26   0.73     ke SVSA       8205870
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.6          SVSA       8205870
+ML     1.5          SVSA       8205870
+
+Event  9527996 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/16 02:04:17.00   0.71  0.20  37.7960  -25.4550   1.4   1.4 165   4.5   1.5   15   11 100   0.01   0.14     ke SVSA       8205871
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8205871
+ML     1.0          SVSA       8205871
+
+Event  9527999 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/16 05:55:33.50   0.39  0.10  37.1500  -24.6100   3.1   1.4  93   5.0f        18   13 287   0.39   1.18     ke SVSA       8205872
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.3          SVSA       8205872
+ML     2.1          SVSA       8205872
+
+Event  9528003 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/16 10:53:33.30   0.40  0.10  37.7870  -25.4500   0.9   0.7  44   3.5   1.7   16   11  85   0.01   0.14     ke SVSA       8205873
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8205873
+ML     0.9          SVSA       8205873
+
+Event  9528006 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/16 13:25:39.50   1.21  0.20  37.9610  -25.9490   6.1   1.0  34   5.8   3.4   53   41 154   0.15   2.32     ke SVSA       8205874
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       8205874
+ML     2.9          SVSA       8205874
+
+Event  9528009 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/16 22:04:14.70   0.84  0.20  38.0310  -25.8730   2.9   1.9  56   1.6   3.9   24   18 168   0.17   1.33     ke SVSA       8205875
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       8205875
+ML     2.0          SVSA       8205875
+
+Event  9528015 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/17 04:15:24.20   0.30  0.10  38.5740  -29.3390   5.6   2.4 179   8.5   2.6    8    4 344   0.50   0.87     ke SVSA       8205876
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       8205876
+
+Event  9528016 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/17 05:58:11.00   0.71  0.20  37.7710  -25.4440   2.3   1.4 153   0.9   2.4    8    7  87   0.02   0.13     ke SVSA       8205877
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8205877
+ML     0.7          SVSA       8205877
+
+Event  9528018 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/17 06:06:56.90   0.62  0.10  37.7430  -25.4100   5.5   1.6 178   3.9   4.2    6    4 165   0.02   0.07     ke SVSA       8205884
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.3          SVSA       8205884
+ML     1.0          SVSA       8205884
+
+Event  9528021 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/17 09:49:20.00   0.66  0.20  37.7500  -25.4030   2.7   1.8 150   8.4   5.9   10    8 150   0.03   0.11     ke SVSA       8205885
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.4          SVSA       8205885
+ML     1.2          SVSA       8205885
+
+Event  9528022 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/17 09:59:06.20   0.65  0.20  38.8520  -28.7740   9.0   3.8  83   3.8   8.5    9    5 299   0.23   0.44     ke SVSA       8205886
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       8205886
+ML     1.4          SVSA       8205886
+
+Event  9528026 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/17 11:55:15.60   0.91  0.20  38.3800  -28.5720   7.8   4.9  17   7.4   9.8    7    5 289   0.17   0.45     ke SVSA       8205887
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       8205887
+ML     1.3          SVSA       8205887
+
+Event  9528059 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/18 02:14:28.10   0.97  0.20  38.3800  -28.5910   6.0   2.3  17   7.1   3.1   15    9 265   0.13   0.47     ke SVSA       8205905
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       8205905
+ML     1.1          SVSA       8205905
+
+Event  9528062 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/18 03:37:58.70   0.57  0.20  39.1160  -28.2740   2.7   1.6 157  10.0f        16   11 245   0.18   0.63     ke SVSA       8205906
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.5          SVSA       8205906
+ML     1.5          SVSA       8205906
+
+Event  9528077 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/18 19:51:34.80   0.44  0.10  37.7640  -25.3120   1.8   0.9 122   5.0   0.9   17   10 184   0.03   0.19     ke SVSA       8205907
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       8205907
+ML     1.5          SVSA       8205907
+
+Event  9528080 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/18 21:19:08.80   0.60  0.10  37.7950  -25.4330   1.3   1.1  16   4.6   2.4   15   11 119   0.01   0.12     ke SVSA       8205908
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8205908
+ML     1.1          SVSA       8205908
+
+Event  9528146 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/20 10:44:31.20   0.94  0.20  38.1220  -26.1640   9.8   1.4  42   0.1   4.2   26   20 167   0.38   1.09     ke SVSA       8205909
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.2          SVSA       8205909
+ML     2.1          SVSA       8205909
+
+Event  9528195 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/21 00:23:19.10   1.41  0.30  38.6120  -28.5280   6.0   2.5  37   6.2   7.8   24   13 147   0.11   0.42     ke SVSA       8205910
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       8205910
+ML     1.9          SVSA       8205910
+
+Event  9528197 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/21 01:06:07.90   0.50  0.10  37.9810  -26.1470   9.2   3.9  30   4.2   2.1   14   11 347   0.29   0.58     ke SVSA       8205911
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.1          SVSA       8205911
+ML     1.6          SVSA       8205911
+
+Event  9528201 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/21 02:01:19.30   0.72  0.20  37.5430  -25.1420   6.0   1.6  68   6.0   4.0   17   13 197   0.26   0.61     ke SVSA       8205912
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8205912
+ML     1.2          SVSA       8205912
+
+Event  9528205 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/21 05:21:49.50   0.48  0.10  37.7910  -25.4500   1.6   1.2  49   1.9   1.0    7    5  95   0.00   0.09     ke SVSA       8205913
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8205913
+ML     0.4          SVSA       8205913
+
+Event  9528214 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/21 18:23:09.00   0.57  0.10  39.7650  -29.1690  11.2   3.9  74   5.0f        13    9 342   1.19   1.87     ke SVSA       8205914
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.6          SVSA       8205914
+ML     2.3          SVSA       8205914
+
+Event  9528215 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/21 18:47:09.20   0.82  0.20  39.1740  -28.7130   7.5   5.7 104   0.0f         9    5 322   0.55   1.27     ke SVSA       8205915
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.2          SVSA       8205915
+ML     2.1          SVSA       8205915
+
+Event  9528216 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/21 18:50:11.80   1.36  0.20  40.5740  -28.4380  17.3   6.7  92   0.0f        37   36 326   1.53   4.43     ke SVSA       8205916
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.5          SVSA       8205916
+ML     3.0          SVSA       8205916
+
+Event  9528235 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 01:43:58.80   1.30  0.30  38.5870  -28.5030   2.5   1.9  23   0.0f        22   13 131   0.11   0.39     ke SVSA       8205918
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       8205918
+ML     1.8          SVSA       8205918
+
+Event  9528237 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 04:46:22.90   0.94  0.20  37.8010  -25.4470   3.3   1.8  57   5.1   2.7   11    9 181   0.01   0.09     ke SVSA       8205919
+
+Magnitude  Err Nsta Author      OrigID
+ML     0.8          SVSA       8205919
+
+Event  9528238 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 04:46:25.90   0.81  0.20  37.7750  -25.4580   2.7   1.9  58   6.2   4.6   10    9  72   0.02   0.09     ke SVSA       8205920
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8205920
+ML     0.9          SVSA       8205920
+
+Event  9392432 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 05:53:25.30         2.50  40.6000  -29.4000                  30.0               8                          BJI        8332381
+2007/03/22 05:53:27.40   1.28  0.30  40.5390  -29.2580   4.6   3.3  68   0.0f        83   44 320   1.74   4.81     ke SVSA       8205921
+
+Magnitude  Err Nsta Author      OrigID
+mb     5.2          BJI        8332381
+MD     4.3          SVSA       8205921
+ML     4.0          SVSA       8205921
+
+Event  9528241 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 05:57:02.50   0.97  0.20  40.7860  -28.9400  92.9   7.9  62  10.0f        13   10 357   2.20   2.52     ke SVSA       8205922
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.4          SVSA       8205922
+ML     3.0          SVSA       8205922
+
+Event  9528242 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 05:57:56.40   1.17  0.30  40.5310  -29.1240   9.3   5.6  88   0.0f        26   17 328   1.71   2.40     ke SVSA       8205923
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.7          SVSA       8205923
+ML     2.9          SVSA       8205923
+
+Event  9528243 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 05:59:01.60   1.77  0.30  40.5950  -29.2040  11.0   7.2  89   5.0f        32   31 322   1.77   4.14     ke SVSA       8205924
+
+Magnitude  Err Nsta Author      OrigID
+MD     4.1          SVSA       8205924
+ML     3.1          SVSA       8205924
+
+Event  9528244 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 06:00:45.60   0.99  0.30  40.7560  -29.3090  14.8   6.2  79  10.0f        16   15 328   1.95   5.00     ke SVSA       8205925
+
+Magnitude  Err Nsta Author      OrigID
+MD     4.8          SVSA       8205925
+ML     3.0          SVSA       8205925
+
+Event  9528245 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 06:07:32.30   1.05  0.20  38.6470  -28.5460   3.2   2.4 166   5.9   7.7   13    8 171   0.12   0.36     ke SVSA       8205926
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       8205926
+ML     1.3          SVSA       8205926
+
+Event  9392433 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 06:09:04.60   1.22  0.30  40.5520  -29.2240   4.7   3.5  79   0.0f        75   44 321   1.74   4.81     ke SVSA       8205927
+
+Magnitude  Err Nsta Author      OrigID
+MD     4.1          SVSA       8205927
+ML     3.5          SVSA       8205927
+
+Event  9528247 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 06:28:21.10   1.34  0.30  40.5800  -29.3220   9.5   5.3  82   0.0f        30   23 325   1.81   4.09     ke SVSA       8205928
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.5          SVSA       8205928
+ML     3.0          SVSA       8205928
+
+Event  9528248 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 06:29:10.00   0.95  0.30  40.6080  -29.0950   6.0   3.4  85   5.0f        38   26 319   1.74   4.09     ke SVSA       8205929
+
+Magnitude  Err Nsta Author      OrigID
+MD     4.1          SVSA       8205929
+ML     2.9          SVSA       8205929
+
+Event  9392437 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 07:34:38.70   1.20  0.30  40.6200  -29.1940   5.1   3.8  64  10.0f        65   41 322   1.79   4.84     ke SVSA       8205930
+
+Magnitude  Err Nsta Author      OrigID
+MD     4.1          SVSA       8205930
+ML     3.5          SVSA       8205930
+
+Event  9528250 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 07:46:06.80   1.13  0.30  40.5220  -29.2360   7.2   4.2  91   0.0f        41   30 320   1.72   4.11     ke SVSA       8205931
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.9          SVSA       8205931
+ML     2.7          SVSA       8205931
+
+Event  9528251 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 08:19:46.10   0.97  0.20  40.6700  -29.1400   9.6   5.1 106   5.0f        18   15 327   2.07   2.52     ke SVSA       8205932
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.4          SVSA       8205932
+ML     2.8          SVSA       8205932
+
+Event  9528252 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 09:04:18.00   1.00  0.20  40.4690  -28.6940  10.6   6.5 112   5.0f        14   11 325   1.78   2.08     ke SVSA       8205933
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.6          SVSA       8205933
+ML     2.7          SVSA       8205933
+
+Event  9528254 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 09:44:49.70   0.95  0.20  40.6100  -29.1450   7.6   3.8  94  10.0f        27   21 323   1.76   4.12     ke SVSA       8205934
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.7          SVSA       8205934
+ML     3.1          SVSA       8205934
+
+Event  9392455 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 17:51:35.90   0.94  0.30  40.5750  -29.2160   5.4   3.0  85   5.0f        57   39 320   1.76   4.82     ke SVSA       8205935
+
+Magnitude  Err Nsta Author      OrigID
+MD     4.2          SVSA       8205935
+ML     3.5          SVSA       8205935
+
+Event  9528261 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 21:23:32.00   0.72  0.20  38.7320  -27.1830   2.5   2.3  39   7.7   4.9   11    8  97   0.04   0.11     ke SVSA       8205936
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.9          SVSA       8205936
+ML     0.7          SVSA       8205936
+
+Event  9528262 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/22 21:30:34.20   0.56  0.10  37.8100  -25.3720   5.0   1.3  39   1.2   3.0    7    6 252   0.06   0.22     ke SVSA       8205937
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.7          SVSA       8205937
+ML     0.7          SVSA       8205937
+
+Event  9528335 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/24 14:30:50.80   0.63  0.20  38.7120  -28.5930   3.3   1.6 137  10.0f         9    5 188   0.12   0.54     ke SVSA       8205938
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       8205938
+ML     1.7          SVSA       8205938
+
+Event  9528337 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/24 17:17:49.10   0.90  0.20  37.7240  -25.4170   3.9   2.0 172   4.1   5.8   10    8 206   0.03   0.14     ke SVSA       8205939
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8205939
+ML     0.8          SVSA       8205939
+
+Event  9528339 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/24 17:49:16.10   0.73  0.20  37.7850  -25.4400   2.6   1.9  56   2.3   3.1    7    5 148   0.01   0.04     ke SVSA       8205941
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       8205941
+ML     0.2          SVSA       8205941
+
+Event  9528340 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/24 17:49:52.70   0.40  0.10  37.7760  -25.4500   0.9   0.6  77   2.0   0.5   16   11  89   0.02   0.14     ke SVSA       8205942
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.6          SVSA       8205942
+ML     0.8          SVSA       8205942
+
+Event  9528362 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/25 07:52:39.60   0.91  0.20  38.8260  -29.0470   9.1   3.6  90   0.0f        12    9 294   0.31   0.81     ke SVSA       8205944
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.1          SVSA       8205944
+ML     1.4          SVSA       8205944
+
+Event  9528395 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/26 01:16:38.90   0.82  0.20  38.5940  -28.5520   2.2   1.5  15  10.0f        23   13 136   0.09   0.43     ke SVSA       8205946
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.6          SVSA       8205946
+ML     1.5          SVSA       8205946
+
+Event  9528396 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/26 01:18:20.50   0.54  0.20  38.5950  -28.5360   1.2   1.0  23   0.0   2.3   15   10 154   0.10   0.36     ke SVSA       8205947
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       8205947
+ML     1.1          SVSA       8205947
+
+Event  9528434 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/26 23:11:51.80   0.87  0.20  37.6610  -25.2730   3.7   3.4 127   1.6   3.5   18   14 293   0.10   0.46     ke SVSA       8205948
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.5          SVSA       8205948
+ML     1.0          SVSA       8205948
+
+Event  9528435 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/26 23:26:47.60   1.54  0.30  38.9610  -28.3450   4.3   2.9 125   0.0   8.0   34   20 203   0.25   1.01     ke SVSA       8205949
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       8205949
+ML     2.2          SVSA       8205949
+
+Event  9528455 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/27 00:51:17.40   0.90  0.20  38.8510  -29.0390  17.6   5.5  89   0.0  12.9   11    7 327   0.34   0.77     ke SVSA       8205950
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.1          SVSA       8205950
+ML     1.5          SVSA       8205950
+
+Event  9528457 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/27 05:01:08.60   0.44  0.10  37.7570  -25.4280   0.8   0.7 151   1.5   0.8    9    7 113   0.02   0.09     ke SVSA       8205951
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.1          SVSA       8205951
+ML     0.1          SVSA       8205951
+
+Event  9528460 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/27 07:15:03.00   0.58  0.10  37.8000  -25.4230   4.9   3.1  55   4.1   3.1    7    5 307   0.02   0.10     ke SVSA       8205952
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.6          SVSA       8205952
+ML     0.4          SVSA       8205952
+
+Event  9528463 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/27 07:54:45.20   0.87  0.20  38.4550  -28.3920   4.0   3.9  48   5.5   5.9    7    4 140   0.02   0.06     ke SVSA       8205953
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.5          SVSA       8205953
+ML     0.5          SVSA       8205953
+
+Event  9528472 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/27 19:17:31.10   0.29  0.10  38.6760  -28.5820   2.0   1.5  98   8.5   8.1    8    4 197   0.10   0.27     ke SVSA       8205954
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       8205954
+ML     1.6          SVSA       8205954
+
+Event  9528474 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/27 20:51:49.20   0.65  0.10  37.7760  -25.4630   2.0   1.2  85   1.5   2.2    6    5 108   0.02   0.13     ke SVSA       8205955
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.8          SVSA       8205955
+ML     0.3          SVSA       8205955
+
+Event  9528476 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/27 22:24:39.00   1.37  0.30  38.6310  -28.5410   2.7   2.3 146   5.0   5.3   18   10 172   0.12   0.35     ke SVSA       8205956
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       8205956
+ML     1.3          SVSA       8205956
+
+Event  9528477 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/27 22:41:00.40   0.94  0.20  38.7040  -28.5910   3.1   2.4 143   5.0   9.9   13    9 213   0.15   0.40     ke SVSA       8205957
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       8205957
+ML     1.4          SVSA       8205957
+
+Event  9528479 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/27 22:48:28.50   0.53  0.10  38.5910  -28.5350   4.9   4.2 151  14.5   9.1    8    4 154   0.10   0.35     ke SVSA       8205964
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       8205964
+ML     1.0          SVSA       8205964
+
+Event  9528480 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/27 22:49:28.90   0.32  0.10  38.7590  -28.6480   3.5   2.9 132  12.2   9.9    6    3 264   0.18   0.32     ke SVSA       8205965
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       8205965
+
+Event  9528539 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/29 03:28:24.50   0.56  0.10  37.7660  -25.4210   1.0   0.9  59   1.3   1.0    7    5 123   0.02   0.06     ke SVSA       8205967
+
+Magnitude  Err Nsta Author      OrigID
+MD     0.9          SVSA       8205967
+ML     0.1          SVSA       8205967
+
+Event  9528540 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/29 05:47:08.30   0.35  0.10  36.7470  -24.1250   4.1   2.8  79   0.0f         7    4 330   0.79   1.45     ke SVSA       8205968
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       8205968
+
+Event  9528541 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/29 05:51:28.90   1.10  0.20  38.4810  -28.4160   4.3   3.5  53   4.3  10.4    7    4 107   0.02   0.05     ke SVSA       8205969
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.4          SVSA       8205969
+ML     1.0          SVSA       8205969
+
+Event  9528549 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/29 11:42:11.10   1.25  0.30  38.6320  -28.6010   2.5   2.5 154   4.1   4.7   37   22 145   0.08   1.19     ke SVSA       8205970
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       8205970
+ML     2.5          SVSA       8205970
+
+Event  9528562 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/29 17:31:06.80   0.94  0.30  38.7850  -28.7250   5.8   3.1 132  10.0f        12    7 264   0.16   0.58     ke SVSA       8205971
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       8205971
+ML     1.9          SVSA       8205971
+
+Event  9528569 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/29 20:15:59.70   0.59  0.10  37.7560  -25.4350   1.5   1.2  18   2.4   3.3    9    8  99   0.01   0.13     ke SVSA       8205972
+
+Magnitude  Err Nsta Author      OrigID
+MD     1.2          SVSA       8205972
+ML     0.7          SVSA       8205972
+
+Event  9528595 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/30 05:20:28.10   0.73  0.20  38.0730  -26.1290  17.2   5.1  70   2.5   9.0   17   16 337   0.33   0.73     ke SVSA       8205973
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.2          SVSA       8205973
+ML     1.7          SVSA       8205973
+
+Event  9528606 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/30 13:05:16.70   0.88  0.20  38.6160  -28.4760   2.2   1.7 128   5.0f        14   10 161   0.12   0.54     ke SVSA       8205974
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.6          SVSA       8205974
+ML     1.0          SVSA       8205974
+
+Event  9528678 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/31 00:59:40.70   0.84  0.20  37.3150  -24.4760   9.0   3.0  86   5.0f        18   15 289   0.56   1.19     ke SVSA       8205975
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.3          SVSA       8205975
+ML     1.8          SVSA       8205975
+
+Event  9528680 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/31 01:10:05.10   0.72  0.20  38.8600  -28.9330  11.2   4.9  68   6.4   4.3    8    5 333   0.29   0.53     ke SVSA       8205976
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.9          SVSA       8205976
+ML     1.7          SVSA       8205976
+
+Event  9528724 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/31 11:54:58.40   1.07  0.20  38.6960  -28.5910   3.0   2.2 133   6.0   5.1   21   13 176   0.14   0.55     ke SVSA       8205977
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.8          SVSA       8205977
+ML     1.7          SVSA       8205977
+
+Event  9528734 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/31 16:33:48.90   1.00  0.20  38.6270  -29.0470   6.4   3.9  65   3.4   3.9   23   16 311   0.20   0.93     ke SVSA       8205979
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       8205979
+ML     1.7          SVSA       8205979
+
+Event  9528735 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/31 16:36:13.60   0.94  0.20  38.6040  -29.0740   9.3   7.0  20  11.0   4.0   15   10 334   0.22   0.77     ke SVSA       8205980
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       8205980
+ML     1.5          SVSA       8205980
+
+Event  9528736 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/31 17:24:33.80   0.63  0.20  38.6470  -29.1240   8.1   4.4  29   5.0f        12    8 337   0.26   0.81     ke SVSA       8205981
+
+Magnitude  Err Nsta Author      OrigID
+MD     3.0          SVSA       8205981
+ML     1.6          SVSA       8205981
+
+Event  9528748 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/03/31 22:20:20.80   0.55  0.10  36.7520  -24.2030   6.5   3.6  71   5.0f        20   17 329   0.73   1.70     ke SVSA       8205982
+
+Magnitude  Err Nsta Author      OrigID
+MD     2.7          SVSA       8205982
+ML     2.2          SVSA       8205982
+
+Event  9394525 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/05 03:56:47.50               37.1800  -24.6000                                                                CRAAG      8235080
+2007/04/05 03:56:50.20         1.50  38.2600  -25.4300                  12.0              63                          BJI        8470141
+2007/04/05 03:56:56.40         2.10  37.5000  -23.5000f                  1.6               3                          IGIL       8156955
+2007/04/05 03:56:50.71   5.91  0.94  37.0031  -24.2537  81.8  17.2  99   0.0f        43      278  10.02  21.53     uk MDD        8122886
+
+Magnitude  Err Nsta Author      OrigID
+Mb     6.2          CRAAG      8235080
+Ms     6.7          BJI        8470141
+Msz    6.6          BJI        8470141
+mB     6.3          BJI        8470141
+mb     5.6          BJI        8470141
+ML     5.6          IGIL       8156955
+MS     5.8          IGIL       8156955
+mb     6.0 0.1   43 MDD        8122886
+
+Event  9448251 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/05 03:57:23.70               40.5330  -22.8330                  33.0f              1                          NAO        8159346
+
+Magnitude  Err Nsta Author      OrigID
+mb     5.8          NAO        8159346
+
+Event  9394529 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/05 05:40:30.59   5.00  0.58  36.0472  -23.6620 136.0  40.3  50   0.0f        12      344   8.96  11.12     uk MDD        8122888
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.8 0.2    7 MDD        8122888
+
+Event  9394546 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/05 14:38:18.41   7.44  0.93  37.2835  -24.2222  83.1  21.2  99 103.3  65.3   20      273  10.23  14.35     uk MDD        8122894
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.7 0.2    7 MDD        8122894
+
+Event  9394547 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/05 15:40:38.30         1.80  37.1000  -24.6000                  10.0              18                          BJI        8470156
+2007/04/05 15:40:39.00               37.3300  -24.6500                                                                CRAAG      8235081
+2007/04/05 15:40:44.51   3.64  0.90  37.1472  -23.8659  44.0  15.5 107   0.0f        27      271   9.96  19.75     uk MDD        8122895
+
+Magnitude  Err Nsta Author      OrigID
+Ms     5.1          BJI        8470156
+Msz    4.7          BJI        8470156
+mB     5.5          BJI        8470156
+mb     5.0          BJI        8470156
+Mb     4.8          CRAAG      8235081
+mb     4.5 0.1   19 MDD        8122895
+
+Event  9394564 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/05 22:45:17.50         1.40  37.1200  -25.0000                  28.0              12                          BJI        8470163
+2007/04/05 22:45:28.12   3.97  0.88  36.8840  -22.8024  47.8  17.8 104   0.0f        18      265   9.31  16.63     uk MDD        8122902
+
+Magnitude  Err Nsta Author      OrigID
+Ms     5.2          BJI        8470163
+Msz    4.8          BJI        8470163
+mB     5.3          BJI        8470163
+mb     5.3          BJI        8470163
+mb     4.8 0.3    8 MDD        8122902
+
+Event  9394566 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/05 23:19:07.27   9.09  0.77  37.2454  -23.8317 506.0  74.0  60   0.0f         6      354  10.03  10.86     uk MDD        8122904
+ (LEJANO SIN SOLUCIN)
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.6 0.2    2 MDD        8122904
+
+Event  9394577 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/06 00:00:10.96  10.30  0.95  37.5041  -22.9881 354.0  99.1  64   0.0f         9      352   9.92  11.29     uk MDD        8122906
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.5 0.2    8 MDD        8122906
+
+Event  9394585 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/06 03:02:02.62  18.61  0.54  36.4979  -25.0659 278.0 181.7  23   0.0f         8      344  10.01  12.22     uk MDD        8122909
+
+Magnitude  Err Nsta Author      OrigID
+mb     5.3 0.1    3 MDD        8122909
+
+Event  9394586 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/06 03:08:52.54   3.37  0.25  37.2000  -23.0000                   0.0f         2      357  10.25  10.44     uk MDD        8122910
+ (LEJANO SIN SOLUCIN)
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.2 1.1    2 MDD        8122910
+
+Event  9394591 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/06 05:13:06.09   4.61  0.91  37.6357  -24.8665  45.3  17.6 120   0.0f        24      277  10.81  17.03     uk MDD        8122912
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.7 0.2   10 MDD        8122912
+
+Event  9394598 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/06 06:10:51.90         2.70  37.1000  -24.6000                  10.0              18                          BJI        8470167
+2007/04/06 06:10:52.20               37.3200  -24.7800                                                                CRAAG      8235082
+2007/04/06 06:10:51.72   3.79  0.85  37.2696  -24.2089  38.8  16.6 110   0.0f        26      273  10.22  15.69     uk MDD        8122915
+
+Magnitude  Err Nsta Author      OrigID
+Ms     5.2          BJI        8470167
+Msz    5.0          BJI        8470167
+mB     5.5          BJI        8470167
+mb     5.3          BJI        8470167
+Mb     4.9          CRAAG      8235082
+mb     4.6 0.2   13 MDD        8122915
+
+Event  9394607 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/06 10:09:04.17  11.50  0.61  36.0655  -25.4258 284.0 100.0  54   0.0f         5      348  10.51  12.20     uk MDD        8122921
+ (LEJANO SIN SOLUCIN)
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.5 0.3    4 MDD        8122921
+
+Event  9394609 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/06 10:40:08.56   7.28  1.33  35.3710  -29.5028 781.0  62.2  29   0.0f         8      357  12.69  13.08     uk MDD        8122923
+ (LEJANO SIN SOLUCIN)
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.8 0.2    5 MDD        8122923
+
+Event  9394619 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/06 15:21:37.30         2.20  37.2000  -24.6000                  10.0              27                          BJI        8470181
+2007/04/06 15:21:42.70               37.4900  -24.6600                                                                CRAAG      8235084
+2007/04/06 15:21:44.01   3.27  1.53  36.8120  -24.3143  40.1  13.8  98   0.0f        44      274   9.89  20.20     uk MDD        8122927
+
+Magnitude  Err Nsta Author      OrigID
+Ms     5.1          BJI        8470181
+Msz    5.0          BJI        8470181
+mB     5.5          BJI        8470181
+mb     5.1          BJI        8470181
+Mb     5.0          CRAAG      8235084
+mb     4.7 0.1   38 MDD        8122927
+
+Event  9394661 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/07 01:12:07.35  558.5  0.89  38.9233  -29.2109  6531 374.9 109   0.0f         5      350  14.02  16.30     uk MDD        8123007
+ (LEJANO SIN SOLUCIN)
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.2 0.3    5 MDD        8123007
+
+Event  9394666 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/07 05:38:09.96  55.30  0.68  37.7554  -25.3772 613.0  29.3 123   0.0f         8      279  11.15  14.91     uk MDD        8123027
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.4 0.2    5 MDD        8123027
+
+Event  9394671 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/07 07:09:24.00               37.3800  -24.4900                                                                CRAAG      8235087
+2007/04/07 07:09:25.30         2.80  37.3000  -24.5000                   8.0              62                          BJI        8470197
+2007/04/07 07:09:28.74   1.76  1.22  37.0783  -24.0300  19.0  10.0 107   0.0f        93      271   9.98  21.33     uk MDD        8123028
+
+Magnitude  Err Nsta Author      OrigID
+Mb     6.0          CRAAG      8235087
+Ms     6.4          BJI        8470197
+Msz    6.2          BJI        8470197
+mB     6.6          BJI        8470197
+mb     5.6          BJI        8470197
+mb     5.9 0.1   37 MDD        8123028
+
+Event  9394674 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/07 08:01:24.08   3.34  1.09  37.3041  -24.4395  35.9  14.0 110   0.0f        32      271  10.35  15.83     uk MDD        8123029
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.6 0.2    8 MDD        8123029
+
+Event  9420681 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/07 17:01:20.30         2.20  37.3000  -24.6000                  10.0               6                          BJI        8470207
+
+Magnitude  Err Nsta Author      OrigID
+Ms     4.6          BJI        8470207
+Msz    4.3          BJI        8470207
+mB     4.7          BJI        8470207
+mb     4.6          BJI        8470207
+
+Event  9394689 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/07 18:57:30.50         2.70  37.2000  -24.6000                  10.0               5                          BJI        8470211
+2007/04/07 18:57:41.56   9.13  0.61  36.6818  -24.1574 246.0  75.3  58   0.0f         5      347  10.32  11.76     uk MDD        8123031
+ (LEJANO SIN SOLUCIN)
+
+Magnitude  Err Nsta Author      OrigID
+Ms     4.5          BJI        8470211
+Msz    4.4          BJI        8470211
+mB     5.0          BJI        8470211
+mb     4.6          BJI        8470211
+mb     4.7 0.4    3 MDD        8123031
+
+Event  9394719 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/08 00:10:50.00               37.3300  -24.6200                                                                CRAAG      8235090
+2007/04/08 00:10:52.10   2.71  1.05  37.1332  -23.9911  28.9  11.1 106   0.0f        48      270  10.01  19.30     uk MDD        8123053
+
+Magnitude  Err Nsta Author      OrigID
+Mb     5.5          CRAAG      8235090
+mb     5.2 0.2   12 MDD        8123053
+
+Event  9394745 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/08 06:58:46.41   7.99  1.66  36.7615  -23.0592  88.7  23.8 112   0.0f         9      268   9.90  13.83     uk MDD        8123187
+ (LEJANO SIN SOLUCIN)
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.5 0.3    3 MDD        8123187
+
+Event  9394751 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/08 10:24:02.60         2.00  36.9200  -24.7400                  22.0              15                          BJI        8470223
+2007/04/08 10:24:13.10   4.31  0.82  36.9284  -23.5020  56.9  16.4 107   0.0f        27      269   9.62  21.00     uk MDD        8123193
+
+Magnitude  Err Nsta Author      OrigID
+Ms     4.8          BJI        8470223
+Msz    4.4          BJI        8470223
+mB     5.4          BJI        8470223
+mb     5.3          BJI        8470223
+mb     4.8 0.1   20 MDD        8123193
+
+Event  9394765 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/08 14:47:14.90               36.7850  -25.1180                  33.0f              1                          NAO        8159389
+2007/04/08 14:47:16.00               37.2800  -24.5200                                                                CRAAG      8235093
+2007/04/08 14:47:17.40         1.30  38.0800  -24.9800                  10.0              35                          BJI        8470234
+2007/04/08 14:47:17.17   2.79  1.04  37.2517  -24.1400  29.5  11.6 107   0.0f        45      270  10.17  16.88     uk MDD        8123200
+
+Magnitude  Err Nsta Author      OrigID
+mb     5.2          NAO        8159389
+Mb     5.1          CRAAG      8235093
+Ms     5.3          BJI        8470234
+Msz    5.1          BJI        8470234
+mB     5.5          BJI        8470234
+mb     5.1          BJI        8470234
+mb     4.6 0.2   22 MDD        8123200
+
+Event  9394776 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/08 18:25:57.60               37.5200  -24.6400                                                                CRAAG      8235094
+2007/04/08 18:25:58.20         2.90  37.0000  -24.3000                  10.0              25                          BJI        8470239
+2007/04/08 18:25:53.41   2.60  0.85  37.3095  -24.4064  28.0  11.6 108   0.0f        49      272  10.34  19.53     uk MDD        8123207
+
+Magnitude  Err Nsta Author      OrigID
+Mb     4.8          CRAAG      8235094
+Ms     5.0          BJI        8470239
+Msz    4.8          BJI        8470239
+mB     5.2          BJI        8470239
+mb     4.9          BJI        8470239
+mb     4.7 0.2   15 MDD        8123207
+
+Event  9394789 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/08 20:22:18.41   7.73  0.79  37.3282  -24.3775  82.4  26.5 116   0.0f        12      274  10.34  14.43     uk MDD        8123211
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.9 0.4    5 MDD        8123211
+
+Event  9394791 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/08 20:37:56.60               36.8150  -25.7410                  33.0f              1                          NAO        8159398
+2007/04/08 20:37:59.70         1.20  37.3800  -25.1900                  16.0              44                          BJI        8470245
+2007/04/08 20:38:00.60               37.3500  -24.5500                                                                CRAAG      8235096
+2007/04/08 20:38:11.56   0.36  1.01  36.7493  -24.0226   3.2   1.4 130  62.6   3.9   86      274   9.70  21.46     uk MDD        8123213
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.9          NAO        8159398
+Ms     5.6          BJI        8470245
+Msz    5.3          BJI        8470245
+mB     5.5          BJI        8470245
+mb     5.3          BJI        8470245
+Mb     5.2          CRAAG      8235096
+mb     4.0 0.1   36 MDD        8123213
+
+Event  9420752 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/09 08:32:19.70               37.0600  -24.5500                                                                CRAAG      8235098
+2007/04/09 08:32:23.40         2.70  37.1000  -24.5000                  10.0              23                          BJI        8470254
+2007/04/09 08:32:25.07   1.84  0.98  37.1644  -24.0225  20.5  10.6 105   0.0f        81      272  10.05  21.29     uk MDD        8127712
+
+Magnitude  Err Nsta Author      OrigID
+Mb     5.0          CRAAG      8235098
+Ms     5.1          BJI        8470254
+Msz    4.8          BJI        8470254
+mB     5.4          BJI        8470254
+mb     5.2          BJI        8470254
+mb     5.3 0.1   39 MDD        8127712
+
+Event  9448351 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/09 08:32:43.00               39.2490  -24.3420                  33.0f              1                          NAO        8159404
+
+Magnitude  Err Nsta Author      OrigID
+mb     3.9          NAO        8159404
+
+Event  9448352 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/09 08:35:04.00               37.6320  -24.7580                  33.0f              1                          NAO        8159405
+
+Magnitude  Err Nsta Author      OrigID
+mb     3.8          NAO        8159405
+
+Event  9420756 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/09 13:25:27.20         2.00  37.3000  -24.8000                  10.0              15                          BJI        8470259
+2007/04/09 13:25:28.55   7.04  0.80  37.4974  -24.3693  83.8  21.8 109   0.0f        11      275  11.08  16.10     uk MDD        8127715
+
+Magnitude  Err Nsta Author      OrigID
+Msz    4.4          BJI        8470259
+mB     4.9          BJI        8470259
+mb     4.7          BJI        8470259
+mb     4.7 0.2    7 MDD        8127715
+
+Event  9420760 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/09 15:53:26.58   6.29  0.84  37.4077  -24.4301 187.0  25.0 107  20.4   153   11      276  11.04  14.43     uk MDD        8127731
+ (LEJANO SIN SOLUCIN)
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.8 0.2    2 MDD        8127731
+
+Event  9420780 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/10 02:55:20.70  968.2  0.20  40.0993  -29.6496  1127 445.2 117   0.0f         5      351  15.73  17.26     uk MDD        8127739
+ (LEJANO SIN SOLUCIN)
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.3 0.3    5 MDD        8127739
+
+Event  9420799 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/10 14:15:47.21  999.0  0.05  36.0651  -24.5607  1410 279.2 133   0.0f         3      348  10.04  11.69     uk MDD        8127755
+ (LEJANO SIN SOLUCIN)
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.6 0.4    4 MDD        8127755
+
+Event  9420856 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/11 23:40:44.67  14.29  0.59  37.2423  -24.0823 155.0  24.5 125   0.0f         9      274  10.74  14.17     uk MDD        8127801
+ (LEJANO SIN SOLUCIN)
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.6 0.3    3 MDD        8127801
+
+Event  9420985 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/14 16:03:04.72   9.58  0.88  37.0027  -23.7446 101.0  28.2 122   0.0f         9      277  10.40  14.03     uk MDD        8127871
+
+Magnitude  Err Nsta Author      OrigID
+mb     5.0 0.1    5 MDD        8127871
+
+Event  9421051 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/04/15 20:10:18.53   7.39  0.78  37.3086  -24.1835  84.3  19.0 122   0.0f        15      273  10.24  15.54     uk MDD        8127912
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.8 0.2    6 MDD        8127912
+
+Event  9529696 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/05/09 00:44:05.40               36.6150  -25.8050                  33.0f              1                          NAO        8256974
+2007/05/09 00:43:58.53   7.69  0.58  37.4916  -25.5291 100.0  16.4 100   0.0f        38      280  11.01  20.28     uk MDD        8219554
+
+Magnitude  Err Nsta Author      OrigID
+mb     3.8          NAO        8256974
+mb     4.6 0.1   28 MDD        8219554
+mbLg   4.8 0.0    2 MDD        8219554
+
+Event  9529728 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/05/09 13:09:21.36   7.65  0.44  36.6765  -24.5841 146.0  70.2  60   0.0f        11      343   9.91  12.09     uk MDD        8219577
+
+Magnitude  Err Nsta Author      OrigID
+mb     5.0 0.2    8 MDD        8219577
+
+Event  9621625 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/05/22 19:56:57.70         2.00  37.2000  -24.7000                  10.0              16                          BJI        8514443
+2007/05/22 19:57:00.20   3.37  0.99  37.4536  -24.2474  38.8  13.4 113   0.0f        36      271  10.39  16.87     uk MDD        8251111
+
+Magnitude  Err Nsta Author      OrigID
+Ms     4.9          BJI        8514443
+Msz    4.5          BJI        8514443
+mB     5.4          BJI        8514443
+mb     5.0          BJI        8514443
+mb     4.9 0.1   18 MDD        8251111
+
+Event  9621626 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/05/22 19:57:44.10               41.5570  -22.3510                  33.0f              1                          NAO        8257165
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.4          NAO        8257165
+
+Event  9764230 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/05/30 06:54:43.51   1.05  0.57  36.6077  -24.7168  27.5  10.3  45   0.0f        11      347  10.54  12.13     uk MDD        8337888
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.9 0.2    7 MDD        8337888
+
+Event  9870442 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/07/06 04:32:31.23   0.71  1.00  37.5869  -24.5010   7.9   3.0 121   0.0f        20      277  11.22  15.75     uk MDD        8444076
+ (TT MODEL: Canary)
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.2 0.1    6 MDD        8444076
+
+Event  9937879 Azores Islands region
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/08/10 17:21:09.80               39.8810  -22.7570                  33.0f              1                          NAO        8525693
+
+Magnitude  Err Nsta Author      OrigID
+mb     3.8          NAO        8525693
+
+Event  9938326 Azores Islands
+   Date       Time        Err   RMS Latitude Longitude  Smaj  Smin  Az Depth   Err Ndef Nsta Gap  mdist  Mdist Qual   Author      OrigID
+2007/08/18 02:28:29.90               39.8400  -30.0300                  33.0f              1                          NAO        8525806
+
+Magnitude  Err Nsta Author      OrigID
+mb     4.4          NAO        8525806
+
+
+STOP
+
+International Seismological Centre
+Pipers Lane, Thatcham, Berkshire
+United Kingdom RG19 4NS
++44 (0)1635 861022, voice; +44 (0)1635 872351, fax
+admin@isc.ac.uk, e-mail
