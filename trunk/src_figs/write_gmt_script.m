@@ -624,51 +624,52 @@ function edit_scale_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function pushbutton_mapProjections_CB(hObject, handles)
-if (~handles.mirone_handles.geog)
-    msg = ['I will tell you a secret. A map projection is an operation where GEOGRAPHIC ' ...
-            'coordinates (representing a nearly spherical surface) are transformed into ' ...
-            'planar (flat) coordinates. You got the message?'];
-    warndlg(msg,'Warning');     return
-end
-fname = [handles.d_path 'mirone_pref.mat'];
-coord_system_script = coordinate_system(handles.coord_system_script,handles.all_datums,[]);
-if (isempty(coord_system_script)),   return;     end
-handles.coord_system_script = coord_system_script;
+	if (~handles.mirone_handles.geog)
+		msg = ['I will tell you a secret. A map projection is an operation where GEOGRAPHIC ' ...
+				'coordinates (representing a nearly spherical surface) are transformed into ' ...
+				'planar (flat) coordinates. You got the message?'];
+		warndlg(msg,'Warning');     return
+	end
+	fname = [handles.d_path 'mirone_pref.mat'];
+	coord_system_script = coordinate_system(handles.coord_system_script,handles.all_datums,[]);
+	if (isempty(coord_system_script)),   return;     end
+	handles.coord_system_script = coord_system_script;
 
-% Split the scale from the projection string
-tmp = coord_system_script.projection;
-if (length(tmp) == 4 && strcmp(tmp(3),'m'))     % Simple Mercator cames in the form "-Jm1"
-    tmp = tmp(1:end-1);
-elseif (numel(tmp) == 3 && strcmp(tmp(3),'x')) % Linear proj cames in the form "-Jx"
-else                                            % All other should terminate as "-J.../1"
-    tmp = tmp(1:end-2);
-end
-xx = get(handles.hand_rect,'XData');
-handles.scale = num2str( (xx(3) - xx(2)),'%.2g');
-if (length(tmp) > 3)
-    opt_J = [tmp(1:2) upper(tmp(3)) tmp(4:end) '/' handles.scale handles.which_unit(1)];
-    handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3)) tmp(4:end)];           % Save this
-else        % Linear projections
-    opt_J = [tmp(1:2) upper(tmp(3)) handles.scale handles.which_unit(1)];
-    handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))];                      % Save this
-end
-set(handles.edit_mapWidth,'String',handles.scale)
-handles.curr_datum = handles.all_datums{coord_system_script.datum_val,2};   % Save this
+	% Split the scale from the projection string
+	tmp = coord_system_script.projection;
+	if (isempty(tmp)),		return,		end
+	if (length(tmp) == 4 && strcmp(tmp(3),'m'))     % Simple Mercator cames in the form "-Jm1"
+		tmp = tmp(1:end-1);
+	elseif (numel(tmp) == 3 && strcmp(tmp(3),'x')) % Linear proj cames in the form "-Jx"
+	else                                            % All other should terminate as "-J.../1"
+		tmp = tmp(1:end-2);
+	end
+	xx = get(handles.hand_rect,'XData');
+	handles.scale = num2str( (xx(3) - xx(2)),'%.2g');
+	if (length(tmp) > 3)
+		opt_J = [tmp(1:2) upper(tmp(3)) tmp(4:end) '/' handles.scale handles.which_unit(1)];
+		handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3)) tmp(4:end)];           % Save this
+	else        % Linear projections
+		opt_J = [tmp(1:2) upper(tmp(3)) handles.scale handles.which_unit(1)];
+		handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))];                      % Save this
+	end
+	set(handles.edit_mapWidth,'String',handles.scale)
+	handles.curr_datum = handles.all_datums{coord_system_script.datum_val,2};   % Save this
 
-string = {['System   -> ' coord_system_script.SysName];...
-        ['Projection -> ' coord_system_script.ProjName];...
-        ['Ellipsoid  ->  ' handles.all_datums{coord_system_script.datum_val,2}];...
-        ['J<options> ->  ' opt_J]};
-[outstring,newpos] = textwrap(handles.h_txt_info,string);
-pos = handles.txt_info_pos;
-pos(4) = newpos(4);
-set(handles.h_txt_info,'String',outstring,'Position',[pos(1),pos(2),pos(3),pos(4)])
-coord_system_script.proj_info_txt = outstring;
-coord_system_script.proj_info_pos = pos;
+	string = {['System   -> ' coord_system_script.SysName];...
+			['Projection -> ' coord_system_script.ProjName];...
+			['Ellipsoid  ->  ' handles.all_datums{coord_system_script.datum_val,2}];...
+			['J<options> ->  ' opt_J]};
+	[outstring,newpos] = textwrap(handles.h_txt_info,string);
+	pos = handles.txt_info_pos;
+	pos(4) = newpos(4);
+	set(handles.h_txt_info,'String',outstring,'Position',[pos(1),pos(2),pos(3),pos(4)])
+	coord_system_script.proj_info_txt = outstring;
+	coord_system_script.proj_info_pos = pos;
 
-save(fname,'coord_system_script','-append');      % Update mirone_pref
-guidata(hObject,handles)
-pushbutton_uppdate_CB(handles.pushbutton_uppdate, handles)
+	save(fname,'coord_system_script','-append');      % Update mirone_pref
+	guidata(hObject,handles)
+	pushbutton_uppdate_CB(handles.pushbutton_uppdate, handles)
 
 % ----------------------------------------------------------------------------------------
 function togglebutton_Option_L_CB(hObject, handles)
