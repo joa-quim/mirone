@@ -202,6 +202,7 @@ end
 
 	handles = guidata(hObject);
 	varargout{1} = handles.output;
+	delete(hObject)
 
 %-------------------------------------------------------------------------------------
 function popup_Group_CB(hObject, handles)
