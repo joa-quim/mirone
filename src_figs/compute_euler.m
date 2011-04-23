@@ -103,6 +103,11 @@ function varargout = compute_euler(varargin)
 	new_frame3D(hObject, [handles.txtSP handles.txtDS handles.txtCS])
 	%------------- END Pro look (3D) -----------------------------------------------------
 
+	% Add this figure handle to the carra?as list
+	plugedWin = getappdata(handMir.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handMir.figure1,'dependentFigs',plugedWin);
+
 	set(hObject,'Visible','on');
 	guidata(hObject, handles);
 	if (nargout),	varargout{1} = hObject;		end
@@ -475,11 +480,6 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 		% Now invert rotations to get the "original" corrected positions
 	 	[isoca1(:,1),isoca1(:,2)] = rot_euler(rlon1, rlat1, handles.pLon_ini*D2R,handles.pLat_ini*D2R,-handles.pAng_ini*D2R,'rad',-1);
 	 	[isoca2(:,1),isoca2(:,2)] = rot_euler(rlon2, rlat2, handles.pLon_ini*D2R,handles.pLat_ini*D2R,handles.pAng_ini*D2R,'rad',-1);
-
-% 		h1=line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',isoca1(:,1)/D2R,'YData',isoca1(:,2)/D2R,'Color','r');
-% 		h2=line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',isoca2(:,1)/D2R,'YData',isoca2(:,2)/D2R,'Color','y');
-% 		draw_funs(h1,'isochron',{'Fitted Line'})
-% 		draw_funs(h2,'isochron',{'Fitted Line'})
 	end
 	
 	isoca1(:,2) = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );	% Lat da isoca1 geocentrica
@@ -502,11 +502,18 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 		%[dist2, segLen2, sum2] = distmin_o(rlon, rlat, isoca2(:,1), isoca2(:,2), lenRot2, do_weighted, 1e20);
 		%area0 = (sum1 + sum2) / 2;
 	else
-		[dist1, segLen1, sum1] = distmin(X, Y, X_rot, Y_rot, lenRot1, do_weighted, 1e20);
-		[dist2, segLen2, sum2] = distmin(X_rot, Y_rot, X, Y, lenRot2, do_weighted, 1e20);
-		area0 = (sum1 + sum2) / 2;
+		errordlg('This branch - NON-SPHERICAL - is not working','Error'),	return
+		%[dist1, segLen1, sum1] = distmin(X, Y, X_rot, Y_rot, lenRot1, do_weighted, 1e20);
+		%[dist2, segLen2, sum2] = distmin(X_rot, Y_rot, X, Y, lenRot2, do_weighted, 1e20);
+		%area0 = (sum1 + sum2) / 2;
 	end
 	%sum22 = weightedSum(dist2, segLen2, do_weighted);
+
+	% See if there is a request to plot only the signed residues of the starting pole.
+	if (get(handles.check_plotRes,'Val'))
+		resid_along_isoca(handles, isoca2, lenRot2, rlon, rlat, lenRot1)
+		return
+	end
 
 	if (handles.do_graphic)
 		set(handles.edit_InitialResidue,'String',sprintf('%.4f', area0));    pause(0.01)
@@ -671,6 +678,58 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 	lat_bf = p_lat(j_m) / D2R;
 	omega_bf = p_omeg(k_m) / D2R;
 	area_f = area0;
+
+% -------------------------------------------------------------------------------
+function resid_along_isoca(handles, isoca2, lenRot2, rlon, rlat, lenRot1)
+% ...
+	R2D = 180 / pi;		ecc = 0.0818191908426215;			% WGS84
+	[area0, xy, distsA, weights] = distmin(isoca2(:,1), isoca2(:,2), lenRot2, rlon, rlat, lenRot1);
+	ind = (weights < 0.25);		% Ad-hoc criterium
+	distsA(ind) = [];	xy(ind,:) = [];		isoBak = isoca2;	isoca2(ind,:) = [];
+
+	% Compute the azims of points and their the ones that are closest on the otehr line, next
+	% compare them with the azimuth given by the Euler pole and thus decide the ones on left and right
+	azPtsNear = azimuth_geo(xy(:,2),xy(:,1),isoca2(:,2),isoca2(:,1),'rad') * R2D;
+	azEuler   = compute_EulerAzim(xy(:,2),xy(:,1), handles.pLat_ini/R2D,handles.pLon_ini/R2D) * R2D;
+	difa = abs(azPtsNear - azEuler);
+	inds = zeros(numel(azPtsNear),1);
+	inds(difa < 60) = 1;	inds(difa > 120) = -1;
+	distsA = distsA .* inds;
+	distsA(~inds) = [];		xy(~inds,:) = [];		% Those should be points edging Fracture Zones
+	latA = atan2( sin(xy(:,2)), (1-ecc^2)*cos(xy(:,2)) ) * R2D;		% Convert back to geodetic latitudes
+	
+	% Now again but swaping order of lines
+	[area0, xy, distsB, weights] = distmin(rlon, rlat, lenRot1, isoBak(:,1), isoBak(:,2), lenRot2);
+	ind = (weights < 0.25);
+	distsB(ind) = [];	xy(ind,:) = [];		rlon(ind,:) = [];	rlat(ind,:) = [];
+	azPtsNear = azimuth_geo(xy(:,2),xy(:,1),rlat,rlon,'rad') * R2D;
+	azEuler   = compute_EulerAzim(xy(:,2),xy(:,1), handles.pLat_ini/R2D,handles.pLon_ini/R2D) * R2D;
+	difa = abs(azPtsNear - azEuler);
+	inds = zeros(numel(azPtsNear),1);
+	inds(difa < 60) = -1;	inds(difa > 120) = 1;	% NOTE: swapp signs because we reversed order of lines
+	distsB = distsB .* inds;
+	distsB(~inds) = [];		xy(~inds,:) = [];
+	latB = atan2( sin(xy(:,2)), (1-ecc^2)*cos(xy(:,2)) ) * R2D;
+
+	% The correct thing to do would be to interpolate along ridge to get a common reference
+	% but we'll do the crude aproximation of using Lat as the X axis (good enough for the Atlantic)
+	lat = [latA; latB];		dists = ([distsA; distsB]);
+	[lat, ind] = sort(lat);
+	dists = dists(ind);
+
+	ecran(lat, dists, 'Residues along isoc')
+
+% -----------------------------------------------------------------------------------------
+function azim = compute_EulerAzim(alat,alon,plat,plon)
+% alat & alon are the point coords. plat, plon are the pole parameters (All in radians)
+
+	x = cos(plat).*sin(plon).*sin(alat) - cos(alat).*sin(alon).*sin(plat);    % East vel
+	y = cos(alat).*cos(alon).*sin(plat) - cos(plat).*cos(plon).*sin(alat);    % North vel
+	z = cos(plat).*cos(alat).*sin(alon-plon);
+	vlon = -sin(alon).*x + cos(alon).*y;
+	vlat = -sin(alat).*cos(alon).*x-sin(alat).*sin(alon).*y + cos(alat).*z;
+	azim = pi/2 - atan2(vlat,vlon);
+	if (azim < 0),		azim = azim + 2*pi;		end		% Give allways the result in the 0-360 range
 
 % -------------------------------------------------------------------------------
 function [dist, segLen] = distmin_(lon, lat, r_lon, r_lat, lengthsRot, do_weighted, lastResidue)
@@ -1106,6 +1165,11 @@ uicontrol('Parent',h1, 'Pos',[20 90 110 15],...
 'Tooltip','Use the Hellinger method',...
 'Tag','check_hellinger');
 
+uicontrol('Parent',h1, 'Pos',[20 60 120 15],...
+'String','Plot residues only',...
+'Style','checkbox',...
+'Tooltip','Plot the signed residues between isochrn and rotated isochron. No pole is computed',...
+'Tag','check_plotRes');
 
 uicontrol('Parent',h1, 'Pos',[170 61 225 21],...
 'BackgroundColor',[1 1 1],...
