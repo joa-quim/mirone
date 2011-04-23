@@ -61,7 +61,7 @@ function varargout = ecran(varargin)
 		if ( n_in >= 3 && ischar(varargin{1}) )		% ecran('reuse', x, y, ...)
 			varargin{1} = 'reuse';			% Make sure we use this keyword
 
-		elseif ( n_in >= 3 && ishandle(varargin{1}))% ecran(hMirFig, x, y, ...)
+		elseif ( n_in >= 3 && numel(varargin{1}) == 1 && ishandle(varargin{1}))% ecran(hMirFig, x, y, ...)
 			handles.hMirFig = varargin{1};
 			varargin{1} = 'reuse';			% 
 
@@ -70,6 +70,10 @@ function varargout = ecran(varargin)
 				varargin(2:3) = varargin(1:2);
 			else							% Two numeric and a title
 				varargin(2:4) = varargin(1:3);
+				if (ischar(varargin{4}))	% Fig name
+					varargin{5} = varargin{4};
+					n_in = 5;
+				end
 			end
 			varargin{1} = 'reuse';
 		end
