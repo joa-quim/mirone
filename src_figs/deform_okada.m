@@ -831,7 +831,7 @@ function push_compute_CB(hObject, handles)
 		elseif (isunix)	fid = fopen([PathName FileName],'w');
 		else			error('DEFORM_OKADA: Unknown platform.');
 		end
-		fprintf(fid, 'Lon\t\tLat\t\tNorth\t\tEast\t\tZ\t\tAlong unit vector\n');
+		fprintf(fid, '#Lon\t\tLat\t\tNorth\t\tEast\t\tZ\t\tAlong unit vector\n');
 		fprintf(fid, '%f\t%f\t%f\t%f\t%f\t%f\n', [E N U]');
 		fclose(fid);
 	end
@@ -936,7 +936,7 @@ function check_hideFaultPlanes_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------------
 function handles = set_all_faults(handles,varargin)
-	% varargin contains a set of parameters of a Slip model transmited by fault_models.m  
+% varargin contains a set of parameters of a Slip model transmited by fault_models.m  
 	handles.hCallingFig = varargin{1}.figure1;
 	handles.h_fault = varargin{2};
 	handles.FaultTopDepth = varargin{3};
