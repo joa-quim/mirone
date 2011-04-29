@@ -18,7 +18,7 @@ function varargout = bands_list(varargin)
 
 	if (numel(varargin) == 0),		return,		end
  
-	hObject = figure('Tag','figure1','Visible','off');
+	hObject = figure('Vis','off');
 	bands_list_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 
@@ -69,60 +69,60 @@ function varargout = bands_list(varargin)
 	if (nargout),	varargout{1} = hObject;		end
 
 % ------------------------------------------------------------------------
-function radiobutton_gray_CB(hObject, handles)
+function radio_gray_CB(hObject, handles)
 	if (get(hObject,'Value'))
-		set(handles.radiobutton_RGB,'Value',0)
+		set(handles.radio_RGB,'Value',0)
 		pos = handles.frame_movel_pos;
 		pos = [pos(1) pos(2)+pos(4)/2 pos(3) pos(4)/2];
 		set(handles.edit_Rband,'Pos',pos+[10 5 -20 -28])
-		set(handles.radiobutton_R,'Visible','off')
-		set(handles.radiobutton_G,'Visible','off')
-		set(handles.radiobutton_B,'Visible','off')
-		set(handles.edit_Gband,'Visible','off')
-		set(handles.edit_Bband,'Visible','off')
-		set(handles.text_toGray,'Visible','on')
+		set(handles.radio_R,'Vis','off')
+		set(handles.radio_G,'Vis','off')
+		set(handles.radio_B,'Vis','off')
+		set(handles.edit_Gband,'Vis','off')
+		set(handles.edit_Bband,'Vis','off')
+		set(handles.text_toGray,'Vis','on')
 	else
 		set(hObject,'Value',1)
 	end
 
 % ------------------------------------------------------------------------
-function radiobutton_RGB_CB(hObject, handles)
+function radio_RGB_CB(hObject, handles)
 	if (get(hObject,'Value'))
-		set(handles.radiobutton_gray,'Value',0)
+		set(handles.radio_gray,'Value',0)
 		set(handles.edit_Rband,'Pos',handles.edit_Rband_pos)
-		set(handles.radiobutton_R,'Visible','on')
-		set(handles.radiobutton_G,'Visible','on')
-		set(handles.radiobutton_B,'Visible','on')
-		set(handles.edit_Gband,'Visible','on')
-		set(handles.edit_Bband,'Visible','on')
-		set(handles.text_toGray,'Visible','off')
+		set(handles.radio_R,'Vis','on')
+		set(handles.radio_G,'Vis','on')
+		set(handles.radio_B,'Vis','on')
+		set(handles.edit_Gband,'Vis','on')
+		set(handles.edit_Bband,'Vis','on')
+		set(handles.text_toGray,'Vis','off')
 	else
 		set(hObject,'Value',1)
 	end
 
 % ------------------------------------------------------------------------
-function radiobutton_R_CB(hObject, handles)
+function radio_R_CB(hObject, handles)
 	if (get(hObject,'Value'))
-		set(handles.radiobutton_G,'Value',0)
-		set(handles.radiobutton_B,'Value',0)
+		set(handles.radio_G,'Value',0)
+		set(handles.radio_B,'Value',0)
 	else
 		set(hObject,'Value',1)
 	end
 
 % ------------------------------------------------------------------------
-function radiobutton_G_CB(hObject, handles)
+function radio_G_CB(hObject, handles)
 	if (get(hObject,'Value'))
-		set(handles.radiobutton_R,'Value',0)
-		set(handles.radiobutton_B,'Value',0)
+		set(handles.radio_R,'Value',0)
+		set(handles.radio_B,'Value',0)
 	else
 		set(hObject,'Value',1)
 	end
 
 % ------------------------------------------------------------------------
-function radiobutton_B_CB(hObject, handles)
+function radio_B_CB(hObject, handles)
 if (get(hObject,'Value'))
-    set(handles.radiobutton_R,'Value',0)
-    set(handles.radiobutton_G,'Value',0)
+    set(handles.radio_R,'Value',0)
+    set(handles.radio_G,'Value',0)
 else
     set(hObject,'Value',1)
 end
@@ -156,12 +156,12 @@ function push_pca_CB(hObject, handles)
 function push_Load_CB(hObject, handles)
 % TENHO QUE TESTAR SE CASO FOR PRECISO LOADAR BANDAS ELAS SEJAM GDALICAS
 
-if (get(handles.radiobutton_RGB,'Value') && ...
+if (get(handles.radio_RGB,'Value') && ...
         (isempty(handles.Rband) || isempty(handles.Gband) || isempty(handles.Bband)))
     errordlg('Error: you must select three bands','ERROR')
     return
 end
-if ( get(handles.radiobutton_gray,'Value') && (isempty(handles.Rband)) )
+if ( get(handles.radio_gray,'Value') && (isempty(handles.Rband)) )
     errordlg('Error: Are you blind? You must select a band. Kinda obvious no?','ERROR')
     return
 end
@@ -170,7 +170,7 @@ handMir = guidata(handles.hMirFig);        % Retrive Mirone handles
 img = get(handMir.hImg,'CData');
 head = [];              % It will be changed only if we load a composition of non uint8
 
-if (get(handles.radiobutton_RGB,'Value'))       % RGB - pure image for sure (is it??)
+if (get(handles.radio_RGB,'Value'))       % RGB - pure image for sure (is it??)
     [b,b] = ismember([handles.Rband handles.Gband handles.Bband],handles.bands_inMemory);
     idx = (b == 0);		% ISMEMBER returns zeros for elements of A not in B
     b(idx) = [];		% If they exis, clear them
@@ -360,7 +360,7 @@ if (strcmp(get(handles.figure1, 'SelectionType'), 'open')) % if double click
 		[struct_names, struct_values] = shrink_struct(struct_names, struct_values, ...
 			index_struct, fields, level, idxM);
 	else
-		if (get(handles.radiobutton_gray,'Value'))
+		if (get(handles.radio_gray,'Value'))
 			guidata(hObject, handles);
 			push_Load_CB(handles.push_Load, handles)
 		end
@@ -470,25 +470,25 @@ function handles = order_bands(handles,idx)
 % Put selected band (pointed by idx) on the box corresponding to active radiobutton
 
 	n_band = handles.band_desc{idx,2};
-	if (get(handles.radiobutton_RGB,'Value'))
+	if (get(handles.radio_RGB,'Value'))
 		% put the clicked band on the box that has the active radiobutton
-		r = get(handles.radiobutton_R,'Value');
-		g = get(handles.radiobutton_G,'Value');
+		r = get(handles.radio_R,'Value');
+		g = get(handles.radio_G,'Value');
 		
 		if (r)
 			set(handles.edit_Rband,'String',handles.all_names{idx,2})
-			set(handles.radiobutton_R,'Value',0)
-			set(handles.radiobutton_G,'Value',1)
+			set(handles.radio_R,'Value',0)
+			set(handles.radio_G,'Value',1)
 			handles.Rband = n_band;
 		elseif (g)
 			set(handles.edit_Gband,'String',handles.all_names{idx,2})
-			set(handles.radiobutton_G,'Value',0)
-			set(handles.radiobutton_B,'Value',1)
+			set(handles.radio_G,'Value',0)
+			set(handles.radio_B,'Value',1)
 			handles.Gband = n_band;
 		else
 			set(handles.edit_Bband,'String',handles.all_names{idx,2})
-			set(handles.radiobutton_B,'Value',0)
-			set(handles.radiobutton_R,'Value',1)
+			set(handles.radio_B,'Value',0)
+			set(handles.radio_R,'Value',1)
 			handles.Bband = n_band;
 		end
 	else        % Single Band
@@ -681,22 +681,22 @@ uicontrol('Parent',h1, 'Position',[5 32 260 32], 'Style','frame');
 uicontrol('Parent',h1, 'Position',[5 177 260 33], 'Style','frame');
 
 uicontrol('Parent',h1,...
-'Call',{@bands_list_uiCB,h1,'radiobutton_gray_CB'},...
+'Call',@bands_list_uiCB,...
 'Position',[12 185 90 15],...
 'String','Gray Scale',...
 'Style','radiobutton',...
-'Tag','radiobutton_gray');
+'Tag','radio_gray');
 
 uicontrol('Parent',h1,...
-'Call',{@bands_list_uiCB,h1,'radiobutton_RGB_CB'},...
+'Call',@bands_list_uiCB,...
 'Position',[102 185 79 15],...
 'String','RGB Color',...
 'Style','radiobutton',...
 'Value',1,...
-'Tag','radiobutton_RGB');
+'Tag','radio_RGB');
 
 uicontrol('Parent',h1,...
-'Call',{@bands_list_uiCB,h1,'push_pca_CB'},...
+'Call',@bands_list_uiCB,...
 'FontName','Helvetica',...
 'Position',[181 182 80 21],...
 'Tooltip', 'Compute Principal Components', ...
@@ -704,26 +704,26 @@ uicontrol('Parent',h1,...
 'Tag','push_pca');
 
 uicontrol('Parent',h1,...
-'Call',{@bands_list_uiCB,h1,'radiobutton_R_CB'},...
+'Call',@bands_list_uiCB,...
 'Position',[10 142 35 15],...
 'String','R',...
 'Style','radiobutton',...
 'Value',1,...
-'Tag','radiobutton_R');
+'Tag','radio_R');
 
 uicontrol('Parent',h1,...
-'Call',{@bands_list_uiCB,h1,'radiobutton_G_CB'},...
+'Call',@bands_list_uiCB,...
 'Position',[10 111 35 15],...
 'String','G',...
 'Style','radiobutton',...
-'Tag','radiobutton_G');
+'Tag','radio_G');
 
 uicontrol('Parent',h1,...
-'Call',{@bands_list_uiCB,h1,'radiobutton_B_CB'},...
+'Call',@bands_list_uiCB,...
 'Position',[10 82 35 15],...
 'String','B',...
 'Style','radiobutton',...
-'Tag','radiobutton_B');
+'Tag','radio_B');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -760,7 +760,7 @@ uicontrol('Parent',h1,...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Call',{@bands_list_uiCB,h1,'push_Load_CB'},...
+'Call',@bands_list_uiCB,...
 'FontName','Helvetica',...
 'Position',[90 5 66 21],...
 'String','Load',...
@@ -768,7 +768,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@bands_list_uiCB,h1,'listbox1_CB'},...
+'Call',@bands_list_uiCB,...
 'Position',[5 219 260 221],...
 'Style','listbox',...
 'Value',1,...
@@ -779,6 +779,6 @@ uicontrol('Parent',h1,'Position',[99 149 80 15],...
 'Tag','text_toGray','Visible','off');
 
 
-function bands_list_uiCB(hObject, eventdata, h1, callback_name)
+function bands_list_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,guidata(h1));
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
