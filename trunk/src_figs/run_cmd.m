@@ -18,7 +18,7 @@ function varargout = run_cmd(varargin)
 
 	if (isempty(varargin))		return,		end
  
-	hObject = figure('Tag','figure1','Visible','off');
+	hObject = figure('Vis','off');
 	run_cmd_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'right')
@@ -171,45 +171,44 @@ function push_compute_CB(hObject, handles)
 		tmp.srsWKT = prjInfStruct.projWKT;
 	end
 	mirone(Z_out, tmp)
+
 % -----------------------------------------------------------------------------------------
 function Z = runCmd_cmda(arg1,cmd)
-Z = arg1.Z;
-claZ = [];
-try
-	Z = eval(cmd);
-catch
-	le = lasterr;
-	ind = strfind(le, 'values of class');
-	if (~isempty(ind))
-		Z = double(Z);
-		claZ = le(ind+17:end-2);		% Signal that we have to convert from doubles
-	end
+	Z = arg1.Z;
+	claZ = [];
 	try
 		Z = eval(cmd);
 	catch
-		errordlg(['Failed to run command. Probably you are running the compiled version. Error message was: ' lasterr],'ERROR')
+		le = lasterr;
+		ind = strfind(le, 'values of class');
+		if (~isempty(ind))
+			Z = double(Z);
+			claZ = le(ind+17:end-2);		% Signal that we have to convert from doubles
+		end
+		try
+			Z = eval(cmd);
+		catch
+			errordlg(['Failed to run command. Probably you are running the compiled version. Error message was: ' lasterr],'ERROR')
+		end
 	end
-end
-if (~isempty(claZ))
-	if (strcmp(claZ,'single'))
-		Z = single(Z);
-	elseif (strcmp(claZ,'int16'))
-		Z = int16(Z * (2^16  - 1) -2^16 / 2 );
-	elseif (strcmp(claZ,'uint16'))
-		Z = int16(Z * (2^16 - 1));
-	elseif (strcmp(claZ,'uint8'));
-		Z = uint8(Z * 255);
-	elseif (strcmp(claZ,'int8'));
-		Z = int8(Z * 255 - 127);
+	if (~isempty(claZ))
+		if (strcmp(claZ,'single'))
+			Z = single(Z);
+		elseif (strcmp(claZ,'int16'))
+			Z = int16(Z * (2^16  - 1) -2^16 / 2 );
+		elseif (strcmp(claZ,'uint16'))
+			Z = int16(Z * (2^16 - 1));
+		elseif (strcmp(claZ,'uint8'));
+			Z = uint8(Z * 255);
+		elseif (strcmp(claZ,'int8'));
+			Z = int8(Z * 255 - 127);
+		end
 	end
-end
 
 % -----------------------------------------------------------------------------------------
 function radio_onImage_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
-	if ( strcmp(get(handles.radio_onGrid, 'Enable'), 'on') )
-		set(handles.radio_onGrid,'Val',0)
-	end
+	set(handles.radio_onGrid,'Val',0)
 
 % -----------------------------------------------------------------------------------------
 function radio_onGrid_CB(hObject, handles)
@@ -249,14 +248,14 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],'Position',[10 63 391 51],...
 'Tag','edit_com');
 
 uicontrol('Parent',h1, 'Position',[330 8 71 21],...
-'Call',{@run_cmd_uiCB,h1,'push_compute_CB'},...
+'Call',@run_cmd_uiCB,...
 'FontName','Helvetica',...
 'FontSize',10,...
 'String','Compute',...
 'Tag','push_compute');
 
 uicontrol('Parent',h1, 'Position',[10 117 105 16],...
-'Call',{@run_cmd_uiCB,h1,'radio_onImage_CB'},...
+'Call',@run_cmd_uiCB,...
 'FontName','Helvetica',...
 'String','Apply to Image',...
 'Style','radiobutton',...
@@ -264,7 +263,7 @@ uicontrol('Parent',h1, 'Position',[10 117 105 16],...
 'Tag','radio_onImage');
 
 uicontrol('Parent',h1, 'Position',[305 118 95 16],...
-'Call',{@run_cmd_uiCB,h1,'radio_onGrid_CB'},...
+'Call',@run_cmd_uiCB,...
 'FontName','Helvetica',...
 'String','Apply to Grid',...
 'Style','radiobutton',...
@@ -282,7 +281,7 @@ uicontrol('Parent',h1, 'Position',[10 10 91 21],...
 
 uicontrol('Parent',h1, 'Position',[276 37 35 21],...
 'BackgroundColor',[1 1 1],...
-'Call',{@run_cmd_uiCB,h1,'edit_true_CB'},...
+'Call',@run_cmd_uiCB,...
 'String','1',...
 'Style','edit',...
 'Tag','edit_true');
@@ -294,6 +293,6 @@ uicontrol('Parent',h1, 'Position',[10 40 265 16],...
 'Style','text',...
 'Tag','text_true');
 
-function run_cmd_uiCB(hObject, eventdata, h1, callback_name)
+function run_cmd_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,guidata(h1));
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
