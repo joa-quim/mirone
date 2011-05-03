@@ -268,7 +268,7 @@ function push_applyStep3_CB(hObject, handles)
 	opt_W = sprintf('-W%d', handles.nWin);
 	opt_N = sprintf('-N%d', handles.have_nans);
 	rms = mirblock(handles.Z_resid, handles.head, '-A8', opt_W, opt_N);
-	handles.resMask = (rms > handles.rmsThresh);	clear rms
+	handles.resMask = (rms >= handles.rmsThresh);	clear rms
 	set(handles.figure1,'pointer','arrow')
 
 	update_report(handles, 3)		% Update the listbox info
@@ -369,7 +369,7 @@ function push_maskFromLines_CB(hObject, handles)
 	end
 
 	hMirFig = mirone(mask,tmp);		set(hMirFig,'Vis', 'off'),		pause(0.01)
-	set(findobj(hMirFig,'type','image'), 'Vis', 'off')
+	%set(findobj(hMirFig,'type','image'), 'Vis', 'off')
 
 	if (get(handles.check_useMGG, 'Val'))
 		x = [tmp.head(1) tmp.head(1) tmp.head(2)];
@@ -377,7 +377,7 @@ function push_maskFromLines_CB(hObject, handles)
 		tracks = deal_opts([], 'get_MGGtracks', [],[],x, y);	% 2 [] because get_MGGtracks is a @fun
 		mirone('GeophysicsImportGmtFile_CB',guidata(hMirFig), tracks)
 	else
-		try			datasets_funs('Isochrons', guidata(hMirFig), fnameXY)
+		try			load_xyz(guidata(hMirFig), fnameXY)
 		catch,		errordlg(lasterr,'Error'),	return
 		end
 	end
@@ -662,7 +662,7 @@ uicontrol('Parent',h1,'Position',[259 330 31 21],...
 'Call',@microlev_uiCB,...
 'String','6',...
 'Style','edit',...
-'TooltipString','RMS values higher than this are set to 1, and others to 0',...
+'TooltipString','RMS values greater or higher than this are set to 1, and others to 0',...
 'Tag','edit_rmsThreshold');
 
 uicontrol('Parent',h1,'Position',[160 330 98 19],...
