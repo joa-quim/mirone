@@ -185,6 +185,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GMT_end_for_mex (argc, argv);
 	GMT_n_colors = n_colors;*/
 	GMT_end (argc, argv);
+	GMT_n_colors = FALSE;		/* HAVE TO, because of the comment above */
 }
 
 void sample_cpt (double z[], int nz, int continuous, int reverse, int log_mode, double *pal) {
