@@ -35,6 +35,7 @@ function varargout = aquamoto(varargin)
 		handles.home_dir = handMir.home_dir;
 		handles.last_dir = handMir.last_dir;
 		handles.work_dir = handMir.work_dir;
+		handles.DefineEllipsoide = handMir.DefineEllipsoide;	% Potentially need in aquaPlugin
         d_path = handMir.path_data;
 	else
 		if (numel(varargin) >= 1)		% File name in input
@@ -52,6 +53,7 @@ function varargout = aquamoto(varargin)
 		handles.home_dir = cd;
 		handles.last_dir = handles.home_dir;
 		handles.work_dir = handles.home_dir;
+		handles.DefineEllipsoide = [6378137, 0, 1/298.2572235630];	% Defaults to WGS-84
         d_path = [handles.home_dir filesep 'data' filesep];
 	end
 
@@ -3646,4 +3648,4 @@ uicontrol('Parent',h1,'Position',[10 66 141 15],...
 
 function vector_plot_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
-feval(callback_name,hObject,[],guidata(h1));
+	feval(callback_name,hObject,[],guidata(h1));
