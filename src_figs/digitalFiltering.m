@@ -94,315 +94,314 @@ function varargout = digitalFiltering(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-hObject = figure('Tag','figure1','Visible','off');
-digitalFiltering_LayoutFcn(hObject);
-handles = guihandles(hObject);
-move2side(hObject,'right')
+	hObject = figure('Vis','off');
+	digitalFiltering_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'right')
 
-% Choose default command line output for digitalFiltering
-handles.output.cancel = 0;      % It will be set to one if the cancel button is hit or the fig is killed
-handles.img_orig = [];
-handles.grd_orig = [];
-handles.h_calling_fig = [];     % handle of the calling figure (if it will be the case)
-handles.h_calling_img = [];     % handle of the calling image (if it will be the case)
-handles.tree_indice = 1;        % Index to the select tree item in its full expanded form.
-y_dir = 0;                      % Axes YDir property
-cmap = [];
+	% Choose default command line output for digitalFiltering
+	handles.output.cancel = 0;		% It will be set to one if the cancel button is hit or the fig is killed
+	handles.img_orig = [];
+	handles.grd_orig = [];
+	handles.h_calling_fig = [];		% handle of the calling figure (if it will be the case)
+	handles.h_calling_img = [];		% handle of the calling image (if it will be the case)
+	handles.tree_indice = 1;		% Index to the select tree item in its full expanded form.
+	y_dir = 0;						% Axes YDir property
+	cmap = [];
 
-% Find out what is going out in the first and second arguments (if output was requested)
-n_argout = nargout;     n_argin = nargin;
-if (n_argout == 1 || n_argout == 2 && n_argin >= 2)
-    first_out = 'grd';                  % Signal that the first output arg (if requested) is the grid
-elseif (n_argout == 1 && n_argin == 1)
-    first_out = 'img';                  % Signal that the output arg (if requested) is the image
-elseif (n_argout > 0)
-    errordlg('Requested output is not possible with the current choice of inputs.','ERROR')
-    delete(hObject)
-    return
-end
+	% Find out what is going out in the first and second arguments (if output was requested)
+	n_argout = nargout;     n_argin = nargin;
+	if (n_argout == 1 || n_argout == 2 && n_argin >= 2)
+		first_out = 'grd';					% Signal that the first output arg (if requested) is the grid
+	elseif (n_argout == 1 && n_argin == 1)
+		first_out = 'img';					% Signal that the output arg (if requested) is the image
+	elseif (n_argout > 0)
+		errordlg('Requested output is not possible with the current choice of inputs.','ERROR')
+		delete(hObject)
+		return
+	end
 
-if (n_argin >= 1)
-    if (ishandle(varargin{1}))              % First argument is an image handle, or ... error
-        if ( ~strcmp(get(varargin{1},'type'),'image') )
-            errordlg('ERROR: only image graphical objects are supported.','ERROR')
-            delete(hObject)
-            return
-        end
-        handles.img_orig = get(varargin{1},'CData');
-        handles.h_calling_img = varargin{1};
-        handles.h_calling_fig = get(get(handles.h_calling_img,'Parent'),'Parent');
-        y_dir = get(get(varargin{1},'Parent'),'YDir');
-        if (ndims(handles.img_orig) == 2)   % If image is indexed, get the colormap
-            cmap = get(handles.h_calling_fig,'ColorMap');
-        end
-    else
-        handles.img_orig = varargin{1};     % First argument is an image array
-    end
-    if (n_argin >= 2)
-        handles.grd_orig = varargin{2};
-        if (isempty(handles.img_orig))      % We don't have a grid image representation. Create it
-            handles.img_orig = scaleto8(handles.grd_orig);
-        end
-    end
-    if (n_argin == 3)
-        cmap = varargin{3};
-    end
-    
-    set(handles.edit_imageIn,'Enable','off')
-    set(handles.pushbutton_imageIn,'Enable','off')
-    set(handles.text_loadImage,'Enable','off')
-else        % Demo mode
-    set(handles.pushbutton_apply_and_return,'Visible','off')
-    handles.img_orig = imread('peppers.png');
-end
+	if (n_argin >= 1)
+		if (ishandle(varargin{1}))              % First argument is an image handle, or ... error
+			if ( ~strcmp(get(varargin{1},'type'),'image') )
+				errordlg('ERROR: only image graphical objects are supported.','ERROR')
+				delete(hObject)
+				return
+			end
+			handles.img_orig = get(varargin{1},'CData');
+			handles.h_calling_img = varargin{1};
+			handles.h_calling_fig = get(get(handles.h_calling_img,'Parent'),'Parent');
+			y_dir = get(get(varargin{1},'Parent'),'YDir');
+			if (ndims(handles.img_orig) == 2)   % If image is indexed, get the colormap
+				cmap = get(handles.h_calling_fig,'ColorMap');
+			end
+		else
+			handles.img_orig = varargin{1};     % First argument is an image array
+		end
+		if (n_argin >= 2)
+			handles.grd_orig = varargin{2};
+			if (isempty(handles.img_orig))      % We don't have a grid image representation. Create it
+				handles.img_orig = scaleto8(handles.grd_orig);
+			end
+		end
+		if (n_argin == 3)
+			cmap = varargin{3};
+		end
 
-if (~isempty(handles.h_calling_fig))
-	handMir = guidata(handles.h_calling_fig);
-	handles.home_dir = handMir.home_dir;
-	handles.work_dir = handMir.work_dir;
-	handles.last_dir = handMir.last_dir;
-else
-	handles.home_dir = cd;
-	handles.work_dir = cd;		handles.last_dir = cd;	% To not compromize put_or_get_file
-end
+		set(handles.edit_imageIn,'Enable','off')
+		set(handles.push_imageIn,'Enable','off')
+		set(handles.text_loadImage,'Enable','off')
+	else				% Demo mode
+		set(handles.push_apply_and_return,'Visible','off')
+		handles.img_orig = imread('peppers.png');
+	end
 
-% Put the image in the right axes
-[m,n,k] = size(handles.img_orig);
-bg_aspect = m / n;
-handles.h_img1 = image(handles.img_orig,'Parent',handles.axes2);
-set(handles.axes2,'PlotBoxAspectRatio',[1 bg_aspect 1],'Visible','off')
-handles.h_img2 = image(handles.img_orig,'Parent',handles.axes3);
-set(handles.axes3,'PlotBoxAspectRatio',[1 bg_aspect 1],'Visible','off')
+	if (~isempty(handles.h_calling_fig))
+		handMir = guidata(handles.h_calling_fig);
+		handles.home_dir = handMir.home_dir;
+		handles.work_dir = handMir.work_dir;
+		handles.last_dir = handMir.last_dir;
+	else
+		handles.home_dir = cd;
+		handles.work_dir = cd;		handles.last_dir = cd;	% To not compromize put_or_get_file
+	end
 
-if (ischar(y_dir))
-	set(handles.axes2,'YDir',y_dir)
-	set(handles.axes3,'YDir',y_dir)
-end
+	% Put the image in the right axes
+	[m,n,k] = size(handles.img_orig);
+	bg_aspect = m / n;
+	handles.h_img1 = image(handles.img_orig,'Parent',handles.axes2);
+	set(handles.axes2,'PlotBoxAspectRatio',[1 bg_aspect 1],'Visible','off')
+	handles.h_img2 = image(handles.img_orig,'Parent',handles.axes3);
+	set(handles.axes3,'PlotBoxAspectRatio',[1 bg_aspect 1],'Visible','off')
 
-if (~isempty(cmap))         % If we have a colormap, apply it
-	set(hObject,'ColorMap',cmap)
-end
+	if (ischar(y_dir))
+		set(handles.axes2,'YDir',y_dir)
+		set(handles.axes3,'YDir',y_dir)
+	end
 
-% Load the predefined filters
-filter_struct = load_defFilters;
-sz_argin = size(filter_struct,2);
-struct_names = cell(1, sz_argin);
-struct_values = cell(1, sz_argin);
-for I = 1:sz_argin
-    struct_names{I} = filter_struct{1, I};  % Structure descriptive name
-    struct_values{I} = filter_struct{2, I}; % 
-    if isstruct(struct_values{I})
-        struct_names{I} = ['+ ' struct_names{I}];
-    end
-end
-handles.all_names = filter_struct(3);       % {mx2} struct field name & name to show up in the tree
-handles.filt_desc = filter_struct(4);       % {mx1} text description of struct field
+	if (~isempty(cmap))				% If we have a colormap, apply it
+		set(hObject,'ColorMap',cmap)
+	end
 
-% Populate the Structure listbox
-set(handles.listbox1,'string',struct_names)
+	% Load the predefined filters
+	filter_struct = load_defFilters;
+	sz_argin = size(filter_struct,2);
+	struct_names = cell(1, sz_argin);
+	struct_values = cell(1, sz_argin);
+	for I = 1:sz_argin
+		struct_names{I} = filter_struct{1, I};  % Structure descriptive name
+		struct_values{I} = filter_struct{2, I}; % 
+		if isstruct(struct_values{I})
+			struct_names{I} = ['+ ' struct_names{I}];
+		end
+	end
+	handles.all_names = filter_struct(3);       % {mx2} struct field name & name to show up in the tree
+	handles.filt_desc = filter_struct(4);       % {mx1} text description of struct field
 
-handles.h_txt_info = findobj(hObject,'Tag','text_info');
-handles.txt_info_pos = get(handles.h_txt_info,'Position');
+	% Populate the Structure listbox
+	set(handles.listbox1,'string',struct_names)
 
-% save structures names and values to handles
-handles.struct_names = struct_names';
-handles.struct_values = struct_values';
+	handles.h_txt_info = findobj(hObject,'Tag','text_info');
+	handles.txt_info_pos = get(handles.h_txt_info,'Position');
 
-set(handles.listbox_nRows,'String',3:2:35,'Value',1,'Enable','off')
-set(handles.listbox_nCols,'String',3:2:35,'Value',1,'Enable','off')
+	% save structures names and values to handles
+	handles.struct_names = struct_names';
+	handles.struct_values = struct_values';
 
-% Initialize table calling arguments
-cell_data = {0 0 0; 0 1 0; 0 0 0};
-handles.custom_filt = [0 0 0; 0 1 0; 0 0 0];    % Default (null filter) custom filter
-columninfo.format = '%.3g';
-handles.format = columninfo.format;
-rowHeight = 16;
-gFont.size=9;
-gFont.name='Helvetica';
+	set(handles.listbox_nRows,'String',3:2:35,'Value',1,'Enable','off')
+	set(handles.listbox_nCols,'String',3:2:35,'Value',1,'Enable','off')
 
-mltable_j(hObject, handles.tblParams, 'CreateTable', columninfo, rowHeight, cell_data, gFont);
-% so clicking outside the table will finish edit in progress...
-endfcn = sprintf('mltable_j(%14.13f, %14.13f, ''SetCellValue'');', hObject, handles.tblParams);
-set(hObject,'buttondownfcn',endfcn);
+	% Initialize table calling arguments
+	cell_data = {0 0 0; 0 1 0; 0 0 0};
+	handles.custom_filt = [0 0 0; 0 1 0; 0 0 0];    % Default (null filter) custom filter
+	columninfo.format = '%.3g';
+	handles.format = columninfo.format;
+	rowHeight = 16;
+	gFont.size=9;
+	gFont.name='Helvetica';
 
-guidata(hObject, handles);      % Update handles structure
-set(hObject,'Visible','on');
+	mltable_j(hObject, handles.tblParams, 'CreateTable', columninfo, rowHeight, cell_data, gFont);
+	% so clicking outside the table will finish edit in progress...
+	endfcn = sprintf('mltable_j(%14.13f, %14.13f, ''SetCellValue'');', hObject, handles.tblParams);
+	set(hObject,'buttondownfcn',endfcn);
 
-% Check if we have to do a uiwait and what goes out (if anything)
-if (~isempty(handles.h_calling_img) || n_argout > 0)   % If called to operate in a parent figure
-    uiwait(handles.figure1);                           % or with output, we must wait
-    handles = guidata(hObject);
-    if (handles.output.cancel)          % Don't try to output eventual non-existing variables
-        if (n_argout == 1),     varargout{1} = [];      end
-        if (n_argout == 2),     varargout{1} = [];      varargout{2} = [];  end
-        delete(handles.figure1);        % The figure can be deleted now
-        return
-    end
-    if (n_argout == 2)                  % Easy case
-        varargout{1} = handles.output.grd;
-        varargout{2} = handles.output.img;
-        delete(handles.figure1);        % The figure can be deleted now
-    elseif (n_argout == 1)              % Not so easy case. We must find what is going out: grid or image?
-        if (strcmp(first_out,'img'))
-            varargout{1} = handles.output.img;
-        else
-            varargout{1} = handles.output.grd;
-        end
-        delete(handles.figure1);        % The figure can be deleted now
-    end
-end
+	guidata(hObject, handles);				% Update handles structure
+	set(hObject,'Visible','on');
+
+	% Check if we have to do a uiwait and what goes out (if anything)
+	if (~isempty(handles.h_calling_img) || n_argout > 0)	% If called to operate in a parent figure
+		uiwait(handles.figure1);							% or with output, we must wait
+		handles = guidata(hObject);
+		if (handles.output.cancel)			% Don't try to output eventual non-existing variables
+			if (n_argout == 1),     varargout{1} = [];      end
+			if (n_argout == 2),     varargout{1} = [];      varargout{2} = [];  end
+			delete(handles.figure1);		% The figure can be deleted now
+			return
+		end
+		if (n_argout == 2)					% Easy case
+			varargout{1} = handles.output.grd;
+			varargout{2} = handles.output.img;
+			delete(handles.figure1);		% The figure can be deleted now
+		elseif (n_argout == 1)				% Not so easy case. We must find what is going out: grid or image?
+			if (strcmp(first_out,'img'))
+				varargout{1} = handles.output.img;
+			else
+				varargout{1} = handles.output.grd;
+			end
+			delete(handles.figure1);		% The figure can be deleted now
+		end
+	end
 
 % ------------------------------------------------------------------------
 function listbox1_CB(hObject, handles)
-index_struct = get(hObject,'Value');
-struct_names = handles.struct_names;
-struct_values = handles.struct_values;
-todos = get(hObject,'String');
+	index_struct = get(hObject,'Value');
+	struct_names = handles.struct_names;
+	struct_values = handles.struct_values;
+	todos = get(hObject,'String');
 
-indent = '       ';
-root_1 = struct_names{index_struct};
-is_indent = strfind(root_1, indent);
-if (isempty(is_indent)),    level = 0;
-else                        level = (is_indent(end) - 1)/7 + 1;
-end
-    
-struct_val = struct_values{index_struct};
-all_names = handles.all_names{1};
+	indent = '       ';
+	root_1 = struct_names{index_struct};
+	is_indent = strfind(root_1, indent);
+	if (isempty(is_indent)),    level = 0;
+	else                        level = (is_indent(end) - 1)/7 + 1;
+	end
 
-if isstruct(struct_val)
-    fields =  fieldnames(struct_val);
-    names = cell(1,length(fields));
-    for i = 1:length(fields)
-        idx = strmatch(fields{i},all_names(:,1),'exact');
-        names{i} = all_names{idx,2};
-        if isstruct(getfield(struct_val(1), fields{i}))
-            fields{i} = ['+ ' fields{i}];
-            names{i} = ['+ ' names{i}];            
-        end
-    end
-end
+	struct_val = struct_values{index_struct};
+	all_names = handles.all_names{1};
 
+	if isstruct(struct_val)
+		fields =  fieldnames(struct_val);
+		names = cell(1,length(fields));
+		for i = 1:length(fields)
+			idx = strmatch(fields{i},all_names(:,1),'exact');
+			names{i} = all_names{idx,2};
+			if isstruct(getfield(struct_val(1), fields{i}))
+				fields{i} = ['+ ' fields{i}];
+				names{i} = ['+ ' names{i}];            
+			end
+		end
+	end
 
-% Display filter info
-name_clean = ddewhite(struct_names{index_struct});
-if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
-idx = strmatch(name_clean,all_names(:,1),'exact');
-handles.tree_indice = idx;
-pos = handles.txt_info_pos;
-[outstring,newpos] = textwrap(handles.h_txt_info,handles.filt_desc{1}(idx));
-set(handles.h_txt_info,'String',outstring,'Position',[pos(1),pos(2),pos(3),newpos(4)])
+	% Display filter info
+	name_clean = ddewhite(struct_names{index_struct});
+	if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
+	idx = strmatch(name_clean,all_names(:,1),'exact');
+	handles.tree_indice = idx;
+	pos = handles.txt_info_pos;
+	[outstring,newpos] = textwrap(handles.h_txt_info,handles.filt_desc{1}(idx));
+	set(handles.h_txt_info,'String',outstring,'Position',[pos(1),pos(2),pos(3),newpos(4)])
 
-if (isnumeric(struct_val))
-    ind = strmatch('              General User-defined (mxn)',todos(index_struct));
-    if (ind)        % Whatever the custom filter is (it might have been loaded from a file), use it
-        struct_val = handles.custom_filt;
-    end
-    update_table(handles,struct_val)        % Update the table
-    set_enable_OnOff(handles,idx)
-end
+	if (isnumeric(struct_val))
+		ind = strmatch('              General User-defined (mxn)',todos(index_struct));
+		if (ind)        % Whatever the custom filter is (it might have been loaded from a file), use it
+			struct_val = handles.custom_filt;
+		end
+		update_table(handles,struct_val)        % Update the table
+		set_enable_OnOff(handles,idx)
+	end
 
-% If double-click, and is struct, expand structure, and show fields
-if (strcmp(get(handles.figure1, 'SelectionType'), 'open')) % if double click
-    idxP = strfind(struct_names{ index_struct}, '+');
-    idxM = strfind(struct_names{ index_struct}, '-');
-    if ~isempty(idxP)
-        [struct_names, struct_values] = expand_struct(struct_names, struct_values, ...
-            index_struct, fields, level, idxP);
-    elseif  ~isempty(idxM)
-        [struct_names, struct_values] = shrink_struct(struct_names, struct_values, ...
-            index_struct, fields, level, idxM);
-    end
-    names = cell(length(struct_names),1);
-    for (i = 1:length(struct_names))
-        name_clean = ddewhite(struct_names{i});
-        if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
-        id1 = strmatch(name_clean,all_names(:,1),'exact');    % Find index to pretended name
-        id2 = findstr(name_clean,struct_names{i});              % Find index of starting text (after the blanks)
-        names{i} = [struct_names{i}(1:id2-1) all_names{id1,2}];        
-    end
-    set(handles.listbox1,'String',names);
-    handles.struct_names = struct_names;
-    handles.struct_values = struct_values;
-end
+	% If double-click, and is struct, expand structure, and show fields
+	if (strcmp(get(handles.figure1, 'SelectionType'), 'open')) % if double click
+		idxP = strfind(struct_names{ index_struct}, '+');
+		idxM = strfind(struct_names{ index_struct}, '-');
+		if ~isempty(idxP)
+			[struct_names, struct_values] = expand_struct(struct_names, struct_values, ...
+				index_struct, fields, level, idxP);
+		elseif  ~isempty(idxM)
+			[struct_names, struct_values] = shrink_struct(struct_names, struct_values, ...
+				index_struct, fields, level, idxM);
+		end
+		names = cell(length(struct_names),1);
+		for (i = 1:length(struct_names))
+			name_clean = ddewhite(struct_names{i});
+			if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
+			id1 = strmatch(name_clean,all_names(:,1),'exact');    % Find index to pretended name
+			id2 = findstr(name_clean,struct_names{i});              % Find index of starting text (after the blanks)
+			names{i} = [struct_names{i}(1:id2-1) all_names{id1,2}];        
+		end
+		set(handles.listbox1,'String',names);
+		handles.struct_names = struct_names;
+		handles.struct_values = struct_values;
+	end
 
-guidata(hObject, handles);
+	guidata(hObject, handles);
 
 % ------------------------------------------------------------------------
 function cell_array = indent_cell(cell_array, level)
 
-indent = '       ';				indent_app = [];
-for (k = 1:level+1),			indent_app = [indent_app indent];   end
-for (i=1:length(cell_array)),	cell_array{i} = [indent_app cell_array{i}];     end
+	indent = '       ';				indent_app = [];
+	for (k = 1:level+1),			indent_app = [indent_app indent];   end
+	for (i=1:length(cell_array)),	cell_array{i} = [indent_app cell_array{i}];     end
 
 % ------------------------------------------------------------------------
 function [struct_names, struct_values] = expand_struct(struct_names, struct_values, idx, fields, level, idxP)
 % expand structure if '+' is double-clicked and update the structure tree
 
-size_val = size(struct_values{idx});
-if (size_val(1) ~= 1),  struct_values{idx} = (struct_values{idx})';     end
-N = size_val(2);
-names_be = struct_names(1:idx);
-names_af = struct_names(idx + 1:length(struct_names));
-values_be = struct_values(1:idx);
-values_af = struct_values(idx + 1:length(struct_names));
-if N == 1           % if the structure is of size 1 x 1
-    names_app = indent_cell(fields, level);
-    values_app = cell(1,length(fields));
-    for i = 1:length(fields)
-        if (fields{i}(1) == '+' || fields{i}(1) == '-')
-            fields{i} = fields{i}(3:end);
-        end
-        values_app{i} = getfield(struct_values{idx}, fields{i});
-    end
-    struct_names = [names_be; names_app; names_af];
-    struct_values = [values_be; values_app'; values_af];
-    struct_names{idx}(idxP) = '-';
-else                % if the structure is of size 1 x N
-    names_app = cell(N,1);
-    values_app = cell(N,1);
-    struct_name = struct_names{idx};
-    struct_name = remove_indent(struct_name);
-    for (j = 1:N)
-        names_app(j) = indent_cell(cellstr(strcat(struct_name,'(', num2str(j),')')), level);
-    end
-    for (j = 1:N)
-        values_app{j} = struct_values{idx}(j) ;
-    end
-    struct_names = [names_be; names_app; names_af];
-    struct_values = [values_be; values_app; values_af];
-    struct_names{idx}(idxP) = '-';
-end
+	size_val = size(struct_values{idx});
+	if (size_val(1) ~= 1),  struct_values{idx} = (struct_values{idx})';     end
+	N = size_val(2);
+	names_be = struct_names(1:idx);
+	names_af = struct_names(idx + 1:length(struct_names));
+	values_be = struct_values(1:idx);
+	values_af = struct_values(idx + 1:length(struct_names));
+	if N == 1           % if the structure is of size 1 x 1
+		names_app = indent_cell(fields, level);
+		values_app = cell(1,length(fields));
+		for i = 1:length(fields)
+			if (fields{i}(1) == '+' || fields{i}(1) == '-')
+				fields{i} = fields{i}(3:end);
+			end
+			values_app{i} = getfield(struct_values{idx}, fields{i});
+		end
+		struct_names = [names_be; names_app; names_af];
+		struct_values = [values_be; values_app'; values_af];
+		struct_names{idx}(idxP) = '-';
+	else                % if the structure is of size 1 x N
+		names_app = cell(N,1);
+		values_app = cell(N,1);
+		struct_name = struct_names{idx};
+		struct_name = remove_indent(struct_name);
+		for (j = 1:N)
+			names_app(j) = indent_cell(cellstr(strcat(struct_name,'(', num2str(j),')')), level);
+		end
+		for (j = 1:N)
+			values_app{j} = struct_values{idx}(j) ;
+		end
+		struct_names = [names_be; names_app; names_af];
+		struct_values = [values_be; values_app; values_af];
+		struct_names{idx}(idxP) = '-';
+	end
 
 % ------------------------------------------------------------------------
 function [struct_names, struct_values] = shrink_struct(struct_names, struct_values, idx, fields, level, idxM)
 % shrink structure if '- ' is double-clicked
-struct_names{idx}(idxM) = '+';
-indent = '       ';
-if ((idxM-1)/7 - level) == 0
-    num_steps = 0;
-    is_indent_select = strfind(struct_names{idx}, indent);
-    if ~isempty(is_indent_select)
-        for (k = idx+1 : length(struct_names))
-            is_indent = strfind(struct_names{k}, indent);
-            if (isempty(is_indent) || is_indent(end) - is_indent_select(end) <= 0),  break;  end
-            num_steps = num_steps + 1;
-        end
-    else
-        for (k = idx+1 : length(struct_names))
-            is_indent = strfind(struct_names{k}, indent);
-            if (isempty(is_indent)),    break;      end
-            num_steps = num_steps + 1;
-        end
-    end
-else
-    num_steps = length(fields);
-end
-names_be = struct_names(1:idx);
-names_app = struct_names(idx+num_steps+1:length(struct_names));
-values_be = struct_values(1:idx);
-values_app = struct_values(idx+num_steps+1:length(struct_names));
-struct_names = [names_be; names_app];
-struct_values = [values_be; values_app];
+	struct_names{idx}(idxM) = '+';
+	indent = '       ';
+	if ((idxM-1)/7 - level) == 0
+		num_steps = 0;
+		is_indent_select = strfind(struct_names{idx}, indent);
+		if ~isempty(is_indent_select)
+			for (k = idx+1 : length(struct_names))
+				is_indent = strfind(struct_names{k}, indent);
+				if (isempty(is_indent) || is_indent(end) - is_indent_select(end) <= 0),  break;  end
+				num_steps = num_steps + 1;
+			end
+		else
+			for (k = idx+1 : length(struct_names))
+				is_indent = strfind(struct_names{k}, indent);
+				if (isempty(is_indent)),    break;      end
+				num_steps = num_steps + 1;
+			end
+		end
+	else
+		num_steps = length(fields);
+	end
+	names_be = struct_names(1:idx);
+	names_app = struct_names(idx+num_steps+1:length(struct_names));
+	values_be = struct_values(1:idx);
+	values_app = struct_values(idx+num_steps+1:length(struct_names));
+	struct_names = [names_be; names_app];
+	struct_values = [values_be; values_app];
 
 % ------------------------------------------------------------------------
 function str1 = remove_indent(str0)
@@ -416,125 +415,125 @@ function str1 = remove_indent(str0)
 function listbox_nRows_CB(hObject, handles)
 % Increase/decrease number of rows of matrix filters that allow edition
 
-info = get(handles.tblParams, 'userdata');
-[mt,nt] = size(info.txtCells);      % Size of current table
-nr = get(hObject,'Value') * 2 + 1;  % Remember that rows start at 3 and are odd
-nc = get(handles.listbox_nCols,'Value') * 2 + 1;
+	info = get(handles.tblParams, 'userdata');
+	[mt,nt] = size(info.txtCells);      % Size of current table
+	nr = get(hObject,'Value') * 2 + 1;  % Remember that rows start at 3 and are odd
+	nc = get(handles.listbox_nCols,'Value') * 2 + 1;
 
-if (mt > nr)                     % Must decrease number of rows
-    mltable_j(handles.figure1, handles.tblParams, 'DelRow',mt-nr)     % Remove mt-nr rows
-elseif (mt < nr)                 % Must increase number of rows
-    mltable_j(handles.figure1, handles.tblParams, 'AddRow',nr-mt)     % Add nr-mt rows
-end
+	if (mt > nr)                     % Must decrease number of rows
+		mltable_j(handles.figure1, handles.tblParams, 'DelRow',mt-nr)     % Remove mt-nr rows
+	elseif (mt < nr)                 % Must increase number of rows
+		mltable_j(handles.figure1, handles.tblParams, 'AddRow',nr-mt)     % Add nr-mt rows
+	end
 
-info = get(handles.tblParams, 'userdata');      % Get the updated version
-cur_field_name = handles.all_names{1}{handles.tree_indice};
-switch cur_field_name
-    case 'GaussLowPass',    f = filts_coef(cur_field_name,[nr nc],1);   % 1 = std
-    case 'InvDist',         f = filts_coef(cur_field_name,[nr nc],1);   % 1 = power of inverse distance
-    case 'GeneralUD'
-        f = zeros(nr,nc);
-        f(median(1:2:nr),median(1:2:nc)) = 1;
-end
-info.data = num2cell(f);
-for (i=1:numel(f))
-    set(info.txtCells(i),'String',num2str(f(i),handles.format))
-end
-set(handles.tblParams, 'userdata',info);
+	info = get(handles.tblParams, 'userdata');      % Get the updated version
+	cur_field_name = handles.all_names{1}{handles.tree_indice};
+	switch cur_field_name
+		case 'GaussLowPass',    f = filts_coef(cur_field_name,[nr nc],1);   % 1 = std
+		case 'InvDist',         f = filts_coef(cur_field_name,[nr nc],1);   % 1 = power of inverse distance
+		case 'GeneralUD'
+			f = zeros(nr,nc);
+			f(median(1:2:nr),median(1:2:nc)) = 1;
+	end
+	info.data = num2cell(f);
+	for (i=1:numel(f))
+		set(info.txtCells(i),'String',num2str(f(i),handles.format))
+	end
+	set(handles.tblParams, 'userdata',info);
 
 % --------------------------------------------------------------------
 function listbox_nCols_CB(hObject, handles)
 % Increase/decrease number of columns of matrix filters that allow edition
 
-info = get(handles.tblParams, 'userdata');
-[mt,nt] = size(info.txtCells);      % Size of current table
-nc = get(hObject,'Value') * 2 + 1;  % Remember that cols start at 3 and are odd
-nr = get(handles.listbox_nRows,'Value') * 2 + 1;
+	info = get(handles.tblParams, 'userdata');
+	[mt,nt] = size(info.txtCells);      % Size of current table
+	nc = get(hObject,'Value') * 2 + 1;  % Remember that cols start at 3 and are odd
+	nr = get(handles.listbox_nRows,'Value') * 2 + 1;
 
-if (nt > nc)                     % Must decrease number of cols
-    mltable_j(handles.figure1, handles.tblParams, 'DelCol',nt-nc)     % Remove nt-nc columns
-elseif (nt < nc)                 % Must increase number of cols
-    mltable_j(handles.figure1, handles.tblParams, 'AddCol',nc-nt)     % Add nc-nt columns
-end
+	if (nt > nc)                     % Must decrease number of cols
+		mltable_j(handles.figure1, handles.tblParams, 'DelCol',nt-nc)     % Remove nt-nc columns
+	elseif (nt < nc)                 % Must increase number of cols
+		mltable_j(handles.figure1, handles.tblParams, 'AddCol',nc-nt)     % Add nc-nt columns
+	end
 
-info = get(handles.tblParams, 'userdata');      % Get the updated version
-cur_field_name = handles.all_names{1}{handles.tree_indice};
-switch cur_field_name
-    case 'GaussLowPass',    f = filts_coef(cur_field_name,[nr nc],1);
-    case 'InvDist',         f = filts_coef(cur_field_name,[nr nc],2);   % A pow (=2) nao ta ainda param
-    case 'GeneralUD'
-        f = zeros(nr,nc);
-        f(median(1:2:nr),median(1:2:nc)) = 1;
-end
-info.data = num2cell(f);
-for (i=1:numel(info.txtCells))
-    set(info.txtCells(i),'String',num2str(f(i),handles.format))
-end
-set(handles.tblParams, 'userdata',info);
+	info = get(handles.tblParams, 'userdata');      % Get the updated version
+	cur_field_name = handles.all_names{1}{handles.tree_indice};
+	switch cur_field_name
+		case 'GaussLowPass',    f = filts_coef(cur_field_name,[nr nc],1);
+		case 'InvDist',         f = filts_coef(cur_field_name,[nr nc],2);   % A pow (=2) nao ta ainda param
+		case 'GeneralUD'
+			f = zeros(nr,nc);
+			f(median(1:2:nr),median(1:2:nc)) = 1;
+	end
+	info.data = num2cell(f);
+	for (i=1:numel(info.txtCells))
+		set(info.txtCells(i),'String',num2str(f(i),handles.format))
+	end
+	set(handles.tblParams, 'userdata',info);
 
 % --------------------------------------------------------------------
 function update_table(handles,struct_val)
 % Update the table in terms of number of rows/columns and its contents
-info = get(handles.tblParams, 'userdata');
-[mt,nt] = size(info.txtCells);      % Size of current table
-[mf,nf] = size(struct_val);         % Size of current filter
-nc = get(handles.listbox_nCols,'Value') * 2 + 1;        % Remember that row & cols start at 3 and
-nr = get(handles.listbox_nRows,'Value') * 2 + 1;        % increase by two. That is they are odd from 3 on
-if (mf ~= nr)       % Need to update the Rows listbox value
-	set(handles.listbox_nRows,'Value',fix((mf-1)/2));
-end
-if (nf ~= nc)       % Need to update the Cols listbox value
-	set(handles.listbox_nCols,'Value',fix((nf-1)/2))
-end
-if (mt > mf)                     % Must decrease number of rows
-	mltable_j(handles.figure1, handles.tblParams, 'DelRow',mt-mf)     % Remove mt-mf rows
-elseif (mt < mf)                 % Must increase number of rows
-	mltable_j(handles.figure1, handles.tblParams, 'AddRow',mf-mt)     % Add mf-mt rows
-end
+	info = get(handles.tblParams, 'userdata');
+	[mt,nt] = size(info.txtCells);      % Size of current table
+	[mf,nf] = size(struct_val);         % Size of current filter
+	nc = get(handles.listbox_nCols,'Value') * 2 + 1;        % Remember that row & cols start at 3 and
+	nr = get(handles.listbox_nRows,'Value') * 2 + 1;        % increase by two. That is they are odd from 3 on
+	if (mf ~= nr)       % Need to update the Rows listbox value
+		set(handles.listbox_nRows,'Value',fix((mf-1)/2));
+	end
+	if (nf ~= nc)       % Need to update the Cols listbox value
+		set(handles.listbox_nCols,'Value',fix((nf-1)/2))
+	end
+	if (mt > mf)                     % Must decrease number of rows
+		mltable_j(handles.figure1, handles.tblParams, 'DelRow',mt-mf)     % Remove mt-mf rows
+	elseif (mt < mf)                 % Must increase number of rows
+		mltable_j(handles.figure1, handles.tblParams, 'AddRow',mf-mt)     % Add mf-mt rows
+	end
 
-if (nt > nf)                     % Must decrease number of cols
-	mltable_j(handles.figure1, handles.tblParams, 'DelCol',nt-nf)     % Remove nt-nf columns
-elseif (nt < nf)                 % Must increase number of cols
-	mltable_j(handles.figure1, handles.tblParams, 'AddCol',nf-nt)     % Add nf-nt columns
-end
+	if (nt > nf)                     % Must decrease number of cols
+		mltable_j(handles.figure1, handles.tblParams, 'DelCol',nt-nf)     % Remove nt-nf columns
+	elseif (nt < nf)                 % Must increase number of cols
+		mltable_j(handles.figure1, handles.tblParams, 'AddCol',nf-nt)     % Add nf-nt columns
+	end
 
-info = get(handles.tblParams, 'userdata');      % Get the updated version
-info.data = num2cell(struct_val);
-for ( i = 1:numel(info.txtCells) )
-    set(info.txtCells(i),'String',num2str(struct_val(i),handles.format))
-end
-set(handles.tblParams, 'userdata',info);
+	info = get(handles.tblParams, 'userdata');      % Get the updated version
+	info.data = num2cell(struct_val);
+	for ( i = 1:numel(info.txtCells) )
+		set(info.txtCells(i),'String',num2str(struct_val(i),handles.format))
+	end
+	set(handles.tblParams, 'userdata',info);
 
 % --------------------------------------------------------------------
 function set_enable_OnOff(handles,index)
 % Set the listboxs and table on/off dependinf on the filter specifities
-cur_field_name = handles.all_names{1}{index};
-info = get(handles.tblParams, 'userdata');
-info.no_edit = 1;
-switch cur_field_name
-    case {'MovingAverage' 'DistWeighting' 'InvDist' 'GaussLowPass' 'GeneralUD'}
-        set(handles.listbox_nRows,'Enable','on')
-        set(handles.listbox_nCols,'Enable','on')
-        if ( strcmp(cur_field_name,'GeneralUD') )
-            set(handles.tblParams,'HitTest','on')       % This is the only one editable
-            info.no_edit = 0;
-        else
-            set(handles.tblParams,'HitTest','off')
-        end
-    otherwise
-        set(handles.listbox_nRows,'Enable','off')
-        set(handles.listbox_nCols,'Enable','off')
-end
-set(handles.tblParams, 'userdata',info);
+	cur_field_name = handles.all_names{1}{index};
+	info = get(handles.tblParams, 'userdata');
+	info.no_edit = 1;
+	switch cur_field_name
+		case {'MovingAverage' 'DistWeighting' 'InvDist' 'GaussLowPass' 'GeneralUD'}
+			set(handles.listbox_nRows,'Enable','on')
+			set(handles.listbox_nCols,'Enable','on')
+			if ( strcmp(cur_field_name,'GeneralUD') )
+				set(handles.tblParams,'HitTest','on')       % This is the only one editable
+				info.no_edit = 0;
+			else
+				set(handles.tblParams,'HitTest','off')
+			end
+		otherwise
+			set(handles.listbox_nRows,'Enable','off')
+			set(handles.listbox_nCols,'Enable','off')
+	end
+	set(handles.tblParams, 'userdata',info);
 
 % --------------------------------------------------------------------
 function edit_imageIn_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname),   return;    end
-	pushbutton_imageIn_CB(gcbo,guidata(gcbo),fname)
+	push_imageIn_CB(gcbo,guidata(gcbo),fname)
 
 % --------------------------------------------------------------------
-function pushbutton_imageIn_CB(hObject, handles, fname)
+function push_imageIn_CB(hObject, handles, fname)
 	if (nargin == 3),   fname = [];   end
 	if (isempty(fname))
 		[FileName,PathName] = put_or_get_file(handles,{ ...
@@ -577,7 +576,7 @@ function pushbutton_imageIn_CB(hObject, handles, fname)
 	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------
-function [grd,img] = pushbutton_apply_CB(hObject, handles)
+function [grd,img] = push_apply_CB(hObject, handles)
 	grd = [];
 	info = get(handles.tblParams, 'userdata');
 	f = cell2mat(info.data);				% Fish out the filter coefs
@@ -646,10 +645,10 @@ function b = LocalImfilter(a, h, boundary, flags)
 	b = imfilter_mex(a,im_size,h,nonzero_h,conn,start,flags);
 
 % ------------------------------------------------------------------------
-function pushbutton_apply_and_return_CB(hObject, handles)
+function push_apply_and_return_CB(hObject, handles)
 % Apply filter, and return filtered image and grid (if it exists).
 % Notice that this button was made visible only when this option may apply.
-	[handles.output.grd, handles.output.img] = pushbutton_apply_CB(hObject, handles);
+	[handles.output.grd, handles.output.img] = push_apply_CB(hObject, handles);
 
 	if (~isempty(handles.h_calling_img))            % Update the caller figure image
 		set(handles.h_calling_img,'CData',handles.output.img)
@@ -684,7 +683,7 @@ function h = filts_coef(varargin)
 	end
 
 % ------------------------------------------------------------------------
-function pushbutton_cancel_CB(hObject, handles)
+function push_cancel_CB(hObject, handles)
 	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
 		% The GUI is still in UIWAIT, us UIRESUME
 		handles.output.cancel = 1;      % User gave up, return nothing
@@ -698,63 +697,63 @@ function pushbutton_cancel_CB(hObject, handles)
 % ------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata)
 	handles = guidata(hObject);
-	pushbutton_cancel_CB(hObject, handles)
+	push_cancel_CB(hObject, handles)
 
 % ------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
 	if isequal(get(hObject,'CurrentKey'),'escape')
 		handles = guidata(hObject);
-		pushbutton_cancel_CB(hObject, handles)
+		push_cancel_CB(hObject, handles)
 	end
 
 % ------------------------------------------------------------------------
-function pushbutton_saveFiltImg_CB(hObject, handles)
-str1 = {'*.bmp', 'Windows Bitmap (*.bmp)'; ...
-	'*.hdf', 'Hieralchical Data Format (*.hdf)'; ...
-	'*.jpg', 'JPEG image (*.jpg)'; ...
-	'*.pcx', 'Windows Paintbrush (*.pcx)'; ...
-	'*.png', 'Portable Network Graphics(*.png)'; ...
-	'*.ras', 'SUN rasterfile (*.ras)'; ...
-	'*.tif', 'Tagged Image File (*.tif)'; ...
-	'*.xwd', 'X Windows Dump (*.xwd)'};
-[FileName,PathName] = put_or_get_file(handles, str1,'Select image format','put');
-if isequal(FileName,0),		return,		end
+function push_saveFiltImg_CB(hObject, handles)
+	str1 = {'*.bmp', 'Windows Bitmap (*.bmp)'; ...
+		'*.hdf', 'Hieralchical Data Format (*.hdf)'; ...
+		'*.jpg', 'JPEG image (*.jpg)'; ...
+		'*.pcx', 'Windows Paintbrush (*.pcx)'; ...
+		'*.png', 'Portable Network Graphics(*.png)'; ...
+		'*.ras', 'SUN rasterfile (*.ras)'; ...
+		'*.tif', 'Tagged Image File (*.tif)'; ...
+		'*.xwd', 'X Windows Dump (*.xwd)'};
+	[FileName,PathName] = put_or_get_file(handles, str1,'Select image format','put');
+	if isequal(FileName,0),		return,		end
 
-[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-if (isempty(EXT) && ~isempty(FileName))
-    msgbox('Sorry, but you have to give the filename extention','Error'); return
-end
-set(handles.figure1,'pointer','watch')
-img = get(findobj(handles.axes3,'Type','image'),'CData');
-if strcmp(EXT,'.jpg') || strcmp(EXT,'.JPG') || strcmp(EXT,'.jpeg') || strcmp(EXT,'.JPEG')
-    if isa(img, 'uint8')
-        if (ndims(img) == 2)
-            imwrite(img,get(handles.figure1,'Colormap'),[PathName FileName],'Quality',100);
-        else    % RGB and colormap is forbiden by jpeg norm
-            imwrite(img,[PathName FileName],'Quality',100);
-        end
-    else
-        imwrite(img,[PathName FileName],'Quality',100);
-    end
-else        % All other image formats
-    if isa(img, 'uint8')
-        try
-            imwrite(img,get(handles.figure1,'Colormap'),[PathName FileName]);
-        catch       % For example RGB images canot be saved as pcx
-            msgbox('Format not supported for this image','Warning');    return
-        end
-    else
-        try
-            imwrite(img,[PathName FileName]);
-        catch
-            msgbox('Format not supported for this image','Warning');    return
-        end
-    end
-end
-set(handles.figure1,'pointer','arrow')
+	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
+	if (isempty(EXT) && ~isempty(FileName))
+		msgbox('Sorry, but you have to give the filename extention','Error'); return
+	end
+	set(handles.figure1,'pointer','watch')
+	img = get(findobj(handles.axes3,'Type','image'),'CData');
+	if strcmp(EXT,'.jpg') || strcmp(EXT,'.JPG') || strcmp(EXT,'.jpeg') || strcmp(EXT,'.JPEG')
+		if isa(img, 'uint8')
+			if (ndims(img) == 2)
+				imwrite(img,get(handles.figure1,'Colormap'),[PathName FileName],'Quality',100);
+			else    % RGB and colormap is forbiden by jpeg norm
+				imwrite(img,[PathName FileName],'Quality',100);
+			end
+		else
+			imwrite(img,[PathName FileName],'Quality',100);
+		end
+	else        % All other image formats
+		if isa(img, 'uint8')
+			try
+				imwrite(img,get(handles.figure1,'Colormap'),[PathName FileName]);
+			catch       % For example RGB images canot be saved as pcx
+				msgbox('Format not supported for this image','Warning');    return
+			end
+		else
+			try
+				imwrite(img,[PathName FileName]);
+			catch
+				msgbox('Format not supported for this image','Warning');    return
+			end
+		end
+	end
+	set(handles.figure1,'pointer','arrow')
 
 % ------------------------------------------------------------------------
-function pushbutton_loadFilter_CB(hObject, handles)
+function push_loadFilter_CB(hObject, handles)
 % Load a filter from an external file. It must have a .dat extension
 
 str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
@@ -996,7 +995,7 @@ uicontrol('Parent',h1,'Position',[14 9 227 46],'Style','frame','Tag','frame2');
 
 h3 = uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@digitalFiltering_uiCB,h1,'listbox1_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'FontSize',9,...
 'Position',[10 69 251 335],...
 'Style','listbox',...
@@ -1007,13 +1006,13 @@ uicontrol('Parent',h1,'FontSize',10,'Position',[31 404 199 16],...
 'String','Filters','Style','text','FontName','Helvetica');
 
 h6 = uicontextmenu('Parent',h1,...
-'Call',{@digitalFiltering_uiCB,h1,'plot_select_menu_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'Tag','plot_select_menu');
 
 set(h3,'uicontextmenu',h6)
 
 uimenu('Parent',h6,...
-'Call',{@digitalFiltering_uiCB,h1,'plot_selected_menu_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'Label','plot selected',...
 'Tag','plot_selected_menu');
 
@@ -1053,7 +1052,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@digitalFiltering_uiCB,h1,'listbox_nRows_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'Position',[310 219 75 51],...
 'Style','listbox',...
 'Value',1,...
@@ -1061,7 +1060,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@digitalFiltering_uiCB,h1,'listbox_nCols_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'Position',[466 219 75 51],...
 'Style','listbox',...
 'Value',1,...
@@ -1099,7 +1098,7 @@ axes('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@digitalFiltering_uiCB,h1,'edit_imageIn_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'HorizontalAlignment','left',...
 'Position',[270 350 251 21],...
 'Style','edit',...
@@ -1107,13 +1106,13 @@ uicontrol('Parent',h1,...
 'Tag','edit_imageIn');
 
 uicontrol('Parent',h1,...
-'Call',{@digitalFiltering_uiCB,h1,'pushbutton_imageIn_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'FontSize',12,...
 'FontWeight','bold',...
 'Position',[521 348 20 23],...
 'String','...',...
 'Tooltip','Browse for an image',...
-'Tag','pushbutton_imageIn');
+'Tag','push_imageIn');
 
 uicontrol('Parent',h1,'Position',[634 405 67 15],...
 'String','Original Image','Style','text','FontName','Helvetica');
@@ -1122,19 +1121,19 @@ uicontrol('Parent',h1,'Position',[636 196 70 15],...
 'String','Filtered Image','Style','text','FontName','Helvetica');
 
 uicontrol('Parent',h1,...
-'Call',{@digitalFiltering_uiCB,h1,'pushbutton_loadFilter_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'Position',[270 289 125 21],...
 'String','Load external filter',...
 'FontName','Helvetica',...
 'Tooltip','Import an external (MxN) filter',...
-'Tag','pushbutton_loadFilter');
+'Tag','push_loadFilter');
 
 uicontrol('Parent',h1,...
-'Call',{@digitalFiltering_uiCB,h1,'pushbutton_saveFiltImg_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'Position',[415 289 125 21],...
 'String','Save filtered image',...
 'FontName','Helvetica',...
-'Tag','pushbutton_saveFiltImg');
+'Tag','push_saveFiltImg');
 
 uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
@@ -1145,7 +1144,7 @@ uicontrol('Parent',h1,...
 'Tag','text_loadImage');
 
 uicontrol('Parent',h1,...
-'Call',{@digitalFiltering_uiCB,h1,'radio_filteredImg_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'FontName','Helvetica',...
 'Position',[266 41 135 19],...
 'String','Show filtered image',...
@@ -1155,7 +1154,7 @@ uicontrol('Parent',h1,...
 'Tag','radio_filteredImg');
 
 uicontrol('Parent',h1,...
-'Call',{@digitalFiltering_uiCB,h1,'radio_enhancedImg_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'FontName','Helvetica',...
 'Position',[403 41 145 19],...
 'String','Show enhanced image',...
@@ -1165,29 +1164,29 @@ uicontrol('Parent',h1,...
 'Tag','radio_enhancedImg');
 
 uicontrol('Parent',h1,...
-'Call',{@digitalFiltering_uiCB,h1,'pushbutton_apply_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'Position',[270 10 50 21],...
 'String','Apply',...
 'FontName','Helvetica',...
 'Tooltip','Filter image (or grid)',...
-'Tag','pushbutton_apply');
+'Tag','push_apply');
 
 uicontrol('Parent',h1,...
-'Call',{@digitalFiltering_uiCB,h1,'pushbutton_apply_and_return_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'Position',[350 10 80 21],...
 'String','Apply n return',...
 'FontName','Helvetica',...
 'Tooltip','Stop and return filtered image and grid (if required)',...
-'Tag','pushbutton_apply_and_return');
+'Tag','push_apply_and_return');
 
 uicontrol('Parent',h1,...
-'Call',{@digitalFiltering_uiCB,h1,'pushbutton_cancel_CB'},...
+'Call',@digitalFiltering_uiCB,...
 'Position',[481 9 60 21],...
 'String','Cancel',...
 'FontName','Helvetica',...
 'Tooltip','Stop and undo any previous changes',...
-'Tag','pushbutton_cancel');
+'Tag','push_cancel');
 
-function digitalFiltering_uiCB(hObject, eventdata, h1, callback_name)
+function digitalFiltering_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,guidata(h1));
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));

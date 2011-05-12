@@ -16,23 +16,23 @@ function varargout = draw_scale(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-hObject = figure('Tag','figure1','Visible','off');
-draw_scale_LayoutFcn(hObject);
-handles = guihandles(hObject);
-move2side(hObject,'right')
- 
-handles.command = cell(20,1);
-handles.command{5} = '-L';
+	hObject = figure('Vis','off');
+	draw_scale_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'right')
 
-guidata(hObject, handles);
+	handles.command = cell(20,1);
+	handles.command{5} = '-L';
 
-set(hObject,'Visible','on');
-% UIWAIT makes draw_scale_export wait for user response (see UIRESUME)
-uiwait(handles.figure1);
+	guidata(hObject, handles);
 
-handles = guidata(hObject);
-if (nargout),	varargout{1} = hObject;		end
-delete(handles.figure1);
+	set(hObject,'Visible','on');
+	% UIWAIT makes draw_scale_export wait for user response (see UIRESUME)
+	uiwait(handles.figure1);
+
+	handles = guidata(hObject);
+	if (nargout),	varargout{1} = hObject;		end
+	delete(handles.figure1);
 
 function mutual_exclude(off)
 	set(off,'Value',0)
@@ -42,150 +42,150 @@ function clear_editBox(clean)
 	set(clean, 'String', '')
 
 function edit_XposLongitude_CB(hObject, handles)
-xx = get(hObject,'String');
-if isempty(handles.command{6}) && (str2double(xx) > 360 || str2double(xx) < -180)
-    errordlg('Don''t push your luck. Enter longitude in the range (-180,180) or 0-360','Error')
-    set(hObject, 'String', '');    handles.command{8} = '';
-    return
-end
-handles.command{8} = xx;
-handles.command{9} = '/';     handles.command{11} = '/';    handles.command{13} = '/';
-set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
-guidata(hObject, handles);
+	xx = get(hObject,'String');
+	if isempty(handles.command{6}) && (str2double(xx) > 360 || str2double(xx) < -180)
+		errordlg('Don''t push your luck. Enter longitude in the range (-180,180) or 0-360','Error')
+		set(hObject, 'String', '');    handles.command{8} = '';
+		return
+	end
+	handles.command{8} = xx;
+	handles.command{9} = '/';     handles.command{11} = '/';    handles.command{13} = '/';
+	set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
+	guidata(hObject, handles);
 
 function edit_YposLatitude_CB(hObject, handles)
-xx = get(hObject,'String');
-if isempty(handles.command{6}) && (str2double(xx) > 90 || str2double(xx) < -90)
-    errordlg('Don''t push your luck. Enter latitude in the range (-90,90)','Error')
-    set(hObject, 'String', '');    handles.command{10} = '';
-    return
-end
-handles.command{10} = xx;
-handles.command{9} = '/';     handles.command{11} = '/';    handles.command{13} = '/';
-set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
-guidata(hObject, handles);
+	xx = get(hObject,'String');
+	if isempty(handles.command{6}) && (str2double(xx) > 90 || str2double(xx) < -90)
+		errordlg('Don''t push your luck. Enter latitude in the range (-90,90)','Error')
+		set(hObject, 'String', '');    handles.command{10} = '';
+		return
+	end
+	handles.command{10} = xx;
+	handles.command{9} = '/';     handles.command{11} = '/';    handles.command{13} = '/';
+	set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
+	guidata(hObject, handles);
 
 function edit_LatitudeOfScale_CB(hObject, handles)
-xx = get(hObject,'String');
-if (str2double(xx) > 90 || str2double(xx) < -90)
-    errordlg('Either you are experimenting or a little ignorant about Earth coordinate systems','Error')
-    set(hObject, 'String', '');    handles.command{12} = '';
-    return
-end
-handles.command{12} = xx;
-handles.command{9} = '/';     handles.command{11} = '/';    handles.command{13} = '/';
-set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
-guidata(hObject, handles);
+	xx = get(hObject,'String');
+	if (str2double(xx) > 90 || str2double(xx) < -90)
+		errordlg('Either you are experimenting or a little ignorant about Earth coordinate systems','Error')
+		set(hObject, 'String', '');    handles.command{12} = '';
+		return
+	end
+	handles.command{12} = xx;
+	handles.command{9} = '/';     handles.command{11} = '/';    handles.command{13} = '/';
+	set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
+	guidata(hObject, handles);
 
 function edit_LengthOfScale_CB(hObject, handles)
-xx = get(hObject,'String');     handles.command{14} = xx;
-handles.command{9} = '/';     handles.command{11} = '/';    handles.command{13} = '/';
-set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
-guidata(hObject, handles);
+	xx = get(hObject,'String');     handles.command{14} = xx;
+	handles.command{9} = '/';     handles.command{11} = '/';    handles.command{13} = '/';
+	set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
+	guidata(hObject, handles);
 
-function checkbox_Fancy_CB(hObject, handles)
-if get(hObject,'Value')     handles.command{7} = 'f';
-else handles.command{7} = '';    end
-set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
-guidata(hObject, handles);
+function check_Fancy_CB(hObject, handles)
+	if get(hObject,'Value')     handles.command{7} = 'f';
+	else handles.command{7} = '';    end
+	set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
+	guidata(hObject, handles);
 
 function popup_ScaleUnities_CB(hObject, handles)
-val = get(hObject,'Value');     str = get(hObject, 'String');
-switch str{val};
-    case 'miles'
-        handles.command{15} = 'm';
-    case 'nautical miles'
-        handles.command{15} = 'n';
-    otherwise
-        handles.command{15} = '';
-end
-set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
-guidata(hObject, handles);
+	val = get(hObject,'Value');     str = get(hObject, 'String');
+	switch str{val};
+		case 'miles'
+			handles.command{15} = 'm';
+		case 'nautical miles'
+			handles.command{15} = 'n';
+		otherwise
+			handles.command{15} = '';
+	end
+	set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
+	guidata(hObject, handles);
 
-function radiobutton_GeogUnities_CB(hObject, handles)
-if get(hObject,'Value')
-    mutual_exclude(handles.radiobutton_PaperUnities)
-    handles.command{6} = '';
-end
-set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
-guidata(hObject, handles);
+function radio_GeogUnities_CB(hObject, handles)
+	if get(hObject,'Value')
+		mutual_exclude(handles.radio_PaperUnities)
+		handles.command{6} = '';
+	end
+	set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
+	guidata(hObject, handles);
 
-function radiobutton_PaperUnities_CB(hObject, handles)
-if get(hObject,'Value')
-    mutual_exclude(handles.radiobutton_GeogUnities)
-    handles.command{6} = 'x';
-end
-set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
-guidata(hObject, handles);
+function radio_PaperUnities_CB(hObject, handles)
+	if get(hObject,'Value')
+		mutual_exclude(handles.radio_GeogUnities)
+		handles.command{6} = 'x';
+	end
+	set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
+	guidata(hObject, handles);
 
-function radiobutton_decimal_CB(hObject, handles)
-if get(hObject,'Value')
-    mutual_exclude([handles.radiobutton_DegMin,handles.radiobutton_DegMinSec])
-end
+function radio_decimal_CB(hObject, handles)
+	if get(hObject,'Value')
+		mutual_exclude([handles.radio_DegMin,handles.radio_DegMinSec])
+	end
 
-function radiobutton_DegMin_CB(hObject, handles)
-if get(hObject,'Value')
-    mutual_exclude([handles.radiobutton_decimal,handles.radiobutton_DegMinSec])
-end
+function radio_DegMin_CB(hObject, handles)
+	if get(hObject,'Value')
+		mutual_exclude([handles.radio_decimal,handles.radio_DegMinSec])
+	end
 
-function radiobutton_DegMinSec_CB(hObject, handles)
-if get(hObject,'Value')
-    mutual_exclude([handles.radiobutton_decimal,handles.radiobutton_DegMin])
-end
+function radio_DegMinSec_CB(hObject, handles)
+	if get(hObject,'Value')
+		mutual_exclude([handles.radio_decimal,handles.radio_DegMin])
+	end
 
 function edit_ShowCommand_CB(hObject, handles)
 % Nothing to do. Just echo the GMT command.
 
-function pushbutton_Cancel_CB(hObject, handles)
-handles.output = '';        % User gave up, return nothing
-guidata(hObject, handles);
-uiresume(handles.figure1);
+function push_Cancel_CB(hObject, handles)
+	handles.output = '';        % User gave up, return nothing
+	guidata(hObject, handles);
+	uiresume(handles.figure1);
 
-function pushbutton_OK_CB(hObject, handles)
-xx = get(handles.edit_ShowCommand, 'String');
-if findstr(xx,'//') | findstr(xx,'///')
-    errordlg('You didn''t fill all mandatory fields','Error')
-    return
-end
-if isempty(handles.command{6}) && (str2double(handles.command{8}) > 360 || str2double(handles.command{8}) < -180)
-    errordlg('You probably played arround with your mouse and left an inconsistent value for the longitude Scale Bar position','Error')
-    set(handles.edit_XposLongitude, 'String', '');    handles.command{8} = '';
-    set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
-    return
-end
-if isempty(handles.command{6}) && (str2double(handles.command{10}) < -90 || str2double(handles.command{10}) > 90)
-    errordlg('You probably played arround with your mouse and left an inconsistent value for the Latitude Scale Bar position','Error')
-    set(handles.edit_XposLatitude, 'String', '');    handles.command{10} = '';
-    set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
-    return
-end
-handles.output = get(handles.edit_ShowCommand, 'String');
-guidata(hObject,handles);
-uiresume(handles.figure1);
+function push_OK_CB(hObject, handles)
+	xx = get(handles.edit_ShowCommand, 'String');
+	if findstr(xx,'//') | findstr(xx,'///')
+		errordlg('You didn''t fill all mandatory fields','Error')
+		return
+	end
+	if isempty(handles.command{6}) && (str2double(handles.command{8}) > 360 || str2double(handles.command{8}) < -180)
+		errordlg('You probably played arround with your mouse and left an inconsistent value for the longitude Scale Bar position','Error')
+		set(handles.edit_XposLongitude, 'String', '');    handles.command{8} = '';
+		set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
+		return
+	end
+	if isempty(handles.command{6}) && (str2double(handles.command{10}) < -90 || str2double(handles.command{10}) > 90)
+		errordlg('You probably played arround with your mouse and left an inconsistent value for the Latitude Scale Bar position','Error')
+		set(handles.edit_XposLatitude, 'String', '');    handles.command{10} = '';
+		set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
+		return
+	end
+	handles.output = get(handles.edit_ShowCommand, 'String');
+	guidata(hObject,handles);
+	uiresume(handles.figure1);
 
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, evt)
-handles = guidata(hObject);
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    handles.output = '';        % User gave up, return nothing
-    guidata(hObject, handles);
-    uiresume(handles.figure1);
-else
-    % The GUI is no longer waiting, just close it
-    handles.output = '';        % User gave up, return nothing
-    guidata(hObject, handles);
-    delete(handles.figure1);
-end
+	handles = guidata(hObject);
+	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+		% The GUI is still in UIWAIT, us UIRESUME
+		handles.output = '';        % User gave up, return nothing
+		guidata(hObject, handles);
+		uiresume(handles.figure1);
+	else
+		% The GUI is no longer waiting, just close it
+		handles.output = '';        % User gave up, return nothing
+		guidata(hObject, handles);
+		delete(handles.figure1);
+	end
 
 % --- Executes on key press over figure1 with no controls selected.
 function figure1_KeyPressFcn(hObject, evt)
-handles = guidata(hObject);
-if isequal(get(hObject,'CurrentKey'),'escape')
-    handles.output = '';    % User said no by hitting escape
-    guidata(hObject, handles);
-    uiresume(handles.figure1);
-end   
+	handles = guidata(hObject);
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		handles.output = '';    % User said no by hitting escape
+		guidata(hObject, handles);
+		uiresume(handles.figure1);
+	end
 
 
 % --- Creates and returns a handle to the GUI figure. 
@@ -205,53 +205,53 @@ set(h1,...
 'Tag','figure1');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'radiobutton_decimal_CB'},...
+'Call',@main_uiCB,...
 'Enable','off',...
 'Position',[31 238 62 15],...
 'String','decimal',...
 'Style','radiobutton',...
 'TooltipString','Enter geographical coordinates in dd.xx format',...
 'Value',1,...
-'Tag','radiobutton_decimal');
+'Tag','radio_decimal');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'radiobutton_DegMin_CB'},...
+'Call',@main_uiCB,...
 'Enable','off',...
 'Position',[109 238 66 15],...
 'String','dd:mm.xx',...
 'Style','radiobutton',...
 'TooltipString','Enter geographical coordinates in dd:mm.xx format',...
-'Tag','radiobutton_DegMin');
+'Tag','radio_DegMin');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'radiobutton_DegMinSec_CB'},...
+'Call',@main_uiCB,...
 'Enable','off',...
 'Position',[192 238 79 15],...
 'String','dd:mm:ss.xx',...
 'Style','radiobutton',...
 'TooltipString','Enter geographical coordinates in dd:mm:ss.xx format',...
-'Tag','radiobutton_DegMinSec');
+'Tag','radio_DegMinSec');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'radiobutton_GeogUnities_CB'},...
+'Call',@main_uiCB,...
 'Position',[109 217 79 15],...
 'String','Geog unities',...
 'Style','radiobutton',...
 'TooltipString','Scale position is given in geographical coordinates',...
 'Value',1,...
-'Tag','radiobutton_GeogUnities');
+'Tag','radio_GeogUnities');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'radiobutton_PaperUnities_CB'},...
+'Call',@main_uiCB,...
 'Position',[192 217 79 15],...
 'String','Paper unities',...
 'Style','radiobutton',...
 'TooltipString','Scale position is given in paper coordinates',...
-'Tag','radiobutton_PaperUnities');
+'Tag','radio_PaperUnities');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_XposLongitude_CB'},...
+'Call',@main_uiCB,...
 'HorizontalAlignment','left',...
 'Position',[110 191 161 21],...
 'Style','edit',...
@@ -267,7 +267,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_LatitudeOfScale_CB'},...
+'Call',@main_uiCB,...
 'HorizontalAlignment','left',...
 'Position',[110 139 161 21],...
 'Style','edit',...
@@ -275,7 +275,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_LengthOfScale_CB'},...
+'Call',@main_uiCB,...
 'HorizontalAlignment','left',...
 'Position',[110 113 161 21],...
 'Style','edit',...
@@ -284,7 +284,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'popup_ScaleUnities_CB'},...
+'Call',@main_uiCB,...
 'Position',[110 86 111 22],...
 'String',{  'kilometers'; 'miles'; 'nautical miles' },...
 'Style','popupmenu',...
@@ -293,16 +293,16 @@ uicontrol('Parent',h1,...
 'Tag','popup_ScaleUnities');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'checkbox_Fancy_CB'},...
+'Call',@main_uiCB,...
 'Position',[110 64 81 15],...
 'String','Fancy Scale',...
 'Style','checkbox',...
 'TooltipString','Draw scale using fancy style',...
-'Tag','checkbox_Fancy');
+'Tag','check_Fancy');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_ShowCommand_CB'},...
+'Call',@main_uiCB,...
 'HorizontalAlignment','left',...
 'Position',[10 33 261 20.8],...
 'Style','edit',...
@@ -310,48 +310,44 @@ uicontrol('Parent',h1,...
 'Tag','edit_ShowCommand');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'pushbutton_OK_CB'},...
+'Call',@main_uiCB,...
 'Position',[205 7 66 23],...
 'String','OK',...
-'Tag','pushbutton_OK');
+'Tag','push_OK');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'pushbutton_Cancel_CB'},...
+'Call',@main_uiCB,...
 'Position',[132 7 66 23],...
 'String','Cancel',...
-'Tag','pushbutton_Cancel');
+'Tag','push_Cancel');
 
 uicontrol('Parent',h1,...
 'Enable','inactive',...
 'HorizontalAlignment','left',...
 'Position',[10 194 97 17],...
 'String','Bar Scale X position',...
-'Style','text',...
-'Tag','text1');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'Enable','inactive',...
 'HorizontalAlignment','left',...
 'Position',[10 167 98 15],...
 'String','Bar Scale Y position',...
-'Style','text',...
-'Tag','text2');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'Enable','inactive',...
 'HorizontalAlignment','left',...
 'Position',[10 143 91 15],...
 'String','Scale at this Lat',...
-'Style','text',...
-'Tag','text3');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'Enable','inactive',...
 'HorizontalAlignment','left',...
 'Position',[10 116 91 15],...
 'String','Bar Scale length',...
-'Style','text',...
-'Tag','text4');
+'Style','text');
 
 uicontrol('Parent',h1,...
 'Enable','inactive',...
@@ -360,6 +356,6 @@ uicontrol('Parent',h1,...
 'String','Scale unities',...
 'Style','text');
 
-function main_uiCB(hObject, eventdata, h1, callback_name)
+function main_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,guidata(h1));
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
