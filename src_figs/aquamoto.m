@@ -36,6 +36,7 @@ function varargout = aquamoto(varargin)
 		handles.last_dir = handMir.last_dir;
 		handles.work_dir = handMir.work_dir;
 		handles.DefineEllipsoide = handMir.DefineEllipsoide;	% Potentially need in aquaPlugin
+		handles.DefineMeasureUnit = handMir.DefineMeasureUnit;	%				"
         d_path = handMir.path_data;
 	else
 		if (numel(varargin) >= 1)		% File name in input
@@ -54,7 +55,8 @@ function varargout = aquamoto(varargin)
 		handles.last_dir = handles.home_dir;
 		handles.work_dir = handles.home_dir;
 		handles.DefineEllipsoide = [6378137, 0, 1/298.2572235630];	% Defaults to WGS-84
-        d_path = [handles.home_dir filesep 'data' filesep];
+ 		handles.DefineMeasureUnit = 'u';							% Defaults to 'user' units
+       d_path = [handles.home_dir filesep 'data' filesep];
 	end
 
 	% -------------- Import/set icons --------------------------------------------
