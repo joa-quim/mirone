@@ -113,7 +113,9 @@ function aquaPlugin(handles, auto)
 				calc_yearMean(handles, out{2:end})
 			end
 		case 'polygAVG'				% CASE 5
-			calc_polygAVG(handles)
+			if (internal_master),	calc_polygAVG(handles)
+			else					calc_polygAVG(handles, out{2:end})
+			end
 		case 'flagsStats'			% CASE 6
 			ano = 1:12;				% Compute yearly stats
 			%opt = '';				% Make the counting on a per month basis
@@ -895,7 +897,7 @@ function Z = inpaint_nans(handles, Z, bw, nCells)
 
 		rect_crop = [x_min y_min (x_max-x_min) (y_max-y_min)];
 		[Z_rect, r_c] = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
-		[bw_rect, lixo] = cropimg(head(1:2),head(3:4),bw,rect_crop,'out_grid');
+		[bw_rect, l.lixo] = cropimg(head(1:2),head(3:4),bw,rect_crop,'out_grid');
 		Z_rect = double(Z_rect);      % It has to be (GHRRRRRRRRRRRRR)
 
 		%X = x_min:head(8):x_max;	Y = y_min:head(9):y_max;
@@ -923,24 +925,73 @@ function Z = inpaint_nans(handles, Z, bw, nCells)
 	end
 
 % ----------------------------------------------------------------------
-function calc_polygAVG(handles)
-	
-	if (~ishandle(handles.handMir.figure1))		% No insult. Just quit
-		return
+function calc_polygAVG(handles, fnameOut, op, fnamePolys)
+% This function search for polygons (patches or closed lines) and computes averages
+% of whatever quantity is respresented inside those polygones. The result is saved
+% in an ASCII file whose first two columns contain the the polygons (x,y) centroid.
+%
+% OPTIONS:
+%
+% FNAMEOUT	Name of the ouput file. If not provided, it will be asked for here.
+%
+% OP		Operation to apply to the data inside each polygon. If not provided,
+%			defaults to 'mean'. That is compute the mean of all values inside polygon.
+%			Otherwise it must be the name of a Matlab function that can executed via
+%			the function handles mechanism. For example 'median'.
+%
+% FNAMEPOLYS A file name of a (x,y) polygon or the name of a list of polygons (one per line).
+%			If given no attempt is made to fish the polygons from line handles.
+
+	if (~ishandle(handles.handMir.figure1)),	return,		end		% No insult. Just quit
+	if (nargin == 1)
+		fnameOut = [];			fhandle = @local_avg;		fnamePolys = [];
+	elseif (nargin == 2)
+		fhandle = @local_avg;	fnamePolys = [];
+	elseif (nargin >= 3)
+		fhandle = str2func(op);
+		if (nargin == 3),		fnamePolys = [];	end
 	end
 
-	hLine = findobj(handles.handMir.axes1,'Type','line');
-	hLine = [hLine; findobj(handles.handMir.axes1,'Type','patch')];
+	if (isempty(fnamePolys))		% Must fish the polygon handles from figure
+		
+		hLine = findobj(handles.handMir.axes1,'Type','line');
+		hLine = [hLine; findobj(handles.handMir.axes1,'Type','patch')];
 
-	N = 1;
-	for (k = 1:numel(hLine))
-		x = get(hLine(k),'XData');   y = get(hLine(k),'YData');
-		if (numel(x) >= 3 && x(1) == x(end) && y(1) == y(end) )
-			polys{N} = [x(:) y(:)];
-			N = N + 1;
+		polys = cell(1, numel(hLine));
+		N = 1;
+		for (k = 1:numel(hLine))
+			x = get(hLine(k),'XData');   y = get(hLine(k),'YData');
+			if (numel(x) >= 3 && x(1) == x(end) && y(1) == y(end) )
+				polys{N} = [x(:) y(:)];
+				N = N + 1;
+			end
 		end
+		N = N - 1;					% There was one too much incement above
+		polys(N+1:end) = [];		% Remove unused
+
+	else							% Got a filename or a list of polygons files in input
+		[bin, n_column, multi_seg, n_headers] = guess_file(fnamePolys);
+		if (isempty(bin))
+			errordlg(['Error reading file (probaby empty)' fnamePolys],'Error'),	return
+		end
+		if (n_column == 1 && multi_seg == 0)			% Take it as a file names list
+			fid = fopen(fnamePolys);
+			c = fread(fid,'*char')';	fclose(fid);
+			names = strread(c,'%s','delimiter','\n');   clear c fid;
+		else
+			names = {fnamePolys};
+		end
+
+		for (k = 1:numel(names))
+			fname = names{k};
+			if (isempty(n_headers)),    n_headers = NaN;    end
+			if (multi_seg)
+				polys = text_read(fname,NaN,n_headers,'>');
+			else
+				polys = {text_read(fname,NaN,n_headers)};
+			end
+		end		
 	end
-	N = N - 1;		% There was one too much incement above
 
 	if (N == 0)
 		errordlg('Fiu Fiu! No closed polygons to compute whaterver average value inside. Bye.','Error')
@@ -961,14 +1012,14 @@ function calc_polygAVG(handles)
 		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m-1 0 0], [1 rows cols]);
 
 		for (k = 1:N)				% Loop over polygons
-			x = polys{k}(:,1);				y = polys{k}(:,2);
-			xp(1) = min(x);     xp(2) = max(x);
-			yp(1) = min(y);     yp(2) = max(y);
+			x = polys{k}(:,1);			y = polys{k}(:,2);
+			xp(1) = min(x);				xp(2) = max(x);
+			yp(1) = min(y);				yp(2) = max(y);
 			rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];
 			x_lim = [xp(1) xp(2)];		y_lim = [yp(1) yp(2)];
 
 			% Extrai um rect que englobe o poligono para poupar na conta da mascara
-			[Z_rect, lixo] = cropimg(handles.head(1:2),handles.head(3:4),Z,rect_crop,'out_grid');
+			[Z_rect, l.lixo] = cropimg(handles.head(1:2),handles.head(3:4),Z,rect_crop,'out_grid');
 			mask = img_fun('roipoly_j',x_lim,y_lim,Z_rect,x,y);
 
 			% Test for a minimum of valid elements inside polygon
@@ -976,12 +1027,14 @@ function calc_polygAVG(handles)
 			zz = zz(:);
 			ind = isnan(zz);
 			if (~any(ind))
-				avg(m,k) = sum(double(zz)) / numel(zz);
+				%avg(m,k) = sum(double(zz)) / numel(zz);
+				avg(m,k) = fhandle(zz);
 			else			% Accept/Reject based on % of valid numbers
 				nAnoes = sum(ind);		nInPoly = numel(zz);
 				if ( nAnoes / nInPoly < THRESH )
 					zz = zz(~ind);
-					avg(m,k) = sum(double(zz)) / numel(zz);
+					%avg(m,k) = sum(double(zz)) / numel(zz);
+					avg(m,k) = fhandle(zz);
 				end
 			end
 		end
@@ -1005,14 +1058,19 @@ function calc_polygAVG(handles)
 % 	end
 	
 	% --------------- Now finaly save the result in a file	------------------
-	[FileName,PathName] = put_or_get_file(handles,{'*.dat;*.DAT','ASCII file'; '*.*', 'All Files (*.*)'},'Output file','put');
-	if isequal(FileName,0),		return,		end
-	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-	if isempty(EXT),	fname = [PathName FNAME '.dat'];
-	else				fname = [PathName FNAME EXT];
+	if (isempty(fnameOut))
+		[FileName,PathName] = put_or_get_file( ...
+			handles,{'*.dat;*.DAT','ASCII file'; '*.*', 'All Files (*.*)'},'Output file','put');
+		if isequal(FileName,0),		return,		end
+		[PATH,FNAME,EXT] = fileparts([PathName FileName]);
+		if isempty(EXT),	fname = [PathName FNAME '.dat'];
+		else				fname = [PathName FNAME EXT];
+		end
+	else
+		fname = fnameOut;
 	end
 	
-	%Open and write to ASCII file
+	% Open and write to ASCII file
 	if (ispc),		fid = fopen(fname,'wt');
 	elseif (isunix),fid = fopen(fname,'w');
 	else			error('aquamoto: Unknown platform.');
@@ -1033,6 +1091,11 @@ function calc_polygAVG(handles)
 
 	fprintf(fid,['%.2f\t' repmat('%f\t',[1,N]) '\n'], [t avg]');
 	fclose(fid);
+
+% ----------------------------------------------------------------------
+function out = local_avg(x)
+% A simple average function, but that convert X do doubles and will be assigned a function handle
+	out = sum(double(x)) / numel(x);
 
 % ----------------------------------------------------------------------
 function calc_flagsStats(handles, months, flag, opt)
