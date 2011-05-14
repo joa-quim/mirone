@@ -12,6 +12,15 @@ function aquaPlugin(handles, auto)
 %		If it is a string, that it is interpreted as the name of the control script.
 %		A "control script" is a file with the EXACT arguments to select and run one of
 %		main functions here as pointed by the CASOS cell array below.
+%
+%		One way of executing this functionality is to check the "Seek OPTcontrol.txt" checkbox
+%		In which case the OPTcontrol.txt will be scanned for the name of the control script.
+%		This works both for the ML and standalone version.
+%		The other way, restricted to the ML version, is to run in the Matlab command line:
+%				aquamoto file.nc 'file_name_of_control_script'
+%		OR
+%				aquamoto('file.nc', 0)
+%		In the later case the control script name is searched in the OPTcontrol.txt file
 
 %	Copyright (c) 2004-2011 by J. Luis
 %
@@ -67,13 +76,14 @@ function aquaPlugin(handles, auto)
 		case 'zonal'				% CASE 1
 			integ_lon = true;
 			dlat = 1.0;
- 			have_polygon = true;
 			trends = true;			% If true compute the trends (per stripe) of the zonal integration
-			fname = 'plataforma_poly.dat';		% If this name is uncorrect, another will be asked
-			%fnam2 = 'plataforma_offset_poly.dat';		% If it exists, compute difference of zonal integrations
-			fnam2 = 'poly_largo.dat';	%fnam2= [];
+			sub_set = [0 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
+			fnamPoly1 = 'plataforma_poly.dat';		% If this name is uncorrect, another will be asked
+			fnamPoly2 = 'poly_largo.dat';	%fnamPoly2= [];	% If it exists, compute difference of zonal integrations
+			fnameFlag  = 'C:\a1\pathfinder\qual_82_09.nc';	% If not empty check againts this file (For monthly data)
+			quality = 6;			% Retain only values of quality >= this (or <= abs(this) when MODIS). Ingored if fname = []
 			if (internal_master)
-				zonal(handles, dlat, integ_lon, trends, have_polygon, fname, fnam2)
+				zonal(handles, dlat, integ_lon, trends, sub_set, fnamPoly1, fnamPoly2, fnameFlag, quality)
 			else
 				zonal(handles, out{2:end})
 			end
@@ -113,7 +123,13 @@ function aquaPlugin(handles, auto)
 				calc_yearMean(handles, out{2:end})
 			end
 		case 'polygAVG'				% CASE 5
-			if (internal_master),	calc_polygAVG(handles)
+			fnameOut = [];			% If not empty, file name where to save the result (otherwise, asked at the end)
+			op = [];				% Type average (or other). [] means doing average. 'median' will do a median
+			fnamePolys = [];		% If not empty, file name of polygon or list of polygons (otherwise, fished from Mirone fig)
+			sub_set = [0 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
+			fnameFlag  = 'C:\a1\pathfinder\qual_82_09.nc';	% If not empty check againts this file
+			quality = 6;			% Retain only values of quality >= this (or <= abs(this) when MODIS). Ingored if fnameFlag = []
+			if (internal_master),	calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, quality)
 			else					calc_polygAVG(handles, out{2:end})
 			end
 		case 'flagsStats'			% CASE 6
@@ -141,23 +157,58 @@ function aquaPlugin(handles, auto)
 			write_vtk(handles)
 	end
 
-% ----------------------------------------------------------------------
-function out = zonal(handles, dlat, integ_lon, do_trends, have_polygon, fname, fname2)
+% --------------------------------------------------4--------5---------6------------7----------8--
+function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, fnamePoly2, fnameFlag, quality)
 % Compute zonal means from a multi-layer file
+%
 % DLAT 			width of the box in the direction orthogonal to INTEG_LON
 % INTEG_LON 	If true, integration is done along longitude
 % DO_TRENDS		If false compute zonal integrations. Otherwise compute trends of the zonal integrations (per DLAT)
-% HAVE_POLYGON	If true limit the analisys to the are delimited by the polygon stored in file FNAME 
-% FNAME2		Optional polygon file. If it points to a valid file. This function is called twice and results are subtracted
+%
+% OPTIONS: Since the number of options is variable some make mandatory that prev args exist. In that case use [] if needed
+%
+% SUB_SET	->  A two columns row vec with number of the offset of years where analysis start and stop.
+%				For example [3 1] Starts analysis on forth year and stops on the before last year.
+%				[0 0] Means using the all dataset.
+%
+% FNAMEPOLY1	Optional polygon file delimiting an area where the analisys will be carried on.
+%
+% FNAMEPOLY2	Optional second polygon file. If it points to a valid file. This function is called 
+%				twice and results are subtracted
+%
+% FNAMEFLAG		name of a netCDF file with quality flags. Obviously this file must be of
+%				the same size as the series under analysis. If not provided no quality check is done.
+%
+% QUALITY		Threshold quality value. Only values of quality >= FLAG will be taken into account
+%				NOTE: For MODIS use negative FLAG. Than, values are retained if quality <= abs(FLAG)
 
-	if (have_polygon)
-		if (exist(fname,'file') ~= 2)
+	if (nargin < 4)
+		errordlg('ZONAL: called with less than ninimum number of arguments', 'Error'),	return
+	end
+	if (nargin == 4)
+		sub_set = [0 0];		fnamePoly1 = [];	fnamePoly2 = [];	fnameFlag = [];		quality = 7;
+	elseif (nargin == 5)
+		fnamePoly1 = [];		fnamePoly2 = [];	fnameFlag = [];		quality = 7;
+	elseif (nargin == 6)
+		fnamePoly2 = [];		fnameFlag = [];		quality = 7;
+	elseif (nargin == 7)
+		fnameFlag = [];			quality = 7;	% This 'quality' def is only to not error in one case.
+	end
+
+	if (numel(sub_set) == 2)
+		jump_start = sub_set(1);		stop_before_end = sub_set(2);
+	else
+		jump_start = 0;					stop_before_end = 0;
+	end
+
+	if (~isempty(fnamePoly1))
+		if (exist(fnamePoly1,'file') ~= 2)		% If given name does not exist, give another chance
 			[FileName,PathName] = put_or_get_file(handles, ...
 				{'*.dat;*.DAT', 'Data files (*.dat)';'*.*', 'All Files (*.*)'},'Enter polygon file','get');
 			if (isequal(FileName,0)),		return,		end
-			fname = [PathName FileName];
+			fnamePoly1 = [PathName FileName];
 		end
-		S = load(fname);
+		S = load(fnamePoly1);
 		x = S(:,1);		y = S(:,2);
 	else
 		x = [];			y = [];
@@ -165,7 +216,19 @@ function out = zonal(handles, dlat, integ_lon, do_trends, have_polygon, fname, f
 
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
-	% Build the vectors to deal with the zonal integration
+	%------------- Check for quality flags request -------------------
+	if (~isempty(fnameFlag))
+		[s_flags, z_id_flags, msg] = checkFlags_compat(fnameFlag, handles.number_of_timesteps, rows, cols);
+		if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+		do_flags = true;
+		if (quality > 0 ),	growing_flag = true;		% PATHFINDER flags
+		else				growing_flag = false;		% MODIS flags
+		end
+	else
+		do_flags = false;
+	end
+
+	% ------------- Build the vectors to deal with the zonal integration -------------
 	if (integ_lon)
 		N_spatialSize = rows;		% Number of points in the spatial dim
 		integDim = 2;							% Dimension along which we are going to integrate
@@ -192,26 +255,34 @@ function out = zonal(handles, dlat, integ_lon, do_trends, have_polygon, fname, f
 
 	aguentabar(0,'title','Computing zonal means','CreateCancelBtn')
 
-	nSeries = handles.number_of_timesteps;
+	nSeries = handles.number_of_timesteps - (jump_start + stop_before_end);	% Number of layers to be used in this run
+	series_vec = (jump_start:(nLayers - 1 + jump_start)) + 1;		% Add 1 so it never starts at 0 (no good for indices)
 	allSeries = zeros(nStripes, nSeries);
 	if (integ_lon),		N_tot = cols + 1e-10;		% Add eps so that we never have divisions by zero
 	else				N_tot = rows + 1e-10;
 	end
 	mask = [];
-	for (k = 1:nSeries)
+	for (k = series_vec)
 		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [k-1 0 0], [1 rows cols]);
 		this_has_nans = false;
 
+		if (do_flags)
+			flags = nc_funs('varget', fnameFlag, s_flags.Dataset(z_id_flags).Name, [k-1 0 0], [1 rows cols]);
+			if (growing_flag),		Z(flags < quality) = NaN;	% Pathfinder style (higher the best) quality flag
+			else					Z(flags > quality) = NaN;	% MODIS style (lower the best) quality flag
+			end
+		end
+
 		% NaNify polygon exterior points?
-		if (have_polygon && k == 1)
+		if (have_polygon && k == series_vec(1))
 			mask = img_fun('roipoly_j',handles.head(1:2),handles.head(3:4),double(Z),x,y);
 		end
 		if (~isempty(mask)),	Z(~mask) = NaN;		end
 
-		ind = isnan(Z);				% This may, or may not, be equal to 'mask'
+		ind = isnan(Z);						% This may, or may not, be equal to 'mask'
 		if (any(ind(:))),		Z(ind) = 0;		this_has_nans = true;		end
 
-		tmp = sum(Z,integDim);				% Add along integration dim
+		tmp = sum(Z, integDim);				% Add along integration dim
 		if (this_has_nans)
 			tmp2 = sum(ind,integDim);		% Get total number of NaNs along interp dim
 			tmp = tmp ./ (N_tot - tmp2);	% Now get the number of valid values along interp dim
@@ -232,21 +303,22 @@ function out = zonal(handles, dlat, integ_lon, do_trends, have_polygon, fname, f
 
 	allSeries(allSeries == 0) = nan;		% NaN is more reasonable to denote data absence
 
-	if ( nargin == 7 && have_polygon  && exist(fname2,'file') == 2 )
-		out2 = zonal(handles, dlat, integ_lon, false, have_polygon, fname2);
+	if ( ~isempty(fnamePoly2) && exist(fnamePoly2,'file') == 2 )
+		out2 = zonal(handles, dlat, integ_lon, false, sub_set, fnamePoly2, [], fnameFlag, quality);
 		allSeries = double(out2) - allSeries;
 	end
 	allSeries = single(allSeries);
 
-	if (~nargout)			% If no argout, show result in a Mirone/Ecran window
+	% ------------ If no argout, show result in a Mirone/Ecran window ------------
+	if (~nargout)
 		zz = grdutils(allSeries,'-L');
 		head = [1 nSeries vecD(1) vecD(end) zz(1) zz(2) 0 1 dlat];
 		tmp.X = 1:nSeries;		tmp.Y = linspace( (vecD(1)+dlat/2), (vecD(end)-dlat/2), nStripes );
-		if (~do_trends)		% 2D, Mirone
+		if (~do_trends)			% 2D, Mirone
 			tmp.head = [head(1:2) tmp.Y(1) tmp.Y(end) head(5:end)];
-			tmp.geo = 0;			tmp.name = 'Zonal integration';
+			tmp.geo = 0;		tmp.name = 'Zonal integration';
 			mirone(allSeries, tmp)
-		else				% 1D, Ecran
+		else					% 1D, Ecran
 			trend = zeros(1,nStripes);
 			for (k = 1:nStripes)
 				p = polyfit(tmp.X, double(allSeries(k,:)), 1);
@@ -262,7 +334,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, have_polygon, fname, f
 	end
 	
 % ----------------------------------------------------------------------
-function calcGrad(handles, slope, sub_set, fnameflag, quality, splina, scale, grd_out)
+function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, grd_out)
 % Compute the rate of change of a file by fitting a LS straight line. The file can be the one of
 % already computed yearly means, in which case last three input arguments do not apply.
 % OR the full time series. In this case optional checking against quality flags and spline
@@ -305,13 +377,13 @@ function calcGrad(handles, slope, sub_set, fnameflag, quality, splina, scale, gr
 
 	n_anos = n_anos - (jump_anos + stop_before_end_anos);	% Number of layers to be used in this run
 
-	if (nargin >= 4 && ~isempty(fnameflag))
-		[s_flags, z_id_flags, msg] = checkFlags_compat(fnameflag, handles.number_of_timesteps, rows, cols);
+	if (nargin >= 4 && ~isempty(fnameFlag))
+		[s_flags, z_id_flags, msg] = checkFlags_compat(fnameFlag, handles.number_of_timesteps, rows, cols);
 		if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
- 		%flags = nc_funs('varget', fnameflag, s_flags.Dataset(z_id_flags).Name, [jump_anos 0 0], [n_anos rows cols]);
+ 		%flags = nc_funs('varget', fnameFlag, s_flags.Dataset(z_id_flags).Name, [jump_anos 0 0], [n_anos rows cols]);
 		flags = alloc_mex(rows, cols, n_anos, 'uint8');
 		for (m = 1:n_anos)
-			flags(:,:,m) = nc_funs('varget', fnameflag, s_flags.Dataset(z_id_flags).Name, [(m - 1 + jump_anos) 0 0], [1 rows cols]);
+			flags(:,:,m) = nc_funs('varget', fnameFlag, s_flags.Dataset(z_id_flags).Name, [(m - 1 + jump_anos) 0 0], [1 rows cols]);
 		end
 		do_flags = true;
 		if (nargin == 4)			% Default to Pathfinder max quality
@@ -924,36 +996,76 @@ function Z = inpaint_nans(handles, Z, bw, nCells)
 		end
 	end
 
-% ----------------------------------------------------------------------
-function calc_polygAVG(handles, fnameOut, op, fnamePolys)
+% ---------------------------------2-------3------4----------5--------6-----
+function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, quality)
 % This function search for polygons (patches or closed lines) and computes averages
 % of whatever quantity is respresented inside those polygones. The result is saved
 % in an ASCII file whose first two columns contain the the polygons (x,y) centroid.
 %
 % OPTIONS:
 %
-% FNAMEOUT	Name of the ouput file. If not provided, it will be asked for here.
+% FNAMEOUT		Name of the ouput file. If not provided, it will be asked for here.
 %
-% OP		Operation to apply to the data inside each polygon. If not provided,
-%			defaults to 'mean'. That is compute the mean of all values inside polygon.
-%			Otherwise it must be the name of a Matlab function that can executed via
-%			the function handles mechanism. For example 'median'.
+% OP			Operation to apply to the data inside each polygon. If not provided or is [],
+%				defaults to 'mean'. That is compute the mean of all values inside polygon.
+%				Otherwise it must be the name of a Matlab function that can executed via
+%				the function handles mechanism. For example 'median'.
 %
-% FNAMEPOLYS A file name of a (x,y) polygon or the name of a list of polygons (one per line).
-%			If given no attempt is made to fish the polygons from line handles.
+% FNAMEPOLYS	A file name of a (x,y) polygon or the name of a list of polygons (one per line).
+%				If given no attempt is made to fish the polygons from line handles.
+%
+% SUB_SET		A two columns row vec with number of the offset of years where analysis start and stop.
+%				For example [3 1] Starts analysis on forth year and stops on the before last year.
+%				[0 0] Means using the all dataset.
+%
+% FNAMEFLAG		name of a netCDF file with quality flags. Obviously this file must be of
+%				the same size as the series under analysis. If not provided no quality check is done.
+%
+% QUALITY		Threshold quality value. Only values of quality >= FLAG will be taken into account
+%				NOTE: For MODIS use negative FLAG. Than, values are retained if quality <= abs(FLAG)
 
 	if (~ishandle(handles.handMir.figure1)),	return,		end		% No insult. Just quit
+	if (nargin < 4)
+		fnamePolys = [];		sub_set = [0 0];	fnameFlag = [];
+	end
 	if (nargin == 1)
-		fnameOut = [];			fhandle = @local_avg;		fnamePolys = [];
+		fnameOut = [];			fhandle = @local_avg;
 	elseif (nargin == 2)
 		fhandle = @local_avg;	fnamePolys = [];
 	elseif (nargin >= 3)
-		fhandle = str2func(op);
-		if (nargin == 3),		fnamePolys = [];	end
+		if (ischar(op)),		fhandle = str2func(op);
+		else					fhandle = @local_avg;
+		end
+		if (nargin == 4)
+			sub_set = [0 0];	fnameFlag = [];
+		elseif (nargin == 5)
+			fnameFlag = [];
+		end
 	end
 
-	if (isempty(fnamePolys))		% Must fish the polygon handles from figure
-		
+	if (numel(sub_set) == 2)
+		jump_start = sub_set(1);		stop_before_end = sub_set(2);
+	else
+		jump_start = 0;					stop_before_end = 0;
+	end
+
+	[z_id, s, rows, cols] = get_ncInfos(handles);
+
+	%------------- Check for quality flags request -------------------
+	if (~isempty(fnameFlag))
+		[s_flags, z_id_flags, msg] = checkFlags_compat(fnameFlag, handles.number_of_timesteps, rows, cols);
+		if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+		do_flags = true;
+		if (quality > 0 ),	growing_flag = true;		% PATHFINDER flags
+		else				growing_flag = false;		% MODIS flags
+		end
+	else
+		do_flags = false;
+	end
+
+	% --------------- Fish the polygon handles from figure (if not provided) ------------
+	if (isempty(fnamePolys))
+
 		hLine = findobj(handles.handMir.axes1,'Type','line');
 		hLine = [hLine; findobj(handles.handMir.axes1,'Type','patch')];
 
@@ -997,19 +1109,23 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys)
 		errordlg('Fiu Fiu! No closed polygons to compute whaterver average value inside. Bye.','Error')
 		return
 	end
-	
-	z_id = handles.netcdf_z_id;
-	s = handles.nc_info;			% Retrieve the .nc info struct
-	rows = s.Dataset(z_id).Size(end-1);
-	cols = s.Dataset(z_id).Size(end);
-	nLayers = handles.number_of_timesteps;
+
+	nLayers = handles.number_of_timesteps - (jump_start + stop_before_end);	% Number of layers to be used in this run
+	series_vec = (jump_start:(nLayers - 1 + jump_start)) + 1;		% Add 1 so it never starts at 0 (no good for indices)
 	avg = zeros(nLayers,N) * NaN;
-	THRESH = 0.5;					% Minimum percentage of valid points inside poly
+	THRESH = 0.5;						% Minimum percentage of valid points inside poly
 
 	aguentabar(0,'title','Calcula as medias poligonais','CreateCancelBtn')
 
-	for (m = 1:nLayers)				% Loop over layers ensemble
+	for (m = series_vec)				% Loop over layers ensemble
 		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m-1 0 0], [1 rows cols]);
+
+		if (do_flags)
+			flags = nc_funs('varget', fnameFlag, s_flags.Dataset(z_id_flags).Name, [m-1 0 0], [1 rows cols]);
+			if (growing_flag),		Z(flags < quality) = NaN;	% Pathfinder style (higher the best) quality flag
+			else					Z(flags > quality) = NaN;	% MODIS style (lower the best) quality flag
+			end
+		end
 
 		for (k = 1:N)				% Loop over polygons
 			x = polys{k}(:,1);			y = polys{k}(:,2);
