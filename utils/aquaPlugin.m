@@ -256,7 +256,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 	aguentabar(0,'title','Computing zonal means','CreateCancelBtn')
 
 	nSeries = handles.number_of_timesteps - (jump_start + stop_before_end);	% Number of layers to be used in this run
-	series_vec = (jump_start:(nLayers - 1 + jump_start)) + 1;		% Add 1 so it never starts at 0 (no good for indices)
+	series_vec = (jump_start:(nSeries - 1 + jump_start)) + 1;		% Add 1 so it never starts at 0 (no good for indices)
 	allSeries = zeros(nStripes, nSeries);
 	if (integ_lon),		N_tot = cols + 1e-10;		% Add eps so that we never have divisions by zero
 	else				N_tot = rows + 1e-10;
@@ -274,7 +274,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 		end
 
 		% NaNify polygon exterior points?
-		if (have_polygon && k == series_vec(1))
+		if (~isempty(fnamePoly1) && k == series_vec(1))
 			mask = img_fun('roipoly_j',handles.head(1:2),handles.head(3:4),double(Z),x,y);
 		end
 		if (~isempty(mask)),	Z(~mask) = NaN;		end
