@@ -582,14 +582,19 @@ function FilePrint_CB(hObject, handles)
 % --------------------------------------------------------------------
 function FileOpen_CB(hObject, handles)
 % Read the file and select what columns to plot
+%
+% Section to deal with cases where time is provided in data time char srtrings
+% In that case first line of file must be of this form (the time format may change)
+% # DATENUM dd-mm-yyyy HH:MM:SS
+%
+% The special case # DATENUM YYYY.MM is also handled (for data output from Aquamoto)
+% but in this case the file must have only 2 columns - (time, data)
+
 	str1 = {'*.dat;*.DAT;', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 	[FileName, PathName, handles] = put_or_get_file(handles,str1,'Select input data','get');
 	if isequal(FileName,0),		return,		end	
 	fname = [PathName FileName];
 
-	% Section to deal with cases where time is provided in data time char srtrings
-	% In that case first line of file must be of this form (the time format may change)
-	% # DATENUM dd-mm-yyyy HH:MM:SS
 	isDateNum = false;
 	fid = fopen(fname);
 	H1 = fgetl(fid);
@@ -610,13 +615,23 @@ function FileOpen_CB(hObject, handles)
 				[yymmdd sl] = strread(todos,'%s %f', 'delimiter', '\t');
 			end
 			t = strtok(H1(ind(1)+10:end));
-			if (~isnan(str2double(t)))		% Interpret 't' as a dateform number
-				t = str2double(t);
-			else
-				t = H1(ind(1)+10:end);		% t is date time format string
-			end
-			try			serial_date = datenum(yymmdd, t);
-			catch,		errordlg(lasterr,'Error')
+			try
+				if (strcmpi(t,'YYYY.MM'))			% Local form sometimes output from Aquamoto
+					Y = str2double(yymmdd);			% Works for vectors as long as argument is a cell
+					M = (Y - fix(Y)) * 100;
+					Y = fix(Y);
+					D = ones(numel(M), 1) * 15;		% half month in this aproximation
+					serial_date = datenum(Y, M, D);
+				else
+					if (~isnan(str2double(t)))		% Interpret 't' as a dateform number
+						t = str2double(t);
+					else
+						t = H1(ind(1)+10:end);		% t is date time format string
+					end
+					serial_date = datenum(yymmdd, t);
+				end
+			catch
+				errordlg(lasterr,'Error'),		return
 			end
 			data = [serial_date sl];
 			out = [1 2];					% To simulate the output of select_cols
