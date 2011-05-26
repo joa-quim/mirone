@@ -682,7 +682,7 @@ function FileOpen_CB(hObject, handles)
 	handles.data = [data(:,out(1)) data(:,out(2))];     % NOTE, if handles.n_plot > 1 only last data is saved
 	guidata(hObject, handles);
 	if (isDateNum)
-		add_uictx_CB(handles.hidenCTRL, handles)
+		add_uictx_CB(handles.add_uictx, handles)
 	end
 
 % --------------------------------------------------------------------
@@ -1219,10 +1219,10 @@ function rectang_clicked_CB(obj,evt)
 
 % --------------------------------------------------------------------
 function add_uictx_CB(hObject, handles)
-% Trick function activated by the hiden uictx with 'hidenCTRL' Tag
+% Tricky function either called externally from ecran or activated when loading a file with DATENUM info
 	h = findobj(handles.figure1,'Label','Analysis');
-	uimenu('Parent',h, 'Call',{@ecran_uiCB,handles.figure1,'filterButt_CB'},...
-	'Label','Filter (Butterworth)', 'Tag','FiltButter', 'Sep', 'on');
+	uimenu('Parent',h, 'Call',@ecran_uiCB,...
+			'Label','Filter (Butterworth)', 'Tag','filterButt', 'Sep', 'on');
 	% Save original X label in appdata for easear access when we want to change it
 	setappdata(handles.axes1,'XTickOrig',get(handles.axes1,'XTickLabel'))
 	setappdata(handles.axes1,'xIsDatenum',true)		% For FFTs to know how to compute frequency
@@ -2692,7 +2692,7 @@ uimenu('Parent',h17,...
 'Tag','Analysis2derivative');
 
 % Here we provide a hiden entry to activate functions of interest to tide analysis
-uimenu('Parent',h17,'Call',{@ecran_uiCB,h1,'add_uictx_CB'},'Vis','off','Tag','hidenCTRL');
+uimenu('Parent',h17,'Call',@ecran_uiCB,'Vis','off','Tag','add_uictx');
 
 uicontrol('Parent',h1, 'Position',[85 8 51 22],...
 'BackgroundColor',[1 1 1],...
