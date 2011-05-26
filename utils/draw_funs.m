@@ -2422,7 +2422,7 @@ function mareg_online(obj,eventdata,h, data, opt)
 		warndlg('This station has no data or a file tranfer error occured.','Warning')
 		fclose(fid);		return
 	end
-	ind = strfind(todos(1:64)',sprintf('\n'));
+	ind = strfind(todos(1:128)',sprintf('\n'));
 	if (numel(ind) == 1)
 		warndlg('Sorry, but the downloaded file is not organized in the standard way. Quiting.','Warning')
 		return
@@ -2437,9 +2437,9 @@ function mareg_online(obj,eventdata,h, data, opt)
 	end
 	serial_date = datenummx(y);
 	hf = ecran(handles, serial_date, sl, [nome ' (' pais ')']);
-	h = findobj(hf,'Tag','hidenCTRL');
+	h = findobj(hf,'Tag','add_uictx');
 	cb = get(h, 'Call');
-	feval(cb{1}, h, [], cb{2}, cb{3})	% Call the ecran_uiCB function
+	feval(cb, h, guidata(hf))			% Call the ecran's add_uictx_CB function
 
 % -----------------------------------------------------------------------------------------
 function meteor_info(obj,eventdata,h, name, diameter, dating, exposed, btype)
