@@ -1148,13 +1148,13 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 			ind = isnan(zz);
 			if (~any(ind))
 				%avg(m,k) = sum(double(zz)) / numel(zz);
-				avg(m,k) = fhandle(zz);
+				avg(m,k) = feval(fhandle, zz);
 			else			% Accept/Reject based on % of valid numbers
 				nAnoes = sum(ind);		nInPoly = numel(zz);
 				if ( nAnoes / nInPoly < THRESH )
 					zz = zz(~ind);
 					%avg(m,k) = sum(double(zz)) / numel(zz);
-					avg(m,k) = fhandle(zz);
+					avg(m,k) = feval(fhandle, zz);
 				end
 			end
 		end
