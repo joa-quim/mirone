@@ -1024,7 +1024,6 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 % QUALITY		Threshold quality value. Only values of quality >= FLAG will be taken into account
 %				NOTE: For MODIS use negative FLAG. Than, values are retained if quality <= abs(FLAG)
 
-	if (~ishandle(handles.handMir.figure1)),	return,		end		% No insult. Just quit
 	if (nargin < 4)
 		fnamePolys = [];		sub_set = [0 0];	fnameFlag = [];
 	end
@@ -1066,8 +1065,13 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 	% --------------- Fish the polygon handles from figure (if not provided) ------------
 	if (isempty(fnamePolys))
 
-		hLine = findobj(handles.handMir.axes1,'Type','line');
-		hLine = [hLine; findobj(handles.handMir.axes1,'Type','patch')];
+		handMir = guidata(handles.hMirFig);
+		hLine = findobj(handMir.axes1,'Type','line');
+		hLine = [hLine; findobj(handMir.axes1,'Type','patch')];
+		if (isempty(hLine))
+			errordlg('polygAVG: No polygon file provided and no polygon in fig either. Bye Bye.','Error')
+			return
+		end
 
 		polys = cell(1, numel(hLine));
 		N = 1;
