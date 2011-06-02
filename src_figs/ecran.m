@@ -165,7 +165,12 @@ function varargout = ecran(varargin)
 		if ~isempty(varargin{5}),    set(hObject,'Name',varargin{5});		end		% Figure Name
 		if ~isempty(varargin{6}),    xlabel(varargin{6});					end		% XLabel
 		if ~isempty(varargin{7}),    ylabel(varargin{7});					end		% YLabel
-		if ~isempty(varargin{8}),    title(varargin{8});					end		% Title
+		if ~isempty(varargin{8})			% Cannot cal title(varargin{8}) in compiled version because ... BUGS;
+			ax = handles.axes1;		h = get(ax,'title');
+			%Over-ride text objects default font attributes with the Axes' default font attributes.
+			set(h, 'FontAngle',  get(ax, 'FontAngle'), 'FontName', get(ax, 'FontName'), 'FontSize', get(ax, 'FontSize'), ...
+					'FontWeight', get(ax, 'FontWeight'),'Rotation',   0, 'string', varargin{8});
+		end
 		handles.show_popups = false;
 	end
 
