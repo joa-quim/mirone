@@ -1117,7 +1117,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 	nLayers = handles.number_of_timesteps - (jump_start + stop_before_end);	% Number of layers to be used in this run
 	series_vec = (jump_start:(nLayers - 1 + jump_start)) + 1;		% Add 1 so it never starts at 0 (no good for indices)
 	avg = zeros(nLayers,N) * NaN;
-	THRESH = 0.5;						% Minimum percentage of valid points inside poly
+	THRESH = 0.25;						% Minimum percentage of valid points inside poly
 
 	aguentabar(0,'title','Calcula as medias poligonais','CreateCancelBtn')
 
