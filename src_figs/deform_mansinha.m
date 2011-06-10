@@ -186,6 +186,11 @@ function varargout = deform_mansinha(varargin)
 	new_frame3D(hObject, [handles.faultGeom handles.dislocGeom handles.gridGeom])
 	%------------- END Pro look (3D) ------------------------------
 
+	% Add this figure handle to the carra?as list
+	plugedWin = getappdata(handMir.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handMir.figure1,'dependentFigs',plugedWin);
+
 	if (handles.fault_in)
 		set([handles.check_SCC handles.edit_qValue handles.edit_nSlices handles.txtqValue handles.txtNfatias],...
 			'Visible','off')
@@ -205,7 +210,7 @@ function varargout = deform_mansinha(varargin)
 	if (nargout),   varargout{1} = hObject;     end
 
 % ------------------------------------------------------------------------------------
-function handles = edit_FaultWidth_CB(hObject, eventdata, handles)
+function handles = edit_FaultWidth_CB(hObject, handles)
 % Actualize the "FaultWidth" field. EVENTDATA may not be empty
 	if (nargout)		xx = eventdata;
 	else				xx = str2double(get(hObject,'String'));
@@ -252,7 +257,7 @@ function handles = edit_FaultWidth_CB(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
-function edit_FaultDip_CB(hObject, eventdata, handles)
+function edit_FaultDip_CB(hObject, handles)
 % Actualize the "FaultDip" field
 	xx = str2double(get(hObject,'String'));
 	top_d = str2double(get(handles.edit_FaultTopDepth,'String'));
@@ -292,7 +297,7 @@ function edit_FaultDip_CB(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
-function edit_FaultDepth_CB(hObject, eventdata, handles)
+function edit_FaultDepth_CB(hObject, handles)
 % Actualize the "FaultTopDepth" field
 	xx = str2double(get(hObject,'String'));
 	if (xx < 0)         % If user tried to give a negative depth
@@ -308,7 +313,7 @@ function edit_FaultDepth_CB(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
-function edit_FaultTopDepth_CB(hObject, eventdata, handles)
+function edit_FaultTopDepth_CB(hObject, handles)
 % Actualize the "FaultDepth" field
 	xx = str2double(get(hObject,'String'));
 	if (xx < 0)         % If user tried to give a negative depth
@@ -324,7 +329,7 @@ function edit_FaultTopDepth_CB(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
-function popup_segment_CB(hObject, eventdata, handles)
+function popup_segment_CB(hObject, handles)
 	seg = get(hObject,'Value');
 	fault = getFaultSeg(handles);
 
@@ -357,7 +362,7 @@ function popup_segment_CB(hObject, eventdata, handles)
 	set(handles.edit_DislocRake,'String',str)
 
 % -----------------------------------------------------------------------------------------
-function popup_fault_CB(hObject, eventdata, handles)
+function popup_fault_CB(hObject, handles)
 	fault = get(hObject,'Value');
 	S = cell(handles.nvert(fault),1);
 	for (i=1:handles.nvert(fault)),    S{i} = ['Segment ' sprintf('%d',i)];   end
@@ -412,7 +417,7 @@ function popup_fault_CB(hObject, eventdata, handles)
 	refresh(handles.hCallingFig);         % otherwise, ML BUG
 
 % ------------------------------------------------------------------------------------
-function edit_DislocStrike_CB(hObject, eventdata, handles)
+function edit_DislocStrike_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	[fault,seg] = getFaultSeg(handles);
 	if (isnan(xx)),     set(hObject,'String',handles.DislocStrike{fault}(seg));   return;     end
@@ -420,7 +425,7 @@ function edit_DislocStrike_CB(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
-function edit_DislocRake_CB(hObject, eventdata, handles)
+function edit_DislocRake_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	[fault,seg] = getFaultSeg(handles);
 	if (isnan(xx)),     set(hObject,'String',handles.DislocRake{fault}(seg));   return;     end
@@ -432,7 +437,7 @@ function edit_DislocRake_CB(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
-function edit_DislocSlip_CB(hObject, eventdata, handles)
+function edit_DislocSlip_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	[fault,seg] = getFaultSeg(handles);
 	if (isnan(xx))
@@ -448,53 +453,53 @@ function edit_DislocSlip_CB(hObject, eventdata, handles)
 	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
-function edit_x_min_CB(hObject, eventdata, handles)
+function edit_x_min_CB(hObject, handles)
 	dim_funs('xMin', hObject, handles)
 
 % -------------------------------------------------------------------------------------
-function edit_x_max_CB(hObject, eventdata, handles)
+function edit_x_max_CB(hObject, handles)
 	dim_funs('xMax', hObject, handles)
 
 % --------------------------------------------------------------------
-function edit_y_min_CB(hObject, eventdata, handles)
+function edit_y_min_CB(hObject, handles)
 	dim_funs('yMin', hObject, handles)
 
 % --------------------------------------------------------------------
-function edit_y_max_CB(hObject, eventdata, handles)
+function edit_y_max_CB(hObject, handles)
 	dim_funs('yMax', hObject, handles)
 
 % --------------------------------------------------------------------
-function edit_x_inc_CB(hObject, eventdata, handles)
+function edit_x_inc_CB(hObject, handles)
 	dim_funs('xInc', hObject, handles)
 
 % --------------------------------------------------------------------
-function edit_Ncols_CB(hObject, eventdata, handles)
+function edit_Ncols_CB(hObject, handles)
 	dim_funs('nCols', hObject, handles)
 
 % --------------------------------------------------------------------
-function edit_y_inc_CB(hObject, eventdata, handles)
+function edit_y_inc_CB(hObject, handles)
 	dim_funs('yInc', hObject, handles)
 
 % --------------------------------------------------------------------
-function edit_Nrows_CB(hObject, eventdata, handles)
+function edit_Nrows_CB(hObject, handles)
 	dim_funs('nRows', hObject, handles)
 
 % ------------------------------------------------------------------------------------
-function push_Help_R_CB(hObject, eventdata, handles)
+function push_Help_R_CB(hObject, handles)
 message = {'That''s prety obvious to guess what this option does. You select an area,'
 	'the grid spacing or the number of rows/columns and the deformation will'
 	'be computed at all nodes of that grid.'};
 helpdlg(message,'Help on deformation grid');
 
 % ------------------------------------------------------------------------------------
-function push_focal_CB(hObject, eventdata, handles)
+function push_focal_CB(hObject, handles)
 	strike = str2double(get(handles.edit_DislocStrike,'String'));
 	rake = str2double(get(handles.edit_DislocRake,'String'));
 	dip = str2double(get(handles.edit_FaultDip,'String'));
 	meca_studio(strike, dip, rake)
 
 % ------------------------------------------------------------------------------------
-function push_compute_CB(hObject, eventdata, handles)
+function push_compute_CB(hObject, handles)
 	% If cartesian coordinates, they must be in meters
 	if (any(isnan(cat(1,handles.FaultWidth{:}))))
 		errordlg('One or more segments where not set with the fault''s Width','Error');    return
@@ -629,7 +634,7 @@ function len = LineLength(h,geog)
 	end
 
 % -----------------------------------------------------------------------------------------
-function popup_GridCoords_CB(hObject, eventdata, handles)
+function popup_GridCoords_CB(hObject, handles)
 	xx = get(hObject,'Value');
 	if (xx == 1),       handles.geog = 1;       handles.is_meters = 0;  handles.is_km = 0;  handles.um_milhao = 1e6;
 	elseif (xx == 2),   handles.is_meters = 1;  handles.is_geog = 0;    handles.is_km = 0;  handles.um_milhao = 1e3;
@@ -638,7 +643,7 @@ function popup_GridCoords_CB(hObject, eventdata, handles)
     guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
-function check_hideFaultPlanes_CB(hObject, eventdata, handles)
+function check_hideFaultPlanes_CB(hObject, handles)
 	fault = getFaultSeg(handles);
 	hp = getappdata(handles.h_fault(fault),'PatchHand');
 	if (get(hObject,'Value'))
@@ -651,7 +656,7 @@ function check_hideFaultPlanes_CB(hObject, eventdata, handles)
     guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
-function edit_mu_CB(hObject, eventdata, handles)
+function edit_mu_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx)),		set(hObject,'String',handles.mu),	return,		end
 	handles.mu = abs(xx);
@@ -660,38 +665,38 @@ function edit_mu_CB(hObject, eventdata, handles)
 	guidata(hObject, handles);
 
 % -----------------------------------------------------------------------------------------
-function check_SCC_CB(hObject, eventdata, handles)
-    % Activate (or de-...) the variable slip mode.
-    if (get(hObject,'Value'))
-        msg = [];
-        if (handles.nFaults ~= 1),              msg = 'Currently only one fault is allowed';    end
-        if (numel(handles.FaultWidth{1}) ~= 1), msg = 'Currently only a fault with one segment is allowed';    end
-        if (~isempty(msg)),     errordlg(msg,'Error');      set(hObject,'Value',0);     return;     end
-        if (isnan(handles.FaultDepth{1})),      msg = 'Must set the fault''s Depth first';          end
-        if (isnan(handles.FaultWidth{1})),      msg = 'Must set the total fault''s Width first';    end
-        if (~isempty(msg))
-            errordlg(msg,'Error');
-            set(hObject,'Value',0);
-            return
-        end
-        handles.restoreOldPlane = ~handles.hide_planes;
-        do_scc(handles);
-    else                                % Remove the scc stripes and restore previous const slip state
-        deleteFatias([],[],handles)
-        if (handles.restoreOldPlane)
-        	hp = getappdata(handles.h_fault(1),'PatchHand');
-            try     set(hp,'Visible','on');     end
-            set(handles.check_hideFaultPlanes,'Val',0)
-            handles.hide_planes(1) = 0;
-        else
-            set(handles.check_hideFaultPlanes,'Val',1)
-        end
-        handles.patchFatias = [];       % Reset it so a new cicle may begin
-        guidata(handles.figure1,handles)
-    end
+function check_SCC_CB(hObject, handles)
+% Activate (or de-...) the variable slip mode.
+	if (get(hObject,'Value'))
+		msg = [];
+		if (handles.nFaults ~= 1),              msg = 'Currently only one fault is allowed';    end
+		if (numel(handles.FaultWidth{1}) ~= 1), msg = 'Currently only a fault with one segment is allowed';    end
+		if (~isempty(msg)),     errordlg(msg,'Error');      set(hObject,'Value',0),		return,		end
+		if (isnan(handles.FaultDepth{1})),      msg = 'Must set the fault''s Depth first';          end
+		if (isnan(handles.FaultWidth{1})),      msg = 'Must set the total fault''s Width first';    end
+		if (~isempty(msg))
+			errordlg(msg,'Error');
+			set(hObject,'Value',0);
+			return
+		end
+		handles.restoreOldPlane = ~handles.hide_planes;
+		do_scc(handles);
+	else								% Remove the scc stripes and restore previous const slip state
+		deleteFatias([],[], handles)
+		if (handles.restoreOldPlane)
+			hp = getappdata(handles.h_fault(1),'PatchHand');
+			try     set(hp,'Visible','on');     end
+			set(handles.check_hideFaultPlanes,'Val',0)
+			handles.hide_planes(1) = 0;
+		else
+			set(handles.check_hideFaultPlanes,'Val',1)
+		end
+		handles.patchFatias = [];       % Reset it so a new cicle may begin
+		guidata(handles.figure1,handles)
+	end
 
 % -----------------------------------------------------------------------------------------
-function edit_nSlices_CB(hObject, eventdata, handles)
+function edit_nSlices_CB(hObject, handles)
     nFatias = str2double(get(hObject,'String'));
     if (isnan(nFatias) || nFatias < 5)
         warndlg('Number of slices requested is either nonsense or too low. Reseting','Warning')
@@ -702,7 +707,7 @@ function edit_nSlices_CB(hObject, eventdata, handles)
     end
 
 % -----------------------------------------------------------------------------------------
-function edit_qValue_CB(hObject, eventdata, handles)
+function edit_qValue_CB(hObject, handles)
     qValue = str2double(get(hObject,'String'));
     if (isnan(qValue) || qValue < 1e-2 || qValue >= 1)
         set(hObject,'String','0.3');
@@ -821,35 +826,35 @@ function [stripes,varSlip,sliceWidth] = comp_varSlip(handles)
     %   a               b
 
 % -----------------------------------------------------------------------------------------
-function deleteFatias(hObj,event,handles)
-    handles = guidata(handles.figure1);     % Update
-    delete(handles.patchFatias)
-    handles.patchFatias = [];
-    guidata(handles.figure1,handles);
+function deleteFatias(hObj, evt, handles)
+	handles = guidata(handles.figure1);     % Update
+	delete(handles.patchFatias)
+	handles.patchFatias = [];
+	guidata(handles.figure1, handles);
 
 % -----------------------------------------------------------------------------------------
-function showFatias(hObj,event,handles)
-    q = handles.qValue;
-    gama = (0:100)/100;
-    D1 = 12/q^3*(q*gama - gama.^2);     D2 = 12/(1-q)^3*(gama.^2 -gama*(1+q)+q);
-    ind = find(gama < q);
-    D3 = [D1(1:ind(end)) D2(ind(end)+1:end)];
-    D3 = cumsum(D3);                    D3(D3 < 0) = 0;
-    D3 = D3 / max(D3);
-    hFig = figure('Name','Normalized slip profile','NumberTitle','off');    
-    plot(gama,D3)
-    hAxes = get(hFig,'Currentaxes');
-    
-    nFatias = numel(handles.patchFatias);
-    gama  = (0:nFatias-1)/nFatias;
-    D3 = [handles.varSlip(1:end); handles.varSlip(1:end)];
-    D3 = D3(:)';
-    x = [gama(2:end); gama(2:end)];
-    x = [0 x(:)' gama(end)+diff(gama(1:2))];
-    line('XData',x,'YData',D3,'Parent',hAxes)
-    area = cumsum(handles.varSlip) * diff(gama(1:2));
-    lost = (1 - area(end) / 0.5)*100;
-    text(.25,.1,sprintf('%s%.1f%s','Lost in descretization = ',abs(lost),'%'))
+function showFatias(hObj, evt, handles)
+	q = handles.qValue;
+	gama = (0:100)/100;
+	D1 = 12/q^3*(q*gama - gama.^2);     D2 = 12/(1-q)^3*(gama.^2 -gama*(1+q)+q);
+	ind = find(gama < q);
+	D3 = [D1(1:ind(end)) D2(ind(end)+1:end)];
+	D3 = cumsum(D3);                    D3(D3 < 0) = 0;
+	D3 = D3 / max(D3);
+	hFig = figure('Name','Normalized slip profile','NumberTitle','off');    
+	plot(gama,D3)
+	hAxes = get(hFig,'Currentaxes');
+
+	nFatias = numel(handles.patchFatias);
+	gama  = (0:nFatias-1)/nFatias;
+	D3 = [handles.varSlip(1:end); handles.varSlip(1:end)];
+	D3 = D3(:)';
+	x = [gama(2:end); gama(2:end)];
+	x = [0 x(:)' gama(end)+diff(gama(1:2))];
+	line('XData',x,'YData',D3,'Parent',hAxes)
+	area = cumsum(handles.varSlip) * diff(gama(1:2));
+	lost = (1 - area(end) / 0.5)*100;
+	text(.25,.1,sprintf('%s%.1f%s','Lost in descretization = ',abs(lost),'%'))
 
 % ------------------------------------------------------------------------------------
 function [fault,seg] = getFaultSeg(handles)
@@ -873,7 +878,7 @@ function handles = set_all_faults(handles,varargin)
 	nSeg = size(handles.h_fault,1);
 	if (nSeg == 1)
 		nx = numel(handles.FaultStrike{1});		n_fault = numel(handles.h_fault);
-		
+
 		% Pre-allocation
 		handles.FaultDepth = repmat({zeros(1, nx)}, n_fault, 1);
 		
@@ -929,24 +934,26 @@ function [handles, mag, M0] = compMag(handles, fault)
 	end
 
 % ------------------------------------------------------------------------------------
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-    if (get(handles.check_SCC,'Val'))
-        deleteFatias([],[],handles)
+function figure1_CloseRequestFcn(hObject, evt)
+% ...
+	handles = guidata(hObject);
+	if (get(handles.check_SCC,'Val'))
+		deleteFatias([],[], handles)
 	elseif (~handles.fault_in)
 		for (i=1:numel(handles.h_fault))
 			hp = getappdata(handles.h_fault(i),'PatchHand');
 			try     set(hp,'XData', [], 'YData',[], 'Visible','on');     end     % Had to use a try (f.. endless errors)
 		end
-    end
-    delete(handles.figure1)
+	end
+	delete(handles.figure1)
 
 % -----------------------------------------------------------------------------------------
 % ---------------- Creates and returns a handle to the GUI figure. 
 function deform_mansinha_LayoutFcn(h1)
 
-set(h1, 'PaperUnits',get(0,'defaultfigurePaperUnits'),...
+set(h1 ,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'CloseRequestFcn',{@deform_mansinha_uiCB,h1,'figure1_CloseRequestFcn'},...
+'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'MenuBar','none',...
 'Name','Vertical elastic deformation',...
 'NumberTitle','off',...
