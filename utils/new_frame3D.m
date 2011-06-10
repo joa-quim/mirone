@@ -46,13 +46,19 @@ function out = new_frame3D(hFig, hText, hFrame)
 	hText_new = zeros(1,numel(hText));
 	for (i = 1:numel(hText))
         usr_d = get(hText(i),'UserData');
-        t_size = get(hText(i),'Position');		t_str = get(hText(i),'String');
+        t_size = get(hText(i),'Position');
+		t_str = get(hText(i),'String');
+		t_just = get(hText(i),'HorizontalAlignment');
+		t_tag = get (hText(i),'Tag');
 		fs = get(hText(i),'FontSize');
 		fa = get(hText(i),'FontAngle');
 		fw = get(hText(i),'FontWeight');
-        fn = get(hText(i),'FontName');		bgc = get (hText(i),'BackgroundColor');   fgc = get (hText(i),'ForegroundColor');
-        hText_new(i) = uicontrol('Parent',hFig, 'Style','text', 'Position',t_size,'String',t_str, 'BackgroundColor',bgc, ...
-            'ForegroundColor',fgc, 'FontSize',fs, 'FontAngle',fa, 'FontWeight',fw, 'FontName',fn, 'UserData',usr_d);
+        fn = get(hText(i),'FontName');
+		bgc = get (hText(i),'BackgroundColor');
+		fgc = get (hText(i),'ForegroundColor');
+        hText_new(i) = uicontrol('Parent',hFig, 'Style','text', 'Position',t_size,'String',t_str, ...
+			'BackgroundColor',bgc, 'ForegroundColor',fgc, 'FontSize',fs, 'FontAngle',fa, 'FontWeight',fw, ...
+			'FontName',fn, 'HorizontalAlignment',t_just, 'Tag',t_tag, 'UserData',usr_d);
 	end
 	delete(hText)
 	if (nargout)	out = hText_new;	end
