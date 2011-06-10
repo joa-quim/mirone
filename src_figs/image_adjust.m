@@ -18,7 +18,7 @@ function varargout = image_adjust(varargin)
 
 	if (isempty(varargin))		return,		end
 
-	hObject = figure('Tag','figure1','Visible','off');
+	hObject = figure('Vis','off');
 	image_adjust_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'right')
@@ -113,90 +113,90 @@ function varargout = image_adjust(varargin)
 	if (nargout),	varargout{1} = hObject;		end
 
 % ----------------------------------------------------------------------------
-function popup_operations_Callback(hObject, handles)
+function popup_operations_CB(hObject, handles)
 	UpdateOperations(handles)
 
 % ----------------------------------------------------------------------------
-function edit_gamma_Callback(hObject, handles)
-gamma = str2double(get(hObject, 'String'));
-if (isempty(gamma) || gamma(1) < 0)
-    set(hObject,'String','1')
-    handles.Gamma = 1;
-    guidata(handles.figure1,handles)
-else   
-    handles.Gamma = gamma(1);
-    guidata(handles.figure1,handles)
-    BtnMotion([],[],handles,5);  % Redraw
-    DoAdjust(handles);
-end
+function edit_gamma_CB(hObject, handles)
+	gamma = str2double(get(hObject, 'String'));
+	if (isempty(gamma) || gamma(1) < 0)
+		set(hObject,'String','1')
+		handles.Gamma = 1;
+		guidata(handles.figure1,handles)
+	else   
+		handles.Gamma = gamma(1);
+		guidata(handles.figure1,handles)
+		BtnMotion([],[],handles,5);  % Redraw
+		DoAdjust(handles);
+	end
 
 % ----------------------------------------------------------------------------
-function push_Brighten_Callback(hObject, handles)
-low = handles.LowHiBotTop(1);       high = handles.LowHiBotTop(2);
-bot = handles.LowHiBotTop(3);       top = handles.LowHiBotTop(4);
-change = .1;
-% Don't shift the whole line out of the axes range:
-if top >= bot
-   if (bot+change > 1),     return;     end     % Don't make it any brighter
-else
-   if (top+change > 1),     return;     end     % Don't make it any brighter
-end   
-top = top + change;     bot = bot + change;
-BtnMotion([],[],handles,5, low, high, bot, top);      % Redraw
-handles.LowHiBotTop = [low high bot top];
-guidata(handles.figure1,handles)
-DoAdjust(handles);
+function push_Brighten_CB(hObject, handles)
+	low = handles.LowHiBotTop(1);       high = handles.LowHiBotTop(2);
+	bot = handles.LowHiBotTop(3);       top = handles.LowHiBotTop(4);
+	change = .1;
+	% Don't shift the whole line out of the axes range:
+	if top >= bot
+		if (bot+change > 1),     return;     end     % Don't make it any brighter
+	else
+		if (top+change > 1),     return;     end     % Don't make it any brighter
+	end   
+	top = top + change;     bot = bot + change;
+	BtnMotion([],[],handles,5, low, high, bot, top);      % Redraw
+	handles.LowHiBotTop = [low high bot top];
+	guidata(handles.figure1,handles)
+	DoAdjust(handles);
 
 % ----------------------------------------------------------------------------
-function push_Darken_Callback(hObject, handles)
-low = handles.LowHiBotTop(1);        high = handles.LowHiBotTop(2);
-bot = handles.LowHiBotTop(3);        top = handles.LowHiBotTop(4);
-change = .1;
-% Don't shift the whole line out of the axes range:
-if (top >= bot)
-   if (top-change < 0),     return;     end     % Don't make it any darker
-else
-   if (bot-change < 0),     return;     end     % Don't make it any darker
-end
-top = top - change;     bot = bot - change;
-BtnMotion([],[],handles,5, low, high, bot, top);      % Redraw
-handles.LowHiBotTop = [low high bot top];
-guidata(handles.figure1,handles)
-DoAdjust(handles);
+function push_Darken_CB(hObject, handles)
+	low = handles.LowHiBotTop(1);        high = handles.LowHiBotTop(2);
+	bot = handles.LowHiBotTop(3);        top = handles.LowHiBotTop(4);
+	change = .1;
+	% Don't shift the whole line out of the axes range:
+	if (top >= bot)
+		if (top-change < 0),     return;     end     % Don't make it any darker
+	else
+		if (bot-change < 0),     return;     end     % Don't make it any darker
+	end
+	top = top - change;     bot = bot - change;
+	BtnMotion([],[],handles,5, low, high, bot, top);      % Redraw
+	handles.LowHiBotTop = [low high bot top];
+	guidata(handles.figure1,handles)
+	DoAdjust(handles);
 
 % ----------------------------------------------------------------------------
-function push_incrContrast_Callback(hObject, handles)
-high = get(handles.hAdjTopCtl, 'Xdata');    low = get(handles.hAdjBotCtl, 'Xdata');
-top = get(handles.hAdjTopCtl, 'Ydata');     bot = get(handles.hAdjBotCtl, 'Ydata');
-change = .1*(high-low);
-low = low + change;         high = high - change;
-BtnMotion([],[],handles,5, low, high, bot, top);      % Redraw
-DoAdjust(handles);
+function push_incrContrast_CB(hObject, handles)
+	high = get(handles.hAdjTopCtl, 'Xdata');    low = get(handles.hAdjBotCtl, 'Xdata');
+	top = get(handles.hAdjTopCtl, 'Ydata');     bot = get(handles.hAdjBotCtl, 'Ydata');
+	change = .1*(high-low);
+	low = low + change;         high = high - change;
+	BtnMotion([],[],handles,5, low, high, bot, top);      % Redraw
+	DoAdjust(handles);
 
 % ----------------------------------------------------------------------------
-function push_decrContrast_Callback(hObject, handles)
-high = get(handles.hAdjTopCtl, 'Xdata');    low = get(handles.hAdjBotCtl, 'Xdata');
-top = get(handles.hAdjTopCtl, 'Ydata');     bot = get(handles.hAdjBotCtl, 'Ydata');
-change = .1*(high-low);
-low = max(low - change,0);  high = min(high + change,1);
-BtnMotion([],[],handles,5, low, high, bot, top);      % Redraw
-DoAdjust(handles);
+function push_decrContrast_CB(hObject, handles)
+	high = get(handles.hAdjTopCtl, 'Xdata');    low = get(handles.hAdjBotCtl, 'Xdata');
+	top = get(handles.hAdjTopCtl, 'Ydata');     bot = get(handles.hAdjBotCtl, 'Ydata');
+	change = .1*(high-low);
+	low = max(low - change,0);  high = min(high + change,1);
+	BtnMotion([],[],handles,5, low, high, bot, top);      % Redraw
+	DoAdjust(handles);
 
 % ----------------------------------------------------------------------------
-function push_decrGamma_Callback(hObject, handles)
-handles.Gamma = handles.Gamma * 0.8;
-set(handles.edit_gamma, 'String', num2str(handles.Gamma)); %drawnow
-guidata(handles.figure1,handles)
-BtnMotion([],[],handles,5);  % Redraw
-DoAdjust(handles);
+function push_decrGamma_CB(hObject, handles)
+	handles.Gamma = handles.Gamma * 0.8;
+	set(handles.edit_gamma, 'String', num2str(handles.Gamma)); %drawnow
+	guidata(handles.figure1,handles)
+	BtnMotion([],[],handles,5);  % Redraw
+	DoAdjust(handles);
 
 % ----------------------------------------------------------------------------
-function push_incrGamma_Callback(hObject, handles)
-handles.Gamma = handles.Gamma * 1.2;
-set(handles.edit_gamma, 'String', num2str(handles.Gamma)); %drawnow
-guidata(handles.figure1,handles)
-BtnMotion([],[],handles,5);  % Redraw
-DoAdjust(handles);
+function push_incrGamma_CB(hObject, handles)
+	handles.Gamma = handles.Gamma * 1.2;
+	set(handles.edit_gamma, 'String', num2str(handles.Gamma)); %drawnow
+	guidata(handles.figure1,handles)
+	BtnMotion([],[],handles,5);  % Redraw
+	DoAdjust(handles);
 
 % --------------------------------------------------------------------------
 function [y,x] = localImhist(varargin)
@@ -498,29 +498,29 @@ end
 % --------------------------------------------------------------------------
 function DoAdjust(handles)
 
-setptr(handles.figure1, 'watch');
+	setptr(handles.figure1, 'watch');
 
-% The add/subtracts in Constrain can introduce eps level errors which put us outside of [0 1]
-low  = max(0.0, get(handles.hAdjBotCtl, 'Xdata'));
-bot  = max(0.0, get(handles.hAdjBotCtl, 'Ydata'));
-high = min(1.0, get(handles.hAdjTopCtl, 'Xdata'));
-top  = min(1.0, get(handles.hAdjTopCtl, 'Ydata'));
+	% The add/subtracts in Constrain can introduce eps level errors which put us outside of [0 1]
+	low  = max(0.0, get(handles.hAdjBotCtl, 'Xdata'));
+	bot  = max(0.0, get(handles.hAdjBotCtl, 'Ydata'));
+	high = min(1.0, get(handles.hAdjTopCtl, 'Xdata'));
+	top  = min(1.0, get(handles.hAdjTopCtl, 'Ydata'));
 
-if( abs(high-low)<eps )  % Protect imadjust against divide by 0
-   high = low+.0001;
-end
+	if( abs(high-low)<eps )  % Protect imadjust against divide by 0
+	   high = low+.0001;
+	end
 
-% Adjust first the preview image
-img = get(handles.hPreviewImage, 'Cdata');
-imgAd = img_fun('imadjust_j',img, [low;high],[bot;top],handles.Gamma);
-set(handles.hAdjustedImage, 'Cdata', imgAd);
+	% Adjust first the preview image
+	img = get(handles.hPreviewImage, 'Cdata');
+	imgAd = img_fun('imadjust_j',img, [low;high],[bot;top],handles.Gamma);
+	set(handles.hAdjustedImage, 'Cdata', imgAd);
 
-% Adjust the original image
-imgAd = img_fun('imadjust_j',handles.OriginalImage, [low;high],[bot;top],handles.Gamma);
-set(handles.h_mirone_img, 'Cdata', imgAd);
+	% Adjust the original image
+	imgAd = img_fun('imadjust_j',handles.OriginalImage, [low;high],[bot;top],handles.Gamma);
+	set(handles.h_mirone_img, 'Cdata', imgAd);
 
-axes(handles.axes4);        localImhist(imgAd,handles);
-setptr(handles.figure1, 'arrow');
+	axes(handles.axes4);        localImhist(imgAd,handles);
+	setptr(handles.figure1, 'arrow');
 
 % --------------------------------------------------------------------------
 function UpdateOperations(handles)
@@ -555,20 +555,20 @@ switch op
 
 % --------------------------------------------------------------------------
 function EqualizeHistogram(handles)
-setptr(handles.figure1, 'watch');
+	setptr(handles.figure1, 'watch');
 
-% Equalize first the preview image
-img = get(handles.hPreviewImage, 'CData');
-imgEq = img_fun('histeq_j',img,256);
-set(handles.hAdjustedImage, 'CData', imgEq)
+	% Equalize first the preview image
+	img = get(handles.hPreviewImage, 'CData');
+	imgEq = img_fun('histeq_j',img,256);
+	set(handles.hAdjustedImage, 'CData', imgEq)
 
-% Now the original image
-[imgEq,T] = img_fun('histeq_j',handles.OriginalImage,256);
-set(handles.h_mirone_img, 'Cdata', imgEq);
+	% Now the original image
+	[imgEq,T] = img_fun('histeq_j',handles.OriginalImage,256);
+	set(handles.h_mirone_img, 'Cdata', imgEq);
 
-set(handles.hT, 'Xdata',0:(1/255):1,'YData',T);
-axes(handles.axes4);    localImhist(imgEq,handles);
-setptr(handles.figure1, 'arrow');
+	set(handles.hT, 'Xdata',0:(1/255):1,'YData',T);
+	axes(handles.axes4);    localImhist(imgEq,handles);
+	setptr(handles.figure1, 'arrow');
 
 % --------------------------------------------------------------------------
 function AdaptiveHisteq(handles)
@@ -616,44 +616,44 @@ axes('Parent',h1,'Units','pixels',...
 uicontrol('Parent',h1,'Position',[340 20 181 141],'Style','frame','Tag','frame1');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'popup_operations_Callback'},...
+'Call',@main_uiCB,...
 'Position',[350 128 161 22],...
 'String',{'Intensity adjustment'; 'Histogram Equalization'; 'Adaptative Histogram Eq'},...
 'Style','popupmenu','Value',1,'Tag','popup_operations');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_gamma_Callback'},...
+'Call',@main_uiCB,...
 'HorizontalAlignment','right',...
 'Position',[451 165 49 21],...
 'String','1','Style','edit','Tag','edit_gamma');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'push_Brighten_Callback'},...
+'Call',@main_uiCB,...
 'Position',[350 88 75 19],...
 'String','+ Brightness','Tag','push_Brighten');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'push_Darken_Callback'},...
+'Call',@main_uiCB,...
 'Position',[437 88 75 19],...
 'String','- Brightness','Tag','push_Darken');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'push_incrContrast_Callback'},...
+'Call',@main_uiCB,...
 'Position',[350 61 75 19],...
 'String','+ Contrast','Tag','push_incrContrast');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'push_decrContrast_Callback'},...
+'Call',@main_uiCB,...
 'Position',[437 61 75 19],...
 'String','- Contrast','Tag','push_decrContrast');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'push_incrGamma_Callback'},...
+'Call',@main_uiCB,...
 'Position',[350 31 75 19],...
 'String','+ Gamma','Tag','push_incrGamma');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'push_decrGamma_Callback'},...
+'Call',@main_uiCB,...
 'Position',[437 31 75 19],...
 'String','- Gamma','Tag','push_decrGamma');
 
@@ -674,6 +674,6 @@ uicontrol('Parent',h1,'Position',[10 200 161 151],...
 uicontrol('Parent',h1,'Position',[180 200 161 151],...
 'Style','frame','Tag','frame_ax2');
 
-function main_uiCB(hObject, eventdata, h1, callback_name)
+function main_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,guidata(h1));
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
