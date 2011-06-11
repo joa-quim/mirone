@@ -139,13 +139,13 @@ uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM', 'Call', 'draw_funs([],''Chn
 uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM.xx', 'Call', 'draw_funs([],''ChngAxLabels'',''ToDegMinDec'')','Tag','LabFormat');
 uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM SS', 'Call', 'draw_funs([],''ChngAxLabels'',''ToDegMinSec'')','Tag','LabFormat');
 uimenu(cmenu_axes, 'Label', 'Label Format -> DD MM SS.x', 'Call', 'draw_funs([],''ChngAxLabels'',''ToDegMinSecDec'')','Tag','LabFormat');
-itemFS = uimenu(cmenu_axes, 'Label', 'Label Font Size', 'Separator','on');
+itemFS = uimenu(cmenu_axes, 'Label', 'Label Font Size', 'Sep','on');
 uimenu(itemFS, 'Label', '7   pt', 'Call', 'set(gca, ''FontSize'', 7)');
 uimenu(itemFS, 'Label', '8   pt', 'Call', 'set(gca, ''FontSize'', 8)');
 uimenu(itemFS, 'Label', '9   pt', 'Call', 'set(gca, ''FontSize'', 9)');
 uimenu(itemFS, 'Label', '10 pt', 'Call', 'set(gca, ''FontSize'', 10)');
-uimenu(cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid', 'Separator','on');
-uimenu(cmenu_axes, 'Label', 'Row-Col mode on/off', 'Tag','RCMode', 'Separator','on');
+uimenu(cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid', 'Sep','on');
+uimenu(cmenu_axes, 'Label', 'Row-Col mode on/off', 'Tag','RCMode', 'Sep','on');
 uimenu(cmenu_axes, 'Label', 'Pixel mode on/off', 'Tag','PixMode');
 % --- Those ones are manipulated in setAxesDefCoordIn()
 uimenu(cmenu_axes, 'Label', 'Load in projected coords', 'Checked','on', 'Vis','off','Tag','hAxMenuLF');
@@ -711,7 +711,7 @@ uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','o
 if (IamCompiled)
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''dump'')','Label','Print RAM fragmentation','Sep','on')
 end
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 30 May 2011'',''2.1.1'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 11 Jun 2011'',''2.1.1'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
