@@ -21,7 +21,7 @@ function varargout = mag_synthetic(varargin)
 		errordlg('MAG_SYNTHETIC: Called with wrong number of args (4)'),	return
 	end
 	
-	hObject = figure();
+	hObject = figure('Vis','off');
 	mag_synthetic_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'left');
@@ -794,8 +794,7 @@ set(h1,...
 'Position',[520 298 319 401],...
 'Resize','off',...
 'HandleVisibility','callback',...
-'Tag','figure1',...
-'Vis','off');
+'Tag','figure1');
 
 uicontrol('Parent',h1,'Position',[10 10 301 381],'Style','frame');
 uicontrol('Parent',h1,'Position',[20 270 281 103],'Style','frame');
