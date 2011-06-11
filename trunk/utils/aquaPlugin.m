@@ -38,7 +38,7 @@ function aquaPlugin(handles, auto)
 % --------------------------------------------------------------------
 
 	if ( isempty(handles.fname) )
-		errordlg('Hey Lou. What about a walk on the Wild Side? Maybe you''ll find a little file there that you can use here!','Chico clever')
+		errordlg('Fast trigger, you probably killed my previous encarnation. Now you have to start again. Bye.','Error')
 		return
 	end
 	internal_master = true;		% To know if flow control is determined by the contents of an external file (def NO).
@@ -157,7 +157,7 @@ function aquaPlugin(handles, auto)
 			write_vtk(handles)
 	end
 
-% --------------------------------------------------4--------5---------6------------7----------8--
+% ----------------------1-------2--------3---------4---------5---------6-----------7----------8---------9----
 function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, fnamePoly2, fnameFlag, quality)
 % Compute zonal means from a multi-layer file
 %
@@ -171,7 +171,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 %				For example [3 1] Starts analysis on forth year and stops on the before last year.
 %				[0 0] Means using the all dataset.
 %
-% FNAMEPOLY1	Optional polygon file delimiting an area where the analisys will be carried on.
+% FNAMEPOLY1	Optional polygon file delimiting an area where the analysis will be carried on.
 %
 % FNAMEPOLY2	Optional second polygon file. If it points to a valid file. This function is called 
 %				twice and results are subtracted
@@ -262,7 +262,8 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 	else				N_tot = rows + 1e-10;
 	end
 	mask = [];
-	for (k = series_vec)
+
+	for (k = series_vec)			% Loop over time layers
 		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [k-1 0 0], [1 rows cols]);
 		this_has_nans = false;
 
@@ -299,6 +300,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 		h = aguentabar(k/nSeries);
 		if (isnan(h)),	break,	end
 	end
+
 	if (isnan(h)),	return,		end	
 
 	allSeries(allSeries == 0) = nan;		% NaN is more reasonable to denote data absence
@@ -996,7 +998,7 @@ function Z = inpaint_nans(handles, Z, bw, nCells)
 		end
 	end
 
-% ---------------------------------2-------3------4----------5--------6-----
+% ------------------------1--------2-------3------4----------5--------6---------8----
 function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, quality)
 % This function search for polygons (patches or closed lines) and computes averages
 % of whatever quantity is respresented inside those polygones. The result is saved
@@ -1024,6 +1026,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 % QUALITY		Threshold quality value. Only values of quality >= FLAG will be taken into account
 %				NOTE: For MODIS use negative FLAG. Than, values are retained if quality <= abs(FLAG)
 
+	% -------------------------------- Options parsing -------------------------------------
 	if (nargin < 4)
 		fnamePolys = [];		sub_set = [0 0];	fnameFlag = [];
 	end
@@ -1041,6 +1044,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 			fnameFlag = [];
 		end
 	end
+	% -------------------------------- END of options parsing -----------------------------------
 
 	if (numel(sub_set) == 2)
 		jump_start = sub_set(1);		stop_before_end = sub_set(2);
@@ -1110,16 +1114,17 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 	end
 
 	if (N == 0)
-		errordlg('Fiu Fiu! No closed polygons to compute whaterver average value inside. Bye.','Error')
+		errordlg('Fiu Fiu! No closed polygons to compute whaterver average value inside. Bye Bye.','Error')
 		return
 	end
+	% --------------------------- END of polygons fishing section -----------------------------------
 
 	nLayers = handles.number_of_timesteps - (jump_start + stop_before_end);	% Number of layers to be used in this run
 	series_vec = (jump_start:(nLayers - 1 + jump_start)) + 1;		% Add 1 so it never starts at 0 (no good for indices)
 	avg = zeros(nLayers,N) * NaN;
 	THRESH = 0.25;						% Minimum percentage of valid points inside poly
 
-	aguentabar(0,'title','Calcula as medias poligonais','CreateCancelBtn')
+	aguentabar(0,'title','Compute poligonal averages','CreateCancelBtn')
 
 	for (m = series_vec)				% Loop over layers ensemble
 		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m-1 0 0], [1 rows cols]);
@@ -1131,14 +1136,14 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 			end
 		end
 
-		for (k = 1:N)				% Loop over polygons
+		for (k = 1:N)				% Loop over all polygons
 			x = polys{k}(:,1);			y = polys{k}(:,2);
 			xp(1) = min(x);				xp(2) = max(x);
 			yp(1) = min(y);				yp(2) = max(y);
 			rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];
 			x_lim = [xp(1) xp(2)];		y_lim = [yp(1) yp(2)];
 
-			% Extrai um rect que englobe o poligono para poupar na conta da mascara
+			% Get a BoundingBox rect to save work in mask computing
 			[Z_rect, l.lixo] = cropimg(handles.head(1:2),handles.head(3:4),Z,rect_crop,'out_grid');
 			mask = img_fun('roipoly_j',x_lim,y_lim,Z_rect,x,y);
 
@@ -1160,7 +1165,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 		end
 		h = aguentabar(m/nLayers);
 		if (isnan(h)),	break,	end
-		
+
 	end
 
 	if (isnan(h)),	return,		end
