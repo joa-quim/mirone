@@ -131,7 +131,7 @@ function varargout = deform_mansinha(varargin)
 		if (handles.n_faults == 1)
 			faultWidth = handles.FaultLength{1}(1) / 4;
 			if (handles.is_meters),		faultWidth = round(faultWidth * 1e-3);     end
-			handles = edit_FaultWidth_CB([], faultWidth, handles);    % Compute the rest
+			handles = edit_FaultWidth_CB([], handles, faultWidth);    % Compute the rest
             set(handles.edit_FaultWidth,'String',num2str(faultWidth));
 		end
 	else			% We have a multi-patch slip model
@@ -210,9 +210,9 @@ function varargout = deform_mansinha(varargin)
 	if (nargout),   varargout{1} = hObject;     end
 
 % ------------------------------------------------------------------------------------
-function handles = edit_FaultWidth_CB(hObject, handles)
+function handles = edit_FaultWidth_CB(hObject, handles, opt)
 % Actualize the "FaultWidth" field. EVENTDATA may not be empty
-	if (nargout)		xx = eventdata;
+	if (nargout)		xx = opt;
 	else				xx = str2double(get(hObject,'String'));
 	end
 	if (xx < 0)         % If user tried to give a negative width
