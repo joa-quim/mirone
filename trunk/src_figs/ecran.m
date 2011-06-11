@@ -174,6 +174,10 @@ function varargout = ecran(varargin)
 		handles.show_popups = false;
 	end
 
+	handles.cmenu_axes = uicontextmenu('Parent',handles.figure1);	% Save it because we need it in "add_uictx_CB()"
+	set(handles.axes1, 'UIContextMenu', handles.cmenu_axes);
+	uimenu(handles.cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid');
+
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 	if (nargout),	varargout{1} = hObject;		end
@@ -1234,15 +1238,13 @@ function add_uictx_CB(hObject, handles)
 
 	datetick('x','keeplimits')		% Make it auto right away
 
-	cmenu_axes = uicontextmenu('Parent',handles.figure1);
-	set(handles.axes1, 'UIContextMenu', cmenu_axes);
-	uimenu(cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'});
-	uimenu(cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
-	uimenu(cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call', {@SetAxesDate,2});
-	uimenu(cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call', {@SetAxesDate,6});
-	uimenu(cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call', {@SetAxesDate,15});
-	uimenu(cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call', {@SetAxesDate,13});
-	uimenu(cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call', @SetAxesDate);
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'}, 'Sep','on');
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call', {@SetAxesDate,2});
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call', {@SetAxesDate,6});
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call', {@SetAxesDate,15});
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call', {@SetAxesDate,13});
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call', @SetAxesDate);
 
 % --------------------------------------------------------------------
 function filterButt_CB(hObject, handles)
@@ -1258,15 +1260,13 @@ function filterButt_CB(hObject, handles)
 
 	datetick('x','keeplimits')		% Make it auto right away
 
-	cmenu_axes = uicontextmenu('Parent',h);
-	set(handNew.axes1, 'UIContextMenu', cmenu_axes);
-	uimenu(cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'});
-	uimenu(cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
-	uimenu(cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call', {@SetAxesDate,2});
-	uimenu(cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call', {@SetAxesDate,6});
-	uimenu(cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call', {@SetAxesDate,15});
-	uimenu(cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call', {@SetAxesDate,13});
-	uimenu(cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call', @SetAxesDate);
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'}, 'Sep','on');
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call', {@SetAxesDate,2});
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call', {@SetAxesDate,6});
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call', {@SetAxesDate,15});
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call', {@SetAxesDate,13});
+	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call', @SetAxesDate);
 
 % --------------------------------------------------------------------------------------------------
 function handles = SetAxesDate(hObject,event,opt)
