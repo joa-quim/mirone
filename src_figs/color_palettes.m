@@ -691,8 +691,8 @@ function FileSavePalette_CB(hObject, handles, opt)
 		for i=1:pal_len
 			cor = round(pal(i,:)*255);
 			cor_str = sprintf([num2str(cor(1),'%.1d') '\t' num2str(cor(2),'%.1d') '\t' num2str(cor(3),'%.1d')]);
-			z1 = num2str(z_min+dz*(i-1),'%.3f');
-			z2 = num2str(z_min+dz*i,'%.3f');
+			z1 = num2str(z_min+dz*(i-1),'%.4f');
+			z2 = num2str(z_min+dz*i,'%.4f');
 			tmp{i+2} = sprintf([z1 '\t' cor_str '\t' z2 '\t' cor_str]);
 		end
 	else                % Continuous GMT master palette with 16 colors
@@ -701,8 +701,8 @@ function FileSavePalette_CB(hObject, handles, opt)
 			cor_e = round(pal(i+1,:)*255);
 			cor_s_str = sprintf([num2str(cor_s(1),'%.1d') '\t' num2str(cor_s(2),'%.1d') '\t' num2str(cor_s(3),'%.1d')]);
 			cor_e_str = sprintf([num2str(cor_e(1),'%.1d') '\t' num2str(cor_e(2),'%.1d') '\t' num2str(cor_e(3),'%.1d')]);
-			z1 = num2str(z_min+dz*(i-1),'%.3f');
-			z2 = num2str(z_min+dz*i,'%.3f');
+			z1 = num2str(z_min+dz*(i-1),'%.4f');
+			z2 = num2str(z_min+dz*i,'%.4f');
 			tmp{i+2} = sprintf([z1 '\t' cor_s_str '\t' z2 '\t' cor_e_str]);
 		end
 	end
