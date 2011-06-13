@@ -43,7 +43,6 @@ function varargout = color_palettes(varargin)
 		else
 			set(handles.OptionsAutoApply,'checked','off','Enable','off')	% Prevent trying to update an unexisting fig cmap
 			set(handles.OptionsApply,'Enable','off')
-			set(handles.FileSavePaletteGrid','Vis','off')	% It makes no sense here
 			set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
 		end
 		handles.home_dir = handMir.home_dir;
@@ -57,7 +56,6 @@ function varargout = color_palettes(varargin)
 		later_ReadPalette = true;
 		set(handles.OptionsAutoApply,'checked','off','Enable','off')	% Prevent trying to update an unexisting figure cmap
 		set(handles.OptionsApply,'Enable','off')
-		set(handles.FileSavePaletteGrid','Vis','off')	% It makes no sense here
 		set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
 		handles.home_dir = cd;
 		handles.work_dir = cd;		handles.last_dir = cd;	% To not compromize put_or_get_file
@@ -679,6 +677,10 @@ function FileSavePalette_CB(hObject, handles, opt)
 		pal_len = size(pal,1);
 		dz = (handles.z_max - handles.z_min) / pal_len;
 		z_min = handles.z_min;
+		if (isempty(z_min))			% This happens when the option was used but no grid is loaded
+			z_min = 0;
+			dz = 1 / pal_len;
+		end
 	end
 
 	tmp = cell(1, max(pal_len+4, 19));
