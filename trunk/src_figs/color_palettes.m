@@ -554,6 +554,7 @@ function change_cmap(handles, pal)
 	end
 
 	if (handles.thematic && ~handles.hinge)			% Imported GMT palette with Z levels, OR ...
+		if (isempty(handles.z_min_orig)),	return,		end						% No Grid, not possible to continue
 		len_Pal = size(pal, 1);    
 		z_grd = linspace(handles.z_min_orig, handles.z_max_orig, len_Pal)';		% Z[min max] descretized in len_Pal intervals
 		z_pal = [handles.z_intervals(:,1); handles.z_intervals(end,2)];			% Palette z intervals
