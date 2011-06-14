@@ -1,5 +1,10 @@
 function varargout = aquamoto(varargin)
 % A general purpose 3D grid/image file viewer, specialy taylored for tsunami (ANUGA) files
+%
+%	To read a file and call aquaPlugin and direct it to use a "control script"
+%		aquamoto file.nc 'file_name_of_control_script'
+%	To read a file and tell aquaPlugin to search the control script name in the OPTcontrol.txt file:
+%		aquamoto('file.nc', 0)
 
 %	Copyright (c) 2004-2011 by J. Luis
 %
@@ -16,8 +21,7 @@ function varargout = aquamoto(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% For compiling one need to include the aqua_suppfuns.m file. Useless to do the same with
-% aquaPlugin.m before I write a GUI interface to its functions.
+% For compiling one need to include the aqua_suppfuns.m aquaPlugin.m files.
 
 	hObject = figure('Tag','figure1','Visible','off');
 	aquamoto_LayoutFcn(hObject);
