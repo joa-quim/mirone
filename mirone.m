@@ -1224,8 +1224,9 @@ function FileOpenNewImage_CB(handles, opt)
 	recentFiles(handles);		% Insert fileName into "Recent Files" & save handles
 
 % --------------------------------------------------------------------
-function FileOpenWebImage_CB(handles, fname)
-% ...
+function FileOpenWebImage_CB(handles, fname, opt)
+% Load a file directly from the web.
+% OPT, [optional] informs that we are to get the ClusterMaps Mirone visitors Map
 	if (nargin == 1)
 		resp = inputdlg({'Enter Image URL'},'Get Image from Web',[1 120]);
 		if (isempty(resp)),		return,		end
@@ -1235,8 +1236,14 @@ function FileOpenWebImage_CB(handles, fname)
 	if (isempty(I))
 		errordlg('Sorry, but failed to fetch image from the ether. A Proxy problem?', 'Error'),		return
 	end
-	handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];	% Fake a grid reg GMT header
-	handles.image_type = 2;		X = [];		Y = [];			ax_dir = 'off';
+	if (nargin == 3)
+		handles.head = [-180 180 -57 78 0 255 0 360/(size(I,2)-1) 135/(size(I,1)-1)];
+		X = [-180 180];		Y = [-57 78];		ax_dir = 'xy';		I = flipdim(I,1);
+		handles.geog = 1;	handles.image_type = 3;
+	else
+		handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];	% Fake a grid reg GMT header
+		handles.image_type = 2;		X = [];		Y = [];			ax_dir = 'off';
+	end
 	handles = show_image(handles,fname,X,Y,I,0,ax_dir,0);
 	handles = aux_funs('isProj',handles);			% Check/set about coordinates type
 	guidata(handles.figure1,handles)
@@ -2978,7 +2985,7 @@ function FileSaveSession_CB(handles)
 	save(fname,'grd_name','img_pal', 'havePline','Pline', 'haveMBtrack', 'MBtrack','MBbar', ...
 		'haveText','Texto', 'haveSymbol','Symbol', 'haveCircleGeo','CircleGeo', 'haveCircleCart', ...
 		'havePlineAsPoints','PlineAsPoints','CircleCart', 'map_limits', 'havePatches', 'Patches', ...
-		'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', 'riversUD', 'illumComm', 'illumType')
+		'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', 'riversUD', 'illumComm', 'illumType', '-v6')
 	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
