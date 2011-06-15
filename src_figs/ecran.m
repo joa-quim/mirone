@@ -176,11 +176,29 @@ function varargout = ecran(varargin)
 
 	handles.cmenu_axes = uicontextmenu('Parent',handles.figure1);	% Save it because we need it in "add_uictx_CB()"
 	set(handles.axes1, 'UIContextMenu', handles.cmenu_axes);
-	uimenu(handles.cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid');
+  	set(handles.axes1, 'ButtonDownFcn', {@hide_uimenu,handles.figure1});
+	handles.uimenuGrid = uimenu(handles.cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid');
 
 	guidata(hObject, handles);
-	set(hObject,'Visible','on');
+	set(hObject,'Vis','on');
 	if (nargout),	varargout{1} = hObject;		end
+
+% --------------------------------------------------------------------------------------------------
+function hide_uimenu(obj,evt, hFig)
+% This function serves only to not show the annoying uicontextmenu when we right-click on the plottin area.
+% I don't know what happens in this program, but this was the only way I found to do it, and I tryied.
+% The problem will be we need the 'ButtonDownFcn' for something else
+	st = get(hFig,'SelectionType');
+	if (strcmp(st, 'alt'))
+		handles = guidata(hFig);
+		pt = get(handles.axes1, 'CurrentPoint');
+		x_lim = get(handles.axes1,'XLim');		y_lim = get(handles.axes1,'YLim');
+		if ((pt(1) > x_lim(1) && pt(1) < x_lim(2)) && (pt(1,2) > y_lim(1) && pt(1,2) < y_lim(2)))
+			set(handles.uimenuGrid,'Vis','off')
+		else
+			set(handles.uimenuGrid,'Vis','on')
+		end
+	end
 
 % --------------------------------------------------------------------------------------------------
 function zoom_CB(obj,eventdata,opt)
@@ -451,6 +469,9 @@ function add_MarkColor(obj, evt, h)
 			ud = get(hM,'UserData');
 			set(hM,'UserData', [ud h]);		% Save the Mirone symbol handle here
 		end
+		if (strcmp(get(handles.FileSaveRedMark,'Vis'), 'off'))		% Un-hide the file saving option
+			set(handles.FileSaveRedMark,'Vis','on')
+		end
 	else                        % Marker already exists. Kill it
 		xr(id) = [];            yr(id) = [];
 		set(hM,'XData',xr, 'YData', yr)
@@ -458,6 +479,9 @@ function add_MarkColor(obj, evt, h)
 		try		delete(ud(id)),		end
 		ud(id) = [];
 		set(hM,'UserData', ud)
+		if (isempty(xr))		% No more markers, so hide the possibility of saving them
+			set(handles.FileSaveRedMark,'Vis','off')
+		end
 	end
 
 % --------------------------------------------------------------------------------------------------
@@ -701,6 +725,30 @@ function FileSave_CB(hObject, handles)
 	if isequal(FileName,0),		return,		end     % User gave up	
 	[x, y] = get_inside_rect(handles);
 	double2ascii([PathName FileName],[x(:) y(:)],'%f\t%f');
+
+% --------------------------------------------------------------------
+function FileSaveRedMark_CB(hObject, handles)
+% Save the red markers in file
+	[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'X,Y (*.dat)';'*.*', 'All Files (*.*)'},'X,Y (ascii)','put', '.dat');
+	if isequal(FileName,0),		return,		end     % User gave up	
+    hM = findobj(handles.figure1,'Type','Line','tag','marker');
+	x = get(hM,'XData');		y = get(hM,'YData');
+	n_cols = size(handles.data,2);
+	if (n_cols == 2)		% Simplest but possibly non-existing case. Input data was only x,y
+		double2ascii([PathName FileName],[x(:) y(:)],'%f\t%f');
+	else					% Geog type data. Here we want also to save the distance along profile
+		ind = zeros(1,numel(x));
+		for (k = 1:numel(x))	% Find indices of the points in the handles.data array
+			ind(k) = find((handles.data(:,3) - y(k)) == 0);
+		end
+		ind = sort(ind);
+		x = handles.data(ind,1);
+		y = handles.data(ind,2);
+		z = handles.data(ind,3);
+		r0 = get_distances([handles.data(1,1) x(1)], [handles.data(1,2) y(1)], handles.geog, handles.measureUnit, handles.ellipsoide);
+		r = get_distances(x, y, handles.geog, handles.measureUnit, handles.ellipsoide);	% This starts conting dist at x(1)
+		double2ascii([PathName FileName],[x(:) y(:) r(:)+r0(2), z(:)],'%f\t%f\t%f\t%f');% add r0 so distances are from start of profile
+	end
 
 % --------------------------------------------------------------------
 function AnalysisFFT_AmpSpectrum_CB(hObject, handles)
@@ -2628,6 +2676,12 @@ uimenu('Parent',h10,...
 'Call',@ecran_uiCB,...
 'Label','Save',...
 'Tag','FileSave');
+
+uimenu('Parent',h10,...
+'Call',@ecran_uiCB,...
+'Label','Save Red Markers',...
+'Vis', 'off',...
+'Tag','FileSaveRedMark');
 
 uimenu('Parent',h10,'Call','ecran','Label','New','Separator','on');
 
