@@ -71,7 +71,7 @@ H1 = figure('PaperUnits','centimeters',...
 'Position',pos,...
 'HandleVisibility','callback',...
 'Tag','figure1',...
-'Visible','off');
+'Vis','off');
 
 setappdata(H1,'IAmAMirone',1)           % Use this appdata to identify Mirone figures
 setappdata(H1,'PixelMode',0)            % Default
@@ -89,7 +89,7 @@ end
 
 hVG = zeros(1,17);		kv = 5;		% hVG will contain the handles of "not valid grid" uis to hide when they are not usable
 hTB = uitoolbar('parent',H1, 'BusyAction','queue','HandleVisibility','on','Interruptible','on',...
-	'Tag','FigureToolBar','Visible','on');
+	'Tag','FigureToolBar','Vis','on');
 uipushtool('parent',hTB,'Click','mirone(''TransferB_CB'',guidata(gcbo),''NewEmpty'')', ...
 	'Tag','NewFigure','cdata',Mfnew_ico,'Tooltip','Open New figure');
 uipushtool('parent',hTB,'Click','mirone(''TransferB_CB'',guidata(gcbo),''guessType'')', ...
@@ -131,7 +131,7 @@ uipushtool('parent',hTB,'Click','writekml(guidata(gcbo))', 'Tag','toGE','cdata',
 uipushtool('parent',hTB,'Click',@refresca, 'Tag','Refresh','cdata',refresh_ico,'Tooltip','Refresh','Sep','on');
 uipushtool('parent',hTB,'Click','grid_info(guidata(gcbo))','Tag','ImageInfo','cdata',info_ico,'Tooltip','Image info');
 
-h_axes = axes('Parent',H1,'Units','pixels','Position',[60 0 50 10],'Tag','axes1','Visible','off');
+h_axes = axes('Parent',H1,'Units','pixels','Position',[60 0 50 10],'Tag','axes1','Vis','off');
 cmenu_axes = uicontextmenu('Parent',H1);
 set(h_axes, 'UIContextMenu', cmenu_axes);
 uimenu(cmenu_axes, 'Label', 'Label Format -> DD.xx', 'Call', 'draw_funs([],''ChngAxLabels'',''ToDegDec'')','Tag','LabFormat');
@@ -711,7 +711,9 @@ uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','o
 if (IamCompiled)
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''dump'')','Label','Print RAM fragmentation','Sep','on')
 end
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 11 Jun 2011'',''2.1.1'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
+	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 15 Jun 2011'',''2.1.1'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -723,7 +725,7 @@ uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 11 
 	handles.noVGlist = hVG;					% List of ui handles that will not show when "not valid grid"
 	handles.mirVersion = [2 0 0];			% Something like [major minor revision]
 	movegui(H1,'north');					% Reposition the window on screen
-	set(H1,'Visible','on');
+	set(H1,'Vis','on');
 
 % --------------------------------------------------------------------------------------------------
 % We need this function also when the pixval_stsbar get stucked
