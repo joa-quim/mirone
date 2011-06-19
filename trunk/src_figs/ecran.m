@@ -436,7 +436,7 @@ function add_MarkColor(obj, evt, h)
 
 	pt = get(handles.axes1, 'CurrentPoint');
     hM = findobj(handles.figure1,'Type','Line','tag','marker');
-	x = handles.dist;			y = handles.data(:,3);
+	x = get(handles.hLine,'XData')';		y = handles.data(:,3);
 
 	x_lim = get(handles.axes1,'XLim');		y_lim = get(handles.axes1,'YLim');
 	dx = diff(x_lim) / 20;					% Search only betweem +/- 1/10 of x_lim
@@ -448,7 +448,7 @@ function add_MarkColor(obj, evt, h)
 	r = sqrt(((pt(1,1)-x) ./ XScale).^2 + ((pt(1,2)-y) ./ YScale).^2);
 	[temp,i] = min(r);
 	pt_x = x(i);				pt_y = y(i);
-	
+
 	xr = get(hM,'XData');		yr = get(hM,'YData');
 	id = find(xr == pt_x);
 	if (isempty(id))            % New Marker
