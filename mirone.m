@@ -1747,10 +1747,13 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 	if isempty(Z),	return,		end		% An error message was already issued
 	set(handles.figure1,'pointer','watch'),		pause(0.01)
 
+	OPT_a = '-a1';
+	if (sum(handles.bg_color) < 0.01),	OPT_a = ' ';	end		% Near black bg color has a different treatment
+
 	if (strcmp(opt,'grdgrad_class'))		% GMT grdgradient classic illumination
 		illumComm = sprintf('-A%.2f',luz.azim);
-		if (handles.geog),	[R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt', '-a1');
-		else				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt', '-a1');
+		if (handles.geog),	[R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt', OPT_a);
+		else				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt', OPT_a);
 		end
 		handles.Illumin_type = 1;
 		if (sigma < 1e-6),		sigma = 1e-6;	end		% We cannot let them be zero on sprintf('%.6f',..) somewhere else
@@ -1758,15 +1761,15 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 		handles.grad_offset = offset;	handles.grad_sigma = sigma;
 	elseif (strcmp(opt,'grdgrad_lamb'))		% GMT grdgradient lambertian illumination
 		illumComm = sprintf('-Es%.2f/%.2f',luz.azim, luz.elev);
-		R = grdgradient_m(Z,head,illumComm ,'-a1');
+		R = grdgradient_m(Z,head,illumComm ,OPT_a);
 		handles.Illumin_type = 2;
 	elseif (strcmp(opt,'grdgrad_peuck'))	% GMT grdgradient Peucker illumination
 		illumComm = '-Ep';
-		R = grdgradient_m(Z,head,illumComm, '-a1');
+		R = grdgradient_m(Z,head,illumComm, OPT_a);
 		handles.Illumin_type = 3;
 	elseif (strcmp(opt,'lambertian'))		% GMT Lambertian lighting illumination
 		illumComm = sprintf('-E%g/%g/%g/%g/%g/%g',luz.azim,luz.elev,luz.ambient,luz.diffuse,luz.specular,luz.shine);
-		R = grdgradient_m(Z,head,illumComm, '-a1');
+		R = grdgradient_m(Z,head,illumComm, OPT_a);
 		handles.Illumin_type = 4;
 	end
 	setappdata(handles.figure1,'illumComm',illumComm);		% Save these for ROI op & write_gmt_script
@@ -1783,6 +1786,13 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 	end
 	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	end
 	img = shading_mat(img,R,'no_scale');
+	
+	if (handles.have_nans && ~isequal(handles.bg_color, [1 1 1]) && OPT_a ~= ' ')	% Non-white or black NaN color requested
+		ind = isnan(Z);			bg_color = uint8(handles.bg_color * 255);
+		tmp = img(:,:,1);		tmp(ind) = bg_color(1);		img(:,:,1) = tmp;
+		tmp = img(:,:,2);		tmp(ind) = bg_color(2);		img(:,:,2) = tmp;
+		tmp = img(:,:,3);		tmp(ind) = bg_color(3);		img(:,:,3) = tmp;
+	end
 	
 	set(handles.hImg,'CData',img)
 	aux_funs('togCheck',handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
