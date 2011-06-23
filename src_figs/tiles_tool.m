@@ -244,6 +244,19 @@ function click_MOSAIC_e_GO_CB(hObject, event)
 		zoomLevel = 18;
 	end
 
+	[whatkind, source_PN, source_PV] = get_kind(handles);
+
+	if ( get(handles.radio_geogs, 'Val') )		% Somewhat wrong but practical
+		url2image('callmir',lon,lat, zoomLevel, 'lonlat', 'yes', 'cache', cacheDir, ...
+			'what',whatkind, source_PN, source_PV, 'verbose','yes');
+	else
+		url2image('callmir',lon,lat, zoomLevel, 'cache', cacheDir, 'what',whatkind, source_PN, source_PV, 'verbose','yes');
+	end
+
+% -----------------------------------------------------------------------------------------
+function [whatkind, source_PN, source_PV] = get_kind(handles)
+% Get the type of imagery selected by the (1) (2) (3) buttons
+
 	whatkind = handles.slected_whatkind;
 	source_PN = 'treta';		source_PV = [];		% Dumb value used to default to VE 
 	if ( whatkind(1) == 'a' && isempty(strfind(handles.serversImageOut, 'virtualearth')) )
@@ -258,13 +271,6 @@ function click_MOSAIC_e_GO_CB(hObject, event)
 		server = handles.serversHybridOut;		quadkey = handles.servers_quadkey(handles.serversOrder(3));
 		if ( ~strncmp(server, 'http', 4) ),		server = ['http://' server];	end
 		source_PN = 'source';					source_PV = {server; quadkey{1}};
-	end
-
-	if ( get(handles.radio_geogs, 'Val') )		% Somewhat wrong but practical
-		url2image('callmir',lon,lat, zoomLevel, 'lonlat', 'yes', 'cache', cacheDir, ...
-			'what',whatkind, source_PN, source_PV, 'verbose','yes');
-	else
-		url2image('callmir',lon,lat, zoomLevel, 'cache', cacheDir, 'what',whatkind, source_PN, source_PV, 'verbose','yes');
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -337,13 +343,9 @@ function slider_zoomFactor_CB(hObject, handles)
 		contents = get(handles.popup_directory_list, 'String');
 		str = contents{val};		cacheDir = [];
 		if ( ~isempty(str) ),		cacheDir = str;		end
-		src_PN = 'treta';			src_PV = [];		% Dumb value used to default to VE 
-		if ( isempty(strfind(handles.serversImageOut, 'virtualearth')) )	% Use other than VE for bg
-			src_PN = 'source';		quadkee = handles.servers_quadkey(handles.serversOrder(1));
-			src_PV = {handles.serversImageOut, quadkee{1}};
-		end
+		[whatkind, src_PN, src_PV] = get_kind(handles);			% Decide based on the (1)(2)(3) buttons
 		[img, hdr] = ...
-			url2image('tile2img',lon,lat, bgZoomLevel, 'cache', cacheDir, 'what','aerial', src_PN, src_PV,'lonlat', 'yes', 'verbose','y');
+			url2image('tile2img',lon,lat, bgZoomLevel, 'cache', cacheDir, 'what',whatkind, src_PN, src_PV,'lonlat', 'yes', 'verbose','y');
 		h = image('XData',hdr.X, 'YData',hdr.Y, 'CData',img, 'Parent', handles.axes1);
 		if (ishandle(handles.hImgZoomed)),		delete(handles.hImgZoomed),		end		% Delete the previous zoomed image
 		handles.hImgZoomed = h;
