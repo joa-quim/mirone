@@ -16,7 +16,7 @@ function varargout = read_FlatFile(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-	hObject = figure('Tag','figure1','Visible','off');
+	hObject = figure('Vis','off');
 	read_FlatFile_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'center')
@@ -32,16 +32,16 @@ function varargout = read_FlatFile(varargin)
 	tip = sprintf('%s\n%s\n%s','Specifies that the bands within the file are stored',...
 			'in Band Sequential (BSQ) format. Landsat files',...
 			'are normally supplied in this format.');
-	set(handles.radiobutton_BSQ,'TooltipString',tip)
+	set(handles.radio_BSQ,'TooltipString',tip)
 	tip = sprintf('%s\n%s\n%s\n%s','Specifies that the bands within the file are stored',...
 			'in Band Interleaved by Line (BIL) format. This means',...
 			'that each line of pixels is stored one band after the',...
 			'next within the file.');
-	set(handles.radiobutton_BIL,'TooltipString',tip)
+	set(handles.radio_BIL,'TooltipString',tip)
 	tip = sprintf('%s\n%s\n%s','Specifies that the bands within the file are stored',...
 			'in Band Interleaved by Pixel (BIP) format. Landsat',...
 			'MSS files are occasionally supplied in this format.');
-	set(handles.radiobutton_BIP,'TooltipString',tip)
+	set(handles.radio_BIP,'TooltipString',tip)
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 	new_frame3D(hObject, [handles.text_pixelForm handles.text_interleaveForm handles.text_optional])
@@ -51,7 +51,7 @@ function varargout = read_FlatFile(varargin)
 	handles.output = cell(3,1);
 	guidata(hObject, handles);
 
-	set(hObject,'Visible','on');
+	set(hObject,'Vis','on');
 	% UIWAIT makes read_FlatFile_export wait for user response (see UIRESUME)
 	uiwait(handles.figure1);
 
@@ -73,103 +73,103 @@ function edit_pixelsPerLine_CB(hObject, handles)
 
 % ------------------------------------------------------------------------------------------
 function edit_nLines_CB(hObject, handles)
-n = str2double(get(hObject,'String'));
-if (isnan(n) || n < 0),     set(hObject,'String','')
-else                        set(handles.edit_Ylast,'String',get(hObject,'String'))
-end
+	n = str2double(get(hObject,'String'));
+	if (isnan(n) || n < 0),		set(hObject,'String','')
+	else						set(handles.edit_Ylast,'String',get(hObject,'String'))
+	end
 
 % ------------------------------------------------------------------------------------------
 function edit_nBands_CB(hObject, handles)
-n = str2double(get(hObject,'String'));
-if (isnan(n) || n < 0),     set(hObject,'String','1')
-else                        set(handles.edit_lastBand,'String',get(hObject,'String'))
-end
+	n = str2double(get(hObject,'String'));
+	if (isnan(n) || n < 0),		set(hObject,'String','1')
+	else						set(handles.edit_lastBand,'String',get(hObject,'String'))
+	end
 
 % ------------------------------------------------------------------------------------------
 function edit_firstBand_CB(hObject, handles)
-n = str2double(get(hObject,'String'));
-if (isnan(n) || n < 0 || n > str2double(get(handles.edit_lastBand,'String')))
-    set(hObject,'String','1')
-end
+	n = str2double(get(hObject,'String'));
+	if (isnan(n) || n < 0 || n > str2double(get(handles.edit_lastBand,'String')))
+		set(hObject,'String','1')
+	end
 
 % ------------------------------------------------------------------------------------------
 function edit_lastBand_CB(hObject, handles)
-n = str2double(get(hObject,'String'));
-if (isnan(n) || n < 0 || n > str2double(get(handles.edit_nBands,'String')))
-    set(hObject,'String',get(handles.edit_nBands,'String'))
-end
+	n = str2double(get(hObject,'String'));
+	if (isnan(n) || n < 0 || n > str2double(get(handles.edit_nBands,'String')))
+		set(hObject,'String',get(handles.edit_nBands,'String'))
+	end
 
 % ------------------------------------------------------------------------------------------
 function edit_Xfirst_CB(hObject, handles)
-n = str2double(get(hObject,'String'));
-if (isnan(n) || n < 0 || n >= str2double(get(handles.edit_pixelsPerLine,'String')))
-    set(hObject,'String','1')
-end
+	n = str2double(get(hObject,'String'));
+	if (isnan(n) || n < 0 || n >= str2double(get(handles.edit_pixelsPerLine,'String')))
+		set(hObject,'String','1')
+	end
 
 % ------------------------------------------------------------------------------------------
 function edit_Xlast_CB(hObject, handles)
-n = str2double(get(hObject,'String'));
-if (isnan(n) || n < 0 || n >= str2double(get(handles.edit_pixelsPerLine,'String')))
-    set(hObject,'String',get(handles.edit_pixelsPerLine,'String'))
-end
+	n = str2double(get(hObject,'String'));
+	if (isnan(n) || n < 0 || n >= str2double(get(handles.edit_pixelsPerLine,'String')))
+		set(hObject,'String',get(handles.edit_pixelsPerLine,'String'))
+	end
 
 % ------------------------------------------------------------------------------------------
 function edit_Xsample_CB(hObject, handles)
-x = str2double(get(hObject,'String'));
-if (isnan(x) || x < 0),    set(hObject,'String','1');   end
+	x = str2double(get(hObject,'String'));
+	if (isnan(x) || x < 0),    set(hObject,'String','1');   end
 
 % ------------------------------------------------------------------------------------------
 function edit_Yfirst_CB(hObject, handles)
-n = str2double(get(hObject,'String'));
-if (isnan(n) || n < 0 || n >= str2double(get(handles.edit_nLines,'String')))
-    set(hObject,'String','1')
-end
+	n = str2double(get(hObject,'String'));
+	if (isnan(n) || n < 0 || n >= str2double(get(handles.edit_nLines,'String')))
+		set(hObject,'String','1')
+	end
 
 % ------------------------------------------------------------------------------------------
 function edit_Ylast_CB(hObject, handles)
-n = str2double(get(hObject,'String'));
-if (isnan(n) || n < 0 || n >= str2double(get(handles.edit_nLines,'String')))
-    set(hObject,'String',get(handles.edit_nLines,'String'))
-end
+	n = str2double(get(hObject,'String'));
+	if (isnan(n) || n < 0 || n >= str2double(get(handles.edit_nLines,'String')))
+		set(hObject,'String',get(handles.edit_nLines,'String'))
+	end
 
 % ------------------------------------------------------------------------------------------
 function edit_Ysample_CB(hObject, handles)
-x = str2double(get(hObject,'String'));
-if (isnan(x) || x < 0),    set(hObject,'String','1');   end
+	x = str2double(get(hObject,'String'));
+	if (isnan(x) || x < 0),    set(hObject,'String','1');   end
 
 % ------------------------------------------------------------------------------------------
-function radiobutton_BSQ_CB(hObject, handles)
-% Hint: get(hObject,'Value') returns toggle state of radiobutton_BSQ
-if (get(hObject,'Value'))
-    set(handles.radiobutton_BIL,'Value',0)
-    set(handles.radiobutton_BIP,'Value',0)
-    handles.interleave = 'bsq';
-    guidata(handles.figure1,handles)
-else
-    set(hObject,'Value',1)
-end
+function radio_BSQ_CB(hObject, handles)
+% Hint: get(hObject,'Value') returns toggle state of radio_BSQ
+	if (get(hObject,'Value'))
+		set(handles.radio_BIL,'Value',0)
+		set(handles.radio_BIP,'Value',0)
+		handles.interleave = 'bsq';
+		guidata(handles.figure1,handles)
+	else
+		set(hObject,'Value',1)
+	end
 
 % ------------------------------------------------------------------------------------------
-function radiobutton_BIL_CB(hObject, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_BSQ,'Value',0)
-    set(handles.radiobutton_BIP,'Value',0)
-    handles.interleave = 'bil';
-    guidata(handles.figure1,handles)
-else
-    set(hObject,'Value',1)
-end
+function radio_BIL_CB(hObject, handles)
+	if (get(hObject,'Value'))
+		set(handles.radio_BSQ,'Value',0)
+		set(handles.radio_BIP,'Value',0)
+		handles.interleave = 'bil';
+		guidata(handles.figure1,handles)
+	else
+		set(hObject,'Value',1)
+	end
 
 % ------------------------------------------------------------------------------------------
-function radiobutton_BIP_CB(hObject, handles)
-if (get(hObject,'Value'))
-    set(handles.radiobutton_BSQ,'Value',0)
-    set(handles.radiobutton_BIL,'Value',0)
-    handles.interleave = 'bip';
-    guidata(handles.figure1,handles)
-else
-    set(hObject,'Value',1)
-end
+function radio_BIP_CB(hObject, handles)
+	if (get(hObject,'Value'))
+		set(handles.radio_BSQ,'Value',0)
+		set(handles.radio_BIL,'Value',0)
+		handles.interleave = 'bip';
+		guidata(handles.figure1,handles)
+	else
+		set(hObject,'Value',1)
+	end
 
 % ------------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
@@ -254,7 +254,7 @@ end
 
 % Get the endianess
 endian = 'ieee-le';         % Default ot little-endian
-if (get(handles.checkbox_swapBytes,'Value'))
+if (get(handles.check_swapBytes,'Value'))
     endian = 'ieee-be';
 end
 
@@ -302,12 +302,12 @@ guidata(hObject, handles);    uiresume(handles.figure1);
 
 % ------------------------------------------------------------------------------------------
 function push_cancel_CB(hObject, handles)
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    guidata(handles.figure1, handles);    uiresume(handles.figure1);
-else    % The GUI is no longer waiting, just close it
-    delete(handles.figure1)
-end
+	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+		% The GUI is still in UIWAIT, us UIRESUME
+		guidata(handles.figure1, handles);    uiresume(handles.figure1);
+	else    % The GUI is no longer waiting, just close it
+		delete(handles.figure1)
+	end
 
 % ------------------------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, evt)
@@ -333,37 +333,37 @@ uicontrol('Parent',h1,'Position',[5 65 330 111],'Style','frame');
 uicontrol('Parent',h1,'Position',[5 5 211 41],'Style','frame');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_nHeadeBytes_CB'},...
+'Call',@flatfile_uiCB,...
 'Position',[124 134 51 21],'String','0','Style','edit',...
 'TooltipString','Skip this number of bytes (that is skip the header)',...
 'Tag','edit_nHeadeBytes');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_pixelsPerLine_CB'},...
+'Call',@flatfile_uiCB,...
 'Position',[124 104 51 21],'Style','edit',...
 'TooltipString','Number of columns in the dataset',...
 'Tag','edit_pixelsPerLine');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_nLines_CB'},...
+'Call',@flatfile_uiCB,...
 'Position',[124 74 51 21],'Style','edit',...
 'TooltipString','Number of rows in the dataset',...
 'Tag','edit_nLines');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_nBands_CB'},...
+'Call',@flatfile_uiCB,...
 'Position',[292 134 31 21],'String','1','Style','edit',...
 'TooltipString','Number of bands in the dataset',...
 'Tag','edit_nBands');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_firstBand_CB'},...
+'Call',@flatfile_uiCB,...
 'Position',[292 104 31 21],'String','1','Style','edit',...
 'TooltipString','First band to load from the dataset',...
 'Tag','edit_firstBand');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_lastBand_CB'},...
+'Call',@flatfile_uiCB,...
 'Position',[292 74 31 21],'String','1','Style','edit',...
 'TooltipString','Last band to load from the dataset',...
 'Tag','edit_lastBand');
@@ -379,50 +379,50 @@ uicontrol('Parent',h1,...
 'FontName','Helvetica','Position',[127 16 77 15],'String','Swap bytes',...
 'Style','checkbox',...
 'TooltipString','Swap byte order (default is Little endian. eg. Intel order)',...
-'Tag','checkbox_swapBytes');
+'Tag','check_swapBytes');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'radiobutton_BSQ_CB'},...
+'Call',@flatfile_uiCB,...
 'FontName','Helvetica','Position',[234 17 41 15],'String','BSQ',...
-'Style','radiobutton','Tag','radiobutton_BSQ');
+'Style','radiobutton','Tag','radio_BSQ');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'radiobutton_BIL_CB'},...
+'Call',@flatfile_uiCB,...
 'FontName','Helvetica','Position',[307 17 41 15],'String','BIL',...
-'Style','radiobutton','Tag','radiobutton_BIL');
+'Style','radiobutton','Tag','radio_BIL');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'radiobutton_BIP_CB'},...
+'Call',{@flatfile_uiCB,h1,'radio_BIP_CB'},...
 'FontName','Helvetica','Position',[372 17 41 15],'String','BIP',...
-'Style','radiobutton','Tag','radiobutton_BIP');
+'Style','radiobutton','Tag','radio_BIP');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'push_OK_CB'},...
+'Call',{@flatfile_uiCB,h1,'push_OK_CB'},...
 'FontName','Helvetica','FontSize',9,'Position',[434 6 65 23],...
 'String','OK','Tag','push_OK');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'push_cancel_CB'},...
+'Call',@flatfile_uiCB,...
 'FontName','Helvetica','FontSize',9,'Position',[434 35 65 23],...
 'String','Cancel','Tag','push_cancel');
 
 uicontrol('Parent',h1,'FontName','Helvetica','HorizontalAlignment','left',...
-'Position',[17 137 105 15],'String','Header length (bytes)','Style','text','Tag','text1');
+'Position',[17 137 105 15],'String','Header length (bytes)','Style','text');
 
 uicontrol('Parent',h1,'FontName','Helvetica','HorizontalAlignment','left',...
-'Position',[16 109 105 15],'String','Pixels per Line','Style','text','Tag','text2');
+'Position',[16 109 105 15],'String','Pixels per Line','Style','text');
 
 uicontrol('Parent',h1,'FontName','Helvetica','HorizontalAlignment','left',...
-'Position',[16 79 105 15],'String','Number of Lines','Style','text','Tag','text3');
+'Position',[16 79 105 15],'String','Number of Lines','Style','text');
 
 uicontrol('Parent',h1,'FontName','Helvetica','HorizontalAlignment','left',...
-'Position',[205 138 85 15],'String','Number of Bands','Style','text','Tag','text4');
+'Position',[205 138 85 15],'String','Number of Bands','Style','text');
 
 uicontrol('Parent',h1,'FontName','Helvetica','HorizontalAlignment','left',...
-'Position',[205 109 85 15],'String','First Band','Style','text','Tag','text5');
+'Position',[205 109 85 15],'String','First Band','Style','text');
 
 uicontrol('Parent',h1,'FontName','Helvetica','HorizontalAlignment','left',...
-'Position',[205 79 85 15],'String','Last Band','Style','text','Tag','text6');
+'Position',[205 79 85 15],'String','Last Band','Style','text');
 
 uicontrol('Parent',h1,'FontName','Helvetica','FontSize',9,...
 'Position',[16 38 80 15],'String','Pixel Format','Style','text','Tag','text_pixelForm');
@@ -432,69 +432,68 @@ uicontrol('Parent',h1,'FontName','Helvetica','FontSize',9,...
 'Style','text','Tag','text_interleaveForm');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_Xfirst_CB'},...
+'Call',@flatfile_uiCB,...
 'Position',[387 134 41 21],'String','1','Style','edit',...
 'TooltipString','Start column index','Tag','edit_Xfirst');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_Xlast_CB'},...
+'Call',{@flatfile_uiCB,h1,'edit_Xlast_CB'},...
 'Position',[387 104 41 21],'Style','edit',...
 'TooltipString','Last column index','Tag','edit_Xlast');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_Xsample_CB'},...
+'Call',@flatfile_uiCB,...
 'Position',[387 74 41 21],'String','1','Style','edit',...
 'TooltipString','Increment in columns (e.g. 2 = read every other column)',...
 'Tag','edit_Xsample');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_Yfirst_CB'},...
+'Call',@flatfile_uiCB,...
 'Position',[447 134 41 21],'String','1','Style','edit',...
 'TooltipString','Start row index','Tag','edit_Yfirst');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_Ylast_CB'},...
+'Call',@flatfile_uiCB,...
 'Position',[447 104 41 21],'Style','edit',...
 'TooltipString','Last row index','Tag','edit_Ylast');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_Ysample_CB'},...
+'Call',@flatfile_uiCB,...
 'Position',[447 74 41 21],'String','1','Style','edit',...
 'TooltipString','Increment in rows (e.g. 2 = read every other row)',...
 'Tag','edit_Ysample');
 
 uicontrol('Parent',h1,'FontName','Helvetica',...
 'HorizontalAlignment','left','Position',[351 138 35 15],...
-'String','First','Style','text','Tag','text9');
+'String','First','Style','text');
 
 uicontrol('Parent',h1,'FontName','Helvetica',...
 'HorizontalAlignment','left','Position',[352 108 35 15],...
-'String','Last','Style','text','Tag','text10');
+'String','Last','Style','text');
 
 uicontrol('Parent',h1,'FontName','Helvetica','HorizontalAlignment','left',...
 'Position',[352 78 35 15],'String','Sample',...
-'Style','text','Tag','text11');
+'Style','text');
 
 uicontrol('Parent',h1,'FontName','Helvetica','FontSize',9,...
 'Position',[348 167 105 18],'String','Window (optional)',...
 'Style','text','Tag','text_optional');
 
-uicontrol('Parent',h1,'Position',[189 65 3 101],...
-'Style','frame','Tag','frame5');
+uicontrol('Parent',h1,'Position',[189 65 3 101], 'Style','frame');
 
 uicontrol('Parent',h1,'FontName','Helvetica',...
 'Position',[404 155 10 15],'String','X',...
-'Style','text','Tag','text13');
+'Style','text');
 
 uicontrol('Parent',h1,'FontName','Helvetica',...
 'Position',[463 155 10 15],'String','Y',...
-'Style','text','Tag','text14');
+'Style','text');
 
 uicontrol('Parent',h1,'FontName','Helvetica',...
 'FontSize',11,'Position',[91 186 254 17],...
 'String','Please enter the following information',...
 'Style','text','Tag','text_header');
 
-function main_uiCB(hObject, eventdata, h1, callback_name)
+function flatfile_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,guidata(h1));
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
