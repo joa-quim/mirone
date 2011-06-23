@@ -79,179 +79,165 @@ function varargout = rotatetool(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-hObject = figure('Tag','figure1','Visible','off');
-rotatetool_LayoutFcn(hObject);
-handles = guihandles(hObject);
-move2side(hObject,'right')
+	hObject = figure('Vis','off');
+	rotatetool_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'right')
 
-% Some initializations
-handles.frame_axesPos = get(handles.frame_axes,'Pos');
-handles.cancel = 0;             % It will be set to one if the cancel button is hit or the fig is killed
-handles.angle = 0;
-handles.do_flipLR = false;
-handles.do_flipUD = false;
-handles.hOrigFigure = [];
-handles.hOrigAxes = [];
-handles.hOrigImage = [];
-handles.OrigGrd = [];
-handles.in_hdr = [];            % To hold an eventual input GMT style row vector header
-handles.out_header = [];        % To hold an eventual output GMT style row vector header
-cmap = [];
+	% Some initializations
+	handles.frame_axesPos = get(handles.frame_axes,'Pos');
+	handles.cancel = 0;				% It will be set to one if the cancel button is hit or the fig is killed
+	handles.angle = 0;
+	handles.do_flipLR = false;
+	handles.do_flipUD = false;
+	handles.hOrigFigure = [];
+	handles.hOrigAxes = [];
+	handles.hOrigImage = [];
+	handles.OrigGrd = [];
+	handles.in_hdr = [];			% To hold an eventual input GMT style row vector header
+	handles.out_header = [];		% To hold an eventual output GMT style row vector header
+	cmap = [];
 
-n_argout = nargout;     n_argin = numel(varargin);
-if (n_argin >= 1)
-    if (ishandle(varargin{1}))              % First argument is an image handle, or ... error
-        if ( strcmp(get(varargin{1},'type'),'axes') || strcmp(get(varargin{1},'type'),'fig'))
-            handles.hOrigImage = findobj(varargin{1},'type','image');
-        elseif ( strcmp(get(varargin{1},'type'),'image') )
-            handles.hOrigImage = varargin{1};
-        end
-        msg = [];
-        if (isempty(handles.hOrigImage) || numel(handles.hOrigImage) > 1)
-            msg = 'ERROR: None or more than one image objects found in the figure.';
-        end
-        if (n_argout)
-            msg = 'ERROR: Output arguments are not allowed when the input is a handle.';
-        end
-        if (~isempty(msg))
-            errordlg(msg,'ERROR');      delete(hObject);    return
-        end
-        handles.hOrigAxes = get(handles.hOrigImage,'Parent');
-        handles.hOrigFigure = get(handles.hOrigAxes,'Parent');
-    else
-        if (isa(varargin{1},'uint8') || isa(varargin{1},'logical'))           % First argument is an image array
-            handles.OrigImage = varargin{1};
-        else                                    % First arg is a "grid"
-            handles.OrigGrd = varargin{1};
-            handles.OrigImage = scaleto8(handles.OrigGrd);  % Compute grid's image
-            cmap = jet(256);
-        end
-    end
-    
-    if (n_argin == 2 && isstruct(varargin{2}))
-        % This is a new form (as on 6-3-07) ROTATETOOL(GRD|IMG,HANDLES)
-        handles.hOrigAxes = varargin{2}.axes1;
-        handles.in_hdr = varargin{2}.head;
-        cmap = get(varargin{2}.figure1,'Colormap');
-        
-        % Add this Fig to the carra?as list
-        plugedWin = getappdata(varargin{2}.figure1,'dependentFigs');
-        plugedWin = [plugedWin hObject];
-        setappdata(varargin{2}.figure1,'dependentFigs',plugedWin);
-    else
-        if (n_argin == 2 && size(varargin{2},1) == 1)       % Second argument is a GMT style vector header
-            handles.in_hdr = varargin{2};
-        elseif (n_argin == 2 && size(varargin{2},2) == 3)   % Second argument is a colormap
-            cmap = varargin{2};
-        end
-        if (n_argin == 3)                           % There is no choice in args order here
-            handles.in_hdr = varargin{2};
-            cmap = varargin{3};
-        end
-    end
-    % One last test on CMAP & HEADER likelihood
-    msg = [];
-    if (~isempty(handles.in_hdr) && size(handles.in_hdr,2) < 4)
-        msg = 'ERROR: The GMT header vector is invalid';
-    end
-    if (~isempty(cmap) && size(cmap,2) ~= 3)
-        msg = 'ERROR: Invalid colormap in imput';
-    end
-    if (~isempty(msg))
-        errordlg(msg,'ERROR');      delete(hObject);    return
-    end
-else        % Demo mode
-    h = figure;
-    handles.hOrigImage = imshow('peppers.png');
-    handles.hOrigAxes = get(handles.hOrigImage,'Parent');
-    handles.hOrigFigure = h;
-end
+	n_argout = nargout;     n_argin = numel(varargin);
+	if (n_argin >= 1)
+		if (ishandle(varargin{1}))			% First argument is an image handle, or ... error
+			if ( strcmp(get(varargin{1},'type'),'axes') || strcmp(get(varargin{1},'type'),'fig'))
+				handles.hOrigImage = findobj(varargin{1},'type','image');
+			elseif ( strcmp(get(varargin{1},'type'),'image') )
+				handles.hOrigImage = varargin{1};
+			end
+			msg = [];
+			if (isempty(handles.hOrigImage) || numel(handles.hOrigImage) > 1)
+				msg = 'ERROR: None or more than one image objects found in the figure.';
+			end
+			if (n_argout)
+				msg = 'ERROR: Output arguments are not allowed when the input is a handle.';
+			end
+			if (~isempty(msg))
+				errordlg(msg,'ERROR');      delete(hObject);    return
+			end
+			handles.hOrigAxes = get(handles.hOrigImage,'Parent');
+			handles.hOrigFigure = get(handles.hOrigAxes,'Parent');
+		else
+			if (isa(varargin{1},'uint8') || isa(varargin{1},'logical'))			% First argument is an image array
+				handles.OrigImage = varargin{1};
+			else                                    % First arg is a "grid"
+				handles.OrigGrd = varargin{1};
+				handles.OrigImage = scaleto8(handles.OrigGrd);  % Compute grid's image
+				cmap = jet(256);
+			end
+		end
 
-% Determine resize needed so that preivew image fits in defined area
-% ReductionFactor determines how to scale original image so
-% that it fits in the defined preview area.
-pImageConstr = min(handles.frame_axesPos(3),handles.frame_axesPos(4));    %Constraining dimension in image panel
-if (~isempty(handles.hOrigImage))       % A image handle was transmited in argument
-    [oriImageHeight,oriImageWidth,k] = size(get(handles.hOrigImage,'Cdata'));
-else
-    [oriImageHeight,oriImageWidth,k] = size(handles.OrigImage);
-end
-%Length of Image diagonal in pixels. +5 added to allow for some panel border effects
-dImage = ceil(sqrt(oriImageHeight^2 + oriImageWidth^2)) + 5;
-reductionFactor = (pImageConstr/dImage);
+		if (n_argin == 2 && isstruct(varargin{2}))
+			% This is a new form (as on 6-3-07) ROTATETOOL(GRD|IMG,HANDLES)
+			handles.hOrigAxes = varargin{2}.axes1;
+			handles.in_hdr = varargin{2}.head;
+			cmap = get(varargin{2}.figure1,'Colormap');
 
-if (~isempty(handles.hOrigImage))       % A image handle was transmited in argument
-    handles.previewImage = img_fun('imresize',get(handles.hOrigImage,'Cdata'),reductionFactor);
-else
-    handles.previewImage = img_fun('imresize',handles.OrigImage,reductionFactor);
-end
-[imHeight,imWidth,k] = size(handles.previewImage);
+			% Add this Fig to the carra?as list
+			plugedWin = getappdata(varargin{2}.figure1,'dependentFigs');
+			plugedWin = [plugedWin hObject];
+			setappdata(varargin{2}.figure1,'dependentFigs',plugedWin);
+		else
+			if (n_argin == 2 && size(varargin{2},1) == 1)       % Second argument is a GMT style vector header
+				handles.in_hdr = varargin{2};
+			elseif (n_argin == 2 && size(varargin{2},2) == 3)   % Second argument is a colormap
+				cmap = varargin{2};
+			end
+			if (n_argin == 3)                           % There is no choice in args order here
+				handles.in_hdr = varargin{2};
+				cmap = varargin{3};
+			end
+		end
+		% One last test on CMAP & HEADER likelihood
+		msg = [];
+		if (~isempty(handles.in_hdr) && size(handles.in_hdr,2) < 4)
+			msg = 'ERROR: The GMT header vector is invalid';
+		end
+		if (~isempty(cmap) && size(cmap,2) ~= 3)
+			msg = 'ERROR: Invalid colormap in imput';
+		end
+		if (~isempty(msg))
+			errordlg(msg,'ERROR');      delete(hObject);    return
+		end
+	else        % Demo mode
+		h = figure;
+		handles.hOrigImage = imshow('peppers.png');
+		handles.hOrigAxes = get(handles.hOrigImage,'Parent');
+		handles.hOrigFigure = h;
+	end
 
-% Center axes containing preview image in the "image panel" so rotation will look like a pin-wheel
-[leftPosition,bottomPosition] = calcPosition(handles,imWidth,imHeight);
-    % Make the position relative to frame_axes LL corner
-leftPosition = leftPosition + handles.frame_axesPos(1);
-bottomPosition = bottomPosition + handles.frame_axesPos(2);
-set(handles.axes1,'Pos',[leftPosition bottomPosition imWidth imHeight],...
-    'DataAspectRatio', [1 1 1], 'PlotBoxAspectRatioMode', 'auto')
+	% Determine resize needed so that preivew image fits in defined area
+	% ReductionFactor determines how to scale original image so
+	% that it fits in the defined preview area.
+	pImageConstr = min(handles.frame_axesPos(3),handles.frame_axesPos(4));    %Constraining dimension in image panel
+	if (~isempty(handles.hOrigImage))       % A image handle was transmited in argument
+		[oriImageHeight,oriImageWidth,k] = size(get(handles.hOrigImage,'Cdata'));
+	else
+		[oriImageHeight,oriImageWidth,k] = size(handles.OrigImage);
+	end
+	%Length of Image diagonal in pixels. +5 added to allow for some panel border effects
+	dImage = ceil(sqrt(oriImageHeight^2 + oriImageWidth^2)) + 5;
+	reductionFactor = (pImageConstr/dImage);
 
-%display image in axes
-handles.himage = displayPreviewImage(handles,handles.previewImage,cmap);
+	if (~isempty(handles.hOrigImage))       % A image handle was transmited in argument
+		handles.previewImage = img_fun('imresize',get(handles.hOrigImage,'Cdata'),reductionFactor);
+	else
+		handles.previewImage = img_fun('imresize',handles.OrigImage,reductionFactor);
+	end
+	[imHeight,imWidth,k] = size(handles.previewImage);
 
-% Store the f. ydir mess for be taken account later
-if (strcmp(get(handles.axes1,'YDir'),'normal'))
-    handles.y_dir = 1;
-else
-    handles.y_dir = -1;
-end
+	% Center axes containing preview image in the "image panel" so rotation will look like a pin-wheel
+	[leftPosition,bottomPosition] = calcPosition(handles,imWidth,imHeight);
+		% Make the position relative to frame_axes LL corner
+	leftPosition = leftPosition + handles.frame_axesPos(1);
+	bottomPosition = bottomPosition + handles.frame_axesPos(2);
+	set(handles.axes1,'Pos',[leftPosition bottomPosition imWidth imHeight],...
+		'DataAspectRatio', [1 1 1], 'PlotBoxAspectRatioMode', 'auto')
 
-%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-set(0,'Units','pixels');    set(hObject,'Units','pixels')    % Pixels are easier to reason with
-h_f = findobj(hObject,'Style','Frame');
-for i=1:length(h_f)
-    frame_size = get(h_f(i),'Position');
-    f_bgc = get(h_f(i),'BackgroundColor');
-    usr_d = get(h_f(i),'UserData');
-    if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-        frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-    else
-        frame3D(hObject,frame_size,framecolor,'',usr_d)
-        delete(h_f(i))
-    end
-end
-%------------- END Pro look (3D) -------------------------------------------------------
+	%display image in axes
+	handles.himage = displayPreviewImage(handles,handles.previewImage,cmap);
 
-% Choose default command line output for rotatetool
-handles.output = hObject;
-if (n_argout == 1 && isempty(handles.OrigGrd))      % This the only case where the Fig handle can go out
-	varargout{1} = hObject;
-end
-if (n_argout == 2)
-	handles.out_header = 1;
-	set(handles.popup_bboxmenu,'Enable','off')       % Don't want the head-ache of computing new limits
-end
-handles.n_argout = n_argout;
-guidata(hObject, handles);
-set(hObject,'Visible','on');
+	% Store the f. ydir mess for be taken account later
+	if (strcmp(get(handles.axes1,'YDir'),'normal'))
+		handles.y_dir = 1;
+	else
+		handles.y_dir = -1;
+	end
 
-% Check if we have to do a uiwait and what goes out (if anything)
-if (n_argout > 0)                       % If called with output, we must wait
-    uiwait(hObject);
-    handles = guidata(hObject);
-    if (handles.cancel)                 % Don't try to output eventual non-existing variables
-        if (n_argout == 1),     varargout{1} = [];      end
-        if (n_argout == 2),     varargout{1} = [];      varargout{2} = [];  end
-        delete(handles.figure1);        % The figure can be deleted now
-        return
-    end
-    varargout{1} = handles.output_grd;
-    if (n_argout == 2)
-        varargout{2} = handles.out_header;
-    end
-    delete(handles.figure1);        % The figure can be deleted now
-end
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+		new_frame3D(hObject, NaN)
+	%------------- END Pro look (3D) -----------------------------------------------------
+
+	% Choose default command line output for rotatetool
+	handles.output = hObject;
+	if (n_argout == 1 && isempty(handles.OrigGrd))		% This the only case where the Fig handle can go out
+		varargout{1} = hObject;
+	end
+	if (n_argout == 2)
+		handles.out_header = 1;
+		set(handles.popup_bboxmenu,'Enable','off')		% Don't want the head-ache of computing new limits
+	end
+	handles.n_argout = n_argout;
+	guidata(hObject, handles);
+	set(hObject,'Vis','on');
+
+	% Check if we have to do a uiwait and what goes out (if anything)
+	if (n_argout > 0)						% If called with output, we must wait
+		uiwait(hObject);
+		handles = guidata(hObject);
+		if (handles.cancel)					% Don't try to output eventual non-existing variables
+			if (n_argout == 1),     varargout{1} = [];      end
+			if (n_argout == 2),     varargout{1} = [];      varargout{2} = [];  end
+			delete(handles.figure1);		% The figure can be deleted now
+			return
+		end
+		varargout{1} = handles.output_grd;
+		if (n_argout == 2)
+			varargout{2} = handles.out_header;
+		end
+		delete(handles.figure1);			% The figure can be deleted now
+	end
 
 % ----------------------------------------------------------------------------
 function push_cw90_CB(hObject, handles)
@@ -508,7 +494,7 @@ uicontrol('Parent',h1,'Position',[2 4 446 35],'Style','frame');
 uicontrol('Parent',h1,'Position',[2 40 131 332],'Style','frame');
 
 uicontrol('Parent',h1,...
-'Call',{@rotatetool_uiCB,h1,'push_cw90_CB'},...
+'Call',@rotatetool_uiCB,...
 'Position',[7 339 120 20],...
 'String',['Clockwise 90' char(186)],...
 'Tag','push_cw90');
@@ -517,30 +503,29 @@ axes('Parent',h1,...
 'Units','pixels',...
 'CameraPosition',[0.5 0.5 9.16025403784439],...
 'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
-'Color',get(0,'defaultaxesColor'),...
 'Position',[135 150 311 221],...
 'Tag','axes1');
 
 uicontrol('Parent',h1,...
-'Call',{@rotatetool_uiCB,h1,'push_ccw90_CB'},...
+'Call',@rotatetool_uiCB,...
 'Position',[7 309 120 20],...
 'String',['Counterclockwise 90' char(186)],...
 'Tag','push_ccw90');
 
 uicontrol('Parent',h1,...
-'Call',{@rotatetool_uiCB,h1,'push_flipLR_CB'},...
+'Call',@rotatetool_uiCB,...
 'Position',[7 279 120 20],...
 'String','Flip Left/Right',...
 'Tag','push_flipLR');
 
 uicontrol('Parent',h1,...
-'Call',{@rotatetool_uiCB,h1,'push_flipUD_CB'},...
+'Call',@rotatetool_uiCB,...
 'Position',[7 249 120 20],...
 'String','Flip Up/Down',...
 'Tag','push_flipUD');
 
 uicontrol('Parent',h1,...
-'Call',{@rotatetool_uiCB,h1,'slider_CB'},...
+'Call',@rotatetool_uiCB,...
 'Max',180,...
 'Min',-180,...
 'SliderStep',[1/360 5/360],...
@@ -550,7 +535,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@rotatetool_uiCB,h1,'edit_angRot_CB'},...
+'Call',@rotatetool_uiCB,...
 'Position',[350 120 71 21],...
 'String','0',...
 'Style','edit',...
@@ -558,7 +543,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@rotatetool_uiCB,h1,'popup_bboxmenu_CB'},...
+'Call',@rotatetool_uiCB,...
 'Position',[210 79 231 22],...
 'String',{'Expanded to Fit Rotated Input Image'; 'Same as Input Image'},...
 'Style','popupmenu', 'Value',1,...
@@ -566,29 +551,29 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@rotatetool_uiCB,h1,'popup_interpmenu_CB'},...
+'Call',@rotatetool_uiCB,...
 'Position',[210 50 140 22],...
 'String',{'Nearest-neighbor'; 'Bilinear'; 'Bicubic'},...
 'Style','popupmenu', 'Value',1,...
 'Tag','popup_interpmenu');
 
-uicontrol('Parent',h1,'Position',[144 83 65 15],...
+uicontrol('Parent',h1,'Position',[141 83 67 15],...
 'String','Output Size:','Style','text');
 
-uicontrol('Parent',h1,'Position',[144 54 67 15],...
+uicontrol('Parent',h1,'Position',[141 54 68 15],...
 'String','Interpolation:','Style','text');
 
 uicontrol('Parent',h1,...
-'Call',{@rotatetool_uiCB,h1,'push_cancel_CB'},...
+'Call',@rotatetool_uiCB,...
 'Position',[262 9 60 21],...
 'String','Cancel',...
 'Tag','push_cancel');
 
 uicontrol('Parent',h1,...
-'Call',{@rotatetool_uiCB,h1,'push_apply_CB'},...
+'Call',@rotatetool_uiCB,...
 'Position',[341 9 100 21],...
 'String','Apply n Return',...
-'TooltipString','Apply the rotation to original data and quit',...
+'Tooltip','Apply the rotation to original data and quit',...
 'Tag','push_apply');
 
 uicontrol('Parent',h1,...
@@ -611,6 +596,6 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,'Position',[134 149 314 223], 'Style','frame', 'Tag','frame_axes');
 
-function rotatetool_uiCB(hObject, eventdata, h1, callback_name)
+function rotatetool_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,guidata(h1));
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
