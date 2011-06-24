@@ -166,6 +166,7 @@ uimenu('Parent',h2,'Call','mirone(''FileOpenWebImage_CB'',guidata(gcbo));','Labe
 uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''GMT'');','Label','GMT Grid','Sep','on');
 uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''Surfer'');','Label','Surfer 6/7 grid');
 uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''ENCOM'');','Label','Encom grid');
+uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''GSOFT'');','Label','Geosoft (2-byte)');
 uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''MANI'');','Label','Mani grid');
 uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''ArcAscii'');','Label','Arc/Info ASCII Grid','Sep','on');
 uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''ArcBinary'');','Label','Arc/Info Binary Grid');
@@ -713,7 +714,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 23 Jun 2011'',''2.1.1'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 24 Jun 2011'',''2.1.1'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
