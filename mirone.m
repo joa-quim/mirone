@@ -1452,7 +1452,7 @@ function FileOpenDEM_CB(handles, opt)
 	% Files of the following formats are read (well re-directed) here
 	tipo = opt;
 	switch opt
-		case {'GMT' 'Surfer', 'ENCOM'}
+		case {'GMT' 'Surfer', 'ENCOM', 'GSOFT'}
 			str1 = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)';'*.*', 'All Files (*.*)'};	tipo = 'GMT_relatives';
 		case 'MANI'
 			str1 = {'*.man;*.MAN', 'Grid files (*.man,*.MAN)';'*.*', 'All Files (*.*)'};	tipo = 'GMT_relatives';
