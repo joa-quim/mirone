@@ -63,6 +63,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	tag = 'polyline';
 	struc_vimage = [];
 	is_bin = false;				% To flag binary files
+	BB = [];					% To eventually hold a BoundingBox
 	% ---------------------------------------------------------------------
 
 	% ------------------- Parse inputs ------------------------------------
@@ -114,6 +115,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		if ( (out_nc.n_PolyOUT + out_nc.n_PolyIN) == 0 )
 			warndlg('Warning, no polygons to plot in this shapenc file. Bye','Warning'),	return
 		end
+		BB = out_nc.BB;
 		numeric_data = cell(out_nc.n_PolyOUT + out_nc.n_PolyIN,1);
 		kk = 1;
 		for (k = 1:out_nc.n_PolyOUT)		% Order will be for each swarm OUT + its INs
@@ -169,9 +171,13 @@ function varargout = load_xyz(handles, opt, opt2)
 				multi_segs_str = {'> Nikles '};		% Need something (>= 8 chars) to not error further down
 				orig_no_mseg = true;
 			end
-			for (i = 1:length(numeric_data))
-				XMin = min(XMin,double(min(numeric_data{i}(:,1))));		XMax = max(XMax,double(max(numeric_data{i}(:,1))));
-				YMin = min(YMin,double(min(numeric_data{i}(:,2))));		YMax = max(YMax,double(max(numeric_data{i}(:,2))));
+			if (isempty(BB))
+				for (i = 1:length(numeric_data))
+					XMin = min(XMin,double(min(numeric_data{i}(:,1))));		XMax = max(XMax,double(max(numeric_data{i}(:,1))));
+					YMin = min(YMin,double(min(numeric_data{i}(:,2))));		YMax = max(YMax,double(max(numeric_data{i}(:,2))));
+				end
+			else
+				XMin = BB(1);		XMax = BB(2);		YMin = BB(3);		YMax = BB(4);
 			end
 		end
 
