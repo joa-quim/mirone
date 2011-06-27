@@ -515,6 +515,9 @@ function out = read_shapenc(fname)
 % If N above > 0 for each Outer polygon we can have M Inner polygons, as in
 %	out.Poly(n).IN(i).lon		Where i = 1:M
 %	out.Poly(n).IN(i).lat
+%
+% If there are no OUTer polygons than the code search for polylines stored as "lonPolygon_?" and
+% returns the findings as if they were "lonPolyOUT", etc...
 
 	s = nc_funs('info',fname);
 	ind = strcmp({s.Attribute.Name},'Number_of_main_ensembles');
@@ -538,7 +541,7 @@ function out = read_shapenc(fname)
 			out.Poly(k).OUT.lat = nc_funs('varget', fname, s.Dataset(ind(k)+1).Name);
 		end
 	end
-	
+
 	% Find the inner polygons (if any)
 	ind = find(strncmp({s.Dataset.Name},'lonPolyIN',9));
 	n_PolyIN = numel(ind);		% Total number of Inner polygons
@@ -571,6 +574,21 @@ function out = read_shapenc(fname)
 		for (k = 1:n_PolyOUT)				% So that we don't have any Poly.OUT without at
 			out.Poly(k).IN.lon = [];		% least one corresponding Poly.IN, even if empty
 			out.Poly(k).IN.lat = [];
+		end
+	end
+	
+	if ((n_PolyOUT + n_PolyIN) == 0)
+		% Find the outer polygons
+		ind = find(strncmp({s.Dataset.Name},'lonPolygon',10));
+		n_PolyOUT = numel(ind);
+		if (n_PolyOUT)
+			out.Poly(n_PolyOUT).OUT.lon = [];		out.Poly(n_PolyOUT).OUT.lat = [];
+			% Due to above cases we need the next to exist as well
+			out.Poly(n_PolyOUT).IN.lon = [];		out.Poly(n_PolyOUT).IN.lat = [];
+			for (k = 1:n_PolyOUT)
+				out.Poly(k).OUT.lon = nc_funs('varget', fname, s.Dataset(ind(k)).Name);
+				out.Poly(k).OUT.lat = nc_funs('varget', fname, s.Dataset(ind(k)+1).Name);
+			end
 		end
 	end
 
