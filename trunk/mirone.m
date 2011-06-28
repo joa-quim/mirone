@@ -142,7 +142,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		if (~prf.moveDoubleClick)							% this info is used by UI_EDIT_POLYGON()
 			setappdata(handles.axes1,'MovPolyg','extend')	% Move lines with a Shift-click drag-n-drop
 		end
-		handles.bg_color = nanColor;
+		handles.bg_color = prf.nanColor;
 	end
 	
 	j = false(1,numel(handles.last_directories));			% vector for eventual cleaning non-existing dirs
