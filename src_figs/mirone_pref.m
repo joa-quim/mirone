@@ -450,11 +450,11 @@ function push_OK_CB(hObject, handles)
 	if (~V7)                  % R <= 13
 		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
 			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
-			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', '-append', '-v6')
+			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', '-append')
 	else
 		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
 			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
-			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', '-append')
+			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', '-append', '-v6')
 	end
 
 	% Save the Mirone handles, on the Mirone fig obviously
