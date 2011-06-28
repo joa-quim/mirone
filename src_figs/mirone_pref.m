@@ -16,7 +16,7 @@ function varargout = mirone_pref(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-	hObject = figure('Tag','figure1','Visible','off');
+	hObject = figure('Vis','off');
 	mirone_pref_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 
@@ -33,6 +33,7 @@ function varargout = mirone_pref(varargin)
 	handles.flederPlanar = 1;	%		"
 	handles.flederBurn = 1;
 	handles.whichFleder = 1;
+	handles.bg_color = [1 1 1];		% Default is white, but should be update by mirone_pref contents
 
 	% The next are new (20-1-07) and therefore we need to wrap it in try because old prefs do not have it yet
 	try
@@ -50,8 +51,11 @@ function varargout = mirone_pref(varargin)
 		end
 		handles.moveDoubleClick = moveDoubleClick;
 	end
+	try
+		handles.bg_color = nanColor;		% Wrap it into a try while in probation period
+	end
 
-	if iscell(directory_list)								% When exists a dir list in mirone_pref		
+	if iscell(directory_list)							% When exists a dir list in mirone_pref		
 		j = false(1,numel(directory_list));				% vector for eventual cleaning non-existing dirs
 		for (i = 1:numel(directory_list))				% Check that all dirs in last_directories exist
 			j(i) = (exist(directory_list{i},'dir') ~= 7);
@@ -190,32 +194,40 @@ function varargout = mirone_pref(varargin)
 	new_frame3D(hObject, handles.txt_GC)
 	%------------- END Pro look (3D) ------------------------------
 
-% ------------------ TABPANEL SECTION ----------------------------------------
-% This is the tag that all tab push buttons share.  If you have multiple
-% sets of tab push buttons, each group should have unique tag.
-group_name = 'tab_group';
+	set(hObject,'Vis','on');
 
-% This is a list of the UserData values used to link tab push buttons and
-% the components on their linked panels.  To add a new tab panel to the group
-%  Add the button using GUIDE
-%  Assign the Tag based on the group name - in this case tab_group
-%  Give the UserData a unique name - e.g. another_tab_panel
-%  Add components to GUIDE for the new panel
-%  Give the new components the same UserData as the tab button
-%  Add the new UserData name to the below cell array
-panel_names = {'general','fleder'};
+	% ------------ Paint the NaN color pushbutton -----------------
+	siz = get(handles.push_NaNcolor, 'Pos');
+	img = uint8(zeros(siz(4)-3,siz(3)-3,3));
+	for (k = 1:3),	img(:,:,k) = round(handles.bg_color(k)*255);		end
+	set(handles.push_NaNcolor,'CData', img)
+	% -------------------------------------------------------------
 
-% tabpanelfcn('makegroups',...) adds new fields to the handles structure,
-% one for each panel name and another called 'group_name_all'.  These fields
-% are used by the tabpanefcn when tab_group_handler is called.
-handles = tabpanelfcn('make_groups',group_name, panel_names, handles, 1);
-% ------------------------------------------------------------------------------
+	% ------------------ TABPANEL SECTION ----------------------------------------
+	% This is the tag that all tab push buttons share.  If you have multiple
+	% sets of tab push buttons, each group should have unique tag.
+	group_name = 'tab_group';
 
-% Choose default command line output for mirone_pref
-guidata(hObject, handles);
-set(hObject,'Visible','on');
+	% This is a list of the UserData values used to link tab push buttons and
+	% the components on their linked panels.  To add a new tab panel to the group
+	%  Add the button using GUIDE
+	%  Assign the Tag based on the group name - in this case tab_group
+	%  Give the UserData a unique name - e.g. another_tab_panel
+	%  Add components to GUIDE for the new panel
+	%  Give the new components the same UserData as the tab button
+	%  Add the new UserData name to the below cell array
+	panel_names = {'general','fleder','more'};
 
-if (nargout),	varargout{1} = hObject;		end
+	% tabpanelfcn('makegroups',...) adds new fields to the handles structure,
+	% one for each panel name and another called 'group_name_all'.  These fields
+	% are used by the tabpanefcn when tab_group_handler is called.
+	handles = tabpanelfcn('make_groups',group_name, panel_names, handles, 1);
+	% ------------------------------------------------------------------------------
+
+	% Choose default command line output for mirone_pref
+	guidata(hObject, handles);
+
+	if (nargout),	varargout{1} = hObject;		end
 
 % -------------------------------------------------------------------------------------
 function tab_group_ButtonDownFcn(hObject, handles)
@@ -431,21 +443,20 @@ function push_OK_CB(hObject, handles)
 	scale2meanLat = handles.handMir.scale2meanLat;
 	%ForceInsitu = handles.ForceInsitu;     % We don't save it because the user must choose it every time
 	moveDoubleClick = handles.moveDoubleClick;
+	nanColor = handles.bg_color;
 
 	% Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
 	version7 = version;
-	if (str2double(version7(1)) > 6),   version7 = 1;
-	else                                version7 = 0;
-	end
+	V7 = (sscanf(version7(1),'%f') > 6);
 
-	if (~version7)                  % R<=13
+	if (~V7)                  % R <= 13
 		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
 			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
-			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', '-append')
+			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', '-append', '-v6')
 	else
 		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
 			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
-			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', '-append', '-v6')
+			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', '-append')
 	end
 
 	% Save the Mirone handles, on the Mirone fig obviously
@@ -540,6 +551,19 @@ function radio_burnAll_CB(hObject, handles)
     end
 
 % ------------------------------------------------------------------------------------
+function push_NaNcolor_CB(hObject, handles)
+% ...
+	c = uisetcolor;
+	if (numel(c) > 1)
+		siz = get(hObject, 'Pos');
+		img = uint8(zeros(siz(4)-3,siz(3)-3,3));
+		for (k = 1:3),	img(:,:,k) = round(c(k)*255);		end
+		set(hObject,'CData', img)
+		handles.bg_color = c;
+		guidata(handles.figure1, handles)
+	end
+
+% ------------------------------------------------------------------------------------
 % ----------------------- Creates and returns a handle to the GUI figure. 
 function mirone_pref_LayoutFcn(h1)
 
@@ -570,6 +594,14 @@ uicontrol('Parent',h1,'Position',[65 333 80 22],...
 'ButtonDownFcn',{@mirone_pref_uiCB,h1,'tab_group_ButtonDownFcn'},...
 'Tag','tab_group',...
 'UserData','fleder');
+
+uicontrol('Parent',h1,'Position',[145 333 80 22],...
+'Call',{@mirone_pref_uiCB,h1,'tab_group_CB'},...
+'Enable','inactive',...
+'String','More',...
+'ButtonDownFcn',{@mirone_pref_uiCB,h1,'tab_group_ButtonDownFcn'},...
+'Tag','tab_group',...
+'UserData','more');
 
 uicontrol('Parent',h1,'Position',[4 5 266 331],'Enable','off','BackgroundColor',fUiBgColor);
 uicontrol('Parent',h1,'Position',[10 269 111 50],'Style','frame','UserData','general');
@@ -834,6 +866,20 @@ uicontrol('Parent',h1,'Position',[28 56 180 15],...
 'Tooltip','All lines are converted into vectors when creating the fleder file',...
 'Tag','radio_noBurnAtAll',...
 'UserData','fleder');
+
+% -------------------- 	MORE TAB ---------------------------------------- 
+uicontrol('Parent',h1,'Position',[27 280 120 23],...
+'FontSize',11,...
+'HorizontalAlignment','left',...
+'String','NaN Color',...
+'Tooltip','Background color used to paint NaNs',...
+'Style','text',...
+'UserData','more');
+
+uicontrol('Parent',h1,'Position',[200 280 21 21],...
+'Call',{@mirone_pref_uiCB,h1,'push_NaNcolor_CB'},...
+'UserData','more',...
+'Tag','push_NaNcolor');
 
 function mirone_pref_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
