@@ -35,22 +35,20 @@ function varargout = mirone_pref(varargin)
 	handles.whichFleder = 1;
 	handles.bg_color = [1 1 1];		% Default is white, but should be update by mirone_pref contents
 
-	% The next are new (20-1-07) and therefore we need to wrap it in try because old prefs do not have it yet
-	try
-        handles.flederPlanar = flederPlanar;
-        set(handles.radio_planar,'Val',handles.flederPlanar)
-        set(handles.radio_spherical,'Val',~handles.flederPlanar)
-        handles.flederBurn = flederBurn;
-        if (handles.flederBurn == 0),       set(handles.radio_noBurnAtAll,'Val',1); set(handles.radio_coastsOnly,'Val',0)
-        elseif (handles.flederBurn == 1),   set(handles.radio_coastsOnly,'Val',1);
-        else                                set(handles.radio_burnAll,'Val',1);     set(handles.radio_coastsOnly,'Val',0)
-        end
-		handles.whichFleder = whichFleder;	% whichFleder = 1 for the free iview3d or 0 for the true thing (fledermaus)
-		if (~whichFleder)
-			set(handles.radio_fleder,'Val',1),		set(handles.radio_iview,'Val',0)
-		end
-		handles.moveDoubleClick = moveDoubleClick;
+	handles.flederPlanar = flederPlanar;
+	set(handles.radio_planar,'Val',handles.flederPlanar)
+	set(handles.radio_spherical,'Val',~handles.flederPlanar)
+	handles.flederBurn = flederBurn;
+	if (handles.flederBurn == 0),       set(handles.radio_noBurnAtAll,'Val',1); set(handles.radio_coastsOnly,'Val',0)
+	elseif (handles.flederBurn == 1),   set(handles.radio_coastsOnly,'Val',1);
+	else                                set(handles.radio_burnAll,'Val',1);     set(handles.radio_coastsOnly,'Val',0)
 	end
+	handles.whichFleder = whichFleder;	% whichFleder = 1 for the free iview3d or 0 for the true thing (fledermaus)
+	if (~whichFleder)
+		set(handles.radio_fleder,'Val',1),		set(handles.radio_iview,'Val',0)
+	end
+	handles.moveDoubleClick = moveDoubleClick;
+
 	try
 		handles.bg_color = nanColor;		% Wrap it into a try while in probation period
 	end
