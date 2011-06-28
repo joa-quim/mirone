@@ -90,7 +90,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.maregraphs_count = 0; % Counter of maregraphs (tsunami modeling)
 	handles.Illumin_type = 0;	% 0 -> no illumination; 1 -> grdgradient; 2 -> grdgradient Lambertian; 4 -> Lambertian;
 	handles.zoom_state = 0;		% Flag to signal if zoom state is to be re-activated (0 means no re-activation)
-	handles.bg_color = [1 1 1]; % Backgoround color used when grid values == NaN
+	handles.bg_color = [1 1 1]; % (default) Backgoround color used when grid values == NaN
 	handles.which_cont = [];	% To store the contour levels (used to not draw repeated contours)
 	handles.have_nans = 0;		% Used to know if the grids have NaNs
 	handles.is_draped = false;	% Used to know if the image comes from draping
@@ -142,6 +142,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		if (~prf.moveDoubleClick)							% this info is used by UI_EDIT_POLYGON()
 			setappdata(handles.axes1,'MovPolyg','extend')	% Move lines with a Shift-click drag-n-drop
 		end
+		handles.bg_color = nanColor;
 	end
 	
 	j = false(1,numel(handles.last_directories));			% vector for eventual cleaning non-existing dirs
