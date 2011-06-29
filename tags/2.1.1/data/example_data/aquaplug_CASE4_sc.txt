@@ -1,0 +1,24 @@
+# Control script to drive operations in the aquaPlugin function
+# First line must start with 'case N', where N is as explained in aquaPlugin
+# Character arguments, like file names, must be prefixed with the 'char' key
+# Empties, even for strings, must be set as []
+# Args for run of CASE 4
+case 4
+# The 'ano' variable
+1:12
+# The 'fname' var 
+char C:\a1\MODIS\algas\Algas_qual_nsst_TERRA_00_10.nc
+# The 'quality'
+0
+# The 'nCells' var
+200
+# The 'fname3' var 	NOTE HOW EMPTY MUST BE SET
+[]
+# The 'splina' var
+[12 30]
+# The 'tipoStat' var
+0
+# The 'chkPts_file' var (optional)
+[]
+# The 'grd_out' var (Name of output file - optional)
+char C:\a1\MODIS\algas\lixo.nc
