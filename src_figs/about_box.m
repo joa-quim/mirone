@@ -16,7 +16,7 @@ function varargout = about_box(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-	hObject = figure('Tag','figure1','Visible','off');
+	hObject = figure('Vis','off');
 	about_box_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'center')
@@ -36,7 +36,7 @@ function varargout = about_box(varargin)
     set(handles.JL,'BackgroundColor', bg_color)
     set(handles.text_prog,'String',varargin{2}, 'BackgroundColor', bg_color)
 	if (numel(varargin) == 3) 
-        str_prog = 'Mirone. The ultimate indescrete grid viewer';
+        str_prog = 'Mirone. The ultimate indiscreet grid viewer';
         str_analpha = ['Mirone, Version ' varargin{3}];
         str_url = 'w3.ualg.pt/~jluis/mirone';
         set(handles.text_ProgName,'String',str_prog, 'BackgroundColor', bg_color)
@@ -44,7 +44,7 @@ function varargout = about_box(varargin)
         set(handles.text_url,'String',str_url, 'BackgroundColor', bg_color)
 	end
 	
-	set(hObject,'Visible','on');
+	set(hObject,'Vis','on');
 	guidata(hObject,handles)
 	if (nargout),    varargout{1} = hObject;    end
 
