@@ -1282,9 +1282,12 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];	% Fake GMT header
 		handles.image_type = 2;		handles.geog = 0;
 	elseif (strcmp(opt,'ENVISAT') || strcmp(opt,'AVHRR'))
+		att = gdalread(fname,'-M', '-C');
 		bands_inMemory = 10;				% AD-HOC
+		opt_U = ' ';
+		if (~isempty(att.GeoTransform)),	opt_U = '-U';	end
 		opt_B = sprintf('-B1-%d', bands_inMemory);
-		[I,att] = gdalread(fname,'-S', opt_B,'-C');
+		I = gdalread(fname,'-S', opt_B, opt_U, '-C');
 		n_bands = att.RasterCount;
 		bands_inMemory = 1:min(n_bands,bands_inMemory);			% Make it a vector
 		handles.head = att.GMT_hdr;
