@@ -19,6 +19,8 @@ function aqua_suppfuns(opt, varargin)
 	switch opt
 		case 'coards_hdr',		init_header_params(varargin{:})
 		case 'coards_slice',	coards_sliceShow(varargin{:})
+		case 'forGDAL_hdr',		init_header_gdal(varargin{:})
+		case 'forGDAL_slice',	gdal_sliceShow(varargin{:})
 	end
 
 % --------------------------------------------------------------------------
@@ -28,15 +30,9 @@ function init_header_params(handles,X,Y,head,misc)
 	handles.time = [];
 	handles.number_of_timesteps = misc.z_dim(1);		% ... NEEDS THINKING
 	
-	set( handles.edit_x_min,'String',sprintf('%.8g',head(1)) )
-	set( handles.edit_x_max,'String',sprintf('%.8g',head(2)) )
-	set( handles.edit_y_min,'String',sprintf('%.8g',head(3)) )
-	set( handles.edit_y_max,'String',sprintf('%.8g',head(4)) )
 	handles.x_min = head(1);			handles.x_max = head(2);
 	handles.y_min = head(3);			handles.y_max = head(4);
 	
-	set( handles.edit_x_inc,'String',sprintf('%.8g',head(8)) )
-	set( handles.edit_y_inc,'String',sprintf('%.8g',head(9)) )
 	set( handles.edit_Ncols,'String',sprintf('%d',misc.z_dim(end)) )
 	set( handles.edit_Nrows,'String',sprintf('%d',misc.z_dim(end-1)) )
 
@@ -55,9 +51,6 @@ function init_header_params(handles,X,Y,head,misc)
 		slMax = 1+eps;	st = [1 1];		handles.time = 1;		% Defaults for no crashing
 	end
 	set(handles.slider_layer,'Min',1,'Max',slMax,'Val',1,'SliderStep',st) 	
-	set(handles.slider_layer,'Enable','on')
-	set(handles.edit_sliceNumber,'Enable','on')
-	set(handles.text_Info,'String',sprintf('Time steps = %d',handles.number_of_timesteps))
 
 	% ------ Compute individual and global min/maxs ----------------------------------
 	handles.zMinMaxs = zeros(handles.number_of_timesteps,2);
@@ -88,13 +81,6 @@ function init_header_params(handles,X,Y,head,misc)
 	handles.imgBat = [];
 	handles.netcdf_z_id = misc.z_id;
 	handles.is_coards = true;
-	set(handles.radio_multiLayer, 'Val', 1)
-	set(handles.edit_multiLayerInc, 'Enable', 'on')
-	set(handles.radio_timeGridsList,'Val',0)
-	set([handles.textResize handles.popup_resize], 'Enable', 'off')
-	set([handles.radio_stage handles.radio_xmoment handles.radio_ymoment handles.check_derivedVar], 'Enable', 'off')
-	set([handles.edit_x_min handles.edit_x_max handles.edit_y_min handles.edit_y_max ...
-		handles.edit_x_inc handles.edit_y_inc handles.edit_Ncols handles.edit_Nrows], 'Enable', 'inactive')
 	set(handles.hTabAnuga,'String','netCDF')
 	
 	% -------------------- See if we have a projection ----------------------------------
@@ -105,22 +91,98 @@ function init_header_params(handles,X,Y,head,misc)
 	else							handles.srsWKT = [];
 	end
 
+	set_common(handles, handles.head)
+	guidata(handles.figure1,handles)
+
+% --------------------------------------------------------------------------
+function init_header_gdal(handles)
+% Read a multiband file with gdal and fill the header parameters
+
+	handles.illumComm = [];					% New file. Reset illum state.
+	handles.imgBat = [];
+	handles.is_otherMultiband = true;
+	att = gdalread(handles.fname,'-M','-C');
+	X = linspace(att.GMT_hdr(1), att.GMT_hdr(2), att.RasterXSize);
+	Y = linspace(att.GMT_hdr(3), att.GMT_hdr(4), att.RasterYSize);
+	handles.number_of_timesteps = att.RasterCount;
+	handles.time = 1:att.RasterCount;
+	handles.head = att.GMT_hdr;
+	handles.x_min = X(1);		handles.x_max = X(2);
+	handles.y_min = Y(1);		handles.y_max = Y(2);
+	handles.x = X;				handles.y = Y;
+	handles.flip_on_read = true;
+	if (isempty(att.GeoTransform)),		handles.flip_on_read = false;	end
+
+	st = [1 10] / (att.RasterCount - 1);
+	set(handles.slider_layer,'Min',1,'Max',att.RasterCount,'Val',1,'SliderStep',st) 	
+
+	set( handles.edit_Ncols,'String',sprintf('%d',att.RasterXSize) )
+	set( handles.edit_Nrows,'String',sprintf('%d',att.RasterYSize) )
+	set( handles.check_splitDryWet,'Enable', 'off' )
+	set( handles.push_runIn,'Enable', 'off' )
+	set( handles.slider_transparency,'Enable', 'off' )
+
+	% ------ Compute individual and global min/maxs ------------------------
+	handles.zMinMaxs = zeros(att.RasterCount, 2);
+	for (k = 1:att.RasterCount)
+		if ( isnan(att.Band(1).MinMax(1)) )		% Shit, nothing usable here
+			set(handles.check_globalMinMax,'Enable', 'off' )
+			break
+		end
+		handles.zMinMaxs(k,:) = att.Band(k).MinMax(:);
+	end
+	handles.zMinMaxsGlobal = [min(handles.zMinMaxs(:,1)) max(handles.zMinMaxs(:,2))];
+	set(handles.edit_globalWaterMin,'String',handles.zMinMaxsGlobal(1))
+	set(handles.edit_globalWaterMax,'String',handles.zMinMaxsGlobal(2))
+	handles.minWater = handles.zMinMaxsGlobal(1);
+	handles.maxWater = handles.zMinMaxsGlobal(2);
+	handles.geog = aux_funs('guessGeog',att.GMT_hdr(1:4));
+	% ---------------------------------------------------------------------------------
+
+	handles.cmapLand = jet(256);			% Reset the default colormap (default's Aquamoto is a specific one)
+
+	set(handles.hTabAnuga,'String','GDALish')
+
+	% -------------------- See if we have a projection ----------------------------------
+	if (~isempty(att.ProjectionRef)),	handles.srsWKT = att.ProjectionRef;
+	else								handles.srsWKT = [];
+	end
+	handles.strPROJ4 = [];
+
+	set_common(handles, handles.head)
 	guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------------------------------
-function coards_sliceShow(handles)
+function gdal_sliceShow(handles, att)
+% Read the slice with gdalread and send in the array to coards_sliceShow() to do the rest
 
-	if ( isempty(handles.fname) )
-		errordlg('Hey Lou. What about a walk on the Wild Side? Maybe you''ll find a little file there that you can use here!','Chico clever')
-		return
+	opt_U = ' ';
+	if (handles.flip_on_read),		opt_U = '-U';	end
+	opt_B = sprintf('-B%d', handles.sliceNumber + 1);
+	Z = gdalread(handles.fname, opt_B, opt_U, '-C');
+	if (isa(Z, 'uint16') || isa(Z, 'int16') || isa(Z, 'double'))
+		Z = single(Z);
+	end
+	coards_sliceShow(handles, Z)
+
+% --------------------------------------------------------------------------------------------
+function coards_sliceShow(handles, Z)
+% ...
+
+	if (nargin == 1)		% Otherwise we suposedly already know Z (from gdalread)
+		if ( isempty(handles.fname) )
+			errordlg('Hey Lou. What about a walk on the Wild Side? Maybe you''ll find a little file there that you can use here!','Chico clever')
+			return
+		end
+
+		z_id = handles.netcdf_z_id;
+		s = handles.nc_info;						% Retrieve the .nc info struct 
+		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [handles.sliceNumber 0 0], [1 s.Dataset(z_id).Size(end-1:end)]);
 	end
 
-	z_id = handles.netcdf_z_id;
-	s = handles.nc_info;			% Retrieve the .nc info struct 
-	Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [handles.sliceNumber 0 0], [1 s.Dataset(z_id).Size(end-1:end)]);
 	have_nans = 0;
 	if (isa(Z,'single'))
-		have_nans = grdutils(Z,'-N');	% No worry, very fast
+		have_nans = grdutils(Z,'-N');			% No worry, very fast
 	end
 	if ( have_nans && handles.useLandPhoto )
 		alphaMask = alloc_mex(size(Z),'uint8');	% Create an image mask of Dry/Wets
@@ -172,7 +234,7 @@ function coards_sliceShow(handles)
 		end
 
 		if ( get(handles.radio_shade, 'Val') )
-			indVar = 1;								% FAR FROM SURE THAT THIS IS CORRECT
+			indVar = 1;									% FAR FROM SURE THAT THIS IS CORRECT
 			img = ind2rgb8(img, handles.cmapLand);		% img is now RGB
 			head = handles.head;
 			if ( ~isempty(handles.ranges{indVar}) ),	head(5:6) = handles.ranges{indVar};		end
@@ -191,4 +253,25 @@ function coards_sliceShow(handles)
 	% Save also the updated header in Mirone handles
 	handles.handMir.head = handles.head;
     guidata(handles.handMir.figure1,handles.handMir)
-	
+
+% --------------------------------------------------------------------------
+function set_common(handles, head)
+% Common settingd to both 'init_header' functions
+	set( handles.edit_x_min,'String',sprintf('%.8g',head(1)) )
+	set( handles.edit_x_max,'String',sprintf('%.8g',head(2)) )
+	set( handles.edit_y_min,'String',sprintf('%.8g',head(3)) )
+	set( handles.edit_y_max,'String',sprintf('%.8g',head(4)) )
+	set( handles.edit_x_inc,'String',sprintf('%.8g',head(8)) )
+	set( handles.edit_y_inc,'String',sprintf('%.8g',head(9)) )
+
+	set(handles.slider_layer,'Enable','on')
+	set(handles.edit_sliceNumber,'Enable','on')
+	set(handles.text_Info,'String',sprintf('Time steps = %d',handles.number_of_timesteps))
+
+	set(handles.radio_multiLayer, 'Val', 1)
+	set(handles.edit_multiLayerInc, 'Enable', 'on')
+	set(handles.radio_timeGridsList,'Val',0)
+	set([handles.textResize handles.popup_resize], 'Enable', 'off')
+	set([handles.radio_stage handles.radio_xmoment handles.radio_ymoment handles.check_derivedVar], 'Enable', 'off')
+	set([handles.edit_x_min handles.edit_x_max handles.edit_y_min handles.edit_y_max ...
+		handles.edit_x_inc handles.edit_y_inc handles.edit_Ncols handles.edit_Nrows], 'Enable', 'inactive')
