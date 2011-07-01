@@ -95,7 +95,8 @@ function varargout = aquamoto(varargin)
 	handles.cmapBat = [];		% To hold the color map with a discontinuity at the shoreline
 	handles.geog = 0;			% For the time being ANUGA no geoga
 	handles.is_sww = false;		% It will be true if a SWW file is loaded
-	handles.is_coards = false;
+	handles.is_coards = false;	% Updated, if the case, in aqua_suppfuns
+	handles.is_otherMultiband = false;	%			"--"Show slice
 	handles.minWater = [];		% Used when "scale to global min/max". If empty on call, it will be computed than
 	handles.plotVector = false;	% Use to know if plot arrows
 	handles.vecScale = 1;		% To scale eventual vector plots
@@ -340,6 +341,8 @@ function slider_layer_CB(hObject, eventdata, handles)
 		push_showSlice_CB([], [], handles)		% and update image (also saves handles)
 	elseif (handles.is_coards)
 		aqua_suppfuns('coards_slice', handles)
+	elseif (handles.is_otherMultiband)
+		aqua_suppfuns('forGDAL_slice', handles)
 	end
 	set(handles.figure1,'pointer','arrow')
 
@@ -378,8 +381,18 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 	
 	% ---- Maybe the dimensions should be fished out of the "s" structurem as well -----
 	% But for now I'll just test that 'number_of_volumes' exists, otherwise ... street
-	%set(handles.figure1,'pointer','watch')
-	s = nc_funs('info',handles.fname);
+
+	% Check if it's a netCDF file before decide what to do
+	fid = fopen(handles.fname, 'r');
+	ID = fread(fid,3,'*char');      ID = ID';      fclose(fid);
+	if (strcmpi(ID,'CDF'))
+		s = nc_funs('info',handles.fname);
+	else			% Some other format. Get it opened with gdalread in aqua_suppfuns
+		set(handles.check_splitDryWet,'Val',0)
+		set(handles.push_showMesh,'Enable','off')
+		aqua_suppfuns('forGDAL_hdr',handles)
+		return
+	end
 	if (~isempty(s.Attribute))
 		attribNames = {s.Attribute.Name};
 	else
@@ -524,8 +537,9 @@ function push_showSlice_CB(hObject, eventdata, handles)
 	ny = str2double(get(handles.edit_Nrows,'String'));
 
 	if (handles.is_coards)			% We are dealing with a coards netCDF file
-		aqua_suppfuns('coards_slice', handles)
-		return
+		aqua_suppfuns('coards_slice', handles),		return
+	elseif (handles.is_otherMultiband)
+		aqua_suppfuns('forGDAL_slice', handles),	return
 	elseif (handles.is_sww)
 		[theVar, U, V, indVar, indWater] = get_swwVar(handles);
 	end
@@ -1258,7 +1272,7 @@ function radio_shade_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function push_apply_CB(hObject, eventdata, handles)
-	% The job to be done is the same as in "Show Slice"
+	% The job to be done is the same as in "Show slice"
 	if ( ishandle(handles.hMirFig) )
 		push_showSlice_CB(handles.push_showSlice, eventdata, handles)
 	end
@@ -1297,7 +1311,7 @@ function radio_mpg_CB(hObject, eventdata, handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function checkbox_dither_CB(hObject, eventdata, handles)
+function check_dither_CB(hObject, eventdata, handles)
 	if (get(hObject,'Value')),		handles.dither = 'dither';
 	else							handles.dither = 'nodither';
 	end
@@ -1438,6 +1452,8 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 				push_showSlice_CB([], [], handles)	% and update image (also saves handles)
 			elseif (handles.is_coards)
 				aqua_suppfuns('coards_slice', handles)
+			elseif (handles.is_otherMultiband)
+				aqua_suppfuns('forGDAL_slice', handles)
 			else
 				errordlg('What kind of file is this?','ERROR')
 				return
@@ -2636,13 +2652,13 @@ uicontrol('Parent',h1,...
 'UserData','cinema');
 
 uicontrol('Parent',h1,...
-'Call',{@aquamoto_uiCB,h1,'checkbox_dither_CB'},...
+'Call',{@aquamoto_uiCB,h1,'check_dither_CB'},...
 'FontName','Helvetica',...
 'Position',[550 269 55 15],...
 'String','Dither',...
 'Style','checkbox',...
 'TooltipString','If you don''t know what this is, ask google',...
-'Tag','checkbox_dither',...
+'Tag','check_dither',...
 'UserData','cinema');
 
 uicontrol('Parent',h1,...
