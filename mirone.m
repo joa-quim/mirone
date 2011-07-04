@@ -452,7 +452,8 @@ function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 % Note: I won't make the "Drape" option active in the cropped window
 %
 % VARARGOUT -> If used will hold the result of this function instead of creating a new Fig
-%				(Currently only implemented in 'CropaGrid_pure' case)
+%				Currently implemented in cases:
+%					Crop image (opt == hLine), 'CropaWithCoords', 'CropaGrid_pure'
 
 if (handles.no_file),		return,		end
 set(handles.figure1,'pointer','watch')
@@ -469,7 +470,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 		else					x = opt(:,1)';	y = opt(:,2)';		% Were col vectors, make them row for consistency
 		end
 	end
-	if ~( (x(1) == x(end)) && (y(1) == y(end)) && length(x) == 5 && ...
+	if ~( (x(1) == x(end)) && (y(1) == y(end)) && numel(x) == 5 && ...
 			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 		xp(1) = min(x);		xp(2) = max(x);
 		yp(1) = min(y);		yp(2) = max(y);
@@ -503,6 +504,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 				for (k = 1:3)
 					tmp = I(:,:,k);		tmp(mask) = 255;	I(:,:,k) = tmp;
 				end
+				clear tmp
 			end
 		end
 		[m,n] = size(I);
@@ -570,15 +572,20 @@ if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
 		setappdata(0,'CropedColormap',pal);			% indexed image, so I need to save it's colormap
 	end
 	set(handles.figure1,'pointer','arrow');
-	if (isempty(opt2))
-		mirone(I);
-	else
+	if (~isempty(opt2))
 		head(2) = handles.head(1) + (r_c(4)-1)*handles.head(8);		head(1) = handles.head(1) + (r_c(3)-1)*handles.head(8);
 		head(4) = handles.head(3) + (r_c(2)-1)*handles.head(9);		head(3) = handles.head(3) + (r_c(1)-1)*handles.head(9);
-		head(5) = 0;			head(6) = 255;		head(7) = 0;	head(8:9) = handles.head(8:9);	tmp.name = 'Cropped Image';
+		head(5:9) = [0 255 0 handles.head(8:9)];	tmp.name = 'Cropped Image';
 		tmp.head = head;		tmp.geog = handles.geog;			tmp.X = head(1:2);		tmp.Y = head(3:4);
 		if (~isempty(pal)),		tmp.cmap = pal;		end
-		mirone(flipdim(I,1),tmp);
+	end
+	if (nargout)
+		varargout{1} = I;
+		if (nargout == 2),		varargout{2} = tmp;	end
+	elseif (isempty(opt2))				% Crop without coords
+		mirone(I);
+	else
+		mirone(flipdim(I,1),tmp);		% Crop with coords
 	end
 	done = true;				% We are done. BYE BYE.
 
