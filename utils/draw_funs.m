@@ -240,13 +240,6 @@ function set_line_uicontext(h, opt)
 
 	if (LINE_ISCLOSED)
 		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
-		if (~IS_RECTANGLE && ~handles.validGrid)
-			uimenu(cmenuHand, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)','Sep','on');
-			if (handles.image_type == 3)
-					uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Call', ...
-						'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
-			end
-		end
 		if (IS_PATCH && ~IS_SEISPOLYGON)
 			item8 = uimenu(cmenuHand, 'Label','Fill Color');
 			setLineColor( item8, uictx_color(h, 'facecolor') )		% there are 9 cb_color outputs
@@ -265,93 +258,112 @@ function set_line_uicontext(h, opt)
 
 	if strcmp(opt,'MBtrack'),	uimenu(cmenuHand, 'Label', 'Show track''s Swath Ratio', 'Call', {@show_swhatRatio,h});	end
 
-if (IS_RECTANGLE)
-	uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Sep','on', 'Call', @rectangle_limits);
-	uimenu(cmenuHand, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
-	if (handles.image_type == 3 || handles.validGrid)
-		uimenu(cmenuHand, 'Label', 'Crop Image (with coords)', 'Call', ...
-			'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
-	end
-	uimenu(cmenuHand, 'Label', 'Register Image', 'Call', @rectangle_register_img);
-	uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Call', @Transplant_Image);
-	if (handles.geog)
-		uimenu(cmenuHand, 'Label', 'Get image from Web Map Server', 'Call', 'wms_tool(gco)');
-		uimenu(cmenuHand, 'Label', 'CMT Catalog (Web download)', 'Call', 'globalcmt(gcf,gco)');
-	end
-	if (handles.validGrid)    % Option only available to recognized grids
-		item_tools = uimenu(cmenuHand, 'Label', 'Crop Tools','Sep','on');
-		uimenu(item_tools, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')');
-		uimenu(item_tools, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')');
-		uimenu(item_tools, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
-		uimenu(item_tools, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
-		uimenu(item_tools, 'Label', 'Power', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
-		uimenu(item_tools, 'Label', 'Autocorrelation', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
-		uimenu(item_tools, 'Label', 'FFT tool', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
-		item_fill = uimenu(item_tools, 'Label', 'Fill gaps');
-		uimenu(item_fill, 'Label', 'Fill gaps (surface)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')');
-		uimenu(item_fill, 'Label', 'Fill gaps (cubic)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');');
-		uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
-		uimenu(item_tools, 'Label','Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')');
-	end
-	deal_opts({'MGG' 'MICROLEV'}, cmenuHand);
-end
-
-setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
-setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
-if (IS_PATCH),		cb_color = uictx_color(h,'EdgeColor');	end      % there are 9 cb_color outputs
-setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
-
-set_stack_order(cmenuHand)      % Change order in the stackpot
-
-if (LINE_ISCLOSED && ~IS_SEISPOLYGON)
-	if (handles.validGrid && ~IS_RECTANGLE)    % Option only available to recognized grids
-		item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
-		uimenu(item_tools2, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
-		uimenu(item_tools2, 'Label', 'Set to const', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
-		uimenu(item_tools2, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
-		uimenu(item_tools2, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
-		uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
-		hP = getappdata(handles.figure1, 'ParentFig');
-		if ( ~isempty(hP) && ishandle(hP) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
-			uimenu(item_tools2, 'Label', 'Low Pass FFT filter', 'Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
-			uimenu(item_tools2, 'Label', 'High Pass FFT filter','Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
+	if (IS_RECTANGLE)
+		uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Sep','on', 'Call', @rectangle_limits);
+		uimenu(cmenuHand, 'Label', 'Register Image', 'Call', @rectangle_register_img);
+		uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Call', @Transplant_Image);
+		if (handles.geog)
+			uimenu(cmenuHand, 'Label', 'Get image from Web Map Server', 'Call', 'wms_tool(gco)');
+			uimenu(cmenuHand, 'Label', 'CMT Catalog (Web download)', 'Call', 'globalcmt(gcf,gco)');
 		end
-	end
-	if (strcmp(get(h,'Tag'),'EulerTrapezium'))
-		uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Sep','on', 'Call',...
-			'calc_bonin_euler_pole(get(gco,''XData''), get(gco,''YData''));' );
-	end
-	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
- 	%uimenu(cmenuHand, 'Label', 'Testa patches', 'Sep','on', 'Call', 'patch_options(gco)');
-end
 
-if (strcmp(get(h,'Tag'),'FaultTrace'))      % For Okada modeling
-	uimenu(cmenuHand, 'Label', 'Okada', 'Sep','on', 'Call', {@okada_model,h,'okada'});    
-	uimenu(cmenuHand, 'Label', 'Mansinha', 'Call', {@okada_model,h,'mansinha'});    
-end
+		item_tools = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
+		if (handles.validGrid)    % Option only available to recognized grids
+			uimenu(item_tools, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+			uimenu(item_tools, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
+			uimenu(item_tools, 'Label', 'Crop Image (with coords)', 'Call', ...
+				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
+			uimenu(item_tools, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')','Sep','on');
+			uimenu(item_tools, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')');
+			uimenu(item_tools, 'Label', 'Histogram (grid)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+			uimenu(item_tools, 'Label', 'Histogram (image)', 'Call', 'image_histo(guidata(gcbo),gco)');
+			uimenu(item_tools, 'Label', 'Power', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
+			uimenu(item_tools, 'Label', 'Autocorrelation', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
+			uimenu(item_tools, 'Label', 'FFT tool', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
+			item_fill = uimenu(item_tools, 'Label', 'Fill gaps');
+			uimenu(item_fill, 'Label', 'Fill gaps (surface)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')');
+			uimenu(item_fill, 'Label', 'Fill gaps (cubic)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');');
+			uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
+			uimenu(item_tools, 'Label','Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')');
+		else			% We have an Image
+			uimenu(item_tools, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
+			if (handles.image_type == 3)
+					uimenu(item_tools, 'Label', 'Crop Image (with coords)', 'Call', ...
+						'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
+			end
+			uimenu(item_tools, 'Label', 'Histogram', 'Call', 'image_histo(guidata(gcbo),gco)');
+		end
+		uimenu(item_tools, 'Label', 'Image process', 'Sep','on', 'Call', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
+		deal_opts({'MGG' 'MICROLEV'}, cmenuHand);
+	end
 
-if (IS_SEISPOLYGON)                         % Seismicity options
-	% gco gives the same handle as h 
-	uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,[],gco)', 'Sep','on');
-	uimenu(cmenuHand, 'Label', 'Find clusters', 'Call', 'find_clusters(gcf,gco)');
-	itemHist = uimenu(cmenuHand, 'Label','Histograms');
-	uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
-	uimenu(itemHist, 'Label', 'Cumulative number', 'Call', 'histos_seis(gco,''CH'')');
-	uimenu(itemHist, 'Label', 'Cumulative moment', 'Call', 'histos_seis(gco,''CM'')');
-	uimenu(itemHist, 'Label', 'Magnitude', 'Call', 'histos_seis(gco,''MH'')');
-	uimenu(itemHist, 'Label', 'Time', 'Call', 'histos_seis(gco,''TH'')');
-	uimenu(itemHist, 'Label', 'Display in Table', 'Call', 'histos_seis(gcf,''HT'')','Sep','on');
-	%uimenu(itemHist, 'Label', 'Hour of day', 'Call', 'histos_seis(gco,''HH'')');
-	itemTime = uimenu(cmenuHand, 'Label','Time series');
-	uimenu(itemTime, 'Label', 'Time magnitude', 'Call', 'histos_seis(gco,''TM'')');
-	uimenu(itemTime, 'Label', 'Time depth', 'Call', 'histos_seis(gco,''TD'')');
-	uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Call', 'histos_seis(gco,''BV'')');
-	uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gco,''OL'')');
-	%uimenu(cmenuHand, 'Label', 'Skell', 'Call', 'esqueleto_tmp(gco)','Sep','on');
-elseif (IS_SEISMICLINE)
-	uimenu(cmenuHand, 'Label', 'Set buffer zone', 'Call', {@seismic_line,h,'buf'}, 'Sep','on');
-	uimenu(cmenuHand, 'Label', 'Project seismicity', 'Call', {@seismic_line,h,'proj'}, 'Enable','off');
-end
+	if (~IS_SEISPOLYGON && LINE_ISCLOSED && ~IS_RECTANGLE)
+		item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
+		if (handles.validGrid)    % Option only available to recognized grids
+			uimenu(item_tools2, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+			uimenu(item_tools2, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
+			uimenu(item_tools2, 'Label', 'Crop Image (with coords)', 'Call', ...
+				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
+			uimenu(item_tools2, 'Label', 'Set to const', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')','Sep','on');
+			uimenu(item_tools2, 'Label', 'Histogram (grid)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+			uimenu(item_tools2, 'Label', 'Histogram (image)','Call', 'image_histo(guidata(gcbo),gco)');
+			uimenu(item_tools2, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
+			uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
+			hP = getappdata(handles.figure1, 'ParentFig');
+			if ( ~isempty(hP) && ishandle(hP) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
+				uimenu(item_tools2, 'Label', 'Low Pass FFT filter', 'Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
+				uimenu(item_tools2, 'Label', 'High Pass FFT filter','Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
+			end
+		else			% We have an Image
+			uimenu(item_tools2, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
+			if (handles.image_type == 3)
+					uimenu(item_tools2, 'Label', 'Crop Image (with coords)', 'Call', ...
+						'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
+			end
+			uimenu(item_tools2, 'Label', 'Histogram', 'Call', 'image_histo(guidata(gcbo),gco)');
+		end
+		uimenu(item_tools2, 'Label', 'Image process', 'Sep','on', 'Call', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
+
+		if (strcmp(get(h,'Tag'),'EulerTrapezium'))
+			uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Sep','on', 'Call',...
+				'calc_bonin_euler_pole(get(gco,''XData''), get(gco,''YData''));' );
+		end
+		%uimenu(cmenuHand, 'Label', 'Testa patches', 'Sep','on', 'Call', 'patch_options(gco)');
+	end
+
+	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
+	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
+	if (IS_PATCH),		cb_color = uictx_color(h,'EdgeColor');	end      % there are 9 cb_color outputs
+	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
+	set_stack_order(cmenuHand)      % Change order in the stackpot
+
+	if (strcmp(get(h,'Tag'),'FaultTrace'))      % For Okada modeling
+		uimenu(cmenuHand, 'Label', 'Okada', 'Sep','on', 'Call', {@okada_model,h,'okada'});    
+		uimenu(cmenuHand, 'Label', 'Mansinha', 'Call', {@okada_model,h,'mansinha'});    
+	end
+
+	if (IS_SEISPOLYGON)                         % Seismicity options
+		% gco gives the same handle as h 
+		uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,[],gco)', 'Sep','on');
+		uimenu(cmenuHand, 'Label', 'Find clusters', 'Call', 'find_clusters(gcf,gco)');
+		itemHist = uimenu(cmenuHand, 'Label','Histograms');
+		uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
+		uimenu(itemHist, 'Label', 'Cumulative number', 'Call', 'histos_seis(gco,''CH'')');
+		uimenu(itemHist, 'Label', 'Cumulative moment', 'Call', 'histos_seis(gco,''CM'')');
+		uimenu(itemHist, 'Label', 'Magnitude', 'Call', 'histos_seis(gco,''MH'')');
+		uimenu(itemHist, 'Label', 'Time', 'Call', 'histos_seis(gco,''TH'')');
+		uimenu(itemHist, 'Label', 'Display in Table', 'Call', 'histos_seis(gcf,''HT'')','Sep','on');
+		%uimenu(itemHist, 'Label', 'Hour of day', 'Call', 'histos_seis(gco,''HH'')');
+		itemTime = uimenu(cmenuHand, 'Label','Time series');
+		uimenu(itemTime, 'Label', 'Time magnitude', 'Call', 'histos_seis(gco,''TM'')');
+		uimenu(itemTime, 'Label', 'Time depth', 'Call', 'histos_seis(gco,''TD'')');
+		uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Call', 'histos_seis(gco,''BV'')');
+		uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gco,''OL'')');
+		%uimenu(cmenuHand, 'Label', 'Skell', 'Call', 'esqueleto_tmp(gco)','Sep','on');
+	elseif (IS_SEISMICLINE)
+		uimenu(cmenuHand, 'Label', 'Set buffer zone', 'Call', {@seismic_line,h,'buf'}, 'Sep','on');
+		uimenu(cmenuHand, 'Label', 'Project seismicity', 'Call', {@seismic_line,h,'proj'}, 'Enable','off');
+	end
 
 % -----------------------------------------------------------------------------------------
 function seismic_line(obj,evt,hL,opt)
