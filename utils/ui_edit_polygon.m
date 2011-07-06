@@ -353,7 +353,7 @@ switch key
 	case {'i', 'I', '+'}				% insert vertex
 		pt = get(s.h_ax, 'CurrentPoint');
 		x = get(s.h_pol,'XData');		y = get(s.h_pol,'YData');
-		if (size(x,2) > 1),		x=x(:)';	y=y(:)';	z=z(:)';	end
+		if (size(x,1) > 1),		x=x(:)';	y=y(:)';	z=z(:)';	end
 		if (isempty(s.vert_index))			% No current vertex selected
 			[x, y, z] = insert_pt(x, y, z, [pt(1) pt(1,2)]);		% Make a good guess of the insertion point
 		else								% Add new point after selected vertex (kept for backward compatibility)
