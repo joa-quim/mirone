@@ -530,12 +530,15 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 
 	opt_R = ' ';	is_modis = false;		is_linear = false;		is_log = false;
 	slope = 1;		intercept = 0;			base = 1;
-	modis_or_seawifs = false;				is_HDFEOS = false;
+	modis_or_seawifs = false;				is_HDFEOS = false;		is_ESA = false;
 	att.hdrInfo = [];
 	head = att.GMT_hdr;
 
 	if ( ~isempty(att.Metadata) && ~isempty(strfind(att.Metadata{1}, 'HDFEOSVersion')) )
 		is_HDFEOS = true;
+		if ( isnan(search_scaleOffset(att.Metadata, 'ENVISAT')) )	% Poor trick to find ESA (well, ENVISAT) products
+			is_ESA = true;
+		end
 	end
 
 	if ( ~is_HDFEOS && ~isempty(att.Metadata) && (~isempty(strfind(att.Metadata{2}, 'MODIS')) || ~isempty(strfind(att.Metadata{2}, 'SeaWiFS'))) )
@@ -642,7 +645,7 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		head(7) = 0;		% Make sure that grid reg is used
 		is_linear = true;
 		att.hdrInfo = finfo;
-	elseif ( is_HDFEOS )	% This case might not be complete as yet.
+	elseif ( is_HDFEOS && ~is_ESA)		% This case might not be complete as yet.
 		x_min = search_scaleOffset(att.Metadata, 'WESTBOUNDINGCOORDINATE');
 		x_max = search_scaleOffset(att.Metadata, 'EASTBOUNDINGCOORDINATE');
 		y_min = search_scaleOffset(att.Metadata, 'SOUTHBOUNDINGCOORDINATE');
@@ -657,6 +660,28 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		att.Corners.UL = [x_min y_max];			
 		att.Corners.LR = [x_max y_min];			
 		is_linear = true;
+	elseif ( is_HDFEOS && is_ESA)		% One more incredible messy HDF product. Nothing (spatialy) reliable inside.
+		ind = strfind(att.fname, '_');
+		tmp = att.fname(ind(end)+1:end);
+		indH = strfind(tmp, 'H');		indV = strfind(tmp, 'V');		indDot = strfind(tmp, '.');
+		if (isempty(indH) || isempty(indV))
+			errordlg('Sorry but this is not a 5 degrees tile of the super non-documented ESA product. Don''t know how to proceed.','Error')
+			return
+		end
+		% The following is crazy. ESA actually uses a grid registration schema but calls it pixel reg.
+		% Hence the left side of each tile is aligned with a multiple of 5 but lacks the last col/row.
+		x_min = sscanf(tmp(indH+1:indV-1), '%d') * 5 - 180;
+		y_max = 90 - sscanf(tmp(indV+1:indDot-1), '%d') * 5;
+		rows = att.RasterYSize;
+		dx = 5 / att.RasterXSize;	dy = 5 / att.RasterYSize;
+		x_max = x_min + 5 - dx;		y_min = y_max - 5 + dx;
+		att.GMT_hdr(1:4) = [x_min x_max y_min y_max];	% We need this updated
+		att.GMT_hdr(7:9) = [0 dx dy];
+		head = att.GMT_hdr;
+		att.Corners.UL = [x_min y_max];		att.Corners.LL = [x_min y_min];
+		att.Corners.LR = [x_max y_min];		att.Corners.UR = [x_max y_max];
+		att.DriverShortName = sprintf('ATENTION: Spatial info displayed here may NOT be\n reliable due to ESA awfull lack of info in file\n\n%s\n',att.DriverShortName);
+		att.ProjectionRef = ogrproj('+proj=longlat +ellps=wgs84 +nodefs');
 	else					% Other types
 		if (got_R),		rows = att.RasterYSize;		end
 		x_min = head(1);	y_min = head(3);
