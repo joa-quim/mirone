@@ -12,6 +12,8 @@ Mercator    0	-Jm0/0
 
 # Next we have Proj4 ProjectionString 
 
+"Portuguese system" "ETRS89 / TM06"	+proj=tmerc +lat_0=39.668258333333333 +lon_0=-8.133108333333333 +k=1 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs
+
 "Portuguese system" "Gauss-Militar (DLx)"	+proj=tmerc +lat_0=39.66666666666666 +lon_0=-8.131906111111111 +k=1.0 +x_0=200000 +y_0=300000 +ellps=intl +towgs84=-304.046,-60.576,103.640,0,0,0,0
 
 "Portuguese system" "Gauss (D73)"	+proj=tmerc +lat_0=39.666666666666667 +lon_0=-8.13190611111111 +k=1.0 +x_0=180.598 +y_0=-86.99 +ellps=intl +towgs84=-223.237,110.193,36.649,0,0,0,0
