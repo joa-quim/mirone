@@ -1,17 +1,21 @@
-function double2ascii(filename, X, formatString, multiseg)
+function double2ascii(filename, X, formatStr, multiseg)
 % DOUBLE2ASCII - Writes double array X to an output ASCII file.
 %
 % If a single format specifier is specified in the input format
 % string, that format will be used for all columns of X.
 % The user may also specify different formats for each column of the double array X.
 %
-% Syntax:  double2ascii(filename, X, formatString, multiseg)
-%
 % Inputs:  filename  - Name of the output ASCII file
 %		X  - double array can be a vector (1-D), a matrix (2-D) or a cell array.
 %		In later case each cell must contain a Mx2 array and output file will be multisegment
-%		formatString  - OPTIONAL format string  (Default = '%f')
-%		multiseg      - OPTIONAL Replace NaNs lines with the GMT '>' multisegment flag
+%		formatStr  - OPTIONAL format string  (Default = '%f')
+%					Provide one string with formats if you want to use different ones
+%		multiseg   - OPTIONAL
+%					If X is a cell array and MULTISEG is a char string (whatever)
+%					write a multisegment file separated with the GMT '>' multisegment flag.
+%					The same result is acomplished if X is an array with NaNs as separators.
+%					If X and MULTISEG are both cells with the same number of elements,
+%					use MULTISEG{k} contents as multiseg flag separator. 
 %
 % Example 1: Export array X to ASCII file with the same format for all columns
 %		X = rand(300,10);
@@ -24,64 +28,95 @@ function double2ascii(filename, X, formatString, multiseg)
 %		X = [ year column2 column3];
 %		double2ascii('foo2.txt', X, '%d  %5.2f  %10.3e');
 
-% Author: Denis Gilbert, Ph.D., physical oceanography
-% Maurice Lamontagne Institute, Dept. of Fisheries and Oceans Canada
-% email: gilbertd@dfo-mpo.gc.ca  Web: http://www.qc.dfo-mpo.gc.ca/iml/
-% September 2001; Revision: 25-Apr-2002
+% Distantly rooted on file with the same name by Denis Gilbert
+%	Copyright (c) 2004-2011 by J. Luis
 %
-% J. Luis   06-01-2007  Added multisegment writing and several other changes
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
-% Set default format string
-if (nargin < 3),        formatString = '%f ';  end
-if (~(isnumeric(X) || isa(X,'cell'))),		error('Input variable ''X'' must be numeric or cell array'),	end
-if (nargin < 2),        error('At least two input arguments are required: ''filename'' and ''X'''),			end
-if (~isa(X,'cell') && ndims(X) > 2),		error('Input variable ''X'' cannot have more than 2 dimensions'),end	% Cell case is not tested
-n_arg = nargin;
-if (isa(X,'cell')),		n_arg = 4;		end		% Force multisegment case. Will crash if nargin == 2
-
-%Find all occurrences of the percent (%) format specifier within the input format string
-kpercent = strfind(formatString,'%');
-
-%Open and write to ASCII file
-if (ispc),		fid = fopen(filename,'wt');
-elseif (isunix)	fid = fopen(filename,'w');
-else			error('DOUBLE2ASCII: Unknown platform.');
-end
-ncols  = size(X,2);					% Determine the number of rows and columns in array X
-
-if (n_arg < 4)						% Original form. No eventual NaN cleaning
-	if (kpercent == 1)				% Same format for ALL columns
-		fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], X');
-	else							% Different format for each column
-		fprintf(fid,[formatString '\n'], X');
+	% Set default format string
+	n_arg = nargin;
+	if (n_arg < 3),		formatStr = '%f';	end
+	if (~(isnumeric(X) || isa(X,'cell')))
+		error('Input variable ''X'' must be numeric or cell array')
 	end
-else								% We might have NaNs (that is multi-segments files)
-	if (isa(X,'cell'))
-		for (k=1:length(X))			% Currently deals only with Mx2 arrays case
-			fprintf(fid,'%s\n','>');
-			if (kpercent == 1),		fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], [X{k}(:,1)'; X{k}(:,2)']);
-			else					fprintf(fid,[formatString '\n'], [X{k}(:,1)'; X{k}(:,2)']);
-			end
-		end
-	elseif ( ~any(isnan(X)) )		% NO, we haven't
-		if (kpercent == 1),			fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], X');
-		else						fprintf(fid,[formatString '\n'], X');
-		end
-	else							% YES, we have them (then multisegs)
-		[y_cell,x_cell] = localPolysplit(X(:,2),X(:,1));
-		for (k=1:numel(x_cell))
-			fprintf(fid,'%s\n','>');
-			if (kpercent == 1),		fprintf(fid,[repmat(formatString,[1,ncols]) '\n'], [x_cell{k}(:)'; y_cell{k}(:)']);
-		    else					fprintf(fid,[formatString '\n'], [x_cell{k}(:)'; y_cell{k}(:)']);
-			end
+	if (n_arg < 2)
+		error('At least two input arguments are required: ''filename'' and ''X''')
+	end
+	if (~isa(X,'cell') && ndims(X) > 2)
+		error('Input variable ''X'' cannot have more than 2 dimensions')	% Cell case is not tested
+	end
+	if (isa(X,'cell'))				% May or not be printed as multisegment files
+		do_multiseg = true;			% Force multisegment, unless unset
+		if (n_arg <= 3)
+			n_arg = 4;		do_multiseg = false;	multiseg = [];
+		elseif (~isa(multiseg,'cell'))
+			multiseg = [];
 		end
 	end
-end
 
-fclose(fid);
+	%Find all occurrences of the percent (%) format specifier within the input format string
+	kpercent = numel(strfind(formatStr,'%'));		% IF 'kpercent' == 1, ==> Same format for ALL columns
+
+	%Open and write to ASCII file
+	if (ispc),			fid = fopen(filename,'wt');
+	elseif (isunix)		fid = fopen(filename,'w');
+	else				error('DOUBLE2ASCII: Unknown platform.');
+	end
+
+	if (~isa(X,'cell'))
+		ncols  = size(X,2);					% Determine the number of rows and columns in array X
+		fmt = make_print_format(formatStr, ncols, kpercent);
+	end
+
+	if (n_arg < 4)							% Original form. No eventual NaN cleaning
+		fprintf(fid, fmt, X');
+	else									% We might have NaNs (that is multi-segments files)
+		if (isa(X,'cell'))
+			for (k = 1:length(X))			% Currently deals only with Mx2 arrays case
+				if (do_multiseg && isempty(multiseg))
+					fprintf(fid,'%s\n','>');
+				elseif (do_multiseg)
+					fprintf(fid,'%s\n', multiseg{k});	% Write out the multisegment info we got ininput					
+				end
+				fmt = make_print_format(formatStr, size(X{k},2), kpercent);
+				fprintf(fid, fmt, X{k}');
+			end
+		elseif ( ~any(isnan(X)) )		% NO, we haven't
+			fprintf(fid, fmt, X');
+		else							% YES, we have them (then multisegs)
+			if (ncols == 2)
+				[y_cell,x_cell] = localPolysplit(X(:,2),X(:,1));
+				for (k = 1:numel(x_cell))
+					fprintf(fid,'%s\n','>');
+					fprintf(fid, fmt, [x_cell{k}(:)'; y_cell{k}(:)']);
+				end
+			elseif (ncols == 3)
+				[y_cell,x_cell,z_cell] = localPolysplit(X(:,2), X(:,1), X(:,3));
+				for (k = 1:numel(x_cell))
+					fprintf(fid,'%s\n','>');
+					fprintf(fid, fmt, [x_cell{k}(:)'; y_cell{k}(:)'; z_cell{k}(:)']);
+				end
+			else
+				warndlg('Saving multiseg by NaN works only with 2 or 3 columns. Nothing saved.','warning')
+			end
+		end
+	end
+
+	fclose(fid);
 
 % --------------------------------------------------------------------------------
-function [latcells,loncells] = localPolysplit(lat,lon)
+function [latcells,loncells,Zcells] = localPolysplit(lat,lon, Z)
 %POLYSPLIT Extract segments of NaN-delimited polygon vectors to cell arrays
 %
 %   [LATCELLS,LONCELLS] = POLYSPLIT(LAT,LON) returns the NaN-delimited
@@ -93,7 +128,12 @@ function [latcells,loncells] = localPolysplit(lat,lon)
 % Copyright 1996-2006 The MathWorks, Inc.
 % $Revision: 1.4.4.5 $    $Date: 2006/05/24 03:35:26 $
 
-	[lat, lon] = localRemoveExtraNanSeps(lat, lon);
+	n_arg = nargin;
+	if (n_arg == 2)
+		[lat, lon] = localRemoveExtraNanSeps(lat, lon);
+	else
+		[lat, lon, Z] = localRemoveExtraNanSeps(lat, lon, Z);
+	end
 	indx = find(isnan(lat(:)));         % Find NaN locations.
 	
 	% Simulate the trailing NaN if it's missing.
@@ -106,12 +146,16 @@ function [latcells,loncells] = localPolysplit(lat,lon)
 	%  to make indexing work for the first segment.)
 	N = numel(indx);
 	latcells = cell(N,1);       loncells = cell(N,1);
+	if (n_arg == 3),			Zcells = cell(N,1);
+	else						Zcells = [];
+	end
 	indx = [0; indx];
 	for k = 1:N
         iStart = indx(k)   + 1;
         iEnd   = indx(k+1) - 1;
         latcells{k} = lat(iStart:iEnd);
         loncells{k} = lon(iStart:iEnd);
+		if (n_arg == 3),	Zcells{k} = Z(iStart:iEnd);		end
 	end
 
 % --------------------------------------------------------------------------------
@@ -137,3 +181,21 @@ function [xdata, ydata, zdata] = localRemoveExtraNanSeps(xdata, ydata, zdata)
 	% Remove the excess NaNs.
 	xdata(s) = [];      ydata(s) = [];
 	if (nargin >= 3),   zdata(s) = [];  end
+
+%---------------------------------------------------------------------------------
+function fmt = make_print_format(formatStr, ncols, kpercent)
+% Create the format string for fprintf by repetition of one base format type
+	if (kpercent == 1)
+		if ( strcmp(formatStr(end-1:end),'\n') ),	formatStr = formatStr(1:end-2);		end
+		if ( ~strcmp(formatStr(end-1:end),'\t') )
+			formatStr = [formatStr '\t'];
+		end
+		fmt = repmat(formatStr, [1,ncols-1]);
+		fmt = [fmt formatStr(1:end-2) '\n'];
+	else
+		if ( strcmp(formatStr(end-1:end),'\n') )
+			fmt = formatStr;
+		else
+			fmt = [formatStr '\n'];
+		end
+	end
