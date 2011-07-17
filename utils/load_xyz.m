@@ -5,7 +5,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	It does also deal with the case of ploting the isochrons.dat
 %
 %	HANDLES	->	Should be the Mirone handles. However, when this function is used with output
-%				HANDLES can be just a simple structure with the field 'no_file' = false
+%				HANDLES can be empty([]) or just a simple structure with the field 'no_file' = false
 %
 %	Optional
 %		OPT can be either [] in which case the fiename will be asked here or contain the filename
@@ -16,6 +16,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %			'FaultTrace'	plots lines/polylines used by the elastic deformation tools
 %			'Isochron'		plots a isochrons polyline from the internal db.
 %							Attention, this option needs that OPT is not empty
+%			'ncshape'		Input file is a netCDF ncshape
 %			If not given defaults to 'AsLine'
 %
 % If first line in file is of the form
@@ -67,6 +68,9 @@ function varargout = load_xyz(handles, opt, opt2)
 	% ---------------------------------------------------------------------
 
 	% ------------------- Parse inputs ------------------------------------
+	if (nargout && isempty(handles))		% When this function is used to just read a file and return its contents
+		handles.no_file = false;
+	end
 	if (nargin >= 2 && isempty(opt))            % Read a ascii file
 		[FileName, PathName, handles] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
@@ -113,7 +117,9 @@ function varargout = load_xyz(handles, opt, opt2)
 		n_column = 2;		% ???
 		bin = false;		multi_seg = 0;		n_headers = 0;
 		if ( (out_nc.n_PolyOUT + out_nc.n_PolyIN) == 0 )
-			warndlg('Warning, no polygons to plot in this shapenc file. Bye','Warning'),	return
+			warndlg('Warning, no polygons to plot in this shapenc file. Bye','Warning')
+			if (nargout),	[varargout{1:nargout}] = {};		end
+			return
 		end
 		BB = out_nc.BB;
 		numeric_data = cell(out_nc.n_PolyOUT + out_nc.n_PolyIN,1);
@@ -210,7 +216,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		mirone('FileNewBgFrame_CB', handles, [region handles.geog])	% Create a background
 		hMirFig = handles.figure1;
 		drawnow						% Otherwise it takes much longer to plot and other shits
-	else							% Reading over an established region
+	elseif (~nargout)				% Reading over an established region
 		XYlim = getappdata(handles.axes1,'ThisImageLims');
 		xx = XYlim(1:2);			yy = XYlim(3:4);
 		if (handles.is_projected && (got_isoc == 1 || handles.defCoordsIn > 0) )
@@ -312,7 +318,9 @@ function varargout = load_xyz(handles, opt, opt2)
 		% If OUT is requested there is nothing left to be done here  
 		if (nargout)
 			if (orig_no_mseg),		numeric_data = numeric_data{1};		end
-			[varargout{1:nargout}] = numeric_data;		return
+			varargout{1} = numeric_data;
+			if (nargout == 2),	varargout{2} = multi_segs_str;		end
+			return
 		end
 
 		drawnow
