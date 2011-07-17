@@ -119,7 +119,7 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 	for j=1:m
         head = find((str{j} > 32 & str{j} < 43) | str{j} > 58);
         tmp = find(str{j} == 78);    % I'm searching for a NaN string (ascii 78,97,78)
-        if ~isempty(tmp) && length(tmp) == 2
+        if ~isempty(tmp) && length(tmp) >= 2
             tmp = find(str{j}(tmp(1)+1) == 97);
         else
             tmp = [];
