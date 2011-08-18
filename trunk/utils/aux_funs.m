@@ -1,4 +1,3 @@
-%# mex
 function  varargout = aux_funs(opt,varargin)
 % This contains Mirone's auxiliay functions that are called by the several
 % of the Mirone's callback functions. I puted them here to release somehow
@@ -79,6 +78,15 @@ switch opt(1:4)
 			feval(opt, varargin{:});
 		end
 end
+
+% --------------------------------------------------------------------
+function addUI(handles)
+% Add a uimenu. For the time beeing this is used only in one situation so no need for further options
+	h = findobj(handles.figure1, 'type','uimenu','Label','Save GMT script');
+	hh = findobj(h, 'Label', '.def symbol');		% Check if we already have it or not
+	if (isempty(hh))
+		uimenu('Parent',h,'Call','writeGMTsymb(guidata(gcbo))','Label','.def symbol','Sep','on');
+	end
 
 % --------------------------------------------------------------------
 function StoreZ(handles,X,Y,Z)
