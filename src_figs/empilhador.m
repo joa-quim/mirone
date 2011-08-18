@@ -30,7 +30,7 @@ function varargout = empilhador(varargin)
 
 % ---------------------------------------------------------------------------------
 function hObject = empilhador_OpeningFcn(varargin)
-	hObject = figure('Tag','figure1','Visible','off');
+	hObject = figure('Vis','off');
 	empilhador_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'right')
@@ -41,15 +41,19 @@ function hObject = empilhador_OpeningFcn(varargin)
 		handles.last_dir = handMir.last_dir;
 		handles.work_dir = handMir.work_dir;
 		handles.IamCompiled = handMir.IamCompiled;		% Need to know due to crazy issue of nc_funs
+        handles.path_tmp = handMir.path_tmp;
         d_path = handMir.path_data;
 	else
 		handles.home_dir = cd;
 		handles.last_dir = handles.home_dir;
 		handles.work_dir = handles.home_dir;
 		handles.IamCompiled = false;
+        handles.path_tmp = [pwd filesep 'tmp' filesep];
         d_path = [pwd filesep 'data' filesep];
 	end
 	handles.nameList = [];
+	handles.OneByOneNameList = [];	% For when files are loaded one by one (risky)
+	handles.OneByOneFirst = true;	% Safety valve to deal with the load one by one case
 	handles.testedDS = false;		% To test if a Sub-Dataset request is idiot
 
 	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','off')
@@ -74,7 +78,7 @@ function edit_namesList_CB(hObject, handles)
 function push_namesList_CB(hObject, handles, opt)
     if (nargin == 2)        % Direct call
     	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
-        [FileName,PathName] = put_or_get_file(handles, str1,'File with grids list','get');
+        [FileName,PathName,handles] = put_or_get_file(handles, str1,'File with grids list','get');
 	    if isequal(FileName,0),		return,		end
     else        % File name on input
         [PathName,FNAME,EXT] = fileparts(opt);
@@ -87,6 +91,15 @@ function push_namesList_CB(hObject, handles, opt)
 
     if isempty(bin)					% If error in reading file
 		errordlg(['Error reading file ' fname],'Error'),	return
+	elseif (bin)					% Binary file. Assume it's a target file, not a name list
+		[PATH,FNAME,EXT] = fileparts(fname);
+		handles.OneByOneNameList{end+1} = fname;		% Save the full name
+		str = get(handles.listbox_list, 'Str');
+		str{end+1} = [FNAME EXT];
+		set(handles.listbox_list, 'Str', str);
+		handles.OneByOneFirst = true;					% Repetitive but ensures that things are always updated
+		guidata(handles.figure1, handles)
+		return
     end
 
 	fid = fopen(fname);
@@ -162,7 +175,7 @@ function push_namesList_CB(hObject, handles, opt)
 	% --------------------------------------------------------------------------
 
 	handles.shortNameList = cell(m,1);      % To hold grid names with path striped
-	for (k=1:m)
+	for (k = 1:m)
 		[PATH,FNAME,EXT] = fileparts(names{k});
 		if (isempty(PATH))
 			handles.shortNameList{k} = names{k};
@@ -284,6 +297,21 @@ function radio_lon_CB(hObject, handles)
 function push_compute_CB(hObject, handles)
 % ...
 
+	if (~isempty(handles.OneByOneNameList) && handles.OneByOneFirst)	% Files we entered one by one. Must trick to reuse code
+		lixoName = [handles.path_tmp 'listName_lixo.txt'];
+		fid = fopen(lixoName, 'w');
+		for (k = 1:numel(handles.OneByOneNameList))
+			fprintf(fid, '%s\n', handles.OneByOneNameList{k});	% Bloody thing doesn't let write all at once
+		end
+		fclose(fid);
+		% Now call push_namesList_CB as if we had a file with the names list. Clever me, no?
+		push_namesList_CB([], handles, lixoName);
+		builtin('delete', lixoName);
+		handles = guidata(handles.figure1);		% Get the updated version
+		handles.OneByOneFirst = false;			% To get out of the otherwise dead-end logic
+		guidata(handles.figure1, handles)
+	end
+
 	if (isempty(handles.nameList))
 		errordlg('No files to work on. You either didn''t give them or all names are wrong.','Error')
 		return
@@ -302,10 +330,10 @@ function push_compute_CB(hObject, handles)
 	end
 
 	% to netCDF or VTK conversion?
-	if ( get(handles.radio_conv2netcdf,'Val') || get(handles.radio_conv2vtk,'Val') )
+	%if ( get(handles.radio_conv2netcdf,'Val') || get(handles.radio_conv2vtk,'Val') )
 		cut2cdf(handles, got_R, west, east, south, north)
 		return
-	end
+	%end
 
 	% MORE OR LESS DEPRECATED CODE (IT WILL PROBABLY FAIL) - FUNCTIONALITY MOVED TO AQUAMOTO SUPP FUNS
 	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim] = ...
@@ -399,21 +427,82 @@ function push_compute_CB(hObject, handles)
 	mirone(allSeries, tmp)
 
 % -----------------------------------------------------------------------------------------
+function cut2tif(handles, got_R, west, east, south, north, FileName)
+% Save into a multi-band GeoTIFF file
+
+	[pato, fname, EXT] = fileparts(FileName);
+	if (isempty(EXT)),		FileName = [FileName '.tiff'];	end
+	fname = FileName;
+
+	att = gdalread(handles.nameList{1}, '-M');
+
+	opt_R = ' ';		head = att.GMT_hdr;
+	% If user wants a sub-region
+	if (got_R)			% We must give the region in pixels since the image is trully not georeferenced (comment for nasa HDF)
+		cp = round(([west east] - head(1)) / head(8));
+		rp = round(([south north] - head(3)) / head(9));
+		if (cp(1) < 0 || cp(2) > att.RasterXSize)		% Almost sure it should be >=
+			msg = 'Sub-region West/Est is outside that grid''s limits';
+			errordlg(msg, 'ERROR'),		error(msg)
+		end
+		if (rp(1) < 0 || rp(2) > att.RasterYSize)		% Almost sure it should be >=
+			msg = 'Sub-region South/North is outside that grid''s limits';
+			errordlg(msg, 'ERROR'),		error(msg)
+		end
+		head(1) = head(1) + cp(1)*head(8);		head(2) = head(1) + cp(2)*head(8);
+		head(3) = head(3) + rp(1)*head(9);		head(4) = head(3) + rp(2)*head(9);
+		rp = rows - rp -1;		rp = [rp(2) rp(1)];
+		opt_R = sprintf('-r%d/%d/%d/%d',cp(1:2),rp(1:2));
+	end
+
+    nSlices = numel(handles.nameList);
+    img = gdalread(handles.nameList{1}, opt_R);
+	[n_row, n_col, nz] = size(img);
+	for (k = 2:nSlices)
+		set(handles.listbox_list,'Val',k),		pause(0.01)			% Show advance
+    	Z = gdalread(handles.nameList{k}, opt_R);
+		[ny, nx, nz] = size(Z);
+		if ((nx ~= n_col) || (ny ~= n_row))
+			errordlg('This image has not the same size as precedentes.','ERROR'),	return
+		end
+		n_col = nx;		n_row = ny;
+		img = cat(3, img, Z);
+    end
+	clear Z
+	
+	hdr.name = fname;		hdr.driver = 'GTiff';
+	hdr.projWKT = att.ProjectionRef;
+	hdr.Xinc = head(8);		hdr.Yinc = head(9);
+	hdr.ULx = head(1);		hdr.ULy = head(4);
+	if (~isempty(att.GCPvalues)),	hdr.gcp = att.GCPvalues;	end
+	
+	gdalwrite(img,hdr)
+	set(handles.listbox_list,'Val',1)
+
+% -----------------------------------------------------------------------------------------
 function cut2cdf(handles, got_R, west, east, south, north)
 % Save into a multi-layer netCDF file
 
 	if (get(handles.radio_conv2netcdf,'Val'))		% netCDF format
 		this_ext = '.nc';							txt0 = '*.nc;*.grd';
 		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
-	else											% VTK
+	elseif (get(handles.radio_conv2vtk,'Val'))		% VTK
 		this_ext = '.vtk';							txt0 = '*.vtk';
 		txt1 = 'VTK format (*.vtk)';				txt2 = 'Select output VRT file';
+	else											% Multi-band
+		txt0 = '*.tiff;*.tif';
+		txt1 = '(Geo)Tiff format (*.tiff)';			txt2 = 'Select output Tiff file';
 	end
 	[FileName,PathName] = put_or_get_file(handles,{txt0,txt1; '*.*', 'All Files (*.*)'},txt2,'put');
 	if isequal(FileName,0),		return,		end
 	[pato, fname, EXT] = fileparts(FileName);
 	if (isempty(EXT)),		FileName = [fname this_ext];	end
 	grd_out = [PathName FileName];
+
+	if (get(handles.radio_zonalInteg,'Val'))		% Multi-band. We now pass the hand to its own function
+		cut2tif(handles, got_R, west, east, south, north, grd_out)
+		return
+	end
 
 	% Read relevant metadata
 	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim, att] = ...
