@@ -300,6 +300,7 @@ uimenu('Parent',hIM,'Call','mirone(''ImageRetroShade_CB'',guidata(gcbo))','Label
 h = uimenu('Parent',hIM,'Label','Limits (Map or Image)');
 uimenu('Parent',h,'Call','mirone(''ImageMapLimits_CB'',guidata(gcbo), ''img'')','Label','Image (data) Limits');
 uimenu('Parent',h,'Call','mirone(''ImageMapLimits_CB'',guidata(gcbo), ''map'')','Label','Map (display) Limits');
+uimenu('Parent',h,'Call','mirone(''ImageMapLimits_CB'',guidata(gcbo), ''fit'')','Label','Fit to [(-0.5;-0.5)(0.5;0.5)]','Sep','on');
 
 h = uimenu('Parent',hIM,'Label','Edge detect','Sep','on');
 h2 = uimenu('Parent',h,'Label','Canny');
