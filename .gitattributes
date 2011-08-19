@@ -861,7 +861,6 @@ utils/url2image.m -text
 utils/vdist.m -text
 utils/vreckon.m -text
 utils/wfindobj.m -text
-utils/writeGMTsymb.m -text
 utils/write_esri_hdr.m -text
 utils/write_flederFiles.m -text
 utils/write_gmt_symb.m -text
