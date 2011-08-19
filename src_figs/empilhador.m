@@ -451,6 +451,7 @@ function cut2tif(handles, got_R, west, east, south, north, FileName)
 		end
 		head(1) = head(1) + cp(1)*head(8);		head(2) = head(1) + cp(2)*head(8);
 		head(3) = head(3) + rp(1)*head(9);		head(4) = head(3) + rp(2)*head(9);
+		rows = att.RasterYSize;
 		rp = rows - rp -1;		rp = [rp(2) rp(1)];
 		opt_R = sprintf('-r%d/%d/%d/%d',cp(1:2),rp(1:2));
 	end
@@ -467,7 +468,7 @@ function cut2tif(handles, got_R, west, east, south, north, FileName)
 		end
 		n_col = nx;		n_row = ny;
 		img = cat(3, img, Z);
-    end
+	end
 	clear Z
 	
 	hdr.name = fname;		hdr.driver = 'GTiff';
