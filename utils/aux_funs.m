@@ -85,7 +85,7 @@ function addUI(handles)
 	h = findobj(handles.figure1, 'type','uimenu','Label','Save GMT script');
 	hh = findobj(h, 'Label', '.def symbol');		% Check if we already have it or not
 	if (isempty(hh))
-		uimenu('Parent',h,'Call','writeGMTsymb(guidata(gcbo))','Label','.def symbol','Sep','on');
+		uimenu('Parent',h,'Call','write_gmt_symb(guidata(gcbo))','Label','.def symbol','Sep','on');
 	end
 
 % --------------------------------------------------------------------
