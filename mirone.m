@@ -885,11 +885,16 @@ function zoom_state(handles, state)
 % --------------------------------------------------------------------
 function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 % Create a empty window with a frame selected in bg_region
-% However, if REGION was transmited, it is assumed to have [x_min x_max y_min y_max is_geog]
+% However, if REGION was transmited, it is assumed to have [x_min x_max y_min y_max is_geog toDef]
 % IMSIZE may either be the image size or the Figure title
 	if (nargin == 1)
-		region = bg_region;		% region contains [x_min x_max y_min y_max is_geog]
+		region = bg_region;		% region contains [x_min x_max y_min y_max is_geog toDef]
 		if isempty(region),		return,		end		% User gave up
+		if (region(5)),			region(5) = aux_funs('guessGeog',region(1:4));		end	% Refine (can be 2)
+		handles.geog = region(5) + 10;			% The +10 instructs show_image to accept this val(and subtracts 10)
+		if (region(6))			% Add a new uimenu to call the write def symbol code
+			aux_funs('addUI', handles)
+		end
 	end
 	if (nargin <= 2),		imSize = [];		figTitle = 'Mirone Base Map';		end
 	if (nargin == 3 && isa(imSize,'char')),		figTitle = imSize;	imSize = [];	end
@@ -912,12 +917,10 @@ function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 	Z = repmat(uint8(255),ny,nx);
 	pal = repmat(handles.bg_color,256,1);	set(handles.figure1,'Colormap',pal);
 	handles.image_type = 20;
-% 	if (nargin <= 2),		imSize = [];		figTitle = 'Mirone Base Map';		end
-% 	if (nargin == 3 && isa(imSize,'char')),		figTitle = imSize;	imSize = [];	end
 	handles = show_image(handles,figTitle,X,Y,Z,0,'xy',0,imSize);
 	drawnow			% Otherwise, the damn Java makes a black window until all posterior elements are plotted
 	aux_funs('isProj',handles);			% Check about coordinates type
-	if (nargout)	hand = handles;		end
+	if (nargout),	hand = handles;		end
 
 % --------------------------------------------------------------------
 function FileSaveGMTgrid_CB(handles, opt)
@@ -1562,7 +1565,9 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	else
 		set(handles.hImg,'CDataMapping','direct')
 	end
-	handles.geog = aux_funs('guessGeog',handles.head(1:4));		% Hmm... there are cases where we know for sure!!!
+	if (handles.geog < 10),		handles.geog = aux_funs('guessGeog',handles.head(1:4));
+	else						handles.geog = handles.geog - 10;		% In this case we believe in the pre-set value
+	end
 	if (handles.image_type == 2),	handles.geog = 0;	end
 
 	magRatio = resizetrue(handles,imSize,axis_t);				% -------> IMAGE IS VISIBLE HERE. <-------
@@ -2672,7 +2677,7 @@ function DrawContours_CB(handles, opt)
 function FileOpenSession_CB(handles, fname)
 	if (nargin == 1)
 		str1 = {'*.mat;*.MAT', 'Data files (*.mat,*.MAT)'};
-		[FileName,PathName] = put_or_get_file(handles,str1,'Select session file name','get');
+		[FileName,PathName,handles] = put_or_get_file(handles,str1,'Select session file name','get');
 		if isequal(FileName,0),		return,		end
 	else
 		FileName = fname;	PathName = [];
@@ -2701,7 +2706,7 @@ function FileOpenSession_CB(handles, fname)
 		scrsz = get(0,'ScreenSize');			% Get screen size
 		dx = map_limits(2) - map_limits(1);		dy = map_limits(4) - map_limits(3);
 		aspect = dy / dx;
-		nx = round(scrsz(3)*.6);		ny = round(nx * aspect);
+		nx = round(scrsz(3)*.75);		ny = round(nx * aspect);
 		if (ny > scrsz(4) - 30)
 			ny = scrsz(4) - 30;			nx = round(ny / aspect);
 		end
@@ -2714,6 +2719,9 @@ function FileOpenSession_CB(handles, fname)
 		handles.image_type = 20;
 		set(handles.figure1,'Colormap', ones( size(get(handles.figure1,'Colormap'),1), 3))
 		handles = show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',1);
+		if ( isequal(map_limits, [-0.5 0.5 -0.5 0.5]) )				% Special region to draw GMT symbols
+			aux_funs('addUI', handles)
+		end
 	else
 		drv = aux_funs('findFileType',grd_name);
 		erro = gateLoadFile(handles,drv,grd_name);		% It loads the file (or dies)
@@ -3020,11 +3028,23 @@ function ImageMapLimits_CB(handles, opt)
 		setappdata(handles.axes1,'ThisImageLims',region)
 		return
 	end
-	region = bg_region('empty');
-	if isempty(region),		return,		end
+
 	img = get(handles.hImg,'CData');
-	X = region(1:2);						Y = region(3:4);
-	x_inc = diff(X) / size(img,2);			y_inc = diff(Y) / size(img,1);
+	if (strcmp(opt, 'img'))
+		region = bg_region('empty');
+		if isempty(region),		return,		end
+		X = region(1:2);		Y = region(3:4);
+		x_inc = diff(X) / size(img,2);			y_inc = diff(Y) / size(img,1);
+	else									% Fit to -R-0.5/0.5/-0.5/0.5
+		X = [-0.5 0.5];			Y = [-0.5 0.5];
+		x_inc = diff(X) / size(img,2);			y_inc = diff(Y) / size(img,1);
+		aspect = size(img,1) / size(img,2);
+		if (aspect > 1),		X = X / aspect;		% Taller image, contract X
+		elseif (aspect < 1)		Y = Y * aspect;		% Wider image, contract Y
+		end
+		aux_funs('addUI', handles)
+	end
+	%x_inc = diff(X) / size(img,2);			y_inc = diff(Y) / size(img,1);
 	dx2 = x_inc / 2;						dy2 = y_inc / 2;
 	X = X + [dx2 -dx2];						Y = Y + [dy2 -dy2];		% X,Y in grid-reg so that the pix-reg info = region
 	handles.head(1:4) = [X Y];				handles.head(8:9) = [x_inc y_inc];  
@@ -3039,6 +3059,10 @@ function ImageMapLimits_CB(handles, opt)
 	% Flipud the image if necessary
 	if (strcmp(get(handles.axes1,'YDir'),'reverse')),	img = flipdim(img,1);	end
 	show_image(handles,'New Limits',X,Y,img,handles.validGrid,'xy',0);
+	if (strcmp(opt, 'fit') && aspect ~= 1)	% Since the aspect ratio ~= 1 we must change the display limits
+		set(handles.axes1, 'XLim',[-0.5 0.5], 'YLim',[-0.5 0.5])
+		setappdata(handles.axes1,'ThisImageLims',[-0.5 0.5 -0.5 0.5])		
+	end
 
 % --------------------------------------------------------------------
 function GeophysicsSwanPlotStations_CB(handles)
