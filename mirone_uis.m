@@ -1,7 +1,7 @@
 function [H1,handles,home_dir] = mirone_uis(home_dir)
 % Creates and returns a handle to the GUI MIRONE figure.
 %
-% $ID:$
+% $ID$
 %	Copyright (c) 2004-2011 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
