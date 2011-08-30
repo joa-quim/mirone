@@ -363,6 +363,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 % SCALE		Scale the final rate by this value. The idea of all this is that input data
 %			can have monthly means and we want to compute time rate of change per year.
 %			In this case use SCALE = 12.
+%			Ignored if SLOPE is FALSE
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, open Mirone Fig.
 
@@ -401,6 +402,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 		splina = false;		scale = 1;
 	end
 	if (nargin < 8),	grd_out = [];	end
+	if (~slope),		scale = 1;		end				% Make sure to not scale p-values
 
 	Tmed = alloc_mex(rows, cols, n_anos, 'single');
 	for (m = 1:n_anos)
