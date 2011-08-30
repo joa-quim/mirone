@@ -1490,6 +1490,10 @@ function out = script_control(handles, auto)
 
 	try				% Wrap it in a try-catch so we have a chance to figure out the reason of eventual error
 		fid = fopen(fname, 'r');
+		if (fid < 0)
+			errordlg(['File ' fname ' does not exist or can''t be open'])
+			out = [];		return
+		end
 		c = (fread(fid,'*char'))';      fclose(fid);
 		out = strread(c,'%s','delimiter','\n');   clear c fid;
 		ind = true(1,numel(out));
