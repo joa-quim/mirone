@@ -474,6 +474,16 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 		xp(1) = min(x);		xp(2) = max(x);
 		yp(1) = min(y);		yp(2) = max(y);
+		if ( xp(1) < handles.head(1) || xp(2) > handles.head(2) || yp(1) < handles.head(3) || yp(2) > handles.head(4) )
+			% Somewhat rare case where the polygon extends to outside grid/img limits. Must crop it to them.
+			P1.x = x(:);	P1.y = y(:);	P1.hole = 0;	P2.hole = 0;
+			P2.x = [handles.head(1); handles.head(1); handles.head(2); handles.head(2); handles.head(1)];
+			P2.y = [handles.head(3); handles.head(4); handles.head(4); handles.head(3); handles.head(3)];
+			outPolyg = PolygonClip(P1, P2);				% Intersection of polygon and map limits
+			x = outPolyg.x;		y = outPolyg.y;
+			xp(1) = min(x);		xp(2) = max(x);
+			yp(1) = min(y);		yp(2) = max(y);
+		end
 		rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];
 		x_lim = [min(x) max(x)];		y_lim = [min(y) max(y)];
 		crop_pol = true;		% Flag that we are croping from a polygon
