@@ -56,8 +56,6 @@ function hObject = empilhador_OpeningFcn(varargin)
 	handles.OneByOneFirst = true;	% Safety valve to deal with the load one by one case
 	handles.testedDS = false;		% To test if a Sub-Dataset request is idiot
 
-	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','off')
-
 	% -------------- Import/set icons --------------------------------------------
 	load([d_path 'mirone_icons.mat'],'Mfopen_ico');
 	set(handles.push_namesList, 'CData',Mfopen_ico)
@@ -204,16 +202,16 @@ function push_namesList_CB(hObject, handles, opt)
 function radio_conv2netcdf_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','off')
-	set([handles.radio_zonalInteg handles.radio_conv2vtk],'Val',0)
+	set([handles.radio_multiBand handles.radio_conv2vtk],'Val',0)
 
 % -----------------------------------------------------------------------------------------
 function radio_conv2vtk_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','off')
-	set([handles.radio_zonalInteg handles.radio_conv2netcdf],'Val',0)
+	set([handles.radio_multiBand handles.radio_conv2netcdf],'Val',0)
 
 % -----------------------------------------------------------------------------------------
-function radio_zonalInteg_CB(hObject, handles)
+function radio_multiBand_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','on')
 	set([handles.radio_conv2netcdf handles.radio_conv2vtk],'Val',0)
@@ -329,102 +327,7 @@ function push_compute_CB(hObject, handles)
 		got_R = true;
 	end
 
-	% to netCDF or VTK conversion?
-	%if ( get(handles.radio_conv2netcdf,'Val') || get(handles.radio_conv2vtk,'Val') )
-		cut2cdf(handles, got_R, west, east, south, north)
-		return
-	%end
-
-	% MORE OR LESS DEPRECATED CODE (IT WILL PROBABLY FAIL) - FUNCTIONALITY MOVED TO AQUAMOTO SUPP FUNS
-	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim] = ...
-			get_headerInfo(handles, got_R, west, east, south, north);
-
-	att = read_gdal(handles.nameList{1}, [], handles.IamCompiled, '-M','-C');
-
-	if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
-		ind = strfind(att.Subdatasets{1}, '=');
-		FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
-		att = read_gdal(FileName,[],handles.IamCompiled,'-M','-C');			% Try again
-		handles.nameList{1} = FileName;					% This way the first time in loop for below will access the subdataset
-	end
-
-	aguentabar(0,'title','Computing zonal means','CreateCancelBtn')
-
-	% Build the vectors to deal with the zonal integration
-	dlat = str2double(get(handles.edit_stripeWidth,'String'));
-	if (get(handles.radio_lon, 'Val'))
-		vecD = floor(head(3)):dlat:ceil(head(4));
-		Y = linspace(head(3),head(4), N_spatialSize);
-	else
-		vecD = floor(head(1)):dlat:ceil(head(2));
-		Y = linspace(head(1),head(2), N_spatialSize);
-	end
-	nStripes = numel(vecD) - 1;
-	indStripe = ones(numel(vecD),1);
-	for (k = 2:nStripes)
-		ind = find(Y >= vecD(k));
-		indStripe(k) = ind(1);
-	end
-	indStripe(end) = N_spatialSize;
-
-	nSeries = numel(handles.nameList);
-	allSeries = zeros(nStripes, nSeries);
-	for (k = 1:nSeries)
-		att = gdalread(handles.nameList{k},'-M','-C');				% First, get only the attribs
-		if ( strcmp(att.DriverShortName, 'HDF4') && att.RasterCount == 0 && ~isempty(att.Subdatasets) )
-			ind = strfind(att.Subdatasets{1}, '=');
-			FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
-			[Z,att] =  read_gdal(FileName, [], handles.IamCompiled, '-C', opt_R, '-U');
-		else
-			Z =  read_gdal(handles.nameList{k}, att, handles.IamCompiled, '-C', opt_R, '-U');
-		end
-		this_has_nans = false;
-		if (is_modis)
-			ind = (Z == 65535);
-			if (any(ind(:))),		Z(ind) = 0;		this_has_nans = true;		end
-		elseif ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) )
-			ind = (Z == single(att.Band(1).NoDataValue));
-			if (any(ind(:))),		Z(ind) = 0;		this_has_nans = true;		end
-		elseif (isnan(att.Band(1).NoDataValue))		% The nodata is NaN, replace NaNs in Z by zero
-			ind = isnan(Z);
-			if (any(ind(:))),		Z(ind) = 0;		this_has_nans = true;		end
-		end
-
-		tmp = sum(Z,integDim);			% Add along integration dim
-		if (get(handles.radio_lon, 'Val')),		N = size(Z,2);
-		else									N = size(Z,1);
-		end
-		if (this_has_nans)
-			tmp2 = sum(ind,integDim);
-			tmp = tmp ./ (N - tmp2);
-		else
-			tmp = tmp / N;
-		end
-		% Now add all inside each stripe
-		for (m = 1:nStripes)
-			tmp2 = tmp( indStripe(m):indStripe(m+1) );
-			allSeries(m,k) = sum(tmp2) / numel(tmp2);
-		end
-
-		h = aguentabar(k/nSeries);
-		if (isnan(h)),	break,	end
-	end
-	if (isnan(h)),	return,		end
-
-	% See if we must apply a scaling equation
-	if (is_modis && is_linear)
-		allSeries = allSeries * slope + intercept;
-	elseif (is_modis && is_log)
-		allSeries = base .^ (allSeries * slope + intercept);
-	end
-
-	allSeries = single(allSeries);
-	zz = grdutils(allSeries,'-L');
-	head = [1 nSeries vecD(1) vecD(end) zz(1) zz(2) 0 1 dlat];
-	tmp.X = 1:nSeries;		tmp.Y = linspace( (vecD(1)+dlat/2), (vecD(end)-dlat/2), nStripes );
-	tmp.head = [head(1:2) tmp.Y(1) tmp.Y(end) head(5:end)];
-	tmp.geo = 0;			tmp.name = 'Zonal integration';
-	mirone(allSeries, tmp)
+	cut2cdf(handles, got_R, west, east, south, north)
 
 % -----------------------------------------------------------------------------------------
 function cut2tif(handles, got_R, west, east, south, north, FileName)
@@ -500,7 +403,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	if (isempty(EXT)),		FileName = [fname this_ext];	end
 	grd_out = [PathName FileName];
 
-	if (get(handles.radio_zonalInteg,'Val'))		% Multi-band. We now pass the hand to its own function
+	if (get(handles.radio_multiBand,'Val'))		% Multi-band. We now pass the hand to its own function
 		cut2tif(handles, got_R, west, east, south, north, grd_out)
 		return
 	end
@@ -1168,7 +1071,6 @@ set(h1,'Position',[520 532 440 280],...
 'HandleVisibility','callback',...
 'Tag','figure1');
 
-uicontrol('Parent',h1,'Position',[241 170 30 15],'String','Delta','Style','text');
 uicontrol('Parent',h1,'Position',[240 39 191 117],'Style','frame');
 uicontrol('Parent',h1,'Position',[358 40 20 15],'String','S','Style','text');
 uicontrol('Parent',h1,'Position',[250 98 20 15],'String','W','Style','text');
@@ -1205,34 +1107,11 @@ uicontrol('Parent',h1, 'Position',[244 214 150 15],...
 'Tag','radio_conv2vtk');
 
 uicontrol('Parent',h1, 'Position',[244 195 140 15],...
-'Call','empilhador(''radio_zonalInteg_CB'',gcbo,guidata(gcbo))',...
-'String','Do zonal integration',...
+'Call','empilhador(''radio_multiBand_CB'',gcbo,guidata(gcbo))',...
+'String','Make multi-band image',...
 'Style','radiobutton',...
 'Tooltip','Take a list of files and compute a zonal average file',...
-'Tag','radio_zonalInteg');
-
-uicontrol('Parent',h1,'Position',[271 166 51 21],...
-'BackgroundColor',[1 1 1],...
-'Call','empilhador(''edit_stripeWidth_CB'',gcbo,guidata(gcbo))',...
-'String','0.5',...
-'Style','edit',...
-'Tooltip','Width of the stripe over which integration is carried on',...
-'Tag','edit_stripeWidth');
-
-uicontrol('Parent',h1,'Position',[335 169 55 15],...
-'Call','empilhador(''radio_lon_CB'',gcbo,guidata(gcbo))',...
-'String','Long',...
-'Style','radiobutton',...
-'Tooltip','Integrate in Longitude',...
-'Value',1,...
-'Tag','radio_lon');
-
-uicontrol('Parent',h1,'Position',[390 169 40 15],...
-'Call','empilhador(''radio_lat_CB'',gcbo,guidata(gcbo))',...
-'String','Lat',...
-'Style','radiobutton',...
-'Tooltip','Integrate in Latitude',...
-'Tag','radio_lat');
+'Tag','radio_multiBand');
 
 uicontrol('Parent',h1,'Position',[250 133 115 15],...
 'Call','empilhador(''check_region_CB'',gcbo,guidata(gcbo))',...
