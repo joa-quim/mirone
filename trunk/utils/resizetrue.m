@@ -78,9 +78,7 @@ function varargout = resizetrue(handles, opt, axis_t)
 	end
 
 	Resize1(axHandle, imHandle, imSize, opt, handles.withSliders, handles.oldSize(2,:));
-	% Change DAR only if the 'DAR' variable itself has changed
-	%set(axHandle, 'DataAspectRatio', DAR);
-	if (~isequal(DAR, [1 1 1])),	set(axHandle, 'DataAspectRatio', DAR);		end
+	set(axHandle, 'DataAspectRatio', DAR);		% Need to set it explicitly because of compiler bugginess
 
 	if (nargout)        % Compute magnification ratio
 		imageWidth  = size(get(imHandle, 'CData'), 2);
