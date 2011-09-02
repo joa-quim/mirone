@@ -2879,8 +2879,13 @@ function edit_polDeg_CB(hObject, handles)
 function push_OK_CB(hObject, handles)
 	opt_N = sprintf('-N%d', handles.polyDeg + 1);
 	if (get(handles.check_robust, 'Val')),	opt_N = [opt_N 'r'];	end
+	par = [];
+	if (handles.polyDeg == 1)		% For linear trends compute also the p-value
+		[out,par] = trend1d_m(handles.xy, '-Fxm', opt_N, '-P','-R');
+	else
+		out = trend1d_m(handles.xy, '-Fxm', opt_N);
+	end
 	
-	out = trend1d_m(handles.xy, '-Fxm', opt_N);
 	h = line('XData', out(:,1), 'YData', out(:,2), 'Parent', handles.hCallingAx, 'Tag','fitted');
 	
 	% Compute the model parameters (trend1d_m only computes them in the linear case)
@@ -2890,6 +2895,10 @@ function push_OK_CB(hObject, handles)
 	cmenuHand = uicontextmenu('Parent',get(handles.hCallingAx,'Parent'));
 	set(h, 'UIContextMenu', cmenuHand);
  	uimenu(cmenuHand, 'Label', 'Poly Coefficients');
+	p = num2str(p);
+	if (~isempty(par))			% We also have a p-values
+		p = [p ' [p-val = ' sprintf('%.2f]', par(end))];
+	end
 	uimenu(cmenuHand, 'Label', num2str(p));
 	uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', 'delete(gco)', 'Sep', 'on');
 
