@@ -534,8 +534,8 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 	if (scale ~= 1),		cvlib_mex('CvtScale', Tvar, double(scale),0);		end
 	Tvar = single(Tvar);
 	
+	zz = grdutils(Tvar,'-L');  handles.head(5:6) = [zz(1) zz(2)];
 	tmp.head = handles.head;
-	zz = grdutils(Tvar,'-L');  tmp.head(5:6) = [zz(1) zz(2)];
 	if (isempty(grd_out))	% Show result in a Mirone figure
 		tmp.X = linspace(tmp.head(1),tmp.head(2),cols);
 		tmp.Y = linspace(tmp.head(3),tmp.head(4),rows);
