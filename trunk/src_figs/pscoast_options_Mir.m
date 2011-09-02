@@ -61,14 +61,18 @@ function varargout = pscoast_options_Mir(varargin)
 		set(handles.popup_Resolution,'Value',2);
 	end
 
-	% --------
+	% ------------------------------------------------
+	% GMT4 -W color syntax changed from the time I first wrote this function.
+	% It was than (e.g.) -W1p/0/0/0 which now writes -W1p,0/0/0. To minimize head-hakes
+	% just replace the ',' by an '/' and use old algo.
 	handles.coast_ls = '';      handles.coast_lt = [];      handles.coast_cor = cell(3,1);
 	if (~isempty(handles.psc_opt_W))
-		handles.command{7} = [' ' handles.psc_opt_W];
-		k = strfind(handles.psc_opt_W,'/');
-		handles.coast_lt = handles.psc_opt_W(3:k(1)-2);
-		handles.coast_cor = {handles.psc_opt_W(k(1)+1:k(2)-1); handles.psc_opt_W(k(2)+1:k(3)-1); ...
-				handles.psc_opt_W(k(3)+1:end)};
+		psc_opt_W = handles.psc_opt_W;			% Need to make a copy
+		handles.command{7} = [' ' psc_opt_W];
+		psc_opt_W = strrep(psc_opt_W,',','/');
+		k = strfind(psc_opt_W,'/');
+		handles.coast_lt = psc_opt_W(3:k(1)-2);
+		handles.coast_cor = {psc_opt_W(k(1)+1:k(2)-1); psc_opt_W(k(2)+1:k(3)-1); psc_opt_W(k(3)+1:end)};
 		k = strfind(handles.coast_cor{3},'t');
 		if (~isempty(k))             % We have a line style other than solid
 			handles.coast_ls = handles.coast_cor{3}(k:end);
@@ -77,11 +81,12 @@ function varargout = pscoast_options_Mir(varargin)
 	end 
 	handles.political_ls = '';  handles.political_lt = [];  handles.political_cor = cell(3,1);
 	if (~isempty(handles.psc_type_p))
-		handles.command{27} = [' ' handles.psc_type_p];
+		psc_type_p = handles.psc_type_p;
+		handles.command{27} = [' ' psc_type_p];
+		psc_type_p = strrep(psc_type_p,',','/');
 		k = strfind(handles.psc_type_p,'/');
-		handles.political_lt = handles.psc_type_p(k(1)+1:k(2)-2);
-		handles.political_cor = {handles.psc_type_p(k(2)+1:k(3)-1); handles.psc_type_p(k(3)+1:k(4)-1); ...
-				handles.psc_type_p(k(4)+1:end)};
+		handles.political_lt = psc_type_p(k(1)+1:k(2)-2);
+		handles.political_cor = {psc_type_p(k(2)+1:k(3)-1); psc_type_p(k(3)+1:k(4)-1); psc_type_p(k(4)+1:end)};
 		k = strfind(handles.political_cor{3},'t');
 		if (~isempty(k))             % We have a line style other than solid
 			handles.political_ls = handles.political_cor{3}(k:end);
@@ -96,17 +101,18 @@ function varargout = pscoast_options_Mir(varargin)
 	end
 	handles.rivers_ls = '';  handles.rivers_lt = [];  handles.rivers_cor = cell(3,1);
 	if (~isempty(handles.psc_type_r))
-		handles.command{25} = [' ' handles.psc_type_r];
-		k = strfind(handles.psc_type_r,'/');
+		psc_type_r = handles.psc_type_r;
+		handles.command{25} = [' ' psc_type_r];
+		psc_type_r = strrep(psc_type_r,',','/');
+		k = strfind(psc_type_r,'/');
 		handles.rivers_lt = handles.psc_type_r(k(1)+1:k(2)-2);
-		handles.rivers_cor = {handles.psc_type_r(k(2)+1:k(3)-1); handles.psc_type_r(k(3)+1:k(4)-1); ...
-				handles.psc_type_r(k(4)+1:end)};
+		handles.rivers_cor = {psc_type_r(k(2)+1:k(3)-1); psc_type_r(k(3)+1:k(4)-1); psc_type_r(k(4)+1:end)};
 		k = strfind(handles.rivers_cor{3},'t');
 		if (~isempty(k))             % We have a line style other than solid
 			handles.rivers_ls = handles.rivers_cor{3}(k:end);
 			handles.rivers_cor{3} = handles.rivers_cor{3}(1:k-1);
 		end
-		switch handles.psc_type_r(3:4)
+		switch psc_type_r(3:4)
 			case '1/',   set(handles.popup_Rivers,'Value',1);
 			case '2/',   set(handles.popup_Rivers,'Value',2);
 			case '3/',   set(handles.popup_Rivers,'Value',3);
