@@ -477,6 +477,7 @@ mex/nearneighbor_m.c -text
 mex/neighborhood.cpp -text
 mex/neighborhood.h -text
 mex/ogrproj.cpp -text
+mex/ogrread.c -text
 mex/ordf.c -text
 mex/ordf_hist.h -text
 mex/ordf_ordfilt2.h -text
