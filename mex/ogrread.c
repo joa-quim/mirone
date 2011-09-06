@@ -286,6 +286,8 @@ int get_data(mxArray *out_struct, OGRFeatureH hFeature, OGRFeatureDefnH hFeature
 	nGeoms = OGR_G_GetGeometryCount(hGeom);
 	if ( (nGeoms == 0) && (eType == wkbPoint || eType == wkbLineString) )	/* These geometries will silently return 0 */
 		nGeoms = 1;
+	else if ( (nGeoms > 1) && (eType == wkbPolygon) )	/* Other geometries are Islands and those are dealt separately */
+		nGeoms = 1;
 	else if (nGeoms == 0) {
 		mexPrintf("Screammm: No Geometries in this Feature\n");
 		return(-1);
@@ -322,7 +324,7 @@ int get_data(mxArray *out_struct, OGRFeatureH hFeature, OGRFeatureDefnH hFeature
 					z_out_ptr[i] = OGR_G_GetZ(hRing, i);
 			}
 
-			if (nRings > 1) {
+			if (nRings > 1) {		/* Deal with the Islands */
 				int	c, cz, nPtsRing, dimsI[2], *pi;
 				double	nan;
 				mxArray	*mxIslands;
@@ -347,17 +349,20 @@ int get_data(mxArray *out_struct, OGRFeatureH hFeature, OGRFeatureDefnH hFeature
 						for (i = 0; i < nPtsRing; cz++, i++)
 							z_out_ptr[cz] = OGR_G_GetZ(hRingIsland, i);
 					}
-					c += (nPtsRing + 1);		/* update counter to nPtsBase + acumulated nPts in islands */
 				}
 				/* We still have to fill the second column of Islands, but only now we have the necessary info */
 				for (k = 0; k < nRings - 1; k++)
 					pi[nRings + k] = pi[k+1] - 2;
-				pi[2*nRings - 1] = c -(nPtsRing + 2);		/* Last element was not assigned in the loop above */
+				pi[2*nRings - 1] = c - 1;		/* Last element was not assigned in the loop above */
 				mxSetField(out_struct, indStruct, "Islands", mxIslands);
 			}
 			mxSetField(out_struct, indStruct, "type", mxCreateString("Polygon"));
 		}
 		else if (do_recursion) {
+			/* When we reach here it's because the current Geometry is of the Multi<something> type.
+			 * The way we deal with it is to decompose it in its individual simple geometries, e.g.
+			 * Polygon and call this function recursively until all basic geometries, controlled by
+			 * the main for loop above [for (j = 0; j < nGeoms; j++)], are processed. */
 			int	r;
 	
 			hRing = OGR_G_GetGeometryRef(hGeom, j);
