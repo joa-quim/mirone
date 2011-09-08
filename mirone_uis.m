@@ -207,6 +207,7 @@ uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''scatter'')','La
 uimenu('Parent',h,'Call','mirone(''DrawImportText_CB'',guidata(gcbo))','Label','Import text');
 uimenu('Parent',h,'Call','mirone(''DrawImportShape_CB'',guidata(gcbo))','Label','Import shape file');
 uimenu('Parent',h,'Call','read_las(guidata(gcbo))','Label','Import LAS file');
+uimenu('Parent',h,'Call','mirone(''DrawImportOGR_CB'',guidata(gcbo))','Label','Import with OGR', 'Sep','on');
 
 % ----------------------- Save Images section
 h = uimenu('Parent',hFL,'Label','Save Image As...','Sep','on');
@@ -719,7 +720,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 02 Sep 2011'',''2.1.2'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 09 Sep 2011'',''2.1.2'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
