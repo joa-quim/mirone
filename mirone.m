@@ -2440,6 +2440,109 @@ function DrawImportText_CB(handles)
 	end
 
 % --------------------------------------------------------------------
+function DrawImportOGR_CB(handles, fname)
+	if (nargin == 1)
+		str1 = {'*.shp;*.gpx;*.kml;*.gml;*.dxf', 'Data files (*.shp,*.gpx;*.kml;*.gml;*.dxf)';'*.*', 'All Files (*.*)'};
+		[FileName,PathName] = put_or_get_file(handles,str1,'Select file name','get');
+		if isequal(FileName,0),		return,		end
+		fname = [PathName FileName];
+	end
+	try			s = ogrread(fname);
+	catch,		errordlg([lasterr ' Bad luck. NOT an OGR readable file'],'Error'),		return
+	end
+
+	do_project = false;		no_file = handles.no_file;
+	theProj = s(1).SRSProj4;
+
+	region = s(1).BoundingBox(:)';
+	is_geog = aux_funs('guessGeog',region(1:4));
+
+	% If we have a file already need to know about coords compat
+	if (~handles.no_file)
+		if (~isempty(theProj) && handles.geog && ~is_geog)
+			projStruc.SrcProjWKT = theProj;		do_project = true;		% Inverse projection
+		elseif (~isempty(theProj) && ~handles.geog && is_geog)
+			projStruc.DstProjWKT = theProj;		do_project = true;		% Projection is from geogs to projWKT
+		elseif (~isempty(theProj) && ~handles.geog && ~is_geog)
+			projStruc.SrcProjWKT = theProj;
+			prjInfoStruc = aux_funs('getFigProjInfo',handles);
+			if (isempty(prjInfoStruc.projWKT) && ~isempty(prjInfoStruc.proj4))	% Give it one more chance
+				prjInfoStruc.projWKT = ogrproj(prjInfoStruc.proj4);
+			elseif (isempty(prjInfoStruc.projWKT) && ~isempty(prjInfoStruc.projGMT))
+				errordlg('Sorry but it''s still not possible to convert between GMT and proj4 strings','Error'),	return
+			end
+			projStruc.DstProjWKT = prjInfoStruc.projWKT;				% If it doesn't exist, BUM
+			do_project = true;
+		elseif (isempty(theProj) && handles.geog && ~is_geog)
+			errordlg('Your background image is in geographics but the shape file has unknown coords.','ERROR'),	return	
+		end
+		if (do_project)
+			tmp = s(1).BoundingBox;
+			tmp = ogrproj(tmp, projStruc);		% Reproject all BB right away
+			s(1).BoundingBox = tmp;
+		end
+	else
+		handles.geog = is_geog;		guidata(handles.figure1, handles);
+	end
+
+	% If we have nothing opened create a background region
+	lt = handles.DefLineThick;		lc = handles.DefLineColor;
+	if (handles.no_file),	handles = FileNewBgFrame_CB(handles, [region handles.geog]);	lc = 'k';	end
+
+	imgLims = getappdata(handles.axes1,'ThisImageLims');
+	reco = aux_funs('rectangle_and', imgLims, s(1).BoundingBox(:)');
+	if (isempty(reco))
+		warndlg('No data inside display region','Warning'),		return
+	end
+
+	nGeoms = numel(s);		h1 = zeros(nGeoms,1);		h2 = zeros(nGeoms,1);
+	for (k = 1:nGeoms)
+		is3D = ~isempty(s(k).Z);
+		if (do_project),	ogrproj(s(k).X, s(k).Y, projStruc);		end		% Project into basemap coords
+		if ( strncmp(s(k).type,'Point', 5) || strncmp(s(k).type,'Line', 4) )
+			lsty = {'LineStyle', '-'};
+			if (s(k).type(1) == 'P')	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
+
+			h1(k) = line('Xdata',single(s(k).X),'Ydata',single(s(k).Y),'Parent',handles.axes1, ...
+				'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
+			if (is3D),		set(h1(k),'UserData', single(s(k).Z)),	end
+
+		else				% Polygons
+			% Make sure it knows that the Earth is round
+			if (handles.geog == 1 && (s(1).BoundingBox(1) < -179.5 || s(1).BoundingBox(2) > 179.5) )
+				[s(k).Y, s(k).X] = map_funs('trimwrap', s(k).Y, s(k).X, [-90 90], s(1).BoundingBox(1:2), 'wrap');
+			elseif (handles.geog == 2 && (s(1).BoundingBox(1) < 0.5 || s(1).BoundingBox(2) > 359.5) )
+				[s(k).Y, s(k).X] = map_funs('trimwrap', s(k).Y, s(k).X, [-90 90], s(1).BoundingBox(1:2), 'wrap');
+			end
+			h2(k) = patch('XData',s(k).X,'YData', s(k).Y,'FaceColor','none','EdgeColor',lc,'Parent',handles.axes1,'Tag','SHPpolygon');
+			if (is3D)								% IT'S IGNORING THE EARTH-IS-ROUND? TEST
+				set(h2(k), 'UserData', s(k).Z)		% Fleder can drape it (+ other eventual usages)
+			end
+		end
+	end
+
+	h1((h1 == 0)) = [];		h2((h2 == 0)) = [];
+	if ( isempty(h1) && isempty(h2) ),	warndlg('No data inside display region','Warning'),		return,		end
+	if ( ~isempty(h1) )
+		draw_funs(h1,'setSHPuictx')			% Set lines's uicontextmenu
+	else
+		% With luck, your hardware won't choke to dead with this
+		nParanoia = 1000;		% The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
+		if (nGeoms <= nParanoia)
+			draw_funs(h2,'line_uicontext')
+		else								% nParanoia is an arbitrary number that practice will show dependency
+			draw_funs(h2,'country_patch')	% mostly on hardware, for I don't beleave ML will ever behave decently.
+		end
+	end
+
+	if (no_file && ~isempty(theProj))			% We need to finish this matter
+		aux_funs('appP', handles, theProj)		% If we have a WKT proj store it
+		handles = aux_funs('isProj',handles);	% Check about coordinates type
+		handles = setAxesDefCoordIn(handles,1);
+	end
+	recentFiles(handles);						% Insert fileName into "Recent Files" & save handles
+
+% --------------------------------------------------------------------
 function DrawImportShape_CB(handles, fname)
 	if (nargin == 1)
 		str1 = {'*.shp;*.SHP', 'Data files (*.shp,*.SHP)';'*.*', 'All Files (*.*)'};
