@@ -40,8 +40,8 @@
  *	att_values:	Values of the attributes of a Feature as strings
  *	att_types:	Because "att_values" came as strings, this is a vector with the codes allowing
  *			the conversion into their original data types as returned by OGR_Fld_GetType(hField). 
- *			Thus if the code of element n is 2 (OFTReal) att_values[n] can be converted to double with atof.
- *			See ogr_core.h for the list of codes and their meanings.
+ *			Thus if the code of element n is 2 (OFTReal) att_values[n] can be converted to double with
+ *			atof. See ogr_core.h for the list of codes and their meanings.
  *
  * Now, given the potential complexity of an OGR dataset the "s" structure can be either a 2D or 3D dimensional
  * struct array. On the simpler case of one single layer the structure is 2D. If more layers are present in the
@@ -83,7 +83,7 @@ char *mxStrdup(const char *s);
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	int	i, j, iLayer, nEmptyGeoms, nAttribs = 0, dims[2];
-	int	region = 0, verbose = 1;
+	int	region = 0, verbose = 0;
 	int	*layers;		/* Array with layer numbers*/
 	int	nLayers;		/* number of layers in dataset */
 	char	**layer_names;		/* layers names */
