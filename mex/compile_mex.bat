@@ -1,7 +1,7 @@
 @echo off
 REM --------------------------------------------------------------------------------------
 REM
-REM	$Id:$
+REM	$Id: $
 REM
 REM This is a compile batch that builds all MEXs whose source code is distributed in Mirone
 REM A major difficulty in using this comes from the fact that several external libraries are needed.
@@ -97,7 +97,7 @@ SET   CVIMG_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_imgproc211.l
 SET CVCALIB_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_calib3d211.lib
 SET   CVOBJ_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_objdetect211.lib
 SET CVVIDEO_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_video211.lib
-SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\Intel11_32\liblas_i.lib
+SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_32\liblas_i.lib
 
 ) ELSE (
 
@@ -108,11 +108,11 @@ SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\lib\gdal_i.lib
 REM I haven't build yet (and maybe I won't) 2.1 libs with VC7.1
 SET      CV_LIB=C:\programs\OpenCV_SVN\lib\cv200.lib
 SET  CXCORE_LIB=C:\programs\OpenCV_SVN\lib\cxcore200.lib
-SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\Intel11_32\liblas_i.lib
+SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_32\liblas_i.lib
 ) )
 
 SET NETCDF_INC=C:\progs_cygw\netcdf-3.6.3\include
-SET GMT_INC=c:\progs_cygw\GMTdev\GMT\include
+SET GMT_INC=c:\progs_cygw\GMTdev\GMT4\include
 SET GDAL_INC=c:\programs\GDALtrunk\gdal\compileds\VC10_32\include
 SET CV_INC=C:\programs\OpenCV_SVN\include\opencv
 SET LAS_INC=-IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas\capi -IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas
@@ -229,7 +229,7 @@ REM ---------------------- END "GMTs" ------------------------------------------
 
 REM ---------------------- GDALs ---------------------------------------------------
 :GDAL
-for %%G in (gdalread gdalwrite mex_shape) do (
+for %%G in (gdalread gdalwrite mex_shape ogrread) do (
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%GDAL_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %GDAL_LIB% /implib:templib.x %%G.obj 
 )
