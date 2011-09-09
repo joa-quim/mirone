@@ -2450,7 +2450,6 @@ function DrawImportOGR_CB(handles, fname)
 	try			s = ogrread(fname);
 	catch,		errordlg([lasterr ' Bad luck. NOT an OGR readable file'],'Error'),		return
 	end
-profile on
 
 	do_project = false;		no_file = handles.no_file;
 	theProj = s(1).SRSProj4;
@@ -2539,7 +2538,7 @@ profile on
 		handles = setAxesDefCoordIn(handles,1);
 	end
 	recentFiles(handles);						% Insert fileName into "Recent Files" & save handles
-profile viewer
+
 % --------------------------------------------------------------------
 function DrawImportShape_CB(handles, fname)
 	if (nargin == 1)
