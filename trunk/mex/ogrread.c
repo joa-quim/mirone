@@ -39,9 +39,9 @@
  *	Att_number:	Number of attribures of a Feature
  *	Att_names:	Names of the attributes of a Feature
  *	Att_values:	Values of the attributes of a Feature as strings
- *	Att_types:	Because "att_values" came as strings, this is a vector with the codes allowing
+ *	Att_types:	Because "Att_values" came as strings, this is a vector with the codes allowing
  *			the conversion into their original data types as returned by OGR_Fld_GetType(hField). 
- *			Thus if the code of element n is 2 (OFTReal) att_values[n] can be converted to double with
+ *			Thus if the code of element n is 2 (OFTReal) Att_values[n] can be converted to double with
  *			atof. See ogr_core.h for the list of codes and their meanings.
  *
  * Now, given the potential complexity of an OGR dataset the "s" structure can be either a 2D or 3D dimensional
@@ -61,7 +61,7 @@
  * as the maximum number of Geometries in all Features. There are as many rows as Features in the Layer. However,
  * not all fields of the individual Gij are filled. Only those that contain real data. Also, to not waist space
  * and given that the Attributes of all Geometries of a Feature are equal, only the first column Gm1 elements
- * have assigned the "att_names|values|types". That is, the others are defined but not filled. The same applies
+ * have assigned the "Att_names|values|types". That is, the others are defined but not filled. The same applies
  * to all other matrix elements represented as []. Again, they are defined (they have to be because the matrix
  * must be rectangular) but their members are not filled.
  *
@@ -84,7 +84,7 @@ char *mxStrdup(const char *s);
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	int	i, j, iLayer, nEmptyLayers, nEmptyGeoms, nAttribs = 0, dims[3];
-	int	region = 0, verbose = 1;
+	int	region = 0, verbose = 0;
 	int	*layers;		/* Array with layer numbers*/
 	int	nLayers;		/* number of layers in dataset */
 	char	**layerNames;		/* layers names */
@@ -318,9 +318,9 @@ int get_data(mxArray *out_struct, OGRFeatureH hFeature, OGRFeatureDefnH hFeature
 					z_out_ptr[i] = OGR_G_GetZ(hGeom, i);
 			}
 			if (eType == wkbPoint)
-				mxSetField(out_struct, indStruct, "type", mxCreateString("Point"));
+				mxSetField(out_struct, indStruct, "Type", mxCreateString("Point"));
 			else
-				mxSetField(out_struct, indStruct, "type", mxCreateString("LineString"));
+				mxSetField(out_struct, indStruct, "Type", mxCreateString("LineString"));
 	
 		}
 		else if (eType == wkbPolygon) {
@@ -366,7 +366,7 @@ int get_data(mxArray *out_struct, OGRFeatureH hFeature, OGRFeatureDefnH hFeature
 				pi[2*nRings - 1] = c - 1;		/* Last element was not assigned in the loop above */
 				mxSetField(out_struct, indStruct, "Islands", mxIslands);
 			}
-			mxSetField(out_struct, indStruct, "type", mxCreateString("Polygon"));
+			mxSetField(out_struct, indStruct, "Type", mxCreateString("Polygon"));
 		}
 		else if (do_recursion) {
 			/* When we reach here it's because the current Geometry is of the Multi<something> type.
@@ -393,7 +393,7 @@ int get_data(mxArray *out_struct, OGRFeatureH hFeature, OGRFeatureDefnH hFeature
 
 		if ((j + recursionLevel) == 0) {
 			/* Only first column element is set with number of attributes (also called fields by ogr) */
-			mxSetField(out_struct, indStruct, "att_number", mxCreateDoubleScalar((double)nAttribs));
+			mxSetField(out_struct, indStruct, "Att_number", mxCreateDoubleScalar((double)nAttribs));
 
 			att_names  = (const char **)mxCalloc((size_t)nAttribs, sizeof(char *));
 			att_values = (const char **)mxCalloc((size_t)nAttribs, sizeof(char *));
@@ -406,12 +406,12 @@ int get_data(mxArray *out_struct, OGRFeatureH hFeature, OGRFeatureDefnH hFeature
 				att_values[i] = mxStrdup(OGR_F_GetFieldAsString(hFeature, i));
 				ptr_d[i]      = OGR_Fld_GetType(hField);
 			}
-			mxSetField(out_struct, indStruct, "att_names",  mxCreateCharMatrixFromStrings(nAttribs, att_names));
-			mxSetField(out_struct, indStruct, "att_values", mxCreateCharMatrixFromStrings(nAttribs, att_values));
-			mxSetField(out_struct, indStruct, "att_types",  pTypes);
+			mxSetField(out_struct, indStruct, "Att_names",  mxCreateCharMatrixFromStrings(nAttribs, att_names));
+			mxSetField(out_struct, indStruct, "Att_values", mxCreateCharMatrixFromStrings(nAttribs, att_values));
+			mxSetField(out_struct, indStruct, "Att_types",  pTypes);
 		}
 		else
-			mxSetField(out_struct, indStruct, "att_number", mxCreateDoubleScalar(0));
+			mxSetField(out_struct, indStruct, "Att_number", mxCreateDoubleScalar(0));
 	}
 
 	return(0);
