@@ -354,6 +354,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'dat',			load_xyz(handles, fname);
 		case 'ncshape',		load_xyz(handles, fname, drv);
 		case 'shp',			DrawImportShape_CB(handles, fname);
+		case 'ogr',			DrawImportOGR_CB(handles, fname);
 		case 'las',			read_las(handles, fname);
 		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles,fname);
 		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);		% It means "I don't know"
@@ -2500,7 +2501,7 @@ function DrawImportOGR_CB(handles, fname)
 	for (k = 1:nGeoms)
 		is3D = ~isempty(s(k).Z);
 		if (do_project),	ogrproj(s(k).X, s(k).Y, projStruc);		end		% Project into basemap coords
-		if ( strncmp(s(k).type,'Point', 5) || strncmp(s(k).type,'Line', 4) )
+		if ( strncmp(s(k).Type,'Point', 5) || strncmp(s(k).Type,'Line', 4) )
 			lsty = {'LineStyle', '-'};
 			if (s(k).type(1) == 'P')	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
 
@@ -3839,7 +3840,7 @@ function TransferB_CB(handles, opt)
 		show_image(handles,out.imgName,out.X,out.Y,out.img,0,'xy',1,1);
 
 	elseif (strcmp(opt,'NewEmpty'))
-		h = mirone;		
+		h = mirone;
 		newHand = guidata(h);		newHand.last_dir = handles.last_dir;	guidata(h, newHand)
 		setappdata(h,'hFigParent',handles.figure1);		% Save the Parent fig handles in this new figure
 		if (~handles.no_file)					% Set the Drape option to 'on' in the New window
