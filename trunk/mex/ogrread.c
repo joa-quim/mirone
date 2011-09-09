@@ -25,20 +25,21 @@
  *
  *	"s" is a 2D or 3D structure array with fields:
  *
+ *	Name:		A string holding the layer name.
  *	SRSWkt:		A string describing the reference system in the Well Known Format.
  *	SRSProj4:	A string describing the reference system as a Proj4 string
  *	BoundingBox:	The 2D dataset BoundingBox as a 2x2 matrix with Xmin/Xmax in first column and Y in second
- *	type:		Geometry type. E.g. Point, Polygon or LineString
+ *	Type:		Geometry type. E.g. Point, Polygon or LineString
  *	X:		Column vector of doubles with the vector x-coordinates		
  *	Y:		Column vector of doubles with the vector y-coordinates		
  *	Z:		Same for z when vector is 3D, otherwise empty
  *	Islands:	2 columns matrix with start and ending indexes of the main Ring and its islands (if any).
  *			This only applies to Polygon geometries that have interior rings (islands).
  *	BB_geom:	Not currently assigned (would be the BoundingBox of each individual geometry)
- *	att_number:	Number of attribures of a Feature
- *	att_names:	Names of the attributes of a Feature
- *	att_values:	Values of the attributes of a Feature as strings
- *	att_types:	Because "att_values" came as strings, this is a vector with the codes allowing
+ *	Att_number:	Number of attribures of a Feature
+ *	Att_names:	Names of the attributes of a Feature
+ *	Att_values:	Values of the attributes of a Feature as strings
+ *	Att_types:	Because "att_values" came as strings, this is a vector with the codes allowing
  *			the conversion into their original data types as returned by OGR_Fld_GetType(hField). 
  *			Thus if the code of element n is 2 (OFTReal) att_values[n] can be converted to double with
  *			atof. See ogr_core.h for the list of codes and their meanings.
@@ -82,11 +83,11 @@ char *mxStrdup(const char *s);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	int	i, j, iLayer, nEmptyGeoms, nAttribs = 0, dims[2];
-	int	region = 0, verbose = 0;
+	int	i, j, iLayer, nEmptyLayers, nEmptyGeoms, nAttribs = 0, dims[3];
+	int	region = 0, verbose = 1;
 	int	*layers;		/* Array with layer numbers*/
 	int	nLayers;		/* number of layers in dataset */
-	char	**layer_names;		/* layers names */
+	char	**layerNames;		/* layers names */
 	char	*fname;
 	double	xmin, ymin, xmax, ymax;
 
@@ -123,22 +124,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (nLayers < 1)
 		mexErrMsgTxt("No OGR layers available\n");
 
-	layer_names = (char **)mxMalloc(nLayers * sizeof(char *));
+	layerNames = (char **)mxMalloc(nLayers * sizeof(char *));
 
 	for (i = 0; i < nLayers; i++) {
 		hLayer = OGR_DS_GetLayer(hDS, i);
 		hFeatureDefn = OGR_L_GetLayerDefn(hLayer);
-		layer_names[i] = mxStrdup((char *)OGR_FD_GetName(hFeatureDefn));
-
+		layerNames[i] = mxStrdup((char *)OGR_FD_GetName(hFeatureDefn));
 		if (verbose)
-			mexPrintf("Layer name = %s\n", layer_names[i]);
+			mexPrintf("Layer name = %s\n", layerNames[i]);
 	}
-
-	layers = (int *)mxMalloc(nLayers * sizeof(int));
-	for (i = 0; i < nLayers; i++) layers[i] = i;
-
-	/* Get first imported layer to use for extents and projection check */
-	hLayer = OGR_DS_GetLayer(hDS, layers[0]);
 
 	if (region) {		/* If we have a sub-region request. */
 		poSpatialFilter = OGR_G_CreateGeometry(wkbPolygon);
@@ -149,39 +143,53 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		OGR_G_AddPoint(hPolygon, xmax, ymin, 0.0);
 		OGR_G_AddPoint(hPolygon, xmin, ymin, 0.0);
 		OGR_G_AddGeometryDirectly(poSpatialFilter, hPolygon);
-		OGR_L_SetSpatialFilter(hLayer, poSpatialFilter);
 	}
 
+	layers = (int *)mxMalloc(nLayers * sizeof(int));
+
 	/* Get MAX number of features of all layers */
-	for (i = 0, nMaxFeatures = nMaxGeoms = 1; i < nLayers; i++) {
-		hLayer = OGR_DS_GetLayer(hDS, layers[i]);
+	for (i = j = nEmptyLayers = 0, nMaxFeatures = nMaxGeoms = 1; i < nLayers; i++) {
+		hLayer = OGR_DS_GetLayer(hDS, i);
+
+		if (region)
+			OGR_L_SetSpatialFilter(hLayer, poSpatialFilter);
+
 		nMaxFeatures = MAX(OGR_L_GetFeatureCount(hLayer, 1), nMaxFeatures);
 		hFeature = OGR_L_GetNextFeature(hLayer);
+		if (hFeature == NULL) {		/* Yes, this can happen. Probably on crapy files */
+			nEmptyLayers++;
+			continue;
+		}
+		layers[j++] = i;		/* Store indices of non-empty layers */
 		hGeom = OGR_F_GetGeometryRef(hFeature);
 		hFeatureDefn = OGR_L_GetLayerDefn(hLayer);
 		eType = wkbFlatten(OGR_G_GetGeometryType(hGeom));
 		if (eType != wkbPolygon)	/* For simple polygons, next would return only the number of interior rings */
 			nMaxGeoms = MAX(OGR_G_GetGeometryCount(hGeom), nMaxGeoms);
+
 		OGR_F_Destroy(hFeature);
 	}
+	if (nEmptyLayers) nLayers -= nEmptyLayers;
 
 	nFields = 0;
+	fnames[nFields++] = mxStrdup ("Name");
 	fnames[nFields++] = mxStrdup ("SRSWkt");
 	fnames[nFields++] = mxStrdup ("SRSProj4");
 	fnames[nFields++] = mxStrdup ("BoundingBox");
-	fnames[nFields++] = mxStrdup ("type");
+	fnames[nFields++] = mxStrdup ("Type");
 	fnames[nFields++] = mxStrdup ("X");
 	fnames[nFields++] = mxStrdup ("Y");
 	fnames[nFields++] = mxStrdup ("Z");
 	fnames[nFields++] = mxStrdup ("Islands");
 	fnames[nFields++] = mxStrdup ("BB_geom");		/* Not yet used */
-	fnames[nFields++] = mxStrdup ("att_number");
-	fnames[nFields++] = mxStrdup ("att_names");
-	fnames[nFields++] = mxStrdup ("att_values");
-	fnames[nFields++] = mxStrdup ("att_types");
+	fnames[nFields++] = mxStrdup ("Att_number");
+	fnames[nFields++] = mxStrdup ("Att_names");
+	fnames[nFields++] = mxStrdup ("Att_values");
+	fnames[nFields++] = mxStrdup ("Att_types");
 
 	nDims = (nLayers > 1) ? 3 : 2;
 	dims[0] = nMaxFeatures;		dims[1] = nMaxGeoms;
+	dims[2] = nLayers;
 	out_struct = mxCreateStructArray ( nDims, dims, nFields, (const char **)fnames );
 
 	for (iLayer = nFeature = nEmptyGeoms = 0; iLayer < nLayers; iLayer++) {
@@ -196,11 +204,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			mxArray	*mxPrjRef;
 			if (OSRExportToProj4(hSRS, &pszProj4) == OGRERR_NONE) {
 				mxPrjRef = mxCreateString (pszProj4);
-				mxSetField (out_struct, 0, "SRSProj4", mxPrjRef);
+				mxSetField (out_struct, 0*dims[0]*dims[1], "SRSProj4", mxPrjRef);
 			}
 			if (OSRExportToPrettyWkt(hSRS, &pszWKT, 1) == OGRERR_NONE) {
 				mxPrjRef = mxCreateString (pszWKT);
-				mxSetField (out_struct, 0, "SRSWkt", mxPrjRef);
+				mxSetField (out_struct, 0*dims[0]*dims[1], "SRSWkt", mxPrjRef);
 			}
 		}
 
@@ -215,17 +223,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			bb_ptr[0] = bb_ptr[2] = -mxGetInf();
 			bb_ptr[1] = bb_ptr[3] =  mxGetInf();
 		}
-		mxSetField (out_struct, 0, "BoundingBox", mBBox);
+		mxSetField (out_struct, 0*dims[0]*dims[1], "BoundingBox", mBBox);
+		mxSetField (out_struct, 0*dims[0]*dims[1], "name", mxCreateString(layerNames[iLayer]));
 
 		nAttribs = OGR_FD_GetFieldCount(hFeatureDefn);
 
 		if (verbose)
-			mexPrintf("Importing %d features from layer <%s>\n", OGR_L_GetFeatureCount(hLayer, 1), layer_names[iLayer]);
+			mexPrintf("Importing %d features from layer <%s>\n", OGR_L_GetFeatureCount(hLayer, 1), layerNames[iLayer]);
 		while ((hFeature = OGR_L_GetNextFeature(hLayer)) != NULL) {
 			hGeom = OGR_F_GetGeometryRef(hFeature);
 			eType = wkbFlatten(OGR_G_GetGeometryType(hGeom));
 			if (hGeom != NULL)
-				get_data(out_struct, hFeature, hFeatureDefn, hGeom, iLayer, nFeature, nLayers, nAttribs, nMaxFeatures, 0);
+				get_data(out_struct, hFeature, hFeatureDefn, hGeom, iLayer, nFeature, 
+					nLayers, nAttribs, nMaxFeatures, 0);
 			else
 				nEmptyGeoms++;
 			nFeature++;		/* Counter to number of features in this layer */
