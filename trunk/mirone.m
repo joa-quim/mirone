@@ -2450,6 +2450,7 @@ function DrawImportOGR_CB(handles, fname)
 	try			s = ogrread(fname);
 	catch,		errordlg([lasterr ' Bad luck. NOT an OGR readable file'],'Error'),		return
 	end
+profile on
 
 	do_project = false;		no_file = handles.no_file;
 	theProj = s(1).SRSProj4;
@@ -2496,6 +2497,7 @@ function DrawImportOGR_CB(handles, fname)
 	end
 
 	nGeoms = numel(s);		h1 = zeros(nGeoms,1);		h2 = zeros(nGeoms,1);
+	nParanoia = 1000;		% The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
 	for (k = 1:nGeoms)
 		is3D = ~isempty(s(k).Z);
 		if (do_project),	ogrproj(s(k).X, s(k).Y, projStruc);		end		% Project into basemap coords
@@ -2518,22 +2520,18 @@ function DrawImportOGR_CB(handles, fname)
 			if (is3D)								% IT'S IGNORING THE EARTH-IS-ROUND? TEST
 				set(h2(k), 'UserData', s(k).Z)		% Fleder can drape it (+ other eventual usages)
 			end
+			if (nGeoms <= nParanoia)	draw_funs(h2(k),'line_uicontext'),	end
 		end
 	end
 
 	h1((h1 == 0)) = [];		h2((h2 == 0)) = [];
 	if ( isempty(h1) && isempty(h2) ),	warndlg('No data inside display region','Warning'),		return,		end
 	if ( ~isempty(h1) )
-		draw_funs(h1,'setSHPuictx')			% Set lines's uicontextmenu
-	else
-		% With luck, your hardware won't choke to dead with this
-		nParanoia = 1000;		% The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
-		if (nGeoms <= nParanoia)
-			draw_funs(h2,'line_uicontext')
-		else								% nParanoia is an arbitrary number that practice will show dependency
-			draw_funs(h2,'country_patch')	% mostly on hardware, for I don't beleave ML will ever behave decently.
-		end
+		draw_funs(h1,'setSHPuictx')				% Set lines's uicontextmenu
 	end
+	if (nGeoms > nParanoia)						% With luck, your hardware won't choke to dead with this
+		draw_funs(h2,'country_patch')			% nParanoia is an arbitrary number that practice will show dependency
+	end											% mostly on hardware, for I don't beleave ML will ever behave decently.
 
 	if (no_file && ~isempty(theProj))			% We need to finish this matter
 		aux_funs('appP', handles, theProj)		% If we have a WKT proj store it
@@ -2541,7 +2539,7 @@ function DrawImportOGR_CB(handles, fname)
 		handles = setAxesDefCoordIn(handles,1);
 	end
 	recentFiles(handles);						% Insert fileName into "Recent Files" & save handles
-
+profile viewer
 % --------------------------------------------------------------------
 function DrawImportShape_CB(handles, fname)
 	if (nargin == 1)
