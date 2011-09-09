@@ -2503,7 +2503,7 @@ function DrawImportOGR_CB(handles, fname)
 		if (do_project),	ogrproj(s(k).X, s(k).Y, projStruc);		end		% Project into basemap coords
 		if ( strncmp(s(k).Type,'Point', 5) || strncmp(s(k).Type,'Line', 4) )
 			lsty = {'LineStyle', '-'};
-			if (s(k).type(1) == 'P')	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
+			if (s(k).Type(1) == 'P')	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
 
 			h1(k) = line('Xdata',single(s(k).X),'Ydata',single(s(k).Y),'Parent',handles.axes1, ...
 				'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
