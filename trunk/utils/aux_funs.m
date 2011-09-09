@@ -216,6 +216,8 @@ function out = findFileType(fname)
 	elseif ( any(strcmpi(EXT,'.las')) ),		out = 'las';
 	elseif ( any(strcmpi(EXT,'.gmt')) )			% In future we'll have to test if MGG or ogr2ogr (e.g. multiseg) file
 		out = 'mgg_gmt';
+	elseif ( any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg'})) )
+		out = 'ogr';
 	else
 		% Before we give up with a 'dono' check if its a netCDF file.
 		% One normaly shouldn't need it if the GDAL netCDF driver
