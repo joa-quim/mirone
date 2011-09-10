@@ -2529,7 +2529,7 @@ function DrawImportOGR_CB(handles, fname)
 	if ( ~isempty(h1) )
 		draw_funs(h1,'setSHPuictx')				% Set lines's uicontextmenu
 	end
-	if (nGeoms > nParanoia)						% With luck, your hardware won't choke to dead with this
+	if ( ~isempty(h1) && (nGeoms > nParanoia) )	% With luck, your hardware won't choke to dead with this
 		draw_funs(h2,'country_patch')			% nParanoia is an arbitrary number that practice will show dependency
 	end											% mostly on hardware, for I don't beleave ML will ever behave decently.
 
