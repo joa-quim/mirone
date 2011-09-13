@@ -80,12 +80,12 @@ function varargout = line_operations(varargin)
 	end
 
 	handles.known_ops = {'buffer'; 'polysimplify'; 'bspline'; 'cspline'; 'polyunion'; 'polyintersect'; ...
-			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'toRidge'; 'hand2Workspace'};
+			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'toRidge'; 'stitch'; 'hand2Workspace'};
 	handles.hLine = [];
 	set(handles.popup_cmds,'Tooltip', 'Select one operation from this list')
 	set(handles.popup_cmds,'String', {'Possible commands'; 'buffer DIST'; 'polysimplify TOL'; 'bspline'; ...
 			'cspline N RES'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; 'line2patch'; ...
-			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'toRidge 5'; 'hand2Workspace'} )
+			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'toRidge 5'; 'stitch TOL'; 'hand2Workspace'} )
 
 	handles.ttips = cell(numel(handles.known_ops));
 	handles.ttips{1} = 'Select one operation from this list';
@@ -131,10 +131,13 @@ function varargout = line_operations(varargin)
 	handles.ttips{13} = sprintf(['Calculate a new line with vertex siting on top of nearby ridges.\n' ...
 								'The parameter N is used to search for ridges only inside a sub-region\n' ...
 								'2Nx2N centered on current vertex. Default is 5, but you can change it.']);
-	handles.ttips{14} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
+	handles.ttips{14} = sprintf(['Stitch in cascade the lines that are closer than TOL to selected line.\n' ...
+								'Replace TOL by the desired maximum distance for lines still be stitched.\n' ...
+								'If removed or left as the string "TOL" (no quotes) it defaults to Inf.']);
+	handles.ttips{15} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
 								'Use this if you want to gain access to all handle properties.']);
 
-	if (IamCompiled),	handles.known_ops(13) = [];	handles.ttips(14) = [];	end		% regretably
+	if (IamCompiled),	handles.known_ops(14) = [];	handles.ttips(15) = [];	end		% regretably
 
 	% Add this figure handle to the carraças list
 	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
@@ -411,6 +414,20 @@ function push_apply_CB(hObject, handles)
 			end
 			clear mapproject_m			% Because of the memory leaks
 			set(hanMir.figure1,'pointer','arrow')
+
+		case 'stitch'
+			tol = validate_args(handles.known_ops{ind}, r);
+
+			hCurrLine = handles.hLine;
+			hLines = findobj(handles.hMirAxes, 'Type', 'line');
+			hLines = setxor(hLines, hCurrLine);
+			for (k = 1:numel(hLines))
+				[x, y, was_closed] = draw_funs([], 'join2lines',[hCurrLine hLines(k)], tol);
+				if (~isempty(x) && ~was_closed)			% Closed polylines are ignored
+					set(hCurrLine, 'XData',x, 'YData',y)
+					delete(hLines(k))
+				end
+			end
 	end
 	
 % --------------------------------------------------------------------------------------------------
@@ -550,6 +567,13 @@ function [out, msg] = validate_args(qual, str, np)
 				else
 					msg = 'the N argument is nonsense';
 				end
+			end
+
+		case 'stitch'
+			if ( isempty(str) || strcmpi(str, 'TOL') )
+				out = Inf;
+			else
+				out = abs(str2double(str));
 			end
 	end
 
