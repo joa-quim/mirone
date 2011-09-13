@@ -2503,6 +2503,7 @@ function DrawImportOGR_CB(handles, fname)
 	nParanoia = 1000;		% The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
 	for (k = 1:nGeoms)
 		is3D = ~isempty(s(k).Z);
+		if (isempty(s(k).X)),	continue,		end		% The out struct can have many empty elements
 		if (do_project),	ogrproj(s(k).X, s(k).Y, projStruc);		end		% Project into basemap coords
 		if ( strncmp(s(k).Type,'Point', 5) || strncmp(s(k).Type,'Line', 4) )
 			lsty = {'LineStyle', '-'};
