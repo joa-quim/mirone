@@ -125,12 +125,12 @@ function push_Add_CB(hObject, handles)
 
 %-------------------------------------------------------------------------------
 function push_GenerateIntervals_CB(hObject, handles)
-if (~isempty(handles.Zstart) && ~isempty(handles.Zinc))
-    list = num2cell((handles.Zstart:handles.Zinc:handles.Zmax)');
-    set(handles.listbox_ElevValues,'String',list)
-else
-    errordlg('Generate how? From the empty space?','Chico Clever')
-end
+	if (~isempty(handles.Zstart) && ~isempty(handles.Zinc))
+		list = num2cell((handles.Zstart:handles.Zinc:handles.Zmax)');
+		set(handles.listbox_ElevValues,'String',list)
+	else
+		errordlg('Generate how? From the empty space?','Chico Clever')
+	end
 
 %-------------------------------------------------------------------------------
 function listbox_ElevValues_CB(hObject, handles)
@@ -261,7 +261,7 @@ uicontrol('Parent',h1, 'Position',[30 89 80 15],...
 
 uicontrol('Parent',h1, 'Position',[120 85 131 21],...
 'BackgroundColor',[1 1 1],...
-'Call',{@contouring_uiCB,h1,'edit_ElevStep_CB'},...
+'Call',@contouring_uiCB,...
 'Style','edit',...
 'Tag','edit_ElevStep');
 
