@@ -504,10 +504,15 @@ function join_lines(obj,evt,hFig)
 	end
 
 % ---------
-function [x, y, was_closed] = join2lines(hLines)
+function [x, y, was_closed] = join2lines(hLines, TOL)
 % Joint the two lines which have handles "hLines" by their closest connection points
+% TOL is the max distance that the two lines can be apart and still be joint.
+%	If not provided, defaults to Inf, but if it is and the two lines are too further
+%	apart than X,Y & WAS_CLOSED are all set to empty. It's callers responsability to check it.
+
 	x1 = get(hLines(1),'XData');		y1 = get(hLines(1),'YData');
 	x2 = get(hLines(2),'XData');		y2 = get(hLines(2),'YData');
+	if (nargin == 1),	TOL = inf;		end
 	
 	was_closed = false;
 	if ( (x2(1) == x2(end)) && (y2(1) == y2(end)) )		% Ignore closed polygons
@@ -521,6 +526,10 @@ function [x, y, was_closed] = join2lines(hLines)
 	dif_y = [(y1(1) - y2(1)); (y1(1) - y2(end)); (y1(end) - y2(1)); (y1(end) - y2(end))];
 	dist = sum([dif_x dif_y] .^2 ,2);	% Square of distances between the 4 extremities
 	[mimi, I] = min(dist);				% We only care about the min location
+	if (mimi > TOL)
+		x = [];		y = [];		was_closed = [];
+		return
+	end
 	if (I == 1)				% Lines grow in oposite directions from a "mid point"
 		x = [x2(end:-1:2) x1];		y = [y2(end:-1:2) y1];
 	elseif (I == 2)			% Line 2 ends near the begining of line 1 
