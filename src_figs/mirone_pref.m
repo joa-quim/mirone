@@ -442,6 +442,7 @@ function push_OK_CB(hObject, handles)
 	%ForceInsitu = handles.ForceInsitu;     % We don't save it because the user must choose it every time
 	moveDoubleClick = handles.moveDoubleClick;
 	nanColor = handles.bg_color;
+	handles.handMir.bg_color = handles.bg_color;
 
 	% Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
 	version7 = version;
