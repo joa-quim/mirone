@@ -367,6 +367,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, open Mirone Fig.
 
+	do_blockMean = false;	% Must be turned into an input parameter
 	do_flags = false;		% Will be set to true if we do a checking against a quality flgas file
 	get_profiles_in_polygon = false;			% Save all profiles (along third dim) located inside the polygonal area
 	n_anos = handles.number_of_timesteps;
@@ -471,6 +472,27 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 		return
 	end
 	% -----------------------------------------------------------------------------------------
+
+	if (do_blockMean)
+		aguentabar(0,'title','Compute block means','CreateCancelBtn')
+		for (m = 1:n_anos)
+			if (do_flags)
+				slice = Tmed(:,:,m);
+				fslice = flags(:,:,m);
+				if (growing_flag),	slice(fslice < quality) = NaN;
+				else				slice(fslice > quality) = NaN;
+				end
+				Tmed(:,:,m) = mirblock(slice, '-A3');
+			else
+				Tmed(:,:,m) = mirblock(Tmed(:,:,m), '-A3');
+			end
+			h = aguentabar(m/n_anos);
+			if (isnan(h)),	return,		end
+		end
+		if (do_flags)
+			clear slice fslice
+		end
+	end
 
 	aguentabar(0,'title','Compute the Time rate','CreateCancelBtn')
 
