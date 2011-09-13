@@ -723,8 +723,8 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 		%head_tmp = [X(1) X(end) Y(1) Y(end) head(5:9)];
 		if (handles.Illumin_type == 1)
 			opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
-			if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N,'-a1');
-			else				R = grdgradient_m(Z_rect,head,illumComm,opt_N,'-a1');
+			if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
+			else				R = grdgradient_m(Z_rect,head,illumComm,opt_N);
 			end
 		else
 			R = grdgradient_m(Z_rect,head,illumComm, '-a1');
@@ -1779,8 +1779,11 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 
 	if (strcmp(opt,'grdgrad_class'))		% GMT grdgradient classic illumination
 		illumComm = sprintf('-A%.2f',luz.azim);
-		if (handles.geog),	[R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt', OPT_a);
-		else				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt', OPT_a);
+		if (handles.geog),	[R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
+		else				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt');
+		end
+		if (handles.have_nans && ~isequal(handles.bg_color, [0 0 0]))	% If we want NaNs painter other than black
+			R(isnan(R)) = 1;
 		end
 		handles.Illumin_type = 1;
 		if (sigma < 1e-6),		sigma = 1e-6;	end		% We cannot let them be zero on sprintf('%.6f',..) somewhere else
@@ -1814,7 +1817,7 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	end
 	img = shading_mat(img,R,'no_scale');
 	
-	if (handles.have_nans && ~isequal(handles.bg_color, [1 1 1]) && OPT_a ~= ' ')	% Non-white or black NaN color requested
+	if ( handles.have_nans && ~isequal(handles.bg_color, [1 1 1]) && ~strcmp(OPT_a,' ') )	% Non-white or black NaN color requested
 		ind = isnan(Z);			bg_color = uint8(handles.bg_color * 255);
 		tmp = img(:,:,1);		tmp(ind) = bg_color(1);		img(:,:,1) = tmp;
 		tmp = img(:,:,2);		tmp(ind) = bg_color(2);		img(:,:,2) = tmp;
@@ -2856,8 +2859,8 @@ function FileOpenSession_CB(handles, fname)
 		[X,Y,Z,head] = load_grd(handles,'silent');
 		handles.Illumin_type = illumType;
 		if (handles.Illumin_type == 1)
-			if (handles.geog),	R = grdgradient_m(Z,head,'-M',illumComm,'-Nt','-a1');
-			else				R = grdgradient_m(Z,head,illumComm,'-Nt','-a1');
+			if (handles.geog),	R = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
+			else				R = grdgradient_m(Z,head,illumComm,'-Nt');
 			end
 		else
 			R = grdgradient_m(Z,head,illumComm,'-a1');
