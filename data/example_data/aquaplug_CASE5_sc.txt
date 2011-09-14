@@ -3,19 +3,16 @@
 # Character arguments, like file names, must be prefixed with the 'char' key
 # Empties, even for strings, must be set as []
 # Args for run of CASE 5
-
 case 5
-
-# The 'fnameOut' variable
-char C:\a1\MODIS\algas\medias.dat
-# The 'op' var (empty means 'mean')
+# The 'fnameout' var - Empty means the file name is asked at end of run 
 []
-# The 'fnamePolys' var. Empty means to fish polygons from Mirone fig 
+# The 'op'eration. Empty means 'mean'. Alternatives are median or the name a ML function
 []
-# The 'sub_set' var. [0 0] or [] means using all data
+# The 'fnamepolys' var - File name of a x,y polygon or a list of polygons. Empty fish polys from fig
+[]
+# The 'sub_set' var ([0 19] -> (82 90)); ([9 9] -> (91 00)); ([19 0] -> (01 09));  
 [0 0]
-# The fnameFlag var. Empty means no quality check
-#[]
-char C:\a1\MODIS\algas\Algas_qual_nsst_TERRA_00_10.nc
-# The 'quality' var (ignored if fnameFlag is empty)
+# The 'fnameflags' var .The quality flags file. If empty no quality check is done.
+[]
+# The 'quality'
 0
