@@ -171,6 +171,7 @@ struct TREND1D_CTRL {
 
 #define TREND1D_POLYNOMIAL 0
 #define TREND1D_FOURIER 1
+#define TREND1D_ANNUAL 2
 
 struct	TREND1D_DATA {
 	double	x;
@@ -288,12 +289,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						Ctrl->N.mode = TREND1D_POLYNOMIAL;
 						j++;
 					}
+					else if (argv[i][j] == 'A' || argv[i][j] == 'a') {	/* Non doc. It was an experiment */
+						Ctrl->N.mode = TREND1D_ANNUAL;
+						j++;
+					}
 					if (argv[i][j])
 						Ctrl->N.value = atoi(&argv[i][j]);
 					else {
 						error = TRUE;
  						mexPrintf ("%TREND1D: GMT SYNTAX ERROR -N option.  No model specified\n");
 					}
+					if (Ctrl->N.mode == TREND1D_ANNUAL)
+						Ctrl->N.value = Ctrl->N.value * 2 + 2;
 					break;
 				case 'P':
 					Ctrl->P.active = TRUE;
@@ -390,7 +397,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (Ctrl->W.active && n_fields == 2)
 		mexPrintf("TREND1D WARNING: weighted fit asked but data has only 2 columns. Ignoring option -W\n");
 
-	if (Ctrl->L.active && Ctrl->N.value != 2) {
+	if (Ctrl->L.active && Ctrl->N.value != 2 && Ctrl->N.mode != TREND1D_ANNUAL) {
 		mexPrintf("TREND1D WARNING: ouput model parameters is only possible with linear trend. Ignoring option -L\n");
 		Ctrl->L.active = FALSE;
 		Ctrl->X.active = FALSE;
@@ -686,7 +693,7 @@ void transform_x (struct TREND1D_DATA *data, int n_data, int model_type, double 
 	offset = 0.5 * (xmin + xmax);	/* Mid Range  */
 	scale = 2.0 / (xmax - xmin);	/* 1 / (1/2 Range)  */
 
-	if (model_type == TREND1D_FOURIER) 	/* Set Range to 1 period  */
+	if (model_type == TREND1D_FOURIER || model_type == TREND1D_ANNUAL) 	/* Set Range to 1 period  */
 		scale *= M_PI;
 
 	for (i = 0; i < n_data; i++)
@@ -700,7 +707,7 @@ void untransform_x (struct TREND1D_DATA *data, int n_data, int model_type, doubl
 	offset = 0.5 * (xmin + xmax);	/* Mid Range  */
 	scale = 0.5 * (xmax - xmin);	/* 1/2 Range  */
 
-	if (model_type == TREND1D_FOURIER)
+	if (model_type == TREND1D_FOURIER || model_type == TREND1D_ANNUAL)
 		scale /= M_PI;
 
 	for (i = 0; i < n_data; i++)
@@ -768,6 +775,7 @@ void load_g_row (double x, int n, double *gr, int m) {
 		abscissa.  */
 
 	int	j, k;
+	double	xk;
 
 	if (n) {
 
@@ -783,24 +791,29 @@ void load_g_row (double x, int n, double *gr, int m) {
 				}
 				break;
 
+			case TREND1D_ANNUAL:
+				gr[1] = x;
+				for (j = 2, k = 1; j < n-1; j+=2, k++) {
+					xk = x*k;
+					gr[j] = cos(xk);
+					gr[j+1] = sin(xk);
+				}
+				break;
+
 			case TREND1D_FOURIER:
 				for (j = 1; j < n; j++) {
 					k = (j + 1)/2;
 					if (k > 1) {
-						if (j%2) {
+						if (j%2)	/* Odd */
 							gr[j] = cos(k*x);
-						}
-						else {
+						else
 							gr[j] = sin(k*x);
-						}
 					}
 					else {
-						if (j%2) {
+						if (j%2)
 							gr[j] = cos(x);
-						}
-						else {
+						else
 							gr[j] = sin(x);
-						}
 					}
 				}
 				break;
@@ -907,8 +920,7 @@ void GMT_cheb_to_pol (double c[], int n, double a, double b) {
 	 * Modified from Numerical Miracles, ...eh Recipes */
 	 
 	 int j, k;
-	 double sv, cnst, fac;
-	 double *d, *dd;
+	 double sv, cnst, fac, *d, *dd;
 	 
 	 d  = mxCalloc ((size_t)n, sizeof (double));
 	 dd = mxCalloc ((size_t)n, sizeof (double));

@@ -2805,7 +2805,7 @@ function FileOpenSession_CB(handles, fname)
 	tala = (~isempty(grd_name) && exist(grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
 	if (~tala && ~isempty(grd_name))						% Give user a 2nd chance to tell where the grid is
 		[PathName FileName EXT] = fileparts(grd_name);
-		resp = inputdlg({'Full name (with path) of missing grid:'},'Where is the grid?',1,{['.....' filesep FileName EXT]});
+		resp = inputdlg({'Full name (with path) of missing grid:'},'Where is the grid?',[1 60],{['.....' filesep FileName EXT]});
 		if (~isempty(resp))
 			grd_name = resp{1};
 			tala = exist(grd_name,'file');
