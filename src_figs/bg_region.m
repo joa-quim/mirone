@@ -18,170 +18,171 @@ function varargout = bg_region(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-hObject = figure('Vis','off');
-bg_region_LayoutFcn(hObject);
-handles = guihandles(hObject);
-move2side(hObject,'center');
- 
-handles.command = cell(15,1);
+	hObject = figure('Vis','off');
+	bg_region_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'center');
 
-if ~isempty(varargin) && strcmp(varargin{1},'empty')
-	handles.x_min = [];						handles.x_max = [];
-	handles.y_min = [];						handles.y_max = [];
-	handles.command{3} = [];				handles.command{5} = [];
-	handles.command{7} = [];				handles.command{9} = [];
-	set(handles.edit_Xmin,'String','');		set(handles.edit_Xmax,'String','');
-	set(handles.edit_Ymin,'String','');		set(handles.edit_Ymax,'String','');
-	set(handles.figure1,'Name','Limits')
-elseif ~isempty(varargin) && strcmp(varargin{1},'with_limits')
-	tmp = varargin{2};
-	handles.x_min = tmp(1);					handles.x_max = tmp(2);
-	handles.y_min = tmp(3);					handles.y_max = tmp(4);
-	handles.command{3} = num2str(tmp(1));	handles.command{5} = num2str(tmp(2));
-	handles.command{7} = num2str(tmp(3));	handles.command{9} = num2str(tmp(4));
-	set(handles.edit_Xmin,'String',num2str(tmp(1)));	set(handles.edit_Xmax,'String',num2str(tmp(2)));
-	set(handles.edit_Ymin,'String',num2str(tmp(3)));	set(handles.edit_Ymax,'String',num2str(tmp(4)));
-	set(handles.figure1,'Name','Limits')
-	if ((tmp(2) - tmp(1)) > 360 || (tmp(4) - tmp(3)) > 180)  % See if limits rule out "geog"
-		set(handles.check_IsGeog,'Value',0)
+	handles.command = cell(15,1);
+
+	if ~isempty(varargin) && strcmp(varargin{1},'empty')
+		handles.x_min = [];						handles.x_max = [];
+		handles.y_min = [];						handles.y_max = [];
+		handles.command{3} = [];				handles.command{5} = [];
+		handles.command{7} = [];				handles.command{9} = [];
+		set(handles.edit_Xmin,'String','');		set(handles.edit_Xmax,'String','');
+		set(handles.edit_Ymin,'String','');		set(handles.edit_Ymax,'String','');
+		set(handles.figure1,'Name','Limits')
+	elseif ~isempty(varargin) && strcmp(varargin{1},'with_limits')
+		tmp = varargin{2};
+		handles.x_min = tmp(1);					handles.x_max = tmp(2);
+		handles.y_min = tmp(3);					handles.y_max = tmp(4);
+		handles.command{3} = num2str(tmp(1));	handles.command{5} = num2str(tmp(2));
+		handles.command{7} = num2str(tmp(3));	handles.command{9} = num2str(tmp(4));
+		set(handles.edit_Xmin,'String',num2str(tmp(1)));	set(handles.edit_Xmax,'String',num2str(tmp(2)));
+		set(handles.edit_Ymin,'String',num2str(tmp(3)));	set(handles.edit_Ymax,'String',num2str(tmp(4)));
+		set(handles.figure1,'Name','Limits')
+		if ((tmp(2) - tmp(1)) > 360 || (tmp(4) - tmp(3)) > 180)  % See if limits rule out "geog"
+			set(handles.check_IsGeog,'Value',0)
+		end
+		set(handles.check_toDef, 'Vis', 'off')
+	else
+		handles.x_min = -180;					handles.x_max = 180;
+		handles.y_min = -90;					handles.y_max = 90;
+		handles.command{3} = '-180';			handles.command{5} = '180';
+		handles.command{7} = '-90';				handles.command{9} = '90';
 	end
-else
-	handles.x_min = -180;					handles.x_max = 180;
-	handles.y_min = -90;					handles.y_max = 90;
-	handles.command{3} = '-180';			handles.command{5} = '180';
-	handles.command{7} = '-90';				handles.command{9} = '90';
-end
-% Choose default command line output for bg_region_export
-handles.output = hObject;
-guidata(hObject, handles);
+	% Choose default command line output for bg_region_export
+	handles.output = hObject;
+	guidata(hObject, handles);
 
-set(hObject,'Visible','on');
-% UIWAIT makes bg_region_export wait for user response (see UIRESUME)
-uiwait(handles.figure1);
+	set(hObject,'Visible','on');
+	% UIWAIT makes bg_region_export wait for user response (see UIRESUME)
+	uiwait(handles.figure1);
 
-handles = guidata(hObject);
-varargout{1} = handles.output;
-delete(handles.figure1);
+	handles = guidata(hObject);
+	varargout{1} = handles.output;
+	delete(handles.figure1);
 
 % --------------------------------------------------------------------------------------------------
 function edit_Xmin_CB(hObject, handles)
-xx = get(hObject,'String');     val = test_dms(xx);
-if ~isempty(val)				% when dd:mm or dd:mm:ss was given
-    x_min = 0;
-    if str2double(val{1}) > 0
-        for i = 1:length(val),  x_min = x_min + str2double(val{i}) / (60^(i-1));    end
-    else
-        for i = 1:length(val),  x_min = x_min - abs(str2double(val{i})) / (60^(i-1));   end
-    end
-    handles.x_min = x_min;
-    if ~isempty(handles.x_max) && x_min >= handles.x_max
-        errordlg('West Longitude >= East Longitude ','Error in Longitude limits')
-        handles.command{3} = '';
-        set(hObject,'String','');   guidata(hObject, handles);  return
-    else
-        handles.command{3} = xx;    % Save entered string
-        guidata(hObject, handles);
-    end
-    % Guess if we are probably dealing with geog coordinates
-    if ~isempty(get(handles.edit_Xmax,'String')) && (handles.x_max - x_min) <= 360
-        set(handles.check_IsGeog,'Value',1)
-    else
-        set(handles.check_IsGeog,'Value',0)
-    end
-else                % box is empty
-    handles.command{3} = '';
-    set(hObject,'String','');   guidata(hObject, handles);
-end
+	xx = get(hObject,'String');     val = test_dms(xx);
+	if ~isempty(val)				% when dd:mm or dd:mm:ss was given
+		x_min = 0;
+		if str2double(val{1}) > 0
+			for i = 1:length(val),  x_min = x_min + str2double(val{i}) / (60^(i-1));    end
+		else
+			for i = 1:length(val),  x_min = x_min - abs(str2double(val{i})) / (60^(i-1));   end
+		end
+		handles.x_min = x_min;
+		if ~isempty(handles.x_max) && x_min >= handles.x_max
+			errordlg('West Longitude >= East Longitude ','Error in Longitude limits')
+			handles.command{3} = '';
+			set(hObject,'String','');   guidata(hObject, handles);  return
+		else
+			handles.command{3} = xx;    % Save entered string
+			guidata(hObject, handles);
+		end
+		% Guess if we are probably dealing with geog coordinates
+		if ~isempty(get(handles.edit_Xmax,'String')) && (handles.x_max - x_min) <= 360
+			set(handles.check_IsGeog,'Value',1)
+		else
+			set(handles.check_IsGeog,'Value',0)
+		end
+	else                % box is empty
+		handles.command{3} = '';
+		set(hObject,'String','');   guidata(hObject, handles);
+	end
 
 % --------------------------------------------------------------------------------------------------
 function edit_Xmax_CB(hObject, handles)
-xx = get(hObject,'String');     val = test_dms(xx);
-if ~isempty(val)				% when dd:mm or dd:mm:ss was given
-    x_max = 0;
-    if str2double(val{1}) > 0
-        for i = 1:length(val),  x_max = x_max + str2double(val{i}) / (60^(i-1));    end
-    else
-        for i = 1:length(val),  x_max = x_max - abs(str2double(val{i})) / (60^(i-1));   end
-    end
-    handles.x_max = x_max;
-    if ~isempty(handles.x_min) && x_max <= handles.x_min
-        errordlg('East Longitude <= West Longitude','Error in Longitude limits')
-        handles.command{5} = '';
-        set(hObject,'String','');   guidata(hObject, handles);  return
-    else
-        handles.command{5} = xx;    % Save entered string
-        guidata(hObject, handles);
-    end
-    % Guess if we are probably dealing with geog coordinates
-    if ~isempty(get(handles.edit_Xmin,'String')) && (x_max - handles.x_min) <= 360
-        set(handles.check_IsGeog,'Value',1)
-    else
-        set(handles.check_IsGeog,'Value',0)
-    end
-else					% box is empty
-    handles.command{5} = '';
-    set(hObject,'String','');   guidata(hObject, handles);
-end
+	xx = get(hObject,'String');     val = test_dms(xx);
+	if ~isempty(val)				% when dd:mm or dd:mm:ss was given
+		x_max = 0;
+		if str2double(val{1}) > 0
+			for i = 1:length(val),  x_max = x_max + str2double(val{i}) / (60^(i-1));    end
+		else
+			for i = 1:length(val),  x_max = x_max - abs(str2double(val{i})) / (60^(i-1));   end
+		end
+		handles.x_max = x_max;
+		if ~isempty(handles.x_min) && x_max <= handles.x_min
+			errordlg('East Longitude <= West Longitude','Error in Longitude limits')
+			handles.command{5} = '';
+			set(hObject,'String','');   guidata(hObject, handles);  return
+		else
+			handles.command{5} = xx;	% Save entered string
+			guidata(hObject, handles);
+		end
+		% Guess if we are probably dealing with geog coordinates
+		if ~isempty(get(handles.edit_Xmin,'String')) && (x_max - handles.x_min) <= 360
+			set(handles.check_IsGeog,'Value',1)
+		else
+			set(handles.check_IsGeog,'Value',0)
+		end
+	else					% box is empty
+		handles.command{5} = '';
+		set(hObject,'String','');   guidata(hObject, handles);
+	end
 
 % --------------------------------------------------------------------------------------------------
 function edit_Ymin_CB(hObject, handles)
-xx = get(hObject,'String');     val = test_dms(xx);
-if ~isempty(val)				% when dd:mm or dd:mm:ss was given
-    y_min = 0;
-    if str2double(val{1}) > 0
-        for i = 1:length(val),  y_min = y_min + str2double(val{i}) / (60^(i-1));    end
-    else
-        for i = 1:length(val),  y_min = y_min - abs(str2double(val{i})) / (60^(i-1));   end
-    end
-    handles.y_min = y_min;
-    if ~isempty(handles.y_max) && y_min >= handles.y_max
-        errordlg('South Latitude >= North Latitude','Error in Latitude limits')
-        handles.command{7} = '';
-        set(hObject,'String','');   guidata(hObject, handles);  return
-    else
-        handles.command{7} = xx;    % Save entered string
-        guidata(hObject, handles);
-    end
-    % Guess if we are probably dealing with geog coordinates
-    if ~isempty(get(handles.edit_Ymax,'String')) && (handles.y_max - y_min) <= 180
-        set(handles.check_IsGeog,'Value',1)
-    else
-        set(handles.check_IsGeog,'Value',0)
-    end
-else				% box is empty
-    handles.command{7} = '';
-    set(hObject,'String','');   guidata(hObject, handles);
-end
+	xx = get(hObject,'String');     val = test_dms(xx);
+	if ~isempty(val)				% when dd:mm or dd:mm:ss was given
+		y_min = 0;
+		if str2double(val{1}) > 0
+			for i = 1:length(val),  y_min = y_min + str2double(val{i}) / (60^(i-1));    end
+		else
+			for i = 1:length(val),  y_min = y_min - abs(str2double(val{i})) / (60^(i-1));   end
+		end
+		handles.y_min = y_min;
+		if ~isempty(handles.y_max) && y_min >= handles.y_max
+			errordlg('South Latitude >= North Latitude','Error in Latitude limits')
+			handles.command{7} = '';
+			set(hObject,'String','');   guidata(hObject, handles);  return
+		else
+			handles.command{7} = xx;    % Save entered string
+			guidata(hObject, handles);
+		end
+		% Guess if we are probably dealing with geog coordinates
+		if ~isempty(get(handles.edit_Ymax,'String')) && (handles.y_max - y_min) <= 180
+			set(handles.check_IsGeog,'Value',1)
+		else
+			set(handles.check_IsGeog,'Value',0)
+		end
+	else				% box is empty
+		handles.command{7} = '';
+		set(hObject,'String','');   guidata(hObject, handles);
+	end
 
 % --------------------------------------------------------------------------------------------------
 function edit_Ymax_CB(hObject, handles)
-xx = get(hObject,'String');     val = test_dms(xx);
-if ~isempty(val)				% when dd:mm or dd:mm:ss was given
-    y_max = 0;
-    if str2double(val{1}) > 0
-        for i = 1:length(val),   y_max = y_max + str2double(val{i}) / (60^(i-1));    end
-    else
-        for i = 1:length(val),   y_max = y_max - abs(str2double(val{i})) / (60^(i-1));   end
-    end
-    handles.y_max = y_max;
-    if ~isempty(handles.y_min) && y_max <= handles.y_min
-        errordlg('North Latitude <= South Latitude','Error in Latitude limits')
-        handles.command{9} = '';
-        set(hObject,'String','');   guidata(hObject, handles);  return
-    else
-        handles.command{9} = xx;    % Save entered string
-        guidata(hObject, handles);
-    end
-    % Guess if we are probably dealing with geog coordinates
-    if ~isempty(get(handles.edit_Ymin,'String')) && (y_max - handles.y_min) <= 180
-        set(handles.check_IsGeog,'Value',1)
-    else
-        set(handles.check_IsGeog,'Value',0)
-    end
-else				% box is empty    
-	handles.command{9} = '';
-	set(hObject,'String','');		guidata(hObject, handles);
-end
+	xx = get(hObject,'String');     val = test_dms(xx);
+	if ~isempty(val)				% when dd:mm or dd:mm:ss was given
+		y_max = 0;
+		if str2double(val{1}) > 0
+			for i = 1:length(val),   y_max = y_max + str2double(val{i}) / (60^(i-1));    end
+		else
+			for i = 1:length(val),   y_max = y_max - abs(str2double(val{i})) / (60^(i-1));   end
+		end
+		handles.y_max = y_max;
+		if ~isempty(handles.y_min) && y_max <= handles.y_min
+			errordlg('North Latitude <= South Latitude','Error in Latitude limits')
+			handles.command{9} = '';
+			set(hObject,'String','');   guidata(hObject, handles);  return
+		else
+			handles.command{9} = xx;    % Save entered string
+			guidata(hObject, handles);
+		end
+		% Guess if we are probably dealing with geog coordinates
+		if ~isempty(get(handles.edit_Ymin,'String')) && (y_max - handles.y_min) <= 180
+			set(handles.check_IsGeog,'Value',1)
+		else
+			set(handles.check_IsGeog,'Value',0)
+		end
+	else				% box is empty    
+		handles.command{9} = '';
+		set(hObject,'String','');		guidata(hObject, handles);
+	end
 
 % --------------------------------------------------------------------------------------------------
 function error = VerifyCommand(handles)
@@ -225,11 +226,6 @@ function push_OK_CB(hObject, handles)
 		guidata(hObject,handles);
 		uiresume(handles.figure1);
 	end
-
-% --------------------------------------------------------------------------------------------------
-function push_Cancel_CB(hObject, handles)
-	handles.output = [];        % User gave up, return nothing
-	guidata(hObject, handles);  uiresume(handles.figure1);
 
 % --------------------------------------------------------------------------------------------------
 % --- Executes when user attempts to close figure1.
@@ -308,18 +304,6 @@ uicontrol('Parent',h1,...
 'Tag','edit_Ymin');
 
 uicontrol('Parent',h1,...
-'Call',@bg_region_uiCB,...
-'Pos',[185 8 66 21],...
-'String','OK',...
-'Tag','push_OK');
-
-uicontrol('Parent',h1,...
-'Call',@bg_region_uiCB,...
-'Pos',[110 8 66 21],...
-'String','Cancel',...
-'Tag','push_Cancel');
-
-uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Enable','off',...
 'FontSize',10,...
@@ -360,12 +344,18 @@ uicontrol('Parent',h1,...
 'Tag','check_IsGeog');
 
 uicontrol('Parent',h1,...
-'Pos',[10 10 110 15],...
+'Pos',[10 10 100 15],...
 'Call',@bg_region_uiCB,...
 'String','.def region',...
 'Style','checkbox',...
 'Tooltip','Set [-0.5 0.5 -0.5 0.5] region suitable to design .def GMT symbols',...
 'Tag','check_toDef');
+
+uicontrol('Parent',h1,...
+'Call',@bg_region_uiCB,...
+'Pos',[185 8 66 21],...
+'String','OK',...
+'Tag','push_OK');
 
 function bg_region_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
