@@ -22,15 +22,20 @@ REM
 REM Author: Joaquim Luis, 09-MAY-2010
 REM --------------------------------------------------------------------------------------
 
+REM --- List of those who run faster when compiled with VS2010 than Intel ----------------
+REM grdutils grdgradient_m
+REM --------------------------------------------------------------------------------------
+
+
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
 SET CC=icl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="no"
+SET R13="yes"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
-SET WIN64="yes"
+SET WIN64="no"
 
 IF %R13%=="yes" SET WIN64="no"
 
@@ -41,7 +46,7 @@ REM Options are "dll", "mexw32" (recent ML version scream when they find .dll) o
 SET MEX_EXT="mexw32"
 
 REM If set some MEXs will print the execution time (in CPU ticks)
-REM SET TIMEIT=-DMIR_TIMEIT
+SET TIMEIT=-DMIR_TIMEIT
 SET TIMEIT=
 
 REM
@@ -53,23 +58,23 @@ IF %DEBUG%=="yes" SET LDEBUG=/debug
 
 REM --- Next allows compiling with the compiler you want against the ML6.5 libs (needed in stand-alone version)
 IF %R13%=="yes" (
-SET MATLIB=C:\SVN\MAT65_pracompa\extern\lib\win32\microsoft
-SET MATINC=C:\SVN\MAT65_pracompa\extern\include
+SET MATLIB=C:\SVN\pracompila\MAT65\lib\win32\microsoft
+SET MATINC=C:\SVN\pracompila\MAT65\include
 SET _MX_COMPAT=
 SET MEX_EXT="dll"
 
 ) ELSE (
 
 IF %WIN64%=="yes" (
-SET MATLIB=C:\PROGRAMS\MATLAB\R2010B\extern\lib\win64\microsoft 
-SET MATINC=C:\PROGRAMS\MATLAB\R2010B\extern\include
+SET MATLIB=C:\SVN\pracompila\ML2010a_w64\lib\win64\microsoft 
+SET MATINC=C:\SVN\pracompila\ML2010a_w64\include
 SET _MX_COMPAT=-DMX_COMPAT_32
 SET MEX_EXT="mexw64"
 
 ) ELSE (
 
-SET MATLIB=C:\PROGRAMS\MATLAB32\R2010B\extern\lib\win32\microsoft 
-SET MATINC=C:\PROGRAMS\MATLAB32\R2010B\extern\include
+SET MATLIB=C:\SVN\pracompila\ML2009b_w32\lib\win32\microsoft 
+SET MATINC=C:\SVN\pracompila\ML2009b_w32\include
 SET _MX_COMPAT=-DMX_COMPAT_32
 ) )
 
@@ -91,10 +96,9 @@ SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_64\liblas_i.lib
 
 ) ELSE (
 
-IF %MSVC_VER%=="1600" (
 SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_32\lib\libnetcdf.lib
-SET     GMT_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt.lib
-SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt_mgg.lib
+SET     GMT_LIB=c:\progs_cygw\GMTdev\GMT_win32\lib\gmt.lib
+SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win32\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
 SET      CV_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\cv.lib
 SET  CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_core211.lib
@@ -104,44 +108,34 @@ SET   CVOBJ_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_objdetect211
 SET CVVIDEO_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_video211.lib
 SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\Intel11_32\liblas_i.lib
 
-) ELSE (
+)
 
-SET NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\lib\libnetcdf_w32.lib
-SET GMT_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt.lib
-SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win\lib\gmt_mgg.lib
-SET GDAL_LIB=c:\programs\GDALtrunk\gdal\lib\gdal_i.lib
-REM I haven't build yet (and maybe I won't) 2.1 libs with VC7.1
-SET CV_LIB=C:\programs\OpenCV_SVN\lib\cv200.lib
-SET CXCORE_LIB=C:\programs\OpenCV_SVN\lib\cxcore200.lib
-SET LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\bin\lib\liblas_i.lib
-) )
-
-SET NETCDF_INC=C:\progs_cygw\netcdf-3.6.3\include
-SET GMT_INC=c:\progs_cygw\GMTdev\GMT\include
+SET  NETCDF_INC=C:\progs_cygw\netcdf-3.6.3\include
+SET     GMT_INC=c:\progs_cygw\GMTdev\GMT4\include
 REM SET GMT_INC=c:\progs_cygw\GMTdev\GMT5\include
-SET GMT_INC2=C:\progs_cygw\GMTdev\GMT5\src\mex
-SET GDAL_INC=c:\programs\GDALtrunk\gdal\compileds\VC10_32\include
-SET CV_INC=C:\programs\OpenCV_SVN\include\opencv
-SET CVInc=C:\programs\OpenCV_SVN\modules 
-SET INCAS=%INCLUDE%
-SET INCLUDE=%INCLUDE%;%CVInc%\core\include;%CVInc%\imgproc\include;%CVInc%\features2d\include;%CVInc%\calib3d\include;%CVInc%\objdetect\include;%CVInc%\video\include;%CVInc%\flann\include;%CVInc%\legacy\include
-SET LAS_INC=-IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas\capi -IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas
+SET    GMT_INC2=C:\progs_cygw\GMTdev\GMT5\src\mex
+SET    GDAL_INC=c:\programs\GDALtrunk\gdal\compileds\VC10_32\include
+SET      CV_INC=C:\programs\OpenCV_SVN\include\opencv
+SET       CVInc=C:\programs\OpenCV_SVN\modules 
+SET       INCAS=%INCLUDE%
+SET     INCLUDE=%INCLUDE%;%CVInc%\core\include;%CVInc%\imgproc\include;%CVInc%\features2d\include;%CVInc%\calib3d\include;%CVInc%\objdetect\include;%CVInc%\video\include;%CVInc%\flann\include;%CVInc%\legacy\include
+SET     LAS_INC=-IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas\capi -IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas
 REM ----------------------------------------------------------------------------
 
 REM ____________________________________________________________________________
 REM ___________________ STOP EDITING HERE ______________________________________
 
 
-SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD
-SET OPTIM2=/QxSSE4.2 /Qparallel
-IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /Oy- /DNDEBUG
+SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD /Qopenmp
+SET OPTIM2=/QxSSE4.2 /Qparallel /arch:SSE2 /fp:fast 
+IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /Oy- /DNDEBUG /arch:SSE2 /fp:fast
 IF %DEBUG%=="yes" SET OPTIMFLAGS=/Z7
 
 IF %WIN64%=="yes" SET arc=X64
 IF %WIN64%=="no" SET arc=X86
-SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:%arc% kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /incremental:NO %LDEBUG% 
+SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:%arc% kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib Vfw32.lib /nologo /incremental:NO %LDEBUG% 
 
-%CC% -DWIN32 %COMPFLAGS% -I%GMT_INC% -I%GDAL_INC% -I%NETCDF_INC% -I%CV_INC% -I%MATINC% %LAS_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %1.c
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% -I%GDAL_INC% -I%CV_INC% %LAS_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %1.c
 link  /out:"%1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% /implib:templib.x %1.obj
 
 SET INCLUDE=%INCAS%

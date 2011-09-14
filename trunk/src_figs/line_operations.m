@@ -80,12 +80,12 @@ function varargout = line_operations(varargin)
 	end
 
 	handles.known_ops = {'buffer'; 'polysimplify'; 'bspline'; 'cspline'; 'polyunion'; 'polyintersect'; ...
-			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'toRidge'; 'stitch'; 'hand2Workspace'};
+			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'toRidge'; 'stitch'; 'bezier'; 'hand2Workspace'};
 	handles.hLine = [];
 	set(handles.popup_cmds,'Tooltip', 'Select one operation from this list')
 	set(handles.popup_cmds,'String', {'Possible commands'; 'buffer DIST'; 'polysimplify TOL'; 'bspline'; ...
 			'cspline N RES'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; 'line2patch'; ...
-			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'toRidge 5'; 'stitch TOL'; 'hand2Workspace'} )
+			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'toRidge 5'; 'stitch TOL'; 'bezier N'; 'hand2Workspace'} )
 
 	handles.ttips = cell(numel(handles.known_ops));
 	handles.ttips{1} = 'Select one operation from this list';
@@ -134,10 +134,12 @@ function varargout = line_operations(varargin)
 	handles.ttips{14} = sprintf(['Stitch in cascade the lines that are closer than TOL to selected line.\n' ...
 								'Replace TOL by the desired maximum distance for lines still be stitched.\n' ...
 								'If removed or left as the string "TOL" (no quotes) it defaults to Inf.']);
-	handles.ttips{15} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
+	handles.ttips{15} = sprintf(['Fit a Bezier curve.\n' ...
+								'Replace N by the number of nodes of the Bezier curve.']);
+	handles.ttips{16} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
 								'Use this if you want to gain access to all handle properties.']);
 
-	if (IamCompiled),	handles.known_ops(14) = [];	handles.ttips(15) = [];	end		% regretably
+	if (IamCompiled),	handles.known_ops(end) = [];	handles.ttips(end) = [];	end		% regretably
 
 	% Add this figure handle to the carraças list
 	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
@@ -428,8 +430,38 @@ function push_apply_CB(hObject, handles)
 					delete(hLines(k))
 				end
 			end
+
+		case 'bezier'
+			n_nodes = 100;
+			vt = linspace(0,1,n_nodes);
+			bez = zeros(numel(vt), 2);
+			x = get(handles.hLine, 'XData');
+			y = get(handles.hLine, 'YData');
+			xy = [x(:) y(:)];
+
+			% Compute each point in the Bezier curve
+			np = 1;		n = numel(x) - 1;
+			for t = vt
+				som = [0 0];
+				for (i = 0:n)			% Add the next point multiplied by the corresponding Bernstein polynomial
+					som = som + xy(i+1, :) * nchoosekJH(n, i) * (t^i) * ((1 - t)^(n - i));  
+				end
+				bez(np, :) = som;
+				np = np + 1;
+			end
+			h = line('XData', bez(:,1), 'YData', bez(:,2), 'Parent',handles.hMirAxes, 'Color','r', 'LineWidth',handles.lt,'Tag','polyline');
+			draw_funs(h,'line_uicontext')
 	end
-	
+
+% --------------------------------------------------------------------------------------------
+function res = nchoosekJH(n ,k)   % Faster alternative to nchoosek(n, k)
+	res = 1;
+	if (k == 0),	return,		end
+	if (n == 0), res = 0; return,	end
+	for (i = 1:k)
+		res = res * ((n - k + i)/i);
+	end
+
 % --------------------------------------------------------------------------------------------------
 function [out, msg] = validate_args(qual, str, np)
 % Check for errors on arguments to operation QUAL and return required args, or error
