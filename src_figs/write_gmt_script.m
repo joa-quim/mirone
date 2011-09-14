@@ -1,6 +1,7 @@
 function varargout = write_gmt_script(varargin)
 % Helper window to generate a GMT script that reproduces the Mirone's figure contents
 
+% $ID:$
 %	Copyright (c) 2004-2011 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -1633,7 +1634,7 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
 				ext = get(ALLtextHand(i), 'Extent');
 				for (k = 2:this_nLines)
 					yPos = pos{i}(2) - (k - 1) * (ext(4) / this_nLines);
-					script{l} = sprintf(frmt, pos{i}(1), yPos, fsize{i}, angle{i}, str{i}(k,:), ellips, opt_G{i}, pb, pf);
+					script{l} = sprintf(frmt, pos{i}(1), yPos, fsize{i}, angle{i}, str{i}(k,:), ellips, texto, pb, pf);
 					l = l + 1;
 				end
 			end
