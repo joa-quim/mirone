@@ -79,13 +79,13 @@ function varargout = line_operations(varargin)
 		set(hObject,'Visible','on');
 	end
 
-	handles.known_ops = {'buffer'; 'polysimplify'; 'bspline'; 'cspline'; 'polyunion'; 'polyintersect'; ...
-			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'toRidge'; 'stitch'; 'bezier'; 'hand2Workspace'};
+	handles.known_ops = {'buffer'; 'polysimplify'; 'bspline'; 'cspline'; 'bezier'; 'polyunion'; 'polyintersect'; ...
+			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'toRidge'; 'stitch'; 'hand2Workspace'};
 	handles.hLine = [];
 	set(handles.popup_cmds,'Tooltip', 'Select one operation from this list')
 	set(handles.popup_cmds,'String', {'Possible commands'; 'buffer DIST'; 'polysimplify TOL'; 'bspline'; ...
-			'cspline N RES'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; 'line2patch'; ...
-			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'toRidge 5'; 'stitch TOL'; 'bezier N'; 'hand2Workspace'} )
+			'cspline N RES'; 'bezier N'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; 'line2patch'; ...
+			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'toRidge 5'; 'stitch TOL'; 'hand2Workspace'} )
 
 	handles.ttips = cell(numel(handles.known_ops));
 	handles.ttips{1} = 'Select one operation from this list';
@@ -115,27 +115,27 @@ function varargout = line_operations(varargin)
 								'split the downsampled interval in 10 sub-intervald, thus reseting\n' ...
 								'the original number of point, excetp at the end of the line.\n' ...
 								'If omited RES defaults to 10.']);
-	handles.ttips{6} = 'Performs the boolean operation of Union to the selected polygons.';
-	handles.ttips{7} = 'Performs the boolean operation of Intersection to the selected polygons.';
-	handles.ttips{8} = 'Performs the boolean operation of exclusive OR to the selected polygons.';
-	handles.ttips{9} = 'Performs the boolean operation of subtraction to the selected polygons.';
-	handles.ttips{10} = 'Convert line objects into patch. Patches, for example, accept fill color.';
-	handles.ttips{11} = sprintf(['Dray a polyline with vertices defined by coords [x1 xn; y1 yn].\n' ...
+	handles.ttips{6} = sprintf(['Fit a Bezier curve to a polyline.\n' ...
+								'Replace N by the number of nodes of the Bezier curve [default 100].']);
+	handles.ttips{7} = 'Performs the boolean operation of Union to the selected polygons.';
+	handles.ttips{8} = 'Performs the boolean operation of Intersection to the selected polygons.';
+	handles.ttips{9} = 'Performs the boolean operation of exclusive OR to the selected polygons.';
+	handles.ttips{10} = 'Performs the boolean operation of subtraction to the selected polygons.';
+	handles.ttips{11} = 'Convert line objects into patch. Patches, for example, accept fill color.';
+	handles.ttips{12} = sprintf(['Dray a polyline with vertices defined by coords [x1 xn; y1 yn].\n' ...
 								'Note: you must use the brackets and semi-comma notation as above.\n' ...
 								'Example vector: [1 1.5 3.1; 2 4 8.4]']);
-	handles.ttips{12} = sprintf(['Thicken line object to a thickness corresponding to N grid cells.\n' ...
+	handles.ttips{13} = sprintf(['Thicken line object to a thickness corresponding to N grid cells.\n' ...
 								'The interest of this comes when used trough the "Extract profile"\n' ...
 								'option. Since the thickned line stored in its pocked N + 1 parallel\n' ...
 								'lines, roughly separate by 1 grid cell size, the profile interpolation\n' ...
 								'is carried on those N + 1 lines, which are averaged (stacked) in the end.']);
-	handles.ttips{13} = sprintf(['Calculate a new line with vertex siting on top of nearby ridges.\n' ...
+	handles.ttips{14} = sprintf(['Calculate a new line with vertex siting on top of nearby ridges.\n' ...
 								'The parameter N is used to search for ridges only inside a sub-region\n' ...
 								'2Nx2N centered on current vertex. Default is 5, but you can change it.']);
-	handles.ttips{14} = sprintf(['Stitch in cascade the lines that are closer than TOL to selected line.\n' ...
+	handles.ttips{15} = sprintf(['Stitch in cascade the lines that are closer than TOL to selected line.\n' ...
 								'Replace TOL by the desired maximum distance for lines still be stitched.\n' ...
 								'If removed or left as the string "TOL" (no quotes) it defaults to Inf.']);
-	handles.ttips{15} = sprintf(['Fit a Bezier curve.\n' ...
-								'Replace N by the number of nodes of the Bezier curve.']);
 	handles.ttips{16} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
 								'Use this if you want to gain access to all handle properties.']);
 
@@ -183,6 +183,7 @@ function push_apply_CB(hObject, handles)
 	end
 
 	[t, r] = strtok(cmd);
+	r = ddewhite(r);	% Remove leading spaces on 'r' that idiot strtok didn't care to do
 	ind = find(strcmp(t, handles.known_ops));
 	if (isempty(ind))
 		% Here (will come) a function call which tries to adress the general command issue
@@ -422,29 +423,63 @@ function push_apply_CB(hObject, handles)
 
 			hCurrLine = handles.hLine;
 			hLines = findobj(handles.hMirAxes, 'Type', 'line');
-			hLines = setxor(hLines, hCurrLine);
-			for (k = 1:numel(hLines))
-				[x, y, was_closed] = draw_funs([], 'join2lines',[hCurrLine hLines(k)], tol);
-				if (~isempty(x) && ~was_closed)			% Closed polylines are ignored
-					set(hCurrLine, 'XData',x, 'YData',y)
-					delete(hLines(k))
-				end
+			if (numel(hLines) == 1)				% Only one line in the whole plot. Insult and exit
+				warndlg('There is only one line in Town. So stitch where?','Chico Clever'),		return
 			end
+			hLines = setxor(hLines, hCurrLine);
+			nLines = numel(hLines);				doAguenta = false;	hAguenta = [];	x = [];		y = [];
+			if (nLines > 100 )					% greater than 100?
+				hAguenta = aguentabar(0,'title',['Stitching ' sprintf('%d', nLines) ' lines']);
+				doAguenta = true;
+			end
+			for (k = 1:numel(hLines))
+				[hLineClosest, endType, indOfFound] = find_closestline(hCurrLine, hLines, tol);
+				if (isempty(hLineClosest))		% Either we found and finished or found nothing
+					break
+				end
+				x1 = get(hCurrLine,'XData');	y1 = get(hCurrLine,'YData');
+				x2 = get(hLineClosest,'XData');	y2 = get(hLineClosest,'YData');
+				if (endType == 1)				% Lines grow in oposite directions from a "mid point"
+					x = [x2(end:-1:1) x1];		y = [y2(end:-1:1) y1];
+				elseif (endType == 2)			% Line 2 ends near the begining of line 1 
+					x = [x2 x1];				y = [y2 y1];
+				elseif (endType == 3)			% Line 1 ends near the begining of line 2
+					x = [x1 x2];				y = [y1 y2];
+				else							% Lines grow from the extremeties twards the "mid point"
+					x = [x1 x2(end:-1:1)];		y = [y1 y2(end:-1:1)];
+				end
+				set(hCurrLine, 'XData',x, 'YData',y)
+				delete(hLineClosest)			% It was assimilated, now delete old one.
+				hLines(indOfFound) = [];		% Do not process the same line again.
+				if (doAguenta && rem(k,10)),	hAguenta = aguentabar(k/nLines);		end
+			end
+			% Now search for repeated points along the stitched line (nothing uncommon)
+			ind_x = (diff(x) == 0);		ind_y = (diff(y) == 0);
+			repets = (ind_x & ind_y);
+			if (any(repets))			% This also protects against the case of an initial x = []
+				x = x(repets);			y = y(repets);
+				set(hCurrLine, 'XData',x, 'YData',y)
+			end
+			% we still need to check if first and last pts are whithin TOL, case in which line is closed.
+			if (sqrt( (x(1) - x(end))^2 + (y(1) - y(end))^2 ) <= tol)
+				x(end+1) = x(1);		y(end+1) = y(1);
+				set(hCurrLine, 'XData',x, 'YData',y)
+			end
+			if (ishandle(hAguenta)),	delete(hAguenta),	end
 
 		case 'bezier'
-			n_nodes = 100;
-			vt = linspace(0,1,n_nodes);
-			bez = zeros(numel(vt), 2);
-			x = get(handles.hLine, 'XData');
-			y = get(handles.hLine, 'YData');
+			n_nodes = validate_args(handles.known_ops{ind}, r);
+
+			vt = linspace(0,1,n_nodes);			bez = zeros(numel(vt), 2);
+			x = get(handles.hLine, 'XData');	y = get(handles.hLine, 'YData');
 			xy = [x(:) y(:)];
 
-			% Compute each point in the Bezier curve
+			% Compute each point in the Bezier curve. From Jesus Lucio bezier_.m file in FEX
 			np = 1;		n = numel(x) - 1;
 			for t = vt
 				som = [0 0];
 				for (i = 0:n)			% Add the next point multiplied by the corresponding Bernstein polynomial
-					som = som + xy(i+1, :) * nchoosekJH(n, i) * (t^i) * ((1 - t)^(n - i));  
+					som = som + xy(i+1, :) * local_nchoosek(n, i) * (t^i) * ((1 - t)^(n - i));  
 				end
 				bez(np, :) = som;
 				np = np + 1;
@@ -453,13 +488,53 @@ function push_apply_CB(hObject, handles)
 			draw_funs(h,'line_uicontext')
 	end
 
+% -------------------------------------------------------------------------------------------------
+function [hLineClosest, endType, indOfFound] = find_closestline(hMe, hLines, TOL)
+% Find among the HLINES vector of line handles which one is closest the line with handle HME.
+% TOL is the max distance that the two lines can be apart and still be considered close.
+%	If not provided, defaults to Inf.
+% HLINECLOSEST	Is the handle of the closest line or [] if any passes the TOL condition.
+% ENDTYPE		Is a integer ranging between 1 and 4, or 0 if no closest line is found. Where
+%				1	Lines grow in oposite directions from a "mid point"
+%				2	Line 2 (HLINECLOSEST) ends near the begining of line 1 (HME)
+%				3	Line 1 (HME) ends near the begining of line 2 (HLINECLOSEST)
+%				4	Lines grow from the extremeties twards the "mid point"
+% INDOFFOUND	Index of HLINECLOSEST in original HLINES vector. That index of closest line.
+
+	if (nargin == 2),	TOL = inf;		end
+	x1 = get(hMe,'XData');				y1 = get(hMe,'YData');
+
+	hLineClosest = [];		endType = 0;	indOfFound = 0;
+	minDist = TOL * TOL;	% We do the test with square distances to save calls to sqrt 
+
+	for (k = 1:numel(hLines))
+		x2 = get(hLines(k),'XData');		% These calls are horribly expensive, so ...
+		dif_x2 = ([(x1(1) - x2(1)); (x1(1) - x2(end)); (x1(end) - x2(1)); (x1(end) - x2(end))]).^2;
+		if (min(dif_x2) > minDist),		continue,	end		% we know enough to drop this line.
+		y2 = get(hLines(k),'YData');
+		if ( (x2(1) == x2(end)) && (y2(1) == y2(end)) )		% Ignore closed polygons
+			continue
+		end
+
+		dif_y = [(y1(1) - y2(1)); (y1(1) - y2(end)); (y1(end) - y2(1)); (y1(end) - y2(end))];
+		dist = sum([dif_x2 dif_y.^2], 2);	% Square of distances between the 4 extremities
+		[mimi, I] = min(dist);
+		if ( mimi <= minDist )
+			indOfFound = k;
+			endType = I;
+			hLineClosest = hLines(k);
+			if (mimi < 1e-8),	break,	end		% This is so small that we can assume to have found the closest
+		end
+	end
+
 % --------------------------------------------------------------------------------------------
-function res = nchoosekJH(n ,k)   % Faster alternative to nchoosek(n, k)
+function res = local_nchoosek(n ,k)   % A faster stripped alternative of nchoosek(n, k)
 	res = 1;
 	if (k == 0),	return,		end
-	if (n == 0), res = 0; return,	end
+	if (n == 0),	res = 0;	return,	end
+	n_k = n - k;
 	for (i = 1:k)
-		res = res * ((n - k + i)/i);
+		res = res * ((n_k + i)/i);
 	end
 
 % --------------------------------------------------------------------------------------------------
@@ -540,6 +615,13 @@ function [out, msg] = validate_args(qual, str, np)
 			end
 			N = round(abs( str2double(strtok(r)) ));		% See if we have resolution request
 			if (~isnan(N)),		out(2) = N;		end
+
+		case 'bezier'
+			if ( isempty(str) || strcmpi(str, 'N') )
+				out = 100;
+			else
+				out = round(abs(str2double(str)));
+			end
 
 		case {'polyunion' 'polyintersect' 'polyxor' 'polyminus'}
 			if (str < 2)		% str is in fact the number of handles
