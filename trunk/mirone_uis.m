@@ -564,6 +564,7 @@ uimenu('Parent',hP,'Call','mirone(''DrawEulerPoleCircle_CB'',guidata(gcbo))','La
 uimenu('Parent',hP,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''EulerTrapezium'')','Label','Draw Euler trapezium');
 uimenu('Parent',hP,'Call','datasets_funs(''ITRF'',guidata(gcbo))','Label','Plot ITRF2008 velocities');
 uimenu('Parent',hP,'Call','datasets_funs(''Plate'',guidata(gcbo))','Label','Plot Plate boundaries');
+uimenu('Parent',hP,'Call','mirone(''PlatesAgeLift_CB'',guidata(gcbo))','Label','Age Lift','Sep','on');
 uimenu('Parent',hP,'Call','rally_plater','Label','Rally Plater','Sep','on');
 
 %% --------------------------- Mag/Grav -----------------------------------
@@ -720,7 +721,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 13 Sep 2011'',''2.1.2'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 18 Sep 2011'',''2.1.2'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
