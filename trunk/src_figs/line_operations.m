@@ -460,12 +460,32 @@ function push_apply_CB(hObject, handles)
 				x = x(repets);			y = y(repets);
 				set(hCurrLine, 'XData',x, 'YData',y)
 			end
-			% we still need to check if first and last pts are whithin TOL, case in which line is closed.
-			if (sqrt( (x(1) - x(end))^2 + (y(1) - y(end))^2 ) <= tol)
+
+			% Files (imported with ogr) can have each line segment repeated which causes strange effects. 
+			% This corrects one type of those effects, which is hard to describe with words.
+			knees = zeros(2,1);			nKnees = 0;
+			for (k = 1:numel(x)-2)		% Do it scalar because is equaly fast (or more) and waist no memory
+				if ( (x(k) == x(k+2)) && (y(k) == y(k+2)) )	% Detect points where line returns along same path.
+					nKnees = nKnees + 1;
+					knees(nKnees) = k;	
+				end
+			end
+			if (nKnees == 2)
+				x = x(knees(1)+1:knees(2)+1);	y = y(knees(1)+1:knees(2)+1);
+				set(hCurrLine, 'XData',x, 'YData',y)
+			end
+
+			% We still need to check if first and last pts are whithin TOL, case in which line is closed.
+			if ( ~isempty(x) && (x(1) ~= x(end)) && (y(1) ~= y(end)) && (sqrt((x(1) - x(end))^2 + (y(1) - y(end))^2) <= tol) )
 				x(end+1) = x(1);		y(end+1) = y(1);
 				set(hCurrLine, 'XData',x, 'YData',y)
 			end
 			if (ishandle(hAguenta)),	delete(hAguenta),	end
+
+			% Make it clear that it is neccessary to explicitly pick another line
+			set(handles.push_semaforo,'BackgroundColor',[1 0 0])
+			set(hObject,'Tooltip', 'Have 0 lines to play with')
+			handles.hLine = [];		guidata(handles.figure1, handles)
 
 		case 'bezier'
 			n_nodes = validate_args(handles.known_ops{ind}, r);
