@@ -444,6 +444,31 @@ function PixMode_CB(hObject, event, hFig, opt)
 	end
 
 % --------------------------------------------------------------------
+function  PlatesAgeLift_CB(handles)
+% Apply Parsons & Sclatter relation to compensate sea-bottom age sinking.
+% It assumes that bathymetry is the loaded grid (in meters Z up) and age in Ma
+	if (handles.no_file),		return,		end
+	resp = inputdlg({'Full name (with path) of Age grid:'},'Where is the grid?',[1 80]);
+	if (isempty(resp)),		return,		end
+	fname = resp{1};
+	if (~exist(fname,'file'))
+		warndlg('The file name provided does not exist. Bye, Bye','Warning'),	return
+	end
+	att = gdalread(fname,'-M','-C');
+	if ( att.GMT_hdr(1) > handles.head(1) || att.GMT_hdr(2) < handles.head(2) || ...
+			att.GMT_hdr(3) > handles.head(3) || att.GMT_hdr(4) < handles.head(4) )
+		errordlg('No way. The Age grid does not cover the limits of the bathymetry grid.','Error'),		return
+	end
+
+	[Age, X, Y, srsWKT, miniHandles] = read_grid([], fname, 'GDAL', sprintf('-R%.12f/%.12f/%.12f/%.12f', handles.head(1:4)));
+	if (isempty(Age)),	return,		end			% Something bad happened
+	lift = 350 * sqrt(Age);
+	[X,Y,Z] = load_grd(handles);
+	lift = cvlib_mex('resize', lift, [size(Z,1) size(Z,2)]);
+	cvlib_mex('add', lift, Z);
+	GRDdisplay(handles,X,Y,lift,miniHandles.head,[],'AgeLiftedBathymetry')
+
+% --------------------------------------------------------------------
 function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 % OPT is either a handle to a line that may be a rectangle/polygon, OR, if empty
 %	calls rubberbandbox to do a interactive croping (called by "Crop Grid")
@@ -3194,12 +3219,12 @@ function GeophysicsSwanPlotStations_CB(handles)
 % --------------------------------------------------------------------
 function GRDdisplay(handles,X,Y,Z,head,tit,name)
 % Show matrix Z in a new window.
-	if (numel(Z) < 4)		set(handles.figure1,'pointer','arrow'),		return,		end
-	if (nargin < 7),		name = [];  end
+	if (numel(Z) < 4)			set(handles.figure1,'pointer','arrow'),		return,		end
+	if (nargin < 7),			name = [];  end
 	if (isa(Z,'double')),		Z = single(Z);		end
 	zz = grdutils(Z,'-L');		head(5:6) = double(zz(1:2));
-	tmp.head = head;	tmp.X = X;		tmp.Y = Y;		tmp.name = name;
-	mirone(Z,tmp);		set(handles.figure1,'pointer','arrow')
+	tmp.head = head;			tmp.X = X;		tmp.Y = Y;		tmp.name = name;
+	mirone(Z,tmp);				set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
