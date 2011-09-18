@@ -462,11 +462,11 @@ function  PlatesAgeLift_CB(handles)
 
 	[Age, X, Y, srsWKT, miniHandles] = read_grid([], fname, 'GDAL', sprintf('-R%.12f/%.12f/%.12f/%.12f', handles.head(1:4)));
 	if (isempty(Age)),	return,		end			% Something bad happened
-	lift = 350 * sqrt(Age);
+	lift = single(350 * sqrt(double(Age)));
 	[X,Y,Z] = load_grd(handles);
 	lift = cvlib_mex('resize', lift, [size(Z,1) size(Z,2)]);
 	cvlib_mex('add', lift, Z);
-	GRDdisplay(handles,X,Y,lift,miniHandles.head,[],'AgeLiftedBathymetry')
+	GRDdisplay(handles,X,Y,lift,miniHandles.head,[],'AgeLiftedBathymetry',srsWKT)
 
 % --------------------------------------------------------------------
 function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
@@ -3217,13 +3217,14 @@ function GeophysicsSwanPlotStations_CB(handles)
 	zoom_state(handles,'maybe_on');		guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------
-function GRDdisplay(handles,X,Y,Z,head,tit,name)
+function GRDdisplay(handles, X, Y, Z, head, tit, name, srsWKT)
 % Show matrix Z in a new window.
-	if (numel(Z) < 4)			set(handles.figure1,'pointer','arrow'),		return,		end
-	if (nargin < 7),			name = [];  end
-	if (isa(Z,'double')),		Z = single(Z);		end
-	zz = grdutils(Z,'-L');		head(5:6) = double(zz(1:2));
-	tmp.head = head;			tmp.X = X;		tmp.Y = Y;		tmp.name = name;
+	if (handles.have_nans),		zz = grdutils(Z,'-L');
+	else						zz = [min(Z(:)) max(Z(:))];
+	end
+	head(5:6) = double(zz(1:2));
+	tmp.head = head;			tmp.X = X;		tmp.Y = Y;		tmp.geog = handles.geog;	tmp.name = name;
+	if (nargin == 8 && ~isempty(srsWKT)),		tmp.srsWKT = srsWKT;	end
 	mirone(Z,tmp);				set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
@@ -3580,7 +3581,7 @@ function GridToolsDirDerive_CB(handles, opt)
 
 % --------------------------------------------------------------------
 function GridToolsFindHoles_CB(handles)
-	% Find holes in double arrays and draw rectangles arround them
+% Find holes in double arrays and draw rectangles arround them
 	if (aux_funs('msg_dlg',14,handles)),	return,		end  
 	if (~handles.have_nans),	warndlg('This grid has no holes','Warning'),	return,	end
 	[X,Y,Z,head,m,n] = load_grd(handles);
@@ -3604,7 +3605,7 @@ function GridToolsFindHoles_CB(handles)
 
 % --------------------------------------------------------------------
 function GridToolsSaveAsSRTM_CB(handles)
-	% Only grids with the same characteristics as SRTM 3c files are allowed to be saved
+% Only grids with the same characteristics as SRTM 3c files are allowed to be saved
 	if (handles.no_file),	return,		end
 	[X,Y,Z,head] = load_grd(handles);		% No need to test for in-memory Z
 	if ( ((head(2)-head(1)) - 1) > 1e-6 || ((head(4)-head(3)) - 1) > 1e-6 )
@@ -3905,13 +3906,8 @@ function TransferB_CB(handles, opt)
 		opt_N = sprintf('-N%d', handles.have_nans);
 
 		Z = mirblock(Z, handles.head, opt_A, opt_N, opt_W);
-		if (handles.have_nans),		zz = grdutils(Z,'-L');
-		else						zz = [min(Z(:)) max(Z(:))];
-		end
-		tmp = struct('X',X, 'Y',Y, 'head',[handles.head(1:4) zz(:)' handles.head(7:9)], 'geog',handles.geog, 'name',resp.name);
 		projWKT = getappdata(handles.figure1,'ProjWKT');
-		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
-		mirone(Z, tmp)
+		GRDdisplay(handles,X,Y,Z,handles.head,[],resp.name, projWKT);
 
  	elseif (strcmp(opt,'dump'))
 		dumpmemmex
@@ -3923,131 +3919,125 @@ function TransferB_CB(handles, opt)
 
 % --------------------------------------------------------------------
 function Transfer_CB(handles, opt)
-if (handles.no_file),		return,		end
+	if (handles.no_file),		return,		end
 
-set(handles.figure1,'pointer','watch')
-img = get(handles.hImg,'CData');
-if (strcmp(opt,'Corners'))
-	if (islogical(img)),	img = uint8(img);	end		% cvlib_mex should take care of this case
-	corn = cvlib_mex('goodfeatures',img,100,0.05);
-	if (handles.image_type ~= 2)
-		y = (corn(:,1)-1)*handles.head(9) + handles.head(3);
-		x = (corn(:,2)-1)*handles.head(8) + handles.head(1);
-	else
-		x = corn(:,1);		y = corn(:,2); 
-	end
-	hLine = line('XData',x,'YData',y,'Parent',handles.axes1,'LineStyle','none','Marker','o', ...
-				'MarkerEdgeColor','w','MarkerFaceColor','k','MarkerSize',6,'Tag','corner_detected','Userdata',1);
-	multi_segs_str = cell(length(hLine),1);		% Just create a set of empty info strings
-	draw_funs(hLine,'isochron',multi_segs_str);
-
-elseif (strcmp(opt,'toRGB'))
-	if (ndims(img) == 3 || isa(img,'logical')),	set(handles.figure1,'pointer','arrow');		return,		end		% Nothing to do
-	img = ind2rgb8(img,get(handles.figure1,'Colormap'));
-	set(handles.hImg,'CData', img)
-	aux_funs('togCheck', handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
-
-elseif (strcmp(opt,'8-bit'))
-	if (ndims(img) ~= 3),	set(handles.figure1,'pointer','arrow'),		return,		end		% Nothing to do
-	resp  = inputdlg({'Number of colors (2-256)'},'Color quantization',[1 30],{'256'});	pause(0.01)
-	nColors = round (abs(str2double(resp{1})) );
-	if (isnan(nColors)),	set(handles.figure1,'pointer','arrow'),		return,		end
-	[img, map] = img_fun( 'rgb2ind', img, max(2, min(nColors, 256)) );	% Ensure we are in the [2-256] int
-	set(handles.hImg,'CData', img),			set(handles.figure1,'ColorMap',map)
-	aux_funs('togCheck', handles.ImMod8cor, [handles.ImMod8gray handles.ImModBW handles.ImModRGB])
-
-elseif (strcmp(opt,'gray'))
-	if (ndims(img) == 3)
-		img = cvlib_mex('color',img,'rgb2gray');		set(handles.hImg,'CData', img);
-	end
-	set(handles.figure1,'ColorMap',gray(256))
-	aux_funs('togCheck',handles.ImMod8gray , [handles.ImMod8cor handles.ImModBW handles.ImModRGB])
-
-elseif (strcmp(opt,'bw'))
-	img = img_fun('im2bw',img);
-	set(handles.hImg,'CData', img, 'CDataMapping','scaled');
-	set(handles.figure1,'ColorMap',gray(256))
-	aux_funs('togCheck',handles.ImModBW , [handles.ImMod8cor handles.ImMod8gray handles.ImModRGB])
-
-elseif (strcmp(opt,'copyclip'))		% Img and frame capture to ClipBoard
-	h = getappdata(handles.figure1,'CoordsStBar');		set(h,'Visible','off');
-	imcapture(handles.axes1,'imgAx');					set(h(2:end),'Visible','on')
-
-elseif (strcmp(opt,'Ctrl-c'))
-	h_active = getappdata(handles.figure1,'epActivHand');
-	if (h_active)					% We have a line or patch in edit mode. Copy it
-		x = get(h_active,'xdata');		y = get(h_active,'ydata');		z = getappdata(h_active,'ZData');
-		if (isempty(z)),		mat2clip([x(:) y(:)],8)
-		else					mat2clip([x(:) y(:) z(:)],8)
+	set(handles.figure1,'pointer','watch')
+	img = get(handles.hImg,'CData');
+	if (strcmp(opt,'Corners'))
+		if (islogical(img)),	img = uint8(img);	end		% cvlib_mex should take care of this case
+		corn = cvlib_mex('goodfeatures',img,100,0.05);
+		if (handles.image_type ~= 2)
+			y = (corn(:,1)-1)*handles.head(9) + handles.head(3);
+			x = (corn(:,2)-1)*handles.head(8) + handles.head(1);
+		else
+			x = corn(:,1);		y = corn(:,2); 
 		end
-		setappdata(0, 'CtrlCHandle', [h_active handles.axes1])	% Put a handle copy on root's appdata
-	end
+		hLine = line('XData',x,'YData',y,'Parent',handles.axes1,'LineStyle','none','Marker','o', ...
+					'MarkerEdgeColor','w','MarkerFaceColor','k','MarkerSize',6,'Tag','corner_detected','Userdata',1);
+		multi_segs_str = cell(length(hLine),1);		% Just create a set of empty info strings
+		draw_funs(hLine,'isochron',multi_segs_str);
 
-elseif (strcmp(opt,'Ctrl-v'))
-	h = getappdata(0, 'CtrlCHandle');	% Get what's in this root's appdata
-	if (isempty(h) || ~ishandle(h(1)))
-		set(handles.figure1,'pointer','arrow'),		return
-	end
-	draw_funs(h(1), 'Ctrl_v', [], [h(1) handles.axes1])		% Complicated due to transitional form of draw_funs
+	elseif (strcmp(opt,'toRGB'))
+		if (ndims(img) == 3 || isa(img,'logical')),	set(handles.figure1,'pointer','arrow');		return,		end		% Nothing to do
+		img = ind2rgb8(img,get(handles.figure1,'Colormap'));
+		set(handles.hImg,'CData', img)
+		aux_funs('togCheck', handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
 
-elseif (strncmp(opt,'flip',4))		% LR or UP image flipage. OPT = flipLR or flipUD
-	% OPT == 'LR' -> Flips the image left-right. OPT == 'UD' -> Flips the image up-down
-	direction = 1;
-	if strcmp(opt(5:6),'LR'),	direction = 2;		end		% Flip left-right
-	set(handles.hImg,'CData', flipdim(img,direction))
+	elseif (strcmp(opt,'8-bit'))
+		if (ndims(img) ~= 3),	set(handles.figure1,'pointer','arrow'),		return,		end		% Nothing to do
+		resp  = inputdlg({'Number of colors (2-256)'},'Color quantization',[1 30],{'256'});	pause(0.01)
+		nColors = round (abs(str2double(resp{1})) );
+		if (isnan(nColors)),	set(handles.figure1,'pointer','arrow'),		return,		end
+		[img, map] = img_fun( 'rgb2ind', img, max(2, min(nColors, 256)) );	% Ensure we are in the [2-256] int
+		set(handles.hImg,'CData', img),			set(handles.figure1,'ColorMap',map)
+		aux_funs('togCheck', handles.ImMod8cor, [handles.ImMod8gray handles.ImModBW handles.ImModRGB])
 
-elseif (strcmp(opt,'KML'))
-	[FileName,PathName] = put_or_get_file(handles,{'*.kml', 'KML files (*.kml)'},'Select file','put','.kml');
-	if isequal(FileName,0),		set(handles.figure1,'pointer','arrow'),		return,		end			% User gave up
-	Z = [];
-	if (handles.have_nans)
-		[X,Y,Z] = load_grd(handles);
-		if isempty(Z),		set(handles.figure1,'pointer','arrow'),		return,		end
-	end
-	writekml(handles,Z,[PathName FileName])		% Z will be used to setup a alpha channel
-
-elseif (strncmp(opt,'morph',5))			% Works for either image or grids
-	strela = structuring_elem;		pause(0.01)
-	if (isempty(strela)),	set(handles.figure1,'pointer','arrow'),		return,		end
-	if (strcmp(opt(7:end), 'grd'))
-		[X,Y,img] = load_grd(handles);			% Call it 'img' to easy things
-		if isempty(img),		set(handles.figure1,'pointer','arrow'),		return,		end
-	end
-	if ( strcmp(strela.operation,'dilate') || strcmp(strela.operation,'erode') )
-		img = cvlib_mex(strela.operation, img, strela);
-	else
-		img = cvlib_mex('morpho',img, strela.operation, strela);
-	end
-	if (strcmp(opt(7:end), 'img'))
-		set(handles.hImg,'CData', img);
-	else
-		if (handles.have_nans),		zz = grdutils(img,'-L');
-		else						zz = [min(img(:)) max(img(:))];
+	elseif (strcmp(opt,'gray'))
+		if (ndims(img) == 3)
+			img = cvlib_mex('color',img,'rgb2gray');		set(handles.hImg,'CData', img);
 		end
-		tmp = struct('X',X, 'Y',Y, 'head',[handles.head(1:4) zz(:)' handles.head(7:9)], 'geog',handles.geog, 'name',[strela.operation ' grid']);
-		projWKT = getappdata(handles.figure1,'ProjWKT');
-		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
-		mirone(img, tmp)
+		set(handles.figure1,'ColorMap',gray(256))
+		aux_funs('togCheck',handles.ImMod8gray , [handles.ImMod8cor handles.ImModBW handles.ImModRGB])
+
+	elseif (strcmp(opt,'bw'))
+		img = img_fun('im2bw',img);
+		set(handles.hImg,'CData', img, 'CDataMapping','scaled');
+		set(handles.figure1,'ColorMap',gray(256))
+		aux_funs('togCheck',handles.ImModBW , [handles.ImMod8cor handles.ImMod8gray handles.ImModRGB])
+
+	elseif (strcmp(opt,'copyclip'))		% Img and frame capture to ClipBoard
+		h = getappdata(handles.figure1,'CoordsStBar');		set(h,'Visible','off');
+		imcapture(handles.axes1,'imgAx');					set(h(2:end),'Visible','on')
+
+	elseif (strcmp(opt,'Ctrl-c'))
+		h_active = getappdata(handles.figure1,'epActivHand');
+		if (h_active)					% We have a line or patch in edit mode. Copy it
+			x = get(h_active,'xdata');		y = get(h_active,'ydata');		z = getappdata(h_active,'ZData');
+			if (isempty(z)),		mat2clip([x(:) y(:)],8)
+			else					mat2clip([x(:) y(:) z(:)],8)
+			end
+			setappdata(0, 'CtrlCHandle', [h_active handles.axes1])	% Put a handle copy on root's appdata
+		end
+
+	elseif (strcmp(opt,'Ctrl-v'))
+		h = getappdata(0, 'CtrlCHandle');	% Get what's in this root's appdata
+		if (isempty(h) || ~ishandle(h(1)))
+			set(handles.figure1,'pointer','arrow'),		return
+		end
+		draw_funs(h(1), 'Ctrl_v', [], [h(1) handles.axes1])		% Complicated due to transitional form of draw_funs
+
+	elseif (strncmp(opt,'flip',4))		% LR or UP image flipage. OPT = flipLR or flipUD
+		% OPT == 'LR' -> Flips the image left-right. OPT == 'UD' -> Flips the image up-down
+		direction = 1;
+		if strcmp(opt(5:6),'LR'),	direction = 2;		end		% Flip left-right
+		set(handles.hImg,'CData', flipdim(img,direction))
+
+	elseif (strcmp(opt,'KML'))
+		[FileName,PathName] = put_or_get_file(handles,{'*.kml', 'KML files (*.kml)'},'Select file','put','.kml');
+		if isequal(FileName,0),		set(handles.figure1,'pointer','arrow'),		return,		end			% User gave up
+		Z = [];
+		if (handles.have_nans)
+			[X,Y,Z] = load_grd(handles);
+			if isempty(Z),		set(handles.figure1,'pointer','arrow'),		return,		end
+		end
+		writekml(handles,Z,[PathName FileName])		% Z will be used to setup a alpha channel
+
+	elseif (strncmp(opt,'morph',5))			% Works for either image or grids
+		strela = structuring_elem;		pause(0.01)
+		if (isempty(strela)),	set(handles.figure1,'pointer','arrow'),		return,		end
+		if (strcmp(opt(7:end), 'grd'))
+			[X,Y,img] = load_grd(handles);			% Call it 'img' to easy things
+			if isempty(img),		set(handles.figure1,'pointer','arrow'),		return,		end
+		end
+		if ( strcmp(strela.operation,'dilate') || strcmp(strela.operation,'erode') )
+			img = cvlib_mex(strela.operation, img, strela);
+		else
+			img = cvlib_mex('morpho',img, strela.operation, strela);
+		end
+		if (strcmp(opt(7:end), 'img'))
+			set(handles.hImg,'CData', img);
+		else
+			GRDdisplay(handles,X,Y,img,handles.head,[],[strela.operation ' grid'], projWKT);
+		end
+
+	elseif (strcmp(opt,'scatter'))
+		str = {'*.dat;*.DAT;*.txt;*.TXT', 'Data file (*.dat,*.DAT,*.txt,*.TXT)'; '*.*', 'All Files (*.*)'};
+		[FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
+		if isequal(FileName,0),		set(handles.figure1,'pointer','arrow'),		return,		end			% User gave up
+		datasets_funs('scatter',handles, [PathName FileName])		% Do the work when file is multi-seg, or 
+		n_cols = getappdata(handles.figure1,'callScatterWin');		% return here to pass control to scatter_plot()
+		if (n_cols >= 3)		% Came back from datasets_funs() without doing anything
+			scatter_plot(handles,[PathName,FileName]);
+		elseif (n_cols == 1 || n_cols == 2)
+			errordlg('File must contain at least three columns OR ''>...'' multi-seg info.','Error')
+		end
+
+	elseif (strcmp(opt,'print'))
+		h = findobj('Type','uicontrol');		set(h,'Visible','off')	% We don't want to print the buttons
+		handsStBar = getappdata(handles.figure1,'CoordsStBar');
+		set(handsStBar,'Visible','off');		set(handles.figure1,'pointer','arrow')
+		if (ispc),		print -v,		else	print;  end
+		set(h,'Visible','on');  set(handsStBar(2:end),'Visible','on');
+
 	end
-
-elseif (strcmp(opt,'scatter'))
-	str = {'*.dat;*.DAT;*.txt;*.TXT', 'Data file (*.dat,*.DAT,*.txt,*.TXT)'; '*.*', 'All Files (*.*)'};
-	[FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
-	if isequal(FileName,0),		set(handles.figure1,'pointer','arrow'),		return,		end			% User gave up
-	datasets_funs('scatter',handles, [PathName FileName])		% Do the work when file is multi-seg, or 
-	n_cols = getappdata(handles.figure1,'callScatterWin');		% return here to pass control to scatter_plot()
-	if (n_cols >= 3)		% Came back from datasets_funs() without doing anything
-		scatter_plot(handles,[PathName,FileName]);
-	elseif (n_cols == 1 || n_cols == 2)
-		errordlg('File must contain at least three columns OR ''>...'' multi-seg info.','Error')
-	end
-
-elseif (strcmp(opt,'print'))
-	h = findobj('Type','uicontrol');		set(h,'Visible','off')	% We don't want to print the buttons
-	handsStBar = getappdata(handles.figure1,'CoordsStBar');
-	set(handsStBar,'Visible','off');		set(handles.figure1,'pointer','arrow')
-	if (ispc),		print -v,		else	print;  end
-	set(h,'Visible','on');  set(handsStBar(2:end),'Visible','on');
-
-end
-set(handles.figure1,'pointer','arrow')
+	set(handles.figure1,'pointer','arrow')
