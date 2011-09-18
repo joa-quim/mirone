@@ -2,8 +2,9 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 % Loads grid files that may contain DEMs or other grid (not images (byte)) types
 %
 % HANDLES	-> Normally, the Mirone's handles structure but can actually be any structure with these fields:
-%			-	grdMaxSize
+%			-	grdMaxSize, ForceInsitu
 %			-	path_tmp	(only need if TIPO == GMT and file is GMT grid not in netCDF)
+%			-  Can be empty ([]) when TIPO ~= GMT.
 % FULLNAME	-> Like it says. The file's full name
 % TIPO		-> 'GMT' read grids using the read_gmt_type_grids() function
 %			   'MOLA_lbl' To read Mars MOLA .img with a .lbl header file (cannot be compressed)
@@ -34,6 +35,11 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 		fname = [fullname{1} fullname{2}];
 	else
 		fname = fullname;
+	end
+	if (isempty(handles))
+		if (strcmp(tipo, 'GMT')),	error('read_grid: handles cannot be empty when reading a GMT type'),	end
+		handles.ForceInsitu = false;
+		handles.grdMaxSize = 1e15;
 	end
 	if (handles.ForceInsitu),	opt_I = '-I';		end	% Use only in desperate cases.
 	handles.was_int16 = 0;			% To make sure that it wasnt left = 1 from a previous use.
@@ -68,7 +74,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 				errordlg(['GDALREAD: Unable to open file ' fname],'Error'),		return
 			end
 			if (strcmp(tipo,'OVR') && strncmp(opt,'-P',2))	% A call from the overview tool
-				grdMaxSize = 1e15;						% Preview mode does not care of grdMaxSize
+				grdMaxSize = 1e15;							% Preview mode does not care of grdMaxSize
 			end
 		end
 		if ((att.RasterXSize * att.RasterYSize * 4) > grdMaxSize)
