@@ -466,6 +466,7 @@ function  PlatesAgeLift_CB(handles)
 	[X,Y,Z] = load_grd(handles);
 	lift = cvlib_mex('resize', lift, [size(Z,1) size(Z,2)]);
 	cvlib_mex('add', lift, Z);
+	miniHandles.head(7:9) = handles.head(7:9);		% min/max (5:6) will be updated in GRDdisplay
 	GRDdisplay(handles,X,Y,lift,miniHandles.head,[],'AgeLiftedBathymetry',srsWKT)
 
 % --------------------------------------------------------------------
