@@ -442,7 +442,9 @@ switch key
 
 	case 'P'							% close line -> patch
 		if (s.is_patch || numel(get(s.h_pol,'XData')) <= 2);  return;     end	
-		p = patch(get(s.h_pol,'XData'),get(s.h_pol,'YData'),1,'parent',s.h_ax);
+		p = patch('XData',get(s.h_pol,'XData'), 'YData',get(s.h_pol,'YData'), 'parent',s.h_ax, ...
+			'FaceColor','none', 'EdgeColor',get(s.h_pol,'Color'));
+		draw_funs(p,'line_uicontext')
 		if (~isempty(z)),	setappdata(p,'ZData',z),		end
 		s_old = getappdata(s.h_pol,'polygon_data');
 		s_old.h_pol = p;							% Need to update for the correct handle
@@ -452,8 +454,6 @@ switch key
 		else				s_old.is_closed_patch = false;
 		end
 		setappdata(p,'polygon_data',s_old);			% Set the corrected appdata
-		uictx = get(s.h_pol,'uicontextmenu');		% Get eventual uicontextmenu
-		if (~isempty(uictx)),   set(p,'uicontextmenu',uictx);   end
 		polygonui(s.h_pol)							% Remove the markers
 		delete(s.h_pol)								% Delete the ancestor
 		ui_edit_polygon(p)							% Start all over
