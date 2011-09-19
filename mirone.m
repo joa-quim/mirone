@@ -2343,9 +2343,9 @@ function DrawClosedPolygon_CB(handles, opt)
 		if (strcmp(opt,'EulerTrapezium') && n_nodes ~= 5)
 			errordlg('OK, I won''t insult you this time. Just RTFM or don''t use this option','Error'),		return
 		end
-		if (strcmp(opt,'EulerTrapezium')),  tag = opt;
-		elseif (strcmp(opt,'SeismicPolyg')),  tag = opt;
-		else								tag = 'Closedpolygon';
+		if (strcmp(opt,'EulerTrapezium')),		tag = opt;
+		elseif (strcmp(opt,'SeismicPolyg')),	tag = opt;
+		else									tag = 'Closedpolygon';
 		end
 		zoom_state(handles,'maybe_on');
 		xp = xp(:)';	yp = yp(:)';
