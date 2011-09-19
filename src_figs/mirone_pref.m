@@ -60,14 +60,14 @@ function varargout = mirone_pref(varargin)
 		end
 		directory_list(j) = [];							% clean non-existing directories
 
-		if (~isempty(directory_list))						% If there is one left
+		if (~isempty(directory_list))					% If there is one left
 			set(handles.popup_directory_list,'String',directory_list)
 			handles.last_directories = directory_list;
 		else
 			handles.last_directories = {[home_dir filesep 'tmp']; home_dir};    % Let it have something existent
 			set(handles.popup_directory_list,'String',handles.last_directories)
 		end
-	else													% mirone_pref had no dir list
+	else												% mirone_pref had no dir list
 		handles.last_directories = {[home_dir filesep 'tmp']; home_dir};    % Let it have something existent
 		set(handles.popup_directory_list,'String',handles.last_directories)
 	end
@@ -302,10 +302,6 @@ function edit_swathRatio_CB(hObject, handles)
 	end
 
 % ------------------------------------------------------------------------------------
-function push_cancel_CB(hObject, handles)
-    delete(handles.figure1)
-
-% ------------------------------------------------------------------------------------
 function popup_directory_list_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	% Put the selected field on top of the String list. This is necessary because the "OK" button will
@@ -432,6 +428,8 @@ function push_OK_CB(hObject, handles)
 		end
 	end
 
+	delete(handles.figure1)		% Killing it here will make look that the tool runs faster
+
 	fname = [handles.handMir.path_data 'mirone_pref.mat'];
 	% Save the preferences to a mat file under the data directory
 	% Note: for the ellipsoid we save it's parameters (a,b,f) and name on separate vars
@@ -467,8 +465,6 @@ function push_OK_CB(hObject, handles)
 	else
 		setappdata(handles.handMir.axes1,'MovPolyg','extend')		% Move lines with a Shift-click drag-n-drop
 	end
-
-	delete(handles.figure1)
 
 % ------------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
@@ -775,15 +771,10 @@ uicontrol('Parent',h1,'Position',[123 240 105 15],...
 'Style','text',...
 'UserData','general');
 
-uicontrol('Parent',h1,'Position',[120 10 66 21],...
+uicontrol('Parent',h1,'Position',[198 10 66 21],...
 'Call',{@mirone_pref_uiCB,h1,'push_OK_CB'},...
 'String','OK',...
 'Tag','push_OK');
-
-uicontrol('Parent',h1,'Position',[198 10 66 21],...
-'Call',{@mirone_pref_uiCB,h1,'push_cancel_CB'},...
-'String','Cancel',...
-'Tag','push_cancel');
 
 % -------------------- 	FLEDERMAUS TAB ---------------------------------------- 
 uicontrol('Parent',h1,'Position',[27 280 220 30],...
