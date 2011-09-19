@@ -923,18 +923,20 @@ function zoom_state(handles, state)
 function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 % Create a empty window with a frame selected in bg_region
 % However, if REGION was transmited, it is assumed to have [x_min x_max y_min y_max is_geog toDef]
+% TODEF	Logical that if true is used to add a new uimenu to call the write def symbol code
 % IMSIZE may either be the image size or the Figure title
+% HAND	Optional, updated version of HANDLES
 	if (nargin == 1)
 		region = bg_region;		% region contains [x_min x_max y_min y_max is_geog toDef]
 		if isempty(region),		return,		end		% User gave up
 		if (region(5)),			region(5) = aux_funs('guessGeog',region(1:4));		end	% Refine (can be 2)
 		handles.geog = region(5) + 10;			% The +10 instructs show_image to accept this val(and subtracts 10)
-		if (region(6))			% Add a new uimenu to call the write def symbol code
-			aux_funs('addUI', handles)
-		end
 	end
 	if (nargin <= 2),		imSize = [];		figTitle = 'Mirone Base Map';		end
 	if (nargin == 3 && isa(imSize,'char')),		figTitle = imSize;	imSize = [];	end
+	if (numel(region) == 6 && region(6))		% Add a new uimenu to call the write def symbol code
+		aux_funs('addUI', handles)
+	end
 
 	if ( any(isnan(region(1:4))) )
 		errordlg('The requested region limts is undeterminated (it has NaNs)','Error'),		return
