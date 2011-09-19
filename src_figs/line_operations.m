@@ -80,12 +80,12 @@ function varargout = line_operations(varargin)
 	end
 
 	handles.known_ops = {'buffer'; 'polysimplify'; 'bspline'; 'cspline'; 'bezier'; 'polyunion'; 'polyintersect'; ...
-			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'toRidge'; 'stitch'; 'hand2Workspace'};
+			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'toRidge'; 'stitch'; 'scale'; 'hand2Workspace'};
 	handles.hLine = [];
 	set(handles.popup_cmds,'Tooltip', 'Select one operation from this list')
 	set(handles.popup_cmds,'String', {'Possible commands'; 'buffer DIST'; 'polysimplify TOL'; 'bspline'; ...
 			'cspline N RES'; 'bezier N'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; 'line2patch'; ...
-			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'toRidge 5'; 'stitch TOL'; 'hand2Workspace'} )
+			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'toRidge 5'; 'stitch TOL'; 'scale to [-0.5 0.5]'; 'hand2Workspace'} )
 
 	handles.ttips = cell(numel(handles.known_ops));
 	handles.ttips{1} = 'Select one operation from this list';
@@ -136,7 +136,8 @@ function varargout = line_operations(varargin)
 	handles.ttips{15} = sprintf(['Stitch in cascade the lines that are closer than TOL to selected line.\n' ...
 								'Replace TOL by the desired maximum distance for lines still be stitched.\n' ...
 								'If removed or left as the string "TOL" (no quotes) it defaults to Inf.']);
-	handles.ttips{16} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
+	handles.ttips{16} = 'Scale to the [-0.5 0.5] interval.';
+	handles.ttips{17} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
 								'Use this if you want to gain access to all handle properties.']);
 
 	if (IamCompiled),	handles.known_ops(end) = [];	handles.ttips(end) = [];	end		% regretably
@@ -189,10 +190,10 @@ function push_apply_CB(hObject, handles)
 		% Here (will come) a function call which tries to adress the general command issue
 		return
 	end
-	if (isempty(handles.hLine) && ~strcmp(handles.known_ops{ind}, 'pline'))
+	if ( isempty(handles.hLine) && ~strcmp(handles.known_ops{ind}, 'pline') && ~strcmp(handles.known_ops{ind},'scale') )
 		errordlg('Fiu Fiu!! Apply WHERE????','ERROR'),	return
 	end
-	if (~strcmp(handles.known_ops{ind},'pline'))
+	if ( ~strcmp(handles.known_ops{ind},'pline') && ~strcmp(handles.known_ops{ind},'scale') )
 		handles.hLine = handles.hLine(ishandle(handles.hLine));
 		if (isempty(handles.hLine))
 			errordlg('Invalid handle. You probably killed the line(s)','ERROR'),	return
@@ -454,10 +455,13 @@ function push_apply_CB(hObject, handles)
 				if (doAguenta && rem(k,10)),	hAguenta = aguentabar(k/nLines);		end
 			end
 			% Now search for repeated points along the stitched line (nothing uncommon)
-			ind_x = (diff(x) == 0);		ind_y = (diff(y) == 0);
-			repets = (ind_x & ind_y);
-			if (any(repets))			% This also protects against the case of an initial x = []
-				x = x(repets);			y = y(repets);
+			ind_x = (diff(x) ~= 0);		ind_y = (diff(y) ~= 0);
+			unicos = (ind_x | ind_y);
+			if ( (x(1) == x(end)) && (y(1) == y(end)) )		% If line is closed maintain the end point
+				unicos(end+1) = true;
+			end
+			if (any(unicos))			% This also protects against the case of an initial x = []
+				x = x(unicos);			y = y(unicos);
 				set(hCurrLine, 'XData',x, 'YData',y)
 			end
 
@@ -506,6 +510,33 @@ function push_apply_CB(hObject, handles)
 			end
 			h = line('XData', bez(:,1), 'YData', bez(:,2), 'Parent',handles.hMirAxes, 'Color','r', 'LineWidth',handles.lt,'Tag','polyline');
 			draw_funs(h,'line_uicontext')
+
+		case 'scale'
+
+			hLines = findobj(handles.hMirAxes, 'Type', 'line');
+			xMin = 1e50;	yMin = 1e50;	xMax = -xMin;	yMax = -yMin;
+			for (k = 1:numel(hLines))
+				x = get(hLines(k), 'XData');	y = get(hLines(k), 'YData');
+				xMin = min([xMin min(x)]);		xMax = max([xMax max(x)]);
+				yMin = min([yMin min(y)]);		yMax = max([yMax max(y)]);
+			end
+			h = mirone;		hNewMirHand = guidata(h);
+			hNewMirHand = mirone('FileNewBgFrame_CB', hNewMirHand, [-0.5 0.5 -0.5 0.5 0 1], 'Scaled');
+			scale_x = 1 / (xMax - xMin);	off_x = -0.5 - xMin;
+			scale_y = 1 / (yMax - yMin);	off_y = -0.5 - yMin;
+			if (scale_x < scale_y)
+				scale = scale_x;			off_y = -(yMax - yMin) * scale / 2 - yMin;
+			else
+				scale = scale_y;			off_x = -(xMax - xMin) * scale / 2 - xMin;
+			end
+
+			% Now a second run to efectively scale the data
+			for (k = 1:numel(hLines))
+				x = get(hLines(k), 'XData') * scale + off_x;
+				y = get(hLines(k), 'YData') * scale + off_y;
+				h = line('XData',x, 'YData',y, 'Parent', hNewMirHand.axes1);
+				draw_funs(h,'line_uicontext')
+			end
 	end
 
 % -------------------------------------------------------------------------------------------------
