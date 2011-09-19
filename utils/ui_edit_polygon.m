@@ -37,7 +37,9 @@ function ui_edit_polygon(varargin)
 %									Patches cannot be broken.
 %     "c":							close a polyline
 %     "e":							put the line in extending mode (add points at the end) by calling getline_j
-%     "p":							close a polyline and convert it into a patch
+%     "n":							Move active vertex one step twards end of line
+%     "p":							Move active vertex one step twards beguining of line
+%     "P":							close a polyline and convert it into a patch
 %     escape:						stop edit mode
 %     delete:						delete the line/patch object
 %
@@ -425,8 +427,20 @@ switch key
 		set(s.h_pol, 'XData',x, 'YData',y);
 		if (~isempty(z)),	setappdata(s.h_pol,'ZData',[z repmat(z(end),1,n2-n1)]);	end		% Reset the Zs
 		return
+                       
+	case {'n', 'p'}							% Move active vertex one step forward or backward
+		if (isempty(s.vert_index))			% No current vertex selected
+			return
+		end
+		x = get(s.h_pol,'XData');		y = get(s.h_pol,'YData');
+		if (key == 'n')						% Next vertex
+			s.vert_index = min(s.vert_index+1, numel(x));
+		else								% Previous vertex
+			s.vert_index = max(s.vert_index-1, 1);
+		end
+		set(s.h_current_marker,'XData',x(s.vert_index),'YData',y(s.vert_index));
 
-	case {'p', 'P'}					% close line -> patch
+	case 'P'							% close line -> patch
 		% Don't close what is already closed or line with less than 2 vertices
 		if (s.is_patch || s.is_closed || numel(get(s.h_pol,'XData')) <= 2);  return;     end	
 		p = patch(get(s.h_pol,'XData'),get(s.h_pol,'YData'),1,'parent',s.h_ax);
