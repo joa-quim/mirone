@@ -4020,7 +4020,7 @@ function Transfer_CB(handles, opt)
 		if (strcmp(opt(7:end), 'img'))
 			set(handles.hImg,'CData', img);
 		else
-			GRDdisplay(handles,X,Y,img,handles.head,[],[strela.operation ' grid'], projWKT);
+			GRDdisplay(handles,X,Y,img,handles.head,[],[strela.operation ' grid']);
 		end
 
 	elseif (strcmp(opt,'scatter'))
