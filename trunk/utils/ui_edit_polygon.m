@@ -93,7 +93,7 @@ function ui_edit_polygon(varargin)
 		end
 	end
 	if ( ~isempty(move_choice) && ~((move_choice(1) == 'x') || (move_choice(1) == 'y')) )
-		move_choice = 'a';		% Means 'xy'
+		move_choice = 'a';			% Means 'xy'
 	end
 
 	for (i = 1:numel(varargin))				% Argument check
@@ -127,19 +127,19 @@ function ui_edit_polygon(varargin)
 
 			x = get(s.h_pol,'XData');
 			y = get(s.h_pol,'YData');
-			s.is_closed_patch = 0;
+			s.is_closed_patch = false;
 			s.is_patch  = strcmpi(get(s.h_pol,'Type'),'patch');
-			s.is_rect = 0;      s.keep_rect = 0;
+			s.is_rect = false;			s.keep_rect = false;
 			if ( numel(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
-				s.is_rect = 1;      s.keep_rect = 1;
+				s.is_rect = true;		s.keep_rect = true;
 			elseif ( numel(x) == 5 && (x(1) == x(4)) && (x(2) == x(3)) && (y(1) == y(2)) && (y(3) == y(4)) )
-				s.is_rect = 1;      s.keep_rect = 0;
+				s.is_rect = true;		s.keep_rect = false;
 			end
 			if ( numel(x) > 1 && (x(1) == x(end)) && (y(1) == y(end)))
-				s.is_closed = 1;
-				if (s.is_patch),    s.is_closed_patch = 1;  end
+				s.is_closed = true;
+				if (s.is_patch),		s.is_closed_patch = true;  end
 			else
-				s.is_closed = 0;
+				s.is_closed = false;
 			end
 
 			s.what_move = move_choice;
@@ -400,7 +400,7 @@ switch key
 		if (~isempty(lT)),		set(tmp, 'Tag', lT),	end
 		set(tmp,'uicontextmenu',get(s.h_pol,'uicontextmenu'))   % Copy the uicontextmenu
 		ui_edit_polygon(tmp)
-		s.is_closed = 0;            % Its not closed anymore
+		s.is_closed = false;		% Its not closed anymore
 		%uistack(tmp,'bottom')      % I'm not yet ready to accept this bloated op
 
 	case {'c', 'C'}					% close line
@@ -410,7 +410,7 @@ switch key
 		y = get(s.h_pol,'YData');
 		set(s.h_pol,'XData',[x x(1)],'YData',[y y(1)]);
 		if (~isempty(z)),	setappdata(s.h_pol,'ZData',[z z(1)]),		end
-		s.is_closed = 1;
+		s.is_closed = true;
 
 	case {'e', 'E'}					% edit (extend) line with getline_j
 		delete(s.h_vert);        s.h_vert = [];		s.vert_index = [];		% delete vertex markers
@@ -441,14 +441,16 @@ switch key
 		set(s.h_current_marker,'XData',x(s.vert_index),'YData',y(s.vert_index));
 
 	case 'P'							% close line -> patch
-		% Don't close what is already closed or line with less than 2 vertices
-		if (s.is_patch || s.is_closed || numel(get(s.h_pol,'XData')) <= 2);  return;     end	
+		if (s.is_patch || numel(get(s.h_pol,'XData')) <= 2);  return;     end	
 		p = patch(get(s.h_pol,'XData'),get(s.h_pol,'YData'),1,'parent',s.h_ax);
 		if (~isempty(z)),	setappdata(p,'ZData',z),		end
 		s_old = getappdata(s.h_pol,'polygon_data');
 		s_old.h_pol = p;							% Need to update for the correct handle
-		s.is_patch = 1;
-		s.is_closed_patch = 0;						% This not an "auto-closed" patch
+		s_old.h_vert = [];
+		s_old.is_patch = true;
+		if (s.is_closed),	s_old.is_closed_patch = true;	% This not an "auto-closed" patch
+		else				s_old.is_closed_patch = false;
+		end
 		setappdata(p,'polygon_data',s_old);			% Set the corrected appdata
 		uictx = get(s.h_pol,'uicontextmenu');		% Get eventual uicontextmenu
 		if (~isempty(uictx)),   set(p,'uicontextmenu',uictx);   end
