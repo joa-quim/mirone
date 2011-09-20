@@ -3131,35 +3131,41 @@ function FileSaveSession_CB(handles)
 
 	% Patches may have associated particular meanings (eg Focal Mecas), but
 	% they will loose them here. Maybe in the future I'll do something better.
-	j = 1;
 	ALLpatchHand = findobj(get(handles.axes1,'Child'),'Type','patch');
 	ALLpatchHand = ALLpatchHand(end:-1:1);		% Don't know if this always good but respects stack order
-	for (i = 1:numel(ALLpatchHand))
+	nO = numel(ALLpatchHand);
+	Patches = struct('x',cell(1,nO), 'y',cell(1,nO), 'LineWidth',cell(1,nO), 'LineStyle',cell(1,nO), ...
+		'EdgeColor',cell(1,nO), 'FaceColor',cell(1,nO), 'ud',cell(1,nO), 'tag',cell(1,nO));
+	for (i = 1:nO)
 		xx = get(ALLpatchHand(i),'XData');		yy = get(ALLpatchHand(i),'YData');
-		Patches(j).x = xx(:);					Patches(j).y = yy(:);
-		Patches(j).LineWidth = get(ALLpatchHand(i),'LineWidth');
-		Patches(j).LineStyle = get(ALLpatchHand(i),'LineStyle');
-		Patches(j).EdgeColor = get(ALLpatchHand(i),'EdgeColor');
-		Patches(j).FaceColor = get(ALLpatchHand(i),'FaceColor');
-		Patches(j).ud   = get(ALLpatchHand(i),'UserData');
-		Patches(j).tag  = get(ALLpatchHand(i),'Tag');
+		Patches(i).x = xx(:);					Patches(i).y = yy(:);
+		Patches(i).LineWidth = get(ALLpatchHand(i),'LineWidth');
+		Patches(i).LineStyle = get(ALLpatchHand(i),'LineStyle');
+		Patches(i).EdgeColor = get(ALLpatchHand(i),'EdgeColor');
+		Patches(i).FaceColor = get(ALLpatchHand(i),'FaceColor');
+		Patches(i).ud   = get(ALLpatchHand(i),'UserData');
+		Patches(i).tag  = get(ALLpatchHand(i),'Tag');
 		app = getappdata(ALLpatchHand(i));
-		if (~isempty(app)),		Patches(j).appd = app;	end
-		j = j + 1;		havePatches = 1;
+		if (~isempty(app)),		Patches(i).appd = app;	end
+		havePatches = 1;
 	end
 
 	ALLtextHand = findobj(get(handles.axes1,'Child'),'Type','text');
-	for (i = 1:numel(ALLtextHand))
-		Texto(n).str = get(ALLtextHand(i),'String');
-		if (isempty(Texto(n).str)),  continue,	end
-		Texto(n).pos = get(ALLtextHand(i),'Position');		Texto(n).FontAngle = get(ALLtextHand(i),'FontAngle');
-		Texto(n).angle = get(ALLtextHand(i),'Rotation');	Texto(n).Tag = get(ALLtextHand(i),'Tag');
-		Texto(n).color = get(ALLtextHand(i),'color');		Texto(n).FontName = get(ALLtextHand(i),'FontName');
-		Texto(n).FontSize = get(ALLtextHand(i),'FontSize');	Texto(n).FontWeight = get(ALLtextHand(i),'FontWeight');
-		Texto(n).HorizontalAlignment = get(ALLtextHand(i),'HorizontalAlignment');
-		Texto(n).VerticalAlignment = get(ALLtextHand(i),'VerticalAlignment');
-		haveText = 1;	n = n + 1;
+	nO = numel(ALLtextHand);
+	Texto = struct('str',cell(1,nO), 'pos',cell(1,nO), 'angle',cell(1,nO), 'color',cell(1,nO), ...
+		'FontSize',cell(1,nO), 'HorizontalAlignment',cell(1,nO), 'VerticalAlignment',cell(1,nO));
+	for (i = 1:nO)
+		Texto(i).str = get(ALLtextHand(i),'String');
+		if (isempty(Texto(i).str)),  continue,	end
+		Texto(i).pos = get(ALLtextHand(i),'Position');		Texto(i).FontAngle = get(ALLtextHand(i),'FontAngle');
+		Texto(i).angle = get(ALLtextHand(i),'Rotation');	Texto(i).Tag = get(ALLtextHand(i),'Tag');
+		Texto(i).color = get(ALLtextHand(i),'color');		Texto(i).FontName = get(ALLtextHand(i),'FontName');
+		Texto(i).FontSize = get(ALLtextHand(i),'FontSize');	Texto(i).FontWeight = get(ALLtextHand(i),'FontWeight');
+		Texto(i).HorizontalAlignment = get(ALLtextHand(i),'HorizontalAlignment');
+		Texto(i).VerticalAlignment = get(ALLtextHand(i),'VerticalAlignment');
+		haveText = 1;
 	end
+
 	save(fname,'grd_name','img_pal', 'havePline','Pline', 'haveMBtrack', 'MBtrack','MBbar', ...
 		'haveText','Texto', 'haveSymbol','Symbol', 'haveCircleGeo','CircleGeo', 'haveCircleCart', ...
 		'havePlineAsPoints','PlineAsPoints','CircleCart', 'map_limits', 'havePatches', 'Patches', ...
