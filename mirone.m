@@ -2971,7 +2971,7 @@ function FileOpenSession_CB(handles, fname)
 			% Do it this way because compiled version canot tel 'Text' from 'text'
 			t = load([PathName FileName],'Text');	Texto = t.Text;
 		end
-		for i=1:length(Texto)
+		for (i = 1:length(Texto))
 			if (isempty(Texto(i).str)),		continue,	end
 			h_text = text(Texto(i).pos(1),Texto(i).pos(2),Texto(i).pos(3), Texto(i).str,...
 				'Parent',handles.axes1, 'Rotation',Texto(i).angle,...
@@ -2988,17 +2988,23 @@ function FileOpenSession_CB(handles, fname)
 	if (havePatches)			% case of patchs - NOTE, the Tags are currently lost 
 		for (i = 1:length(Patches))
 			try					% We never know with those guys, so it's better to play safe
-				is_telha = 0;
+				is_telha = false;
 				if (strcmp(Patches(i).tag,'tapete_R') || strcmp(Patches(i).tag,'tapete'))
-					Patches(i).x = reshape(Patches(i).x,4,length(Patches(i).x)/4);
-					Patches(i).y = reshape(Patches(i).y,4,length(Patches(i).y)/4);
-					is_telha = 1;
+					Patches(i).x = reshape(Patches(i).x,4,numel(Patches(i).x)/4);
+					Patches(i).y = reshape(Patches(i).y,4,numel(Patches(i).y)/4);
+					is_telha = true;
 				end
 				h_patch = patch('XData',Patches(i).x, 'YData',Patches(i).y, 'Parent',handles.axes1,'LineWidth',Patches(i).LineWidth,...
 					'EdgeColor',Patches(i).EdgeColor, 'FaceColor',Patches(i).FaceColor,...
 					'LineStyle',Patches(i).LineStyle, 'Tag', Patches(i).tag);
+				set(h_patch,'UserData',Patches(i).ud)
+				if (isfield(Patches(i),'appd') && ~isempty(Patches(i).appd))	% Need the isfield test for backward compat
+					fdnames = fieldnames(Patches(i).appd);
+					for (fd = 1:numel(fdnames))
+						setappdata(h_patch, fdnames{fd}, Patches(i).appd.(fdnames{fd}))
+					end
+				end
 				if (is_telha)
-					set(h_patch,'UserData',Patches(i).ud)
 					draw_funs(h_patch,'telhas_patch')		% Set telhas's uicontextmenu
 				else
 					draw_funs(h_patch,'line_uicontext')		% Set patch's uicontextmenu
@@ -3135,8 +3141,10 @@ function FileSaveSession_CB(handles)
 		Patches(j).LineStyle = get(ALLpatchHand(i),'LineStyle');
 		Patches(j).EdgeColor = get(ALLpatchHand(i),'EdgeColor');
 		Patches(j).FaceColor = get(ALLpatchHand(i),'FaceColor');
-		Patches(j).ud = get(ALLpatchHand(i),'UserData');
-		Patches(j).tag = get(ALLpatchHand(i),'Tag');
+		Patches(j).ud   = get(ALLpatchHand(i),'UserData');
+		Patches(j).tag  = get(ALLpatchHand(i),'Tag');
+		app = getappdata(ALLpatchHand(i));
+		if (~isempty(app)),		Patches(j).appd = app;	end
 		j = j + 1;		havePatches = 1;
 	end
 
