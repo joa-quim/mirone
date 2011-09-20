@@ -2994,9 +2994,6 @@ function FileOpenSession_CB(handles, fname)
 					Patches(i).y = reshape(Patches(i).y,4,length(Patches(i).y)/4);
 					is_telha = 1;
 				end
-% 				if (Patches(i).FaceColor(1) == 1),		Patches(i).tag = 'tapete';
-% 				else									Patches(i).tag = 'tapete_R';
-% 				end
 				h_patch = patch('XData',Patches(i).x, 'YData',Patches(i).y, 'Parent',handles.axes1,'LineWidth',Patches(i).LineWidth,...
 					'EdgeColor',Patches(i).EdgeColor, 'FaceColor',Patches(i).FaceColor,...
 					'LineStyle',Patches(i).LineStyle, 'Tag', Patches(i).tag);
@@ -3130,6 +3127,7 @@ function FileSaveSession_CB(handles)
 	% they will loose them here. Maybe in the future I'll do something better.
 	j = 1;
 	ALLpatchHand = findobj(get(handles.axes1,'Child'),'Type','patch');
+	ALLpatchHand = ALLpatchHand(end:-1:1);		% Don't know if this always good but respects stack order
 	for (i = 1:numel(ALLpatchHand))
 		xx = get(ALLpatchHand(i),'XData');		yy = get(ALLpatchHand(i),'YData');
 		Patches(j).x = xx(:);					Patches(j).y = yy(:);
