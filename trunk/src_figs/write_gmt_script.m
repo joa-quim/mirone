@@ -1351,7 +1351,7 @@ end
 			script{l} = ['psxy ' name_sc ellips ' -S -R -J --MEASURE_UNIT=point -m -O -K >> ' pb 'ps' pf];    l=l+1;
 			fclose(fid);
 		end
-		clear cor_fill cor_edge ns symbols haveSymbol name name_sc;
+		clear ns symbols haveSymbol name name_sc;
 	end
 % ------------------------------------------------------------------------------------------------
 
@@ -1530,7 +1530,7 @@ end
 		script{l} = ' ';              l=l+1;
 		script{l} = [comm ' ---- Plot closed AND colored polygons'];   l=l+1;
 		script{l} = ['psxy ' name_sc ellips ' -R -J --MEASURE_UNIT=point -m -O -K >> ' pb 'ps' pf];    l=l+1;
-		clear ALLpatchHand name name_sc n_patch xx yy LineStyle LineWidth EdgeColor FillColor cor_edge resp
+		clear ALLpatchHand name name_sc n_patch xx yy LineStyle LineWidth EdgeColor FillColor cor_edge cor_fill resp
 	end
 
 % ------------- Search for lines or polylines ----------------------------
