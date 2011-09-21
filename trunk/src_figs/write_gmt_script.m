@@ -1263,91 +1263,96 @@ if (~isempty(tag) && ~isempty(handMir.grdname))
 end
 
 % ------------- Search for symbols -----------------------------------------------------------    
-tag = get(ALLlineHand,'Tag');
-if (~isempty(tag))
-    h = findobj(ALLlineHand,'Tag','Symbol');
-    h = [h; findobj(ALLlineHand,'Tag','City_major')];
-    h = [h; findobj(ALLlineHand,'Tag','City_other')];
-    h = [h; findobj(ALLlineHand,'Tag','volcano')];
-    h = [h; findobj(ALLlineHand,'Tag','hotspot')];
-    h = [h; findobj(ALLlineHand,'Tag','Earthquakes')];
-    h = [h; findobj(ALLlineHand,'Tag','DSDP')];
-    h = [h; findobj(ALLlineHand,'Tag','ODP')];
-    
-    % Search for points as Markers (that is, line with no line - just symbols on vertices)
-	h_shit = get(ALLlineHand,'LineStyle');
-	h_num_shit = strmatch('none',h_shit);
-	if (h_num_shit)
-        id = ismember(h, ALLlineHand(h_num_shit));      % Many, if not all, can be repeated
-        h(id) = [];                                     % This will remove repeted elements
-        h = [h; ALLlineHand(h_num_shit)];
-	end
-    clear h_shit h_num_shit;
-    
-    if (~isempty(h))
-        symbols = get_symbols(h);
-        haveSymbol = 1;
-        ALLlineHand = setxor(ALLlineHand, h);    % h is processed, so remove it from handles list
-    end
-    clear h;
-end
+	tag = get(ALLlineHand,'Tag');
+	if (~isempty(tag))
+		h = findobj(ALLlineHand,'Tag','Symbol');
+		h = [h; findobj(ALLlineHand,'Tag','City_major')];
+		h = [h; findobj(ALLlineHand,'Tag','City_other')];
+		h = [h; findobj(ALLlineHand,'Tag','volcano')];
+		h = [h; findobj(ALLlineHand,'Tag','hotspot')];
+		h = [h; findobj(ALLlineHand,'Tag','Earthquakes')];
+		h = [h; findobj(ALLlineHand,'Tag','DSDP')];
+		h = [h; findobj(ALLlineHand,'Tag','ODP')];
 
-if (haveSymbol)
-    ns = length(symbols.x);
-    name = [prefix_ddir '_symb.dat'];    name_sc = [prefix '_symb.dat'];
-    if (ns > 1 && length(symbols.Size) == 1)      % We have the same symbol repeated ns times
-    	fid = fopen(name,'wt');
-        cor_fill = round(symbols.FillColor{1} * 255);
-        cor_fill = [num2str(cor_fill(1)) '/' num2str(cor_fill(2)) '/' num2str(cor_fill(3))];
-        cor_edge = round(symbols.EdgeColor{1} * 255);
-        cor_edge = [num2str(cor_edge(1)) '/' num2str(cor_edge(2)) '/' num2str(cor_edge(3))];
-        fprintf(fid,'%.5f\t%.5f\n',[symbols.x{:}; symbols.y{:}]);
-		script{l} = ' ';                        	l=l+1;
-		script{l} = [comm ' ---- Plot symbols'];    l=l+1;
-		script{l} = ['psxy ' name_sc ' -S' symbols.Marker num2str(symbols.Size{1}) 'p' ' -G' cor_fill ...
-                ' -W1/' cor_edge ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
-    	fclose(fid);
-    elseif (ns == 1 && length(symbols.Size) == 1)      % We have only one symbol
-        cor_fill = round(symbols.FillColor{1} * 255);
-        cor_fill = [num2str(cor_fill(1)) '/' num2str(cor_fill(2)) '/' num2str(cor_fill(3))];
-        cor_edge = round(symbols.EdgeColor{1} * 255);
-        cor_edge = [num2str(cor_edge(1)) '/' num2str(cor_edge(2)) '/' num2str(cor_edge(3))];
-		script{l} = ' ';                             l=l+1;
-		script{l} = [comm ' ---- Plot symbol'];      l=l+1;
-		script{l} = ['echo ' num2str(symbols.x{1},'%.5f') ' ' num2str(symbols.y{1},'%.5f') ' | ' ...
-                    'psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' ' -G' cor_fill ...
-                    ' -W1/' cor_edge ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;        
-    else                                % We have ns different symbols
-        m = zeros(ns,1);
-        for i=1:ns
-            m(i) = size(symbols.x{i},2);
-        end
-        n = find(m ~= 1);
-        if (~isempty(n))                % We have a mixed scenario. Individual as well as group symbols
-            script = write_group_symb(prefix,prefix_ddir,comm,pb,pf,ellips,symbols,n,script);
-            symbols.x(n) = [];          symbols.y(n) = [];  % Clear processed symbols
-            symbols.FillColor(n) = [];  symbols.EdgeColor(n) = [];
-            symbols.Size(n) = [];       symbols.Marker(n,:) = [];
-            l = length(script) + 1;
-            ns = ns - length(n);
-        end
-        clear m n;
-    	fid = fopen(name,'wt');
-        for i=1:ns
-            cor_fill = round(symbols.FillColor{i} * 255);
-            cor_fill = [num2str(cor_fill(1)) '/' num2str(cor_fill(2)) '/' num2str(cor_fill(3))];
-            cor_edge = round(symbols.EdgeColor{i} * 255);
-            cor_edge = [num2str(cor_edge(1)) '/' num2str(cor_edge(2)) '/' num2str(cor_edge(3))];
-            fprintf(fid,'%s\n',['>' ' -G' cor_fill ' -W1/' cor_edge]);
-            fprintf(fid,'%.5f\t%.5f\t%.0f\t%s\n',symbols.x{i},symbols.y{i},symbols.Size{i},symbols.Marker(i,:));
-        end
-		script{l} = ' ';                        	l=l+1;
-		script{l} = [comm ' ---- Plot symbols'];    l=l+1;
-		script{l} = ['psxy ' name_sc ellips ' -S -R -J --MEASURE_UNIT=point -M -O -K >> ' pb 'ps' pf];    l=l+1;
-    	fclose(fid);
-    end
-    clear cor_fill cor_edge ns symbols haveSymbol name name_sc;
-end
+		% Search for points as Markers (that is, line with no line - just symbols on vertices)
+		h_shit = get(ALLlineHand,'LineStyle');
+		h_num_shit = strmatch('none',h_shit);
+		if (h_num_shit)
+			id = ismember(h, ALLlineHand(h_num_shit));		% Many, if not all, can be repeated
+			h(id) = [];										% This will remove repeted elements
+			h = [h; ALLlineHand(h_num_shit)];
+		end
+		clear h_shit h_num_shit;
+
+		if (~isempty(h))
+			symbols = get_symbols(h);
+			haveSymbol = true;
+			ALLlineHand = setxor(ALLlineHand, h);			% h is processed, so remove it from handles list
+		end
+		clear h;
+	end
+
+	if (haveSymbol)
+		ns = numel(symbols.x);
+		name = [prefix_ddir '_symb.dat'];	name_sc = [prefix '_symb.dat'];
+		fc = symbols.FillColor{1};			ec = symbols.EdgeColor{1};
+		opt_G = '';			opt_W = '';
+		if (~ischar(fc)),	opt_G = sprintf(' -G%d/%d/%d', round(fc * 255));	end
+		if (ischar(ec) && strcmp(ec, 'auto'))			% WRONG. Should be line's 'Color' property
+			opt_W = ' -W1p';
+		elseif (~ischar(ec))
+			opt_W = sprintf(' -W1p,%d/%d/%d', round(ec * 255));
+		end
+
+		if (ns > 1 && numel(symbols.Size) == 1)			% We have the same symbol repeated ns times
+			fid = fopen(name,'wt');
+			fprintf(fid,'%.5f\t%.5f\n',[symbols.x{:}; symbols.y{:}]);
+			script{l} = ' ';                        	l=l+1;
+			script{l} = [comm ' ---- Plot symbols'];    l=l+1;
+			script{l} = ['psxy ' name_sc ' -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
+					opt_W ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+			fclose(fid);
+		elseif (ns == 1 && numel(symbols.Size) == 1)	% We have only one symbol
+			script{l} = ' ';							l=l+1;
+			script{l} = [comm ' ---- Plot symbol'];		l=l+1;
+			script{l} = [sprintf('echo %.6f\t%.6f',symbols.x{1},symbols.y{1}) ' | ' ...
+						'psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
+						opt_W ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;        
+		else								% We have ns different symbols
+			m = zeros(ns,1);
+			for (i = 1:ns)
+				m(i) = size(symbols.x{i},2);
+			end
+			n = find(m ~= 1);
+			if (~isempty(n))				% We have a mixed scenario. Individual as well as group symbols
+				script = write_group_symb(prefix,prefix_ddir,comm,pb,pf,ellips,symbols,n,script);
+				symbols.x(n) = [];			symbols.y(n) = [];  % Clear processed symbols
+				symbols.FillColor(n) = [];	symbols.EdgeColor(n) = [];
+				symbols.Size(n) = [];		symbols.Marker(n,:) = [];
+				l = numel(script) + 1;
+				ns = ns - numel(n);
+			end
+			clear m n;
+			fid = fopen(name,'wt');
+			for (i = 1:ns)
+				fc = symbols.FillColor{i};			ec = symbols.EdgeColor{i};
+				opt_G = '';			opt_W = '';
+				if (~ischar(fc)),	opt_G = sprintf(' -G%d/%d/%d', round(fc * 255));	end
+				if (ischar(ec) && strcmp(ec, 'auto'))			% WRONG. Should be line's 'Color' property
+					opt_W = ' -W1p';
+				elseif (~ischar(ec))
+					opt_W = sprintf(' -W1p,%d/%d/%d', round(ec * 255));
+				end
+				fprintf(fid,'>%s\n',[opt_G opt_W]);
+				fprintf(fid,'%.5f\t%.5f\t%.0f\t%s\n',symbols.x{i},symbols.y{i},symbols.Size{i},symbols.Marker(i,:));
+			end
+			script{l} = ' ';                        	l=l+1;
+			script{l} = [comm ' ---- Plot symbols'];    l=l+1;
+			script{l} = ['psxy ' name_sc ellips ' -S -R -J --MEASURE_UNIT=point -m -O -K >> ' pb 'ps' pf];    l=l+1;
+			fclose(fid);
+		end
+		clear cor_fill cor_edge ns symbols haveSymbol name name_sc;
+	end
 % ------------------------------------------------------------------------------------------------
 
 % ------------- Search for focal mecanisms ----------------------------
@@ -1361,8 +1366,8 @@ if (~isempty(ALLpatchHand))
 		if (iscell(x)),		x = cell2mat(x);	y = cell2mat(y);    end
 		id_anch = find(diff(x,1,2));
 
-		psmeca_line = cell(length(focHand),1);
-		for (k = 1:length(focHand)),		psmeca_line{k} = getappdata(focHand(k),'psmeca_com');	end
+		psmeca_line = cell(numel(focHand),1);
+		for (k = 1:numel(focHand)),		psmeca_line{k} = getappdata(focHand(k),'psmeca_com');	end
 		psmeca_line = cat(1,psmeca_line{:});    % This also get us rid of empty cell fields.
               
 		n_cols = size(psmeca_line,2);
@@ -1371,10 +1376,10 @@ if (~isempty(ALLpatchHand))
 		end
 		name = [prefix_ddir '_meca.dat'];   name_sc = [prefix '_meca.dat'];     opt_C = '';
 		fid = fopen(name,'wt');
-		if (n_cols == 9 || n_cols == 10)         % Aki & Richard convention
+		if (n_cols == 9 || n_cols == 10)		% Aki & Richard convention
             % If beach-bals are not ploted at their origin update the ploting coords columns
             if (~isempty(id_anch))
-				psmeca_line(:,8) = x(:,2);		psmeca_line(:,9) = y(:,2);     opt_C = '-C';
+				psmeca_line(:,8) = x(:,2);		psmeca_line(:,9) = y(:,2);     opt_C = ' -C';
             end
 			opt_S = ['-Sa' getappdata(handMir.figure1,'MecaMag5') 'c'];
 			format = '%.4f\t%.4f\t%.1f\t%.0f\t%.0f\t%.0f\t%.1f\t%.4f\t%.4f';
@@ -1384,12 +1389,12 @@ if (~isempty(ALLpatchHand))
 				else				fprintf(fid,'\n');
 				end
 			end
-        elseif (n_cols == 13 || n_cols == 14)    % CMT convention
+        elseif (n_cols == 13 || n_cols == 14)	% CMT convention
             % If beach-bals are not ploted at their origin update the ploting coords columns
             if (~isempty(id_anch))
-                psmeca_line(:,12) = x(:,2);		psmeca_line(:,13) = y(:,2);     opt_C = '-C';
+                psmeca_line(:,12) = x(:,2);		psmeca_line(:,13) = y(:,2);     opt_C = ' -C';
             end
-            psmeca_line(:,11) = psmeca_line(:,11) + 7;      % psmeca uses Moment in Dyn-cm
+            psmeca_line(:,11) = psmeca_line(:,11) + 7;		% psmeca uses Moment in Dyn-cm
             opt_S = ['-Sc' getappdata(handMir.figure1,'MecaMag5') 'c'];
             format = '%.4f\t%.4f\t%.1f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.2f\t%d\t%.4f\t%.4f';           
 			for (k=1:size(psmeca_line,1))
@@ -1400,9 +1405,9 @@ if (~isempty(ALLpatchHand))
 			end
 		end
         fclose(fid);
-    	script{l} = ' ';              l=l+1;
+    	script{l} = ' ';			l=l+1;
         script{l} = [comm ' ---- Plot Focal Mechanisms'];   l=l+1;
-        script{l} = ['psmeca ' opt_S ' ' opt_C ' ' name_sc ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+        script{l} = ['psmeca ' opt_S opt_C ' ' name_sc ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
         ALLpatchHand = setxor(ALLpatchHand, focHand);		% focHand is processed, so remove it from handles list
         ALLlineHand  = setxor(ALLlineHand, focHandAnchor);	%       iden
         clear focHand name name_sc psmeca_line with_label n_cols id_anch opt_S opt_C
@@ -1429,7 +1434,7 @@ if (~isempty(ALLpatchHand))
                 script{l} = [comm ' ---- Plot telhas. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
 			    script{l} = ['telha ' name_sc ' ' saved.opt_E ' ' saved.opt_I ' ',...
                     saved.opt_N ' ' saved.opt_T ' -Blixo.dat'];     l=l+1;
-                script{l} = ['psxy lixo.dat ' ellips ' -R -J -M -L -O -K >> ' pb 'ps' pf];    l=l+1;
+                script{l} = ['psxy lixo.dat ' ellips ' -R -J -m -L -O -K >> ' pb 'ps' pf];    l=l+1;
                 %fclose(fid);
             end
         end
@@ -1461,11 +1466,11 @@ if (~isempty(ALLpatchHand))
         name = [prefix_ddir '_country_names.txt'];
         fid = fopen(name,'wt');
         fprintf(fid,'%s\n',ct_names{:});        fclose(fid);
-		script{l} = ' ';              l=l+1;
+		script{l} = ' ';				l=l+1;
         script{l} = [comm ' ---- Plot countries. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
         ct_with_pato = getappdata(handMir.figure1,'AtlasResolution');
 		script{l} = [cd filesep 'country_extract -P' name ' ' ct_with_pato ' -C | ',...
-                'psxy ' ellips ' -R -J -W0.5p -M -O -K >> ' pb 'ps' pf];    l=l+1;
+                'psxy ' ellips ' -R -J -W0.5p -m -O -K >> ' pb 'ps' pf];    l=l+1;
         ALLpatchHand = setxor(ALLpatchHand, AtlasHand);       % AtlasHand is processed, so remove it from handles list
         clear AtlasHand name n_cts ct_with_pato
     end
@@ -1507,7 +1512,7 @@ if (~isempty(ALLpatchHand))
         cor_fill = round(FillColor(i,1:3) * 255);
         if (cor_fill(1) >= 0)       % Color filled polygon
             cor_fill = [num2str(cor_fill(1)) '/' num2str(cor_fill(2)) '/' num2str(cor_fill(3))];
-            mlt_comm = ['>' ' -G' cor_fill ' -W' num2str(LineWidth(i)) 'p,' cor_edge];
+            mlt_comm = ['> -G' cor_fill ' -W' num2str(LineWidth(i)) 'p,' cor_edge];
         else                        % No filling color
             mlt_comm = ['> -W' num2str(LineWidth(i)) 'p,' cor_edge];
         end
@@ -1526,61 +1531,60 @@ if (~isempty(ALLpatchHand))
 	fclose(fid);
 	script{l} = ' ';              l=l+1;
     script{l} = [comm ' ---- Plot closed AND colored polygons'];   l=l+1;
-	script{l} = ['psxy ' name_sc ellips ' -R -J --MEASURE_UNIT=point -M -O -K >> ' pb 'ps' pf];    l=l+1;
+	script{l} = ['psxy ' name_sc ellips ' -R -J --MEASURE_UNIT=point -m -O -K >> ' pb 'ps' pf];    l=l+1;
     clear ALLpatchHand name name_sc n_patch xx yy LineStyle LineWidth EdgeColor FillColor cor_edge resp
 end
 
 % ------------- Search for lines or polylines ----------------------------
-if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, plines, mb-tracks, etc
-    xx = get(ALLlineHand,'XData');     yy = get(ALLlineHand,'YData');
-    if (~iscell(xx))            % We have only one line
-		xx = num2cell(xx(:),1);   yy = num2cell(yy(:),1);
-    end
-    n_lin = length(xx);
-	script{l} = ' ';                        l=l+1;
-    script{l} = [comm ' ---- Plot lines'];  l=l+1;
-    if (n_lin > 0)     % We have more than one line.         E SENAO?
-        LineStyle = get(ALLlineHand,'LineStyle');
-        [LineStyle,LineStyle_gmt] = lineStyle2num(LineStyle);
-        LineWidth = get(ALLlineHand,'LineWidth');
-        if (iscell(LineWidth)),     LineWidth = cat(1,LineWidth{:});    end
-        LineColor = get(ALLlineHand,'Color');
-        if (iscell(LineColor)),     LineColor = cat(1,LineColor{:});    end
-        [b,m] = sortrows([LineWidth LineColor LineStyle]);
-        m = m(end:-1:1);            % Revert order because I want thicker lines ploted first
-        xx = xx(m);     yy = yy(m);
-        LineWidth = LineWidth(m,:);     LineColor = LineColor(m,:);
-        LineStyle = LineStyle(m);       LineStyle_gmt = LineStyle_gmt(m,:);
-        [b,m] = unique([LineWidth LineColor LineStyle],'rows');   % reuse b,m
-        m = m(end:-1:1);            % OK, now we have to put it back in ascending order        
-        reps = setxor(m,1:n_lin);   % Find repeated (e.g. same color & line thickness)
-        m = [0; m];                 % use this first index to help file creation algo
-        for i=1:length(m)-1
-            name = [prefix_ddir '_line_' num2str(i) '.dat'];
-            name_sc = [prefix '_line_' num2str(i) '.dat'];
-            fid = fopen(name,'wt');
-            for j=m(i)+1:m(i+1)
-                if (any(isnan(xx{j})))          % If we have NaNs we need to split into segments
-                    [latcells,loncells] = polysplit(yy{j}(:),xx{j}(:));
-                    for (k=1:numel(loncells))
-                        fprintf(fid,'%s\n','>');
-                        fprintf(fid,'%.5f\t%.5f\n',[loncells{k}(:)'; latcells{k}(:)']);
-                    end
-                else
-                    fprintf(fid,'%s\n','>');
-                    fprintf(fid,'%.5f\t%.5f\n',[xx{j}(:) yy{j}(:)]');
-                end
-            end
-            fclose(fid);
-            cor = round(LineColor(j,:) * 255);
-            cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
-            script{l} = ['psxy ' name_sc ellips ' -R -J -W' num2str(LineWidth(j)) 'p,' ...
-                    cor LineStyle_gmt{j} ' --MEASURE_UNIT=point -M -O -K >> ' pb 'ps' pf];
-            l=l+1;
-        end
-    end
-    clear xx yy cor fid m name name_sc reps LineStyle LineWidth LineColor
-end
+	if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, plines, mb-tracks, etc
+		xx = get(ALLlineHand,'XData');     yy = get(ALLlineHand,'YData');
+		if (~iscell(xx))            % We have only one line
+			xx = num2cell(xx(:),1);   yy = num2cell(yy(:),1);
+		end
+		n_lin = length(xx);
+		script{l} = ' ';                        l=l+1;
+		script{l} = [comm ' ---- Plot lines'];  l=l+1;
+		if (n_lin > 0)     % We have more than one line.         E SENAO?
+			LineStyle = get(ALLlineHand,'LineStyle');
+			[LineStyle,LineStyle_gmt] = lineStyle2num(LineStyle);
+			LineWidth = get(ALLlineHand,'LineWidth');
+			if (iscell(LineWidth)),     LineWidth = cat(1,LineWidth{:});    end
+			LineColor = get(ALLlineHand,'Color');
+			if (iscell(LineColor)),     LineColor = cat(1,LineColor{:});    end
+			[b,m] = sortrows([LineWidth LineColor LineStyle]);
+			m = m(end:-1:1);			% Revert order because I want thicker lines ploted first
+			xx = xx(m);     yy = yy(m);
+			LineWidth = LineWidth(m,:);     LineColor = LineColor(m,:);
+			LineStyle = LineStyle(m);       LineStyle_gmt = LineStyle_gmt(m,:);
+			[b,m] = unique([LineWidth LineColor LineStyle],'rows');   % reuse b,m
+			m = m(end:-1:1);			% OK, now we have to put it back in ascending order        
+			m = [0; m];					% use this first index to help file creation algo
+			for (i = 1:length(m)-1)
+				name = sprintf('%s_line_%d.dat', prefix_ddir, i);
+				name_sc = sprintf('%s_line_%d.dat', prefix, i);
+				fid = fopen(name,'wt');
+				for j=m(i)+1:m(i+1)
+					if (any(isnan(xx{j})))          % If we have NaNs we need to split into segments
+						[latcells,loncells] = polysplit(yy{j}(:),xx{j}(:));
+						for (k=1:numel(loncells))
+							fprintf(fid,'>\n');
+							fprintf(fid,'%.5f\t%.5f\n',[loncells{k}(:)'; latcells{k}(:)']);
+						end
+					else
+						fprintf(fid,'>\n');
+						fprintf(fid,'%.5f\t%.5f\n',[xx{j}(:) yy{j}(:)]');
+					end
+				end
+				fclose(fid);
+				cor = round(LineColor(j,:) * 255);
+				cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
+				script{l} = ['psxy ' name_sc ellips ' -R -J -W' num2str(LineWidth(j)) 'p,' ...
+						cor LineStyle_gmt{j} ' --MEASURE_UNIT=point -m -O -K >> ' pb 'ps' pf];
+				l=l+1;
+			end
+		end
+		clear xx yy cor fid m name name_sc reps LineStyle LineWidth LineColor
+	end
 
 % ------------- Search for text strings ---------------------------------------------
 if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search for contours
@@ -1746,13 +1750,16 @@ function symbol = get_symbols(hand)
 	symbol.Marker = get(hand,'Marker');
 	zz = get(hand,'MarkerSize');
 	if (~iscell(zz)),   symbol.Size = num2cell(zz,1);
-	else                symbol.Size = zz;       end
+	else				symbol.Size = zz;
+	end
 	zz = get(hand,'MarkerFaceColor');
-	if (~iscell(zz)),   symbol.FillColor = num2cell(zz(:),1);
-	else                symbol.FillColor = zz;  end
+	if (~iscell(zz)),	symbol.FillColor = num2cell(zz(:),1);
+	else				symbol.FillColor = zz;
+	end
 	zz = get(hand,'MarkerEdgeColor');
-	if (~iscell(zz)),   symbol.EdgeColor = num2cell(zz(:),1);
-	else                symbol.EdgeColor = zz;  end
+	if (~iscell(zz)),	symbol.EdgeColor = num2cell(zz(:),1);
+	else				symbol.EdgeColor = zz;
+	end
 
 	symbol.Marker = char(symbol.Marker);
 	symbol.Marker = symbol.Marker(:,1);
@@ -1790,20 +1797,27 @@ function [LineStyle_num,LineStyle_gmt] = lineStyle2num(LineStyle)
 % --------------------------------------------------------------------
 function script = write_group_symb(prefix,prefix_ddir,comm,pb,pf,ellips,symbols,n,script)
 % Write a group symbol to file, and uppdate the "script"
-	l = length(script) + 1;
-	for i=1:length(n)
-		name = [prefix_ddir '_symb_' num2str(i) '.dat'];
-		name_sc = [prefix '_symb_' num2str(i) '.dat'];
+	l = numel(script) + 1;
+	for (i = 1:numel(n))
+		name = sprintf('%s_symb_%d.dat', prefix_ddir, i);
+		name_sc = sprintf('%s_symb_%d.dat', prefix, i);
 		fid = fopen(name,'wt');
-		cor_fill = round(symbols.FillColor{n(i)} * 255);
-		cor_fill = [num2str(cor_fill(1)) '/' num2str(cor_fill(2)) '/' num2str(cor_fill(3))];
-		cor_edge = round(symbols.EdgeColor{n(i)} * 255);
-		cor_edge = [num2str(cor_edge(1)) '/' num2str(cor_edge(2)) '/' num2str(cor_edge(3))];
+		fc = symbols.FillColor{n(i)};		ec = symbols.EdgeColor{n(i)};
+		if (ischar(fc)),	opt_G = '';
+		else				opt_G = sprintf(' -G%d/%d/%d', round(fc * 255));
+		end
+		if (ischar(ec))
+			if (strcmp(ec, 'none')),	opt_W = '';
+			else						opt_W = ' -W1p';		% 'auto'. WRONG. Should be line's 'Color' property
+			end
+		else
+			opt_W = sprintf(' -W1p,%d/%d/%d', round(ec * 255));
+		end
 		fprintf(fid,'%.5f\t%.5f\n',[symbols.x{n(i)}; symbols.y{n(i)}]);
-		script{l} = ' ';                    l=l+1;
-		script{l} = [comm 'Plot symbols'];  l=l+1;
-		script{l} = ['psxy ' name_sc ' -S' symbols.Marker(n(i)) num2str(symbols.Size{n(i)}) 'p' ' -G' cor_fill ...
-                ' -W1/' cor_edge ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+		script{l} = ' ';					l=l+1;
+		script{l} = [comm 'Plot symbols'];	l=l+1;
+		script{l} = ['psxy ' name_sc ' -S' symbols.Marker(n(i)) num2str(symbols.Size{n(i)}) 'p' opt_G ...
+                opt_W ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
 		fclose(fid);
 	end
 
