@@ -388,7 +388,7 @@ function push_OK_CB(hObject, handles)
         warndlg('There were no events left.','Warning');  return;
 	end
 
-	if (get(handles.check_depSlices,'Value'))    % We have a depth slice request
+	if (get(handles.check_depSlices,'Value'))		% We have a depth slice request
 		do_depSlices = 1;
 		contents = get(handles.popup_dep0_33,'String');     cor_str{1} = contents{get(handles.popup_dep0_33,'Value')};
 		contents = get(handles.popup_dep33_70,'String');    cor_str{2} = contents{get(handles.popup_dep33_70,'Value')};
@@ -411,64 +411,65 @@ function push_OK_CB(hObject, handles)
 	oldunit = get(handles.mironeAxes,'Units');		set(handles.mironeAxes,'Units','centimeters')
 	pos = get(handles.mironeAxes,'Position');		set(handles.mironeAxes,'Units',oldunit)
 	y_lim = get(handles.mironeAxes,'YLim');
-	handles.size_fac = (y_lim(2) - y_lim(1)) / (pos(4) - pos(2)) * 0.4;  % Scale facor
+	handles.size_fac = (y_lim(2) - y_lim(1)) / (pos(4) - pos(2)) * 0.4;  % Scale factor
 	Mag5 = get(handles.edit_Mag5,'String');			% Size (cm) of a mag 5 event
 	handles.Mag5 = str2double(Mag5);
 	setappdata(handles.hMirFig,'MecaMag5',Mag5)		% For eventual use in 'write_script'
 	n_meca = size(handles.data(:,1),1);
 	h_pat = zeros(n_meca,3);
 	plot_text = get(handles.check_plotDate,'Value');
+	DAR = get(handles.mironeAxes, 'DataAspectRatio');
 
-for (k=1:n_meca)
-	if (strcmp(filtro,'aki'))
-        [c,d] = patch_meca(handles.data(k,4), handles.data(k,5), handles.data(k,6));
-        mag = handles.data(k,7);
-	else							% ISF catalog, CMT, CMT .ndk 
-        [c,d] = patch_meca(handles.data(k,4), handles.data(k,5), handles.data(k,6), ...
-            handles.data(k,7), handles.data(k,8), handles.data(k,9));
-        mag = handles.data(k,10);
+	for (k = 1:n_meca)
+		if (strcmp(filtro,'aki'))
+			[c,d] = patch_meca(handles.data(k,4), handles.data(k,5), handles.data(k,6));
+			mag = handles.data(k,7);
+		else							% ISF catalog, CMT, CMT .ndk 
+			[c,d] = patch_meca(handles.data(k,4), handles.data(k,5), handles.data(k,6), ...
+				handles.data(k,7), handles.data(k,8), handles.data(k,9));
+			mag = handles.data(k,10);
+		end
+		dim = handles.size_fac * mag / 5 * handles.Mag5;    % Scale the balls against the selected Mag 5 size
+		c = c * dim;    d = d * dim;
+		cx = c(:,1) + handles.plot_pos(k,1);
+		cy = c(:,2)*DAR(2) + handles.plot_pos(k,2);			% Make sure they are round, not oval sometimes
+		dx = d(:,1) + handles.plot_pos(k,1);
+		dy = d(:,2)*DAR(2) + handles.plot_pos(k,2);
+		h_pat(k,3) = line('Parent',handles.mironeAxes,'XData',[handles.data(k,1) handles.plot_pos(k,1)], ...
+			'YData',[handles.data(k,2) handles.plot_pos(k,2)], 'Linestyle','-', 'Marker','o', ...
+			'MarkerSize',3, 'MarkerFaceColor','k', 'Tag','FocalMecaAnchor');
+		if (~do_depSlices)				% Paint all compressive quadrants with black
+			h_pat(k,1) = patch('XData',cx,'YData',cy, 'Parent',handles.mironeAxes, 'FaceColor',[0 0 0],'Tag','FocalMeca');
+		else
+			cor = find_color(handles.data(k,3), cor_str);
+			h_pat(k,1) = patch('XData',cx, 'YData',cy, 'Parent',handles.mironeAxes, 'FaceColor', cor,'Tag','FocalMeca');
+		end
+		h_pat(k,2) = patch('XData',dx, 'YData',dy, 'Parent',handles.mironeAxes, 'FaceColor',[1 1 1], 'Tag','FocalMeca');
+		ht = [];
+		if (plot_text)					% Plot event text identifier (normaly its date)
+			offset = handles.size_fac * mag / 5 * (handles.Mag5 + 0.2);		% text offset regarding the beach ball (2 mm) 
+			ht = text('Pos',[handles.plot_pos(k,1),handles.plot_pos(k,2)+offset],'Str',handles.date{k},'Parent',handles.mironeAxes, ...
+				'HorizontalAlignment','Center', 'VerticalAlignment','Bottom', 'FontSize',8, 'Tag','TextMeca');
+			draw_funs(ht,'DrawText');
+		end
+
+		if (strcmp(filtro,'aki'))
+			setappdata(h_pat(k,1),'psmeca_com',[handles.data(k,1:7) handles.plot_pos(k,1:2) ht]);
+		else							% ISF catalog, CMT, CMT .ndk 
+			setappdata(h_pat(k,1),'psmeca_com',[handles.data(k,1:9) handles.mantiss_exp(k,:) handles.plot_pos(k,1:2) ht]);
+		end
+		setappdata(h_pat(k,1),'other_hand',[h_pat(k,2) h_pat(k,3) ht]);		% For using in the uiedit
+		setappdata(h_pat(k,2),'other_hand',[h_pat(k,1) h_pat(k,3) ht]);		% For using in the uiedit
+
+		lim_x = [handles.plot_pos(k,1) handles.plot_pos(k,1) handles.plot_pos(k,1) handles.plot_pos(k,1)] + [-1 -1 1 1]*dim;
+		lim_y = [handles.plot_pos(k,2) handles.plot_pos(k,2) handles.plot_pos(k,2) handles.plot_pos(k,2)] + [-1 1 1 -1]*dim;
+		setappdata(h_pat(k,1),'Limits',[lim_x(:) lim_y(:)]);			% For using in the uiedit
+		setappdata(h_pat(k,2),'Limits',[lim_x(:) lim_y(:)]);			% For using in the uiedit
+		set_uicontext(h_pat(k,1), handles.hMirFig);		set_uicontext(h_pat(k,2), handles.hMirFig);
 	end
-    dim = handles.size_fac * mag / 5 * handles.Mag5;    % Scale the balls against the selected Mag 5 size
-    c = c * dim;    d = d * dim;
-    cx = c(:,1) + handles.plot_pos(k,1);
-    cy = c(:,2) + handles.plot_pos(k,2);
-    dx = d(:,1) + handles.plot_pos(k,1);
-    dy = d(:,2) + handles.plot_pos(k,2);
-    h_pat(k,3) = line('Parent',handles.mironeAxes,'XData',[handles.data(k,1) handles.plot_pos(k,1)], ...
-        'YData',[handles.data(k,2) handles.plot_pos(k,2)], 'Linestyle','-', 'Marker','o', ...
-        'MarkerSize',3, 'MarkerFaceColor','k', 'Tag','FocalMecaAnchor');
-    if (~do_depSlices)				% Paint all compressive quadrants with black
-        h_pat(k,1) = patch('XData',cx,'YData',cy, 'Parent',handles.mironeAxes, 'FaceColor',[0 0 0],'Tag','FocalMeca');
-    else
-        cor = find_color(handles.data(k,3), cor_str);
-        h_pat(k,1) = patch('XData',cx, 'YData',cy, 'Parent',handles.mironeAxes, 'FaceColor', cor,'Tag','FocalMeca');
-    end
-    h_pat(k,2) = patch('XData',dx, 'YData',dy, 'Parent',handles.mironeAxes, 'FaceColor',[1 1 1], 'Tag','FocalMeca');
-	ht = [];
-	if (plot_text)					% Plot event text identifier (normaly its date)
-		offset = handles.size_fac * mag / 5 * (handles.Mag5 + 0.2);		% text offset regarding the beach ball (2 mm) 
-		ht = text('Pos',[handles.plot_pos(k,1),handles.plot_pos(k,2)+offset],'Str',handles.date{k},'Parent',handles.mironeAxes, ...
-			'HorizontalAlignment','Center', 'VerticalAlignment','Bottom', 'FontSize',8, 'Tag','TextMeca');
-		draw_funs(ht,'DrawText');
-	end
-		
-	if (strcmp(filtro,'aki'))
-		setappdata(h_pat(k,1),'psmeca_com',[handles.data(k,1:7) handles.plot_pos(k,1:2) ht]);
-	else							% ISF catalog, CMT, CMT .ndk 
-		setappdata(h_pat(k,1),'psmeca_com',[handles.data(k,1:9) handles.mantiss_exp(k,:) handles.plot_pos(k,1:2) ht]);
-	end
-    setappdata(h_pat(k,1),'other_hand',[h_pat(k,2) h_pat(k,3) ht]);		% For using in the uiedit
-    setappdata(h_pat(k,2),'other_hand',[h_pat(k,1) h_pat(k,3) ht]);		% For using in the uiedit
-	
-	lim_x = [handles.plot_pos(k,1) handles.plot_pos(k,1) handles.plot_pos(k,1) handles.plot_pos(k,1)] + [-1 -1 1 1]*dim;
-	lim_y = [handles.plot_pos(k,2) handles.plot_pos(k,2) handles.plot_pos(k,2) handles.plot_pos(k,2)] + [-1 1 1 -1]*dim;
-	setappdata(h_pat(k,1),'Limits',[lim_x(:) lim_y(:)]);			% For using in the uiedit
-	setappdata(h_pat(k,2),'Limits',[lim_x(:) lim_y(:)]);			% For using in the uiedit
-	set_uicontext(h_pat(k,1), handles.hMirFig);		set_uicontext(h_pat(k,2), handles.hMirFig);
-end
-hand = guidata(handles.hMirFig);		% Get the Mirone's handles structure
-hand.have_focal = handles.Mag5;			% Signal that we have focal mechanisms and store the Mag5 size symbol
-guidata(handles.hMirFig,hand)
+	hand = guidata(handles.hMirFig);		% Get the Mirone's handles structure
+	hand.have_focal = handles.Mag5;			% Signal that we have focal mechanisms and store the Mag5 size symbol
+	guidata(handles.hMirFig,hand)
 
 % -------------------------------------------------------------------------------------
 function cor = find_color(z, id)
