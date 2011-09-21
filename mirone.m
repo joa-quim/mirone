@@ -2940,6 +2940,10 @@ function FileOpenSession_CB(handles, fname)
 		for (i = 1:length(Pline))
 			h_line = line('Xdata',Pline(i).x,'Ydata',Pline(i).y,'Parent',handles.axes1,'LineWidth',Pline(i).LineWidth,...
 				'color',Pline(i).color,'Tag',Pline(i).tag, 'LineStyle',Pline(i).LineStyle);
+			if (isfield(Pline(i),'Marker'))				% New in 21-9-2011
+				set(h_line, 'Marker', Pline(i).Marker, 'MarkerSize',Pline(i).Size, ...
+					'MarkerFaceColor',Pline(i).FillColor, 'MarkerEdgeColor',Pline(i).EdgeColor)
+			end
 			if (isfield(Pline(i),'LineInfo') && ~isempty(Pline(i).LineInfo))
 				setappdata(h_line,'LineInfo',Pline(i).LineInfo)
 				set(h_line,'UserData',1)
@@ -3123,6 +3127,13 @@ function FileSaveSession_CB(handles)
 			Pline(m).LineStyle = get(ALLlineHand(i),'LineStyle');
 			Pline(m).color = get(ALLlineHand(i),'color');
 			Pline(m).tag = tag;
+			Marker = get(ALLlineHand(i),'Marker');
+			if (Marker(1) ~= 'n')		% Not 'none' so something.
+				Pline(m).Marker = Marker;
+				Pline(m).Size = get(ALLlineHand(i),'MarkerSize');
+				Pline(m).FillColor = get(ALLlineHand(i),'MarkerFaceColor');
+				Pline(m).EdgeColor = get(ALLlineHand(i),'MarkerEdgeColor');
+			end
 			if (isappdata(ALLlineHand(i),'LineInfo'))
 				Pline(m).LineInfo = getappdata(ALLlineHand(i),'LineInfo');
 			end
