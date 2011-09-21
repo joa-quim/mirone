@@ -1583,7 +1583,7 @@ end
 				l=l+1;
 			end
 		end
-		clear xx yy cor fid m name name_sc reps LineStyle LineWidth LineColor
+		clear xx yy cor fid m name name_sc LineStyle LineWidth LineColor
 	end
 
 % ------------- Search for text strings ---------------------------------------------
