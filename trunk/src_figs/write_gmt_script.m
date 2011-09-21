@@ -1478,62 +1478,60 @@ end
 % -------------------------------------------------------------------------------------------------------
 
 % ------------- Search for closed polygons ----------------------------
-if (~isempty(ALLpatchHand))
-    xx = get(ALLpatchHand,'XData');     yy = get(ALLpatchHand,'YData');
-    n_patch = length(ALLpatchHand);
-    LineStyle = get(ALLpatchHand,'LineStyle');
-    LineWidth = get(ALLpatchHand,'LineWidth');
-    if (iscell(LineWidth)),     LineWidth = cat(1,LineWidth{:});     end
-    EdgeColor = get(ALLpatchHand,'EdgeColor');
-    if (iscell(EdgeColor)),     EdgeColor = cat(1,EdgeColor{:});     end
-    FillColor = get(ALLpatchHand,'FaceColor');
-    if (iscell(FillColor))
-        resp = strmatch('none',char(FillColor{:}));
-        if (isempty(resp))
-            FillColor = cat(1,FillColor{:});
-        else
-            for (i=1:length(resp))                  % Signal down that this is a non colored polygon
-                FillColor{resp(i)} = [-1 -1 -1];    % FDS it worked. I wonder why FillColor{resp} = repmat([-1 -1 -1],length(resp),1); DOESN'T
-            end
-            FillColor = cat(1,FillColor{:});
-        end
-    else                % We have only one patch
-        xx = num2cell(xx,1);   yy = num2cell(yy,1);   % Make it a cell for reducing the head-hakes
-        resp = strmatch('none',FillColor);
-        if (~isempty(resp))
-            FillColor = [-1 -1 -1];                 % Signal down that this is a non colored polygon
-        end
-    end
-    name = [prefix_ddir '_patch.dat'];    name_sc = [prefix '_patch.dat'];
-	fid = fopen(name,'wt');
-    for (i=1:n_patch)
-        cor_edge = round(EdgeColor(i,1:3) * 255);
-        cor_edge = [num2str(cor_edge(1)) '/' num2str(cor_edge(2)) '/' num2str(cor_edge(3))];
-        cor_fill = round(FillColor(i,1:3) * 255);
-        if (cor_fill(1) >= 0)       % Color filled polygon
-            cor_fill = [num2str(cor_fill(1)) '/' num2str(cor_fill(2)) '/' num2str(cor_fill(3))];
-            mlt_comm = ['> -G' cor_fill ' -W' num2str(LineWidth(i)) 'p,' cor_edge];
-        else                        % No filling color
-            mlt_comm = ['> -W' num2str(LineWidth(i)) 'p,' cor_edge];
-        end
-        
-        if (any(isnan(xx{i})))      % If we have NaNs we need to split into segments
-            [latcells,loncells] = polysplit(yy{i}(:),xx{i}(:));
-            for (j=1:numel(loncells))
-                fprintf(fid,'%s\n',mlt_comm);
-                fprintf(fid,'%.5f\t%.5f\n',[loncells{j}(:)'; latcells{j}(:)']);
-            end
-        else
-            fprintf(fid,'%s\n',mlt_comm);
-            fprintf(fid,'%.5f\t%.5f\n',[xx{i}(:)'; yy{i}(:)']);
-        end
-    end
-	fclose(fid);
-	script{l} = ' ';              l=l+1;
-    script{l} = [comm ' ---- Plot closed AND colored polygons'];   l=l+1;
-	script{l} = ['psxy ' name_sc ellips ' -R -J --MEASURE_UNIT=point -m -O -K >> ' pb 'ps' pf];    l=l+1;
-    clear ALLpatchHand name name_sc n_patch xx yy LineStyle LineWidth EdgeColor FillColor cor_edge resp
-end
+	if (~isempty(ALLpatchHand))
+		xx = get(ALLpatchHand,'XData');     yy = get(ALLpatchHand,'YData');
+		n_patch = length(ALLpatchHand);
+		LineStyle = get(ALLpatchHand,'LineStyle');
+		LineWidth = get(ALLpatchHand,'LineWidth');
+		if (iscell(LineWidth)),     LineWidth = cat(1,LineWidth{:});     end
+		EdgeColor = get(ALLpatchHand,'EdgeColor');
+		if (iscell(EdgeColor)),     EdgeColor = cat(1,EdgeColor{:});     end
+		FillColor = get(ALLpatchHand,'FaceColor');
+		if (iscell(FillColor))
+			resp = strmatch('none',char(FillColor{:}));
+			if (isempty(resp))
+				FillColor = cat(1,FillColor{:});
+			else
+				for (i=1:length(resp))					% Signal down that this is a non colored polygon
+					FillColor{resp(i)} = [-1 -1 -1];	% FDS it worked. I wonder why FillColor{resp} = repmat([-1 -1 -1],length(resp),1); DOESN'T
+				end
+				FillColor = cat(1,FillColor{:});
+			end
+		else				% We have only one patch
+			xx = num2cell(xx,1);   yy = num2cell(yy,1);   % Make it a cell for reducing the head-hakes
+			resp = strmatch('none',FillColor);
+			if (~isempty(resp))
+				FillColor = [-1 -1 -1];                 % Signal down that this is a non colored polygon
+			end
+		end
+		name = [prefix_ddir '_patch.dat'];    name_sc = [prefix '_patch.dat'];
+		fid = fopen(name,'wt');
+		for (i = 1:n_patch)
+			cor_edge = sprintf('%d/%d/%d', round(EdgeColor(i,1:3) * 255));
+			if (FillColor(i,1) >= 0)		% Color filled polygon
+				cor_fill = sprintf('%d/%d/%d', round(FillColor(i,1:3) * 255));
+				mlt_comm = ['> -G' cor_fill ' -W' num2str(LineWidth(i)) 'p,' cor_edge];
+			else							% No filling color
+				mlt_comm = ['> -W' num2str(LineWidth(i)) 'p,' cor_edge];
+			end
+
+			if (any(isnan(xx{i})))      % If we have NaNs we need to split into segments
+				[latcells,loncells] = polysplit(yy{i}(:),xx{i}(:));
+				for (j=1:numel(loncells))
+					fprintf(fid,'%s\n',mlt_comm);
+					fprintf(fid,'%.5f\t%.5f\n',[loncells{j}(:)'; latcells{j}(:)']);
+				end
+			else
+				fprintf(fid,'%s\n',mlt_comm);
+				fprintf(fid,'%.5f\t%.5f\n',[xx{i}(:)'; yy{i}(:)']);
+			end
+		end
+		fclose(fid);
+		script{l} = ' ';              l=l+1;
+		script{l} = [comm ' ---- Plot closed AND colored polygons'];   l=l+1;
+		script{l} = ['psxy ' name_sc ellips ' -R -J --MEASURE_UNIT=point -m -O -K >> ' pb 'ps' pf];    l=l+1;
+		clear ALLpatchHand name name_sc n_patch xx yy LineStyle LineWidth EdgeColor FillColor cor_edge resp
+	end
 
 % ------------- Search for lines or polylines ----------------------------
 	if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, plines, mb-tracks, etc
