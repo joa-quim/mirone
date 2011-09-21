@@ -2986,30 +2986,31 @@ function FileOpenSession_CB(handles, fname)
 	catch,	havePatches = false;
 	end
 	if (havePatches)			% case of patchs - NOTE, the Tags are currently lost 
-		for (i = 1:length(Patches))
-			try					% We never know with those guys, so it's better to play safe
-				is_telha = false;
-				if (strcmp(Patches(i).tag,'tapete_R') || strcmp(Patches(i).tag,'tapete'))
-					Patches(i).x = reshape(Patches(i).x,4,numel(Patches(i).x)/4);
-					Patches(i).y = reshape(Patches(i).y,4,numel(Patches(i).y)/4);
-					is_telha = true;
-				end
-				h_patch = patch('XData',Patches(i).x, 'YData',Patches(i).y, 'Parent',handles.axes1,'LineWidth',Patches(i).LineWidth,...
-					'EdgeColor',Patches(i).EdgeColor, 'FaceColor',Patches(i).FaceColor,...
-					'LineStyle',Patches(i).LineStyle, 'Tag', Patches(i).tag);
-				set(h_patch,'UserData',Patches(i).ud)
-				if (isfield(Patches(i),'appd') && ~isempty(Patches(i).appd))	% Need the isfield test for backward compat
-					fdnames = fieldnames(Patches(i).appd);
-					for (fd = 1:numel(fdnames))
-						setappdata(h_patch, fdnames{fd}, Patches(i).appd.(fdnames{fd}))
-					end
-				end
-				if (is_telha)
-					draw_funs(h_patch,'telhas_patch')		% Set telhas's uicontextmenu
-				else
-					draw_funs(h_patch,'line_uicontext')		% Set patch's uicontextmenu
+		for (i = 1:numel(Patches))
+			is_telha = false;
+			if (strcmp(Patches(i).tag,'tapete_R') || strcmp(Patches(i).tag,'tapete'))
+				Patches(i).x = reshape(Patches(i).x,4,numel(Patches(i).x)/4);
+				Patches(i).y = reshape(Patches(i).y,4,numel(Patches(i).y)/4);
+				is_telha = true;
+			end
+			h_patch = patch('XData',Patches(i).x, 'YData',Patches(i).y, 'Parent',handles.axes1,'LineWidth',Patches(i).LineWidth,...
+				'EdgeColor',Patches(i).EdgeColor, 'FaceColor',Patches(i).FaceColor,...
+				'LineStyle',Patches(i).LineStyle, 'Tag', Patches(i).tag);
+			set(h_patch,'UserData',Patches(i).ud)
+			if (isfield(Patches(i),'appd') && ~isempty(Patches(i).appd))	% Need the isfield test for backward compat
+				fdnames = fieldnames(Patches(i).appd);
+				for (fd = 1:numel(fdnames))
+					setappdata(h_patch, fdnames{fd}, Patches(i).appd.(fdnames{fd}))
 				end
 			end
+			if (is_telha)
+				draw_funs(h_patch,'telhas_patch')		% Set telhas's uicontextmenu
+			else
+				draw_funs(h_patch,'line_uicontext')		% Set patch's uicontextmenu
+			end
+		end
+		try				% 'MecaMag5' is new (20-9-2011), so we must use a try
+			if (~isempty(MecaMag5)),	setappdata(handles.figure1, 'MecaMag5', MecaMag5),	end
 		end
 	end
 	try
@@ -3050,7 +3051,7 @@ function FileSaveSession_CB(handles)
 	j = 1;  k = 1;  m = 1;  n = 1;  cg = 1; cc = 1; pp = 1;
 	haveMBtrack = 0;	havePline = 0;		haveText = 0;	haveSymbol = 0;		haveCircleGeo = 0;
 	haveCircleCart = 0; havePlineAsPoints = 0;  havePatches = 0;haveCoasts = 0; havePolitic = 0;	haveRivers = 0;
-	MBtrack = [];	MBbar = [];		Pline = [];		Symbol = [];	Texto = [];		CircleGeo = [];
+	MBtrack = [];	MBbar = [];		Pline = [];		Symbol = [];	Texto = [];		CircleGeo = [];	MecaMag5 = [];
 	CircleCart = [];	PlineAsPoints = [];			Patches = [];	coastUD = [];	politicUD = [];	riversUD = [];
 	for i = 1:numel(ALLlineHand)
 		tag = get(ALLlineHand(i),'Tag');
@@ -3166,10 +3167,14 @@ function FileSaveSession_CB(handles)
 		haveText = 1;
 	end
 
+	if (havePatches)
+		MecaMag5 = getappdata(handles.figure1,'MecaMag5');
+	end
 	save(fname,'grd_name','img_pal', 'havePline','Pline', 'haveMBtrack', 'MBtrack','MBbar', ...
 		'haveText','Texto', 'haveSymbol','Symbol', 'haveCircleGeo','CircleGeo', 'haveCircleCart', ...
 		'havePlineAsPoints','PlineAsPoints','CircleCart', 'map_limits', 'havePatches', 'Patches', ...
-		'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', 'riversUD', 'illumComm', 'illumType', '-v6')
+		'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', 'riversUD', 'illumComm', ...
+		'illumType', 'MecaMag5', '-v6')
 	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
