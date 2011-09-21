@@ -457,10 +457,8 @@ function push_apply_CB(hObject, handles)
 			% Now search for repeated points along the stitched line (nothing uncommon)
 			ind_x = (diff(x) ~= 0);		ind_y = (diff(y) ~= 0);
 			unicos = (ind_x | ind_y);
-			if ( (x(1) == x(end)) && (y(1) == y(end)) )		% If line is closed maintain the end point
+			if (~isempty(x))					% Prevent case of an initial x = []
 				unicos(end+1) = true;
-			end
-			if (any(unicos))			% This also protects against the case of an initial x = []
 				x = x(unicos);			y = y(unicos);
 				set(hCurrLine, 'XData',x, 'YData',y)
 			end
