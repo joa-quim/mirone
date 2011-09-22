@@ -60,9 +60,13 @@ function varargout = line_operations(varargin)
 			return
 		end
 	else
-		hObject = figure('Tag','figure1','Visible','off');
+		hObject = figure('Tag','figure1','MenuBar','none','Vis','off');
 		line_operations_LayoutFcn(hObject);
 		handles = guihandles(hObject);
+		% Shrink the figure a bit
+		pos = get(handles.popup_cmds, 'Pos');		set(handles.popup_cmds, 'Pos', pos - [10 0 40 0])
+		pos = get(handles.push_apply, 'Pos');		set(handles.push_apply, 'Pos', pos - [70 0 10 0])
+		pos = get(handles.figure1, 'Pos');			set(handles.figure1, 'Pos', pos - [0 0 80 0])
 	end
 
 	handles.hMirFig = hMirFig;
