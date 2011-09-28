@@ -348,6 +348,7 @@ lib_mex/wgifc.dll -text
 /libnetcdf_w32.dll -text
 /libsift.dll -text
 /lti_dsdk_dll.dll -text
+mex/CalcMD5.c -text
 mex/PolygonClip.c -text
 mex/akimaspline.cpp -text
 mex/alloc_mex.c -text
