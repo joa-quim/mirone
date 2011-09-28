@@ -3927,7 +3927,7 @@ function TransferB_CB(handles, opt)
 		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
 		mirone(Z, tmp)
 
-	elseif (strncmp(opt,'Multiscale',5))					% 
+	elseif (strncmp(opt,'Multiscale',5))		% Apply a block-wise operation
 		[X,Y,Z] = load_grd(handles);			% load the grid array here
 		if isempty(Z),		return,		end
 		resp = multiscale;
@@ -3940,11 +3940,64 @@ function TransferB_CB(handles, opt)
 		projWKT = getappdata(handles.figure1,'ProjWKT');
 		GRDdisplay(handles,X,Y,Z,handles.head,[],resp.name, projWKT);
 
- 	elseif (strcmp(opt,'dump'))
+ 	elseif (strcmp(opt,'dump'))					% Show the RAM fragmentation (Windows only)
 		dumpmemmex
 
- 	elseif (strcmp(opt,'fract'))	% Fractal surf. Have to do it here because otherwise stupid compiler doesn't do its job
+ 	elseif (strcmp(opt,'fract'))				% Fractal surf. Have to do it here due to dumb compiler limitations
 		gen_UMF2d;
+
+ 	elseif (strcmp(opt,'update'))				% Update via Web the stand-alone version
+		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/';
+		dos(['wget "' url 'apudeita.txt' '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+		finfo = dir(dest_fiche);
+		if (finfo.bytes == 0)
+			builtin('delete',dest_fiche);
+			msgbox('This Mirone version is updated to latest.','Nothing New'),	return
+		end
+		fid = fopen(dest_fiche,'rt');
+		todos = fread(fid,'*char');		fclose(fid);
+		[nomes MD5] = strread(todos,'%s %s');
+		builtin('delete',dest_fiche);	n = 1;		% Remove this one right away
+		for (k = 1:numel(nomes))
+			[pato nome ext] = fileparts(nomes{k});
+			if (exist(nomes{k}, 'file') == 2)		% File exists localy and it's a potential target for update
+				localMD5 = CalcMD5(nomes{k});
+				if (~strcmp(MD5, localMD5))
+					namedl{n} = [url nome ext];		n = n + 1;	% File name to update with path realtive to Mir root
+				end
+			else									% New file. Download for sure.
+				namedl{n} = [url nome ext];			n = n + 1;
+			end
+		end
+		if (n == 1),	return,		end				% Nothing new to update
+		ind = false(1,n-1);			msg = [];
+		for (k = 1:n-1)
+			[pato nome ext] = fileparts(namedl{k});		dest_fiche = [handles.path_tmp nome ext];
+			dos(['wget "' url nome ext '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+			if (exist(dest_fiche, 'file') ~= 2)		% Troubles in transmission
+				ind(k) = true;
+			end
+		end
+		if (any(ind))								% If some file was lost report it and remove them from list
+			namedl(~ind) = [];		nomes(~ind) = [];		
+			msg = cell(numel(find(ind))+1,1);
+			msg{1} = 'Failed to download these files:';		msg(2:end) = namedl(ind);
+		elseif (all(ind))
+			warndlg(sprintf('Failed to download all %d files. Try again.', n-1),'Warning'),		return
+		end
+		if (~isempty(msg))
+			msg{end+1} = '';	msg{end+1} = 'Only the downloaded files will be updated on NEXT Mirone start';
+		else
+			msg = 'Successfully downloaded all necessary files. They will be updated on NEXT Mirone start';
+		end
+		msgbox(msg, 'Finished download')
+		fid = fopen([handles.path_tmp 'apudeita.bat'],'wt');	% Create the updating batch that will be run by callMir
+		fprintf(fid, '@echo off\nREM copy updated files from tmp place into their destination\n');
+		for (k = 1:numel(namedl))
+			[pato nome ext] = fileparts(namedl{k});
+			fprintf(fid, 'move /Y %s\t..\\%s\n', [nome ext], nomes{k});
+		end
+		fclose(fid);
 
 	end
 
