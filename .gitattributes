@@ -250,6 +250,7 @@ gmt_userdir/us.d -text
 /hd425m_mir32.dll -text
 /hdf5dll.dll -text
 /hm425m_mir32.dll -text
+lib_mex/CalcMD5.dll -text
 lib_mex/PolygonClip.dll -text
 lib_mex/akimaspline.dll -text
 lib_mex/alloc_mex.dll -text
