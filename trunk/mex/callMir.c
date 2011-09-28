@@ -43,7 +43,7 @@
 
 int main(int argc, char **argv) {
 
-	char *path, *pato, *papato, *cd; 
+	char *path, *pato, *papato, *patoUD, *cd; 
 	int	status, size_cd;
 
 	size_cd = 128;
@@ -55,13 +55,30 @@ int main(int argc, char **argv) {
 	papato = (char *) calloc ((size_t)(strlen(cd) + 12), (size_t)1);
 	strcpy (papato, cd);
 	strcat (papato, "\\mirone.exe");
+	patoUD = (char *) calloc ((size_t)(strlen(cd) + 18), (size_t)1);
+	strcpy (patoUD, cd);
+	strcat (patoUD, "\\tmp\\apudeita.bat");
 
 	if (!access (papato, R_OK)) {		/* Found, so we are at home */
 		pato = (char *) calloc ((size_t)(strlen(path) + 2*strlen(cd) + 18), (size_t)1);
+		if (!access (patoUD, R_OK)) {	/* See if we have an update to do before start */
+			system (patoUD);
+			remove (patoUD);
+		}
 	}
 	else {		/* Called via file association. See if we have a MIRONE_HOME */
 		cd = getenv ("MIRONE_HOME");
 		pato = (char *) calloc ((size_t)(strlen(path) + 2*strlen(cd) + 18), (size_t)1);
+
+		/* See if we have an update to do before start */
+		free ((void *)patoUD);
+		patoUD = (char *) calloc ((size_t)(strlen(cd) + 18), (size_t)1);
+		strcpy (patoUD, cd);
+		strcat (patoUD, "\\tmp\\apudeita.bat");
+		if (!access (patoUD, R_OK)) {	
+			system (patoUD);
+			remove (patoUD);
+		}
 	}
 	strcpy (pato, "PATH=");
 	strcat (pato, cd);
@@ -74,6 +91,7 @@ int main(int argc, char **argv) {
 	if (status = putenv(pato))
 		fprintf(stderr, "callMir: Failure to set the environmental variable\n %s\n", pato);
 	free((void *)pato);
+	free ((void *)patoUD);
 
 	if (argc == 1)		/* Call a blank mirone window */
 		system("mirone.exe");
