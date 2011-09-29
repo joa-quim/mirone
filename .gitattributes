@@ -797,6 +797,7 @@ utils/mat_lyies.m -text
 utils/mboard.m -text
 utils/mc_e_b_estimate.m -text
 utils/message_win.m -text
+utils/mkpj.m -text
 utils/mltable_j.m -text
 utils/montage.m -text
 utils/move2side.m -text
