@@ -74,8 +74,8 @@ function varargout = color_palettes(varargin)
 
 	% Generate lists of available color palettes
 	palsML = {'ML -- autumn' 'ML -- bone' 'ML -- colorcube' 'ML -- cool' 'ML -- copper' ...
-		'ML -- flag' 'ML -- gray' 'ML -- hot' 'ML -- hsv' 'ML -- jet' 'ML -- lines' 'ML -- pink' ...
-		'ML -- prism' 'ML -- summer' 'ML -- winter' 'ML -- vivid'};
+		'ML -- flag' 'ML -- gray' 'ML -- hot' 'ML -- hsv' 'ML -- jet' 'ML -- jet-improved' 'ML -- lines' ...
+		'ML -- pink' 'ML -- prism' 'ML -- summer' 'ML -- winter' 'ML -- vivid'};
 	handles.palsGMT = {'GMT -- drywet' 'GMT -- gebco' 'GMT -- globe' 'GMT -- rainbow' ...
 		'GMT -- haxby' 'GMT -- no_green' 'GMT -- ocean' 'GMT -- polar' 'GMT -- red2green' ...
 		'GMT -- sealand' 'GMT -- seis' 'GMT -- split' 'GMT -- topo' 'GMT -- wysiwyg' ...
@@ -183,6 +183,7 @@ switch pal
 	case 'ML -- hot',			pal = hot(256);
 	case 'ML -- hsv',			pal = hsv(256);
 	case 'ML -- jet',			pal = jet(256);
+	case 'ML -- jet-improved',	pal = mkpj(256);
 	case 'ML -- lines',			pal = lines(256);
 	case 'ML -- pink',			pal = pink(256);
 	case 'ML -- prism',			pal = prism(256);
@@ -794,10 +795,29 @@ function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
 		fname = opt2;
 	end
 	try
-		if (~isempty(opt))  % Use the cpt Z levels as well
-			[cmap,handles.z_intervals] = cpt2cmap(['-C' fname]);
-		else                % Use only the cpt colors
-			cmap = cpt2cmap(['-C' fname]);
+		[bin, n_column, multi_seg, n_headers] = guess_file(fname);
+		if (isempty(bin))
+			errordlg(['Error reading file ' fname],'Error');		return
+		end
+		if (n_headers <= 1 && n_column == 4)		% Assume a 4 columns file with Z r g b. Allow one comment line only
+			numeric_data = text_read(fname);
+			cmap = numeric_data(:,2:4);
+			if (min(cmap(:)) < 0 || max(cmap(:)) > 255)
+				errordlg('Bad Z r g b file. Colors outside the [0 255] inerval','Error'),	return
+			end
+			if (max(cmap(:)) > 1),	cmap = cmap / 255;		end
+			if (~isempty(opt))  % Use the cpt Z levels
+				handles.z_intervals = [numeric_data(1:end-1) numeric_data(2:end)];
+			else
+				handles.z_intervals = [];
+			end
+		else					% Read a GMT cpt file
+			if (~isempty(opt))  % Use the cpt Z levels as well
+				[cmap,handles.z_intervals] = cpt2cmap(['-C' fname]);
+			else                % Use only the cpt colors
+				cmap = cpt2cmap(['-C' fname]);
+				handles.z_intervals = [];
+			end
 		end
 	catch
 		errordlg('There was an error reading the CPT file.','Error')
@@ -1351,8 +1371,8 @@ uicontrol('Parent',h1, 'Pos',[12 241 271 16],...
 uicontrol('Parent',h1, 'Pos',[16 258 75 15],'String','Stretch Bottom','Style','text');
 uicontrol('Parent',h1, 'Pos',[14 226 65 14],'String','Stretch Top','Style','text');
 
-h14 = uimenu('Parent',h1,'Label','File','Tag','VoidFile');
-h15 = uimenu('Parent',h14,'Label','Read GMT palette','Tag','VoidFileReadPalette');
+h14 = uimenu('Parent',h1,'Label','File');
+h15 = uimenu('Parent',h14,'Label','Read GMT palette');
 
 uimenu('Parent',h15,...
 'Call',{@color_palettes_uiCB3,[]},...
