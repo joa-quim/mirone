@@ -2383,7 +2383,7 @@ function DrawEulerPoleCircle_CB(handles)
 		s = get(h_circ,'Userdata');
 		s.omega = out.omega;
 		if ~isempty(out.plates)			% Just in case
-			if isempty(strmatch('absolute',out.plates))		% A relative plate model
+			if (~strncmp('absolute',out.plates,8))			% A relative plate model
 				s.plates = [out.plates '  -- Model = ' out.model];
 			else											% An absolute plate model
 				s.plates = [out.plates(end-1:end) ' -- Model = ' out.model ' (Absolute)'];
