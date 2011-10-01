@@ -3958,6 +3958,7 @@ function TransferB_CB(handles, opt)
 		todos = fread(fid,'*char');		fclose(fid);
 		[nomes MD5] = strread(todos,'%s %s');
 		builtin('delete',dest_fiche);	n = 1;		% Remove this one right away
+		namedl = cell(1);							% Mostly to shutup MLint
 		for (k = 1:numel(nomes))
 			[pato nome ext] = fileparts(nomes{k});
 			if (exist(nomes{k}, 'file') == 2)		% File exists localy and it's a potential target for update
@@ -3995,7 +3996,7 @@ function TransferB_CB(handles, opt)
 		fprintf(fid, '@echo off\nREM copy updated files from tmp place into their destination\n');
 		for (k = 1:numel(namedl))
 			[pato nome ext] = fileparts(namedl{k});
-			fprintf(fid, 'move /Y %s\t..\\%s\n', [nome ext], nomes{k});
+			fprintf(fid, 'move /Y tmp\\%s\t%s\nJa ta. Finished update\n', [nome ext], nomes{k});
 		end
 		fclose(fid);
 
