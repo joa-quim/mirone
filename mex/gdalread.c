@@ -1322,7 +1322,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 			adfMinMax[0] = GDALGetRasterMinimum( hBand, &bGotMin );
 			adfMinMax[1] = GDALGetRasterMaximum( hBand, &bGotMax );
 			if(!(bGotMin && bGotMax))
-				GDALComputeRasterMinMax( hBand, TRUE, adfMinMax );
+				GDALComputeRasterMinMax( hBand, FALSE, adfMinMax );
 			dptr2[4] = adfMinMax[0];
 			dptr2[5] = adfMinMax[1];
 		}
