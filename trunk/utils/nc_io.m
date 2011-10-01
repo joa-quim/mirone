@@ -351,7 +351,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	y_id = find(ind);
 
 	x_actual_range = [];		y_actual_range = [];
-	if ( ~isempty(x_id) )
+	if ( ~isempty(x_id) && ~isempty(s.Attribute) )
 		% ------------------ Get the X & Y ranges ------------------------------------
 		attribNames = {s.Dataset(x_id).Attribute.Name};
 		ind = strcmp(attribNames,'actual_range');
@@ -363,7 +363,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 			%if (strncmp(units,'degree',6)),		data.geog = 1;	end
 		%end
 	end
-	if ( ~isempty(y_id) )
+	if ( ~isempty(y_id) && ~isempty(s.Attribute) )
 		attribNames = {s.Dataset(y_id).Attribute.Name};
 		ind = strcmp(attribNames,'actual_range');
 		if (any(ind)),	y_actual_range = s.Dataset(y_id).Attribute(ind).Value;	end
