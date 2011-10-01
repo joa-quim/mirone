@@ -148,7 +148,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexErrMsgTxt("\n"); 
 	}
 
-	GMT_read_cpt (CPT_file);
+	if ((GMT_read_cpt (CPT_file)) == EXIT_FAILURE)
+		mexErrMsgTxt("GMT Error while reading palette file");
 
 	nz = irint ((z_stop - z_start) / z_inc) + 1;
 	z = (double *) mxMalloc ((size_t)nz * sizeof(double));
