@@ -795,33 +795,35 @@ function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
 		fname = opt2;
 	end
 	try
-		[bin, n_column, multi_seg, n_headers] = guess_file(fname);
+		[bin, n_column] = guess_file(fname);
 		if (isempty(bin))
 			errordlg(['Error reading file ' fname],'Error');		return
 		end
-		if (n_headers <= 1 && n_column == 4)		% Assume a 4 columns file with Z r g b. Allow one comment line only
-			numeric_data = text_read(fname);
-			cmap = numeric_data(:,2:4);
-			if (min(cmap(:)) < 0 || max(cmap(:)) > 255)
-				errordlg('Bad Z r g b file. Colors outside the [0 255] inerval','Error'),	return
-			end
-			if (max(cmap(:)) > 1),	cmap = cmap / 255;		end
-			if (~isempty(opt))  % Use the cpt Z levels
-				handles.z_intervals = [numeric_data(1:end-1) numeric_data(2:end)];
-			else
-				handles.z_intervals = [];
-			end
-		else					% Read a GMT cpt file
-			if (~isempty(opt))  % Use the cpt Z levels as well
-				[cmap,handles.z_intervals] = cpt2cmap(['-C' fname]);
-			else                % Use only the cpt colors
-				cmap = cpt2cmap(['-C' fname]);
-				handles.z_intervals = [];
-			end
+		if (~isempty(opt))  % Use the cpt Z levels as well
+			[cmap,handles.z_intervals] = cpt2cmap(['-C' fname]);
+		else                % Use only the cpt colors
+			cmap = cpt2cmap(['-C' fname]);
+			handles.z_intervals = [];
 		end
 	catch
-		errordlg('There was an error reading the CPT file.','Error')
-		return
+		if (n_column ~= 4)
+			errordlg('There was an error reading the CPT file.','Error')
+			return
+		end
+		% Assume a 4 columns file with Z r g b. Allow one comment line only
+		numeric_data = text_read(fname);
+		cmap = numeric_data(:,2:4);
+		if (min(cmap(:)) < 0 || max(cmap(:)) > 255)
+			errordlg('Bad Z r g b file. Colors outside the [0 255] inerval','Error'),	return
+		end
+		if (max(cmap(:)) > 1),	cmap = cmap / 255;		end
+		if (~isempty(opt))  % Use the cpt Z levels
+			handles.z_intervals = [numeric_data(1:end-1,1) numeric_data(2:end,1)];
+			idx1 = linspace(1,256,size(cmap,1));
+			cmap = interp1(idx1,cmap,1:256);	% We need it as a 256 cmap
+		else
+			handles.z_intervals = [];
+		end
 	end
 	handles.cmap = cmap;        handles.imported_cmap = cmap;
 	handles.no_slider = 1;
