@@ -83,8 +83,8 @@ REM -------------- Set up libraries here ---------------------------------------
 IF %WIN64%=="yes" (
 
 SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_64\lib\libnetcdf.lib
-SET     GMT_LIB=c:\progs_cygw\GMTdev\GMT_win64\lib\gmt.lib
-SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win64\lib\gmt_mgg.lib
+SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt.lib
+SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_64\lib\gdal_i.lib
 SET      CV_LIB=
 SET  CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_core211.lib
@@ -97,8 +97,8 @@ SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_64\liblas_i.lib
 ) ELSE (
 
 SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_32\lib\libnetcdf.lib
-SET     GMT_LIB=c:\progs_cygw\GMTdev\GMT_win32\lib\gmt.lib
-SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\GMT_win32\lib\gmt_mgg.lib
+SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt.lib
+SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
 SET      CV_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\cv.lib
 SET  CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_core211.lib
