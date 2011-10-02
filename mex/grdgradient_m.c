@@ -180,7 +180,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	int	error = FALSE, map_units = FALSE, normalize = FALSE, atan_trans = FALSE, bad, do_direct_deriv = FALSE;
 	int	find_directions = FALSE, do_cartesian = FALSE, do_orientations = FALSE, save_slopes = FALSE, add_ninety = FALSE;
-	int	lambertian_s = FALSE, peucker = FALSE, lambertian = FALSE;
+	int	lambertian_s = FALSE, peucker = FALSE, lambertian = FALSE, unknown_nans = TRUE, check_nans = FALSE;
 	int	sigma_set = FALSE, offset_set = FALSE, exp_trans = FALSE, two_azims = FALSE;
 	int	is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
 	int	is_uint16 = FALSE, is_uint8 = FALSE;
@@ -530,6 +530,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 	}
 
+	if ((is_double || is_single) && unknown_nans) {
+		/* Loop over the file and find if we have NaNs. Stop at first NaN occurence. */
+		for (i = 0; i < nm; i++) {
+			if (ISNAN_F(data[i])) {
+				check_nans = TRUE;
+				break;
+			}
+		}
+	}
+
 	GMT_boundcond_param_prep (&header, &edgeinfo);
 
 	GMT_pad[0] = GMT_pad[1] = GMT_pad[2] = GMT_pad[3] = 2;
@@ -589,7 +599,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 		ij = (j + 2) * mx + 2;
 		for (i = 0; i < header.nx; i++, k++, ij++) {
-			for (n = 0, bad = FALSE; !bad && n < 4; n++) if (ISNAN_F (data[ij+p[n]])) bad = TRUE;
+			for (n = 0, bad = FALSE; !bad && n < 4; n++) 
+				if (check_nans && ISNAN_F (data[ij+p[n]])) bad = TRUE;
 			if (bad) {	/* One of corners = NaN, skip */
 				data[k] = nan;
 				continue;
@@ -652,7 +663,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (lambertian || lambertian_s || peucker) {	/* data must be scaled to the [-1,1] interval, but we'll do it into [-.95, .95] to not get too bright */
 		scale = (float)(1. / (r_max - r_min));
 		for (k = 0; k < nm; k++) {
-			if (ISNAN_F (data[k])) continue;
+			if (check_nans && ISNAN_F (data[k])) continue;
 			data[k] = (-1. + 2. * ((data[k] - r_min) * scale)) * 0.95;
 		}
 	}
@@ -671,24 +682,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 				else {
 					denom = 0.0;
-					for (k = 0; k < nm; k++) if (!ISNAN_F (data[k])) denom += pow(data[k] - ave_gradient, 2.0);
+					for (k = 0; k < nm; k++) 
+						if (check_nans && !ISNAN_F (data[k])) denom += pow(data[k] - ave_gradient, 2.0);
 					denom = sqrt( (n_used - 1) / denom);
 					sigma = 1.0 / denom;
 				}
 				rpi = 2.0 * norm_val / M_PI;
-				for (k = 0; k < nm; k++) if (!ISNAN_F (data[k])) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
+				for (k = 0; k < nm; k++) 
+					if (check_nans && !ISNAN_F (data[k])) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
 				header.z_max = rpi * atan((max_gradient - ave_gradient)*denom);
 				header.z_min = rpi * atan((min_gradient - ave_gradient)*denom);
 			}
 			else if (exp_trans) {
 				if (!sigma_set) {
 					sigma = 0.0;
-					for (k = 0; k < nm; k++) if (!ISNAN_F (data[k])) sigma += fabs((double)data[k]);
+					for (k = 0; k < nm; k++) 
+						if (check_nans && !ISNAN_F (data[k])) sigma += fabs((double)data[k]);
 					sigma = M_SQRT2 * sigma / n_used;
 				}
 				denom = M_SQRT2 / sigma;
 				for (k = 0; k < nm; k++) {
-					if (ISNAN_F (data[k])) continue;
+					if (check_nans && ISNAN_F (data[k])) continue;
 					if (data[k] < ave_gradient) {
 						data[k] = (float)(-norm_val * (1.0 - exp((data[k] - ave_gradient)*denom)));
 					}
@@ -706,7 +720,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				else {
 					denom = norm_val / (ave_gradient - min_gradient);
 				}
-				for (k = 0; k < nm; k++) if (!ISNAN_F (data[k])) data[k] = (float)((data[k] - ave_gradient) * denom);
+				for (k = 0; k < nm; k++) 
+					if (check_nans && !ISNAN_F (data[k])) data[k] = (float)((data[k] - ave_gradient) * denom);
 				header.z_max = (max_gradient - ave_gradient) * denom;
 				header.z_min = (min_gradient - ave_gradient) * denom;
 			}
