@@ -683,13 +683,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				else {
 					denom = 0.0;
 					for (k = 0; k < nm; k++) 
-						if (check_nans && !ISNAN_F (data[k])) denom += pow(data[k] - ave_gradient, 2.0);
+						if (!ISNAN_F (data[k])) denom += pow(data[k] - ave_gradient, 2.0);
 					denom = sqrt( (n_used - 1) / denom);
 					sigma = 1.0 / denom;
 				}
 				rpi = 2.0 * norm_val / M_PI;
 				for (k = 0; k < nm; k++) 
-					if (check_nans && !ISNAN_F (data[k])) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
+					if (!ISNAN_F (data[k])) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
 				header.z_max = rpi * atan((max_gradient - ave_gradient)*denom);
 				header.z_min = rpi * atan((min_gradient - ave_gradient)*denom);
 			}
@@ -697,7 +697,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				if (!sigma_set) {
 					sigma = 0.0;
 					for (k = 0; k < nm; k++) 
-						if (check_nans && !ISNAN_F (data[k])) sigma += fabs((double)data[k]);
+						if (!ISNAN_F (data[k])) sigma += fabs((double)data[k]);
 					sigma = M_SQRT2 * sigma / n_used;
 				}
 				denom = M_SQRT2 / sigma;
@@ -721,7 +721,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					denom = norm_val / (ave_gradient - min_gradient);
 				}
 				for (k = 0; k < nm; k++) 
-					if (check_nans && !ISNAN_F (data[k])) data[k] = (float)((data[k] - ave_gradient) * denom);
+					if (!ISNAN_F (data[k])) data[k] = (float)((data[k] - ave_gradient) * denom);
 				header.z_max = (max_gradient - ave_gradient) * denom;
 				header.z_min = (min_gradient - ave_gradient) * denom;
 			}
