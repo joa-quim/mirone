@@ -3943,6 +3943,9 @@ function TransferB_CB(handles, opt)
  	elseif (strcmp(opt,'dump'))					% Show the RAM fragmentation (Windows only)
 		dumpmemmex
 
+ 	elseif (strcmp(opt,'lasterr'))				% Show last error (standalone only and for debug)
+		msgbox(sprintf('Last error message in stack is:\n\n%s\n',lasterr),'Debug message')
+
  	elseif (strcmp(opt,'fract'))				% Fractal surf. Have to do it here due to dumb compiler limitations
 		gen_UMF2d;
 
