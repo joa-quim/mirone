@@ -83,17 +83,19 @@ function varargout = line_operations(varargin)
 		set(hObject,'Visible','on');
 	end
 
-	handles.known_ops = {'buffer'; 'polysimplify'; 'bspline'; 'cspline'; 'bezier'; 'polyunion'; 'polyintersect'; ...
-			'polyxor'; 'polyminus'; 'line2patch'; 'pline'; 'thicken'; 'toRidge'; 'stitch'; 'scale'; 'hand2Workspace'};
+	handles.known_ops = {'bezier'; 'buffer'; 'bspline'; 'cspline'; 'group'; 'line2patch'; 'polysimplify'; 'polyunion'; 'polyintersect'; ...
+			'polyxor'; 'polyminus'; 'pline'; 'scale'; 'stitch'; 'thicken'; 'toRidge'; 'hand2Workspace'};
 	handles.hLine = [];
 	set(handles.popup_cmds,'Tooltip', 'Select one operation from this list')
-	set(handles.popup_cmds,'String', {'Possible commands'; 'buffer DIST'; 'polysimplify TOL'; 'bspline'; ...
-			'cspline N RES'; 'bezier N'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; 'line2patch'; ...
-			'pline [x1 ..xn; y1 .. yn]'; 'thicken N'; 'toRidge 5'; 'stitch TOL'; 'scale to [-0.5 0.5]'; 'hand2Workspace'} )
+	set(handles.popup_cmds,'String', {'Possible commands'; 'bezier N'; 'buffer DIST'; 'bspline'; 'cspline N RES'; 'group lines'; 'line2patch'; 'polysimplify TOL'; ...
+			'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; ...
+			'pline [x1 ..xn; y1 .. yn]'; 'scale to [-0.5 0.5]'; 'stitch TOL'; 'thicken N'; 'toRidge 5'; 'hand2Workspace'} )
 
 	handles.ttips = cell(numel(handles.known_ops));
 	handles.ttips{1} = 'Select one operation from this list';
-	handles.ttips{2} = sprintf(['Compute buffer zones arround polylines.\n' ...
+	handles.ttips{2} = sprintf(['Fit a Bezier curve to a polyline.\n' ...
+								'Replace N by the number of nodes of the Bezier curve [default 100].']);
+	handles.ttips{3} = sprintf(['Compute buffer zones arround polylines.\n' ...
 								'Replace DIST by the width of the buffer zone.\n\n' ...
 								'Optionally you can append NPTS, DIR or GEOD options. Where:\n' ...
 								'NPTS -> Number of points used to contruct the circles\n' ...
@@ -104,10 +106,6 @@ function varargout = line_operations(varargin)
 								'First of this cases uses WGS-84 Ellipsoid. Second form selects\n' ...
 								'an ellipsoid with A = semi-major axis and B = semi-minor axis\n' ...
 								'or B = ellipsoid Flatenning.']);
-	handles.ttips{3} = sprintf(['Approximates polygonal curve with desired precision\n' ...
-								'using the Douglas-Peucker algorithm.\n' ...
-								'Replace TOL by the desired approximation accuracy.\n' ...
-								'When data is in geogs, TOL is the tolerance in km.']);
 	handles.ttips{4} = sprintf(['Smooth line with a B-form spline\n' ...
 								'It will open a help control window to\n' ...
 								'help with selection of nice parameters']);
@@ -119,29 +117,36 @@ function varargout = line_operations(varargin)
 								'split the downsampled interval in 10 sub-intervald, thus reseting\n' ...
 								'the original number of point, excetp at the end of the line.\n' ...
 								'If omited RES defaults to 10.']);
-	handles.ttips{6} = sprintf(['Fit a Bezier curve to a polyline.\n' ...
-								'Replace N by the number of nodes of the Bezier curve [default 100].']);
-	handles.ttips{7} = 'Performs the boolean operation of Union to the selected polygons.';
-	handles.ttips{8} = 'Performs the boolean operation of Intersection to the selected polygons.';
-	handles.ttips{9} = 'Performs the boolean operation of exclusive OR to the selected polygons.';
-	handles.ttips{10} = 'Performs the boolean operation of subtraction to the selected polygons.';
-	handles.ttips{11} = 'Convert line objects into patch. Patches, for example, accept fill color.';
-	handles.ttips{12} = sprintf(['Dray a polyline with vertices defined by coords [x1 xn; y1 yn].\n' ...
+	handles.ttips{6} = sprintf(['Group lines that have exactly the same characteristics.\n' ...
+								'Unfortunately Matlab has a very bad memory management and it\n' ...
+								'very slow when there are many different lines plotted.\n' ...
+								'This option groups same type lines into one single multi-segment\n' ...
+								'line. Visually it will look the same but performance jumps.']);
+	handles.ttips{7} = 'Convert line objects into patch. Patches, for example, accept fill color.';
+	handles.ttips{8} = sprintf(['Approximates polygonal curve with desired precision\n' ...
+								'using the Douglas-Peucker algorithm.\n' ...
+								'Replace TOL by the desired approximation accuracy.\n' ...
+								'When data is in geogs, TOL is the tolerance in km.']);
+	handles.ttips{9}  = 'Performs the boolean operation of Union to the selected polygons.';
+	handles.ttips{10} = 'Performs the boolean operation of Intersection to the selected polygons.';
+	handles.ttips{11} = 'Performs the boolean operation of exclusive OR to the selected polygons.';
+	handles.ttips{12} = 'Performs the boolean operation of subtraction to the selected polygons.';
+	handles.ttips{13} = sprintf(['Dray a polyline with vertices defined by coords [x1 xn; y1 yn].\n' ...
 								'Note: you must use the brackets and semi-comma notation as above.\n' ...
 								'Example vector: [1 1.5 3.1; 2 4 8.4]']);
-	handles.ttips{13} = sprintf(['Thicken line object to a thickness corresponding to N grid cells.\n' ...
+	handles.ttips{14} = 'Scale to the [-0.5 0.5] interval.';
+	handles.ttips{15} = sprintf(['Stitch in cascade the lines that are closer than TOL to selected line.\n' ...
+								'Replace TOL by the desired maximum distance for lines still be stitched.\n' ...
+								'If removed or left as the string "TOL" (no quotes) it defaults to Inf.']);
+	handles.ttips{16} = sprintf(['Thicken line object to a thickness corresponding to N grid cells.\n' ...
 								'The interest of this comes when used trough the "Extract profile"\n' ...
 								'option. Since the thickned line stored in its pocked N + 1 parallel\n' ...
 								'lines, roughly separate by 1 grid cell size, the profile interpolation\n' ...
 								'is carried on those N + 1 lines, which are averaged (stacked) in the end.']);
-	handles.ttips{14} = sprintf(['Calculate a new line with vertex siting on top of nearby ridges.\n' ...
+	handles.ttips{17} = sprintf(['Calculate a new line with vertex siting on top of nearby ridges.\n' ...
 								'The parameter N is used to search for ridges only inside a sub-region\n' ...
 								'2Nx2N centered on current vertex. Default is 5, but you can change it.']);
-	handles.ttips{15} = sprintf(['Stitch in cascade the lines that are closer than TOL to selected line.\n' ...
-								'Replace TOL by the desired maximum distance for lines still be stitched.\n' ...
-								'If removed or left as the string "TOL" (no quotes) it defaults to Inf.']);
-	handles.ttips{16} = 'Scale to the [-0.5 0.5] interval.';
-	handles.ttips{17} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
+	handles.ttips{18} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
 								'Use this if you want to gain access to all handle properties.']);
 
 	if (IamCompiled),	handles.known_ops(end) = [];	handles.ttips(end) = [];	end		% regretably
@@ -205,6 +210,27 @@ function push_apply_CB(hObject, handles)
 	end
 	
 	switch handles.known_ops{ind}
+
+		case 'bezier'
+			n_nodes = validate_args(handles.known_ops{ind}, r);
+
+			vt = linspace(0,1,n_nodes);			bez = zeros(numel(vt), 2);
+			x = get(handles.hLine, 'XData');	y = get(handles.hLine, 'YData');
+			xy = [x(:) y(:)];
+
+			% Compute each point in the Bezier curve. From Jesus Lucio bezier_.m file in FEX
+			np = 1;		n = numel(x) - 1;
+			for t = vt
+				som = [0 0];
+				for (i = 0:n)			% Add the next point multiplied by the corresponding Bernstein polynomial
+					som = som + xy(i+1, :) * local_nchoosek(n, i) * (t^i) * ((1 - t)^(n - i));  
+				end
+				bez(np, :) = som;
+				np = np + 1;
+			end
+			h = line('XData', bez(:,1), 'YData', bez(:,2), 'Parent',handles.hMirAxes, 'Color','r', 'LineWidth',handles.lt,'Tag','polyline');
+			draw_funs(h,'line_uicontext')
+
 		case 'buffer'
 			[out, msg] = validate_args(handles.known_ops{ind}, r, handles.geog);
 			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
@@ -243,18 +269,6 @@ function push_apply_CB(hObject, handles)
 				end
 			end
 
-		case 'polysimplify'
-			[tol, msg] = validate_args(handles.known_ops{ind}, r);
-			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
-			for (k = 1:numel(handles.hLine))
-				x = get(handles.hLine(k), 'xdata');		y = get(handles.hLine(k), 'ydata');
-				if (handles.geog),		B = cvlib_mex('dp', [x(:) y(:)], tol, 'GEOG');
-				else					B = cvlib_mex('dp', [x(:) y(:)], tol);
-				end
-				h = line('XData',B(:,1), 'YData',B(:,2), 'Parent',handles.hMirAxes, 'Color',handles.lc, 'LineWidth',handles.lt, 'Tag','polyline');
-				draw_funs(h,'line_uicontext')
-			end
-
 		case 'bspline'
 			x = get(handles.hLine(1), 'xdata');		y = get(handles.hLine(1), 'ydata');
 			[pp,p] = spl_fun('csaps',x,y);			% This is just to get csaps's p estimate
@@ -277,6 +291,53 @@ function push_apply_CB(hObject, handles)
 				draw_funs(h,'line_uicontext')
 			end
 
+		case 'group'
+			if ( ~strcmp(get(handles.hLine(1),'Type'),'line') )
+				warndlg('The selected object is not of type LINE. Objects of type PATCH are not currently "groupable"','Warning')
+				return
+			end
+			lt = get(handles.hLine, 'LineWidth');		lc = get(handles.hLine, 'Color');
+			ls = get(handles.hLine, 'LineStyle');		tag = get(handles.hLine, 'Tag');
+			hLines = findobj(handles.hMirAxes, 'Type', 'line');
+			hLines = setxor(hLines, handles.hLine(1));
+			did_one = false;		% To tell us if at least 2 lines were grouped
+			x = get(handles.hLine(1), 'xdata');			y = get(handles.hLine(1), 'ydata');
+			for (k = 2:numel(hLines))
+				if ( strcmp(get(hLines(k),'Tag'), tag)  && strcmp(get(hLines(k),'LineStyle'), ls) && ...
+					isequal(get(hLines(k),'Color'), lc) && isequal(get(hLines(k),'LineWidth'), lt) )
+					xi = get(hLines(k), 'xdata');		yi = get(hLines(k), 'ydata');
+					x = [x NaN xi];						y = [y NaN yi];
+					delete(hLines(k))
+					did_one = true;
+				end
+			end
+			if (did_one),	set(handles.hLine(1), 'XData',x, 'YData',y),	end
+
+		case 'hand2Workspace'
+			assignin('base','lineHandles',handles.hLine);
+
+		case 'line2patch'
+			for (k = 1:numel(handles.hLine))
+				if (~strcmp(get(handles.hLine(k),'type'), 'line')),	continue,	end
+				x = get(handles.hLine(k), 'xdata');		y = get(handles.hLine(k), 'ydata');
+				h = patch('XData',x, 'YData',y, 'Parent',handles.hMirAxes, 'EdgeColor',get(handles.hLine(k),'color'), ...
+					'FaceColor','none', 'LineWidth',get(handles.hLine(k),'LineWidth'), 'Tag','line2patch');
+				draw_funs(h,'line_uicontext')
+				delete(handles.hLine(k))
+			end
+
+		case 'polysimplify'
+			[tol, msg] = validate_args(handles.known_ops{ind}, r);
+			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
+			for (k = 1:numel(handles.hLine))
+				x = get(handles.hLine(k), 'xdata');		y = get(handles.hLine(k), 'ydata');
+				if (handles.geog),		B = cvlib_mex('dp', [x(:) y(:)], tol, 'GEOG');
+				else					B = cvlib_mex('dp', [x(:) y(:)], tol);
+				end
+				h = line('XData',B(:,1), 'YData',B(:,2), 'Parent',handles.hMirAxes, 'Color',handles.lc, 'LineWidth',handles.lt, 'Tag','polyline');
+				draw_funs(h,'line_uicontext')
+			end
+
 		case {'polyunion' 'polyintersect' 'polyxor' 'polyminus'}
 			if		(handles.known_ops{ind}(5) == 'u'),		ID = 3;
 			elseif	(handles.known_ops{ind}(5) == 'i'),		ID = 1;
@@ -296,16 +357,6 @@ function push_apply_CB(hObject, handles)
 				draw_funs(h,'line_uicontext')
 			end
 
-		case 'line2patch'
-			for (k = 1:numel(handles.hLine))
-				if (~strcmp(get(handles.hLine(k),'type'), 'line')),	continue,	end
-				x = get(handles.hLine(k), 'xdata');		y = get(handles.hLine(k), 'ydata');
-				h = patch('XData',x, 'YData',y, 'Parent',handles.hMirAxes, 'EdgeColor',get(handles.hLine(k),'color'), ...
-					'FaceColor','none', 'LineWidth',get(handles.hLine(k),'LineWidth'), 'Tag','line2patch');
-				draw_funs(h,'line_uicontext')
-				delete(handles.hLine(k))
-			end
-
 		case 'pline'
 			[out, msg] = validate_args(handles.known_ops{ind}, r);
 			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
@@ -319,109 +370,31 @@ function push_apply_CB(hObject, handles)
 				errordlg(['Something screwd up. Error message is ' lasterr])
 			end
 
-		case 'thicken'
-			[out, msg] = validate_args(handles.known_ops{ind}, r, handles.hMirAxes);
-			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
-			N = out(1);		hscale = out(2);	vscale = out(3);
-			x = get(handles.hLine(1), 'xdata');		y = get(handles.hLine(1), 'ydata');
-			
-			if (handles.geog)
-				[dumb, az] = vdist(y(1:end-1),x(1:end-1), y(2:end),x(2:end));
-				az = 90 - az;		% Make it trigonometric
-				co = cos(az * pi / 180);	si = sin(az * pi / 180);
+		case 'scale'
+			hLines = findobj(handles.hMirAxes, 'Type', 'line');
+			xMin = 1e50;	yMin = 1e50;	xMax = -xMin;	yMax = -yMin;
+			for (k = 1:numel(hLines))
+				x = get(hLines(k), 'XData');	y = get(hLines(k), 'YData');
+				xMin = min([xMin min(x)]);		xMax = max([xMax max(x)]);
+				yMin = min([yMin min(y)]);		yMax = max([yMax max(y)]);
+			end
+			h = mirone;		hNewMirHand = guidata(h);
+			hNewMirHand = mirone('FileNewBgFrame_CB', hNewMirHand, [-0.5 0.5 -0.5 0.5 0 1], 'Scaled');
+			scale_x = 1 / (xMax - xMin);	off_x = -0.5 - xMin;
+			scale_y = 1 / (yMax - yMin);	off_y = -0.5 - yMin;
+			if (scale_x < scale_y)
+				scale = scale_x;			off_y = -(yMax - yMin) * scale / 2 - yMin;
 			else
-				dx = diff(x);				dy = diff(y);
-				% calculate the cosine and sine
-				hy = (dx.^2 + dy.^2)^.5;
-				co =  dx ./ hy;				si =  dy ./ hy;
+				scale = scale_y;			off_x = -(xMax - xMin) * scale / 2 - xMin;
 			end
 
-			thick = N * (handles.head(8) + handles.head(9)) / 2;		% desenrasque, mas foleiro
-			% rotate a control line, "th" cells long, based on the slope of the line
-% 			foo = [co -si; si  co] * [0	 0; thick/2 -thick/2];
-			% Add rotated points to line vertices
-			n_pts = numel(x);
-			x = x(:);			y = y(:);		% We need them as column vectrs
-			x_copy = x;			y_copy = y;
-% 			x = [x; x(end:-1:1)];		y = [y; y(end:-1:1)];		% Wrap arround
-% 			x(1:n_pts) = x(1:n_pts) + repmat(foo(1,1),n_pts,1);
-% 			x(n_pts+1:end) = x(n_pts+1:end) + repmat(foo(1,2),n_pts,1);
-% 			y(1:n_pts) = y(1:n_pts) + repmat(foo(2,1),n_pts,1);
-% 			y(n_pts+1:end) = y(n_pts+1:end) + repmat(foo(2,2),n_pts,1);
-% 			x(end+1) = x(1);			y(end+1) = y(1);			% Close line
-
-			scale = (hscale + vscale) / 2;		% Approximation that works relatively well
- 			set(handles.hLine(1), 'LineWidth', thick / scale, 'Tag', 'cellthick')
-			refresh
-			hui = findobj(get(handles.hLine(1),'UIContextMenu'),'Label', 'Extract profile');
-			set(hui, 'Call', 'setappdata(gcf,''StackTrack'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))')
-			try		rmappdata(handles.hMirFig,'TrackThisLine'),		end		% Clear it so that ExtractProfile_CB() in mirone.m knows the way
-
-% 			h = line('XData',x', 'YData',y', 'Parent',handles.hMirAxes, 'Color','w', 'LineWidth',handles.lt, 'Tag','thickned');
-% 			draw_funs(h,'line_uicontext')
-
-			% Compute the N+1 lines that will be attached to this thickned line
-			dl = thick / N;
-			xL = zeros(n_pts, N+1);		yL = zeros(n_pts, N+1);
-% 			co = [co co(end)];			si = [si si(end)];
-% 			foo1 = zeros(n_pts, 1);		foo2 = zeros(n_pts, 1);
-			for (k = 1:N+1)
-				th = thick/2 - (k-1) * dl;
-				foo = [co(1) -si(1); si(1) co(1)] * [0; th];
-				xL(:,k) = x_copy + repmat(foo(1), n_pts, 1);		% One line per column
-				yL(:,k) = y_copy + repmat(foo(2), n_pts, 1);
-				
-				% Tenho de voltar a remoer isto. O problema (em baixo) é que depois não vai ter
-				% o mesmo número de elementos quando interpolada no grid_profiler (para stakar)
-% 				for (m = 1:n_pts)		% This loop has meaning only for polylines, as angles vray between segments
-% 					foo = [co(m) -si(m); si(m) co(m)] * [0; th];
-% 					foo1(m) = foo(1);	foo2(m) = foo(2);
-% 				end
-% 				xL(:,k) = x_copy + foo1;		% One line per column
-% 				yL(:,k) = y_copy + foo2;
+			% Now a second run to efectively scale the data
+			for (k = 1:numel(hLines))
+				x = get(hLines(k), 'XData') * scale + off_x;
+				y = get(hLines(k), 'YData') * scale + off_y;
+				h = line('XData',x, 'YData',y, 'Parent', hNewMirHand.axes1);
+				draw_funs(h,'line_uicontext')
 			end
-			set(handles.hLine(1), 'UserData', {xL; yL; thick; [x_copy y_copy]; handles.geog; ...	% We'll next info if line is edited
-					'MxN X and Y with M = number_vertex and N = number_lines; THICK = thickness in map units; Mx2 = original line; is geog?'})
-
-		case 'hand2Workspace'
-			assignin('base','lineHandles',handles.hLine);
-			
-		case 'toRidge'
-			hanMir = guidata(handles.hMirFig);
-			[out, msg] = validate_args(handles.known_ops{ind}, r, hanMir);
-			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
-			N = out(1);
-			[X,Y,Z,head] = load_grd(hanMir);
-			if (isempty(Z))		return,		end
-			x = get(handles.hLine(1), 'xdata');		y = get(handles.hLine(1), 'ydata');
-			dx = N * head(8);			dy = N * head(9);
-			f_name = [handles.path_tmp 'lixo.dat'];		% Temp file
-			xR = x * NaN;				yR = y * NaN;
-			hR = line('XData',xR, 'YData',yR, 'Parent',handles.hMirAxes,'Linewidth', ...
-				get(handles.hLine(1),'Linewidth')+1, 'Color',(1 - get(handles.hLine(1),'Color')));
-			draw_funs(hR,'line_uicontext')	% Set edition functions
-			for (k = 1:numel(x))		% Loop over vertex to find its closest position on the Ridge
-				xRec = [max(head(1), x(k)-dx) min(head(2), x(k)+dx)];
-				yRec = [max(head(3), y(k)-dy) min(head(4), y(k)+dy)];
-				rect = [xRec(1) xRec(1) xRec(2) xRec(2) xRec(1); yRec(1) yRec(2) yRec(2) yRec(1) yRec(1)];
-				% Get a small grid arround the current point
-				[X,Y,Z,hdr] = mirone('ImageCrop_CB', hanMir, rect, 'CropaGrid_pure');
-				out = grdppa_m(Z, hdr);
-				if ( ~all(isnan(out(1,:))) )
-					double2ascii(f_name,out','%f\t%f');					% Save as file so we can use it mapproject
-					pt = mapproject_m([x(k) y(k)], ['-L' f_name]);		% Project and get points along the line
-				else
-					pt = [0 0 Inf];		% Make it fall into the next 'else' case
-				end
-				if ( ~isinf(pt(3)) )
-					xR(k) = pt(4);		yR(k) = pt(5);
-				else
-					xR(k) = x(k);		yR(k) = y(k);
-				end
-				set(hR, 'XData', xR, 'YData', yR)
-			end
-			clear mapproject_m			% Because of the memory leaks
-			set(hanMir.figure1,'pointer','arrow')
 
 		case 'stitch'
 			tol = validate_args(handles.known_ops{ind}, r);
@@ -493,52 +466,106 @@ function push_apply_CB(hObject, handles)
 			set(hObject,'Tooltip', 'Have 0 lines to play with')
 			handles.hLine = [];		guidata(handles.figure1, handles)
 
-		case 'bezier'
-			n_nodes = validate_args(handles.known_ops{ind}, r);
-
-			vt = linspace(0,1,n_nodes);			bez = zeros(numel(vt), 2);
-			x = get(handles.hLine, 'XData');	y = get(handles.hLine, 'YData');
-			xy = [x(:) y(:)];
-
-			% Compute each point in the Bezier curve. From Jesus Lucio bezier_.m file in FEX
-			np = 1;		n = numel(x) - 1;
-			for t = vt
-				som = [0 0];
-				for (i = 0:n)			% Add the next point multiplied by the corresponding Bernstein polynomial
-					som = som + xy(i+1, :) * local_nchoosek(n, i) * (t^i) * ((1 - t)^(n - i));  
-				end
-				bez(np, :) = som;
-				np = np + 1;
-			end
-			h = line('XData', bez(:,1), 'YData', bez(:,2), 'Parent',handles.hMirAxes, 'Color','r', 'LineWidth',handles.lt,'Tag','polyline');
-			draw_funs(h,'line_uicontext')
-
-		case 'scale'
-
-			hLines = findobj(handles.hMirAxes, 'Type', 'line');
-			xMin = 1e50;	yMin = 1e50;	xMax = -xMin;	yMax = -yMin;
-			for (k = 1:numel(hLines))
-				x = get(hLines(k), 'XData');	y = get(hLines(k), 'YData');
-				xMin = min([xMin min(x)]);		xMax = max([xMax max(x)]);
-				yMin = min([yMin min(y)]);		yMax = max([yMax max(y)]);
-			end
-			h = mirone;		hNewMirHand = guidata(h);
-			hNewMirHand = mirone('FileNewBgFrame_CB', hNewMirHand, [-0.5 0.5 -0.5 0.5 0 1], 'Scaled');
-			scale_x = 1 / (xMax - xMin);	off_x = -0.5 - xMin;
-			scale_y = 1 / (yMax - yMin);	off_y = -0.5 - yMin;
-			if (scale_x < scale_y)
-				scale = scale_x;			off_y = -(yMax - yMin) * scale / 2 - yMin;
+		case 'thicken'
+			[out, msg] = validate_args(handles.known_ops{ind}, r, handles.hMirAxes);
+			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
+			N = out(1);		hscale = out(2);	vscale = out(3);
+			x = get(handles.hLine(1), 'xdata');		y = get(handles.hLine(1), 'ydata');
+			
+			if (handles.geog)
+				[dumb, az] = vdist(y(1:end-1),x(1:end-1), y(2:end),x(2:end));
+				az = 90 - az;		% Make it trigonometric
+				co = cos(az * pi / 180);	si = sin(az * pi / 180);
 			else
-				scale = scale_y;			off_x = -(xMax - xMin) * scale / 2 - xMin;
+				dx = diff(x);				dy = diff(y);
+				% calculate the cosine and sine
+				hy = (dx.^2 + dy.^2)^.5;
+				co =  dx ./ hy;				si =  dy ./ hy;
 			end
 
-			% Now a second run to efectively scale the data
-			for (k = 1:numel(hLines))
-				x = get(hLines(k), 'XData') * scale + off_x;
-				y = get(hLines(k), 'YData') * scale + off_y;
-				h = line('XData',x, 'YData',y, 'Parent', hNewMirHand.axes1);
-				draw_funs(h,'line_uicontext')
+			thick = N * (handles.head(8) + handles.head(9)) / 2;		% desenrasque, mas foleiro
+			% rotate a control line, "th" cells long, based on the slope of the line
+% 			foo = [co -si; si  co] * [0	 0; thick/2 -thick/2];
+			% Add rotated points to line vertices
+			n_pts = numel(x);
+			x = x(:);			y = y(:);		% We need them as column vectrs
+			x_copy = x;			y_copy = y;
+% 			x = [x; x(end:-1:1)];		y = [y; y(end:-1:1)];		% Wrap arround
+% 			x(1:n_pts) = x(1:n_pts) + repmat(foo(1,1),n_pts,1);
+% 			x(n_pts+1:end) = x(n_pts+1:end) + repmat(foo(1,2),n_pts,1);
+% 			y(1:n_pts) = y(1:n_pts) + repmat(foo(2,1),n_pts,1);
+% 			y(n_pts+1:end) = y(n_pts+1:end) + repmat(foo(2,2),n_pts,1);
+% 			x(end+1) = x(1);			y(end+1) = y(1);			% Close line
+
+			scale = (hscale + vscale) / 2;		% Approximation that works relatively well
+ 			set(handles.hLine(1), 'LineWidth', thick / scale, 'Tag', 'cellthick')
+			refresh
+			hui = findobj(get(handles.hLine(1),'UIContextMenu'),'Label', 'Extract profile');
+			set(hui, 'Call', 'setappdata(gcf,''StackTrack'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))')
+			try		rmappdata(handles.hMirFig,'TrackThisLine'),		end		% Clear it so that ExtractProfile_CB() in mirone.m knows the way
+
+% 			h = line('XData',x', 'YData',y', 'Parent',handles.hMirAxes, 'Color','w', 'LineWidth',handles.lt, 'Tag','thickned');
+% 			draw_funs(h,'line_uicontext')
+
+			% Compute the N+1 lines that will be attached to this thickned line
+			dl = thick / N;
+			xL = zeros(n_pts, N+1);		yL = zeros(n_pts, N+1);
+% 			co = [co co(end)];			si = [si si(end)];
+% 			foo1 = zeros(n_pts, 1);		foo2 = zeros(n_pts, 1);
+			for (k = 1:N+1)
+				th = thick/2 - (k-1) * dl;
+				foo = [co(1) -si(1); si(1) co(1)] * [0; th];
+				xL(:,k) = x_copy + repmat(foo(1), n_pts, 1);		% One line per column
+				yL(:,k) = y_copy + repmat(foo(2), n_pts, 1);
+				
+				% Tenho de voltar a remoer isto. O problema (em baixo) é que depois não vai ter
+				% o mesmo número de elementos quando interpolada no grid_profiler (para stakar)
+% 				for (m = 1:n_pts)		% This loop has meaning only for polylines, as angles vray between segments
+% 					foo = [co(m) -si(m); si(m) co(m)] * [0; th];
+% 					foo1(m) = foo(1);	foo2(m) = foo(2);
+% 				end
+% 				xL(:,k) = x_copy + foo1;		% One line per column
+% 				yL(:,k) = y_copy + foo2;
 			end
+			set(handles.hLine(1), 'UserData', {xL; yL; thick; [x_copy y_copy]; handles.geog; ...	% We'll next info if line is edited
+					'MxN X and Y with M = number_vertex and N = number_lines; THICK = thickness in map units; Mx2 = original line; is geog?'})
+			
+		case 'toRidge'
+			hanMir = guidata(handles.hMirFig);
+			[out, msg] = validate_args(handles.known_ops{ind}, r, hanMir);
+			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
+			N = out(1);
+			[X,Y,Z,head] = load_grd(hanMir);
+			if (isempty(Z))		return,		end
+			x = get(handles.hLine(1), 'xdata');		y = get(handles.hLine(1), 'ydata');
+			dx = N * head(8);			dy = N * head(9);
+			f_name = [handles.path_tmp 'lixo.dat'];		% Temp file
+			xR = x * NaN;				yR = y * NaN;
+			hR = line('XData',xR, 'YData',yR, 'Parent',handles.hMirAxes,'Linewidth', ...
+				get(handles.hLine(1),'Linewidth')+1, 'Color',(1 - get(handles.hLine(1),'Color')));
+			draw_funs(hR,'line_uicontext')	% Set edition functions
+			for (k = 1:numel(x))		% Loop over vertex to find its closest position on the Ridge
+				xRec = [max(head(1), x(k)-dx) min(head(2), x(k)+dx)];
+				yRec = [max(head(3), y(k)-dy) min(head(4), y(k)+dy)];
+				rect = [xRec(1) xRec(1) xRec(2) xRec(2) xRec(1); yRec(1) yRec(2) yRec(2) yRec(1) yRec(1)];
+				% Get a small grid arround the current point
+				[X,Y,Z,hdr] = mirone('ImageCrop_CB', hanMir, rect, 'CropaGrid_pure');
+				out = grdppa_m(Z, hdr);
+				if ( ~all(isnan(out(1,:))) )
+					double2ascii(f_name,out','%f\t%f');					% Save as file so we can use it mapproject
+					pt = mapproject_m([x(k) y(k)], ['-L' f_name]);		% Project and get points along the line
+				else
+					pt = [0 0 Inf];		% Make it fall into the next 'else' case
+				end
+				if ( ~isinf(pt(3)) )
+					xR(k) = pt(4);		yR(k) = pt(5);
+				else
+					xR(k) = x(k);		yR(k) = y(k);
+				end
+				set(hR, 'XData', xR, 'YData', yR)
+			end
+			clear mapproject_m			% Because of the memory leaks
+			set(hanMir.figure1,'pointer','arrow')
 	end
 
 % -------------------------------------------------------------------------------------------------
