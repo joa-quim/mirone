@@ -817,10 +817,10 @@ function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
 			errordlg('Bad Z r g b file. Colors outside the [0 255] inerval','Error'),	return
 		end
 		if (max(cmap(:)) > 1),	cmap = cmap / 255;		end
-		if (~isempty(opt))  % Use the cpt Z levels
+		idx1 = linspace(1,256,size(cmap,1));
+		cmap = interp1(idx1,cmap,1:256);		% We need it as a 256 cmap
+		if (~isempty(opt))		% Use the cpt Z levels
 			handles.z_intervals = [numeric_data(1:end-1,1) numeric_data(2:end,1)];
-			idx1 = linspace(1,256,size(cmap,1));
-			cmap = interp1(idx1,cmap,1:256);	% We need it as a 256 cmap
 		else
 			handles.z_intervals = [];
 		end
@@ -832,7 +832,9 @@ function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
 	set(handles.listbox1,'String',list,'Value',1);
 	guidata(handles.figure1,handles)
 	%if (~strcmp(opt,'z_levels')),	handles.z_intervals = [];	end	% Trick to avoid cmap recalculation inside change_cmap()
-	if (~isempty(handles.hCallingFig)),		handles.thematic = true;	end
+	if ( ~isempty(handles.hCallingFig) && ~isempty(handles.z_intervals) )
+		handles.thematic = true;
+	end
 	change_cmap(handles, cmap);
 
 % --------------------------------------------------------------------
