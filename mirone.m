@@ -2809,7 +2809,7 @@ function DrawContours_CB(handles, opt)
 		h_label = clabel_j(c,h_cont);		% Label countours automatically
 		set(h_label,'Tag','contour');		% The tag is used in "Delete all contours" to delete also the labels
 	end
-	for i = 1:length(h_cont)				% Set convenient uicontexts. One for each contour
+	for (i = 1:numel(h_cont))				% Set convenient uicontexts. One for each contour
 		setappdata(h_cont(i),'cont_label',get(h_cont(i),'UserData'))	% Used in write_script
 		draw_funs(h_cont(i),'ContourLines',h_label)
 	end
@@ -2948,6 +2948,10 @@ function FileOpenSession_CB(handles, fname)
 				setappdata(h_line,'LineInfo',Pline(i).LineInfo)
 				set(h_line,'UserData',1)
 				draw_funs(h_line,'isochron',{Pline(i).LineInfo})
+			elseif (isfield(Pline(i),'cont_label') && ~isempty(Pline(i).cont_label))
+				setappdata(h_line,'cont_label',Pline(i).cont_label)		% Used in write_script
+				set(h_line,'UserData',Pline(i).cont_label)				% Not sure if realy worth save this in UD
+				draw_funs(h_line,'ContourLines','')		% The empty ('') is h_lable in DrawContours.
 			else
 				draw_funs(h_line,'line_uicontext')		% Set lines's uicontextmenu
 			end
@@ -3134,7 +3138,9 @@ function FileSaveSession_CB(handles)
 				Pline(m).FillColor = get(ALLlineHand(i),'MarkerFaceColor');
 				Pline(m).EdgeColor = get(ALLlineHand(i),'MarkerEdgeColor');
 			end
-			if (isappdata(ALLlineHand(i),'LineInfo'))
+			if (strcmp(tag, 'contour'))	% For contours we must pass along the label info
+				Pline(m).cont_label = getappdata(ALLlineHand(i),'cont_label');
+			elseif (isappdata(ALLlineHand(i),'LineInfo'))
 				Pline(m).LineInfo = getappdata(ALLlineHand(i),'LineInfo');
 			end
 			m = m + 1;		havePline = 1;
