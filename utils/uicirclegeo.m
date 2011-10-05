@@ -487,9 +487,11 @@ switch action
 								if strcmp(objtype,'sccontrol')
 									delete(s.hcontrol);     s.hcontrol = [];
 								end
-							end	
-							delete(s.hcenter);      s.hcenter = [];     % delete center
-							delete(s.hend);         s.hend = [];        % delete end
+							end
+							if (ishandle(s.hcenter)),	delete(s.hcenter);	end		% delete center
+							s.hcenter = [];
+							if (ishandle(s.hend)),		delete(s.hend);		end		% delete end
+							s.hend = [];
 							s.controls = 'off';
 							set(this_gco,'userdata',s)
 						case 'off'
