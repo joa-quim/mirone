@@ -26,6 +26,8 @@ function [latc,lonc] = circ_geo(lat, lon, rng, azim, np, noforce_pipi)
 	D2R = pi/180;   npts  = 180;       az    = [];		n_args = nargin;
 	if (n_args < 3)
 		errordlg('Error calling circ_geo. Must give at least 3 arguments','Error')
+	elseif (n_args == 3)
+		noforce_pipi = false;
 	elseif (n_args == 4)
 		az = azim;					noforce_pipi = false;
 	elseif (n_args == 5)
