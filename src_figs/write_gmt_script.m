@@ -1033,7 +1033,7 @@ function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X
 	end
 	grd_name = handMir.grdname;
 
-% -------------------- Build -B string -------------------------------------------------
+%% -------------------- Build -B string ------------------------------------------------
 	Bx = get(handMir.axes1,'XTick');      d_Bx = diff(Bx);
 	By = get(handMir.axes1,'YTick');      d_By = diff(By);
 	opt_B = ['-B' num2str(d_Bx(1)) '/' num2str(d_By(1)) 'WSen'];
@@ -1144,7 +1144,7 @@ if (~isempty(grd_name))
         have_gmt_illum = 0;
         used_grd = 1;
     end
-    script{l} = ' ';                          l=l+1;
+    script{l} = ' ';		l=l+1;
     if (have_gmt_illum)                     % grdimage with illumination
         script{l} = [comm '-------- Plot the the base image using grdimage & illumination'];    l=l+1;
         script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf illum ellips ' -O -K >> ' pb 'ps' pf];
@@ -1171,57 +1171,57 @@ else    % We don't have a grid, so we need to fish the image and save it as R,G,
 end
 
 % ------------ If we have used a GMT grid file build the GMT palette -----------------------
-if (used_grd || strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on') )
-    tmp = cell(261,1);
-    pal = get(handMir.figure1,'colormap');
-    %Z = getappdata(handMir.figure1,'dem_z');
-    % SE Z == [] FAZER QUALQUER COISA
-    if (handMir.have_nans),     cor_nan = pal(1,:);     pal = pal(2:end,:);   end     % Remove the bg color
-    
-    pal_len = size(pal,1);
-    z_min = handMir.head(5);    z_max = handMir.head(6);
-    
-    dz = (z_max - z_min) / pal_len;
-    tmp{1} = '# Color palette exported by Mirone';
-    tmp{2} = '# COLOR_MODEL = RGB';
-    cor = round(pal*255);
-	for i=1:pal_len
-        cor_str = sprintf([num2str(cor(i,1),'%.12g') '\t' num2str(cor(i,2),'%.12g') '\t' num2str(cor(i,3),'%.12g')]);
-        z1 = num2str(z_min+dz*(i-1),'%.3f');
-        z2 = num2str(z_min+dz*i,'%.3f');
-        tmp{i+2} = sprintf([z1 '\t' cor_str '\t' z2 '\t' cor_str]);
-	end
-    tmp{pal_len+3} = sprintf('F\t255\t255\t255');
-    tmp{pal_len+4} = sprintf('B\t0\t0\t0');
-	if (handMir.have_nans)
-        cor = round(cor_nan*255);
-        cor_str = sprintf(['N\t' num2str(cor(1),'%.12g') '\t' num2str(cor(2),'%.12g') '\t' num2str(cor(3),'%.12g')]);
-        tmp{pal_len+5} = sprintf(cor_str);
-	else
-        tmp{pal_len+5} = sprintf('N\t255\t255\t255');
-	end
-    sc_cpt = [dest_dir filesep prefix '.cpt'];
-	fid = fopen(sc_cpt,'wt');
-	for (i=1:pal_len+5),   fprintf(fid,'%s\n',tmp{i});     end
-	fclose(fid);
-    clear tmp z_min z_max pal_len pal cor cor_str fid dz z1 z2
-else        % Remove the cpt declaration. After all we won't go to use it
-    script(id_cpt) = [];    l=l-1;
-end
+	if (used_grd || strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on') )
+		tmp = cell(261,1);
+		pal = get(handMir.figure1,'colormap');
+		%Z = getappdata(handMir.figure1,'dem_z');
+		% SE Z == [] FAZER QUALQUER COISA
+		if (handMir.have_nans),     cor_nan = pal(1,:);     pal = pal(2:end,:);   end     % Remove the bg color
 
-% ------------- Coastlines section -----------------------------------
-if (have_psc)       % We have pscoast commands
-    script{l} = ' ';                        l=l+1;
-    script{l} = [comm 'Plot coastlines'];   l=l+1;
-    script{l} = ['pscoast ' opt_psc ellips opt_L ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
-elseif (~isempty(opt_L))
-    script{l} = ['psbasemap ' opt_L ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
-end
+		pal_len = size(pal,1);
+		z_min = handMir.head(5);    z_max = handMir.head(6);
 
-% ------------- Search for contour lines ----------------------------------------------------
+		dz = (z_max - z_min) / pal_len;
+		tmp{1} = '# Color palette exported by Mirone';
+		tmp{2} = '# COLOR_MODEL = RGB';
+		cor = round(pal*255);
+		for i=1:pal_len
+			cor_str = sprintf([num2str(cor(i,1),'%.12g') '\t' num2str(cor(i,2),'%.12g') '\t' num2str(cor(i,3),'%.12g')]);
+			z1 = num2str(z_min+dz*(i-1),'%.3f');
+			z2 = num2str(z_min+dz*i,'%.3f');
+			tmp{i+2} = sprintf([z1 '\t' cor_str '\t' z2 '\t' cor_str]);
+		end
+		tmp{pal_len+3} = sprintf('F\t255\t255\t255');
+		tmp{pal_len+4} = sprintf('B\t0\t0\t0');
+		if (handMir.have_nans)
+			cor = round(cor_nan*255);
+			cor_str = sprintf(['N\t' num2str(cor(1),'%.12g') '\t' num2str(cor(2),'%.12g') '\t' num2str(cor(3),'%.12g')]);
+			tmp{pal_len+5} = sprintf(cor_str);
+		else
+			tmp{pal_len+5} = sprintf('N\t255\t255\t255');
+		end
+		sc_cpt = [dest_dir filesep prefix '.cpt'];
+		fid = fopen(sc_cpt,'wt');
+		for (i=1:pal_len+5),   fprintf(fid,'%s\n',tmp{i});     end
+		fclose(fid);
+		clear tmp z_min z_max pal_len pal cor cor_str fid dz z1 z2
+	else        % Remove the cpt declaration. After all we won't go to use it
+		script(id_cpt) = [];    l=l-1;
+	end
+
+%% ------------- Coastlines section -----------------------------------
+	if (have_psc)       % We have pscoast commands
+		script{l} = ' ';                        l=l+1;
+		script{l} = [comm 'Plot coastlines'];   l=l+1;
+		script{l} = ['pscoast ' opt_psc ellips opt_L ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+	elseif (~isempty(opt_L))
+		script{l} = ['psbasemap ' opt_L ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+	end
+
+%% ------------- Search for contour lines --------------------------------------------------
 ALLtextHand = findobj(get(handMir.axes1,'Child'),'Type','text');
 % % If we have focal mecanisms with labels, remove their handles right away
-% h = findobj(ALLtextHand,'Tag','TextMeca');                                  % I'M NOT SURE ON THIS ONE
+% h = findobj(ALLtextHand,'Tag','TextMeca');						% I'M NOT SURE ON THIS ONE
 % if (~isempty(h))    ALLtextHand = setxor(ALLtextHand, h);   end
 
 tag = get(ALLlineHand,'Tag');
@@ -1262,7 +1262,7 @@ if (~isempty(tag) && ~isempty(handMir.grdname))
     end
 end
 
-% ------------- Search for symbols -----------------------------------------------------------    
+%% ------------- Search for symbols --------------------------------------------------------
 	tag = get(ALLlineHand,'Tag');
 	if (~isempty(tag))
 		h = findobj(ALLlineHand,'Tag','Symbol');
@@ -1355,7 +1355,7 @@ end
 	end
 % ------------------------------------------------------------------------------------------------
 
-% ------------- Search for focal mecanisms ----------------------------
+%% ------------- Search for focal mecanisms ----------------------------
 ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
 if (~isempty(ALLpatchHand))
 	focHand = findobj(ALLpatchHand,'Tag','FocalMeca');
@@ -1415,7 +1415,7 @@ if (~isempty(ALLpatchHand))
 end
 % -------------------------------------------------------------------------------------------------------
 
-% ------------- Search for "telhas" ---------------------------------
+%% ------------- Search for "telhas" ---------------------------------
 if (~isempty(ALLpatchHand))
 	TelhasHand = findobj(ALLpatchHand,'Tag','tapete');
 	if (~isempty(TelhasHand))
@@ -1444,7 +1444,7 @@ if (~isempty(ALLpatchHand))
 end
 % -------------------------------------------------------------------------------------------------------
 
-% ------------------------------------- Search for countries ----------------------------
+%% ------------------------------------- Search for countries ----------------------------
 if (~isempty(ALLpatchHand))
 	% First see about these still remaining patch transparency
 	[ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand);
@@ -1477,11 +1477,11 @@ if (~isempty(ALLpatchHand))
 end
 % -------------------------------------------------------------------------------------------------------
 
-% ------------- Search for closed polygons ----------------------------
+%% ------------- Search for closed polygons ----------------------------
 	if (~isempty(ALLpatchHand))
 		xx = get(ALLpatchHand,'XData');     yy = get(ALLpatchHand,'YData');
 		n_patch = length(ALLpatchHand);
-		LineStyle = get(ALLpatchHand,'LineStyle');
+		%LineStyle = get(ALLpatchHand,'LineStyle');
 		LineWidth = get(ALLpatchHand,'LineWidth');
 		if (iscell(LineWidth)),     LineWidth = cat(1,LineWidth{:});     end
 		EdgeColor = get(ALLpatchHand,'EdgeColor');
@@ -1530,10 +1530,10 @@ end
 		script{l} = ' ';              l=l+1;
 		script{l} = [comm ' ---- Plot closed AND colored polygons'];   l=l+1;
 		script{l} = ['psxy ' name_sc ellips ' -R -J --MEASURE_UNIT=point -m -O -K >> ' pb 'ps' pf];    l=l+1;
-		clear ALLpatchHand name name_sc n_patch xx yy LineStyle LineWidth EdgeColor FillColor cor_edge cor_fill resp
+		clear ALLpatchHand name name_sc n_patch xx yy LineWidth EdgeColor FillColor cor_edge cor_fill resp
 	end
 
-% ------------- Search for lines or polylines ----------------------------
+%% ------------- Search for lines or polylines ----------------------------
 	if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, plines, mb-tracks, etc
 		xx = get(ALLlineHand,'XData');     yy = get(ALLlineHand,'YData');
 		if (~iscell(xx))            % We have only one line
@@ -1584,7 +1584,7 @@ end
 		clear xx yy cor fid m name name_sc LineStyle LineWidth LineColor
 	end
 
-% ------------- Search for text strings ---------------------------------------------
+%% ------------- Search for text strings ---------------------------------------------
 if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search for contours
 	if (~isempty(ALLtextHand))      % We (still) have text fields
 		pos = get(ALLtextHand,'Position');      %font = get(ALLtextHand,'FontName');
@@ -1600,14 +1600,14 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
 			end
 		elseif (ischar(fcolor))		% Shit, we have to decode the color letter
 			switch fcolor
-				case 'w',       opt_G = {' -G255'};
-				case 'k',       opt_G = {''};
-				case 'y',       opt_G = {' -G255/255/0'};
-				case 'c',       opt_G = {' -G0/255/255'};
-				case 'r',       opt_G = {' -G255/0/0'};
-				case 'g',       opt_G = {' -G0/255/0'};
-				case 'b',       opt_G = {' -G0/0/255'};
-				otherwise,      opt_G = {''};
+				case 'w',		opt_G = {' -G255'};
+				case 'k',		opt_G = {''};
+				case 'y',		opt_G = {' -G255/255/0'};
+				case 'c',		opt_G = {' -G0/255/255'};
+				case 'r',		opt_G = {' -G255/0/0'};
+				case 'g',		opt_G = {' -G0/255/0'};
+				case 'b',		opt_G = {' -G0/0/255'};
+				otherwise,		opt_G = {''};
 			end
 		elseif (iscell(fcolor))			% Double shit, we have to convert a Mx3 cell matrix into texts
             tmp = cell2mat(fcolor) * 255;
@@ -1646,7 +1646,7 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
 	end
 end
 
-% ------------- Search for colorbar -------------------------------------------
+%% ------------- Search for colorbar -------------------------------------------
 	if (strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on'))
 		if (strcmp(get(handMir.PalAt,'Check'),'on')),	axHandle = get(handMir.PalAt,'UserData');
 		else											axHandle = get(handMir.PalIn,'UserData');
@@ -1674,11 +1674,11 @@ end
 		script{l} = ' ';        l=l+1;
 		script{l} = [comm ' ---- Plot colorbar ---'];   l=l+1;
 		script{l} = ['psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];
-		script{saveBind} = [script{saveBind} 'WSNe'];       % Don't write West anotations
+		script{saveBind} = [script{saveBind} 'WSNe'];		% Don't write West anotations
 	end
 
-% -----------------------------------------------------------------------------------------------------
-% ----------------------------- See if we have to do a screen capture to 3 RGB grids-------------------
+% --------------------------------------------------------------------------------------
+%% ------------- See if we have to do a screen capture to 3 RGB grids-------------------
 	if (~isempty(nameRGB) && ~haveAlfa)
         mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB)
 	elseif (~isempty(nameRGB) && haveAlfa)
@@ -1700,8 +1700,8 @@ end
 		set(ALLlineHand, 'Vis', 'on');		set(ALLpatchHand, 'Vis', 'on');	set(ALLtextHand, 'Vis', 'on')
 	end
 
-% -----------------------------------------------------------------------------------------------------
-% -------------------------------------------- Write the script ---------------------------------------
+% ----------------------------------------------------------------------------------------------
+%% ------------------------------------ Write the script ---------------------------------------
 	% First do some eventual cleaning
 	if (~isempty(handMir.grdname) && ~used_grd),         script(id_grd) = [];        end;
 	if (strncmp(computer,'PC',2) && (used_grd || used_countries) && need_path && ~strcmp(sc,'bat'))
