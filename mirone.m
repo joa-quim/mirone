@@ -1700,7 +1700,8 @@ function ToolsMBplaningStart_CB(handles)
 	if (handles.firstMBtrack == 1)
 		button = questdlg(prompt,'Multibeam planing info','Accept','Cancel','Accept');
 		if strcmp(button,'Accept'),		handles.firstMBtrack = 0;
-		else							return,		end
+		else							return
+		end
 	end
 
 	zoom_state(handles,'maybe_off');
@@ -1711,11 +1712,11 @@ function ToolsMBplaningStart_CB(handles)
 	handles.nTrack = handles.nTrack + 1;	% count to the number of tracks
 	delete(trackHand(2:end));		trackHand(2:end) = [];
 	% make and set tags strings to tracks and track's Bars
-	tagL = ['MBtrack' sprintf('%d',handles.nTrack)];		tagB = ['swath_w' sprintf('%d',handles.nTrack)];
+	tagL = sprintf('MBtrack%d',handles.nTrack);				tagB = sprintf('swath_w%d',handles.nTrack);
 	set(trackHand,'XData',xp, 'YData',yp, 'Tag',tagL);		set(barHand, 'Tag',tagB)
 	setappdata(trackHand,'swathRatio',handles.swathRatio)	% save the swathRatio in line's appdata
 	% now set the barHand userdata that contains the vertex order
-	for (i = 1:length(xp)),		set(barHand(i),'Userdata',i),	end
+	for (i = 1:numel(xp)),		set(barHand(i),'Userdata',i),	end
 	
 	draw_funs(trackHand,'MBtrackUictx')			% Set track's uicontextmenu
 	draw_funs(barHand,'MBbarUictx')				% Set track bar's uicontextmenu
@@ -3056,69 +3057,122 @@ function FileSaveSession_CB(handles)
 		illumComm = getappdata(handles.figure1,'illumComm');
 	end
 	ALLlineHand = findobj(get(handles.axes1,'Child'),'Type','line');
-	j = 1;  k = 1;  m = 1;  n = 1;  cg = 1; cc = 1; pp = 1;
+	m = 1;
 	haveMBtrack = 0;	havePline = 0;		haveText = 0;	haveSymbol = 0;		haveCircleGeo = 0;
 	haveCircleCart = 0; havePlineAsPoints = 0;  havePatches = 0;haveCoasts = 0; havePolitic = 0;	haveRivers = 0;
 	MBtrack = [];	MBbar = [];		Pline = [];		Symbol = [];	Texto = [];		CircleGeo = [];	MecaMag5 = [];
 	CircleCart = [];	PlineAsPoints = [];			Patches = [];	coastUD = [];	politicUD = [];	riversUD = [];
-	for i = 1:numel(ALLlineHand)
+
+	h = findobj(ALLlineHand,'Tag','Symbol');		% case of a Symbol (in fact a line Marker)
+	if (~isempty(h))
+		nO = numel(h);
+		Symbol = struct('x',cell(1,nO), 'y',cell(1,nO), 'Marker',cell(1,nO), 'MarkerSize',cell(1,nO), ...
+			'MarkerFaceColor',cell(1,nO), 'MarkerEdgeColor',cell(1,nO), 'tag',cell(1,nO));
+		for (i = 1:nO)
+			xx = get(h(i),'XData');		yy = get(h(i),'YData');
+			Symbol(i).x = xx(:);		Symbol(i).y = yy(:);
+			Symbol(i).Marker = get(h(i),'Marker');
+			Symbol(i).Size = get(h(i),'MarkerSize');
+			Symbol(i).FillColor = get(h(i),'MarkerFaceColor');
+			Symbol(i).EdgeColor = get(h(i),'MarkerEdgeColor');
+			Symbol(i).tag = get(h(i),'Tag');
+		end
+		haveSymbol = 1;
+		ALLlineHand = setxor(ALLlineHand, h);       % Those are processed, so remove them from handles list
+	end
+	
+	h = findobj(ALLlineHand,'Tag','Pointpolyline');		% Polyline with only markers are particular line cases
+	if (~isempty(h))
+		nO = numel(h);
+		PlineAsPoints = struct('x',cell(1,nO), 'y',cell(1,nO), 'Marker',cell(1,nO), 'MarkerSize',cell(1,nO), ...
+			'MarkerFaceColor',cell(1,nO), 'MarkerEdgeColor',cell(1,nO), 'tag',cell(1,nO));
+		for (i = 1:nO)
+			xx = get(h(i),'XData');			yy = get(h(i),'YData');
+			PlineAsPoints(i).x = xx(:);		PlineAsPoints(i).y = yy(:);
+			PlineAsPoints(i).Marker = get(h(i),'Marker');
+			PlineAsPoints(i).Size = get(h(i),'MarkerSize');
+			PlineAsPoints(i).FillColor = get(h(i),'MarkerFaceColor');
+			PlineAsPoints(i).EdgeColor = get(h(i),'MarkerEdgeColor');
+			PlineAsPoints(i).tag = 'Pointpolyline';
+		end
+		ALLlineHand = setxor(ALLlineHand, h);		havePlineAsPoints = 1;
+	end
+
+	h = findobj(ALLlineHand,'Tag','circleGeo');			% circles are particular line cases
+	h = [h; findobj(ALLlineHand,'Tag','CircleEuler')];
+	if (~isempty(h))
+		nO = numel(h);
+		CircleGeo = struct('x',cell(1,nO), 'y',cell(1,nO), 'LineWidth',cell(1,nO), 'LineStyle',cell(1,nO), ...
+			'color',cell(1,nO), 'lon_lat_rad',cell(1,nO), 'ud',cell(1,nO), 'tag',cell(1,nO));
+		for (i = 1:nO)
+			xx = get(h(i),'XData');		yy = get(h(i),'YData');
+			CircleGeo(i).x = xx(:);		CircleGeo(i).y = yy(:);
+			CircleGeo(i).LineWidth = get(h(i),'LineWidth');
+			CircleGeo(i).LineStyle = get(h(i),'LineStyle');
+			CircleGeo(i).color = get(h(i),'color');
+			CircleGeo(i).tag = get(h(i),'Tag');
+			CircleGeo(i).lon_lat_rad = getappdata(h(i),'LonLatRad');
+			CircleGeo(i).ud = get(h(i),'UserData');	% UserData contains alot of need info
+		end
+		ALLlineHand = setxor(ALLlineHand, h);		haveCircleGeo = 1;
+	end
+	
+	h = findobj(ALLlineHand,'Tag','circleCart');
+	if (~isempty(h))
+		nO = numel(h);
+		CircleCart = struct('x',cell(1,nO), 'y',cell(1,nO), 'LineWidth',cell(1,nO), 'LineStyle',cell(1,nO), ...
+			'color',cell(1,nO), 'lon_lat_rad',cell(1,nO), 'ud',cell(1,nO), 'tag',cell(1,nO));
+		for (i = 1:nO)
+			xx = get(h(i),'XData');			yy = get(h(i),'YData');
+			CircleCart(i).x = xx(:);		CircleCart(i).y = yy(:);
+			CircleCart(i).LineWidth = get(h(i),'LineWidth');
+			CircleCart(i).LineStyle = get(h(i),'LineStyle');
+			CircleCart(i).color = get(h(i),'color');
+			CircleCart(i).tag = 'circleCart';
+			CircleCart(i).lon_lat_rad = getappdata(h(i),'LonLatRad');
+			CircleCart(i).ud = get(h(i),'UserData');
+		end
+		ALLlineHand = setxor(ALLlineHand, h);		haveCircleCart = 1;
+	end
+
+	h = findobj(ALLlineHand,'Tag','MBtrack');		% case of a MBtrack line (DOESN'T WORK BECAUSE 'MBtrack%d')
+	if (~isempty(h))
+		nO = numel(h);
+		MBtrack = struct('x',cell(1,nO), 'y',cell(1,nO), 'LineWidth',cell(1,nO), 'LineStyle',cell(1,nO), ...
+			'color',cell(1,nO), 'swathRatio',cell(1,nO), 'tag',cell(1,nO));
+		for (i = 1:nO)
+			xx = get(h(i),'XData');		yy = get(h(i),'YData');
+			MBtrack(i).x = xx(:);		MBtrack(i).y = yy(:);
+			MBtrack(i).LineWidth = get(h(i),'LineWidth');
+			MBtrack(i).LineStyle = get(h(i),'LineStyle');
+			MBtrack(i).color = get(h(i),'color');
+			MBtrack(i).swathRatio = getappdata(h(i),'swathRatio');
+			MBtrack(i).tag = 'MBtrack';
+		end
+		ALLlineHand = setxor(ALLlineHand, h);		haveMBtrack = 1;
+		draw_funs(h,'MBtrackUictx')					% Set track's uicontextmenu
+
+		h = findobj(ALLlineHand,'Tag','swath_w');	% case of a MBtrack's bar line
+		nO = numel(h);
+		MBbar = struct('x',cell(1,nO), 'y',cell(1,nO), 'LineWidth',cell(1,nO), 'LineStyle',cell(1,nO), ...
+			'color',cell(1,nO), 'n_vert',cell(1,nO), 'tag',cell(1,nO));
+		for (i = 1:nO)
+			xx = get(h(i),'XData');		yy = get(h(i),'YData');
+			MBbar(i).x = xx(:);			MBbar(i).y = yy(:);
+			MBbar(i).LineWidth = get(h(i),'LineWidth');
+			MBbar(i).LineStyle = get(h(i),'LineStyle');
+			MBbar(i).color = get(h(i),'color');
+			MBbar(i).n_vert = get(h(i),'UserData');
+			MBbar(i).tag = 'swath_w';
+			set(h(i),'Userdata',i)
+		end
+		ALLlineHand = setxor(ALLlineHand, h);
+		draw_funs(h,'MBbarUictx')				% Set track bar's uicontextmenu
+	end
+
+	for (i = 1:numel(ALLlineHand))
 		tag = get(ALLlineHand(i),'Tag');
-		if (strcmp(tag,'MBtrack'))		% case of a MBtrack line
-			xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
-			MBtrack(j).x = xx(:);		MBtrack(j).y = yy(:);
-			MBtrack(j).LineWidth = get(ALLlineHand(i),'LineWidth');
-			MBtrack(j).LineStyle = get(ALLlineHand(i),'LineStyle');
-			MBtrack(j).color = get(ALLlineHand(i),'color');
-			MBtrack(j).tag = tag;		MBtrack(j).swathRatio = getappdata(ALLlineHand(i),'swathRatio');
-			j = j + 1;		haveMBtrack = 1;
-		elseif (strcmp(tag,'swath_w'))	% case of a MBtrack's bar line
-			xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
-			MBbar(k).x = xx(:);		MBbar(k).y = yy(:);
-			MBbar(k).LineWidth = get(ALLlineHand(i),'LineWidth');
-			MBbar(k).LineStyle = get(ALLlineHand(i),'LineStyle');
-			MBbar(k).color = get(ALLlineHand(i),'color');
-			MBbar(k).tag = tag;
-			MBbar(k).n_vert = get(ALLlineHand(i),'UserData');
-			k = k + 1;	
-		elseif (strcmp(tag,'Symbol'))	% case of a Symbol (in fact a line Marker)
-			xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
-			Symbol(n).x = xx(:);		Symbol(n).y = yy(:);
-			Symbol(n).Marker = get(ALLlineHand(i),'Marker');
-			Symbol(n).Size = get(ALLlineHand(i),'MarkerSize');
-			Symbol(n).FillColor = get(ALLlineHand(i),'MarkerFaceColor');
-			Symbol(n).EdgeColor = get(ALLlineHand(i),'MarkerEdgeColor');
-			Symbol(n).tag = get(ALLlineHand(i),'Tag');
-			n = n + 1;		haveSymbol = 1;	
-		elseif (strcmp(tag,'circleGeo') || strcmp(tag,'CircleEuler'))	% circles are particular line cases
-			xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
-			CircleGeo(cg).x = xx(:);	CircleGeo(cg).y = yy(:);
-			CircleGeo(cg).LineWidth = get(ALLlineHand(i),'LineWidth');
-			CircleGeo(cg).LineStyle = get(ALLlineHand(i),'LineStyle');
-			CircleGeo(cg).color = get(ALLlineHand(i),'color');
-			CircleGeo(cg).tag = tag;
-			CircleGeo(cg).lon_lat_rad = getappdata(ALLlineHand(i),'LonLatRad');
-			CircleGeo(cg).ud = get(ALLlineHand(i),'UserData');	% UserData contains alot of need info
-			cg = cg + 1;	haveCircleGeo = 1;	
-		elseif (strcmp(tag,'circleCart'))	% circles are particular line cases
-			xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
-			CircleCart(cc).x = xx(:);		CircleCart(cc).y = yy(:);
-			CircleCart(cc).LineWidth = get(ALLlineHand(i),'LineWidth');
-			CircleCart(cc).LineStyle = get(ALLlineHand(i),'LineStyle');
-			CircleCart(cc).color = get(ALLlineHand(i),'color');
-			CircleCart(cc).tag = tag;
-			CircleCart(cc).lon_lat_rad = getappdata(ALLlineHand(i),'LonLatRad');
-			CircleCart(cc).ud = get(ALLlineHand(i),'UserData');
-			cc = cc + 1;	haveCircleCart = 1;	
-		elseif (strcmp(tag,'Pointpolyline'))	% Polyline with only markers are particular line cases
-			xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
-			PlineAsPoints(pp).x = xx(:);	PlineAsPoints(pp).y = yy(:);
-			PlineAsPoints(pp).Marker = get(ALLlineHand(i),'Marker');
-			PlineAsPoints(pp).Size = get(ALLlineHand(i),'MarkerSize');
-			PlineAsPoints(pp).FillColor = get(ALLlineHand(i),'MarkerFaceColor');
-			PlineAsPoints(pp).EdgeColor = get(ALLlineHand(i),'MarkerEdgeColor');
-			PlineAsPoints(pp).tag = tag;
-			pp = pp + 1;	havePlineAsPoints = 1;	
-		elseif (strcmp(tag,'CoastLineNetCDF'))
+		if (strcmp(tag,'CoastLineNetCDF'))
 			haveCoasts = 1;		coastUD = get(ALLlineHand(i),'UserData');	
 		elseif (strcmp(tag,'PoliticalBoundaries'))
 			havePolitic = 1;	politicUD = get(ALLlineHand(i),'UserData');	
@@ -4005,7 +4059,7 @@ function TransferB_CB(handles, opt)
 		fprintf(fid, '@echo off\nREM copy updated files from tmp place into their destination\n');
 		for (k = 1:numel(namedl))
 			[pato nome ext] = fileparts(namedl{k});
-			fprintf(fid, 'move /Y tmp\\%s\t%s\nJa ta. Finished update\n', [nome ext], nomes{k});
+			fprintf(fid, 'move /Y tmp\\%s\t%s\necho Ja ta. Finished update\n', [nome ext], nomes{k});
 		end
 		fclose(fid);
 
