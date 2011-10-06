@@ -201,8 +201,7 @@ function radio_Nuvel1A_CB(hObject, handles, tipo)
 		handles.MORVEL_comb = do_plate_comb('MORVEL');			% Need change when we build the MORVEL boundaries
 	end
 
-	model = getappdata(handles.figure1,'current_model');
-	if (strcmp(model,{'Nuvel1A','Nuvel1A_NNR'}))
+	if (strncmp(tipo,'Nuvel1A',7))							% For both Nuvel1A and Nuvel1A_NNR
 		set_Nuvel1Aplate_model(hObject,handles)
 	else													% MORVEL
 		set_PBplate_model(hObject,handles)					% Not mistake
@@ -235,75 +234,75 @@ function radio_Nuvel1A_NNR_CB(hObject, handles)
 		set_Nuvel1Aplate_model(hObject,handles)
 	end
 
-if (handles.first_NNR)      % Load and read poles deffinition
-	fid = fopen([handles.path_data 'Nuvel1A_NNR_poles.dat'],'r');
-	[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-	fclose(fid);
-	% Save the poles parameters in the handles structure
-	handles.Nuvel1A_NNR_abbrev = abbrev;
-	handles.Nuvel1A_NNR_name = name;
-	handles.Nuvel1A_NNR_lat = lat;
-	handles.Nuvel1A_NNR_lon = lon;
-	handles.Nuvel1A_NNR_omega = omega;
-	handles.Nuvel1A_NNR_comb = do_plate_comb('Nuvel1A_NNR');
-	handles.first_NNR = 0;
-end
+	if (handles.first_NNR)      % Load and read poles deffinition
+		fid = fopen([handles.path_data 'Nuvel1A_NNR_poles.dat'],'r');
+		[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+		fclose(fid);
+		% Save the poles parameters in the handles structure
+		handles.Nuvel1A_NNR_abbrev = abbrev;
+		handles.Nuvel1A_NNR_name = name;
+		handles.Nuvel1A_NNR_lat = lat;
+		handles.Nuvel1A_NNR_lon = lon;
+		handles.Nuvel1A_NNR_omega = omega;
+		handles.Nuvel1A_NNR_comb = do_plate_comb('Nuvel1A_NNR');
+		handles.first_NNR = 0;
+	end
 
-% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
-set(handles.popup_MovingPlate,'Value',1,'String',handles.Nuvel1A_NNR_name)
+	% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
+	set(handles.popup_MovingPlate,'Value',1,'String',handles.Nuvel1A_NNR_name)
 
-if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
-    set(handles.popup_FixedPlate,'Value',1)
-    set(handles.popup_FixedPlate,'String',handles.Nuvel1A_NNR_name)
-    set(handles.popup_FixedPlate,'Enable','on')
-    lon1 = handles.Nuvel1A_NNR_lon(1);      lat1 = handles.Nuvel1A_NNR_lat(1);
-    omega1 = handles.Nuvel1A_NNR_omega(1);
-    ind = get(handles.popup_MovingPlate,'Value');
-    lon2 = handles.Nuvel1A_NNR_lon(ind);    lat2 = handles.Nuvel1A_NNR_lat(ind);
-    omega2 = handles.Nuvel1A_NNR_omega(ind);
-    [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
-    lon = lon/D2R;     lat = lat/D2R;
-else                                        % On the original absolute motion mode
-    handles.absolute_motion = 1;
-    set(handles.popup_FixedPlate,'Enable','off')
-    lon = handles.Nuvel1A_NNR_lon(1);       lat = handles.Nuvel1A_NNR_lat(1);
-    omega = handles.Nuvel1A_NNR_omega(1);
-end
+	if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
+		set(handles.popup_FixedPlate,'Value',1)
+		set(handles.popup_FixedPlate,'String',handles.Nuvel1A_NNR_name)
+		set(handles.popup_FixedPlate,'Enable','on')
+		lon1 = handles.Nuvel1A_NNR_lon(1);      lat1 = handles.Nuvel1A_NNR_lat(1);
+		omega1 = handles.Nuvel1A_NNR_omega(1);
+		ind = get(handles.popup_MovingPlate,'Value');
+		lon2 = handles.Nuvel1A_NNR_lon(ind);    lat2 = handles.Nuvel1A_NNR_lat(ind);
+		omega2 = handles.Nuvel1A_NNR_omega(ind);
+		[lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
+		lon = lon/D2R;     lat = lat/D2R;
+	else                                        % On the original absolute motion mode
+		handles.absolute_motion = 1;
+		set(handles.popup_FixedPlate,'Enable','off')
+		lon = handles.Nuvel1A_NNR_lon(1);       lat = handles.Nuvel1A_NNR_lat(1);
+		omega = handles.Nuvel1A_NNR_omega(1);
+	end
 
-try         % Delete any existing pole representation
-    delete(findobj('Tag','pole_out'));     delete(findobj('Tag','pole_in1'));
-    delete(findobj('Tag','pole_in2'));
-end
+	try         % Delete any existing pole representation
+		delete(findobj('Tag','pole_out'));     delete(findobj('Tag','pole_in1'));
+		delete(findobj('Tag','pole_in2'));
+	end
 
-% Actualize the pole edit boxes fields and plot the pole
-if (omega ~= 0)         % That is, if the pole exists
-	set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-	set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-	set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
+	% Actualize the pole edit boxes fields and plot the pole
+	if (omega ~= 0)         % That is, if the pole exists
+		set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
+		set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
+		set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
 
-	tmp = lon;
-	if (tmp > 180),     tmp = tmp - 360; end
-	line(tmp,lat,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k',...
-		'MarkerSize',7,'Tag','pole_out');
-	tmp = lon+180;
-	if (tmp > 180),     tmp = tmp - 360;   end
-	line(tmp,-lat,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k',...
-		'MarkerSize',8,'Tag','pole_in1');
-	line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
-else
-	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
-end
+		tmp = lon;
+		if (tmp > 180),     tmp = tmp - 360; end
+		line(tmp,lat,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k',...
+			'MarkerSize',7,'Tag','pole_out');
+		tmp = lon+180;
+		if (tmp > 180),     tmp = tmp - 360;   end
+		line(tmp,-lat,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k',...
+			'MarkerSize',8,'Tag','pole_in1');
+		line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
+	else
+		set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
+	end
 
-% Remove info about the previously calculated velocity results
-set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
+	% Remove info about the previously calculated velocity results
+	set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
-% Flag in appdata which model is currently loaded
-setappdata(handles.figure1,'current_model','NNR')
+	% Flag in appdata which model is currently loaded
+	setappdata(handles.figure1,'current_model','NNR')
 
-% Need to change the ButtonDownFcn call arguments
-h_patch = findobj('Type','patch');
-set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'NNR'})
-guidata(hObject, handles);
+	% Need to change the ButtonDownFcn call arguments
+	h_patch = findobj('Type','patch');
+	set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'NNR'})
+	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radio_PBird_CB(hObject, handles)
@@ -360,75 +359,75 @@ function radio_AKIM2000_CB(hObject, handles)
 
 	set_AKIM2000plate_model(hObject,handles)
 
-if (handles.first_AKIM2000)      % Load and read poles deffinition
-    fid = fopen([handles.path_data 'AKIM2000_poles.dat'],'r');
-    [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
-    fclose(fid);
-    % Save the poles parameters in the handles structure
-    handles.AKIM2000_abbrev = abbrev;
-    handles.AKIM2000_name = name;
-    handles.AKIM2000_lat = lat;
-    handles.AKIM2000_lon = lon;
-    handles.AKIM2000_omega = omega;
-    handles.AKIM2000_comb = do_plate_comb('AKIM2000');
-    handles.first_AKIM2000 = 0;
-end
+	if (handles.first_AKIM2000)      % Load and read poles deffinition
+		fid = fopen([handles.path_data 'AKIM2000_poles.dat'],'r');
+		[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+		fclose(fid);
+		% Save the poles parameters in the handles structure
+		handles.AKIM2000_abbrev = abbrev;
+		handles.AKIM2000_name = name;
+		handles.AKIM2000_lat = lat;
+		handles.AKIM2000_lon = lon;
+		handles.AKIM2000_omega = omega;
+		handles.AKIM2000_comb = do_plate_comb('AKIM2000');
+		handles.first_AKIM2000 = 0;
+	end
 
-% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
-set(handles.popup_MovingPlate,'Value',1,'String',handles.AKIM2000_name)
+	% Fill the Moving plate popupmenu with the plate's names (we have to this in every case)
+	set(handles.popup_MovingPlate,'Value',1,'String',handles.AKIM2000_name)
 
-if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
-    set(handles.popup_FixedPlate,'Value',1)
-    set(handles.popup_FixedPlate,'String',handles.AKIM2000_name)
-    set(handles.popup_FixedPlate,'Enable','on')
-    lon1 = handles.AKIM2000_lon(1);      lat1 = handles.AKIM2000_lat(1);
-    omega1 = handles.AKIM2000_omega(1);
-    ind = get(handles.popup_MovingPlate,'Value');
-    lon2 = handles.AKIM2000_lon(ind);    lat2 = handles.AKIM2000_lat(ind);
-    omega2 = handles.AKIM2000_omega(ind);
-    [lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
-    lon = lon/D2R;     lat = lat/D2R;
-else                                        % On the original absolute motion mode
-    handles.absolute_motion = 1;
-    set(handles.popup_FixedPlate,'Enable','off')
-    lon = handles.AKIM2000_lon(1);       lat = handles.AKIM2000_lat(1);
-    omega = handles.AKIM2000_omega(1);
-end
+	if (handles.abs2rel)                        % We are in "relativized absolute" motion mode
+		set(handles.popup_FixedPlate,'Value',1)
+		set(handles.popup_FixedPlate,'String',handles.AKIM2000_name)
+		set(handles.popup_FixedPlate,'Enable','on')
+		lon1 = handles.AKIM2000_lon(1);      lat1 = handles.AKIM2000_lat(1);
+		omega1 = handles.AKIM2000_omega(1);
+		ind = get(handles.popup_MovingPlate,'Value');
+		lon2 = handles.AKIM2000_lon(ind);    lat2 = handles.AKIM2000_lat(ind);
+		omega2 = handles.AKIM2000_omega(ind);
+		[lon,lat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2);
+		lon = lon/D2R;     lat = lat/D2R;
+	else                                        % On the original absolute motion mode
+		handles.absolute_motion = 1;
+		set(handles.popup_FixedPlate,'Enable','off')
+		lon = handles.AKIM2000_lon(1);       lat = handles.AKIM2000_lat(1);
+		omega = handles.AKIM2000_omega(1);
+	end
 
-try         % Delete any existing pole representation
-    delete(findobj('Tag','pole_out'));     delete(findobj('Tag','pole_in1'));
-    delete(findobj('Tag','pole_in2'));
-end
+	try         % Delete any existing pole representation
+		delete(findobj('Tag','pole_out'));     delete(findobj('Tag','pole_in1'));
+		delete(findobj('Tag','pole_in2'));
+	end
 
-% Actualize the pole edit boxes fields and plot the pole
-if (omega ~= 0)         % That is, if the pole exists
-    set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
-    set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
-    set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
+	% Actualize the pole edit boxes fields and plot the pole
+	if (omega ~= 0)         % That is, if the pole exists
+		set(handles.edit_PoleLon,'String',num2str(lon,'%3.2f'))
+		set(handles.edit_PoleLat,'String',num2str(lat,'%2.2f'))
+		set(handles.edit_PoleRate,'String',num2str(omega,'%1.4f'))
 
-    tmp = lon;
-    if (tmp > 180),     tmp = tmp - 360; end
-    line(tmp,lat,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k',...
-        'MarkerSize',7,'Tag','pole_out');
-    tmp = lon+180;
-    if (tmp > 180),     tmp = tmp - 360;   end
-    line(tmp,-lat,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k',...
-        'MarkerSize',8,'Tag','pole_in1');
-    line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
-else
-	set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
-end
+		tmp = lon;
+		if (tmp > 180),     tmp = tmp - 360; end
+		line(tmp,lat,'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k',...
+			'MarkerSize',7,'Tag','pole_out');
+		tmp = lon+180;
+		if (tmp > 180),     tmp = tmp - 360;   end
+		line(tmp,-lat,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k',...
+			'MarkerSize',8,'Tag','pole_in1');
+		line(tmp,-lat,'Marker','o','MarkerEdgeColor','k','MarkerSize',8,'Tag','pole_in2');
+	else
+		set([handles.edit_PoleLon handles.edit_PoleLat handles.edit_PoleRate],'String','')
+	end
 
-% Remove info about the previously calculated velocity results
-set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
+	% Remove info about the previously calculated velocity results
+	set(handles.text_Speed,'String','Speed   = ');      set(handles.text_Azim,'String','Azimuth = ')
 
-% Flag in appdata which model is currently loaded
-setappdata(handles.figure1,'current_model','AKIM2000')
+	% Flag in appdata which model is currently loaded
+	setappdata(handles.figure1,'current_model','AKIM2000')
 
-% Need to change the ButtonDownFcn call arguments
-h_patch = findobj('Type','patch');
-set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'AKIM2000'})
-guidata(hObject, handles);
+	% Need to change the ButtonDownFcn call arguments
+	h_patch = findobj('Type','patch');
+	set(h_patch,'ButtonDownFcn',{@bdn_plate,handles,'AKIM2000'})
+	guidata(hObject, handles);
 
 %--------------------------------------------------------------------------------------------------
 function radio_REVEL_CB(hObject, handles)
