@@ -71,6 +71,9 @@
  *		04/06/06 J Luis, Updated to compile with version 4.1.3
  *	 
  *		12/07/08 J Luis, Made it standalone (no GMT lib dependency)
+ *	 
+ *		11/10/11 J Luis, Now works in column major order, which means we can do things faster but
+ *		                 above all we save a lot of memory by not making one copy of input array.
  */
  
 #include "mex.h"
@@ -122,7 +125,7 @@ struct GRD_HEADER {
 	int nx;				/* Number of columns */
 	int ny;				/* Number of rows */
 	int node_offset;		/* 0 for node grids, 1 for pixel grids */
-/* This section is flexible. It is not copied to any grid header */
+	/* This section is flexible. It is not copied to any grid header */
 	int type;			/* Grid format */
 	char name[256];			/* Actual name of the file after any ?<varname> and =<stuff> has been removed */
 	char varname[80];		/* NetCDF: variable name */
@@ -132,7 +135,7 @@ struct GRD_HEADER {
 	int t_index[3];			/* NetCDF: index of higher coordinates */
 	double nan_value;		/* Missing value as stored in grid file */
 	double xy_off;			/* 0.0 (node_offset == 0) or 0.5 ( == 1) */
-/* The following elements should not be changed. They are copied verbatim to the native grid header */
+	/* The following elements should not be changed. They are copied verbatim to the native grid header */
 	double x_min;			/* Minimum x coordinate */
 	double x_max;			/* Maximum x coordinate */
 	double y_min;			/* Minimum y coordinate */
@@ -172,12 +175,12 @@ int GMT_boundcond_parse (struct GMT_EDGEINFO *edgeinfo, char *edgestring);
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	int	i, j, ij, k, n, nm, nx, ny, i2, k1, k2, argc = 0, n_arg_no_char = 0;
-	int p[4], n_used = 0, mx, nc_h, nr_h, *i_4, *pdata_i4, entry, GMT_pad[4];
+	int p[4], n_used = 0, mx, my, nc_h, nr_h, *i_4, *pdata_i4, entry, GMT_pad[4];
 	short int *i_2, *pdata_i2;
 	unsigned short int *ui_2, *pdata_ui2;
 	char	**argv;
 	unsigned char *ui_1, *o_ui1, *pdata_ui1;
-	
+
 	int	error = FALSE, map_units = FALSE, normalize = FALSE, atan_trans = FALSE, bad, do_direct_deriv = FALSE;
 	int	find_directions = FALSE, do_cartesian = FALSE, do_orientations = FALSE, save_slopes = FALSE, add_ninety = FALSE;
 	int	lambertian_s = FALSE, peucker = FALSE, lambertian = FALSE, unknown_nans = TRUE, check_nans = FALSE;
@@ -188,13 +191,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	float	*data, *z_4, *pdata_s;
 	float	nan = mxGetNaN();
-	double	dx_grid, dy_grid, x_factor, y_factor, dzdx, dzdy, ave_gradient, norm_val = 1.0, sigma = 0.0;
-	double	azim, denom, max_gradient = 0.0, min_gradient = 0.0, rpi, m_pr_degree, lat, azim2;
+	double	dzdx = 0.0, dzdy = 0.0, ave_gradient = 0., norm_val = 1.0, sigma = 0.0;
+	double	azim = 0.0, denom, max_gradient = 0.0, min_gradient = 0.0, rpi, m_pr_degree, lat, azim2;
 	double	x_factor2, y_factor2, dzdx2, dzdy2, dzds1, dzds2, offset;
 	double	*pdata, *pdata_d, *z_8, *head;
 	double	p0, q0, elev, p0q0_cte;
 	double	ka = 0.55, kd = 0.6, ks = 0.4, k_ads = 1.55, spread = 10., diffuse, spec;
 	double	norm_z, mag, s[3], lim_x, lim_y, lim_z;
+	double	dx_grid, dy_grid, x_factor, y_factor, *dx_grid__, *x_factor__, *x_factor2__;
 	float	r_min = FLT_MAX, r_max = -FLT_MAX, scale;
 	char	input[BUFSIZ], *ptr;
 	struct	GRD_HEADER header;
@@ -488,51 +492,52 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	header.nx = nx;			header.ny = ny;
 	header.node_offset = irint(head[6]);
 	mx = nx + 4;
+	my = ny + 4;
 	nm = header.nx * header.ny;
 
 	data = (float *)mxMalloc ((nx+4)*(ny+4) * sizeof (float));
 
 	/* Transpose from Matlab orientation to gmt grd orientation */
 	if (is_double) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
-			k1 = mx * (i2 + 2) + 2;
-			for (j = 0; j < nx; j++) data[j + k1] = (float)z_8[j*ny+i];
+		for (i = i2 = 0; i < nx; i++) {
+			k1 = my * (i + 2) + 2;
+			for (j = 0; j < ny; j++) data[j + k1] = (float)z_8[i2++];
 		}
 	}
 	else if (is_single) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
-			k1 = mx * (i2 + 2) + 2;
-			for (j = 0; j < nx; j++) data[j + k1] = z_4[j*ny+i];
+		for (i = i2 = 0; i < nx; i++) {
+			k1 = my * (i + 2) + 2;
+			for (j = 0; j < ny; j++) data[j + k1] = z_4[i2++];
 		}
 	}
 	else if (is_int32) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
-			k1 = mx * (i2 + 2) + 2;
-			for (j = 0; j < nx; j++) data[j + k1] = (float)i_4[j*ny+i];
+		for (i = i2 = 0; i < nx; i++) {
+			k1 = my * (i + 2) + 2;
+			for (j = 0; j < ny; j++) data[j + k1] = (float)i_4[i2++];
 		}
 	}
 	else if (is_int16) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
-			k1 = mx * (i2 + 2) + 2;
-			for (j = 0; j < nx; j++) data[j + k1] = (float)i_2[j*ny+i];
+		for (i = i2 = 0; i < nx; i++) {
+			k1 = my * (i + 2) + 2;
+			for (j = 0; j < ny; j++) data[j + k1] = (float)i_2[i2++];
 		}
 	}
 	else if (is_uint16) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
-			k1 = mx * (i2 + 2) + 2;
-			for (j = 0; j < nx; j++) data[j + k1] = (float)ui_2[j*ny+i];
+		for (i = i2 = 0; i < nx; i++) {
+			k1 = my * (i + 2) + 2;
+			for (j = 0; j < ny; j++) data[j + k1] = (float)ui_2[i2++];
 		}
 	}
 	else if (is_uint8) {
-		for (i = 0, i2 = ny - 1; i < ny; i++, i2--) {
-			k1 = mx * (i2 + 2) + 2;
-			for (j = 0; j < nx; j++) data[j + k1] = (float)ui_1[j*ny+i];
+		for (i = i2 = 0; i < nx; i++) {
+			k1 = my * (i + 2) + 2;
+			for (j = 0; j < ny; j++) data[j + k1] = (float)ui_1[i2++];
 		}
 	}
 
 	if ((is_double || is_single) && unknown_nans) {
 		/* Loop over the file and find if we have NaNs. Stop at first NaN occurence. */
-		for (i = 0; i < nm; i++) {
+		for (i = 2*(my+1); i < mx*(my-2); i++) {
 			if (ISNAN_F(data[i])) {
 				check_nans = TRUE;
 				break;
@@ -546,13 +551,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	/* set boundary conditions:  */
 
+	/* We must cheat GMT_boundcond_set so it 'thinks' is dealing with a row major array */
+	header.nx = ny;      header.ny = nx;
 	GMT_boundcond_set (&header, &edgeinfo, GMT_pad, data);
+	header.nx = nx;      header.ny = ny;
 
+	/* The dx_grid, x_factor and x_factor2 are computed again later in "if(map_units)" 
+	   but it makes the code simpler if we do it this little extra computations
+	*/
 	if (map_units) {
 		/*m_pr_degree = 2.0 * M_PI * gmtdefs.ref_ellipsoid[gmtdefs.ellipsoid].eq_radius / 360.0;*/
-		m_pr_degree = M_PR_DEG;		/* Limit to a spherical Earth approximation */
-		dx_grid = m_pr_degree * header.x_inc * cosd ((header.y_max + header.y_min) / 2.0);
-		dy_grid = m_pr_degree * header.y_inc;
+		dx_grid = M_PR_DEG * header.x_inc * cosd ((header.y_max + header.y_min) / 2.0);
+		dy_grid = M_PR_DEG * header.y_inc;
 	}
 	else {
 		dx_grid = header.x_inc;
@@ -572,46 +582,69 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		y_factor *= cos(azim);
 	}
 
-	p[0] = 1;	p[1] = -1;	p[2] = mx;	p[3] = -mx;
+	p[0] = 1;	p[1] = -1;	p[2] = my;	p[3] = -my;
 	
 	min_gradient = DBL_MAX;	max_gradient = -DBL_MAX;
-	ave_gradient = 0.0;
+
+	if (map_units) {
+		dx_grid__ = (double *)mxMalloc(header.ny * sizeof(double));
+		x_factor__ = (double *)mxMalloc(header.ny * sizeof(double));
+		if (do_direct_deriv && two_azims)
+			x_factor2__ = (double *)mxMalloc(header.ny * sizeof(double));
+
+		for (j = 0; j < header.ny; j++) {
+			lat = (header.node_offset) ? -header.y_inc * (j + 0.5) : -header.y_inc * j;
+			lat += header.y_max;
+			dx_grid__[j] = M_PR_DEG * header.x_inc * cos (D2R * lat);
+			x_factor__[j] = -1.0 / (2.0 * dx_grid__[j]);
+			if (do_direct_deriv) {
+				if (two_azims)
+					x_factor2__[j] = x_factor__[j] * sin(azim2);
+				x_factor__[j] *= sin(azim);
+			}
+		}
+	}
+
 	if (lambertian) {
 		lim_x = header.x_max - header.x_min;
 		lim_y = header.y_max - header.y_min;
 		lim_z = header.z_max - header.z_min;
 		scale = MAX(lim_z, MAX(lim_x, lim_y));
-		lim_x /= scale;	lim_y /= scale;		lim_z /= scale;
-		dx_grid /= lim_x;	dy_grid /= lim_y;
-		x_factor = -dy_grid / (2 * lim_z);	y_factor = -dx_grid / (2 * lim_z);
+		lim_x /= scale;
+		lim_y /= scale;
+		lim_z /= scale;
+		dx_grid /= lim_x;
+		dy_grid /= lim_y;
+		x_factor = -dy_grid / (2 * lim_z);
+		y_factor = -dx_grid / (2 * lim_z);
 	}
-	for (j = k = 0; j < header.ny; j++) {
-		if (map_units) {
-			lat = (header.node_offset) ? -header.y_inc * (j + 0.5) : -header.y_inc * j;
-			lat += header.y_max;
-			dx_grid = m_pr_degree * header.x_inc * cos (D2R * lat);
-			x_factor = -1.0 / (2.0 * dx_grid);
-			if (do_direct_deriv) {
-				if (two_azims)
-					x_factor2 = x_factor * sin(azim2);
-				x_factor *= sin(azim);
+
+	for (i = k = 0; i < header.nx; i++) {
+		ij = (i + 2) * my + 2;
+		for (j = 0; j < header.ny; j++, k++, ij++) {
+			if (check_nans) {
+				for (n = 0, bad = FALSE; !bad && n < 4; n++) 
+					if (ISNAN_F(data[ij+p[n]])) bad = TRUE;
+				if (bad) {	/* One of corners = NaN, skip */
+					data[k] = nan;
+					continue;
+				}
 			}
-		}
-		ij = (j + 2) * mx + 2;
-		for (i = 0; i < header.nx; i++, k++, ij++) {
-			for (n = 0, bad = FALSE; !bad && n < 4; n++) 
-				if (check_nans && ISNAN_F (data[ij+p[n]])) bad = TRUE;
-			if (bad) {	/* One of corners = NaN, skip */
-				data[k] = nan;
-				continue;
+
+			if (map_units) {
+				dx_grid = dx_grid__[j];
+				x_factor = x_factor__[j];
+				if (do_direct_deriv && two_azims)
+					x_factor2 = x_factor2__[j];
 			}
-			
-			dzdx = (data[ij+1] - data[ij-1]) * x_factor;
-			dzdy = (data[ij-mx] - data[ij+mx]) * y_factor;
+
+			dzdy = (data[ij+1] - data[ij-1]) * y_factor;
+			if (azim)		/* Otherwise x_factor is zero and dzdx was initialized to zero */
+				dzdx = (data[ij-my] - data[ij+my]) * x_factor;
 			if (two_azims) {
-				dzdx2 = (data[ij+1] - data[ij-1]) * x_factor2;
-				dzdy2 = (data[ij-mx] - data[ij+mx]) * y_factor2;
-			}	
+				dzdy2 = (data[ij+1] - data[ij-1]) * y_factor2;
+				dzdx2 = (data[ij-my] - data[ij+my]) * x_factor2;
+			}
 
 			/* Write output to unused NW corner */
 
@@ -660,6 +693,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 	}
 
+	if (map_units) {
+		mxFree(dx_grid__);
+		mxFree(x_factor__);
+		if (do_direct_deriv && two_azims)
+			mxFree(x_factor2__);
+	}
+
 	if (lambertian || lambertian_s || peucker) {	/* data must be scaled to the [-1,1] interval, but we'll do it into [-.95, .95] to not get too bright */
 		scale = (float)(1. / (r_max - r_min));
 		for (k = 0; k < nm; k++) {
@@ -682,14 +722,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 				else {
 					denom = 0.0;
-					for (k = 0; k < nm; k++) 
-						if (!ISNAN_F (data[k])) denom += pow(data[k] - ave_gradient, 2.0);
+					if (!check_nans) {
+						for (k = 0; k < nm; k++) denom += pow(data[k] - ave_gradient, 2.0);
+					}
+					else {
+						for (k = 0; k < nm; k++) 
+							if (!ISNAN_F(data[k])) denom += pow(data[k] - ave_gradient, 2.0);
+					}
 					denom = sqrt( (n_used - 1) / denom);
 					sigma = 1.0 / denom;
 				}
 				rpi = 2.0 * norm_val / M_PI;
-				for (k = 0; k < nm; k++) 
-					if (!ISNAN_F (data[k])) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
+				if (!check_nans) {
+					for (k = 0; k < nm; k++) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
+				}
+				else {
+					for (k = 0; k < nm; k++) 
+						if (!ISNAN_F (data[k])) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
+				}
 				header.z_max = rpi * atan((max_gradient - ave_gradient)*denom);
 				header.z_min = rpi * atan((min_gradient - ave_gradient)*denom);
 			}
@@ -720,8 +770,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				else {
 					denom = norm_val / (ave_gradient - min_gradient);
 				}
-				for (k = 0; k < nm; k++) 
-					if (!ISNAN_F (data[k])) data[k] = (float)((data[k] - ave_gradient) * denom);
+				if (!check_nans) {
+					for (k = 0; k < nm; k++) data[k] = (float)((data[k] - ave_gradient) * denom);
+				}
+				else {
+					for (k = 0; k < nm; k++) 
+						if (!ISNAN_F (data[k])) data[k] = (float)((data[k] - ave_gradient) * denom);
+				}
 				header.z_max = (max_gradient - ave_gradient) * denom;
 				header.z_min = (min_gradient - ave_gradient) * denom;
 			}
@@ -733,54 +788,37 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	nx = header.nx;		ny = header.ny;
 
 	if (is_double) {
-		plhs[0] = mxCreateDoubleMatrix (ny,nx, mxREAL);
-		pdata_d = mxGetPr(plhs[0]);
-		for (i = 0; i < ny; i++) {
-			k1 = ny - i - 1;	k2 = i * nx;
-			for (j = 0; j < nx; j++) pdata_d[j*ny+k1] = (double)data[k2+j];
-		}
+		plhs[0] = mxCreateDoubleMatrix (0,0, mxREAL);
+		mxRealloc((void *)data, nx*ny * sizeof(double));
 	}
 	else if (is_single) {
-		plhs[0] = mxCreateNumericMatrix (ny,nx,mxSINGLE_CLASS,mxREAL);
-		pdata_s = (float *)mxGetData(plhs[0]);
-		for (i = 0; i < ny; i++) {
-			k1 = ny - i - 1;	k2 = i * nx;
-			for (j = 0; j < nx; j++) pdata_s[j*ny+k1] = data[k2+j];
-		}
+		plhs[0] = mxCreateNumericMatrix (0,0,mxSINGLE_CLASS,mxREAL);
+		mxRealloc((void *)data, nx*ny * sizeof(float));
 	}
 	else if (is_int32) {
-		plhs[0] = mxCreateNumericMatrix (ny,nx,mxINT32_CLASS,mxREAL);
-		pdata_i4 = (int *)mxGetData(plhs[0]);
-		for (i = 0; i < ny; i++) {
-			k1 = ny - i - 1;	k2 = i * nx;
-			for (j = 0; j < nx; j++) pdata_i4[j*ny+k1] = irint(data[k2+j]);
-		}
+		plhs[0] = mxCreateNumericMatrix (0,0,mxINT32_CLASS,mxREAL);
+		mxRealloc((void *)data, nx*ny * sizeof(float));
 	}
 	else if (is_int16) {
-		plhs[0] = mxCreateNumericMatrix (ny,nx,mxINT16_CLASS,mxREAL);
-		pdata_i2 = (short int *)mxGetData(plhs[0]);
-		for (i = 0; i < ny; i++) {
-			k1 = ny - i - 1;	k2 = i * nx;
-			for (j = 0; j < nx; j++) pdata_i2[j*ny+k1] = (short int)irint(data[k2+j]);
-		}
+		plhs[0] = mxCreateNumericMatrix (0,0,mxINT16_CLASS,mxREAL);
+		mxRealloc((void *)data, nx*ny * sizeof(short int));
 	}
 	else if (is_uint16) {
-		plhs[0] = mxCreateNumericMatrix (ny,nx,mxUINT16_CLASS,mxREAL);
-		pdata_ui2 = (unsigned short int *)mxGetData(plhs[0]);
-		for (i = 0; i < ny; i++) {
-			k1 = ny - i - 1;	k2 = i * nx;
-			for (j = 0; j < nx; j++) pdata_ui2[j*ny+k1] = (unsigned short int)irint(data[k2+j]);
-		}
+		plhs[0] = mxCreateNumericMatrix (0,0,mxUINT16_CLASS,mxREAL);
+		mxRealloc((void *)data, nx*ny * sizeof(short int));
 	}
 	else if (is_uint8) {
-		plhs[0] = mxCreateNumericMatrix (ny,nx,mxUINT8_CLASS ,mxREAL);
-		pdata_ui1 = (unsigned char *)mxGetData(plhs[0]);
-		for (i = 0; i < ny; i++) {
-			k1 = ny - i - 1;	k2 = i * nx;
-			for (j = 0; j < nx; j++) pdata_ui1[j*ny+k1] = (unsigned char)irint(data[k2+j]);
-		}
+		plhs[0] = mxCreateNumericMatrix (0,0,mxUINT8_CLASS ,mxREAL);
+		mxRealloc((void *)data, nx*ny * sizeof(char));
 	}
-	mxFree(data);
+
+	if (is_double)
+		mxSetPr(plhs[0], (void *)data);
+	else
+		mxSetData(plhs[0], (void *)data);
+
+	mxSetM(plhs[0], ny);
+	mxSetN(plhs[0], nx);
 
 	if (nlhs == 2) {
 		plhs[1] = mxCreateDoubleMatrix (1,1, mxREAL);
