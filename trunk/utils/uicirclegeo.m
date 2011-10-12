@@ -474,7 +474,7 @@ switch action
 		s.hend = [];
 		if ishandle(s.hcirc),	set(s.hcirc,'userdata',s),	end	
 	case 'circlemousedown'              % mouse down on circle
-		stype = get(gcf,'selectiontype');
+		stype = get(get(get(this_gco,'Parent'),'Parent'),'selectiontype');	% Same as get(gcf,'selectiontype')
 		s = get(this_gco,'userdata');
 		s.parent = get(this_gco,'parent');	
 		switch stype		% shift-click to toggle control points
