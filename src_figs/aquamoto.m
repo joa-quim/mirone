@@ -3519,7 +3519,7 @@ function varargout = vector_plot(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	vector_plot_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	movegui(handles.figure1,'center')
+	move2side(handles.figure1,'center')
 
 	handles.hAquaFig = varargin{1};			% Aquamoto fig handle
 	handles.vecScale = varargin{2};
