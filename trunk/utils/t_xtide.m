@@ -1,5 +1,4 @@
-%#mex
-function pred = t_xtide(varargin);
+function pred = t_xtide(varargin)
 % T_XTIDE Tidal prediction
 % YOUT=T_XTIDE(LONG,LAT) makes a tidal prediction for the current day using the
 % harmonics file from XTIDE. LONG,LAT is used to find the closest station to that position
@@ -61,24 +60,24 @@ curr_pt = [varargin{1:2}];
 varargin(1:2)=[];
 
 % Time vector (if available) otherwise take current time.
-if (length(varargin) > 0 & ~isstr(varargin{1}))
+if (~isempty(varargin) && ~isstr(varargin{1}))
     tim = varargin{1};
     varargin(1) = [];
     if (length(tim) == 1)
         if (tim < 1000)
             dat = clock;
-            tim = datenum(dat(1),dat(2),dat(3))-0.5+[0:1/48:tim];
+            tim = datenum(dat(1),dat(2),dat(3))-0.5+(0:1/48:tim);
         else
-            tim = tim+[0:1/48:2]-0.5;       % 2 days worth.
+            tim = tim+(0:1/48:2)-0.5;       % 2 days worth.
         end	 	
     end
 else 
-    dat = clock;    tim = datenum(dat(1),dat(2),dat(3))-0.5+[0:.25:48]/24;  clear dat;
+    dat = clock;    tim = datenum(dat(1),dat(2),dat(3))-0.5+(0:.25:48)/24;  clear dat;
 end
 
 format = 'raw';     unt = 'original';
-k=1;
-while (length(varargin) > 0)
+
+while (~isempty(varargin))
     switch lower(varargin{1}(1:3)),
         case 'for',     format = lower(varargin{2});
         case 'uni',     unt = lower(varargin{2}); 
@@ -90,9 +89,9 @@ end
 % If we want a time series
 pred = [];
 [units,convf] = convert_units(unt,xharm.units(ista,:));       % Convert units if requested.
-if strcmp(format(1:2),'ra') | strcmp(format(1:2),'fu') | strcmp(format(1:2),'ti')
-    if strcmp(format(1:2),'ti')             % Data every minute for hi/lo forecasting.
-        tim = tim(1):(1/1440):tim(end); 
+if strcmp(format(1:2),'ra') || strcmp(format(1:2),'fu') || strcmp(format(1:2),'ti')
+	if strcmp(format(1:2),'ti')             % Data every minute for hi/lo forecasting.
+		tim = tim(1):(1/1440):tim(end); 
 	end
     
 	% Convert into time since the beginning of year
@@ -109,19 +108,19 @@ if strcmp(format(1:2),'ra') | strcmp(format(1:2),'fu') | strcmp(format(1:2),'ti'
 	% Compute times of hi/lo from every-minute data
 	if strcmp(format(1:2),'ti')
 		% Check if this is a current station
-		if ~isempty(findstr('Current',xharm.station(ista,:))), currents=1; else currents=0; end;
+		%if ~isempty(strfind('Current',xharm.station(ista,:))), currents=1; else currents=0; end;
 		ddpred = diff(diff(pred) > 0);
         flat = find(ddpred ~= 0) + 1;
 
         hi.mtime = tim(flat);           hi.value = pred(flat);
         hi.type = zeros(size(flat));
-        hi.type(find(ddpred(flat-1) < 0)) = 1;  % 0=lo, 1=hi
+        hi.type(ddpred(flat-1) < 0) = 1;  % 0=lo, 1=hi
         hi.units = deblank(units);      pred = hi;
 	end
 end
 
 % Create information structure
-if strcmp(format(1:2),'in') | strcmp(format(1:2),'fu'),
+if strcmp(format(1:2),'in') || strcmp(format(1:2),'fu'),
 	if (~isempty(pred))
         pred.yout=pred;     pred.mtime=tim; 
 	else
@@ -192,7 +191,7 @@ if (nargout == 0)
     hold off
     
     dat = clock;    exact_now = datenum(dat(1),dat(2),dat(3),dat(4),dat(5),dat(6));     clear dat;
-    if (exact_now >= tim(1) & exact_now <= tim(end))    % If current time fits inside the TIM vector
+    if (exact_now >= tim(1) && exact_now <= tim(end))    % If current time fits inside the TIM vector
         y_now = interp1(tim,pred,exact_now);
         line(exact_now,y_now,'Marker','+','MarkerSize',10,'MarkerEdgeColor','k','LineWidth',2)
         txt_now = ['Time now ' datestr(exact_now,16) ' UTC ' num2str(y_now,'%.1f') 'm'];
@@ -218,43 +217,43 @@ if (nargout == 0)
 end
   
 % --------------------------------------------------------------------------
-function [units,convf] = convert_units(unt,origunits);
+function [units,convf] = convert_units(unt,origunits)
 % Conversion factors from origianl units if requested and possible
 % (no conversions from knots to feet).
 %
-if strcmp(unt(1:3),origunits(1:3)) | strcmp(unt(1:3),'ori'),
-    units = origunits;
-    convf = 1;
-else
-    switch unt(1:3),
-        case 'fee',
-            if strcmp(origunits(1:3), 'met'),
-  	            units = 'feet';     convf = 3.2808399;
-            else
-  	            units = origunits;  convf = 1;
-            end
-        case 'met',
-            if strcmp(origunits(1:3), 'fee'),
-  	            units = 'meters';   convf = 0.3048;
-            else
-  	            units = origunits;  convf = 1;
-            end
-        case 'm/s',
-            if strcmp(origunits(1:3), 'kno'),
-  	            units = 'meters/sec';   convf = 0.51444444;
-            else
-  	            units = origunits;      convf = 1;
-            end
-        case 'kno',
-            if strcmp(origunits(1:3), 'm/s'),
-  	            units = 'knots';        convf = 1.9438445;
-            else
-  	            units = origunits;      convf = 1;
-            end
-        otherwise
-            error('Unknown units')
-        end
-end
+	if strcmp(unt(1:3),origunits(1:3)) || strcmp(unt(1:3),'ori'),
+		units = origunits;
+		convf = 1;
+	else
+		switch unt(1:3),
+			case 'fee',
+				if strcmp(origunits(1:3), 'met'),
+					units = 'feet';     convf = 3.2808399;
+				else
+					units = origunits;  convf = 1;
+				end
+			case 'met',
+				if strcmp(origunits(1:3), 'fee'),
+					units = 'meters';   convf = 0.3048;
+				else
+					units = origunits;  convf = 1;
+				end
+			case 'm/s',
+				if strcmp(origunits(1:3), 'kno'),
+					units = 'meters/sec';   convf = 0.51444444;
+				else
+					units = origunits;      convf = 1;
+				end
+			case 'kno',
+				if strcmp(origunits(1:3), 'm/s'),
+					units = 'knots';        convf = 1.9438445;
+				else
+					units = origunits;      convf = 1;
+				end
+			otherwise
+				error('Unknown units')
+			end
+	end
 
 % ---------------------------------------------------------------------------
 function [d,hdg] = t_gcdist(lat1,lon1,lat2,lon2)
@@ -282,8 +281,8 @@ dtmp=cos(lon1-lon2);
 dtmp=sinlat1.*sinlat2 + coslat1.*coslat2.*dtmp;
 
 % check for invalid values due to roundoff errors
-in1=find(dtmp > 1);     dtmp(in1)=1.0;
-in2=find(dtmp < -1);    dtmp(in2)=-1.0;
+in1= dtmp > 1;     dtmp(in1)=1.0;
+in2= dtmp < -1;    dtmp(in2)=-1.0;
 
 % convert to meters for earth distance
 ad = acos(dtmp);
@@ -294,8 +293,8 @@ if (nargout == 2)
 	hdgcos = (sinlat2-sinlat1.*cos(ad))./(sin(ad).*coslat1);
 	
 	% check value to be legal range
-	in1 = find(hdgcos > 1.0);   hdgcos(in1) = 1.0;
-	in2 = find(hdgcos < -1.0);  hdgcos(in2) = -1.0;
+	in1 = hdgcos > 1.0;   hdgcos(in1) = 1.0;
+	in2 = hdgcos < -1.0;  hdgcos(in2) = -1.0;
 	hdg = acos(hdgcos).*raddeg;
 	
 	% if longitude is decreasing then heading is between 180 and 360
@@ -320,7 +319,7 @@ function calendario(obj,eventdata,h_fig)
 new_date = uisetdate;
 if (~isempty(new_date))
     yr = str2double(new_date(8:end));
-    if (yr < 1970 | yr > 2037)
+    if (yr < 1970 || yr > 2037)
         errordlg('Tide prediction is not possible for this date.','Error');     return
     end
     tim = datenum(new_date);
@@ -370,7 +369,7 @@ save(fname,'xtide', 'xharm')
 delete(h)
   
 % --------------------------------------------------------------------------
-function [xtide,xharm] = read_xtidefile(fid);
+function [xtide,xharm] = read_xtidefile(fid)
 % Reads the xtide harmonics file and creates a data structure
 % with all that info for faster access
 
@@ -415,7 +414,7 @@ xharm = struct('station',repmat(' ',nsta,79),'units',repmat(' ',nsta,8),...
 	     'A',zeros(nsta,ncon),'kappa',zeros(nsta,ncon));
 
 nh=0;
-while (length(l) > 0 & l(1) ~= -1)
+while (~isempty(l) && l(1) ~= -1)
     l=[l '   '];
     nh=nh+1;
     while ~strcmp(l(1:3),'# !'),
@@ -424,12 +423,12 @@ while (length(l) > 0 & l(1) ~= -1)
     while strcmp(l(1:3),'# !'),
         switch l(4:7),
             case 'unit',
-                tmp=deblank(l(findstr(l,':')+2:end));
+                tmp=deblank(l(strfind(l,':')+2:end));
                 xharm.units(nh,1:length(tmp))=tmp;
             case 'long',
-                xharm.longitude(nh)=sscanf(l(findstr(l,':')+1:end),'%f');
+                xharm.longitude(nh)=sscanf(l(strfind(l,':')+1:end),'%f');
             case 'lati'  
-                xharm.latitude(nh)=sscanf(l(findstr(l,':')+1:end),'%f');
+                xharm.latitude(nh)=sscanf(l(strfind(l,':')+1:end),'%f');
         end
         l=fgetl(fid);
     end
@@ -437,15 +436,15 @@ while (length(l) > 0 & l(1) ~= -1)
     if (tmp(1) ~= '#')    % Not commented out
         xharm.station(nh,1:length(tmp)) = tmp;
         tmp = fgetl(fid);
-        k = min(findstr(tmp,':'));
-        tim = sscanf(tmp(1:k-1),'%d')+sscanf(tmp(k+[1:2]),'%d')/60;
+        k = min(strfind(tmp,':'));
+        tim = sscanf(tmp(1:k-1),'%d')+sscanf(tmp(k+(1:2)),'%d')/60;
         xharm.timezone(nh) = tim;
         xharm.datum(nh) = sscanf(fgetl(fid),'%f');
 
         for (k=1:ncon)
             l = fgetl(fid);
             if (l(1) ~= 'x')
-	            ll = min([findstr(' ',l) find(abs(l)==9)]); % space or tab
+	            ll = min([strfind(' ',l) find(abs(l)==9)]); % space or tab
 	            tmp = sscanf(l(ll+1:end),'%f',2);
 	            xharm.A(nh,k) = tmp(1);
 	            xharm.kappa(nh,k) = tmp(2);
@@ -464,10 +463,10 @@ xharm.A = sparse(xharm.A);
 xharm.kappa = sparse(xharm.kappa);
   
 % --------------------------------------------------------------------------
-function l = fgetl_nocom(fid);
+function l = fgetl_nocom(fid)
 % Gets a line that isn't a comment line
 l = fgetl(fid);
-while (length(l) > 0 & l(1) == '#')     l = fgetl(fid);  end
+while (~isempty(l) && l(1) == '#')     l = fgetl(fid);  end
   
 % --------------------------------------------------------------------------
 function [varargout] = uisetdate(arg)
@@ -537,28 +536,28 @@ hfig=figure('units','pixels','position',[0 0 290 330],'menubar','none','numberti
             'name','Calendar','resize','off','keypressfcn','uisetdate(''changeyear'')', ...
             'Color',get(0,'factoryUicontrolBackgroundColor'),'tag','uisetdate', ...
             'Visible','off','DefaultUIControlFontName','arial','DefaultUIControlFontSize',10);
-movegui(hfig,'center');
+move2side(hfig,'center');
 
 %frame buttons
-h=uicontrol('style','frame','units','pixels','position',[2 2 286 215]);
-h=uicontrol('style','frame','units','pixels','position',[2 2 286 185]);
-h=uicontrol('style','frame','units','pixels','position',[2 222 286 66]);
-h=uicontrol('style','frame','units','pixels','position',[2 292 286 36]);
+uicontrol('style','frame','units','pixels','position',[2 2 286 215]);
+uicontrol('style','frame','units','pixels','position',[2 2 286 185]);
+uicontrol('style','frame','units','pixels','position',[2 222 286 66]);
+uicontrol('style','frame','units','pixels','position',[2 292 286 36]);
 
 %current date button
 tts='Use +/- keys to change year by unit step. Use y key to set the year';
-h=uicontrol('style','text','units','pixels','position',[10 298 270 20],'string',datet, ...
+uicontrol('style','text','units','pixels','position',[10 298 270 20],'string',datet, ...
             'horizontalalignment','center','fontsize',12,'tag','date', 'tooltipstring',tts);
 
 %validate button
-h=uicontrol('style','pushbutton','units','pixels','position',[245 300 30 20], ...
+uicontrol('style','pushbutton','units','pixels','position',[245 300 30 20], ...
             'string','OK','tooltipstring','Validate current date', ...
             'callback','uisetdate(''validate'')');
 
 %static text buttons for day name
 for i=1:7,
     pos=[10+40*(i-1) 190 30 20];
-    h=uicontrol('style','text','units','pixels','position',pos,'string',listJ{i}, 'horizontalalignment','center');
+    uicontrol('style','text','units','pixels','position',pos,'string',listJ{i}, 'horizontalalignment','center');
 end
 set(hfig,'Visible','on')
 
@@ -616,7 +615,7 @@ for (i=1:2)
     for (j=1:6)
         pos = [15+45*(j-1) 260-(i-1)*30 35 20];
         st = listM{6*(i-1)+j};
-        h = uicontrol('style','togglebutton','units','pixels','position',pos,'string',st, ...
+        uicontrol('style','togglebutton','units','pixels','position',pos,'string',st, ...
               'tag','month','callback','uisetdate(''changemonth'')');
     end
 end
@@ -626,7 +625,7 @@ for (i=1:size(C,1))     % day buttons
         if C(i,j),
             pos=[10+40*(j-1) 160-(i-1)*30 30 20];
             st=num2str(C(i,j));
-            h=uicontrol('style','togglebutton','units','pixels','position',pos,'string',st, ...
+            uicontrol('style','togglebutton','units','pixels','position',pos,'string',st, ...
                'tag','day','callback','uisetdate(''changeday'')');
         end
     end
