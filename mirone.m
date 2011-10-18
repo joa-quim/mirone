@@ -1775,7 +1775,7 @@ function varargout = ImageIllumModel_CB(handles, opt)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	if (nargin == 1),	opt = 'grdgradient_A';	end
 
-	luz = shading_params(opt);	pause(0.01)			% Give time to the shading_params window be deleted
+	luz = shading_params(opt);
 	if (isempty(luz))
 		if (nargout)	varargout{1} = [];		end
 		return
@@ -1906,9 +1906,9 @@ function ImageIllumFalseColor(luz, handles)
 	if isempty(Z),		return,		end		% An error message was already issued
 	set(handles.figure1,'pointer','watch')
 	D2R = pi/180;
-	
+
 	% Tiling
-	[ind_s,ind] = tile(m,400,4);		% shade_manip_raster "only consumes" 3 times Z grid size
+	[ind_s,ind] = tile(m,600,4);		% shade_manip_raster "only consumes" 3 times Z grid size
 	if size(ind_s,1) > 1
 		zz1 = uint8([]);		zz2 = uint8([]);	zz3 = uint8([]);
 		for i = 1:size(ind_s,1)
@@ -1928,6 +1928,12 @@ function ImageIllumFalseColor(luz, handles)
 		zz(:,:,2) = shade_manip_raster((luz.azim(2)-90)*D2R,luz.elev*D2R,Z);
 		zz(:,:,3) = shade_manip_raster((luz.azim(3)-90)*D2R,luz.elev*D2R,Z);
 		zz = uint8((254 * zz) + 1);
+% 		tmp = grdgradient_m(Z,head, '-A0',  '-M', '-Nt');		tmp(tmp < 0) = 0;
+% 		zz(:,:,1) = uint8(cvlib_mex('CvtScale', tmp, 254, 1));
+% 		tmp = grdgradient_m(Z,head, '-A120','-M', '-Nt');		tmp(tmp < 0) = 0;
+% 		zz(:,:,2) = uint8(cvlib_mex('CvtScale', tmp, 254, 1));
+% 		tmp = grdgradient_m(Z,head, '-A240','-M', '-Nt');		tmp(tmp < 0) = 0;
+% 		zz(:,:,3) = uint8(cvlib_mex('CvtScale', tmp, 254, 1));
 	end
 
 	if (isappdata(handles.figure1,'illumComm')),	rmappdata(handles.figure1,'illumComm'),		end
