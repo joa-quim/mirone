@@ -361,11 +361,12 @@ function cut2tif(handles, got_R, west, east, south, north, FileName)
 
     nSlices = numel(handles.nameList);
     img = gdalread(handles.nameList{1}, opt_R);
-	[n_row, n_col, nz] = size(img);
+	n_row = size(img, 1);
+	n_col = size(img, 2);
 	for (k = 2:nSlices)
 		set(handles.listbox_list,'Val',k),		pause(0.01)			% Show advance
     	Z = gdalread(handles.nameList{k}, opt_R);
-		[ny, nx, nz] = size(Z);
+		ny = size(Z, 1);	nx = size(Z, 2);
 		if ((nx ~= n_col) || (ny ~= n_row))
 			errordlg('This image has not the same size as precedentes.','ERROR'),	return
 		end
@@ -527,18 +528,19 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 	att.hdrInfo = [];
 	head = att.GMT_hdr;
 
-	if ( ~isempty(att.Metadata) && ~isempty(strfind(att.Metadata{1}, 'HDFEOSVersion')) )
+	if ( ~isempty(att.Metadata) && ~isempty(search_scaleOffset(att.Metadata, 'HDFEOSVersion')) )
 		is_HDFEOS = true;
 		if ( isnan(search_scaleOffset(att.Metadata, 'ENVISAT')) )	% Poor trick to find ESA (well, ENVISAT) products
 			is_ESA = true;
 		end
 	end
 
-	if ( ~is_HDFEOS && ~isempty(att.Metadata) && (~isempty(strfind(att.Metadata{2}, 'MODIS')) || ~isempty(strfind(att.Metadata{2}, 'SeaWiFS'))) )
+	if ( ~is_HDFEOS && ~isempty(att.Metadata) && ...
+			~isempty(search_scaleOffset(att.Metadata, 'MODIS')) || ~isempty(search_scaleOffset(att.Metadata, 'SeaWiFS')) )
 		modis_or_seawifs = true;
 	end
 
-	if ( modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4) && ~isempty(strfind(att.Metadata{1}, 'Level-2')) )
+	if ( modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4) && ~isempty(search_scaleOffset(att.Metadata, 'Level-2')) )
 		out = search_scaleOffset(att.Metadata, 'slope');
 		if (~isempty(out))		% Otherwise, no need to search for a 'intercept'
 			slope = out;
@@ -557,10 +559,10 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		is_modis = true;						% We'll use this knowledge to 'avoid' Land pixels = -32767  
 		att.hdrModisL2 = hdf_funs('hdfinfo', att.fname);
 	elseif ( modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4) )
-		y_max = str2double(att.Metadata{39}(23:end));		% att.Metadata{39} -> Northernmost Latitude=90
-		y_min = str2double(att.Metadata{40}(23:end));		% att.Metadata{40} -> Southernmost Latitude=90
-		x_min = str2double(att.Metadata{41}(23:end));		% att.Metadata{41} -> Westernmost Longitude=-180
-		x_max = str2double(att.Metadata{42}(23:end));		% att.Metadata{41} -> Easternmost Longitude=-180
+		x_max = search_scaleOffset(att.Metadata, 'Easternmost');	% Easternmost Latitude=180
+		x_min = search_scaleOffset(att.Metadata, 'Westernmost');	% Westernmost Latitude=-180
+		y_max = search_scaleOffset(att.Metadata, 'Northernmost');	% Northernmost Latitude=90
+		y_min = search_scaleOffset(att.Metadata, 'Southernmost');	% Southernmost Latitude=-90
 		dx = (x_max - x_min) / att.RasterXSize;
 		dy = dx;
 		x_min = x_min + dx/2;		x_max = x_max - dx/2;	% Orig data was pixel registered
@@ -575,14 +577,14 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		head(7) = 0;		% Make sure that grid reg is used
 
 		% Get the the scaling equation and its parameters
-		if ( strcmp(att.Metadata{53}(9:end), 'linear') )
-			slope = str2double(att.Metadata{55}(7:end));		% att.Metadata{41} -> Slope=0.000717185
-			intercept = str2double(att.Metadata{56}(11:end));	% att.Metadata{41} -> Intercept=-2
+		if ( ~isempty(search_scaleOffset(att.Metadata, 'linear')) )
+			slope = search_scaleOffset(att.Metadata, 'Slope');	% att.Metadata{47} -> Slope=0.000717185
+			intercept = search_scaleOffset(att.Metadata, 'Intercept');
 			is_linear = true;
-		elseif ( strcmp(att.Metadata{53}(9:end), 'logarithmic') )
-			base = str2double(att.Metadata{55}(6:end));		 	% att.Metadata{41} -> Base=10
-			slope = str2double(att.Metadata{56}(7:end));		% att.Metadata{41} -> Slope=0.000717185
-			intercept = str2double(att.Metadata{57}(11:end));	% att.Metadata{41} -> Intercept=-2
+		elseif ( ~isempty(search_scaleOffset(att.Metadata, 'logarithmic')) )
+			base = search_scaleOffset(att.Metadata, 'Base');	% att.Metadata{41} -> Base=10
+			slope = search_scaleOffset(att.Metadata, 'Slope');	% att.Metadata{41} -> Slope=0.000717185
+			intercept = search_scaleOffset(att.Metadata, 'Intercept');
 			is_log = true;
 		end
 
@@ -708,22 +710,26 @@ function out = search_scaleOffset(attributes, what, N)
 		if (nargin == 2)						% Exact search for WHAT
 			for (k = numel(attributes):-1:1)					% Start from the bottom because they are likely close to it 
 				if ( strcmpi(attributes(k).Name, what) )
-					out = double(attributes(k).Value);			break
+					out = double(attributes(k).Value);
+					break
 				end
 			end
 		else									% Search with a strncmp. Motivated by the uterly stupid play with ADD_OFF & ADD_OFFSET
-			for (k = numel(attributes):-1:1)					% Start from the bottom because they are likely close to it 
+			for (k = numel(attributes):-1:1)				% Start from the bottom because they are likely close to it 
 				if ( strncmpi(attributes(k).Name, what, N) )
-					out = double(attributes(k).Value);			break
+					out = double(attributes(k).Value);
+					break
 				end
 			end
 		end
 	else					% Not tested but it must be a cell array (the att.Metadata)
-		for (k = numel(attributes):-1:1)					% Start from the bottom because they are likely close to it
+		for (k = 1:numel(attributes))
 			id = strfind(attributes{k}, what);
 			if ( ~isempty(id) )
-				id_eq = findstr(attributes{k},'=');			% Find the '=' sign
-				out = str2double(attributes{k}(id_eq+1:end));			break
+				id_eq = strfind(attributes{k},'=');			% Find the '=' sign
+				if (numel(id_eq) > 1),	continue,	end		% Sometimes comments have also the '=' char
+				out = str2double(attributes{k}(id_eq+1:end));
+				break
 			end
 		end
 	end
@@ -799,7 +805,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 
 	ind = [];
 	if ( ~isempty(att.Band(1).NoDataValue) && (att.Band(1).NoDataValue == -9999) )		% TEMP -> PATHFINDER
-		if ( ~isempty(att.Metadata) && strcmp(att.Metadata{2}, 'dsp_SubImageName=QUAL') )
+		if ( ~isempty(att.Metadata) && ~isempty(search_scaleOffset(att.Metadata, 'dsp_SubImageName=QUAL')) )
 			% Quality flags files cannot be NaNified. 
 			% However, they should NOT have a scaling equation either. If quality is [0 7] why scalling?
 			is_linear = false;
