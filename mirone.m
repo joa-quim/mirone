@@ -4028,23 +4028,28 @@ function TransferB_CB(handles, opt)
 		[nomes MD5] = strread(todos,'%s %s');
 		builtin('delete',dest_fiche);	n = 1;		% Remove this one right away
 		namedl = cell(1);							% Mostly to shutup MLint
+		ind_all = false(numel(nomes),1);			% To flag the ones truely to be updated later
 		for (k = 1:numel(nomes))
 			[pato nome ext] = fileparts(nomes{k});
-			if (exist(nomes{k}, 'file') == 2)		% File exists localy and it's a potential target for update
+			if (exist(nomes{k}, 'file'))			% File exists localy and it's a potential target for update
 				localMD5 = CalcMD5(nomes{k},'file');
-				if (~strcmp(MD5, localMD5))
-					namedl{n} = [url nome ext];		n = n + 1;	% File name to update with path realtive to Mir root
+				if (~strcmp(MD5{k}, localMD5))
+					namedl{n} = [url nome ext];		% File name to update with path realtive to Mir root
+					n = n + 1;		ind_all(k) = true;
 				end
 			else									% New file. Download for sure.
-				namedl{n} = [url nome ext];			n = n + 1;
+				namedl{n} = [url nome ext];
+				n = n + 1;			ind_all(k) = true;
 			end
 		end
 		if (n == 1),	return,		end				% Nothing new to update
+		nomes = nomes(ind_all);						% Retain only the original names (that may include a path) to dl
+
 		ind = false(1,n-1);			msg = [];
 		for (k = 1:n-1)
 			[pato nome ext] = fileparts(namedl{k});		dest_fiche = [handles.path_tmp nome ext];
 			dos(['wget "' url nome ext '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
-			if (exist(dest_fiche, 'file') ~= 2)		% Troubles in transmission
+			if (~exist(dest_fiche, 'file'))			% Troubles in transmission
 				ind(k) = true;
 			end
 		end
