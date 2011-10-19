@@ -4031,7 +4031,7 @@ function TransferB_CB(handles, opt)
 		for (k = 1:numel(nomes))
 			[pato nome ext] = fileparts(nomes{k});
 			if (exist(nomes{k}, 'file') == 2)		% File exists localy and it's a potential target for update
-				localMD5 = CalcMD5(nomes{k});
+				localMD5 = CalcMD5(nomes{k},'file');
 				if (~strcmp(MD5, localMD5))
 					namedl{n} = [url nome ext];		n = n + 1;	% File name to update with path realtive to Mir root
 				end
@@ -4062,11 +4062,12 @@ function TransferB_CB(handles, opt)
 		end
 		msgbox(msg, 'Finished download')
 		fid = fopen([handles.path_tmp 'apudeita.bat'],'wt');	% Create the updating batch that will be run by callMir
-		fprintf(fid, '@echo off\nREM copy updated files from tmp place into their destination\n');
+		fprintf(fid, '@echo off\nREM copy updated files from tmp and place into their destination\n');
 		for (k = 1:numel(namedl))
 			[pato nome ext] = fileparts(namedl{k});
-			fprintf(fid, 'move /Y tmp\\%s\t%s\necho Ja ta. Finished update\n', [nome ext], nomes{k});
+			fprintf(fid, 'move /Y tmp\\%s\t.\\%s\n', [nome ext], nomes{k});
 		end
+		fprintf(fid, 'echo Ja ta. Finished update\n');
 		fclose(fid);
 
 	end
