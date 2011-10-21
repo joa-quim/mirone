@@ -201,19 +201,16 @@ function push_namesList_CB(hObject, handles, opt)
 % -----------------------------------------------------------------------------------------
 function radio_conv2netcdf_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
-	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','off')
 	set([handles.radio_multiBand handles.radio_conv2vtk],'Val',0)
 
 % -----------------------------------------------------------------------------------------
 function radio_conv2vtk_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
-	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','off')
 	set([handles.radio_multiBand handles.radio_conv2netcdf],'Val',0)
 
 % -----------------------------------------------------------------------------------------
 function radio_multiBand_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
-	set([handles.edit_stripeWidth handles.radio_lon handles.radio_lat],'Enable','on')
 	set([handles.radio_conv2netcdf handles.radio_conv2vtk],'Val',0)
 
 % -----------------------------------------------------------------------------------------
@@ -280,16 +277,6 @@ function edit_east_CB(hObject, handles)
 function edit_stripeWidth_CB(hObject, handles)
 	x1 = str2double(get(hObject,'String'));
 	if (isnan(x1)),		set(hObject,'String','0.5'),	end
-
-% -----------------------------------------------------------------------------------------
-function radio_lat_CB(hObject, handles)
-	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
-	set(handles.radio_lon,'Val',0)
-
-% -----------------------------------------------------------------------------------------
-function radio_lon_CB(hObject, handles)
-	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
-	set(handles.radio_lat,'Val',0)
 
 % -----------------------------------------------------------------------------------------
 function push_compute_CB(hObject, handles)
@@ -501,10 +488,6 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 	end
 
 	N_spatialSize = att.RasterYSize;		integDim = 2;
-	if (get(handles.radio_lon, 'Val'))
-		N_spatialSize = att.RasterXSize;		% Number of points in the spatial dim
-		integDim = 1;							% Dimension along which we are going to integrate
-	end
 
 	att.fname = handles.nameList{1};			% This case needs it
 	[head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R] = ...
