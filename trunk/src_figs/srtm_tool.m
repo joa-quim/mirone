@@ -16,7 +16,7 @@ function varargout = srtm_tool(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-	hObject = figure('Tag','figure1','Visible','off');
+	hObject = figure('Vis','off');
 	srtm_tool_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'center')
@@ -74,19 +74,19 @@ if iscell(directory_list)								% When exists a dir list in mirone_pref
     end
     directory_list(j) = [];								% clean eventual non-existing directories
     if ~isempty(directory_list)							% If there is one left
-        set(handles.popup_directory_list,'String',directory_list)
+        set(handles.popup_dir_list,'String',directory_list)
         handles.last_directories = directory_list;
         handles.files_dir = handles.last_directories{1};
         handles.last_dir = handles.last_directories{1};	% Initialize last_dir to files_dir
     else
-        set(handles.popup_directory_list,'String',pwd)
+        set(handles.popup_dir_list,'String',pwd)
         handles.last_directories = cellstr(pwd);
         handles.files_dir = pwd;
         handles.last_dir = pwd;
     end
 else													% mirone_pref had no dir list
     handles.last_directories = cellstr(pwd);
-    set(handles.popup_directory_list,'String',handles.last_directories)
+    set(handles.popup_dir_list,'String',handles.last_directories)
     handles.files_dir = pwd;
     handles.last_dir = pwd;
 end
@@ -130,14 +130,14 @@ if (nargout),	varargout{1} = hObject;		end
 set(hObject,'Visible','on');
 
 % -----------------------------------------------------------------------------------------
-function togglebutton_zoom_OnOff_CB(hObject, handles)
+function toggle_zoom_OnOff_CB(hObject, handles)
 	if (get(hObject,'Value')),	zoom_j('on');
 	else						zoom_j('off');
 	end
 
 % -----------------------------------------------------------------------------------------
 function push_draw_rectangle_CB(hObject, handles)
-	zoom_j('off');     set(handles.togglebutton_zoom_OnOff,'Value',0);     % In case it was on
+	zoom_j('off');     set(handles.toggle_zoom_OnOff,'Value',0);     % In case it was on
 	[p1,p2,h] = rubberbandbox;
 	set(h,'Color','red','LineWidth',0.5,'Tag','rectangle')
 	cmenuHand = uicontextmenu;
@@ -147,85 +147,85 @@ function push_draw_rectangle_CB(hObject, handles)
 	uimenu(cmenuHand, 'Label', 'SRTM mesh', 'Separator','on', 'Call', {@set_srtm_mesh,h,handles});
 
 % -----------------------------------------------------------------------------------------
-function popup_directory_list_CB(hObject, handles, opt)
+function popup_dir_list_CB(hObject, handles, opt)
 % OPT is used by push_change_dir (just to save code)
-if (~isempty(handles.patchHandles))
-	warndlg('Now is too late to change directory. If you realy want to change dir you have to start again.','Warning')
-	set(hObject,'Value',1)
-	return
-end
-if (nargin == 2)    opt = [];   end
-if isempty(opt)
-    val = get(hObject,'Value');     str = get(hObject, 'String');
-    % Put the selected field on top of the String list. This is necessary because the "OK" button will
-    tmp = str(val);         str(val) = [];
-    new_str = [tmp; str];   set(hObject,'String',new_str); 
-    set(hObject,'Value',1)
-    if iscell(tmp)			new_dir = tmp{1};
-    elseif ischar(tmp)		new_dir = tmp;
-	else					return        % ???
-    end
-else
-    new_dir = opt;
-end
-handles.files_dir = new_dir;
+	if (~isempty(handles.patchHandles))
+		warndlg('Now is too late to change directory. If you realy want to change dir you have to start again.','Warning')
+		set(hObject,'Value',1)
+		return
+	end
+	if (nargin == 2)    opt = [];   end
+	if isempty(opt)
+		val = get(hObject,'Value');     str = get(hObject, 'String');
+		% Put the selected field on top of the String list. This is necessary because the "OK" button will
+		tmp = str(val);         str(val) = [];
+		new_str = [tmp; str];   set(hObject,'String',new_str); 
+		set(hObject,'Value',1)
+		if iscell(tmp)			new_dir = tmp{1};
+		elseif ischar(tmp)		new_dir = tmp;
+		else					return        % ???
+		end
+	else
+		new_dir = opt;
+	end
+	handles.files_dir = new_dir;
 
-% If are in the SRTM30 mode, just get the new files for the selected dir and go away.
-if (handles.have_srtm30)
-    [handles.srtm30_files,handles.srtm30_compfiles,handles.srtm30_exts] = ...
-        get_fnames_ext(handles.files_dir,{'srtm' 'zip' 'gz'});
-    h_ones = findobj(handles.figure1,'Type','patch','UserData',1);
-    if (~isempty(h_ones))    % De-select this patch because we changed directory
-        set(h_ones,'FaceColor','none','UserData',0)
-    end
-    guidata(handles.figHandle,handles)
-    return
-end
+	% If are in the SRTM30 mode, just get the new files for the selected dir and go away.
+	if (handles.have_srtm30)
+		[handles.srtm30_files,handles.srtm30_compfiles,handles.srtm30_exts] = ...
+			get_fnames_ext(handles.files_dir,{'srtm' 'zip' 'gz'});
+		h_ones = findobj(handles.figure1,'Type','patch','UserData',1);
+		if (~isempty(h_ones))    % De-select this patch because we changed directory
+			set(h_ones,'FaceColor','none','UserData',0)
+		end
+		guidata(handles.figHandle,handles)
+		return
+	end
 
-% Get the list of all SRTM_1_or_3 files sitting in the new selected dir
-more_srtm_files = dir([new_dir filesep '*.hgt']);
-more_srtm_zipfiles = dir([new_dir filesep '*.hgt.zip']);
+	% Get the list of all SRTM_1_or_3 files sitting in the new selected dir
+	more_srtm_files = dir([new_dir filesep '*.hgt']);
+	more_srtm_zipfiles = dir([new_dir filesep '*.hgt.zip']);
 
-% Rip the .zip from file names (It will be easiear to deal with if they are used)
-for i=1:length(more_srtm_zipfiles)
-    [PATH,FNAME] = fileparts(more_srtm_zipfiles(i).name);
-    more_srtm_zipfiles(i).name = [PATH FNAME];
-end
+	% Rip the .zip from file names (It will be easiear to deal with if they are used)
+	for i=1:length(more_srtm_zipfiles)
+		[PATH,FNAME] = fileparts(more_srtm_zipfiles(i).name);
+		more_srtm_zipfiles(i).name = [PATH FNAME];
+	end
 
-% Update the dir structure
-if ~isempty(more_srtm_files)
-    n_old = length(handles.srtm_files);     n_new = length(more_srtm_files);    k = 1;
-    for (i = n_old+1:n_old+n_new)
-        handles.srtm_files(i).name = [more_srtm_files(k).name];
-        handles.srtm_files(i).path = [new_dir filesep];
-        k = k + 1;
-    end
-end
-if ~isempty(more_srtm_zipfiles)
-    n_old = length(handles.srtm_zipfiles);     n_new = length(more_srtm_zipfiles);    k = 1;
-    for (i=n_old+1:n_old+n_new)
-        handles.srtm_zipfiles(i).name = [more_srtm_zipfiles(k).name];
-        handles.srtm_zipfiles(i).path = [new_dir filesep];
-        k = k + 1;
-    end
-end
+	% Update the dir structure
+	if ~isempty(more_srtm_files)
+		n_old = length(handles.srtm_files);     n_new = length(more_srtm_files);    k = 1;
+		for (i = n_old+1:n_old+n_new)
+			handles.srtm_files(i).name = [more_srtm_files(k).name];
+			handles.srtm_files(i).path = [new_dir filesep];
+			k = k + 1;
+		end
+	end
+	if ~isempty(more_srtm_zipfiles)
+		n_old = length(handles.srtm_zipfiles);     n_new = length(more_srtm_zipfiles);    k = 1;
+		for (i=n_old+1:n_old+n_new)
+			handles.srtm_zipfiles(i).name = [more_srtm_zipfiles(k).name];
+			handles.srtm_zipfiles(i).path = [new_dir filesep];
+			k = k + 1;
+		end
+	end
 
-% Clear eventual repeated entries (resulting from playing around with the dir_list)
-[b,m] = unique(cellstr(strvcat(handles.srtm_files.name)));
-i = 1;
-while (i < m(1))
-    handles.srtm_files(i).name = [];
-    handles.srtm_files(i).path = [];
-    i = i + 1;
-end
-[b,m] = unique(cellstr(strvcat(handles.srtm_zipfiles.name)));
-i = 1;
-while (i < m(1))
-    handles.srtm_zipfiles(i).name = [];
-    handles.srtm_zipfiles(i).path = [];
-    i = i + 1;
-end
-guidata(handles.figHandle,handles)
+	% Clear eventual repeated entries (resulting from playing around with the dir_list)
+	[b,m] = unique(cellstr(strvcat(handles.srtm_files.name)));
+	i = 1;
+	while (i < m(1))
+		handles.srtm_files(i).name = [];
+		handles.srtm_files(i).path = [];
+		i = i + 1;
+	end
+	[b,m] = unique(cellstr(strvcat(handles.srtm_zipfiles.name)));
+	i = 1;
+	while (i < m(1))
+		handles.srtm_zipfiles(i).name = [];
+		handles.srtm_zipfiles(i).path = [];
+		i = i + 1;
+	end
+	guidata(handles.figHandle,handles)
 
 % -----------------------------------------------------------------------------------------
 function push_change_dir_CB(hObject, handles)
@@ -240,206 +240,206 @@ function push_change_dir_CB(hObject, handles)
 	end
 	if ~isempty(work_dir)
 		handles.last_directories = [cellstr(work_dir); handles.last_directories];
-		set(handles.popup_directory_list,'String',handles.last_directories)
+		set(handles.popup_dir_list,'String',handles.last_directories)
 		guidata(hObject, handles);
-		popup_directory_list_CB(hObject, handles, work_dir)
+		popup_dir_list_CB(hObject, handles, work_dir)
 	end
 
 % -----------------------------------------------------------------------------------------
 function push_help_CB(hObject, handles)
-message = {'With this tool you can select several SRTM files and paste them togheter'
-    'in a single file. In order to do it first zoom the world map and next hit'
-    'the "Draw rectangle" button. Click and drag to draw a rectangle (another'
-    'click finish it). Next right click on the rectangle and select "SRTM mesh"'
-    ' '
-    'Selecting (clicking on them) individual squares will turn them redish if'
-    'the corresponding file resides in the directory selected by the popup'
-    'menu. Note that zip compressed files will also be recognized. A further'
-    'click on a selected square will deselect it.'
-    ' '
-    'And that''s all. Hit "OK" and wait.'};
-helpdlg(message,'Help on SRTM tool');
+	message = {'With this tool you can select several SRTM files and paste them togheter'
+		'in a single file. In order to do it first zoom the world map and next hit'
+		'the "Draw rectangle" button. Click and drag to draw a rectangle (another'
+		'click finish it). Next right click on the rectangle and select "SRTM mesh"'
+		' '
+		'Selecting (clicking on them) individual squares will turn them redish if'
+		'the corresponding file resides in the directory selected by the popup'
+		'menu. Note that zip compressed files will also be recognized. A further'
+		'click on a selected square will deselect it.'
+		' '
+		'And that''s all. Hit "OK" and wait.'};
+	helpdlg(message,'Help on SRTM tool');
 
 % -----------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 
-if (handles.have_srtm30)
-    read_srtm30(handles);    return
-end
+	if (handles.have_srtm30)
+		read_srtm30(handles);    return
+	end
 
-[fnames,limits] = sort_patches(handles);
-if (isempty(fnames))	return,		end
-if iscell(fnames)
-    [m,n] = size(fnames);
-else        % One tile only
-    m = 1;  n = 1;
-end
+	[fnames,limits] = sort_patches(handles);
+	if (isempty(fnames))	return,		end
+	if iscell(fnames)
+		[m,n] = size(fnames);
+	else        % One tile only
+		m = 1;  n = 1;
+	end
 
-z_min = [];     z_max = [];     del_file = 0;     x_inc = 1/handles.RC;     y_inc = 1/handles.RC;
-Z_tot = single(ones(m*handles.RC+1,n*handles.RC+1)*NaN);
-aguentabar(0,'Now wait (reading SRTM files)');     k = 1;
-for (i = 1:m)				% Loop over selected tiles (by rows)
-    for (j = 1:n)			%           "              (and by columns)
-        if (m*n == 1)   % Trivial case (One tile only)
-            cur_file = fnames;
-            ii = strmatch(cur_file, {handles.srtm_files.name});
-            if ~isempty(ii)
-                full_name = [handles.srtm_files(ii).path cur_file];
-            else
-                ii = strmatch(cur_file, {handles.srtm_zipfiles.name});
-                if ~isempty(ii) % Got a zipped file. Unzip it to the TMP dir
-                    %str = ['unzip -qq ' handles.srtm_zipfiles(ii).path cur_file '.zip' ' -d ' handles.path_data];
-                    full_name = [handles.srtm_zipfiles(ii).path cur_file '.zip'];
-					if (handles.have_srtm1)		warn = 'warn';
-					else						warn = [];
+	z_min = [];     z_max = [];     del_file = 0;     x_inc = 1/handles.RC;     y_inc = 1/handles.RC;
+	Z_tot = single(ones(m*handles.RC+1,n*handles.RC+1)*NaN);
+	aguentabar(0,'Now wait (reading SRTM files)');     k = 1;
+	for (i = 1:m)				% Loop over selected tiles (by rows)
+		for (j = 1:n)			%           "              (and by columns)
+			if (m*n == 1)   % Trivial case (One tile only)
+				cur_file = fnames;
+				ii = strcmp(cur_file, {handles.srtm_files.name});
+				if ~isempty(ii)
+					full_name = [handles.srtm_files(ii).path cur_file];
+				else
+					ii = strcmp(cur_file, {handles.srtm_zipfiles.name});
+					if ~isempty(ii) % Got a zipped file. Unzip it to the TMP dir
+						%str = ['unzip -qq ' handles.srtm_zipfiles(ii).path cur_file '.zip' ' -d ' handles.path_data];
+						full_name = [handles.srtm_zipfiles(ii).path cur_file '.zip'];
+						if (handles.have_srtm1)		warn = 'warn';
+						else						warn = [];
+						end
+						full_name = decompress(full_name,warn);     % Named with compression ext removed
+						if (isempty(full_name))		return,		end	% Error message already issued.
+						del_file = 1;
 					end
-                    full_name = decompress(full_name,warn);     % Named with compression ext removed
-                    if (isempty(full_name))		return,		end	% Error message already issued.
-                    del_file = 1;
-                end
-            end
-        else
-            cur_file = fnames{i,j};
-            ii = strmatch(cur_file, {handles.srtm_files.name});
-            if ~isempty(ii)     % It may be empty when fnames{i,j} == 'void' OR file is compressed
-                full_name = [handles.srtm_files(ii).path cur_file];
-            else                % Try with a compressed (zipped) version
-                ii = strmatch(cur_file, {handles.srtm_zipfiles.name});
-                if ~isempty(ii) % Got a zipped file. Unzip it to the TMP dir
-                    full_name = [handles.srtm_zipfiles(ii).path cur_file '.zip'];
-					if (handles.have_srtm1),	warn = 'warn';
-					else						warn = [];
+				end
+			else
+				cur_file = fnames{i,j};
+				ii = strcmp(cur_file, {handles.srtm_files.name});
+				if ~isempty(ii)     % It may be empty when fnames{i,j} == 'void' OR file is compressed
+					full_name = [handles.srtm_files(ii).path cur_file];
+				else                % Try with a compressed (zipped) version
+					ii = strcmp(cur_file, {handles.srtm_zipfiles.name});
+					if ~isempty(ii) % Got a zipped file. Unzip it to the TMP dir
+						full_name = [handles.srtm_zipfiles(ii).path cur_file '.zip'];
+						if (handles.have_srtm1),	warn = 'warn';
+						else						warn = [];
+						end
+						full_name = decompress(full_name,warn);     % Named with compression ext removed
+						if (isempty(full_name)),	return,		end % Error message already issued.
+						del_file = 1;
 					end
-                    full_name = decompress(full_name,warn);     % Named with compression ext removed
-                    if (isempty(full_name))   return;     end;  % Error message already issued.
-                    del_file = 1;
-                end
-            end
-        end
-        if (strcmp(cur_file,'void'))        % blank tile
-            Z = repmat(single(NaN),handles.RC+1,handles.RC+1);
-        else
-            fid = fopen(full_name,'r','b');
-            if (fid == -1)		errordlg([full_name ': not found !!!'],'Error'),	return,	end
-            Z = single(rot90(fread(fid,[handles.RC+1 handles.RC+1],'*int16')));
-            fclose(fid);
-            if (del_file)       % Delete the unziped file
-				delete(full_name);		del_file = 0;
-            end
-            % Test that we are not mixing SRTM 1 & 3 second files
-            [nr,nc] = size(Z);
-            if (handles.have_srtm1 && (nr ~= 3601 || nc ~= 3601))
-                errordlg(['File ' full_name ' is not a SRTM 1 second grid'],'Error');
-                return
-            elseif  (handles.have_srtm3 && (nr ~= 1201 || nc ~= 1201))
-                errordlg(['File ' full_name ' is not a SRTM 3 second grid'],'Error');
-                return
-            end
-            Z(Z <= -32768) = NaN;
-        end
-        if (isempty(z_min))
-			[zzz] = grdutils(Z,'-L');		z_min = zzz(1);		z_max = zzz(2);		clear zzz;
-		else
-			[zzz] = grdutils(Z,'-L');
-			z_min = min(z_min,zzz(1));		z_max = max(z_max,zzz(2));
-        end
-        i_r = (1+(i-1)*handles.RC):i*handles.RC+1;
-        i_c = (1+(j-1)*handles.RC):j*handles.RC+1;
-        Z_tot(i_r,i_c) = Z;
-        aguentabar(k/m*n)
-        k = k + 1;
-    end
-end
-aguentabar(1)		% Close it
-tmp.head = [limits z_min z_max 0 x_inc y_inc];
-tmp.X = limits(1):x_inc:limits(2);		tmp.Y = limits(3):y_inc:limits(4);
-tmp.name = 'SRTM blend';
-mirone(Z_tot,tmp);
+				end
+			end
+			if (strcmp(cur_file,'void'))        % blank tile
+				Z = repmat(single(NaN),handles.RC+1,handles.RC+1);
+			else
+				fid = fopen(full_name,'r','b');
+				if (fid == -1)		errordlg([full_name ': not found !!!'],'Error'),	return,	end
+				Z = single(rot90(fread(fid,[handles.RC+1 handles.RC+1],'*int16')));
+				fclose(fid);
+				if (del_file)       % Delete the unziped file
+					delete(full_name);		del_file = 0;
+				end
+				% Test that we are not mixing SRTM 1 & 3 second files
+				[nr,nc] = size(Z);
+				if (handles.have_srtm1 && (nr ~= 3601 || nc ~= 3601))
+					errordlg(['File ' full_name ' is not a SRTM 1 second grid'],'Error');
+					return
+				elseif  (handles.have_srtm3 && (nr ~= 1201 || nc ~= 1201))
+					errordlg(['File ' full_name ' is not a SRTM 3 second grid'],'Error');
+					return
+				end
+				Z(Z <= -32768) = NaN;
+			end
+			if (isempty(z_min))
+				[zzz] = grdutils(Z,'-L');		z_min = zzz(1);		z_max = zzz(2);		clear zzz;
+			else
+				[zzz] = grdutils(Z,'-L');
+				z_min = min(z_min,zzz(1));		z_max = max(z_max,zzz(2));
+			end
+			i_r = (1+(i-1)*handles.RC):i*handles.RC+1;
+			i_c = (1+(j-1)*handles.RC):j*handles.RC+1;
+			Z_tot(i_r,i_c) = Z;
+			aguentabar(k/m*n)
+			k = k + 1;
+		end
+	end
+	aguentabar(1)		% Close it
+	tmp.head = [limits z_min z_max 0 x_inc y_inc];
+	tmp.X = limits(1):x_inc:limits(2);		tmp.Y = limits(3):y_inc:limits(4);
+	tmp.name = 'SRTM blend';
+	mirone(Z_tot,tmp);
 
 % -----------------------------------------------------------------------------------------
 function [fnames,limits] = sort_patches(handles)
 % Sort the tile names (those that were selected) in order that follow a matrix
 % with origin at the lower left corner of the enclosing rectangle.
 % Also returns the limits of the enclosing rectangle.
-x_min = [];     x_max = [];     y_min = [];     y_max = [];     limits = [];
-h = findobj(handles.figure1,'Type','patch','UserData',1);   % Get selected tiles
-names = get(h,'Tag');                           % Get their names
-if (isempty(names))		fnames = [];	return,	end
+	x_min = [];     x_max = [];     y_min = [];     y_max = [];     limits = [];
+	h = findobj(handles.figure1,'Type','patch','UserData',1);   % Get selected tiles
+	names = get(h,'Tag');                           % Get their names
+	if (isempty(names))		fnames = [];	return,	end
 
-nTiles = numel(names);
-mesh_idx = cell(1,nTiles);
-for (i = 1:nTiles)
-	mesh_idx{i} = getappdata(h(i),'MeshIndex');
-end
-[B,IX] = sort(mesh_idx);
-if (numel(IX) > 1)
-	fnames = names(IX);			% Order tile names according to the sorted mesh_idx
-else
-	fnames = names;				% Only one tile; nothing to sort
-end
-
-% Find the map limits of the total collection of tiles
-idx_r = zeros(1,nTiles);		idx_c = zeros(1,nTiles);
-for (i = 1:nTiles)
-	% Find the tile coordinates from the file name
-	if (iscell(fnames))		[PATH,FNAME] = fileparts(fnames{i});
-	else					[PATH,FNAME] = fileparts(fnames);
+	nTiles = numel(names);
+	mesh_idx = cell(1,nTiles);
+	for (i = 1:nTiles)
+		mesh_idx{i} = getappdata(h(i),'MeshIndex');
 	end
-	x_w = findstr(FNAME,'W');   x_e = findstr(FNAME,'E');
-	y_s = findstr(FNAME,'S');   y_n = findstr(FNAME,'N');
-	if ~isempty(x_w)        ind_x = x_w(1);     lon_sng = -1;
-	elseif  ~isempty(x_e)   ind_x = x_e(1);     lon_sng = 1;
-	end
-
-	if ~isempty(y_n)		lat_sng = 1;
-	elseif ~isempty(y_s)	lat_sng = -1;
-	end
-	lon = str2double(FNAME(ind_x+1:ind_x+3)) * lon_sng;
-	lat = str2double(FNAME(2:ind_x-1)) * lat_sng;
-
-	if (isempty(x_min))
-		x_min = lon;    x_max = lon + 1;    y_min = lat;    y_max = lat + 1;
+	[B,IX] = sort(mesh_idx);
+	if (numel(IX) > 1)
+		fnames = names(IX);			% Order tile names according to the sorted mesh_idx
 	else
-		x_min = min(x_min,lon);     x_max = max(x_max,lon+1);
-		y_min = min(y_min,lat);     y_max = max(y_max,lat+1);
+		fnames = names;				% Only one tile; nothing to sort
 	end
-	% Convert the sorted mesh index to row and column vectors
-	[t,r] = strtok(B{i},'x');
-	idx_r(i) = str2double(t);		idx_c(i) = str2double(r(2:end));
-end
-limits = [x_min x_max y_min y_max];
 
-% If we have only one tile (trivial case) there is no need for the following tests
-if (nTiles == 1),	return,		end
+	% Find the map limits of the total collection of tiles
+	idx_r = zeros(1,nTiles);		idx_c = zeros(1,nTiles);
+	for (i = 1:nTiles)
+		% Find the tile coordinates from the file name
+		if (iscell(fnames))		[PATH,FNAME] = fileparts(fnames{i});
+		else					[PATH,FNAME] = fileparts(fnames);
+		end
+		x_w = strfind(FNAME,'W');	x_e = strfind(FNAME,'E');
+		y_s = strfind(FNAME,'S');	y_n = strfind(FNAME,'N');
+		if ~isempty(x_w)        ind_x = x_w(1);     lon_sng = -1;
+		elseif  ~isempty(x_e)   ind_x = x_e(1);     lon_sng = 1;
+		end
 
-% Build a test mesh index with the final correct order 
-min_r = min(idx_r);		max_r = max(idx_r);
-min_c = min(idx_c);		max_c = max(idx_c);
-k = 1;					n_r = length(min_r:max_r);		n_c = length(min_c:max_c);
-nNames = numel(min_r:max_r) * numel(min_c:max_c);
-test_mesh = cell(1, nNames);
-for (i = min_r:max_r)
-    for (j = min_c:max_c)
-        test_mesh{k} = [num2str(i) 'x' num2str(j)];
-        k = k + 1;
-    end
-end
+		if ~isempty(y_n)		lat_sng = 1;
+		elseif ~isempty(y_s)	lat_sng = -1;
+		end
+		lon = str2double(FNAME(ind_x+1:ind_x+3)) * lon_sng;
+		lat = str2double(FNAME(2:ind_x-1)) * lat_sng;
 
-t_names = repmat({'void'},1,nNames);
-BB = B;
-for (i = nTiles+1:nNames)		BB{i} = '0x0';		end
-
-% Check t_names against fnames to find the matrix correct order
-fail = 0;
-for (i = 1:nNames)
-	k = i - fail;
-	if (strcmp(BB{k},test_mesh{i}))
-		t_names{i} = fnames{k};
-	else
-		fail = fail + 1;
+		if (isempty(x_min))
+			x_min = lon;    x_max = lon + 1;    y_min = lat;    y_max = lat + 1;
+		else
+			x_min = min(x_min,lon);		x_max = max(x_max,lon+1);
+			y_min = min(y_min,lat);		y_max = max(y_max,lat+1);
+		end
+		% Convert the sorted mesh index to row and column vectors
+		[t,r] = strtok(B{i},'x');
+		idx_r(i) = str2double(t);		idx_c(i) = str2double(r(2:end));
 	end
-end
-fnames = reshape(t_names,n_c,n_r)';
+	limits = [x_min x_max y_min y_max];
+
+	% If we have only one tile (trivial case) there is no need for the following tests
+	if (nTiles == 1),	return,		end
+
+	% Build a test mesh index with the final correct order 
+	min_r = min(idx_r);		max_r = max(idx_r);
+	min_c = min(idx_c);		max_c = max(idx_c);
+	k = 1;					n_r = length(min_r:max_r);		n_c = length(min_c:max_c);
+	nNames = numel(min_r:max_r) * numel(min_c:max_c);
+	test_mesh = cell(1, nNames);
+	for (i = min_r:max_r)
+		for (j = min_c:max_c)
+			test_mesh{k} = [num2str(i) 'x' num2str(j)];
+			k = k + 1;
+		end
+	end
+
+	t_names = repmat({'void'},1,nNames);
+	BB = B;
+	for (i = nTiles+1:nNames)		BB{i} = '0x0';		end
+
+	% Check t_names against fnames to find the matrix correct order
+	fail = 0;
+	for (i = 1:nNames)
+		k = i - fail;
+		if (strcmp(BB{k},test_mesh{i}))
+			t_names{i} = fnames{k};
+		else
+			fail = fail + 1;
+		end
+	end
+	fnames = reshape(t_names,n_c,n_r)';
 
 % -----------------------------------------------------------------------------------------
 function set_srtm_mesh(obj,eventdata,h,handles)
@@ -474,8 +474,8 @@ function set_srtm_mesh(obj,eventdata,h,handles)
 function bdn_srtmTile(obj,eventdata,handles)
 	tag = get(gcbo,'Tag');
 	handles = guidata(handles.figHandle);       % We may need to have an updated version of handles
-	xx = strmatch(tag, {handles.srtm_files.name});
-	xz = strmatch(tag, {handles.srtm_zipfiles.name});
+	xx = strcmp(tag, {handles.srtm_files.name});
+	xz = strcmp(tag, {handles.srtm_zipfiles.name});
 
 	stat = get(gcbo,'UserData');
 	if ~stat        % If not selected    
@@ -495,40 +495,40 @@ function bdn_srtmTile(obj,eventdata,handles)
 function set_srtm30_mesh(handles)
 % Draw patches corresponding to the SRTM30 tiles
 
-for (i=1:3)
-	yp = [-i*50 -(i-1)*50 -(i-1)*50 -i*50 -i*50] + 90;
-	if (yp(2) >= 0)  c2 = 'n';
-	else             c2 = 's';
-	end
-	for (j=1:9)
-		xp = [(j-1)*40 (j-1)*40 j*40 j*40 (j-1)*40] - 180;
-		if (xp(1) >  0)  c1 = 'e';
-		else             c1 = 'w';
+	for (i=1:3)
+		yp = [-i*50 -(i-1)*50 -(i-1)*50 -i*50 -i*50] + 90;
+		if (yp(2) >= 0)  c2 = 'n';
+		else             c2 = 's';
 		end
-		tag = [c1 num2str(abs(xp(1)),'%.3d') c2 num2str(abs(yp(2)),'%.2d') '.Bathymetry.srtm'];
+		for (j=1:9)
+			xp = [(j-1)*40 (j-1)*40 j*40 j*40 (j-1)*40] - 180;
+			if (xp(1) >  0)  c1 = 'e';
+			else             c1 = 'w';
+			end
+			tag = [c1 num2str(abs(xp(1)),'%.3d') c2 num2str(abs(yp(2)),'%.2d') '.Bathymetry.srtm'];
+			patch(xp,yp,0,'FaceColor','none','Tag',tag,'UserData',0,'ButtonDownFcn',{@bdn_srtm30Tile,handles});
+		end
+	end
+	% Southern tile row has a different width
+	yp = [-90 -60 -60 -90 -90];
+	for (j = 1:6)
+		xp = [(j-1)*60 (j-1)*60 j*60 j*60 (j-1)*60] - 180;
+		if (xp(1) > 0)   c1 = 'e';
+		else             c1 = 'w';   end
+		tag = [c1 num2str(abs(xp(1)),'%.3d') 's60.Bathymetry.srtm'];
 		patch(xp,yp,0,'FaceColor','none','Tag',tag,'UserData',0,'ButtonDownFcn',{@bdn_srtm30Tile,handles});
 	end
-end
-% Southern tile row has a different width
-yp = [-90 -60 -60 -90 -90];
-for (j = 1:6)
-    xp = [(j-1)*60 (j-1)*60 j*60 j*60 (j-1)*60] - 180;
-    if (xp(1) > 0)   c1 = 'e';
-    else             c1 = 'w';   end
-    tag = [c1 num2str(abs(xp(1)),'%.3d') 's60.Bathymetry.srtm'];
-    patch(xp,yp,0,'FaceColor','none','Tag',tag,'UserData',0,'ButtonDownFcn',{@bdn_srtm30Tile,handles});
-end
 
 % -----------------------------------------------------------------------------------------
 function bdn_srtm30Tile(obj,eventdata,handles)
 	tag = get(gcbo,'Tag');
-	handles = guidata(handles.figHandle);       % We may need to have an updated version of handles
-	xx = strmatch(tag, handles.srtm30_files);   xz = [];
-	if (isempty(xx))        % Try to see if we have a gziped version
-		xz = strmatch(tag, handles.srtm30_compfiles);
+	handles = guidata(handles.figHandle);		% We may need to have an updated version of handles
+	xx = strcmp(tag, handles.srtm30_files);   xz = [];
+	if (isempty(xx))			% Try to see if we have a gziped version
+		xz = strcmp(tag, handles.srtm30_compfiles);
 	end
-	if (isempty(xz))        % Try again to see if we have a ziped version
-		xz = strmatch(tag, handles.srtm30_compfiles);
+	if (isempty(xz))			% Try again to see if we have a ziped version
+		xz = strcmp(tag, handles.srtm30_compfiles);
 	end
 
 	stat = get(gcbo,'UserData');
@@ -543,7 +543,7 @@ function bdn_srtm30Tile(obj,eventdata,handles)
 		else        % Found file
 			h_ones = findobj(handles.figure1,'Type','patch','UserData',1);
 			h = setxor(gcbo,h_ones);
-			if (~isempty(h))    % De-select the other selected patch because we don't do mosaic with SRTM30
+			if (~isempty(h))		% De-select the other selected patch because we don't do mosaic with SRTM30
 				set(h,'FaceColor','none','UserData',0)
 			end
 			set(gcbo,'FaceColor','g','FaceAlpha',0.7,'UserData',1)
@@ -556,42 +556,42 @@ function bdn_srtm30Tile(obj,eventdata,handles)
 function read_srtm30(handles)
 % Build the header string that pretends this is a GTOPO30 file and call gdal to do the job.
 % We don't read the file directly here because SRTM30 files are too big for Matlab (a Pro $$$ soft!?!?)
-h = findobj(handles.figure1,'Type','patch','UserData',1);   % Get selected tile
-fname = get(h,'Tag');							% Get it's name
-if (isempty(fname))		return,		end			% No file selected
+	h = findobj(handles.figure1,'Type','patch','UserData',1);   % Get selected tile
+	fname = get(h,'Tag');							% Get it's name
+	if (isempty(fname))		return,		end			% No file selected
 
-name_hdr = write_esri_hdr([handles.files_dir filesep fname],'SRTM30');
+	name_hdr = write_esri_hdr([handles.files_dir filesep fname],'SRTM30');
 
-del_file = 0;
-ii = strmatch(fname, handles.srtm30_files);
-if ~isempty(ii)
-    full_name = [handles.files_dir filesep fname];
-else                % Compressed file
-    ii = strmatch(fname, handles.srtm30_compfiles);
-    if ~isempty(ii) % Got a compressed file. Uncompress it to the current dir
-        full_name = [handles.files_dir filesep fname handles.srtm30_exts{ii}];
-        full_name = decompress(full_name, 'warn');
-        if (isempty(full_name))		return,		end		% Error message already issued
-        del_file = 1;
-    else
-        errordlg('Unknown Error. Should not pass here. Returning.', 'Error');
-    end
-end
+	del_file = 0;
+	ii = strcmp(fname, handles.srtm30_files);
+	if ~isempty(ii)
+		full_name = [handles.files_dir filesep fname];
+	else                % Compressed file
+		ii = strcmp(fname, handles.srtm30_compfiles);
+		if ~isempty(ii) % Got a compressed file. Uncompress it to the current dir
+			full_name = [handles.files_dir filesep fname handles.srtm30_exts{ii}];
+			full_name = decompress(full_name, 'warn');
+			if (isempty(full_name))		return,		end		% Error message already issued
+			del_file = 1;
+		else
+			errordlg('Unknown Error. Should not pass here. Returning.', 'Error');
+		end
+	end
 
-aguentabar(0.1,'title',['Reading File ' fname]);   % It might take some time
+	aguentabar(0.1,'title',['Reading File ' fname]);   % It might take some time
 
-[Z,att] =  gdalread(full_name,'-U','-C');	Z = single(Z);
-head = att.GMT_hdr;
-if (~isempty(att.Band.NoDataValue))			Z(Z <= single(att.Band.NoDataValue)) = NaN;		end
-[m,n] = size(Z);
-tmp.head = head;							tmp.name = fname;
-tmp.X = linspace(head(1),head(2),n);		tmp.Y = linspace(head(3),head(4),m);
+	[Z,att] =  gdalread(full_name,'-U','-C');	Z = single(Z);
+	head = att.GMT_hdr;
+	if (~isempty(att.Band.NoDataValue))			Z(Z <= single(att.Band.NoDataValue)) = NaN;		end
+	[m,n] = size(Z);
+	tmp.head = head;							tmp.name = fname;
+	tmp.X = linspace(head(1),head(2),n);		tmp.Y = linspace(head(3),head(4),m);
 
-% Delete auxiliary files
-delete(name_hdr);
-if (del_file)   delete(full_name);  end     % Original file is compressed
-aguentabar(1,'title','File read')
-mirone(Z,tmp);
+	% Delete auxiliary files
+	delete(name_hdr);
+	if (del_file)   delete(full_name);  end     % Original file is compressed
+	aguentabar(1,'title','File read')
+	mirone(Z,tmp);
 
 % -----------------------------------------------------------------------------------------
 function [files,comp_files,comp_ext] = get_fnames_ext(pato, ext)
@@ -650,7 +650,6 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Name','SRTM Tool',...
 'NumberTitle','off',...
 'Position',[520 365 756 435],...
-'Renderer',get(0,'defaultfigureRenderer'),...
 'doublebuffer','on', ...
 'RendererMode','auto', ...
 'Resize','off',...
@@ -680,31 +679,31 @@ set(get(h2,'ylabel'),'Parent',h2,...
 'VerticalAlignment','bottom');
 
 uicontrol('Parent',h1, 'Position',[30 27 76 21],...
-'Call',{@srtm_tool_uiCB,h1,'togglebutton_zoom_OnOff_CB'},...
+'Call',@srtm_tool_uiCB,...
 'String','Zoom On/Off',...
 'Style','togglebutton',...
-'Tag','togglebutton_zoom_OnOff');
+'Tag','toggle_zoom_OnOff');
 
 uicontrol('Parent',h1, 'Position',[110 27 90 21],...
-'Call',{@srtm_tool_uiCB,h1,'push_draw_rectangle_CB'},...
+'Call',@srtm_tool_uiCB,...
 'String','Draw rectangle',...
 'Tag','push_draw_rectangle');
 
 uicontrol('Parent',h1, 'Position',[219 28 272 22],...
 'BackgroundColor',[1 1 1],...
-'Call',{@srtm_tool_uiCB,h1,'popup_directory_list_CB'},...
+'Call',@srtm_tool_uiCB,...
 'Style','popupmenu',...
 'Tooltip','Select the directory where SRTM data resides',...
 'Value',1,...
-'Tag','popup_directory_list');
+'Tag','popup_dir_list');
 
 uicontrol('Parent',h1, 'Position',[615 27 66 21],...
-'Call',{@srtm_tool_uiCB,h1,'push_help_CB'},...
+'Call',@srtm_tool_uiCB,...
 'String','Help',...
 'Tag','push_help');
 
 uicontrol('Parent',h1, 'Position',[685 27 66 21],...
-'Call',{@srtm_tool_uiCB,h1,'push_OK_CB'},...
+'Call',@srtm_tool_uiCB,...
 'FontSize',9,...
 'FontWeight','bold',...
 'String','OK',...
@@ -718,13 +717,13 @@ uicontrol('Parent',h1,'FontSize',9, 'Position',[30 4 500 15],...
 'Tag','text_warning');
 
 uicontrol('Parent',h1, 'Position',[490 29 18 21],...
-'Call',{@srtm_tool_uiCB,h1,'push_change_dir_CB'},...
+'Call',@srtm_tool_uiCB,...
 'FontSize',10,...
 'FontWeight','bold',...
 'String','...',...
 'Tooltip','Select a different directory',...
 'Tag','push_change_dir');
 
-function srtm_tool_uiCB(hObject, eventdata, h1, callback_name)
+function srtm_tool_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,guidata(h1));
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
