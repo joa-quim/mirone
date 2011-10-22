@@ -173,7 +173,7 @@ function set_line_uicontext(h, opt)
 % h is a handle to a line object (that can be closed)
 	if (isempty(h)),	return,		end
 
-	IS_SEISPOLYGON = false;		% Seismicity Polygons have special options
+	IS_SEISPOLYG = false;		% Seismicity Polygons have special options
 	IS_SEISMICLINE = false;		% Seismicity Lines have special options
 	LINE_ISCLOSED = false;		IS_RECTANGLE = false;	IS_PATCH = false;
 	IS_ARROW = false;
@@ -185,7 +185,7 @@ function set_line_uicontext(h, opt)
 		if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 			IS_RECTANGLE = true;	
 		end  
-		if (strcmp(get(h,'Tag'),'SeismicPolyg')),	IS_SEISPOLYGON = true;	end
+		if (strcmp(get(h,'Tag'),'SeismicPolyg')),	IS_SEISPOLYG = true;	end
 	end
 	if (strcmp(get(h,'Type'),'patch')),
 		IS_PATCH = true;
@@ -228,19 +228,21 @@ function set_line_uicontext(h, opt)
 		uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Call', 'edit_track_mb');
 	end
 	uimenu(cmenuHand, 'Label', label_save, 'Call', {@save_formated,h});
-	if (~IS_SEISPOLYGON && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))	% Those are not to allowed to copy
+	if (~IS_SEISPOLYG && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))	% Those are not to allowed to copy
 		if (~LINE_ISCLOSED && ~IS_ARROW)
 			uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
 		end
 		uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
 	end
-	if (~IS_SEISPOLYGON && ~IS_ARROW),	uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength);		end
+	if (~IS_SEISPOLYG && ~IS_ARROW && ~IS_RECTANGLE)
+		uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength)
+	end
 	if (IS_MBTRACK),			uimenu(cmenuHand, 'Label', 'All tracks length', 'Call', @show_AllTrackLength);	end
-	if (~IS_SEISPOLYGON && ~IS_RECTANGLE),	uimenu(cmenuHand, 'Label', label_azim, 'Call', @show_lineAzims);	end
+	if (~IS_SEISPOLYG && ~IS_RECTANGLE),	uimenu(cmenuHand, 'Label', label_azim, 'Call', @show_lineAzims);	end
 
 	if (LINE_ISCLOSED)
 		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
-		if (IS_PATCH && ~IS_SEISPOLYGON)
+		if (IS_PATCH && ~IS_SEISPOLYG)
 			item8 = uimenu(cmenuHand, 'Label','Fill Color');
 			setLineColor( item8, uictx_color(h, 'facecolor') )		% there are 9 cb_color outputs
 			uimenu(item8, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
@@ -297,7 +299,7 @@ function set_line_uicontext(h, opt)
 		deal_opts({'MGG' 'MICROLEV'}, cmenuHand);
 	end
 
-	if (~IS_SEISPOLYGON && LINE_ISCLOSED && ~IS_RECTANGLE)
+	if (~IS_SEISPOLYG && LINE_ISCLOSED && ~IS_RECTANGLE)
 		item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
 		if (handles.validGrid)    % Option only available to recognized grids
 			uimenu(item_tools2, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
@@ -342,7 +344,7 @@ function set_line_uicontext(h, opt)
 		uimenu(cmenuHand, 'Label', 'Mansinha', 'Call', {@okada_model,h,'mansinha'});    
 	end
 
-	if (IS_SEISPOLYGON)                         % Seismicity options
+	if (IS_SEISPOLYG)                         % Seismicity options
 		% gco gives the same handle as h 
 		uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,[],gco)', 'Sep','on');
 		uimenu(cmenuHand, 'Label', 'Find clusters', 'Call', 'find_clusters(gcf,gco)');
