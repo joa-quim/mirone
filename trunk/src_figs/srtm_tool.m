@@ -281,7 +281,7 @@ function push_OK_CB(hObject, handles)
 	for (i = 1:m)				% Loop over selected tiles (by rows)
 		for (j = 1:n)			%           "              (and by columns)
 			if (m*n == 1)   % Trivial case (One tile only)
-				cur_file = fnames;
+				cur_file = fnames{1};
 				ii = strcmp(cur_file, {handles.srtm_files.name});
 				if ~isempty(ii)
 					full_name = [handles.srtm_files(ii).path cur_file];
@@ -365,6 +365,7 @@ function [fnames,limits] = sort_patches(handles)
 	h = findobj(handles.figure1,'Type','patch','UserData',1);   % Get selected tiles
 	names = get(h,'Tag');                           % Get their names
 	if (isempty(names))		fnames = [];	return,	end
+	if (~isa(names, 'cell')),	names = {names};	end
 
 	nTiles = numel(names);
 	mesh_idx = cell(1,nTiles);
