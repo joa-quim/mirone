@@ -876,13 +876,8 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, varargi
 		opt_L = ' ';	GCPvalues = [];
 		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2) )
 			% These boys think they are very funy. Oh it's so cute to write the file from right-to-left !!!
-			Vg_index = 4;		% The uncomprehensible MESS never ends. I have to do trial-error to find the right index
-			try
-				lon = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(1).Name, 'index', {[],[], []}) );
-			catch				% I already crossed these two cases. HOW MANY MORE WILL THEY INVENT???
-				Vg_index = 3;
-				lon = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(1).Name, 'index', {[],[], []}) );
-			end
+			Vg_index = numel(att.hdrModisL2.Vgroup);	% The uncomprehensible MESS never ends. Assume last has things of interst
+			lon = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(1).Name, 'index', {[],[], []}) );
 			lat = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(2).Name, 'index', {[],[], []}) );
 			cntl_pt_cols = hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(3).Name, 'index', {[],[], []});
 
@@ -933,11 +928,18 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, varargi
 			Z = gdalread(full_name, varargin{:}, opt_L);
 		end
 		if (isempty(att.GCPvalues) && ~isempty(GCPvalues)),		att.GCPvalues = GCPvalues;		end
+		if ( (att.Band(1).NoDataValue == -1) && (min(Z(:)) == -32767 ) )	% DIRTY PATCH to avoid previous bad nodata guessing
+			att.Band(1).NoDataValue = -32767;
+			if (~isempty(NoDataValue)),		NoDataValue = -32767;	end
+		end
 		if (~isempty(NoDataValue)),		att.Band(1).NoDataValue = NoDataValue;	end		% Recover ESTIMATED value
 
 		% For MODIS L2 products, we may still have many things to do
 		if (strcmp(opt_L,'-L'))		% We are using this as an indication that the file is MODIS (need clever solution)
 			what = l2_choices(AllSubdatasets);			% Call secondary GUI to select what to do next
+			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
+				what =  struct('georeference',0,'nearneighbor',1,'mask',0,'coastRes',0,'quality','');	% sensor coords
+			end
 			if ( ~isempty(what.quality) && what.quality < 2 )		% We have a quality request
 				qual = gdalread(what.qualSDS, opt_L);
 				Z(qual > what.quality) = NoDataValue;
