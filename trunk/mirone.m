@@ -1413,7 +1413,8 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 		str = strrep(att.Subdatasets, '=', ' ');
-		[s,ok] = listdlg('PromptString',{'This file has subdatasets' 'you have to select one:'}, 'ListSize', [min(numel(str{1})*6,640) min((size(str,1)*20 + 50), 200)], ...
+		[s,ok] = listdlg('PromptString',{'This file has subdatasets' 'you have to select one:'}, 'ListSize', ...
+				[min(numel(str{1})*7,640) min((size(str,1)*20 + 50), 200)], ...
 				'Name','DATASET Selection', 'SelectionMode','single', 'ListString',str);	pause(0.01)
 		if (~ok),	return,		end						% Uset hit "Cancel"
 		if (rem(s,2) == 0),		s = s - 1;		end		% Selection was done over "description" and not the "name" 
