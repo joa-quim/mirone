@@ -1908,33 +1908,37 @@ function ImageIllumFalseColor(luz, handles)
 	set(handles.figure1,'pointer','watch')
 	D2R = pi/180;
 
-	% Tiling
-	[ind_s,ind] = tile(m,600,4);		% shade_manip_raster "only consumes" 3 times Z grid size
-	if size(ind_s,1) > 1
-		zz1 = uint8([]);		zz2 = uint8([]);	zz3 = uint8([]);
-		for i = 1:size(ind_s,1)
-			tmp1 = (ind_s(i,1):ind_s(i,2));		% Indexes with overlapping zone
-			tmp2 = ind(i,1):ind(i,2);			% Indexes of chunks without the overlaping zone
-			tmp_1 = shade_manip_raster((luz.azim(1)-90)*D2R,luz.elev*D2R,Z(tmp1,:));
-			tmp_1 = uint8((254 * tmp_1) + 1);
-			tmp_2 = shade_manip_raster((luz.azim(2)-90)*D2R,luz.elev*D2R,Z(tmp1,:));
-			tmp_2 = uint8((254 * tmp_2) + 1);
-			tmp_3 = shade_manip_raster((luz.azim(3)-90)*D2R,luz.elev*D2R,Z(tmp1,:));
-			tmp_3 = uint8((254 * tmp_3) + 1);
-			zz1 = [zz1; tmp_1(tmp2,:)];		zz2 = [zz2; tmp_2(tmp2,:)];		zz3 = [zz3; tmp_3(tmp2,:)];
-		end
-		zz(:,:,1) = zz1;	zz(:,:,2) = zz2;	zz(:,:,3) = zz3;
+	if (luz.mercedes_type == 1)
+		tmp = grdgradient_m(Z,head, '-A0',  '-M', '-Nt');		tmp(tmp < 0) = 0;
+		zz(:,:,1) = uint8(cvlib_mex('CvtScale', tmp, 254, 1));
+		tmp = grdgradient_m(Z,head, '-A120','-M', '-Nt');		tmp(tmp < 0) = 0;
+		zz(:,:,2) = uint8(cvlib_mex('CvtScale', tmp, 254, 1));
+		tmp = grdgradient_m(Z,head, '-A240','-M', '-Nt');		tmp(tmp < 0) = 0;
+		zz(:,:,3) = uint8(cvlib_mex('CvtScale', tmp, 254, 1));
 	else
-		zz(:,:,1) = shade_manip_raster((luz.azim(1)-90)*D2R,luz.elev*D2R,Z);
-		zz(:,:,2) = shade_manip_raster((luz.azim(2)-90)*D2R,luz.elev*D2R,Z);
-		zz(:,:,3) = shade_manip_raster((luz.azim(3)-90)*D2R,luz.elev*D2R,Z);
-		zz = uint8((254 * zz) + 1);
-% 		tmp = grdgradient_m(Z,head, '-A0',  '-M', '-Nt');		tmp(tmp < 0) = 0;
-% 		zz(:,:,1) = uint8(cvlib_mex('CvtScale', tmp, 254, 1));
-% 		tmp = grdgradient_m(Z,head, '-A120','-M', '-Nt');		tmp(tmp < 0) = 0;
-% 		zz(:,:,2) = uint8(cvlib_mex('CvtScale', tmp, 254, 1));
-% 		tmp = grdgradient_m(Z,head, '-A240','-M', '-Nt');		tmp(tmp < 0) = 0;
-% 		zz(:,:,3) = uint8(cvlib_mex('CvtScale', tmp, 254, 1));
+		size_amp = luz.ampFactor;
+		% Tiling
+		[ind_s,ind] = tile(m,600,4);		% shade_manip_raster "only consumes" 3 times Z grid size
+		if size(ind_s,1) > 1
+			zz1 = uint8([]);		zz2 = uint8([]);	zz3 = uint8([]);
+			for i = 1:size(ind_s,1)
+				tmp1 = (ind_s(i,1):ind_s(i,2));		% Indexes with overlapping zone
+				tmp2 = ind(i,1):ind(i,2);			% Indexes of chunks without the overlaping zone
+				tmp_1 = shade_manip_raster((luz.azim(1)-90)*D2R, luz.elev*D2R, Z(tmp1,:), size_amp);
+				tmp_1 = uint8((254 * tmp_1) + 1);
+				tmp_2 = shade_manip_raster((luz.azim(2)-90)*D2R, luz.elev*D2R, Z(tmp1,:), size_amp);
+				tmp_2 = uint8((254 * tmp_2) + 1);
+				tmp_3 = shade_manip_raster((luz.azim(3)-90)*D2R, luz.elev*D2R, Z(tmp1,:), size_amp);
+				tmp_3 = uint8((254 * tmp_3) + 1);
+				zz1 = [zz1; tmp_1(tmp2,:)];		zz2 = [zz2; tmp_2(tmp2,:)];		zz3 = [zz3; tmp_3(tmp2,:)];
+			end
+			zz(:,:,1) = zz1;	zz(:,:,2) = zz2;	zz(:,:,3) = zz3;
+		else
+			zz(:,:,1) = shade_manip_raster((luz.azim(1)-90)*D2R, luz.elev*D2R, Z, size_amp);
+			zz(:,:,2) = shade_manip_raster((luz.azim(2)-90)*D2R, luz.elev*D2R, Z, size_amp);
+			zz(:,:,3) = shade_manip_raster((luz.azim(3)-90)*D2R, luz.elev*D2R, Z, size_amp);
+			zz = uint8((254 * zz) + 1);
+		end
 	end
 
 	if (isappdata(handles.figure1,'illumComm')),	rmappdata(handles.figure1,'illumComm'),		end
@@ -1962,7 +1966,7 @@ function ImageAnaglyph_CB(handles)
 
 	% Tiling
 	m = size(Z,1);
-	[ind_s,ind] = tile(m,400,4);	% shade_manip_raster "only consumes" 3 times Z grid size
+	[ind_s,ind] = tile(m,600,4);	% shade_manip_raster "only consumes" 3 times Z grid size
 	if (size(ind_s,1) > 1)
 		sh = [];
 		for i = 1:size(ind_s,1)
@@ -1976,7 +1980,7 @@ function ImageAnaglyph_CB(handles)
 	end
 	sh = uint8((254 * sh) + 1);
 
-	str_amp = 2 ;
+	str_amp = 2;
 	alpha = tan(25 * D2R) * str_amp / p_size;
 	decal = 1 + fix(2 * alpha * (z_max - z_min));
 	ana_header.nx = nx + decal;
@@ -1985,8 +1989,8 @@ function ImageAnaglyph_CB(handles)
 
 	left = repmat(uint8(255), 1, ana_header.nx);	right = left;
 	ar = repmat(uint8(0), ny, ana_header.nx);		ag = ar;	l = 0;	r = l;
-	for i=1:ny
-		for j=1:nx
+	for (i = 1:ny)
+		for (j = 1:nx)
 			iz = fix(alpha * (double(Z(i,j)) - z_min));
 			if (j == 1)
 				left(j+iz) = sh(i,j);
@@ -1995,17 +1999,20 @@ function ImageAnaglyph_CB(handles)
 				for (k=r:decal + j - iz),	right(k) = sh(i,j);		end
 				for (k=l:j + iz),			left(k)  = sh(i,j);		end
 			end
-			l = j + iz;		r = decal + j-iz;
+			l = j + iz;			r = decal + j-iz;
 		end
-		ar(i,:) = left;		ag(i,:) = right;
-		left = repmat(uint8(0), 1, ana_header.nx);		right = repmat(uint8(0), 1, ana_header.nx);
+		ar(i,:) = left;			ag(i,:) = right;
+		left(:) = uint8(0);		right(:) = uint8(0);
 	end
 	zz(:,:,1) = ar;		zz(:,:,2) = ag;		zz(:,:,3) = ag; 
 	show_image(handles,'Anaglyph',X,Y,zz,1,'xy',0);
 
 % --------------------------------------------------------------------
-function img = shade_manip_raster(azimuth,elevation,Z)
-	size_amp = 125;
+function img = shade_manip_raster(azimuth, elevation, Z, size_amp)
+	if (nargin == 3)
+		size_amp = 125;
+	end
+
 	u1 = sin(azimuth) * cos(elevation);		u2 = -cos(azimuth) * cos(elevation);
 	u3 = -sin(elevation);
 	if (~isa(Z,'double')),	Z = double(Z);	end		% Make sure Z is of double type
@@ -3655,7 +3662,7 @@ function [X,Y,slope,head] = GridToolsSlope_CB(handles, opt)
 function GridToolsDirDerive_CB(handles, opt)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	if (nargin == 1),	opt = 'first';		end
-	luz = shading_params('dirDerivative');		pause(0.01) % Give time to the azimuth window be deleted
+	luz = shading_params('dirDerivative');
 	if isempty(luz),	return,		end
 	azim = (90 - luz.azim) * pi/180;
 
