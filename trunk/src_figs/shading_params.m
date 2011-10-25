@@ -16,6 +16,10 @@ function varargout = shading_params(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+	if (isempty(varargin))
+		errordlg('Unknown Illumination option','Error'),	return
+	end
+
 	hObject = figure('Vis','off');
 	shading_params_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -31,47 +35,45 @@ function varargout = shading_params(varargin)
 	handles.mercedes = 0;       % Flag for False Color option  (when set to 1)
 	handles.dirDerivative = 0;  % Flag for Directional Derivative option
 
-	if (length(varargin) >= 1)
-		if (~strcmp(varargin{1},'dirDerivative'))
-			load([f_path 'mirone_icons.mat'],'um_ico','dois_ico','tres_ico','quatro_ico','cinco_ico','seis_ico','sete_ico');
-			h_toolbar = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
-				'Interruptible','on','Tag','FigureToolBar','Visible','on');
-			handles.ui_grdgrad_A = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'grdgradient_A'},...
-				'Tooltip','GMT grdgradient classic', 'CData',um_ico);
-			handles.ui_grdgrad_E1 = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'grdgradient_E1'},...
-				'Tooltip','GMT grdgradient Lambertian', 'CData',dois_ico);
-			handles.ui_grdgrad_E2 = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'grdgradient_E2'},...
-				'Tooltip','GMT grdgradient Peucker', 'CData',tres_ico);
-			handles.ui_lambert = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'lambertian'},...
-				'Tooltip','Lambertian with lighting', 'CData',quatro_ico);
-			handles.ui_color = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'color'},...
-				'Tooltip','Color (Manip-Raster)', 'CData',cinco_ico);
-			handles.ui_gray = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'gray'},...
-				'Tooltip','Gray (Manip-Raster)', 'CData',seis_ico);
-			handles.ui_falseColor = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'mercedes'},...
-				'Tooltip','False color', 'CData',sete_ico);
+	if (~strcmp(varargin{1},'dirDerivative'))
+		load([f_path 'mirone_icons.mat'],'um_ico','dois_ico','tres_ico','quatro_ico','cinco_ico','seis_ico','sete_ico');
+		h_toolbar = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
+			'Interruptible','on','Tag','FigureToolBar','Vis','on');
+		handles.ui_grdgrad_A = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'grdgradient_A'},...
+			'Tooltip','GMT grdgradient classic', 'CData',um_ico);
+		handles.ui_grdgrad_E1 = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'grdgradient_E1'},...
+			'Tooltip','GMT grdgradient Lambertian', 'CData',dois_ico);
+		handles.ui_grdgrad_E2 = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'grdgradient_E2'},...
+			'Tooltip','GMT grdgradient Peucker', 'CData',tres_ico);
+		handles.ui_lambert = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'lambertian'},...
+			'Tooltip','Lambertian with lighting', 'CData',quatro_ico);
+		handles.ui_color = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'color'},...
+			'Tooltip','Color (Manip-Raster)', 'CData',cinco_ico);
+		handles.ui_gray = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'gray'},...
+			'Tooltip','Gray (Manip-Raster)', 'CData',seis_ico);
+		handles.ui_falseColor = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'mercedes'},...
+			'Tooltip','False color', 'CData',sete_ico);
 
-			% The following is for use in toggle_uis(...). It's easier there to deal with
-			% numbers, but in other places its preferable to have names. So we have a
-			% duplicate. Attention, the order in .ui_tools must reproduce its declarations
-			handles.ui_tools = [handles.ui_grdgrad_A handles.ui_grdgrad_E1 handles.ui_grdgrad_E2 ...
-				handles.ui_lambert handles.ui_color handles.ui_gray handles.ui_falseColor];
-		else
-			% With this option the better is realy not to show the rest of the window elements
-			pos_f = get(hObject,'Position');    % Original Fig size
-			pos_a = get(handles.axes1,'Position');    pos_a(1) = 0;
-			set(handles.axes2,'Visible','off')
-			pos_textAzim = get(handles.text_azim,'Position');       % Get and change text_azim position
-			set(handles.text_azim,'Position',[2 pos_textAzim(2) pos_textAzim(3)-2 pos_textAzim(4)])
-			pos_azim = get(handles.edit_azim,'Position');       % Get and change edit_azim position
-			set(handles.edit_azim,'Position',pos_azim+[-14 0 0 0])
-			pos_ok = get(handles.push_OK,'Position');     pos_ok(1) = 90; pos_ok(3) = 40;    pos_ok(4) = 20;
-			set(handles.push_OK,'Position',pos_ok)
-			set(hObject,'Position',[pos_f(1) pos_f(2) pos_a(1)+pos_a(3)+14 pos_f(4)],'Name','')   % New figure's size
-			handles.dirDerivative = 1;
-		end
+		handles.ampFactor = 125;		% For the Mercedes illumination with Tierrie's algo
+
+		% The following is for use in toggle_uis(...). It's easier there to deal with
+		% numbers, but in other places its preferable to have names. So we have a
+		% duplicate. Attention, the order in .ui_tools must reproduce its declarations
+		handles.ui_tools = [handles.ui_grdgrad_A handles.ui_grdgrad_E1 handles.ui_grdgrad_E2 ...
+			handles.ui_lambert handles.ui_color handles.ui_gray handles.ui_falseColor];
 	else
-		errordlg('Unknown Illumination option','Error')
+		% With this option the better is realy not to show the rest of the window elements
+		pos_f = get(hObject,'Position');			% Original Fig size
+		pos_a = get(handles.axes1,'Position');		pos_a(1) = 0;
+		set(handles.axes2,'Vis','off')
+		pos_textAzim = get(handles.text_azim,'Position');		% Get and change text_azim position
+		set(handles.text_azim,'Position',[2 pos_textAzim(2) pos_textAzim(3)-2 pos_textAzim(4)])
+		pos_azim = get(handles.edit_azim,'Position');			% Get and change edit_azim position
+		set(handles.edit_azim,'Position',pos_azim+[-14 0 0 0])
+		pos_ok = get(handles.push_OK,'Position');     pos_ok(1) = 90; pos_ok(3) = 40;    pos_ok(4) = 20;
+		set(handles.push_OK,'Position',pos_ok)
+		set(hObject,'Position',[pos_f(1) pos_f(2) pos_a(1)+pos_a(3)+14 pos_f(4)],'Name','')   % New figure's size
+		handles.dirDerivative = 1;
 	end
 
 	% Import background image
@@ -79,7 +81,7 @@ function varargout = shading_params(varargin)
 	image(astrolabio,'parent',handles.axes1);
 
 	pos = get(handles.axes1,'Position');
-	set(handles.axes1,'Visible','off')
+	set(handles.axes1,'Vis','off')
 
 	% Draw everything that may be needed for all options. Later, depending on the
 	% option selected, only the allowed features will be made visible
@@ -87,14 +89,14 @@ function varargout = shading_params(varargin)
 	h_line(1) = line('parent',handles.axes1,'XData',[x0 x0],'YData',[y0 0],'Color','r','Tag','red','LineWidth',3,'Userdata',radius);
 	if (handles.dirDerivative == 0)         % Otherwise there is no point in creating those
 		x1 = x0 + radius * cos(30*pi/180);      y1 = y0 + radius * sin(30*pi/180);
-		h_line(2) = line('parent',handles.axes1,'XData',[x0 x1],'YData',[y0 y1],'Color','g','Tag','green','LineWidth',3,'Visible','off');
+		h_line(2) = line('parent',handles.axes1,'XData',[x0 x1],'YData',[y0 y1],'Color','g','Tag','green','LineWidth',3,'Vis','off');
 		x1 = x0 + radius * cos(150*pi/180);     y1 = y0 + radius * sin(150*pi/180);
-		h_line(3) = line('parent',handles.axes1,'XData',[x0 x1],'YData',[y0 y1],'Color','b','Tag','blue','LineWidth',3,'Visible','off');
+		h_line(3) = line('parent',handles.axes1,'XData',[x0 x1],'YData',[y0 y1],'Color','b','Tag','blue','LineWidth',3,'Vis','off');
 		set(h_line,'Userdata',radius)        % save radius of circumscribed circle (image is square)
 		% Now draw, on axes2, a quarter of circle and a line
 		t = 0:0.02:pi/2;    x = [0 cos(t) 0];     y = [0 sin(t) 0];
 		line('parent',handles.axes2,'XData',x,'YData',y,'HitTest','off','Color','k','LineWidth',1);
-		h_line(4) = line('parent',handles.axes2,'XData',[0 cos(30*pi/180)],'YData',[0 sin(30*pi/180)],'Color','k','LineWidth',3,'Visible','off');
+		h_line(4) = line('parent',handles.axes2,'XData',[0 cos(30*pi/180)],'YData',[0 sin(30*pi/180)],'Color','k','LineWidth',3,'Vis','off');
 		set(h_line(4),'Tag','Elev','Userdata',1)        % save radius of circumscribed circle
 	end
 
@@ -116,7 +118,7 @@ function varargout = shading_params(varargin)
 	handles.output = hObject;
 	guidata(hObject, handles);
 
-	set(hObject,'Visible','on');
+	set(hObject,'Vis','on');
 	% UIWAIT makes shading_params_export wait for user response (see UIRESUME)
 	uiwait(handles.figure1);
 
@@ -131,76 +133,60 @@ function show_needed(obj,eventdata,opt)
 	h_all = handles.h_line;
 	handles.mercedes = 0;
 	if (strncmp(opt,'grdgradient',11))
-		set(handles.edit_elev,'Enable','off');          set(handles.edit_azim,'Visible','on')
-		set(handles.edit_ambient,'Enable','off');       set(handles.edit_diffuse,'Enable','off')
-		set(handles.edit_specular,'Enable','off');      set(handles.edit_shine,'Enable','off')
-		set(handles.edit_azimR,'Visible','off');        set(handles.edit_azimG,'Visible','off')
-		set(handles.edit_azimB,'Visible','off');        set(handles.text_elev,'Enable','on');
-		set(handles.text_ambient,'Enable','off');       set(handles.text_diffuse,'Enable','off');
-		set(handles.text_reflection,'Enable','off');    set(handles.text_shine,'Enable','off');
+		set(handles.edit_elev,'Enable','off');		set(handles.edit_azim,'Vis','on')
+		set(handles.edit_azimR,'Vis','off');		set(handles.edit_azimG,'Vis','off')
+		set(handles.edit_azimB,'Vis','off');		set(handles.text_elev,'Enable','on');
 		if (strcmp(opt(12:end),'_A'))
-			set(handles.edit_azim,'Enable','on');       set(handles.text_azim,'Enable','on');
-			set(h_all(1),'Visible','on');               set(h_all(2:4),'Visible','off')
-			toggle_uis(handles,1);                      set(handles.figure1,'Name','GMT grdgradient')
+			set(handles.edit_azim,'Enable','on');	set(handles.text_azim,'Enable','on');
+			set(h_all(1),'Vis','on');				set(h_all(2:4),'Vis','off')
+			toggle_uis(handles,1);					set(handles.figure1,'Name','GMT grdgradient')
 		elseif (strcmp(opt(12:end),'_E1'))
-			set(h_all([1 4]),'Visible','on');           set(h_all(2:3),'Visible','off')
-			set(handles.edit_azim,'Enable','on');       set(handles.text_azim,'Enable','on');
-			set(handles.edit_elev,'Enable','on');       toggle_uis(handles,2);
+			set(h_all([1 4]),'Vis','on');			set(h_all(2:3),'Vis','off')
+			set(handles.edit_azim,'Enable','on');	set(handles.text_azim,'Enable','on');
+			set(handles.edit_elev,'Enable','on');	toggle_uis(handles,2);
 			set(handles.figure1,'Name','GMT grdgradient - Lambertian')
 		else        % _E2
-			set(handles.edit_azim,'Enable','off');      set(handles.text_azim,'Enable','off');
+			set(handles.edit_azim,'Enable','off');	set(handles.text_azim,'Enable','off');
 			set(handles.text_elev,'Enable','off');
-			set(h_all(1:4),'Visible','off');            toggle_uis(handles,3);
+			set(h_all(1:4),'Vis','off');			toggle_uis(handles,3);
 			set(handles.figure1,'Name','GMT grdgradient - Peucker')
 		end
 	elseif (strcmp(opt,'color') || strcmp(opt,'gray'))
-		set(handles.edit_elev,'Enable','on');           set(handles.edit_azim,'Visible','on')
-		set(handles.edit_ambient,'Enable','off');       set(handles.edit_diffuse,'Enable','off')
-		set(handles.edit_specular,'Enable','off');      set(handles.edit_shine,'Enable','off')
-		set(handles.edit_azimR,'Visible','off');        set(handles.edit_azimG,'Visible','off')
-		set(handles.edit_azimB,'Visible','off');
+		set(handles.edit_elev,'Enable','on');		set(handles.edit_azim,'Vis','on')
+		set(handles.edit_azimR,'Vis','off');		set(handles.edit_azimG,'Vis','off')
+		set(handles.edit_azimB,'Vis','off');
 		set(handles.text_elev,'Enable','on');
-		set(handles.text_ambient,'Enable','off');       set(handles.text_diffuse,'Enable','off');
-		set(handles.text_reflection,'Enable','off');    set(handles.text_shine,'Enable','off');
-		set(handles.edit_azim,'Enable','on');           set(handles.text_azim,'Enable','on');
-		set(h_all(1),'Visible','on');                   set(h_all(4),'Visible','on')
-		set(h_all(2:3),'Visible','off')
+		set(handles.edit_azim,'Enable','on');		set(handles.text_azim,'Enable','on');
+		set(h_all(1),'Vis','on');					set(h_all(4),'Vis','on')
+		set(h_all(2:3),'Vis','off')
 		if (strcmp(opt,'color'))
-			toggle_uis(handles,5);                      set(handles.figure1,'Name','Color')
+			toggle_uis(handles,5);					set(handles.figure1,'Name','Color')
 		else
-			toggle_uis(handles,6);                      set(handles.figure1,'Name','Gray')
+			toggle_uis(handles,6);					set(handles.figure1,'Name','Gray')
 		end
 	elseif (strcmp(opt,'lambertian'))
-		set(handles.edit_elev,'Enable','on');           set(handles.edit_azim,'Visible','on')
-		set(handles.edit_ambient,'Enable','on');        set(handles.edit_diffuse,'Enable','on')
-		set(handles.edit_specular,'Enable','on');       set(handles.edit_shine,'Enable','on')
-		set(handles.edit_azimR,'Visible','off');        set(handles.edit_azimG,'Visible','off')
-		set(handles.edit_azimB,'Visible','off');
+		set(handles.edit_elev,'Enable','on');		set(handles.edit_azim,'Vis','on')
+		set(handles.edit_azimR,'Vis','off');		set(handles.edit_azimG,'Vis','off')
+		set(handles.edit_azimB,'Vis','off');
 		set(handles.text_elev,'Enable','on');
-		set(handles.text_ambient,'Enable','on');        set(handles.text_diffuse,'Enable','on');
-		set(handles.text_reflection,'Enable','on');     set(handles.text_shine,'Enable','on');
-		set(handles.edit_azim,'Enable','on');           set(handles.text_azim,'Enable','on');
-		set(h_all(1),'Visible','on');                   set(h_all(4),'Visible','on')
-		set(h_all(2:3),'Visible','off')
+		set(handles.edit_azim,'Enable','on');		set(handles.text_azim,'Enable','on');
+		set(h_all(1),'Vis','on');					set(h_all(4),'Vis','on')
+		set(h_all(2:3),'Vis','off')
 		toggle_uis(handles,4)
 		set(handles.figure1,'Name','Lambertian lighting')
 	elseif (strcmp(opt,'mercedes'))
-		set(handles.edit_elev,'Enable','on');           set(handles.edit_azim,'Visible','off')
-		set(handles.edit_ambient,'Enable','off');       set(handles.edit_diffuse,'Enable','off')
-		set(handles.edit_specular,'Enable','off');      set(handles.edit_shine,'Enable','off')
-		set(handles.edit_azimR,'Visible','on');         set(handles.edit_azimG,'Visible','on')
-		set(handles.edit_azimB,'Visible','on');
+		set(handles.edit_elev,'Enable','on');		set(handles.edit_azim,'Vis','off')
+		set(handles.edit_azimR,'Vis','on');			set(handles.edit_azimG,'Vis','on')
+		set(handles.edit_azimB,'Vis','on');
 		set(handles.text_elev,'Enable','on');
-		set(handles.text_ambient,'Enable','off');       set(handles.text_diffuse,'Enable','off');
-		set(handles.text_reflection,'Enable','off');    set(handles.text_shine,'Enable','off');
-		set(h_all(1:4),'Visible','on')
+		set(h_all(1:4),'Vis','on')
 		handles.mercedes = 1;
 		toggle_uis(handles,7)
 		set(handles.figure1,'Name','False color')
-	elseif (strcmp(opt,'dirDerivative'))            % This for good because this function won't be called again
-		%set(h_all(1),'Visible','on');                   %set(h_all(2:4),'Visible','off')
-		set(handles.edit_azimR,'Visible','off');        set(handles.edit_azimG,'Visible','off')
-		set(handles.edit_azimB,'Visible','off');        set(handles.text_elev,'Enable','off');
+	elseif (strcmp(opt,'dirDerivative'))			% This is for good because this function won't be called again
+		%set(h_all(1),'Vis','on');                   %set(h_all(2:4),'Vis','off')
+		set(handles.edit_azimR,'Vis','off');		set(handles.edit_azimG,'Vis','off')
+		set(handles.edit_azimB,'Vis','off');		set(handles.text_elev,'Enable','off');
 		set(handles.figure1,'Name','Azim')
 	end
 	guidata(obj,handles)
@@ -208,9 +194,27 @@ function show_needed(obj,eventdata,opt)
 % -----------------------------------------------------------------------------------------
 function toggle_uis(handles,ui)
 % Do not let more the one uitoggletool be on the state of pushed
-	n = 1:length(handles.ui_tools);
+	n = 1:numel(handles.ui_tools);
 	n(n == ui) = [];        % Remove current ui index
 	set(handles.ui_tools(n),'State','off');
+	
+	if (ui == 4),	vis = 'on';
+	else			vis = 'off';
+	end
+	set([handles.edit_ambient handles.edit_diffuse handles.edit_specular handles.edit_shine],'Vis',vis);
+	set([handles.text_ambient handles.text_diffuse handles.text_reflection handles.text_shine],'Vis',vis);
+
+	if (ui == 7)			% Mercedes
+		set([handles.radio_oldAlgo handles.radio_grdgrad], 'Vis', 'on')
+		set(handles.text_diffuse, 'Vis','on', 'String','Amp factor')
+		set(handles.edit_diffuse, 'Vis','on', 'String',sprintf('%d',handles.ampFactor))
+	else
+		set([handles.radio_oldAlgo handles.radio_grdgrad], 'Vis', 'off')
+		set(handles.text_diffuse, 'String','Diffuse reflection')
+		set(handles.edit_diffuse, 'String','0.6')
+	end
+	handles.current_method = ui;
+	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
 function ButtonDown(obj,eventdata,h_all,handles)
@@ -226,7 +230,7 @@ function ButtonDown(obj,eventdata,h_all,handles)
 		set(gcf,'WindowButtonMotionFcn',{@ButtonMotion,h,handles},'WindowButtonUpFcn',{@ButtonUp,h_all,handles},...
 			'Pointer', 'crosshair');
 	else
-		return;
+		return
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -273,9 +277,23 @@ function ButtonUp(obj,eventdata,h,handles)
 	set(handles.figure1,'WindowButtonMotionFcn','','WindowButtonDownFcn',{@ButtonDown,h,handles},'WindowButtonUpFcn','');
 	set(handles.figure1,'Pointer', 'arrow')
 
+% ---------------------------------------------------------------------
+function radio_oldAlgo_CB(hObject, handles)
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radio_grdgrad, 'Val', 0)
+	set(handles.h_line(4),'Vis','on')
+	set(handles.edit_elev,'Enable','on');
+
+% ---------------------------------------------------------------------
+function radio_grdgrad_CB(hObject, handles)
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radio_oldAlgo, 'Val', 0)
+	set(handles.h_line(4),'Vis','off')
+	set(handles.edit_elev,'Enable','off');
+
 % -----------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
-	if (handles.mercedes == 0)
+	if (~handles.mercedes)
 		out.azim = str2double(get(handles.edit_azim,'String'));
 	else
 		out.azim(1) = str2double(get(handles.edit_azimR,'String'));
@@ -288,7 +306,7 @@ function push_OK_CB(hObject, handles)
 	out.specular = str2double(get(handles.edit_specular,'String'));
 	out.shine = str2double(get(handles.edit_shine,'String'));
 
-	if (handles.dirDerivative == 0)
+	if (~handles.dirDerivative)
 		% Find out which illumination model has been choosen. 
 		% This is needed in Mirone to know what to do with the out vars
 		if (strcmp(get(handles.ui_grdgrad_A,'State'),'on'))
@@ -305,6 +323,12 @@ function push_OK_CB(hObject, handles)
 			out.illum_model = 6;
 		elseif (strcmp(get(handles.ui_falseColor,'State'),'on'))
 			out.illum_model = 7;
+			out.ampFactor = out.diffuse;
+			if (get(handles.radio_oldAlgo, 'Val'))
+				out.mercedes_type = 0;			% Original Manip-raster algo
+			else
+				out.mercedes_type = 1;			% grdgradient type
+			end
 		else
 			errordlg('Uknown illumination model.','Error')
 			out = [];
@@ -405,7 +429,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
-'Position',[219 102 61 16],...
+'Position',[219 102 70 16],...
 'String','Ambient light',...
 'Style','text',...
 'Tag','text_ambient');
@@ -432,12 +456,6 @@ uicontrol('Parent',h1,...
 'Tag','text_shine');
 
 uicontrol('Parent',h1,...
-'Call',{@shading_params_uiCB,h1,'push_OK_CB'},...
-'Position',[229 6 66 21],...
-'String','OK',...
-'Tag','push_OK');
-
-uicontrol('Parent',h1,...
 'FontSize',9,...
 'HorizontalAlignment','left',...
 'Position',[13 7 42 16],...
@@ -452,13 +470,13 @@ uicontrol('Parent',h1,...
 'Style','text',...
 'Tag','text_elev');
 
-axes('Parent',h1,'Units','pixels','Position',[16 29 91 91],'Tag','axes1','Visible','off');
+axes('Parent',h1,'Units','pixels','Position',[16 29 91 91],'Tag','axes1','Vis','off');
 
 axes('Parent',h1,...
 'Units','pixels',...
 'Position',[126 49 51 51],...
 'Tag','axes2',...
-'Visible','off');
+'Vis','off');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 0 0],...
@@ -484,6 +502,30 @@ uicontrol('Parent',h1,...
 'Tooltip','Blue component azimuth',...
 'Tag','edit_azimB');
 
-function shading_params_uiCB(hObject, eventdata, h1, callback_name)
+uicontrol('Parent',h1,...
+'Call',@shading_params_uiCB,...
+'Position',[187 101 87 23],...
+'String','Old algorithm',...
+'Style','radiobutton',...
+'TooltipString','Use the older algorithm ',...
+'Value',1,...
+'Tag','radio_oldAlgo');
+
+uicontrol('Parent',h1,...
+'Call',@shading_params_uiCB,...
+'Position',[187 45 87 23],...
+'String','grdgradient',...
+'Style','radiobutton',...
+'TooltipString','Compute illumination with grdgradient ',...
+'Tag','radio_grdgrad');
+
+uicontrol('Parent',h1,...
+'Call',@shading_params_uiCB,...
+'Position',[229 6 66 21],...
+'String','OK',...
+'Tag','push_OK');
+
+function shading_params_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,guidata(h1));
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
+
