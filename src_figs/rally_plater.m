@@ -22,7 +22,13 @@ function varargout = rally_plater(varargin)
 	move2side(hObject,'center')
 
 	% Import icons
-	load([pwd filesep 'data' filesep 'mirone_icons.mat'],'zoom_ico','Mfnew_ico','refresh_ico','color_ico','help_ico','Mplay_ico');
+	mir_dirs = getappdata(0,'MIRONE_DIRS');
+	if (~isempty(mir_dirs))
+		d_path = [mir_dirs.home_dir filesep 'data' filesep];
+	else
+		d_path = [cd filesep 'data' filesep];
+	end
+	load([d_path 'mirone_icons.mat'],'zoom_ico','Mfnew_ico','refresh_ico','color_ico','help_ico','Mplay_ico');
 
 	h_toolbar = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
 		'Interruptible','on','Tag','FigureToolBar','Visible','on');
@@ -131,6 +137,10 @@ function varargout = rally_plater(varargin)
 		handles.last_dir = cfig_handles.last_dir;
 		handles.home_dir = cfig_handles.home_dir;
 		handles.work_dir = cfig_handles.work_dir;
+	elseif (~isempty(mir_dirs))
+		handles.home_dir = mir_dirs.home_dir;
+		handles.work_dir = mir_dirs.work_dir;
+		handles.last_dir = mir_dirs.last_dir;
 	else
 		handles.home_dir = cd;
 		handles.last_dir = cd;
