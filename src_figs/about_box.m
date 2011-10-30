@@ -30,7 +30,7 @@ function varargout = about_box(varargin)
 	set(handles.axes1,'Visible', 'off');
 	image(fundo,'Parent',handles.axes2)
 	set(handles.axes2,'Visible', 'off');
-	bg_color = double(logo(1,1,:))/255;
+	bg_color = double( squeeze(logo(1,1,:)) ) / 255;
 	set(hObject, 'Color', bg_color)
 
     set(handles.JL,'BackgroundColor', bg_color)
