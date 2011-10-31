@@ -191,7 +191,7 @@ if (~isempty(hand.RowNames)),   pos(3) = pos(3) + nW;       end         % Accoun
 
 hand.hFig = figure('unit','pixels','NumberTitle','off','Menubar','none','resize','on','position', ...
     pos,'Name',hand.FigName,'Resize','off','Visible','off');
-movegui(hand.hFig,hand.position)
+move2side(hand.hFig,hand.position)
 
 hand.arr_pos_y = (fig_height-hand.RowHeight-hand.bd_size - (0:hand.NumRows-1)*(hand.RowHeight+hand.bd_size))';
 if (~isempty(hand.HdrButtons)),     hand.arr_pos_y = hand.arr_pos_y - 22;   end
