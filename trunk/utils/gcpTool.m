@@ -116,8 +116,8 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 	aspectImg = axesH / axesW;
 
 	set(handles.figure1,'Visible','off')
-	set(handles.figure1,'Pos',posFig,'Name','GCP Tool')     % Resize the figure
-	movegui(handles.figure1,'north')                        % And reposition it
+	set(handles.figure1,'Pos',posFig,'Name','GCP Tool')		% Resize the figure
+	move2side(handles.figure1,'north')						% And reposition it
 
 	% --------------- Reposition the existing axes
 	set(handles.axes1,'Units','pixels','Tag','axes1')
