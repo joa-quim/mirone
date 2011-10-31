@@ -6,7 +6,7 @@ function move2side(hFigStatic, hFigMov, opt)
 % that selects at which side to position the moving figure.
 %
 % move2side(hFigMov, opt) works nearly as above but without a reference StaticFigure
-%	OPT can now also take the 'center' value
+%	OPT can now have any of the MOVEGUI position strings and this function works like it.
 %
 % Some cases intercept the movegui ML command, but I had to because TMW simply doesn't
 % seam to Grok the concept of stability between versions and OSs.
@@ -62,11 +62,15 @@ function move2side(hFigStatic, hFigMov, opt)
 	end
 
 	% get the screen size
-	ecran = get(0,'ScreenSize');
+	units_bak = get(0, 'units');		set(0, 'units', 'pixels');
+	ecran = get(0,'ScreenSize');		set(0, 'units', units_bak);
 	
 	% save original figures units and temp set them to pixels
-	if (hFigStatic),	FigStaticUnit = get(hFigStatic,'Units');	set(hFigStatic,'Units','Pixels'),	end
-	FigMovUnit = get(hFigMov,'Units');		set(hFigMov,'Units','Pixels')
+	if (hFigStatic)
+		FigStaticUnit = get(hFigStatic,'Units');
+		set(hFigStatic,'Units','Pixels')
+	end
+	FigMovUnit = get(hFigMov,'Units');	set(hFigMov,'Units','Pixels')
 	
 	% Get figures dimensions
 	posFigMov = get(hFigMov,'Pos');
@@ -94,15 +98,15 @@ function move2side(hFigStatic, hFigMov, opt)
 			xLL = 4;				% 4 is nicier than 0
 		end
 	elseif (lower(opt(1)) == 'b')	% Put moving figure on the BOTOM side of reference figure
+		[posFigMov, bars_height] = move_to(hFigMov, 'south', ecran);
 		xLL = posFigStatic(1) + posFigStatic(3)/2  - posFigMov(3)/2;	% More or less centered
-		yLL = posFigStatic(2) - posFigMov(4) - 28;		% But this can leak trough the screen bottom ...
-		movegui(hFigMov, 'south')
-		posFigMov = get(hFigMov,'Pos');
-		yLL = max(yLL, posFigMov(2)+30);		% Take the highest of the two estimations. 30 is for bottom bar
+		yLL = posFigStatic(2) - posFigMov(4) - bars_height - 3;		% But this can leak through the screen bottom ...
+		yLL = max(yLL, posFigMov(2)+35);		% Take the highest of the two estimations. 35 is for bottom bar
 		refine_yLL = false;
-	else							% Put moving figure at the screen center (no StaticFig)
-		xLL = posFigStatic(1) + posFigStatic(3)/2  - posFigMov(3)/2;	% More or less centered
-		yLL = posFigStatic(2) + posFigStatic(4)/2  - posFigMov(4)/2 - 12;	%		"
+	else							% Use any of the movegui postion options (no StaticFig)
+		posFigMov = move_to(hFigMov, lower(opt), ecran);
+		xLL = posFigMov(1);
+		yLL = posFigMov(2);
 		refine_yLL = false;
 	end
 
@@ -115,3 +119,53 @@ function move2side(hFigStatic, hFigMov, opt)
 	% Reset original figures units
 	if (hFigStatic),	set(hFigStatic,'Units',FigStaticUnit),		end
 	set(hFigMov,'Units',FigMovUnit)
+
+
+% ----------------------------------------------------------------------
+function [new_pos, bars_height] = move_to(fig, position, ecran)
+% Bit of code extracted and adapted from ML's movegui.
+	oldpos  = get(fig, 'position');
+	wfudge =  6;
+	hfudge = 24;
+
+	if ~isempty(findall(fig,'type','uimenu'))
+		hfudge = hfudge + 32;
+	end
+
+	n_toolbars = numel(findall(fig,'type','uitoolbar'));
+	if (n_toolbars > 0)
+		hfudge = hfudge + 24 * n_toolbars;
+	end
+
+	oldpos(3) = oldpos(3) + wfudge;
+	oldpos(4) = oldpos(4) + hfudge;
+
+	fleft   = oldpos(1);	fwidth  = oldpos(3);
+	fbottom = oldpos(2);	fheight = oldpos(4);
+
+	% make sure the figure is not bigger than the screen size
+	fwidth = min(fwidth, ecran(3));		fheight = min(fheight, ecran(4));
+
+	rwidth  = ecran(3) - fwidth;		% remaining width
+	rheight = ecran(4) - fheight;		% remaining height
+
+	switch position
+		case 'north',		new_pos = [rwidth/2,   rheight];
+		case 'south',		new_pos = [rwidth/2,         0];
+		case 'east',		new_pos = [  rwidth, rheight/2];
+		case 'west',		new_pos = [       0, rheight/2];
+		case 'northeast',	new_pos = [  rwidth,   rheight];
+		case 'southeast',	new_pos = [  rwidth,         0];
+		case 'northwest',	new_pos = [       0,   rheight];
+		case 'southwest',	new_pos = [       0,         0];
+		case 'center',		new_pos = [rwidth/2, rheight/2];
+		case 'onscreen'
+			if (fleft < 0),			fleft = 0;		end
+			if (fbottom < 0),		fbottom = 0;	end
+			if (fleft > rwidth),	fleft = rwidth;	end
+			if (fbottom > rheight),	fbottom = rheight;	end
+			new_pos = [fleft, fbottom];
+	end
+
+	new_pos(3:4) = [fwidth - wfudge, fheight - hfudge];
+	if (nargout == 2),		bars_height = hfudge;	end
