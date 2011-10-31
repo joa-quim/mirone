@@ -723,7 +723,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 18 Oct 2011'',''2.2.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 31 Oct 2011'',''2.2.0b'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -734,7 +734,7 @@ uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 18 
 	handles.RecentF = handles.RecentF(end:-1:1);  % Inverse creation order so that newest files show on top of the list
 	handles.noVGlist = hVG;					% List of ui handles that will not show when "not valid grid"
 	handles.mirVersion = [2 0 0];			% Something like [major minor revision]
-	movegui(H1,'north');					% Reposition the window on screen
+	move2side(H1,'north');					% Reposition the window on screen
 	set(H1,'Vis','on');
 
 % --------------------------------------------------------------------------------------------------
