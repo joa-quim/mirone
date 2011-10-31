@@ -419,8 +419,8 @@ for i=1:n
 	p_i = lower(pv_pairs{2*i-1});
 	v_i = pv_pairs{2*i};
 	
-	ind = strmatch(p_i,lpropnames,'exact');
-    if isempty(ind)
+	ind = strcmp(p_i, lpropnames);
+    if (~any(ind))
 	    ind = find(strncmp(p_i,lpropnames,length(p_i)));
         if isempty(ind)
             error(['No matching property found for: ',pv_pairs{2*i-1}])
