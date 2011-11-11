@@ -17,6 +17,7 @@ function stopBar =  aguentabar(varargin)
 %
 %   AGUENTABAR(X,'title','title string') will create|update the title text in
 %   the aguentabar figure, in addition to setting the fractional length to X.
+%   AGUENTABAR(X,'title','title string') with a negative X updates only the 'title string'
 %
 %   STOP = AGUENTABAR(..., 'CreateCancelBtn') adds a cancel button to the figure.
 %   Hiting this Cancel button will signal the figure to be killed on its next call
@@ -62,11 +63,11 @@ function stopBar =  aguentabar(varargin)
 
 	% Parse inputs
 	n_argin = nargin;
-	fractiondone = 0;		haveCancel = 0;			titulo = [];		% Default values
+	fracdone = 0;		haveCancel = 0;			titulo = [];		% Default values
 	if (n_argin)
 		for ( i = 1:numel(varargin) )
 			if ( isnumeric(varargin{i}) )
-				fractiondone = varargin{i};
+				fracdone = varargin{i};
 			elseif ( strncmpi(varargin{i}, 'title',5) )
 				try		titulo = varargin{i+1};				% In case title string was not provided
 				catch,	titulo = '';
@@ -79,12 +80,15 @@ function stopBar =  aguentabar(varargin)
 
 	hFig = [];		hPatch = [];	starttime = [];		lastupdate = [];	killBill = false;
 	f = findobj(allchild(0),'flat','Tag','AGUENTAbar');
-	if ( ~isempty(f) )
+	if (~isempty(f))
 		hFig = f(1);
-		if ( fractiondone > 0 )
+		if (fracdone ~= 0)
 			ud = get(hFig, 'UserData');
 			hPatch = ud(1);				starttime = ud(2:7);
 			lastupdate = ud(8:13);		killBill = ud(14);
+			if (fracdone < 0)			% Change only the title string but keep the percentage
+				fracdone = get(hPatch, 'UserData');
+			end
 		else
 			% Progress bar needs to be reset, close figure and set handle to empty
 			delete(hFig)		% Close progress bar
@@ -98,7 +102,7 @@ function stopBar =  aguentabar(varargin)
 		return
 	end
 
-	percentdone = floor(100*fractiondone);
+	percentdone = floor(100*fracdone);
 
 	% Create new progress bar if needed
 	if ( isempty(hFig) )
@@ -137,7 +141,7 @@ function stopBar =  aguentabar(varargin)
         lastupdate = clock - 1;
 	
         % Task starting time reference
-        if (isempty(starttime) || (fractiondone == 0)),		starttime = clock;		end
+        if (isempty(starttime) || (fracdone == 0)),		starttime = clock;		end
 
 	elseif ( ~isempty(titulo) )			% Update title on an existing aguentabar figure
 		set(get(findobj(hFig, 'type', 'axes'),'Title'),'String',titulo,'Interpreter','none')
@@ -152,14 +156,14 @@ function stopBar =  aguentabar(varargin)
 	end
 
 	% Update progress patch
-	set(hPatch,'XData',[0 fractiondone fractiondone 0])
+	set(hPatch,'XData',[0 fracdone fracdone 0], 'UserData',fracdone)
 
 	% Update progress figure title bar
-	if (fractiondone == 0)
+	if (fracdone == 0)
 		titlebarstr = ' 0%';
 	else
 		runtime = etime(clock,starttime);
-		timeleft = runtime/fractiondone - runtime;
+		timeleft = runtime/fracdone - runtime;
 		timeleftstr = sec2timestr(timeleft);
 		titlebarstr = sprintf('%2d%%    %s remaining', percentdone, timeleftstr);
 	end
