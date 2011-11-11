@@ -128,7 +128,7 @@ function  varargout = url2image(opt, varargin)
 	
 	if (~nargin),		return,		end
 	% ---------------------------- Test args ----------------------------
-	varargs = [];		cache = [];		cache = 'D:\lixo\GoogleMV2\GoogleMV\Cache';
+	varargs = [];		cache = 'D:\lixo\GoogleMV2\GoogleMV\Cache';		%cache = [];
 	if ( strcmp(opt(1:3), 'til') || strcmp(opt(1:3), 'cal') )
 		if (nargin < 4)
 			error('url2image: minimum number of argins is 4')
@@ -555,7 +555,7 @@ function new_quad = getNext(quad, quadkey, v, h)
 		new_quad = quad;		return
 	end
 
-	N = numel(quad);			quad_num = zeros(1, N);		isGI = false;
+	N = numel(quad);			quad_num = zeros(1, N);
 	ind = (quad == quadkey{1,2});	quad_num(ind) = 1;		% 1|r 		Convert to numeric
 	ind = (quad == quadkey{2,2});	quad_num(ind) = 3;		% 3|s
 	ind = (quad == quadkey{2,1});	quad_num(ind) = 2;		% 2|t
