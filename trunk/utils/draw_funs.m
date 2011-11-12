@@ -265,6 +265,7 @@ function set_line_uicontext(h, opt)
 		uimenu(cmenuHand, 'Label', 'Register Image', 'Call', @rectangle_register_img);
 		uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Call', @Transplant_Image);
 		if (handles.geog)
+			uimenu(cmenuHand, 'Label', 'Grid/Image mosaicer', 'Call', 'mosaicer(gco)');
 			uimenu(cmenuHand, 'Label', 'Get image from Web Map Server', 'Call', 'wms_tool(gco)');
 			uimenu(cmenuHand, 'Label', 'CMT Catalog (Web download)', 'Call', 'globalcmt(gcf,gco)');
 		end
