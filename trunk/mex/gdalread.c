@@ -20,7 +20,8 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
- * Revision 20 23/02/2010 nedCDF bug is perhaps fixed. Limit previous solution to to pre 1.7 version
+ * Revision 22 12/11/2011 Added option -s to force output as float. Force error when fail to open file
+ * Revision 21 23/02/2010 nedCDF bug is perhaps fixed. Limit previous solution to to pre 1.7 version
  * Revision 20 17/02/2009 Added -L option to deal with MODIS L2 left-right flipping stupidity
  * Revision 19 15/01/2009 Added the "Name" field to the attributes struct
  * Revision 18 18/03/2008 Another attempt to patch the broken netCDF driver
@@ -105,10 +106,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	nPixelSize, nBands, nXYSize, i, m, n, nn, nReqBands = 0, got_r = FALSE;
 	int	dims[]={0,0,0,0,0,0,0}, argc = 0, n_arg_no_char = 0;
 	int	error = FALSE, gdal_dump = FALSE, insitu = FALSE, scale_range = FALSE;
-	int	pixel_reg = FALSE, correct_bounds = FALSE, fliplr = FALSE;
+	int	pixel_reg = FALSE, correct_bounds = FALSE, fliplr = FALSE, forceSingle = FALSE;
 	int	anSrcWin[4], xOrigin = 0, yOrigin = 0, i_x_nXYSize;
 	int	nBufXSize, nBufYSize, jump = 0, *whichBands = NULL, *nVector, *mVector;
 	int	n_commas, n_dash, nX, nY;
+	int dataType;
 	int	nXSize = 0, nYSize = 0;
 	int	bGotMin, bGotMax;	/* To know if driver transmited Min/Max */
 	char	*tmp, *outByte, *p;
@@ -198,6 +200,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'S':
 					scale_range = TRUE;
 					break;
+				case 's':
+					forceSingle = TRUE;
+					break;
 				case 'U':
 					flipud = TRUE;
 					break;
@@ -209,8 +214,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (error || nrhs < 1 || nlhs > 2) {
-		mexPrintf ("usage(s): z = gdalread('filename',['-C'],['-F'],['-I[size]'],['-Rw/e/s/n']);\n");
-		mexPrintf ("                       ['-S'],['-U'], ['-c<key>/<value>']);\n");
+		mexPrintf ("usage(s): z = gdalread('filename',['-C'],['-F'],['-I'],['-Rw/e/s/n']);\n");
+		mexPrintf ("                       ['-S'],['-U'], ['-c<key>/<value>'], ['-s']);\n");
 		mexPrintf (" 	 [z,attrib] = gdalread('filename', ...);\n");
 		mexPrintf (" 	 attrib     = gdalread('','-M');\n\n");
 		mexPrintf ("\t   attrib is a structure with metadata.\n");
@@ -223,6 +228,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\t-L flip the grid LeftRight (For the time being, ignored if -U).\n");
 		mexPrintf ("\t-M ouputs only the metadata structure\n");
 		mexPrintf ("\t-S scale ouptut into the [0-255] range\n");
+		mexPrintf ("\t-s Force the output 'z' array to be of float type (singles)\n");
 		mexPrintf ("\t-R read only the sub-region enclosed by <west/east/south/north>\n");
 		mexPrintf ("\t-U flip the grid UpDown (needed for all DEM grids in Mirone)\n");
 		return;
@@ -233,7 +239,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if ( (gdal_filename = (char *)mxArrayToString(prhs[0])) == NULL) {
 		mexPrintf ("%s\n", gdal_filename);
 		mexErrMsgTxt ("gdalread: failure to decode gdal_filename string \n");
-		return;
 	}
 
 	if (metadata_only && nlhs == 2)
@@ -259,9 +264,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (hDataset == NULL) {
 		mexPrintf ("GDALOpen failed %s\n", CPLGetLastErrorMsg());
 		plhs[0] = mxCreateNumericMatrix (0,0,mxDOUBLE_CLASS, mxREAL);
-		if (nlhs == 2)
-			plhs[1] = mxCreateNumericMatrix (0,0,mxDOUBLE_CLASS, mxREAL);
-		return;
+		mexErrMsgTxt ("\n");
 	}
 
 	/* Some formats (tipically DEMs) have their origin at Bottom Left corner.
@@ -376,6 +379,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (!got_R)		/* Otherwise, Min/Max will be computed bellow */
 			GDALComputeRasterMinMax(hBand, FALSE, adfMinMax);
 	}
+	else if (forceSingle) {
+		plhs[0] = mxCreateNumericArray (ndims,dims,mxSINGLE_CLASS, mxREAL);
+		outF32 = mxGetData(plhs[0]);
+		nPixelSize = 4;
+		insitu = FALSE;		/* Just to be sure */
+	}
 	else {
 		switch( GDALGetRasterDataType(hBand) ) {
 			case GDT_Byte:
@@ -410,10 +419,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (!insitu) {		/* EXPLICAR PORQUE */
 		tmp = mxCalloc(nBufYSize * nBufXSize, nPixelSize);
-		if (tmp == NULL) {
+		if (tmp == NULL)
 			mexErrMsgTxt ("gdalread: failure to allocate enough memory\n");
-			return;
-		}
 	}
 	else
 		tmp = mxGetData(plhs[0]);	/* Apropriate type was already selected above */
@@ -441,14 +448,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	/* --------------------------------------------------------------------------------- */
 
-	for( i = 0; i < nBands; i++ ) {
+	for (i = 0; i < nBands; i++) {
 		if (!nReqBands)		/* No band selection, read them sequentialy */
 			hBand = GDALGetRasterBand( hDataset, i+1 );
 		else			/* Band selection. Read only the requested ones */
 			hBand = GDALGetRasterBand( hDataset, whichBands[i] );
 
+		dataType = GDALGetRasterDataType(hBand);
+		if (forceSingle)
+			dataType = GDT_Float32;
+
 		GDALRasterIO(hBand, GF_Read, xOrigin, yOrigin, nXSize, nYSize,
-			tmp, nBufXSize, nBufYSize, GDALGetRasterDataType(hBand), 0, 0 );
+			tmp, nBufXSize, nBufYSize, dataType, 0, 0 );
 
         	dfNoData = GDALGetRasterNoDataValue(hBand, &bGotNodata);
 		/* If we didn't computed it yet, its time to do it now */
@@ -456,7 +467,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (nBands > 1 && scale_range) {	/* got_R && scale_range && nBands > 1 Should never be true */
 			adfMinMax[0] = GDALGetRasterMinimum( hBand, &bGotMin );
 			adfMinMax[1] = GDALGetRasterMaximum( hBand, &bGotMax );
-			if( !(bGotMin && bGotMax) )
+			if(!(bGotMin && bGotMax))
 				GDALComputeRasterMinMax(hBand, FALSE, adfMinMax);
 		}
 
@@ -469,7 +480,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		else
 			i_x_nXYSize = i*nXYSize;
 
-		switch( GDALGetRasterDataType(hBand) ) {
+		switch (dataType) {
 			case GDT_Byte:
 				if (scale_range) {	 /* Scale data into the [0 255] range */
 					range = adfMinMax[1] - adfMinMax[0];
