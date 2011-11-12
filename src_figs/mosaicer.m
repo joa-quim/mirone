@@ -1,0 +1,970 @@
+function varargout = mosaicer(varargin)
+% Helper window to paste SRTM grid tiles or Wem image tiles from Bing and others
+
+	hObject = figure('Vis','off');
+	mosaicer_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'right')
+
+	handles.hRectangle = varargin{1};
+	handles.rectOrigSize = [get(handles.hRectangle,'XData') get(handles.hRectangle,'YData')];
+	handles.hMirFig = get(get(handles.hRectangle,'Parent'), 'Parent');
+	handMir = guidata(handles.hMirFig);
+	handles.last_dir = handMir.last_dir;
+	handles.path_data = handMir.path_data;
+
+	handles.hPatches30 = [];
+	handles.hPatches5 = [];
+	handles.hPatches = [];
+	handles.hPatchImgs = [];
+	handles.url_manual = '';
+
+	% Choose what tyoe of patches to plot based on rectangle's area (GRID oriented decision)
+	x = diff(get(handles.hRectangle,'XData'));		y = diff(get(handles.hRectangle,'YData'));
+	area = max(abs(x)) * max(abs(y));
+	if (area < 30)
+		handles = draw_srtm_mesh(handles, handles.hRectangle);
+	elseif (area < 150)
+		handles = draw_srtm5_mesh(handles, handles.hRectangle);
+	else
+		handles = draw_srtm30_mesh(handles, handles.hRectangle);
+	end
+
+	% --------------------- Read the directory and cache dir list from mirone_pref ----------------------
+	directory_list = [];
+	load([handMir.path_data 'mirone_pref.mat']);
+	j = false(1,numel(directory_list));						% vector for eventual cleaning non-existing dirs
+
+	if iscell(directory_list)								% When exists a dir list in mirone_pref
+		for i = 1:numel(directory_list)
+			if ~exist(directory_list{i},'dir'),   j(i) = true;   end
+		end
+		directory_list(j) = [];								% clean eventual non-existing directories
+	end
+	if ~isempty(directory_list)								% If there is one left
+		if (~strcmp(directory_list{1}, handles.last_dir))
+			directory_list = [{handles.last_dir}; directory_list];
+		end
+	else
+		directory_list = {handles.last_dir};
+	end
+	set(handles.popup_grd_dir,'String',directory_list)
+	handles.last_directories = directory_list;
+	handles.files_dir = handles.last_directories{1};
+
+	handles = popup_grd_dir_CB(handles.popup_grd_dir, handles, directory_list{1});
+
+	% -------- Try if we already have a cache directory store in prefs
+	try			cacheDirs = cacheTilesDir;
+	catch,		cacheDirs = [];
+	end
+
+	if ( ~isempty(cacheDirs) )			% We have cache dir(s), but make sure it exists
+		ind = true(1,numel(cacheDirs));
+		for (k = 1:numel(ind))					% dir(s) are stored in a cell array
+			if ( exist(cacheDirs{k}, 'dir') == 7)
+				ind(k) = false;
+			end
+		end
+		cacheDirs(ind) = [];			% Remove eventual non existent dirs
+		if ( isempty(cacheDirs) ),		cacheDirs = {''};		val = 1;	% It can't be an empty var
+		else							cacheDirs = [{''}; cacheDirs];		val = 2;
+		end
+		set(handles.popup_cache_dir,'String',cacheDirs, 'Val', val)
+	end
+	% ------------------------------------------------------------------------------------------
+
+	% ---------- Read the tilesServers.txt file and swalow its contents ------------------------
+	% NOTE: an important part of this section is futuristic code
+	handles.serversImageOut = 'http://a0.ortho.tiles.virtualearth.net/tiles/a';		% DEFAULT TO VE
+	handles.serversRoadOut = 'http://r0.ortho.tiles.virtualearth.net/tiles/r';
+	handles.serversHybridOut = 'http://h0.ortho.tiles.virtualearth.net/tiles/h';
+	handles.serversQuadkeyOut = {'0' '1'; '2' '3'};
+	handles.serversOrder = ones(3,1);
+	
+	fid = fopen([handles.path_data 'tilesServers.txt']);
+	if (fid > 0)				% Otherwise, non-existent file, revert to defaults
+		c = (fread(fid,'*char'))';      fclose(fid);
+		servers = strread(c,'%s','delimiter','\n');   clear c fid;
+		% Remove comment and also eventual empty lines
+		m = numel(servers);		c = false(m,1);
+		for (k = 1:m)
+			if ( isempty(servers{k}) || servers{k}(1) == '#' ),		c(k) = true;	end
+		end
+		servers(c) = [];		n_servers = numel(servers);
+
+		handles.servers_image  = cell(1,n_servers);		handles.servers_road = cell(1,n_servers);
+		handles.servers_hybrid = cell(1,n_servers);		handles.servers_quadkey = cell(1,n_servers);
+		for (k = 1:n_servers)					% Loop over number of servers (not that many, we hope)
+			[tok,rem] = strtok(servers{k});
+			handles.servers_image{k} = tok;		% Images server
+			if (~isempty(rem))					% Maps server
+				[tok,rem] = strtok(rem);		handles.servers_road{k} = tok;
+			end
+			if (~isempty(rem))					% Hybrids server
+				[tok,rem] = strtok(rem);		handles.servers_hybrid{k} = tok;
+			end
+			if (~isempty(rem))					% Quadtree keeword
+				tok = strtok(rem);				handles.servers_quadkey{k} = tok;
+			end
+		end
+	end
+	% -------------------------------------------------------------------------------------------
+
+	%------------ Give a Pro look (3D) to the frame boxes  --------
+	new_frame3D(hObject, [handles.text_TitFrame1 handles.text_TitFrame2])
+	%------------- END Pro look (3D) ------------------------------
+
+	set(hObject,'Visible','on');
+	guidata(hObject, handles);
+	if (nargout),	varargout{1} = hObject;		end
+
+% -------------------------------------------------------------------------
+function hand = popup_grd_dir_CB(hObject, handles, opt)
+% Do whatever in the directory containing the grids of interest
+	if (nargin == 2)    opt = [];   end
+	if isempty(opt)
+		val = get(hObject,'Value');     str = get(hObject, 'String');
+		% Put the selected field on top of the String list. This is necessary because the "OK" button will
+		tmp = str(val);				str(val) = [];
+		new_str = [tmp; str];		set(hObject,'String',new_str); 
+		set(hObject,'Value',1)
+		if iscell(tmp),				new_dir = tmp{1};
+		else						new_dir = tmp;
+		end
+	else
+		new_dir = opt;
+	end
+	handles.files_dir = new_dir;
+
+	exts = {'hgt' 'zip' 'gz'};
+	if (get(handles.radio_srtm30, 'Val'))
+		exts{1} = 'srtm';
+	end
+	[handles.srtm_files, handles.srtm_compfiles, handles.srtm_exts, handles.srtm_patos, handles.srtm_patos_comp] = ...
+		get_fnames_ext(new_dir,exts);
+
+	if (nargout),	hand = handles;
+	else			guidata(handles.figure1,handles)
+	end
+
+% -------------------------------------------------------------------------
+function push_grd_dir_CB(hObject, handles)
+% Change dir to where files of interest are stored. Call popup_dir to finish work
+	if (strcmp(computer, 'PCWIN'))
+		work_dir = uigetfolder_win32('Select a directory', cd);
+	else            % This guy doesn't let to be compiled
+		work_dir = uigetdir(cd, 'Select a directory');
+	end
+	if (isempty(work_dir)),		return,		end
+	handles.last_directories = [cellstr(work_dir); handles.last_directories];
+	set(handles.popup_dir,'Str',handles.last_directories)
+	guidata(hObject, handles);
+	popup_grd_dir_CB(hObject, handles, work_dir)
+
+% -------------------------------------------------------------------------
+function radio_srtm_CB(hObject, handles)
+	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
+	set([handles.radio_srtm5 handles.radio_srtm30 handles.radio_tileImages], 'Val', 0)
+	set(handles.slider_zoomFactor, 'Enable', 'off')
+	if (~isempty(handles.hPatches30)),		set(handles.hPatches30, 'Vis', 'off'),	end
+	if (~isempty(handles.hPatches5)),		set(handles.hPatches5,  'Vis', 'off'),	end
+	if (~isempty(handles.hPatchImgs)),	set(handles.hPatchImgs,'Vis', 'off'),	end
+	if (~isempty(handles.hPatches))
+		set(handles.hPatches,   'Vis', 'on')
+	else
+		handles = draw_srtm_mesh(handles, handles.hRectangle);
+		guidata(handles.figure1,handles)
+	end
+	if (get(handles.check_web,'val')),		check_web_CB(handles.check_web, handles),	end
+
+% -------------------------------------------------------------------------
+function radio_srtm5_CB(hObject, handles)
+	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
+	set([handles.radio_srtm handles.radio_srtm30 handles.radio_tileImages], 'Val', 0)
+	set(handles.slider_zoomFactor, 'Enable', 'off')
+	if (~isempty(handles.hPatches30)),		set(handles.hPatches30, 'Vis', 'off'),	end
+	if (~isempty(handles.hPatches)),		set(handles.hPatches,   'Vis', 'off'),	end
+	if (~isempty(handles.hPatchImgs)),	set(handles.hPatchImgs,'Vis', 'off'),	end
+	if (~isempty(handles.hPatches5))
+		set(handles.hPatches5,   'Vis', 'on')
+	else
+		handles = draw_srtm5_mesh(handles, handles.hRectangle);
+		guidata(handles.figure1,handles)
+	end
+	if (get(handles.check_web,'val')),		check_web_CB(handles.check_web, handles),	end
+
+% -------------------------------------------------------------------------
+function radio_srtm30_CB(hObject, handles)
+	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
+	set([handles.radio_srtm handles.radio_srtm5 handles.radio_tileImages], 'Val', 0)
+	set(handles.slider_zoomFactor, 'Enable', 'off')
+	if (~isempty(handles.hPatches)),		set(handles.hPatches,  'Vis', 'off'),	end
+	if (~isempty(handles.hPatches5)),		set(handles.hPatches5,  'Vis', 'off'),	end
+	if (~isempty(handles.hPatchImgs)),	set(handles.hPatchImgs,'Vis', 'off'),	end
+	if (~isempty(handles.hPatches30))
+		set(handles.hPatches30,   'Vis', 'on')
+	else
+		handles = draw_srtm30_mesh(handles, handles.hRectangle);
+		guidata(handles.figure1,handles)
+	end
+	if (get(handles.check_web,'val')),		check_web_CB(handles.check_web, handles),	end
+
+% -------------------------------------------------------------------------
+function check_web_CB(hObject, handles)
+% Set pre-set web addresses of known data sources
+	url = '';
+	if (get(hObject,'Val'))
+		set([handles.popup_grd_dir handles.push_grd_dir],'Enable', 'off')
+		if (get(handles.radio_srtm,'Val'))
+			url = 'http://dds.cr.usgs.gov/srtm/version2_1/SRTM3/Eurasia/';
+		elseif (get(handles.radio_srtm30,'Val'))
+			url = 'ftp://topex.ucsd.edu/pub/srtm30_plus/srtm30/data/';
+		end
+	else
+		set([handles.popup_grd_dir handles.push_grd_dir],'Enable', 'on')
+	end
+	set(handles.edit_url, 'Str', url)
+
+% -------------------------------------------------------------------------
+function edit_url_CB(hObject, handles)
+% Save entered address
+	handles.url_manual = get(hObject,'Str');
+	guidata(handles.figure1, handles)
+
+% -----------------------------------------------------------------------------------------
+function [fnames,limits] = sort_patches(handles)
+% Sort the tile names (those that were selected) in order that follow a matrix
+% with origin at the lower left corner of the enclosing rectangle.
+% Also returns the limits of the enclosing rectangle.
+	x_min = [];		x_max = [];		y_min = [];		y_max = [];		limits = [];
+	h = findobj(handles.hPatches,'UserData',1);		% Get selected tiles
+	names = get(h,'Tag');							% Get their names
+	if (isempty(names)),		fnames = [];	return,	end
+	if (~isa(names, 'cell')),	names = {names};	end
+
+	nTiles = numel(names);
+	mesh_idx = cell(1,nTiles);
+	for (i = 1:nTiles),		mesh_idx{i} = getappdata(h(i),'MeshIndex');		end
+	[B,IX] = sort(mesh_idx);
+	if (numel(IX) > 1),		fnames = names(IX);			% Order tile names according to the sorted mesh_idx
+	else					fnames = names;				% Only one tile; nothing to sort
+	end
+
+	% Find the map limits of the total collection of tiles
+	idx_r = zeros(1,nTiles);		idx_c = zeros(1,nTiles);
+	for (i = 1:nTiles)
+		% Find the tile coordinates from the file name
+		if (iscell(fnames))		[PATH,FNAME] = fileparts(fnames{i});
+		else					[PATH,FNAME] = fileparts(fnames);
+		end
+		x_w = strfind(FNAME,'W');	x_e = strfind(FNAME,'E');
+		y_s = strfind(FNAME,'S');	y_n = strfind(FNAME,'N');
+		if ~isempty(x_w),			ind_x = x_w(1);     lon_sng = -1;
+		elseif  ~isempty(x_e)		ind_x = x_e(1);     lon_sng = 1;
+		end
+
+		if ~isempty(y_n),		lat_sng = 1;
+		elseif ~isempty(y_s)	lat_sng = -1;
+		end
+		lon = str2double(FNAME(ind_x+1:ind_x+3)) * lon_sng;
+		lat = str2double(FNAME(2:ind_x-1)) * lat_sng;
+
+		if (isempty(x_min))
+			x_min = lon;    x_max = lon + 1;    y_min = lat;    y_max = lat + 1;
+		else
+			x_min = min(x_min,lon);		x_max = max(x_max,lon+1);
+			y_min = min(y_min,lat);		y_max = max(y_max,lat+1);
+		end
+		% Convert the sorted mesh index to row and column vectors
+		[t,r] = strtok(B{i},'x');
+		idx_r(i) = str2double(t);		idx_c(i) = str2double(r(2:end));
+	end
+	limits = [x_min x_max y_min y_max];
+
+	% If we have only one tile (trivial case) there is no need for the following tests
+	if (nTiles == 1),	return,		end
+
+	% Build a test mesh index with the final correct order 
+	min_r = min(idx_r);		max_r = max(idx_r);
+	min_c = min(idx_c);		max_c = max(idx_c);
+	k = 1;					n_r = numel(min_r:max_r);		n_c = numel(min_c:max_c);
+	nNames = numel(min_r:max_r) * numel(min_c:max_c);
+	test_mesh = cell(1, nNames);
+	for (i = min_r:max_r)
+		for (j = min_c:max_c)
+			test_mesh{k} = [num2str(i) 'x' num2str(j)];
+			k = k + 1;
+		end
+	end
+
+	t_names = repmat({'void'},1,nNames);
+	BB = B;
+	for (i = nTiles+1:nNames),		BB{i} = '0x0';		end
+
+	% Check t_names against fnames to find the matrix correct order
+	fail = 0;
+	for (i = 1:nNames)
+		k = i - fail;
+		if (strcmp(BB{k},test_mesh{i}))
+			t_names{i} = fnames{k};
+		else
+			fail = fail + 1;
+		end
+	end
+	fnames = reshape(t_names,n_c,n_r)';
+
+% -----------------------------------------------------------------------------------------
+function handles = draw_srtm_mesh(handles, h)
+% Draw 1 degree squares corresponding to the SRTM1|3 tiles
+	hAx = get(h,'Parent');
+	x = get(h,'XData');		y = get(h,'YData');
+	x_min = floor(min(x));	x_max = ceil(max(x));
+	y_min = floor(min(y));	y_max = ceil(max(y));
+	x = x_min:x_max;		y = y_min:y_max;
+	n = numel(x);			m = numel(y);
+	hp = zeros(m-1,n-1);
+	for (i = 1:m-1)
+		for (j = 1:n-1)		% col
+			xp = [x(j) x(j) x(j+1) x(j+1) x(j)];
+			yp = [y(i) y(i+1) y(i+1) y(i) y(i)];
+			mesh_idx = sprintf('%dx%d', i,j);
+			c1 = 'N';		c2 = 'E';			% Default guesses
+			if (y(i) < 0),	c1 = 'S';	end
+			if (x(j) < 0),	c2 = 'W';	end
+			tag = sprintf('%s%.2d%s%.3d.hgt', c1, abs(y(i)), c2, abs(x(j)));
+			hp(i,j) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
+				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_srtmTile, handles.figure1});
+			setappdata(hp(i,j),'MeshIndex',mesh_idx)
+		end
+	end
+	handles.hPatches = hp;
+
+% -----------------------------------------------------------------------------------------
+function bdn_srtmTile(obj, evt, hFig)
+	handles = guidata(hFig);
+	tag = get(gcbo,'Tag');
+	xx = strcmp(tag, handles.srtm_files);		xz = strcmp(tag, handles.srtm_compfiles);
+
+	if (~get(gcbo,'UserData'))			% If not selected    
+		set(gcbo,'FaceColor','g','UserData',1)
+		if ( (isempty(xx) && isempty(xz)) && isempty(get(handles.edit_url,'Str')) )	% If WEB dl let it go
+			%str = ['The file ' tag ' does not exist in the current directory'];
+			set(gcbo,'FaceColor','r')
+			pause(1)
+			set(gcbo,'FaceColor','y','UserData',0)
+		end
+	else
+		set(gcbo,'FaceColor','y','UserData',0)
+	end
+
+% -----------------------------------------------------------------------------------------
+function handles = draw_srtm30_mesh(handles, h)
+% Draw patches corresponding to the SRTM30 tiles
+	hAx = get(h,'Parent');
+	x = get(h,'XData');				y = get(h,'YData');
+	xx = fix(abs(x+180)/40) + 1;	xx = [min(xx) max(xx)];
+	x_min = (xx(1)-1) * 40 - 180;	x_max = xx(2) * 40 - 180;
+	yy = fix(abs(90-y)/50) + 1;		yy = [min(yy) max(yy)];
+	y_max = 90 + (yy(2)-1) * 50;	y_min = 90 + yy(1) * 50;
+	x = x_min:40:x_max;				y = y_min:50:y_max;
+	n = numel(x);					m = numel(y);
+	hp = zeros(m-1,n-1);
+
+	for (i = yy(1):yy(2))
+		yp = [-i*50 -(i-1)*50 -(i-1)*50 -i*50 -i*50] + 90;
+		c2 = 'n';			c1 = 'w';			% Default guesses
+		if (yp(2) < 0),		c2 = 's';	end
+		for (j = xx(1):xx(2))
+			xp = [(j-1)*40 (j-1)*40 j*40 j*40 (j-1)*40] - 180;
+			if (xp(1) > 0),	c1 = 'e';	end
+			tag = sprintf('%s%.3d%s%.2d.Bathymetry.srtm', c1, abs(xp(1)), c2, abs(yp(2)));
+			hp(i-yy(1)+1,j-xx(1)+1) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
+				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_srtmTile, handles.figure1});
+		end
+	end
+% 	% Southern tile row has a different width
+% 	yp = [-90 -60 -60 -90 -90];
+% 	for (j = 1:6)
+% 		xp = [(j-1)*60 (j-1)*60 j*60 j*60 (j-1)*60] - 180;
+% 		c1 = 'w';
+% 		if (xp(1) > 0),		c1 = 'e';	end
+% 		tag = sprintf('%s%.3d.s60.Bathymetry.srtm', c1, abs(xp(1)));
+% 		patch(xp,yp,0,'FaceColor','none','Tag',tag,'UserData',0,'ButtonDownFcn',@bdn_srtm30Tile);
+% 	end
+	handles.hPatches30 = hp;
+
+% -----------------------------------------------------------------------------------------
+function handles = draw_srtm5_mesh(handles, h)
+% Draw 1 degree squares corresponding to the SRTM1|3 tiles
+	hAx = get(h,'Parent');
+	x = get(h,'XData');				y = get(h,'YData');
+	xx = fix(abs(x+180)/5) + 1;		xx = [min(xx) max(xx)];
+	x_min = (xx(1)-1) * 5 - 180;	x_max = xx(2) * 5 - 180;
+	yy = fix(abs(60-y)/5) + 1;		yy = [min(yy) max(yy)];
+	y_max = 60 - (yy(1)-1) * 5;		y_min = 60 - yy(2) * 5;
+	x = x_min:5:x_max;				y = y_min:5:y_max;
+	n = numel(x);					m = numel(y);
+	hp = zeros(m-1,n-1);
+	for (i = 1:m-1)
+		for (j = 1:n-1)		% col
+			xp = [x(j) x(j) x(j+1) x(j+1) x(j)];
+			yp = [y(i) y(i+1) y(i+1) y(i) y(i)];
+			mesh_idx = sprintf('%dx%d', i,j);
+			tag = sprintf('srtm_%.2d_%.2d.zip', j, i);
+			hp(i,j) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
+				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_srtmTile, handles.figure1});
+			setappdata(hp(i,j),'MeshIndex',mesh_idx)
+		end
+	end
+	handles.hPatches5 = hp;
+
+% -----------------------------------------------------------------------------------------
+function [files,comp_files,comp_ext,patos,patos_comp] = get_fnames_ext(pato, ext)
+% Get the list of all files with extention "EXT" seating in the "PATO" dir
+% EXT may be either a char or a cell array. In the first case, only files with extension EXT
+% will be returned (that is;  COMP_FILES & COMP_EXT are empty)
+% On the second case, extra values of EXT will will be searched as well (that is; files with
+% extension *.EXT{1}.EXT{2:numel(EXT)}.
+% FILES is a cell array of chars with the names that have extension EXT.
+% COMP_FILES is a cell array of chars with the names that had extension EXT{2, or 3, or 4, etc...}.
+% NOTE: the last extension is removed. E.G if file was lixo.dat.zip, it will become lixo.dat
+% COMP_EXT is a cell array of chars with the extensions corresponding to COMP_FILES.
+% An example is the search for files terminating in *.dat or *.dat.zip (EXT = {'dat' 'zip'})
+
+	comp_files = [];		comp_ext = [];		ext2 = [];
+	if ( (pato(end) ~= '\') || (pato(end) ~= '/') )
+		pato(end+1) = filesep;
+	end
+	if (iscell(ext))
+		ext1 = ext{1};
+		if (numel(ext) > 1),	ext2 = ext(2:end);		end
+	else
+		ext1 = ext;
+	end
+
+	tmp = dir([pato '*.' ext1]);
+	files = {tmp(:).name}';
+	patos = repmat({pato},numel(files),1);
+
+	if (~isempty(ext2))				% That is, if we have one or more compression types (e.g. 'zip' 'gz')
+		for (k = 1:numel(ext2))		% Loop over compression types
+			tmp = dir([pato '*.' ext1 '.' ext2{k}]);
+			tmp = {tmp(:).name}';
+			tmp1 = cell(1, numel(tmp));
+			for (m = 1:numel(tmp))	% Loop over compressed files
+				[PATH,FNAME,EXT] = fileparts(tmp{m});
+				tmp{m} = [PATH,FNAME];
+				tmp1{m} = EXT;		% Save File last extension as well
+			end
+			comp_files = [comp_files; tmp];%#ok
+			comp_ext = [comp_ext; tmp1'];%#ok
+		end
+		patos_comp = repmat({pato},numel(comp_files),1);
+	end
+
+% -------------------------------------------------------------------------
+function radio_tileImages_CB(hObject, handles)
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	set(handles.slider_zoomFactor, 'Enable', 'on')
+	set([handles.radio_srtm handles.radio_srtm30 handles.radio_srtm5], 'Val', 0)
+	if (~isempty(handles.hPatches)),		set(handles.hPatches,  'Vis', 'off'),	end
+	if (~isempty(handles.hPatches5)),		set(handles.hPatches5, 'Vis', 'off'),	end
+	if (~isempty(handles.hPatches30)),		set(handles.hPatches30,'Vis', 'off'),	end
+	if (~isempty(handles.hPatchImgs)),		set(handles.hPatchImgs, 'Vis', 'on')
+	else									region2tiles(handles)
+	end
+
+% -------------------------------------------------------------------------
+function slider_zoomFactor_CB(hObject, handles)
+% ...
+	zoomLevel = round(get(hObject,'Value')) + 1;		% +1 because slider starts at 0
+	pixPerKm = 360 / 2^(zoomLevel - 1) / 256 * 111.3;	% Approx
+	region2tiles(handles)
+	if (pixPerKm < 0.5)		% Report values im meters
+		set(hObject,'Tooltip', sprintf('One pixel ~%.1f m', pixPerKm*1000))
+	else
+		set(hObject,'Tooltip', sprintf('One pixel ~%.3f km', pixPerKm))
+	end
+	set(handles.text_zoomFactor, 'String', zoomLevel)
+
+% -----------------------------------------------------------------------------------------
+function hand = region2tiles(handles,lon,lat,zoomFactor)
+% Get tiles BoundingBoxs and plot patches for each tile of the region delimited by LON, LAT
+% region2tiles(handles) LON & LAT are fished from rectangle handle and ZOOMFACTOR frm handles
+	hAx = get(handles.hRectangle,'Parent');
+	if (~isempty(handles.hPatchImgs))
+		delete(handles.hPatchImgs),		handles.hPatchImgs = [];
+	end
+
+	if (nargin == 1)
+		zoomFactor = round(get(handles.slider_zoomFactor,'Value')) + 1;
+		lon = get(handles.hRectangle,'XData');		lon = [min(lon) max(lon)]+[1e-6 -1e-6];
+		lat = get(handles.hRectangle,'YData');		lat = [min(lat) max(lat)];
+		lat(1) = max(lat(1), -85);					lat(2) = min(lat(2), 85);
+	end
+
+	url = url2image('tile2url', lon, lat, zoomFactor,'quadonly',1);
+	[lims, tiles_bb] = url2image('quadcoord', url);
+	[m,n] = size(url);		hp = zeros(m, n);
+
+	k = 1;
+	for (j = 1:n)			% col
+		xp = [tiles_bb(k,1) tiles_bb(k,1) tiles_bb(k,2) tiles_bb(k,2)];
+		for (i = 1:m)
+			yp = [tiles_bb(k,3) tiles_bb(k,4) tiles_bb(k,4) tiles_bb(k,3)];
+			hp(i,j) = patch('XData',xp,'YData',yp,'Parent',hAx,'FaceColor','y','EdgeColor','k', ...
+				'FaceAlpha',0.5, 'UserData',0, 'ButtonDownFcn',@bdn_tile, 'HitTest', 'on');
+			k = k + 1;
+		end
+	end
+
+	handles.tiles_bb = tiles_bb;
+	handles.hPatchImgs = hp;
+	if (nargout),	hand = handles;
+	else			guidata(handles.figure1,handles)
+	end
+
+% -----------------------------------------------------------------------------------------
+function bdn_tile(obj,evt)
+	stat = get(gcbo,'UserData');
+	if (~stat),		set(gcbo,'FaceColor','g','UserData',1)        % If not selected
+	else			set(gcbo,'FaceColor','y','UserData',0)
+	end
+
+% -------------------------------------------------------------------------
+function popup_cache_dir_CB(hObject, handles, opt)
+% Choose one dir for caching tile images
+% OPT, used by push_cache_dir, is char array
+
+	if (nargin == 2)    opt = [];   end
+	if ( ~isempty(opt) )				% Add a new entry to the cache dir list. Otherwise, just normal popup work.
+		contents = get(hObject, 'String');
+		if (numel(contents) == 1),	rest = [];
+		else						rest = contents(2:end);
+		end
+
+		cacheTilesDir = [{opt}; rest];			% Also the var that will be saved in 'mirone_pref'
+		set(hObject, 'String', [{''}; cacheTilesDir], 'Val', 2)			% Empty, <=> no cache, always on top
+		save([handles.path_data 'mirone_pref.mat'],'cacheTilesDir', '-append', '-v6')		% Update the prefs file
+	end
+
+% -------------------------------------------------------------------------
+function push_cache_dir_CB(hObject, handles)
+	if (strcmp(computer, 'PCWIN'))
+		cache_dir = uigetfolder_win32('Select a directory', cd);
+	else			% This guy doesn't let to be compiled
+		cache_dir = uigetdir(cd, 'Select a directory');
+	end
+	if ~isempty(cache_dir)
+		popup_cache_dir_CB(handles.popup_directory_list, handles, cache_dir)
+	end
+
+% -------------------------------------------------------------------------
+function toggle_sat_CB(hObject, handles)
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	set([handles.toggle_hybrid handles.toggle_map], 'Val', 0)
+
+% -------------------------------------------------------------------------
+function toggle_hybrid_CB(hObject, handles)
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	set([handles.toggle_sat handles.toggle_map], 'Val', 0)
+
+% -------------------------------------------------------------------------
+function toggle_map_CB(hObject, handles)
+	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	set([handles.toggle_sat handles.toggle_hybrid], 'Val', 0)
+
+% -------------------------------------------------------------------------
+function push_src_CB(hObject, handles)
+% Get the response of the "Tiles servers" window
+	order = handles.serversOrder;		% Order of last call
+	out = tiles_servers(handles.servers_image, handles.servers_road, handles.servers_hybrid, order);
+	% out.order contains the order that the out.whatkind{i} has in the tilesServers file
+	% For example [1 2 1] means that Image and Hybrid are to be fetched from the servers specified
+	% on the first line of tilesServers.txt whilst Maps server is the second entry of that file
+	if ( ~isempty(out) )
+		handles.serversImageOut = out.whatkind{1};
+		handles.serversRoadOut = out.whatkind{2};
+		handles.serversHybridOut = out.whatkind{3};
+		handles.serversOrder = out.order;
+		guidata(handles.figure1, handles)
+	end
+
+% -------------------------------------------------------------------------
+function toggle_mesh_CB(hObject, handles)
+% Plot a squared mesh appropriate for the selected dataset
+	if (~get(hObject,'Val'))			% Make everybody invisible
+		set(handles.hPatches,  'Vis', 'off'),		set(handles.hPatches30,'Vis', 'off')
+		set(handles.hPatches5, 'Vis', 'off'),		set(handles.hPatchImgs, 'Vis', 'off')
+	else
+		rectSize = [get(handles.hRectangle,'XData') get(handles.hRectangle,'YData')];
+		if (any(handles.rectOrigSize - rectSize))		% Rectangle was edited, must recompute patches
+			if (get(handles.radio_srtm,'Val'))
+				handles = draw_srtm_mesh(handles, handles.hRectangle);
+			elseif (get(handles.radio_srtm30,'Val'))
+				handles = draw_srtm30_mesh(handles, handles.hRectangle);
+			elseif (get(handles.radio_srtm5,'Val'))
+				handles = draw_srtm5_mesh(handles, handles.hRectangle);
+			else				% Image tiles
+				handles = region2tiles(handles);
+			end
+		else							% Either make it visible or compute if first time call
+			if (get(handles.radio_srtm,'Val'))
+				if (~isempty(handles.hPatches)),	set(handles.hPatches, 'Vis', 'on')
+				else								handles = draw_srtm_mesh(handles, handles.hRectangle);
+				end
+			elseif (get(handles.radio_srtm30,'Val'))
+				if (~isempty(handles.hPatches30)),	set(handles.hPatches30, 'Vis', 'on')
+				else								handles = draw_srtm30_mesh(handles, handles.hRectangle);
+				end
+			elseif (get(handles.radio_srtm5,'Val'))
+				if (~isempty(handles.hPatches5)),	set(handles.hPatches5, 'Vis', 'on')
+				else								handles = draw_srtm5_mesh(handles, handles.hRectangle);
+				end
+			else
+				if (~isempty(handles.hPatchImgs)),	set(handles.hPatchImgs, 'Vis', 'on')
+				else								handles = region2tiles(handles);
+				end
+			end				
+		end
+	end
+	guidata(handles.figure1, handles)
+
+% -------------------------------------------------------------------------
+function push_OK_CB(hObject, handles)
+% ...
+	if (get(handles.radio_srtm,'Val'))
+		mosaic_srtm(handles)
+	elseif (get(handles.radio_srtm5,'Val'))
+		mosaic_srtm5(handles)
+	elseif (get(handles.radio_srtm30,'Val'))
+		mosaic_srtm30(handles)
+	elseif (get(handles.radio_tileImages,'Val'))
+		mosaic_images(handles)
+	end
+
+% -------------------------------------------------------------------------
+function mosaic_srtm(handles)
+% Build a mosaic of SRTM1|3 tiles
+	[fnames,limits] = sort_patches(handles);
+	if (isempty(fnames))	return,		end
+	m = 1;		n = 1;		% If one tile only
+	if iscell(fnames),		[m,n] = size(fnames);	end
+	RC = 1201;				% Default to SRTM3 size
+	from_web = get(handles.check_web,'Val');
+
+	z_min = 1e100;     z_max = -z_min;
+	Z_tot = repmat(single(NaN), m*(RC-1)+1, n*(RC-1)+1);
+	aguentabar(0,'title','Now wait (reading SRTM files)');		k = 1;
+	for (i = 1:m)				% Loop over selected tiles (by rows)
+		for (j = 1:n)			%           "              (and by columns)
+			if (m*n == 1),		cur_file = fnames{1};		% Trivial case (One tile only)
+			else				cur_file = fnames{i,j};
+			end
+			if (strcmp(cur_file,'void')),	continue,	end        % blank tile
+
+			if (~from_web)
+				ii = strcmp(cur_file, handles.srtm_files);
+				if ~isempty(ii)     % It may be empty when fnames{i,j} == 'void' OR file is compressed
+					full_name = [handles.srtm_patos(ii) '/' handles.srtm_files(ii)];
+				else                % Try with a compressed version
+					ii = strcmp(cur_file, handles.srtm_compfiles);
+					if any(ii)		% Got a compressed file.
+						if (strcmpi(handles.srtm_exts(ii),'.zip'))
+							full_name = ['/vsizip/' handles.srtm_patos_comp{ii} handles.srtm_compfiles{ii} handles.srtm_exts{ii}];
+						elseif (strcmpi(handles.srtm_exts(ii),'.gz'))
+							full_name = ['/vsigzip/' handles.srtm_patos_comp{ii} handles.srtm_compfiles{ii} handles.srtm_exts{ii}];
+						end
+					end
+				end
+			else
+				aguentabar(-1,'title',['Downloading file: ' cur_file]);
+				full_name = ['/vsizip/vsicurl/' get(handles.edit_url,'Str') '/' cur_file '.zip'];
+			end
+
+			Z = single(gdalread(full_name, '-U'));
+			if (i == 1 && j == 1 && size(Z,1) == 3601)
+				RC = 3601;
+				Z_tot = repmat(single(NaN), m*RC, n*RC);	% We must resize the whole thing
+			elseif (size(Z,1) ~= RC)
+				msgbox('Tiles have different sizes. Probably mixing SRTM3 and SRTM1','Error','error'),	return
+			end
+			Z(Z <= -32768) = NaN;
+			[zzz] = grdutils(Z,'-L');		z_min = min(z_min,zzz(1));		z_max = max(z_max,zzz(2));
+			i_r = (1+(i-1)*(RC-1)):i*(RC-1)+1;
+			i_c = (1+(j-1)*(RC-1)):j*(RC-1)+1;
+			Z_tot(i_r, i_c) = Z;
+			aguentabar(k/(m*n))
+			k = k + 1;
+		end
+	end
+	aguentabar(1)		% Close it
+	x_inc = 1 / (RC-1);		y_inc = x_inc;
+	tmp.head = [limits z_min z_max 0 x_inc y_inc];
+	tmp.X = linspace(limits(1), limits(2), RC);		tmp.Y = linspace(limits(3), limits(4), RC);
+	tmp.name = 'SRTM blend';
+	mirone(Z_tot,tmp);
+
+% -----------------------------------------------------------------------------------------
+function mosaic_images(handles)
+% Test if everything is ok and call mosaicing function with (which outputs to Mirone)
+
+	ind = get(handles.hPatchImgs, 'UserData');
+	if (isempty(ind)),		return,		end			% No patches ploted
+	ind = logical(cat(1,ind{:}));
+	if (~any(ind)),			return,		end			% No patch selected
+	
+	% ---------------- Have cache info? -----------------
+	val = get(handles.popup_cache_dir,'Value');
+	contents = get(handles.popup_cache_dir, 'String');
+	str = contents{val};		cacheDir = [];
+	if (~isempty(str)),			cacheDir = str;		end
+
+	tiles_bb = handles.tiles_bb(ind,:);
+	lon = [min(tiles_bb(:,1)) max(tiles_bb(:,2))] + [1 -1] * 1e-6;		% eps is for not getting neighboring tiles
+	lat = [min(tiles_bb(:,3)) max(tiles_bb(:,4))] + [1 -1] * 1e-6;
+	zoomLevel = get(handles.slider_zoomFactor, 'Val') + 1;
+	if (zoomLevel > 18 && get(handles.toggle_map,'Val'))				% Map have 18 as zoom level limit (hybrid???)
+		zoomLevel = 18;
+	end
+
+	[whatkind, source_PN, source_PV] = get_kind(handles);
+	url2image('callmir',lon,lat, zoomLevel, 'cache', cacheDir, 'what',whatkind, source_PN, source_PV, 'verbose','yes');
+
+% -----------------------------------------------------------------------------------------
+function [whatkind, source_PN, source_PV] = get_kind(handles)
+% Get the type of imagery selected by the Satellite Hybrid Map buttons
+
+	source_PN = 'treta';		source_PV = [];		% Dumb value used to default to VE
+	if (get(handles.toggle_sat,'Val')),			whatkind = 'aerial';
+	elseif (get(handles.toggle_map,'Val'))		whatkind = 'road';
+	else										whatkind = 'hybrid';
+	end
+	if ( whatkind(1) == 'a' && isempty(strfind(handles.serversImageOut, 'virtualearth')) )
+		server = handles.serversImageOut;		quadkey = handles.servers_quadkey(handles.serversOrder(1));
+		if (~strncmp(server, 'http', 4)),		server = ['http://' server];	end
+		source_PN = 'source';					source_PV = {server; quadkey{1}};
+	elseif ( whatkind(1) == 'r' && isempty(strfind(handles.serversRoadOut, 'virtualearth')) )
+		server = handles.serversRoadOut;		quadkey = handles.servers_quadkey(handles.serversOrder(2));
+		if (~strncmp(server, 'http', 4)),		server = ['http://' server];	end
+		source_PN = 'source';					source_PV = {server; quadkey{1}};
+	elseif ( whatkind(1) == 'h' && isempty(strfind(handles.serversHybridOut, 'virtualearth')) )
+		server = handles.serversHybridOut;		quadkey = handles.servers_quadkey(handles.serversOrder(3));
+		if (~strncmp(server, 'http', 4)),		server = ['http://' server];	end
+		source_PN = 'source';					source_PV = {server; quadkey{1}};
+	end
+
+% -----------------------------------------------------------------------------------------
+function figure1_CloseRequestFcn(hObject, eventdata)
+% Executes when user closes figure
+	handles = guidata(hObject);
+	% These leave in the Mirone figure
+	delete(handles.figure1),		delete(handles.hPatches)
+	delete(handles.hPatches5),		delete(handles.hPatches30)
+	delete(handles.hPatchImgs)
+
+% ----------------------------------------------------------- 
+function mosaicer_LayoutFcn(h1)
+
+set(h1,...
+'CloseRequestFcn',@figure1_CloseRequestFcn,...
+'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'MenuBar','none',...
+'Name','Mosaicer',...
+'NumberTitle','off',...
+'Position',[520 513 376 287],...
+'Resize','off',...
+'HandleVisibility','callback',...
+'Tag','figure1');
+
+uicontrol('Parent',h1, 'Position',[5 36 366 111], 'Style','frame');
+
+uicontrol('Parent',h1,...
+'FontName','Helvetica',...
+'FontSize',9,...
+'HorizontalAlignment','left',...
+'Position',[10 70 70 17],...
+'String','Zoom Level',...
+'Style','text');
+
+uicontrol('Parent',h1, 'Position',[5 153 366 125], 'Style','frame');
+
+uicontrol('Parent',h1,...
+'HorizontalAlignment','left',...
+'Position',[10 226 101 14],...
+'String','Directory with files',...
+'Style','text');
+
+uicontrol('Parent',h1,...
+'HorizontalAlignment','left',...
+'Position',[10 183 111 14],...
+'String','OR Web download',...
+'Style','text');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Call',@mosaicer_uiCB,...
+'Position',[10 206 331 21],...
+'String',' ',...
+'Style','popupmenu',...
+'Tooltip','Directory were the SRTM files are stored',...
+'Value',1,...
+'Tag','popup_grd_dir');
+
+uicontrol('Parent',h1,...
+'Call',@mosaicer_uiCB,...
+'FontSize',9,...
+'FontWeight','bold',...
+'Position',[341 205 23 23],...
+'String','...',...
+'Tag','push_grd_dir');
+
+uicontrol('Parent',h1, 'Position',[11 244 55 21],...
+'Call',@mosaicer_uiCB,...
+'String','SRTM',...
+'Style','radiobutton',...
+'Value',1,...
+'Tag','radio_srtm');
+
+uicontrol('Parent',h1, 'Position',[95 244 61 21],...
+'Call',@mosaicer_uiCB,...
+'String','SRTM30',...
+'Style','radiobutton',...
+'Tag','radio_srtm30');
+
+uicontrol('Parent',h1, 'Position',[180 244 61 21],...
+'Call',@mosaicer_uiCB,...
+'String','SRTM5º',...
+'Style','radiobutton',...
+'Tag','radio_srtm5');
+
+uicontrol('Parent',h1, 'Position',[10 180 122 21],...
+'Call',@mosaicer_uiCB,...
+'String','OR Web download',...
+'Style','checkbox',...
+'Tag','check_web');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Call',@mosaicer_uiCB,...
+'HorizontalAlignment','left',...
+'Position',[10 160 351 22],...
+'String','',...
+'Style','edit',...
+'Tooltip','Enter the URL of root dir where to download from',...
+'Tag','edit_url');
+
+uicontrol('Parent',h1,...
+'Call',@mosaicer_uiCB,...
+'Position',[11 106 82 23],...
+'String','Tile Images',...
+'Style','radiobutton',...
+'Tag','radio_tileImages');
+
+uicontrol('Parent',h1,...
+'FontSize',10,...
+'Position',[116 268 122 18],...
+'String','SRTM type files',...
+'Style','text',...
+'Tag','text_TitFrame1');
+
+uicontrol('Parent',h1, 'Position',[81 70 261 17],...
+'BackgroundColor',[1 1 1],...
+'Call',@mosaicer_uiCB,...
+'Min',0, 'Max',23,...
+'SliderStep', [1 1] / 23,...
+'Style','slider',...
+'Tooltip','Select the desired zooming factor.',...
+'Enable','off',...
+'Tag','slider_zoomFactor');
+
+uicontrol('Parent',h1,...
+'FontSize',10,...
+'FontWeight','demi',...
+'HorizontalAlignment','left',...
+'Position',[344 72 20 15],...
+'String','1',...
+'Style','text',...
+'Tag','text_zoomFactor');
+
+uicontrol('Parent',h1,...
+'BackgroundColor',[1 1 1],...
+'Call',@mosaicer_uiCB,...
+'Position',[90 45 251 22],...
+'String',' ',...
+'Style','popupmenu',...
+'Tooltip','Select a cache directory where to search/save tiles files',...
+'Value',1,...
+'Tag','popup_cache_dir');
+
+uicontrol('Parent',h1,...
+'Call',@mosaicer_uiCB,...
+'FontSize',10,...
+'FontWeight','bold',...
+'Position',[341 45 23 23],...
+'String','...',...
+'Tooltip','Select a different directory',...
+'Tag','push_cache_dir');
+
+uicontrol('Parent',h1,...
+'Position',[10 46 80 17],...
+'String','Cache directory',...
+'Style','text');
+
+uicontrol('Parent',h1,...
+'FontSize',10,...
+'Position',[97 135 180 18],...
+'String','OR Tile images (e.g. Bing)',...
+'Style','text',...
+'Tag','text_TitFrame2');
+
+uicontrol('Parent',h1,...
+'Call',@mosaicer_uiCB,...
+'Position',[95 104 57 23],...
+'String','Satellite',...
+'Style','togglebutton',...
+'Tag','toggle_sat');
+
+uicontrol('Parent',h1,...
+'Call',@mosaicer_uiCB,...
+'Position',[153 104 57 23],...
+'String','Hybrid',...
+'Style','togglebutton',...
+'Tag','toggle_hybrid');
+
+uicontrol('Parent',h1,...
+'Call',@mosaicer_uiCB,...
+'Position',[211 104 53 23],...
+'String','Map',...
+'Style','togglebutton',...
+'Tag','toggle_map');
+
+uicontrol('Parent',h1,...
+'Call',@mosaicer_uiCB,...
+'FontAngle','italic',...
+'Position',[310 104 51 23],...
+'String','Source',...
+'Tooltip','Select data source',...
+'Tag','push_src');
+
+uicontrol('Parent',h1,...
+'Call',@mosaicer_uiCB,...
+'FontSize',9,...
+'Position',[6 6 121 23],...
+'String','Tile mesh on/off',...
+'Style','togglebutton',...
+'Value',1,...
+'Tooltip','Toggle tile mesh on/off',...
+'Tag','toggle_mesh');
+
+uicontrol('Parent',h1,...
+'Call',@mosaicer_uiCB,...
+'FontWeight','bold',...
+'Position',[280 6 91 23],...
+'String','OK',...
+'Tag','push_OK');
+
+function mosaicer_uiCB(hObject, eventdata)
+% This function is executed by the callback and than the handles is allways updated.
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
