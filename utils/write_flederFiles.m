@@ -33,7 +33,6 @@ function filename = write_flederFiles(opt,varargin)
 % --------------------------------------------------------------------
 
 	if (opt(1) == 'w' || opt(1) == 'r')			% Here opt is a "write..." or "run..."
-		fname = [];
 		handles = varargin{1};
 		if (handles.validGrid)
 			[X,Y,Z,head] = load_grd(handles);
