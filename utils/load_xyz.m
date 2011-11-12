@@ -291,7 +291,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		elseif (strncmp(multi_segs_str{1}, '>VIMAGE', 7))
 			[z_Vmin, r] = strtok(multi_segs_str{k}(8:end));		z_Vmin = str2double(z_Vmin);
 			[z_Vmax, r] = strtok(r);							z_Vmax = str2double(z_Vmax);
-			vimage = strtok(r);
+			vimage = ddewhite(r);
 			if (isnan(z_Vmin) || isnan(z_Vmax))
 				errordlg('Load VIMAGE error. First 2 fields must contain Z_START & Z_END info.','Error'),	return
 			end
