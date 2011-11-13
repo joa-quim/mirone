@@ -312,6 +312,7 @@ lib_mex/mex_shape.dll -text
 lib_mex/mexnc.dll -text
 lib_mex/mirblock.dll -text
 lib_mex/morphmex.dll -text
+lib_mex/mosaicer.dll -text
 lib_mex/mpgwrite.dll -text
 lib_mex/mxgridtrimesh.dll -text
 lib_mex/nearneighbor_m.dll -text
